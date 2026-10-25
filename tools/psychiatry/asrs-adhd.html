@@ -317,7 +317,42 @@ function copyResult(){
   var pos=0;A.forEach(function(v,i){if(SH[i].indexOf(v)>=0)pos++;});
   ToolBox.copyText('ASRS 阳性项 '+pos+'/6，总分 '+total+'/24','tool.copy_ok');
 }
-var __asrs0=calc; calc=function(){__asrs0(); __asrsExtras();};
+/* —— 门诊记录（EMR note）：把量表结果整理成可直接粘进门诊病历的文本（中英双语） —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById('result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+           :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  el.innerHTML=String(el.innerHTML)+'<div class="note-box" style="margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);"><div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button></div>';
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var done=A.filter(function(v){return v>=0;}).length; if(done<QS.length) return;
+  var total=A.reduce(function(s,v){return s+v;},0), posA=0, pos=[], i;
+  for(i=0;i<A.length;i++){
+    if(SH[i]&&SH[i].indexOf(A[i])>=0){ posA++; if(i<6) pos.push({i:i+1,t:QS[i],o:OPTS[A[i]]}); }
+  }
+  var sv=__asrsSev(posA), screen=(posA>=4);
+  __emrNote({name:'ASRS-v1.1 成人 ADHD 自评（Part A 6 条目筛查）', nameEn:'ASRS-v1.1 Adult ADHD self-report (Part A, 6-item screener)',
+    result:'Part A 阳性 '+posA+'/6（阈值 ≥4），6 项加权总分 '+total+'/24，结论：'+sv[0],
+    resultEn:'Part A positive '+posA+'/6 (cutoff >=4), weighted total '+total+'/24, '+(screen?'screen positive':'screen negative'),
+    pos:pos, hintZh:sv[1], hintEn:sv[3]});
+}
+var __asrs0=calc; calc=function(){__asrs0(); __asrsExtras(); try{__emrData();}catch(e){}};
 render();calc(); __asrsMountHist();
 </script>
 

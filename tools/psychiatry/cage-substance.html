@@ -314,7 +314,42 @@ function copyResult(){
   var yes=A.filter(function(v){return v===0;}).length;
   ToolBox.copyText('CAGE 酒精问题筛查：'+yes+'/4，'+(yes>=2?'阳性':'阴性'), i18nText('toast.msg544'));
 }
-var __cg0=calc; calc=function(){__cg0(); __cageExtras();};
+/* —— 门诊记录（EMR note）：把量表结果整理成可直接粘进门诊病历的文本（中英双语） —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById('result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+           :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  el.innerHTML=String(el.innerHTML)+'<div class="note-box" style="margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);"><div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button></div>';
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var done=A.filter(function(v){return v>=0;}).length; if(done<QS.length) return;
+  var yes=A.filter(function(v){return v===0;}).length, pos=[], i;
+  for(i=0;i<A.length;i++){ if(A[i]===0) pos.push({i:i+1,t:QS[i][0],o:'是/yes'}); }
+  var pos2=(yes>=2);
+  __emrNote({name:'CAGE 酒精问题筛查（4 条目）', nameEn:'CAGE alcohol screen (4 items)',
+    result:'阳性 '+yes+'/4，结论：'+(pos2?'筛查阳性（≥2 项）':'筛查阴性'),
+    resultEn:'positive '+yes+'/4, '+(pos2?'screen positive (>=2 items)':'screen negative'),
+    pos:pos,
+    hintZh:(pos2?'CAGE ≥2 项阳性提示酒精相关问题风险升高，建议进一步行 AUDIT-C 或临床访谈确认。':'CAGE 未达阳性阈值，但不能据此排除饮酒相关问题，必要时结合 AUDIT-C。'),
+    hintEn:(pos2?'Two or more positive CAGE items raise the likelihood of an alcohol-related problem; consider AUDIT-C or a clinical interview.':'Below the CAGE threshold, but an alcohol-related problem cannot be excluded; consider AUDIT-C if suspicion remains.')});
+}
+var __cg0=calc; calc=function(){__cg0(); __cageExtras(); try{__emrData();}catch(e){}};
 render();calc();
 __cageMountHist();
 </script>
