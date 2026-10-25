@@ -32,20 +32,7 @@ const CASES = [
   ],
   "ref": "菜单毛利率：总营收=2880+2090+1120=6090.00，总毛利=1800+1520+760=4080.00 → 综合毛利率 67.00%；蒜蓉西兰花单品毛利率 1520/2090=72.73%（独立复算，非页面默认菜单）",
 },
-{
-  "slug": "food/beer-gravity-estimator",
-  "inputs": {
-    "water": "30",
-    "efficiency": "75",
-    "attenuation": "75",
-    "malt-wt-' + idx + '": "' + m.weight + '",
-    "malt-ppg-' + idx + '": "' + (m.ppg || 35) + '"
-  },
-  "expect": [
-    "1.005"
-  ],
-  "ref": "auto-restore"
-},
+// food/beer-gravity-estimator 用例 2026-10-25 删除：原 inputs 键为模板串残留从未注入成功（锚 1.005 为历史巧合）；麦芽行为动态 id 且 stub 注入不可靠，OG 公式 kg→lb 缺陷已修复（×2.20462），待以 clicks 方式重建用例
 {
   "slug": "food/calc-concentration",
   "inputs": {
