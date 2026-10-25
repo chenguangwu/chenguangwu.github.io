@@ -22,7 +22,7 @@
 | Z1 unit-price-compare 固液量纲混用 | 06-商业运营/biz-startup.md | ml/L 与 g/kg 不可直接比单价（✅ 2026-10-25 已修） |
 | O1 dyeing/tester-9 输入 C 未参与计算 | 12-长尾行业/_others.md | GB/T 20944.2 口径（✅ 2026-10-25 已修） |
 | L1 bra-size 美码=英码且口径粗糙 | 05-生活消费/life.md | US=UK+2 |
-| E1 eco-10/16「万 kWh」量纲口径存疑 | 10-农业养殖/livestock-eco-forestry.md | 先核对页面标签再改 |
+| E1 eco-10/16「万 kWh」量纲口径存疑 | 10-农业养殖/livestock-eco-forestry.md | ✅ 2026-10-25 已修（标「万 kWh」→「MWh（千 kWh）」，数值不动） |
 
 ### P1 口径/标签矛盾——数字对但表述误导
 
