@@ -364,6 +364,7 @@ function calc(){
     html+='<div class="tip-box tip-error"><strong>重症预警</strong><br>存在多项危险信号，有进展为神经源性肺水肿/心功能衰竭风险，需紧急住院监护治疗。EV71感染重症进展快，病程1-4天为关键窗口期。</div>';
   }
 
+  window.__EMR_SUM={age:age,day:day,temp:temp,rash:rashCount,mouth:rashMouth,typical:hasTypicalRash,stage:stage,ns:neuroSigns.length,cs:cardioSigns.length,nsign:checkedSigns.length,adv:advice,mgmt:management};
   const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 
@@ -371,6 +372,55 @@ function copyResult(){
   ToolBox.copyText(document.getElementById('result').innerText, i18nText('msg401'));
 }
 calc();
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进门诊病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('result'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var hz,he;
+  if(s.cs>0){ hz='已出现心肺功能受累表现，属重症/危重型，需立即住院（PICU）监护、降颅压、循环支持，警惕神经源性肺水肿。'; he='Cardiopulmonary involvement present: severe or critical disease; admit to PICU for monitoring, intracranial pressure control and circulatory support, watch for neurogenic pulmonary oedema.'; }
+  else if(s.ns>0){ hz='出现神经系统受累表现（第 2 期），需住院观察，监测生命体征与神经系统体征，警惕进展为心肺衰竭。'; he='Neurological involvement (stage 2): admit for observation, monitor vital signs and neurological status, watch for progression to cardiopulmonary failure.'; }
+  else { hz='无重症预警征象，普通型可居家隔离对症治疗，嘱家长识别嗜睡、肢体抖动、呕吐、呼吸增快等重症信号。'; he='No severe-disease warning signs: typical case can be managed at home with symptomatic care; teach parents the red flags (lethargy, limb jerking, vomiting, tachypnoea).'; }
+  __emrNote({name:'手足口病分期评估（皮疹分布 + 重症预警征）', nameEn:'Hand-Foot-Mouth Disease Staging (rash distribution and severe-disease warning signs)',
+    result:'年龄 '+s.age+' 月 · 病程第 '+s.day+' 天 · 体温 '+s.temp+'°C → 分期：'+s.stage+'；皮疹 '+s.rash+' 处'+(s.mouth?'（含口腔）':'')+'、分布典型：'+(s.typical?'是':'否'),
+    resultEn:'age '+s.age+' months, illness day '+s.day+', temperature '+s.temp+' C -> stage recorded; rash at '+s.rash+' sites'+(s.mouth?' (including oral)':'')+'; typical distribution: '+(s.typical?'yes':'no'),
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'重症预警征象 '+s.nsign+' 项（神经系统 '+s.ns+' 项、心肺 '+s.cs+' 项）；处置：'+s.mgmt,
+    extraEn:'Warning signs '+s.nsign+' (neurological '+s.ns+', cardiopulmonary '+s.cs+'); disposition recorded'});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

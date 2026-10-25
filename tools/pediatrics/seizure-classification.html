@@ -345,6 +345,7 @@ function calc(){
     html+='<div class="tip-box tip-info"><strong>继发癫痫风险</strong><br>约'+epilepsyRisk+'%（单纯型FS约1%，复杂型FS可达4-15%）。多在2年内发生，需长期随访。</div>';
   }
 
+  window.__EMR_SUM={age:age,fever:(opts.fever==='yes'),dur:opts.duration,type:opts.type,times:opts.times,hist:history,fam:family,diag:diagnosis,risk:recurrenceRisk,adv:advice,rf:riskFactors.slice(0,4)};
   const __g1=html;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 
@@ -352,6 +353,57 @@ function copyResult(){
   ToolBox.copyText(document.getElementById('result').innerText, i18nText('msg395'));
 }
 calc();
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进门诊病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+var __szZ=function(k){ return ({brief:'<15 分钟',prolonged:'≥15 分钟',generalized:'全面性',focal:'局灶性',single:'单次',repeated:'多次'})[k]||k; };
+function __emrData(){
+  var el=document.getElementById('result'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var hz,he;
+  if(s.diag==='单纯型热性惊厥'){ hz='单纯型热性惊厥预后良好：退热与家长教育为主，不推荐长期预防性抗癫痫药；复发多在 1 年内，嘱发作时侧卧、计时、勿塞物。'; he='Simple febrile seizure has a good prognosis: antipyretics and parental education; long-term antiepileptic prophylaxis is not recommended. Teach first-aid measures.'; }
+  else if(s.diag==='复杂型热性惊厥'){ hz='复杂型热性惊厥：建议 2 周后复查脑电图（避免发作后立即做），必要时头颅影像；复发率约 50–60%，需与家长充分沟通。'; he='Complex febrile seizure: EEG after 2 weeks (not immediately post-ictal) and imaging if indicated; recurrence about 50-60%, discuss with parents.'; }
+  else if(s.diag==='无热惊厥'){ hz='无热惊厥需按癫痫/症状性惊厥路径评估：血糖、电解质、脑电图、头颅影像，警惕中枢感染与代谢病。'; he='Afebrile seizure requires evaluation along epilepsy or symptomatic seizure pathways: glucose, electrolytes, EEG and neuroimaging; exclude CNS infection and metabolic disease.'; }
+  else { hz='年龄不在 6 月–5 岁典型热性惊厥范围，需排查中枢感染、代谢异常与癫痫。'; he='Age outside the typical 6-60 month window for febrile seizures: exclude CNS infection, metabolic derangement and epilepsy.'; }
+  __emrNote({name:'小儿惊厥分类与复发风险评估', nameEn:'Paediatric Seizure Classification and Recurrence Risk',
+    result:'年龄 '+s.age+' 月 · 发热 '+(s.fever?'有':'无')+' · 发作时长 '+__szZ(s.dur)+' · 发作形式 '+__szZ(s.type)+' · 次数 '+__szZ(s.times)+' → '+s.diag+'（复发风险 '+s.risk+'）',
+    resultEn:'age '+s.age+' months, fever '+(s.fever?'present':'absent')+', duration and semiology recorded -> grade: '+s.diag+', recurrence risk '+s.risk,
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'复发危险因素 '+(s.rf.length?s.rf.length+' 项（'+s.rf.join('、')+'）':'0 项')+'；家族史：'+(s.fam?'阳性':'阴性')+'；既往惊厥史：'+(s.hist?'有':'无'),
+    extraEn:'Recurrence risk factors: '+s.rf.length+'; family history: '+(s.fam?'positive':'negative')+'; prior seizure history: '+(s.hist?'yes':'no')});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

@@ -331,6 +331,7 @@ function calc(){
     html+='<div class="tip-box tip-error"><strong>斜视警示</strong><br>明显眼位偏斜(≥2mm/~30°)，需尽快眼科就诊。3-6岁是弱视治疗黄金期，延误可导致永久性视觉损害。</div>';
   }
 
+  window.__EMR_SUM={fix:fixing,ref:reflex,off:offset,dev:deviation,diag:diagnosis,eye:nonFixingEye,pupil:pupil};
   const __g1=html;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 
@@ -350,6 +351,56 @@ function copyResult(){
   ToolBox.copyText(document.getElementById('result').innerText, i18nText('msg055'));
 }
 calc();
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进门诊病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+var __hRefZ=function(k){ return ({center:'居中',nasal:'偏鼻侧',temporal:'偏颞侧',superior:'偏上方',inferior:'偏下方'})[k]||k; };
+function __emrData(){
+  var el=document.getElementById('result'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var hz,he;
+  if(s.ref==='center'){ hz='角膜光反射居中，眼位正，无需处理；若家长仍有顾虑可做遮盖-去遮盖试验复核。'; he='Corneal light reflex central with orthophoric position; no action needed, confirm with cover-uncover testing if concern persists.'; }
+  else if(s.off>=3.5){ hz='偏斜量较大（约 '+s.dev+'°），建议尽快小儿眼科评估，行三棱镜/同视机定量并评估手术指征。'; he='Large deviation (about '+s.dev+' degrees): urgent paediatric ophthalmology assessment with prism or synoptophore measurement and surgical consideration.'; }
+  else { hz='存在斜视（约 '+s.dev+'°），建议小儿眼科评估：查视力、眼底、屈光（散瞳验光），排除弱视并决定是否需要配镜/遮盖/手术。'; he='Strabismus present (about '+s.dev+' degrees): paediatric ophthalmology assessment including acuity, fundus and cycloplegic refraction to exclude amblyopia and decide on glasses, patching or surgery.'; }
+  __emrNote({name:'Hirschberg 角膜光反射斜视检查', nameEn:'Hirschberg Corneal Light Reflex Test',
+    result:'注视眼：'+(s.fix==='left'?'左眼':(s.fix==='right'?'右眼':s.fix))+' → 非注视眼：'+s.eye+'；光反射位置 '+__hRefZ(s.ref)+'、偏移 '+s.off+' mm（约 '+s.dev+'°）→ '+s.diag,
+    resultEn:'fixing eye recorded, deviating eye '+s.eye+'; light reflex '+s.ref+' with '+s.off+' mm offset (about '+s.dev+' degrees)',
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'经验换算：角膜光反射每偏移 1 mm 约对应 15°（≈7 三棱镜度）；瞳孔直径 '+s.pupil+' mm；结果为粗测，确诊需三棱镜遮盖试验',
+    extraEn:'Rule of thumb: 1 mm corneal reflex offset is about 15 degrees (about 7 prism dioptres); pupil '+s.pupil+' mm; this is a screening estimate, prism cover testing is required for confirmation'});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

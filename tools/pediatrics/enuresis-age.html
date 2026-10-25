@@ -348,6 +348,7 @@ function calc(){
     html+='<div class="tip-box tip-error"><strong>非单症状性遗尿</strong><br>伴有日间症状提示可能存在膀胱功能障碍(过度活动膀胱/排尿功能障碍)，需尿动力学评估，治疗策略不同。</div>';
   }
 
+  window.__EMR_SUM={age:age,freq:freq,sev:severity,et:enuresisType,st:symptomType,diag:isDiagnosed,wk:needWorkup.slice(0,5),adv:treatmentAdvice,rate:normalRate,typ:type};
   const __g1=html;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 
@@ -355,6 +356,56 @@ function copyResult(){
   ToolBox.copyText(document.getElementById('result').innerText, i18nText('msg631'));
 }
 calc();
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进门诊病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('result'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var hz,he;
+  if(s.age<5){ hz='5 岁以下不作遗尿症诊断，以行为指导为主（睡前限水、定时排尿、避免责备）。'; he='Under 5 years enuresis is not diagnosed; behavioural guidance only (limit evening fluids, scheduled voiding, avoid blame).'; }
+  else if(s.diag){ hz='已符合遗尿症诊断（≥5 岁且 ≥2 次/周），建议行为治疗（遗尿报警器/膀胱训练）为主，必要时去氨加压素。'; he='Meets diagnostic criteria (age 5 or above and 2 or more wet nights per week): behavioural therapy first (alarm, bladder training), desmopressin if needed.'; }
+  else { hz='未达诊断阈值（<2 次/周），以观察与行为干预为主，多数随年龄自愈（每年约 15%）。'; he='Below the diagnostic threshold (fewer than 2 wet nights per week): observation and behavioural measures; about 15% remit each year.'; }
+  if(s.wk.length){ hz+=' 需排查：'+s.wk.join('；')+'。'; he+=' Work-up indicated for the recorded red flags.'; }
+  __emrNote({name:'儿童夜遗尿评估（年龄 + 频率 + 伴随症状）', nameEn:'Paediatric Nocturnal Enuresis Assessment (age, frequency, associated symptoms)',
+    result:'年龄 '+s.age+' 岁 · 每周遗尿 '+s.freq+' 次 → 严重度 '+s.sev+'；'+s.et+' / '+s.st+'（'+(s.diag?'符合诊断':'未达诊断阈值')+'）；同龄自然控尿率约 '+s.rate+'%',
+    resultEn:'age '+s.age+' years, '+s.freq+' wet nights per week -> severity recorded; type recorded; diagnostic threshold '+(s.diag?'met':'not met')+'; age-matched continence rate about '+s.rate+'%',
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'伴随情况需排查 '+s.wk.length+' 项'+ (s.wk.length?'（'+s.wk.join('、')+'）':'') +'；处理：'+s.adv,
+    extraEn:'Red flags requiring work-up: '+s.wk.length+'; plan: behavioural and medical management as above'});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

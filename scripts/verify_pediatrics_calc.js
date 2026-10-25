@@ -42,55 +42,10 @@ const CASES = [
 },
 {"slug":"pediatrics/dehydration-assessment","inputs":{"weight":"8","prevWeight":"8.8"},"checkIds":["s3","s4","s8"],"expect":["结果：分度：中度脱水（估计体液丢失 5-10%）· Gorelick 评分 3/10","体重丢失法算得 9.1%"],"ref":"门诊记录：勾选 s3 黏膜干燥 + s4 眼窝凹陷 + s8 尿量减少 ⇒ Gorelick 3/10 落 3–6 段「中度脱水」（5-10%）；病前 8.8 kg → 现 8 kg，体重丢失 (0.8/8.8)=9.1% ⇒ 累计丢失量按体重丢失法算得约 727 mL。默认态 10 kg、未勾选、无病前体重 ⇒「轻度脱水」「Gorelick 0/10」，零交集。"},
 {"slug":"pediatrics/diarrhea-dehydration","inputs":{"age":"18","weight":"10","stoolFreq":"8","duration":"3","stoolType":"watery"},"checkIds":["s1","s4","s5","s8"],"expect":["结果：分度：中度脱水（体液丢失 8%）· 腹泻 8 次/日 · 病程 3 天 · 大便性状 水样便","重度体征 0 项、中度体征 4 项、轻度体征 0 项（共 4 项）"],"ref":"门诊记录：勾选 s1 眼窝凹陷 + s4 皮肤弹性差 + s5 尿量减少 + s8 前囟凹陷，全属中度体征 4 项 ⇒ 中度脱水（7.5%→显示 8%）；水样便。默认态 12 月/10 kg/6 次/日、未勾选 ⇒「无脱水（体液丢失 0%）」，零交集。"},
-{
-  "slug": "pediatrics/enuresis-age",
-  "inputs": {
-    "age": "10",
-    "freq": "2"
-  },
-  "expect": [
-    "10岁"
-  ],
-  "ref": "遗尿症评估：age=10 / freq=2 → 轻度(2-3次/周)（默认 7岁 / 4次 → 中度）。取动态串「10岁」锚定，回退默认(7岁)失配。"
-},
-{
-  "slug": "pediatrics/growth-curve-zscore",
-  "inputs": {
-    "age": "24",
-    "height": "75",
-    "weight": "10",
-    "head": "46"
-  },
-  "expect": [
-    "身高：75cm"
-  ],
-  "ref": "生长曲线 Z 评分：height=75 → 「身高：75cm | 中位数：102.3cm | Z评分：-11.47」(重度偏低)（默认 87cm → Z -6.43）。取动态串「身高：75cm」锚定，回退默认(87cm)失配。"
-},
-{
-  "slug": "pediatrics/hfmd-course",
-  "inputs": {
-    "age": "24",
-    "day": "5",
-    "temp": "40"
-  },
-  "expect": [
-    "40°C"
-  ],
-  "ref": "手足口病病程：temp=40 / day=5 → 「40°C 体温 第5天」（默认 38.5°C / 第2天）。取动态串「40°C」锚定，回退默认(38.5°C)失配。"
-},
-{
-  "slug": "pediatrics/hirschberg-test",
-  "inputs": {
-    "fixing": "left",
-    "reflex": "exo",
-    "offset": "15",
-    "pupil": "4"
-  },
-  "expect": [
-    "明显眼位偏斜"
-  ],
-  "ref": "Hirschberg 角膜映光法：默认 fixing=right/reflex=center/offset=2 → 「眼位正位，无明显斜视」(恒定)；改 fixing=left/reflex=exo/offset=15 → 「明显眼位偏斜(≥2mm/~30°)」。取动态结论「明显眼位偏斜」锚定，回退默认(正位)失配。注：reflex=exo 分支存在未定义变量(输出含 undefined)，本次不修该 bug，仅取稳定结论串作判别锚点。"
-},
+{"slug":"pediatrics/enuresis-age","inputs":{"age":"8","freq":"6"},"expect":["结果：年龄 8 岁 · 每周遗尿 6 次 → 严重度 中度(4-6次/周)；原发性遗尿 / 单症状性遗尿(仅夜间)（符合诊断）；同龄自然控尿率约 93%"],"ref":"门诊记录：8 岁、每周 6 次 ⇒ 4–6 段「中度」、≥5 岁且 ≥2 次/周「符合诊断」、8 岁档自然控尿率 93%；本题未勾选任何伴随症状 ⇒ 需排查 0 项。默认态 7 岁/4 次 ⇒「每周遗尿 4 次」「同龄自然控尿率约 85%」，零交集。原用例 expect 仅「10岁」年龄回显。"},
+{"slug":"pediatrics/growth-curve-zscore","inputs":{"gender":"girl","age":"24","ageUnit":"month","height":"82","weight":"10.5","head":"46"},"expect":["结果：年龄 24 月（女）· 身高 82 cm → Z -1.16（正常）；体重 10.5 kg → Z -1.28（正常）；头围 46 cm → Z -0.92（正常）","参考中位数：身高中位 85.7、体重中位 12.3、头围中位 47.2"],"ref":"门诊记录（EMR note）：24 月女童 WHO 身高中位 85.7 cm、SD 3.2 ⇒ Z=(82-85.7)/3.2=-1.16；体重中位 12.3、SD 1.42 ⇒ -1.28；头围中位 47.2 ⇒ -0.92。默认态男童 87/12.5/48 ⇒「身高 87 cm → Z -0.03」，零交集。本批同时修 whoRef 身高中位数模型：旧实现 49+2.1×月龄 线性外推，24 月女童给到 99.4 cm（正确 85.7），正常儿童被判「Z -7.47 重度生长迟缓」；改为 WHO 生长标准分月龄中位数/SD 表（0–60 月 Child Growth Standards，61 月起 2007 生长参考）+ 线性插值。"},
+{"slug":"pediatrics/hfmd-course","inputs":{"age":"18","day":"3","temp":"39.2"},"checkIds":["s2","s3"],"expect":["结果：年龄 18 月 · 病程第 3 天 · 体温 39.2°C → 分期：第2期：神经系统受累期；皮疹 0 处、分布典型：否","重症预警征象 2 项（神经系统 2 项、心肺 0 项）；处置：住院治疗+降颅压"],"ref":"门诊记录：勾选 s2 精神差/嗜睡 + s3 肢体抖动/肌阵挛（均属神经系统预警征）⇒ 神经 2 项、心肺 0 项 ⇒ 落「第 2 期：神经系统受累期」，处置「住院治疗+降颅压」。默认态 24 月/第 2 天/38.5°C 且无勾选 ⇒「疑似(皮疹不典型)」，零交集。原用例 expect 仅「40°C」体温回显。"},
+{"slug":"pediatrics/hirschberg-test","inputs":{"fixing":"left","reflex":"nasal","offset":"3","pupil":"6"},"expect":["结果：注视眼：左眼 → 非注视眼：右眼；光反射位置 偏鼻侧、偏移 3 mm（约 45°）→ 重度外斜视(Exotropia)","经验换算：角膜光反射每偏移 1 mm 约对应 15°（≈7 三棱镜度）；瞳孔直径 6 mm"],"ref":"门诊记录：左眼注视、光反射偏鼻侧（眼球外转）⇒ 外斜；偏移 3 mm × 15° = 45°；≥3.5 mm 段为「极重度」、2.5–3.5 mm 为「重度」⇒ 3 mm 落「重度外斜视」。默认态 reflex=center、offset=2 ⇒「正位(无斜视)」「光反射位置 居中」，零交集。原用例注入 reflex=exo（页面并无该选项值）导致结论含 undefined，属非法输入，已改为合法值 nasal。"},
 {"slug":"pediatrics/neonatal-jaundice","inputs":{"hours":"72","tsb":"15","ga":"39","bw":"3200"},"expect":["结果：TSB 15 mg/dL @ 出生 72 小时 → 高危险区；光疗阈值 17、换血阈值 22 → 未达光疗阈值","小时龄百分位 P40 11.5 / P75 14.5 / P95 15.0 mg/dL；高危因素：无"],"ref":"门诊记录：Bhutani 1999 小时龄百分位表 72 h 为 P40 11.5 / P75 14.5 / P95 15.0 mg/dL（AAP 2004/2009 沿用），TSB 15 ≥ P95 ⇒「高危险区」；39 周足月低危儿 72–96 h 光疗阈值 17、换血 22（页面 getThresholds）⇒ 未达光疗阈值。默认态 48 h/TSB 14 ⇒「TSB 14 mg/dL @ 出生 48 小时」「P95 12.0」，零交集。本用例同时锁住「百分位表口径」（原实现用二次多项式近似，72 h 给出 P95 56.8 mg/dL 的荒谬值，已改为权威表插值）。"},
 {"slug":"pediatrics/pediatric-anemia","inputs":{"age":"12","ageUnit":"month","weight":"10","hb":"95","sf":"8","mcv":"70"},"expect":["结果：年龄 12 月（6-59月）· Hb 95 g/L（阈值 ≥110）→ 中度贫血；MCV 70 fL（阈值 ≥75）、SF 8 μg/L → 缺铁性贫血(IDA,Stage 3)","元素铁补充量 40.0 mg/日；SF 偏低：是；MCV 偏低：是"],"ref":"门诊记录：12 月龄属 6-59 月组，Hb 阈值 110 g/L，实测 95 ⇒ 中度贫血；MCV 70 < 75、SF 8 < 12 ⇒ IDA Stage 3；10 kg × 4 mg/kg/日 = 40.0 mg/日元素铁。默认态 Hb 100/MCV 72/SF 12 ⇒「轻度贫血」「铁储存不足」，零交集。"},
 {"slug":"pediatrics/pediatric-fever","inputs":{"temp":"39.2","age":"8"},"clicks":["var e=document.getElementById('fever3d');if(e){e.checked=true;}calc()"],"expect":["结果：体温 39.2°C（腋温）→ 腋温等效 39.2°C，分度：高热","月龄 8 月；危险信号 1 条"],"ref":"门诊记录（EMR note）：体温 39.2°C（腋温）落 39.0–41.0 段「高热」；勾选发热>3 天 ⇒ 危险信号 1 条。默认态 38.5°C/24 月、未勾选 ⇒「分度：中度发热」「危险信号 0 条」，零交集。原用例只锚 39.5°C 单值（输入回显式弱锚）。"},
@@ -152,16 +107,7 @@ const CASES = [
   ],
   "ref": "auto-restore"
 },
-{
-  "slug": "pediatrics/seizure-classification",
-  "inputs": {
-    "age": "30"
-  },
-  "expect": [
-    "30月"
-  ],
-  "ref": "auto-restore"
-},
+{"slug":"pediatrics/seizure-classification","inputs":{"age":"24"},"clicks":["opts.duration='prolonged';opts.type='focal';calc()"],"expect":["结果：年龄 24 月 · 发热 有 · 发作时长 ≥15 分钟 · 发作形式 局灶性 · 次数 单次 → 复杂型热性惊厥（复发风险 50-60%）","复发危险因素 2 项（长时程发作、局灶性发作）；家族史：阴性；既往惊厥史：无"],"ref":"门诊记录：24 月龄在 6–60 月范围内且发热 ⇒ 属热性惊厥；clicks 置 duration=prolonged、type=focal ⇒ 非「短+全面+单次」组合 ⇒ 落「复杂型热性惊厥」（复发 50-60%）；危险因素计 2 项。默认态 brief/generalized/single ⇒「单纯型热性惊厥（复发风险 ~30%）」「危险因素 0 项」，零交集。原用例 expect 仅「30月」年龄回显（auto-restore 残留）。"},
 {
   "slug": "pediatrics/vanderbilt-adhd",
   "inputs": {
