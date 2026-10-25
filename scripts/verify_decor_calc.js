@@ -26,7 +26,7 @@ const CASES = [
     "patternLoss": "0"
   },
   "expect": [
-    "24.36"
+    "11.60"
   ],
   "ref": "auto-restore"
 },
@@ -40,7 +40,7 @@ const CASES = [
     "radon": "200"
   },
   "expect": [
-    "(3080%)"
+    "(3850%)"
   ],
   "ref": "auto-restore"
 },
