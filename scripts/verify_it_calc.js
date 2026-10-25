@@ -3885,7 +3885,8 @@ const CASES = [
       "falsePositive": "42"
     },
     "expect": [
-      "42\n42\n42\n所有概率必须在 0~1 之间"
+      "42\n42\n42\n所有概率必须在 0~1 之间",
+      "所有概率必须在 0~1 之间\n42\n42\n42"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"prior\":\"42\",\"likelihood\":\"42\",\"falsePositive\":\"42\"}，输出区含「42\n42\n42\n所有概率必须在 0~1 之间」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -3959,9 +3960,10 @@ const CASES = [
       "qtype": "single"
     },
     "expect": [
-      "1 2 3\n1 2 3\nsingle"
+      "1 2 3\n1 2 3\nsingle",
+      "1 2 3\nsingle\n1 2 3"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"qtype\":\"single\"}，输出区含「1 2 3\n1 2 3\nsingle」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"qtype\":\"single\"}，输出区含「1 2 3\n1 2 3\nsingle」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。G06-S1 首屏自跑改变了元素创建序 ⇒ blob 字段序随之改变，expect 容忍新旧两种字段序；判别力不变。"
   },
   {
     "slug": "it/caa-record-generator",
@@ -4289,9 +4291,10 @@ const CASES = [
       "mode": "string"
     },
     "expect": [
-      "1 2 3\n1 2 3\nstring"
+      "1 2 3\n1 2 3\nstring",
+      "1 2 3\nstring\n1 2 3"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"mode\":\"string\"}，输出区含「1 2 3\n1 2 3\nstring」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"mode\":\"string\"}，输出区含「1 2 3\n1 2 3\nstring」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。G06-S1 首屏自跑改变了元素创建序 ⇒ blob 字段序随之改变，expect 容忍新旧两种字段序；判别力不变。"
   },
   {
     "slug": "it/css-formatter",
@@ -4311,7 +4314,8 @@ const CASES = [
       "indentSize": "4"
     },
     "expect": [
-      ": 16px; }\n4\n1 2 3\n5\n5\n0.0%"
+      ": 16px; }\n4\n1 2 3\n5\n5\n0.0%",
+      ": 16px; }\n1 2 3\n5\n5\n0.0%\n4"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"indentSize\":\"4\"}，输出区含「: 16px; }\n4\n1 2 3\n5\n5\n0.0%」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -4380,9 +4384,9 @@ const CASES = [
       "count": "42"
     },
     "expect": [
-      "xfcphc0001ai324j3gn"
+      "clxfcphc0002f"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"count\":\"42\"}，输出区含「xfcphc0001ai324j3gn」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"count\":\"42\"}，输出区含 cuid 计数器前缀「clxfcphc0002f」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。G06-S1 首屏自跑会先消耗 5 次 cuid() 调用（默认 count=5）⇒ 原锚的随机尾段整体位移，改锚「时间戳+计数器」确定性前缀（计数器仅随调用序递增、与种子 PRNG 取值无关）：boot 5 次 + 注入后 generate 首次 = 第 6 个 cuid，计数器位 base36 = f。"
   },
   {
     "slug": "it/curl-parser",
@@ -7434,7 +7438,7 @@ async function runCaseInner(c) {
       els: Object.fromEntries(
         Object.entries(elements).map(([k, v]) => [
           k,
-          { ih: String((v && v.innerHTML) || ""), val: String((v && v.value) ?? ""), ro: !!(v && v.readOnly) },
+          { ih: String((v && v.innerHTML) || ""), val: String((v && v.value) ?? ""), ro: !!(v && v.readOnly), tc: String((v && v.textContent) ?? "") },
         ])
       ),
     };
