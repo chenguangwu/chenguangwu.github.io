@@ -144,6 +144,7 @@ s.parentNode.insertBefore(el, s);
 
     <div class="toolbar"><button type="button" class="btn primary" onclick="calc()">✅ 计算评分</button> <button type="button" class="btn" onclick="reset()">重置</button></div>
     <div class="result-box" id="result" style="margin-top:12px;"></div>
+    <div id="fsChart"></div>
     <div class="toolbar" style="margin-top:10px;">
       <button type="button" class="btn" data-zh="⬇️ 导出荧光素染色评分 CSV" onclick="__fsExport()">⬇️ Export Fluorescein Staining Score CSV</button>
       <span style="font-size:13px;color:var(--text-muted);" data-zh="角膜/结膜各分区评分、角膜与结膜小计、总评分与损伤程度可导出为 CSV">Per-zone cornea/conjunctiva scores, subtotals, total score, and damage grade can be exported as CSV</span>
@@ -458,6 +459,35 @@ window.applyFlPreset = function(kind){
   }
   if(typeof calc==='function') calc();
 };
+</script>
+<script>/*TBKIT-CHART-INJECT-FS*/
+function __fsChartDraw(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar) return;
+  try{
+    var host=document.getElementById('fsChart');
+    if(!host) return;
+    if(typeof CORNEA_ZONES==='undefined'||typeof CONJ_ZONES==='undefined') return;
+    var en=TBKit.util.isEn();
+    var cEn=['C-Central','C-Sup','C-Inf','C-Nasal','C-Temp'];
+    var jEn=['N-Sup','N-Mid','N-Inf','T-Sup','T-Mid','T-Inf'];
+    var cZh=['角·中央','角·上','角·下','角·鼻','角·颞'];
+    var jZh=['结·鼻上','结·鼻中','结·鼻下','结·颞上','结·颞中','结·颞下'];
+    var labels=[],vals=[],ct=0,jt=0;
+    CORNEA_ZONES.forEach(function(z,i){
+      var v=(typeof corneaScores!=='undefined'&&corneaScores['cornea'+i]!=null)?corneaScores['cornea'+i]:0;
+      vals.push(v);ct+=v;labels.push(en?(cEn[i]||('C'+(i+1))):(cZh[i]||z));
+    });
+    CONJ_ZONES.forEach(function(z,i){
+      var v=(typeof conjScores!=='undefined'&&conjScores['conj'+i]!=null)?conjScores['conj'+i]:0;
+      vals.push(v);jt+=v;labels.push(en?(jEn[i]||('J'+(i+1))):(jZh[i]||z));
+    });
+    var total=ct+jt;
+    TBKit.chart.bar(host,{labels:labels,max:3,series:[{name:en?'Zone score (0-3)':'分区得分(0-3)',data:vals}],title:(en?'Zone staining (cornea ':'分区染色评分（角膜 ')+ct+'/15'+(en?' / conj ':' / 结膜 ')+jt+'/18'+(en?' / total ':' / 总分 ')+total+'/33'+(en?')':'）')});
+  }catch(e){}
+}
+var __tb_fn0=calc;
+calc=function(){__tb_fn0();try{__fsChartDraw();}catch(e){}};
+(function(){function b(){try{__fsChartDraw();}catch(e){}}if(document.readyState&&document.readyState!=='loading')b();else document.addEventListener('DOMContentLoaded',b);})();
 </script>
 </body>
 </html>

@@ -150,6 +150,7 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div id="drugArea"></div>
+    <div id="bpChart"></div>
     <table id="bpHidden" style="display:none;"><thead><tr><th>Drug</th><th>S (<= mcg/mL)</th><th>R (>= mcg/mL)</th><th>I Range</th><th>Interpretation</th></tr></thead><tbody></tbody></table>
 
     <div class="info-box" style="margin-top:16px;">
@@ -447,6 +448,45 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
+</script>
+<script>/*TBKIT-CHART-INJECT-BP*/
+function __bpChartDraw(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar) return;
+  try{
+    var host=document.getElementById('bpChart');
+    if(!host) return;
+    if(typeof BP==='undefined') return;
+    var b=document.getElementById('bacteria');
+    var micEl=document.getElementById('micVal');
+    if(!b||!micEl) return;
+    var list=BP[b.value];
+    if(!list) return;
+    var mic=parseFloat(micEl.value);
+    var nS=0,nI=0,nR=0;
+    if(!isNaN(mic)){
+      list.forEach(function(d){
+        if(d.s==='-'||d.r==='-') return;
+        if(mic<=d.s)nS++;
+        else if(mic>=d.r)nR++;
+        else nI++;
+      });
+    }
+    var en=TBKit.util.isEn();
+    var labels=en?['S','I','R']:['S 敏感','I 中介','R 耐药'];
+    var names=en?['Susceptible','Intermediate','Resistant']:['敏感','中介','耐药'];
+    var title=isNaN(mic)
+      ?(en?'Enter MIC to tally S/I/R drugs':'输入 MIC 后统计各药物 S/I/R 判定')
+      :((en?'At MIC ':'MIC=')+mic+(en?' ug/mL: S ':' μg/mL：S')+nS+(en?' / I ':' / I ')+nI+(en?' / R ':' / R ')+nR);
+    TBKit.chart.bar(host,{labels:labels,series:[
+      {name:names[0],data:[nS,0,0],color:'#10B981'},
+      {name:names[1],data:[0,nI,0],color:'#F59E0B'},
+      {name:names[2],data:[0,0,nR],color:'#EF4444'}
+    ],title:title});
+  }catch(e){}
+}
+var __tb_fn0=renderDrugs;
+renderDrugs=function(){__tb_fn0();try{__bpChartDraw();}catch(e){}};
+(function(){function b(){try{__bpChartDraw();}catch(e){}}if(document.readyState&&document.readyState!=='loading')b();else document.addEventListener('DOMContentLoaded',b);})();
 </script>
 </body>
 </html>

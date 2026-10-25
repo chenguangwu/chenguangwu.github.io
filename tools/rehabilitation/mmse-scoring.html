@@ -128,6 +128,7 @@ s.parentNode.insertBefore(el, s);
     </div>
     <table id="mmseTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
 
+    <div id="mmseChart"></div>
     <div class="toolbar" style="margin-top:12px;">
       <button type="button" class="btn primary" onclick="calcScore()">计算总分</button>
       <button type="button" class="btn" onclick="resetAll()">重置</button>
@@ -515,5 +516,31 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 </script>
 
+<script>/*TBKIT-CHART-INJECT-MMSE*/
+function __mmseChartDraw(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar) return;
+  try{
+    var host=document.getElementById('mmseChart');
+    if(!host) return;
+    if(typeof mmseSections==='undefined'||typeof getGlobalIdx!=='function') return;
+    var vals=[],total=0;
+    mmseSections.forEach(function(sec){
+      var s=0;
+      sec.items.forEach(function(item,i){
+        var gi=getGlobalIdx(sec,i);
+        var sel=document.querySelector('input[name="q'+gi+'"]:checked');
+        if(sel&&sel.value==='1')s++;
+      });
+      vals.push(s);total+=s;
+    });
+    var en=TBKit.util.isEn();
+    var labels=en?['Ori /10','Mem /3','Att /5','Rec /3','Lang /9']:['定向 /10','记忆 /3','注意 /5','回忆 /3','语言 /9'];
+    TBKit.chart.bar(host,{labels:labels,max:10,series:[{name:en?'Domain score':'领域得分',data:vals}],title:(en?'MMSE domain scores (total ':'MMSE 各领域得分（总分 ')+total+'/30'+(en?')':'）')});
+  }catch(e){}
+}
+var __tb_fn0=updateScore;
+updateScore=function(){__tb_fn0();try{__mmseChartDraw();}catch(e){}};
+(function(){function b(){try{__mmseChartDraw();}catch(e){}}if(document.readyState&&document.readyState!=='loading')b();else document.addEventListener('DOMContentLoaded',b);})();
+</script>
 </body>
 </html>

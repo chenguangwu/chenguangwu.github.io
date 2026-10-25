@@ -125,6 +125,7 @@ s.parentNode.insertBefore(el, s);
       <p style="color:var(--text-muted);">请完成各项评分后查看结果</p>
     </div>
 
+    <div id="fimChart"></div>
     <div class="toolbar" style="margin-top:12px;">
       <button type="button" class="btn primary" onclick="calcScore()">计算总分</button>
       <button type="button" class="btn" onclick="resetAll()">重置</button>
@@ -497,5 +498,33 @@ document.addEventListener('DOMContentLoaded',function(){
 <h3>分级</h3><p><code>126</code> 完全独立；<code>108–125</code> 基本独立（部分需辅助器具）；<code>90–107</code> 需他人辅助；<code>72–89</code> 需大量辅助；<code>&lt;72</code> 完全依赖。分数越高功能独立性越好。</p>
 <h3>适用边界</h3><p>FIM 由康复团队评定，用于卒中/创伤后康复疗效追踪；本工具仅供分项合计，不能替代临床评定。</p>
 </div></section>
+<script>/*TBKIT-CHART-INJECT-FIM*/
+var __FIM_EN=['Eating','Grooming','Bathing','Upper dress','Lower dress','Toileting','Bladder','Bowel','Bed-chair','Toilet T','Tub T','Walk/WC','Stairs','Comprehension','Expression','Social','Problem solve','Memory'];
+function __fimChartDraw(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar) return;
+  try{
+    var host=document.getElementById('fimChart');
+    if(!host) return;
+    if(typeof fimData==='undefined') return;
+    var labels=[],vals=[],motor=0,cog=0;
+    var all=fimData[0].items.concat(fimData[1].items);
+    for(var i=0;i<all.length&&i<18;i++){
+      var sel=document.getElementById('fim_'+i);
+      var v=sel?parseInt(sel.value,10):0;
+      if(!isFinite(v))v=0;
+      vals.push(v);
+      if(i<13)motor+=v;else cog+=v;
+      labels.push(TBKit.util.isEn()?(__FIM_EN[i]||('I'+(i+1))):all[i].name);
+    }
+    if(vals.length<18) return;
+    var en=TBKit.util.isEn();
+    var total=motor+cog;
+    TBKit.chart.bar(host,{labels:labels,max:7,series:[{name:en?'Item score (1-7)':'单项得分(1-7)',data:vals}],title:(en?'FIM 18 items (motor ':'FIM 18 项得分（运动 ')+motor+'/91'+(en?' / cog ':' / 认知 ')+cog+'/35'+(en?' / total ':' / 总分 ')+total+'/126'+(en?')':'）')});
+  }catch(e){}
+}
+var __tb_fn0=updateScore;
+updateScore=function(){__tb_fn0();try{__fimChartDraw();}catch(e){}};
+(function(){function b(){try{__fimChartDraw();}catch(e){}}if(document.readyState&&document.readyState!=='loading')b();else document.addEventListener('DOMContentLoaded',b);})();
+</script>
 </body>
 </html>
