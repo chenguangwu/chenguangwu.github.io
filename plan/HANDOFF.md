@@ -17,7 +17,7 @@
 | O6 重金属迁移「食品中含量」虚高 1000 倍 | 12-长尾行业/_others.md | `conc(mg/L)×volume(mL)÷foodVol(mL)` 已是 mg/kg，代码的 `×1000` 多乘；删 ×1000 即可，默认值代入即误判超标 |
 | C1 游离酸比例公式颠倒 | 03-医疗健康/specialties.md | 改 `1/(1+10^(pH−pKa))`，与 chemical-peel 对齐（✅ 2026-10-25 已修） |
 | C2 法医骨龄胎儿支路胎龄公式失真 | 03-医疗健康/specialties.md | FL 改 0.43×FL+8.5（或分段表）；CRL 改 0.1×CRL+6.5；公式框/注释三处矛盾一并统一（✅ 2026-10-25 已修） |
-| L4 鞋码 US/UK 偏大 8 码 | 05-生活消费/life.md | 代码改 `usM=eu−32; usW=eu−30.5; uk=eu−33`（公式框本来是对的） |
+| L4 鞋码 US/UK 偏大 8 码 | 05-生活消费/life.md | 代码改 `usM=eu−32; usW=eu−30.5; uk=eu−33`（公式框本来是对的）（✅ 2026-10-25 已修） |
 | E2 桥梁荷载 Pk 内插基线 270 应 180 | 08-工程制造/construction-energy.md | JTG D60-2015 表 4.3.1-2：L≤5m→180、L≥50m→360 |
 | Z1 unit-price-compare 固液量纲混用 | 06-商业运营/biz-startup.md | ml/L 与 g/kg 不可直接比单价 |
 | O1 dyeing/tester-9 输入 C 未参与计算 | 12-长尾行业/_others.md | GB/T 20944.2 口径（✅ 2026-10-25 已修） |
