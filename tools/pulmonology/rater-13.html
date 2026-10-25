@@ -129,6 +129,7 @@ s.parentNode.insertBefore(el, s);
 <button type="button" class="btn" onclick="applyWellsPreset('high')">🔴 高风险</button>
     </div>
     <div class="result-box" id="res"></div>
+    <div id="wellsChart"></div>
     <div class="toolbar" style="margin-top:10px;">
       <button type="button" class="btn" data-zh="⬇️ 导出 Wells 评分结果 CSV" onclick="__wellsExport()">⬇️ Export Wells Score CSV</button>
       <span style="font-size:13px;color:var(--text-muted);" data-zh="各评分项选择、总分、三分类/二分类结果与处置建议可导出为 CSV">Per-item selections, total, three-tier/two-tier results, and recommendations can be exported as CSV</span>
@@ -428,5 +429,33 @@ function applyWellsPreset(kind){
 }
 </script>
 
+<script>/*TBKIT-CHART-INJECT-WELLS*/
+var __WELLS_EN=['DVT signs','PE most likely','HR>100','Surgery/immobil.','Prior PE/DVT','Hemoptysis','Malignancy'];
+function __wellsChartDraw(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar) return;
+  try{
+    var host=document.getElementById('wellsChart');
+    if(!host) return;
+    if(typeof wellsItems==='undefined') return;
+    var en=TBKit.util.isEn();
+    var labels=[],vals=[],total=0;
+    for(var i=0;i<wellsItems.length;i++){
+      var el=document.getElementById('q'+i);
+      var on=el?(parseInt(el.value,10)===1):false;
+      var v=on?wellsItems[i].score:0;
+      total+=v;vals.push(v);
+      labels.push(en?(__WELLS_EN[i]||('I'+(i+1))):('#'+(i+1)));
+    }
+    var lv;
+    if(total<2){lv=en?'low risk':'低风险';}
+    else if(total<=6){lv=en?'moderate risk':'中风险';}
+    else{lv=en?'high risk':'高风险';}
+    TBKit.chart.bar(host,{labels:labels,max:3,series:[{name:en?'Item points if positive':'阳性分值',data:vals}],title:(en?'Wells item scores (total ':'Wells 各项分值（总分 ')+total+', '+lv+(en?')':'）')});
+  }catch(e){}
+}
+var __tb_fn0=calc;
+calc=function(){__tb_fn0();try{__wellsChartDraw();}catch(e){}};
+(function(){function b(){try{__wellsChartDraw();}catch(e){}}if(document.readyState&&document.readyState!=='loading')b();else document.addEventListener('DOMContentLoaded',b);})();
+</script>
 </body>
 </html>

@@ -151,6 +151,7 @@ s.parentNode.insertBefore(el, s);
 <button type="button" class="btn" onclick="applyCushionPreset('glass')">🍶 玻璃陶瓷</button>
     </div>
     <div class='result-box' id='result'><p>请输入参数后计算。</p></div>
+    <div id="csChart"></div>
     <div class='info-box' style='margin-top:12px;'>材料系数 C 参考：EPE 珍珠棉 2.0~2.8，EPS 泡沫 3.0~4.0，气泡膜/气垫 4.0~5.0。公式 t = (H/G)·C。</div>
     <div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
       <button type="button" class="btn" data-zh="⬇️ 导出缓冲厚度计算结果 CSV" onclick="__cushionExport()">⬇️ Export Cushion Thickness Results CSV</button>
@@ -332,5 +333,43 @@ function __cushionExport(){
 </dl>
 </div>
 </section>
+<script>/*TBKIT-CHART-INJECT-CS*/
+function __csChartDraw(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line) return;
+  try{
+    var host=document.getElementById('csChart');
+    if(!host) return;
+    var G=parseFloat((document.getElementById('gValue')||{}).value);
+    var C=parseFloat((document.getElementById('cValue')||{}).value);
+    if(!(G>0)||!(C>0)) return;
+    var en=TBKit.util.isEn();
+    var labels=[],vals=[];
+    for(var h=10;h<=160;h+=15){
+      labels.push(h+' cm');
+      vals.push(h/G*C*10);
+    }
+    TBKit.chart.line(host,{labels:labels,series:[{name:en?'Thickness (mm)':'缓冲厚度 (mm)',data:vals}],title:(en?'Cushion thickness vs drop height (G=':'缓冲厚度-跌落高度曲线（G=')+G+', C='+C+(en?')':'）')});
+  }catch(e){}
+}
+(function(){
+  var ids=['dropH','gValue','cValue'];
+  function wire(){
+    ids.forEach(function(id){
+      var el=document.getElementById(id);
+      if(!el||el.getAttribute('data-cs-wired')) return;
+      el.setAttribute('data-cs-wired','1');
+      el.addEventListener('input',__csChartDraw);
+      el.addEventListener('change',__csChartDraw);
+    });
+  }
+  if(typeof window.calculate==='function'){
+    var __tb_fn0=window.calculate;
+    window.calculate=function(){__tb_fn0();try{__csChartDraw();}catch(e){}};
+  }
+  function b(){wire();try{__csChartDraw();}catch(e){}}
+  wire();
+  if(document.readyState&&document.readyState!=='loading')b();else document.addEventListener('DOMContentLoaded',b);
+})();
+</script>
 </body>
 </html>

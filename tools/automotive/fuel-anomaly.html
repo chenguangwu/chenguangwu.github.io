@@ -147,6 +147,7 @@ s.parentNode.insertBefore(el, s);
   <div class="card">
     <h2>📊 油耗分析</h2>
     <div id="result"></div>
+    <div id="faChart"></div>
 
     <div class="toolbar" style="margin-top:12px;">
       <button type="button" class="btn" data-zh="⬇️ 导出油耗分析结果 CSV" onclick="__faExport()">⬇️ Export Fuel Analysis CSV</button>
@@ -542,6 +543,40 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
+</script>
+<script>/*TBKIT-CHART-INJECT-FA*/
+function __faChartDraw(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line) return;
+  try{
+    var host=document.getElementById('faChart');
+    if(!host) return;
+    if(typeof records==='undefined'||!records||records.length<3) return;
+    var sorted=records.slice().sort(function(a,b){return a.mileage-b.mileage;});
+    var cons=[];
+    for(var i=1;i<sorted.length;i++){
+      var dist=sorted[i].mileage-sorted[i-1].mileage;
+      if(dist<=0) continue;
+      cons.push({d:String(sorted[i].date).slice(5),v:sorted[i].liters/dist*100});
+    }
+    if(cons.length<2) return;
+    var sum=0;
+    for(var k=0;k<cons.length;k++) sum+=cons[k].v;
+    var avg=sum/cons.length;
+    var sq=0;
+    for(var k2=0;k2<cons.length;k2++) sq+=Math.pow(cons[k2].v-avg,2);
+    var thr=avg+Math.sqrt(sq/cons.length)*1.5;
+    var en=TBKit.util.isEn();
+    var labels=[],vals=[],thrs=[];
+    for(var m=0;m<cons.length;m++){labels.push(cons[m].d);vals.push(cons[m].v);thrs.push(thr);}
+    TBKit.chart.line(host,{labels:labels,series:[
+      {name:en?'Interval consumption':'区间油耗',data:vals},
+      {name:en?'Anomaly threshold':'异常阈值',data:thrs}
+    ],title:(en?'Fuel consumption trend (avg ':'油耗趋势（平均 ')+avg.toFixed(1)+(en?', threshold ':'，阈值 ')+thr.toFixed(1)+' L/100km'+(en?')':'）')});
+  }catch(e){}
+}
+var __tb_fn0=calc;
+calc=function(){__tb_fn0();try{__faChartDraw();}catch(e){}};
+(function(){function b(){try{__faChartDraw();}catch(e){}}if(document.readyState&&document.readyState!=='loading')b();else document.addEventListener('DOMContentLoaded',b);})();
 </script>
 </body>
 </html>

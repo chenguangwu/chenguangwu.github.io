@@ -136,6 +136,7 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="result-box" id="res"></div>
+    <div id="hpChart"></div>
     <div class="toolbar" style="margin-top:10px;">
       <button type="button" class="btn" data-zh="⬇️ 导出幸福感评估结果 CSV" onclick="__happinessExport()">⬇️ Export Well-Being Assessment CSV</button>
       <span style="font-size:13px;color:var(--text-muted);" data-zh="10 个维度得分、总分、平均分、等级与常模对比可导出为 CSV">All 10 dimension scores, total, average, level, and benchmark comparison can be exported as CSV</span>
@@ -420,5 +421,39 @@ calc();
 }
 </script>
 <script src="../../js/psych-kit.js" data-psych='{"key":"calc-12","name":"幸福感指数计算","kind":"entertainment","minutes":3,"period":"最近两周","note":"自评参考，不构成诊断"}' defer></script>
+<script>/*TBKIT-CHART-INJECT-HP*/
+var __HP_EN=['Life','Health','Relations','Work/Study','Finance','Growth','Leisure','Safety','Self-worth','Mood'];
+function __hpChartDraw(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar) return;
+  try{
+    var host=document.getElementById('hpChart');
+    if(!host) return;
+    if(typeof DIMS==='undefined') return;
+    var scores;
+    if(typeof getScores==='function'){scores=getScores();}
+    else{
+      scores=[];
+      for(var j=0;j<DIMS.length;j++){var s0=document.getElementById('s-'+DIMS[j].k);var sv=s0?parseInt(s0.value,10):0;scores.push(isFinite(sv)?sv:0);}
+    }
+    if(!scores||scores.length<2) return;
+    var en=TBKit.util.isEn();
+    var labels=[],total=0;
+    for(var i=0;i<DIMS.length;i++){
+      total+=scores[i];
+      labels.push(en?(__HP_EN[i]||('D'+(i+1))):DIMS[i].q);
+    }
+    var lv;
+    if(total>=86){lv=en?'very high':'很高';}
+    else if(total>=71){lv=en?'high':'较高';}
+    else if(total>=51){lv=en?'moderate':'中等';}
+    else if(total>=31){lv=en?'below average':'偏下';}
+    else{lv=en?'low':'偏低';}
+    TBKit.chart.bar(host,{labels:labels,max:10,series:[{name:en?'Score':'得分',data:scores}],title:(en?'Dimension scores (total ':'各维度得分（总分 ')+total+'/100, '+lv+(en?')':'）')});
+  }catch(e){}
+}
+var __tb_fn0=calc;
+calc=function(){__tb_fn0();try{__hpChartDraw();}catch(e){}};
+(function(){function b(){try{__hpChartDraw();}catch(e){}}if(document.readyState&&document.readyState!=='loading')b();else document.addEventListener('DOMContentLoaded',b);})();
+</script>
 </body>
 </html>
