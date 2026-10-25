@@ -128,6 +128,7 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="resetForm()">全部重置</button>
     </div>
     <div class="result-box" id="res"></div>
+    <div id="mtChart"></div>
     <div class="toolbar" style="margin-top:8px;">
       <span style="font-size:13px;color:var(--text-muted);">常见自查预设：</span>
       <button type="button" class="btn" onclick="applyWeldPreset('full')">🟢 全部达标</button>
@@ -442,5 +443,40 @@ function applyWeldPreset(kind){
 }
 </script>
 
+<script>/*TBKIT-CHART-INJECT-MT*/
+var __MT_MOD_EN={'一、故障检测':'Fault diagnosis','二、零部件更换':'Parts replacement','三、精度校准':'Precision calibration'};
+var __MT_LV={'优秀':'Excellent','良好':'Good','合格':'Pass','不合格':'Fail','不合格（关键项未执行）':'Fail (critical item missed)'};
+function __mtChartDraw(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar) return;
+  try{
+    var host=document.getElementById('mtChart');
+    if(!host) return;
+    if(typeof MODULES==='undefined') return;
+    var en=TBKit.util.isEn();
+    var labels=[],vals=[],totalScore=0,totalMax=0,criticalFail=false;
+    MODULES.forEach(function(m,mi){
+      var ms=0,mm=m.items.length*2;
+      m.items.forEach(function(it,ii){
+        var sel=document.getElementById('m'+mi+'_'+ii);
+        var v=sel?parseInt(sel.value,10):0;
+        if(!isFinite(v))v=0;
+        ms+=v;
+        if(v===0&&it.indexOf('★')>=0)criticalFail=true;
+      });
+      totalScore+=ms;totalMax+=mm;
+      vals.push(Math.round(ms/mm*100));
+      labels.push(en?(__MT_MOD_EN[m.name]||('M'+(mi+1))):m.name);
+    });
+    if(!totalMax) return;
+    var rate=Math.round(totalScore/totalMax*100);
+    if(criticalFail)rate=Math.min(rate,59);
+    var level=criticalFail?'不合格（关键项未执行）':rate>=90?'优秀':rate>=75?'良好':rate>=60?'合格':'不合格';
+    TBKit.chart.bar(host,{labels:labels,max:100,series:[{name:en?'Pass rate (%)':'模块达标率 (%)',data:vals}],title:(en?'Module pass rates (overall ':'各模块达标率（总评 ')+rate+'%, '+(en?(__MT_LV[level]||level):level)+(en?')':'）')});
+  }catch(e){}
+}
+var __tb_fn0=calc;
+calc=function(){__tb_fn0();try{__mtChartDraw();}catch(e){}};
+(function(){function b(){try{__mtChartDraw();}catch(e){}}if(document.readyState&&document.readyState!=='loading')b();else document.addEventListener('DOMContentLoaded',b);})();
+</script>
 </body>
 </html>

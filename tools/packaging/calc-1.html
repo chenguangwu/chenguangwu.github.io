@@ -129,13 +129,14 @@ s.parentNode.insertBefore(el, s);
       <button class='btn' onclick='copyResult()'>复制结果</button>
     </div>
     <div class='result-box' id='result'>
+<p>请输入参数后计算。</p></div>
     <div class="toolbar" style="margin-top:8px;">
       <span style="font-size:13px;color:var(--text-muted);">常见箱型预设：</span>
       <button type="button" class="btn" onclick="applyCartonPreset('phone')">📱 手机小件</button>
 <button type="button" class="btn" onclick="applyCartonPreset('shoe')">👟 鞋服箱包</button>
 <button type="button" class="btn" onclick="applyCartonPreset('appliance')">🧊 家电整机</button>
     </div>
-<p>请输入参数后计算。</p></div>
+    <div id="ctChart"></div>
     <div class='info-box' style='margin-top:12px;'>外箱尺寸 = 产品内尺寸 + 2×(缓冲厚度 + 纸板厚度)。结果向上取整到毫米，便于实际选材。</div>
     <div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
       <button type="button" class="btn" data-zh="⬇️ 导出纸箱尺寸计算结果 CSV" onclick="__cartonExport()">⬇️ Export Carton Size Results CSV</button>
@@ -319,5 +320,49 @@ function applyCartonPreset(kind){
 </dl>
 </div>
 </section>
+<script>/*TBKIT-CHART-INJECT-CT*/
+function __ctChartDraw(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar) return;
+  try{
+    var host=document.getElementById('ctChart');
+    if(!host) return;
+    var inner=[],i,v;
+    var ids=['inL','inW','inH'];
+    for(i=0;i<ids.length;i++){
+      v=parseFloat(document.getElementById(ids[i]).value);
+      if(!isFinite(v)||v<0) return;
+      inner.push(v);
+    }
+    var pad=parseFloat(document.getElementById('pad').value);
+    var board=parseFloat(document.getElementById('board').value);
+    if(!isFinite(pad)||!isFinite(board)||pad<0||board<0) return;
+    var add=2*(pad+board);
+    var outer=inner.map(function(x){return Math.ceil(x+add);});
+    var en=TBKit.util.isEn();
+    TBKit.chart.bar(host,{labels:en?['L','W','H']:['长','宽','高'],series:[{name:en?'Inner (mm)':'内尺寸 (mm)',data:inner},{name:en?'Outer (mm)':'外尺寸 (mm)',data:outer}],title:(en?'Inner vs outer size (per-side add ':'内外尺寸对比（单边加放 ')+add+' mm'+(en?')':'）')});
+  }catch(e){}
+}
+(function(){
+  var ids=['inL','inW','inH','pad','board'];
+  function wire(){
+    ids.forEach(function(id){
+      var el=document.getElementById(id);
+      if(!el||el.getAttribute('data-ct-wired')) return;
+      el.setAttribute('data-ct-wired','1');
+      el.addEventListener('input',__ctChartDraw);
+      el.addEventListener('change',__ctChartDraw);
+    });
+  }
+  function wrapCalc(){
+    if(window.__ctWrapped) return;
+    if(typeof window.calculate!=='function') return;
+    window.__ctWrapped=1;
+    var f0=window.calculate;
+    window.calculate=function(){f0();try{__ctChartDraw();}catch(e){}};
+  }
+  function b(){wire();wrapCalc();try{__ctChartDraw();}catch(e){}}
+  if(document.readyState&&document.readyState!=='loading')b();else document.addEventListener('DOMContentLoaded',b);
+})();
+</script>
 </body>
 </html>

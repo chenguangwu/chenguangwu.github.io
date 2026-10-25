@@ -132,6 +132,7 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
     <div class="result-box" id="res"></div>
+    <div id="pdChart"></div>
     <div class="toolbar" style="margin-top:10px;">
       <button type="button" class="btn" data-zh="⬇️ 导出 PDCA 品质评估结果 CSV" onclick="__pdcaExport()">⬇️ Export PDCA Quality Assessment CSV</button>
       <span style="font-size:13px;color:var(--text-muted);" data-zh="16 项评估得分、四阶段成熟度与综合评级可导出为 CSV">All 16 item scores, four-stage maturity, and overall rating can be exported as CSV</span>
@@ -426,5 +427,39 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
-</script></body>
+</script><script>/*TBKIT-CHART-INJECT-PD*/
+var __PD_LV={'卓越':'Excellent','成熟':'Mature','发展中':'Developing','初始':'Initial','薄弱':'Weak'};
+function __pdChartDraw(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar) return;
+  try{
+    var host=document.getElementById('pdChart');
+    if(!host) return;
+    if(typeof stages==='undefined') return;
+    var en=TBKit.util.isEn();
+    var keys=['plan','do','check','act'];
+    var zhN={plan:'P-标准制定',do:'D-检查执行',check:'C-检查评估',act:'A-改进提升'};
+    var enN=['P-Planning','D-Execution','C-Evaluation','A-Improvement'];
+    var labels=[],vals=[],sum=0;
+    keys.forEach(function(st,i){
+      var scores=stages[st].map(function(q,j){
+        var sel=document.getElementById(st+j);
+        var v=sel?parseInt(sel.value,10):3;
+        if(!isFinite(v))v=3;
+        return v;
+      });
+      var avg=scores.reduce(function(a,b){return a+b;},0)/scores.length;
+      vals.push(Math.round(avg*100)/100);
+      sum+=avg;
+      labels.push(en?enN[i]:zhN[st]);
+    });
+    var overall=sum/4;
+    var level=overall>=4.5?'卓越':overall>=3.5?'成熟':overall>=2.5?'发展中':overall>=1.5?'初始':'薄弱';
+    TBKit.chart.bar(host,{labels:labels,max:5,series:[{name:en?'Stage maturity':'阶段成熟度',data:vals}],title:(en?'PDCA stage maturity (overall ':'PDCA 阶段成熟度（综合 ')+overall.toFixed(2)+', '+(en?(__PD_LV[level]||level):level)+(en?')':'）')});
+  }catch(e){}
+}
+var __tb_fn0=calc;
+calc=function(){__tb_fn0();try{__pdChartDraw();}catch(e){}};
+(function(){function b(){try{__pdChartDraw();}catch(e){}}if(document.readyState&&document.readyState!=='loading')b();else document.addEventListener('DOMContentLoaded',b);})();
+</script>
+</body>
 </html>

@@ -116,6 +116,7 @@ s.parentNode.insertBefore(el, s);
 <div id="shList"></div>
 <div class="toolbar"><button type="button" class="btn" onclick="addSh()">+ 添加干系人</button><button type="button" class="btn primary" onclick="calc()">分析矩阵</button><button type="button" class="btn" onclick="ToolBox.copyFromElement('res','tool.copy_ok')">复制结果</button></div>
 <div class="result-box" id="res"></div>
+    <div id="anChart"></div>
     <div class="toolbar" style="margin-top:8px;">
       <button type="button" class="btn" data-zh="⬇️ 导出干系人分析结果 CSV" onclick="__an28Export()">⬇️ Export Stakeholder Analysis CSV</button>
       <span style="font-size:13px;color:var(--text-muted);" data-zh="干系人权力/利益/关注度/象限与应对策略可导出为 CSV">Stakeholder power/interest/attention/quadrant and strategies can be exported as CSV</span>
@@ -361,5 +362,34 @@ function applyStakePreset(kind){
 }
 </script>
 
+<script>/*TBKIT-CHART-INJECT-AN*/
+function __anChartDraw(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar) return;
+  try{
+    var host=document.getElementById('anChart');
+    if(!host) return;
+    if(typeof shData==='undefined'||!shData.length) return;
+    var en=TBKit.util.isEn();
+    var labels=[],pow=[],inter=[];
+    shData.forEach(function(s,idx){
+      var elN=document.getElementById('sn'+idx);
+      var elP=document.getElementById('sp'+idx);
+      var elI=document.getElementById('si'+idx);
+      if(!elP||!elI) return;
+      var p=parseInt(elP.value,10),i=parseInt(elI.value,10);
+      if(!isFinite(p)||!isFinite(i)) return;
+      pow.push(p);inter.push(i);
+      var name=(elN&&elN.value)?elN.value.trim():'';
+      if(en&&/[\u4e00-\u9fff]/.test(name))labels.push('S'+(idx+1));
+      else labels.push(name||('S'+(idx+1)));
+    });
+    if(labels.length<1) return;
+    TBKit.chart.bar(host,{labels:labels,max:5,series:[{name:en?'Power':'权力',data:pow},{name:en?'Interest':'利益',data:inter}],title:en?'Stakeholder power vs interest':'干系人权力-利益分布'});
+  }catch(e){}
+}
+var __tb_fn0=calc;
+calc=function(){__tb_fn0();try{__anChartDraw();}catch(e){}};
+(function(){function b(){try{__anChartDraw();}catch(e){}}if(document.readyState&&document.readyState!=='loading')b();else document.addEventListener('DOMContentLoaded',b);})();
+</script>
 </body>
 </html>

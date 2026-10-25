@@ -124,6 +124,7 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="copyResult()">复制报告</button>
     </div>
     <div class="result-box" id="res"></div>
+    <div id="fdChart"></div>
     <div class="toolbar" style="margin-top:10px;">
       <button type="button" class="btn" data-zh="⬇️ 导出泡水车检测结果 CSV" onclick="__floodExport()">⬇️ Export Flood-Damage Check CSV</button>
       <span style="font-size:13px;color:var(--text-muted);" data-zh="各检测项结果、区域风险、泡水结论与购买建议可导出为 CSV">Per-item results, zone risk, flood conclusion, and purchase advice can be exported as CSV</span>
@@ -487,5 +488,43 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
-</script></body>
+</script><script>/*TBKIT-CHART-INJECT-FD*/
+var __FD_EN={smell:'Musty odor',carpet:'Carpet silt/damp',seatbelt:'Seatbelt stains',seatrail:'Seat rail rust',ceiling:'Headliner stains',dashboard:'Warning lights',electrics:'Electronics fault',harness:'Harness corrosion',engbay:'Engine bay rust',silt:'Silt deposits',fluid:'Milky fluids',sparetire:'Spare well water',headlight:'Lamp condensation',waterline:'Body waterline'};
+function __fdChartDraw(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar) return;
+  try{
+    var host=document.getElementById('fdChart');
+    if(!host) return;
+    if(typeof checks==='undefined') return;
+    var en=TBKit.util.isEn();
+    var labels=[],vals=[],totalScore=0,totalWeight=0,confirmed=0,suspicious=0;
+    checks.forEach(function(g){
+      g.list.forEach(function(it){
+        var sel=document.getElementById('ck_'+it.key);
+        var v=sel?parseInt(sel.value,10):0;
+        if(!isFinite(v))v=0;
+        var score=v*it.weight;
+        vals.push(score);
+        totalScore+=score;totalWeight+=it.weight*2;
+        if(v===2)confirmed++;
+        if(v===1)suspicious++;
+        labels.push(en?(__FD_EN[it.key]||('I'+(labels.length+1))):it.name);
+      });
+    });
+    if(!totalWeight) return;
+    var riskPct=Math.round(totalScore/totalWeight*100);
+    var lv;
+    if(confirmed===0&&suspicious===0)lv=['未发现泡水痕迹','No flood traces'];
+    else if(confirmed===0&&suspicious<=2)lv=['泡水风险低','Low risk'];
+    else if(confirmed===0)lv=['泡水风险中等','Moderate risk'];
+    else if(confirmed<=2)lv=['疑似泡水车','Suspected flooded'];
+    else lv=['确认泡水车','Confirmed flooded'];
+    TBKit.chart.bar(host,{labels:labels,max:6,series:[{name:en?'Item score':'单项得分',data:vals}],title:(en?'Item risk scores (index ':'各检测项风险得分（指数 ')+riskPct+'%, '+(en?lv[1]:lv[0])+(en?')':'）')});
+  }catch(e){}
+}
+var __tb_fn0=calc;
+calc=function(){__tb_fn0();try{__fdChartDraw();}catch(e){}};
+(function(){function b(){try{__fdChartDraw();}catch(e){}}if(document.readyState&&document.readyState!=='loading')b();else document.addEventListener('DOMContentLoaded',b);})();
+</script>
+</body>
 </html>
