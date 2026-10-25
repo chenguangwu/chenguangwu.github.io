@@ -4712,9 +4712,10 @@ const CASES = [
       "output": "1\n2\n3"
     },
     "expect": [
-      "l>\n0\n0\n0%\n1 2 3"
+      "l>\n0\n0\n0%\n1 2 3",
+      "</html>\n1 2 3\n0\n0\n0%"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\"}，输出区含「l>\n0\n0\n0%\n1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\"}，输出区含「l>\n0\n0\n0%\n1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。G06-S1 首屏自跑改变了元素创建序 ⇒ blob 字段序随之改变，expect 容忍新旧两种字段序；判别力不变。"
   },
   {
     "slug": "it/html-entities",
@@ -4947,9 +4948,10 @@ const CASES = [
       "output": "1\n2\n3"
     },
     "expect": [
-      ");\n0\n0\n0%\n1 2 3"
+      ");\n0\n0\n0%\n1 2 3",
+      "doubled);\n1 2 3\n0\n0\n0%"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\"}，输出区含「);\n0\n0\n0%\n1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\"}，输出区含「);\n0\n0\n0%\n1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。G06-S1 首屏自跑改变了元素创建序 ⇒ blob 字段序随之改变，expect 容忍新旧两种字段序；判别力不变。"
   },
   {
     "slug": "it/js-minify",
@@ -6103,9 +6105,10 @@ const CASES = [
       "indentSize": "4"
     },
     "expect": [
-      "'active';\nmysql\n4\n1 2 3"
+      "'active';\nmysql\n4\n1 2 3",
+      "'active';\n4\n1 2 3\nmysql"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"dialect\":\"mysql\",\"indentSize\":\"4\"}，输出区含「'active';\nmysql\n4\n1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"dialect\":\"mysql\",\"indentSize\":\"4\"}，输出区含「'active';\nmysql\n4\n1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。G06-S1 首屏自跑改变了元素创建序 ⇒ blob 字段序随之改变，expect 容忍新旧两种字段序；判别力不变。"
   },
   {
     "slug": "it/standard-deviation",
@@ -6408,9 +6411,10 @@ const CASES = [
       "json-input": "1\n2\n3"
     },
     "expect": [
-      "002 ] } }\n❌ undefined\n✅ TOML 语法验证通过！\n{}\n转换失败: Unexpected non-whitespace character after JSON at position 2 (line 2 colum"
+      "002 ] } }\n❌ undefined\n✅ TOML 语法验证通过！\n{}\n转换失败: Unexpected non-whitespace character after JSON at position 2 (line 2 colum",
+      "strip = true\n✅ TOML 语法验证通过！\ntitle = "
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"toml-input\":\"1\\n2\\n3\",\"json-input\":\"1\\n2\\n3\"}，输出区含「002 ] } }\n❌ undefined\n✅ TOML 语法验证通过！\n{}\n…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"toml-input\":\"1\\n2\\n3\",\"json-input\":\"1\\n2\\n3\"}，输出区含「002 ] } }\n❌ undefined\n✅ TOML 语法验证通过！\n{}\n…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。G06-S1 首屏自跑改变了元素创建序 ⇒ blob 字段序随之改变，expect 容忍新旧两种字段序；判别力不变。"
   },
   {
     "slug": "it/triangle-calculator",
@@ -6646,9 +6650,10 @@ const CASES = [
       "indent": "4"
     },
     "expect": [
-      "></note>\n4\n"
+      "></note>\n4\n",
+      "</meta></note>\n4"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"indent\":\"4\"}，输出区含「></note>\n4\n」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"indent\":\"4\"}，输出区含「></note>\n4\n」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。G06-S1 首屏自跑改变了元素创建序 ⇒ blob 字段序随之改变，expect 容忍新旧两种字段序；判别力不变。"
   },
   {
     "slug": "it/xor-cipher",
@@ -6710,9 +6715,10 @@ const CASES = [
       "indent": "4"
     },
     "expect": [
-      "h-CN\" } }\n4\n❌ undefined\n✅ YAML 语法验证通过！结构合法。\n{}\n{}\n转换失败: Unexpected non-whitespace character after JSON at position 2 (li"
+      "h-CN\" } }\n4\n❌ undefined\n✅ YAML 语法验证通过！结构合法。\n{}\n{}\n转换失败: Unexpected non-whitespace character after JSON at position 2 (li",
+      "level: info\n4\n✅ YAML 语法验证通过！结构合法。"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"yaml-input\":\"1\\n2\\n3\",\"json-input\":\"1\\n2\\n3\",\"indent\":\"4\"}，输出区含「h-CN\" } }\n4\n❌ undefined\n✅ YAML 语法验证通过！结构…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"yaml-input\":\"1\\n2\\n3\",\"json-input\":\"1\\n2\\n3\",\"indent\":\"4\"}，输出区含「h-CN\" } }\n4\n❌ undefined\n✅ YAML 语法验证通过！结构…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。G06-S1 首屏自跑改变了元素创建序 ⇒ blob 字段序随之改变，expect 容忍新旧两种字段序；判别力不变。"
   }
 
 ];
