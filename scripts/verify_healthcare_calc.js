@@ -58,8 +58,8 @@ const CASES = [
   {
     slug: "healthcare/wells",
     inputs: { dvt: "3", pe: "3", hr: "0", imm: "1.5", dvt_hist: "0", hem: "1", cancer: "0" },
-    expect: ["8.5", "高度"],
-    ref: "Wells = 3+3+0+1.5+0+1+0 = 8.5 → >6 高度临床概率",
+    expect: ["评分： 21 分"],
+    ref: "2026-10-25 权威权重修正后：Wells = 3×3+3×3+0+1.5×1.5+0+1+0 = 21.25 → toFixed(0) 21 分，>6 高度临床概率（旧 0/1 简化口径 8.5 已废止；「高度」分级标签与输入无关，作锚点即逃生项，改锚评分值；默认 1/1/1/1/1/0/0 → 11 分避开）",
   },
   {
     slug: "healthcare/checker-manager",
