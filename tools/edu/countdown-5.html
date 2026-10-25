@@ -141,6 +141,7 @@ s.parentNode.insertBefore(el, s);
       <div><label>备考目标总时长（小时）</label><input type="number" id="targetHours" value="500" min="0"></div>
       <button class="btn primary" onclick="saveExam()">保存设置</button>
     </div>
+    <div id="cd5Presets" style="margin:10px 0 2px;"></div>
   </div>
 
   <div id="heroBox"></div>
@@ -183,6 +184,7 @@ s.parentNode.insertBefore(el, s);
     <div style="margin:8px 0 4px;font-size:13px;color:var(--text-muted);">备考目标进度</div>
     <div class="progress-bar"><div class="progress-fill" id="studyProgress" style="width:0%"></div></div>
 
+    <div id="cd5Chart" style="margin-top:14px;"></div>
     <div class="toolbar" style="margin-top:16px;">
       <button type="button" class="btn" onclick="window.__examLogExport()">⬇️ 导出学习记录 CSV</button>
     </div>
@@ -459,6 +461,71 @@ document.addEventListener('DOMContentLoaded',function(){
     h.addEventListener('click',function(){this.parentElement.classList.toggle('open');});
   });
 });
+</script>
+<script>/*TBKIT-CHART-INJECT-CD5*/
+function __cd5ChartDraw(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line) return;
+  try{
+    var host=document.getElementById('cd5Chart');
+    if(!host) return;
+    if(typeof state==='undefined') return;
+    var logs=(state.logs||[]).slice().sort(function(a,b){return a.date<b.date?-1:(a.date>b.date?1:0);});
+    if(!logs.length){host.innerHTML='';return;}
+    var en=TBKit.util.isEn();
+    var labels=[],vals=[],cum=0;
+    logs.forEach(function(l){cum+=(parseFloat(l.hours)||0);vals.push(Math.round(cum*10)/10);labels.push(String(l.date).slice(5));});
+    var th=parseFloat(state.targetHours)||0;
+    var pct=th>0?Math.min(100,cum/th*100):0;
+    var mx=Math.ceil(Math.max(th,cum)*1.15)||1;
+    var ser=[{name:en?'Cumulative hours':'累计学习',data:vals}];
+    if(th>0){var tl=[];for(var i=0;i<logs.length;i++)tl.push(th);ser.push({name:en?'Target':'目标时长',data:tl});}
+    TBKit.chart.line(host,{labels:labels,max:mx,series:ser,
+      title:(en?'Study hours vs target (':'累计学习时长 vs 目标（')+(th>0?pct.toFixed(0)+'%':'--')+(en?' complete)':' 完成）')});
+  }catch(e){}
+}
+var __cd5_fn0=render;
+render=function(){var r=__cd5_fn0.apply(this,arguments);try{__cd5ChartDraw();}catch(e){}return r;};
+document.addEventListener('toolbox:langchange',function(){try{__cd5ChartDraw();}catch(e){}});
+var __CD5_SCEN=[
+  {label:'高考 · 6月7日',labelEn:'Gaokao (Jun 7)',md:[[6,7]],hours:600,nm:'年高考',nmEn:'Gaokao '},
+  {label:'考研 · 12月下旬',labelEn:'Postgrad (late Dec)',md:[[12,21]],hours:1000,nm:'年考研',nmEn:'Postgraduate Exam '},
+  {label:'四六级 · 6/12月',labelEn:'CET-4/6 (Jun/Dec)',md:[[6,14],[12,13]],hours:150,nm:'年四六级',nmEn:'CET-4/6 '},
+  {label:'公务员国考 · 11月底',labelEn:'Civil Service (late Nov)',md:[[11,30]],hours:400,nm:'年国考',nmEn:'Civil Service Exam '}
+];
+function __cd5P2(n){return (n<10?'0':'')+n;}
+function __cd5Next(md){
+  var now=new Date();now.setHours(0,0,0,0);
+  var cands=[];
+  md.forEach(function(m){cands.push(new Date(now.getFullYear(),m[0]-1,m[1]));cands.push(new Date(now.getFullYear()+1,m[0]-1,m[1]));});
+  cands.sort(function(a,b){return a-b;});
+  for(var i=0;i<cands.length;i++){if(cands[i]>now)return cands[i];}
+  return cands[cands.length-1];
+}
+function __cd5PresetApply(i){
+  var p=__CD5_SCEN[i];
+  if(!p) return;
+  try{
+    var d=__cd5Next(p.md),y=d.getFullYear();
+    var en=TBKit.util.isEn();
+    document.getElementById('examName').value=en?(p.nmEn+y):(y+p.nm);
+    document.getElementById('examDate').value=y+'-'+__cd5P2(d.getMonth()+1)+'-'+__cd5P2(d.getDate());
+    document.getElementById('targetHours').value=String(p.hours);
+    if(typeof saveExam==='function')saveExam();
+  }catch(e){}
+}
+function __cd5PresetsInit(){
+  if(typeof TBKit==='undefined'||!TBKit.preset||!TBKit.preset.bar) return;
+  var host=document.getElementById('cd5Presets');
+  if(!host||host.getAttribute('data-cd5-ready')) return;
+  host.setAttribute('data-cd5-ready','1');
+  TBKit.preset.bar(host,__CD5_SCEN.map(function(s){return {label:s.label,labelEn:s.labelEn,values:{}};}),function(){});
+  var btns=host.querySelectorAll('.tbk-preset-btn');
+  for(var i=0;i<btns.length&&i<__CD5_SCEN.length;i++){
+    (function(idx){btns[i].addEventListener('click',function(){try{__cd5PresetApply(idx);}catch(e){}});})(i);
+  }
+}
+(function(){function b(){try{__cd5ChartDraw();}catch(e){}}if(document.readyState&&document.readyState!=='loading')b();else document.addEventListener('DOMContentLoaded',b);})();
+(function(){function b(){try{__cd5PresetsInit();}catch(e){}}if(document.readyState&&document.readyState!=='loading')b();else document.addEventListener('DOMContentLoaded',b);})();
 </script>
 </body>
 </html>
