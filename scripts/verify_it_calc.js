@@ -7074,6 +7074,12 @@ async function runCaseInner(c) {
     const id = (tag.match(/\bid\s*=\s*["']([^"']+)["']/i) || [, ""])[1];
     if (id) readonlyIds.add(id);
   }
+  // G06-S1：checkbox/radio 的 HTML `checked` 默认态经 getElementById 路径同样要可见。
+  // makeEl.checked 恒 false ⇒ 页面读 `document.getElementById('x').checked` 恒得 false，
+  // 默认态走「未勾选」分支（token-generator「请至少选择一种字符集」、
+  // recovery-code-generator「请选择字符类型」、password-generator 空口令等），
+  // 与真机（默认已勾选 ⇒ 直接出结果）不符 ⇒ 首屏恒空。此处预解析带 id 的默认勾选控件。
+  const checkedIds = new Set();
   const sel = {};
   for (const m of html.matchAll(/<select[^>]*id="([^"]+)"[\s\S]*?<\/select>/g)) {
     const block = m[0];
@@ -7105,7 +7111,10 @@ async function runCaseInner(c) {
     const key = nm || (id ? "#" + id : "");
     if (!key) continue;
     (radioGroups[key] = radioGroups[key] || []).push(vl0);
-    if (/\bchecked\b/i.test(tag)) (checkedByName[key] = checkedByName[key] || []).push(vl0);
+    if (/\bchecked\b/i.test(tag)) {
+      (checkedByName[key] = checkedByName[key] || []).push(vl0);
+      if (id) checkedIds.add(id);   // getElementById(id).checked 路径同样要见默认勾选态
+    }
   }
 
   const script = inlineScripts(html);
@@ -7151,6 +7160,14 @@ async function runCaseInner(c) {
       // readonly 输出域标记（G06-S1 快照判据用）：真机中该属性只读不改，
       // 页面脚本不会写它 ⇒ 不会干扰任何既有用例的取值路径。
       if (readonlyIds.has(id)) elements[id].readOnly = true;
+      // G06-S1：HTML 默认勾选的 checkbox/radio（token-generator 字符集、
+      // recovery-code-generator 字符类型等）——真机默认已勾选 ⇒ 页面 boot 即出结果；
+      // makeEl.checked 恒 false ⇒ harness 默认态走「未勾选」分支（提示语）⇒ 首屏判空。
+      // 此处按 HTML 属性还原默认勾选态（不依赖用例声明，纯还原真机）。
+      // ⚠ 仅 snapshotOnly（首屏快照 / S1 扫描器）生效：全量用例路径不应用，
+      // 避免破坏既有的 29 条「默认态依赖 checked=false」用例（checkedIds 建模会改其默认分支）。
+      // 全量用例用显式 clicks 置位 checkbox，不依赖此还原；S1 目标（首屏即答案）只走快照路径。
+      if (c.snapshotOnly && checkedIds.has(id)) { try { elements[id].checked = true; } catch (e) {} }
       // 复选框注入：makeEl 的 checked 恒为 false，页面若用 getElementById(id).checked
       // 读取勾选态（量表/评分/选项类页面的主流写法），注入 .value 完全无效 ⇒ 该类页
       // 长期被判「结构性 no_inputs」而只能取常量串 expect（零判别力）。
@@ -7448,6 +7465,21 @@ async function runCaseInner(c) {
   // dijkstra()），部分页面会因此把结果区改写成垃圾值甚至死循环，掩盖真实首屏状态。
   // 该模式为纯增量开关：不传 snapshotOnly 时后续流程逐字节不变（既有用例零影响）。
   if (c.snapshotOnly) {
+    // 异步 boot 落盘等待（G06-S1）：crypto.subtle / 自实现异步哈希（uuid-v5 的 SHA-1、
+    // otp-generator 的 HMAC）在 readyCbs 里以 fire-and-forget 方式触发
+    // （try{ generate(); }catch(e){} 丢弃 promise）⇒ 同步快照早于结果写入、首屏假空。
+    // 先等 readyCbs 捕获到的 pending（有则等落盘，800ms 上限防挂死），
+    // 再给固定节拍让未捕获的异步链（webcrypto 线程池 / microtask）跑完。
+    // 页面 setTimeout 走 safeTimer 立即执行，唯一真异步源是 crypto.subtle。
+    if (pending.length) {
+      try {
+        await Promise.race([
+          Promise.allSettled(pending),
+          new Promise((r) => setTimeout(r, 800)),
+        ]);
+      } catch (e) { /* 单个 pending 失败不影响快照 */ }
+    }
+    await new Promise((r) => setTimeout(r, 120));
     const blobS = collectStrings(elements);
     try { delete globalThis.TBKit; } catch (e) { /* 全局不可删时忽略 */ }
     return {
