@@ -434,6 +434,57 @@ function copyResult(){
 }
 
 calc();
+
+/* —— 门诊记录（EMR note）：把量表结果整理成可直接粘进门诊病历的文本（中英双语） —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('result'); if(!el) return;
+  if(typeof motorItems==='undefined'||typeof disabilityItems==='undefined'||typeof painItems==='undefined') return;
+  var sm=function(a){ var t=0,i; for(i=0;i<a.length;i++){ t+=parseInt((document.getElementById(a[i])||{value:0}).value)||0; } return t; };
+  var motor=sm(motorItems), dis=sm(disabilityItems), pain=sm(painItems), total=motor+dis+pain;
+  var band;
+  if(total<=20) band=['轻度','mild','首选 A 型肉毒素注射，可辅以抗胆碱能药或巴氯芬。','Botulinum toxin A first line, with anticholinergics or baclofen as adjunct.'];
+  else if(total<=40) band=['中度','moderate','肉毒素注射联合口服药物，必要时调整注射方案与剂量。','Botulinum toxin plus oral agents; adjust the injection scheme and dose as needed.'];
+  else if(total<=60) band=['中重度','moderately severe','肉毒素联合口服药，评估 DBS 手术适应证，强化康复训练。','Botulinum toxin plus oral agents; assess DBS candidacy and intensify rehabilitation.'];
+  else band=['重度','severe','多重治疗，推荐 GPi-DBS 手术，多学科综合管理。','Multimodal therapy; recommend GPi-DBS with multidisciplinary management.'];
+  __emrNote({name:'TWSTRS 痉挛性斜颈评定量表（运动+失能+疼痛 · 满分 85）', nameEn:'TWSTRS Cervical Dystonia Rating Scale (motor + disability + pain, max 85)',
+    result:'总分 '+total+'/85，分级：'+band[0], resultEn:'total '+total+'/85, severity: '+band[1],
+    noPos:true, hintZh:band[2], hintEn:band[3],
+    extra:'运动 '+motor+' 分 · 失能 '+dis+' 分 · 疼痛 '+pain+' 分；得分率 '+Math.round(total/85*100)+'%；肉毒素疗效以总分下降 ≥10–15% 为有效',
+    extraEn:'Motor '+motor+', disability '+dis+', pain '+pain+'; score ratio '+Math.round(total/85*100)+'%; a fall of 10-15% or more indicates botulinum toxin response'});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

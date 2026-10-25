@@ -66,32 +66,8 @@ const CASES = [
   ],
   "ref": "clicks 直接调 selectGrade(dummy,6) 置顶层 grade=6 后 calc()；默认态 grade=1→I级 正常，注入→VI级 完全麻痹（面神经功能完全消失）。"
 },
-{
-  "slug": "neurology/ilae-seizure",
-  "inputs": {
-    "awareness": "impaired"
-  },
-  "expect": [
-    "impaired"
-  ],
-  "ref": "auto-restore"
-},
-{
-  "slug": "neurology/midas",
-  "inputs": {
-    "q1": "7",
-    "q2": "0",
-    "q3": "0",
-    "q4": "0",
-    "q5": "0",
-    "qa": "0",
-    "qb": "0"
-  },
-  "expect": [
-    "7天"
-  ],
-  "ref": "auto-restore"
-},
+{"slug":"neurology/ilae-seizure","inputs":{"awareness":"impaired","onset":"motor","etiology":"focal","cause":"structural","motorType":"automotor"},"expect":["结果：意识 意识受损 · 发作类型 运动性（自动症）· 癫痫类型 局灶性 · 病因 结构性","ILAE 2017 三层框架：起始部位 运动性 ／ 意识 意识受损 ／ 病因学 结构性"],"ref":"门诊记录：awareness=impaired/onset=motor/etiology=focal/cause=structural/motorType=automotor ⇒ 意识受损·运动性（自动症）·局灶性·结构性。原用例 expect 仅 impaired（输入回显，判别力 0）。默认态为 aware/motor/focal/structural/tonic-clonic ⇒「运动性（强直-阵挛）」「意识保留」，与本用例零交集。"},
+{"slug":"neurology/midas","inputs":{"q1":"3","q2":"4","q3":"5","q4":"2","q5":"3"},"expect":["结果：总分 17 天/月，分级：III 级 · 中度失能","分项：工作/学习缺勤 3 天；工作/学习效率减半 4 天；家务无法完成 5 天；家务效率减半 2 天；错过家庭/社交活动 3 天；有失能记录的条目 5/5"],"ref":"门诊记录（EMR note）：5 项天数 3+4+5+2+3=17 ⇒ >10 且 ≤20 落 III 级「中度失能」；5 项均有失能记录。原用例为 auto-restore 残留（inputs 掺入不存在的 qa/qb，expect 仅 7天，无法区分分级）。默认态 5 项全 0 ⇒「总分 0 天/月，分级：I 级」零交集。"},
 {
   "slug": "neurology/moca",
   "inputs": {
@@ -102,16 +78,7 @@ const CASES = [
   ],
   "ref": "auto-restore"
 },
-{
-  "slug": "neurology/ncs-emg",
-  "inputs": {
-    "amp": "decreased"
-  },
-  "expect": [
-    "维生素B12/叶酸缺乏"
-  ],
-  "ref": "auto-restore"
-},
+{"slug":"neurology/ncs-emg","inputs":{"amp":"decreased","cv":"normal","dlat":"normal","fwave":"normal","block":"none","samp":"decreased","emg_spont":"fibrillation","emg_mup":"neurogenic","emg_recruit":"reduced"},"expect":["结果：电生理结论：轴索损害病变","异常参数 5 项（CMAP 波幅降低、SNAP 波幅降低、纤颤/正锐波、大 MUP（神经源性）、募集减少）"],"ref":"门诊记录：amp=decreased 且 cv=normal ⇒ 走轴索分支；异常参数计 5 项（波幅+感觉波幅+纤颤+大 MUP+募集减少）。原用例只锚建议语「维生素B12/叶酸缺乏」。默认态全 normal ⇒「电生理结论：检查结果基本正常或非特异性改变」「异常参数 0 项」零交集。"},
 {
   "slug": "neurology/nihss",
   "inputs": {
@@ -166,17 +133,7 @@ const CASES = [
   ],
   "ref": "原用例同为生成器模板残留（ui+单引号+i+单引号 / +j+），假通过。已改为 clicks 注入 14 项全 2 分 ⇒ 总分 28 落 21–30 段「中重度运动障碍」，得分率 50%。默认态全 0 ⇒「总分 0/56，分级：轻度运动障碍」，零交集。"
 },
-{
-  "slug": "neurology/rater-21",
-  "inputs": {
-    "p1": "7",
-    "p3": "0"
-  },
-  "expect": [
-    "疼痛7/20"
-  ],
-  "ref": "auto-restore"
-},
+{"slug":"neurology/rater-21","inputs":{"t1":"2","t2":"2","t3":"2","t4":"2","t5":"2","t6":"2","d1":"2","d2":"2","d3":"2","d4":"2","p1":"6","p2":"2","p3":"4"},"expect":["结果：总分 34/75，分级：中度","严重程度 12 分（6 项）· 致残 8 分（4 项）· 疼痛 14 分（最重 6 + 持续时间 2×2 + 最轻 4，上限 20）"],"ref":"门诊记录：严重程度 6×2=12、致残 4×2=8、疼痛 min(20, 6+2×2+4)=14 ⇒ 总分 34 ≤40 落「中度」。原用例只锚「疼痛7/20」（局部串）。默认态全 0 ⇒「总分 0/75，分级：轻度」零交集。"},
 {
   "slug": "neurology/rater-22",
   "clicks": [
@@ -216,16 +173,7 @@ const CASES = [
   ],
   "ref": "弱用例去默认化（BATCH117）：原锚默认 I 级「无需任何药物治疗」（判别力0）。clicks 改 grade=3 后 calc() 切到 III 级，expect 锚 III 级专属名「BNI III级」；默认态（I 级）与清 clicks 兜底遍历均不产出该串 ⇒ 零逃生项。"
 },
-{
-  "slug": "neurology/twstrs",
-  "inputs": {
-    "m1": "1"
-  },
-  "expect": [
-    "1/35"
-  ],
-  "ref": "auto-restore"
-},
+{"slug":"neurology/twstrs","inputs":{"m1":"2","m2":"2","m3":"2","m4":"3","m5":"3","m6":"3","m7":"2","m8":"2","d1":"3","d2":"3","d3":"2","d4":"2","d5":"2","d6":"2","p1":"4","p2":"3"},"expect":["结果：总分 40/85，分级：中度","运动 19 分 · 失能 14 分 · 疼痛 7 分；得分率 47%"],"ref":"门诊记录：运动 2+2+2+3+3+3+2+2=19、失能 3+3+2+2+2+2=14、疼痛 4+3=7 ⇒ 总分 40 ≤40 落「中度」；40/85=47%。原用例 expect 仅 1/35（auto-restore 残留）。默认态全 0 ⇒「总分 0/85，分级：轻度」「得分率 0%」零交集。"},
 {
   "slug": "neurology/updrs",
   "inputs": {

@@ -374,6 +374,75 @@ function copyResult(){
 }
 
 calc();
+
+/* —— 门诊记录（EMR note）：把量表结果整理成可直接粘进门诊病历的文本（中英双语） —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('result'); if(!el) return;
+  var gv=function(id){ var e=document.getElementById(id); return e?String(e.value):''; };
+  var aw=gv('awareness'), on=gv('onset'), et=gv('etiology'), ca=gv('cause');
+  var mt=gv('motorType'), nm=gv('nonmotorType');
+  var ETZ={focal:'局灶性',generalized:'全面性',unknown:'起源未明',combined:'全面+局灶合并'};
+  var ETE={focal:'focal',generalized:'generalized',unknown:'unknown onset',combined:'combined generalized and focal'};
+  var CAZ={structural:'结构性',genetic:'遗传性',infectious:'感染性',metabolic:'代谢性',immune:'免疫性','unknown-cause':'病因未明'};
+  var CAE={structural:'structural',genetic:'genetic',infectious:'infectious',metabolic:'metabolic',immune:'immune','unknown-cause':'unknown'};
+  var MZ={'tonic-clonic':'强直-阵挛','tonic':'强直','clonic':'阵挛',myoclonic:'肌阵挛',atonic:'失张力','epileptic-spasm':'癫痫性痉挛',automotor:'自动症',hyperkinetic:'过度运动性'};
+  var ME={'tonic-clonic':'tonic-clonic','tonic':'tonic','clonic':'clonic',myoclonic:'myoclonic',atonic:'atonic','epileptic-spasm':'epileptic spasm',automotor:'automotor',hyperkinetic:'hyperkinetic'};
+  var NZ={'behavior-arrest':'行为停止',cognitive:'认知性',emotional:'情感性',sensory:'感觉性',autonomic:'自主神经性',absence:'失神'};
+  var NE={'behavior-arrest':'behaviour arrest',cognitive:'cognitive',emotional:'emotional',sensory:'sensory',autonomic:'autonomic',absence:'absence'};
+  var AWZ=aw==='aware'?'意识保留':(aw==='impaired'?'意识受损':'意识状态未知');
+  var AWE=aw==='aware'?'awareness preserved':(aw==='impaired'?'awareness impaired':'awareness unknown');
+  var detZ,detE;
+  if(on==='motor'){ detZ=MZ[mt]||mt; detE=ME[mt]||mt; } else { detZ=NZ[nm]||nm; detE=NE[nm]||nm; }
+  var onZ=on==='motor'?'运动性':'非运动性', onE=on==='motor'?'motor':'non-motor';
+  var hint,hintEn;
+  if(et==='generalized'){ hint='首选广谱抗癫痫药：丙戊酸钠、拉莫三嗪、左乙拉西坦；卡马西平/奥卡西平可能加重失神与肌阵挛发作，应避免。'; hintEn='Broad-spectrum first line: valproate, lamotrigine or levetiracetam; avoid carbamazepine/oxcarbazepine which may worsen absence and myoclonic seizures.'; }
+  else if(et==='focal'){ hint='首选拉考沙胺、左乙拉西坦、奥卡西平、卡马西平、拉莫三嗪；药物难治性局灶性癫痫可评估手术。'; hintEn='First line: lacosamide, levetiracetam, oxcarbazepine, carbamazepine or lamotrigine; evaluate surgery if drug-resistant.'; }
+  else { hint='建议广谱抗癫痫药（左乙拉西坦/丙戊酸钠），并完善 EEG 与影像明确起源部位。'; hintEn='Use broad-spectrum agents (levetiracetam or valproate) and complete EEG plus imaging to define onset zone.'; }
+  if(ca==='structural'){ hint+=' 建议 3T MRI 含海马薄层，评估可切除的结构性病灶。'; hintEn+=' Obtain 3T MRI with thin hippocampal slices to assess a resectable structural lesion.'; }
+  else if(ca==='genetic'){ hint+=' 建议基因检测（SCN1A、SLC2A1 等）与遗传咨询。'; hintEn+=' Consider genetic testing (SCN1A, SLC2A1) and genetic counselling.'; }
+  else if(ca==='immune'){ hint+=' 建议自身免疫性脑炎抗体检测（抗 NMDAR、抗 LGI1），必要时免疫治疗。'; hintEn+=' Test for autoimmune encephalitis antibodies (anti-NMDAR, anti-LGI1) and consider immunotherapy.'; }
+  else if(ca==='metabolic'){ hint+=' 纠正代谢异常（低血糖、电解质紊乱），针对代谢病治疗。'; hintEn+=' Correct metabolic derangement (hypoglycaemia, electrolyte imbalance) and treat the underlying disorder.'; }
+  else if(ca==='infectious'){ hint+=' 针对感染病因治疗，注意药物相互作用。'; hintEn+=' Treat the infectious cause and check for drug interactions.'; }
+  __emrNote({name:'ILAE 2017 发作与癫痫分类', nameEn:'ILAE 2017 Seizure and Epilepsy Classification',
+    result:'意识 '+AWZ+' · 发作类型 '+onZ+'（'+detZ+'）· 癫痫类型 '+(ETZ[et]||et)+' · 病因 '+(CAZ[ca]||ca),
+    resultEn:'awareness '+AWE+', seizure type '+onE+' ('+detE+'), epilepsy type '+(ETE[et]||et)+', aetiology '+(CAE[ca]||ca),
+    noPos:true, hintZh:hint, hintEn:hintEn,
+    extra:'ILAE 2017 三层框架：起始部位 '+(on==='motor'?'运动性':'非运动性')+' ／ 意识 ' + AWZ + ' ／ 病因学 ' + (CAZ[ca]||ca),
+    extraEn:'ILAE 2017 three-level framework: onset '+onE+' / awareness '+AWE+' / aetiology '+(CAE[ca]||ca)});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

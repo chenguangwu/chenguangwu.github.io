@@ -295,6 +295,63 @@ function copyResult(){
 }
 
 calc();
+
+/* —— 门诊记录（EMR note）：把量表结果整理成可直接粘进门诊病历的文本（中英双语） —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('result'); if(!el) return;
+  var ids=['q1','q2','q3','q4','q5'];
+  var zh=['工作/学习缺勤','工作/学习效率减半','家务无法完成','家务效率减半','错过家庭/社交活动'];
+  var en=['missed work or school','work or school at half productivity','unable to do household work','household work at half productivity','missed family or social activities'];
+  var total=0,i,v,head=0,pz=[],pe=[];
+  for(i=0;i<ids.length;i++){
+    v=parseInt((document.getElementById(ids[i])||{value:0}).value)||0; if(v<0) v=0;
+    total+=v; if(v>0) head++;
+    pz.push(zh[i]+' '+v+' 天'); pe.push(en[i]+' '+v+' d');
+  }
+  var band;
+  if(total<=5) band=['I 级 · 极少/无失能','Grade I - little or no disability','头痛对生活影响很小，优化急性期止痛即可；避免止痛药过度使用（≤10 天/月）。','Minimal impact; optimise acute treatment and avoid medication overuse (max 10 days per month).'];
+  else if(total<=10) band=['II 级 · 轻度失能','Grade II - mild disability','轻度影响，优化急性期方案，评估是否需要预防性治疗，建立头痛日记。','Mild impact; optimise acute therapy, consider prophylaxis, keep a headache diary.'];
+  else if(total<=20) band=['III 级 · 中度失能','Grade III - moderate disability','明显影响，建议启动预防性治疗（普萘洛尔/氟桂利嗪/托吡酯/丙戊酸钠/CGRP 单抗）。','Moderate impact; start prophylaxis (propranolol, flunarizine, topiramate, valproate or a CGRP monoclonal antibody).'];
+  else band=['IV 级 · 重度失能','Grade IV - severe disability','严重影响生活质量，强烈推荐预防性治疗并头痛专科就诊，排查药物过度使用性头痛(MOH)。','Severe impact; prophylaxis strongly recommended with referral to a headache clinic, screen for medication-overuse headache.'];
+  __emrNote({name:'MIDAS 偏头痛失能评估（5 项 · 近 3 个月月均天数）', nameEn:'MIDAS Migraine Disability Assessment (5 items, average days per month over 3 months)',
+    result:'总分 '+total+' 天/月，分级：'+band[0], resultEn:'total '+total+' days/month, grade: '+band[1],
+    noPos:true, hintZh:band[2], hintEn:band[3],
+    extra:'分项：'+pz.join('；')+'；有失能记录的条目 '+head+'/5',
+    extraEn:'Breakdown: '+pe.join('; ')+'; items with recorded disability: '+head+'/5'});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

@@ -397,6 +397,85 @@ function copyResult(){
 }
 
 calc();
+
+/* —— 门诊记录（EMR note）：把量表结果整理成可直接粘进门诊病历的文本（中英双语） —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('result'); if(!el) return;
+  var gv=function(id){ var e=document.getElementById(id); return e?String(e.value):''; };
+  var amp=gv('amp'), cv=gv('cv'), dlat=gv('dlat'), fw=gv('fwave'), blk=gv('block'), smp=gv('samp');
+  var sp=gv('emg_spont'), mup=gv('emg_mup'), rec=gv('emg_recruit');
+  var dz,de,hz,he;
+  if(mup==='myopathic'||rec==='early'){
+    dz='肌源性病变'; de='myopathic lesion';
+    hz='查肌酶谱(CK)与肌炎抗体，必要时肌活检；炎症性肌病需免疫治疗。'; he='Check CK and myositis antibodies, consider muscle biopsy; immunotherapy for inflammatory myopathy.';
+  } else if(sp==='fasciculation'&&mup==='neurogenic'&&amp!=='decreased'&&cv==='normal'){
+    dz='前角细胞病变'; de='anterior horn cell lesion';
+    hz='需排查 ALS，行颈胸腰 MRI 排除脊髓压迫，尽快神经专科评估。'; he='Exclude ALS; MRI of the cervical, thoracic and lumbar spine to rule out compression; urgent neurology referral.';
+  } else if(blk==='present'&&cv==='slowed'){
+    dz='节段性脱髓鞘伴传导阻滞'; de='segmental demyelination with conduction block';
+    hz='考虑 CIDP/MMN/GBS；腰穿查脑脊液蛋白-细胞分离，IVIG 或糖皮质激素治疗。'; he='Consider CIDP, MMN or GBS; CSF for albuminocytologic dissociation; IVIG or corticosteroids.';
+  } else if(cv==='slowed'&&(dlat==='prolonged'||fw==='prolonged')&&blk==='none'){
+    dz='均匀性脱髓鞘病变'; de='uniform demyelinating neuropathy';
+    hz='考虑 GBS/CMT1/均匀型 CIDP；神经传导随访，遗传性者行基因检测。'; he='Consider GBS, CMT1 or uniform CIDP; serial nerve conduction studies and genetic testing if hereditary.';
+  } else if(amp==='decreased'&&cv==='normal'){
+    dz='轴索损害病变'; de='axonal lesion';
+    hz='排查糖尿病、维生素 B12/叶酸缺乏、酒精与毒物暴露，补充 B 族维生素。'; he='Screen for diabetes, vitamin B12 or folate deficiency, alcohol and toxin exposure; supplement B vitamins.';
+  } else {
+    dz='检查结果基本正常或非特异性改变'; de='essentially normal or non-specific findings';
+    hz='未见明确周围神经或肌肉病变的电生理证据，结合临床随访复查。'; he='No clear electrophysiological evidence of neuropathy or myopathy; correlate clinically and repeat if needed.';
+  }
+  var az=[],ae=[];
+  if(amp==='decreased'){az.push('CMAP 波幅降低');ae.push('reduced CMAP amplitude');}
+  if(cv==='slowed'){az.push('传导速度减慢');ae.push('slowed conduction velocity');}
+  if(dlat==='prolonged'){az.push('远端潜伏期延长');ae.push('prolonged distal latency');}
+  if(fw==='prolonged'){az.push('F 波异常');ae.push('abnormal F wave');}
+  if(blk==='present'){az.push('传导阻滞');ae.push('conduction block');}
+  if(smp==='decreased'){az.push('SNAP 波幅降低');ae.push('reduced SNAP amplitude');}
+  if(sp==='fibrillation'){az.push('纤颤/正锐波');ae.push('fibrillation potentials');}
+  else if(sp==='fasciculation'){az.push('束颤电位');ae.push('fasciculation potentials');}
+  if(mup==='neurogenic'){az.push('大 MUP（神经源性）');ae.push('large MUP (neurogenic)');}
+  else if(mup==='myopathic'){az.push('小 MUP（肌源性）');ae.push('small MUP (myopathic)');}
+  if(rec==='reduced'){az.push('募集减少');ae.push('reduced recruitment');}
+  else if(rec==='early'){az.push('早期募集');ae.push('early recruitment');}
+  __emrNote({name:'NCS/EMG 肌电图与神经传导报告解读', nameEn:'NCS/EMG Interpretation',
+    result:'电生理结论：'+dz, resultEn:'electrophysiological impression: '+de,
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'异常参数 '+(az.length?az.length+' 项（'+az.join('、')+'）':'0 项')+'；报告需结合临床与影像综合判断',
+    extraEn:'Abnormal parameters: '+(ae.length?ae.length+' ('+ae.join(', ')+')':'none')+'; interpret together with clinical and imaging findings'});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

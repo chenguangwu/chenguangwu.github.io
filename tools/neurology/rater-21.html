@@ -172,6 +172,60 @@ h+='<div class="info-box"><strong>临床解读：</strong>TWSTRS '+t+'分，'+g+
 const __g1=h;document.getElementById('res').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 document.getElementById('res').dataset.copyValue='TWSTRS：'+t+'/75（'+g+'）\n严重'+st+'/21 致残'+dt+'/12 疼痛'+Math.round(pt)+'/20';}
 function copyResult(){var e=document.getElementById('res');ToolBox.copyText(e.dataset.copyValue||e.textContent, i18nText('msg405'));}calc();
+
+/* —— 门诊记录（EMR note）：把量表结果整理成可直接粘进门诊病历的文本（中英双语） —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('res'); if(!el) return;
+  var ids=['t1','t2','t3','t4','t5','t6'], i, st=0, dis=0;
+  for(i=0;i<ids.length;i++){ st+=parseInt((document.getElementById(ids[i])||{value:0}).value)||0; }
+  ['d1','d2','d3','d4'].forEach(function(id){ dis+=parseInt((document.getElementById(id)||{value:0}).value)||0; });
+  var pn=parseInt((document.getElementById('p1')||{value:0}).value)||0; pn=Math.max(0,Math.min(10,pn));
+  var pd=parseInt((document.getElementById('p2')||{value:0}).value)||0;
+  var pl=parseInt((document.getElementById('p3')||{value:0}).value)||0; pl=Math.max(0,Math.min(10,pl));
+  var pain=Math.min(20,pn+pd*2+pl), total=st+dis+Math.round(pain);
+  var band;
+  if(total<=20) band=['轻度','mild','症状较轻，可物理治疗并口服药物（抗胆碱能/巴氯芬）。','Mild disease; physiotherapy plus oral agents (anticholinergics or baclofen).'];
+  else if(total<=40) band=['中度','moderate','中度，建议肉毒毒素注射，必要时联合口服药物。','Moderate; botulinum toxin injection, combined with oral agents if needed.',''];
+  else band=['重度','severe','重度，建议评估 DBS 手术适应证，多学科综合管理。','Severe; assess DBS candidacy and manage in a multidisciplinary setting.'];
+  __emrNote({name:'TWSTRS 痉挛性斜颈评分（简化 75 分制）', nameEn:'TWSTRS Cervical Dystonia Rating (simplified, max 75)',
+    result:'总分 '+total+'/75，分级：'+band[0], resultEn:'total '+total+'/75, severity: '+band[1],
+    noPos:true, hintZh:band[2], hintEn:band[3],
+    extra:'严重程度 '+st+' 分（6 项）· 致残 '+dis+' 分（4 项）· 疼痛 '+Math.round(pain)+' 分（最重 '+pn+' + 持续时间 '+pd+'×2 + 最轻 '+pl+'，上限 20）',
+    extraEn:'Severity '+st+' (6 items), disability '+dis+' (4 items), pain '+Math.round(pain)+' (worst '+pn+' + duration '+pd+'x2 + best '+pl+', capped at 20)'});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 </div>
