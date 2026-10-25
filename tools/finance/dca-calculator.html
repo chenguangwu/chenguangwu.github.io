@@ -183,6 +183,7 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row">
       <div><label>预期年化收益率(%)</label><input type="number" id="rate" value="8" step="any" oninput="calc()"></div>
       <div><label>初始本金(元)</label><input type="number" id="initial" value="0" step="any" min="0" oninput="calc()"></div>
+      <div><label data-zh="止盈目标金额(元，可留空)">Target amount (CNY, optional)</label><input type="number" id="target" value="" step="any" min="0" placeholder="200000" oninput="calc()"></div>
     </div>
 
     <div style="margin-bottom:8px;">
@@ -437,8 +438,55 @@ function calc(){
   resHtml += '<p style="font-size:13px;color:var(--text-muted);">💡 对比：若一次性投入 ¥' + ToolBox.formatNumber(totalInvest, 0) + '，期末资产约 <strong>¥' + ToolBox.formatNumber(lumpFinal, 0) + '</strong>（' + (lumpFinal > dcaFinal ? '高于' : '低于') + '定投 ' + (Math.abs(lumpFinal - dcaFinal) / dcaFinal * 100).toFixed(2) + '%）</p>';
   const __g5=resHtml;document.getElementById('res').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
 
+  // 止盈目标 → 反推所需年化（plan：定投计算器缺「止盈目标反推年化」）
+  try {
+    var __tEl = document.getElementById('target');
+    var __target = __tEl ? (parseFloat(__tEl.value) || 0) : 0;
+    var __resEl = document.getElementById('res');
+    if (__target > 0 && __resEl){
+      var __need = __dcaSolveRatePct(__target, data.monthly, data.initial, data.years);
+      var __gap = __need - data.annualRate;
+      var __en = (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn());
+      var __gapTxt = Math.abs(__gap).toFixed(2);
+      var __verdict = (__gap > 0.005)
+        ? (__en ? 'you need +' + __gapTxt + ' pp more.' : '还需再提高 ' + __gapTxt + ' 个百分点。')
+        : (__gap < -0.005)
+          ? (__en ? 'you have ' + __gapTxt + ' pp of headroom (hits early).' : '已超出 ' + __gapTxt + ' 个百分点（可提前达标）。')
+          : (__en ? 'right on target.' : '刚好达标。');
+      var __line = '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">' +
+        '<p>🎯 ' + (__en ? 'Target amount: ' : '止盈目标：') + '<strong>¥' + ToolBox.formatNumber(__target, 2) + '</strong></p>' +
+        '<p>' + (__en ? 'Required annualized return: ' : '达成所需年化收益率：') +
+        '<strong style="color:var(--primary);font-size:18px;">' + __need.toFixed(2) + '%</strong></p>' +
+        '<p>' + (__en ? 'vs. your expected ' : '与你设定的预期年化 ') + data.annualRate.toFixed(2) + '% ' +
+        (__en ? '⇒ ' : '⇒ ') + __verdict + '</p>';
+      __resEl.innerHTML = String(__resEl.innerHTML) + __line;
+    }
+  } catch(e) {}
+
   drawChart(data);
   renderTable(data);
+}
+
+// 由「期数 + 每期投入 + 初始本金 + 年化」正算期末资产（与 calcMonthlyData 同口径）
+function __dcaFutureValue(monthly, initial, years, annualRatePct){
+  var mr = (annualRatePct || 0) / 100 / 12;
+  var bal = initial || 0;
+  var months = Math.max(1, Math.floor(years)) * 12;
+  for (var m = 1; m <= months; m++){
+    if (timing === 'begin'){ bal += monthly; bal *= (1 + mr); }
+    else { bal *= (1 + mr); bal += monthly; }
+  }
+  return bal;
+}
+// 止盈反推：二分求使期末资产 = target 的年化收益率（%，单调 ⇒ 二分收敛）
+function __dcaSolveRatePct(target, monthly, initial, years){
+  var lo = -0.99, hi = 5;
+  for (var i = 0; i < 200; i++){
+    var mid = (lo + hi) / 2;
+    var fv = __dcaFutureValue(monthly, initial, years, mid * 100);
+    if (fv < target) lo = mid; else hi = mid;
+  }
+  return (lo + hi) / 2 * 100;
 }
 
 function calcAnnualizedReturn(invest, final, years){

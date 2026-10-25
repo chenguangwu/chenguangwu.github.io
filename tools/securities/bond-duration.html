@@ -285,6 +285,40 @@ function calcTool(){const C=num('C')/100, F=num('F'), y=num('y')/100, n=Math.flo
        '<td style="border:1px solid #d1d5db;padding:5px 8px;">'+(r[3]*100).toFixed(2)+'%</td></tr>';
    });
    html+='</table>';
+   // 利率敏感度 ±100bp：完全重定价（精确） vs 修正久期线性近似（含近似误差）
+   const __bdAt=function(dyBp){
+     const yN=y+dyBp/10000, ypN=yN/freq;
+     let PP=0, dd=0;
+     for(let t=1;t<=N;t++){ const cf=(t===N)?(cp+F):cp; const pv=cf/Math.pow(1+ypN,t); PP+=pv; dd+=pv*t; }
+     return {P:PP};
+   };
+   const __bdScen=[-100,-50,0,50,100];
+   let __bdHtml='<div style="margin-top:14px;font-size:13px;"><b>利率敏感度（±100bp，完全重定价 vs 久期近似）</b></div>'+
+     '<table class="csv-prev" style="margin-top:6px;border-collapse:collapse;width:100%;font-size:12.5px;">'+
+     '<tr><th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">情景</th>'+
+     '<th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">收益率</th>'+
+     '<th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">债券价格</th>'+
+     '<th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">价格变动</th>'+
+     '<th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">实际变动%</th>'+
+     '<th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">久期近似%</th>'+
+     '<th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">近似误差</th></tr>';
+   __bdScen.forEach(function(bp){
+     const rr=__bdAt(bp);
+     const dP=rr.P-P;
+     const dPct=P>0?dP/P*100:0;
+     const approx=-modified*(bp/100);
+     const err=dPct-approx;
+     const lab=(bp>0?'+':'')+bp+'bp';
+     __bdHtml+='<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">'+(bp===0?'基准':lab)+'</td>'+
+       '<td style="border:1px solid #d1d5db;padding:5px 8px;">'+((y+bp/10000)*100).toFixed(2)+'%</td>'+
+       '<td style="border:1px solid #d1d5db;padding:5px 8px;">'+fmtMoney(rr.P)+'</td>'+
+       '<td style="border:1px solid #d1d5db;padding:5px 8px;">'+(dP>=0?'+':'')+fmtMoney(dP)+'</td>'+
+       '<td style="border:1px solid #d1d5db;padding:5px 8px;">'+(dPct>=0?'+':'')+dPct.toFixed(3)+'%</td>'+
+       '<td style="border:1px solid #d1d5db;padding:5px 8px;">'+(approx>=0?'+':'')+approx.toFixed(3)+'%</td>'+
+       '<td style="border:1px solid #d1d5db;padding:5px 8px;">'+err.toFixed(3)+'%</td></tr>';
+   });
+   __bdHtml+='</table>';
+   html+=__bdHtml;
    const dpdy=modified;               // 每 1% 利率变动价格变化百分比 ≈ 修正久期 × 1%
    html += '<p style="font-size:13px;color:var(--text-muted);margin-top:8px;">利率每上升 1%，价格约下降 '+dpdy.toFixed(2)+'%；反之上升。久期越长，利率风险越大。</p>';
    const __g1=html;ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));}
