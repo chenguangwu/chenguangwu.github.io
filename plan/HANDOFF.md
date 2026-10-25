@@ -21,7 +21,7 @@
 | E2 桥梁荷载 Pk 内插基线 270 应 180 | 08-工程制造/construction-energy.md | JTG D60-2015 表 4.3.1-2：L≤5m→180、L≥50m→360（✅ 2026-10-25 已修） |
 | Z1 unit-price-compare 固液量纲混用 | 06-商业运营/biz-startup.md | ml/L 与 g/kg 不可直接比单价（✅ 2026-10-25 已修） |
 | O1 dyeing/tester-9 输入 C 未参与计算 | 12-长尾行业/_others.md | GB/T 20944.2 口径（✅ 2026-10-25 已修） |
-| L1 bra-size 美码=英码且口径粗糙 | 05-生活消费/life.md | US=UK+2 |
+| L1 bra-size 美码=英码且口径粗糙 | 05-生活消费/life.md | ✅ 2026-10-25 已修（EU→US/UK 等效 75→34；US 与 UK 同号，原「US=UK+2」与权威尺码表不符已按标准实现） |
 | E1 eco-10/16「万 kWh」量纲口径存疑 | 10-农业养殖/livestock-eco-forestry.md | ✅ 2026-10-25 已修（标「万 kWh」→「MWh（千 kWh）」，数值不动） |
 
 ### P1 口径/标签矛盾——数字对但表述误导
