@@ -377,6 +377,7 @@ function showSteps() {
   else if (level === 'verbal') advice = '1. 仅在遗忘步骤时给予语言提示\n2. 关注动作质量\n3. 增加任务复杂度\n4. 每次30分钟，隔日1次';
   else advice = '1. 独立完成全部步骤\n2. 监督安全\n3. 提高速度和效率\n4. 可增加环境干扰训练泛化';
 
+  __EMR_S={act:act, lv:level, sc:data.steps.length, sk:data.skills.join('、'), ds:data.desc, adv:advice, ic:data.icon};
   advice.split('\n').forEach(function(line) {
     html += '<p style="font-size:13px;color:var(--text-light);margin:4px 0;">' + line + '</p>';
   });
@@ -439,6 +440,65 @@ function clearHistory() {
   renderHistory();
   ToolBox.showToast(i18nText(), 'info');
 }
+
+/* —— 门诊记录（EMR note）：把 ADL 任务分解训练方案整理成可直接粘进康复记录/病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Training date: __________  Therapist: __________':'训练日期：__________　治疗师：__________');
+  L.push(en?'(Task-specific ADL training plan; adjust grading to actual ability after each session.)':'（任务导向 ADL 训练方案，实际分级应每次训练后按患者实际能力调整）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+var __EMR_S;
+var __emrData=function(){
+  var el=document.getElementById('resultBox'); if(!el) return;
+  var s=__EMR_S; if(!s||typeof s.act!=='string'||typeof s.lv!=='string') return;
+  var en=__emrEn();
+  var lvZh={full:'完全辅助',partial:'部分辅助',verbal:'口语提示',independent:'独立完成（监督下）'};
+  var lvEn={full:'total assistance',partial:'partial assistance',verbal:'verbal cueing only',independent:'supervised independent'};
+  var actEn={'穿脱上衣':'dressing upper body','穿脱裤子':'dressing lower body','洗脸刷牙':'washing face and brushing teeth','进食':'eating','如厕':'toileting','洗澡':'bathing','床椅转移':'bed-chair transfer','上下楼梯':'stair negotiation'};
+  var ic=s.ic||'', aEn=actEn[s.act]||'ADL task', lEn=lvEn[s.lv]||s.lv;
+  var hz,he;
+  if(s.lv==='full'){ hz='完全辅助级：治疗师全程示范并手把手辅助每一步，每步重复 3–5 次，强调正确姿势与安全，每次 15–20 分钟、每日 1–2 次。记录时写明每步的实际辅助量（手法/口令/器具），4–6 次训练后若辅助量减少应及时上调分级，避免长期停留在完全辅助。';
+    he='Total assistance: demonstrate and hand-over-hand assist every step, repeat each step 3-5 times, emphasise correct posture and safety, 15-20 minutes per session once or twice daily. Document the actual assistance per step (manual, verbal, equipment); upgrade the grade when assistance decreases over 4-6 sessions.'; }
+  else if(s.lv==='partial'){ hz='部分辅助级：仅在困难步骤给予辅助，鼓励患者主动尝试并逐步减少辅助量，每次 20–30 分钟、每日 1 次；重点记录哪几步仍需辅助，作为下一阶段目标。';
+    he='Partial assistance: assist only the difficult steps, encourage active attempts and fade assistance gradually, 20-30 minutes once daily; record which steps still need help as the next goal.'; }
+  else if(s.lv==='verbal'){ hz='口语提示级：仅在遗忘步骤时给予语言提示，关注动作质量并逐步增加任务复杂度（如改变环境、加入干扰），每次 30 分钟、隔日 1 次。';
+    he='Verbal cueing: prompt only when a step is forgotten, focus on movement quality and progressively increase task complexity (environment change, distractors), 30 minutes every other day.'; }
+  else { hz='独立完成级（监督下）：独立完成全部步骤并监督安全，逐步提高速度与效率，可增加环境干扰训练以促进泛化；仍需记录跌倒与操作失误风险。';
+    he='Supervised independent: complete all steps independently with safety supervision, improve speed and efficiency, and add environmental distractors to promote generalisation; still document fall and error risk.'; }
+  __emrNote({boxId:'resultBox', name:'ADL 任务分解训练方案', nameEn:'ADL Task Breakdown Training Plan',
+    result:ic+' '+s.act+'（'+lvZh[s.lv]+'）· 训练步骤 '+s.sc+' 步 · 所需能力：'+s.sk,
+    resultEn:aEn+' ('+lEn+'): '+s.sc+' steps; required abilities: see plan',
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'任务说明：'+s.ds+'。分级递进口径：完全辅助 → 部分辅助 → 口语提示 → 独立完成，每级以「上一级辅助量减少一半且任务完成质量稳定」为升级判据，退步两级以上需复评肌力、疼痛与认知状态。',
+    extraEn:'Task: see the plan above. Grading progression: total assistance, partial assistance, verbal cueing, supervised independent. Upgrade only when assistance halves and performance is stable; a two-level regression warrants re-assessment of strength, pain and cognition.'});
+};
+var __emrW0=(typeof showSteps==='function')?showSteps:null;
+if(__emrW0){ showSteps=function(){ try{ return __emrW0.apply(null,arguments); } finally { try{__emrData();}catch(e){} } }; }
+try{ __emrData(); }catch(e){}
 
 init();
 </script>

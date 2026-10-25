@@ -145,6 +145,17 @@ const CASES = [
   "ref": "门诊记录：全量注入 28 皮节×4 位点（sens_*_lt_l/pp_l/lt_r/pp_r）+ 10 组关键肌×双侧（motor_i_l/r）共 132 键，感觉 224/224、运动 100/100 全正常 ⇒ AIS E，门诊记录输出平面与总分（与 applyAsiaPreset('normal') 等价）。注意本页 select 由 renderSensory()/renderMotor() 运行期拼 innerHTML 生成、**不在静态源码里**，桩取不到默认值 ⇒ parseInt('')=NaN，默认态既非 E 也拿不到有效总分，零交集。旧 expect 锚在桩假象「NaN/112」上（分母 112 系量纲错，28×4×2=224），已修。"
 },
 {
+  "slug": "rehabilitation/adl-task-breakdown",
+  "inputs": {
+    "activitySelect": "进食",
+    "levelSelect": "verbal"
+  },
+  "expect": [
+    "🍴 进食（口语提示）· 训练步骤 10 步 · 所需能力：上肢功能、手眼协调、口腔运动、吞咽功能"
+  ],
+  "ref": "门诊记录（该页原为零用例，本次新增）：activitySelect/levelSelect 的值是纯中文键，inputs 可直接注入；进食任务共 10 步、四项能力，训练等级取 verbal ⇒「口语提示」。默认态 activitySelect 为空 ⇒ adlData[''] 为 undefined，showSteps() 里取 data.icon 直接抛错、不产生门诊记录，零交集。"
+},
+{
   "slug": "rehabilitation/assistive-device-fitting",
   "inputs": {
     "orthoPart": "kfo"
@@ -153,6 +164,20 @@ const CASES = [
     "重量约1.5-3kg"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "rehabilitation/assistive-device-fitting",
+  "inputs": {
+    "wcHeight": "170",
+    "wcWeight": "110",
+    "wcSitHeight": "85",
+    "wcHipWidth": "40",
+    "wcCalfLength": "40"
+  },
+  "expect": [
+    "身高 170cm · 体重 110kg · 坐高 85cm · 臀宽 40cm · 小腿长 40cm → 座宽 42cm · 座深 37cm · 座高 45cm · 靠背高 40cm · 承重 ≥165kg"
+  ],
+  "ref": "门诊记录：座宽=臀宽 40+2=42；座深=小腿长 40−3=37；座高=小腿长 40+5=45；靠背高=max(坐高 85−座高 45,25)=40；承重=ceil(110×1.5)=165。默认态 wcHeight 为空 ⇒ calcWheelchair 早退回「请输入身高、体重和臀宽」、不产生门诊记录，零交集。（本页三个 tab 各有独立计算函数，上方 orthoPart 用例覆盖矫形器分支，本条覆盖轮椅分支。）"
 },
 {
   "slug": "rehabilitation/berg-balance-scale",

@@ -62,8 +62,9 @@
   + pediatrics 3（pediatric-fracture/rater-27/vanderbilt-adhd）
   + clinical-nursing 4（pain-nrs/suction-pressure/restraint-check/surgical-position-risk）
   + rehabilitation 4（water-swallow-test/mmt-grading/boston-aphasia/rom-normal-value）
-  + rehabilitation 4（asia-impairment-scale/mmse-scoring/physiotherapy-dose/proprioception-error）。
-  全站累计 **112 页**。psychiatry 已全铺完，psychology 仅剩 scl90（外部 js + psych-kit 通用引擎）与
+  + rehabilitation 4（asia-impairment-scale/mmse-scoring/physiotherapy-dose/proprioception-error）
+  + rehabilitation 2（adl-task-breakdown/assistive-device-fitting，后者轮椅分支另加一条用例）。
+  全站累计 **114 页**。psychiatry 已全铺完，psychology 仅剩 scl90（外部 js + psych-kit 通用引擎）与
   若干非临床人格/趣味页（bubble-tea/enneagram/bigfive/holland，非病历场景，不铺门诊记录）。
   顺手修 3 个真 bug：DHI 维度分母互换（P/F 的 28/36 写反）、IRLS 症状特征分母、rater 系满分口径；
   并清理 rater-18/19/22 三条「模板残留假通过」用例（`+j+` 命中页面源码，零判别力，判别力检查从 35 检/3 跳过变为 40 检/0 跳过）。
@@ -93,9 +94,9 @@
     CJK 正则含 `\u4e00-\u9fff\u3000-\u303f\uff00-\uffef`；跑完即删临时脚本。
 - 🔴 待续（**未铺清单以 2026-10-26 全站 grep 实测为准，勿信早前「已全铺完」口径**）：
   M1 条目结构 / M2 阈值口径仍待老板裁断。当前实测未铺（排除 index）共 **42 页**：
-  - `rehabilitation` **3 页**（早前误记「已全铺完」，实测 23 页中 20 页已铺）：adl-task-breakdown、
-    assistive-device-fitting（均 `#resultBox`/`#wcResult` + `showSteps()/calcWheelchair()`，`switchTab` 需传哑 btn），
-    以及 analysis-time（仅 24 行的占位/跳转页，先确认性质）。
+  - `rehabilitation` **已全铺完**（23 个文件：22 个实页全铺 + `analysis-time.html` 为
+    `TOOLBOX-REDIRECT` 重定向占位页直跳 gait-analysis、`robots=noindex`，不铺门诊记录）。
+    该分类原被误记为「已全铺完」而实际只铺 12 页，本轮 03-32/03-33/03-34 三批补齐 10 页。
   - `psychology` 11：analysis-2、attachment-style-test、bigfive-personality-test、bubble-tea-personality-quiz、
     enneagram-test、generator-20、holland-career-test、random-12、scl90-assessment、tester-2、tester-3
     （多为非病历场景的人格/趣味页；scl90 走外置 js + psych-kit 通用引擎，需另设计）。

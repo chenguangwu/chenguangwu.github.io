@@ -391,6 +391,7 @@ function calcWheelchair() {
     html += '<div class="tip-box tip-warn">身高>185cm，建议选择加长型轮椅或定制</div>';
   }
 
+  __EMR_S={ty:'wc', h:h, w:w, sh:sh, hw:hw, cl:cl, sw:seatWidth, sdp:seatDepth, sht:seatHeight, bh:backHeight, lc:loadCapacity};
   window._deviceResult = { type: '轮椅', summary: '座宽' + seatWidth.toFixed(0) + 'cm 座深' + seatDepth.toFixed(0) + 'cm 承重≥' + loadCapacity + 'kg' };
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('wcResult').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('wcResult').innerHTML=__h1;
 }
@@ -748,6 +749,60 @@ if(__assistive_device_fitting_f0){
 function __assistive_device_fittingBoot(){ try{ __assistive_device_fittingPresets(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __assistive_device_fittingBoot();
 else document.addEventListener('DOMContentLoaded', __assistive_device_fittingBoot);
+
+/* —— 门诊记录（EMR note）：把轮椅适配尺寸整理成可直接粘进辅具适配记录/病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Fitting date: __________  Assessor: __________':'适配日期：__________　适配师：__________');
+  L.push(en?'(Wheelchair sizing reference; confirm on-site with the actual device and user trial.)':'（轮椅尺寸适配参考，最终以实物试坐与使用者反馈确认）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+var __EMR_S;
+var __emrData=function(){
+  var el=document.getElementById('wcResult'); if(!el) return;
+  var s=__EMR_S; if(!s||s.ty!=='wc'||typeof s.sw!=='number'||!isFinite(s.sw)) return;
+  var en=__emrEn();
+  var warnZh=[], warnEn=[];
+  if(s.w>100){ warnZh.push('体重 >100kg，建议加强型宽座轮椅（座宽≥48cm）'); warnEn.push('weight over 100 kg: use a heavy-duty wide wheelchair (seat width 48 cm or more)'); }
+  if(s.h>185){ warnZh.push('身高 >185cm，建议加长型轮椅或定制'); warnEn.push('height over 185 cm: use an extended-frame or custom wheelchair'); }
+  var hz,he;
+  if(warnZh.length){ hz='适配要点：'+warnZh.join('；')+'。座宽取臀宽 +2cm（过宽导致躯干代偿与肩痛、过窄造成髋部与股骨大转子受压），座深取小腿长 −3cm（过深压迫腘窝、过浅支撑不足），座高取小腿长 +5cm 使大腿水平、足跟贴地；试坐 15 分钟后检查坐骨结节与骶尾受压情况，并教家属每日减压。';
+    he='Fitting points: '+warnEn.join('; ')+'. Seat width is hip width plus 2 cm (too wide causes trunk compensation and shoulder pain, too narrow compresses the hips and greater trochanters); seat depth is calf length minus 3 cm (too deep compresses the popliteal fossa, too shallow gives poor support); seat height is calf length plus 5 cm so the thighs are level and feet rest on the floor. After a 15-minute trial, check the ischial tuberosities and sacrum, and teach daily pressure relief.'; }
+  else { hz='尺寸在常规适配范围：座宽 '+s.sw.toFixed(0)+'cm（臀宽 '+s.hw+' +2）、座深 '+s.sdp.toFixed(0)+'cm（小腿长 −3）、座高 '+s.sht.toFixed(0)+'cm（小腿长 +5）、靠背高 '+s.bh.toFixed(0)+'cm（坐高 − 座高）、承重 ≥'+s.lc+'kg（体重×1.5）。试坐后确认：座宽两侧各留 1–2 指、腘窝与座垫前沿留 2–3 指、双脚平放不悬空；记录使用者主诉与皮肤受压情况。';
+    he='Sizes are within the usual fitting range: seat width '+s.sw.toFixed(0)+' cm (hip width '+s.hw+' + 2), seat depth '+s.sdp.toFixed(0)+' cm (calf length - 3), seat height '+s.sht.toFixed(0)+' cm (calf length + 5), back height '+s.bh.toFixed(0)+' cm (sitting height minus seat height), load capacity at least '+s.lc+' kg (body weight x 1.5). After the trial confirm: one to two fingers clearance on each side of the seat, two to three fingers between the popliteal fossa and the front edge of the cushion, and both feet flat on the floor. Record user complaints and skin condition.'; }
+  __emrNote({boxId:'wcResult', name:'轮椅适配尺寸计算', nameEn:'Wheelchair Sizing',
+    result:'身高 '+s.h+'cm · 体重 '+s.w+'kg · 坐高 '+(s.sh||'—')+'cm · 臀宽 '+s.hw+'cm · 小腿长 '+(s.cl||'—')+'cm → 座宽 '+s.sw.toFixed(0)+'cm · 座深 '+s.sdp.toFixed(0)+'cm · 座高 '+s.sht.toFixed(0)+'cm · 靠背高 '+s.bh.toFixed(0)+'cm · 承重 ≥'+s.lc+'kg',
+    resultEn:'height '+s.h+' cm, weight '+s.w+' kg, sitting height '+(s.sh||'n/a')+' cm, hip width '+s.hw+' cm, calf length '+(s.cl||'n/a')+' cm; seat width '+s.sw.toFixed(0)+' cm, seat depth '+s.sdp.toFixed(0)+' cm, seat height '+s.sht.toFixed(0)+' cm, back height '+s.bh.toFixed(0)+' cm, load capacity at least '+s.lc+' kg',
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'计算口径：座宽 = 臀宽 + 2cm；座深 = 小腿长 − 3cm（缺省 40cm）；座高 = 小腿长 + 5cm（缺省 45cm）；靠背高 = max(坐高 − 座高, 25cm)（缺省 45cm）；承重 = ceil(体重 × 1.5)。',
+    extraEn:'Formulas: seat width = hip width + 2 cm; seat depth = calf length - 3 cm (default 40 cm); seat height = calf length + 5 cm (default 45 cm); back height = max(sitting height - seat height, 25 cm) (default 45 cm); load capacity = ceil(weight x 1.5).'});
+};
+var __emrW1=(typeof calcWheelchair==='function')?calcWheelchair:null;
+if(__emrW1){ calcWheelchair=function(){ try{ return __emrW1.apply(null,arguments); } finally { try{__emrData();}catch(e){} } }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <section class="opt-guide"><h2>如何使用辅助器具适配(尺寸/重量)计算器</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>身高（cm）</li><li>体重（kg）</li><li>坐高（cm）</li><li>臀宽（cm）</li><li>小腿长（cm，腘窝至足底）</li><li>矫形器部位</li><li>功能障碍程度</li><li>小腿围（cm，AFO用）</li></ul><h2>适用场景</h2><p>工作与生活中的相关计算与查询。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>辅助器具适配(尺寸/重量)计算器是做什么的？</dt><dd>输入患者身高、体重、肢体尺寸等参数，工具计算轮椅座宽/座深、拐杖与助行器高度等辅助器具的适配尺寸与承重建议，帮助康复师为使用者选配安全合身的辅具。</dd><dt>如何使用辅助器具适配(尺寸/重量)计算器？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>辅助器具适配(尺寸/重量)计算器适合哪些场景？</dt><dd>工作与生活中的相关计算与查询。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>
