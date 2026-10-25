@@ -425,6 +425,7 @@ function evaluate() {
   html += '<div class="tip-box tip-info" style="margin-top:8px;"><strong>康复建议：</strong>' + advice + '</div>';
   html += '<div class="tip-box tip-warn" style="margin-top:8px;">本评定为简化版ASIA评估，实际临床应用需按照ISNCSCI标准完整评定，包括肛门指检和自主功能检查。</div>';
 
+  __EMR_S={sp:lastNormalSensory, pl:lastNormalMotor, ais:ais, d:aisDesc, adv:advice};
   window._evalResult = { plane: lastNormalMotor, ais: ais, desc: aisDesc };
   document.getElementById('resultBox').innerHTML = html;
 }
@@ -525,6 +526,84 @@ function __asiaExtras(){
 var __asiaEval=evaluate;
 evaluate=function(){__asiaEval();__asiaExtras();};
 if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){__asiaExtras();});}else{__asiaExtras();}
+
+/* —— 门诊记录（EMR note）：把 ASIA 评定整理成可直接粘进康复记录/病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Simplified ASIA assessment; formal classification requires the full ISNCSCI protocol including anal examination and autonomic function.)':'（简化版 ASIA 评估；正式分级须按 ISNCSCI 全流程，含肛门指检与自主功能检查。）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+var __EMR_S;
+var __emrData=function(){
+  var el=document.getElementById('resultBox'); if(!el) return;
+  var s=__EMR_S; if(!s||typeof s.ais!=='string') return;
+  var en=__emrEn();
+  var types=['lt_l','pp_l','lt_r','pp_r'], side=['l','r'], lt=0, mt=0, i, k;
+  for(i=0;i<sensoryDermatomes.length;i++){
+    for(k=0;k<4;k++){
+      var e=document.getElementById('sens_'+sensoryDermatomes[i]+'_'+types[k]);
+      var v=e?String(e.value):'';
+      if(v!==''&&v!=='NT'&&isFinite(parseInt(v,10))) lt+=parseInt(v,10);
+    }
+  }
+  for(i=0;i<keyMuscles.length;i++){
+    for(k=0;k<2;k++){
+      var e2=document.getElementById('motor_'+i+'_'+side[k]);
+      var v2=e2?String(e2.value):'';
+      if(v2!==''&&v2!=='NT'&&isFinite(parseInt(v2,10))) mt+=parseInt(v2,10);
+    }
+  }
+  var advEn={A:'Complete injury. Focus: wheelchair skills, upper-limb strengthening, ROM maintenance, bladder and bowel management, pressure-injury prevention.',
+    B:'Sensory incomplete. Focus: sensory stimulation, motor facilitation, transfer training, ADL adaptation.',
+    C:'Motor incomplete (weak). Focus: assisted-active strengthening, functional electrical stimulation, gait training with bracing as needed, balance training.',
+    D:'Motor incomplete (strong). Focus: resisted strengthening, gait training, advanced balance, community and work reintegration.',
+    E:'Normal sensory and motor function. Advise periodic review, maintenance training and prevention education.'};
+  var hz,he;
+  if(s.ais==='A'){ hz='AIS A 为完全性损伤：感觉平面以下无骶段保留。康复重点在并发症预防与功能代偿——每 2 小时翻身与减压、膀胱直肠程序化管理、被动/主动关节活动度维持、轮椅技能与上肢肌力强化；同时评估痉挛、自主神经反射异常与深静脉血栓风险。';
+    he='AIS A is a complete injury with no sacral sparing. Prioritise complication prevention and compensation: reposition and offload every 2 hours, bowel and bladder programme, passive/active ROM maintenance, wheelchair skills and upper-limb strengthening; screen for spasticity, autonomic dysreflexia and DVT.'; }
+  else if(s.ais==='B'){ hz='AIS B 为不完全感觉损伤：有骶段感觉保留但损伤平面以下无运动。康复以感觉刺激、运动功能促通与体位转移训练为主，并做 ADL 适应性改造；需动态复评，部分患者在数周至数月内可转为运动不完全。';
+    he='AIS B is sensory incomplete: sacral sensation is preserved but no motor function below the level. Focus on sensory stimulation, motor facilitation and transfer training with ADL adaptation; re-assess serially since some patients convert to motor incomplete over weeks to months.'; }
+  else if(s.ais==='C'){ hz='AIS C 为运动不完全（多数关键肌<3 级）：以辅助-主动肌力训练、功能性电刺激与平衡训练为主，步态训练多需支具辅助；训练量宜少量多次，密切观察疲劳与代偿模式。';
+    he='AIS C is motor incomplete with most key muscles below grade 3: use assisted-active strengthening, functional electrical stimulation and balance training, with bracing for gait; keep sessions short and frequent and watch fatigue and compensation.'; }
+  else if(s.ais==='D'){ hz='AIS D 为运动不完全（多数关键肌≥3 级）：可进阶到抗阻肌力训练、步态训练与高级平衡训练，并推进回归社区与工作的目标设定；仍需监测痉挛、疼痛与压疮风险。';
+    he='AIS D is motor incomplete with most key muscles at grade 3 or above: progress to resisted strengthening, gait and advanced balance training, and set community/work reintegration goals; continue monitoring spasticity, pain and pressure injury.'; }
+  else { hz='AIS E 为感觉运动功能正常：按 ISNCSCI 复核确认无遗漏，给予定期复查、维持性训练与再损伤预防教育。';
+    he='AIS E means normal sensory and motor function: confirm with the full ISNCSCI, then advise periodic review, maintenance training and re-injury prevention.'; }
+  var descEn={A:'complete',B:'sensory incomplete',C:'motor incomplete, weak',D:'motor incomplete, strong',E:'normal'};
+  __emrNote({boxId:'resultBox', name:'ASIA 脊髓损伤神经学分类（简化版）', nameEn:'ASIA Impairment Scale (simplified)',
+    result:'感觉平面 '+s.sp+' · 运动平面 '+s.pl+' · AIS '+s.ais+'（'+s.d+'）· 感觉总分 '+lt+'/224 · 运动总分 '+mt+'/100',
+    resultEn:'sensory level '+s.sp+', motor level '+s.pl+', AIS '+s.ais+' ('+(descEn[s.ais]||'')+'); sensory score '+lt+'/224, motor score '+mt+'/100',
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'康复建议：'+s.adv,
+    extraEn:'Rehabilitation focus: '+(advEn[s.ais]||advEn.A)});
+};
+var __emrW0=(typeof evaluate==='function')?evaluate:null;
+if(__emrW0){ evaluate=function(){ try{ return __emrW0.apply(null,arguments); } finally { try{__emrData();}catch(e){} } }; }
+try{ __emrData(); }catch(e){}
 
 init();
 </script>

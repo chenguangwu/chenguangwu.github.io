@@ -140,10 +140,9 @@ const CASES = [
     "motor_9_r": "5"
   },
   "expect": [
-    "运动总评分： 100/100 （左侧50/50 右侧50/50）",
-    "感觉总评分： 224/224"
+    "感觉平面 S4-S5 · 运动平面 S1 · AIS E（正常）· 感觉总分 224/224 · 运动总分 100/100"
   ],
-  "ref": "全量注入 28 皮节×4 位点（sens_*_lt_l/pp_l/lt_r/pp_r）+ 10 组关键肌×双侧（motor_i_l/r）共 132 键：运动 20 肌全 5 ⇒ 运动总评分 100/100；感觉 112 位点全 2 ⇒ 224/224。注意本页 select 由 renderSensory()/renderMotor() 运行期拼 innerHTML 生成、**不在静态源码里**，桩取不到默认值 ⇒ parseInt('')=NaN，默认态输出「NaN/…」；旧 expect 正是锚在这个桩假象「NaN/112」上。真机默认（option 2-正常 带 selected）实显 224/112 —— 分母 112 系量纲错（28×4×2=224），已随本批次修为 /224。"
+  "ref": "门诊记录：全量注入 28 皮节×4 位点（sens_*_lt_l/pp_l/lt_r/pp_r）+ 10 组关键肌×双侧（motor_i_l/r）共 132 键，感觉 224/224、运动 100/100 全正常 ⇒ AIS E，门诊记录输出平面与总分（与 applyAsiaPreset('normal') 等价）。注意本页 select 由 renderSensory()/renderMotor() 运行期拼 innerHTML 生成、**不在静态源码里**，桩取不到默认值 ⇒ parseInt('')=NaN，默认态既非 E 也拿不到有效总分，零交集。旧 expect 锚在桩假象「NaN/112」上（分母 112 系量纲错，28×4×2=224），已修。"
 },
 {
   "slug": "rehabilitation/assistive-device-fitting",
@@ -218,9 +217,9 @@ const CASES = [
     "1"
   ],
   "expect": [
-    "30 / 30分"
+    "总分 30/30 → 认知功能正常 · 定向力 10/10 · 记忆力 3/3 · 注意力/计算 5/5 · 回忆力 3/3 · 语言力 9/9"
   ],
-  "ref": "30 项全选「正确」（checks 注入 input[name=qN]:checked ⇒ value=1，页面按 sel.value==='1' 计数）⇒ total=30 ⇒「30 / 30分」；默认 total=0 显示「0 / 30分」。原 expect「100-7」是量表注意力条目文案，默认恒在（常量型逃生项）。"
+  "ref": "门诊记录：30 项全选「正确」（checks 注入 input[name=qN]:checked ⇒ value=1，页面按 sel.value==='1' 计数）⇒ total=30 落 ≥27 档「认知功能正常」，同时打印五个领域满分。默认态 total=0 ⇒ 输出「总分 0/30 → 重度认知障碍」，零交集。"
 },
 {
   "slug": "rehabilitation/mmt-grading",
@@ -249,15 +248,24 @@ const CASES = [
 {
   "slug": "rehabilitation/proprioception-error",
   "inputs": {
-    "target1": "68",
-    "target2": "90",
-    "target3": "120",
-    "target4": "60"
+    "target1": "30",
+    "target2": "45",
+    "target3": "60",
+    "target4": "75",
+    "reproduce1": "37",
+    "reproduce2": "49",
+    "reproduce3": "66",
+    "reproduce4": "84",
+    "testJoint": "knee",
+    "testSide": "left"
   },
-  "expect": [
-    "68"
+  "clicks": [
+    "calcError();finalizeResult();"
   ],
-  "ref": "auto-restore"
+  "expect": [
+    "左侧膝关节 · 平均误差 6.5° · 最大 9.0° · 最小 4.0° · 标准差 1.8° → 轻度异常"
+  ],
+  "ref": "门诊记录：clicks 先 calcError() 填 errors（|37-30|,|49-45|,|66-60|,|84-75| = 7,4,6,9）再 finalizeResult() 汇总，平均 6.5°、最大 9.0°、最小 4.0°、SD 1.79→1.8°，落 5<avg≤10 档「轻度异常」。默认态 repro/其它角为空 ⇒ errors 为空、finalizeResult 早退不渲染门诊记录，零交集。旧 expect「68」属输入回显（无法证明计算正确），已废弃。"
 },
 {
   "slug": "rehabilitation/prosthesis-alignment",
@@ -388,10 +396,10 @@ const CASES = [
 ,
   {
     "slug": "rehabilitation/physiotherapy-dose",
-    "inputs": {"usArea":"20","laserPower":"100","laserArea":"5","tensTime":"20"},
-    "clicks": ["calc()"],
-    "expect": ["20\n5\n0.5\n3\n4.0 治疗时间(分钟) 2.5 总功率(W) 600 总能量(J) 频率： 3MHz ｜ 深度： 1-2cm（浅表） 模式： 连续 ｜ 阶段： 亚急性期 强度： 0.5 W/cm² ｜ 辐射头： 5 cm² 处方： 超声波 3MHz 连续 0.5W/cm² × 4分钟，每周3次，10次为一疗程\n100\n5\n2\ngaalas\n100 照射时间(秒) 10.0 总能量(J) 20.0 功率密度(mW/cm²) 激光类型： GaAlAs 820nm（连续） 目标剂量： 2 J/cm² ｜ 阶段： 亚急性期 功率： 100 mW ｜ 面积： 5 cm² 处方： GaAlAs 820nm（连续） 100mW，2J/cm² × 5cm² = 10.0J，照射100秒，每周2-3次\nconventional\n20\n80-100Hz 频率 50-100μs 脉宽 20 时间(分钟) 强度： 感觉阈上（舒适麻刺感） 适用： 急性疼痛首选，镇痛快但持续时间短 处方： TENS 80-100Hz 50-100μs × 20分钟，每日1-3次，2-4周为一疗程\n暂无记录\nTENS 80-100Hz 50-100μs × 20分钟"],
-    "ref": "注入 usArea=20(默认空→超声波段输出「请输入治疗面积」，注入后计算总能量 60 J) + laserPower=100(默认50→激光照射时间 100→25 秒) + laserArea=5 + tensTime=20。锚计算结果(随输入变化且与默认态不同)，规避 input 回显(20/100/5/20 及 select 默认项)。"
+    "inputs": {"usArea":"20","usHead":"5","usIntensity":"1.5","usFreq":"1"},
+    "checks": ["pulsed"],
+    "expect": ["超声波 1MHz 脉冲1:4 1.5W/cm² × 4.0 分钟 · 辐射头 5cm² · 治疗面积 20cm² · 总功率 7.5W · 总能量 360J · 有效深度 4-5cm（深部） · 病程分期 慢性期"],
+    "ref": "门诊记录：usArea=20、usHead=5 ⇒ 时间=20/5=4.0 分钟（未触 3–10 分钟上下限）；总功率=1.5×5=7.5W；checks 注入 usMode:pulsed ⇒ 脉冲 1:4 能量=7.5×4×60×0.2=360J；强度 1.5>0.5 ⇒ 慢性期；freq=1 ⇒ 深部 4-5cm。默认态 usArea 为空 ⇒ calcUS 早退显示「请输入治疗面积」、不产生门诊记录，零交集。原先那条超长 expect 混合了三段 tab 的原始 blob，已收敛为门诊记录单串。"
   }
   ,{
     "slug": "rehabilitation/berg-balance-scale",

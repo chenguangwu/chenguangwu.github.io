@@ -327,6 +327,7 @@ function calcScore() {
   else if (total >= 11) { level = '中度认知障碍'; color = '#F59E0B'; advice = '中度认知障碍，日常生活需部分协助，建议药物治疗+认知训练'; }
   else { level = '重度认知障碍'; color = '#EF4444'; advice = '重度认知障碍，日常生活需全面照顾，建议多学科治疗和护理'; }
 
+  __EMR_S={t:total, lv:level, adv:advice, sec:sectionScores.slice()};
   var html = '<div style="text-align:center;margin-bottom:12px;">';
   html += '<div style="font-size:48px;font-weight:700;color:' + color + ';">' + total + '</div>';
   html += '<div style="font-size:14px;color:var(--text-muted);">/ 30分</div>';
@@ -438,6 +439,66 @@ function resetAll() {
   updateScore();
   document.getElementById('resultBox').innerHTML = '<p style="color:var(--text-muted);">请逐项评分后查看结果</p>';
 }
+
+/* —— 门诊记录（EMR note）：把 MMSE 评分整理成可直接粘进病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Cognitive screening score; interpret with education level and for clinical communication only, not a diagnostic determination.)':'（认知筛查评分，需结合受教育程度解读，仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+var __EMR_S;
+var __emrData=function(){
+  var el=document.getElementById('resultBox')||document.getElementById('scoreGrid'); if(!el) return;
+  var s=__EMR_S; if(!s||typeof s.t!=='number') return;
+  var en=__emrEn();
+  var lvEn=s.t>=27?'cognitive function normal':(s.t>=21?'mild cognitive impairment':(s.t>=11?'moderate cognitive impairment':'severe cognitive impairment'));
+  var secZh=['定向力','记忆力','注意力/计算','回忆力','语言力'];
+  var secEn=['orientation','registration','attention/calculation','recall','language'];
+  var mx=[10,3,5,3,9], sc=s.sec||[], zs=[], es=[];
+  for(var i=0;i<5;i++){ var v=(typeof sc[i]==='number'?sc[i]:0); zs.push(secZh[i]+' '+v+'/'+mx[i]); es.push(secEn[i]+' '+v+'/'+mx[i]); }
+  var hz,he;
+  if(s.t>=27){ hz='总分 ≥27 属认知筛查正常范围：建议每年复评一次；若患者或家属主诉记忆力下降、且量表分数虽正常，仍应做神经心理学成套测验与日常生活能力（ADL/IADL）评估，避免漏掉高受教育程度者的早期减退。';
+    he='A total of 27 or more is within the normal screening range: re-assess yearly. If the patient or family reports memory decline despite a normal score, still perform a full neuropsychological battery and ADL/IADL assessment to avoid missing early decline in highly educated patients.'; }
+  else if(s.t>=21){ hz='总分 21–26 提示轻度认知障碍（MCI）可能：需结合受教育程度与 MoCA 复核，并做工具性日常生活能力（IADL）评估以排除痴呆；建议认知训练、血管危险因素控制与 6–12 个月随访。';
+    he='A total of 21-26 suggests possible mild cognitive impairment: confirm with education-adjusted norms and MoCA, and assess IADL to exclude dementia; advise cognitive training, vascular risk-factor control and 6-12 month follow-up.'; }
+  else if(s.t>=11){ hz='总分 11–20 提示中度认知障碍：日常生活需部分协助，需评估跌倒、走失、用药错误与吞咽安全风险；建议药物治疗联合认知训练，并对家属做照护指导与安全环境改造。';
+    he='A total of 11-20 indicates moderate cognitive impairment: partial ADL assistance is needed; assess fall, wandering, medication-error and swallowing risks; combine pharmacotherapy with cognitive training and give caregivers safety and environmental advice.'; }
+  else { hz='总分 ≤10 提示重度认知障碍：日常生活需全面照护，重点评估误吸、压疮、跌倒、营养与二便管理；建议多学科团队介入并尽早与家属沟通照护目标与预设医疗计划。';
+    he='A total of 10 or less indicates severe cognitive impairment: full ADL care is required; focus on aspiration, pressure injury, falls, nutrition and continence; involve a multidisciplinary team and discuss care goals and advance planning with the family early.'; }
+  __emrNote({boxId:'resultBox', name:'简易精神状态检查（MMSE · 30 分）', nameEn:'Mini-Mental State Examination (MMSE, 30 points)',
+    result:'总分 '+s.t+'/30 → '+s.lv+' · '+zs.join(' · '),
+    resultEn:'total '+s.t+'/30; '+lvEn+'; '+es.join('; '),
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'处理建议：'+s.adv+'。评分口径：满分 30 分，27–30 正常、21–26 轻度、11–20 中度、≤10 重度；结果受受教育程度影响，文盲与低教育者界值需下调。',
+    extraEn:'Management: recommended actions per the grading above. Scoring: maximum 30; 27-30 normal, 21-26 mild, 11-20 moderate, 10 or less severe; education affects the cut-off, lower it for low-education or illiterate patients.'});
+};
+var __emrW0=(typeof calcScore==='function')?calcScore:null;
+if(__emrW0){ calcScore=function(){ try{ return __emrW0.apply(null,arguments); } finally { try{__emrData();}catch(e){} } }; }
+try{ __emrData(); }catch(e){}
 
 init();
 </script>

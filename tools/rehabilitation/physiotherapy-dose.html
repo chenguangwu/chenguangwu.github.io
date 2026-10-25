@@ -365,6 +365,7 @@ function calcUS() {
   html += '<strong>处方：</strong>超声波 ' + freq + 'MHz ' + (mode === 'continuous' ? '连续' : '脉冲') + ' ' + intensity + 'W/cm² × ' + time.toFixed(0) + '分钟，每周3次，10次为一疗程';
   html += '</div>';
 
+  __EMR_S={ty:'us', area:area, head:head, inten:intensity, freq:freq, mode:mode, time:time, power:totalPower, energy:energy, depth:depth, phase:phase};
   window._currentPrescription = '超声波 ' + freq + 'MHz ' + (mode === 'continuous' ? '连续' : '脉冲') + ' ' + intensity + 'W/cm² × ' + time.toFixed(0) + '分钟';
   window._currentType = '超声波';
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('usResult').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('usResult').innerHTML=__h1;
@@ -476,6 +477,61 @@ function clearHistory() {
   renderHistory();
   ToolBox.showToast(i18nText(), 'info');
 }
+
+/* —— 门诊记录（EMR note）：把物理因子治疗剂量整理成可直接粘进治疗记录/病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Session date: __________  Therapist: __________':'治疗日期：__________　治疗师：__________');
+  L.push(en?'(Modality dose reference; follow the device manual and departmental protocol.)':'（物理因子剂量参考值，实际执行以设备说明书与科室规程为准）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+var __EMR_S;
+var __emrData=function(){
+  var el=document.getElementById('usResult'); if(!el) return;
+  var s=__EMR_S; if(!s||s.ty!=='us'||typeof s.time!=='number'||!isFinite(s.time)) return;
+  var en=__emrEn();
+  var modeZh=s.mode==='continuous'?'连续':'脉冲1:4';
+  var modeEn=s.mode==='continuous'?'continuous':'pulsed 1:4';
+  var depthEn=s.freq===1?'4-5 cm (deep)':'1-2 cm (superficial)';
+  var phaseEn=s.inten<=0.3?'acute':(s.inten<=0.5?'subacute':'chronic');
+  var hz,he;
+  if(s.area>s.head*4){ hz='治疗面积（'+s.area+'cm²）超过辐射头（'+s.head+'cm²）4 倍：超声波在有效辐射面积外衰减明显，应分区治疗或更换更大辐射头；否则实际剂量不足而记录剂量偏高。同时核对强度与病程分期是否匹配（急性期宜 ≤0.3W/cm²、脉冲模式）。';
+    he='Treatment area ('+s.area+' cm2) exceeds four times the transducer head ('+s.head+' cm2): ultrasound attenuates sharply outside the effective radiating area, so treat in sections or use a larger head; otherwise the true dose is lower than recorded. Also check that intensity matches the stage (0.3 W/cm2 or less with pulsed mode in the acute phase).'; }
+  else { hz='剂量在常规范围内：'+s.phase+'宜用 '+s.inten+'W/cm² '+modeZh+' × '+s.time.toFixed(1)+' 分钟，治疗面积与辐射头比例合适（'+s.area+'/'+s.head+'cm²）。操作要点：耦合剂充分、探头持续缓慢移动、询问温热感与痛感，骨突处减量；每疗程 10 次后复评，无改善需调整参数或改治疗方案。';
+    he='Dose is within the usual range: '+phaseEn+' stage, '+s.inten+' W/cm2 '+modeEn+' for '+s.time.toFixed(1)+' minutes, with an appropriate area-to-head ratio ('+s.area+'/'+s.head+' cm2). Technique: adequate coupling gel, keep the transducer moving slowly, ask about heat and pain, reduce dose over bony prominences; re-assess after 10 sessions and change parameters if there is no improvement.'; }
+  __emrNote({boxId:'usResult', name:'超声波治疗剂量处方', nameEn:'Therapeutic Ultrasound Dose',
+    result:'超声波 '+s.freq+'MHz '+modeZh+' '+s.inten+'W/cm² × '+s.time.toFixed(1)+' 分钟 · 辐射头 '+s.head+'cm² · 治疗面积 '+s.area+'cm² · 总功率 '+s.power.toFixed(1)+'W · 总能量 '+s.energy.toFixed(0)+'J · 有效深度 '+s.depth+' · 病程分期 '+s.phase,
+    resultEn:'ultrasound '+s.freq+' MHz '+modeEn+' at '+s.inten+' W/cm2 for '+s.time.toFixed(1)+' min; head '+s.head+' cm2, area '+s.area+' cm2, total power '+s.power.toFixed(1)+' W, total energy '+s.energy.toFixed(0)+' J, depth '+depthEn+', stage '+phaseEn,
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'处方口径：时间按面积/辐射头面积 × 1 分钟估算并限定 3–10 分钟；总功率 = 强度 × 辐射头面积；总能量 = 总功率 × 时间 × 60（脉冲 1:4 按 20% 占空比折算）。常规每周 3 次、10 次为一疗程。',
+    extraEn:'Calculation: time = area / head area x 1 min, capped at 3-10 min; total power = intensity x head area; total energy = power x time x 60 (pulsed 1:4 uses a 20% duty cycle). Typically 3 sessions per week, 10 sessions per course.'});
+};
+var __emrW0=(typeof calcUS==='function')?calcUS:null;
+if(__emrW0){ calcUS=function(){ try{ return __emrW0.apply(null,arguments); } finally { try{__emrData();}catch(e){} } }; }
+try{ __emrData(); }catch(e){}
 
 // 初始化
 calcUS();

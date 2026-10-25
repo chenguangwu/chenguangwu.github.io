@@ -392,6 +392,8 @@ function finalizeResult() {
     html += '<div class="tip-box tip-warn" style="margin-top:8px;">各次测试误差差异较大（标准差' + sd.toFixed(1) + '°），可能存在测试不稳定性或患者注意力问题，建议重新测试</div>';
   }
 
+  var jointNames0 = { shoulder: '肩关节', elbow: '肘关节', knee: '膝关节', ankle: '踝关节' };
+  __EMR_S={j:joint, jn:(jointNames0[joint]||joint), side:side, avg:avg, mx:max, mn:min, sdv:sd, g:grade, adv:advice};
   window._testResult = { joint: jointNames[joint], side: side, avg: avg.toFixed(1), grade: grade };
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('analysisResult').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('analysisResult').innerHTML=__h1;
   ToolBox.showToast(i18nText(), 'success');
@@ -433,6 +435,64 @@ function clearHistory() {
   renderHistory();
   ToolBox.showToast(i18nText(), 'info');
 }
+
+/* —— 门诊记录（EMR note）：把本体感觉角度复现结果整理成可直接粘进康复记录/病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Joint position sense test; for clinical communication only, not a diagnostic determination.)':'（关节位置觉复现测试，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+var __EMR_S;
+var __emrData=function(){
+  var el=document.getElementById('analysisResult'); if(!el) return;
+  var s=__EMR_S; if(!s||typeof s.avg!=='number'||!isFinite(s.avg)) return;
+  var en=__emrEn();
+  var jEn={shoulder:'shoulder',elbow:'elbow',knee:'knee',ankle:'ankle'};
+  var sideEn=s.side==='left'?'left':'right';
+  var gEn={'优秀':'excellent','良好':'good','轻度异常':'mildly impaired','中度异常':'moderately impaired','重度异常':'severely impaired'};
+  var hz,he;
+  if(s.avg<=5){ hz='平均绝对误差 '+s.avg.toFixed(1)+'°（≤5°）属正常范围：维持闭链训练与平衡训练即可；建议每次复评固定同一关节、同一侧别与同一初始角度，保证纵向可比。若标准差偏大（'+s.sdv.toFixed(1)+'°）需先排除测试配合与注意力因素。';
+    he='Mean absolute error '+s.avg.toFixed(1)+' degrees (5 or less) is within normal limits: maintain closed-kinetic-chain and balance training. Keep the same joint, side and starting angle at each re-test for comparability; if the standard deviation is large ('+s.sdv.toFixed(1)+' degrees), first exclude poor effort or attention.'; }
+  else if(s.avg<=10){ hz='平均绝对误差 '+s.avg.toFixed(1)+'° 提示本体感觉轻度减退：加入平衡板、闭目单腿站立与角度复现训练，每组 3–5 分钟、每日 2 次；训练时先在有视觉反馈下建立正确角度感，再逐步撤除视觉。';
+    he='Mean absolute error '+s.avg.toFixed(1)+' degrees indicates mildly reduced proprioception: add balance-board, eyes-closed single-leg stance and angle-reproduction training, 3-5 minutes per set twice daily; first build the correct angle sense with visual feedback, then withdraw vision gradually.'; }
+  else if(s.avg<=15){ hz='平均绝对误差 '+s.avg.toFixed(1)+'° 提示本体感觉中度减退：需系统训练——负重闭链、弹力带抗阻、单腿平衡与不稳定平面训练，并结合肌力与步态评估；训练环境需有保护，防止跌倒。';
+    he='Mean absolute error '+s.avg.toFixed(1)+' degrees indicates moderate proprioceptive loss: use systematic training with loaded closed-chain, elastic resistance, single-leg balance and unstable surfaces, together with strength and gait assessment; ensure a protected environment to prevent falls.'; }
+  else { hz='平均绝对误差 '+s.avg.toFixed(1)+'° 提示本体感觉重度受损：需综合康复（视觉代偿、镜像训练、电刺激反馈），并评估跌倒风险与辅助器具需求；训练全程需陪护，记录每次误差变化趋势。';
+    he='Mean absolute error '+s.avg.toFixed(1)+' degrees indicates severe proprioceptive loss: combine visual compensation, mirror therapy and electrical-stimulation feedback, assess fall risk and assistive-device needs; supervise all sessions and track the error trend.'; }
+  __emrNote({boxId:'analysisResult', name:'关节位置觉复现测试（本体感觉误差）', nameEn:'Joint Position Sense Reproduction Test',
+    result:(s.side==='left'?'左':'右')+'侧'+s.jn+' · 平均误差 '+s.avg.toFixed(1)+'° · 最大 '+s.mx.toFixed(1)+'° · 最小 '+s.mn.toFixed(1)+'° · 标准差 '+s.sdv.toFixed(1)+'° → '+s.g,
+    resultEn:sideEn+' '+jEn[s.j]+': mean error '+s.avg.toFixed(1)+', max '+s.mx.toFixed(1)+', min '+s.mn.toFixed(1)+', SD '+s.sdv.toFixed(1)+' degrees; '+(gEn[s.g]||'impaired'),
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'康复建议：'+s.adv+'。测试口径：同一关节、同一侧别、同一初始角度，遮眼被动定位后主动复现，取 4 次绝对误差均值；误差 >5° 提示本体感觉减退。',
+    extraEn:'Management: see the clinical note above. Technique: same joint, side and starting angle; position passively with vision occluded, then reproduce actively; average the absolute error of four trials. An error above 5 degrees suggests reduced proprioception.'});
+};
+var __emrW0=(typeof finalizeResult==='function')?finalizeResult:null;
+if(__emrW0){ finalizeResult=function(){ try{ return __emrW0.apply(null,arguments); } finally { try{__emrData();}catch(e){} } }; }
+try{ __emrData(); }catch(e){}
 
 calcError();
 renderHistory();
