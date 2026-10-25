@@ -392,6 +392,7 @@ function calc(){
   else if(total <= 15){ sev='较差'; color='#FF9800'; advice='睡眠质量较差。建议CBT-I治疗，排查失眠/焦虑/抑郁。必要时短期药物辅助。'; }
   else { sev='很差'; color='#EF4444'; advice='睡眠质量很差，存在严重睡眠障碍。建议睡眠专科就诊，完善PSG排查睡眠呼吸暂停等。综合治疗。'; }
 
+  __EMR_S={t:total, sv:sev, eff:efficiency, c1:c1, c2:c2, c3:c3, c4:c4, c5:c5, c6:c6, c7:c7, adv:advice, sh:actualSleep, bt:bedTime, lt:latency};
   var html = '<div class="stat-grid">';
   html += '<div class="stat-card"><div class="val" style="color:'+color+';">'+total+'</div><div class="lbl">PSQI 总分</div></div>';
   html += '<div class="stat-card"><div class="val" style="color:'+color+';font-size:16px;">'+sev+'</div><div class="lbl">睡眠质量</div></div>';
@@ -630,6 +631,63 @@ else document.addEventListener('DOMContentLoaded', __psqiBoot);
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tabify);else tabify();
 })();
+/* —— 门诊记录（EMR note）：把 PSQI 睡眠质量评分整理成可直接粘进病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(PSQI covers the past month; for clinical communication only, not a diagnostic determination.)':'（PSQI 评定期为最近 1 个月，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+var __EMR_S;
+var __emrData=function(){
+  var el=document.getElementById('result'); if(!el) return;
+  var s=__EMR_S; if(!s||typeof s.t!=='number') return;
+  var en=__emrEn();
+  var svEn={'良好':'good','一般':'fair','较差':'poor','很差':'very poor'};
+  var compZh='主观睡眠质量 '+s.c1+'、入睡时间 '+s.c2+'、睡眠时间 '+s.c3+'、睡眠效率 '+s.c4+'、睡眠障碍 '+s.c5+'、催眠药物 '+s.c6+'、日间功能 '+s.c7;
+  var compEn='subjective quality '+s.c1+', latency '+s.c2+', duration '+s.c3+', efficiency '+s.c4+', disturbance '+s.c5+', medication '+s.c6+', daytime dysfunction '+s.c7;
+  var hz,he;
+  if(s.t<=5){ hz='PSQI ≤5 属睡眠质量良好：维持现有作息与睡眠卫生即可；仍需关注打鼾、晨起头痛与日间嗜睡，若出现应筛查睡眠呼吸暂停。';
+    he='A PSQI of 5 or less indicates good sleep quality: maintain current habits and sleep hygiene. Still ask about snoring, morning headache and daytime sleepiness, and screen for sleep apnoea if present.'; }
+  else if(s.t<=10){ hz='PSQI 6–10 提示睡眠质量一般：先做睡眠卫生干预（固定起床时间、限制卧床时间、睡前 1 小时停用电子设备、午后避免咖啡因与酒精），必要时行失眠认知行为治疗（CBT-I）；2–4 周后复评。';
+    he='A PSQI of 6-10 indicates fair sleep quality: start sleep-hygiene measures (fixed wake time, restrict time in bed, no screens one hour before bed, avoid caffeine and alcohol in the afternoon) and consider CBT-I; re-assess in 2-4 weeks.'; }
+  else if(s.t<=15){ hz='PSQI 11–15 提示睡眠质量较差：建议规范 CBT-I 并排查失眠相关共病（焦虑、抑郁、慢性疼痛、夜尿）；记录 2 周睡眠日记，睡眠效率低于 85% 时进一步限制卧床时间，药物仅短期辅助。';
+    he='A PSQI of 11-15 indicates poor sleep quality: offer structured CBT-I and screen for comorbidities (anxiety, depression, chronic pain, nocturia). Keep a two-week sleep diary, further restrict time in bed when efficiency is below 85%, and use medication only short term.'; }
+  else { hz='PSQI ≥16 提示睡眠质量很差、存在严重睡眠障碍：建议睡眠专科就诊并行多导睡眠监测（PSG）排查睡眠呼吸暂停、周期性肢体运动等问题；同时评估日间嗜睡带来的跌倒与驾驶风险，避免自行长期使用催眠药物。';
+    he='A PSQI of 16 or more indicates very poor sleep with a significant sleep disorder: refer to a sleep specialist and arrange polysomnography to exclude sleep apnoea and periodic limb movements; assess fall and driving risk from daytime sleepiness and avoid long-term self-medication.'; }
+  __emrNote({boxId:'result', name:'匹兹堡睡眠质量指数（PSQI · 21 分）', nameEn:'Pittsburgh Sleep Quality Index (PSQI, 21 points)',
+    result:'PSQI 总分 '+s.t+'/21 → 睡眠质量 '+s.sv+' · 睡眠效率 '+s.eff.toFixed(0)+'%（实际睡眠 '+s.sh+'h / 卧床 '+s.bt+'h）· 入睡潜伏期 '+s.lt+' 分钟 · 成分分：'+compZh,
+    resultEn:'PSQI total '+s.t+'/21; sleep quality '+(svEn[s.sv]||s.sv)+'; efficiency '+s.eff.toFixed(0)+'% ('+s.sh+' h sleep / '+s.bt+' h in bed); latency '+s.lt+' min; components: '+compEn,
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'处理建议：'+s.adv+'计分口径：7 个成分各 0–3 分，总分 0–21；≤5 良好、6–10 一般、11–15 较差、≥16 很差；睡眠效率 = 实际睡眠时长 / 卧床时长。',
+    extraEn:'Management: see the clinical note above. Scoring: seven components scored 0-3, total 0-21; 5 or less good, 6-10 fair, 11-15 poor, 16 or more very poor; efficiency = actual sleep time / time in bed.'});
+};
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ try{ return __emrW0.apply(null,arguments); } finally { try{__emrData();}catch(e){} } }; }
+try{ __emrData(); }catch(e){}
 /*TBKIT-INJECT-END*/</script>
 </body>
 </html>

@@ -321,6 +321,7 @@ function generate(){
   var sizeStr = l + 'cm × ' + w + 'cm';
   if(d > 0) sizeStr += ' × ' + d + 'cm';
   
+  __EMR_S={st:currentStage, nm:s.name, l:l, w:w, d:d, ex:exudate, su:surrounding, loc:locStr};
   var html = '<h3>' + s.name + '</h3>';
   
   html += '<div class="desc-section"><div class="section-title">📍 部位</div><div class="section-content">' + locStr + '</div></div>';
@@ -359,6 +360,68 @@ function copyDesc(){
   text += '\n记录时间：' + new Date().toLocaleString('zh-CN');
   ToolBox.copyText(text, i18nText('msg404'));
 }
+
+/* —— 门诊记录（EMR note）：把压力性损伤创面描述整理成可直接粘进护理记录/病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Nurse: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Wound description template; staging must be confirmed by the wound care specialist.)':'（创面描述模板，分期最终以创面专科评估为准）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+var __EMR_S;
+var __emrData=function(){
+  var el=document.getElementById('descOutput'); if(!el) return;
+  var s=__EMR_S; if(!s||typeof s.st!=='string') return;
+  var en=__emrEn();
+  var stEn={'1':'Stage 1 pressure injury','2':'Stage 2 pressure injury','3':'Stage 3 pressure injury','4':'Stage 4 pressure injury','unstageable':'Unstageable pressure injury','dti':'Deep tissue pressure injury'};
+  var exEn={'无':'none','少量浆液性':'small amount, serous','中等量浆液性':'moderate amount, serous','大量浆液性':'large amount, serous','脓性':'purulent','血性':'bloody'};
+  var suEn={'完好':'intact','红斑':'erythema','浸渍':'maceration','破损':'breakdown'};
+  var sizeZh=s.l+'×'+s.w+(s.d>0?('×'+s.d):'')+'cm', sizeEn=s.l+' x '+s.w+(s.d>0?(' x '+s.d):'')+' cm';
+  var showEx=(s.st!=='1'&&s.st!=='dti');
+  var hz,he;
+  if(s.st==='dti'){ hz='深部组织损伤（DTI）表现为皮肤完整或表皮分离、局部持续深红/栗色/紫色：严禁按摩与热敷，立即解除压力并改用高吸收减压敷料；每班观察颜色、温度、硬度与范围变化，若出现破损或水疱按相应分期重新记录，48–72 小时未改善需报创面专科。';
+    he='Deep tissue pressure injury presents with intact or denuded skin and persistent deep red, maroon or purple discolouration: never massage or apply heat; offload immediately and use a high-absorbency pressure-relieving dressing. Check colour, temperature, induration and extent every shift; if breakdown or blistering occurs, re-stage accordingly, and refer to wound care if unimproved in 48-72 hours.'; }
+  else if(s.st==='unstageable'){ hz='不可分期：创面被腐肉/焦痂完全覆盖，无法判断深度。记录覆盖物颜色、比例与是否松动，先减压与清创，清创后再重新分期；疑有感染（异味、脓性渗出、周围红肿热痛）或骨髓炎征象时立即报告医生。';
+    he='Unstageable: the wound is fully covered by slough or eschar so depth cannot be judged. Record the colour, proportion and adherence of the covering, offload and debride first, then re-stage. Report to the physician promptly if infection is suspected (odour, purulent exudate, surrounding redness, warmth, pain) or if osteomyelitis is a concern.'; }
+  else if(s.st==='1'){ hz='1 期：皮肤完整、指压不褪色的红斑。核心处置是完全减压——每 2 小时翻身并使用减压支撑面，禁止按摩发红部位；每班复评颜色与范围，若出现破损需重新分期。同时排查营养（白蛋白、进食量）与潮湿/摩擦剪切力来源。';
+    he='Stage 1: intact skin with non-blanchable erythema. The key action is complete offloading - reposition every 2 hours with a pressure-redistributing surface, and never massage the reddened area. Re-assess colour and extent each shift and re-stage if breakdown occurs. Also screen nutrition (albumin, intake) and sources of moisture, friction and shear.'; }
+  else if(s.st==='2'){ hz='2 期：部分皮层缺损、浅表开放创面或完整/破裂的浆液性水疱。以保护创面为主——水胶体或泡沫敷料，不撕脱水疱表皮，保持创面湿润愈合环境；每 2–3 天换药并测量大小，2 周无缩小需复评减压措施与营养。';
+    he='Stage 2: partial-thickness loss with a shallow open wound or intact/ruptured serous blister. Protect the wound with a hydrocolloid or foam dressing, do not debride the blister roof, and maintain a moist healing environment; change the dressing every 2-3 days with size measurement, and re-assess offloading and nutrition if no reduction in 2 weeks.'; }
+  else { hz=s.st+' 期：全层皮肤缺损，需按渗液量选择敷料（中大量渗液用泡沫/藻酸盐/高吸收敷料，必要时负压引流），并评估是否需要清创；每 2 小时翻身减压、每日评估创面大小与渗液性状，同步纠正营养与贫血。出现感染、深部组织暴露或 2 周无改善应请创面专科/外科会诊。';
+    he=stEn[s.st]+': full-thickness loss. Choose the dressing by exudate level (foam, alginate or high-absorbency for moderate to large exudate, negative pressure if indicated) and assess the need for debridement. Reposition every 2 hours, assess wound size and exudate daily, and correct nutrition and anaemia. Refer to wound care or surgery if infection, deep structure exposure or no improvement in 2 weeks.'; }
+  __emrNote({boxId:'descOutput', name:'压力性损伤创面描述', nameEn:'Pressure Injury Wound Description',
+    result:s.nm+' · 创面 '+sizeZh+(showEx?(' · 渗出液 '+s.ex+' · 周围皮肤 '+s.su):''),
+    resultEn:(stEn[s.st]||'Pressure injury')+'; wound '+sizeEn+(showEx?('; exudate '+(exEn[s.ex]||s.ex)+'; surrounding skin '+(suEn[s.su]||s.su)):''),
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'损伤部位：__________。描述口径：分期按 NPUAP/EPUAP 2016 标准；创面尺寸按最长 × 最宽 × 最深记录；1 期与 DTI 不计渗出与周围皮肤（皮肤完整或仅表皮分离）；每次换药重测并注明测量体位与方法。',
+    extraEn:'Injury site: __________. Description rules: staging follows NPUAP/EPUAP 2016; record the longest x widest x deepest dimensions; Stages 1 and DTI do not require exudate or surrounding-skin entries (skin intact or only epidermal separation); re-measure at each dressing change and note the position and method used.'});
+};
+var __emrW0=(typeof generate==='function')?generate:null;
+if(__emrW0){ generate=function(){ try{ return __emrW0.apply(null,arguments); } finally { try{__emrData();}catch(e){} } }; }
+try{ __emrData(); }catch(e){}
 
 generate();
 </script>

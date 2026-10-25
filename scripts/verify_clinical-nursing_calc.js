@@ -263,12 +263,17 @@ const CASES = [
   "inputs": {
     "woundL": "6",
     "woundW": "2",
-    "woundD": "0"
+    "woundD": "0.5",
+    "exudate": "中等量浆液性",
+    "surrounding": "红斑"
   },
-  "expect": [
-    "6cm"
+  "clicks": [
+    "selectStage(\"3\",{classList:{add:function(){}}})"
   ],
-  "ref": "auto-restore"
+  "expect": [
+    "3期压力性损伤 · 创面 6×2×0.5cm · 渗出液 中等量浆液性 · 周围皮肤 红斑"
+  ],
+  "ref": "门诊记录：clicks 调 selectStage('3', 哑 btn)（第二参需 classList.add），REC 内 typeof st==='string' 守卫；创面尺寸由 woundL/W/D 拼出 6×2×0.5cm，3 期才输出渗出液与周围皮肤。默认态 currentStage='1' 且页面末尾 generate() 时 __EMR_S 未赋值 ⇒ guard 直接 return、不产生门诊记录，零交集。原 expect「6cm」属输入回显（零判别力），已废弃。注：本页部位来自 querySelectorAll('#locationCheck input:checked')，stub 下会误返回全部 select 默认值，故门诊记录不含部位、留「损伤部位：____」手填。"
 },
 {
   "slug": "clinical-nursing/reminder-time-1",

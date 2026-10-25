@@ -63,8 +63,9 @@
   + clinical-nursing 4（pain-nrs/suction-pressure/restraint-check/surgical-position-risk）
   + rehabilitation 4（water-swallow-test/mmt-grading/boston-aphasia/rom-normal-value）
   + rehabilitation 4（asia-impairment-scale/mmse-scoring/physiotherapy-dose/proprioception-error）
-  + rehabilitation 2（adl-task-breakdown/assistive-device-fitting，后者轮椅分支另加一条用例）。
-  全站累计 **114 页**。psychiatry 已全铺完，psychology 仅剩 scl90（外部 js + psych-kit 通用引擎）与
+  + rehabilitation 2（adl-task-breakdown/assistive-device-fitting，后者轮椅分支另加一条用例）
+  + clinical-nursing 1（pressure-injury-description）+ neurology 1（psqi）。
+  全站累计 **116 页**。psychiatry 已全铺完，psychology 仅剩 scl90（外部 js + psych-kit 通用引擎）与
   若干非临床人格/趣味页（bubble-tea/enneagram/bigfive/holland，非病历场景，不铺门诊记录）。
   顺手修 3 个真 bug：DHI 维度分母互换（P/F 的 28/36 写反）、IRLS 症状特征分母、rater 系满分口径；
   并清理 rater-18/19/22 三条「模板残留假通过」用例（`+j+` 命中页面源码，零判别力，判别力检查从 35 检/3 跳过变为 40 检/0 跳过）。
@@ -102,11 +103,15 @@
     （多为非病历场景的人格/趣味页；scl90 走外置 js + psych-kit 通用引擎，需另设计）。
   - `cognition` 8：cognitive-assessment、corsi-block-test、digit-span-test、human-benchmark、nback-training、
     schulte-table、stroop-test、time-perception（训练范式，需谨慎标注非标准化常模）。
-  - `clinical-nursing` 8：cycle-7、fall-emergency-flow、generator-pressure、ostomy-bag-timing、
-    pressure-injury-description、reminder-time-1、restraint-duration、tracheostomy-dressing。
+  - `clinical-nursing` 7：cycle-7、fall-emergency-flow、generator-pressure、ostomy-bag-timing、
+    reminder-time-1、restraint-duration、tracheostomy-dressing。
     其中 ostomy-bag-timing / restraint-duration / tracheostomy-dressing / cycle-7 / reminder-time-1
     **用 `new Date()` 算具体时刻**，按铁律④ 暂不纳入稳定用例；generator-pressure 的 `pick()` 走 Math.random，
     输出不稳定（仅「共 N 条」随 `cnt` 变，判别力弱），亦暂缓。
-  - `neurology` 2：calc-1、psqi；`pediatrics` 2：assessor-spo2（**已踩 stub 盲区**：注入后整段 script 不执行、
+    **fall-emergency-flow 另有硬障碍（2026-10-26 实测，已回滚未提交）**：该页完成度靠全局
+    `completedSteps` 数组，而 harness 兜底循环会无参调用 `nextStep()/toggleStep()` 把步骤推满——
+    **默认态与注入态实测都是「已完成 8/8 步（全部完成）」**，无法构造判别用例（必成逃生项）。
+    想铺此页须先找到绕过兜底的状态通道，否则不动（避免留无测试覆盖的功能）。
+  - `neurology` 1：calc-1（NIHSS）；`pediatrics` 2：assessor-spo2（**已踩 stub 盲区**：注入后整段 script 不执行、
     语法正常、errs 空、回滚即恢复，须单独排查）、vaccine-schedule（依赖「今天」，按铁律④ 暂缓）。
   - 「维度雷达图推广」「量表对照模块」未开发。

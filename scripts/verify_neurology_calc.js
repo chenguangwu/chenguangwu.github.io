@@ -92,14 +92,26 @@ const CASES = [
 {
   "slug": "neurology/psqi",
   "inputs": {
-    "actualSleep": "11",
+    "actualSleep": "5",
     "bedTime": "8",
-    "latency": "15"
+    "latency": "40",
+    "latencyFreq": "2",
+    "subjective": "2",
+    "med": "0",
+    "sleepy": "2",
+    "enthusiasm": "2",
+    "wake": "2",
+    "toilet": "2",
+    "breathe": "2",
+    "cough": "2",
+    "temp": "2",
+    "dream": "2",
+    "pain": "2"
   },
   "expect": [
-    "(138%)"
+    "PSQI 总分 13/21 → 睡眠质量 较差 · 睡眠效率 63%（实际睡眠 5h / 卧床 8h）· 入睡潜伏期 40 分钟"
   ],
-  "ref": "auto-restore"
+  "ref": "门诊记录：c1=主观2；潜伏期 40 分钟 → latScore 2，与 latencyFreq 2 平均得 c2=2；实际睡眠 5h ⇒ c3=2；效率 5/8=62.5% ⇒ c4=3；7 项睡眠障碍各 2 ⇒ 均值 2 ⇒ c5=2；c6=0；日间 (2+2)/2=2 ⇒ c7=2，总分 13 落 11–15「较差」。默认态 actualSleep 空、bedTime 空、各量表默认最低档 ⇒ 总分远低于 11 且效率不是 63%，零交集。原 expect「(138%)」只验了睡眠>卧床的异常效率，已改为完整门诊记录。"
 },
 {
   "slug": "neurology/qmg",
