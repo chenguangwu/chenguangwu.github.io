@@ -306,19 +306,23 @@ async function derive(){
     }
     
     var enc=new TextEncoder();
+    var t0=(typeof performance!=='undefined'&&performance.now)?performance.now():Date.now();
     var keyMat=await crypto.subtle.importKey('raw',enc.encode(password),{name:'PBKDF2'},false,['deriveBits']);
     var derived=await crypto.subtle.deriveBits({name:'PBKDF2',salt:salt,iterations:iters,hash:hash},keyMat,keyLen*8);
-    
+    var t1=(typeof performance!=='undefined'&&performance.now)?performance.now():Date.now();
+    var elapsed=Math.max(1,Math.round(t1-t0));
+
     var result;
     if(fmt==='hex')result=ab2hex(derived);
     else if(fmt==='base64')result=ab2b64(derived);
     else result=ab2bin(derived);
-    
+
     document.getElementById('result').textContent=
       '算法: PBKDF2-HMAC-'+hash+'\n'+
       '迭代: '+iters.toLocaleString()+'\n'+
       '盐值(Hex): '+ab2hex(salt.buffer)+'\n'+
       '输出长度: '+keyLen+' 字节 ('+(keyLen*8)+' 位)\n'+
+      '实测耗时: '+elapsed+' ms（'+(elapsed>=1000?(elapsed/1000).toFixed(2)+' s':elapsed+' ms')+'，迭代次数为主要耗时来源）\n'+
       '\n派生密钥 ('+fmt+'):\n'+result;
     ToolBox.showToast(i18nText('toast.msg136'));
   }catch(e){
