@@ -6577,9 +6577,9 @@ const CASES = [
       "output": "1\n2\n3"
     },
     "expect": [
-      "abc123测试\n1 2 3"
+      "begin 644 abc123测试 #,0HR \"\"C, ` end"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"fname\":\"abc123测试\",\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\"}，输出区含「abc123测试\n1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"fname\":\"abc123测试\",\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\"}。2026-10-26 S1 首屏即答案改造后：boot 首渲染令 input/output 先于 fname 登记 ⇒ 值回显段序变化，旧锚「abc123测试\\n1 2 3」断裂；改锚为兜底 enc() 的确定性产物 begin 644 abc123测试 头（依赖注入的 fname，默认态 file.txt ⇒ 不含该串，判别力保持且更强）。"
   },
   {
     "slug": "it/uuid-v5-generator",
