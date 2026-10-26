@@ -152,6 +152,11 @@ s.parentNode.insertBefore(el, s);
       <div id="qr_beautifyPresets"></div><button class="btn" onclick="downloadPng()">⬇ 下载 PNG</button><button class="btn" type="button" onclick="__qr_beautifyExport()">导出明细 CSV</button>
       <button class="btn" onclick="copyBase64()">复制 Base64</button>
     </div>
+    <div style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <label style="font-size:13px;" data-zh="中心 logo（按容错级别限宽：L≤10% M≤15% Q≤20% H≤25%）：">Center logo (max width by ECC: L≤10% M≤15% Q≤20% H≤25%):</label>
+      <input type="file" id="logoFile" accept="image/*" style="font-size:12px;max-width:260px;">
+      <button class="btn" type="button" onclick="clearLogo()">移除 logo</button>
+    </div>
     <p style="font-size:12px;color:var(--muted,#9CA3AF);margin-top:10px;">💡 容错级别越高，二维码被遮挡/损坏时的可识别性越强（但模块更密）。</p>
   </div>
 </div>
@@ -275,7 +280,55 @@ function draw(){
       }
     }
   }
-  const __h2='<p>✅ 已生成 <strong>'+count+' × '+count+'</strong> 模块 · 容错 <strong>'+ecc+'</strong> · '+size+'px</p>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h2;
+  drawLogoOverlay(ctx,size,ecc);
+  const __h2='<p>✅ 已生成 <strong>'+count+' × '+count+'</strong> 模块 · 容错 <strong>'+ecc+'</strong> · '+size+'px'+(__qrLogoImg?' · 已嵌中心 logo（'+Math.round(__logoMax*100)+'% 宽）':'')+'</p>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h2;
+}
+
+// ── 中心 logo：上传 → 白底圆角块内居中嵌入，宽度按容错级别限幅（可遮挡比例）──
+var __qrLogoImg=null;
+var __logoMax=0;
+var __LOGO_LIMIT={L:0.10,M:0.15,Q:0.20,H:0.25};
+function clearLogo(){
+  __qrLogoImg=null;
+  document.getElementById('logoFile').value='';
+  draw();
+}
+function initLogoInput(){
+  var el=document.getElementById('logoFile');
+  if(!el||el.__qrLogoBound)return;
+  el.__qrLogoBound=true;
+  el.addEventListener('change',function(){
+    var f=this.files&&this.files[0];
+    if(!f)return;
+    if(typeof FileReader==='undefined'){if(ToolBox.showToast)ToolBox.showToast('当前环境不支持文件读取');return;}
+    var rd=new FileReader();
+    rd.onload=function(){
+      var img=new Image();
+      img.onload=function(){__qrLogoImg=img;draw();};
+      img.onerror=function(){if(ToolBox.showToast)ToolBox.showToast('logo 图片加载失败');};
+      img.src=rd.result;
+    };
+    rd.readAsDataURL(f);
+  });
+}
+function drawLogoOverlay(ctx,size,ecc){
+  if(!__qrLogoImg)return;
+  __logoMax=__LOGO_LIMIT[ecc]||0.10;
+  var w=size*__logoMax;
+  var pad=size*0.015;
+  var x=(size-w)/2,y=(size-w)/2;
+  // 白底圆角块：保证 logo 与码点间有干净分隔
+  var rr=w*0.12;
+  ctx.fillStyle='#ffffff';
+  if(ctx.roundRect){
+    ctx.beginPath();ctx.roundRect(x-pad,y-pad,w+pad*2,w+pad*2,rr);ctx.fill();
+  }else{
+    ctx.fillRect(x-pad,y-pad,w+pad*2,w+pad*2);
+  }
+  // contain 缩放居中
+  var scale=Math.min(w/__qrLogoImg.width,w/__qrLogoImg.height);
+  var dw=__qrLogoImg.width*scale,dh=__qrLogoImg.height*scale;
+  ctx.drawImage(__qrLogoImg,x+(w-dw)/2,y+(w-dh)/2,dw,dh);
 }
 function downloadPng(){
   var c=document.getElementById('qrCanvas');
@@ -398,7 +451,7 @@ var __qr_beautify_f0=(typeof downloadPng==='function')?downloadPng:null;
 if(__qr_beautify_f0){
     downloadPng=function(){ var __r=__qr_beautify_f0.apply(null,arguments); try{ __qr_beautifyExtras(); }catch(e){} return __r; };
 }
-function __qr_beautifyBoot(){ try{ __qr_beautifyPresets(); }catch(e){} }
+function __qr_beautifyBoot(){ try{ __qr_beautifyPresets(); }catch(e){} try{ initLogoInput(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __qr_beautifyBoot();
 else document.addEventListener('DOMContentLoaded', __qr_beautifyBoot);
 </script>
