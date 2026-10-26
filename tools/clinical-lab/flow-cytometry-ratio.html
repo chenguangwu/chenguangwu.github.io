@@ -159,7 +159,7 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
-    <div id="result"></div> <div id="flow_cytometry_ratioTable"></div> <div id="flow_cytometry_ratioDiff"></div> <div id="flow_cytometry_ratioChart"></div> <div id="flow_cytometry_ratioHist"></div>
+    <div id="result"></div><div id="flow_ratioBar"></div><div id="flow_cd4Bar"></div> <div id="flow_cytometry_ratioTable"></div> <div id="flow_cytometry_ratioDiff"></div> <div id="flow_cytometry_ratioChart"></div> <div id="flow_cytometry_ratioHist"></div>
 
     <h3 style="font-size:14px;margin:16px 0 8px;">T 细胞亚群参考范围(成人)</h3>
     <table>
@@ -240,51 +240,86 @@ function calc(){
   var nkAbs = absLymph * (nk/100);
   var ratio = cd8>0 ? cd4/cd8 : 0;
 
-  var html = '<h3 style="margin-bottom:8px;">计算结果</h3>';
+  // —— 参考区间定位（S3 标尺）：比值/绝对数判读（__EN 必须在首段 html 之前）——
+  var __EN=(function(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search)||/^en/i.test(document.documentElement.lang||'');}catch(e){}return false;})();
+  function __T(en,zh){return __EN?en:zh;}
+  function __hit(v,bands){for(var i=0;i<bands.length;i++){var b=bands[i];if(v>=(b.lo==null?-Infinity:b.lo)&&v<(b.hi==null?Infinity:b.hi))return b;}return null;}
+  function __refCard(txt){return '<div class="ref-card"><h4>'+__T('Reference range','参考区间定位')+'</h4><ul>'+txt+'</ul></div>';}
+  var __refHtml='';
+
+  var html = '<h3 style="margin-bottom:8px;">'+__T('Results','计算结果')+'</h3>';
 
   // Ratio
   var ratioStatus, ratioColor;
-  if(ratio<0.71){ratioStatus='比值降低';ratioColor='#dc2626';}
-  else if(ratio>2.78){ratioStatus='比值升高';ratioColor='#3b82f6';}
-  else {ratioStatus='正常范围';ratioColor='#059669';}
+  if(ratio<0.71){ratioStatus=__T('Ratio decreased (inverted)','比值降低');ratioColor='#dc2626';}
+  else if(ratio>2.78){ratioStatus=__T('Ratio elevated','比值升高');ratioColor='#3b82f6';}
+  else {ratioStatus=__T('Normal range','正常范围');ratioColor='#059669';}
 
-  html += '<div class="ratio-big"><div class="v" style="color:'+ratioColor+';">'+ratio.toFixed(2)+'</div><div style="font-size:13px;color:var(--text-muted);">CD4/CD8 比值 — '+ratioStatus+'</div></div>';
+  html += '<div class="ratio-big"><div class="v" style="color:'+ratioColor+';">'+ratio.toFixed(2)+'</div><div style="font-size:13px;color:var(--text-muted);">'+__T('CD4/CD8 ratio — ','CD4/CD8 比值 — ')+ratioStatus+'</div></div>';
+
+  // ratio bands（S3 标尺 ref-card，仅在 cd8>0 有效时判定）
+  var __ratioBands=[{lo:0,hi:0.71,label:{zh:'降低(倒置)',en:'Low (inverted)'},color:'#DC2626'},
+                    {lo:0.71,hi:2.78,label:{zh:'正常范围',en:'Normal'},color:'#059669'},
+                    {lo:2.78,hi:null,label:{zh:'升高',en:'Elevated'},color:'#3B82F6'}];
+  if(cd8>0){
+    var __rb=__hit(ratio,__ratioBands);
+    if(__rb) __refHtml+='<li>'+__T('CD4/CD8 ratio ','CD4/CD8比值')+ratio.toFixed(2)+__T(' → falls in ',' → 落在 ')+(__EN?__rb.label.en:__rb.label.zh)+__T(' (0.71–2.78 normal, &lt;0.71 inverted, &gt;2.78 elevated)','（0.71–2.78 正常、&lt;0.71 降低(倒置)、&gt;2.78 升高）')+'</li>';
+  }
 
   // Absolute counts grid
   html += '<div class="stat-grid">';
-  html += '<div class="stat-card"><div class="val">'+Math.round(absLymph)+'</div><div class="lbl">淋巴细胞(/μL)</div></div>';
-  html += '<div class="stat-card"><div class="val">'+Math.round(cd3Abs)+'</div><div class="lbl">CD3+ T(/μL)</div></div>';
-  html += '<div class="stat-card"><div class="val" style="color:'+(cd4Abs<414?'#dc2626':'inherit')+';">'+Math.round(cd4Abs)+'</div><div class="lbl">CD4+ T(/μL)</div></div>';
-  html += '<div class="stat-card"><div class="val">'+Math.round(cd8Abs)+'</div><div class="lbl">CD8+ T(/μL)</div></div>';
-  html += '<div class="stat-card"><div class="val">'+Math.round(cd19Abs)+'</div><div class="lbl">B细胞(/μL)</div></div>';
-  html += '<div class="stat-card"><div class="val">'+Math.round(nkAbs)+'</div><div class="lbl">NK(/μL)</div></div>';
+  html += '<div class="stat-card"><div class="val">'+Math.round(absLymph)+'</div><div class="lbl">'+__T('Lymphocytes (/μL)','淋巴细胞(/μL)')+'</div></div>';
+  html += '<div class="stat-card"><div class="val">'+Math.round(cd3Abs)+'</div><div class="lbl">'+__T('CD3+ T (/μL)','CD3+ T(/μL)')+'</div></div>';
+  html += '<div class="stat-card"><div class="val" style="color:'+(cd4Abs<414?'#dc2626':'inherit')+';">'+Math.round(cd4Abs)+'</div><div class="lbl">'+__T('CD4+ T (/μL)','CD4+ T(/μL)')+'</div></div>';
+  html += '<div class="stat-card"><div class="val">'+Math.round(cd8Abs)+'</div><div class="lbl">'+__T('CD8+ T (/μL)','CD8+ T(/μL)')+'</div></div>';
+  html += '<div class="stat-card"><div class="val">'+Math.round(cd19Abs)+'</div><div class="lbl">'+__T('B cells (/μL)','B细胞(/μL)')+'</div></div>';
+  html += '<div class="stat-card"><div class="val">'+Math.round(nkAbs)+'</div><div class="lbl">'+__T('NK (/μL)','NK(/μL)')+'</div></div>';
   html += '</div>';
+
+  // CD4 absolute count bands（S3 标尺）
+  var __cd4Bands=[{lo:0,hi:200,label:{zh:'重度抑制(<200, AIDS分期)',en:'Severe suppression (<200, AIDS)'},color:'#DC2626'},
+                  {lo:200,hi:414,label:{zh:'偏低(<414)',en:'Low (<414)'},color:'#F59E0B'},
+                  {lo:414,hi:500,label:{zh:'边缘(414–500)',en:'Borderline (414–500)'},color:'#F59E0B'},
+                  {lo:500,hi:null,label:{zh:'正常(≥500)',en:'Normal (≥500)'},color:'#059669'}];
+  if(absLymph>0 && cd4>0){
+    var __cb=__hit(cd4Abs,__cd4Bands);
+    if(__cb) __refHtml+='<li>'+__T('CD4 absolute count ','CD4绝对值')+Math.round(cd4Abs)+__T('/μL → falls in ','/μL → 落在 ')+(__EN?__cb.label.en:__cb.label.zh)+__T(' (≥500 normal, 200–500 suppressed, &lt;200 AIDS stage)','（≥500 正常、200–500 免疫抑制、&lt;200 重度抑制 AIDS 分期）')+'</li>';
+  }
 
   // Abnormal flags
   var flags = [];
-  if(cd4Abs<414) flags.push('CD4绝对值降低');
-  if(cd4Abs<200) flags.push('CD4<200/μL(重度免疫抑制，AIDS分期)');
-  else if(cd4Abs<500) flags.push('CD4<500/μL(免疫抑制)');
-  if(ratio<0.71) flags.push('CD4/CD8倒置');
-  if(ratio>2.78) flags.push('CD4/CD8升高');
-  if(cd3Abs<770) flags.push('总T细胞降低');
-  if(cd19Abs<92) flags.push('B细胞降低(体液免疫缺陷)');
+  if(cd4Abs<414) flags.push(__T('CD4 absolute count decreased','CD4绝对值降低'));
+  if(cd4Abs<200) flags.push(__T('CD4<200/μL (severe immunosuppression, AIDS stage)','CD4<200/μL(重度免疫抑制，AIDS分期)'));
+  else if(cd4Abs<500) flags.push(__T('CD4<500/μL (immunosuppressed)','CD4<500/μL(免疫抑制)'));
+  if(ratio<0.71) flags.push(__T('CD4/CD8 inversion','CD4/CD8倒置'));
+  if(ratio>2.78) flags.push(__T('CD4/CD8 elevated','CD4/CD8升高'));
+  if(cd3Abs<770) flags.push(__T('Total T cells decreased','总T细胞降低'));
+  if(cd19Abs<92) flags.push(__T('B cells decreased (humoral immunodeficiency)','B细胞降低(体液免疫缺陷)'));
 
   if(flags.length){
-    html += '<div class="result-box" style="border-left:4px solid #dc2626;"><strong style="color:#dc2626;">异常提示</strong><ul style="margin:6px 0 0 18px;font-size:13px;line-height:1.8;">';
+    html += '<div class="result-box" style="border-left:4px solid #dc2626;"><strong style="color:#dc2626;">'+__T('Abnormal findings','异常提示')+'</strong><ul style="margin:6px 0 0 18px;font-size:13px;line-height:1.8;">';
     flags.forEach(function(f){html += '<li>'+f+'</li>';});
     html += '</ul></div>';
   } else {
-    html += '<div class="result-box" style="border-left:4px solid var(--success);color:var(--success);"><strong>各项指标在参考范围内</strong></div>';
+    html += '<div class="result-box" style="border-left:4px solid var(--success);color:var(--success);"><strong>'+__T('All indicators within reference range','各项指标在参考范围内')+'</strong></div>';
   }
 
   // HIV staging if CD4 low
   if(cd4Abs>0 && cd4Abs<500){
-    var stage = cd4Abs<200?'艾滋病期(C3)：CD4<200，机会性感染风险高，需预防用药':cd4Abs<350?'HIV感染临床3期(C2)':cd4Abs<500?'HIV感染临床2期(C1)':'';
-    if(stage) html += '<div class="tip-box tip-warn">HIV分期参考：'+stage+'。CD4是HIV抗病毒治疗启动和机会性感染预防的关键指标。</div>';
+    var stage = cd4Abs<200?__T('AIDS stage (C3): CD4<200, high risk of opportunistic infections, prophylaxis needed','艾滋病期(C3)：CD4<200，机会性感染风险高，需预防用药'):cd4Abs<350?__T('HIV clinical stage 3 (C2)','HIV感染临床3期(C2)'):__T('HIV clinical stage 2 (C1)','HIV感染临床2期(C1)');
+    if(stage) html += '<div class="tip-box tip-warn">'+__T('HIV staging reference: ','HIV分期参考：')+stage+__T('. CD4 is the key indicator for starting ART and opportunistic infection prophylaxis in HIV.','。CD4是HIV抗病毒治疗启动和机会性感染预防的关键指标。')+'</div>';
   }
 
+  if(__refHtml) html += __refCard(__refHtml);
+
   const __g1=html;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+
+  try{
+    if(typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){
+      if(cd8>0) TBKit.chart.refBar('#flow_ratioBar',{value:ratio,unit:'',min:0,max:4,bands:__ratioBands,ticks:[0,0.71,2,2.78,4],title:__T('CD4/CD8 ratio scale','CD4/CD8 比值判读标尺')});
+      if(absLymph>0&&cd4>0) TBKit.chart.refBar('#flow_cd4Bar',{value:Math.round(cd4Abs),unit:'/μL',min:0,max:1600,bands:__cd4Bands,ticks:[0,200,414,500,1000,1600],title:__T('CD4 absolute count scale','CD4 绝对值判读标尺 (/μL)')});
+    }
+  }catch(e){}
 }
 
 function copyResult(){ ToolBox.copyText(document.getElementById('result').innerText, i18nText('msg314')); }
