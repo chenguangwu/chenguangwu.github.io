@@ -126,7 +126,7 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row"><div><label>从</label><select id="from" onchange="calc()"><option value="18">mmol/L</option><option value="1">mg/dL</option></select></div>
 <div><label>到</label><select id="to" onchange="calc()"><option value="18">mmol/L</option><option value="1">mg/dL</option></select></div></div>
 <div class="toolbar"><div id="convert_glucosePresets"></div><button type="button" class="btn primary" onclick="calc()">换算</button><button class="btn" type="button" onclick="__convert_glucoseExport()">导出明细 CSV</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
-<div class="result-box" id="res"></div> <div id="convert_glucoseTable"></div> <div id="convert_glucoseDiff"></div> <div id="convert_glucoseChart"></div> <div id="convert_glucoseHist"></div>
+<div class="result-box" id="res"></div> <div id="convert_glucoseRefBar"></div> <div id="convert_glucoseTable"></div> <div id="convert_glucoseDiff"></div> <div id="convert_glucoseChart"></div> <div id="convert_glucoseHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -176,7 +176,20 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){var v=+document.getElementById("val").value||0;var f=+document.getElementById("from").value;var t=+document.getElementById("to").value;var r=v*f/t;var fl=document.getElementById("from").selectedOptions[0].text;var tl=document.getElementById("to").selectedOptions[0].text;r=Number(r.toPrecision(12));const __g1='<p style="font-size:22px;color:var(--primary);"><strong>'+r+'</strong></p><p style="font-size:12px;color:var(--text-muted);">'+v+' '+fl+' = '+r+' '+tl+'</p>'+'<p style="font-size:12px;color:var(--text-muted);">科学计数法：'+r.toExponential(6)+'</p>'+'<p style="font-size:12px;color:var(--text-muted);">反向换算 '+tl+' → '+fl+'：'+Number((v*t/f).toPrecision(10))+'；单位系数比：'+(f/t).toExponential(6)+'</p>';document.getElementById("res").innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}<!-- TOOLBOX-REALIZED -->
+function calc(){var v=+document.getElementById("val").value||0;var f=+document.getElementById("from").value;var t=+document.getElementById("to").value;var r=v*f/t;var fl=document.getElementById("from").selectedOptions[0].text;var tl=document.getElementById("to").selectedOptions[0].text;r=Number(r.toPrecision(12));
+var __mmol=(tl==='mmol/L')?r:r/18;
+var __EN=(function(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search)||/^en/i.test(document.documentElement.lang||'');}catch(e){}return false;})();
+var __gBands=[{lo:0,hi:3.9,label:{zh:'低血糖',en:'Hypoglycemia'},color:'#3B82F6'},
+              {lo:3.9,hi:5.6,label:{zh:'正常（空腹）',en:'Normal (fasting)'},color:'#10B981'},
+              {lo:5.6,hi:7.0,label:{zh:'空腹受损 IFG',en:'IFG'},color:'#F59E0B'},
+              {lo:7.0,hi:10.0,label:{zh:'糖尿病范围',en:'Diabetic range'},color:'#F97316'},
+              {lo:10.0,hi:25,label:{zh:'显著升高',en:'Markedly high'},color:'#EF4444'}];
+function __hit(v,bands){for(var i=0;i<bands.length;i++){var b=bands[i];if(v>=(b.lo==null?-Infinity:b.lo)&&v<(b.hi==null?Infinity:b.hi))return b;}return null;}
+function __T(en,zh){return __EN?en:zh;}
+var __gb=__hit(__mmol,__gBands),__refHtml='';
+if(__gb){__refHtml='<div class="ref-card"><h4>'+__T('Reference range','参考区间定位')+'</h4><ul><li>'+__T('Result in mmol/L equivalent: ','折算 mmol/L 当量：')+__mmol.toFixed(2)+__T(' → ',' → 落在 ')+(__EN?__gb.label.en:__gb.label.zh)+__T(' (fasting criteria; random-glucose thresholds differ)','（按空腹口径分级；随机血糖标准不同）')+'</li></ul></div>';}
+const __g1='<p style="font-size:22px;color:var(--primary);"><strong>'+r+'</strong></p><p style="font-size:12px;color:var(--text-muted);">'+v+' '+fl+' = '+r+' '+tl+'</p>'+'<p style="font-size:12px;color:var(--text-muted);">科学计数法：'+r.toExponential(6)+'</p>'+'<p style="font-size:12px;color:var(--text-muted);">反向换算 '+tl+' → '+fl+'：'+Number((v*t/f).toPrecision(10))+'；单位系数比：'+(f/t).toExponential(6)+'</p>'+__refHtml;document.getElementById("res").innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+try{if(typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar&&__gb){TBKit.chart.refBar('#convert_glucoseRefBar',{value:__mmol,unit:'',min:0,max:25,bands:__gBands,ticks:[0,3.9,5.6,7,10,25],title:'血糖判读标尺 (mmol/L)'});}}catch(e){}}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}<!-- TOOLBOX-REALIZED -->
 </script>
 
 <!-- SEO 介绍区块 -->

@@ -156,7 +156,7 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="loadGDM()">妊娠糖尿病示例</button>
     </div>
 
-    <div class="result-box" id="result"></div> <div id="ogtt_interpretationTable"></div> <div id="ogtt_interpretationDiff"></div> <div id="ogtt_interpretationChart"></div> <div id="ogtt_interpretationHist"></div>
+    <div class="result-box" id="result"></div> <div id="ogtt_fpgBar"></div> <div id="ogtt_h2Bar"></div> <div id="ogtt_interpretationTable"></div> <div id="ogtt_interpretationDiff"></div> <div id="ogtt_interpretationChart"></div> <div id="ogtt_interpretationHist"></div>
 
     <h3 style="font-size:14px;margin:16px 0 10px;">OGTT 判读标准对照</h3>
     <table class="ref-table">
@@ -321,9 +321,33 @@ function calc(){
     '<div style="font-size:13px;color:var(--text-light);margin-top:6px;">'+diagDesc+'</div>'+
   '</div>';
 
+  // —— 参考区间定位（S3 标尺）：OGTT 空腹 / 2h ——
+  var __EN=(function(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search)||/^en/i.test(document.documentElement.lang||'');}catch(e){}return false;})();
+  function __T(en,zh){return __EN?en:zh;}
+  var __fpgBands=[{lo:0,hi:6.1,label:{zh:'正常',en:'Normal'},color:'#10B981'},
+                  {lo:6.1,hi:7.0,label:{zh:'空腹受损 IFG',en:'IFG'},color:'#F59E0B'},
+                  {lo:7.0,hi:20,label:{zh:'糖尿病范围',en:'Diabetic range'},color:'#EF4444'}];
+  var __h2Bands=[{lo:0,hi:7.8,label:{zh:'正常',en:'Normal'},color:'#10B981'},
+                 {lo:7.8,hi:11.1,label:{zh:'糖耐量异常 IGT',en:'IGT'},color:'#F59E0B'},
+                 {lo:11.1,hi:25,label:{zh:'糖尿病范围',en:'Diabetic range'},color:'#EF4444'}];
+  function __hit(v,bands){for(var i=0;i<bands.length;i++){var b=bands[i];if(v>=(b.lo==null?-Infinity:b.lo)&&v<(b.hi==null?Infinity:b.hi))return b;}return null;}
+  var __refHtml='<div class="ref-card"><h4>'+__T('Reference range','参考区间定位')+'</h4><ul>';
+  if(!isNaN(fpg)){var __fb=__hit(fpg,__fpgBands);if(__fb){__refHtml+='<li>'+__T('FPG ','空腹 ')+fpg.toFixed(1)+__T(' → ',' → 落在 ')+(__EN?__fb.label.en:__fb.label.zh)+__T(' (normal &lt;6.1, IFG 6.1–6.9, DM ≥7.0)','（正常 &lt;6.1、IFG 6.1–6.9、糖尿病 ≥7.0）')+'</li>';}}
+  if(!isNaN(h2)){var __hb=__hit(h2,__h2Bands);if(__hb){__refHtml+='<li>'+__T('2-h ','2h ')+h2.toFixed(1)+__T(' → ',' → 落在 ')+(__EN?__hb.label.en:__hb.label.zh)+__T(' (normal &lt;7.8, IGT 7.8–11.0, DM ≥11.1)','（正常 &lt;7.8、IGT 7.8–11.0、糖尿病 ≥11.1）')+'</li>';}}
+  __refHtml+='</ul></div>';
+
+  html += __refHtml;
+
   html += drawChart(points);
 
   const __g1=html;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+
+  try{
+    if(typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){
+      if(!isNaN(fpg)) TBKit.chart.refBar('#ogtt_fpgBar',{value:fpg,unit:'',min:0,max:15,bands:__fpgBands,ticks:[0,6.1,7,15],title:'空腹血糖判读标尺 (mmol/L)'});
+      if(!isNaN(h2)) TBKit.chart.refBar('#ogtt_h2Bar',{value:h2,unit:'',min:0,max:20,bands:__h2Bands,ticks:[0,7.8,11.1,20],title:'2h 血糖判读标尺 (mmol/L)'});
+    }
+  }catch(e){}
 }
 
 function drawChart(points){
