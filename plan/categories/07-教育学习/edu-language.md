@@ -5,7 +5,7 @@
 - 受影响：tools/edu/gpa-calculator.html、grade-weight-calculator 等
 
 ## 功能缺陷
-- 成绩页缺「目标分反推」（期末要考多少分才能到绩点 X）——学生刚需。
+- ✅ 目标分反推（2026-10-26）：exam-score-calculator 加「🎯 目标分反推」card（calcTarget：给定目标分反推还需做对多少题，含已达标/超满分/剩余题不足三分支，__T 双语）；verify edu 73→74、判别器 0 逃生。
 - 中文页（chinese-culture/lunar）静态，缺「生辰八字/节气」交互深挖。
 
 ## 优化点
@@ -16,4 +16,4 @@
 - tools/edu/（47）、tools/edu2/、tools/language/、tools/chinese/
 
 ## 进度
-- 🟡 续批中（S2 分制场景已落地；剩余：目标分反推 / 生辰八字节气深挖 / S4 打卡分享卡）
+- 🟡 续批中（S2 分制场景、目标分反推已落地；剩余：生辰八字节气深挖 / S4 打卡分享卡）
