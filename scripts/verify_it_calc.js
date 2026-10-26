@@ -4093,6 +4093,14 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\"}，输出区含「 Binary 00110001 00001010 00110010 00001…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    "slug": "it/char-encoder",
+    "inputs": { "input": "Hi中" },
+    "expect": [
+      "U+4E2D e4 b8 ad 11100100 10111000 10101101"
+    ],
+    "ref": "E1 字节视图（2026-10-26）：#byteViewBox 逐字符对照表，「中」= U+4E2D → UTF-8 三字节 e4 b8 ad（11100100 10111000 10101101）。默认态 input 为空 ⇒ byteView 清空不渲染，零交集。"
+  },
+  {
     "slug": "it/calc-subnet",
     "inputs": {
       "ip": "abc123测试",

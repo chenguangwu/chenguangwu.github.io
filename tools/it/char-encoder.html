@@ -165,7 +165,7 @@ s.parentNode.insertBefore(el, s);
     <label>输入文本</label>
     <textarea id="input" placeholder="输入要转换的文本..." oninput="convert()">Hello</textarea>
 
-    <div class="result-box" id="results" style="margin-top:12px;"></div> <div id="char_encoderTable"></div> <div id="char_encoderDiff"></div> <div id="char_encoderChart"></div> <div id="char_encoderHist"></div>
+    <div class="result-box" id="results" style="margin-top:12px;"></div> <div id="byteViewBox"></div> <div id="char_encoderTable"></div> <div id="char_encoderDiff"></div> <div id="char_encoderChart"></div> <div id="char_encoderHist"></div>
   </div>
 
   <div class="card">
@@ -241,7 +241,7 @@ function b32(bytes){
 function convert(){
   const text = document.getElementById('input').value;
   const results = document.getElementById('results');
-  if(!text){ const __h0='<p style="color:var(--text-muted);">请输入文本</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){results.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}results.innerHTML=__h0; return; }
+  if(!text){ document.getElementById('byteViewBox').innerHTML=''; const __h0='<p style="color:var(--text-muted);">请输入文本</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){results.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}results.innerHTML=__h0; return; }
   const bytes = new TextEncoder().encode(text);
   const codePoints = [];
   for(const ch of text) codePoints.push(ch.codePointAt(0));
@@ -286,6 +286,7 @@ function convert(){
     html += `<div class="format-card"><div class="name">${name}</div><div class="val">${escapeHtml(val)}</div><button type="button" class="btn success" style="padding:4px 10px;font-size:12px;">复制</button></div>`;
   }
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){results.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}results.innerHTML=__h1;
+  __renderByteView(text, bytes);
   results.querySelectorAll('button').forEach((btn, i) => {
     btn.onclick = () => {
       navigator.clipboard.writeText(formats[i][1]).then(() => {
@@ -297,6 +298,46 @@ function convert(){
 
 function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// —— E1 字节视图：字符 ↔ 码点 ↔ UTF-8 字节逐级对照（教学向） ——
+function __renderByteView(text, bytes){
+  var box = document.getElementById('byteViewBox');
+  if(!box) return;
+  var en=false; try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) en=TBKit.util.isEn(); }catch(e){}
+  var MAX=64, chars=[...text], trunc=chars.length>MAX;
+  if(trunc) chars=chars.slice(0,MAX);
+  var bi=0;
+  var h='<div style="margin-top:14px;border:1px solid var(--border,#e5e7eb);border-radius:10px;overflow:hidden;">'
+    +'<div style="padding:9px 12px;background:var(--bg-soft,#f8fafc);font-size:13px;font-weight:600;">'
+    +(en?'🔬 Byte view — char ↔ code point ↔ UTF-8 bytes':'🔬 字节视图 — 字符 ↔ 码点 ↔ UTF-8 字节逐级对照')
+    +(trunc?(en?'（showing first '+MAX+' of '+[...text].length+' chars）':'（仅显示前 '+MAX+' / '+[...text].length+' 个字符）'):'')
+    +'</div><div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:12px;font-family:ui-monospace,Menlo,monospace;">'
+    +'<thead><tr style="background:var(--bg-soft,#f8fafc);">'
+    +'<th style="padding:6px 10px;text-align:left;border-bottom:1px solid var(--border,#e5e7eb);">'+(en?'Char':'字符')+'</th>'
+    +'<th style="padding:6px 10px;text-align:left;border-bottom:1px solid var(--border,#e5e7eb);">'+(en?'Code point':'码点')+'</th>'
+    +'<th style="padding:6px 10px;text-align:left;border-bottom:1px solid var(--border,#e5e7eb);">'+(en?'UTF-8 bytes (hex)':'UTF-8 字节 (hex)')+'</th>'
+    +'<th style="padding:6px 10px;text-align:left;border-bottom:1px solid var(--border,#e5e7eb);">'+(en?'UTF-8 bytes (binary)':'UTF-8 字节 (binary)')+'</th>'
+    +'</tr></thead><tbody>';
+  for(const ch of chars){
+    var cp=ch.codePointAt(0);
+    var utf8=new TextEncoder().encode(ch);
+    var hexs=[],bins=[];
+    for(const b of utf8){ hexs.push(b.toString(16).padStart(2,'0')); bins.push(b.toString(2).padStart(8,'0')); }
+    var shown = ch===' ' ? (en?'␣ (space)':'␣（空格）') : ch==='\n' ? (en?'⏎ (LF)':'⏎（换行）') : ch==='\t' ? (en?'⇥ (tab)':'⇥（制表）') : ch;
+    h+='<tr>'
+      +'<td style="padding:6px 10px;border-bottom:1px solid var(--border,#e5e7eb);font-weight:600;">'+escapeHtml(shown)+'</td>'
+      +'<td style="padding:6px 10px;border-bottom:1px solid var(--border,#e5e7eb);">U+'+cp.toString(16).toUpperCase().padStart(4,'0')+'</td>'
+      +'<td style="padding:6px 10px;border-bottom:1px solid var(--border,#e5e7eb);color:var(--accent,#3b82f6);">'+hexs.join(' ')+'</td>'
+      +'<td style="padding:6px 10px;border-bottom:1px solid var(--border,#e5e7eb);color:var(--text-muted,#666);">'+bins.join(' ')+'</td>'
+      +'</tr>';
+    bi+=utf8.length;
+  }
+  h+='</tbody></table></div>'
+    +'<div style="padding:8px 12px;font-size:11.5px;color:var(--text-muted,#666);border-top:1px solid var(--border,#e5e7eb);">'
+    +(en?'Total '+bi+' UTF-8 bytes · ASCII chars = 1 byte, CJK = 3 bytes (UTF-8) · Continuation bytes start with 10':'共 '+bi+' 个 UTF-8 字节 · ASCII 字符占 1 字节、常用汉字占 3 字节（UTF-8）· 续字节以 10 开头')
+    +'</div></div>';
+  const __bv=h;if((typeof __bv==='number'&&!isFinite(__bv))||/Infinity/.test(String(__bv))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__bv)){box.innerHTML='';return;}box.innerHTML=__bv;
 }
 
 function copyAll(){
