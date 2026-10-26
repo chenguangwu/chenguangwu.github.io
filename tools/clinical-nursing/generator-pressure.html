@@ -194,7 +194,55 @@ function gen(){
     </div>`;
   });
   const __h0=h;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('res').innerHTML=__h0;
+  try { if (typeof __genPressEmr === 'function') { __genPressEmr(); } } catch (e) {}
 }
+/* ===== 门诊记录通用模板（每页独立副本） ===== */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none'):(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  if(el.__emrBox && el.__emrBox.parentNode){ try{ el.__emrBox.parentNode.removeChild(el.__emrBox); }catch(e){} }
+  el.__emrBox = __box; el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+
+/* 门诊记录：仅抓稳定计数（生成要点条数），不抓 Math.random 随机内容 */
+function __genPressEmr(){
+  var en=__emrEn();
+  var cEl=document.getElementById('cnt'); var n=Math.min(Math.max(parseInt(cEl?cEl.value:'5')||5,1),50);
+  __emrNote({
+    boxId:'res',
+    name:'压力性损伤预防要点',
+    nameEn:'Pressure-injury prevention points',
+    result:(en?('Generated '+n+' prevention points for clinical reference'):('生成 '+n+' 条压力性损伤预防要点（供临床参考）')),
+    resultEn:(en?('Generated '+n+' prevention points for clinical reference'):('生成 '+n+' 条压力性损伤预防要点（供临床参考）')),
+    noPos:true,
+    hintZh:'压力性损伤预防要点供护理宣教与交接参考，具体分期与处置须结合创面评估、Braden 评分与专科会诊；本工具所列条目为通用护理规范，不替代个体化处理。',
+    hintEn:'These prevention points support nursing education and handover; staging and management must combine wound assessment, Braden score and specialist consultation. Entries are general nursing guidance, not a substitute for individualized care.'
+  });
+}
+
 function copyRes(){ToolBox.copyText(document.getElementById('res').innerText);}
 gen();
 </script>

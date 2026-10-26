@@ -405,9 +405,63 @@ function startSession(){
 
   showButtons();
   hideAlert();
+  try { if (typeof __reminderEmr === 'function') { __reminderEmr(); } } catch (e) {}
   startTicker();
   updateTimerDisplay();
   ToolBox.showToast('冷敷已开始，单次 ' + coldMin + ' 分钟');
+}
+
+/* ===== 门诊记录通用模板（每页独立副本） ===== */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none'):(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  if(el.__emrBox && el.__emrBox.parentNode){ try{ el.__emrBox.parentNode.removeChild(el.__emrBox); }catch(e){} }
+  el.__emrBox = __box; el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+
+/* 门诊记录：抓冷疗方案（冷敷/休息/观察时长 + 部位），不依赖实时计时器 */
+function __reminderEmr(){
+  var en=__emrEn();
+  function clamp(v,mn,mx,d){ var n=parseInt(v,10); if(isNaN(n)) n=d; return Math.max(mn,Math.min(mx,n)); }
+  var cold=clamp(document.getElementById('coldDur').value,5,30,20);
+  var rest=clamp(document.getElementById('restDur').value,10,120,30);
+  var chk=clamp(document.getElementById('checkDur').value,2,15,5);
+  var area=(typeof selectedArea!=='undefined'&&selectedArea)?selectedArea:'额头';
+  var areaEn={'额头':'Forehead','面部':'Face','颈部':'Neck','肩部':'Shoulder','肘关节':'Elbow','腕关节':'Wrist','膝关节':'Knee','踝关节':'Ankle','腰部':'Lumbar','其他':'Other'};
+  var aEn=areaEn[area]||area;
+  __emrNote({
+    boxId:'historyList',
+    name:'冷疗方案',
+    nameEn:'Cold therapy plan',
+    result:(en?('Cold '+cold+' min / Rest '+rest+' min / Skin check every '+chk+' min · Site: '+aEn):('冷敷 '+cold+' 分钟 / 休息 '+rest+' 分钟 / 皮肤观察每 '+chk+' 分钟 · 部位：'+area)),
+    resultEn:(en?('Cold '+cold+' min / Rest '+rest+' min / Skin check every '+chk+' min · Site: '+aEn):('冷敷 '+cold+' 分钟 / 休息 '+rest+' 分钟 / 皮肤观察每 '+chk+' 分钟 · 部位：'+area)),
+    noPos:true,
+    hintZh:'冷疗单次不宜超过 20 分钟，两次之间至少休息 30 分钟，避免冻伤；冷敷期间每隔数分钟检查局部皮肤颜色、感觉与末梢循环，出现苍白、青紫或麻木应立即停止。',
+    hintEn:'Limit each cold application to ≤20 min with ≥30 min rest between sessions to avoid frostbite; check skin colour, sensation and distal perfusion every few minutes, and stop immediately on pallor, cyanosis or numbness.'
+  });
 }
 
 function clampInt(v, min, max, def){

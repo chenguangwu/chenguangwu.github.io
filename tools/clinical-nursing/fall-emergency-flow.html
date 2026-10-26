@@ -544,7 +544,49 @@ document.addEventListener('DOMContentLoaded',function(){
     }catch(e){}
   }
   document.addEventListener('DOMContentLoaded',feAll);
-  document.addEventListener('toolbox:langchange',feAll);
+  function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none'):(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  if(el.__emrBox && el.__emrBox.parentNode){ try{ el.__emrBox.parentNode.removeChild(el.__emrBox); }catch(e){} }
+  el.__emrBox = __box; el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+window.__fallEmr = function(){
+  if(typeof window==='undefined'||!Array.isArray(window.__fallSnap)) return;
+  var snap=window.__fallSnap; try{ delete window.__fallSnap; }catch(e){}
+  if(typeof steps==='undefined'||!Array.isArray(steps)) return;
+  var total=steps.length, done=0, titles=[];
+  for(var i=0;i<steps.length;i++){ if(snap.indexOf(i)>=0){ done++; titles.push(String(i+1)); } }
+  var isEn=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+  var name=isEn?'Fall / fall-from-bed emergency response (nursing EMR note)':'跌倒/坠床应急处置（护士门诊记录）';
+  var result=isEn?('Completed '+done+'/'+total+' key steps'):('已完成 '+done+'/'+total+' 关键步骤');
+  var extra=titles.length?(isEn?'Completed steps (#): ':'已完成步骤（序号）：')+titles.join(', '):(isEn?'No key steps completed':'未完成任何关键步骤');
+  var hint=isEn?'Follow institutional adverse-event reporting: document the minute-level timeline, environmental factors and interventions within 24h.':'按不良事件上报流程记录：精确到分钟的时间线、环境因素与已采取措施，24h 内完成上报。';
+  __emrNote({boxId:'flowHistory', name:name, nameEn:name, result:result, resultEn:result, extra:extra, extraEn:extra, hintZh:hint, hintEn:hint, noPos:true});
+}
+document.addEventListener('toolbox:langchange',feAll);
 })();
 </script>
 </body>

@@ -268,6 +268,59 @@ function calc(){
   scheduleHtml += '<div class="schedule-item" style="border-color:var(--primary);"><span class="time">' + formatTime(endTime) + '</span><span class="action">约束结束，评估是否继续约束</span></div>';
   
   const __g3=scheduleHtml;document.getElementById('schedule').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+  try { if (typeof __restraintEmr === 'function') { __restraintEmr(); } } catch (e) {}
+}
+
+/* ===== 门诊记录通用模板（每页独立副本） ===== */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none'):(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  if(el.__emrBox && el.__emrBox.parentNode){ try{ el.__emrBox.parentNode.removeChild(el.__emrBox); }catch(e){} }
+  el.__emrBox = __box; el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+
+/* 门诊记录：抓稳定计算结果（约束类型/间隔/时长/计划松解次数），不抓 new Date() 动态时刻 */
+function __restraintEmr(){
+  var en=__emrEn();
+  var cfg=typeConfig[currentType];
+  var tpMap={wrist:['手腕约束','Wrist restraint'],chest:['胸衣约束','Vest restraint'],mitten:['约束手套','Mitten restraint'],belt:['肩部约束','Shoulder restraint']};
+  var tpL=tpMap[currentType]||[cfg.name,cfg.name];
+  var totalEl=document.getElementById('totalHours'); var total=totalEl?(parseInt(totalEl.value)||1):1;
+  var sch=document.getElementById('schedule'); var html=sch?sch.innerHTML:'';
+  var cnt=(html.match(/松解约束/g)||[]).length;
+  __emrNote({
+    boxId:'result',
+    name:'约束松解计划',
+    nameEn:'Restraint release plan',
+    result:(en?('Restraint type: '+tpL[1]+' · Loosen interval: every '+cfg.interval+' hours · Each release: '+cfg.duration+' min · Total restraint: '+total+' hours · Planned releases: '+cnt):('约束类型：'+tpL[0]+' · 松解间隔：每 '+cfg.interval+' 小时 · 每次松解：'+cfg.duration+' 分钟 · 约束总时长：'+total+' 小时 · 计划松解 '+cnt+' 次')),
+    resultEn:(en?('Restraint type: '+tpL[1]+' · Loosen interval: every '+cfg.interval+' hours · Each release: '+cfg.duration+' min · Total restraint: '+total+' hours · Planned releases: '+cnt):('约束类型：'+tpL[0]+' · 松解间隔：每 '+cfg.interval+' 小时 · 每次松解：'+cfg.duration+' 分钟 · 约束总时长：'+total+' 小时 · 计划松解 '+cnt+' 次')),
+    noPos:true,
+    hintZh:'约束病人须按规范定时松解并评估皮肤、末梢血运与肢体活动度，记录松解起止时间；出现皮肤发红、苍白或麻木应立即处理，约束时长与必要性应持续再评估。',
+    hintEn:'Restrained patients require scheduled release with skin, distal perfusion and limb-mobility assessment, and release timing should be recorded. Address redness, pallor or numbness promptly and reassess the need for continued restraint.'
+  });
 }
 
 function formatTime(d){

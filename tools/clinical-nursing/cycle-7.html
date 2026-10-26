@@ -382,10 +382,62 @@ function startRestraint(){
     warned: false
   };
   save();
+  try { if (typeof __cycleEmr === 'function') { __cycleEmr(); } } catch (e) {}
   document.getElementById('ptInput').value = '';
   document.getElementById('startInput').value = fmtDateTimeLocal(new Date());
   renderActive();
   ToolBox.showToast(i18nText('toast.msg538'));
+}
+
+/* ===== 门诊记录通用模板（每页独立副本） ===== */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none'):(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  if(el.__emrBox && el.__emrBox.parentNode){ try{ el.__emrBox.parentNode.removeChild(el.__emrBox); }catch(e){} }
+  el.__emrBox = __box; el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+
+/* 门诊记录：抓约束类型 + 皮肤状态（稳定，不依赖实时计时器） */
+function __cycleEmr(){
+  var en=__emrEn();
+  var t=(typeof selectedType!=='undefined'&&selectedType)?selectedType:'约束带';
+  var s=(typeof selectedSkin!=='undefined'&&selectedSkin)?selectedSkin:'正常';
+  var tEn={'约束带':'Restraint belt','约束手套':'Mitten restraint','约束衣':'Vest restraint','腕部约束':'Wrist restraint','踝部约束':'Ankle restraint','肩部约束':'Shoulder restraint','保护性约束':'Protective restraint','其他':'Other'};
+  var sEn={'正常':'Intact','轻微发红':'Mild redness','压痕':'Pressure mark','破损':'Skin breakdown','肿胀':'Swelling','发绀':'Cyanosis'};
+  var tL=tEn[t]||t, sL=sEn[s]||s;
+  __emrNote({
+    boxId:'historyList',
+    name:'约束护理计划',
+    nameEn:'Restraint care plan',
+    result:(en?('Type: '+tL+' · Skin: '+sL):('约束类型：'+t+' · 皮肤状态：'+s)),
+    resultEn:(en?('Type: '+tL+' · Skin: '+sL):('约束类型：'+t+' · 皮肤状态：'+s)),
+    noPos:true,
+    hintZh:'保护性约束每 2 小时须松解一次，观察局部血液循环及皮肤状况，每次松解 15–30 分钟；出现皮肤发红、苍白、发绀、破损或肢体肿胀应立即处理并记录。',
+    hintEn:'Protective restraint requires release every 2 hours with circulation and skin assessment for 15–30 min; address redness, pallor, cyanosis, breakdown or swelling promptly and document.'
+  });
 }
 
 function renderActive(){

@@ -317,6 +317,63 @@ function calc(){
   } else {
     cdBox.style.display = 'none';
   }
+  try { if (typeof __ostomyEmr === 'function') { __ostomyEmr(); } } catch (e) {}
+}
+
+/* ===== 门诊记录通用模板（每页独立副本） ===== */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none'):(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  if(el.__emrBox && el.__emrBox.parentNode){ try{ el.__emrBox.parentNode.removeChild(el.__emrBox); }catch(e){} }
+  el.__emrBox = __box; el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+
+/* 门诊记录：只抓稳定计算结果（造口类型/内容物/状态/间隔/预警），不抓 new Date() 动态倒计时 */
+function __ostomyEmr(){
+  var en=__emrEn();
+  var st=document.getElementById('stomaType'); var stoma=st?st.value:'';
+  var ot=document.getElementById('outputType'); var out=ot?ot.value:'';
+  var bs=document.getElementById('baseStatus'); var status=bs?bs.value:'';
+  var ivEl=document.getElementById('interval'); var ivTxt=ivEl?ivEl.textContent:'';
+  var stMap={colostomy:['结肠造口','Colostomy'],ileostomy:['回肠造口','Ileostomy'],urostomy:['尿路造口','Urostomy']};
+  var otMap={formed:['成形便','Formed stool'],semi:['半成形便','Semi-formed stool'],liquid:['稀便','Liquid stool'],urine:['尿液','Urine']};
+  var bsMap={intact:['完好','Intact'],slight:['底盘翘起','Baseplate lifting'],erosion:['底盘侵蚀','Baseplate eroded'],leak:['已渗漏','Leaking']};
+  var wlMap={intact:['正常更换周期','routine change cycle'],slight:['建议尽快更换（底盘已翘起）','change soon (baseplate lifting)'],erosion:['建议立即更换（底盘已侵蚀）','change immediately (baseplate eroded)'],leak:['必须立即更换（已渗漏）','must change immediately (leaking)']};
+  var stL=stMap[stoma]||[stoma,stoma], otL=otMap[out]||[out,out], bsL=bsMap[status]||[status,status], wlL=wlMap[status]||['',''];
+  var ivTxt2 = ivTxt==='立即' ? (en?'immediately':'立即') : (ivTxt + (en?' days':' 天'));
+  __emrNote({
+    boxId:'result',
+    name:'造口袋更换计划',
+    nameEn:'Ostomy pouch change plan',
+    result:(en?('Stoma: '+stL[1]+' · Output: '+otL[1]+' · Status: '+bsL[1]+' · Recommended interval: '+ivTxt2+' · Alert: '+wlL[1]):('造口类型：'+stL[0]+' · 内容物：'+otL[0]+' · 当前状态：'+bsL[0]+' · 建议更换间隔：'+ivTxt2+' · 预警：'+wlL[0])),
+    resultEn:(en?('Stoma: '+stL[1]+' · Output: '+otL[1]+' · Status: '+bsL[1]+' · Recommended interval: '+ivTxt2+' · Alert: '+wlL[1]):('造口类型：'+stL[0]+' · 内容物：'+otL[0]+' · 当前状态：'+bsL[0]+' · 建议更换间隔：'+ivTxt2+' · 预警：'+wlL[0])),
+    noPos:true,
+    hintZh:'造口袋更换计划依据造口类型、内容物性状与底盘状态估算，实际频次以造口专科护理评估为准；出现渗漏、异味或周围皮肤破损应立即更换。',
+    hintEn:'Ostomy change interval is estimated from stoma type, output consistency and baseplate status; follow stoma-care specialist assessment. Change immediately on leakage, odour or peristomal skin breakdown.'
+  });
 }
 
 function copyResult(){

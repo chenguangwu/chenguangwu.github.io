@@ -65,7 +65,7 @@
   + rehabilitation 4（asia-impairment-scale/mmse-scoring/physiotherapy-dose/proprioception-error）
   + rehabilitation 2（adl-task-breakdown/assistive-device-fitting，后者轮椅分支另加一条用例）
   + clinical-nursing 1（pressure-injury-description）+ neurology 2（psqi/calc-1）。
-  全站累计 **119 页**（03-37 再 +2：digit-span-test、corsi-block-test）。**neurology 已全铺完（26 页，除 index）**，psychiatry 已全铺完，
+  全站累计 **129 页**（03-38 再 +7：clinical-nursing 全铺完）。**neurology 已全铺完（26 页，除 index）**、**clinical-nursing 已全铺完（26 工具页，含本批 cycle-7/fall-emergency-flow/generator-pressure/ostomy-bag-timing/reminder-time-1/restraint-duration/tracheostomy-dressing）**、psychiatry 已全铺完，
   rehabilitation 已全铺完，**cognition 已评估定档（铺 2：digit-span/corsi；其余 6 训练/选择器范式不铺）**，psychology 仅剩 scl90（外部 js + psych-kit 通用引擎）与
   若干非临床人格/趣味页（bubble-tea/enneagram/bigfive/holland，非病历场景，不铺门诊记录）。
   顺手修 3 个真 bug：DHI 维度分母互换（P/F 的 28/36 写反）、IRLS 症状特征分母、rater 系满分口径；
@@ -109,15 +109,14 @@
       `cognitive-assessment`（域得分选择器，路由到子测验、无最终汇总分）、`human-benchmark`（36 处 addEventListener + 随机靶位/计时，
       结果存 results[id] 由交互驱动，无表单注入通道，沿用既有 all_default 判定）、`nback-training` / `schulte-table` / `stroop-test` / `time-perception`
       （反应时/工作记忆训练，成绩由点击与计时驱动、无 injectable 计算结果）。此 6 页为自评/训练性质，结果非病历素材，不做门诊记录（已评估，非草率收口）。
-  - `clinical-nursing` 7：cycle-7、fall-emergency-flow、generator-pressure、ostomy-bag-timing、
-    reminder-time-1、restraint-duration、tracheostomy-dressing。
-    其中 ostomy-bag-timing / restraint-duration / tracheostomy-dressing / cycle-7 / reminder-time-1
-    **用 `new Date()` 算具体时刻**，按铁律④ 暂不纳入稳定用例；generator-pressure 的 `pick()` 走 Math.random，
-    输出不稳定（仅「共 N 条」随 `cnt` 变，判别力弱），亦暂缓。
-    **fall-emergency-flow 另有硬障碍（2026-10-26 实测，已回滚未提交）**：该页完成度靠全局
-    `completedSteps` 数组，而 harness 兜底循环会无参调用 `nextStep()/toggleStep()` 把步骤推满——
-    **默认态与注入态实测都是「已完成 8/8 步（全部完成）」**，无法构造判别用例（必成逃生项）。
-    想铺此页须先找到绕过兜底的状态通道，否则不动（避免留无测试覆盖的功能）。
+  - `clinical-nursing` **本批 03-38 已全铺完（7 页）**：cycle-7、fall-emergency-flow、generator-pressure、
+    ostomy-bag-timing、reminder-time-1、restraint-duration、tracheostomy-dressing。
+    处置要点：
+    · 含 `new Date()` 的页（ostomy/restraint/tracheostomy/cycle/reminder）门诊记录只抓**稳定计算结果**（类型/间隔/次数/计划），
+      不抓动态倒计时时刻 → 符合铁律④（用例不依赖今天）；
+    · generator-pressure 只断言「共 N 条」稳定部分（随机内容不进 expect）；
+    · **fall-emergency-flow 用「注入专属快照 + 渲染后自删」绕过兜底循环**：clicks 注入 `window.__fallSnap=[...]` 完成后调
+      `window.__fallEmr()` 渲染并 `delete window.__fallSnap`，兜底循环即便再调也因快照已删而 return → 默认态零门诊记录、判别力成立。
   - `neurology` **已全铺完**（26 页，除 index）；`pediatrics` 2：assessor-spo2（**已踩 stub 盲区**：注入后整段 script 不执行、
     语法正常、errs 空、回滚即恢复，须单独排查）、vaccine-schedule（依赖「今天」，按铁律④ 暂缓）。
   - 「维度雷达图推广」「量表对照模块」未开发。

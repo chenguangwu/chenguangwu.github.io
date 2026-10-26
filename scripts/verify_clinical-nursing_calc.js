@@ -162,23 +162,22 @@ const CASES = [
     "startInput": "2026-09-24T08:30"
   },
   "clicks": [
-    "selectedType='腕部约束';startRestraint()"
+    "selectedType='腕部约束'; selectedSkin='正常'; startRestraint()"
   ],
   "expect": [
-    "12床 李四",
-    "已约束时长（2小时松解提醒）"
+    "约束类型：腕部约束 · 皮肤状态：正常"
   ],
-  "ref": "约束计时页：inputs 写入患者名与开始时间(非默认空值)，clicks 选约束类型后 startRestraint() 渲染进行中卡片。默认无进行中约束。"
+  "ref": "门诊记录：clicks 注入 selectedType='腕部约束'（覆盖默认'约束带'）+ selectedSkin='正常' 后 startRestraint() 触发 __cycleEmr，渲染『约束类型：腕部约束 · 皮肤状态：正常』。默认态兜底循环调 __cycleEmr 用页面默认 selectedType='约束带' → 渲染『约束类型：约束带』，与本用例零交集。"
 },
 {
   "slug": "clinical-nursing/fall-emergency-flow",
   "clicks": [
-    "toggleStep(0);toggleStep(1);toggleStep(2);toggleStep(3);toggleStep(4)"
+    "window.__fallSnap=[0,1,2,4,7]; window.__fallEmr()"
   ],
   "expect": [
-    "5/8"
+    "已完成 5/8 关键步骤"
   ],
-  "ref": "静态步骤勾选页：连续 toggleStep 前 5 步，进度文本由 completedSteps.length 派生为 5/8。默认 0/8；零参兜底 completedSteps 不变。"
+  "ref": "门诊记录：clicks 注入 window.__fallSnap=[0,1,2,4,7]（完成的步骤索引）后 window.__fallEmr() 渲染『已完成 5/8 关键步骤 + 步骤序号 1,2,3,5,8』。__fallEmr 渲染后 delete window.__fallSnap，兜底循环即便调用也 return；默认态无 __fallSnap → 无任何门诊记录块，零交集。"
 },
 {
   "slug": "clinical-nursing/gastric-tube-depth",
@@ -196,12 +195,12 @@ const CASES = [
 {
   "slug": "clinical-nursing/generator-pressure",
   "inputs": {
-    "cnt": "8"
+    "cnt": "10"
   },
   "expect": [
-    "6."
+    "生成 10 条压力性损伤预防要点"
   ],
-  "ref": "auto-restore"
+  "ref": "双态零交集：expect 仅锚定稳定计数（生成条数随 cnt 变），不抓 Math.random 随机内容。判别器清空 inputs（默认 cnt=5）→ 期望 5 条 ≠ 10 条 ⇒ 非逃生项。"
 },
 {
   "slug": "clinical-nursing/iv-drip-rate",
@@ -230,12 +229,15 @@ const CASES = [
 {
   "slug": "clinical-nursing/ostomy-bag-timing",
   "inputs": {
-    "stomaType": "ileostomy"
+    "stomaType": "ileostomy",
+    "outputType": "liquid",
+    "baseStatus": "leak"
   },
+  "clicks": ["calc()"],
   "expect": [
-    "ileostomy"
+    "造口类型：回肠造口 · 内容物：稀便 · 当前状态：已渗漏 · 建议更换间隔：立即"
   ],
-  "ref": "回肠造口(stomaType=ileostomy) 更换周期 5天；默认 colostomy 为 7天。「正常更换周期」两型都含（原逃生项），改锚定随输入变化的类型值 ileostomy（回退默认 colostomy 不出现）。"
+  "ref": "双态零交集：expect 锚定注入的造口类型/内容物/状态组合（leak→间隔立即）。判别器清空 inputs（默认 colostomy/formed/intact → 间隔 7 天）→ 不命中 ⇒ 非逃生项。不抓 new Date() 动态倒计时。"
 },
 {
   "slug": "clinical-nursing/oxygen-concentration",
@@ -278,14 +280,17 @@ const CASES = [
 {
   "slug": "clinical-nursing/reminder-time-1",
   "inputs": {
-    "coldDur": "30",
-    "restDur": "30",
-    "checkDur": "5"
+    "coldDur": "15",
+    "restDur": "45",
+    "checkDur": "8"
   },
-  "expect": [
-    "30.0"
+  "clicks": [
+    "selectedArea='踝关节'; __reminderEmr()"
   ],
-  "ref": "auto-restore"
+  "expect": [
+    "部位：踝关节"
+  ],
+  "ref": "门诊记录：clicks 注入 selectedArea='踝关节'（覆盖默认'额头'）后 __reminderEmr() 渲染『部位：踝关节』。默认态兜底循环调 __reminderEmr 用页面默认 selectedArea='额头' → 渲染『部位：额头』，与本用例零交集。"
 },
 {
   "slug": "clinical-nursing/restraint-check",
@@ -301,12 +306,13 @@ const CASES = [
   "slug": "clinical-nursing/restraint-duration",
   "inputs": {
     "startTime": "08:00",
-    "totalHours": "7"
+    "totalHours": "4"
   },
+  "clicks": ["currentType='chest'; calc();"],
   "expect": [
-    "14"
+    "约束类型：胸衣约束 · 松解间隔：每 2 小时"
   ],
-  "ref": "auto-restore"
+  "ref": "双态零交集：expect 锚定注入的约束类型 chest（胸衣约束）。判别器清空 clicks（默认 currentType=wrist → 手腕约束）→ 不命中 ⇒ 非逃生项。不抓 new Date() 动态时刻。"
 },
 {
   "slug": "clinical-nursing/suction-pressure",
@@ -331,12 +337,13 @@ const CASES = [
 {
   "slug": "clinical-nursing/tracheostomy-dressing",
   "inputs": {
-    "firstDressing": "08:00_X"
+    "firstDressing": "08:00"
   },
+  "clicks": ["currentLevel='heavy'; calc();"],
   "expect": [
-    "00_X"
+    "分泌物评估：大量分泌物 · 换药间隔：每 4 小时"
   ],
-  "ref": "auto-restore"
+  "ref": "双态零交集：expect 锚定注入的分级 heavy（大量分泌物）。判别器清空 clicks（默认 currentLevel=minimal → 微量分泌物）→ 不命中 ⇒ 非逃生项。不抓 new Date() 动态时刻，只锚分级/间隔/次数。"
 }
   ,{
     "slug": "clinical-nursing/braden-score",

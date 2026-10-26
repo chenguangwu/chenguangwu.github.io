@@ -257,6 +257,58 @@ function calc(){
     if(i >= 11) break;
   }
   const __g3=html;document.getElementById('schedule').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+  try { if (typeof __tracheEmr === 'function') { __tracheEmr(); } } catch (e) {}
+}
+
+/* ===== 门诊记录通用模板（每页独立副本） ===== */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none'):(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  if(el.__emrBox && el.__emrBox.parentNode){ try{ el.__emrBox.parentNode.removeChild(el.__emrBox); }catch(e){} }
+  el.__emrBox = __box; el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+
+/* 门诊记录：抓稳定计算结果（分泌物分级/换药间隔/24h 计划次数），不抓 new Date() 动态时刻 */
+function __tracheEmr(){
+  var en=__emrEn();
+  var lv=levels[currentLevel];
+  var lvMap={minimal:['微量分泌物','Minimal secretions'],moderate:['中等量分泌物','Moderate secretions'],heavy:['大量分泌物','Heavy secretions'],purulent:['脓性/感染分泌物','Purulent/infected secretions']};
+  var lvL=lvMap[currentLevel]||[lv.name,lv.name];
+  var sch=document.getElementById('schedule'); var html=sch?sch.innerHTML:'';
+  var cnt=(html.match(/schedule-item/g)||[]).length;
+  __emrNote({
+    boxId:'result',
+    name:'气管切开换药计划',
+    nameEn:'Tracheostomy dressing plan',
+    result:(en?('Secretion: '+lvL[1]+' · Dressing interval: every '+lv.interval+' hours · Planned dressings in 24h: '+cnt):('分泌物评估：'+lvL[0]+' · 换药间隔：每 '+lv.interval+' 小时 · 24 小时计划换药 '+cnt+' 次')),
+    resultEn:(en?('Secretion: '+lvL[1]+' · Dressing interval: every '+lv.interval+' hours · Planned dressings in 24h: '+cnt):('分泌物评估：'+lvL[0]+' · 换药间隔：每 '+lv.interval+' 小时 · 24 小时计划换药 '+cnt+' 次')),
+    noPos:true,
+    hintZh:'气管切开换药频次依据分泌物量调整，量越多越频繁；操作中保持无菌、固定稳妥并观察呼吸与周围皮肤，红肿或脓性分泌物应提前更换并报告。',
+    hintEn:'Tracheostomy dressing frequency follows secretion volume; more secretion means more frequent changes. Keep sterile technique, secure the tube, monitor breathing and peristomal skin; redness or purulent discharge warrants earlier change and reporting.'
+  });
 }
 
 function formatTime(d){
