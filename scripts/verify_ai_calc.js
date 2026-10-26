@@ -1201,6 +1201,35 @@ const CASES = [
       "42\n42\n42\n权重显存： 1764"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"params\":\"42\",\"bytes\":\"42\",\"act\":\"42\"}，输出区含「42\n42\n42\n权重显存： 1764」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "ai/vram-estimate",
+    // S2 真实部署场景预设（04 批次）：预设经 TBKit.preset.bar（harness 不可见），
+    // verify 走与预设等价的 inputs 注入断言 result 串；预设条目仅作 UI 快捷入口。
+    "inputs": { "params": "7", "bytes": "2", "act": "14000" },
+    expect: [
+      "权重显存： 14.0",
+      "总显存估算： 28.0"
+    ],
+    "ref": "7B LoRA 微调 bf16 预设（params=7/bytes=2/act=14000）：权重=7×2=14.0 GB、总=14+14=28.0 GB。默认态 params=10/bytes=2/act=500 → 20.0/20.5 ⇒ 零交集。"
+  },
+  {
+    "slug": "ai/vram-estimate",
+    "inputs": { "params": "13", "bytes": "0.5", "act": "8000" },
+    expect: [
+      "权重显存： 6.5",
+      "总显存估算： 14.5"
+    ],
+    "ref": "13B QLoRA 4-bit 预设：权重=13×0.5=6.5 GB、总=6.5+8=14.5 GB。默认态零交集。"
+  },
+  {
+    "slug": "ai/vram-estimate",
+    "inputs": { "params": "70", "bytes": "0.5", "act": "1000" },
+    expect: [
+      "权重显存： 35.0",
+      "总显存估算： 36.0"
+    ],
+    "ref": "70B INT4 推理预设：权重=70×0.5=35.0 GB、总=35+1=36.0 GB（>24GB 单卡，双卡可分）。默认态零交集。"
   }
 
 ];

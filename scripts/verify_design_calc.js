@@ -1990,6 +1990,30 @@ const CASES = [
       " #0EA5E9\nsequential\n42\nlightness"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"csCount\":\"42\",\"csMode\":\"sequential\",\"csStrategy\":\"lightness\"}，输出区含「 #0EA5E9\nsequential\n42\nlightness」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    slug: "design/shadow-generator",
+    // S2 设计系统风格预设组（04 批次）：clicks 直调 applyPreset(i)，i 依赖 PRESETS 追加序
+    // （原 12 个 index 0-11；追加 Material1=12 / Material4=13 / Neu亮=14 / Neu暗=15 / Glass+=16 / Brutal=17 / TW sm=18 / TW md=19 / TW lg=20 / TW xl=21）。
+    // applyPreset → parseShadow（色提尾、数值四元、缺省补 0）→ buildShadowStr 拼 `x y blur spread color`（层间 ', '）→ #code = `box-shadow: ...;`
+    inputs: {},
+    clicks: ["applyPreset(14);"],
+    expect: ["box-shadow: 9px 9px 18px 0px #d1d9e6, -9px -9px 18px 0px #ffffff;"],
+    ref: "Neu 亮预设（index 14）：parseShadow('9px 9px 18px #d1d9e6') → x9 y9 blur18 spread0 → '9px 9px 18px 0px #d1d9e6'；第二层 '-9px -9px 18px 0px #ffffff'。默认态 #code='box-shadow: 0px 10px 20px -5px #667eea;' ⇒ 零交集。"
+  },
+  {
+    slug: "design/shadow-generator",
+    inputs: {},
+    clicks: ["applyPreset(17);"],
+    expect: ["box-shadow: 8px 8px 0px 0px #000000;"],
+    ref: "Brutal 预设（index 17）：'8px 8px 0 #000000' → blur=0/spread=0 补 0px。默认态零交集。"
+  },
+  {
+    slug: "design/shadow-generator",
+    inputs: {},
+    clicks: ["applyPreset(21);"],
+    expect: ["box-shadow: 0px 20px 25px -5px rgba(0,0,0,0.1), 0px 8px 10px -6px rgba(0,0,0,0.1);"],
+    ref: "TW xl 预设（index 21，Tailwind shadow-2xl）：两层 rgba 保留原串。默认态零交集。"
   }
 
 ];
