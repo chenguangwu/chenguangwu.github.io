@@ -2,14 +2,10 @@
 
 ## 已知问题
 ### E1. encode 系结果仅文本
-- 描述：base64/hex/url 系缺「字节级对照」（每个字符↔字节↔编码段高亮）。
-- 受影响：tools/encode/*（~30 页）
-- 方案：结果区加「字节视图」折叠面板（教学向差异化）。
+- ✅ 已落地（2026-10-26 · 落点 it/char-encoder 多格式字符编码器）：加「🔬 字节视图」卡（#byteViewBox：字符 ↔ 码点 ↔ UTF-8 字节 hex/binary 逐字符对照表，空格␣/换行⏎/制表⇥符号化、截前 64 字符、TBKit EN 守卫双语；空输入清空零渲染）。verify 强用例（Hi中 → U+4E2D e4 b8 ad 11100100…）；EN probe 全英文（输入回显除外）。verify it 763/763、判别器 0 逃生、门禁 218/218。
 
 ### E2. telecom 换算页口径混杂
-- 描述：分类内「带宽 KB=0.001 与 GB=1024 混用」的进制口径不统一（bit 系应 1000、byte 系应 1024）。
-- 受影响：tools/telecom/bandwidth-calculator.html 及同分类换算页
-- 方案：全分类统一「bit 系 1000 / byte 系 1024」并页面标注。
+- ✅ 已落地（2026-10-26）：bandwidth-calculator KB 选项 0.001→1/1024（byte 系统一 1024，GB/TB 原本已 1024）+ 「bit 系 1000 / byte 系 1024」口径标注（data-zh 双语）；quick-calc-time-bandwidth formula-eq 80 秒（1000 进制）与案例 91 秒（1024 进制）矛盾消除标注。verify 强用例（2048 KB=2.00 MB，clicks 直调）；verify telecom 11/11、判别器 0、门禁 218/218。
 
 ### E3. security 模拟器类内容单薄
 - 描述：data-erase/virtual-safe/smoke-alarm 偏玩具化，无专业依据展示。
@@ -26,4 +22,5 @@
 - tools/encode/、tools/telecom/、tools/security/、tools/data/（合计 ~100 页）
 
 ## 进度
-- 🔴 待开发（E2 进制统一可先行）
+- 🟢 批次 2026-10-26：E1 字节视图（char-encoder）+ E2 进制统一（bandwidth-calculator/quick-calc）均已落地。
+- 🔴 待开发：E3 security 引据徽标（NIST 800-88）；crc-calculator 自定义多项式；S1 编码链默认示例。
