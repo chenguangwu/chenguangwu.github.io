@@ -179,6 +179,15 @@ const CASES = [
     expect: ["173.9", "1 : 0.00 : 0.75"],
     ref: "S2 预设「番茄膨果期追肥」等价注入：N8/P0/K6、尿素(46%)+氯化钾(60%)。amtN = 8×10÷0.46 = 173.913 ⇒ 173.9 kg；amtK = 6×10÷0.60 = 100.0 kg；亩养分 = 14.0；总施肥量 = 273.9；NPK 比 = 1 : 0/8 : 6/8 = 1 : 0.00 : 0.75。默认态不命中两条锚。",
   },
+  // ── N-P-K 折纯汇总（2026-10-26）：多肥纯养分合计，避免重复计量 ──
+  {
+    slug: "agriculture/fertilizer-calculator",
+    inputs: {},
+    clicks: ["switchTab('purity');document.getElementById('pSel0').value='0';document.getElementById('pAmt0').value='50';document.getElementById('pSel1').value='4';document.getElementById('pAmt1').value='30';calcPurity();"],
+    dumpIds: ["purityTotal"],
+    expect: ["23.00", "4.80"],
+    ref: "折纯：尿素(46%)50kg ⇒ N=23.0kg、过磷酸钙(16%)30kg ⇒ P₂O₅=4.8kg；其余行空。合计 N 23.00 / P₂O₅ 4.80 / K₂O 0.00 kg。switchTab('purity') 先触发 initPurity 建行，再注入 pSel/pAmt 后 calcPurity()。默认态（全空）合计为 0.00，两条锚均不命中。",
+  },
   // ── 灌溉制度（计划湿润层净灌水 → 按水利用系数还原毛灌量）──
   {
     slug: "agriculture/irrigation-calculator",

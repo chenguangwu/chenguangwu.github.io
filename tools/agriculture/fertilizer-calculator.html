@@ -159,6 +159,7 @@ s.parentNode.insertBefore(el, s);
     <div class="tabs">
       <button type="button" class="tab-btn active" onclick="switchTab('calc')">🧪 计算</button>
       <button type="button" class="tab-btn" onclick="switchTab('guide')">📖 使用说明</button>
+      <button type="button" class="tab-btn" onclick="switchTab('purity')">🧮 折纯汇总</button>
       <button type="button" class="tab-btn" onclick="switchTab('ref')">📋 参考数据</button>
       <button type="button" class="tab-btn" onclick="switchTab('history')">📜 历史记录</button>
     </div>
@@ -200,6 +201,19 @@ s.parentNode.insertBefore(el, s);
     <div id="fertilizer_calculatorChart"></div>
     <div id="fertilizer_calculatorHist"></div>
       <div id="chartWrap" style="display:none;"><div class="chart-container"><canvas id="chart"></canvas></div></div>
+    </div>
+    <div id="tab-purity" class="tab-content">
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入多种肥料的施用量，自动折算各肥纯养分与合计，避免重复计量。">Enter the amount applied for each fertilizer; the tool converts to pure nutrients and totals them to avoid double counting.</p>
+      <div class="ref-card">
+        <table class="purity-table"><thead><tr><th>肥料品种</th><th>施用量(kg)</th><th>N(kg)</th><th>P₂O₅(kg)</th><th>K₂O(kg)</th></tr></thead><tbody id="purityBody"></tbody></table>
+      </div>
+      <div class="toolbar">
+        <button type="button" class="btn primary" onclick="calcPurity()">🧮 折算汇总</button>
+        <button type="button" class="btn" onclick="resetPurity()">🔄 重置</button>
+        <button type="button" class="btn" onclick="TBKit.util.exportTable('#purityTable','fertilizer-purity.csv')">导出 CSV</button>
+      </div>
+      <div id="purityTable"></div>
+      <div id="purityTotal"></div>
     </div>
     <div id="tab-guide" class="tab-content">
       <div class="ref-card">
@@ -354,7 +368,7 @@ var CROPS=[
   {name:'柑橘',yield:2000,n:12,p:6,k:15}
 ];
 function $(id){return document.getElementById(id);}
-function switchTab(t){document.querySelectorAll('.tab-btn').forEach(function(b,i){var T=['calc','guide','ref','history'];b.classList.toggle('active',T[i]===t);});document.querySelectorAll('.tab-content').forEach(function(c){c.classList.remove('active');});$('tab-'+t).classList.add('active');if(t==='history')renderHistory();}
+function switchTab(t){document.querySelectorAll('.tab-btn').forEach(function(b,i){var T=['calc','guide','purity','ref','history'];b.classList.toggle('active',T[i]===t);});document.querySelectorAll('.tab-content').forEach(function(c){c.classList.remove('active');});$('tab-'+t).classList.add('active');if(t==='history')renderHistory();if(t==='purity')initPurity();}
 function initSelects(){
   var nOpts='<option value="">-- 选择氮肥 --</option>',pOpts='<option value="">-- 选择磷肥 --</option>',kOpts='<option value="">-- 选择钾肥 --</option>';
   FERTILIZERS.forEach(function(f,i){
@@ -372,6 +386,32 @@ function initTables(){
   const __g5=FERTILIZERS.map(function(f){return '<tr><td>'+f.name+'</td><td>'+(f.n||'-')+'</td><td>'+(f.p||'-')+'</td><td>'+(f.k||'-')+'</td><td>'+({n:'氮肥',p:'磷肥',k:'钾肥',np:'氮磷肥',nk:'氮钾肥',npk:'复合肥'}[f.type])+'</td></tr>';}).join('');$('fertTable').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
   const __g6=CROPS.map(function(c){return '<tr><td>'+c.name+'</td><td>'+c.n+'</td><td>'+c.p+'</td><td>'+c.k+'</td></tr>';}).join('');$('cropTable').innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
 }
+var PURITY_DEFS=[0,4,8,11];
+function initPurity(){
+  if($('purityBody')&&$('purityBody').children.length)return;
+  if(!$('purityBody'))return;
+  var html='';
+  for(var i=0;i<4;i++){
+    var opts=FERTILIZERS.map(function(f,j){return '<option value="'+j+'"'+(j===PURITY_DEFS[i]?' selected':'')+'>'+f.name+'</option>';}).join('');
+    html+='<tr><td><select id="pSel'+i+'">'+opts+'</select></td><td><input type="number" id="pAmt'+i+'" value="" min="0" step="1" placeholder="0"></td><td id="pN'+i+'">—</td><td id="pP'+i+'">—</td><td id="pK'+i+'">—</td></tr>';
+  }
+  $('purityBody').innerHTML=html;
+}
+function calcPurity(){
+  var tN=0,tP=0,tK=0;
+  for(var i=0;i<4;i++){
+    var f=FERTILIZERS[$('pSel'+i).value];
+    var amt=parseFloat($('pAmt'+i).value)||0;
+    var n=(f.n/100)*amt,p=(f.p/100)*amt,k=(f.k/100)*amt;
+    tN+=n;tP+=p;tK+=k;
+    $('pN'+i).textContent=isFinite(n)?n.toFixed(2):'—';
+    $('pP'+i).textContent=isFinite(p)?p.toFixed(2):'—';
+    $('pK'+i).textContent=isFinite(k)?k.toFixed(2):'—';
+  }
+  var rows=[];for(var j=0;j<4;j++){var a=parseFloat($('pAmt'+j).value)||0;if(a>0)rows.push(FERTILIZERS[$('pSel'+j).value].name+' '+a+'kg');}
+  const __gP='<div class="tip-box tip-success"><strong>✅ 合计纯养分</strong>：N '+tN.toFixed(2)+' kg、P₂O₅ '+tP.toFixed(2)+' kg、K₂O '+tK.toFixed(2)+' kg'+(rows.length?'（'+rows.join(' + ')+'）':'')+'</div>';$('purityTotal').innerHTML=(typeof __gP==='number'?(isFinite(__gP)?__gP:'—'):String(__gP).replace(/Infinity|NaN/g,'—'));
+}
+function resetPurity(){for(var i=0;i<4;i++){$('pAmt'+i).value='';$('pN'+i).textContent='—';$('pP'+i).textContent='—';$('pK'+i).textContent='—';}$('purityTotal').innerHTML='';}
 function applyCrop(){
   var i=$('crop').value;if(i==='')return;
   var c=CROPS[i];
