@@ -13,7 +13,7 @@
 - 方案：接 S7 引据徽标（NIST 800-88 标准条目），提升可信度。
 
 ## 功能缺陷
-- crc-calculator 已含 7 算法（已验证正确）——缺「自定义多项式」输入（工程师刚需）。
+- ✅ 自定义多项式已落地（2026-10-26）：`it/crc-calculator` 加「自定义 CRC 模型」块（checkbox 默认关 ⇒ 零渲染；width 8–64/poly·init·xorout hex/refin·refout 勾选，复用 crcGeneric 在 8 标准算法后追加一行）；__gv 防御 harness stub 对静态 input .value 不解析 attribute 的坑。verify 自洽用例（CRC-8 参数+abc → 0x5f 与内置一致）；GEN_UI_MAP 补 7 条 label。verify it 764/764、判别器 0 逃生、门禁 218/218。⚠ 页面存在既有「undefined 0xundefined」×2 卡（stash 对照确认与本批无关，疑似 harness reset 机制，待后续排查）。
 
 ## 优化点
 - S1 首屏即答案：编码类页默认给「Hello World」示例的完整编码链。
