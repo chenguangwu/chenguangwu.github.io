@@ -263,6 +263,18 @@ function calcTool(){const C=num('C')/100, F=num('F'), y=num('y')/100, n=Math.flo
      [modified.toFixed(2)+' 年','修正久期'],
      [fmtMoney(cp),'每期票息']
    ]);
+   // —— 利率敏感度表：±25/50/100bp 重定价（完整重算，非久期线性近似）——
+   function priceAt(yy){ let p=0; for(let t=1;t<=N;t++){ const cf=(t===N)?(cp+F):cp; p+=cf/Math.pow(1+yy/freq,t); } return p; }
+   var __senHtml='<div style="margin-top:12px;font-size:13px;"><b>利率敏感度（收益率 ±bp 重定价）</b></div>'
+     +'<table class="csv-prev" style="margin-top:6px;border-collapse:collapse;width:100%;font-size:12.5px;">'
+     +'<tr><th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">变动</th><th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">新价格</th><th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">涨跌幅</th></tr>';
+   [25,50,100].forEach(function(b){
+     var dn=priceAt(y-b/10000), up=priceAt(y+b/10000);
+     __senHtml+='<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">−'+b+'bp</td><td style="border:1px solid #d1d5db;padding:5px 8px;">'+fmtMoney(dn)+'</td><td style="border:1px solid #d1d5db;padding:5px 8px;">'+((dn-P)/P*100).toFixed(2)+'%</td></tr>'
+              +'<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">+'+b+'bp</td><td style="border:1px solid #d1d5db;padding:5px 8px;">'+fmtMoney(up)+'</td><td style="border:1px solid #d1d5db;padding:5px 8px;">'+((up-P)/P*100).toFixed(2)+'%</td></tr>';
+   });
+   __senHtml+='</table><p style="font-size:12px;color:var(--text-muted);margin-top:4px;">久期线性近似 ΔP/P ≈ −D*·Δy；实际重定价跌少涨多即正凸性效应。</p>';
+   html += __senHtml;
    // 各期现金流贴现明细表（前 10 期 + 末期）
    const rows=[]; const showN=Math.min(N,10);
    for(let t=1;t<=N;t++){
