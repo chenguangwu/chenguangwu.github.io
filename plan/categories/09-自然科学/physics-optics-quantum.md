@@ -6,7 +6,7 @@
 
 ## 优化点
 - S7 引据：CODATA 常数出处标注。
-- S3 分步：透镜/成像光路图（SVG 动态）。
+- ~~S3 分步：透镜/成像光路图（SVG 动态）。~~ ✅ 2026-10-26 已落地（thin-lens-equation 新增「🔍 成像性质与光路示意」：成像性质文字 + SVG 三条特殊光线光路图）
 
 ## 受影响范围
 - tools/optics/（40）、tools/quantum/（28）、tools/astronomy/、tools/kinematics/、tools/dynamics/、tools/thermodynamics/、tools/acoustics/（56）、tools/fluid/、tools/optical/（40）（~250 页）
