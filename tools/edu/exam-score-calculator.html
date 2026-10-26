@@ -180,6 +180,14 @@ s.parentNode.insertBefore(el, s);
     <div id="exam_score_calculatorDiff"></div>
     <div id="exam_score_calculatorChart"></div>
     <div id="exam_score_calculatorHist"></div>
+    <div class="card" style="margin-top:14px;">
+      <h3>🎯 目标分反推</h3>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px;">设定目标分数，反推还需做对多少题（与上方当前成绩联动）。</p>
+      <div class="input-row">
+        <div><label>目标分数</label><input type="number" id="targetScore" value="95" min="0" step="1" oninput="calcTarget()" placeholder="如 90"></div>
+      </div>
+      <div id="targetResult" class="result-box"></div>
+    </div>
 </div>
 
 <div id="tab-guide" class="tab-content">
@@ -407,6 +415,48 @@ function calc(){
   `;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 
+function calcTarget(){
+  var __EN=((typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())||/lang=en-US/i.test(location.search)||/^en/i.test(document.documentElement.lang||''));
+  var __T=function(en,zh){return __EN?en:zh;};
+  var el=document.getElementById('targetResult');
+  if(!el) return;
+  var total=parseFloat(document.getElementById('total').value)||100;
+  var correct=parseInt(document.getElementById('correct').value)||0;
+  var totalQ=parseInt(document.getElementById('totalQ').value)||100;
+  var perQ=parseFloat(document.getElementById('perQ').value);
+  var target=parseFloat(document.getElementById('targetScore').value);
+  if(isNaN(target)){
+    el.innerHTML='<p style="color:var(--text-muted);font-size:13px;margin:0;">'+__T('Enter a target score to see how many more questions to answer correctly.','请输入目标分数，查看还需做对多少题。')+'</p>';
+    return;
+  }
+  var score=perQ>0?correct*perQ:(correct/totalQ*total);
+  score=Math.min(score,total);score=Math.max(0,score);
+  if(target<=score){
+    el.innerHTML='<div class="data-grid"><div class="data-card"><div class="num" style="color:#66bb6a;">✓</div><div class="label">'+__T('Already reached','已达标')+'</div></div></div><p style="font-size:13px;color:var(--text-light);margin-top:8px;">'+__T('Current '+score.toFixed(1)+' pts already meets the target.','当前 '+score.toFixed(1)+' 分已达标。')+'</p>';
+    return;
+  }
+  if(target>total){
+    el.innerHTML='<p style="color:#ef5350;font-size:13px;margin:0;">'+__T('Target exceeds the full mark ('+total+').','目标超过满分（'+total+'）。')+'</p>';
+    return;
+  }
+  var needPts=target-score;
+  var perVal=perQ>0?perQ:(total/totalQ);
+  var leftQ=totalQ-correct;
+  var needQ=Math.ceil(needPts/perVal-1e-9);
+  if(needQ>leftQ){
+    el.innerHTML='<p style="color:#ef5350;font-size:13px;margin:0;">'+__T('Not enough questions left: need '+needQ+', only '+leftQ+' remaining.','剩余题量不足：需 '+needQ+' 题，仅剩 '+leftQ+' 题。')+'</p>';
+    return;
+  }
+  var proj=score+needQ*perVal;
+  if(proj>total)proj=total;
+  el.innerHTML=''
+    +'<div class="data-grid">'
+    +'<div class="data-card"><div class="num">'+needQ+'</div><div class="label">'+__T('More correct needed','还需做对题数')+'</div></div>'
+    +'<div class="data-card"><div class="num">'+proj.toFixed(1)+'</div><div class="label">'+__T('Projected score','预计得分')+'</div></div>'
+    +'</div>'
+    +'<p style="font-size:13px;color:var(--text-light);margin-top:8px;">'+__T('From current '+score.toFixed(1)+' pts, answer '+needQ+' more correctly to reach '+target+'.','当前 '+score.toFixed(1)+' 分，再做对 '+needQ+' 题可达 '+target+' 分。')+'</p>';
+}
+
 function saveToHistory(){
   const total=parseFloat(document.getElementById('total').value)||100;
   const correct=parseInt(document.getElementById('correct').value)||0;
@@ -487,6 +537,7 @@ function clearHistory(){
 }
 
 calc();
+calcTarget();
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){
@@ -601,7 +652,7 @@ function __exam_score_calculatorPresets(){
       {label:'四级 710 分制',labelEn:'CET-4 (710)',values:{total:'710', totalQ:'710', correct:'456', passLine:'59.86'}},
       {label:'高考 750 分制',labelEn:'Gaokao (750)',values:{total:'750', totalQ:'750', correct:'620', passLine:'60'}},
       {label:'考研 500 分制',labelEn:'Postgrad exam (500)',values:{total:'500', totalQ:'500', correct:'340', passLine:'60'}}
-    ],function(){ calc(); });
+    ],function(){ calc(); calcTarget(); });
 }
 var __exam_score_calculator_f0=(typeof calc==='function')?calc:null;
 if(__exam_score_calculator_f0){

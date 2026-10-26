@@ -51,6 +51,12 @@ const CASES = [
     ref: "S2 预设「考研 500 分制」等价注入：score=340.0；rate=68.0%→及格 ✓；passScore=300.0（默认组无此串）",
   },
   {
+    slug: "edu/exam-score-calculator",
+    inputs: { total: "100", totalQ: "50", correct: "40", perQ: "2", targetScore: "90" },
+    expect: ["再做对 5 题可达 90 分"],
+    ref: "目标分反推（calcTarget）：perQ=2 → score=40×2=80；目标 90>80；需补 10 分；每对 1 题得 2 分 ⇒ ceil(10/2)=5 题；剩余题 50−40=10 够用；预计 80+5×2=90 分。默认态（correct85/target95）→「再做对 10 题可达 95 分」不命中 ⇒ 强判别、零逃生。",
+  },
+  {
     slug: "edu/quiz-score-percentage",
     inputs: { total: "50", correct: "40", points: "2" },
     expect: ["80"],
