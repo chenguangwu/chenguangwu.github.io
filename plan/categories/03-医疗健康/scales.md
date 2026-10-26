@@ -65,8 +65,8 @@
   + rehabilitation 4（asia-impairment-scale/mmse-scoring/physiotherapy-dose/proprioception-error）
   + rehabilitation 2（adl-task-breakdown/assistive-device-fitting，后者轮椅分支另加一条用例）
   + clinical-nursing 1（pressure-injury-description）+ neurology 2（psqi/calc-1）。
-  全站累计 **117 页**。**neurology 已全铺完（26 页，除 index）**，psychiatry 已全铺完，
-  rehabilitation 已全铺完，psychology 仅剩 scl90（外部 js + psych-kit 通用引擎）与
+  全站累计 **119 页**（03-37 再 +2：digit-span-test、corsi-block-test）。**neurology 已全铺完（26 页，除 index）**，psychiatry 已全铺完，
+  rehabilitation 已全铺完，**cognition 已评估定档（铺 2：digit-span/corsi；其余 6 训练/选择器范式不铺）**，psychology 仅剩 scl90（外部 js + psych-kit 通用引擎）与
   若干非临床人格/趣味页（bubble-tea/enneagram/bigfive/holland，非病历场景，不铺门诊记录）。
   顺手修 3 个真 bug：DHI 维度分母互换（P/F 的 28/36 写反）、IRLS 症状特征分母、rater 系满分口径；
   并清理 rater-18/19/22 三条「模板残留假通过」用例（`+j+` 命中页面源码，零判别力，判别力检查从 35 检/3 跳过变为 40 检/0 跳过）。
@@ -102,8 +102,13 @@
   - `psychology` 11：analysis-2、attachment-style-test、bigfive-personality-test、bubble-tea-personality-quiz、
     enneagram-test、generator-20、holland-career-test、random-12、scl90-assessment、tester-2、tester-3
     （多为非病历场景的人格/趣味页；scl90 走外置 js + psych-kit 通用引擎，需另设计）。
-  - `cognition` 8：cognitive-assessment、corsi-block-test、digit-span-test、human-benchmark、nback-training、
-    schulte-table、stroop-test、time-perception（训练范式，需谨慎标注非标准化常模）。
+  - `cognition` 8（2026-10-26 评估定档）：
+    - **已铺 2**：`digit-span-test`（WAIS 数字广度，__dsEmr，按 fwd/bwd/seq 三项对照 WAIS 常模均值）、
+      `corsi-block-test`（Corsi 木块广度，__cbEmr，逐年龄组对照 NORMS 差值）。两页钩在 finish() 写 rec 处，强用例用 clicks 注入 __dsResult/__cbResult 触发。
+    - **不铺 6**（训练 / 选择器范式，无临床报告式结果，且 harness 无法驱动其点击/计时/随机序列注入，已逐项核查）：
+      `cognitive-assessment`（域得分选择器，路由到子测验、无最终汇总分）、`human-benchmark`（36 处 addEventListener + 随机靶位/计时，
+      结果存 results[id] 由交互驱动，无表单注入通道，沿用既有 all_default 判定）、`nback-training` / `schulte-table` / `stroop-test` / `time-perception`
+      （反应时/工作记忆训练，成绩由点击与计时驱动、无 injectable 计算结果）。此 6 页为自评/训练性质，结果非病历素材，不做门诊记录（已评估，非草率收口）。
   - `clinical-nursing` 7：cycle-7、fall-emergency-flow、generator-pressure、ostomy-bag-timing、
     reminder-time-1、restraint-duration、tracheostomy-dressing。
     其中 ostomy-bag-timing / restraint-duration / tracheostomy-dressing / cycle-7 / reminder-time-1

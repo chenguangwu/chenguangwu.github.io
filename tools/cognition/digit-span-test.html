@@ -445,6 +445,8 @@ s.parentNode.insertBefore(el, s);
       trials: G.trials.length,
       at: new Date().toISOString()
     };
+    // 常模均值随记录一起带出，供门诊记录排版使用（单一数据源，避免阈值漂移）
+    rec.norms = { fwd: WAIS.fwd.mean, bwd: WAIS.bwd.mean, seq: WAIS.seq.mean };
     saveSession(rec);
     window.__dsResult = rec; window.__dsTrials = G.trials.slice();
     $('dsResult').classList.add('on');
@@ -454,6 +456,7 @@ s.parentNode.insertBefore(el, s);
     if (G.spans.seq) { parts.push('排序序列分 <strong>' + G.spans.seq.toFixed(1) + '</strong>'); }
     const __h0='<p>各条件广度：' + (parts.length ? parts.join(' · ') : '—') + '</p>' +
       '<p>总广度（三项均值）：<strong>' + total.toFixed(1) + '</strong> · 共完成 <strong>' + G.trials.length + '</strong> 试次</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){$('dsResultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('dsResultBox').innerHTML=__h0;
+    try { if (typeof __dsEmr === 'function') { __dsEmr(rec); } } catch (e) {}
     renderNorm(G.spans);
     drawChart(G.spans);
     setMsg('全部完成！可对比历史趋势，或重做单项。');
@@ -634,6 +637,79 @@ s.parentNode.insertBefore(el, s);
 
   setStat();
 })();
+
+/* ===== 门诊记录（EMR note）：把已完成的测试结果整理成可直接粘贴进病历的片段 ===== */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+
+/* 数字广度门诊记录：只排版 rec（页面 compileAll 已算好的结果），不重复任何计分逻辑。
+   常模均值优先取 rec.norms（由 compileAll 从页面 WAIS 表带出），缺失时回落页面同一组数值。 */
+function __dsEmr(rec){
+  if(!rec||typeof rec!=='object'){ rec=window.__dsResult; }
+  if(!rec||typeof rec!=='object') return;
+  var N=rec.norms||{};
+  var mf=isFinite(Number(N.fwd))?Number(N.fwd):6.5;
+  var mb=isFinite(Number(N.bwd))?Number(N.bwd):5.5;
+  var mq=isFinite(Number(N.seq))?Number(N.seq):5.0;
+  var f=Number(rec.fwd)||0, b=Number(rec.bwd)||0, q=Number(rec.seq)||0;
+  var tot=Number(rec.total);
+  if(!isFinite(tot)){ tot=Math.round((f+b+q)/3*10)/10; }
+  var trials=Number(rec.trials)||0;
+  var mm=Math.round((mf+mb+mq)/3*10)/10;
+  var diff=Math.round((tot-mm)*10)/10;
+  function sg(v){ return (v>=0?'+':'')+v.toFixed(1); }
+  var jZh = diff>=0.5 ? '高于参考均值' : (diff<=-0.5 ? '低于参考均值' : '接近参考均值');
+  var jEn = diff>=0.5 ? 'above reference mean' : (diff<=-0.5 ? 'below reference mean' : 'within reference mean');
+  var cz=[], ce=[];
+  function push(label,labelEn,v,m){
+    if(!(v>0)) return;
+    var d=Math.round((v-m)*10)/10;
+    cz.push(label+' '+v.toFixed(1)+'（参考 '+m.toFixed(1)+'，'+sg(d)+'）');
+    ce.push(labelEn+' '+v.toFixed(1)+' (ref '+m.toFixed(1)+', '+sg(d)+')');
+  }
+  push('正背','Forward',f,mf);
+  push('倒背','Backward',b,mb);
+  push('排序','Sequencing',q,mq);
+  __emrNote({
+    boxId:'dsResultBox',
+    name:'数字广度（WAIS 数字广度范式在线改编）',
+    nameEn:'Digit Span (online WAIS paradigm adaptation)',
+    result:'总广度 '+tot.toFixed(1)+'（三项条件均值）· 参考均值 '+mm.toFixed(1)+' → '+jZh+' '+Math.abs(diff).toFixed(1)+' · 共 '+trials+' 个试次',
+    resultEn:'Total span '+tot.toFixed(1)+' (3-condition mean) · reference mean '+mm.toFixed(1)+' · '+Math.abs(diff).toFixed(1)+' '+jEn+' · '+trials+' trials',
+    noPos:true,
+    extra:cz.length?('分条件广度：'+cz.join(' · ')):'分条件广度：未完成',
+    extraEn:ce.length?('By condition: '+ce.join('; ')):'By condition: none completed',
+    hintZh:'数字广度反映听觉注意与短时记忆容量，倒背与排序额外涉及工作记忆刷新；单项低于参考均值 1.0 以上建议复测，并先排除疲劳、焦虑、听力下降与语言背景影响。',
+    hintEn:'Digit span indexes auditory attention and short-term capacity; backward and sequencing add working-memory updating. Retest if a condition falls more than 1.0 below its reference mean, and first rule out fatigue, anxiety, hearing loss and language background.'
+  });
+}
 function __dsExport(){if(typeof TBKit==='undefined')return;var en=TBKit.util.isEn();var tbody=document.querySelector('#dsHidden tbody');if(!tbody)return;tbody.innerHTML='';var res=window.__dsResult,trials=window.__dsTrials;if(!res||!trials||!trials.length){if(window.ToolBox&&ToolBox.showToast)ToolBox.showToast(en?'Please finish the test first':'请先完成至少一次测试再导出','warn');return;}for(var i=0;i<trials.length;i++){var t=trials[i];var tr=document.createElement('tr');tr.innerHTML='<td>'+(i+1)+'</td><td>'+t.cond+'</td><td>'+t.length+'</td><td>'+t.seq.join('-')+'</td><td>'+t.resp.join('-')+'</td><td>'+(t.correct?(en?'Yes':'是'):(en?'No':'否'))+'</td>';tbody.appendChild(tr);}var condEN={'fwd':'Forward','bwd':'Backward','seq':'Sequencing'};var condCN={'fwd':'正背','bwd':'倒背','seq':'排序'};var sum=[['fwd',res.fwd],['bwd',res.bwd],['seq',res.seq]];for(var j=0;j<sum.length;j++){var tr=document.createElement('tr');var lbl=en?(condEN[sum[j][0]]+' Span'):(condCN[sum[j][0]]+'广度');tr.innerHTML='<td colspan="3"><b>'+lbl+'</b></td><td colspan="3"><b>'+Number(sum[j][1]).toFixed(1)+'</b></td>';tbody.appendChild(tr);}var tr=document.createElement('tr');tr.innerHTML='<td colspan="3"><b>'+(en?'Total Span':'总广度')+'</b></td><td colspan="3"><b>'+Number(res.total).toFixed(1)+'</b></td>';tbody.appendChild(tr);var tr=document.createElement('tr');tr.innerHTML='<td colspan="3"><b>'+(en?'Total Trials':'总试次')+'</b></td><td colspan="3"><b>'+res.trials+'</b></td>';tbody.appendChild(tr);TBKit.util.exportTable('#dsHidden',en?'digit-span-result.csv':'数字广度结果.csv');}
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->

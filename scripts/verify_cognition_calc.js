@@ -14,23 +14,23 @@ const CASES = [
 },
 {
   "slug": "cognition/corsi-block-test",
-  "inputs": {
-    "cbMode": "bwd"
-  },
-  "expect": [
-    "bwd"
+  "clicks": [
+    "window.__cbResult={mode:'fwd',span:5.5,totalCorrect:10,trials:12,product:60,norms:[{g:'成人 (18–64)',m:5.5},{g:'儿童 (7–11)',m:4.8},{g:'老年 (65+)',m:4.9}]}; __cbEmr();"
   ],
-  "ref": "auto-restore"
+  "expect": [
+    "Corsi 广度 5.5（正序）· 正确 10/12 · 乘积分 60"
+  ],
+  "ref": "双态零交集：expect 依赖 clicks 注入的 __cbResult（span/mode/totalCorrect/trials/product）。判别器清空 clicks 后 finish() 不会触发、__cbEmr 不写门诊记录，blob 无此串 ⇒ 非逃生项。判据：Corsi 广度结果串随注入值变化。"
 },
 {
   "slug": "cognition/digit-span-test",
-  "inputs": {
-    "dsSpeed": "1000"
-  },
-  "expect": [
-    "1000"
+  "clicks": [
+    "window.__dsResult={fwd:6,bwd:4,seq:4.5,total:4.8,trials:24,norms:{fwd:6.5,bwd:5.5,seq:5.0}}; __dsEmr();"
   ],
-  "ref": "auto-restore"
+  "expect": [
+    "总广度 4.8（三项条件均值）· 参考均值 5.7 → 低于参考均值 0.9 · 共 24 个试次"
+  ],
+  "ref": "双态零交集：expect 依赖 clicks 注入的 __dsResult（fwd/bwd/seq/total/trials/norms）。判别器清空 clicks 后 __dsEmr 不执行、门诊记录不渲染，blob 无此串 ⇒ 非逃生项。判据：总广度与参考均值差值随注入值变化。"
 },
 {
   "slug": "cognition/human-benchmark",

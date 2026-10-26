@@ -453,6 +453,8 @@ s.parentNode.insertBefore(el, s);
       trials: G.trials.length,
       at: new Date().toISOString()
     };
+    // 参考均值随记录一起带出（单一数据源：页面 NORMS 表），门诊记录不另立阈值
+    rec.norms = NORMS.map(function (n) { return { g: n.g, m: n.m }; });
     saveSession(rec);
     window.__cbResult = rec; window.__cbTrials = G.trials.slice();
 
@@ -460,7 +462,7 @@ s.parentNode.insertBefore(el, s);
     const __h2='<p>Corsi 广度：<strong>' + span.toFixed(1) + '</strong> · 正确试次 <strong>' + totalCorrect + '/' + G.trials.length + '</strong></p>' +
       '<p>乘积分（Product Score）：<strong>' + product + '</strong> · 通过最高长度 <strong>' + G.lastPassed + '</strong>' +
       '（' + (G.mode === 'fwd' ? '正序' : '倒序') + '）</p>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){$('cbResultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('cbResultBox').innerHTML=__h2;
-
+    try { if (typeof __cbEmr === 'function') { __cbEmr(rec); } } catch (e) {}
     renderNorm(span);
     drawChart();
     setMsg('测试结束。可点击「开始测试」再来一次，或切换倒序对比。');
@@ -567,6 +569,72 @@ s.parentNode.insertBefore(el, s);
   renderBoard();
   setStat();
 })();
+
+/* ===== 门诊记录通用模板（每页独立副本，不依赖外部脚本） ===== */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+
+/* Corsi 门诊记录：只排版 rec（finish 已算好的结果 + 页面 NORMS 带出的参考均值），不重复计分。
+   rec.norms = [{g,m}] 由各年龄组参考均值构成；页面不知用户年龄组，故逐组列出差值供临床者对应。 */
+function __cbEmr(rec){
+  if(!rec||typeof rec!=='object'){ rec=window.__cbResult; }
+  if(!rec||typeof rec!=='object') return;
+  var en=__emrEn();
+  var mode=rec.mode==='bwd'?(en?'Backward':'倒序'):(en?'Forward':'正序');
+  var span=Number(rec.span)||0;
+  var tc=Number(rec.totalCorrect)||0, tr=Number(rec.trials)||0, prod=Number(rec.product)||0;
+  var gMap={'儿童 (7–11)':(en?'Children (7–11)':'儿童 (7–11)'),'成人 (18–64)':(en?'Adults (18–64)':'成人 (18–64)'),'老年 (65+)':(en?'Older adults (65+)':'老年 (65+)')};
+  var norms=Array.isArray(rec.norms)?rec.norms:[{g:'成人 (18–64)',m:5.5}];
+  var rows=[], rowsEn=[];
+  function sg(v){ return (v>=0?'+':'')+v.toFixed(1); }
+  for(var i=0;i<norms.length;i++){
+    var g=norms[i].g, m=Number(norms[i].m);
+    if(!isFinite(m)) continue;
+    var d=Math.round((span-m)*10)/10;
+    rows.push((gMap[g]||g)+' 参考 '+m.toFixed(1)+' → 差 '+sg(d));
+    rowsEn.push((gMap[g]||g)+' ref '+m.toFixed(1)+' → '+sg(d));
+  }
+  __emrNote({
+    boxId:'cbResultBox',
+    name:'Corsi 木块广度（视觉空间工作记忆）',
+    nameEn:'Corsi Block Span (visuospatial working memory)',
+    result:(en?('Corsi span '+span.toFixed(1)+' ('+mode+') · correct '+tc+'/'+tr+' · product score '+prod):('Corsi 广度 '+span.toFixed(1)+'（'+mode+'）· 正确 '+tc+'/'+tr+' · 乘积分 '+prod)),
+    resultEn:(en?('Corsi span '+span.toFixed(1)+' ('+mode+') · correct '+tc+'/'+tr+' · product score '+prod):('Corsi 广度 '+span.toFixed(1)+'（'+mode+'）· 正确 '+tc+'/'+tr+' · 乘积分 '+prod)),
+    noPos:true,
+    extra:rows.length?('参考均值对照：'+rows.join(en?'; ':' · ')):'',
+    extraEn:rowsEn.length?('Reference comparison: '+rowsEn.join('; ')):'',
+    hintZh:'Corsi 广度反映视觉空间短时记忆与中央执行功能；低于同年龄组参考均值 1.0 以上建议复测，并先排除疲劳、注意力分散与执行功能影响。本测试为筛查版，非标准化常模评估。',
+    hintEn:'Corsi span indexes visuospatial short-term memory and central executive function; retest if more than 1.0 below the age-group reference mean, and first rule out fatigue, inattention and executive load. This is a screening adaptation, not a standardized normative assessment.'
+  });
+}
+
 function __cbExport(){if(typeof TBKit==='undefined')return;var en=TBKit.util.isEn();var tbody=document.querySelector('#cbHidden tbody');if(!tbody)return;tbody.innerHTML='';var res=window.__cbResult,trials=window.__cbTrials;if(!res||!trials||!trials.length){if(window.ToolBox&&ToolBox.showToast)ToolBox.showToast(en?'Please finish the test first':'请先完成至少一次测试再导出','warn');return;}for(var i=0;i<trials.length;i++){var t=trials[i];var tr=document.createElement('tr');tr.innerHTML='<td>'+(i+1)+'</td><td>'+t.mode+'</td><td>'+t.length+'</td><td>'+t.seq.join('-')+'</td><td>'+t.resp.join('-')+'</td><td>'+(t.correct?(en?'Yes':'是'):(en?'No':'否'))+'</td>';tbody.appendChild(tr);}var tr=document.createElement('tr');tr.innerHTML='<td colspan="3"><b>'+(en?'Corsi Span ('+res.mode+')':'Corsi广度 ('+(res.mode==='fwd'?'正序':'倒序')+')')+'</b></td><td colspan="3"><b>'+Number(res.span).toFixed(1)+'</b></td>';tbody.appendChild(tr);var tr=document.createElement('tr');tr.innerHTML='<td colspan="3"><b>'+(en?'Total Correct':'正确试次')+'</b></td><td colspan="3"><b>'+res.totalCorrect+' / '+res.trials+'</b></td>';tbody.appendChild(tr);var tr=document.createElement('tr');tr.innerHTML='<td colspan="3"><b>'+(en?'Product Score':'乘积分')+'</b></td><td colspan="3"><b>'+res.product+'</b></td>';tbody.appendChild(tr);TBKit.util.exportTable('#cbHidden',en?'corsi-result.csv':'Corsi木块结果.csv');}
 
 /* 示例方案预设（全局函数：IIFE 内的 cbMode/cbSpeed 由 id 直接访问） */
