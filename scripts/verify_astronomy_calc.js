@@ -180,6 +180,16 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "astronomy/observation-conditions",
+  "inputs": {
+    "dateInput": "2026-06-01"
+  },
+  "expect": [
+    "距角 58.7°"
+  ],
+  "ref": "行星可见性模块：注入固定日期 2026-06-01（默认态为「今天」，距角随日变化 ⇒ 注入失败必变红）。JPL 近似轨道要素算得该日太阳黄经 70.66°、土星地心黄经 12.0° ⇒ 距角 58.7°，评价串「条件良好（距角 58.7°）」。expect 带「距角」上下文，避免裸数字被其它数值子串误命中。"
+},
+{
   "slug": "astronomy/schwarzschild-radius",
   "inputs": {
     "M": "1.989e30_X"

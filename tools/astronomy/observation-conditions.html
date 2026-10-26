@@ -240,6 +240,15 @@ s.parentNode.insertBefore(el, s);
     </div>
   </div>
 
+  <!-- 行星可见性 -->
+  <div class="card">
+    <h3>🪐 当日行星可见性</h3>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">按 J2000 轨道要素（JPL 近似算法）算出水金火木土相对太阳的距角与晨昏方位；距角越大越适合观测</p>
+    <div style="overflow-x:auto;">
+      <table id="planetVisibility" class="bortle-table"></table>
+    </div>
+  </div>
+
   <!-- Bortle 等级对照表 -->
   <div class="card">
     <h3>🌌 Bortle 暗空等级对照表</h3>
@@ -473,6 +482,83 @@ function calc(){
 
   // 高亮 Bortle 表当前行
   renderBortleTable(bortle);
+
+  // 行星可见性（随观测日期联动）
+  try { calcPlanets(year, month + 1, day); } catch(e){}
+}
+
+/* ============ 行星可见性（JPL 近似轨道要素） ============ */
+var __PLANET_DEF = [
+  {zh:'水星', en:'Mercury', a:0.38709927, e:0.20563593, I:7.00497902, L:252.25032350, peri:77.45779628, node:48.33076593,
+   da:0.00000037, de:0.00001906, dI:-0.00594749, dL:149472.67411175, dperi:0.16047689, dnode:-0.12534081, mel:18},
+  {zh:'金星', en:'Venus', a:0.72333566, e:0.00677672, I:3.39467605, L:181.97909950, peri:131.60246718, node:76.67984255,
+   da:0.00000390, de:-0.00004107, dI:-0.00078890, dL:58517.81538729, dperi:0.00268329, dnode:-0.27769418, mel:10},
+  {zh:'火星', en:'Mars', a:1.52371034, e:0.09339410, I:1.84969142, L:-4.55343205, peri:-23.94362959, node:49.55953891,
+   da:0.00001847, de:0.00007882, dI:-0.00813131, dL:19140.30268499, dperi:0.44441088, dnode:-0.29257343, mel:30},
+  {zh:'木星', en:'Jupiter', a:5.20288700, e:0.04838624, I:1.30439695, L:34.39644051, peri:14.72847983, node:100.47390909,
+   da:-0.00011607, de:-0.00013253, dI:-0.00183714, dL:3034.74612775, dperi:0.21252668, dnode:0.20469106, mel:30},
+  {zh:'土星', en:'Saturn', a:9.53667594, e:0.05386179, I:2.48599187, L:49.95424423, peri:92.59887831, node:113.66242448,
+   da:-0.00125060, de:-0.00050991, dI:0.00193609, dL:1222.49362201, dperi:-0.41897216, dnode:-0.28867794, mel:30}
+];
+var __EARTH_DEF = {a:1.00000261, e:0.01671123, I:-0.00001531, L:100.46457166, peri:102.93768193, node:0.0,
+  da:0.00000562, de:-0.00004392, dI:-0.01294668, dL:35999.37244981, dperi:0.32327364, dnode:0.0};
+var __ZODIAC = ['白羊宫','金牛宫','双子宫','巨蟹宫','狮子宫','室女宫','天秤宫','天蝎宫','人马宫','摩羯宫','宝瓶宫','双鱼宫'];
+var __ZODIAC_EN = ['Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces'];
+
+function __helioVec(p, T){
+  var RAD = Math.PI / 180;
+  var a = p.a + p.da * T, e = p.e + p.de * T, I = (p.I + p.dI * T) * RAD;
+  var Lp = p.L + p.dL * T, peri = p.peri + p.dperi * T, node = (p.node + p.dnode * T) * RAD;
+  var w = peri * RAD - node;
+  var M = Lp - peri; M = ((M % 360) + 360) % 360; if (M > 180) M -= 360; M *= RAD;
+  var E = M;
+  for (var i = 0; i < 8; i++){ E = E - (E - e * Math.sin(E) - M) / (1 - e * Math.cos(E)); }
+  var xv = a * (Math.cos(E) - e), yv = a * Math.sqrt(1 - e * e) * Math.sin(E);
+  var cw = Math.cos(w), sw = Math.sin(w), cn = Math.cos(node), sn = Math.sin(node), cI = Math.cos(I), sI = Math.sin(I);
+  return [(cw * cn - sw * sn * cI) * xv + (-sw * cn - cw * sn * cI) * yv,
+          (cw * sn + sw * cn * cI) * xv + (-sw * sn + cw * cn * cI) * yv,
+          (sw * sI) * xv + (cw * sI) * yv];
+}
+
+function __plIsEn(){
+  try { if (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn) return TBKit.util.isEn(); } catch(e){}
+  try { if (/[?&]lang=en/i.test(String(location.search || ''))) return true; } catch(e){}
+  try { if ((document.documentElement.getAttribute('lang') || '').toLowerCase().indexOf('en') === 0) return true; } catch(e){}
+  return false;
+}
+
+function calcPlanets(y, m, d){
+  var box = $('planetVisibility'); if (!box) return;
+  var en = __plIsEn();
+  var RAD = Math.PI / 180;
+  var JD = Date.UTC(y, m - 1, d, 12, 0, 0) / 86400000 + 2440587.5;
+  var T = (JD - 2451545.0) / 36525;
+  var ev = __helioVec(__EARTH_DEF, T);
+  var sunLon = Math.atan2(-ev[1], -ev[0]) / RAD; sunLon = ((sunLon % 360) + 360) % 360;
+  var rows = '';
+  __PLANET_DEF.forEach(function(p){
+    var pv = __helioVec(p, T);
+    var lon = Math.atan2(pv[1] - ev[1], pv[0] - ev[0]) / RAD; lon = ((lon % 360) + 360) % 360;
+    var diff = lon - sunLon; diff = ((diff % 360) + 540) % 360 - 180;
+    var elon = Math.abs(diff);
+    var zi = Math.floor(lon / 30) % 12;
+    var name = en ? p.en : p.zh;
+    var side, grade;
+    if (elon < p.mel){
+      side = en ? '—' : '—';
+      grade = en ? 'Not visible (near conjunction, elongation ' + elon.toFixed(1) + '°)' : '不可见（合日附近，距角 ' + elon.toFixed(1) + '°）';
+    } else {
+      side = diff > 0 ? (en ? 'Evening (W after sunset)' : '昏星（日落后西方）') : (en ? 'Morning (E before sunrise)' : '晨星（日出前东方）');
+      if (elon >= 120){ grade = en ? 'Near opposition, all night (elongation ' + elon.toFixed(1) + '°)' : '接近冲日·整夜可见（距角 ' + elon.toFixed(1) + '°）'; }
+      else if (elon >= 45){ grade = en ? 'Good conditions (elongation ' + elon.toFixed(1) + '°)' : '条件良好（距角 ' + elon.toFixed(1) + '°）'; }
+      else { grade = en ? 'Visible but low (elongation ' + elon.toFixed(1) + '°)' : '可见但高度偏低（距角 ' + elon.toFixed(1) + '°）'; }
+    }
+    rows += '<tr><td>' + name + '</td><td>' + elon.toFixed(1) + '°</td><td>' + side + '</td><td>' + (en ? __ZODIAC_EN[zi] : __ZODIAC[zi]) + '</td><td>' + grade + '</td></tr>';
+  });
+  var head = en
+    ? '<thead><tr><th>Planet</th><th>Elongation</th><th>Side</th><th>Zodiac</th><th>Verdict</th></tr></thead>'
+    : '<thead><tr><th>行星</th><th>距角</th><th>晨昏方位</th><th>黄道位置</th><th>观测评价</th></tr></thead>';
+  box.innerHTML = head + '<tbody>' + rows + '</tbody>';
 }
 
 /* ============ Bortle 对照表 ============ */
