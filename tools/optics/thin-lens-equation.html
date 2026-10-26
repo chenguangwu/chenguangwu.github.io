@@ -147,6 +147,10 @@ s.parentNode.insertBefore(el, s);
     <div id="thin_lens_equationDiff"></div>
     <div id="thin_lens_equationHist"></div>
 
+    <h3 style="margin:14px 0 8px;">🔍 成像性质与光路示意</h3>
+    <div id="thinLensNature"></div>
+    <div id="thinLensRay" style="margin-top:10px;"></div>
+
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
       <ul>
@@ -267,10 +271,60 @@ const f = num('f'), do_ = num('do');
                 [(-di/do_).toFixed(4), '放大率 m = -d_i/d_o'],
                 [(1/f).toFixed(4), '光焦度 1/f (1/m)']
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
+            try{ calcRay(); }catch(e){}
         }
 function resetForm(){document.getElementById('f').value = '0.1';
       document.getElementById('do').value = '0.3';
       calcTool();}
+function calcRay(){
+  var e=function(id){return document.getElementById(id);};
+  var __fx=function(n){ return (typeof n==='number'&&isFinite(n))?n.toFixed(4):'—'; };
+  var f=parseFloat((e('f')||{}).value), do_=parseFloat((e('do')||{}).value);
+  var box=e('thinLensNature'), svg=e('thinLensRay');
+  if(!(f>0&&do_>0)){ if(box)box.innerHTML=''; if(svg)svg.innerHTML=''; return; }
+  var di=1/(1/f-1/do_);
+  var m=-di/do_;
+  var en=false; try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) en=TBKit.util.isEn(); }catch(err){}
+  var L={real:en?'Real image':'实像',virt:en?'Virtual image':'虚像',inv:en?'Inverted':'倒立',up:en?'Upright':'正立',enl:en?'Enlarged':'放大',dim:en?'Diminished':'缩小',eq:en?'Same size':'等大',pos:en?'positive':'正',neg:en?'negative':'负'};
+  var nat=(di>0?L.real:L.virt)+' · '+(m<0?L.inv:L.up)+' · '+(Math.abs(m)>1?L.enl:(Math.abs(m)<1?L.dim:L.eq));
+  var h='<div style="font-size:13px;line-height:1.95">';
+  h+='<div>像距 d_i = '+__fx(di)+' m（'+(di>0?L.pos:L.neg)+'）</div>';
+  h+='<div>横向放大率 m = '+__fx(m)+'</div>';
+  h+='<div>成像性质：'+nat+'</div>';
+  h+='</div>';
+  if(box)box.innerHTML=h;
+  if(svg){ try{ svg.innerHTML=__thinLensSVG(f,do_,di,m,en); }catch(err){} }
+}
+function __thinLensSVG(f,do_,di,m,en){
+  var __fx=function(n){ return (typeof n==='number'&&isFinite(n))?n.toFixed(4):'—'; };
+  var W=600,H=240,cy=120,objH=40,xL=300;
+  var scale=90/Math.max(f,do_,0.01);
+  var xO=xL-do_*scale, xI=xL+di*scale;
+  if(xI>570)xI=570; if(xI<30)xI=30;
+  if(xO<30)xO=30; if(xO>570)xO=570;
+  var yO=cy-objH, yI=cy-m*objH;
+  var xF=xL-f*scale, xFp=xL+f*scale;
+  if(xF<20)xF=20; if(xFp>580)xFp=580;
+  var dash = di<0 ? 'stroke-dasharray="6,4"' : '';
+  var s='<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="max-width:600px;background:#fafafa;border-radius:8px">';
+  s+='<line x1="20" y1="'+cy+'" x2="580" y2="'+cy+'" stroke="#888" stroke-width="1"/>';
+  s+='<line x1="'+xL+'" y1="78" x2="'+xL+'" y2="162" stroke="#2563eb" stroke-width="3"/>';
+  s+='<polygon points="'+(xL-6)+',84 '+(xL+6)+',90 '+(xL-6)+',96" fill="#2563eb"/>';
+  s+='<polygon points="'+(xL+6)+',144 '+(xL-6)+',150 '+(xL+6)+',156" fill="#2563eb"/>';
+  s+='<circle cx="'+xF+'" cy="'+cy+'" r="3" fill="#dc2626"/><text x="'+xF+'" y="'+(cy+16)+'" font-size="11" fill="#dc2626">F</text>';
+  s+='<circle cx="'+xFp+'" cy="'+cy+'" r="3" fill="#dc2626"/><text x="'+xFp+'" y="'+(cy+16)+'" font-size="11" fill="#dc2626">F′</text>';
+  s+='<line x1="'+xO+'" y1="'+cy+'" x2="'+xO+'" y2="'+yO+'" stroke="#16a34a" stroke-width="2"/>';
+  s+='<text x="'+xO+'" y="'+(yO-6)+'" font-size="11" fill="#16a34a">'+(en?'Obj':'物')+'</text>';
+  s+='<line x1="'+xI+'" y1="'+cy+'" x2="'+xI+'" y2="'+yI+'" stroke="#9333ea" stroke-width="2" '+dash+'/>';
+  s+='<line x1="'+xO+'" y1="'+yO+'" x2="'+xL+'" y2="'+yO+'" stroke="#f59e0b" stroke-width="1.5"/>';
+  s+='<line x1="'+xL+'" y1="'+yO+'" x2="'+xI+'" y2="'+yI+'" stroke="#f59e0b" stroke-width="1.5" '+dash+'/>';
+  s+='<line x1="'+xO+'" y1="'+yO+'" x2="'+xI+'" y2="'+yI+'" stroke="#0891b2" stroke-width="1.5" '+dash+'/>';
+  s+='<line x1="'+xO+'" y1="'+yO+'" x2="'+xL+'" y2="'+yI+'" stroke="#db2777" stroke-width="1.5"/>';
+  s+='<line x1="'+xL+'" y1="'+yI+'" x2="'+xI+'" y2="'+yI+'" stroke="#db2777" stroke-width="1.5" '+dash+'/>';
+  s+='<text x="30" y="20" font-size="11" fill="#374151">f='+__fx(f)+'m  d_o='+__fx(do_)+'m  d_i='+__fx(di)+'m  m='+__fx(m)+'</text>';
+  s+='</svg>';
+  return s;
+}
 calcTool();
 
 function __thin_lens_equationNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
