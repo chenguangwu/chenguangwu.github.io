@@ -154,6 +154,17 @@ const CASES = [
      + "毛利率 = 1−100% = 0 ⇒ breakEvenRoas = 1/0 走 else 分支取 0（`grossMargin>0?1/grossMargin:0`）"
      + " ⇒ roasOk = 1.80≥0 恒真 ⇒ 页面输出「✓ 盈利」/**「当前盈利」**，与利润为负矛盾。"
      + "本条用例锚的是页面**当前实际产物**（修复后须同步更新）。",
+  },
+  {
+    // S2 预设「抖音千川」：clicks 直调 applyAdRoiPreset，锚依赖预设全部字段（CPM 模式）
+    slug: "marketing/ad-roi",
+    inputs: {},
+    clicks: ["applyAdRoiPreset('qianchuan');"],
+    expect: ["26.5%", "利润 8,720 元 · ROAS 4.16"],
+    ref: "S2 预设「抖音千川」等价注入（CPM 模式：预算 10000/CPM 45/CTR 1.8%/CVR 4%/客单 260/毛利 45%）："
+     + "展示 = 10000/45×1000 = 222,222；点击 = ×1.8% = 4000；转化 = 160；收入 = 160×260 = 41,600；"
+     + "商品成本 = 41,600×55% = 22,880；总成本 = 32,880；利润 = 8,720 ⇒ ROI = 26.5%、ROAS = 4.16；"
+     + "盈亏平衡 ROAS = 1/45% = 2.22。B 态（clicks 清空）走默认 cpc 分支（ROAS 5.00 / −33.3%），两锚全不命中。",
   },  {
     slug: "marketing/cpc-calculator",
     inputs: { budget: "20000", unitPrice: "4", ctr: "2", cvr: "2.5" },
