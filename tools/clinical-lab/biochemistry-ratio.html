@@ -159,7 +159,7 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="copyAll()">复制全部结果</button>
     </div>
 
-    <div id="result"></div> <div id="biochemistry_ratioTable"></div> <div id="biochemistry_ratioDiff"></div> <div id="biochemistry_ratioChart"></div> <div id="biochemistry_ratioHist"></div>
+    <div id="result"></div> <div id="bio_ratioDeRitisBar"></div> <div id="bio_ratioBunCrBar"></div> <div id="bio_ratioRBar"></div> <div id="biochemistry_ratioTable"></div> <div id="biochemistry_ratioDiff"></div> <div id="biochemistry_ratioChart"></div> <div id="biochemistry_ratioHist"></div>
 
     <div class="info-box" style="margin-top:16px;">
       <strong>比值临床意义：</strong><br>
@@ -221,17 +221,29 @@ function num(id){ var v=parseFloat(document.getElementById(id).value); return is
 function calc(){
   var alt=num('alt'), ast=num('ast'), alp=num('alp'), ggt=num('ggt');
   var bun=num('bun'), cr=num('cr'), ua=num('ua'), alb=num('alb');
-  var html = '<h3 style="margin-bottom:8px;">计算结果</h3>';
+  // —— 参考区间定位（S3 标尺）：比值判读（__EN 必须先于首段 html 定义）——
+  var __EN=(function(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search)||/^en/i.test(document.documentElement.lang||'');}catch(e){}return false;})();
+  function __T(en,zh){return __EN?en:zh;}
+  function __hit(v,bands){for(var i=0;i<bands.length;i++){var b=bands[i];if(v>=(b.lo==null?-Infinity:b.lo)&&v<(b.hi==null?Infinity:b.hi))return b;}return null;}
+  function __refCard(txt){return '<div class="ref-card"><h4>'+__T('Reference range','参考区间定位')+'</h4><ul>'+txt+'</ul></div>';}
+  var __refHtml='';
+  var html = '<h3 style="margin-bottom:8px;">'+__T('Results','计算结果')+'</h3>';
 
   // De Ritis ratio
   if(alt>0){
     var dr = ast/alt;
     var drTag, drDesc;
-    if(dr<0.7){drTag='<span class="tag" style="background:rgba(59,130,246,0.1);color:#2563eb;">偏低</span>';drDesc='AST/ALT<1，常见于急性病毒性肝炎早期、传染性单核细胞增多症。';}
-    else if(dr<=1.0){drTag='<span class="tag" style="background:rgba(16,185,129,0.1);color:#059669;">正常范围</span>';drDesc='AST/ALT在0.7-1.0，多见于急性肝细胞损伤。';}
-    else if(dr<=2.0){drTag='<span class="tag" style="background:rgba(245,158,11,0.1);color:#d97706;">轻度升高</span>';drDesc='AST/ALT>1，提示慢性肝病进展，可见于活动性肝硬化。';}
-    else {drTag='<span class="tag" style="background:rgba(239,68,68,0.1);color:#dc2626;">明显升高</span>';drDesc='AST/ALT>2（典型>2，伴GGT升高），高度提示酒精性肝病。线粒体AST升高也见于肝硬化。';}
-    html += '<div class="ratio-result"><div class="big">'+dr.toFixed(2)+'</div><div class="info"><h4>AST/ALT (De Ritis比值) '+drTag+'</h4><p>'+drDesc+'</p></div></div>';
+    if(dr<0.7){drTag='<span class="tag" style="background:rgba(59,130,246,0.1);color:#2563eb;">'+__T('Low','偏低')+'</span>';drDesc=__T('AST/ALT<1 — common in early acute viral hepatitis and infectious mononucleosis.','AST/ALT<1，常见于急性病毒性肝炎早期、传染性单核细胞增多症。');}
+    else if(dr<=1.0){drTag='<span class="tag" style="background:rgba(16,185,129,0.1);color:#059669;">'+__T('Normal','正常范围')+'</span>';drDesc=__T('AST/ALT 0.7–1.0 — typical of acute hepatocellular injury.','AST/ALT在0.7-1.0，多见于急性肝细胞损伤。');}
+    else if(dr<=2.0){drTag='<span class="tag" style="background:rgba(245,158,11,0.1);color:#d97706;">'+__T('Mildly elevated','轻度升高')+'</span>';drDesc=__T('AST/ALT>1 — suggests chronic liver disease progression; seen in active cirrhosis.','AST/ALT>1，提示慢性肝病进展，可见于活动性肝硬化。');}
+    else {drTag='<span class="tag" style="background:rgba(239,68,68,0.1);color:#dc2626;">'+__T('Markedly elevated','明显升高')+'</span>';drDesc=__T('AST/ALT>2 (typically with elevated GGT) — highly suggestive of alcoholic liver disease; mitochondrial AST also rises in cirrhosis.','AST/ALT>2（典型>2，伴GGT升高），高度提示酒精性肝病。线粒体AST升高也见于肝硬化。');}
+    html += '<div class="ratio-result"><div class="big">'+dr.toFixed(2)+'</div><div class="info"><h4>'+__T('AST/ALT (De Ritis ratio) ','AST/ALT (De Ritis比值) ')+drTag+'</h4><p>'+drDesc+'</p></div></div>';
+    var __drBands=[{lo:0,hi:0.7,label:{zh:'偏低',en:'Low'},color:'#3B82F6'},
+                   {lo:0.7,hi:1.0,label:{zh:'正常范围',en:'Normal'},color:'#059669'},
+                   {lo:1.0,hi:2.0,label:{zh:'轻度升高',en:'Mildly elevated'},color:'#F59E0B'},
+                   {lo:2.0,hi:null,label:{zh:'明显升高',en:'Markedly elevated'},color:'#DC2626'}];
+    var __dr=__hit(dr,__drBands);
+    if(__dr) __refHtml+='<li>'+__T('AST/ALT (De Ritis) ','AST/ALT（De Ritis）')+dr.toFixed(2)+__T(' → falls in ',' → 落在 ')+(__EN?__dr.label.en:__dr.label.zh)+__T(' (&lt;0.7 low, 0.7–1.0 normal, 1–2 mildly elevated, &gt;2 markedly elevated)','（&lt;0.7 偏低、0.7–1.0 正常、1–2 轻度升高、&gt;2 明显升高）')+'</li>';
   }
 
   // BUN/Cr ratio (convert: BUN mmol/L to mg/dL = ×2.8; Cr μmol/L to mg/dL = ÷88.4)
@@ -241,17 +253,22 @@ function calc(){
     var crMg = cr / 88.4;         // Cr mg/dL
     var ratio = crMg>0 ? bunMg/crMg : 0;
     var bTag, bDesc;
-    if(ratio>20){bTag='<span class="tag" style="background:rgba(239,68,68,0.1);color:#dc2626;">升高</span>';bDesc='BUN/Cr>20(美制比值)，提示肾前性氮质血症：脱水、心衰、消化道出血、高蛋白饮食。';}
-    else if(ratio<10){bTag='<span class="tag" style="background:rgba(59,130,246,0.1);color:#2563eb;">降低</span>';bDesc='BUN/Cr<10，提示肾性病变、低蛋白饮食或肝功能衰竭合成尿素减少。';}
-    else {bTag='<span class="tag" style="background:rgba(16,185,129,0.1);color:#059669;">正常范围</span>';bDesc='BUN/Cr在10-20之间，比值在正常范围。';}
-    html += '<div class="ratio-result"><div class="big">'+ratio.toFixed(1)+'</div><div class="info"><h4>BUN/Cr 比值 (mg/dL) '+bTag+'</h4><p>'+bDesc+'<br>换算：BUN '+bun+'mmol/L='+bunMg.toFixed(1)+'mg/dL；Cr '+cr+'μmol/L='+crMg.toFixed(2)+'mg/dL</p></div></div>';
+    if(ratio>20){bTag='<span class="tag" style="background:rgba(239,68,68,0.1);color:#dc2626;">'+__T('Elevated','升高')+'</span>';bDesc=__T('BUN/Cr>20 (US units) — suggests prerenal azotemia: dehydration, heart failure, GI bleeding, high-protein diet.','BUN/Cr>20(美制比值)，提示肾前性氮质血症：脱水、心衰、消化道出血、高蛋白饮食。');}
+    else if(ratio<10){bTag='<span class="tag" style="background:rgba(59,130,246,0.1);color:#2563eb;">'+__T('Low','降低')+'</span>';bDesc=__T('BUN/Cr<10 — suggests renal disease, low-protein diet, or reduced urea synthesis in liver failure.','BUN/Cr<10，提示肾性病变、低蛋白饮食或肝功能衰竭合成尿素减少。');}
+    else {bTag='<span class="tag" style="background:rgba(16,185,129,0.1);color:#059669;">'+__T('Normal','正常范围')+'</span>';bDesc=__T('BUN/Cr 10–20 — within normal range.','BUN/Cr在10-20之间，比值在正常范围。');}
+    html += '<div class="ratio-result"><div class="big">'+ratio.toFixed(1)+'</div><div class="info"><h4>'+__T('BUN/Cr ratio (mg/dL) ','BUN/Cr 比值 (mg/dL) ')+bTag+'</h4><p>'+bDesc+'<br>'+__T('Conversion: BUN ','换算：BUN ')+bun+'mmol/L='+bunMg.toFixed(1)+'mg/dL'+__T('; Cr ','；Cr ')+cr+'μmol/L='+crMg.toFixed(2)+'mg/dL</p></div></div>';
+    var __bcBands=[{lo:0,hi:10,label:{zh:'降低',en:'Low'},color:'#3B82F6'},
+                   {lo:10,hi:20,label:{zh:'正常范围',en:'Normal'},color:'#059669'},
+                   {lo:20,hi:null,label:{zh:'升高',en:'Elevated'},color:'#DC2626'}];
+    var __bc=__hit(ratio,__bcBands);
+    if(__bc) __refHtml+='<li>'+__T('BUN/Cr ','BUN/Cr（美制）')+ratio.toFixed(1)+__T(' → falls in ',' → 落在 ')+(__EN?__bc.label.en:__bc.label.zh)+__T(' (10–20 normal, &gt;20 prerenal azotemia, &lt;10 renal/low protein)','（10–20 正常、&gt;20 提示肾前性氮质血症、&lt;10 提示肾性/低蛋白）')+'</li>';
   }
 
   // GGT/ALT
   if(alt>0){
     var ga = ggt/alt;
-    var gaDesc = ga>3 ? 'GGT/ALT>3，提示酒精性肝病或胆汁淤积性肝病。' : ga>1 ? 'GGG/ALT 1-3，可见于脂肪肝、药物性肝损。' : 'GGT/ALT<1，肝细胞型损伤为主。';
-    html += '<div class="ratio-result"><div class="big">'+ga.toFixed(2)+'</div><div class="info"><h4>GGT/ALT 比值</h4><p>'+gaDesc+'</p></div></div>';
+    var gaDesc = ga>3 ? __T('GGT/ALT>3 — suggests alcoholic liver disease or cholestatic liver disease.','GGT/ALT>3，提示酒精性肝病或胆汁淤积性肝病。') : ga>1 ? __T('GGT/ALT 1–3 — seen in fatty liver or drug-induced liver injury.','GGT/ALT 1-3，可见于脂肪肝、药物性肝损。') : __T('GGT/ALT<1 — predominantly hepatocellular injury.','GGT/ALT<1，肝细胞型损伤为主。');
+    html += '<div class="ratio-result"><div class="big">'+ga.toFixed(2)+'</div><div class="info"><h4>'+__T('GGT/ALT ratio','GGT/ALT 比值')+'</h4><p>'+gaDesc+'</p></div></div>';
   }
 
   // R factor (for drug-induced liver injury): R = (ALT/ULN) / (ALP/ULN)
@@ -259,19 +276,34 @@ function calc(){
   if(alp>0){
     var rFactor = (alt/altULN)/(alp/alpULN);
     var rDesc;
-    if(rFactor>=5) rDesc='R≥5，肝细胞型药物性肝损伤(DILI)。';
-    else if(rFactor<=2) rDesc='R≤2，胆汁淤积型DILI。';
-    else rDesc='2<R<5，混合型DILI。';
-    html += '<div class="ratio-result"><div class="big">'+rFactor.toFixed(2)+'</div><div class="info"><h4>R因子 (ALT/ALP标准化比值)</h4><p>'+rDesc+'（ALT ULN=40, ALP ULN=120）</p></div></div>';
+    if(rFactor>=5) rDesc=__T('R≥5 — hepatocellular drug-induced liver injury (DILI).','R≥5，肝细胞型药物性肝损伤(DILI)。');
+    else if(rFactor<=2) rDesc=__T('R≤2 — cholestatic DILI.','R≤2，胆汁淤积型DILI。');
+    else rDesc=__T('2<R<5 — mixed DILI.','2<R<5，混合型DILI。');
+    html += '<div class="ratio-result"><div class="big">'+rFactor.toFixed(2)+'</div><div class="info"><h4>'+__T('R factor (ALT/ALP normalized ratio)','R因子 (ALT/ALP标准化比值)')+'</h4><p>'+rDesc+__T(' (ALT ULN=40, ALP ULN=120)','（ALT ULN=40, ALP ULN=120）')+'</p></div></div>';
+    var __rfBands=[{lo:0,hi:2,label:{zh:'胆汁淤积型',en:'Cholestatic'},color:'#3B82F6'},
+                   {lo:2,hi:5,label:{zh:'混合型',en:'Mixed'},color:'#F59E0B'},
+                   {lo:5,hi:null,label:{zh:'肝细胞型',en:'Hepatocellular'},color:'#DC2626'}];
+    var __rf=__hit(rFactor,__rfBands);
+    if(__rf) __refHtml+='<li>'+__T('R factor ','R因子')+rFactor.toFixed(2)+__T(' → falls in ',' → 落在 ')+(__EN?__rf.label.en:__rf.label.zh)+__T(' DILI (R≤2 cholestatic, 2–5 mixed, R≥5 hepatocellular)','DILI（R≤2 胆汁淤积型、2–5 混合型、R≥5 肝细胞型）')+'</li>';
   }
 
   // Uric acid / Albumin (metabolic marker, supplementary)
   if(alb>0){
     var uaAlb = ua/alb;
-    html += '<div class="ratio-result"><div class="big">'+uaAlb.toFixed(2)+'</div><div class="info"><h4>UA/ALB 比值</h4><p>尿酸/白蛋白比值，辅助代谢综合征及心血管风险评估，偏高提示代谢异常。</p></div></div>';
+    html += '<div class="ratio-result"><div class="big">'+uaAlb.toFixed(2)+'</div><div class="info"><h4>'+__T('UA/ALB ratio','UA/ALB 比值')+'</h4><p>'+__T('Uric acid/albumin ratio — auxiliary metabolic syndrome and cardiovascular risk assessment; elevated suggests metabolic abnormality.','尿酸/白蛋白比值，辅助代谢综合征及心血管风险评估，偏高提示代谢异常。')+'</p></div></div>';
   }
 
+  if(__refHtml) html += __refCard(__refHtml);
+
   const __g1=html;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+
+  try{
+    if(typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){
+      if(alt>0&&typeof __dr!=='undefined'&&__dr) TBKit.chart.refBar('#bio_ratioDeRitisBar',{value:ast/alt,unit:'',min:0,max:3,bands:__drBands,ticks:[0,0.7,1,2,3],title:'De Ritis 比值判读标尺'});
+      if(cr>0&&typeof __bc!=='undefined'&&__bc) TBKit.chart.refBar('#bio_ratioBunCrBar',{value:(bun*2.8)/(cr/88.4),unit:'',min:0,max:25,bands:__bcBands,ticks:[0,10,20,25],title:'BUN/Cr 比值判读标尺 (mg/dL)'});
+      if(alp>0&&typeof __rf!=='undefined'&&__rf) TBKit.chart.refBar('#bio_ratioRBar',{value:(alt/40)/(alp/120),unit:'',min:0,max:8,bands:__rfBands,ticks:[0,2,5,8],title:'R 因子判读标尺'});
+    }
+  }catch(e){}
 }
 
 function copyAll(){

@@ -40,4 +40,18 @@
 - 🟢 批次 03-46（2026-10-26 · S3 标尺铺开第七批）：`clinical-lab/semen-analysis`：
   #semen_concBar（精子浓度 少精/参考内，max300）+ #semen_prBar（PR 弱精/参考内，max100）双标尺；ref-card 六 li（量/浓度/PR/形态/存活率/pH，WHO 5th 参考下限 + 达标/未达）。EN 零 CJK probe 通过；verify 73/73、门禁 218/218。
 - 🟢 批次 03-67（2026-10-26 · 报告单批量解读模块）：`clinical-lab/blood-routine-reference` 加 textarea「报告单批量解读」（贴多行「指标名 值」）→ `__brBatch()` 文本解析：逐行抽首个数字 + 指标名 token 匹配（按命中 token 长度取最优，「血红蛋白」不误配「平均红细胞血红蛋白」）→ 逐项定位参考区间（偏低/偏高/正常 + 偏离%）+ 异常统计 + 未识别行回显；EN 态 __BR_NAME_EN/__BR_GROUP_EN 全英文（harness probe 验证零 CJK）。reportText 默认空 ⇒ 卡不渲染零交集；clicks 直调 __brBatch 强用例（WBC 3.2/HGB 105/PLT 450 → 三异常）。verify 77/77、判别器 7794/0、门禁 218/218。
+- 🟢 批次 03-68（2026-10-26 · S3 标尺铺开第八批 · pcr-ct）：`clinical-lab/pcr-ct-interpretation`：
+  #pcr_ctRefBar（Ct 值四带：阳性高拷贝<30/低拷贝 30–38/灰区 38–cutoff/阴性≥cutoff，带边界随判定阈值 cutoff 动态构建；cutoff≤30 病态值跳过标尺）；ref-card「样本Ct N → 落在 X带」文本定位。
+  **顺带修存量 EN 泄漏**：interpretQual 全部动态串（判读结果/四态 status/质控 3 条/ΔCt 行/拷贝数行）补 `__T`，qualResult 容器 EN 态零 CJK（jsdom 实测，stash 复核确认泄漏为存量非本批引入）。
+  verify +2 新用例（灰区 ct=39、阴性 ct=42）+ 既有 ct=32 用例补锚 → 79/79；判别器 7824/0；门禁 218/218。
+- 🟢 批次 03-69（2026-10-26 · S3 标尺铺开第九批 · 生化比值多标尺）：`clinical-lab/biochemistry-ratio`：
+  三标尺 #bio_ratioDeRitisBar（De Ritis 四带 0.7/1/2）、#bio_ratioBunCrBar（BUN/Cr 三带 10/20）、#bio_ratioRBar（R 因子 DILI 三带 2/5）；ref-card 三行文本定位。
+  **顺带修存量 EN 泄漏**：calc() 全部动态串（结果标题/三段比值标签+描述/换算行/UA-ALB）补 `__T`（顺带修「GGG/ALT」笔误→GGT/ALT）；result 容器 EN 零 CJK。
+  **新坑（__EN 时序）**：`var __EN` 赋值若放在首段 `var html` 之后，hoisting 只提升声明不提升赋值 → h3 走 zh 泄漏；必须把 __EN 定义移到函数最前。
+  **判别器抓 1 逃生**：用例 bun=5.0/cr=80 恰等于页面默认值 → B 态 BUN/Cr 同值 15.5 → 锚改 bun=6.0/cr=70 → 21.2 升高带。
+  verify +1 用例 → 80/80；判别器 0 逃生；门禁 218/218。
+- 🟢 批次 03-70（2026-10-26 · S3 标尺铺开第十批 · 电泳五分段三标尺）：`clinical-lab/electrophoresis-analysis`：
+  #ep_albBar/#ep_a2Bar/#ep_gBar 三标尺（偏低/正常/偏高，带界取 REF lo/hi 57–68/5–11/10–20，max 100%）+ ref-card 三行；a1/b 暂不铺（b 与 β-M峰特判耦合）。
+  **顺带修存量 EN 泄漏**：analyze() 全部动态串（合计行/findings 13 条/正常行/白蛋白对比行）补 `__T`；默认态+注入异常态 EN 均零 CJK（jsdom 实测）。
+  verify 既有用例补 3 锚（白蛋白50→偏低/α2 13→偏高/γ 23→偏高）→ 80/80；判别器 0 逃生；门禁待跑。
 - 🔴 待续：批量解读可向生化/免疫面板推广（需各页自有参考表）；其余单值带型页按 S3 模板铺开。

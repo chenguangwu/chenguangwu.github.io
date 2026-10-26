@@ -142,7 +142,7 @@ s.parentNode.insertBefore(el, s);
       <div class="input-row">
         <div><label>判定阈值(无填默认40)</label><input type="number" id="cutoff" value="40" step="0.1" oninput="interpretQual()" placeholder="如 40"></div>
       </div>
-      <div id="qualResult"></div>
+      <div id="qualResult"></div> <div id="pcr_ctRefBar"></div>
     </div>
 
     <div id="tab-quant" class="tab-content">
@@ -228,45 +228,69 @@ function interpretQual(){
   var neg=parseFloat(document.getElementById('ctNeg').value);
   var pos=parseFloat(document.getElementById('ctPos').value);
   var cutoff=parseFloat(document.getElementById('cutoff').value)||40;
+  var __EN=(function(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search)||/^en/i.test(document.documentElement.lang||'');}catch(e){}return false;})();
+  function __T(en,zh){return __EN?en:zh;}
   if(isNaN(ct)){const __h0='';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('qualResult').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('qualResult').innerHTML=__h0;return;}
 
-  var html='<h3 style="margin-bottom:8px;">判读结果</h3>';
+  var html='<h3 style="margin-bottom:8px;">'+__T('Interpretation','判读结果')+'</h3>';
   var status, color;
   if(ct===0 || ct>=cutoff || isNaN(ct)){
-    status='阴性';color='#059669';
+    status=__T('Negative','阴性');color='#059669';
   } else if(ct>=38){
-    status='弱阳性(灰区)';color='#f59e0b';
+    status=__T('Weak positive (gray zone)','弱阳性(灰区)');color='#f59e0b';
   } else if(ct>=30){
-    status='阳性(低拷贝)';color='#3b82f6';
+    status=__T('Positive (low copy)','阳性(低拷贝)');color='#3b82f6';
   } else {
-    status='阳性(高拷贝)';color='#dc2626';
+    status=__T('Positive (high copy)','阳性(高拷贝)');color='#dc2626';
   }
-  html += '<div class="ct-big"><div class="v" style="color:'+color+';">'+status+'</div><div style="font-size:13px;color:var(--text-muted);">样本Ct='+ct+'</div></div>';
+  html += '<div class="ct-big"><div class="v" style="color:'+color+';">'+status+'</div><div style="font-size:13px;color:var(--text-muted);">'+__T('Sample Ct=','样本Ct=')+ct+'</div></div>';
+
+  // —— 参考区间定位（S3 标尺）：Ct 判读 ——
+  var __bands=[{lo:0,hi:30,label:{zh:'阳性(高拷贝)',en:'Positive (high copy)'},color:'#DC2626'},
+               {lo:30,hi:38,label:{zh:'阳性(低拷贝)',en:'Positive (low copy)'},color:'#3B82F6'}];
+  if(cutoff>38) __bands.push({lo:38,hi:cutoff,label:{zh:'弱阳性(灰区)',en:'Weak positive (gray zone)'},color:'#F59E0B'});
+  __bands.push({lo:cutoff,hi:null,label:{zh:'阴性',en:'Negative'},color:'#059669'});
+  function __hit(v,bands){for(var i=0;i<bands.length;i++){var b=bands[i];if(v>=(b.lo==null?-Infinity:b.lo)&&v<(b.hi==null?Infinity:b.hi))return b;}return null;}
+  var __cb=null;
+  if(isFinite(ct)&&ct>0&&cutoff>30){ __cb=(ct>=cutoff)?__bands[__bands.length-1]:__hit(ct,__bands); }
+  if(__cb){
+    var __noteZh=cutoff>38?('（Ct&lt;30 高拷贝、30–38 低拷贝、38–'+cutoff+' 灰区，≥'+cutoff+' 阴性）'):('（Ct&lt;30 高拷贝、30–'+cutoff+' 低拷贝，≥'+cutoff+' 阴性）');
+    var __noteEn=cutoff>38?(' (Ct&lt;30 high copy, 30–38 low copy, 38–'+cutoff+' gray zone, ≥'+cutoff+' negative)'):(' (Ct&lt;30 high copy, 30–'+cutoff+' low copy, ≥'+cutoff+' negative)');
+    html += '<div class="ref-card"><h4>'+__T('Reference range','参考区间定位')+'</h4><ul><li>'+__T('Sample Ct ','样本Ct ')+ct+__T(' → falls in ',' → 落在 ')+(__EN?__cb.label.en:__cb.label.zh)+__T(__noteEn,__noteZh)+'</li></ul></div>';
+  }
 
   // QC checks
   var qc=[];
-  if(!isNaN(neg) && neg>0 && neg<cutoff) qc.push('阴性对照扩增(Ct='+neg+')，提示污染！结果不可靠');
-  if(!isNaN(pos) && (pos>=cutoff||pos===0)) qc.push('阳性对照未扩增，提示扩增体系失败');
-  if(!isNaN(ref) && ref>35) qc.push('内参Ct='+ref+'偏高，提示样本质量差或提取效率低');
-  if(qc.length) html += '<div class="tip-box tip-error"><strong>质控异常：</strong><br>'+qc.join('<br>')+'</div>';
-  else html += '<div class="tip-box tip-success">质控正常：阴性对照无扩增，阳性对照扩增良好。</div>';
+  if(!isNaN(neg) && neg>0 && neg<cutoff) qc.push(__T('Negative control amplified (Ct='+neg+') — possible contamination! Result unreliable','阴性对照扩增(Ct='+neg+')，提示污染！结果不可靠'));
+  if(!isNaN(pos) && (pos>=cutoff||pos===0)) qc.push(__T('Positive control failed to amplify — amplification system failure','阳性对照未扩增，提示扩增体系失败'));
+  if(!isNaN(ref) && ref>35) qc.push(__T('Reference gene Ct='+ref+' too high — poor sample quality or low extraction efficiency','内参Ct='+ref+'偏高，提示样本质量差或提取效率低'));
+  if(qc.length) html += '<div class="tip-box tip-error"><strong>'+__T('QC abnormal:','质控异常：')+'</strong><br>'+qc.join('<br>')+'</div>';
+  else html += '<div class="tip-box tip-success">'+__T('QC normal: no negative-control amplification, positive control amplified well.','质控正常：阴性对照无扩增，阳性对照扩增良好。')+'</div>';
 
   // delta Ct
   if(!isNaN(ref) && ref>0){
     var dCt = ct - ref;
     var relExpr = Math.pow(2, -dCt);
     html += '<div class="result-box"><p>ΔCt = '+ct+' - '+ref+' = <strong>'+dCt.toFixed(2)+'</strong></p>';
-    html += '<p>相对表达量(2^-ΔCt) = <strong>'+relExpr.toFixed(4)+'</strong></p>';
-    html += '<p style="font-size:12px;color:var(--text-muted);">ΔCt&lt;0提示靶基因相对内参高表达；ΔCt&gt;0提示低表达。</p></div> <div id="pcr_ct_interpretationTable"></div> <div id="pcr_ct_interpretationDiff"></div> <div id="pcr_ct_interpretationChart"></div> <div id="pcr_ct_interpretationHist"></div>';
+    html += '<p>'+__T('Relative expression (2^-ΔCt) = ','相对表达量(2^-ΔCt) = ')+'<strong>'+relExpr.toFixed(4)+'</strong></p>';
+    html += '<p style="font-size:12px;color:var(--text-muted);">'+__T('ΔCt&lt;0: target higher than reference gene; ΔCt&gt;0: lower expression.','ΔCt&lt;0提示靶基因相对内参高表达；ΔCt&gt;0提示低表达。')+'</p></div> <div id="pcr_ct_interpretationTable"></div> <div id="pcr_ct_interpretationDiff"></div> <div id="pcr_ct_interpretationChart"></div> <div id="pcr_ct_interpretationHist"></div>';
   }
 
   // estimated copy number (rough)
   if(ct<cutoff){
     var copies = Math.pow(2, cutoff-ct);
-    html += '<div class="result-box"><p>粗略估算拷贝数 ≈ <strong>'+copies.toExponential(2)+'</strong> copies（基于100%效率，Ct='+cutoff+'基线）</p></div>';
+    html += '<div class="result-box"><p>'+__T('Rough copy number ≈ ','粗略估算拷贝数 ≈ ')+'<strong>'+copies.toExponential(2)+'</strong> '+__T('copies (100% efficiency, Ct='+cutoff+' baseline)','copies（基于100%效率，Ct='+cutoff+'基线）')+'</p></div>';
   }
 
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('qualResult').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('qualResult').innerHTML=__h1;
+
+  try{
+    if(typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar&&typeof __cb!=='undefined'&&__cb){
+      var __mx=Math.max(cutoff+5,45);
+      var __ticks=[0,30];if(cutoff>38)__ticks.push(38);__ticks.push(cutoff);if(__mx>cutoff)__ticks.push(__mx);
+      TBKit.chart.refBar('#pcr_ctRefBar',{value:ct,unit:'',min:0,max:__mx,bands:__bands,ticks:__ticks,title:'Ct 判读标尺'});
+    }
+  }catch(e){}
 }
 
 // Quantitative PCR
