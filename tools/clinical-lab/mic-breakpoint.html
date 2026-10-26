@@ -306,6 +306,30 @@ function renderDrugs(){
     html += '<tr><td>'+d.drug+'</td><td>'+(d.s!=='-'?d.s:'—')+'</td><td>'+(d.r!=='-'?d.r:'—')+'</td><td>'+iRange+'</td><td>'+interp+'</td></tr>';
   });
   html += '</tbody></table>';
+  // S3 判定汇总定位卡：输入 MIC 后汇总各药 S/I/R
+  if(!isNaN(mic)){
+    var __en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?true:false;
+    var __bName={gn:__en?'Enterobacterales':'革兰阴性肠杆菌',gp:__en?'Staphylococcus (GP)':'革兰阳性(葡萄球菌)',pa:__en?'P. aeruginosa':'铜绿假单胞菌',sa:__en?'S. pneumoniae':'肺炎链球菌',ent:__en?'Enterococcus':'肠球菌'}[b]||b;
+    var __sN=0,__iN=0,__rN=0,__nt=0,__rows=[];
+    list.forEach(function(d){
+      if(isNaN(mic)||d.s==='-'||d.r==='-')return;
+      var __tag;
+      if(mic<=d.s){__sN++;__tag=__en?'S':'S 敏感';}
+      else if(mic>=d.r){__rN++;__tag=__en?'R':'R 耐药';}
+      else{__iN++;__tag=__en?'I':'I 中介';}
+      __rows.push((__en?__bpDrugEn(d.drug):d.drug)+' → '+__tag);
+    });
+    __nt=__sN+__iN+__rN;
+    if(__nt>0){
+      var __sumHtml='<div class="info-box" style="margin-top:10px;border-left:4px solid #6366f1;">'
+        +'<strong>'+(__en?'S/I/R interpretation summary (MIC '+mic+' μg/mL, '+__bName+', '+__nt+' drugs tested)':'判定汇总定位（MIC '+mic+' μg/mL，'+__bName+'，可判定 '+__nt+' 药）')+'</strong><br>'
+        +(__en
+          ?('S '+__sN+' · I '+__iN+' · R '+__rN)
+          :('敏感 '+__sN+' 药 · 中介 '+__iN+' 药 · 耐药 '+__rN+' 药'))
+        +'<ul style="margin:6px 0 0 18px;padding:0;">'+__rows.map(function(s){return '<li>'+s+'</li>';}).join('')+'</ul></div>';
+      html += __sumHtml;
+    }
+  }
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('drugArea').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('drugArea').innerHTML=__h0;
 }
 

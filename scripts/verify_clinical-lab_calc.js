@@ -293,6 +293,19 @@ const CASES = [
   "ref": "革兰阳性球菌青霉素折点 S≤0.12（gp 表首行），革兰阴性菌表无该折点"
 },
 {
+  // S3 判定汇总定位卡（03-64）：micVal 空 ⇒ 卡不渲染零交集
+  "slug": "clinical-lab/mic-breakpoint",
+  "inputs": {
+    "bacteria": "gn",
+    "micVal": "4"
+  },
+  "expect": [
+    "判定汇总定位（MIC 4 μg/mL，革兰阴性肠杆菌",
+    "敏感 9 药 · 中介 4 药 · 耐药 5 药"
+  ],
+  "ref": "gn 表 18 药按 MIC=4 判定：S 9（≤8 折点）/I 4/R 5；默认 micVal 空 ⇒ 汇总卡不渲染零交集。"
+},
+{
   "slug": "clinical-lab/parasite-egg-id",
   "inputs": {
     "search": "吸虫"
