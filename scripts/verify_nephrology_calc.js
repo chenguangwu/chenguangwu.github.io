@@ -53,6 +53,19 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "nephrology/ckd-staging",
+  "inputs": {
+    "egfr": "28",
+    "uacr": "400",
+    "baseDate": "2024-01-15"
+  },
+  "expect": [
+    "随访计划（基线 2024-01-15，很高风险）",
+    "第1次复查：2024-05-15"
+  ],
+  "ref": "随访计划生成器（03-52）：egfr=28→G4、uacr=400→A3 ⇒ 很高风险 ⇒ 间隔 4 个月×3 次。2024-01-15 +4/+8/+12 个月 = 2024-05-15 / 2024-09-15 / 2025-01-15（2024 闰年含 2/29 不影响月加法）。默认 baseDate 为空 ⇒ 日程块不渲染，两条锚均随注入出现、零交集。"
+},
+{
   "slug": "nephrology/creatinine-clearance",
   "inputs": {
     "uCr24": "15",

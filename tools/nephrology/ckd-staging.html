@@ -126,6 +126,10 @@ s.parentNode.insertBefore(el, s);
         <label>UACR (mg/g)</label>
         <input type="number" id="uacr" value="80" oninput="calc()">
       </div>
+      <div>
+        <label>基线评估日期（选填，生成随访日程）</label>
+        <input type="date" id="baseDate" onchange="calc()">
+      </div>
     </div>
 
     <div class="toolbar">
@@ -259,6 +263,20 @@ function calc(){
   html+='<strong>CKD风险分层：'+risk+'</strong><br>';
   html+='建议随访频率：'+followUp+' ｜ 转诊建议：'+referral;
   html+='</div>';
+
+  // —— 随访计划生成器：基线日期 + 风险分层 → 复查日程（KDIGO 频率）——
+  var __bd=document.getElementById('baseDate')?document.getElementById('baseDate').value:'';
+  if(__bd){
+    var __iv = risk==='很高风险'?4 : risk==='高风险'?6 : 12;
+    var __n = risk==='很高风险'?3 : risk==='高风险'?2 : 1;
+    var __d0=new Date(__bd+'T00:00:00');
+    var __items='';
+    for(var __i=1;__i<=__n;__i++){
+      var __d=new Date(__d0); __d.setMonth(__d.getMonth()+__iv*__i);
+      __items+='<li>第'+__i+'次复查：'+__d.getFullYear()+'-'+String(__d.getMonth()+1).padStart(2,'0')+'-'+String(__d.getDate()).padStart(2,'0')+'（基线后 '+(__iv*__i)+' 个月，复查 eGFR/UACR'+((risk==='很高风险'||risk==='高风险')?'、血压、贫血与骨代谢指标':'')+'）</li>';
+    }
+    html+='<div class="ref-card" style="margin-top:12px;"><h4>随访计划（基线 '+__bd+'，'+risk+'）</h4><ul>'+__items+'</ul><p style="font-size:12px;color:var(--text-muted);">日程按 '+followUp+' 频率推算；若症状变化或指标波动请提前就诊。</p></div>';
+  }
 
   // 并发症监测建议
   html+='<div class="ref-card" style="margin-top:12px;"><h4>并发症监测建议</h4><ul>';
