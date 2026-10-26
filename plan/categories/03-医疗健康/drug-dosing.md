@@ -25,5 +25,8 @@
   **两坑**：① refWeightBox 静态提示「16.3 kg」含子串「6.3」，老用例裸数字锚被误伤 → 锚改「单次药量： 6.3」派生串；② 在 weight/dose 间插入新输入会打断老用例的「值序列」锚（42\n42\n42）→ 同批改锚。verify 74/74、判别器 0 逃生。
 - 🟢 批次 03-48（2026-10-26 · 剂量页模板铺开二）：`healthcare/weight-dosage`：
   年龄/性别输入（置于 freq 之后）+ WHO P50 中位体重提示 + calc 内偏差% + >40% 红字核对 kg/斤。老用例值序列锚「42\n42\n42\n日剂量： 1764」同批改「日剂量： 1764」派生串；新增偏差强用例（weight=18 → 10%）。verify 75/75、判别器 0 逃生、门禁 218/218。
-- 🔴 待续：剩余剂量页（medical/dosage-calculator 系、clinical-nursing 输液类）按同一模板铺开；
+- 🟢 批次 03-49（2026-10-26 · S8 空态教育化首批）：3 页 13 处输入框补 placeholder（典型值+范围）：
+  `medical/calculator-calc-infusion`（4）、`medical/convert-time-infusion`（3）、`health/insulin-dose`（6）。
+  只加 placeholder 不改 value ⇒ calc 与 verify 用例零影响；medical 17/17、health 73/73、门禁 218/218。
+- 🔴 待续：剩余剂量页（clinical-nursing 输液类等）按同一模板铺开；
   「药品库 json 化（散在页内 JS → 集中 json 便于审校）」未做。
