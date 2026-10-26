@@ -65,7 +65,19 @@
   + rehabilitation 4（asia-impairment-scale/mmse-scoring/physiotherapy-dose/proprioception-error）
   + rehabilitation 2（adl-task-breakdown/assistive-device-fitting，后者轮椅分支另加一条用例）
   + clinical-nursing 1（pressure-injury-description）+ neurology 2（psqi/calc-1）。
-  全站累计 **129 页**（03-38 再 +7：clinical-nursing 全铺完）。**neurology 已全铺完（26 页，除 index）**、**clinical-nursing 已全铺完（26 工具页，含本批 cycle-7/fall-emergency-flow/generator-pressure/ostomy-bag-timing/reminder-time-1/restraint-duration/tracheostomy-dressing）**、psychiatry 已全铺完，
+- 🟢 收口（2026-10-26 批次 03-39）：**pediatrics/assessor-spo2 铺门诊记录**（CCHD 脉搏血氧筛查）。
+  要点：钩在 `calc()` 渲染前捕 `window.__EMR_S={minS,diff,cchd,urg,lvl,tot,sign,risk,rh,ft}`，`__spo2Emr()` 自建
+  `cchdMap/urgMap/lvlMap` + `resultEn/extraEn/hintEn` 纯英文映射（EN 态零 CJK）；`boxId:'res'`。
+  **推翻旧记「已踩 stub 盲区」**：本批 harness 实测注入 85/80 →「CCHD筛查阳性（SpO2＜90%）」、98/97 → 阴性，
+  整段 script 正常执行、判别力成立，旧结论作废。
+  旧 verify 用例 `expect:["85%","CCHD筛查阳性"]` 含「85%」输入回显（逃生项类型②）→ 改为门诊记录强串
+  「CCHD脉搏血氧筛查：CCHD筛查阳性（SpO2＜90%）」+「综合风险：中风险」，二者均随输入变化、默认态不出现、零交集。
+  pediatrics 真实临床页全部铺完。全量门禁 218/218、逃生项 0（基线 0 无新增）、UX 7.46→8.63 无回退。
+  全站累计 **130 页**（03-39 再 +1：pediatrics 收口）。
+  至此 **psychiatry / psychology(除 scl90) / rehabilitation / neurology / cognition(铺 2) / clinical-nursing / pediatrics(除 vaccine-schedule) 全部真实临床页已铺完**；
+  剩余未铺仅：① `psychology/scl90-assessment`（外置 `/js/psych-kit.js` + `/js/tools/scl90-assessment.js` 60KB 引擎，harness 不加载外链 script，无法验证判别力，与 vaccine-schedule 同类排除）；
+  ② `pediatrics/vaccine-schedule`（依赖「今天」推算月龄，按铁律④ 排除）；
+  ③ psychology 其余 10 页（人格/趣味测验，非病历场景，老板早前定不铺）；④ cognition 其余 6 页（训练/选择器范式，评估定档不铺）。**neurology 已全铺完（26 页，除 index）**、**clinical-nursing 已全铺完（26 工具页，含本批 cycle-7/fall-emergency-flow/generator-pressure/ostomy-bag-timing/reminder-time-1/restraint-duration/tracheostomy-dressing）**、psychiatry 已全铺完，
   rehabilitation 已全铺完，**cognition 已评估定档（铺 2：digit-span/corsi；其余 6 训练/选择器范式不铺）**，psychology 仅剩 scl90（外部 js + psych-kit 通用引擎）与
   若干非临床人格/趣味页（bubble-tea/enneagram/bigfive/holland，非病历场景，不铺门诊记录）。
   顺手修 3 个真 bug：DHI 维度分母互换（P/F 的 28/36 写反）、IRLS 症状特征分母、rater 系满分口径；
@@ -94,14 +106,14 @@
     验证手段（门禁不含此项，必须自测）：项目根临时脚本，jsdom 加载 `?lang=en-US` → 注入输入/设 radio.checked/调用页面函数
     → **只扫 `#emrPre` 的 textContent**（扫整个 `#resultBox` 会把页面自身未翻译的静态中文算进来，误报），
     CJK 正则含 `\u4e00-\u9fff\u3000-\u303f\uff00-\uffef`；跑完即删临时脚本。
-- 🔴 待续（**未铺清单以 2026-10-26 全站 grep 实测为准，勿信早前「已全铺完」口径**）：
-  M1 条目结构 / M2 阈值口径仍待老板裁断。当前实测未铺（排除 index）共 **42 页**：
+- 🔴 待续（**门诊记录铺开已收口：真实临床页全部铺完，余下为「排除（已决）/ 待裁断」，非待铺**）：
+  M1 条目结构 / M2 阈值口径仍待老板裁断。当前未铺（排除 index）共 **42 页**，均为排除项：
   - `rehabilitation` **已全铺完**（23 个文件：22 个实页全铺 + `analysis-time.html` 为
     `TOOLBOX-REDIRECT` 重定向占位页直跳 gait-analysis、`robots=noindex`，不铺门诊记录）。
     该分类原被误记为「已全铺完」而实际只铺 12 页，本轮 03-32/03-33/03-34 三批补齐 10 页。
   - `psychology` 11：analysis-2、attachment-style-test、bigfive-personality-test、bubble-tea-personality-quiz、
-    enneagram-test、generator-20、holland-career-test、random-12、scl90-assessment、tester-2、tester-3
-    （多为非病历场景的人格/趣味页；scl90 走外置 js + psych-kit 通用引擎，需另设计）。
+    enneagram-test、generator-20、holland-career-test、random-12、tester-2、tester-3（10 页为非病历场景人格/趣味测验，老板早前定不铺）；
+    scl90-assessment（外置 `/js/psych-kit.js` + `/js/tools/scl90-assessment.js` 60KB 引擎，harness 不加载外链 script，无法验证判别力，排除）。
   - `cognition` 8（2026-10-26 评估定档）：
     - **已铺 2**：`digit-span-test`（WAIS 数字广度，__dsEmr，按 fwd/bwd/seq 三项对照 WAIS 常模均值）、
       `corsi-block-test`（Corsi 木块广度，__cbEmr，逐年龄组对照 NORMS 差值）。两页钩在 finish() 写 rec 处，强用例用 clicks 注入 __dsResult/__cbResult 触发。
@@ -117,6 +129,6 @@
     · generator-pressure 只断言「共 N 条」稳定部分（随机内容不进 expect）；
     · **fall-emergency-flow 用「注入专属快照 + 渲染后自删」绕过兜底循环**：clicks 注入 `window.__fallSnap=[...]` 完成后调
       `window.__fallEmr()` 渲染并 `delete window.__fallSnap`，兜底循环即便再调也因快照已删而 return → 默认态零门诊记录、判别力成立。
-  - `neurology` **已全铺完**（26 页，除 index）；`pediatrics` 2：assessor-spo2（**已踩 stub 盲区**：注入后整段 script 不执行、
-    语法正常、errs 空、回滚即恢复，须单独排查）、vaccine-schedule（依赖「今天」，按铁律④ 暂缓）。
+  - `neurology` **已全铺完**（26 页，除 index）；`pediatrics` 真实临床页 **已全铺完**（含 assessor-spo2，03-39 证伪「stub 盲区」误记）；
+    `vaccine-schedule` 依赖「今天」推算月龄，按铁律④ 排除不铺。
   - 「维度雷达图推广」「量表对照模块」未开发。
