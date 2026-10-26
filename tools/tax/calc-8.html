@@ -151,6 +151,20 @@ s.parentNode.insertBefore(el, s);
         <label>年度专项附加扣除（元）</label>
         <input type="number" id="extra" value="0" min="0" step="100" oninput="calc()" placeholder="如 0">
       </div>
+      <div style="flex:1 1 100%;margin-top:6px;">
+        <label>专项附加扣除分项模拟（年额，选填）</label>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px;">
+          <div><label style="font-size:12px;color:var(--text-muted);">子女教育</label><input type="number" id="ed_child" value="0" min="0" step="100" oninput="__edSum()" placeholder="如 24000（2000/月·孩）"></div>
+          <div><label style="font-size:12px;color:var(--text-muted);">继续教育</label><input type="number" id="ed_cont" value="0" min="0" step="100" oninput="__edSum()" placeholder="如 4800（400/月）"></div>
+          <div><label style="font-size:12px;color:var(--text-muted);">大病医疗</label><input type="number" id="ed_med" value="0" min="0" step="100" oninput="__edSum()" placeholder="如 20000（限额 80000）"></div>
+          <div><label style="font-size:12px;color:var(--text-muted);">住房贷款利息</label><input type="number" id="ed_loan" value="0" min="0" step="100" oninput="__edSum()" placeholder="如 12000（1000/月）"></div>
+          <div><label style="font-size:12px;color:var(--text-muted);">住房租金</label><input type="number" id="ed_rent" value="0" min="0" step="100" oninput="__edSum()" placeholder="如 18000（1500/月）"></div>
+          <div><label style="font-size:12px;color:var(--text-muted);">赡养老人</label><input type="number" id="ed_elder" value="0" min="0" step="100" oninput="__edSum()" placeholder="如 36000（3000/月）"></div>
+          <div><label style="font-size:12px;color:var(--text-muted);">3岁以下婴幼儿照护</label><input type="number" id="ed_infant" value="0" min="0" step="100" oninput="__edSum()" placeholder="如 24000（2000/月·孩）"></div>
+        </div>
+        <div id="edSumBox" style="margin-top:8px;font-size:13px;color:var(--text);"></div>
+        <button type="button" class="btn" onclick="__edApply()" style="margin-top:6px;">将分项合计填入上方专项附加扣除</button>
+      </div>
     </div>
 
     <div class="toolbar">
@@ -232,6 +246,27 @@ function findBracket(amount){
 }
 
 function money(n){ return '¥' + ToolBox.formatNumber(Math.round(n)); }
+
+// —— 专项附加扣除 7 项分项模拟（标准定额：子女教育 2000/月·孩、继续教育 400/月、大病医疗年限额 80000、
+//     住房贷款利息 1000/月、住房租金 800–1500/月、赡养老人 3000/月、婴幼儿照护 2000/月·孩）——
+function __edT(en,zh){
+  try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn()) return en; }catch(e){}
+  return zh;
+}
+function __edSum(){
+  var ids=['ed_child','ed_cont','ed_med','ed_loan','ed_rent','ed_elder','ed_infant'];
+  var sum=0;
+  ids.forEach(function(id){ sum += parseFloat(document.getElementById(id).value) || 0; });
+  var box=document.getElementById('edSumBox');
+  if(box) box.innerHTML=__edT('Subtotal: '+sum+' CNY/year (7 deductible items, year basis)','分项合计：'+sum+' 元/年（7 项分项按年填列）');
+  return sum;
+}
+function __edApply(){
+  var sum=__edSum();
+  var extra=document.getElementById('extra');
+  extra.value=sum;
+  calc();
+}
 
 function calc(){
   var bonus = parseFloat(document.getElementById('bonus').value) || 0;
@@ -328,6 +363,7 @@ var KEY = 'tb_bonus_tax';
 });
 
 calc();
+try{ __edSum(); }catch(e){}
 
 var __calc_8_last=0,__calc_8_skip=false;
 function __calc_8Snap(){
