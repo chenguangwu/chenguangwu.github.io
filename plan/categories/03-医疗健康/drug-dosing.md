@@ -28,5 +28,9 @@
 - 🟢 批次 03-49（2026-10-26 · S8 空态教育化首批）：3 页 13 处输入框补 placeholder（典型值+范围）：
   `medical/calculator-calc-infusion`（4）、`medical/convert-time-infusion`（3）、`health/insulin-dose`（6）。
   只加 placeholder 不改 value ⇒ calc 与 verify 用例零影响；medical 17/17、health 73/73、门禁 218/218。
-- 🔴 待续：剩余剂量页（clinical-nursing 输液类等）按同一模板铺开；
-  「药品库 json 化（散在页内 JS → 集中 json 便于审校）」未做。
+- 🟢 批次 03-72（2026-10-26 · S8 placeholder 收口）：最后一处缺 placeholder 输入框 `medical/calculator-calc-2` 的 age 补「如 6（选填，0–18）」。
+  placeholder-only 改动不改 value ⇒ calc 与 verify 用例零影响（medical 17/17）。**S8 空态教育化至此全类收口**。
+- 🔴 待续：剩余剂量页（clinical-nursing 输液类等）按同一模板铺开——已扫：clinical-nursing 输液类页无年龄输入（评分/操作型为主），
+  health/healthcare/medical/pediatrics 含「年龄+剂量」且未铺 WHO 中位体重的页仅剩 `health/body-surface-area`（非剂量页），
+  「同年龄参考体重」模板可铺页已全部铺完（03-2/47/48 三批）；
+  「药品库 json 化（散在页内 JS → 集中 json）」涉及 40 页大重构且 fetch json 在 verify harness 不可达，暂缓待裁。

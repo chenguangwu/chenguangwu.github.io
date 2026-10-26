@@ -137,6 +137,7 @@ s.parentNode.insertBefore(el, s);
       </div>
       <div><label>年龄 (岁)</label><input type="number" id="age" value="62" oninput="calc()" placeholder="如 62"></div>
       <div><label>Agatston 钙化积分 (CACS)</label><input type="number" id="cacs" value="280" oninput="calc()" placeholder="如 280"></div>
+      <div><label>本次评估日期（选填，生成随访日程）</label><input type="date" id="followDate" onchange="calc()"></div>
     </div>
 
     <div class="toolbar">
@@ -262,26 +263,59 @@ function calc(){
   else if(cacs<1000)event10='~12.8%';
   else event10='~22.3%';
 
+  // —— EN helper（必须在首段 html 之前）——
+  var __EN=(function(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search)||/^en/i.test(document.documentElement.lang||'');}catch(e){}return false;})();
+  function __T(en,zh){return __EN?en:zh;}
+  var __gTxt=grade;
+  // grade/risk/statinAdvice/percentile EN 映射
+  var __gMap={'无钙化':'No calcification','轻度钙化':'Mild calcification','中度钙化':'Moderate calcification','广泛钙化':'Extensive calcification','重度钙化':'Severe calcification'};
+  var __aMap={'可考虑不启动/停用他汀，强调生活方式干预，5–10年复查。':'Consider not starting or discontinuing statin; emphasize lifestyle intervention; recheck in 5–10 years.','建议中等强度他汀，控制危险因素，定期随访。':'Moderate-intensity statin recommended; control risk factors and follow up regularly.','推荐他汀治疗，强化降脂(LDL-C<1.4mmol/L)，评估有无缺血症状。':'Statin therapy recommended with intensive lipid lowering (LDL-C <1.4 mmol/L); assess for ischemic symptoms.','强化他汀治疗，建议冠脉CTA/功能学评估缺血。':'High-intensity statin; coronary CTA or functional ischemia assessment advised.','强化他汀+积极二级预防，建议冠脉造影评估。':'High-intensity statin plus aggressive secondary prevention; coronary angiography advised.'};
+  var __riskMap={'极低（5–10年事件率<1%）':'Very low (5–10y event rate <1%)','低风险':'Low risk','中等风险':'Moderate risk','高风险':'High risk','很高风险':'Very high risk'};
+  var __gEn=__gMap[__gTxt]||__gTxt;
+  var __aEn=__aMap[statinAdvice]||statinAdvice;
+  var __riskEn=__riskMap[risk]||risk;
+  var __pctEn=function(p){if(p===0||p==='0')return __EN?'0':0;if(p==='≥75')return __EN?'≥75th percentile':'≥75百分位';if(p==='50–75')return __EN?'50–75th percentile':'50–75百分位';return __EN?'<50th percentile':'<50百分位';};
+  var __gUsed=__EN?__gEn:__gTxt;
+  var __aUsed=__EN?__aEn:statinAdvice;
+
   var html='<div class="stat-grid">';
-  html+='<div class="stat-card"><div class="val" style="color:'+gradeColor+';">'+cacs+'</div><div class="lbl">Agatston 积分</div></div>';
-  html+='<div class="stat-card"><div class="val" style="color:'+gradeColor+';font-size:16px;">'+grade+'</div><div class="lbl">钙化分级</div></div>';
-  html+='<div class="stat-card"><div class="val" style="color:var(--text);">'+(percentile===0?'0':percentile+'百分位')+'</div><div class="lbl">年龄性别百分位</div></div>';
-  html+='<div class="stat-card"><div class="val" style="color:'+gradeColor+';">'+event10+'</div><div class="lbl">10年冠心病事件率</div></div>';
+  html+='<div class="stat-card"><div class="val" style="color:'+gradeColor+';">'+cacs+'</div><div class="lbl">'+__T('Agatston score','Agatston 积分')+'</div></div>';
+  html+='<div class="stat-card"><div class="val" style="color:'+gradeColor+';font-size:16px;">'+__gUsed+'</div><div class="lbl">'+__T('Calcification grade','钙化分级')+'</div></div>';
+  html+='<div class="stat-card"><div class="val" style="color:var(--text);">'+__pctEn(percentile)+'</div><div class="lbl">'+__T('Age/sex percentile','年龄性别百分位')+'</div></div>';
+  html+='<div class="stat-card"><div class="val" style="color:'+gradeColor+';">'+event10+'</div><div class="lbl">'+__T('10-year CHD event rate','10年冠心病事件率')+'</div></div>';
   html+='</div>';
 
-  html+='<div class="ref-card"><h4>解读结果</h4><ul>';
-  html+='<li>患者：'+(sex==='m'?'男性':'女性')+'，'+age+'岁</li>';
-  html+='<li>Agatston钙化积分(CACS)：'+cacs+'</li>';
-  html+='<li>分级：<strong style="color:'+gradeColor+';">'+grade+'</strong></li>';
-  html+='<li>年龄性别百分位：'+(percentile===0?'无钙化':percentile+'百分位')+'</li>';
-  html+='<li>10年冠心病事件率：'+event10+'</li>';
+  html+='<div class="ref-card"><h4>'+__T('Interpretation','解读结果')+'</h4><ul>';
+  html+='<li>'+__T('Patient: ','患者：')+(sex==='m'?__T('male, ','男性，'):__T('female, ','女性，'))+age+__T(' years','岁')+'</li>';
+  html+='<li>'+__T('Agatston calcium score (CACS): ','Agatston钙化积分(CACS)：')+cacs+'</li>';
+  html+='<li>'+__T('Grade: ','分级：')+'<strong style="color:'+gradeColor+';">'+__gUsed+'</strong></li>';
+  html+='<li>'+__T('Age/sex percentile: ','年龄性别百分位：')+(percentile===0?__T('No calcification','无钙化'):__pctEn(percentile))+'</li>';
+  html+='<li>'+__T('10-year CHD event rate: ','10年冠心病事件率：')+event10+'</li>';
   html+='</ul></div>';
 
-  html+='<div class="tip-box" style="border-color:'+gradeColor+';color:'+gradeColor+';background:'+gradeColor+'1a;"><strong>'+grade+'</strong><br>'+statinAdvice+'</div>';
+  html+='<div class="tip-box" style="border-color:'+gradeColor+';color:'+gradeColor+';background:'+gradeColor+'1a;"><strong>'+__gUsed+'</strong><br>'+__aUsed+'</div>';
 
   // 百分位提示
   if(percentile==='≥75'){
-    html+='<div class="tip-box tip-warn"><strong>≥75百分位</strong><br>同龄同性别人群中钙化负担偏高，风险重分类上调，推荐强化风险因素管理。';
+    html+='<div class="tip-box tip-warn"><strong>'+__pctEn('≥75')+'</strong><br>'+__T('Calcium burden is higher than same-age same-sex peers; risk is reclassified upward — intensify risk factor management.','同龄同性别人群中钙化负担偏高，风险重分类上调，推荐强化风险因素管理。');
+  }
+
+  // —— 随访计划生成器（03-73）：评估日期 + CACS 分层 → 复查日程（按 SCCT/MESA 随访节奏）——
+  var __bd=document.getElementById('followDate')?document.getElementById('followDate').value:'';
+  if(__bd){
+    var __sch;
+    if(cacs===0){__sch=[[1825,'5–10 年复查 CACS（CAC Consortium 共识：零积分者事件率极低，可评估是否启动/停用他汀）']];}
+    else if(cacs<100){__sch=[[1095,'3 年复查 CACS，评估进展；同期复测血脂，落实中等强度他汀']];}
+    else if(cacs<400){__sch=[[365,'年度复查 CACS 与血脂（LDL-C 目标 <1.4 mmol/L），评估有无缺血症状'],[1095,'3 年复查 CACS：如显著进展或出现症状，提前冠脉 CTA 评估']];}
+    else if(cacs<1000){__sch=[[365,'年度复查 CACS；建议冠脉 CTA/功能学评估缺血，强化他汀']];}
+    else{__sch=[[180,'短期心内科随访：评估冠脉造影指征与二级预防用药依从性']];}
+    var __d0=new Date(__bd+'T00:00:00');
+    var __items='';
+    for(var __i=0;__i<__sch.length;__i++){
+      var __d=new Date(__d0); __d.setDate(__d.getDate()+__sch[__i][0]);
+      __items+='<li>第'+(__i+1)+'次随访：'+__d.getFullYear()+'-'+String(__d.getMonth()+1).padStart(2,'0')+'-'+String(__d.getDate()).padStart(2,'0')+'（评估后 '+__sch[__i][0]+' 天，'+__sch[__i][1]+'）</li>';
+    }
+    html+='<div class="ref-card" style="margin-top:12px;"><h4>随访计划（评估日 '+__bd+'，'+grade+'）</h4><ul>'+__items+'</ul><p style="font-size:12px;color:var(--text-muted);">日程按 CACS '+grade+'分层随访节奏推算；若出现胸痛、胸闷或症状变化请随时就诊。</p></div>';
   }
 
   const __g1=html;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));

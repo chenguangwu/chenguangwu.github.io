@@ -59,5 +59,11 @@
   锚纪律：tsh=2.0/ft3=5.0/ft4=16 是页面默认 → 同值用例只取非默认指标锚（低T3 用例仅 FT3 锚、亚临床甲减用 TSH+FT4 锚）。
   ref-card 走 __T（EN 零 CJK）；页面其余动态串（8 种 pattern/desc/mechanism/表格）存量中文未治理 → 记入待续（页面级 i18n 大工程单独批）。
   verify 80/80（4 用例补 6 锚）；判别器 0 逃生；门禁待跑。
-- 🔴 待续：批量解读可向生化/免疫面板推广（需各页自有参考表）；其余单值带型页按 S3 模板铺开；
+- 🟢 批次 03-72（2026-10-26 · S3 标尺铺开第十二批 · 免疫比值 + S3/S8 收口）：`clinical-lab/flow-cytometry-ratio`：
+  #flow_ratioBar（CD4/CD8 比值三带 0.71/2.78，max4）+ #flow_cd4Bar（CD4 绝对值四带 <200 重度抑制 AIDS/200–414 偏低/414–500 边缘/≥500 正常，max1600）双标尺 + ref-card 双行；cd8=0 无效态不渲染。
+  **顺带修存量 EN 泄漏**：calc() 动态串（stat-grid 六卡片标签/flags 7 条/HIV 分期/正常行）补 `__T`；result 容器 EN 零 CJK。
+  verify 80→82（既有倒置用例补 2 锚 + 升高带、边缘带 2 新用例）；判别器 0 逃生；门禁 218/218。
+  **S3 标尺铺开就此收口**：clinical-lab 剩余 14 页均为 0 输入参考表/查表型（parasite-egg-id/urine-sediment-atlas/autoantibody/mic-breakpoint/analysis-8/9 等）或多时点曲线型（cardiac-marker-curve）、单行文本换算（convert-glucose-1），不适配单值带标尺。
+  **S8 placeholder 收口**：最后一处缺 placeholder 输入框（medical/calculator-calc-2 的 age）已补「如 6（选填，0–18）」；placeholder-only 改动零 verify 影响（medical 17/17）。
+- 🔴 待续：批量解读可向生化/免疫面板推广（需各页自有参考表）；
   thyroid-function-model 页面级 EN i18n（8 pattern 全串）单独批治理。
