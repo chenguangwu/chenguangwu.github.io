@@ -146,6 +146,39 @@ const CASES = [
     expect: ["1207.6", "681.2", "1 : 0.50 : 0.72"],
     ref: "独立复算（CROPS[1]=小麦 yield450 n14 p7 k10；FERTILIZERS[3]=硝酸铵 n34、[5]=重过磷酸钙 p46、[9]=氯化钾 k60）：factor = 620 ÷ 450 = 1.377778；needN = 14 × 1.377778 = 19.2889 ⇒ 19.3、needP = 7 × 1.377778 = 9.6444 ⇒ 9.6、needK = 10 × 1.377778 = 13.7778 ⇒ 13.8；亩养分总量 = 19.2889 + 9.6444 + 13.7778 = 42.7111 ⇒ 42.7；硝酸铵 = 19.2889 × 12 ÷ 0.34 = 681.1765 ⇒ 681.2（产物同为 56.8 kg/亩 = 681.1765 ÷ 12）；重过磷酸钙 = 9.6444 × 12 ÷ 0.46 = 250.4348 ⇒ 250.4；氯化钾 = 13.7778 × 12 ÷ 0.60 = 276.0；总施肥量 = 1207.6113 ⇒ 1207.6；NPK 比 = 9.6444 ÷ 19.2889 = 0.4978 ⇒ 0.50、13.7778 ÷ 19.2889 = 0.7155 ⇒ 0.72。默认态为 575.0 / 375.0 / 200.0 / 1 : 0.50 : 0.83，三条均不命中。注：crop / fertN / fertP / fertK 的 option value 是 CROPS / FERTILIZERS 的数组下标字符串，灌作物名（如 wheat）会取到 undefined。",
   },
+  // ── S2 追肥场景预设（2026-10-26）：needP=0 合法（仅追氮肥），依赖上方 __D 分母误判修正（needN 才是 needP/needN 的分母）──
+  {
+    slug: "agriculture/fertilizer-calculator",
+    inputs: {},
+    clicks: ["document.getElementById('period').value='top';document.getElementById('area').value='10';document.getElementById('yield').value='450';document.getElementById('needN').value='8';document.getElementById('needP').value='0';document.getElementById('needK').value='0';document.getElementById('fertN').value='0';document.getElementById('fertP').value='';document.getElementById('fertK').value='';calc();"],
+    dumpIds: ["result"],
+    expect: ["173.9", "1 : 0.00 : 0.00"],
+    ref: "S2 预设「小麦返青期追肥」等价注入：仅追氮肥 needN=8/P0/K0、尿素(46%)。amtN = 8×10÷0.46 = 173.913 ⇒ 173.9 kg；亩养分总量 = 8.0；总施肥量 = 173.9；NPK 比 = 1 : 0/8 : 0/8 = 1 : 0.00 : 0.00。默认态(needN12/P6/K10、尿素+过磷酸钙+氯化钾)总施肥 802.6、NPK 1:0.50:0.83，两条锚均不命中。注：needP=0 不再被 guard 误拦截（已修正 __D 分母）。",
+  },
+  {
+    slug: "agriculture/fertilizer-calculator",
+    inputs: {},
+    clicks: ["document.getElementById('period').value='top';document.getElementById('area').value='10';document.getElementById('yield').value='500';document.getElementById('needN').value='5';document.getElementById('needP').value='0';document.getElementById('needK').value='4';document.getElementById('fertN').value='0';document.getElementById('fertP').value='';document.getElementById('fertK').value='8';calc();"],
+    dumpIds: ["result"],
+    expect: ["108.7", "1 : 0.00 : 0.80"],
+    ref: "S2 预设「水稻穗肥」等价注入：N5/P0/K4、尿素(46%)+氯化钾(60%)。amtN = 5×10÷0.46 = 108.696 ⇒ 108.7 kg；amtK = 4×10÷0.60 = 66.667 ⇒ 66.7 kg；亩养分 = 9.0；总施肥量 = 175.4；NPK 比 = 1 : 0/5 : 4/5 = 1 : 0.00 : 0.80。默认态不命中两条锚。",
+  },
+  {
+    slug: "agriculture/fertilizer-calculator",
+    inputs: {},
+    clicks: ["document.getElementById('period').value='top';document.getElementById('area').value='10';document.getElementById('yield').value='550';document.getElementById('needN').value='10';document.getElementById('needP').value='0';document.getElementById('needK').value='5';document.getElementById('fertN').value='0';document.getElementById('fertP').value='';document.getElementById('fertK').value='8';calc();"],
+    dumpIds: ["result"],
+    expect: ["217.4", "1 : 0.00 : 0.50"],
+    ref: "S2 预设「玉米大喇叭口期追肥」等价注入：N10/P0/K5、尿素(46%)+氯化钾(60%)。amtN = 10×10÷0.46 = 217.391 ⇒ 217.4 kg；amtK = 5×10÷0.60 = 83.333 ⇒ 83.3 kg；亩养分 = 15.0；总施肥量 = 300.7；NPK 比 = 1 : 0/10 : 5/10 = 1 : 0.00 : 0.50。默认态不命中两条锚。",
+  },
+  {
+    slug: "agriculture/fertilizer-calculator",
+    inputs: {},
+    clicks: ["document.getElementById('period').value='top';document.getElementById('area').value='10';document.getElementById('yield').value='5000';document.getElementById('needN').value='8';document.getElementById('needP').value='0';document.getElementById('needK').value='6';document.getElementById('fertN').value='0';document.getElementById('fertP').value='';document.getElementById('fertK').value='8';calc();"],
+    dumpIds: ["result"],
+    expect: ["173.9", "1 : 0.00 : 0.75"],
+    ref: "S2 预设「番茄膨果期追肥」等价注入：N8/P0/K6、尿素(46%)+氯化钾(60%)。amtN = 8×10÷0.46 = 173.913 ⇒ 173.9 kg；amtK = 6×10÷0.60 = 100.0 kg；亩养分 = 14.0；总施肥量 = 273.9；NPK 比 = 1 : 0/8 : 6/8 = 1 : 0.00 : 0.75。默认态不命中两条锚。",
+  },
   // ── 灌溉制度（计划湿润层净灌水 → 按水利用系数还原毛灌量）──
   {
     slug: "agriculture/irrigation-calculator",
