@@ -1709,6 +1709,13 @@ const CASES = [
     ref: "独立复算：同上口径，`abc` 的 CRC-8 = 0x5f。同一页面换输入各写一条，两条 expect 互不相同。",
   },
   {
+    slug: "it/crc-calculator",
+    inputs: { input: "abc" },
+    clicks: ["document.getElementById('customOn').checked=true; calc();"],
+    expect: ["自定义模型 (width=8, poly=0x07) 0x5f"],
+    ref: "自定义 CRC 模型（2026-10-26）：勾选 customOn 后按六参（width=8/poly=07/init=00/refin=0/refout=0/xorout=00）= 标准 CRC-8 ⇒ abc = 0x5f，自洽核对；锚含「自定义模型」卡名区分内置卡。判别态 clicks 清空 ⇒ 无自定义卡，零交集。（clicks 内勾选而非 checks：checks 机制对该页行为不稳，clicks 直调可控。）",
+  },
+  {
     slug: "it/decimal-encode",
     inputs: { input: "AB" },
     clicks: ["enc()"],

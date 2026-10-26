@@ -178,6 +178,22 @@ s.parentNode.insertBefore(el, s);
     <label>输入</label>
     <textarea id="input" placeholder="输入要计算 CRC 的文本或十六进制..." oninput="calc()">123456789</textarea>
 
+    <div style="margin-top:12px;border:1px solid var(--border,#e5e7eb);border-radius:10px;padding:10px 12px;background:var(--bg-soft,#f8fafc);">
+      <label style="margin:0;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;">
+        <input type="checkbox" id="customOn" onchange="calc()"> 自定义 CRC 模型（在标准算法后追加一行）
+      </label>
+      <div class="input-row" style="margin-top:8px;">
+        <div><label>位宽 width</label><input type="number" id="cw" value="8" min="8" max="64" step="8"></div>
+        <div><label>多项式 poly (hex)</label><input type="text" id="cp" value="07" placeholder="如 07"></div>
+        <div><label>初始值 init (hex)</label><input type="text" id="ci" value="00" placeholder="如 00"></div>
+        <div><label>结果异或 xorout (hex)</label><input type="text" id="cxo" value="00" placeholder="如 00"></div>
+      </div>
+      <div style="display:flex;gap:18px;font-size:13px;margin-top:4px;flex-wrap:wrap;">
+        <label style="margin:0;display:flex;align-items:center;gap:6px;"><input type="checkbox" id="crefin"> 输入反射 refin</label>
+        <label style="margin:0;display:flex;align-items:center;gap:6px;"><input type="checkbox" id="crefout"> 输出反射 refout</label>
+      </div>
+    </div>
+
     <div id="results" style="margin-top:12px;"></div>
   </div>
 
@@ -346,6 +362,22 @@ function calc(){
     };
     const crc = crcGeneric(bytes, params);
     renderResult(algo.name, fmt(crc, algo.width, upper));
+  }
+  // —— 自定义 CRC 模型（勾选后追加一行；默认关 ⇒ 零渲染零影响）——
+  if(document.getElementById('customOn') && document.getElementById('customOn').checked){
+    var __gv=function(id,d){ var el=document.getElementById(id); var v=(el&&el.value!==undefined&&el.value!==null&&el.value!=='')?el.value:(el&&el.getAttribute?el.getAttribute('value'):null); return (v===undefined||v===null||v==='')?d:v; };
+    var gw=parseInt(__gv('cw','8'),10)||0;
+    var gp=String(__gv('cp','07')).trim();
+    var gi=String(__gv('ci','00')).trim();
+    var gx=String(__gv('cxo','00')).trim();
+    if(gw>=8 && gw<=64 && /^[0-9a-fA-F]+$/.test(gp) && /^[0-9a-fA-F]*$/.test(gi) && /^[0-9a-fA-F]*$/.test(gx) && gp!==''){
+      const B=(s,w)=>{ if(!s) return BigInt(0); const v=BigInt('0x'+s); return (w<=32)? Number(v) : v; };
+      try{
+        const cparams={ width:gw, poly:B(gp,gw), init:B(gi,gw), refin:!!document.getElementById('crefin').checked, refout:!!document.getElementById('crefout').checked, xorout:B(gx,gw) };
+        const ccrc=crcGeneric(bytes,cparams);
+        renderResult('自定义模型 (width='+gw+', poly=0x'+gp.toUpperCase()+')', fmt(ccrc, gw, upper));
+      }catch(e){}
+    }
   }
 }
 
