@@ -33,6 +33,24 @@ const CASES = [
     ref: "perQ=0 → score=90/100×100=90；rate=90%；gpa(rate≥90→4.0)；grade 优秀 🏆",
   },
   {
+    slug: "edu/exam-score-calculator",
+    inputs: { total: "710", totalQ: "710", correct: "456", perQ: "0", passLine: "59.86" },
+    expect: ["📊 考试成绩 456.0 分 / 710分 及格 ✓"],
+    ref: "S2 预设「四级 710 分制」等价注入：score=456/710×710=456.0；rate=64.2%→及格 ✓；passScore=710×59.86/100=425.0（默认 100 分制组无此串）",
+  },
+  {
+    slug: "edu/exam-score-calculator",
+    inputs: { total: "750", totalQ: "750", correct: "620", perQ: "0", passLine: "60" },
+    expect: ["📊 考试成绩 620.0 分 / 750分 良好 👍"],
+    ref: "S2 预设「高考 750 分制」等价注入：score=620.0；rate=82.7%→良好 👍；passScore=750×60/100=450.0（默认组 score=85.0）",
+  },
+  {
+    slug: "edu/exam-score-calculator",
+    inputs: { total: "500", totalQ: "500", correct: "340", perQ: "0", passLine: "60" },
+    expect: ["📊 考试成绩 340.0 分 / 500分 及格 ✓"],
+    ref: "S2 预设「考研 500 分制」等价注入：score=340.0；rate=68.0%→及格 ✓；passScore=300.0（默认组无此串）",
+  },
+  {
     slug: "edu/quiz-score-percentage",
     inputs: { total: "50", correct: "40", points: "2" },
     expect: ["80"],
