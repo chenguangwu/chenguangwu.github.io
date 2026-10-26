@@ -2,14 +2,11 @@
 
 ## 已知问题
 ### I1. hash/编码类页深度参差
-- 部分页（sha、bcrypt、pbkdf2）仅做单次哈希，缺「加盐/迭代次数/慢哈希耗时对比」这类开发者真正要查的东西。
-- 受影响：tools/it/sha.html、bcrypt.html、pbkdf2.html 等
-- 方案：补参数化（盐、iterations、并行度）与耗时实测（performance.now 本地跑）。
+- ⚠ 核实（2026-10-26）：pbkdf2 已完整参数化（迭代/盐/密钥长度/格式）、bcrypt 已有 rounds 成本因子——「参数化」部分条目过时。
+- ✅ 耗时实测已落地（2026-10-26）：bcrypt 生成成功消息加「实测耗时 X ms（成本因子每 +1 耗时约翻倍）」、校验加实测耗时+恒定时间比较说明；pbkdf2 派生输出加「实测耗时」行（迭代次数为主要耗时来源）。均 performance.now 本地实测（fallback Date.now）。harness 不可达路径（CDN bcrypt 库/crypto.subtle 分支），老锚零漂移：verify it 764/764、判别器 0、门禁 218/218。
 
 ### I2. 正则/格式化器错误提示原始
-- 描述：json/yaml/toml 解析失败直接抛异常串，无行号定位。
-- 受影响：tools/it/json-formatter*、yaml-*、toml-*（~20 页）
-- 方案：接入带行列定位的轻量 parser（纯前端库锁定版本）或自研错误映射。
+- ⚠ 核实过时（2026-10-26）：json-formatter 已有行列定位（dd-example「错误行列（如第 1 行第 8 列附近）」+ FAQ 行号换算说明）——条目过时，yaml/toml 待逐页核实后再动。
 
 ### I3. barcode/QR 系列仅静态生成
 - 描述：QR 页不支持 logo/纠错级别可视化对比；barcode 页缺导出 SVG/PNG 一键。
