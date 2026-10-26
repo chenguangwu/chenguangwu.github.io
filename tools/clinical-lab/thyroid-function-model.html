@@ -154,7 +154,7 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="loadPattern('sub_hypo')">亚临床甲减</button>
     </div>
 
-    <div id="result"></div> <div id="thyroid_function_modelTable"></div> <div id="thyroid_function_modelDiff"></div> <div id="thyroid_function_modelChart"></div> <div id="thyroid_function_modelHist"></div>
+    <div id="result"></div> <div id="thy_tshBar"></div> <div id="thy_ft3Bar"></div> <div id="thy_ft4Bar"></div> <div id="thyroid_function_modelTable"></div> <div id="thyroid_function_modelDiff"></div> <div id="thyroid_function_modelChart"></div> <div id="thyroid_function_modelHist"></div>
 
     <h3 style="font-size:14px;margin:16px 0 8px;">下丘脑-垂体-甲状腺轴(HPT轴)</h3>
     <div class="axis-box">
@@ -241,7 +241,19 @@ function flag(v,ref){
 function analyze(){
   var tsh=num('tsh'), ft3=num('ft3'), ft4=num('ft4'), tt3=num('tt3'), tt4=num('tt4'), tpo=num('tpo');
   if(tsh==null) return;
+  // —— 参考区间定位（S3 标尺）：TSH/FT3/FT4 判读 ——
+  var __EN=(function(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search)||/^en/i.test(document.documentElement.lang||'');}catch(e){}return false;})();
+  function __T(en,zh){return __EN?en:zh;}
+  function __hit(v,bands){for(var i=0;i<bands.length;i++){var b=bands[i];if(v>=(b.lo==null?-Infinity:b.lo)&&v<(b.hi==null?Infinity:b.hi))return b;}return null;}
+  function __triBands(lo,hi){return [{lo:0,hi:lo,label:{zh:'偏低',en:'Low'},color:'#3B82F6'},{lo:lo,hi:hi,label:{zh:'正常',en:'Normal'},color:'#059669'},{lo:hi,hi:null,label:{zh:'偏高',en:'High'},color:'#F59E0B'}];}
+  var __bars=[];
   var html = '<h3 style="margin-bottom:8px;">结果分析</h3>';
+  if(tsh>0){var __bt=__triBands(REF.tsh.lo,REF.tsh.hi);var __ht=__hit(tsh,__bt);__bars.push({v:tsh,band:__ht,host:'#thy_tshBar',bands:__bt,name:__T('TSH ','TSH '),note:__T(' (0.27–4.2 mIU/L normal)','（0.27–4.2 mIU/L 正常）'),unit:' mIU/L',max:10});}
+  if(ft3>0){var __b3=__triBands(REF.ft3.lo,REF.ft3.hi);var __h3=__hit(ft3,__b3);__bars.push({v:ft3,band:__h3,host:'#thy_ft3Bar',bands:__b3,name:__T('FT3 ','FT3 '),note:__T(' (3.1–6.8 pmol/L normal)','（3.1–6.8 pmol/L 正常）'),unit:' pmol/L',max:12});}
+  if(ft4>0){var __b4=__triBands(REF.ft4.lo,REF.ft4.hi);var __h4=__hit(ft4,__b4);__bars.push({v:ft4,band:__h4,host:'#thy_ft4Bar',bands:__b4,name:__T('FT4 ','FT4 '),note:__T(' (12–22 pmol/L normal)','（12–22 pmol/L 正常）'),unit:' pmol/L',max:40});}
+  var __refHtml='';
+  __bars.forEach(function(o){ if(o.band) __refHtml+='<li>'+o.name+String(o.v)+o.unit+__T(' → falls in ',' → 落在 ')+(__EN?o.band.label.en:o.band.label.zh)+o.note+'</li>'; });
+  if(__refHtml) html += '<div class="ref-card"><h4>'+__T('Reference range','参考区间定位')+'</h4><ul>'+__refHtml+'</ul></div>';
 
   var ft3f=flag(ft3,REF.ft3), ft4f=flag(ft4,REF.ft4);
   var tshLow = tsh<REF.tsh.lo, tshHigh = tsh>REF.tsh.hi;
@@ -304,6 +316,12 @@ function analyze(){
   html += '</table>';
 
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
+
+  try{
+    if(typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){
+      __bars.forEach(function(o){ if(o.band) TBKit.chart.refBar(o.host,{value:o.v,unit:'',min:0,max:o.max,bands:o.bands,ticks:[0,o.bands[0].hi,o.bands[1].hi,o.max],title:o.name+__T('interpretation scale','判读标尺')}); });
+    }
+  }catch(e){}
 }
 
 analyze();

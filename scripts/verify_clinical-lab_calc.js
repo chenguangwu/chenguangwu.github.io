@@ -266,9 +266,11 @@ const CASES = [
   },
   "expect": [
     "原发性甲状腺功能亢进症",
-    "抗TPO抗体阳性(>34 IU/mL)"
+    "抗TPO抗体阳性(>34 IU/mL)",
+    "TSH 0.02 mIU/L → 落在 偏低",
+    "FT4 35 pmol/L → 落在 偏高"
   ],
-  "ref": "TSH 0.02<0.27（低）+ FT3 12>6.8、FT4 35>22（高）→ 原发甲亢；TPOAb 120>34 → 阳性"
+  "ref": "TSH 0.02<0.27（低）+ FT3 12>6.8、FT4 35>22（高）→ 原发甲亢；TPOAb 120>34 → 阳性；参考区间定位（03-71 S3 标尺）：TSH/FT4 锚均非默认（2.0/16）⇒ 零交集"
 },
 {
   "slug": "clinical-lab/tumor-marker-doubling",
@@ -738,25 +740,25 @@ const CASES = [
   {
     slug: "clinical-lab/thyroid-function-model",
     inputs: { tsh: "0.2", ft3: "2.0", ft4: "16", tt3: "1.3", tt4: "66", tpo: "0" },
-    expect: ["中枢性(继发性)甲减"],
-    ref: 'TSH 0.2<0.27（低）+ FT3 2.0<3.1、FT4 16 正常 → 同向下调，中枢性甲减'
+    expect: ["中枢性(继发性)甲减", "TSH 0.2 mIU/L → 落在 偏低"],
+    ref: 'TSH 0.2<0.27（低）+ FT3 2.0<3.1、FT4 16 正常 → 同向下调，中枢性甲减；03-71 标尺锚（tsh 非默认）'
   },
   {
     slug: "clinical-lab/thyroid-function-model",
     inputs: { tsh: "8", ft3: "5.0", ft4: "14", tt3: "1.5", tt4: "100", tpo: "50" },
-    expect: ["亚临床甲状腺功能减退症", "抗TPO抗体阳性(>34 IU/mL)"],
-    ref: 'TSH 8>4.2（高）+ 激素正常 → 亚临床甲减；TPOAb 50>34 → 阳性'
+    expect: ["亚临床甲状腺功能减退症", "抗TPO抗体阳性(>34 IU/mL)", "TSH 8 mIU/L → 落在 偏高", "FT4 14 pmol/L → 落在 正常"],
+    ref: 'TSH 8>4.2（高）+ 激素正常 → 亚临床甲减；TPOAb 50>34 → 阳性；03-71 标尺锚：TSH 8 非默认；FT4 14<16 下限带边缘仍正常（12–22）且非默认值'
   },
   {
     slug: "clinical-lab/thyroid-function-model",
     inputs: { tsh: "0.05", ft3: "10", ft4: "30", tt3: "1.5", tt4: "100", tpo: "0" },
-    expect: ["原发性甲状腺功能亢进症"],
-    ref: 'TSH 0.05<0.27（低）+ FT3 10>6.8、FT4 30>22（高）→ 原发甲亢（无TPO阳性）'
+    expect: ["原发性甲状腺功能亢进症", "TSH 0.05 mIU/L → 落在 偏低"],
+    ref: 'TSH 0.05<0.27（低）+ FT3 10>6.8、FT4 30>22（高）→ 原发甲亢（无TPO阳性）；03-71 标尺锚（tsh 非默认）'
   },
   {
     slug: "clinical-lab/thyroid-function-model",
     inputs: { tsh: "2.0", ft3: "2.5", ft4: "16", tt3: "1.5", tt4: "100", tpo: "0" },
-    expect: ["低T3综合征(非甲状腺病态)"],
+    expect: ["低T3综合征(非甲状腺病态)", "FT3 2.5 pmol/L → 落在 偏低"],
     ref: '修复 line263 死代码后可达：TSH 2.0（正常 0.27–4.2）+ FT3 2.5<3.1（低）+ FT4 16（正常、不低）→ 非甲状腺病态综合征（euthyroid sick syndrome）。原条件 tshLow 与 line259 中枢性甲减（tshLow&&hormoneLow）重叠、永不可达，旧版此输入会误判「甲状腺功能正常」；修正为 !tshLow&&!tshHigh&&ft3Low&&!ft4Low 后分支可达。默认态（tsh 空 → analyze 提前 return）无任何结果串，注入失败即不命中。'
   }
 ];
