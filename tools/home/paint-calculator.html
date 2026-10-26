@@ -169,6 +169,14 @@ s.parentNode.insertBefore(el, s);
  <div><label>单桶价格 (元)</label><input type="number" id="bucket-price" value="280" min="0" step="10" oninput="calc()" placeholder="如 280"></div>
 </div>
 
+<h3 style="margin-top:14px;" data-zh="③ 门窗扣减（不涂刷部分）">③ Openings to deduct (not painted)</h3>
+<div class="input-row">
+ <div><label data-zh="门数量">Doors (count)</label><input type="number" id="door-count" value="1" min="0" step="1" oninput="calc()" placeholder="如 1"></div>
+ <div><label data-zh="单门面积 (m²)">Area per door (m²)</label><input type="number" id="door-area" value="2" min="0" step="0.1" oninput="calc()" placeholder="如 2"></div>
+ <div><label data-zh="窗数量">Windows (count)</label><input type="number" id="win-count" value="2" min="0" step="1" oninput="calc()" placeholder="如 2"></div>
+ <div><label data-zh="单窗面积 (m²)">Area per window (m²)</label><input type="number" id="win-area" value="1.8" min="0" step="0.1" oninput="calc()" placeholder="如 1.8"></div>
+</div>
+
 <div class="toolbar">
  <button type="button" class="btn primary" onclick="calc()">🧮 计算用量</button>
  <button type="button" class="btn" onclick="exportResult()">📥 导出明细</button>
@@ -177,11 +185,13 @@ s.parentNode.insertBefore(el, s);
 <table id="paintHidden" style="display:none;"><thead><tr><th>涂刷面</th><th>面积(m²)</th></tr></thead><tbody></tbody></table>
 
 <div class="result-grid">
- <div class="result-card"><div class="v" id="total-area">0</div><div class="l">总面积 (m²)</div></div>
+ <div class="result-card"><div class="v" id="total-area">0</div><div class="l" data-zh="毛面积 (m²)">Gross area (m²)</div></div>
+ <div class="result-card"><div class="v" id="net-area">0</div><div class="l" data-zh="净涂刷面积 (m²)">Net area (m²)</div></div>
  <div class="result-card"><div class="v" id="total-paint">0</div><div class="l">总用量 (L)</div></div>
  <div class="result-card"><div class="v" id="total-buckets">0</div><div class="l">建议购买 (桶)</div></div>
  <div class="result-card"><div class="v" id="total-cost">0</div><div class="l">预估成本 (元)</div></div>
 <div id="paintChart" style="margin-top:14px;"></div>
+<div id="paintDeductBox" style="margin-top:12px;"></div>
 </div>
 
 <div class="info-box">
@@ -281,6 +291,59 @@ function renderSurfaces(){
   : list.map((s,i) => `<div class="surface-row"><span>${escapeHtml(s.name)} · ${s.area.toFixed(1)} m²</span><span class="del" onclick="delSurface(${i})">✕</span></div>`).join('');document.getElementById('surfaces').innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
 }
 
+/** 英文态判定（三重回退：TBKit → URL lang → html[lang]），供门窗扣减模块双语输出 */
+function __paintIsEn(){
+  try { if (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) return true; } catch(e){}
+  try { if (/lang=en/i.test(String((typeof location!=='undefined'&&location.search)||''))) return true; } catch(e){}
+  try { var he = (typeof document!=='undefined') ? document.documentElement : null;
+        if (he && /^en/i.test(String(he.getAttribute && he.getAttribute('lang') || ''))) return true; } catch(e){}
+  return false;
+}
+
+/** 门窗扣减量：门数×单门面积 + 窗数×单窗面积（m²） */
+function getDeduct(){
+  const dc = +document.getElementById('door-count').value || 0;
+  const da = +document.getElementById('door-area').value || 0;
+  const wc = +document.getElementById('win-count').value || 0;
+  const wa = +document.getElementById('win-area').value || 0;
+  return { door: dc * da, win: wc * wa, total: dc * da + wc * wa };
+}
+
+/** 门窗扣减明细表（与净面积、节省量联动） */
+function renderDeductBox(totalArea, deduct, netArea, savedPaint, savedBuckets){
+  const box = document.getElementById('paintDeductBox');
+  if (!box) return;
+  const en = __paintIsEn();
+  const th = en ? 'Item' : '项目';
+  const tv = en ? 'Value' : '数值';
+  const rows = en
+    ? [['Gross area of surfaces', totalArea.toFixed(2) + ' m²'],
+       ['Doors deducted', deduct.door.toFixed(2) + ' m²'],
+       ['Windows deducted', deduct.win.toFixed(2) + ' m²'],
+       ['Total deduction', deduct.total.toFixed(2) + ' m²'],
+       ['Net painting area', netArea.toFixed(2) + ' m²'],
+       ['Paint saved by deduction', savedPaint.toFixed(2) + ' L']]
+    : [['涂刷面毛面积', totalArea.toFixed(2) + ' m²'],
+       ['门洞扣减', deduct.door.toFixed(2) + ' m²'],
+       ['窗洞扣减', deduct.win.toFixed(2) + ' m²'],
+       ['合计扣减', deduct.total.toFixed(2) + ' m²'],
+       ['净涂刷面积', netArea.toFixed(2) + ' m²'],
+       ['扣减节省用漆', savedPaint.toFixed(2) + ' L']];
+  let html = '<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr>'
+    + '<th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);">' + th + '</th>'
+    + '<th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);">' + tv + '</th></tr></thead><tbody>';
+  rows.forEach(function(r){
+    html += '<tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);">' + r[0] + '</td>'
+         +  '<td style="padding:6px 8px;border-bottom:1px solid var(--border);">' + r[1] + '</td></tr>';
+  });
+  html += '</tbody></table>';
+  const note = en
+    ? 'Deduction = doors x area per door + windows x area per window; paint demand and buckets are computed from the net area.'
+    : '扣减面积 = 门数量×单门面积 + 窗数量×单窗面积；用漆量与桶数按净涂刷面积计算。';
+  html += '<p style="font-size:12px;color:var(--text-muted);margin-top:6px;">' + note + '</p>';
+  box.innerHTML = html;
+}
+
 function calc(){
  const list = getSurfaces();
  const totalArea = list.reduce((s,x) => s + x.area, 0);
@@ -288,15 +351,21 @@ function calc(){
  const coverage = +document.getElementById('coverage').value || 10;
  const bucketSize = +document.getElementById('bucket-size').value || 5;
  const bucketPrice = +document.getElementById('bucket-price').value || 0;
+ const deduct = (typeof getDeduct === 'function') ? getDeduct() : {door:0,win:0,total:0};
+ const netArea = Math.max(totalArea - deduct.total, 0);
 
- const totalPaint = totalArea * coats / coverage;
+ const totalPaint = netArea * coats / coverage;
  const buckets = Math.ceil(totalPaint / bucketSize);
  const cost = buckets * bucketPrice;
+ const grossPaint = totalArea * coats / coverage;
+ const savedPaint = Math.max(grossPaint - totalPaint, 0);
 
  const __g2=totalArea.toFixed(1);document.getElementById('total-area').textContent=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+ const __g2b=netArea.toFixed(1);const netEl=document.getElementById('net-area');if(netEl)netEl.textContent=(typeof __g2b==='number'?(isFinite(__g2b)?__g2b:'—'):String(__g2b).replace(/Infinity|NaN/g,'—'));
  const __g3=totalPaint.toFixed(2);document.getElementById('total-paint').textContent=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
  const __g4=buckets;document.getElementById('total-buckets').textContent=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
  const __g5=cost.toFixed(0);document.getElementById('total-cost').textContent=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
+ try{ renderDeductBox(totalArea, deduct, netArea, savedPaint, buckets); }catch(e){}
 }
 
 function exportResult(){
