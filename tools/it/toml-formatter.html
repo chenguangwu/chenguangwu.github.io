@@ -425,13 +425,67 @@ function formatToml() {
   } catch(e) { showError(e.message); }
 }
 
+// —— 严格逐行校验（validate 专用；format/转换仍走宽松 parseToml，互不影响）——
+// 只报结构性硬错误：表头格式、缺少 =、空键名、空值。返回错误串（带行号）或 null。
+function validateTomlStrict(text) {
+  var __en = (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn());
+  var lines = text.split('\n');
+  var inStr = null; // 多行字符串状态（''' 或 """），页面解析按行处理，此处跳过内容行不误报
+  var kvCount = 0, tableCount = 0;
+  for (var i = 0; i < lines.length; i++) {
+    var raw = lines[i];
+    var line = raw.trim();
+    var n = i + 1;
+    if (inStr) {
+      if (line.indexOf(inStr) !== -1) inStr = null;
+      continue;
+    }
+    if (!line || line.charAt(0) === '#') continue;
+    if (line.charAt(0) === '[') {
+      // 去掉行内注释（表名内 # 非法，此处 strip 安全）
+      var header = line.replace(/\s+#.*$/, '');
+      var isArr = header.indexOf('[[') === 0;
+      var close = isArr ? ']]' : ']';
+      if (!header.endsWith(close) || header.replace(/^\[+/, '').replace(/\]+$/, '').trim() === '') {
+        return { err: __en ? ('Line ' + n + ': invalid table header — expected [table] or [[array_of_tables]]')
+                    : ('第 ' + n + ' 行：表头格式错误（应为 [table] 或 [[array_of_tables]]）') };
+      }
+      tableCount++;
+      continue;
+    }
+    var eq = line.indexOf('=');
+    if (eq === -1) {
+      return { err: __en ? ('Line ' + n + ': missing "=" — this line is neither a valid table header nor a key-value pair')
+                  : ('第 ' + n + ' 行：缺少「=」——既不是合法表头也不是键值对') };
+    }
+    if (line.substring(0, eq).trim() === '') {
+      return { err: __en ? ('Line ' + n + ': empty key name before "="') : ('第 ' + n + ' 行：「=」前键名为空') };
+    }
+    var val = line.substring(eq + 1).trim();
+    if (val === '') {
+      return { err: __en ? ('Line ' + n + ': empty value after "="') : ('第 ' + n + ' 行：「=」后值为空') };
+    }
+    kvCount++;
+    // 多行字符串（值侧三引号开启，如 desc = """multi）：未在本行闭合 ⇒ 进入多行状态，跳过内容行
+    for (var qi = 0; qi < 2; qi++) {
+      var q2 = qi === 0 ? '"""' : "'''";
+      if (val.indexOf(q2) === 0 && val.lastIndexOf(q2) < 3) { inStr = q2; break; }
+    }
+  }
+  return { err: null, kv: kvCount, tables: tableCount };
+}
+
 function validateToml() {
   hideError();
   const input = document.getElementById('input').value;
   if (!input.trim()) { showError('请输入TOML'); return; }
+  const res = validateTomlStrict(input);
+  if (res.err) { showError(res.err); return; }
   try {
     parseToml(input);
-    const __h0='<p style="color:var(--success);">✅ TOML 语法验证通过！</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h0;
+    var __en0 = (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn());
+    var __stat = __en0 ? (' (' + res.kv + ' key-value pairs, ' + res.tables + ' tables)') : ('（共 ' + res.kv + ' 个键值对，' + res.tables + ' 个表）');
+    const __h0='<p style="color:var(--success);">✅ TOML 语法验证通过！' + __stat + '</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h0;
     ToolBox.showToast(i18nText('toast.msg1002'), 'success');
   } catch(e) { showError(e.message); }
 }

@@ -1996,6 +1996,20 @@ const CASES = [
     ref: "TOML 规范化：`name=value` ⇒ `name = value`。默认样例是多节 TOML，首行不是本串。",
   },
   {
+    slug: "it/toml-formatter",
+    inputs: { input: "a = 1\nbroken line\nb = 2" },
+    clicks: ["validateToml()"],
+    expect: ["第 2 行：缺少「=」"],
+    ref: "严格校验（validateToml 专用，format 仍宽松）：第 2 行 `broken line` 无 `=` 且非表头 ⇒ 报「第 2 行：缺少「=」」。默认样例合法 ⇒ 默认态无该串，强判别。",
+  },
+  {
+    slug: "it/toml-formatter",
+    inputs: { input: "[owner] # c\nname = \"Tom\"\ndesc = \"\"\"multi\nline\"\"\"\nport = 8080\nhost = \"db\"" },
+    clicks: ["validateToml()"],
+    expect: ["✅ TOML 语法验证通过！（共 4 个键值对，1 个表）"],
+    ref: "严格校验合法输入：行内注释表头 + 多行字符串（值侧三引号跨行）+ 常规键值 ⇒ 通过并输出输入相关统计（4 kv：name/desc/port/host；1 表：owner）。多行字符串若被逐行误判会报「第 5 行缺少 =」。默认样例是 3 kv 0 表 ⇒ 默认态无本串，强判别（修复既往「两态同值」逃生）。",
+  },
+  {
     slug: "it/xxencode",
     inputs: { input: "Hi" },
     clicks: ["enc()"],
