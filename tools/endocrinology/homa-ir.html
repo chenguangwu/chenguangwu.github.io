@@ -149,7 +149,7 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="loadNormal()">正常示例</button>
     </div>
 
-    <div class="result-box" id="result"></div> <div id="homa_irTable"></div> <div id="homa_irDiff"></div> <div id="homa_irChart"></div> <div id="homa_irHist"></div>
+    <div class="result-box" id="result"></div> <div id="homa_irRefBar"></div> <div id="homa_irTable"></div> <div id="homa_irDiff"></div> <div id="homa_irChart"></div> <div id="homa_irHist"></div>
 
     <h3 style="font-size:14px;margin:16px 0 10px;">HOMA-IR 评估标准</h3>
     <table class="ref-table">
@@ -297,6 +297,24 @@ function calc(){
     else if(homaBeta > 150) betaStatus = '代偿性升高（IR代偿）';
   }
 
+  // —— 参考区间定位（S3 标尺）：HOMA-IR 分级 ——
+  var __EN=(function(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search)||/^en/i.test(document.documentElement.lang||'');}catch(e){}return false;})();
+  var __irBands=[{lo:0,hi:1.0,label:{zh:'高敏感',en:'Highly sensitive'},color:'#10B981'},
+                 {lo:1.0,hi:2.0,label:{zh:'正常',en:'Normal'},color:'#84CC16'},
+                 {lo:2.0,hi:cutoff,label:{zh:'临界',en:'Borderline'},color:'#F59E0B'},
+                 {lo:cutoff,hi:5.0,label:{zh:'胰岛素抵抗',en:'Insulin resistance'},color:'#F97316'},
+                 {lo:5.0,hi:8,label:{zh:'严重IR',en:'Severe IR'},color:'#EF4444'}];
+  function __hitIR(v){for(var i=0;i<__irBands.length;i++){var b=__irBands[i];if(v>=(b.lo==null?-Infinity:b.lo)&&v<(b.hi==null?Infinity:b.hi))return b;}return null;}
+  function __T(en,zh){return __EN?en:zh;}
+  var __betaEn={'正常':'Normal','降低（β细胞功能受损）':'Low (β-cell impairment)','轻度降低':'Mildly low','代偿性升高（IR代偿）':'Compensatory high (IR compensation)'};
+  var __ib=__hitIR(homaIR),__refHtml='';
+  if(__ib){
+    __refHtml='<div class="ref-card"><h4>'+__T('Reference range','参考区间定位')+'</h4><ul>';
+    __refHtml+='<li>HOMA-IR '+homaIR.toFixed(2)+__T(' → ',' → 落在 ')+(__EN?__ib.label.en:__ib.label.zh)+__T(' (IR cutoff '+cutoff+' for this population; &lt;1.0 highly sensitive, &lt;2.0 normal, ≥5.0 severe)','（本人群 IR 切点 '+cutoff+'；&lt;1.0 高敏感、&lt;2.0 正常、≥5.0 严重IR）')+'</li>';
+    __refHtml+='<li>HOMA-β '+(!isNaN(homaBeta)?homaBeta.toFixed(1)+'% — '+(__EN?(__betaEn[betaStatus]||betaStatus):betaStatus):__T('not computable (FPG ≤3.5)','无法计算（血糖≤3.5）'))+'</li>';
+    __refHtml+='</ul></div>';
+  }
+
   const __g1='<div style="text-align:center;padding:16px 0;">' +
       '<div style="font-size:48px;font-weight:700;color:'+color+';">'+homaIR.toFixed(2)+'</div>' +
       '<div style="font-size:14px;color:var(--text-muted);">HOMA-IR 胰岛素抵抗指数</div>' +
@@ -318,7 +336,13 @@ function calc(){
     '<div class="info-box">' +
       '<strong>β细胞功能：</strong>'+(!isNaN(homaBeta)?homaBeta.toFixed(1)+'% — '+betaStatus:'无法计算（血糖≤3.5）')+'<br>' +
       '<strong>建议：</strong>'+advice+
-    '</div>';document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+    '</div>' + __refHtml;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+
+  try{
+    if(typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar&&__ib){
+      TBKit.chart.refBar('#homa_irRefBar',{value:homaIR,unit:'',min:0,max:8,bands:__irBands,ticks:[0,1,2,5,8],title:'HOMA-IR 判读标尺'});
+    }
+  }catch(e){}
 }
 
 calc();

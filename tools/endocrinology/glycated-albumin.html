@@ -149,7 +149,7 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="loadPoor()">控制不佳</button>
     </div>
 
-    <div class="result-box" id="result"></div> <div id="glycated_albuminTable"></div> <div id="glycated_albuminDiff"></div> <div id="glycated_albuminChart"></div> <div id="glycated_albuminHist"></div>
+    <div class="result-box" id="result"></div> <div id="glycated_albuminRefBar"></div> <div id="glycated_albuminTable"></div> <div id="glycated_albuminDiff"></div> <div id="glycated_albuminChart"></div> <div id="glycated_albuminHist"></div>
 
     <h3 style="font-size:14px;margin:16px 0 10px;">GA 参考范围与控制目标</h3>
     <table class="ref-table">
@@ -289,6 +289,22 @@ function calc(){
 
   var pct = Math.min(100, (ga / 30) * 100);
 
+  // —— 参考区间定位（S3 标尺）：GA 控制分级 ——
+  var __EN=(function(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search)||/^en/i.test(document.documentElement.lang||'');}catch(e){}return false;})();
+  var __gaBands=[{lo:0,hi:17,label:{zh:'达标',en:'On target'},color:'#10B981'},
+                 {lo:17,hi:20,label:{zh:'尚可',en:'Fair'},color:'#F59E0B'},
+                 {lo:20,hi:25,label:{zh:'偏高',en:'High'},color:'#F97316'},
+                 {lo:25,hi:30,label:{zh:'显著升高',en:'Markedly high'},color:'#EF4444'}];
+  function __hitGA(v){for(var i=0;i<__gaBands.length;i++){var b=__gaBands[i];if(v>=(b.lo==null?-Infinity:b.lo)&&v<(b.hi==null?Infinity:b.hi))return b;}return null;}
+  function __T(en,zh){return __EN?en:zh;}
+  var __gb=__hitGA(ga),__refHtml='';
+  if(__gb){
+    __refHtml='<div class="ref-card"><h4>'+__T('Reference range','参考区间定位')+'</h4><ul>';
+    __refHtml+='<li>GA '+ga.toFixed(1)+'%'+__T(' → ',' → 落在 ')+(__EN?__gb.label.en:__gb.label.zh)+__T(' (lab reference ~11%–16%, control target &lt;17%)','（实验室参考约 11%–16%，控制目标 &lt;17%）')+'</li>';
+    __refHtml+='<li>'+__T('Estimated average glucose ','对应近期估算血糖 ')+'eAG '+eAGfromGA.toFixed(1)+' mmol/L ≈ '+(eAGfromGA*18).toFixed(0)+' mg/dL'+__T(' (GA×0.583+1.1)','（GA×0.583+1.1 估算）')+'</li>';
+    __refHtml+='</ul></div>';
+  }
+
   const __g1='<div style="text-align:center;padding:16px 0;">' +
       '<div style="font-size:48px;font-weight:700;color:'+color+';">'+ga.toFixed(1)+'%</div>' +
       '<div style="font-size:14px;color:var(--text-muted);">糖化白蛋白(GA)</div>' +
@@ -310,7 +326,13 @@ function calc(){
     '<div class="info-box">' +
       '<strong>GA-HbA1c 一致性分析：</strong><span style="color:'+discordanceColor+';">'+discordance+'</span>'+
       albWarning +
-    '</div>';document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+    '</div>' + __refHtml;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+
+  try{
+    if(typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar&&__gb){
+      TBKit.chart.refBar('#glycated_albuminRefBar',{value:ga,unit:'%',min:0,max:30,bands:__gaBands,ticks:[0,17,20,25,30],title:'GA 判读标尺 (%)'});
+    }
+  }catch(e){}
 }
 
 calc();
