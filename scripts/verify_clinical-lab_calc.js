@@ -155,6 +155,17 @@ const CASES = [
   "ref": "eAG(mg/dL)=28.7×9.4-46.7=223.08→223；eAG(mmol/L)=223.08/18=12.39→12.4；HbA1c 9.4 落在8.0-9.9 → 控制不佳；参考区间定位：落在「不佳」带（≥8.0%）"
 },
 {
+  "slug": "clinical-lab/hba1c-converter",
+  "inputs": {
+    "val1": "9.4",
+    "testDate": "2024-01-15"
+  },
+  "expect": [
+    "下次复查：2024-04-15（未达标：3 个月后复查）"
+  ],
+  "ref": "随访计划生成器铺开（03-53）：HbA1c 9.4 ≥7.0 → 未达标 → 间隔 3 个月；2024-01-15 +3 个月 = 2024-04-15。默认 testDate 空 ⇒ 该 li 不渲染，零交集；EN 走 __T（Next check: … recheck in 3 months）。"
+},
+{
   "slug": "clinical-lab/pcr-ct-interpretation",
   "inputs": {
     "ctSample": "32",

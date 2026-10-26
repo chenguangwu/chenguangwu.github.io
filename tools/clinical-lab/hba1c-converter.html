@@ -155,7 +155,9 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
-    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__hba1c_converterExport()">导出明细 CSV</button></div><div id="result"></div> <div id="hba1c_converterRefBar"></div> <div id="hba1c_converterTable"></div> <div id="hba1c_converterDiff"></div> <div id="hba1c_converterChart"></div> <div id="hba1c_converterHist"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__hba1c_converterExport()">导出明细 CSV</button></div>
+    <div class="input-row" style="margin:8px 0;"><label>本次检查日期（选填，生成复查提醒）</label><input type="date" id="testDate" onchange="convert()"></div>
+    <div id="result"></div> <div id="hba1c_converterRefBar"></div> <div id="hba1c_converterTable"></div> <div id="hba1c_converterDiff"></div> <div id="hba1c_converterChart"></div> <div id="hba1c_converterHist"></div>
 
     <h3 style="font-size:14px;margin:16px 0 8px;">血糖控制目标（HbA1c）</h3>
     <table>
@@ -296,6 +298,14 @@ function convert(){
     html+='<div class="ref-card"><h4>'+__T('Reference range','参考区间定位')+'</h4><ul>';
     html+='<li>HbA1c '+hba1c.toFixed(1)+'%'+__T(' → ',' → 落在 ')+(__EN?__ab.label.en:__ab.label.zh)+__T(' (normal &lt;5.7%, diabetes threshold ≥6.5%, usual target &lt;7.0%)','（正常 &lt;5.7%，糖尿病诊断阈值 ≥6.5%，一般控制目标 &lt;7.0%）')+'</li>';
     html+='<li>'+__T('Estimated average glucose ','对应平均血糖 ')+'eAG '+eag_mmol.toFixed(1)+' mmol/L（'+eag_mgdl.toFixed(0)+' mg/dL）'+__T('; eAG target ≈ 8.6 mmol/L (154 mg/dL)','；eAG 目标约 8.6 mmol/L（154 mg/dL）')+'</li>';
+    // —— 复查提醒（随访计划生成器铺开）：按控制水平推下次复查日期 ——
+    var __td=document.getElementById('testDate')?document.getElementById('testDate').value:'';
+    if(__td){
+      var __mo = hba1c<5.7 ? 12 : hba1c<7.0 ? 6 : 3;
+      var __lbl = hba1c<5.7 ? __T('annual re-screening','正常：12 个月后复筛') : hba1c<7.0 ? __T('recheck in 6 months','达标：6 个月后复查') : __T('recheck in 3 months','未达标：3 个月后复查');
+      var __nd=new Date(__td+'T00:00:00'); __nd.setMonth(__nd.getMonth()+__mo);
+      html+='<li>'+__T('Next check: ','下次复查：')+__nd.getFullYear()+'-'+String(__nd.getMonth()+1).padStart(2,'0')+'-'+String(__nd.getDate()).padStart(2,'0')+'（'+__lbl+'）</li>';
+    }
     html+='</ul></div>';
   }
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h1;
