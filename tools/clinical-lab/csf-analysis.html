@@ -168,7 +168,7 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="loadType('viral')">病毒性示例</button>
     </div>
 
-    <div id="result"></div> <div id="csf_analysisTable"></div> <div id="csf_analysisDiff"></div> <div id="csf_analysisChart"></div> <div id="csf_analysisHist"></div>
+    <div id="result"></div> <div id="csf_presBar"></div> <div id="csf_proBar"></div> <div id="csf_analysisTable"></div> <div id="csf_analysisDiff"></div> <div id="csf_analysisChart"></div> <div id="csf_analysisHist"></div>
 
     <h3 style="font-size:14px;margin:16px 0 8px;">三种脑膜炎鉴别要点</h3>
     <table>
@@ -318,7 +318,34 @@ function analyze(){
   }
   html += '<div class="tip-box tip-warn">⚠️ 鉴别结果为辅助参考，确诊需依赖病原学检查(革兰染色/抗酸染色/培养/PCR)及临床综合判断。</div>';
 
-  const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
+  // —— 参考区间定位（S3 标尺）：CSF 压力/蛋白/糖/氯化物 ——
+  var __EN=(function(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search)||/^en/i.test(document.documentElement.lang||'');}catch(e){}return false;})();
+  function __T(en,zh){return __EN?en:zh;}
+  var __pBands=[{lo:0,hi:80,label:{zh:'偏低',en:'Low'},color:'#3B82F6'},
+                {lo:80,hi:180,label:{zh:'正常',en:'Normal'},color:'#10B981'},
+                {lo:180,hi:200,label:{zh:'轻度升高',en:'Slightly high'},color:'#F59E0B'},
+                {lo:200,hi:400,label:{zh:'升高',en:'Elevated'},color:'#EF4444'}];
+  var __prBands=[{lo:0,hi:0.15,label:{zh:'偏低',en:'Low'},color:'#3B82F6'},
+                 {lo:0.15,hi:0.45,label:{zh:'正常',en:'Normal'},color:'#10B981'},
+                 {lo:0.45,hi:1.5,label:{zh:'增高',en:'Elevated'},color:'#F59E0B'},
+                 {lo:1.5,hi:5,label:{zh:'显著增高',en:'Markedly high'},color:'#EF4444'}];
+  function __hit(v,bands){for(var i=0;i<bands.length;i++){var b=bands[i];if(v>=(b.lo==null?-Infinity:b.lo)&&v<(b.hi==null?Infinity:b.hi))return b;}return null;}
+  var __pb=__hit(pres,__pBands),__prb=__hit(protein,__prBands);
+  var __refHtml='<div class="ref-card"><h4>'+__T('Reference range','参考区间定位')+'</h4><ul>';
+  if(__pb){__refHtml+='<li>'+__T('Opening pressure ','压力 ')+pres+__T(' mmH2O → ',' → 落在 ')+(__EN?__pb.label.en:__pb.label.zh)+__T(' (normal 80–180)','（正常 80–180 mmH2O）')+'</li>';}
+  if(__prb){__refHtml+='<li>'+__T('Protein ','蛋白 ')+protein.toFixed(2)+__T(' g/L → ',' → 落在 ')+(__EN?__prb.label.en:__prb.label.zh)+__T(' (normal 0.15–0.45)','（正常 0.15–0.45 g/L）')+'</li>';}
+  __refHtml+='<li>'+__T('CSF glucose ','脑脊液糖 ')+glu.toFixed(1)+__T(' mmol/L (normal 2.2–4.4; CSF/blood ratio ≥0.55, current '+(bg>0?(glu/bg).toFixed(2):'—')+')','（正常 2.2–4.4 mmol/L；糖比值 ≥0.55，当前 '+(bg>0?(glu/bg).toFixed(2):'—')+'）')+'</li>';
+  __refHtml+='<li>'+__T('Chloride ','氯化物 ')+cl.toFixed(0)+__T(' mmol/L (normal 117–127; &lt;115 suggests TB meningitis)','（正常 117–127 mmol/L；&lt;115 提示结核性脑膜炎）')+'</li>';
+  __refHtml+='</ul></div>';
+
+  const __h0=html+__refHtml;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
+
+  try{
+    if(typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){
+      if(__pb) TBKit.chart.refBar('#csf_presBar',{value:pres,unit:'',min:0,max:400,bands:__pBands,ticks:[0,80,180,200,400],title:'脑脊液压力判读标尺 (mmH2O)'});
+      if(__prb) TBKit.chart.refBar('#csf_proBar',{value:protein,unit:'',min:0,max:5,bands:__prBands,ticks:[0,0.15,0.45,1.5,5],title:'脑脊液蛋白判读标尺 (g/L)'});
+    }
+  }catch(e){}
 }
 
 analyze();
