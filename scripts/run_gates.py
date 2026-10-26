@@ -2,8 +2,12 @@
 """Run the ToolBox build and release quality gates in a fixed order.
 
 The runner deliberately performs no Git or index-submission actions. It is
-safe to use locally and from CI, and it stops at the first failed gate while
-preserving the original command output and exit code.
+safe to use locally and from CI.
+
+失败聚合（2026-10-26）：单道门禁失败不再立即中止，而是把剩余门禁全部跑完后
+统一汇总 —— 打印失败门禁清单 + 每道门禁的具体问题条目（工具名/用例 + 报错
+原因摘要），直接给出修复定位，省去二次翻日志。唯一例外：build 失败立即停止
+（后续所有门禁都消费 build 产物，继续跑只会产生海量假失败）。
 """
 
 from __future__ import annotations
@@ -16,6 +20,9 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+# 失败汇总里每个问题条目的摘要行数上限（防 got 超长串刷屏）
+PROBLEM_SUMMARY_LIMIT = 60
 
 
 GATES = (
@@ -313,27 +320,86 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def run_gate(number: int, total: int, name: str, command: tuple[str, ...]) -> int:
+def run_gate(number: int, total: int, name: str, command: tuple[str, ...]) -> tuple[int, str]:
+    """跑一道门禁：捕获子进程输出并原样透传，返回 (exit_code, 输出全文)。"""
     print(f"\n[{number}/{total}] {name}: {' '.join(command)}", flush=True)
     started = time.monotonic()
     try:
-        completed = subprocess.run(command, cwd=ROOT, check=False)
+        completed = subprocess.run(
+            command, cwd=ROOT, check=False, capture_output=True, text=True
+        )
+        output = (completed.stdout or "") + (completed.stderr or "")
+        exit_code = completed.returncode
     except FileNotFoundError as exc:
-        executable = command[0]
-        print(f"FAIL: required executable is not available: {executable}", file=sys.stderr)
-        print(f"detail: {exc}", file=sys.stderr)
-        return 127
+        output = (
+            f"FAIL: required executable is not available: {command[0]}\n"
+            f"detail: {exc}"
+        )
+        exit_code = 127
 
     elapsed = time.monotonic() - started
-    if completed.returncode == 0:
+    # 原样透传子进程输出（保持与旧版一致的日志完整性与 CI 可读性）
+    if output:
+        print(output, end="" if output.endswith("\n") else "\n", flush=True)
+    if exit_code == 0:
         print(f"PASS: {name} ({elapsed:.1f}s)", flush=True)
     else:
         print(
-            f"FAIL: {name} exit={completed.returncode} ({elapsed:.1f}s)",
+            f"FAIL: {name} exit={exit_code} ({elapsed:.1f}s)",
             file=sys.stderr,
             flush=True,
         )
-    return completed.returncode
+    return exit_code, output
+
+
+def extract_problems(output: str) -> str:
+    """从门禁输出中提取「具体问题条目」：工具名/用例 slug + 报错原因。
+
+    通用规则（不绑定某一门禁的输出格式）：
+    - ❌ 开头的条目行（verify 系：`❌ <分类>/<工具>  <原因>`）→ 连带其后的
+      errs:/got: 摘要行（got 截 200 字符）；
+    - FAIL/Error/逃生项/突破基线 等失败语义行 → 原样列出。
+    """
+    lines = output.splitlines()
+    hits: list[str] = []
+    i = 0
+    while i < len(lines):
+        s = lines[i].strip()
+        is_entry = s.startswith("❌") or s.startswith("FAIL")
+        is_semantic = (
+            "逃生项" in s and ("突破" in s or ">" in s)
+        ) or s.startswith("Error:") or s.startswith("SyntaxError")
+        # 判别器逃生清单行：`- it/<工具> (via=...)`
+        is_escape_item = s.startswith("- ") and "(via=" in s
+        if is_entry or is_semantic or is_escape_item:
+            hits.append(s[:300])
+            if is_entry and not s.startswith("FAIL"):
+                # verify 系条目：其后紧跟 errs:/got: 摘要（最多 2 行有效）
+                grabbed = 0
+                for nxt in lines[i + 1 : i + 8]:
+                    t = nxt.strip()
+                    if t.startswith("errs:") or t.startswith("got:"):
+                        hits.append("    " + t[:220])
+                        grabbed += 1
+                        if grabbed >= 2:
+                            break
+                    elif t and not t.startswith(("❌", "✅")):
+                        break
+        i += 1
+    if not hits:
+        return "（未能自动提取具体条目，请查看上方该门禁的完整输出）"
+    # 去重保序 + 截断
+    seen: set[str] = set()
+    uniq: list[str] = []
+    for h in hits:
+        if h not in seen:
+            seen.add(h)
+            uniq.append(h)
+    if len(uniq) > PROBLEM_SUMMARY_LIMIT:
+        uniq = uniq[:PROBLEM_SUMMARY_LIMIT] + [
+            f"… 其余 {len(hits) - PROBLEM_SUMMARY_LIMIT} 条略（完整见上方输出）"
+        ]
+    return "\n".join(uniq)
 
 
 def main() -> int:
@@ -343,11 +409,38 @@ def main() -> int:
         gates = gates[1:]
         print("WARNING: build gate skipped; use this mode for local re-checks only.")
 
+    failures: list[tuple[str, int, str]] = []
     for number, (name, command) in enumerate(gates, start=1):
-        exit_code = run_gate(number, len(gates), name, command)
+        exit_code, output = run_gate(number, len(gates), name, command)
         if exit_code:
-            print(f"\nQuality gates stopped after: {name}", file=sys.stderr)
-            return exit_code
+            failures.append((name, exit_code, output))
+            if name == "build":
+                # 唯一例外：build 产物是后续全部门禁的输入，失败后继续只会产生
+                # 海量假失败（链接审计/资产审计/verify 全崩），故立即停止。
+                print(
+                    f"\nQuality gates stopped after build failure: {name}\n"
+                    "（build 产物是后续门禁的输入，修复 build 后重跑）",
+                    file=sys.stderr,
+                )
+                return exit_code
+
+    if failures:
+        print("\n" + "=" * 72, file=sys.stderr)
+        print(
+            f"❌ QUALITY GATES FAILED: {len(failures)}/{len(gates)} 门禁未通过"
+            "（已全部跑完，逐门禁问题条目如下）",
+            file=sys.stderr,
+        )
+        for name, code, output in failures:
+            print(f"\n── {name} (exit={code}) ──", file=sys.stderr)
+            print(extract_problems(output), file=sys.stderr)
+        print("=" * 72, file=sys.stderr)
+        print(
+            f"\nQuality gates stopped with {len(failures)} failed gate(s): "
+            + ", ".join(n for n, _, _ in failures),
+            file=sys.stderr,
+        )
+        return 1
 
     print(f"\nAll {len(gates)} quality gates passed.")
     return 0
