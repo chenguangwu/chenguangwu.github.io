@@ -150,7 +150,7 @@ s.parentNode.insertBefore(el, s);
 <div id="tab-calc" class="tab-content active">
     <div class="formula-box">
       <div class="formula-title">📐 计算公式 / 原理</div>
-      <div class="formula-eq">穗数法 亩产(kg) = 亩穗数(万穗) × 穗粒数 × 千粒重(g) ÷ 1 000 000；样方法 亩产 = 样方重量 × 干物质率 × 666.67 ÷ 样方面积；标准亩产 = 亩产 × (100 − 含水量) ÷ (100 − 13)</div>
+      <div class="formula-eq">穗数法 亩产(kg) = 亩穗数(万穗) × 穗粒数 × 千粒重(g) ÷ 100；样方法 亩产 = 样方重量 × 干物质率 × 666.67 ÷ 样方面积；标准亩产 = 亩产 × (100 − 含水量) ÷ (100 − 13)</div>
       <div class="formula-desc">两种测产法：① 穗数法按「亩穗数 × 穗粒数 × 千粒重」折算理论产量；② 样方法以样方实收重量乘干物质率并向亩面积折算。两者均再按标准含水量 13% 做水分归一：标准亩产 = 亩产 × (100 − 实际含水量) ÷ (100 − 13)，使不同含水率的产量可比。总产量 = 标准亩产 × 面积，并给出作物产量等级参考。</div>
     </div>
 <div class="input-row">
@@ -254,33 +254,36 @@ function switchTab(t){document.querySelectorAll('.tab-btn').forEach(function(b,i
 function initCrops(){var h='';CROPS.forEach(function(c,i){h+='<option value="'+i+'">'+c.name+'</option>';});const __g1=h;$('crop').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));const __g2=CROPS.map(function(c){return '<tr><td>'+c.name+'</td><td>'+(c.spikes||'-')+'</td><td>'+(c.grains||'-')+'</td><td>'+(c.weight||'-')+'</td><td>'+c.yield+'</td></tr>';}).join('');$('cropTable').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));$('crop').value=0;applyCrop();}
 function applyCrop(){var i=parseInt($('crop').value);var c=CROPS[i];if(c.spikes){$('spikes').value=c.spikes;$('grains').value=c.grains;$('weight').value=c.weight;$('method').value='spike';$('spikeInputs').style.display='block';$('sampleInputs').style.display='none';}calc();}
 function calc(){
+var __EN=((typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())||/lang=en-US/i.test(location.search)||/^en/i.test(document.documentElement.lang||''));
+var __T=function(en,zh){return __EN?en:zh;};
+var __cropEn={'小麦':'Wheat','水稻':'Rice','玉米':'Maize','大豆':'Soybean','油菜':'Rapeseed','花生':'Peanut'};
 var method=$('method').value;var area=parseFloat($('area').value)||1;var moisture=parseFloat($('moisture').value)||13;
 var yieldPerMu=0;
-if(method==='spike'){var spikes=parseFloat($('spikes').value)||0;var grains=parseFloat($('grains').value)||0;var w=parseFloat($('weight').value)||0;yieldPerMu=spikes*grains*w/100/10;}
+if(method==='spike'){var spikes=parseFloat($('spikes').value)||0;var grains=parseFloat($('grains').value)||0;var w=parseFloat($('weight').value)||0;yieldPerMu=spikes*grains*w/100;}
 else if(method==='sample'){var sArea=parseFloat($('sampleArea').value)||1;var sWeight=parseFloat($('sampleWeight').value)||0;var dry=parseFloat($('dryFactor').value)||0.85;yieldPerMu=sWeight*dry*666.67/sArea;}
 else{yieldPerMu=500;}
 var stdMoisture=13;var adjYield=yieldPerMu*(100-moisture)/(100-stdMoisture);
 var totalYield=adjYield*area;
 var cropName=$('crop').options[$('crop').selectedIndex].text;
-const __g3='<h3 style="text-align:center;margin-bottom:12px;">🌾 '+cropName+' 测产结果</h3>'+
+const __g3='<h3 style="text-align:center;margin-bottom:12px;">🌾 '+(__EN?(__cropEn[cropName]||cropName):cropName)+__T(' Yield Result',' 测产结果')+'</h3>'+
 '<div class="data-grid">'+
-'<div class="data-card"><div class="num">'+adjYield.toFixed(1)+'</div><div class="label">亩产量(kg)</div></div>'+
-'<div class="data-card"><div class="num">'+totalYield.toFixed(0)+'</div><div class="label">总产量(kg)</div></div>'+
-'<div class="data-card"><div class="num">'+(totalYield/1000).toFixed(2)+'</div><div class="label">总产量(吨)</div></div>'+
-'<div class="data-card"><div class="num">'+moisture+'%</div><div class="label">含水量</div></div>'+
+'<div class="data-card"><div class="num">'+adjYield.toFixed(1)+'</div><div class="label">'+__T('Yield (kg/mu)','亩产量(kg)')+'</div></div>'+
+'<div class="data-card"><div class="num">'+totalYield.toFixed(0)+'</div><div class="label">'+__T('Total (kg)','总产量(kg)')+'</div></div>'+
+'<div class="data-card"><div class="num">'+(totalYield/1000).toFixed(2)+'</div><div class="label">'+__T('Total (t)','总产量(吨)')+'</div></div>'+
+'<div class="data-card"><div class="num">'+moisture+'%</div><div class="label">'+__T('Moisture','含水量')+'</div></div>'+
 '</div>'+
-'<div class="tip-box tip-success" style="margin-top:12px;"><strong>📊 产量等级</strong>: '+getYieldGrade(cropName,adjYield)+'</div>';$('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+'<div class="tip-box tip-success" style="margin-top:12px;"><strong>'+__T('📊 Yield Grade','📊 产量等级')+'</strong>: '+getYieldGrade(cropName,adjYield,__EN,__T)+'</div>';$('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 $('spikeInputs').style.display=method==='spike'?'block':'none';
 $('sampleInputs').style.display=method==='sample'?'block':'none';
 $('chartWrap').style.display='block';drawChart(adjYield,CROPS[parseInt($('crop').value)].yield);
 }
-function getYieldGrade(crop,y){var ref=CROPS.find(function(c){return c.name===crop;});if(!ref)return '--';var ratio=y/ref.yield;if(ratio>=1.2)return '<span class="grade-tag grade-excellent">高产(超平均'+((ratio-1)*100).toFixed(0)+'%)</span>';if(ratio>=1.0)return '<span class="grade-tag grade-good">丰产(达标)</span>';if(ratio>=0.85)return '<span class="grade-tag grade-pass">平产</span>';return '<span class="grade-tag grade-fail">低产(需分析原因)</span>';}
+function getYieldGrade(crop,y,__EN,__T){__EN=__EN||((typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())||/lang=en-US/i.test(location.search)||/^en/i.test(document.documentElement.lang||''));__T=__T||function(en,zh){return __EN?en:zh;};var ref=CROPS.find(function(c){return c.name===crop;});if(!ref)return '--';var ratio=y/ref.yield;if(ratio>=1.2)return '<span class="grade-tag grade-excellent">'+__T('High yield (+'+((ratio-1)*100).toFixed(0)+'% vs avg)','高产(超平均'+((ratio-1)*100).toFixed(0)+'%)')+'</span>';if(ratio>=1.0)return '<span class="grade-tag grade-good">'+__T('Good harvest (on target)','丰产(达标)')+'</span>';if(ratio>=0.85)return '<span class="grade-tag grade-pass">'+__T('Average','平产')+'</span>';return '<span class="grade-tag grade-fail">'+__T('Low yield (investigate)','低产(需分析原因)')+'</span>';}
 function drawChart(y,ref){var c=$('chart'),ctx=c.getContext('2d'),ct=c.parentElement;c.width=ct.clientWidth;c.height=ct.clientHeight;var w=c.width,h=c.height;ctx.clearRect(0,0,w,h);var pad={top:30,right:30,bottom:40,left:60},cw=w-pad.left-pad.right,ch=h-pad.top-pad.bottom;var max=Math.max(y,ref)*1.3;ctx.strokeStyle='rgba(128,128,128,0.15)';ctx.font='11px sans-serif';ctx.fillStyle=resolveCanvasColor('var(--text-muted)','#6B7280');for(var i=0;i<=5;i++){var yv=pad.top+ch-ch*i/5,v=max*i/5;ctx.textAlign='right';ctx.fillText(v.toFixed(0),pad.left-8,yv+4);ctx.beginPath();ctx.moveTo(pad.left,yv);ctx.lineTo(w-pad.right,yv);ctx.stroke();}
 var bw=cw/4;var bars=[{l:'测产',v:y,c:'var(--primary)'},{l:'参考产量',v:ref,c:'#90caf9'}];
 bars.forEach(function(b,i){var x=pad.left+bw*i+bw*0.5;var bh=(b.v/max)*ch;var by=pad.top+ch-bh;ctx.fillStyle=b.c;ctx.fillRect(x,by,bw*0.5,bh);ctx.fillStyle=resolveCanvasColor('var(--text)','#1F2937');ctx.textAlign='center';ctx.font='12px sans-serif';ctx.fillText(b.v.toFixed(1)+'kg',x+bw*0.25,by-6);ctx.fillStyle=resolveCanvasColor('var(--text-muted)','#6B7280');ctx.fillText(b.l,x+bw*0.25,h-12);});
 ctx.textAlign='left';ctx.font='12px sans-serif';ctx.fillStyle=resolveCanvasColor('var(--primary)','#FF6B35');ctx.fillRect(pad.left,10,12,12);ctx.fillText(' 本次测产',pad.left+16,20);ctx.fillStyle='#90caf9';ctx.fillRect(pad.left+120,10,12,12);ctx.fillText(' 参考产量',pad.left+136,20);
 }
-function saveHistory(){var r={time:new Date().toLocaleString('zh-CN'),crop:$('crop').options[$('crop').selectedIndex].text,yield:parseFloat($('spikes').value||0)*parseFloat($('grains').value||0)*parseFloat($('weight').value||0)/100/10,area:$('area').value};var h=getHistory();h.unshift(r);if(h.length>20)h=h.slice(0,20);localStorage.setItem(HK,JSON.stringify(h));}
+function saveHistory(){var r={time:new Date().toLocaleString('zh-CN'),crop:$('crop').options[$('crop').selectedIndex].text,yield:parseFloat($('spikes').value||0)*parseFloat($('grains').value||0)*parseFloat($('weight').value||0)/100,area:$('area').value};var h=getHistory();h.unshift(r);if(h.length>20)h=h.slice(0,20);localStorage.setItem(HK,JSON.stringify(h));}
 function getHistory(){try{return JSON.parse(localStorage.getItem(HK)||'[]');}catch(e){return[];}}
 function renderHistory(){var h=getHistory();if(!h.length){$('historyList').innerHTML='<div class="history-empty">暂无历史</div>';return;}const __g5=h.map(function(r,i){return '<div class="history-item" onclick="loadHistory('+i+')"><div class="time">'+r.time+'</div><div class="summary">'+r.crop+' - '+r.yield.toFixed(1)+'kg/亩</div><div class="detail">'+r.area+'亩</div></div>';}).join('');$('historyList').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));}
 function loadHistory(i){switchTab('calc');calc();}
@@ -480,7 +483,12 @@ function __crop_yieldExport(){
 }
 function __crop_yieldPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#crop_yieldPresets',[{label:'默认参数',labelEn:'Default',values:{method:'spike', spikes:'40', grains:'35', weight:'45', sampleArea:'1', sampleWeight:'1.2', dryFactor:'0.85', area:'10', moisture:'13'}}],function(){ calc(); });
+    TBKit.preset.bar('#crop_yieldPresets',[
+      {label:'默认参数',labelEn:'Default',values:{method:'spike', spikes:'40', grains:'35', weight:'45', sampleArea:'1', sampleWeight:'1.2', dryFactor:'0.85', area:'10', moisture:'13'}},
+      {label:'水稻测产',labelEn:'Rice yield',values:{method:'spike', spikes:'22', grains:'120', weight:'27', sampleArea:'1', sampleWeight:'1.2', dryFactor:'0.85', area:'10', moisture:'13.5'}},
+      {label:'玉米测产',labelEn:'Maize yield',values:{method:'spike', spikes:'0.45', grains:'550', weight:'350', sampleArea:'1', sampleWeight:'1.2', dryFactor:'0.85', area:'10', moisture:'14'}},
+      {label:'样方实测(小麦)',labelEn:'Quadrat sample (wheat)',values:{method:'sample', spikes:'40', grains:'35', weight:'45', sampleArea:'2', sampleWeight:'1.8', dryFactor:'0.85', area:'10', moisture:'13'}}
+    ],function(){ calc(); });
 }
 var __crop_yield_f0=(typeof calc==='function')?calc:null;
 if(__crop_yield_f0){

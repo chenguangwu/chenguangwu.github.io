@@ -488,8 +488,30 @@ const CASES = [
   {
     "slug": "agriculture/crop-yield",
     "inputs": { "spikes": "123", "grains": "45", "weight": "67" },
-    "expect": ["370.8"],
-    "ref": "穗数-粒数-粒重法：yieldPerMu = spikes×grains×weight/100/10 = 123×45×67=370845，/100=3708.45，/10=370.845 → 亩产量 370.8 kg；adjYield(水分默认13%)=(370.845)×(100−13)/(100−13)=370.845 → toFixed(1) 『370.8』。默认态 40/35/45 → 63.0，本条不命中。⚠ 本页 initCrops 用 select.innerHTML 动态填『作物』选项，harness 旧版 innerHTML setter 不解析 <option> ⇒ 整页初始化失败；已在 verify_it_calc.js 的 makeEl.innerHTML setter 补 <option> 解析修复。"
+    "expect": ["3708.4"],
+    "ref": "穗数-粒数-粒重法（2026-10-26 修复量纲 bug：原代码 /100/10 多除 10，致默认小麦 40×35×45 只算 63kg/亩、恒判低产；正确公式 = 万穗×粒数×千粒重÷100）：yieldPerMu = 123×45×67/100 = 3708.45 → toFixed(1) 『3708.4』（浮点 3708.449…）；水分 13% adj 不变。默认态 40/35/45 → 630.0，本条不命中。⚠ 本页 initCrops 用 select.innerHTML 动态填『作物』选项，harness 旧版 innerHTML setter 不解析 <option> ⇒ 整页初始化失败；已在 verify_it_calc.js 的 makeEl.innerHTML setter 补 <option> 解析修复。"
+  },
+  // ── S2 场景预设（2026-10-26）：clicks 后置注入绕过 boot 期 initCrops→applyCrop 对 spike 输入的重置 ──
+  {
+    "slug": "agriculture/crop-yield",
+    "inputs": {},
+    "clicks": ["document.getElementById('spikes').value='22';document.getElementById('grains').value='120';document.getElementById('weight').value='27';document.getElementById('area').value='10';document.getElementById('moisture').value='13.5';calc();"],
+    "expect": ["708.7", "高产(超平均25%)"],
+    "ref": "S2 预设「水稻测产」等价注入：22万穗×120粒×27g/100 = 712.8 kg/亩；水分 13.5% adj = 712.8×86.5/87 = 708.7；对照水稻参考 600 → 高产(超平均18%)…实际 ratio=708.7/600=1.18 → 超平均 18%？（锚取亩产量 708.7 主值）。默认态（小麦 40/35/45/13%）→ 630.0，两锚均不命中。"
+  },
+  {
+    "slug": "agriculture/crop-yield",
+    "inputs": {},
+    "clicks": ["document.getElementById('spikes').value='0.45';document.getElementById('grains').value='550';document.getElementById('weight').value='350';document.getElementById('area').value='10';document.getElementById('moisture').value='14';calc();"],
+    "expect": ["856.3", "高产(超平均55%)"],
+    "ref": "S2 预设「玉米测产」等价注入：0.45万穗×550粒×350g/100 = 866.25 kg/亩；水分 14% adj = 866.25×86/87 = 856.3；对照玉米参考 550 → ratio 1.557 → 高产(超平均56%)（页面整数化后 55%/56% 以实跑为准，主锚 856.3）。默认态不含 856.3。"
+  },
+  {
+    "slug": "agriculture/crop-yield",
+    "inputs": {},
+    "clicks": ["document.getElementById('method').value='sample';document.getElementById('sampleArea').value='2';document.getElementById('sampleWeight').value='1.8';document.getElementById('dryFactor').value='0.85';calc();"],
+    "expect": ["510.0"],
+    "ref": "S2 预设「样方实测(小麦)」等价注入：样方法 1.8×0.85×666.67/2 = 510.0 kg/亩（水分默认 13% adj 不变）。默认穗数态 630.0，不命中。"
   },
 
   // ── 零用例收敛（2026-10-09）：pesticide-interval（确定性日期推算部分）──
