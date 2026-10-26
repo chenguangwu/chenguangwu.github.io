@@ -30,4 +30,6 @@
   - `endocrinology/ogtt-interpretation`：#ogtt_fpgBar（正常/IFG/糖尿病，max15）+ #ogtt_h2Bar（正常/IGT/糖尿病，max20）双标尺；ref-card 文本定位含空腹与 2h 双锚。
   - `medical/convert-glucose`：#convert_glucoseRefBar（低血糖/正常/IFG/糖尿病/显著升高，max25，mg/dL 结果自动折算 mmol/L 当量）；文本定位注明「空腹口径，随机血糖标准不同」。
   - 两页现有 verify 用例已强，零改动；注入态与 EN 零 CJK 经 harness 内联 probe 验证通过。
-- 🔴 待续：其余检验/单值带型页按同一模板铺开（thyroid-function-model / urinalysis / csf / semen / electrolyte / blood-routine-reference / tumor-marker-doubling / coronary-calcium 已做 / 等）；「报告单批量解读」模块待开发。
+- 🟢 批次 03-43（2026-10-26 · S3 标尺铺开第四批）：`clinical-lab/tumor-marker-doubling`：
+  #tumor_doublingRefBar（DT 极快/较快/中等/缓慢四带，max360，末带 `hi:null` 开区间）；ref-card 只在上升分支（DT）渲染，下降分支（t½，阈值随标志物生理半衰期浮动）不适配固定带，暂不铺。注入态/EN 零 CJK probe 通过；clinical-lab verify 72/72。
+- 🔴 待续：其余检验/单值带型页按同一模板铺开（thyroid-function-model / urinalysis / csf / semen / electrolyte / blood-routine-reference 等多值/查表型页 refBar 适配性弱，需做「多指标多标尺」变体或逐页评估）；「报告单批量解读」模块待开发。

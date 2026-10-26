@@ -166,7 +166,7 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
-    <div id="result"></div> <div id="tumor_marker_doublingTable"></div> <div id="tumor_marker_doublingDiff"></div> <div id="tumor_marker_doublingChart"></div> <div id="tumor_marker_doublingHist"></div>
+    <div id="result"></div> <div id="tumor_doublingRefBar"></div> <div id="tumor_marker_doublingTable"></div> <div id="tumor_marker_doublingDiff"></div> <div id="tumor_marker_doublingChart"></div> <div id="tumor_marker_doublingHist"></div>
 
     <h3 style="font-size:14px;margin:16px 0 8px;">常见肿瘤标志物参考</h3>
     <table>
@@ -278,6 +278,19 @@ function calc(){
     else if(dt_val<180){ dtStatus='倍增中等'; dtColor='#3b82f6'; }
     else { dtStatus='倍增缓慢(惰性生长)'; dtColor='#059669'; }
 
+    // —— 参考区间定位（S3 标尺）：DT 分级 ——
+    var __EN=(function(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search)||/^en/i.test(document.documentElement.lang||'');}catch(e){}return false;})();
+    function __T(en,zh){return __EN?en:zh;}
+    var __dtBands=[{lo:0,hi:30,label:{zh:'极快(高度侵袭)',en:'Very fast (aggressive)'},color:'#DC2626'},
+                   {lo:30,hi:90,label:{zh:'较快(进展期)',en:'Fast (progressive)'},color:'#F59E0B'},
+                   {lo:90,hi:180,label:{zh:'中等',en:'Intermediate'},color:'#3B82F6'},
+                   {lo:180,hi:null,label:{zh:'缓慢(惰性生长)',en:'Slow (indolent)'},color:'#059669'}];
+    function __hit(v,bands){for(var i=0;i<bands.length;i++){var b=bands[i];if(v>=(b.lo==null?-Infinity:b.lo)&&v<(b.hi==null?Infinity:b.hi))return b;}return null;}
+    var __db=(isFinite(dt_val)&&dt_val>0)?__hit(dt_val,__dtBands):null;
+    if(__db){
+      html += '<div class="ref-card"><h4>'+__T('Reference range','参考区间定位')+'</h4><ul><li>'+__T('Doubling time ','倍增时间 ')+dt_val.toFixed(1)+__T(' days → ',' 天 → 落在 ')+(__EN?__db.label.en:__db.label.zh)+__T(' (&lt;30 very fast, 30–90 fast, 90–180 intermediate, ≥180 slow)','（&lt;30 天极快、30–90 较快、90–180 中等、≥180 缓慢）')+'</li></ul></div>';
+    }
+
     html += '<div class="marker-card"><div style="font-size:13px;color:var(--text-muted);">倍增时间(DT)</div><div class="big trend-up">'+dt_val.toFixed(1)+' 天</div><div style="color:'+dtColor+';font-weight:600;">'+dtStatus+'</div></div>';
     html += '<div class="stat-grid">';
     html += '<div class="stat-card"><div class="val">'+ratio.toFixed(2)+'×</div><div class="lbl">升高倍数</div></div>';
@@ -315,6 +328,12 @@ function calc(){
   }
 
   const __g3=html;document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+
+  try{
+    if(typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar&&typeof __db!=='undefined'&&__db){
+      TBKit.chart.refBar('#tumor_doublingRefBar',{value:dt_val,unit:'',min:0,max:360,bands:__dtBands,ticks:[0,30,90,180,360],title:'倍增时间判读标尺 (天)'});
+    }
+  }catch(e){}
 }
 
 function copyResult(){ ToolBox.copyText(document.getElementById('result').innerText, i18nText('msg262')); }
