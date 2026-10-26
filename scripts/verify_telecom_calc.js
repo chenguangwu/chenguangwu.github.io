@@ -31,6 +31,16 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "telecom/bandwidth-calculator",
+  "clicks": [
+    "document.getElementById('sizeUnit').value='0.0009765625'; document.getElementById('fileSize').value='2048'; document.getElementById('bandwidth').value='4'; document.getElementById('efficiency').value='100'; calc();"
+  ],
+  "expect": [
+    "2048 KB = 2.00 MB"
+  ],
+  "ref": "E2 口径统一（byte 系 1024）：KB 选项 value=1/1024，2048 KB = 2048×0.0009765625 = 2.00 MB（step3 回显含 sizeLabel）。判别态 clicks 清空回默认 GB/4.7 → 「4.7 GB = 4812.80 MB」零交集。"
+},
+{
   "slug": "telecom/ber-snr",
   "inputs": {
     "ber": "1e-5",
