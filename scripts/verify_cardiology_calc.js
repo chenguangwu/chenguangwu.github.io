@@ -20,6 +20,19 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "cardiology/ambulatory-bp",
+  "inputs": {
+    "avg24_sbp": "148",
+    "avg24_dbp": "86",
+    "followDate": "2024-03-10"
+  },
+  "expect": [
+    "随访计划（评估日 2024-03-10，24h平均 高血压）",
+    "第3次随访：2024-06-08（评估后 90 天"
+  ],
+  "ref": "随访计划生成器（03-66）：avg24 148/86 ≥135/85 ⇒ 24h平均 高血压 ⇒ 日程 14/30/90/365 天。2024-03-10 +90 天 = 2024-06-08（3 月余 21 + 4 月 30 + 5 月 31 = 82，余 8 天 → 6/8；闰年 2/29 在起点前不影响）。默认 followDate 为空 ⇒ 日程块不渲染；discriminator 将 avg24_sbp 换回默认 142、followDate 换回空 ⇒ 两条锚零交集。日期对固定、与运行日无关（铁律④）。"
+},
+{
   "slug": "cardiology/antiarrhythmic-class",
   "clicks": [
     "showClass('4', {classList:{add:function(){},remove:function(){}}})"

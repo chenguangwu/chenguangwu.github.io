@@ -143,6 +143,7 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row">
       <div><label>夜间最低收缩压 (mmHg)</label><input type="number" id="lowest_sbp" value="120" oninput="calc()" placeholder="如 120"></div>
       <div><label>清晨收缩压 (mmHg)</label><input type="number" id="morning_sbp" value="165" oninput="calc()" placeholder="如 165"></div>
+      <div><label>本次监测日期（选填，生成随访日程）</label><input type="date" id="followDate" onchange="calc()"></div>
     </div>
 
     <div class="toolbar">
@@ -290,6 +291,23 @@ function calc(){
 
   html+='<div class="tip-box" style="border-color:'+dipColor+';color:'+dipColor+';background:'+dipColor+'1a;"><strong>昼夜节律：'+dipType+'</strong><br>'+dipAdvice+'</div>';
   html+='<div class="tip-box" style="border-color:'+surgeColor+';color:'+surgeColor+';background:'+surgeColor+'1a;"><strong>晨峰：'+surgeLevel+'</strong><br>'+surgeAdvice+'</div>';
+
+  // —— 随访计划生成器：监测日期 + 24h 平均诊断 → 复查日程（ABPM 确诊后随访节奏）——
+  var __bd=document.getElementById('followDate')?document.getElementById('followDate').value:'';
+  if(__bd){
+    var __sch;
+    if(dx24.text==='高血压'){__sch=[[14,'家庭自测血压记录，评估启动/调整药物治疗'],[30,'评估达标情况（家庭自测 7 日记录）'],[90,'达标后随访：血压、心率、生活方式依从性'],[365,'年度复查 24h 动态血压与靶器官损害筛查']];}
+    else if(dx24.text==='血压偏高'){__sch=[[30,'家庭自测血压 7 日记录并复诊'],[90,'复测动态血压或家庭自测确认趋势'],[365,'年度复查动态血压']];}
+    else{__sch=[[365,'年度体检复测血压（必要时复查动态血压）']];}
+    var __d0=new Date(__bd+'T00:00:00');
+    var __items='';
+    for(var __i=0;__i<__sch.length;__i++){
+      var __d=new Date(__d0); __d.setDate(__d.getDate()+__sch[__i][0]);
+      __items+='<li>第'+(__i+1)+'次随访：'+__d.getFullYear()+'-'+String(__d.getMonth()+1).padStart(2,'0')+'-'+String(__d.getDate()).padStart(2,'0')+'（评估后 '+__sch[__i][0]+' 天，'+__sch[__i][1]+'）</li>';
+    }
+    var __extra=(dipRatio<0||surge>=35)?'<p style="font-size:12px;color:var(--text-muted);">另：'+(dipRatio<0?'昼夜节律异常（'+dipType+'）':'')+(dipRatio<0&&surge>=35?'、':'')+(surge>=35?'显著晨峰':'')+'明显，建议心内科专科评估并优化给药时间。</p>':'';
+    html+='<div class="ref-card" style="margin-top:12px;"><h4>随访计划（评估日 '+__bd+'，24h平均 '+dx24.text+'）</h4><ul>'+__items+'</ul>'+__extra+'<p style="font-size:12px;color:var(--text-muted);">日程按 ABPM 诊断分层推算；若出现头晕头痛、血压骤升或症状变化请随时就诊。</p></div>';
+  }
 
   const __g1=html;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
