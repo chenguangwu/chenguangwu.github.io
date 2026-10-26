@@ -14,13 +14,24 @@ const CASES = [
 },
 {
   "slug": "security/data-erase-simulator",
-  "inputs": {
-    "blockSize": "24"
-  },
-  "expect": [
-    "24"
+  "clicks": [
+    "document.getElementById('blockSize').value='24'; startSim();"
   ],
-  "ref": "auto-restore"
+  "expect": [
+    "第2遍：一填充",
+    "第3遍：随机填充"
+  ],
+  "ref": "startSim 同步 renderSteps(0) → stepList 渲染 DoD 三步列表（「第2遍：一填充」等）；判别态 clicks 清空 ⇒ stepList 为空，零交集。原 auto-restore 锚「24」是 byteGrid 随机字节值的概率性回显（撞值即逃生，2026-10-26 收紧为确定性步骤锚）。"
+},
+{
+  "slug": "security/data-erase-simulator",
+  "clicks": [
+    "selectAlgo('gutmann');"
+  ],
+  "expect": [
+    "标准依据 Gutmann 1996"
+  ],
+  "ref": "E3 引据徽标（2026-10-26）：#standardBadge 渲染选中算法的标准依据（strong 前缀+文本同元素连续）；clicks 切到 Gutmann → 徽标「标准依据　Gutmann 1996 论文…」。判别态 clicks 清空 → badge 回 DoD 引据；compareTable 虽全算法渲染 standard 列但无「标准依据　」前缀（跨元素被 \\n 分隔）⇒ 锚零交集。"
 },
 {
   "slug": "security/detector-45",

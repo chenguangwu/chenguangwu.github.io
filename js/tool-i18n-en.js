@@ -883,6 +883,8 @@ window.__TI18N_EN = {
     '共 28 个免费在线工具，纯前端处理，数据不上传': '28 free online tools, fully client-side, no data uploaded',
     '单位': 'Unit',
     '适用场景': 'Use Cases',
+    '标准依据': 'Standard Basis',
+    '标准依据按 NIST SP 800-88（媒体清理指南）口径标注；「Clear/Purge/Destroy」为该标准的三个清理级别。': 'Standard basis follows NIST SP 800-88 Rev.1 (Guidelines for Media Sanitization); "Clear / Purge / Destroy" are its three sanitization categories.',
     '计算公式：': 'Calculation Formula:',
     '🔄 重置': '🔄 Reset',
     '中度': 'Moderate',

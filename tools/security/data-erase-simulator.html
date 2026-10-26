@@ -231,6 +231,7 @@ s.parentNode.insertBefore(el, s);
       <span class="pass-current" id="passInfo">准备中...</span>
     </div>
     <div class="progress-bar"><div class="progress-fill" id="simProgress" style="width:0%"></div></div>
+    <div id="standardBadge" style="margin:10px 0 0;padding:9px 12px;border:1px solid var(--border,#e5e7eb);border-left:4px solid #8B5CF6;border-radius:8px;font-size:12.5px;line-height:1.7;color:var(--text-secondary,#666);background:var(--bg-soft,#f8fafc);"></div>
 
     <h3 style="margin-top:16px;">数据块可视化（每格=1字节）</h3>
     <p style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">灰色=原始数据，绿色=零填充，紫色=随机数据，橙色=补码，蓝色=DoD模式，红色=Gutmann模式</p>
@@ -245,12 +246,13 @@ s.parentNode.insertBefore(el, s);
     <div style="overflow-x:auto;">
       <table>
         <thead>
-          <tr><th>算法</th><th>覆写次数</th><th>安全等级</th><th>适用场景</th><th>耗时</th></tr>
+          <tr><th>算法</th><th>覆写次数</th><th>安全等级</th><th>适用场景</th><th>耗时</th><th>标准依据</th></tr>
         </thead>
         <tbody id="compareTable"></tbody>
       </table>
     </div>
-    <table id="eraseHidden" style="display:none;"><thead><tr><th>Algorithm</th><th>Passes</th><th>Security Level</th><th>Scenario</th><th>Speed</th></tr></thead><tbody></tbody></table>
+    <p style="font-size:12px;color:var(--text-secondary);margin:8px 2px 0;" data-zh="📖 标准依据按 NIST SP 800-88 Rev.1（媒体清理指南）口径标注；「Clear/Purge/Destroy」为该标准的三个清理级别。">📖 Standard basis follows NIST SP 800-88 Rev.1 (Guidelines for Media Sanitization); "Clear / Purge / Destroy" are its three sanitization categories.</p>
+    <table id="eraseHidden" style="display:none;"><thead><tr><th>Algorithm</th><th>Passes</th><th>Security Level</th><th>Scenario</th><th>Speed</th><th>Standard Basis</th></tr></thead><tbody></tbody></table>
     <div class="tip-box tip-warn" style="margin-top:12px;">注意：本工具仅模拟擦除过程用于教学演示，不会真正删除任何文件。实际数据销毁请使用专业工具（如 shred、DBAN、Eraser 等），SSD 应使用加密擦除或物理销毁。</div>
   </div>
 
@@ -373,6 +375,7 @@ s.parentNode.insertBefore(el, s);
       level: 'low',
       levelText: '基础',
       desc: '用全0覆写一次，速度快，适合普通数据清理',
+      standard: { zh: 'NIST SP 800-88「Clear」级：现代硬盘单遍覆写通常已足以抵抗常规恢复手段', en: 'NIST SP 800-88 "Clear" level: a single overwrite pass is generally sufficient on modern HDDs' },
       scenario: '日常清理、非敏感数据',
       time: '最快',
       steps: [
@@ -387,6 +390,7 @@ s.parentNode.insertBefore(el, s);
       level: 'mid',
       levelText: '中等',
       desc: '用随机数据覆写一次，比零填充更难恢复',
+      standard: { zh: 'NIST SP 800-88「Clear/Purge」过渡：单遍随机覆写，比固定模式更抗已知攻击', en: 'NIST SP 800-88 "Clear"/"Purge" transition: single random pass resists known-pattern attacks better' },
       scenario: '一般敏感数据',
       time: '快',
       steps: [
@@ -401,6 +405,7 @@ s.parentNode.insertBefore(el, s);
       level: 'high',
       levelText: '高',
       desc: '美国国防部标准，3遍覆写：0→1→随机',
+      standard: { zh: 'DoD 5220.22-M（1995）：NIST SP 800-88 已不再推荐——现代硬盘单遍覆写即可达标，多遍属历史惯性', en: 'DoD 5220.22-M (1995): deprecated by NIST SP 800-88 — a single pass suffices on modern drives' },
       scenario: '机密数据、企业资产处置',
       time: '中等',
       steps: [
@@ -417,6 +422,7 @@ s.parentNode.insertBefore(el, s);
       level: 'max',
       levelText: '最高',
       desc: 'Peter Gutmann 提出，35遍覆写，含固定模式与随机模式',
+      standard: { zh: 'Gutmann 1996 论文：固定模式针对 MFM/RLL 老式编码，对现代盘意义有限；NIST 800-88 建议改用加密擦除（Cryptographic Erase）', en: 'Gutmann 1996 paper: fixed patterns target legacy MFM/RLL encoding; NIST 800-88 recommends Cryptographic Erase instead' },
       scenario: '极机密数据、军事级',
       time: '很慢',
       steps: [
@@ -464,8 +470,20 @@ s.parentNode.insertBefore(el, s);
       if(a.id===id) selectedAlgo = a;
     });
     renderAlgoGrid();
+    renderStandard();
     resetSim();
   };
+
+  // —— E3 引据徽标：选中算法的标准依据（NIST SP 800-88 口径，双语）——
+  function renderStandard(){
+    var box=document.getElementById('standardBadge');
+    if(!box) return;
+    var en=false; try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) en=TBKit.util.isEn(); }catch(e){}
+    var std=selectedAlgo.standard||{};
+    var txt=en?(std.en||''):(std.zh||'');
+    const __sb='<strong>'+(en?'📚 Standard basis':'📚 标准依据')+'</strong>　'+ToolBox.escHtml(txt);
+    box.innerHTML=(typeof __sb==='number'?(isFinite(__sb)?__sb:'—'):String(__sb).replace(/Infinity|NaN/g,'—'));
+  }
 
   function renderCompareTable(){
     var html = '';
@@ -476,6 +494,7 @@ s.parentNode.insertBefore(el, s);
         + '<td><span class="level-tag '+LEVEL_CLASSES[a.level]+'">'+ToolBox.escHtml(a.levelText)+'</span></td>'
         + '<td>'+ToolBox.escHtml(a.scenario)+'</td>'
         + '<td>'+ToolBox.escHtml(a.time)+'</td>'
+        + '<td style="font-size:12px;color:var(--text-secondary);">'+ToolBox.escHtml((function(){var en=false;try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)en=TBKit.util.isEn();}catch(e){}return en?(a.standard&&a.standard.en||''):(a.standard&&a.standard.zh||'');})())+'</td>'
         + '</tr>';
     });
     const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('compareTable').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('compareTable').innerHTML=__h1;
@@ -596,6 +615,9 @@ s.parentNode.insertBefore(el, s);
 
   renderAlgoGrid();
   renderCompareTable();
+  renderStandard();
+  // TBKit 后加载 ⇒ DOMContentLoaded 后按语态重渲染徽标（EN 态初始也正确）
+  document.addEventListener('DOMContentLoaded', renderStandard);
 })();
 </script><script>
 // tool-intro折叠交互
@@ -611,10 +633,10 @@ document.addEventListener('DOMContentLoaded',function(){
 <script>
 // ============ 导出擦除算法对照表 CSV ============
 var __ERASE_DATA=[
-  {zh:'零填充擦除',en:'Zero Fill',passes:1,lv:'基础',lvEn:'Basic',sc:'日常清理、非敏感数据',scEn:'Routine cleanup, non-sensitive data',tm:'最快',tmEn:'Fastest'},
-  {zh:'随机填充擦除',en:'Random Fill',passes:1,lv:'中等',lvEn:'Medium',sc:'一般敏感数据',scEn:'Generally sensitive data',tm:'快',tmEn:'Fast'},
-  {zh:'DoD 5220.22-M',en:'DoD 5220.22-M',passes:3,lv:'高',lvEn:'High',sc:'机密数据、企业资产处置',scEn:'Confidential data, enterprise asset disposal',tm:'中等',tmEn:'Moderate'},
-  {zh:'Gutmann 方法',en:'Gutmann Method',passes:35,lv:'最高',lvEn:'Highest',sc:'极机密数据、军事级',scEn:'Top-secret data, military grade',tm:'很慢',tmEn:'Very slow'}
+  {zh:'零填充擦除',en:'Zero Fill',passes:1,lv:'基础',lvEn:'Basic',sc:'日常清理、非敏感数据',scEn:'Routine cleanup, non-sensitive data',tm:'最快',tmEn:'Fastest',std:'NIST 800-88 Clear',stdEn:'NIST 800-88 Clear'},
+  {zh:'随机填充擦除',en:'Random Fill',passes:1,lv:'中等',lvEn:'Medium',sc:'一般敏感数据',scEn:'Generally sensitive data',tm:'快',tmEn:'Fast',std:'NIST 800-88 Clear/Purge 过渡',stdEn:'NIST 800-88 Clear/Purge transition'},
+  {zh:'DoD 5220.22-M',en:'DoD 5220.22-M',passes:3,lv:'高',lvEn:'High',sc:'机密数据、企业资产处置',scEn:'Confidential data, enterprise asset disposal',tm:'中等',tmEn:'Moderate',std:'DoD 1995，NIST 800-88 已不推荐',stdEn:'DoD 1995, deprecated by NIST 800-88'},
+  {zh:'Gutmann 方法',en:'Gutmann Method',passes:35,lv:'最高',lvEn:'Highest',sc:'极机密数据、军事级',scEn:'Top-secret data, military grade',tm:'很慢',tmEn:'Very slow',std:'Gutmann 1996，现代盘建议加密擦除',stdEn:'Gutmann 1996; crypto-erase preferred on modern drives'}
 ];
 function __eraseRow(cells){
   var tr=document.createElement('tr');
@@ -633,7 +655,8 @@ function __eraseExport(){
       String(a.passes),
       en?a.lvEn:a.lv,
       en?a.scEn:a.sc,
-      en?a.tmEn:a.tm
+      en?a.tmEn:a.tm,
+      en?a.stdEn:a.std
     ]));
   });
   TBKit.util.exportTable('#eraseHidden', en?'erase-method-comparison.csv':'擦除方案对照.csv');
