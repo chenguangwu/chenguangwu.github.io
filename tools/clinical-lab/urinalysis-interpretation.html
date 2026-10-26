@@ -138,7 +138,7 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="resetForm()">重置</button>
     </div>
 
-    <div id="result"></div>
+    <div id="result"></div> <div id="ua_sgBar"></div> <div id="ua_phBar"></div>
     <div id="uaChart"></div>
 
     <div class="toolbar" style="margin-top:12px;">
@@ -288,7 +288,30 @@ function interpret(){
       html += '<div class="summary-card" style="background:var(--result-bg);border-left:4px solid '+n.c+';"><strong style="color:'+n.c+';">'+n.t+'</strong><br><span style="color:var(--text-secondary);">'+n.d+'</span></div>';
     });
   }
-  const __h1='<h3 style="margin-bottom:8px;">综合判读</h3>'+html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h1;
+  // —— 参考区间定位（S3 标尺）：尿比重 / pH ——
+  var __EN=(function(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search)||/^en/i.test(document.documentElement.lang||'');}catch(e){}return false;})();
+  function __T(en,zh){return __EN?en:zh;}
+  var __sgBands=[{lo:1.000,hi:1.003,label:{zh:'偏低',en:'Low'},color:'#3B82F6'},
+                 {lo:1.003,hi:1.025,label:{zh:'正常',en:'Normal'},color:'#10B981'},
+                 {lo:1.025,hi:1.040,label:{zh:'偏高',en:'High'},color:'#F59E0B'}];
+  var __phBands=[{lo:4.5,hi:5.5,label:{zh:'偏酸',en:'Acidic'},color:'#F59E0B'},
+                 {lo:5.5,hi:7.5,label:{zh:'正常',en:'Normal'},color:'#10B981'},
+                 {lo:7.5,hi:9,label:{zh:'偏碱',en:'Alkaline'},color:'#3B82F6'}];
+  function __hit(v,bands){for(var i=0;i<bands.length;i++){var b=bands[i];if(v>=(b.lo==null?-Infinity:b.lo)&&v<(b.hi==null?Infinity:b.hi))return b;}return null;}
+  var __refHtml='<div class="ref-card"><h4>'+__T('Reference range','参考区间定位')+'</h4><ul>';
+  var __sgHit=null,__phHit=null;
+  if(!isNaN(sg)&&sg>0){__sgHit=__hit(sg,__sgBands);if(__sgHit){__refHtml+='<li>'+__T('Specific gravity ','尿比重 ')+sg.toFixed(3)+__T(' → ',' → 落在 ')+(__EN?__sgHit.label.en:__sgHit.label.zh)+__T(' (reference 1.003–1.025)','（参考 1.003–1.025）')+'</li>';}}
+  if(!isNaN(ph)&&ph>0){__phHit=__hit(ph,__phBands);if(__phHit){__refHtml+='<li>pH '+ph.toFixed(1)+__T(' → ',' → 落在 ')+(__EN?__phHit.label.en:__phHit.label.zh)+__T(' (reference 5.5–7.5)','（参考 5.5–7.5）')+'</li>';}}
+  __refHtml+='</ul></div>';
+
+  const __h1='<h3 style="margin-bottom:8px;">综合判读</h3>'+html+__refHtml;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h1;
+
+  try{
+    if(typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){
+      if(__sgHit) TBKit.chart.refBar('#ua_sgBar',{value:sg,unit:'',min:1.0,max:1.04,bands:__sgBands,ticks:[1.0,1.003,1.025,1.04],title:'尿比重判读标尺'});
+      if(__phHit) TBKit.chart.refBar('#ua_phBar',{value:ph,unit:'',min:4.5,max:9,bands:__phBands,ticks:[4.5,5.5,7.5,9],title:'尿液 pH 判读标尺'});
+    }
+  }catch(e){}
 }
 
 function resetForm(){

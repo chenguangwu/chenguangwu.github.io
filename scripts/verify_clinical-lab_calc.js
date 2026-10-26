@@ -308,6 +308,17 @@ const CASES = [
   "ref": "LEU 3+(500) 且 NIT 阳性 → 满足「(leu!=='neg' || nit==='pos') && (leu==='125'||leu==='500'||nit==='pos')」→ 泌尿系感染提示"
 },
 {
+  "slug": "clinical-lab/urinalysis-interpretation",
+  "clicks": [
+    "document.getElementById('ua_sg').value='1.030'; document.getElementById('ua_ph').value='8.0'; interpret();"
+  ],
+  "expect": [
+    "尿比重 1.030 → 落在 偏高",
+    "pH 8.0 → 落在 偏碱"
+  ],
+  "ref": "S3 标尺 ref-card：sg 1.030≥1.025 → 偏高带、pH 8.0≥7.5 → 偏碱带。该页 select 无 onchange（interpret 仅按钮/启动触发），inputs 注入不重渲染，故用 clicks 在页面作用域直调 interpret()。判别器清 clicks 且无 inputs → 兜底 interpret 渲染默认 sg=1.015/pH=6.0（正常带），两条 expect 均随注入变化、默认态不出现。"
+},
+{
   "slug": "clinical-lab/urine-sediment-atlas",
   "inputs": {
     "search": "细胞"
