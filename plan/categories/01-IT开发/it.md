@@ -9,9 +9,8 @@
 - ⚠ 核实过时（2026-10-26）：json-formatter 已有行列定位（dd-example「错误行列（如第 1 行第 8 列附近）」+ FAQ 行号换算说明）——条目过时，yaml/toml 待逐页核实后再动。
 
 ### I3. barcode/QR 系列仅静态生成
-- 描述：QR 页不支持 logo/纠错级别可视化对比；barcode 页缺导出 SVG/PNG 一键。
-- 受影响：tools/it/*qr*、barcode-*（~15 页）
-- 方案：QR 加中心 logo 与纠错级别滑杆（前后对比可读性）；barcode 统一导出按钮。
+- ✅ barcode 导出已落地（2026-10-26）：7 个 barcode 页（codabar/code128/code39/ean/itf/msi/upc）统一加「下载 PNG」按钮（downloadBarcodePNG：canvas.toDataURL、无 canvas 空态提示、文件名带 slug+时间戳）；qrcode.html 已有 downloadQR（核实既有）。verify it 764/764、判别器 0、门禁 218/218。
+- 🔴 待续：QR 中心 logo 与纠错级别可视化对比（量级较大，视批次续接）。
 
 ## 功能缺陷
 - 时间戳页（timestamp-converter 等）：不支持毫秒/秒自动识别与「当前时间」常驻表。
