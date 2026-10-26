@@ -257,6 +257,21 @@ const CASES = [
   "ref": "成年男性白细胞参考3.5-9.5，17.25>9.5 → 偏高；WBC列 dec=1 → 实测值显示 17.25.toFixed(1)=17.3"
 },
 {
+  // S3 参考区间定位卡（03-63）：metricSel=all 时不渲染 ⇒ 默认态零交集
+  "slug": "clinical-lab/blood-routine-reference",
+  "inputs": {
+    "metricSel": "0",
+    "testVal": "17.25"
+  },
+  "expect": [
+    "参考区间定位（白细胞计数 WBC）",
+    "实测值 17.3 ×10⁹/L → 偏高",
+    "（偏离 上限 81.6%）",
+    "参考区间 3.5–9.5"
+  ],
+  "ref": "WBC 17.25 超上限 9.5 → 定位卡「偏高」+ 偏离幅度 (17.25-9.5)/9.5=81.58%→81.6%；默认 metricSel=all ⇒ 定位卡不渲染零交集。"
+},
+{
   "slug": "clinical-lab/cardiac-marker-curve",
   "inputs": {
     "upper": "2.0"
