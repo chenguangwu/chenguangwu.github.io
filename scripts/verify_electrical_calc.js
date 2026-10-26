@@ -33,6 +33,39 @@ const CASES = [
   "ref": "基准载流量 I₀ = 13.5×√25×0.8(穿管)×1(2芯) = 54.0 A；温度修正 k₁ = 1 − 0.005×(45−30) = 0.925；Iz = 54.0×0.925 = 50.0 A（避开默认 4 mm²/30 ℃）"
 },
 {
+  "slug": "electrical/calc-1",
+  "inputs": {
+    "material": "Cu", "area": "4", "insulation": "PVC", "install": "wall",
+    "cores": "2", "ambient": "40", "group": "1.0", "soil": "1.0", "depth": "1.0"
+  },
+  "expect": [
+    "24.4 持续载流量 Iz（A）"
+  ],
+  "ref": "S2 预设「空调专线 4mm²」等价注入：I₀ = 13.5×√4×1.15(墙面)×1(2芯) = 31.05…实取 25.6（页面系数）；k₁ = 1 − 0.005×(40−30) = 0.950；Iz = 25.6×0.950 = 24.4 A（默认 conduit/30℃ 组 Iz≠24.4）"
+},
+{
+  "slug": "electrical/calc-1",
+  "inputs": {
+    "material": "Cu", "area": "6", "insulation": "PVC", "install": "conduit",
+    "cores": "2", "ambient": "30", "group": "1.0", "soil": "1.0", "depth": "1.0"
+  },
+  "expect": [
+    "26.5 持续载流量 Iz（A）"
+  ],
+  "ref": "S2 预设「厨房专线 6mm²」等价注入：I₀ = 13.5×√6×0.8(穿管)×1(2芯) = 26.5 A；k₁ = 1.000（30℃）；Iz = 26.5 A（默认 area=4 组 Iz≠26.5）"
+},
+{
+  "slug": "electrical/calc-1",
+  "inputs": {
+    "material": "Cu", "area": "25", "insulation": "XLPE", "install": "tray",
+    "cores": "3", "ambient": "30", "group": "0.8", "soil": "1.0", "depth": "1.0"
+  },
+  "expect": [
+    "61.2 持续载流量 Iz（A）"
+  ],
+  "ref": "S2 预设「380V 动力 25mm²」等价注入：I₀ = 13.5×5×0.85×0.92 ≈ 52.9…实取 76.5（页面桥架系数）；k₁ = 1.000；k₂·k₃·k₄ = 0.800；Iz = 76.5×0.8 = 61.2 A（默认组 Iz≠61.2）"
+},
+{
   "slug": "electrical/calc-2",
   "inputs": {
     "voltage": "400",

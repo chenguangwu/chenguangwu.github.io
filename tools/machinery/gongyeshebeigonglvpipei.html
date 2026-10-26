@@ -176,30 +176,30 @@ function readInputs(){
 var stdPowers=[0.75,1.1,1.5,2.2,3.7,5.5,7.5,11,15,18.5,22,30,37,45,55,75,90,110,132,160,200];
 function selPower(p){for(var i=0;i<stdPowers.length;i++){if(stdPowers[i]>=p)return stdPowers[i];}return Math.ceil(p/10)*10;}
 function calc(){
-  var iv=readInputs();if(!iv.valid){document.getElementById('res').innerHTML='<div class="info-box" style="color:#EF4444;">请输入有效参数（F>0, v>0, 0<η≤1, SF>0）</div>';lastResult='';return;}
+  var __EN=((typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())||/lang=en-US/i.test(location.search)||/^en/i.test(document.documentElement.lang||''));
+  var __T=function(en,zh){return __EN?en:zh;};
+  var iv=readInputs();if(!iv.valid){document.getElementById('res').innerHTML='<div class="info-box" style="color:#EF4444;">'+__T('Invalid inputs (F>0, v>0, 0<η≤1, SF>0)','请输入有效参数（F>0, v>0, 0<η≤1, SF>0）')+'</div>';lastResult='';return;}
   var F=iv.F,v=iv.v,eta=iv.eta,sf=iv.sf,mode=iv.mode;
   var Ptheory=F*v/1000; // kW
   var Psel=Ptheory/eta*sf*mode; // 先按效率折算电机轴功率，再乘安全系数与工况系数
   var Pmotor=selPower(Psel);
   var utilization=(Psel/Pmotor*100);
-  var torque=F*v/(2*Math.PI*1500/60)*0; // placeholder
-  var loadTorque=F*v/(2*Math.PI*1500/60); // N·m at 1500rpm output... actually
   // 输出扭矩 = F * r, but we don't have r. Use P = T*w => T = P/w
   var w=2*Math.PI*1500/60; // rad/s at 1500rpm
   var motorTorque=Pmotor*1000/w;
   var ratedCurrent = Pmotor*1000/(380*1.732*0.85*0.85); // approx at 380V
-  var advice = utilization>90?'功率利用率高，建议适当增大电机':(utilization>50?'功率匹配合理':(utilization<30?'电机偏大，可考虑小一档':'匹配良好'));
+  var advice = utilization>90?__T('High utilization — consider a larger motor','功率利用率高，建议适当增大电机'):(utilization>50?__T('Power match is reasonable','功率匹配合理'):(utilization<30?__T('Motor oversized — consider a smaller one','电机偏大，可考虑小一档'):__T('Good match','匹配良好')));
   const __g2='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+Ptheory.toFixed(3)+'</div><div class="label">理论功率 (kW)</div></div>'+
-    '<div class="data-card"><div class="num">'+Psel.toFixed(2)+'</div><div class="label">选型功率 (kW)</div></div>'+
-    '<div class="data-card"><div class="num" style="color:#00C9A7;">'+Pmotor+'</div><div class="label">推荐电机 (kW)</div></div>'+
-    '<div class="data-card"><div class="num">'+utilization.toFixed(1)+'%</div><div class="label">功率利用率</div></div>'+
+    '<div class="data-card"><div class="num">'+Ptheory.toFixed(3)+'</div><div class="label">'+__T('Theoretical power (kW)','理论功率 (kW)')+'</div></div>'+
+    '<div class="data-card"><div class="num">'+Psel.toFixed(2)+'</div><div class="label">'+__T('Selected power (kW)','选型功率 (kW)')+'</div></div>'+
+    '<div class="data-card"><div class="num" style="color:#00C9A7;">'+Pmotor+'</div><div class="label">'+__T('Recommended motor (kW)','推荐电机 (kW)')+'</div></div>'+
+    '<div class="data-card"><div class="num">'+utilization.toFixed(1)+'%</div><div class="label">'+__T('Power utilization','功率利用率')+'</div></div>'+
     '</div>'+
     '<div class="data-grid" style="margin-top:8px;">'+
-    '<div class="data-card"><div class="num">'+motorTorque.toFixed(2)+'</div><div class="label">额定扭矩@1500rpm (N·m)</div></div>'+
-    '<div class="data-card"><div class="num">'+ratedCurrent.toFixed(1)+'</div><div class="label">估算额定电流 (A)</div></div>'+
-    '<div class="data-card"><div class="num" style="font-size:14px;">'+advice+'</div><div class="label">匹配评估</div></div>'+
-    '<div class="data-card"><div class="num">'+(eta*100).toFixed(0)+'%</div><div class="label">传动效率</div></div>'+
+    '<div class="data-card"><div class="num">'+motorTorque.toFixed(2)+'</div><div class="label">'+__T('Rated torque@1500rpm (N·m)','额定扭矩@1500rpm (N·m)')+'</div></div>'+
+    '<div class="data-card"><div class="num">'+ratedCurrent.toFixed(1)+'</div><div class="label">'+__T('Est. rated current (A)','估算额定电流 (A)')+'</div></div>'+
+    '<div class="data-card"><div class="num" style="font-size:14px;">'+advice+'</div><div class="label">'+__T('Match assessment','匹配评估')+'</div></div>'+
+    '<div class="data-card"><div class="num">'+(eta*100).toFixed(0)+'%</div><div class="label">'+__T('Transmission efficiency','传动效率')+'</div></div>'+
     '</div>';document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
   lastResult='工业设备功率匹配\nF='+F+'N, v='+v+'m/s, η='+eta+', SF='+sf+'\n理论功率: '+Ptheory.toFixed(3)+'kW\n选型功率: '+Psel.toFixed(2)+'kW\n推荐电机: '+Pmotor+'kW\n功率利用率: '+utilization.toFixed(1)+'%\n额定扭矩: '+motorTorque.toFixed(2)+'N·m\n估算电流: '+ratedCurrent.toFixed(1)+'A';
 }
