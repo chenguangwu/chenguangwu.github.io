@@ -102,6 +102,26 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "security/smoke-alarm-test",
+  "inputs": {
+    "alarmLocation": "厨房附近"
+  },
+  "expect": [
+    "距烹饪区至少 3 米"
+  ],
+  "ref": "E3 引据徽标：选择「厨房附近」⇒ #alarmStdBadge 渲染该位置专属标准文案（距烹饪区至少 3 米、光电式优先）。默认态（客厅）badge 不含该串 ⇒ 强判别。badge 通用引据（GB 20517-2009 等）渲染不依赖输入，不可作 expect（A===B 盲区）。",
+},
+{
+  "slug": "security/smoke-alarm-test",
+  "inputs": {
+    "alarmLocation": "地下室"
+  },
+  "expect": [
+    "烟气易积聚"
+  ],
+  "ref": "E3 引据徽标第二位置锚：选择「地下室」⇒ badge 渲染地下室专属文案（逃生路径长、烟气易积聚、GB 50016 地下场所增设探测）。默认态（客厅）不含该串。",
+},
+{
   "slug": "security/typhoon-scale",
   "inputs": {
     "windInput": "45"
@@ -121,6 +141,16 @@ const CASES = [
     "保险箱为空，添加你的第一条加密内容吧"
   ],
   "ref": "（2026-09-25 曾判「需 WebCrypto 派生密钥 ⇒ 结构性不可改造」，本批次推翻）unlockVault 是 window 导出的全局函数，未创建保险箱时走「首次创建」分支（setItem 是 harness 空桩，不影响分支选择），随后 showVault()→renderList() 渲染列表区 ⇒ 命中「保险箱为空，添加你的第一条加密内容吧」。默认态停在锁屏文案「请设置一个主密码来创建新的保险箱。」，两态区分。**注意**：强度计 updateStrength() 未导出到 window，不可直接调用。旧锚「请设置一个主密码来创建新的保险箱」正是默认态文案、判别力 0，已弃；itemContent 空 inputs 也一并移除（属无影响键，见 §10.5）。"
+},
+{
+  "slug": "security/virtual-safe",
+  "inputs": {
+    "masterPwd": "Abc12345!"
+  },
+  "expect": [
+    "NIST 800-63B：长度 ≥8 位即可"
+  ],
+  "ref": "E3 引据联动：主密码输入触发 updateStrength（masterPwd addEventListener input）⇒ #strengthLabel 追加 NIST SP 800-63B 长度建议行（动态串过 TBKit 双语 helper）。默认态密码为空 ⇒ strengthBox display:none、无该串，强判别。"
 }
 ];
 async function main() {
