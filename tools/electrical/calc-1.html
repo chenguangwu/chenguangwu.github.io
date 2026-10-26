@@ -115,6 +115,7 @@ s.parentNode.insertBefore(el, s);
   <button type="button" class="tbk-tab" data-pane="tbl">数据表</button>
   <button type="button" class="tbk-tab" data-pane="pre">预设</button>
   <button type="button" class="tbk-tab" data-pane="his">历史</button>
+  <button type="button" class="tbk-tab" data-pane="lnk">敷设联动</button>
 </div>
 <div class="card">
     <h2 data-zh="💧 电缆载流量计算">Cable Current Carrying Capacity Calculator</h2>
@@ -193,6 +194,7 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="result-box" id="result"></div> <div id="calc_1Table"></div> <div id="calc_1Diff"></div> <div id="calc_1Chart"></div> <div id="calc_1Hist"></div>
+    <div id="calc_1Link" style="margin-top:10px;display:none;"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -298,6 +300,40 @@ function calcCableCurrent() {
     </p>
   `;
   const __g1=html;ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
+  renderLinkage();
+}
+
+function renderLinkage(){
+  var el=document.getElementById('calc_1Link');if(!el)return;
+  var material=document.getElementById('material').value;
+  var area=parseFloat(document.getElementById('area').value)||0;
+  var insulation=document.getElementById('insulation').value;
+  var cores=parseInt(document.getElementById('cores').value)||3;
+  var ambient=parseFloat(document.getElementById('ambient').value)||30;
+  var k2=parseFloat(document.getElementById('group').value)||1;
+  var k3=parseFloat(document.getElementById('soil').value)||1;
+  var k4=parseFloat(document.getElementById('depth').value)||1;
+  if(area<=0){el.innerHTML='';return;}
+  var density=baseCurrentDensity(material,insulation);
+  var k1=tempFactor(insulation,ambient);
+  var methods=[['free','空气中自由敷设',1.0],['wall','墙面敷设',0.95],['tray','电缆桥架',0.9],['conduit','穿管明敷',0.8],['direct','直埋土壤',0.85]];
+  var mrows=methods.map(function(m){
+    var I0=density*Math.sqrt(area)*m[2]*(cores>3?0.92:1);
+    var Iz=I0*k1*k2*k3*k4;
+    return '<tr><td>'+m[1]+'</td><td>'+m[2].toFixed(2)+'</td><td><strong>'+Iz.toFixed(1)+' A</strong></td></tr>';
+  }).join('');
+  var temps=[25,30,35,40,45,50];
+  var pvc=temps.map(function(t){return Math.max(0.3,1-0.005*(t-30)).toFixed(3);}).join('</td><td>');
+  var xlpe=temps.map(function(t){return Math.max(0.3,1-0.004*(t-30)).toFixed(3);}).join('</td><td>');
+  const __gL='<h4 style="margin:14px 0 6px;">📊 当前参数下各敷设方式持续载流量（θₐ='+ambient+'℃）</h4>'+
+    '<table class="result-table" style="width:100%;max-width:520px;border-collapse:collapse;">'+
+    '<thead><tr><th>敷设方式</th><th>敷设系数</th><th>持续载流量 Iz</th></tr></thead><tbody>'+mrows+'</tbody></table>'+
+    '<h4 style="margin:16px 0 6px;">🌡️ 环境温度修正系数 k₁（基准 30℃）</h4>'+
+    '<table class="result-table" style="width:100%;max-width:640px;border-collapse:collapse;">'+
+    '<thead><tr><th>环境温度(℃)</th><th>25</th><th>30</th><th>35</th><th>40</th><th>45</th><th>50</th></tr></thead>'+
+    '<tbody><tr><td>PVC（70℃）</td><td>'+pvc+'</td></tr>'+
+    '<tr><td>XLPE / EPR（90℃）</td><td>'+xlpe+'</td></tr></tbody></table>';
+  el.innerHTML=(typeof __gL==='number'?(isFinite(__gL)?__gL:'—'):String(__gL).replace(/Infinity|NaN/g,'—'));
 }
 
 function resetForm() {
@@ -468,8 +504,8 @@ else document.addEventListener('DOMContentLoaded', __calc_1Boot);
 
 <script>/*TBKIT-INJECT-START*/
 (function(){
-  var P={"res": ["result", "calc_1Chart"], "tbl": ["calc_1Table"], "pre": ["calc_1Presets"], "his": ["calc_1Hist"]};
-  var L={res:['结果','Result'],chart:['图表','Chart'],tbl:['数据表','Data'],pre:['预设','Presets'],his:['历史','History']};
+  var P={"res": ["result", "calc_1Chart"], "tbl": ["calc_1Table"], "pre": ["calc_1Presets"], "his": ["calc_1Hist"], "lnk": ["calc_1Link"]};
+  var L={res:['结果','Result'],chart:['图表','Chart'],tbl:['数据表','Data'],pre:['预设','Presets'],his:['历史','History'],lnk:['敷设联动','Linkage']};
   function tabify(){
     var bar=document.querySelector('.tbk-tabbar');
     if(!bar||!bar.querySelectorAll) return;
