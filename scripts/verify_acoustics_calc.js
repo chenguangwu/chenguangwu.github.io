@@ -101,6 +101,11 @@ const CASES = [
     expect: ["85.00"],
     ref: "f=n·c/(2L)=2×340/(2×4)=85.00（默认 5/1/343→34.30，避开）" },
 
+  { slug: "acoustics/room-axial-mode",
+    inputs: { L: "5", n: "1", c: "343", Lx: "6", Ly: "4", Lz: "3", fc: "343" },
+    expect: ["1. 轴向 (1,0,0) — 28.58 Hz"],
+    ref: "完整房间模态：Lx6/Ly4/Lz3/c343 枚举三维简正频率，最低阶轴向(1,0,0)=c/2·(1/6)=28.58 Hz（默认 5/4/3→34.30，避开 A===B；切向(1,1,0)=51.53、斜向(1,1,1)=76.96 同表）。" },
+
   { slug: "acoustics/sound-intensity-level",
     inputs: { I: "1e-5" },
     expect: ["70.00"],

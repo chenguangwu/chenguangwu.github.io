@@ -161,6 +161,16 @@ s.parentNode.insertBefore(el, s);
     <div id="room_axial_modeDiff"></div>
     <div id="room_axial_modeHist"></div>
 
+    <h3 style="margin:16px 0 8px;">🧊 完整房间模态（轴向 / 切向 / 斜向）</h3>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px;">输入房间长、宽、高，列出简正频率最低的前 12 阶，并标注模态类型。公式 f=(c/2)·√[(nₓ/Lₓ)²+(n_y/L_y)²+(n_z/L_z)²]，n 为各方向半波数（轴向仅 1 维非零、切向 2 维、斜向 3 维）。</p>
+    <div class="input-row">
+      <div><label for="Lx">长 Lx (m)</label><input type="number" id="Lx" value="5" step="0.1" min="0.1" oninput="calcFullModes()"></div>
+      <div><label for="Ly">宽 Ly (m)</label><input type="number" id="Ly" value="4" step="0.1" min="0.1" oninput="calcFullModes()"></div>
+      <div><label for="Lz">高 Lz (m)</label><input type="number" id="Lz" value="3" step="0.1" min="0.1" oninput="calcFullModes()"></div>
+      <div><label for="fc">声速 c (m/s)</label><input type="number" id="fc" value="343" step="1" min="1" oninput="calcFullModes()"></div>
+    </div>
+    <div id="room_axial_modeFull"></div>
+
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
       <ul>
@@ -267,11 +277,39 @@ const L=num('L'),n=num('n'),c=num('c');
                 [(c/(2*L)).toFixed(2), '基模频率 (Hz)'],
                 [(n*c/L).toFixed(2), '二次轴向频率 (Hz)']
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
+            try{ calcFullModes(); }catch(e){}
         }
 function resetForm(){document.getElementById('L').value = '5';
       document.getElementById('n').value = '1';
       document.getElementById('c').value = '343';
+      document.getElementById('Lx').value = '5';
+      document.getElementById('Ly').value = '4';
+      document.getElementById('Lz').value = '3';
+      document.getElementById('fc').value = '343';
       calcTool();}
+function calcFullModes(){
+  var e=function(id){return document.getElementById(id);};
+  var Lx=parseFloat(e('Lx').value), Ly=parseFloat(e('Ly').value), Lz=parseFloat(e('Lz').value), c=parseFloat(e('fc').value);
+  var box=e('room_axial_modeFull');
+  if(!(Lx>0&&Ly>0&&Lz>0&&c>0)){ if(box) box.innerHTML=''; return; }
+  var en=false; try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) en=TBKit.util.isEn(); }catch(err){}
+  var T={axial: en?'Axial':'轴向', tang: en?'Tangential':'切向', obl: en?'Oblique':'斜向'};
+  var modes=[];
+  for(var nx=0;nx<=3;nx++)for(var ny=0;ny<=3;ny++)for(var nz=0;nz<=3;nz++){
+    if(nx+ny+nz===0) continue;
+    var f=(c/2)*Math.sqrt((nx/Lx)*(nx/Lx)+(ny/Ly)*(ny/Ly)+(nz/Lz)*(nz/Lz));
+    var ty=(nx>0&&ny>0&&nz>0)?T.obl:((nx>0&&ny>0)||(nx>0&&nz>0)||(ny>0&&nz>0))?T.tang:T.axial;
+    modes.push({f:f, ty:ty, n:[nx,ny,nz]});
+  }
+  modes.sort(function(a,b){return a.f-b.f;});
+  var top=modes.slice(0,12);
+  var h='<div style="font-size:13px;line-height:1.95">';
+  for(var i=0;i<top.length;i++){
+    h+='<div>'+(i+1)+'. '+top[i].ty+' ('+top[i].n.join(',')+') — '+top[i].f.toFixed(2)+' Hz</div>';
+  }
+  h+='</div>';
+  box.innerHTML=h;
+}
 calcTool();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
