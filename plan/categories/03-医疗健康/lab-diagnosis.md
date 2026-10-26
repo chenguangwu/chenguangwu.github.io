@@ -39,4 +39,5 @@
   #csf_presBar（压力 偏低/正常/轻度升高/升高，max400）+ #csf_proBar（蛋白 偏低/正常/增高/显著增高，max5）双标尺；ref-card 四 li（压力/蛋白/糖+糖比值/氯化物）。糖比值、氯化物结核提示做进文本 li（无固定单带，不做 SVG）。EN 零 CJK probe 通过；verify 73/73。
 - 🟢 批次 03-46（2026-10-26 · S3 标尺铺开第七批）：`clinical-lab/semen-analysis`：
   #semen_concBar（精子浓度 少精/参考内，max300）+ #semen_prBar（PR 弱精/参考内，max100）双标尺；ref-card 六 li（量/浓度/PR/形态/存活率/pH，WHO 5th 参考下限 + 达标/未达）。EN 零 CJK probe 通过；verify 73/73、门禁 218/218。
-- 🔴 待续：其余检验/单值带型页按同一模板铺开（thyroid-function-model / electrolyte / blood-routine-reference 等多值/查表型页 refBar 适配性弱，需做「多指标多标尺」变体或逐页评估）；「报告单批量解读」模块待开发。
+- 🟢 批次 03-67（2026-10-26 · 报告单批量解读模块）：`clinical-lab/blood-routine-reference` 加 textarea「报告单批量解读」（贴多行「指标名 值」）→ `__brBatch()` 文本解析：逐行抽首个数字 + 指标名 token 匹配（按命中 token 长度取最优，「血红蛋白」不误配「平均红细胞血红蛋白」）→ 逐项定位参考区间（偏低/偏高/正常 + 偏离%）+ 异常统计 + 未识别行回显；EN 态 __BR_NAME_EN/__BR_GROUP_EN 全英文（harness probe 验证零 CJK）。reportText 默认空 ⇒ 卡不渲染零交集；clicks 直调 __brBatch 强用例（WBC 3.2/HGB 105/PLT 450 → 三异常）。verify 77/77、判别器 7794/0、门禁 218/218。
+- 🔴 待续：批量解读可向生化/免疫面板推广（需各页自有参考表）；其余单值带型页按 S3 模板铺开。
