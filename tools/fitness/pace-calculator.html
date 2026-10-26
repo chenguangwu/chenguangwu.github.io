@@ -289,7 +289,27 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
-    <div class="splits-table" id="splitsTable"></div>
+      <div class="splits-table" id="splitsTable"></div>
+  </div>
+
+  <div class="card">
+    <h3 data-zh="🎯 目标完赛时间反推">🎯 Goal Finish Time to Required Pace</h3>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:8px;" data-zh="由目标完赛时间反推所需平均配速与分段达成时间（分段策略沿用上方选择）">Back-calculate the required average pace and split targets from a goal finish time (splits follow the strategy selected above)</p>
+    <label data-zh="目标比赛">Target race</label>
+    <div class="quick-dist" id="goalDist"></div>
+    <div class="input-row" style="margin-top:8px;">
+      <div><label data-zh="目标完赛时间（时:分:秒）">Target finish time (h:m:s)</label>
+        <div class="pace-input">
+          <div><input type="number" id="goalH" value="3" min="0" oninput="window.calcGoal()" placeholder="如 3"></div>
+          <span class="sep">:</span>
+          <div><input type="number" id="goalM" value="30" min="0" max="59" oninput="window.calcGoal()" placeholder="如 30（0–59）"></div>
+          <span class="sep">:</span>
+          <div><input type="number" id="goalS" value="0" min="0" max="59" oninput="window.calcGoal()" placeholder="如 0（0–59）"></div>
+        </div>
+      </div>
+    </div>
+    <div class="splits-table" id="paceGoalTable"></div>
+    <p style="font-size:12px;color:var(--text-muted);margin-top:8px;" data-zh="提示：分段按所选配速策略分配，各段配速的均值等于所需平均配速，总时间守恒；实际比赛还需为起跑拥挤、补给站与爬升预留余量。">Note: splits follow the selected pacing strategy, and the mean of the split paces equals the required average pace, so total time is preserved. Allow extra margin for crowded starts, aid stations and elevation gain.</p>
   </div>
 
   <div class="card">
@@ -381,8 +401,8 @@ const races = [
   {id:'3k',name:'3K',dist:3,icon:'🥈'},
   {id:'5k',name:'5K',dist:5,icon:'🏃'},
   {id:'10k',name:'10K',dist:10,icon:'🏃‍♂️'},
-  {id:'half',name:'半马',dist:21.0975,icon:'🏅'},
-  {id:'full',name:'全马',dist:42.195,icon:'🏆'}
+  {id:'half',name:'半马',nameEn:'Half',dist:21.0975,icon:'🏅'},
+  {id:'full',name:'全马',nameEn:'Full',dist:42.195,icon:'🏆'}
 ];
 
 const hrZones = [
@@ -410,19 +430,35 @@ function setUnit(u){
   calc();
   calcRaceTable();
   calcSplits();
+  try{ initGoalDist(); }catch(e){}
+  try{ calcGoal(); }catch(e){}
 }
 
 function initQuickDist(){
+  let html = '', html2 = '';
+  races.forEach(r=>{
+    const dist = unit === 'km' ? r.dist : r.dist / 1.60934;
+    const cell = '<div style="font-size:16px;margin-bottom:2px;">'+r.icon+'</div>'+
+      '<div>'+r.name+'</div>';
+    html += '<button data-id="'+r.id+'" data-dist="'+dist.toFixed(2)+'" onclick="window.selectRace(\''+r.id+'\', this)">'+cell+'</button>';
+    html2 += '<button data-id="'+r.id+'" data-dist="'+dist.toFixed(2)+'" onclick="window.selectSplitRace(\''+r.id+'\', this)">'+cell+'</button>';
+  });
+  const qd = document.getElementById('quickDist');  if (qd) qd.innerHTML = html;
+  const sd = document.getElementById('splitDist'); if (sd) sd.innerHTML = html2;
+  try{ initGoalDist(); }catch(e){}
+}
+
+function initGoalDist(){
   let html = '';
   races.forEach(r=>{
     const dist = unit === 'km' ? r.dist : r.dist / 1.60934;
-    html += '<button data-id="'+r.id+'" data-dist="'+dist.toFixed(2)+'" onclick="selectRace(\''+r.id+'\', this)">'+
+    html += '<button data-id="'+r.id+'" data-dist="'+dist.toFixed(2)+'" onclick="window.selectGoalRace(\''+r.id+'\', this)">'+
       '<div style="font-size:16px;margin-bottom:2px;">'+r.icon+'</div>'+
       '<div>'+r.name+'</div>'+
       '</button>';
   });
-  const __g1=html;document.getElementById('quickDist').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
-  const __g2=html;document.getElementById('splitDist').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+  const gd = document.getElementById('goalDist');
+  if (gd) gd.innerHTML = html;
 }
 
 function selectRace(id, btn){
@@ -455,6 +491,104 @@ function setStrategy(s){
     b.classList.toggle('active', b.dataset.strategy === s);
   });
   calcSplits();
+  try{ calcGoal(); }catch(e){}
+}
+
+/** 英文态判定（三重回退：TBKit → URL lang → html[lang]），供新模块双语输出使用 */
+function __pcIsEn(){
+  try { if (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) return true; } catch(e){}
+  try { if (/lang=en/i.test(String((typeof location!=='undefined'&&location.search)||''))) return true; } catch(e){}
+  try { var he = (typeof document!=='undefined') ? document.documentElement : null;
+        if (he && /^en/i.test(String(he.getAttribute && he.getAttribute('lang') || ''))) return true; } catch(e){}
+  return false;
+}
+
+let goalRace = 'full';
+
+function selectGoalRace(id, btn){
+  goalRace = id;
+  try {
+    document.querySelectorAll('#goalDist button').forEach(b=>{
+      b.classList.toggle('active', b.dataset.id === id);
+    });
+  } catch(e){}
+  try{ calcGoal(); }catch(e){}
+}
+
+/** 目标完赛时间 → 所需平均配速 + 分段达成时间（策略沿用 strategy，总时间守恒） */
+function calcGoal(){
+  const el = document.getElementById('paceGoalTable');
+  if (!el) return;
+  const en = __pcIsEn();
+  const T = (en) ? {
+    need: 'Required average pace', speed: 'Equivalent speed', dist: 'Race distance',
+    goal: 'Target finish time', cmp: 'vs target pace input', easy: 'slower allowed', hard: 'faster required',
+    margin: 'margin', seg: 'Segment', cumD: 'Cumulative distance', cumT: 'Cumulative time', segPace: 'Split pace',
+    strat: 'Strategy', invalid: 'Enter a valid target finish time.',
+    even: 'Even', positive: 'Positive', negative: 'Negative'
+  } : {
+    need: '所需平均配速', speed: '等效速度', dist: '比赛距离',
+    goal: '目标完赛时间', cmp: '与目标配速输入对比', easy: '可慢', hard: '需提速',
+    margin: '余量', seg: '分段', cumD: '累计距离', cumT: '累计时间', segPace: '该段配速',
+    strat: '配速策略', invalid: '请输入有效的目标完赛时间。',
+    even: '匀速', positive: '正配速', negative: '负配速'
+  };
+  const gH = parseInt(document.getElementById('goalH').value) || 0;
+  const gM = parseInt(document.getElementById('goalM').value) || 0;
+  const gS = parseInt(document.getElementById('goalS').value) || 0;
+  const total = gH * 3600 + gM * 60 + gS;
+  let race = null;
+  for (let i = 0; i < races.length; i++) { if (races[i].id === goalRace) { race = races[i]; break; } }
+  if (!race) race = races[races.length - 1];
+  const D = unit === 'km' ? race.dist : race.dist / 1.60934;
+  const un = unit === 'km' ? '/km' : '/mi';
+  const du = unit === 'km' ? 'km' : 'mi';
+  const spU = unit === 'km' ? 'km/h' : 'mph';
+  if (total <= 0 || !(D > 0)) {
+    el.innerHTML = '<p style="font-size:13px;color:var(--text-muted);">' + T.invalid + '</p>';
+    return;
+  }
+  const pace = total / D;                    // 秒/单位
+  const speed = 3600 / pace;                 // 单位/小时
+  const tpM = parseInt(document.getElementById('targetPaceM').value) || 0;
+  const tpS = parseInt(document.getElementById('targetPaceS').value) || 0;
+  const tp = tpM * 60 + tpS;
+  const diff = pace - tp;                    // >0：比目标配速慢（更宽松）
+  let cmpTxt;
+  if (tp <= 0) {
+    cmpTxt = (en ? 'no target pace set' : '未设置目标配速');
+  } else if (Math.abs(diff) < 0.5) {
+    cmpTxt = (en ? 'matches target pace' : '与目标配速一致');
+  } else if (diff > 0) {
+    cmpTxt = T.easy + ' ' + diff.toFixed(0) + ' s' + un + ' (' + T.margin + ' ' + (diff / tp * 100).toFixed(1) + '%)';
+  } else {
+    cmpTxt = T.hard + ' ' + (-diff).toFixed(0) + ' s' + un + ' (' + (-diff / tp * 100).toFixed(1) + '%)';
+  }
+  const stratName = strategy === 'positive' ? T.positive : (strategy === 'negative' ? T.negative : T.even);
+  let html = '<table><thead><tr><th>' + (en ? 'Item' : '项目') + '</th><th>' + (en ? 'Value' : '数值') + '</th></tr></thead><tbody>';
+  html += '<tr><td>' + T.dist + '</td><td>' + D.toFixed(3) + ' ' + du + ' (' + (en ? (race.nameEn || race.name) : race.name) + ')</td></tr>';
+  html += '<tr><td>' + T.goal + '</td><td>' + fmtTime(total) + '</td></tr>';
+  html += '<tr><td>' + T.need + '</td><td>' + fmtPace(pace) + ' ' + un + '</td></tr>';
+  html += '<tr><td>' + T.speed + '</td><td>' + speed.toFixed(2) + ' ' + spU + '</td></tr>';
+  html += '<tr><td>' + T.cmp + ' ' + (tp > 0 ? fmtPace(tp) + ' ' + un : '—') + '</td><td>' + cmpTxt + '</td></tr>';
+  html += '<tr><td>' + T.strat + '</td><td>' + stratName + '</td></tr>';
+  html += '</tbody></table>';
+
+  const n = 5;
+  html += '<table style="margin-top:10px;"><thead><tr><th>' + T.seg + '</th><th>' + T.cumD + '</th><th>' + T.cumT + '</th><th>' + T.segPace + '</th></tr></thead><tbody>';
+  let cumT = 0;
+  for (let i = 1; i <= n; i++) {
+    const progress = (i - 0.5) / n;
+    let f = 1;
+    if (strategy === 'positive') f = 1 - 0.1 + 0.2 * progress;
+    else if (strategy === 'negative') f = 1 + 0.1 - 0.2 * progress;
+    const segLen = D / n;
+    const segT = pace * f * segLen;
+    cumT += segT;
+    html += '<tr><td>' + (i * 20) + '%</td><td>' + (segLen * i).toFixed(2) + ' ' + du + '</td><td>' + fmtTime(cumT) + '</td><td>' + fmtPace(pace * f) + ' ' + un + '</td></tr>';
+  }
+  html += '</tbody></table>';
+  el.innerHTML = html;
 }
 
 function fmtTime(totalSec){
@@ -658,6 +792,8 @@ initQuickDist();
 calc();
 calcSplits();
 calcHrPace();
+try{ initGoalDist(); }catch(e){}
+try{ calcGoal(); }catch(e){}
 
 setTimeout(()=>{
   document.querySelectorAll('#quickDist button')[2].classList.add('active');

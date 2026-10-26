@@ -685,6 +685,20 @@ const CASES = [
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"distPace\":\"42\",\"timeHPace\":\"42\",\"timeMPace\":\"42\",\"timeSPace\":\"42\",\"distTime\":\"42\",\"paceMTime\":\"42\",\"paceSTime\":\"42\",\"paceMDist\":\"42\",\"paceSDist\":\"42\",\"timeHDist\":\"42\",\"timeMDist\":\"42\",\"timeSDist\":\"42\",\"targetPaceM\":\"42\",\"targetPaceS\":\"42\",\"hrAge\":\"42\",\"hrRest\":\"42\",\"refPaceM\":\"42\",\"refPaceS\":\"42\"}，输出区含「累计时间 第1K 42'42\" 42:42 42:42 第2K 42'42\" 4…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
+  {
+    slug: "fitness/pace-calculator",
+    inputs: {},
+    clicks: ["document.getElementById('goalH').value='4';document.getElementById('goalM').value='0';document.getElementById('goalS').value='0';calcGoal();"],
+    expect: ["所需平均配速 5'41\" /km", "可慢 11 s/km (余量 3.4%)"],
+    ref: "2026-10-27 新增「🎯 目标完赛时间反推」：注入目标 4:00:00（默认 3:30:00）、比赛距离默认全马 42.195 km ⇒ 所需平均配速 = 14400÷42.195 = 341.27 s/km = 5'41\"/km，等效速度 3600÷341.27 = 10.55 km/h；与目标配速输入 5'30\"（330 s）对比 ⇒ 可慢 11 s/km（余量 11/330 = 3.4%）。默认态为 3:30:00 ⇒ 4'59\"/km、需提速 31 s/km（9.5%），两条锚均不命中 ⇒ 强判别、零逃生。分段采用与既有分段表相同的策略模型（各段配速均值 = 所需平均配速，总时间守恒）。",
+  },
+  {
+    slug: "fitness/pace-calculator",
+    inputs: {},
+    clicks: ["try{setStrategy('negative');}catch(e){} document.getElementById('goalH').value='4';document.getElementById('goalM').value='0';document.getElementById('goalS').value='0';try{calcGoal();}catch(e){}"],
+    expect: ["配速策略 负配速", '20% 8.44 km 51:50 6\'09" /km'],
+    ref: "「目标完赛时间反推」负分段分支：pace = 14400÷42.195 = 341.27 s/km；负分段系数 f = 1 + 0.1 − 0.2×progress，首段 progress=0.1 ⇒ f=1.08 ⇒ 段配速 368.6 s = 6'09\"/km，累计 8.44 km 用时 51:50；末段 f=0.92 ⇒ 5'14\"/km，五段合计回到 4:00:00（策略模型各段配速均值 = 所需平均配速，总时间守恒）。默认态为匀速 3:30:00 ⇒ 「配速策略 匀速」与 4'59\"/km，两条锚均不命中 ⇒ 强判别、零逃生。",
+  },
 
 
 ];

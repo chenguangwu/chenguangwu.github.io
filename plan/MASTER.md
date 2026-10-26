@@ -46,7 +46,7 @@
 | 06-商业运营 | marketing-sales.md / ecommerce-logistics.md / hr-legal.md / realestate.md / biz-startup.md | 🔴 待开发 |
 | 07-教育学习 | edu-language.md / research-library.md | 🔴 待开发 |
 | 08-工程制造 | machinery-metalwork.md / electrical-electronics.md / construction-energy.md / aero-robotics.md | 🔴 待开发 |
-| 09-自然科学 | science-math-statistics.md / physics-optics-quantum.md / earth-geo.md | 🔴 待开发 |
+| 09-自然科学 | science-math-statistics.md / physics-optics-quantum.md / earth-geo.md | 🟡 进行中：S7 引据已落地 70 页（physics-optics-quantum 60 + earth-geo 10）；其余分类文件待开发 |
 | 10-农业养殖 | agriculture.md / fishery-aquaculture.md / livestock-eco-forestry.md | 🔴 待开发 |
 | 11-文娱爱好 | fun-entertainment.md / culture-collection.md | 🔴 待开发 |
 | 12-长尾行业 | _others.md（<20 页的其余 190+ 行业） | 🟡 仅收录已知问题 |
