@@ -236,7 +236,29 @@ function calc(){
   }
   var unsigned=r>>>0;
   var b=toBits(unsigned);
-  const __h4='<div style="color:var(--muted,#6B7280);font-size:12px;">'+escH(b.slice(0,8))+' <span style="opacity:.5">|</span> '+escH(b.slice(8,16))+' <span style="opacity:.5">|</span> '+escH(b.slice(16,24))+' <span style="opacity:.5">|</span> '+escH(b.slice(24))+'</div>';if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){bits.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}bits.innerHTML=__h4;
+  // ── S3 位对齐可视化：A/B/R 三行 8 位分组对齐 + 翻转位统计 ──
+  function __fmtBits(s){return escH(s.slice(0,8))+' <span style="opacity:.5">|</span> '+escH(s.slice(8,16))+' <span style="opacity:.5">|</span> '+escH(s.slice(16,24))+' <span style="opacity:.5">|</span> '+escH(s.slice(24));}
+  var bitsA=toBits(va>>>0);
+  var __rows='',__diffNote='';
+  if(op==='AND'||op==='OR'||op==='XOR'){
+    var bitsB=toBits(vb>>>0);
+    // 逐位对比 A 与 R 的差异位数（AND 下即 A 中 1 被清零的位数；OR 下为 A 中 0 被置 1 的位数；XOR 为翻转位）
+    var flips=0;
+    for(var j=0;j<32;j++){ if(bitsA.charAt(j)!==b.charAt(j)) flips++; }
+    __diffNote='与 A 不同：'+flips+' 位';
+    __rows='<div>A '+__fmtBits(bitsA)+'</div><div>B '+__fmtBits(bitsB)+'</div><div style="color:var(--primary);font-weight:600;">R '+__fmtBits(b)+'</div><div style="font-size:11px;color:var(--muted,#6B7280);">'+__diffNote+'</div>';
+  } else if(op==='NOT'){
+    var n10=0,n01=0; // 1→0：A 为 1 且 R 为 0 的位数；0→1 同理
+    for(var k=0;k<32;k++){
+      if(bitsA.charAt(k)==='1'&&b.charAt(k)==='0') n10++;
+      else if(bitsA.charAt(k)==='0'&&b.charAt(k)==='1') n01++;
+    }
+    __rows='<div>A '+__fmtBits(bitsA)+'</div><div style="color:var(--primary);font-weight:600;">R '+__fmtBits(b)+'</div><div style="font-size:11px;color:var(--muted,#6B7280);">按位取反：1→0 共 '+n10+' 位，0→1 共 '+n01+' 位</div>';
+  } else {
+    var sh=(vb&31);
+    __rows='<div>移位前 '+__fmtBits(bitsA)+'</div><div style="color:var(--primary);font-weight:600;">移位后 '+__fmtBits(b)+'</div><div style="font-size:11px;color:var(--muted,#6B7280);">'+(op==='SHL'?'左移':'右移')+' '+sh+' 位</div>';
+  }
+  const __h4=__rows;if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){bits.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}bits.innerHTML=__h4;
   var resDec=(r<0)?r.toString():String(unsigned);
   const __h5='<p>结果：<strong id="resVal" style="font-size:22px;color:var(--primary);font-family:monospace;">'+resDec+'</strong> '+
     '<span style="font-size:13px;color:var(--muted,#6B7280);">= 0x'+unsigned.toString(16).toUpperCase()+' = 0b'+unsigned.toString(2)+'</span></p>';if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h5;
