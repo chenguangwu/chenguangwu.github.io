@@ -152,7 +152,13 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
-    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__blood_routine_referenceExport()">导出明细 CSV</button></div><div id="tableArea"></div> <div id="brRefBar"></div> <div id="blood_routine_referenceTable"></div> <div id="blood_routine_referenceDiff"></div> <div id="blood_routine_referenceChart"></div> <div id="blood_routine_referenceHist"></div>
+    <div class="input-row">
+      <div style="flex:1 1 320px;"><label>报告单批量解读（选填：粘贴多行「指标名 值」，当前人群）</label>
+        <textarea id="reportText" rows="4" placeholder="每行一条，如：&#10;WBC: 3.2&#10;血红蛋白 HGB 105&#10;血小板计数 PLT 450" style="width:100%;"></textarea>
+      </div>
+    </div>
+
+    <div class="toolbar" style="margin:8px 0;"><button class="btn primary" type="button" onclick="__brBatch()">批量解读</button><button class="btn" type="button" onclick="__blood_routine_referenceExport()">导出明细 CSV</button></div><div id="tableArea"></div> <div id="batchArea"></div> <div id="brRefBar"></div> <div id="blood_routine_referenceTable"></div> <div id="blood_routine_referenceDiff"></div> <div id="blood_routine_referenceChart"></div> <div id="blood_routine_referenceHist"></div>
 
     <div class="info-box" style="margin-top:16px;">
       参考区间依据《临床检验学》及WS/T 405-2012行业标准。不同实验室仪器/试剂可能有差异，请以报告单标注参考范围为准。
@@ -268,6 +274,53 @@ var groupName = {
   'infant':'婴幼儿(1月-1岁)','newborn':'新生儿(0-28天)'
 };
 var currentGroup = 'adult-m';
+
+// —— 报告单批量解读：粘贴多行「指标名 值」→ 逐项定位参考区间（纯文本解析，纯前端）——
+var __BR_NAME_EN={'白细胞计数 WBC':'WBC','红细胞计数 RBC':'RBC','血红蛋白 HGB':'Hemoglobin','红细胞比容 HCT':'Hematocrit','血小板计数 PLT':'Platelet count','平均红细胞体积 MCV':'MCV','平均红细胞血红蛋白 MCH':'MCH','平均红细胞血红蛋白浓度 MCHC':'MCHC','中性粒细胞绝对值 NEU#':'Neutrophil abs','淋巴细胞绝对值 LYM#':'Lymphocyte abs','单核细胞绝对值 MONO#':'Monocyte abs','红细胞分布宽度 RDW-CV':'RDW-CV'};
+var __BR_GROUP_EN={'adult-m':'Adult male','adult-f':'Adult female','child':'Child (1-12y)','infant':'Infant (1-12mo)','newborn':'Newborn (0-28d)'};
+function __brBatch(){
+  var __en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?true:false;
+  var __grp=__en?(__BR_GROUP_EN[currentGroup]||groupName[currentGroup]):groupName[currentGroup];
+  var __T=function(e,z){return __en?e:z;};
+  var area=document.getElementById('batchArea');
+  var raw=document.getElementById('reportText').value||'';
+  var lines=raw.split(/\n+/);
+  var items=DATA[currentGroup];
+  var rows=[],unknown=[];
+  lines.forEach(function(line){
+    var s=line.trim(); if(!s) return;
+    var m=s.match(/(-?\d+(?:\.\d+)?)/);
+    if(!m){unknown.push(s);return;}
+    var val=parseFloat(m[1]);
+    var frag=s.replace(m[1],'').replace(/[\s::=：，,]+/g,' ').trim();
+    if(!frag){unknown.push(s);return;}
+    var best=null,bestScore=0;
+    items.forEach(function(it){
+      var score=0;
+      it.n.split(' ').forEach(function(t){ if(frag.indexOf(t)>=0) score+=t.length; });
+      if(score>bestScore){bestScore=score;best=it;}
+    });
+    if(!best){unknown.push(s);return;}
+    rows.push({it:best,val:val,st:(val<best.lo?'low':(val>best.hi?'high':'normal'))});
+  });
+  if(!rows.length&&!unknown.length){area.innerHTML='';return;}
+  var __stTxt={low:__T('Low','偏低'),high:__T('High','偏高'),normal:__T('Normal','正常')};
+  var __abn=0;
+  var html='<div class="ref-card" style="margin-top:12px;"><h4>'+__T('Batch report interpretation','报告单批量解读')+__T(' (cohort: ','（当前人群：')+__grp+__T(')','）')+'</h4><ul>';
+  rows.forEach(function(r){
+    if(r.st!=='normal')__abn++;
+    var __nm=__en?(__BR_NAME_EN[r.it.n]||r.it.n):r.it.n;
+    var __dev='';
+    if(r.st==='low'){var __p=Math.abs((r.val-r.it.lo)/r.it.lo*100).toFixed(1);__dev=__T(' (below lower limit '+r.it.lo.toFixed(r.it.dec)+', '+__p+'% off)','（低于下限 '+r.it.lo.toFixed(r.it.dec)+'，偏离 '+__p+'%）');}
+    else if(r.st==='high'){var __p2=Math.abs((r.val-r.it.hi)/r.it.hi*100).toFixed(1);__dev=__T(' (above upper limit '+r.it.hi.toFixed(r.it.dec)+', '+__p2+'% off)','（高于上限 '+r.it.hi.toFixed(r.it.dec)+'，偏离 '+__p2+'%）');}
+    html+='<li>'+__nm+' '+r.val.toFixed(r.it.dec)+' '+r.it.u+' → <strong>'+__stTxt[r.st]+'</strong>'+__dev+'</li>';
+  });
+  html+='</ul>';
+  html+='<p style="font-size:13px;">'+__T('Recognized '+rows.length+' item(s), '+__abn+' outside reference range.','共识别 '+rows.length+' 项，其中 '+__abn+' 项超出参考区间。')+'</p>';
+  if(unknown.length){html+='<p style="font-size:12px;color:var(--text-muted);">'+__T('Unrecognized: ','未识别指标：')+unknown.join(__en?'; ':'、')+'</p>';}
+  html+='<p style="font-size:12px;color:var(--text-muted);">'+__T('Judged against '+__grp+' reference intervals; the ranges printed on the report sheet prevail.','按'+__grp+'参考区间判定；以报告单标注范围为准。')+'</p></div>';
+  area.innerHTML=html;
+}
 
 function initSelect(){
   var sel = document.getElementById('metricSel');
