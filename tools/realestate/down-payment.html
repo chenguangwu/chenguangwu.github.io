@@ -192,6 +192,12 @@ s.parentNode.insertBefore(el, s);
     </div>
   </div>
 
+  <div class="card">
+    <h3 data-zh="📊 逐年摊还明细">📊 Yearly Amortization Schedule</h3>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px;" data-zh="按还款方式逐月推算，汇总每年偿还的本金、利息及年末剩余本金">Month-by-month simulation summarized per year: principal paid, interest paid and remaining balance.</p>
+    <div id="amortTable"></div>
+  </div>
+
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -265,6 +271,8 @@ function calc(){
   const loanAmount = total - downPayment;
   const months = years * 12;
   const monthlyRate = rate / 100 / 12;
+  let monthlyPayment = 0;
+  const method = getMethod();
 
   let html = `
     <div class="data-grid">
@@ -278,7 +286,6 @@ function calc(){
 
   if(getMethod() === 'equal-payment'){
     // 等额本息
-    let monthlyPayment = 0;
     if(monthlyRate > 0){
       monthlyPayment = loanAmount * monthlyRate * Math.pow(1 + monthlyRate, months) / (Math.pow(1 + monthlyRate, months) - 1);
     } else {
@@ -309,7 +316,33 @@ function calc(){
       <p>支付利息：<strong style="color:var(--danger);">¥${fmt(totalInterest)}</strong></p>
     `;
   }
+  renderAmort(loanAmount, months, monthlyRate, method, monthlyPayment);
   const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+}
+
+function renderAmort(loanAmount, months, monthlyRate, method, monthlyPayment){
+  var el=document.getElementById('amortTable');
+  if(!el) return;
+  if(!(loanAmount>0)||!(months>0)){el.innerHTML='';return;}
+  var __EN=((typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())||/lang=en-US/i.test(location.search)||/^en/i.test(document.documentElement.lang||''));
+  var __T=function(en,zh){return __EN?en:zh;};
+  var yrs=Math.ceil(months/12);
+  var bal=loanAmount;
+  var rows='';
+  for(var y=1;y<=yrs;y++){
+    var yPri=0,yInt=0;
+    for(var m=0;m<12 && (y-1)*12+m<months;m++){
+      var mInt=bal*monthlyRate;
+      var mPri=(method==='equal-payment')?(monthlyPayment-mInt):(loanAmount/months);
+      yPri+=mPri; yInt+=mInt;
+      bal-=mPri;
+    }
+    if(bal<0) bal=0;
+    rows+='<tr><td>'+__T('Year '+y,'第'+y+'年')+'</td><td style="text-align:right;">¥'+fmt(yPri)+'</td><td style="text-align:right;">¥'+fmt(yInt)+'</td><td style="text-align:right;">¥'+fmt(bal)+'</td></tr>';
+  }
+  el.innerHTML='<table style="width:100%;border-collapse:collapse;font-size:13px;">'
+    +'<thead><tr style="background:var(--bg,#f5f5f5);"><th style="padding:6px;text-align:left;">'+__T('Year','年份')+'</th><th style="padding:6px;text-align:right;">'+__T('Principal/yr','年还本金')+'</th><th style="padding:6px;text-align:right;">'+__T('Interest/yr','年还利息')+'</th><th style="padding:6px;text-align:right;">'+__T('Balance EOY','年末剩余本金')+'</th></tr></thead>'
+    +'<tbody>'+rows+'</tbody></table>';
 }
 
 function copyResult(){
