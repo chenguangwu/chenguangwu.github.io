@@ -294,6 +294,13 @@ s.parentNode.insertBefore(el, s);
       <p style="font-size:12px;color:var(--text-muted);margin-top:8px;">
         输入表达式后会自动反解析到可视化面板
       </p>
+
+      <label style="margin-top:16px;" data-zh="人类语 → 表达式（反向翻译）">Human language → expression (reverse)</label>
+      <div class="input-row">
+        <input type="text" id="nlInput" placeholder="如：每天 08:30 / 每周一 09:15 / 每 15 分钟 / 工作日 9 点 / 每月 1 号 2:30 / 下午 3 点" oninput="parseHumanCron()" style="text-align:center;">
+        <button type="button" class="btn primary" onclick="parseHumanCron()">解析</button>
+      </div>
+      <div class="result-box" id="nlBox" style="margin-top:10px;"></div>
     </div>
 
     <div id="tab-preset" class="tab-content">
@@ -642,6 +649,104 @@ function onManualInput() {
   const expr = document.getElementById('manualInput').value.trim();
   if (!expr) return;
   parseToVisual(expr);
+}
+
+// ── 人类语 → 表达式（S6 反向翻译）──
+// 受限模式匹配（纯前端确定性解析，非 NLP）：
+//   每分钟 / 每小时[整点] / 每 X 分钟 / 每 X 小时
+//   [每天|每周一~日|工作日|每月 D 号] + 时间（HH:MM / HH点MM分 / HH点）
+//   上午/早上/凌晨=原值，下午/晚上=+12（「下午12点」=12，「晚上12点」=0）
+function __cronEn() { return (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) ? 1 : 0; }
+
+function __cronParseTime(str) {
+  // 严格 HH:MM / HH：MM 优先——否则「每月 1 号 2:30」的「1 号」会因可选分组
+  // 在最早起点匹配成功（h=1、m=0），把真正的 2:30 吞掉。
+  let m = str.match(/(凌晨|早上|上午|下午|晚上)?\s*(\d{1,2})\s*[:：]\s*(\d{1,2})/);
+  if (m) {
+    const t = __cronApplyPeriod(m[1], parseInt(m[2], 10), parseInt(m[3], 10));
+    return t;
+  }
+  m = str.match(/(凌晨|早上|上午|下午|晚上)?\s*(\d{1,2})\s*[点时]\s*(?:(\d{1,2})\s*分?)?/);
+  if (m) {
+    return __cronApplyPeriod(m[1], parseInt(m[2], 10), m[3] !== undefined ? parseInt(m[3], 10) : 0);
+  }
+  return null;
+}
+
+function __cronApplyPeriod(p, h, mi) {
+  if (p === '下午') { if (h >= 1 && h <= 11) h += 12; }        // 下午12点=12（中午）
+  else if (p === '晚上') { if (h === 12) h = 0; else if (h >= 1 && h <= 11) h += 12; } // 晚上12点=0（午夜）
+  if (h > 23 || mi > 59) return null;
+  return { h: h, m: mi };
+}
+
+function __cronPad2(n) { return (n < 10 ? '0' : '') + n; }
+
+function parseHumanCron() {
+  const raw = document.getElementById('nlInput').value.trim();
+  const box = document.getElementById('nlBox');
+  if (!raw) { box.innerHTML = ''; return; }
+  const en = __cronEn();
+  const s = raw.replace(/：/g, ':').replace(/\s+/g, ' ').trim();
+
+  const fail = '<p style="color:var(--danger);">' + (en
+    ? '❌ Cannot parse. Try: "every day 08:30" / "every Monday 09:15" / "every 15 minutes" / "weekdays 9:00"'
+    : '❌ 无法识别，试试这些写法：每天 08:30 ／ 每周一 09:15 ／ 每 15 分钟 ／ 每 2 小时 ／ 工作日 9 点 ／ 每月 1 号 2:30 ／ 下午 3 点') + '</p>';
+
+  let expr = null;
+  let noteFull = '';
+  // 1) 无时间词的固定句式
+  if (/^(每分钟|every minute)$/i.test(s)) { expr = '* * * * *'; noteFull = en ? 'every minute' : '每分钟'; }
+  else if (/^(每小时(整点)?|every hour)$/i.test(s)) { expr = '0 * * * *'; noteFull = en ? 'every hour, on the hour' : '每小时整点'; }
+  else {
+    let m = s.match(/^每\s*(\d{1,2})\s*分钟$|^every\s+(\d{1,2})\s*minutes?$/i);
+    if (m) {
+      const x = parseInt(m[1] || m[2], 10);
+      if (x >= 1 && x <= 59) { expr = (x === 1 ? '* ' : '*/' + x + ' ') + '* * * *'; noteFull = (en ? 'every ' + x + ' minute(s)' : '每 ' + x + ' 分钟'); }
+    }
+    if (!expr) {
+      m = s.match(/^每\s*(\d{1,2})\s*小时(整点)?$|^every\s+(\d{1,2})\s*hours?$/i);
+      if (m) {
+        const x = parseInt(m[1] || m[3], 10);
+        if (x >= 1 && x <= 23) { expr = '0 ' + (x === 1 ? '* ' : '*/' + x + ' ') + '* * *'; noteFull = (en ? 'every ' + x + ' hour(s), on the hour' : '每 ' + x + ' 小时整点'); }
+      }
+    }
+  }
+
+  // 2) 修饰词 + 时间
+  if (!expr) {
+    const tm = __cronParseTime(s);
+    if (tm) {
+      const dowMap = { '一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6, '日': 0, '天': 0 };
+      const dowName = { 0: en ? 'Sunday' : '日', 1: en ? 'Monday' : '一', 2: en ? 'Tuesday' : '二', 3: en ? 'Wednesday' : '三', 4: en ? 'Thursday' : '四', 5: en ? 'Friday' : '五', 6: en ? 'Saturday' : '六' };
+      let tail = '* * *';
+      let note = en ? 'every day' : '每天';
+      const wd = s.match(/每周([一二三四五六日天])/);
+      const md = s.match(/每月\s*(\d{1,2})\s*[号日]/);
+      if (wd && dowMap[wd[1]] !== undefined) {
+        tail = '* * ' + dowMap[wd[1]];
+        note = en ? ('every ' + dowName[dowMap[wd[1]]]) : ('每周' + dowName[dowMap[wd[1]]]);
+      } else if (/工作日|weekdays?/i.test(s)) {
+        tail = '* * 1-5';
+        note = en ? 'weekdays' : '工作日';
+      } else if (md) {
+        const d = parseInt(md[1], 10);
+        if (d >= 1 && d <= 31) { tail = d + ' * *'; note = (en ? 'day ' : '每月 ') + d + (en ? ' of month' : ' 号'); }
+        else { box.innerHTML = fail; return; }
+      }
+      expr = tm.m + ' ' + tm.h + ' ' + tail;
+      noteFull = note + ' ' + __cronPad2(tm.h) + ':' + __cronPad2(tm.m);
+    }
+  }
+
+  if (!expr) { box.innerHTML = fail; return; }
+
+  // 写入主表达式并同步可视化面板与描述
+  document.getElementById('manualInput').value = expr;
+  parseToVisual(expr);
+  const __h0 = '<p><strong>' + (en ? 'Parsed:' : '✅ 解析为：') + '</strong><code style="font-weight:700;color:var(--primary);margin-left:6px;">' + expr + '</code></p><p style="font-size:12px;color:var(--text-muted);margin-top:4px;">' + (en ? 'Meaning: ' : '含义：') + noteFull + ' → 已同步到可视化面板</p>';
+  if ((typeof __h0 === 'number' && !isFinite(__h0)) || /Infinity/.test(String(__h0)) || /(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)) { box.innerHTML = '<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>'; return; }
+  box.innerHTML = __h0;
 }
 
 function parseToVisual(expr) {
