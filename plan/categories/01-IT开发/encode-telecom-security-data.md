@@ -8,9 +8,7 @@
 - ✅ 已落地（2026-10-26）：bandwidth-calculator KB 选项 0.001→1/1024（byte 系统一 1024，GB/TB 原本已 1024）+ 「bit 系 1000 / byte 系 1024」口径标注（data-zh 双语）；quick-calc-time-bandwidth formula-eq 80 秒（1000 进制）与案例 91 秒（1024 进制）矛盾消除标注。verify 强用例（2048 KB=2.00 MB，clicks 直调）；verify telecom 11/11、判别器 0、门禁 218/218。
 
 ### E3. security 模拟器类内容单薄
-- 描述：data-erase/virtual-safe/smoke-alarm 偏玩具化，无专业依据展示。
-- 受影响：tools/security/*（~20 页）
-- 方案：接 S7 引据徽标（NIST 800-88 标准条目），提升可信度。
+- ✅ 已落地（2026-10-26 · data-erase-simulator）：加「📚 标准依据」徽标（#standardBadge 随选中算法切换：零填充→NIST 800-88 Clear 级 / 随机→Clear/Purge 过渡 / DoD→NIST 已不推荐说明 / Gutmann→1996 论文局限+建议加密擦除），对比表与 CSV 导出加「标准依据」列，页脚 NIST 800-88 Rev.1 三级别说明（data-zh 双语 + GEN_UI_MAP 映射）。⚠ 同批修两条弱锚：老用例锚「24」是 byteGrid 随机字节概率性回显（撞值即逃生）→ 收紧为 startSim 同步渲染的确定性步骤锚；新用例锚须带「标准依据」badge 专属前缀（compareTable 全算法列会把引据文本带进默认态）。verify security 11/11、判别器 0 逃生、门禁 218/218。
 
 ## 功能缺陷
 - ✅ 自定义多项式已落地（2026-10-26）：`it/crc-calculator` 加「自定义 CRC 模型」块（checkbox 默认关 ⇒ 零渲染；width 8–64/poly·init·xorout hex/refin·refout 勾选，复用 crcGeneric 在 8 标准算法后追加一行）；__gv 防御 harness stub 对静态 input .value 不解析 attribute 的坑。verify 自洽用例（CRC-8 参数+abc → 0x5f 与内置一致）；GEN_UI_MAP 补 7 条 label。verify it 764/764、判别器 0 逃生、门禁 218/218。⚠ 页面存在既有「undefined 0xundefined」×2 卡（stash 对照确认与本批无关，疑似 harness reset 机制，待后续排查）。
