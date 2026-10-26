@@ -5,7 +5,7 @@
 - ~~天文页缺「当前位置可见行星」（静态星历表月度数据模块）。~~ ✅ 2026-10-26 已落地（observation-conditions 新增「🪐 当日行星可见性」：JPL 近似轨道要素算水金火木土距角/晨昏方位/黄道位置/观测评价）
 
 ## 优化点
-- S7 引据：CODATA 常数出处标注。→ 首批 2026-10-26 已落地 5 页（gravitational-force / schwarzschild-radius / light-travel-time / stellar-parallax / hubble-redshift-distance 各加「📐 物理常数引据」表：数值+单位+出处）；其余物理/天文页待续批。
+- S7 引据：CODATA 常数出处标注。→ 已落地 10 页（2026-10-26 两批）：第一批 astronomical 5 页（gravitational-force / schwarzschild-radius / light-travel-time / stellar-parallax / hubble-redshift-distance），第二批 quantum 4 页 + fluid 1 页（photon-energy / boltzmann-population / bohr-orbit-radius / compton-wavelength / hydrostatic-pressure）；各页加「📐 物理常数引据」表（数值+单位+出处，CODATA 2018 / 新 SI 定义值 / IAU / ISO）。其余物理/天文页待续批。
 - ~~S3 分步：透镜/成像光路图（SVG 动态）。~~ ✅ 2026-10-26 已落地（thin-lens-equation 新增「🔍 成像性质与光路示意」：成像性质文字 + SVG 三条特殊光线光路图）
 
 ## 受影响范围
