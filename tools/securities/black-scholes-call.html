@@ -144,6 +144,10 @@ s.parentNode.insertBefore(el, s);
         <label for="t">期限 T (年)</label>
         <input type="number" id="t" value="1" step="0.25" placeholder="如 1">
       </div>
+      <div>
+        <label>期权市价 (选填，反解隐含波动率 IV)</label>
+        <input type="number" id="mkt" value="" step="0.01" placeholder="如 10.45" oninput="calcTool()">
+      </div>
     </div>
 
     <div id="black_scholes_callPresets"></div>
@@ -279,11 +283,25 @@ function erf(x){const s=x<0?-1:1;x=Math.abs(x);const t=1/(1+0.3275911*x);
             const d1=(Math.log(S/K)+(r+sig*sig/2)*T)/(sig*Math.sqrt(T));
             const d2=d1-sig*Math.sqrt(T);
             const c=S*N(d1)-K*Math.exp(-r*T)*N(d2);
-            const __g2=dataGrid([
+            var rows=[
                 [c.toFixed(4),'看涨期权价格 C'],
                 [d1.toFixed(4),'d1'],
                 [d2.toFixed(4),'d2']
-            ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
+            ];
+            // —— 隐含波动率 IV 二分反解（市价选填）：C(σ) 在 σ∈(0,5] 单调递增 ——
+            var mktEl=document.getElementById('mkt');
+            var mkt=mktEl?parseFloat(mktEl.value):NaN;
+            if(isFinite(mkt)&&mkt>0){
+                var bsP=function(sv){ var e1=(Math.log(S/K)+(r+sv*sv/2)*T)/(sv*Math.sqrt(T)); var e2=e1-sv*Math.sqrt(T); return S*N(e1)-K*Math.exp(-r*T)*N(e2); };
+                var lo=1e-6,hi=5,iv=NaN;
+                if(mkt>=bsP(lo)&&mkt<=bsP(hi)){
+                    for(var it=0;it<80;it++){ var mid=(lo+hi)/2; if(bsP(mid)<mkt) lo=mid; else hi=mid; }
+                    iv=(lo+hi)/2;
+                }
+                rows.push([isFinite(iv)?iv.toFixed(4):'—','隐含波动率 IV（由市价二分反解）']);
+                rows.push([isFinite(iv)?'可解：市价处于理论价区间 [σ→0 下界, σ=500% 上界] 内':'无解：市价低于内在价值下界（S−K·e^(−rT)）或高于 σ=500% 对应价格','IV 求解状态']);
+            }
+            const __g2=dataGrid(rows);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('s').value = '100';
       document.getElementById('k').value = '100';
