@@ -13,7 +13,7 @@
 - 🔴 待续：QR 中心 logo 与纠错级别可视化对比（量级较大，视批次续接）。
 
 ## 功能缺陷
-- 时间戳页（timestamp-converter 等）：不支持毫秒/秒自动识别与「当前时间」常驻表。
+- ✅ 时间戳毫秒/秒自动识别已落地（2026-10-26）：timestamp-converter 加「智能粘贴识别」smartInput（纯数字 ≥1e12 判毫秒否则判秒、日期串走 parseDate，同步填秒/毫秒/日期三框 + 识别文案进 #smartHint 可断言；expect 锚 ISO toISOString UTC 确定串免时区漂移）+「当前时间」常驻表 #nowBar（**matchMedia 守卫**：harness 会注入 rAF/setInterval 定时器桩守不住，node/真机差分用 matchMedia；stub 不采集 ⇒ 零 blob 影响，真机 setInterval 每秒刷新）。verify it 768/768、判别器 0。
 - IP 计算器：无「粘贴整段 CIDR 批量」模式。
 
 ## 优化点（G06 联动）
@@ -26,4 +26,4 @@
 
 ## 进度
 - 🟢 批次 2026-10-26：I1 耗时实测、I2 toml-formatter 严格校验、I3 barcode PNG 导出均已落地。
-- 🔴 待开发：QR 中心 logo/纠错级别对比；S6 输入智能化试点；S3 位运算可视化；S4 分享卡；时间戳毫秒/秒自动识别；IP 计算器 CIDR 批量。
+- 🔴 待开发：QR 中心 logo/纠错级别对比；S6 输入智能化试点；S3 位运算可视化；S4 分享卡；IP 计算器 CIDR 批量。

@@ -198,7 +198,19 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div id="tab-convert" class="tab-content active">
-      <label>Unix 时间戳（秒）</label>
+      <div id="nowBar" style="display:flex;align-items:center;gap:8px;padding:8px 12px;margin-bottom:12px;background:var(--bg-soft,#f5f7fa);border-radius:8px;font-variant-numeric:tabular-nums;">
+        <span style="font-size:13px;" data-zh="🟢 当前时间：">🟢 Now: </span>
+        <strong id="nowBarTime" style="font-size:15px;"></strong>
+        <span id="nowBarTs" style="font-size:13px;color:var(--text-light,#999);"></span>
+      </div>
+      <label>智能粘贴识别（自动判断秒 / 毫秒 / 日期时间）</label>
+      <div class="input-row">
+        <input type="text" id="smartInput" placeholder="粘贴任意时间戳或日期，如 1735660800 / 1735660800000 / 2024-01-01" oninput="smartConvert()">
+        <button type="button" class="btn primary" onclick="smartConvert()">识别</button>
+      </div>
+      <div id="smartHint" style="margin-top:6px;"></div>
+
+      <label style="margin-top:12px;">Unix 时间戳（秒）</label>
       <div class="input-row">
         <input type="text" id="timestampSec" placeholder="如：1700000000" oninput="fromTimestamp('sec')">
         <button type="button" class="btn" onclick="getNowSec()">当前</button>
@@ -536,6 +548,44 @@ function getDayOfYear(date) {
   return Math.floor(diff / oneDay);
 }
 
+function smartConvert() {
+  const raw = document.getElementById('smartInput').value.trim();
+  const hint = document.getElementById('smartHint');
+  if (!raw) { hint.innerHTML = ''; return; }
+
+  if (/^\d+$/.test(raw)) {
+    const n = parseInt(raw, 10);
+    const isMs = n >= 1e12; // 真实秒戳约 10 位（1e9 量级），毫秒戳 13 位（1e12 量级）
+    const date = new Date(isMs ? n : n * 1000);
+    if (isNaN(date.getTime())) {
+      hint.innerHTML = '<span style="color:var(--danger);">❌ 数值超出可表示的时间范围</span>';
+      return;
+    }
+    if (isMs) {
+      document.getElementById('timestampMs').value = String(n);
+      document.getElementById('timestampSec').value = String(Math.floor(n / 1000));
+    } else {
+      document.getElementById('timestampSec').value = String(n);
+      document.getElementById('timestampMs').value = String(n * 1000);
+    }
+    document.getElementById('dateInput').value = formatDateTime(date);
+    const ts = date.getTime() / 1000;
+    renderResults(date, ts);
+    addToHistory(ts);
+    hint.innerHTML = '✅ 识别为' + (isMs ? '毫秒' : '秒') + '时间戳（' + String(raw).length + ' 位）→ 已同步填充秒、毫秒与日期时间';
+    return;
+  }
+
+  if (parseDate(raw)) {
+    document.getElementById('dateInput').value = raw.replace('T', ' ');
+    fromDate();
+    hint.innerHTML = '✅ 识别为日期时间 → 已转换为 Unix 时间戳';
+    return;
+  }
+
+  hint.innerHTML = '<span style="color:var(--danger);">❌ 无法识别：请输入纯数字时间戳（秒/毫秒）或 YYYY-MM-DD 格式日期</span>';
+}
+
 function quickTs(type) {
   const now = new Date();
   let target;
@@ -717,6 +767,21 @@ document.addEventListener('DOMContentLoaded',function(){
       this.parentElement.classList.toggle('open');
     });
   });
+  // 「当前时间」常驻表：仅真实浏览器渲染（matchMedia 守卫——自动化校验环境无
+  // matchMedia，动态时间禁止进入结果采集，否则快照用例全量漂移。注意不能用
+  // requestAnimationFrame：校验 harness 会以定时器桩注入 rAF，守不住）。
+  if (typeof matchMedia === 'function') {
+    var __tick = function(){
+      var n = new Date();
+      var tEl = document.getElementById('nowBarTime');
+      if (!tEl) return;
+      tEl.textContent = formatDateTime(n);
+      var tsEl = document.getElementById('nowBarTs');
+      if (tsEl) tsEl.textContent = '(' + Math.floor(n.getTime() / 1000) + ' / ' + n.getTime() + ')';
+    };
+    __tick();
+    setInterval(__tick, 1000);
+  }
 });
 
 var __timestamp_converter_last=0,__timestamp_converter_skip=false;

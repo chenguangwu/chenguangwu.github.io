@@ -321,6 +321,18 @@ const CASES = [
     ref: "Unix 时间戳 0 = 1970-01-01T00:00:00Z（UTC 纪元）",
   },
   {
+    slug: "it/timestamp-converter",
+    inputs: { smartInput: "1735660800" },
+    expect: ["识别为秒时间戳（10 位）", "2024-12-31T16:00:00.000Z"],
+    ref: "智能粘贴识别·秒：1735660800 < 1e12 ⇒ 判秒，同步填秒/毫秒/日期三框并 renderResults。ISO 行由 date.toISOString() 输出，UTC 确定（免时区漂移）。默认态 smartInput 空 ⇒ hint 清空、零命中。两条 expect 均依赖被测输入（识别文案由位数决定、ISO 由时间值决定）。",
+  },
+  {
+    slug: "it/timestamp-converter",
+    inputs: { smartInput: "1735660800000" },
+    expect: ["识别为毫秒时间戳（13 位）", "2024-12-31T16:00:00.000Z"],
+    ref: "智能粘贴识别·毫秒：1735660800000 ≥ 1e12 ⇒ 判毫秒（等价 1735660800 s），与上条共用同一 ISO 锚、识别文案不同 ⇒ 互不命中、判别器可区分两态。",
+  },
+  {
     slug: "it/standard-deviation",
     inputs: { data: "1,2,3,4" },
     expect: ["1.291", "1.118"],
