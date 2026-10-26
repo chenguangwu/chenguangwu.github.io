@@ -14,7 +14,7 @@
 
 ## 功能缺陷
 - ✅ 时间戳毫秒/秒自动识别已落地（2026-10-26）：timestamp-converter 加「智能粘贴识别」smartInput（纯数字 ≥1e12 判毫秒否则判秒、日期串走 parseDate，同步填秒/毫秒/日期三框 + 识别文案进 #smartHint 可断言；expect 锚 ISO toISOString UTC 确定串免时区漂移）+「当前时间」常驻表 #nowBar（**matchMedia 守卫**：harness 会注入 rAF/setInterval 定时器桩守不住，node/真机差分用 matchMedia；stub 不采集 ⇒ 零 blob 影响，真机 setInterval 每秒刷新）。verify it 768/768、判别器 0。
-- IP 计算器：无「粘贴整段 CIDR 批量」模式。
+- ✅ IP 计算器 CIDR 批量已落地（2026-10-26）：ip-calculator v4 tab 加「批量 CIDR 解析」（textarea 每行一条，支持 ip/前缀、ip 点分掩码、裸 IP=/32 三形态；错误行 ❌ 标注不中断；统计串「共 N 条：有效 X，无效 Y」+ 六列汇总表）。⚠ 锚只能用统计串——主机数/掩码值撞「掩码对照表」（harness 兜底直调 buildMaskTable 进 blob），判别器抓到 2 逃生后收紧。verify it 775/775、判别器 0。
 
 ## 优化点（G06 联动）
 - S6 输入智能化最佳试点：正则速查（输入样例文本高亮命中组）※ cron「人类语翻译」双向已落地（2026-10-26：表达式→描述既有 descBox + 新增人类语→表达式反向解析）。
@@ -26,4 +26,4 @@
 
 ## 进度
 - 🟢 批次 2026-10-26：I1 耗时实测、I2 toml-formatter 严格校验、I3 barcode PNG 导出均已落地。
-- 🔴 待开发：QR 中心 logo/纠错级别对比；S6 输入智能化试点（正则速查）；S3 位运算可视化；S4 分享卡；IP 计算器 CIDR 批量。
+- 🔴 待开发：QR 中心 logo/纠错级别对比；S6 输入智能化试点（正则速查）；S3 位运算可视化；S4 分享卡。

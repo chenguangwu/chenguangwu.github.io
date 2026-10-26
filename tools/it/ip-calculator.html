@@ -227,6 +227,14 @@ s.parentNode.insertBefore(el, s);
         <button type="button" class="btn" onclick="loadV4Example('172.16.5.10/12')">172.16.5.10/12</button>
       </div>
       
+      <label style="margin-top:16px;" data-zh="批量 CIDR 解析（每行一条，支持 ip/前缀）">Batch CIDR parsing (one per line)</label>
+      <textarea id="batchInput" rows="4" placeholder="如：&#10;10.0.0.0/8&#10;192.168.1.0/24&#10;172.16.5.0/12" style="width:100%;font-family:'SF Mono','Courier New',monospace;font-size:13px;"></textarea>
+      <div class="toolbar" style="margin:8px 0;">
+        <button type="button" class="btn primary" onclick="batchCalc()">🧮 批量计算</button>
+        <button type="button" class="btn" onclick="document.getElementById('batchRes').innerHTML='';document.getElementById('batchInput').value='';">清空</button>
+      </div>
+      <div class="result-box" id="batchRes"></div>
+
       <div class="info-box" style="margin-top:12px;">
         <strong>本机 IP: </strong><span id="localIp">检测中...</span>
       </div>
@@ -367,6 +375,59 @@ s.parentNode.insertBefore(el, s);
 <script>
 const HISTORY_KEY = 'ip_calculator_history';
 const MAX_HISTORY = 20;
+
+// ── 批量 CIDR 解析（每行一条，容错解析）──
+function batchCalc() {
+  const raw = document.getElementById('batchInput').value;
+  const box = document.getElementById('batchRes');
+  const lines = raw.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+  if (!lines.length) {
+    box.innerHTML = '<p style="color:var(--danger);">请先粘贴 CIDR 列表（每行一条，如 10.0.0.0/8）</p>';
+    return;
+  }
+  const en = (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) ? 1 : 0;
+  let ok = 0, bad = 0;
+  let rows = '';
+  lines.forEach((line, idx) => {
+    let ipStr = line, prefix = 32;
+    const slash = line.match(/^([\d.]+)\s*\/\s*(\d{1,2})$/);
+    const maskForm = line.match(/^([\d.]+)\s+((?:\d{1,3}\.){3}\d{1,3})$/);
+    if (slash) { ipStr = slash[1]; prefix = parseInt(slash[2], 10); }
+    else if (maskForm) {
+      // 点分掩码 → 前缀（连续 1 的个数）
+      const mi = ipToInt(maskForm[2]);
+      if (mi !== null) {
+        let p = 0, v = mi >>> 0;
+        while (v & 0x80000000) { p++; v = (v << 1) >>> 0; }
+        prefix = ((v >>> 0) === 0) ? p : -1; // 非连续掩码判无效
+      } else prefix = -1;
+      ipStr = maskForm[1];
+    }
+    const ipInt = ipToInt(ipStr);
+    if (ipInt === null || prefix < 0 || prefix > 32) {
+      bad++;
+      rows += '<tr><td>' + (idx + 1) + '</td><td style="font-family:monospace;">' + ToolBox.escHtml(line) + '</td><td colspan="4" style="color:var(--danger);">' + (en ? 'invalid' : '❌ 无效') + '</td></tr>';
+      return;
+    }
+    ok++;
+    const maskInt = prefix === 0 ? 0 : (0xFFFFFFFF << (32 - prefix)) >>> 0;
+    const networkInt = (ipInt & maskInt) >>> 0;
+    const broadcastInt = (networkInt | (~maskInt >>> 0)) >>> 0;
+    const hostCount = prefix >= 31 ? (prefix === 31 ? 2 : 1) : (Math.pow(2, 32 - prefix) - 2);
+    rows += '<tr><td>' + (idx + 1) + '</td><td style="font-family:monospace;">' + ToolBox.escHtml(line) + '</td>'
+      + '<td style="font-family:monospace;">' + intToIp(networkInt) + '</td>'
+      + '<td style="font-family:monospace;">' + intToIp(broadcastInt) + '</td>'
+      + '<td style="font-family:monospace;">' + intToIp(maskInt) + '</td>'
+      + '<td>' + hostCount.toLocaleString('en-US') + '</td></tr>';
+  });
+  const head = '<p><strong>' + (en ? ('Parsed ' + ok + ' valid, ' + bad + ' invalid (of ' + lines.length + ')') : ('✅ 共 ' + lines.length + ' 条：有效 ' + ok + '，无效 ' + bad)) + '</strong></p>';
+  const table = '<table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:8px;"><thead><tr>'
+    + ['#', '输入', (en ? 'Network' : '网络地址'), (en ? 'Broadcast' : '广播地址'), (en ? 'Mask' : '子网掩码'), (en ? 'Hosts' : '可用主机')].map(h => '<th style="text-align:left;padding:4px 6px;border-bottom:1px solid var(--border,#ddd);">' + h + '</th>').join('')
+    + '</tr></thead><tbody>' + rows + '</tbody></table>';
+  const __h0 = head + table;
+  if ((typeof __h0 === 'number' && !isFinite(__h0)) || /Infinity/.test(String(__h0)) || /(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)) { box.innerHTML = '<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>'; return; }
+  box.innerHTML = __h0;
+}
 
 function switchTab(tab) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
