@@ -961,6 +961,13 @@ const CASES = [
     ref: "`abc` 不匹配邮箱正则 ⇒ 匹配数 0 且结果区落「无匹配」；默认示例文本可命中，结论相反。",
   },
   {
+    slug: "it/regex-common",
+    inputs: { txt: "x a@b.com y c@d.org z", cat: "email", limit: "8" },
+    clicks: ["calcTool()"],
+    expect: ["命中位置（字符偏移）：#1 [2-9] a@b.com、#2 [12-19] c@d.org"],
+    ref: "S6 原文高亮：matchAll 逐段 <mark> 包裹 + 命中偏移明细。偏移由输入文本决定（x=0 空格=1 ⇒ a@b.com=[2-9]；c@d.org=[12-19]），默认样例（abc@example.com 13812345678…）不含该偏移组合 ⇒ 不命中。条目（『、』分隔 + 顺序号）与偏移都在被测输出中，判别力强。注意默认态样例也产「原文高亮（2 处）」字样，故不能以该标题单独作锚（铁律⑥或关系）。"
+  },
+  {
     slug: "it/vector-magnitude",
     inputs: {},
     clicks: ["document.getElementById('v0').value=6;document.getElementById('v1').value=8;document.getElementById('v2').value=0;calculate()"],

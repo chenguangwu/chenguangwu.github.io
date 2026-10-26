@@ -256,6 +256,25 @@ function calcTool(){const cat=document.getElementById('cat').value||'email', txt
      [found.length+' 个','匹配数量'],
      [found.length?found.slice(0,lim).join('、'):'无匹配','匹配结果（前 '+lim+' 个）']
    ]);
+   // ── S6 原文高亮：逐段拼接 <mark>，并列出命中位置（字符偏移由输入决定，可断言）──
+   const __ren=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?1:0;
+   re.lastIndex=0;
+   const __pos=[];
+   let __mm;
+   while((__mm=re.exec(txt))!==null){
+     __pos.push({s:__mm.index,e:__mm.index+__mm[0].length,t:__mm[0]});
+     if(__mm[0]==='') re.lastIndex++; // 防空匹配死循环
+     if(__pos.length>=200) break;
+   }
+   if(__pos.length){
+     let hl='',last=0;
+     __pos.slice(0,lim).forEach(p=>{hl+=escH(txt.slice(last,p.s))+'<mark style="background:#fde68a;border-radius:3px;">'+escH(p.t)+'</mark>';last=p.e;});
+     hl+=escH(txt.slice(last));
+     html+='<div style="margin-top:12px;"><b>'+(__ren?'Highlighted source ('+__pos.length+' hits):':'原文高亮（'+__pos.length+' 处）：')+'</b>'+
+       '<div style="margin-top:6px;padding:8px 10px;background:var(--bg-soft,#f9fafb);border-radius:6px;font-family:monospace;font-size:12.5px;line-height:1.7;word-break:break-all;">'+hl+'</div>';
+     html+='<div style="margin-top:8px;font-size:12.5px;color:var(--text-muted);">'+(__ren?'Hit positions (char offset):':'命中位置（字符偏移）：')+
+       __pos.slice(0,lim).map((p,i)=>'#'+(i+1)+' ['+p.s+'-'+p.e+'] '+escH(p.t)).join('、')+'</div></div>';
+   }
    html += '<div style="margin-top:12px;font-size:13px;"><b>常用正则速查表</b></div>'+
      '<table class="csv-prev" style="margin-top:6px;border-collapse:collapse;width:100%;font-size:12.5px;">'+
      '<tr><th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">类别</th>'+
