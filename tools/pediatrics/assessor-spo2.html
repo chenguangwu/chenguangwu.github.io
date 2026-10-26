@@ -300,6 +300,7 @@ function calc(){
     'CCHD筛查通过，建议常规随访，注意观察。')+
     '</div>';
 
+  try{ window.__EMR_S={minS:minS,diff:diff,cchd:cchdResult,urg:urgency,lvl:riskLevel,tot:totalRisk,sign:signScore,risk:riskCount,rh:rh,ft:ft}; if(typeof __spo2Emr==='function'){__spo2Emr();} }catch(e){}
   const __g3=html;document.getElementById('res').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 }
 function riskLevelStr(t){
@@ -308,6 +309,52 @@ function riskLevelStr(t){
 function copyResult(){
   var text=document.getElementById('res').innerText;
   ToolBox.copyText(text, i18nText('msg544'));
+}
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（筛查工具，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  if(el.__emrBox && el.__emrBox.parentNode){ try{ el.__emrBox.parentNode.removeChild(el.__emrBox); }catch(e){} }
+  el.__emrBox = __box; el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __spo2Emr(){
+  if(typeof window==='undefined'||typeof window.__EMR_S!=='object'||!window.__EMR_S) return;
+  var s=window.__EMR_S;
+  var en=__emrEn();
+  var cchdMap={'CCHD筛查阳性（SpO2＜90%）':'CCHD POSITIVE (SpO2 below 90%)','CCHD筛查阳性（重复测量仍异常）':'CCHD POSITIVE (persistent on repeat)','CCHD筛查阴性（重复测量后正常）':'CCHD NEGATIVE (normalized on repeat)','CCHD筛查可疑（需1小时后重复测量）':'CCHD EQUIVOCAL (repeat in 1h)','CCHD筛查阴性':'CCHD NEGATIVE'};
+  var urgMap={'紧急':'Urgent','待复查':'Repeat','常规':'Routine'};
+  var lvlMap={'高风险':'High','中风险':'Moderate','低风险':'Low'};
+  var cchd=en?(cchdMap[s.cchd]||s.cchd):s.cchd;
+  var lvl=en?(lvlMap[s.lvl]||s.lvl):s.lvl;
+  var result=en?('CCHD screen: '+cchd+' · right hand '+s.rh+'% / foot '+s.ft+'%, min '+s.minS+'%, diff '+s.diff+'% · overall risk: '+lvl)
+                :('CCHD脉搏血氧筛查：'+s.cchd+'；右手 '+s.rh+'% / 足部 '+s.ft+'%，最低 '+s.minS+'%，差值 '+s.diff+'%；综合风险：'+s.lvl);
+  var extra=en?('Physical sign score '+s.sign+', risk factors '+s.risk)
+              :('体征风险评分 '+s.sign+'，高危因素 '+s.risk+' 项');
+  var hintZh = s.urg==='紧急' ? '立即通知儿科/新生儿科，行心脏超声与进一步评估，必要时吸氧及生命体征监护。'
+             : s.urg==='待复查' ? '1 小时后重复右手与足部 SpO2 测量，如仍 <95% 或差值 >3% 判为阳性。'
+             : '常规新生儿护理，若后续出现紫绀、呼吸困难或喂养困难及时复评。';
+  var hintEn = s.urg==='紧急' ? 'Urgently notify pediatrics/neonatology; arrange echocardiography and further evaluation, with oxygen and vital-sign monitoring as needed.'
+             : s.urg==='待复查' ? 'Repeat right-hand and foot SpO2 in 1h; persistently <95% or diff >3% counts as positive.'
+             : 'Routine newborn care; re-evaluate promptly if cyanosis, distress or feeding difficulty appears.';
+  __emrNote({boxId:'res', name:'先天性心脏病（杂音/血氧）评估', nameEn:'Congenital heart disease (murmur/SpO2) screen', result:result, resultEn:result, extra:extra, extraEn:extra, hintZh:hintZh, hintEn:hintEn});
 }
 buildList();calc();
 </script>
