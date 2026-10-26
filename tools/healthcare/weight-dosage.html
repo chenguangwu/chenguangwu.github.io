@@ -125,6 +125,9 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><label>体重 kg</label><input type="number" id="weight" value="20" step="any" oninput="calc()"></div>
     <div class="input-row"><label>剂量 mg/kg</label><input type="number" id="mgkg" value="10" step="any" oninput="calc()"></div>
     <div class="input-row"><label>每日次数</label><input type="number" id="freq" value="2" step="any" oninput="calc()"></div>
+    <div class="input-row"><label>年龄 岁 (0–18, 选填)</label><input type="number" id="age" value="4" step="1" min="0" max="18" oninput="updateWeightHint()"></div>
+    <div class="input-row"><label>性别</label><select id="sex" onchange="updateWeightHint()"><option value="boy">男</option><option value="girl">女</option></select></div>
+    <div id="refWeightBox" style="font-size:13px;color:var(--text-muted);margin:2px 0 8px;"></div>
     <div class="toolbar">
       <div id="weight_dosagePresets"></div>
       <button class="btn primary" onclick="calc()">计算</button>
@@ -239,8 +242,39 @@ const weight = +document.getElementById('weight').value || 0;
   html += `<p>日剂量：<strong style="font-size:18px;color:var(--primary);">${__v0.toFixed(1)}</strong> mg/天</p>`;
   const __v1 = (weight*mgkg/freq);
   html += `<p>单次剂量：<strong style="font-size:18px;color:var(--primary);">${__v1.toFixed(1)}</strong> mg/次</p>`;
+  if(typeof refWeightOf==='function'){
+    var __age=parseFloat(document.getElementById('age').value);
+    var __rw=(__age>=0&&__age<=18)?refWeightOf(__age):null;
+    if(__rw){var __ref=(document.getElementById('sex').value==='girl')?__rw.girl:__rw.boy;
+      var __dev=Math.abs(weight-__ref)/__ref*100;
+      html += '<p style="font-size:12px;color:var(--text-muted);">同年龄中位体重（WHO P50）：'+__ref.toFixed(1)+' kg，当前体重偏差 '+__dev.toFixed(0)+'%</p>';
+      if(__dev>40){html += '<p style="color:var(--danger);font-weight:600;">⚠ 体重与同年龄中位值偏差 >40%，请核对单位（kg/斤）或年龄。</p>';}
+    }
+  }
   const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
+// WHO 生长标准体重-for-age 第 50 百分位（0–18 岁，kg）
+var W_REF_BOY = { 0: 3.3, 1: 9.6, 2: 12.2, 3: 14.3, 4: 16.3, 5: 18.3, 6: 20.5, 7: 22.9, 8: 25.6, 9: 28.6,
+  10: 32.0, 11: 35.9, 12: 40.5, 13: 45.6, 14: 50.8, 15: 55.4, 16: 59.3, 17: 62.3, 18: 64.4 };
+var W_REF_GIRL = { 0: 3.2, 1: 8.9, 2: 11.5, 3: 13.9, 4: 16.1, 5: 18.2, 6: 20.2, 7: 22.4, 8: 25.0, 9: 28.2,
+  10: 31.9, 11: 36.9, 12: 41.5, 13: 45.8, 14: 47.6, 15: 49.0, 16: 50.0, 17: 50.6, 18: 51.0 };
+function refWeightOf(age) {
+  if (!(age >= 0) || age > 18) return null;
+  var lo = Math.floor(age), hi = Math.ceil(age);
+  function lerp(t) { return lo === hi ? t[lo] : t[lo] + (t[hi] - t[lo]) * (age - lo); }
+  return { boy: lerp(W_REF_BOY), girl: lerp(W_REF_GIRL) };
+}
+function updateWeightHint() {
+  var el = document.getElementById('refWeightBox');
+  if (!el) return;
+  var age = parseFloat(document.getElementById('age').value);
+  var r = (age >= 0 && age <= 18) ? refWeightOf(age) : null;
+  if (!r) { el.innerHTML = ''; return; }
+  var isGirl = document.getElementById('sex').value === 'girl';
+  var ref = isGirl ? r.girl : r.boy;
+  el.innerHTML = '📏 同年龄中位体重（WHO P50）：' + (isGirl ? '女童' : '男童') + '约 <strong>' + ref.toFixed(1) + ' kg</strong>（可对照上方体重核对单位 kg/斤）';
+}
+updateWeightHint();
 function copyResult() {
   const txt = document.getElementById('result').innerText;
   if (!txt) return;
