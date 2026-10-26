@@ -183,6 +183,24 @@ const CASES = [
   "ref": "注入 6 项代谢指标（gender 默认 male）→ 判定卡渲染实测值「腰围 99cm」「血压 150/95」（metCount 也会成 5/5，但「满足 5 / 5 项标准」在兜底预设 loadMS 下同样出现 ⇒ 不可用）。默认 value（82cm / 120-78）与兜底预设（96cm / 148-95）都不含这两串。"
 },
 {
+  // 随访计划生成器（03-54）：checkDate 选填，默认态不渲染 ⇒ 零交集
+  "slug": "endocrinology/metabolic-syndrome",
+  "inputs": {
+    "waist": "99",
+    "sbp": "150",
+    "dbp": "95",
+    "fpg": "7.2",
+    "tg": "3.2",
+    "hdl": "0.8",
+    "checkDate": "2024-01-15"
+  },
+  "expect": [
+    "随访计划（基线 2024-01-15，代谢综合征已成立 → 每 3 个月复查）",
+    "第1次复查：2024-04-15"
+  ],
+  "ref": "MS 成立（5/5 项异常）→ 随访间隔 3 个月：2024-01-15 起三程 04-15/07-15/10-15；默认态 checkDate 空 ⇒ 随访块不渲染，与该串零交集（判别力成立）。"
+},
+{
   // 原 expect「14.5」= 兜底预设 loadDM 的 h1 值，注入失败仍命中 → 逃生项。
   "slug": "endocrinology/ogtt-interpretation",
   "inputs": {
