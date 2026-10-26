@@ -128,6 +128,24 @@ const CASES = [
     ref: "注入非默认(默认 weight=70/bf=18)：按去脂体重与活动系数（增肌盈余）⇒ TDEE 2,452 kcal ⇒ 目标热量 2,852 kcal/天；宏量按 21/53/26% ⇒ 蛋白 148 g/天、碳水 381 g/天、脂肪 82 g/天。默认态 2,565 kcal/天 与各克数不同。"
   },
   {
+    slug: "fitness/macro-ratio",
+    inputs: { weight: "70", bf: "15", intensity: "heavy", goal: "bulk" },
+    expect: ["基础代谢 BMR： 1655", "目标热量（增肌盈余）： 3297 kcal/天"],
+    ref: "S2 预设「增肌 70kg 重训」等价注入：lean=70×0.85=59.5 ⇒ BMR=370+21.6×59.5=1655；TDEE=1655.2×1.75=2897 ⇒ 目标+400=3297 kcal/天（两锚均依赖 bf=15 的瘦体重项；蛋白锚 126g 只依赖 weight、B 态同值不判别，故不收）（默认 moderate/bulk 组 BMR 1610、目标 2895，避开）"
+  },
+  {
+    slug: "fitness/macro-ratio",
+    inputs: { weight: "80", bf: "25", intensity: "moderate", goal: "cut" },
+    expect: ["目标热量（减脂缺口）： 2182 kcal/天", "176g 蛋白质/天"],
+    ref: "S2 预设「减脂 80kg 中度」等价注入：lean=60 ⇒ BMR=1666；TDEE=1666×1.55=2582 ⇒ 目标−400=2182 kcal/天；蛋白=80×2.2=176 g/天（默认无减脂缺口形态，避开）"
+  },
+  {
+    slug: "fitness/macro-ratio",
+    inputs: { weight: "65", bf: "20", intensity: "light", goal: "maintain" },
+    expect: ["目标热量（维持）： 2090 kcal/天", "104g 蛋白质/天"],
+    ref: "S2 预设「维持 65kg 轻度」等价注入：lean=52 ⇒ BMR=1493；TDEE=1493.2×1.4=2090 ⇒ 目标+0=2090 kcal/天；蛋白=65×1.6=104 g/天（默认无维持形态，避开）"
+  },
+  {
     slug: "fitness/rater-time",
     inputs: { painNum: "7", duration: "90" },
     expect: ["（输入 90 秒，推荐 120 秒）", "滚动 90–120 秒"],
@@ -570,6 +588,30 @@ const CASES = [
     clicks: ["setMode('pace');document.getElementById('distPace').value='10';document.getElementById('timeMPace').value='50';calc();"],
     expect: ['5\'00"/km', '50:00', '10.00 km', '12.0 km/h'],
     ref: '配速模式 10 km / 0:50:00 ⇒ 配速 = 3000÷10 = **300 s** ⇒ `5\'00"/km`；完赛时间 = 10×300 = 3000 s，因不足 1 h 走 fmtTime 的 `MM:SS` 分支 ⇒ **50:00**；距离回显 **10.00 km**；速度 = 3600÷300 = **12.0 km/h**。默认组是 5 km / 0:30:00 ⇒ `6\'00"/km` / `30:00` / `5.00 km` / `10.0 km/h`，四条锚全不撞。',
+  },
+
+  {
+    slug: "fitness/pace-calculator",
+    inputs: {},
+    clicks: ["setMode('pace');document.getElementById('distPace').value='5';document.getElementById('timeHPace').value='0';document.getElementById('timeMPace').value='25';document.getElementById('timeSPace').value='0';calc();"],
+    expect: ["5'00\"/km", "25:00", "12.0 km/h"],
+    ref: "S2 预设「5km 破 25」等价注入：配速 = 1500÷5 = 300 s ⇒ `5'00\"/km`；完赛 **25:00**；速度 12.0 km/h（默认组 30:00/5.00 km，避开）",
+  },
+
+  {
+    slug: "fitness/pace-calculator",
+    inputs: {},
+    clicks: ["setMode('pace');document.getElementById('distPace').value='10';document.getElementById('timeHPace').value='0';document.getElementById('timeMPace').value='50';document.getElementById('timeSPace').value='0';calc();"],
+    expect: ["50:00", "10.00 km"],
+    ref: "S2 预设「10km 破 50」等价注入：完赛 **50:00**、距离回显 **10.00 km**（默认组 30:00/5.00 km，避开；与例①同值 50:00 分属不同用例不冲突）",
+  },
+
+  {
+    slug: "fitness/pace-calculator",
+    inputs: {},
+    clicks: ["setMode('pace');document.getElementById('distPace').value='42.195';document.getElementById('timeHPace').value='4';document.getElementById('timeMPace').value='0';document.getElementById('timeSPace').value='0';calc();"],
+    expect: ["5'41\"/km", "4:00:00", "10.5 km/h"],
+    ref: "S2 预设「全马破 4」等价注入：配速 = 14400÷42.195 = 341.27 s ⇒ `5'41\"/km`；完赛 **4:00:00**（≥1h 带时分支）；速度 3600÷341.27 = 10.5 km/h（默认组全不命中）",
   },
 
   {
