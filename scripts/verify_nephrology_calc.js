@@ -76,9 +76,9 @@ const CASES = [
     "postWeight": "65"
   },
   "expect": [
-    "(4-3.5×0.2105)×2/65"
+    "透析充分（理想）"
   ],
-  "ref": "auto-restore"
+  "ref": "spKt/V = -ln(8/38 - 0.008×4) + (4-3.5×0.2105)×2/65 ≈ 1.82 ≥ 目标1.2+0.2=1.4（freq 默认3次/周）→ 透析充分（理想）。原用例 expect 为派生公式片段「(4-3.5×0.2105)×2/65」，偏弱，改为充分性结论强串；默认参数算得不同 spKt/V，与「透析充分（理想）」零交集。S3 标尺 refBar(#ktvRefBar) 已加（bands: 不足/临界/达标/理想，max2.5）。"
 },
 {
   "slug": "nephrology/diuretic-conversion",

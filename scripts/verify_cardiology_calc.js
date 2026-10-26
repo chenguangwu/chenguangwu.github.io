@@ -125,9 +125,9 @@ const CASES = [
     "cacs": "280"
   },
   "expect": [
-    "93岁"
+    "50–75百分位"
   ],
-  "ref": "auto-restore"
+  "ref": "注入 age=93/cacs=280：CACS=280 落 [100,400) → 中度钙化；年龄分位 50–75百分位（默认 age=62/cacs=280 同为中钙，但分位是 ≥75百分位 ⇒ 「50–75百分位」随注入变化、零交集）。原 expect「93岁」输入回显、「中度钙化」默认态同命中（cacs 默认恰为 280）均不可用。S3 参考区间标尺 refBar(#cacsRefBar) 已加（bands: 无/轻/中/广/重，max1500），harness 因 TBKit 守卫不渲染但文本定位已落 #result。"
 },
 {
   "slug": "cardiology/cpet-analysis",
