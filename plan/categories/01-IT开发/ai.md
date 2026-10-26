@@ -22,4 +22,5 @@
 - tools/ai/（64 页）
 
 ## 进度
+- 🟢 批次 04-b1（2026-10-26 · S2 真实部署场景预设）：`vram-estimate` +3 预设（7B LoRA 微调 bf16 act=14GB → 28GB 总、13B QLoRA 4-bit act=8GB → 14.5GB、70B INT4 推理 act=1GB → 36GB）；calc() 动态串（权重显存/总显存估算）EN 治理；**__veL 修复**：原 `typeof TBKit!=='undefined'&&TBKit.util.isEn()` 在 jsdom/检测器环境（不加载外链）恒 false → 补 location.search/lang fallback。verify ai 118→121、判别器 0、门禁 218/218。
 - 🔴 待开发
