@@ -14,8 +14,20 @@ const CASES = [
   {
     slug: "healthcare/antipyretic-dose",
     inputs: { weight: "20", dose: "10", conc: "32" },
-    expect: ["6.3"],
-    ref: "单次液量 = 20×10÷32 = 6.25 → 6.3 mL；日上限次数 = ⌊20×75÷32÷6.25⌋ = ⌊46.875÷6.25⌋ = ⌊7.5⌋ = 7",
+    expect: ["单次药量： 6.3"],
+    ref: "单次液量 = 20×10÷32 = 6.25 → 6.3 mL；日上限次数 = ⌊20×75÷32÷6.25⌋ = 7。⚠ 原锚裸「6.3」被 03-47 新增 refWeightBox 静态提示「16.3 kg」子串误伤（默认态命中→逃生项），改「单次药量： 6.3」派生串（默认 7.0 不含）。",
+  },
+  {
+    slug: "healthcare/antipyretic-dose",
+    inputs: { weight: "20", dose: "10", conc: "32", liver: "c" },
+    expect: ["Child-Pugh C 级肝功能不全：对乙酰氨基酚以肝清除为主，应避免使用"],
+    ref: "drug-dosing 模板铺开（03-47）：肝功能 C 级红字警示（对乙酰氨基酚肝清除为主）。默认 liver=normal 无该串 ⇒ 判别力成立。",
+  },
+  {
+    slug: "healthcare/antipyretic-dose",
+    inputs: { weight: "20", dose: "10", conc: "32" },
+    expect: ["当前体重偏差 23%"],
+    ref: "WHO P50 中位体重核对：age 默认 4 岁/男 P50=16.3 kg，|20−16.3|÷16.3=22.7%→toFixed(0)=23%。默认 weight=15 偏差 8% ⇒ 随注入变化、零交集。",
   },
   {
     slug: "healthcare/healthcare",
@@ -252,9 +264,9 @@ const CASES = [
       "conc": "42"
     },
     "expect": [
-      "42\n42\n42\n单次药量： 42"
+      "单次药量： 42"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"weight\":\"42\",\"dose\":\"42\",\"conc\":\"42\"}，输出区含「42\n42\n42\n单次药量： 42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入，输出「单次药量： 42.0 mL」。⚠ 03-47 在 weight/dose 之间插入 age/sex 输入致原值序列锚「42\\n42\\n42\\n单次药量： 42」断链，改派生串「单次药量： 42」（默认 15×15÷32=7.0 不含）⇒ 强判别、零逃生。"
   },
   {
     "slug": "healthcare/apgar",
