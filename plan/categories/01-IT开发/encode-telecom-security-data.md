@@ -16,6 +16,8 @@
 
 ## 优化点
 - S1 首屏即答案：编码类页默认给「Hello World」示例的完整编码链。
+  - ✅ 试点落地（2026-10-26 · it/url-encode）：textarea 默认样例 `https://toolbox.example.com/search?q=你好 世界` + `__url_encodeFirstRender()` boot 静默首渲染（encodeURIComponent、output 空才写、不写历史不弹 toast）。同批修 1 条 B 类快照用例漂移（blob 段序变化 → 隔离 fullBlob 实测重写，判别力保持）。verify it 766/766、判别器 0、门禁 218/218。⚠ 首屏渲染串不依赖注入（A===B 盲区）→ 不配 expect，以既有用例零漂移为闭环标准。
+  - 🔴 待续：同类空输入页 html-entities-encode / html-entity-encoder / url-encoder-advanced / uuencode（qr-decoder 需传图不算）；每页同批核对「默认态不含」反向锚。
 
 ## 受影响范围
 - tools/encode/、tools/telecom/、tools/security/、tools/data/（合计 ~100 页）

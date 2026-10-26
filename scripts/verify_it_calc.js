@@ -6516,9 +6516,9 @@ const CASES = [
       "builtUrl": "1\n2\n3"
     },
     "expect": [
-      "除\n暂无历史记录\nabc123测试\nabc123测试\nabc123测试\nabc123测试\n1 2 3\n1 2 3\n5\n5\n5 B\n+0.0%"
+      "删除\n暂无历史记录\n1 2 3\n1 2 3\nabc123测试\nabc123测试\nabc123测试\nabc123测试\n5\n5\n5 B\n+0.0%"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"baseUrl\":\"abc123测试\",\"parseInput\":\"abc123测试\",\"asciiFilter\":\"abc123测试\",\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"builtUrl\":\"1\\n2\\n3\"}，输出区含「除\n暂无历史记录\nabc123测试\nabc123测试\nabc123测试\nabc1…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"baseUrl\":\"abc123测试\",\"parseInput\":\"abc123测试\",\"asciiFilter\":\"abc123测试\",\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"builtUrl\":\"1\\n2\\n3\"}，输出区含「删除\n暂无历史记录\n1 2 3\n1 2 3\nabc123测试…」；2026-10-26 页面加默认样例+首屏静默渲染后段序变化，按漂移修复流程以隔离 fullBlob 实测重写（判别力不变：abc123测试 为注入专属值，默认样例编码产物不含该串）。默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/url-encoder-advanced",
