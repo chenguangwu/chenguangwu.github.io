@@ -170,6 +170,12 @@ const CASES = [
     ref: "Epley：1RM = 100 × (1 + 8÷30) = 126.67 → 126.7 kg（避开默认 80 kg/5 次）",
   },
   {
+    slug: "health/one-rep-max",
+    inputs: { weight: "120", reps: "3" },
+    expect: ["5×5 力量 5×5 80-85% 105.6-112.2 增力/肌肥大"],
+    ref: "新增「训练周期处方表」(programTable)：onerm=Epley 120×(1+3/30)=132.0；5×5@80-85% ⇒ 105.6-112.2 kg（node 复算一致）；默认 80/5 出 74.6-79.3 不命中 ⇒ 强判别、零逃生。",
+  },
+  {
     slug: "health/vo2-max-calculator",
     inputs: { cooperAge: "42", cooperDist: "2400" },
     expect: ["42.4"],
