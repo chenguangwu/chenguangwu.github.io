@@ -23,6 +23,8 @@
     };
   }
   function setup(canvas) {
+    var ctx = canvas.getContext('2d');
+    if (!ctx) return null; // canvas 不可用（jsdom/受限浏览器/隐私模式）→ 静默降级，不炸渲染链
     var dpr = window.devicePixelRatio || 1;
     var rect = canvas.getBoundingClientRect();
     var w = rect.width || canvas.parentElement.clientWidth || 320;
@@ -30,7 +32,6 @@
     canvas.width = Math.round(w * dpr);
     canvas.height = Math.round(h * dpr);
     canvas.style.height = h + 'px';
-    var ctx = canvas.getContext('2d');
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
     return { ctx: ctx, w: w, h: h };
@@ -45,7 +46,9 @@
 
   function drawBars(canvas, cfg) {
     var t = theme();
-    var s = setup(canvas), ctx = s.ctx, w = s.w, h = s.h;
+    var s = setup(canvas);
+    if (!s) return; // canvas 不可用时静默降级
+    var ctx = s.ctx, w = s.w, h = s.h;
     var labels = cfg.labels || [], values = cfg.values || [];
     var padL = 38, padR = 12, padT = 14, padB = 26;
     var cw = w - padL - padR, ch = h - padT - padB;
@@ -75,7 +78,9 @@
 
   function drawLine(canvas, cfg) {
     var t = theme();
-    var s = setup(canvas), ctx = s.ctx, w = s.w, h = s.h;
+    var s = setup(canvas);
+    if (!s) return; // canvas 不可用时静默降级
+    var ctx = s.ctx, w = s.w, h = s.h;
     var labels = cfg.labels || [], values = cfg.values || [];
     var padL = 40, padR = 12, padT = 14, padB = 26;
     var cw = w - padL - padR, ch = h - padT - padB;
@@ -112,7 +117,9 @@
 
   function drawGauge(canvas, cfg) {
     var t = theme();
-    var s = setup(canvas), ctx = s.ctx, w = s.w, h = s.h;
+    var s = setup(canvas);
+    if (!s) return; // canvas 不可用时静默降级
+    var ctx = s.ctx, w = s.w, h = s.h;
     var val = +cfg.value || 0, min = cfg.min != null ? cfg.min : 0, max = cfg.max != null ? cfg.max : 100;
     var label = cfg.label || '', unit = cfg.unit || '';
     var cx = w / 2, cy = h * 0.62, r = Math.min(w / 2, h * 0.62) - 14;
@@ -135,7 +142,9 @@
 
   function drawDonut(canvas, cfg) {
     var t = theme();
-    var s = setup(canvas), ctx = s.ctx, w = s.w, h = s.h;
+    var s = setup(canvas);
+    if (!s) return; // canvas 不可用时静默降级
+    var ctx = s.ctx, w = s.w, h = s.h;
     var segs = cfg.segments || [];
     var total = segs.reduce(function (a, b) { return a + (b.value || 0); }, 0) || 1;
     var cx = w / 2, cy = h / 2, r = Math.min(w, h) / 2 - 8, ir = r * 0.6;
@@ -177,6 +186,14 @@
 
   function render(canvas, type, cfg) {
     if (!canvas) return;
+    // 防御（2026-10-26）：支持 '#id' 选择器字符串（与 tool-kit.js 行为一致），
+    // 并拒绝非 Element 参数 —— 传字符串/数字时此前会在 setup() 里抛
+    // "getBoundingClientRect is not a function" 一类的 TypeError。
+    if (typeof canvas === 'string') {
+      try { canvas = document.querySelector(canvas); } catch (e) { return; }
+      if (!canvas) return;
+    }
+    if (!canvas || canvas.nodeType !== 1 || typeof canvas.getContext !== 'function') return;
     if (type === 'bar' || type === 'bars') drawBars(canvas, cfg);
     else if (type === 'line') drawLine(canvas, cfg);
     else if (type === 'gauge') drawGauge(canvas, cfg);

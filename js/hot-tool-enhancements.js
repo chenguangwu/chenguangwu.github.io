@@ -85,9 +85,11 @@
   }
 
   function visible(element) {
-    if (!element || element.closest('.tb-hot-enhancer')) return false;
-    const style = getComputedStyle(element);
-    return style.display !== 'none' && style.visibility !== 'hidden' && element.getClientRects().length > 0;
+    if (!element || element.nodeType !== 1 || element.closest('.tb-hot-enhancer')) return false;
+    try {
+      const style = getComputedStyle(element);
+      return style.display !== 'none' && style.visibility !== 'hidden' && element.getClientRects().length > 0;
+    } catch (e) { return false; }
   }
 
   function fieldValue(field) {
