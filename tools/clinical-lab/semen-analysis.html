@@ -155,7 +155,7 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
-    <div id="result"></div> <div id="semen_analysisTable"></div> <div id="semen_analysisDiff"></div> <div id="semen_analysisChart"></div> <div id="semen_analysisHist"></div>
+    <div id="result"></div> <div id="semen_concBar"></div> <div id="semen_prBar"></div> <div id="semen_analysisTable"></div> <div id="semen_analysisDiff"></div> <div id="semen_analysisChart"></div> <div id="semen_analysisHist"></div>
 
     <h3 style="font-size:14px;margin:16px 0 8px;">WHO 第5版参考下限(第5百分位)</h3>
     <table>
@@ -276,7 +276,33 @@ function analyze(){
     html += '<div class="result-box" style="border-left:4px solid var(--danger);"><strong style="color:var(--danger);">诊断提示：'+dx.join('、')+'</strong><p style="font-size:12px;color:var(--text-muted);margin-top:6px;">建议复查2-3次确诊，必要时查生殖激素、阴囊超声、精子DNA碎片率等进一步评估。</p></div>';
   }
 
-  const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
+  // —— 参考区间定位（S3 标尺）：WHO 5th 版参考下限 ——
+  var __EN=(function(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search)||/^en/i.test(document.documentElement.lang||'');}catch(e){}return false;})();
+  function __T(en,zh){return __EN?en:zh;}
+  var __cBands=[{lo:0,hi:15,label:{zh:'低于参考(少精子症)',en:'Below ref (oligozoospermia)'},color:'#EF4444'},
+                {lo:15,hi:300,label:{zh:'参考内',en:'Within reference'},color:'#10B981'}];
+  var __pBands=[{lo:0,hi:32,label:{zh:'低于参考(弱精子症)',en:'Below ref (asthenozoospermia)'},color:'#EF4444'},
+                {lo:32,hi:100,label:{zh:'参考内',en:'Within reference'},color:'#10B981'}];
+  function __hit(v,bands){for(var i=0;i<bands.length;i++){var b=bands[i];if(v>=(b.lo==null?-Infinity:b.lo)&&v<(b.hi==null?Infinity:b.hi))return b;}return null;}
+  var __cb=__hit(conc,__cBands),__pb=__hit(pr,__pBands);
+  function __li(v,ref,unit){return (v>=ref?__T('meets','达标'):__T('below','未达'))+__T(' (WHO ref ≥'+ref+unit+')','（WHO 参考 ≥'+ref+unit+'）');}
+  var __refHtml='<div class="ref-card"><h4>'+__T('Reference range','参考区间定位')+' (WHO 5th)</h4><ul>';
+  __refHtml+='<li>'+__T('Volume ','精液量 ')+vol.toFixed(1)+__T(' mL — ',' mL — ')+__li(vol,REF.volume,' mL')+'</li>';
+  __refHtml+='<li>'+__T('Concentration ','精子浓度 ')+conc.toFixed(0)+__T(' ×10⁶/mL — ',' — ')+__li(conc,REF.conc,' ×10⁶/mL')+'</li>';
+  __refHtml+='<li>'+__T('Progressive motility (PR) ','前向运动 PR ')+pr.toFixed(0)+'% — '+__li(pr,REF.pr,'%')+'</li>';
+  __refHtml+='<li>'+__T('Normal morphology ','正常形态率 ')+morph.toFixed(0)+'% — '+__li(morph,REF.morph,'%')+'</li>';
+  __refHtml+='<li>'+__T('Vitality ','存活率 ')+vital.toFixed(0)+'% — '+__li(vital,REF.vital,'%')+'</li>';
+  __refHtml+='<li>pH '+ph.toFixed(1)+' — '+__li(ph,REF.ph,'')+'</li>';
+  __refHtml+='</ul></div>';
+
+  const __h0=html+__refHtml;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
+
+  try{
+    if(typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){
+      if(__cb) TBKit.chart.refBar('#semen_concBar',{value:conc,unit:'',min:0,max:300,bands:__cBands,ticks:[0,15,300],title:'精子浓度判读标尺 (×10⁶/mL)'});
+      if(__pb) TBKit.chart.refBar('#semen_prBar',{value:pr,unit:'',min:0,max:100,bands:__pBands,ticks:[0,32,100],title:'PR 前向运动判读标尺 (%)'});
+    }
+  }catch(e){}
 }
 
 function copyResult(){ ToolBox.copyText(document.getElementById('result').innerText, i18nText('msg328')); }
