@@ -71,6 +71,18 @@ const CASES = [
   "ref": "非默认输入（默认 60/24/70/yeast）：fermType=cold ⇒ q10 = 2.5；tempFactor = 2.5^((17−27)/10) = 2.5^(−1) = 0.4；humFactor = 1 + (75−75)×0.008 = 1；totalFactor = 0.4 ⇒ 实际时长 = 40 ÷ 0.4 = 100 分钟；小时 = 100/60 = 1.667 ⇒ 显示「约 1.7 小时（基准 40 分钟）」；系数徽标「修正系数 ×0.4」。默认态为 76.9 分钟 / ×0.8。"
 },
 {
+  "slug": "baking/fermentation-time",
+  "inputs": {
+    "yeastAmount": "30",
+    "yeastType": "active"
+  },
+  "expect": [
+    "鲜酵母 90.00 g",
+    "即发酵母 22.50 g"
+  ],
+  "ref": "2026-10-27 新增「🍞 酵母鲜干换算」模块：注入 yeastAmount=30、yeastType=active（活性干酵母）→ fresh = 30×3 = 90.00 g、instant = 30×0.75 = 22.50 g。默认态 yeastAmount=15、yeastType=fresh ⇒ 鲜酵母 15.00 g、即发酵母 3.75 g，两条锚均不命中 ⇒ 强判别、零逃生。换算比 鲜:活性干:即发 ≈ 3:1:0.75 为经验值，页面已注明品牌活性差异以包装标注为准。"
+},
+{
   "slug": "baking/mold-volume",
   "clicks": [
     "document.getElementById('fromD').value='15';document.getElementById('fromH').value='4';document.getElementById('toD').value='20';document.getElementById('toH').value='10';calc()"

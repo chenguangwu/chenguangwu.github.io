@@ -204,7 +204,27 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar" style="margin-top:12px;">
       <button type="button" class="btn" onclick="window.__fermExportPlan()">⬇️ 导出场景规划 CSV</button>
       <button type="button" class="btn" onclick="window.__fermExportStage()">⬇️ 导出阶段参考 CSV</button>
+      </div>
     </div>
+
+  <div class="card">
+    <h2 data-zh="🍞 酵母鲜干换算">Yeast Conversion</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="同一种酵母有鲜酵母、活性干酵母、即发酵母三种形态，按重量等效换算，避免配方酵母用错。">Convert between fresh (compressed), active dry, and instant yeast by equivalent weight.</p>
+    <div class="input-row">
+      <div>
+        <label data-zh="用量（克）">Amount (g)</label>
+        <input type="number" id="yeastAmount" value="15" min="0" step="any" oninput="calcYeast()" placeholder="如 15">
+      </div>
+      <div>
+        <label data-zh="酵母类型">Yeast type</label>
+        <select id="yeastType" onchange="calcYeast()">
+          <option value="fresh">鲜酵母</option>
+          <option value="active">活性干酵母</option>
+          <option value="instant">即发酵母</option>
+        </select>
+      </div>
+    </div>
+    <div class="result-box" id="yeastConvert"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -321,6 +341,34 @@ function calc(){
   var tip=getTip(temp,hum,type,actualTime);
   const __g10=tip;document.getElementById('fermTip').innerHTML=(typeof __g10==='number'?(isFinite(__g10)?__g10:'—'):String(__g10).replace(/Infinity|NaN/g,'—'));
   __fermRenderExtras();
+}
+
+function __fermIsEn(){
+  try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())return true; }catch(e){}
+  try{ if(typeof location!=='undefined'&&/[?&]lang=en/.test(location.search))return true; }catch(e){}
+  try{ var h=document.documentElement; if(h&&(h.getAttribute('lang')||'').toLowerCase().indexOf('en')===0)return true; }catch(e){}
+  return false;
+}
+function calcYeast(){
+  var amt=parseFloat(document.getElementById('yeastAmount').value)||0;
+  var t=document.getElementById('yeastType').value;
+  var fresh,active,instant;
+  if(t==='fresh'){fresh=amt;active=fresh/3;instant=fresh*0.25;}
+  else if(t==='active'){active=amt;fresh=active*3;instant=active*0.75;}
+  else{instant=amt;active=instant/0.75;fresh=active*3;}
+  var en=__fermIsEn();
+  var box=document.getElementById('yeastConvert');
+  if(!(amt>0)){ box.innerHTML = en?'<p>Enter a valid amount</p>':'<p>请输入有效用量</p>'; return; }
+  var rows=[
+    [en?'Fresh (compressed)':'鲜酵母', fresh.toFixed(2)+' g'],
+    [en?'Active dry':'活性干酵母', active.toFixed(2)+' g'],
+    [en?'Instant (rapid-rise)':'即发酵母', instant.toFixed(2)+' g']
+  ];
+  var html='<table style="width:100%;border-collapse:collapse;font-size:13px;">';
+  for(var i=0;i<rows.length;i++){html+='<tr><td style="padding:4px 8px;border-bottom:1px solid var(--border);">'+rows[i][0]+'</td><td style="padding:4px 8px;border-bottom:1px solid var(--border);font-weight:600;">'+rows[i][1]+'</td></tr>';}
+  html+='</table>';
+  html+='<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">'+(en?'Rule of thumb: fresh : active dry : instant ≈ 3 : 1 : 0.75. Brand activity varies; follow package if given.':'经验换算比 鲜酵母 : 活性干酵母 : 即发酵母 ≈ 3 : 1 : 0.75；不同品牌活性略有差异，以包装标注为准。')+'</p>';
+  box.innerHTML=html;
 }
 
 function getTip(temp,hum,type,time){
@@ -487,7 +535,7 @@ function __fermExportStage(){
   try{ TBKit.util.exportTable('#fermStage','fermentation-stages.csv'); }catch(e){}
 }
 
-calc();
+calc(); calcYeast();
 try{ if(typeof __fermRenderExtras==='function') __fermRenderExtras(); }catch(e){}
 </script>
 <script>
