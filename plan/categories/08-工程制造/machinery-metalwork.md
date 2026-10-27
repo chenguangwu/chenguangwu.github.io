@@ -9,7 +9,7 @@
 - 折弯页缺「回弹补偿」输入项。
 
 ## 优化点
-- S7 引据：GB/ISO 标准号徽标（本类可信度关键）。→ 已落地 12 页（2026-10-27 批31）：machinery/bearing-1 + estimate-lifespan-bearing + bearing-load + bolt-preload + calc-gear-1 + calc-64 + calc-strength + drive-2、welding/weld-strength + calc-weld + temp-time-6 + detector-25（ISO 281/GB/T 6391、GB/T 3098.1/VDI 2230、GB/T 1357、GB/T 1800.1/ISO 286-1、GB 50017、IIW 碳当量、NB/T 47013）；machinery/metalwork 其余页待续批。
+- S7 引据：GB/ISO 标准号徽标（本类可信度关键）。→ 已落地 12 页（2026-10-27 批31）：machinery/bearing-1 + estimate-lifespan-bearing + bearing-load + bolt-preload + calc-gear-1 + calc-64 + calc-strength + drive-2、welding/weld-strength + calc-weld + temp-time-6 + detector-25（ISO 281/GB/T 6391、GB/T 3098.1/VDI 2230、GB/T 1357、GB/T 1800.1/ISO 286-1、GB 50017、IIW 碳当量、NB/T 47013）；累计 24 页（批31+32）：批32 加 shaft-torsion/tolerance(-1)/thread-4/torque/strength-34/strength-6/tanhuangsheji + metalwork/surface-finish + assessor-34 + analysis-39 + calc-pressure-mold；两目录其余页待续批。
 - S3 分步：齿轮/皮带选型链路图（已注入部分 chart，推广 S3 明细）。
 
 ## 受影响范围
