@@ -358,13 +358,55 @@ function copyResult(){
   ToolBox.copyText(text, i18nText('msg050'));
 }
 
+function __ogIsEn(){
+  try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) return TBKit.util.isEn(); }catch(e){}
+  if(/[?&]lang=en/.test(location.search)) return true;
+  var l=(document.documentElement.getAttribute('lang')||'').toLowerCase();
+  return l.indexOf('en')===0;
+}
+function __bsPrice(S,K,rPct,sigmaPct,T,qPct,type){
+  var r=rPct/100, sigma=sigmaPct/100, q=qPct/100;
+  if(S<=0||K<=0||T<=0||sigma<=0) return NaN;
+  var sqrtT=Math.sqrt(T);
+  var d1=(Math.log(S/K)+(r-q+sigma*sigma/2)*T)/(sigma*sqrtT);
+  var d2=d1-sigma*sqrtT;
+  var eqT=Math.exp(-q*T), erT=Math.exp(-r*T);
+  if(type==='call') return S*eqT*normCDF(d1)-K*erT*normCDF(d2);
+  return K*erT*normCDF(-d2)-S*eqT*normCDF(-d1);
+}
+function calcIV(){
+  var S=getVal('spot'), K=getVal('strike'), rPct=getVal('rate'), T=getVal('time'), qPct=getVal('div'), type=getType();
+  var mkt=parseFloat(document.getElementById('marketPrice').value)||0;
+  var en=__ogIsEn();
+  if(S<=0||K<=0||T<=0||mkt<=0){ document.getElementById('ivBox').innerHTML='<p>'+(en?'Enter valid params and market price':'请输入有效参数与市价')+'</p>'; return; }
+  var lo=1e-6, hi=5;
+  function f(sig){ return __bsPrice(S,K,rPct,sig*100,T,qPct,type) - mkt; }
+  if(f(lo)>0||f(hi)<0){ document.getElementById('ivBox').innerHTML='<p>'+(en?'No IV in (0,500%] matches the market price':'市价超出 (0,500%] 波动率可解释范围')+'</p>'; return; }
+  for(var i=0;i<80;i++){ var mid=(lo+hi)/2; if(f(mid)>0) hi=mid; else lo=mid; }
+  var iv=(lo+hi)/2*100;
+  var html='<p>'+ (en?'Implied volatility IV':'隐含波动率 IV') +': <strong>'+ iv.toFixed(2) +'%</strong></p>'+
+           '<p style="font-size:12px;color:var(--text-muted);">'+ (en?'Reversed from market price by bisection (σ∈(0,500%])':'二分法由市价反解（σ∈(0,500%]）') +'</p>';
+  document.getElementById('ivBox').innerHTML=html;
+}
+
 calc();
+try{ calcIV(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->
 
 </div>
 
+</div>
+
+<!-- 由市价反解 IV -->
+<div class="card">
+  <h3 data-zh="🎯 由市价反解隐含波动率 IV">🎯 Implied Volatility from Market Price</h3>
+  <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="沿用上方标的参数（现价/行权价/利率/期限/股息），输入期权市价，二分反解隐含波动率。">Reuse the underlying params above (spot/strike/rate/time/div) and enter the option market price to reverse the implied volatility by bisection.</p>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+    <div style="grid-column:1/3;"><label data-zh="期权市价（元）">Option market price (¥)</label><input type="number" id="marketPrice" value="5" min="0" step="0.1" oninput="calcIV()"></div>
+  </div>
+  <div class="result-box" id="ivBox" style="margin-top:14px;"></div>
 </div>
 
 <!-- 相关工具 -->

@@ -63,6 +63,22 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "futures/option-greeks",
+  "inputs": {
+    "spot": "100",
+    "strike": "100",
+    "rate": "3",
+    "vol": "20",
+    "time": "0.5",
+    "div": "0",
+    "marketPrice": "6.371"
+  },
+  "expect": [
+    "隐含波动率 IV: 20.00%"
+  ],
+  "ref": "auto-restore"
+},
+{
   "slug": "futures/option-payoff",
   "inputs": {
     "strike": "150",

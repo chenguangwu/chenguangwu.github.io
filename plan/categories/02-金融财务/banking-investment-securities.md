@@ -9,7 +9,7 @@
 ### B3. Black-Scholes/希腊字母页无隐含波动率反解
 - 受影响：tools/securities/black-scholes-*、option-greeks
 - 方案：加「由市价反解 IV」二分（纯前端可行，竞品标配）。
-- ✅ 已落地（2026-10-26）：black-scholes-call / black-scholes-put 加「期权市价（选填）」→ C(σ)/P(σ) 在 σ∈(0,5] 单调，二分 80 次反解 IV + 无解状态行（低于内在价值下界/超 σ=500% 上界）；mkt 空 ⇒ IV 行不渲染零交集。verify 自洽强用例（mkt=正向价 → IV=0.2500）×2。verify securities 71/71、判别器 0 逃生、门禁 218/218。option-greeks 页未做（待续）。
+- ✅ 已落地（2026-10-26）：black-scholes-call / black-scholes-put 加「期权市价（选填）」→ C(σ)/P(σ) 在 σ∈(0,5] 单调，二分 80 次反解 IV + 无解状态行（低于内在价值下界/超 σ=500% 上界）；mkt 空 ⇒ IV 行不渲染零交集。verify 自洽强用例（mkt=正向价 → IV=0.2500）×2。verify securities 71/71、判别器 0 逃生、门禁 218/218。option-greeks 页亦于 2026-10-27 加同款「由市价反解隐含波动率 IV」（marketPrice 输入 + calcIV 二分复用页面 BS 定价，ivBox 输出），自洽用例（spot=100/strike=100/rate=3/vol=20/time=0.5/div=0/mkt=6.371 → IV=20.00%）落 verify_futures_calc.js；verify futures 6/6、判别器 0 逃生、门禁 218/218。
 
 ## 功能缺陷
 - 定投计算器缺「止盈目标反推年化」。
