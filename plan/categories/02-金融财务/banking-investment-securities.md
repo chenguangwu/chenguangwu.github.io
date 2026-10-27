@@ -23,4 +23,4 @@
 - tools/banking/（25）、tools/investment/（48）、tools/securities/（35）
 
 ## 进度
-- 🔴 待开发（B1 年金族口径统一互链待做；B3 IV 反解 10-27 全落地；S7 引据 securities 6 页 + investment 10 页已落地，余 banking/valuation 待续）
+- 🔴 待开发（B1 年金族口径统一互链待做；B3 IV 反解全落地；S7 引据 securities 6 + investment 10 + banking 12 已落地，余 banking 13 页/valuation 待续）
