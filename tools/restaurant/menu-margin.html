@@ -165,6 +165,17 @@ s.parentNode.insertBefore(el, s);
     <div id="mmChart" style="margin-top:12px;"></div>
   </div>
 
+<!-- 目标毛利率定价反推 -->
+<div class="card">
+  <h3 data-zh="🎯 目标毛利率定价反推">🎯 Target Margin Pricing</h3>
+  <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="已知单品成本与目标毛利率，反推建议售价。公式：售价 = 成本 ÷ (1 − 毛利率)。">Given cost and target margin, reverse the suggested price: Price = Cost ÷ (1 − Margin).</p>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+    <div><label data-zh="单品成本（元）">Cost (¥)</label><input type="number" id="tmCost" value="10" min="0" step="0.5" oninput="calcTargetMargin()"></div>
+    <div><label data-zh="目标毛利率（%）">Target margin (%)</label><input type="number" id="tmMargin" value="50" min="1" max="99" step="1" oninput="calcTargetMargin()"></div>
+  </div>
+  <div class="result-box" id="targetMarginBox" style="margin-top:14px;"></div>
+</div>
+
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -363,6 +374,24 @@ var MM_PRESETS = {
 };
 var MM_HIST_KEY = 'menuMarginDishes';
 function __mmT(zh, en) { return (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) ? en : zh; }
+function __mm2En(){
+  try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) return TBKit.util.isEn(); }catch(e){}
+  if(/[?&]lang=en/.test(location.search)) return true;
+  var l=(document.documentElement.getAttribute('lang')||'').toLowerCase();
+  return l.indexOf('en')===0;
+}
+function calcTargetMargin(){
+  var cost=parseFloat(document.getElementById('tmCost').value)||0;
+  var m=parseFloat(document.getElementById('tmMargin').value)||0;
+  var en=__mm2En();
+  if(cost<=0||m<=0||m>=100){ document.getElementById('targetMarginBox').innerHTML='<p>'+(en?'Enter cost>0 and 0<margin<100':'请输入成本>0 且 0<毛利率<100')+'</p>'; return; }
+  var price=cost/(1-m/100);
+  var profit=price-cost;
+  var html='<p>'+ (en?'Suggested price':'建议售价') +': <strong>'+ price.toFixed(2) +' 元</strong></p>'+
+           '<p>'+ (en?'Profit per unit':'单品毛利') +': '+ profit.toFixed(2) +' 元（'+ (en?'margin':'毛利率') +' '+ m.toFixed(0) +'%）</p>'+
+           '<p>'+ (en?'Check':'校验') +': '+ cost.toFixed(2) +' ÷ '+(1-m/100).toFixed(2)+' = '+ price.toFixed(2) +'</p>';
+  document.getElementById('targetMarginBox').innerHTML=html;
+}
 function __mmSave() { try { localStorage.setItem(MM_HIST_KEY, JSON.stringify(dishes)); } catch (e) {} }
 function __mmRestore() {
   try {
@@ -413,6 +442,7 @@ function __mmExport() {
 }
 
 calc();
+try{ calcTargetMargin(); }catch(e){}
 if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', function(){ try{__mmChart();}catch(e){} }); } else { try{__mmChart();}catch(e){} }
 window.addEventListener('toolbox:langchange', function(){ try{__mmChart();}catch(e){} try{__mmPresets();}catch(e){} });
 </script>
