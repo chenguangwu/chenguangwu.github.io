@@ -10,11 +10,11 @@
 
 ## 优化点
 - S2 场景：「N+1 赔偿金速算」「竞业补偿金」。
-- S7 引据：劳动合同法条号标注。
+- S7 引据：劳动合同法条号标注。→ ✅ 已落地 10 页（2026-10-27 批27）：hr/annual-leave-prorate + social-insurance + comp-time-calculator、legal/labor-compensation(-n1) + double-wage-no-contract + severance-pay + overtime-pay + work-injury-compensation、legal2/compensation-n1；每页 tool-notes 前插 id="legalRefBox" 卡（条号 ASCII 可见 + data-zh 中文，EN 零 CJK）。L2 口径分歧未动（仅加引据不改逻辑）。余：hr/annual-leave-calc、hr/overtime-pay-calc、legal/estimate-12 三页无 tool-notes 锚点待补锚；民法典系页（抚养/继承/遗嘱/消费/人身损害等）待续批。
 
 ## 受影响范围
 - tools/hr/、tools/legal/、tools/legal2/（~60 页）
 
 ## 进度
-- 🔴 待开发（L2 小改）
+- 🟡 进行中（S7 引据批27 已落地 10 页；L2 待裁断勿动；S2 场景/无锚点 3 页/民法典系页待续）
 
