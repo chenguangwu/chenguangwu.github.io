@@ -39,8 +39,8 @@
 | 大分类 | 文件 | 状态 |
 |---|---|---|
 | 01-IT开发 | it.md / ai.md / encode-telecom-security-data.md | 🔴 待开发 |
-| 02-金融财务 | finance.md / banking-investment-securities.md / tax-accounting-audit.md / insurance.md | 🟡 进行中：finance 功能缺陷 4 批已修（个税年终奖双口径 / 提前还款节省额口径 / 发票金额大写 / 汇率手动模式 / 定投止盈反推 / 债券 ±100bp）；tax-accounting-audit、insurance 待开发 |
-| 03-医疗健康 | scales.md / lab-diagnosis.md / drug-dosing.md / specialties.md | 🟡 进行中（7 批）：lab-diagnosis S3 标尺 8 页 + drug-dosing「年龄→参考体重 + 肝肾功能减量提示」2 页 + scales S7 引据 42 页；组件 `TBKit.chart.refBar` 已上线；specialties 待开发（孕周时间轴/视力互换经真机核验**已实现**，该条目需重估） |
+| 02-金融财务 | finance.md / banking-investment-securities.md / tax-accounting-audit.md / insurance.md | 🟡 进行中：finance 功能缺陷 4 批已修（个税年终奖双口径 / 提前还款节省额口径 / 发票金额大写 / 汇率手动模式 / 定投止盈反推 / 债券 ±100bp）；tax-accounting-audit、insurance 待开发。**S1 首屏 finance 基线 2026-10-30：empty 50/115（~40 validator 空输入无输出，预填需逐条 expect 去默认化的手术专项，见 G06）** |
+| 03-医疗健康 | scales.md / lab-diagnosis.md / drug-dosing.md / specialties.md | 🟡 进行中（7 批）：lab-diagnosis S3 标尺 8 页 + drug-dosing「年龄→参考体重 + 肝肾功能减量提示」2 页 + scales S7 引据 42 页；组件 `TBKit.chart.refBar` 已上线；specialties 待开发（孕周时间轴/视力互换经真机核验**已实现**，该条目需重估）。**S7 引据 2026-10-30 全站收口：constRefBox 覆盖 4669 真实页 + legalRefBox 36 页（去重后无重叠），0 真实页缺卡** |
 | 04-设计创意 | design.md / image.md | 🔴 待开发 |
 | 05-生活消费 | photo-video.md / food-travel.md / sports-fitness.md / home-decor.md / life.md | 🟡 进行中：功能缺口批14-19 已收口（气象/水文/健身配速反推/烘焙酵母换算/涂料门窗扣减/窗帘双层/菜单定价反推）；life 倒计时类因铁律④禁测 now 未做 |
 | 06-商业运营 | marketing-sales.md / ecommerce-logistics.md / hr-legal.md / realestate.md / biz-startup.md | 🔴 待开发 |

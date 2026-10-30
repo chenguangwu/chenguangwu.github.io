@@ -5,7 +5,7 @@
 
 ## 功能缺陷
 - metalwork 7 个「双段通用对比页」功能单薄（carbon-8/diandonggongju-xifen/laxue-ladao/tangxue/wushua/yuanlingongju-xifen/zhineng-duogongneng）：生效 calc 仍是 A/B 两值通用比值-差值输出，非领域公式（carbon-8 第二段有 850-950℃ 渗碳拟合为例外）；建议按主题补真实领域计算（渗碳层深-时间、拉削力-齿升、镗杆刚度等）。
-- 切削页缺「材料-刀具匹配表」（45 号钢/不锈钢/铝 的 Vc/Ff 参考静态表）。
+- ✅ 切削页「材料-刀具匹配表」已具备（2026-10-30 复核）：`mechanical/cutting-speed.html` 的 `#refList` 已渲染 碳钢/合金钢/铸铁/铝合金/不锈钢 × 高速钢/硬质合金 的速度区间矩阵，deep-dive 亦列同口径推荐区间；该项销案（`machinery/speed-cutting-feed` 为跳转存根）。
 - 折弯页缺「回弹补偿」输入项。
 
 ## 优化点
