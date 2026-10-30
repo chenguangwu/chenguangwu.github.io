@@ -8,9 +8,9 @@ const CASES = [
     "cut": "ding"
   },
   "expect": [
-    "ding"
+    "标准尺寸： 6-8 mm 形状特征： 立方小粒"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：切法「丁」⇒ 标准尺寸 6–8 mm、形状 立方小粒。⚠ 原 expect 'ding' 为切法选择值回显（零判别力）；默认切法为其他刀法，输出条目不同 ⇒ 无逃生（已双态实测）。"
 },
 {
   "slug": "chinese-cook/estimate-16",
