@@ -16,12 +16,14 @@ const CASES = [
 {
   "slug": "gastroenterology/calc-1",
   "inputs": {
-    "biliUnit": "mgdl"
+    "bili": "51.3",
+    "alb": "26",
+    "inr": "2.5"
   },
   "expect": [
-    "mgdl"
+    "Child-Pugh 评分： 10 分（5-15 分） 分级： C级"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：bili 51.3 μmol/L ÷17.1 = 3.0 mg/dL ⇒ 计 2 分（2–3 区间）；alb 26 g/L ⇒ 3 分（<28）；inr 2.5 ⇒ 3 分（>2.3）；ascites/enceph 各 1 ⇒ 合计 10 分 ⇒ C 级。⚠ 原用例只断言单位回显 'mgdl'（输入值回显、零判别力），已改为分类结果串。默认态预填 28/32/1.2 ⇒ 6 分 A 级，不含该串 ⇒ 无逃生。"
 },
 {
   "slug": "gastroenterology/capsule-endoscopy",

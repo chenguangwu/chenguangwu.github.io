@@ -32,12 +32,14 @@ const CASES = [
 {
   "slug": "nephrology/calc-1",
   "inputs": {
-    "scrUnit": "mgdl"
+    "scrValue": "150",
+    "age": "66",
+    "sex": "female"
   },
   "expect": [
-    "mgdl"
+    "eGFR： 31.0 mL/min/1.73m² CKD 分期： G3b（中-重度下降）"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：Scr 150 μmol/L ÷88.4 = 1.697 mg/dL，女性、66 岁，CKD-EPI 2021 ⇒ eGFR ≈ 31.0 ⇒ G3b（30–44）。⚠ 原用例只断言单位回显 'mgdl'（输入值回显、零判别力），已改为 eGFR 数值+分期串。默认态预填 88.4/58/男 ⇒ eGFR 明显高于 31，不含该串 ⇒ 无逃生。"
 },
 {
   "slug": "nephrology/ckd-staging",
