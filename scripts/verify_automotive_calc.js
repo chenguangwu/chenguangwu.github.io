@@ -470,14 +470,14 @@ const CASES = [
 {
   "slug": "automotive/oil-change",
   "inputs": {
-    "yearKm": "22500",
-    "curKm": "30000",
-    "doneKm": "3000"
+    "yearKm": "30000",
+    "curKm": "42000",
+    "doneKm": "12000"
   },
   "expect": [
-    "22500"
+    "49500 下次换油里程 (km)"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：建议里程 7500 km（半合成 × 城市 1.0）⇒ 下次 = 上次 12,000 + 37,500? 页面按当前里程 42,000 外推得 49,500。⚠ 原 expect '22500' 为年里程输入回显（零判别力）。首版改锚「37500」经判别器实测为逃生（默认态亦为 37,500），故改用 cur=42,000 的 49,500 ⇒ 默认态不含该串。"
 },
 {
   "slug": "automotive/parking-fee-calculator",

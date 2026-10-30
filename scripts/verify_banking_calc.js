@@ -89,9 +89,9 @@ const CASES = [
     "inc": "10000"
   },
   "expect": [
-    "4500"
+    "45.0 债务收入比 DTI (%)"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：月债务 4500 / 月收入 10000 = 45.0% ⇒ DTI=45.0。⚠ 原 expect '4500' 是注入值回显（blob 含所有 el.value），零判别力，已改为计算结果串。默认态 0/0 ⇒ 0.0，不含该串 ⇒ 无逃生。"
 },
 {
   "slug": "banking/effective-annual-rate",
@@ -196,9 +196,9 @@ const CASES = [
     "val": "1000000"
   },
   "expect": [
-    "1200000"
+    "120.0 贷款价值比 LTV (%)"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：贷款 1,200,000 / 抵押物价值 1,000,000 = 120.0% ⇒ LTV=120.0。⚠ 原 expect '1200000' 为输入值回显（零判别力），已改为计算结果串；默认态 0 ⇒ 0.0，不命中。"
 },
 {
   "slug": "banking/loan-total-interest",
@@ -219,9 +219,9 @@ const CASES = [
     "liab": "200000"
   },
   "expect": [
-    "750000"
+    "550000 净资产 NW (元)"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：资产 750,000 − 负债 200,000 = 550,000。⚠ 原 expect '750000' 为输入值回显（零判别力），已改为净资产结果串；默认态 0 ⇒ ‘0 净资产 NW (元)’，不命中。"
 },
 {
   "slug": "banking/nominal-from-effective",

@@ -170,14 +170,14 @@ const CASES = [
 {
   "slug": "astronomy/observation-conditions",
   "inputs": {
-    "latInput": "59.9042",
-    "lonInput": "116.4074",
-    "cloudInput": "20"
+    "latInput": "22.3193",
+    "lonInput": "114.1694",
+    "cloudInput": "85"
   },
   "expect": [
-    "59.9042"
+    "5.2 / 10 观测条件：一般"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：云量 85% ⇒ 天气项 3.2、光污染 6.0、月光 5.7 加权得 5.2/10 ⇒ 评级「一般」。⚠ 原 expect '59.9042' 为纬度输入回显（零判别力）。首版改锚「6.5/10 良好」经判别器实测为逃生（默认云量即 6.5），故改用 cloud=85 的 5.2/10 ⇒ 默认态不含该串。"
 },
 {
   "slug": "astronomy/observation-conditions",
