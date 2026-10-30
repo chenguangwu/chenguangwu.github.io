@@ -915,8 +915,8 @@ const CASES = [
   {
     slug: "finance/gst-validator",
     inputs: { input: "27AAPFU0939F1ZV" },
-    expect: ["✅ GST 号码有效"],
-    ref: "修复前 gstChecksum 用 const factor 却在循环里重赋值 ⇒ 所有浏览器都抛「Assignment to constant variable」整页失效；已改为 let。该号前 14 位 mod-36 校验位 = V 与末位一致 ⇒ 有效。默认态输入为空 → 「等待输入...」，不命中。",
+    expect: ["校验位： V（期望 V）"],
+    ref: "修复前 gstChecksum 用 const factor 却在循环里重赋值 ⇒ 所有浏览器都抛「Assignment to constant variable」整页失效；已改为 let。该号前 14 位 mod-36 校验位 = V 与末位一致 ⇒ 有效。expect 取页面回显「校验位： V（期望 V）」（含具体校验字符 ⇒ 默认预填 09AABCU9603R1ZL 输出「L（期望 L）」不命中，消除「✅ 有效」通用串导致的逃生）。",
   },
   {
     "slug": "finance/aadhaar-validator",
