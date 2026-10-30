@@ -45,20 +45,20 @@ const CASES = [
   {
     slug: "finance/cpf-validator",
     inputs: { input: "52998224725" },
-    expect: ["CPF 号码有效"],
-    ref: "巴西 CPF 模 11 双校验：前 9 位算 DV1，前 10 位算 DV2，余数 <2 记 0",
+    expect: ["529.982.247-25"],
+    ref: "巴西 CPF 模 11 双校验：前 9 位算 DV1，前 10 位算 DV2，余数 <2 记 0；expect 取页面回显的格式化串（含具体号码 ⇒ 默认预填 11144477735 的格式化值 111.444.777-35 不命中）",
   },
   {
     slug: "finance/cnpj-validator",
     inputs: { input: "11222333000181" },
-    expect: ["CNPJ 号码有效"],
-    ref: "巴西 CNPJ 模 11 双校验：权重 [5,4,3,2,9,8,7,6,5,4,3,2]，余数 <2 记 0",
+    expect: ["11.222.333/0001-81"],
+    ref: "巴西 CNPJ 模 11 双校验：权重 [5,4,3,2,9,8,7,6,5,4,3,2]，余数 <2 记 0；expect 取页面回显的格式化串（含具体号码 ⇒ 默认预填 00000000000191 的格式化值 00.000.000/0001-91 不命中）",
   },
   {
     slug: "finance/abn-validator",
-    inputs: { input: "51824753556" },
-    expect: ["ABN 号码有效"],
-    ref: "澳洲 ABN：首位减 1 后加权 [10,1,3,5,7,9,11,13,15,17,19] 求和 mod 89 == 0",
+    inputs: { input: "98765432122" },
+    expect: ["98 765 432 122"],
+    ref: "澳洲 ABN：首位减 1 后加权 [10,1,3,5,7,9,11,13,15,17,19] 求和 mod 89 == 0（98765432122 有效）；expect 取页面回显格式化串「98 765 432 122」。刻意不用 51824753556（其格式化 51 824 753 556 与页面 placeholder 相同 ⇒ 恒命中成逃生项），默认预填 53004085616 的格式化 53 004 085 616 亦不命中",
   },
   {
     slug: "finance/isbn-validator",
@@ -75,8 +75,8 @@ const CASES = [
   {
     slug: "finance/dni-validator",
     inputs: { input: "12345678Z" },
-    expect: ["DNI 有效"],
-    ref: "西班牙 DNI：校验字母 = 'TRWAGMYFPDXBNJZSQVHLCKET'[数字 mod 23]，12345678 mod 23 = 5 → Z",
+    expect: ["Z（期望 Z）"],
+    ref: "西班牙 DNI：校验字母 = 'TRWAGMYFPDXBNJZSQVHLCKET'[数字 mod 23]，12345678 mod 23 = 5 → Z；expect 取独有「校验字母：Z（期望 Z）」（含具体字母 ⇒ 默认预填 87654321X 输出 X（期望 X）不命中）",
   },
   {
     slug: "finance/npi-validator",
@@ -299,8 +299,8 @@ const CASES = [
   {
     slug: "finance/abn-validator",
     inputs: { input: "51824753556" },
-    expect: ["校验和： ✅ 通过"],
-    ref: "澳洲 ABN：首位 −1 后按权重 10,1,3,…,19 加权，求和 mod 89 = 0 即通过 ⇒ 51824753556 有效。默认态不同 ⇒ 不命中。",
+    expect: ["输入： 51824753556"],
+    ref: "澳洲 ABN：首位 −1 后按权重 10,1,3,…,19 加权，求和 mod 89 = 0 即通过 ⇒ 51824753556 有效；expect 取页面回显的原始输入「输入： 51824753556」（含具体号码 ⇒ 默认预填 53004085616 回显 53004085616 不命中；刻意不取「校验和：✅ 通过」通用串，以免预填后默认态亦命中成逃生项）",
   },
   {
     slug: "finance/ein-validator",
