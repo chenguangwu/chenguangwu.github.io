@@ -33,8 +33,8 @@ const CASES = [
   {
     slug: "finance/aba-validator",
     inputs: { input: "011000015" },
-    expect: ["ABA 路由号码有效"],
-    ref: "ABA 3-7-1 权重：Σ = 3×0+7×1+1×1+3×0+7×0+1×0+3×0+7×1+1×5 = 20，mod 10 == 0",
+    expect: ["美联储分区： 01 - Boston"],
+    ref: "ABA 3-7-1 权重：Σ = 3×0+7×1+1×1+3×0+7×0+1×0+3×0+7×1+1×5 = 20，mod 10 == 0；expect 取页面回显「美联储分区： 01 - Boston」（含分区城市 ⇒ 默认预填 021000021 输出「02 - New York」不命中，消除「✅ 有效」通用串导致的逃生）",
   },
   {
     slug: "finance/iban-validator",
