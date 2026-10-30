@@ -69,8 +69,8 @@ const CASES = [
   {
     slug: "finance/sin-validator",
     inputs: { input: "046454286" },
-    expect: ["SIN 号码有效"],
-    ref: "加拿大 SIN 使用 Luhn：046454286 加权和 mod 10 == 0",
+    expect: ["046-454-286"],
+    ref: "加拿大 SIN 使用 Luhn：046454286 加权和 mod 10 == 0；expect 取页面回显的格式化串「046-454-286」（含具体号码 ⇒ 默认预填 130692544 的格式化值 130-692-544 不命中）",
   },
   {
     slug: "finance/dni-validator",
