@@ -81,8 +81,8 @@ const CASES = [
   {
     slug: "finance/npi-validator",
     inputs: { input: "1234567893" },
-    expect: ["NPI 号码有效"],
-    ref: "美国 NPI：前缀 80840 拼接后过 Luhn，80840 + 1234567893 加权和 mod 10 == 0",
+    expect: ["⚠️ NPI 通常不以 0 或 1 开头"],
+    ref: "美国 NPI：前缀 80840 拼接后过 Luhn，80840 + 1234567893 加权和 mod 10 == 0；expect 取页面「首位 0/1 软提示」（依赖输入 ⇒ 默认预填 4234567897 首位为 4 无此提示，不命中），消除「✅ NPI 号码有效」通用串导致的逃生",
   },
   {
     slug: "finance/aadhaar-validator",
@@ -322,9 +322,9 @@ const CASES = [
   },
   {
     slug: "finance/npi-validator",
-    inputs: { input: "1789123456" },
-    expect: ["校验和： ✅ 通过"],
-    ref: "美国 NPI：前缀 80840 + 10 位，按 Luhn 校验 ⇒ 1789123456 通过。默认态不同 ⇒ 不命中。",
+    inputs: { input: "1234567890" },
+    expect: ["❌ 校验和失败，NPI 无效"],
+    ref: "美国 NPI 反例：80840 + 1234567890 的 Luhn 加权和 mod 10 ≠ 0 ⇒ 页面如实报「❌ 校验和失败，NPI 无效」。默认预填 4234567897 为有效号（Luhn 通过）⇒ 默认态显示「✅ 通过」，绝不出现失败串（与上一例正例互为镜像）。替代原「✅ 通过」通用串（预填后恒命中 ⇒ 逃生）。",
   },
   {
     slug: "finance/loan-amortization",
@@ -415,14 +415,14 @@ const CASES = [
   {
     slug: "finance/zip-code-validator",
     inputs: { input: "95014" },
-    expect: ["前 3 位（SCF）： 950", "✅ ZIP Code 格式有效"],
-    ref: "美国 ZIP：`95014` ⇒ 5 位 ZIP + 前 3 位 SCF 950（未映射到已知州/地区）。默认态不同 ⇒ 不命中。",
+    expect: ["前 3 位（SCF）： 950"],
+    ref: "美国 ZIP：`95014` ⇒ 5 位 ZIP + 前 3 位 SCF 950（未映射到已知州/地区）。expect 只锁依赖输入的「前 3 位（SCF）： 950」；原第二条「✅ ZIP Code 格式有效」为通用串，默认预填 10001 也有效 ⇒ 恒命中变逃生，已删除。",
   },
   {
     slug: "finance/voter-id-validator",
     inputs: { input: "ABC1234567" },
-    expect: ["州代码： ABC", "校验算法： 无（EPIC 为格式校验）"],
-    ref: "印度 EPIC 选民 ID：3 字母州代码 + 7 位序号，仅做格式校验（无校验位）。默认态不同 ⇒ 不命中。",
+    expect: ["州代码： ABC"],
+    ref: "印度 EPIC 选民 ID：3 字母州代码 + 7 位序号，仅做格式校验（无校验位）。expect 只锁依赖输入的「州代码： ABC」；原第二条「校验算法： 无（EPIC 为格式校验）」是静态文案，默认预填 XYZ1234567 也恒出现 ⇒ 按 expect 为「或」语义会变逃生，已删除。",
   },
   {
     slug: "finance/imsi-validator",
