@@ -63,8 +63,8 @@ const CASES = [
   {
     slug: "finance/isbn-validator",
     inputs: { isbnInput: "9780306406157" },
-    expect: ["校验通过"],
-    ref: "ISBN-13：Σ 前 12 位交替权重 1/3 → 校验位 = (10 - Σ mod 10) mod 10 == 第 13 位",
+    expect: ["978-0-306-40615-7"],
+    ref: "ISBN-13：Σ 前 12 位交替权重 1/3 → 校验位 = (10 - Σ mod 10) mod 10 == 第 13 位；expect 取页面归一化格式「978-0-306-40615-7」（输入专属，默认预填 9787111111115 的归一化 978-7-111-11111-5 不命中 ⇒ 消除静态「校验通过」逃生项）。",
   },
   {
     slug: "finance/sin-validator",
