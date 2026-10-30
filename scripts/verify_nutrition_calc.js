@@ -25,17 +25,16 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "nutrition/calc-2",
-  "inputs": {
-    "foodWeight": "150",
-    "manualCarb": "0",
-    "manualProtein": "0",
-    "manualFat": "0"
-  },
-  "expect": [
-    "150"
-  ],
-  "ref": "auto-restore"
+   "slug": "nutrition/calc-2",
+   "inputs": {
+     "manualCarb": "50",
+     "manualProtein": "30",
+     "manualFat": "20"
+   },
+   "expect": [
+     "500 总热量 kcal 50.0g 碳水化合物 30.0g 蛋白质 20.0g 脂肪"
+   ],
+   "ref": "独立复算：手工碳水 50g×4 + 蛋白 30g×4 + 脂肪 20g×9 = 200+120+180 = **500 kcal**；三类克数原样累加 ⇒ 50.0g/30.0g/20.0g。⚠ 原用例注入 foodWeight=150 却断言 '150'（输入值回显、零判别力），已改为计算产物串。默认态三项全 0 ⇒ 输出 '0 总热量 kcal 0.0g…'，不含该串 ⇒ 无逃生。"
 },
 {
   "slug": "nutrition/calc-3",
