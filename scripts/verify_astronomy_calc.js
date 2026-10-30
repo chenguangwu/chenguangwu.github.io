@@ -137,12 +137,12 @@ const CASES = [
 {
   "slug": "astronomy/light-travel-time",
   "inputs": {
-    "d": "1.496e11_X"
+    "d": "5.0e11"
   },
   "expect": [
-    "1.496e11_X"
+    "27.797 传播时间 t (min)"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：t = d/c = 5.0e11/2.998e8 = 1667.8 s = 27.797 min。⚠ 原用例注入 '1.496e11_X' 并断言同串（输入回显、零判别力）；默认 1 AU ⇒ 8.317 min，与本串不同 ⇒ 无逃生。"
 },
 {
   "slug": "astronomy/magnitude-comparator",
@@ -192,12 +192,12 @@ const CASES = [
 {
   "slug": "astronomy/schwarzschild-radius",
   "inputs": {
-    "M": "1.989e30_X"
+    "M": "4.0e30"
   },
   "expect": [
-    "1.989e30_X"
+    "5.941 史瓦西半径 r_s (km)"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：r_s = 2GM/c² = 2×6.674e−11×4.0e30/(3.0e8)² = 5.941e3 m = 5.941 km。⚠ 原用例注入 '1.989e30_X' 并断言同串（输入回显、零判别力）；默认 M=1.989e30 得 2.954 km，与本串不同 ⇒ 无逃生。"
 },
 {
   "slug": "astronomy/solar-declination",
