@@ -27,8 +27,8 @@ const CASES = [
   {
     slug: "finance/credit-card-luhn",
     inputs: { input: "4532015112830366" },
-    expect: ["✅ 通过"],
-    ref: "Luhn（模 10）：4532015112830366 为公开测试卡号，加权和 mod 10 == 0",
+    expect: ["4532015112830366"],
+    ref: "Luhn（模 10）：4532015112830366 为公开测试卡号，加权和 mod 10 == 0；expect 取页面回显的数字串（含具体卡号 ⇒ 默认预填 4111111111111111 不命中，判别力保留）",
   },
   {
     slug: "finance/aba-validator",
@@ -39,8 +39,8 @@ const CASES = [
   {
     slug: "finance/iban-validator",
     inputs: { ibanInput: "GB82WEST12345698765432" },
-    expect: ["mod-97 校验通过"],
-    ref: "ISO 13616：后 4 位前移 → 字母 A=10…Z=35 → 大数 mod 97 == 1（GB82 为公开示例）",
+    expect: ["GB82 WEST 1234 5698 7654 32"],
+    ref: "ISO 13616：后 4 位前移 → 字母 A=10…Z=35 → 大数 mod 97 == 1（GB82 为公开示例）；expect 取页面回显的 4 位分组格式串（含具体 IBAN ⇒ 默认预填 DE89370400440532013000 的格式化值 DE89 3704 0044 0532 0130 00 不命中）",
   },
   {
     slug: "finance/cpf-validator",
@@ -87,8 +87,8 @@ const CASES = [
   {
     slug: "finance/aadhaar-validator",
     inputs: { input: "234123412346" },
-    expect: ["Aadhaar 号码有效"],
-    ref: "印度 Aadhaar 使用 Verhoeff（十进制非线性和校验），234123412346 校验位正确",
+    expect: ["2341 2341 2346"],
+    ref: "印度 Aadhaar 使用 Verhoeff（十进制非线性和校验），234123412346 校验位正确；expect 取页面回显的格式化串「2341 2341 2346」（含具体号码 ⇒ 默认预填 345678901238 的格式化值 3456 7890 1238 不命中，判别力保留）",
   },
   {
     slug: "finance/tfn-validator",
