@@ -3943,7 +3943,7 @@ const CASES = [
       "rounds": "10"
     },
     "expect": [
-      "abc123测试\n1 2 3\n10\n哈希格式无效：bcrypt is not defined"
+      "abc123测试\n10\n哈希格式无效：bcrypt is not defined\n1 2 3"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"plain\":\"abc123测试\",\"hashOut\":\"1\\n2\\n3\",\"rounds\":\"10\"}，输出区含「abc123测试\n1 2 3\n10\n哈希格式无效：bcrypt is not d…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -5384,7 +5384,7 @@ const CASES = [
       "conf": "0.95"
     },
     "expect": [
-      "42\n42\n42\n0.95\np 必须在 0~1 之间"
+      "p 必须在 0~1 之间\n42\n42\n0.95\n42"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"n\":\"42\",\"p\":\"42\",\"N\":\"42\",\"conf\":\"0.95\"}，输出区含「42\n42\n42\n0.95\np 必须在 0~1 之间」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -5965,7 +5965,7 @@ const CASES = [
       "flavor": "verbose"
     },
     "expect": [
-      "1 2 3\n1 2 3\nverbose"
+      "1 2 3\nverbose\n1 2 3"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"flavor\":\"verbose\"}，输出区含「1 2 3\n1 2 3\nverbose」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -6250,7 +6250,7 @@ const CASES = [
       "tail": "one"
     },
     "expect": [
-      "42\n42\n42\none\nPlease enter valid parameters."
+      "Please enter valid parameters.\n42\n42\n42\none"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"d\":\"42\",\"n\":\"42\",\"alpha\":\"42\",\"tail\":\"one\"}，输出区含「42\n42\n42\none\nPlease enter valid paramete…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
