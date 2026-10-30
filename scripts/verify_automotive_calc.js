@@ -300,15 +300,15 @@ const CASES = [
 {
   "slug": "automotive/engine-oil",
   "inputs": {
-    "tmin": "-10",
-    "tmax": "35",
-    "age": "5",
-    "eng": "turbo"
+    "tmin": "-35",
+    "tmax": "10",
+    "age": "1",
+    "eng": "na"
   },
   "expect": [
-    "turbo"
+    "0W-20 推荐黏度等级"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：最低 −35℃ ⇒ 需 0W（CCS −35℃）；新车 + 温和负荷 ⇒ 高温黏度 20；自吸 ⇒ 无需低灰分 ⇒ 推荐 0W-20。⚠ 原 expect 'turbo' 为发动机类型输入回显（零判别力）；默认参数组合（−10/35/5 年/turbo）输出 20W-40，与本串不同 ⇒ 无逃生（已实测）。"
 },
 {
   "slug": "automotive/estimate-distance-1",
@@ -463,9 +463,9 @@ const CASES = [
     "warn": "500"
   },
   "expect": [
-    "120000"
+    "剩余里程 43000 km"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：已行驶 = 当前 87,000 − 上次换油 120,000 = −33,000（故进度 0%），有效间隔 10,000 × 工况系数 1.0，剩余里程按上次换油起算 = 43,000 km。⚠ 原 expect '120000' 为上次里程输入回显（零判别力），已改为剩余里程结果串；默认态不命中。"
 },
 {
   "slug": "automotive/oil-change",

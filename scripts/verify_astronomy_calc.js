@@ -71,14 +71,14 @@ const CASES = [
 {
   "slug": "astronomy/gravitational-force",
   "inputs": {
-    "m1": "5.97e24_X",
+    "m1": "5.97e24",
     "m2": "7.35e22",
-    "r": "3.84e8"
+    "r": "1.0e8"
   },
   "expect": [
-    "5.97e24_X"
+    "2.929e+21 引力 F (N)"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：F = G·m₁·m₂/r² = 6.674e−11 × 5.97e24 × 7.35e22 / (1.0e8)² = 2.929e21 N。⚠ 原用例注入 '5.97e24_X' 并断言同串（输入回显、零判别力）；默认参数（地月 3.84e8）算得 1.986e20 N，与本串不同 ⇒ 无逃生（已实测）。"
 },
 {
   "slug": "astronomy/horizon-distance",
@@ -126,13 +126,13 @@ const CASES = [
 {
   "slug": "astronomy/kepler-third-period",
   "inputs": {
-    "a": "1.496e11_X",
-    "M": "1.989e30"
+    "a": "1.496e11",
+    "M": "3.978e30"
   },
   "expect": [
-    "1.496e11_X"
+    "258.25 轨道周期 T (天)"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：T = 2π√(a³/(GM)) = 2π√((1.496e11)³/(6.674e−11×3.978e30)) ≈ 2.231e7 s = 258.25 天。⚠ 原用例注入 '1.496e11_X' 并断言同串（输入回显、零判别力）；默认中心天体质量 1.989e30 得 365.22 天，与本串不同 ⇒ 无逃生（已实测）。"
 },
 {
   "slug": "astronomy/light-travel-time",
