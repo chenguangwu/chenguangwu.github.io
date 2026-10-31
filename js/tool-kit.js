@@ -1005,11 +1005,39 @@
    * @param list [{label, values:{字段选择器或id: 值}}]
    * @param after 填充后的回调（通常是页面的 calc 函数）
    */
+  /**
+   * 宿主兜底：页面写了 TBKit.preset.bar('#xxxPresets', …) 但正文没放占位 div 时，
+   * 旧实现直接 return null ⇒ 预设条静默不渲染（全站曾因此 586 页预设不可见）。
+   * 这里按「第一个输入行之前」自动建宿主，保证预设一定可见且位置合理。
+   */
+  preset.ensureHost = function (host) {
+    var id = String(host || '').replace(/^[#.]/, '');
+    if (!id) return null;
+    try {
+      var exist = document.getElementById(id);
+      if (exist) return exist;
+      var box = document.createElement('div');
+      box.id = id;
+      var anchor = document.querySelector('.input-row') ||
+        document.querySelector('input[type="number"]') ||
+        document.querySelector('select') ||
+        document.querySelector('form');
+      if (anchor && anchor.parentNode) {
+        anchor.parentNode.insertBefore(box, anchor);
+      } else {
+        var card = document.querySelector('.tool-card') || document.querySelector('main') || document.body;
+        if (card) card.insertBefore(box, card.firstChild);
+      }
+      return box;
+    } catch (e) { return null; }
+  };
+
   preset.bar = function (host, list, after) {
     var box = $(host);
+    if (!box) box = preset.ensureHost(host);
     if (!box || !list || !list.length) return null;
     box.innerHTML = '';
-    var wrap = el('div', { class: 'tbk-presets', role: 'group', 'aria-label': '常用场景' });
+    var wrap = el('div', { class: 'tbk-presets', role: 'group', 'aria-label': (isEn() ? 'Common scenarios' : '常用场景') });
     var tip = el('span', { class: 'tbk-presets-tip' });
     tip.textContent = tt('tip');
     wrap.appendChild(tip);
