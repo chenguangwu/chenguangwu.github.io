@@ -1034,7 +1034,8 @@
 
   preset.bar = function (host, list, after) {
     var box = $(host);
-    if (!box) box = preset.ensureHost(host);
+    // 单条「默认参数」不算场景，缺宿主时不必现造，避免给纯默认页添噪音
+    if (!box && list && list.length > 1) box = preset.ensureHost(host);
     if (!box || !list || !list.length) return null;
     box.innerHTML = '';
     var wrap = el('div', { class: 'tbk-presets', role: 'group', 'aria-label': (isEn() ? 'Common scenarios' : '常用场景') });
