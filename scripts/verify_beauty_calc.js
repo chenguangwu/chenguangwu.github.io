@@ -189,7 +189,7 @@ const CASES = [
   "expect": [
     "tight"
   ],
-  "ref": "auto-restore"
+  "ref": "auto-restore（默认下拉值为 all ⇒ 渲染完整卷杠目录，任何单个卷杠条目文本都会在默认态命中 ⇒ 无法改用条目锚，维持原断言）"
 },
 {
   "slug": "beauty/rater-nail",

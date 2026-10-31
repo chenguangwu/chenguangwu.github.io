@@ -228,8 +228,8 @@ const CASES = [
   {
     slug: "design/badge-generator",
     inputs: { text: "TOOLBOX", fontSize: "20", radius: "14", textColor: "#ffffff", bgColor: "#2563eb" },
-    expect: ["TOOLBOX"],
-    ref: "独立复算：#text 注入 `TOOLBOX` ⇒ 预览区与 CSS 代码均使用注入文本 ⇒ 锚 `TOOLBOX`。默认态 #text 的 value 为 `New` ⇒ 不命中；同时把 fontSize/radius/bgColor 一并换成非默认值（默认 12 / 12 / #667eea），防止退化成『只有 text 参与计算』的假通过。"
+    expect: ["font-size:20px;font-weight:600;border-radius:14px"],
+    ref: "独立复算：字号 20px、圆角 14px 被写进生成的 CSS（默认 12px/12px）。⚠ 原 expect TOOLBOX 为徽标文字输入回显（零判别力）；本页可见产物都由输入拼出，故锚「随参数变化的 CSS 片段」而非文字。默认态 font-size:12px;font-weight:600;border-radius:12px，不命中 ⇒ 无逃生（已双态实测）。"
        + "⚠ 该页 `#preview` 与 `#cssOutput` 均渲染注入文本，属『回显类』页面：锚必须与默认态逐字不同，不可锚任何固定装饰串（如 `BADGE`、`badge`）。",
   },
   {
@@ -314,8 +314,8 @@ const CASES = [
   {
     slug: "design/toast-generator",
     inputs: { message: "TOOLBOX-OK", radius: "14", bgColor: "#0f172a" },
-    expect: ["TOOLBOX-OK"],
-    ref: "独立复算：`#preview` 把 `#message` 写进 `.toast` 节点（`✓ ${message} ×`）⇒ message=TOOLBOX-OK 时预览区出现该串。默认态 message 为页面默认值 ⇒ 不命中。"
+    expect: ["border-radius: 14px"],
+    ref: "独立复算：圆角 14px 写进生成的 .toast CSS（默认 8px）。⚠ 原 expect TOOLBOX-OK 为提示文字输入回显（零判别力）。默认态 border-radius: 8px，不命中 ⇒ 无逃生（已双态实测）。"
         + "⚠ 回显型页：锚必须与默认态逐字不同；本例同时给 radius=14 / bgColor=#0f172a 等非默认伴生参数，防止日后退化成『只有 message 参与渲染』的假通过（该页另有 `#cssOutput`，但注入态未采集到内容，故只锚预览回显）。",
   },
 
@@ -724,7 +724,7 @@ const CASES = [
     slug: "design/cvd-safe-palette",
     inputs: { csMode: "sequential", csStrategy: "lightness" },
     expect: ["sequential"],
-    ref: "注入 csMode=sequential（默认 qualitative）、csStrategy=lightness（默认 auto）。输出第2/4行变为 'sequential'/'lightness'，默认态为 'qualitative'/'auto' 完全不含 ⇒ 0 逃生。注：csCount 是 range，注入会触发页面 csCount.input 读取报错，故本例不注入 csCount；颜色序列与 ΔE 文本为固定的 6 色结果区、不随 mode 变化，仅 mode/strategy/count 文本行随输入变化，故以 mode 串作判别点。纯前端无随机。",
+    ref: "⚠ 下拉值回显（结构性不可修）：csMode=sequential / csStrategy=lightness 注入后，模式与策略标签确实变化，但实测色板（#A2828B → #1B179C → …）、ΔE、对比度表在默认 qualitative/auto 下**逐字节相同** —— 该页色板由固定种子搜索生成、不受模式/策略影响 ⇒ 任何色板数值锚都会在默认态命中（已双态实测 A/B 一致）。能区分的只有 `sequential`/`lightness` 两个下拉回显本身，故维持原断言。",
   },
   {
     "slug": "design/avatar-generator",

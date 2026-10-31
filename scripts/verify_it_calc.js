@@ -3665,8 +3665,8 @@ const CASES = [
   {
     "slug": "it/json-to-xml",
     "inputs": { "root": "zzroot999" },
-    "expect": ["zzroot999"],
-    "ref": "注入非默认根标签名 zzroot999。默认态 root='root' ⇒ 结果区首行 'root'；注入后首行变 'zzroot999'（首行即根元素名）。zzroot999 为随机串，默认态示例 JSON 任意字段均不含 ⇒ 0 逃生。纯前端确定性，无随机。"
+    "expect": ["✅ 转换成功\nzzroot999"],
+    "ref": "派生映射：根元素名 zzroot999 被写进生成的 XML（默认 root）。⚠ 原 expect zzroot999 为根名输入回显（零判别力）；此处与「✅ 转换成功」拼成同一条串，要求该名字确实出现在转换产物区而不只是输入框。默认态为 转换成功+root，不命中 ⇒ 无逃生（已双态实测）。"
   },
   {
     "slug": "it/url-params",

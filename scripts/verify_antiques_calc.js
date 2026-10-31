@@ -20,7 +20,7 @@ const CASES = [
   "expect": [
     "shang"
   ],
-  "ref": "auto-restore"
+  "ref": "auto-restore（默认下拉值为全部年代 ⇒ 渲染完整年代目录，任何年代条目文本都会在默认态命中 ⇒ 无法改用条目锚，维持原断言）"
 },
 {
   "slug": "antiques/furniture-style",

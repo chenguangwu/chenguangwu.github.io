@@ -473,8 +473,8 @@ const CASES = [
   {
     slug: "realestate/assessor-return",
     inputs: { rent: "20", vacancy: "0", opex: "0", capRate: "4", method: "0", landVal: "0" },
-    expect: ["500.00", "25.0倍", "20.00"],
-    ref: 'rent=20 vac=0 opex=0 capRate=4% method=0 land=0；有效毛收入=20.00 运营费用=0.00 NOI=20.00 V=500.00 GRM=25.0 实际收益率=4.00% 租售比=4.00%。grm=25.0 边界：vac=0、opex=0、capRate=4 ⇒ grm 恰为 25.0，既不>25 也不<15 ⇒ it 不追加任何说明（验证边界不误入偏低支）'
+    expect: ["500.00", "25.0倍", "20.00 净收益NOI"],
+    ref: 'rent=20 vac=0 opex=0 capRate=4% method=0 land=0；有效毛收入=20.00 运营费用=0.00 NOI=20.00 V=500.00 GRM=25.0 实际收益率=4.00% 租售比=4.00%。grm=25.0 边界：vac=0、opex=0、capRate=4 ⇒ grm 恰为 25.0，既不>25 也不<15 ⇒ it 不追加任何说明（验证边界不误入偏低支）。⚠ 原 expect "20.00" 为 NOI 输入回显（零判别力）；改为 "20.00 净收益NOI" 要求该计算值带标签渲染。默认态 NOI 不同，不命中 ⇒ 无逃生（已双态实测）'
   },
   {
     slug: "realestate/assessor-return",
@@ -503,8 +503,8 @@ const CASES = [
   {
     slug: "realestate/assessor-second-hand",
     inputs: { p1: "5.0", p2: "5.4", p3: "5.2", loc: "1", floor: "1", decor: "0", orient: "0", age: "0", area: "80" },
-    expect: ["5.3040", "424.32", "5.2000", "总调整幅度 +2%"],
-    ref: 'p1=5.0 p2=5.4 p3=5.2 loc=1 floor=1 decor=0 orient=0 age=0 area=80；案例均价=5.2000 总调整=+2% 调整后单价=5.3040 评估总价=424.32。totalAdj=+2 ⇒ success 支（≥0）'
+    expect: ["5.3040", "424.32", "案例均价 5.2000", "总调整幅度 +2%"],
+    ref: 'p1=5.0 p2=5.4 p3=5.2 loc=1 floor=1 decor=0 orient=0 age=0 area=80；案例均价=5.2000 总调整=+2% 调整后单价=5.3040 评估总价=424.32。totalAdj=+2 ⇒ success 支（≥0）。⚠ 原 expect "5.2000" 为案例均价输入回显（零判别力）；改为 "案例均价 5.2000" 要求该计算值带标签渲染。默认态案例均价不同，不命中 ⇒ 无逃生（已双态实测）'
   },
   {
     slug: "realestate/assessor-second-hand",
@@ -515,20 +515,20 @@ const CASES = [
   {
     slug: "realestate/assessor-second-hand",
     inputs: { p1: "6.0", p2: "6.3", p3: "6.6", loc: "0", floor: "-3", decor: "0", orient: "0", age: "0", area: "75" },
-    expect: ["6.1110", "458.32", "6.3000", "总调整幅度 -3%"],
-    ref: 'p1=6.0 p2=6.3 p3=6.6 loc=0 floor=-3 decor=0 orient=0 age=0 area=75；案例均价=6.3000 总调整=-3% 调整后单价=6.1110 评估总价=458.32。totalAdj=-3 边界 ⇒ info 支（-3 ≥ -3，不落 warning）'
+    expect: ["6.1110", "458.32", "案例均价 6.3000", "总调整幅度 -3%"],
+    ref: 'p1=6.0 p2=6.3 p3=6.6 loc=0 floor=-3 decor=0 orient=0 age=0 area=75；案例均价=6.3000 总调整=-3% 调整后单价=6.1110 评估总价=458.32。totalAdj=-3 边界 ⇒ info 支（-3 ≥ -3，不落 warning）。⚠ 原 expect "6.3000" 为案例均价输入回显（零判别力）；改为 "案例均价 6.3000"。默认态不命中 ⇒ 无逃生（已双态实测）'
   },
   {
     slug: "realestate/assessor-second-hand",
     inputs: { p1: "7.0", p2: "7.5", p3: "8.0", loc: "-2", floor: "-3", decor: "0", orient: "0", age: "0", area: "120" },
-    expect: ["7.1250", "855.00", "7.5000", "总调整幅度 -5%"],
-    ref: 'p1=7.0 p2=7.5 p3=8.0 loc=-2 floor=-3 decor=0 orient=0 age=0 area=120；案例均价=7.5000 总调整=-5% 调整后单价=7.1250 评估总价=855.00。totalAdj=-5 ⇒ warning 支（<-3）'
+    expect: ["7.1250", "855.00", "案例均价 7.5000", "总调整幅度 -5%"],
+    ref: 'p1=7.0 p2=7.5 p3=8.0 loc=-2 floor=-3 decor=0 orient=0 age=0 area=120；案例均价=7.5000 总调整=-5% 调整后单价=7.1250 评估总价=855.00。totalAdj=-5 ⇒ warning 支（<-3）。⚠ 原 expect "7.5000" 为案例均价输入回显（零判别力）；改为 "案例均价 7.5000"。默认态不命中 ⇒ 无逃生（已双态实测）'
   },
   {
     slug: "realestate/assessor-second-hand",
     inputs: { p1: "9.0", p2: "9.6", p3: "9.3", loc: "-2", floor: "-3", decor: "-3", orient: "-3", age: "-3", area: "100" },
-    expect: ["7.9980", "799.80", "9.3000", "总调整幅度 -14%"],
-    ref: 'p1=9.0 p2=9.6 p3=9.3 loc=-2 floor=-3 decor=-3 orient=-3 age=-3 area=100；案例均价=9.3000 总调整=-14% 调整后单价=7.9980 评估总价=799.80。totalAdj=-14（可达最小值）⇒ warning 支，验证极端负调整不越界'
+    expect: ["7.9980", "799.80", "案例均价 9.3000", "总调整幅度 -14%"],
+    ref: 'p1=9.0 p2=9.6 p3=9.3 loc=-2 floor=-3 decor=-3 orient=-3 age=-3 area=100；案例均价=9.3000 总调整=-14% 调整后单价=7.9980 评估总价=799.80。totalAdj=-14（可达最小值）⇒ warning 支，验证极端负调整不越界。⚠ 原 expect "9.3000" 为案例均价输入回显（零判别力）；改为 "案例均价 9.3000"。默认态不命中 ⇒ 无逃生（已双态实测）'
   },
   {
     slug: "realestate/calc-assessor",
@@ -611,8 +611,8 @@ const CASES = [
   {
     slug: "realestate/assessor-40",
     inputs: { rebuild: "400", used: "15", durable: "60", loss: "50", method: "1", insured: "120" },
-    expect: ["300.00", "120.00", "第一危险赔偿方式下"],
-    ref: 'rebuild=400 used=15 durable=60 loss=50 method=1(第一危险) insured=120；实际价值300.00 损失金额200.00 赔偿=min(200,120)=120.00。判别：若误走比例赔偿则 200×0.3=60.00'
+    expect: ["300.00", "120.00 赔偿金额", "第一危险赔偿方式下"],
+    ref: 'rebuild=400 used=15 durable=60 loss=50 method=1(第一危险) insured=120；实际价值300.00 损失金额200.00 赔偿=min(200,120)=120.00。判别：若误走比例赔偿则 200×0.3=60.00。⚠ 原 expect "120.00" 为赔偿金额输入回显（零判别力）；改为 "120.00 赔偿金额"。默认态赔偿金额不同，不命中 ⇒ 无逃生（已双态实测）'
   },
   {
     slug: "realestate/assessor-40",
@@ -635,8 +635,8 @@ const CASES = [
   {
     slug: "realestate/assessor-40",
     inputs: { rebuild: "320", used: "60", durable: "40", loss: "12.5", method: "0", insured: "320" },
-    expect: ["150.0%", "40.00"],
-    ref: 'rebuild=320 used=60 durable=40 loss=12.5 method=0 insured=320；折旧率150.0%>100% ⇒ 实际价值=320×(1−1.5)<0 截断为0（测 av<0 分支）投保比例1.0(足额) 损失金额40.00 赔偿40.00'
+    expect: ["150.0%", "损失金额 40.00"],
+    ref: 'rebuild=320 used=60 durable=40 loss=12.5 method=0 insured=320；折旧率150.0%>100% ⇒ 实际价值=320×(1−1.5)<0 截断为0（测 av<0 分支）投保比例1.0(足额) 损失金额40.00 赔偿40.00。⚠ 原 expect "40.00" 为损失金额输入回显（零判别力）；改为 "损失金额 40.00"。默认态损失金额不同，不命中 ⇒ 无逃生（已双态实测）'
   },
   {
     slug: "realestate/assessor-42",

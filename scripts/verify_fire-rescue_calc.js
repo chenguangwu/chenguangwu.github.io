@@ -28,13 +28,13 @@ const CASES = [
 {
   "slug": "fire-rescue/chemical-spill",
   "inputs": {
-    "amount": "150",
+    "amount": "800",
     "wind": "3"
   },
   "expect": [
-    "150"
+    "650m 警戒距离"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：泄漏量 800 kg > 500 kg 阈值 ⇒ 警戒距离 500×1.3=650 m。⚠ 原 expect '150' 为泄漏量输入回显（零判别力）；取量改 800 才能触发 >500 kg 派生分支（150 与默认 100 同为 500 m，无派生输出可锚）。默认 100 kg ⇒ 500 m，不命中 ⇒ 无逃生（已双态实测）。"
 },
 {
   "slug": "fire-rescue/confined-space-rescue",
@@ -101,12 +101,12 @@ const CASES = [
 {
   "slug": "fire-rescue/fire-extinguisher-selection",
   "inputs": {
-    "area": "150"
+    "area": "300"
   },
   "expect": [
-    "150"
+    "建议配置数量：4 具"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：300 m² ÷ 75 m²/具 = 4 具（最少 2 具规则不触发）。⚠ 原 expect '150' 为保护面积输入回显（零判别力）；面积改 300 才能让配置数量与默认 100 m²（2 具）区分。默认 100 m² ⇒ 2 具，不命中 ⇒ 无逃生（已双态实测）。"
 },
 {
   "slug": "fire-rescue/fire-fighting-tactics",
@@ -114,9 +114,9 @@ const CASES = [
     "fireArea": "300"
   },
   "expect": [
-    "300"
+    "300 着火面积(m²)"
   ],
-  "ref": "auto-restore"
+  "ref": "面积回显 + 单位标签（战术模式/水枪数不随面积变化：300 与默认 200 同为「进攻」2 支水枪，无面积派生量可锚）。⚠ 原 expect '300' 为裸输入回显。默认 200 ⇒ 200 着火面积(m²)，不命中 ⇒ 无逃生（已双态实测）。"
 },
 {
   "slug": "fire-rescue/fire-investigation",
@@ -124,9 +124,9 @@ const CASES = [
     "burnArea": "75"
   },
   "expect": [
-    "75"
+    "75 过火面积(m²)"
   ],
-  "ref": "auto-restore"
+  "ref": "过火面积回显 + 单位标签（起火点/原因分析由勾选线索驱动，本用例未勾选线索 ⇒ 无面积派生结论可锚）。⚠ 原 expect '75' 为裸输入回显。默认 50 ⇒ 50 过火面积(m²)，不命中 ⇒ 无逃生（已双态实测）。"
 },
 {
   "slug": "fire-rescue/fire-load",
@@ -134,9 +134,9 @@ const CASES = [
     "area": "150"
   },
   "expect": [
-    "150"
+    "2 荷载密度 (MJ/m²)"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：总热值 360 MJ（木材 10 kg×18 MJ/kg ×2 行）÷ 面积 150 m² = 2.4 ⇒ 显示 2 MJ/m²。⚠ 原 expect '150' 为面积输入回显（零判别力）。默认面积下荷载密度不同，不命中 ⇒ 无逃生（已双态实测）。"
 },
 {
   "slug": "fire-rescue/fire-resistance-rating",
@@ -156,9 +156,9 @@ const CASES = [
     "density": "0.5"
   },
   "expect": [
-    "36"
+    "53 综合风险分（0~100）"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：高度 36 m 档基础分 53（默认 24 m ⇒ 47）。⚠ 原 expect '36' 为建筑高度输入回显（零判别力）。默认 47 综合风险分，不命中 ⇒ 无逃生（已双态实测）。"
 },
 {
   "slug": "fire-rescue/high-rise-fire",
@@ -169,9 +169,9 @@ const CASES = [
     "ladder": "54"
   },
   "expect": [
-    "120"
+    "超高层 建筑分类"
   ],
-  "ref": "auto-restore"
+  "ref": "派生判定：120 m > 100 m ⇒ 超高层（默认 80 m ⇒ 高层），并据此走中转水箱/避难层供水分支。⚠ 原 expect '120' 为建筑高度输入回显（零判别力）。默认态为「高层 建筑分类」，不命中 ⇒ 无逃生（已双态实测）。"
 },
 {
   "slug": "fire-rescue/hydrant-flow",
@@ -242,7 +242,7 @@ const CASES = [
   "expect": [
     "15"
   ],
-  "ref": "auto-restore"
+  "ref": "⚠ 输入回显（楼层数）。本页输出仅把楼层/出入口/道路宽度/车辆数分别回显到统计条，派生文本（4 条路线、检查清单）与数值无关 ⇒ 无任何依赖输入的派生量可锚；且首个数值卡片紧邻「building」下拉值、无单位标签，唯一可用的 `15\n2` 形态极易被默认态子串误命中 ⇒ 维持原断言（结构性不可修，见 memory 铁律）"
 },
 {
   "slug": "fire-rescue/rope-rescue",
@@ -296,9 +296,9 @@ const CASES = [
     "opArea": "0"
   },
   "expect": [
-    "1500"
+    "120 总喷头数"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：1500 m² ÷ 12.5 m²/只 = 120 只（默认 1000 m² ⇒ 80 只）。⚠ 原 expect '1500' 为总面积输入回显（零判别力）。默认 80 总喷头数，不命中 ⇒ 无逃生（已双态实测）。"
 },
 {
   "slug": "fire-rescue/temp-6",
@@ -316,9 +316,9 @@ const CASES = [
     "thick": "15"
   },
   "expect": [
-    "15"
+    "8 破拆时间 (s)"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：15 mm 厚钢板 ÷ 切割速率 120 mm/min = 0.125 min ≈ 0.13 min = 8 s（默认 10 mm ⇒ 5 s）。⚠ 原 expect '15' 为板厚输入回显（零判别力）。默认 5 破拆时间 (s)，不命中 ⇒ 无逃生（已双态实测）。"
 },
 {
   "slug": "fire-rescue/time-air",
@@ -340,9 +340,9 @@ const CASES = [
     "tmove": "4"
   },
   "expect": [
-    "15.0"
+    "8.0 安全裕度"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：ASET 15.0 − RSET 7.0（探测 1+疏散前 2+行走 4）= 8.0 min 安全裕度（默认 ASET 10 ⇒ 3.0）。⚠ 原 expect '15.0' 为 ASET 输入回显（零判别力）。默认 3.0 安全裕度，不命中 ⇒ 无逃生（已双态实测）。"
 },
 {
   "slug": "fire-rescue/time-lux",
@@ -356,9 +356,9 @@ const CASES = [
     "uf": "0.7"
   },
   "expect": [
-    "18000"
+    "34.6 单灯持续"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：18 Ah×12 V=216 Wh ÷ 5 W ≈ 34.6 h 单灯续航。⚠ 原 expect '18000' 为电池容量回显（零判别力）。默认容量下续航不同，不命中 ⇒ 无逃生（已双态实测）。"
 },
 {
   "slug": "fire-rescue/ventilation-tactics",
@@ -401,9 +401,9 @@ const CASES = [
     "material": "18"
   },
   "expect": [
-    "18.0"
+    "18.0 氧指数"
   ],
-  "ref": "auto-restore"
+  "ref": "派生映射：材料选聚丙烯 PP ⇒ fillLoi 写入 18 ⇒ 卡片显示 18.0 氧指数并判「易燃/不达标」（默认 PVC ⇒ 45.0 难燃）。⚠ 原 expect '18.0' 为裸数值回显。默认 45.0 氧指数，不命中 ⇒ 无逃生（已双态实测）。"
 },
 {
   "slug": "fire-rescue/shengsuoanquanxishu",
