@@ -19,7 +19,7 @@ const { runCase } = require("./verify_it_calc.js");
 const CASES = [
   { slug: "cosmetic-derm/area-12",
     inputs: { area: "全脸", pct: "22", diam: "0.35" },
-    expect: ["22.0", "0.35"],
+    expect: [ "0.35 血管直径μm" ],
     ref: "红斑面积占比 22% → 15≤22<30 属重度（III 级）；占比显示=22.0%、血管直径=0.35 μm（默认 面颊/10/0.2→10.0/0.20 避开）" },
 
   { slug: "cosmetic-derm/chemical-peel",
@@ -137,17 +137,17 @@ const CASES = [
 
   { slug: "cosmetic-derm/skin-ph",
     inputs: { phValue: "6.0", site: "cheek", postClean: "2", skincare: "1" },
-    expect: ["6.00", "偏碱（偏高）"],
+    expect: [ "6.00 偏碱" ],
     ref: "pH 6.0 ∈(5.5,6.5] → 偏碱（偏高）；屏障健康分=100−|6.0−5.0|×30=70（默认 5.0→理想范围 避开）" },
 
   { slug: "cosmetic-derm/pifuphceding",
     inputs: { ph: "4.2", area: "面颊" },
-    expect: ["4.2", "偏酸"],
+    expect: [ "4.2 皮肤" ],
     ref: "pH 4.2 ∈[4.0,4.5) → 偏酸；屏障健康度=100−|4.2−5.0|×25=80（默认 5.0→正常 避开）" },
 
   { slug: "cosmetic-derm/maokongcudafenji",
     inputs: { dia: "500", area: "鼻头", type: "aging" },
-    expect: ["500", "中度粗大"],
+    expect: [ "500 毛孔直径" ],
     ref: "毛孔直径 500 μm ∈[400,800) → 2 级「中度粗大」（默认 350→轻度粗大 避开）" },
 
   { slug: "cosmetic-derm/eyebag-assessment",

@@ -18,9 +18,7 @@ const CASES = [
   "inputs": {
     "age": "113"
   },
-  "expect": [
-    "113"
-  ],
+  "expect": [ "113 年龄" ],
   "ref": "auto-restore"
 },
 {

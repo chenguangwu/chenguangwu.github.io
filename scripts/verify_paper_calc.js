@@ -8,9 +8,7 @@ const CASES = [
     "gsmInput": "120",
     "reamGsm": "70"
   },
-  "expect": [
-    "120.0"
-  ],
+  "expect": [ "120.0 g/m²" ],
   "ref": "auto-restore"
 },
 {
@@ -20,9 +18,7 @@ const CASES = [
     "defPerSqm": "8",
     "area": "10"
   },
-  "expect": [
-    "5.5"
-  ],
+  "expect": [ "15442 最大缺陷尺寸：5.5" ],
   "ref": "auto-restore"
 },
 {

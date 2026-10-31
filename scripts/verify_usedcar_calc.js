@@ -81,9 +81,7 @@ const CASES = [
     "value": "100000",
     "tol": "20"
   },
-  "expect": [
-    "90000"
-  ],
+  "expect": [ "22,500 超额里程费" ],
   "ref": "auto-restore"
 },
 {

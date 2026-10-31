@@ -8,9 +8,7 @@ const CASES = [
     "avgSalary": "15000",
     "capSalary": "30000"
   },
-  "expect": [
-    "15000"
-  ],
+  "expect": [ "15,000 计算月工资" ],
   "ref": "auto-restore"
 },
 {

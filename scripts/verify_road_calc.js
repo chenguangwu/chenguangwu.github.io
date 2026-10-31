@@ -7,9 +7,7 @@ const CASES = [
   "inputs": {
     "val": "15"
   },
-  "expect": [
-    "15.00"
-  ],
+  "expect": [ "百分比 15.0000" ],
   "ref": "auto-restore"
 },
 {
@@ -35,9 +33,7 @@ const CASES = [
     "inBc": "7.5",
     "inHc": "15"
   },
-  "expect": [
-    "150.00"
-  ],
+  "expect": [ "150.00 m" ],
   "ref": "auto-restore"
 },
 {

@@ -59,9 +59,7 @@ const CASES = [
     "height": "255",
     "mon": "24"
   },
-  "expect": [
-    "255"
-  ],
+  "expect": [ "椅面高度 181" ],
   "ref": "auto-restore"
 },
 {
@@ -72,9 +70,7 @@ const CASES = [
     "cycles": "10000",
     "stability": "0.15"
   },
-  "expect": [
-    "3.8"
-  ],
+  "expect": [ "3324 甲醛释放量：3.8" ],
   "ref": "auto-restore"
 },
 {

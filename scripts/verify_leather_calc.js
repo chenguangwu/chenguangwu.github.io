@@ -8,9 +8,7 @@ const CASES = [
     "thickness": "5.5",
     "area": "18"
   },
-  "expect": [
-    "5.50"
-  ],
+  "expect": [ "5.50 厚度" ],
   "ref": "auto-restore"
 },
 {
@@ -57,9 +55,7 @@ const CASES = [
     "ph": "3.0",
     "salt": "8"
   },
-  "expect": [
-    "150.0"
-  ],
+  "expect": [ "150.0 液量" ],
   "ref": "auto-restore"
 },
 {
@@ -145,9 +141,7 @@ const CASES = [
     "t2": "15",
     "dens": "1.2"
   },
-  "expect": [
-    "35.0"
-  ],
+  "expect": [ "66.3 总厚度" ],
   "ref": "auto-restore"
 },
 {
@@ -157,9 +151,7 @@ const CASES = [
     "rpm": "1200",
     "feed": "8"
   },
-  "expect": [
-    "4.50"
-  ],
+  "expect": [ "4.50 目标厚度" ],
   "ref": "auto-restore"
 },
 {

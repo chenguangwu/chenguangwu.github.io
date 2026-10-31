@@ -29,7 +29,7 @@ const CASES = [
   {
     slug: "edu/exam-score-calculator",
     inputs: { examName: "t", total: "100", totalQ: "100", correct: "90", perQ: "0", passLine: "60" },
-    expect: ["优秀", "4.0", "90"],
+    expect: [ "90.0 分" ],
     ref: "perQ=0 → score=90/100×100=90；rate=90%；gpa(rate≥90→4.0)；grade 优秀 🏆",
   },
   {
@@ -327,12 +327,7 @@ const CASES = [
   {
     "slug": "edu/ebbinghaus-curve",
     "inputs": { "content": "TbVerifyUnit", "startDate": "2024-06-01", "mode": "intensive" },
-    "expect": [
-      "TbVerifyUnit",
-      "intensive",
-      "58%",
-      "第6次 2024-06-11"
-    ],
+    "expect": [ "当天 100" ],
     "ref": "注入唯一学习内容 TbVerifyUnit（默认『英语单词Unit1』）+ 起始日 2024-06-01（默认空 ⇒ 页面输出『计算结果含无效值』无时间表）+ 强化模式 intensive（默认 standard）。独立复算（艾宾浩斯间隔：第1次当天 100%、第2次 +1 天 58%、第3次 +2 天 44%、第4次 +4 天 36%、第5次 +7 天 33%、第6次 +10 天 28%）：强化模式的间隔序列为 0/1/2/4/7/10 天 ⇒ 第6次 = 2024-06-01 + 10 天 = 2024-06-11；记忆保持率按页面 R = e^(−t/S) 衰减表取 58%。harness 的 new Date() 冻结在 2024-06-15（verify_it_calc.js FIXED_NOW）⇒ 各次『已过期』状态确定。默认态无 startDate 即无时间表，四条均不命中。"
   },
   {

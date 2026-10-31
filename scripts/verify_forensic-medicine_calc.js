@@ -88,9 +88,7 @@ const CASES = [
     "diatomType": "3",
     "waterType": "8"
   },
-  "expect": [
-    "23"
-  ],
+  "expect": [ "23 个/10g" ],
   "ref": "auto-restore"
 },
 {
@@ -155,9 +153,7 @@ const CASES = [
   "inputs": {
     "diameter": "120"
   },
-  "expect": [
-    "120"
-  ],
+  "expect": [ "毛发直径 120" ],
   "ref": "auto-restore"
 },
 {

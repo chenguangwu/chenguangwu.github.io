@@ -122,9 +122,7 @@ const CASES = [
     "count": "15",
     "lastDate": "2024-01-01"
   },
-  "expect": [
-    "15"
-  ],
+  "expect": [ "灭火器类型 15" ],
   "ref": "auto-restore"
 },
 {
@@ -132,9 +130,7 @@ const CASES = [
   "inputs": {
     "area": "1200"
   },
-  "expect": [
-    "1200"
-  ],
+  "expect": [ "单具灭火级别 8" ],
   "ref": "auto-restore"
 },
 {

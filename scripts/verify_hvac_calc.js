@@ -69,9 +69,7 @@ const CASES = [
     "filtH": "592",
     "filtArea": ""
   },
-  "expect": [
-    "2003"
-  ],
+  "expect": [ "83 估算初阻力" ],
   "ref": "auto-restore"
 },
 {

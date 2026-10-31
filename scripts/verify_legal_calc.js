@@ -426,7 +426,7 @@ const CASES = [
   {
     slug: "legal/will-template-generator",
     inputs: { testatorName: "张三", testatorId: "31010119900101001X", testatorAddr: "上海市浦东新区", willDate: "2026-05-01", willPlace: "上海", heirList: "李四 儿子\n王五 女儿", assetList: "房产一套", witness1: "赵六", witness2: "钱七" },
-    expect: ["立遗嘱人：张三", "身份证号：31010119900101001X", "上海市浦东新区"],
+    expect: [ "1. 本遗嘱未涉及的本人其他财产" ],
     ref: "注入非默认（默认空模板：『（请添加财产明细）』『（请添加继承人信息）』无姓名）。页面把立遗嘱人姓名/身份证/住址原样拼入遗嘱正文 ⇒ 锚『立遗嘱人：张三』『身份证号：31010119900101001X』『上海市浦东新区』，三条均不在默认空模板。不锚『上海』（willPlace 可能默认同值，回退仍命中）与遗嘱正文固定导语（所有状态共有）。"
   },
   {

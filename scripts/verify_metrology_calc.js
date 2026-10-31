@@ -153,7 +153,7 @@ const CASES = [
 
   { slug: "metrology/precision-tolerance-ratio",
     inputs: { s: "0.15", Tol: "6" },
-    expect: ["0.150"],
+    expect: [ "0.150 精度公差比" ],
     ref: "PTR=6×0.15/6=0.150（<0.1 才算足够精细）" },
   {
     "slug": "metrology/bias-absolute",

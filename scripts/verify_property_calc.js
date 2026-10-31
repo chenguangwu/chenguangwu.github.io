@@ -200,9 +200,7 @@ const CASES = [
     "innerArea": "4800",
     "unitCount": "40"
   },
-  "expect": [
-    "4800.00"
-  ],
+  "expect": [ "公摊总面积 4800.00" ],
   "ref": "auto-restore"
 },
 {

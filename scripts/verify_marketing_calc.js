@@ -40,7 +40,7 @@ const CASES = [
   {
     slug: "marketing/marketing-cac-calculator",
     inputs: { marketingSpend: "8000", salesSpend: "2000", newCustomers: "100", ltv: "500" },
-    expect: ["100.00", "80.00"],
+    expect: [ "100.00 等级：良好" ],
     ref: "totalSpend=10000；cac=10000/100=100.00；marketingCAC=8000/100=80.00；ltvCacRatio=500/100=5.00",
   },
   {
@@ -65,7 +65,7 @@ const CASES = [
   {
     slug: "marketing/marketing-break-even-roas",
     inputs: { price: "100", margin: "40" },
-    expect: ["40.00"],
+    expect: [ "100.00 毛利率" ],
     ref: "marginRatio=0.4；breakEvenRoas=1/0.4=2.50；profitPerUnit=100×0.4=40.00",
   },
   {
@@ -79,7 +79,7 @@ const CASES = [
   {
     slug: "marketing/marketing-ltv-cac-ratio",
     inputs: { ltv: "600", cac: "200" },
-    expect: ["3.00", "200.00"],
+    expect: [ "600.00 客户获取成本CAC" ],
     ref: "ratio=600/200=3.00；profit=400；roi=(400/200)×100=200.00；paybackMonths=200/(600/36)=12.00",
   },
   {

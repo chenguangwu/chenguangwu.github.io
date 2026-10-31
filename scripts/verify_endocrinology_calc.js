@@ -79,9 +79,7 @@ const CASES = [
     "da": "25",
     "age": "45"
   },
-  "expect": [
-    "9.5"
-  ],
+  "expect": [ "9.5 mg/24h" ],
   "ref": "auto-restore"
 },
 {

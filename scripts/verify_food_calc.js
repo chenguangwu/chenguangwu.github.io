@@ -260,9 +260,7 @@ const CASES = [
     "fg-input": "0.995",
     "conv-val": "15"
   },
-  "expect": [
-    "4.0900"
-  ],
+  "expect": [ "4.0900 原汁比重" ],
   "ref": "auto-restore"
 },
   {

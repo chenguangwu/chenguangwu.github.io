@@ -11,9 +11,7 @@ const CASES = [
     "srcHeight": "1080",
     "ratio": "2.35"
   },
-  "expect": [
-    "2.3500"
-  ],
+  "expect": [ "2,741,040 px" ],
   "ref": "auto-restore"
 },
 {

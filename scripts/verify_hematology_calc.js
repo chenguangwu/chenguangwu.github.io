@@ -280,9 +280,7 @@ const CASES = [
     "blasts": "2",
     "wbc": "15"
   },
-  "expect": [
-    "158"
-  ],
+  "expect": [ "血红蛋白 158" ],
   "ref": "auto-restore"
 },
 {
@@ -294,9 +292,7 @@ const CASES = [
     "fib": "0.9",
     "fdp": "40"
   },
-  "expect": [
-    "68"
-  ],
+  "expect": [ "68 血小板" ],
   "ref": "auto-restore"
 },
 {
@@ -308,9 +304,7 @@ const CASES = [
     "onsetDays": "5",
     "recoveryDays": "7"
   },
-  "expect": [
-    "270"
-  ],
+  "expect": [ "血小板下降幅度 94" ],
   "ref": "auto-restore"
 },
 {

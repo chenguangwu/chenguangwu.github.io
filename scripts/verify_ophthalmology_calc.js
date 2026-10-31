@@ -26,9 +26,7 @@ const CASES = [
     "sVl": "15.5",
     "vVl": "1532"
   },
-  "expect": [
-    "35.500"
-  ],
+  "expect": [ "声速校正后 36.033" ],
   "ref": "auto-restore"
 },
 {
@@ -127,9 +125,7 @@ const CASES = [
     "ecPpi": "92",
     "ecScale": "60"
   },
-  "expect": [
-    "782"
-  ],
+  "expect": [ "62 PPI" ],
   "ref": "auto-restore"
 },
 {
@@ -339,9 +335,7 @@ const CASES = [
     "psd": "4.2",
     "vfi": "85"
   },
-  "expect": [
-    "-9.5"
-  ],
+  "expect": [ "-9.5 dB" ],
   "ref": "auto-restore"
 },
   {

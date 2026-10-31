@@ -81,9 +81,7 @@ const CASES = [
     "duration": "20",
     "purpose": "spasm"
   },
-  "expect": [
-    "spasm"
-  ],
+  "expect": [ "易产生适应性 5" ],
   "ref": "auto-restore"
 },
 {

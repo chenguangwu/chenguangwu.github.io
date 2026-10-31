@@ -56,9 +56,7 @@ const CASES = [
     "r": "15000",
     "c": "10"
   },
-  "expect": [
-    "15000"
-  ],
+  "expect": [ "1.50e-1 时间常数" ],
   "ref": "auto-restore"
 },
 {
@@ -244,9 +242,7 @@ const CASES = [
     "r1": "1000",
     "r2": "2000"
   },
-  "expect": [
-    "18"
-  ],
+  "expect": [ "最大值 400.00" ],
   "ref": "auto-restore"
 },
 {

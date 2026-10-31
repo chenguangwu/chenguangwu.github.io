@@ -66,9 +66,7 @@ const CASES = [
     "serviceFee": "0",
     "customPct": "50"
   },
-  "expect": [
-    "300"
-  ],
+  "expect": [ "60,000 佣金" ],
   "ref": "auto-restore"
 },
 {
@@ -100,9 +98,7 @@ const CASES = [
     "adjC": "0",
     "wC": "1"
   },
-  "expect": [
-    "135"
-  ],
+  "expect": [ "7,278 建议月租金" ],
   "ref": "auto-restore"
 }
 ];

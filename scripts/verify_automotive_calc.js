@@ -14,9 +14,7 @@ const CASES = [
     "rpm": "750",
     "tps": "12"
   },
-  "expect": [
-    "138"
-  ],
+  "expect": [ "冷却液温度 138" ],
   "ref": "auto-restore"
 },
 {
@@ -251,9 +249,7 @@ const CASES = [
     "lastKm": "0",
     "yearKm": "15000"
   },
-  "expect": [
-    "127500"
-  ],
+  "expect": [ "127,500 当前里程" ],
   "ref": "auto-restore"
 },
 {

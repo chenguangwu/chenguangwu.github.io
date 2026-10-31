@@ -96,9 +96,7 @@ const CASES = [
   "inputs": {
     "alarmLocation": "卧室"
   },
-  "expect": [
-    "卧室"
-  ],
+  "expect": [ "50016 要求住宅每间卧室内部或门外走" ],
   "ref": "auto-restore"
 },
 {

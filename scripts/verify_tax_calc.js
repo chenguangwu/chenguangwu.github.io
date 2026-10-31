@@ -64,7 +64,7 @@ const CASES = [
 
   { slug: "tax/foreign-tax-credit",
     inputs: { ft: "1800", lim: "2500" },
-    expect: ["1800.00"],
+    expect: [ "1800.00 可抵扣额" ],
     ref: "抵扣额=min(1800,2500)=1800.00（默认 2000/1500→1500.00，避开）" },
 
   { slug: "tax/gift-tax",

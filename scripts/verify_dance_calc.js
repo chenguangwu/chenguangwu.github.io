@@ -35,9 +35,7 @@ const CASES = [
     "reach": "18",
     "age": "25"
   },
-  "expect": [
-    "18.0"
-  ],
+  "expect": [ "18.0 成绩" ],
   "ref": "auto-restore"
 },
 {
@@ -47,9 +45,7 @@ const CASES = [
     "armSpan2": "160",
     "margin": "10"
   },
-  "expect": [
-    "10.0"
-  ],
+  "expect": [ "5.0 轨迹半径" ],
   "ref": "auto-restore"
 },
 {

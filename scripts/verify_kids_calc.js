@@ -23,9 +23,7 @@ const CASES = [
     "srcInput": "圆周率 3.1415926",
     "cellCount": "12"
   },
-  "expect": [
-    "12"
-  ],
+  "expect": [ "12 个记忆格子" ],
   "ref": "auto-restore"
 },
 {

@@ -38,9 +38,7 @@ const CASES = [
     "prod${i}": "${name}",
     "amt${i}": "${amt}"
   },
-  "expect": [
-    "1500"
-  ],
+  "expect": [ "1,500 损失/残液" ],
   "ref": "auto-restore"
 },
 {

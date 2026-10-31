@@ -113,7 +113,7 @@ const CASES = [
 
   { slug: "materials/poisson-lateral",
     inputs: { nu: "0.28", el: "0.002" },
-    expect: ["-0.000560", "0.280"],
+    expect: [ "-0.000560 横向应变" ],
     ref: "ε_lat=−0.28×0.002=−0.000560；回算 ν=0.280" },
 
   // ---- 能量 / 强度 ----

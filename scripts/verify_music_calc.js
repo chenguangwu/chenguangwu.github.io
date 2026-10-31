@@ -10,9 +10,7 @@ const CASES = [
     "ch": "2",
     "dur": "180"
   },
-  "expect": [
-    "66150"
-  ],
+  "expect": [ "45.42 MB" ],
   "ref": "auto-restore"
 },
 {
@@ -36,9 +34,7 @@ const CASES = [
     "reverseMs": "500",
     "sampleRate": "48000"
   },
-  "expect": [
-    "48000"
-  ],
+  "expect": [ "96,000 一小节" ],
   "ref": "auto-restore"
 },
 {

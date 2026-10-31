@@ -53,9 +53,7 @@ const CASES = [
     "srcK": "4800",
     "targetK": "5600"
   },
-  "expect": [
-    "4800"
-  ],
+  "expect": [ "-29 建议滤色片：" ],
   "ref": "auto-restore"
 }
 ];

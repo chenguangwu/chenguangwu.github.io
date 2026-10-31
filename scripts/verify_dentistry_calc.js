@@ -152,9 +152,7 @@ const CASES = [
     "boneWidth": "11.5",
     "boneHeight": "12"
   },
-  "expect": [
-    "11.5"
-  ],
+  "expect": [ "9.5 最大可用直径" ],
   "ref": "auto-restore"
 },
 {
@@ -279,9 +277,7 @@ const CASES = [
   "inputs": {
     "winter": "mesioangular"
   },
-  "expect": [
-    "mesioangular"
-  ],
+  "expect": [ "1 方向评分" ],
   "ref": "auto-restore"
 },
 {
@@ -289,9 +285,7 @@ const CASES = [
   "inputs": {
     "position": "premolar"
   },
-  "expect": [
-    "premolar"
-  ],
+  "expect": [ "1100 抗弯强度" ],
   "ref": "auto-restore"
 }
 ];

@@ -7,9 +7,7 @@ const CASES = [
   "inputs": {
     "wearValue": "3.15"
   },
-  "expect": [
-    "3.1500"
-  ],
+  "expect": [ "阿克隆磨耗值 3.15" ],
   "ref": "auto-restore"
 },
 {
@@ -31,9 +29,7 @@ const CASES = [
     "hardValue": "75",
     "shoreA": "50"
   },
-  "expect": [
-    "75"
-  ],
+  "expect": [ "76 硬度等级：" ],
   "ref": "auto-restore"
 },
 {

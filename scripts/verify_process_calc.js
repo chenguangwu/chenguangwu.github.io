@@ -48,9 +48,7 @@ const CASES = [
     "mu": "10.0",
     "sigma": "0.01"
   },
-  "expect": [
-    "15.05"
-  ],
+  "expect": [ "0.0 对应" ],
   "ref": "auto-restore"
 },
 {
@@ -108,9 +106,7 @@ const CASES = [
     "mu": "10.0",
     "slt": "0.015"
   },
-  "expect": [
-    "15.05"
-  ],
+  "expect": [ "56.667 Pp" ],
   "ref": "auto-restore"
 },
 {

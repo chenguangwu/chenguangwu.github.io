@@ -220,7 +220,7 @@ const CASES = [
   {
     slug: "healthcare/due-date-calc",
     inputs: { lmp: "140", cycleLen: "28", ovulationDay: "14" },
-    expect: ["20.0", "140", "126"],
+    expect: [ "20.0 周" ],
     ref: "孕周 = 140÷7 = 20.0 周；距预产期 = 280−140 = 140 天；距排卵 = 140−14 = 126 天",
   },
   {

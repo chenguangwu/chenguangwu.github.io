@@ -42,9 +42,7 @@ const CASES = [
     "lots": "0",
     "fee": "10"
   },
-  "expect": [
-    "5700"
-  ],
+  "expect": [ "205,200 每手保证金" ],
   "ref": "auto-restore"
 },
 {

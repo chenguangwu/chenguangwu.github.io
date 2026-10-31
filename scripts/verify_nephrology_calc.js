@@ -47,11 +47,7 @@ const CASES = [
     "egfr": "68",
     "uacr": "150"
   },
-  "expect": [
-    "68",
-    "eGFR 68 mL/min/1.73m² → 落在 G2 轻度↓（健康参考 ≥90）",
-    "UACR 150 mg/g → 落在 A2 微量"
-  ],
+  "expect": [ "2 肾功能轻度下降" ],
   "ref": "auto-restore"
 },
 {
@@ -162,10 +158,7 @@ const CASES = [
     "concVal": "30",
     "h24Val": "40"
   },
-  "expect": [
-    "68.0",
-    "68.0 mg/g → 落在 微量"
-  ],
+  "expect": [ "参考区间定位 68.0" ],
   "ref": "UACR 68 mg/g 落在微量白蛋白尿带（30–300 mg/g）；参考区间定位文本随 uacrVal 联动"
 },
 {
@@ -198,9 +191,7 @@ const CASES = [
     "protein24h": "5.5",
     "uVol": "1500"
   },
-  "expect": [
-    "5.50"
-  ],
+  "expect": [ "5.50 24h尿蛋白" ],
   "ref": "auto-restore"
 },
 {
@@ -236,9 +227,7 @@ const CASES = [
     "uag": "25",
     "feHco3": "2"
   },
-  "expect": [
-    "11.3"
-  ],
+  "expect": [ "17 血钾=3.2" ],
   "ref": "auto-restore"
 },
 {

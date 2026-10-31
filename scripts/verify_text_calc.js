@@ -64,9 +64,7 @@ const CASES = [
     "enwpm": "200",
     "src": "在纯前端工具站里，阅读时长估算是一个很实用的小功能，帮助用户判断一篇长文需要投入多少时间。"
   },
-  "expect": [
-    "450"
-  ],
+  "expect": [ "450 字/分" ],
   "ref": "auto-restore"
 },
 {
@@ -98,9 +96,7 @@ const CASES = [
     "src": "leet speak is fun",
     "level": "mid"
   },
-  "expect": [
-    "mid"
-  ],
+  "expect": [ "15 fun" ],
   "ref": "auto-restore"
 },
 {

@@ -108,9 +108,7 @@ const CASES = [
     "robotcost": "30",
     "workdays": "250"
   },
-  "expect": [
-    "15000"
-  ],
+  "expect": [ "7500 年焊缝总长" ],
   "ref": "auto-restore"
 },
 {

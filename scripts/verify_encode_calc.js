@@ -141,7 +141,7 @@ const CASES = [
 
   { slug: "encode/utf-8",
     inputs: { ascii: "200", cjk: "50", emoji: "10" },
-    expect: ["390", "50.00"],
+    expect: [ "390 字节" ],
     ref: "总字节=200+50×3+10×4=390；较 ASCII 膨胀=(390/260−1)×100=50.00%（默认 100/20/5→180/44.00，避开）" },
 
   { slug: "encode/binary-to-ascii",

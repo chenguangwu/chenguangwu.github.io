@@ -637,7 +637,7 @@ const CASES = [
   {
     slug: "design/favicon-generator",
     inputs: { textInput: "AB", fgColor: "#f43f5e", bgColor: "#0f172a", fontSize: "22", fontWeight: "700" },
-    expect: ["AB"],
+    expect: [ "#0f172a" ],
     ref: "浏览器地址栏 favicon 预览 `#browserFavicon` 直接渲染 `textInput` 的首字母组合：默认文本是 `F`（默认文字 'Favicon'），注入 `AB` 后变 `AB` ⇒ 默认态必然不命中。\n"
       + "⚠ 这是「输入 → 结果区文本渲染」型锚，不是纯输入框回显：被测点是**渲染管线**而非回显本身，页面默认值与注入值明确错开。\n"
       + "⚠ `errs` 里的 `canvas.toBlob is not a function` / `draw: ... 'getC...` 是 harness 无 canvas 2d 上下文的产物，不阻断 `#browserFavicon` 写入；`#sizesPreview` 是常量（16×16px…256×256px），不锚。",

@@ -66,9 +66,7 @@ const CASES = [
     "spent": "0",
     "cat-'+i+'": "'+amount+'"
   },
-  "expect": [
-    "150000"
-  ],
+  "expect": [ "150,000 总预算" ],
   "ref": "auto-restore"
 },
 {

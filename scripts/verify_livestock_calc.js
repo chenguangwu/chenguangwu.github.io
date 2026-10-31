@@ -71,9 +71,7 @@ const CASES = [
     "breedTimes": "2",
     "gestation": "283"
   },
-  "expect": [
-    "113"
-  ],
+  "expect": [ "产后首次配种 113" ],
   "ref": "auto-restore"
 },
 {
@@ -297,9 +295,7 @@ const CASES = [
     "feedIntake": "2.5",
     "temp": "22"
   },
-  "expect": [
-    "12.00"
-  ],
+  "expect": [ "12.00 L/头·天" ],
   "ref": "auto-restore"
 },
 {

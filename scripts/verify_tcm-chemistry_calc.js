@@ -209,9 +209,7 @@ const CASES = [
   "inputs": {
     "mw": "405"
   },
-  "expect": [
-    "405"
-  ],
+  "expect": [ "229 脱糖基" ],
   "ref": "auto-restore"
 },
 {

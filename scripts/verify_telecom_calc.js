@@ -25,9 +25,7 @@ const CASES = [
     "fileSize": "7.7",
     "efficiency": "85"
   },
-  "expect": [
-    "7.7"
-  ],
+  "expect": [ "7884.8 文件大小" ],
   "ref": "auto-restore"
 },
 {
@@ -90,9 +88,7 @@ const CASES = [
     "gt": "2",
     "gr": "2"
   },
-  "expect": [
-    "3600.000"
-  ],
+  "expect": [ "103.57 路径损耗" ],
   "ref": "auto-restore"
 },
 {

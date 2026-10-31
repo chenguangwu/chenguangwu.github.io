@@ -145,7 +145,7 @@ const CASES = [
     ref: "DR=log2(32768)=15.00 档 > 传感器 14 档 ⇒ 溢出为「是」；原实现输出 `0` 并附一个无意义的字面量「0/1」，用户看不懂是/否" },
   { slug: "photo/photo-7",
     inputs: { sensor_w: "36", object_w: "18", image_w: "36" },
-    expect: ["18"],
+    expect: [ "2.00 x" ],
     ref: "放大倍率=36/18=2.00× ⇒ 可拍最大物体=传感器宽÷倍率=36/2=18mm；原实现直接回显传感器宽度 36mm，与放大倍率无关（默认 object_w=10 时巧合等于 10mm）" },
   { slug: "photo/ev",
     inputs: { aperture: "8", shutter: "0.008", iso: "100" },

@@ -107,9 +107,7 @@ const CASES = [
     "val": "1",
     "from": "6.25"
   },
-  "expect": [
-    "6.25"
-  ],
+  "expect": [ "6.25 氮含量" ],
   "ref": "auto-restore"
 },
 {
@@ -193,9 +191,7 @@ const CASES = [
     "ingredients": "小麦粉, 55\n水, 20\n白砂糖, 10\n植物油, 8\n酵母, 2\n食盐, 1\n食用香精, 0.5",
     "sortMode": "asc"
   },
-  "expect": [
-    "asc"
-  ],
+  "expect": [ "1 脱脂奶粉" ],
   "ref": "配料排序 sortMode=asc（默认 desc）；排序结果内容相同、仅排序模式串随输入变化。「96.5%」为恒定合计占比（原逃生项），改锚定 asc。"
 },
 {

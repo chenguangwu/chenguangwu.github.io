@@ -12,7 +12,7 @@
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
-  { slug: "math/percent-change", inputs: { old: "50", new: "75" }, expect: ["50.00"], ref: "变化率=(new−old)/old×100=(75−50)/50×100=50.00%（默认 80→100 避开）" },
+  { slug: "math/percent-change", inputs: { old: "50", new: "75" }, expect: [ "50.00 变化百分比" ], ref: "变化率=(new−old)/old×100=(75−50)/50×100=50.00%（默认 80→100 避开）" },
   { slug: "math/quadratic-solver", inputs: { a: "1", b: "-5", c: "6" }, expect: ["3.0000"], ref: "Δ=b²−4ac=25−24=1；x₁=(5+1)/2=3.0000（x₂=2.0000；默认 1,−3,2 避开）" },
   { slug: "math/log-base", inputs: { x: "81", b: "3" }, expect: ["4.000000"], ref: "log₃81=ln81/ln3=4.000000（默认 1000,10 避开）" },
   { slug: "math/gcd-lcm", inputs: { a: "1071", b: "462" }, expect: ["23562"], ref: "gcd(1071,462)=21；lcm=1071×462/21=23562（默认 48,36 避开）" },

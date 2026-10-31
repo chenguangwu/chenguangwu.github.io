@@ -9,9 +9,7 @@ const CASES = [
     "base": "0",
     "taxThreshold": "5000"
   },
-  "expect": [
-    "375000"
-  ],
+  "expect": [ "22,500 元" ],
   "ref": "auto-restore"
 },
 {
@@ -26,9 +24,7 @@ const CASES = [
     "teamRate": "6",
     "shareRatio": "0.3"
   },
-  "expect": [
-    "150000"
-  ],
+  "expect": [ "7,500.00 计算：销售额" ],
   "ref": "auto-restore"
 },
 {
@@ -125,9 +121,7 @@ const CASES = [
   "inputs": {
     "total": "1500"
   },
-  "expect": [
-    "1500"
-  ],
+  "expect": [ "1,500 万元" ],
   "ref": "auto-restore"
 },
 

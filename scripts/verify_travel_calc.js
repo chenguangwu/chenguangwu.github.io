@@ -52,9 +52,7 @@ const CASES = [
     "bill": "150",
     "people": "1"
   },
-  "expect": [
-    "150"
-  ],
+  "expect": [ "176 含小费总计" ],
   "ref": "auto-restore"
 },
 {

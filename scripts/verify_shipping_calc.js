@@ -26,9 +26,7 @@ const CASES = [
     "val": "1",
     "from": "1.852"
   },
-  "expect": [
-    "1.852"
-  ],
+  "expect": [ "1 千米/时" ],
   "ref": "auto-restore"
 },
 {

@@ -179,9 +179,7 @@ const CASES = [
     "rer": "1.12",
     "pctPred": "58"
   },
-  "expect": [
-    "20.5"
-  ],
+  "expect": [ "20.5 峰值VO₂" ],
   "ref": "auto-restore"
 },
 {

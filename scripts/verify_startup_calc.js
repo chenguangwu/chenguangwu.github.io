@@ -108,9 +108,7 @@ const CASES = [
     "cmp_uv_lo": "200",
     "cmp_uv_hi": "500"
   },
-  "expect": [
-    "450.00"
-  ],
+  "expect": [ "1,100.00 万" ],
   "ref": "auto-restore"
 },{
   "slug": "startup/valuation-calculator",

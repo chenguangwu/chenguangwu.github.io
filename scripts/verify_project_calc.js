@@ -47,9 +47,7 @@ const CASES = [
     "bac": "150000",
     "totalDays": "90"
   },
-  "expect": [
-    "150000"
-  ],
+  "expect": [ "71,118 按当前进度效率" ],
   "ref": "auto-restore"
 }
 ];

@@ -87,9 +87,7 @@ const CASES = [
     "complaints": "1",
     "csat": "96"
   },
-  "expect": [
-    "150000"
-  ],
+  "expect": [ "6.67 件/百万" ],
   "ref": "auto-restore"
 },
 {
@@ -104,9 +102,7 @@ const CASES = [
     "payableDays": "45",
     "receivableDays": "35"
   },
-  "expect": [
-    "1500"
-  ],
+  "expect": [ "订单满足率 61.3" ],
   "ref": "auto-restore"
 },
 {

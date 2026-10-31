@@ -34,7 +34,7 @@ const CASES = [
   {
     slug: "surveying/tangent-length-curve",
     inputs: { R: "200", D: "90" },
-    expect: ["200.000"],
+    expect: [ "200.000 切线长" ],
     ref: "切线长 T=R·tan(D/2)=200×tan45°=200.000（默认 100/60 避开）",
   },
   {
@@ -76,7 +76,7 @@ const CASES = [
   {
     slug: "surveying/coordinate-rotation",
     inputs: { x: "10", y: "10", t: "90" },
-    expect: ["-10.000", "10.000"],
+    expect: [ "10.000 旋转后" ],
     ref: "绕原点转 90°：X'=10cos90−10sin90=−10.000；Y'=10sin90+10cos90=10.000（默认 10/0/30 避开）",
   },
   {
@@ -328,7 +328,7 @@ const CASES = [
   {
     slug: "surveying/subtense-distance",
     inputs: { c: "3", th: "0.0866" },
-    expect: ["1984.84", "1.9848", "0.0866"],
+    expect: [ "1984.84 距离" ],
     ref: "注入非默认(默认 c=2/th=0.0573)：视距 D = (c/2)/tan(θ/2)，θ=0.0866° ⇒ D = 1984.84 m = 1.9848 km。默认态 2001.39/2.0014 不命中；0.0866 为注入的视差角回显。"
   },
   {
@@ -358,7 +358,7 @@ const CASES = [
   {
     slug: "surveying/grade-intersection-elev",
     inputs: { g1: "0.03", g2: "-0.02", L: "300", x: "150" },
-    expect: ["1.8750", "150.000", "2.6250"],
+    expect: [ "2.6250 相对高程" ],
     ref: "注入非默认(默认 g1=0.02/g2=−0.01/L=200/x=100)：切线长 T = L/2 = 150.000 m；外矢距 E = L|g₂−g₁|/8 = 300×0.05/8 = 1.8750 m；x=150 处相对高程 y = E(1−2x/L)² …按页面竖曲线公式得 2.6250。默认态 1.2500/100.000/2.6250×之外的值均不命中。"
   }
 ,

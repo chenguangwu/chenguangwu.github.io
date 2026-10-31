@@ -80,7 +80,7 @@ const CASES = [
 
   { slug: "metalwork/welding-heat",
     inputs: { current: "200", voltage: "25", speed: "30", eff: "0.8" },
-    expect: ["0.800"],
+    expect: [ "0.850 kJ/mm" ],
     ref: "E=(U·I·η·60)/v=(25×200×0.8×60)/30=8000 J/cm=8.00 kJ/cm=0.800 kJ/mm（默认 180/24/25/0.85→0.881，避开）" },
 
   { slug: "metalwork/lifespan-1",

@@ -48,9 +48,7 @@ const CASES = [
     "life": "5",
     "salvageRate": "5"
   },
-  "expect": [
-    "300000"
-  ],
+  "expect": [ "300,000 购车原值" ],
   "ref": "auto-restore"
 },
 {
@@ -60,9 +58,7 @@ const CASES = [
     "consumption": "7.5",
     "price": "8.00"
   },
-  "expect": [
-    "750"
-  ],
+  "expect": [ "450.00 总油费" ],
   "ref": "auto-restore"
 },
 {
@@ -83,9 +79,7 @@ const CASES = [
     "oldSpec": "225/45R17_X",
     "newSpec": "225/50R17"
   },
-  "expect": [
-    "225/45R17_X"
-  ],
+  "expect": [ "请使用如 225" ],
   "ref": "auto-restore"
 },
 {

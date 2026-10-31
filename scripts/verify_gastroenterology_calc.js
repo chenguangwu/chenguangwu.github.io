@@ -69,9 +69,7 @@ const CASES = [
   "inputs": {
     "size": "12"
   },
-  "expect": [
-    "12"
-  ],
+  "expect": [ "综合恶性风险 12" ],
   "ref": "auto-restore"
 },
 {
@@ -121,9 +119,7 @@ const CASES = [
   "inputs": {
     "gastrin": "225"
   },
-  "expect": [
-    "225"
-  ],
+  "expect": [ "225 胃泌素" ],
   "ref": "auto-restore"
 },
 {
@@ -188,9 +184,7 @@ const CASES = [
     "albumin": "32",
     "age": "45"
   },
-  "expect": [
-    "27.5"
-  ],
+  "expect": [ "27.5 kg/m²" ],
   "ref": "auto-restore"
 },
 {
@@ -242,9 +236,7 @@ const CASES = [
     "age": "55",
     "fc": "120"
   },
-  "expect": [
-    "75"
-  ],
+  "expect": [ "75 FIT" ],
   "ref": "auto-restore"
 }
 ];

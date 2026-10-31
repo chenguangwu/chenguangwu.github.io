@@ -50,9 +50,7 @@ const CASES = [
   "inputs": {
     "val": "30"
   },
-  "expect": [
-    "30.00"
-  ],
+  "expect": [ "旦尼尔 270.00" ],
   "ref": "auto-restore"
 },
 {
@@ -212,9 +210,7 @@ const CASES = [
     "pressure": "30",
     "durtime": "15"
   },
-  "expect": [
-    "45"
-  ],
+  "expect": [ "手感硬度 45" ],
   "ref": "auto-restore"
 },
 {

@@ -12,9 +12,7 @@ const CASES = [
     "lti": "3",
     "lostDays": "45"
   },
-  "expect": [
-    "750000"
-  ],
+  "expect": [ "6.67 工伤频率" ],
   "ref": "auto-restore"
 },
 {

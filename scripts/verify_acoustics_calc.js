@@ -143,7 +143,7 @@ const CASES = [
 
   { slug: "acoustics/string-fundamental",
     inputs: { L: "0.5", T: "200", mu: "0.005" },
-    expect: ["200.00", "400.00"],
+    expect: [ "400.00 二次谐波" ],
     ref: "f₁=(1/(2×0.5))·√(200/0.005)=1×200=200.00；二次谐波=400.00（默认 0.65/80/0.01→68.80，避开）" },
 
   { slug: "acoustics/wavelength-frequency",

@@ -29,9 +29,7 @@ const CASES = [
     "date": "2024-12-22",
     "hours": "2"
   },
-  "expect": [
-    "45"
-  ],
+  "expect": [ "89.60 正午阴影长度" ],
   "ref": "auto-restore"
 },
 {
@@ -42,9 +40,7 @@ const CASES = [
     "inCanopy": "22000",
     "inPop": "3000"
   },
-  "expect": [
-    "75000"
-  ],
+  "expect": [ "7.50 公顷" ],
   "ref": "auto-restore"
 },
 {
@@ -53,9 +49,7 @@ const CASES = [
     "inPop": "150000",
     "area_'+l.key+'": "'+l.default+'"
   },
-  "expect": [
-    "150000"
-  ],
+  "expect": [ "150,000 人" ],
   "ref": "auto-restore"
 },
 {
