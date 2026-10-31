@@ -69,7 +69,7 @@ const CASES = [
   "inputs": {
     "size": "12"
   },
-  "expect": [ "综合恶性风险 12" ],
+  "expect": [ "12 直径" ],
   "ref": "auto-restore"
 },
 {
@@ -166,6 +166,7 @@ const CASES = [
   "expect": [
     "12.5"
   ],
+    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
 },
 {

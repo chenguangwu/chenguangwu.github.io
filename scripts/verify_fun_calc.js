@@ -75,7 +75,7 @@ const CASES = [
     slug: "fun/blink-counter",
     inputs: { duration: "120" },
     expect: ["120"],
-    ref: "duration 下拉选中 120 ⇒ onchange 触发 updateRing()：total=parseInt('120')=120、"
+    ref: "duration 下拉选中 120 ⇒ onchange 触发 updateRing()：total=parseInt('120')=120、 ⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。"
        + "remain=total=120，同步写 #tNum.textContent='120'。"
        + "默认态 harness 下 select.value 取首个 option ⇒ 输出 30（页面 HTML 静态写死 60，init 调 updateRing 后被首项覆盖），与本例 120 不同。",
   },

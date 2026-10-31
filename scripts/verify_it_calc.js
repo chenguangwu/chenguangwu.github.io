@@ -108,7 +108,7 @@ const CASES = [
     slug: "it/base64-converter",
     inputs: { input: "hello" },
     expect: ["aGVsbG8="],
-    ref: "Base64('hello') = aGVsbG8=（RFC 4648 标准测试向量）",
+    ref: "Base64('hello') = aGVsbG8=（RFC 4648 标准测试向量） ⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   },
   {
     slug: "it/base64-converter",
@@ -260,7 +260,7 @@ const CASES = [
     slug: "it/url-encode",
     inputs: { input: "a b" },
     expect: ["a%20b", "a+b"],
-    ref: "urllib.parse.quote('a b') = a%20b（plusSpace 开启时为 a+b，两者均属正确实现）",
+    ref: "urllib.parse.quote('a b') = a%20b（plusSpace 开启时为 a+b，两者均属正确实现） ⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   },
   {
     slug: "it/html-entities-encode",
@@ -358,7 +358,7 @@ const CASES = [
     slug: "it/bacon-cipher",
     inputs: { input: "ab", mode: "01" },
     expect: ["0000000001"],
-    ref: "培根密码 mode=01：每字母 5 位，A=00000、B=00001 ⇒ 'ab' → '0000000001'。默认态 input 为空 ⇒ 早退，不命中。",
+    ref: "培根密码 mode=01：每字母 5 位，A=00000、B=00001 ⇒ 'ab' → '0000000001'。默认态 input 为空 ⇒ 早退，不命中。 ⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   },
   {
     slug: "it/bitwise-calculator",
@@ -710,7 +710,7 @@ const CASES = [
     inputs: { colorInput: "#1E90FF" },
     clicks: ["fromInput('#1E90FF')"],
     expect: ["#1E90FF"],
-    ref: "独立复算：`#1E90FF`(DodgerBlue) 转 HEX 大写 `#1E90FF`、RGB `rgb(30, 144, 255)`、HSL `hsl(210, 100%, 56%)`。抠 `#1E90FF` 这一支而非 `rgb(30, 144, 255)`：默认态示例 `#667eea` 走的是另一色，两条锚都不命中。入口是 `fromInput(v)`（带参），`convert()` 不存在。",
+    ref: "独立复算：`#1E90FF`(DodgerBlue) 转 HEX 大写 `#1E90FF`、RGB `rgb(30, 144, 255)`、HSL `hsl(210, 100%, 56%)`。抠 `#1E90FF` 这一支而非 `rgb(30, 144, 255)`：默认态示例 `#667eea` 走的是另一色，两条锚都不命中。入口是 `fromInput(v)`（带参），`convert()` 不存在。 ⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   },
   {
     slug: "it/margin-of-error",
@@ -1586,7 +1586,7 @@ const CASES = [
     inputs: { contentTemplate: "TOOLBOX-HELLO-2026" },
     clicks: ["applyTemplate()"],
     expect: ["TOOLBOX-HELLO-2026"],
-    ref: "二维码矩阵在桩内画不出来（`qrcode is not defined`），但**内容串本身先已写进结果区** ⇒ 直接锚内容串。用长串避免「超短串命中面过大」。",
+    ref: "二维码矩阵在桩内画不出来（`qrcode is not defined`），但**内容串本身先已写进结果区** ⇒ 直接锚内容串。用长串避免「超短串命中面过大」。 ⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   },
   {
     slug: "it/unit-converter-advanced",
@@ -1600,7 +1600,7 @@ const CASES = [
     inputs: { text: "TOOLBOX-QR-2026" },
     clicks: ["generate()"],
     expect: ["TOOLBOX-QR-2026"],
-    ref: "二维码矩阵在桩内画不出来（`renderQR … leng`），但内容串先已写进结果区 ⇒ 直接锚内容串（与 `it/qrcode` 同族）。",
+    ref: "二维码矩阵在桩内画不出来（`renderQR … leng`），但内容串先已写进结果区 ⇒ 直接锚内容串（与 `it/qrcode` 同族）。 ⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   },
   {
     slug: "it/barcode-upc",

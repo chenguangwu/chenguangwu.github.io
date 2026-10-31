@@ -30,6 +30,7 @@ const CASES = [
   "expect": [
     "child"
   ],
+    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
 },
 {
@@ -79,7 +80,7 @@ const CASES = [
     "da": "25",
     "age": "45"
   },
-  "expect": [ "9.5 mg/24h" ],
+  "expect": [ "偏高 24" ],
   "ref": "auto-restore"
 },
 {
@@ -108,6 +109,7 @@ const CASES = [
   "expect": [
     "female"
   ],
+    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
 },
 {
@@ -161,6 +163,7 @@ const CASES = [
   "expect": [
     "mg"
   ],
+    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
 },
 {

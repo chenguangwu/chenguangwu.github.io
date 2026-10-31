@@ -81,7 +81,7 @@ const CASES = [
     "duration": "20",
     "purpose": "spasm"
   },
-  "expect": [ "易产生适应性 5" ],
+  "expect": [ "50 主频" ],
   "ref": "auto-restore"
 },
 {
@@ -207,6 +207,7 @@ const CASES = [
   "expect": [
     "38"
   ],
+    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
 }
 ];

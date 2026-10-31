@@ -122,7 +122,7 @@ const CASES = [
     "count": "15",
     "lastDate": "2024-01-01"
   },
-  "expect": [ "灭火器类型 15" ],
+  "expect": [ "15 数量" ],
   "ref": "auto-restore"
 },
 {

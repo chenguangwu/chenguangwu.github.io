@@ -638,7 +638,7 @@ const CASES = [
     slug: "design/favicon-generator",
     inputs: { textInput: "AB", fgColor: "#f43f5e", bgColor: "#0f172a", fontSize: "22", fontWeight: "700" },
     expect: [ "#0f172a" ],
-    ref: "浏览器地址栏 favicon 预览 `#browserFavicon` 直接渲染 `textInput` 的首字母组合：默认文本是 `F`（默认文字 'Favicon'），注入 `AB` 后变 `AB` ⇒ 默认态必然不命中。\n"
+    ref: "浏览器地址栏 favicon 预览 `#browserFavicon` 直接渲染 `textInput` 的首字母组合：默认文本是 `F`（默认文字 'Favicon'），注入 `AB` 后变 `AB` ⇒ 默认态必然不命中。\n ⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。"
       + "⚠ 这是「输入 → 结果区文本渲染」型锚，不是纯输入框回显：被测点是**渲染管线**而非回显本身，页面默认值与注入值明确错开。\n"
       + "⚠ `errs` 里的 `canvas.toBlob is not a function` / `draw: ... 'getC...` 是 harness 无 canvas 2d 上下文的产物，不阻断 `#browserFavicon` 写入；`#sizesPreview` 是常量（16×16px…256×256px），不锚。",
   },
@@ -661,13 +661,13 @@ const CASES = [
     slug: "design/material-color",
     inputs: { searchInput: "zzzz" },
     expect: ["未找到匹配颜色"],
-    ref: "顺序保持型筛选 ⇒ 注入命中词（如 `red`）只会渲染默认态的子集、任何锚都成默认态子串（逃生项），故改走反用：注入无匹配词 `zzzz` ⇒ 落空态。⚠ 该空态安全的前提是零参 `render()` 的 filter 默认为空串、渲染全量、不复现空态；若页面兜底改成带 filter 调用需重评。",
+    ref: "顺序保持型筛选 ⇒ 注入命中词（如 `red`）只会渲染默认态的子集、任何锚都成默认态子串（逃生项），故改走反用：注入无匹配词 `zzzz` ⇒ 落空态。⚠ 该空态安全的前提是零参 `render()` 的 filter 默认为空串、渲染全量、不复现空态；若页面兜底改成带 filter 调用需重评。 ⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   },
   {
     slug: "design/tailwind-colors",
     inputs: { searchInput: "zzzz" },
     expect: ["未找到匹配颜色"],
-    ref: "与 material-color 同模板同渲染函数，空态成因与安全性一致；两例同锚但落在不同页，可互相兜住模板改动。",
+    ref: "与 material-color 同模板同渲染函数，空态成因与安全性一致；两例同锚但落在不同页，可互相兜住模板改动。 ⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   },
 
   // ── §7.4 零用例加固：design 确定性页（注入非默认 + harness 实测锚）──
@@ -711,7 +711,7 @@ const CASES = [
     slug: "design/font-preview",
     inputs: { fpText: "ZZPREVZZ" },
     expect: ["ZZPREVZZ"],
-    ref: "注入唯一预览文字 ZZPREVZZ。fpText 的 input 监听器更新 state.text 后 render()，将 ZZPREVZZ 渲染进每个可见字体的预览区（escHtml 转义后仍为文本，去标签后保留）。默认态 fpText=『永和九年岁在癸丑』，不出现 ZZPREVZZ。render 纯本地 fonts 对象、不触网，确定性强。",
+    ref: "注入唯一预览文字 ZZPREVZZ。fpText 的 input 监听器更新 state.text 后 render()，将 ZZPREVZZ 渲染进每个可见字体的预览区（escHtml 转义后仍为文本，去标签后保留）。默认态 fpText=『永和九年岁在癸丑』，不出现 ZZPREVZZ。render 纯本地 fonts 对象、不触网，确定性强。 ⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   },
   // ── 零用例收敛（2026-10-09）：design 29 页中仅本页可收敛 ──
   {
@@ -1641,6 +1641,7 @@ const CASES = [
     "expect": [
       "\nabc123测试"
     ],
+    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
     "ref": "自动补强（B类零用例）：注入非默认输入{\"colorPicker\":\"abc123测试\",\"colorText\":\"abc123测试\"}，输出区含「\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {

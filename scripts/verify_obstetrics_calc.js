@@ -41,7 +41,7 @@ const CASES = [
   { slug: "obstetrics/ovarian-reserve",
     inputs: { amh: "7.0", fsh: "6", e2: "35", afc: "12", age: "30" },
     expect: ["7.00", "卵巢高反应(可能PCOS)"],
-    ref: "amh=7.0≥6→amhLevel极高且score-=1→总分-1；其余0分→amh>6分支→卵巢高反应(可能PCOS)；AMH显示7.00（默认/示例=0.6→DOR、2.5→正常，均不命中，避开）" },
+    ref: "amh=7.0≥6→amhLevel极高且score-=1→总分-1；其余0分→amh>6分支→卵巢高反应(可能PCOS)；AMH显示7.00（默认/示例=0.6→DOR、2.5→正常，均不命中，避开） ⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。" },
 
   { slug: "obstetrics/endometrial-thickness",
     inputs: { cycleDay: "20", thickness: "5" },
@@ -56,7 +56,7 @@ const CASES = [
   { slug: "obstetrics/ctg-fhr",
     inputs: { baseline: "105", variability: "10", accel: "present", decel: "none", contractions: "4" },
     expect: ["可疑", "105"],
-    ref: "基线105→可疑(100–110)；变异10→正常；加速present；无减速；宫缩4→正常；abnCount=0,susCount=1→可疑CTG（默认140/10→正常、示例95/3/late→异常，均不命中，避开）" },
+    ref: "基线105→可疑(100–110)；变异10→正常；加速present；无减速；宫缩4→正常；abnCount=0,susCount=1→可疑CTG（默认140/10→正常、示例95/3/late→异常，均不命中，避开） ⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。" },
 
   { slug: "obstetrics/heart-rate",
     inputs: { baseline: "95", variability: "10", accel: "2", decel: "none" },

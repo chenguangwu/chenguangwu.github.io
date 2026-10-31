@@ -105,7 +105,7 @@ const CASES = [
     slug: "agriculture/assessor-1",
     inputs: { theoryYield: "0", actualYield: "415", fieldLoss: "15", threshLoss: "10" },
     expect: ["理论产量必须大于 0"],
-    ref: "理论产量 0 → 损失率 = (0-415)/0×100 = NaN；修复前输出 NaN%，应给守卫提示",
+    ref: "理论产量 0 → 损失率 = (0-415)/0×100 = NaN；修复前输出 NaN%，应给守卫提示 ⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   },
 {
     slug: "agriculture/assessor-1",

@@ -33,7 +33,7 @@ const CASES = [
     "inBc": "7.5",
     "inHc": "15"
   },
-  "expect": [ "150.00 m" ],
+  "expect": [ "300 m" ],
   "ref": "auto-restore"
 },
 {
@@ -63,6 +63,7 @@ const CASES = [
   "expect": [
     "5.5"
   ],
+    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
 },
 {

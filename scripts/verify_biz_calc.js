@@ -412,7 +412,7 @@ const CASES = [
     slug: "biz/text-trim",
     inputs: { "input": "  hello  " },
     expect: ["hello"],
-    ref: "去空白：剔除首尾空格。默认态是该页预置的整句（'Hello World 这是 测试 文本…'）⇒ 强判别。",
+    ref: "去空白：剔除首尾空格。默认态是该页预置的整句（'Hello World 这是 测试 文本…'）⇒ 强判别。 ⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   },
   {
     slug: "biz/text-pad",
@@ -504,14 +504,14 @@ const CASES = [
     slug: "biz/justify-text",
     inputs: { "input": "one two three" },
     expect: ["one two three"],
-    ref: "文本两端对齐：按目标宽度重排空格定长。默认态是预置的中英混合长文本（'Hello World this is a test…'）⇒ 强判别。"
+    ref: "文本两端对齐：按目标宽度重排空格定长。默认态是预置的中英混合长文本（'Hello World this is a test…'）⇒ 强判别。 ⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。"
        + "注意该页 `visualLen` 在 harness 下会报错，属缺 API，不影响 result 已被写入。",
   },
   {
     slug: "biz/strawberry-text",
     inputs: { "input": "abc" },
     expect: ["abc"],
-    ref: " strawberry 风格文本：按字符映射为带修饰的造型字符。默认态为预置的 'Hello World 你好世界' ⇒ 强判别。",
+    ref: " strawberry 风格文本：按字符映射为带修饰的造型字符。默认态为预置的 'Hello World 你好世界' ⇒ 强判别。 ⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   },
   {
     slug: "biz/text-replace-advanced",

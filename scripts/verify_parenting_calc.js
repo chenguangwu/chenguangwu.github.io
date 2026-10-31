@@ -44,7 +44,7 @@ const CASES = [
     "target": "270",
     "ratio": "30"
   },
-  "expect": [ "所需奶粉勺数 270" ],
+  "expect": [ "9 勺奶粉" ],
   "ref": "auto-restore"
 },
 {

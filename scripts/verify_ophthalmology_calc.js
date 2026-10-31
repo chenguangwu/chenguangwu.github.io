@@ -11,6 +11,7 @@ const CASES = [
   "expect": [
     "60"
   ],
+    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
 },
 // 注：ophthalmology/analysis-12 已于 2026-09-19 改为 TOOLBOX-REDIRECT 存根（重定向到同义真工具），不再是工具页，用例移除。
@@ -297,6 +298,7 @@ const CASES = [
   "expect": [
     "teen"
   ],
+    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
 },
 {
