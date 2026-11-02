@@ -241,6 +241,7 @@ const CASES = [
   {
     slug: "it/octal-encode",
     inputs: { input: "hi" },
+    clicks: ["enc()"],
     expect: ["150 151", "150,151"],
     ref: "同 text-to-octal：'hi' → 150 151",
   },
@@ -802,6 +803,7 @@ const CASES = [
   {
     slug: "it/polybius-cipher",
     inputs: { input: "AB" },
+    clicks: ["enc()"],
     expect: ["11 12"],
     ref: "A→11、B→12 的方格坐标拼接，随输入变化；默认示例对应其它坐标，不命中。",
   },
@@ -1059,6 +1061,7 @@ const CASES = [
   {
     slug: "it/phone-parser",
     inputs: { phone: "+8613800138000", cc: "86" },
+    clicks: ["calcTool()"],
     expect: ["国内格式（按位分组）：8 6138 0013 8000"],
     ref: "E.164 与国内按位分组格式随号码变化；默认号码分组不同，不命中。",
   },
@@ -3371,12 +3374,14 @@ const CASES = [
   {
     slug: "it/normal-distribution",
     inputs: { mu: "100", sigma: "20", x0: "130", a: "70", b: "130", pIn: "0.9" },
+    clicks: ["calculate()"],
     expect: ["0.933"],
     ref: "注入非默认(默认 100/15/115/85/115/0.95)：Z=(130−100)/20=1.5，Φ(1.5)=0.933。默认态 P(X≤115)=0.841，本例不命中。"
   },
   {
     slug: "it/poisson-distribution",
     inputs: { lambda: "4", k: "3" },
+    clicks: ["calculate()"],
     expect: ["0.195"],
     ref: "独立复算 e^−4·4^3/3! = 0.0183×64/6 ≈ 0.1954 ≈ 0.195。默认态 λ=3/k=2 输出 0.224，本例不命中。"
   },
