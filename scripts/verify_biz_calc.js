@@ -359,6 +359,13 @@ const CASES = [
     expect: ["Zeta_Quest_"],
     ref: "同一输入仅改 separator ⇒ 输出 'Zeta_Quest_'（正反双向锚）。collapseSep/trimSep 未勾 ⇒ 尾部分隔符保留，与上一例的尾 '-' 同形态 ⇒ 证明改的是 sep 而非笔误。",
   },
+  {
+    slug: 'biz/text-to-slug',
+    inputs: { input: "如何选择跑步鞋" },
+    expect: ["ru-he-xuan-ze-pao-bu-xie"],
+    ref: "中文标题转拼音：内联 2108 字常用字表命中后按字分隔，空格再统一换成 '-' ⇒ '如何选择跑步鞋' → 'ru-he-xuan-ze-pao-bu-xie'。"
+       + "修复前旧词表仅 ~300 字，'如何选择' 四字未收录被原样保留 ⇒ 输出半中半拼 '如何选择pao步鞋'，本例必 FAIL ⇒ 可防回退。默认态（该页预置英文示例）不含此串 ⇒ 强判别。",
+  },
 
   {
     slug: "biz/text-reverse",
