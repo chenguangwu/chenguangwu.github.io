@@ -406,25 +406,43 @@ var images = []; // {img, url, name, w, h}
 var dragIdx = null;
 
 /* ---------- 文件处理 ---------- */
+/* 按选择索引提交：解码完成的先后顺序不保证等于 FileList 顺序，
+   因此每个文件先记录自己的 index，全部结束（成功或失败）后按 index 归并。 */
+function orderLoaded(entries){
+  var out = [];
+  (entries || []).slice().sort(function(a, b){ return (a && a.index || 0) - (b && b.index || 0); })
+    .forEach(function(e){ if(e && e.item) out.push(e.item); });
+  return out;
+}
+
 function handleFiles(files){
   var arr = Array.prototype.filter.call(files, function(f){ return f.type && f.type.indexOf('image/')===0; });
   if(!arr.length){ ToolBox.showToast(i18nText('toast.msg933'), 'error'); return; }
   var pending = arr.length;
-  var added = 0;
-  arr.forEach(function(f){
+  var entries = [];   // {index, item}，item 为 null 表示该文件加载失败
+  var failed = 0;
+  arr.forEach(function(f, idx){
     var url = URL.createObjectURL(f);
     var im = new Image();
     im.onload = function(){
-      images.push({ img: im, url: url, name: f.name, w: im.naturalWidth, h: im.naturalHeight });
-      added++; pending--;
-      if(pending===0){ renderList(); render(); ToolBox.showToast('已添加 ' + added + ' 张图片'); }
+      entries.push({ index: idx, item: { img: im, url: url, name: f.name, w: im.naturalWidth, h: im.naturalHeight } });
+      done();
     };
     im.onerror = function(){
-      URL.revokeObjectURL(url); pending--;
-      ToolBox.showToast('加载失败：' + f.name, 'error');
-      if(pending===0){ renderList(); render(); }
+      failed++;
+      URL.revokeObjectURL(url);
+      entries.push({ index: idx, item: null });
+      done();
     };
     im.src = url;
+    function done(){
+      pending--;
+      if(pending !== 0){ return; }
+      orderLoaded(entries).forEach(function(item){ images.push(item); });
+      renderList(); render();
+      if(failed){ ToolBox.showToast('加载失败 ' + failed + ' 张', 'error'); }
+      else { ToolBox.showToast('已添加 ' + arr.length + ' 张图片'); }
+    }
   });
 }
 
@@ -504,20 +522,35 @@ function updateUI(){
 }
 
 /* ---------- 渲染 ---------- */
-function drawImageFit(ctx, img, x, y, cw, ch, fit){
-  var iw = img.naturalWidth, ih = img.naturalHeight;
-  if(fit==='fill'){ ctx.drawImage(img, x, y, cw, ch); return; }
-  var sAspect = cw/ch, iAspect = iw/ih;
+/* 单格绘制几何（纯函数）：返回目标矩形与严格裁剪矩形。
+   cover / fill 的目标矩形会超出单格（如 200×100 图填入 100×100 格会画到 −50..150），
+   必须裁到格子范围（含间距内边），否则会覆盖相邻格与间距。 */
+function fitPlan(iw, ih, x, y, cw, ch, fit){
   var dw, dh;
-  if(fit==='contain'){
-    if(iAspect > sAspect){ dw = cw; dh = cw/iAspect; } else { dh = ch; dw = ch*iAspect; }
-  } else { // cover
-    if(iAspect > sAspect){ dh = ch; dw = ch*iAspect; } else { dw = cw; dh = cw/iAspect; }
+  if(fit==='fill'){
+    dw = cw; dh = ch;
+  } else {
+    var sAspect = cw/ch, iAspect = iw/ih;
+    if(fit==='contain'){
+      if(iAspect > sAspect){ dw = cw; dh = cw/iAspect; } else { dh = ch; dw = ch*iAspect; }
+    } else { // cover
+      if(iAspect > sAspect){ dh = ch; dw = ch*iAspect; } else { dw = cw; dh = cw/iAspect; }
+    }
   }
   dw = Math.max(1, dw); dh = Math.max(1, dh);
   var dx = x + (cw-dw)/2;
   var dy = y + (ch-dh)/2;
-  ctx.drawImage(img, dx, dy, dw, dh);
+  return { dx: dx, dy: dy, dw: dw, dh: dh, clip: { x: x, y: y, w: cw, h: ch } };
+}
+
+function drawImageFit(ctx, img, x, y, cw, ch, fit){
+  var plan = fitPlan(img.naturalWidth, img.naturalHeight, x, y, cw, ch, fit);
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(plan.clip.x, plan.clip.y, plan.clip.w, plan.clip.h);
+  ctx.clip();
+  ctx.drawImage(img, plan.dx, plan.dy, plan.dw, plan.dh);
+  ctx.restore();
 }
 
 function layoutLabel(l){
@@ -678,7 +711,9 @@ function download(type){
 /* ---------- 暴露 ---------- */
 window.CollageTool = {
   move: moveImg,
-  remove: removeImg
+  remove: removeImg,
+  fitPlan: fitPlan,
+  orderLoaded: orderLoaded
 };
 
 /* ---------- 初始化 ---------- */

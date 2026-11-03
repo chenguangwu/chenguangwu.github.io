@@ -304,6 +304,56 @@ var currentGroup = 'adult-m';
 // —— 报告单批量解读：粘贴多行「指标名 值」→ 逐项定位参考区间（纯文本解析，纯前端）——
 var __BR_NAME_EN={'白细胞计数 WBC':'WBC','红细胞计数 RBC':'RBC','血红蛋白 HGB':'Hemoglobin','红细胞比容 HCT':'Hematocrit','血小板计数 PLT':'Platelet count','平均红细胞体积 MCV':'MCV','平均红细胞血红蛋白 MCH':'MCH','平均红细胞血红蛋白浓度 MCHC':'MCHC','中性粒细胞绝对值 NEU#':'Neutrophil abs','淋巴细胞绝对值 LYM#':'Lymphocyte abs','单核细胞绝对值 MONO#':'Monocyte abs','红细胞分布宽度 RDW-CV':'RDW-CV'};
 var __BR_GROUP_EN={'adult-m':'Adult male','adult-f':'Adult female','child':'Child (1-12y)','infant':'Infant (1-12mo)','newborn':'Newborn (0-28d)'};
+function __brEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function __brNorm(s){
+  var __map={'⁰':'0','¹':'1','²':'2','³':'3','⁴':'4','⁵':'5','⁶':'6','⁷':'7','⁸':'8','⁹':'9'};
+  return String(s==null?'':s).replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]/g,function(c){return __map[c];}).replace(/[×✕*]/g,'x').replace(/\s+/g,'').toLowerCase();
+}
+function __brKindOf(name){
+  var m=String(name).match(/(WBC|RBC|HGB|HCT|PLT|MCV|MCHC|MCH|NEU#|LYM#|MONO#|RDW-CV)/);
+  return m?m[1].toLowerCase().replace('#',''):'';
+}
+function __brUnitLabel(norm){
+  if(/mg\/dl/.test(norm))return 'mg/dL';
+  if(/mg\/l/.test(norm))return 'mg/L';
+  if(/mmol\/l/.test(norm))return 'mmol/L';
+  if(/umol\/l|μmol\/l/.test(norm))return 'μmol/L';
+  if(/mol\/l/.test(norm))return 'mol/L';
+  if(/g\/dl/.test(norm))return 'g/dL';
+  if(/g\/l/.test(norm))return 'g/L';
+  if(/l\/l/.test(norm))return 'L/L';
+  if(/%/.test(norm))return '%';
+  if(/fl/.test(norm))return 'fL';
+  if(/pg/.test(norm))return 'pg';
+  return '';
+}
+function __brPickUnit(kind,norm){
+  norm=String(norm==null?'':norm);
+  if(/mg\/dl/.test(norm))return {unknown:'mg/dL'};
+  if(/mg\/l/.test(norm))return {unknown:'mg/L'};
+  if(/mmol\/l/.test(norm))return {unknown:'mmol/L'};
+  if(/umol\/l|μmol\/l/.test(norm))return {unknown:'μmol/L'};
+  if(/mol\/l/.test(norm))return {unknown:'mol/L'};
+  if(/g\/dl/.test(norm))return (kind==='hgb'||kind==='mchc')?{mul:10,label:'g/dL'}:{mismatch:'g/dL'};
+  if(/g\/l/.test(norm))return (kind==='hgb'||kind==='mchc')?{mul:1,label:'g/L'}:{mismatch:'g/L'};
+  if(/l\/l/.test(norm))return kind==='hct'?{mul:1,label:'L/L'}:{mismatch:'L/L'};
+  if(/%/.test(norm)){
+    if(kind==='rdw')return {mul:1,label:'%'};
+    if(kind==='hct')return {mul:0.01,label:'%'};
+    return {mismatch:'%'};
+  }
+  if(/fl/.test(norm))return kind==='mcv'?{mul:1,label:'fL'}:{mismatch:'fL'};
+  if(/pg/.test(norm))return kind==='mch'?{mul:1,label:'pg'}:{mismatch:'pg'};
+  var m=norm.match(/(?:x)?10(?:\^|x|e)?([0-9]+)\/l/);
+  if(m){
+    var exp=parseInt(m[1],10);
+    if(exp===9&&/^(wbc|plt|neu|lym|mono)$/.test(kind))return {mul:1,label:'×10⁹/L'};
+    if(exp===12&&kind==='rbc')return {mul:1,label:'×10¹²/L'};
+    return {mismatch:'10^'+exp+'/L'};
+  }
+  if(/\/l/.test(norm))return {unknown:'/L'};
+  return {mul:1,label:''};
+}
 function __brBatch(){
   var __en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?true:false;
   var __grp=__en?(__BR_GROUP_EN[currentGroup]||groupName[currentGroup]):groupName[currentGroup];
@@ -312,24 +362,44 @@ function __brBatch(){
   var raw=document.getElementById('reportText').value||'';
   var lines=raw.split(/\n+/);
   var items=DATA[currentGroup];
-  var rows=[],unknown=[];
+  var rows=[],pending=[],unknown=[];
   lines.forEach(function(line){
     var s=line.trim(); if(!s) return;
-    var m=s.match(/(-?\d+(?:\.\d+)?)/);
-    if(!m){unknown.push(s);return;}
-    var val=parseFloat(m[1]);
-    var frag=s.replace(m[1],'').replace(/[\s::=：，,]+/g,' ').trim();
-    if(!frag){unknown.push(s);return;}
-    var best=null,bestScore=0;
+    var norm=__brNorm(s);
+    var normNoUnit=norm.replace(/(?:x)?10(?:\^|x|e)?[0-9]+\/l/g,' ');
+    var best=null,bestTok='',bestScore=0;
     items.forEach(function(it){
-      var score=0;
-      it.n.split(' ').forEach(function(t){ if(frag.indexOf(t)>=0) score+=t.length; });
-      if(score>bestScore){bestScore=score;best=it;}
+      it.n.split(' ').forEach(function(t){
+        var tok=t.toLowerCase(), idx=normNoUnit.indexOf(tok);
+        if(idx>=0&&tok.length>bestScore){bestScore=tok.length;best=it;bestTok=tok;}
+      });
     });
     if(!best){unknown.push(s);return;}
-    rows.push({it:best,val:val,st:(val<best.lo?'low':(val>best.hi?'high':'normal'))});
+    var nums=[],re=/-?\d+(?:\.\d+)?/g,m;
+    while((m=re.exec(normNoUnit))){nums.push({v:parseFloat(m[0]),raw:m[0],idx:m.index});}
+    if(!nums.length){unknown.push(s);return;}
+    var nameIdx=normNoUnit.indexOf(bestTok),nameEnd=nameIdx+bestTok.length;
+    var after=nums.filter(function(n){return n.idx>=nameEnd;});
+    var before=nums.filter(function(n){return n.idx<nameIdx;});
+    var pick=null,amb=false;
+    if(after.length===1)pick=after[0];
+    else if(after.length===0&&before.length===1)pick=before[0];
+    else amb=true;
+    if(amb){
+      pending.push({raw:s,reason:__T('Multiple numeric values found; please verify the value and unit','识别到多个数值，无法确定检验值，请核对识别值与单位')});
+      return;
+    }
+    var kind=__brKindOf(best.n),unit=__brPickUnit(kind,norm);
+    if(unit.unknown||unit.mismatch){
+      var ul=__brUnitLabel(norm)||unit.unknown||unit.mismatch;
+      pending.push({raw:s,reason:__T((unit.unknown?'Unit "'+ul+'" not recognized':'Unit "'+ul+'" does not match this test')+'; please verify the value and unit',(unit.unknown?'未识别单位「'+ul+'」':'单位「'+ul+'」与该项目不匹配')+'，请核对识别值与单位')});
+      return;
+    }
+    var val=Math.round(pick.v*(unit.mul||1)*1000)/1000;
+    var st=val<best.lo?'low':(val>best.hi?'high':'normal');
+    rows.push({it:best,val:val,st:st,conv:(unit.label&&unit.label!==best.u)?{raw:pick.raw,unit:unit.label}:null});
   });
-  if(!rows.length&&!unknown.length){area.innerHTML='';return;}
+  if(!rows.length&&!pending.length&&!unknown.length){area.innerHTML='';return;}
   var __stTxt={low:__T('Low','偏低'),high:__T('High','偏高'),normal:__T('Normal','正常')};
   var __abn=0;
   var html='<div class="ref-card" style="margin-top:12px;"><h4>'+__T('Batch report interpretation','报告单批量解读')+__T(' (cohort: ','（当前人群：')+__grp+__T(')','）')+'</h4><ul>';
@@ -339,11 +409,17 @@ function __brBatch(){
     var __dev='';
     if(r.st==='low'){var __p=Math.abs((r.val-r.it.lo)/r.it.lo*100).toFixed(1);__dev=__T(' (below lower limit '+r.it.lo.toFixed(r.it.dec)+', '+__p+'% off)','（低于下限 '+r.it.lo.toFixed(r.it.dec)+'，偏离 '+__p+'%）');}
     else if(r.st==='high'){var __p2=Math.abs((r.val-r.it.hi)/r.it.hi*100).toFixed(1);__dev=__T(' (above upper limit '+r.it.hi.toFixed(r.it.dec)+', '+__p2+'% off)','（高于上限 '+r.it.hi.toFixed(r.it.dec)+'，偏离 '+__p2+'%）');}
-    html+='<li>'+__nm+' '+r.val.toFixed(r.it.dec)+' '+r.it.u+' → <strong>'+__stTxt[r.st]+'</strong>'+__dev+'</li>';
+    var __conv=r.conv?__T(' (converted from '+r.conv.raw+' '+r.conv.unit+')','（由 '+r.conv.raw+' '+r.conv.unit+' 换算）'):'';
+    html+='<li>'+__nm+' '+r.val.toFixed(r.it.dec)+' '+r.it.u+' → <strong>'+__stTxt[r.st]+'</strong>'+__dev+__conv+'</li>';
+  });
+  pending.forEach(function(p){
+    html+='<li>'+__brEsc(p.raw)+' → <strong>'+__T('Needs confirmation','待确认')+'</strong>'+__T(' (','（')+p.reason+__T(')','）')+'</li>';
   });
   html+='</ul>';
-  html+='<p style="font-size:13px;">'+__T('Recognized '+rows.length+' item(s), '+__abn+' outside reference range.','共识别 '+rows.length+' 项，其中 '+__abn+' 项超出参考区间。')+'</p>';
-  if(unknown.length){html+='<p style="font-size:12px;color:var(--text-muted);">'+__T('Unrecognized: ','未识别指标：')+unknown.join(__en?'; ':'、')+'</p>';}
+  html+='<p style="font-size:13px;">'+__T('Recognized '+rows.length+' item(s), '+__abn+' outside reference range.','共识别 '+rows.length+' 项，其中 '+__abn+' 项超出参考区间。');
+  if(pending.length){html+=__T(' '+pending.length+' more item(s) need confirmation (not counted in the interpretation).','另有 '+pending.length+' 项待确认（不计入判读）。');}
+  html+='</p>';
+  if(unknown.length){html+='<p style="font-size:12px;color:var(--text-muted);">'+__T('Unrecognized: ','未识别指标：')+unknown.map(function(u){return __brEsc(u);}).join(__en?'; ':'、')+'</p>';}
   html+='<p style="font-size:12px;color:var(--text-muted);">'+__T('Judged against '+__grp+' reference intervals; the ranges printed on the report sheet prevail.','按'+__grp+'参考区间判定；以报告单标注范围为准。')+'</p></div>';
   area.innerHTML=html;
 }
@@ -356,11 +432,18 @@ function initSelect(){
 }
 
 function switchGroup(el, g){
+  if(!g||!DATA[g])return;
   document.querySelectorAll('.pill').forEach(function(p){p.classList.remove('active');});
-  el.classList.add('active');
+  if(el&&el.classList)el.classList.add('active');
   currentGroup = g;
   initSelect();
   renderTable();
+  var __t=document.getElementById('reportText');
+  var __a=document.getElementById('batchArea');
+  if(__a){
+    if(__t&&__t.value&&__t.value.trim()){ __brBatch(); }
+    else { __a.innerHTML=''; }
+  }
 }
 
 function renderTable(){

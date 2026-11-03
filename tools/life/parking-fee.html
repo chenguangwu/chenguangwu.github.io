@@ -103,7 +103,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="商场、医院、路边停车收费规则不一。填入时长、费率与封顶价，即可估算费用，避免离场时惊讶。">Enter parking duration, hourly rate, free period and daily cap to calculate the parking fee payable.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-      <div class="formula-eq">停车费 = 计费时长 × 每小时费率，计费时长 = 停放时长 − 免费时长（不足 1 小时按 1 小时计或按分钟折算）；每日封顶时按自然日分组取较小值（当日费用与封顶价）后累加；跨日停放逐日分别计费再求和。</div>
+      <div class="formula-eq">停车费 = Σ 当日费用；当日计费时长 = max(0, 当日停放时长 − 当日免费时长)；当日费用 = min(当日计费时长 × 每小时费率, 每日封顶)；免费时长与封顶均按自然日逐日结算后累加。填写开始时间时按真实自然日分组，未填写时按每 24 小时为一个计费日。</div>
   
 </div>
 
@@ -117,16 +117,20 @@ s.parentNode.insertBefore(el, s);
         <input type="number" id="rate" value="10" step="1" placeholder="如 10">
       </div>
       <div>
-        <label for="free">免费时长（小时）</label>
+        <label for="free">免费时长（小时/日）</label>
         <input type="number" id="free" value="0" step="0.5" placeholder="如 0">
       </div>
-    </div
+    </div>
     <div class="input-row">
       <div>
         <label for="cap">每日封顶（元，0=不封顶）</label>
         <input type="number" id="cap" value="60" step="1" placeholder="如 60">
       </div>
-    </div
+      <div>
+        <label for="startTime">开始时间（可选，用于按自然日分组）</label>
+        <input type="datetime-local" id="startTime" value="">
+      </div>
+    </div>
     <div class="toolbar">
       <div id="parking_feePresets"></div><button class="btn primary" onclick="calcTool()">计算</button><button class="btn" type="button" onclick="__parking_feeExport()">导出明细 CSV</button>
       <button class="btn" onclick="resetForm()">重置</button>
@@ -218,20 +222,66 @@ s.parentNode.insertBefore(el, s);
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function escH(s){var d=document.createElement('div');const __g1=s==null?'':String(s);d.textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function fmtDay(d){function q(n){return (n<10?'0':'')+n;}return d.getFullYear()+'-'+q(d.getMonth()+1)+'-'+q(d.getDate());}
+function parseStartTime(){
+  var el=document.getElementById('startTime');
+  var raw=(el&&el.value)||'';
+  var m=/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(raw);
+  if(!m) return null;
+  var d=new Date(+m[1],+m[2]-1,+m[3],+m[4],+m[5]);
+  return isFinite(d.getTime())?d:null;
+}
+function splitDays(hours,start){
+  var segs=[];
+  if(start&&isFinite(start.getTime())){
+    var remain=hours*3600000, cur=new Date(start.getTime());
+    while(remain>1e-6&&segs.length<1000){
+      var dayEnd=new Date(cur.getFullYear(),cur.getMonth(),cur.getDate()+1);
+      var ms=Math.min(remain,dayEnd.getTime()-cur.getTime());
+      if(ms<=0)break;
+      segs.push({label:fmtDay(cur),hours:ms/3600000});
+      remain-=ms;
+      cur=new Date(dayEnd.getTime());
+    }
+  }else{
+    var left=hours,i=1;
+    while(left>1e-6&&i<=1000){
+      var h=Math.min(left,24);
+      segs.push({label:'第 '+i+' 日',hours:h});
+      left-=h;i++;
+    }
+  }
+  return segs;
+}
 function calcTool(){var hours=num('hours'), rate=num('rate'), free=num('free'), cap=num('cap');
-var billable=Math.max(0,hours-free);
-var fee=billable*rate;
-if(cap>0)fee=Math.min(fee,cap);
+var start=parseStartTime();
+var segs=splitDays(hours,start);
+var total=0,billable=0,cappedCount=0,rows='';
+for(var i=0;i<segs.length;i++){
+  var h=segs[i].hours;
+  var b=Math.max(0,h-free);
+  var rawFee=b*rate;
+  var dayFee=(cap>0)?Math.min(rawFee,cap):rawFee;
+  var capped=(cap>0&&rawFee>cap);
+  if(capped)cappedCount++;
+  total+=dayFee;
+  billable+=b;
+  rows+='<tr><td>'+escH(segs[i].label)+'</td><td>'+h.toFixed(1)+' h</td><td>'+free.toFixed(1)+' h</td><td>'+b.toFixed(1)+' h</td><td>'+dayFee.toFixed(2)+' 元</td><td>'+(capped?'封顶已生效':'—')+'</td></tr>';
+}
 var html='<div class="result-title">停车费</div><div class="data-grid">';
-html+='<div class="data-card"><div class="num">'+fee.toFixed(2)+'</div><div class="label">应付 (元)</div></div>';
+html+='<div class="data-card"><div class="num">'+total.toFixed(2)+'</div><div class="label">应付 (元)</div></div>';
+html+='<div class="data-card"><div class="num">'+segs.length+'</div><div class="label">计费日数</div></div>';
 html+='<div class="data-card"><div class="num">'+billable.toFixed(1)+'</div><div class="label">计费时长(h)</div></div>';
 html+='</div>';
 html+='<p class="muted" style="margin-top:10px;">停放 '+hours+'h，免费 '+free+'h，费率 '+rate+' 元/h'+(cap>0?('，封顶 '+cap+' 元'):'')+'。</p>';
+html+='<p class="muted">'+(start?('自 '+fmtDay(start)+' 起按自然日分组'):'未填开始时间，按每 24 小时为一个计费日')+'，免费时长逐日扣减；'+(cappedCount?('封顶已生效 '+cappedCount+' 天。'):'未触发封顶。')+'</p>';
+html+='<div style="overflow-x:auto;margin-top:8px;"><table class="ref-table" style="width:100%;font-size:13px;"><thead><tr><th>计费日</th><th>当日时长</th><th>免费扣减</th><th>计费时长</th><th>当日费用</th><th>封顶状态</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
 const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));}
 function resetForm(){document.getElementById('hours').value='3.5';
       document.getElementById('rate').value='10';
       document.getElementById('free').value='0';
       document.getElementById('cap').value='60';
+      document.getElementById('startTime').value='';
       calcTool();}
 calcTool();
 
@@ -333,10 +383,10 @@ function __parking_feeExport(){
 }
 function __parking_feePresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#parking_feePresets',[{label:'默认参数',labelEn:'Default',values:{'hours':'3.5', 'rate':'10', 'free':'0', 'cap':'60'}},
-  {"label":"商场 3.5 小时·首时免费","labelEn":"Mall 3.5h, 1st hour free","values":{"hours":3.5,"rate":10,"free":1,"cap":60}},
-  {"label":"机场 8 小时·封顶 200","labelEn":"Airport 8h, cap 200","values":{"hours":8,"rate":20,"free":0,"cap":200}},
-  {"label":"医院 2 小时·半小时免费","labelEn":"Hospital 2h, 30min free","values":{"hours":2,"rate":5,"free":0.5,"cap":0}}],function(){ calcTool(); });
+    TBKit.preset.bar('#parking_feePresets',[{label:'默认参数',labelEn:'Default',values:{'hours':'3.5', 'rate':'10', 'free':'0', 'cap':'60', 'startTime':''}},
+  {"label":"商场 3.5 小时·首时免费","labelEn":"Mall 3.5h, 1st hour free","values":{"hours":3.5,"rate":10,"free":1,"cap":60,"startTime":""}},
+  {"label":"机场 8 小时·封顶 200","labelEn":"Airport 8h, cap 200","values":{"hours":8,"rate":20,"free":0,"cap":200,"startTime":""}},
+  {"label":"医院 2 小时·半小时免费","labelEn":"Hospital 2h, 30min free","values":{"hours":2,"rate":5,"free":0.5,"cap":0,"startTime":""}}],function(){ calcTool(); });
 }
 var __parking_fee_f0=(typeof calcTool==='function')?calcTool:null;
 if(__parking_fee_f0){

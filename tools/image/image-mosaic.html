@@ -334,6 +334,7 @@ s.parentNode.insertBefore(el, s);
   var sourceImg = null;      // 原始 Image 对象
   var srcDispCanvas = null;  // 显示尺寸的原始像素画布（用于采样与底图）
   var dispW = 0, dispH = 0;  // 显示画布尺寸
+  var dispScale = 1;         // 显示画布 / 原图 的缩放比（预览块大小按此换算）
   var mode = 'full';         // 'full' | 'area'
   var blockSize = 10;
   var currentRegion = null;  // {x,y,w,h} 显示坐标
@@ -378,6 +379,7 @@ s.parentNode.insertBefore(el, s);
 
     dispCanvas.width = dispW;
     dispCanvas.height = dispH;
+    dispScale = dispW / Math.max(1, nw);
 
     // 构建显示尺寸的原始画布
     srcDispCanvas = document.createElement('canvas');
@@ -457,29 +459,44 @@ s.parentNode.insertBefore(el, s);
     });
   }
 
+  /* 块大小统一以「原图坐标」为单位，画布上按缩放换算。
+     预览（缩放后的显示画布）与导出（原图 1:1）因此具有相同语义，
+     不再出现「预览高估强度 / 全图模式预览不打码」的不一致。 */
+  function mapBlockToCanvas(blockNat, canvasScale){
+    var s = Number(canvasScale);
+    if(!isFinite(s) || s <= 0){ s = 1; }
+    var b = Number(blockNat);
+    if(!isFinite(b) || b <= 0){ b = 1; }
+    return Math.max(1, Math.round(b * s));
+  }
+
+  /* 预览绘制方案（纯函数）：全图模式同样必须实际打码，区域模式只有在有选区时打码。 */
+  function planPreview(m, region, blockNat, canvasScale){
+    var block = mapBlockToCanvas(blockNat, canvasScale);
+    if(m === 'full'){ return { block: block, region: null, mosaic: true }; }
+    if(m === 'area' && region){ return { block: block, region: region, mosaic: true }; }
+    return { block: block, region: null, mosaic: false };
+  }
+  window.__mosaicGeom = { mapBlockToCanvas: mapBlockToCanvas, planPreview: planPreview };
+
   function renderPreview(){
     if(!srcDispCanvas){ return; }
     if(showOriginal){
       dctx.drawImage(srcDispCanvas, 0, 0);
       return;
     }
-    var region = null;
-    if(mode === 'full'){
-      region = null;
-    } else if(mode === 'area'){
-      region = isDragging ? dragRect : currentRegion;
-    }
-
+    var region = (mode === 'area') ? (isDragging ? dragRect : currentRegion) : null;
+    var plan = planPreview(mode, region, blockSize, dispScale);
     // 先画底图，再按需叠马赛克
-    if(region){
-      mosaicRegion(dctx, srcDispCanvas, blockSize, region);
+    if(plan.mosaic){
+      mosaicRegion(dctx, srcDispCanvas, plan.block, plan.region);
     } else {
       dctx.drawImage(srcDispCanvas, 0, 0);
     }
 
     // 区域模式下绘制选区边框
-    if(mode === 'area' && region){
-      drawSelectionRect(dctx, region);
+    if(plan.mosaic && plan.region){
+      drawSelectionRect(dctx, plan.region);
     }
   }
 
@@ -646,9 +663,10 @@ s.parentNode.insertBefore(el, s);
     }
 
     if(mode === 'full'){
-      mosaicRegion(octx, srcFull, blockSize, null);
+      // 导出为原图 1:1，块大小即原图像素值（与预览按 dispScale 换算的值同源）
+      mosaicRegion(octx, srcFull, mapBlockToCanvas(blockSize, 1), null);
     } else if(region){
-      mosaicRegion(octx, srcFull, blockSize, region);
+      mosaicRegion(octx, srcFull, mapBlockToCanvas(blockSize, 1), region);
     } else {
       octx.drawImage(srcFull, 0, 0);
     }

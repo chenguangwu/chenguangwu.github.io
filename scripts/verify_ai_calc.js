@@ -9,7 +9,12 @@
  *   node scripts/verify_ai_calc.js
  *   node scripts/verify_ai_calc.js cosine-similarity sigmoid
  */
+const fs = require("fs");
+const path = require("path");
+const { JSDOM } = require("jsdom");
 const { runCase } = require("./verify_it_calc.js");
+
+const ROOT = path.resolve(__dirname, "..");
 
 const CASES = [
   // ── 分类准确率评估（混淆矩阵四指标）────────────────────────
@@ -656,9 +661,9 @@ const CASES = [
       "lang": "typescript"
     },
     expect: [
-      "n data; }\ntypescript\n100 代码质量评分 🔴 严重问题： 0 🟡 警告： 0 🔵 建议： 0 代码行数：3 字符数：5\n📋 详细问题 🎉 太好了！未发现常见问题。"
+      "1 2 3\ntypescript\n100 代码质量评分 🔴 严重问题： 0 🟡 警告： 0 🔵 建议： 0 代码行数：3 字符数：5\n📋 详细问题 🎉 太好了！未发现常见问题。"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"code\":\"1\\n2\\n3\",\"lang\":\"typescript\"}，输出区含「n data; }\ntypescript\n100 代码质量评分 🔴 严重问题：…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"code\":\"1\\n2\\n3\",\"lang\":\"typescript\"}，输出区含「1 2 3\ntypescript\n100 代码质量评分 🔴 严重问题：…」；默认态（空代码提前 toast 返回、不写评分卡）不含该串 ⇒ 强判别、零逃生。原先靠 loadSample 示例尾串命中，示例还原后改为直接锚定注入代码的评分输出。"
   },
   {
     "slug": "ai/ai-prompt-generator",
@@ -1234,6 +1239,186 @@ const CASES = [
 
 ];
 
+// ---------------------------------------------------------------- DOM 宿主回归（AI-N7 / N10 / N15 / N19）
+// 说明：verify_it_calc 的 DOM 桩把 innerHTML 当字符串、不建真实树，无法暴露
+// 「calc() 重写 #result 把扩展宿主一起清空」这类真实 DOM 缺陷；此处用 jsdom 真解析，
+// 并在解析前注入 TBKit 桩，使 boot 的首屏渲染、页签切换、历史回填、导出全部可断言。
+const HOST_CASES = [
+  {
+    slug: "ai/token",
+    chart: "tkChart", table: "tkTable",
+    extras: ["tkChart", "tkTable", "tkDiff", "tkHist", "tkPresets"],
+    inputs: { chars: "900", lang: "1", overlap: "1.5" },
+    tableExpect: "600",
+    restore: { inputId: "chars", historyKey: "chars" },
+    exportFn: "__tkExport",
+  },
+  {
+    slug: "ai/token-2",
+    chart: "t2Chart", table: "t2Table",
+    extras: ["t2Chart", "t2Table", "t2Diff", "t2Hist", "t2Presets"],
+    inputs: { input_tokens: "2500", output_tokens: "800", input_price: "3", output_price: "10" },
+    tableExpect: "0.0155",
+    restore: { inputId: "input_tokens", historyKey: "input_tokens" },
+    exportFn: "__t2Export", emptyHint: true,
+  },
+  {
+    slug: "ai/token-usage",
+    chart: "tuChart", table: "tuTable",
+    extras: ["tuChart", "tuTable", "tuDiff", "tuHist", "tuPresets"],
+    inputs: { cn: "240", enWords: "150", code: "40" },
+    tableExpect: "400",
+    restore: { inputId: "cn", historyKey: "cn" },
+    exportFn: "__tuExport",
+  },
+  { slug: "ai/ai-code-review", kind: "codeReview" },
+];
+
+function installTBKit(win, state) {
+  const q = (sel) => {
+    const m = String(sel || "").match(/^#([A-Za-z0-9_-]+)/);
+    return m ? win.document.getElementById(m[1]) : null;
+  };
+  const chart = (sel, o) => {
+    o = o || {};
+    const el = q(sel);
+    if (!el) return null;
+    const txt =
+      (o.series || []).map((s) => (s.name || "") + ":[" + (s.data || []).join(",") + "]").join(" ") ||
+      (o.items || []).map((i) => (i.label || "") + "=" + i.value).join(" ");
+    el.innerHTML = "<div>" + String(o.title || "") + " " + txt + "</div>";
+    return el;
+  };
+  win.TBKit = {
+    util: {
+      isEn: () => false,
+      exportTable: (sel) => {
+        const el = q(sel);
+        state.exportCalls++;
+        if (!el || !el.querySelectorAll("tr").length) return false;
+        state.exported = true;
+        return true;
+      },
+      diffBox: () => null,
+    },
+    chart: { bar: chart, pie: chart },
+    matrix: {
+      table: (sel, o) => {
+        const el = q(sel);
+        if (!el || !o || !o.rows || !o.rows.length) return null;
+        el.innerHTML = "<table>" + o.rows.map((r) => "<tr>" + r.map((c) => "<td>" + c + "</td>").join("") + "</tr>").join("") + "</table>";
+        return el;
+      },
+    },
+    history: {
+      record: (v) => { state.history.push(v); },
+      mount: (sel, cb) => { state.mountCb = cb; },
+      list: () => state.history.slice(),
+      last: () => state.history[state.history.length - 1] || null,
+    },
+    preset: { bar: () => {} },
+  };
+}
+
+function domReady(win) {
+  return new Promise((resolve) => {
+    if (!win.document || win.document.readyState !== "loading") return resolve();
+    let done = false;
+    const fin = () => { if (!done) { done = true; resolve(); } };
+    win.document.addEventListener("DOMContentLoaded", fin);
+    win.setTimeout(fin, 300);
+  });
+}
+
+function makeDom(slug, extra) {
+  const html = fs.readFileSync(path.join(ROOT, "tools", slug + ".html"), "utf8");
+  return new JSDOM(html, {
+    runScripts: "dangerously",
+    url: "https://chenguangwu.github.io/tools/" + slug + ".html",
+    beforeParse(window) {
+      window.ToolBox = {
+        showToast: (m) => extra.notify.push(String(m)),
+        toast: (m) => extra.notify.push(String(m)),
+        initToolTheme() {}, toggleToolTheme() {}, setResult() {},
+        copy() {}, copyText() {}, formatNumber: (n) => String(n),
+      };
+      installTBKit(window, extra.state);
+    },
+  });
+}
+
+async function runTokenHostCase(h) {
+  const state = { history: [], exportCalls: 0, exported: false, mountCb: null };
+  const dom = makeDom(h.slug, { state, notify: [] });
+  const win = dom.window;
+  await domReady(win);
+  const doc = win.document;
+  const result = doc.getElementById("result");
+  if (!result) return { ok: false, why: "缺少 #result" };
+  for (const id of h.extras) {
+    const el = doc.getElementById(id);
+    if (!el) return { ok: false, why: "#" + id + " 已被主结果 innerHTML 覆盖" };
+    if (result.contains(el)) return { ok: false, why: "#" + id + " 仍嵌套在 #result 内" };
+  }
+  // 首屏：boot 已跑，图表/表格应有内容
+  const chart0 = doc.getElementById(h.chart), table0 = doc.getElementById(h.table);
+  if (!chart0 || !chart0.textContent.trim()) return { ok: false, why: "首屏 #" + h.chart + " 为空" };
+  if (!table0 || !table0.textContent.trim()) return { ok: false, why: "首屏 #" + h.table + " 为空" };
+  // 改输入重算
+  for (const [id, v] of Object.entries(h.inputs)) doc.getElementById(id).value = v;
+  win.calc();
+  if (!doc.getElementById(h.chart).textContent.trim()) return { ok: false, why: "改输入后 #" + h.chart + " 为空" };
+  if (!doc.getElementById(h.table).textContent.includes(h.tableExpect)) return { ok: false, why: "改输入后 #" + h.table + " 未含 " + h.tableExpect };
+  // 页签切换
+  const tblBtn = doc.querySelector('.tbk-tab[data-pane="tbl"]');
+  const resBtn = doc.querySelector('.tbk-tab[data-pane="res"]');
+  if (tblBtn && resBtn) {
+    tblBtn.click();
+    if (doc.getElementById("result").style.display !== "none") return { ok: false, why: "页签切换未隐藏主结果" };
+    if (doc.getElementById(h.table).style.display === "none") return { ok: false, why: "页签切换未显示数据表" };
+    resBtn.click();
+  }
+  // 历史回填：用首屏默认那条回填，输入应被恢复
+  if (typeof state.mountCb === "function" && state.history.length) {
+    const first = state.history[0];
+    state.mountCb(first);
+    const got = doc.getElementById(h.restore.inputId).value;
+    if (String(got) !== String(first[h.restore.historyKey])) return { ok: false, why: "历史回填未恢复 " + h.restore.inputId };
+  }
+  // 导出（token-2 同时验证空表提示）
+  if (h.exportFn) {
+    state.exported = false;
+    win[h.exportFn]();
+    if (!state.exported) return { ok: false, why: h.exportFn + " 被守卫提前 return" };
+    if (h.emptyHint) {
+      doc.getElementById(h.table).innerHTML = "";
+      state.exported = false;
+      const notify = [];
+      // 重新注入捕获器，确保能读到空表提示
+      win.ToolBox.showToast = (m) => notify.push(String(m));
+      win[h.exportFn]();
+      if (state.exported) return { ok: false, why: "空表仍被导出" };
+      if (!notify.some((m) => /请先计算/.test(m))) return { ok: false, why: "空表导出未提示" };
+    }
+  }
+  return { ok: true };
+}
+
+async function runCodeReviewCase() {
+  const dom = makeDom("ai/ai-code-review", { state: { history: [], exportCalls: 0, exported: false, mountCb: null }, notify: [] });
+  const win = dom.window;
+  await domReady(win);
+  const doc = win.document;
+  if (typeof win.loadSample !== "function" || typeof win.review !== "function") return { ok: false, why: "缺少 loadSample/review" };
+  win.loadSample();
+  const code = doc.getElementById("code").value;
+  if (/__h4|计算结果含无效值/.test(code)) return { ok: false, why: "示例代码仍含注入的 NaN 守卫" };
+  if (!/userName/.test(code)) return { ok: false, why: "示例代码未还原为干净示例" };
+  if (!doc.getElementById("scoreBox").textContent.includes("代码质量评分")) return { ok: false, why: "载入示例后评分卡未重算" };
+  if (!doc.getElementById("result").textContent.includes("详细问题")) return { ok: false, why: "载入示例后结果区未重算" };
+  return { ok: true };
+}
+
 // ---------------------------------------------------------------- main
 async function main() {
   const only = process.argv.slice(2);
@@ -1256,6 +1441,22 @@ async function main() {
   }
 
   console.log("==== ai calc " + pass + "/" + cases.length + " ====");
-  if (fails.length) process.exit(1);
+
+  // DOM 宿主回归：真实 DOM 下验证首屏 / 改输入 / 页签 / 历史回填 / 导出
+  const hostCases = only.length ? HOST_CASES.filter((h) => only.some((o) => h.slug.endsWith("/" + o) || h.slug === o)) : HOST_CASES;
+  let hostPass = 0; const hostFails = [];
+  for (const h of hostCases) {
+    try {
+      const r = h.kind === "codeReview" ? await runCodeReviewCase() : await runTokenHostCase(h);
+      if (r.ok) hostPass++;
+      else { hostFails.push(h.slug); console.log("❌ DOM " + h.slug + "  " + r.why); }
+    } catch (e) {
+      hostFails.push(h.slug);
+      console.log("❌ DOM " + h.slug + "  THROWN: " + ((e && e.message) ? e.message : String(e)));
+    }
+  }
+  console.log("==== ai DOM host " + hostPass + "/" + hostCases.length + " ====");
+
+  if (fails.length || hostFails.length) process.exit(1);
 }
 if (require.main === module) main();

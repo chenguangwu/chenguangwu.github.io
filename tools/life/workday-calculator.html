@@ -149,7 +149,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="计算两日期间的工作日数 / 自然日数">Count the working days between two dates, excluding weekends and any custom holidays you specify.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-      <div class="formula-eq">工作日数 = 区间总天数 − 周末天数 − 自定义节假日天数（按选项决定是否排除周六、周日）；总天数 =（结束日期 − 开始日期）÷ 86400000 + 1（含首尾两天）；逐日遍历统计可识别调休与自定义假日，用于工期与考勤估算。</div>
+      <div class="formula-eq">工作日数 = 区间总天数 − 周末天数 − 法定节假日天数 + 调休上班日天数（按选项决定是否排除周六、周日）；总天数 =（结束日期 − 开始日期）÷ 86400000 + 1（含首尾两天）；逐日遍历统计，调休上班日优先计为工作日，用于工期与考勤估算。</div>
   
 </div>
 
@@ -169,8 +169,11 @@ s.parentNode.insertBefore(el, s);
       <label><input type="checkbox" id="skipSun" checked> 排除周日</label>
     </div>
 
-    <label>自定义额外节假日（每行一个日期，格式 YYYY-MM-DD）</label>
+    <label>法定节假日（每行一个日期，格式 YYYY-MM-DD）</label>
     <textarea id="holidays" placeholder="如：2026-01-01&#10;2026-02-10"></textarea>
+
+    <label>调休上班日（周末补班，每行一个日期，格式 YYYY-MM-DD）</label>
+    <textarea id="workdays" placeholder="如：2026-02-14"></textarea>
 
     <div class="toolbar">
       <div id="workday_calculatorPresets"></div><button type="button" class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" onclick="__workday_calculatorExport()">导出明细 CSV</button>
@@ -184,9 +187,9 @@ s.parentNode.insertBefore(el, s);
     <h3>📐 规则说明</h3>
     <div class="result-box">
       <p>默认排除周六、周日</p>
-      <p>自定义节假日：列出法定调休日（如国庆、春节假期）</p>
-      <p>若需要调休上班（周末补班），请取消对应周末的勾选</p>
-      <p>含起始日，不含结束日（如周一到周五 = 5 个工作日）</p>
+      <p>法定节假日：列出放假日（如国庆、春节假期），逐日扣减</p>
+      <p>调休上班日：填入周末补班日期，即使为周六/周日也强制计为工作日</p>
+      <p>含起始日与结束日（如周一到周五 = 5 个工作日；同一天 = 1 个自然日）</p>
       <p>2026 年中国法定节假日参考：</p>
       <p style="font-size:12px;color:var(--text-muted);">1/1 元旦，2/15-2/22 春节假期，4/4-4/6 清明，5/1-5/5 劳动节，6/19-6/21 端午，9/25-9/27 中秋+国庆</p>
     </div>
@@ -269,17 +272,32 @@ s.parentNode.insertBefore(el, s);
 </div>
 
 <script>
+function fmtLocalDate(d){
+  const q = n => (n < 10 ? '0' : '') + n;
+  return d.getFullYear() + '-' + q(d.getMonth() + 1) + '-' + q(d.getDate());
+}
+
+function parseLocalDate(s){
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || '');
+  if(!m) return new Date(NaN);
+  const y = +m[1], mo = +m[2], da = +m[3];
+  const d = new Date(y, mo - 1, da);
+  if(d.getFullYear() !== y || d.getMonth() !== mo - 1 || d.getDate() !== da) return new Date(NaN);
+  return d;
+}
+
 (function init(){
   const now = new Date();
-  const start = new Date(now.getTime());
-  const end = new Date(now.getTime() + 7 * 86400000);
-  document.getElementById('startDate').value = start.toISOString().slice(0, 10);
-  document.getElementById('endDate').value = end.toISOString().slice(0, 10);
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7);
+  document.getElementById('startDate').value = fmtLocalDate(start);
+  document.getElementById('endDate').value = fmtLocalDate(end);
   calc();
 })();
 
-function parseHolidays(){
-  const txt = document.getElementById('holidays').value || '';
+function parseDateSet(id){
+  const el = document.getElementById(id);
+  const txt = (el && el.value) || '';
   const set = new Set();
   txt.split(/\s+/).forEach(s => {
     s = s.trim();
@@ -295,24 +313,28 @@ function calc(){
     document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">请选择日期</p>';
     return;
   }
-  const start = new Date(startStr);
-  const end = new Date(endStr);
+  const start = parseLocalDate(startStr);
+  const end = parseLocalDate(endStr);
   if(start > end){
     document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">结束日期需晚于开始日期</p>';
     return;
   }
   const skipSat = document.getElementById('skipSat').checked;
   const skipSun = document.getElementById('skipSun').checked;
-  const holidays = parseHolidays();
-  let totalDays = 0, workDays = 0, weekends = 0, holidayCount = 0;
+  const holidays = parseDateSet('holidays');
+  const makeupDays = parseDateSet('workdays');
+  let totalDays = 0, workDays = 0, weekends = 0, holidayCount = 0, makeupCount = 0;
   const d = new Date(start);
-  while(d < end){
+  while(d <= end){
     totalDays++;
     const dow = d.getDay();
     const isSat = dow === 6;
     const isSun = dow === 0;
-    const dateStr = d.toISOString().slice(0, 10);
-    if(holidays.has(dateStr)){
+    const dateStr = fmtLocalDate(d);
+    if(makeupDays.has(dateStr)){
+      makeupCount++;
+      workDays++;
+    } else if(holidays.has(dateStr)){
       holidayCount++;
     } else if((skipSat && isSat) || (skipSun && isSun)){
       weekends++;
@@ -328,7 +350,8 @@ function calc(){
     <p>自然日总数：<strong>${totalDays}</strong> 天</p>
     <p>工作日数：<strong style="color:var(--success);">${workDays}</strong> 天</p>
     <p>周末（已排除）：<strong>${weekends}</strong> 天</p>
-    <p>自定义节假日：<strong>${holidayCount}</strong> 天</p>
+    <p>法定节假日：<strong>${holidayCount}</strong> 天</p>
+    <p>调休上班日（计入工作日）：<strong>${makeupCount}</strong> 天</p>
     <p style="margin-top:8px;font-size:12px;color:var(--text-muted);">预计完成时间：约 ${Math.ceil(workDays / 5)} 周</p>
   `;document.getElementById('resultBox').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 }
@@ -337,6 +360,7 @@ function clearAll(){
   document.getElementById('startDate').value = '';
   document.getElementById('endDate').value = '';
   document.getElementById('holidays').value = '';
+  document.getElementById('workdays').value = '';
   document.getElementById('resultBox').innerHTML='请选择日期进行计算';
 }
 </script><script>

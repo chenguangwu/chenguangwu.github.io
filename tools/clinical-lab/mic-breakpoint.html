@@ -127,7 +127,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="⚖️ 微生物药敏(MIC)折点对照器">Mic Breakpoint</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="CLSI 折点对照，输入MIC值自动判定敏感(S)/中介(I)/耐药(R)">Mic Breakpoint</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">按所选细菌取折点表逐药判定：MIC ≤ S 折点判 S 敏感，MIC ≥ R 折点判 R 耐药，介于两者之间判 I 中介；中介区间显示为 &gt;S 且 &lt;R，缺任一侧时显示 —；MIC 未填或折点缺失时不判读</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">按所选细菌取折点表逐药判定：MIC ≤ S 折点判 S 敏感，MIC ≥ R 折点判 R 耐药，介于两者之间判 I 中介；中介区间显示为 &gt;S 且 &lt;R，缺任一侧时显示 —；MIC 未填或折点缺失时不判读；MIC 须为正数且落在 2 倍稀释系列（0.125、0.25、0.5、1、2、4…，允许约 ±8% 误差），否则不输出 S/I/R</div>
   <p class="formula-desc">按 CLSI M100（2023）标准将测得 MIC 与折点比对，判读敏感/中介/耐药；仅供复核，用药由感染科与药师决定。</p>
 </div>
 
@@ -142,7 +142,7 @@ s.parentNode.insertBefore(el, s);
           <option value="ent">肠球菌</option>
         </select>
       </div>
-      <div><label>输入MIC值(μg/mL)</label><input type="number" id="micVal" placeholder="输入MIC对照折点" step="0.01" oninput="renderDrugs()"></div>
+      <div><label>输入MIC值(μg/mL)</label><input type="number" id="micVal" placeholder="输入MIC对照折点" step="0.01" oninput="renderDrugs()"><div id="micHint" style="font-size:12px;color:var(--danger);margin-top:4px;"></div></div>
     </div>
 
     <div class="toolbar">
@@ -151,7 +151,7 @@ s.parentNode.insertBefore(el, s);
 
     <div id="drugArea"></div>
     <div id="bpChart"></div>
-    <table id="bpHidden" style="display:none;"><thead><tr><th>Drug</th><th>S (<= mcg/mL)</th><th>R (>= mcg/mL)</th><th>I Range</th><th>Interpretation</th></tr></thead><tbody></tbody></table>
+    <table id="bpHidden" style="display:none;"><thead><tr><th>Drug</th><th>S (<= mcg/mL)</th><th>R (>= mcg/mL)</th><th>I Range</th><th>Interpretation</th><th>Standard</th><th>Version</th></tr></thead><tbody></tbody></table>
 
     <div class="info-box" style="margin-top:16px;">
       <strong>判读标准(CLSI 2023)：</strong><br>
@@ -316,16 +316,25 @@ var BP = {
   ]
 };
 
+function __bpMicCheck(raw){
+  var s=String(raw==null?'':raw).trim();
+  if(s==='')return {ok:false,empty:true,val:NaN,msg:''};
+  var v=parseFloat(s);
+  if(!isFinite(v)||v<=0)return {ok:false,val:NaN,msg:'请输入有效 MIC（>0）；当前输入“'+s+'”无效'};
+  var d=Math.abs(Math.log(v)/Math.LN2-Math.round(Math.log(v)/Math.LN2));
+  if(d>0.12)return {ok:false,val:v,msg:'请输入 2 倍稀释系列 MIC（如 0.125、0.25、0.5、1、2、4 μg/mL）；当前输入“'+s+'”不在系列内，无法判定'};
+  return {ok:true,val:v,msg:''};
+}
 function renderDrugs(){
   var b = document.getElementById('bacteria').value;
   var __raw = String(document.getElementById('micVal').value||'').trim();
-  var mic = parseFloat(__raw);
-  var micOk = isFinite(mic) && mic > 0;
+  var __chk = __bpMicCheck(__raw);
+  var mic = __chk.val;
+  var micOk = __chk.ok;
+  var __hint = document.getElementById('micHint');
+  if(__hint)__hint.textContent = __chk.msg||'';
   var list = BP[b];
   var html = '<table class="bp-table"><thead><tr><th>抗菌药物</th><th>S 敏感(≤)</th><th>R 耐药(≥)</th><th>I 中介</th><th>输入MIC判定</th></tr></thead><tbody>';
-  if(!micOk){
-    html = '<p class="bp-invalid" style="color:var(--danger);font-size:13px;margin:0 0 6px;">'+(__raw!==''?'请输入有效 MIC（>0）；当前输入“'+__raw+'”无效':'请输入有效 MIC（>0）')+'</p>' + html;
-  }
   list.forEach(function(d){
     var interp = '—';
     if(micOk && d.s!=='-' && d.r!=='-'){
@@ -375,8 +384,9 @@ window.__bpExport=function(){
   if(typeof TBKit==='undefined')return;
   var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
   var b=document.getElementById('bacteria').value;
-  var mic=parseFloat(document.getElementById('micVal').value);
-  var micOk=isFinite(mic)&&mic>0;
+  var __chk=__bpMicCheck(document.getElementById('micVal').value);
+  var mic=__chk.val;
+  var micOk=__chk.ok;
   var list=BP[b];
   if(!list)return;
   var tbody=document.querySelector('#bpHidden tbody');if(!tbody)return;
@@ -397,7 +407,9 @@ window.__bpExport=function(){
       d.s!=='-'?String(d.s):'-',
       d.r!=='-'?String(d.r):'-',
       en?iRangeEn:iRange,
-      en?interpEn:interp
+      en?interpEn:interp,
+      'CLSI M100',
+      '2023'
     ];
     cells.forEach(function(v){
       var td=document.createElement('td');td.textContent=v;tr.appendChild(td);
@@ -517,8 +529,9 @@ function __bpChartDraw(){
     if(!b||!micEl) return;
     var list=BP[b.value];
     if(!list) return;
-    var mic=parseFloat(micEl.value);
-    var micOk=isFinite(mic)&&mic>0;
+    var __chk=__bpMicCheck(micEl.value);
+    var mic=__chk.val;
+    var micOk=__chk.ok;
     var nS=0,nI=0,nR=0;
     if(micOk){
       list.forEach(function(d){

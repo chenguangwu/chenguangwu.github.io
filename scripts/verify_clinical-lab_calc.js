@@ -418,6 +418,86 @@ const CASES = [
   "ref": "批量解读（03-67）：成年男性表 WBC 3.2<3.5 → 偏低 (3.2-3.5)/3.5=8.57%→8.6%；HGB 105<130 → 偏低 (105-130)/130=19.23%→19.2%（dec=0 → 下限 130）；PLT 450>350 → 偏高 (450-350)/350=28.57%→28.6%。指标名匹配取 token 命中最长者（「血红蛋白」不会误配「平均红细胞血红蛋白」）。reportText 默认空 ⇒ __brBatch 不清空即空 ⇒ 默认态不含锚；判别器清 clicks ⇒ 零交集。"
 },
 {
+  // 单位换算：HGB 显式 g/dL → g/L ×10（03-67 高优：修复前把 13.5 直接当 g/L 判「偏低」）
+  "slug": "clinical-lab/blood-routine-reference",
+  "clicks": [
+    "document.getElementById('reportText').value='HGB 13.5 g/dL'; __brBatch();"
+  ],
+  "expect": [
+    "血红蛋白 HGB 135 g/L → 正常 （由 13.5 g/dL 换算）",
+    "共识别 1 项，其中 0 项超出参考区间。"
+  ],
+  "ref": "显式单位 g/dL 按 ×10 换算：13.5 g/dL=135 g/L，成年男性 130–175 → 正常。修复前直接把 13.5 当 g/L 判「偏低」并丢单位。默认 reportText 空 ⇒ 无批量卡；判别器清 clicks ⇒ 零交集。"
+},
+{
+  // 行首序号：`1 WBC 8.0` 的首个数字是序号，不是检验值
+  "slug": "clinical-lab/blood-routine-reference",
+  "clicks": [
+    "document.getElementById('reportText').value='1 WBC 8.0'; __brBatch();"
+  ],
+  "expect": [
+    "白细胞计数 WBC 8.0 ×10⁹/L → 正常",
+    "共识别 1 项，其中 0 项超出参考区间。"
+  ],
+  "ref": "指标名之后的唯一数值才是检验值：跳过行首序号 1，取 8.0（3.5–9.5 正常）。修复前取首个数字 1 → 误判「偏低」。默认 reportText 空 ⇒ 零交集。"
+},
+{
+  // 未识别单位：只标「待确认」，不输出正常/异常
+  "slug": "clinical-lab/blood-routine-reference",
+  "clicks": [
+    "document.getElementById('reportText').value='HGB 13.5 mg/dL'; __brBatch();"
+  ],
+  "expect": [
+    "HGB 13.5 mg/dL → 待确认 （未识别单位「mg/dL」，请核对识别值与单位）"
+  ],
+  "ref": "mg/dL 不是血红蛋白表内单位 ⇒ pending，不计入判读；修复前按 g/L 判「偏低」。默认 reportText 空 ⇒ 零交集。"
+},
+{
+  // 多数字歧义：同一行出现两个候选数值 ⇒ 待确认
+  "slug": "clinical-lab/blood-routine-reference",
+  "clicks": [
+    "document.getElementById('reportText').value='WBC 8.0 12.5'; __brBatch();"
+  ],
+  "expect": [
+    "WBC 8.0 12.5 → 待确认 （识别到多个数值，无法确定检验值，请核对识别值与单位）"
+  ],
+  "ref": "指标名之后有 8.0 与 12.5 两个数值，无法确定检验值 ⇒ pending；修复前取首个 8.0 直接判正常、掩盖歧义。默认 reportText 空 ⇒ 零交集。"
+},
+{
+  // XSS 回归：未识别原文必须转义（修复前 innerHTML 直接拼接）
+  "slug": "clinical-lab/blood-routine-reference",
+  "clicks": [
+    "document.getElementById('reportText').value='<img src=x onerror=alert(1)>'; __brBatch();"
+  ],
+  "expect": [
+    "&lt;img src=x onerror=alert(1)&gt;"
+  ],
+  "ref": "未识别行经 __brEsc 转义后以文本呈现；修复前 raw 直接进 innerHTML，标签被解析成 img 且 onerror 可执行。默认 reportText 空 ⇒ 零交集。"
+},
+{
+  // 普通 < / & 转义回归
+  "slug": "clinical-lab/blood-routine-reference",
+  "clicks": [
+    "document.getElementById('reportText').value='散点 < & 复查'; __brBatch();"
+  ],
+  "expect": [
+    "散点 &lt; &amp; 复查"
+  ],
+  "ref": "未识别行中的 < 与 & 必须转成实体，避免破坏 DOM；默认 reportText 空 ⇒ 零交集。"
+},
+{
+  // 人群切换：旧批量结果须按新人群重算，不能残留旧判读
+  "slug": "clinical-lab/blood-routine-reference",
+  "clicks": [
+    "document.getElementById('reportText').value='HGB 120'; __brBatch(); switchGroup({classList:{add:function(){},remove:function(){},toggle:function(){},contains:function(){return false;}}},'adult-f');"
+  ],
+  "expect": [
+    "报告单批量解读（当前人群：成年女性）",
+    "血红蛋白 HGB 120 g/L → 正常"
+  ],
+  "ref": "HGB 120 在成年男性 130–175 为偏低、在成年女性 115–150 为正常；切换人群后 __brBatch 重跑 ⇒ 标题与判读同步更新。修复前只刷新参考表、批量卡仍是「成年男性/偏低」。默认 reportText 空 ⇒ 零交集；判别器清 clicks ⇒ 零交集。"
+},
+{
   "slug": "clinical-lab/cardiac-marker-curve",
   "inputs": {
     "upper": "2.0"
@@ -462,6 +542,22 @@ const CASES = [
   "inputs": { "bacteria": "gn", "micVal": "0" },
   "expect": ["请输入有效 MIC（>0）；当前输入“0”无效"],
   "ref": "L-N5 非法 MIC：0 同样被排除在 S/I/R 判读之外（修复前 0<=0.5 折点判 S）。判别器换回默认空串 ⇒ 提示串不含“0”，本串失配。"
+},
+{
+  // L-N5：非 2 倍稀释序列的 MIC（3）不得判 S/I/R
+  "slug": "clinical-lab/mic-breakpoint",
+  "inputs": { "bacteria": "gn", "micVal": "3" },
+  "expect": ["请输入 2 倍稀释系列 MIC（如 0.125、0.25、0.5、1、2、4 μg/mL）；当前输入“3”不在系列内，无法判定"],
+  "ref": "MIC=3 不在 2 倍稀释序列（log2(3)≈1.585，距最近整数 0.415>0.12）⇒ micOk=false，逐药判定保持「—」、汇总卡不渲染。修复前 3<=8 折点被误判 S。默认 micVal 空 ⇒ 提示串不含“3”，判别器换回默认空串后失配。"
+},
+{
+  // CSV 增加「标准/版本」列：用 TBKit 桩捕获导出表 tbody
+  "slug": "clinical-lab/mic-breakpoint",
+  "clicks": [
+    "window.TBKit={util:{isEn:function(){return false;},exportTable:function(){}},chart:{bar:function(){}}};document.getElementById('micVal').value='4';var __cap=null;var __qs=document.querySelector;document.querySelector=function(s){var e=__qs(s);if(s==='#bpHidden tbody')__cap=e;return e;};window.__bpExport();document.getElementById('drugArea').innerHTML+=' 标准列='+(__cap&&__cap.innerHTML.indexOf('CLSI M100')>=0)+' 版本列='+(__cap&&__cap.innerHTML.indexOf('2023')>=0);"
+  ],
+  "expect": ["标准列=true 版本列=true"],
+  "ref": "导出 CSV 的隐藏表每行追加 Standard=CLSI M100、Version=2023 两列；修复前仅 5 列（无标准/版本）。默认态不调用 __bpExport ⇒ 哨兵串不存在；判别器清 clicks ⇒ 零交集。"
 },
 {
   "slug": "clinical-lab/parasite-egg-id",

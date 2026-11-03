@@ -198,7 +198,7 @@ s.parentNode.insertBefore(el, s);
     </div>
 <div class="input-row">
       <div>
-        <label>贷款金额（万元）</label>
+        <label>房价（万元）</label>
         <input type="number" id="loanAmount" value="100" min="0" oninput="calculate()" placeholder="如 100">
       </div>
       <div>
@@ -349,15 +349,19 @@ function setMethod(m){
 }
 
 function calculate(){
-  const amount = parseFloat(document.getElementById('loanAmount').value) * 10000;
+  const price = parseFloat(document.getElementById('loanAmount').value) * 10000;
   const annualRate = parseFloat(document.getElementById('rate').value) / 100;
   const years = parseInt(document.getElementById('years').value);
   const downPaymentPct = parseFloat(document.getElementById('downPayment').value) || 0;
 
-  if(!amount || amount <= 0 || !annualRate || annualRate < 0 || !years){
+  if(!isFinite(price) || price <= 0 || !isFinite(annualRate) || annualRate < 0 || !years || !isFinite(downPaymentPct) || downPaymentPct < 0 || downPaymentPct >= 100){
     resetDisplay();
     return;
   }
+
+  // 贷款本金 = 房价 ×（1 − 首付比例）
+  const amount = price * (1 - downPaymentPct / 100);
+  if(amount <= 0){ resetDisplay(); return; }
 
   const months = years * 12;
   const monthlyRate = annualRate / 12;
@@ -434,9 +438,13 @@ function resetDisplay(){
 }
 
 function exportCSV(){
-  const amount = parseFloat(document.getElementById('loanAmount').value) * 10000;
+  const price = parseFloat(document.getElementById('loanAmount').value) * 10000;
   const annualRate = parseFloat(document.getElementById('rate').value) / 100;
   const years = parseInt(document.getElementById('years').value);
+  const downPaymentPct = parseFloat(document.getElementById('downPayment').value) || 0;
+  if(!isFinite(price) || price <= 0 || !isFinite(annualRate) || annualRate < 0 || !years || downPaymentPct < 0 || downPaymentPct >= 100) return;
+  const amount = price * (1 - downPaymentPct / 100);
+  if(amount <= 0) return;
   const months = years * 12;
   const monthlyRate = annualRate / 12;
 

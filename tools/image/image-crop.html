@@ -508,6 +508,48 @@ var EDGES = ['n','e','s','w'];
 // ===== 工具函数 =====
 function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
 
+/* 裁剪框几何归一（纯函数）：保证框完全落在图像内，尺寸不小于 minSize。
+   原实现「先限制边界、再强制最小尺寸」会让贴边的小框越出画面（停在 12×12、
+   导出时再被裁成 2×2，显示与实际不一致）。空间不足时改为移动起点。 */
+function fitCropBox(x, y, w, h, iw, ih, minSize, ratio){
+  var minW = Math.min(minSize, iw), minH = Math.min(minSize, ih);
+  if(ratio){
+    // 按比例时先算边界允许的最大框（受短边约束）
+    var maxW = Math.min(iw, ih * ratio);
+    if(!(w > 0) || w < minW || h < minH){
+      w = Math.max(minW, w || 0);
+      h = w / ratio;
+      if(h < minH){ h = minH; w = h * ratio; }
+    }
+    w = Math.min(w, maxW);
+    h = w / ratio;
+  } else {
+    w = clamp(w, Math.min(minW, iw), iw);
+    h = clamp(h, Math.min(minH, ih), ih);
+  }
+  x = clamp(x, 0, Math.max(0, iw - w));
+  y = clamp(y, 0, Math.max(0, ih - h));
+  return { x: x, y: y, w: w, h: h };
+}
+
+/* 导出/显示的同一口径：取整并夹到图像内，保证「信息栏显示尺寸 = 实际导出尺寸」 */
+function clampCropOutput(r, iw, ih){
+  if(!r) return null;
+  var x = Math.round(r.x), y = Math.round(r.y);
+  var w = Math.max(1, Math.round(r.w)), h = Math.max(1, Math.round(r.h));
+  x = clamp(x, 0, Math.max(0, iw - 1));
+  y = clamp(y, 0, Math.max(0, ih - 1));
+  w = Math.min(w, iw - x);
+  h = Math.min(h, ih - y);
+  return { x: x, y: y, w: w, h: h };
+}
+window.__cropGeom = { fitCropBox: fitCropBox, clampCropOutput: clampCropOutput };
+
+function getOutputRect(){
+  if(!crop || !imgW || !imgH) return null;
+  return clampCropOutput(crop, imgW, imgH);
+}
+
 function fitImage(){
   var maxW = Math.max(40, wrap.clientWidth - 20);
   var maxH = 460;
@@ -681,26 +723,25 @@ function moveCrop(pn){
 function createCrop(pn){
   var x0 = startNat.x, y0 = startNat.y;
   var x1 = clamp(pn.x, 0, imgW), y1 = clamp(pn.y, 0, imgH);
+  var dirX = x1 >= x0 ? 1 : -1;
+  var dirY = y1 >= y0 ? 1 : -1;
+  var w, h;
   if(aspect){
-    var dirX = x1 >= x0 ? 1 : -1;
-    var dirY = y1 >= y0 ? 1 : -1;
-    var w = Math.abs(x1 - x0);
-    var h = Math.abs(y1 - y0);
+    w = Math.abs(x1 - x0);
+    h = Math.abs(y1 - y0);
     if(w / aspect > h){ h = w / aspect; } else { w = h * aspect; }
     var maxW = dirX > 0 ? imgW - x0 : x0;
     var maxH = dirY > 0 ? imgH - y0 : y0;
     w = Math.min(w, maxW); h = Math.min(h, maxH);
     w = Math.min(w, h * aspect); h = w / aspect;
-    if(w < MIN_SIZE){ w = MIN_SIZE; h = w / aspect; }
-    var x = dirX > 0 ? x0 : x0 - w;
-    var y = dirY > 0 ? y0 : y0 - h;
-    crop = { x: x, y: y, w: w, h: h };
   } else {
-    var left = Math.min(x0, x1), top = Math.min(y0, y1);
-    var ww = Math.max(MIN_SIZE, Math.abs(x1 - x0));
-    var hh = Math.max(MIN_SIZE, Math.abs(y1 - y0));
-    crop = { x: left, y: top, w: ww, h: hh };
+    w = Math.abs(x1 - x0);
+    h = Math.abs(y1 - y0);
   }
+  var x = dirX > 0 ? x0 : x0 - w;
+  var y = dirY > 0 ? y0 : y0 - h;
+  // 最小尺寸服从边界：空间不足时移动起点，框始终完整落在画面内
+  crop = fitCropBox(x, y, w, h, imgW, imgH, MIN_SIZE, aspect);
 }
 
 function resizeCrop(handle, pn){
@@ -718,10 +759,10 @@ function resizeCrop(handle, pn){
     if(dw / aspect > dh){ h = dw / aspect; w = dw; } else { w = dh * aspect; h = dh; }
     w = Math.min(w, maxW); h = Math.min(h, maxH);
     w = Math.min(w, h * aspect); h = w / aspect;
-    if(w < MIN_SIZE){ w = MIN_SIZE; h = w / aspect; }
     var x = dirX > 0 ? fixedX : fixedX - w;
     var y = dirY > 0 ? fixedY : fixedY - h;
-    crop = { x: x, y: y, w: w, h: h };
+    // 空间不足时移动起点，避免「显示 12×12、导出被裁成 2×2」
+    crop = fitCropBox(x, y, w, h, imgW, imgH, MIN_SIZE, aspect);
   } else {
     // 自由缩放
     var left = startCrop.x, top = startCrop.y;
@@ -792,15 +833,13 @@ canvas.addEventListener('pointerleave', function(e){
 // ===== 预览 =====
 function getCroppedCanvas(){
   if(!crop || !sourceCanvas) return null;
-  var x = Math.round(crop.x), y = Math.round(crop.y);
-  var w = Math.round(crop.w), h = Math.round(crop.h);
-  w = Math.max(1, w); h = Math.max(1, h);
-  x = clamp(x, 0, imgW - 1); y = clamp(y, 0, imgH - 1);
-  w = Math.min(w, imgW - x); h = Math.min(h, imgH - y);
+  // 与信息栏同一口径取整并夹边，显示尺寸 = 实际导出尺寸
+  var o = getOutputRect();
+  if(!o || o.w < 1 || o.h < 1) return null;
   var c = document.createElement('canvas');
-  c.width = w; c.height = h;
+  c.width = o.w; c.height = o.h;
   var cx = c.getContext('2d');
-  cx.drawImage(sourceCanvas, x, y, w, h, 0, 0, w, h);
+  cx.drawImage(sourceCanvas, o.x, o.y, o.w, o.h, 0, 0, o.w, o.h);
   return c;
 }
 
@@ -837,11 +876,12 @@ function schedulePreview(){
 }
 
 function updateCropInfo(){
-  if(!crop){ return; }
-  document.getElementById('ci-x').textContent = Math.round(crop.x);
-  document.getElementById('ci-y').textContent = Math.round(crop.y);
-  document.getElementById('ci-w').textContent = Math.round(crop.w);
-  document.getElementById('ci-h').textContent = Math.round(crop.h);
+  var o = getOutputRect();
+  if(!o){ return; }
+  document.getElementById('ci-x').textContent = o.x;
+  document.getElementById('ci-y').textContent = o.y;
+  document.getElementById('ci-w').textContent = o.w;
+  document.getElementById('ci-h').textContent = o.h;
 }
 
 // ===== 比例 =====
@@ -859,7 +899,7 @@ function setAspect(a, btn){
       if(w > imgW){ w = imgW; h = w / a; }
       var x = clamp(cx - w / 2, 0, imgW - w);
       var y = clamp(cy - h / 2, 0, imgH - h);
-      crop = { x: x, y: y, w: w, h: h };
+      crop = fitCropBox(x, y, w, h, imgW, imgH, MIN_SIZE, a);
     }
     draw();
     updatePreview();

@@ -218,6 +218,7 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div id="irrWarn" style="display:none;margin-top:10px;color:#f57c00;font-size:13px;"></div>
+    <div id="irrDetail" style="margin-top:12px;font-size:13px;color:var(--text-secondary);"></div>
 
     <div class="toolbar" style="margin-top:12px;">
       <div id="irr_calculatorPresets"></div><button type="button" class="btn primary" onclick="calc()">重新计算</button><button class="btn" type="button" onclick="__irr_calculatorExport()">导出明细 CSV</button>
@@ -349,24 +350,58 @@ const PRESETS = {
   ],
   loan: [
     { period: 0, amount: 100000, label: '贷款到账' },
-    { period: 1, amount: -8884, label: '第1期还款' },
-    { period: 2, amount: -8884, label: '第2期还款' },
-    { period: 3, amount: -8884, label: '第3期还款' },
-    { period: 4, amount: -8884, label: '第4期还款' },
-    { period: 5, amount: -8884, label: '第5期还款' },
-    { period: 6, amount: -8884, label: '第6期还款' },
-    { period: 7, amount: -8884, label: '第7期还款' },
-    { period: 8, amount: -8884, label: '第8期还款' },
-    { period: 9, amount: -8884, label: '第9期还款' },
-    { period: 10, amount: -8884, label: '第10期还款' },
-    { period: 11, amount: -8884, label: '第11期还款' },
-    { period: 12, amount: -8884, label: '第12期还款' },
+    { period: 1, amount: -8884, label: '第1月还款' },
+    { period: 2, amount: -8884, label: '第2月还款' },
+    { period: 3, amount: -8884, label: '第3月还款' },
+    { period: 4, amount: -8884, label: '第4月还款' },
+    { period: 5, amount: -8884, label: '第5月还款' },
+    { period: 6, amount: -8884, label: '第6月还款' },
+    { period: 7, amount: -8884, label: '第7月还款' },
+    { period: 8, amount: -8884, label: '第8月还款' },
+    { period: 9, amount: -8884, label: '第9月还款' },
+    { period: 10, amount: -8884, label: '第10月还款' },
+    { period: 11, amount: -8884, label: '第11月还款' },
+    { period: 12, amount: -8884, label: '第12月还款' },
   ]
 };
+
+var CF_STORE_KEY = 'irr_cashflows_v2';
+
+function saveFlows() {
+  try {
+    var unitEl = document.getElementById('periodUnit');
+    localStorage.setItem(CF_STORE_KEY, JSON.stringify({
+      unit: unitEl ? unitEl.value : 'year',
+      flows: cashFlows
+    }));
+  } catch (e) {}
+}
+
+function restoreFlows() {
+  try {
+    var raw = localStorage.getItem(CF_STORE_KEY);
+    if (!raw) return false;
+    var data = JSON.parse(raw);
+    var arr = Array.isArray(data) ? data : (data && data.flows);
+    if (!Array.isArray(arr) || arr.length < 2) return false;
+    cashFlows = arr.map(function (f) {
+      return {
+        period: Math.max(0, Math.round(Number(f.period) || 0)),
+        amount: Number(f.amount) || 0,
+        label: String(f.label == null ? '' : f.label)
+      };
+    });
+    if (!Array.isArray(data) && data && data.unit) {
+      document.getElementById('periodUnit').value = data.unit;
+    }
+    return true;
+  } catch (e) { return false; }
+}
 
 function loadPreset(name) {
   if (PRESETS[name]) {
     cashFlows = PRESETS[name].map(f => ({ ...f }));
+    if (name === 'loan') document.getElementById('periodUnit').value = 'month';
     renderFlows();
     calc();
   }
@@ -402,6 +437,7 @@ function updateAmount(idx, value) {
 
 function updateLabel(idx, value) {
   cashFlows[idx].label = value;
+  saveFlows();
 }
 
 function renderFlows() {
@@ -416,77 +452,173 @@ function renderFlows() {
   `).join('');container.innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 
+// 按真实期号汇总现金流（同一期号多笔相加，稀疏期号按实际期号折现）
+function buildSeries(list) {
+  const map = new Map();
+  list.forEach(f => {
+    const p = Math.round(Number(f.period));
+    const amt = Number(f.amount);
+    if (!isFinite(p) || p < 0 || !isFinite(amt)) return;
+    map.set(p, (map.get(p) || 0) + amt);
+  });
+  return Array.from(map.entries())
+    .sort((a, b) => a[0] - b[0])
+    .map(e => ({ period: e[0], amount: e[1] }));
+}
+
+// NPV = Σ CFₜ / (1+r)^t，t 为真实期号（不是数组下标）
+function npvAt(series, rate) {
+  let npv = 0;
+  for (let i = 0; i < series.length; i++) {
+    npv += series[i].amount / Math.pow(1 + rate, series[i].period);
+  }
+  return npv;
+}
+
+function countSignChanges(series) {
+  let cnt = 0, prev = 0;
+  for (let i = 0; i < series.length; i++) {
+    const v = series[i].amount;
+    if (v === 0) continue;
+    if (prev !== 0 && ((prev > 0) !== (v > 0))) cnt++;
+    prev = v;
+  }
+  return cnt;
+}
+
+// 稳健求解：按端点符号扫描区间（不假设 NPV 单调递减），支持贷款这类反向现金流；
+// 收敛后复核残差，并如实报告无根 / 多根。
+function solveIRR(series) {
+  const flows = series.filter(f => f.amount !== 0);
+  const scale = flows.reduce((s, f) => s + Math.abs(f.amount), 0) || 1;
+  const signChanges = countSignChanges(flows);
+  if (flows.length < 2) return { roots: [], verified: false, signChanges, reason: 'insufficient' };
+  if (!signChanges) return { roots: [], verified: false, signChanges, reason: 'no-sign-change' };
+
+  const LOW = -0.99, HIGH = 10;
+  const steps = 4000;
+  const tMin = Math.log(1 + LOW), tMax = Math.log(1 + HIGH);
+  const roots = [];
+  let prevR = null, prevF = null;
+
+  for (let i = 0; i <= steps; i++) {
+    const r = Math.exp(tMin + (tMax - tMin) * i / steps) - 1;
+    const f = npvAt(series, r);
+    if (!isFinite(f)) { prevR = null; prevF = null; continue; }
+    if (prevF !== null && prevF * f < 0) {
+      let lo = prevR, hi = r, flo = prevF;
+      for (let it = 0; it < 200; it++) {
+        const mid = (lo + hi) / 2;
+        const fm = npvAt(series, mid);
+        if (fm === 0 || Math.abs(hi - lo) < 1e-14) { lo = mid; hi = mid; break; }
+        if ((flo > 0) === (fm > 0)) { lo = mid; flo = fm; } else { hi = mid; }
+      }
+      roots.push((lo + hi) / 2);
+    }
+    prevR = r; prevF = f;
+  }
+
+  const verified = roots.length ? roots.every(r => Math.abs(npvAt(series, r)) <= scale * 1e-8) : false;
+  const reason = roots.length ? (roots.length > 1 ? 'multiple' : 'ok') : 'no-root';
+  return { roots, verified, signChanges, reason };
+}
+
 function calc() {
   if (cashFlows.length < 2) {
     resetDisplay();
+    renderDetail([]);
     return;
   }
-  
-  const flows = cashFlows.map(f => f.amount).sort((a, b) => a.period - b.period);
-  const flowValues = cashFlows.slice().sort((a, b) => a.period - b.period).map(f => f.amount);
-  
+
+  const series = buildSeries(cashFlows);
   const discountRate = parseFloat(document.getElementById('discountRate').value) / 100 || 0;
   const unit = document.getElementById('periodUnit').value;
-  
-  const irr = calculateIRR(flowValues);
-  const npv = calculateNPV(flowValues, discountRate);
-  const totalInvest = flowValues.filter(v => v < 0).reduce((s, v) => s + Math.abs(v), 0);
-  const totalReturn = flowValues.filter(v => v > 0).reduce((s, v) => s + v, 0);
-  
-  const unitNames = { year: '年', month: '月', quarter: '季' };
-  
-  const __g2=isFinite(irr) ? irr.toFixed(2) + '%' : '--';document.getElementById('irrValue').textContent=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
-  document.getElementById('irrValue').style.color = irr >= discountRate * 100 ? '#4caf50' : '#f44336';
+  saveFlows();
+
+  const sol = solveIRR(series);
+  const perPeriod = sol.roots.length ? sol.roots[0] : NaN;
+  const perYear = unit === 'month' ? 12 : (unit === 'quarter' ? 4 : 1);
+  const annualIrr = isFinite(perPeriod) ? Math.pow(1 + perPeriod, perYear) - 1 : NaN;
+  const npv = npvAt(series, discountRate);
+  const totalInvest = series.filter(v => v.amount < 0).reduce((s, v) => s + Math.abs(v.amount), 0);
+  const totalReturn = series.filter(v => v.amount > 0).reduce((s, v) => s + v.amount, 0);
+
+  const __g2=isFinite(annualIrr) ? (annualIrr * 100).toFixed(2) + '%' : '--';document.getElementById('irrValue').textContent=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+  document.getElementById('irrValue').style.color = (isFinite(perPeriod) && perPeriod >= discountRate) ? '#4caf50' : '#f44336';
   const __g3=fmtShort(npv);document.getElementById('npvValue').textContent=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
   document.getElementById('npvValue').style.color = npv >= 0 ? '#4caf50' : '#f44336';
   const __g4=fmtShort(totalInvest);document.getElementById('totalInvest').textContent=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
   const __g5=fmtShort(totalReturn);document.getElementById('totalReturn').textContent=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
 
-  var scCnt=0,prev=0;for(var si=0;si<flowValues.length;si++){var vv=flowValues[si];if(vv===0)continue;if(prev!==0&&((prev>0)!==(vv>0)))scCnt++;prev=vv;}
-  var noRoot=calculateNPV(flowValues,-0.99)*calculateNPV(flowValues,10)>0;
-  var warnEl=document.getElementById('irrWarn');
-  if(noRoot){warnEl.textContent='⚠ 搜索区间 [−99%, 1000%] 内未发现 IRR 零点，显示值无意义，请检查现金流方向';warnEl.style.display='block';}
-  else if(scCnt>1){warnEl.textContent='⚠ 现金流变号 '+scCnt+' 次，可能存在多重 IRR，显示值仅为其中之一';warnEl.style.display='block';}
-  else{warnEl.style.display='none';}
-  
+  const msgs = [];
+  if (sol.reason === 'insufficient') {
+    msgs.push('⚠ 有效现金流少于 2 期，无法求解 IRR。');
+  } else if (sol.reason === 'no-sign-change') {
+    msgs.push('⚠ 现金流全部同号（无正负交替），IRR 无解；请确认投入为负、收入为正。');
+  } else if (!sol.roots.length) {
+    msgs.push('⚠ 在可行利率区间 [−99%, 1000%]（每期口径）内未找到使 NPV=0 的零点，显示值无意义，请检查现金流方向。');
+  } else {
+    if (sol.roots.length > 1) {
+      msgs.push('⚠ 检测到 ' + sol.roots.length + ' 个 IRR 零点（' + sol.roots.slice(0, 5).map(function (r) { return (r * 100).toFixed(2) + '%'; }).join(' / ') + '），现金流多次变号，显示值为其中之一。');
+    } else if (sol.signChanges > 1) {
+      msgs.push('⚠ 现金流变号 ' + sol.signChanges + ' 次，可能存在多重 IRR，显示值仅为其中之一。');
+    }
+    if (!sol.verified) {
+      msgs.push('⚠ 收敛后残差偏大，IRR 结果不可靠，请检查现金流与期号。');
+    }
+  }
+  var warnEl = document.getElementById('irrWarn');
+  if (msgs.length) { warnEl.textContent = msgs.join(' '); warnEl.style.display = 'block'; }
+  else { warnEl.style.display = 'none'; }
+
+  renderDetail(series, perPeriod, annualIrr, unit, discountRate, sol);
+
   if (currentView === 'chart') drawChart();
 }
 
-function calculateNPV(flows, rate) {
-  let npv = 0;
-  for (let t = 0; t < flows.length; t++) {
-    npv += flows[t] / Math.pow(1 + rate, t);
-  }
-  return npv;
-}
+function renderDetail(series, perPeriod, annualIrr, unit, discountRate, sol) {
+  const box = document.getElementById('irrDetail');
+  if (!box) return;
+  if (!series || !series.length) { box.innerHTML = ''; return; }
 
-function calculateIRR(flows) {
-  if (flows.length < 2) return NaN;
-  
-  let low = -0.99;
-  let high = 10;
-  let iterations = 0;
-  const maxIterations = 200;
-  const tolerance = 1e-7;
-  
-  while (iterations < maxIterations) {
-    const mid = (low + high) / 2;
-    const npv = calculateNPV(flows, mid);
-    
-    if (Math.abs(npv) < tolerance) {
-      return mid * 100;
-    }
-    
-    if (npv > 0) {
-      low = mid;
-    } else {
-      high = mid;
-    }
-    
-    iterations++;
+  const unitNames = { year: '年', month: '月', quarter: '季' };
+  const hasRoot = isFinite(perPeriod);
+  const r = hasRoot ? perPeriod : discountRate;
+
+  let info = '期数单位：<strong>' + (unitNames[unit] || unit) + '</strong>；每期 IRR = <strong>'
+    + (hasRoot ? (perPeriod * 100).toFixed(4) + '%' : '--(未求得)')
+    + '</strong>；年化 IRR = <strong>' + (isFinite(annualIrr) ? (annualIrr * 100).toFixed(4) + '%' : '--') + '</strong>'
+    + '（年化口径：按每期 IRR 复利折算为 1 年）';
+
+  let rows = '';
+  let cum = 0;
+  for (let i = 0; i < series.length; i++) {
+    const cf = series[i];
+    const df = Math.pow(1 + r, -cf.period);
+    const pv = cf.amount * df;
+    cum += pv;
+    rows += '<tr>'
+      + '<td style="padding:5px 8px;border-bottom:1px solid var(--border);">T' + cf.period + '</td>'
+      + '<td style="padding:5px 8px;border-bottom:1px solid var(--border);text-align:right;">' + fmt(cf.amount) + '</td>'
+      + '<td style="padding:5px 8px;border-bottom:1px solid var(--border);text-align:right;">' + df.toFixed(6) + '</td>'
+      + '<td style="padding:5px 8px;border-bottom:1px solid var(--border);text-align:right;">' + fmt(pv) + '</td>'
+      + '<td style="padding:5px 8px;border-bottom:1px solid var(--border);text-align:right;">' + fmt(cum) + '</td>'
+      + '</tr>';
   }
-  
-  return ((low + high) / 2) * 100;
+
+  let foot = 'NPV @ 折现率 ' + (discountRate * 100).toFixed(2) + '% = <strong>' + fmt(npvAt(series, discountRate)) + '</strong>'
+    + '；Σ 现值 @ ' + (hasRoot ? 'IRR ' + (perPeriod * 100).toFixed(4) + '%' : '折现率') + ' = <strong>' + fmt(cum) + '</strong>';
+
+  box.innerHTML = '<div style="margin-bottom:6px;">' + info + '</div>'
+    + '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:12px;">'
+    + '<thead><tr>'
+    + '<th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border);">期号</th>'
+    + '<th style="text-align:right;padding:5px 8px;border-bottom:1px solid var(--border);">现金流</th>'
+    + '<th style="text-align:right;padding:5px 8px;border-bottom:1px solid var(--border);">折现因子 1/(1+r)^t</th>'
+    + '<th style="text-align:right;padding:5px 8px;border-bottom:1px solid var(--border);">现值</th>'
+    + '<th style="text-align:right;padding:5px 8px;border-bottom:1px solid var(--border);">累计现值</th>'
+    + '</tr></thead><tbody>' + rows + '</tbody></table></div>'
+    + '<div style="margin-top:6px;">' + foot + '</div>';
 }
 
 function drawChart() {
@@ -607,6 +739,8 @@ function resetDisplay() {
   ['irrValue', 'npvValue', 'totalInvest', 'totalReturn'].forEach(id => {
     document.getElementById(id).textContent = '--';
   });
+  const box = document.getElementById('irrDetail');
+  if (box) box.innerHTML = '';
 }
 
 function resetFlows() {
@@ -617,7 +751,12 @@ window.addEventListener('resize', () => {
   if (currentView === 'chart') drawChart();
 });
 
-loadPreset('project');
+if (restoreFlows()) {
+  renderFlows();
+  calc();
+} else {
+  loadPreset('project');
+}
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

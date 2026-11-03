@@ -41,6 +41,16 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "image/image-collage",
+  "clicks": [
+    "var p=CollageTool.fitPlan(200,100,10,10,100,100,'cover');var o=CollageTool.orderLoaded([{index:2,item:'c'},{index:0,item:'a'},{index:3,item:null},{index:1,item:'b'}]);document.getElementById('infoBox').textContent='DRAW:'+[p.dx,p.dy,p.dw,p.dh].join(',')+'|CLIP:'+[p.clip.x,p.clip.y,p.clip.w,p.clip.h].join(',')+'|ORD:'+o.join('');"
+  ],
+  "expect": [
+    "DRAW:-40,10,200,100|CLIP:10,10,100,100|ORD:abc"
+  ],
+  "ref": "IM-D2 回归：cover 下 200×100 图填入 (10,10) 起点的 100×100 格会画到 −40..160、覆盖邻格与间距 ⇒ fitPlan 必须给出严格裁剪矩形 clip=格子本身；加载完成须按 FileList 索引归并（乱序回调 2,0,3(失败),1 → abc，失败项剔除）。旧实现无 fitPlan/orderLoaded ⇒ 点击即抛错、infoBox 为空。"
+},
+{
   "slug": "image/image-compress",
   "inputs": {
     "quality": "120"
@@ -88,6 +98,29 @@ const CASES = [
   ],
     ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
+},
+{
+  "slug": "image/image-mosaic",
+  "inputs": {
+    "block-size": "15"
+  },
+  "clicks": [
+    "var g=window.__mosaicGeom;var n=+document.getElementById('block-size').value;var p=g.planPreview('full',null,n,0.25);var q=g.planPreview('area',{x:0,y:0,w:40,h:40},n,0.5);document.getElementById('block-val').textContent='PLAN:'+p.block+':'+(p.mosaic?'1':'0')+':'+(p.region===null?'F':'R')+'|AREA:'+q.block+':'+(q.region===null?'F':'R')+'|RAW:'+g.mapBlockToCanvas(n,1);"
+  ],
+  "expect": [
+    "PLAN:4:1:F|AREA:8:R|RAW:15"
+  ],
+  "ref": "IM-D1 回归：块大小统一以原图坐标定义并按画布缩放换算（15px @0.25 → 4、@0.5 → 8、1:1 → 15）；全图模式预览必须实际打码（mosaic=1 且 region 为空）。旧实现全图预览直接画原图（mosaic=0），且把显示坐标下的数值直接当块大小（预览高估强度）。默认块大小 10 会得到 PLAN:3:1:F|AREA:5:R|RAW:10 ⇒ 注入失败必失配。"
+},
+{
+  "slug": "image/image-crop",
+  "clicks": [
+    "var g=window.__cropGeom;var b=g.fitCropBox(98,98,12,12,100,100,12,1);var o=g.clampCropOutput({x:88.4,y:88.4,w:12.6,h:12.6},100,100);document.getElementById('ci-w').textContent='BOX:'+[b.x,b.y,b.w,b.h].join(',')+'|OUT:'+[o.x,o.y,o.w,o.h].join(',');"
+  ],
+  "expect": [
+    "BOX:88,88,12,12|OUT:88,88,12,12"
+  ],
+  "ref": "IM-D3 回归：100×100 图在右下角 (98,98) 建 1:1 框，最小 12px 在边界内放不下 ⇒ 必须移动起点到 (88,88) 且保持 12×12（旧实现先限边界再强推最小尺寸，内存留在 12×12 但导出只剩 2×2）；clampCropOutput 同时保证取整夹边后「信息栏显示尺寸 = 实际导出尺寸」（12.6 取整 13 后夹到 12）。旧实现无这两个纯函数 ⇒ 点击即抛错、ci-w 为空。"
 },
 {
   "slug": "image/image-resize",

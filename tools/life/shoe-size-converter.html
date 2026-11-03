@@ -154,7 +154,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="👟 鞋码换算器">👟 Shoe Size Converter</h2>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">鞋码按脚长换算：中国码 CN = 脚长(mm) ÷ 10（250 mm 对应 CN 250 即 40 码）；欧洲码 EU ≈ 脚长(cm) × 1.5 + 2；美国码与英国码在欧码基础上按性别减约 33 至 34（EU 40 约合 US 男 7 号、女 8.5 号）；建议以脚跟至最长脚趾的实测长度选码并预留 5 至 10 mm。</div>
+      <div class="formula-eq">鞋码按脚长换算：中国码 CN = 脚长(mm)（250 mm → CN 250）；欧洲码 EU ≈ 2 × 脚长(cm) − 10（250 mm → EU 40、260 mm → EU 42）；美国男码 US ≈ EU − 33（EU 40 → US 7、EU 42 → US 9）；英国码 UK ≈ EU − 34；美国女码 ≈ EU − 31.5（同脚长约合 US 女 8.5）；建议以脚跟至最长脚趾的实测长度选码并预留 5 至 10 mm。</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入脚长或鞋码自动换算各国对应尺码">Convert shoe sizes across US, UK, EU, CN and JP systems for men, women and children.</p>
 
@@ -163,7 +163,7 @@ s.parentNode.insertBefore(el, s);
         <label>输入类型</label>
         <select id="inputType" onchange="convert()">
           <option value="length" selected>脚长（毫米）</option>
-          <option value="cn">中国码</option>
+          <option value="cn">中国码（毫米）</option>
           <option value="eu">欧盟码</option>
           <option value="us_m">美码（男）</option>
           <option value="us_w">美码（女）</option>
@@ -188,12 +188,12 @@ s.parentNode.insertBefore(el, s);
     <h3>📐 公式说明</h3>
     <div class="result-box">
       <p><strong>脚长（毫米）→ 各国鞋码</strong></p>
-      <p>中国码 CN = 脚长 mm / 10 （如 250mm → 25）</p>
-      <p>欧盟码 EU ≈ 1.5 × (脚长 cm + 2)（如 25cm → 41）</p>
-      <p>美码男 US ≈ 0.847 × 脚长 cm - 17.6（约 7-12 常见）</p>
-      <p>美码女 US ≈ 0.847 × 脚长 cm - 18.4</p>
-      <p>英码 UK ≈ 美码男 - 1</p>
-      <p>注：各品牌存在 0.5-1 码差异，建议以品牌对照表为准</p>
+      <p>中国码 CN = 脚长 mm（如 250mm → 250、260mm → 260）</p>
+      <p>欧盟码 EU ≈ 2 × 脚长 cm − 10（如 25cm → 40、26cm → 42）</p>
+      <p>美码男 US ≈ EU − 33（EU 40 → 7、EU 42 → 9）</p>
+      <p>美码女 US ≈ EU − 31.5（EU 40 → 8.5、EU 42 → 10.5）</p>
+      <p>英码 UK ≈ EU − 34（EU 40 → 6、EU 42 → 8）</p>
+      <p>注：各国口径为近似对照，各品牌存在 0.5-1 码差异，建议以品牌对照表为准</p>
     </div>
   </div>
 
@@ -279,34 +279,38 @@ function fmt(n){
   return parseFloat(n.toPrecision(6)).toString();
 }
 
+// 统一口径：EU ≈ 2 × 脚长(cm) − 10；US 男 ≈ EU − 33；UK ≈ EU − 34；US 女 ≈ EU − 31.5；CN = 脚长(mm)
+function euFromMm(mm){ return 2 * (mm / 10) - 10; }
+function mmFromEu(eu){ return (eu + 10) * 5; }
+
 // 先把所有输入换算为脚长（毫米）
 function toMm(v, type){
   switch(type){
     case 'length': return v;  // 已是 mm
-    case 'cn': return v * 10;
-    case 'eu': return (v / 1.5 - 2) * 10;  // EU ≈ 1.5*(cm+2)
-    case 'us_m': return (v + 17.6) / 0.847 * 10;
-    case 'us_w': return (v + 18.4) / 0.847 * 10;
-    case 'uk': return (v + 1 + 17.6) / 0.847 * 10;
+    case 'cn': return v;
+    case 'eu': return mmFromEu(v);
+    case 'us_m': return mmFromEu(v + 33);
+    case 'us_w': return mmFromEu(v + 31.5);
+    case 'uk': return mmFromEu(v + 34);
   }
   return NaN;
 }
 
 function fromMm(mm, type){
-  const cm = mm / 10;
+  const eu = euFromMm(mm);
   switch(type){
     case 'length': return mm;
-    case 'cn': return mm / 10;
-    case 'eu': return 1.5 * (cm + 2);
-    case 'us_m': return 0.847 * cm - 17.6;
-    case 'us_w': return 0.847 * cm - 18.4;
-    case 'uk': return 0.847 * cm - 18.6;
+    case 'cn': return mm;
+    case 'eu': return eu;
+    case 'us_m': return eu - 33;
+    case 'us_w': return eu - 31.5;
+    case 'uk': return eu - 34;
   }
   return NaN;
 }
 
 const labels = {
-  length:'脚长(mm)', cn:'中国码', eu:'欧盟码',
+  length:'脚长(mm)', cn:'中国码(mm)', eu:'欧盟码',
   us_m:'美码(男)', us_w:'美码(女)', uk:'英码'
 };
 
@@ -448,9 +452,9 @@ function __shoe_size_converterPresets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#shoe_size_converterPresets',[
       {label:'默认参数',labelEn:'Default',values:{'inputType':'length', 'inputVal':'250'}},
-      {label:'中国码40·脚长250mm',labelEn:'CN 40 · 250mm foot',values:{'inputType':'cn', 'inputVal':'40'}},
-      {label:'美码男9·脚长265mm',labelEn:'US men 9 · 265mm foot',values:{'inputType':'us_m', 'inputVal':'9'}},
-      {label:'欧码42·脚长265mm',labelEn:'EU 42 · 265mm foot',values:{'inputType':'eu', 'inputVal':'42'}}
+      {label:'中国码250mm·脚长250mm',labelEn:'CN 250 · 250mm foot',values:{'inputType':'cn', 'inputVal':'250'}},
+      {label:'美码男9·脚长260mm',labelEn:'US men 9 · 260mm foot',values:{'inputType':'us_m', 'inputVal':'9'}},
+      {label:'欧码42·脚长260mm',labelEn:'EU 42 · 260mm foot',values:{'inputType':'eu', 'inputVal':'42'}}
     ],function(){ convert(); });
 }
 var __shoe_size_converter_f0=(typeof convert==='function')?convert:null;

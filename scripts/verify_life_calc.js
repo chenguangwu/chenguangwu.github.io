@@ -17,7 +17,37 @@ const CASES = [
     slug: "life/parking-fee",
     inputs: { hours: "5.5", rate: "10", free: "1", cap: "60" },
     expect: ["45.00"],
-    ref: "计费时长 = 5.5 − 1 = 4.5 h；费用 = 4.5 × 10 = 45.00（未触及封顶 60）",
+    ref: "单日：计费时长 = 5.5 − 1 = 4.5 h；费用 = 4.5 × 10 = 45.00（未触及封顶 60）",
+  },
+  {
+    slug: "life/parking-fee",
+    inputs: { hours: "36", rate: "10", free: "0", cap: "60" },
+    expect: ["120.00", "封顶已生效", "第 2 日"],
+    ref: "LF-N10 跨 2 个计费日（未填开始时间 ⇒ 每 24h 一日）：第 1 日 24h × 10 = 240 → 封顶 60；"
+       + "第 2 日 12h × 10 = 120 → 封顶 60；合计 120.00。旧实现整段只封顶一次 ⇒ 60。"
+       + "默认 3.5h 仅 35.00/单日，三条锚全失配。",
+  },
+  {
+    slug: "life/parking-fee",
+    inputs: { hours: "36", rate: "10", free: "1", cap: "0" },
+    expect: ["340.00", "第 2 日"],
+    ref: "LF-N10 免费时长逐日扣减：第 1 日 (24−1)×10 = 230，第 2 日 (12−1)×10 = 110，合计 340.00。"
+       + "旧实现只扣一次免费 ⇒ (36−1)×10 = 350.00；默认 3.5h 得 25.00，注入失败均不命中。",
+  },
+  {
+    slug: "life/parking-fee",
+    inputs: { hours: "24", rate: "10", free: "0", cap: "60" },
+    expect: ["60.00", "计费日数 1 计费时长(h) 24.0"],
+    ref: "LF-N10 整 24h：恰好 1 个计费日，24h × 10 = 240 → 封顶 60.00，计费日数 1、计费时长 24.0。"
+       + "默认 3.5h/1 日的计费时长为 3.5，第二条组合锚失配。",
+  },
+  {
+    slug: "life/parking-fee",
+    inputs: { hours: "50", rate: "10", free: "0", cap: "60", startTime: "2026-01-01T17:00" },
+    expect: ["180.00", "2026-01-01", "封顶已生效 3 天"],
+    ref: "LF-N10 跨 0 点：自 2026-01-01 17:00 起 50h ⇒ 当日 7h（70→60 封顶）、1/2 24h（60）、1/3 19h（190→60）。"
+       + "逐日 min(日费,60) 累加 = 180.00，三日日费均超过 60、均触发封顶。旧实现整段封顶一次 ⇒ 60。"
+       + "锚含真实日期 2026-01-01 与「封顶已生效 3 天」，默认态/未注入 startTime 均不命中。",
   },
   // ── 百分比（占比）────────────────────────────────────────────
   {
@@ -318,16 +348,52 @@ const CASES = [
        + "「总份数： 4份」不可作锚——该量只由人数决定，默认态同样命中（逃生项）。",
   },
 
-  // ── 工作日测算（排除周六日） ───────────────────────────────
+  // ── 工作日测算（含首尾、排除周六日） ───────────────────────
   {
     slug: "life/workday-calculator",
     inputs: { startDate: "2026-01-01", endDate: "2026-01-31" },
     checkIds: ["skipSat", "skipSun"],
-    expect: ["自然日总数： 30 天", "周末（已排除）： 8 天", "工作日数： 22 天"],
-    ref: "去默认化：循环条件 d<end ⇒ 只统计 2026/1/1~1/30 共 30 个自然日（不含末日）。"
-       + "其中周六/周日为 1/3、1/4、1/10、1/11、1/17、1/18、1/24、1/25 共 8 天 ⇒ 排除后工作日 22。"
-       + "skipSat/skipSun 在 HTML 上默认 checked，但 harness 桩内 checkbox 恒未勾 ⇒ 必须显式 checkIds，"
-       + "否则输出为「周末（已排除）： 0 天 / 工作日数： 30 天」。默认态 startDate/endDate 无 value ⇒「请选择日期」。",
+    expect: ["自然日总数： 31 天", "周末（已排除）： 9 天", "工作日数： 22 天"],
+    ref: "LF-N7 含首尾：2026/1/1~1/31 共 31 个自然日；周六/周日为 1/3、1/4、1/10、1/11、1/17、1/18、1/24、1/25、1/31 共 9 天 ⇒ 工作日 22。"
+       + "旧实现 d<end 只算 30 天/8 周末（末日 1/31 周六被漏计）。skipSat/skipSun 在 HTML 上默认 checked，"
+       + "但 harness 桩内 checkbox 恒未勾 ⇒ 必须显式 checkIds。默认态 startDate/endDate 无 value ⇒「请选择日期」。",
+  },
+  {
+    slug: "life/workday-calculator",
+    inputs: { startDate: "2026-01-05", endDate: "2026-01-05" },
+    checkIds: ["skipSat", "skipSun"],
+    expect: ["自然日总数： 1 天", "工作日数： 1 天", "周末（已排除）： 0 天"],
+    ref: "LF-N7 同日：2026-01-05（周一）含首尾 ⇒ 1 个自然日、1 个工作日；旧实现 while(d<end) 得 0 天。"
+       + "默认 7 天区间不含该组合（自然日 1 天），注入失败即不命中。",
+  },
+  {
+    slug: "life/workday-calculator",
+    inputs: { startDate: "2026-01-05", endDate: "2026-01-09" },
+    checkIds: ["skipSat", "skipSun"],
+    expect: ["自然日总数： 5 天", "工作日数： 5 天", "周末（已排除）： 0 天"],
+    ref: "LF-N7 周一至周五（1/5~1/9）含首尾 ⇒ 5 个自然日全为工作日；旧实现 d<end 只算 4 天（漏掉周五）。",
+  },
+  {
+    slug: "life/workday-calculator",
+    inputs: { startDate: "2025-12-31", endDate: "2026-01-02" },
+    checkIds: ["skipSat", "skipSun"],
+    expect: ["自然日总数： 3 天", "工作日数： 3 天", "周末（已排除）： 0 天"],
+    ref: "LF-N7 跨年：2025-12-31（周三）~2026-01-02（周五）含首尾 ⇒ 3 天均为工作日；旧实现得 2 天。",
+  },
+  {
+    slug: "life/workday-calculator",
+    inputs: { startDate: "2026-01-03", endDate: "2026-01-04", workdays: "2026-01-03" },
+    checkIds: ["skipSat", "skipSun"],
+    expect: ["调休上班日（计入工作日）： 1 天", "工作日数： 1 天", "周末（已排除）： 1 天"],
+    ref: "LF-N9 补班周六：1/3 周六填入调休上班日 ⇒ 强制计为工作日；1/4 周日仍排除 ⇒ 2 个自然日中工作日 1、周末 1、调休 1。"
+       + "旧实现只把自定义日期当节假日扣减、周末仍判休息 ⇒ 工作日 0。",
+  },
+  {
+    slug: "life/workday-calculator",
+    inputs: { startDate: "2026-01-01", endDate: "2026-01-01", holidays: "2026-01-01" },
+    checkIds: ["skipSat", "skipSun"],
+    expect: ["自然日总数： 1 天", "工作日数： 0 天", "法定节假日： 1 天"],
+    ref: "LF-N7/N9 法定节假日：1/1 填入节假日清单 ⇒ 1 个自然日、0 个工作日、节假日 1；调休上班日清单为空故不抵消。",
   },
 
   // ── 日期加减 ──────────────────────────────────────────────
@@ -989,39 +1055,68 @@ const CASES = [
   },
   {
     slug: "life/shoe-size-converter",
-    inputs: { inputVal: "220" },
-    expect: ["中国码： 22"],
-    ref: 'v=220 from=length: 中国码=220/10=22'
+    inputs: { inputType: "length", inputVal: "220" },
+    expect: ["中国码(mm)： 220", "欧盟码： 34", "美码(男)： 1"],
+    ref: "LF-N14 220mm：EU = 2×22 − 10 = 34、US男 = 34 − 33 = 1、CN 直接显示脚长 220。"
+       + "旧实现 CN=22、EU=1.5×(22+2)=36、US=0.847×22−17.6=1.034，三条锚均失配。",
   },
   {
     slug: "life/shoe-size-converter",
-    inputs: { inputVal: "230" },
-    expect: ["欧盟码： 37.5"],
-    ref: 'v=230 from=length: 欧盟码=1.5×(23+2)=37.5'
+    inputs: { inputType: "length", inputVal: "230" },
+    expect: ["欧盟码： 36", "中国码(mm)： 230", "美码(男)： 3"],
+    ref: "LF-N14 230mm：EU = 2×23 − 10 = 36、US男 = 3、CN 230；旧实现 EU=37.5、CN=23。",
   },
   {
     slug: "life/shoe-size-converter",
-    inputs: { inputVal: "240" },
-    expect: ["中国码： 24"],
-    ref: 'v=240 from=length: 中国码=240/10=24'
+    inputs: { inputType: "length", inputVal: "240" },
+    expect: ["中国码(mm)： 240", "欧盟码： 38", "美码(男)： 5"],
+    ref: "LF-N14 240mm：EU = 38、US男 = 5、CN 240；旧实现 CN=24、EU=39。",
   },
   {
     slug: "life/shoe-size-converter",
-    inputs: { inputVal: "260" },
-    expect: ["欧盟码： 42"],
-    ref: 'v=260 from=length: 欧盟码=1.5×(26+2)=42'
+    inputs: { inputType: "length", inputVal: "265" },
+    expect: ["中国码(mm)： 265", "欧盟码： 43", "美码(男)： 10", "美码(女)： 11.5", "英码： 9"],
+    ref: "LF-N14 265mm：EU = 2×26.5 − 10 = 43、US男 = 43 − 33 = 10、US女 = 43 − 31.5 = 11.5、UK = 43 − 34 = 9，"
+       + "与页面公式区「EU43≈US男10」一致。旧实现在 26.5cm 得 EU43.5/US男4.85、CN26.5，全部失配。",
   },
   {
     slug: "life/shoe-size-converter",
-    inputs: { inputVal: "280" },
-    expect: ["美码(男)： 6.116"],
-    ref: 'v=280 from=length: 美码男=0.847×28-17.6=6.116'
+    inputs: { inputType: "length", inputVal: "255" },
+    expect: ["中国码(mm)： 255", "欧盟码： 41", "美码(男)： 8", "美码(女)： 9.5", "英码： 7"],
+    ref: "LF-N14 半码：255mm ⇒ EU 41、US男 8、US女 9.5、UK 7、CN 255；保留半码不取整。",
   },
   {
     slug: "life/shoe-size-converter",
-    inputs: { inputVal: "300" },
-    expect: ["欧盟码： 48"],
-    ref: 'v=300 from=length: 欧盟码=1.5×(30+2)=48'
+    inputs: { inputType: "length", inputVal: "260" },
+    expect: ["中国码(mm)： 260", "欧盟码： 42", "美码(男)： 9", "美码(女)： 10.5", "英码： 8"],
+    ref: "LF-N14 260mm：EU 42、US男 9、US女 10.5、UK 8、CN 260，与深度解析「EU42≈US9≈CN260mm」一致。"
+       + "旧实现 US男 = 0.847×26 − 17.6 = 4.422。",
+  },
+  {
+    slug: "life/shoe-size-converter",
+    inputs: { inputType: "us_m", inputVal: "7" },
+    expect: ["7\nus_m\n基准脚长： 250 mm 脚长(mm)： 250"],
+    ref: "LF-N14 反向闭合：US男 7 ⇒ EU = 7 + 33 = 40 ⇒ 脚长 = (40+10)×5 = 250 mm、CN 250；"
+       + "toMm/fromMm 互为逆运算（旧实现反解 US7 得 290.4mm）。",
+  },
+  {
+    slug: "life/shoe-size-converter",
+    inputs: { inputType: "us_m", inputVal: "9" },
+    expect: ["基准脚长： 260 mm", "欧盟码： 42", "中国码(mm)： 260"],
+    ref: "LF-N14 反向闭合：US男 9 ⇒ EU42 ⇒ 260mm、CN 260；旧实现反解 313.6mm。"
+       + "默认 250mm 见「基准脚长 250」，第二条 260 失配。",
+  },
+  {
+    slug: "life/shoe-size-converter",
+    inputs: { inputType: "eu", inputVal: "40" },
+    expect: ["40\neu\n基准脚长： 250 mm 脚长(mm)： 250"],
+    ref: "LF-N14 EU 输入：EU40 ⇒ 250mm、US男 7、CN 250；与 250mm 正向用例互为往返。",
+  },
+  {
+    slug: "life/shoe-size-converter",
+    inputs: { inputType: "eu", inputVal: "42" },
+    expect: ["基准脚长： 260 mm", "美码(男)： 9", "中国码(mm)： 260"],
+    ref: "LF-N14 EU 输入：EU42 ⇒ 260mm、US男 9、CN 260；旧实现 EU42 反解 266.7mm。",
   },
   {
     slug: "life/roman-numeral",
@@ -1662,13 +1757,14 @@ const CASES = [
   {
     "slug": "life/shoe-size-converter",
     "inputs": {
-      "inputVal": "42",
+      "inputVal": "250",
       "inputType": "cn"
     },
     "expect": [
-      "42\ncn\n基准脚长： 420 mm 脚长(mm)： 420 欧盟码： 66 美码(男)： 17.974 美码(女)： 17.174 英码： 16.974"
+      "250\ncn\n基准脚长： 250 mm 脚长(mm)： 250 欧盟码： 40 美码(男)： 7 美码(女)： 8.5 英码： 6"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"inputType\":\"cn\"}，输出区含「42\ncn\n基准脚长： 420 mm 脚长(mm)： 420 欧盟码： 66 美…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "LF-N14 CN 输入闭合：CN 直接即脚长 mm，250mm ⇒ EU40/US男7/US女8.5/UK6，且输入 250 与输出脚长 250 一致（toMm 恒等）。"
+       + "默认态（不注入）为 250/length 的输出「脚长(mm) 250…」且输入回显为 250/length，不含「250\\ncn」前缀 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "life/time-converter",

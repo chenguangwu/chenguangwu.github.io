@@ -541,31 +541,47 @@ function getVal(id){
   return el ? (+el.value || 0) : 0;
 }
 
-function calcYTM(price, face, couponRate, years, freq, type){
-  var n = years * freq;
-  n = Math.min(n, 12000);
+// 债券现值：i 为「每期」利率（年利率 = i × 付息频率）
+function bondPVAt(face, couponRate, n, freq, type, i){
+  if(type === 'zero') return face / Math.pow(1 + i, n);
   var c = face * couponRate / 100 / freq;
-  
+  var p = 0;
+  for(var t = 1; t <= n; t++){
+    p += c / Math.pow(1 + i, t);
+  }
+  p += face / Math.pow(1 + i, n);
+  return p;
+}
+
+function calcYTM(price, face, couponRate, years, freq, type){
+  var n = Math.max(1, Math.min(Math.round(years * freq), 12000));
+  var f = Math.max(1, freq || 1);
+
   if(type === 'zero'){
-    var ytm = Math.pow(face / price, 1 / n) - 1;
-    return ytm * freq;
+    var i0 = Math.pow(face / price, 1 / n) - 1;
+    return i0 * f;
   }
-  
-  var low = 0, high = 1;
-  for(var i = 0; i < 100; i++){
-    var mid = (low + high) / 2;
-    var p = 0;
-    for(var t = 1; t <= n; t++){
-      p += c / Math.pow(1 + mid/freq, t);
-    }
-    p += face / Math.pow(1 + mid/freq, n);
-    if(p > price){
-      low = mid;
-    } else {
-      high = mid;
-    }
+
+  // 附息债券价格关于每期利率 i 单调递减 ⇒ 用端点符号定界，可支持负收益率（价格高于全部现金流时）
+  var lower = -1 + 1e-6;
+  var upper = 1;
+  var pvUpper = bondPVAt(face, couponRate, n, f, type, upper);
+  for(var k = 0; k < 60 && pvUpper >= price; k++){
+    upper *= 2;
+    pvUpper = bondPVAt(face, couponRate, n, f, type, upper);
   }
-  return (low + high) / 2;
+  var pvLower = bondPVAt(face, couponRate, n, f, type, lower);
+  if(!isFinite(pvLower) || !isFinite(pvUpper)) return NaN;
+  if(pvLower < price || pvUpper > price) return NaN;   // 区间内无解
+
+  var lo = lower, hi = upper;
+  for(var it = 0; it < 200; it++){
+    var mid = (lo + hi) / 2;
+    var pm = bondPVAt(face, couponRate, n, f, type, mid);
+    if(pm === price || Math.abs(hi - lo) < 1e-14){ lo = mid; hi = mid; break; }
+    if(pm > price){ lo = mid; } else { hi = mid; }
+  }
+  return ((lo + hi) / 2) * f;
 }
 
 function calcBondPrice(face, couponRate, years, marketRate, freq, type){
@@ -598,18 +614,30 @@ function calc(){
     var type = document.getElementById('y-type').value;
     
     var ytm = calcYTM(price, face, couponRate, years, freq, type);
-    var currentYield = type === 'coupon' ? (face * couponRate / 100) / price * 100 : 0;
-    var annualCoupon = face * couponRate / 100;
-    var totalCoupon = annualCoupon * years;
-    var totalReturn = type === 'coupon' ? (face - price + totalCoupon) : (face - price);
+    var isZero = type === 'zero';
+    var currentYield = isZero ? 0 : (face * couponRate / 100) / price * 100;
+    var annualCoupon = isZero ? 0 : face * couponRate / 100;
+    var totalCoupon = isZero ? 0 : annualCoupon * years;
+    var totalReturn = isZero ? (face - price) : (face - price + totalCoupon);
     var totalReturnRate = totalReturn / price * 100;
-    
+
+    var nPer = Math.max(1, Math.min(Math.round(years * freq), 12000));
+    var perYield = isFinite(ytm) ? ytm / freq : NaN;
+    var pvCheck = isFinite(perYield) ? bondPVAt(face, couponRate, nPer, freq, type, perYield) : NaN;
+    var residual = pvCheck - price;
+    var checkOk = isFinite(ytm) && isFinite(residual) && Math.abs(residual) <= Math.max(price, 1) * 1e-6;
+
     result.face = face;
     result.couponRate = couponRate;
     result.price = price;
     result.years = years;
     result.freq = freq;
     result.type = type;
+    result.nPer = nPer;
+    result.perYield = perYield;
+    result.pvCheck = pvCheck;
+    result.residual = residual;
+    result.checkOk = checkOk;
     result.ytm = ytm * 100;
     result.currentYield = currentYield;
     result.annualCoupon = annualCoupon;
@@ -699,7 +727,8 @@ function calc(){
 function renderStats(r){
   var html = '';
   if(currentMethod === 'ytm'){
-    html = '<div class="stat-card"><div class="val" style="color:var(--primary);">' + r.ytm.toFixed(3) + '%</div><div class="lbl">到期收益率</div></div>'
+    var ytmTxt = isFinite(r.ytm) ? r.ytm.toFixed(3) + '%' : '--';
+    html = '<div class="stat-card"><div class="val" style="color:var(--primary);">' + ytmTxt + '</div><div class="lbl">到期收益率</div></div>'
       + '<div class="stat-card"><div class="val">' + r.currentYield.toFixed(2) + '%</div><div class="lbl">当期收益率</div></div>'
       + '<div class="stat-card"><div class="val">¥' + ToolBox.formatNumber(r.annualCoupon, 2) + '</div><div class="lbl">年利息</div></div>'
       + '<div class="stat-card"><div class="val">' + (r.totalReturnRate > 0 ? '+' : '') + r.totalReturnRate.toFixed(2) + '%</div><div class="lbl">总回报率</div></div>';
@@ -732,12 +761,14 @@ function renderResult(r){
     html += '<p>面值：<strong>¥' + ToolBox.formatNumber(r.face, 2) + '</strong>，票面利率：<strong>' + r.couponRate + '%</strong></p>';
     html += '<p>当前价格：<strong>¥' + ToolBox.formatNumber(r.price, 2) + '</strong>，剩余期限：<strong>' + r.years + ' 年</strong></p>';
     html += '<hr style="border:none;border-top:1px solid var(--border);margin:12px 0;">';
-    html += '<p>到期收益率 (YTM)：<strong style="color:var(--primary);font-size:18px;">' + r.ytm.toFixed(3) + '%</strong></p>';
+    html += '<p>到期收益率 (YTM)：<strong style="color:var(--primary);font-size:18px;">' + (isFinite(r.ytm) ? r.ytm.toFixed(3) + '%' : '--（区间内无解，请检查价格与现金流）') + '</strong></p>';
     html += '<p>当期收益率：<strong>' + r.currentYield.toFixed(2) + '%</strong></p>';
     html += '<p>年利息收入：<strong>¥' + ToolBox.formatNumber(r.annualCoupon, 2) + '</strong></p>';
     html += '<p>总利息收入：<strong>¥' + ToolBox.formatNumber(r.totalCoupon, 2) + '</strong></p>';
     html += '<p>总收益（利息+本金差）：<strong style="color:' + (r.totalReturn >= 0 ? 'var(--success)' : 'var(--danger)') + ';">¥' + ToolBox.formatNumber(r.totalReturn, 2) + '</strong>（' + (r.totalReturnRate > 0 ? '+' : '') + r.totalReturnRate.toFixed(2) + '%）</p>';
-    html += '<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">* YTM为年化收益率，假设利息按YTM再投资</p>';
+    html += '<p>现金流：每期票息 <strong>¥' + ToolBox.formatNumber(r.type === 'zero' ? 0 : r.face * r.couponRate / 100 / r.freq, 2) + '</strong> × ' + r.nPer + ' 期，到期本金 <strong>¥' + ToolBox.formatNumber(r.face, 2) + '</strong>' + (r.type === 'zero' ? '（零息债券：无票息）' : '') + '</p>';
+    html += '<p>定价校验：Σ 现金流现值 = <strong>¥' + (isFinite(r.pvCheck) ? ToolBox.formatNumber(r.pvCheck, 2) : '--') + '</strong>，目标价格 ¥' + ToolBox.formatNumber(r.price, 2) + '，残差 <strong>¥' + (isFinite(r.residual) ? ToolBox.formatNumber(r.residual, 2) : '--') + '</strong>（' + (r.checkOk ? '✓ 通过' : '⚠ 超出可行区间或未收敛') + '）</p>';
+    html += '<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">* YTM为年化收益率（每期收益率 × 付息频率），假设利息按YTM再投资；负值表示持有到期为负收益</p>';
   }
   else if(currentMethod === 'current'){
     html += '<p>面值：<strong>¥' + ToolBox.formatNumber(r.face, 2) + '</strong>，票面利率：<strong>' + r.couponRate + '%</strong></p>';
