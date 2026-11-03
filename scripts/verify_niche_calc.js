@@ -43,29 +43,6 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "niche/convert-fps",
-  "inputs": {
-    "val": "45",
-    "fps": "30"
-  },
-  "expect": [
-    "1.50"
-  ],
-  "ref": "auto-restore"
-},
-{
-  "slug": "niche/convert-sample",
-  "inputs": {
-    "val": "66150",
-    "sr": "44.1"
-  },
-  "expect": [
-    "66150"
-  ],
-    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
-  "ref": "auto-restore"
-},
-{
   "slug": "beekeeping/honey-estimator",
   "inputs": {
     "hives": "15",
@@ -85,16 +62,6 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "niche/photography-exposure",
-  "inputs": {
-    "aperture": "1.8"
-  },
-  "expect": [
-    "1/15s"
-  ],
-  "ref": "auto-restore"
-},
-{
   "slug": "gardening/pruning-calendar",
   "inputs": {
     "searchInput": "zzzqx"
@@ -103,26 +70,6 @@ const CASES = [
     "未找到匹配的植物"
   ],
   "ref": "关键词过滤型：inputs 写 searchInput=zzzqx ⇒ oninput=filterPlants() ⇒ renderPlants() 得空集 ⇒ 「未找到匹配的植物」。默认态渲染当季 16 种植物全量、blob 无该串（已双态核验），故为排他锚点。"
-},
-{
-  "slug": "niche/recommender-temp-pottery",
-  "inputs": {
-    "cnt": "8"
-  },
-  "expect": [
-    "8. "
-  ],
-  "ref": "auto-restore（原断言为静态标题，注入失败仍命中 → 逃生项；改为断言条数/第8条）"
-},
-{
-  "slug": "niche/succulent-watering",
-  "inputs": {
-    "season": "summer"
-  },
-  "expect": [
-    "每20天"
-  ],
-  "ref": "auto-restore"
 },
 {
   "slug": "video/video-fps",

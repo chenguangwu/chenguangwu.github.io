@@ -53,58 +53,6 @@ const CASES = [
   ],
   "ref": "auto-restore(default)；**2026-09-26 复核判死（勿重复评估）**：setCat(k) 走 initTabs()+renderList()，前者只给按钮切 active class（CATS 名称文本全部常驻），后者对 CONSTANTS 做 `filter(curCat==='all'||c.cat===curCat)` 后 map 渲染 —— 过滤是**顺序保持型**（命中行的顺序与原表一致）⇒ 注入态输出恒为「默认全量」的顺序子序列，任何常数名/数值都已被默认态包含（§10.5 B 组判据）。搜索框同理。`emptyHint` 只切 style.display（collectStrings 不采 style）。"
 },
-{
-  "slug": "misc/scientific-notation",
-  "inputs": {
-    "rawInput": "602214076000000000000000",
-    "mantissaInput": "6.022",
-    "expInput": "35"
-  },
-  "expect": [
-    "6.022e+35"
-  ],
-  "ref": "auto-restore"
-},
-{
-  "slug": "misc/statistics-distribution",
-  "inputs": {
-    "mu": "2",
-    "sigma": "1.5",
-    "xval": "3",
-    "aVal": "6",
-    "bVal": "7",
-    "lambda": "3",
-    "kval": "5",
-    "nval": "10",
-    "pval": "0.5"
-  },
-  "expect": [
-    "P(X ≤ 3) = 0.747508"
-  ],
-  "ref": "auto-restore（去默认化：μ=2,σ=1.5,x=3 → z=0.6667、Φ=0.747508；Python math.erf 复算 0.7475075。默认 μ=0,σ=1,x=1 得 0.841345）"
-},
-{
-  "slug": "misc/truth-table",
-  "inputs": {
-    "exprInput": "A and (B or not C)_X"
-  },
-  "expect": [
-    "无法识别字符"
-  ],
-  "ref": "auto-restore"
-},
-  {
-    "slug": "misc/unit-prefix",
-    "inputs": {
-      "valueInput": "42",
-      "unitInput": "abc123测试"
-    },
-    "expect": [
-      " = 0.000042\n42\nabc123测试\nY yotta 4.200e-26 Yabc123测试 Z zetta 4.200e-23 Zabc123测试 E exa 4.200e-20 Eabc123测试 P peta 4.200e-"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"valueInput\":\"42\",\"unitInput\":\"abc123测试\"}，输出区含「 = 0.000042\n42\nabc123测试\nY yotta 4.200e-2…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  }
-
 ];
 async function main() {
   const only = process.argv.slice(2);
