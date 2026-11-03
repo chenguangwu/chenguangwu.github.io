@@ -30,3 +30,38 @@
 
 ### 覆盖与文档冲突
 - 本次抽查上述 2 页，使用内存 DOM 桩，未实测浏览器或其他运动页。原进度仍列比赛目标反推待做，与上方已落地记录冲突；保留待独立复核。
+
+## 2026-11-03 续查（并行批）：运动与健身
+
+### SF-N1 心率区间倒挂（高，确认）
+- 证据：`calc-heart-rate.html:189-202`。age=120、rest=120 → hrmax=100、hrr=−20，Zone1「110-108」；清空年龄仍按 0 出 220/143-158。
+- 影响：反物理区间。方案：hrr≤0 停算提示，空值必填。
+
+### SF-N2 BIA 极端值假结果（高，确认）
+- 证据：`resistance.html:244-257`。age 未进公式（245 仅校验）；h=230、w=30、z=200 → FFM 171.6 钳成 28.5、体脂 5.0%。
+- 影响：误判「必需脂肪」。方案：FFM>W 或 TBW/W>100% 判无效。
+
+### SF-N3 训练容量自重与导出（中，确认）
+- 证据：`training-volume.html:352` 仅 weight>0 可存，引体/俯卧撑填 0 无法保存；139 行「导出记录」实为 488-497 `copyText`；英文态 confirm/canvas 仍中文（287/414/468）。
+- 影响：徒手训练被排除、导出名不副实。方案：weight=0 体重倍数、Blob 下载、canvas/confirm 走 i18n。
+
+### SF-N4 攀岩 V 级只取首行（中，确认）
+- 证据：`climbing-grade-converter.html:285-308`。V1 占 10/11（5.10c/5.10d）、V3 占 14/15；364-370 行 `break`：V1→5.10c、V3→5.11c。
+- 影响：对照丢半档。方案：同 grade 聚合输出区间。
+
+### SF-N5 步幅页默认 65kg 与零速热量（中，确认）
+- 证据：`step-stride.html:319` `||65`，清空体重仍写「体重65kg」；cadence=0 速度 0、配速 `--`，但 330-337 行输出 2.3 kcal/min。
+- 影响：默认体重冒充输入、静止计消耗。方案：空值停算热量、零速归零、范围对齐。
+
+### SF-N6 12 分钟跑公式与阈值（中，确认）
+- 证据：`vo2max-12min.html:347` 男女同为 `483/min+3.5`，T=12 均 43.8；322 行 `<10→10`，400 m 原式 −2.3 显示 10.0。
+- 影响：性别无效、低值被当正常。方案：女性独立系数、低值提示、表头共用阈值。
+
+### 留存优化（按页落点）
+- `calc-heart-rate`：历史存完整五区＋本周区间卡。
+- `resistance`：历史加趋势/测量标签。
+- `training-volume`：动作周容量/PR；真 CSV；自重倍数。
+- `step-stride`/`vo2max-12min`：存上次值对比，补配速-距离表。
+
+### 续查覆盖
+实读 `tools/fitness/`：calc-heart-rate、resistance、training-volume、step-stride、vo2max-12min；`tools/sports/`：climbing-grade-converter；另抽查 heart-rate-2。

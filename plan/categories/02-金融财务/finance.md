@@ -105,3 +105,43 @@
 
 ### 续查覆盖
 - 新抽查 `tools/finance/compound-interest.html`、`tools/finance/installment-real-rate.html` 共 2 页，新增 2 条中优与 2 条留存建议；为源码核查，未做浏览器、线上或门禁验证。
+
+## 2026-11-03 续查（并行批）：金融回补
+（路径均相对 `tools/`）
+
+### F-N11 房贷首付未参与、零利率被拒（高，确认）
+- 证据：`finance/mortgage-calculator:355` 读 downPaymentPct 后未用；100 万/30% 首付仍 4890.17（应 3423.12），CSV `:436` 同错；`:357` 的 `!annualRate` 拒 0%，`:371` 零分支不可达（100 万/30 年应 2777.78）。
+- 影响/路径：`finance/mortgage-calculator.html`；房贷、明细、CSV 全错，零利率合法方案无法算。方案：首付扣贷款额、零利率均分。
+
+### F-N12 公积金月缴存/年限无效、导出错表（高，确认）
+- 证据：`finance/housing-fund-loan:329` 算 amountByMonthly，`:331` 取 min 漏掉；月缴 2000 改 0/20000 仍 120 万。`:201` 导出 `:596` 表实为 `:540` 历史表，非 `:399` 明细。
+- 影响/路径：`finance/housing-fund-loan.html`；额度低估、导出不可核对。方案：纳入月缴项或删输入，明细单独导出。
+
+### F-N13 租赁期初 IRR 时点错、手续费未计（高，确认）
+- 证据：`finance/lease-payment-calculator:612` 租金全置 t=1..n，`:495` 期初已折减仍从 1 期算；10 万/6%/36 期 5.6655%（应 6.0000）。`:498` 总额含 fee，calcIRR 不含，fee 5000 仍 6.00%（实际约 2.75%）。
+- 影响/路径：`finance/lease-payment-calculator.html`；期初与实际成本被低报。方案：首期 t=0、fee 入现金流。
+
+### F-N14 APY 复利次数零/负未校验、单位易错（中高，确认）
+- 证据：`banking/apy-calculator:224` 直接 pow；r=0.05、n=0 得 pow(Infinity,0)=1，显示 0.000%；n=-12 得 5.1381%。`:126` 只写名义年利率 r，输入 5 得 6434.50%。
+- 影响/路径：`banking/apy-calculator.html`；非法 n 输出可信数字，单位误输放大百倍。方案：n 限正整数、r>-n，注明小数或 % 换算。
+
+### F-N15 工资专项附加互斥缺失、模式不入历史（中，确认）
+- 证据：`finance/salary-calculator:619` 房贷利息与租金直加，`:290` 仅文字提示；月薪 2 万/五险 4500/两项 2500 得税 590，仅租金应 690。`:803` 历史不存 currentMode，年薪 24 万刷新后按月薪算。
+- 影响/路径：`finance/salary-calculator.html`；多扣税、恢复历史口径错误。方案：两项互斥、存模式。
+
+### F-N16 LTV 负贷款被接受（中，确认）
+- 证据：`banking/loan-to-value:220` 仅拦空值/NaN/分母 0；贷款 -10 万/价值 100 万得 LTV -10.0%、覆盖 100 万（`:283` max(loan,1)）、首付 110%。
+- 影响/路径：`banking/loan-to-value.html`；负值被包装为有效结果。方案：限 >0、贷款>价值警示。
+
+### F-N17 六页英文结果标签缺键（中，待验证）
+- 证据：`i18n/tools/en` 与 `tool-i18n-en.js` 缺「最高可贷」「贷款价值比」「计算详情」「IRR」；精确匹配下疑似英文态残留中文，待探针。
+- 影响/路径：上述 6 页；英文态可能中英混杂。方案：补字典并跑 `_en_i18n_probe.mjs --check`。
+
+### 留存优化（按页落点）
+- `finance/mortgage-calculator`：仅前 24 期；补首付+税费总成本与全表下载。
+- `finance/housing-fund-loan`：规则硬编码 2024、年龄只提示；补利率可选与年龄压年限。
+- `banking/apy-calculator`：补单利/复利/连续复利三列与 %/小数双输入。
+- `finance/salary-calculator`：不可导出；补工资条导出与年终奖单独/合并对比。
+
+### 续查覆盖
+- 实读 6 页：finance 的 mortgage、housing、lease、salary；banking 的 apy、loan-to-value；node 复算，未做浏览器/线上验证。
