@@ -146,7 +146,7 @@ s.parentNode.insertBefore(el, s);
 <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="本地处理:全角半角/多余空格/标点规范/字数统计/同义词替换">Text Polisher</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-      <div class="formula-eq">润色按四维改写：语句通顺（拆分长句，单句控制在 20 至 40 字）、用词准确（替换口语词与重复词）、语气一致（正式或亲切统一）、逻辑连贯（补连接词与指代）；可读性参考 平均句长 25 至 40 字、生僻词占比低于 5% 为易读；改写幅度分轻度（同义替换）、中度（调整句式）、深度（重组段落）三档。</div>
+      <div class="formula-eq">润色分两步：先做格式规范化（全角半角、多余空格、标点规范、行首尾空格），再做本地口语与冗余清理（删除「我觉得/其实/就是说/那个」等填充词、口语连接词改写、重复词合并、超长句按逗号断句）；全部规则在浏览器本地运行，不依赖任何网络接口；结果区显示本次「已优化 N 处」及分类明细。</div>
   
 </div>
 
@@ -179,6 +179,7 @@ s.parentNode.insertBefore(el, s);
 <h3>润色结果</h3>
 <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__text_polisherExport()">导出明细 CSV</button></div>
     <div class="result-pre" id="output"></div>
+    <div class="info-box" id="polish-info" aria-live="polite" style="margin-top:8px;"></div>
     <div id="text_polisherTable"></div>
     <div id="text_polisherDiff"></div>
     <div id="text_polisherChart"></div>
@@ -292,49 +293,144 @@ function updateStats(){
  document.getElementById('s-nums').textContent = (t.match(/\d/g) || []).length;
 }
 
+// 口语填充词 / 口语连接词：删除或改写，均计为「已优化」。
+const ORAL_RULES = [
+  { from: '我觉得', to: '' },
+  { from: '我认为', to: '' },
+  { from: '其实', to: '' },
+  { from: '就是说', to: '' },
+  { from: '那个', to: '' },
+  { from: '怎么说呢', to: '' },
+  { from: '然后', to: '随后' }
+];
+
+function isEnMode(){
+  try{
+    if(typeof I18n !== 'undefined' && I18n.get) return I18n.get() === 'en-US';
+  }catch(e){}
+  return /^en/i.test((document.documentElement && document.documentElement.lang) || '');
+}
+
+function escapeRegExp(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+// 超长句按逗号断句：单句超过 maxLen 字时，用句末「。」切开，保留原意。
+function splitLongSentences(text, maxLen, counts){
+  let out = '';
+  let i = 0;
+  while (i < text.length) {
+    let end = i;
+    while (end < text.length && !/[。！？!?]/.test(text[end])) end++;
+    const sent = text.slice(i, end < text.length ? end + 1 : end);
+    if (sent.replace(/[。！？!?]\s*$/, '').length > maxLen && /[，；,;]/.test(sent)) {
+      const pieces = sent.split(/[，；,;]/);
+      let cur = '';
+      for (let k = 0; k < pieces.length; k++) {
+        const piece = pieces[k].replace(/[。！？!?]\s*$/, '');
+        const cand = cur ? cur + '，' + piece : piece;
+        if (cur && cand.length > maxLen) {
+          out += cur + '。';
+          counts.split++;
+          cur = piece;
+        } else {
+          cur = cand;
+        }
+      }
+      out += cur + (/[。！？!?]\s*$/.test(sent) ? sent.match(/[。！？!?]\s*$/)[0] : '');
+    } else {
+      out += sent;
+    }
+    i = end < text.length ? end + 1 : text.length;
+  }
+  return out;
+}
+
+function renderPolishInfo(counts){
+  const info = document.getElementById('polish-info');
+  if (!info) return;
+  const total = counts.filler + counts.repeat + counts.split + counts.format;
+  const en = isEnMode();
+  const items = [];
+  if (counts.filler) items.push('<span>' + (en ? 'Filler words ' : '口语填充词 ') + '<b>' + counts.filler + '</b>' + (en ? '' : ' 处') + '</span>');
+  if (counts.repeat) items.push('<span>' + (en ? 'Repeated words ' : '重复词 ') + '<b>' + counts.repeat + '</b>' + (en ? '' : ' 处') + '</span>');
+  if (counts.split) items.push('<span>' + (en ? 'Sentence splits ' : '长句断句 ') + '<b>' + counts.split + '</b>' + (en ? '' : ' 处') + '</span>');
+  if (counts.format) items.push('<span>' + (en ? 'Punctuation/spacing ' : '标点与空格') + ' <b>' + counts.format + '</b>' + (en ? '' : ' 处') + '</span>');
+  info.innerHTML = (en ? 'Optimized <b>' + total + '</b> changes' : '已优化 <b>' + total + '</b> 处') + (items.length ? (en ? ': ' : '：') + items.join(en ? ', ' : '、') : '');
+}
+
 function polish(){
  let t = document.getElementById('input').value;
  const fns = {};
  document.querySelectorAll('.checkbox-row input').forEach(c => fns[c.dataset.fn] = c.checked);
+ const counts = { filler: 0, repeat: 0, split: 0, format: 0 };
 
+ // 格式规范化（离线正则）
+ function fmt(re, repl){
+  const n = (t.match(re) || []).length;
+  if (n) { counts.format += n; t = t.replace(re, repl); }
+ }
  if(fns.halfFull){
-  t = t.replace(/[\uFF01-\uFF5E]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
-  t = t.replace(/\u3000/g, ' ');
+  fmt(/[\uFF01-\uFF5E]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
+  fmt(/\u3000/g, ' ');
  }
  if(fns.fullPunct){
   // 英文标点转中文(在中文上下文)
-  t = t.replace(/([^\sA-Za-z0-9])\s*,\s*/g, '$1，');
-  t = t.replace(/([^\sA-Za-z0-9])\s*\.\s+([^\d])/g, '$1。 $2');
-  t = t.replace(/([^\sA-Za-z0-9])\s*!\s*/g, '$1！');
-  t = t.replace(/([^\sA-Za-z0-9])\s*\?\s*/g, '$1？');
-  t = t.replace(/([^\sA-Za-z0-9]);\s*/g, '$1；');
-  t = t.replace(/:\s*([^\sA-Za-z0-9])/g, '：$1');
+  fmt(/([^\sA-Za-z0-9])\s*,\s*/g, '$1，');
+  fmt(/([^\sA-Za-z0-9])\s*\.\s+([^\d])/g, '$1。 $2');
+  fmt(/([^\sA-Za-z0-9])\s*!\s*/g, '$1！');
+  fmt(/([^\sA-Za-z0-9])\s*\?\s*/g, '$1？');
+  fmt(/([^\sA-Za-z0-9]);\s*/g, '$1；');
+  fmt(/:\s*([^\sA-Za-z0-9])/g, '：$1');
  }
  if(fns.trimLine){
-  t = t.split(/\n/).map(l => l.replace(/^\s+|\s+$/g,'')).join('\n');
+  fmt(/^\s+|\s+$/gm, '');
  }
  if(fns.trimSpace){
-  t = t.replace(/[ \t]+/g, ' ');
-  t = t.replace(/ ([，。！？；：、])/g, '$1');
+  fmt(/[ \t]+/g, ' ');
+  fmt(/ ([，。！？；：、])/g, '$1');
  }
  if(fns.removeEmptyLine){
-  t = t.replace(/\n\s*\n+/g, '\n').replace(/^\n+|\n+$/g, '');
+  fmt(/\n\s*\n+/g, '\n');
+  fmt(/^\n+|\n+$/g, '');
  }
  if(fns.spaceCn){
   // 中文与英文/数字之间加空格
-  t = t.replace(/([\u4e00-\u9fa5])([A-Za-z0-9])/g, '$1 $2');
-  t = t.replace(/([A-Za-z0-9])([\u4e00-\u9fa5])/g, '$1 $2');
+  fmt(/([\u4e00-\u9fa5])([A-Za-z0-9])/g, '$1 $2');
+  fmt(/([A-Za-z0-9])([\u4e00-\u9fa5])/g, '$1 $2');
  }
 
+ // 口语填充词 / 口语连接词（本地词表，逐条计数）
+ for (const rule of ORAL_RULES) {
+   const re = new RegExp(escapeRegExp(rule.from), 'g');
+   t = t.replace(re, function(){
+     counts.filler++;
+     return rule.to;
+   });
+ }
+ // 清理删除填充词后可能留下的重复标点与行首标点
+ t = t.replace(/[，、]{2,}/g, '，').replace(/^[，、\s]+/, '').replace(/\s+([，。！？；：、])/g, '$1');
+
+ // 重复词合并：连续重复的 2–4 字词组只保留一次
+ t = t.replace(/([\u4e00-\u9fa5]{2,4})\1+/g, function(m, w){
+   counts.repeat += Math.floor(m.length / w.length) - 1;
+   return w;
+ });
+
+ // 长句断句：单句超过 40 字时按逗号切开
+ t = splitLongSentences(t, 40, counts);
+
  document.getElementById('output').innerText = t;
- ToolBox.showToast(i18nText() ,'success');
+ renderPolishInfo(counts);
+ const en = isEnMode();
+ const total = counts.filler + counts.repeat + counts.split + counts.format;
+ ToolBox.showToast((en ? 'Optimized ' + total + ' changes' : '已优化 ' + total + ' 处'), 'success');
 }
 
 // 选中输出文本时推荐同义词
 document.getElementById('output').addEventListener('mouseup', () => {
  const sel = window.getSelection().toString().trim();
  if(sel && SYNONYMS[sel]){
-  ToolBox.showToast(i18nText() + SYNONYMS[sel].join(' / '), 'success');
+  const prefix = isEnMode() ? 'Replace with: ' : '可替换为：';
+  ToolBox.showToast(prefix + SYNONYMS[sel].join(' / '), 'success');
  }
 });
 

@@ -203,7 +203,7 @@ s.parentNode.insertBefore(el, s);
         <strong id="nowBarTime" style="font-size:15px;"></strong>
         <span id="nowBarTs" style="font-size:13px;color:var(--text-light,#999);"></span>
       </div>
-      <label>智能粘贴识别（自动判断秒 / 毫秒 / 日期时间）</label>
+      <label>智能粘贴识别（自动判断秒 / 毫秒 / 微秒 / 日期时间）</label>
       <div class="input-row">
         <input type="text" id="smartInput" placeholder="粘贴任意时间戳或日期，如 1735660800 / 1735660800000 / 2024-01-01" oninput="smartConvert()">
         <button type="button" class="btn primary" onclick="smartConvert()">识别</button>
@@ -575,25 +575,26 @@ function smartConvert() {
   if (!raw) { hint.innerHTML = ''; return; }
 
   if (/^\d+$/.test(raw)) {
-    const n = parseInt(raw, 10);
-    const isMs = n >= 1e12; // 真实秒戳约 10 位（1e9 量级），毫秒戳 13 位（1e12 量级）
-    const date = new Date(isMs ? n : n * 1000);
+    const digits = raw.length;
+    const n = Number(raw);
+    // 按位数判定单位（不能只用 n >= 1e12：2001-09-09 之前的毫秒戳只有 12 位，会被误判为秒）
+    let unit, ms;
+    if (digits <= 10) { unit = '秒'; ms = n * 1000; }
+    else if (digits <= 13) { unit = '毫秒'; ms = n; }
+    else if (digits <= 16) { unit = '微秒'; ms = Number(raw.slice(0, digits - 3)); }
+    else { unit = '纳秒'; ms = Number(raw.slice(0, digits - 6)); }
+    const date = new Date(ms);
     if (isNaN(date.getTime())) {
       hint.innerHTML = '<span style="color:var(--danger);">❌ 数值超出可表示的时间范围</span>';
       return;
     }
-    if (isMs) {
-      document.getElementById('timestampMs').value = String(n);
-      document.getElementById('timestampSec').value = String(Math.floor(n / 1000));
-    } else {
-      document.getElementById('timestampSec').value = String(n);
-      document.getElementById('timestampMs').value = String(n * 1000);
-    }
+    document.getElementById('timestampMs').value = String(ms);
+    document.getElementById('timestampSec').value = String(Math.floor(ms / 1000));
     document.getElementById('dateInput').value = formatDateTime(date);
     const ts = date.getTime() / 1000;
     renderResults(date, ts);
     addToHistory(ts);
-    hint.innerHTML = '✅ 识别为' + (isMs ? '毫秒' : '秒') + '时间戳（' + String(raw).length + ' 位）→ 已同步填充秒、毫秒与日期时间';
+    hint.innerHTML = '✅ 识别为' + unit + '时间戳（' + digits + ' 位）→ 已同步填充秒、毫秒与日期时间';
     return;
   }
 

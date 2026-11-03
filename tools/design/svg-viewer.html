@@ -153,7 +153,7 @@ s.parentNode.insertBefore(el, s);
 <div class="card tool-card-accent" style="--tool-accent:#7C3AED;">
      <h2 data-zh="🔍 SVG 查看器">🔍 SVG Viewer</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">用忽略大小写的正则检测输入中是否包含完整的 svg 起始与结束标签，命中则把代码原样注入预览容器直接渲染，未命中则提示未检测到有效 SVG 标签；渲染过程整体包在异常捕获中，出错时输出失败原因</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">用忽略大小写的正则检测输入中是否包含完整的 svg 起始与结束标签；命中后先做安全清洗（移除 script、foreignObject、on* 事件属性、javascript: 与外部 href），再把清洗后的 SVG 注入预览容器；未命中则提示未检测到有效 SVG 标签，渲染过程整体包在异常捕获中，出错时输出失败原因。原始文本仅用于复制与导出，不会被改写。</div>
   <div class="formula-desc">本工具为纯前端在线工具，数据在浏览器本地处理、不上传服务器，依据对应领域标准与规范进行计算或处理，结果仅供参考。 工具名称：SVG 查看器 - 免费图片处理工具，在线SVG 查看器，免费使用。</div>
 </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="粘贴或上传SVG代码即可在浏览器中可视化预览图形，支持缩放查看与一键生成对应CSS样式代码，方便前端与设计人员调试与嵌入矢量素材。">Paste or upload SVG code to preview the graphic in the browser with zoom and copy the matching CSS for embedding.</p>
@@ -247,13 +247,32 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
+var SVG_UNSAFE_NOTE='已移除 SVG 中的不安全脚本或事件属性';
+function sanitizeSvg(code){
+  var out=String(code), removed=false;
+  out=out.replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, function(){removed=true;return '';});
+  out=out.replace(/<\/script\s*>/gi, function(){removed=true;return '';});
+  out=out.replace(/<script\b[^>]*\/?>/gi, function(){removed=true;return '';});
+  out=out.replace(/<foreignObject\b[^>]*>[\s\S]*?<\/foreignObject\s*>/gi, function(){removed=true;return '';});
+  out=out.replace(/<\/foreignObject\s*>/gi, function(){removed=true;return '';});
+  out=out.replace(/<foreignObject\b[^>]*\/?>/gi, function(){removed=true;return '';});
+  out=out.replace(/[\s/]+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, function(){removed=true;return '';});
+  out=out.replace(/\b(xlink:href|href)\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, function(m,attr,val){
+    var v=String(val).replace(/^['"]|['"]$/g,'').trim();
+    if(/^#/.test(v)||/^data:image\//i.test(v)) return m;
+    removed=true; return '';
+  });
+  out=out.replace(/javascript:/gi, function(){removed=true;return '';});
+  return {html:out, removed:removed};
+}
 function generate(){
   const code = document.getElementById('svgInput').value.trim();
   const preview = document.getElementById('preview');
   if(!code){ const __h0='<span class="svg-preview-error">请输入 SVG 代码</span>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){preview.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}preview.innerHTML=__h0; return; }
   try{
     if(/<svg[\s\S]*<\/svg>/i.test(code)){
-      const __h1=code;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){preview.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}preview.innerHTML=__h1;
+      var safe=sanitizeSvg(code);
+      const __h1=(safe.removed?'<div class="svg-preview-error">'+SVG_UNSAFE_NOTE+'</div>':'')+safe.html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){preview.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}preview.innerHTML=__h1;
     } else {
       const __h2='<span class="svg-preview-error">未检测到有效的 SVG 标签</span>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){preview.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}preview.innerHTML=__h2;
     }

@@ -129,7 +129,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="🧮 深静脉置管维护(冲管封管)计算器">Cvc Maintenance</h2>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">单管腔冲管量 = 导管容积 + 追加量（约 2 mL）；封管量 = 导管容积 × 1.2；总冲管量 = 单管腔冲管量 × 管腔数；肝素封管单位数 = 总封管量(mL) × 封管液浓度(U/mL，常用 10 或 100 U/mL)；采用正压脉冲式冲管并边推边夹管。</div>
+      <div class="formula-eq">单管腔冲管量 = 导管容积 + 追加量（约 2 mL）；封管量 = 导管容积 × 1.2；总冲管量 = 单管腔冲管量 × 管腔数；肝素封管单位数 = 总封管量(mL) × 封管液浓度(U/mL，按导管类型：CVC/PICC 常用 10、PORT 100、透析导管 1000–10000)；采用正压脉冲式冲管并边推边夹管。</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根据导管类型和管腔容量，计算冲管和封管的生理盐水/肝素液用量。">Cvc Maintenance</p>
     <div class="cvc-tab">
@@ -154,6 +154,7 @@ s.parentNode.insertBefore(el, s);
           <option value="saline">生理盐水</option>
           <option value="heparin10">肝素液 10 U/mL</option>
           <option value="heparin100">肝素液 100 U/mL</option>
+          <option value="heparin1000">肝素液 1000 U/mL（透析封管）</option>
         </select>
       </div>
     </div>
@@ -199,10 +200,10 @@ s.parentNode.insertBefore(el, s);
       <strong>封管液参考：</strong><br>
       CVC/PICC：10 U/mL 肝素液 或 生理盐水<br>
       输液港PORT：100 U/mL 肝素液<br>
-      透析导管：1000-5000 U/mL 肝素液
+      透析导管：1000-10000 U/mL 肝素液（按导管容积，或枸橼酸 4%，禁用生理盐水封管）
     </div>
     <div class="tip-box tip-warn" style="margin-top:12px;">
-      注意：严格无菌操作，冲管遇阻力不可强行推注，应检查导管是否打折或血栓。肝素使用需评估患者凝血功能。
+      注意：严格无菌操作，冲管遇阻力不可强行推注，应检查导管是否打折或血栓。肝素封管浓度与剂量须按医嘱及机构规程，使用期间监测 APTT 与血小板（警惕肝素诱导血小板减少症）；透析导管禁用生理盐水封管。
     </div>
   </div>
 
@@ -285,19 +286,22 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 var typeConfig = {
-  cvc: { name:'CVC中心静脉导管', baseVol:1.5, flushTimes:3, heparinConc:'10 U/mL' },
-  picc: { name:'PICC导管', baseVol:1.0, flushTimes:1, heparinConc:'10 U/mL' },
-  port: { name:'输液港PORT', baseVol:0.5, flushTimes:1, heparinConc:'100 U/mL' },
-  dialysis: { name:'透析导管', baseVol:2.0, flushTimes:3, heparinConc:'1000 U/mL' }
+  cvc: { name:'CVC中心静脉导管', nameEn:'CVC (central venous catheter)', baseVol:1.5, flushTimes:3, lockFluid:'saline', lockConc:0 },
+  picc: { name:'PICC导管', nameEn:'PICC catheter', baseVol:1.0, flushTimes:1, lockFluid:'heparin10', lockConc:10 },
+  port: { name:'输液港PORT', nameEn:'Implantable port (PORT)', baseVol:0.5, flushTimes:1, lockFluid:'heparin100', lockConc:100 },
+  dialysis: { name:'透析导管', nameEn:'Dialysis catheter', baseVol:2.0, flushTimes:3, lockFluid:'heparin1000', lockConc:1000 }
 };
+var LOCK_CONC = { saline:0, heparin10:10, heparin100:100, heparin1000:1000 };
 var currentType = 'cvc';
 
 function selectType(type, btn){
   currentType = type;
   document.querySelectorAll('.cvc-tab button').forEach(function(b){ b.classList.remove('active'); });
-  btn.classList.add('active');
+  if(btn && btn.classList) btn.classList.add('active');
   var cfg = typeConfig[type];
   document.getElementById('cathVol').value = cfg.baseVol;
+  // 导管类型决定推荐封管液：透析导管必须切换为高浓度肝素
+  document.getElementById('flushType').value = cfg.lockFluid;
   calc();
 }
 
@@ -313,11 +317,12 @@ function calc(){
   var totalFlush = perLumen * lumens;
   var totalLock = lockPerLumen * lumens;
   
-  var heparinU = 0;
-  if(flushType === 'heparin10') heparinU = totalLock * 10;
-  else if(flushType === 'heparin100') heparinU = totalLock * 100;
+  // 透析导管一律使用高浓度肝素封管，绝不按生理盐水算成 0；其他类型按所选封管液
+  var lockKey = currentType === 'dialysis' ? 'heparin1000' : flushType;
+  var lockConc = LOCK_CONC[lockKey] != null ? LOCK_CONC[lockKey] : 0;
+  var heparinU = totalLock * lockConc;
   
-  window.__EMR_SUM={lum:lumens,ft:flushType,tn:cfg.name,cv:cathVol,ex:extra,pl:perLumen,tf:totalFlush,tl:totalLock,hep:heparinU,times:cfg.flushTimes,hc:cfg.heparinConc};
+  window.__EMR_SUM={lum:lumens,ft:lockKey,raw:flushType,tl:totalLock,hep:heparinU,lockConc:lockConc,times:cfg.flushTimes,tn:cfg.name,tnEn:cfg.nameEn,cv:cathVol,ex:extra,pl:perLumen,tf:totalFlush,forced:(currentType==='dialysis'&&flushType!=='heparin1000')};
   const __g0=perLumen.toFixed(1);document.getElementById('perLumen').textContent=(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—'));
   const __g1=totalFlush.toFixed(1);document.getElementById('totalFlush').textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
   const __g2=totalLock.toFixed(1);document.getElementById('totalLock').textContent=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
@@ -367,19 +372,19 @@ function __emrData(){
   var el=document.getElementById('result'); if(!el) return;
   var s=window.__EMR_SUM; if(!s) return;
   var en=__emrEn();
-  var ftz={saline:'生理盐水',heparin10:'肝素盐水 10 U/mL',heparin100:'肝素盐水 100 U/mL'};
-  var fte={saline:'0.9% saline',heparin10:'heparin 10 U/mL',heparin100:'heparin 100 U/mL'};
+  var ftz={saline:'生理盐水',heparin10:'肝素盐水 10 U/mL',heparin100:'肝素盐水 100 U/mL',heparin1000:'高浓度肝素盐水 1000 U/mL'};
+  var fte={saline:'0.9% saline',heparin10:'heparin 10 U/mL',heparin100:'heparin 100 U/mL',heparin1000:'heparin 1000 U/mL'};
   var hz,he;
   if(s.lum>=3){ hz='多腔导管维护：每个管腔独立冲封管、标记主腔与侧腔，避免用同一注射器反复穿刺；冲管采用「推-停」脉冲法，封管正压并夹闭，防止回血堵管。';
     he='Multi-lumen catheter: flush and lock each lumen separately and label the distal and side lumens; use pulsatile flush and positive-pressure locking to prevent occlusion.'; }
   else { hz='单/双腔导管维护：治疗前后各冲管一次，输注血制品、肠外营养、造影剂后必须立即冲管；抽回血不畅时禁用暴力冲管（可致导管破裂或栓塞），改用溶栓或更换导管。';
     he='One or two-lumen catheter: flush before and after each use, and immediately after blood products, parenteral nutrition or contrast. Never force a flush against resistance (risk of rupture or embolism) - use thrombolytics or replace the line.'; }
   __emrNote({name:'中心静脉导管（CVC）冲封管方案', nameEn:'Central Venous Catheter Flush and Lock',
-    result:s.tn+' · '+s.lum+' 腔 · 冲洗液 '+(ftz[s.ft]||s.ft)+' → 每腔冲管 '+s.pl.toFixed(1)+' mL、总冲管 '+s.tf.toFixed(1)+' mL、总封管 '+s.tl.toFixed(1)+' mL'+(s.hep>0?('、肝素总量 '+s.hep.toLocaleString('zh-CN')+' U'):'、不含肝素'),
-    resultEn:s.tn+', '+s.lum+' lumen(s), '+(fte[s.ft]||s.ft)+' -> '+s.pl.toFixed(1)+' mL per lumen, total flush '+s.tf.toFixed(1)+' mL, total lock '+s.tl.toFixed(1)+' mL',
+    result:s.tn+' · '+s.lum+' 腔 · 封管液 '+(ftz[s.ft]||s.ft)+' → 每腔冲管 '+s.pl.toFixed(1)+' mL、总冲管 '+s.tf.toFixed(1)+' mL、总封管 '+s.tl.toFixed(1)+' mL'+(s.hep>0?('、肝素总量 '+s.hep.toLocaleString('zh-CN')+' U'):'、不含肝素'),
+    resultEn:s.tnEn+', '+s.lum+' lumen(s), lock '+(fte[s.ft]||s.ft)+' -> '+s.pl.toFixed(1)+' mL per lumen, total flush '+s.tf.toFixed(1)+' mL, total lock '+s.tl.toFixed(1)+' mL'+(s.hep>0?(', total heparin '+s.hep.toLocaleString('zh-CN')+' U'):', no heparin'),
     noPos:true, hintZh:hz, hintEn:he,
-    extra:'冲管频次建议：'+s.times+' 次/日；每腔冲管量 = 导管容积 '+s.cv+' mL + 追加 '+s.ex+' mL；封管量按导管容积 ×1.2 计算；肝素封管浓度见产品说明（PICC/PORT 常用 10 U/mL，透析导管 1000 U/mL）',
-    extraEn:'suggested frequency '+s.times+'/day; flush volume = catheter volume '+s.cv+' mL + '+s.ex+' mL; lock volume = catheter volume x 1.2'});
+    extra:'冲管频次建议：'+s.times+' 次/日；冲管液统一使用 0.9% 生理盐水脉冲式推注；每腔冲管量 = 导管容积 '+s.cv+' mL + 追加 '+s.ex+' mL；封管量按导管容积 ×1.2 计算；封管液为 '+((s.lockConc>0)?((ftz[s.ft]||s.ft)+'（'+s.lockConc+' U/mL）'):'生理盐水（不含肝素）')+(s.forced?'（透析导管已按规范自动切换为高浓度肝素封管）':'')+'；肝素封管须按医嘱并监测 APTT/血小板',
+    extraEn:'suggested frequency '+s.times+'/day; pulsatile flush with 0.9% saline; flush volume = catheter volume '+s.cv+' mL + '+s.ex+' mL; lock volume = catheter volume x 1.2; lock solution '+(s.lockConc>0?(fte[s.ft]||s.ft):'0.9% saline')+(s.forced?' (auto-switched to high-concentration heparin for dialysis catheter)':'')+'; heparin lock per order with APTT/platelet monitoring'});
 }
 
 var __emrW0=(typeof calc==='function')?calc:null;

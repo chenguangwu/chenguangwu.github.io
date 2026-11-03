@@ -705,7 +705,14 @@ const CASES = [
     inputs: { svgInput: "<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20'><text x='0' y='15'>probeTB2026</text></svg>" },
     clicks: ["generate()"],
     expect: ["probeTB2026"],
-    ref: "注入带唯一文本标记 probeTB2026 的 SVG。generate() 将 svgInput 原文写入 preview.innerHTML，文本节点 probeTB2026 进入输出。注意：采集器会去标签，故标记必须置于 <text> 内容而非 id 属性（属性会被整块吞掉）。默认态 svgInput 为空 ⇒ 输出『请输入 SVG 代码』，不出现 probeTB2026。纯前端无随机。",
+    ref: "注入带唯一文本标记 probeTB2026 的 SVG。generate() 对输入做安全清洗后写入 preview.innerHTML，文本节点 probeTB2026 进入输出。注意：采集器会去标签，故标记必须置于 <text> 内容而非 id 属性（属性会被整块吞掉）。默认态 svgInput 为空 ⇒ 输出『请输入 SVG 代码』，不出现 probeTB2026。纯前端无随机。",
+  },
+  {
+    slug: "design/svg-viewer",
+    inputs: { svgInput: "<svg xmlns='http://www.w3.org/2000/svg' onload='alert(1)'><script>alert(2)</script><text x='0' y='15'>SVGXSS2026</text></svg>" },
+    clicks: ["generate()"],
+    expect: ["已移除 SVG 中的不安全脚本或事件属性", "SVGXSS2026"],
+    ref: "安全修复判别：注入含 onload 与 <script> 的 SVG。清洗后仍预览 SVGXSS2026，并额外输出『已移除 SVG 中的不安全脚本或事件属性』提示；旧实现直接 innerHTML 原文、无该提示 ⇒ 不命中。默认态无该提示。",
   },
   {
     slug: "design/font-preview",

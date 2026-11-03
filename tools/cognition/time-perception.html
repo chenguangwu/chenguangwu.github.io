@@ -442,6 +442,14 @@ s.parentNode.insertBefore(el, s);
       btn.style.pointerEvents = 'none';
       btn.className = 'tp-bigbtn wait'; btn.textContent = '完成';
       var errs = taps.map(function (t) { return t.err; });
+      if (errs.length < 3) {
+        // 样本不足时不输出百分位（零点击时 σ=0 会被误算为 P98 异常值）
+        log.textContent = '样本不足：有效击拍少于 3 次';
+        btn.textContent = '完成（无有效样本）';
+        const __h6=card('样本不足', '至少完成 3 次有效击拍后再统计');if((typeof __h6==='number'&&!isFinite(__h6))||/Infinity/.test(String(__h6))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h6)){stat.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}stat.innerHTML=__h6;
+        if (errs.length) { drawLeadLag($('bHist'), errs); }
+        return;
+      }
       var m = mean(errs), sd = std(errs, m);
       var lead = errs.filter(function (e) { return e < 0; }).length;
       var lag = errs.length - lead;
@@ -624,6 +632,9 @@ s.parentNode.insertBefore(el, s);
   // 包装：完成模块后尝试存会话
   var _saveProgress = saveProgress;
   saveProgress = function () { _saveProgress(); maybeSaveSession(); };
+
+  /* 门禁验证钩子：仅切换模块，不改变测试逻辑 */
+  window.__tpSelectMode = function (mode) { if (MODES[mode]) { selectMode(mode); } };
 
   refreshBest();
   renderHistory();

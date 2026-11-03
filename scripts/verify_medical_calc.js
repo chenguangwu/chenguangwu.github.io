@@ -76,6 +76,19 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "medical/clinical-tools",
+  "inputs": {
+    "meld_bili": "3.0",
+    "meld_cr": "2.0",
+    "meld_inr": "1.5",
+    "meld_na": "130"
+  },
+  "expect": [
+    "MELD-Na = 26.0（已纳入血钠校正）"
+  ],
+  "ref": "W1-A 回归：标准 MELD = 3.78×ln(3.0) + 11.2×ln(1.5) + 9.57×ln(2.0) + 6.43 = 21.8；血钠 130（钳制区间内）⇒ MELD-Na = 21.8 + 1.32×7 − 0.033×21.8×7 = 26.0。四项输入均非默认（2.0/1.0/1.2/140）；旧实现输出 MELD-Na 恒 6，本串不命中。"
+},
+{
   "slug": "medical/convert-glucose",
   "inputs": {
     "val": "1",

@@ -70,6 +70,17 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "leather/convert-area-weight",
+  "inputs": {
+    "w": "250",
+    "a": "0.4"
+  },
+  "expect": [
+    "2.0482 oz/ft²"
+  ],
+  "ref": "面密度 250/0.4 = 625 g/m² ⇒ oz/ft² = 625/305.1517 = 2.0482（旧系数 30.5153 会得 20.4814，放大 10 倍）。仅锚盎司项：g/ft²/ g/yd² 修复前后同为 58.064/522.58，若并入 expect 会因 OR 语义让旧版照样通过。默认 100/0.5 = 200 g/m² 得 0.6554 oz/ft²，与本值不重合"
+},
+{
   "slug": "leather/paoguangliangdupinggu",
   "inputs": {
     "rpm": "1200",

@@ -420,12 +420,22 @@ function convertInt(intStr, digits, units, bigUnits){
   }
 
   let result = '';
+  let pendingZero = false;
   for(let i = 0; i < groups.length; i++){
     const g = groups[i].padStart(4, '0');
+    const scale = bigUnits[groups.length - 1 - i] || '';
     const chinese = convertGroup(g, digits, units);
-    if(chinese){
-      result += chinese + bigUnits[groups.length - 1 - i];
+    if(!chinese){
+      // 整组为零：前面已有读数、且后面还有非零组时才需补零；末尾零不读
+      if(result) pendingZero = true;
+      continue;
     }
+    // 组间补零：整组为零，或本组不足四位（如 1亿 0020万 → 一亿零二十万）
+    if(result && (pendingZero || parseInt(g, 10) < 1000)){
+      if(!result.endsWith(digits[0])) result += digits[0];
+    }
+    result += chinese + scale;
+    pendingZero = false;
   }
 
   // 处理 "一十" -> "十" 在最前面

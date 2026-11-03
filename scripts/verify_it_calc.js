@@ -334,6 +334,18 @@ const CASES = [
     ref: "智能粘贴识别·毫秒：1735660800000 ≥ 1e12 ⇒ 判毫秒（等价 1735660800 s），与上条共用同一 ISO 锚、识别文案不同 ⇒ 互不命中、判别器可区分两态。",
   },
   {
+    slug: "it/timestamp-converter",
+    inputs: { smartInput: "946684800000" },
+    expect: ["识别为毫秒时间戳（12 位）", "2000-01-01T00:00:00.000Z"],
+    ref: "回归 IT-N43：按位数判定而非 n>=1e12 阈值。946684800000（12 位）= 2000-01-01T00:00:00Z 毫秒；修复前被当秒 ⇒ 31969-04-01，两条锚均不命中。expect 只锚注入态派生结果（位数文案 + UTC ISO，与运行时时区无关）。",
+  },
+  {
+    slug: "it/timestamp-converter",
+    inputs: { smartInput: "1700000000000000" },
+    expect: ["识别为微秒时间戳（16 位）", "2023-11-14T22:13:20.000Z"],
+    ref: "微秒支持：1700000000000000 µs = 1700000000000 ms = 1700000000 s = 2023-11-14T22:13:20Z（Python datetime.fromtimestamp(1700000000, UTC) 独立复算）。修复前 16 位 ≥1e12 被当毫秒 ⇒ 年份 55841，两条锚均不命中。",
+  },
+  {
     slug: "it/standard-deviation",
     inputs: { data: "1,2,3,4" },
     expect: ["1.291", "1.118"],
@@ -457,6 +469,20 @@ const CASES = [
     inputs: { addr: "fe80::abcd" },
     expect: ["压缩形式：fe80::abcd"],
     ref: "IPv6 展开 + 压缩：fe80::abcd ⇒ 全展 `fe80:0000:…:abcd`、压缩回 `fe80::abcd`。**踩坑记录**：注入 `2001:db8::1`（也是页面默认地址）时默认态同样命中（逃生项，via=calcTool）；换成 fe80::abcd 后双态通过。",
+  },
+  {
+    slug: "it/ipv6-converter",
+    inputs: { addr: "::ffff:192.0.2.1" },
+    clicks: ["calcTool()"],
+    expect: ["压缩形式：::ffff:c000:201", "0000:0000:0000:0000:0000:ffff:c000:0201"],
+    ref: "回归 IT-N52·IPv4 映射：末尾点分十进制 192.0.2.1 → c0/00/02/01 ⇒ 两组 c000、0201；展开为 0000:0000:0000:0000:0000:ffff:c000:0201，规范压缩为 ::ffff:c000:201（RFC 4291 §2.2 / RFC 5952 最长零段、左侧优先）。修复前正则只认 1-4 位十六进制 ⇒ 直接报「不是合法 IPv6」。默认地址 2001:db8::1 不含两锚。",
+  },
+  {
+    slug: "it/ipv6-converter",
+    inputs: { addr: "64:ff9b::192.0.2.1" },
+    clicks: ["calcTool()"],
+    expect: ["压缩形式：64:ff9b::c000:201"],
+    ref: "IPv4 内嵌（非 ffff 前缀）：64:ff9b::192.0.2.1 → 64:ff9b::c000:0201 ⇒ 最长零段（4 组）压缩为 64:ff9b::c000:201。与上条共用同一 IPv4 转换路径、不同前缀位置，默认地址不命中。",
   },
   {
     slug: "it/ipv4-range-expander",
@@ -678,6 +704,18 @@ const CASES = [
     inputs: { f_min: "30", f_hour: "2" },
     expect: ["30 2 * * *"],
     ref: "独立复算：分钟/小时注入 30 / 2、日月月星期保持 `*` ⇒ 五段表达式 `30 2 * * *`。默认态是 `0 9 * * *`，不命中。",
+  },
+  {
+    slug: "it/crontab-generator",
+    inputs: { f_min: "99", f_hour: "9" },
+    expect: ["分钟 字段超出范围或格式无效（允许 0-59"],
+    ref: "回归 IT-N50·范围校验：分钟 99 越界（0-59）⇒ build() 必须显示错误且清空 cronOut。修复前 valid 忽略 min/max ⇒ 输出 `99 9 * * *`，错误串不命中。注入值刻意避开默认合法组合 `0 9`。",
+  },
+  {
+    slug: "it/crontab-generator",
+    inputs: { f_min: "*/0", f_hour: "9" },
+    expect: ["分钟 字段超出范围或格式无效（允许 0-59"],
+    ref: "回归 IT-N50·步长校验：*/0 步长为 0 非法 ⇒ build() 必须显示错误且不生成表达式。修复前正则 `^[*]|^[*]/\\d+$` 会放行 ⇒ 输出 `*/0 9 * * *`，错误串不命中；与上条分别覆盖「数值越界」和「步长=0」两条分支。",
   },
   {
     slug: "it/morse-decode-advanced",
@@ -1017,6 +1055,29 @@ const CASES = [
     clicks: ["document.getElementById('al_md5').checked=true;document.getElementById('input').value='abc';calc()"],
     expect: ["MD5 900150983cd24fb0d6963f7d28e17f72"],
     ref: "MD5(`abc`) = 900150983cd24fb0d6963f7d28e17f72（RFC 1321 标准值）。算法是 checkbox 驱动的 ⇒ 桩内恒未勾，必须 clicks 内显式置位再 `calc()`。",
+  },
+  {
+    slug: "it/hash-multi",
+    inputs: { input: "中" },
+    clicks: ["document.getElementById('al_md5').checked=true;calc()"],
+    expect: ["MD5 aed1dfbc31703955e64806b799b67645"],
+    ref: "UTF-8 字节口径：MD5('中'.encode('utf-8')) = aed1dfbc31703955e64806b799b67645（hashlib 核对）。旧实现按 charCodeAt(0x4E2D) 取字节 ⇒ f2f4599f…，不命中。默认输入 Hello ToolBox 不产生该值。",
+  },
+  {
+    slug: "it/hash-multi",
+    inputs: { input: "中" },
+    clicks: ["document.getElementById('al_crc32').checked=true;calc()"],
+    expect: ["CRC32 d5d15a8b"],
+    ref: "CRC-32/ISO-HDLC（UTF-8 字节）核对：zlib.crc32('中'.encode('utf-8')) = 0xd5d15a8b。旧实现按 charCodeAt 取字节 ⇒ 结果不同，可判别 UTF-8 口径修复。",
+  },
+  {
+    slug: "it/hash-multi",
+    inputs: {},
+    clicks: [
+      "document.getElementById('input').value='中';document.getElementById('al_md5').checked=true;document.getElementById('al_crc32').checked=true;document.getElementById('al_sha1').checked=false;document.getElementById('al_sha256').checked=false;document.getElementById('al_sha512').checked=false;calc();ToolBox.copyText=function(s){document.getElementById('result').value=s;};copyAll()",
+    ],
+    expect: ["MD5: aed1dfbc31703955e64806b799b67645 CRC32: d5d15a8b"],
+    ref: "「复制全部」修复：输出「算法名 + 哈希值」逐行文本，而非仅算法名。旧实现 querySelectorAll('div > div') 只取标签层 ⇒ 每行均为 `MD5: MD5`，不含哈希值。此处把剪贴板写入 result.value 以便采集。",
   },
   {
     slug: "it/wifi-qr",
@@ -1559,7 +1620,35 @@ const CASES = [
     inputs: { input: "bcher" },
     clicks: ["enc()"],
     expect: ["bcher-"],
-    ref: "独立复算：纯 ASCII 输入的标准 punycode 编码 = 基本码点原样输出 + `-` 分隔位 + 空扩展段 ⇒ `bcher-`（RFC 3492 §6.1 的同形规则）。非 ASCII 输入（`bücher`）在桩内会因 `str is not iterable` 抛错、回落同形态，故只用纯 ASCII 入参。",
+    ref: "独立复算：纯 ASCII 输入的标准 punycode 编码 = 基本码点原样输出 + `-` 分隔位 + 空扩展段 ⇒ `bcher-`（RFC 3492 §6.1 的同形规则）。",
+  },
+  {
+    slug: "it/punycode",
+    inputs: { input: "中文" },
+    clicks: ["document.getElementById('ace').checked=true;enc()"],
+    expect: ["xn--fiq228c"],
+    ref: "RFC 3492 §6.1 标准向量：'中文'.encode('punycode') = fiq228c，加 ACE 前缀 ⇒ xn--fiq228c（Python codec 核对）。默认输入为「中文域名.com」，产物 xn--fiq06l2rdsvs.com 不含该串。",
+  },
+  {
+    slug: "it/punycode",
+    inputs: { input: "中国" },
+    clicks: ["document.getElementById('ace').checked=true;enc()"],
+    expect: ["xn--fiqs8s"],
+    ref: "RFC 3492 标准向量：'中国'.encode('punycode') = fiqs8s，加 ACE 前缀 ⇒ xn--fiqs8s（Python codec 核对）。旧实现输出 fi@2282 类错误串，不命中。",
+  },
+  {
+    slug: "it/punycode",
+    inputs: { input: "bücher" },
+    clicks: ["document.getElementById('ace').checked=true;enc()"],
+    expect: ["xn--bcher-kva"],
+    ref: "RFC 3492 §6.1 混合基本/扩展码点经典向量：bücher → bcher-kva（Python codec 核对）；旧实现只遍历扩展码点、丢失基本码点计数 ⇒ 输出 bcher-（空扩展段），可据此判别修复前后。",
+  },
+  {
+    slug: "it/punycode",
+    inputs: { input: "xn--fiq228c.com" },
+    clicks: ["dec()"],
+    expect: ["中文.com"],
+    ref: "解码反向量：xn--fiq228c 按 RFC 3492 解码回「中文」⇒ 中文.com（与编码用例互逆）。默认输入为中文域名，不产生该串。",
   },
   {
     slug: "it/html-entity-encoder",
@@ -4362,7 +4451,7 @@ const CASES = [
       "cronOut": "abc123测试"
     },
     "expect": [
-      "abc123测试\nabc123测试\nabc123测试\nabc123测试\nabc123测试\n⚠️ 分钟 字段格式无效（支持 *、*/n、a-b、a,b）"
+      "abc123测试\nabc123测试\nabc123测试\nabc123测试\nabc123测试\n⚠️ 分钟 字段超出范围或格式无效（允许 0-59；支持 *、*/n、a-b、a,b）"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"f_min\":\"abc123测试\",\"f_hour\":\"abc123测试\",\"f_dom\":\"abc123测试\",\"f_mon\":\"abc123测试\",\"f_dow\":\"abc123测试\",\"cronOut\":\"abc123测试\"}，输出区含「abc123测试\nabc123测试\nabc123测试\nabc123测试\nabc1…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },

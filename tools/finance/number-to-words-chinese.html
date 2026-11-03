@@ -305,25 +305,36 @@ function integerToChinese(n){
   return result;
 }
 
-function numberToChinese(n){
-  if(n === 0) return '零';
+// 小数位四舍五入到最多 4 位，避免 IEEE754 尾数噪音；carry=1 表示进位到整数
+function roundDecimal(dec, maxLen){
+  if(dec.length <= maxLen) return {dec: dec, carry: 0};
+  const keep = dec.slice(0, maxLen);
+  const next = parseInt(dec.charAt(maxLen), 10);
+  let v = Number(keep || '0');
+  if(next >= 5) v += 1;
+  if(v >= Math.pow(10, maxLen)) return {dec: '', carry: 1};
+  return {dec: String(v).padStart(maxLen, '0'), carry: 0};
+}
+
+function numberToChinese(str){
   let neg = '';
-  if(n < 0){
-    neg = '负';
-    n = -n;
-  }
-  const intPart = Math.floor(n);
-  const decPart = n - intPart;
+  let body = String(str);
+  if(body.charAt(0) === '-'){ neg = '负'; body = body.slice(1); }
+  const dot = body.indexOf('.');
+  const intRaw = dot >= 0 ? body.slice(0, dot) : body;
+  const decRaw = dot >= 0 ? body.slice(dot + 1) : '';
+  const rounded = roundDecimal(decRaw, 4);
+  const intNum = Number(intRaw || '0') + rounded.carry;
+  const dec = rounded.dec.replace(/0+$/, '');
   let result = neg;
-  if(intPart === 0){
+  if(intNum === 0){
     result += '零';
   } else {
-    result += integerToChinese(intPart);
+    result += integerToChinese(intNum);
   }
-  if(decPart > 0){
+  if(dec){
     result += '点';
-    const decStr = decPart.toString().replace(/^0\./, '');
-    for(const ch of decStr){
+    for(const ch of dec){
       result += digits[parseInt(ch, 10)];
     }
   }
@@ -345,7 +356,7 @@ function convert(){
     const __h2='<p style="color:var(--danger);">超出范围（最大 ±1万亿）</p>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h2;
     return;
   }
-  const chinese = numberToChinese(n);
+  const chinese = numberToChinese(v);
   const __h3=`
     <p>数字：<strong>${v}</strong></p>
     <p>中文读法：<strong>${chinese}</strong></p>

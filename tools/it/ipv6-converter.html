@@ -102,7 +102,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="🔄 IPv6 地址转换器">🔄 IPv6 Address Converter</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="IPv6 用冒号分隔的 8 组 16 进制表示，连续全 0 段可压缩为 ::。本工具标准化输入并给出完整展开式与各段，便于核对与填写。">IPv6 Address Converter - Switch between compressed (::) and full 8-group IPv6 forms. Free, browser-only.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">地址转小写并去空白后按冒号切分。含双冒号时以第一个空串为界分为左段与右段（各自过滤掉空串），需要补的段数 = 8 − 左段数 − 右段数，结果为负则判为非法；补入相应数量的全零段后按「左段 + 补零段 + 右段」拼成 8 段。不含双冒号时直接取切分结果。段数不为 8 或任一段不是 1 到 4 位十六进制数字时判为非法地址。每段前面补 0 到 4 位。输出完整形式（8 段以冒号连接）、以原始输入作为压缩形式，并逐段列出序号与该段内容</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">地址转小写并去空白后，若末段含点分十进制 IPv4（如 ::ffff:192.0.2.1），先把末 32 位换算成两组十六进制（192.0.2.1 → c000:0201）。含双冒号时以「::」为界分为左段与右段，需要补的段数 = 8 − 左段数 − 右段数，不足 1 段或多出现一次「::」则判为非法；补入相应数量的全零段后拼成 8 段。段数不为 8 或任一段不是 1 到 4 位十六进制数字时判为非法地址。每段前面补 0 到 4 位。输出完整形式（8 段以冒号连接）、按 RFC 5952 取最长全零段压缩得到的规范压缩形式，并逐段列出序号与该段内容</div>
   <div class="formula-desc">IPv6 地址的展开、压缩与格式转换。</div>
   <ul class="formula-list">
     <li><b>结构</b>：128 位，写作 8 组 4 位十六进制，以冒号分隔。</li>
@@ -210,32 +210,70 @@ s.parentNode.insertBefore(el, s);
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function escH(s){var d=document.createElement('div');const __g1=s==null?'':String(s);d.textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
-function calcTool(){function expand(ip){
+function pad4(s){return ('0000'+s).slice(-4);}
+function ipv4ToHex(v4){
+  var o=v4.split('.');
+  if(o.length!==4)return null;
+  for(var i=0;i<4;i++){
+    if(!/^\d{1,3}$/.test(o[i]))return null;
+    var x=Number(o[i]);
+    if(x>255)return null;
+    o[i]=('0'+x.toString(16)).slice(-2);
+  }
+  return o[0]+o[1]+':'+o[2]+o[3];
+}
+function compressV6(segs){
+  var bestStart=-1,bestLen=0,curStart=-1,curLen=0;
+  for(var i=0;i<8;i++){
+    if(segs[i]==='0000'){
+      if(curLen===0)curStart=i;
+      curLen++;
+      if(curLen>bestLen){bestLen=curLen;bestStart=curStart;}
+    }else{curLen=0;}
+  }
+  function short(s){return s.replace(/^0+(?=[0-9a-f])/,'');}
+  if(bestLen<2)return segs.map(short).join(':');
+  var left=segs.slice(0,bestStart).map(short).join(':');
+  var right=segs.slice(bestStart+bestLen).map(short).join(':');
+  return left+'::'+right;
+}
+function expand(ip){
   ip=ip.trim().toLowerCase();
-  var hasColon=ip.indexOf('::')>=0;
-  var parts=ip.split(':');
+  var lastColon=ip.lastIndexOf(':');
+  if(lastColon>=0&&ip.slice(lastColon+1).indexOf('.')>=0){
+    var hex4=ipv4ToHex(ip.slice(lastColon+1));
+    if(!hex4)return null;
+    ip=ip.slice(0,lastColon+1)+hex4;
+  }
+  if(ip.indexOf('.')>=0)return null;
   var segs=[];
-  if(hasColon){
-    var idx=parts.indexOf('');
-    var left=parts.slice(0,idx).filter(function(p){return p!=='';});
-    var right=parts.slice(idx+1).filter(function(p){return p!=='';});
+  var dbl=ip.indexOf('::');
+  if(dbl>=0){
+    if(ip.indexOf('::',dbl+2)>=0)return null;
+    var leftStr=ip.slice(0,dbl),rightStr=ip.slice(dbl+2);
+    var left=leftStr?leftStr.split(':'):[];
+    var right=rightStr?rightStr.split(':'):[];
+    for(var i=0;i<left.length;i++){if(left[i]==='')return null;}
+    for(var j=0;j<right.length;j++){if(right[j]==='')return null;}
     var need=8-left.length-right.length;
-    if(need<0)return null;
-    for(var i=0;i<need;i++)segs.push('0000');
-    segs=left.concat(segs).concat(right);
+    if(need<1)return null;
+    segs=left.slice();
+    for(var k=0;k<need;k++)segs.push('0000');
+    segs=segs.concat(right);
   }else{
-    segs=parts;
+    segs=ip.split(':');
   }
   if(segs.length!==8)return null;
-  for(var k=0;k<8;k++){if(!/^[0-9a-f]{1,4}$/.test(segs[k]))return null;segs[k]=('0000'+segs[k]).slice(-4);}
+  for(var m=0;m<8;m++){if(!/^[0-9a-f]{1,4}$/.test(segs[m]))return null;segs[m]=pad4(segs[m]);}
   return segs;
 }
+function calcTool(){
 var ip=document.getElementById('addr').value;
 var html='<div class="result-title">转换结果</div>';
 var segs=expand(ip);
 if(!segs){html+='<p style="color:#dc2626;">⚠️ 不是合法的 IPv6 地址。</p>';const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));return;}
 html+='<div class="big-result" style="font-size:14px;word-break:break-all;">'+segs.join(':')+'</div>';
-html+='<p class="muted">压缩形式：'+ip.trim()+'</p>';
+html+='<p class="muted">压缩形式：'+compressV6(segs)+'</p>';
 html+='<p style="margin-top:8px;"><b>8 段：</b>'+segs.map(function(s,i){return '['+i+'] '+s;}).join('  ')+'</p>';
 const __g3=html;document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));}
 function resetForm(){document.getElementById('addr').value='2001:db8::1';

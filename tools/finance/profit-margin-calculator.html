@@ -207,8 +207,8 @@ s.parentNode.insertBefore(el, s);
       <h3>📊 收入成本输入</h3>
           <div class="formula-box">
       <div class="formula-title">📐 计算公式 / 说明</div>
-      <div class="formula-eq">毛利率 = (收入 − 成本)/收入；净利率 = 净利润/收入；杜邦分解：ROE = 净利率 × 总资产周转率 × 权益乘数</div>
-      <div class="formula-desc">基于利润率定义：毛利率、营业利润率、净利率与 EBITDA 利润率分别对应不同成本口径；支持反推计算与杜邦分解，用于盈利能力分析。</div>
+      <div class="formula-eq">毛利率 = (收入 − 成本)/收入；营业利润 = 毛利润 − 期间费用（销售 + 管理 + 研发） − 折旧摊销；EBITDA = 营业利润 + 折旧摊销；净利润 = 营业利润 − 财务费用 − 所得税；净利率 = 净利润/收入；杜邦分解：ROE = 净利率 × 总资产周转率 × 权益乘数</div>
+      <div class="formula-desc">基于利润率定义：毛利率、营业利润率、净利率与 EBITDA 利润率分别对应不同成本口径；营业利润已扣除折旧摊销，净利润再扣财务费用与所得税；支持反推计算与杜邦分解，用于盈利能力分析。</div>
     </div>
 <div class="input-row">
         <div><label>营业收入(元)</label><input type="number" id="revenue" value="1000000" step="any" oninput="calc()" placeholder="如 1000000"></div>
@@ -443,7 +443,7 @@ function calc(){
   var gpm = r > 0 ? gp / r * 100 : 0;
   
   var opExp = p.sellingExp + p.adminExp + p.rdExp;
-  var opProfit = gp - opExp;
+  var opProfit = gp - opExp - p.da;
   var opMargin = r > 0 ? opProfit / r * 100 : 0;
   
   var ebit = opProfit;
@@ -635,6 +635,9 @@ function drawPieChart(){
   
   ctx.clearRect(0, 0, w, h);
   
+  var ebt = p.revenue - p.cogs - p.sellingExp - p.adminExp - p.rdExp - p.finExp - p.da;
+  var tax = Math.max(0, ebt * p.taxRate / 100);
+  var np = Math.max(0, ebt - tax);
   var segments = [
     {label: '营业成本', value: p.cogs, color: '#f44336'},
     {label: '销售费用', value: p.sellingExp, color: '#ff9800'},
@@ -642,8 +645,8 @@ function drawPieChart(){
     {label: '研发费用', value: p.rdExp, color: '#9c27b0'},
     {label: '财务费用', value: p.finExp, color: '#3f51b5'},
     {label: '折旧摊销', value: p.da, color: '#00bcd4'},
-    {label: '所得税', value: Math.max(0, (p.revenue - p.cogs - p.sellingExp - p.adminExp - p.rdExp - p.finExp) * p.taxRate / 100), color: '#795548'},
-    {label: '净利润', value: Math.max(0, p.revenue - p.cogs - p.sellingExp - p.adminExp - p.rdExp - p.finExp - Math.max(0, (p.revenue - p.cogs - p.sellingExp - p.adminExp - p.rdExp - p.finExp) * p.taxRate / 100)), color: '#4caf50'}
+    {label: '所得税', value: tax, color: '#795548'},
+    {label: '净利润', value: np, color: '#4caf50'}
   ];
   
   var total = segments.reduce(function(s, seg){ return s + seg.value; }, 0);
@@ -735,7 +738,8 @@ function drawWaterfallChart(){
     {label: '管理费用', val: -p.adminExp, type: 'expense'},
     {label: '研发费用', val: -p.rdExp, type: 'expense'},
     {label: '财务费用', val: -p.finExp, type: 'expense'},
-    {label: '净利润', val: p.revenue - p.cogs - p.sellingExp - p.adminExp - p.rdExp - p.finExp - Math.max(0, (p.revenue - p.cogs - p.sellingExp - p.adminExp - p.rdExp - p.finExp) * p.taxRate / 100), type: 'total'}
+    {label: '折旧摊销', val: -p.da, type: 'expense'},
+    {label: '净利润', val: p.revenue - p.cogs - p.sellingExp - p.adminExp - p.rdExp - p.finExp - p.da - Math.max(0, (p.revenue - p.cogs - p.sellingExp - p.adminExp - p.rdExp - p.finExp - p.da) * p.taxRate / 100), type: 'total'}
   ];
   
   var maxVal = p.revenue;

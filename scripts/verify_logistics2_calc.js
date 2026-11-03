@@ -70,6 +70,37 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "logistics2/storage-allocation",
+  "inputs": {
+    "skuInput": "苹果,100\n香蕉,100\n橙子,100\n梨,100\n桃,100\n葡萄,100",
+    "totalRows": "9"
+  },
+  "expect": [
+    "66.6%",
+    "合计校验：✓ 商品数 6 行 = 明细 6 行；频次 600 = 明细合计 600；排数 5+2+2 = 9；占比合计 100.0%"
+  ],
+  "clicks": [
+    "document.getElementById('skuInput').value=['苹果,100','香蕉,100','橙子,100','梨,100','桃,100','葡萄,100'].join(String.fromCharCode(10));document.getElementById('totalRows').value='9';calc();"
+  ],
+  "ref": "W5-A 汇总/明细闭合：6 个等频次 SKU（默认样例 14 个不复现）⇒ A=4/B=1/C=1，占比原始值 66.7+16.7+16.7=100.1 超 0.1；修复后尾差从频次最大类 A 扣回得 66.6%，合计校验行 5+2+2=9 排、占比 100.0%。旧实现占比合计 100.1% 且无「合计校验」行，两条期望均不命中。"
+},
+{
+  "slug": "logistics2/storage-allocation",
+  "inputs": {
+    "skuInput": "苹果,100\n香蕉,100\n橙子,100\n梨,100\n桃,100\n葡萄,100",
+    "totalRows": "9",
+    "doorPos": "back"
+  },
+  "expect": [
+    "合计校验：✓ 商品数 6 行 = 明细 6 行；频次 600 = 明细合计 600；排数 5+2+2 = 9；占比合计 100.0%",
+    "66.6%"
+  ],
+  "clicks": [
+    "document.getElementById('skuInput').value=['苹果,100','香蕉,100','橙子,100','梨,100','桃,100','葡萄,100'].join(String.fromCharCode(10));document.getElementById('totalRows').value='9';document.getElementById('doorPos').value='back';calc();"
+  ],
+  "ref": "W5-A 门在后端时，汇总排号须由明细派生（旧实现汇总硬编码从第 1 排起、明细却是「第 5-9 排」）；合计校验与尾差校正同样命中。"
+},
+{
   "slug": "logistics2/loading-utilization",
   "inputs": {
     "truckL": "6.8",

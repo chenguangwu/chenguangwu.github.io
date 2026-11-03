@@ -175,7 +175,7 @@ s.parentNode.insertBefore(el, s);
       常用临床评分量表，选择对应参数自动计算评分并给出分级与临床建议。
     ">Clinical Score</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">格拉斯哥昏迷评分（GCS）<br>总分 = 睁眼 E(1–4) + 语言 V(1–5) + 运动 M(1–6)，范围 3–15 分<br>13–15 分：轻度意识障碍，密切观察、定期复评<br>9–12 分：中度意识障碍，需住院监测、必要时影像学检查<br>3–8 分：重度昏迷，立即气道保护、机械通气、紧急头颅影像<br>动态评分变化比单次数值更有预后意义</div>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">格拉斯哥昏迷评分（GCS）<br>总分 = 睁眼 E(1–4) + 语言 V(1–5) + 运动 M(1–6)，范围 3–15 分<br>13–15 分：轻度意识障碍，密切观察、定期复评<br>9–12 分：中度意识障碍，需住院监测、必要时影像学检查<br>3–8 分：重度昏迷，立即气道保护、机械通气、紧急头颅影像<br>动态评分变化比单次数值更有预后意义<br><br>MELD / MELD-Na（终末期肝病）<br>MELD = 3.78×ln(胆红素) + 11.2×ln(INR) + 9.57×ln(肌酐) + 6.43<br>各化验值下限按 1 计；肌酐上限按 4 计（透析者按 4 计）<br>MELD-Na = MELD + 1.32×(137−血钠) − 0.033×MELD×(137−血钠)，血钠钳制 125–137 mmol/L；MELD ≤11 时取 MELD</div>
       <p class="formula-desc" data-zh="「常用临床评分量表，选择对应参数自动计算评分并给出分级与临床建议。」按输入参数进行专业计算并输出结果。">Clinical Score: computes and outputs results from the input parameters.</p>
     </div>
 
@@ -327,7 +327,7 @@ s.parentNode.insertBefore(el, s);
         <label><input type="checkbox" id="meld_dialysis" onchange="calcMELD()"> 近期透析 ≥2 次</label>
       </div>
       <div class="result-box" id="result-meld"></div>
-      <div class="info-box">MELD-Na 公式纳入血钠校正。评分 ≥15 分通常推荐肝移植评估。</div>
+      <div class="info-box">MELD-Na 公式纳入血钠校正（血钠钳制 125–137 mmol/L，MELD ≤11 时不做校正）。评分 ≥15 分通常推荐肝移植评估。</div>
     </div>
 
     <div class="disclaimer">
@@ -467,7 +467,7 @@ function calcCHA(){
   if(document.getElementById('cha_vascular').checked) s += 1;
   if(document.getElementById('cha_age65').checked) s += 1;
   if(document.getElementById('cha_female').checked) s += 1;
-  var cls = s === 0 ? 'grade-low' : (s <= 2 ? 'grade-mid' : 'grade-high');
+  var cls = s === 0 ? 'grade-low' : (s === 1 ? 'grade-mid' : 'grade-high');
   var advice;
   if(s === 0) advice = '低风险，通常无需抗凝。';
   else if(s === 1) advice = '中风险，男性可考虑抗凝，女性（仅性别项）无需。';
@@ -496,32 +496,42 @@ function calcCURB(){
     (s===0?'1.5%':s===1?'3.2%':s===2?'3.9%':s===3?'17%':s===4?'40%':'57%')+'<br>'+advice+'</div>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('result-curb').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result-curb').innerHTML=__h3;
 }
 
-// MELD-Na
+// MELD / MELD-Na
 function calcMELD(){
   var bili = +document.getElementById('meld_bili').value;
   var cr = +document.getElementById('meld_cr').value;
   var inr = +document.getElementById('meld_inr').value;
   var na = +document.getElementById('meld_na').value;
   var dialysis = document.getElementById('meld_dialysis').checked;
-  if(bili <= 0 || cr <= 0 || inr <= 0){ const __h4='<p style="color:var(--danger);">请输入有效数值</p>';if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){document.getElementById('result-meld').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result-meld').innerHTML=__h4; return; }
+  if(!isFinite(bili) || !isFinite(cr) || !isFinite(inr) || !isFinite(na) || bili <= 0 || cr <= 0 || inr <= 0 || na <= 0){ const __h4='<p style="color:var(--danger);">请输入有效数值</p>';if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){document.getElementById('result-meld').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result-meld').innerHTML=__h4; return; }
+  // 标准 MELD：各化验值下限按 1；透析或肌酐 >4 时肌酐按 4 计
+  bili = Math.max(1, bili);
+  inr = Math.max(1, inr);
   if(dialysis) cr = 4.0;
-  var meld = 0.957 * Math.log(bili) + 0.378 * Math.log(cr) + 1.120 * Math.log(inr) + 0.643;
+  cr = Math.min(4.0, Math.max(1, cr));
+  var meld = 3.78 * Math.log(bili) + 11.2 * Math.log(inr) + 9.57 * Math.log(cr) + 6.43;
   meld = Math.round(meld * 10) / 10;
-  meld = Math.max(6, meld);
-  // MELD-Na 校正
-  var meldNa = meld + 1.32 * (137 - na) - [0, 0.033, 0.066, 0.099, 0.132, 0.165, 0.198, 0.231, 0.264, 0.297, 0.330, 0.363][Math.min(11, Math.max(0, Math.floor(meld)-6))] * (137 - na);
-  meldNa = Math.round(meldNa);
+  meld = Math.max(6, Math.min(40, meld));
+  // MELD-Na：血钠钳制 125–137，MELD ≤11 时不做校正
+  var naClamp = Math.min(137, Math.max(125, na));
+  var meldNa = meld;
+  if(meld > 11){
+    meldNa = meld + 1.32 * (137 - naClamp) - 0.033 * meld * (137 - naClamp);
+    meldNa = Math.round(meldNa * 10) / 10;
+  }
   meldNa = Math.max(6, Math.min(40, meldNa));
-  var cls = meldNa < 15 ? 'grade-low' : (meldNa < 25 ? 'grade-mid' : 'grade-high');
-  var advice = meldNa < 15 ? '90 天死亡率较低，定期随访。' :
-               meldNa < 25 ? '建议肝移植评估。' :
-               '高优先级肝移植，紧急评估。';
+  var cls, advice;
+  if(meldNa < 10){ cls='grade-low'; advice='90 天死亡率约 1.9%，定期随访。'; }
+  else if(meldNa < 20){ cls='grade-low'; advice='90 天死亡率约 6.0%，每 3–6 个月复查并评估移植指征。'; }
+  else if(meldNa < 30){ cls='grade-mid'; advice='90 天死亡率约 19.6%，建议启动肝移植评估。'; }
+  else if(meldNa < 40){ cls='grade-high'; advice='90 天死亡率约 52.6%，应优先安排肝移植评估。'; }
+  else { cls='grade-high'; advice='90 天死亡率约 71.3%，高优先级，紧急移植评估。'; }
   const __h5='<div class="stat-grid">'+
     '<div class="stat-card"><div class="val">'+meld.toFixed(1)+'</div><div class="lbl">MELD</div></div>'+
-    '<div class="stat-card"><div class="val">'+meldNa+'</div><div class="lbl">MELD-Na</div></div>'+
+    '<div class="stat-card"><div class="val">'+meldNa.toFixed(1)+'</div><div class="lbl">MELD-Na</div></div>'+
     '</div>'+
-    '<div class="grade-box '+cls+'">MELD-Na = '+meldNa+'（已纳入血钠校正）<br>'+advice+'</div>'+
-    '<div class="step-line">公式：MELD = 0.957×ln(胆红素) + 0.378×ln(肌酐) + 1.120×ln(INR) + 0.643</div>';if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){document.getElementById('result-meld').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result-meld').innerHTML=__h5;
+    '<div class="grade-box '+cls+'">MELD-Na = '+meldNa.toFixed(1)+'（已纳入血钠校正）<br>'+advice+'</div>'+
+    '<div class="step-line">公式：MELD = 3.78×ln(胆红素) + 11.2×ln(INR) + 9.57×ln(肌酐) + 6.43（各化验值下限按 1、肌酐上限按 4）</div>';if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){document.getElementById('result-meld').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result-meld').innerHTML=__h5;
 }
 
 // 初始化全部计算

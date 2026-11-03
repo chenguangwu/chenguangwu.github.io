@@ -130,7 +130,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="📏 胃管深度(鼻尖-耳垂-剑突)测量器">Gastric Tube Depth</h2>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">置入深度：实测法 = 鼻耳距 + 耳剑突距 + 附加量（默认 10 cm）；身高法 = 身高×0.2 + 鼻剑突距（取整）。校验：各距离为有效正数。注：仅为定位估算，需结合临床确认。</div>
+      <div class="formula-eq">置入深度：实测法 = 鼻耳距 + 耳剑突距 + 附加量（默认 10 cm）；身高估算法 = 身高×0.25 + 10 cm（无实测 NEX 时）；有实测鼻尖→剑突 NEX 时 = NEX + 10 cm。校验：各距离为有效正数。注：仅为定位估算，需结合临床确认。</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="计算鼻胃管置入深度，支持测量法（NEX法）和身高公式法两种方式。">Gastric Tube Depth</p>
     <div class="method-tab">
@@ -175,7 +175,7 @@ s.parentNode.insertBefore(el, s);
           <input type="number" id="height" value="170" min="100" max="220" oninput="calc()" placeholder="如 170（150–190）">
         </div>
       </div>
-      <p style="font-size:13px;color:var(--text-light);margin:8px 0;">公式：置入深度 = 身高 × 0.2 + 鼻尖至剑突测量值</p>
+      <p style="font-size:13px;color:var(--text-light);margin:8px 0;">公式：有实测鼻尖→剑突 NEX 时 = NEX + 10 cm；无实测值时 = 身高 × 0.25 + 10 cm</p>
       <div class="input-row">
         <div>
           <label>鼻尖至剑突实测值 (cm，可选)</label>
@@ -201,7 +201,7 @@ s.parentNode.insertBefore(el, s);
     <div class="info-box">
       <strong>胃管置入深度参考：</strong><br>
       成人一般：45-55cm（鼻尖→耳垂→剑突 + 10cm）<br>
-      身高公式：身高×0.2 + 鼻尖至剑突距离<br>
+      身高估算：无实测 NEX 时按 身高×0.25 + 10cm；有实测 NEX 时按 NEX + 10cm<br>
       儿童：发际至剑突距离（约15-25cm）<br>
       新生儿：鼻尖至耳垂至剑突 + 5cm<br><br>
       <strong>验证方法：</strong>置管后可通过听诊气过水声、抽吸胃液、pH试纸检测（pH≤5.5）确认位置。
@@ -301,18 +301,25 @@ function switchMethod(method, btn){
 }
 
 function calc(){
-  var depth = 0;
+  var depth = 0, height = 0, noseXiphoid = 0;
   if(currentMethod === 'measure'){
     var noseEar = parseFloat(document.getElementById('noseEar').value) || 0;
     var earXiphoid = parseFloat(document.getElementById('earXiphoid').value) || 0;
     var extra = parseFloat(document.getElementById('extraDepth').value) || 10;
     depth = noseEar + earXiphoid + extra;
   } else {
-    var height = parseFloat(document.getElementById('height').value) || 0;
-    var noseXiphoid = parseFloat(document.getElementById('noseXiphoid').value) || 0;
-    depth = Math.round(height * 0.2 + noseXiphoid);
+    height = parseFloat(document.getElementById('height').value) || 0;
+    noseXiphoid = parseFloat(document.getElementById('noseXiphoid').value) || 0;
+    // 优先用实测 NEX（鼻尖→剑突）+ 10 cm；无实测时才按身高×0.25 + 10 cm 估算
+    if(noseXiphoid > 0){
+      depth = Math.round(noseXiphoid + 10);
+    } else if(height > 0){
+      depth = Math.round(height * 0.25 + 10);
+    } else {
+      depth = 0;
+    }
   }
-  window.__EMR_SUM={meth:currentMethod,depth:depth,ne:(typeof noseEar!=='undefined'?noseEar:0),ex:(typeof earXiphoid!=='undefined'?earXiphoid:0),hp:(typeof height!=='undefined'?height:0),nx:(typeof noseXiphoid!=='undefined'?noseXiphoid:0)};
+  window.__EMR_SUM={meth:currentMethod,depth:depth,ne:(typeof noseEar!=='undefined'?noseEar:0),ex:(typeof earXiphoid!=='undefined'?earXiphoid:0),et:(typeof extra!=='undefined'?extra:10),hp:(typeof height!=='undefined'?height:0),nx:(typeof noseXiphoid!=='undefined'?noseXiphoid:0)};
   const __g0=depth;document.getElementById('depth').textContent=(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—'));
 }
 
@@ -361,15 +368,15 @@ function __emrData(){
   var en=__emrEn();
   var hz,he;
   if(s.meth==='measure'){
-    hz='NEX 法（鼻尖→耳垂→剑突 + 10 cm）：置管后必须双人核对刻度，并用「气过水声 / 胃液 pH＜5.5 / 超声 / X 线」确认位置，禁止仅凭抽到液体判断；昏迷、咳嗽反射弱者先评估误吸风险。';
-    he='NEX method (nose-ear-xiphoid + 10 cm): after insertion verify with two nurses and confirm position by air insufflation, gastric aspirate pH below 5.5, ultrasound or X-ray; assess aspiration risk in obtunded patients.';
+    hz='NEX 法（鼻尖→耳垂→剑突 + '+s.et+' cm）：置管后必须双人核对刻度，并用「气过水声 / 胃液 pH＜5.5 / 超声 / X 线」确认位置，禁止仅凭抽到液体判断；昏迷、咳嗽反射弱者先评估误吸风险。';
+    he='NEX method (nose-ear-xiphoid + '+s.et+' cm): after insertion verify with two nurses and confirm position by air insufflation, gastric aspirate pH below 5.5, ultrasound or X-ray; assess aspiration risk in obtunded patients.';
   } else {
-    hz='身高公式法（0.2×身高 + 鼻剑突距离）：仅为估算，个体胸廓长度差异大，仍须按实测刻度与影像/抽吸确认，避免置入过深进入十二指肠或盘曲。';
-    he='Height formula (0.2 x height + nose-xiphoid distance) is an estimate only; confirm with the marked scale and imaging or aspiration to avoid duodenal placement or coiling.';
+    hz='身高估算法（有实测 NEX 时 NEX+10 cm，无实测时 身高×0.25+10 cm）：仅为估算，个体胸廓长度差异大，仍须按实测刻度与影像/抽吸确认，避免置入过深进入十二指肠或盘曲。';
+    he='Height estimate (NEX + 10 cm when measured, otherwise 0.25 x height + 10 cm) is an estimate only; confirm with the marked scale and imaging or aspiration to avoid duodenal placement or coiling.';
   }
   var det = s.meth==='measure'
-    ? ('鼻尖→耳垂 '+s.ne+' cm + 耳垂→剑突 '+s.ex+' cm + 追加 10 cm')
-    : ('身高 '+s.hp+' cm × 0.2 + 鼻尖→剑突 '+s.nx+' cm');
+    ? ('鼻尖→耳垂 '+s.ne+' cm + 耳垂→剑突 '+s.ex+' cm + 追加 '+s.et+' cm')
+    : (s.nx>0 ? ('鼻尖→剑突实测 '+s.nx+' cm + 10 cm（NEX 法）') : ('身高 '+s.hp+' cm × 0.25 + 10 cm'));
   __emrNote({name:'胃管置入深度测算', nameEn:'Nasogastric Tube Insertion Depth',
     result:'方法：'+(s.meth==='measure'?'NEX 测量法':'身高公式法')+'（'+det+'）→ 预计置入深度 '+s.depth+' cm',
     resultEn:(s.meth==='measure'?'NEX method':'height formula')+' -> estimated insertion depth '+s.depth+' cm',

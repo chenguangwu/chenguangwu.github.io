@@ -71,9 +71,45 @@ const CASES = [
     "workday": "8"
   },
   "expect": [
-    "1.5 天"
+    "0.8 天"
   ],
-  "ref": "休息日倍数2：折算补休=6×2/8=1.5 天（默认 12h/工作日/8h 得 2.3 天）"
+  "ref": "W5-B 休息日补休按 1:1 小时折算：6 ÷ 8 = 0.8 天（旧实现误用 2 倍工资倍数 ⇒ 6×2/8 = 1.5 天）。默认 12h/工作日/8h 得 0.0 天，不复现。"
+},
+{
+  "slug": "hr/comp-time-calculator",
+  "inputs": {
+    "hours": "96",
+    "dayType": "weekend",
+    "workday": "8"
+  },
+  "expect": [
+    "12.0 天"
+  ],
+  "ref": "W5-B 核心回归：96h 休息日加班 ÷ 8h/天 = 12.0 天（旧实现 96×2/8 = 24.0 天）。"
+},
+{
+  "slug": "hr/comp-time-calculator",
+  "inputs": {
+    "hours": "96",
+    "dayType": "holiday",
+    "workday": "8"
+  },
+  "expect": [
+    "288.0 h"
+  ],
+  "ref": "W5-B 法定节假日口径：支付 300% 工资且不可补休，可补休天数记 0；折算加班费工时 = 96×3 = 288.0 h（旧实现按 3 倍折算成 36.0 天）。默认 12h/工作日 ⇒ 18.0 h，不命中；不锚「0.0 天」，避免默认态逃生。"
+},
+{
+  "slug": "hr/comp-time-calculator",
+  "inputs": {
+    "hours": "96",
+    "dayType": "weekday",
+    "workday": "8"
+  },
+  "expect": [
+    "144.0 h"
+  ],
+  "ref": "W5-B 工作日口径：延时加班支付 150% 工资、不折算补休；折算加班费工时 = 96×1.5 = 144.0 h（旧实现按 1.5 倍折算成 18.0 天）。默认 12h/工作日 ⇒ 18.0 h，不命中；不锚「0.0 天」，避免默认态逃生。"
 },
 {
   "slug": "hr/gross-up-calculator",

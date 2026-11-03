@@ -383,6 +383,26 @@ s.parentNode.insertBefore(el, s);
       S.trials.push(genTrial(S.trials.length));
     }
   }
+  /* 单通道判定：未响应时，噪声试次（正确拒绝）算对，信号试次（漏报）算错 */
+  function respCorrect(resp, isMatch) {
+    if (resp === null || resp === undefined) { return !isMatch; }
+    return resp === (isMatch ? 1 : 0);
+  }
+  function trialCorrect(t, dual) {
+    if (!respCorrect(t.posResp, t.isPosMatch)) { return false; }
+    if (dual && !respCorrect(t.audResp, t.isAudMatch)) { return false; }
+    return true;
+  }
+  /* 门禁验证钩子：用真实评分函数统计注入试次（不改变训练流程） */
+  window.__nbScoreTrials = function (trials, dual) {
+    var correct = 0, scored = 0;
+    (trials || []).forEach(function (t) {
+      if (!t || t.scored === false) { return; }
+      scored++;
+      if (trialCorrect(t, !!dual)) { correct++; }
+    });
+    return { scored: scored, correct: correct, acc: scored ? Math.round(correct / scored * 100) : 0 };
+  };
 
   /* ============================================================
    * 5. 语音
@@ -503,13 +523,10 @@ s.parentNode.insertBefore(el, s);
         if (t.isAudMatch) { S.audHit++; } else { S.audFa++; }
       }
     }
-    // 整体正确
-    var tolPos = (t.posResp === (t.isPosMatch ? 1 : 0));
-    var tolAud = (S.channel === 'dual') ? (t.audResp === (t.isAudMatch ? 1 : 0)) : true;
+    // 整体正确（未响应：噪声试次 = 正确拒绝，信号试次 = 漏报）
     var ok = true;
     if (scored) {
-      if (!tolPos) { ok = false; }
-      if (S.channel === 'dual' && !tolAud) { ok = false; }
+      ok = trialCorrect(t, S.channel === 'dual');
       S.scored++;
       if (ok) { S.correct++; S.streakOk++; S.streakBad = 0; }
       else { S.streakBad++; S.streakOk = 0; }

@@ -269,6 +269,51 @@ const CASES = [
     ref: "99.99 ⇒ 玖拾玖元玖角玖分（角、分各读一次，不漏「零」）。默认金额不同 ⇒ 不命中。",
   },
   {
+    slug: "finance/amount-in-words",
+    inputs: { money: "100200300.00" },
+    clicks: ["convert()"],
+    expect: ["壹亿零贰拾万零叁佰元整"],
+    ref: "W3-B 1亿+20万+300：亿→万、万→个位两级缺位各补一个「零」，角分为 0 加「整」⇒ 壹亿零贰拾万零叁佰元整。"
+       + "旧整数分组不补零 ⇒ 壹亿贰拾万叁佰元整，本断言不命中。",
+  },
+  {
+    slug: "finance/amount-in-words",
+    inputs: { money: "100000000.01" },
+    clicks: ["convert()"],
+    expect: ["壹亿元零壹分"],
+    ref: "W3-B 1亿+1分：中间两组整为零 ⇒ 壹亿；有分无角补「零」⇒ 壹亿元零壹分。"
+       + "旧实现整组零错拼成「壹亿万」且零位重复 ⇒ 输出与断言不符。",
+  },
+  {
+    slug: "finance/amount-in-words",
+    inputs: { money: "1.005" },
+    clicks: ["convert()"],
+    expect: ["壹元零壹分"],
+    ref: "W3-B 三位小数四舍五入到分：1.005 第三位为 5 ⇒ 进位为 0.01 ⇒ 壹元零壹分（有分无角补零）。"
+       + "旧实现 (1.005−1)×100≈0.4999 被舍成 0 ⇒ 壹元整，本断言不命中。",
+  },
+  {
+    slug: "finance/amount-in-words",
+    inputs: { money: "1.999" },
+    clicks: ["convert()"],
+    expect: ["贰元整"],
+    ref: "W3-B 分位进位满 100：1.999 → 2.00 ⇒ 贰元整。旧实现 f=100 后 CN[10] 不存在 ⇒ 输出「壹元undefined角」，本断言不命中。",
+  },
+  {
+    slug: "finance/amount-in-words",
+    inputs: { money: "0.005" },
+    clicks: ["convert()"],
+    expect: ["零元零壹分"],
+    ref: "W3-B 0.005 四舍五入到 0.01 ⇒ 零元零壹分（整数为 0 时仍完整输出元/角/分，不出现 undefined）。",
+  },
+  {
+    slug: "finance/amount-in-words",
+    inputs: { money: "1.234" },
+    clicks: ["convert()"],
+    expect: ["壹元贰角叁分"],
+    ref: "W3-B 1.234 第三位 4 <5 舍去 ⇒ 1.23 ⇒ 壹元贰角叁分（角分各读一次）。",
+  },
+  {
     slug: "finance/word-counter",
     inputs: { input: "apple banana apple cherry" },
     clicks: ["analyze()"],
@@ -544,6 +589,28 @@ const CASES = [
     ref: "1234 的中文读法：一千二百三十四（「二」非「两」，十位「十」不补零）。默认态为空输入，不命中。",
   },
   {
+    slug: "finance/number-to-words-chinese",
+    inputs: { inputVal: "4.499999" },
+    clicks: ["convert()"],
+    expect: ["中文读法： 四点五"],
+    ref: "W3-C 4.499999：小数位四舍五入到最多 4 位 ⇒ 0.5000 ⇒ 四点五，避免 IEEE754 尾数噪音。"
+       + "旧实现按 decPart.toString() 逐位读 ⇒ 四点四九九九九九零零… 长串，本断言不命中。",
+  },
+  {
+    slug: "finance/number-to-words-chinese",
+    inputs: { inputVal: "9.99999" },
+    clicks: ["convert()"],
+    expect: ["中文读法： 十"],
+    ref: "W3-C 9.99999：4 位小数四舍五入发生进位 ⇒ 10 ⇒ 十（首位一十省作十）。旧实现输出 九点九九九九九零零…，本断言不命中。",
+  },
+  {
+    slug: "finance/number-to-words-chinese",
+    inputs: { inputVal: "1.23456" },
+    clicks: ["convert()"],
+    expect: ["一点二三四六"],
+    ref: "W3-C 1.23456：第 5 位 6 ≥5 向第 4 位进位 ⇒ 1.2346 ⇒ 一点二三四六；旧实现逐位读浮点尾数 ⇒ 一点二三四五六零零…，本断言不命中。",
+  },
+  {
     slug: "finance/iccid-validator",
     inputs: { input: "8986011234567890123" },
     expect: ["国家代码（第 3-4 位）： 86", "校验位： 3"],
@@ -785,8 +852,15 @@ const CASES = [
     slug: "finance/profit-margin-calculator",
     inputs: { revenue: "2000000", cogs: "1100000" },
     clicks: ["calc()"],
-    expect: ["毛利润 90.00万 (45.0%)", "净利率 24.38%"],
-    ref: "利润率（营业收入 200 万、营业成本 110 万，其余费用沿用默认档）：毛利润 = 200 − 110 = 90.00 万，毛利率 = 90/200 = **45.0%**；营业利润 67.00 万 ⇒ 营业利润率 **33.50%**；利润总额 65.00 万，所得税（25%）16.25 万 ⇒ 净利润 **48.75 万**，净利率 = 48.75/200 = **24.38%**。四条全部只用注入值与默认档一步相除/相减。默认组（100 万 / 60 万 ⇒ 40.00万 / 40.0%）不命中。",
+    expect: ["毛利润 90.00万 (45.0%)", "净利率 22.13%"],
+    ref: "利润率（营业收入 200 万、营业成本 110 万，其余费用沿用默认档）：毛利润 = 200 − 110 = 90.00 万，毛利率 = 90/200 = **45.0%**；营业利润 = 90 − 23 − 6 = 61.00 万 ⇒ 营业利润率 **30.50%**；EBITDA 67.00 万；利润总额 59.00 万，所得税（25%）14.75 万 ⇒ 净利润 **44.25 万**，净利率 = 44.25/200 = **22.13%**（折旧摊销 6 万已扣除）。默认组（100 万 / 60 万 ⇒ 40.00万 / 40.0%）不命中。",
+  },
+  {
+    slug: "finance/profit-margin-calculator",
+    inputs: { revenue: "5000000", cogs: "2000000", sellingExp: "0", adminExp: "0", rdExp: "0", finExp: "0", da: "300000", taxRate: "0" },
+    clicks: ["calc()"],
+    expect: ["净利率 54.00%", "EBITDA利润率 60.00%"],
+    ref: "折旧摊销修复判别：收入 500 万、成本 200 万、期间费用 0、折旧摊销 30 万、利息与税 0。修复后营业利润 = 300 − 30 = 270.00 万、净利率 = 270/500 = **54.00%**，EBITDA = 300 万 ⇒ **60.00%**；旧实现不扣折旧摊销（净利率 60.00%、EBITDA 利润率 66.00%）⇒ 不命中。默认态输出 6.75% 与 17.00%，亦不命中。",
   },
   {
     slug: "finance/stock-profit-calculator",

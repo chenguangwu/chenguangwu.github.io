@@ -47,9 +47,25 @@ const CASES = [
     "selectActivity('wedding');findGoodDays();"
   ],
   "expect": [
-    "未来30天（建除十二神）"
+    "未来30天（建除十二神）",
+    "2026-10-15 周四 ✅ 宜 💒 婚嫁 📅 壬戌日 · 十二神：建神 · 冲龙"
   ],
   "ref": "date 输入 + 顶层 currentActivity 状态：inputs 写 startDate=2026-10-01、clicks 调 selectActivity('wedding') 置 currentActivity 后 findGoodDays() 渲染 30 天吉凶结果区；默认态（无 startDate）findGoodDays 早返回 toast、结果区为空，故「未来30天（建除十二神）」为排他锚点（已双态核验默认态无此串）。"
+     + "日柱锚：以独立 JDN 口径 (JDN+49)%60 交叉核算三条自洽锚点——1949-10-01 甲子、2000-01-01 戊午、2024-01-01 甲子；据此 2026-10-15 为壬戌日（日序 58），酉月建除得「建神」。修复前整体少 40 天，该日错排为壬午日、收神，卡片串整体不同。",
+},
+{
+  // 日柱基准交叉验证：2024-01-01 为甲子日（与 1949-10-01 甲子、2000-01-01 戊午 同一 JDN 口径）。
+  "slug": "fengshui/good-day-selector",
+  "inputs": {
+    "startDate": "2024-01-01"
+  },
+  "clicks": [
+    "selectActivity('travel');findGoodDays();"
+  ],
+  "expect": [
+    "2024-01-01 周一 ✅ 宜 ✈️ 出行 📅 甲子日 · 十二神：除神 · 冲马"
+  ],
+  "ref": "2024-01-01 = 甲子日（JDN 口径与 2000-01-01 戊午、1949-10-01 甲子 三锚点自洽）。修复前页面整体少 40 天，该日错排为甲申日、收神，断言不命中；注入 2024-01-01 + 出行活动，默认态结果区为空。"
 },
 {
   "slug": "fengshui/zodiac-lookup",

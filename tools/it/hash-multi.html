@@ -282,8 +282,9 @@ s.parentNode.insertBefore(el, s);
 var CRC_TABLE=(function(){var t=[];for(var n=0;n<256;n++){var c=n;for(var k=0;k<8;k++)c=c&1?(0xEDB88320^(c>>>1)):(c>>>1);t[n]=c>>>0;}return t;})();
 function crc32(str){
   var crc=0xFFFFFFFF;
-  for(var i=0;i<str.length;i++){
-    crc=(crc>>>8)^CRC_TABLE[(crc^str.charCodeAt(i))&0xFF];
+  var bytes=new TextEncoder().encode(String(str));
+  for(var i=0;i<bytes.length;i++){
+    crc=(crc>>>8)^CRC_TABLE[(crc^bytes[i])&0xFF];
   }
   return (crc^0xFFFFFFFF)>>>0;
 }
@@ -292,8 +293,7 @@ function md5(str){
   function add32(a,b){var l=(a&0xFFFF)+(b&0xFFFF);return (((a>>16)+(b>>16)+(l>>16))<<16)|(l&0xFFFF);}
   var K=[0xd76aa478,0xe8c7b756,0x242070db,0xc1bdceee,0xf57c0faf,0x4787c62a,0xa8304613,0xfd469501,0x698098d8,0x8b44f7af,0xffff5bb1,0x895cd7be,0x6b901122,0xfd987193,0xa679438e,0x49b40821,0xf61e2562,0xc040b340,0x265e5a51,0xe9b6c7aa,0xd62f105d,0x02441453,0xd8a1e681,0xe7d3fbc8,0x21e1cde6,0xc33707d6,0xf4d50d87,0x455a14ed,0xa9e3e905,0xfcefa3f8,0x676f02d9,0x8d2a4c8a,0xfffa3942,0x8771f681,0x6d9d6122,0xfde5380c,0xa4beea44,0x4bdecfa9,0xf6bb4b60,0xbebfbc70,0x289b7ec6,0xeaa127fa,0xd4ef3085,0x04881d05,0xd9d4d039,0xe6db99e5,0x1fa27cf8,0xc4ac5665,0xf4292244,0x432aff97,0xab9423a7,0xfc93a039,0x655b59c3,0x8f0ccc92,0xffeff47d,0x85845dd1,0x6fa87e4f,0xfe2ce6e0,0xa3014314,0x4e0811a1,0xf7537e82,0xbd3af235,0x2ad7d2bb,0xeb86d391];
   var S=[7,12,17,22,7,12,17,22,7,12,17,22,7,12,17,22,5,9,14,20,5,9,14,20,5,9,14,20,5,9,14,20,4,11,16,23,4,11,16,23,4,11,16,23,4,11,16,23,6,10,15,21,6,10,15,21,6,10,15,21,6,10,15,21];
-  var bytes=[];
-  for(var i=0;i<str.length;i++)bytes.push(str.charCodeAt(i));
+  var bytes=Array.from(new TextEncoder().encode(String(str)));
   var bitLen=bytes.length*8;
   bytes.push(0x80);
   while(bytes.length%64!==56)bytes.push(0);
@@ -319,15 +319,18 @@ function md5(str){
 function toHex(buf){
   return Array.from(new Uint8Array(buf)).map(function(b){return b.toString(16).padStart(2,'0');}).join('');
 }
+var lastHashPairs=[];
 function calc(){
   var text=document.getElementById('input').value;
   var upper=document.getElementById('opt_upper').checked;
   var box=document.getElementById('outBox');
   var out=document.getElementById('result');
+  lastHashPairs=[];
   if(!text){const __h0='';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){box.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}box.innerHTML=__h0;const __h1='';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;return;}
   var items=[];
   function push(label,hash){
     if(upper)hash=String(hash).toUpperCase();
+    lastHashPairs.push({label:String(label),value:String(hash)});
     items.push('<div style="background:var(--bg,#FFFAF7);border:1px solid var(--border,#E5E7EB);border-radius:12px;padding:12px 14px;">'+
       '<div style="font-size:12px;color:var(--muted,#6B7280);margin-bottom:4px;">'+label+'</div>'+
       '<div style="font-family:monospace;font-size:13.5px;word-break:break-all;">'+hash+' <button class="btn" style="padding:1px 10px;font-size:12px;float:right;margin-left:6px;" onclick="copyItem(this)">复制</button></div></div>');
@@ -349,6 +352,9 @@ function calc(){
     Promise.all(jobs.map(function(j){return crypto.subtle.digest(j[1],enc).then(function(buf){return [j[0],toHex(buf)];});})).then(function(res){
       res.forEach(function(r){
         var v=upper?r[1].toUpperCase():r[1];
+        for(var p=0;p<lastHashPairs.length;p++){
+          if(lastHashPairs[p].label===r[0]){lastHashPairs[p].value=v;break;}
+        }
         var boxes=box.querySelectorAll('div');
         for(var i=0;i<boxes.length;i++){
           if(boxes[i].textContent.indexOf(r[0]+'复制')>-1&&boxes[i].querySelector('div:last-child')){
@@ -363,7 +369,7 @@ function calc(){
   const __h3='<p>✅ 已计算 <strong>'+selected+'</strong> 种算法（'+text.length+' 字符）</p>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h3;
 }
 function copyItem(btn){var v=btn.parentNode.childNodes[0].nodeValue;ToolBox.copyText(btn.parentNode.textContent.replace('复制','').trim());if(ToolBox.showToast)ToolBox.showToast(i18nText());}
-function copyAll(){var box=document.getElementById('outBox');if(!box.innerHTML){if(ToolBox.showToast)ToolBox.showToast(i18nText());return;}var lines=[];box.querySelectorAll('div > div').forEach(function(d){var label=d.childNodes[0].textContent;var val=d.querySelector('div');if(val)lines.push(label+': '+val.textContent.replace('复制','').trim());});ToolBox.copyText(lines.join('\n'));if(ToolBox.showToast)ToolBox.showToast(i18nText('toast.msg201'));}
+function copyAll(){if(!lastHashPairs.length){if(ToolBox.showToast)ToolBox.showToast(i18nText());return;}var lines=lastHashPairs.map(function(it){return it.label+': '+it.value;});ToolBox.copyText(lines.join('\n'));if(ToolBox.showToast)ToolBox.showToast(i18nText('toast.msg201'));}
 calc();
 
 var __hash_multi_last=0,__hash_multi_skip=false;

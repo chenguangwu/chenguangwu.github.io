@@ -347,6 +347,18 @@ const CASES = [
     ref: "注入非默认(默认 amount=500000/hours=20/baseFee=10000/riskRatio=15)：按标的额分段累计 ⇒ 民事一审（北京）参考区间 29,600 − 44,400 元（区间上下界分别含风险代理比例折算）。默认态区间不同。"
   },
   {
+    slug: "legal/lawyer-fee-reference",
+    inputs: { caseType: "risk", amount: "500000", baseFee: "10000", riskRatio: "15", region: "bj" },
+    expect: ["费用构成：基础费 10,000 元", "75,000 元提成", "85,000 元"],
+    ref: "W5-C 风险代理比例参与计算：基础费 10,000 + 500,000×15% = 75,000 提成 ⇒ 合计 85,000 元（未超标的额 30% 上限 150,000）。旧实现忽略风险比例，仅出基础费 10,000 元，三条期望均不命中。"
+  },
+  {
+    slug: "legal/lawyer-fee-reference",
+    inputs: { caseType: "risk", amount: "100000", baseFee: "5000", riskRatio: "30", region: "bj" },
+    expect: ["已触及标的额 30% 上限（30,000 元），按上限计收。"],
+    ref: "W5-C 风险代理 30% 上限：基础费 5,000 + 100,000×30% = 35,000 ⇒ 触及标的额 30% 上限 30,000，按上限计收。旧实现只出 5,000 元且无上限提示。"
+  },
+  {
     slug: "legal/marriage-property-agreement",
     inputs: { houseValue: "3000000", carValue: "250000", savings: "500000", investments: "150000", otherAssets: "80000", jointDebt: "600000", maleRatio: "60", femaleRatio: "40" },
     expect: ["3980000.00", "3380000.00", "2028000.00", "1352000.00"],

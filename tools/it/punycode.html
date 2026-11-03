@@ -266,10 +266,10 @@ s.parentNode.insertBefore(el, s);
 const TMIN = 1, TMAX = 26, BASE = 36, SKEW = 38, DAMP = 700, INITIAL_BIAS = 72, INITIAL_N = 0x80;
 
 function adapt(delta, numpoints, first){
-  delta = first ? Math.floor(delta / DAMP) : delta >> 1;
+  delta = first ? Math.floor(delta / DAMP) : Math.floor(delta / 2);
   delta += Math.floor(delta / numpoints);
   let k = 0;
-  while(delta > ((BASE - TMIN) * TMAX) >> 1){
+  while(delta > Math.floor((BASE - TMIN) * TMAX / 2)){
     delta = Math.floor(delta / (BASE - TMIN));
     k += BASE;
   }
@@ -285,28 +285,26 @@ function digit(c){
 
 function encode(str){
   const output = [];
-  const basic = [];
-  for(const ch of str){
-    const cp = ch.codePointAt(0);
-    if(cp < 0x80) basic.push(ch);
+  const cps = [];
+  for(const ch of str) cps.push(ch.codePointAt(0));
+  const basic = [], extendedCps = [];
+  for(const cp of cps){
+    if(cp < 0x80) basic.push(String.fromCodePoint(cp));
+    else extendedCps.push(cp);
   }
-  let b = basic.length;
+  const b = basic.length;
   let out = basic.join('');
   if(b > 0) out += '-';
   let n = INITIAL_N, delta = 0, bias = INITIAL_BIAS;
-  const input = [];
-  for(const ch of str){
-    const cp = ch.codePointAt(0);
-    if(cp >= 0x80) input.push(cp);
-  }
-  const h = input.length;
-  let extended = b;
-  while(h > extended){
+  const total = cps.length;
+  let handled = b;
+  while(handled < total){
     let m = Infinity;
-    for(const cp of input) if(cp >= n && cp < m) m = cp;
-    delta += (m - n) * (extended + 1);
+    for(const cp of extendedCps) if(cp >= n && cp < m) m = cp;
+    if(m === Infinity) break;
+    delta += (m - n) * (handled + 1);
     n = m;
-    for(const cp of input){
+    for(const cp of cps){
       if(cp < n) delta++;
       if(cp === n){
         let q = delta;
@@ -315,15 +313,14 @@ function encode(str){
         while(true){
           t = k <= bias ? TMIN : (k >= bias + TMAX ? TMAX : k - bias);
           if(q < t) break;
-          const d = t + (q - t) % (BASE - t);
-          output.push(digitToChar(d));
-          q = (q - t) / (BASE - t) | 0;
+          output.push(digitToChar(t + (q - t) % (BASE - t)));
+          q = Math.floor((q - t) / (BASE - t));
           k += BASE;
         }
-        output.push(digitToChar(t + q));
-        bias = adapt(delta, extended + 1, extended === b);
+        output.push(digitToChar(q));
+        bias = adapt(delta, handled + 1, handled === b);
         delta = 0;
-        extended++;
+        handled++;
       }
     }
     delta++;
@@ -338,31 +335,37 @@ function digitToChar(d){
 }
 
 function decode(str){
-  const input = str;
-  let basicEnd = input.lastIndexOf('-');
-  basicEnd = basicEnd < 0 ? 0 : basicEnd;
-  let output = [];
-  for(let i = 0; i < basicEnd; i++) output.push(input.charCodeAt(i));
-  let i = basicEnd > 0 ? basicEnd + 1 : 0;
-  let n = INITIAL_N, bias = INITIAL_BIAS;
-  let pos = output.length;
-  while(i < input.length){
+  const input = String(str);
+  const basicEnd = input.lastIndexOf('-');
+  const b = basicEnd < 0 ? 0 : basicEnd;
+  const output = [];
+  for(let j = 0; j < b; j++){
+    const cp = input.charCodeAt(j);
+    if(cp >= 0x80) throw new Error('非法字符');
+    output.push(cp);
+  }
+  let idx = b > 0 ? b + 1 : 0;
+  let i = 0, n = INITIAL_N, bias = INITIAL_BIAS;
+  while(idx < input.length){
     const oldi = i;
     let w = 1, k = BASE;
     while(true){
-      const d = digit(input[i++]);
-      if(d < 0) throw new Error('非法字符');
-      let t = k <= bias ? TMIN : (k >= bias + TMAX ? TMAX : k - bias);
+      if(idx >= input.length) throw new Error('非法字符');
+      const d = digit(input[idx++]);
+      if(d < 0 || d >= BASE) throw new Error('非法字符');
+      i += d * w;
+      const t = k <= bias ? TMIN : (k >= bias + TMAX ? TMAX : k - bias);
       if(d < t) break;
       w *= BASE - t;
-      pos += d - t;
       k += BASE;
     }
-    bias = adapt(pos - output.length, output.length + 1, output.length === 0);
-    n += Math.floor(pos / (output.length + 1));
-    pos %= (output.length + 1);
-    output.splice(pos, 0, n);
-    pos++;
+    const len = output.length + 1;
+    bias = adapt(i - oldi, len, oldi === 0);
+    n += Math.floor(i / len);
+    if(n < 0x80 || n > 0x10FFFF) throw new Error('非法字符');
+    i %= len;
+    output.splice(i, 0, n);
+    i++;
   }
   return output.map(cp => String.fromCodePoint(cp)).join('');
 }

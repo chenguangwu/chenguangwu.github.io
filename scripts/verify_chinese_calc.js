@@ -44,6 +44,66 @@ const CASES = [
   "ref": "公历 2027-02-06 → 农历正月初一（lunardate 独立核对，非取页面自输出）；2027 干支：(2027-4)%10=3→丁、(2027-4)%12=7→未 → 丁未年；生肖 (2027-4)%12 → 羊。空输入时 convertSolarToLunar 提前 return，两串均不出现。"
 },
 {
+  // 2020 年闰四月：2020-05-23（闰四月初一）~ 2020-06-20（闰四月廿九），2020-06-21 为五月初一。
+  "slug": "chinese/lunar-calendar",
+  "inputs": {
+    "solarDate": "2020-06-01"
+  },
+  "expect": [
+    "闰四月初十",
+    "2020年 · 鼠年 · 公历 2020-06-01"
+  ],
+  "ref": "公历 2020-06-01 = 农历闰四月初十（权威万年历：闰四月初一 2020-05-23，故 +9 天）。默认态（2024-06-15）输出五月初十/2024年 · 龙年，两串均不命中。"
+},
+{
+  "slug": "chinese/lunar-calendar",
+  "inputs": {
+    "lunarYear": "2020",
+    "lunarMonth": "4",
+    "lunarDay": "10"
+  },
+  "clicks": [
+    "document.getElementById('isLeap').checked=true;convertLunarToSolar();"
+  ],
+  "expect": [
+    "闰四月初十",
+    "2020年 · 鼠年 · 公历 2020-06-01"
+  ],
+  "ref": "农历 2020 年闰四月初十 → 公历 2020-06-01。修复前 leapDays 累加位置错误，换算为 2020-05-31（少 1 天）；默认态不可能出现该副标题。"
+},
+{
+  "slug": "chinese/lunar-calendar",
+  "inputs": {
+    "lunarYear": "2020",
+    "lunarMonth": "5",
+    "lunarDay": "1"
+  },
+  "clicks": [
+    "convertLunarToSolar();"
+  ],
+  "expect": [
+    "五月初一",
+    "2020年 · 鼠年 · 公历 2020-06-21"
+  ],
+  "ref": "农历 2020 年五月初一 → 公历 2020-06-21（闰四月廿九结束后）。修复前 monthDays 循环漏掉闰四月 29 天，错算为 2020-05-23（整月错位）；该断言用于锁死「闰月后月份错位」回归。"
+},
+{
+  "slug": "chinese/lunar-calendar",
+  "inputs": {
+    "lunarYear": "2020",
+    "lunarMonth": "6",
+    "lunarDay": "1"
+  },
+  "clicks": [
+    "convertLunarToSolar();"
+  ],
+  "expect": [
+    "六月初一",
+    "2020年 · 鼠年 · 公历 2020-07-21"
+  ],
+  "ref": "农历 2020 年六月初一 → 公历 2020-07-21。修复前 lunarToSolar 在 i=leap+1 处 `--i` 后立即 `isLeapMonth=false`，i++ 回到 leap+1 反复触发，形成死循环（6 月 1 日实测卡死）；本用例跑通即证明循环已消除。"
+},
+{
   "slug": "chinese/stroke-order-viewer",
   "inputs": {
     "word": "永_X"

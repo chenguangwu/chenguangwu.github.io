@@ -226,52 +226,90 @@ const UNIT = ['', '拾', '佰', '仟'];
 const BIG = ['', '万', '亿', '兆'];
 
 function integerToCN(num) {
-  const s = String(num);
+  // 按字符串每 4 位分组（个/万/亿/兆），避免 Number 精度与科学计数法问题
+  const s = String(num).replace(/^0+/, '') || '0';
+  if (s === '0') return CN[0];
   const blocks = [];
   for (let i = s.length; i > 0; i -= 4) {
     blocks.push(s.slice(Math.max(0, i - 4), i));
   }
   let out = '';
+  let pendingZero = false;
   for (let b = blocks.length - 1; b >= 0; b--) {
-    const g = blocks[b];
+    const g = blocks[b].padStart(4, '0');
+    const scale = BIG[b] || '';
     let part = '';
     let zero = false;
-    for (let i = 0; i < g.length; i++) {
+    for (let i = 0; i < 4; i++) {
       const d = Number(g[i]);
-      const p = g.length - i - 1;
+      const p = 3 - i;
       if (d === 0) {
         zero = true;
       } else {
-        if (zero && part) part += '零';
+        if (zero && part) part += CN[0];
         part += CN[d] + UNIT[p];
         zero = false;
       }
     }
-    out += part + BIG[b];
+    if (part === '') { if (out) pendingZero = true; continue; }
+    if (out && (pendingZero || Number(g) < 1000)) {
+      if (!out.endsWith(CN[0])) out += CN[0];
+    }
+    out += part + scale;
+    pendingZero = false;
   }
-  return out || '零';
+  return out || CN[0];
+}
+
+function incDecimal(s) {
+  const arr = String(s).split('');
+  let i = arr.length - 1;
+  while (i >= 0) {
+    if (arr[i] === '9') { arr[i] = '0'; i--; }
+    else { arr[i] = String(Number(arr[i]) + 1); break; }
+  }
+  if (i < 0) arr.unshift('1');
+  return arr.join('').replace(/^0+/, '') || '0';
 }
 
 function convert() {
-  const val = parseFloat(document.getElementById('money').value || 0);
-  if (isNaN(val) || val < 0) {
-    const __h0='<p>请输入有效金额</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('out').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('out').innerHTML=__h0;
+  const raw = String(document.getElementById('money').value || '').trim();
+  const fail = (msg) => {
+    document.getElementById('out').innerHTML = '<p style="color:var(--danger)">' + msg + '</p>';
+  };
+  if (!/^(?:\d+(?:\.\d*)?|\.\d+)$/.test(raw)) {
+    fail('请输入有效金额');
     return;
   }
-  const y = Math.floor(val + 1e-8);
-  const f = Math.round((val - y) * 100);
+  const parts = raw.split('.');
+  let intStr = (parts[0] || '0').replace(/^0+/, '') || '0';
+  const decStr = parts[1] || '';
+  if (intStr.length > 16) {
+    fail('金额超出支持范围（最多 16 位整数）');
+    return;
+  }
 
-  const yi = integerToCN(y);
-  const jiao = Math.floor(f / 10);
-  const fen = f % 10;
+  // 四舍五入到分：只看第三位小数（≥5 进 1 分），进位满 100 分则整数加 1
+  let cents = Number((decStr + '00').slice(0, 2));
+  if (decStr.length > 2 && Number(decStr.charAt(2)) >= 5) cents += 1;
+  if (cents >= 100) {
+    cents = 0;
+    intStr = incDecimal(intStr);
+    if (intStr.length > 16) {
+      fail('金额超出支持范围（最多 16 位整数）');
+      return;
+    }
+  }
 
-  let out = yi + '元';
-  if (f === 0) {
+  let out = integerToCN(intStr) + '元';
+  if (cents === 0) {
     out += '整';
   } else {
-    if (jiao) out += CN[jiao] + '角';
-    if (fen) out += CN[fen] + '分';
-    if (!jiao && fen) out = yi + '元零' + out.split('元')[1];
+    const jiao = Math.floor(cents / 10);
+    const fen = cents % 10;
+    if (jiao > 0) out += CN[jiao] + '角';
+    else out += '零';
+    if (fen > 0) out += CN[fen] + '分';
   }
 
   const __h1=`<p>中文大写：<strong>${out}</strong></p>`;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('out').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('out').innerHTML=__h1;

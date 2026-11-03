@@ -423,8 +423,9 @@ s.parentNode.insertBefore(el, s);
     } else {
       // 还需第 2 次
       G.trialInLen = 1;
+      G.phase = 'waiting';
       setStat();
-      setTimeout(startTrial, 650);
+      G.timer = setTimeout(startTrial, 650);
       return;
     }
   }
@@ -434,7 +435,10 @@ s.parentNode.insertBefore(el, s);
     G.length++;
     G.trialInLen = 0;
     G.correctInLen = 0;
+    G.phase = 'waiting';
     setStat();
+    // 晋升后必须继续出题，否则通过首个长度后停在 idle、点击方块无响应
+    G.timer = setTimeout(startTrial, 650);
   }
 
   function finish() {
@@ -540,6 +544,7 @@ s.parentNode.insertBefore(el, s);
    * 4. 控制
    * ========================================================== */
   function startTest() {
+    clearTimeout(G.timer);
     G.mode = $('cbMode').value;
     G.speed = parseInt($('cbSpeed').value, 10);
     G.phase = 'idle';
@@ -550,21 +555,37 @@ s.parentNode.insertBefore(el, s);
     const __h4='';if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){$('cbProgress').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('cbProgress').innerHTML=__h4;
     setStat();
     setMsg('准备开始，观察木块亮起顺序…');
-    setTimeout(startTrial, 400);
+    G.timer = setTimeout(startTrial, 400);
   }
 
   $('cbStart').addEventListener('click', startTest);
   $('cbReplay').addEventListener('click', function () {
-    if (G.seq.length && G.phase !== 'showing') { showSequence(G.seq); }
+    if (G.seq.length && G.phase === 'input') { showSequence(G.seq); }
   });
   $('cbStop').addEventListener('click', function () {
-    if (G.phase === 'input' || G.phase === 'showing') {
+    if (G.phase === 'input' || G.phase === 'showing' || G.phase === 'waiting') {
       clearTimeout(G.timer);
       G.phase = 'idle';
       if (G.trials.length) { finish(); }
       else { setMsg('尚未完成任何试次。'); }
     }
   });
+
+  /* 门禁验证钩子（只读状态 + 真实作答路径，不改变用户交互） */
+  window.__corsiDrive = function (action, ok) {
+    if (action === 'start') {
+      startTest();
+    } else if (action === 'answer' && G.phase === 'input') {
+      var expected = (G.mode === 'fwd') ? G.seq : reverse(G.seq);
+      G.response = ok ? expected.slice() : expected.map(function (v) { return (v + 1) % BLOCKS.length; });
+      evaluate();
+    }
+    return {
+      phase: G.phase, length: G.length, trialInLen: G.trialInLen,
+      passed: G.lastPassed, half: G.lastPassedOneOfTwo,
+      trials: G.trials.length, correct: G.trials.filter(function (t) { return t.correct; }).length
+    };
+  };
 
   renderBoard();
   setStat();

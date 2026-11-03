@@ -130,7 +130,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="⏱️ 导览时长匹配">Audio Guide Timer</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="计算语音导览讲解总时长，匹配展品数量与观众可用时间">Audio Guide Timer</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">快速估算：讲解总时长(秒) = 展品数 × 单件讲解秒数 + (展品数 &gt; 1 时 (展品数 − 1) × 单段移动秒数，否则 0) + 开场结束秒数；可用时间(秒) = 可用分钟 × 60；时间差 = 可用时间 − 总时长。每件可用时长 = ⌊可用时间 ÷ 展品数⌋（可用时间为 0 时取 0）。评级：差值 ≥ 0 时间充裕、≥ −300 秒略超时、其余严重超时。超时时给出的整改值——单件建议压缩到 ⌊(单件秒数 × 可用时间 − 移动总时长 − 开场结束) ÷ 展品数⌋ 秒（下限 0），建议展品数 = ⌊(可用时间 − 开场结束) ÷ (单件秒数 + 移动秒数)⌋。明细模式按各展品实际秒数求和，并给出每件占比 = 单件秒数 ÷ 总时长 × 100% 与累计时间。时间格式化：时 = ⌊秒 ÷ 3600⌋、分 = ⌊(秒 mod 3600) ÷ 60⌋、秒 = 秒 mod 60，时 &gt; 0 输出「x时x分x秒」、分 &gt; 0 输出「x分x秒」、否则「x秒」</div>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">快速估算：讲解总时长(秒) = 展品数 × 单件讲解秒数 + (展品数 &gt; 1 时 (展品数 − 1) × 单段移动秒数，否则 0) + 开场结束秒数；可用时间(秒) = 可用分钟 × 60；时间差 = 可用时间 − 总时长。每件可用时长 = ⌊可用时间 ÷ 展品数⌋（可用时间为 0 时取 0）。评级：差值 ≥ 0 时间充裕、≥ −300 秒略超时、其余严重超时。超时时给出的整改值——单件建议压缩到 ⌊(可用时间 − 移动总时长 − 开场结束) ÷ 展品数⌋ 秒（下限 0），建议展品数 = ⌊(可用时间 − 开场结束) ÷ (单件秒数 + 移动秒数)⌋。明细模式按各展品实际秒数求和，并给出每件占比 = 单件秒数 ÷ 总时长 × 100% 与累计时间。时间格式化：时 = ⌊秒 ÷ 3600⌋、分 = ⌊(秒 mod 3600) ÷ 60⌋、秒 = 秒 mod 60，时 &gt; 0 输出「x时x分x秒」、分 &gt; 0 输出「x分x秒」、否则「x秒」</div>
       <p class="formula-desc" data-zh="「计算语音导览讲解总时长，匹配展品数量与观众可用时间」按输入参数进行专业计算并输出结果。">Audio Guide Timer: computes and outputs results from the input parameters.</p>
     </div>
 
@@ -212,7 +212,7 @@ s.parentNode.insertBefore(el, s);
 <div class="dd-example"><div class="dd-ex-title">团队讲解时长核算示例</div><div class="dd-ex-body">某团队 5 件展品、单件讲解 120 秒、移动 30 秒/段、开场结束 60 秒、可用 20 分钟。总时长 = 5×120 + 4×30 + 60 = 780 秒（13 分钟）；可用 20×60 = 1200 秒；时间差 +420 秒（充裕 7 分钟）；每件可用 ⌊1200÷5⌋ = 240 秒。逐件场景：青铜鼎120/编钟150/玉璧90/陶俑100/金银器110，合计 570 秒，可用 10 分钟（600 秒）时仅余 30 秒，须压缩单件或减件。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>超时了怎么调？</dt><dd>工具给出三选一：①缩短单件讲解至 ⌊(单件×可用−移动−开场)÷件数⌋ 秒；②减少讲解展品至 ⌊(可用−开场)÷(单件+移动)⌋ 件；③压缩移动时间。优先砍冗余展品与移动间隙，保留重点馆。</dd>
+<dt>超时了怎么调？</dt><dd>工具给出三选一：①缩短单件讲解至 ⌊(可用−移动−开场)÷件数⌋ 秒；②减少讲解展品至 ⌊(可用−开场)÷(单件+移动)⌋ 件；③压缩移动时间。优先砍冗余展品与移动间隙，保留重点馆。</dd>
 <dt>平均每件时长怎么用？</dt><dd>每件可用 = ⌊可用秒÷展品数⌋，用于快速判断当前单件设定是否超标；若某件远超均值，优先压缩它。逐件视图还能看到每件占比与累计时间，便于精准删减。</dd>
 </dl>
 </div>
@@ -303,7 +303,8 @@ function calcQuick(){
   html += '</tbody></table>';
 
   if(diff < 0){
-    var cutPer = Math.floor((per*avail - (count>1?(count-1)*move:0) - intro) / count);
+    // 可用秒数减去移动总时长与开场结束，再按展品数均分（统一为秒，勿与单件秒数相乘）
+    var cutPer = Math.floor((avail - (count>1?(count-1)*move:0) - intro) / count);
     html += '<div class="tip-box tip-warn">超时 '+fmtTime(Math.abs(diff))+'。建议：①缩短单件讲解至 '+Math.max(cutPer,0)+' 秒；②减少讲解展品数至 '+Math.floor((avail - intro)/(per+move))+' 件；③压缩移动时间。</div>';
   }else{
     html += '<div class="tip-box tip-success">时间匹配，剩余 '+fmtTime(diff)+' 可用于互动或缓冲。</div>';

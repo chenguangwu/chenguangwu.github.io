@@ -151,9 +151,26 @@ const CASES = [
     "extraFlush": "2"
   },
   "expect": [
-    "【中心静脉导管（CVC）冲封管方案】 结果：CVC中心静脉导管 · 3 腔 · 冲洗液 肝素盐水 100 U/mL → 每腔冲管 3.5 mL、总冲管 10.5 mL、总封管 5.4 mL、肝素总量 540 U",
+    "【中心静脉导管（CVC）冲封管方案】 结果：CVC中心静脉导管 · 3 腔 · 封管液 肝素盐水 100 U/mL → 每腔冲管 3.5 mL、总冲管 10.5 mL、总封管 5.4 mL、肝素总量 540 U",
       ],
   "ref": "门诊记录：每腔冲管 = 1.5 + 2 = 3.5 mL，3 腔 ⇒ 总冲管 10.5 mL；封管每腔 1.5×1.2 = 1.8 ⇒ 总封管 5.4 mL；肝素 5.4×100 = 540 U。默认态 1 腔、生理盐水 ⇒ 每腔 3.5、总冲管 3.5、总封管 3.5、无肝素，与本用例零交集。"
+},
+{
+  "slug": "clinical-nursing/cvc-maintenance",
+  "inputs": {
+    "lumens": "2",
+    "flushType": "saline",
+    "cathVol": "2",
+    "extraFlush": "1"
+  },
+  "clicks": [
+    "currentType='dialysis';calc()"
+  ],
+  "expect": [
+    "封管液 高浓度肝素盐水 1000 U/mL",
+    "肝素总量 4,800 U"
+  ],
+  "ref": "B3 回归：透析导管 + 注入生理盐水封管液（旧实现按 saline 算 ⇒ 肝素 0，错误）。修正后导管类型强制高浓度肝素 1000 U/mL：每腔冲管 2+1=3.0 mL、总冲管 6.0 mL；封管每腔 2×1.2=2.4 ⇒ 总封管 4.8 mL；肝素 4.8×1000=4800 U。默认态 CVC+生理盐水 ⇒ 无肝素，零交集。"
 },
 {
   "slug": "clinical-nursing/cycle-7",
@@ -191,6 +208,36 @@ const CASES = [
     "鼻尖→耳垂 14 cm + 耳垂→剑突 28 cm + 追加 10 cm）→ 预计置入深度 52 cm"
   ],
   "ref": "门诊记录：NEX 法 14 + 28 + 10 = 52 cm。默认态 18 + 25 + 10 = 53 cm，与本用例零交集（整串含分段数值，非只差 1 的数字）。"
+},
+{
+  "slug": "clinical-nursing/gastric-tube-depth",
+  "inputs": {
+    "height": "182",
+    "noseXiphoid": "37"
+  },
+  "clicks": [
+    "currentMethod='formula';calc()"
+  ],
+  "expect": [
+    "鼻尖→剑突实测 37 cm + 10 cm",
+    "预计置入深度 47 cm"
+  ],
+  "ref": "B2 回归：身高公式法有实测 NEX 时应按 NEX+10 计算。旧实现 182×0.2+37=73.4 → 73 cm；修正后 37+10=47 cm。默认态（NEX 测量法）18+25+10=53 cm，零交集。"
+},
+{
+  "slug": "clinical-nursing/gastric-tube-depth",
+  "inputs": {
+    "height": "182",
+    "noseXiphoid": ""
+  },
+  "clicks": [
+    "currentMethod='formula';calc()"
+  ],
+  "expect": [
+    "身高 182 cm × 0.25 + 10 cm",
+    "预计置入深度 56 cm"
+  ],
+  "ref": "B2 回归：清空实测 NEX 时不得把空值当 0 或默认 77 混算。旧实现 182×0.2+0=36 cm；修正后身高估算 182×0.25+10=55.5 → 56 cm。默认态 53 cm，零交集。"
 },
 {
   "slug": "clinical-nursing/generator-pressure",
@@ -334,7 +381,30 @@ const CASES = [
   "expect": [
     "当前负压 260 mmHg（≈34.6 kPa）→ 超过安全范围"
   ],
-  "ref": "门诊记录：inputs 写 260 mmHg（页面默认 150），REC 在 evaluate(p) 处捕获 typeof p==='number' 守卫后的压力值与患者类别，输出「成人 · 安全范围 150–200 · 当前负压 260 mmHg（≈34.6 kPa）→ 超过安全范围」并给出黏膜损伤临床提示。默认态 150 mmHg ⇒「在安全范围内」，零交集。"
+  "ref": "门诊记录：inputs 写 260 mmHg（页面默认 150，已非安全值），REC 在 evaluate(p) 处捕获 typeof p==='number' 守卫后的压力值与患者类别，输出「成人 · 安全范围 80–120 · 当前负压 260 mmHg（≈34.6 kPa）→ 超过安全范围」并给出黏膜损伤临床提示。默认态 150 mmHg（≈20.0 kPa）数值串不同，零交集。"
+},
+{
+  "slug": "clinical-nursing/suction-pressure",
+  "inputs": {
+    "currentPressure": "130"
+  },
+  "expect": [
+    "患者类别 成人 · 安全范围 80–120 mmHg · 当前负压 130 mmHg（≈17.3 kPa）→ 超过安全范围（黏膜损伤风险）"
+  ],
+  "ref": "W1-B 回归：AARC 成人推荐 80–120 mmHg，130 mmHg 属过高。输入 130 非默认（150）；旧实现成人区间 150–200 ⇒ 判「在安全范围内」，本串不命中。"
+},
+{
+  "slug": "clinical-nursing/suction-pressure",
+  "inputs": {
+    "currentPressure": "110"
+  },
+  "clicks": [
+    "selectAge('child',{classList:{add:function(){}}})"
+  ],
+  "expect": [
+    "患者类别 儿童 · 安全范围 80–100 mmHg · 当前负压 110 mmHg（≈14.6 kPa）→ 超过安全范围（黏膜损伤风险）"
+  ],
+  "ref": "W1-B 回归：年龄选择必须真正改变区间。clicks 切儿童（80–100 mmHg）后 110 mmHg 属过高；旧实现儿童 100–150 ⇒ 判「在安全范围内」，本串不命中。输入 110 非默认（150）。"
 },
 {
   "slug": "clinical-nursing/surgical-position-risk",

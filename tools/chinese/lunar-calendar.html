@@ -369,7 +369,13 @@ const lunarInfo = [
   0x0a950,0x0b4a0,0x0baa4,0x0ad50,0x055d9,0x04ba0,0x0a5b0,0x15176,0x052b0,0x0a930,
   0x07954,0x06aa0,0x0ad50,0x05b52,0x04b60,0x0a6e6,0x0a4e0,0x0d260,0x0ea65,0x0d530,
   0x05aa0,0x076a3,0x096d0,0x04afb,0x04ad0,0x0a4d0,0x1d0b6,0x0d250,0x0d520,0x0dd45,
-  0x0b5a0,0x056d0,0x055b2,0x049b0,0x0a577,0x0a4b0,0x0aa50,0x1b255,0x06d20,0x0ada0
+  0x0b5a0,0x056d0,0x055b2,0x049b0,0x0a577,0x0a4b0,0x0aa50,0x1b255,0x06d20,0x0ada0,
+  0x14b63,0x09370,0x049f8,0x04970,0x064b0,0x168a6,0x0ea50,0x06b20,0x1a6c4,0x0aae0,
+  0x0a2e0,0x0d2e3,0x0c960,0x0d557,0x0d4a0,0x0da50,0x05d55,0x056a0,0x0a6d0,0x055d4,
+  0x052d0,0x0a9b8,0x0a950,0x0b4a0,0x0b6a6,0x0ad50,0x055a0,0x0aba4,0x0a5b0,0x052b0,
+  0x0b273,0x06930,0x07337,0x06aa0,0x0ad50,0x14b55,0x04b60,0x0a570,0x054e4,0x0d160,
+  0x0e968,0x0d520,0x0daa0,0x16aa6,0x056d0,0x04ae0,0x0a9d4,0x0a2d0,0x0d150,0x0f252,
+  0x0d520
 ];
 
 const lunarMonths = ['正','二','三','四','五','六','七','八','九','十','冬','腊'];
@@ -444,57 +450,49 @@ function monthDays(y, m) { return (lunarInfo[y - 1900] & (0x10000 >> m)) ? 30 : 
 
 function solarToLunar(y, m, d) {
   if (y < 1900 || y > 2100) return null;
-  const baseDate = new Date(1900, 0, 31);
-  const objDate = new Date(y, m - 1, d);
-  let offset = Math.floor((objDate - baseDate) / 86400000);
-  let temp = 0;
+  const utc = Date.UTC(y, m - 1, d);
+  const probe = new Date(utc);
+  if (probe.getUTCFullYear() !== y || probe.getUTCMonth() !== m - 1 || probe.getUTCDate() !== d) return null;
+  let offset = Math.round((utc - Date.UTC(1900, 0, 31)) / 86400000);
+  if (offset < 0) return null;
   let lunarYear = 1900;
-  for (; lunarYear < 2101 && offset > 0; lunarYear++) {
-    temp = lYearDays(lunarYear);
-    offset -= temp;
+  for (; lunarYear <= 2100; lunarYear++) {
+    const days = lYearDays(lunarYear);
+    if (offset < days) break;
+    offset -= days;
   }
-  if (offset < 0) { offset += temp; lunarYear--; }
-  let isLeap = false;
+  if (lunarYear > 2100) return null;
   const leap = leapMonth(lunarYear);
-  let lunarMonth = 1;
-  for (; lunarMonth < 13 && offset > 0; lunarMonth++) {
-    if (leap > 0 && lunarMonth === leap + 1 && !isLeap) {
-      --lunarMonth; isLeap = true; temp = leapDays(lunarYear);
-    } else {
-      temp = monthDays(lunarYear, lunarMonth);
+  for (let lunarMonth = 1; lunarMonth <= 12; lunarMonth++) {
+    const normalDays = monthDays(lunarYear, lunarMonth);
+    if (offset < normalDays) return { year: lunarYear, month: lunarMonth, day: offset + 1, isLeap: false };
+    offset -= normalDays;
+    if (leap === lunarMonth) {
+      const leapLen = leapDays(lunarYear);
+      if (offset < leapLen) return { year: lunarYear, month: lunarMonth, day: offset + 1, isLeap: true };
+      offset -= leapLen;
     }
-    if (isLeap && lunarMonth === leap + 1) isLeap = false;
-    offset -= temp;
   }
-  if (offset === 0 && leap > 0 && lunarMonth === leap + 1) {
-    if (isLeap) isLeap = false;
-    else { isLeap = true; --lunarMonth; }
-  }
-  if (offset < 0) { offset += temp; --lunarMonth; }
-  const lunarDay = offset + 1;
-  return { year: lunarYear, month: lunarMonth, day: lunarDay, isLeap };
+  return null;
 }
 
 function lunarToSolar(y, m, d, isLeap) {
-  if (y < 1900 || y > 2100) return null;
+  if (y < 1900 || y > 2100 || !(m >= 1 && m <= 12) || !(d >= 1)) return null;
   const leap = leapMonth(y);
   if (isLeap && leap !== m) return null;
+  const monthLen = isLeap ? leapDays(y) : monthDays(y, m);
+  if (d > monthLen) return null;
   let offset = 0;
   for (let i = 1900; i < y; i++) offset += lYearDays(i);
-  let isLeapMonth = false;
   for (let i = 1; i < m; i++) {
-    if (leap > 0 && i === leap + 1 && !isLeapMonth) {
-      --i; isLeapMonth = true; offset += leapDays(y);
-    } else {
-      offset += monthDays(y, i);
-    }
-    if (isLeapMonth && i === leap) isLeapMonth = false;
+    offset += monthDays(y, i);
+    if (leap === i) offset += leapDays(y);
   }
-  if (isLeap) offset += leapDays(y);
+  if (isLeap) offset += monthDays(y, m);
   offset += d - 1;
-  const base = new Date(1900, 0, 31);
-  base.setDate(base.getDate() + offset);
-  return { year: base.getFullYear(), month: base.getMonth() + 1, day: base.getDate() };
+  const base = new Date(Date.UTC(1900, 0, 31));
+  base.setUTCDate(base.getUTCDate() + offset);
+  return { year: base.getUTCFullYear(), month: base.getUTCMonth() + 1, day: base.getUTCDate() };
 }
 
 function getGanZhi(year) {
@@ -583,8 +581,9 @@ function switchTab(tab) {
 function convertSolarToLunar() {
   const dateStr = document.getElementById('solarDate').value;
   if (!dateStr) { ToolBox.showToast(i18nText('toast.invalid_input'), 'error'); return; }
-  const d = new Date(dateStr);
-  const y = d.getFullYear(), m = d.getMonth() + 1, day = d.getDate();
+  const parts = String(dateStr).split('-').map(Number);
+  if (parts.length !== 3 || parts.some(n => !isFinite(n))) { ToolBox.showToast(i18nText('toast.invalid_input'), 'error'); return; }
+  const y = parts[0], m = parts[1], day = parts[2];
   if (y < 1900 || y > 2100) { ToolBox.showToast(i18nText('toast.msg050'), 'error'); return; }
   const lunar = solarToLunar(y, m, day);
   if (!lunar) { ToolBox.showToast(i18nText('toast.msg963'), 'error'); return; }

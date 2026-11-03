@@ -182,7 +182,7 @@ s.parentNode.insertBefore(el, s);
     </div>
     
     <textarea class="trans-area" id="src-text" placeholder="输入要翻译的文字..." oninput="autoTrans()"></textarea>
-    <div class="trans-info" id="trans-info">支持 100+ 常用词汇翻译</div>
+    <div class="trans-info" id="trans-info">支持常用词与问候短句翻译（本地词表）</div>
     
     <div class="action-row">
       <button type="button" class="action-btn" onclick="trans()">🔄 翻译</button>
@@ -326,6 +326,11 @@ const DICT = {
     '美丽': 'Beautiful', '开心': 'Happy', '悲伤': 'Sad', '生气': 'Angry',
     '爸爸': 'Father', '妈妈': 'Mother', '哥哥': 'Brother', '姐姐': 'Sister',
     '汽车': 'Car', '飞机': 'Airplane', '火车': 'Train', '船': 'Ship',
+    '我爱你': 'I love you', '你好吗': 'How are you', '我很好': "I'm fine",
+    '早上好': 'Good morning', '晚上好': 'Good evening', '晚安': 'Good night',
+    '不客气': "You're welcome", '没关系': "That's all right", '多少钱': 'How much',
+    '天气': 'Weather', '很好': 'Very good', '公园': 'Park', '世界': 'World', '去': 'Go',
+    '今天天气很好': 'The weather is nice today', '我们去公园': "Let's go to the park",
   },
   'en-zh': {
     'hello': '你好', 'hi': '嗨', 'goodbye': '再见', 'bye': '拜拜',
@@ -356,6 +361,9 @@ const DICT = {
     'beautiful': '美丽', 'happy': '开心', 'sad': '悲伤', 'angry': '生气',
     'father': '爸爸', 'mother': '妈妈', 'brother': '哥哥', 'sister': '姐姐',
     'car': '汽车', 'airplane': '飞机', 'train': '火车', 'ship': '船',
+    'i love you': '我爱你', 'how are you': '你好吗', 'good morning': '早上好',
+    'good evening': '晚上好', 'good night': '晚安', 'you are welcome': '不客气',
+    "you're welcome": '不客气', 'how much': '多少钱',
   },
   'zh-ja': {
     '你好': 'こんにちは', '再见': 'さようなら', '谢谢': 'ありがとう', '对不起': 'すみません',
@@ -529,6 +537,83 @@ function autoTrans() {
   window._t = setTimeout(trans, 300);
 }
 
+// 最大正向匹配分词：中文按词表最长匹配，未命中再退单字；其他语言按最长词条匹配。
+// 未命中的原文片段原样保留，避免整段被吞掉。
+function segmentText(text, dict, src) {
+  const tokens = [];
+  const keys = Object.keys(dict).sort((a, b) => b.length - a.length);
+  const maxLen = Math.max(1, ...keys.map(k => k.length));
+  const isZhSrc = src === 'zh';
+  let i = 0;
+  while (i < text.length) {
+    let hit = null;
+    if (isZhSrc) {
+      if (/[\u4e00-\u9fa5]/.test(text[i])) {
+        for (let len = Math.min(maxLen, text.length - i); len >= 1; len--) {
+          const cand = text.substr(i, len);
+          if (/^[\u4e00-\u9fa5]+$/.test(cand) && dict[cand]) { hit = cand; break; }
+        }
+      }
+    } else {
+      for (const key of keys) {
+        const cand = text.substr(i, key.length);
+        if (cand.toLowerCase() === key.toLowerCase()) {
+          const next = text[i + key.length];
+          if (!next || !/[A-Za-z\u00C0-\u024F\u0400-\u04FF]/.test(next) || /\s/.test(key.slice(-1))) {
+            hit = key; break;
+          }
+        }
+      }
+    }
+    if (hit) {
+      tokens.push({ t: dict[hit] });
+      i += hit.length;
+      continue;
+    }
+    let j = i + 1;
+    if (isZhSrc) {
+      if (!/[\u4e00-\u9fa5]/.test(text[i])) {
+        while (j < text.length && !/[\u4e00-\u9fa5]/.test(text[j])) j++;
+      }
+    } else if (/[A-Za-z\u00C0-\u024F\u0400-\u04FF]/.test(text[i])) {
+      while (j < text.length && /[A-Za-z\u00C0-\u024F\u0400-\u04FF'’-]/.test(text[j])) j++;
+    } else {
+      while (j < text.length && !/[A-Za-z\u00C0-\u024F\u0400-\u04FF\u4e00-\u9fa5]/.test(text[j])) j++;
+    }
+    tokens.push({ raw: text.slice(i, j) });
+    i = j;
+  }
+  return tokens;
+}
+
+function joinSegments(tokens, tgt) {
+  let out = '';
+  let lastWasTranslated = false;
+  const sep = tgt === 'en' ? '. ' : ((tgt === 'zh' || tgt === 'ja' || tgt === 'ko') ? '' : ' ');
+  for (const token of tokens) {
+    if (token.t) {
+      if (lastWasTranslated) out += sep;
+      out += token.t;
+      lastWasTranslated = true;
+    } else {
+      let raw = token.raw;
+      if (tgt === 'zh') {
+        raw = raw.replace(/,/g, '，').replace(/;/g, '；').replace(/:/g, '：')
+          .replace(/!/g, '！').replace(/\?/g, '？')
+          .replace(/\.(?![0-9])/g, '。');
+      } else if (tgt === 'en') {
+        raw = raw.replace(/，/g, ', ').replace(/。/g, '. ').replace(/！/g, '! ')
+          .replace(/？/g, '? ').replace(/；/g, '; ').replace(/：/g, ': ');
+      }
+      out += raw;
+      lastWasTranslated = false;
+    }
+  }
+  if (tgt === 'zh') out = out.replace(/([，。！？；：])\s+/g, '$1');
+  if (tgt === 'en' && out && !/[.!?]\s*$/.test(out)) out += '.';
+  return out.trim();
+}
+
 function trans() {
   const src = document.getElementById('src-lang').value;
   const tgt = document.getElementById('tgt-lang').value;
@@ -550,20 +635,11 @@ function trans() {
   } else if (dict[text]) {
     result = dict[text];
   } else {
-    // 尝试分词翻译
-    const words = src === 'zh' ? text.match(/[\u4e00-\u9fa5]+/g) : text.split(/\s+/);
-    if (words) {
-      const translated = [];
-      for (const w of words) {
-        const t = dict[w.toLowerCase()] || dict[w];
-        if (t) translated.push(t);
-        else translated.push(`[${w}]`);
-      }
-      result = translated.join(src === 'zh' ? '' : ' ');
-    }
+    result = joinSegments(segmentText(text, dict, src), tgt);
   }
   document.getElementById('tgt-text').value = result || `[词典中未找到"${text}",尝试中英互译]`;
-  document.getElementById('trans-info').textContent = `源语言: ${src} → 目标语言: ${tgt}`;
+  const enUi = (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn());
+  document.getElementById('trans-info').textContent = enUi ? `Source: ${src} → Target: ${tgt}` : `源语言: ${src} → 目标语言: ${tgt}`;
 }
 
 renderPresets();
