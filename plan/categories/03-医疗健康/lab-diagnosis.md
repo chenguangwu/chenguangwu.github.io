@@ -67,3 +67,74 @@
   **S8 placeholder 收口**：最后一处缺 placeholder 输入框（medical/calculator-calc-2 的 age）已补「如 6（选填，0–18）」；placeholder-only 改动零 verify 影响（medical 17/17）。
 - 🔴 待续：批量解读可向生化/免疫面板推广（需各页自有参考表）；
   thyroid-function-model 页面级 EN i18n（8 pattern 全串）单独批治理。
+
+## 2026-11-03 第一轮抽样补充
+
+### 血常规报告单位、序号被误读（高，确认）
+- `tools/clinical-lab/blood-routine-reference.html:307-342` 取每行首个数字，匹配项目后直接按项目默认单位判读：`HGB 13.5 g/dL` 被当作 13.5 g/L，`1 WBC 8.0` 的序号 1 被当检验值。原函数在内存桩中复现；浏览器未验证。
+- 方案：对单位转换及数值位置做明确解析；未知单位或多数字歧义行提示用户确认，不能静默判读。页面 `:358-364` 切换人群只刷新参考表而不刷新批量结果，应同步重算或清除旧结果。保留原文、识别值、单位和人群供核对并可一键清除。
+
+### 未识别行注入 HTML（高，确认源码路径；浏览器触发待验证）
+- `tools/clinical-lab/blood-routine-reference.html:312-319,344-348` 将未识别原文拼入 `innerHTML`，原函数执行后 `<img src=x onerror=alert(1)>` 原样进入输出 HTML；该路径需要用户主动输入或粘贴，未证明远程投递链与真实浏览器执行。
+- 方案：未识别原文使用文本节点或完整转义；补恶意标签与普通字符回归用例。
+
+### 倍增时间零间隔和倒序判读（高，确认）
+- `tools/clinical-lab/tumor-marker-doubling.html:280-300,320-362` 日期差取绝对值且不拒绝相同日期；同一天数值 10→20 算出 0 天并显示「倍增极快」，倒序日期也会产生正间隔；相等数值进入下降半衰期分支。无效或下降分支未清独立标尺。
+- 方案：分别处理日期顺序、非零间隔及两次值相等；同步清理旧标尺，明确正数天数优先于日期的规则。医学阈值本轮未核验，不作临床结论。
+- 覆盖：本轮仅抽查以上检验 2 页，未覆盖其他检验工具、真实浏览器和门禁。
+
+## 2026-11-03 续查：血气、便潜血、MIC 折点与 INR
+
+### L-N1 血气把单纯高碳酸或单纯低氧都判成呼吸衰竭（高，确认源码缺陷）
+- 证据：`tools/clinical-lab/blood-gas-analysis.html:338-342` 的 `o2Status` 先判 `pao2<60` 即「I型呼吸衰竭」，再判 `paco2>=50` 即「II型呼吸衰竭」，未要求两者同时满足。PaO2 70、PaCO2 55 得「II型呼吸衰竭」；PaO2 55、PaCO2 60 得「I型」。
+- 影响：`tools/clinical-lab/blood-gas-analysis.html`；氧合结论与实际血气不符，属临床判读错误。
+- 方案：I 型要求 PaO2<60 且 PaCO2 正常/偏低，II 型要求 PaO2<60 且 PaCO2≥50；高碳酸但氧合正常时应单列「高碳酸血症」；补三组边界用例。
+
+### L-N2 呼酸慢性代偿示例与程序结论相反（高，确认内部矛盾）
+- 证据：`tools/clinical-lab/blood-gas-analysis.html:195` 示例为 pH 7.33、PaCO2 60、HCO3 34，声称「符合慢性代偿」；`:309-320` 慢性预期 HCO3=31，`|34-31|<3` 为严格判断不成立，随后 `else` 直接输出「HCO3 低于预期，合并代谢性酸中毒」。实际 HCO3 高于预期，且慢性代偿窗口被边界值排除。
+- 影响：`tools/clinical-lab/blood-gas-analysis.html`；官方示例跑出相反结论，用户无法信任代偿判断。
+- 方案：代偿带用闭合区间（≤±3），并在高于/低于预期两分支之前先判定落在急性/慢性窗口；示例与代码用同一组阈值做回归。
+
+### L-N3 血气清空输入后保留旧判读（中，确认源码路径）
+- 证据：`tools/clinical-lab/blood-gas-analysis.html:251-253` 当 pH/PaCO2/HCO3 任一为 0 或空时直接 `return`，未清空历史渲染的 `#result`。与 G10 同类，按页记录。
+- 影响：`tools/clinical-lab/blood-gas-analysis.html`；用户会以为旧结论对应新样本，复制导出也可能带走旧判读。
+- 方案：失败分支明确提示缺项并清空或置灰结果与复制按钮；保留最近一次成功判读时须标注输入摘要。
+
+### L-N4 MIC 折点示例与本页 CLSI 数据不一致（高，确认源码缺陷）
+- 证据：`tools/clinical-lab/mic-breakpoint.html:191` 大肠杆菌左氧氟沙星示例称 EUCAST 折点「≤1 敏感、≥2 耐药」；`:256` 实际数据为 `{s:0.5, r:4}`（页面标题称 CLSI M100）。按本页数据，MIC 1 判 I 而非 S，MIC 2 判 I 而非 R。`:131,161` 同时声称「CLSI/EUCAST」但只有一套数据。
+- 影响：`tools/clinical-lab/mic-breakpoint.html`；示例与判读互相矛盾，用户拿示例核对会得到不同结论。
+- 方案：只保留与本页数据同一标准（CLSI M100 版本年份）的示例；若要做标准对照，另建 EUCAST 数据表并在标题、CSV 中标注标准与版本，不得混用两套折点。
+
+### L-N5 MIC 未校验取值合法性（中，确认源码缺陷）
+- 证据：`tools/clinical-lab/mic-breakpoint.html:321,326-329,373-383` 仅 `parseFloat`，未校验正数与 2 倍稀释序列；输入 `-1` 或 `0` 均落到 `mic<=d.s` 被判「S 敏感」。
+- 影响：`tools/clinical-lab/mic-breakpoint.html`；非法 MIC 得到「敏感」这一最危险的错误方向。
+- 方案：要求 MIC>0，提示按实际稀释梯度（0.125/0.25/0.5…）录入；非法值不输出 S/I/R，并给出示例输入；导出 CSV 带标准与版本列。
+
+### L-N6 便潜血免疫法年龄空值被静默当作 50 岁（中，确认源码缺陷）
+- 证据：`tools/clinical-lab/stool-occult-blood.html:307,313,317` 的 `parseInt(age.value,10)||50` 使空值、非数字与 0 岁统一变成 50；阴性分支因此输出「年龄≥50 建议每年复查 FIT」，弱阳性分支触发「≥45 直接预约肠镜」。
+- 影响：`tools/clinical-lab/stool-occult-blood.html`；年龄未知者被套用老年筛查建议，建议与真实人群不符。
+- 方案：年龄为空时显示通用建议并提示补充年龄，不要用默认值代替；校验 0–120 整数，结果区标注所用年龄段。
+
+### L-N7 化学法阳性叠加红肉干扰后无结论块（中，确认源码路径）
+- 证据：`tools/clinical-lab/stool-occult-blood.html:344-357` 红肉阳性时 `realPos=false`，而唯一的结论分支是 `else if(!interfer.length)`，因此只渲染红色「阳性」大字与干扰提示，没有「不可判读/需复查」结论框。
+- 影响：`tools/clinical-lab/stool-occult-blood.html`；用户只看到阳性结论却读不到处理建议，易自行判断为出血。
+- 方案：增加「受干扰不可判读」结论分支（禁食 3 天复查或改 FIT），并不再把大号「阳性」作为主结论展示。
+
+### L-N8 INR 低于 0.8 时 PT 比值被替换成「延长」（中，确认源码缺陷）
+- 证据：`tools/clinical-lab/coagulation-inr.html:291` `inr<0.8?'延长':(pt/ptN).toFixed(2)`；INR 低于参考意味着 PT 缩短，页面却写「延长」且隐藏真实比值（如 0.7）。
+- 影响：`tools/clinical-lab/coagulation-inr.html`；与临床含义相反，用户无法核对 PT 比值。
+- 方案：始终显示数值比值，方向说明改为「缩短/正常/延长」三态；补低 INR 用例。
+
+### L-N9 INR 页 PTA 公式未标注口径（中，疑似待验证）
+- 证据：`tools/clinical-lab/coagulation-inr.html:280` `pta=ptN/(ptN+0.6*(pt-ptN))*100` 为线性近似式，页面无公式来源；临床常见的另一种 PTA 口径（由 PT 比值/ISI 反推）在同一 PT 下结果明显不同（如 PT 24 s、对照 12 s、ISI 1 时两种口径约 62.5% 与 50%）。
+- 影响：`tools/clinical-lab/coagulation-inr.html`；不同实验室口径混用会导致活动度读数误读。
+- 方案：先确认目标人群采用的口径并在页面标明公式与来源，或并列输出两种口径并注明差异；本条需医学专业确认后再定，不做单方判定。
+
+### 留存与可核对优化（按页落点，非确认缺陷）
+- `tools/clinical-lab/blood-gas-analysis.html`：缺少「四步判读流程」分步展示（原氧合/原发/代偿/AG 或混合），用户看不到推导顺序就难以核对；建议把现有分支结果改成可展开的 4 步卡片，并支持粘贴血气单文本自动填三项。
+- `tools/clinical-lab/mic-breakpoint.html`：只能单菌种单 MIC 逐次查，建议支持粘贴「药名 MIC」多行做批量判读并导出，是检验科最直接的复用场景。
+- `tools/clinical-lab/coagulation-inr.html`：剂量调整只给文字建议，无历史曲线；建议保存多次 INR 形成趋势与用药调整记录，便于复诊对比。
+- `tools/clinical-lab/stool-occult-blood.html`：无复查日期记录；建议生成「3 天后复查」提醒卡片与本次结果摘要复制。
+
+### 续查覆盖
+- 新抽查 `tools/clinical-lab/blood-gas-analysis.html`、`tools/clinical-lab/stool-occult-blood.html`、`tools/clinical-lab/mic-breakpoint.html`、`tools/clinical-lab/coagulation-inr.html` 共 4 页，新增 9 条（3 条高优），另 4 条按页留存建议；均为源码与数值推导，未做浏览器、线上或门禁验证，医学阈值未做独立文献核验。
