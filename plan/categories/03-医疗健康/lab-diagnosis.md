@@ -138,3 +138,30 @@
 
 ### 续查覆盖
 - 新抽查 `tools/clinical-lab/blood-gas-analysis.html`、`tools/clinical-lab/stool-occult-blood.html`、`tools/clinical-lab/mic-breakpoint.html`、`tools/clinical-lab/coagulation-inr.html` 共 4 页，新增 9 条（3 条高优），另 4 条按页留存建议；均为源码与数值推导，未做浏览器、线上或门禁验证，医学阈值未做独立文献核验。
+
+## 2026-11-03 续查：尿常规判读
+
+### L-N10 尿比重/酸碱度留空时被判为「正常」（高，确认源码缺陷）
+- 证据：`tools/clinical-lab/urinalysis-interpretation.html:259-262` 中 `parseFloat('')` 得 NaN，`n<1.003` 与 `n>1.025` 均为假，函数落到 `return {t:'正常'}`；`interpret()`（`:269-273`）随即把「正常」写入对应指标栏。清空比重或 pH 后仍显示绿色正常。
+- 影响：`tools/clinical-lab/urinalysis-interpretation.html`；未测项目被当成正常结果，属误导性判读。
+- 方案：区分「未填写/未检测」与数值正常，空值显示「未填写」且不参与综合结论；提交时提示缺项，或用显式「未检测」选项。
+
+### L-N11 比重与 pH 参考区间偏窄且未标注来源（中，疑似待验证）
+- 证据：`tools/clinical-lab/urinalysis-interpretation.html:261-262,302-307,320-325` 尿比重正常区间取 1.003–1.025、pH 取 5.5–7.5；同一阈值在 `classify`、`notes`、标尺三处重复硬编码。常见检验报告比重上限多为 1.030、尿液 pH 参考范围常见 4.6–8.0（不同实验室与标本状态有差异），按本页口径 1.028 被判「偏高」、pH 7.6 被判「偏碱」。
+- 影响：`tools/clinical-lab/urinalysis-interpretation.html`；与用户手上的检验单对不上，降低可信度。
+- 方案：由医学专业确认目标人群与标本口径后统一阈值并注明来源/实验室区间；把阈值抽成单处常量，`classify`、提示与标尺共用，避免三处漂移。
+
+### 留存优化（按页落点，非确认缺陷）
+- `tools/clinical-lab/urinalysis-interpretation.html`：结果只有逐项提示，不能一键复制成「报告式摘要」交给医生。建议按「项目—结果—参考—判读」四列生成可复制的报告块与 CSV，并保留检验单原始排序。
+- 同页：无示例数据入口，新用户面对十余个下拉框不知如何试。建议加「典型尿路感染」「糖尿病酮症」等示例一键填充，并在结果顶部标注「示例」避免误当自测。
+- 同页：异常提示全用醒目红色，轻度的尿胆原增多与血尿同色。建议按临床优先级分级（危急/需复查/轻度），避免所有异常同权。
+
+### 续查覆盖
+- 新抽查 `tools/clinical-lab/urinalysis-interpretation.html` 1 页，新增 2 条（1 条高优、1 条待验证）与 3 条留存建议；未做浏览器、线上或门禁验证，阈值口径需专业复核。
+
+## 2026-11-03 修复收口（L-N1 / L-N2 / L-N4）
+- **L-N1 已修**：`blood-gas-analysis.html` 氧合判型改为「II 型 = PaO2<60 且 PaCO2≥50；I 型 = PaO2<60 且 PaCO2<50；PaCO2≥50 而 PaO2≥60 仅判高碳酸血症」，并在公式区补呼衰判据。新增 3 条 verify（II 型 / I 型 / 单纯高碳酸）。
+- **L-N2 已修**：慢性代偿改为闭合区间 ±3 且先判上下越界，HCO3 34（慢性预期 31.0）现在判「慢性呼酸代偿」，不再误报合并代酸；深解示例补预期值与区间说明。新增 3 条 verify（边界 34 / 上越界 36 / 下越界 24），并同步更新既有 2 条代偿断言。
+- **L-N4 已修**：`mic-breakpoint.html` 示例改为本页 CLSI M100 口径（S≤0.5、R≥4，MIC 8 判 R），`CLSI/EUCAST` 混用文案与 FAQ/JSON-LD 统一为 CLSI M100（2023）。
+- 中文/英文 i18n 字典同步更新；`_build.py` 通过（SW 戳 `6898340262`），`run_gates.py` 218/218，`verify_clinical-lab_calc.js` 88/88。
+- 提交：`15892e31c7`；L-N3（缺项清空）与 L-N5（MIC 合法性校验）仍待处理。

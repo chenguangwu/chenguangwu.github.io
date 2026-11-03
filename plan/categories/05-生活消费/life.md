@@ -31,3 +31,44 @@
 
 ### 覆盖
 - 本轮人工核查 2 页：`tools/life/generator-strength.html` 与 `tools/life/date-add-subtract.html`；后者使用内存 DOM 桩，真实浏览器与其他页面未逐页覆盖。
+
+## 2026-11-03 续查：年龄、日期差与 AA 分摊
+
+### LF-N1 未勾选排除周末时「周末天数」恒为 0（中，确认源码缺陷）
+- 证据：`tools/life/date-diff.html:271-276,285` 当 `excludeWeekend` 未勾选时 `!excludeWeekend` 恒真，工作日循环把每一天都计入 `workdays`，随后 `weekends=totalDays-workdays` 为 0，页面却显示「周末天数 0」「工作日 = 总天数」。
+- 影响：`tools/life/date-diff.html`；最常见的默认状态下周末统计失真，用户会误判区间内的周末数量。
+- 方案：工作日与周末统计彼此独立计算（周末按 `isWeekend` 直接计数），仅在勾选排除周末时把周末从工作日中剔除；补跨周、跨年、含闰日用例。
+
+### LF-N2 AA 分摊按人四舍五入后合计不闭合（中，确认源码缺陷）
+- 证据：`tools/life/bill-splitter.html:389-397` 每人金额 `toFixed(2)` 输出，无余数分配；页面公式说明却写「余数按约定顺序分配」（`:305`）。100 元 3 人平摊显示 33.33×3，合计 99.99，与显示总额 100.00 差 0.01。
+- 影响：`tools/life/bill-splitter.html`；收款总额与账单不符，多人核对时会被质疑。
+- 方案：按分计算并分配余数（默认给前 N 人各 +0.01 或指定承担人），结果区显示「合计已对齐 ¥100.00」；导出 CSV 含分摊规则。
+
+### LF-N3 账单页接受负金额与负份数（中，确认源码缺陷）
+- 证据：`tools/life/bill-splitter.html:386-387` 总额/小费用 `parseFloat||0`，空值按 0、负值原样保留；`:360` 份数 `onchange="+this.value"` 接受 0 与负数（HTML `min=0.1` 只限制步进按钮）。负份数可让某人金额为负，零份数总和时仅靠 Infinity 守卫报「请输入有效正数」这一通用提示。
+- 影响：`tools/life/bill-splitter.html`；分摊结果可能为负或错误归因。
+- 方案：校验总额、小费、份数为有限非负数且份数总和 >0，字段级提示；禁止空值静默按 0 参与计算。
+
+### LF-N4 姓名未转义直接写入结果与列表（中，确认源码缺陷）
+- 证据：`tools/life/bill-splitter.html:359,396` 将 `p.name` 原样插入模板字符串后赋给 `innerHTML`；名称含 `<img src=x onerror=...>` 会被解析执行（本地自注入，不涉及服务端存储）。
+- 影响：`tools/life/bill-splitter.html`；特殊字符会破坏排版，存在自 XSS 路径。
+- 方案：姓名统一 `textContent` 赋值或做 HTML 转义；补 `<`、`&`、超长名称用例。
+
+### LF-N5 年龄页非法日期滚动与生日当天年龄多 1（中，确认源码缺陷）
+- 证据：`tools/life/age-calculator.html:423` 直接 `new Date(by, bm-1, bd)`，2 月 31 日滚为 3 月 3 日，但 `:450` 仍回显输入的年月日；`:473-476` 生日当天 `daysToBday=0` 却把 `nextAge` 设为 `years+1`，显示「距离 N+1 岁生日还有 0 天」。
+- 影响：`tools/life/age-calculator.html`；生日与日期边界两种高频场景各错一次。
+- 方案：构造日期后校验年月日与输入一致，不一致时提示；生日当天按「今天是 N 岁生日」分支展示，`nextAge` 使用 `daysToBday===0 ? years : years+1`。
+
+### LF-N6 百分比页把 0 基数报成「请输入有效数值」（低，确认源码缺陷）
+- 证据：`tools/life/percentage-calculator.html:502-508` 旧值为 0 时与空值共用 `请输入有效数值` 提示；0 是合法输入，只是增长率无定义。
+- 影响：`tools/life/percentage-calculator.html`；用户以为输入错误，反复重试后离开。
+- 方案：区分「未填」与「基数为 0」，后者提示「从 0 增长无法计算百分比，请改看绝对增量」并给出增量值。
+
+### 留存优化（按页落点，非确认缺陷）
+- `tools/life/age-calculator.html`：结果只有本地展示，无「年龄摘要复制」与里程碑倒数（18/30/60 岁、万天）。建议加一键复制/分享卡与下一里程碑倒计时，这是生日类页面的主要回流点。
+- `tools/life/bill-splitter.html`：分摊结果不能直接转发，缺「每人一句催款文案」或多人群分享。建议生成按人分段的可复制文本（姓名 + 金额 + 合计），并允许选择余数承担者。
+- `tools/life/date-diff.html`：工作日口径只排除周末，未处理法定节假日/调休。建议提供节假日库开关或自定义非工作日，并支持导出 `.ics`/复制区间说明。
+- `tools/life/percentage-calculator.html`：四个子计算各自独立，无常用场景预设（折扣、涨幅、完成率）。建议加场景预设并在结果旁固定展示「计算式」，便于截图核对。
+
+### 续查覆盖
+- 新抽查 `tools/life/age-calculator.html`、`tools/life/percentage-calculator.html`、`tools/life/date-diff.html`、`tools/life/bill-splitter.html` 共 4 页，新增 6 条（0 条高优，4 条中优）与 4 条留存建议；为源码与数值推导，未做浏览器、移动端、线上或门禁验证。

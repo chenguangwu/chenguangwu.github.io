@@ -88,3 +88,20 @@
 
 ### 续查覆盖
 - 新抽查 `tools/finance/irr-calculator.html`、`tools/finance/bond-yield-calculator.html`、`tools/finance/dca-calculator.html`、`tools/finance/retirement-calculator.html` 共 4 页，新增 7 条（6 条高优），均为源码及数值推导，未做浏览器、线上和门禁验证。
+
+### F-N9 复利年限超 1000 被静默截断、定投金额可为负（中，确认源码缺陷）
+- 证据：`tools/finance/compound-interest.html:420` `Math.min(parseFloat(years)||0, 1000)`，输入 2000 年按 1000 年计算且页面不回显；`:421` 定投金额只做 `parseFloat||0`，无 `<0` 校验，`-1000` 会逐年减少余额却仍标为「定投」。
+- 影响：`tools/finance/compound-interest.html`；长期测算被无声压缩，负投入产生与页面语义相反的结果。
+- 方案：年限超上限时明确提示并显示实际使用年数；定投金额允许为空但禁止负数，字段级错误；结果区标注「按 1000 年上限计算」等口径。
+
+### F-N10 分期实际利率无残差校验、负费率未拦截（中，确认源码缺陷）
+- 证据：`tools/finance/installment-real-rate.html:276-291` 只校验本金与期数，`r` 可为负；二分区间固定 `[0, 1.0]`（月利率上限 100%），80 次迭代后直接采用区间中点，未验证 PV 残差，也未判断实际根是否越界。费率极高时输出上限值而无提示。
+- 影响：`tools/finance/installment-real-rate.html`；负手续费或极端费率下「实际年化」仍显示为可信结果。
+- 方案：校验费率 0–合理上限，求解后检查 `|PV−P|` 残差与根是否触及边界，越界时明确提示；负费率单独报错。展示每期还款的现金流方向，便于核对。
+
+### 留存优化（按页落点，非确认缺陷）
+- `tools/finance/compound-interest.html`：只能正算终值，缺「目标金额反推所需年限/月投」。建议加目标反推与「单利 vs 复利」并排对比，这是理财类搜索的主要意图。
+- `tools/finance/installment-real-rate.html`：只有单一方案，无「多期数并排（12/24/36 期）」与手续费一次性/按期两种口径切换。建议并排展示不同期数的实际年化与总成本，便于用户直接比较。
+
+### 续查覆盖
+- 新抽查 `tools/finance/compound-interest.html`、`tools/finance/installment-real-rate.html` 共 2 页，新增 2 条中优与 2 条留存建议；为源码核查，未做浏览器、线上或门禁验证。
