@@ -47,7 +47,7 @@ const targets = [
   "design/css-grid-generator", "design/breakpoint-queries",
   "it/phone-screen-sizes",
   // P3-1 batch 10 (it/design)
-  "it/video-bitrate", "design/color-contrast-check",
+  "it/video-bitrate",
   "design/pixel-art-generator", "it/bluetooth-version",
   "it/usb-version",
   // Q1 batch 01 (design/it converters & generators)
