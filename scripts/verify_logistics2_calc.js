@@ -68,6 +68,38 @@ const CASES = [
     "7-13"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "logistics2/loading-utilization",
+  "inputs": {
+    "truckL": "6.8",
+    "truckW": "2.3",
+    "truckH": "2.4",
+    "truckLoad": "5000",
+    "boxL": "10",
+    "boxW": "3",
+    "boxH": "3",
+    "boxWeight": "15",
+    "planQty": "5"
+  },
+  "expect": ["单件尺寸大于车厢"],
+  "ref": "06-F5（高优）：单件 10×3×3 m 大于车厢 6.8×2.3×2.4 m，六向 fit 全为 0 ⇒ 修复后 bestFit=0 走提示分支输出「单件尺寸大于车厢，无法装载」；旧实现 bestOrient 为 null，渲染读 bestOrient.nx 抛 TypeError、结果区空白。默认 0.6×0.4×0.5 不含该串。"
+},
+{
+  "slug": "logistics2/loading-utilization",
+  "inputs": {
+    "truckL": "5",
+    "truckW": "3",
+    "truckH": "2",
+    "truckLoad": "5000",
+    "boxL": "1.5",
+    "boxW": "1.2",
+    "boxH": "2",
+    "boxWeight": "10",
+    "planQty": "10"
+  },
+  "expect": ["8 最大可装件数"],
+  "ref": "06-F6（中优）：车厢 5×3×2、货物 1.5×1.2×2。旧 3 向枚举最大 6 件（[1.5,1.2,2]→3×2×1）；补全 6 向全排列后 [1.2,1.5,2]→floor(5/1.2)×floor(3/1.5)×floor(2/2)=4×2×1=8 件；重量上限 floor(5000/10)=500 ⇒ 最大可装 8、体积受限。"
 }
 ];
 async function main() {

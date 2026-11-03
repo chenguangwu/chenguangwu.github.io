@@ -265,6 +265,16 @@ const CASES = [
   ],
     ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
+},
+{
+  "slug": "design/image-flipper",
+  "clicks": [
+    "var _oc=document.createElement;window.Image=function(){this.width=40;this.height=30;var s='';var self=this;Object.defineProperty(this,'src',{get:function(){return s;},set:function(v){s=v;if(self.onload)self.onload();}});};window.FileReader=function(){this.readAsDataURL=function(f){if(this.onload)this.onload({target:{result:f.dataURL}});};};document.createElement=function(t){if(t==='canvas'){return{width:0,height:0,getContext:function(){return{translate:function(){},scale:function(){},drawImage:function(){}};},toDataURL:function(){return 'data:image/png;base64,'+window.__flipToken;},toBlob:null};}return _oc(t);};var fi=document.getElementById('fileInput');window.__flipToken='TOKEN_A';fi.files=[{dataURL:'data:image/png;base64,TOKEN_A'}];fi.fire('change');flip('h');var s1=window.__flipperState();window.__flipToken='TOKEN_B';fi.files=[{dataURL:'data:image/png;base64,TOKEN_B'}];fi.fire('change');var s2=window.__flipperState();flip('v');var s3=window.__flipperState();document.getElementById('image_flipperPresets').textContent='SW1:'+(s1.hasResult?1:0)+'|SW2:'+(s2.hasResult?1:0)+'|NEW:'+(s3.dataURL.indexOf('TOKEN_B')>=0?1:0)+'|SRC:'+(s3.source.indexOf('TOKEN_B')>=0?1:0)+'|HREF:'+(s3.href===s3.dataURL?1:0);"
+  ],
+  "expect": [
+    "SW1:1|SW2:0|NEW:1|SRC:1|HREF:1"
+  ],
+  "ref": "EL-J1 回归：上传 A → 水平翻转 → 换图 B（must 立即作废旧结果）→ 垂直翻转。旧实现换图不清 lastURL，s2.hasResult 仍为 1 且下载 href 指向 A；新实现换图即 clearResult()，s2=0，翻转后 dataURL/currentImg 均为 B、下载 href 与 dataURL 一致。"
 }
 ];
 async function main() {

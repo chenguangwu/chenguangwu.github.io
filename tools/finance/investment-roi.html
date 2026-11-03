@@ -257,7 +257,8 @@ s.parentNode.insertBefore(el, s);
   <div class="card">
     <h3>📐 公式说明</h3>
     <div class="formula-box"><div class="formula-title">📐 计算公式 / 说明</div><div class="formula-eq">ROI = (收益 − 成本) / 成本 × 100%；年化 = (1+ROI)^(1/年数) − 1。</div>
-      <div class="formula-desc">基于投资回报率与现金流折现：简单 ROI 衡量总投入产出，年化 ROI 消除期限差异，定投 ROI 用 IRR 反解真实收益率，用于投资决策与方案对比。</div></div>
+      <div class="formula-desc">基于投资回报率与现金流折现：简单 ROI 衡量总投入产出，年化 ROI 消除期限差异，定投 ROI 用 IRR 反解真实收益率，用于投资决策与方案对比。</div>
+      <div class="formula-desc">定投口径：累计收益率 = 总收益 / 累计投入（不年化）；按每期真实投入时点构造现金流求每期 IRR，名义年化 = 每期 IRR × 每年期数，有效年化 = (1 + 每期 IRR)^每年期数 − 1。</div></div>
 <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__investment_roiExport()">导出明细 CSV</button></div><div class="result-box">
       <p><strong>简单 ROI</strong> = (终值 - 成本) / 成本 × 100%</p>
       <p><strong>年化 ROI（复利）</strong> = (1 + ROI)^(1/年数) - 1</p>
@@ -529,6 +530,40 @@ function drawSimpleChart(){
   ctx.fillText('成本: '+fmt(cost), padL+6, yCost-4);
 }
 
+// 资金加权 IRR：按每期实际投入时点（期初）构造现金流，期末终值为唯一正流入。
+// 二分区间按 f(0) 符号选择，并对最终根做残差校验；求解失败返回 null（不输出伪解）。
+function irrFromCashFlows(cashFlows, hint){
+  cashFlows = cashFlows || [];
+  const npvAt = (r) => {
+    let v = 0;
+    for(let t=0;t<cashFlows.length;t++) v += cashFlows[t] / Math.pow(1+r, t);
+    return v;
+  };
+  const scale = cashFlows.reduce((s,v)=>s + Math.abs(v), 0);
+  const tol = Math.max(1, scale) * 1e-6;
+  const f0 = npvAt(0);
+  if(Math.abs(f0) <= tol) return 0;
+  let a, b, fa, fb;
+  if(f0 > 0){
+    a = 0; fa = f0;
+    b = Math.max(10, Math.abs(hint || 0) * 2 + 1); fb = npvAt(b);
+    if(!(fb < 0)) return null;
+  } else {
+    b = 0; fb = f0;
+    a = Math.max(-0.9999, (hint || 0) * 2 - 1); fa = npvAt(a);
+    if(!(fa >= 0)) return null;
+  }
+  for(let i=0;i<200;i++){
+    const mid = (a + b) / 2;
+    const fm = npvAt(mid);
+    if(!isFinite(fm)) return null;
+    if(fa * fm >= 0){ a = mid; fa = fm; } else { b = mid; fb = fm; }
+  }
+  const rate = (a + b) / 2;
+  if(Math.abs(npvAt(rate)) > tol) return null;
+  return rate;
+}
+
 function calcRegular(){
   const pmt = parseFloat(document.getElementById('monthly').value) || 0;
   const freq = document.getElementById('freq').value;
@@ -538,13 +573,14 @@ function calcRegular(){
     const __h3='<div class="stat-card"><div class="val" style="font-size:14px;color:var(--danger);">请输入合理的正数</div></div>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('regularStats').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('regularStats').innerHTML=__h3;
     return;
   }
-  let n, ratePer;
+  let n, ratePer, periodsPerYear;
   switch(freq){
-    case 'monthly': n = period * 12; ratePer = annualRate / 100 / 12; break;
-    case 'weekly': n = period * 52; ratePer = annualRate / 100 / 52; break;
-    case 'yearly': n = period; ratePer = annualRate / 100; break;
+    case 'monthly': n = period * 12; ratePer = annualRate / 100 / 12; periodsPerYear = 12; break;
+    case 'weekly': n = period * 52; ratePer = annualRate / 100 / 52; periodsPerYear = 52; break;
+    case 'yearly': n = period; ratePer = annualRate / 100; periodsPerYear = 1; break;
   }
-  const totalInvest = pmt * n;
+  const nInt = Math.max(1, Math.round(n));
+  const totalInvest = pmt * nInt;
   let fv;
   if(ratePer === 0){
     fv = totalInvest;
@@ -553,15 +589,24 @@ function calcRegular(){
   }
   const profit = fv - totalInvest;
   const roi = totalInvest > 0 ? profit / totalInvest : 0;
-  const annualized = period > 0 ? Math.pow(1 + roi, 1/period) - 1 : 0;
+
+  // 真实现金流：每期期初投入 -pmt（t=0…nInt−1），期末资产 +fv（t=nInt）⇒ 求每期 IRR
+  const cashFlows = [];
+  for(let t=0;t<nInt;t++) cashFlows.push(-pmt);
+  cashFlows.push(fv);
+  const irrPer = irrFromCashFlows(cashFlows, ratePer);
+  const hasIrr = isFinite(irrPer);
+  const nominalIrr = hasIrr ? irrPer * periodsPerYear : null;
+  const effectiveIrr = hasIrr ? Math.pow(1 + irrPer, periodsPerYear) - 1 : null;
 
   const __h4=`
     <div class="stat-card"><div class="val">${fmt(totalInvest)}</div><div class="lbl">累计投入</div></div>
     <div class="stat-card"><div class="val" style="color:var(--success);">${fmt(fv)}</div><div class="lbl">期末终值</div></div>
     <div class="stat-card"><div class="val" style="color:var(--success);">+${fmt(profit)}</div><div class="lbl">总收益</div></div>
-    <div class="stat-card"><div class="val">${fmtPct(roi)}</div><div class="lbl">总收益率</div></div>
-    <div class="stat-card"><div class="val">${fmtPct(annualized)}</div><div class="lbl">年化收益率</div></div>
-    <div class="stat-card"><div class="val">${Math.round(n)}</div><div class="lbl">定投期数</div></div>
+    <div class="stat-card"><div class="val">${fmtPct(roi)}</div><div class="lbl">累计收益率（总收益/累计投入）</div></div>
+    <div class="stat-card"><div class="val" style="color:var(--success);">${hasIrr ? fmtPct(nominalIrr) : '—'}</div><div class="lbl">年化收益率（IRR·名义）</div></div>
+    <div class="stat-card"><div class="val" style="color:var(--success);">${hasIrr ? fmtPct(effectiveIrr) : '—'}</div><div class="lbl">有效年化（IRR·复利）</div></div>
+    <div class="stat-card"><div class="val">${nInt}</div><div class="lbl">定投期数</div></div>
   `;if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){document.getElementById('regularStats').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('regularStats').innerHTML=__h4;
   drawRegularChart();
 }

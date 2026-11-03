@@ -378,21 +378,59 @@ function removeCF(i){
   calc();
 }
 
-function calcIRR(init, flows){
-  let low = -0.99, high = 10, mid;
-  const npvAt = (r) => {
-    let npv = -init;
-    flows.forEach((cf,t) => npv += cf / Math.pow(1+r, t+1));
-    return npv;
-  };
-  for(let i=0;i<200;i++){
-    mid = (low + high) / 2;
-    const npv = npvAt(mid);
-    if(Math.abs(npv) < 0.01) return mid;
-    if(npvAt(low) * npv < 0) high = mid;
-    else low = mid;
+function npvAtRate(init, flows, r){
+  let npv = -init;
+  flows.forEach((cf,t) => npv += cf / Math.pow(1+r, t+1));
+  return npv;
+}
+
+function bisectNPV(init, flows, lo, hi, fLo, tol){
+  for(let i=0;i<120;i++){
+    const mid = (lo + hi) / 2;
+    const fm = npvAtRate(init, flows, mid);
+    if(!isFinite(fm)) break;
+    if(Math.abs(fm) <= tol) return {rate:mid, residual:fm};
+    if(fLo * fm < 0) hi = mid;
+    else { lo = mid; fLo = fm; }
   }
-  return mid;
+  const rate = (lo + hi) / 2;
+  return {rate, residual:npvAtRate(init, flows, rate)};
+}
+
+// 返回 {status:'ok'|'none'|'multiple'|'invalid', rate/rates, residual}
+// 规则：先做端点/区间符号扫描，无零点则判无解；有多个零点则判多根；命中后校验残差，触边界不当作结果。
+function calcIRR(init, flows){
+  flows = flows || [];
+  if(init <= 0) return {status:'invalid'};
+  if(!flows.some(v => v > 0)) return {status:'none', reason:'no-positive'};
+  const LO = -0.9999, HI = 1000, STEPS = 4000;
+  const scale = init + flows.reduce((a,b)=>a + Math.abs(b), 0) + 1;
+  const tol = scale * 1e-6;
+  const roots = [];
+  let prevR = LO, prevF = npvAtRate(init, flows, LO);
+  for(let i=1;i<=STEPS;i++){
+    const r = LO + (HI - LO) * i / STEPS;
+    const f = npvAtRate(init, flows, r);
+    if(isFinite(prevF) && isFinite(f)){
+      if(prevF === 0) roots.push(prevR);
+      else if(f === 0) roots.push(r);
+      else if(prevF * f < 0){
+        const hit = bisectNPV(init, flows, prevR, r, prevF, tol);
+        if(isFinite(hit.rate) && Math.abs(hit.residual) <= tol) roots.push(hit.rate);
+      }
+    }
+    prevR = r; prevF = f;
+  }
+  const uniq = roots.filter((v,i)=>
+    (i === 0 || Math.abs(v - roots[i-1]) > 1e-7) && v > LO + 1e-6 && v < HI - 1e-6
+  );
+  if(!uniq.length) return {status:'none', reason:'no-root'};
+  if(uniq.length > 1) return {status:'multiple', rates:uniq};
+  const rate = uniq[0];
+  const residual = npvAtRate(init, flows, rate);
+  if(Math.abs(residual) > tol) return {status:'none', reason:'residual'};
+  if(rate <= LO + 1e-6 || rate >= HI - 1e-6) return {status:'none', reason:'boundary'};
+  return {status:'ok', rate, residual};
 }
 
 function calc(){
@@ -424,17 +462,18 @@ function calc(){
   });
 
   const pi = init > 0 ? pvSum / init : 0;
-  const irr = calcIRR(init, flows);
+  const irrInfo = calcIRR(init, flows);
+  const irr = irrInfo.status === 'ok' ? irrInfo.rate : null;
   const totalCF = flows.reduce((a,b)=>a+b, 0);
   const totalProfit = totalCF - init;
 
   const npvColor = npv >= 0 ? 'var(--success)' : 'var(--danger)';
   const piColor = pi >= 1 ? 'var(--success)' : 'var(--danger)';
-  const irrColor = irr >= r ? 'var(--success)' : 'var(--danger)';
+  const irrColor = irr !== null && irr >= r ? 'var(--success)' : 'var(--danger)';
 
   const __g4=`
     <div class="stat-card"><div class="val" style="color:${npvColor};">${fmt(npv)}</div><div class="lbl">NPV 净现值</div></div>
-    <div class="stat-card"><div class="val" style="color:${irrColor};">${fmtPct(irr)}</div><div class="lbl">IRR 内部收益率</div></div>
+    <div class="stat-card"><div class="val" style="color:${irrColor};">${irr !== null ? fmtPct(irr) : (irrInfo.status === 'multiple' ? '多根' : '无解')}</div><div class="lbl">IRR 内部收益率</div></div>
     <div class="stat-card"><div class="val" style="color:${piColor};">${pi.toFixed(3)}</div><div class="lbl">PI 获利指数</div></div>
     <div class="stat-card"><div class="val">${paybackYear>=0 ? (paybackYear+paybackFrac).toFixed(2)+'期' : '未回收'}</div><div class="lbl">投资回收期</div></div>
     <div class="stat-card"><div class="val">${fmt(init)}</div><div class="lbl">初始投资</div></div>
@@ -454,8 +493,15 @@ function calc(){
   detailHtml += `<div style="margin-top:12px;display:flex;gap:12px;flex-wrap:wrap;font-size:13px;">`;
   detailHtml += `<span>折现率：<strong>${fmtPct(r)}</strong></span>`;
   detailHtml += `<span>NPV ${npv>=0?'≥':'<'} 0：<strong style="color:${npvColor};">${npv>=0?'✓ 可行':'✗ 不可行'}</strong></span>`;
-  detailHtml += `<span>IRR ${irr>=r?'≥':'<'} 折现率：<strong style="color:${irrColor};">${irr>=r?'✓ 可行':'✗ 不可行'}</strong></span>`;
+  if(irr !== null){
+    detailHtml += `<span>IRR ${irr>=r?'≥':'<'} 折现率：<strong style="color:${irrColor};">${irr>=r?'✓ 可行':'✗ 不可行'}</strong></span>`;
+  } else if(irrInfo.status === 'multiple'){
+    detailHtml += `<span>IRR：<strong style="color:var(--danger);">✗ 存在多个根（${irrInfo.rates.map(fmtPct).join('、')}），无唯一解，不可行</strong></span>`;
+  } else {
+    detailHtml += `<span>IRR：<strong style="color:var(--danger);">✗ 无解（现金流同号或 NPV 无零点），不可行</strong></span>`;
+  }
   detailHtml += `<span>PI ${pi>=1?'≥':'<'} 1：<strong style="color:${piColor};">${pi>=1?'✓ 可行':'✗ 不可行'}</strong></span>`;
+  detailHtml += `<span style="width:100%;color:var(--text-dim);">明细按实际折现率 ${fmtPct(r)} 计算。</span>`;
   detailHtml += `</div>`;
   const __g5=detailHtml;document.getElementById('detail').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
 

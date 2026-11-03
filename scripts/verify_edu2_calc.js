@@ -66,6 +66,96 @@ const CASES = [
   "inputs": {"targetDate":"2026-12-31","dailyHours":"6"},
   "expect": ["2024-07-31 预计完成日", "46 天 预计还需"],
   "ref": "注入非默认 targetDate(默认 2024-07-30→2026-12-31) 与 dailyHours(默认 4→6)：预计完成日 2024-08-22→2024-07-31（dailyHours=6 加快进度提前完成）、预计还需 68 天→46 天（剩余工时/每日时长）。页面用默认 sample 4 科目(数学/英语/专业课/政治) 数据，calc 读 targetDate/dailyHours 纯 input（不依赖 now，稳定）。**锚 now 无关的计算结果**，规避 (a) 输入回显 2026-12-31（out 开头）(b) 距目标天数 929 依赖 harness 固定 now（未来 now 基准变化即失效）。默认态不命中 2024-07-31 / 46 天。"
+},
+{
+  "slug": "language/idiom-solitaire",
+  "clicks": [
+    "gameMode='pinyin';gameRunning=true;currentChar='力';score=0;document.getElementById('idiomInput').value='刻骨铭心';submitIdiom();var w=document.getElementById('waitingChar').innerHTML;document.getElementById('chainList').textContent='IDIOM_MISS:'+(gameRunning?1:0)+'|SCORE='+score+'|END='+(w.indexOf('游戏结束')>=0?1:0);"
+  ],
+  "expect": [
+    "IDIOM_MISS:0|SCORE=0|END=1"
+  ],
+  "ref": "EL-J10 回归：拼音模式下 currentChar='力'、输入「刻骨铭心」（首字「刻」），两者都不在 PINYIN_MAP 中。旧实现 inputPy===targetPy 即 undefined===undefined 放行；新实现缺拼音时退回汉字相同判定，首字不同 ⇒ 拒绝并结束，比分保持 0。"
+},
+{
+  "slug": "language/idiom-solitaire",
+  "clicks": [
+    "gameMode='exact';gameRunning=true;currentChar='一';score=0;document.getElementById('idiomInput').value='一马当';submitIdiom();var w=document.getElementById('waitingChar').innerHTML;document.getElementById('chainList').textContent='IDIOM_DB:'+(gameRunning?1:0)+'|SCORE='+score+'|END='+(w.indexOf('游戏结束')>=0?1:0);"
+  ],
+  "expect": [
+    "IDIOM_DB:0|SCORE=0|END=1"
+  ],
+  "ref": "EL-J10 回归：不在成语库的残缺输入「一马当」必须拒绝并提示，不能因首字匹配而加分。"
+},
+{
+  "slug": "language/idiom-solitaire",
+  "clicks": [
+    "chain=[];gameMode='exact';gameRunning=true;currentChar='一';score=0;document.getElementById('idiomInput').value='一马当先';submitIdiom();document.getElementById('chainList').textContent='IDIOM_OK:'+(gameRunning?1:0)+'|SCORE='+score;"
+  ],
+  "expect": [
+    "IDIOM_OK:1|SCORE=1"
+  ],
+  "ref": "EL-J10 正向对照：合法成语「一马当先」仍应计分并继续游戏，避免修复把正常接龙一并拒掉。"
+},
+{
+  "slug": "language/grammar-checker",
+  "clicks": [
+    "document.getElementById('input-text').value='   ';check();document.getElementById('grammar_checkerPresets').textContent='G_EMPTY:'+document.getElementById('s-issues').textContent+'|PROMPT:'+(document.getElementById('result').innerHTML.indexOf('请输入文本后再检查')>=0?1:0);"
+  ],
+  "expect": [
+    "G_EMPTY:0|PROMPT:1"
+  ],
+  "ref": "EL-J14 回归：空白输入应 0 问题并提示「请输入文本后再检查」；旧实现虽然提前返回但结果区为空、无提示。"
+},
+{
+  "slug": "language/grammar-checker",
+  "clicks": [
+    "document.getElementById('input-text').value='你好世界';check();document.getElementById('grammar_checkerPresets').textContent='G_NONE:'+document.getElementById('s-issues').textContent+'|OK:'+(document.getElementById('result').innerHTML.indexOf('未发现明显的语法问题')>=0?1:0);"
+  ],
+  "expect": [
+    "G_NONE:0|OK:1"
+  ],
+  "ref": "EL-J14 回归：4 字无规则文本旧实现会被可选正则 `做?坐?` 的零长度匹配刷出 5 条问题（N+1）；新实现跳过空匹配 ⇒ 0 条。"
+},
+{
+  "slug": "language/grammar-checker",
+  "clicks": [
+    "document.getElementById('input-text').value='他做车去上班';check();document.getElementById('grammar_checkerPresets').textContent='G_HIT:'+document.getElementById('s-issues').textContent+'|MARK:'+(document.getElementById('result').innerHTML.indexOf('做车')>=0?1:0);"
+  ],
+  "expect": [
+    "G_HIT:1|MARK:1"
+  ],
+  "ref": "EL-J14 正向对照：把空匹配规则替换为具体 `/做(车|下|着|位)/` 后，「做车」应恰好命中 1 条并在结果中标记。"
+},
+{
+  "slug": "chinese/chinese-character",
+  "clicks": [
+    "var bad=__ccValidate();document.getElementById('ccPreset').textContent='CC:'+bad+'|HAN='+charDB['汉'].strokes+'|GUO='+charDB['国'].radical+'|AI='+charDB['爱'].strokes+'|XI='+charDB['曦'].pinyin+'|XING='+charDB['行'].pinyin;"
+  ],
+  "expect": [
+    "CC:|HAN=5|GUO=囗|AI=10|XI=xī|XING=xíng / háng"
+  ],
+  "ref": "EL-J15 回归：数据自检 0 问题；汉=5 画、国部首=囗、爱=10 画；并新增「曦」「行（多音）」，不再只有 20 字且笔画/部首错误。"
+},
+{
+  "slug": "chinese/chinese-character",
+  "clicks": [
+    "document.getElementById('charInput').value='曦';lookup();document.getElementById('ccPreset').textContent='CC_XI:'+document.getElementById('displayPinyin').textContent+'|INFO:'+(document.getElementById('infoGrid').innerHTML.indexOf('20')>=0?1:0)+'|RAD:'+(document.getElementById('infoGrid').innerHTML.indexOf('日')>=0?1:0);"
+  ],
+  "expect": [
+    "CC_XI:xī|INFO:1|RAD:1"
+  ],
+  "ref": "EL-J15 回归：深挖示例查询「曦」应命中并显示 xī、20 画、日部（旧 20 字库未收录）。"
+},
+{
+  "slug": "chinese/chinese-character",
+  "clicks": [
+    "document.getElementById('charInput').value='鑫';lookup();document.getElementById('ccPreset').textContent='CC_MISS:'+document.getElementById('displayPinyin').textContent+'|HINT:'+(document.getElementById('infoGrid').innerHTML.indexOf('未收录')>=0?1:0);"
+  ],
+  "expect": [
+    "CC_MISS:未收录|HINT:1"
+  ],
+  "ref": "EL-J15 回归：未收录字「鑫」应明确提示未收录，避免用户误以为数据错误；页面已标注收录范围（45 字，非完整字典）。"
 }
 ];
 async function main() {

@@ -76,6 +76,22 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  // WMA 预测权重方向：最新值应拿最大权重。
+  "slug": "sales/moving-average",
+  "inputs": {
+    "window": "3",
+    "periods": "1",
+    "data": "120\n130\n150\n190"
+  },
+  "clicks": [
+    "setMethod('wma');calc();"
+  ],
+  "expect": [
+    "预测 1 — 167"
+  ],
+  "ref": "WMA(3) 对最新 3 期 [130,150,190] 按 1/2/3 加权：130×1+150×2+190×3=1000，÷6=166.67 ⇒ 展示 167。旧预测分支把最旧值赋最大权重：(130×3+150×2+190×1)÷6=146.67 ⇒ 147，故「预测 1 — 167」可强判别。"
+},
+{
   "slug": "sales/price-calculator",
   "inputs": {
     "cost": "150",

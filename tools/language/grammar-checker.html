@@ -276,7 +276,7 @@ const RULES = [
   { p: /\boveruse\s+of\s+very\b/gi, c: 'info', type: '用词', msg: '"very" 经常过度使用', fix: '考虑用 "extremely" 或更具体的词替代' },
   // 中文常见错误
   { p: /的地得(?=[一-龥])/g, c: 'info', type: '的地得', msg: '检查"的地得"用法', fix: '修饰动词用"地",修饰名词用"的",修饰动词补语用"得"' },
-  { p: /做?坐?/g, c: 'info', type: '字词', msg: '注意"做/坐"区分', fix: '根据上下文确认' },
+  { p: /做(车|下|着|位)/g, c: 'warning', type: '字词', msg: '可能混淆"做/坐"', fix: '表示乘坐或位置时用"坐"' },
   { p: /在再/g, c: 'info', type: '字词', msg: '注意"在/再"区分', fix: '正在进行用"在",又一次用"再"' },
   { p: /的的|了了|是是/g, c: 'error', type: '叠词错误', msg: '重复字词', fix: '删除重复字' },
   { p: /，。|。,|，;|；,/g, c: 'warning', type: '标点混用', msg: '中英文标点混用', fix: '保持统一风格' },
@@ -290,7 +290,11 @@ const RULES = [
 function check() {
   const text = document.getElementById('input-text').value;
   if (!text.trim()) {
-    const __h0='';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
+    document.getElementById('s-chars').textContent = '0';
+    document.getElementById('s-words').textContent = '0';
+    document.getElementById('s-sents').textContent = '0';
+    document.getElementById('s-issues').textContent = '0';
+    document.getElementById('result').innerHTML='<div style="background:rgba(245,158,11,0.12);border-radius:8px;padding:20px;text-align:center;color:#b45309;">请输入文本后再检查</div>';
     return;
   }
   const chars = text.length;
@@ -304,6 +308,9 @@ function check() {
   for (const r of RULES) {
     const matches = text.matchAll(r.p);
     for (const m of matches) {
+      // 跳过零长度匹配：`做?坐?` 这类可选正则会在每个位置命中空串，
+      // 导致 N 字文本刷出 N+1 条“问题”。
+      if (!m[0]) continue;
       const start = Math.max(0, m.index - 20);
       const end = Math.min(text.length, m.index + m[0].length + 20);
       const ctx = (start > 0 ? '...' : '') + text.slice(start, end) + (end < text.length ? '...' : '');

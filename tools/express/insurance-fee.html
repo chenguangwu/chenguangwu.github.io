@@ -127,7 +127,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="🚚 快递保价费计算器">Insurance Fee</h2>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">保价费 = 声明价值 × 费率，并按快递公司规则取上下限：费率通常 0.5% 至 1%（如顺丰约 0.5%、EMS 约 1%），最低收费 1 元起、单票最高保额多为 2 万至 10 万元；实际费用 = min(max(声明价值 × 费率, 最低收费), 最高封顶)，超出保额部分的损失不予赔付。</div>
+      <div class="formula-eq">保价费 = 声明价值 × 费率，并按快递公司规则取上下限：费率通常 0.5% 至 1%（如顺丰约 0.5%、EMS 约 1%），最低收费 1 元起、保价费封顶按公司规则；实际保价费 = min(max(声明价值 × 费率, 最低收费), 保价费上限)。最高理赔额 = min(声明价值, 单票保价上限)，超出保价上限的部分不予赔付。页面默认上限 2 万元，可按实际保单上限修改。</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入货物声明价值，自动计算各快递公司保价费用与最高理赔额">Insurance Fee</p>
 
@@ -147,6 +147,10 @@ s.parentNode.insertBefore(el, s);
       <div>
         <label>声明价值（元）</label>
         <input type="number" id="value" value="5000" min="0" step="100" oninput="calc()" placeholder="如 5000">
+      </div>
+      <div>
+        <label>单票保价上限（元）</label>
+        <input type="number" id="coverage" value="20000" min="1" step="1000" oninput="calc()" placeholder="如 20000">
       </div>
     </div>
 
@@ -208,7 +212,7 @@ s.parentNode.insertBefore(el, s);
       <tbody>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="保价费">Insurance fee</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="声明价值 × 费率">Declared value × rate</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="声明价值 × 费率（不低于最低收费、不超过封顶）">Declared value × rate (within minimum and cap)</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);">declared value fee</td>
         </tr>
         <tr>
@@ -218,7 +222,7 @@ s.parentNode.insertBefore(el, s);
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="赔付核定">Claim</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="按声明价值与实际损失">By declared value and actual loss</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="按声明价值与实际损失">min(declared value, coverage cap) and actual loss</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);">claim settlement</td>
         </tr>
       </tbody>
@@ -248,26 +252,40 @@ var COMPANIES = {
   jd:  {name:'京东物流', rate:0.5, min:1, maxFee:0,    note:'保价费=声明价值×0.5%，最低1元'}
 };
 
+function computeInsurance(key, val, cap, c){
+  var raw = val * c.rate / 100;
+  var fee = Math.max(raw, c.min);
+  if(c.maxFee > 0) fee = Math.min(fee, c.maxFee);
+  fee = Math.round(fee * 100) / 100;
+  return {fee:fee, claim:Math.min(val, cap), capped:val > cap, excess:val - Math.min(val, cap)};
+}
+
 function calc(){
   var key = document.getElementById('company').value;
   var val = parseFloat(document.getElementById('value').value);
+  var cap = parseFloat(document.getElementById('coverage').value);
   var c = COMPANIES[key];
   if(isNaN(val) || val < 0){
     document.getElementById('result').innerHTML='<p style="color:var(--danger);">请输入有效的声明价值</p>';
     return;
   }
-  var raw = val * c.rate / 100;
-  var fee = Math.max(raw, c.min);
-  if(c.maxFee > 0) fee = Math.min(fee, c.maxFee);
-  fee = Math.round(fee * 100) / 100;
-  var after = val - fee;
+  if(isNaN(cap) || cap <= 0){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);">请输入有效的单票保价上限</p>';
+    return;
+  }
+  var r = computeInsurance(key, val, cap, c);
+  var after = val - r.fee;
   var html = '<p>快递公司：<strong>' + c.name + '</strong></p>';
   html += '<p>声明价值：<strong>¥' + ToolBox.formatNumber(val, 2) + '</strong></p>';
+  html += '<p>单票保价上限：<strong>¥' + ToolBox.formatNumber(cap, 2) + '</strong></p>';
   html += '<p>保价费率：<strong>' + c.rate + '%</strong>（最低 ¥' + c.min + '）</p>';
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">';
-  html += '<p>应收保价费：<strong style="color:var(--primary);">¥' + ToolBox.formatNumber(fee, 2) + '</strong></p>';
-  html += '<p>最高理赔额：<strong>¥' + ToolBox.formatNumber(val, 2) + '</strong>（按声明价值赔付）</p>';
+  html += '<p>应收保价费：<strong style="color:var(--primary);">¥' + ToolBox.formatNumber(r.fee, 2) + '</strong></p>';
+  html += '<p>最高理赔额：<strong>¥' + ToolBox.formatNumber(r.claim, 2) + '</strong>（min(声明价值, 保价上限)）</p>';
   html += '<p>保价后净值：<strong>¥' + ToolBox.formatNumber(after, 2) + '</strong></p>';
+  if(r.capped){
+    html += '<div class="tip-box tip-warn" style="margin-top:10px;">声明价值超出保价上限：超出部分 <strong>¥' + ToolBox.formatNumber(r.excess, 2) + '</strong> 不予赔付；如需足额保障，请分票寄送或与网点确认提额。</div>';
+  }
   html += '<div class="tip-box tip-info" style="margin-top:10px;">' + c.note + '</div>';
   const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
@@ -275,11 +293,13 @@ function calc(){
 function copyResult(){
   var key = document.getElementById('company').value;
   var val = parseFloat(document.getElementById('value').value);
+  var cap = parseFloat(document.getElementById('coverage').value);
   var c = COMPANIES[key];
-  if(isNaN(val) || val < 0){ ToolBox.showToast(i18nText(),'error'); return; }
-  var fee = Math.max(val * c.rate / 100, c.min);
-  fee = Math.round(fee * 100) / 100;
-  ToolBox.copyText(c.name + ' 声明价值¥' + val + ' 保价费¥' + fee + ' 最高理赔¥' + val, i18nText());
+  if(isNaN(val) || val < 0 || isNaN(cap) || cap <= 0){ ToolBox.showToast(i18nText(),'error'); return; }
+  var r = computeInsurance(key, val, cap, c);
+  var txt = c.name + ' 声明价值¥' + val + ' 保价费¥' + r.fee + ' 最高理赔¥' + r.claim;
+  if(r.capped) txt += '（超出上限¥' + (Math.round(r.excess * 100) / 100) + ' 不予赔付）';
+  ToolBox.copyText(txt, i18nText());
 }
 
 function renderTable(){

@@ -186,7 +186,7 @@ s.parentNode.insertBefore(el, s);
     
     <div class="text-display" id="textDisplay"></div>
     
-    <input type="text" class="input-area" id="typeInput" placeholder="在此输入文字开始练习..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+    <input type="text" class="input-area" id="typeInput" placeholder="输入拼音（小写、不含声调）..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
     
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="resetTyping()">🔄 重新开始</button>
@@ -210,7 +210,7 @@ s.parentNode.insertBefore(el, s);
     </div>
     
     <p style="font-size:13px;color:var(--text-muted);text-align:center;margin-top:16px;">
-      💡 开启中文输入法后，按照上方文字输入即可
+      💡 看上方汉字输入对应拼音（小写、不含声调，连续输入即可）
     </p>
   </div>
 
@@ -318,12 +318,37 @@ const textSamples = {
   ]
 };
 
+const PINYIN_MAP = {"C":"c","H":"h","J":"j","L":"l","M":"m","S":"s","T":"t","a":"a","c":"c","i":"i","p":"p","r":"r","t":"t","v":"v","一":"yi","七":"qi","万":"wan","三":"san","上":"shang","下":"xia","不":"bu","丛":"cong","东":"dong","丝":"si","个":"ge","中":"zhong","临":"lin","为":"wei","丽":"li","举":"ju","之":"zhi","九":"jiu","也":"ye","习":"xi","乡":"xiang","了":"le","事":"shi","二":"er","于":"yu","云":"yun","五":"wu","亡":"wang","人":"ren","他":"ta","代":"dai","以":"yi","们":"men","件":"jian","会":"hui","低":"di","你":"ni","依":"yi","假":"jia","充":"chong","光":"guang","兔":"tu","入":"ru","全":"quan","八":"ba","公":"gong","六":"liu","关":"guan","准":"zhun","几":"ji","出":"chu","到":"dao","刻":"ke","前":"qian","剑":"jian","动":"dong","北":"bei","十":"shi","千":"qian","南":"nan","去":"qu","发":"fa","叠":"die","口":"kou","可":"ke","右":"you","叶":"ye","后":"hou","君":"jun","听":"ting","呈":"cheng","和":"he","啼":"ti","四":"si","国":"guo","土":"tu","在":"zai","地":"di","基":"ji","境":"jing","壮":"zhuang","声":"sheng","处":"chu","复":"fu","多":"duo","夜":"ye","大":"da","天":"tian","头":"tou","好":"hao","如":"ru","妙":"miao","姹":"cha","威":"wei","嫣":"yan","嫩":"nen","子":"zi","孤":"gu","学":"xue","守":"shou","寒":"han","对":"dui","小":"xiao","少":"shao","就":"jiu","尽":"jin","层":"ceng","山":"shan","左":"zuo","帆":"fan","带":"dai","年":"nian","广":"guang","床":"chuang","建":"jian","开":"kai","式":"shi","弓":"gong","归":"gui","彩":"cai","影":"ying","径":"jing","待":"dai","得":"de","德":"de","心":"xin","思":"si","惯":"guan","想":"xiang","意":"yi","愿":"yuan","成":"cheng","我":"wo","手":"shou","抽":"chou","据":"ju","掩":"yan","描":"miao","撷":"xie","故":"gu","数":"shu","文":"wen","方":"fang","无":"wu","日":"ri","时":"shi","明":"ming","星":"xing","春":"chun","是":"shi","晓":"xiao","更":"geng","最":"zui","月":"yue","有":"you","望":"wang","木":"mu","本":"ben","机":"ji","来":"lai","杯":"bei","构":"gou","枝":"zhi","柳":"liu","标":"biao","树":"shu","株":"zhu","样":"yang","核":"he","楼":"lou","横":"heng","欲":"yu","歌":"ge","此":"ci","气":"qi","求":"qiu","江":"jiang","河":"he","法":"fa","泥":"ni","洁":"jie","活":"huo","流":"liu","海":"hai","淡":"dan","深":"shen","添":"tian","清":"qing","源":"yuan","滥":"lan","灭":"mie","照":"zhao","牢":"lao","物":"wu","狐":"hu","独":"du","现":"xian","生":"sheng","用":"yong","画":"hua","疑":"yi","病":"bing","白":"bai","百":"bai","的":"de","皆":"jie","盗":"dao","目":"mu","相":"xiang","盾":"dun","眠":"mian","着":"zhe","矛":"mao","知":"zhi","码":"ma","础":"chu","碑":"bei","磊":"lei","福":"fu","种":"zhong","科":"ke","程":"cheng","穷":"qiong","空":"kong","竽":"yu","笠":"li","算":"suan","簇":"cu","紫":"zi","红":"hong","细":"xi","结":"jie","绚":"xuan","绝":"jue","缀":"zhui","编":"bian","缝":"feng","网":"wang","羊":"yang","美":"mei","翁":"weng","耳":"er","能":"neng","脚":"jiao","自":"zi","至":"zhi","舟":"zhou","良":"liang","色":"se","节":"jie","花":"hua","芳":"fang","苏":"su","苟":"gou","范":"fan","草":"cao","落":"luo","蒸":"zheng","蓑":"suo","虎":"hu","蛇":"she","衣":"yi","补":"bu","表":"biao","西":"xi","要":"yao","规":"gui","觉":"jue","言":"yan","计":"ji","记":"ji","诗":"shi","语":"yu","说":"shuo","豆":"dou","财":"cai","超":"chao","足":"zu","踪":"zong","软":"ruan","这":"zhe","进":"jin","远":"yuan","述":"shu","道":"dao","那":"na","酒":"jiu","醇":"chun","采":"cai","里":"li","重":"zhong","钓":"diao","钻":"zuan","铃":"ling","门":"men","闻":"wen","除":"chu","雨":"yu","雪":"xue","霜":"shuang","面":"mian","页":"ye","顺":"shun","风":"feng","飞":"fei","香":"xiang","高":"gao","鸟":"niao","黄":"huang","龙":"long"};
+
 let currentText = '';
+let charMap = [];
+let expectedPinyin = '';
+let typedNorm = '';
+let typedLetters = 0;
+let letterErrors = 0;
 let currentIndex = 0;
 let errors = 0;
 let startTime = null;
 let timerInterval = null;
 let finished = false;
+
+function normalizePinyin(s){
+  return String(s || '').toLowerCase().replace(/[^a-z]/g, '');
+}
+
+function buildPinyin(text){
+  charMap = [];
+  expectedPinyin = '';
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    let py = '';
+    if (PINYIN_MAP[ch] !== undefined) py = normalizePinyin(PINYIN_MAP[ch]);
+    else if (/[a-zA-Z]/.test(ch)) py = ch.toLowerCase();
+    const start = expectedPinyin.length;
+    expectedPinyin += py;
+    charMap.push({ ch: ch, py: py, start: start, end: expectedPinyin.length });
+  }
+}
 
 function setText(type, btn) {
   document.querySelectorAll('.text-opt').forEach(b => b.classList.remove('active'));
@@ -345,15 +370,20 @@ function randomText() {
 function resetTyping() {
   currentIndex = 0;
   errors = 0;
+  typedNorm = '';
+  typedLetters = 0;
+  letterErrors = 0;
   startTime = null;
   finished = false;
   if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
-  
+
+  buildPinyin(currentText);
+
   const input = document.getElementById('typeInput');
   input.value = '';
   input.disabled = false;
   input.focus();
-  
+
   renderText();
   updateStats();
 }
@@ -361,59 +391,80 @@ function resetTyping() {
 function renderText() {
   const display = document.getElementById('textDisplay');
   let html = '';
-  for (let i = 0; i < currentText.length; i++) {
-    const ch = currentText[i];
+  for (let i = 0; i < charMap.length; i++) {
+    const it = charMap[i];
     let cls = 'char ';
-    if (i < currentIndex) {
-      cls += ch === (inputValues[i] || '') ? 'correct' : 'wrong';
-    } else if (i === currentIndex) {
+    if (!it.py) {
+      cls += 'correct';
+    } else if (typedLetters >= it.end) {
+      cls += typedNorm.slice(it.start, it.end) === it.py ? 'correct' : 'wrong';
+    } else if (typedLetters >= it.start) {
       cls += 'current';
     } else {
       cls += 'pending';
     }
-    html += `<span class="${cls}">${ch}</span>`;
+    const title = cls.indexOf('wrong') !== -1 ? ' title="正确拼音：' + it.py + '"' : '';
+    html += `<span class="${cls}"${title}>${it.ch}</span>`;
   }
-  const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){display.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}display.innerHTML=__h0;
+  display.innerHTML = html;
 }
 
-let inputValues = [];
-
-document.getElementById('typeInput').addEventListener('input', function(e) {
+function applyTypingInput(raw) {
   if (finished) return;
-  
+
   if (!startTime) {
     startTime = Date.now();
     timerInterval = setInterval(updateStats, 500);
   }
-  
-  const val = this.value;
-  
-  if (val.length > currentIndex) {
-    const newChar = val[val.length - 1];
-    inputValues[currentIndex] = newChar;
-    if (newChar !== currentText[currentIndex]) {
-      errors++;
-    }
-    currentIndex++;
-    
-    if (currentIndex >= currentText.length) {
-      finishTyping();
-    }
-  } else if (val.length < currentIndex) {
-    currentIndex = val.length;
+
+  typedNorm = normalizePinyin(raw).slice(0, expectedPinyin.length);
+  typedLetters = typedNorm.length;
+  letterErrors = 0;
+  for (let i = 0; i < typedLetters; i++) {
+    if (typedNorm[i] !== expectedPinyin[i]) letterErrors++;
   }
-  
+
+  currentIndex = 0;
+  errors = 0;
+  for (let i = 0; i < charMap.length; i++) {
+    const it = charMap[i];
+    if (!it.py || typedLetters < it.end) continue;
+    currentIndex++;
+    if (typedNorm.slice(it.start, it.end) !== it.py) errors++;
+  }
+
   renderText();
   updateStats();
+
+  if (expectedPinyin.length > 0 && typedLetters >= expectedPinyin.length) {
+    finishTyping();
+  }
+}
+
+document.getElementById('typeInput').addEventListener('input', function() {
+  applyTypingInput(this.value);
 });
+
+// 供本地回归脚本直接驱动输入逻辑
+window.__ptApplyInput = applyTypingInput;
+window.__ptState = function(){
+  return {
+    expected: expectedPinyin,
+    typedLetters: typedLetters,
+    completed: currentIndex,
+    errors: errors,
+    letterErrors: letterErrors,
+    finished: finished
+  };
+};
 
 function updateStats() {
   const elapsed = startTime ? (Date.now() - startTime) / 1000 / 60 : 0;
-  const correctChars = currentIndex - errors;
+  const correctChars = Math.max(0, currentIndex - errors);
   const speed = elapsed > 0 ? Math.round(correctChars / elapsed) : 0;
   const acc = currentIndex > 0 ? Math.round((currentIndex - errors) / currentIndex * 100) : 100;
-  const prog = currentIndex / currentText.length * 100;
-  
+  const prog = expectedPinyin.length > 0 ? typedLetters / expectedPinyin.length * 100 : 0;
+
   document.getElementById('speed').textContent = Math.max(0, speed);
   document.getElementById('accuracy').textContent = Math.max(0, acc) + '%';
   document.getElementById('progress').textContent = Math.round(prog) + '%';
@@ -473,9 +524,9 @@ function __ptExtras(){
     var body=t.querySelector('tbody'); body.innerHTML='';
     var rows = en
       ? [['Text type',__ptName()],['Total chars',String(total)],['Typed chars',String(typed)],['Errors',String(err)],
-         ['Accuracy',acc+'%'],['Speed (chars/min)',String(Math.max(0,speed))],['Elapsed (s)',String(Math.round(elapsed*60))],['Progress',(total?Math.round(typed/total*100):0)+'%']]
+         ['Accuracy',acc+'%'],['Speed (chars/min)',String(Math.max(0,speed))],['Elapsed (s)',String(Math.round(elapsed*60))],['Progress',(expectedPinyin.length?Math.round(typedLetters/expectedPinyin.length*100):0)+'%']]
       : [['文本类型',__ptName()],['总字数',String(total)],['已输入',String(typed)],['错误数',String(err)],
-         ['正确率',acc+'%'],['速度(字/分)',String(Math.max(0,speed))],['用时(秒)',String(Math.round(elapsed*60))],['进度',(total?Math.round(typed/total*100):0)+'%']];
+         ['正确率',acc+'%'],['速度(字/分)',String(Math.max(0,speed))],['用时(秒)',String(Math.round(elapsed*60))],['进度',(expectedPinyin.length?Math.round(typedLetters/expectedPinyin.length*100):0)+'%']];
     rows.forEach(function(r){
       var tr=document.createElement('tr');
       [r[0],r[1]].forEach(function(v){var td=document.createElement('td');td.textContent=v;tr.appendChild(td);});

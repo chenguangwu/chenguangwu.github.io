@@ -155,6 +155,34 @@ const CASES = [
   "ref": "drug value=3 ⇒ DRUGS[3]=阿莫西林（索引序：对乙酰氨基酚0/布洛芬1/阿司匹林2/阿莫西林3），经肾排泄；肾功能重度下降（Ccr 15–29）⇒ 显著减量或延长间隔。默认药物为对乙酰氨基酚（肝脏）且 renalFunc 回落 normal ⇒ 两条均不命中。"
 },
 {
+  "slug": "medical/dosage-calculator",
+  "inputs": {
+    "weight": "70",
+    "height": "165",
+    "age": "28"
+  },
+  "clicks": ["document.getElementById('drug').value='5';onDrugChange();"],
+  "expect": [
+    "2686.8 mg",
+    "按体表面积（mg/m²）：1500 mg/m² × BSA 1.79 m²"
+  ],
+  "ref": "BSA 基准药物：头孢曲松（DRUGS[5]，成人 bsa=1500 mg/m²；childW=50 仅用于儿童）。复算：BSA=√(165×70÷3600)=1.79118 m²；单次=1.79118×1500=2686.773 → toFixed(1)=2686.8 mg。修复前按 weight 把 1500 当 mg/kg 乘 70 = 105000 mg。输入 70/165/28 均非默认（60/170/30），默认药物为对乙酰氨基酚 ⇒ 两条均不命中。"
+},
+{
+  "slug": "medical/dosage-calculator",
+  "inputs": {
+    "weight": "20",
+    "height": "118",
+    "age": "5"
+  },
+  "clicks": ["document.getElementById('drug').value='2';onDrugChange();"],
+  "expect": [
+    "儿童禁用：「阿司匹林」",
+    "未计算 剂量基准"
+  ],
+  "ref": "阿司匹林（DRUGS[2]）childW=0 且 childContra=true：5 岁（<14）⇒ basisFor 返回 contra ⇒ renderBlocked，结果区不输出数字剂量并显示儿童禁用/剂量基准未计算。修复前按成人 10 mg/kg×20 kg 输出 200.0 mg 且无结果区警示。注入 20/118/5 均非默认（60/170/30），失败态回落成人态 ⇒ 两条动态锚均不命中（「儿童禁用」原生字串在药物下拉与静态说明里恒存在，不能作锚）。"
+},
+{
   "slug": "medical/drug-info",
   "inputs": {
     "search": "zzzqx"

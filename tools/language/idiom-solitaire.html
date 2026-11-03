@@ -544,6 +544,39 @@ function pickRandomIdiom(){
   return IDIOM_DB[Math.floor(Math.random()*IDIOM_DB.length)];
 }
 
+// 判定回答是否合法：先查成语库，再按「同字 / 同音」规则比对首字。
+// 任一方缺拼音数据时退回汉字相同判定，避免 undefined === undefined 把错词判对。
+function judgeAnswer(val){
+  if(IDIOM_DB.indexOf(val) === -1){
+    return {ok:false, reason:'不是成语库中的成语'};
+  }
+  var firstCh = val.charAt(0);
+  if(gameMode === 'exact'){
+    return {ok: firstCh === currentChar, reason:'首字不匹配'};
+  }
+  var inputPy = PINYIN_MAP[firstCh];
+  var targetPy = PINYIN_MAP[currentChar];
+  if(inputPy && targetPy){
+    return {ok: inputPy === targetPy, reason:'首字读音不匹配'};
+  }
+  return {ok: firstCh === currentChar, reason:'首字不匹配（该字缺拼音数据，按汉字相同判定）'};
+}
+
+// 下一轮候选：同字 + 同音（同音部分去重），缺拼音时只按同字。
+function getNextCandidates(ch){
+  var candidates = getIdiomsByStartChar(ch);
+  if(gameMode === 'pinyin'){
+    var py = PINYIN_MAP[ch];
+    if(py){
+      var homophones = getIdiomsByStartPinyin(py);
+      for(var i=0;i<homophones.length;i++){
+        if(candidates.indexOf(homophones[i]) === -1) candidates.push(homophones[i]);
+      }
+    }
+  }
+  return candidates;
+}
+
 function startGame(){
   gameRunning = true;
   score = 0;
@@ -623,18 +656,9 @@ function submitIdiom(){
     ToolBox.showToast(i18nText('toast.msg797'), 'warning');
     return;
   }
-  var firstCh = val.charAt(0);
-  var valid = false;
-  if(gameMode === 'exact'){
-    valid = (firstCh === currentChar) && IDIOM_DB.indexOf(val) !== -1;
-  } else {
-    var inputPy = PINYIN_MAP[firstCh];
-    var targetPy = PINYIN_MAP[currentChar];
-    valid = (inputPy === targetPy) && IDIOM_DB.indexOf(val) !== -1;
-  }
-  if(!valid){
-    var reason = IDIOM_DB.indexOf(val) === -1 ? '不是成语库中的成语' : (gameMode==='exact' ? '首字不匹配' : '首字读音不匹配');
-    ToolBox.showToast('回答错误：'+reason, 'error');
+  var result = judgeAnswer(val);
+  if(!result.ok){
+    ToolBox.showToast('回答错误：'+result.reason, 'error');
     endGame();
     return;
   }
@@ -644,13 +668,7 @@ function submitIdiom(){
   addChainItem(val, 'user', chain.length);
   var nextChar = val.charAt(val.length-1);
   currentChar = nextChar;
-  var candidates;
-  if(gameMode === 'exact'){
-    candidates = getIdiomsByStartChar(nextChar);
-  } else {
-    var nextPy = PINYIN_MAP[nextChar];
-    candidates = nextPy ? getIdiomsByStartPinyin(nextPy) : [];
-  }
+  var candidates = getNextCandidates(nextChar);
   if(candidates.length === 0){
     ToolBox.showToast(i18nText('toast.msg537'), 'success');
     endGame();
@@ -668,13 +686,7 @@ function submitIdiom(){
 function skipIdiom(){
   if(!gameRunning) return;
   ToolBox.showToast(i18nText('toast.msg307'), 'info');
-  var candidates;
-  if(gameMode === 'exact'){
-    candidates = getIdiomsByStartChar(currentChar);
-  } else {
-    var py = PINYIN_MAP[currentChar];
-    candidates = py ? getIdiomsByStartPinyin(py) : [];
-  }
+  var candidates = getNextCandidates(currentChar);
   if(candidates.length === 0){
     ToolBox.showToast(i18nText('toast.msg537'), 'success');
     endGame();

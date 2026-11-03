@@ -247,18 +247,41 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
-let origImg = null, currentImg = null, lastURL = '';
+let origImg = null, currentImg = null, lastURL = '', lastBlob = null, lastObjectURL = '';
+function clearResult(){
+  lastURL = '';
+  lastBlob = null;
+  if(lastObjectURL){
+    try { URL.revokeObjectURL(lastObjectURL); } catch(e){}
+    lastObjectURL = '';
+  }
+}
 document.getElementById('fileInput').addEventListener('change', (e) => {
   const file = e.target.files[0];
   if(!file) return;
+  // 换图立即作废上一张的翻转结果，避免下载/复制仍指向旧图
+  clearResult();
+  origImg = null; currentImg = null;
   const reader = new FileReader();
   reader.onload = (ev) => {
     const img = new Image();
     img.onload = () => {
+      // 解码完成后再清一次，防止解码期间残留的旧结果
+      clearResult();
       origImg = img; currentImg = img;
       const __h0='<img src="'+ev.target.result+'" alt="原图">';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('preview').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('preview').innerHTML=__h0;
     };
+    img.onerror = () => {
+      clearResult();
+      origImg = null; currentImg = null;
+      document.getElementById('preview').innerHTML = '<p style="color:var(--danger)">⚠ 图片解码失败，请更换图片后重试。</p>';
+    };
     img.src = ev.target.result;
+  };
+  reader.onerror = () => {
+    clearResult();
+    origImg = null; currentImg = null;
+    document.getElementById('preview').innerHTML = '<p style="color:var(--danger)">⚠ 图片读取失败，请重新选择文件。</p>';
   };
   reader.readAsDataURL(file);
 });
@@ -277,16 +300,42 @@ function flip(mode){
   }
   ctx.drawImage(src, 0, 0);
   lastURL = canvas.toDataURL('image/png');
+  lastBlob = null;
+  if(lastObjectURL){
+    try { URL.revokeObjectURL(lastObjectURL); } catch(e){}
+    lastObjectURL = '';
+  }
+  // 优先保留 Blob 便于下载，异步回调只接受本次翻转的结果
+  const sourceURL = lastURL;
+  if(canvas.toBlob){
+    canvas.toBlob((blob) => {
+      if(blob && lastURL === sourceURL) lastBlob = blob;
+    }, 'image/png');
+  }
   const newImg = new Image();
   newImg.onload = () => { currentImg = newImg; };
   newImg.src = lastURL;
   const __h1='<img src="'+lastURL+'" alt="翻转后">';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('preview').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('preview').innerHTML=__h1;
 }
 function downloadImg(){
-  if(!lastURL){ alert('请先翻转'); return; }
+  if(!lastURL && !lastBlob){ alert('请先翻转'); return; }
   const a = document.createElement('a');
-  a.href = lastURL; a.download = 'flipped.png'; a.click();
+  if(lastBlob && typeof URL !== 'undefined' && URL.createObjectURL){
+    if(!lastObjectURL) lastObjectURL = URL.createObjectURL(lastBlob);
+    a.href = lastObjectURL;
+  } else {
+    a.href = lastURL;
+  }
+  a.download = 'flipped.png'; a.click();
 }
+window.__flipperState = function(){
+  return {
+    hasResult: !!(lastURL || lastBlob),
+    dataURL: lastURL,
+    href: lastObjectURL || lastURL,
+    source: (currentImg && currentImg.src) || (origImg && origImg.src) || ''
+  };
+};
 function copyResult(){
   if(!lastURL){ alert('无内容可复制'); return; }
   navigator.clipboard.writeText(lastURL).then(() => alert('已复制 Base64'));

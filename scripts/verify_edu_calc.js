@@ -685,6 +685,36 @@ const CASES = [
       "0个 100%\nabc123测试\n0\n没有找到匹配的单词"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"wordSearch\":\"abc123测试\",\"filterLevel\":\"0\"}，输出区含「0个 100%\nabc123测试\n0\n没有找到匹配的单词」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "edu/pinyin-typing-practice",
+    "clicks": [
+      "currentText='中国';resetTyping();window.__ptApplyInput('zhongguo');var st=window.__ptState();document.getElementById('ptTypeSel').value='PT1:'+(st.finished?1:0)+'|ACC='+document.getElementById('accuracy').textContent+'|ERR='+document.getElementById('errors').textContent+'|PROG='+document.getElementById('progress').textContent;"
+    ],
+    "expect": [
+      "PT1:1|ACC=100%|ERR=0|PROG=100%"
+    ],
+    "ref": "EL-J3 回归：真拼音判分。「中国」对应 zhong+guo（8 个字母），输入 zhongguo 应完成且 100%。旧实现逐字比对汉字，输入拼音只会计 1 个字符且不完成 ⇒ PT1 不可能为完成态。"
+  },
+  {
+    "slug": "edu/pinyin-typing-practice",
+    "clicks": [
+      "currentText='中国';resetTyping();window.__ptApplyInput('中国');var st=window.__ptState();document.getElementById('ptTypeSel').value='PT2:'+(st.finished?1:0)+'|ACC='+document.getElementById('accuracy').textContent+'|ERR='+document.getElementById('errors').textContent+'|PROG='+document.getElementById('progress').textContent;"
+    ],
+    "expect": [
+      "PT2:0|ACC=100%|ERR=0|PROG=0%"
+    ],
+    "ref": "EL-J3 反向锚：直接照抄汉字「中国」不应被当作拼音输入（归一化后 0 个字母、未完成、进度 0%），证明题目与答案不再是同一串。"
+  },
+  {
+    "slug": "edu/pinyin-typing-practice",
+    "clicks": [
+      "currentText='中国';resetTyping();window.__ptApplyInput('zhonggou');var st=window.__ptState();document.getElementById('ptTypeSel').value='PT3:'+(st.finished?1:0)+'|ACC='+document.getElementById('accuracy').textContent+'|ERR='+document.getElementById('errors').textContent+'|PROG='+document.getElementById('progress').textContent;"
+    ],
+    "expect": [
+      "PT3:1|ACC=50%|ERR=1|PROG=100%"
+    ],
+    "ref": "EL-J3 判分回归：zhonggou 把「guo」拼成「gou」，第 2 字判错 ⇒ 完成、正确率 50%、错误 1 个。旧实现按汉字比对，该输入既不完成也不产生此锚点。"
   }
 
 ];

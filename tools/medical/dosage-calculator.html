@@ -157,7 +157,7 @@ s.parentNode.insertBefore(el, s);
       按体重或体表面积（BSA）计算药物剂量，内置常用药物数据库。
     ">Dosage Calculator</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">按体表面积（BSA）给药计算<br>BSA(m²) = √(身高cm × 体重kg ÷ 3600)（Mosteller 公式）<br>体表面积法：单次剂量 = BSA × 单位剂量(mg/m²)<br>体重法：单次剂量 = 体重(kg) × 单位剂量(mg/kg)<br>日剂量 = 单次 × 给药频次(次/日)<br>超过药物最大日剂量时红色警告<br>儿童用药信息不足的药物提示查阅儿科专用资料</div>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">按体表面积（BSA）给药计算<br>BSA(m²) = √(身高cm × 体重kg ÷ 3600)（Mosteller 公式）<br>体表面积法：单次剂量 = BSA × 单位剂量(mg/m²)<br>体重法：单次剂量 = 体重(kg) × 单位剂量(mg/kg)<br>日剂量 = 单次 × 给药频次(次/日)<br><strong>给药基准以说明书为准：mg/m² 与 mg/kg 不可互相折算；BSA 基准药物自动按体表面积计算，不乘体重</strong><br>超过药物最大日剂量时红色警告<br>儿童无剂量资料或说明书禁用的药物不输出剂量，仅提示查阅儿科专用资料/遵医嘱</div>
       <p class="formula-desc" data-zh="核心计算公式（按输入变量）：√(h × w ÷ 3600)">Key formulas: √(h × w ÷ 3600)</p>
     </div>
 
@@ -189,10 +189,10 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row">
       <div>
         <label>年龄</label>
-        <input type="number" id="age" value="30" min="0" step="1" oninput="calc()" placeholder="如 30">
+        <input type="number" id="age" value="30" min="0" step="1" oninput="onAgeChange()" placeholder="如 30">
       </div>
       <div>
-        <label>每公斤/每平方米剂量</label>
+        <label>单位剂量（mg/kg 或 mg/m²）</label>
         <input type="number" id="perDose" value="10" min="0" step="0.1" oninput="calc()" placeholder="如 10">
       </div>
     </div>
@@ -252,7 +252,8 @@ s.parentNode.insertBefore(el, s);
       <strong>计算公式：</strong><br>
       按体重：单次剂量 = 体重(kg) × 每公斤剂量(mg/kg)<br>
       按体表面积 (Mosteller)：BSA = √(身高(cm) × 体重(kg) / 3600)<br>
-      按体表面积：单次剂量 = BSA(m²) × 每平方米剂量(mg/m²)
+      按体表面积：单次剂量 = BSA(m²) × 每平方米剂量(mg/m²)<br>
+      <strong>mg/kg 与 mg/m² 是两套独立给药基准，不得互换。</strong>
     </div>
 
     <h3 style="margin-top:20px;">药物数据库参考</h3>
@@ -350,7 +351,7 @@ ToolBox.initToolTheme();
 var DRUGS = [
   {name:'对乙酰氨基酚', en:'Acetaminophen', cat:'解热镇痛', adultW:10, childW:10, bsa:0, maxDay:4000, interval:'每 4-6 小时', note:'肝功能不全者慎用，避免与含对乙酰氨基酚复方药同服。'},
   {name:'布洛芬', en:'Ibuprofen', cat:'解热镇痛', adultW:5, childW:5, bsa:0, maxDay:2400, interval:'每 6-8 小时', note:'消化道溃疡慎用，餐后服用，孕妇晚期禁用。'},
-  {name:'阿司匹林', en:'Aspirin', cat:'解热镇痛/抗血小板', adultW:10, childW:0, bsa:0, maxDay:4000, interval:'每 4-6 小时', note:'儿童禁用（瑞氏综合征风险），抗血小板 75-100mg/日。'},
+  {name:'阿司匹林', en:'Aspirin', cat:'解热镇痛/抗血小板', adultW:10, childW:0, bsa:0, maxDay:4000, interval:'每 4-6 小时', childContra:true, note:'儿童禁用（瑞氏综合征风险），抗血小板 75-100mg/日。'},
   {name:'阿莫西林', en:'Amoxicillin', cat:'抗生素', adultW:50, childW:25, bsa:0, maxDay:3000, interval:'每 8 小时', note:'青霉素过敏者禁用，肾功能不全需调整剂量。'},
   {name:'头孢氨苄', en:'Cephalexin', cat:'抗生素', adultW:25, childW:25, bsa:0, maxDay:4000, interval:'每 6 小时', note:'青霉素交叉过敏约 5-10%，妊娠期 B 类。'},
   {name:'头孢曲松', en:'Ceftriaxone', cat:'抗生素', adultW:0, childW:50, bsa:1500, maxDay:4000, interval:'每日 1 次', note:'新生儿禁与含钙输液配伍，胆囊淤积风险。'},
@@ -387,6 +388,33 @@ function refWeightOf(age) {
   return { boy: lerp(W_REF_BOY), girl: lerp(W_REF_GIRL) };
 }
 
+// 给药基准：按药物说明书区分 mg/kg（体重）与 mg/m²（体表面积），禁止跨基准相乘
+function isChildAge(age){ return age < 14; }
+
+function basisFor(d, age){
+  if (isChildAge(age)) {
+    if (d.childContra && d.childW <= 0) return 'contra';
+    if (d.childW > 0) return 'weight';
+    if (d.bsa > 0) return 'bsa';
+    return 'none';
+  }
+  if (d.adultW > 0) return 'weight';
+  if (d.bsa > 0) return 'bsa';
+  return 'none';
+}
+
+function doseBasisText(d, child){
+  if (child) {
+    if (d.childW > 0) return '儿童 ' + d.childW + ' mg/kg（按体重）';
+    if (d.childContra) return '儿童禁用';
+    if (d.bsa > 0) return '儿童 ' + d.bsa + ' mg/m²（按体表面积）';
+    return '儿童无剂量资料';
+  }
+  if (d.adultW > 0) return '成人 ' + d.adultW + ' mg/kg（按体重）';
+  if (d.bsa > 0) return '成人 ' + d.bsa + ' mg/m²（按体表面积）';
+  return '成人无剂量资料';
+}
+
 function updatePedWeightHint() {
   var el = document.getElementById('pedWeightBox');
   if (!el) return;
@@ -410,31 +438,58 @@ function init(){
   DRUGS.forEach(function(d){
     var tr = document.createElement('tr');
     const __g2='<td>'+d.name+'</td><td>'+d.cat+'</td>'+
-      '<td>'+(d.adultW?'成人 '+d.adultW+' mg/kg; ':'')+(d.childW?'儿童 '+d.childW+' mg/kg; ':'')+(d.bsa?'BSA '+d.bsa+' mg/m²':'')+'</td>'+
+      '<td>'+doseBasisText(d, false)+'；'+doseBasisText(d, true)+'</td>'+
       '<td>'+(d.maxDay?d.maxDay+' mg':'—')+'</td>';tr.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
     tbl.appendChild(tr);
   });
   onDrugChange();
 }
 
+function onAgeChange(){
+  // 年龄跨过儿科界值时同步刷新单位剂量与给药基准，避免沿用成人 mg/kg 剂量
+  onDrugChange();
+}
+
 function onDrugChange(){
   var i = +document.getElementById('drug').value;
   var d = DRUGS[i];
-  var isChild = +document.getElementById('age').value < 14;
-  var perDose = isChild && d.childW ? d.childW : (d.adultW || d.bsa);
+  var age = +document.getElementById('age').value;
+  var isChild = isChildAge(age);
+  var basis = basisFor(d, age);
+  // 单位剂量严格取当前年龄组对应的基准值，禁止 mg/m² 与 mg/kg 互相回退
+  var perDose = 0;
+  if (basis === 'weight') perDose = isChild ? d.childW : d.adultW;
+  else if (basis === 'bsa') perDose = d.bsa;
   document.getElementById('perDose').value = perDose;
-  // 自动切换计算方式
-  if(d.bsa && !d.adultW && !d.childW){
-    document.getElementById('method').value = 'bsa';
-  } else {
-    document.getElementById('method').value = 'weight';
-  }
+  // 自动切换到该药说明书的给药基准
+  document.getElementById('method').value = (basis === 'bsa') ? 'bsa' : 'weight';
   // 显示药物说明
   const __g3='<strong>'+d.name+'</strong>（'+d.en+'）— '+d.cat+'<br>'+
     '<strong>给药间隔：</strong>'+d.interval+'<br>'+
+    '<strong>给药基准：</strong>'+doseBasisText(d, isChild)+'<br>'+
     '<strong>最大日剂量：</strong>'+(d.maxDay?d.maxDay+' mg':'—')+'<br>'+
     '<div class="warn-line">⚠ '+d.note+'</div>';document.getElementById('drugInfo').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
   calc();
+}
+
+// 无可用剂量（儿童禁用 / 无儿科资料）时不输出数字剂量，仅给出明确警示，避免误用成人剂量
+function renderBlocked(d, age, kind){
+  updatePedWeightHint();
+  var html = '<div class="stat-grid">';
+  html += '<div class="stat-card"><div class="val">—</div><div class="lbl">单次剂量</div></div>';
+  html += '<div class="stat-card"><div class="val">—</div><div class="lbl">日剂量</div></div>';
+  html += '<div class="stat-card"><div class="val">未计算</div><div class="lbl">剂量基准</div></div>';
+  html += '</div>';
+  html += '<div class="step-line">药物：'+d.name+'（'+d.en+'）</div>';
+  if (kind === 'contra') {
+    html += '<div class="warn-line" style="font-size:14px;">⚠ 儿童禁用：「'+d.name+'」在儿童（尤其 14 岁以下）使用存在瑞氏综合征风险，本工具不提供儿童剂量，禁止沿用成人 mg/kg 剂量。</div>';
+    html += '<div class="step-line">如确有特殊指征（如川崎病等），须由儿科/专科医师评估并遵医嘱，不可按本页成人剂量给药。</div>';
+  } else {
+    html += '<div class="warn-line" style="font-size:14px;">⚠ 未收录该年龄组（'+age+' 岁）剂量：「'+d.name+'」缺少可用剂量数据，本工具不输出剂量，禁止按成人剂量给药。</div>';
+    html += '<div class="step-line">请查阅儿科专用资料或咨询临床药师/医师。</div>';
+  }
+  html += '<div class="step-line" style="color:var(--text-muted);">剂量基准：'+doseBasisText(d, isChildAge(age))+'</div>';
+  document.getElementById('result').innerHTML = html;
 }
 
 function calc(){
@@ -449,6 +504,19 @@ function calc(){
   var freq = +document.getElementById('freq').value;
 
   if(!w || w <= 0){ ToolBox.showToast(i18nText(),'error'); return; }
+
+  // 先判定该药在当前年龄组的给药基准：儿童禁用/无资料直接拦截，不输出任何数字剂量
+  var reqBasis = basisFor(d, age);
+  if(reqBasis === 'contra' || reqBasis === 'none'){
+    renderBlocked(d, age, reqBasis);
+    return;
+  }
+  var basisNote = '';
+  if(reqBasis === 'bsa' && method !== 'bsa'){
+    method = 'bsa';
+    document.getElementById('method').value = 'bsa';
+    basisNote = '<div class="warn-line">ℹ 该药按 mg/m² 给药，已自动切换为体表面积法，避免把 mg/m² 当作 mg/kg 乘体重。</div>';
+  }
   if(method === 'bsa' && (!h || h <= 0)){ ToolBox.showToast(i18nText(),'error'); return; }
   if(perDose <= 0){ ToolBox.showToast(i18nText(),'error'); return; }
 
@@ -468,12 +536,6 @@ function calc(){
     maxWarn = '<div class="warn-line">⚠ 计算日剂量 '+dailyDose.toFixed(0)+' mg 已超过该药物最大日剂量 '+d.maxDay+' mg，请核实！</div>';
   }
 
-  // 儿童警告
-  var childWarn = '';
-  if(age < 14 && d.childW === 0 && d.adultW === 0){
-    childWarn = '<div class="warn-line">⚠ 该药物儿童用药信息不足，需查阅儿科专用资料。</div>';
-  }
-
   var html = '';
   html += '<div class="stat-grid">';
   if(bsa > 0){
@@ -485,9 +547,12 @@ function calc(){
   html += '</div>';
 
   html += '<div class="step-line">药物：'+d.name+'（'+d.en+'）</div>';
+  html += '<div class="step-line">剂量口径：'+(method === 'bsa'
+    ? '按体表面积（mg/m²）：'+perDose+' mg/m² × BSA '+bsa.toFixed(2)+' m²（Mosteller 公式，来源：说明书 mg/m² 基准）'
+    : '按体重（mg/kg）：'+perDose+' mg/kg × '+w+' kg（来源：说明书 mg/kg 基准）')+'</div>';
   html += '<div class="step-line">单次剂量：'+singleDose.toFixed(2)+' mg，每 '+(24/freq)+' 小时一次</div>';
   html += '<div class="step-line">日剂量：'+dailyDose.toFixed(2)+' mg' + (d.maxDay?'（最大 '+d.maxDay+' mg）':'')+'</div>';
-  html += maxWarn + childWarn;
+  html += basisNote + maxWarn;
 
   // —— 儿童参考体重核对（WHO 生长标准 P50）——
   if (age > 0 && age <= 18 && w > 0) {
@@ -535,9 +600,19 @@ function copyResult(){
   var d = DRUGS[i];
   var w = +document.getElementById('weight').value;
   var h = +document.getElementById('height').value;
+  var age = +document.getElementById('age').value;
   var method = document.getElementById('method').value;
   var perDose = +document.getElementById('perDose').value;
   var freq = +document.getElementById('freq').value;
+  var reqBasis = basisFor(d, age);
+  if(reqBasis === 'contra' || reqBasis === 'none'){
+    var warn = reqBasis === 'contra'
+      ? '⚠ 儿童禁用：本工具不提供儿童剂量，禁止沿用成人剂量；如确有特殊指征须由儿科/专科医师评估并遵医嘱。'
+      : '⚠ 未收录该年龄组剂量：本工具不输出剂量，请查阅儿科专用资料或咨询临床药师/医师。';
+    ToolBox.copyText('药物剂量计算\n药物：'+d.name+'（'+d.en+'）\n'+warn, i18nText());
+    return;
+  }
+  if(reqBasis === 'bsa' && method !== 'bsa'){ method = 'bsa'; }
   var singleDose, dailyDose, bsa = 0;
   if(method === 'weight'){
     singleDose = w * perDose;
@@ -546,9 +621,13 @@ function copyResult(){
     singleDose = bsa * perDose;
   }
   dailyDose = singleDose * freq;
+  var basisLine = method === 'bsa'
+    ? '剂量口径：按体表面积 mg/m² × BSA '+bsa.toFixed(2)+' m²（Mosteller 公式）'
+    : '剂量口径：按体重 mg/kg × '+w+' kg';
   var text = '药物剂量计算\n药物：'+d.name+'（'+d.en+'）\n'+
     '体重：'+w+' kg，身高：'+h+' cm\n'+
     (bsa?'BSA：'+bsa.toFixed(2)+' m²\n':'')+
+    basisLine+'\n'+
     '单次剂量：'+singleDose.toFixed(2)+' mg\n日剂量：'+dailyDose.toFixed(2)+' mg\n给药频次：'+freq+' 次/日';
   ToolBox.copyText(text, i18nText());
 }
