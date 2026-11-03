@@ -130,7 +130,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="计算 CEA / AFP 等肿瘤标志物倍增时间(DT)与半衰期，评估病情进展">Tumor Marker Doubling</p>
     <div class="formula-box">
       <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">倍增时间(上升) DT = Δt × ln(2) ÷ ln(V₂/V₁)   （Δt=两次检测间隔天数）下降半衰期(下降) t½ = Δt × ln(2) ÷ ln(V₁/V₂)升高倍数 = V₂ ÷ V₁；超上限倍数 = V₂ ÷ 参考上限DT判读：&lt; 30天极快(高侵袭)、&lt; 90较快、&lt; 180中等、≥ 180缓慢t½ 对照生理半衰期(CEA/AFP≈5天，余≈4天)：&lt; 1.5倍清除快、&lt; 3倍正常、≥ 3倍清除慢(治疗抵抗)</div>
-      <p class="formula-desc" data-zh="核心计算公式（按输入变量）：dt × Math.log(2) ÷ Math.log(ratio)；dt × Math.log(2) ÷ Math.log(v1÷v2)；|(t2-t1)|÷(1000×60×60×24)">Key formulas: dt × Math.log(2) ÷ Math.log(ratio); dt × Math.log(2) ÷ Math.log(v1÷v2); |(t2-t1)|÷(1000×60×60×24)</p>
+      <p class="formula-desc" data-zh="核心计算公式（按输入变量）：dt × Math.log(2) ÷ Math.log(ratio)；dt × Math.log(2) ÷ Math.log(v1÷v2)；(t2-t1)÷(1000×60×60×24)（要求第二次日期不早于第一次）">Key formulas: dt × Math.log(2) ÷ Math.log(ratio); dt × Math.log(2) ÷ Math.log(v1÷v2); (t2-t1)÷(1000×60×60×24) (second date must not be earlier than the first)</p>
     </div>
 
     <div class="input-row">
@@ -271,22 +271,45 @@ function setRef(){
 function calc(){
   var v1=parseFloat(document.getElementById('v1').value);
   var v2=parseFloat(document.getElementById('v2').value);
-  var days=parseFloat(document.getElementById('days').value);
+  var daysRaw=String(document.getElementById('days').value==null?'':document.getElementById('days').value).trim();
+  var daysVal=daysRaw===''?NaN:parseFloat(daysRaw);
   var d1=document.getElementById('d1').value;
   var d2=document.getElementById('d2').value;
   var ref=parseFloat(document.getElementById('refUpper').value)||5;
   var m=document.getElementById('marker').value;
 
+  // 任何分支先清空上一次的判读标尺，避免无效/下降/等值分支残留旧刻度
+  var __refBox=document.getElementById('tumor_doublingRefBar');
+  if(__refBox) __refBox.innerHTML='';
+
   if(!v1||!v2||v1<=0||v2<=0){ document.getElementById('result').innerHTML='<div class="result-box">请输入有效数值</div>'; return; }
 
-  // calculate interval
-  var dt;
-  if(!isNaN(days) && days>0){
-    dt = days;
+  // calculate interval（日期差用有符号差，仅接受 t2>t1）
+  var dt, bothInputs=false;
+  if(daysRaw!==''){
+    if(!isFinite(daysVal)||daysVal<=0){
+      document.getElementById('result').innerHTML='<div class="result-box">间隔天数需为正数（当前输入「'+daysRaw+'」无法计算倍增时间）；如需按日期计算，请清空「间隔天数」。</div>';
+      return;
+    }
+    dt = daysVal;
+    bothInputs = !!(d1 && d2);
   } else if(d1 && d2){
     var t1 = new Date(d1).getTime();
     var t2 = new Date(d2).getTime();
-    dt = Math.abs(t2-t1)/(1000*60*60*24);
+    if(!isFinite(t1) || !isFinite(t2)){
+      document.getElementById('result').innerHTML='<div class="result-box">检测日期无效，请重新选择日期，或改用「间隔天数」输入。</div>';
+      return;
+    }
+    var diff = t2-t1;
+    if(diff===0){
+      document.getElementById('result').innerHTML='<div class="result-box">两次检测日期相同（间隔 0 天），无法计算倍增时间或半衰期。请确认日期，或改用「间隔天数」输入。</div>';
+      return;
+    }
+    if(diff<0){
+      document.getElementById('result').innerHTML='<div class="result-box">第二次检测日期早于第一次（日期顺序相反），无法计算。请按时间先后填写日期，或改用「间隔天数」输入。</div>';
+      return;
+    }
+    dt = diff/(1000*60*60*24);
   } else {
     document.getElementById('result').innerHTML='<div class="result-box">请输入间隔天数或两次检测日期</div>'; return;
   }
@@ -294,8 +317,43 @@ function calc(){
   var ratio = v2/v1;
   var rising = v2>v1;
   var html = '<h3 style="margin-bottom:8px;">计算结果</h3>';
+  if(bothInputs) html += '<p style="font-size:12px;color:var(--text-muted);">已按填写的间隔天数计算（'+dt+' 天），两次检测日期不参与本次计算。</p>';
 
-  if(rising){
+  if(!rising && v2!==v1){
+    // Half-life (decline)
+    var hl = dt * Math.log(2) / Math.log(v1/v2);
+    var hlStatus, hlColor;
+    // compare to expected biological half-life (rough)
+    var expectedHL = m==='cea'?5 : m==='afp'?5 : 4;
+    if(hl<expectedHL*1.5){ hlStatus='清除加快(治疗有效)'; hlColor='#059669'; }
+    else if(hl<expectedHL*3){ hlStatus='清除正常(治疗反应良好)'; hlColor='#3b82f6'; }
+    else { hlStatus='清除缓慢(治疗反应不佳/残留)'; hlColor='#dc2626'; }
+
+    html += '<div class="marker-card"><div style="font-size:13px;color:var(--text-muted);">下降半衰期(t½)</div><div class="big trend-down">'+hl.toFixed(1)+' 天</div><div style="color:'+hlColor+';font-weight:600;">'+hlStatus+'</div></div>';
+    html += '<div class="stat-grid">';
+    html += '<div class="stat-card"><div class="val">'+((1-ratio)*100).toFixed(0)+'%</div><div class="lbl">下降幅度</div></div>';
+    html += '<div class="stat-card"><div class="val">'+dt+'天</div><div class="lbl">间隔天数</div></div>';
+    html += '<div class="stat-card"><div class="val">'+(v2<=ref?'是':'否')+'</div><div class="lbl">已降至正常</div></div>';
+    html += '</div>';
+    html += '<div class="result-box"><p>标志物从 <strong>'+v1+'</strong> 降至 <strong>'+v2+'</strong>，间隔 <strong>'+dt+'天</strong>。</p>';
+    html += '<p>半衰期 <strong style="color:'+hlColor+';">'+hl.toFixed(1)+'天</strong>（该标志物生理半衰期约'+expectedHL+'天）。</p>';
+    if(hl<expectedHL*1.5) html += '<p style="color:var(--success);">清除速率快于生理半衰期，提示治疗有效，肿瘤负荷快速下降。</p>';
+    else if(hl>expectedHL*3) html += '<p style="color:var(--danger);">清除缓慢，可能存在残留病灶或治疗抵抗，需评估调整方案。</p>';
+    else html += '<p>清除速率接近生理半衰期，治疗反应在预期范围。</p>';
+    html += '</div>';
+  } else if(v2===v1){
+    // 两次数值相同：不得进入下降半衰期（否则 ln(1)=0 → 无穷大）
+    html += '<div class="marker-card"><div style="font-size:13px;color:var(--text-muted);">变化</div><div class="big" style="color:var(--text-muted);">无变化</div><div style="font-weight:600;color:var(--text-muted);">两次检测数值相同</div></div>';
+    html += '<div class="stat-grid">';
+    html += '<div class="stat-card"><div class="val">'+ratio.toFixed(2)+'×</div><div class="lbl">升高倍数</div></div>';
+    html += '<div class="stat-card"><div class="val">'+dt+'天</div><div class="lbl">间隔天数</div></div>';
+    html += '<div class="stat-card"><div class="val">'+((v2/ref).toFixed(1))+'×</div><div class="lbl">超上限倍数</div></div>';
+    html += '</div>';
+    html += '<div class="result-box"><p>两次检测数值相同（<strong>'+v1+'</strong>），间隔 <strong>'+dt+'天</strong>，未见升降变化，无法计算倍增时间或下降半衰期。</p>';
+    if(v2>ref) html += '<p style="color:#f59e0b;">数值仍高于参考上限，建议继续按既定周期复查并结合影像评估。</p>';
+    else html += '<p>建议按既定随访周期继续复查，观察趋势变化。</p>';
+    html += '</div>';
+  } else {
     // Doubling time
     var dt_val = dt * Math.log(2) / Math.log(ratio);
     var dtStatus, dtColor;
@@ -328,28 +386,6 @@ function calc(){
     if(v1>ref && dt_val<90) html += '<p style="color:var(--danger);">标志物已超参考上限且倍增迅速，提示病情活动或进展，建议尽快影像学评估和专科就诊。</p>';
     else if(v1<=ref && v2>ref) html += '<p style="color:#f59e0b;">标志物由正常升至异常，需警惕，建议复查并结合影像检查。</p>';
     else html += '<p>标志物在参考范围内波动或轻度升高，建议动态随访观察趋势。</p>';
-    html += '</div>';
-  } else {
-    // Half-life (decline)
-    var hl = dt * Math.log(2) / Math.log(v1/v2);
-    var hlStatus, hlColor;
-    // compare to expected biological half-life (rough)
-    var expectedHL = m==='cea'?5 : m==='afp'?5 : 4;
-    if(hl<expectedHL*1.5){ hlStatus='清除加快(治疗有效)'; hlColor='#059669'; }
-    else if(hl<expectedHL*3){ hlStatus='清除正常(治疗反应良好)'; hlColor='#3b82f6'; }
-    else { hlStatus='清除缓慢(治疗反应不佳/残留)'; hlColor='#dc2626'; }
-
-    html += '<div class="marker-card"><div style="font-size:13px;color:var(--text-muted);">下降半衰期(t½)</div><div class="big trend-down">'+hl.toFixed(1)+' 天</div><div style="color:'+hlColor+';font-weight:600;">'+hlStatus+'</div></div>';
-    html += '<div class="stat-grid">';
-    html += '<div class="stat-card"><div class="val">'+((1-ratio)*100).toFixed(0)+'%</div><div class="lbl">下降幅度</div></div>';
-    html += '<div class="stat-card"><div class="val">'+dt+'天</div><div class="lbl">间隔天数</div></div>';
-    html += '<div class="stat-card"><div class="val">'+(v2<=ref?'是':'否')+'</div><div class="lbl">已降至正常</div></div>';
-    html += '</div>';
-    html += '<div class="result-box"><p>标志物从 <strong>'+v1+'</strong> 降至 <strong>'+v2+'</strong>，间隔 <strong>'+dt+'天</strong>。</p>';
-    html += '<p>半衰期 <strong style="color:'+hlColor+';">'+hl.toFixed(1)+'天</strong>（该标志物生理半衰期约'+expectedHL+'天）。</p>';
-    if(hl<expectedHL*1.5) html += '<p style="color:var(--success);">清除速率快于生理半衰期，提示治疗有效，肿瘤负荷快速下降。</p>';
-    else if(hl>expectedHL*3) html += '<p style="color:var(--danger);">清除缓慢，可能存在残留病灶或治疗抵抗，需评估调整方案。</p>';
-    else html += '<p>清除速率接近生理半衰期，治疗反应在预期范围。</p>';
     html += '</div>';
   }
 

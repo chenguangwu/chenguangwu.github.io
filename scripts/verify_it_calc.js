@@ -6832,6 +6832,60 @@ const CASES = [
       "level: info\n4\n✅ YAML 语法验证通过！结构合法。"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"yaml-input\":\"1\\n2\\n3\",\"json-input\":\"1\\n2\\n3\",\"indent\":\"4\"}，输出区含「h-CN\" } }\n4\n❌ undefined\n✅ YAML 语法验证通过！结构…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。G06-S1 首屏自跑改变了元素创建序 ⇒ blob 字段序随之改变，expect 容忍新旧两种字段序；判别力不变。"
+  },
+  {
+    slug: "it/url-parser",
+    inputs: { urlInput: "https://x.test/p?q=<img src=x onerror=alert(1)>&tag=%3Cb%3E" },
+    expect: ["q &lt;img src=x onerror=alert(1)&gt;"],
+    ref: "IT-N12 转义：查询值经 URLSearchParams 解码为 <img src=x onerror=alert(1)>，渲染前必须转义成 &lt;img … &gt;；未转义时该串被当作标签剥掉、expect 不命中。默认示例查询值为 value/bar，同样不命中。",
+  },
+  {
+    slug: "it/url-parser",
+    inputs: { urlInput: "https://x.test/p?dup=alpha&dup=beta" },
+    expect: ["dup alpha 复制 dup beta 复制"],
+    ref: "IT-N12 重复参数：getAll 口径保留两条 dup 并逐行展示；旧实现 forEach 写同名键只剩 beta（alpha 行不存在）。默认示例无重复键。",
+  },
+  {
+    slug: "it/url-parser",
+    inputs: { urlInput: "https://x.test/p?q=a'b" },
+    expect: ["a&#39;b"],
+    ref: "IT-N12 引号：参数值含单引号时统一转义为 &#39;，不再拼进 onclick 属性（复制按钮改事件委托）；默认示例值不含引号。",
+  },
+  {
+    slug: "it/curl-parser",
+    inputs: { cmd: "curl -d '{\"a\":1}' https://api.example.com/x" },
+    expect: ["方法： POST URL： https://api.example.com/x"],
+    ref: "IT-N14 默认 POST：无 -X 而带 -d 时 curl 实际以 POST 发送，旧实现固定输出 GET。默认示例显式 -X POST 且指向另一域名，不命中。",
+  },
+  {
+    slug: "it/curl-parser",
+    inputs: { cmd: "curl -F 'file=@a.txt' --data-binary @b.json https://x.com/upload" },
+    expect: ["URL： https://x.com/upload"],
+    ref: "IT-N14 选项值映射：-F 与 --data-binary 各消费其后一个值，真实 URL 不再被 file=@a.txt 顶替。默认示例 URL 为 example.com/api/v1/pay。",
+  },
+  {
+    slug: "it/curl-parser",
+    inputs: { cmd: "curl -F 'file=@a.txt' https://x.com/upload" },
+    expect: ["Form： file=@a.txt"],
+    ref: "IT-N14 表单字段：-F 的值单独收集并以 Form 段展示（旧实现无 Form 段、反而把它当 URL）。默认示例无 -F。",
+  },
+  {
+    slug: "it/curl-parser",
+    inputs: { cmd: "curl -H 'X-Test: <img src=x onerror=alert(1)>' https://x.com/" },
+    expect: ["X-Test: &lt;img src=x onerror=alert(1)&gt;"],
+    ref: "IT-N14 头部转义：头部值原样进 innerHTML 会被当作标签执行；转义后 &lt;img … &gt; 作为文本保留。默认示例头部为 Content-Type，不含尖括号。",
+  },
+  {
+    slug: "it/curl-parser",
+    inputs: { cmd: "curl -o out.txt -u user:pass https://x.com/api" },
+    expect: ["URL： https://x.com/api"],
+    ref: "IT-N14 选项值不误判：-o/-u 的值（out.txt、user:pass）均被成对消费，首个非选项词仍是真实 URL；旧实现把 out.txt 当 URL。默认示例 URL 不同。",
+  },
+  {
+    slug: "it/curl-parser",
+    inputs: { cmd: "curl -X PUT -d 'x' https://x.com/api" },
+    expect: ["方法： PUT URL： https://x.com/api"],
+    ref: "IT-N14 显式方法优先：有 -X PUT 时即使带 -d 也不能被默认 POST 覆盖。默认示例为 POST + 另一域名。",
   }
 
 ];

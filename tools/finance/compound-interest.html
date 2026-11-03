@@ -191,11 +191,12 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row">
       <div>
         <label>投资年限</label>
-        <input type="number" id="years" value="20" oninput="calc()" step="any" placeholder="如 20">
+        <input type="number" id="years" value="20" oninput="calc()" step="any" max="1000" placeholder="如 20">
       </div>
       <div>
         <label>每年定投（元）</label>
-        <input type="number" id="annual" value="12000" oninput="calc()" step="any" placeholder="如 12000">
+        <input type="number" id="annual" value="12000" oninput="calc()" step="any" min="0" placeholder="如 12000，留空表示不定投">
+        <div class="field-error" id="annualError" style="display:none;"></div>
       </div>
     </div>
 
@@ -237,6 +238,7 @@ s.parentNode.insertBefore(el, s);
         <div class="lbl">收益率</div>
       </div>
     </div>
+    <div id="calcNotice" style="font-size:12.5px;color:var(--text-muted);margin-top:10px;line-height:1.7;"></div>
 
     <div class="toolbar" style="margin-top:12px;">
       <div id="compound_interestPresets"></div><button type="button" class="btn primary" onclick="calc()">重新计算</button><button class="btn" type="button" onclick="__compound_interestExport()">导出明细 CSV</button>
@@ -417,10 +419,35 @@ function fmtShort(n) {
 function calc() {
   const P = parseFloat(document.getElementById('principal').value) || 0;
   const r = parseFloat(document.getElementById('rate').value) || 0;
-  const t = Math.min(parseFloat(document.getElementById('years').value) || 0, 1000);
-  const annual = parseFloat(document.getElementById('annual').value) || 0;
+  const YEARS_CAP = 1000;
+  const yearsInput = parseFloat(document.getElementById('years').value) || 0;
+  const capped = yearsInput > YEARS_CAP;
+  const t = capped ? YEARS_CAP : yearsInput;
   const n = parseInt(document.getElementById('freq').value, 10);
   const investTime = document.getElementById('investTime').value;
+  const annualEl = document.getElementById('annual');
+  const annualErrEl = document.getElementById('annualError');
+  const noticeEl = document.getElementById('calcNotice');
+
+  // 定投金额：允许留空（视为 0），但禁止负数 —— 负定投会逐年扣减余额，与「定投」语义相反
+  let annual = 0;
+  let annualError = '';
+  const annualRaw = String(annualEl.value).trim();
+  if (annualRaw !== '') {
+    const av = parseFloat(annualRaw);
+    if (!isFinite(av)) annualError = '定投金额格式无效，请填写数字或留空。';
+    else if (av < 0) annualError = '定投金额不能为负数（留空表示不定投）。';
+    else annual = av;
+  }
+  if (annualError) {
+    annualErrEl.textContent = annualError;
+    annualErrEl.style.display = 'flex';
+    resetDisplay();
+    noticeEl.textContent = '⚠️ ' + annualError + ' 已停止计算。';
+    return;
+  }
+  annualErrEl.textContent = '';
+  annualErrEl.style.display = 'none';
 
   if (P < 0 || r < 0 || t <= 0) {
     resetDisplay();
@@ -491,6 +518,13 @@ function calc() {
   } else {
     document.getElementById('rule72').textContent = '';
   }
+
+  // 结果区标注计算口径；年限越上限时明确提示实际使用年数
+  let noticeText = '计算口径：按 ' + n + ' 次/年复利计息，定投' + (investTime === 'start' ? '期初' : '期末') + '投入，实际使用 ' + t + ' 年。';
+  if (capped) {
+    noticeText = '⚠️ 投资年限输入 ' + yearsInput + ' 年超过 ' + YEARS_CAP + ' 年上限，已按 ' + YEARS_CAP + ' 年上限计算（实际使用 ' + t + ' 年）。' + noticeText;
+  }
+  noticeEl.textContent = noticeText;
 
   const tbody = document.getElementById('yearTableBody');
   const __g7=yearData.map(d => `
@@ -616,6 +650,7 @@ function resetDisplay() {
     document.getElementById(id).textContent = '--';
   });
   document.getElementById('rule72').textContent = '';
+  document.getElementById('calcNotice').textContent = '';
   document.getElementById('yearTableBody').innerHTML='';
   yearData = [];
 }
@@ -852,7 +887,7 @@ else document.addEventListener('DOMContentLoaded', __compound_interestBoot);
     return {
       P: __finNum('principal'),
       r: __finNum('rate'),      // 年化 %
-      t: __finNum('years'),
+      t: Math.min(__finNum('years'), 1000),
       annual: __finNum('annual') || 0
     };
   }

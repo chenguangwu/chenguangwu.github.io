@@ -139,6 +139,7 @@ s.parentNode.insertBefore(el, s);
         <input type="number" id="ngcCols" min="1" max="6" value="3" style="width:64px;" onchange="__ngcSetGrid()" placeholder="如 3（1–6）">
       </div>
       <div id="ngcInfo" style="font-size:12px;color:var(--text-muted);margin-top:8px;"></div>
+      <div id="ngcWarn" role="alert" style="font-size:12px;color:var(--danger);margin-top:6px;"></div>
       <div id="ngcPresets" style="margin:10px 0;"></div>
       <div id="ngcRefTbl" style="margin-top:12px;"></div>
     </div>
@@ -147,6 +148,7 @@ s.parentNode.insertBefore(el, s);
       <button class="btn primary" onclick="splitAndRender()">生成切片</button>
       <button class="btn" onclick="downloadAll()">全部下载</button>
     </div>
+    <div id="ngcStatus" style="font-size:12px;color:var(--text-muted);margin-top:8px;"></div>
 
     <div id="grid" class="grid"></div>
   </div>
@@ -247,13 +249,44 @@ let ngcRows = 3, ngcCols = 3;
 // ---- 切图增强：预设 / 自定义行列 / 切割信息 / EN ----
 function __ngcEn(){ try{ return (typeof TBKit!=='undefined' && TBKit.util.isEn()); }catch(e){ return false; } }
 function __ngcT(zh,en){ return __ngcEn()?en:zh; }
-function __ngcClamp(v){ v = parseInt(v) || 1; return Math.max(1, Math.min(6, v)); }
+
+function __ngcSetWarn(text){
+  var box = document.getElementById('ngcWarn');
+  if (box) box.textContent = text || '';
+}
+
+function __ngcSetStatus(text){
+  var box = document.getElementById('ngcStatus');
+  if (box) box.textContent = text || '';
+}
+
+// 校验行列输入：越界/空值不再静默截断，返回上次合法值并生成提示。
+function __ngcValidate(raw, prev, zhName, enName){
+  var s = String(raw == null ? '' : raw).trim();
+  var n = Number(s);
+  if (!s || !isFinite(n) || Math.floor(n) !== n || n < 1 || n > 6){
+    var shown = s || __ngcT('（空）', '(empty)');
+    return {
+      value: prev,
+      msg: __ngcT(
+        zhName + ' ' + shown + ' 超出范围（1–6），已恢复上次合法值 ' + prev + '。',
+        enName + ' ' + shown + ' is out of range (1–6); restored the last valid value ' + prev + '.'
+      )
+    };
+  }
+  return { value: n, msg: '' };
+}
 
 window.__ngcSetGrid = function(){
-  ngcRows = __ngcClamp(document.getElementById('ngcRows').value);
-  ngcCols = __ngcClamp(document.getElementById('ngcCols').value);
-  document.getElementById('ngcRows').value = ngcRows;
-  document.getElementById('ngcCols').value = ngcCols;
+  var rEl = document.getElementById('ngcRows');
+  var cEl = document.getElementById('ngcCols');
+  var r = __ngcValidate(rEl.value, ngcRows, '行数', 'Rows');
+  var c = __ngcValidate(cEl.value, ngcCols, '列数', 'Columns');
+  ngcRows = r.value;
+  ngcCols = c.value;
+  rEl.value = ngcRows;
+  cEl.value = ngcCols;
+  __ngcSetWarn([r.msg, c.msg].filter(Boolean).join(' '));
   splitAndRender();
 };
 
@@ -265,6 +298,7 @@ window.__ngcPreset = function(kind){
   ngcCols = g[1];
   document.getElementById('ngcRows').value = ngcRows;
   document.getElementById('ngcCols').value = ngcCols;
+  __ngcSetWarn('');
   splitAndRender();
 };
 
@@ -291,6 +325,8 @@ function __ngcRenderInfo(){
 function __ngcRefreshTexts(){
   var btns = document.querySelectorAll('#grid button[data-idx]');
   btns.forEach(function(b){ b.textContent = __ngcPieceLabel(b.getAttribute('data-idx')); });
+  __ngcSetWarn('');
+  __ngcSetStatus('');
   __ngcRenderInfo();
 }
 
@@ -365,18 +401,63 @@ function downloadOne(canvas, idx) {
   }, 'image/png');
 }
 
-async function downloadAll() {
-  if (!blobs.length) return;
-  const list = await Promise.all(blobs);
-  list.forEach((b, i) => {
-    if (!b) return;
-    const url = URL.createObjectURL(b);
-    const a = document.createElement('a');
+function __ngcSleep(ms){
+  return new Promise(function(resolve){ setTimeout(resolve, ms); });
+}
+
+function __ngcSaveBlob(blob, name){
+  try {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
     a.href = url;
-    a.download = 'grid-' + (i + 1) + '.png';
-    a.click();
-    URL.revokeObjectURL(url);
-  });
+    a.download = name;
+    try { a.click(); } catch(e){}
+    setTimeout(function(){ try { URL.revokeObjectURL(url); } catch(e){} }, 1000);
+    return true;
+  } catch(e){
+    return false;
+  }
+}
+
+// 串行逐张触发下载：避免 9 张同时 a.click() 被浏览器当成弹窗/自动下载而只放行首张。
+function downloadAll(){
+  if (!blobs.length){
+    __ngcSetStatus(__ngcT('请先点击「生成切片」再下载。', 'Generate the slices first, then download.'));
+    return Promise.resolve(0);
+  }
+  var total = blobs.length;
+  __ngcSetStatus(__ngcT(
+    '正在逐张下载 ' + total + ' 张：浏览器可能提示或拦截，请允许「多文件下载」。',
+    'Downloading ' + total + ' files one by one — your browser may prompt or block; please allow multiple downloads.'
+  ));
+  return Promise.resolve()
+    .then(function(){ return Promise.all(blobs); })
+    .then(function(list){
+      var seq = Promise.resolve();
+      var sent = 0;
+      list.forEach(function(b, i){
+        seq = seq.then(function(){
+          if (!b) return;
+          __ngcSaveBlob(b, 'grid-' + (i + 1) + '.png');
+          sent++;
+          return i < list.length - 1 ? __ngcSleep(400) : null;
+        });
+      });
+      return seq.then(function(){
+        __ngcSetStatus(__ngcT(
+          '已逐张发出 ' + sent + ' 张下载；若只收到 1 张，请允许「多文件下载」后重试。',
+          sent + ' downloads triggered; if only one file arrived, allow multiple downloads and retry.'
+        ));
+        return sent;
+      });
+    })
+    .catch(function(){
+      __ngcSetStatus(__ngcT(
+        '下载被浏览器拦截：请允许「多文件下载」后重试。',
+        'Downloads were blocked by the browser: allow multiple downloads and try again.'
+      ));
+      return 0;
+    });
 }
 
 // 语言切换：刷新切片按钮与切割信息（不重画 canvas）

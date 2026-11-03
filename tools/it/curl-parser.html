@@ -122,7 +122,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="📊 curl 命令解析器">📊 curl Command Parser</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="从 curl 命令提取 URL、方法、Header 与 Body。">curl Command Parser</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">先按「双引号包裹串 / 单引号包裹串 / 非空白串」三种形态做引号感知切词；逐词解析：-X 或 --request 取其后的值并转大写作为请求方法（默认 GET）、-H 或 --header 收集请求头、-d / --data / --data-raw 取请求体并去掉外层引号；首个不以 - 开头的词视为 URL；curl 与 curl.exe 本身跳过</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">先按「双引号包裹串 / 单引号包裹串 / 非空白串」三种形态做引号感知切词；再按「选项是否带值」映射表成对消费参数：-X/--request 取方法，-H/--header 收请求头，-d/--data/--data-raw/--data-binary/--data-urlencode 取请求体，-F/--form 取表单字段，-u/-o/-A/-b/-T 等带值选项只消费值不参与 URL；未显式 -X 而带数据时按 curl 语义默认 POST；首个非选项词作为 URL；所有输出统一 HTML 转义，并附结构化 JSON</div>
   <div class="formula-desc">把 curl 命令解析为结构化的请求信息。</div>
   <ul class="formula-list">
     <li><b>参数</b>：<code>-X</code> 方法、<code>-H</code> 请求头、<code>-d/--data</code> 请求体、<code>-F</code> 表单、<code>-u</code> 认证、<code>--compressed</code>。</li>
@@ -238,38 +238,120 @@ s.parentNode.insertBefore(el, s);
   </div>
 </div>
 <script>
+// 统一文本/属性转义：方法、URL、头部、Body 等一律先转义再进 innerHTML。
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// 选项是否带值的映射表：值必须成对消费，避免 -F / --data-binary / -u / -o 的值被误当 URL。
+// 未列出的选项不做值消费，只在结果中提示，避免误吃掉真正的 URL。
+const CURL_VALUE_OPTS = {
+  '-X': 'method', '--request': 'method',
+  '-H': 'header', '--header': 'header',
+  '-d': 'data', '--data': 'data', '--data-raw': 'data', '--data-binary': 'data',
+  '--data-ascii': 'data', '--data-urlencode': 'data',
+  '-F': 'form', '--form': 'form', '--form-string': 'form',
+  '-u': 'user', '--user': 'user',
+  '-o': 'output', '--output': 'output',
+  '-A': 'userAgent', '--user-agent': 'userAgent',
+  '-e': 'referer', '--referer': 'referer',
+  '-b': 'cookie', '--cookie': 'cookie',
+  '-c': 'cookieJar', '--cookie-jar': 'cookieJar',
+  '-T': 'upload', '--upload-file': 'upload',
+  '-m': 'maxTime', '--max-time': 'maxTime', '--connect-timeout': 'connectTimeout',
+  '-x': 'proxy', '--proxy': 'proxy',
+  '-r': 'range', '--range': 'range',
+  '-E': 'cert', '--cert': 'cert', '--key': 'key', '--cacert': 'cacert', '--capath': 'capath',
+  '-w': 'writeOut', '--write-out': 'writeOut', '--resolve': 'resolve',
+};
+
+function looksLikeUrl(t) {
+  const s = String(t == null ? '' : t);
+  return /^[a-z][a-z0-9+.-]*:\/\//i.test(s) ||
+    /^(?:localhost|www\.)/i.test(s) ||
+    /^[\w-]+(?:\.[\w-]+)+(?::\d+)?(?:[/?#]|$)/.test(s);
+}
+
 function parse() {
   const raw = document.getElementById('cmd').value || '';
   const tokens = raw.match(/(?:\"[^\"]*\"|'[^']*'|\S)+/g) || [];
 
   let method = 'GET';
+  let explicitMethod = false;
   const headers = [];
+  const formFields = [];
+  const unknown = [];
   let data = '';
+  let hasData = false;
   let url = '';
 
   for (let i = 0; i < tokens.length; i++) {
     const t = tokens[i];
     if (t === 'curl' || t === 'curl.exe') continue;
-    if ((t === '-X' || t === '--request') && tokens[i+1]) {
-      method = tokens[i+1].toUpperCase(); i += 1; continue;
+    if (t.startsWith('-')) {
+      let name = t;
+      let val = null;
+      let inline = false;
+      const eq = t.indexOf('=');
+      const firstQuote = (function(){
+        const a = t.indexOf("'"), b = t.indexOf('"');
+        if (a < 0) return b;
+        if (b < 0) return a;
+        return Math.min(a, b);
+      })();
+      if (eq > 0 && (firstQuote < 0 || eq < firstQuote)) {
+        name = t.slice(0, eq);
+        val = t.slice(eq + 1);
+        inline = true;
+      } else if (!t.startsWith('--') && CURL_VALUE_OPTS[t.slice(0, 2)] && t.length > 2) {
+        // 短选项连写形态，如 -XPOST / -dfoo
+        name = t.slice(0, 2);
+        val = t.slice(2);
+        inline = true;
+      }
+      const kind = CURL_VALUE_OPTS[name];
+      if (kind) {
+        if (!inline) {
+          if (i + 1 < tokens.length) val = tokens[++i];
+          else continue;
+        }
+        val = trimQuote(val);
+        if (kind === 'method') { method = val.toUpperCase(); explicitMethod = true; }
+        else if (kind === 'header') headers.push(val);
+        else if (kind === 'data') { data = data ? data + '&' + val : val; hasData = true; }
+        else if (kind === 'form') { formFields.push(val); hasData = true; }
+        // 其余带值选项（认证/输出文件/代理等）只消费值，不参与 URL
+        continue;
+      }
+      // 未识别选项：不把它的值当 URL；仅当紧随其后的词不像 URL 时才跳过该词并提示
+      if (i + 1 < tokens.length && !tokens[i + 1].startsWith('-') && !looksLikeUrl(tokens[i + 1])) {
+        unknown.push(name + ' ' + trimQuote(tokens[++i]));
+      } else {
+        unknown.push(name);
+      }
+      continue;
     }
-    if ((t === '-H' || t === '--header') && tokens[i+1]) {
-      headers.push(trimQuote(tokens[i+1])); i += 1; continue;
-    }
-    if ((t === '-d' || t === '--data' || t === '--data-raw') && tokens[i+1]) {
-      data = trimQuote(tokens[i+1]); i += 1; continue;
-    }
-    if (!t.startsWith('-') && !url) {
-      url = trimQuote(t);
-    }
+    if (!url) url = trimQuote(t);
   }
 
-  const __h0=`<p>方法：<strong>${method}</strong></p>` +
-    `<p>URL：<strong>${url || '未识别'}</strong></p>` +
+  // curl 语义：未显式 -X 而带 -d/--data*/-F/--form 时默认改用 POST
+  if (hasData && !explicitMethod) method = 'POST';
+
+  const __h0=`<p>方法：<strong>${esc(method)}</strong></p>` +
+    `<p>URL：<strong>${esc(url || '未识别')}</strong></p>` +
     `<p>Headers：</p>` +
-    `<div>${headers.length ? headers.map(h => `<p>${h}</p>`).join('') : '<p>无</p>'}</div>` +
+    `<div>${headers.length ? headers.map(h => `<p>${esc(h)}</p>`).join('') : '<p>无</p>'}</div>` +
     `<p>Body：</p>` +
-    `<pre style="white-space:pre-wrap">${data || '无'}</pre>`;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('out').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('out').innerHTML=__h0;
+    `<pre style="white-space:pre-wrap">${esc(data || '无')}</pre>` +
+    (formFields.length ? `<p>Form：</p><div>${formFields.map(f => `<p>${esc(f)}</p>`).join('')}</div>` : '') +
+    (unknown.length ? `<p>提示：</p><div><p>${esc('已跳过未识别选项：' + unknown.join('、'))}</p></div>` : '') +
+    `<p>结构化结果：</p><pre style="white-space:pre-wrap">${esc(JSON.stringify({ method, url, headers, body: data, form: formFields }, null, 2))}</pre>`;
+  if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('out').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('out').innerHTML=__h0;
 }
 
 function trimQuote(v) {

@@ -334,6 +334,31 @@ s.parentNode.insertBefore(el, s);
 const HISTORY_KEY = 'bill_splitter_history';
 let persons = [{name:'张三',share:1},{name:'李四',share:1},{name:'王五',share:1},{name:'赵六',share:1}];
 let advPersons = ['张三','李四','王五','赵六'];
+// 最近一次简单 AA 分摊快照（供 CSV 导出复用：逐人金额 + 余数分配规则）
+let __billSplitLast = null;
+
+// 姓名等用户文本统一 HTML 转义后再拼进 innerHTML（防止 < & " 破坏排版/自注入）
+function escHtml(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// 字段级校验标记：非法字段标红（复用全局 .input-error 样式）
+function markField(id, ok) {
+  const el = document.getElementById(id);
+  if (el && el.classList) el.classList.toggle('input-error', !ok);
+}
+
+// 份数输入：>0 的合法正数（小数按页面 step=0.1 语义允许），空值/非法值保留原样交给 calcSimple 校验
+function setPersonShare(i, v) {
+  const raw = String(v == null ? '' : v).trim();
+  persons[i].share = raw === '' ? NaN : Number(raw);
+  calcSimple();
+}
 
 function switchTab(tab) {
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
@@ -354,14 +379,14 @@ function initPersons() {
 
 function renderPersons() {
   const el = document.getElementById('persons-list');
-  const __h0=persons.map((p,i)=>
+  el.innerHTML = persons.map((p,i)=>
     `<div class="person-row">
-      <input type="text" value="${p.name}" placeholder="姓名" onchange="persons[${i}].name=this.value;calcSimple();">
-      <input type="number" value="${p.share}" min="0.1" step="0.1" style="width:80px;" onchange="persons[${i}].share=+this.value;calcSimple();" placeholder="如 ${p.share}">
+      <input type="text" value="${escHtml(p.name)}" placeholder="姓名" onchange="persons[${i}].name=this.value;calcSimple();">
+      <input type="number" id="person-share-${i}" value="${isFinite(Number(p.share)) ? p.share : ''}" min="0.1" step="0.1" style="width:80px;" oninput="setPersonShare(${i},this.value)" placeholder="如 1">
       <span style="font-size:12px;color:var(--text-muted);">份</span>
       <button type="button" class="btn danger remove" onclick="removePerson(${i})">×</button>
     </div>`
-  ).join('');if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){el.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}el.innerHTML=__h0;
+  ).join('');
 }
 
 function addPerson() {
@@ -383,31 +408,89 @@ function equalSplit() {
 }
 
 function calcSimple() {
-  const total = parseFloat(document.getElementById('total-amount').value) || 0;
-  const tip = parseFloat(document.getElementById('tip-percent').value) || 0;
-  const totalWithTip = total * (1 + tip/100);
-  const totalShare = persons.reduce((s,p)=>s+p.share,0);
-  
+  const totalEl = document.getElementById('total-amount');
+  const tipEl = document.getElementById('tip-percent');
+  const outEl = document.getElementById('simple-result');
+  const rawTotal = String(totalEl.value == null ? '' : totalEl.value).trim();
+  const rawTip = String(tipEl.value == null ? '' : tipEl.value).trim();
+  // 空值按 0 计（并在结果区提示）；负数/非数字属非法输入
+  const total = rawTotal === '' ? 0 : Number(rawTotal);
+  const tip = rawTip === '' ? 0 : Number(rawTip);
+  const okTotal = isFinite(total) && total >= 0;
+  const okTip = isFinite(tip) && tip >= 0;
+  markField('total-amount', okTotal);
+  markField('tip-percent', okTip);
+  persons.forEach((_, i) => markField('person-share-' + i, true));
+
+  if (!okTotal) {
+    outEl.innerHTML = `<p style="color:var(--danger)">⚠ 输入错误：总金额必须 ≥ 0 且为有效数字（当前 ${escHtml(rawTotal)}），已停止计算。</p>`;
+    return;
+  }
+  if (!okTip) {
+    outEl.innerHTML = `<p style="color:var(--danger)">⚠ 输入错误：小费/服务费比例必须 ≥ 0 且为有效数字（当前 ${escHtml(rawTip)}），已停止计算。</p>`;
+    return;
+  }
+
+  // 份数必须 >0（允许小数，与页面 step=0.1 语义一致）；非法份数字段级标红并停止输出
+  const shares = persons.map(p => Number(p.share));
+  let badIdx = -1;
+  for (let i = 0; i < shares.length; i++) {
+    if (!isFinite(shares[i]) || shares[i] <= 0) { badIdx = i; break; }
+  }
+  if (badIdx >= 0) {
+    markField('person-share-' + badIdx, false);
+    outEl.innerHTML = `<p style="color:var(--danger)">⚠ 输入错误：第 ${badIdx + 1} 位「${escHtml(persons[badIdx].name)}」的份数必须大于 0（当前 ${escHtml(String(persons[badIdx].share))}），已停止计算。</p>`;
+    return;
+  }
+  const totalShare = shares.reduce((s, x) => s + x, 0);
+  if (persons.length === 0 || totalShare <= 0) {
+    outEl.innerHTML = '<p style="color:var(--danger)">⚠ 输入错误：至少需要 1 位参与人员，且份数之和必须大于 0，已停止计算。</p>';
+    return;
+  }
+
+  const totalWithTip = total * (1 + tip / 100);
+  // 按「分」计算：先向下取整到分，再把余下的分逐一分给前 N 人（合计必然与账单一致）
+  const totalCents = Math.round(totalWithTip * 100);
+  const exactCents = shares.map(s => totalCents * s / totalShare);
+  const cents = exactCents.map(x => Math.floor(x + 1e-7));
+  let rem = totalCents - cents.reduce((a, b) => a + b, 0);
+  if (rem < 0) rem = 0;
+  for (let k = 0; k < rem; k++) cents[k % cents.length] += 1;
+
   let html = `<p><strong>总金额：</strong>¥${total.toFixed(2)} + ${tip}%小费 = ¥${totalWithTip.toFixed(2)}</p>`;
   html += `<p><strong>总份数：</strong>${totalShare}份</p>`;
+  if (rawTotal === '') html += '<p style="font-size:12px;color:var(--text-muted);">提示：总金额为空，已按 ¥0.00 计算。</p>';
   html += `<div style="margin-top:12px;">`;
-  persons.forEach(p=>{
-    const pay = totalWithTip * p.share / totalShare;
-    html += `<div class="result-person"><span>${p.name} (${p.share}份)</span><strong>¥${pay.toFixed(2)}</strong></div>`;
+  persons.forEach((p, i) => {
+    html += `<div class="result-person"><span>${escHtml(p.name)} (${shares[i]}份)</span><strong>¥${(cents[i] / 100).toFixed(2)}</strong></div>`;
   });
   html += `</div>`;
-  const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('simple-result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('simple-result').innerHTML=__h1;
+  const rule = rem > 0
+    ? `按分计算，余 ${rem} 分由前 ${Math.min(rem, cents.length)} 人各承担 0.01 元`
+    : '按分计算，余数为 0，无额外分配';
+  html += `<p style="margin-top:12px;"><strong>合计已对齐</strong> ¥${(totalCents / 100).toFixed(2)}</p>`;
+  html += `<p style="font-size:12px;color:var(--text-muted);">分摊规则：${rule}</p>`;
+  outEl.innerHTML = html;
+
+  __billSplitLast = {
+    totalCents: totalCents,
+    totalShare: totalShare,
+    tip: tip,
+    remainder: rem,
+    rule: rule,
+    rows: persons.map((p, i) => ({ name: String(p.name), share: shares[i], cents: cents[i] })),
+  };
 }
 
 function renderAdvPersons() {
   const el = document.getElementById('adv-persons-list');
-  const __h2=`<div style="display:flex;flex-wrap:wrap;gap:8px;">`+
+  el.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:8px;">`+
     advPersons.map((n,i)=>
       `<div style="display:flex;align-items:center;gap:4px;">
-        <input type="text" value="${n}" style="width:100px;padding:8px;" onchange="advPersons[${i}]=this.value;renderItemPersons();">
+        <input type="text" value="${escHtml(n)}" style="width:100px;padding:8px;" onchange="advPersons[${i}]=this.value;renderItemPersons();">
         <button type="button" class="btn danger" style="padding:6px 10px;" onclick="removeAdvPerson(${i})">×</button>
       </div>`
-    ).join('')+`</div>`;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){el.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}el.innerHTML=__h2;
+    ).join('')+`</div>`;
   renderItemPersons();
 }
 
@@ -431,14 +514,23 @@ function addItem() {
 
 function renderItemPersons() {
   document.querySelectorAll('#items-list .item-persons').forEach(el=>{
-    const __h4=advPersons.map((n,i)=>
-      `<label class="person-check"><input type="checkbox" checked>${n}</label>`
-    ).join('');if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){el.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}el.innerHTML=__h4;
+    el.innerHTML = advPersons.map((n,i)=>
+      `<label class="person-check"><input type="checkbox" checked>${escHtml(n)}</label>`
+    ).join('');
   });
 }
 
 function calcAdvanced() {
-  const tip = parseFloat(document.getElementById('adv-tip').value) || 0;
+  const tipEl = document.getElementById('adv-tip');
+  const outEl = document.getElementById('adv-result');
+  const rawTip = String(tipEl.value == null ? '' : tipEl.value).trim();
+  const tip = rawTip === '' ? 0 : Number(rawTip);
+  const okTip = isFinite(tip) && tip >= 0;
+  markField('adv-tip', okTip);
+  if (!okTip) {
+    outEl.innerHTML = `<p style="color:var(--danger)">⚠ 输入错误：小费/服务费比例必须 ≥ 0 且为有效数字（当前 ${escHtml(rawTip)}），已停止计算。</p>`;
+    return;
+  }
   const items = [];
   let total = 0;
   
@@ -467,10 +559,10 @@ function calcAdvanced() {
   let html = `<p><strong>总消费：</strong>¥${total.toFixed(2)} + ${tip}%小费 = ¥${totalWithTip.toFixed(2)}</p>`;
   html += `<div style="margin-top:12px;">`;
   for(const [name,amount] of Object.entries(result)){
-    html += `<div class="result-person"><span>${name}</span><strong>¥${amount.toFixed(2)}</strong></div>`;
+    html += `<div class="result-person"><span>${escHtml(name)}</span><strong>¥${amount.toFixed(2)}</strong></div>`;
   }
   html += `</div>`;
-  const __h5=html;if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){document.getElementById('adv-result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('adv-result').innerHTML=__h5;
+  outEl.innerHTML = html;
   
   if(total>0) addToHistory(total, advPersons.length);
 }
@@ -510,6 +602,7 @@ function __bill_splitterSnap(){
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
     for(var i=0;i<els.length;i++){
         var e=els[i];
+        if(e.id&&e.id.indexOf('person-share-')===0) continue;  // 动态份数字段不写进历史表
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
@@ -596,9 +689,36 @@ function __bill_splitterExtras(){
     TBKit.history.record(rec);
     __bill_splitterRender(keys,rk,en);
 }
+function __bill_splitterCsvCell(v){
+    var t=String(v==null?'':v);
+    return /[",\n\r]/.test(t)?'"'+t.replace(/"/g,'""')+'"':t;
+}
+function __bill_splitterCsvText(){
+    var lines=['姓名,份数,应付(元)'];
+    var s=__billSplitLast;
+    if(s){
+        s.rows.forEach(function(r){
+            lines.push([__bill_splitterCsvCell(r.name),__bill_splitterCsvCell(r.share),(r.cents/100).toFixed(2)].join(','));
+        });
+        lines.push(['合计',__bill_splitterCsvCell(s.totalShare),(s.totalCents/100).toFixed(2)].join(','));
+        lines.push(['分摊规则',__bill_splitterCsvCell(s.rule+'（含小费总额 ¥'+(s.totalCents/100).toFixed(2)+'）')].join(','));
+    }else{
+        lines.push('合计,0,0.00');
+        lines.push('分摊规则,尚未计算');
+    }
+    return lines.join('\n');
+}
 function __bill_splitterExport(){
-    if (typeof TBKit === 'undefined') return;
-    try { TBKit.util.exportTable('#bill_splitterTable','bill-splitter.csv'); } catch(e){}
+    try{
+        var csv='\ufeff'+__bill_splitterCsvText();
+        var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+        var a=document.createElement('a');
+        a.href=URL.createObjectURL(blob);
+        a.download='bill-splitter.csv';
+        if(document.body&&document.body.appendChild)document.body.appendChild(a);
+        a.click();
+        setTimeout(function(){try{URL.revokeObjectURL(a.href);a.remove();}catch(e){}},0);
+    }catch(e){}
 }
 function __bill_splitterPresets(){
     if (typeof TBKit === 'undefined') return;

@@ -136,7 +136,8 @@ s.parentNode.insertBefore(el, s);
       </div>
       <div>
         <label for="r">每期手续费率（%）</label>
-        <input type="number" id="r" value="0.6" step="0.05" min='0' placeholder="如 0.6">
+        <input type="number" id="r" value="0.6" step="0.05" min='0' max='100' placeholder="如 0.6">
+        <div class="field-error" id="rateError" style="display:none;"></div>
       </div>
     </div>
 
@@ -273,18 +274,53 @@ function num(id){const v=parseFloat(document.getElementById(id).value);return is
 function escH(s){var d=document.createElement('div');const __g0=s==null?'':String(s);d.textContent=(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
 function fmtMoney(n){return n.toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
-function calcTool(){const P=num('P'), n=Math.floor(num('n')), r=num('r')/100;
+const RATE_MAX_PCT = 100;   // 每期手续费率合理上限（%）
+
+function calcTool(){const P=num('P'), n=Math.floor(num('n'));
+   const ratePct=num('r');
+   const rateErr=document.getElementById('rateError');
+   function setRateErr(msg){
+     if(!rateErr) return;
+     rateErr.textContent=msg||'';
+     if(rateErr.style)rateErr.style.display=msg?'flex':'none';
+   }
+   setRateErr('');
    if(P<=0||n<=0){ToolBox.setResult('result','<p class="tip-error">请输入有效的本金与期数。</p>');return;}
+   if(ratePct<0){
+     setRateErr('每期手续费率不能为负数。');
+     ToolBox.setResult('result','<p class="tip-error">每期手续费率不能为负数，请填写 ≥0 的费率。</p>');
+     return;
+   }
+   if(ratePct>RATE_MAX_PCT){
+     setRateErr('每期手续费率超过合理上限 '+RATE_MAX_PCT+'%。');
+     ToolBox.setResult('result','<p class="tip-error">每期手续费率超过合理上限 '+RATE_MAX_PCT+'%，请检查输入。</p>');
+     return;
+   }
+   const r=ratePct/100;
    const fee=P*r;                 // 每期手续费
    const pmt=P/n+fee;             // 每期还款额
-   // IRR 月利率：二分法求解 P = pmt * (1-(1+i)^-n)/i
-   let lo=0, hi=1.0;
-   for(let it=0;it<80;it++){
-     const mid=(lo+hi)/2;
-     const pv=pmt*(1-Math.pow(1+mid,-n))/mid;
-     if(pv>P) lo=mid; else hi=mid;
+   // IRR 月利率：二分法求解 P = pmt * (1-(1+i)^-n)/i；求解区间 [0, 1] 即月利率 0~100%
+   const IRR_MAX=1.0;
+   function pvAt(i){ return i<=0 ? pmt*n : pmt*(1-Math.pow(1+i,-n))/i; }
+   let irrMonthly;
+   if(fee===0){
+     irrMonthly=0;
+   }else{
+     let lo=0, hi=IRR_MAX;
+     for(let it=0;it<80;it++){
+       const mid=(lo+hi)/2;
+       const pv=pvAt(mid);
+       if(pv>P) lo=mid; else hi=mid;
+     }
+     irrMonthly=(lo+hi)/2;
    }
-   const irrMonthly=(lo+hi)/2;
+   // 求解后校验：|PV−P| 残差 + 真实根是否触及/超出区间边界
+   const pv=pvAt(irrMonthly);
+   const residual=Math.abs(pv-P);
+   const tol=Math.max(0.01, Math.abs(P)*1e-6);
+   const beyond=fee>0 && pvAt(IRR_MAX)>P+tol;   // PV 单调递减 ⇒ 真实根超出上限
+   const atEdge=irrMonthly>=IRR_MAX-1e-9;
+   const converged=residual<=tol && !beyond;
    const irrAnnual=irrMonthly*12*100;      // 近似年化（单利乘期）
    const ear=Math.pow(1+irrMonthly,12)-1;   // 有效年利率 EAR
    const totalFee=fee*n;
@@ -297,6 +333,19 @@ function calcTool(){const P=num('P'), n=Math.floor(num('n')), r=num('r')/100;
      [irrAnnual.toFixed(2)+'%','实际年化利率（近似）'],
      [(ear*100).toFixed(2)+'%','有效年利率 EAR']
    ]);
+   // 现金流方向：便于核对 IRR 符号约定
+   html += '<div class="tip-mini" style="margin-top:10px;font-size:13px;line-height:1.8;">'+
+     '现金流方向：第 0 期 +'+fmtMoney(P)+'（收到分期本金）；第 1–'+n+' 期 −'+fmtMoney(pmt)+'（支付还款）</div>';
+   // 求解校验结果
+   if(beyond){
+     html += '<div class="tip-error" style="margin-top:10px;padding:8px 10px;">⚠️ 真实月利率超出求解区间上限 100%（PV 残差 '+fmtMoney(residual)+' 元）——结果已触及边界，实际年化可能更高，请检查费率或期数。</div>';
+   }else if(atEdge){
+     html += '<div class="tip-error" style="margin-top:10px;padding:8px 10px;">⚠️ 求解根恰位于区间上限（月利率 100%），结果可靠性有限。</div>';
+   }else if(!converged){
+     html += '<div class="tip-error" style="margin-top:10px;padding:8px 10px;">⚠️ 求解未收敛：PV 残差 '+fmtMoney(residual)+' 元超过容差 '+fmtMoney(tol)+' 元，结果不可信。</div>';
+   }else{
+     html += '<div style="margin-top:10px;padding:8px 10px;color:var(--ok,#16a34a);">✓ 求解校验通过：PV 残差 '+fmtMoney(residual)+' 元（容差 '+fmtMoney(tol)+' 元），根位于区间内。</div>';
+   }
    // 名义 vs 实际对比
    html += '<div class="tip-mini" style="margin-top:10px;font-size:13px;color:var(--text-muted);">'+
      '名义费率年化 '+(nominal).toFixed(2)+'%　→　实际年化 '+(irrAnnual).toFixed(2)+'%　（放大 '+(irrAnnual/Math.max(nominal,0.0001)).toFixed(2)+' 倍）</div>';

@@ -25,7 +25,6 @@
 <link rel="stylesheet" href="../../css/common.css">
 <script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/jszip@3/dist/jszip.min.js"></script>
 <style>
 /* 上传拖拽区 */
 .drop-zone{
@@ -566,6 +565,7 @@ function parseGifStructure(bytes){
 
 // LZW 解码
 function lzwDecode(minCodeSize, data){
+  if (!data || !data.length || typeof minCodeSize !== 'number' || minCodeSize < 2 || minCodeSize > 8) return [];
   var clearCode = 1 << minCodeSize;
   var endCode = clearCode + 1;
   var codeSize = minCodeSize + 1;
@@ -781,6 +781,14 @@ function decodeWithImageDecoder(bytes, meta){
 
 /* ==================== 工具主逻辑 ==================== */
 
+// 动态文案双语：英文态优先取 TBKit 语言标记，回退 <html lang>。
+function __gsIsEn(){
+  try { if (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn) return !!TBKit.util.isEn(); } catch(e){}
+  try { return /^en/i.test(String(document.documentElement.getAttribute('lang') || '')); } catch(e){}
+  return false;
+}
+function __gsT(zh, en){ return __gsIsEn() ? en : zh; }
+
 var gifData = null;     // { width,height,loopCount,frames,fileName,fileSize }
 var currentPreview = 0; // 当前预览帧索引
 
@@ -794,7 +802,7 @@ function handleFile(file){
     return;
   }
   $('loadingMask').classList.add('show');
-  $('loadingText').textContent = '正在解析 GIF，请稍候...';
+  $('loadingText').textContent = __gsT('正在解析 GIF，请稍候...', 'Parsing GIF, please wait...');
   $('resultArea').style.display = 'none';
 
   file.arrayBuffer().then(function(buffer){
@@ -809,7 +817,7 @@ function handleFile(file){
     try { meta = parseGifStructure(bytes); }
     catch(e){
       $('loadingMask').classList.remove('show');
-      ToolBox.showToast('GIF 解析失败：' + e.message, 'error');
+      ToolBox.showToast(__gsT('GIF 解析失败：', 'GIF parsing failed: ') + e.message, 'error');
       return;
     }
     if(!meta.frameMetas.length){
@@ -827,7 +835,7 @@ function handleFile(file){
       try { frames = renderManually(meta); }
       catch(e){
         $('loadingMask').classList.remove('show');
-        ToolBox.showToast('GIF 帧渲染失败：' + e.message, 'error');
+        ToolBox.showToast(__gsT('GIF 帧渲染失败：', 'GIF frame rendering failed: ') + e.message, 'error');
         return;
       }
       finishLoad(meta, frames, file);
@@ -851,15 +859,17 @@ function finishLoad(meta, frames, file){
   $('resultArea').style.display = '';
   renderStats();
   renderFrameGrid();
-  ToolBox.showToast('成功提取 ' + frames.length + ' 帧', 'success');
+  ToolBox.showToast(__gsT('成功提取 ' + frames.length + ' 帧', 'Extracted ' + frames.length + ' frames'), 'success');
 }
 
 function renderStats(){
-  var loopText = gifData.loopCount === 0 ? '无限循环' : ('循环 ' + gifData.loopCount + ' 次');
-  const __h0=statCard(gifData.frames.length, '总帧数') +
-    statCard(gifData.width + '×' + gifData.height, '尺寸 px') +
-    statCard(loopText, '循环次数') +
-    statCard(formatSize(gifData.fileSize), '文件大小');if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){$('statGrid').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('statGrid').innerHTML=__h0;
+  var loopText = gifData.loopCount === 0
+    ? __gsT('无限循环', 'Infinite loop')
+    : __gsT('循环 ' + gifData.loopCount + ' 次', 'Loops ' + gifData.loopCount + '×');
+  const __h0=statCard(gifData.frames.length, __gsT('总帧数', 'Total frames')) +
+    statCard(gifData.width + '×' + gifData.height, __gsT('尺寸 px', 'Size px')) +
+    statCard(loopText, __gsT('循环次数', 'Loop count')) +
+    statCard(formatSize(gifData.fileSize), __gsT('文件大小', 'File size'));if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){$('statGrid').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('statGrid').innerHTML=__h0;
 }
 
 function statCard(val, lbl){
@@ -873,15 +883,15 @@ function renderFrameGrid(){
     var thumb = makeThumb(fr.canvas, 200);
     var card = document.createElement('div');
     card.className = 'frame-card';
-    const __h2='<div class="frame-thumb checker" data-idx="' + i + '" role="button" tabindex="0" aria-label="预览第' + (i+1) + '帧">' +
-        '<img src="' + thumb + '" alt="第' + (i+1) + '帧">' +
-        '<div class="zoom-hint">🔍 点击预览</div>' +
+    const __h2='<div class="frame-thumb checker" data-idx="' + i + '" role="button" tabindex="0" aria-label="' + __gsT('预览第', 'Preview frame ') + (i+1) + __gsT('帧', '') + '">' +
+        '<img src="' + thumb + '" alt="' + __gsT('第', 'Frame ') + (i+1) + __gsT('帧', '') + '">' +
+        '<div class="zoom-hint">' + __gsT('🔍 点击预览', '🔍 Click to preview') + '</div>' +
       '</div>' +
       '<div class="frame-meta">' +
         '<span class="frame-no">#' + (i+1) + '</span>' +
         '<span class="frame-delay">' + formatDelay(fr.delay) + '</span>' +
       '</div>' +
-      '<button class="btn frame-dl" data-idx="' + i + '">⬇ 下载 PNG</button>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){card.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}card.innerHTML=__h2;
+      '<button class="btn frame-dl" data-idx="' + i + '">' + __gsT('⬇ 下载 PNG', '⬇ Download PNG') + '</button>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){card.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}card.innerHTML=__h2;
     grid.appendChild(card);
   });
 
@@ -943,61 +953,156 @@ function downloadFrame(i){
     document.body.appendChild(a);
     a.click();
     setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 0);
-    ToolBox.showToast('已下载第 ' + (i+1) + ' 帧', 'success');
+    ToolBox.showToast(__gsT('已下载第 ' + (i+1) + ' 帧', 'Frame ' + (i+1) + ' downloaded'), 'success');
   });
+}
+
+/* ----- 本地最小 ZIP 打包（STORE 不压缩，零外部依赖） ----- */
+
+var __gsCrcTable = null;
+function __gsCrc32(bytes){
+  if(!__gsCrcTable){
+    __gsCrcTable = new Uint32Array(256);
+    for(var n=0;n<256;n++){
+      var c = n;
+      for(var k=0;k<8;k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      __gsCrcTable[n] = c >>> 0;
+    }
+  }
+  var crc = 0xFFFFFFFF;
+  for(var i=0;i<bytes.length;i++) crc = (crc >>> 8) ^ __gsCrcTable[(crc ^ bytes[i]) & 0xFF];
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+
+function __gsDosTime(d){
+  var time = ((d.getHours() & 0x1F) << 11) | ((d.getMinutes() & 0x3F) << 5) | ((Math.floor(d.getSeconds()/2)) & 0x1F);
+  var date = (((d.getFullYear() - 1980) & 0x7F) << 9) | (((d.getMonth() + 1) & 0x0F) << 5) | (d.getDate() & 0x1F);
+  return { time:time, date:date };
+}
+
+// entries: [{ name, bytes: Uint8Array }] ⇒ application/zip Blob
+function __gsMakeZip(entries){
+  var enc = new TextEncoder();
+  var dt = __gsDosTime(new Date());
+  var parts = [];
+  var central = [];
+  var offset = 0;
+
+  entries.forEach(function(e){
+    var nameBytes = enc.encode(e.name);
+    var crc = __gsCrc32(e.bytes);
+    var size = e.bytes.length;
+
+    var lh = new Uint8Array(30 + nameBytes.length);
+    var dv = new DataView(lh.buffer);
+    dv.setUint32(0, 0x04034b50, true);   // local file header
+    dv.setUint16(4, 20, true);           // version needed
+    dv.setUint16(6, 0x0800, true);       // UTF-8 filename
+    dv.setUint16(8, 0, true);            // method: store
+    dv.setUint16(10, dt.time, true);
+    dv.setUint16(12, dt.date, true);
+    dv.setUint32(14, crc, true);
+    dv.setUint32(18, size, true);
+    dv.setUint32(22, size, true);
+    dv.setUint16(26, nameBytes.length, true);
+    dv.setUint16(28, 0, true);
+    lh.set(nameBytes, 30);
+    parts.push(lh, e.bytes);
+
+    var cd = new Uint8Array(46 + nameBytes.length);
+    var cdv = new DataView(cd.buffer);
+    cdv.setUint32(0, 0x02014b50, true);  // central directory header
+    cdv.setUint16(4, 20, true);
+    cdv.setUint16(6, 20, true);
+    cdv.setUint16(8, 0x0800, true);
+    cdv.setUint16(10, 0, true);
+    cdv.setUint16(12, dt.time, true);
+    cdv.setUint16(14, dt.date, true);
+    cdv.setUint32(16, crc, true);
+    cdv.setUint32(20, size, true);
+    cdv.setUint32(24, size, true);
+    cdv.setUint16(28, nameBytes.length, true);
+    cdv.setUint16(30, 0, true);
+    cdv.setUint16(32, 0, true);
+    cdv.setUint16(34, 0, true);
+    cdv.setUint16(36, 0, true);
+    cdv.setUint32(38, 0, true);
+    cdv.setUint32(42, offset, true);
+    cd.set(nameBytes, 46);
+    central.push(cd);
+    offset += lh.length + size;
+  });
+
+  var cdSize = central.reduce(function(s, b){ return s + b.length; }, 0);
+  var end = new Uint8Array(22);
+  var edv = new DataView(end.buffer);
+  edv.setUint32(0, 0x06054b50, true);    // end of central directory
+  edv.setUint16(4, 0, true);
+  edv.setUint16(6, 0, true);
+  edv.setUint16(8, entries.length, true);
+  edv.setUint16(10, entries.length, true);
+  edv.setUint32(12, cdSize, true);
+  edv.setUint32(16, offset, true);
+  edv.setUint16(20, 0, true);
+
+  parts = parts.concat(central, [end]);
+  var totalLen = parts.reduce(function(s, b){ return s + b.length; }, 0);
+  var out = new Uint8Array(totalLen);
+  var p = 0;
+  parts.forEach(function(b){ out.set(b, p); p += b.length; });
+  return new Blob([out], { type:'application/zip' });
 }
 
 function downloadAllZip(){
   if(!gifData || !gifData.frames.length) return;
-  if(typeof JSZip === 'undefined'){
-    ToolBox.showToast(i18nText('toast.msg028'), 'error');
-    return;
-  }
   var btn = $('zipBtn');
+  var base = gifData.fileName.replace(/\.gif$/i, '') || 'gif-frame';
+  var total = gifData.frames.length;
   btn.disabled = true;
   $('zipProgress').style.display = '';
   $('zipProgressFill').style.width = '0%';
-  $('zipStatus').textContent = '正在打包...';
+  $('zipStatus').textContent = __gsT('正在打包 ' + total + ' 帧（本地生成，无需联网）...', 'Packing ' + total + ' frames locally (no network needed)...');
 
-  var zip = new JSZip();
-  var base = gifData.fileName.replace(/\.gif$/i, '') || 'gif-frame';
-  var total = gifData.frames.length;
   var done = 0;
-
+  var entries = [];
   var seq = Promise.resolve();
   gifData.frames.forEach(function(fr, i){
     seq = seq.then(function(){
       return canvasToBlob(fr.canvas).then(function(blob){
-        zip.file(base + '_frame_' + String(i+1).padStart(3,'0') + '.png', blob);
-        done++;
-        $('zipProgressFill').style.width = Math.round(done/total*70) + '%';
+        if(!blob) return;
+        return blob.arrayBuffer().then(function(buf){
+          entries.push({ name: base + '_frame_' + String(i+1).padStart(3,'0') + '.png', bytes: new Uint8Array(buf) });
+          done++;
+          $('zipProgressFill').style.width = Math.round(done/total*70) + '%';
+        });
       });
     });
   });
 
   seq.then(function(){
-    $('zipStatus').textContent = '正在生成 ZIP...';
-    return zip.generateAsync({ type:'blob' }, function(meta){
-      $('zipProgressFill').style.width = (70 + Math.round(meta.percent*0.3)) + '%';
-    });
-  }).then(function(content){
+    $('zipStatus').textContent = __gsT('正在生成 ZIP...', 'Building ZIP...');
+    var content = __gsMakeZip(entries);
+    $('zipProgressFill').style.width = '100%';
     var url = URL.createObjectURL(content);
     var a = document.createElement('a');
     a.href = url;
     a.download = base + '_frames.zip';
     document.body.appendChild(a);
-    a.click();
-    setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 0);
-    $('zipProgressFill').style.width = '100%';
+    try { a.click(); } catch(e){}
+    setTimeout(function(){ try { URL.revokeObjectURL(url); } catch(e){} if(a.remove) a.remove(); }, 0);
     $('zipStatus').textContent = '';
     $('zipProgress').style.display = 'none';
     btn.disabled = false;
-    ToolBox.showToast('已下载 ' + total + ' 帧（ZIP）', 'success');
+    ToolBox.showToast(__gsT('已下载 ' + total + ' 帧（ZIP）', 'Downloaded ' + total + ' frames (ZIP)'), 'success');
   }).catch(function(err){
     $('zipProgress').style.display = 'none';
     $('zipStatus').textContent = '';
+    $('zipProgressFill').style.width = '0%';
     btn.disabled = false;
-    ToolBox.showToast('打包失败：' + err.message, 'error');
+    ToolBox.showToast(__gsT(
+      '打包失败：' + (err && err.message ? err.message : '未知错误') + '；可改用逐帧下载 PNG。',
+      'Packing failed: ' + (err && err.message ? err.message : 'unknown error') + '; download each frame as PNG instead.'
+    ), 'error');
   });
 }
 
@@ -1027,8 +1132,10 @@ function renderPreview(){
   c.height = gifData.height;
   c.getContext('2d').clearRect(0,0,gifData.width,gifData.height);
   c.getContext('2d').drawImage(fr.canvas, 0, 0);
-  $('modalInfo').textContent = '第 ' + (currentPreview+1) + ' / ' + gifData.frames.length +
-    ' 帧  ·  延迟 ' + formatDelay(fr.delay) + '  ·  尺寸 ' + gifData.width + '×' + gifData.height;
+  $('modalInfo').textContent = __gsT(
+    '第 ' + (currentPreview+1) + ' / ' + gifData.frames.length + ' 帧  ·  延迟 ' + formatDelay(fr.delay) + '  ·  尺寸 ' + gifData.width + '×' + gifData.height,
+    'Frame ' + (currentPreview+1) + ' / ' + gifData.frames.length + '  ·  delay ' + formatDelay(fr.delay) + '  ·  size ' + gifData.width + '×' + gifData.height
+  );
 }
 
 document.addEventListener('keydown', function(e){

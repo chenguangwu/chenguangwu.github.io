@@ -152,7 +152,7 @@ s.parentNode.insertBefore(el, s);
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="🔗 URL解析器">🔗 URLParser</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">用 new URL(输入) 解析，取出 href、protocol、hostname、port、host、pathname、search、hash、origin、username、password 等字段，并用 searchParams.forEach 把查询串展开为参数名到值的映射。字段为空时显示「(空)」，参数表逐行渲染为可复制的键值行；输入为空时提示输入 URL，构造失败时给出错误提示</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">用 new URL(输入) 解析，取出 href、protocol、hostname、port、host、pathname、search、hash、origin、username、password 等字段，并用 searchParams.getAll 把查询串展开为「参数名 → 值数组」的映射（重复键逐行保留），所有字段值经 HTML 文本转义后再渲染。字段为空时显示「(空)」，参数表逐行渲染为可复制的键值行；输入为空时提示输入 URL，构造失败时给出错误提示</div>
   <div class="formula-desc">拆解 URL 的各个组成部分。</div>
   <ul class="formula-list">
     <li><b>结构</b>：<code>scheme://host:port/path?query#fragment</code>。</li>
@@ -341,6 +341,17 @@ const HK='url_parser_history';
 let parsed = {};
 let buildParams = [{key:'query',value:'value'},{key:'foo',value:'bar'}];
 
+// 统一文本/属性转义：所有输出（解析结果、参数行、历史回显）都先过此函数，
+// 避免查询值里的 <img onerror> 被 innerHTML 当标签执行，也避免引号截断属性。
+function esc(s){
+  return String(s==null?'':s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
+
 function switchTab(tab,btn){
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   if(btn)btn.classList.add('active');
@@ -374,9 +385,15 @@ function parseUrl() {
       params: {}
     };
 
+    const params = {};
+    const paramRows = [];
     url.searchParams.forEach((v, k) => {
-      parsed.params[k] = v;
+      if (!Object.prototype.hasOwnProperty.call(params, k)) params[k] = [];
+      params[k].push(v);
+      paramRows.push([k, v]);
     });
+    parsed.params = params;
+    parsed.paramRows = [];
 
     let html = '<h3 style="margin-bottom:12px;">解析结果</h3>';
     const fields = [
@@ -388,26 +405,27 @@ function parseUrl() {
       const val = parsed[key] || '(空)';
       html += `<div style="padding:8px;border-bottom:1px solid var(--border);">
         <div class="field-copy">
-          <span style="font-weight:bold;width:100px;display:inline-block;font-size:13px;">${label}</span>
-          <button type="button" class="copy-btn" onclick="copyField('${key}')">复制</button>
+          <span style="font-weight:bold;width:100px;display:inline-block;font-size:13px;">${esc(label)}</span>
+          <button type="button" class="copy-btn" data-copy-field="${esc(key)}">复制</button>
         </div>
-        <div style="font-family:monospace;font-size:13px;word-break:break-all;margin-top:4px;color:var(--text-light);">${val}</div>
+        <div style="font-family:monospace;font-size:13px;word-break:break-all;margin-top:4px;color:var(--text-light);">${esc(val)}</div>
       </div>`;
     });
 
-    if (Object.keys(parsed.params).length > 0) {
+    if (paramRows.length > 0) {
       html += '<h3 style="margin:16px 0 8px;">查询参数</h3>';
       html += '<table style="width:100%;border-collapse:collapse;font-size:13px;">';
       html += '<tr style="background:var(--th-bg);"><th style="padding:8px;border:1px solid var(--border);text-align:left;width:40%;">参数名</th><th style="padding:8px;border:1px solid var(--border);text-align:left;">值</th><th style="width:60px;padding:8px;border:1px solid var(--border);"></th></tr>';
-      Object.entries(parsed.params).forEach(([k, v]) => {
-        html += `<tr><td style="padding:8px;border:1px solid var(--border);font-family:monospace;">${k}</td><td style="padding:8px;border:1px solid var(--border);font-family:monospace;word-break:break-all;">${v}</td><td style="padding:8px;border:1px solid var(--border);text-align:center;"><button type="button" class="copy-btn" onclick="ToolBox.copyText('${v}','tool.copy_ok')">复制</button></td></tr>`;
+      paramRows.forEach(([k, v], idx) => {
+        html += `<tr><td style="padding:8px;border:1px solid var(--border);font-family:monospace;">${esc(k)}</td><td style="padding:8px;border:1px solid var(--border);font-family:monospace;word-break:break-all;">${esc(v)}</td><td style="padding:8px;border:1px solid var(--border);text-align:center;"><button type="button" class="copy-btn" data-copy-param="${idx}">复制</button></td></tr>`;
       });
       html += '</table>';
+      parsed.paramRows = paramRows;
     }
 
     const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h1;
   } catch (e) {
-    const __h2=`<div class="tip-box tip-warn"><strong>⚠️ URL解析失败</strong><br>${e.message}<br><br>提示：URL需要包含协议（如 https://）</div>`;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h2;
+    const __h2=`<div class="tip-box tip-warn"><strong>⚠️ URL解析失败</strong><br>${esc(e.message)}<br><br>提示：URL需要包含协议（如 https://）</div>`;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h2;
   }
 }
 
@@ -431,8 +449,8 @@ function renderParams(){
   const c=document.getElementById('paramsList');
   const __h3=buildParams.map((p,i)=>`
     <div class="param-row">
-      <input type="text" placeholder="参数名" value="${p.key}" oninput="buildParams[${i}].key=this.value;buildUrl()" style="flex:1;">
-      <input type="text" placeholder="值" value="${p.value}" oninput="buildParams[${i}].value=this.value;buildUrl()" style="flex:2;">
+      <input type="text" placeholder="参数名" value="${esc(p.key)}" oninput="buildParams[${i}].key=this.value;buildUrl()" style="flex:1;">
+      <input type="text" placeholder="值" value="${esc(p.value)}" oninput="buildParams[${i}].value=this.value;buildUrl()" style="flex:2;">
       <button type="button" class="btn btn-remove danger" onclick="removeParam(${i})">×</button>
     </div>
   `).join('');if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){c.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}c.innerHTML=__h3;
@@ -474,7 +492,7 @@ function renderHistory(){
   const h=getHistory();
   const l=document.getElementById('historyList');
   if(h.length===0){const __h4='<div class="history-empty">暂无记录</div>';if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){l.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}l.innerHTML=__h4;return;}
-  const __h5=h.map((r,i)=>`<div class="history-item" onclick="loadHistoryItem(${i})"><div class="time">${r.time}</div><div class="summary" style="font-family:monospace;font-size:12px;word-break:break-all;">${r.url}</div><div class="detail">${r.host}${r.path} <button onclick="event.stopPropagation();delHistory(${i})" style="float:right;color:var(--danger);background:none;border:none;cursor:pointer;font-size:12px;">删除</button></div></div>`).join('');if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){l.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}l.innerHTML=__h5;
+  const __h5=h.map((r,i)=>`<div class="history-item" onclick="loadHistoryItem(${i})"><div class="time">${esc(r.time)}</div><div class="summary" style="font-family:monospace;font-size:12px;word-break:break-all;">${esc(r.url)}</div><div class="detail">${esc(r.host)}${esc(r.path)} <button onclick="event.stopPropagation();delHistory(${i})" style="float:right;color:var(--danger);background:none;border:none;cursor:pointer;font-size:12px;">删除</button></div></div>`).join('');if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){l.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}l.innerHTML=__h5;
 }
 function loadHistoryItem(i){
   const h=getHistory();if(!h[i])return;
@@ -484,6 +502,28 @@ function loadHistoryItem(i){
 function delHistory(i){let h=getHistory();h.splice(i,1);localStorage.setItem(HK,JSON.stringify(h));renderHistory();}
 function clearHistory(){if(confirm('确定清空？')){localStorage.removeItem(HK);renderHistory();ToolBox.showToast(i18nText());}}
 
+// 复制按钮统一走事件委托：数据只保存在页面内存的 parsed 中，按字段名/行号定位，
+// 不把用户输入拼进 onclick 属性（避免引号截断或注入）。
+function initResultCopyDelegate(){
+  const box=document.getElementById('result');
+  if(!box||box.__tbCopyBound)return;
+  box.__tbCopyBound=true;
+  box.addEventListener('click',function(ev){
+    const btn=ev.target&&ev.target.closest?ev.target.closest('.copy-btn'):null;
+    if(!btn)return;
+    const ds=btn.dataset||{};
+    if(ds.copyField!=null){
+      if(parsed[ds.copyField])ToolBox.copyText(String(parsed[ds.copyField]),'tool.copy_ok');
+      return;
+    }
+    if(ds.copyParam!=null){
+      const row=(parsed.paramRows||[])[Number(ds.copyParam)];
+      if(row)ToolBox.copyText(String(row[1]),'tool.copy_ok');
+    }
+  });
+}
+
+initResultCopyDelegate();
 parseUrl();
 </script><script>
 // tool-intro折叠交互

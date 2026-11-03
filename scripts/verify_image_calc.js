@@ -149,6 +149,36 @@ const CASES = [
   "ref": "结构性不可注入（2026-10-10 复核，原 ref 为 auto-restore(default) 未评估项）：splitAndRender() 依赖 FileReader 读取 #file 图片后 canvas 切片；harness 无文件输入/FileReader/canvas 度量 ⇒ 注入态与默认态均落到「请先上传图片」空文件提示（memory 已知缺口：File API/canvas 图片类不可收敛）。无任何随输入变化的输出。维持 no_inputs。"
 },
 {
+  "slug": "image/nine-grid-cutter",
+  "clicks": [
+    "document.getElementById('ngcRows').value='9';__ngcSetGrid();"
+  ],
+  "expect": [
+    "已恢复上次合法值 3"
+  ],
+  "ref": "IM-N7 回归：行数 9 越界（合法 1–6）时必须提示并回退上次合法值 3、输入框同步回显 3。默认态该提示框为空 ⇒ 注入失败/默认态不命中。"
+},
+{
+  "slug": "image/nine-grid-cutter",
+  "clicks": [
+    "blobs=[Promise.resolve(new Blob([new Uint8Array([1,2,3])],{type:'image/png'}))];downloadAll();"
+  ],
+  "expect": [
+    "多文件下载"
+  ],
+  "ref": "IM-N5 回归：downloadAll() 入口须同步写入「请允许多文件下载」提示（串行逐张触发）；默认态提示框为空、不调用 downloadAll ⇒ 不命中。"
+},
+{
+  "slug": "image/gif-split",
+  "clicks": [
+    "var __probe=__gsMakeZip([{name:'probe.txt',bytes:new Uint8Array([65,66,67])}]);document.getElementById('zipStatus').textContent='ZIP:'+__probe.type+':'+__probe.size;"
+  ],
+  "expect": [
+    "ZIP:application/zip"
+  ],
+  "ref": "IM-N6 回归：本地最小 ZIP（STORE）写入实现 __gsMakeZip 必须返回 application/zip Blob（不再依赖外部 JSZip CDN）；默认态 zipStatus 为空 ⇒ 不命中。"
+},
+{
   "slug": "image/wechat-cover-maker",
   "inputs": {
     "title": "工具名示例_X",

@@ -1756,6 +1756,59 @@ const CASES = [
     "checkIds": ["lower", "upper", "nums", "syms", "noSim", "noAmb"],
     "expect": ["q!XrposnW6#hod2o2eSqrunXyBWo*U*@u$Z258PssC"],
     "ref": "B类checkbox子任务补强（life/generator-strength）：注入 len=42,cnt=42 并勾满 lower/upper/nums/syms/noSim/noAmb；harness _rngReset 固定随机种子⇒生成确定密码串「q!Xr...PssC」（转换后产物，非输入回显 42）。默认态（不声明 checkIds⇒checked=false）生成空/不同串，不含该串⇒强判别、零逃生。"
+  },
+
+  // ── AA 分摊：按分对齐 + 字段级校验 + 姓名转义 + CSV 分摊规则（LF-N2/N3/N4）──
+  {
+    slug: "life/bill-splitter",
+    inputs: { "total-amount": "100", "person-count": "3" },
+    expect: ["¥33.34", "合计已对齐 ¥100.00"],
+    ref: "LF-N2 按分对齐：100 元 3 人各 1 份 ⇒ 每份 3333.33 分，向下取整 3333×3=9999 分，余 1 分给第 1 人 ⇒ 33.34/33.33/33.33，合计正好 100.00"
+       + "（旧实现按 toFixed(2) 逐人四舍五入 ⇒ 33.33×3=99.99，与账单差 1 分）。默认 1000 元 4 人 ⇒ 每人 250.00、合计 1000.00，两条锚均失配。",
+  },
+  {
+    slug: "life/bill-splitter",
+    inputs: { "total-amount": "-100" },
+    expect: ["输入错误：总金额必须 ≥ 0 且为有效数字（当前 -100），已停止计算。"],
+    ref: "LF-N3 负总额：旧实现 parseFloat||0 把 -100 原样参与计算并输出负应付；现改为字段级标红 + 停止输出，提示串含注入值 -100。"
+       + "判别力回退默认 1000 元时页面无该提示（正常出结果），注入失败即失配。",
+  },
+  {
+    slug: "life/bill-splitter",
+    inputs: { "tip-percent": "-5" },
+    expect: ["输入错误：小费/服务费比例必须 ≥ 0 且为有效数字（当前 -5），已停止计算。"],
+    ref: "LF-N3 负小费：旧实现 parseFloat||0 保留 -5% 并算出低于账单总额的应付（分摊合计不闭合）；现与总金额同口径校验并停止输出。"
+       + "默认 tip=0 正常出结果、不含该提示 ⇒ 强判别。",
+  },
+  {
+    slug: "life/bill-splitter",
+    clicks: ["persons[0].share=0;persons[1].share=-2;calcSimple();"],
+    expect: ["输入错误：第 1 位「张三」的份数必须大于 0（当前 0），已停止计算。"],
+    ref: "LF-N3 非法份数：旧实现 onchange=\"+this.value\" 直接接受 0 与负数（0 份那行会被 0/0 或负值污染）；现要求份数 >0，命中首个非法行并标红。"
+       + "默认态（clicks 清空）4 人各 1 份正常出结果，不含该提示 ⇒ 强判别。",
+  },
+  {
+    slug: "life/bill-splitter",
+    clicks: ["persons=[{name:'<img src=x onerror=alert(1)>',share:1},{name:'A&B',share:1},{name:'超长名称'.repeat(20),share:1}];renderPersons();calcSimple();"],
+    expect: [
+      "&lt;img src=x onerror=alert(1)&gt; (1份) ¥333.34",
+      "A&amp;B (1份) ¥333.33",
+      "超长名称超长名称超长名称超长名称",
+    ],
+    ref: "LF-N4 姓名转义：旧实现把 p.name 原样拼进结果区与人员列表的 innerHTML（尖括号会被当标签解析、& 破坏排版）；"
+      + "现统一 escHtml 后拼接，结果区可见 &lt;img…&gt; / A&amp;B 的实体形态，列表 value 同样转义；超长名称（80 字）完整保留不截断。"
+      + "默认态是张三/李四/250.00，不含上述任何锚 ⇒ 强判别。",
+  },
+  {
+    slug: "life/bill-splitter",
+    clicks: ["persons=[{name:'甲',share:1},{name:'乙',share:1},{name:'丙',share:1}];document.getElementById('total-amount').value='100';calcSimple();document.getElementById('simple-result').innerHTML+='<pre>'+__bill_splitterCsvText().replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</pre>';"],
+    expect: [
+      "姓名,份数,应付(元)",
+      "甲,1,33.34",
+      "分摊规则,按分计算，余 1 分由前 1 人各承担 0.01 元",
+    ],
+    ref: "LF-N2 导出：CSV 不再只导历史表，而是导当前分摊明细（姓名,份数,应付）+ 合计 + 分摊规则行；100 元 3 人时第 1 人承担余 1 分 ⇒ 甲 33.34。"
+      + "clicks 把 CSV 文本写回结果区以采样（仅验证构建产物，不影响页面导出按钮）。默认 1000 元 4 人无 CSV 文本 ⇒ 注入失败即失配。",
   }
 
 ];

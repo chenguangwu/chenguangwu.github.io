@@ -880,6 +880,128 @@ const CASES = [
     inputs: { tsh: "2.0", ft3: "2.5", ft4: "16", tt3: "1.5", tt4: "100", tpo: "0" },
     expect: ["低T3综合征(非甲状腺病态)", "FT3 2.5 pmol/L → 落在 偏低"],
     ref: '修复 line263 死代码后可达：TSH 2.0（正常 0.27–4.2）+ FT3 2.5<3.1（低）+ FT4 16（正常、不低）→ 非甲状腺病态综合征（euthyroid sick syndrome）。原条件 tshLow 与 line259 中枢性甲减（tshLow&&hormoneLow）重叠、永不可达，旧版此输入会误判「甲状腺功能正常」；修正为 !tshLow&&!tshHigh&&ft3Low&&!ft4Low 后分支可达。默认态（tsh 空 → analyze 提前 return）无任何结果串，注入失败即不命中。'
+  },
+  {
+    "slug": "clinical-lab/stool-occult-blood",
+    "inputs": { "age": "", "immunoResult": "neg" },
+    "expect": [
+      "本次判读年龄段：未提供年龄（仅通用建议）",
+      "年龄未提供或无效，以上为通用建议"
+    ],
+    "ref": "L-N6 年龄空值：age='' 不再被 parseInt(...)||50 兜底成 50 岁，判读走通用建议（「若无消化道症状，定期体检即可」）并明确提示补充年龄，结果区标注「未提供年龄（仅通用建议）」；默认 age=50 走「建议每年复查FIT」与「年龄 ≥50 岁」，两条锚均不出现（判别器把 age 换回默认 50 即失配）。"
+  },
+  {
+    "slug": "clinical-lab/stool-occult-blood",
+    "inputs": { "age": "125", "immunoResult": "neg" },
+    "expect": [
+      "年龄需为 0–120 的整数（当前输入「125」未参与判读）。",
+      "本次判读年龄段：年龄无效（未参与判读）"
+    ],
+    "ref": "L-N6 越界：125>120 ⇒ 字段级提示（#ageHint）且不参与年龄分层判读，结果区标「年龄无效（未参与判读）」；默认 age=50 为合法值、提示串为空，判别器换回 50 后两条锚均失配。"
+  },
+  {
+    "slug": "clinical-lab/stool-occult-blood",
+    "inputs": { "age": "0", "immunoResult": "neg" },
+    "expect": [
+      "本次判读年龄段：年龄 <45 岁",
+      "结果阴性。若无消化道症状，定期体检即可。"
+    ],
+    "ref": "L-N6 零岁：0 是合法年龄（0–120 整数），修复前 `||50` 把 0 当作假值变成 50 岁；现输出「<45 岁」年龄段与通用建议。默认 age=50 ⇒ 年龄段 ≥50 且给「每年复查FIT」，两条锚均不出现。"
+  },
+  {
+    "slug": "clinical-lab/stool-occult-blood",
+    "clicks": [
+      "document.getElementById('method').value='chem'; switchMethod(); document.getElementById('eatRedMeat').checked=true; selectChem('2+');"
+    ],
+    "expect": [
+      "结论：受干扰不可判读",
+      "本次化学法结果受饮食（红肉/动物血）干扰，不能判定为消化道出血，暂不作为阳性结论。",
+      "禁食红肉、动物血、维生素C、铁剂3天后复查化学法；或直接改用免疫法(FIT)复查确认。"
+    ],
+    "ref": "L-N7 化学法阳性+红肉：修复前 realPos=false 且唯一结论分支 `else if(!interfer.length)` 不命中，只剩大号「2+」和干扰提示、无结论块；现将大号主结论替换为「受干扰不可判读」，并输出禁食 3 天复查/改 FIT 的结论框。判别器清 clicks 回到默认免疫法态（负性结果）⇒ 三条锚均不出现。"
+  },
+  {
+    "slug": "clinical-lab/tumor-marker-doubling",
+    "clicks": [
+      "document.getElementById('v1').value='10';document.getElementById('v2').value='40';document.getElementById('days').value='';document.getElementById('d1').value='2024-01-02';document.getElementById('d2').value='2024-01-02';calc();"
+    ],
+    "expect": [
+      "两次检测日期相同（间隔 0 天），无法计算倍增时间或半衰期。请确认日期，或改用「间隔天数」输入。"
+    ],
+    "ref": "L-N8 相同日期：修复前 Math.abs(t2-t1)=0 ⇒ dt=0 ⇒ DT=0 并显示「倍增极快(高度侵袭)」；现 diff===0 直接提示无法计算。判别器清 clicks 回到页面默认 d1/d2（相差 90 天、10→20）⇒ 无该提示串。"
+  },
+  {
+    "slug": "clinical-lab/tumor-marker-doubling",
+    "clicks": [
+      "document.getElementById('v1').value='10';document.getElementById('v2').value='20';document.getElementById('days').value='';document.getElementById('d1').value='2024-03-01';document.getElementById('d2').value='2024-01-01';calc();"
+    ],
+    "expect": [
+      "第二次检测日期早于第一次（日期顺序相反），无法计算。请按时间先后填写日期，或改用「间隔天数」输入。"
+    ],
+    "ref": "L-N8 倒序日期：修复前 Math.abs 把 -60 天当作 +60 天照常算 DT；现 diff<0 明确提示日期顺序相反、不计算。判别器清 clicks ⇒ 默认日期正序 90 天，不出现提示串。"
+  },
+  {
+    "slug": "clinical-lab/tumor-marker-doubling",
+    "clicks": [
+      "document.getElementById('v1').value='10';document.getElementById('v2').value='40';document.getElementById('days').value='';document.getElementById('d1').value='2024-01-01';document.getElementById('d2').value='2024-01-11';calc();"
+    ],
+    "expect": [
+      "倍增时间 5.0天",
+      "间隔 10天"
+    ],
+    "ref": "L-N8 有符号正差：d1=2024-01-01、d2=2024-01-11 ⇒ dt=10 天，DT=10×ln2/ln4=5.0 天（修复前后此处同为 10，作为「正序日期仍按 t2-t1 计算」的对照锚）；默认日期相差 90 天 ⇒ 两条锚均不出现。"
+  },
+  {
+    "slug": "clinical-lab/tumor-marker-doubling",
+    "clicks": [
+      "document.getElementById('v1').value='30';document.getElementById('v2').value='30';document.getElementById('days').value='30';calc();"
+    ],
+    "expect": [
+      "无变化",
+      "两次检测数值相同（30），间隔 30天，未见升降变化，无法计算倍增时间或下降半衰期。"
+    ],
+    "ref": "L-N8 等值：修复前 v2 不进 rising 分支 ⇒ 进下降半衰期，ln(1)=0 使半衰期 Infinity；现单独「无变化」结论、不算 DT/半衰期。判别器清 clicks ⇒ 默认 10→20 为上升态，两条锚均不出现。"
+  },
+  {
+    "slug": "clinical-lab/tumor-marker-doubling",
+    "clicks": [
+      "document.getElementById('v1').value='10';document.getElementById('v2').value='20';document.getElementById('days').value='50';document.getElementById('d1').value='2024-01-01';document.getElementById('d2').value='2024-01-02';calc();"
+    ],
+    "expect": [
+      "已按填写的间隔天数计算（50 天），两次检测日期不参与本次计算。"
+    ],
+    "ref": "L-N8 优先级说明：同时给出正数天数与日期时明确「天数优先、日期不参与」；默认 days 空 ⇒ 按日期计算，无该说明串。"
+  },
+  {
+    "slug": "clinical-lab/tumor-marker-doubling",
+    "clicks": [
+      "document.getElementById('v1').value='10';document.getElementById('v2').value='20';document.getElementById('days').value='0';calc();"
+    ],
+    "expect": [
+      "间隔天数需为正数（当前输入「0」无法计算倍增时间）；如需按日期计算，请清空「间隔天数」。"
+    ],
+    "ref": "L-N8 零间隔：天数输入 0 不再静默回落到日期计算，直接提示无法计算；默认 days 空 ⇒ 提示串不出现。"
+  },
+  {
+    "slug": "clinical-lab/tumor-marker-doubling",
+    "clicks": [
+      "window.TBKit={util:{isEn:function(){return false;}},chart:{refBar:function(sel,o){document.getElementById('tumor_doublingRefBar').innerHTML='SCALE:'+o.value.toFixed(1);}}};document.getElementById('v1').value='10';document.getElementById('v2').value='20';document.getElementById('days').value='15';calc();document.getElementById('v2').value='5';document.getElementById('days').value='30';calc();document.getElementById('result').innerHTML+=' 标尺已清空='+(document.getElementById('tumor_doublingRefBar').innerHTML==='');"
+    ],
+    "expect": [
+      "半衰期 30.0天",
+      "标尺已清空=true"
+    ],
+    "ref": "L-N8 下降分支清旧标尺：先 10→20/15 天渲染 DT 标尺（桩写入 SCALE:15.0），再 10→5/30 天进入下降半衰期（t½=30×ln2/ln2=30.0 天）；修复前下降分支不渲染也不清空，旧标尺残留 ⇒ 「标尺已清空=false」。判别器清 clicks ⇒ 默认上升态、无「半衰期 30.0天」且无哨兵串。"
+  },
+  {
+    "slug": "clinical-lab/tumor-marker-doubling",
+    "clicks": [
+      "window.TBKit={util:{isEn:function(){return false;}},chart:{refBar:function(sel,o){document.getElementById('tumor_doublingRefBar').innerHTML='SCALE:'+o.value.toFixed(1);}}};document.getElementById('v1').value='10';document.getElementById('v2').value='20';document.getElementById('days').value='15';calc();document.getElementById('v1').value='';calc();document.getElementById('result').innerHTML+=' 无效态标尺已清空='+(document.getElementById('tumor_doublingRefBar').innerHTML==='');"
+    ],
+    "expect": [
+      "无效态标尺已清空=true"
+    ],
+    "ref": "L-N8 无效分支清旧标尺：先渲染 DT 标尺，再把 v1 置空触发无效分支（早退不再渲染）；修复前早退不清标尺 ⇒ 「无效态标尺已清空=false」。判别器清 clicks ⇒ 默认有效输入 + 无桩写入 + 无哨兵串。"
   }
 ];
 async function main() {

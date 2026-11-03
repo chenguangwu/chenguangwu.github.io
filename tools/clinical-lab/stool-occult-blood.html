@@ -162,6 +162,7 @@ s.parentNode.insertBefore(el, s);
         </div>
         <div><label>年龄</label><input type="number" id="age" value="50" step="1" oninput="analyze()" placeholder="如 50"></div>
       </div>
+      <div id="ageHint" style="font-size:12px;color:#d97706;margin:6px 0 0;"></div>
     </div>
 
     <div class="toolbar">
@@ -298,29 +299,51 @@ function selectChem(v){
   analyze();
 }
 
+function readAge(){
+  var raw=String(document.getElementById('age').value==null?'':document.getElementById('age').value).trim();
+  var hint=document.getElementById('ageHint');
+  if(raw===''){
+    if(hint) hint.textContent='未填写年龄：结果仅给出通用建议；补充 0–120 的整数年龄后可获得按年龄分层的筛查建议。';
+    return {state:'missing',n:null,band:'未提供年龄（仅通用建议）'};
+  }
+  if(!/^\d+$/.test(raw) || Number(raw)<0 || Number(raw)>120){
+    if(hint) hint.textContent='年龄需为 0–120 的整数（当前输入「'+raw+'」未参与判读）。';
+    return {state:'invalid',n:null,band:'年龄无效（未参与判读）'};
+  }
+  var n=Number(raw);
+  if(hint) hint.textContent='';
+  return {state:'ok',n:n,band:(n<45?'年龄 <45 岁':(n<50?'年龄 45–49 岁':'年龄 ≥50 岁'))};
+}
+
 function analyze(){
   var m=document.getElementById('method').value;
   var html='<h3 style="margin-bottom:8px;">判读结果</h3>';
 
   if(m==='immuno'){
     var r=document.getElementById('immunoResult').value;
-    var age=parseInt(document.getElementById('age').value,10)||50;
+    var ai=readAge();
+    var age=ai.n;
+    var ageNote='<div style="font-size:12px;color:var(--text-muted);margin-top:6px;">本次判读年龄段：'+ai.band+'</div>';
     if(r==='invalid'){
       html+='<div class="result-big" style="background:rgba(239,68,68,0.1);"><div class="v" style="color:#dc2626;">无效</div><div style="font-size:13px;color:var(--text-muted);">质控线未显色，检测失败</div></div>';
       html+='<div class="result-box"><p>质控线(C线)未显色提示试纸失效、操作不当或样本量不足。请使用新试纸重新采样检测，注意按照说明书的采样量和判读时间操作。</p></div>';
     } else if(r==='neg'){
       html+='<div class="result-big" style="background:rgba(16,185,129,0.1);"><div class="v" style="color:#059669;">阴性</div><div style="font-size:13px;color:var(--text-muted);">未检出人血红蛋白</div></div>';
-      html+='<div class="result-box"><p>结果阴性。'+(age>=50?'建议每年复查FIT作为结直肠癌筛查。':'若无消化道症状，定期体检即可。')+'</p></div>';
+      html+='<div class="result-box"><p>结果阴性。'+((age!=null&&age>=50)?'建议每年复查FIT作为结直肠癌筛查。':'若无消化道症状，定期体检即可。')+'</p>';
+      if(ai.state!=='ok') html+='<p style="color:#d97706;">年龄未提供或无效，以上为通用建议；请补充 0–120 的整数年龄以获取按年龄分层的筛查建议。</p>';
+      html+=ageNote+'</div>';
     } else if(r==='weak'){
       html+='<div class="result-big" style="background:rgba(245,158,11,0.1);"><div class="v" style="color:#d97706;">弱阳性</div><div style="font-size:13px;color:var(--text-muted);">检出微量人血红蛋白</div></div>';
       html+='<div class="result-box" style="border-left:4px solid #d97706;"><p>弱阳性提示下消化道微量出血。建议2-3周后复查，若仍为阳性需行肠镜检查。</p>';
-      if(age>=45) html+='<p style="color:#d97706;">年龄≥45岁，弱阳性也有临床意义，建议直接预约肠镜。</p>';
-      html+='</div>';
+      if(age!=null&&age>=45) html+='<p style="color:#d97706;">年龄≥45岁，弱阳性也有临床意义，建议直接预约肠镜。</p>';
+      if(ai.state!=='ok') html+='<p style="color:#d97706;">年龄未提供或无效，未套用「≥45 岁直接预约肠镜」的年龄分层建议；请补充 0–120 的整数年龄。</p>';
+      html+=ageNote+'</div>';
     } else {
       html+='<div class="result-big" style="background:rgba(239,68,68,0.1);"><div class="v" style="color:#dc2626;">阳性</div><div style="font-size:13px;color:var(--text-muted);">检出人血红蛋白</div></div>';
       html+='<div class="result-box" style="border-left:4px solid #dc2626;"><strong style="color:#dc2626;">FIT阳性 — 建议肠镜检查</strong>';
       html+='<p>阳性提示下消化道出血。FIT阳性者约5-10%为结直肠癌，30-40%有进展期腺瘤性息肉。</p>';
-      html+='<p style="font-size:12px;color:var(--text-muted);">需排除痔疮、肛裂等良性出血。建议尽快预约结肠镜检查明确病因。</p></div>';
+      html+='<p style="font-size:12px;color:var(--text-muted);">需排除痔疮、肛裂等良性出血。建议尽快预约结肠镜检查明确病因。</p>';
+      html+=ageNote+'</div>';
     }
   } else {
     // chemical method
@@ -330,9 +353,14 @@ function analyze(){
     var eatIron=document.getElementById('eatIron').checked;
 
     var pos = chemSelected!=='neg';
-    var realPos = pos;
+    // 阳性且近3天食用红肉 ⇒ 动物血红素可致假阳性，本次结果不可判读
+    var redMeatCause = pos && eatRed;
 
-    html+='<div class="result-big" style="background:'+(pos?'rgba(239,68,68,0.1)':'rgba(16,185,129,0.1)')+';"><div class="v" style="color:'+(pos?'#dc2626':'#059669')+';">'+c.label+'</div><div style="font-size:13px;color:var(--text-muted);">'+c.desc+'</div></div>';
+    if(redMeatCause){
+      html+='<div class="result-big" style="background:rgba(245,158,11,0.1);"><div class="v" style="color:#d97706;">受干扰不可判读</div><div style="font-size:13px;color:var(--text-muted);">化学法显色 '+c.label+'，但近3天食用红肉</div></div>';
+    } else {
+      html+='<div class="result-big" style="background:'+(pos?'rgba(239,68,68,0.1)':'rgba(16,185,129,0.1)')+';"><div class="v" style="color:'+(pos?'#dc2626':'#059669')+';">'+c.label+'</div><div style="font-size:13px;color:var(--text-muted);">'+c.desc+'</div></div>';
+    }
 
     // interferences
     var interfer=[];
@@ -343,11 +371,12 @@ function analyze(){
 
     if(interfer.length){
       html+='<div class="tip-box tip-warn"><strong>饮食/药物干扰提示：</strong><br>'+interfer.join('<br>')+'<br>建议：禁食红肉、动物血、维C、铁剂3天后复查化学法，或改用免疫法(FIT)。</div>';
-      if(eatRed) realPos=false; // can't trust positive if ate red meat
       if(eatVC && !pos) html+='<div class="tip-box tip-error">服用维生素C且结果阴性，可能为假阴性，建议停用维C后复查。</div>';
     }
 
-    if(realPos && chemSelected!=='trace'){
+    if(redMeatCause){
+      html+='<div class="result-box" style="border-left:4px solid #d97706;"><strong style="color:#d97706;">结论：受干扰不可判读</strong><p>本次化学法结果受饮食（红肉/动物血）干扰，不能判定为消化道出血，暂不作为阳性结论。</p><p>建议：禁食红肉、动物血、维生素C、铁剂3天后复查化学法；或直接改用免疫法(FIT)复查确认。</p></div>';
+    } else if(pos && chemSelected!=='trace'){
       html+='<div class="result-box" style="border-left:4px solid #dc2626;"><strong style="color:#dc2626;">化学法阳性</strong><p>排除饮食干扰后阳性，提示消化道出血。可能原因：</p><ul style="margin:6px 0 0 18px;font-size:13px;line-height:1.8;"><li>上消化道：消化性溃疡、胃癌、食管静脉曲张</li><li>下消化道：结直肠肿瘤、息肉、炎症性肠病、痔疮</li><li>其他：药物(阿司匹林/NSAIDs)相关性黏膜损伤</li></ul>';
       html+='<p style="font-size:12px;color:var(--text-muted);margin-top:6px;">建议：结合症状决定胃镜/肠镜检查。化学法对上消化道出血更敏感。</p></div>';
     } else if(chemSelected==='trace'){
