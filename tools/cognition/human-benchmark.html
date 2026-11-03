@@ -629,6 +629,9 @@ s.parentNode.insertBefore(el, s);
   };
 
   /* ---- 2.6 Chimp 测试 ---- */
+  // 数字标注与判定共用同一映射：positions[k] 显示数字 k+1，判定也按 positions 下标给序
+  function chimpNumAt(positions, cell) { return positions.indexOf(cell) + 1; }
+  window.chimpNumAt = chimpNumAt;
   function ChimpTest() {
     this.id = 'chimp'; this.icon = '🐵'; this.name = 'Chimp 测试';
     this.desc = '按升序点击隐藏的数字';
@@ -646,12 +649,13 @@ s.parentNode.insertBefore(el, s);
       gridEl.style.gridTemplateColumns = 'repeat(' + grid + ',1fr)';
       var total = Math.min(grid * grid, 2 + level);
       var positions = shuffle(Array.from({ length: grid * grid }, function (_, i) { return i; })).slice(0, total);
-      order = positions.slice().sort(function (a, b) { return a - b; });
+      // 判定顺序必须与屏幕标注一致：positions[k] 标注数字 k+1，故顺序即 positions
+      order = positions.slice();
       pickNext = 1;
       cells = []; const __h7='';if((typeof __h7==='number'&&!isFinite(__h7))||/Infinity/.test(String(__h7))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h7)){gridEl.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}gridEl.innerHTML=__h7;
       for (var i = 0; i < grid * grid; i++) { gridEl.appendChild(makeCell(i, -1)); }
       positions.forEach(function (pos, k) {
-        cells[pos].textContent = (k + 1);
+        cells[pos].textContent = chimpNumAt(positions, pos);
         cells[pos].classList.add('num');
       });
       log.textContent = '等级 ' + level;
@@ -672,10 +676,9 @@ s.parentNode.insertBefore(el, s);
     }
     function onClick(i) {
       if (cells[i].classList.contains('picked')) { return; }
-      // 找到该格对应的数字
-      var posIdx = order.indexOf(i);
-      if (posIdx === -1) { wrong(); return; }
-      var num = posIdx + 1;
+      // 找到该格对应的数字：与 start() 的标注共用 chimpNumAt，保证标注序号与判定序一致
+      var num = chimpNumAt(order, i);
+      if (num === 0) { wrong(); return; }
       if (num === pickNext) {
         cells[i].textContent = num; cells[i].classList.add('picked');
         beep(500 + num * 30, 0.05);

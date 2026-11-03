@@ -197,7 +197,7 @@ s.parentNode.insertBefore(el, s);
           <label>模糊半径 <span class="val" id="blurVal">20px</span></label>
           <input type="range" id="blur" min="0" max="100" value="20" oninput="update()">
         </div>
-        <div class="slider-group">
+        <div class="slider-group" id="spreadGroup">
           <label>扩展半径 <span class="val" id="spreadVal">-5px</span></label>
           <input type="range" id="spread" min="-30" max="30" value="-5" oninput="update()">
         </div>
@@ -254,7 +254,7 @@ s.parentNode.insertBefore(el, s);
       <li>在层列表中点击切换激活层，可单独编辑</li>
       <li>支持外阴影（向外扩散）和内阴影（向内嵌入）</li>
       <li>扩展半径为正值时阴影变大，负值时阴影变小</li>
-      <li>文字阴影模式支持文本阴影效果</li>
+      <li>文字阴影模式自动省略扩散半径（CSS text-shadow 不支持 spread）</li>
       <li>毛玻璃/玻璃态效果常用多层浅阴影组合</li>
     </ul>
   </div>
@@ -349,6 +349,7 @@ function setMode(m){
   document.querySelectorAll('.mode-tab').forEach(t => t.classList.toggle('active', t.dataset.mode === m));
   const preview = document.getElementById('preview');
   document.getElementById('insetRow').style.display = m === 'box' ? 'flex' : 'none';
+  document.getElementById('spreadGroup').style.display = m === 'box' ? '' : 'none';
   if(m === 'text'){
     preview.classList.add('text-mode');
     preview.textContent = 'ToolBox';
@@ -391,8 +392,11 @@ function syncColor(input){
 }
 
 function buildShadowStr(){
-  return layers.map(l => 
-    `${l.inset ? 'inset ' : ''}${l.x}px ${l.y}px ${l.blur}px ${l.spread}px ${l.color}`
+  // text-shadow 只有 offset-x offset-y blur color，没有 spread（第 4 个长度值会使整条声明非法）
+  return layers.map(l =>
+    mode === 'text'
+      ? `${l.x}px ${l.y}px ${l.blur}px ${l.color}`
+      : `${l.inset ? 'inset ' : ''}${l.x}px ${l.y}px ${l.blur}px ${l.spread}px ${l.color}`
   ).join(', ');
 }
 

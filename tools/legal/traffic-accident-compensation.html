@@ -154,8 +154,8 @@ s.parentNode.insertBefore(el, s);
     
         <div class="formula-box">
       <div class="formula-title">📐 计算公式 / 原理</div>
-      <div class="formula-eq">残疾赔偿金 = 可支配(或人均纯)收入 × 赔偿年限 × 伤残赔偿系数 × 责任比例; 误工费 = 月收入 ÷ 30 × 误工天数 × 责任比例</div>
-      <div class="formula-desc">残疾赔偿金按受诉法院地上一年度城镇居民人均可支配收入，结合伤残等级赔偿系数与赔偿年限（60周岁以下20年，60–74周岁每增1岁减1年，75周岁以上5年）及事故责任比例计算；另含医疗费、误工费（月收入÷30×误工天数）、住院伙食补助费与被扶养人生活费等，均按责任比例分担。</div>
+      <div class="formula-eq">交强险限额内不分责任比例（有责：医疗 1.8 万 / 死亡伤残 18 万 / 财产损失 2 千元；无责按无责限额），超出限额部分再由商业险/侵权人按责任比例承担；残疾赔偿金 = 可支配(或人均纯)收入 × 赔偿年限 × 伤残赔偿系数，误工费 = 月收入 ÷ 30 × 误工天数</div>
+      <div class="formula-desc">先由交强险在分项限额内全额赔付且不按责任比例打折（有责限额：医疗费用 1.8 万元、死亡伤残 18 万元、财产损失 2000 元；无责按无责限额），超出各分项限额的损失合计再乘以事故责任比例，由商业三者险或侵权人承担。残疾赔偿金按受诉法院地上一年度城镇居民人均可支配收入，结合伤残等级赔偿系数与赔偿年限（60周岁以下20年，60–74周岁每增1岁减1年，75周岁以上5年）计算；医疗费、误工费（月收入÷30×误工天数）、住院伙食补助费与被扶养人生活费等先计入对应分项再按上述规则赔付。</div>
     </div>
 <div class="input-row">
       <div>
@@ -375,7 +375,16 @@ function calculate(){
   const mentalDistress = disabilityRate > 0 ? (injuryLevel === 'death' ? 50000 : disabilityRate * 50000) : 0;
   
   const subtotal = medical + missedWork + nursing + hospitalFood + transport + disabilityDeath + funeralExpense + dependentExp + propertyLoss + mentalDistress;
-  const total = subtotal * liability;
+  // 交强险分项限额：有责/无责两种；限额内不按责任比例，超出部分才按责任比例分担
+  const ciMedicalLimit = liability > 0 ? 18000 : 1800;
+  const ciDeathLimit = liability > 0 ? 180000 : 18000;
+  const ciPropertyLimit = liability > 0 ? 2000 : 100;
+  const medicalBucket = medical + hospitalFood;
+  const deathBucket = missedWork + nursing + transport + disabilityDeath + funeralExpense + dependentExp + mentalDistress;
+  const propertyBucket = propertyLoss;
+  const ciTotal = Math.min(medicalBucket, ciMedicalLimit) + Math.min(deathBucket, ciDeathLimit) + Math.min(propertyBucket, ciPropertyLimit);
+  const excess = Math.max(0, subtotal - ciTotal);
+  const total = ciTotal + excess * liability;
   
   let html = `<h3 style="margin-bottom:8px;">${taL('赔偿明细','Compensation Details')}</h3>`;
   html += `<p>${taL('医疗费：','Medical expenses:')}${ToolBox.formatNumber(medical)} ${taL('元','yuan')}</p>`;
@@ -398,11 +407,13 @@ function calculate(){
   }
   html += `<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">`;
   html += `<p>${taL('损失合计：','Total loss:')}${ToolBox.formatNumber(subtotal)} ${taL('元','yuan')}</p>`;
+  html += `<p>${taL('交强险限额内赔付：','Paid within compulsory insurance limits:')}<strong>${ToolBox.formatNumber(ciTotal)}</strong> ${taL('元（不分责任比例）','yuan (no liability apportionment)')}</p>`;
+  html += `<p>${taL('超出交强险限额部分：','Excess above compulsory insurance limits:')}${ToolBox.formatNumber(excess)} ${taL('元，按责任比例承担：','yuan, borne at the liability share:')}<strong>${ToolBox.formatNumber(excess * liability)}</strong> ${taL('元','yuan')}</p>`;
   html += `<p>${taL('责任比例：','Liability ratio:')}<strong>${Math.round(liability*100)}%</strong></p>`;
   html += `<p>${taL('对方应赔偿：','Other party shall pay:')}<strong style="color:var(--primary);font-size:18px;">${ToolBox.formatNumber(total)}</strong> ${taL('元','yuan')}</p>`;
-  html += `<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">${taL('注：交强险限额内不分责任，超出部分按责任比例；护理费、伙食补助、精神抚慰金等因地而异，仅供参考','Note: within the compulsory insurance limit liability is not apportioned; beyond it the ratio applies; nursing, food and solatium vary by region, for reference only')}</p>`;
+  html += `<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">${taL('注：交强险在分项限额内不按责任比例（有责限额：医疗 1.8 万、死亡伤残 18 万、财产 2 千元），超出部分再按责任比例；护理费、伙食补助、精神抚慰金等因地而异，仅供参考','Note: compulsory insurance pays within its sub-limits regardless of liability share (liable limits: 18,000 medical, 180,000 death/disability, 2,000 property); only the excess is apportioned by liability. Nursing, food allowance and solatium vary by region, for reference only')}</p>`;
 
-  __taD = {liability: liability, injuryLevel: injuryLevel, age: age, subtotal: subtotal, total: total, medical: medical, missedWork: missedWork, disabilityDeath: disabilityDeath, funeralExpense: funeralExpense, mentalDistress: mentalDistress, dependentExp: dependentExp};
+  __taD = {liability: liability, injuryLevel: injuryLevel, age: age, subtotal: subtotal, ciTotal: ciTotal, excess: excess, total: total, medical: medical, missedWork: missedWork, disabilityDeath: disabilityDeath, funeralExpense: funeralExpense, mentalDistress: mentalDistress, dependentExp: dependentExp};
   window.__taChart = {labels: [], data: []};
   var taItems = [['医疗费','Medical expenses',medical],['误工费','Lost income',missedWork],['护理费','Nursing',nursing],['住院伙食补助','Hospital food',hospitalFood],['交通费','Transport',transport],['残疾/死亡赔偿金','Disability/Death comp',disabilityDeath],['丧葬费','Funeral',funeralExpense],['被扶养人生活费','Dependent living',dependentExp],['财产损失','Property loss',propertyLoss],['精神抚慰金','Solatium',mentalDistress]];
   for(var ti=0; ti<taItems.length; ti++){ if(taItems[ti][2] > 0){ window.__taChart.labels.push(taL(taItems[ti][0], taItems[ti][1])); window.__taChart.data.push(taItems[ti][2]); } }
@@ -426,6 +437,8 @@ function __taExtras(){
       [taL('精神抚慰金','Solatium'), ToolBox.formatNumber(__taD.mentalDistress)],
       [taL('被扶养人生活费','Dependent living'), ToolBox.formatNumber(__taD.dependentExp)],
       [taL('损失合计','Total loss'), ToolBox.formatNumber(__taD.subtotal)],
+      [taL('交强险赔付','Compulsory insurance'), ToolBox.formatNumber(__taD.ciTotal)],
+      [taL('超出限额部分','Excess over limits'), ToolBox.formatNumber(__taD.excess)],
       [taL('对方应赔偿','Payable by other'), ToolBox.formatNumber(__taD.total)]
     ];
     TBKit.matrix.table('#taTable', {head:[taL('项目','Item'), taL('数值','Value')], rows: rows});

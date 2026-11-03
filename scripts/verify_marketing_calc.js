@@ -57,6 +57,22 @@ const CASES = [
        + "原 100/50 即页面默认态，150.00/33.33 回退默认仍命中 ⇒ 逃生项，已换非默认输入。",
   },
   {
+    slug: "marketing/marketing-markup-margin",
+    clicks: [
+      "switchMode('convert');document.getElementById('convMarkup').value='120';calc();",
+    ],
+    expect: ["利润率（售价基数） 54.55%"],
+    ref: "换算模式加价率 120% → 利润率 = 120/(1+120/100) = 54.55%（原实现多乘 100 得 5454.55%，数量级错 100 倍）；输入 120 非页面默认 50，默认态不含该串。",
+  },
+  {
+    slug: "marketing/marketing-markup-margin",
+    clicks: [
+      "switchMode('convert');document.getElementById('convMarkup').value='-50';calc();",
+    ],
+    expect: ["加价率不可为负"],
+    ref: "负加价率应拒绝并提示，不得输出负利润率或触发除零/反向换算；原实现 -50 → -10000% 且无提示。",
+  },
+  {
     slug: "marketing/marketing-discount-rate",
     inputs: { origPrice: "200", discountPct: "20" },
     expect: ["160.00", "40.00"],
@@ -927,9 +943,9 @@ const CASES = [
       "convMargin": "42"
     },
     "expect": [
-      "润率（售价基数） 2957.75% 相关指标 42.0% 加价率 2957.7% 利润率 ¥42 单位利润 1.42"
+      "利润率（售价基数） 29.58% 相关指标 42.0% 加价率 29.6% 利润率 ¥42 单位利润 1.42"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"costMarkup\":\"42\",\"markupRate\":\"42\",\"costMargin\":\"42\",\"marginRate\":\"42\",\"convMarkup\":\"42\",\"convMargin\":\"42\"}，输出区含「润率（售价基数） 2957.75% 相关指标 42.0% 加价率 2957.7%…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"costMarkup\":\"42\",\"markupRate\":\"42\",\"costMargin\":\"42\",\"marginRate\":\"42\",\"convMarkup\":\"42\",\"convMargin\":\"42\"}，换算模式加价率 42% → 利润率 = 42/(1+42/100) = 29.58%（原实现多乘 100 得 2957.75%，数量级错 100 倍）；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "marketing/marketing-ltv-cac-ratio",

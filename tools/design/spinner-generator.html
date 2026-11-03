@@ -182,6 +182,7 @@ s.parentNode.insertBefore(el, s);
     </div>
     <label>预览</label>
     <div class="result-box" id="output"><div class="preview-area" id="preview"></div></div> <div id="spinner_generatorTable"></div> <div id="spinner_generatorDiff"></div> <div id="spinner_generatorChart"></div> <div id="spinner_generatorHist"></div>
+    <style id="spinnerPreviewStyle"></style>
     <textarea id="cssOutput" readonly style="margin-top:12px;min-height:160px;font-family:monospace;font-size:12px;"></textarea>
   </div>
 
@@ -280,8 +281,8 @@ function generate(){
     css = `@keyframes bounceGen {\n  0%, 100% { transform: scale(0.5); opacity: 0.5; }\n  50% { transform: scale(1); opacity: 1; }\n}\n.spinner {\n  width: ${size}px;\n  height: ${size}px;\n  background: ${color};\n  border-radius: 50%;\n  animation: bounceGen ${speed}s ease-in-out infinite;\n}`;
   } else if(type === 'bars'){
     let bars = '';
-    for(let i=0;i<5;i++) bars += `<div style="animation-delay:${i*0.1}s;"></div>`;
-    html = `<div style="display:flex;gap:4px;align-items:flex-end;height:${size}px;">${bars.replace(/<div/g, `<div style="width:6px;background:${color};animation:barsGen ${speed}s ease-in-out infinite;animation-delay:`).replace(/animation-delay:([0-9.]+)s;"><\/div>/g, '$1s;"></div>')}</div>`;
+    for(let i=0;i<5;i++) bars += `<div style="width:6px;background:${color};animation:barsGen ${speed}s ease-in-out infinite;animation-delay:${i*0.1}s;"></div>`;
+    html = `<div style="display:flex;gap:4px;align-items:flex-end;height:${size}px;">${bars}</div>`;
     let barsCss = '';
     for(let i=0;i<5;i++) barsCss += `.spinner div:nth-child(${i+1}) { animation-delay: ${i*0.1}s; }\n`;
     css = `@keyframes barsGen {\n  0%, 100% { height: ${size*0.2}px; }\n  50% { height: ${size}px; }\n}\n.spinner {\n  display: flex;\n  gap: 4px;\n  align-items: flex-end;\n  height: ${size}px;\n}\n.spinner div {\n  width: 6px;\n  background: ${color};\n  animation: barsGen ${speed}s ease-in-out infinite;\n}\n${barsCss}`;
@@ -295,6 +296,24 @@ function generate(){
   }
   const __h0='<div class="spinner">'+html+'</div>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('preview').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('preview').innerHTML=__h0;
   document.getElementById('cssOutput').value = css;
+  const previewStyle = document.getElementById('spinnerPreviewStyle');
+  if(previewStyle) previewStyle.textContent = extractKeyframes(css);
+}
+// 从生成的 CSS 中提取 @keyframes 块；仅注入动画定义，避免 .spinner 规则重复作用于外层容器
+function extractKeyframes(css){
+  let out = '', idx = 0;
+  while((idx = css.indexOf('@keyframes', idx)) >= 0){
+    const brace = css.indexOf('{', idx);
+    if(brace < 0) break;
+    let depth = 0, i = brace;
+    for(; i < css.length; i++){
+      if(css[i] === '{') depth++;
+      else if(css[i] === '}'){ depth--; if(depth === 0){ i++; break; } }
+    }
+    out += css.slice(idx, i) + '\n';
+    idx = i;
+  }
+  return out;
 }
 function copyResult(){
   const text = document.getElementById('cssOutput').value;

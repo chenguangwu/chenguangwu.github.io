@@ -87,6 +87,16 @@ const CASES = [
      + "成绩存 localStorage 历史；无表单输入路径可注入，注入 tArea 不触发任何渲染（2026-09-25 实测）。"
 },
 {
+  "slug": "cognition/human-benchmark",
+  "clicks": [
+    "var P=[6,1,4,8];document.getElementById('cLog').textContent='CHIMP-MAP:'+window.chimpNumAt(P,6)+window.chimpNumAt(P,1)+window.chimpNumAt(P,4)+window.chimpNumAt(P,8);"
+  ],
+  "expect": [
+    "CHIMP-MAP:1234"
+  ],
+  "ref": "Chimp 标注/判定一致性（N5-D）：固定位置序列 P=[6,1,4,8] 下，P[k] 屏幕标注 k+1，判定序也必须按 P 的下标给出同一序号 ⇒ 期望 1234。旧实现判定序为 positions 升序排序（排序后与标注错位，答对判错/答错判对），且无 chimpNumAt 共用映射 ⇒ 本串不成立。非默认态注入、避开页面默认渲染。"
+},
+{
   "slug": "cognition/nback-training",
   "inputs": {
     "nbDur": "1350",

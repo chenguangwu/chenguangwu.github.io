@@ -2033,6 +2033,26 @@ const CASES = [
     clicks: ["applyPreset(21);"],
     expect: ["box-shadow: 0px 20px 25px -5px rgba(0,0,0,0.1), 0px 8px 10px -6px rgba(0,0,0,0.1);"],
     ref: "TW xl 预设（index 21，Tailwind shadow-2xl）：两层 rgba 保留原串。默认态零交集。"
+  },
+  {
+    slug: "design/shadow-generator",
+    inputs: { offsetX: "6", offsetY: "8", blur: "14", spread: "7", color: "#f43f5e", colorText: "#f43f5e" },
+    // setMode('text') 后把预览的内联 textShadow 追加进 code 元素，一次校验导出与预览同步
+    clicks: ["setMode('text'); document.getElementById('code').textContent += ' | ' + document.getElementById('preview').style.textShadow;"],
+    expect: ["text-shadow: 6px 8px 14px #f43f5e; | 6px 8px 14px #f43f5e"],
+    ref: "N4-C text-shadow 只有 offset-x offset-y blur color：即使扩散=7px 也必须省略第 4 个长度值，"
+       + "导出声明与预览内联值一致为「6px 8px 14px #f43f5e」。旧实现拼成「6px 8px 14px 7px #f43f5e」，"
+       + "整条声明非法；默认 box 模式输出含 spread，本用例只锚文字阴影模式。"
+  },
+  {
+    slug: "design/spinner-generator",
+    inputs: { size: "64", speed: "2", spinType: "border" },
+    // generate() 后读取预览专用 <style>，用前缀锚定，避免误命中 textarea 里本就存在的一份 keyframes
+    clicks: ["document.getElementById('output').textContent = 'PREVIEWSTYLE:' + document.getElementById('spinnerPreviewStyle').textContent;"],
+    expect: ["PREVIEWSTYLE:@keyframes spinGen { to { transform: rotate(360deg); } }"],
+    ref: "N4-D 预览动画：keyframes 必须真正进入预览样式节点（旧页面从未注入，预览只读到内联 animation 而无"
+       + "对应 @keyframes ⇒ 全静止）。前缀 PREVIEWSTYLE 确保区分于 cssOutput 导出文本；默认 generate() 同样"
+       + "执行但旧实现该前缀后为空，故可强判别修复前后。"
   }
 
 ];

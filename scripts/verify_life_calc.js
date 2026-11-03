@@ -1619,12 +1619,13 @@ const CASES = [
   {
     "slug": "life/detector-checker-strength",
     "inputs": {
-      "pwdInput": "abc123测试"
+      "pwdInput": "aaaaaaa111"
     },
     "expect": [
-      "要在多处重复使用。\n隐藏"
+      "安全等级： 弱",
+      "预估破解时间：不到 1 秒"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"pwdInput\":\"abc123测试\"}，输出区含「要在多处重复使用。\n隐藏」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "N4-A 弱口令一致性：9 位重复字符（7×a + 2×1）按去重熵模型仅 10.3 bits，等级必须为「弱」且破解时间为「不到 1 秒」，不得再显示「极强」。旧模型给 aaaaaaa111 打出 100/100 极强、破解 4 天，两者自相矛盾；默认态无输入不产出该串 ⇒ 强判别。"
   },
   {
     "slug": "life/energy-converter",
@@ -2080,6 +2081,59 @@ const CASES = [
     expect: ["一千零一点零五"],
     ref: "W3-A 小数与组内零：1001.05 ⇒ 一千零一点零五（组内缺位补零、小数逐位读）。"
        + "默认 loadExample(100200300) 输出不含「点零五」，注入失败不命中。",
+  },
+  {
+    slug: "life/detector-checker-strength",
+    inputs: { pwdInput: "abcdefghijk" },
+    expect: ["安全等级： 一般", "预估破解时间：4 天"],
+    ref: "N4-A 等级与破解时长同源：11 位不重复小写字母熵 51.7 bits，按 10^10 次/秒折算约 4 天；"
+       + "4 天量级必须判「一般」而非旧模型的「极强」，两条输出同时命中才算一致。",
+  },
+  {
+    slug: "life/detector-checker-strength",
+    inputs: { pwdInput: "Password1!" },
+    expect: ["安全等级： 一般", "预估破解时间：29 分钟"],
+    ref: "N4-A 字典子串惩罚：Password1! 含四类字符但包含常见词 password，熵 59.0−15=44.0 bits ⇒"
+       + " 等级「一般」、破解约 29 分钟；旧模型给极强/4 天，等级与时长矛盾。",
+  },
+  {
+    slug: "life/detector-checker-strength",
+    inputs: { pwdInput: "Tq7!mK9@pL2#" },
+    expect: ["安全等级： 强", "预估破解时间：151 万年"],
+    ref: "N4-A 高熵口令：12 位不重复四类字符熵 78.7 bits ⇒「强」、破解 151 万年；"
+       + "证明等级与同一熵值推导的破解时长保持一致（旧模型 100/100 极强但同屏 4 天）。",
+  },
+  {
+    slug: "life/countdown-timer",
+    inputs: {},
+    clicks: ["addPreset('新年', 1, 1);"],
+    expect: ["目标时间: 2025-01-01 00:00"],
+    ref: "N4-B 时区 off-by-one：冻结基准日 2024-06-15，元旦预设应落到本地 2025-01-01 00:00（旧实现用"
+       + " toISOString 在东八区得到 2024-12-31）。不锚「还有 200 天」，renderHolidays 默认态同样输出该天数，会逃生。",
+  },
+  {
+    slug: "life/countdown-timer",
+    inputs: {},
+    clicks: ["addPreset('国庆', 10, 1);"],
+    expect: ["目标时间: 2024-10-01 00:00"],
+    ref: "N4-B 国庆固定 10 月 1 日：本地日期串必须是 2024-10-01（旧实现回退成 2024-09-30）。"
+       + "不锚「还有 108 天」，renderHolidays 默认态同样输出该天数，会逃生。",
+  },
+  {
+    slug: "life/countdown-timer",
+    inputs: {},
+    clicks: ["addPreset('春节', 1, 29, true);"],
+    expect: ["目标时间: 2025-01-29 00:00", "还有 228 天"],
+    ref: "N4-B 春节按农历表取公历：基准日 2024-06-15 的下一个春节是 2025-01-29（权威日期），"
+       + "旧实现硬编码 1/29 且 toISOString 又提前一天成 2025-01-28。",
+  },
+  {
+    slug: "life/countdown-timer",
+    inputs: {},
+    clicks: ["document.getElementById('my-events').textContent='SPRING2027:'+springFestivalDate(2027);"],
+    expect: ["SPRING2027:2027-02-06"],
+    ref: "N4-B 权威农历表：2027 年春节为 2 月 6 日（旧硬编码 1/29 无法覆盖），"
+       + "直接读取表内年份秒验；默认态不含 SPRING2027 前缀。",
   }
 
 ];

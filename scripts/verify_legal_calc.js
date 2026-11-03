@@ -112,6 +112,16 @@ const CASES = [
   },
   {
     slug: "legal/traffic-accident-compensation",
+    inputs: {
+      liability: "0.5", injuryLevel: "0", age: "30", disposableIncome: "60000",
+      avgWage: "0", dependentExpense: "0", medicalExpense: "30000",
+      hospitalDays: "0", monthlyIncome: "0", missedDays: "0",
+    },
+    expect: ["对方应赔偿： 26,500"],
+    ref: "损失合计=医疗30000+交通500+财产2000=32500；交强险有责限额内：医疗18000+死亡伤残500+财产2000=20500 不分责；超出12000×50%=6000 ⇒ 对方应赔 20500+6000=26500。旧实现 32500×0.5=16250（交强险也被打折），防回归。",
+  },
+  {
+    slug: "legal/traffic-accident-compensation",
     inputs: { liability: "1", injuryLevel: "10", age: "30", disposableIncome: "60000" },
     expect: ["120,000"],
     ref: "十级系数=0.1：残疾赔偿金=60000×20年×0.1=120,000（" + "10%" + "不依赖收入，属逃生项，已剔除）",

@@ -940,6 +940,22 @@ const CASES = [
     ref: "页面三个复选框在 HTML 里均带 checked（真机默认全勾选），而 harness 桩的 checked 恒 false ⇒ 必须用 checkIds 显式还原真机默认态，否则 minify() 三个开关全假、走「不改动」分支，输出恒等于输入。输入 32 字符：移除 <!-- x --> 后 `</p>` 与 `<p>` 之间的空白被 `>\\s+<`→`><` 折叠 ⇒ 产物 <p>a</p><p>b</p>（16 字符），压缩率 (1−16/32)×100 = 50.0%。两项期望都来自压缩计算、非输入回显（输入归一后为 `<p>a</p> <!-- x --> <p>b</p>`，与产物不同）。python 独立复算一致。",
   },
   {
+    slug: "it/html-minifier",
+    inputs: { input: "<span>a</span>\n\n<span>b</span>" },
+    checkIds: ["safeMode", "removeComments", "collapseWhitespace"],
+    clicks: ["minify()"],
+    expect: ["<span>a</span> <span>b</span>", "3.3%"],
+    ref: "N2-B 回归（行内元素边界）：输入 30 字符，压缩后应为 29 字符 —— 两个 <span> 之间的换行+空行折叠为单个空格并保留 ⇒ 可见文本仍是 `a b`；修复前 `>\\s+<`→`><` 会把空格一起删掉压成 28 字符 `<span>a</span><span>b</span>`（文本粘连成 `ab`），压缩率 6.7%、且不命中本 expect。默认示例输入不含 span，默认态不命中。",
+  },
+  {
+    slug: "it/html-minifier",
+    inputs: { input: "<pre>a  b</pre>\n\n<span>c</span>" },
+    checkIds: ["safeMode", "removeComments", "collapseWhitespace"],
+    clicks: ["minify()"],
+    expect: ["<pre>a  b</pre> <span>c</span>", "3.2%"],
+    ref: "N2-B 回归（pre 保护 + 行内边界）：输入 31 字符（15 字符 `<pre>a  b</pre>` + 2 个换行 + 14 字符 span），<pre> 内双空格必须原样保留；<pre> 与 <span> 之间只保留一个空格 ⇒ 输出 30 字符，压缩率 (1−30/31)×100 = 3.2%。修复前安全模式的正则连 span 前的空格一起删掉（29 字符 / 6.5%），且不命中带空格的 expect。",
+  },
+  {
     slug: "it/python-formatter",
     inputs: { input: "x=1\nif x>0:\n  print(x)" },
     clicks: ["doMinify()"],
@@ -2827,6 +2843,20 @@ const CASES = [
     inputs: { batchInput: "10.0.0.0 255.255.0.0\n300.1.1.1/24\n192.168.1.5" },
     expect: ["共 3 条：有效 2，无效 1"],
     ref: "批量 CIDR 解析·混合容错：点分掩码 255.255.0.0 ⇒ /16（65,534 主机）；300.x 越界 ⇒ ❌ 无效；裸 IP ⇒ /32（网络=广播=自身、1 主机）。⚠ 主机数/掩码串撞掩码对照表不可作锚，统计串独占（对照表无「共 N 条」格式）。与上条统计串不同 ⇒ 互不命中、判别器可区分。",
+  },
+  {
+    slug: "it/ip-calculator",
+    inputs: { subnetBase: "10.10.0.0", subnetOldMask: "20", subnetNewMask: "23" },
+    clicks: ["calcSubnets()"],
+    expect: ["1 10.10.0.0/23 10.10.0.1 10.10.1.254 10.10.1.255", "8 10.10.14.0/23 10.10.14.1 10.10.15.254 10.10.15.255"],
+    ref: "N2-A 子网划分回归：原 /20 (10.10.0.0) 改为 /23 ⇒ 2^(23−20)=8 个子网、每子网 2^9−2=510 主机。地址加减全走 BigInt（修复前 `networkInt + BigInt(i)` 混算抛 TypeError，循环不执行 ⇒ 表格为空、两条均不命中）。逐行复算：第 1 个子网 10.10.0.0/23，首/末可用 10.10.0.1 / 10.10.1.254，广播 10.10.1.255；第 8 个（索引 7）网络 = 10.10.0.0 + 7×512 = 10.10.14.0，首/末 10.10.14.1 / 10.10.15.254，广播 10.10.15.255。输入避开页面默认值 192.168.1.0/24→/26。",
+  },
+  {
+    slug: "it/ip-calculator",
+    inputs: { subnetBase: "0.0.0.0", subnetOldMask: "16", subnetNewMask: "24" },
+    clicks: ["calcSubnets()"],
+    expect: ["256 0.0.255.0/24 0.0.255.1 0.0.255.254 0.0.255.255"],
+    ref: "N2-A 合法零地址回归：0.0.0.0 的 ipToInt 返回 0，修复前 `!baseInt` 会误判非法、直接返回（表格永远为空）。/16→/24 ⇒ 256 个子网，第 N 行（从 1 计）网络 = (N−1)×256 ⇒ 第 256 行 = 255×256 = 65280 = 0x0000FF00 = 0.0.255.0，首/末可用 0.0.255.1 / 0.0.255.254、广播 0.0.255.255。",
   },
   // ── .gitignore 生成（勾选技术栈 → 拼接忽略规则）──
   {

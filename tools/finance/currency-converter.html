@@ -534,14 +534,19 @@ function renderPairTable(){
   }
   h += '</tbody></table>';
   h += '<div style="margin-top:6px;font-size:12px;color:var(--text-muted);">' +
-    (manual ? (en ? 'Source: manual rate (your input).' : '汇率来源：手动汇率（你填写）。')
+    (manual ? (en ? 'Source: manual rate (current pair only).' : '汇率来源：手动汇率（仅当前币种对生效）。')
             : (en ? 'Source: built-in static reference (2025-07), not live.' : '汇率来源：内置静态参考值（2025-07），非实时。')) + '</div>';
   host.innerHTML = h;
 }
 
 function convert(amount, from, to){
+  if (from === to) return amount;
   var mr = (typeof __ccManualRate === 'function') ? __ccManualRate() : null;
-  if (mr) return amount * mr;
+  if (mr){
+    // 手动汇率只对当前选中的币种对生效：1 FROM = mr TO；反向按倒数换算
+    if (from === fromCurrency && to === toCurrency) return amount * mr;
+    if (from === toCurrency && to === fromCurrency) return amount / mr;
+  }
   var usd = toUSD(amount, from);
   return fromUSD(usd, to);
 }

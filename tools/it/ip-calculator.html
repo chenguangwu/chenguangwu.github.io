@@ -752,58 +752,70 @@ function loadV6Example(addr) {
 }
 
 function calcSubnets() {
-  const baseIp = document.getElementById('subnetBase').value.trim();
-  const oldMask = parseInt(document.getElementById('subnetOldMask').value);
-  const newMask = parseInt(document.getElementById('subnetNewMask').value);
-  
-  const baseInt = ipToInt(baseIp);
-  if (!baseInt || isNaN(oldMask) || isNaN(newMask) || newMask <= oldMask || newMask > 32) {
-    const __h7='<div class="info-box" style="background:#ffebee;border-color:#ef9a9a;color:#c62828;">请输入有效的参数（新前缀必须大于原前缀）</div>';if((typeof __h7==='number'&&!isFinite(__h7))||/Infinity/.test(String(__h7))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h7)){document.getElementById('subnetInfo').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('subnetInfo').innerHTML=__h7;
-    const __h8='';if((typeof __h8==='number'&&!isFinite(__h8))||/Infinity/.test(String(__h8))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h8)){document.getElementById('subnetTable').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('subnetTable').innerHTML=__h8;
-    return;
+  const infoBox = document.getElementById('subnetInfo');
+  const tableBox = document.getElementById('subnetTable');
+  try {
+    const baseIp = document.getElementById('subnetBase').value.trim();
+    const oldMask = parseInt(document.getElementById('subnetOldMask').value);
+    const newMask = parseInt(document.getElementById('subnetNewMask').value);
+
+    const baseInt = ipToInt(baseIp);
+    // 用 === null 而非 !baseInt：0.0.0.0 是合法网段（ipToInt 返回 0），不能被当作非法输入
+    if (baseInt === null || isNaN(oldMask) || isNaN(newMask) || oldMask < 0 || oldMask > 32 || newMask <= oldMask || newMask > 32) {
+      infoBox.innerHTML = '<div class="info-box" style="background:#ffebee;border-color:#ef9a9a;color:#c62828;">请输入有效的参数（新前缀必须大于原前缀）</div>';
+      tableBox.innerHTML = '';
+      return;
+    }
+
+    const oldMaskInt = oldMask === 0 ? 0 : (0xFFFFFFFF << (32 - oldMask)) >>> 0;
+    const networkInt = (baseInt & oldMaskInt) >>> 0;
+
+    const subnetCount = Math.pow(2, newMask - oldMask);
+    const newMaskInt = (0xFFFFFFFF << (32 - newMask)) >>> 0;
+    const subnetSize = Math.pow(2, 32 - newMask);
+    const hostsPerSubnet = newMask >= 31 ? (newMask === 31 ? 2 : 1) : subnetSize - 2;
+
+    infoBox.innerHTML = `
+      <div class="stat-grid">
+        <div class="stat-card"><div class="val">${subnetCount}</div><div class="lbl">子网数量</div></div>
+        <div class="stat-card"><div class="val">${hostsPerSubnet.toLocaleString()}</div><div class="lbl">每子网主机数</div></div>
+        <div class="stat-card"><div class="val">/${newMask}</div><div class="lbl">新前缀</div></div>
+        <div class="stat-card"><div class="val">${intToIp(newMaskInt)}</div><div class="lbl">新掩码</div></div>
+      </div>
+    `;
+
+    let tableHtml = '<table class="subnet-table"><thead><tr><th>#</th><th>网络地址</th><th>首可用</th><th>末可用</th><th>广播地址</th></tr></thead><tbody>';
+    const showCount = Math.min(subnetCount, 256);
+    // 地址加减统一用 BigInt：Number 与 BigInt 不能混算（否则 TypeError: Cannot mix BigInt and other types）
+    const networkBig = BigInt(networkInt);
+    const sizeBig = BigInt(subnetSize);
+
+    for (let i = 0; i < showCount; i++) {
+      const subnetNetwork = networkBig + BigInt(i) * sizeBig;
+      const broadcast = subnetNetwork + sizeBig - 1n;
+      const firstHost = newMask >= 31 ? subnetNetwork : subnetNetwork + 1n;
+      const lastHost = newMask >= 31 ? broadcast : broadcast - 1n;
+
+      tableHtml += `<tr>
+        <td>${i + 1}</td>
+        <td>${intToIp(Number(subnetNetwork))}/${newMask}</td>
+        <td>${intToIp(Number(firstHost))}</td>
+        <td>${intToIp(Number(lastHost))}</td>
+        <td>${intToIp(Number(broadcast))}</td>
+      </tr>`;
+    }
+
+    tableHtml += '</tbody></table>';
+    if (subnetCount > 256) {
+      tableHtml += `<p style="text-align:center;color:var(--text-muted);font-size:12px;padding:12px;">仅显示前256个子网，共 ${subnetCount} 个</p>`;
+    }
+
+    tableBox.innerHTML = tableHtml;
+  } catch (e) {
+    // 兜底：任何异常都转成页面提示，不再把 TypeError 冒泡到 onclick
+    infoBox.innerHTML = '<div class="info-box" style="background:#ffebee;border-color:#ef9a9a;color:#c62828;">请输入有效的参数（新前缀必须大于原前缀）</div>';
+    tableBox.innerHTML = '';
   }
-  
-  const oldMaskInt = oldMask === 0 ? 0 : (0xFFFFFFFF << (32 - oldMask)) >>> 0;
-  const networkInt = (baseInt & oldMaskInt) >>> 0;
-  
-  const subnetCount = Math.pow(2, newMask - oldMask);
-  const newMaskInt = (0xFFFFFFFF << (32 - newMask)) >>> 0;
-  const subnetSize = Math.pow(2, 32 - newMask);
-  const hostsPerSubnet = newMask >= 31 ? (newMask === 31 ? 2 : 1) : subnetSize - 2;
-  
-  const __h9=`
-    <div class="stat-grid">
-      <div class="stat-card"><div class="val">${subnetCount}</div><div class="lbl">子网数量</div></div>
-      <div class="stat-card"><div class="val">${hostsPerSubnet.toLocaleString()}</div><div class="lbl">每子网主机数</div></div>
-      <div class="stat-card"><div class="val">/${newMask}</div><div class="lbl">新前缀</div></div>
-      <div class="stat-card"><div class="val">${intToIp(newMaskInt)}</div><div class="lbl">新掩码</div></div>
-    </div>
-  `;if((typeof __h9==='number'&&!isFinite(__h9))||/Infinity/.test(String(__h9))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h9)){document.getElementById('subnetInfo').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('subnetInfo').innerHTML=__h9;
-  
-  let tableHtml = '<table class="subnet-table"><thead><tr><th>#</th><th>网络地址</th><th>首可用</th><th>末可用</th><th>广播地址</th></tr></thead><tbody>';
-  const showCount = Math.min(subnetCount, 256);
-  
-  for (let i = 0; i < showCount; i++) {
-    const subnetNetwork = (networkInt + BigInt(i) * BigInt(subnetSize)) >>> 0;
-    const broadcast = (subnetNetwork + BigInt(subnetSize - 1)) >>> 0;
-    const firstHost = newMask >= 31 ? subnetNetwork : (subnetNetwork + 1) >>> 0;
-    const lastHost = newMask >= 31 ? broadcast : (broadcast - 1) >>> 0;
-    
-    tableHtml += `<tr>
-      <td>${i + 1}</td>
-      <td>${intToIp(Number(subnetNetwork))}/${newMask}</td>
-      <td>${intToIp(Number(firstHost))}</td>
-      <td>${intToIp(Number(lastHost))}</td>
-      <td>${intToIp(Number(broadcast))}</td>
-    </tr>`;
-  }
-  
-  tableHtml += '</tbody></table>';
-  if (subnetCount > 256) {
-    tableHtml += `<p style="text-align:center;color:var(--text-muted);font-size:12px;padding:12px;">仅显示前256个子网，共 ${subnetCount} 个</p>`;
-  }
-  
-  const __h10=tableHtml;if((typeof __h10==='number'&&!isFinite(__h10))||/Infinity/.test(String(__h10))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h10)){document.getElementById('subnetTable').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('subnetTable').innerHTML=__h10;
 }
 
 function buildMaskTable(){

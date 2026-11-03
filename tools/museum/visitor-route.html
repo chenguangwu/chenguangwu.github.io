@@ -328,6 +328,7 @@ function dijkstra(graph, start, end){
     if(u === end) break;
     graph[u].forEach(function(item){
       var v = item.to, w = item.w;
+      if(visited[v]) return;
       if(dist[u] + w < dist[v]){ dist[v] = dist[u] + w; prev[v] = u; }
     });
   }
@@ -336,7 +337,14 @@ function dijkstra(graph, start, end){
   var path = [];
   var cur = end;
   if(dist[end] === Infinity) return null;
-  while(cur != null){ path.unshift(cur); cur = prev[cur]; }
+  // 回溯必须有访问集合与步数上限：负权/异常数据可能让 prev 成环，避免无限回溯冻结页面
+  var seen = {}, steps = 0;
+  while(cur != null && !seen[cur] && steps <= nodes.length){
+    seen[cur] = true;
+    path.unshift(cur);
+    cur = prev[cur];
+    steps++;
+  }
   return {path:path, dist:dist[end]};
 }
 
@@ -348,12 +356,15 @@ function compute(){
   if(!start || !end){ const __h6='<p>请选择起终点</p>';if((typeof __h6==='number'&&!isFinite(__h6))||/Infinity/.test(String(__h6))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h6)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h6; return; }
   if(start === end){ const __h7='<p>起点与终点相同，无需规划。</p>';if((typeof __h7==='number'&&!isFinite(__h7))||/Infinity/.test(String(__h7))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h7)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h7; return; }
 
-  // 构建邻接表
+  // 构建邻接表：Dijkstra 只适用于非负权，负距离先取绝对值并提示（同时杜绝负权环导致前驱成环）
+  var negativeFixed = false;
   var graph = {};
   nodes.forEach(function(n){ graph[n] = []; });
   edges.forEach(function(e){
     if(graph[e[0]] && graph[e[1]]){
-      var w = parseFloat(e[2]) || 0;
+      var w = parseFloat(e[2]);
+      if(!isFinite(w)) w = 0;
+      if(w < 0){ w = Math.abs(w); negativeFixed = true; }
       graph[e[0]].push({to:e[1], w:w});
       graph[e[1]].push({to:e[0], w:w});
     }
@@ -365,7 +376,9 @@ function compute(){
     return;
   }
 
-  var html = '<div class="data-grid">';
+  var html = '';
+  if(negativeFixed){ html += '<div class="tip-box tip-info" style="margin-bottom:12px;">检测到负距离，已按绝对值纳入计算。</div>'; }
+  html += '<div class="data-grid">';
   html += dataCard('起点', start);
   html += dataCard('终点', end);
   html += dataCard('途经展厅', res.path.length + ' 个');
@@ -379,7 +392,7 @@ function compute(){
     if(i < res.path.length-1){
       var w = 0;
       edges.forEach(function(e){
-        if((e[0]===p && e[1]===res.path[i+1]) || (e[1]===p && e[0]===res.path[i+1])) w = parseFloat(e[2])||0;
+        if((e[0]===p && e[1]===res.path[i+1]) || (e[1]===p && e[0]===res.path[i+1])) w = Math.abs(parseFloat(e[2])||0);
       });
       seg = ' <span style="color:var(--text-muted);font-size:12px;">('+w+'m)</span>';
     }

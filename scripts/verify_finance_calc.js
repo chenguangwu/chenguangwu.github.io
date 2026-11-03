@@ -744,6 +744,20 @@ const CASES = [
     ref: "只有初始投入、无后续现金流 ⇒ 符号未变化、数据不足 ⇒ 如实报 IRR 不可解（这正是该页的边界分支，不是缺陷）。默认态不同 ⇒ 不命中。",
   },
   {
+    slug: "finance/calc-2",
+    inputs: { initial: "-100", flows: "230,-132.5" },
+    clicks: ["calc()"],
+    expect: ["无法计算 IRR（现金流无实根）"],
+    ref: "NPV(r) = −100 + 230/(1+r) − 132.5/(1+r)²，判别式 230²−4×132.5×100 = −100 < 0 ⇒ 无实根。旧实现二分只按符号推进、两端同号时仍收敛到 hi=10 并输出 1000.0000%，还写「NPV 约等于 0」；修复后先校验端点异号，无实根如实提示。默认态（−100000 / 五期 30000）不同 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/calc-2",
+    inputs: { initial: "-1000", flows: "500,500,500" },
+    clicks: ["calc()"],
+    expect: ["23.3752%"],
+    ref: "独立复算：−1000 + 500/(1+r) + 500/(1+r)² + 500/(1+r)³ = 0 ⇒ 1+r = 1.2337519…，IRR = 23.3752%（二分 200 次残差 |NPV| < 1e-6）。默认态（−100000 / 五期 30000，IRR≈15.24%）不同 ⇒ 不命中。",
+  },
+  {
     slug: "finance/bic-validator",
     inputs: { input: "DEUTDEFF500" },
     expect: ["银行代码： DEUT", "国家代码： DE", "分支代码： 500"],
@@ -1006,6 +1020,13 @@ const CASES = [
     expect: ["反推税率： 8.6957%", "= 1,600.00 ÷ 18,400.00 × 100% = 8.6957%"],
     ref: "反推模式：不含税 = 20,000 − 1,600 = **18,400**，税率 = 1,600 ÷ 18,400 × 100% = **8.6957%**，公式行把除数与被除数一并回显 ⇒ 可完全手算复核。默认组（10,000 / 825.69）⇒ 税率 9.0000%，两条都不同。",
   },
+  {
+    slug: "finance/invoice-generator",
+    inputs: { "sp-total": "80000", "sp-limit": "-5000" },
+    clicks: ["currentMethod='split'; calc()"],
+    expect: ["单张限额必须大于 0"],
+    ref: "负限额（避开 HTML 默认 10,000）：旧实现 count = ceil(80,000 / −5,000) = −16 ⇒ count<=1 直接出 1 张，负限额被静默接受；修复后入口校验 limit > 0 并停止计算。清空/填 0 时 getVal 兜底 0 同样命中该守卫（旧实现 count=Infinity 会进入 Infinity 次 for 循环把标签页冻死；此处选负值只为让用例在修复前也能快速返回、不挂死门禁）。",
+  },
 
   {
     slug: "finance/insurance-calculator",
@@ -1064,6 +1085,20 @@ const CASES = [
     inputs: { fromAmount: "50" },
     expect: ["6.8966"],
     ref: "静态汇率表 USD=1、CNY=7.25；50 元 CNY→USD = 50/7.25 = 6.8966。锚点避开了「始终存在的速查表」里的 362.50（USD 50→362.50 CNY，注入失败也命中 ⇒ 假逃生项），改用随注入量变化的 6.8966。默认 fromAmount=100 → 13.7931，不命中。",
+  },
+  {
+    slug: "finance/currency-converter",
+    inputs: { fromAmount: "200", rateMode: "manual", manualRate: "0.138" },
+    clicks: ["calc()"],
+    expect: ["27.6000"],
+    ref: "手动汇率正向：1 CNY = 0.138 USD（默认币对 CNY→USD），200 CNY = 200 × 0.138 = **27.6000**。默认内置汇率 7.25⇒27.5862、默认手动 7.25⇒1,450，均不命中。该锚同时守住「手动汇率必须按当前币对取用」——旧实现任意币对都乘同一数值。",
+  },
+  {
+    slug: "finance/currency-converter",
+    inputs: { fromAmount: "200", rateMode: "manual", manualRate: "0.138" },
+    clicks: ["document.getElementById('toAmount').value='27.6'; calcReverse()"],
+    expect: ["200.0000"],
+    ref: "手动汇率反向：1 CNY = 0.138 USD ⇒ 1 USD = 1/0.138 CNY；27.6 USD 反向换算 = 27.6 / 0.138 = **200.0000**。旧实现反向仍做乘法 ⇒ 27.6 × 0.138 = 3.8088（缺陷复现值），绝不命中 200.0000。默认态与手动 7.25 同样不命中。",
   },
   {
     slug: "finance/text-reverse-words",

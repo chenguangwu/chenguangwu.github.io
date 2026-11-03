@@ -422,8 +422,8 @@ function calc() {
   if (currentMode === 'markup') {
     cost = parseFloat(document.getElementById('costMarkup').value) || 0;
     markupRate = parseFloat(document.getElementById('markupRate').value) || 0;
-    if (cost <= 0) {
-      r.innerHTML='<div class="metric-card"><p style="color:var(--text-muted);">请输入有效数值</p></div>';
+    if (cost <= 0 || markupRate < 0) {
+      r.innerHTML='<div class="metric-card"><p style="color:var(--text-muted);">请输入有效数值（成本需大于 0，加价率不可为负）</p></div>';
       return;
     }
     price = cost * (1 + markupRate / 100);
@@ -432,8 +432,8 @@ function calc() {
   } else if (currentMode === 'margin') {
     cost = parseFloat(document.getElementById('costMargin').value) || 0;
     marginRate = parseFloat(document.getElementById('marginRate').value) || 0;
-    if (cost <= 0 || marginRate >= 100) {
-      r.innerHTML='<div class="metric-card"><p style="color:var(--text-muted);">请输入有效数值（利润率需小于100%）</p></div>';
+    if (cost <= 0 || marginRate < 0 || marginRate >= 100) {
+      r.innerHTML='<div class="metric-card"><p style="color:var(--text-muted);">请输入有效数值（利润率需在 0–99% 之间）</p></div>';
       return;
     }
     price = cost / (1 - marginRate / 100);
@@ -442,12 +442,13 @@ function calc() {
   } else {
     const m = parseFloat(document.getElementById('convMarkup').value);
     const g = parseFloat(document.getElementById('convMargin').value);
-    if (isNaN(m) || isNaN(g)) {
-      r.innerHTML='<div class="metric-card"><p style="color:var(--text-muted);">请输入有效数值</p></div>';
+    if (isNaN(m) || isNaN(g) || m < 0) {
+      r.innerHTML='<div class="metric-card"><p style="color:var(--text-muted);">请输入有效数值（加价率不可为负）</p></div>';
       return;
     }
     markupRate = m;
-    marginRate = m / (1 + m / 100) * 100;
+    // 加价率→利润率：两者同为百分数，利润率 = 加价率 ÷ (1 + 加价率/100)，不能再乘 100
+    marginRate = m / (1 + m / 100);
     cost = 100;
     price = cost * (1 + markupRate / 100);
     profit = price - cost;
@@ -519,7 +520,7 @@ function saveHistory() {
     record.markupRate = record.cost > 0 ? ((record.price - record.cost) / record.cost) * 100 : 0;
   } else {
     record.markupRate = parseFloat(document.getElementById('convMarkup').value);
-    record.marginRate = record.markupRate / (1 + record.markupRate / 100) * 100;
+    record.marginRate = record.markupRate / (1 + record.markupRate / 100);
     record.cost = 100;
     record.price = record.cost * (1 + record.markupRate / 100);
   }

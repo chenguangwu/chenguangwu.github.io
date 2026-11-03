@@ -3,6 +3,24 @@
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
+  "slug": "museum/visitor-route",
+  "inputs": {},
+  "clicks": ["document.getElementById('nodeInput').value='A,B,C';syncNodes();edges=[['A','B',-12],['B','C',7]];compute();"],
+  "expect": [
+    "19 m 总距离"
+  ],
+  "ref": "负距离回归（N5-C）：通道 A–B 注入 -10 m、B–C 5 m，负权先取绝对值 ⇒ 最短流线 A→B→C 总距离 12+7=19 m；旧实现直接把负权喂给 Dijkstra，输出总距离 -5 m（且前驱回溯无访问集合，负权环会无限回溯）。19 m 不与默认展线（15 m）冲突，避开默认态。"
+},
+{
+  "slug": "museum/visitor-route",
+  "inputs": {},
+  "clicks": ["document.getElementById('nodeInput').value='A,B';syncNodes();edges=[['A','B',-10],['B','A',10]];compute();"],
+  "expect": [
+    "10 m 总距离"
+  ],
+  "ref": "负权环终止性（N5-C）：双向边 -10/10 构成负权环，旧实现 relax 后 prev[A]=B、prev[B]=A 且回溯无访问集合 ⇒ 死循环挂死页面。修复后负距离取绝对值（均为 10）、回溯带 seen 集合与步数上限 ⇒ 正常输出 A→B 总距离 10 m。"
+},
+{
   "slug": "museum/era-comparator",
   "inputs": {},
   "clicks": ["document.getElementById('era1').value='3';document.getElementById('era2').value='9';compare()"],

@@ -150,7 +150,7 @@ s.parentNode.insertBefore(el, s);
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="📦 HTML 压缩器">📦 HTML Compressor</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">先把 pre、textarea、script、style 这几类标签的整块内容抽取出来替换为占位符保护起来（记录顺序以便还原）。开启移除注释时删除 HTML 注释，但保留以条件注释开头的部分。开启折叠空白时先把标签之间的空白直接相连，再按模式处理：安全模式把连续空白压缩为单个空格，并去掉行内元素标签周围多余的空白；非安全模式直接把连续空白压缩为单个空格，最后去掉首尾空白。随后把占位符还原为原始块内容。压缩率 = (1 − 输出长度 ÷ 原始长度) × 100%，保留 1 位小数（原始长度为 0 时取 0），并展示原始大小、输出大小与压缩率</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">先把 pre、textarea、script、style 这几类标签的整块内容抽取出来替换为占位符保护起来（记录顺序以便还原）。开启移除注释时删除 HTML 注释，但保留以条件注释开头的部分。开启折叠空白时按字符状态机逐节点处理：标签与属性值原样穿过，文本节点内的连续空白折叠为单个空格；安全模式只在块级标签边界删除空白、在行内元素边界保留一个空格（避免 span/strong 等粘连），非安全模式额外删除标签之间的纯空白文本。最后去掉首尾空白并把占位符还原为原始块内容。压缩率 = (1 − 输出长度 ÷ 原始长度) × 100%，保留 1 位小数（原始长度为 0 时取 0），并展示原始大小、输出大小与压缩率</div>
   <div class="formula-desc">压缩 HTML 以减小体积。</div>
   <ul class="formula-list">
     <li><b>手段</b>：删除注释与多余空白、去掉可选闭合标签、省略可省的属性引号。</li>
@@ -281,6 +281,73 @@ s.parentNode.insertBefore(el, s);
 <script>
 function escapeForRegex(s){return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
 
+// 块级标签：只在这些标签边界删除多余空白；行内标签（span/a/em/strong…）两侧的单空格必须保留，
+// 否则 `<span>a</span> <span>b</span>` 会被压成 `ab`，可见文本语义被改变。
+var TB_BLOCK_TAGS = /^(?:html|head|body|div|p|ul|ol|li|table|thead|tbody|tfoot|tr|td|th|h[1-6]|section|header|footer|main|article|aside|nav|figure|figcaption|form|fieldset|legend|dl|dt|dd|blockquote|pre|br|hr|address|details|summary|canvas|video|audio|iframe|script|style|meta|link|title|colgroup|col|caption)$/;
+
+// 只按「标签 / 文本节点」切分：标签内部（含属性值里的连续空格）原样穿过，不参与空白折叠。
+function tbTokenizeHtml(html){
+  var tokens=[], i=0, text='';
+  function flush(){ if(text){ tokens.push({type:'text',value:text}); text=''; } }
+  while(i<html.length){
+    if(html.charAt(i)!=='<'){ text+=html.charAt(i); i++; continue; }
+    var nx=html.charAt(i+1);
+    // 裸 `<`（非标签起始，如 `a < b`）按普通文本处理
+    if(!/[A-Za-z\/!?]/.test(nx)){ text+='<'; i++; continue; }
+    flush();
+    var end=-1;
+    if(html.substr(i,4)==='<!--'){
+      end=html.indexOf('-->',i+4);
+      end=end===-1?html.length:end+3;
+    }else{
+      var quote='';
+      for(var j=i+1;j<html.length;j++){
+        var ch=html.charAt(j);
+        if(quote){ if(ch===quote) quote=''; }
+        else if(ch==='"'||ch==="'"){ quote=ch; }
+        else if(ch==='>'){ end=j+1; break; }
+      }
+      if(end===-1) end=html.length;
+    }
+    var tag=html.slice(i,end);
+    var mm=tag.match(/^<\/?\s*([A-Za-z][A-Za-z0-9:-]*)/);
+    tokens.push({
+      type:'tag', value:tag,
+      block:!!(mm&&TB_BLOCK_TAGS.test(mm[1].toLowerCase()))
+    });
+    i=end;
+  }
+  flush();
+  return tokens;
+}
+
+function collapseHtmlWhitespace(html,safeMode){
+  var tokens=tbTokenizeHtml(html);
+  for(var k=0;k<tokens.length;k++){
+    if(tokens[k].type==='text') tokens[k].value=tokens[k].value.replace(/\s+/g,' ');
+  }
+  var out='';
+  for(var idx=0;idx<tokens.length;idx++){
+    var t=tokens[idx];
+    if(t.type!=='text'){ out+=t.value; continue; }
+    var v=t.value;
+    if(!v) continue;
+    var prev=tokens[idx-1], next=tokens[idx+1];
+    var prevBlock=prev&&prev.type==='tag'&&prev.block;
+    var nextBlock=next&&next.type==='tag'&&next.block;
+    if(v===' '){
+      // 纯空白文本：块级边界（或非安全模式）删除，行内边界保留单个空格
+      if(!prev||!next||!safeMode||prevBlock||nextBlock) continue;
+      out+=' ';
+      continue;
+    }
+    if(!prev||prevBlock) v=v.replace(/^ /,'');
+    if(!next||nextBlock) v=v.replace(/ $/,'');
+    if(v) out+=v;
+  }
+  return out;
+}
+
 function minify(){
   const input=document.getElementById('input').value;
   if(!input.trim()){alert('请输入 HTML 代码');return;}
@@ -304,17 +371,7 @@ function minify(){
   }
 
   if(collapseWhitespace){
-    // 移除标签间多余空白
-    result=result.replace(/>\s+</g,'><');
-    if(safeMode){
-      // 安全模式：保留 inline 元素之间的单个空格
-      // 将连续空白压缩为单个空格，再处理换行
-      result=result.replace(/\s+/g,' ');
-      // 把标签紧贴的内容稍微还原（如 <span>text</span> 之间保留一个空格）
-      result=result.replace(/\s*(<\/?(a|span|b|strong|i|em|code|small|sub|sup|abbr|cite|q|mark|time|bdi|bdo|label|select|option|button)\b[^>]*>)\s*/gi,'$1');
-    }else{
-      result=result.replace(/\s+/g,' ');
-    }
+    result=collapseHtmlWhitespace(result,safeMode);
     result=result.trim();
   }
 
