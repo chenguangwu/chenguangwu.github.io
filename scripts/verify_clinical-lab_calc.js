@@ -61,6 +61,42 @@ const CASES = [
   "ref": "pH7.25<7.35 且 HCO3 12<22 → 代谢性酸中毒；AG=140-100-12=28>12 → AG增高型；矫正HCO3=12+(28-12)=28>26 → 合并代碱；参考区间定位：pH 酸血症 / PaCO2 低碳酸 / HCO3 降低"
 },
 {
+  "slug": "clinical-lab/blood-gas-analysis",
+  "inputs": { "ph": "7.20", "paco2": "60", "hco3": "30", "pao2": "55", "na": "140", "cl": "100" },
+  "expect": ["II型呼吸衰竭"],
+  "ref": "PaO2 55<60 且 PaCO2 60≥50 → II 型呼吸衰竭（两者必须同时满足）；对照 L-N1 修复前会把 PaO2 70/PaCO2 55 也误判 II 型。"
+},
+{
+  "slug": "clinical-lab/blood-gas-analysis",
+  "inputs": { "ph": "7.46", "paco2": "38", "hco3": "24", "pao2": "55", "na": "140", "cl": "100" },
+  "expect": ["I型呼吸衰竭"],
+  "ref": "PaO2 55<60 但 PaCO2 38<50 → I 型呼吸衰竭；修复前高碳酸伴低氧会被误判 I 型，本用例锁定正确分支。"
+},
+{
+  "slug": "clinical-lab/blood-gas-analysis",
+  "inputs": { "ph": "7.36", "paco2": "55", "hco3": "28", "pao2": "70", "na": "140", "cl": "100" },
+  "expect": ["高碳酸血症"],
+  "ref": "PaCO2 55≥50 但 PaO2 70≥60 → 仅高碳酸血症，不判 II 型呼衰；修复前 PaCO2 单独高即误判 II 型。"
+},
+{
+  "slug": "clinical-lab/blood-gas-analysis",
+  "inputs": { "ph": "7.33", "paco2": "60", "hco3": "34", "pao2": "90", "na": "140", "cl": "100" },
+  "expect": ["实测HCO3(34)符合慢性呼酸代偿（预期 31.0 ±3）。"],
+  "ref": "L-N2 官方示例：ΔPaCO2=20，慢性预期 HCO3=31.0，实测 34 恰好落在 ±3 闭合区间 → 慢性代偿；修复前 <3 严格判断把它排除并误报代酸。"
+},
+{
+  "slug": "clinical-lab/blood-gas-analysis",
+  "inputs": { "ph": "7.33", "paco2": "60", "hco3": "36", "pao2": "90", "na": "140", "cl": "100" },
+  "expect": ["HCO3高于预期，合并代谢性碱中毒。"],
+  "ref": "慢性预期 31.0，实测 36>34（上界 +3）→ 合并代谢性碱中毒，确认上侧分支仍可触发。"
+},
+{
+  "slug": "clinical-lab/blood-gas-analysis",
+  "inputs": { "ph": "7.20", "paco2": "60", "hco3": "24", "pao2": "90", "na": "140", "cl": "100" },
+  "expect": ["HCO3低于预期，合并代谢性酸中毒。"],
+  "ref": "急性预期 26.0（|24-26|=2 不在急性严格窗口），慢性预期 31.0，实测 24<28（下界 -3）→ 合并代谢性酸中毒。"
+},
+{
   "slug": "clinical-lab/coagulation-inr",
   "inputs": {
     "pt": "45",
@@ -568,7 +604,7 @@ const CASES = [
   {
     slug: "clinical-lab/blood-gas-analysis",
     inputs: { ph: "7.32", paco2: "60", hco3: "30", pao2: "65", na: "140", cl: "100" },
-    expect: ["实测HCO3(30)符合慢性呼酸代偿。"],
+    expect: ["实测HCO3(30)符合慢性呼酸代偿（预期 31.0 ±3）。"],
     ref: '独立复算：呼酸 pH7.32/PaCO2 60，ΔPaCO2=20，慢性预期HCO3=24+0.35×20=31.0，实测30符合慢性代偿。锚取慢性呼酸代偿结论串，默认态无。'
   },
   {
@@ -592,7 +628,7 @@ const CASES = [
   {
     slug: "clinical-lab/blood-gas-analysis",
     inputs: { ph: "7.45", paco2: "30", hco3: "20", pao2: "90", na: "140", cl: "100" },
-    expect: ["实测HCO3符合慢性呼碱代偿。"],
+    expect: ["实测HCO3符合慢性呼碱代偿（预期 19.0 ±3）。"],
     ref: '独立复算：pH7.45(正常)/PaCO2 30/HCO3 20→呼碱+代偿，慢性预期HCO3=24-0.5×10=19.0，实测20符合慢性代偿。锚取慢性呼碱代偿结论串，与病例4急性区分。'
   },
   {
