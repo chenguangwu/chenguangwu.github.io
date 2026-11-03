@@ -452,6 +452,18 @@ const CASES = [
   "ref": "gn 表 18 药按 MIC=4 判定：S 9（≤8 折点）/I 4/R 5；默认 micVal 空 ⇒ 汇总卡不渲染零交集。"
 },
 {
+  "slug": "clinical-lab/mic-breakpoint",
+  "inputs": { "bacteria": "gn", "micVal": "-1" },
+  "expect": ["请输入有效 MIC（>0）；当前输入“-1”无效"],
+  "ref": "L-N5 非法 MIC：-1 非正数 ⇒ micOk=false，清空判定汇总卡、逐药判定列保持「—」并输出提示；修复前 parseFloat(-1)=-1 落在 mic<=d.s 被误判「S 敏感」（最危险方向）。默认 micVal 空 ⇒ 空值提示串不含“-1”，判别器把 micVal 换回默认空串后本串失配。"
+},
+{
+  "slug": "clinical-lab/mic-breakpoint",
+  "inputs": { "bacteria": "gn", "micVal": "0" },
+  "expect": ["请输入有效 MIC（>0）；当前输入“0”无效"],
+  "ref": "L-N5 非法 MIC：0 同样被排除在 S/I/R 判读之外（修复前 0<=0.5 折点判 S）。判别器换回默认空串 ⇒ 提示串不含“0”，本串失配。"
+},
+{
   "slug": "clinical-lab/parasite-egg-id",
   "inputs": {
     "search": "吸虫"
@@ -502,6 +514,28 @@ const CASES = [
     "pH 8.0 → 落在 偏碱"
   ],
   "ref": "S3 标尺 ref-card：sg 1.030≥1.025 → 偏高带、pH 8.0≥7.5 → 偏碱带。该页 select 无 onchange（interpret 仅按钮/启动触发），inputs 注入不重渲染，故用 clicks 在页面作用域直调 interpret()。判别器清 clicks 且无 inputs → 兜底 interpret 渲染默认 sg=1.015/pH=6.0（正常带），两条 expect 均随注入变化、默认态不出现。"
+},
+{
+  "slug": "clinical-lab/urinalysis-interpretation",
+  "clicks": [
+    "document.getElementById('ua_leu').value='500'; document.getElementById('ua_nit').value='pos'; document.getElementById('ua_pro').value=''; document.getElementById('ua_sg').value=''; document.getElementById('ua_ph').value=''; document.getElementById('ua_glu').value=''; document.getElementById('ua_ket').value=''; document.getElementById('ua_ubg').value=''; document.getElementById('ua_bil').value=''; document.getElementById('ua_ery').value=''; document.getElementById('ua_vc').value=''; interpret();"
+  ],
+  "expect": [
+    "提示泌尿系感染",
+    "另有 9 项未检测"
+  ],
+  "ref": "E 缺陷修复（空项误判）：注入 LEU 3+(500)/NIT 阳性，SG/PH/PRO/GLU/KET/UBG/BIL/ERY/VC 共 9 项留空 → 判为「未检测」9 项，notes 非空故走「另有 9 项未检测（…），未纳入综合判读」分支；旧实现 pro='' 会因 pro!=='neg' 误报「提示蛋白尿」，新实现 tested('pro') 守卫后不再输出。判别器清 clicks 回到无注入态（jsdom 下仅 SG/PH 有默认值、其余 select 为空 → 9 项未检测且 notes 为空）→ 该态输出的是「有 9 项未检测」（无「另有」、无感染提示），两条 expect 均不出现，故无逃生项。"
+},
+{
+  "slug": "clinical-lab/urinalysis-interpretation",
+  "clicks": [
+    "document.getElementById('ua_sg').value='1.015'; document.getElementById('ua_ph').value='6.0'; document.getElementById('ua_leu').value='neg'; document.getElementById('ua_nit').value='neg'; document.getElementById('ua_pro').value=''; document.getElementById('ua_glu').value='neg'; document.getElementById('ua_ket').value='neg'; document.getElementById('ua_ubg').value='3.2'; document.getElementById('ua_bil').value='neg'; document.getElementById('ua_ery').value='neg'; document.getElementById('ua_vc').value='neg'; interpret();"
+  ],
+  "expect": [
+    "有 1 项未检测（蛋白质 PRO）",
+    "未检测：蛋白质 PRO"
+  ],
+  "ref": "蛋白空值负向断言：SG/PH 与其余 8 项全部显式置为正常值、仅 PRO 清空 → 判为「未检测」仅 1 项（蛋白质 PRO），notes 为空故走「有 1 项未检测（蛋白质 PRO）…已检测项目未见明显异常组合」；旧实现 pro='' 触发 pro!=='neg' 误报「提示蛋白尿」，新实现 tested('pro') 守卫后不报。判别器清 clicks 回到无注入态（9 项未检测）→ 输出为「有 9 项未检测（白细胞酯酶 LEU、亚硝酸盐 NIT、蛋白质 PRO…）」，两条 expect 均不出现，故无逃生项。"
 },
 {
   "slug": "clinical-lab/urine-sediment-atlas",
@@ -630,6 +664,18 @@ const CASES = [
     inputs: { ph: "7.45", paco2: "30", hco3: "20", pao2: "90", na: "140", cl: "100" },
     expect: ["实测HCO3符合慢性呼碱代偿（预期 19.0 ±3）。"],
     ref: '独立复算：pH7.45(正常)/PaCO2 30/HCO3 20→呼碱+代偿，慢性预期HCO3=24-0.5×10=19.0，实测20符合慢性代偿。锚取慢性呼碱代偿结论串，与病例4急性区分。'
+  },
+  {
+    slug: "clinical-lab/blood-gas-analysis",
+    inputs: { ph: "", paco2: "60", hco3: "30", pao2: "90", na: "140", cl: "100" },
+    expect: ["请填写 pH、PaCO2、HCO3（均需大于 0）"],
+    ref: 'L-N3 缺项清空：pH 空值 ⇒ num() 归零 ⇒ analyze 走无效分支，清空 #result 后输出缺项提示；修复前直接 return，首屏/上次判读（正常酸碱平衡）滞留。默认 pH=7.40 全项有效 ⇒ 提示串零交集，判别器把 ph 换回 7.40 即失配。'
+  },
+  {
+    slug: "clinical-lab/blood-gas-analysis",
+    clicks: ["document.getElementById('ph').value='7.25';document.getElementById('paco2').value='28';document.getElementById('hco3').value='12';analyze();document.getElementById('hco3').value='0';analyze();"],
+    expect: ["请填写 pH、PaCO2、HCO3（均需大于 0）"],
+    ref: 'L-N3 旧结论清空：先按 7.25/28/12 渲染代酸结果，再把 HCO3 置 0 重算 ⇒ 无效分支覆盖 #result 为缺项提示（复制/导出入口也随 __bgaValid 拦截），不残留上次判读。判别器清 clicks 后页面按默认有效值分析，不出现提示串。'
   },
   {
     slug: "clinical-lab/convert-glucose-1",

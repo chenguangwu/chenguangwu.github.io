@@ -283,12 +283,6 @@ function handleFile(file) {
 function convertAll() {
   const w = originalImg.naturalWidth;
   const h = originalImg.naturalHeight;
-  const canvas = document.createElement('canvas');
-  canvas.width = w; canvas.height = h;
-  const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(0, 0, w, h);
-  ctx.drawImage(originalImg, 0, 0, w, h);
 
   const formats = [
     { type: 'image/jpeg', ext: 'jpg', label: 'JPEG', lossy: true },
@@ -299,6 +293,16 @@ function convertAll() {
   const grid = document.getElementById('preview-grid');
   const __h1='';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){grid.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}grid.innerHTML=__h1;
   formats.forEach(f => {
+    // 每种格式独立创建 canvas：仅 JPEG 铺白底（其编码不支持 alpha），PNG/WebP 保留透明通道
+    const flatten = f.type === 'image/jpeg';
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    if (flatten) {
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, w, h);
+    }
+    ctx.drawImage(originalImg, 0, 0, w, h);
     canvas.toBlob(blob => {
       if (!blob) {
         grid.innerHTML += `<div class="preview-card"><div>不支持 ${f.label}</div></div>`;
@@ -309,11 +313,11 @@ function convertAll() {
       card.className = 'preview-card';
       const __h2=`
         <img alt=""  src="${url}">
-        <div class="info"><strong>${f.label}</strong><br>${formatSize(blob.size)}</div>
+        <div class="info"><strong>${f.label}</strong><br>${formatSize(blob.size)}<br><span class="alpha-note">${flatten ? '已铺白底' : '已保留透明'}</span></div>
         <a href="${url}" download="converted-${Date.now()}.${f.ext}" class="download">⬇ 下载</a>
       `;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){card.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}card.innerHTML=__h2;
       grid.appendChild(card);
-    }, f.type, 0.85);
+    }, f.type, f.lossy ? 0.85 : undefined);
   });
 }
 

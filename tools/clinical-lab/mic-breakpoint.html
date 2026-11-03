@@ -318,12 +318,17 @@ var BP = {
 
 function renderDrugs(){
   var b = document.getElementById('bacteria').value;
-  var mic = parseFloat(document.getElementById('micVal').value);
+  var __raw = String(document.getElementById('micVal').value||'').trim();
+  var mic = parseFloat(__raw);
+  var micOk = isFinite(mic) && mic > 0;
   var list = BP[b];
   var html = '<table class="bp-table"><thead><tr><th>抗菌药物</th><th>S 敏感(≤)</th><th>R 耐药(≥)</th><th>I 中介</th><th>输入MIC判定</th></tr></thead><tbody>';
+  if(!micOk){
+    html = '<p class="bp-invalid" style="color:var(--danger);font-size:13px;margin:0 0 6px;">'+(__raw!==''?'请输入有效 MIC（>0）；当前输入“'+__raw+'”无效':'请输入有效 MIC（>0）')+'</p>' + html;
+  }
   list.forEach(function(d){
     var interp = '—';
-    if(!isNaN(mic) && d.s!=='-' && d.r!=='-'){
+    if(micOk && d.s!=='-' && d.r!=='-'){
       if(mic<=d.s) interp = '<span class="s-tag">S 敏感</span>';
       else if(mic>=d.r) interp = '<span class="r-tag">R 耐药</span>';
       else interp = '<span class="i-tag">I 中介</span>';
@@ -333,7 +338,7 @@ function renderDrugs(){
   });
   html += '</tbody></table>';
   // S3 判定汇总定位卡：输入 MIC 后汇总各药 S/I/R
-  if(!isNaN(mic)){
+  if(micOk){
     var __en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?true:false;
     var __bName={gn:__en?'Enterobacterales':'革兰阴性肠杆菌',gp:__en?'Staphylococcus (GP)':'革兰阳性(葡萄球菌)',pa:__en?'P. aeruginosa':'铜绿假单胞菌',sa:__en?'S. pneumoniae':'肺炎链球菌',ent:__en?'Enterococcus':'肠球菌'}[b]||b;
     var __sN=0,__iN=0,__rN=0,__nt=0,__rows=[];
@@ -371,13 +376,14 @@ window.__bpExport=function(){
   var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
   var b=document.getElementById('bacteria').value;
   var mic=parseFloat(document.getElementById('micVal').value);
+  var micOk=isFinite(mic)&&mic>0;
   var list=BP[b];
   if(!list)return;
   var tbody=document.querySelector('#bpHidden tbody');if(!tbody)return;
   tbody.innerHTML='';
   list.forEach(function(d){
     var interp='—',interpEn='Not tested';
-    if(!isNaN(mic)&&d.s!=='-'&&d.r!=='-'){
+    if(micOk&&d.s!=='-'&&d.r!=='-'){
       if(mic<=d.s){interp='S 敏感';interpEn='S Susceptible';}
       else if(mic>=d.r){interp='R 耐药';interpEn='R Resistant';}
       else{interp='I 中介';interpEn='I Intermediate';}
@@ -512,8 +518,9 @@ function __bpChartDraw(){
     var list=BP[b.value];
     if(!list) return;
     var mic=parseFloat(micEl.value);
+    var micOk=isFinite(mic)&&mic>0;
     var nS=0,nI=0,nR=0;
-    if(!isNaN(mic)){
+    if(micOk){
       list.forEach(function(d){
         if(d.s==='-'||d.r==='-') return;
         if(mic<=d.s)nS++;
@@ -524,7 +531,7 @@ function __bpChartDraw(){
     var en=TBKit.util.isEn();
     var labels=en?['S','I','R']:['S 敏感','I 中介','R 耐药'];
     var names=en?['Susceptible','Intermediate','Resistant']:['敏感','中介','耐药'];
-    var title=isNaN(mic)
+    var title=!micOk
       ?(en?'Enter MIC to tally S/I/R drugs':'输入 MIC 后统计各药物 S/I/R 判定')
       :((en?'At MIC ':'MIC=')+mic+(en?' ug/mL: S ':' μg/mL：S')+nS+(en?' / I ':' / I ')+nI+(en?' / R ':' / R ')+nR);
     TBKit.chart.bar(host,{labels:labels,series:[

@@ -242,6 +242,9 @@ s.parentNode.insertBefore(el, s);
 <script>
 function num(id){var v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 
+var BGA_INVALID_MSG='请填写 pH、PaCO2、HCO3（均需大于 0）';
+var __bgaValid=true;
+
 function loadExample(type){
   if(type==='resp_acid'){ document.getElementById('ph').value='7.32';document.getElementById('paco2').value='60';document.getElementById('hco3').value='30';document.getElementById('pao2').value='65'; }
   if(type==='met_acid'){ document.getElementById('ph').value='7.25';document.getElementById('paco2').value='28';document.getElementById('hco3').value='12';document.getElementById('pao2').value='95'; }
@@ -251,7 +254,15 @@ function loadExample(type){
 
 function analyze(){
   var ph=num('ph'), paco2=num('paco2'), hco3=num('hco3'), pao2=num('pao2'), na=num('na'), cl=num('cl');
-  if(!ph||!paco2||!hco3) return;
+  if(!(ph>0)||!(paco2>0)||!(hco3>0)){
+    __bgaValid=false;
+    var __r=document.getElementById('result');
+    if(__r) __r.innerHTML='<p style="color:var(--danger)">'+BGA_INVALID_MSG+'</p>';
+    var __ref=document.getElementById('blood_gas_analysisRefBar'); if(__ref) __ref.innerHTML='';
+    var __chart=document.getElementById('blood_gas_analysisChart'); if(__chart) __chart.innerHTML='';
+    return;
+  }
+  __bgaValid=true;
   var html = '<h3 style="margin-bottom:8px;">酸碱平衡分析</h3>';
 
   // Step 1: pH status
@@ -469,7 +480,7 @@ function __blood_gas_analysisResText(){
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    if(/请输入|请填写|无效|不正确|错误|Error|NaN/.test(t)) return '';
     return t.slice(0,80);
 }
 function __blood_gas_analysisTime(t){
@@ -545,6 +556,7 @@ function __blood_gas_analysisExtras(){
 }
 function __blood_gas_analysisExport(){
     if (typeof TBKit === 'undefined') return;
+    if(!__bgaValid){ try{ ToolBox.toast(BGA_INVALID_MSG); }catch(e){} return; }
     try { TBKit.util.exportTable('#blood_gas_analysisTable','blood-gas-analysis.csv'); } catch(e){}
 }
 function __blood_gas_analysisPresets(){
