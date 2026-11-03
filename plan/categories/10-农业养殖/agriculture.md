@@ -41,3 +41,102 @@
 
 ### 覆盖
 - 本轮抽查稀释及上述农业 2 页，共 3 页，源码推导未作浏览器验证；其他农业养殖页面未逐页覆盖。
+
+## 2026-11-03 续查（并行批 G）
+
+> 本批只读审计 8 个种植/农资页（pesticide-dose、seed-germination-rate、crop-water-requirement、irrigation-uniformity、fertigation-ratio、straw-return、soil-organic-matter、fertilizer-efficiency）。证据均为源码行 + node 内存复算；未做浏览器 / 英文态 / 移动端 / 门禁验证。
+
+### 10-1 农药 ppm 模式稀释倍数未按制剂含量折算，与亩用药量自相矛盾（高，确认源码缺陷）
+- 描述：ppm 模式的稀释倍数固定按 `1,000,000 ÷ 目标ppm` 计算，未除以制剂有效成分含量；而亩用药量公式又乘了 `100 ÷ 有效成分含量%`，两处口径互斥。同一结果里「亩用药量 3.00 g、稀释倍数 50000」无法同时成立。
+- 证据：`tools/agriculture/pesticide-dose.html:266` 使用指南写明「稀释倍数 = 1,000,000 ÷ 目标ppm」；`:471` 常用农药表同样用 `1000000/p.ppm`；`:525-531` calc 同式。复现输入 有效成分 10%、目标 20 ppm、配水 15 L/亩、面积 1 亩 → 输出稀释倍数 50000、亩用药量 3.00 g、总用药量 3.00 g；按 3 g/15 L 反算实际约 5000 倍（15000 g ÷ 3 g）。表中「吡虫啉 10% + 20 ppm」也显示 50000 倍，正确应为 5000 倍。
+- 影响：`tools/agriculture/pesticide-dose.html`。用户若照 50000 倍配药，15 L 只加约 0.3 g，为应需 3 g 的 1/10，防效不足；照 3 g 配又与页面倍率矛盾。
+- 方案：改为 `dilutionTimes = activePct * 10000 / targetPpm`（10% → 5000 倍），亩用药量改为 `water / dilutionTimes`（kg）；常用药表、指南文案、verify 用例同批更新。
+
+### 10-2 农药页 ppm/稀释倍数无效时保留上一次结果（中，确认源码缺陷）
+- 描述：目标 ppm 或稀释倍数 ≤0 时处理函数直接 return，既不清空 `#result` 也不提示，旧方案继续显示。
+- 证据：`tools/agriculture/pesticide-dose.html:524`（`if(targetPpm <= 0){ $('chartWrap').style.display='none'; return; }`）、`:529`（稀释倍数同理）。复现：先以 500 ppm 算出方案，再把该输入清空或设 0 → 结果区仍显示上一组「3.00 g / 50000 倍」，仅图表被隐藏。
+- 影响：同页；陈旧药量与当前空输入被误读为同一方案。
+- 方案：无效输入时清空结果并显示「请输入有效浓度/倍数」，同时补「有效 → 无效」回归用例。
+
+### 10-3 种子发芽试验增删记录日会重置全部已录入发芽数（中，确认源码缺陷）
+- 描述：`addDay`/`removeDay` 均调用 `renderDayRows()`，该函数按内置默认值（14/22/18/12/6/3/1）整块重建输入行，不走「保留现值、只增删末行」。
+- 证据：`tools/agriculture/seed-germination-rate.html:241-249`（render 每次写默认值）、`:250-251`（add/remove 均重建）。复现：7 天依次改为 0/5/9/… 后点「+ 添加记录日」→ 8 行全部恢复默认值，前 7 天录入丢失；点「- 删除最后一天」同样整表重置。
+- 影响：`tools/agriculture/seed-germination-rate.html`；逐日观察数据无法连续录入，发芽势/GI 结果被默认值污染。
+- 方案：渲染前读取现有 `day{i}` 值复用，只追加或删除末行；或改由状态数组统一渲染。
+
+### 10-4 发芽率可超过 100% 且仍评为「优质种」（中，确认源码缺陷）
+- 描述：只校验供试总数 >0，未校验「累计发芽数 ≤ 供试总数」；发芽率、发芽势可大于 100%，分级照常进入最高档，进度条只被 `Math.min` 截到 100%。
+- 证据：`tools/agriculture/seed-germination-rate.html:266-279`（无上限校验、直接分级）、`:289`（`Math.min(germinationRate,100)`）。复现：供试总数 10、第 1 天发芽 12 → 发芽率 120.0%、评级「优质种」、进度条宽度 100%。
+- 影响：同页；不可能数据被判为最优种子，且概览条掩盖超限。
+- 方案：`totalGerm > total` 时提示「发芽数超过供试种子数」并中止；分级与进度条使用真实值并标注超限。
+
+### 10-5 种子页深度解析的活力指数算例与工具公式口径相反（低，确认内容缺陷）
+- 描述：工具按 `VI = GI × 幼苗平均长度` 计算，深度解析算例却用 `发芽率 × 苗长`，两者数值差数十倍。
+- 证据：`tools/agriculture/seed-germination-rate.html:276`（`vi = gi * len`）、`:305`（文案 GI×苗长）；`:219` 算例「发芽率 92%，苗长 12 cm，VI = 0.92 × 12 = 11.04」。复现默认 7 天数据（14/22/18/12/6/3/1）→ GI 35.84，苗长 12 时 VI 应为 430.1，而非 11.04。
+- 影响：同页；深度解析与工具结论互相打脸，SEO 正文可信度下降。
+- 方案：算例改为给出逐日发芽数并按 GI×苗长演示；若要保留「发芽率×苗长」则改名并说明是简化活力度量。
+
+### 10-6 灌溉均匀度增删测点会重置全部实测值（中，确认源码缺陷）
+- 描述：与种子页同模式，`addPoint`/`removePoint` 调 `renderPoints()`，整表按 `DEFAULT_VALUES` 重建。
+- 证据：`tools/agriculture/irrigation-uniformity.html:219-227`（重建时逐行写默认值）、`:245-246`（增删均重建）。复现：12 个测点改为现场读数（如 8/9/10…）后点「+ 添加测点」→ 13 行全部回默认 12/14/11/…，实测数据丢失；删除同样重置。
+- 影响：`tools/agriculture/irrigation-uniformity.html`；现场采水数据无法边测边加，CU/DU 结果失真。
+- 方案：保留现有 `pt{i}` 值追加末行，删除仅移除末行；或改为状态数组渲染。
+
+### 10-7 灌溉均匀度 DU 的 1/4 取样数用 floor，n=5~7 时不足 25%（低，确认算法偏差）
+- 描述：`q1Count = max(1, floor(n/4))`，测点数非 4 倍数时低分位样本占比低于标准的 25%。
+- 证据：`tools/agriculture/irrigation-uniformity.html:270-275`。复现：n=5 取 1 个（20%）、n=6 取 1 个（16.7%）、n=7 取 1 个（14.3%）；默认 n=12 取 3 个（25%）正确。
+- 影响：同页；小样本 DU 偏离 ASAE EP405.1 的 25% 口径，动态增删测点后指标不可比。
+- 方案：用 `Math.round(n/4)` 或按「至少 25%」向上取整，并在公式说明中写明取整规则。
+
+### 10-8 水肥一体化 EC→浓度系数与页面自身注释矛盾，施肥量约 3 倍（高，确认源码内部矛盾）
+- 描述：calc 注释写「1 mS/cm ≈ 640 mg/L」，实现却用 `fertConc = netEC / ecPer`（`ecPer=0.5`），即 1 mS/cm → 2000 mg/L；两者相差 3.125 倍。总用肥随之放大约 3 倍。
+- 证据：`tools/agriculture/fertigation-ratio.html:333-335`（注释与实现并列）、`:309-313`（四种肥 `ecPer:0.5`）。复现默认参数 目标 1.5、水源 0.3 → 净 EC 1.20，输出肥料浓度 2.40 g/L（2400 mg/L）；注释口径应为 1.2×640 = 768 mg/L（0.768 g/L）。500 L 灌水量下总用肥 1.20 kg，按注释口径仅 0.384 kg。
+- 影响：`tools/agriculture/fertigation-ratio.html`；默认场景即约 3 倍投肥，EC 目标失控，存在烧根与肥料浪费风险（真实作物/肥料系数仍需农艺复核）。
+- 方案：按 `mg/L = netEC × 640` 计算浓度并换算 g/L；或把 `ecPer` 改为约 1.56 g/L per mS/cm 的倒数口径，四种肥分别标定；同步公式框、verification 用例。
+
+### 10-9 水肥一体化默认组合必然触发「超过溶解度」警告（中，确认源码算术）
+- 描述：默认 `stockRatio=200`，母液浓度 = 田间浓度 × 倍数 = 2.4×200 = 480 g/L；而默认溶解度 150 g/L，且下拉最小倍数为 100（2.4×100=240 g/L）仍超限，任何选项都必然报不可行。
+- 证据：`tools/agriculture/fertigation-ratio.html:167-173`（100/200/500 倍）、`:351`（stockConc）、`:382-386`（>solubility 即警告）。复现默认参数 → 母液 480.0 g/L > 150 g/L，结果固定显示「请降低浓缩倍数或增加母液体积」，但下拉无更低档。
+- 影响：同页；默认状态即「不可行」，用户会误判工具或盲目改参数。
+- 方案：给出「最高可用浓缩倍数 = solubility ÷ fertConc」，或增加 25/50 倍档；按肥料品种带默认溶解度并让默认预设自洽。
+
+### 10-10 水肥一体化「复制结果」在水源 EC 高于目标时输出负浓度/负用肥（中，确认源码缺陷）
+- 描述：`copyResult` 独立重算，未复用 calc 的 `netEC<=0` 分支，页面已提示「无需注肥」时仍可复制负数。
+- 证据：`tools/agriculture/fertigation-ratio.html:330-331`（calc 拦截）、`:398-411`（copy 无校验）。复现 目标 EC 0.3、水源 EC 1.5 → 净 EC −1.2，复制文本「肥料浓度 −2.40 g/L、总用肥 −1.20 kg」。
+- 影响：同页；配方记录/交接单出现负投入量。
+- 方案：copy 复用 calc 的输入校验与 netEC 判断，非法时提示并中止。
+
+### 10-11 秸秆还田在氮含量为 0 时页面显示 999:1、复制输出 Infinity:1（中，确认源码不一致）
+- 描述：calc 用 `nitrogen>0 ? carbon/nitrogen : 999` 的哨兵值，copy 直接 `carbon/nitrogen`，N=0 时两处结果不一致，且仍照常给出补氮量。
+- 证据：`tools/agriculture/straw-return.html:292`、`:369`、`:297`。复现 碳 45%、氮 0、还田 400 kg/亩、目标 C/N 20 → 页面「999.0:1」，复制「Infinity:1」，同时补纯氮 9.00 kg、尿素 19.57 kg（按 46%）。
+- 影响：`tools/agriculture/straw-return.html`；页面与导出结果自相矛盾，999 不是有效 C/N。
+- 方案：抽同一计算函数，N=0 显示「—/无法计算」并阻止补氮计算，或校验 N>0；copy 复用结果对象。
+
+### 10-12 土壤有机质「复制结果」绕过输入校验（低，确认源码缺陷）
+- 描述：calc 校验 `before>0` 且 `after<before`，copyResult 重算时完全不校验。
+- 证据：`tools/agriculture/soil-organic-matter.html:243-244`（calc 校验）、`:280-289`（copy 无校验）。复现 灼烧前 0 g、灼烧后 9.85 g → 页面提示「灼烧前重量必须大于0」，但复制输出「烧失率：Infinity% / 有机碳：Infinity% / 有机质：Infinity%」；灼烧后大于灼烧前则复制负值（默认 10→9.85 为 1.50% 正常）。
+- 影响：同页；复制记录出现 Infinity/负百分比。
+- 方案：copy 复用 calc 校验或复用计算结果对象，非法时 toast 提示并中止。
+
+### 10-13 化肥利用率对 >100% 利用率无上限校验，复制仍可在 0 分母时输出 Infinity（中，确认源码缺陷）
+- 描述：差减法结果未做物理上限校验，>100% 直接进入「高效利用」；copyResult 也不复用 calc 的 `fertInput>0` 校验。
+- 证据：`tools/agriculture/fertilizer-efficiency.html:251-257`（recovery 与分级）、`:280-287`（copy 无校验）。复现 施肥区吸收 20、对照 5、施入 10 → 利用率 150.0%，评级「高效利用」、进度条 100%；施入 0 时页面提示「施入养分量必须大于0」，复制输出「当季利用率：Infinity%」。
+- 影响：`tools/agriculture/fertilizer-efficiency.html`；不可能数据被判高效，复制值非法。
+- 方案：recovery>100% 提示「数据异常，请复核吸收量/施入量」并单列「异常」档；copy 前置同一校验。
+
+### 10-14 作物需水量把有效降雨按「mm/天」逐日扣减，跨日盈余不结转（低，待验证口径设计）
+- 描述：输入标签是「有效降雨量(mm/天)」，calc 每日 `etc - rain` 后 clamp 到 0，雨量盈余不能补偿少雨日；copy 也无输入校验。算术本身正确，问题在时间尺度口径。
+- 证据：`tools/agriculture/crop-water-requirement.html:147-154`（mm/天）、`:286-293`（逐日扣减 + clamp）、`:317-329`（copy 无校验）。复现默认 kc1.2、ET₀5、雨1、10 天、10 亩、效率 70% → ETc 6.00、日净 5.00 mm、总蒸散 60.0 mm、毛水 71.43 mm、总灌水 476.4 m³（算术无误）；但用户若把 10 天合计雨量 40 mm 填入「mm/天」，会得到日净 0、总灌水 0。
+- 影响：同页；季节性灌溉计划可能被低估；输入口径需人工换算。
+- 方案：增加「日均 / 时段合计」口径切换或直接按合计雨量扣减，并在标签/说明中写清；copy 复用 calc 校验。
+
+### 留存优化
+- 农药页只有「导出 CSV」无「复制结果」，且 ppm 倍率与用量两套数字未并列展示代入式，建议统一结果卡（倍率 + 原药量 + 水量 + 校验后的代入式）。
+- 化肥利用率第三卡文案「每kg肥增产吸收」易被读成农学效率（AE），页面也未使用已算出的 `agronomicEff`，建议明确为「养分吸收增量/施入量」或补 AE 输入。
+- 土壤有机质深度解析算例用重铬酸钾法，而工具只有烧失法入口，建议改成本页可复现的烧失法算例。
+- 灌溉均匀度 copy 只给 CU，未带 DU/CV，建议与结果卡字段对齐。
+
+### 续查覆盖
+- 本批覆盖 8 页：`pesticide-dose.html`、`seed-germination-rate.html`、`crop-water-requirement.html`、`irrigation-uniformity.html`、`fertigation-ratio.html`、`straw-return.html`、`soil-organic-matter.html`、`fertilizer-efficiency.html`。
+- 已在前批审计的 `calculator-calc-concentration.html`、`gdd-calculator.html`、`crop-yield.html` 未重复计入；`fertilizer-calculator.html` 属既有修复批次，本批未复查。
+- 其余农业养殖页面（肥效/温室/收获/机械等）未逐页覆盖；所有结论为源码推导 + node 复算，未在浏览器、英文态、移动端或门禁中验证。

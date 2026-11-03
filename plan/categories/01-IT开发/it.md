@@ -85,3 +85,65 @@
 
 ### 续查覆盖
 - 新抽查 `tools/it/env-generator.html`、`tools/it/json-to-csv.html`、`tools/it/number-base-converter.html`、`tools/it/text-replace.html`、`tools/it/nginx-config-generator.html` 共 5 页，新增 7 条问题；未做浏览器、部署或门禁验证。历史回填的实际交互需真机复核。
+
+## 2026-11-03 续查（并行批 G）
+
+### IT-N10 .properties 含空格的赋值被整体当成键（高，确认源码缺陷）
+- 问题：`parseProps` 扫描键时遇到普通空格就 `break` 退出，`sep` 保持 -1，随后把整行 trim 后当键、值置空；标准 `key = value` 写法全部失效。
+- 证据：`tools/it/properties-parser.html:268-275`。Node 内存执行原函数：`parseProps("app.name = toolbox")` → `{"app.name = toolbox":""}`；页面默认 `SAMPLE`（255）经 Boot（435）→`loadSample`（319）→`doBeautify`（293-300）→`toProps(parseProps())`，实际首行输出为 `app.name \= toolbox = `（键里还带被二次转义的 `=`）。无空格写法 `a=b`、`c:d` 正常。
+- 影响：`tools/it/properties-parser.html`；页面一打开示例就是错误结果，JSON 转换/美化/压缩三条路径同时失真。
+- 方案：按 Java Properties 规范实现键扫描——行首空白跳过、键在首个未转义的 `=`/`:` 或空白处结束、空白分隔后可选再吃一个 `=`/`:`，再做值 trim；补 `key = value`、`key: value`、制表符分隔与行首缩进用例。
+
+### IT-N11 properties-parser 重复定义覆盖后错误态样式反转（低，确认源码缺陷）
+- 问题：同一段脚本里 `setOut/setErr/clearAll/loadSample` 各定义两次，后者覆盖前者；覆盖版 `setErr` 的条件写成 `'err'+(s?'':' ok')`，有消息时反而没有成功态、空消息时反而带 `ok`。
+- 证据：`tools/it/properties-parser.html:312-319`（对比 286-311）。`loadSample` 被 319 覆盖后不再只做解析，而是走 `doBeautify`，与 IT-N10 叠加；`clearAll` 的占位文案也由“等待解析...”变为“等待输入...”。
+- 影响：`tools/it/properties-parser.html`；解析成功提示按红色错误样式显示，状态反馈不可信。
+- 方案：删除重复定义只保留一套；错误/成功态用独立 class 或直接按 `s` 是否以 ✅ 开头判断，并让 `loadSample` 只调用 `propsToJson`。
+
+### IT-N12 URL 解析结果未转义直插 innerHTML，重复参数被覆盖（高，确认源码缺陷）
+- 问题：`url.searchParams.forEach` 把重复键写入同一对象（后者覆盖前者）；随后字段值与参数值未经转义拼进 `innerHTML`，历史记录（localStorage）回显同样原样拼接。查询值经 `URLSearchParams` 已解码，`<img onerror>` 会作为标签生效；值内的单引号还会截断复制按钮的 `onclick` 属性。
+- 证据：`tools/it/url-parser.html:377-379,389-403,477`。Node `new URL("https://x.com/p?q=<img src=x onerror=alert(1)>&a=1&a=2&tag=%3Cb%3E")` → `searchParams` 得 `{"q":"<img src=x onerror=alert(1)>","a":"2","tag":"<b>"}`：重复 `a` 只剩 `2`，且值含可执行标签。路径侧 `<` 被 URL 序列化为 `%3C`，注入面主要是查询值与历史记录。
+- 影响：`tools/it/url-parser.html`；解析含 HTML 的链接时页面可被注入（自输入/历史持久化），参数表只显示最后一个同名参数，复制按钮可能失效。浏览器实际执行未验证。
+- 方案：所有输出统一走文本转义或 `textContent`/`createElement` 构建；重复参数保留数组并按 `getAll` 逐行展示；`onclick` 改为事件委托，不把数据拼进属性。
+
+### IT-N13 CSV 校验不识别引号内换行（中，确认源码缺陷）
+- 问题：校验按 `\n` 切行后逐行解析，RFC 4180 允许双引号字段跨行，跨行字段会被误报为“引号未闭合”，后续行也被连带误报。
+- 证据：`tools/it/csv-validator.html:233-243`。Node 复算（提取 `parseLine` 后按原循环执行）：输入 `id,note\n1,"line1\nline2"\n` → `lines:3, expect:2, issues:["第 2 行：引号未闭合","第 3 行：引号未闭合"]`；同一逻辑对 `"x,y",z` 单行引号逗号判定正常。
+- 影响：`tools/it/csv-validator.html`；合法的多行字段（备注、地址）一律判错，用户会去“修”本来正确的数据。
+- 方案：改为按字符流状态机解析整份 CSV（引号内换行不切行），记录逻辑行号；补充多行字段、转义双引号、CRLF 用例。
+
+### IT-N14 curl 转代码漏判 POST 与方法/选项值误认作 URL（高，确认源码缺陷）
+- 问题：未处理“带 `-d` 时 curl 默认改 POST”，输出固定 GET；除 `-X/-H/-d/--data/--data-raw` 外的选项（如 `-F`、`--data-binary`、`-u`、`-o`）的值不以 `-` 开头，会被当成 URL；头部值原样进 `innerHTML`。
+- 证据：`tools/it/curl-parser.html:243,250-265,267-272`。Node 桩执行 `parse()`：`curl -d '{"a":1}' https://api.example.com/x` → `方法：GET`（curl 实际以 POST 发送）；`curl -F 'file=@a.txt' --data-binary @b.json https://x.com` → `URL：file=@a.txt`（真实 URL 丢失）；`-H 'X-Test: <img src=x onerror=alert(1)>'` 原样输出 `<p>X-Test: <img src=x onerror=alert(1)></p>`。
+- 影响：`tools/it/curl-parser.html`；复制出的请求方法/URL/表单体与真实 curl 行为不符，常见上传命令直接解析错。
+- 方案：建立“选项是否带值”的映射表，成对消费参数；无 `-X` 而有 `-d/--data*/--form` 时默认 POST；未知选项跳过其值并提示；输出统一转义，必要时以结构化 JSON 展示。
+
+### IT-N15 文本截断按 UTF-16 码元切割并忽略省略号预算（中，确认源码缺陷）
+- 问题：`chars` 模式用 `length/substring` 按码元截断，emoji 等代理对会被切成半个字符；省略号直接追加、不占长度预算；`bytes` 模式仅把 CJK/全角计 2 字节，emoji 仍按 1 个码元计；非法 limit 被 `||0` 吞成 0 后只输出省略号。
+- 证据：`tools/it/text-truncate.html:314,323-335,348-363`。Node 桩执行 `truncate()`：输入 `😀😀😀`、chars、limit=3 → `"😀\ud83d…"`（残留孤立代理项 U+D83D）；`abcdef`、limit=3、省略号 `...` → `"abc..."` 长 6；limit 非法/0 → `"…"`；`😀😀`、bytes、limit=4 → 两个 emoji 全保留（实际 8 字节）。页面公式表（255-268）自称“按码点截断、省略号计入上限”，实现与之相反。
+- 影响：`tools/it/text-truncate.html`；复制结果可能含非法字符，长度上限不可用于严格字段校验。
+- 方案：用 `Array.from`/`Intl.Segmenter` 按码点或字素簇截断，省略号从 limit 中扣除；bytes 模式按 UTF-8 实际编码长度累计；limit 非正整数时明确报错而非静默 0。
+
+### IT-N16 slugify 的 Unicode 模式在默认选项下被剥掉百分号（中，确认源码缺陷）
+- 问题：`unicode` 模式先 `encodeURIComponent` 生成 `%HH`，默认勾选的“移除特殊符号”正则 `[^\w\s\u4e00-\u9fa5-]` 会把 `%` 换成空格，随后小写化并按分隔符切分，转义三元组被拆成普通十六进制片段。
+- 证据：`tools/it/slugify.html:350-357,196-200`。Node 复算：`slugify("中文", {mode:"unicode",separator:"-",lowercase:true,stripSymbols:true,stripStopWords:false})` → `e4-b8-ad-e6-96-87`；关闭剥离符号才得到 `%e4%b8%ad%e6%96%87`。另：分隔符选点号时“下划线”预览（379）仍只把 `-` 换成 `_`，显示 `hello.world` 却标为下划线。
+- 影响：`tools/it/slugify.html`；默认配置下“Unicode 转义”输出不是可解码的百分号编码，预览标签也会误导。
+- 方案：剥离符号发生在编码之后时跳过 `%` 与十六进制字符，或先剥离再编码；预览按实际分隔符替换；补中文/emoji 的转义往返用例。
+
+### IT-N17 Title Case 把撇号后的字母再大写并压平驼峰（中，确认源码缺陷）
+- 问题：`toTitleCase` 用 `\b\w` 大写、`\B\w` 小写，撇号是非单词字符，`'t` 被当作新词首字母大写；同样的 `\B\w` 会把驼峰内部大写压成小写。
+- 证据：`tools/it/case-converter.html:377-380`。Node 复算：`"don't stop now"` → `Don'T Stop Now`；`"myVar"` → `Myvar`。页面 FAQ（301）声称“只按空格切词、对每个词首字母大写”，与实际结果不符。
+- 影响：`tools/it/case-converter.html`；英文标题/人名带撇号时出现 `Don'T`，驼峰输入的首字母大写结果被意外压平。
+- 方案：按空白分词后仅把每词首字符大写、保留词内其余字符，或使用带 Unicode 属性转义的正则并显式排除撇号；补 `don't`、`O'Reilly`、`myVar`、`iPhone` 用例。
+
+### 留存优化
+- `properties-parser.html:280` 的 `unescapeVal` 不解码 `\uXXXX`：`greet=\u4f60\u597d` 原样保留（Node 已复算），与页面 FAQ 对转义的说明不一致，可随 IT-N10 一并修。
+- `properties-parser.html:265` 行尾 `\\`（字面反斜杠）也被当作续行：`path=C:\\` + 下一行 → `{"path":"C:\next=1"}`，需区分“单个反斜杠续行 / 双反斜杠字面量”。
+- `url-parser.html:442-459` 构造器不校验 host/port，host 为空会生成 `https:///path`，端口可写入任意非数字内容。
+- `slugify.html:315` 拼音表 `'音频':'yinpinyin'` 拼写有误；297 的 15 字长键因贪心上限 8（324）永远匹配不到，属冗余数据。
+- `text-truncate.html:330` `fromEnd` 分支完全忽略 `wordBoundary`，与正向行为不对称。
+- `case-converter.html:384` `toSentenceCase` 先整体小写，专有名词与缩写（NASA、iOS）会被降格，如需保留应改为逐句首字母处理。
+
+### 续查覆盖
+- 本轮人工查看 `tools/it/properties-parser.html`、`url-parser.html`、`csv-validator.html`、`curl-parser.html`、`text-truncate.html`、`slugify.html`、`case-converter.html` 共 7 页，新增 8 条（高 3、中 4、低 1），编号续 IT-N10～N17，与既有 IT-N1～N9 无重复。
+- 取证方式仅为源码静态阅读 + Node 内存提取原函数/最小 DOM 桩执行复算；未做真实浏览器交互、英文态、移动端、门禁或部署验证。

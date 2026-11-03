@@ -56,3 +56,76 @@
 
 ### 续查覆盖
 - 新抽查 `tools/photo/safe-shutter.html`、`tools/photo/depth-of-field.html` 共 2 页，新增 3 条（0 条高优）与 2 条留存建议；未做浏览器、移动端、线上或门禁验证。
+
+## 2026-11-03 续查（并行批 G）
+
+> 本批为纯静态源码审计：逐页读 `calc()` 与输入/守卫，再用 node 在内存中按页面同一表达式复算；未打开浏览器、未验证 EN/繁体、移动端、线上或门禁。
+
+### P-N4 微距「物高」按 m×画幅高计算，方向应为画幅高÷m（高，确认源码缺陷）
+- 证据：`tools/photo/macro-magnification.html:343-346` 输出 `focal/(s-focal)*frame`，公式框 `:139` 写作「像高 = m × 画幅高」。node 按同式复算：f=50、s=150、frame=24 → m=0.50，页面给出「物高 12.0 mm」，而放大率 0.5× 时填满 24 mm 画幅的实物高度应为 48.0 mm；f=100、s=150、frame=24 → m=2.00，页面给出 48.0 mm，实际可拍物高只有 12.0 mm。两组输入均把「物高」算反。
+- 影响：`tools/photo/macro-magnification.html`；用户按结果准备的被摄物尺寸会差 m² 倍，微距翻拍/标本布景直接失效。
+- 方案：把联动量改为 `frame/m`（并标明这是「可拍物高/视场高」），或同时输出宽×高视场；公式框的「像高 = m × 画幅高」改为「可拍物高 = 画幅高 ÷ m」，并用 m=0.5 与 m=2 两个算例做回归。
+
+### P-N5 微距物距小于焦距仍输出负放大率与负物高（中，确认源码缺陷）
+- 证据：`tools/photo/macro-magnification.html:337-338` 守卫仅要求三项非空、`s` 非零，`:343-346` 直接代入 `s-f`。node：f=100、s=50、frame=24 → m=-2.00、「物高 -48.0 mm」；s 恰等于 f 时 m=Infinity，经 `replace(/Infinity|NaN/g,'—')` 后结果区只剩「— ×」。
+- 影响：`tools/photo/macro-magnification.html`；微距常见误填（把物距填成焦距附近）得到负值或空值，页面不提示原因。
+- 方案：要求 `s > f`（严格大于），`s <= f` 时字段级提示「物距必须大于焦距（否则无法成像）」；对 `s-f` 另设最小间距，避免 Infinity 落到「—」。
+
+### P-N6 mired 深度解析算例方向自相矛盾（中，确认内容缺陷）
+- 证据：`tools/photo/mired.html:169` 写「3200K … Mired=312.5；加 +100 暖调滤镜后 Mired=212.5 → 色温 = 1e6/212.5 ≈ 4706K，明显变暖」。node 按页面公式：3200K 加 +100 mired 应为 312.5+100=412.5 → 2424K（变暖）；212.5 对应 4706K 是比 3200K 更高、即更冷。且 `:170` 同页已写「Mired 降=色温升（偏蓝冷），升=色温降（偏橙暖）」，算例与规则相反。
+- 影响：`tools/photo/mired.html`；用户照算例会选错校色滤镜方向（该加暖镜却按减 mired 处理）。
+- 方案：算例改为「3200K(312.5)+100 → 412.5 → 2424K，明显变暖」；若保留 212.5，则改为「减 100 mired / 加蓝镜 → 4706K，变冷」。
+
+### P-N7 mired 负色温与负 mired 无校验（低，确认源码缺陷）
+- 证据：`tools/photo/mired.html:325-333` 仅 `k` 走分母非零守卫（`:295`），无正数检查。node：k=-3200、shift=0 → 「Mired 值 -312.5 mired」「偏移后色温 -3200 K」。
+- 影响：`tools/photo/mired.html`；负开尔文/负 mired 在物理上不存在，页面仍作为正常结果展示。
+- 方案：`k > 0` 校验；`shift` 限合理区间（如 -500…+500）并在越界时提示，不输出负 mired。
+
+### P-N8 打印尺寸页切换 cm/inch 后「所需最小分辨率」倍数错误（中，确认源码缺陷）
+- 证据：`tools/photo/print-size.html:335-338` 按单位换算 `wOut`，`:360` 又固定用 `wOut/25.4*300` 求所需像素。node 复算同一张 3000×2000、300 DPI：单位 mm → 「3000×2000 px」（正确）；单位 cm → 「300×200 px」（差 10 倍）；单位 inch → 「118×79 px」（差 25.4 倍）。按 300 DPI 打印 10 in 宽本应需要 3000 px，与单位无关。
+- 影响：`tools/photo/print-size.html`；选 cm/inch 的用户若按该值裁图或缩放，会得到不足 1/10 的像素，冲印明显糊。
+- 方案：所需像素改为与单位无关的 `w*(300/dpi)`、`h*(300/dpi)`（或先统一换算为英寸 `wOut_in*300`）；补 mm/cm/inch 三态回归同一期望值。
+
+### P-N9 帧率转换被误述为「放慢/加速播放」且时长不变（中，确认源码缺陷）
+- 证据：`tools/video/video-fps.html:297-308` 以 `ratio=dstFps/srcFps` 生成提示。node：源 24、目标 60、时长 10 s → 输出「升帧转换…放慢2.50倍播放」，但页面同时给出 240 → 600 帧、时长仍 10 s；源 60、目标 24 → 「加速2.50倍播放」，帧数 600 → 240、时长仍 10 s。常规帧率转换不改时间轴，只有重新定时才会改变时长与速度。
+- 影响：`tools/video/video-fps.html`；剪辑/交付者会误判是否需要变速与音频对齐，按提示改时长即产生 2.5 倍音画不同步。
+- 方案：文案拆成「帧率转换（时长不变，仅帧数变化）」与「变速重定时（时长 = 原时长 × 源fps ÷ 目标fps）」；若要做后者，增加显式开关并同步输出新时长。
+
+### P-N10 帧率页公式说明「时长比 = 目标÷源」与同句算式自相矛盾（低，确认内容缺陷）
+- 证据：`tools/video/video-fps.html:131` 同一行先写「跨帧率时长比 = 目标帧率 ÷ 源帧率」，紧接着举「60 fps 素材放入 24 fps 时间线…时长 = 原始时长 × 60 ÷ 24」。node：24/60=0.4、60/24=2.5，两者互为倒数，同一句给出两个口径（0.4 是速度比、2.5 才是时长比）。
+- 影响：`tools/video/video-fps.html`；说明区无法自洽，用户无法判断该乘还是该除。
+- 方案：统一为「时长比 = 源fps ÷ 目标fps（2.5×）」「速度比 = 目标fps ÷ 源fps（0.4×）」，与 P-N9 的文案改造同批落地。
+
+### P-N11 包围曝光负范围导致高低 EV 颠倒、非整数张数被静默取整（中，确认源码缺陷）
+- 证据：`tools/photo/bracketing-plan.html:324-335` 只校验 `step` 非零（`:296`），`range` 与 `base` 无符号约束，张数 `range/step+1` 直接 `toFixed(0)`。node：range=-3、step=1、base=0 → 「张数 -2 张」「最低EV 1.5」「最高EV -1.5」（最低/最高颠倒）；range=3、step=2 → 2.5 被显示为「3 张」，而 ±1.5 EV、步长 2 EV 实际无法落出 3 个等距档位；range=1、step=3 → 显示「1 张」却覆盖 ±0.5 EV。
+- 影响：`tools/photo/bracketing-plan.html`；HDR 拍摄按错误张数/区间布光，合成时缺档或重复档。
+- 方案：`range > 0`、`step > 0` 且 `range/step` 为整数（或按向上取整重算首尾 EV 并列出每一张的 EV）；结果区补「每张 EV 序列」而非仅给区间端点。
+
+### P-N12 曝光值页负光圈被平方后当正光圈使用（低，确认源码缺陷）
+- 证据：`tools/photo/ev.html:343-350` 用 `Math.pow(aperture,2)`，守卫 `:301-322` 仅拦光圈为 0，未拦负值（`shutter`/`iso` 有负值限制，唯独光圈缺）。node：aperture=-2.8、shutter=0.01、iso=100 → EV100 9.61，与 +2.8 完全相同；aperture=-11 → 13.56，与 +11 相同。
+- 影响：`tools/photo/ev.html`；负光圈是明显误填，却得到一个看似合理的 EV，掩盖输入错误。
+- 方案：光圈补 `> 0` 校验（与同站 `calc-exposure-aperture.html:233-236` 的正数守卫口径一致），非法时字段级提示并不输出结果。
+
+### P-N13 闪光灯 GN 页负闪光指数可算、ISO 系数不参与结果（低，确认源码缺陷/口径不一致）
+- 证据：`tools/photo/flash-gn.html:339-348` 仅 `dist` 走分母非零守卫（`:297`），`gn` 无正数校验，`iso` 仅换算系数。node：gn=-40、dist=5 → 「可用光圈 -8.0 f」；gn=0、dist=5 → 「0.0 f」；iso=800 → 系数 2.83 而「可用光圈(ISO100)」仍为 8.0 f。`:121` 英文简介称 "accounting for ISO and zoom"，`:139` 公式框却明确「ISO 修正系数…独立展示量，不回乘到光圈或距离」。
+- 影响：`tools/photo/flash-gn.html`；负/零 GN 输出无意义光圈；按英文简介理解会错以为结果已含 ISO 增益。
+- 方案：`gn > 0`、`dist > 0` 校验；ISO 要么真正参与（光圈 = GN/dist×√(ISO/100) 并明确基准），要么把英文简介改为 "ISO factor shown separately"。
+
+### P-N14 焦距/传感器边长 ≤0 被静默替换为 0.0001，输出 180°（中，确认源码缺陷）
+- 证据：`tools/photo/convert-focal.html:208` 开头 `if(f<=0){f=0.0001;}if(d<=0){d=0.0001;}`，`:124` 两个 number 输入无 min。node：f=-50、d=36 → 「视场角 180.00°」；f=0、d=36 → 180.00°；f=50、d=0 → 0.00°。页面无任何错误提示。
+- 影响：`tools/photo/convert-focal.html`；焦距误填为 0/负值时得到接近 180° 的超广角结论，与真实镜头完全不符，且用户看不出输入非法。
+- 方案：`f > 0`、`d > 0` 校验并字段级提示，不再做 0.0001 静默兜底；反向 FOV→焦距的输入限 `0 < FOV < 180`。
+
+### 留存优化
+- `tools/photo/macro-magnification.html`：除修正物高方向外，建议增加工作距离/最近对焦距离与「焦距+近摄接圈长度」两种输入模式，并给 1:1、1:2、2:1 三档预设；结果区补「可拍幅面宽×高」而不仅一个数字。
+- `tools/photo/mired.html`：加常见光源（日光 5500K/钨丝 3200K/阴天 6500K）与常见校色滤镜（80A/80B/85B）的 mired 偏移预设，并显示「目标色温 → 需 ±mired」双向换算，替代纯手填偏移。
+- `tools/photo/print-size.html`：结果区把「当前像素在所选 DPI 下的物理尺寸」与「该物理尺寸在 300 DPI 下所需像素」分两行展示，避免单位混算；标准对照表可补 300 DPI 与 150 DPI 两列。
+- `tools/video/video-fps.html`：补「变速重定时」开关与音频同步提示，并给 24↔25（PAL 制式 4% 变速）、23.976↔24 的常见转换说明。
+- `tools/photo/bracketing-plan.html`：输出每张的 EV 与对应快门（基于基准快门按 2^EV 换算），并给相机常见 AEB 档位（±2EV/3 张、±3EV/5 张）预设。
+- `tools/photo/ev.html`：结果区补「等效曝光互换表」（固定 EV 下 1/3 档光圈-快门组合），与 `calc-exposure-aperture.html` 的输出结构对齐。
+- `tools/photo/flash-gn.html`：补 GN 随变焦/ISO 变化的常见机身实测参考，以及跳闪/柔光罩的衰减系数提示。
+- `tools/photo/convert-focal.html`：输出补水平/垂直/对角三种 FOV（当前只算单一方向），并给全画幅/APS-C/M4/3 的等效焦距一行结论。
+
+### 续查覆盖
+- 新抽查 8 页：`tools/photo/macro-magnification.html`、`tools/photo/mired.html`、`tools/photo/print-size.html`、`tools/photo/bracketing-plan.html`、`tools/photo/ev.html`、`tools/photo/flash-gn.html`、`tools/photo/convert-focal.html`、`tools/video/video-fps.html`。
+- 新增 11 条（P-N4…P-N14，编号接续本文件既有 P-N3；其中 1 条高优、6 条中优、4 条低优）与 8 条留存建议；未做浏览器、EN/繁体、移动端、线上或门禁验证。
