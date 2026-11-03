@@ -150,3 +150,71 @@
 - 本轮新增覆盖 8 页：`tools/beekeeping/honey-estimator.html`、`tools/daily-goods/shoe-size.html`、`tools/railway/power-5.html`、`tools/stats/sample-size.html`、`tools/bridge/deflection-calc.html`、`tools/tunnel/ventilation-calc.html`、`tools/seismology/stats-attenuation.html`、`tools/bonding/analysis-resolution.html`；均为上文未出现的目录/页面。
 - 方法：逐页读源码，node 内存复刻页内公式与取值口径（含 `+''` 空值转 0、`Math.round` 半码、`toFixed` 对 Infinity/NaN 的表现）；证据均为"文件路径:行号 + 复现输入 → 实际输出"。
 - 未做：真实浏览器点击、英文态（`?lang=en-US`）、移动端、构建与门禁（`_build.py` / `run_gates.py`）验证；G2 的美/英码品牌口径属标准层面，标待验证。
+
+## 2026-11-03 续查（并行批 I）
+
+> 本批覆盖 8 个上文未出现的长尾行业页面（aquaculture×2 / glass / plastic / shipping / logistics2 / project / petrochem），均按源码逐行阅读并用 node 内存复刻页内公式取证；未做浏览器、英文态、移动端与门禁验证。
+
+### 12-I1 运输存活率：0 小时与负水温仍判低风险（高，确认）
+- 描述：`hours` 仅要求 ≥0（`:205,209`），`temp` 完全没有校验（`:206` 为 `setInvalid(...,true&&false)`）。`hours=0` 时 risk=0、survival=100 被夹到 99.5%，建议密度 `1000/(0×…)` 为 Infinity、在 `:227` 置 0，结果卡仍显示"低风险/运输条件良好"与"建议密度 0 kg/m³"，自相矛盾。
+- 证据：`tools/aquaculture/density-7.html:129-132,189,195-211,218-240`。node 复算：6 h、20 ℃、150 kg/m³、鱼体 100 g → 存活率 94.6%、风险指数 10.80、建议密度 139 kg/m³；hours=0 → 99.5%、风险 0.00、建议密度 0、等级"低风险"；temp=-20 → 97.3%、风险 5.40、建议密度 278、仍判"低风险"。
+- 影响：零时长运输和零下水温（负水温）都被当作安全工况；"建议密度 0"与"低风险"直接冲突，结果不可用于排车。
+- 方案：hours 要求有限正数，或明确 0 时长走"无需运输"分支且不输出存活率/建议密度；temp 限定合理区间（如 -2~40 ℃，按品种细化）；建议密度无有效解时显示"—"并清空风险结论；补 0/负/空用例。
+
+### 12-I2 增氧机配备：kg/(kg/kW·h) 得到的 kWh 被当作 kW（高，确认）
+- 描述：`o2need` 是一次提升所需氧量（kg），除以氧动力效率 1.5 kg O₂/(kW·h) 得到的是 kW·h（能耗），页面却标为"所需功率（kW）"，并直接除以单机功率得台数；全程没有曝气时长/换水周期输入。
+- 证据：`tools/aquaculture/area-power.html:129-140,202-229`。node 复算默认（10 亩、水深 1.5 m、提升 3 mg/L、单机 3 kW、四大家鱼系数 1.0）：o2need=30.00 kg，power=20.00（被标 kW），units=7 台，每亩 2.00 kW。同一 30 kg 需氧量若按 4 h 曝气折算为 30/1.5/4=5 kW → 2 台，与页面 7 台相差 3.5 倍。
+- 影响：设备选型把"能耗"当"功率"，结果随时长假设虚增或低估；"建议台数"和"每亩功率"均缺乏时间口径。
+- 方案：增加"计划曝气时长 h/次（或每日运行小时）"；输出改为"理论曝气能耗 kW·h/次"，功率=能耗/时长；台数按功率密度（kW/亩）×面积或按计算功率选型，并在结果区标注假设；补 1/2/4/8 h 对照。
+
+### 12-I3 玻璃退火曲线：冷却终温高于应变点或为负仍生成"快冷"阶段（中，确认）
+- 描述：`coolTo` 只判 NaN，未约束 `0<coolTo<SP`；`min=20 max=300` 只约束步进器，手输可绕过。coolTo=600（钠钙 SP=515）使 fastRange=-85，`:255` 取 0 分钟，阶段卡仍显示"快速冷却 515℃ → 600℃ / 0.50℃/min / 0 分"；coolTo=-100 则 fastDur=1230 min。
+- 证据：`tools/glass/annealing-curve.html:133,142,240-267`。node 复算 6 mm 钠钙玻璃：coolTo=50 → 24+257+930=1211 min（20 时 11 分，与深度解析一致）；coolTo=600 → 24+257+0=281 min（4 时 41 分），阶段"515→600"；coolTo=-100 → 24+257+1230=1511 min（25 时 11 分）。
+- 影响：把"升温至更高温度"当作快冷，且总退火时间被截短；负终温输出无意义的长时长，工艺卡无法直接使用。
+- 方案：coolTo 要求有限且 `0<coolTo<SP`（并提示应低于 AP）；fastRange≤0 时报字段错误并清空全部结果，不生成 0 分钟阶段；补 600/-100/空/等于 SP 用例。
+
+### 12-I4 挤出产量：mm³ 当 cm³，产量放大 1000 倍（高，确认）
+- 描述：流道面积（mm²）× 螺距（mm）得到 mm³/转，代码未换算即标成 `cm³/rev`；随后 `outputGps = volumePerSec * rho(g/cm³) * eff`，量纲错配 1000 倍。
+- 证据：`tools/plastic/extrusion-rate.html:134-156,248-281`，深度解析 `:201`。node 复算默认 D=65 mm、h=6 mm、螺距 65 mm、80 rpm、0.95 g/cm³、效率 40%：flowArea=1112.12 mm²，每转 72,288.05 mm³（页面显示 72288.05 cm³/rev），产量 131,853.40 kg/h、94,934.45 吨/月；按 mm³→cm³ 换算应为 131.85 kg/h、94.93 吨/月。深度解析微型机组 D=10/h=1/p=5/10 rpm/0.92/90% 的 23.6 mm³/s 被当成 23.6 cm³/s，得 19.5 g/s≈70.2 kg/h；实际 0.0195 g/s≈0.070 kg/h。
+- 影响：产能、日/月产量全部虚增 1000 倍，设备选型与订单排产会被严重误导；深度解析算例同错，用户按示例复算也无法发现。
+- 方案：统一到 cm³ 或统一 SI，并在每个中间量标注单位；`volumePerRev = flowArea * p / 1000`；同步重写深度解析算例并用 node 实跑取数；补单位回归用例（65 mm 机组应约 132 kg/h）。
+
+### 12-I5 航速单位换算：节↔km/h 系数取反（高，确认）
+- 描述：下拉值把"节"设为 1、"km/h"设为 1.852，公式 `r=v*f/t` 直接按"从/到"相除。正确应为 1 kn = 1.852 km/h，页面却给 1 kn = 0.54 km/h；反向 1 km/h = 1.852 kn。
+- 证据：`tools/shipping/convert-speed-1.html:129-130,207`。node 复算：v=1、from=kn(1)、to=km/h(1.852) → r=1×1/1.852=0.5399568，页面显示"1 节 (kn) = 0.539956803456 千米/时 (km/h)"；v=1、from=1.852、to=1 → 1.852。同页深度解析 `:161` 却写着"1 节=1.852 km/h"，计算器与自身说明直接冲突。
+- 影响：所有节/公里每小时换算方向都相反（偏差 3.43 倍）；航程、航速与船期估算会得到错误数值。
+- 方案：改为基准单位换算（先统一换成 kn，再换成目标单位），或把系数存为"1 单位 = 多少 kn"（km/h=0.53996）；补往返用例（1 kn=1.852 km/h、10 kn=18.52、1 km/h=0.54 kn）。
+
+### 12-I6 库存呆滞：静默丢行、库龄未参与、0/负数参数（中，确认）
+- 描述：`parseInv` 对列数<5 或任一数字 NaN 的行直接 `continue`，只有全部行被丢弃才提示；只要剩一行就照常出结论。`age` 虽解析入对象（`:267`），但后续 `calc` 从未使用，页面却把库龄列为必填列。`period`、`threshold` 用 `parseFloat(...) || 90/180`，0 被静默改默认；负数可通过（`min` 属性不拦手输），负出库量使周转天数为 ∞、全部判呆滞，负库存/单价产生负金额。
+- 证据：`tools/logistics2/inventory-aging.html:135-146,253-301,305-335`。node 复算输入"合格品,100,200,30,10 / 缺单价,500,100,60"：仅解析 1 行，SKU 总数 1、库存总金额 ¥1,000、呆滞 0，缺列行无任何提示；period=0 → 90，threshold=0 → 180；period=-90 → dailyOut=-2.22、周转 ∞、判呆滞；库存 -100×10 → 总金额 ¥-1,000。
+- 影响：残缺/被拒行不披露，呆滞比例与总金额建立在缺行数据上；库龄输入实际无效，用户会误以为已按库龄分级；负参数产生不可能结论。
+- 方案：逐行返回"行号+原因"，在结果区展示已接受/拒绝数量；period 要求正整数、threshold>0，0/空不替换默认；库存/出库/单价/库龄要求 ≥0（库龄为整数）；要么让库龄参与预警（如 `max(周转天数, 库龄)` 或单独库龄分级），要么从输入模板移除库龄列；导出含拒绝行。
+
+### 12-I7 挣值管理：0 变成 1、导出 Infinity%、保存回填覆盖（中，确认）
+- 描述：`totalDays` 用 `parseInt(...) || 1`（`:339`），输入 0 或空时静默按 1 天预测，输入框仍显示原值；`bac=0` 时完成率 `ev/bac` 为 Infinity，主 KPI 有守卫但 CSV 导出（`:547`）无守卫，会写 `Infinity%`；保存/加载用 `d.bac || 100000`、`d.totalDays || 90`（`:276-277`），保存的 0 会被替换成默认值；`updatePeriod` 用 `parseFloat(val) || 0`，负数 PV/EV/AC 可进入累计。
+- 证据：`tools/project/manager-cost.html:269,276-277,318-321,338-339,359,367,380-381,547`。node 复算默认三期（PV 60000、EV 50000、AC 55000）+ totalDays 输入 0：代码 totalDays=1、SPI=0.8333、`Math.round(1/0.8333)=1` 天，而输入框显示 0；bac=0 → 完成率 Infinity，导出字段为 `Infinity%`。
+- 影响：预测工期依赖用户看不到的替换值；导出文件含无效数；负成本/负计划值可让 CPI/SPI 失真且不报错。
+- 方案：BAC>0、总工期为正整数、PV/EV/AC≥0 均前置校验，0/空报字段级错误、不替换默认；保存与加载保留 0 并校验；导出前复用同一套有效性检查，遇 Infinity/NaN 写空值或"无效"；补 0/空/负用例。
+
+### 12-I8 储罐容量：安全上限 0/负数与超直径液位仍出结论（中，确认）
+- 描述：`safety` 用 `parseFloat(...) || 0`，无范围校验（HTML `max=100` 不拦手输）；0 或空使 safeVol=0、装料率>0 即"超出安全液位"，并显示"安全容量 0 m³（安全上限 0%）"；-10 得安全容量 -94.25 m³。液位只做 `Math.max(0,Math.min(level,D))` 截断（立式为 L），但结果文本仍打印原始 level：负液位显示"液位 -5 m → 0 m³、0.0%、正常"，超直径 20 m 显示"20 m → 942.48 m³、100%"。`density=0` 直接得 0 吨。
+- 证据：`tools/petrochem/tank-capacity.html:151-173,277-331`。node 复算 D=10 m、L=12 m、level=8 m、density=850：totalVol=942.48 m³；safety=0 → safeVol=0、fillRate=85.76%、状态"超出安全液位"；safety=-10 → safeVol=-94.25 m³；level=-5 → liquidVol=0、fillRate 0.0%（原文显示液位 -5）、正常；level=20 → liquidVol=942.48 m³、100%。
+- 影响：安全容量/装料率与状态可被 0/负上限直接扭曲；负或超直径液位显示与内部截断不一致，误导盘点与安全判断。
+- 方案：safety 要求 1–100、density>0、level 在 0..D（立式 0..L），越界报字段错误并清空结果；结果文本使用截断后的有效液位并注明"已按罐径/L 截断"；安全容量为 0 时不给"正常/超出"结论；补 0/负/超限用例。
+
+### 留存优化
+- `tools/aquaculture/density-7.html`：保存鱼种/水温/密度方案，导出存活率-时长曲线，并给出"目标 95% 存活的最长运输时长"。
+- `tools/aquaculture/area-power.html`：保存池塘/品种/目标溶氧方案，并列 1/2/4/8 h 曝气时长下的功率与台数。
+- `tools/glass/annealing-curve.html`：保存玻璃品类/厚度/终温曲线，导出阶段时间表，并支持 2–3 套退火制度对比。
+- `tools/plastic/extrusion-rate.html`：保存螺杆/材料配方，按转速扫描产量并导出选型表；单位在 kg/h 与 t/月间切换。
+- `tools/shipping/convert-speed-1.html`：记住常用单位对，支持批量换算及由航速/时间反算航程。
+- `tools/logistics2/inventory-aging.html`：保存周期/阈值与明细快照，导出接受/拒绝行，支持按库龄与周转天数双排序。
+- `tools/project/manager-cost.html`：保存项目基线（BAC/工期/各期 PV/EV/AC），支持多版本对比与 EAC 算法切换。
+- `tools/petrochem/tank-capacity.html`：保存罐体参数，叠加液位-体积表与安全上限标线，导出盘点记录。
+
+### 续查覆盖
+- 本轮新增覆盖 8 页：`tools/aquaculture/density-7.html`、`tools/aquaculture/area-power.html`、`tools/glass/annealing-curve.html`、`tools/plastic/extrusion-rate.html`、`tools/shipping/convert-speed-1.html`、`tools/logistics2/inventory-aging.html`、`tools/project/manager-cost.html`、`tools/petrochem/tank-capacity.html`；均为上文未出现的页面。
+- 方法：逐页读源码，node 内存复刻页内公式与取值口径（含 `parseFloat(...) || 0` 的空值转 0、`toFixed` 对 Infinity 的表现、HTML `min/max` 只管步进器不拦手输）；证据均为"文件路径:行号 + 复现输入 → 实际输出"。
+- 新增 8 条，其中高优 4 条（I1–I5 中的 I1/I2/I4/I5）；I3/I6/I7/I8 为中优。管理页保存/加载行为（`d.bac || 100000`、`d.totalDays || 90`）为源码推导，未做浏览器 localStorage 实测。
+- 未做：真实浏览器点击、英文态（`?lang=en-US`）、移动端、构建与门禁（`_build.py` / `run_gates.py`）验证；也未比对行业规范/厂商参数，所有结论仅基于源码与算术复算。

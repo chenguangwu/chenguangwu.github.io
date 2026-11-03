@@ -85,7 +85,7 @@
 ### AI-N7 首个 `calc()` 即覆盖结果容器，图表/数据表/历史宿主从未渲染（高，确认源码缺陷）
 - 描述：6 个估算页都把图表、数据表、差值、历史容器放进 `#result`，而主计算函数用 `innerHTML` 整体替换 `#result`；扩展逻辑随后按 id 取宿主，只能拿到 `null`。
 - 证据：`tools/ai/token.html:136-141,288`（`#tkChart/#tkTable/#tkDiff/#tkHist` 均在 `#result` 内，`:288` 整体替换）、`tools/ai/token-2.html:137-141,289`、`tools/ai/token-usage.html:136-141,281`、`tools/ai/context-window.html:137-141,292`、`tools/ai/inference-throughput.html:136-141,286`、`tools/ai/quantization-ratio.html:136-141,288`；扩展段目标分别为 `tkChart`(`token.html:313`)、`t2Chart`(`token-2.html:312`)、`tuChart`(`token-usage.html:306`)、`cwChart`(`context-window.html:316`)、`itChart`(`inference-throughput.html:311`)、`qrChart`(`quantization-ratio.html:312`)。`token.html:298` 的裸 `calc()` 先于 `__tkBoot` 执行，故首屏即丢失宿主。
-- 影响：以上 6 页的图表、数据表、差值、历史长期为空（"数据表/历史"页签点了也无内容）；`导出 CSV` 也依赖同名表格宿主（`token.html:305` 等），实际无内容可导。主数字结果与预设仍正常。
+- 影响：以上 6 页的图表、数据表、差值、历史长期为空（"数据表/历史"页签点了也无内容）；`导出 CSV` 也依赖同名表格宿主（`token.html:305` 等），实际无内容可导。主数字结果与预设仍正常。同类问题亦见于 `tools/ai/ai-text-summarizer.html:185-189,397`：`#tzTable/#tzDiff/#tzHist` 位于 `#result` 内，执行摘要后表格与历史被清空（图表在结果区外，仍可用）。
 - 方案：把主结果与图表/表格/差值/历史拆成稳定同级容器，计算只写主结果节点；修复后逐页验证首屏、改输入、预设、页签切换、导出与历史回填。
 
 ### AI-N8 历史只记录输出值，回填却读取输入字段（高，确认源码缺陷）
@@ -104,7 +104,7 @@
 
 ### AI-N10 `token-2` 导出按钮被反向守卫永久拦截（高，确认源码缺陷）
 - 描述：`__t2Export` 的守卫写成 `typeof TBKit!='undefined'` 时 return，恰好把唯一可用场景挡掉；该写法在整个 `tools/ai/` 仅此一处。
-- 证据：`tools/ai/token-2.html:306`。node 复现：传入手工 `TBKit` 桩时函数返回 `BLOCKED_BY_INVERTED_GUARD`，不调用 `exportTable`；不传 `TBKit` 时反而进入 `try` 并因 `TBKit` 未定义抛错，被空 `catch` 吞掉。
+- 证据：`tools/ai/token-2.html:306`。按同一守卫逻辑在 node 中复现：传入 `TBKit` 桩时分支立即 `return`、`exportTable` 零调用；不传 `TBKit` 时反而进入 `try` 并因 `TBKit` 未定义抛错，被空 `catch` 吞掉。
 - 影响：`token-2` 的 CSV 导出始终无效；与 AI-N7 叠加后即使修好宿主也仍无导出。
 - 方案：守卫改为 `if(typeof TBKit==='undefined')return;`，并对空表给出提示；修复后点击导出核对文件名与表头。
 
@@ -160,15 +160,15 @@
 - 描述：`loadSample()` 的模板字符串里混入一段自动生成的 `NaN` 守卫代码（含 `__h4`、`document.getElementById('result').innerHTML=__h4`），示例本身不可运行，并额外触发 `innerHTML` 与 `longLine` 两条告警（`==` 命中的是原示例第 3 行 `if (data == null)`，与注入无关）。
 - 证据：`tools/ai/ai-code-review.html:386-400`，其中 `:393` 为注入片段；`:283`（`innerHTML` 规则）、`:296`（`==` 规则）、`:298`（`longLine` 规则）。
 - 证据（node 内存复算）：`loadSample()` 生成的示例共 13 行 604 字符，`includes("__h4")===true`、`includes("innerHTML=__h4")===true`；按页面 `RULES` 命中 `eval:[9]`、`innerHTML:[7]`、`debugger:[11]`、`console:[6]`、`var:[2,8,9]`、`==:[3]`、`longLine:[7]`（第 7 行 324 字符）。
-- 影响：`ai-code-review`；点"示例代码"后用户看到的是一段带构建残留的乱码式示例，示例评分（61）与图表计数也被注入行抬高（见 AI-N19）。
+- 影响：`ai-code-review`；点"示例代码"后用户看到的是一段带构建残留的乱码式示例；审查该示例时评分 61，且注入行额外制造 `innerHTML`/`longLine` 两条命中。
 - 方案：把示例还原为干净的 `const el = '<p>' + data.name + '</p>';` 或改用 `textContent`，删除注入守卫；示例填入后自动触发一次审查，便于对照预期命中。
 
-### AI-N19 `ai-code-review` 评分卡按"问题类型"扣分、图表按"出现次数"计数（低，确认源码缺陷）
-- 描述：评分卡的严重/警告/建议数是命中的规则条数（每种最多 1），柱状图却按每行命中累计，同一批代码两处数字不同。
-- 证据：`tools/ai/ai-code-review.html:330-333`（`issues.filter(...).length` 即类型数、`score=100-error*15-warn*5-info`）、`:343-345`（展示 `errorCount/warnCount/infoCount`）、`:549-564`（图表逐行 `cnt++` 后按严重度累加 `e/w/inf`）、`:563`（`data:[e,w,inf]`）。
-- 证据（node 内存复算）：对上条示例代码，图表得 `{e:2,w:1,inf:6}`（含 `var` 3 处、`==` 1 处、`longLine` 1 处），评分卡得 `{error:2,warn:1,info:4}`、评分 `61`；`提示` 6 vs `建议` 4。
-- 影响：`ai-code-review`；同一结果区图表与评分卡数字不一致，扣分口径（按类型 vs 按次数）也未在页面说明。
-- 方案：二者统一为"按出现次数计数、按次数扣分"（或统一为按类型），并在说明区写明扣分公式与上限。
+### AI-N19 "示例代码"只填文本框不重算，结果区保留上一份代码的评分（低，确认源码缺陷）
+- 描述：`loadSample()` 仅给 `#code` 赋值，既不调用 `review()` 也不清空 `#scoreBox`/`#result`；换入示例后，屏幕上仍是上一段代码的评分与问题清单。
+- 证据：`tools/ai/ai-code-review.html:386-400`（`loadSample` 全程只有一次 `document.getElementById('code').value=...`，`:400` 直接结束）、`:352`（`#scoreBox` 只在 `review()` 内写入）、`:377`（`#result` 只在 `review()` 内写入）。
+- 证据（node 内存复算）：用状态桩执行 `review()` 后读取 `scoreBox.innerHTML`，再调用 `loadSample()` 二次读取，字符串完全一致（代码已替换、评分未变）。
+- 影响：`ai-code-review`；用户以为看到的是示例的审查结果，实际是旧代码分数，易得出错误结论。
+- 方案：`loadSample()` 末尾调用 `review()`（或清空 `scoreBox`/`result` 并提示"点击开始审查"）；按钮文案可改为"载入并审查"。
 
 ### AI-N20 计算器页重复渲染两组"相关工具"卡片（低，确认源码缺陷）
 - 描述：同一页连续出现两个 `data-related-tools` 区块，前 4 张卡片完全重复，用户会看到重复推荐。
@@ -181,7 +181,7 @@
 - `context-window.html:127-130` 的窗口上限建议内置 4k/8k/32k/128k 预设，并在超限时对"剩余"着红色；当前只显示负数，缺少显式"已超限 N token"文案（表格内虽有 `已超`，主结果无）。
 - `quantization-ratio.html` 可补"量化后仍以 FP16 保存的嵌入/激活"开关，说明 4× 只是权重理论上限，避免把估算当实测体积。
 - `inference-throughput.html` 建议把"首 token 延迟"与"每 token 间隔"拆成两个输入，当前只有一个端到端时延，无法覆盖 FAQ 里强调的 TTFT 场景。
-- `ai-text-summarizer.html` 的 3 个预设文本均为 4-6 句，抽取 3 句时压缩比高达 50%-75%，建议补一段 15 句以上的长文预设，才能体现 TextRank 的排序价值。
+- `ai-text-summarizer.html:446-450` 的 3 个预设文本均为 4-5 句，默认抽取 3 句时压缩比高达 60%-75%（`ai-text-summarizer.html:172` 默认值 3），建议补一段 15 句以上的长文预设，才能体现 TextRank 的排序价值。
 
 ### 续查覆盖
 - 本批新读源码 8 页：`token.html`、`token-2.html`、`token-usage.html`、`context-window.html`、`inference-throughput.html`、`quantization-ratio.html`、`ai-text-summarizer.html`、`ai-code-review.html`（均未在既有条目中覆盖）。
