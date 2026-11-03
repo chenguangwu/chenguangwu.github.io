@@ -21,29 +21,29 @@
 
 | 源 URL | 目标 URL | 建存根日期 | 到期日 | 状态 | 备注 |
 |--------|----------|-----------|--------|------|------|
-| https://chenguangwu.github.io/tools/pets/pet-age-convert.html | https://chenguangwu.github.io/tools/pet/pet-age-converter.html | 2026-10-10 | 2026-11-10 | 待删 | 繁体 `zh-tw/tools/pets/pet-age-convert.html` 同规则，CI 自动消失 |
-| https://chenguangwu.github.io/tools/pets/feeding-amount.html | https://chenguangwu.github.io/tools/pet/pet-feeding-calc.html | 2026-10-10 | 2026-11-10 | 待删 | 繁体同理 |
-| https://chenguangwu.github.io/tools/pets/vaccine-reminder.html | https://chenguangwu.github.io/tools/pet/reminder-vaccine-deworming.html | 2026-10-10 | 2026-11-10 | 待删 | 繁体同理 |
-| https://chenguangwu.github.io/tools/pets/grooming-guide.html | https://chenguangwu.github.io/tools/pet/grooming-guide.html | 2026-10-10 | 2026-11-10 | 待删 | 繁体同理 |
-| https://chenguangwu.github.io/tools/pets/kennel-space.html | https://chenguangwu.github.io/tools/pet/kennel-space.html | 2026-10-10 | 2026-11-10 | 待删 | 繁体同理 |
-| https://chenguangwu.github.io/tools/pets/index.html | https://chenguangwu.github.io/tools/pet/index.html | 2026-10-10 | 2026-11-10 | 待删 | 分类落地页存根；繁体同理 |
-| https://chenguangwu.github.io/tools/general/frequency-3.html | https://chenguangwu.github.io/tools/music/instrument-tuning.html | 2026-10-12 | 2026-11-12 | 待删 | 跨分类重复副本；繁体同理 |
+| https://chenguangwu.github.io/tools/pets/pet-age-convert.html | https://chenguangwu.github.io/tools/pet/pet-age-converter.html | 2026-10-10 | 2026-11-10 | 已删（ea0240209b） | 繁体 `zh-tw/tools/pets/pet-age-convert.html` 同规则，CI 自动消失 |
+| https://chenguangwu.github.io/tools/pets/feeding-amount.html | https://chenguangwu.github.io/tools/pet/pet-feeding-calc.html | 2026-10-10 | 2026-11-10 | 已删（ea0240209b） | 繁体同理 |
+| https://chenguangwu.github.io/tools/pets/vaccine-reminder.html | https://chenguangwu.github.io/tools/pet/reminder-vaccine-deworming.html | 2026-10-10 | 2026-11-10 | 已删（ea0240209b） | 繁体同理 |
+| https://chenguangwu.github.io/tools/pets/grooming-guide.html | https://chenguangwu.github.io/tools/pet/grooming-guide.html | 2026-10-10 | 2026-11-10 | 已删（ea0240209b） | 繁体同理 |
+| https://chenguangwu.github.io/tools/pets/kennel-space.html | https://chenguangwu.github.io/tools/pet/kennel-space.html | 2026-10-10 | 2026-11-10 | 已删（ea0240209b） | 繁体同理 |
+| https://chenguangwu.github.io/tools/pets/index.html | https://chenguangwu.github.io/tools/pet/index.html | 2026-10-10 | 2026-11-10 | 已删（ea0240209b） | 分类落地页存根；繁体同理 |
+| https://chenguangwu.github.io/tools/music/frequency-3.html | https://chenguangwu.github.io/tools/music/instrument-tuning.html | 2026-10-12 | 2026-11-12 | 已删（本批次，含死链补录） | 跨分类重复副本；繁体同理 |
 | https://chenguangwu.github.io/tools/insurance/calc-pv-1.html | https://chenguangwu.github.io/tools/realestate/pv.html | 2026-08-25 | 2026-09-25 | 已删（2026-11-03） | 2026-10-25 公式审计时发现漏登记；指南 15 处反链已改指新 URL；繁体由 CI 自动消失 |
 | https://chenguangwu.github.io/tools/insurance/estimate-20.html | https://chenguangwu.github.io/tools/insurance/surrender-value.html | 2026-08-25 | 2026-09-25 | 已删（2026-11-03） | 同上 |
 | https://chenguangwu.github.io/tools/insurance/stats-5.html | https://chenguangwu.github.io/tools/insurance/loss-ratio.html | 2026-08-25 | 2026-09-25 | 已删（2026-11-03） | 同上 |
-| https://chenguangwu.github.io/tools/general/calculator-calc-11.html | https://chenguangwu.github.io/tools/math/complex-number.html | 2026-10-12 | 2026-11-12 | 待删 | 跨分类重复副本；繁体同理 |
-| https://chenguangwu.github.io/tools/misc/unit-prefix.html | https://chenguangwu.github.io/tools/general/convert-22.html | 2026-10-12 | 2026-11-12 | 待删 | 跨分类重复副本；繁体同理 |
-| https://chenguangwu.github.io/tools/misc/scientific-notation.html | https://chenguangwu.github.io/tools/general/convert-21.html | 2026-10-12 | 2026-11-12 | 待删 | 跨分类重复副本；繁体同理 |
-| https://chenguangwu.github.io/tools/misc/statistics-distribution.html | https://chenguangwu.github.io/tools/general/calc-stats-1.html | 2026-10-12 | 2026-11-12 | 待删 | 跨分类重复副本；繁体同理 |
-| https://chenguangwu.github.io/tools/misc/truth-table.html | https://chenguangwu.github.io/tools/general/generator-23.html | 2026-10-12 | 2026-11-12 | 待删 | 跨分类重复副本；繁体同理 |
-| https://chenguangwu.github.io/tools/misc2/tax-refund.html | https://chenguangwu.github.io/tools/travel/estimate-15.html | 2026-10-12 | 2026-11-12 | 待删 | 跨分类重复副本；繁体同理 |
-| https://chenguangwu.github.io/tools/misc2/cigarette-tar.html | https://chenguangwu.github.io/tools/health/convert-content.html | 2026-10-12 | 2026-11-12 | 待删 | 跨分类重复副本；繁体同理 |
-| https://chenguangwu.github.io/tools/misc2/coin-grade.html | https://chenguangwu.github.io/tools/antiques/rater-1.html | 2026-10-12 | 2026-11-12 | 待删 | 跨分类重复副本；繁体同理 |
-| https://chenguangwu.github.io/tools/niche/succulent-watering.html | https://chenguangwu.github.io/tools/gardening/reminder-cycle-succulent.html | 2026-10-12 | 2026-11-12 | 待删 | 跨分类重复副本；繁体同理 |
-| https://chenguangwu.github.io/tools/niche/convert-fps.html | https://chenguangwu.github.io/tools/video/video-fps.html | 2026-10-12 | 2026-11-12 | 待删 | 跨分类重复副本；繁体同理 |
-| https://chenguangwu.github.io/tools/niche/convert-sample.html | https://chenguangwu.github.io/tools/audio/audio-sample-rate.html | 2026-10-12 | 2026-11-12 | 待删 | 跨分类重复副本；繁体同理 |
-| https://chenguangwu.github.io/tools/niche/recommender-temp-pottery.html | https://chenguangwu.github.io/tools/ceramics/ceramic-firing.html | 2026-10-12 | 2026-11-12 | 待删 | 跨分类重复副本；繁体同理 |
-| https://chenguangwu.github.io/tools/niche/photography-exposure.html | https://chenguangwu.github.io/tools/photo/calc-exposure-aperture.html | 2026-10-12 | 2026-11-12 | 待删 | 跨分类重复副本；繁体同理 |
+| https://chenguangwu.github.io/tools/general/calculator-calc-11.html | https://chenguangwu.github.io/tools/math/complex-number.html | 2026-10-12 | 2026-11-12 | 已删（839719048a） | 跨分类重复副本；繁体同理 |
+| https://chenguangwu.github.io/tools/misc/unit-prefix.html | https://chenguangwu.github.io/tools/general/convert-22.html | 2026-10-12 | 2026-11-12 | 已删（839719048a） | 跨分类重复副本；繁体同理 |
+| https://chenguangwu.github.io/tools/misc/scientific-notation.html | https://chenguangwu.github.io/tools/general/convert-21.html | 2026-10-12 | 2026-11-12 | 已删（839719048a） | 跨分类重复副本；繁体同理 |
+| https://chenguangwu.github.io/tools/misc/statistics-distribution.html | https://chenguangwu.github.io/tools/general/calc-stats-1.html | 2026-10-12 | 2026-11-12 | 已删（839719048a） | 跨分类重复副本；繁体同理 |
+| https://chenguangwu.github.io/tools/misc/truth-table.html | https://chenguangwu.github.io/tools/general/generator-23.html | 2026-10-12 | 2026-11-12 | 已删（839719048a） | 跨分类重复副本；繁体同理 |
+| https://chenguangwu.github.io/tools/misc2/tax-refund.html | https://chenguangwu.github.io/tools/travel/estimate-15.html | 2026-10-12 | 2026-11-12 | 已删（839719048a） | 跨分类重复副本；繁体同理 |
+| https://chenguangwu.github.io/tools/misc2/cigarette-tar.html | https://chenguangwu.github.io/tools/health/convert-content.html | 2026-10-12 | 2026-11-12 | 已删（839719048a） | 跨分类重复副本；繁体同理 |
+| https://chenguangwu.github.io/tools/misc2/coin-grade.html | https://chenguangwu.github.io/tools/antiques/rater-1.html | 2026-10-12 | 2026-11-12 | 已删（839719048a） | 跨分类重复副本；繁体同理 |
+| https://chenguangwu.github.io/tools/niche/succulent-watering.html | https://chenguangwu.github.io/tools/gardening/reminder-cycle-succulent.html | 2026-10-12 | 2026-11-12 | 已删（839719048a） | 跨分类重复副本；繁体同理 |
+| https://chenguangwu.github.io/tools/niche/convert-fps.html | https://chenguangwu.github.io/tools/video/video-fps.html | 2026-10-12 | 2026-11-12 | 已删（839719048a） | 跨分类重复副本；繁体同理 |
+| https://chenguangwu.github.io/tools/niche/convert-sample.html | https://chenguangwu.github.io/tools/audio/audio-sample-rate.html | 2026-10-12 | 2026-11-12 | 已删（839719048a） | 跨分类重复副本；繁体同理 |
+| https://chenguangwu.github.io/tools/niche/recommender-temp-pottery.html | https://chenguangwu.github.io/tools/ceramics/ceramic-firing.html | 2026-10-12 | 2026-11-12 | 已删（839719048a） | 跨分类重复副本；繁体同理 |
+| https://chenguangwu.github.io/tools/niche/photography-exposure.html | https://chenguangwu.github.io/tools/photo/calc-exposure-aperture.html | 2026-10-12 | 2026-11-12 | 已删（839719048a） | 跨分类重复副本；繁体同理 |
 
 ## 删除 SOP（到期执行）
 1. `cd /Users/cgw/project/cgw/chenguangwu.github.io`
