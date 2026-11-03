@@ -237,3 +237,112 @@
 ### 续查覆盖
 - 本轮新抽查 7 页：`tools/design/breakpoint-queries.html`、`tools/design/typography-scale.html`、`tools/design/color-temperature-converter.html`、`tools/design/png-to-svg.html`、`tools/design/svg-to-png.html`、`tools/design/image-flipper.html`、`tools/design/image-rounded-corners.html`。
 - 新增 11 条（D-N15–D-N25，其中高优 1 条：D-N22）与 7 条留存建议。证据均为源码行号 + node 内存复算或源码路径推演；未做浏览器交互、EN 运行态探针、移动端、门禁或线上验证，涉及 Canvas 绘制/图片回调的条目中，D-N23 为静态时序推演（待验证），D-N24 为源码路径确认，均未做 Canvas 运行态实测。
+
+## 2026-11-03 续查（并行批 K）
+
+> 本轮实读 8 页：`color-picker.html`、`color-palette.html`、`color-shade-generator.html`、`vh-vw.html`、`css-grid-generator.html`、`image-cropper.html`、`image-format-converter.html`、`favicon-generator.html`。仅源码静态阅读 + node 内存复算（临时脚本 `/private/tmp/k_audit.js`，已删除），未开浏览器、未做 EN/移动端/门禁/线上验证。
+
+### D-N26 图片裁剪器换图或改参数后仍下载上一张的旧裁剪（高，确认源码缺陷）
+- 描述：`lastURL` 只在点「裁剪」时更新；换图、改 X/Y/宽/高都不会失效，而「下载 / 复制 Base64」直接取 `lastURL`。换图后预览已显示新原图，用户会以为下载的是新图。
+- 证据：`tools/design/image-cropper.html:253`（`let origImg=null,lastURL=''`）、`:254-269`（换图只换预览、未清 `lastURL`）、`:270-285`（仅 `generate()` 写 `lastURL`）、`:287-294`（下载/复制直取 `lastURL`）
+- 复现：上传 A.png → 点「裁剪」→ 下载得 A 的裁剪；再上传 B.png（预览已变 B）→ 不点裁剪直接「下载」→ 落盘仍是 A 的裁剪；改宽度后不点裁剪直接下载 → 尺寸仍是旧值
+- 影响：静默导出错误文件，且页面无任何「结果已过期」提示；与 D-N22（换图后仍下载旧翻转）同族，但落在新页面
+- 方案：换图时 `lastURL=''` 并清空结果预览；`cx/cy/cw/ch` 的 `input` 事件即失效 `lastURL`；或下载前比对参数快照并提示「请先重新裁剪」
+
+### D-N27 CSS Grid 生成器「列宽方式」下拉框为空，固定/auto 模式不可达（中，确认源码缺陷）
+- 描述：`<select id="coltype">` 标签内无任何 `<option>`，也无脚本填充；取值恒为空串，经 `||'fr'` 回落后永远走 `repeat(n, 1fr)`。`resetForm` 的 `selectedIndex=0` 在空 select 上同样无效。
+- 证据：`tools/design/css-grid-generator.html:136`（空 select）、`:273`（`coltype.value||'fr'`）、`:276-278`（fixed/auto 分支永不可达）、`:305`（selectedIndex 无效）
+- 复现：打开页面 → 下拉框空白不可选；任意列数生成的 CSS 恒为 `grid-template-columns: repeat(3, 1fr)`；全文件检索无 `<option>`
+- 影响：页面简介与公式框（`:118`、`:122-123`）宣称可选「固定 / fr / auto」，实际只有 fr；想生成 `repeat(n, 120px)` 的用户无法完成
+- 方案：补 `fr / fixed / auto` 三个 option 并绑定 `onchange=calcTool()`；`fixed` 的 120px 改为可编辑输入（当前硬编码在 `:276`）
+
+### D-N28 CSS Grid 生成器 HTML 结构恒为 3 个子项，与列数无关（中，确认源码缺陷）
+- 描述：HTML 代码段硬编码 `1、2、cols` 三个子元素，`cols=12` 时仍只给 3 个，且第三个直接写列号 `12`，复制后布局数量与列数不符。
+- 证据：`tools/design/css-grid-generator.html:280`
+- 复现：列数 12 → 「HTML 结构」输出 `<div>1</div><div>2</div><div>12</div>`（3 个），粘贴到 12 列网格只占 3 格；列数 2 时反而输出 1、2、2 三个
+- 影响：复制即用的产物本身就是错的，需用户自行补 9 个 div
+- 方案：按 `for(let i=1;i<=cols;i++)` 生成子项；或只输出 1 个示例 div + 注释「共 n 个」
+
+### D-N29 CSS Grid 生成器 gap 负值/超范围不拦截，生成无效 CSS 与负 padding（低，确认源码缺陷）
+- 描述：`min=0 max=80` 只约束数字输入的 spinner，脚本不做校验；负 gap 直接拼进 `gap` 与 `padding:0 (gap/2)px`，两条声明均非法。
+- 证据：`tools/design/css-grid-generator.html:132`（min/max 属性）、`:273`（无 clamp）、`:279`（`gap: -10px` + `padding: 0 -5px`）、`:283`（预览同样使用负值）
+- 复现：gap=-10 → 输出 `gap: -10px;` 与 `padding: 0 -5px;`，浏览器丢弃 padding 声明，预览与复制代码均失效；gap=500 超过 max=80 仍照用
+- 方案：`gap = Math.max(0, Math.min(80, num('gap')))` 并回写输入框；非法时给错误提示
+
+### D-N30 视口单位转换：基准空/0/负值静默按 1920 计算，输入框不回写（中，确认源码缺陷）
+- 描述：`base<=0` 时直接把局部变量改成 1920，输入框仍显示 0/空，提示语却按 1920 说明，用户无法察觉基准被替换。
+- 证据：`tools/design/vh-vw.html:126`（基准输入）、`:230`（`if(base<=0){base=1920}`）、`:232-235`（输出与 tip）
+- 复现：基准清空 + 数值 100 + 「px → vw」→ 输出 `5.2083vw`，提示「按视口宽度 1920px 计算」，输入框仍为空（node 复算一致）
+- 影响：得到看似合理但基准错误的结果，直接用于真实视口的自适应布局会偏差数倍；`val` 负值也原样透传（-100 → `-5.2083vw`）
+- 方案：base<=0 时报错并中止；确要兜底则回写 1920 到输入框；`val` 增加数值/非负校验
+
+### D-N31 取色器 H/S/L/RGB 越界或清空静默截断，且不回写输入框（中，确认源码缺陷）
+- 描述：`clampInput` 对非有限值返回 `min`，越界值四舍五入到边界；`update()` 又刻意跳过正在聚焦的输入框回写，导致框内显示值与实际颜色不一致。
+- 证据：`tools/design/color-picker.html:578-581`（onHslInput）、`:584-587`（`clampInput`，非法值→min）、`:504-506`（只回写非 activeElement）、`:589-596`（RGB 同路径）
+- 复现：H 输入 400 → 内部 `state.h=360`（实际色相 0°，红色），输入框仍显示 400；S 输入 -20 → 0；L 清空 → 0（页面立即变纯黑）；RGB 输入 300 → 255 但框内仍 300
+- 影响：所见非所得，用户按框内数值记录设计稿会完全对不上；清空中间态直接黑屏且无提示
+- 方案：非法/越界时拒绝更新并标红提示；确需 clamp 则强制回写该输入框；空值保留上一次有效值
+
+### D-N32 取色器 HEX 非法输入无提示，结果静默停留旧值（低，确认源码缺陷）
+- 描述：`onHexInput` 只在解析成功时更新，失败无 else 分支；`hexToRgb` 仅接受 3/6 位，8 位 `#RRGGBBAA` 也判为非法，用户无从得知输入未被采纳。
+- 证据：`tools/design/color-picker.html:567-575`（无失败分支）、`:428-437`（长度与 NaN 校验）
+- 复现：输入 `#12345`/`#ggg`/`#11223344` → 预览、HEX/RGB/HSL 行、对比度、和声色全部停留在上一个颜色，输入框保留非法串
+- 方案：失败时加 `aria-invalid` + 红框与「HEX 需 3 或 6 位」提示；顺带支持 8 位含透明度
+
+### D-N33 配色生成器 HEX 只校验长度不校验字符，非法字符产出 `#NaNNaNNaN` 色板（中，确认源码缺陷）
+- 描述：`hexToRgb` 用 `parseInt` 但不查 `isNaN`；NaN 数组是真值，输入处理器的 `if(rgb)` 校验形同虚设，最终经 `NaN.toString(16)="NaN"` 拼出非法色值。
+- 证据：`tools/design/color-palette.html:311-316`（无 NaN 校验）、`:318-320`（`padStart(2)` 遇 "NaN" 得 3 字符）、`:513-522`（`if(rgb)` 放过 NaN 数组）
+- 复现：输入 `#gggggg` → 6 个色块 hex 全为 `#NaNNaNNaN`、`background` 样式失效、RGB/HSL 行显示 `NaN`（node 复算：`hexToRgb → [NaN,NaN,NaN]`，`hsl → NaN,NaN,NaN`）
+- 影响：色板整组报废且无报错，用户可能把 `#NaNNaNNaN` 复制进设计稿
+- 方案：`hexToRgb` 增加 `/^[0-9a-fA-F]{3}$|^[0-9a-fA-F]{6}$/` 校验并对 NaN 返回 null；输入框失败时红框提示
+
+### D-N34 明暗色阶：档数无上下限，清空即 1 档，超大值生成海量卡片（中，确认源码缺陷）
+- 描述：`steps` 输入无 min/max，脚本用 `Math.max(1, Math.floor(...))` 兜底，0/空/负值都变 1；同时没有上限，上千档会一次性拼出 2n+1 张卡片。
+- 证据：`tools/design/color-shade-generator.html:125`（无 min/max）、`:223`（`Math.max(1, Math.floor(num('steps')))`）、`:225-227`（双循环拼 innerHTML）
+- 复现：steps 清空或填 0 → 输出 3 张卡（1 亮 + 基色 + 1 暗），输入框仍为空；steps=1000 → 2001 张卡片 + 2001 次字符串拼接，页面卡死（node 复算：steps=5 得 11 档）
+- 方案：clamp 1–20 并回写输入框；超出范围显式提示，禁止无上限生成
+
+### D-N35 明暗色阶文档称「OKLCH/HSL 推明度、50~900 共 10 档」，实际线性 RGB 且档数随输入（低，确认源码缺陷）
+- 描述：deep-dive 与公式说明两处口径均与实现不符：实现是 `C·(1−t) + 白/黑·t` 的线性 RGB 混合，没有 HSL/OKLCH 明度阶梯，也没有 50/100/…/900 的命名与固定 10 档。
+- 证据：`tools/design/color-shade-generator.html:106-107`（公式即线性混色）、`:225-227`（档数=`steps`，总卡片=`2n+1`）、`:373`（「在 OKLCH/HSL 上推明度梯度」「共 10 档」）、`:376`（「按感知均匀色彩空间推更自然」）
+- 复现：steps=5 → node 复算得 11 档（`#ffe6dd → #2b1209`），并非 50–900 十档；输出里也没有 50/100 之类 token 名
+- 方案：文案改为「线性 RGB 混色、每侧 n 档共 2n+1 档」；或真的实现 HSL/OKLCH 明度阶梯与 50–900 命名，使文档与产物一致
+
+### D-N36 明暗色阶把 4 位 HEX 当 6 位解析，第三通道变 NaN（低，确认源码缺陷）
+- 描述：`h2r` 只展开 `length===3`，长度 4/5/7 一律按 6 位 `substr` 取通道，缺位补 `NaN`。
+- 证据：`tools/design/color-shade-generator.html:216`
+- 复现：输入 `#abcd` → `[171, 205, NaN]`，首档色卡为 `#abc...NaN`，背景与文字色失效（与 D-N33 同族，但落在此页且为长度分支缺失）
+- 方案：仅接受 3/6 位（含 `#` 可选），其余长度直接报错
+
+### D-N37 图片格式转换器改尺寸/质量后不清旧结果，下载仍是旧尺寸文件（中，确认源码缺陷）
+- 描述：只有「切换格式」会清空 `state.results`（源码注释自证这一意图），改质量、改尺寸模式、改自定义尺寸都不清空，下载按钮继续指向上一次转换的 blob。
+- 证据：`tools/design/image-format-converter.html:917-919`（仅格式变更清结果）、`:930-934`（质量变更不清）、`:936-944`（尺寸模式不清）、`:946-955`（自定义尺寸不清）、`:981-987`（只有「开始转换」才重置）
+- 复现：转换一张 4000×3000（保持原尺寸）→ 切到「按比例缩放 50%」→ 界面显示 50%，不点转换直接「下载」→ 落盘仍是 4000×3000 旧文件
+- 影响：静默导出错误尺寸，且与页面「改格式即失效」的处理不成体系
+- 方案：质量/尺寸/尺寸模式变更同样 `state.results=[]`、禁用下载按钮，直到重新转换
+
+### D-N38 图片格式转换器比例与自定义尺寸非法值静默兜底（低，确认源码缺陷）
+- 描述：`parseInt(...)||100` 让 0 与空值回落到 100%；负比例使宽高为负，随后被 `Math.max(1, ...)` 夹成 1×1；自定义尺寸为 0 时静默忽略。
+- 证据：`tools/design/image-format-converter.html:998-1005`（`if(cw>0)`、`pct||100`）、`:1008-1010`（`Math.max(1,w/h)`）
+- 复现：percentScale=-50 → canvas 1×1，无任何报错；清空比例 → 按 100% 原尺寸；customWidth=0 → 不缩放
+- 方案：按 1–1000 校验并提示，负值/0 直接报错；1×1 兜底改为显式失败提示
+
+### D-N39 Favicon 生成器 meta/OG 与公式说明宣称「一键下载 .ico」，实际只导出 PNG（中，确认源码缺陷）
+- 描述：页面 meta description、OG description、公式说明与 deep-dive 四处均写 `.ico` 可下载/可打包，但同页正文与 FAQ 又承认「纯前端无法生成真 ICO」「本工具导出 PNG」，文案自相矛盾且宣称的能力不存在。
+- 证据：`tools/design/favicon-generator.html:10`、`:15`（description「一键下载 .ico 适配各浏览器」）、`:265`（formula-desc「打包为 .ico」）、`:313`（deep-dive「ICO 与 PNG 套装可下载」）对照 `:263`（「纯前端无法生成真 ICO」）、`:689`（FAQ「本工具导出 PNG」）
+- 影响：搜索结果与分享卡片承诺 ICO，用户下载只得到 PNG；信任损耗，且属于对外元数据错误
+- 方案：四处统一改为「导出多尺寸 PNG」；如确需 ICO，前端手写 ICO 容器（PNG-in-ICO 可行）或在页内给出明确的外部转换指引
+
+### D-N40 Favicon 生成器字号无脚本校验，负值使字体声明失效、超限直接裁切（低，确认源码缺陷）
+- 描述：`fontSize` 的 `min/max` 只约束 spinner；脚本用 `parseInt(...)||140`，负值会拼成非法的 `ctx.font`（被浏览器忽略、退回默认字体），超过上限则在固定画布内溢出裁切，且无 `measureText` 自适应。
+- 证据：`tools/design/favicon-generator.html:215`（min=40/max=240）、`:470`（`parseInt(...)||140`）、`:397-400`（`ctx.font` 直接拼接、`fillText` 无测量/缩放）
+- 复现：fontSize=-50 → `"bold -3.125px ..."` 非法赋值被丢弃，文字退回默认 10px（@16px 画布）；fontSize=300 → @16px 每字 18.75px，两枚汉字宽 37.5px > 16px，被裁切；输入 0 → 静默变 140
+- 方案：clamp 40–240 并回写；按 `measureText` 自动缩放（或对 16/32px 档单独降级字号），避免多字符被裁
+
+### D-N41 明暗色阶输入区 `</div` 缺右尖括号，疑似吞掉工具栏容器（低，疑似）
+- 描述：`</div` 未闭合，其后紧跟 `<div class="toolbar">`；按 HTML 解析规则，残缺 end tag 会把后续起始标签吞为属性，`toolbar` 容器可能整体丢失，按钮样式与布局错位。
+- 证据：`tools/design/color-shade-generator.html:127`
+- 复现：静态读源码可见 `:127` 为 `    </div`；预期应为其后的 `</div>` 正常闭合输入行，但实际缺失 `>`（未开浏览器确认渲染差异）
+- 方案：补成 `</div>`；顺带跑一次标签配对检查（同类残缺 end tag 可全站扫一遍）
+
+- 本轮实读 8 页：`color-picker.html`、`color-palette.html`、`color-shade-generator.html`、`vh-vw.html`、`css-grid-generator.html`、`image-cropper.html`、`image-format-converter.html`、`favicon-generator.html`；另略读 `border-radius-generator.html`、`flexbox-generator.html`（后者 gap 负值问题与 D-N29 同族，未单列）。新增 16 条（高 1 / 中 8 / 低 7）。未覆盖：`tools/design` 其余约 86 页（含 gradient / shadow / pattern / avatar / badge / image-color-picker / palette-extractor / image-to-ascii 等尚未阅读）。所有结论均为源码行号 + node 内存复算推演，未做浏览器交互、EN 运行态探针、移动端、门禁与线上验证。

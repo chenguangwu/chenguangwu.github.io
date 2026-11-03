@@ -381,3 +381,72 @@
 - 方案：增加"实际重量 (kg)"输入，输出 `max(实重, 体积重)` 并同时列出 5000/6000 两系数的计费重；实重为空/负时报错；同步 meta 与公式说明。
 
 - 本轮实读 8 页：`tools/chemical/solution-concentration.html`、`tools/mining/convert-grade-ore.html`、`tools/hvac/cooling-load.html`、`tools/paper/roll-length.html`、`tools/fire/hydrant-pressure.html`、`tools/gas/load-1.html`、`tools/security/flood-level.html`、`tools/transport/convert-volume-weight.html`；新增 11 条（高 1 / 中 9 / 低 1）；未覆盖：chemical、mining、hvac、paper、fire、gas、security、transport 各目录的其余页面，以及 dyeing、leather、safety、nutrition、usedcar、wedding、restaurant、elderly、procurement、cleaning 等长尾目录本轮未读。
+
+## 2026-11-04 续查（并行批 L）
+
+> 范围：本轮阅读 8 页——`tools/dyeing/calc-dosage-2.html`（dyeing）、`tools/leather/convert-area-weight.html`（leather）、`tools/safety/accident-stats.html`（safety）、`tools/nutrition/calorie-deficit.html`（nutrition）、`tools/usedcar/car-residual.html`（usedcar）、`tools/wedding/wedding-banquet.html`（wedding）、`tools/restaurant/safety-stock.html`（restaurant）、`tools/elderly/fall-risk.html`（elderly）。仅源码 + node 复算，未开浏览器/未做 EN/移动端/门禁验证。
+
+### 12-L1 leather/convert-area-weight：oz/ft² 换算系数差 10 倍，lb/ft² 同错（高，确认缺陷）
+- 描述：页面与代码统一使用 `oz/ft² = g/m² ÷ 30.5153`，但 1 oz = 28.3495 g、1 ft² = 0.09290304 m²，正确系数应为 `28.3495/0.09290304 ≈ 305.15 g/m²`；代码把除数少了 10 倍，所有盎司/磅每平方英尺结果放大 10 倍。公式框、结果正文与换算链三处同错。
+- 证据：`tools/leather/convert-area-weight.html:120,171`
+- 复现：重量 100 g、面积 0.5 m² → 面密度 200.0 g/m²，页面 `6.5541 oz/ft²`、`0.40963 lb/ft²`（期望 `0.6554 oz/ft²`、`0.04096 lb/ft²`）；同页 g/ft² 18.581、g/yd² 167.23 正确，仅盎司/磅口径错。
+- 影响：按该结果判断皮革厚度/档次或按盎司报价会高估 10 倍（如 4 oz 皮被读成 40 oz 级），选材与比价直接失真。
+- 方案：把常量改为 305.151（或 `oz/ft² = g/m² × 0.0032768`），同步修正 `:120` 公式框与 `:171` 换算链；补 100 g/0.5 m²、305 g/m²=1 oz/ft² 的回归用例。
+
+### 12-L2 usedcar/car-residual：负折旧年限使残值高于新车价，超年限折旧率 >100% 与残值下限并存（高，确认缺陷）
+- 描述：`life`/`salvage` 只用 `parseFloat(...) || 10/5` 取值，不校验范围；负 `life` 使年折旧额、累计折旧为负，残值反而高于新车价。`years > life` 时直线法累计折旧继续累加，`residual` 被夹在残值下限，但 `rate = dep/price` 仍输出 190%，同一结果自相矛盾。`life` 输入 0 会静默按 10 年，输入框仍显示 0。
+- 证据：`tools/usedcar/car-residual.html:358-364`（直线法，`:363` 残值夹取、`:364` 折旧率），`:367-369`（双倍法同样只做 `||` 回退），`:332`（仅校验 price/years）
+- 复现：新车价 120000、已用 3 年、折旧年限 -10、残值率 5% → 年折旧 -11,400，累计折旧 -34,200，`估算残值 ¥154,200.00`、`累计折旧率 -28.50%`（期望报错并拒绝负年限）；同参数改年限 10、使用 20 年 → 累计折旧 228,000、`累计折旧率 190.00%`，但残值仍显示 ¥6,000（5%）。（node 复算）
+- 影响：二手车残值可高于新车指导价，或折旧率与残值互斥，议价与贷款评估会被误导。
+- 方案：`life` 要求 1–30 的正数、`salvage` 要求 0–100、`years` 不超过 life（或超期时只做提示并锁定残值）；0/空不替换默认；`rate` 以 `min(dep, price-salvageVal)` 计算并夹在 0–100%；补负值/0/超年限用例。
+
+### 12-L3 nutrition/calorie-deficit：减脂提示「300~500 千卡缺口」与页面自身目标区间不一致（中，确认缺陷）
+- 描述：`lose` 目标按 TDEE 的 85%~90% 计算（缺口 10%~15%），提示文案却写「保持 300~500 千卡缺口」；默认参数下实际缺口仅约 217~325 千卡，文案与实际输出不符，且未随 TDEE 缩放。
+- 证据：`tools/nutrition/calorie-deficit.html:240-243`（`:241-242` 区间、`:243` 提示），`:257-261`（输出）
+- 复现：默认 男/28 岁/170 cm/65 kg/轻量活动 1.375（`:135` selected）→ BMR 1,577.5、TDEE 2,169、目标 `1844 ~ 1952` 千卡/天，实际缺口 217~325 千卡；提示仍为「300~500 千卡缺口，周减重约 0.25~0.5kg」。（node 复算）
+- 影响：低 TDEE 人群按提示追求 300~500 缺口会落到目标区间之外；高 TDEE 人群则被提示低估，减脂速度预期错位。
+- 方案：提示改为动态文案（如「当前缺口约 X 千卡/天，约合每周 Y kg」），或把目标改为「TDEE − 固定缺口」并同时给出百分比校验；补 1500/2500/3500 TDEE 三组用例。
+
+### 12-L4 nutrition/calorie-deficit：低体重女性「较快减脂」目标低于 BMR，无任何下限提示（中，疑似）
+- 描述：`lose2` 直接取 TDEE 的 78%~85%，不与已算出的 BMR 比较，也不设常见 1200 千卡下限；低体重、久坐用户的目标摄入可低于 BMR，页面仍照常给出「建议日摄入」。
+- 证据：`tools/nutrition/calorie-deficit.html:244-247`（区间），`:236-237`（BMR/TDEE），`:257-261`（输出无下限校验）
+- 复现：女/30 岁/160 cm/45 kg/久坐 1.2/较快减脂 → BMR 1,139、TDEE 1,366.8，目标 `1066 ~ 1162` 千卡/天、建议 1,114 千卡，低于 BMR（且低于常见 1,200 千卡下限）。（node 复算）
+- 影响：减脂方案可能推荐长期低于基础代谢的摄入，属健康风险提示缺失；属指南层面判断，标疑似待专业复核。
+- 方案：输出前校验 `targetMin >= max(bmr, 1200)`（按性别/身高可配置），低于时显式警示并给出最低安全摄入；补低体重/久坐组合用例。
+
+### 12-L5 safety/accident-stats：负伤亡人数通过校验，输出负频率并被判「优秀/安全绩效良好」（中，确认缺陷）
+- 描述：`fatal/severe/minor/lti` 用 `parseInt(...) || 0` 解析，仅校验总工时 >0，未校验各项 ≥0；负值直接进入求和与除法，得到负伤亡人次、负 FR/死亡率/TRIR，`TRIR < 1.5` 分支仍判「优秀」并输出绿色「安全绩效良好」。另 `fatal` 输入标签为「死亡人数」，提示文案却按「N 起」表述。
+- 证据：`tools/safety/accident-stats.html:274-277`（解析），`:283-289`（求和与各率），`:306-318`（分级与提示）
+- 复现：总工时 500000、死亡/重伤/轻伤均填 -1 → 伤亡人次 -3、FR -6.00、百万工时死亡率 -2.000、TRIR -1.20，评级「优秀」，提示「安全绩效良好」，结果卡「可记录事件数 -3」。（node 复算）
+- 影响：录入负数（或误粘贴负号）时报表直接把事故数据判为优秀，安全绩效汇报与考核结论被反向误导。
+- 方案：四项均要求有限非负整数并设上限（≤总工时对应可记录数）；任一为负报字段错误并清空结果；死亡提示改用「人数」或与输入标签统一；补 -1/空/小数用例。
+
+### 12-L6 wedding/wedding-banquet：主桌按 100% 到场再叠加备桌，双重预留且 `expectTables` 未使用（中，确认缺陷）
+- 描述：`mainTables = ceil(guests/perTable)` 按满员计算，注释与页面又说「备桌按满员率 90% 估算实际到场，预留 10% 弹性」；`expectTables` 虽算出却从未参与结果，于是 90% 到场与 10% 弹性被重复计入，订桌数偏多。
+- 证据：`tools/wedding/wedding-banquet.html:283-289`（`:283` 主桌、`:285-286` 期望人数/桌数、`:287-289` 备桌与合计），`:325-330` 同步复制
+- 复现：120 位宾客、圆桌 10 人、备桌「少」→ 主桌 12 桌 + 备桌 1 = `合计 13 桌`；按页面自述 90% 到场 108 人只需 11 桌，加 1 备桌应为 12 桌（多订 1 桌）。（node 复算）
+- 影响：按结果预订会多订 1 桌（10 人/桌），场地费按 1500–3000 元/桌多支出；`expectTables` 成为死变量，后续维护易误改。
+- 方案：主桌数改用 `expectTables`，或明确「主桌按满员、备桌为额外」并删除 90% 文案；结果同时列出「按满员/按 90%」两套桌数；补 108/120/240 人与 8/10/12 人桌用例。
+
+### 12-L7 restaurant/safety-stock：0 与负值静默替换/放行，负日均使 EOQ 为 NaN、可用天数恒 0 仍报「低于安全库存」（中，确认缺陷）
+- 描述：`avgLead/maxLead/workDays/holdCost` 用 `||` 回退（0 变 1/365/0.01，输入框仍显示 0）；`avgDaily/maxDaily/currentStock` 不校验符号。负日均使年需求为负、`sqrt` 得 NaN（页面替换为「—」），`daysLeft` 因 `avgDaily>0` 失败固定为 0，状态仍按安全库存比较给出「⚠️ 低于安全库存」。日均 0 时显示「库存充足，预计可使用 0 天」或按安全库存判低库存，语义矛盾。
+- 证据：`tools/restaurant/safety-stock.html:252-259`（解析/回退），`:262-276`（安全库存、EOQ、状态、`daysLeft`），`:279-306`（结果卡与提示）
+- 复现：日均 -5、最大日耗 8、平均/最长到货 3/7、当前库存 20 → 安全库存 71、再订货点 56、年需求 -1825、EOQ「—」、可用 0 天、状态「低于安全库存」；日均 0 → 安全库存 56、EOQ 0、可用 0 天、仍判低库存。（node 复算）
+- 影响：非法或缺失参数不会报错，反而输出「低于安全库存」等看似可执行的补货指令；EOQ 缺失时「建议订货量」也失去依据。
+- 方案：日均/最大日耗/到货天数/订货与持有成本/年营业天数逐项校验（日均>0、最大日耗≥日均、到货天数>0、持有成本>0、营业天数 1–366）；空值不转 0/默认，报字段错误并清空结果；`daysLeft` 在日均 0 时显示「—」；补 0/负/空用例。
+
+### 12-L8 elderly/fall-risk：引据表 Morse「>45 高危」与本页 12 题 25 分制百分比分级不可对应（中，确认缺陷）
+- 描述：页面自建 12 题问卷（环境 6 题各 0–2 分、身体 6 题最高 3 分），`maxScore` 实为 25，并按 `total/maxScore` 的 25%/50%/75% 分为低/中/高/极高；但「公式与标准引据」表却列「Morse 评分 / 条目加权求和 / Morse 2009」与「>45 高危」，该阈值在本页 0–25 分体系内永远无法达到，且分级名称（极高风险）也不属于 Morse 口径。
+- 证据：`tools/elderly/fall-risk.html:204-211`（引据表），`:263-267`（`maxScore` 求和），`:308-313`（百分比分级）
+- 复现：12 题全选最差 → 总分 25、风险占比 100%、判「极高风险」；按引据表「>45 高危」则 25 分连高危门槛都不到，两套口径互斥。（node 复算 maxScore=25）
+- 影响：用户按引据表把得分与 Morse 阈值对照会得出相反结论；对外宣称 Morse 2009 但实际未采用其条目与权重，可信度受损。
+- 方案：要么改为真正的 Morse 量表（6 项、0–15/0–20/0–25 权重、>45 高危），要么删掉 Morse 引用、改标「自建问卷（0–25 分，按百分比分级）」并给出分级依据；补全对/全错两组用例。
+
+### 12-L9 dyeing/calc-dosage-2：浴比 0 被接受，输出 5 kg 染料配 0 L 染液且无提示（低，确认缺陷）
+- 描述：输入框 `min="0"`，`calc` 仅拦截负值，浴比 0 通过校验；`liquor = w × lr = 0`，`conc` 走 `liquor>0 ? … : 0` 分支得 0，页面照常显示「染液总量 0.0 L、染液浓度 0.0000 g/L」，不报错。
+- 证据：`tools/dyeing/calc-dosage-2.html:132`（`min="0"`），`:197-202`（校验与计算），`:205-208`（结果卡）
+- 复现：织物 200 kg、染料 2.5% o.w.f、浴比 0 → 染料用量 5,000.00 g（5 kg）、染液总量 0.0 L、浓度 0.0000 g/L，无任何提示。（源码 + node 复算）
+- 影响：零浴比在浸染工艺中不成立，却生成完整配方卡，可能被直接抄进配料单；历史记录也会保存该无效方案。
+- 方案：浴比要求有限正数（如 1–50），0/空报字段错误并清空结果；补 0/负/空/上限用例。
+
+- 本轮实读 8 页：`tools/dyeing/calc-dosage-2.html`、`tools/leather/convert-area-weight.html`、`tools/safety/accident-stats.html`、`tools/nutrition/calorie-deficit.html`、`tools/usedcar/car-residual.html`、`tools/wedding/wedding-banquet.html`、`tools/restaurant/safety-stock.html`、`tools/elderly/fall-risk.html`；新增 9 条（高 2 / 中 6 / 低 1）；未覆盖：上述 8 个目录的其余页面（dyeing 13、leather 15、safety 15、nutrition 18、usedcar 12、wedding 9、restaurant 10、elderly 11），以及 procurement、cleaning 等长尾目录本轮未读；L4 的「低于 BMR/1200 千卡」属专业指南判断，标疑似待复核，其余均为源码与算术复算确认。

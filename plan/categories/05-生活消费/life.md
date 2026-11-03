@@ -241,3 +241,239 @@
 ### 续查覆盖
 - 本轮新抽查 `tools/life/chinese-number.html`、`tools/life/roman-numeral.html`、`tools/life/birthday-paradox.html`、`tools/life/daily-calorie-needs.html`、`tools/life/ring-size-converter.html`、`tools/life/bra-size-converter.html`、`tools/life/candle-burn-time.html`、`tools/life/clothing-size-converter.html` 共 8 页，新增 12 条（6 条高优、5 条中优、1 条低优）与 8 条留存建议。
 - 证据均为源码阅读 + node 内存复算（复制页面纯函数与对照表在内存中执行，含边界/负数/超范围输入）；未做浏览器、移动端、英文态、线上或门禁验证，DOM 交互类结论（如清空后旧文案残留）为源码路径推导。
+
+## 2026-11-03 续查（并行批 K）
+
+> 范围：本轮实读 `tools/life/unit-converter.html`、`temperature-converter.html`、`data-unit-converter.html`、`base-convert.html`、`leap-year-checker.html`、`music-practice-timer.html`、`countdown-1.html`、`phone-lookup.html` 共 8 页。仅源码静态阅读 + node 内存复算，未开浏览器，未做英文态/移动端/门禁验证。
+
+### LF-N30 油耗分类声明 reciprocal 却按乘法换算，整类双向结果错位（高，确认缺陷）
+- 描述：fuel 表中 km/L、mpg(US)、mpg(UK) 标了 `reciprocal: true`（与 L/100km 成反比），但 `convertFrom` 两个分支都只做 `val × fromFactor ÷ toFactor`，从未读取该标记。反比单位必须以 `factor ÷ value` 折算到基准，因此整类换算与同页速查文案、参考值全部矛盾；gal/100mi 属比例型，混在同一张表里更易掩盖问题。
+- 证据：`tools/life/unit-converter.html:675-679`（reciprocal 声明与比例型混排）、`:682-684`（速查文案）、`:774-777`、`:790-793`（只用 factor 乘除）。
+- 复现：8 L/100km → mpg(US) 实际 `0.034011`（期望 `29.40`）；10 L/100km → km/L 实际 `0.1`（期望 `10`）；1 mpg(US) → km/L 实际 `2.35215`（期望 `0.425`）；29.4 mpg(US) → L/100km 实际 `6915.32`（期望 `8.0`）。
+- 影响：`tools/life/unit-converter.html`；油耗是换算器最常用分类之一，除「值为 1」的巧合外所有结果错 1–3 个数量级，速查项「8 L/100km ≈ 29.4 mpg」点下去得到 0.034。
+- 方案：按单位语义分组——反比单位先算 `base = factor / value`，比例型保持 `value × factor`；输出端反比单位用 `factor / base`；补 8 L/100km ↔ 29.4 mpg、10 L/100km ↔ 10 km/L 往返用例。
+
+### LF-N31 功率分类 dBm 声明 special 但无换算实现，选中后结果静默清空（中，确认缺陷）
+- 描述：power 的 `dbm` 只有 `special: 'dbm'`、没有 factor；`convertFrom` 仅对 `cat.special && currentCategory === 'temperature'` 走特殊路径，dBm 仍按 factor 乘除，得到 `undefined` 参与运算的 NaN，`formatNumber` 对非有限值返回空串，结果栏被清空且无任何提示。
+- 证据：`tools/life/unit-converter.html:590`（dBm 声明）、`:771-777`（仅 temperature 特判）、`:799-800`（NaN → 空串）。
+- 复现：功率分类 1 W → dBm 实际空白（期望 `30`）；1 dBm → W 实际空白（期望约 `1.259`）；导出/历史会记录空值。
+- 影响：`tools/life/unit-converter.html`；射频、音响场景常用 dBm，用户只能看到空结果，无法判断是输入错误还是工具不支持。
+- 方案：实现 `dBm → W: 10^((x−30)/10)`、`W → dBm: 30 + 10·log10(x)`；`x <= 0` 时提示「dBm 只对正功率有定义」；其它功率单位仍走 factor。
+
+### LF-N32 能量速查引用不存在的 megajoule，点击抛 TypeError 且结果栏停留旧值（中，确认缺陷）
+- 描述：能量速查「1 度电 = 3.6 MJ」的 `to: 'megajoule'` 不在 units 表中；`applyQuick` 不做存在性校验，直接把值写进 `<select>`，无效值使 `select.value` 变为空串，随后 `cat.units[''].factor` 抛 TypeError。此时 fromValue/fromUnit 已被改成 1 千瓦时，结果栏仍保留上一个分类的数值。
+- 证据：`tools/life/unit-converter.html:569`（无效 to 单位）、`:555-566`（单位表无 megajoule）、`:730-736`（无校验写入 select）、`:774-775`。
+- 复现：切到「能量」→ 点该速查项 → 控制台 `TypeError: Cannot read properties of undefined (reading 'factor')`，输入区显示 1 千瓦时，结果栏显示上一次（如长度分类）的旧数字。
+- 影响：`tools/life/unit-converter.html`；速查是页面主推的一键换算入口，首次点击即报错，且界面呈现跨分类错行数据。
+- 方案：改目标为 `kilojoule`（1 kWh = 3600 kJ）或补 megajoule 单位；`applyQuick` 先校验 `cat.units[q.from] && cat.units[q.to]`，缺失时提示并中止写入。
+
+### LF-N33 数据分类 KB/KiB 并存且系数完全相同，同站两页口径不一（低，确认缺陷）
+- 描述：data 分类同时定义 `kilobyte` 与 `kibibyte`，factor 均为 1024（MB/MiB、GB/GiB、TB/TiB 同样重复），下拉出现两个结果完全一致的选项，等于把 KB 当 KiB 用且无十进制模式；同站 `life/data-unit-converter` 默认 1024 但可切到 1000，两页对「1 KB」给出两个答案。
+- 证据：`tools/life/unit-converter.html:507-508`、`:513`（重复系数）、`:518-521`（速查全部按 1024）；`tools/life/data-unit-converter.html:327`（默认 1024）、`:211`（参考表定义 KB 十进制 1000）。
+- 复现：data 分类 1 MB → 选 KB 与选 KiB 都输出 `1,024`（期望 KiB 为 `976.56`，或明确声明 KB=1024 并删掉重复项）。
+- 影响：`tools/life/unit-converter.html`；存储容量是最易产生纠纷的换算，用户无法从界面判断本页采用哪种口径。
+- 方案：KB/MB 按 1000、KiB/MiB 按 1024；若坚持二进制口径，删除 KiB 系列并在分类说明中写明「本页 KB 采用 1024」。
+
+### LF-N34 清空任一温标输入框会被立即回填默认值，无法留空重输（中，确认缺陷）
+- 描述：五个 `fromXxx()` 都用 `parseFloat(...) || 默认值`（0 / 32 / 273.15 / 491.67 / 0），而 `updateAll` 又把五个输入框全部 `toFixed(2)` 回写。用户删除字段内容后，input 事件立刻按默认值计算并回填，字段永远无法为空；误清空还会静默得出 0°C 的全套结果。
+- 证据：`tools/life/temperature-converter.html:442`、`:446`、`:451`、`:456`、`:462`（|| 默认值）、`:427-436`（updateAll 回写五框）。
+- 复现：清空「华氏度」→ 该框立刻变回 `32.00`，摄氏度 `0.00`、开尔文 `273.15`（期望空值时不计算、保持空框并提示）。
+- 影响：`tools/life/temperature-converter.html`；改数时常先全选删除，此时字段自己弹回默认值，用户以为输入被吞掉，且结果区短暂显示错误温度。
+- 方案：解析前判空（`input.value.trim()===''` 时清空其余结果并 return），去掉 `||` 兜底；回写仅更新「非当前编辑框」或在 `change` 时统一格式化。
+
+### LF-N35 低于绝对零度照常换算，页面自述的下限未校验（低，确认缺陷）
+- 描述：页面说明写明「开尔文存在理论下限 0K（−273.15°C）」，但 K 输入 −10 仍照常输出 −283.15°C、−477.67°F、负兰氏与负列氏，无任何越界提示。
+- 证据：`tools/life/temperature-converter.html:174-175`（说明）、`:450-454`（无校验）。
+- 复现：开尔文输入 `-10` → 实际 `-283.15 °C / -477.67 °F`（期望提示「低于绝对零度」并拒绝换算）。
+- 影响：`tools/life/temperature-converter.html`；物理上不可能的值被当成正常结果显示并允许复制/存档，教学场景会误导。
+- 方案：在 `updateAll` 入口判 `k < 0`（即 `c < -273.15`），显示错误态并禁用复制；其余温标同步置空。
+
+### LF-N36 从历史恢复时无参调用 setMode，换算卡全部变 ∞、模式按钮失焦（中，确认缺陷）
+- 描述：历史恢复回调回填输入后调用 `setMode()` 不带参数，wrapper 把 `mode=undefined`；随后 `Math.pow(undefined, idx)` 全为 NaN，`formatNumber` 把 NaN 显示为 ∞，两个模式标签的 `toggle('active', m===…)` 也都不成立，页面呈现「无模式 + 全 ∞」。
+- 证据：`tools/life/data-unit-converter.html:473-487`（回调，`:484` 为 `setMode();`）、`:329-334`（无参即写 undefined）、`:341`、`:346`（NaN → ∞）、`:379`。
+- 复现：二进制模式输入 1 TB 换算一次生成历史 → 点该历史恢复 → 所有单位卡显示 `∞`、两个模式标签均无高亮（期望按记录时的模式恢复，且历史里也未保存 mode）。
+- 影响：`tools/life/data-unit-converter.html`；历史恢复是页面核心功能之一，恢复后整页数据不可用，只能手动再点一次模式。
+- 方案：`setMode(rec.mode || 1024)` 并把 mode 写入历史记录；`setMode` 入口兜底 `m = (m===1000||m===1024) ? m : 1024`。
+
+### LF-N37 参考表「500 KB ≈ 0.49 KiB」量级错 1000 倍（低，确认缺陷）
+- 描述：500 KB（十进制）= 500 000 B ≈ 488.28 KiB ≈ 0.477 MiB，表中写成 0.49 KiB，与同表其它行（4 MB≈3.81 MiB、1 TB≈931 GiB）的 MiB 口径也不一致——正确值应是 0.48 MiB。
+- 证据：`tools/life/data-unit-converter.html:230`（该行）、`:211-226`（KB 十进制 1000、MiB 行）。
+- 复现：500000/1024 = `488.28 KiB`；500000/1048576 = `0.4768 MiB`（期望写「≈ 0.48 MiB」或「≈ 488 KiB」）。
+- 影响：`tools/life/data-unit-converter.html`；参考表用于给非技术用户建立量感，错 1000 倍会让人误判图片体积与存储占用。
+- 方案：改为「≈ 0.48 MiB」，并为每行标注换算口径（十进制 KB → 二进制 MiB）。
+
+### LF-N38 自定义进制允许 2–62，但 JS toString 只支持 2–36，超限直接抛 RangeError（中，确认缺陷）
+- 描述：输入框 `min=2 max=62`、占位文写「2–62」，实现却直接 `Number.prototype.toString(customBase)`，规范只支持 2–36；37–62 抛 RangeError，且抛错时二/八/十/十六进制已写入、ASCII/Unicode 与自定义栏尚未更新，页面停在半更新状态。导出路径有同样缺陷。
+- 证据：`tools/life/base-convert.html:198`（max=62）、`:329-330`（直接 toString）、`:333-350`（抛错后未执行的文本区）、`:383-384`（导出路径）。
+- 复现：输入 255、自定义进制填 40 → 控制台 `RangeError: toString() radix argument must be between 2 and 36`；bin/oct/dec/hex 为 `11111111/377/255/FF`，自定义栏仍是上次的 `73`。
+- 影响：`tools/life/base-convert.html`；UI 明确宣称支持到 62，用户按提示输入 40 就触发异常，且界面数据不同步。
+- 方案：要么把上限改为 36 并在文案中说明，要么自行实现 2–62 的数字/字母映射（0-9a-zA-Z）再输出；解析与导出共用同一实现。
+
+### LF-N39 parseInt 静默截断非法字符，非法的「部分合法」输入照常出数（中，确认缺陷）
+- 描述：四种前缀解析都用 `parseInt`，只有整串完全无法解析才会 `isNaN` 置「错误」；带非法尾巴或中间夹非法字符时会被截断后正常换算，与页面「解析失败时各栏置『错误』」的承诺不符。
+- 证据：`tools/life/base-convert.html:309-321`（parseInt 与 isNaN 判定）。
+- 复现：`0b1012` → 实际 dec `5`、bin `101`（期望「错误」，末位 2 不属于二进制）；`12a` → 实际 `12`；`0x1G` → 实际 `1`。
+- 影响：`tools/life/base-convert.html`；用户粘贴带空格/注释的代码常量时会得到少一位的错误结果，且无任何警示。
+- 方案：按前缀选定合法字符集后整串正则校验（`^[01]+$` 等），不匹配直接置「错误」；再用 `Number()`/显式逐位累加替代 `parseInt`。
+
+### LF-N40 查询范围允许负数/0/小数，倒序区间照常渲染（低，确认缺陷）
+- 描述：范围用 `parseInt(...) || 10`，负数、0、空值都被静默兜底或透传；负数会得到 `start > end` 的倒序区间，标题仍是「2024 - 2019 年附近的闰年：无」；0 被当成 10。年份同样走 parseInt，`2024.5` 静默按 2024。
+- 证据：`tools/life/leap-year-checker.html:264-265`（parseInt 与 `||10`）、`:279-284`（start=y、end=y+range−1、for 循环）。
+- 复现：范围填 `-5` → 实际「2024 - 2019 年附近的闰年：无」（期望提示「范围须为正整数」）；范围填 `0` → 实际按 10 年；年份 `2024.5` → 实际按 2024。
+- 影响：`tools/life/leap-year-checker.html`；错误输入得到看似正常的空结果，用户会以为该区间真的没有闰年。
+- 方案：年份与范围统一 `Number()` + `Number.isInteger` 校验（范围 1–500），非法时清空结果并字段级提示；标题改为「从 y 起 N 年」以匹配实现。
+
+### LF-N41 练习计时用 setInterval 递减，后台标签页会明显走慢（中，确认缺陷）
+- 描述：计时靠 `setInterval(...,1000)` 每次 `remaining--`，不读墙钟；后台标签页/系统休眠时定时器被节流，剩余秒数只按回调次数减少，5 分钟阶段可能走十几分钟，阶段切换与完成提示同步延后。
+- 证据：`tools/life/music-practice-timer.html:285-293`（setInterval 递减与阶段切换）、`:271-278`（显示直接取 remaining）。
+- 复现：设 5 分钟阶段 → 开始 → 切到其它标签 5 分钟再回来：实际剩余仍接近 `05:00`（仅少量回调），期望接近 `00:00` 或已完成（源码推演，未开浏览器）。
+- 影响：`tools/life/music-practice-timer.html`；练琴时常把页面放后台听节拍/看谱，计时失真会让阶段时长与总练习量全部不准。
+- 方案：记录 `endTs = Date.now() + remaining*1000`，每 tick 用 `remaining = Math.ceil((endTs-Date.now())/1000)` 重算；或用递归 setTimeout + 墙钟校正。
+
+### LF-N42 新增阶段接受负时长，列表显示「-05:00」并在一秒内被跳过（低，确认缺陷）
+- 描述：`addSegment` 用 `parseInt(prompt) || 5`，负数非 falsy 直接透传；负时长阶段在列表显示「-05:00」，开始后首次 tick 即因 `remaining <= 0` 被判为阶段结束，立刻跳段并播提示音。
+- 证据：`tools/life/music-practice-timer.html:265-268`（parseInt 与 push）、`:270`（fmt 负数）、`:287-290`（<=0 跳段）。
+- 复现：新增阶段时长 `-5` → 列表 `-05:00`；点开始约 1 秒内跳到下一阶段并响提示音（期望拒绝负值并提示）。
+- 影响：`tools/life/music-practice-timer.html`；手滑输入负号会得到无法执行的阶段，且提示音被误触发。
+- 方案：`const mins = Number(prompt(...)); if(!Number.isInteger(mins) || mins<=0) return showToast('时长须为正整数')`；`fmt` 对负数兜底。
+
+### LF-N43 历史在加载预设/重置时就写记录，英文标签仍是中文（低，确认缺陷）
+- 描述：`__tbn` 在每次 `loadTemplate` 后被调用并记录一次「练习计划总时长(秒)」，因此点预设、点重置都会写入历史，即使从未开始练习；历史标题「练习成绩历史（练习计划总时长(秒)）」把「成绩」与「计划时长」混为一谈。英文态 `LBL` 两个分支字符串完全相同，仍显示中文。
+- 证据：`tools/life/music-practice-timer.html:298-313`（`:303` 双语同串、`:313` 记录）、`:328`（loadTemplate wrapper）、`:296`（reset 也调 loadTemplate）。
+- 复现：依次点 3 个预设再点重置 → 历史新增 4 条计划时长，实际练习 0 次；`?lang=en-US` 时该标签仍为中文。
+- 影响：`tools/life/music-practice-timer.html`；历史被配置操作污染，无法反映真实练习量，跨语言用户看到混排文案。
+- 方案：仅在练习真正开始/结束（或阶段完成）时 `record`，记录「实际练习秒数」而非计划总时长；`LBL` 英文分支改为 `Practice plan total (s)` 或直接记录实际时长。
+
+### LF-N44 倒计时到点判定挂在 rAF 上，标签页隐藏时不响铃且延迟触发（中，确认缺陷）
+- 描述：到点判断只在 `tick()` 内做，而 tick 由 `requestAnimationFrame` 续排；标签页隐藏时 rAF 停止，`elapsed >= target` 永远不会被检查，`onFinish()`（提示音与完成态）要等用户切回标签才补触发。显示值本身用墙钟 `curElapsed()`，切回不会算错，但提醒会迟到。
+- 证据：`tools/life/countdown-1.html:261-268`（`:265-266` 到点分支、`:268` rAF 续排）、`:263`（墙钟取值）。
+- 复现：设 5 分钟 → 开始 → 切到其它标签 5 分钟：到点时无任何提示音/文案；切回后才弹完成态并响铃（期望按时提醒）。
+- 影响：`tools/life/countdown-1.html`；倒计时的典型用法就是「开始后切走做别的事」，此时提醒失效，工具的核心价值丢失。
+- 方案：到点提醒用独立 `setTimeout(target - elapsed)`（配合 Audio 解锁）触发，rAF 只负责渲染；并在 `visibilitychange`/`pagehide` 时用墙钟补判一次。
+
+### LF-N45 目标为 0 秒时点开始立即「完成」并响铃，1e3 分钟被截成 1 分钟（低，确认缺陷）
+- 描述：`applyTarget` 用 `parseInt` 只做 clamp 不写回：分钟 0/秒 0 → target=0，点开始后 tick 首次即 `0 >= 0` 判定完成，立刻响铃；`1e3` 被 parseInt 成 1 分钟；秒填 60 被 clamp 成 59 但输入框仍显示 60。0 秒目标还会随 `save()` 持久化，刷新后仍是完成态。
+- 证据：`tools/life/countdown-1.html:232-239`（parseInt + clamp 无回写）、`:246-248`、`:265-266`、`:202-204`（load 时按 target 恢复完成态）。
+- 复现：0 分 0 秒 → 点开始实际立即 `00:00.00` 完成并响铃（期望提示至少 1 秒）；分钟填 `1e3` → 实际 1 分钟；秒填 `60` → 实际按 59 秒计时。
+- 影响：`tools/life/countdown-1.html`；空目标被当成一次「完成」并播放提示音，容易误判；数字输入被静默改写，界面值与实际目标不一致。
+- 方案：`Number()` 解析 + 整数校验，最小值 1 秒；clamp 后把规范值写回输入框，避免显示值与 target 不一致。
+
+### LF-N46 固话区号切片多取一位，任何固话都匹配不到城市（高，确认缺陷）
+- 描述：固话分支用 `acLen = length===12 ? 4 : 3`，再 `substring(1, 1+acLen)`，实际取到 4/3 个字符（正确应为 3/2 个：先去掉前导 0，再取 3 位或 2 位区号），因此所有输入都落不进 `CN_AREA_CODES`；输出还把前导 0 又拼了一次，显示成「0101」「07551」。
+- 证据：`tools/life/phone-lookup.html:289-294`（`:291-292` 的 acLen 与 substring、`:294` 的拼 0）。
+- 复现：`01012345678` → 区号「0101 - 未知城市」（期望「010 - 北京」）；`075512345678` → 「07551 - 未知城市」（期望「0755 - 深圳」）；`057112345678` → 「05711 - 未知城市」（期望「0571 - 杭州」）。
+- 影响：`tools/life/phone-lookup.html`；固话识别这一整块功能对任何输入都返回「未知城市」，等于未实现，还输出格式错误的区号。
+- 方案：去掉首位 0 后按「3 位优先、2 位兜底」匹配区号表，输出只拼一次 0；补 010/021/0755/0571 与 8 位/7 位本地号用例。
+
+### LF-N47 运营商取错号段位（用第 4 位而非第 2 位），138/139 被标成电信（中，确认缺陷）
+- 描述：手机号分支取 `nationalNum[3]`（第 4 位）去查 `opMap`，而号段判据在 `1[3-9]`（第 2 位，`nationalNum[1]`）；且 `opMap` 本身把 `3` 映射为「电信」（13x 实为移动）。138/139 因第 4 位恰为 0 被标成电信。
+- 证据：`tools/life/phone-lookup.html:283-288`（`:286` 取 `[3]`、`:287` 映射表）。
+- 复现：`13800138000` → 实际「电信」（期望「移动」）；`15912345678` → 实际「移动」（期望「联通」，159 属联通）。
+- 影响：`tools/life/phone-lookup.html`；运营商推断结果对主流号段基本错误，用户会据此判断陌生来电归属。
+- 方案：改取 `nationalNum[1]`，并按现行号段表（13x/18x/17x/19x/15x/16x…）映射；文案注明「按号段推断，携号转网后可能失效」。
+
+### LF-N48 区号表 '898' 重复键被三亚覆盖，海口永久丢失（低，确认缺陷）
+- 描述：`CN_AREA_CODES` 中 `'898':'海口'` 与 `'898':'三亚'` 重复声明，JS 对象字面量后者覆盖前者，0898 恒显示三亚；即便修复 LF-N46 的切片，海口也无法再匹配到。
+- 证据：`tools/life/phone-lookup.html:251-252`（重复键）。
+- 复现：0898 固话 → 实际「三亚」（期望海口，或注明 0898 覆盖海南全省并列出主要城市）。
+- 影响：`tools/life/phone-lookup.html`；海南全省共用 0898，硬绑单一城市会误导来电归属判断。
+- 方案：删除重复键，改为「海口（海南省，含三亚/儋州等）」或把键值改为城市数组展示；并对全表做一次重复键扫描。
+
+- 本轮实读 8 页：`tools/life/unit-converter.html`、`temperature-converter.html`、`data-unit-converter.html`、`base-convert.html`、`leap-year-checker.html`、`music-practice-timer.html`、`countdown-1.html`、`phone-lookup.html`；新增 19 条（高 2 / 中 9 / 低 8）；未覆盖：本轮 8 页之外仍有约 40 页，重点待查 `length-converter`、`weight-converter`、`volume-converter`、`area-converter`、`speed-converter`、`pressure-converter`、`energy-converter`、`power-converter`、`angle-converter`、`data-rate-converter`、`density-converter`、`flow-rate-converter`、`frequency-converter`、`magnet-converter`、`radiation-converter`、`concentration-converter`、`time-converter`、`holiday-calendar`、`countdown-2/timer`、`event-countdown`、`analysis-*`、`stats-13` 等。
+
+## 2026-11-04 续查（并行批 L）
+
+> 范围：本轮阅读 10 页（`tools/life/length-converter.html`、`weight-converter.html`、`volume-converter.html`、`area-converter.html`、`speed-converter.html`、`time-converter.html`、`event-countdown.html`、`holiday-calendar.html`、`age-in-days.html`、`date-difference-calculator.html`）。仅源码 + node 复算，未开浏览器/未做 EN/移动端/门禁验证。
+
+### LF-N49 长度换算结果行前置数字与真实结果矛盾（高，确认缺陷）
+- 描述：结果行先输出 `v / factors[k] * factors[from] / factors[from]`，该表达式化简后只剩 `v / factors[k]`，与后面的 `meters / factors[k]` 无关；只要源单位不是「米」，同一行就出现两个量纲不同的数字。
+- 证据：`tools/life/length-converter.html:318`（表达式），`:183`（预设按钮 `:443-446` 中 3 个为 cm/in/km）
+- 复现：点预设「身高 175 cm」→ 实际 `175000 → 实际: 1750 毫米`（期望只有 `1750 毫米`）；55 in → `5500 → 实际: 139.7 厘米`；42.195 km → `42.195 → 实际: 42195 米`。默认 1 m 恰好正确，因为 `factors.m === 1`。
+- 影响：`tools/life/length-converter.html`；4 个预设里 3 个非米输入，结果区首数字等于「输入值 ÷ 目标系数」（175 cm→mm 显示 175000），用户无法判断哪个才是结果，历史记录也只截取这段混杂文本。
+- 方案：删除该冗余前置表达式，统一输出「输入值 → 目标值」两列；补 cm/in/km 作为源单位的结果行用例。
+
+### LF-N50 「交换单位」按钮无任何交换行为（中，确认缺陷）
+- 描述：按钮标注「交换单位」，`swap()` 只对结果区做 `scrollIntoView`，既不切换源单位也没有目标单位可选；页面注释自认「仅作为占位」。
+- 证据：`tools/life/length-converter.html:183`（`onclick="swap()"`）、`:324-328`
+- 复现：任意输入点「交换单位」→ 输入框、下拉、结果全部不变，仅页面滚动（期望与目标单位互换或至少提示不支持）。
+- 影响：`tools/life/length-converter.html`；换算器最高频操作之一是反向换算，点击无反馈会被判为页面故障。
+- 方案：增加「目标单位」下拉并真正交换 `fromUnit`/`toUnit`（数值取上次结果），或删除该按钮。
+
+### LF-N51 精确年龄借位不足，显示负数天数（中，确认缺陷）
+- 描述：`d < 0` 时只向上一月借一次天数，且借的是「上一自然月天数」；当出生日大于上月天数（29/30/31 日生日跨越 2 月或 4 月）时借完仍为负，且无后续修正。
+- 证据：`tools/life/age-in-days.html:279-290`（y/m/d 分解）、`:301`（输出「精确年龄」）
+- 复现：出生 2000-01-31，把系统日期设为 2026-03-01 → 实际 `26 岁 1 月 -2 天`（期望 `26 岁 1 月 1 天` 或 0 月 28 天口径）；出生 2001-01-31 同日同样得 `-2 天`。
+- 影响：`tools/life/age-in-days.html`；每月头几天、生日为 29/30/31 的用户会看到负数天数，而「精确年龄」是本页主结果。
+- 方案：借位后 `while(d < 0){ m--; d += new Date(nowY, nowM-1, 0).getDate(); }`，或改为「从出生日逐月推进直到不超过今天」的算法；补 31 日生日、闰年 2/29 用例。
+
+### LF-N52 生日当天把「下一个生日」算成 365/366 天后（中，确认缺陷）
+- 描述：`if(next < now)` 用含时分秒的 `now` 比较「今年生日 00:00」，生日当天该条件必然成立，直接跳到明年；再用 `Math.ceil` 取整得到 365（闰年后 366）。
+- 证据：`tools/life/age-in-days.html:292-294`
+- 复现：生日 11-04、当天 2026-11-04 10:00 → 实际「距离下一个生日：365 天」（期望「今天生日」或 0 天）。与 LF-N5（age-calculator 生日当天 `nextAge+1`）同源，但页面与文案不同。
+- 影响：`tools/life/age-in-days.html`；生日当天正是查询高峰，结果与事实相反。
+- 方案：与「今日 00:00」比较（`if(next <= todayMidnight) next.setFullYear(+1)`），相等时走「今天生日」分支；补当天/前一天/闰日用例。
+
+### LF-N53 月度「工作日」重复扣减周末假期且忽略调休（中，确认缺陷）
+- 描述：月度信息卡用 `workdays = totalDays - weekends - holidays`，把落在周六/日的节假日又扣了一遍；也没有任何调休补班（周末上班）数据，工作日系统性偏少。
+- 证据：`tools/life/holiday-calendar.html:860-865`（公式）、`:819-821`（holidays/weekends 仅按标记累加）
+- 复现：2026 年 2 月 → 实际 `28-8-7 = 13` 天（期望 15 天：20 个工作日 − 2/16-2/20 五个工作日假期）；2025 年 10 月 → 实际 15 天（期望 17 天：23 个工作日 − 10/1-10/3、10/6-10/8 六个工作日假期）。
+- 影响：`tools/life/holiday-calendar.html`；日历顶部统计是排期/请假常用信息，每月少 1-3 天。
+- 方案：逐日遍历当月，节假日不计、否则按 `isWeekend` 判定；另建补班日集合把对应周末强制计入工作日。
+
+### LF-N54 2027 年春节整体提前一天，与站内倒计时页冲突（中，确认数据缺陷）
+- 描述：`holidayData` 把 2027 年春节假期从 2 月 5 日开始，而 2027 年正月初一为 2 月 6 日（2/5 是除夕）；同站 `event-countdown` 的 `lunarDates[2027].spring` 也是 `[2,6]`。
+- 证据：`tools/life/holiday-calendar.html:579-585`；对照 `tools/life/event-countdown.html:283`
+- 复现：翻到 2027 年 2 月 → 2 月 5 日与 2 月 6 日都标「春节」（期望 2/6 起为春节，2/5 标除夕或不标）。
+- 影响：`tools/life/holiday-calendar.html`；跨年请假/返乡日期错一天，且与站内另一页自相矛盾。
+- 方案：2027 春节数据改为 2/6 起并按国务院安排补足天数；除夕单列 `type:'other'`。
+
+### LF-N55 年初农历栏整段空白（低，确认缺陷）
+- 描述：`getLunarDate` 找不到「≤ 当日」的农历月时回退取上一年数组的最后一项（腊月），但该腊月起始日落在当年 1 月、晚于被查日期，`diffDays < 0` 直接返回空串；真正的上一农历月（冬月）从未被使用。
+- 证据：`tools/life/holiday-calendar.html:690-720`（`:703-712` 回退、`:716` 越界返回）
+- 复现：2026-01-05 → 农历栏空白（期望「冬月十七」）；2027-01-03 → 空白（期望「冬月廿五」）；2024-01-10 → 空白（`lunarInfo` 无 2023 年数据）。
+- 影响：`tools/life/holiday-calendar.html`；每年元月前 1-3 周日历农历列留白，用户会以为数据缺失。
+- 方案：回退时取上一年倒数第二项并按跨年天数计算；无覆盖年份显示「农历数据未覆盖」而非空白。
+
+### LF-N56 清明固定为 4 月 5 日，多年倒数多一天（中，确认缺陷）
+- 描述：清明节写死 `new Date(y,3,5)`，但清明是节气，公历日期逐年为 4/4 或 4/5；本页说明也写「4 月 4-5 日」。
+- 证据：`tools/life/event-countdown.html:309`（写死）、`:180`（说明）；对照 `tools/life/holiday-calendar.html:613`、`:620`（2024/2025 为 4/4）、`:627`、`:634`（2026/2027 为 4/5）
+- 复现：2025-03-20 查看列表 → 实际「清明节 2025年4月5日」（期望 4 月 4 日，倒数少 1 天）；2024 年同理。
+- 影响：`tools/life/event-countdown.html`；约一半年份清明倒数差 1 天，且与站内日历页数据冲突。
+- 方案：内置逐年清明日期表（2024-2030）或复用节气数据；查不到年份时隐藏该条或标注「按 4/5 估算」。
+
+### LF-N57 「包含周末」勾选语义与说明相反，取消勾选后周末天数归 0（中，确认缺陷）
+- 描述：`workdays = includeWeekends ? countWorkdays(start,end) : days`，与公式说明「勾选『包含周末』时按自然日计数，否则扣减落在周六周日的天数」正好相反；默认勾选时输出扣周末的工作日，取消勾选后「工作日」变成总天数、「周末天数」变成 0。
+- 证据：`tools/life/date-difference-calculator.html:457-458`、`:190`（说明）、`:204`（默认 `checked`）
+- 复现：2026-01-01 → 2026-01-31，取消勾选「包含周末」→ 实际「工作日 31 / 周末 0」（期望 工作日 22 / 周末 9）；勾选时得到 22/9。与 LF-N1（date-diff.html）同型的「周末天数恒 0」，但此处还叠加了说明与实现的反转。
+- 影响：`tools/life/date-difference-calculator.html`；统计加班/请假时口径被反转且无任何提示。
+- 方案：工作日恒按排除周末的口径计算，周末恒为 `days - workdays`；若保留「包含周末」开关，应只影响总天数统计并同步改说明。
+
+### LF-N58 「设为今天」/默认生日用 toISOString，早 8 点前得到昨天（低，确认缺陷）
+- 描述：两页都用 `new Date().toISOString().split('T')[0]` 取「今天」，`toISOString` 走 UTC；东八区 00:00-07:59 时 UTC 仍是前一天，写入的是昨天。
+- 证据：`tools/life/date-difference-calculator.html:409-413`、`tools/life/age-in-days.html:251-254`
+- 复现：中国时区 2026-11-04 07:00 点「开始设为今天」→ 填入 `2026-11-03`（期望 `2026-11-04`）；age-in-days 打开时的默认生日同样早一天。
+- 影响：`tools/life/date-difference-calculator.html`、`tools/life/age-in-days.html`；早晨使用时「今天」按钮给出错误日期，并直接带入日期差/生日计算（与 LF-N8 的 UTC 解析同源，但此处发生在当前日期而非输入解析）。
+- 方案：改用本地日期拼装（`getFullYear/getMonth/getDate` + 补零），两页共用同一 helper。
+
+### LF-N59 km/h 系数截断导致常见速度出现小数噪点（低，确认缺陷）
+- 描述：`kmh: 0.277777778`（应为 1000/3600 ≈ 0.277777777777…），再用 `toPrecision(10)` 直接输出，整数速度换算出 9 位小数尾巴。
+- 证据：`tools/life/speed-converter.html:277`（系数）、`:308`（输出）
+- 复现：36 km/h → 实际 `10.00000001 m/s`（期望 10）；18 km/h → `5.000000004`；72 km/h → `20.00000002`。
+- 影响：`tools/life/speed-converter.html`；默认预设 100 km/h 显示 62.13711927（正常），但手输 36/18/72 等常用值时结果尾部出现噪点，看起来像算错。
+- 方案：系数写 `1000/3600`，结果保留 6 位有效数字或按 magnitude 自适应舍入。
+
+### LF-N60 「月」系数与页面参照说明相差约一天（低，确认缺陷）
+- 描述：实现与公式区均为 `month: 2629800`（30.4375 天 = 365.25/12），但页面底部仿实物参照的 FACTS 写「『月』取平均朔望月 29.53 天」，两种口径差 0.9 天。
+- 证据：`tools/life/time-converter.html:279`、`:149`、`:530`
+- 复现：1 月 → 实际 30.4375 天；同页 FACTS 声称 29.53 天（对应 2551392 s，而非 2629800 s）。
+- 影响：`tools/life/time-converter.html`；用户按参照说明复核会得出与结果不一致的结论，月子/产假类场景按 29.53 天理解会少算约 1 天。
+- 方案：FACTS 改为「月按 365.25/12 = 30.4375 天」，或增加「农历月（29.53 天）」切换并同步系数。
+
+### LF-N61 深度解析「1 杯≈240 mL」与换算系数 236.59 mL 不一致（低，确认缺陷）
+- 描述：换算系数 `cup: 236.5882365`（美制杯），深度解析示例却写「1 杯≈240 mL」，且页面没有「美制杯 / 公制杯」切换。
+- 证据：`tools/life/volume-converter.html:281`（系数）、`:223`（示例）
+- 复现：2 杯 → 实际 `473.176 mL`；按示例 240 mL/杯应约 480 mL（差约 7 mL）。
+- 影响：`tools/life/volume-converter.html`；烘焙按示例估算会偏少，多杯累计误差扩大，用户无法判断本页采用哪种杯。
+- 方案：统一按 236.588 mL 并标注「美制杯（US cup）」，或提供 240/250 mL 量杯选项。
+
+- 本轮实读 10 页：`tools/life/length-converter.html`、`weight-converter.html`、`volume-converter.html`、`area-converter.html`、`speed-converter.html`、`time-converter.html`、`event-countdown.html`、`holiday-calendar.html`、`age-in-days.html`、`date-difference-calculator.html`；新增 13 条（高 1 / 中 7 / 低 5）；其中 `weight-converter.html`、`area-converter.html` 通读换算核心后未发现确认缺陷。未覆盖：`date-add-subtract.html`（已有条目）、`countdown-2/timer/countdown.html`、`analysis-23/74/80`、`analysis-cost-*`、`assessor-target`、`color-name-finder`、`cycle-*`、`detector-checker-strength`、`generator-price`、`generator-random-1`、`number-to-chinese`、`recommender-8`、`reminder-cycle`、`report-profit`、`stats-13`、`concentration/energy/frequency/magnet/pressure/radiation/data-rate/flow-rate/density-converter` 等。

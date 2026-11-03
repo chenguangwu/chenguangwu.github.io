@@ -386,3 +386,73 @@
 
 - 本轮实读 8 页：`tools/finance/inflation-calculator.html`、`tools/finance/credit-card-grace-period.html`、`tools/finance/mutual-fund-calculator.html`、`tools/finance/investment-calculator.html`、`tools/finance/futures-pnl-calculator.html`、`tools/finance/discount-calculator.html`、`tools/finance/sharpe-ratio.html`、`tools/finance/portfolio-return.html`；新增 11 条（高 3 / 中 7 / 低 1）；未覆盖：其余 finance 页（约 90 页）未逐页复扫。
 - 证据均由源码行号 + node 内存复算取得；未做浏览器、英文态、移动端、门禁与线上验证；历史已修声明未独立复验。
+
+## 2026-11-04 续查（并行批 L）
+
+> 范围：本轮阅读 8 页（`tools/finance/profit-margin-calculator.html`、`depreciation-calculator.html`、`position-size-calculator.html`、`insurance-calculator.html`、`stock-profit-calculator.html`、`option-profit-calculator.html`、`break-even-calculator.html`、`capm-return.html`）。仅源码 + node 复算，未开浏览器/未做 EN/移动端/门禁验证；历史已修声明未独立复验。
+
+### F-N52 利润率页折旧摊销从未扣除，EBITDA 与净利润同时虚增（高，确认）
+- 描述：`opExp` 只汇总销售/管理/研发费用，`ebit = opProfit` 未减折旧摊销；随后 `ebitda = ebit + da`，相当于在「未扣 D&A 的 EBIT」上再加一次折旧。净利率、利润总额、所得税均沿用该虚增利润，而同页饼图/成本构成又把折旧摊销当作独立成本项，口径自相矛盾。
+- 证据：`tools/finance/profit-margin-calculator.html:445-455`（`:445` 期间费用只含三项、`:449-451` EBIT/EBITDA、`:453-456` 税与净利）、`:459-462`（四张利润率卡）、`:644-646`（饼图把折旧摊销列为成本却未从净利中扣）。
+- 复现：默认值（收入 100 万、成本 60 万、销售 8 万、管理 10 万、研发 5 万、财务 2 万、折旧摊销 6 万、税率 25%）→ 页面 EBITDA 230,000、净利率 11.25%、净利润 112,500（期望 EBITDA 170,000、净利率 6.75%、净利润 67,500）。
+- 影响：`tools/finance/profit-margin-calculator.html`；重资产企业的核心盈利指标被系统性高估（本例净利润虚增 40%），并污染行业对比与 CSV 导出。
+- 方案：`ebit = gp − opExp − da`，`ebitda = ebit + da`；饼图与成本构成复用同一 `ebit`/`np`，删除重复现金流的二次计入；补一条含 D&A 的强用例。
+
+### F-N53 折旧页「工作量法」每年均摊，结果恒等于直线法（中，确认）
+- 描述：`calcUnits` 没有「当年工作量」输入，直接把总工作量按年限平均（`yearUnits = totalUnits / life`），再乘以单位折旧额，数学上等于 `(原值−残值)/年限`。页面公式说明却写「年折旧额 = 当年工作量 × 单位工作量折旧额」，`remainingUnits` 计算后从未使用。
+- 证据：`tools/finance/depreciation-calculator.html:334-346`（`:340` 平均分配、`:343` 递减后未用）、`:207-208`（说明与实际不符）、`:170`（只有一个「总工作量」输入）。
+- 复现：原值 100,000、残值 5,000、5 年、总工作量 10,000 → 每年折旧 19,000，与直线法 19,000 完全相同；任何总工作量取值都只改变单位折旧额与年工作量，乘积不变。
+- 影响：`tools/finance/depreciation-calculator.html`；第四种方法退化为直线法的副本，四方法对比表出现两列相同数据，用户会误以为产量波动已计入。
+- 方案：为每年（或每期）提供实际工作量输入，按 `当年工作量 × 单位折旧额` 计算并校验累计不超过可折旧总额；无法提供逐年工作量时删除该选项，避免伪方法。
+
+### F-N54 仓位页马丁格尔「平均价」数学上恒等于当期价（中，确认）
+- 描述：`avg = cumCost / (cumPos / price)`，而 `cumPos` 与 `cumCost` 在每层都相等，化简后 `avg === price`。平均持仓成本应为 `累计投入 / 累计股数`，页面却把累计投入除以「按当期价折算的股数」，导致每层平均价都等于该层价格，最终平均成本与真实成本相差数个百分点。
+- 证据：`tools/finance/position-size-calculator.html:527-535`（`:528` 本层投入、`:529-533` 累计与错误 avg）、`:543`（采用该 avg）、`:620-627`（表格与「下跌 X%」结论）。
+- 复现：初始仓位 1,000、2 倍、5 次、每次跌 10% → 第 5 层页面平均价 65.61 元（真实平均成本 71.23 元）；页脚「相对初始价下跌 34.39%」（按真实平均成本应为 28.77%）。
+- 影响：`tools/finance/position-size-calculator.html`；加仓计划的回本价被低估约 8%，用户会误判反弹到 65.61 即可解套。
+- 方案：累计股数改为 `cumShares += pos / price`，`avg = cumCost / cumShares`；全部层级与页脚统一用该 avg，并补一组可手算的强弱用例。
+
+### F-N55 保险页双十法则明细金额与结果卡不一致、年支出输入无效（中，确认）
+- 描述：结果卡用 `income*10 + debt − existing` 计算寿险保额，明细行却硬写 `income*10`；`dt_expense` 读入后从未参与任何公式，输入框形同装饰。
+- 证据：`tools/finance/insurance-calculator.html:473-481`（`:474` 读入未用、`:478` 计算含负债/已有保障）、`:490`（明细值仅 `income*10`）、`:601`（结果卡用 `lifeInsurance`）。
+- 复现：年收入 20 万、家庭负债 80 万、已有保障 10 万 → 寿险保额卡 270 万，同屏明细「寿险保额计算：200万（年收入×10）」；改年支出 12→0 或 100 万，所有结果不变。
+- 影响：`tools/finance/insurance-calculator.html`；同一屏出现两个寿险保额，用户无法判断以哪个为准，年支出控件给出错误的可调预期。
+- 方案：明细行改用 `lifeInsurance` 并列出「收入×10 + 负债 − 已有保障」过程；年支出要么纳入需求缺口，要么移除该输入。
+
+### F-N56 利润率反推页目标利润率无上限，>100% 输出负售价/负成本（中，确认）
+- 描述：反推目标售价仅判 `costCost > 0`，未限制 `target2` 的取值范围；`costCost/(1−target2/100)` 在 100% 时除零、>100% 得负售价。批量倒推表同一公式，毛利率 >100% 会输出负价格，100% 输出 Infinity（格式化后为「—」）。
+- 证据：`tools/finance/profit-margin-calculator.html:551-558`（`:553` 毛利率反推）、`:566-578`（营业/净利率反推同样无上限）、`:608-613`（批量表）、`:272,287-290`（输入无 max）。
+- 复现：单位成本 60、目标毛利率 120% → 目标售价 −300.00 元、成本加成率 −600.00%；批量表成本 10、毛利率 120% → −50.00；毛利率 100% → 除零。
+- 影响：`tools/finance/profit-margin-calculator.html`；负售价被当作可执行的定价建议，且没有任何字段级提示。
+- 方案：目标利润率限 `0 ≤ m < 100`（营业/净利率还需叠加期间费用率上限），越界报错并显示可行区间；批量表对 ≥100% 的列标「不可达」。
+
+### F-N57 股票盈亏页负买入价产生巨额正盈亏、百分比却归零（中，确认）
+- 描述：买入价、卖出价只靠 HTML `min="0"`（手输不受限），`calc()` 未做任何范围校验；`buyTotal` 可为负，`pnl = sellTotal − buyTotal` 因此变成大额正数，而 `pnlPct` 以 `buyTotal > 0` 为门槛，负分母时直接记 0，同屏金额与百分比互相矛盾。数量清空时最低佣金仍产生 5 元成本。
+- 证据：`tools/finance/stock-profit-calculator.html:190,194,201`（输入属性）、`:454-457`（读值无校验）、`:470-480`（买入成本可为负）、`:502-503`（`:503` `buyTotal > 0` 才计百分比）。
+- 复现：买入价 −10、数量 1000、卖出价 11、默认费率 → 买入总成本 −9,995.10、盈亏金额 +20,984.49、盈亏百分比 +0.00%；数量清空 → 买入总成本 5.00、盈亏 −5.00、−100.00%（仅剩最低佣金）。
+- 影响：`tools/finance/stock-profit-calculator.html`；非法价格被包装成翻倍收益，复制/导出的 CSV 同样带出矛盾数值。
+- 方案：买入价/卖出价限 >0、数量限正整数；`buyQty<=0` 或价格为负时清空结果并禁用复制/导出；最低佣金只在成交量 >0 时计入。
+
+### F-N58 期权页最大盈亏未扣手续费、合约数 0 被替换为 1（低，确认）
+- 描述：`maxProfit`/`maxLoss` 只按权利金乘乘数、张数展示，未扣除 `totalFee`；而总盈亏已扣开平仓手续费，同屏最大亏损与总盈亏口径不一致。`contracts`/`mult` 用 `Math.max(1, …)` 兜底，清空或填 0 仍按 1 张/乘数 1 计算。
+- 证据：`tools/finance/option-profit-calculator.html:456-457`（`:456` 张数兜底、`:457` 乘数兜底）、`:497-498`（手续费只进总盈亏）、`:544-553`（最大盈亏未扣费）。
+- 复现：1 张、乘数 100、权利金 5、手续费 2 元/张 → 最大亏损显示 ¥500，含开平仓手续费应为 ¥504；清空「合约数量」→ 页面仍输出 1 张的完整结果。
+- 影响：`tools/finance/option-profit-calculator.html`；风控口径少算手续费，空输入给出看似有效的结论。
+- 方案：最大盈亏按「权利金 ± 手续费」计算并在文案注明含费；张数/乘数改为正整数校验，空值给字段错误而非默认 1。
+
+### F-N59 盈亏平衡页亏损产品边际贡献率硬写 0%，负成本得负平衡销量（中，确认）
+- 描述：`calcBEP` 在 `cm <= 0` 时直接返回 `cmRatio: 0`，页面同时显示「单位边际贡献 −10.00」与「边际贡献率 0.00%」，二者矛盾；固定成本为负时 `beq = fc/cm` 为负，直接渲染负的平衡销量与负平衡收入，且安全边际率按负 BEP 计算仍可能评为「很安全」。
+- 证据：`tools/finance/break-even-calculator.html:364-368`（`:366` 强制 cmRatio 0）、`:387-391`（无负值提示）、`:198-207`（五个数字输入均无 min）。
+- 复现：单价 50、单位变动成本 60、固定成本 10 万 → 单位边际贡献 −10.00、边际贡献率 0.00%（应为 −20.00%）、平衡销量「—」；固定成本 −10 万、单价 50、变动成本 30 → 平衡销量 −5,000 件、平衡收入 −250,000 元，页面照常渲染。
+- 影响：`tools/finance/break-even-calculator.html`；亏损产品的边际贡献率被抹成 0，负成本输入产出不可能的平衡点，敏感性分析与多场景对比沿用同一函数。
+- 方案：cm<0 时 cmRatio 输出真实负值并提示「单价低于变动成本，不存在平衡点」；固定成本、售价、销量限 ≥0，负 BEP 不出结果。
+
+### F-N60 CAPM 页切换输入口径不重算、不换算已填数值（低，确认）
+- 描述：`#unit` 下拉只决定除以 1 还是 100，但没有 `onchange`，切换后结果区仍是旧口径数值；同时已填的 0.03/0.08 不随口径换算，点击计算后直接缩小 100 倍，页面无任何提示。
+- 证据：`tools/finance/capm-return.html:148-151`（select 无事件）、`:200-209`（`:203-204` 仅按 `unit` 除以 k）、`:260-265`（重置只设 unit=1 不换算其他输入）。
+- 复现：默认（Rf 0.03、β 1.2、Rm 0.08）E(R) 9.0000%；切「百分数（3 表示 3%）」后结果区仍为 9.0000%，点「计算」后变为 0.0900%。
+- 影响：`tools/finance/capm-return.html`；用户误以为切换口径已生效，或在切换后拿到缩小 100 倍的必要收益率。
+- 方案：select 加 `onchange="capmCalc()"`，切换时把 Rf/Rm/实际收益按 100 倍互转并重算；或在结果区显著标注当前解读口径。
+
+- 本轮实读 8 页：`tools/finance/profit-margin-calculator.html`、`tools/finance/depreciation-calculator.html`、`tools/finance/position-size-calculator.html`、`tools/finance/insurance-calculator.html`、`tools/finance/stock-profit-calculator.html`、`tools/finance/option-profit-calculator.html`、`tools/finance/break-even-calculator.html`、`tools/finance/capm-return.html`；新增 9 条（高 1 / 中 6 / 低 2）；未覆盖：其余 finance 页（约 71 页）未逐页复扫。
+- 证据均由源码行号 + node 内存复算取得；未做浏览器、英文态、移动端、门禁与线上验证；历史已修声明未独立复验。
