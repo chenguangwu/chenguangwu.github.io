@@ -715,6 +715,52 @@ const CASES = [
       "PT3:1|ACC=50%|ERR=1|PROG=100%"
     ],
     "ref": "EL-J3 判分回归：zhonggou 把「guo」拼成「gou」，第 2 字判错 ⇒ 完成、正确率 50%、错误 1 个。旧实现按汉字比对，该输入既不完成也不产生此锚点。"
+  },
+  {
+    "slug": "edu/english-vocabulary",
+    "inputs": {
+      "qCount": "-5"
+    },
+    "clicks": [
+      "startQuiz();var n=questions.length;var m=document.getElementById('qCountHint').textContent;document.getElementById('vocabChart').textContent='QNEG:'+n+'|'+m;"
+    ],
+    "expect": [
+      "QNEG:20|题量须为 1–100 的整数，已回退为默认 20 题"
+    ],
+    "ref": "EL-J4 回归：题量 -5 越界 ⇒ 提示并回退默认 20 题，抽题数必须为 20。旧实现 parseInt(-5) 直接 slice(0,-5)，100 词表剩 95 题且无提示，不可能产出 QNEG:20。"
+  },
+  {
+    "slug": "edu/english-vocabulary",
+    "inputs": {
+      "qCount": "101"
+    },
+    "clicks": [
+      "startQuiz();var n=questions.length;var m=document.getElementById('qCountHint').textContent;document.getElementById('vocabChart').textContent='QHI:'+n+'|'+m;"
+    ],
+    "expect": [
+      "QHI:20|题量须为 1–100 的整数，已回退为默认 20 题"
+    ],
+    "ref": "EL-J4 上界回归：题量 101 超出 1–100 ⇒ 同样提示并回退默认 20 题。旧实现 Math.min(101,100)=100 题、无提示，不可能产出 QHI:20。"
+  },
+  {
+    "slug": "edu/english-vocabulary",
+    "clicks": [
+      "document.getElementById('qCount').value='1';startQuiz();var a=questions.length;document.getElementById('qCount').value='5';startQuiz();document.getElementById('vocabChart').textContent='QOK:'+a+'|'+questions.length;"
+    ],
+    "expect": [
+      "QOK:1|5"
+    ],
+    "ref": "EL-J4 合法边界：题量 1 与 5 均在 1–100 内，抽题数应分别为 1 与 5，且不弹越界提示。默认态不产生 QOK 锚点。"
+  },
+  {
+    "slug": "edu/english-vocabulary",
+    "clicks": [
+      "questions=[{word:'assimilate',answer:'适应',options:['容纳；适应','适应'],answerIndex:1}];currentQ=0;score=0;wrongCount=0;answered=false;showQuestion();var bs=document.querySelectorAll('.option-btn');var marks=[];bs.forEach(function(b,i){b.classList.add=function(c){marks.push(i+':'+c);};});answer(0,bs[0]);document.getElementById('vocabChart').textContent='QSTRICT:'+marks.join(',')+'|wrong='+wrongCount;"
+    ],
+    "expect": [
+      "QSTRICT:0:wrong,1:correct|wrong=1"
+    ],
+    "ref": "EL-J5 回归：选项 0「容纳；适应」以「适应」结尾但并非答案，选它必须只标红 0、且仅把真正答案（索引 1）标绿 ⇒ 标记序列 0:wrong,1:correct。旧实现用 endsWith 找正确项，会把 0、1 同时标绿 ⇒ 0:wrong,0:correct,1:correct。"
   }
 
 ];

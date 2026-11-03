@@ -379,6 +379,22 @@ s.parentNode.insertBefore(el, s);
 <script>
 var HISTORY_KEY = 'vat_calc_history';
 var currentRate = 13;
+var VAT_RATE_MSG = '⚠ 税率须为 0–100 之间的数字，请修正后再计算。';
+var VAT_AMOUNT_MSG = '⚠ 金额须为 ≥0 的数字，请修正后再计算。';
+
+// 统一校验：页面、复制与批量导出共用同一口径，避免非法值被 parseFloat||0 静默吞掉。
+function __vatParse(v){
+  var t = (v == null ? '' : String(v)).trim();
+  if(t === '') return NaN;
+  var n = Number(t);
+  return isFinite(n) ? n : NaN;
+}
+function __vatRateOK(v){ return isFinite(v) && v >= 0 && v <= 100; }
+function __vatAmountOK(v){ return isFinite(v) && v >= 0; }
+function __vatShowError(hostId, msg){
+  var host = document.getElementById(hostId);
+  if(host) host.innerHTML = '<p style="color:var(--danger);">' + msg + '</p>';
+}
 
 function switchTab(tab){
   document.querySelectorAll('.page-tabs .tab').forEach(function(t){
@@ -402,7 +418,7 @@ document.querySelectorAll('.rate-chip').forEach(function(chip){
 });
 
 function onCustomRate(){
-  var r = parseFloat(document.getElementById('customRate').value) || 0;
+  var r = __vatParse(document.getElementById('customRate').value);
   currentRate = r;
   document.querySelectorAll('.rate-chip').forEach(function(c){
     c.classList.toggle('active', parseFloat(c.dataset.rate) === r);
@@ -412,10 +428,19 @@ function onCustomRate(){
 
 function calcSingle(){
   var dir = document.getElementById('dir').value;
-  var amt = parseFloat(document.getElementById('amount').value) || 0;
+  var amt = __vatParse(document.getElementById('amount').value);
   var rate = currentRate;
   var label = document.getElementById('inputLabel');
   label.textContent = dir === 'inclusive' ? '含税金额 (元)' : '不含税金额 (元)';
+
+  var rateEl = document.getElementById('customRate');
+  if(rateEl && rateEl.classList) rateEl.classList.toggle('input-error', !__vatRateOK(rate));
+  if(!__vatRateOK(rate)){ __vatShowError('singleResult', VAT_RATE_MSG); return; }
+  var amtEl = document.getElementById('amount');
+  if(amtEl && amtEl.classList) amtEl.classList.toggle('input-error', !__vatAmountOK(amt));
+  if(!__vatAmountOK(amt)){ __vatShowError('singleResult', VAT_AMOUNT_MSG); return; }
+  if(rateEl && rateEl.classList) rateEl.classList.remove('input-error');
+  if(amtEl && amtEl.classList) amtEl.classList.remove('input-error');
 
   var incl, ex, tax;
   if(dir === 'inclusive'){
@@ -438,9 +463,11 @@ function calcSingle(){
 
 function saveToHistory(){
   var dir = document.getElementById('dir').value;
-  var amt = parseFloat(document.getElementById('amount').value) || 0;
-  if(!amt){ ToolBox.showToast(i18nText('toast.msg920'), 'warning'); return; }
+  var amt = __vatParse(document.getElementById('amount').value);
   var rate = currentRate;
+  if(!__vatRateOK(rate)){ ToolBox.showToast(VAT_RATE_MSG, 'warning'); return; }
+  if(!__vatAmountOK(amt)){ ToolBox.showToast(VAT_AMOUNT_MSG, 'warning'); return; }
+  if(!amt){ ToolBox.showToast(i18nText('toast.msg920'), 'warning'); return; }
   var record = {
     time: new Date().toISOString(),
     dir: dir,
@@ -521,8 +548,10 @@ function clearHistory(){
 
 function copyResult(){
   var dir = document.getElementById('dir').value;
-  var amt = parseFloat(document.getElementById('amount').value) || 0;
+  var amt = __vatParse(document.getElementById('amount').value);
   var rate = currentRate;
+  if(!__vatRateOK(rate)){ __vatShowError('singleResult', VAT_RATE_MSG); return; }
+  if(!__vatAmountOK(amt)){ __vatShowError('singleResult', VAT_AMOUNT_MSG); return; }
   var incl, ex, tax;
   if(dir === 'inclusive'){ incl = amt; ex = incl/(1+rate/100); tax = incl-ex; }
   else{ ex = amt; tax = ex*rate/100; incl = ex+tax; }
@@ -547,29 +576,36 @@ function resetSingle(){
 
 function calcBatch(){
   var dir = document.getElementById('batchDir').value;
-  var rate = parseFloat(document.getElementById('batchRate').value) || 0;
+  var rate = __vatParse(document.getElementById('batchRate').value);
   var input = document.getElementById('batchInput').value.trim();
   var lines = input.split('\n').filter(function(l){ return l.trim() !== ''; });
+  if(!__vatRateOK(rate)){ __vatShowError('batchResult', VAT_RATE_MSG); return; }
   if(!lines.length){
     const __h2='<div class="empty-history">请输入金额</div>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('batchResult').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('batchResult').innerHTML=__h2;
     return;
   }
   var html = '<table><thead><tr><th>序号</th><th>输入金额</th><th>不含税价</th><th>增值税额</th><th>含税价</th></tr></thead><tbody>';
-  var totalEx = 0, totalTax = 0, totalIncl = 0;
-  lines.forEach(function(line, i){
-    var amt = parseFloat(line.trim()) || 0;
+  var totalEx = 0, totalTax = 0, totalIncl = 0, ignored = 0, valid = 0;
+  lines.forEach(function(line){
+    var amt = __vatParse(line);
+    if(!__vatAmountOK(amt)){ ignored++; return; }
+    valid++;
     var incl, ex, tax;
     if(dir === 'inclusive'){ incl = amt; ex = incl/(1+rate/100); tax = incl-ex; }
     else{ ex = amt; tax = ex*rate/100; incl = ex+tax; }
     totalEx += ex; totalTax += tax; totalIncl += incl;
     html += '<tr>';
-    html += '<td>' + (i+1) + '</td>';
+    html += '<td>' + valid + '</td>';
     html += '<td>' + ToolBox.formatNumber(amt, 2) + '</td>';
     html += '<td>' + ToolBox.formatNumber(ex, 2) + '</td>';
     html += '<td style="color:var(--danger);">' + ToolBox.formatNumber(tax, 2) + '</td>';
     html += '<td><strong>' + ToolBox.formatNumber(incl, 2) + '</strong></td>';
     html += '</tr>';
   });
+  if(!valid){
+    document.getElementById('batchResult').innerHTML = '<p style="color:var(--danger);">⚠ 已忽略 ' + ignored + ' 行：没有可计算的金额（须为 ≥0 的数字）。</p>';
+    return;
+  }
   html += '<tr style="font-weight:600;background:var(--result-bg);">';
   html += '<td colspan="2">合计</td>';
   html += '<td>' + ToolBox.formatNumber(totalEx, 2) + '</td>';
@@ -577,42 +613,55 @@ function calcBatch(){
   html += '<td>' + ToolBox.formatNumber(totalIncl, 2) + '</td>';
   html += '</tr>';
   html += '</tbody></table>';
+  if(ignored) html += '<p style="color:#ff9800;font-size:12.5px;margin-top:6px;">⚠ 已忽略 ' + ignored + ' 行（非数字或负数，未计入合计）。</p>';
   const __h3=html;if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('batchResult').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('batchResult').innerHTML=__h3;
 }
 
 function exportBatchCSV(){
   var dir = document.getElementById('batchDir').value;
-  var rate = parseFloat(document.getElementById('batchRate').value) || 0;
+  var rate = __vatParse(document.getElementById('batchRate').value);
   var input = document.getElementById('batchInput').value.trim();
   var lines = input.split('\n').filter(function(l){ return l.trim() !== ''; });
+  if(!__vatRateOK(rate)){ ToolBox.showToast(VAT_RATE_MSG, 'warning'); return; }
   if(!lines.length){ ToolBox.showToast(i18nText('toast.empty_export'), 'warning'); return; }
   var csv = '\uFEFF序号,输入金额,不含税价,增值税额,含税价\n';
-  lines.forEach(function(line, i){
-    var amt = parseFloat(line.trim()) || 0;
+  var ignored = 0, valid = 0;
+  lines.forEach(function(line){
+    var amt = __vatParse(line);
+    if(!__vatAmountOK(amt)){ ignored++; return; }
+    valid++;
     var incl, ex, tax;
     if(dir === 'inclusive'){ incl = amt; ex = incl/(1+rate/100); tax = incl-ex; }
     else{ ex = amt; tax = ex*rate/100; incl = ex+tax; }
-    csv += (i+1) + ',' + amt + ',' + ex.toFixed(2) + ',' + tax.toFixed(2) + ',' + incl.toFixed(2) + '\n';
+    csv += valid + ',' + amt + ',' + ex.toFixed(2) + ',' + tax.toFixed(2) + ',' + incl.toFixed(2) + '\n';
   });
+  if(!valid){ ToolBox.showToast('没有可导出的金额（须为 ≥0 的数字）。', 'warning'); return; }
   ToolBox.downloadText('增值税批量计算_' + rate + '%_' + Date.now() + '.csv', csv, 'text/csv');
-  ToolBox.showToast(i18nText('toast.msg005'));
+  if(ignored) ToolBox.showToast('已忽略 ' + ignored + ' 行（非数字或负数）', 'warning');
+  else ToolBox.showToast(i18nText('toast.msg005'));
 }
 
 function copyBatchResult(){
   var dir = document.getElementById('batchDir').value;
-  var rate = parseFloat(document.getElementById('batchRate').value) || 0;
+  var rate = __vatParse(document.getElementById('batchRate').value);
   var input = document.getElementById('batchInput').value.trim();
   var lines = input.split('\n').filter(function(l){ return l.trim() !== ''; });
+  if(!__vatRateOK(rate)){ ToolBox.showToast(VAT_RATE_MSG, 'warning'); return; }
   if(!lines.length){ ToolBox.showToast(i18nText('toast.msg487'), 'warning'); return; }
   var text = '增值税批量计算（税率' + rate + '%）\n';
   text += '序号\t输入金额\t不含税价\t增值税额\t含税价\n';
-  lines.forEach(function(line, i){
-    var amt = parseFloat(line.trim()) || 0;
+  var ignored = 0, valid = 0;
+  lines.forEach(function(line){
+    var amt = __vatParse(line);
+    if(!__vatAmountOK(amt)){ ignored++; return; }
+    valid++;
     var incl, ex, tax;
     if(dir === 'inclusive'){ incl = amt; ex = incl/(1+rate/100); tax = incl-ex; }
     else{ ex = amt; tax = ex*rate/100; incl = ex+tax; }
-    text += (i+1) + '\t' + amt + '\t' + ex.toFixed(2) + '\t' + tax.toFixed(2) + '\t' + incl.toFixed(2) + '\n';
+    text += valid + '\t' + amt + '\t' + ex.toFixed(2) + '\t' + tax.toFixed(2) + '\t' + incl.toFixed(2) + '\n';
   });
+  if(!valid){ ToolBox.showToast('没有可复制的金额（须为 ≥0 的数字）。', 'warning'); return; }
+  if(ignored) text += '已忽略 ' + ignored + ' 行（非数字或负数）\n';
   ToolBox.copyText(text, i18nText());
 }
 

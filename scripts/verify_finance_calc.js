@@ -2684,6 +2684,42 @@ const CASES = [
     inputs: {"pv":"100000","downPct":"0","rate":"6","months":"36","fv":"0","fee":"5000","type":"equal","timing":"begin"},
     expect: ["还款方式： 等额本息 · 期初还款", "实际年化利率(IRR)： 2.57%"],
     ref: "F-N13：期初还款首期落在 t=0、手续费 5000 计入 t=0 现金流 ⇒ 名义 IRR 2.57%；旧口径把首期也折现到 t=1 且漏算手续费，同类期初无手续费场景约 5.67%。默认 fee=0、期末还款 IRR 6.00% ⇒ 不命中 2.57%。",
+  },
+  {
+    slug: "finance/vat-calculator",
+    inputs: { amount: "1000", customRate: "-50" },
+    expect: ["税率须为 0–100 之间的数字"],
+    ref: "F-N20：自定义税率 -50 越界（旧实现 onCustomRate 让 currentRate=-50 直接参与计算，含税价倒推得到负数税额），必须字段级拒绝、不输出结果；默认税率 13% ⇒ 不命中。",
+  },
+  {
+    slug: "finance/vat-calculator",
+    inputs: { amount: "1000", customRate: "150" },
+    expect: ["税率须为 0–100 之间的数字"],
+    ref: "F-N20：自定义税率 150 越界（旧实现按 150% 计算，不含税 = 1000/2.5 = 400），必须字段级拒绝；默认 13% ⇒ 不命中。",
+  },
+  {
+    slug: "finance/vat-calculator",
+    inputs: { batchInput: "1000\nabc\n5000", batchRate: "13" },
+    expect: ["已忽略 1 行", "5,309.73"],
+    ref: "F-N20：批量 3 行中 `abc` 非数字必须跳过并提示已忽略 1 行；有效行 1000/5000 按含税价倒推，不含税合计 = 1000/1.13 + 5000/1.13 = 5,309.73（旧实现把 abc 当 0 并纳入行号，不出现忽略提示）。默认批量 1000/2500/5000 ⇒ 合计 7,522.12，不命中 5,309.73。",
+  },
+  {
+    slug: "finance/simple-interest",
+    inputs: { principal: "20000", rate: "5", years: "3", mode: "annual" },
+    expect: ["每年取息现金流", "第 3 年末 1,000 3,000", "合计 3,000 3,000"],
+    ref: "F-N21：每年取息 = 20000×5% = 1,000/年，第 3 年末累计 3,000，合计行 3,000；总利息与到期一次性（20000×5%×3=3,000）相同，差别仅在时点。默认 mode=simple ⇒ 不渲染现金流表，不命中。",
+  },
+  {
+    slug: "finance/loan-amortization",
+    inputs: { loanAmount: "12000", annualRate: "0", loanYears: "1", repayMethod: "equal" },
+    expect: ["1,000.00 首月月供", "0.00 总利息", "12,000.00 总还款额"],
+    ref: "F-N24：r=0 时等额本息月供应退化为 本金/期数 = 12000/12 = 1,000.00，利息恒 0，总还款 12,000.00（旧实现守卫直接拦截 r=0，且 0/0 公式得 NaN）。默认 100 万/4.2%/30 年 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/mortgage-prepayment",
+    inputs: { principal: "400000", rate: "6", months: "240", monthly: "3500", prepay: "40000", precision: "101" },
+    expect: ["已回退为默认 2 位", "3,500.00"],
+    ref: "F-N28：precision=101 超出 0–6，旧实现 (x).toFixed(101) 抛 RangeError；修复后回退默认 2 位并提示。月供 3500 按 2 位渲染为 3,500.00。默认 precision=2、monthly=3000 ⇒ 无回退提示且不含 3,500.00，不命中。",
   }
 
 ];

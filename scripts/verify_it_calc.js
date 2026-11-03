@@ -614,6 +614,14 @@ const CASES = [
     ref: "独立复算：按整行去重保留首次出现顺序 ⇒ fig / apple / pear 三行（原 4 行、删 1 行）。默认示例是 banana/file10 那套，不命中。",
   },
   {
+    slug: "it/text-dedupe-sort",
+    // IT-N19 回归：首次操作建立快照后，用户再改输入 ⇒ 必须重建快照、按新数据出结果。
+    inputs: { input: "a\na\nb" },
+    clicks: ["applyOp('dedupe')", "document.getElementById('input').value='y\\nx'; applyOp('sortAsc')"],
+    expect: ["x y"],
+    ref: "独立复算：首轮去重 a,a,b ⇒ a/b；随后把输入改为 `y\\nx` 再升序 ⇒ `x\\ny`（不再是旧快照的 a/b）。修复前 applyOp 只用首轮快照，第二次点击仍输出 `a\\nb`，本 expect 不命中；默认态输入为空，不命中。",
+  },
+  {
     slug: "it/text-cleaner",
     inputs: { "input-text": "  a  b \n\n\n  c \n" },
     expect: ["a b c"],
@@ -866,6 +874,14 @@ const CASES = [
     ref: "两个 section 各自成对象、键值保持字符串形态；默认示例 section 名不同，不命中。",
   },
   {
+    slug: "it/ini-parser",
+    // IT-N23 回归：同名 [a] 必须合并已有键（此前重建空对象，x 被静默丢弃）。
+    inputs: { input: "[a]\nx=1\n[a]\ny=2" },
+    clicks: ["iniToJson()"],
+    expect: ['{ "a": { "x": "1", "y": "2" } }'],
+    ref: "独立复算：第 1 个 [a] 收 x=1，第 2 个同名节合并且不丢键 ⇒ {\"a\":{\"x\":\"1\",\"y\":\"2\"}}（修复前输出 { \"a\": { \"y\": \"2\" } }，x 丢失）。默认示例节名为 server/database，不命中。",
+  },
+  {
     slug: "it/properties-parser",
     inputs: { input: "a=1\nb=two" },
     clicks: ["propsToJson()"],
@@ -924,6 +940,36 @@ const CASES = [
     inputs: { md: "## Hello World" },
     expect: ["Hello World"],
     ref: "二级标题渲染出的文本节点（注入串去掉 `##` 前缀后作为标题文本落进结果区）；默认示例标题词表不含该串。",
+  },
+  {
+    slug: "it/markdown-to-html",
+    // IT-N18 回归：链接 URL 里的双引号必须被编码/转义，不能闭合 href 造出 onmouseover 属性。
+    inputs: { md: '[x](https://a/" onmouseover="alert(1))', showcode: "1" },
+    clicks: ["calcTool()"],
+    expect: ["https://a/%22%20onmouseover=%22alert(1"],
+    ref: "独立复算：URL 中 `\"` 与空格先百分号编码（%22/%20）再属性转义 ⇒ href 内不再出现可闭合属性的裸引号（修复前原样拼进 href，生成 `<a href=\"https://a/\" onmouseover=\"alert(1\"`）。注入 showcode=1 让 HTML 代码面板可见该串；默认示例无此 URL，不命中。",
+  },
+  {
+    slug: "it/markdown-to-html",
+    // IT-N18 白名单：非 http/https/mailto 的相对路径之外的协议一律退回 #。
+    inputs: { md: "[go](javascript:alert(1))", showcode: "1" },
+    clicks: ["calcTool()"],
+    expect: ['&lt;a href=&quot;#&quot;'],
+    ref: "独立复算：`javascript:` 不在 http/https/mailto 白名单内且匹配协议前缀正则 ⇒ href 置 `#`，代码面板转义后为 `&lt;a href=&quot;#&quot;`（修复前只对字符串形式的 javascript: 前缀做判断、URL 仍原样落入 href）。默认示例为 https 链接，不命中。",
+  },
+  {
+    slug: "it/markdown-to-html",
+    // IT-N27 回归：![alt](url) 必须渲染为 <img>（此前输出字面 `!` + 链接）。
+    inputs: { md: "![cat](https://x/y.png)", showcode: "1" },
+    expect: ['&lt;img src=&quot;https://x/y.png&quot; alt=&quot;cat&quot; loading=&quot;lazy&quot;&gt;'],
+    ref: "独立复算：图片规则先于链接规则 ⇒ `<img src=\"https://x/y.png\" alt=\"cat\" loading=\"lazy\">`；代码面板再转义一次 ⇒ 期望串里的 &lt;/&quot; 形态。修复前输出 `!<a href=…>cat</a>`，不含 `<img`。默认示例无图片语法，不命中。",
+  },
+  {
+    slug: "it/markdown-to-html",
+    // IT-N26 回归：#showcode 补选项后代码面板可用；#compact 压缩模式让代码面板单行（美化模式带换行）。
+    inputs: { md: "# HeadA\n\n# HeadB", showcode: "1", compact: "compact" },
+    expect: ["&lt;h1&gt;HeadA&lt;/h1&gt;&lt;h1&gt;HeadB&lt;/h1&gt;"],
+    ref: "独立复算：两个 h1 拼接为 `<h1>HeadA</h1><h1>HeadB</h1>`；压缩模式下代码面板不插换行（美化模式为 `</h1>\\n<h1>`，collectStrings 归一后带空格，本 expect 不含空格 ⇒ 精确区分两种模式）。默认 md 是 `# 标题` 示例，不命中。",
   },
   {
     slug: "it/emoji-picker",
@@ -1441,6 +1487,14 @@ const CASES = [
     clicks: ["calcTool()"],
     expect: ["总换行 3"],
     ref: "独立复算：2 个 CRLF + 1 个 LF ⇒ 统计行 `CRLF 2 / LF 1 / CR 0 / 总换行 3`。**注入值必须避开默认的两行 CRLF**（`第一行\\r\\n第二行\\r\\n第三行` 也总换行 2，注入同值即逃生项，本例已踩并改 3）；锚也不能写 `LF 1`（会被 `CRLF 1` 误伤）。",
+  },
+  {
+    slug: "it/line-ending-converter",
+    // IT-N21 回归：空输入不得回退示例文本，输出/统计必须清空并提示。
+    inputs: { leInput: "" },
+    clicks: ["calcTool()"],
+    expect: ["输入为空，请粘贴文本或点击“示例”加载示例文本。"],
+    ref: "独立复算：输入为空 ⇒ calcTool 走空分支，leOutput 置空、统计不显示，只给提示；示例仅由「示例」按钮注入。修复前把局部 raw 换成 line1/line2/line3，输出与统计显示示例文本，本 expect 不命中。默认态 textarea 有默认文本，不命中。",
   },
   {
     slug: "it/js-formatter",
@@ -5530,9 +5584,9 @@ const CASES = [
       "md": "1\n2\n3"
     },
     "expect": [
-      "1 2 3\n1 2 3"
+      "1 2 3 支持标题/粗斜体"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"md\":\"1\\n2\\n3\"}，输出区含「1 2 3\n1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"md\":\"1\\n2\\n3\"}，结果区为 `<p>1</p><p>2</p><p>3</p>` + 底部说明，collectStrings 归一后含「1 2 3 支持标题/粗斜体」；默认态 md 是中文示例，结果区以中文开头、不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/math-evaluator",

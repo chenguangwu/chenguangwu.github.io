@@ -121,7 +121,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="⚖️ 用药剂量计算器（按体重kg）">Calculator Calc 2</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="选择药物并输入体重，自动按 mg/kg 计算单次剂量、每日总量及最大日剂量校验。">Calculator Calc 2</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">按体重给药计算（含日剂量封顶）<br>单次剂量 = 单位剂量(mg/kg) × 体重(kg)<br>单位剂量取档：低档 doseMin｜高档 doseMax｜中档 (doseMin+doseMax)/2<br>每日次数 = round(24 ÷ 给药间隔 h)<br>每日总量 = 单次 × 次数；儿童上限 = maxDaily × 体重<br>成人（≥14 岁）上限 = adultMaxDaily；超限封顶：单次 = 封顶日量 ÷ 次数<br>婴儿（<1 岁）与老年（≥65 岁）提示专科核定</div>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">按体重给药计算（含日剂量封顶）<br>单次剂量 = 单位剂量(mg/kg) × 体重(kg)<br>单位剂量取档：低档 doseMin｜高档 doseMax｜中档 (doseMin+doseMax)/2<br>每日次数 = round(24 ÷ 给药间隔 h)<br>每日总量 = 单次 × 次数；儿童按体重上限 = maxDaily × 体重<br>有效上限 = min(成人绝对上限 adultMaxDaily, 儿童按体重上限)；年龄空值按成人口径<br>超限封顶：单次 = 封顶日量 ÷ 次数；两套上限同时展示<br>婴儿（<1 岁）与老年（≥65 岁）提示专科核定</div>
       <p class="formula-desc" data-zh="核心计算公式（按输入变量）：(d.doseMin+d.doseMax)÷2；min(dailyDose,maxDaily)；Math.round(24÷hours)">Key formulas: (d.doseMin+d.doseMax)÷2; min(dailyDose,maxDaily); Math.round(24÷hours)</p>
     </div>
 
@@ -316,16 +316,27 @@ function calc(){
   var singleDose=perKg*w;
   var dailyDose=singleDose*timesPerDay;
   var maxChild=d.maxDaily*w;
-  var isAdult=age!==null&&age>=14;
-  var maxDaily= isAdult?d.adultMaxDaily:maxChild;
+  var adultMax=d.adultMaxDaily;
+  // 年龄空值按成人口径；有效上限始终取「成人绝对上限」与「儿童按体重上限」的较小值
+  var maxDaily=Math.min(adultMax,maxChild);
+  var ageNote;
+  if(age===null){
+    ageNote='👤 年龄未填写：按成人口径处理（≥14 岁视为成人）；有效上限仍与儿童按体重上限取较小值。';
+  }else if(age>=14){
+    ageNote='👤 年龄 '+age+' 岁：按成人口径处理（≥14 岁）；有效上限取「成人绝对上限」与「儿童按体重上限」的较小值。';
+  }else{
+    ageNote='👤 年龄 '+age+' 岁：按儿童口径处理（未满 14 岁）；有效上限取「成人绝对上限」与「儿童按体重上限」的较小值。';
+  }
   var overLimit=dailyDose>maxDaily;
   var cappedDaily=Math.min(dailyDose,maxDaily);
   var cappedSingle=cappedDaily/timesPerDay;
   var html='<div class="data-grid">';
   html+='<div class="data-card"><div class="num">'+fmt(singleDose)+'</div><div class="label">单次剂量</div></div>';
   html+='<div class="data-card"><div class="num">'+fmt(dailyDose)+'</div><div class="label">每日总量（'+timesPerDay+'次）</div></div>';
-  html+='<div class="data-card"><div class="num">'+fmt(maxDaily)+'</div><div class="label">'+(isAdult?'成人最大日剂量':'儿童最大日剂量')+'</div></div>';
+  html+='<div class="data-card"><div class="num">'+fmt(maxDaily)+'</div><div class="label">有效最大日剂量（取较小值）</div></div>';
   html+='</div>';
+  html+='<div class="tip-box tip-info">🧮 上限口径：成人绝对上限 '+fmt(adultMax)+'/日；儿童按体重上限 '+d.maxDaily+' mg/kg × '+w+' kg = '+fmt(maxChild)+'/日；有效上限取较小值 '+fmt(maxDaily)+'/日。</div>';
+  html+='<div class="tip-box tip-info">'+ageNote+'</div>';
   if(overLimit){
     html+='<div class="tip-box tip-error">⚠️ 计算日剂量 '+fmt(dailyDose)+' 已超过最大日剂量 '+fmt(maxDaily)+'，建议调整：<br>单次剂量 = '+fmt(cappedSingle)+'，按 q'+hours+'h 给药 '+timesPerDay+' 次 = '+fmt(cappedDaily)+'/日。</div>';
   }else{
@@ -524,11 +535,11 @@ else document.addEventListener('DOMContentLoaded', __calculator_calc_2Boot);
 <li>切换给药间隔（q4h/q6h/q8h/q12h/q24h）后观察每日总量变化，判断某方案是否会突破日剂量上限。</li>
 <li>在剂量强度（下限/中位/上限）之间切换，评估「取上限」时的安全性边界，超限则由工具给出封顶后的修正方案。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">公式</div><div class="dd-ex-body">单次剂量 = 每公斤剂量(mg/kg) × 体重(kg)；每日次数 = round(24 ÷ 给药间隔小时)；每日总量 = 单次剂量 × 次数；儿童最大日剂量 = 每公斤日上限(mg/kg) × 体重，成人（≥14 岁）取说明书成人日上限。若每日总量 &gt; 最大日剂量，工具提示超限并给出封顶方案：封顶日剂量 = 最大日剂量，封顶单次 = 封顶日剂量 ÷ 次数。</div></div>
+<div class="dd-example"><div class="dd-ex-title">公式</div><div class="dd-ex-body">单次剂量 = 每公斤剂量(mg/kg) × 体重(kg)；每日次数 = round(24 ÷ 给药间隔小时)；每日总量 = 单次剂量 × 次数；儿童最大日剂量 = 每公斤日上限(mg/kg) × 体重；成人（≥14 岁或年龄留空）取 min(说明书成人日上限, 体重×儿童日上限) 并同时展示两套口径。若每日总量 &gt; 最大日剂量，工具提示超限并给出封顶方案：封顶日剂量 = 最大日剂量，封顶单次 = 封顶日剂量 ÷ 次数。</div></div>
 <div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">对乙酰氨基酚、20 kg 儿童、中位剂量（12.5 mg/kg）、q6h：次数 = 24÷6 = 4；单次 = 12.5 × 20 = 250.0 mg；每日总量 = 1000.0 mg；儿童上限 = 60 × 20 = 1200.0 mg → 未超限，方案 250 mg q6h。对照阿莫西林、20 kg、上限剂量（40 mg/kg）、q8h：次数 = 3；单次 = 800.0 mg；每日总量 = 2400.0 mg &gt; 上限 1800.0 mg → 超限，工具给修正方案 600.0 mg q8h（合计 1800.0 mg/日）。再对照布洛芬、20 kg、中位（7.5 mg/kg）、q8h：单次 150.0 mg、日 450.0 mg、上限 800.0 mg → 安全。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>为什么儿童按体重算、成人却用固定的日上限？</dt><dd>儿童肝肾功能与<a class="term-link" href="/tools/health/body-surface-area.html">体表面积</a>随体重变化大，剂量几乎都按 mg/kg/日 折算并再设体重封顶；成人器官功能趋于稳定，说明书通常直接给出绝对日上限（如对乙酰氨基酚 4000 mg/日、布洛芬 2400 mg/日）。工具以年龄 ≥14 岁作为切换点，但体格显著偏离同龄者仍应按实际体重或体表<a class="term-link" href="/tools/surveying/area-calc.html">面积计算</a>。</dd>
+<dt>为什么儿童按体重算、成人却用固定的日上限？</dt><dd>儿童肝肾功能与<a class="term-link" href="/tools/health/body-surface-area.html">体表面积</a>随体重变化大，剂量几乎都按 mg/kg/日 折算并再设体重封顶；成人器官功能趋于稳定，说明书通常直接给出绝对日上限（如对乙酰氨基酚 4000 mg/日、布洛芬 2400 mg/日）。工具以年龄 &lt;14 岁判儿童、≥14 岁或留空判成人，并把成人绝对上限与体重×儿童上限取较小值作为有效上限；体格显著偏离同龄者仍应按实际体重或体表<a class="term-link" href="/tools/surveying/area-calc.html">面积计算</a>。</dd>
 <dt>工具提示超限后，我该直接采用它给的封顶方案吗？</dt><dd>不应直接采用。封顶方案只是数学上的等分结果，实际还需考虑剂型规格（如片剂不可分割）、用药指征、肝肾功能与合并用药。超限说明所选剂量强度或间隔在该体重下不安全，正确做法是回到说明书或医嘱重新选择剂量强度与间隔，而不是机械地按封顶值给药。</dd>
 </dl>
 </div>

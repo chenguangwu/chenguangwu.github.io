@@ -31,9 +31,15 @@ const CASES = [
   },
   {
     slug: "healthcare/healthcare",
-    inputs: { adult_dose: "500", child_weight: "20", adult_weight: "70", max_factor: "0.2" },
-    expect: ["100.00"],
-    ref: "按体重 = 500×(20÷70) = 142.86 mg；受限 = min(142.86, 500×0.2) = 100.00；比例 = 20÷70×100 = 28.57%",
+    inputs: { adult_dose: "500", child_weight: "100", adult_weight: "70", max_factor: "1" },
+    expect: ["受限剂量： 500.00"],
+    ref: "按体重 = 500×(100÷70) = 714.29 mg；受限 = min(714.29, 500×1) = 500.00 mg（最大倍数 ≥1，成人剂量封顶生效）；比例 = 100÷70×100 = 142.86%。默认 500/20/70/2 → 受限 142.86，注入失败即不命中。",
+  },
+  {
+    slug: "healthcare/healthcare",
+    inputs: { adult_dose: "500", child_weight: "20", adult_weight: "70", max_factor: "0" },
+    expect: ["最大倍数限制须 ≥ 1"],
+    ref: "D-N6：max_factor=0 时旧实现受限剂量 = min(142.86, 500×0) = 0.00 mg，静默输出 0 剂量。修复后 <1 拒绝计算并提示「最大倍数限制须 ≥ 1」，不再输出 0 mg；默认 max_factor=2 正常计算，不含该提示 ⇒ 判别力成立。",
   },
   {
     slug: "healthcare/weight-dosage",

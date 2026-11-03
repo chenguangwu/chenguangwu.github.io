@@ -311,6 +311,7 @@ function calc(){
   const P = parseFloat(document.getElementById('principal').value) || 0;
   const r = parseFloat(document.getElementById('rate').value) || 0;
   const t = parseFloat(document.getElementById('years').value) || 0;
+  const mode = document.getElementById('mode').value;
   if(P < 0 || r < 0 || t < 0){
     document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">请输入合理的非负数</p>';
     return;
@@ -334,6 +335,29 @@ function calc(){
     html += `<p>第 ${y} 年末：累计利息 ${fmt(yInt)} 元，本利和 ${fmt(P + yInt)} 元</p>`;
   }
   if(t > 30) html += '<p style="color:var(--text-muted);">仅显示前 30 年</p>';
+
+  // 「每年取息」：利息按年支付、本金到期归还。总利息与到期一次性完全相同，
+  // 差别只在现金流时点（本页不涉及再投资收益，故不做折现）。
+  if(mode === 'annual'){
+    const shownYears = Math.min(Math.floor(t + 1e-9), 30);
+    let acc = 0;
+    html += '<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">';
+    html += '<p><strong>每年取息现金流（利息按年支付，本金到期归还）：</strong>总利息与「到期一次性」相同，差别仅在支付时点。</p>';
+    html += '<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr><th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);">期数</th><th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);">利息现金流（元）</th><th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);">累计已收利息（元）</th></tr></thead><tbody>';
+    for(let y = 1; y <= shownYears; y++){
+      acc += annualInterest;
+      html += `<tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);">第 ${y} 年末</td><td style="padding:6px 8px;border-bottom:1px solid var(--border);">${fmt(annualInterest)}</td><td style="padding:6px 8px;border-bottom:1px solid var(--border);">${fmt(acc)}</td></tr>`;
+    }
+    if(t > shownYears && t <= 30){
+      const rest = interest - acc;
+      html += `<tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);">第 ${t} 年末（末期）</td><td style="padding:6px 8px;border-bottom:1px solid var(--border);">${fmt(rest)}</td><td style="padding:6px 8px;border-bottom:1px solid var(--border);">${fmt(interest)}</td></tr>`;
+      acc = interest;
+    }
+    html += `<tr style="font-weight:600;"><td style="padding:6px 8px;">合计</td><td style="padding:6px 8px;">${fmt(interest)}</td><td style="padding:6px 8px;">${fmt(interest)}</td></tr>`;
+    html += '</tbody></table>';
+    if(t > 30) html += '<p style="color:var(--text-muted);">仅显示前 30 年现金流</p>';
+  }
+
   const __g2=html;document.getElementById('resultBox').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 

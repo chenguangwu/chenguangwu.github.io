@@ -294,19 +294,30 @@ function renderTable(){
   var body=document.getElementById('ingBody');
   var flour=parseFloat(document.getElementById('flourWeight').value)||0;
   var html='';
+  ingredients.forEach(function(ing,idx){
+    var w=flour*ing.pct/100;
+    html+='<tr'+(ing.locked?' class="flour-row"':'')+'>';
+    html+='<td>'+(ing.locked?'🌾 ':'')+ToolBox.escHtml(ing.name)+(ing.locked?' (基准)':'')+'</td>';
+    html+='<td><input type="number" id="pct-'+idx+'" value="'+ing.pct+'" step="any" '+(ing.locked?'disabled':'')+' oninput="updatePct('+idx+',this.value)" placeholder="如 '+ing.pct+'"></td>';
+    html+='<td class="pct" id="w-'+idx+'">'+fmtNum(w)+' g</td>';
+    html+='<td>'+(ing.locked?'—':'<button type="button" class="del-btn" onclick="delIngredient('+idx+')">删除</button>')+'</td>';
+    html+='</tr>';
+  });
+  const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){body.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}body.innerHTML=__h0;
+  updateRowValues();
+}
+
+// 只刷新派生数值（各配料重量与汇总），不重建 tbody，避免销毁正在输入的百分比 input
+function updateRowValues(){
+  var flour=parseFloat(document.getElementById('flourWeight').value)||0;
   var totalPct=0,totalW=0;
   ingredients.forEach(function(ing,idx){
     var w=flour*ing.pct/100;
     totalPct+=ing.pct;
     totalW+=w;
-    html+='<tr'+(ing.locked?' class="flour-row"':'')+'>';
-    html+='<td>'+(ing.locked?'🌾 ':'')+ToolBox.escHtml(ing.name)+(ing.locked?' (基准)':'')+'</td>';
-    html+='<td><input type="number" value="'+ing.pct+'" step="any" '+(ing.locked?'disabled':'')+' oninput="updatePct('+idx+',this.value)" placeholder="如 '+ing.pct+'"></td>';
-    html+='<td class="pct">'+fmtNum(w)+' g</td>';
-    html+='<td>'+(ing.locked?'—':'<button type="button" class="del-btn" onclick="delIngredient('+idx+')">删除</button>')+'</td>';
-    html+='</tr>';
+    var cell=document.getElementById('w-'+idx);
+    if(cell)cell.textContent=fmtNum(w)+' g';
   });
-  const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){body.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}body.innerHTML=__h0;
   const __h1='<div class="item"><div class="v">'+fmtNum(totalPct)+'%</div><div class="l">总百分比</div></div>'+
     '<div class="item"><div class="v">'+fmtNum(totalW)+' g</div><div class="l">面团总重</div></div>'+
     '<div class="item"><div class="v">'+fmtNum(totalW/flour*100)+'%</div><div class="l">面团产出率</div></div>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('totalStat').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('totalStat').innerHTML=__h1;
@@ -316,7 +327,7 @@ function updatePct(idx,val){
   var v=parseFloat(val);
   if(isNaN(v)||v<0)v=0;
   ingredients[idx].pct=v;
-  renderTable();
+  updateRowValues();
   scaleTo();
 }
 

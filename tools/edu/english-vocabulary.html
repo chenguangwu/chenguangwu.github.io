@@ -190,7 +190,8 @@ s.parentNode.insertBefore(el, s);
       <div class="input-row">
         <div>
           <label>题目数量</label>
-          <input type="number" id="qCount" value="20" min="5" max="100" placeholder="如 20（5–100）">
+          <input type="number" id="qCount" value="20" min="1" max="100" step="1" placeholder="如 20（1–100）">
+          <div id="qCountHint" style="font-size:12px;color:var(--danger);margin-top:4px;min-height:16px;"></div>
         </div>
       </div>
       
@@ -446,14 +447,27 @@ function shuffle(arr) {
   return a;
 }
 
+function readQuizCount() {
+  const raw = String(document.getElementById('qCount').value).trim();
+  const hint = document.getElementById('qCountHint');
+  let n = raw === '' ? 20 : Number(raw);
+  if (!Number.isInteger(n) || n < 1 || n > 100) {
+    if (hint) hint.textContent = '题量须为 1–100 的整数，已回退为默认 20 题';
+    n = 20;
+  } else if (hint) {
+    hint.textContent = '';
+  }
+  return n;
+}
+
 function startQuiz() {
   const vocab = vocabularies[currentLevel] || vocabularies.daily;
-  const count = Math.min(parseInt(document.getElementById('qCount').value)||20, vocab.length);
+  const count = Math.min(readQuizCount(), vocab.length);
   
   questions = shuffle(vocab).slice(0, count).map(word => {
     const others = shuffle(vocab.filter(w => w.w !== word.w)).slice(0, 3);
-    const options = shuffle([word.m, ...others.map(o => o.m)]);
-    return { word: word.w, answer: word.m, options };
+    const opts = shuffle([{ m: word.m, correct: true }, ...others.map(o => ({ m: o.m, correct: false }))]);
+    return { word: word.w, answer: word.m, options: opts.map(o => o.m), answerIndex: opts.findIndex(o => o.correct) };
   });
   
   currentQ = 0; score = 0; wrongCount = 0; quizStart = Date.now();
@@ -479,11 +493,11 @@ function showQuestion() {
   
   const opts = document.getElementById('qOptions');
   opts.innerHTML = q.options.map((o,i) => 
-    `<button type="button" class="option-btn" onclick="answer('${o.replace(/'/g,"\\'")}',this)">${String.fromCharCode(65+i)}. ${o}</button>`
+    `<button type="button" class="option-btn" onclick="answer(${i},this)">${String.fromCharCode(65+i)}. ${o}</button>`
   ).join('');
 }
 
-function answer(selected, btn) {
+function answer(index, btn) {
   if (answered) return;
   answered = true;
   
@@ -491,7 +505,7 @@ function answer(selected, btn) {
   const buttons = document.querySelectorAll('.option-btn');
   buttons.forEach(b => b.disabled = true);
   
-  if (selected === q.answer) {
+  if (index === q.answerIndex) {
     btn.classList.add('correct');
     score++;
     document.getElementById('qScore').textContent = score;
@@ -500,7 +514,7 @@ function answer(selected, btn) {
     btn.classList.add('wrong');
     wrongCount++;
     document.getElementById('qWrong').textContent = wrongCount;
-    buttons.forEach(b => { if (b.textContent.endsWith(q.answer)) b.classList.add('correct'); });
+    buttons.forEach((b, i) => { if (i === q.answerIndex) b.classList.add('correct'); });
     document.getElementById('qHint').textContent = `❌ 正确答案：${q.answer}`;
   }
   
@@ -514,9 +528,12 @@ function answer(selected, btn) {
   }, 1200);
 }
 
-var __vocabA0 = answer; answer = function(sel, btn){
-  try{ __vocabAns[currentQ] = {sel: sel, ok: (questions[currentQ] && sel === questions[currentQ].answer)}; }catch(e){}
-  __vocabA0(sel, btn);
+var __vocabA0 = answer; answer = function(idx, btn){
+  try{
+    const q = questions[currentQ];
+    __vocabAns[currentQ] = {sel: q ? q.options[idx] : '', ok: !!(q && idx === q.answerIndex)};
+  }catch(e){}
+  __vocabA0(idx, btn);
 };
 var __vocabS0 = startQuiz; startQuiz = function(){ __vocabAns = []; __vocabS0(); };
 var __vocabR0 = showResult; showResult = function(){ __vocabR0(); try{ __vocabExtras(); }catch(e){} };

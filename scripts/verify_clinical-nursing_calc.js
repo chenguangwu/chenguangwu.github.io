@@ -264,6 +264,39 @@ const CASES = [
   "ref": "门诊记录：250 mL × 20 滴/mL ÷ 225 分钟 = 22.2 → 22 滴/分；泵速 250/225×60 = 66.7 mL/h；总滴数 5000。默认态 500 mL / 4 h / 20 滴/mL ⇒ 42 滴/分、125.0 mL/h、10,000 滴，与本用例零交集。"
 },
 {
+  "slug": "clinical-nursing/iv-drip-rate",
+  "inputs": {
+    "volume": "500",
+    "hours": "",
+    "minutes": "",
+    "dropFactor": "20"
+  },
+  "expect": ["【静脉输液滴速推算】 结果：参数不完整"],
+  "ref": "D-N11 清空时间：totalMinutes = 0×60+0 = 0 ⇒ 旧实现结果区置 --，但 window.__EMR_SUM 未清空，EMR 记录继续沿用上一次「125.0 mL/h / 10,000 滴」；修复后置空并写入「参数不完整」新记录，旧滴速不再沿用。默认 hours=4/minutes=0 有效，不含该串 ⇒ 判别力成立。"
+},
+{
+  "slug": "clinical-nursing/iv-drip-rate",
+  "inputs": {
+    "volume": "500",
+    "hours": "4",
+    "minutes": "0",
+    "dropFactor": "60"
+  },
+  "expect": ["结果：总量 500 mL / 滴系数 60 滴/mL", "当前 125 滴/分、泵速 125 mL/h 在常规范围"],
+  "ref": "D-N11 阈值随滴系数失真：500 mL/4 h、60 滴/mL ⇒ 125 mL/h、125 滴/分。旧实现按 dr>60 判「偏快」（125 滴/分），但泵速 125 mL/h 属常规（20 滴/mL 换算约 42 滴/分）。修复后按泵速 mL/h 判定 ⇒ 常规范围；默认 df=20 时记录为「滴系数 20 滴/mL」，不含 60 串 ⇒ 判别力成立。"
+},
+{
+  "slug": "clinical-nursing/iv-drip-rate",
+  "inputs": {
+    "volume": "300",
+    "hours": "1",
+    "minutes": "0",
+    "dropFactor": "20"
+  },
+  "expect": ["约合 20 滴/mL 输液器 60 滴/分以上"],
+  "ref": "D-N11 上阈值复核：300 mL/1 h ⇒ 泵速 300 mL/h > 180，判偏快（旧实现按 300 滴/分 > 60 也判偏快，结论一致，用于锁定新口径不丢偏快分支）。默认 125 mL/h 不命中。"
+},
+{
   "slug": "clinical-nursing/morse-score",
   "clicks": [
     "selectScore('history',25);selectScore('gait',10)"

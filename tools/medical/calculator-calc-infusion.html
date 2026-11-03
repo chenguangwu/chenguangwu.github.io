@@ -158,7 +158,7 @@ s.parentNode.insertBefore(el, s);
       </div>
       <div>
         <label>药物类型（速率校验）</label>
-        <select id="drug" onchange="calc()">
+        <select id="drug" onchange="toggleDrugRow()">
           <option value="none" selected>普通液体（无特殊限制）</option>
           <option value="kcl">氯化钾（KCl ≤20 mEq/h）</option>
           <option value="insulin">胰岛素（常规 0.1 U/kg/h）</option>
@@ -305,11 +305,13 @@ var DRUG_LIMITS={
 function toggleDrugRow(){
   var drug=document.getElementById('drug').value;
   var row=document.getElementById('drugExtraRow');
-  if(drug==='none'){row.style.display='none';return;}
+  if(drug==='none'){row.style.display='none';calc();return;}
   row.style.display='';
   var cfg=DRUG_LIMITS[drug];
   const __g1=cfg.label;document.getElementById('drugExtraLabel').textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+  // 先同步该药物的默认浓度，再计算，避免首次切换沿用上一药物的旧浓度
   document.getElementById('conc').value=cfg.def;
+  calc();
 }
 function calc(){
   var vol=parseFloat(document.getElementById('vol').value);
@@ -363,7 +365,7 @@ function calc(){
   saveHistory(vol,dur,unit,drop,drug,gttMin,mlH);
 }
 function copyRes(){var t=document.getElementById('res').innerText;if(!t||!t.trim()){ToolBox.showToast(i18nText(),'warning');return;}ToolBox.copyText(t);}
-function resetAll(){document.getElementById('vol').value=500;document.getElementById('dur').value=4;document.getElementById('unit').value='h';document.getElementById('drop').value=15;document.getElementById('drug').value='none';toggleDrugRow();calc();ToolBox.showToast(i18nText(),'info');}
+function resetAll(){document.getElementById('vol').value=500;document.getElementById('dur').value=4;document.getElementById('unit').value='h';document.getElementById('drop').value=15;document.getElementById('drug').value='none';toggleDrugRow();ToolBox.showToast(i18nText(),'info');}
 function hkey(){return 'tb_history_'+location.pathname;}
 function saveHistory(vol,dur,unit,drop,drug,gtt,mlh){
   try{
@@ -390,11 +392,10 @@ function renderHistory(){
 }
 function restoreHistory(vol,dur,unit,drop,drug){
   document.getElementById('vol').value=vol;document.getElementById('dur').value=dur;document.getElementById('unit').value=unit;document.getElementById('drop').value=drop;document.getElementById('drug').value=drug;
-  toggleDrugRow();calc();ToolBox.showToast(i18nText(),'info');
+  toggleDrugRow();ToolBox.showToast(i18nText(),'info');
 }
 function clearHistory(){try{localStorage.removeItem(hkey());renderHistory();ToolBox.showToast(i18nText(),'info');}catch(e){}}
 document.addEventListener('DOMContentLoaded',function(){
-  document.getElementById('drug').addEventListener('change',toggleDrugRow);
   renderHistory();calc();
 });
 

@@ -339,7 +339,7 @@ s.parentNode.insertBefore(el, s);
     return __msg;
   }
   // 分母项：__D 由真浏览器逐项置零探测得出，命中即说明该输入在此页作分母
-  var __D={"annualRate": "annualRate"};
+  var __D={};
   for(var _d=0;_d<_ids.length;_d++){
     if(!(_ids[_d] in __D)) continue;
     var _de=document.getElementById(_ids[_d]);
@@ -388,7 +388,8 @@ function generateSchedule(amount, annualRate, years, method, balloonMonths, ball
   var totalInterest = 0;
 
   if (method === 'equal') {
-    var pmt = amount * monthlyRate * Math.pow(1 + monthlyRate, totalMonths) / (Math.pow(1 + monthlyRate, totalMonths) - 1);
+    // r=0 时等额本息月供退化为 本金/期数（原式 0/0 会产生 NaN）
+    var pmt = monthlyRate === 0 ? amount / totalMonths : amount * monthlyRate * Math.pow(1 + monthlyRate, totalMonths) / (Math.pow(1 + monthlyRate, totalMonths) - 1);
     for (var i = 1; i <= totalMonths; i++) {
       var interest = balance * monthlyRate;
       var principal = pmt - interest;
@@ -419,6 +420,17 @@ function generateSchedule(amount, annualRate, years, method, balloonMonths, ball
   } else if (method === 'balloon') {
     var balloonAmount = amount * (balloonRatio / 100);
     var loanMonths = balloonMonths;
+    if (monthlyRate === 0) {
+      // r=0：气球贷月供同样退化为 本金/期数，利息为 0
+      var flatPmt = amount / loanMonths;
+      for (var j = 1; j <= loanMonths; j++) {
+        var flatPay = flatPmt;
+        var flatBal = amount - flatPmt * j;
+        if (flatBal < 0) flatBal = 0;
+        schedule.push({month: j, payment: flatPay, principal: flatPmt, interest: 0, balance: j === loanMonths ? 0 : flatBal});
+      }
+      return {schedule: schedule, totalInterest: 0};
+    }
     var pmt = amount * monthlyRate * Math.pow(1 + monthlyRate, loanMonths) / (Math.pow(1 + monthlyRate, loanMonths) - 1);
     var tempBal = amount;
     for (var i = 1; i <= loanMonths; i++) {

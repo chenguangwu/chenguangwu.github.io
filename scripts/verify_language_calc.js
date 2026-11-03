@@ -175,6 +175,81 @@ const CASES = [
       "abc123测试\n分析结果: abc123测试 ab c 1 2 3 测 试 重音音节 试 (第1音节，从后数) 以辅音(非n/s)结尾，重音在末音节 总音节数 7 个音节 音节划分: ab - c - 1 - 2 - 3 - 测 - 试 "
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"wordInput\":\"abc123测试\"}，输出区含「abc123测试\n分析结果: abc123测试 ab c 1 2 3 测 试 重…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "language/vocabulary-builder",
+    "clicks": [
+      "var s={vocab_streak:JSON.stringify({days:1,last:'2024-11-01'})};localStorage.getItem=function(k){return s[k]||null;};localStorage.setItem=function(k,v){s[k]=String(v);};var o=[];checkStreak(new Date(2024,10,2,7,30));o.push(document.getElementById('s-streak').textContent);checkStreak(new Date(2024,10,2,8,30));o.push(document.getElementById('s-streak').textContent);checkStreak(new Date(2024,10,3,0,30));o.push(document.getElementById('s-streak').textContent);document.getElementById('vbHidden').textContent='QSTREAK:'+o.join('|');"
+    ],
+    "expect": [
+      "QSTREAK:2|2|3"
+    ],
+    "ref": "EL-J9 回归（本地日界）：昨日 2024-11-01 已有 1 天，本地 11-02 07:30 首练 ⇒ 2 天；同日 08:30 再练不得再加 ⇒ 仍 2；本地 11-03 00:30 ⇒ 3。旧实现按 UTC 日期：11-02 07:30（UTC 仍 11-01）判同日不增 ⇒ 1，08:30（UTC 11-02）才增 ⇒ 2，11-03 00:30（UTC 仍 11-02）又不增 ⇒ 2，即 1|2|2，必 FAIL。"
+  },
+  {
+    "slug": "language/grammar-checker",
+    "inputs": {
+      "input-text": "<script>teh</script>"
+    },
+    "clicks": [
+      "check()"
+    ],
+    "expect": [
+      "&lt;script&gt; teh &lt;/script&gt;"
+    ],
+    "ref": "EL-J14 回归：输入含真实标签 <script> 且命中 teh 规则时，原文入 innerHTML 前必须转义 ⇒ 结果区出现实体串「&lt;script&gt;teh&lt;/script&gt;」（采集器把 <mark> 高亮标签剥成空格，故锚点为带空格的 &lt;script&gt; teh &lt;/script&gt;）。旧实现直接拼原文，innerHTML 里是真 <script> 标签，采集器剥标签后只剩 teh，不可能命中实体串。"
+  },
+  {
+    "slug": "language/grammar-checker",
+    "inputs": {
+      "input-text": "<b>teh</b>"
+    },
+    "clicks": [
+      "check()"
+    ],
+    "expect": [
+      "&lt;b&gt; teh &lt;/b&gt;"
+    ],
+    "ref": "EL-J14 回归（<b> 变体）：转义后实体串为「&lt;b&gt;teh&lt;/b&gt;」，<mark> 被剥成空格后锚点为「&lt;b&gt; teh &lt;/b&gt;」。旧实现把 <b> 当真实标签渲染/吞掉，采集器剥标签后只剩 teh，不命中。"
+  },
+  {
+    "slug": "language/calc-2",
+    "inputs": {
+      "wordCount": "800",
+      "comprehension": "150",
+      "minutes": "3",
+      "seconds": "30"
+    },
+    "expect": [
+      "请输入有效的字数、用时和理解度（理解度须为 0–100）。"
+    ],
+    "ref": "EL-J25 回归：理解度 150 越界必须拒绝。独立复算：字面速度 800 / 3.5 = 228.571 → 228.6 字/分，150% 时旧实现输出有效速度 342.9 > 字面速度，属无效值。默认理解度 80 显示 182.9 且无此提示串 ⇒ 强判别。"
+  },
+  {
+    "slug": "language/calc-2",
+    "inputs": {
+      "wordCount": "800",
+      "comprehension": "-10",
+      "minutes": "3",
+      "seconds": "30"
+    },
+    "expect": [
+      "请输入有效的字数、用时和理解度（理解度须为 0–100）。"
+    ],
+    "ref": "EL-J25 下界：理解度 -10 越界必须拒绝（旧实现会输出有效速度 228.6 × -10% = -22.9 字/分）。默认理解度 80 无此提示串 ⇒ 强判别。"
+  },
+  {
+    "slug": "language/calc-2",
+    "inputs": {
+      "wordCount": "800",
+      "comprehension": "100",
+      "minutes": "3",
+      "seconds": "30"
+    },
+    "expect": [
+      "理解度 100%，有效速度 = 228.6 × 100% = 228.6 字/分"
+    ],
+    "ref": "EL-J25 上界：理解度 100% 合法且有效速度封顶等于字面速度。独立复算：800 / (3 + 30/60) = 228.571 → 228.6；有效 = min(228.571, 228.571 × 1.0) = 228.6，不大于字面速度。默认 80% 输出 182.9，本串不命中。"
   }
 
 ];

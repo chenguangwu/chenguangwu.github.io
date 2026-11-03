@@ -423,13 +423,24 @@ function updateStats() {
   document.getElementById('s-streak').textContent = streak.days;
 }
 
-function checkStreak() {
-  const today = new Date().toISOString().slice(0, 10);
+function localDateKey(d) {
+  const x = d || new Date();
+  const y = x.getFullYear();
+  const m = String(x.getMonth() + 1).padStart(2, '0');
+  const day = String(x.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function checkStreak(now) {
+  const today = localDateKey(now);
   const streak = JSON.parse(localStorage.getItem(STREAK_KEY) || '{"days":0,"last":null}');
   if (streak.last === today) return;
   if (streak.last) {
-    const last = new Date(streak.last);
-    const diff = (new Date(today) - last) / 86400000;
+    const lp = String(streak.last).split('-').map(Number);
+    const tp = today.split('-').map(Number);
+    const last = new Date(lp[0], lp[1] - 1, lp[2]);
+    const todayDate = new Date(tp[0], tp[1] - 1, tp[2]);
+    const diff = Math.round((todayDate - last) / 86400000);
     if (diff === 1) streak.days++;
     else if (diff > 1) streak.days = 1;
   } else {

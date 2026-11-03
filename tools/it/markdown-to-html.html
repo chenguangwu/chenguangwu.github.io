@@ -116,7 +116,7 @@ s.parentNode.insertBefore(el, s);
 <!-- TOOLBOX-POLISH -->
 
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">先把围栏代码块（```lang 起、``` 止）整体取出，转义后包成 &lt;pre&gt;&lt;code&gt;，原位置换成占位标记，避免块内内容被行内规则误处理。随后逐行匹配：占位行直接回填代码块；空行收尾当前列表与表格；^(#{1,6})\s+(.*)$ 按井号个数输出 h1–h6；^---+$ 输出 &lt;hr&gt;；^&gt;\s?(.*)$ 输出引用块；^[-*+]\s+(.*)$ 归入同一 &lt;ul&gt; 列表；以 | 开头且下一行是分隔行时进入表格，表头与各行都按 | 切分并去掉首尾竖线。行内规则在 &amp; &lt; &gt; 转义之后依次处理反引号代码、**粗体**、*斜体* 与 [文本](链接)。文本为空时提示输入 Markdown</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">先把围栏代码块（```lang 起、``` 止）整体取出，转义后包成 &lt;pre&gt;&lt;code&gt;，原位置换成占位标记，避免块内内容被行内规则误处理。随后逐行匹配：占位行直接回填代码块；空行收尾当前列表与表格；^(#{1,6})\s+(.*)$ 按井号个数输出 h1–h6；^---+$ 输出 &lt;hr&gt;；^&gt;\s?(.*)$ 输出引用块；^[-*+]\s+(.*)$ 归入同一 &lt;ul&gt; 列表；以 | 开头且下一行是分隔行时进入表格，表头与各行都按 | 切分并去掉首尾竖线。行内规则在 &amp; &lt; &gt; 转义之后依次处理反引号代码、**粗体**、*斜体*、[文本](链接) 与 ![图片说明](图片地址)，链接与图片地址只允许 http/https/mailto 或相对路径，并做属性转义。文本为空时提示输入 Markdown</div>
   <div class="formula-desc">按 CommonMark 规则将 Markdown 解析为 HTML：<b>#</b> 标题、<b>**</b> 粗体、<b>*</b> 斜体、<b>[]()</b> 链接、<b>-</b> 列表、<b>`</b> 行内代码、<b>|</b> 表格等。前端解析器（如 marked）生成带语义标签的 HTML，可实时预览。</div>
   <ul class="formula-list">
     <li>直接插入 DOM 需防 XSS（对不可信输入做消毒/沙箱）。</li>
@@ -133,11 +133,17 @@ s.parentNode.insertBefore(el, s);
       </div>
       <div>
         <label for="showcode">显示 HTML 代码</label>
-        <select id="showcode" style="width:100%;"></select>
+        <select id="showcode" style="width:100%;">
+          <option value="0" selected>隐藏</option>
+          <option value="1">显示</option>
+        </select>
       </div>
       <div>
         <label for="compact">输出模式</label>
-        <select id="compact" style="width:100%;"></select>
+        <select id="compact" style="width:100%;">
+          <option value="pretty" selected>美化（带换行）</option>
+          <option value="compact">压缩（单行）</option>
+        </select>
       </div>
     </div>
 
@@ -286,12 +292,31 @@ function calcTool(){const md=document.getElementById('md').value||'';
    let inList=false, inTable=false, tableRows=[];
    const closeList=function(){ if(inList){ html+='</ul>'; inList=false; } };
    const closeTable=function(){ if(inTable){ html+='</table>'; inTable=false; } };
+   // 属性转义（与 esc 同口径，双引号/单引号一并转义，防止闭合属性后注入事件属性）
+   const attrEsc=function(x){return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');};
+   const unesc=function(x){return String(x==null?'':x).replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&');};
+   // URL 白名单：仅 http/https/mailto 与相对路径；其余协议（javascript/data/vbscript 等）退回 #。
+   // 先把引号/尖括号/空白/控制字符百分号编码，杜绝属性逃逸。
+   const safeUrl=function(u){
+     var s=unesc(u).trim();
+     if(!s) return '#';
+     s=s.replace(/[\u0000-\u0020\u007f"'<>`]/g,function(c){return '%'+('0'+c.charCodeAt(0).toString(16)).slice(-2).toUpperCase();});
+     if(/^(?:https?:|mailto:)/i.test(s)) return s;
+     if(/^[a-zA-Z][a-zA-Z0-9+.\-]*:/.test(s)) return '#';
+     return s;
+   };
    const inline=function(t){
      t=esc(t);
      t=t.replace(/`([^`]+)`/g,'<code>$1</code>');
      t=t.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
      t=t.replace(/\*([^*]+)\*/g,'<em>$1</em>');
-     t=t.replace(/\[([^\]]+)\]\(([^)]+)\)/g,function(_,txt,url){ if(/^\s*(javascript|data|vbscript):/i.test(url)) url='#'; return '<a href="'+url+'" target="_blank" rel="noopener noreferrer">'+txt+'</a>'; });
+     // 图片规则必须在链接规则之前，否则 ![alt](url) 的 [alt](url) 会被链接规则先吃掉
+     t=t.replace(/!\[([^\]]*)\]\(([^)]*)\)/g,function(_,alt,url){
+       return '<img src="'+attrEsc(safeUrl(url))+'" alt="'+attrEsc(unesc(alt))+'" loading="lazy">';
+     });
+     t=t.replace(/\[([^\]]+)\]\(([^)]+)\)/g,function(_,txt,url){
+       return '<a href="'+attrEsc(safeUrl(url))+'" target="_blank" rel="noopener noreferrer">'+txt+'</a>';
+     });
      return t;
    };
    for(let i=0;i<lines.length;i++){
@@ -332,8 +357,10 @@ function calcTool(){const md=document.getElementById('md').value||'';
    let outHtml=html;
    if(compact){ outHtml=outHtml.replace(/>\s+</g,'><'); }
    if(showCode){
+     // 美化模式：代码面板按顶层标签换行；压缩模式：保持单行。两者在代码面板上可见差异。
+     const codeText=compact?outHtml:outHtml.replace(/></g,'>\n<');
      html += '<div style="margin-top:12px;font-size:13px;"><b>HTML 代码</b></div>'+
-       '<pre style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px;font-size:12px;overflow-x:auto;max-height:260px;white-space:pre-wrap;word-break:break-all;">'+esc(outHtml)+'</pre>';
+       '<pre style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px;font-size:12px;overflow-x:auto;max-height:260px;white-space:pre-wrap;word-break:break-all;">'+esc(codeText)+'</pre>';
    }
    html += '<div class="tip-mini" style="margin-top:10px;font-size:13px;color:var(--text-muted);">'+
      '支持标题/粗斜体/链接/行内代码/列表/代码块/引用/表格/分割线。生成结果可复制到任意 HTML 页面。</div>';

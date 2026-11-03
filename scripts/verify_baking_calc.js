@@ -3,7 +3,24 @@
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
-  // 原 expect「复制配方」是结果卡里的按钮文案（常量），注入失败照样命中 = 逃生项。
+  // FT-N10：百分比输入不再整表重绘。flour=600、目标 900，水从 65 改为连续键入 12：
+  // 断言派生汇总（总百分比 115.5%、面团总重 693g）与「tbody 未被重建」标记。
+  "slug": "baking/baker-percentage",
+  "inputs": {
+    "flourWeight": "600",
+    "targetTotal": "900"
+  },
+  "clicks": [
+    "var body=document.getElementById('ingBody');var before=body.innerHTML;document.getElementById('pct-1').value='1';updatePct(1,'1');document.getElementById('pct-1').value='12';updatePct(1,'12');document.getElementById('localUpdateCheck').textContent=(body.innerHTML===before?'LOCAL_UPDATE_OK':'REBUILT');"
+  ],
+  "expect": [
+    "LOCAL_UPDATE_OK",
+    "115.5%",
+    "693 g"
+  ],
+  "ref": "独立复算：flour=600、水 12%、盐 2%、酵母 1.5% ⇒ 重量 600/72/12/9g、总百分比 115.5%、面团总重 693g（默认 500/65 为 168.5% / 842.5g，不命中）。连续输入用同一 input 两次调用 updatePct，若仍整表重建则 tbody innerHTML 改变 ⇒ 标记为 REBUILT 而失配。"
+},
+{
   // 改非默认面粉/目标重量，断言由两者派生的缩放比例与新面粉重量（独立 Python 复算）。
   "slug": "baking/baker-percentage",
   "inputs": {
@@ -94,6 +111,30 @@ const CASES = [
     "2042 建议填充量 (ml)"
   ],
   "ref": "**坏用例重写**（原 inputs 键是生成器模板串残留 `\"'+side+'D\"`、expect 只有静态标签词「高度」，页面无此 id ⇒ 判别器与 selfcheck 双双漏判）。该页静态无任何 input，控件由 `renderInputs(side)` 运行期拼 innerHTML 生成、`calcVolume(side)` 再按 id 读取 ⇒ 只能用 clicks 在同一次求值内赋值。两模具均为默认 round 形状：from D=15、H=4 ⇒ 容积 = π×(15/2)²×4 = 706.86 ml ⇒ fmtNum 取整「707」；to D=20、H=10 ⇒ π×10²×10 = 3141.59 ml ⇒「3142」；缩放比 = 3141.59 ÷ 706.86 = 4.4445 ⇒ 显示「× 4.44」；建议填充量 = 3141.59 × 0.65 = 2042.03 ⇒「2042」（ratio > 1.1 落「目标模具更大」分支）。未注入时 harness 读不到运行期生成的 D ⇒ 体积 0 ⇒ 渲染「请输入有效的模具尺寸」，四串均不含。"
+},
+{
+  // FT-N12 放大分支：ratio 1.494 ⇒ 文案必须是「调整至 149%（即增加 49%）」，
+  // 而非旧实现误写的「需增加 149%」。
+  "slug": "baking/mold-volume",
+  "clicks": [
+    "applyMoldPreset('toast')"
+  ],
+  "expect": [
+    "调整至原配方的 149%",
+    "增加 49%"
+  ],
+  "ref": "独立复算：吐司盒 22×12×7=1848 ml，6寸圆模 π×7.5²×7=1236.98 ml ⇒ ratio=1848/1236.98=1.49399 ⇒ fmtNum「1.49」，ratio×100=149.4→「149」，增加=(ratio−1)×100=49.4→「49」。默认态 6寸→8寸 ratio=1.78 输出 178%/78%，两串均不命中。"
+},
+{
+  // FT-N12 缩小分支口径：ratio 0.884 ⇒「调整至 88%」，与放大分支统一为「调整至」。
+  "slug": "baking/mold-volume",
+  "clicks": [
+    "applyMoldPreset('round2square')"
+  ],
+  "expect": [
+    "调整至原配方的 88%"
+  ],
+  "ref": "独立复算：圆模 D18×H6 ⇒ π×9²×6=1526.81 ml；方模 15×15×6=1350 ml ⇒ ratio=1350/1526.81=0.88420 ⇒ ratio×100=88.42→「88」（ratio<0.9 落「目标模具更小」分支）。默认态 ratio=1.78 输出 178%，不命中。"
 },
 {
   // 原 expect「请输入有效温度」由零参兜底调用 convertTemp() 触发（两个温度框皆空）→ 与注入无关的逃生项。
