@@ -251,6 +251,18 @@ const CASES = [
   "ref": "门诊记录：鼻导管 FiO₂ = 21 + 4×5 = 41%（上限 44% 未触发）；PaO₂ 估算 41×5 = 205 mmHg。默认态 flowRate=2 ⇒ 29%、PaO₂ 145，与本用例零交集。注：原实现把 `pao2` 暴露给记录钩子时该变量尚未定义（null），已改为在钩子里按 fio2×5 直接计算。"
 },
 {
+  "slug": "clinical-nursing/oxygen-concentration",
+  "inputs": {
+    "flowRate": "12"
+  },
+  "expect": [
+    "鼻导管12L/min对应FiO2约69%",
+    "＞6L/min 超出鼻导管可靠范围",
+    "建议改用普通面罩或高流量鼻导管"
+  ],
+  "ref": "鼻导管不再静默封顶 44%：FiO₂ = 21 + 4×12 = 69%（原实现显示 44%）；流量＞6 L/min 触发警示并建议改面罩。默认态 flowRate=2 ⇒ 28% 且无警示，三串均不命中。"
+},
+{
   "slug": "clinical-nursing/pain-nrs",
   "clicks": [
     "selectPain(7)"

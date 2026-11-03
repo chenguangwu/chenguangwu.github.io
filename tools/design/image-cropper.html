@@ -28,6 +28,8 @@
 <style>
 .preview-area{min-height:120px;display:flex;align-items:center;justify-content:center;background:#fff;border-radius:8px;padding:16px;}
 .preview-area img{max-width:300px;max-height:300px;border:1px solid var(--border);}
+.dl-meta{margin-top:8px;font-size:13px;color:var(--text-muted);text-align:center;word-break:break-all;}
+.dl-meta code{font-size:12px;color:var(--text);}
 </style>
 
 
@@ -166,10 +168,10 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="generate()">裁剪</button>
       <button type="button" class="btn success" onclick="copyResult()">复制 Base64</button>
-      <div id="image_cropperPresets"></div><button type="button" class="btn" onclick="downloadImg()">下载</button><button class="btn" type="button" onclick="__image_cropperExport()">导出明细 CSV</button>
+      <div id="image_cropperPresets"></div><a id="downloadLink" class="btn" href="#" download="cropped.png" role="button" onclick="return downloadImg(event)">下载</a><button class="btn" type="button" onclick="__image_cropperExport()">导出明细 CSV</button>
     </div>
     <label>预览</label>
-    <div class="result-box" id="output"><div class="preview-area" id="preview">请上传图片</div></div> <div id="image_cropperTable"></div> <div id="image_cropperDiff"></div> <div id="image_cropperChart"></div> <div id="image_cropperHist"></div>
+    <div class="result-box" id="output"><div class="preview-area" id="preview">请上传图片</div><div class="dl-meta" id="dlMeta"><span data-zh="下载文件">下载文件</span>：<code id="dlName">—</code></div></div> <div id="image_cropperTable"></div> <div id="image_cropperDiff"></div> <div id="image_cropperChart"></div> <div id="image_cropperHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -250,7 +252,23 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
-let origImg = null, lastURL = '';
+let origImg = null, lastURL = '', lastBlobURL = '', cropSeq = 0;
+function cropName(x, y, w, h){
+  return 'cropped_' + (origImg ? origImg.width : 0) + 'x' + (origImg ? origImg.height : 0) + '_' + x + '-' + y + '_' + w + 'x' + h + '.png';
+}
+function revokeCropURL(){
+  if(lastBlobURL && typeof URL !== 'undefined' && typeof URL.revokeObjectURL === 'function'){
+    try { URL.revokeObjectURL(lastBlobURL); } catch(e) {}
+  }
+  lastBlobURL = '';
+}
+function updateDownload(name){
+  const a = document.getElementById('downloadLink');
+  if(a){ a.download = name; a.href = lastBlobURL || lastURL || '#'; }
+  const n = document.getElementById('dlName');
+  if(n) n.textContent = name;
+}
+window.addEventListener('pagehide', revokeCropURL);
 document.getElementById('fileInput').addEventListener('change', (e) => {
   const file = e.target.files[0];
   if(!file) return;
@@ -258,10 +276,12 @@ document.getElementById('fileInput').addEventListener('change', (e) => {
   reader.onload = (ev) => {
     const img = new Image();
     img.onload = () => {
+      revokeCropURL(); cropSeq++; lastURL = '';
       origImg = img;
       document.getElementById('cw').value = img.width;
       document.getElementById('ch').value = img.height;
       const __h0='<img src="'+ev.target.result+'" alt="原图">';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('preview').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('preview').innerHTML=__h0;
+      generate();
     };
     img.src = ev.target.result;
   };
@@ -282,12 +302,26 @@ function generate(){
   const ctx = canvas.getContext('2d');
   ctx.drawImage(origImg, x, y, w, h, 0, 0, w, h);
   lastURL = canvas.toDataURL('image/png');
+  const name = cropName(x, y, w, h);
+  revokeCropURL();
+  updateDownload(name);
+  const token = ++cropSeq;
+  if(typeof canvas.toBlob === 'function' && typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function'){
+    canvas.toBlob(function(blob){
+      if(token !== cropSeq || !blob) return;
+      lastBlobURL = URL.createObjectURL(blob);
+      updateDownload(name);
+    }, 'image/png');
+  }
   const __h1='<img src="'+lastURL+'" alt="裁剪后">';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('preview').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('preview').innerHTML=__h1;
 }
-function downloadImg(){
-  if(!lastURL){ alert('请先裁剪'); return; }
-  const a = document.createElement('a');
-  a.href = lastURL; a.download = 'cropped.png'; a.click();
+function downloadImg(e){
+  if(!lastURL){
+    alert('请先裁剪');
+    if(e && typeof e.preventDefault === 'function') e.preventDefault();
+    return false;
+  }
+  return true;
 }
 function copyResult(){
   if(!lastURL){ alert('无内容可复制'); return; }

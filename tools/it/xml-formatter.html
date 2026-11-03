@@ -259,40 +259,36 @@ const SAMPLE = '<note><to from="Alice">Bob</to><body priority="high">Hello\n<raw
 function formatXml(xml, indent){
   const doc = new DOMParser().parseFromString(xml, 'application/xml');
   if(doc.getElementsByTagName('parsererror').length) throw new Error('XML 解析错误');
-  return serializeNode(doc.documentElement, 0, indent);
+  if(!doc.documentElement) throw new Error('XML 解析错误');
+  // 从文档根元素本身开始序列化（旧实现只遍历 documentElement.childNodes ⇒ 根标签整段丢失）
+  return serializeNode(doc.documentElement, 0, indent).replace(/\s+$/, '');
+}
+function xmlKids(node){
+  // CDATA（4）与注释（8）都必须参与子节点判定：`<raw>` 只含 CDATA 时若被过滤掉，
+  // 就会被当成空元素输出 `<raw/>`，CDATA 原文随之丢失。
+  return Array.from(node.childNodes).filter(c =>
+    c.nodeType === 1 || c.nodeType === 4 || c.nodeType === 8 ||
+    (c.nodeType === 3 && c.textContent.trim())
+  );
 }
 function serializeNode(node, depth, indent){
   const pad = indent ? '  '.repeat(depth) : '';
-  let s = '';
-  for(const child of node.childNodes){
-    if(child.nodeType === 1){
-      const tag = child.tagName;
-      const attrs = Array.from(child.attributes).map(a => a.name + '="' + escAttr(a.value) + '"').join(' ');
-      const open = '<' + tag + (attrs ? ' ' + attrs : '');
-      const kids = Array.from(child.childNodes).filter(c => c.nodeType === 1 || (c.nodeType === 3 && c.textContent.trim()));
-      if(kids.length === 0){
-        s += pad + open + '/>';
-      } else if(kids.length === 1 && kids[0].nodeType === 3){
-        s += pad + open + '>' + escXml(kids[0].textContent) + '</' + tag + '>';
-      } else {
-        s += pad + open + '>';
-        if(indent) s += '\n';
-        s += serializeNode(child, depth + 1, indent);
-        s += pad + '</' + tag + '>';
-      }
-      if(indent) s += '\n';
-    } else if(child.nodeType === 4){
-      s += pad + '<![CDATA[' + child.textContent + ']]>';
-      if(indent) s += '\n';
-    } else if(child.nodeType === 8){
-      s += pad + '<!-- ' + child.textContent.trim() + ' -->';
-      if(indent) s += '\n';
-    } else if(child.nodeType === 3 && child.textContent.trim()){
-      s += pad + escXml(child.textContent.trim());
-      if(indent) s += '\n';
-    }
+  const nl = indent ? '\n' : '';
+  if(node.nodeType === 1){
+    const tag = node.tagName;
+    const attrs = Array.from(node.attributes).map(a => a.name + '="' + escAttr(a.value) + '"').join(' ');
+    const open = '<' + tag + (attrs ? ' ' + attrs : '');
+    const kids = xmlKids(node);
+    if(kids.length === 0) return pad + open + '/>' + nl;
+    if(kids.length === 1 && kids[0].nodeType === 3) return pad + open + '>' + escXml(kids[0].textContent) + '</' + tag + '>' + nl;
+    let s = pad + open + '>' + nl;
+    for(const child of kids) s += serializeNode(child, depth + 1, indent);
+    return s + pad + '</' + tag + '>' + nl;
   }
-  return s;
+  if(node.nodeType === 4) return pad + '<![CDATA[' + node.textContent + ']]>' + nl;
+  if(node.nodeType === 8) return pad + '<!-- ' + node.textContent.trim() + ' -->' + nl;
+  if(node.nodeType === 3) return pad + escXml(node.textContent.trim()) + nl;
+  return '';
 }
 function escXml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function escAttr(s){ return escXml(s).replace(/"/g,'&quot;'); }

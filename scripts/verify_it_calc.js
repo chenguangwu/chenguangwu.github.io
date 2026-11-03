@@ -6757,15 +6757,21 @@ const CASES = [
   },
   {
     "slug": "it/xml-formatter",
+    "domParser": true,
     "inputs": {
-      "input": "1\n2\n3",
-      "indent": "4"
+      "input": "<note><!-- 头部注释 --><to from=\"Alice\">Bob</to><body priority=\"high\">Hello<raw><![CDATA[<unparsed>text</unparsed>]]></raw></body><meta><date>2025-01-01</date></meta></note>",
+      "indent": "2"
     },
-    "expect": [
-      "></note>\n4\n",
-      "</meta></note>\n4"
+    "clicks": [
+      "document.getElementById('output').value = document.getElementById('output').textContent;"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"indent\":\"4\"}，输出区含「></note>\n4\n」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。G06-S1 首屏自跑改变了元素创建序 ⇒ blob 字段序随之改变，expect 容忍新旧两种字段序；判别力不变。"
+    "expect": [
+      "<note> <!-- 头部注释 -->",
+      "<to from=\"Alice\">Bob</to> <body priority=\"high\">",
+      "<raw> <![CDATA[<unparsed>text</unparsed>]]> </raw>",
+      "</meta> </note>"
+    ],
+    "ref": "根标签与 CDATA 必须存活：序列化从 documentElement 起算（旧实现只遍历 documentElement.childNodes ⇒ 输出以 '></note>' 开头、<note> 丢失）；子节点判定纳入 CDATA（旧实现 `<raw>` 仅剩 CDATA 子节点被滤掉 ⇒ 输出 `<raw/>`、原文丢失）。期望串带格式化空白（如「<raw> <![CDATA[…]]> </raw>」），注入的原始输入为紧凑 XML 不含该形态 ⇒ 强判别。"
   },
   {
     "slug": "it/xor-cipher",
@@ -7197,6 +7203,125 @@ function makeEscEl() {
   return el;
 }
 
+// 最小 XML DOM 桩（仅对声明 domParser:true 的用例注入）：harness 没有浏览器 DOMParser，
+// XML 类页面在门禁中恒抛 "DOMParser is not defined"，只能退化成默认态回显的假绿
+// （旧 it/xml-formatter 用例即如此）。此处提供元素/属性/文本/CDATA/注释 + parsererror
+// 的最小实现，让页面真实走完 parseFromString → 序列化 → 结果落盘。其它用例行为完全不变。
+function makeXmlDomParserStub() {
+  const ELEMENT = 1, TEXT = 3, CDATA = 4, COMMENT = 8;
+  class XNode {
+    constructor(type, name) {
+      this.nodeType = type;
+      this.nodeName = name || "";
+      this.tagName = type === ELEMENT ? name : undefined;
+      this.attributes = [];
+      this.childNodes = [];
+      this.parentNode = null;
+      this._text = "";
+    }
+    get children() {
+      return this.childNodes.filter((c) => c.nodeType === ELEMENT);
+    }
+    get textContent() {
+      if (this.nodeType === TEXT || this.nodeType === CDATA || this.nodeType === COMMENT) return this._text;
+      return this.childNodes.map((c) => c.textContent).join("");
+    }
+    set textContent(v) {
+      this._text = v == null ? "" : String(v);
+      this.childNodes = [];
+    }
+  }
+  const decodeEntities = (v) =>
+    v.replace(/&(?:lt|gt|amp|quot|apos|#\d+|#x[0-9a-fA-F]+);/g, (m) => {
+      if (m === "&lt;") return "<";
+      if (m === "&gt;") return ">";
+      if (m === "&amp;") return "&";
+      if (m === "&quot;") return '"';
+      if (m === "&apos;") return "'";
+      const hex = /^&#x/i.test(m);
+      return String.fromCodePoint(parseInt(m.slice(hex ? 3 : 2, -1), hex ? 16 : 10));
+    });
+  const parse = (src) => {
+    const s = String(src);
+    let i = 0, root = null, broken = false;
+    const stack = [];
+    const mk = (type, name, text) => {
+      const n = new XNode(type, name);
+      n._text = text;
+      return n;
+    };
+    const append = (node) => {
+      if (stack.length) {
+        const p = stack[stack.length - 1];
+        node.parentNode = p;
+        p.childNodes.push(node);
+      } else if (node.nodeType === ELEMENT && !root) {
+        root = node;
+      }
+    };
+    while (i < s.length) {
+      if (s[i] === "<") {
+        if (s.startsWith("<!--", i)) {
+          const end = s.indexOf("-->", i + 4);
+          if (end < 0) { broken = true; break; }
+          append(mk(COMMENT, "#comment", s.slice(i + 4, end)));
+          i = end + 3;
+        } else if (s.startsWith("<![CDATA[", i)) {
+          const end = s.indexOf("]]>", i + 9);
+          if (end < 0) { broken = true; break; }
+          append(mk(CDATA, "#cdata-section", s.slice(i + 9, end)));
+          i = end + 3;
+        } else if (s.startsWith("<?", i)) {
+          const end = s.indexOf("?>", i);
+          if (end < 0) { broken = true; break; }
+          i = end + 2;
+        } else if (s.startsWith("<!", i)) {
+          const end = s.indexOf(">", i);
+          if (end < 0) { broken = true; break; }
+          i = end + 1;
+        } else if (s[i + 1] === "/") {
+          const end = s.indexOf(">", i);
+          if (end < 0) { broken = true; break; }
+          const name = s.slice(i + 2, end).trim();
+          const top = stack.pop();
+          if (!top || top.tagName !== name) broken = true;
+          i = end + 1;
+        } else {
+          let j = i + 1;
+          const nm = /^[A-Za-z_][\w:.-]*/.exec(s.slice(j));
+          if (!nm) { broken = true; break; }
+          const node = new XNode(ELEMENT, nm[0]);
+          j += nm[0].length;
+          for (;;) {
+            while (j < s.length && /\s/.test(s[j])) j++;
+            if (s.startsWith("/>", j)) { append(node); i = j + 2; break; }
+            if (s[j] === ">") { append(node); stack.push(node); i = j + 1; break; }
+            const am = /^([A-Za-z_:][\w:.-]*)\s*=\s*(?:"([^"]*)"|'([^']*)')/.exec(s.slice(j));
+            if (!am) { broken = true; break; }
+            node.attributes.push({ name: am[1], value: decodeEntities(am[2] != null ? am[2] : am[3]) });
+            j += am[0].length;
+          }
+          if (broken) break;
+        }
+      } else {
+        const end = s.indexOf("<", i);
+        const stop = end < 0 ? s.length : end;
+        append(mk(TEXT, "#text", decodeEntities(s.slice(i, stop))));
+        i = stop;
+      }
+    }
+    if (stack.length) broken = true;
+    const errors = broken ? [mk(ELEMENT, "parsererror", "XML 解析错误")] : [];
+    return {
+      documentElement: root,
+      getElementsByTagName: (name) => (name === "parsererror" ? errors : []),
+    };
+  };
+  return class {
+    parseFromString(src) { return parse(src); }
+  };
+}
+
 async function runCase(c) {
   // 每个用例都会往 globalThis（当作 window）挂函数，用后清理，避免污染下一个用例
   const before = new Set(Object.keys(globalThis));
@@ -7221,6 +7346,10 @@ async function runCaseInner(c) {
   // 既有用例的行为逐字节不变（§7.1 的历史教训：全站无差别生效会误伤其它页）。
   dynReset();
   DYN.on = !!(c.dynDom || (Array.isArray(c.clicks) && c.clicks.length > 0));
+  // XML 类页面需要浏览器 DOMParser；仅对显式声明 domParser:true 的用例注入（用后清理）。
+  if (c.domParser && typeof globalThis.DOMParser === "undefined") {
+    globalThis.DOMParser = makeXmlDomParserStub();
+  }
   const file = path.join(TOOLS_DIR, c.slug + ".html");
   if (!fs.existsSync(file)) return { ok: false, why: "文件不存在" };
   const html = fs.readFileSync(file, "utf8");

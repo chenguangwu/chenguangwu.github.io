@@ -15,6 +15,25 @@
 <meta property="og:url" content="https://chenguangwu.github.io/tools/library/generator-label.html">
 <meta name="twitter:card" content="summary">
 <link rel="stylesheet" href="../../css/common.css">
+<style>
+.gen-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px}
+.gen-field{display:flex;flex-direction:column;gap:4px}
+.gen-field label{font-size:12px;font-weight:600;color:var(--text-secondary)}
+.gen-field input,.gen-field select{padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg-card);color:var(--text);font-size:14px}
+.label-stage{display:flex;justify-content:center;padding:18px 10px;background:var(--bg-hover);border:1px dashed var(--border);border-radius:10px}
+.label-sheet{width:80mm;max-width:100%;background:#fff;color:#111;box-sizing:border-box;border:1px solid #bbb;border-radius:2px;padding:2mm;display:flex;flex-direction:column;justify-content:space-between;align-items:center;text-align:center;overflow:hidden}
+.lbl-line{display:flex;gap:6px;align-items:baseline;justify-content:center;width:100%;line-height:1.25}
+.lbl-k{font-weight:700;flex:0 0 auto}
+.lbl-v{word-break:break-all}
+.label-meta{margin-top:10px;font-size:12.5px;color:var(--text-muted);text-align:center}
+@media print{
+  body *{visibility:hidden!important}
+  #res,#res *{visibility:visible!important}
+  #res{position:absolute;left:0;top:0;width:100%;background:#fff}
+  #res .label-stage{background:#fff;border:none;padding:0}
+  #res .label-meta{display:none}
+}
+</style>
 <script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 
@@ -122,12 +141,21 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="✨ 档案盒脊背标签打印格式生成">档案盒脊背标签打印格式生成</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="档案盒脊背标签打印格式生成在线工具">Generator Label - generate results in-browser quickly and keep all data local.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">抽取规则：条目池复制后按 sort(() =&gt; Math.random() − 0.5) 洗牌，取前 n 条，n 限幅 1-50，池不足时取全部；每条输出 类别 / 年度 / 保管期限 / 档号 四行标签</div>
+  <div class="formula-title">📐 工作原理与说明</div>
+  <div class="formula-eq">排版规则：标签按「全宗号 → 年度 → 机构（或问题）→ 起止件号 → 盒号」自上而下逐行排列（填写单位名称时置顶）；每行可用高度 = 脊背厚度 ÷ 行数，字号 = 每行可用高度 × 1.6，并限幅在 6–14 pt，厚度越大字号越大、行数越多字号自动收缩</div>
   <p class="formula-desc">依据档案盒规格与脊背字数，按全宗号、年度、机构、起止件号、盒号等字段生成可批量打印的盒脊标签排版，字号随盒型厚度（30/40/50mm）自动调整。结果可直接复制使用，数据不离开浏览器。</p>
 </div>
 
-<div class="input-row"><div><label>生成数量</label><input type="number" id="cnt" value="5" min="1" max="50" oninput="gen()" placeholder="如 5（1–50）"></div></div>
-<div class="toolbar"><div id="generator_labelPresets"></div><button type="button" class="btn primary" onclick="gen()">生成</button><button class="btn" type="button" onclick="__generator_labelExport()">导出明细 CSV</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<div class="gen-fields">
+  <div class="gen-field"><label for="fonds">全宗号</label><input type="text" id="fonds" value="A032" oninput="gen()" placeholder="A032"></div>
+  <div class="gen-field"><label for="year">年度</label><input type="text" id="year" value="2024" oninput="gen()" placeholder="2024"></div>
+  <div class="gen-field"><label for="org">机构（或问题）</label><input type="text" id="org" value="办公室" oninput="gen()" placeholder="Office"></div>
+  <div class="gen-field"><label for="range">起止件号</label><input type="text" id="range" value="0001-0150" oninput="gen()" placeholder="0001-0150"></div>
+  <div class="gen-field"><label for="boxNo">盒号</label><input type="text" id="boxNo" value="012" oninput="gen()" placeholder="012"></div>
+  <div class="gen-field"><label for="unit">单位名称</label><input type="text" id="unit" value="" oninput="gen()" placeholder="City Archives"></div>
+  <div class="gen-field"><label for="thick">脊背厚度</label><select id="thick" onchange="gen()"><option value="30">30 mm</option><option value="40">40 mm</option><option value="50">50 mm</option></select></div>
+</div>
+<div class="toolbar"><div id="generator_labelPresets"></div><button type="button" class="btn primary" onclick="gen()">生成标签</button><button type="button" class="btn" onclick="printLabel()">打印</button><button type="button" class="btn" onclick="downloadLabel()">下载 PNG</button><button class="btn" type="button" onclick="__generator_labelExport()">导出明细 CSV</button><button type="button" class="btn" onclick="copyRes()">复制文本</button></div>
 <div class="result-box" id="res"></div> <div id="generator_labelTable"></div> <div id="generator_labelDiff"></div> <div id="generator_labelChart"></div> <div id="generator_labelHist"></div>
   </div>
 
@@ -173,19 +201,19 @@ s.parentNode.insertBefore(el, s);
       <thead><tr><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="项目">Item</th><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="公式">Formula</th><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="来源 / 标准">Source / Standard</th></tr></thead>
       <tbody>
         <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="抽取规则">Sampling</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="条目池复制后洗牌，取前 n 条（n 限幅 1–50，池不足取全部）">Shuffle pool, take first n (n cap 1–50, all if fewer)</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Archive labeling</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="字号规则">Font size</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="字号 = 脊背厚度 ÷ 行数 × 1.6（限幅 6–14 pt）">font = spine thickness / rows × 1.6 (cap 6–14 pt)</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">DA/T 22-2015</td>
         </tr>
         <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="输出字段">Output</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="每条输出 类别 / 年度 / 保管期限 / 档号 四行标签">Each outputs category / year / retention / file-no</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Archive labeling</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="标签字段">Fields</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="全宗号 / 年度 / 机构（或问题）/ 起止件号 / 盒号">Fonds No. / Year / Office (or Issue) / Item Nos. / Box No.</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">DA/T 22-2015</td>
         </tr>
         <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="用途">Purpose</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="用于档案标签批量生成演示">For batch archive label generation demo</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Archive labeling</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="输出">Output</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="可打印标签预览 + PNG 下载 + 明细 CSV">Printable label preview + PNG download + detail CSV</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">DA/T 22-2015</td>
         </tr>
       </tbody>
     </table>
@@ -203,34 +231,67 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
-const ARCHIVES=[
-  {category:'行政综合',years:'2024年度',period:'永久',code:'XZ-2024-001'},
-  {category:'人事档案',years:'2020-2024',period:'长期',code:'RS-2020-024'},
-  {category:'财务会计',years:'2023年度',period:'30年',code:'CW-2023-018'},
-  {category:'合同协议',years:'2021-2024',period:'永久',code:'HT-2021-056'},
-  {category:'项目管理',years:'2022年度',period:'10年',code:'XM-2022-033'},
-  {category:'会议纪要',years:'2024年度',period:'10年',code:'HY-2024-012'},
-  {category:'规章制度',years:'2019-2024',period:'永久',code:'ZD-2019-008'},
-  {category:'审计监察',years:'2023年度',period:'永久',code:'SJ-2023-005'},
-  {category:'科研技术',years:'2021-2023',period:'长期',code:'KJ-2021-041'},
-  {category:'声像电子',years:'2024年度',period:'30年',code:'SZ-2024-002'}
-];
-function pick(arr,n){const a=[...arr].sort(()=>Math.random()-0.5);return a.slice(0,Math.min(n,a.length));}
-function gen(){
-  const n=Math.min(Math.max(parseInt(document.getElementById('cnt').value)||5,1),50);
-  const items=pick(ARCHIVES,n);
-  let h='<p style="margin-bottom:8px;">生成结果（可直接用于打印标签）：</p>';
-  items.forEach((it,i)=>{
-    h+=`<div style="padding:10px;margin-bottom:8px;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-card);font-family:monospace;">
-      <div style="font-weight:bold;font-size:15px;text-align:center;">${it.category}</div>
-      <div style="font-size:13px;text-align:center;">${it.years}</div>
-      <div style="font-size:12px;color:var(--text-muted);text-align:center;">保管期限：${it.period}</div>
-      <div style="font-size:12px;color:var(--text-secondary);text-align:center;">档号：${it.code}</div>
-    </div>`;
-  });
-  const __h0=h;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('res').innerHTML=__h0;
+function labelVal(id){var el=document.getElementById(id);return el?String(el.value||'').trim():'';}
+function labelEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function labelThick(){var t=parseFloat(labelVal('thick'));if(!isFinite(t)||t<=0)t=30;return t;}
+function labelFont(thick,count){var line=thick/Math.max(1,count);var fs=line*1.6;fs=Math.max(6,Math.min(14,fs));return Math.round(fs*10)/10;}
+function labelRows(){
+  var rows=[];
+  var unit=labelVal('unit'),fonds=labelVal('fonds'),year=labelVal('year'),org=labelVal('org'),range=labelVal('range'),boxNo=labelVal('boxNo');
+  if(unit)rows.push({key:'单位名称',val:unit});
+  if(fonds)rows.push({key:'全宗号',val:fonds});
+  if(year)rows.push({key:'年度',val:year});
+  if(org)rows.push({key:'机构',val:org});
+  if(range)rows.push({key:'起止件号',val:range});
+  if(boxNo)rows.push({key:'盒号',val:boxNo});
+  return rows;
 }
-function copyRes(){ToolBox.copyText(document.getElementById('res').innerText);}
+function gen(){
+  var res=document.getElementById('res');if(!res)return;
+  var rows=labelRows();
+  if(!rows.length){res.innerHTML='<p>请至少填写一项标签内容。</p>';window.__labelData=null;return;}
+  var thick=labelThick();
+  var fs=labelFont(thick,rows.length);
+  var h='<div class="label-stage"><div class="label-sheet" id="labelSheet" style="height:'+thick+'mm;font-size:'+fs+'pt">';
+  for(var i=0;i<rows.length;i++){
+    h+='<div class="lbl-line"><span class="lbl-k">'+labelEsc(rows[i].key)+'</span><span class="lbl-v">'+labelEsc(rows[i].val)+'</span></div>';
+  }
+  h+='</div></div>';
+  h+='<div class="label-meta"><span>标签行数</span> <b>'+rows.length+'</b> · <span>字号</span> <b>'+fs.toFixed(1)+'pt</b> · <span>脊背厚度</span> <b>'+thick+'mm</b></div>';
+  res.innerHTML=h;
+  window.__labelData={rows:rows,thick:thick,font:fs};
+}
+function copyRes(){var r=document.getElementById('res');if(r&&ToolBox)ToolBox.copyText(r.innerText||r.textContent||'');}
+function printLabel(){try{if(typeof window.print==='function')window.print();}catch(e){}}
+function downloadLabel(){
+  try{
+    var d=window.__labelData;if(!d)return;
+    var dpi=300,pxPerMm=dpi/25.4;
+    var W=Math.round(80*pxPerMm),H=Math.round(d.thick*pxPerMm);
+    var c=document.createElement('canvas');if(!c||!c.getContext)return;
+    c.width=W;c.height=H;
+    var ctx=c.getContext('2d');if(!ctx)return;
+    ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#111';ctx.textAlign='center';ctx.textBaseline='middle';
+    var fsPx=Math.round(d.font*dpi/72);
+    ctx.font=fsPx+'px "Songti SC","SimSun",serif';
+    var slot=H/d.rows.length,maxW=W-Math.round(4*pxPerMm),lh=fsPx*1.2;
+    d.rows.forEach(function(r,i){
+      var text=r.key+' '+r.val,lines=[],line='';
+      for(var j=0;j<text.length;j++){
+        var t=line+text.charAt(j);
+        if(ctx.measureText(t).width>maxW&&line){lines.push(line);line=text.charAt(j);}
+        else line=t;
+      }
+      if(line)lines.push(line);
+      var y0=(i+0.5)*slot-(lines.length-1)*lh/2;
+      lines.forEach(function(ln,k){ctx.fillText(ln,W/2,y0+k*lh);});
+    });
+    var a=document.createElement('a');
+    a.href=c.toDataURL('image/png');a.download='archive-spine-label.png';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+  }catch(e){}
+}
 gen();
 </script>
 
@@ -393,12 +454,24 @@ function __generator_labelExtras(){
     __generator_labelRender(keys,rk,en);
 }
 function __generator_labelExport(){
-    if (typeof TBKit === 'undefined') return;
-    try { TBKit.util.exportTable('#generator_labelTable','generator-label.csv'); } catch(e){}
+    try{
+      var d=window.__labelData;if(!d||!d.rows||!d.rows.length)return;
+      if(typeof Blob!=='function'||typeof URL==='undefined'||!URL.createObjectURL)return;
+      function cell(s){var t=String(s==null?'':s);return '"'+t.replace(/"/g,'""')+'"';}
+      var lines=['"字段","内容"'];
+      for(var i=0;i<d.rows.length;i++)lines.push(cell(d.rows[i].key)+','+cell(d.rows[i].val));
+      lines.push(cell('字号')+','+cell(d.font.toFixed(1)+'pt'));
+      lines.push(cell('脊背厚度')+','+cell(d.thick+'mm'));
+      var blob=new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+      var url=URL.createObjectURL(blob);
+      var a=document.createElement('a');a.href=url;a.download='generator-label.csv';
+      document.body.appendChild(a);a.click();document.body.removeChild(a);
+      setTimeout(function(){URL.revokeObjectURL(url);},1000);
+    }catch(e){}
 }
 function __generator_labelPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#generator_labelPresets',[{label:'默认参数',labelEn:'Default',values:{'cnt':'5'}},{"label":"小规模","labelEn":"Small scale","values":{"cnt":"2.5"}},{"label":"大规模","labelEn":"Large scale","values":{"cnt":"7.5"}},{"label":"极端工况","labelEn":"Extreme case","values":{"cnt":"10"}}],function(){ gen(); });
+    TBKit.preset.bar('#generator_labelPresets',[{label:'默认参数',labelEn:'Default',values:{thick:'30'}},{"label":"40mm 脊背","labelEn":"40 mm spine","values":{"thick":"40"}},{"label":"50mm 脊背","labelEn":"50 mm spine","values":{"thick":"50"}}],function(){ gen(); });
 }
 var __generator_label_f0=(typeof gen==='function')?gen:null;
 if(__generator_label_f0){

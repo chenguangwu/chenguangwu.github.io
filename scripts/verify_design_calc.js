@@ -1415,6 +1415,17 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"cx\":\"42\",\"cy\":\"42\",\"cw\":\"42\",\"ch\":\"42\"}，输出区含「42\n42\n42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    "slug": "design/image-cropper",
+    "inputs": { "cx": "12", "cy": "34", "cw": "56", "ch": "78" },
+    "clicks": [
+      "origImg={width:200,height:160};generate();window.__n1=document.getElementById('dlName').textContent;window.__h1=document.getElementById('downloadLink').href;origImg={width:240,height:180};document.getElementById('cx').value='5';document.getElementById('cy').value='6';document.getElementById('cw').value='70';document.getElementById('ch').value='80';generate();var __n2=document.getElementById('dlName').textContent;var __h2=document.getElementById('downloadLink').href;document.getElementById('dlName').textContent=__n2+'|nameChanged='+(window.__n1!==__n2)+'|hrefSet='+!!__h2+'|hrefFirstSet='+!!window.__h1;"
+    ],
+    "expect": [
+      "cropped_240x180_5-6_70x80.png|nameChanged=true|hrefSet=true|hrefFirstSet=true"
+    ],
+    "ref": "换图/改参回归：先以 200×160 原图 + 裁剪(12,34,56×78) 生成下载名 cropped_200x160_12-34_56x78.png，再换 240×180 原图并把参数改为(5,6,70×80) 重跑 generate()。断言新文件名为 cropped_240x180_5-6_70x80.png、nameChanged=true（与上一张不同）、下载链接 href 已置为当前 canvas 数据（hrefSet/hrefFirstSet=true）。旧实现下载入口恒指上一张裁剪结果且 href 不随裁剪刷新，本用例不命中。"
+  },
+  {
     "slug": "design/image-resizer",
     "inputs": {
       "width": "42",

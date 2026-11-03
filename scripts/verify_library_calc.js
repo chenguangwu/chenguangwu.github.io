@@ -61,12 +61,19 @@ const CASES = [
 {
   "slug": "library/generator-label",
   "inputs": {
-    "cnt": "20"
+    "fonds": "B123",
+    "year": "2025",
+    "org": "财务处",
+    "range": "0201-0350",
+    "boxNo": "007",
+    "unit": "City Archives",
+    "thick": "50"
   },
   "expect": [
-    "项目管理 2022年度 保管期限：10年 档号：XM-2022-033"
+    "13.3pt",
+    "50mm"
   ],
-  "ref": "auto-restore（随机档号生成器，具体档号非每次必现；改断言确定性生成标题）（原断言为静态标题，注入失败仍命中 → 逃生项；改为断言条数/第8条）"
+  "ref": "真实标签生成器（非随机示例）：注入 6 项标签内容 + 脊背厚度 50mm ⇒ labelRows() 生成 6 行 ⇒ labelFont(50,6)=min(14,50/6×1.6)=13.3pt，结果区渲染「字号 13.3pt · 脊背厚度 50mm」；默认态为 30mm/5 行 ⇒ 9.6pt，故 13.3pt/50mm 均为输入驱动的派生值，非默认标签可命中。"
 },
 {
   "slug": "library/overdue-fine",

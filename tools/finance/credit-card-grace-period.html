@@ -125,11 +125,15 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row">
       <div>
         <label for="bill">账单日（每月几号）</label>
-        <select id="bill" style="width:100%;"></select>
+        <select id="bill" style="width:100%;">
+          <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10" selected>10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option><option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="30">30</option><option value="31">31</option>
+        </select>
       </div>
       <div>
         <label for="due">还款日（每月几号）</label>
-        <select id="due" style="width:100%;"></select>
+        <select id="due" style="width:100%;">
+          <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25" selected>25</option><option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="30">30</option><option value="31">31</option>
+        </select>
       </div>
       <div>
         <label for="amt">计划消费金额（元）</label>
@@ -260,21 +264,32 @@ function num(id){const v=parseFloat(document.getElementById(id).value);return is
 function escH(s){var d=document.createElement('div');const __g0=s==null?'':String(s);d.textContent=(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
 function fmtMoney(n){return n.toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
-function calcTool(){const bill=parseInt(document.getElementById('bill').value)||10;
-   const due=parseInt(document.getElementById('due').value)||25;
+function ccDay(v){
+  const d=parseInt(v,10);
+  if(!isFinite(d)||d<1||d>31) return NaN;
+  // 页面按 30 天简化的账单周期计算；小月不存在的 31 日按当月最后一天折算
+  return Math.min(d,30);
+}
+function ccGrace(billRaw,dueRaw){
+  const b=ccDay(billRaw), d=ccDay(dueRaw);
+  if(isNaN(b)||isNaN(d)) return null;
+  const maxGrace = d>b ? (d-b-1)+30 : (d+30-b-1)+30;
+  const graceForBillDay = d>b ? (d-b) : (30-b+d);
+  const bestDate = b>=30 ? 1 : b+1;
+  return {
+    bill:b, due:d, maxGrace:maxGrace, graceForBillDay:graceForBillDay, bestDate:bestDate,
+    adjusted: parseInt(billRaw,10)>=29 || parseInt(dueRaw,10)>=29
+  };
+}
+function calcTool(){const billRaw=parseInt(document.getElementById('bill').value,10);
+   const dueRaw=parseInt(document.getElementById('due').value,10);
    const amt=num('amt'), yld=num('yield')/100;
-   if(bill<1||bill>28||due<1||due>28){ToolBox.setResult('result','<p class="tip-error">请输入有效的账单日与还款日。</p>');return;}
-   // 最长免息期：账单日次日消费 → 下期还款日
-   let maxGrace;
-   if(due>bill){ maxGrace=(due-bill-1)+30; } // 消费于 bill+1，本期账单日 bill+1 天后到期还款日 due
-   else { maxGrace=(due+30-bill-1)+30; }
-   // 简化：最长免息期 = 账单日次日 → 下下期还款日 的天数
-   // 账单日次日消费，本期账单（bill+1 后）计入下下期？——按行业惯例：账单日次日消费享受最长免息期
-   // 计算：bill 日消费 → 本账单周期（30 天）→ 到期还款日 due（若 due>bill 则当月，否则次月）
-   const graceForBillDay = due>bill ? (due-bill) : (30-bill+due); // 账单日当天消费
-   const bestGrace = due>bill ? (due-bill-1)+30+1 : (30-bill+due-1)+30+1; // 账单日次日消费→下下期还款
-   const minGrace = 0; // 还款日当天消费最短（≈0）
-   const bestDate = bill===31?1:(bill%28)+1; // 最佳消费日 = 账单日次日
+   const g=ccGrace(billRaw,dueRaw);
+   if(!g){ToolBox.setResult('result','<p class="tip-error">请输入有效的账单日与还款日。</p>');return;}
+   const bill=g.bill, due=g.due;
+   const maxGrace=g.maxGrace;
+   const graceForBillDay=g.graceForBillDay;
+   const bestDate=g.bestDate;
    // 免息期理财价值：大额消费若延后还款，资金可放货币基金吃息
    const interestBest = amt*yld/365*maxGrace;
    const interestBill = amt*yld/365*graceForBillDay;
@@ -287,21 +302,24 @@ function calcTool(){const bill=parseInt(document.getElementById('bill').value)||
      ['¥'+interestBest.toFixed(2),'最长免息期资金收益（'+yld*100+'%年化）'],
      ['¥'+gap.toFixed(2),'账单日次日 vs 当天消费收益差']
    ]);
+   if(g.adjusted){
+     html += '<div class="tip-mini" style="margin-top:8px;font-size:12.5px;color:var(--text-muted);">⚠ 29–31 日在部分月份不存在，计算已按当月最后一天（30 日）折算。</div>';
+   }
    html += '<div style="margin-top:12px;font-size:13px;"><b>免息期示意</b></div>'+
      '<table class="csv-prev" style="margin-top:6px;border-collapse:collapse;width:100%;font-size:12.5px;">'+
      '<tr><th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">消费日期</th>'+
      '<th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">入账账单</th>'+
      '<th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">最迟还款日</th>'+
      '<th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">免息期约</th></tr>'+
-     '<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">'+(bill+1<=28?bill+1:'1')+' 日</td><td style="border:1px solid #d1d5db;padding:5px 8px;">下期账单</td><td style="border:1px solid #d1d5db;padding:5px 8px;">下下期 '+due+' 日</td><td style="border:1px solid #d1d5db;padding:5px 8px;">'+maxGrace+' 天</td></tr>'+
-     '<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">'+bill+' 日</td><td style="border:1px solid #d1d5db;padding:5px 8px;">本期账单</td><td style="border:1px solid #d1d5db;padding:5px 8px;">'+due+' 日'+(due<=bill?'（次月）':'')+'</td><td style="border:1px solid #d1d5db;padding:5px 8px;">'+graceForBillDay+' 天</td></tr>'+
+     '<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">'+bestDate+' 日</td><td style="border:1px solid #d1d5db;padding:5px 8px;">下期账单</td><td style="border:1px solid #d1d5db;padding:5px 8px;">下下期 '+due+' 日</td><td style="border:1px solid #d1d5db;padding:5px 8px;">'+maxGrace+' 天</td></tr>'+
+     '<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">'+billRaw+' 日</td><td style="border:1px solid #d1d5db;padding:5px 8px;">本期账单</td><td style="border:1px solid #d1d5db;padding:5px 8px;">'+dueRaw+' 日'+(due<=bill?'（次月）':'')+'</td><td style="border:1px solid #d1d5db;padding:5px 8px;">'+graceForBillDay+' 天</td></tr>'+
      '</table>';
    html += '<div class="tip-mini" style="margin-top:10px;font-size:13px;color:var(--text-muted);">'+
      '大额消费安排在账单日次日最划算；取现与分期无免息期。'+
      '若将 ¥'+fmtMoney(amt)+' 延后 '+maxGrace+' 天还款并按 '+yld*100+'% 年化理财，可多赚约 ¥'+interestBest.toFixed(2)+'（需确保还款日按时还清，否则利息远超收益）。</div>';
    const __g1=html;ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));}
-function resetForm(){document.getElementById('bill').selectedIndex=0;
-      document.getElementById('due').selectedIndex=0;
+function resetForm(){document.getElementById('bill').value='10';
+      document.getElementById('due').value='25';
       document.getElementById('amt').value='10000';
       document.getElementById('yield').value='2.0';
       calcTool();}
@@ -311,16 +329,14 @@ function __credit_card_grace_periodNum(id){var e=document.getElementById(id);var
 function __credit_card_grace_periodExtras(){
     function __credit_card_grace_periodRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
-    var bill=parseInt(document.getElementById('bill').value)||10;
-    var due=parseInt(document.getElementById('due').value)||25;
-    var amt=num('amt'), yld=num('yield')/100; // 最长免息期：账单日次日消费 → 下期还款日
-    var maxGrace;
-    if(due>bill){ maxGrace=(due-bill-1)+30; } // 消费于 bill+1，本期账单日 bill+1 天后到期还款日 due
-    else { maxGrace=(due+30-bill-1)+30; } // 简化：最长免息期 = 账单日次日 → 下下期还款日 的天数 // 账单日次日消费，本期账单（bill+1 后）计入下下期？——按行业惯例：账单日次日消费享受最长免息期 // 计算：bill 日消费 → 本账单周期（30 天）→ 到期还款日 due（若 due>bill 则当月，否则次月）
-    var graceForBillDay = due>bill ? (due-bill) : (30-bill+due); // 账单日当天消费
-    var bestGrace = due>bill ? (due-bill-1)+30+1 : (30-bill+due-1)+30+1; // 账单日次日消费→下下期还款
-    var minGrace = 0; // 还款日当天消费最短（≈0）
-    var bestDate = bill===31?1:(bill%28)+1; // 最佳消费日 = 账单日次日 // 免息期理财价值：大额消费若延后还款，资金可放货币基金吃息
+    var billRaw=parseInt(document.getElementById('bill').value,10);
+    var dueRaw=parseInt(document.getElementById('due').value,10);
+    var g=ccGrace(billRaw,dueRaw);
+    if(!g) return;
+    var amt=num('amt'), yld=num('yield')/100;
+    var maxGrace=g.maxGrace;
+    var graceForBillDay=g.graceForBillDay;
+    var bestDate=g.bestDate;
     var interestBest = amt*yld/365*maxGrace;
     var interestBill = amt*yld/365*graceForBillDay;
     var gap = interestBest-interestBill;
@@ -362,12 +378,11 @@ else document.addEventListener('DOMContentLoaded', __credit_card_grace_periodBoo
 <script>
 function __ccChart(){
   if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar)return;
-  var bill=parseInt(document.getElementById('bill').value)||10;
-  var due=parseInt(document.getElementById('due').value)||25;
-  if(bill<1||bill>28||due<1||due>28)return;
-  var maxGrace, graceForBillDay;
-  if(due>bill){ maxGrace=(due-bill-1)+30; graceForBillDay=(due-bill); }
-  else { maxGrace=(due+30-bill-1)+30; graceForBillDay=(30-bill+due); }
+  var billRaw=parseInt(document.getElementById('bill').value,10);
+  var dueRaw=parseInt(document.getElementById('due').value,10);
+  var g=ccGrace(billRaw,dueRaw);
+  if(!g)return;
+  var maxGrace=g.maxGrace, graceForBillDay=g.graceForBillDay;
   var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
   TBKit.chart.bar('#credit_card_grace_periodChart',{title:en?'Interest-Free Period Comparison (Days)':'免息期对比（天）',labels:[en?'Best timing':'账单日次日消费',en?'Bill-day timing':'账单日当天消费'],series:[{name:en?'Days':'天数',data:[maxGrace,graceForBillDay]}]});
 }

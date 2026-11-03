@@ -200,8 +200,8 @@ s.parentNode.insertBefore(el, s);
       <canvas id="chart"></canvas>
     </div>
     <div class="legend">
-      <div class="legend-item"><span class="legend-dot" style="background:#667eea;"></span>购买力</div>
-      <div class="legend-item"><span class="legend-dot" style="background:#f44336;"></span>所需金额</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#667eea;"></span><span id="legendPP">购买力</span></div>
+      <div class="legend-item"><span class="legend-dot" style="background:#f44336;"></span><span id="legendNA">所需金额</span></div>
     </div>
   </div>
 
@@ -389,8 +389,9 @@ function getYearData(){
       purchasingPower = amt / factor;
       neededAmount = amt * factor;
     } else {
-      purchasingPower = amt * factor;
-      neededAmount = amt / factor;
+      // 反向：输入为未来金额，折现到现在 PV = FV / (1 + r)^n
+      purchasingPower = amt / factor;
+      neededAmount = amt * factor;
     }
     data.push({
       year: i,
@@ -408,6 +409,11 @@ var data = getYearData();
   var amt = +document.getElementById('amt').value || 0;
   var years = Math.min(Math.max(1, Math.floor(+document.getElementById('years').value || 0)), 1000);
 
+  var legendPP = document.getElementById('legendPP');
+  var legendNA = document.getElementById('legendNA');
+  if(legendPP) legendPP.textContent = mode === 'forward' ? '购买力' : '折现价值';
+  if(legendNA) legendNA.textContent = mode === 'forward' ? '所需金额' : '未来金额';
+
   var changePct = mode === 'forward'
     ? ((last.purchasingPower / amt - 1) * 100)
     : ((last.purchasingPower / amt - 1) * 100);
@@ -417,8 +423,8 @@ var data = getYearData();
     statHtml = '<div class="stat-card"><div class="val">¥' + ToolBox.formatNumber(last.purchasingPower, 0) + '</div><div class="lbl">' + years + '年后购买力</div></div>'
       + '<div class="stat-card"><div class="val">¥' + ToolBox.formatNumber(last.neededAmount, 0) + '</div><div class="lbl">所需金额</div></div>';
   } else {
-    statHtml = '<div class="stat-card"><div class="val">¥' + ToolBox.formatNumber(last.purchasingPower, 0) + '</div><div class="lbl">' + years + '年前等值</div></div>'
-      + '<div class="stat-card"><div class="val">¥' + ToolBox.formatNumber(last.neededAmount, 0) + '</div><div class="lbl">当时所需</div></div>';
+    statHtml = '<div class="stat-card"><div class="val">¥' + ToolBox.formatNumber(last.purchasingPower, 0) + '</div><div class="lbl">现在等值</div></div>'
+      + '<div class="stat-card"><div class="val">¥' + ToolBox.formatNumber(amt - last.purchasingPower, 0) + '</div><div class="lbl">通胀侵蚀额</div></div>';
   }
   const __g4=statHtml;document.getElementById('statGrid').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
 
@@ -545,27 +551,37 @@ function formatShort(n){
 }
 
 function renderTable(data){
-  var headers = mode === 'forward'
-    ? ['年份', '年初金额', '当年通胀', '年末购买力', '累计缩水']
-    : ['年份', '年末金额', '当年增值', '年初现值', '累计增值'];
   var rate = +document.getElementById('rate').value || 0;
-  var rows = data.slice(1).map(function(d, i){
-    var prev = data[i];
-    var change = mode === 'forward'
-      ? (prev.purchasingPower - d.purchasingPower)
-      : (d.purchasingPower - prev.purchasingPower);
-    var totalPct = mode === 'forward'
-      ? ((1 - d.purchasingPower / data[0].purchasingPower) * 100).toFixed(2) + '%'
-      : ((d.purchasingPower / data[0].purchasingPower - 1) * 100).toFixed(2) + '%';
-    return [
-      '第' + d.year + '年',
-      '¥' + ToolBox.formatNumber(prev.purchasingPower, 2),
-      '¥' + ToolBox.formatNumber(Math.abs(change), 2),
-      '¥' + ToolBox.formatNumber(d.purchasingPower, 2),
-      totalPct
-    ];
-  });
-  const __g6=ToolBox.createTable(headers, rows);document.getElementById('tableWrap').innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
+  if(mode === 'forward'){
+    var headers = ['年份', '年初金额', '当年通胀', '年末购买力', '累计缩水'];
+    var rows = data.slice(1).map(function(d, i){
+      var prev = data[i];
+      var change = prev.purchasingPower - d.purchasingPower;
+      var totalPct = ((1 - d.purchasingPower / data[0].purchasingPower) * 100).toFixed(2) + '%';
+      return [
+        '第' + d.year + '年',
+        '¥' + ToolBox.formatNumber(prev.purchasingPower, 2),
+        '¥' + ToolBox.formatNumber(Math.abs(change), 2),
+        '¥' + ToolBox.formatNumber(d.purchasingPower, 2),
+        totalPct
+      ];
+    });
+    const __g6=ToolBox.createTable(headers, rows);document.getElementById('tableWrap').innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
+  } else {
+    var headers2 = ['年份', '折现价值', '较上年减少', '累计缩水'];
+    var rows2 = data.slice(1).map(function(d, i){
+      var prev = data[i];
+      var shrink = prev.purchasingPower - d.purchasingPower;
+      var totalPct2 = ((1 - d.purchasingPower / data[0].purchasingPower) * 100).toFixed(2) + '%';
+      return [
+        '第' + d.year + '年',
+        '¥' + ToolBox.formatNumber(d.purchasingPower, 2),
+        '¥' + ToolBox.formatNumber(Math.abs(shrink), 2),
+        totalPct2
+      ];
+    });
+    const __g7=ToolBox.createTable(headers2, rows2);document.getElementById('tableWrap').innerHTML=(typeof __g7==='number'?(isFinite(__g7)?__g7:'—'):String(__g7).replace(/Infinity|NaN/g,'—'));
+  }
 }
 
 initCPIChips();

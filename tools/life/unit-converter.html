@@ -174,7 +174,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="🔄 单位换算器">🔄 Unit Converter</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="支持长度、重量、面积、体积、温度等15+分类的单位换算">Convert between any two units across length, mass, volume, area, temperature and more in a single page.</p>    <div class="formula-box">
       <div class="formula-title">📐 计算公式 / 原理</div>
-      <div class="formula-eq">通用单位换算（系数表制）：结果 = 数值 × 源单位因子 ÷ 目标单位因子（长度/质量等分类单位表，如 米:1、千米:1000、英里:1609.344、海里:1852）；温度专用换算——先归一到摄氏（华氏 (v−32)×5÷9、开尔文 v−273.15、兰金 (v−491.67)×5÷9、列氏 v×1.25），再换算到目标单位。校验：数值非数时对侧清空、不弹错。判据：无分级，双向即时换算，结果按精度自适应格式化展示。</div>
+      <div class="formula-eq">通用单位换算（系数表制）：结果 = 数值 × 源单位因子 ÷ 目标单位因子（长度/质量等分类单位表，如 米:1、千米:1000、英里:1609.344、海里:1852）；油耗类中的 km/L、mpg(US)、mpg(UK) 属于倒数单位，先归一到基准 L/100km、再从基准倒数换出（8 L/100km = 235.215 ÷ 8 ≈ 29.4 mpg US）；温度专用换算——先归一到摄氏（华氏 (v−32)×5÷9、开尔文 v−273.15、兰金 (v−491.67)×5÷9、列氏 v×1.25），再换算到目标单位。校验：数值非数时对侧清空、不弹错。判据：无分级，双向即时换算，结果按精度自适应格式化展示。</div>
       <div class="formula-desc">每个单位带一个「相对基准单位」的换算因子，先把数值折算到基准单位、再除以目标单位因子得到结果。温度类别不适用比例因子，改用 °C/°F/K/°R 的专用公式逐对换算。</div>
     </div>
 
@@ -736,6 +736,18 @@ function applyQuick(idx){
   convertFrom('from');
 }
 
+// 单位 → 基准单位：普通单位按因子折算；倒数单位（km/L、mpg 等「每单位燃料行驶距离」）
+// 与基准 L/100km 成反比，必须用 base = factor / value 换算。
+function unitToBase(cat, unitKey, val){
+  const unit = cat.units[unitKey];
+  return unit.reciprocal ? unit.factor / val : val * unit.factor;
+}
+// 基准单位 → 单位：倒数单位同样取反（value = factor / base），保证双向关系一致。
+function unitFromBase(cat, unitKey, baseVal){
+  const unit = cat.units[unitKey];
+  return unit.reciprocal ? unit.factor / baseVal : baseVal / unit.factor;
+}
+
 function convertTemp(value, from, to){
   let celsius;
   switch(from){
@@ -771,10 +783,8 @@ function convertFrom(source){
     if(cat.special && currentCategory === 'temperature'){
       result = convertTemp(val, fromUnit, toUnit);
     } else {
-      const fromFactor = cat.units[fromUnit].factor;
-      const toFactor = cat.units[toUnit].factor;
-      const baseVal = val * fromFactor;
-      result = baseVal / toFactor;
+      const baseVal = unitToBase(cat, fromUnit, val);
+      result = unitFromBase(cat, toUnit, baseVal);
     }
     document.getElementById('toValue').value = formatNumber(result);
   } else {
@@ -787,10 +797,8 @@ function convertFrom(source){
     if(cat.special && currentCategory === 'temperature'){
       result = convertTemp(val, toUnit, fromUnit);
     } else {
-      const fromFactor = cat.units[toUnit].factor;
-      const toFactor = cat.units[fromUnit].factor;
-      const baseVal = val * fromFactor;
-      result = baseVal / toFactor;
+      const baseVal = unitToBase(cat, toUnit, val);
+      result = unitFromBase(cat, fromUnit, baseVal);
     }
     document.getElementById('fromValue').value = formatNumber(result);
   }

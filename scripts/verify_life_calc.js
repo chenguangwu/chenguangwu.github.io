@@ -118,6 +118,47 @@ const CASES = [
     expect: ["100"],
     ref: "1 × factor(meter)=1 ÷ factor(cm)=0.01 = 100 → 结果 100",
   },
+  // ── 单位换算（油耗倒数单位：mpg 与 L/100km 成反比）──────────────
+  {
+    slug: "life/unit-converter",
+    // 首屏初始化仍按默认长度分类跑一次（页面 boot 会调 switchCategory），故先用长度单位
+    // 供初始化通过，再在 clicks 里切到油耗分类并注入 8 L/100km。
+    inputs: { fromValue: "1", fromUnit: "meter", toUnit: "centimeter" },
+    clicks: [
+      "try{switchCategory('fuel');}catch(e){} document.getElementById('fromUnit').value='liter_per_100km'; document.getElementById('toUnit').value='mile_per_gallon_us'; document.getElementById('fromValue').value='8'; convertFrom('from');",
+    ],
+    expect: ["29.401875"],
+    ref: "油耗倒数换算：mpg(US) 与基准 L/100km 成反比 ⇒ 235.215 ÷ 8 = 29.401875 mpg(US)"
+       + "（旧实现直接按比例因子 8×1÷235.215 = 0.0340108，注入失败即不命中）",
+  },
+  {
+    slug: "life/unit-converter",
+    inputs: { fromValue: "1", fromUnit: "meter", toUnit: "centimeter" },
+    clicks: [
+      "try{switchCategory('fuel');}catch(e){} document.getElementById('fromUnit').value='liter_per_100km'; document.getElementById('toUnit').value='km_per_liter'; document.getElementById('fromValue').value='8'; convertFrom('from');",
+    ],
+    expect: ["12.5"],
+    ref: "L/100km ↔ km/L 同为倒数关系：100 ÷ 8 = 12.5 km/L（旧实现 8×1÷100 = 0.08，注入失败即不命中）",
+  },
+  // ── 电话号码归属（中国固话区号切片）────────────────────────────
+  {
+    slug: "life/phone-lookup",
+    inputs: { input: "01012345678" },
+    expect: ["区号： 010 - 北京"],
+    ref: "010 = 长途前缀 0 + 2 位区号 10（号码本体 8 位）；旧实现按长度切 3 位得到 101 ⇒ 输出「0101 - 未知城市」，注入失败即不命中",
+  },
+  {
+    slug: "life/phone-lookup",
+    inputs: { input: "075512345678" },
+    expect: ["区号： 0755 - 深圳"],
+    ref: "0755 = 0 + 3 位区号 755（12 位号码）；旧实现按「12 位切 4 位」得到 07551 ⇒ 未知城市，注入失败即不命中",
+  },
+  {
+    slug: "life/phone-lookup",
+    inputs: { input: "01234567890" },
+    expect: ["区号： 0123 - 未知城市"],
+    ref: "未收录号段回退：前缀 123 不在号段表 ⇒ 按 3 位回退 0123，并保留「未知城市」提示（注入失败即不命中）",
+  },
   // ── 选址加权模型（五项加权求和）──────────────────────────────
   {
     slug: "life/assessor-target",

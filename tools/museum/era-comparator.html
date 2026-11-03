@@ -162,7 +162,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="对比两个朝代/时期的基本信息,了解历史发展">Era Comparator</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-  <div class="formula-eq">朝代对比口径：存续年数 = 结束年 − 开始年；同期对照以公元纪年为轴，标出各朝代起始先后与重叠区间；跨度可换算占中国信史总长（约公元前 2070 年至今约 4100 年）的比例，便于横向量化比较。</div>
+  <div class="formula-eq">朝代对比口径：存续年数 = 结束年 − 开始年；同期对照以公元纪年为轴，标出各朝代起始先后与重叠区间；跨度可换算占中国信史总长（约公元前 2070 年至今约 4100 年）的比例。人口对比先统一量纲：万 = 1×10⁴ 人、亿 = 1×10⁸ 人，再按「前选朝代人口 ÷ 后选朝代人口」求比值，并同时给出百分比与倍数口径。</div>
   
 </div>
 
@@ -281,15 +281,34 @@ ERAS.forEach((e, i) => {
 era1Sel.value = '13';
 era2Sel.value = '15';
 
+function parsePopNum(str){
+  if(!str)return null;
+  const m=String(str).match(/(\d+(?:\.\d+)?)/);
+  if(!m)return null;
+  let v=parseFloat(m[1]);
+  if(!isFinite(v)||v<=0)return null;
+  if(/亿/.test(str))v*=1e8;
+  else if(/万/.test(str))v*=1e4;
+  return v;
+}
+function popUnitOf(p){return p>=1e8?{f:1e8,u:'亿'}:{f:1e4,u:'万'};}
+function fmtPopNum(v){
+  const r=Math.round(v*100)/100;
+  return Math.abs(r-Math.round(r))<1e-9?String(Math.round(r)):r.toFixed(2).replace(/0+$/,'').replace(/\.$/,'');
+}
+function fmtPop(p){const o=popUnitOf(p);return fmtPopNum(p/o.f)+' '+o.u;}
+
 function eraInfo(e) {
   const startY = e.s < 0 ? `公元前 ${-e.s} 年` : `${e.s} 年`;
   const endY = e.e < 0 ? `公元前 ${-e.e} 年` : `${e.e} 年`;
+  const popNum = parsePopNum(e.pop);
+  const popLine = popNum ? `${e.pop}（统一量纲 ${fmtPop(popNum)}人）` : e.pop;
   return `<div><b>起止时间:</b> ${startY} - ${endY}</div>
     <div><b>都城:</b> ${e.cap}</div>
     <div><b>开国者:</b> ${e.founder}</div>
     <div><b>持续时间:</b> ${e.dur} 年</div>
     <div><b>疆域:</b> ${e.area} 平方公里</div>
-    <div><b>人口:</b> ${e.pop}</div>
+    <div><b>人口:</b> ${popLine}</div>
     <div><b>文化:</b> ${e.culture}</div>
     <div><b>科技:</b> ${e.tech}</div>
     <div><b>经济:</b> ${e.econ}</div>`;
@@ -329,11 +348,17 @@ function compare() {
     html += `<div class="diff-item">🔄 两个朝代存在 <b>${e1.e - e2.s}</b> 年的并存期</div>`;
   }
   if (e1.pop && e2.pop) {
-    const p1 = parseFloat(e1.pop.replace(/[^\d.]/g, ''));
-    const p2 = parseFloat(e2.pop.replace(/[^\d.]/g, ''));
+    const p1 = parsePopNum(e1.pop);
+    const p2 = parsePopNum(e2.pop);
     if (p1 && p2) {
-      const ratio = (Math.max(p1, p2) / Math.min(p1, p2)).toFixed(1);
-      html += `<div class="diff-item">👥 人口规模: <b>${e1.n}</b> ${e1.pop} vs <b>${e2.n}</b> ${e2.pop} (比值 ${ratio} 倍)</div>`;
+      const ratio = p1 / p2;
+      const ratioTxt = (Math.round(ratio * 100) / 100).toFixed(2);
+      const pctTxt = (ratio * 100).toFixed(1);
+      const revTxt = (Math.round((1 / ratio) * 100) / 100).toFixed(2);
+      const who = ratio >= 1
+        ? `${e1.n} 为 ${e2.n} 的 ${ratioTxt} 倍`
+        : `${e2.n} 为 ${e1.n} 的 ${revTxt} 倍`;
+      html += `<div class="diff-item">👥 人口规模: <b>${e1.n}</b> ${e1.pop}（${fmtPop(p1)}） vs <b>${e2.n}</b> ${e2.pop}（${fmtPop(p2)}） · 比值 ${ratioTxt}（相当于 ${pctTxt}%；${who}）</div>`;
     }
   }
   html += '</div></div>';

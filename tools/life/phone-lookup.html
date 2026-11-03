@@ -149,7 +149,7 @@ s.parentNode.insertBefore(el, s);
 <div class="card tool-card-accent" style="--tool-accent:#06B6D4;">
      <h2 data-zh="📞 电话号码查询">📞 Phone Number Lookup</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">归一化去空格 / 连字符 / 括号 / 点；带 + 时按国家码库 3→1 位前缀匹配；不带 + 时：^1[3-9]\d{9}$ 推断中国大陆手机（第 4 位映射运营商），^0\d{10,11}$ 判固话（12 位取 4 位区号、否则 3 位）</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">归一化去空格 / 连字符 / 括号 / 点；带 + 时按国家码库 3→1 位前缀匹配；不带 + 时：^1[3-9]\d{9}$ 推断中国大陆手机（第 4 位映射运营商），^0\d{10,11}$ 判固话（010 / 02x 取 2 位区号，其余按 3–4 位区号匹配号段表，绝不把号码首位并入区号）</div>
   <div class="formula-desc">本速查内容依据权威标准与公开资料整理，供快速查阅参考；具体数值以官方最新发布为准。 工具名称：电话号码查询 - 免费速查表工具，在线电话号码查询，免费使用。</div>
 </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入电话号码，查询其号段、归属地区与运营商信息（基于内置号段数据），用于快速识别来电归属地，结果在本地浏览器内处理。">Look up the number range, region and carrier of a phone number from built-in prefix data to identify where a call comes from.</p>
@@ -251,6 +251,22 @@ const CN_AREA_CODES = {
   '571':'杭州','591':'福州','731':'长沙','771':'南宁','898':'海口','898':'三亚',
   '891':'拉萨','871':'昆明','931':'兰州','951':'银川','971':'西宁','991':'乌鲁木齐'
 };
+function splitChinaLandline(num){
+  // 入参已带长途前缀 0。010 / 02x 的区号本体为 2 位（即整段 3 位），必须单独判定，
+  // 否则按长度切 3 位会把号码首位（如 0101… 的「1」）并进区号 ⇒ 输出「0101-未知城市」。
+  const rest = num.substring(1);
+  if(/^(?:10|2\d)/.test(rest) && rest.length >= 9){
+    return { area: rest.substring(0,2), code: '0' + rest.substring(0,2) };
+  }
+  // 其余按 3–4 位区号匹配内置号段表（先试 4 位长码，避免 0511 之类被 3 位短码截断误判）。
+  for(const len of [4,3]){
+    const code = rest.substring(0,len);
+    if(rest.length - len >= 7 && CN_AREA_CODES[code]) return { area: code, code: '0' + code };
+  }
+  // 未收录号段：12 位按 4 位区号、其余按 3 位，仍给「未知城市」提示。
+  const len = num.length >= 12 ? 4 : 3;
+  return { area: rest.substring(0,len), code: '0' + rest.substring(0,len) };
+}
 function validate(){
   const raw = document.getElementById('input').value.trim();
   const out = document.getElementById('output');
@@ -288,10 +304,9 @@ function validate(){
       html += `<p><strong>可能运营商：</strong>${opMap[third] || '未知'}</p>`;
     } else if(/^0\d{10,11}$/.test(nationalNum)){
       // Chinese landline starting with 0
-      const acLen = nationalNum.length === 12 ? 4 : 3;
-      const ac = nationalNum.substring(1, 1 + acLen);
+      const landline = splitChinaLandline(nationalNum);
       html += `<p><strong>推断国家：</strong>中国（固话）</p>`;
-      html += `<p><strong>区号：</strong>0${ac} - ${CN_AREA_CODES[ac] || '未知城市'}</p>`;
+      html += `<p><strong>区号：</strong>${landline.code} - ${CN_AREA_CODES[landline.area] || '未知城市'}</p>`;
     }
   }
   // Format display

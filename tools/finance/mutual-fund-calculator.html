@@ -600,17 +600,39 @@ function calcIRR(monthly, initial, months, finalValue, monthStart){
   }
   cashFlows[months] += finalValue;
 
-  var low = -0.5, high = 1;
-  for(var i = 0; i < 100; i++){
-    var mid = (low + high) / 2;
+  // 现金流全 0 / 无正负号变化时不存在有意义的 IRR，避免迭代伪收敛到 -600%
+  var hasNeg = false, hasPos = false;
+  for(var i = 0; i < cashFlows.length; i++){
+    if(cashFlows[i] < 0) hasNeg = true;
+    else if(cashFlows[i] > 0) hasPos = true;
+  }
+  if(!hasNeg || !hasPos) return NaN;
+
+  function npvAt(rate){
     var npv = 0;
     for(var j = 0; j < cashFlows.length; j++){
-      npv += cashFlows[j] / Math.pow(1 + mid, j);
+      npv += cashFlows[j] / Math.pow(1 + rate, j);
     }
+    return npv;
+  }
+
+  var low = -0.5, high = 1;
+  var npvLow = npvAt(low), npvHigh = npvAt(high);
+  if(!isFinite(npvLow) || !isFinite(npvHigh)) return NaN;
+  // 区间端点无符号变化 ⇒ 无根（利率超出 [-50%, 100%] 月度区间亦按无法计算处理）
+  if(!((npvLow > 0 && npvHigh < 0) || (npvLow < 0 && npvHigh > 0))) return NaN;
+
+  for(var i = 0; i < 100; i++){
+    var mid = (low + high) / 2;
+    var npv = npvAt(mid);
     if(npv > 0) low = mid;
     else high = mid;
   }
   var monthlyIRR = (low + high) / 2;
+  var scale = 0;
+  for(var k = 0; k < cashFlows.length; k++) scale = Math.max(scale, Math.abs(cashFlows[k]));
+  var residual = npvAt(monthlyIRR);
+  if(!isFinite(residual) || Math.abs(residual) > 1e-6 * Math.max(1, scale)) return NaN;
   return monthlyIRR * 12 * 100;
 }
 
@@ -642,7 +664,11 @@ function renderResult(r){
   resHtml += '<p>申购费率：<strong>' + r.buyFee.toFixed(2) + '%</strong> · 管理费率：<strong>' + r.manageFee.toFixed(2) + '%/年</strong></p>';
   resHtml += '<p>托管费率：<strong>' + r.custodyFee.toFixed(2) + '%/年</strong> · 赎回费率：<strong>' + r.sellFee.toFixed(2) + '%</strong></p>';
   resHtml += '<p>分红方式：<strong>' + (r.reinvest ? '红利再投资' : '现金分红') + '</strong> · 扣款时间：<strong>' + (r.monthStart ? '月初' : '月末') + '</strong></p>';
-  resHtml += '<p>年化收益率（IRR）：<strong style="color:var(--primary);">' + r.annualized.toFixed(2) + '%</strong></p>';
+  if(isFinite(r.annualized)){
+    resHtml += '<p>年化收益率（IRR）：<strong style="color:var(--primary);">' + r.annualized.toFixed(2) + '%</strong></p>';
+  } else {
+    resHtml += '<p>年化收益率（IRR）：<strong style="color:var(--danger);">无法计算（请输入有效现金流）</strong></p>';
+  }
   resHtml += '<p style="font-size:18px;font-weight:700;color:var(--primary);margin-top:8px;">期末总资产：¥' + ToolBox.formatNumber(r.finalBalance, 2) + '</p>';
 
   const __g3=resHtml;document.getElementById('res').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));

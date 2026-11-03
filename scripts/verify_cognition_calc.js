@@ -29,9 +29,21 @@ const CASES = [
     "window.__dsResult={fwd:6,bwd:4,seq:4.5,total:4.8,trials:24,norms:{fwd:6.5,bwd:5.5,seq:5.0}}; __dsEmr();"
   ],
   "expect": [
-    "总广度 4.8（三项条件均值）· 参考均值 5.7 → 低于参考均值 0.9 · 共 24 个试次"
+    "总广度 4.8（已完成 3 项均值）· 参考均值 5.7 → 低于参考均值 0.9 · 共 24 个试次"
   ],
-  "ref": "双态零交集：expect 依赖 clicks 注入的 __dsResult（fwd/bwd/seq/total/trials/norms）。判别器清空 clicks 后 __dsEmr 不执行、门诊记录不渲染，blob 无此串 ⇒ 非逃生项。判据：总广度与参考均值差值随注入值变化。"
+  "ref": "双态零交集：expect 依赖 clicks 注入的 __dsResult（fwd/bwd/seq/total/trials/norms）。判别器清空 clicks 后 __dsEmr 不执行、门诊记录不渲染，blob 无此串 ⇒ 非逃生项。已完成项数由 fwd/bwd/seq 三个非空值计得 3。"
+},
+{
+  "slug": "cognition/digit-span-test",
+  "clicks": [
+    "document.getElementById('dsResultBox').innerHTML='<p>单项均值：'+dsMeanCompleted({fwd:8})+'</p>';",
+    "window.__dsResult={fwd:8,total:dsMeanCompleted({fwd:8}),done:1,trials:9,norms:{fwd:6.5,bwd:5.5,seq:5.0}}; __dsEmr();"
+  ],
+  "expect": [
+    "单项均值：8",
+    "总广度 8.0（已完成 1 项均值）"
+  ],
+  "ref": "单项回归：只完成正背一项（广度 8）⇒ dsMeanCompleted({fwd:8}) 按已完成 1 项求均值 = 8（旧实现固定除以 3 得 2.7）；同时 __dsEmr(rec.done=1) 的总结文案显示「已完成 1 项均值」。断言含 dsMeanCompleted 的真实返回值，非默认态（默认无结果）可命中。"
 },
 {
   "slug": "cognition/human-benchmark",

@@ -153,7 +153,7 @@ s.parentNode.insertBefore(el, s);
     <div class="ref-cite" style="font-size:12.5px;line-height:1.75;color:var(--text-muted);background:var(--bg-hover);border-left:3px solid var(--primary);border-radius:0 8px 8px 0;padding:8px 12px;margin:0 0 14px;" data-zh="📖 范式来源：Wechsler D. Wechsler Adult Intelligence Scale—Fourth Edition (WAIS-IV). San Antonio, TX: Pearson; 2008. ｜ 数字广度分测验 · 顺背（Digit Span Forward）+ 倒背（Backward）+ 顺序排列（Sequencing）· 顺背成人典型 6–7 位、倒背 4–5 位">📖 Source: Wechsler D. Wechsler Adult Intelligence Scale—Fourth Edition (WAIS-IV). San Antonio, TX: Pearson; 2008. | Wechsler Digit Span subtest · forward + backward + sequencing · adult typical forward 6–7 digits, backward 4–5</div>
 <div class="formula-box">
       <div class="formula-title">📐 评分原理</div> <div class="formula-eq">期望序列按条件生成：顺背 = 原序列，倒背 = 原序列反转，排序背 = 原序列升序排列；逐位比对用户输入的数字串与期望串完全一致才判本试次正确；每个长度给 2 次机会，任一次正确即晋升并记该长度为已通过，两次全错则终止该条件；正确数 = 通过试次数 ÷ 总试次数</div>
-      <p class="formula-desc">每个长度呈现 2 次试次：2 次中至少答对 1 次即晋升到更长序列；同一长度连续 2 次全错则终止。广度 = 最后通过的长度，若该长度仅 1/2 次答对再加 0.5。总广度 = 正背、倒背、排序三项广度的均值；序列分 = 排序条件广度。WAIS 成人常模近似：正背 ≈ 6.5、倒背 ≈ 5.5、排序 ≈ 5.0（仅作粗略对照，非临床诊断）。</p>
+      <p class="formula-desc">每个长度呈现 2 次试次：2 次中至少答对 1 次即晋升到更长序列；同一长度连续 2 次全错则终止。广度 = 最后通过的长度，若该长度仅 1/2 次答对再加 0.5。总广度 = 按实际完成的测试项取均值（只测 1 项时结果即该项广度，不再固定除以 3）；序列分 = 排序条件广度。WAIS 成人常模近似：正背 ≈ 6.5、倒背 ≈ 5.5、排序 ≈ 5.0（仅作粗略对照，非临床诊断）。</p>
     </div>
 
     <div class="ds-ctl">
@@ -241,6 +241,23 @@ s.parentNode.insertBefore(el, s);
 </div>
 
 <script>
+/* 总广度只按「实际完成的测试轮数」计均值：只测 1 项时结果即该单项值，不再固定除以 3。 */
+function dsCompletedCount(spans){
+  var keys=['fwd','bwd','seq'],n=0;
+  if(!spans)return 0;
+  for(var i=0;i<keys.length;i++){
+    if(Object.prototype.hasOwnProperty.call(spans,keys[i])&&spans[keys[i]]!=null)n++;
+  }
+  return n;
+}
+function dsMeanCompleted(spans){
+  var keys=['fwd','bwd','seq'],n=dsCompletedCount(spans),sum=0;
+  if(!n)return 0;
+  for(var i=0;i<keys.length;i++){
+    if(Object.prototype.hasOwnProperty.call(spans,keys[i])&&spans[keys[i]]!=null)sum+=Number(spans[keys[i]])||0;
+  }
+  return Math.round(sum/n*10)/10;
+}
 (function () {
   'use strict';
 
@@ -438,10 +455,12 @@ s.parentNode.insertBefore(el, s);
 
   function compileAll() {
     var fwd = G.spans.fwd || 0, bwd = G.spans.bwd || 0, seqs = G.spans.seq || 0;
-    var total = (fwd + bwd + seqs) / 3;
+    var done = dsCompletedCount(G.spans);
+    var total = dsMeanCompleted(G.spans);
     var rec = {
       fwd: fwd, bwd: bwd, seq: seqs,
-      total: Math.round(total * 10) / 10,
+      total: total,
+      done: done,
       trials: G.trials.length,
       at: new Date().toISOString()
     };
@@ -455,7 +474,7 @@ s.parentNode.insertBefore(el, s);
     if (G.spans.bwd) { parts.push('倒背 <strong>' + G.spans.bwd.toFixed(1) + '</strong>'); }
     if (G.spans.seq) { parts.push('排序序列分 <strong>' + G.spans.seq.toFixed(1) + '</strong>'); }
     const __h0='<p>各条件广度：' + (parts.length ? parts.join(' · ') : '—') + '</p>' +
-      '<p>总广度（三项均值）：<strong>' + total.toFixed(1) + '</strong> · 共完成 <strong>' + G.trials.length + '</strong> 试次</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){$('dsResultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('dsResultBox').innerHTML=__h0;
+      '<p>总广度（已完成 ' + done + ' 项均值）：<strong>' + total.toFixed(1) + '</strong> · 共完成 <strong>' + G.trials.length + '</strong> 试次</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){$('dsResultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('dsResultBox').innerHTML=__h0;
     try { if (typeof __dsEmr === 'function') { __dsEmr(rec); } } catch (e) {}
     renderNorm(G.spans);
     drawChart(G.spans);
@@ -511,7 +530,7 @@ s.parentNode.insertBefore(el, s);
       ctx.fillStyle = muted; ctx.textBaseline = 'top';
       ctx.fillText(labels[i], cx, H - padB + 6);
     }
-    $('dsChartCap').textContent = '左三柱为本次三项广度，灰色柱为 WAIS 成人三项均值（≈5.67），仅供粗略对照。';
+    $('dsChartCap').textContent = '左三柱为本次各条件广度（未完成条件显示 0），灰色柱为 WAIS 成人三项均值（≈5.67），仅供粗略对照。';
     drawHistory();
   }
 
@@ -679,8 +698,11 @@ function __dsEmr(rec){
   var mb=isFinite(Number(N.bwd))?Number(N.bwd):5.5;
   var mq=isFinite(Number(N.seq))?Number(N.seq):5.0;
   var f=Number(rec.fwd)||0, b=Number(rec.bwd)||0, q=Number(rec.seq)||0;
+  var comp=Number(rec.done);
+  if(!isFinite(comp)||comp<=0){ comp=0; if(rec.fwd!=null)comp++; if(rec.bwd!=null)comp++; if(rec.seq!=null)comp++; }
+  if(!comp)comp=1;
   var tot=Number(rec.total);
-  if(!isFinite(tot)){ tot=Math.round((f+b+q)/3*10)/10; }
+  if(!isFinite(tot)){ tot=Math.round((f+b+q)/comp*10)/10; }
   var trials=Number(rec.trials)||0;
   var mm=Math.round((mf+mb+mq)/3*10)/10;
   var diff=Math.round((tot-mm)*10)/10;
@@ -701,8 +723,8 @@ function __dsEmr(rec){
     boxId:'dsResultBox',
     name:'数字广度（WAIS 数字广度范式在线改编）',
     nameEn:'Digit Span (online WAIS paradigm adaptation)',
-    result:'总广度 '+tot.toFixed(1)+'（三项条件均值）· 参考均值 '+mm.toFixed(1)+' → '+jZh+' '+Math.abs(diff).toFixed(1)+' · 共 '+trials+' 个试次',
-    resultEn:'Total span '+tot.toFixed(1)+' (3-condition mean) · reference mean '+mm.toFixed(1)+' · '+Math.abs(diff).toFixed(1)+' '+jEn+' · '+trials+' trials',
+    result:'总广度 '+tot.toFixed(1)+'（已完成 '+comp+' 项均值）· 参考均值 '+mm.toFixed(1)+' → '+jZh+' '+Math.abs(diff).toFixed(1)+' · 共 '+trials+' 个试次',
+    resultEn:'Total span '+tot.toFixed(1)+' (mean of '+comp+' completed condition'+(comp===1?'':'s')+') · reference mean '+mm.toFixed(1)+' · '+Math.abs(diff).toFixed(1)+' '+jEn+' · '+trials+' trials',
     noPos:true,
     extra:cz.length?('分条件广度：'+cz.join(' · ')):'分条件广度：未完成',
     extraEn:ce.length?('By condition: '+ce.join('; ')):'By condition: none completed',

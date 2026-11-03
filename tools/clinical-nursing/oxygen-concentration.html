@@ -132,7 +132,7 @@ s.parentNode.insertBefore(el, s);
 
 <div class="formula-box">
   <div class="formula-title">计算公式</div>
-  <div class="formula-eq">鼻导管 FiO₂(%) ≈ 21 + 4 × 流量(L/min)（上限约 44%）</div>
+  <div class="formula-eq">鼻导管 FiO₂(%) ≈ 21 + 4 × 流量(L/min)（＞6 L/min 已超出鼻导管可靠范围）</div>
   <p class="formula-desc" data-zh="经验估算式；普通面罩/储氧面罩另按分段换算，详见工具说明。">Oxygen Concentration</p>
 </div>
 
@@ -173,6 +173,7 @@ s.parentNode.insertBefore(el, s);
         <div class="big-num" id="fio2">28</div>
         <div class="big-unit">% FiO2</div>
         <div class="label" id="fio2Desc">鼻导管2L/min对应FiO2约28%</div>
+        <div class="tip-box tip-warn" id="o2Warn" style="display:none;margin:10px 0 0;text-align:left;"></div>
       </div>
       <div class="result-grid">
         <div class="result-card"><div class="num" id="o2Content">--</div><div class="lbl">估算PaO2 (mmHg)</div></div>
@@ -304,11 +305,16 @@ function calc(){
   var cfg = deviceConfig[currentDevice];
   var fio2 = 21;
   var desc = '';
+  var warn = '';
   
   if(cfg.formula === 'nasal'){
+    // 按经验公式如实估算，不做 44% 静默封顶；流量＞6 L/min 时提示已超出鼻导管可靠范围。
     fio2 = 21 + 4 * flow;
-    fio2 = Math.min(fio2, 44);
     desc = '鼻导管' + flow + 'L/min对应FiO2约' + Math.round(fio2) + '%';
+    if(flow > 6){
+      desc += '（＞6L/min 超出鼻导管可靠范围）';
+      warn = '⚠️ 鼻导管流量＞6 L/min 已超出可靠范围，按经验公式估算的浓度仅作参考、实际吸入浓度不可靠；建议改用普通面罩或高流量鼻导管。';
+    }
   } else if(cfg.formula === 'simple'){
     if(flow < 5){ fio2 = 35; desc = '普通面罩建议流量≥5L/min，当前流量偏低'; }
     else { fio2 = 35 + (flow - 5) * 5; fio2 = Math.min(fio2, 60); desc = '普通面罩' + flow + 'L/min对应FiO2约' + Math.round(fio2) + '%'; }
@@ -324,6 +330,12 @@ function calc(){
   window.__EMR_SUM={dev:currentDevice,dn:cfg.name,flow:flow,fio2:fio2,desc:desc,pao2:Math.round(fio2*5),minf:cfg.minFlow,maxf:cfg.maxFlow,maxfio2:cfg.maxFiO2,hum:cfg.humidity};
   const __g1=Math.round(fio2);document.getElementById('fio2').textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
   const __g2=desc;document.getElementById('fio2Desc').textContent=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+
+  var warnEl = document.getElementById('o2Warn');
+  if(warnEl){
+    warnEl.textContent = warn;
+    warnEl.style.display = warn ? 'block' : 'none';
+  }
   
   var pao2 = Math.round(fio2 * 5);
   const __g3=pao2;document.getElementById('o2Content').textContent=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
