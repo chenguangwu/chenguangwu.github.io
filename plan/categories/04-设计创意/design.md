@@ -88,3 +88,71 @@
 
 ### 续查覆盖
 - 新抽查 `tools/design/contrast-checker.html`、`tools/design/color-palette-generator.html`、`tools/design/font-preview.html` 共 3 页，新增 5 条（0 条高优）与 3 条留存建议；为源码静态核查，未做浏览器、EN 运行态探针、移动端或门禁验证。
+
+## 2026-11-03 续查（并行批 G）
+
+### D-N6 景深计算器「1英寸」与「全画幅」共用 value=1，默认状态名不符实（高，确认源码缺陷）
+- 问题：传感器下拉把「1英寸」写成 `value="1"` 且带 `selected`，与「全画幅 (35mm)」重复；页面默认显示「1英寸」，实际按全画幅 CoC 计算，且用户永远选不到 1 英寸对应的 2.7x。
+- 证据：`tools/design/depth-of-field-calculator.html:153`（`<option value="1">全画幅…</option>` … `<option value="1" selected>1英寸</option>`）与 `:240-247`（`coc` 表已有 `2.7:0.011` 键，但 `c=coc[crop]||0.03`）。复现：默认打开页面（显示「1英寸」）→ `crop=+value=1` → `c=0.03`；50mm、f/1.8、对焦 2m 得 `h=46.296m`、景深 `1.92m ~ 2.09m`；若按 1 英寸 CoC 0.011mm 计算应为 `h=126.26m`、`1.97m ~ 2.03m`。
+- 影响：`tools/design/depth-of-field-calculator.html`；常用画幅选项形同虚设，默认结果与界面标注不符，按 1 英寸取景布光会高估景深。
+- 方案：为「1英寸」分配独立值（如 2.7）并去重 option value；`coc` 缺失时显式提示而非静默回退 0.03，默认值改为与文案一致的画幅。
+
+### D-N7 对焦距离超过超焦距时近点被判为无穷，页面输出「Infinitym ~ ∞」（中，确认函数缺陷）
+- 问题：近点与远点共用一个「`s<=h`」条件，越过超焦距后近点也被置为 `Infinity`；页面只做 `Infinity` → 「—」的字符串替换，留下「—m ~ ∞」和「Infinitym」。
+- 证据：`tools/design/depth-of-field-calculator.html:250-252,258-266`。复现（node 内存执行原公式）：焦距 24mm、f/8、对焦 5m、全画幅 → `h=2.4m`，`s=5000mm>h` 使 `near=far=Infinity` → `dofTotal` 显示 `—m ~ ∞`、近点卡片为 `Infinitym`、`indicator` 的 `left` 为 `0%`；按标准公式近点应为 `1.63m`、远点为 `∞`。
+- 影响：`tools/design/depth-of-field-calculator.html`；风光常用的「对焦到超焦距」场景完全拿不到近点数值，结果文案夹带非法值。
+- 方案：近点始终算 `h*s/(h+s-f)`，仅在 `s>=h+f` 时把远点判 `∞`；对 `∞` 用明确文案（如「近点 1.63m ~ ∞」），不要把数值直接转字符串再替换。
+
+### D-N8 焦距换算器空/零焦距仍输出 0mm、180° 视角与「超广角」（中，确认函数缺陷）
+- 问题：焦距取 `+value||0` 后不校验即参与除法，0mm 时 `atan(w/0)=90°` 使视角恒显示 180°×180°，焦段分类落到「超广角」，页面没有任何错误提示。
+- 证据：`tools/design/focal-length-equivalent.html:439-453,455-472`（输入 `:178` 声明 `min="1"`，但脚本未使用约束）。复现（node 内存执行原函数）：焦距清空（`focal=""`）→ 结果卡 `0mm`、`= 0.0mm`、`全画幅等效 0mm`、`焦段类型 超广角`、`视角: 180.0° × 180.0° → 180.0° × 180.0°`；正常 50mm（全画幅→APS-C 1.6x）时为 `= 31.3mm`、视角 `39.6° × 27.0°`。
+- 影响：`tools/design/focal-length-equivalent.html`；用户误清输入框后得到的是一组看似合理、实际无意义的数值，可能被直接抄进选型表。
+- 方案：焦距必须为正数才计算，空/0/负数显示提示并清空结果；补充等价校验区间（如 1–2000mm），并让 `min` 与脚本校验共用同一常量。
+
+### D-N9 照片存储超额时进度条锁死 100% 且不提示超出（中，确认函数缺陷）
+- 问题：`Math.min(100, …)` 把超过卡容量的占用压成 100%，页面只显示「100.0%」和无上限的「此卡可存储约 N 张」，看不出已超出多少；可存张数只按单张照片大小计算，未扣视频占用。
+- 证据：`tools/design/photo-storage-calculator.html:454-456,470,479-495`（格式倍率 `:396-404`、`getBaseSize :415-418`）。复现（node 内存执行原函数）：45MP + RAW 无压缩 + 14bit + 2000 张 + 64GB 卡 → 单张 `75.10 MB`、照片总计 `146.68 GB`，进度条 `100.0%`，仍显示「此卡可存储约 872 张」且无红色溢出提示。
+- 影响：`tools/design/photo-storage-calculator.html`；备卡决策会被「刚好 100%」误导，实际需 2–3 张卡或降规格。
+- 方案：按真实占用渲染进度（>100% 时封顶但叠加「超出 X GB / 需 N 张卡」提示）；可存张数扣除视频占用并分列展示。
+
+### D-N10 图片旋转把透明像素强制填成白底（中，确认源码缺陷）
+- 问题：旋转前用 `fillStyle='#fff'` 铺满整幅画布再绘制图片，透明 PNG 的所有透明区域被拍平成白色，导出后无法恢复；页面也未提供背景色/透明选项。
+- 证据：`tools/design/image-rotator.html:274-290`（`:284-285` 白底、`:289` 直接 `canvas.toDataURL('image/png')`）。复现（源码路径确认）：上传带 alpha 的 PNG 并点「旋转」→ 画布先被白色 `fillRect` 覆盖，再 `drawImage` 叠加原图，透明处输出为 `#ffffff`。
+- 影响：`tools/design/image-rotator.html`；设计素材（图标、贴纸、免抠图）一旦经此旋转就丢失透明通道，属于不可逆的交付缺陷。
+- 方案：默认不清屏（保留透明），另提供「透明/纯色/棋盘格预览」选项；导出前提示当前背景模式。
+
+### D-N11 换图后仍可下载上一次旋转结果（高，确认源码缺陷）
+- 问题：上传回调只替换 `origImg` 与预览，未清空 `lastURL`；下载函数仅判断 `lastURL` 非空即导出，换图后不重新点「旋转」也能下载旧图。
+- 证据：`tools/design/image-rotator.html:260-273`（change 处理无 `lastURL=''`）、`:289`（仅 `generate()` 写 `lastURL`）、`:292-296`（`downloadImg` 直接取 `lastURL`）。复现（源码路径确认）：上传 A 并旋转下载 → 再上传 B、不点「旋转」直接点「下载」→ 导出 A 的旋转 PNG。
+- 影响：`tools/design/image-rotator.html`；与已记录的 `image-resizer` 同类跨页复现，误交付旧图风险高，且预览显示 B 会让人误以为导出的是 B。
+- 方案：上传、改角度、切换预设时统一使 `lastURL` 失效并禁用下载，导出前校验「当前图 + 当前角度」与生成时一致，状态栏显示「结果已过期，请重新旋转」。
+
+### D-N12 二维码编辑后未重新生成仍可下载旧码，生成失败也保留旧结果（中，确认源码缺陷）
+- 问题：`lastURL` 只在生成成功回调里更新，输入文本/尺寸/纠错级别变化不会清空它；生成失败分支只改预览文案，`lastURL` 仍是上一次的码，下载按钮照常可用。
+- 证据：`tools/design/qr-code-styled.html:264-295`（`:289` 成功才写 `lastURL`、`:285-288` 失败仅 `preview.textContent`）、`:296-300`（`downloadImg` 只判 `lastURL` 非空）。复现（源码路径确认）：生成 `https://example.com` 后把文本改成新地址，不点「生成」直接下载 → 得到旧地址二维码；输入超长文本使 `QRCode.toCanvas` 回调 `err` 后，预览显示生成失败但仍可下载上一张。
+- 影响：`tools/design/qr-code-styled.html`；二维码常被用于支付/活动链接，导出旧码会直接指向废弃地址；失败态还可下载更易误导。
+- 方案：文本/尺寸/纠错级别变化即令结果失效并禁用下载；生成失败时清空 `lastURL` 并保持按钮禁用，同时给出容量/纠错建议。
+
+### D-N13 间距比例尺层级/基础值越界被静默截断，输入框不同步（低，确认函数缺陷）
+- 问题：`levels` 被 `Math.max(5, Math.min(15, …))` 静默夹取，`base` 用 `parseInt` 截断小数；生成结果与输入框显示不一致，且无提示。
+- 证据：`tools/design/spacing-scale.html:271-273`（表单 `:168,179` 声明 `min/max`，脚本另行夹取）。复现（node 内存执行原函数）：`levels=3`、base 4、ratio 1.25 → 实际生成 5 档 `4 / 5 / 6.3 / 7.8 / 9.8`，输入框仍显示 3；`levels=20` → 15 档；`base=2.5` → `parseInt` 得 2。
+- 影响：`tools/design/spacing-scale.html`；按错档数生成 token 后复制到设计系统，间距阶梯数量与预期不符。
+- 方案：越界输入即时提示并把夹取后的值回写输入框；`base` 明确整数或支持 0.5 步进；输出区标注实际档数。
+
+### D-N14 px↔rem 转换器对空值/非正根字号静默代入（低，确认函数缺陷）
+- 问题：`px` 空值按 0 参与计算、`root<=0` 直接改成 16 并继续输出，输入框保留原值，页面未提示。
+- 证据：`tools/design/px-to-rem.html:227-232`（输入 `:115,119` 无 `min`）。复现（node 内存执行原函数）：px 清空 → `0px = 0.0000rem`；`root=-8` 或清空 → 结果按 `1rem = 16px` 计算（`16px = 1.0000rem`），而输入框仍为 `-8`/空。`rem-to-px.html:230-235` 为同构代码，同样以 `root<=0 → 16` 兜底。
+- 影响：`tools/design/px-to-rem.html`、`tools/design/rem-to-px.html`；换算基准被悄悄换成 16px，用户照结果改样式会得到非预期尺寸。
+- 方案：空值与 `root<=0` 显示明确错误并清空结果；输入加 `min="1"`；`rem`/`px` 负值同样校验，两个页面共用同一校验逻辑。
+
+### 留存优化
+- `tools/design/depth-of-field-calculator.html`：补「套用超焦距」按钮（把对焦距离一键设为 h 并展示「近点 X 米 ~ ∞」），并画出近/远点与超焦距的相对位置；景深条目前已存在，只差数据闭环。
+- `tools/design/focal-length-equivalent.html`：画幅对比行文案改为「全画幅 50mm 视角 ≈ 该画幅 31mm」，并删除未使用的 `eqFocal`；提供两画幅并排取景框预览，比单行数字更易选镜头。
+- `tools/design/photo-storage-calculator.html`：补 3-2-1 备份冗余（所需总容量/卡数）与「剩余容量还能拍多少张」，贴近真实备卡场景。
+- `tools/design/image-rotator.html`：增加透明/纯色背景选择、任意角度自动裁去白边、批量 90°/180°/270° 对勾选项，减少重复上传。
+- `tools/design/qr-code-styled.html`：下载前展示「当前内容 + 纠错级别 + 模块数」确认条，并补 SVG 导出（印刷放大不糊）。
+- `tools/design/spacing-scale.html`：允许自定义 token 前缀（`--space` / `--gap`）与导出 JSON（Tailwind/Theme UI 可直接消费），提升在设计系统里的复用率。
+
+### 续查覆盖
+- 本轮抽查 7 页：`tools/design/depth-of-field-calculator.html`、`tools/design/focal-length-equivalent.html`、`tools/design/photo-storage-calculator.html`、`tools/design/spacing-scale.html`、`tools/design/image-rotator.html`、`tools/design/qr-code-styled.html`、`tools/design/px-to-rem.html`；另对 `tools/design/rem-to-px.html` 做同构源码对照（未单独列条）。
+- 新增 9 条（D-N6–D-N14，其中高优 2 条）与 6 条留存建议。证据均为源码行号 + node 内存复算或源码路径推演；未做浏览器交互、EN 运行态探针、移动端与门禁验证，涉及 Canvas/二维码回调的条目为静态确认而非运行态实测。

@@ -35,3 +35,76 @@
 - `tools/ophthalmology/visual-acuity-converter.html:164-169,357-360,391-413` 「无光感」按钮传 `logMAR=3.0` 后按普通数值显示 Snellen 20/20000、ETDRS −95，未说明这是内部映射；定性记录不应表现为可精确换算的字母数。
 - 方案：区分定性记录与数值视力，对不可可靠换算的字段标「不适用」，保留原始类别及来源供复制；具体映射由专业人员核定。
 - 覆盖：仅抽查上述专科 2 页，其他专科未逐页审计，未做真实浏览器、权威标准或门禁验证。
+
+## 2026-11-03 续查（并行批 G）
+
+> 本批覆盖 8 页：`cardiology/{chads2-vasc,has-bled,grace-score,timi-score,nt-probnp,ckd-epi,statin-dose}`、`clinical-lab/blood-gas-analysis`。均为源码阅读 + node 内存复算，未做真实浏览器、英文态、移动端、权威标准或门禁验证。
+
+### 03-74 GRACE 空值/0 值未拦截，SBP 清空反加 58 分（中，确认）
+- 描述：`calc()` 对所有数值输入仅做 `parseFloat(...)||0`，无必填/范围守卫；SBP 为 0 时 `sbpScore(0)` 命中 `<80 → 58`，肌酐为 0 时命中 `<0.4 → 1`。
+- 证据：`tools/cardiology/grace-score.html:290-298`（SBP 分段）、`299-307`（肌酐分段）、`310-329`（无守卫）。node 复算：age=68、hr=95、SBP 留空、cr=1.2、killip=II、enzymes 勾选 → 39+15+58+7+20+14=**153 分（高危 >140）**；SBP 填 130 → 39+15+34+7+20+14=**129 分（中危）**。全部数值留空、killip=I、enzymes 勾选 → 0+0+58+1+0+14=**73 分（低危）**。
+- 影响：漏填一项收缩压即可把中危抬成高危，或把空表判成低危，评分与处置建议失真。
+- 方案：接入同目录 `ckd-epi` 已有的 `__tbInputGuard` 口径，对 age/SBP/HR/cr 做必填与正值校验；空输入时清空结果并提示，不进入评分分支。
+
+### 03-75 TIMI STEMI 可选最高 11 分却显示 /14（中，确认）
+- 描述：STEMI 页总分分母写死 `/14`，但下拉项与复选项的可选上限合计仅 11 分；死亡率映射还按 >9 分给出 `~50%`，而 12–14 分不可达。
+- 证据：`tools/cardiology/timi-score.html:149-184`（年龄 0/2/3、血压心率 0/1/2、Killip 0/1/2、体重 0/1、三项复选各 1）、`:336`（`score=age+bp+killip+wt+...`）、`:362,368`（`score+'/14'`）。node 复算：取每项最大 3+2+2+1+1+1+1=**11**，页面仍输出 `11/14`；`:346-357` 对 11 分输出 `~50%`。
+- 影响：评分分母与可选上限自相矛盾，用户会误以为少录 3 分；死亡率表的 12–14 分档位永远无法命中。
+- 方案：二选一并同步死亡率分档——① 按页面现有分项把分母改为 `/11` 并重排死亡风险档；② 补齐缺失分项后恢复 `/14`。具体分项权重需领域专家核定，当前只能确认页面内部不一致。
+
+### 03-76 血气 pH 正常但 PaCO2↑、HCO3↓ 被判「正常酸碱平衡」（高，确认）
+- 描述：pH 落在 7.35–7.45 时仅识别「PaCO2↑且HCO3↑」与「PaCO2↓且HCO3↓」两种组合，其余一律判正常；PaCO2 升高同时 HCO3 降低的反向混合紊乱被漏掉。
+- 证据：`tools/clinical-lab/blood-gas-analysis.html:282-286`。node 复算：pH=7.40、PaCO2=50、HCO3=20 → `primary='正常酸碱平衡'`；pH=7.40、PaCO2=55、HCO3=18 → 同样输出 `正常酸碱平衡`。
+- 影响：呼酸合并代酸（或代酸合并呼酸）被报成「正常」，直接漏诊混合性酸碱失衡。
+- 方案：pH 正常分支补齐 `PaCO2>45 && HCO3<22`（及反向 `PaCO2<35 && HCO3>26`）组合，输出「混合性/代偿方向待定」并引导看 AG、代偿公式，不直接给正常结论。
+
+### 03-77 血气 pH 正常但 PaCO2↓、HCO3↓ 一律判「呼吸性碱中毒+代偿」（中，确认）
+- 描述：`PaCO2<35 && HCO3<22` 被单一解释为呼碱代偿；同一组血气也符合代酸经呼吸代偿后 pH 回到正常，页面未区分。
+- 证据：`tools/clinical-lab/blood-gas-analysis.html:282-285`。node 复算：pH=7.36、PaCO2=30、HCO3=20 → `primary='呼吸性碱中毒+代偿'`。
+- 影响：代偿性代谢性酸中毒被贴成呼吸性碱中毒，原发紊乱方向可能相反。
+- 方案：该分支改为「pH 正常、PaCO2↓、HCO3↓：代酸代偿 vs 呼碱代偿，需结合 AG/阴离子间隙与病史」，不输出确定性原发诊断；是否合并代酸由 AG 分支补充。
+
+### 03-78 HAS-BLED 3 分分级公式说明与计算结果矛盾（中，确认）
+- 描述：页首公式说明写「0–2 低危、3 中风险、≥4 高危」，`calc()` 实际把 3 分归为「高危」并给 3.74% 大出血率；下方表格与 info-box 又写「≥3 高危」。
+- 证据：`tools/cardiology/has-bled.html:121`（公式说明）对 `:317-321`（calc 分支：`score===2` 中危、`score===3` 高危 3.74%、`score===4` 很高危）。node 复算：htn=1、renal=1、elderly=1 → **score=3 → risk='高危'、bleedRate='3.74%'**。
+- 影响：同一页面三种口径，使用者无法确定 3 分到底算中危还是高危。
+- 方案：以计算分支为准统一公式说明与表格文案；若确需保留「3 分中风险」口径，则 calc、表格、info-box 同步改，禁止只改一处。
+
+### 03-79 CHA₂DS₂-VASc 女性单纯性别分仍展示 0.6% 年卒中风险（中，确认）
+- 描述：女性固定 +1 分，但建议文案明确「女性单独 1 分不增加卒中风险」；结果卡仍按分数查表显示 0.6% 年风险，两个输出互相打脸。
+- 证据：`tools/cardiology/chads2-vasc.html:291`（`sex==='f'` +1）、`:294-303`（按 score 查 0.2/0.6/2.2…）、`:311-312`（女性 `score<=1` 给「无需 OAC，女性单独 1 分不增加卒中风险」）。node 复算：sex=f、age<65、无其他危险因素 → **score=1、riskRate='0.6%'**，同屏建议为「无需 OAC / 不增加风险」。
+- 影响：患者看到 0.6% 年风险会以为需要抗凝，与「无需 OAC」结论冲突。
+- 方案：女性且 `score===1` 时把年风险显示为「与 0 分同（单纯性别不计风险）」或标注「该 0.6% 适用于男性 1 分」，不要直接套通用分档。
+
+### 03-80 NT-proBNP 空输入直接输出「急性心衰排除」结论（中，确认）
+- 描述：年龄与 NT-proBNP 均无必填校验，空值被 `||0` 转成 0；NT=0 命中 `<300`，年龄=0 命中 `<50岁`，页面直接给出排除诊断与 450 pg/mL 截断值。
+- 证据：`tools/cardiology/nt-probnp.html:258-283`（`parseFloat(...)||0`、`if(nt<excludeCutoff)` 排除分支）。node 复算：age 留空、NT-proBNP 留空 → `ageGroup='<50岁'`、`includeCutoff=450`、`dx='急性心衰可能性低(排除)'`。
+- 影响：未录入任何检验值即可得到「心衰排除」的临床结论，易被误读为真实判读。
+- 方案：加入必填守卫（age 1–120、NT-proBNP>0），空值/0 时清空结果并提示，不渲染诊断与预后卡。
+
+### 03-81 他汀换算在 56–62% 区间误报「单药不足需联合」（中，确认）
+- 描述：`needEzetimibe` 以固定阈值 `requiredReduction>55` 判断，未与 `statinData` 中最大单药降幅（瑞舒伐他汀 40mg = 63%）比较；所需降幅 56–62% 时单药本可覆盖，却提示联合依折麦布。
+- 证据：`tools/cardiology/statin-dose.html:253-259`（最大降幅 63）、`:295-297`（`if(requiredReduction>55) needEzetimibe=true`）、`:324-337`（输出「单药最大降幅可能不足，建议联合治疗」）。node 复算：LDL=2.5、目标=1.0 → required=`(2.5−1.0)/2.5×100`=**60.0%**、`needEzetimibe=true`，而同表瑞舒伐他汀 40mg 标称 **63%** 可单药达标。
+- 影响：本可单药达标者被推荐加药，增加不必要联合治疗与费用。
+- 方案：由 `statinData` 动态求最大降幅 `maxStatinReduction`，仅当 `requiredReduction > maxStatinReduction` 时提示联合；文案中的「最大降幅~55%」同步改为实际最大值。
+
+### 03-82 他汀换算清空 LDL 后仍输出「无需他汀」（低，确认）
+- 描述：LDL 空值被 `||0` 转成 0，`requiredReduction=0`，直接落入「无需他汀」分支，并显示「预计达标后 LDL-C = 0.00」。
+- 证据：`tools/cardiology/statin-dose.html:264`（`parseFloat(...)||0`）、`:268`（`ldl>0?...:0`）、`:276`（`else` → 无需他汀）。node 复算：LDL 留空、目标 1.8 → required=**0%**、intensity=**无需他汀**、predictedLDL=**0.00 mmol/L**。
+- 影响：未填当前 LDL 时给出「已达目标、无需他汀」的错误结论。
+- 方案：LDL 必填且 >0，空值/0 时清空结果并提示；目标值下拉不受影响。
+
+### 03-83 CKD-EPI 未拦截 0 岁与负年龄（低，确认）
+- 描述：`__tbInputGuard` 的必填项含 age/scr/uacr，但负值白名单 `__N` 只有 `scr`；年龄为 0 或负数时照常代入 `0.9938^age`，eGFR 被抬高。
+- 证据：`tools/cardiology/ckd-epi.html:269-333`（`_REQ=['age','scr','uacr']`、`__N={'scr':'scr'}`）、`:339`（`parseFloat(age)||0`）。node 复算（男性、Scr=1.3）：age=65 → **61.0**；age=0 → **91.3**；age=−10 → **97.2**（`0.9938^-10`>1）。
+- 影响：误填 0/负年龄时 eGFR 与 CKD 分期整体偏高，可能把 G3 报成 G2。
+- 方案：年龄按 18–120（或至少 >0）校验并报错；UACR 缺失是否应阻断纯 eGFR 计算，需产品确认后决定（当前三字段均为必填）。
+
+### 留存优化
+- 心内数值页统一接入同一套输入守卫：`ckd-epi` 已有 `__tbInputGuard`，而 `grace-score`、`timi-score`、`nt-probnp`、`statin-dose` 仍是 `||0` 裸解析，建议抽成共享脚本后逐页替换，避免同类空值缺陷反复出现。
+- 把静态表格/公式说明中的分档阈值改为与 `calc()` 常量同源（如 HAS-BLED 3 分、TIMI `/14`、CHA₂DS₂-VASc 女性 1 分），防止「说明一套、计算一套」。
+- 血气分析建议补一张「pH 正常时的四象限（PaCO2↑/↓ × HCO3↑/↓）」判定表，并在结果中显式输出 AG/代偿方向，减少单向标签误判。
+
+### 续查覆盖
+- 本批逐页阅读并内存复算 8 页：`cardiology/chads2-vasc`、`cardiology/has-bled`、`cardiology/grace-score`、`cardiology/timi-score`、`cardiology/nt-probnp`、`cardiology/ckd-epi`、`cardiology/statin-dose`、`clinical-lab/blood-gas-analysis`。
+- 未覆盖：`cardiology` 其余页（如 `statin` 之外的血脂/抗凝页、`ckd-epi` 同目录页）、`nephrology` 其余页、`endocrinology` 其余页；`homa-ir` 仅初读未成条。未做浏览器、英文态、移动端、真实设备与门禁验证，结论均为静态源码 + node 复算口径。
