@@ -276,13 +276,19 @@ function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+=
 function calcTool(){
               var __ig=__tbInputGuard(['loan', 'val'],["贷款额 (元)", "抵押物价值 (元)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const loan=num('loan'),val=num('val');
+            if (!(loan > 0) || !(val > 0)) {
+                ToolBox.setResult('result','<p style="color:var(--danger);">⚠ 贷款额与抵押物价值均须大于 0，请输入正数后再计算。</p>');
+                return;
+            }
             const LTV=loan/val*100;
             const __g2=dataGrid([
                 [LTV.toFixed(1),'贷款价值比 LTV (%)'],
                 [(val-loan).toFixed(2), '自有资金 (元)'],
                 [(val/Math.max(loan,1)).toFixed(3), '价值覆盖倍数'],
                 [((val-loan)/Math.max(val,1)*100).toFixed(2), '首付比例 (%)']
-            ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
+            ]);
+            const warn = loan > val ? '<p style="color:#ff9800;margin-top:8px;">⚠ 贷款额高于抵押物价值，LTV 已超过 100%，自有资金为负（首付比例小于 0），通常须降低贷款额或追加担保。</p>' : '';
+            ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')) + warn);
         }
 function resetForm(){document.getElementById('loan').value = '800000';
       document.getElementById('val').value = '1000000';

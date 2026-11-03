@@ -271,19 +271,32 @@ function setMode(m){
 }
 
 function convert(){
-  var v = parseFloat(document.getElementById('val1').value);
-  if(isNaN(v)){ document.getElementById('val2').value=''; const __h0='';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0; return; }
+  var raw = document.getElementById('val1').value;
+  var v = parseFloat(raw);
+  var val2 = document.getElementById('val2');
+  var result = document.getElementById('result');
+  function fail(msg){
+    val2.value='';
+    var bar=document.getElementById('hba1c_converterRefBar');
+    if(bar) bar.innerHTML='';
+    result.innerHTML='<p style="color:var(--danger)">⚠ '+msg+'</p>';
+  }
+  var safe = String(raw).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  if(isNaN(v)){ fail('请输入有效数值后再换算，结果已清空。'); return; }
   var hba1c, eag_mmol, eag_mgdl;
   if(mode==='hba1c'){
+    if(!(v>=3 && v<=20)){ fail('HbA1c 需在 3–20% 之间，当前输入「'+safe+'」无效，结果已清空。'); return; }
     hba1c = v;
     eag_mgdl = 28.7*hba1c - 46.7;
     eag_mmol = eag_mgdl/18;
-    document.getElementById('val2').value = eag_mmol.toFixed(1);
+    val2.value = eag_mmol.toFixed(1);
   } else {
+    if(!(v>=1 && v<=35)){ fail('血糖需在 1–35 mmol/L 之间，当前输入「'+safe+'」无效，结果已清空。'); return; }
     eag_mmol = v;
     eag_mgdl = eag_mmol*18;
     hba1c = (eag_mgdl + 46.7)/28.7;
-    document.getElementById('val2').value = hba1c.toFixed(1);
+    if(!(hba1c>=3 && hba1c<=20)){ fail('反算 HbA1c 为 '+hba1c.toFixed(1)+'%，超出 3–20% 有效范围，结果已清空。'); return; }
+    val2.value = hba1c.toFixed(1);
   }
   // interpretation
   var level, color, desc;

@@ -128,7 +128,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="🧠 脑脊液常规鉴别器">Csf Analysis</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入脑脊液常规/生化参数，鉴别化脓性/结核性/病毒性脑膜炎">Csf Analysis</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">综合加权评分：对化脓/结核/病毒三类分别累加多参数权重分（外观、压力、WBC、多核%、蛋白、糖、氯）糖/血糖比 = 脑脊液糖 ÷ 血糖；匹配度 = 最高分类型得分 ÷ 三类总分 × 100%关键权重：脓性外观+3化脓；WBC &gt; 1000 +3化脓；多核 &gt; 60% +3化脓；糖 &lt; 1.0 +3化脓；毛玻璃外观/淋巴为主(多核&lt;40%)/氯 &lt; 110 倾向结核；清亮/糖正常(糖/血糖&gt;0.4)倾向病毒</div>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">综合加权评分：对化脓/结核/病毒三类分别累加多参数权重分（外观、压力、WBC、多核%、蛋白、糖、氯）糖/血糖比 = 脑脊液糖 ÷ 血糖；匹配度 = 最高分类型得分 ÷ 三类总分 × 100%关键权重：脓性外观+3化脓；WBC &gt; 1000 +3化脓；多核 &gt; 60% +3化脓；糖 &lt; 1.0 +3化脓；毛玻璃外观/淋巴为主(多核&lt;40%)/氯 &lt; 110 倾向结核；正常项不计分，异常项 ≥2 项才输出病原倾向（匹配度分母仅含异常项得分）</div>
       <p class="formula-desc" data-zh="「输入脑脊液常规/生化参数，鉴别化脓性/结核性/病毒性脑膜炎」按输入参数进行专业计算并输出结果。">Csf Analysis: computes and outputs results from the input parameters.</p>
     </div>
 
@@ -274,34 +274,33 @@ function analyze(){
   var pres=num('pressure'), wbc=num('wbc'), poly=num('poly'), protein=num('protein'), glu=num('glu'), bg=num('bg'), cl=num('cl');
   if(!wbc && !protein) return;
 
-  // scoring for each type
+  // scoring for each type（正常项不计分，不参与分母；异常项累计后才进入倾向判读）
   var scores = {bacterial:0, tb:0, viral:0};
+  var abnormalCount = 0;
   // appearance
-  if(app==='purulent') scores.bacterial+=3;
-  else if(app==='cloudy'){scores.tb+=2;scores.bacterial+=1;}
-  else if(app==='clear') scores.viral+=2;
+  if(app==='purulent'){scores.bacterial+=3;abnormalCount++;}
+  else if(app==='cloudy'){scores.tb+=2;scores.bacterial+=1;abnormalCount++;}
   // pressure
-  if(pres>250){scores.bacterial+=2;scores.tb+=1;}
-  else if(pres>200){scores.bacterial+=1;scores.tb+=1;scores.viral+=0.5;}
+  if(pres>250){scores.bacterial+=2;scores.tb+=1;abnormalCount++;}
+  else if(pres>200){scores.bacterial+=1;scores.tb+=1;scores.viral+=0.5;abnormalCount++;}
   // WBC
-  if(wbc>1000) scores.bacterial+=3;
-  else if(wbc>100){scores.bacterial+=1;scores.tb+=2;scores.viral+=1;}
-  else if(wbc>10){scores.tb+=1;scores.viral+=2;}
+  if(wbc>1000){scores.bacterial+=3;abnormalCount++;}
+  else if(wbc>100){scores.bacterial+=1;scores.tb+=2;scores.viral+=1;abnormalCount++;}
+  else if(wbc>10){scores.tb+=1;scores.viral+=2;abnormalCount++;}
   // cell type
-  if(poly>60) scores.bacterial+=3;
-  else if(poly<40){scores.tb+=2;scores.viral+=2;}
+  if(poly>60){scores.bacterial+=3;abnormalCount++;}
+  else if(poly<40){scores.tb+=2;scores.viral+=2;abnormalCount++;}
   // protein
-  if(protein>1.5){scores.bacterial+=2;scores.tb+=2;}
-  else if(protein>0.45){scores.tb+=1;scores.viral+=1;scores.bacterial+=1;}
+  if(protein>1.5){scores.bacterial+=2;scores.tb+=2;abnormalCount++;}
+  else if(protein>0.45){scores.tb+=1;scores.viral+=1;scores.bacterial+=1;abnormalCount++;}
   // glucose ratio
   var gluRatio = bg>0 ? glu/bg : 1;
-  if(glu<1.0) scores.bacterial+=3;
-  else if(glu<2.0) scores.tb+=2;
-  else if(gluRatio<0.4) scores.tb+=1;
-  else scores.viral+=2;
+  if(glu<1.0){scores.bacterial+=3;abnormalCount++;}
+  else if(glu<2.0){scores.tb+=2;abnormalCount++;}
+  else if(gluRatio<0.4){scores.tb+=1;abnormalCount++;}
   // chloride
-  if(cl<110) scores.tb+=2;
-  else if(cl<115){scores.tb+=1;scores.bacterial+=0.5;}
+  if(cl<110){scores.tb+=2;abnormalCount++;}
+  else if(cl<115){scores.tb+=1;scores.bacterial+=0.5;abnormalCount++;}
 
   var total = scores.bacterial+scores.tb+scores.viral;
   var names = {bacterial:'化脓性脑膜炎', tb:'结核性脑膜炎', viral:'病毒性脑膜炎'};
@@ -309,19 +308,27 @@ function analyze(){
   var sorted = Object.keys(scores).sort(function(a,b){return scores[b]-scores[a];});
   var top = sorted[0];
   var pct = total>0 ? (scores[top]/total*100) : 0;
+  // 异常项门槛：≥2 项超出参考区间才输出病原倾向，否则归入「无异常/正常」类别
+  var normalCase = abnormalCount<2 || total<=0;
 
   var html = '<h3 style="margin-bottom:8px;">鉴别结果</h3>';
-  html += '<div class="diag-card" style="background:var(--result-bg);border-color:'+colors[top]+';">';
-  html += '<div style="font-size:16px;font-weight:700;color:'+colors[top]+';">最可能：'+names[top]+'</div>';
-  html += '<div style="font-size:13px;color:var(--text-secondary);margin-top:4px;">匹配度 '+pct.toFixed(0)+'%</div></div>';
+  if(normalCase){
+    html += '<div class="diag-card" style="background:var(--result-bg);border-color:#059669;">';
+    html += '<div style="font-size:16px;font-weight:700;color:#059669;">未见明显异常（脑脊液常规/生化在参考范围内）</div>';
+    html += '<div style="font-size:13px;color:var(--text-secondary);margin-top:4px;">异常项 '+abnormalCount+' 项，未达倾向判读门槛（需 ≥2 项异常）；暂不作化脓性/结核性/病毒性倾向判断</div></div>';
+  } else {
+    html += '<div class="diag-card" style="background:var(--result-bg);border-color:'+colors[top]+';">';
+    html += '<div style="font-size:16px;font-weight:700;color:'+colors[top]+';">最可能：'+names[top]+'</div>';
+    html += '<div style="font-size:13px;color:var(--text-secondary);margin-top:4px;">匹配度 '+pct.toFixed(0)+'%</div></div>';
 
-  html += '<div style="margin-top:12px;">';
-  sorted.forEach(function(k){
-    var p = total>0?(scores[k]/total*100):0;
-    html += '<div style="font-size:13px;margin-bottom:4px;display:flex;justify-content:space-between;"><span>'+names[k]+'</span><span style="color:'+colors[k]+';font-weight:600;">'+p.toFixed(0)+'%</span></div>';
-    html += '<div class="match-bar"><div class="match-fill" style="width:'+p+'%;background:'+colors[k]+';"></div></div>';
-  });
-  html += '</div>';
+    html += '<div style="margin-top:12px;">';
+    sorted.forEach(function(k){
+      var p = total>0?(scores[k]/total*100):0;
+      html += '<div style="font-size:13px;margin-bottom:4px;display:flex;justify-content:space-between;"><span>'+names[k]+'</span><span style="color:'+colors[k]+';font-weight:600;">'+p.toFixed(0)+'%</span></div>';
+      html += '<div class="match-bar"><div class="match-fill" style="width:'+p+'%;background:'+colors[k]+';"></div></div>';
+    });
+    html += '</div>';
+  }
 
   // detailed findings
   var findings = [];
@@ -333,7 +340,7 @@ function analyze(){
   else if(poly<40) findings.push('淋巴细胞为主('+(100-poly)+'%)，提示结核或病毒性');
   if(glu<1.0) findings.push('糖明显降低('+glu+'mmol/L)，高度提示化脓性');
   else if(glu<2.0) findings.push('糖降低('+glu+'mmol/L)，提示结核性');
-  else if(gluRatio>0.4) findings.push('糖正常(脑脊液/血糖='+gluRatio.toFixed(2)+')，倾向病毒性');
+  else if(gluRatio<0.4) findings.push('糖比值降低(脑脊液/血糖='+gluRatio.toFixed(2)+')，提示结核性');
   if(cl<110) findings.push('氯化物降低('+cl+'mmol/L)，结核性多见');
   if(protein>1.0) findings.push('蛋白升高('+protein+'g/L)，提示血脑屏障破坏');
 

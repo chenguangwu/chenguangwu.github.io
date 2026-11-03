@@ -123,10 +123,10 @@ s.parentNode.insertBefore(el, s);
 </div>
 <div class="card tool-card-accent" style="--tool-accent:#6366F1;">
     <h2 data-zh="🏠 公积金贷款额度测算">🏠 Housing Provident Fund Loan Calculator</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入公积金缴存信息与购房信息，测算最高可贷额度及月供明细">Estimate your housing provident fund loan ceiling from account balance, monthly contribution and the local loan-to-deposit ratio.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入公积金缴存信息与购房信息，测算最高可贷额度及月供明细">Estimate your housing provident fund loan ceiling from account balance, home price and the local loan-to-deposit ratio.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">可贷额度 = min(余额×倍数, 房价×80%, 月缴存×12×min(缴存年限, 贷款年限))</div>
+      <div class="formula-eq">可贷额度 = min(余额×倍数, 房价×80%, 城市上限)</div>
       <p class="formula-desc">输入公积金缴存信息与购房信息，测算最高可贷额度及月供明细</p>
     </div>
 
@@ -151,17 +151,6 @@ s.parentNode.insertBefore(el, s);
       <div>
         <label>公积金账户余额（万元）</label>
         <input type="number" id="balance" placeholder="如：8" value="8" min="0" step="0.1">
-      </div>
-    </div>
-
-    <div class="input-row">
-      <div>
-        <label>月缴存额（元）</label>
-        <input type="number" id="monthlySave" placeholder="如：2000" value="2000" min="0">
-      </div>
-      <div>
-        <label>缴存年限（年）</label>
-        <input type="number" id="saveYears" placeholder="如：5" value="5" min="1" max="40">
       </div>
     </div>
 
@@ -265,7 +254,7 @@ s.parentNode.insertBefore(el, s);
         <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="出处 / 标准">Source / Standard</th>
       </tr></thead>
       <tbody>
-        <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="公积金贷款">Housing provident fund loan</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="额度受账户余额倍数、缴存年限与房价成数共同约束">Quota limited by balance multiple, tenure, LTV</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="《住房公积金管理条例》及各市中心细则">Housing Fund Regulations + local rules</span></td></tr>
+        <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="公积金贷款">Housing provident fund loan</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="额度受账户余额倍数、房价成数与当地上限共同约束">Quota limited by balance multiple, LTV and local cap</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="《住房公积金管理条例》及各市中心细则">Housing Fund Regulations + local rules</span></td></tr>
         <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="利率口径">Rate convention</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="公积金利率低于商贷，由央行单独公布">HF rate set separately by PBOC</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="人行公积金贷款利率公告">PBOC HF rate announcements</span></td></tr>
       </tbody>
     </table>
@@ -309,8 +298,6 @@ function fmtM(n) { return n.toFixed(2); }
 function calc() {
   var city = document.getElementById('city').value;
   var balanceWan = parseFloat(document.getElementById('balance').value) || 0;
-  var monthlySave = parseFloat(document.getElementById('monthlySave').value) || 0;
-  var saveYears = parseInt(document.getElementById('saveYears').value) || 1;
   var housePriceWan = parseFloat(document.getElementById('housePrice').value) || 0;
   var age = parseInt(document.getElementById('age').value) || 30;
   var repayType = document.getElementById('repayType').value;
@@ -325,8 +312,6 @@ function calc() {
   var amountByPrice = housePriceWan * MAX_LOAN_RATIO;
   // 额度计算：不超当地上限
   var amountByLimit = rule.limit;
-  // 月缴存额推算额度（月缴存额 ÷ 月供系数）
-  var amountByMonthly = monthlySave * 12 * Math.min(saveYears, loanYears);
 
   var maxLoan = Math.min(amountByBalance, amountByPrice, amountByLimit);
   if (maxLoan < 0) maxLoan = 0;
@@ -376,7 +361,7 @@ function calc() {
   html += '</tbody></table>';
 
   html += '<h3 style="margin-top:16px;margin-bottom:8px;">还款明细</h3>';
-  html += '<table><thead><tr><th>项目</th><th>数值</th></tr></thead><tbody>';
+  html += '<table id="housing_fund_loanDetail"><thead><tr><th>项目</th><th>数值</th></tr></thead><tbody>';
   html += '<tr><td>贷款本金</td><td>' + ToolBox.formatNumber(maxLoanYuan, 0) + ' 元</td></tr>';
   html += '<tr><td>贷款利率</td><td>' + (RATE * 100).toFixed(2) + '%/年</td></tr>';
   html += '<tr><td>贷款期限</td><td>' + loanYears + '年（' + months + '期）</td></tr>';
@@ -401,8 +386,6 @@ function calc() {
 
 function resetForm() {
   document.getElementById('balance').value = '8';
-  document.getElementById('monthlySave').value = '2000';
-  document.getElementById('saveYears').value = '5';
   document.getElementById('housePrice').value = '300';
   document.getElementById('age').value = '35';
   document.getElementById('repayType').selectedIndex = 0;
@@ -595,14 +578,14 @@ function __housing_fund_loanExtras(){
 }
 function __housing_fund_loanExport(){
     if (typeof TBKit === 'undefined') return;
-    try { TBKit.util.exportTable('#housing_fund_loanTable','housing-fund-loan.csv'); } catch(e){}
+    try { TBKit.util.exportTable('#housing_fund_loanDetail','housing-fund-loan.csv'); } catch(e){}
 }
 function __housing_fund_loanPresets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#housing_fund_loanPresets',[
-      {label:'默认参数',labelEn:'Default',values:{'city':'北京', 'balance':'8', 'monthlySave':'2000', 'saveYears':'5', 'housePrice':'300', 'age':'35', 'repayType':'equal_installment', 'loanYears':'20'}},
-      {label:'上海首套·500万·30年',labelEn:'Shanghai first home · 5M · 30y',values:{'city':'上海', 'balance':'15', 'monthlySave':'3500', 'saveYears':'5', 'housePrice':'500', 'age':'30', 'repayType':'equal_installment', 'loanYears':'30'}},
-      {label:'成都刚需·150万·20年等额本金',labelEn:'Chengdu starter · 1.5M · 20y principal',values:{'city':'成都', 'balance':'5', 'monthlySave':'1500', 'saveYears':'3', 'housePrice':'150', 'age':'28', 'repayType':'equal_principal', 'loanYears':'20'}}
+      {label:'默认参数',labelEn:'Default',values:{'city':'北京', 'balance':'8', 'housePrice':'300', 'age':'35', 'repayType':'equal_installment', 'loanYears':'20'}},
+      {label:'上海首套·500万·30年',labelEn:'Shanghai first home · 5M · 30y',values:{'city':'上海', 'balance':'15', 'housePrice':'500', 'age':'30', 'repayType':'equal_installment', 'loanYears':'30'}},
+      {label:'成都刚需·150万·20年等额本金',labelEn:'Chengdu starter · 1.5M · 20y principal',values:{'city':'成都', 'balance':'5', 'housePrice':'150', 'age':'28', 'repayType':'equal_principal', 'loanYears':'20'}}
     ],function(){ calc(); });
 }
 var __housing_fund_loan_f0=(typeof calc==='function')?calc:null;

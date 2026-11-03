@@ -61,6 +61,16 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "image/image-compress",
+  "clicks": [
+    "var s=getSettings();document.getElementById('quality').value='0';var q0=getSettings().quality;document.getElementById('results-card').textContent='EXT:'+extForMime('image/webp')+'|Q:'+s.quality+'|Q0:'+q0;"
+  ],
+  "expect": [
+    "EXT:webp|Q:0.8|Q0:0.01"
+  ],
+  "ref": "质量参数边界/格式扩展名回归：默认质量 80 ⇒ 0.8；注入 0 后必须夹到 0.01（旧实现直接 0/100=0，传给 toBlob 越界）；下载扩展名按实际 blob 类型映射（image/webp→webp），改格式后不会出现旧内容配新扩展名。默认态 results-card 为空 ⇒ 不命中。"
+},
+{
   "slug": "image/image-crop",
   "inputs": {
     "quality": "138"
@@ -136,6 +146,26 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "image/image-resize",
+  "clicks": [
+    "var r0=window.__resizeValidate(0,500);var r1=window.__resizeValidate(12000,800);var r2=window.__resizeValidate(800,600);document.getElementById('sizeError').textContent='V0:'+(r0.valid?'1':'0')+'|V1:'+(r1.valid?'1':'0')+'|V2:'+(r2.valid?'1':'0')+':'+r1.error;showSourceNotice('image/gif');"
+  ],
+  "expect": [
+    "V0:0|V1:0|V2:1:请输入 1–10000 之间的整数宽高。"
+  ],
+  "ref": "IM-N1 回归：目标宽高为 0 / 超过 10000 时必须判为无效（旧实现 parseInt||1 会静默输出 1×1、超上限仍建超大画布），合法 800×600 必须通过。默认态无 sizeError 文本 ⇒ 不命中。"
+},
+{
+  "slug": "image/image-resize",
+  "clicks": [
+    "showSourceNotice('image/gif');"
+  ],
+  "expect": [
+    "本工具只读取第一帧"
+  ],
+  "ref": "IM-N2 回归：GIF 输入必须出现「只读取第一帧」提示（旧实现静默把动图当静态位图）。默认态 sourceNotice 为空 ⇒ 不命中。"
+},
+{
   "slug": "image/image-rotate",
   "inputs": {
     "angleSlider": "0",
@@ -172,6 +202,16 @@ const CASES = [
   ],
     ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
+},
+{
+  "slug": "image/image-watermark",
+  "clicks": [
+    "var p=exportPlan('webp');var j=exportPlan('jpeg');document.getElementById('resultBox').textContent='WEBP:'+(p.flatten?'1':'0')+':'+(p.background===null?'F':'B')+'|JPEG:'+(j.flatten?'1':'0')+':'+j.background;"
+  ],
+  "expect": [
+    "WEBP:0:F|JPEG:1:#FFFFFF"
+  ],
+  "ref": "水印透明回归：透明 PNG/WebP 导出不得铺白底（旧实现 format!=='png' 一律铺白，WebP 丢 alpha）；仅 JPEG 铺 #FFFFFF。默认态 resultBox 为空 ⇒ 不命中。"
 },
 {
   "slug": "image/nine-grid-cutter",

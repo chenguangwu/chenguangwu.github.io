@@ -117,13 +117,13 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入名义年利率 r 与每年复利次数 n，求 APY。">Apy Calculator</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">实际年收益率 APY = (1 + r÷n)^n − 1（r 为名义年利率、n 为年复利次数）；另输出连续复利上限 = e^r − 1 与有效倍数 APY ÷ max(r, 1e−9)（防除零）。校验：无强校验，数值缺省按 0。判据：n 越大计息越频 APY 越高并趋于连续复利上限，n=1 时 APY 恰等于名义利率 r。</div>
+      <div class="formula-eq">实际年收益率 APY = (1 + r÷n)^n − 1（r 为名义年利率、n 为年复利次数）；另输出连续复利上限 = e^r − 1 与有效倍数 APY ÷ max(|r|, 1e−9)（防除零）。校验：n 须为正整数，r 须大于 −1（小数口径，0.05 = 5%）；n 越大计息越频 APY 越高并趋于连续复利上限，n=1 时 APY 恰等于名义利率 r。</div>
       <p class="formula-desc">APY=(1+r/n)^n−1，r 为名义年利率、n 为每年复利次数；反映不同复利频率下的真实年化收益，频率越高 APY 越大，上限为连续复利 e^r−1。</p>
     </div>
 
     <div class="input-row">
       <div>
-        <label for="r">名义年利率 r</label>
+        <label for="r">名义年利率 r（小数，如 0.05 = 5%）</label>
         <input type="number" id="r" value="0.05" step="0.005" placeholder="如 0.05">
       </div>
       <div>
@@ -222,13 +222,23 @@ function num(id){const v=parseFloat(document.getElementById(id).value);return is
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
             const r=num('r'),n=num('n');
+            if (!(n >= 1) || n !== Math.floor(n)) {
+                ToolBox.setResult('result','<p style="color:var(--danger);">⚠ 年复利次数 n 必须为正整数（如 12 表示每月复利）。</p>');
+                return;
+            }
+            if (!(r > -1)) {
+                ToolBox.setResult('result','<p style="color:var(--danger);">⚠ 名义年利率 r 必须大于 −1（即 −100%）；r 按小数口径填写（0.05 = 5%）。</p>');
+                return;
+            }
             const APY=Math.pow(1+r/n,n)-1;
             const __g1=dataGrid([
                 [(APY*100).toFixed(3),'年化收益率 APY (%)'],
                 [(r*100).toFixed(3), '名义年利率 (%)'],
                 [(Math.exp(r)-1).toFixed(5), '连续复利年化 (%)'],
-                [(APY/Math.max(r,1e-9)).toFixed(3), 'APY 与名义利率之比']
-            ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
+                [(APY/Math.max(Math.abs(r),1e-9)).toFixed(3), 'APY 与名义利率之比']
+            ]);
+            const note = r >= 1 ? '<p style="color:#ff9800;margin-top:8px;">⚠ 当前 r=' + r + ' 按小数口径识别为 ' + (r*100).toFixed(2) + '%；若想表达 ' + r + '%，请填写 ' + (r/100) + '（即 ' + (r/100).toFixed(2) + '）。</p>' : '';
+            ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')) + note);
         }
 function resetForm(){document.getElementById('r').value = '0.05';
       document.getElementById('n').value = '12';

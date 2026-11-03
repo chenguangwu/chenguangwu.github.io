@@ -258,22 +258,18 @@ function calc(){
   const excludeStart=document.getElementById('excludeStart').checked;
   const excludeEnd=document.getElementById('excludeEnd').checked;
   const excludeWeekend=document.getElementById('excludeWeekend').checked;
-  // total natural days
-  const msPerDay=86400000;
-  let totalDays=Math.round((d2-d1)/msPerDay);
-  if(excludeStart)totalDays--;
-  if(excludeEnd)totalDays--;
-  if(totalDays<0)totalDays=0;
-  // workdays
-  let workdays=0;
+  // 工作日与周末独立统计：工作日 = 区间内周一至周五，周末 = 区间内周六/周日。
+  // 未勾选「排除周末」时也照此口径分别计数，不再用「总天数 − 工作日」倒推周末。
+  let workdays=0, weekends=0;
   let cur=new Date(d1);
   if(excludeStart)cur.setDate(cur.getDate()+1);
-  while(cur<d2||(cur.getTime()===d2.getTime()&&!excludeEnd)){
-    if(cur.getTime()===d2.getTime()&&excludeEnd)break;
-    if(!excludeWeekend||!isWeekend(cur))workdays++;
+  const endTime=d2.getTime();
+  while(excludeEnd ? cur.getTime()<endTime : cur.getTime()<=endTime){
+    if(isWeekend(cur))weekends++;
+    else workdays++;
     cur.setDate(cur.getDate()+1);
   }
-  const weekends=totalDays-workdays;
+  const totalDays=workdays+weekends;
   // breakdown
   const weeks=Math.floor(totalDays/7);
   const remainDays=totalDays%7;
@@ -282,7 +278,7 @@ function calc(){
   let html='<div class="big-diff">'+totalDays+' 天</div>';
   html+='<div class="stat-grid">';
   html+='<div class="stat-card"><div class="v">'+workdays+'</div><div class="l">工作日</div></div>';
-  html+='<div class="stat-card"><div class="v">'+(excludeWeekend?weekends:totalDays-workdays)+'</div><div class="l">周末天数</div></div>';
+  html+='<div class="stat-card"><div class="v">'+weekends+'</div><div class="l">周末天数</div></div>';
   html+='<div class="stat-card"><div class="v">'+weeks+'</div><div class="l">完整周数</div></div>';
   html+='<div class="stat-card"><div class="v">'+remainDays+'</div><div class="l">剩余天数</div></div>';
   html+='</div>';
@@ -295,7 +291,7 @@ function calc(){
   html+='<div class="timeline" style="margin-top:14px;">';
   html+='<div class="step-line"><strong>起始：</strong>'+fmtDate(d1)+' '+weekDay(d1)+(swapped?' <span style="color:var(--text-muted);">(原结束日)</span>':'')+'</div>';
   html+='<div class="step-line"><strong>结束：</strong>'+fmtDate(d2)+' '+weekDay(d2)+(swapped?' <span style="color:var(--text-muted);">(原起始日)</span>':'')+'</div>';
-  html+='<div class="step-line"><strong>间隔：</strong>'+(excludeWeekend?'工作日 ':'')+totalDays+' 天（'+(excludeStart?'不含':'含')+'起始日，'+(excludeEnd?'不含':'含')+'结束日）</div>';
+  html+='<div class="step-line"><strong>间隔：</strong>'+totalDays+' 天（'+(excludeStart?'不含':'含')+'起始日，'+(excludeEnd?'不含':'含')+'结束日）'+(excludeWeekend?'，其中工作日 '+workdays+' 天':'')+'</div>';
   html+='</div>';
   const __g2=html;out.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }

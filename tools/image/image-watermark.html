@@ -756,7 +756,7 @@ function render() {
 
   canvas.style.display = 'block';
   document.getElementById('previewEmpty').style.display = 'none';
-  setResult('图片尺寸 <strong>' + W + '×' + H + '</strong>，水印类型 <strong>' + (wmType === 'text' ? '文字' : '图片') + '</strong>，模式 <strong>' + (tile ? '平铺' : '单点') + '</strong>。');
+  setResult('图片尺寸 <strong>' + W + '×' + H + '</strong>，水印类型 <strong>' + (wmType === 'text' ? '文字' : '图片') + '</strong>，模式 <strong>' + (tile ? '平铺' : '单点') + '</strong>。导出 PNG/WebP 保留透明背景，JPEG 自动铺白底。');
 }
 
 // 单点水印
@@ -944,21 +944,28 @@ function drawTiledPattern(W, H, angle, stagger, stepX, stepY, drawFn) {
   ctx.restore();
 }
 
+// 导出策略：仅 JPEG 不支持透明通道，需要铺白底；PNG/WebP 直接复用带 alpha 的画布
+function exportPlan(format) {
+  return format === 'jpeg'
+    ? { flatten: true, background: '#FFFFFF' }
+    : { flatten: false, background: null };
+}
+
 // ===== 下载 =====
 function downloadImg(format) {
   if (!sourceImg) { ToolBox.showToast(i18nText('tool.file_upload_hint'), 'warning'); return; }
   var mime = format === 'png' ? 'image/png' : (format === 'jpeg' ? 'image/jpeg' : 'image/webp');
   var ext = format === 'png' ? 'png' : (format === 'jpeg' ? 'jpg' : 'webp');
   var baseName = (sourceName || 'image').replace(/\.[^.]+$/, '');
+  var plan = exportPlan(format);
 
-  // JPEG / WebP 不支持透明，先铺白底
   var exportCanvas = canvas;
-  if (format !== 'png') {
+  if (plan.flatten) {
     exportCanvas = document.createElement('canvas');
     exportCanvas.width = canvas.width;
     exportCanvas.height = canvas.height;
     var ec = exportCanvas.getContext('2d');
-    ec.fillStyle = '#FFFFFF';
+    ec.fillStyle = plan.background;
     ec.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
     ec.drawImage(canvas, 0, 0);
   }

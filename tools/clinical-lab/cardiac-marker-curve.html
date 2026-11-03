@@ -137,14 +137,14 @@ s.parentNode.insertBefore(el, s);
 
     <div class="input-row">
       <div><label>标志物类型</label>
-        <select id="markerType" onchange="analyze()">
+        <select id="markerType" onchange="onMarkerChange()">
           <option value="ctni">cTnI 肌钙蛋白I</option>
           <option value="ctnt">cTnT 肌钙蛋白T</option>
           <option value="ckmb">CK-MB</option>
           <option value="myo">MYO 肌红蛋白</option>
         </select>
       </div>
-      <div><label>参考上限(99百分位)</label><input type="number" id="upper" value="0.04" step="0.001" oninput="analyze()" placeholder="如 0.04"></div>
+      <div><label>参考上限(99百分位, <span id="upperUnit">ng/mL</span>)</label><input type="number" id="upper" value="0.04" step="0.001" oninput="analyze()" placeholder="如 0.04"></div>
     </div>
 
     <h3 style="font-size:14px;margin:14px 0 8px;">检测时间点</h3>
@@ -246,6 +246,31 @@ var points = [
   {t:24, v:5.1}
 ];
 var markerNames = {ctni:'cTnI', ctnt:'cTnT', ckmb:'CK-MB', myo:'MYO'};
+// 各标志物 99th 参考上限默认值与单位（切换时同步，避免沿用 cTnI 的 0.04 放大 CK-MB/MYO）
+var markerDefaults = {
+  ctni:{upper:0.04, unit:'ng/mL'},
+  ctnt:{upper:0.014, unit:'ng/mL'},
+  ckmb:{upper:5.0, unit:'ng/mL'},
+  myo:{upper:70, unit:'ng/mL'}
+};
+
+function currentMarkerDefault(){
+  var type = document.getElementById('markerType').value;
+  return markerDefaults[type] || markerDefaults.ctni;
+}
+
+function syncMarkerMeta(){
+  var d = currentMarkerDefault();
+  var unitEl = document.getElementById('upperUnit');
+  if(unitEl) unitEl.textContent = d.unit;
+  return d;
+}
+
+function onMarkerChange(){
+  var d = syncMarkerMeta();
+  document.getElementById('upper').value = d.upper;
+  analyze();
+}
 
 function renderPoints(){
   var html = '';
@@ -279,6 +304,7 @@ function removePoint(i){
 function loadAMI(){
   points = [{t:0,v:0.02},{t:3,v:0.5},{t:6,v:3.2},{t:12,v:8.5},{t:24,v:5.1}];
   document.getElementById('markerType').value='ctni';
+  syncMarkerMeta();
   document.getElementById('upper').value='0.04';
   renderPoints();
   analyze();
@@ -286,7 +312,14 @@ function loadAMI(){
 
 function analyze(){
   var type = document.getElementById('markerType').value;
-  var upper = parseFloat(document.getElementById('upper').value)||0.04;
+  var d = currentMarkerDefault();
+  var raw = document.getElementById('upper').value;
+  var upper = parseFloat(raw);
+  if(!(upper>0) || !isFinite(upper)){
+    var safe = String(raw).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    document.getElementById('result').innerHTML = '<p style="color:var(--danger,#dc2626)">⚠ 请输入大于 0 的参考上限（99百分位，'+d.unit+'）；当前输入「'+safe+'」无效。</p>';
+    return;
+  }
   var name = markerNames[type];
   // sort by time
   var pts = points.slice().sort(function(a,b){return a.t-b.t;});

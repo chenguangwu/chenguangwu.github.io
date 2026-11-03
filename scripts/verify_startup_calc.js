@@ -172,10 +172,10 @@ const CASES = [
   ],
   "expect": [
     "PS 法：收入 800.00 万 × (6.00 - 12.00) = 4,800.00 - 9,600.00 万",
-    "单用户法：月活 20.00 万 × (300.00 - 600.00) 元 = 0.60 - 1.20 万",
-    "对标估值区间： 0.60 - 9,600.00 万（中位 3,600.45 万）"
+    "单用户法：月活 20.00 万 × (300.00 - 600.00) 元 = 6,000.00 - 12,000.00 万",
+    "对标估值区间： 4,800.00 - 12,000.00 万（中位 8,100.00 万）"
   ],
-  "ref": "对标法：PS 法=收入×PS倍数区间=800×6~12；单用户法=月活×单用户价值区间（元，需 ÷10000 折算为万元）。两组四个值 [4800,9600,0.6,1.2] 过滤 >0 后取 mid=(4800+9600+0.6+1.2)/4=3,600.45。"
+  "ref": "对标法：PS 法=收入×PS倍数区间=800×6~12；单用户法=月活(万)×单用户价值(元)，20×300~20×600=6000~12000 万元（万用户×元/用户=万元，不再多除 10000）。四值 [4800,9600,6000,12000] 过滤 >0 后 mid=(4800+9600+6000+12000)/4=8,100.00。"
 },
 {
   "slug": "startup/valuation-calculator",
@@ -184,11 +184,39 @@ const CASES = [
     "document.getElementById('bk1').value='400';document.getElementById('bk2').value='350';document.getElementById('bk3').value='300';document.getElementById('bk4').value='250';document.getElementById('bk5').value='200';document.getElementById('sc_avg').value='3000';document.getElementById('sc1').value='130';document.getElementById('sc2').value='120';document.getElementById('sc3').value='115';document.getElementById('sc4').value='110';document.getElementById('sc5').value='105';document.getElementById('sc6').value='100';document.getElementById('sc7').value='110';document.getElementById('vc_exit').value='100000';document.getElementById('vc_roi').value='20';document.getElementById('vc_years').value='4';document.getElementById('vc_inv').value='1000';document.getElementById('dcf_n').value='5';document.getElementById('dcf_cf0').value='200';document.getElementById('dcf_g').value='20';document.getElementById('dcf_r').value='15';document.getElementById('dcf_tg').value='4';document.getElementById('cmp_rev').value='800';document.getElementById('cmp_mau').value='20';document.getElementById('cmp_ps_lo').value='6';document.getElementById('cmp_ps_hi').value='12';document.getElementById('cmp_uv_lo').value='300';document.getElementById('cmp_uv_hi').value='600';calcAll(true);"
   ],
   "expect": [
-    "综合估值区间： 0.60 - 9,600.00 万元，建议以平均估值 3,625.13 万为谈判起点",
-    "3,625.13 平均估值(万)",
-    "0.60 最低估值(万)"
+    "综合估值区间： 1,500.00 - 12,000.00 万元，建议以平均估值 4,156.26 万为谈判起点",
+    "4,156.26 平均估值(万)",
+    "1,500.00 最低估值(万)",
+    "12,000.00 最高估值(万)"
   ],
-  "ref": "calcAll() 五法全跑 + updateSummary() 汇总：汇总表只收 results 中 >0 的项（VC 法本次 preMoney=-999.375 为负 ⇒ 被过滤掉，这是本例与单法用例的关键差异）；allV=[1500, 3547.50, 3477.56, 0.60, 9600] ⇒ lo=0.60、hi=9,600.00、avg=18,125.66/5=3,625.13。python 复算一致。"
+  "ref": "calcAll() 五法全跑 + updateSummary() 汇总：均值每法一票（VC 法本次 preMoney=-999.375 为负 ⇒ 被过滤；对标法用 mid=(4800+9600+6000+12000)/4=8100 计一票）⇒ allV=[1500, 3547.50, 3477.56, 8100]，avg=16,625.06/4=4,156.265（fmt 因浮点得 4,156.26）；综合上下限仍纳入对标法区间两端 4800/12000 ⇒ lo=1,500.00、hi=12,000.00。node 复算一致。"
+},
+{
+  "slug": "startup/burn-rate",
+  "inputs": {
+    "cash": "100000",
+    "income": "0",
+    "salary": "175000",
+    "rent": "0",
+    "marketing": "0",
+    "other": "0"
+  },
+  "expect": [
+    "约 17 天后",
+    "0.57 个月"
+  ],
+  "ref": "BS-N4：现金 10 万、月净消耗 17.5 万 ⇒ runway=0.5714 个月 <1 ⇒ 不再把耗尽日显示为当天，按天给出 round(0.5714×30)=17 天后；跑道值 0.57 个月。默认参数（runway=18）不含这两个串。"
+},
+{
+  "slug": "startup/burn-rate",
+  "inputs": {},
+  "clicks": [
+    "document.getElementById('result').innerHTML='clamp:'+(function(d){return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();})(addMonthsClamped(new Date(2026,0,31),1));"
+  ],
+  "expect": [
+    "clamp:2026-2-28"
+  ],
+  "ref": "BS-N4 月末 clamp：1 月 31 日 + 1 个月应落在 2 月 28 日（2026 非闰年），旧 setMonth 会溢出到 3 月 3 日。直接调用页内 addMonthsClamped 验证。"
 }
 
 ];

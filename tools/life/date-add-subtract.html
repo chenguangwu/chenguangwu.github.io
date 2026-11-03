@@ -146,7 +146,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="在指定日期上加减年/月/日/时/分/秒">Add or subtract years, months, days, hours, minutes and seconds from a base date and time to get the resulting moment.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-      <div class="formula-eq">目标日期 = 基准日期 + 年、月、日、时、分、秒增量（负数表示减）；先加年月并处理月末溢出（如 1 月 31 日加 1 月取 2 月末），再累加天数自动跨月跨年，最后按秒数补时分秒；闰年 2 月为 29 天须在跨月时校正。</div>
+      <div class="formula-eq">目标日期 = 基准日期 + 年、月、日、时、分、秒增量（负数表示减）；年月按日历月推进，目标月无对应日时夹到该月月末（如 1 月 31 日加 1 月取 2 月末、2024-02-29 加 1 年取 2025-02-28）；日按日历日推进并保留原时刻，自动跨月跨年；时/分/秒按固定时长累加。</div>
   
 </div>
 
@@ -195,7 +195,7 @@ s.parentNode.insertBefore(el, s);
     <div class="result-box">
       <p>支持负数减法：输入 -7 表示减去 7 天</p>
       <p>年/月按历法加减（考虑闰年与各月天数）</p>
-      <p>日/时/分/秒按时间戳精确加减</p>
+      <p>日按日历日推进（保留原有时刻）；时/分/秒按固定时长累加</p>
       <p>跨月跨年自动进位：1/31 + 1 月 = 2/28（或 2/29 闰年）</p>
       <p>例：2024-01-30 + 1 月 = 2024-02-29（取月末）</p>
     </div></div>
@@ -288,6 +288,23 @@ function num(id){
   return isNaN(v) ? 0 : v;
 }
 
+function daysInMonth(year, monthIndex){
+  return new Date(year, monthIndex + 1, 0).getDate();
+}
+
+// 年月按日历月推进：先确定目标年月，再把「日」夹到该月月末。
+// 例：2023-01-31 + 1 月 → 2023-02-28（而非 setMonth 直接滚动到的 3 月 3 日）；
+// 2024-02-29 + 1 年 → 2025-02-28（目标年 2 月只有 28 天）。
+function addYearsMonths(base, years, months){
+  const totalMonths = base.getMonth() + Math.trunc(months);
+  const targetYear = base.getFullYear() + Math.trunc(years) + Math.floor(totalMonths / 12);
+  const targetMonth = ((totalMonths % 12) + 12) % 12;
+  const targetDay = Math.min(base.getDate(), daysInMonth(targetYear, targetMonth));
+  const out = new Date(base.getTime());
+  out.setFullYear(targetYear, targetMonth, targetDay);
+  return out;
+}
+
 function calc(){
   const baseStr = document.getElementById('baseTime').value;
   if(!baseStr){
@@ -297,14 +314,11 @@ function calc(){
   const base = new Date(baseStr);
   const y = num('y'), m = num('m'), d = num('d'),
         h = num('h'), min = num('min'), s = num('s');
-  // 先加减年月
-  let newDate = new Date(base.getTime());
-  newDate.setFullYear(newDate.getFullYear() + y);
-  newDate.setMonth(newDate.getMonth() + m);
-  // 处理月末：若原日期是 31 日，加月后变成 2 月会自动跳到 3 月
-  // 用 "setDate" 模式更可控
-  // 再加减日时分秒（按毫秒）
-  newDate = new Date(newDate.getTime() + d * 86400000 + h * 3600000 + min * 60000 + s * 1000);
+  // 先加减年月（目标月无对应日则夹到月末）
+  let newDate = addYearsMonths(base, y, m);
+  // 「日」按日历日推进（保留原时刻，自动跨月跨年）；「时/分/秒」按固定时长累加
+  newDate.setDate(newDate.getDate() + Math.trunc(d));
+  newDate = new Date(newDate.getTime() + h * 3600000 + min * 60000 + s * 1000);
   const __g2=`
     <p>基准时间：<strong>${base.toLocaleString('zh-CN')}</strong></p>
     <p>加减量：<strong>${y}年 ${m}月 ${d}日 ${h}时 ${min}分 ${s}秒</strong></p>

@@ -143,7 +143,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="💰 烧钱率计算器">Burn Rate</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="创业公司现金消耗分析，计算月净消耗、现金跑道与资金耗尽日期">Burn Rate - online utility on ToolBox.</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">创业公司烧钱率与现金跑道<br>月总支出 = 工资 + 房租 + 营销 + 其他<br>月净消耗 = 月总支出 − 月收入<br>总烧钱率（毛消耗）= 月总支出<br>现金跑道 = 现金 ÷ 月净消耗（月）<br>净消耗 ≤ 0 时跑道为 ∞，资金不会耗尽<br>资金耗尽日期 = 当前日期 + ⌊跑道⌋ 个月<br>预警分级：跑道 <6 月 高危｜<9 月 加速｜<12 月 提示｜其他 充裕<br>融资需求建议：目标 18 个月跑道，需求 = 月净消耗 × 18 − 现金<br>需求 ≤ 0 表示现金已可支撑 18 个月以上<br>建议储备 6-12 个月应急资金（已盈利情形）</div>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">创业公司烧钱率与现金跑道<br>月总支出 = 工资 + 房租 + 营销 + 其他<br>月净消耗 = 月总支出 − 月收入<br>总烧钱率（毛消耗）= 月总支出<br>现金跑道 = 现金 ÷ 月净消耗（月）<br>净消耗 ≤ 0 时跑道为 ∞，资金不会耗尽<br>资金耗尽日期 = 当前日期 + ⌊跑道⌋ 个月（不足 1 个月按天显示，月末自动对齐当月最后一天）<br>预警分级：跑道 <6 月 高危｜<9 月 加速｜<12 月 提示｜其他 充裕<br>融资需求建议：目标 18 个月跑道，需求 = 月净消耗 × 18 − 现金<br>需求 ≤ 0 表示现金已可支撑 18 个月以上<br>建议储备 6-12 个月应急资金（已盈利情形）</div>
       <p class="formula-desc" data-zh="核心计算公式（按输入变量）：netBurn × 18">Key formulas: netBurn × 18</p>
     </div>
 
@@ -304,6 +304,19 @@ function getInputs(){
   };
 }
 
+// 加 N 个月并把目标日 clamp 到当月最后一天，避免 1/31 + 1 个月溢出到 3/3
+function addMonthsClamped(base, months){
+  const target = new Date(base.getFullYear(), base.getMonth() + months, 1);
+  const lastDay = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+  target.setDate(Math.min(base.getDate(), lastDay));
+  return target;
+}
+function addDays(base, days){
+  const d = new Date(base.getFullYear(), base.getMonth(), base.getDate());
+  d.setDate(d.getDate() + days);
+  return d;
+}
+
 function calc(){
   const d = getInputs();
   if(d.cash < 0 || d.income < 0 || d.salary < 0 || d.rent < 0 || d.marketing < 0 || d.other < 0){
@@ -320,9 +333,15 @@ function calc(){
     advice = '公司已实现盈利或现金流转正，可持续运营，建议储备 6-12 个月应急资金。';
   } else {
     runway = d.cash / netBurn;
-    const end = new Date();
-    end.setMonth(end.getMonth() + Math.floor(runway));
-    endDate = end.toLocaleDateString('zh-CN');
+    const now = new Date();
+    if(runway < 1){
+      const days = Math.round(runway * 30);
+      endDate = days <= 0
+        ? '现金已耗尽（今天）'
+        : `约 ${days} 天后（${addDays(now, days).toLocaleDateString('zh-CN')}）`;
+    } else {
+      endDate = addMonthsClamped(now, Math.floor(runway)).toLocaleDateString('zh-CN');
+    }
     if(runway < 6){
       warn = `<p style="color:var(--danger);font-weight:600;">⚠️ 高危预警：跑道不足 6 个月，需立即融资或大幅削减开支！</p>`;
       advice = '立即启动融资，同时削减非核心开支，优先保住核心团队与产品交付。';
@@ -375,7 +394,7 @@ function calc(){
     <hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">
     <p>💡 ${advice}</p>
     <p>💰 ${fundAdvice}</p>
-  `;try{ if(typeof runway==='number'&&isFinite(runway)&&typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){ TBKit.chart.refBar('#resultRefBar',{value:runway,unit:'',bands:[{"lo":0,"hi":6,"label":{"zh":"立即融资","en":"Raise now"},"color":"#10B981"},{"lo":6,"hi":9,"label":{"zh":"加速融资","en":"Accelerate fundraising"},"color":"#84CC16"},{"lo":9,"hi":12,"label":{"zh":"规划融资","en":"Plan next round"},"color":"#F59E0B"},{"lo":12,"hi":null,"label":{"zh":"资金充裕","en":"Ample runway"},"color":"#F97316"}],title:((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Reference range':'参考区间标尺')}); } }catch(e){}
+  `;try{ if(typeof runway==='number'&&isFinite(runway)&&typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){ TBKit.chart.refBar('#resultRefBar',{value:runway,unit:'',bands:[{"lo":0,"hi":6,"label":{"zh":"立即融资","en":"Raise now"},"color":"#EF4444"},{"lo":6,"hi":9,"label":{"zh":"加速融资","en":"Accelerate fundraising"},"color":"#F97316"},{"lo":9,"hi":12,"label":{"zh":"规划融资","en":"Plan next round"},"color":"#3B82F6"},{"lo":12,"hi":null,"label":{"zh":"资金充裕","en":"Ample runway"},"color":"#10B981"}],title:((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Reference range':'参考区间标尺')}); } }catch(e){}
   document.getElementById('result').innerHTML=(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—'));
 }
 

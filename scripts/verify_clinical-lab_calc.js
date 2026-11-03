@@ -645,13 +645,13 @@ const CASES = [
 },
 {
   "slug": "clinical-lab/vaginal-discharge-grading",
-  "inputs": {
-    "coccus": "1"
-  },
-  "expect": [
-    "以乳酸杆菌和上皮细胞为主"
+  "clicks": [
+    "document.getElementById('coccus').value='1';grade();var r=document.getElementById('result');r.innerHTML+=' Ⅰ度判定='+(r.innerHTML.indexOf('Ⅰ度(正常)')>=0)+' 描述='+(r.innerHTML.indexOf('以乳酸杆菌和上皮细胞为主')>=0);"
   ],
-  "ref": "bac4/coc1/epi4/wbc0 不满足Ⅰ-Ⅲ级判定 → 启发式 score=4-1+4-0=7≥6 → Ⅰ度(正常)"
+  "expect": [
+    "Ⅰ度判定=true 描述=true"
+  ],
+  "ref": "原有 fallback 用例（bac4/coc1/epi4/wbc0 不满足表驱动四档 → 启发式 score=7≥6 → Ⅰ度）改用 clicks+哨兵：L-N12 修复后页面默认 4/0/4/0 已是Ⅰ度，若沿用静态描述锚会在注入失败时仍命中；哨兵仅在显式调用 grade() 后写入，判别器清 clicks 即失配。"
 },
   {
     slug: "clinical-lab/hba1c-converter",
@@ -1098,6 +1098,141 @@ const CASES = [
       "无效态标尺已清空=true"
     ],
     "ref": "L-N8 无效分支清旧标尺：先渲染 DT 标尺，再把 v1 置空触发无效分支（早退不再渲染）；修复前早退不清标尺 ⇒ 「无效态标尺已清空=false」。判别器清 clicks ⇒ 默认有效输入 + 无桩写入 + 无哨兵串。"
+  },
+  {
+    "slug": "clinical-lab/coagulation-inr",
+    "inputs": { pt: "6", ptNormal: "12", isi: "1" },
+    "expect": ["0.50 PT比值 · 缩短"],
+    "ref": "L-N8：INR=(6/12)^1=0.50<0.8 ⇒ 方向「缩短」，PT 比值仍显示数值 0.50（修复前比值被替换成「延长」）。默认态 INR 1.21、比值 1.21，不命中。"
+  },
+  {
+    "slug": "clinical-lab/coagulation-inr",
+    "inputs": { pt: "12", ptNormal: "12", isi: "1" },
+    "expect": ["1.00 PT比值 · 正常"],
+    "ref": "L-N8 三态之正常：INR=(12/12)^1=1.00，0.8≤INR≤1.2 ⇒ 方向「正常」、比值 1.00。默认态(14.5/12)不命中。"
+  },
+  {
+    "slug": "clinical-lab/coagulation-inr",
+    "inputs": { pt: "30", ptNormal: "12", isi: "1" },
+    "expect": ["2.50 PT比值 · 延长"],
+    "ref": "L-N8 三态之延长：INR=2.50>1.2 ⇒ 方向「延长」、比值 2.50。默认态不命中。"
+  },
+  {
+    "slug": "clinical-lab/csf-analysis",
+    "clicks": [
+      "document.getElementById('appearance').value='clear';document.getElementById('pressure').value='160';document.getElementById('wbc').value='8';document.getElementById('poly').value='45';document.getElementById('protein').value='0.35';document.getElementById('glu').value='3.2';document.getElementById('bg').value='5.0';document.getElementById('cl').value='122';analyze();var r=document.getElementById('result');r.innerHTML+=' 正常卡片='+(r.innerHTML.indexOf('未见明显异常（脑脊液常规/生化在参考范围内）')>=0)+' 异常项0='+(r.innerHTML.indexOf('异常项 0 项')>=0)+' 含病毒='+(r.innerHTML.indexOf('病毒性脑膜炎')>=0);"
+    ],
+    "expect": [
+      "正常卡片=true 异常项0=true 含病毒=false"
+    ],
+    "ref": "L-N13 正常值：外观清亮、压力160、WBC 8、多核45%、蛋白0.35、糖3.2/血糖5.0、氯122 全部在参考范围 ⇒ 异常项 0，走「无异常/正常」类别；哨兵同时断言正常卡片与「异常项 0 项」出现、结果不含「病毒性脑膜炎」（修复前默认及全正常输入被判病毒性 100%）。判别器清 clicks 后无哨兵串且默认态虽也为正常卡片，但 expect 仅认哨兵 ⇒ 失配。"
+  },
+  {
+    "slug": "clinical-lab/csf-analysis",
+    "clicks": [
+      "document.getElementById('appearance').value='clear';document.getElementById('pressure').value='180';document.getElementById('wbc').value='80';document.getElementById('poly').value='20';document.getElementById('protein').value='0.6';document.getElementById('glu').value='3.2';document.getElementById('bg').value='5.5';document.getElementById('cl').value='120';analyze();"
+    ],
+    "expect": ["最可能：病毒性脑膜炎"],
+    "ref": "L-N13 对照：病毒性典型（WBC 80、淋巴 80%、蛋白 0.6 轻度升高、糖正常）⇒ 异常项 3 项达门槛，病毒得分 2+2+1=5 > 结核 4、化脓 1，仍输出病毒性倾向（确认正常项不计分后不会把病毒性误判为正常）。"
+  },
+  {
+    "slug": "clinical-lab/vaginal-discharge-grading",
+    "clicks": [
+      "document.getElementById('bacilli').value='4';document.getElementById('coccus').value='0';document.getElementById('epithelium').value='4';document.getElementById('wbc').value='0';grade();var r=document.getElementById('result');r.innerHTML+=' Ⅰ度判定='+(r.innerHTML.indexOf('Ⅰ度(正常)')>=0)+' 描述='+(r.innerHTML.indexOf('以乳酸杆菌和上皮细胞为主')>=0);"
+    ],
+    "expect": ["Ⅰ度判定=true 描述=true"],
+    "ref": "L-N12 边界 4/0/4/0（页面默认组合）：满足Ⅰ度且是Ⅱ度超集，修复前先判Ⅱ度 ⇒ 误输出Ⅱ度；现Ⅰ度先判。用 clicks 而非 inputs（该组合恰等于页面默认，避免 all_default 计数）。"
+  },
+  {
+    "slug": "clinical-lab/vaginal-discharge-grading",
+    "inputs": { bacilli: "2", coccus: "0", epithelium: "2", wbc: "1" },
+    "expect": ["Ⅱ度(正常)", "乳酸杆菌和上皮细胞较多"],
+    "ref": "L-N12 边界 2/0/2/1：不满足Ⅰ度（杆菌/上皮不足），满足Ⅱ度 ⇒ Ⅱ度(正常)。默认 4/0/4/0 不命中。"
+  },
+  {
+    "slug": "clinical-lab/vaginal-discharge-grading",
+    "inputs": { bacilli: "0", coccus: "2", epithelium: "1", wbc: "2" },
+    "expect": ["Ⅲ度(异常)", "乳酸杆菌减少，球菌增多"],
+    "ref": "L-N12 边界 0/2/1/2：杆菌≤1、球菌≥1、上皮≤1、WBC≥2 ⇒ Ⅲ度(异常)。默认态不命中。"
+  },
+  {
+    "slug": "clinical-lab/vaginal-discharge-grading",
+    "inputs": { bacilli: "0", coccus: "4", epithelium: "0", wbc: "3" },
+    "expect": ["Ⅳ度(异常)", "乳酸杆菌和上皮细胞消失"],
+    "ref": "L-N12 边界 0/4/0/3：杆菌 0、球菌 4、上皮 0、WBC>30 ⇒ Ⅳ度(异常)。默认态不命中。"
+  },
+  {
+    "slug": "clinical-lab/convert-glucose-1",
+    "inputs": { a1c: "" },
+    "expect": ["请输入有效 HbA1c（3–20%）；当前输入「」未参与换算，结果已清空。"],
+    "ref": "L-N14 空值：parseFloat('')=NaN，修复前 `+value||0` 令 a1c=0 ⇒ eAG=-46.7 且判「正常」；现提示非法并清空结果。默认 6.5 有效 ⇒ 提示串不出现。"
+  },
+  {
+    "slug": "clinical-lab/convert-glucose-1",
+    "inputs": { a1c: "-1" },
+    "expect": ["请输入有效 HbA1c（3–20%）；当前输入「-1」未参与换算，结果已清空。"],
+    "ref": "L-N14 负值：a1c=-1 ⇒ eAG=-75.4（修复前照常输出并判正常）；现范围校验 3–20% 拦截并清空。默认态不命中。"
+  },
+  {
+    "slug": "clinical-lab/convert-glucose-1",
+    "inputs": { a1c: "21" },
+    "expect": ["请输入有效 HbA1c（3–20%）；当前输入「21」未参与换算，结果已清空。"],
+    "ref": "L-N14 上限：a1c=21 超出 3–20% ⇒ 提示非法并清空；默认态不命中。"
+  },
+  {
+    "slug": "clinical-lab/cardiac-marker-curve",
+    "clicks": [
+      "document.getElementById('markerType').value='ckmb';onMarkerChange();"
+    ],
+    "expect": ["CK-MB 动态分析", "上限 5", "非ST段抬高型心梗(NSTEMI)"],
+    "ref": "L-N15 切换联动：切到 CK-MB 时 onMarkerChange 把 99th 上限同步为 5.0 ng/mL（修复前沿用 0.04 ⇒ 8.5 被放大 213×、误判典型 AMI）；8.5>5 且 ≤25 ⇒ NSTEMI 分支，SVG 标注「上限 5」。判别器清 clicks 回到 cTnI/0.04 默认态，不命中。"
+  },
+  {
+    "slug": "clinical-lab/cardiac-marker-curve",
+    "inputs": { upper: "-0.04" },
+    "expect": ["请输入大于 0 的参考上限（99百分位，ng/mL）；当前输入「-0.04」无效。"],
+    "ref": "L-N15 上限校验：负值修复前被 parseFloat 后照常参与运算（比值方向相反），现直接提示并清空结果。默认 0.04 有效 ⇒ 提示串不出现。"
+  },
+  {
+    "slug": "clinical-lab/autoantibody-interpretation",
+    "inputs": { anaTiter: "1:320", dsdna: "pos" },
+    "clicks": [
+      "document.getElementById('result').innerHTML+=' 含抗Sm='+(document.getElementById('result').innerHTML.indexOf('抗Sm')>=0);"
+    ],
+    "expect": [
+      "系统性红斑狼疮(SLE)",
+      "标志抗体：抗dsDNA（关联强度高）",
+      "含抗Sm=false"
+    ],
+    "ref": "L-N16 动态拼接：仅抗dsDNA 阳性（ANA 1:320、核型未选）⇒ SLE 评分 3≥3，标志抗体只列实际阳性的抗dsDNA；修复前 filter 恒真把未检出的抗Sm/抗Rib-P/抗PCNA 一并列出 ⇒ 哨兵为 true。默认态 ANA 阴性、无 SLE 卡片，不命中。"
+  },
+  {
+    "slug": "clinical-lab/hba1c-converter",
+    "inputs": { val1: "" },
+    "expect": ["请输入有效数值后再换算，结果已清空。"],
+    "ref": "L-N17 空值：empty ⇒ parseFloat=NaN，现提示缺项并清空 #result/#val2/#refBar。默认 7.0 有效 ⇒ 提示串不出现。"
+  },
+  {
+    "slug": "clinical-lab/hba1c-converter",
+    "inputs": { val1: "2" },
+    "expect": ["HbA1c 需在 3–20% 之间，当前输入「2」无效，结果已清空。"],
+    "ref": "L-N17 低值：修复前 2% ⇒ eAG 10.7 mg/dL(0.6 mmol/L) 且判「正常」；现 3–20% 范围校验拦截并清空。默认 7.0 不命中。"
+  },
+  {
+    "slug": "clinical-lab/hba1c-converter",
+    "clicks": [
+      "setMode('glu');document.getElementById('val1').value='40';convert();"
+    ],
+    "expect": ["血糖需在 1–35 mmol/L 之间，当前输入「40」无效，结果已清空。"],
+    "ref": "L-N17 血糖上限：血糖模式输入 40 mmol/L 超出 1–35 ⇒ 提示并清空（修复前照常反算 HbA1c 25.9%）。默认 hba1c 模式且 val1=7.0，判别器清 clicks 不命中。"
+  },
+  {
+    "slug": "clinical-lab/hba1c-converter",
+    "clicks": [
+      "document.getElementById('val2').value='2';convertReverse();"
+    ],
+    "expect": ["HbA1c 需在 3–20% 之间，当前输入「2.9」无效，结果已清空。"],
+    "ref": "L-N17 反算下限：血糖 2 mmol/L ⇒ HbA1c=(2×18+46.7)/28.7=2.87→2.9%，convertReverse 写回 val1=2.9 后 convert() 触发 3–20% 校验并清空（修复前判「正常」）。默认 val2 空、val1=7.0 ⇒ 不命中。"
   }
 ];
 async function main() {

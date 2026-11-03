@@ -482,10 +482,15 @@ function formatSize(b){
 function mimeFor(fmt){ return fmt==='jpeg'?'image/jpeg':fmt==='webp'?'image/webp':'image/png'; }
 function extFor(fmt){ return fmt==='jpeg'?'jpg':fmt==='webp'?'webp':'png'; }
 function fmtLabel(fmt){ return fmt==='jpeg'?'JPEG':fmt==='webp'?'WebP':'PNG'; }
+function fmtLabelByMime(t){ return t==='image/jpeg'?'JPEG':t==='image/webp'?'WebP':'PNG'; }
+function extForMime(t){ return t==='image/jpeg'?'jpg':t==='image/webp'?'webp':'png'; }
 
 function getSettings(){
   var fmt = document.getElementById('fmt').value;
-  var quality = parseInt(document.getElementById('quality').value,10)/100;
+  var rawQ = parseInt(document.getElementById('quality').value,10);
+  if(!isFinite(rawQ)) rawQ = 80;
+  // 质量参数边界：限制在 1–100，避免 0 / 负数 / 超出范围传给 toBlob
+  var quality = Math.min(100, Math.max(1, rawQ)) / 100;
   var maxSize = parseInt(document.getElementById('max-size').value,10)||0;
   return { format:fmt, quality:quality, maxSize:maxSize };
 }
@@ -563,6 +568,8 @@ function compressOne(item){
     item.compH = res.h;
     item.compType = res.type;
     item.compSize = res.blob.size;
+    // 记录本次实际使用的质量；PNG 无损回归不适用质量参数
+    item.compQuality = (s.format === 'png') ? null : Math.round(s.quality * 100);
     item.status = 'done';
     renderResults();
   }).catch(function(e){
@@ -577,8 +584,8 @@ function recompressAll(){ ToolBox.showToast(i18nText('toast.msg981'),'info'); co
 
 function onSettingsChange(){
   var q = document.getElementById('quality');
-  document.getElementById('quality-val').textContent = q.value + '%';
   var fmt = document.getElementById('fmt').value;
+  document.getElementById('quality-val').textContent = (fmt==='png') ? '无损' : q.value + '%';
   var qRow = document.getElementById('quality-row');
   qRow.style.opacity = (fmt==='png') ? '0.45' : '1';
   q.disabled = (fmt==='png');
@@ -622,6 +629,9 @@ function renderSingle(item){
   var dimText = dimSame ? '尺寸不变' : item.origW+'×'+item.origH+' → '+item.compW+'×'+item.compH;
   var sClass = savedPct>=0 ? 'saved-positive' : 'saved-negative';
   var sText = savedPct>=0 ? '节省 '+Math.abs(savedPct).toFixed(1)+'%' : '增大 '+Math.abs(savedPct).toFixed(1)+'%';
+  // 结果区必须展示实际产出 blob 的格式/质量，而不是当前选择器（改设置后重压缩完成前两者可能不同）
+  var actualFmt = fmtLabelByMime(item.compType);
+  var qualityText = (item.compType==='image/png') ? '无损（PNG 不使用质量参数）' : ((item.compQuality!=null ? item.compQuality : Math.round(getSettings().quality*100))+'%');
 
   const __h3='<div class="cmp-slider" id="cmp-slider">' +
       '<img class="cmp-img cmp-after" id="cmp-after" src="'+item.compUrl+'" alt="压缩后图片">' +
@@ -639,9 +649,9 @@ function renderSingle(item){
     '</div>' +
     '<div class="result-box">' +
       '<p>文件名：<strong>'+ToolBox.escHtml(item.name)+'</strong></p>' +
-      '<p>格式：<strong>'+item.origType+'</strong> → <strong>'+fmtLabel(getSettings().format)+'</strong>（'+item.compType+'）</p>' +
+      '<p>格式：<strong>'+item.origType+'</strong> → <strong>'+actualFmt+'</strong>（'+item.compType+'）</p>' +
       '<p>尺寸：<strong>'+item.origW+' × '+item.origH+'px</strong> → <strong>'+item.compW+' × '+item.compH+'px</strong></p>' +
-      '<p>质量参数：<strong>'+document.getElementById('quality').value+'%</strong></p>' +
+      '<p>质量参数：<strong>'+qualityText+'</strong></p>' +
     '</div> <div id="image_compressTable"></div> <div id="image_compressDiff"></div> <div id="image_compressChart"></div> <div id="image_compressHist"></div>' +
     '<div class="toolbar" style="margin-top:12px;">' +
       '<div id="image_compressPresets"></div><button class="btn primary" onclick="downloadItem('+item.id+')">⬇ 下载压缩图片</button><button class="btn" type="button" onclick="__image_compressExport()">导出明细 CSV</button>' +
@@ -766,7 +776,9 @@ function downloadItem(id){
   if(!item || !item.blob){ ToolBox.showToast(i18nText('toast.msg119'),'warning'); return; }
   var s = getSettings();
   var baseName = item.name.replace(/\.[^.]+$/,'');
-  var fname = baseName + '_compressed.' + extFor(s.format);
+  // 扩展名跟随实际产出的 blob 类型，避免改格式后下载得到「旧图片内容 + 新扩展名」
+  var ext = item.compType ? extForMime(item.compType) : extFor(s.format);
+  var fname = baseName + '_compressed.' + ext;
   var a = document.createElement('a');
   a.href = item.compUrl;
   a.download = fname;

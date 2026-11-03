@@ -583,7 +583,7 @@ function calc(){
     pmt = schedule[0].payment;
   }
 
-  var effectiveRate = calcIRR(principal, schedule, fv) * 12 * 100;
+  var effectiveRate = calcIRR(principal, schedule, fv, timing, fee) * 12 * 100;
 
   currentResult = {
     pv: pv,
@@ -609,22 +609,33 @@ function calc(){
   renderTable();
 }
 
-function calcIRR(principal, schedule, fv){
-  var cashFlows = [-principal];
-  schedule.forEach(function(s){
-    cashFlows.push(s.payment);
-  });
-  if(fv > 0 && schedule.length > 0){
-    cashFlows[cashFlows.length - 1] -= fv;
+function __leaseNPV(cashFlows, rate){
+  var npv = 0;
+  for(var j = 0; j < cashFlows.length; j++){
+    npv += cashFlows[j] / Math.pow(1 + rate, j);
   }
+  return npv;
+}
+function calcIRR(principal, schedule, fv, timing, fee){
+  var n = schedule.length;
+  var cashFlows = [];
+  for(var t = 0; t <= n; t++) cashFlows.push(0);
+  // 手续费与本金同为 t=0 流出
+  cashFlows[0] -= principal + (fee || 0);
+  for(var i = 0; i < n; i++){
+    // 期初还款首期发生在 t=0，期末还款发生在 t=1..n
+    var idx = (timing === 'begin') ? i : i + 1;
+    cashFlows[idx] += schedule[i].payment;
+  }
+  if(fv > 0 && n > 0) cashFlows[n] -= fv;
+
   var low = -0.5, high = 1;
-  for(var i = 0; i < 100; i++){
+  var fLow = __leaseNPV(cashFlows, low), fHigh = __leaseNPV(cashFlows, high);
+  if(!isFinite(fLow) || !isFinite(fHigh) || fLow * fHigh > 0) return NaN;
+  for(var k = 0; k < 200; k++){
     var mid = (low + high) / 2;
-    var npv = 0;
-    for(var j = 0; j < cashFlows.length; j++){
-      npv += cashFlows[j] / Math.pow(1 + mid, j);
-    }
-    if(npv > 0) low = mid;
+    var npv = __leaseNPV(cashFlows, mid);
+    if(npv * fLow >= 0){ low = mid; fLow = npv; }
     else high = mid;
   }
   return (low + high) / 2;

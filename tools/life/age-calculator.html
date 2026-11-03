@@ -399,6 +399,16 @@ function getConstellation(month, day){
   return CONSTELLATIONS[0];
 }
 
+function daysInMonthOf(year, monthIndex){
+  return new Date(year, monthIndex + 1, 0).getDate();
+}
+
+// 构造日期并把「日」夹到该月月末：2 月 29 日出生者在平年按 2 月 28 日计
+function makeClampedDate(year, monthIndex, day, h, mi, s){
+  return new Date(year, monthIndex, Math.min(day, daysInMonthOf(year, monthIndex)),
+    isNaN(h) ? 0 : h, isNaN(mi) ? 0 : mi, isNaN(s) ? 0 : s);
+}
+
 function calc(){
   const by = parseInt(document.getElementById('by').value);
   const bm = parseInt(document.getElementById('bm').value);
@@ -411,6 +421,22 @@ function calc(){
   if(isNaN(by) || isNaN(bm) || isNaN(bd)){
     document.getElementById('ageMain').innerHTML='<span class="live-dot"></span>请输入出生日期';
     document.getElementById('ageSub').textContent = '';
+    document.getElementById('agePrecise').textContent = '';
+    document.getElementById('statGrid').innerHTML='';
+    document.getElementById('nextBirthday').textContent = '';
+    document.getElementById('zodiacRow').innerHTML='';
+    document.getElementById('milestoneList').innerHTML='';
+    document.getElementById('retirementBox').style.display = 'none';
+    return;
+  }
+
+  // 校验年月日真实存在：2 月 31 日、4 月 31 日等非法输入不再被 Date 悄悄滚到下个月
+  const monthValid = bm >= 1 && bm <= 12;
+  const maxDay = monthValid ? daysInMonthOf(by, bm - 1) : 0;
+  if(!monthValid || bd < 1 || bd > maxDay){
+    const reason = monthValid ? `${by} 年 ${bm} 月只有 ${maxDay} 天` : '月份需在 1–12 之间';
+    document.getElementById('ageMain').innerHTML='<span class="live-dot"></span>请输入有效的出生日期';
+    document.getElementById('ageSub').textContent = reason;
     document.getElementById('agePrecise').textContent = '';
     document.getElementById('statGrid').innerHTML='';
     document.getElementById('nextBirthday').textContent = '';
@@ -470,15 +496,21 @@ function calc(){
     <div class="stat-card"><div class="v">${Math.floor(totalDays * 0.33).toLocaleString()}</div><div class="l">睡眠天数（约）</div></div>
   `;document.getElementById('statGrid').innerHTML=(typeof __g14==='number'?(isFinite(__g14)?__g14:'—'):String(__g14).replace(/Infinity|NaN/g,'—'));
 
-  let nextBday = new Date(now.getFullYear(), bm - 1, bd, isNaN(bh)?0:bh, isNaN(bmin)?0:bmin, isNaN(bs)?0:bs);
-  if(nextBday < now) nextBday = new Date(now.getFullYear() + 1, bm - 1, bd, isNaN(bh)?0:bh, isNaN(bmin)?0:bmin, isNaN(bs)?0:bs);
+  let nextBday = makeClampedDate(now.getFullYear(), bm - 1, bd, bh, bmin, bs);
+  if(nextBday < now) nextBday = makeClampedDate(now.getFullYear() + 1, bm - 1, bd, bh, bmin, bs);
   const daysToBday = Math.ceil((nextBday - now) / 86400000);
-  const nextAge = years + 1;
+  // 生日当天按「今天是 N 岁生日」展示；闰日出生者在平年按 2 月 28 日计
+  const bdayDayThisYear = Math.min(bd, daysInMonthOf(now.getFullYear(), bm - 1));
+  const isBdayToday = now.getMonth() === bm - 1 && now.getDate() === bdayDayThisYear;
+  const nextAge = isBdayToday ? years : years + 1;
   
-  const __g15=`距离 ${nextAge} 岁生日（${nextBday.getFullYear()} 年 ${bm} 月 ${bd} 日）还有 <strong style="color:var(--primary)">${daysToBday}</strong> 天`;document.getElementById('nextBirthday').innerHTML=(typeof __g15==='number'?(isFinite(__g15)?__g15:'—'):String(__g15).replace(/Infinity|NaN/g,'—'));
+  const __g15 = isBdayToday
+    ? `今天是 <strong style="color:var(--primary)">${years}</strong> 岁生日`
+    : `距离 ${nextAge} 岁生日（${nextBday.getFullYear()} 年 ${nextBday.getMonth() + 1} 月 ${nextBday.getDate()} 日）还有 <strong style="color:var(--primary)">${daysToBday}</strong> 天`;
+  document.getElementById('nextBirthday').innerHTML=(typeof __g15==='number'?(isFinite(__g15)?__g15:'—'):String(__g15).replace(/Infinity|NaN/g,'—'));
 
   if(years < retireAge){
-    const retireDate = new Date(by + retireAge, bm - 1, bd);
+    const retireDate = makeClampedDate(by + retireAge, bm - 1, bd, bh, bmin, bs);
     const daysToRetire = Math.ceil((retireDate - now) / 86400000);
     const retireYearsLeft = retireAge - years - 1;
     const retireMonthsLeft = 12 - months - 1 + (days >= 0 ? 0 : -1);

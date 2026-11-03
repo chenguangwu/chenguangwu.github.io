@@ -369,8 +369,20 @@ function fmtW(n) {
   return n.toFixed(2);
 }
 
+function clearYearlyOutput() {
+  yearlyData = [];
+  var box = document.getElementById('yearlyTable');
+  if (box) box.innerHTML = '';
+}
+
+function fvAnnuity(annualContribution, r, years) {
+  if (years <= 0 || annualContribution <= 0) return 0;
+  if (r === 0) return annualContribution * years;
+  return annualContribution * (Math.pow(1 + r, years) - 1) / r;
+}
+
 function calc() {
-    var __ig=__tbInputGuard(['age', 'retireAge', 'lifeAge', 'currentSavings', 'monthlyContribution', 'returnRate', 'inflation', 'monthlyExpense'],["当前年龄", "退休年龄", "预期寿命", "当前已有储蓄（元）", "每月投入（元）", "年化收益率（%）", "通胀率（%）", "退休后月支出（现值元）"]);if(__ig){const __g1=__ig;ToolBox.setResult("resultBox",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
+    var __ig=__tbInputGuard(['age', 'retireAge', 'lifeAge', 'currentSavings', 'monthlyContribution', 'returnRate', 'inflation', 'monthlyExpense'],["当前年龄", "退休年龄", "预期寿命", "当前已有储蓄（元）", "每月投入（元）", "年化收益率（%）", "通胀率（%）", "退休后月支出（现值元）"]);if(__ig){clearYearlyOutput(); const __g1=__ig;ToolBox.setResult("resultBox",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 var age = parseFloat(document.getElementById('age').value) || 0;
   var retireAge = parseFloat(document.getElementById('retireAge').value) || 0;
   var lifeAge = parseFloat(document.getElementById('lifeAge').value) || 0;
@@ -381,7 +393,8 @@ var age = parseFloat(document.getElementById('age').value) || 0;
   var monthlyExpense = parseFloat(document.getElementById('monthlyExpense').value) || 0;
 
   if (age >= retireAge || retireAge >= lifeAge) {
-    document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">年龄顺序：当前 < 退休 < 寿命</p>';
+    clearYearlyOutput();
+    document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">年龄顺序：当前 < 退休 < 寿命</p><p style="font-size:13px;color:var(--text-muted);">⚠ 年龄顺序无效，年度明细与导出数据已清空，请修正后再计算。</p>';
     return;
   }
 
@@ -393,12 +406,7 @@ var age = parseFloat(document.getElementById('age').value) || 0;
   var realReturn = (1 + r) / (1 + inf) - 1;
 
   var fvCurrent = currentSavings * Math.pow(1 + r, workYears);
-  var fvContributions = 0;
-  if (r > 0 && annualContribution > 0) {
-    fvContributions = annualContribution * (Math.pow(1 + r, workYears) - 1) / r;
-  } else if (annualContribution > 0) {
-    fvContributions = annualContribution * workYears;
-  }
+  var fvContributions = annualContribution > 0 ? fvAnnuity(annualContribution, r, workYears) : 0;
   var totalRetirementFund = fvCurrent + fvContributions;
 
   var annualExpenseRetire = monthlyExpense * 12 * Math.pow(1 + inf, workYears);
@@ -439,8 +447,10 @@ var age = parseFloat(document.getElementById('age').value) || 0;
   html += '<p style="color:' + statusColor + ';margin-top:12px;"><strong>' + statusText + '</strong></p>';
 
   html += '<div style="margin-top:12px;">';
-  html += '<div class="bar-row"><span class="bar-lbl">当前储蓄</span><div class="bar-bg"><div class="bar-fill" style="width:' + Math.min(fvCurrent / totalRetirementFund * 100, 100) + '%;">' + (fvCurrent / totalRetirementFund * 100).toFixed(1) + '%</div></div></div>';
-  html += '<div class="bar-row"><span class="bar-lbl">定投贡献</span><div class="bar-bg"><div class="bar-fill" style="width:' + Math.min(fvContributions / totalRetirementFund * 100, 100) + '%;background:linear-gradient(90deg,#4caf50,#81c784);">' + (fvContributions / totalRetirementFund * 100).toFixed(1) + '%</div></div></div>';
+  var pctCurrent = totalRetirementFund > 0 ? fvCurrent / totalRetirementFund * 100 : 0;
+  var pctContrib = totalRetirementFund > 0 ? fvContributions / totalRetirementFund * 100 : 0;
+  html += '<div class="bar-row"><span class="bar-lbl">当前储蓄</span><div class="bar-bg"><div class="bar-fill" style="width:' + Math.min(pctCurrent, 100) + '%;">' + pctCurrent.toFixed(1) + '%</div></div></div>';
+  html += '<div class="bar-row"><span class="bar-lbl">定投贡献</span><div class="bar-bg"><div class="bar-fill" style="width:' + Math.min(pctContrib, 100) + '%;background:linear-gradient(90deg,#4caf50,#81c784);">' + pctContrib.toFixed(1) + '%</div></div></div>';
   html += '</div>';
 
   const __g3=html;document.getElementById('resultBox').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
@@ -469,7 +479,7 @@ function generateYearlyData(age, retireAge, lifeAge, currentSavings, monthlyCont
       var retireYears = lifeAge - retireAge;
       var yearsInRetirement = yr - (retireAge - age);
       var realReturn = (1 + r) / (1 + inf) - 1;
-      var realRetireFund = currentSavings * Math.pow(1 + r, retireAge - age) / Math.pow(1 + inf, retireAge - age) + annualContribution * (Math.pow(1 + r, retireAge - age) - 1) / r / Math.pow(1 + inf, retireAge - age);
+      var realRetireFund = currentSavings * Math.pow(1 + r, retireAge - age) / Math.pow(1 + inf, retireAge - age) + fvAnnuity(annualContribution, r, retireAge - age) / Math.pow(1 + inf, retireAge - age);
       if (realReturn > 0) {
         var monthlyRate = realReturn / 12;
         var months = retireYears * 12;
@@ -610,7 +620,7 @@ function renderSensitivity(age, retireAge, lifeAge, currentSavings, monthlyContr
     var rate = rates[i];
     var r = rate / 100;
     var fvCurrent = currentSavings * Math.pow(1 + r, workYears);
-    var fvContrib = r > 0 ? annualContribution * (Math.pow(1 + r, workYears) - 1) / r : annualContribution * workYears;
+    var fvContrib = fvAnnuity(annualContribution, r, workYears);
     var total = fvCurrent + fvContrib;
     var realTotal = total / Math.pow(1 + inf, workYears);
     var realReturn = (1 + r) / (1 + inf) - 1;

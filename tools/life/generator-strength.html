@@ -162,8 +162,8 @@ s.parentNode.insertBefore(el, s);
 
     <div class="toolbar" style="margin-bottom:12px;">
       <button type="button" class="btn primary" onclick="gen()">🎲 生成密码</button>
-      <button type="button" class="btn" onclick="copyMain()">📋 复制</button>
-      <button type="button" class="btn" onclick="copyAll()">📋 复制全部</button>
+      <button type="button" class="btn" id="btnCopyMain" onclick="copyMain()" disabled>📋 复制</button>
+      <button type="button" class="btn" id="btnCopyAll" onclick="copyAll()" disabled>📋 复制全部</button>
     </div>
 
     <div class="toolbar" style="margin-top:8px;">
@@ -326,6 +326,28 @@ function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(
 
 var allPwds=[];
 
+// 复制按钮仅在最近一次生成成功后可用；失败时禁用，避免复制到上一次的旧密码
+function setCopyEnabled(on){
+  ['btnCopyMain','btnCopyAll'].forEach(function(id){
+    var b=document.getElementById(id);
+    if(b) b.disabled=!on;
+  });
+}
+
+// 生成失败（未勾选任何字符类型）时清空密码数组、列表与强度条，并禁用复制
+function resetPwdState(){
+  allPwds=[];
+  var main=document.getElementById('mainPwd');
+  main.textContent='请至少选择一种字符类型';
+  main.classList.add('empty');
+  document.getElementById('pwdList').innerHTML='';
+  var bar=document.getElementById('strBar');
+  if(bar){ bar.style.width='0%'; bar.style.background=''; }
+  var sl=document.getElementById('strLabel');
+  if(sl){ sl.textContent='未生成'; sl.style.color=''; }
+  setCopyEnabled(false);
+}
+
 function __pwdChart(){
   if(typeof TBKit==='undefined'||!TBKit.chart) return;
   var pool=null;
@@ -375,9 +397,7 @@ function gen(){
   var len=Math.max(4,Math.min(64,+document.getElementById('len').value||16));
   var cnt=Math.max(1,Math.min(20,+document.getElementById('cnt').value||1));
   if(!pool){
-    document.getElementById('mainPwd').textContent='请至少选择一种字符类型';
-    document.getElementById('mainPwd').classList.add('empty');
-    const __h0='';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('pwdList').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('pwdList').innerHTML=__h0;
+    resetPwdState();
     return;
   }
   allPwds=[];
@@ -385,6 +405,7 @@ function gen(){
   var main=document.getElementById('mainPwd');
   main.textContent=allPwds[0];
   main.classList.remove('empty');
+  setCopyEnabled(true);
   var s=evalStrength(allPwds[0]);
   var bar=document.getElementById('strBar');
   bar.style.width=s.pct+'%';
@@ -413,7 +434,8 @@ function getTypes(pwd){
 
 function copyMain(){
   var pwd=allPwds[0];
-  if(pwd){ToolBox.copyText(pwd);}
+  if(!pwd){ToolBox.showToast(i18nText('toast.msg657'),'warning');return;}
+  ToolBox.copyText(pwd);
 }
 
 function copyAll(){
@@ -422,7 +444,9 @@ function copyAll(){
 }
 
 function copySingle(idx,btn){
-  ToolBox.copyText(allPwds[idx]);
+  var pwd=allPwds[idx];
+  if(!pwd)return;
+  ToolBox.copyText(pwd);
   btn.textContent='✅';
   setTimeout(function(){btn.textContent='复制';},1500);
 }

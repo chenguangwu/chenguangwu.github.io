@@ -430,17 +430,17 @@ function calc(){
   var lumpFinal = data.lumpFinal;
   var dcaProfit = dcaFinal - totalInvest;
   var dcaReturn = totalInvest > 0 ? (dcaProfit / totalInvest) * 100 : 0;
-  var annualized = calcAnnualizedReturn(totalInvest, dcaFinal, data.years);
+  var annualized = __dcaMoneyWeighted(data);
 
   const __g3=data.months;document.getElementById('totalMonths').textContent=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 
   var profitClass = dcaProfit >= 0 ? 'positive' : 'negative';
-  var profitSign = dcaProfit >= 0 ? '+' : '';
+  var profitSign = dcaProfit >= 0 ? '+' : '-';
 
   var statHtml = '<div class="stat-card"><div class="val">¥' + ToolBox.formatNumber(totalInvest, 0) + '</div><div class="lbl">总投入</div></div>'
     + '<div class="stat-card"><div class="val">¥' + ToolBox.formatNumber(dcaFinal, 0) + '</div><div class="lbl">期末总资产</div></div>'
     + '<div class="stat-card ' + profitClass + '"><div class="val">' + profitSign + '¥' + ToolBox.formatNumber(Math.abs(dcaProfit), 0) + '</div><div class="lbl">总收益</div></div>'
-    + '<div class="stat-card ' + profitClass + '"><div class="val">' + profitSign + dcaReturn.toFixed(2) + '%</div><div class="lbl">累计收益率</div></div>';
+    + '<div class="stat-card ' + profitClass + '"><div class="val">' + profitSign + Math.abs(dcaReturn).toFixed(2) + '%</div><div class="lbl">累计收益率</div></div>';
   const __g4=statHtml;document.getElementById('statGrid').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
 
   var resHtml = '<p>每月定投 <strong>¥' + ToolBox.formatNumber(data.monthly, 0) + '</strong>，';
@@ -450,8 +450,8 @@ function calc(){
   resHtml += '<p>总投入金额：<strong>¥' + ToolBox.formatNumber(totalInvest, 2) + '</strong></p>';
   resHtml += '<p>期末总资产：<strong style="color:var(--primary);font-size:18px;">¥' + ToolBox.formatNumber(dcaFinal, 2) + '</strong></p>';
   resHtml += '<p>累计收益：<strong style="color:' + (dcaProfit >= 0 ? 'var(--success)' : 'var(--danger)') + ';">' + profitSign + '¥' + ToolBox.formatNumber(Math.abs(dcaProfit), 2) + '</strong></p>';
-  resHtml += '<p>累计收益率：<strong style="color:' + (dcaProfit >= 0 ? 'var(--success)' : 'var(--danger)') + ';">' + profitSign + dcaReturn.toFixed(2) + '%</strong></p>';
-  resHtml += '<p>年化收益率（资金加权）：<strong style="color:var(--primary);">' + annualized.toFixed(2) + '%</strong></p>';
+  resHtml += '<p>累计收益率：<strong style="color:' + (dcaProfit >= 0 ? 'var(--success)' : 'var(--danger)') + ';">' + profitSign + Math.abs(dcaReturn).toFixed(2) + '%</strong></p>';
+  resHtml += '<p>年化收益率（资金加权）：<strong style="color:var(--primary);">' + (annualized ? annualized.nominal.toFixed(2) + '%' : '—') + '</strong>' + (annualized ? '（名义年化 = 月 IRR × 12；有效年化 <strong style="color:var(--primary);">' + annualized.effective.toFixed(2) + '%</strong>）' : '（现金流无法求解 IRR）') + '</p>';
   resHtml += '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
   resHtml += '<p style="font-size:13px;color:var(--text-muted);">💡 对比：若一次性投入 ¥' + ToolBox.formatNumber(totalInvest, 0) + '，期末资产约 <strong>¥' + ToolBox.formatNumber(lumpFinal, 0) + '</strong>（' + (lumpFinal > dcaFinal ? '高于' : '低于') + '定投 ' + (Math.abs(lumpFinal - dcaFinal) / dcaFinal * 100).toFixed(2) + '%）</p>';
   const __g5=resHtml;document.getElementById('res').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
@@ -463,20 +463,33 @@ function calc(){
     var __resEl = document.getElementById('res');
     if (__target > 0 && __resEl){
       var __need = __dcaSolveRatePct(__target, data.monthly, data.initial, data.years);
-      var __gap = __need - data.annualRate;
       var __en = (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn());
-      var __gapTxt = Math.abs(__gap).toFixed(2);
-      var __verdict = (__gap > 0.005)
-        ? (__en ? 'you need +' + __gapTxt + ' pp more.' : '还需再提高 ' + __gapTxt + ' 个百分点。')
-        : (__gap < -0.005)
-          ? (__en ? 'you have ' + __gapTxt + ' pp of headroom (hits early).' : '已超出 ' + __gapTxt + ' 个百分点（可提前达标）。')
-          : (__en ? 'right on target.' : '刚好达标。');
       var __line = '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">' +
-        '<p>🎯 ' + (__en ? 'Target amount: ' : '止盈目标：') + '<strong>¥' + ToolBox.formatNumber(__target, 2) + '</strong></p>' +
-        '<p>' + (__en ? 'Required annualized return: ' : '达成所需年化收益率：') +
-        '<strong style="color:var(--primary);font-size:18px;">' + __need.toFixed(2) + '%</strong></p>' +
-        '<p>' + (__en ? 'vs. your expected ' : '与你设定的预期年化 ') + data.annualRate.toFixed(2) + '% ' +
-        (__en ? '⇒ ' : '⇒ ') + __verdict + '</p>';
+        '<p>🎯 ' + (__en ? 'Target amount: ' : '止盈目标：') + '<strong>¥' + ToolBox.formatNumber(__target, 2) + '</strong></p>';
+      if (!isFinite(__need)) {
+        var __fvMin = __dcaFutureValue(data.monthly, data.initial, data.years, -99);
+        var __fvMax = __dcaFutureValue(data.monthly, data.initial, data.years, 500);
+        var __rangeTxt = '¥' + ToolBox.formatNumber(__fvMin, 2) + ' ～ ¥' + ToolBox.formatNumber(__fvMax, 2);
+        var __over = __target > __fvMax;
+        var __gapAmount = Math.abs(__over ? (__target - __fvMax) : (__fvMin - __target));
+        __line += '<p style="color:var(--danger);">⚠ ' +
+          (__en
+            ? 'Target is outside the solvable range (annualized −99% to 500%): with current parameters the final value spans ' + __rangeTxt + ', and the target is ' + (__over ? 'above the upper bound' : 'below the lower bound') + ' by ¥' + ToolBox.formatNumber(__gapAmount, 2) + '.'
+            : '目标超出可反推范围（年化 −99%～500%）：当前参数期末资产区间约 ' + __rangeTxt + '，目标' + (__over ? '高出上限' : '低于下限') + ' ¥' + ToolBox.formatNumber(__gapAmount, 2) + '，无法反推所需收益率。') +
+          '</p>';
+      } else {
+        var __gap = __need - data.annualRate;
+        var __gapTxt = Math.abs(__gap).toFixed(2);
+        var __verdict = (__gap > 0.005)
+          ? (__en ? 'you need +' + __gapTxt + ' pp more.' : '还需再提高 ' + __gapTxt + ' 个百分点。')
+          : (__gap < -0.005)
+            ? (__en ? 'you have ' + __gapTxt + ' pp of headroom (hits early).' : '已超出 ' + __gapTxt + ' 个百分点（可提前达标）。')
+            : (__en ? 'right on target.' : '刚好达标。');
+        __line += '<p>' + (__en ? 'Required annualized return: ' : '达成所需年化收益率：') +
+          '<strong style="color:var(--primary);font-size:18px;">' + __need.toFixed(2) + '%</strong></p>' +
+          '<p>' + (__en ? 'vs. your expected ' : '与你设定的预期年化 ') + data.annualRate.toFixed(2) + '% ' +
+          '⇒ ' + __verdict + '</p>';
+      }
       __resEl.innerHTML = String(__resEl.innerHTML) + __line;
     }
   } catch(e) {}
@@ -496,41 +509,53 @@ function __dcaFutureValue(monthly, initial, years, annualRatePct){
   }
   return bal;
 }
-// 止盈反推：二分求使期末资产 = target 的年化收益率（%，单调 ⇒ 二分收敛）
+// 止盈反推：二分求使期末资产 = target 的年化收益率（%）；超出 [−99%, 500%] 或无解返回 NaN
 function __dcaSolveRatePct(target, monthly, initial, years){
   var lo = -0.99, hi = 5;
+  var fLo = __dcaFutureValue(monthly, initial, years, lo * 100) - target;
+  var fHi = __dcaFutureValue(monthly, initial, years, hi * 100) - target;
+  if (!isFinite(fLo) || !isFinite(fHi) || fLo >= 0 || fHi <= 0) return NaN;
   for (var i = 0; i < 200; i++){
     var mid = (lo + hi) / 2;
     var fv = __dcaFutureValue(monthly, initial, years, mid * 100);
     if (fv < target) lo = mid; else hi = mid;
   }
-  return (lo + hi) / 2 * 100;
+  var rate = (lo + hi) / 2;
+  var fvFinal = __dcaFutureValue(monthly, initial, years, rate * 100);
+  if (Math.abs(fvFinal - target) / Math.max(1, Math.abs(target)) > 1e-6) return NaN;
+  return rate * 100;
 }
 
-function calcAnnualizedReturn(invest, final, years){
-  if(invest <= 0 || final <= 0 || years <= 0) return 0;
-  var irr = approximateIRR(invest, final, years);
-  return irr * 100;
+// 资金加权年化：按真实发生时点构造现金流求 IRR（初始本金 t=0，各期定投按期初/期末落位，期末资产 t=n）
+function __dcaNPV(cf, final, rm){
+  var npv = 0;
+  for (var t = 0; t < cf.length; t++) npv += cf[t] / Math.pow(1 + rm, t);
+  return npv + final / Math.pow(1 + rm, cf.length - 1);
 }
-
-function approximateIRR(invest, final, years){
-  var monthlyInvest = invest / (years * 12);
-  var low = -0.5, high = 1;
-  for(var i = 0; i < 100; i++){
-    var mid = (low + high) / 2;
-    var monthlyRate = mid / 12;
-    var fv = 0;
-    for(var m = 0; m < years * 12; m++){
-      if(timing === 'begin'){
-        fv = (fv + monthlyInvest) * (1 + monthlyRate);
-      } else {
-        fv = fv * (1 + monthlyRate) + monthlyInvest;
-      }
-    }
-    if(fv < final) low = mid;
-    else high = mid;
+function __dcaIRR(cf, final){
+  var lo = -0.49, hi = 10;
+  var fLo = __dcaNPV(cf, final, lo), fHi = __dcaNPV(cf, final, hi);
+  if (!isFinite(fLo) || !isFinite(fHi) || fLo * fHi > 0) return NaN;
+  for (var i = 0; i < 200; i++){
+    var mid = (lo + hi) / 2;
+    var f = __dcaNPV(cf, final, mid);
+    if (f * fLo >= 0){ lo = mid; fLo = f; } else { hi = mid; }
   }
-  return (low + high) / 2;
+  return (lo + hi) / 2;
+}
+function __dcaMoneyWeighted(data){
+  var months = data.months;
+  var cf = [];
+  for (var t = 0; t <= months; t++) cf.push(0);
+  cf[0] -= data.initial;
+  if (timing === 'begin'){
+    for (var m = 0; m < months; m++) cf[m] -= data.monthly;
+  } else {
+    for (var m = 1; m <= months; m++) cf[m] -= data.monthly;
+  }
+  var rm = __dcaIRR(cf, data.dcaFinal);
+  if (!isFinite(rm) || rm <= -1) return null;
+  return { monthlyRate: rm, nominal: rm * 12 * 100, effective: (Math.pow(1 + rm, 12) - 1) * 100 };
 }
 
 function drawChart(data){
@@ -650,8 +675,8 @@ function renderTable(data){
 
     var profitClass = yearlyProfit >= 0 ? 'var(--success)' : 'var(--danger)';
     var returnClass = totalReturn >= 0 ? 'var(--success)' : 'var(--danger)';
-    var profitSign = yearlyProfit >= 0 ? '+' : '';
-    var returnSign = totalReturn >= 0 ? '+' : '';
+    var profitSign = yearlyProfit >= 0 ? '+' : '-';
+    var returnSign = totalReturn >= 0 ? '+' : '-';
 
     rows.push([
       '第' + y + '年',
@@ -659,7 +684,7 @@ function renderTable(data){
       '¥' + ToolBox.formatNumber(invest, 2),
       '¥' + ToolBox.formatNumber(dcaBal, 2),
       profitSign + '¥' + ToolBox.formatNumber(Math.abs(yearlyProfit), 2),
-      returnSign + totalReturn.toFixed(2) + '%'
+      returnSign + Math.abs(totalReturn).toFixed(2) + '%'
     ]);
 
     prevBalance = dcaBal;

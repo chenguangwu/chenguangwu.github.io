@@ -1742,7 +1742,7 @@ const CASES = [
       "c-months": "42"
     },
     "expect": [
-      "案 ，0.00 元\n42\n42\n42\n42\n42\n42\n42\n42\n42"
+      "方案 A 月供： 1.92 元 总利息：38.79 元 还款总额：80.79 元"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"a-principal\":\"42\",\"a-rate\":\"42\",\"a-months\":\"42\",\"b-principal\":\"42\",\"b-rate\":\"42\",\"b-months\":\"42\",\"c-principal\":\"42\",\"c-rate\":\"42\",\"c-months\":\"42\"}，输出区含「案 ，0.00 元\n42\n42\n42\n42\n42\n42\n42\n42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -2075,7 +2075,8 @@ const CASES = [
       "monthlyExpense": "42"
     },
     "expect": [
-      "42\n42\n42\n42\n42\n42\n42\n42\n年龄顺序：当前"
+      "42\n42\n42\n42\n42\n42\n42\n42\n年龄顺序：当前",
+      "⚠ 年龄顺序无效，年度明细与导出数据已清空，请修正后再计算。"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"age\":\"42\",\"retireAge\":\"42\",\"lifeAge\":\"42\",\"currentSavings\":\"42\",\"monthlyContribution\":\"42\",\"returnRate\":\"42\",\"inflation\":\"42\",\"monthlyExpense\":\"42\"}，输出区含「42\n42\n42\n42\n42\n42\n42\n42\n年龄顺序：当前」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -2475,6 +2476,49 @@ const CASES = [
     clicks: ["calcTool()"],
     expect: ["第 0 期 +24,000.00（收到分期本金）", "第 1–24 期 −1,288.00（支付还款）"],
     ref: "F-N10：现金流方向展示（便于核对 IRR 符号约定）——期初收到本金 24,000.00，此后 24 期每期支付 1,000.00（本金）+288.00（手续费）=1,288.00，方向分别为 +/−。默认态（12,000 / 12 期 / 0.6%）为 +12,000.00 与 −1,072.00 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/loan-comparison",
+    inputs: {"a-principal":"0","a-rate":"5","a-months":"12","b-principal":"50000","b-rate":"4.8","b-months":"24","c-principal":"80000","c-rate":"4.6","c-months":"36"},
+    expect: ["⚠ 无效方案：贷款金额与月数须大于 0，已排除比较", "月供最少： B 方案"],
+    ref: "F-N1：方案 A 本金 0 ⇒ 月供恒 0，必须标记无效并排除比较；仅 B、C 参与，B 月供 2189.09 最低；本金/期数不同须提示不可仅按月供判优。默认三方案本金 100000、均有效 ⇒ 不命中无效提示。",
+  },
+  {
+    slug: "finance/loan-comparison",
+    inputs: {"a-principal":"0","a-rate":"5","a-months":"12","b-principal":"0","b-rate":"4.8","b-months":"0","c-principal":"0","c-rate":"4.6","c-months":"0"},
+    expect: ["⚠ 没有有效方案：请至少填写一组贷款金额与月数后再比较。"],
+    ref: "F-N1：三方案全部本金/期数为 0 ⇒ 全部无效，不得显示「月供最少」推荐，只给出无有效方案提示。默认三方案均有效 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/dca-calculator",
+    inputs: {"monthly":"1000","years":"1","rate":"12","initial":"12000","target":"0"},
+    clicks: ["switchTiming('begin')","calc()"],
+    expect: ["累计收益： +¥2,204.40", "年化收益率（资金加权）： 12.00%", "有效年化 12.68%"],
+    ref: "F-N5：初始本金 12000 发生在 t=0、12 期定投按期初时点落位求 IRR ⇒ 名义 12.00%/有效 12.68%；旧口径把初始本金均摊到每月，资金加权年化虚高（约 17%）。默认 monthly 1000/10 年/8% ⇒ 不命中。",
+  },
+  {
+    slug: "finance/dca-calculator",
+    inputs: {"monthly":"1000","years":"1","rate":"-12","initial":"12000","target":"0"},
+    expect: ["累计收益： -¥2,001.87", "累计收益率： -8.34%", "年化收益率（资金加权）： -12.00%"],
+    ref: "F-N6：年化 −12%、初始 12000、月投 1000、1 年 ⇒ 期末 21998.13，累计亏损 2001.87，必须带负号显示 -¥2,001.87 / -8.34%，IRR 名义 -12.00%。默认 8% 正收益 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/dca-calculator",
+    inputs: {"monthly":"1000","years":"1","rate":"5","initial":"0","target":"1000000000"},
+    expect: ["目标超出可反推范围（年化 −99%～500%）", "无法反推所需收益率"],
+    ref: "F-N6：月投 1000、1 年、目标 10 亿远超 500% 年化上限（期末约 15.44 万）⇒ 不得静默返回 500%，须提示目标超出可反推范围。默认目标 200000 有解 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/retirement-calculator",
+    inputs: {"age":"30","retireAge":"60","lifeAge":"85","currentSavings":"0","monthlyContribution":"500","returnRate":"0","inflation":"0","monthlyExpense":"2000"},
+    expect: ["18.00万 退休时资产（名义）", "600.00 退休后月支取（实际）"],
+    ref: "F-N7：年化 0% 时定投 500×12×30 年 = 18.00 万，退休后按 4% 法则月支取 600.00；旧代码年金公式除以 r=0 产生 NaN。默认 6% ⇒ 不命中。",
+  },
+  {
+    slug: "finance/lease-payment-calculator",
+    inputs: {"pv":"100000","downPct":"0","rate":"6","months":"36","fv":"0","fee":"5000","type":"equal","timing":"begin"},
+    expect: ["还款方式： 等额本息 · 期初还款", "实际年化利率(IRR)： 2.57%"],
+    ref: "F-N13：期初还款首期落在 t=0、手续费 5000 计入 t=0 现金流 ⇒ 名义 IRR 2.57%；旧口径把首期也折现到 t=1 且漏算手续费，同类期初无手续费场景约 5.67%。默认 fee=0、期末还款 IRR 6.00% ⇒ 不命中 2.57%。",
   }
 
 ];

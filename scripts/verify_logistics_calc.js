@@ -195,6 +195,19 @@ const CASES = [
   "inputs": { "mode": "ftl" },
   "expect": ["运输模式 整车 FTL"],
   "ref": "注入非默认运输模式 ftl（默认 ltl）→ 输出「运输模式 整车 FTL」；默认态为「零担 LTL」，不含该串，0 逃生。"
+},
+{
+  "slug": "logistics/load-calculator",
+  "inputs": {
+    "L": "7.2",
+    "W": "1.8",
+    "H": "1.8",
+    "maxLoad": "1.5",
+    "boxSize": "60×40×abc",
+    "boxWeight": "15"
+  },
+  "expect": ["单箱尺寸格式无效"],
+  "ref": "06-F8：boxSize 第三段非数字 ⇒ parseFloat 得 NaN，旧实现 p<=0 不拦 NaN、整报告落到破折号；修复后逐项 Number.isFinite 校验并给出「单箱尺寸格式无效」告警。默认 60×40×40 不含该串。"
 }
 ];
 async function main() {

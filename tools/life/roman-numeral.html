@@ -291,10 +291,19 @@ function toRoman(num){
   }
   return {result, break: break_.join(' + ')};
 }
+function decompose(total){
+  let out = [];
+  for(const [v, s] of SYMBOLS){
+    let n = Math.floor(total / v);
+    for(let k = 0; k < n; k++) out.push(`${s}=${v}`);
+    total -= n * v;
+  }
+  return out.join(' + ');
+}
 function fromRoman(str){
   if(!/^[MDCLXVI]+$/i.test(str)) return {result:'无效', break:'只能包含 MDCLXVI'};
   str = str.toUpperCase();
-  let total = 0, prev = 0, break_ = [];
+  let total = 0, prev = 0;
   const map = {M:1000,D:500,C:100,L:50,X:10,V:5,I:1};
   for(let i = str.length - 1; i >= 0; i--){
     const cur = map[str[i]];
@@ -302,14 +311,21 @@ function fromRoman(str){
     else total += cur;
     prev = Math.max(prev, cur);
   }
+  if(total < 1 || total > 3999) return {result:'无效组合', break:'数值超出 1-3999 范围'};
   // 校验：把 total 转回罗马数字看是否一致
   const back = toRoman(total);
   if(back.result !== str) return {result:'无效组合', break:`正确写法：${back.result}`};
-  return {result: total, break: str.split('').map(c => `${c}=${map[c]}`).join(' + ')};
+  // 拆解式按减法对生成，合计必然等于结果（如 XIV → X=10 + IV=4，而非 X+I+V=16）
+  return {result: total, break: decompose(total)};
 }
 function convertNum(){
-  const num = parseInt(document.getElementById('numInput').value);
-  if(!num){ document.getElementById('romanResult').textContent = '--'; return; }
+  const raw = String(document.getElementById('numInput').value == null ? '' : document.getElementById('numInput').value).trim();
+  const num = Number(raw);
+  if(!raw || !isFinite(num) || !Number.isInteger(num) || num < 1 || num > 3999){
+    document.getElementById('romanResult').textContent = '请输入 1-3999 之间的整数';
+    document.getElementById('romanBreak').textContent = '';
+    return;
+  }
   const r = toRoman(num);
   document.getElementById('romanResult').textContent = r.result;
   document.getElementById('romanBreak').textContent = r.break;
