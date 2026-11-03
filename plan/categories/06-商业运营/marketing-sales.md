@@ -100,3 +100,80 @@
 - `tools/marketing/marketing-ltv-cac-ratio.html`
 - 本次仅做源码阅读与 node 内存复算（按页面 `calc()` 表达式重写同名函数取输出），未做浏览器、英文态、移动端、门禁或线上验证；`marketing-ltv-cac-ratio` 的 36 个月寿命属产品假设，标注为待验证。
 
+## 2026-11-03 续查（并行批 J）
+
+### MS-J1 CPA 页转化率与毛利率无上界，可算出 200% 转化率与超收入毛利（中，确认）
+- 描述：`calc()` 只校验营销总花费与新增客户数，点击量、毛利率两个百分数输入没有业务上界。新增客户数超过点击量时转化率直接 >100%；毛利率手输 >100 时毛利超过收入，ROI 被同步放大。
+- 证据：`tools/marketing/marketing-cpa-calculator.html:425`（仅校验 `totalSpend`/`newCustomers`）、`:432`（`cvr = (newCustomers / clicks) * 100`）、`:435-436`（`grossProfit = revenue * (grossMargin / 100)`）、`:216`（`max="100"` 只是表单约束，不阻止 `oninput` 计算）。node 内存复算：点击量 100、新增客户 200 → 转化率 `200.00%`；毛利率 150 → 毛利 `89,700`（收入 59,800）。
+- 影响：`tools/marketing/marketing-cpa-calculator.html`。CVR 200% 被当作真实效率；毛利超收入会让 ROI 与「净盈利」结论失真。
+- 方案：`clicks > 0` 时校验 `newCustomers <= clicks`，超出提示「新增客户数不能超过点击量」；毛利率钳制 `0–100`，越界提示而非静默计算。
+
+### MS-J2 ROAS 页亏损时「盈亏平衡 ROAS」输出负值（中，确认）
+- 描述：盈亏平衡 ROAS 用 `100 / 当前毛利率` 计算，而当前毛利率在亏损时为负数，于是输出负数倍率；收入为 0 时还会得到 `-0.00x`。该值在营销语境中没有意义，页面也没有「当前亏损、无盈亏平衡点」的说明。
+- 证据：`tools/marketing/marketing-roas-calculator.html:449-452`（`profitMargin = (revenue - spend) / revenue * 100`）、`:498`（`(100 / (profitMargin || 1)).toFixed(2)`）。node 内存复算：花费 5,000、收入 4,500 → ROAS `0.90x`、毛利率 `-11.1%`、盈亏平衡 ROAS `-9.00x`。
+- 影响：`tools/marketing/marketing-roas-calculator.html`。亏损投放会看到「盈亏平衡 ROAS -9x」，无法据此判断要提升到多少才保本。
+- 方案：`profitMargin <= 0` 时显示「当前为亏损，需毛利率 >0 才有盈亏平衡 ROAS」，或改用 `1 / 目标毛利率` 并让用户输入目标毛利率；标签注明「按收入口径毛利率」。
+
+### MS-J3 CAC 页算了回收期却从不展示，且 36 个月假设写死（中，确认）
+- 描述：`paybackMonths` 在 `calc()` 中已算出，但结果模板没有任何位置引用它；同页深度解析却给出「回收期 ≈0.6 个月」的完整算例，形成「说明里有、结果里没有」的断层。该值还隐含固定 36 个月客户生命周期，页面无输入也无声明。
+- 证据：`tools/marketing/marketing-cac-calculator.html:419`（`paybackMonths = cac / (ltv / 36)`）、`:446-456`（LTV 卡片只渲染 LTV、比率、健康状态、ROI，无回收期）、`:363`（深度解析「CAC=50、LTV=3000（按 36 个月摊）→ 回收期≈0.6 个月」）。node 内存复算：CAC 500、LTV 3,000 → `6.00` 个月，页面任何位置均不出现。
+- 影响：`tools/marketing/marketing-cac-calculator.html`。用户读完深度解析后找不到对应结果；生命周期不等于 36 个月时该口径也无法调整。
+- 方案：在 LTV:CAC 表补一行「回收期（按 36 个月摊）」并展示 `paybackMonths.toFixed(1)`；把 36 提为「客户生命周期（月）」输入（默认 36），或在该行标注假设。
+
+### MS-J4 流失率页期末客户数超口径时出现负流失率与双负号（中，确认）
+- 描述：`lost = start + newC - end` 未校验 `end <= start + newC`。期末客户数大于「期初+新增」时流失人数为负，流失率变负、留存率 >100%，表格还把负的 `lost` 拼成 `-${lost}`，渲染出「--50」两个负号。
+- 证据：`tools/marketing/marketing-churn-rate.html:394-397`（`lost`、`churnRate`、`retentionRate` 均无下界校验）、`:419`（流失人数展示）、`:427`（`-${lost.toLocaleString()}`）。node 内存复算：期初 1,000、期末 1,050、新增 0 → 流失 `-50`、流失率 `-5.00%`、留存率 `105.00%`、表格「流失客户数 --50」。
+- 影响：`tools/marketing/marketing-churn-rate.html`。口径误填或跨期统计时，页面给出「负流失、105% 留存」的自相矛盾结论，且预期生命周期变为 `—`。
+- 方案：校验 `end <= start + newC`，超出提示「期末客户数不能超过期初+新增（当前上限 X）」；流失人数为负时展示 0 并标记口径异常，而不是拼出双负号。
+
+### MS-J5 转化率页未拦截「转化数 > 访问量」，出现 150% 转化率与负流失率（中，确认）
+- 描述：只校验访问量 >0，转化数可以随意超过访问量。页面随即输出 >100% 的 CVR、负的「未转化数」和负的「流失率」，且全部按正常指标配色展示。
+- 证据：`tools/marketing/marketing-conversion-rate-calculator.html:394`（仅校验 `visitors` 与 `conversions` 是否为数字、`visitors > 0`）、`:399`（`cvr = conversions / visitors * 100`）、`:444`（`visitors - conversions`）、`:471`（`100 - cvr`）。node 内存复算：访问 100、转化 150 → CVR `150.00%`、未转化 `-50`、流失率 `-50.0%`。
+- 影响：`tools/marketing/marketing-conversion-rate-calculator.html`。跨渠道重复计数或误填时，页面把不可能的比例当成有效结果，CPA 与 ROI 也随错误转化数计算。
+- 方案：校验 `0 <= conversions <= visitors`，超出提示；若业务上确实存在「一次访问多次转化」，则增加「转化次数口径」开关并相应改分母说明。
+
+### MS-J6 销售预测页置信区间用历史值标准差而非残差，且两句文案自相矛盾（中，确认）
+- 描述：`forecast()` 的 95% 区间固定用 `std(hist)`（历史观测值的离散度），而 `linreg()` 已算出残差标准差 `sigma` 却从未使用。页面一处写「基于历史残差标准差」，另一处写「以历史标准差 σ」，两种口径并存。完美线性趋势会被展示成很宽的区间。
+- 证据：`tools/sales/sales-forecast.html:240`（文案「基于历史残差标准差的近似 95% 置信区间」）、`:275`（文案「以历史标准差 σ 给出 ±1.96σ」）、`:410-411`（`sigma = std(residuals)` 返回）、`:485-488`（实际 `sigma = std(hist)` 并据此生成 `ci`）、`:537`（结果行渲染 `r.ci`）。node 内存复算：历史 [100,110,120] → 线性拟合预测 130、残差 σ `0.00`，页面区间却是 `[110.4, 149.6]`（±1.96×历史 σ 10）。
+- 影响：`tools/sales/sales-forecast.html`。趋势平稳的数据被误判为高度不确定；线性回归分支的残差信息被丢弃，区间宽度与模型拟合质量无关。
+- 方案：线性回归用 `lr.sigma`，MA/WMA/EMA 用滚动一步预测残差；无法计算残差时（样本过少）明确标注「以历史波动近似」。两句文案统一为同一口径。
+
+### MS-J7 折扣率页折后价高于原价时输出负折扣率与「12 折」（中，确认）
+- 描述：由折后价反推折扣的模式只校验 `salePrice >= 0`，没有要求 `salePrice <= origPrice`。折后价高于原价时折扣率为负、折数变成 >10 折、节省金额为负却仍用绿色展示；「节省金额」反推模式在 `saveAmount > origPrice` 时同理会得到负折后价。
+- 证据：`tools/marketing/marketing-discount-rate.html:438-446`（仅拦截 `origPrice <= 0 || salePrice < 0`）、`:458`（`discountZhe = 10 - discountPct / 10`）、`:484-486`（折数、节省金额渲染）。node 内存复算：原价 100、折后价 120 → 折扣率 `-20.0%`、折数 `12.0折`、节省 `-¥20.00`（绿色）。
+- 影响：`tools/marketing/marketing-discount-rate.html` 的模式二与模式三。录入「加价」或记错原价时，页面把涨价解释成 12 折优惠，报价核对会直接读错。
+- 方案：模式二校验 `0 <= salePrice <= origPrice`，模式三校验 `0 <= saveAmount <= origPrice`；越界提示「折后价不能高于原价」。百分比模式同步钳制 `0 <= discountPct <= 100`。
+
+### MS-J8 移动平均页 WMA 预测权重方向与历史计算相反（高，确认）
+- 描述：历史 WMA 给最近一期最大权重（`data[i-j] * (n-j)`），但预测分支按 `seg2[w] * (seg2.length-w)` 计算，`seg2[0]` 是最旧值却拿到最大权重，方向整体颠倒。结果是同一窗口下「移动平均」列与「下一期预测」值不一致，趋势上升时预测被系统性压低。
+- 证据：`tools/sales/moving-average.html:285`（历史 WMA：`s += data[i-j] * (n-j)`，最新权重 n）、`:306-309`（预测 WMA：`ws += seg2[w] * (seg2.length-w)`，最旧权重最大）、`:130`（公式框「WMA：权重 w = N−j（近期权重大）」）、`:206`（深度解析算例写「(110×1+130×2+140×3)/6 = 133.33」）。node 内存复算：窗口 [110,130,140] → 历史 WMA `131.67`、预测 WMA `121.67`，正确预测应为 `131.67`（深度解析的 133.33 本身也算错，按 110/130/140 应为 131.67）。
+- 影响：`tools/sales/moving-average.html` 的 WMA 模式。下一期预测值偏低（上升趋势）或偏高（下降趋势），且与页面同时展示的移动平均线脱节，用户会以为模型在正常外推。
+- 方案：预测分支改为与历史同口径（`seg2[w] * (w+1)`，越靠后权重越大），或抽成同一个 `wmaAt(series, n)` 函数供历史与预测复用；同时把深度解析示例的 133.33 修正为 131.67。
+
+### MS-J9 窗口 N 大于历史期数时移动平均表整列为空且无提示（中，确认）
+- 描述：SMA/WMA 的移动平均序列循环从 `i = n-1` 开始，`n > data.length` 时循环一次都不执行，`maSeries` 为空；页面只判断「数据 <2 期」就放行，结果表只剩预测行，没有任何说明。
+- 证据：`tools/sales/moving-average.html:147`（`window` 允许 `max=20`）、`:272`（仅 `if(data.length<2) return`）、`:278`（`for(var i=n-1;i<data.length;i++)`）、`:324-327`（按 `maSeries` 生成行）。node 内存复算：数据 5 期、N=10 → `maSeries` 长度 `0`，预测值仍输出 `3`（全序列均值），表格无任何「移动平均」历史行。
+- 影响：`tools/sales/moving-average.html`。窗口大于样本时用户看到「有预测、无历史」，容易误判为页面未计算或数据丢失。
+- 方案：`n > data.length` 时提示「窗口 N 不能大于历史期数（当前 5 期）」并阻止计算，或把 N 自动钳制到 `data.length` 并在标签上注明。
+
+### 留存优化
+- `tools/marketing/marketing-cpa-calculator.html`：把「CPA / CPC / CVR」画成同一漏斗的三段（花费 → 点击 → 新客），让 200% 这类异常在图形上直接暴露。
+- `tools/marketing/marketing-roas-calculator.html`：增加「毛利率」输入并把「盈亏平衡 ROAS / 当前 ROAS / 目标 ROAS」并列到同一数轴，替代当前用当前毛利率反推的隐式假设。
+- `tools/marketing/marketing-cac-calculator.html`：回收期展示后，增加「营销端/销售端回收期」拆分，直接看出该先压缩哪一段费用。
+- `tools/marketing/marketing-churn-rate.html`：结果区加一行口径提示（期初口径 vs 期末口径），并允许按月连续录入多期，画流失率趋势而不是单期快照。
+- `tools/marketing/marketing-conversion-rate-calculator.html`：把 CVR 的分子分母做成可切换口径（访问→转化、点击→转化），避免「转化数超过访问量」这类跨口径误填。
+- `tools/sales/sales-forecast.html`：置信区间同时给出「残差 σ」与「历史 σ」两种宽度并允许切换，让用户看到模型拟合质量对区间的影响。
+- `tools/marketing/marketing-discount-rate.html`：三种模式共用一个「原价 + 折后价」双向滑块，拖动时实时显示折扣率/折数/节省，从交互上消除「折后价高于原价」的录入可能。
+- `tools/sales/moving-average.html`：结果表增加一行「下期预测」并高亮，同时把 WMA 的权重序列（1/2/3）直接列在表头，预测口径错误可被肉眼核对。
+
+### 续查覆盖
+- `tools/marketing/marketing-cpa-calculator.html`
+- `tools/marketing/marketing-roas-calculator.html`
+- `tools/marketing/marketing-cac-calculator.html`
+- `tools/marketing/marketing-churn-rate.html`
+- `tools/marketing/marketing-conversion-rate-calculator.html`
+- `tools/sales/sales-forecast.html`
+- `tools/marketing/marketing-discount-rate.html`
+- `tools/sales/moving-average.html`
+- 本次仅做源码阅读与 node 内存复算（按页面 `calc()` / `forecast()` 表达式在 node 中重写同名逻辑取输出），未做浏览器、英文态、移动端、门禁或线上验证；`marketing-cac-calculator` 的 36 个月生命周期属产品假设，`sales-forecast` 的季节周期自动钳制行为仅按源码推断，均标注为待验证。
+

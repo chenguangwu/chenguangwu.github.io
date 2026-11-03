@@ -156,3 +156,84 @@
 ### 续查覆盖
 - 本轮抽查 7 页：`tools/design/depth-of-field-calculator.html`、`tools/design/focal-length-equivalent.html`、`tools/design/photo-storage-calculator.html`、`tools/design/spacing-scale.html`、`tools/design/image-rotator.html`、`tools/design/qr-code-styled.html`、`tools/design/px-to-rem.html`；另对 `tools/design/rem-to-px.html` 做同构源码对照（未单独列条）。
 - 新增 9 条（D-N6–D-N14，其中高优 2 条）与 6 条留存建议。证据均为源码行号 + node 内存复算或源码路径推演；未做浏览器交互、EN 运行态探针、移动端与门禁验证，涉及 Canvas/二维码回调的条目为静态确认而非运行态实测。
+
+## 2026-11-03 续查（并行批 J）
+
+### D-N15 断点生成器注释拼接优先级错误，移动优先产物被标成「桌面优先」并带孤立 `*/`（中，确认源码缺陷）
+- 问题：`let css='/* '+mode==='min'?'移动优先（Mobile First）':'桌面优先'+' */\n';` 中 `+` 先于三元运算，实际按 `('/* '+mode==='min') ? …` 求值，左侧恒为 `"/* min"`/`"/* max"` 而不等于 `'min'`，于是任何模式都落到「桌面优先」分支。
+- 证据：`tools/design/breakpoint-queries.html:274`（模板串），`:276-280`（按 mode 生成 min/max 规则）。node 内存复算：`mode='min'` → 首行 `"桌面优先 */\n"`；`mode='max'` → 同样 `"桌面优先 */\n"`；随后才是 `@media (min-width: 640px) {` 等正确规则。移动优先时注释文案与实际规则相反，且首行是缺少起始 `/*` 的孤立 `*/`，浏览器对该 token 的容错行为未实测。
+- 影响：`tools/design/breakpoint-queries.html`；用户复制到项目后，CSS 首行文案误导协作方，孤立 `*/` 可能被部分工具链判为语法错误或吞掉后续规则。
+- 方案：先求标签再拼接——`let css='/* '+(mode==='min'?'移动优先（Mobile First）':'桌面优先')+' */\n';`；补一条 `mode=min` 的产物首行断言。
+
+### D-N16 字体比例尺只夹下限，基础字号越界/小数/空值静默改写（中，确认函数缺陷）
+- 问题：页面标注基础字号范围 8–48，但脚本只做 `Math.max(8, parseInt(v)||16)`，没有上限夹取，`parseInt` 还会截断小数；空值退回 16、负数变 8，输入框均不回写也不提示。
+- 证据：`tools/design/typography-scale.html:168`（`min="8" max="48"`）与 `:281`（`Math.max(8, parseInt(...)||16)`）、`:285-287`（按 `base * ratio^i` 递推）。node 内存复算：`base=100`、ratio 1.2 → 7 档 `100 / 120 / 144 / 172.8 / 207.4 / 248.8 / 298.6px`（超出页面承诺的 48px 上限）；`base=16.5` → 按 16 起算，最大 `47.8px`，而输入框仍显示 `16.5`；`base=''`、`base=-5` → 分别按 16、8 计算。
+- 影响：`tools/design/typography-scale.html`；设计系统 token 的阶梯数量/字号与输入框显示不一致，越界值还会把预览撑到不可用尺寸。
+- 方案：上下限共用同一常量并夹取后回写输入框；非正整数、空值显式提示并清空结果；输出区标注实际基准字号。
+
+### D-N17 色温输入为负或空时生成 NaN 通道与非法 HEX（中，确认函数缺陷）
+- 问题：`fromTemp()` 用 `+value||5500`，空值静默按 5500、负值则原样传入；`kelvinToRGB()` 对 `k/100<=66` 走对数公式，负温度取对数得 `NaN`，随后直接参与 `toString(16)` 与背景色拼接；只有 `#info` 的 NaN 守卫会报错，输入框与预览文本已被污染。
+- 证据：`tools/design/color-temperature-converter.html:242-251`（对数/幂函数）、`:262-267`（`||5500`、写入 `rgb` 与 `preview`）、`:268`（回写 RGB）、`:277`（仅 info 做 NaN 守卫）；输入 `:145` 声明 `min="1000" max="40000"` 但脚本未使用。node 内存复算：`temp=-2000` → `kelvinToRGB(-2000)` 得 `[255, NaN, 0]`，HEX 为 `#ffNaN00`；RGB 输入框被写成 `255,NaN,0`；`temp=0` → `[255,0,0]`（`#ff0000`）而不报错；`temp=''` → 按 5500 计算但输入框仍为空。
+- 影响：`tools/design/color-temperature-converter.html`；预览文字与 RGB 框出现 `NaN` 和非法色值，复制后落到设计稿/代码里不可用。
+- 方案：色温必须是 1000–40000 的有限正数，越界或空值提示并清空预览/RGB 框；输入 `min/max` 与脚本校验共用常量；`kelvinToRGB` 入口加有限性检查。
+
+### D-N18 反向换算对轨迹外颜色仍返回边界色温，冒充「精确 CCT」（低，确认函数缺陷）
+- 问题：`rgbToKelvin()` 只在 1000–12000K 每 100K 采样取最小曼哈顿距离，不判断残差是否可接受；纯蓝、纯黑、纯红等远离黑体轨迹的颜色也会返回一个边界附近的温度。
+- 证据：`tools/design/color-temperature-converter.html:252-260`（固定区间线性搜索）。node 内存复算：`rgbToKelvin(0,0,255)` → `11800K`（minDiff 406）；`rgbToKelvin(0,0,0)` → `1000K`（minDiff 323）；`rgbToKelvin(255,0,0)` → `1000K`（minDiff 68）。
+- 影响：`tools/design/color-temperature-converter.html`；用户输入任意品牌色后得到一个看似精确的「色温」，实际该色已明显偏离黑体轨迹。
+- 方案：设最大残差阈值，超出时提示「该颜色不在黑体轨迹附近」；如需严谨结果改用 CIE 相关色温 + Duv，并展示残差/偏移量。
+
+### D-N19 PNG 转 SVG 阈值 0 被代换为 128、负块宽生成非法 SVG，换图后仍复制旧结果（中，确认函数缺陷，三个问题）
+- 问题：① `parseInt(...) || 128` 把合法的 `0` 当作空值换成 128，用户想保留全部像素却得到大量透明格被跳过；② 块大小同样用 `|| 8`，负值 `-5` 能通过，`Math.max(1, floor(w/block))` 把网格压成 1，但输出宽高仍用 `w*block`，得到负值；③ `lastSVG` 只在生成成功时覆盖，换图或改参数后不失效，直接点「复制 SVG」会拿到上一张的结果。
+- 证据：`tools/design/png-to-svg.html:258-259`（`||8` / `||128`）、`:264-265`（网格下限 1）、`:280`（`width="${w*block}"`）、`:253`（`lastSVG` 初值，全文无清空）、`:288-290`（复制只判非空）、`:160-163`（`min/max` 未参与脚本）。node 内存复算：`alphaTh=0` → 实际按 128；`block=0` → 8，`block=-5` → -5；100px 原图配 `block=-5` → 网格 `w=1`、输出宽 `-5`（`<svg width="-5">`）；`block=8.7` → `parseInt` 得 8。
+- 影响：`tools/design/png-to-svg.html`；阈值 0 场景输出严重缺块、非法 SVG 在部分浏览器/编辑器打不开，换图复制则把上一张的矢量交给用户。
+- 方案：用 `Number.isNaN` 显式判空而非 `||`；块大小限定正整数并在越界时回写/提示；换图、改块大小或阈值时清空 `lastSVG`、清空代码框并禁用复制，直至重新生成。
+
+### D-N20 SVG 转 PNG 恒定铺白底，与页面「导出支持透明」的 FAQ 相反（中，确认源码缺陷）
+- 问题：无论 SVG 是否透明，画布都先 `fillStyle='#fff'` 整幅填充再绘制，导出 PNG 的透明区域全部变成白色；页面 FAQ 两处均声称「导出 PNG 支持透明，如需白底可自行垫底」。
+- 证据：`tools/design/svg-to-png.html:268-270`（白底 + `drawImage`）、`:272`（`toDataURL('image/png')`）、FAQ `:204-205`。复现路径：输入带透明背景的 `<svg>`（仅一个居中圆形），点「转换」→ 画布先被白 `fillRect` 覆盖，圆形以外的透明区域导出为 `#ffffff`。
+- 影响：`tools/design/svg-to-png.html`；透明图标/贴纸导出后无法叠加到深色底，且与页面承诺矛盾，用户按 FAQ 预期使用会拿到错误交付物。
+- 方案：默认不清屏以保留 alpha，另提供「透明 / 白底 / 自定义底色」选项；同步修正 FAQ 与公式说明。
+
+### D-N21 SVG 转 PNG 转换失败或改参数后仍可下载旧 PNG（中，确认源码缺陷）
+- 问题：`lastDataURL` 只在 `img.onload` 成功分支写入；空 SVG 提前 return、`img.onerror`、修改宽高或替换 SVG 文本都不会使其失效；下载仅判断非空。
+- 证据：`tools/design/svg-to-png.html:259`（空输入提前返回）、`:272`（成功才写）、`:275`（失败仅改预览文案）、`:279-285`（`downloadPNG` 只判 `lastDataURL`）。复现路径：先转换有效 SVG → 清空文本框再点「转换」（预览显示「请输入 SVG 代码」）→ 直接点「下载 PNG」仍导出上一张；把宽高从 400 改为 800 但不重新转换，下载的仍是 400×400 图。
+- 影响：`tools/design/svg-to-png.html`；与 `qr-code-styled`/`image-rotator` 同类的旧结果复用，误交付尺寸或内容不符的 PNG。
+- 方案：输入、宽高变化及任一失败分支统一清空 `lastDataURL` 并禁用下载；状态栏显示「结果已过期，请重新转换」。
+
+### D-N22 图片翻转换图后仍可下载上一次翻转结果（高，确认源码缺陷）
+- 问题：上传回调只替换 `origImg`/`currentImg` 与预览，未清空 `lastURL`；下载与复制只判断 `lastURL` 非空。
+- 证据：`tools/design/image-flipper.html:250-263`（change 处理无 `lastURL=''`）、`:279`（仅 `flip()` 写 `lastURL`）、`:285-289`（`downloadImg` 直接取 `lastURL`）、`:290-293`（`copyResult` 同理）。复现路径：上传 A 并翻转后下载 → 再上传 B、不点「翻转」直接点「下载」→ 导出 A 的翻转 PNG，而预览显示 B。
+- 影响：`tools/design/image-flipper.html`；本分类第三个同类页面（另有 `image-resizer`、`image-rotator`），换图后误交付旧图风险高。
+- 方案：上传、切模式时统一使 `lastURL` 失效并禁用下载；导出前校验「当前原图 + 当前模式」与生成时一致，状态栏提示「结果已过期，请重新翻转」。
+
+### D-N23 翻转依赖异步 `currentImg`，快速连点两次不能还原（中，待验证）
+- 问题：`flip()` 在点击时读取 `currentImg`，但 `currentImg` 只在下一次生成图片的 `newImg.onload` 回调里更新；若第二次点击早于回调，两次都基于 `origImg` 生成同一张单次翻转图，页面「重复翻转两次应完全还原」的说明不成立。
+- 证据：`tools/design/image-flipper.html:265-266`（读取 `currentImg || origImg`）、`:280-282`（`newImg.onload` 才赋值 `currentImg`）、说明表 `:230-234`。源码路径推演：连点「水平翻转」两次 → 第一次 `lastURL` 生成水平镜像，第二次仍在 `onload` 前读到 `origImg` → 覆盖为同一张水平镜像，而非原图。Canvas 与回调时序未在浏览器实测，故列待验证。
+- 影响：`tools/design/image-flipper.html`；用户快速连点或想「翻过去再翻回来」时得到错误结果。
+- 方案：以同步的累计变换状态（`flips` 计数/矩阵）驱动绘制，或生成期间禁用按钮，待 `currentImg` 就绪并提示后再允许下一次；补一条双击还原的回归用例。
+
+### D-N24 圆角图片先铺背景再裁剪，纯色/渐变模式导出仍是方角（中，确认源码缺陷）
+- 问题：`render()` 先整幅填充背景，再建立圆角/圆形裁剪路径并绘制图片；裁剪只作用于图片，不作用于已铺满的背景，因此圆角外区域保留背景色，导出 PNG 四角是实心方块，而非「圆角 + 透明」或「圆角纯色底」。
+- 证据：`tools/design/image-rounded-corners.html:1106`（清屏）、`:1109-1113`（按背景类型整幅 `fillRect`）、`:1115-1125`（建立裁剪并 `clip`）、`:1127-1128`（仅裁剪图片）、`:1152-1168`（直接导出 `previewCanvas` PNG）。复现路径：上传任意图 → 选「纯色」背景 → 导出 → 四角为背景色矩形，透明模式之外的所有背景模式都受影响。
+- 影响：`tools/design/image-rounded-corners.html`；用户以为得到圆角成品，实际交付仍带方角，且默认透明模式掩盖了该问题。
+- 方案：先构造圆角路径并在填充背景前 `clip`，或在导出前按同一路径清除角外像素；纯色/渐变模式下导出仍保持角外透明（或明确提供「填满角外」开关）。
+
+### D-N25 SVG 转 PNG 声明「保持长宽比」但实现为强制拉伸（低，确认源码缺陷）
+- 问题：公式引据表写「输出像素宽 = viewBox 宽 x 缩放倍率，保持长宽比」，实际直接 `drawImage(img, 0, 0, w, h)`，宽高独立生效；目标尺寸与原图比例不同即变形。
+- 证据：`tools/design/svg-to-png.html:225`（引据表文案）、`:256-257`（宽高各自读取）、`:270`（四参数拉伸绘制）。复现输入：64×64 的正方形 SVG 配 400×200 输出 → 图形被横向拉伸为 2:1。
+- 影响：`tools/design/svg-to-png.html`；按页面说明按比例放大时会得到变形图，尤其影响图标/Logo 出图。
+- 方案：默认按 `viewBox`/SVG 固有比例做 contain 适配并留白，另提供「拉伸铺满」选项；公式表与预览尺寸说明同步修正。
+
+### 留存优化
+- `tools/design/breakpoint-queries.html`：断点值目前不可编辑（三档均为固定常量），建议开放自定义断点输入并回写预设，附 Tailwind/Bootstrap 对照表与「复制 CSS」按钮；另把 `vw/vh` 引据行与实际输出打通，避免引据表与产物无关。
+- `tools/design/typography-scale.html`：补行高阶梯（字号 × 1.2/1.5/1.6）、真实段落排版预览与 token 命名（`--text-1…n`），并导出 JSON/Tailwind 配置；当前 deep-dive 的「6 档 / --text-1…6」与实际 7 档 `--h6-size…--display-size` 不符，可一并校正。
+- `tools/design/color-temperature-converter.html`：增加「当前白平衡偏移」预览（同一色卡在 3200K/5600K 下的对比）与常见光源色卡并列，比单色块更适合摄影布光；反向换算补残差提示。
+- `tools/design/png-to-svg.html`：输出没有下载按钮，且同色相邻格未合并，rect 数极易膨胀；建议合并同色矩形/颜色量化、显示 rect 数与文件体积、提供 SVG 下载。
+- `tools/design/svg-to-png.html`：补「透明/底色」选择与 1x/2x/3x 倍率（与当前尺寸输入联动），并在说明中区分像素尺寸与 DPI 标签，减少印刷场景误解。
+- `tools/design/image-flipper.html`：补水平/垂直/180° 批量勾选与任意角度旋转、透明通道保留提示，以及原图/结果并排对比，减少重复上传。
+- `tools/design/image-rounded-corners.html`：增加导出格式（PNG/WebP/SVG 圆角蒙版）、常用圆角预设（8/12/16/24）与「背景是否填满角外」开关；现有圆角规范速查表可与预设联动。
+
+### 续查覆盖
+- 本轮新抽查 7 页：`tools/design/breakpoint-queries.html`、`tools/design/typography-scale.html`、`tools/design/color-temperature-converter.html`、`tools/design/png-to-svg.html`、`tools/design/svg-to-png.html`、`tools/design/image-flipper.html`、`tools/design/image-rounded-corners.html`。
+- 新增 11 条（D-N15–D-N25，其中高优 1 条：D-N22）与 7 条留存建议。证据均为源码行号 + node 内存复算或源码路径推演；未做浏览器交互、EN 运行态探针、移动端、门禁或线上验证，涉及 Canvas 绘制/图片回调的条目中，D-N23 为静态时序推演（待验证），D-N24 为源码路径确认，均未做 Canvas 运行态实测。
