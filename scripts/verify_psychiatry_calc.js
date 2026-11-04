@@ -516,7 +516,7 @@ const CASES = [
   "ref": "PHQ-9 九项全选「几乎每天」j=3 ⇒ 总分 27/27 ⇒ 落 total>19 分支「重度抑郁」；症状条目(≥2) = 9 ⇒ DSM-5 重性抑郁发作筛查「符合」；第 9 题自伤念头得分 ⇒ 追加危机提示。默认态为「已作答 0/9 项」提示，零交集。via=click"
 },
 {
-  "slug": "psychiatry/panSS-schizophrenia",
+  "slug": "psychiatry/panss-schizophrenia",
   "clicks": ["applyPanssPreset('moderate')"],
   "expect": ["90/210", "中度"],
   "ref": "PANSS 30 项：阳性 7 + 阴性 7 + 一般精神病理 16，均 1–7 分、满分 210。中度预设全部取 3 ⇒ P=21、N=21、G=16×3=48，总分 90，落 75–95「中度」。默认态全 0（未评）输出「已评定 0/30」，零交集。",
