@@ -94,5 +94,10 @@
 1. 统一入口：每个页面在 `drawChart()` 顶部取 `var EN = String(document.documentElement.lang||'').indexOf('en')===0;`，所有文字走 `EN ? '...' : '...'`；不在绘制函数里散写判断。
 2. 语言切换须重绘：`?lang=en-US` 是运行时切换，`drawChart` 依赖初始化时机 → 在 `i18n` 应用完成后（`DOMContentLoaded` 之后再 `requestAnimationFrame`）重绘一次。
 3. 数字/单位统一：轴标题与图例的单位符号（`m³/亩`、`kg/天`、`株/亩`）两语言共用同一写法，只翻译说明词，避免单位也被意译。
-4. 验收：`?lang=en-US` 打开页面，`getClientRects()` 可见的 canvas 区域内不得出现汉字（目视 + 截图），简体/繁体态不受影响。
+4. **验收（标准口径，P0 已落地，P1/P2 沿用，禁止只靠截图目测）**：`_en_i18n_probe.mjs` 只扫 DOM，扫不到 canvas 文本，因此改用无头 Chrome 拦截真实绘制串：
+   1. 启动参数：`/Applications/Google Chrome.app/Contents/MacOS/Google Chrome` + `puppeteer-core`，`headless:'new'`、`--no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage`；
+   2. `page.evaluateOnNewDocument()` 重写 `CanvasRenderingContext2D.prototype.fillText`，把每次调用的字符串 push 进 `window.__fillLog`；同时包一层 `clearRect`，在清屏时把 `__fillLog` 重置（保证读到的是「当前这一帧」，而不是历次绘制累积）；
+   3. 依次取三次结果：`?lang=en-US` 加载并触发计算（`calc()`）读取第一次 → `I18n.set('zh-CN')` 读第二次 → `I18n.set('en-US')` 读第三次；
+   4. 判据：EN 帧不含 `[\u4e00-\u9fff]` 且 ZH 帧含汉字、再次切 EN 又恢复纯英文 —— **第三条同时证明「重绘确实挂在语言切换回调上」**，只测首屏 EN 无法证明重绘有效；
+   5. 逐页记录 `PASS/FAIL` 与三个帧的样本文案，作为验收凭据留档。
 5. 与既有约定一致：canvas 文案**不写入** `i18n/tools/en/**` 字典（该层只服务 DOM），避免出现「字典有键但永远不生效」的假覆盖。
