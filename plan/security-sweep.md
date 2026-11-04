@@ -564,3 +564,94 @@
 | 11 个假阳性页 | **判安全** | 命中项为数值字段、IPv6、UTM 参数、通用自由文本，字段无身份语义；自由文本「用户自行粘贴」的残余风险保留记录。 |
 | 显式保存页（`emergency-contacts` / `virtual-safe` / `manager-1` / `staff-schedule` / `tcm-medical-record` 等） | **判安全（功能所需）** | 均为用户主动点击保存的本地业务数据，非自动回填；全局隐私徽标已声明仅本机、不上传。 |
 | `reminder-cycle-protection` 一致性遗留 | **判安全** | `tb_ppe_cycle` 保存 PPE 队列属必须存；`data-no-persist` 仅关闭输入框冗余自动保存，队列功能不受影响。 |
+
+### 17.9 第三方依赖与完整性（2026-11-05）
+
+#### 17.9.1 枚举口径与总数
+
+脚本化台账：[scripts/audit_external_deps.py](file:///Users/cgw/project/cgw/chenguangwu.github.io/scripts/audit_external_deps.py)（`python3 scripts/audit_external_deps.py`，`--check` 对「CDN 脚本未锁精确版本」判失败）。只统计运行时真正发起请求的资源（`<script src>`、`<link rel=stylesheet|preload>`、`import()`、`fetch()`、`loadScript()` / `script.src=`）；淘宝客、GitHub、社交分享等导航链接与 `example.com` / `placehold.co` 代码示例不计。
+
+| 指标 | 数值 |
+| --- | --- |
+| origin 总数 | **10**（功能库 4 + 统计/广告 6） |
+| 资源条目 | **25**（11 个静态 CDN 脚本文件 + 1 个 Transformers ESM + 1 个 sql-wasm.wasm + 5 个 HF 模型仓 + 1 个 Google Fonts CSS + 6 个统计/广告端点） |
+| 静态外链脚本标签 | 13 个（11 个文件；pdf-lib 在 3 个 PDF 页复用） |
+| ① 无版本锁 | **12**（可锁未锁 0；供应商动态下发 6；可改需权衡 6） |
+| ② 有版本但无 SRI | **2** |
+| ③ vendor 台账 | **3 条** |
+| 无降级页 | 修前 4 → **修后 0**（17 个外部依赖页全部有降级） |
+
+功能库 origin：`cdn.jsdelivr.net`、`cdnjs.cloudflare.com`、`huggingface.co`、`fonts.googleapis.com`（`fonts.gstatic.com` 仅 preconnect，字体二进制由 Google CSS 间接拉取）。
+统计/广告 origin：`sdk.51.la`、`v6-widget.51.la`、`hm.baidu.com`、`zz.bdstatic.com`、`lf1-cdn-tos.bytegoofy.com`、`pagead2.googlesyndication.com`（AdSense 仅在设置 `TOOLBOX_ADS_CLIENT` 时才注入）。
+
+#### 17.9.2 功能依赖台账
+
+| origin | 文件 | 版本锁定 | SRI | crossorigin | 本地兜底 |
+| --- | --- | --- | --- | --- | --- |
+| cdn.jsdelivr.net | `acorn@8.19.0` / `bcryptjs@2.4.3` / `d3@7.9.2` / `js-yaml@4.1.0` / `less@4.9.1` / `markmap-lib@0.17.2` / `markmap-view@0.17.2` / `mermaid@10.9.8` / `pdf-lib@1.17.1` | 精确 | **有** | **有** | 无 vendor 副本；页面级守卫（见 17.9.6） |
+| cdn.jsdelivr.net | `@huggingface/transformers@3.8.1`（`js/ai-core.js` 动态 `import()`） | 精确 | **不可用**（动态 import 无法挂 `integrity`） | 不适用 | 5 个 AI 页 `try/catch` 显示错误 |
+| cdnjs.cloudflare.com | `sql.js/1.8.0`（`sql-wasm.js`） | 精确 | **有** | **有** | `setStatus('error','加载失败')` |
+| cdnjs.cloudflare.com | `sql.js/1.8.0/sql-wasm.wasm`（`locateFile` 动态拼接） | 路径含版本 | **不可用**（Emscripten `fetch` 无法挂 `integrity`） | 不适用 | 同上 |
+| cdnjs.cloudflare.com | `typescript/5.3.3` | 精确 | **有** | **有** | `tsReady` 状态提示 |
+| huggingface.co | 5 个模型仓（`Xenova/whisper-base`、`distilbert-…-sst-2-english`、`trocr-base-printed`、`vit-base-patch16-224`、`distilbart-cnn-6-6`） | **无**（`resolve/main`） | **不可用** | 不适用 | `catch` 显示错误 |
+| fonts.googleapis.com | `css2?family=…`（`design/font-pairing.html` 动态创建 `<link>`） | **无** | **不可用**（CSS 由 Google 按 UA 生成） | preconnect 有 | 字体栈回退 `sans-serif` |
+
+#### 17.9.3 ① 无版本锁清单（12 处）
+
+| # | 项 | 类别 | 处置判断 |
+| --- | --- | --- | --- |
+| 1–5 | `huggingface.co` 5 个模型仓（`resolve/main`） | 可改需权衡 | `main` 分支浮动：上游更新即静默换权重。Transformers.js 的 `pipeline()` 未透出 `revision`，改 pin 需绕开库 API，登记风险；模型仅在用户主动点击时下载。 |
+| 6 | `fonts.googleapis.com/css2` | 可改需权衡 | CSS 无版本号；字体名来自页面内置白名单（非用户输入），失败回退 `sans-serif`。全量自托管成本高，登记。 |
+| 7 | `sdk.51.la/js-sdk-pro.min.js` | 不可锁 | 供应商动态下发，官方要求直引；统计 SDK，无业务功能。 |
+| 8 | `v6-widget.51.la/v6/<id>/quote.js` | 不可锁 | 同上；滚动到页脚才懒挂载。 |
+| 9 | `hm.baidu.com/hm.js?id=…` | 不可锁 | 百度统计，URL 带站点 id 而非版本。 |
+| 10 | `zz.bdstatic.com/linksubmit/push.js` | 不可锁 | 百度自动推送。 |
+| 11 | `lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?<token>` | 不可锁 | 见 §17.7：token 为固定分发标识、非签名。 |
+| 12 | `pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=…` | 不可锁（条件启用） | 仅 `window.TOOLBOX_ADS_CLIENT` 存在时注入。 |
+
+**「可锁但未锁」= 0 处**。11 个静态 CDN 脚本全部精确版本 + `integrity` + `crossorigin="anonymous"`（§9.1 已把浮动版本清零）。
+
+#### 17.9.4 ② 有版本但无 SRI（2 处，均不可加）
+
+| 项 | 为何不能加 SRI |
+| --- | --- |
+| `@huggingface/transformers@3.8.1` | 由 `import()` 动态加载，`import()` 没有 `integrity` 参数；且内部还会再拉 ESM 分片。 |
+| `sql.js/1.8.0/sql-wasm.wasm` | 由 Emscripten 运行时 `fetch` 后 `WebAssembly.instantiate`，`integrity` 只作用于 `<script>/<link>` 标签，不作用于程序内 `fetch`。 |
+
+处置：两者版本均已锁死，登记待改（wasm 可自托管 + 启动前 sha256 校验；transformers 可改 vendor 精选构建）。
+
+#### 17.9.5 ③ vendor 台账
+
+| 组件 | 版本 | 本地路径 | 来源 | 备注 |
+| --- | --- | --- | --- | --- |
+| PDF.js | 4.2.67 | `vendor/pdfjs/4.2.67/pdf.min.mjs`、`pdf.worker.min.mjs` | npm `pdfjs-dist` | §17.6 由 CDN 3.11.174 升级自托管（CVE-2024-4367） |
+| Fuse.js | 7.0.0 | `vendor/fuse.min.js` | npm `fuse.js` | `index.html` 搜索 + SW 预缓存 |
+| Plus Jakarta Sans | **未标注** | `vendor/fonts/`（5 字重 × woff2/ttf + `fonts.css`） | Google Fonts 本地副本 | `index.html` / `404.html` 使用；文件无版本元数据，升级时需人工核对 |
+
+台账由 `vendor_ledger()` 从磁盘读取版本目录 / 文件头注释自动生成，避免手写漂移。
+
+#### 17.9.6 兜底修复（4 页）
+
+修前有 4 个页面在 CDN 失败时静默失效（`pdf-merge` 直接解构 `PDFLib`、`flowchart` 直接调 `mermaid.initialize`、`bcrypt` / `yaml-validator` 直接调用库函数）。统一加「依赖兜底提示」内联脚本：`DOMContentLoaded` 时判 `typeof <lib> === 'undefined'`，命中则在 `.container` 顶部插入中日英双语提示（中/英按 `documentElement.lang` 与 `?lang=en-US` 切换），不阻断其余页面逻辑。
+
+修改页：`office/pdf-merge`、`office/flowchart`、`it/bcrypt`、`it/yaml-validator`。
+
+**两向自证**（无头 Chrome，拦截 `cdn.jsdelivr.net` 请求 vs 正常放行）：
+
+```
+PASS flowchart.html    blocked=true/true normal=false
+PASS pdf-merge.html    blocked=true/true normal=false
+PASS bcrypt.html       blocked=true/true normal=false
+PASS yaml-validator.html blocked=true/true normal=false
+RESULT 4/4
+```
+
+`blocked/true` = 出现提示且位于容器首位；`normal=false` = 正常加载时不误报。改动后 `python3 scripts/audit_external_deps.py` 的「无降级页」由 4 变 0。
+
+#### 17.9.7 门禁与边界
+
+- `python3 _test_static.py`：4705/4705 通过，0 失败 0 告警。
+- 计算回归：`verify_it_calc.js bcrypt`、`verify_it_calc.js yaml-validator` 全过；office 两页无既有用例（0/0）。
+- 本批未运行 `_build.py`、未改 `json/*.json`、未 push（按用户纪律）。工具页 HTML 改动在下次构建时随 SW 版本戳统一生效。
+- 新增脚本仅入库 `scripts/audit_external_deps.py`；本地验证脚本放 `/tmp`，未入库。
+
