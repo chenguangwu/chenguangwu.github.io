@@ -52,6 +52,13 @@ const REAL_LOG = console.log.bind(console);
 const ROOT = path.resolve(__dirname, "..");
 const { runCase } = require(path.join(ROOT, "scripts", "verify_it_calc.js"));
 const stub = require(path.join(ROOT, "scripts", "lib_stub.js"));
+// 动态 id 默认值：页面 JS 运行期拼 innerHTML 生成的控件（id="pt'+i+'" 等），
+// 静态解析取不到 ⇒ 此前一律 unresolved 跳过。解析器只读、纯内存桩。
+const { dynamicDefaults } = require(path.join(ROOT, "scripts", "lib_dynamic_defaults.js"));
+const DYN_DEFAULTS_CACHE = new Map();   // slug -> { [id]: default }
+// 逃生开关（仅排障用）：TB_DYN_DEFAULTS=0 关闭动态默认值解析，回到「动态 id ⇒ unresolved」旧口径，
+// 用于复核「改前基线」或定位「解析后 skip→PASS」的归属。
+const DYN_DISABLED = process.env.TB_DYN_DEFAULTS === "0";
 
 const FILES_ONLY = ARGV.filter((a) => !a.startsWith("--"));
 const SELFTEST = ARGV.includes("--selftest");
@@ -94,7 +101,7 @@ function integrityProblems(agg, opts) {
 }
 
 /** 从页面 HTML 提取 input/select 的 id → 默认值（截断 deep-dive，避免抓到示例） */
-function pageDefaults(slug) {
+function pageDefaults(slug, wanted) {
   const fp = path.join(ROOT, "tools", slug + ".html");
   if (!fs.existsSync(fp)) return null;
   const raw = fs.readFileSync(fp, "utf8");
@@ -109,16 +116,32 @@ function pageDefaults(slug) {
   if (cut > 0 && !CTRL.test(body) && CTRL.test(raw)) body = raw;
   const out = {};
   // 默认走 legacy（TB_STUB_FIDELITY=1 才启用保真解析；TB_STUB_LEGACY=1 永久逃生）。
-  if (!stub.stubFidelity()) return stub.legacyPageDefaults(body);
-  // 1) <input> 的 value 默认（共用 lib_stub：属性顺序/引号无关；跳过 checkbox/radio）
-  Object.assign(out, stub.parseInputDefaults(body, { skipTypes: /^(checkbox|radio|button|submit|reset|file|image)$/ }));
-  // 2) <textarea> 初始文本（首次出现优先，input 同名时不覆盖）
-  for (const [id, v] of Object.entries(stub.parseTextareaDefaults(body))) {
-    if (out[id] === undefined) out[id] = v;
+  if (!stub.stubFidelity()) {
+    Object.assign(out, stub.legacyPageDefaults(body));
+  } else {
+    // 1) <input> 的 value 默认（共用 lib_stub：属性顺序/引号无关；跳过 checkbox/radio）
+    Object.assign(out, stub.parseInputDefaults(body, { skipTypes: /^(checkbox|radio|button|submit|reset|file|image)$/ }));
+    // 2) <textarea> 初始文本（首次出现优先，input 同名时不覆盖）
+    for (const [id, v] of Object.entries(stub.parseTextareaDefaults(body))) {
+      if (out[id] === undefined) out[id] = v;
+    }
+    // 3) <select> 默认选中项（共用 lib_stub：尊重 selected，两种写法皆可，无则回退首个）
+    for (const [id, opts] of Object.entries(stub.parseSelects(body))) {
+      if (out[id] === undefined) out[id] = stub.selectDefault(opts);
+    }
   }
-  // 3) <select> 默认选中项（共用 lib_stub：尊重 selected，两种写法皆可，无则回退首个）
-  for (const [id, opts] of Object.entries(stub.parseSelects(body))) {
-    if (out[id] === undefined) out[id] = stub.selectDefault(opts);
+  // 4) 静态解析不到的键 → 执行页面渲染函数，读动态生成控件的默认值。
+  //    只补缺失键（wanted 由用例 inputs 提供），无缺失时不跑，避免全站无谓开销。
+  if (!DYN_DISABLED && Array.isArray(wanted) && wanted.length) {
+    const missing = wanted.filter((k) => out[k] === undefined);
+    if (missing.length) {
+      let dyn = DYN_DEFAULTS_CACHE.get(slug);
+      if (dyn === undefined) {
+        try { dyn = dynamicDefaults(raw); } catch (e) { dyn = {}; }
+        DYN_DEFAULTS_CACHE.set(slug, dyn);
+      }
+      for (const k of missing) if (dyn[k] !== undefined) out[k] = dyn[k];
+    }
   }
   return out;
 }
@@ -201,7 +224,7 @@ async function sweepFile(f) {
       } else stats.fail++;
       continue;
     }
-    const defs = pageDefaults(c.slug);
+    const defs = pageDefaults(c.slug, Object.keys(c.inputs));
     if (!defs) {
       stats.skipped++;
       reportRec(Object.assign({}, base, { kind: "skip", why: "no-page", inputs: c.inputs }));

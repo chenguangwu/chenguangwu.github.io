@@ -30,6 +30,8 @@ process.env.TB_DISCRIM_PARENT = "1";
 const ROOT = path.join(__dirname, "..");
 const TOOLS = path.join(ROOT, "tools");
 const { extractCases } = require(path.join(__dirname, "verify_it_calc.js"));
+// 动态 id 判据与判别器共用同一套模板解析（lib_dynamic_defaults），避免两处正则漂移。
+const { isDynamicId } = require(path.join(__dirname, "lib_dynamic_defaults.js"));
 
 function argVal(flag, dflt) {
   const i = process.argv.indexOf(flag);
@@ -40,23 +42,10 @@ function classify(html, id) {
   const esc = id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   if (new RegExp(`id\\s*=\\s*"${esc}"`).test(html) || new RegExp(`id\\s*=\\s*'${esc}'`).test(html)) return 3;
   if (html.includes(`"${id}"`) || html.includes(`'${id}'`)) return 2;
-  // 页面存在「id 模板」（id="${...}" / setAttribute("id", …)）⇒ 静态无法判定生成哪一批 id
-  if (/id\s*=\s*"\$\{/.test(html) || /id\s*=\s*'\$\{/.test(html) || /setAttribute\(\s*["']id["']/.test(html)) return 2;
+  // 页面存在 `setAttribute("id", …)` ⇒ 静态无法判定生成哪一批 id
+  if (/setAttribute\(\s*["']id["']/.test(html)) return 2;
   // 动态生成：id 由「字面量前缀 + 变量」拼接（'q'+i、'sens_'+seg+'_'+type、`m${r}_${c}`）
-  for (const m of html.matchAll(/(["'])([A-Za-z_][A-Za-z0-9_-]*)\1\s*\+/g)) {
-    if (id.startsWith(m[2]) && id.length > m[2].length) return 2;
-  }
-  const pre = (id.match(/^[A-Za-z_]+/) || [""])[0];
-  if (pre) {
-    const p = pre.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const dyn = [
-      new RegExp(`['"]${p}['"]\\s*\\+`),   // 'q' + i
-      new RegExp("`" + p + "\\$\\{"),       // `q${i}`
-      new RegExp(`id\\s*=\\s*"${p}\\$\\{`),  // id="q${i}"
-      new RegExp(`id\\s*=\\s*'${p}'\\s*\\+`), // id='q' + i
-    ];
-    if (dyn.some((re) => re.test(html))) return 2;
-  }
+  if (isDynamicId(html, id)) return 2;
   return 1;
 }
 

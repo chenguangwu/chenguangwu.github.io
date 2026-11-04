@@ -8561,6 +8561,14 @@ function mkOpt(value, text, attrStr) {
 // `children[i].classList`；动态填 <select> 的 option 后依赖浏览器自动选中首项。
 // 这两点桩默认不建模（无条件生效曾误伤其它页，故按用例 opt-in）。
 let __browserInit = false;
+// 可选「动态控件默认值登记」（用例字段 dynInputs:true 时开启，默认关闭）：
+// 页面若先 `renderMachines()` 再 `calc()`（如 agriculture/machinery-efficiency），
+// 桩内 innerHTML 生成的 input 不会进入 elements 表 ⇒ calc 读到空串 ⇒ 首屏落入「无数据」
+// 分支，用例的 expect 与注入无关地命中（假通过）。开启后 innerHTML 写入即登记
+// `id → value`，getEl 首次访问直接返回该默认值，等价真机「渲染后即有值」。
+// 默认关闭 ⇒ 既有用例路径逐字节不变（同 afterLoad 的隔离思路）。
+let __dynInputs = false;
+const __dynInputReg = new Map();
 
 function makeEl(val, opts) {
   const handlers = {};
@@ -8690,6 +8698,16 @@ function makeEl(val, opts) {
     set(v) {
       _h = String(v == null ? "" : v);
       if (DYN.on) dynRecord(el, _h);
+      // dynInputs（opt-in）：登记生成出来的 input/textarea 默认值（同容器后写覆盖先写，
+      // 与真机「重渲染后元素带新默认值」一致）。只登记，不创建 elements 桩。
+      if (__dynInputs) {
+        for (const m of _h.matchAll(/<(?:input|textarea)\b([^>]*)>/gi)) {
+          const idm = m[1].match(/\bid\s*=\s*["']([^"']+)["']/i);
+          if (!idm) continue;
+          const vm = m[1].match(/\bvalue\s*=\s*["']([^"']*)["']/i);
+          __dynInputReg.set(idm[1], vm ? vm[1] : "");
+        }
+      }
       // 动态填充 <select>：很多页用 `sel.innerHTML = '<option...>'` 注入选项
       // （如 agriculture/crop-yield 的 initCrops）。不解析则 `el.options` 恒空，
       // 页面读 `el.options[selectedIndex].text` 抛错使整页无法验证。仅在内容含
@@ -8976,6 +8994,9 @@ async function runCaseInner(c) {
   // 动态 DOM 登记默认关闭：只有声明 clicks（模拟点击）或 dynDom 的用例才启用 ⇒
   // 既有用例的行为逐字节不变（§7.1 的历史教训：全站无差别生效会误伤其它页）。
   dynReset();
+  // dynInputs（opt-in）：innerHTML 生成的 input 默认值登记，须在页面脚本执行前就位。
+  __dynInputs = !!c.dynInputs;
+  __dynInputReg.clear();
   DYN.on = !!(c.dynDom || (Array.isArray(c.clicks) && c.clicks.length > 0));
   // XML 类页面需要浏览器 DOMParser；仅对显式声明 domParser:true 的用例注入（用后清理）。
   if (c.domParser && typeof globalThis.DOMParser === "undefined") {
@@ -9076,7 +9097,9 @@ async function runCaseInner(c) {
   const getEl = (id) => {
     if (!(id in elements)) {
       const v =
-        c.inputs && id in c.inputs
+        __dynInputs && __dynInputReg.has(id)
+          ? __dynInputReg.get(id)
+          : c.inputs && id in c.inputs
           ? c.inputs[id]
           : defaults[id] !== undefined
           ? defaults[id]
