@@ -155,8 +155,8 @@
 
 | 页面 | 项 | 处置理由 |
 |---|---|---|
-| `edu/exam-gpa-calculator.html` | 4.0 制「D (60)」与「D+ (60–63)」标签在 60 分重叠 | 各校 GPA 换算不统一，无单一权威；仅标签提示、不参与自动换算 |
-| `edu/exam-score-calculator.html` | 64–67 → 1.5（与 `exam-gpa` 的 1.7 不同） | 两套常见院校口径并存，无官方统一表；不改数字 |
+| `edu/exam-gpa-calculator.html` | 4.0 制「D (60)」与「D+ (60–63)」标签在 60 分重叠 | **本轮已收口（见第七节）**：D 标签改「D (60–63，无 D+ 制)」，不再与 D+ 重叠 |
+| `edu/exam-score-calculator.html` | 64–67 → 1.5（与 `exam-gpa` 的 1.7 不同） | **本轮已收口（见第七节）**：改 1.7 / 1.3，与另两页一致；1.5 变体仅在口径说明中保留 |
 | `edu2/exam-analysis.html` | 标准差按总体口径（÷n） | 页面未声明样本/总体；班级成绩描述性统计用总体口径合理，无权威强制 |
 | `edu/assessor-27.html` | 6 维 0–10 自评 → 5 级 | 自建量表，等级线无外部权威 |
 | `clinical-nursing/barthel-index.html` | 75/50/25 分级 | 国内常见版本之一（另有 61/41/21 版本）；满分 100 与 10 项权重已核正确 |
@@ -176,3 +176,36 @@
 - 「注入失败会变红」：新增 Morse 45 分用例在 fidelity 下为红；初版用高危 desc 会因「NaN 兜底 → 高度风险」逃生，已改锚 `totalNum=45`（默认 0 / NaN 均不含 45）。
 - 本轮未执行 `_build.py`、未 push（按工单要求）。
 
+
+## 七、GPA 三页口径收口（2026-11-05）
+
+背景：第六节曾把 `exam-score-calculator`（64–67 → 1.5）与 `exam-gpa-calculator`（D 与 D+ 在 60 分标签重叠）登记为「版本差异、不改」，但 `gpa-calculator` 同批已按标准 4.0 制把 C− 改为 1.7，导致同站三页各说各的。本轮按工单要求统一主口径。
+
+**主口径（默认显示）**：标准 4.0 制 —— A 4.0 / A− 3.7 / B+ 3.3 / B 3.0 / B− 2.7 / C+ 2.3 / C 2.0 / **C− 1.7** / **D+ 1.3** / **D 1.0** / F 0。
+
+| 页面 | 修前 | 修后 | 说明 |
+|---|---|---|---|
+| `edu/gpa-calculator.html` | 4.0 制 `grades` 无 D+；`ranges` C− 65–67、D 60–64 | `grades` 增 D+ 1.3、D 1.0；`ranges` 改 **C− 64–67（1.7）**、**D+ 60–63（1.3）**、F 0–59 | 分数自动换算默认落 D+（1.3）；D 1.0 保留为「不设 D+ 院校」手选档，不再占自动区间。4.3 制同步（C− 64–67、D+ 60–63） |
+| `edu/exam-score-calculator.html` | 公式/参考表/代码均 `≥64→1.5`、`60–63→1.0(D)` | 公式/参考表/代码改 **`≥64→1.7 (C−)`**、**`≥60→1.3 (D+)`** | 页面加「口径说明」：1.5 与 D=1.0 属院校自定变体，默认一律标准制 |
+| `edu/exam-gpa-calculator.html` | 标准档 `D (60)` 与 `D+ (60–63)` 在 60 分标签重叠 | D 标签改 **「D (60–63，无 D+ 制)」**；公式段补标准制全表；加「口径说明」 | 默认档仍为「4.0 (标准)」；「中国 4.0」档（64–67→1.5、60–63→1.0）明确标注为院校变体，不是默认 |
+
+**口径说明落地**：三页均以 `data-zh` 中文 + 可见英文写入说明，明确「默认标准制；1.5 / D=1.0 为院校自定变体，以本校规定为准」。`i18n/tools/en/edu/exam-gpa-calculator.json` 的公式键已同步换新（旧键带 1.5 → 新键含 1.7/1.3）。
+
+### 7.1 verify 一致性用例
+
+在 `scripts/verify_edu_calc.js` 新增一条「GPA 标准 4.0 跨三页一致性」用例组（框架一例只能加载一页，故拆 3 例锚同一分数口径）：
+
+| 用例 | 输入 | 期望 | 判别点 |
+|---|---|---|---|
+| `edu/exam-score-calculator` | 总分 100 / 100 题 / 对 64 / 每题 0 分 | **1.7** | 旧 `≥64→1.5` 输出 1.5；默认 85% → 3.3 |
+| `edu/exam-gpa-calculator` | `4standard` 档 C− × 1 学分 | **1.70** | 表内 C− 若回 1.5 → 1.50；默认无课程 → 「-」 |
+| `edu/gpa-calculator` | 三门课均 64 分 | **1.70** | 旧 range 65–67 使 64 落 D(1.0) → 1.00；默认三门 → 3.70 |
+
+断言口径：同一「64 分 / C−」在三页必须同为 1.7（1.70）。
+
+### 7.2 门禁
+
+- `node scripts/verify_edu_calc.js edu/exam-score-calculator edu/exam-gpa-calculator edu/gpa-calculator`：**12/12 通过**。
+- `TB_STUB_FIDELITY=1 node scripts/discriminate_check.js verify_edu_calc.js`：**已检 86 / 正确变红 86 / 逃生 0**。
+- `node scripts/selfcheck_false_pass.js scripts/verify_edu_calc.js --exec`：**`all_default=0`（未高于基线）**；唯一 `RISK ... edu/convert-area-volume (default-hit)` 为既有条目，与本批三页无关。
+- 本轮未执行 `_build.py`、未 push。

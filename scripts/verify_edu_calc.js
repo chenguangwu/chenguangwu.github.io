@@ -284,8 +284,34 @@ const CASES = [
     clicks: ["setScale('5point');renderAll();"],
     expect: ["5.0 制: 优秀 5.0, 良好 4.0, 中等 3.0, 及格 2.0, 不及格 0"],
     ref: "成绩换算标准切换（`data-s` 档位：china / 4standard / 4improved / 5point / 100）。"
-       + "默认档为 china（显示「中国 4.0 制: 90+=4.0 …」），注入 5point 后换算表整段改写 ⇒ 强判别。"
+       + "默认档为 4standard（显示「标准 4.0 制: A=4.0 …」），注入 5point 后换算表整段改写 ⇒ 强判别。"
        + "setScale 的合法参数必须取自页面 `data-s` 值；写 `'usa'` 之类不存在的档会静默无渲染（两态双红）。",
+  },
+
+  // ── GPA 标准 4.0 制跨三页一致性（同一「64 分 / C−」必须三页同为 1.7）──────────
+  // 框架一例只能加载一页，故一条一致性断言拆为下列三例，锚定同一分数口径：
+  //   exam-score（64% 得分率）→ exam-gpa（C− 等级）→ gpa-calculator（64 分自动换算）。
+  // 三页任一若回退到 1.5 / 1.0（旧口径）或漏掉 D+，本条组即变红。
+  {
+    slug: "edu/exam-score-calculator",
+    inputs: { total: "100", totalQ: "100", correct: "64", perQ: "0", passLine: "60" },
+    expect: ["1.7"],
+    ref: "GPA 一致性-1：得分率 64%（64/100）按标准 4.0 制落 C− = 1.7（页面 result 内 `gpa.toFixed(1)`）。"
+       + "旧实现 ≥64 取 1.5 ⇒ 输出 1.5，不命中；默认态 85% → 3.3，亦不命中「1.7」。",
+  },
+  {
+    slug: "edu/exam-gpa-calculator",
+    clicks: ["state.courses=[{name:'t',grade:'C-',credit:1,points:SCALES['4standard'].grades.find(g=>g.v==='C-').g}];renderCourses();"],
+    expect: ["1.70"],
+    ref: "GPA 一致性-2：4standard 档 C− 的预设绩点必须为 1.7（C− 标签 64-67），单门 1 学分 ⇒ GPA 1.70。"
+       + "旧 4standard 已是 1.7，但若被改回 1.5 ⇒ 1.50 不命中；默认态无课程 → 「-」，亦不命中。",
+  },
+  {
+    slug: "edu/gpa-calculator",
+    clicks: ["updateCourse(0,'score',64);updateCourse(1,'score',64);updateCourse(2,'score',64);calc();"],
+    expect: ["1.70"],
+    ref: "GPA 一致性-3：三门课均 64 分，4.0 标准制 range 64-67 → C− 1.7，GPA = (1.7×9)/9 = 1.70。"
+       + "旧 range 65-67 + 64 落 D(1.0) ⇒ 1.00，不命中；默认态三门课 A/B+/A− → 3.70，亦不命中。",
   },
 
   // ── BATCH158：证书检索计数串 / 单词表过滤空态 ──────────────────────────
