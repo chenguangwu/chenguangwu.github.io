@@ -36,3 +36,12 @@
 | `tools/ophthalmology/convert-42.html` | ISO 8596:2017；GB 11533-2011 标准对数视力表 | 无 | ISO 8596:2017 / GB 11533-2011 现行 |
 | `tools/pediatrics/pediatric-fever.html` | 未标注具体指南（退热药 mg/kg 建议） | — | 建议补注 AAP 2011 退热药使用建议；对乙酰氨基酚 10–15 mg/kg q4–6h、布洛芬 5–10 mg/kg q6–8h |
 | `tools/pediatrics/pediatric-asthma.html` | GINA 哮喘控制评估（C-ACT / ACT 原量表） | 有 | GINA 2024/2025 年度更新（控制分级沿用 ACT/C-ACT 界值） |
+| `tools/clinical-nursing/assessor-rater-risk.html` | Morse Fall Scale（Morse 1989；6 项、满分 125，跌倒史 25 分） | 无 | Morse 仍为现行成人住院跌倒风险评估；分级 ≤24 / 25–44 / ≥45 |
+| `tools/neurology/alsfrs-r.html` | ALSFRS-R（Cedarbaum 1999；12 项、满分 48） | 无 | ALSFRS-R 仍为现行 ALS 功能评分（已剔除原页多出的非原版「坐姿」项） |
+| `tools/neurology/qmg.html` | QMG（Jaretzki & Barohn 2000, Neurology 2000;55:16-23；13 项、满分 39） | 无 | QMG 仍为现行重症肌无力定量评分 |
+| `tools/neurology/rater-22.html` | SARA（Schmahmann 2006；8 项、满分 40，步态 8 / 站立 6 / 坐位 4 / 言语 6 / 其余各 4） | 无 | SARA 仍为现行小脑共济失调评分 |
+| `tools/urology/iief5-score.html` | IIEF-5（Rosen 1999；5 项，Q1 1–5、Q2–Q5 0–5，满分 25） | 无 | IIEF-5 仍为现行 ED 筛查量表 |
+| `tools/dermatology/vss-scar.html` | VSS（Sullivan 1990, J Burn Care Rehabil 1990;11:256-260；色素 0–2 / 血管 0–3 / 柔韧 0–5 / 高度 0–3，满分 13） | 无 | VSS 仍为现行烧伤瘢痕评分 |
+| `tools/psychiatry/cdrisc-resilience.html` | CD-RISC-10（Campbell-Sills & Stein 2007, J Trauma Stress 20:1019-1028；原版 25 项为 Connor & Davidson 2003） | 无 | CD-RISC-10 仍为现行简版（0–40） |
+| `tools/obstetrics/kupperman-score.html` | 改良 Kupperman（Kupperman 1953, J Clin Endocrinol Metab 13:688-703；13 项加权、权重和 21、满分 63） | 无 | 改良 13 项加权法仍为国内围绝经期常用评分 |
+| `tools/healthcare/antipyretic-dose.html` | 对乙酰氨基酚儿童退热剂量（单次 10–15 mg/kg q4–6h，每日上限 60 mg/kg/d） | 无 | 每日上限 60 mg/kg/d；布洛芬对照 ≤40 mg/kg/d |

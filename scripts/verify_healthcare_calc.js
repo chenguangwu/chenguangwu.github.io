@@ -15,7 +15,13 @@ const CASES = [
     slug: "healthcare/antipyretic-dose",
     inputs: { weight: "20", dose: "10", conc: "32" },
     expect: ["单次药量： 6.3"],
-    ref: "单次液量 = 20×10÷32 = 6.25 → 6.3 mL；日上限次数 = ⌊20×75÷32÷6.25⌋ = 7。⚠ 原锚裸「6.3」被 03-47 新增 refWeightBox 静态提示「16.3 kg」子串误伤（默认态命中→逃生项），改「单次药量： 6.3」派生串（默认 7.0 不含）。",
+    ref: "单次液量 = 20×10÷32 = 6.25 → 6.3 mL；日上限次数 = ⌊20×60÷32÷6.25⌋ = 6。⚠ 原锚裸「6.3」被 03-47 新增 refWeightBox 静态提示「16.3 kg」子串误伤（默认态命中→逃生项），改「单次药量： 6.3」派生串（默认 7.0 不含）。",
+  },
+  {
+    slug: "healthcare/antipyretic-dose",
+    inputs: { weight: "20", dose: "12", conc: "32" },
+    expect: ["日上限次： 5 次"],
+    ref: "每日上限按对乙酰氨基酚 60 mg/kg/d 反推：日总量上限 = 20×60 = 1200 mg，单次 20×12 = 240 mg ⇒ ⌊1200÷240⌋ = 5 次（旧实现按 75 mg/kg 得 ⌊1500÷240⌋ = 6 次，超过现行上限）。默认 15kg/15mg/kg 输出「日上限次：4 次」，与本用例零交集。",
   },
   {
     slug: "healthcare/antipyretic-dose",
