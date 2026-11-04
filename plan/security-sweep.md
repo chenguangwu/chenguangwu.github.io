@@ -427,3 +427,89 @@
 - `python3 _test_static.py` → 通过 4705 / 失败 0。
 - `python3 _audit_assets.py --check` → 0 死链 / 0 lang 缺失 / 0 重复 id。
 - 未跑 `_build.py`、未 push；`js/tool-kit.js` 与页面改动需集成线构建后刷新 SW 版本戳与 `zh-tw/` 产物。
+
+---
+
+## 十七、第八批：隐私面扫描（2026-11-04，只扫不改）
+
+### 17.1 localStorage 全景与机制
+
+- **根因级发现**：`js/tool-ux.js` 对所有工具页 `.container` 内的 `input/textarea/select`（排除 `password/file/hidden`）在用户输入后自动持久化，键名为 `tb_ux_<页面路径>#<字段id>`。全站约 **4705 页**默认带此行为，绝大多数页面**没有「清空本地数据」入口**。
+- 另有约 90 页使用页面自有 `localStorage` 键（历史记录/清单/提醒），部分带清空按钮。
+- 区分「存结果数值」与「存用户输入原文」：前者是计算参数，后者才是隐私面。以下分级只统计后者。
+
+### 17.2 三档分级
+
+| 档位 | 页数 | 口径 |
+| --- | --- | --- |
+| 高 | **594** | 健康/医学类 566 + 个人身份标识类 26 + 个人收入类 2 |
+| 中 | **6** | 车辆身份/行程地点/宠物照护 |
+| 低 | **约 4106** | 纯计算参数、偏好设置、公开数据 |
+
+**高敏（个人身份标识，26 页，含清除入口标注）**：
+
+| 页面 | 持久化内容 | 清除入口 |
+| --- | --- | --- |
+| legal/will-template-generator | 立遗嘱人姓名/身份证/住址/见证人 | 无 |
+| rental/reminder-4 | 租客/地址/电话/租金/租期 | 有（自有键） |
+| security/emergency-contacts | 联系人姓名/电话/备注 | 无 |
+| wedding/seating-chart | 宾客姓名/分组 | 无 |
+| life/stats-13 | 名单/价格 | 无 |
+| funeral/memorial-date、grave-design | 逝者姓名/生卒年/碑文 | 无 |
+| finance/vcard-qr | 姓/名/电话/邮箱 | 无 |
+| design/initials-avatar | 用户姓名 | 无 |
+| biz/team-roster-generator | 成员姓名名单 | 无 |
+| text/text-extract-phones、biz/text-extract-emails | 批量手机号/邮箱原文 | 有 |
+| it/sms-qr、phone-qr、email-qr、phone-parser、email-normalizer | 手机号/邮箱/短信正文 | 无 |
+| finance/msisdn-validator、life/phone-lookup | 手机号 | 无 |
+| elderly/reminder-time | 药名/剂量/服药时间 | 有 |
+| ecommerce/cycle-15 | 客户姓名 | 有 |
+| edu/chinese-zodiac、fengshui/birthday-analysis、life/age-in-days | 出生日期/时辰/性别 | 部分有 |
+| pr/media-invite | 媒体联系人 | 无 |
+| cleaning/staff-schedule | 员工姓名/区域 | 有 |
+| tcm-diagnosis/tcm-medical-record、ten-questions、nephrology/manager-1 | 患者姓名/性别/年龄/病史/检验值 | 部分有 |
+
+**高敏（健康/医学 566 页）**：health 40、fitness 37、ophthalmology 31、clinical-nursing 26、hematology 26、neurology 25、rheumatology 25、pediatrics 24、urology/psychiatry 24、cardiology/ent/nephrology/dentistry/dermatology 23、endocrinology/clinical-lab/gastroenterology 22、rehabilitation/beauty/tcm-diagnosis/tcm-pharmacy 21、medical 14、medical2 5 等。共同点：自动保存年龄、性别、身高体重、血压血糖、检验值、症状等健康数据。
+（已剔除 `food-testing` 26 页与 `tcm-chemistry` 22 页：前者是食品检测参数、后者是方剂配伍参数，不含个人健康信息。）
+
+**高敏（个人收入 2 页）**：`tax/progressive-income-tax`、`tax/effective-tax-rate`（输入工资/收入并自动持久化）。
+
+**中敏 6 页**：`automotive/countdown-engine-oil`（车名+保养日期）、`automotive/detector-recorder-fuel`（车辆+加油/里程记录）、`usedcar/car-purchase-cost`、`usedcar/recorder-maintenance`（车辆+维保记录）、`hotel/itinerary-planner`（行程地点）、`pet/reminder-vaccine-deworming`（宠物名+疫苗日期+体重）。
+
+### 17.3 URL 参数 / 分享链接
+
+- 全站工具页 **0 处自动写 `location.hash` / `location.search` / `history.pushState|replaceState`**。
+- 仅两个用户主动分享入口：`geometry/triangle-heron.html`「复制分享链接」按钮、`it/regex.html` 读取 `#regex=` 回填（只读不写）。
+- 结论：不存在「输入即写 URL」导致进浏览器历史/Referer 外泄的路径。
+
+### 17.4 依赖老化（只出清单，不升级）
+
+15 个静态 CDN 标签 / 12 个库，全部固定确切版本 + SRI（15/15/0 不变）。
+
+| 库 | 版本 | 结论 |
+| --- | --- | --- |
+| pdf.js | 3.11.174 | **有公开 CVE：CVE-2024-4367**（字体处理缺失类型检查 → 任意 JS 执行；修复版 4.2.67）。使用页：office/pdf-split、pdf-rotate（本地渲染用户 PDF） |
+| mermaid | 10.9.8 | CVE-2026-71436 影响 `<10.9.8`，当前版本已在修复边界；另有 HTML 注入问题 10.9.6 已修 |
+| bcryptjs | 2.4.3 | 2.4.3 为末版（2021 后基本停更），未检索到针对该版本的公开 CVE |
+| markmap-lib / markmap-view | 0.17.2 | 版本较旧；未检索到针对该版本的公开 CVE |
+| pdf-lib | 1.17.1 | 维护缓慢；未检索到针对该版本的公开 CVE |
+| sql.js | 1.8.0 | 可用；未检索到针对该版本的公开 CVE |
+| typescript | 5.3.3 | 落后主线（5.x 已有更新版本），无已知 CVE |
+| less | 4.9.1 | 较新，未检索到 CVE |
+| js-yaml | 4.1.0 | 4.x 已修复旧的 merge-key 问题，未检索到新 CVE |
+| acorn | 8.19.0 | 维护中，无已知 CVE |
+| d3 | 7.9.2 | v7 末版，无已知 CVE |
+
+唯一建议单独立项升级的是 **pdf.js → ≥4.2.67**（若继续在本地渲染用户上传 PDF）。
+
+### 17.5 共享导出回归（CSV 前缀不误伤）
+
+抽 3 个不同行业页面，在页面上下文直接调用 `TBKit.util.exportCsv` 并截获 Blob 文本：
+
+| 页面 | 首行 | 首列 | 误加前缀 |
+| --- | --- | --- | --- |
+| agriculture/fertilizer-calculator | `项目名称,数值,备注` | `项目名称` | 否 |
+| daily-goods/shoe-size | `项目名称,数值,备注` | `项目名称` | 否 |
+| finance/credit-card-interest | `项目名称,数值,备注` | `项目名称` | 否 |
+
+3/3 通过，0 pageerror；正常中文/数字单元格未加 `'`。
