@@ -267,15 +267,24 @@ s.parentNode.insertBefore(el, s);
     ToolBox.$('months').value = getMonthsFromProject();
   }
   function addMonths(date, months){
-    const d = new Date(date);
-    d.setMonth(d.getMonth() + months);
-    return d;
+    // 先定位目标月首日，再把「日」夹到该月月末：1/31 +1 月 → 2/28（闰年 2/29），
+    // 避免 setMonth 直接滚动到 3/3。
+    const day = date.getDate();
+    const target = new Date(date.getFullYear(), date.getMonth() + months, 1);
+    const last = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+    target.setDate(Math.min(day, last));
+    target.setHours(date.getHours(), date.getMinutes(), date.getSeconds(), date.getMilliseconds());
+    return target;
   }
   function formatDate(d){
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
     return y + '-' + m + '-' + day;
+  }
+  function parseLocalDate(s){
+    const p = String(s).split('-');
+    return new Date(+p[0], +p[1] - 1, +p[2]);
   }
   function calculate(){
     const last = ToolBox.$('lastDate').value;
@@ -285,7 +294,7 @@ s.parentNode.insertBefore(el, s);
       const __h0='<p style="color:var(--danger)">请选择日期并输入有效周期。</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){el.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}el.innerHTML=__h0;
       return;
     }
-    const lastDate = new Date(last);
+    const lastDate = parseLocalDate(last);
     const nextDate = addMonths(lastDate, months);
     const today = new Date();
     today.setHours(0,0,0,0);

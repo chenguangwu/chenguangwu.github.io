@@ -259,34 +259,34 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 const cities={
-  '北京/上海':{'offset':8,'flag':'🇨🇳'},
-  '东京':{'offset':9,'flag':'🇯🇵'},
-  '首尔':{'offset':9,'flag':'🇰🇷'},
-  '新加坡':{'offset':8,'flag':'🇸🇬'},
-  '香港':{'offset':8,'flag':'🇭🇰'},
-  '台北':{'offset':8,'flag':'🇹🇼'},
-  '曼谷':{'offset':7,'flag':'🇹🇭'},
-  '迪拜':{'offset':4,'flag':'🇦🇪'},
-  '莫斯科':{'offset':3,'flag':'🇷🇺'},
-  '伦敦':{'offset':0,'flag':'🇬🇧'},
-  '巴黎':{'offset':1,'flag':'🇫🇷'},
-  '柏林':{'offset':1,'flag':'🇩🇪'},
-  '罗马':{'offset':1,'flag':'🇮🇹'},
-  '纽约':{'offset':-5,'flag':'🇺🇸'},
-  '洛杉矶':{'offset':-8,'flag':'🇺🇸'},
-  '芝加哥':{'offset':-6,'flag':'🇺🇸'},
-  '悉尼':{'offset':10,'flag':'🇦🇺'},
-  '墨尔本':{'offset':10,'flag':'🇦🇺'},
-  '奥克兰':{'offset':12,'flag':'🇳🇿'},
-  '夏威夷':{'offset':-10,'flag':'🇺🇸'},
-  '多伦多':{'offset':-5,'flag':'🇨🇦'},
-  '温哥华':{'offset':-8,'flag':'🇨🇦'},
-  '孟买':{'offset':5.5,'flag':'🇮🇳'},
-  '雅加达':{'offset':7,'flag':'🇮🇩'},
-  '开罗':{'offset':2,'flag':'🇪🇬'},
-  '约翰内斯堡':{'offset':2,'flag':'🇿🇦'},
-  '里约热内卢':{'offset':-3,'flag':'🇧🇷'},
-  '墨西哥城':{'offset':-6,'flag':'🇲🇽'}
+  '北京/上海':{'offset':8,'tz':'Asia/Shanghai','flag':'🇨🇳'},
+  '东京':{'offset':9,'tz':'Asia/Tokyo','flag':'🇯🇵'},
+  '首尔':{'offset':9,'tz':'Asia/Seoul','flag':'🇰🇷'},
+  '新加坡':{'offset':8,'tz':'Asia/Singapore','flag':'🇸🇬'},
+  '香港':{'offset':8,'tz':'Asia/Hong_Kong','flag':'🇭🇰'},
+  '台北':{'offset':8,'tz':'Asia/Taipei','flag':'🇹🇼'},
+  '曼谷':{'offset':7,'tz':'Asia/Bangkok','flag':'🇹🇭'},
+  '迪拜':{'offset':4,'tz':'Asia/Dubai','flag':'🇦🇪'},
+  '莫斯科':{'offset':3,'tz':'Europe/Moscow','flag':'🇷🇺'},
+  '伦敦':{'offset':0,'tz':'Europe/London','flag':'🇬🇧'},
+  '巴黎':{'offset':1,'tz':'Europe/Paris','flag':'🇫🇷'},
+  '柏林':{'offset':1,'tz':'Europe/Berlin','flag':'🇩🇪'},
+  '罗马':{'offset':1,'tz':'Europe/Rome','flag':'🇮🇹'},
+  '纽约':{'offset':-5,'tz':'America/New_York','flag':'🇺🇸'},
+  '洛杉矶':{'offset':-8,'tz':'America/Los_Angeles','flag':'🇺🇸'},
+  '芝加哥':{'offset':-6,'tz':'America/Chicago','flag':'🇺🇸'},
+  '悉尼':{'offset':10,'tz':'Australia/Sydney','flag':'🇦🇺'},
+  '墨尔本':{'offset':10,'tz':'Australia/Melbourne','flag':'🇦🇺'},
+  '奥克兰':{'offset':12,'tz':'Pacific/Auckland','flag':'🇳🇿'},
+  '夏威夷':{'offset':-10,'tz':'Pacific/Honolulu','flag':'🇺🇸'},
+  '多伦多':{'offset':-5,'tz':'America/Toronto','flag':'🇨🇦'},
+  '温哥华':{'offset':-8,'tz':'America/Vancouver','flag':'🇨🇦'},
+  '孟买':{'offset':5.5,'tz':'Asia/Kolkata','flag':'🇮🇳'},
+  '雅加达':{'offset':7,'tz':'Asia/Jakarta','flag':'🇮🇩'},
+  '开罗':{'offset':2,'tz':'Africa/Cairo','flag':'🇪🇬'},
+  '约翰内斯堡':{'offset':2,'tz':'Africa/Johannesburg','flag':'🇿🇦'},
+  '里约热内卢':{'offset':-3,'tz':'America/Sao_Paulo','flag':'🇧🇷'},
+  '墨西哥城':{'offset':-6,'tz':'America/Mexico_City','flag':'🇲🇽'}
 };
 let selectedCities=JSON.parse(localStorage.getItem('tz_cities')||'["北京/上海","东京","伦敦","纽约","洛杉矶","悉尼"]');
 function initSelect(){
@@ -313,14 +313,29 @@ function applyTzPreset(kind){
   initSelect();
   render();
 }
-function isDST(date,offset){
-  const month=date.getMonth();
-  if(offset===0||offset===1) return month>2&&month<10;
-  if(offset===-5||offset===-6||offset===-8) return month>2&&month<10;
-  return false;
+function zoneOffset(date,tz){
+  try{
+    const parts=new Intl.DateTimeFormat('en-US',{timeZone:tz,timeZoneName:'shortOffset'}).formatToParts(date);
+    const p=parts.find(x=>x.type==='timeZoneName');
+    if(p){
+      // shortOffset 对零偏移城市可能只给 "GMT"（无符号无数字，Node/部分 ICU 版本即如此），
+      // 不能因此判 null 回退静态 offset，否则伦敦冬令时会拿到旧值。
+      const m=p.value.match(/GMT(?:([+-])(\d+)(?::(\d+))?)?/);
+      if(m){
+        if(!m[1]) return 0;
+        const sign=m[1]==='-'?-1:1;
+        return sign*(parseInt(m[2],10)+(m[3]?parseInt(m[3],10)/60:0));
+      }
+    }
+  }catch(e){}
+  return null;
 }
 function fmtTime(d){
   return d.toTimeString().slice(0,5);
+}
+function fmtLocalDate(d){
+  const p = n => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
 }
 function fmtDate(d){
   return d.toLocaleDateString('zh-CN',{month:'short',day:'numeric',weekday:'short'});
@@ -354,16 +369,19 @@ function render(){
   }else{
     now=new Date();
     document.getElementById('localTime').value=fmtTime(now);
-    document.getElementById('localDate').value=now.toISOString().slice(0,10);
+    document.getElementById('localDate').value=fmtLocalDate(now);
   }
   const localOffset=-now.getTimezoneOffset()/60;
   const grid=document.getElementById('clockGrid');
   let html='';
   selectedCities.forEach(c=>{
     const data=cities[c];
-    const diff=data.offset-localOffset;
+    const cityOffset=zoneOffset(now,data.tz);
+    const diff=(cityOffset===null?data.offset:cityOffset)-localOffset;
     const targetTime=new Date(now.getTime()+diff*3600000);
-    const dayDiff=Math.round((targetTime.setHours(0,0,0,0)-new Date(now).setHours(0,0,0,0))/86400000);
+    // 用副本取各自城市的日历日，避免 setHours 原地改写 targetTime（曾导致所有城市恒显示 00:00）
+    const dayDiff=Math.round((Date.UTC(targetTime.getFullYear(),targetTime.getMonth(),targetTime.getDate())
+      -Date.UTC(now.getFullYear(),now.getMonth(),now.getDate()))/86400000);
     let dayNote='';
     if(dayDiff===1)dayNote='明天';
     else if(dayDiff===-1)dayNote='昨天';
@@ -385,12 +403,16 @@ function __tzExtras(){
   if(typeof TBKit==='undefined') return;
   var host=document.getElementById('tzChart'); if(!host) return;
   if(!selectedCities.length){host.innerHTML='';return;}
-  var localOffset=-new Date().getTimezoneOffset()/60;
+  var localT=document.getElementById('localTime').value;
+  var localD=document.getElementById('localDate').value;
+  var now=(localT&&localD)?new Date(localD+'T'+localT):new Date();
+  var localOffset=-now.getTimezoneOffset()/60;
   var labels=[],data=[];
   selectedCities.forEach(function(c){
     var cd=cities[c]; if(!cd){return;}
     labels.push(c);
-    data.push(cd.offset-localOffset);
+    var off=zoneOffset(now,cd.tz);
+    data.push((off===null?cd.offset:off)-localOffset);
   });
   if(!data.length){host.innerHTML='';return;}
   TBKit.chart.bar('#tzChart',{labels:labels,series:[{name:'与本地时差(小时)',data:data}],height:240,title:'各城市与本地时差（小时）'});
@@ -407,7 +429,8 @@ function __tzTable(){
     var rows=[['城市','当地时刻','日期','与本地时差']];
     selectedCities.forEach(function(c){
       var data=cities[c]; if(!data)return;
-      var diff=data.offset-localOffset;
+      var off=zoneOffset(now,data.tz);
+      var diff=(off===null?data.offset:off)-localOffset;
       var tt=new Date(now.getTime()+diff*3600000);
       rows.push([c,fmtTime(tt),fmtDate(tt),(diff>=0?'+':'')+diff+'小时']);
     });

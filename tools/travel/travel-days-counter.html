@@ -243,17 +243,22 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
-function setStartToday(){const d=new Date().toISOString().slice(0,10);document.getElementById('start').value=d;calc();}
-function setEndWeek(){const s=document.getElementById('start').value;if(s){const d=new Date(s);d.setDate(d.getDate()+7);document.getElementById('end').value=d.toISOString().slice(0,10);calc();}}
+function fmtDate(d){const p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());}
+function parseLocalDate(s){const p=String(s).split('-');return new Date(+p[0],+p[1]-1,+p[2]);}
+function setStartToday(){document.getElementById('start').value=fmtDate(new Date());calc();}
+function setEndWeek(){const s=document.getElementById('start').value;if(s){const d=parseLocalDate(s);d.setDate(d.getDate()+7);document.getElementById('end').value=fmtDate(d);calc();}}
 function calc(){
   const s=document.getElementById('start').value;
   const e=document.getElementById('end').value;
   if(!s||!e){document.getElementById('result').innerHTML='<p style="text-align:center;color:var(--text-muted);padding:20px;">请选择出发和返回日期</p>';return;}
-  const start=new Date(s),end=new Date(e),now=new Date();
-  const days=Math.ceil((end-start)/86400000)+1;
+  const start=parseLocalDate(s),end=parseLocalDate(e),now=new Date();
+  const startD=Date.UTC(start.getFullYear(),start.getMonth(),start.getDate());
+  const endD=Date.UTC(end.getFullYear(),end.getMonth(),end.getDate());
+  const nowD=Date.UTC(now.getFullYear(),now.getMonth(),now.getDate());
+  const days=Math.round((endD-startD)/86400000)+1;
   const nights=days-1;
-  const untilStart=Math.ceil((start-now)/86400000);
-  const sinceEnd=Math.ceil((now-end)/86400000);
+  const untilStart=Math.round((startD-nowD)/86400000);
+  const sinceEnd=Math.round((nowD-endD)/86400000);
   let status='',statusColor='';
   if(untilStart>0){status=`距离出发还有`;statusColor='#42a5f5';}
   else if(now>=start&&now<=end){status=`旅行进行中！已出发`;statusColor='#66bb6a';}
@@ -271,8 +276,8 @@ function calc(){
   </div>`;
   const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
-document.getElementById('start').value=new Date(Date.now()+7*86400000).toISOString().slice(0,10);
-document.getElementById('end').value=new Date(Date.now()+14*86400000).toISOString().slice(0,10);
+document.getElementById('start').value=fmtDate(new Date(Date.now()+7*86400000));
+document.getElementById('end').value=fmtDate(new Date(Date.now()+14*86400000));
 calc();
 </script><script>
 // tool-intro折叠交互

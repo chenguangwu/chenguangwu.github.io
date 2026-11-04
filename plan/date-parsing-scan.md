@@ -387,3 +387,20 @@
 - `legal2/*`、`library/overdue-fine.html`、`library/overdue-fine` 的 `new Date(parseDate(...))`：已是 Date 对象克隆。
 - `sports/sports-schedule.html` 的 `valueAsDate || new Date()`：已是 Date 对象。
 - 各页 `new Date(t)` / `new Date(h.t)`：历史记录为 epoch 毫秒；`ugs` 排序比较与导出文件名时间戳不影响日期正确性。
+
+## 6. 2026-11-05 收口：travel / automotive / life 本批处置
+
+| 页面 | 行 | 处置 |
+|---|---|---|
+| `travel/travel-days-counter.html` | 246/247/252/274/275 | ✅ 已修：新增 `parseLocalDate`/`fmtDate`，默认值与 +7/+14 天改本地格式化；`calc()` 改本地解析 + `Date.UTC` 零点差，避开 DST 的 23/25 小时日。 |
+| `travel/world-timezone-converter.html` | 357 | ✅ 已修：默认日期改 `fmtLocalDate(now)`；同页删除死代码 `isDST()`，改 IANA `zoneOffset()` 实时偏移（卡片/图表/导出表统一），并修 `setHours` 原地改写导致的「所有城市恒 00:00」。 |
+| `travel/timezone-converter-advanced.html` | 320 | ☑️ 判安全，不改：`new Date(now.getTime() - getTimezoneOffset()*60000)` 偏移校正后 `toISOString()` 恰为本地墙上时间。 |
+| `automotive/auto-beauty-calc-1.html` | 288 | ✅ 已修：新增 `parseLocalDate`；同页 `addMonths` 由裸 `setMonth` 改「目标月首日 + 日夹取」（1/31 +1 月 → 2/28，闰年 2/29）。 |
+| `automotive/countdown-engine-oil.html` | 331 | ✅ 已修：新增 `todayStr()`，本地拼 YYYY-MM-DD。 |
+| `automotive/cycle-13.html` | 335/359 | ✅ 已修：`wDate` 默认与保存回退均改 `todayStr()`。 |
+| `automotive/cycle-belt.html` | 434 | ✅ 已修：`savedAt` 改 `todayStr()`。 |
+| `automotive/fuel-anomaly.html` | 264 | ✅ 已修：记录日期改 `todayStr()`。 |
+| `life/date-difference-calculator.html` | 加减月 | ✅ 已修：`addMonthsClamped()` 月末夹取（本批补闰年/平年用例）。 |
+| `life/temperature-converter.html` | 单位换算 | ✅ 已修：新增绝对零度下界（−273.15℃ / 0K / −459.67℉），低于即拒绝并提示；K/°F/°R 输入同校验。 |
+| `life/workday-calculator.html`、`life/age-in-days.html`、`life/date-diff.html`、`life/countdown.html`、`life/reminder-cycle.html`、`life/cycle-pruning-lawn.html` | — | ☑️ 判安全：本地年月日构造 / Date 克隆 / epoch 毫秒 / datetime 本地解析。 |
+| `design/farnsworth-d15-test.html`、`design/palette-cvd-checker.html`、`design/signature-pad.html` | — | ☑️ 判安全：仅导出元数据时间戳 / 文件名时间戳，不参与日期计算。 |

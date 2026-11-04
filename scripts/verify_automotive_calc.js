@@ -253,10 +253,13 @@ const CASES = [
   "inputs": {
     "wPos": "rear"
   },
-  "expect": [
-    "后雨刷状态正常"
+  "clicks": [
+    "vehicles=[{id:'v1',name:'测试车',freq:'normal',wipers:[{id:'w1',pos:'rear',date:'2024-05-01',brand:'测试'}]}];activeVeh='v1';render();"
   ],
-  "ref": "auto-restore"
+  "expect": [
+    "状态正常"
+  ],
+  "ref": "注入一台装后雨刷的车辆后 render() 才有雨刷卡片：normal 档周期 9 个月，2024-05-01 距冻结基准日 2024-06-15 仅 1 个月 ⇒ remainMonths=8 >1 ⇒ statusText「状态正常」。harness localStorage 恒返回 null、默认态无车辆（显示「暂无车辆，点击「添加车辆」开始」），注入失败即不命中。原 expect「后雨刷状态正常」是两个 DOM 节点的拼接串，collectStrings 以换行连接，永不可能匹配，已废弃。"
 },
 {
   "slug": "automotive/cycle-belt",
@@ -952,7 +955,25 @@ const CASES = [
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"mpgUS\"}，输出区含「42\nmpgUS\n基准： 42 mpg(美) = 5.6003472 L/100…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
-
+  {
+    // 2026-11-05：addMonths 由裸 setMonth 改为「目标月首日 + 日夹取」，锚月末结果。
+    "slug": "automotive/auto-beauty-calc-1",
+    "inputs": { "lastDate": "2026-01-31", "months": "1" },
+    "expect": ["2026-02-28"],
+    "ref": "月末夹取：2026-01-31 +1 月，旧 setMonth 溢出到 2026-03-03；现夹到目标月末 = 2026-02-28。默认基准日不同 ⇒ 不命中。"
+  },
+  {
+    "slug": "automotive/auto-beauty-calc-1",
+    "inputs": { "lastDate": "2024-01-31", "months": "1" },
+    "expect": ["2024-02-29"],
+    "ref": "闰年月末夹取：2024-01-31 +1 月 → 2024-02-29（旧 setMonth 得 2024-03-02）；与平年用例互证按目标月天数夹取。"
+  },
+  {
+    "slug": "automotive/auto-beauty-calc-1",
+    "inputs": { "lastDate": "2026-11-30", "months": "3" },
+    "expect": ["2027-02-28"],
+    "ref": "跨年 + 月末：2026-11-30 +3 月 = 2027-02-28（旧 setMonth 得 2027-03-02）。"
+  }
 
 ];
 async function main() {

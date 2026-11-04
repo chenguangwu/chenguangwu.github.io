@@ -423,6 +423,14 @@ function fmtLocalDate(d){
   const p = n => String(n).padStart(2, '0');
   return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
 }
+// 按月推进并对月末夹取：1/31 +1 月 → 2/29（闰年）或 2/28，避免 setMonth 溢出到 3 月
+function addMonthsClamped(d, delta){
+  const day = d.getDate();
+  const target = new Date(d.getFullYear(), d.getMonth() + delta, 1);
+  const last = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+  target.setDate(Math.min(day, last));
+  return target;
+}
 
 function getDaysDiff(start, end){
   // 用本地年月日的 UTC 零点做差，避开夏令时 23/25 小时日导致的 floor 偏差
@@ -521,14 +529,9 @@ function calcAddSub(){
     document.getElementById('addsubSub').textContent = '';
     return;
   }
-  const result = new Date(base);
-  
   const factor = op === 'add' ? 1 : -1;
-  
-  result.setFullYear(result.getFullYear() + years * factor);
-  result.setMonth(result.getMonth() + months * factor);
-  result.setDate(result.getDate() + weeks * 7 * factor);
-  result.setDate(result.getDate() + days * factor);
+  const result = addMonthsClamped(base, (years * 12 + months) * factor);
+  result.setDate(result.getDate() + (weeks * 7 + days) * factor);
   
   const pad = n => String(n).padStart(2, '0');
   const resultStr = result.getFullYear() + '-' + pad(result.getMonth() + 1) + '-' + pad(result.getDate());

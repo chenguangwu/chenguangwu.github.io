@@ -2375,9 +2375,9 @@ const CASES = [
   {
     slug: "life/temperature-converter",
     inputs: { celsius: "" },
-    expect: ["Please enter a valid temperature."],
+    expect: ["请输入有效的温度数值"],
     ref: "清空摄氏度后旧实现 parseFloat('')||0 静默按 0℃ 换算，其他单位显示 32°F/273.15K；"
-       + "现显式提示且不覆盖其他输入。默认 25℃ ⇒ 不命中。",
+       + "现显式提示且不覆盖其他输入。提示文案按当前页面语言取中文（harness 为 zh-CN），英文态取英文。默认 25℃ ⇒ 不命中。",
   },
   {
     slug: "life/assessor-target",
@@ -2543,6 +2543,57 @@ const CASES = [
     ],
     expect: ["STRENGTH-PWD-FMT-OK-16"],
     ref: "只勾小写+大写+数字（未勾符号）⇒ 字符池 62；长度默认 16、数量默认 1 ⇒ 主密码 16 位且仅含 [A-Za-z0-9]。随机内容不可断言，故锚长度与字符集。默认 harness 下所有复选框为 false，页面自跑 gen() 走 resetPwdState 输出「请至少选择一种字符类型」，不含该标记。生成路径已改 secureInt（crypto.getRandomValues + 拒绝采样）。",
+  },
+
+  // ── 2026-11-05：温度绝对零度下界 + 日期加减月末夹取 ────────────────
+  {
+    slug: "life/temperature-converter",
+    inputs: { celsius: "-300" },
+    expect: ["温度不能低于绝对零度"],
+    ref: "−300℃ 低于绝对零度 −273.15℃：旧实现照算得 −26.85K（负开尔文无意义）。现拒绝换算并提示；"
+       + "默认 25℃ 不显示提示 ⇒ 注入失败不命中。",
+  },
+  {
+    slug: "life/temperature-converter",
+    inputs: { celsius: "-273.15" },
+    expect: ["-273.15\n-459.67\n0.00"],
+    ref: "绝对零度边界应放行：−273.15℃ = 0.00K = −459.67℉（C+273.15、C×9/5+32）。"
+       + "需锚连续跨字段串「-273.15\\n-459.67\\n0.00」：单锚「-459.67」「0.00」会命中页面静态说明/公式示例文本，注入失败仍 PASS（逃生项）。默认 25℃ 输出 25.00/77.00/298.15，不命中。",
+  },
+  {
+    slug: "life/temperature-converter",
+    inputs: { celsius: "0" },
+    expect: ["0.00\n32.00\n273.15"],
+    ref: "0℃ = 32.00℉ = 273.15K（水的冰点）。同样用三字段连续串，避开静态参考表中的 273.15 单值；"
+       + "默认 25℃ ⇒ 25.00/77.00/298.15，注入失败不命中。",
+  },
+  {
+    slug: "life/temperature-converter",
+    inputs: { kelvin: "-10" },
+    expect: ["温度不能低于绝对零度"],
+    ref: "K 输入越界：−10K = −283.15℃ < −273.15℃ ⇒ 拒绝并提示（此前只校验 ℃ 输入）。"
+       + "默认 K 为空、无提示 ⇒ 可判别。",
+  },
+  {
+    slug: "life/temperature-converter",
+    inputs: { fahrenheit: "-500" },
+    expect: ["温度不能低于绝对零度"],
+    ref: "℉ 输入越界：−500℉ = −284.44℃ < −273.15℃ ⇒ 拒绝；绝对零度 −459.67℉ 本身放行。"
+       + "默认 ℉ 为空、无提示 ⇒ 可判别。",
+  },
+  {
+    slug: "life/date-difference-calculator",
+    inputs: { baseDate: "2024-01-31", addYears: "0", addMonths: "1", addWeeks: "0", addDays: "0" },
+    expect: ["2024-02-29"],
+    ref: "月末夹取（闰年）：2024-01-31 加 1 个月，旧实现 setMonth 溢出到 3/2；"
+       + "现夹到目标月最后一天 = 2024-02-29。默认 baseDate 为空（提示「请选择基准日期」）⇒ 注入失败不命中。",
+  },
+  {
+    slug: "life/date-difference-calculator",
+    inputs: { baseDate: "2023-01-31", addYears: "0", addMonths: "1", addWeeks: "0", addDays: "0" },
+    expect: ["2023-02-28"],
+    ref: "月末夹取（平年）：2023-01-31 +1 月 → 2023-02-28（旧 setMonth 溢出到 3/3）；"
+       + "与闰年用例（2024-02-29）互为判别，证明按目标月天数夹取而非固定 28。",
   }
 
 ];
