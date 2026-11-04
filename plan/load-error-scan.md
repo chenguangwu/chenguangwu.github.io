@@ -177,3 +177,91 @@ node scripts/scan_load_errors.js --match tools/psychiatry/
 
 - 4 个旧 URL（简体 + `zh-tw/` 变体）已在 `sitemap-deadlinks.xml` 中登记，无需重复加入；部署成功（Actions `success`）后按 AGENTS §4.6 用**默认校验**跑一次 `python3 _submit_indexnow_deadlinks.py` 即可。
 - 本批修改了 `js/tool-i18n.js`：按项目红线，正式部署前需由维护者执行 `python3 _build.py` 刷新 Service Worker 版本戳；本批按要求未跑 `_build.py`、未 push。
+
+---
+
+## 9. 本地存储与持久化健壮性（全站三档扫描）
+
+### 9.1 普查口径与用量
+
+- 扫描器：`scripts/scan_local_storage.js`（只读）。
+- 口径：页面内联脚本 + 页面引用的本地 `/js/tools/*.js`；先把注释、字符串、正则字面量内容抹成空格（保留长度与换行）再做 `try` 块配对，避免模板串/正则里的 `{}`、`//` 干扰块结构。
+- 判定：
+  - **① 写无防护**：`localStorage/sessionStorage.setItem(...)` 不在任何 `try` 块内；
+  - **② 解析无防护**：`JSON.parse(<存储值>)` 不在任何 `try` 块内（含「先存变量再解析」两步写法）；
+  - **③ 安全**：以上均无（含已 try/catch、只读且自带默认回退、写失败不影响主流程）。
+- **用量**：4912 个工具页中 **1457 页**引用 `localStorage`/`sessionStorage`；其中 1443 页有写入、1005 页有解析。
+
+### 9.2 三档计数
+
+| 档位 | 修复前 | 修复后（静态） | 说明 |
+|---|---|---|---|
+| ① 写无防护 | **371 页 / 663 处** | **371 页**（调用点仍在，但已被共享层运行时兜底） | 页内联脚本写法各异，逐页改写成本高；改为共享层收口 |
+| ② 解析无防护 | **61 页 / 110 处**（其中 45 页同时属①） | **0 页** | 逐页包 `try/catch` + 清理脏键 + 回退原兜底值 |
+| ③ 安全 | 4541 页 | 4541 页 | — |
+| 去重后受影响页 | **387 页** | 371 页（仅静态①） | 387 = 371 + (61-45) |
+
+> 首轮扫描器曾误报（380/69），根因是抹码器在字符串收尾引号处多跳 1 字符、导致括号/换行对齐漂移；已修正并复核 `tools/agriculture/temp-2.html` 不再误报。
+
+### 9.3 修法：共享层一次收口（不是逐页）
+
+**① 写无防护 → 共享层全局兜底**
+
+- `js/common.js` 顶部新增 `hardenStorage()`：包装 `Storage.prototype.setItem`，捕获异常后置 `window.__tbStorageWriteFailed=true` 并**只提示一次**「本次无法保存到本地存储，不影响本次计算」，返回 `undefined`。
+- **覆盖**：4912/4912 个工具页全部引用 `js/common.js`（实测 0 缺失），defer 脚本在 `DOMContentLoaded` 前执行 → 覆盖所有「加载后」写入（含 `setCustom` / `setRun` / `LS_PAYLOAD`）。
+- **例外：9 页在「解析期」就写入**（早于 defer 的 `common.js`，实测 `document.readyState==='loading'`）：
+  `tools/biz/name-generator.html`、`tools/edu/pinyin-converter.html`、`tools/it/atbash-cipher.html`、`tools/it/caesar-cipher.html`、`tools/it/html-escape.html`、`tools/it/morse.html`、`tools/it/playfair-cipher.html`、`tools/it/vigenere-visualizer.html`、`tools/usedcar/recorder-maintenance.html`。
+  这 9 页在首个内联脚本顶部插入同步 setItem 兜底（`__tbSafe` 幂等标记），实测解析期写入仍被触发但 0 报错。
+- 原有已安全的共享封装未改动：`js/tool-kit.js::history.*`、`js/tool-ux.js::saveField/回填` 均自带 `try/catch`。
+
+**② 解析无防护 → 逐页（无法共享，因为页面在解析期就调用）**
+
+- 61 页中 110 处统一改写为：
+  `(function(){try{return JSON.parse(localStorage.getItem(K)||'<兜底>')}catch(e){try{localStorage.removeItem(K)}catch(_){ }return <兜底值>}})()`
+- `<兜底值>` 由原兜底字面量反解为 JSON（如 `'[]'→[]`、`'{"days":0,"last":null}'→{"days":0,"last":null}`、时区页 `'["北京/上海",…]'→["北京/上海",…]`），**不是一律退化成 null**，避免脏数据时把非空默认值丢成 null 再触发二次 TypeError。
+- 两步写法单独处理：`tools/it/pomodoro.html`（`const saved=localStorage.getItem(...)` → 解析处包 try/catch + 清键 + `data=null`，后续补 `data &&` 判空）。
+
+### 9.4 真机取证（修复前原文 → 修复后 0 报错）
+
+**① `setItem` 抛 `QuotaExceededError`（Safari 隐私模式/配额满等价注入）**
+
+修复前（`common.js` 兜底移除 + 冻结 `Storage.prototype.setItem` 抛错）：
+
+| 页面 | 报错原文（首行 + 调用点） |
+|---|---|
+| `tools/science/ohms-law-calculator.html` | `DOMException: QuotaExceededError: Failed to execute 'setItem' on 'Storage': Setting the value of the item exceeded the quota.` @ `saveHistory (…:569:16)` |
+| `tools/automotive/cycle-belt.html` | 同上 @ `save (…:299:30)` |
+| `tools/fun/rock-paper-scissors.html` | 同上 @ `saveState (…:508:16)` |
+| `tools/science/fraction-calculator.html` | 同上 @ `saveHistory (…:486:16)` |
+| `tools/health/blood-type-calculator.html` | 同上 @ `saveResult (…:427:16)` |
+| `tools/science/led-resistor-calculator.html` | 同上 @ `saveHistory (…:620:16)` |
+
+修复后（保留页面现状，仅注入 `setItem` 抛错）：同样 6 页 + `crop-yield` / `cycle-honey` / `css-minifier` / `coin-flip` 共 10 页，`setItemThrows=4`（写入确实发生）但 **0 个 `pageerror` / console error**；9 个解析期写入页同样 **0 报错**。
+
+**② 存储键写成 `"{broken"` 后重载**
+
+修复前：
+
+| 页面 | 报错原文 | 触发点 |
+|---|---|---|
+| `tools/fun/rock-paper-scissors.html` | `SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)` | `init (…:339:22)` |
+| `tools/it/sql-formatter.html` | 同上 | `renderHistory (…:446:18)` |
+| `tools/edu/exam-timer.html` | 同上 | `loadHistory (…:301:38)` |
+| `tools/biz/name-generator.html` | 同上 | `saveHistory (…:620:21)` |
+| `tools/it/css-minifier.html` | 同上 | `renderHistory (…:491:18)` |
+| `tools/science/fraction-calculator.html` | 同上 | `renderHistory (…:490:21)` |
+
+修复后：全部 68 个改动页分 3 片复验，**68/68 `pagesWithError=0`**（脏键被清理并回退默认值，页面初始渲染正常）。
+另发现并修正一处二次错误：时区页原兜底是非空 JSON 数组，首版兜底退化成 `null` 引出 `TypeError: Cannot read properties of null (reading 'includes')`；按 9.3 的 JSON 反解后复验 0 报错。
+
+### 9.5 验证与交付
+
+- `node scripts/scan_local_storage.js` 复扫：**tier2 = 0**；tier1 仍为 371（调用点在，运行时已被共享层兜底）。
+- `python3 _test_static.py`：**4705/4705 通过，0 失败 0 告警**（改动页内联脚本全部通过 `new Function` 语法校验）。
+- 未改任何 `json/*.json`；未跑 `_build.py`；未 push。
+- 改动清单：
+  - `js/common.js`（新增 `hardenStorage()` 全局兜底）
+  - 61 个工具页（`JSON.parse` 包 `try/catch` + 清脏键 + 原兜底值）
+  - 9 个工具页（解析期同步 `setItem` 兜底）
+  - `scripts/scan_local_storage.js`、`scripts/scan_ls_evidence.js`、`scripts/harden_ls_parse.js`
+- 运维提示：本批修改了 `js/common.js`，正式部署前需由维护者执行 `python3 _build.py` 刷新 Service Worker 版本戳（本批按要求未跑、未 push）。

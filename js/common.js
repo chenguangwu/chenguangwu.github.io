@@ -1,6 +1,33 @@
 (function(global){
 'use strict';
 
+/* 本地存储写入兜底：Safari 隐私模式或配额满时 setItem 抛 QuotaExceededError，
+   未捕获会中断整页脚本。在共享层统一吞掉异常并降级（仅提示一次，不影响计算）。
+   页面内联脚本中「解析期」的写入早于本文件（defer），由对应页面的内联兜底负责。 */
+(function hardenStorage(){
+  try {
+    if (typeof Storage === 'undefined' || !Storage.prototype || !Storage.prototype.setItem) return;
+    var orig = Storage.prototype.setItem;
+    if (orig.__tbSafe) return;
+    var warned = false;
+    var safe = function (k, v) {
+      try { return orig.call(this, k, v); }
+      catch (e) {
+        try { window.__tbStorageWriteFailed = true; } catch (_) {}
+        try {
+          if (!warned && window.ToolBox && typeof window.ToolBox.showToast === 'function') {
+            warned = true;
+            window.ToolBox.showToast('本次无法保存到本地存储，不影响本次计算', 'warning');
+          }
+        } catch (_) {}
+        return undefined;
+      }
+    };
+    safe.__tbSafe = true;
+    Storage.prototype.setItem = safe;
+  } catch (e) {}
+})();
+
 var THEME_KEY = 'theme';
 var FAV_KEY = 'favTools';
 var RECENT_KEY = 'recentTools';
