@@ -259,7 +259,7 @@ function berFromEbn0(ebn0Db,mod){
   return NaN;
 }
 function ebn0FromBer(ber,mod){
-  var lo=0,hi=60,mid,eb;
+  var lo=-20,hi=60,mid,eb;
   for(var i=0;i<100;i++){
     mid=(lo+hi)/2;
     eb=berFromEbn0(mid,mod);
@@ -296,6 +296,8 @@ function calc(){
     var berStr=document.getElementById('ber').value.trim();
     var ber=parseFloat(berStr);
     if(isNaN(ber)||ber<=0||ber>=1){out.innerHTML='<p style="color:var(--danger)">请输入有效 BER（0~1，如 1e-5）</p>';return;}
+    var maxBer=berFromEbn0(-20,mod);
+    if(ber>maxBer){out.innerHTML='<p style="color:var(--danger)">目标 BER '+ber.toExponential(2)+' 高于 '+modName+' 在 −20 dB 时的可达误码率（约 '+maxBer.toExponential(2)+'），已超出本工具可解范围。</p>';return;}
     var ebn0=ebn0FromBer(ber,mod);
     var checkBer=berFromEbn0(ebn0,mod);
     var html='<div class="big-result">所需 Eb/N0 ≈ '+ebn0.toFixed(2)+' dB</div>';
@@ -306,7 +308,8 @@ function calc(){
     html+='</div>';
     html+='<div class="step-line"><strong>步骤1</strong>　目标 BER = '+ber.toExponential(3)+'，调制方式 '+modName+'</div>';
     html+='<div class="step-line"><strong>步骤2</strong>　数值求解反向 Q 函数，得所需 Eb/N0 = '+ebn0.toFixed(3)+' dB</div>';
-    html+='<div class="step-line"><strong>校验</strong>　代入 '+ebn0.toFixed(2)+' dB 反算 BER = '+checkBer.toExponential(3)+'（与目标一致）</div>';
+    var relErr=Math.abs(checkBer-ber)/ber;
+    html+='<div class="step-line"><strong>校验</strong>　代入 '+ebn0.toFixed(2)+' dB 反算 BER = '+checkBer.toExponential(3)+'（'+(relErr<0.01?'与目标一致':'与目标相差 '+(relErr*100).toFixed(1)+'%')+'）</div>';
     const __g4=html;out.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
   }
 }

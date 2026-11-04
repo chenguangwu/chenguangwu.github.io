@@ -236,8 +236,10 @@ function onModeChange(){
   calc();
 }
 function ipToInt(ip){
-  var parts=ip.split('.').map(Number);
-  if(parts.length!==4||parts.some(function(p){return isNaN(p)||p<0||p>255;})) return null;
+  var m=/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(ip);
+  if(!m) return null;
+  var parts=[+m[1],+m[2],+m[3],+m[4]];
+  if(parts.some(function(p){return p>255;})) return null;
   return ((parts[0]<<24)+(parts[1]<<16)+(parts[2]<<8)+parts[3])>>>0;
 }
 function intToIp(num){
@@ -245,27 +247,35 @@ function intToIp(num){
 }
 function calc(){
   var baseIp=document.getElementById('baseIp').value.trim();
-  var oldMask=parseInt(document.getElementById('oldMask').value);
+  var oldMaskStr=document.getElementById('oldMask').value.trim();
+  var oldMask=Number(oldMaskStr);
   var mode=document.getElementById('divideMode').value;
   var out=document.getElementById('result');
   var baseInt=ipToInt(baseIp);
-  if(!baseInt||isNaN(oldMask)||oldMask<0||oldMask>30){
-    out.innerHTML='<p style="color:var(--danger)">请输入有效的网络地址和原前缀</p>';
+  if(baseInt===null||!/^\d{1,2}$/.test(oldMaskStr)||oldMask<0||oldMask>32){
+    out.innerHTML='<p style="color:var(--danger)">请输入有效的网络地址（如 192.168.1.0）和原前缀（0–32）</p>';
+    document.getElementById('subnetTable').innerHTML='';
+    return;
+  }
+  if(oldMask===32){
+    out.innerHTML='<p style="color:var(--danger)">原前缀 /32 已无主机位可借，无法继续划分子网</p>';
     document.getElementById('subnetTable').innerHTML='';
     return;
   }
   var newMask,subCount;
   if(mode==='prefix'){
-    newMask=parseInt(document.getElementById('newMask').value);
-    if(isNaN(newMask)||newMask<=oldMask||newMask>32){
+    var newMaskStr=document.getElementById('newMask').value.trim();
+    newMask=Number(newMaskStr);
+    if(!/^\d{1,2}$/.test(newMaskStr)||newMask<=oldMask||newMask>32){
       out.innerHTML='<p style="color:var(--danger)">新前缀必须大于原前缀且不超过 32</p>';
       document.getElementById('subnetTable').innerHTML='';
       return;
     }
     subCount=Math.pow(2,newMask-oldMask);
   }else{
-    subCount=parseInt(document.getElementById('subCount').value);
-    if(isNaN(subCount)||subCount<1){
+    var subCountStr=document.getElementById('subCount').value.trim();
+    subCount=Number(subCountStr);
+    if(!/^\d+$/.test(subCountStr)||subCount<1){
       out.innerHTML='<p style="color:var(--danger)">请输入有效的子网数量</p>';
       document.getElementById('subnetTable').innerHTML='';
       return;

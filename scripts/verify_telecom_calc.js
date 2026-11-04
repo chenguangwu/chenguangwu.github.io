@@ -100,10 +100,8 @@ const CASES = [
     "gt": "2",
     "gr": "2"
   },
-  "expect": [
-    "(3600.00)"
-  ],
-  "ref": "auto-restore"
+  "expect": [ "11.1 pW" ],
+  "ref": "接收功率按自动单位显示：Pr=20+2+2−(20log10 3600+32.44)=−79.57 dBm ⇒ 1.10e−11 W = 11.1 pW（旧实现 mW 定点 4 位只剩 0.0000）。默认态（2400 MHz）为 24.9 pW，不命中。"
 },
 {
   "slug": "telecom/quick-calc-time-bandwidth",
@@ -129,6 +127,52 @@ const CASES = [
     "255.255.255.224"
   ],
   "ref": "去默认化（原注入值恰为页面默认 192.168.1.0/24/26）：注入 172.16.5.0、原前缀 22、新前缀 27。独立复算：network=172.16.5.0 & /22 = 172.16.4.0；subnetSize=2^5=32；subCount=2^(27-22)=32；hostsPerSubnet=30；新掩码=255.255.255.224；首子网 172.16.4.0/27（可用 172.16.4.1–30，广播 172.16.4.31）。默认态输出 192.168.1.0/26，两条均不命中。"
+},
+{
+  "slug": "telecom/subnet-planner",
+  "inputs": {
+    "baseIp": "0.0.0.0",
+    "oldMask": "0",
+    "newMask": "1"
+  },
+  "expect": [ "0.0.0.0/1" ],
+  "ref": "0.0.0.0 是合法地址且掩码 0 必然产生 baseInt=0：旧实现 `if(!baseInt)` 误判为非法直接报错；改为 `baseInt===null` 后 /0→/1 正常输出首子网 0.0.0.0/1。默认 192.168.1.0/24 不出现该串。"
+},
+{
+  "slug": "telecom/subnet-planner",
+  "inputs": {
+    "baseIp": "1.2.3.4.5",
+    "oldMask": "24",
+    "newMask": "27"
+  },
+  "expect": [ "请输入有效的网络地址" ],
+  "ref": "旧实现 ip.split('.').map(Number) 对 `1.2.3.4.5`（5 段）与 `1..2.3`（空段 Number('')=0）都误判合法；新实现用 ^(\\d{1,3}\\.){3}\\d{1,3}$ 严格匹配。默认态不出现该提示。"
+},
+{
+  "slug": "telecom/ber-snr",
+  "inputs": {
+    "ber": "0.1",
+    "mod": "bpsk"
+  },
+  "expect": [ "-0.86" ],
+  "ref": "BPSK/QPSK：0.5·erfc(√γb)=0.1 ⇒ √γb=0.9063 ⇒ γb=0.8214 ⇒ 10log10 = −0.86 dB（旧实现 lo=0 只能解出 0 dB 以上的 BER，低信噪比无解）。默认态 BER=1e-5 ⇒ 9.6 dB，不命中。"
+},
+{
+  "slug": "telecom/ber-snr",
+  "inputs": {
+    "ber": "0.45",
+    "mod": "bpsk"
+  },
+  "expect": [ "超出本工具可解范围" ],
+  "ref": "BPSK 在 −20 dB 时 BER=0.5·erfc(0.1)=0.4438 已是可达上限，目标 0.45 无解；旧实现会静默返回 0 dB 假答案。默认态不出现该提示。"
+},
+{
+  "slug": "telecom/convert-24",
+  "inputs": {
+    "snr": "30"
+  },
+  "expect": [ "低于双精度下限" ],
+  "ref": "Eb/N0=1000 ⇒ 0.5·erfc(√1000) 双精度下溢为 0，旧实现输出「1e-Infinity」；新实现显式提示。默认 snr=10 不出现该串。"
 }
 ];
 async function main() {
