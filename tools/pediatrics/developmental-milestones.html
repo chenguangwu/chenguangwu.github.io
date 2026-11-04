@@ -130,7 +130,7 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row">
       <div>
         <label>儿童月龄</label>
-        <input type="number" id="age" value="18" oninput="renderMilestones()" min="1" max="72" placeholder="如 18（1–72）">
+        <input type="number" id="age" value="18" oninput="renderMilestones()" min="0" max="72" placeholder="如 18（0–72）">
       </div>
       <div>
         <label>评估基准</label>
@@ -246,6 +246,7 @@ s.parentNode.insertBefore(el, s);
 
 <script>
 var milestones={
+  0:{gm:['俯卧短暂抬头','四肢屈曲'],fm:['手握拳','触碰手掌有握持反射'],lang:['对声音有反应','哭声有力'],social:['短暂注视人脸','被抱起时安静']},
   2:{gm:['俯卧抬头45°','四肢屈曲'],fm:['手握拳','短暂注视物体'],lang:['发出a/o声','对声音有惊吓反应'],social:['注视人脸','社交性微笑萌芽']},
   3:{gm:['俯卧抬头90°','肘支撑'],fm:['手张开','主动够物'],lang:['笑出声','元音咿呀'],social:['社交性微笑','注视移动物体']},
   4:{gm:['翻身(俯→仰)','扶坐头竖直'],fm:['双手到中线','抓握并摇晃物品'],lang:['大声笑','咿呀对话'],social:['认母亲','兴奋时肢体活动']},
@@ -273,10 +274,20 @@ function getMilestonesForAge(age){
   return {current:milestones[refKey],currentKey:refKey,next:milestones[nextKey],nextKey:nextKey};
 }
 
+function readAge(){
+  var raw=document.getElementById('age').value.trim();
+  return raw===''?NaN:parseFloat(raw);
+}
+
 function renderMilestones(){
-  var age=parseFloat(document.getElementById('age').value)||18;
-  var ref=getMilestonesForAge(age);
+  var age=readAge();
   var html='';
+  if(!isFinite(age)||age<0||age>72){
+    html='<div class="tip-box tip-error">请输入 0–72 月龄后再评估。</div>';
+    const __g1=html;document.getElementById('milestoneList').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+    return;
+  }
+  var ref=getMilestonesForAge(age);
   var domains=[
     {key:'gm',name:'粗大运动',color:'#FF6B35',icon:'🏃'},
     {key:'fm',name:'精细运动',color:'#7C3AED',icon:'✋'},
@@ -304,7 +315,12 @@ function renderMilestones(){
 }
 
 function calc(){
-  var age=parseFloat(document.getElementById('age').value)||18;
+  var age=readAge();
+  if(!isFinite(age)||age<0||age>72){
+    document.getElementById('result').style.display='block';
+    document.getElementById('result').innerHTML='<div class="tip-box tip-error">请输入 0–72 月龄后再评估。</div>';
+    return;
+  }
   var ref=getMilestonesForAge(age);
   var domains=[
     {key:'gm',name:'粗大运动',color:'#FF6B35'},

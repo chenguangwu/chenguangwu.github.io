@@ -91,8 +91,8 @@ const CASES = [
   {
     slug: "health/water-intake-calculator",
     inputs: { weight: "72", age: "35" },
-    expect: ["72\n35\nfemale\n1.1\n1.0\n1.0\n2400 ml\n10\n2150 ml\n2900 ml\n81 oz\n06:30 起床后空腹一杯水，补充夜间流失 — ml 08:00 早餐后1小时，帮助消化 — ml 10:00 工作间隙，提神醒脑 — ml 11:30 午餐前30分钟，增加饱腹感 — ml 13:30 午休后，恢复精力 — ml 15:30 下午茶时间，缓解疲劳 — ml 17:30 下班前，补充一天消耗 — ml 19:30 晚餐后1小时 — ml 21:00 睡前1小时，别喝太多避免起夜 — ml\n黄瓜 96% 西瓜 92% 草莓 91% 葡萄柚 91% 哈密瓜 90% 桃子 88% 橙子 87% 苹果 86% 葡萄 81% 梨 84% 番茄 94% 生菜 96% 西兰花 90% 胡萝卜 88% 土豆 79% 酸奶 85% 牛奶 87% 鸡蛋 75% 米饭 70% 面包 35%"],
-    ref: "基础 = 72 kg × 35 ml/kg = 2520 ml → 取整到 50 的倍数 = 2500 ml；杯数 = 2500÷250 = 10（避开默认 65/30）",
+    expect: ["35\n72\nfemale\n1.1\n1.0\n1.0\n2400 ml\n10\n2150 ml\n2900 ml\n81 oz\n06:30 起床后空腹一杯水，补充夜间流失 — ml 08:00 早餐后1小时，帮助消化 — ml 10:00 工作间隙，提神醒脑 — ml 11:30 午餐前30分钟，增加饱腹感 — ml 13:30 午休后，恢复精力 — ml 15:30 下午茶时间，缓解疲劳 — ml 17:30 下班前，补充一天消耗 — ml 19:30 晚餐后1小时 — ml 21:00 睡前1小时，别喝太多避免起夜 — ml\n黄瓜 96% 西瓜 92% 草莓 91% 葡萄柚 91% 哈密瓜 90% 桃子 88% 橙子 87% 苹果 86% 葡萄 81% 梨 84% 番茄 94% 生菜 96% 西兰花 90% 胡萝卜 88% 土豆 79% 酸奶 85% 牛奶 87% 鸡蛋 75% 米饭 70% 面包 35%"],
+    ref: "女性 35 岁走 30 ml/kg 档：基础 = 72×30 = 2160，×活动 1.1 = 2376 → 取整 50 的倍数 = 2400 ml；杯数 = 2400÷250 = 10（避开默认 65 kg/30 岁）。注：本条 expect 的首两值为 input 访问顺序（新校验先读 age 再读 weight ⇒ 35、72）。",
   },
   {
     slug: "health/caffeine-limit",
@@ -194,6 +194,19 @@ const CASES = [
     inputs: { perDay: "15", years: "8", price: "30" },
     expect: ["65,700"],
     ref: "每日 = 15÷20×30 = 22.5 元；总计 = 22.5 × 365 × 8 = 65,700 元（避开默认 20 支/10 年/25 元）",
+  },
+  {
+    slug: "health/smoking-cost-calculator",
+    inputs: { years: "0" },
+    expect: ["¥0"],
+    ref: "烟龄 0 年是合法值：修复前 `years||1` 把 0 吞成 1，0 年与 1 年输出完全相同；修复后总计 = 每日 25 元 × 365 × 0 = ¥0。默认 10 年 ⇒ ¥91,250，注入失败不命中「¥0」。",
+  },
+  {
+    slug: "health/water-intake-calculator",
+    inputs: { weight: "20", age: "0" },
+    clicks: ["document.getElementById('weight').value='20';document.getElementById('age').value='0';calc()"],
+    expect: ["2650 ml"],
+    ref: "0 岁是合法值：修复前 `age||30` 把 0 吞成 30，按成人 35 ml/kg；修复后年龄 ≤1 岁取 120 ml/kg ⇒ 20×120=2400，×活动 1.1 = 2640 → 取整 50 的倍数 = 2650 ml。默认 65 kg/30 岁 ⇒ 2500 ml，注入失败不命中。",
   },
   {"slug": "health/child-medication-dose", "inputs": {"age": "6", "weight": "24"}, "expect": ["Clark公式（按体重 24 kg） 每次剂量： 137.1 mg （约 6.9 ml）", "Young公式（按年龄6岁）： 133.3 mg/次", "每次剂量： 120.0 ~ 240.0 mg/次", "最大日剂量： 960 mg （约 48.0 ml）"], "ref": "独立复算（ibuprofen：adultDose=400、conc=20mg/ml、unitRange=[5,10]、maxDaily=40）：Clark = 24×400/70 = 137.14 ⇒ 137.1 mg；体积 = 137.14/20 = 6.86 ⇒ 6.9 ml；Young = 6×400/(6+12) = 133.33 ⇒ 133.3；标准范围 = 5×24 ~ 10×24 = 120.0 ~ 240.0；最大日剂量 = 40×24 = 960 mg、58… 页面给 48.0 ml（960/20）。默认态（age=3、weight=15）为 85.7 mg / 4.3 ml / 64.3 mg / 75.0~150.0 / 600 mg，四锚均不命中。"},
   {"slug": "health/child-medication-dose", "inputs": {"age": "9", "weight": "31"}, "clicks": ["document.getElementById('drugSelect').value='acetaminophen';calcDose();"], "expect": ["对乙酰氨基酚（泰诺林） 规格：32mg/1ml ｜ 用药间隔：4-6小时", "每次剂量： 221.4 mg （约 6.9 ml）", "Young公式（按年龄9岁）： 214.3 mg/次", "每次剂量： 310.0 ~ 465.0 mg/次", "最大日剂量： 1860 mg （约 58.1 ml）"], "ref": "独立复算（acetaminophen：adultDose=500、conc=32mg/ml、unitRange=[10,15]、maxDaily=60）：Clark = 31×500/70 = 221.43 ⇒ 221.4 mg；体积 = 221.43/32 = 6.92 ⇒ 6.9 ml；Young = 9×500/(9+12) = 214.29 ⇒ 214.3；标准范围 = 10×31 ~ 15×31 = 310.0 ~ 465.0；最大日剂量 = 60×31 = 1860 mg、体积 1860/32 = 58.125 ⇒ 58.1 ml。切换药物须走 clicks（select 无 option selected 桩、值写在 inputs 里会被 onchange 重置），药物名锚同时验证 conc/interval 联动。默认态为布洛芬 + age3/weight15，四锚均不命中。"},

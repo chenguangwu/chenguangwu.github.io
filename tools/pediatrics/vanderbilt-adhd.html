@@ -133,7 +133,7 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row">
       <div>
         <label>儿童年龄</label>
-        <input type="number" id="age" value="8" oninput="renderQuiz()" placeholder="如 8">
+        <input type="number" id="age" value="8" min="0" max="18" oninput="renderQuiz()" placeholder="如 8（0–18）">
       </div>
       <div>
         <label>评估人</label>
@@ -294,11 +294,21 @@ var anxiety=[
   '过度担忧未来'
 ];
 
+function readAge(){
+  var raw=document.getElementById('age').value.trim();
+  return raw===''?NaN:parseFloat(raw);
+}
+
 function renderQuiz(){
-  var age=parseFloat(document.getElementById('age').value)||8;
+  var age=readAge();
   var rater=document.getElementById('rater').value;
   answers={};
   var html='';
+  if(!isFinite(age)||age<0||age>18){
+    html='<div class="tip-box tip-error">请输入 0–18 岁（儿科范围）的年龄后再评估。</div>';
+    document.getElementById('quizArea').innerHTML=html;
+    return;
+  }
   html+='<p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">请根据儿童<strong>近6个月</strong>的表现评分：0=从不, 1=偶尔, 2=常如此, 3=很常如此, 4=非常频繁</p>';
 
   html+='<div class="section-header">📋 注意缺陷症状 (9条)</div>';
@@ -356,7 +366,11 @@ function selectAns(qid,idx,total){
 }
 
 function calc(){
-  var age=parseFloat(document.getElementById('age').value)||8;
+  var age=readAge();
+  if(!isFinite(age)||age<0||age>18){
+    document.getElementById('result').innerHTML='<div class="tip-box tip-error">请输入 0–18 岁（儿科范围）的年龄后再评估。</div>';
+    return;
+  }
   var rater=document.getElementById('rater').value;
 
   // 注意缺陷：评分≥2的条目数

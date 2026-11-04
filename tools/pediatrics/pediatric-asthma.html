@@ -131,7 +131,7 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row">
       <div>
         <label>儿童年龄</label>
-        <input type="number" id="age" value="8" oninput="renderQuestions()" placeholder="如 8">
+        <input type="number" id="age" value="8" min="0" max="18" oninput="renderQuestions()" placeholder="如 8（0–18）">
       </div>
     </div>
 
@@ -264,10 +264,21 @@ var actQs=[
   {id:'a5',q:'你如何评价近4周哮喘控制情况？',opts:['未控制(1)','控制很差(2)','有所控制(3)','控制好(4)','完全控制(5)']}
 ];
 
+function readAge(){
+  var raw=document.getElementById('age').value.trim();
+  return raw===''?NaN:parseFloat(raw);
+}
+
 function renderQuestions(){
-  var age=parseFloat(document.getElementById('age').value)||8;
+  var age=readAge();
   var html='';
   answers={};
+
+  if(!isFinite(age)||age<0||age>18){
+    html='<div class="tip-box tip-error">请输入 0–18 岁（儿科范围）的年龄后再评估。</div>';
+    const __g1=html;document.getElementById('questionList').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+    return;
+  }
 
   if(age<4){
     html='<div class="tip-box tip-warn">C-ACT适用于4-11岁，ACT适用于≥12岁。当前年龄不足，请咨询医生使用其他评估方法。</div>';
@@ -314,7 +325,8 @@ function selectAns(qid,idx,total){
 }
 
 function calc(){
-  var age=parseFloat(document.getElementById('age').value)||8;
+  var age=readAge();
+  if(!isFinite(age)||age<0||age>18){ToolBox.showToast('请输入 0–18 岁（儿科范围）的年龄','warning');return;}
   if(age<4){return;}
 
   var total=0,answered=0,maxScore;
