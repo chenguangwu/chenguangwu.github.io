@@ -63,6 +63,15 @@ const CASES = [
   ],
   "ref": "auto-restore"
 }
+,
+{
+  "slug": "chinese-cook/estimate-16",
+  "inputs": {"v1": "", "v2": ""},
+  "clicks": ["calc()"],
+  "expect": ["请填写两项数值后再计算。"],
+  "ref": "空态：两项清空后不再按 0 计算，改为提示；默认 500/20 ⇒ 100.00，不命中。"
+}
+
 ];
 async function main() {
   const only = process.argv.slice(2);

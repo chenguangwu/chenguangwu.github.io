@@ -158,6 +158,29 @@ const CASES = [
   "expect": ["较稳定"],
   "ref": "aw=0.62 落入 [0.6,0.7) → 稳定性等级「较稳定」（默认 0.85 → 「中度易腐」）"
 }
+,
+{
+  "slug": "food-processing/material-balance",
+  "inputs": {},
+  "clicks": ["ins.splice(0,ins.length);outs.splice(0,outs.length);calc()"],
+  "expect": ["请至少添加一条投入与一条产出后再核算。"],
+  "ref": "空表：投入/产出条目全部删除后不再输出「0.00 总投入 / 0.0% 得率」，改为提示；默认 ins 100+50+30=180 / outs 150+10=160 ⇒ 88.89% 正常报告，不命中。判别力：兜底循环的 addIn/delIn 只产生「请填写完整的投入与产出重量」，不会删除到「两侧皆空」，故不命中本串。"
+},
+{
+  "slug": "food-processing/recipe-cost-calculator",
+  "inputs": {"yield": ""},
+  "clicks": ["calc()"],
+  "expect": ["请填写成品产量（g）后再计算。"],
+  "ref": "空产量：不再走 parseFloat||0（否则每 kg 成本显示「—」却仍给总成本报告），改为提示；默认 2000 ⇒ 正常报告，不命中。"
+},
+{
+  "slug": "food-processing/recipe-cost-calculator",
+  "inputs": {},
+  "clicks": ["rows.splice(0,rows.length);calc()"],
+  "expect": ["请先添加原料行后再计算。"],
+  "ref": "空表：原料行全部删除后不再给「¥0.00 配方成本报告」，改为提示；默认 4 行（500/150/120/100 g）⇒ 正常报告，不命中。判别力：兜底循环 addRow(5 行，末行 qty=0)+delRow(删首行→4 行) 只会命中「请填写每条原料的单价、用量与损耗」，不会删除到零行，故不命中本串。"
+}
+
 ];
 async function main() {
   const only = process.argv.slice(2);

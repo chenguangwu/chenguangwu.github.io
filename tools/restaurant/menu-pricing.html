@@ -238,19 +238,29 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 function calc() {
-  const material = parseFloat(document.getElementById('material').value) || 0;
-  const laborRate = (parseFloat(document.getElementById('labor').value) || 0) / 100;
-  const fixed = parseFloat(document.getElementById('fixed').value) || 0;
-  const margin = parseFloat(document.getElementById('margin').value) || 60;
-
-  const totalCost = material * (1 + laborRate) + fixed;
-  const price = margin >= 99 ? 0 : totalCost / (1 - margin / 100);
-  const profit = price - totalCost;
-
-  if (margin >= 99) {
-    document.getElementById('result').innerHTML='<p>目标毛利率过高（必须小于99%）</p>';
+  const el = document.getElementById('result');
+  const mRaw = document.getElementById('material').value.trim();
+  const lRaw = document.getElementById('labor').value.trim();
+  const fRaw = document.getElementById('fixed').value.trim();
+  const gRaw = document.getElementById('margin').value.trim();
+  if (mRaw === '' || lRaw === '' || fRaw === '' || gRaw === '') {
+    el.innerHTML='<p>请填写原料成本、人工费率、固定成本与目标毛利率后再计算。</p>';
     return;
   }
+  const material = parseFloat(mRaw), laborRate = parseFloat(lRaw) / 100;
+  const fixed = parseFloat(fRaw), margin = parseFloat(gRaw);
+  if (!isFinite(material) || !isFinite(laborRate) || !isFinite(fixed) || !isFinite(margin)) {
+    el.innerHTML='<p>请输入有效数值。</p>';
+    return;
+  }
+  if (margin < 0 || margin >= 99) {
+    el.innerHTML='<p>目标毛利率须在 0–98% 之间（99% 及以上无法计算）。</p>';
+    return;
+  }
+
+  const totalCost = material * (1 + laborRate) + fixed;
+  const price = totalCost / (1 - margin / 100);
+  const profit = price - totalCost;
 
   const __g2=`<p>成本合计：<strong>${totalCost.toFixed(2)} 元</strong></p>` +
     `<p>建议售价：<strong style="color:var(--primary)">${price.toFixed(2)} 元</strong></p>` +

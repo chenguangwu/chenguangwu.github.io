@@ -342,6 +342,15 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"amount\":\"42\",\"totalW\":\"42\",\"shuIn\":\"42\",\"target\":\"42\",\"mode\":\"shu\",\"variety\":\"1\"}，输出区含「辣度判定） 品种：自定义输入，公开参考区间 42 至 42 SHU（中值 42）…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   }
 
+,
+{
+  "slug": "food/calc-concentration",
+  "inputs": {"v1": "", "v2": ""},
+  "clicks": ["calc()"],
+  "expect": ["请填写两项数值后再计算。"],
+  "ref": "空态：两项清空后不再按 0 计算，改为提示；默认 500/20 ⇒ 100.00，不命中。"
+}
+
 ];
 async function main() {
   const only = process.argv.slice(2);

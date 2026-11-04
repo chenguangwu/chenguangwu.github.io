@@ -240,7 +240,7 @@ function renderIn(){
   ins.forEach(function(r, i){
     html += '<div style="display:grid;grid-template-columns:2.4fr 1fr 40px;gap:8px;align-items:center;margin-bottom:8px;">';
     html += '<input type="text" value="' + esc(r.name) + '" placeholder="物料名" oninput="ins[' + i + '].name=this.value">';
-    html += '<input type="number" value="' + r.qty + '" min="0" step="0.1" oninput="ins[' + i + '].qty=+this.value;calc()" placeholder="如 ' + r.qty + '">';
+    html += '<input type="number" value="' + (r.qty==null?'':r.qty) + '" min="0" step="0.1" oninput="ins[' + i + '].qty=(this.value.trim()===\'\')?null:+this.value;calc()" placeholder="如 ' + (r.qty==null?'100':r.qty) + '">';
     html += '<button type="button" class="btn danger" style="padding:6px 8px;" onclick="delIn(' + i + ')">×</button>';
     html += '</div>';
   });
@@ -252,7 +252,7 @@ function renderOut(){
   outs.forEach(function(r, i){
     html += '<div style="display:grid;grid-template-columns:2.4fr 1fr 40px;gap:8px;align-items:center;margin-bottom:8px;">';
     html += '<input type="text" value="' + esc(r.name) + '" placeholder="物料名" oninput="outs[' + i + '].name=this.value">';
-    html += '<input type="number" value="' + r.qty + '" min="0" step="0.1" oninput="outs[' + i + '].qty=+this.value;calc()" placeholder="如 ' + r.qty + '">';
+    html += '<input type="number" value="' + (r.qty==null?'':r.qty) + '" min="0" step="0.1" oninput="outs[' + i + '].qty=(this.value.trim()===\'\')?null:+this.value;calc()" placeholder="如 ' + (r.qty==null?'100':r.qty) + '">';
     html += '<button type="button" class="btn danger" style="padding:6px 8px;" onclick="delOut(' + i + ')">×</button>';
     html += '</div>';
   });
@@ -265,9 +265,18 @@ function delIn(i){ ins.splice(i,1); renderIn(); calc(); }
 function delOut(i){ outs.splice(i,1); renderOut(); calc(); }
 
 function calc(){
-  var totalIn = 0, totalOut = 0;
-  ins.forEach(function(r){ totalIn += +r.qty || 0; });
-  outs.forEach(function(r){ totalOut += +r.qty || 0; });
+  var el = document.getElementById('result');
+  if(!ins.length && !outs.length){
+    el.innerHTML='<p style="color:var(--text-muted);">请至少添加一条投入与一条产出后再核算。</p>';
+    return;
+  }
+  var totalIn = 0, totalOut = 0, missing = false;
+  ins.forEach(function(r){ if(!(r.qty > 0)) missing=true; else totalIn += +r.qty; });
+  outs.forEach(function(r){ if(!(r.qty > 0)) missing=true; else totalOut += +r.qty; });
+  if(missing || !(totalIn > 0) || !(totalOut > 0)){
+    el.innerHTML='<p style="color:var(--text-muted);">请填写完整的投入与产出重量（均须大于 0）后再计算。</p>';
+    return;
+  }
 
   var loss = totalIn - totalOut;
   var lossRate = totalIn > 0 ? loss / totalIn * 100 : 0;
@@ -275,7 +284,6 @@ function calc(){
 
   var balance = Math.abs(loss) < (totalIn * 0.001) ? '✅ 平衡（损耗合理）' : (loss > 0 ? '⚠️ 投入>产出，存在损耗' : '⚠️ 产出>投入，请检查计量');
 
-  var el = document.getElementById('result');
   const __g3='<h3 style="text-align:center;margin-bottom:10px;">⚖️ 物料平衡报告</h3>' +
     '<div class="stat-grid">' +
       '<div class="stat-card"><div class="val">' + totalIn.toFixed(2) + '</div><div class="lbl">总投入</div></div>' +
@@ -297,7 +305,8 @@ function applyMbPreset(kind){
 }
 
 function copyResult(){
-  var ti=0,to=0; ins.forEach(function(r){ti+=+r.qty||0;}); outs.forEach(function(r){to+=+r.qty||0;});
+  var ti=0,to=0,bad=false; ins.forEach(function(r){if(!(r.qty>0))bad=true;else ti+=+r.qty;}); outs.forEach(function(r){if(!(r.qty>0))bad=true;else to+=+r.qty;});
+  if(bad||!(ti>0)||!(to>0)){ ToolBox.showToast('请先填写完整的投入与产出重量（均须大于 0）','warning'); return; }
   ToolBox.copyText('总投入: ' + ti.toFixed(2) + '\n总产出: ' + to.toFixed(2) + '\n损耗: ' + (ti-to).toFixed(2) + '\n得率: ' + (ti>0?to/ti*100:0).toFixed(1) + '%', i18nText('toast.msg544'));
 }
 

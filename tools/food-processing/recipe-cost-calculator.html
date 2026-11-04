@@ -249,9 +249,9 @@ function render(){
   rows.forEach(function(r, i){
     html += '<div style="display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr 40px;gap:8px;align-items:center;margin-bottom:8px;">';
     html += '<input type="text" value="' + esc(r.name) + '" placeholder="原料名" oninput="rows[' + i + '].name=this.value">';
-    html += '<input type="number" value="' + r.price + '" min="0" step="0.1" oninput="rows[' + i + '].price=+this.value" placeholder="如 ' + r.price + '">';
-    html += '<input type="number" value="' + r.qty + '" min="0" step="1" oninput="rows[' + i + '].qty=+this.value" placeholder="如 ' + r.qty + '">';
-    html += '<input type="number" value="' + r.loss + '" min="0" max="100" step="0.1" oninput="rows[' + i + '].loss=+this.value" placeholder="如 ' + r.loss + '（0–100）">';
+    html += '<input type="number" value="' + (r.price==null?'':r.price) + '" min="0" step="0.1" oninput="rows[' + i + '].price=(this.value.trim()===\'\')?null:+this.value;calc()" placeholder="如 ' + (r.price==null?'6':r.price) + '">';
+    html += '<input type="number" value="' + (r.qty==null?'':r.qty) + '" min="0" step="1" oninput="rows[' + i + '].qty=(this.value.trim()===\'\')?null:+this.value;calc()" placeholder="如 ' + (r.qty==null?'500':r.qty) + '">';
+    html += '<input type="number" value="' + (r.loss==null?'':r.loss) + '" min="0" max="100" step="0.1" oninput="rows[' + i + '].loss=(this.value.trim()===\'\')?null:+this.value;calc()" placeholder="如 ' + (r.loss==null?'3':r.loss) + '（0–100）">';
     html += '<button type="button" class="btn danger" style="padding:6px 8px;" onclick="delRow(' + i + ')">×</button>';
     html += '</div>';
   });
@@ -262,9 +262,19 @@ function addRow(){ rows.push({ name:'', price:0, qty:0, loss:0 }); render(); }
 function delRow(i){ rows.splice(i, 1); render(); calc(); }
 
 function calc(){
-  var yld = parseFloat(document.getElementById('yield').value) || 0;
-  var detail = [];
+  var el = document.getElementById('result');
+  var yRaw = document.getElementById('yield').value.trim();
+  if(yRaw === ''){ el.innerHTML='<p>请填写成品产量（g）后再计算。</p>'; return; }
+  var yld = parseFloat(yRaw);
+  if(!isFinite(yld) || yld <= 0){ el.innerHTML='<p>成品产量须为正数（g）后再计算。</p>'; return; }
+  if(!rows.length){ el.innerHTML='<p>请先添加原料行后再计算。</p>'; return; }
+  var bad = false, detail = [];
   var total = 0, totalUse = 0, totalActual = 0;
+  rows.forEach(function(r){
+    var price = r.price, qty = r.qty, loss = r.loss;
+    if(price == null || !(qty > 0) || loss == null || loss < 0 || loss >= 100) bad = true;
+  });
+  if(bad){ el.innerHTML='<p>请填写每条原料的单价、用量与损耗（用量须大于 0）后再计算。</p>'; return; }
   rows.forEach(function(r){
     var price = +r.price || 0, qty = +r.qty || 0, loss = +r.loss || 0;
     var actual = loss < 100 ? qty / (1 - loss / 100) : qty; // 实际耗用g

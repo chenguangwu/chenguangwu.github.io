@@ -221,6 +221,22 @@ const CASES = [
   ],
   "ref": "Atwater 改造：10×17+20×37+55×17+2×8=1861 kJ ⇒ /4.184=444.9 kcal；每份 50g = 一半（930.5 kJ / 222.4 kcal）；能量 NRV% = 1861/8400=22.2%，蛋白质 10/60=16.7%。默认态（3.0/3.2/12.0/0/60/100）能量 273.4 kJ、7.7%，不含上述数值。"
 }
+,
+{
+  "slug": "nutrition/estimate-2",
+  "inputs": {"extraSodium": ""},
+  "clicks": ["getSelected=function(){return [4];};calculate()"],
+  "expect": ["钠摄入约 350 mg"],
+  "ref": "空输入语义：额外钠留空按 0 处理（不应把空串当 NaN），已选 1 份薯片 350 mg ⇒ 钠摄入约 350 mg。判别力：注入失败时 getSelected 取不到选中卡片、额外钠回默认 0 ⇒ 走「请选择食物或填写额外钠摄入量」空态提示，不输出该串。"
+}
+,
+{
+  "slug": "nutrition/nutrition-1",
+  "inputs": {"v1": "", "v2": ""},
+  "clicks": ["calc()"],
+  "expect": ["请填写两项数值后再计算。"],
+  "ref": "空态：两项清空后不再把空串当 0 输出「0% of 0」，改为提示；默认态 150/20 ⇒ 计算报告，不命中。"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);

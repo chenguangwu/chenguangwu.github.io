@@ -470,6 +470,15 @@ const CASES = [
     "expect": ["断奶头数不应大于出生头数，低于标准头数应在0~断奶头数之间"],
     "ref": "断奶 20 > 出生 18 ⇒ 成活率 111.1%，旧实现照常判「优秀」；修复后必须拦截。默认 18/11 不触发。"
   }
+,
+{
+  "slug": "livestock/milk-yield-scc",
+  "inputs": {},
+  "clicks": ["records.forEach(function(r){r.yield=null;r.scc=null;});analyze()"],
+  "expect": ["请填写完整的产奶量与 SCC"],
+  "ref": "空态：产奶量/SCC 清空（0 按缺失）⇒ 提示并隐藏图表，不再给「0 万/ml 优秀」结论；默认 30/25 等有效记录 ⇒ 正常分析，不命中。"
+}
+
 ];
 async function main() {
   const only = process.argv.slice(2);

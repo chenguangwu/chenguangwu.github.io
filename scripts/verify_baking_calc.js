@@ -190,6 +190,22 @@ const CASES = [
   ],
   "ref": "字面量 \\n 分隔的 5 行 ×2：面粉 240→480g、糖 90→180g、鸡蛋 3→6个、牛奶 180→360ml、黄油 60→120g。后 4 行锚点区分「字面 \\n 未归一 ⇒ 整段只解析首行」的缺陷态。"
 }
+,
+{
+  "slug": "baking/recipe-scaler",
+  "inputs": {"factor": ""},
+  "clicks": ["calcTool()"],
+  "expect": ["请填写缩放倍数后再计算。"],
+  "ref": "空倍数：先判存在性（trim 后为空），不再走 +''||0，直接提示、不渲染「×0」配方；默认 1.5 ⇒ 正常配方，不命中。"
+},
+{
+  "slug": "baking/recipe-scaler",
+  "inputs": {"factor": "2", "rows": ""},
+  "clicks": ["calcTool()"],
+  "expect": ["请填写原料清单"],
+  "ref": "空原料清单：倍数有效但 rows 为空 ⇒ 提示先填清单，不输出空配方；默认 rows 含 4 行 ⇒ 正常配方，不命中。"
+}
+
 ];
 async function main() {
   const only = process.argv.slice(2);
