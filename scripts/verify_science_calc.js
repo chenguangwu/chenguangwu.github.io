@@ -323,6 +323,24 @@ const CASES = [
     expect: ["第 1 组第 2 项「bad」不是有效数值"],
     ref: "原实现 filter(isNaN) 静默丢掉 bad、按 [1] 与 [3,4] 两组照算并给出 F/p；修复后指出具体组号与项号并中止。默认三组合法数据不命中",
   },
+  {
+    slug: "science/percentile-calculator",
+    inputs: { data: "1,2,bad,4", percentiles: "25,50,75" },
+    expect: ["数据项「bad」不是有效数值"],
+    ref: "原实现 parseData 用 filter(!isNaN) 静默丢掉 bad，仍按 1,2,4 输出全部 P 值（用户无从察觉数据被删）；修复后点名非法项并中止。默认数据合法不命中",
+  },
+  {
+    slug: "science/equation-balancer",
+    inputs: { eqInput: "2H2 + 2O2 = 2H2O" },
+    expect: ["已忽略输入中的前导系数"],
+    ref: "原实现把前导 2 既当组成倍数又保留在物种串里，输出「22H2 + 2O2 → 22H2O」；修复后剥离前导系数并提示。默认输入 H2 + O2 = H2O 无系数、不显示提示 ⇒ 判别成立",
+  },
+  {
+    slug: "science/equation-balancer",
+    inputs: { eqInput: "C + O2 = CO + CO2" },
+    expect: ["存在无穷多组配平系数"],
+    ref: "零空间维数 >1（C、O 两个守恒方程约束 4 个物种），原实现静默取网格搜索的一组、与页内「唯一解否则报错」自述矛盾；修复后明确提示多解。默认 H2+O2→H2O 有唯一解、不显示提示",
+  },
 
   // ---- BATCH252：经典力学 / 电磁 / 周期族（8 例，全部「手算可复算」） ----
   // 【判据】这一族几乎全是「公式 + 单位量」直算，且页面默认参数各不相同 ⇒ 首轮 8 例里 7 例直接过，
@@ -1472,13 +1490,13 @@ const CASES = [
   {
     "slug": "science/percentile-calculator",
     "inputs": {
-      "percentiles": "abc123测试",
+      "percentiles": "90",
       "data": "1\n2\n3"
     },
     "expect": [
-      "请输入 0-100 之间的百分位\n1 2 3\nabc123测试"
+      "P 90 = 2.8"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"percentiles\":\"abc123测试\",\"data\":\"1\\n2\\n3\"}，输出区含「请输入 0-100 之间的百分位\n1 2 3\nabc123测试」（G06-S1 首屏自算后字段序变化，按实测重写）；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入 data=1,2,3 / P90，pos=(3−1)×0.9=1.8 ⇒ 2×(2−1.8)+3×(1.8−1)=2.8，锚「P90 = 2.8」（页面 fmt 输出 2.8）。默认数据非 1,2,3 ⇒ 不命中。注：原用例注入非法百分位「abc123测试」并被旧实现静默过滤，页面改为点名报错后该弱锚失效，故改为实算派生值。"
   },
   {
     "slug": "science/permutation-calculator",

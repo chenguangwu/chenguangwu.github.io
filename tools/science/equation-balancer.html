@@ -386,6 +386,15 @@ function validateElements(comp){
 }
 
 /* ---------- 方程式解析 ---------- */
+function stripLeadingCoeff(list){
+  var stripped=false;
+  var out=list.map(function(s){
+    var m=s.match(/^(\d+)(?=[A-Z(（\[])/);
+    if(m){stripped=true;return s.slice(m[1].length);}
+    return s;
+  });
+  return {list:out,stripped:stripped};
+}
 function parseEquation(eq){
   eq=eq.replace(/→|⟶|->|➡/g,'=').replace(/[（［]/g,'(').replace(/[）］]/g,')').replace(/\s+/g,'');
   var sides=eq.split('=');
@@ -394,7 +403,8 @@ function parseEquation(eq){
   var products=sides[1].split('+').map(function(s){return s.trim();}).filter(function(s){return s;});
   if(!reactants.length)return {error:'反应物不能为空'};
   if(!products.length)return {error:'生成物不能为空'};
-  return {reactants:reactants,products:products};
+  var rr=stripLeadingCoeff(reactants),pp=stripLeadingCoeff(products);
+  return {reactants:rr.list,products:pp.list,strippedLeading:rr.stripped||pp.stripped};
 }
 
 /* ---------- 矩阵 RREF（分数） ---------- */
@@ -556,7 +566,8 @@ function balanceEquation(eqStr){
     return {error:'无法配平：反应物与生成物可能放反、方程式有误，或存在多种配平方式（欠定）。请检查化学式。'};
   }
 
-  return {coeffs:coeffs,species:species,nR:nR,elements:elements,comps:comps};
+  return {coeffs:coeffs,species:species,nR:nR,elements:elements,comps:comps,
+    strippedLeading:!!parsed.strippedLeading,underdetermined:basis.length>1};
 }
 
 /* ---------- 显示辅助 ---------- */
@@ -703,12 +714,16 @@ function balance(){
   try{ __eqChart(); }catch(e){}
   var disp=buildDisplayEquation(species,coeffs,nR);
   var plain=buildPlainEquation(species,coeffs,nR);
+  var notices='';
+  if(res.strippedLeading) notices+='<div class="step-line" style="color:var(--text-muted)">已忽略输入中的前导系数，按化学式本身重新配平</div>';
+  if(res.underdetermined) notices+='<div class="step-line" style="color:var(--danger)">该方程存在无穷多组配平系数（约束不足），以下为其中一组，非唯一解</div>';
   resultArea.innerHTML=
     '<div class="eq-result" id="eqResult">'+
       '<div class="label">配平结果</div>'+
       '<div class="formula">'+disp+'</div>'+
       '<div class="badge">✓ 已配平 · 原子守恒</div>'+
     '</div>'+
+    notices+
     '<input id="plainEq" type="hidden" value="'+plain.replace(/"/g,'&quot;')+'">';
 
   // 原子守恒验证表

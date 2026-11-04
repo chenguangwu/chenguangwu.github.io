@@ -254,7 +254,14 @@ function fmt(x){
   return (Math.round(x*1e10)/1e10).toLocaleString();
 }
 function parseData(str){
-  return str.split(/[,\s\n;]+/).map(s=>s.trim()).filter(s=>s).map(s=>parseFloat(s)).filter(n=>!isNaN(n));
+  const toks=str.split(/[,\s\n;]+/).map(s=>s.trim()).filter(s=>s);
+  const vals=[];
+  for(let i=0;i<toks.length;i++){
+    const v=Number(toks[i]);
+    if(!isFinite(v)) return {error:toks[i]};
+    vals.push(v);
+  }
+  return {vals:vals};
 }
 function quantileLinear(sorted, p){
   const n=sorted.length;
@@ -268,10 +275,18 @@ function quantileLinear(sorted, p){
 }
 function calculate(){
   const out=document.getElementById('output');
-  const data=parseData(document.getElementById('data').value);
+  const parsed=parseData(document.getElementById('data').value);
+  if(parsed.error!==undefined){out.innerHTML='<p style="color:var(--danger)">数据项「'+parsed.error+'」不是有效数值，请修正或删除后重试</p>';return;}
+  const data=parsed.vals;
   const pctStr=document.getElementById('percentiles').value;
   if(data.length===0){const __h0='<p style="color:var(--danger)" data-zh="请输入有效数据">Please enter valid data.</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0;return;}
-  const pcts=pctStr.split(/[,\s]+/).map(s=>parseFloat(s)).filter(n=>!isNaN(n)&&n>=0&&n<=100);
+  const pctToks=pctStr.split(/[,\s]+/).map(s=>s.trim()).filter(s=>s);
+  const pcts=[];
+  for(let i=0;i<pctToks.length;i++){
+    const v=Number(pctToks[i]);
+    if(!isFinite(v)||v<0||v>100){out.innerHTML='<p style="color:var(--danger)">百分位「'+pctToks[i]+'」无效，须为 0–100 之间的数值</p>';return;}
+    pcts.push(v);
+  }
   if(pcts.length===0){const __h1='<p style="color:var(--danger)">请输入 0-100 之间的百分位</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;return;}
   const sorted=[...data].sort((a,b)=>a-b);
   const n=sorted.length;
