@@ -265,8 +265,8 @@ s.parentNode.insertBefore(el, s);
     if(_fe&&_fe.classList&&_fe.classList.add)_fe.classList.add('input-error');
     return __msg;
   }
-  // 分母项：__D 由真浏览器逐项置零探测得出，命中即说明该输入在此页作分母
-  var __D={"a": "a（暴露&结局）", "b": "b（暴露&非结局）", "c": "c（非暴露&结局）", "d": "d（非暴露&非结局）"};
+  // 本页对零格采用 Haldane-Anscombe 0.5 连续性校正，故不再把任一格当作"不能为 0"的分母直接拦截
+  var __D={};
   for(var _d=0;_d<_ids.length;_d++){
     if(!(_ids[_d] in __D)) continue;
     var _de=document.getElementById(_ids[_d]);
@@ -298,11 +298,15 @@ function num(id){const v=parseFloat(document.getElementById(id).value);return is
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
               var __ig=__tbInputGuard(['a', 'b', 'c', 'd'],["a（暴露&结局）", "b（暴露&非结局）", "c（非暴露&结局）", "d（非暴露&非结局）"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const a=num('a'),b=num('b'),c=num('c'),d=num('d');
-            const OR=a*d/(b*c);
+const a=parseFloat(document.getElementById('a').value),b=parseFloat(document.getElementById('b').value),c=parseFloat(document.getElementById('c').value),d=parseFloat(document.getElementById('d').value);
+            if(!isFinite(a)||!isFinite(b)||!isFinite(c)||!isFinite(d)||a<0||b<0||c<0||d<0){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 例数必须为 ≥ 0 的数值</p>');return;}
+            const zero=(a===0||b===0||c===0||d===0);
+            const A=zero?a+0.5:a, B=zero?b+0.5:b, C=zero?c+0.5:c, D=zero?d+0.5:d;
+            const OR=A*D/(B*C);
             const __g2=dataGrid([
-                [OR.toFixed(4),'比值比 OR'],
-                [(b*c/(a*d)).toFixed(4),'OR 倒数']
+                [OR.toFixed(4),'比值比 OR'+(zero?'（Haldane 0.5 校正）':'')],
+                [(B*C/(A*D)).toFixed(4),'OR 倒数'],
+                [zero?'已加 0.5 连续性校正':'未校正','零格处理']
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('a').value = '40';
@@ -318,7 +322,8 @@ function __orExtras(){
     if (typeof TBKit === 'undefined') return;
     var a=__orNum('a'),b=__orNum('b'),c=__orNum('c'),d=__orNum('d');
     if(!isFinite(a)||!isFinite(b)||!isFinite(c)||!isFinite(d)) return;
-    if(a<=0||b<=0||c<=0||d<=0) return;
+    var zero=(a===0||b===0||c===0||d===0);
+    if(zero){a+=0.5;b+=0.5;c+=0.5;d+=0.5;}
     var en=TBKit.util.isEn();
     var OR=(a*d)/(b*c);
     var se=Math.sqrt(1/a+1/b+1/c+1/d);
