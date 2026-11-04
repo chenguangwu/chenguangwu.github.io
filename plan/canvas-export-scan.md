@@ -135,6 +135,8 @@
 | 21 | `tools/image/nine-grid-cutter.html` | `accept=image/*` | splitAndRender() L386；downloadOne() L393（`toBlob`） | `drawImage`=1，2/2 有 catch（污染仍会抛） | C1 |
 | 22 | `tools/it/qr-beautify.html` | `accept=image/*`（Logo 上传） | downloadPng() L398；copyBase64() L406（`toDataURL`） | `drawImage`=1，0/2 有 catch | C1 |
 
+> **注（2026-11-05 补，防两说）**：上表是**修复前**的静态扫描快照。`fun/sliding-puzzle` 的两处 `toDataURL`（`useDefaultImage` L592 / `applyImageTile` L762）已在 `64a7a01844` 补 `try/catch`（`__spExportFail()` 失败 toast + 早退），表中「0/2 有 catch」**不代表当前状态**；HEAD 复核见该 commit 的 diff。该页为 IIFE，桩级 harness 注入不到，仍只有真机覆盖。
+
 成本档定义：
 
 - **C1**（21 页）：用途本身只面向位图 → 把 `accept` 收窄为 `image/png,image/jpeg,image/webp,image/gif`（拒绝 SVG）即可根除污染；再给导出补 `try/catch`（异步回调内也要兜）+ `blob === null` 提示。
