@@ -199,7 +199,41 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){var gsm=+document.getElementById("gsm").value||0;var rho=+document.getElementById("rho").value||0;var th=+document.getElementById("thick").value||0;if(rho<=0){rho=0.0001;}var t=gsm/(1000*rho);var g2=1000*rho*th;var bulk=t>0?t/(gsm/1000):0;var REF=[["轻型纸",0.55,0.70],["胶版纸",0.75,0.90],["铜版纸",0.95,1.15],["白卡纸",0.85,1.05]];var st=REF.map(function(r){var hit=(rho>=r[1]&&rho<=r[2])?" style='background:var(--primary-light,#eef2ff)'":"";return "<tr"+hit+"><td>"+r[0]+"</td><td>"+r[1]+" ~ "+r[2]+"</td></tr>";}).join("");var h="<p style='font-size:22px;color:var(--primary);'><strong>厚度 "+t.toFixed(4)+" mm</strong></p><table style='width:100%;font-size:13px;margin-top:8px'><tr><th align=left>项目</th><th align=left>数值</th></tr><tr><td>GSM → 厚度</td><td><strong>"+t.toFixed(4)+" mm（"+(t*1000).toFixed(1)+" μm）</strong></td></tr><tr><td>厚度 → GSM</td><td><strong>"+g2.toFixed(2)+" g/m²</strong></td></tr><tr><td>松厚度 bulk</td><td><strong>"+bulk.toFixed(3)+" cm³/g</strong></td></tr><tr><td>单张 A4（1/16 m²）质量</td><td><strong>"+(gsm/16).toFixed(3)+" g</strong></td></tr><tr><td>令重（500 张全开 1 m²）</td><td><strong>"+(gsm*500/1000).toFixed(2)+" kg</strong></td></tr></table><p style='font-size:12px;color:var(--text-muted);margin-top:10px'>常见纸张紧度（高亮为当前所属）</p><table style='width:100%;font-size:12px'><tr><th align=left>纸种</th><th align=left>紧度 g/cm³</th></tr>"+st+"</table>";document.getElementById("res").innerHTML=h;}
+function setInvalid(el,inv){if(!el)return;if(inv){el.classList.add('input-error');el.setAttribute('aria-invalid','true');}else{el.classList.remove('input-error');el.removeAttribute('aria-invalid');}}
+function calc(){
+  var gsmEl=document.getElementById("gsm"),rhoEl=document.getElementById("rho"),thEl=document.getElementById("thick");
+  var gsmRaw=gsmEl.value.trim(),rhoRaw=rhoEl.value.trim(),thRaw=thEl.value.trim();
+  var gsm=+gsmRaw,rho=+rhoRaw,th=+thRaw;
+  var gsmBad=!(gsmRaw!==""&&isFinite(gsm)&&gsm>0);
+  var rhoBad=!(rhoRaw!==""&&isFinite(rho)&&rho>=0.3&&rho<=2.0);
+  var thBad=!(thRaw===""||(isFinite(th)&&th>0));
+  setInvalid(gsmEl,gsmBad);setInvalid(rhoEl,rhoBad);setInvalid(thEl,thBad);
+  if(gsmBad||rhoBad||thBad){
+    var msgs=[];
+    if(gsmBad)msgs.push("定量 GSM 需填写大于 0 的数值（g/m²）");
+    if(rhoBad)msgs.push("纸张紧度 ρ 需填写 0.3–2.0 的数值（g/cm³，常见纸种约 0.6–1.1）");
+    if(thBad)msgs.push("厚度 t 需填写大于 0 的数值（mm），或留空只做 GSM→厚度换算");
+    document.getElementById("res").innerHTML='<p style="color:var(--danger,#dc2626);font-size:14px;">'+msgs.join("；")+'</p>';
+    return;
+  }
+  var t=gsm/(1000*rho);
+  var hasTh=thRaw!=="";
+  var g2=hasTh?1000*rho*th:null;
+  var bulk=(hasTh&&gsm>0)?th/(gsm/1000):null;
+  var REF=[["轻型纸",0.55,0.70],["胶版纸",0.75,0.90],["铜版纸",0.95,1.15],["白卡纸",0.85,1.05]];
+  var st=REF.map(function(r){var hit=(rho>=r[1]&&rho<=r[2])?" style='background:var(--primary-light,#eef2ff)'":"";return "<tr"+hit+"><td>"+r[0]+"</td><td>"+r[1]+" ~ "+r[2]+"</td></tr>";}).join("");
+  var rows="<tr><td>GSM → 厚度</td><td><strong>"+t.toFixed(4)+" mm（"+(t*1000).toFixed(1)+" μm）</strong></td></tr>";
+  if(hasTh){
+    rows+="<tr><td>厚度 → GSM（由厚度 t 输入）</td><td><strong>"+g2.toFixed(2)+" g/m²</strong></td></tr>";
+    rows+="<tr><td>松厚度 bulk（由厚度 t 输入）</td><td><strong>"+bulk.toFixed(3)+" cm³/g</strong></td></tr>";
+  }else{
+    rows+="<tr><td>厚度 → GSM</td><td>未填厚度，跳过该方向</td></tr>";
+  }
+  rows+="<tr><td>单张 A4（1/16 m²）质量</td><td><strong>"+(gsm/16).toFixed(3)+" g</strong></td></tr>";
+  rows+="<tr><td>令重（500 张全开 1 m²）</td><td><strong>"+(gsm*500/1000).toFixed(2)+" kg</strong></td></tr>";
+  var h="<p style='font-size:22px;color:var(--primary);'><strong>厚度 "+t.toFixed(4)+" mm</strong></p><table style='width:100%;font-size:13px;margin-top:8px'><tr><th align=left>项目</th><th align=left>数值</th></tr>"+rows+"</table><p style='font-size:12px;color:var(--text-muted);margin-top:10px'>常见纸张紧度（高亮为当前所属）</p><table style='width:100%;font-size:12px'><tr><th align=left>纸种</th><th align=left>紧度 g/cm³</th></tr>"+st+"</table>";
+  document.getElementById("res").innerHTML=h;
+}
 function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
 </script>
 

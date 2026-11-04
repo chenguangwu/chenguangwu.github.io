@@ -119,13 +119,17 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="把节电与节气量折算为标准煤，并估算对应的二氧化碳减排量与折合能量。">Energy 1</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">折标煤 =（节电量 × 0.1229 ＋ 节气量 × 1.33）÷ 1000（tce）；减排 CO₂ ≈ 折标煤 × 2.66（t）；折能 = 折标煤 × 29.307（GJ）</div>
+      <div class="formula-eq">折标煤 =（节电量 × 0.1229 ＋ 节气量 × 1.33）÷ 1000（tce）；减排 CO₂ ≈ 折标煤 × 2.66（t）；折能 = 折标煤 × 29.307（GJ）；当期单耗 = 折标煤(kgce) ÷ 产量(t)；相对基期节能量 =（基期单耗 − 当期单耗）× 产量 ÷ 1000（tce）</div>
       <p class="formula-desc">按当量值折标系数（1 kWh = 0.1229 kgce、1 m³ 天然气 = 1.33 kgce）汇总节能量，并换算成 tce、tCO₂ 与 GJ 三种口径，用于能效考核与碳排核算。</p>
     </div>
     <div class="input-row">
-      <div><label>节电量 (kWh)</label><input type="number" id="v0" value="50000" step="any" oninput="calc()" enterkeyhint="done" aria-label="吨钢" placeholder="如 50000"></div>
+      <div><label>节电量 (kWh)</label><input type="number" id="v0" value="50000" step="any" oninput="calc()" enterkeyhint="done" aria-label="节电量 kWh" placeholder="如 50000"></div>
       <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label>节气量 (m³)</label><input type="number" id="v1" value="2000" step="any" oninput="calc()" enterkeyhint="done" aria-label="吨铝" placeholder="如 2000"></div>
+      <div><label>节气量 (m³)</label><input type="number" id="v1" value="2000" step="any" oninput="calc()" enterkeyhint="done" aria-label="节气量 m³" placeholder="如 2000"></div>
+    </div>
+    <div class="input-row">
+      <div><label>产品产量 (t，可选)</label><input type="number" id="v2" step="any" oninput="calc()" enterkeyhint="done" aria-label="产品产量 t" placeholder="如 1000（填后输出单耗）"></div>
+      <div><label>基期单耗 (kgce/t，可选)</label><input type="number" id="v3" step="any" oninput="calc()" enterkeyhint="done" aria-label="基期单耗 kgce/t" placeholder="如 600（填后算节能量）"></div>
     </div>
     <div class="toolbar">
       <div id="energy_1Presets"></div><button class="btn primary" type="button" onclick="calc()">🧮 计算</button><button class="btn" type="button" onclick="__energy_1Export()">导出明细 CSV</button>
@@ -142,7 +146,7 @@ s.parentNode.insertBefore(el, s);
       <thead><tr><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="项目">Item</th><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="公式">Formula</th><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="来源 / 标准">Source / Standard</th></tr></thead>
       <tbody>
         <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="喲钢综合能耗">Comprehensive energy per tonne steel</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="吨钢综合能耗">Comprehensive energy per tonne steel</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="单耗 = 总能耗 ÷ 钢产量">unit energy = total energy / steel output</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);">ISO 14404 steelmaking CO2 and energy metrics</td>
         </tr>
@@ -551,20 +555,40 @@ function calc(){
   var box=document.getElementById('res');
   if(!box)return;
   if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  var kgce=A*0.1229+B*1.33,tce=kgce/1000;
   var items=[];
-  items.push([((A*0.1229+B*1.33)/1000).toFixed(3), "折合标准煤（tce）"]);
-  items.push([((A*0.1229+B*1.33)/1000*2.66).toFixed(2), "减排 CO₂（t）"]);
-  items.push([((A*0.1229+B*1.33)/1000*29.307).toFixed(1), "折合能量（GJ）"]);
-  items.push([((A*0.1229+B*1.33)).toFixed(1), "折合标准煤（kgce）"]);
+  items.push([tce.toFixed(3), "折合标准煤（tce）"]);
+  items.push([(tce*2.66).toFixed(2), "减排 CO₂（t）"]);
+  items.push([(tce*29.307).toFixed(1), "折合能量（GJ）"]);
+  items.push([kgce.toFixed(1), "折合标准煤（kgce）"]);
+
+  var pEl=document.getElementById('v2'),bEl=document.getElementById('v3');
+  var P=pEl&&pEl.value.trim()!==''?parseFloat(pEl.value):NaN;
+  var base=bEl&&bEl.value.trim()!==''?parseFloat(bEl.value):NaN;
+  var warn='';
+  if(isFinite(P)){
+    if(P<=0){warn='产品产量须大于 0，未输出单耗。';}
+    else{
+      var unit=kgce/P;
+      items.push([unit.toFixed(1), "当期单耗（kgce/t）"]);
+      if(isFinite(base)&&base>0){
+        var savingKg=(base-unit)*P;
+        items.push([(savingKg/1000).toFixed(3), "相对基期节能量（tce）"]);
+      }
+    }
+  }else if(isFinite(base)&&base>0){
+    warn='填写基期单耗后还需填写产品产量，才能计算节能量。';
+  }
 
   var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
-  html+='💡 折标煤 =（节电 × 0.1229 ＋ 节气 × 1.33）÷ 1000 tce；1 tce ≈ 2.66 tCO₂ ≈ 29.307 GJ。';
+  if(warn)html+='<div class="info-box">'+warn+'</div>';
+  html+='💡 折标煤 =（节电 × 0.1229 ＋ 节气 × 1.33）÷ 1000 tce；当期单耗 = 折标煤 ÷ 产量；相对基期节能量 =（基期单耗 − 当期单耗）× 产量。1 tce ≈ 2.66 tCO₂ ≈ 29.307 GJ。';
   const __g6=html;box.innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
   if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
 }
 function resetAll(){
-  var a=document.getElementById('v0'),b=document.getElementById('v1');
-  if(a)a.value='50000';if(b)b.value='2000';calc();
+  var a=document.getElementById('v0'),b=document.getElementById('v1'),p=document.getElementById('v2'),c=document.getElementById('v3');
+  if(a)a.value='50000';if(b)b.value='2000';if(p)p.value='';if(c)c.value='';calc();
 }
 try{calc();}catch(e){}
 

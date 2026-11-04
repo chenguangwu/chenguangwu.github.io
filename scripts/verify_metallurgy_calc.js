@@ -260,6 +260,28 @@ const CASES = [
     "≈ 900 MPa"
   ],
   "ref": "de-default: 非默认 inType=hv（默认 hrc）+ inVal=300（默认 45）。Python 独立复算（DATA 按输入列升序重排后插值）：HV 300 落在 284(HRC28)~302(HRC30) 之间，t=16/18=0.8889 → HRC=28+0.8889×2=29.78→29.8、HBW=280+0.8889×15=293→293、HV=300、σb=300×3.0=900 MPa。默认态输出 45.0/429/446/1338，两条 expect 均不命中。**缺陷 E 已修**：buildAxis 现按输入列升序重排；此前 DATA 四列全递减而 interp 假定 xs 递增，任意输入恒取首行（HRC45 与 60 输出完全相同）。refTable 静态表（有 id，进 blob）恒含 300/2820，故不可单独锚数字，须带「洛氏 HRC」「MPa」上下文"
+},
+{
+  "slug": "metallurgy/energy-1",
+  "inputs": {
+    "v0": "100000",
+    "v1": "5000",
+    "v2": "1000",
+    "v3": "100"
+  },
+  "expect": [
+    "18.9 当期单耗",
+    "81.100 相对基期节能量"
+  ],
+  "ref": "新增回归：折标煤 18.940 tce = 18940 kgce，产量 1000 t → 单耗 18.9 kgce/t；基期 100 kgce/t → 相对基期节能量 =(100−18.9)×1000/1000 = 81.1 tce。旧实现无产量/基期输入，两者均不出现"
+},
+{
+  "slug": "metallurgy/steel-calc-1",
+  "clicks": ["document.getElementById('weldType').value='butt';updateInputs();calcWeld()"],
+  "expect": [
+    "185.14"
+  ],
+  "ref": "新增回归：默认组切到对接焊缝须立即按对接公式重算（t=10）：A=2000 mm²、W=66666.7 mm³，σ=120000/2000+8e6/66666.7=180、τ=50000/2000=25、折算 √(180²+3×25²)=185.14、应力比 115.7%。旧 onchange 只切 disabled 不重算，仍是角焊缝 267.22/167.0%"
 }
 ];
 async function main() {

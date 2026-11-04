@@ -123,7 +123,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入两个参数，自动计算常用结果">Calc Pipeline Pressure Drop</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">雷诺数 Re = ρ×v×D÷μ（管径 D 先由 mm 换算为 m）；Re &lt;2300 时摩擦系数 f = 64÷Re，湍流按 Haaland 近似 f = 1÷[−1.74×ln(ε÷3.7D + 6.9÷Re)]²；沿程压降 ΔP = f×(L÷D)×(ρv²÷2) (Pa)，另按 ÷1000 折 kPa、÷(ρ×9.81) 折合水柱 m。校验：管径/管长/流速/密度/黏度均须为有效正数（粗糙度不校验），否则提示不计算。判据：Re &lt;2300 层流、&lt;4000 过渡区、否则湍流。</div>
+      <div class="formula-eq">雷诺数 Re = ρ×v×D÷μ（管径 D 先由 mm 换算为 m）；Re &lt;2300 时摩擦系数 f = 64÷Re，湍流按 Haaland 近似 f = 1÷[−1.74×ln(ε÷3.7D + 6.9÷Re)]²；沿程压降 ΔP = f×(L÷D)×(ρv²÷2) (Pa)，另按 ÷1000 折 kPa、÷9810 折合水柱 m（固定按水密度 1000 kg/m³）、÷(ρ×9.81) 折合液柱 m（按当前流体密度）。校验：管径/管长/流速/密度/黏度均须为有效正数（粗糙度不校验），否则提示不计算。判据：Re &lt;2300 层流、&lt;4000 过渡区、否则湍流。</div>
       <p class="formula-desc">输入两个参数，自动计算常用结果</p>
     </div>
         <div class="input-row">
@@ -213,11 +213,12 @@ function calc(){
   var f;
   if(Re<2300){f=64/Re;}else{var rhs=(eps/1000)/(3.7*Dm)+6.9/Re;f=1/Math.pow(-1.74*Math.log(rhs),2);}
   var dP=f*(L/Dm)*(rho*v*v/2);
-  var dPkPa=dP/1000,dPm=dP/(rho*9.81);
+  var dPkPa=dP/1000,dPm=dP/9810,dPfluid=dP/(rho*9.81);
   var regime=Re<2300?'层流':(Re<4000?'过渡区':'湍流');
   var items=[
     [dPkPa.toFixed(2)+' kPa','沿程压降 ΔP'],
-    [dPm.toFixed(3)+' m','折合水柱'],
+    [dPm.toFixed(3)+' m','折合水柱（ρ=1000）'],
+    [dPfluid.toFixed(3)+' m','折合液柱（当前 ρ）'],
     [Re.toFixed(0),'雷诺数 Re'],
     [f.toFixed(4),'摩擦系数 f'],
     [regime,'流态']
@@ -225,7 +226,7 @@ function calc(){
   var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
   html+='💡 达西–魏斯巴赫公式 ΔP = f·(L/D)·(ρv²/2)；层流 f=64/Re，湍流用 Haaland 近似计入粗糙度。';
   const __g2=html;box.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
-  if(typeof saveHistory==='function'){try{saveHistory(D,L,v);}catch(e){}}
+  if(typeof saveHistory==='function'){try{saveHistory(D,L,v,rho,mu,eps);}catch(e){}}
 }
 
 function copyRes(){
@@ -248,12 +249,12 @@ function swapValues(){
 function historyKey(){
   try{return 'tb_history_'+location.pathname;}catch(e){return 'tb_history_'+(document.title||'calc');}
 }
-function saveHistory(a,b){
+function saveHistory(D,L,v,rho,mu,eps){
   try{
     var key=historyKey();
     var list=JSON.parse(localStorage.getItem(key)||'[]');
     var now=new Date();
-    var item={a:a,b:b,time:now.toLocaleString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})};
+    var item={D:D,L:L,v:v,rho:rho,mu:mu,eps:eps,time:now.toLocaleString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})};
     list.unshift(item);
     if(list.length>5)list=list.slice(0,5);
     localStorage.setItem(key,JSON.stringify(list));
@@ -267,20 +268,37 @@ function renderHistory(){
     var list=JSON.parse(localStorage.getItem(historyKey())||'[]');
     if(list.length===0){box.innerHTML='<div class="history-empty">暂无计算记录</div>';return;}
     var html='<div class="history-list">';
-    list.forEach(function(h){
-      html+='<div class="history-item" onclick="restoreHistory('+h.a+','+h.b+')">'+
-        '<div><div class="time">'+ToolBox.escHtml(h.time)+'</div><div class="summary">A='+h.a+' &nbsp; B='+h.b+'</div></div>'+
+    list.forEach(function(h,idx){
+      var sum=h.D!==undefined
+        ? 'D='+h.D+' mm · L='+h.L+' m · v='+h.v+' m/s · ρ='+h.rho+' · μ='+h.mu+' · ε='+h.eps
+        : 'A='+h.a+' &nbsp; B='+h.b;
+      html+='<div class="history-item" onclick="restoreHistory('+idx+')">'+
+        '<div><div class="time">'+ToolBox.escHtml(h.time)+'</div><div class="summary">'+ToolBox.escHtml(sum)+'</div></div>'+
         '<span style="font-size:12px;color:var(--primary);">恢复</span></div>';
     });
     html+='</div>';
     const __g4=html;box.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
   }catch(e){box.innerHTML='<div class="history-empty">读取记录失败</div>';}
 }
-function restoreHistory(a,b){
-  document.getElementById('v0').value=a;
-  document.getElementById('v1').value=b;
-  calc();
-  ToolBox.showToast(i18nText('toast.history_restored'),'info');
+function restoreHistory(idx){
+  try{
+    var list=JSON.parse(localStorage.getItem(historyKey())||'[]');
+    var h=list[idx];
+    if(!h)return;
+    if(h.D!==undefined){
+      document.getElementById('v0').value=h.D;
+      document.getElementById('v1').value=h.L;
+      document.getElementById('v2').value=h.v;
+      document.getElementById('v3').value=h.rho;
+      document.getElementById('v4').value=h.mu;
+      document.getElementById('v5').value=h.eps;
+    }else{
+      document.getElementById('v0').value=h.a;
+      document.getElementById('v1').value=h.b;
+    }
+    calc();
+    ToolBox.showToast(i18nText('toast.history_restored'),'info');
+  }catch(e){}
 }
 function clearHistory(){
   try{localStorage.removeItem(historyKey());renderHistory();ToolBox.showToast(i18nText('toast.history_cleared'),'info');}catch(e){}
