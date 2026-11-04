@@ -2213,6 +2213,25 @@ const CASES = [
     inputs: { px: "100", root: "0" },
     expect: ["根字号必须大于 0，已按 16px 计算"],
     ref: "根字号为 0 时旧实现静默改成 16 且不说明；现明确提示夹取口径。默认 16 不命中。",
+  },
+  {
+    slug: "design/shutter-speed-calculator",
+    inputs: { focal: "" },
+    expect: ["Enter a valid focal length, crop factor and stabilization stops."],
+    ref: "焦距清空后旧实现 +''||50 静默按 50mm 计算安全快门；现显式拦截空值。默认 50 ⇒ 不命中。",
+  },
+  {
+    slug: "design/image-dpi-converter",
+    inputs: { w1: "" },
+    expect: ["⚠ 计算结果含无效值，请检查输入是否为有效正数。"],
+    ref: "像素宽清空后旧实现 ||0 继续算出 0 英寸等伪结果；现由既有 NaN/Infinity 守卫报错。"
+       + "默认 3000px ⇒ 不命中。",
+  },
+  {
+    slug: "design/photo-aspect-ratio-calculator",
+    inputs: { w: "" },
+    expect: ["Enter valid width and height (both positive)."],
+    ref: "宽度清空后旧实现 +''||1 静默按 1px 计算比例；现显式要求正数。默认 1920×1080 ⇒ 不命中。",
   }
 
 ];

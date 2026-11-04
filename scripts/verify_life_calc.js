@@ -1724,9 +1724,10 @@ const CASES = [
       "s": "42"
     },
     "expect": [
-      "abc123测试\n42\n42\n42\n42\n42\n42\n基准时间： Invalid Date 加减量： 42年 42月 42日 42时 42分 42秒 结果时间： Invalid Date Invalid Date"
+      "基准日期无效，请重新选择"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"baseTime\":\"abc123测试\",\"y\":\"42\",\"m\":\"42\",\"d\":\"42\",\"h\":\"42\",\"min\":\"42\",\"s\":\"42\"}，输出区含「abc123测试\n42\n42\n42\n42\n42\n42\n基准时间： Invalid…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非法基准串 abc123测试 时，旧实现继续输出 Invalid Date；"
+      + "现显式提示「基准日期无效，请重新选择」。默认态 baseTime 为空 ⇒ 只出现「请选择基准日期」⇒ 不命中。"
   },
   {
     "slug": "life/density-converter",
@@ -2364,6 +2365,50 @@ const CASES = [
     expect: ["2023-11-14 22:13:20.500"],
     ref: "小数秒 1700000000.5 应保留毫秒（2023-11-14T22:13:20.500Z）；"
        + "旧实现 parseInt 截断且按字符串长度(12)>10 判为毫秒 ⇒ 得 1970-01-20。",
+  },
+  {
+    slug: "life/temperature-converter",
+    inputs: { celsius: "" },
+    expect: ["Please enter a valid temperature."],
+    ref: "清空摄氏度后旧实现 parseFloat('')||0 静默按 0℃ 换算，其他单位显示 32°F/273.15K；"
+       + "现显式提示且不覆盖其他输入。默认 25℃ ⇒ 不命中。",
+  },
+  {
+    slug: "life/assessor-target",
+    inputs: { rent: "" },
+    expect: ["Please fill in all 6 fields with valid numbers."],
+    ref: "租金清空后旧实现 +''||0 按 0 元静默计入评分；现要求 6 项均有效。默认租金非 0 ⇒ 不命中。",
+  },
+  {
+    slug: "life/parking-fee",
+    inputs: { hours: "" },
+    expect: ["Enter a valid duration, rate, free minutes and cap (use 0 if not applicable)."],
+    ref: "停车时长清空后旧实现 num() 返回 0 ⇒ 显示免费；现显式拦截空值，不再把空值当 0 元。",
+  },
+  {
+    slug: "life/report-profit",
+    inputs: { cog: "" },
+    expect: ["Please fill in all 7 amounts (enter 0 for items with no activity)."],
+    ref: "营业成本清空后旧实现 num() 返回 0 ⇒ 毛利率虚高到 100%；现要求 7 项均填写（无发生额填 0）。",
+  },
+  {
+    slug: "life/drinking-water-plan",
+    inputs: { w: "" },
+    expect: ["请输入有效的体重与气温。"],
+    ref: "体重清空后旧实现 num() 返回 0，w<=0 分支才拦截；现 num() 返回 null 直接提示，"
+       + "避免把空值与 0 混为一谈。默认 70kg ⇒ 不命中。",
+  },
+  {
+    slug: "life/date-add-subtract",
+    inputs: { h: "" },
+    expect: ["Enter valid years, months, days, hours, minutes and seconds (use 0 for no change)."],
+    ref: "小时清空后旧实现 num() 返回 0 静默按「加 0 小时」处理；现显式提示空值。默认 0 ⇒ 不命中。",
+  },
+  {
+    slug: "life/candle-burn-time",
+    inputs: { wicks: "" },
+    expect: ["请选择有效的烛芯数量与燃烧环境"],
+    ref: "烛芯数清空后 parseInt('') 为 NaN，旧实现继续输出 NaN/—；现显式提示。默认 1 芯 ⇒ 不命中。",
   }
 
 ];

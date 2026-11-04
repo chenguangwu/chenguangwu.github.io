@@ -284,8 +284,10 @@ s.parentNode.insertBefore(el, s);
 })();
 
 function num(id){
-  const v = parseFloat(document.getElementById(id).value);
-  return isNaN(v) ? 0 : v;
+  const raw = String(document.getElementById(id).value).trim();
+  if(raw === '') return null;
+  const v = parseFloat(raw);
+  return isFinite(v) ? v : null;
 }
 
 function daysInMonth(year, monthIndex){
@@ -306,14 +308,27 @@ function addYearsMonths(base, years, months){
 }
 
 function calc(){
+  const vals = ['y', 'm', 'd', 'h', 'min', 's'].map(num);
+  if(vals.some(function(v){ return v === null; })){
+    document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);" data-zh="请填写有效的年、月、日、时、分、秒（无变化可填 0）">Enter valid years, months, days, hours, minutes and seconds (use 0 for no change).</p>';
+    return;
+  }
+  const y = vals[0], m = vals[1], d = vals[2],
+        h = vals[3], min = vals[4], s = vals[5];
+  if(!Number.isInteger(y) || !Number.isInteger(m) || !Number.isInteger(d)){
+    document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);" data-zh="年、月、日须为整数（时、分、秒可为小数）">Years, months and days must be whole numbers (hours, minutes and seconds may be decimals).</p>';
+    return;
+  }
   const baseStr = document.getElementById('baseTime').value;
   if(!baseStr){
     document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">请选择基准日期</p>';
     return;
   }
   const base = new Date(baseStr);
-  const y = num('y'), m = num('m'), d = num('d'),
-        h = num('h'), min = num('min'), s = num('s');
+  if(!isFinite(base.getTime())){
+    document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">基准日期无效，请重新选择</p>';
+    return;
+  }
   // 先加减年月（目标月无对应日则夹到月末）
   let newDate = addYearsMonths(base, y, m);
   // 「日」按日历日推进（保留原时刻，自动跨月跨年）；「时/分/秒」按固定时长累加
