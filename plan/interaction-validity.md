@@ -725,3 +725,12 @@ node scripts/runtime_scan.js --interact --files /tmp/pages.txt --timeout 10000
 > 定向复扫会强制重扫命中页，其余记录原样保留，并在结束时自动重算本报告与 JSON；不要与 `--resume` 混用。
 > 全量原始数据：`scripts/out/interaction-invalid.jsonl`（逐行、4916 条）与 `scripts/out/interaction-invalid.json`（8 MB），均被 `.gitignore` 忽略，只留本地。
 > 精简摘要（401 个高/中置信页）：`plan/interaction-invalid-top100.json`。
+
+### 扫描误报判据（2026-11-05 补充）
+
+空态扫描用「结果区是否含 0 / NaN / 关键词」判定，会把**正常提示语**误判为坏值：提示语里的 `>0`、`≥0`、`≤`、`<` 等符号后紧跟数字 `0` 时，数字规则会命中 `0`，从而误报 `empty_bogus`。本轮已确认 **2 例**：
+
+- `tools/fishery/salinity-calculator.html` — 提示语「现有水量须 >0，三个盐度须 ≥0。未测盐度请勿留空（淡水请明确输入 0）」。
+- `tools/mining/convert-grade-ore.html` — 提示语「品位需填写 ≥0 的数值（g/t）；矿石量需填写 ≥0 的数值（t）…」。
+
+补充判据：结果区文本若以 `⚠️` / `请` / `需` / `须` / `请填写` 开头，且**没有独立数值结果**（只有提示语与不等式约束），应先归为「提示语」而非结果；含 `>`、`≥`、`≤`、`<` 的数字不计入 0/NaN 坏值。上述 2 页人工复核后从 `empty_bogus` 待修清单移除。
