@@ -562,13 +562,21 @@ const renderDebounced = ToolBox.debounce(renderChart, 500);
 
 /* ===== 本地存储 ===== */
 function saveCode() {
+  let ok = false;
   try {
     localStorage.setItem(STORAGE_KEY, editor.value);
     localStorage.setItem(STORAGE_TYPE_KEY, currentType);
+    // 共享层会吞掉配额异常，只有回读一致才算真的写入成功
+    ok = localStorage.getItem(STORAGE_KEY) === editor.value;
+  } catch (e) {
+    ok = false;
+  }
+  if (ok) {
     saveState.textContent = '已保存';
     saveState.classList.add('saved');
-  } catch (e) {
-    saveState.textContent = '';
+  } else {
+    saveState.textContent = '未保存（本次计算不受影响）';
+    saveState.classList.remove('saved');
   }
 }
 function loadSaved() {

@@ -143,7 +143,7 @@ function scanPage(html, rel) {
   return edits;
 }
 
-const GUARD = "\n(function(){try{var o=Storage.prototype.setItem;if(o&&!o.__tbSafe){var s=function(k,v){try{return o.call(this,k,v)}catch(e){}};s.__tbSafe=true;Storage.prototype.setItem=s;}}catch(e){}})();\n";
+const GUARD = "\n(function(){try{var o=Storage.prototype.setItem;if(o&&!o.__tbSafe){var w=function(){try{if(window.__tbSyncWarned)return;window.__tbSyncWarned=true;if(window.ToolBox&&typeof window.ToolBox.showToast==='function')window.ToolBox.showToast('本次无法保存到本地存储，不影响本次计算','warning');}catch(_){}};var s=function(k,v){try{return o.call(this,k,v)}catch(e){var n=e&&e.name;if(n!=='QuotaExceededError'&&n!=='SecurityError'&&n!=='QUOTA_EXCEEDED_ERR'&&n!=='NS_ERROR_DOM_QUOTA_REACHED')throw e;try{window.__tbStorageWriteFailed=true}catch(_){}w();return undefined;}};s.__tbSafe=true;Storage.prototype.setItem=s;}}catch(e){}})();\n";
 
 function applyEdits(rel, edits) {
   const abs = path.join(ROOT, rel);

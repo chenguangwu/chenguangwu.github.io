@@ -520,12 +520,19 @@ s.parentNode.insertBefore(el, s);
       var salt = genSalt();
       if(!salt){ ToolBox.showToast('当前浏览器不支持 Web Crypto 安全随机数，无法创建保险箱', 'warning'); return; }
       var pwdHash = hashStr(pwd + salt, 0x811c9dc5).toString(36);
+      var saved = false;
       try {
         localStorage.setItem(PWD_HASH_KEY, pwdHash);
         localStorage.setItem(SALT_KEY, salt);
         localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
+        // 共享层会吞掉配额异常，必须回读确认真落盘，否则会当成创建成功（刷新后保险箱丢失）
+        saved = localStorage.getItem(SALT_KEY) === salt && localStorage.getItem(PWD_HASH_KEY) === pwdHash;
       } catch(e){
-        ToolBox.showToast(i18nText(), 'error');
+        saved = false;
+      }
+      if(!saved){
+        var en = false; try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) en=TBKit.util.isEn(); }catch(_){}
+        ToolBox.showToast(en ? 'Local storage is unavailable, so the vault cannot be created. Disable private mode or free up space and retry.' : '本地存储不可用，无法创建保险箱；请关闭隐私模式或清理存储空间后重试', 'error');
         return;
       }
       currentKey = deriveKey(pwd, salt);
