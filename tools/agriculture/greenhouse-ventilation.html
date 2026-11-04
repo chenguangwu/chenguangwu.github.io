@@ -258,8 +258,10 @@ function calc(){
 
   // 需要的风口面积 = 通风量 / (风速 × 效率)
   var ventArea = windSpeed>0 ? airflowPerSec / (windSpeed * (fanEff/100)) : 0; // m²
-  // 自然通风风口面积通常为地面积的15-25%
+  // 自然通风建议开启面积：地面积的 15%~25%（经验值，用于与实际需求对比）
   var floorArea = ghLen * ghWid;
+  var recMin = floorArea * 0.15;
+  var recMax = floorArea * 0.25;
   var ventRatio = ventArea>0 ? (ventArea / floorArea) * 100 : 0;
 
   // 推荐风机数量（按单台35000m³/h排风量估算）
@@ -274,20 +276,31 @@ function calc(){
   html += '</div>';
 
   html += '<div class="data-grid" style="margin-top:4px;">';
-  html += '<div class="data-card"><div class="num">'+ventRatio.toFixed(1)+'%</div><div class="label">风口占地比</div></div>';
+  html += '<div class="data-card"><div class="num">'+ventRatio.toFixed(1)+'%</div><div class="label">需求风口占地比</div></div>';
+  html += '<div class="data-card"><div class="num">'+recMin.toFixed(0)+'~'+recMax.toFixed(0)+'</div><div class="label">建议开启面积(m²)</div></div>';
   html += '<div class="data-card"><div class="num">'+fanCount+'</div><div class="label">推荐风机数(台)</div></div>';
   html += '<div class="data-card"><div class="num">'+airChanges+'</div><div class="label">换气次数/时</div></div>';
-  html += '<div class="data-card"><div class="num">'+floorArea.toFixed(0)+'</div><div class="label">地面积(m²)</div></div>';
   html += '</div>';
 
-  var grade = ventRatio>=20?'grade-good':ventRatio>=15?'grade-good':ventRatio>=10?'grade-pass':'grade-fail';
-  var gradeText = ventRatio>=20?'通风良好':ventRatio>=15?'通风达标':ventRatio>=10?'勉强达标':'通风不足';
+  // 以「所需风口面积」与「自然通风建议开启面积」对比分级：需求落在建议区间内即自然通风可满足
+  var grade, gradeText, tipType, tipContent;
+  if(ventArea<=recMin){
+    grade='grade-good'; gradeText='自然通风充足';
+    tipType='tip-success'; tipContent='所需风口面积低于建议开启面积下限，自然通风即可满足换气要求。';
+  }else if(ventArea<=recMax){
+    grade='grade-good'; gradeText='自然通风达标';
+    tipType='tip-success'; tipContent='所需风口面积处于建议开启面积区间内，按建议面积开启通风口即可达标。';
+  }else if(ventArea<=recMax*1.5){
+    grade='grade-pass'; gradeText='需辅助通风';
+    tipType='tip-warn'; tipContent='所需风口面积已超过自然通风建议上限，建议配合强制通风风机。';
+  }else{
+    grade='grade-fail'; gradeText='通风不足';
+    tipType='tip-warn'; tipContent='所需风口面积显著超过自然通风能力，必须增加风机或增大通风口。';
+  }
   html += '<p style="margin:10px 0;">通风评价：<span class="grade-tag '+grade+'">'+gradeText+'</span></p>';
-  html += '<div class="progress-bar"><div class="progress-fill" style="width:'+Math.min(ventRatio/30*100,100)+'%;"></div></div>';
-  html += '<p style="font-size:12px;color:var(--text-muted);">自然通风风口面积建议为地面积的15%~25%</p>';
+  html += '<div class="progress-bar"><div class="progress-fill" style="width:'+Math.min(ventArea/recMax*100,100)+'%;"></div></div>';
+  html += '<p style="font-size:12px;color:var(--text-muted);">自然通风建议开启面积约 '+recMin.toFixed(0)+'~'+recMax.toFixed(0)+' m²（地面积的 15%~25%），与上方「需风口面积」对比判断是否需强制通风</p>';
 
-  var tipType = ventRatio>=15?'tip-success':'tip-warn';
-  var tipContent = ventRatio>=15?'风口面积充足，通风换气达标。':'风口面积不足，建议增大通风口或增加强制通风风机。';
   html += '<div class="tip-box '+tipType+'" style="margin-top:12px;">'+tipContent+'</div>';
 
   html += '<div class="tip-box tip-info" style="margin-top:10px;">';

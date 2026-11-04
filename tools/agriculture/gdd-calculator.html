@@ -126,7 +126,7 @@ s.parentNode.insertBefore(el, s);
         <div class="formula-box">
       <div class="formula-title">📐 计算公式 / 原理</div>
       <div class="formula-eq">日均温 Tavg = (Tmax + Tmin) ÷ 2；简单平均法 GDD = max(0, Tavg − Tbase)，Tavg 超上限时取 Tupper − Tbase；单正弦法按日温正弦曲线在上下限间积分</div>
-      <div class="formula-desc">生长度日（GDD）累积有效温度，用于预测作物发育阶段。简单平均法以「日均温 − 基础温度」计，超上限按上限截断、低于下限计 0。单正弦法取 α = (Tmax − Tmin) ÷ 2，由反正弦求温度曲线与上下限的交角 θ₁、θ₂，按 ((Tavg − Tbase)(θ₂ − θ₁) + α(cosθ₁ − cosθ₂) ÷ 2) × 2 ÷ π 解析积分，对昼夜温差大的场景更精确。逐日累加并与目标 GDD 比较即得物候进度。</div>
+      <div class="formula-desc">生长度日（GDD）累积有效温度，用于预测作物发育阶段。简单平均法以「日均温 − 基础温度」计，超上限按上限截断、低于下限计 0。单正弦法取 α = (Tmax − Tmin) ÷ 2，由反正弦求温度曲线与上下限的交角 θ₁、θ₂，按 [(Tavg − Tbase)(θ₂ − θ₁) + α(cosθ₁ − cosθ₂)] ÷ π 解析积分，对昼夜温差大的场景更精确。逐日累加并与目标 GDD 比较即得物候进度。</div>
     </div>
 <div class="input-row">
       <label>计算方法</label>
@@ -244,9 +244,16 @@ var DEFAULT_DAYS = [
 ];
 function renderDayRows(){
   var box = document.getElementById('dayRows');
+  var prev = {};
+  // 先读取当前已录入温度，增删行时保留原值
+  for(var i=0;i<dayCount;i++){
+    var maxEl = document.getElementById('tmax'+i);
+    var minEl = document.getElementById('tmin'+i);
+    if(maxEl && minEl) prev[i] = {tmax:maxEl.value, tmin:minEl.value};
+  }
   var html = '';
   for(var i=0;i<dayCount;i++){
-    var d = DEFAULT_DAYS[i] || {tmax:25,tmin:15};
+    var d = prev[i] || DEFAULT_DAYS[i] || {tmax:25,tmin:15};
     html += '<div class="input-row"><label>第'+(i+1)+'天</label>';
     html += '<div style="display:flex;gap:8px;flex:1;">';
     html += '<input type="number" id="tmax'+i+'" value="'+d.tmax+'" min="-50" max="60" step="0.5" oninput="calc()" placeholder="最高温" style="flex:1;">';
@@ -269,7 +276,8 @@ function calcGDD(tmax, tmin, tbase, tupper, method){
     var theta2 = Math.asin((tupper - (tmax+tmin)/2) / alpha);
     if(isNaN(theta1)) theta1 = -Math.PI/2;
     if(isNaN(theta2)) theta2 = Math.PI/2;
-    var gdd = ((tmax+tmin)/2 - tbase) * (theta2 - theta1) + 2 * alpha * (Math.cos(theta1) - Math.cos(theta2));
+    // 单正弦法：对高于基温的半个正弦周期积分（标准式系数为 α，非 2α）
+    var gdd = ((tmax+tmin)/2 - tbase) * (theta2 - theta1) + alpha * (Math.cos(theta1) - Math.cos(theta2));
     gdd = gdd / Math.PI;
     return Math.max(0, gdd);
   } else {
