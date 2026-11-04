@@ -33,8 +33,9 @@ def walk_html(root):
 
 
 def needs_inject(content):
-    if MARKER in content:
-        return False
+    # 判据必须是「两条 meta 是否都在」，不能只看 MARKER：模板里预留 `<!-- TOOLBOX-SECURITY -->`
+    # 占位但未带 meta 的页面（实测 26 页：design/ent/cognition/psychology/fun/ophthalmology）
+    # 会因 MARKER 命中被静默跳过，永远拿不到基线安全 meta。
     has_rp = 'http-equiv="Referrer-Policy"' in content or "http-equiv='Referrer-Policy'" in content
     has_xcto = 'http-equiv="X-Content-Type-Options"' in content or "http-equiv='X-Content-Type-Options'" in content
     return not (has_rp and has_xcto)
@@ -56,7 +57,11 @@ def inject(root=ROOT, check_only=False):
         missing += 1
         if check_only:
             continue
-        content = content.replace('</head>', SEC + '</head>', 1)
+        if MARKER in content:
+            # 已有占位标记：直接替换占位，避免出现两条 MARKER
+            content = content.replace(MARKER, SEC.rstrip('\n'), 1)
+        else:
+            content = content.replace('</head>', SEC + '</head>', 1)
         with open(path, 'w', encoding='utf-8') as f:
             f.write(content)
         changed += 1

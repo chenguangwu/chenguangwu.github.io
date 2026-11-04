@@ -4829,6 +4829,9 @@ def main():
     
     # Generate HTML sitemap
     html_sitemap = generate_html_sitemap(tools)
+    # 模板本身不带基线安全 meta：若不在生成时补齐，每轮渲染都会冲掉上一轮 SECMETA 注入的
+    # 两条 meta，导致「每轮 Injected security meta into 1 pages」的永久非零变更。
+    html_sitemap = html_sitemap.replace('</head>', SECMETA.SEC + '</head>', 1)
     with open(HTML_SITEMAP_FILE, 'w', encoding='utf-8') as f:
         f.write(html_sitemap)
     print('Generated sitemap.html (%d tools)' % len(tools))
