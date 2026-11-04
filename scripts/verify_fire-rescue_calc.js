@@ -101,12 +101,12 @@ const CASES = [
 {
   "slug": "fire-rescue/fire-extinguisher-selection",
   "inputs": {
-    "area": "300"
+    "area": "800"
   },
   "expect": [
-    "建议配置数量：4 具"
+    "建议配置数量：6 具（按单具 2A 折算"
   ],
-  "ref": "独立复算：300 m² ÷ 75 m²/具 = 4 具（最少 2 具规则不触发）。⚠ 原 expect '150' 为保护面积输入回显（零判别力）；面积改 300 才能让配置数量与默认 100 m²（2 具）区分。默认 100 m² ⇒ 2 具，不命中 ⇒ 无逃生（已双态实测）。"
+  "ref": "独立复算：800 m² 中危险级 U=75 m²/A ⇒ Q=⌈800/75⌉=11A；4kg ABC 单具 2A ⇒ 具数=max(2, ⌈11/2⌉)=6。默认 100 m² ⇒ 2 具，不命中 ⇒ 强判别。"
 },
 {
   "slug": "fire-rescue/fire-extinguisher-selection",

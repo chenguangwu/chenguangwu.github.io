@@ -19,12 +19,13 @@ const CASES = [
   "inputs": {
     "customScale": "100",
     "distance": "100",
-    "direction": "r2d"
+    "direction": "r2d",
+    "cadUnit": "cm"
   },
   "expect": [
-    "0.0000"
+    "CAD 模型长度（按 1:1 建模，cm）"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：100 mm、1:100 纸面长度 ⇒ 实际 1 mm；CAD 单位 cm 时模型长度 1/10=0.10 cm。判别器把 cadUnit 回退为默认 m ⇒ 标签为「m」不命中 ⇒ 强判别；同时验证此前完全未被 calc 读取的 cadUnit 下拉已生效。"
 },
 {
   "slug": "construction/calc-1",
@@ -97,6 +98,16 @@ const CASES = [
   ],
   "ref": "auto-restore"
 },
+  {
+    "slug": "construction/calculator-calc-area",
+    "clicks": [
+      "rooms[0].len='';calc();"
+    ],
+    "expect": [
+      "请填写第 1 间房间的长和宽"
+    ],
+    "ref": "新增守卫：第 1 间房间长度留空时旧代码 parseFloat||0 使该房间面积为 0 并静默计入合计；现改为提示「请填写第 1 间房间的长和宽（须为正数）」。默认三间房均填写完整，不命中 ⇒ 强判别。"
+  },
 {
   "slug": "construction/calculator-calc-ratio-2",
   "inputs": {

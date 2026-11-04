@@ -180,8 +180,8 @@ function renderRooms(){
   rooms.forEach(function(r,i){
     html+='<div class="room-item">'+
       '<div class="r-name"><label>房间名称</label><input type="text" value="'+ToolBox.escHtml(r.name)+'" oninput="updateRoom('+i+',\'name\',this.value)" enterkeyhint="done"></div>'+
-      '<div class="r-len"><label>长 (m)</label><input type="number" value="'+r.len+'" min="0" step="0.01" oninput="updateRoom('+i+',\'len\',this.value);calc()" enterkeyhint="done" placeholder="如 '+r.len+'"></div>'+
-      '<div class="r-wid"><label>宽 (m)</label><input type="number" value="'+r.wid+'" min="0" step="0.01" oninput="updateRoom('+i+',\'wid\',this.value);calc()" enterkeyhint="done" placeholder="如 '+r.wid+'"></div>'+
+      '<div class="r-len"><label>长 (m)</label><input type="number" id="len-'+i+'" value="'+r.len+'" min="0" step="0.01" oninput="updateRoom('+i+',\'len\',this.value);calc()" enterkeyhint="done" placeholder="如 '+r.len+'"></div>'+
+      '<div class="r-wid"><label>宽 (m)</label><input type="number" id="wid-'+i+'" value="'+r.wid+'" min="0" step="0.01" oninput="updateRoom('+i+',\'wid\',this.value);calc()" enterkeyhint="done" placeholder="如 '+r.wid+'"></div>'+
       '<div class="r-area" id="ra-'+i+'">—</div>'+
       '<button type="button" class="remove-btn" onclick="removeRoom('+i+')" title="删除" aria-label="删除房间">×</button>'+
       '</div>';
@@ -190,10 +190,28 @@ function renderRooms(){
 }
 function updateRoom(idx,field,val){
   if(field==='name'){rooms[idx].name=val;}
-  else{rooms[idx][field]=parseFloat(val)||0;}
+  else{rooms[idx][field]=String(val);}
 }
 function getShare(){return parseFloat(document.getElementById('shareRate').value)||0;}
 function calc(){
+  var invalidIdx=-1,validCount=0;
+  rooms.forEach(function(r,i){
+    var hasL=String(r.len==null?'':r.len).trim()!=='';
+    var hasW=String(r.wid==null?'':r.wid).trim()!=='';
+    var l=parseFloat(r.len),w=parseFloat(r.wid);
+    if(hasL||hasW){
+      if(isFinite(l)&&l>0&&isFinite(w)&&w>0){validCount++;}
+      else if(invalidIdx<0){invalidIdx=i;}
+    }
+  });
+  if(invalidIdx>=0){
+    document.getElementById('res').innerHTML='<p style="color:var(--danger);font-size:13px;">⚠ 请填写第 '+(invalidIdx+1)+' 间房间的长和宽（须为正数）。</p>';
+    return;
+  }
+  if(validCount===0){
+    document.getElementById('res').innerHTML='<p style="color:var(--danger);font-size:13px;">⚠ 请填写至少一间房间的长和宽。</p>';
+    return;
+  }
   var rows=[];var total=0;
   rooms.forEach(function(r,i){
     var a=(parseFloat(r.len)||0)*(parseFloat(r.wid)||0);

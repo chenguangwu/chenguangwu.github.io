@@ -185,11 +185,11 @@ s.parentNode.insertBefore(el, s);
       <p><strong>湿式化学</strong>：适用 F 类厨房油火，也适用 A 类</p>
     </div>
     <div class="ref-card">
-      <h4>配置数量参考</h4>
-      <p>轻危险级：每 100m² 配置 1 具（最小 1A）</p>
-      <p>中危险级：每 75m² 配置 1 具（最小 2A）</p>
-      <p>严重危险级：每 50m² 配置 1 具（最小 3A）</p>
-      <p>每个配置点不少于 2 具，不多于 5 具</p>
+      <h4>配置数量参考（GB 50140-2005 表 6.2.1 / §6.2.1）</h4>
+      <p>轻危险级：单位灭火级别最大保护面积 U=100m²/A，单具最小 1A</p>
+      <p>中危险级：U=75m²/A，单具最小 2A</p>
+      <p>严重危险级：U=50m²/A，单具最小 3A</p>
+      <p>具数 = max(2, ⌈最小需配灭火级别 Q ÷ 单具灭火级别⌉)；每个计算单元不少于 2 具，每个设置点不宜多于 5 具（§6.1）</p>
     </div>
     <div class="tip-box tip-info">本工具依据《建筑灭火器配置设计规范》GB 50140 提供参考建议，实际配置须由专业人员依据现场条件确定。</div>
   </div>
@@ -220,11 +220,11 @@ s.parentNode.insertBefore(el, s);
 <li>场所改变用途后复核原有配置是否仍匹配新的火灾危险类别。</li>
 <li>消防安全检查中快速核对配置数量与灭火级别是否满足最低要求。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">办公区 A 类火灾中危险级的选型</div><div class="dd-ex-body">按默认参数（A 类火灾、中危险级、保护面积 100 m²）：推荐 ABC 干粉 4 kg（通用性强、适用 A 类固体火灾）为主，水基/泡沫型为辅；配置数量 2 具（每 75 m² 配 1 具、且不少于 2 具），最低灭火级别 2A（GB 50140：轻/中/严重危险级分别为 1A/2A/3A）。办公区宜选洁净无残留类型，避免污损文件与设备。</div></div>
+<div class="dd-example"><div class="dd-ex-title">办公区 A 类火灾中危险级的选型</div><div class="dd-ex-body">按默认参数（A 类火灾、中危险级、保护面积 100 m²）：推荐 ABC 干粉 4 kg（通用性强、适用 A 类固体火灾）为主，水基/泡沫型为辅；配置数量 2 具（Q=⌈100 ÷ 75⌉=2A，按单具 2A 折算 1 具、且每个计算单元不少于 2 具），最低灭火级别 2A（GB 50140-2005 表 6.2.1：轻/中/严重危险级单具最小 1A/2A/3A）。办公区宜选洁净无残留类型，避免污损文件与设备。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>ABC 干粉能灭所有火吗？</dt><dd>ABC 干粉覆盖 A（固体）、B（液体）、C（气体）类，通用性最强，但不能替代专用场所要求；对带电设备火灾须确认灭火剂绝缘性，对金属火灾（D 类）需专用粉末，不能混用。</dd>
-<dt>为什么最少要 2 具？</dt><dd>GB 50140 要求每个设置点不宜少于 2 具，目的是一处失效、压力不足或被火势封锁时仍有备用，且分散设置保证起火点附近必有可用器材。</dd>
+<dt>为什么最少要 2 具？</dt><dd>GB 50140-2005 §6.1 规定一个计算单元内配置的灭火器数量不得少于 2 具、每个设置点不宜多于 5 具；这样一处失效、压力不足或被火势封锁时仍有备用，同时避免单点堆放过密。</dd>
 </dl>
 </div>
 </section>
@@ -321,7 +321,11 @@ function calc(){
     F:{light:'按专项规范',medium:'按专项规范',severe:'按专项规范'}
   };
   var minA=(levelTable[fc]||levelTable.A)[hz];
-  var needCount=Math.max(2,Math.ceil(area/hzArea));
+  var unitRating={A:{light:1,medium:2,severe:3},B:{light:21,medium:55,severe:89},C:{light:21,medium:55,severe:89},E:{light:21,medium:55,severe:89},D:null,F:null};
+  var needQ=Math.ceil(area/hzArea);
+  var ur=(unitRating[fc]||{})[hz]||null;
+  var ratingUnit=(fc==='A')?'A':'B';
+  var needCount=ur?Math.max(2,Math.ceil(needQ/ur)):null;
 
   var recs=recommendations[fc]||recommendations['A'];
   var html='<h3 style="margin-bottom:10px;">推荐灭火器类型</h3>';
@@ -334,9 +338,15 @@ function calc(){
     html+='</div>';
   });
 
+  var __en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)?TBKit.util.isEn():false;
   html+='<div class="info-box"><strong>配置方案建议：</strong><br>';
   html+='• 保护面积：'+area.toFixed(0)+' m²（'+({'light':'轻','medium':'中','severe':'严重'})[hz]+'危险级）<br>';
-  html+='• 建议配置数量：'+needCount+' 具（每 '+hzArea+' m² 配 1 具，最少 2 具）<br>';
+  html+='• '+(__en?'Minimum required rating':'最小需配灭火级别')+'：Q = ⌈'+area.toFixed(0)+' ÷ '+hzArea+'⌉ = '+needQ+ratingUnit+'<br>';
+  if(needCount!==null){
+    html+='• '+(__en?'Recommended units':'建议配置数量')+'：'+needCount+(__en?' units (based on '+ur+ratingUnit+' each; at least 2 per calculation unit)':' 具（按单具 '+ur+ratingUnit+' 折算，且每个计算单元不少于 2 具）')+'<br>';
+  }else{
+    html+='• '+(__en?'Recommended units':'建议配置数量')+'：'+(__en?'determined by the specific standard (Classes D/F have no unified A/B rating)':'按专项规范确定（D/F 类无统一 A/B 灭火级别，本页不作折算）')+'<br>';
+  }
   html+='• 最低灭火级别：'+minA+'<br>';
   html+='• 场所提示：'+locTip[loc]+'</p>';
   html+='</div>';
