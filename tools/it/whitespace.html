@@ -133,6 +133,10 @@ s.parentNode.insertBefore(el, s);
         <label for="trail">确保末尾单个换行</label>
         <div style="display:flex;flex-wrap:wrap;gap:0 16px;"><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;margin:4px 0;"><input type="checkbox" id="top_trail" value="0" data-name="是">是</label></div>
       </div>
+      <div>
+        <label for="onespace">压成一行（换行变空格）</label>
+        <div style="display:flex;flex-wrap:wrap;gap:0 16px;"><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;margin:4px 0;"><input type="checkbox" id="top_onespace" value="0" data-name="是">是</label></div>
+      </div>
     </div>
     <div class="toolbar">
       <div id="whitespacePresets"></div><button class="btn primary" onclick="calcTool()">计算</button><button class="btn" type="button" onclick="__whitespaceExport()">导出明细 CSV</button>
@@ -175,8 +179,8 @@ s.parentNode.insertBefore(el, s);
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
         <li>清理为纯本地操作，文本不会上传；适合处理从网页/PDF/Excel 复制的乱序文本。</li>
-        <li>各选项可单独勾选；默认全部开启即可应付大多数场景。</li>
-        <li>合并空格仅针对空格与制表符，不影响换行。</li>
+        <li>各选项默认不勾选，按需开启；也可用预设一键套用常见组合。</li>
+        <li>「合并连续空格」仅针对空格与制表符，不影响换行；「压成一行」会把所有换行与连续空白压成单个空格。</li>
   </ul>
 </div>
 
@@ -226,6 +230,7 @@ if(document.getElementById('top_blank').checked) lines=lines.filter(function(l){
 if(document.getElementById('top_collapse').checked) lines=lines.map(function(l){return l.replace(/[ \t]+/g,' ');});
 var out=lines.join('\n');
 if(document.getElementById('top_trail').checked){ out=out.replace(/\n+$/,'')+'\n'; }
+if(document.getElementById('top_onespace').checked){ out=out.replace(/\s+/g,' ').trim(); }
 var blankAfter=lines.filter(function(l){return l.trim()==='';}).length;
 // 空白字符明细
 var tabCount=(text.match(/\t/g)||[]).length;
@@ -233,10 +238,10 @@ var spaceCount=(text.match(/ /g)||[]).length;
 var crlfCount=(text.match(/\r\n/g)||[]).length;
 var crCount=(text.match(/\r(?!\n)/g)||[]).length;
 var lfAlone=(text.match(/(?<!\r)\n/g)||[]).length;
-const __g2='<div class="result-title">清理结果（'+lines.length+' 行）</div><pre class="code-block">'+escH(out)+'</pre>'
+const __g2='<div class="result-title">清理结果（'+(document.getElementById('top_onespace').checked?'1 行':lines.length+' 行')+'）</div><pre class="code-block">'+escH(out)+'</pre>'
   +'<div class="result-title">处理统计</div>'
   +'<table class="ref-table"><tr><th>原始行数</th><td>'+rawLines.length+'</td></tr>'
-  +'<tr><th>处理后行数</th><td>'+lines.length+'</td></tr>'
+  +'<tr><th>处理后行数</th><td>'+((document.getElementById('top_onespace').checked)?1:lines.length)+'</td></tr>'
   +'<tr><th>删除空行</th><td>'+(blankBefore-blankAfter)+'</td></tr>'
   +'<tr><th>原始字符数</th><td>'+rawChars+'</td></tr>'
   +'<tr><th>处理后字符数</th><td>'+out.length+'</td></tr></table>'
@@ -256,12 +261,14 @@ for(var pi=0; pi<prevN; pi++){
   preview+='<tr><td>'+(pi+1)+'</td><td><code>'+escH(rv)+'</code></td><td><code>'+escH(cv)+'</code></td></tr>';
 }
 preview+='</table>';
+preview+='<p style="font-size:12px;color:var(--text-muted);margin-top:6px;">注：删除空行后，两侧序号分别为各自列表的顺序，不再逐行一一对应；「压成一行」的结果请以上方清理结果为准。</p>';
 const __g3=preview;document.getElementById('result').innerHTML+=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));}
 function resetForm(){document.getElementById('source').value='  第一行   \n\n  第二行   有多余   空格\n\n\n  第三行\n';
       document.getElementById('top_trim').checked=false;
       document.getElementById('top_blank').checked=false;
       document.getElementById('top_collapse').checked=false;
       document.getElementById('top_trail').checked=false;
+      document.getElementById('top_onespace').checked=false;
       calcTool();}
 calcTool();
 
@@ -363,10 +370,11 @@ function __whitespaceExport(){
 }
 function __whitespacePresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#whitespacePresets',[{label:'默认参数',labelEn:'Default',values:{'top_trim':'0', 'top_blank':'0', 'top_collapse':'0', 'top_trail':'0'}},
+    TBKit.preset.bar('#whitespacePresets',[{label:'默认参数',labelEn:'Default',values:{'top_trim':'0', 'top_blank':'0', 'top_collapse':'0', 'top_trail':'0', 'top_onespace':'0'}},
   {"label":"清理复制粘贴的行首尾缩进","labelEn":"Trim pasted indentation","values":{"source":"  第一行 内容\n    第二行 缩进\n  第三行  ","top_trim":true,"top_blank":false,"top_collapse":false,"top_trail":false}},
   {"label":"删除空行并去首尾空白","labelEn":"Drop blank lines","values":{"source":"标题\n\n\n正文段落A\n\n正文段落B\n\n","top_trim":true,"top_blank":true,"top_collapse":false,"top_trail":false}},
-  {"label":"压缩多余空格 + 单末尾换行","labelEn":"Collapse spaces","values":{"source":"列1    列2\t\t列3\n值1    值2\t\t值3\n\n\n","top_trim":false,"top_blank":false,"top_collapse":true,"top_trail":true}}],function(){ calcTool(); });
+  {"label":"压缩多余空格 + 单末尾换行","labelEn":"Collapse spaces","values":{"source":"列1    列2\t\t列3\n值1    值2\t\t值3\n\n\n","top_trim":true,"top_blank":true,"top_collapse":true,"top_trail":true,"top_onespace":false}},
+  {"label":"多段文本压成一行","labelEn":"Flatten to one line","values":{"source":"第一段 内容\n\n第二段 内容\n第三段 内容","top_trim":true,"top_blank":true,"top_collapse":true,"top_trail":false,"top_onespace":true}}],function(){ calcTool(); });
 }
 var __whitespace_f0=(typeof calcTool==='function')?calcTool:null;
 if(__whitespace_f0){
@@ -401,11 +409,11 @@ else document.addEventListener('DOMContentLoaded', __whitespaceBoot);
 <li>压缩多余空格/制表/换行。</li>
 <li>处理从表格或网页粘贴来的文本：压缩多余空格与制表符，让内容在编辑器里排版正常。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">清理</div><div class="dd-ex-body">`a   b\t\n c` → `a b c`（多空白合并为单空格并去首尾）。</div></div>
+<div class="dd-example"><div class="dd-ex-title">清理示例</div><div class="dd-ex-body">输入 <code>"  a   b \n\n  c  "</code>，勾选「去除行首尾空白」「删除空行」「合并连续空格为单个」后 → <code>"a b\nc"</code>；若再勾选「压成一行」则 → <code>"a b c"</code>。只勾选选项时页面结果区会同步给出字符数与空行数变化。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>会删换行吗？</dt><dd>可选保留段落或全压成一行。</dd>
-<dt>为什么清理后缩进没了？</dt><dd>因为行首空格（缩进）也属于空白字符：若选择了「压缩所有连续空白」或「删除行首尾空白」，代码缩进与列表层级都会被去掉。处理代码或带结构文本时应只压缩「行内重复空格」、保留行首缩进；建议先小段试处理，确认效果再全量应用。</dd>
+<dt>为什么清理后缩进没了？</dt><dd>因为行首空格（缩进）也属于空白字符：若选择了「合并连续空格为单个」或「去除每行首尾空白」，代码缩进与列表层级都会被去掉。处理代码或带结构文本时应关闭「去除每行首尾空白」、只压缩行内重复空格；建议先小段试处理，确认效果再全量应用。</dd>
 </dl>
 </div>
 </section>
