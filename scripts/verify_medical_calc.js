@@ -191,6 +191,16 @@ const CASES = [
   "ref": "D-N10 逐项校验：滴系数 0 时旧实现滴速 0、总滴数 0 且无提示；修复后判 df>0 失败并提示。默认 df=20 有效，不含该提示 ⇒ 判别力成立。"
 },
 {
+  "slug": "medical/convert-time-infusion",
+  "inputs": {
+    "vol": "0",
+    "df": "20",
+    "time": "120"
+  },
+  "expect": ["液体量须大于 0"],
+  "ref": "D-N10 逐项校验：液体量 0 时旧实现滴速 0、总滴数 0 且无提示；修复后判 vol>0 失败并提示整句「液体量须大于 0」。默认 vol=500 有效，不含该提示 ⇒ 判别力成立。"
+},
+{
   "slug": "medical/dosage-calculator",
   "inputs": {
     "weight": "90",
@@ -304,6 +314,18 @@ const CASES = [
     "900.0mg"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "medical/medical-calculator",
+  "inputs": {
+    "dose_weight": "60",
+    "dose_per_kg": "10",
+    "dose_freq": "1.5"
+  },
+  "expect": [
+    "每次剂量 = 600.0mg / 1.5次 = 400.0mg"
+  ],
+  "ref": "D-N23 小数频次：旧实现 parseInt 把 1.5 截断为 1，每日 600.0mg 被算成每次 600.0mg；修复后 parseFloat 保留 1.5 ⇒ 600.0 ÷ 1.5 = 400.0mg。默认 freq=3 时该串为「600.0mg / 3次 = 200.0mg」，不命中 ⇒ 强判别。"
 },
 {
   "slug": "medical/reminder-2",

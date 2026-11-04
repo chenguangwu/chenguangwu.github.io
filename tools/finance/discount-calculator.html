@@ -299,8 +299,8 @@ const inputs = [
    <div class="discount-chain" id="discountChain"></div>
    <button type="button" class="btn" onclick="addDiscount()">+ 添加折扣</button>`,
   `<div class="input-grid">
-     <div><label>折后价格（元）</label><input type="number" id="finalPrice" value="80" oninput="calc()" placeholder="如 80"></div>
-     <div><label>折扣率（如 8 表示 8 折）</label><input type="number" id="discountRate" value="8" oninput="calc()" step="0.1" placeholder="如 8"></div>
+     <div><label>折后价格（元）</label><input type="number" id="finalPrice" value="80" oninput="calc()" min="0" placeholder="如 80"><div class="field-error" id="finalPriceError" style="display:none;"></div></div>
+     <div><label>折扣率（如 8 表示 8 折）</label><input type="number" id="discountRate" value="8" oninput="calc()" step="0.1" min="0" max="10" placeholder="如 8"><div class="field-error" id="discountRateError" style="display:none;"></div></div>
    </div>`,
   `<div class="input-grid">
      <div><label>金额（元）</label><input type="number" id="amount" value="100" oninput="calc()" placeholder="如 100"></div>
@@ -350,6 +350,13 @@ function fmt(n){
   return (Math.round(n * 100) / 100).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 }
 
+function setFieldError(id, msg){
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.textContent = msg;
+  el.style.display = msg ? 'flex' : 'none';
+}
+
 function useQuick(d){
   if(currentMode !== 0) setMode(0);
   discounts = [d];
@@ -391,7 +398,11 @@ function calc(){
   } else if(currentMode === 1){
     const fp = parseFloat(document.getElementById('finalPrice').value);
     const dr = parseFloat(document.getElementById('discountRate').value);
-    if(isNaN(fp) || isNaN(dr) || dr === 0){ big.textContent = '请输入有效数值'; detail.innerHTML=''; return; }
+    const fpErr = (!isNaN(fp) && isFinite(fp) && fp >= 0) ? '' : '折后价格须为非负数。';
+    const drErr = (!isNaN(dr) && isFinite(dr) && dr > 0 && dr <= 10) ? '' : '折扣须在 0–10 折之间（如 8 表示 8 折）。';
+    setFieldError('finalPriceError', fpErr);
+    setFieldError('discountRateError', drErr);
+    if(fpErr || drErr){ big.textContent = '请输入有效数值'; detail.innerHTML=''; return; }
     const rate = dr / 10;
     const original = fp / rate;
     const saved = original - fp;

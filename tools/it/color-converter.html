@@ -422,6 +422,16 @@ function switchTab(tab) {
   if (tab === 'history') renderHistory();
 }
 
+function clampChannel(v) {
+  if (!isFinite(v)) return 0;
+  return Math.max(0, Math.min(255, Math.round(v)));
+}
+
+function clampAlpha(v) {
+  if (!isFinite(v)) return 1;
+  return Math.max(0, Math.min(1, v));
+}
+
 function parseColor(str) {
   str = str.trim().toLowerCase();
   
@@ -442,20 +452,25 @@ function parseColor(str) {
   
   const rgbMatch = str.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+)\s*)?\)/);
   if (rgbMatch) {
-    return { r: +rgbMatch[1], g: +rgbMatch[2], b: +rgbMatch[3], a: rgbMatch[4] !== undefined ? +rgbMatch[4] : 1 };
+    return {
+      r: clampChannel(+rgbMatch[1]),
+      g: clampChannel(+rgbMatch[2]),
+      b: clampChannel(+rgbMatch[3]),
+      a: rgbMatch[4] !== undefined ? clampAlpha(+rgbMatch[4]) : 1
+    };
   }
   
   const hslMatch = str.match(/hsla?\(\s*(\d+)\s*,\s*([\d.]+)%\s*,\s*([\d.]+)%\s*(?:,\s*([\d.]+)\s*)?\)/);
   if (hslMatch) {
-    const rgb = hslToRgb(+hslMatch[1], +hslMatch[2], +hslMatch[3]);
-    return { r: rgb.r, g: rgb.g, b: rgb.b, a: hslMatch[4] !== undefined ? +hslMatch[4] : 1 };
+    const rgb = hslToRgb(+hslMatch[1], Math.max(0, Math.min(100, +hslMatch[2])), Math.max(0, Math.min(100, +hslMatch[3])));
+    return { r: clampChannel(rgb.r), g: clampChannel(rgb.g), b: clampChannel(rgb.b), a: hslMatch[4] !== undefined ? clampAlpha(+hslMatch[4]) : 1 };
   }
   
   return null;
 }
 
 function rgbToHex(r, g, b) {
-  return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+  return '#' + [r, g, b].map(x => clampChannel(x).toString(16).padStart(2, '0')).join('');
 }
 
 function rgbToHsl(r, g, b) {
@@ -648,9 +663,24 @@ function calcContrast() {
   const fg = parseColor(fgStr);
   const bg = parseColor(bgStr);
   
-  if (!fg || !bg) return;
+  const ratioEl = document.getElementById('contrastRatio');
+  const levelEl = document.getElementById('contrastLevel');
+  const mark = (id, ok) => { const el = document.getElementById(id); if (el) el.textContent = ok ? '✓' : '✗'; };
   
-  const fgLum = getLuminance(fg.r, fg.g, fg.b);
+  if (!fg || !bg) {
+    ratioEl.textContent = '—';
+    levelEl.textContent = '请输入有效颜色';
+    levelEl.className = 'level';
+    ['wcagAA', 'wcagAAA', 'wcagAALarge', 'wcagAAALarge'].forEach(id => mark(id, false));
+    return;
+  }
+  
+  const a = clampAlpha(fg.a);
+  const fr = fg.r * a + bg.r * (1 - a);
+  const fgc = fg.g * a + bg.g * (1 - a);
+  const fb = fg.b * a + bg.b * (1 - a);
+  
+  const fgLum = getLuminance(clampChannel(fr), clampChannel(fgc), clampChannel(fb));
   const bgLum = getLuminance(bg.r, bg.g, bg.b);
   
   const lighter = Math.max(fgLum, bgLum);
@@ -659,11 +689,10 @@ function calcContrast() {
   
   const ratioStr = ratio.toFixed(2) + ':1';
   
-  document.getElementById('contrastRatio').textContent = ratioStr;
+  ratioEl.textContent = ratioStr;
   document.getElementById('contrastSample').style.background = rgbToHex(bg.r, bg.g, bg.b);
-  document.getElementById('contrastSample').style.color = rgbToHex(fg.r, fg.g, fg.b);
+  document.getElementById('contrastSample').style.color = rgbToHex(clampChannel(fr), clampChannel(fgc), clampChannel(fb));
   
-  const levelEl = document.getElementById('contrastLevel');
   if (ratio >= 7) {
     levelEl.textContent = 'AAA 级通过';
     levelEl.className = 'level pass';
@@ -678,10 +707,10 @@ function calcContrast() {
     levelEl.className = 'level fail';
   }
   
-  document.getElementById('wcagAA').textContent = ratio >= 4.5 ? '✓' : '✗';
-  document.getElementById('wcagAAA').textContent = ratio >= 7 ? '✓' : '✗';
-  document.getElementById('wcagAALarge').textContent = ratio >= 3 ? '✓' : '✗';
-  document.getElementById('wcagAAALarge').textContent = ratio >= 4.5 ? '✓' : '✗';
+  mark('wcagAA', ratio >= 4.5);
+  mark('wcagAAA', ratio >= 7);
+  mark('wcagAALarge', ratio >= 3);
+  mark('wcagAAALarge', ratio >= 4.5);
 }
 
 function getLuminance(r, g, b) {

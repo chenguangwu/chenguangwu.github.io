@@ -387,6 +387,18 @@ function rgbToHex(r,g,b){
   return '#' + [r,g,b].map(x => Math.round(Math.max(0,Math.min(255,x))).toString(16).padStart(2,'0')).join('');
 }
 
+function srgbToLinear(v){
+  v /= 255;
+  return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+}
+function relativeLuminance(rgb){
+  return 0.2126 * srgbToLinear(rgb.r) + 0.7152 * srgbToLinear(rgb.g) + 0.0722 * srgbToLinear(rgb.b);
+}
+function contrastRatio(l1, l2){
+  const hi = Math.max(l1, l2), lo = Math.min(l1, l2);
+  return (hi + 0.05) / (lo + 0.05);
+}
+
 function rgbToHsl(r,g,b){
   r/=255;g/=255;b/=255;
   const max=Math.max(r,g,b),min=Math.min(r,g,b);
@@ -552,14 +564,21 @@ function colorToFormat(hex, format){
 function renderPalette(){
   const container = document.getElementById('paletteDisplay');
   const __h0=colors.map((c, i) => {
-    const rgb = hexToRgb(c);
-    const brightness = (rgb.r*299 + rgb.g*587 + rgb.b*114)/1000;
-    const textColor = brightness > 128 ? '#333' : '#fff';
+    const rgb = hexToRgb(c) || {r:0,g:0,b:0};
+    const lum = relativeLuminance(rgb);
+    const whiteRatio = contrastRatio(lum, 1);
+    const blackRatio = contrastRatio(lum, 0);
+    const useDark = blackRatio >= whiteRatio;
+    const textColor = useDark ? '#111' : '#fff';
+    const textShadow = useDark ? 'none' : '0 1px 3px rgba(0,0,0,0.3)';
+    const whiteGrade = whiteRatio >= 7 ? 'AAA' : whiteRatio >= 4.5 ? 'AA' : '✗';
+    const blackGrade = blackRatio >= 7 ? 'AAA' : blackRatio >= 4.5 ? 'AA' : '✗';
     return `
       <div class="color-swatch" style="background:${c};color:${textColor};" onclick="copyColor('${c}')">
         <button type="button" class="copy-btn" onclick="event.stopPropagation();copyColor('${c}')">复制</button>
-        <div class="color-info" style="color:${textColor};">
+        <div class="color-info" style="color:${textColor};text-shadow:${textShadow};">
           <div class="hex">${colorToFormat(c, currentFormat)}</div>
+          <div class="contrast" style="font-size:10px;opacity:0.85;margin-top:2px;">WCAG <span>白底</span> ${whiteRatio.toFixed(2)}:1 ${whiteGrade} · <span>黑底</span> ${blackRatio.toFixed(2)}:1 ${blackGrade}</div>
         </div>
       </div>
     `;
@@ -777,13 +796,22 @@ function exportImage(){
   colors.forEach((c, i) => {
     ctx.fillStyle = c;
     ctx.fillRect(i*swatchW, 0, swatchW, h);
-    
-    ctx.fillStyle = '#fff';
+
+    const rgb = hexToRgb(c) || {r:0,g:0,b:0};
+    const lum = relativeLuminance(rgb);
+    const whiteRatio = contrastRatio(lum, 1);
+    const blackRatio = contrastRatio(lum, 0);
+    const useDark = blackRatio >= whiteRatio;
+    const ratio = useDark ? blackRatio : whiteRatio;
+    const grade = ratio >= 7 ? 'AAA' : ratio >= 4.5 ? 'AA' : 'AA ✗';
+    ctx.fillStyle = useDark ? '#111' : '#fff';
     ctx.font = 'bold 16px monospace';
     ctx.textAlign = 'center';
-    ctx.shadowColor = 'rgba(0,0,0,0.5)';
-    ctx.shadowBlur = 4;
-    ctx.fillText(c.toUpperCase(), i*swatchW + swatchW/2, h - 20);
+    ctx.shadowColor = useDark ? 'transparent' : 'rgba(0,0,0,0.5)';
+    ctx.shadowBlur = useDark ? 0 : 4;
+    ctx.fillText(c.toUpperCase(), i*swatchW + swatchW/2, h - 44);
+    ctx.font = '12px monospace';
+    ctx.fillText(`WCAG ${ratio.toFixed(2)}:1 ${grade}`, i*swatchW + swatchW/2, h - 22);
     ctx.shadowBlur = 0;
   });
   

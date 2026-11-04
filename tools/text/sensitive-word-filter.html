@@ -133,7 +133,7 @@ s.parentNode.insertBefore(el, s);
 
     <div class="toolbar">
       <div id="sensitive_word_filterPresets"></div><button class="btn primary" onclick="scan()">检测并替换</button><button class="btn" type="button" onclick="__sensitive_word_filterExport()">导出明细 CSV</button>
-      <button class="btn" onclick="copyResult()">复制清洗文本</button>
+      <button class="btn" id="copyBtn" onclick="copyResult()">复制清洗文本</button>
     </div>
 
     <div id="summary" class="result-box"></div> <div id="sensitive_word_filterTable"></div> <div id="sensitive_word_filterDiff"></div> <div id="sensitive_word_filterChart"></div> <div id="sensitive_word_filterHist"></div>
@@ -199,48 +199,57 @@ s.parentNode.insertBefore(el, s);
   </div>
 </div>
 <script>
+function escHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 function scan() {
   const raw = document.getElementById('content').value || '';
   const replaceWith = document.getElementById('replaceWith').value || '*';
   const words = (document.getElementById('words').value || '').split(/[\n,]/).map(w => w.trim()).filter(Boolean);
+  const preview = document.getElementById('preview');
+  const copyBtn = document.getElementById('copyBtn');
 
   if (!raw || words.length === 0) {
-    const __h0='<p>未检测到词条。</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('summary').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('summary').innerHTML=__h0;
-    const __h1=raw;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('preview').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('preview').innerHTML=__h1;
+    document.getElementById('summary').textContent = '未检测到词条。';
+    preview.textContent = raw;
+    delete preview.dataset.clean;
+    copyBtn.disabled = true;
     return;
   }
 
-  let clean = raw;
+  const uniqWords = Array.from(new Set(words));
+  const re = new RegExp('(' + uniqWords.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')', 'gi');
+
+  let clean = '';
+  let marked = '';
   let count = 0;
+  let last = 0;
 
-  words.forEach(w => {
-    const esc = w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const re = new RegExp('(' + esc + ')', 'gi');
-    const matches = clean.match(re);
-    if (matches) count += matches.length;
-    clean = clean.replace(re, str => replaceWith.repeat(Math.max(1, Math.min(6, str.length))));
+  raw.replace(re, (match, _p, offset) => {
+    count += 1;
+    const gap = raw.slice(last, offset);
+    clean += gap + replaceWith.repeat(Math.max(1, Math.min(6, match.length)));
+    marked += escHtml(gap) + '<mark>' + escHtml(match) + '</mark>';
+    last = offset + match.length;
+    return match;
   });
+  clean += raw.slice(last);
+  marked += escHtml(raw.slice(last));
 
-  const html = raw
-    .split('').map(ch => ch).join('')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-
-  let marked = html;
-  words.forEach(w => {
-    const esc = w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const re = new RegExp('(' + esc + ')', 'gi');
-    marked = marked.replace(re, '<mark>$1</mark>');
-  });
-
-  const __h2='<p>检测到 <strong>' + count + '</strong> 处命中。</p>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('summary').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('summary').innerHTML=__h2;
-  const __h3=marked;if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('preview').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('preview').innerHTML=__h3;
-  document.getElementById('preview').dataset.clean = clean;
+  document.getElementById('summary').innerHTML = '<p>检测到 <strong>' + count + '</strong> 处命中。</p>';
+  preview.innerHTML = marked;
+  preview.dataset.clean = clean;
+  copyBtn.disabled = false;
 }
 
 function copyResult() {
-  const clean = document.getElementById('preview').dataset.clean || '';
+  const preview = document.getElementById('preview');
+  const clean = preview.dataset.clean;
+  if (clean === undefined || clean === '') {
+    document.getElementById('summary').textContent = '暂无可复制的清洗结果';
+    return;
+  }
   ToolBox.copyText(clean, i18nText('msg486'));
 }
 

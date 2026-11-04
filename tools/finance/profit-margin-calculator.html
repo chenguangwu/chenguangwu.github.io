@@ -548,7 +548,26 @@ function calcReverse(){
   
   var res2 = '';
   var targetPrice = 0;
+  var marginErr2 = '';
   if(costCost > 0){
+    if(mtype2 === 'markup'){
+      if(!isFinite(target2) || target2 < 0) marginErr2 = '目标利润率须在 0%–100% 之间（不含 100%）。';
+    } else if(!isFinite(target2) || target2 < 0 || target2 >= 100){
+      marginErr2 = '目标利润率须在 0%–100% 之间（不含 100%）。';
+    } else if(mtype2 === 'operating'){
+      if(target2 + 25 >= 100) marginErr2 = '目标营业利润率须小于 75%（扣除 25% 假设期间费用率后仍须为正）。';
+    } else if(mtype2 === 'net'){
+      if(!isFinite(tax2) || tax2 < 0 || tax2 >= 100){
+        marginErr2 = '所得税税率须在 0%–100% 之间（不含 100%）。';
+      } else {
+        var pretaxCheck = (target2 / 100) / (1 - tax2 / 100);
+        if(1 - pretaxCheck - 0.25 <= 0) marginErr2 = '目标净利率过高：扣除所得税与 25% 假设期间费用率后售价无解，请降低目标净利率。';
+      }
+    }
+  }
+  if(costCost > 0 && marginErr2){
+    res2 = '<p style="color:var(--danger);">⚠ ' + marginErr2 + '</p>';
+  } else if(costCost > 0){
     if(mtype2 === 'gross'){
       targetPrice = costCost / (1 - target2 / 100);
       res2 += '<p>目标毛利率：<strong>' + target2 + '%</strong></p>';
@@ -608,6 +627,7 @@ function calcBatch(){
   for(var c = start; c <= end; c += step){
     var row = [ToolBox.formatNumber(c, 2)];
     margins.forEach(function(m){
+      if(!isFinite(m) || m < 0 || m >= 100){ row.push('不可达'); return; }
       var price = c / (1 - m / 100);
       row.push(ToolBox.formatNumber(price, 2));
     });

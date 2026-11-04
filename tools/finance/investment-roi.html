@@ -709,6 +709,13 @@ function calcCompare(){
     add: parseFloat(document.getElementById('bAdd').value)||0
   };
   if(a.cost <= 0 || b.cost <= 0 || a.years <= 0 || b.years <= 0) return;
+  // 负追加会被当成 0 静默丢弃并放大投入基数，直接按字段错误处理
+  if(a.add < 0 || b.add < 0){
+    document.getElementById('compareStats').innerHTML='<div class="stat-card"><div class="val" style="font-size:14px;color:var(--danger);">每年追加须 ≥ 0；如需从本金中取出，请按真实现金流另行计算。</div></div>';
+    const cv=document.getElementById('compareChart');
+    if(cv){ const c2=cv.getContext('2d'); c2.clearRect(0,0,cv.width,cv.height); }
+    return;
+  }
 
   function calcFV(p){
     let fv = p.cost * Math.pow(1 + p.rate/100, p.years);
@@ -724,16 +731,17 @@ function calcCompare(){
   const aProfit = aFV - aInvest, bProfit = bFV - bInvest;
   const aRoi = aInvest > 0 ? aProfit/aInvest : 0;
   const bRoi = bInvest > 0 ? bProfit/bInvest : 0;
-  const aAnnual = a.years > 0 ? Math.pow(1+aRoi, 1/a.years)-1 : 0;
-  const bAnnual = b.years > 0 ? Math.pow(1+bRoi, 1/b.years)-1 : 0;
+  const aAnnual = aRoi > -1 ? Math.pow(1+aRoi, 1/a.years)-1 : -1;
+  const bAnnual = bRoi > -1 ? Math.pow(1+bRoi, 1/b.years)-1 : -1;
   const diff = bFV - aFV;
-  const winner = bFV > aFV ? 'B' : (aFV > bFV ? 'A' : '持平');
+  // 判优按「年化回报率」而非终值：本金/追加不同时，终值天然偏向投入更多的一方
+  const winner = Math.abs(bAnnual - aAnnual) < 1e-9 ? '持平' : (bAnnual > aAnnual ? 'B' : 'A');
 
   const __h5=`
     <div class="stat-card"><div class="val" style="color:var(--primary);">${fmt(aFV)}</div><div class="lbl">方案A终值</div></div>
     <div class="stat-card"><div class="val" style="color:var(--success);">${fmt(bFV)}</div><div class="lbl">方案B终值</div></div>
     <div class="stat-card"><div class="val" style="color:${diff>=0?'var(--success)':'var(--danger)'};">${diff>=0?'+':''}${fmt(diff)}</div><div class="lbl">B-A 差额</div></div>
-    <div class="stat-card"><div class="val">${winner==='持平'?'持平':'方案'+winner}</div><div class="lbl">更优方案</div></div>
+    <div class="stat-card"><div class="val">${winner==='持平'?'持平':'方案'+winner}</div><div class="lbl">更优方案（按年化回报率判优）</div></div>
     <div class="stat-card"><div class="val">${fmtPct(aAnnual)}</div><div class="lbl">A年化</div></div>
     <div class="stat-card"><div class="val">${fmtPct(bAnnual)}</div><div class="lbl">B年化</div></div>
   `;if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){document.getElementById('compareStats').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('compareStats').innerHTML=__h5;

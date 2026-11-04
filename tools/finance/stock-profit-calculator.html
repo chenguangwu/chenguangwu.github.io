@@ -224,6 +224,7 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="calcError" style="display:none;margin:8px 0;font-size:13px;color:var(--danger);font-weight:600;"></div>
     <div class="summary" id="summaryArea">
       <div class="summary-card">
         <div class="num" id="sTotalCost">--</div>
@@ -450,9 +451,24 @@ s.parentNode.insertBefore(el, s);
 
   window.switchMode = switchMode;
 
+  function showInputError(msg) {
+    var errEl = document.getElementById('calcError');
+    errEl.textContent = msg;
+    errEl.style.display = 'block';
+    ['sTotalCost','sTotalIncome','sPnl','sPnlPct','sPerShare','sTotalFee',
+     'dBuyAmt','dBuyComm','dBuyTransfer','dBuyTotal','dSellAmt','dSellStamp','dSellComm','dSellTransfer','dSellTotal',
+     'dPnl','dPnlPct','dPerShare','dBreakEven'].forEach(function(id) {
+      document.getElementById(id).textContent = '--';
+    });
+    document.getElementById('feeTableBody').innerHTML = '';
+    calcData = { buyQty: 0 };
+  }
+
   function calc() {
     var buyPrice = parseFloat(document.getElementById('buyPrice').value) || 0;
-    var buyQty = parseInt(document.getElementById('buyQty').value, 10) || 0;
+    var buyQtyRaw = String(document.getElementById('buyQty').value || '').trim();
+    var buyQtyNum = parseFloat(buyQtyRaw);
+    var buyQty = isFinite(buyQtyNum) ? buyQtyNum : 0;
     var sellPrice = parseFloat(document.getElementById('sellPrice').value) || 0;
     var commRate = parseFloat(document.getElementById('commissionRate').value) || 0;
     var stampRate = parseFloat(document.getElementById('stampRate').value) || 0;
@@ -460,6 +476,13 @@ s.parentNode.insertBefore(el, s);
     var minComm = parseFloat(document.getElementById('minCommission').value) || 0;
 
     var mode = getMode();
+
+    // 价格与数量必须为正：负买入价会让买入成本变负、盈亏虚增，负分母又使百分比恒为 0
+    if (!(buyPrice > 0)) { showInputError('买入价须大于 0。'); return; }
+    if (!(buyQty > 0) || Math.floor(buyQty) !== buyQty) { showInputError('买入数量须为正整数。'); return; }
+    if (!(sellPrice > 0)) { showInputError(mode === 'sell' ? '卖出价须大于 0。' : '当前价格须大于 0。'); return; }
+    document.getElementById('calcError').textContent = '';
+    document.getElementById('calcError').style.display = 'none';
 
     // 转为小数比例
     var commRatio = commRate / 100;

@@ -176,6 +176,21 @@ s.parentNode.insertBefore(el, s);
           <option value="ly">光年 (ly)</option>
         </select>
       </div>
+      <div>
+        <label>目标单位</label>
+        <select id="toUnit" onchange="convert()">
+          <option value="mm">毫米 (mm)</option>
+          <option value="cm" selected>厘米 (cm)</option>
+          <option value="m">米 (m)</option>
+          <option value="km">千米 (km)</option>
+          <option value="in">英寸 (in)</option>
+          <option value="ft">英尺 (ft)</option>
+          <option value="yd">码 (yd)</option>
+          <option value="mi">英里 (mi)</option>
+          <option value="nmi">海里 (nmi)</option>
+          <option value="ly">光年 (ly)</option>
+        </select>
+      </div>
     </div>
 
     <div class="toolbar">
@@ -318,13 +333,32 @@ function convert(){
       html += `<p>${fmt(meters / factors[k])} ${names[k]}</p>`;
     }
   });
+  const toEl = document.getElementById('toUnit');
+  const to = toEl ? toEl.value : '';
+  if(to && factors[to] && to !== from){
+    html += `<p style="margin-top:6px;">目标单位：<strong>${fmt(meters / factors[to])} ${names[to]}</strong></p>`;
+  }
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h1;
 }
 
 function swap(){
-  // 单一源单位选择时，此函数仅作为占位（用户可参照全表）
-  const r = document.getElementById('resultBox');
-  r.scrollIntoView({behavior:'smooth'});
+  // 真正互换源/目标单位，并把输入值换成上一次的目标结果后重算
+  const fromEl = document.getElementById('fromUnit');
+  const toEl = document.getElementById('toUnit');
+  if(!fromEl || !toEl){
+    document.getElementById('resultBox').scrollIntoView({behavior:'smooth'});
+    return;
+  }
+  const from = fromEl.value, to = toEl.value;
+  const inputEl = document.getElementById('inputVal');
+  const raw = parseFloat(inputEl.value);
+  fromEl.value = to;
+  toEl.value = from;
+  if(isFinite(raw) && from !== to){
+    inputEl.value = fmt(raw * factors[from] / factors[to]);
+  }
+  convert();
+  document.getElementById('resultBox').scrollIntoView({behavior:'smooth'});
 }
 function clearAll(){
   document.getElementById('inputVal').value = '';

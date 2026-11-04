@@ -1544,22 +1544,24 @@ const CASES = [
     "slug": "life/daily-calorie-needs",
     "inputs": {
       "bmiAge": "42",
-      "bmiHeight": "42",
+      "bmiHeight": "170",
       "bmiWeight": "42",
       "bmrAge": "42",
-      "bmrHeight": "42",
+      "bmrHeight": "170",
       "bmrWeight": "42",
       "tdeeAge": "42",
-      "tdeeHeight": "42",
+      "tdeeHeight": "170",
       "tdeeWeight": "42",
       "bmiGender": "female",
       "bmrGender": "female",
       "tdeeGender": "female"
     },
     "expect": [
-      "312 基础代谢 483 目标摄入 3380 每周消耗 0.00kg 每周体重变化"
+      "1112 基础代谢 1723 目标摄入 12060 每周消耗 0.00kg 每周体重变化"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"bmiAge\":\"42\",\"bmiHeight\":\"42\",\"bmiWeight\":\"42\",\"bmrAge\":\"42\",\"bmrHeight\":\"42\",\"bmrWeight\":\"42\",\"tdeeAge\":\"42\",\"tdeeHeight\":\"42\",\"tdeeWeight\":\"42\",\"bmiGender\":\"female\",\"bmrGender\":\"female\",\"tdeeGender\":\"female\"}，输出区含「体重(kg) 1082% 体脂率估计\nfemale\n42\n42\n42\n312 千…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例，LF-N23 后身高须落在 50–250）：注入女性 42 岁 / 170 cm / 42 kg，"
+      + "Mifflin 女式 BMR = 10×42 + 6.25×170 − 5×42 − 161 = 1111.5 → 1112；中等活动 ×1.55 = 1722.8 → 1723；"
+      + "每周消耗 1111.5×1.55×7 = 12059.8 → 12060。默认 25/170/65 男性 ⇒ 1681 基础代谢，注入失败即不命中。"
   },
   {
     "slug": "life/data-unit-converter",
@@ -2134,6 +2136,57 @@ const CASES = [
     expect: ["SPRING2027:2027-02-06"],
     ref: "N4-B 权威农历表：2027 年春节为 2 月 6 日（旧硬编码 1/29 无法覆盖），"
        + "直接读取表内年份秒验；默认态不含 SPRING2027 前缀。",
+  },
+
+  // ── 卡路里：BMR/TDEE 数值范围校验（LF-N23）───────────────────
+  {
+    slug: "life/daily-calorie-needs",
+    inputs: { bmrAge: "-5", bmrHeight: "170", bmrWeight: "65" },
+    expect: ["请输入有效数据：年龄 1–120、身高 50–250、体重 10–300"],
+    ref: "LF-N23 负年龄：旧守卫 `!age || !height || !weight` 对 -5 恒放行，Mifflin 男式算出 1742.5 千卡并正常展示；"
+       + "现按 1–120/50–250/10–300 校验并在 bmrDesc 给出统一提示。默认 25/170/65 正常出结果、不含该提示 ⇒ 强判别。",
+  },
+  {
+    slug: "life/daily-calorie-needs",
+    inputs: { tdeeHeight: "-170" },
+    expect: ["请输入有效数据：年龄 1–120、身高 50–250、体重 10–300"],
+    ref: "LF-N23 负身高（TDEE 面板）：旧实现把 -170 当合法身高算出负数 BMR 仍展示；现同样走范围校验。"
+       + "仅注入 tdeeHeight ⇒ BMI 面板提示语（「请输入有效数据」）与 BMR 面板都不产出该整句，锚定位 TDEE 分支 ⇒ 强判别。",
+  },
+
+  // ── 蜡烛：分钟进位（LF-N27）与清空重量状态复位（LF-N28）──────
+  {
+    slug: "life/candle-burn-time",
+    inputs: { weight: "42", wicks: "2" },
+    expect: ["约 3小时0分钟"],
+    ref: "LF-N27 42 g 大豆蜡双芯：有效蜡 35.7 g、燃速 11.9 g/h ⇒ 3.0 h；旧实现 floor=2、round(0.999…×60)=60 ⇒ "
+       + "「2小时60分钟」；现总分钟 180 拆分 ⇒ 3小时0分钟。默认 200 g 单芯显示「24小时17分钟」，该锚失配。"
+       + "（主结果「3.0 小时」新旧都命中，不作锚。）",
+  },
+  {
+    slug: "life/candle-burn-time",
+    inputs: { weight: "107" },
+    expect: ["约 13小时0分钟"],
+    ref: "LF-N27 107 g 单芯：90.95/7 = 12.9929 h ⇒ 总分钟 780 ⇒ 13小时0分钟；旧实现「12小时60分钟」。"
+       + "与 42 g 用例互补覆盖浮点进位边界（主结果 13.0 小时新旧都命中，不作锚）。",
+  },
+  {
+    slug: "life/candle-burn-time",
+    clicks: ["document.getElementById('weight').value='';calc();"],
+    expect: ["请输入蜡烛重量（g）"],
+    ref: "LF-N28 清空重量：旧早退分支只重置 burnResult/burnStats，burnDesc 仍保留上一次「约 N小时N分钟 · 每天4小时可用N天」；"
+       + "现同步复位为提示语并禁用复制按钮。默认 200 g 正常出结果、不含该提示 ⇒ 强判别。",
+  },
+
+  // ── 长度换算：交换单位真正互换（LF-N50）────────────────────────
+  {
+    slug: "life/length-converter",
+    inputs: { inputVal: "2.54", fromUnit: "cm", toUnit: "in" },
+    clicks: ["swap();"],
+    expect: ["基准： 1 英寸", "目标单位： 2.54 厘米"],
+    ref: "LF-N50 2.54 cm ⇄ in：旧 swap 只滚动页面，点后仍是「基准： 2.54 厘米」且无目标行；"
+       + "现互换 from/to 并把输入换成上次目标值 1 in ⇒ 「基准： 1 英寸」+「目标单位： 2.54 厘米」。"
+       + "默认 1 m→100 cm 不含上述锚 ⇒ 强判别。",
   }
 
 ];

@@ -180,11 +180,13 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row">
       <div>
         <label>公积金贷款利率（%）</label>
-        <input type="number" id="loanRate" value="3.1" oninput="calc()" step="any" placeholder="如 3.1">
+        <input type="number" id="loanRate" value="3.1" oninput="calc()" step="any" min="0" max="10" placeholder="如 3.1">
+        <div class="field-error" id="loanRateError" style="display:none;"></div>
       </div>
       <div>
         <label>贷款年限</label>
-        <input type="number" id="loanYears" value="30" oninput="calc()" placeholder="如 30">
+        <input type="number" id="loanYears" value="30" oninput="calc()" min="1" max="30" step="1" placeholder="如 30">
+        <div class="field-error" id="loanYearsError" style="display:none;"></div>
       </div>
       <div>
         <label>余额倍数（倍，常见 15–20）</label>
@@ -300,13 +302,22 @@ function fmt(n){
   return n.toLocaleString('zh-CN', {maximumFractionDigits:2});
 }
 
+function setFieldError(id, msg){
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.textContent = msg;
+  el.style.display = msg ? 'flex' : 'none';
+}
+
 function calc(){
   const sal = parseFloat(document.getElementById('salary').value) || 0;
   const sp = parseFloat(document.getElementById('selfPct').value) || 0;
   const ep = parseFloat(document.getElementById('empPct').value) || 0;
   const months = parseInt(document.getElementById('months').value, 10) || 0;
-  const loanRate = parseFloat(document.getElementById('loanRate').value) || 0;
-  const loanYears = parseInt(document.getElementById('loanYears').value, 10) || 0;
+  const loanRateRaw = String(document.getElementById('loanRate').value).trim();
+  const loanRate = parseFloat(loanRateRaw);
+  const loanYearsRaw = String(document.getElementById('loanYears').value).trim();
+  const loanYearsNum = parseFloat(loanYearsRaw);
   const multiRaw = parseFloat(document.getElementById('multi').value);
   const multi = isNaN(multiRaw) || multiRaw <= 0 ? 20 : multiRaw;
   const capWanRaw = parseFloat(document.getElementById('cityCap').value);
@@ -315,6 +326,16 @@ function calc(){
     document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">请输入合理数值</p>';
     return;
   }
+  // 贷款参数须为合法值：利率 0–10%，年限 1–30 的整数；越界字段报错，不进入月供计算
+  const rateErr = (loanRateRaw !== '' && isFinite(loanRate) && loanRate >= 0 && loanRate <= 10) ? '' : '贷款利率须为 0–10% 之间的数字。';
+  const yearsErr = (loanYearsRaw !== '' && isFinite(loanYearsNum) && loanYearsNum >= 1 && loanYearsNum <= 30 && loanYearsNum === Math.floor(loanYearsNum)) ? '' : '贷款年限须为 1–30 之间的整数。';
+  setFieldError('loanRateError', rateErr);
+  setFieldError('loanYearsError', yearsErr);
+  if(rateErr || yearsErr){
+    document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">⚠ 贷款参数无效：请先修正标红的字段。</p>';
+    return;
+  }
+  const loanYears = loanYearsNum;
   const selfMonthly = sal * sp / 100;
   const empMonthly = sal * ep / 100;
   const totalMonthly = selfMonthly + empMonthly;
@@ -327,8 +348,10 @@ function calc(){
   const monthlyRate = loanRate / 100 / 12;
   const loanMonths = loanYears * 12;
   let monthlyPayment = 0;
-  if(monthlyRate > 0 && loanAmount > 0){
-    monthlyPayment = loanAmount * monthlyRate / (1 - Math.pow(1 + monthlyRate, -loanMonths));
+  if(loanAmount > 0 && loanMonths > 0){
+    monthlyPayment = monthlyRate > 0
+      ? loanAmount * monthlyRate / (1 - Math.pow(1 + monthlyRate, -loanMonths))
+      : loanAmount / loanMonths;
   }
   const totalRepay = monthlyPayment * loanMonths;
   const totalInterest = totalRepay - loanAmount;

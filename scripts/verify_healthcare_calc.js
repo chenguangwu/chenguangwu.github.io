@@ -30,6 +30,18 @@ const CASES = [
     ref: "WHO P50 中位体重核对：age 默认 4 岁/男 P50=16.3 kg，|20−16.3|÷16.3=22.7%→toFixed(0)=23%。默认 weight=15 偏差 8% ⇒ 随注入变化、零交集。",
   },
   {
+    slug: "healthcare/antipyretic-dose",
+    inputs: { weight: "6", dose: "15", conc: "32", age: "0.15" },
+    expect: ["3 月龄以下婴儿发热应及时就医，不建议自行使用退热药"],
+    ref: "D-N16：age=0.15 岁 = 1.8 月龄，＜3 月龄 ⇒ 拒绝计算并提示就医；旧实现年龄只读不分支、仍输出 2.8 mL，默认 age=4 岁也不含该提示 ⇒ 零命中。",
+  },
+  {
+    slug: "healthcare/antipyretic-dose",
+    inputs: { weight: "6", dose: "15", conc: "32", age: "0.4" },
+    expect: ["6 月龄及以下婴儿用药需医师评估，请遵医嘱。"],
+    ref: "D-N16：age=0.4 岁 = 4.8 月龄 ⇒ 仍计算单次 2.8 mL，并追加 ≤6 月龄医师评估提示；默认 4 岁无该提示 ⇒ 强判别。",
+  },
+  {
     slug: "healthcare/healthcare",
     inputs: { adult_dose: "500", child_weight: "100", adult_weight: "70", max_factor: "1" },
     expect: ["受限剂量： 500.00"],
@@ -40,6 +52,12 @@ const CASES = [
     inputs: { adult_dose: "500", child_weight: "20", adult_weight: "70", max_factor: "0" },
     expect: ["最大倍数限制须 ≥ 1"],
     ref: "D-N6：max_factor=0 时旧实现受限剂量 = min(142.86, 500×0) = 0.00 mg，静默输出 0 剂量。修复后 <1 拒绝计算并提示「最大倍数限制须 ≥ 1」，不再输出 0 mg；默认 max_factor=2 正常计算，不含该提示 ⇒ 判别力成立。",
+  },
+  {
+    slug: "healthcare/healthcare",
+    inputs: { adult_dose: "0", child_weight: "20", adult_weight: "70", max_factor: "2" },
+    expect: ["成人剂量须大于 0 mg"],
+    ref: "D-N6（0 值分支）：成人剂量填 0 时旧实现输出「按体重剂量 0.00 / 受限剂量 0.00 mg」，既无意义又静默；修复后拒绝计算并提示。默认 500 mg 正常，不含该串 ⇒ 零命中。",
   },
   {
     slug: "healthcare/weight-dosage",
@@ -121,7 +139,13 @@ const CASES = [
     slug: "healthcare/qtc",
     inputs: { qt: "420", hr: "50", formula: "1" },
     expect: ["383.4"],
-    ref: "RR = 60÷50 = 1.2 s；Bazett = 420÷√1.2 = 420÷1.09545 = 383.4 ms；公式 1 取男上限 440 ms",
+    ref: "RR = 60÷50 = 1.2 s；Bazett（下拉默认）= 420÷√1.2 = 420÷1.09545 = 383.4 ms；性别默认男 ⇒ 上限 450 ms、判未延长。",
+  },
+  {
+    slug: "healthcare/qtc",
+    inputs: { qt: "500", hr: "50", formula: "1" },
+    expect: ["判定： 延长", "456.4"],
+    ref: "D-N33：QT=500、HR=50、Bazett：RR=1.2，QTc=500÷√1.2=456.4 ms，超过男上限 450 ⇒ 判「延长」；默认 400/75 得 447.2/未延长，注入后不再命中默认串。",
   },
 
   // ---------- 体成分与代谢 ----------
@@ -148,6 +172,12 @@ const CASES = [
     inputs: { weight: "70", height: "175", age: "30" },
     expect: ["1.848"],
     ref: "Du Bois = 0.007184 × 70^0.425 × 175^0.725 = 0.007184 × 6.0843 × 42.284 = 1.848 m²",
+  },
+  {
+    slug: "healthcare/bsa-calculator",
+    inputs: { weight: "10", height: "80", age: "2" },
+    expect: ["BSA： 0.476", "所用公式： Haycock"],
+    ref: "D-N30：2 岁 10kg/80cm ⇒ Haycock = 0.024265×10^0.5378×80^0.3964 = 0.476 m²；旧实现忽略年龄、恒用 DuBois 得 0.458，且页内无公式标签 ⇒ 默认成人 1.754/DuBois 亦不命中。",
   },
   {
     slug: "healthcare/ibw",
@@ -198,6 +228,12 @@ const CASES = [
     inputs: { scr: "1.2", age: "60", sex: "2" },
     expect: ["45.8"],
     ref: "MDRD（女）= 175 × 1.2^(−1.154) × 60^(−0.203) × 0.742 = 175 × 0.81033 × 0.43550 × 0.742 = 45.83 → 45.8 mL/min",
+  },
+  {
+    slug: "healthcare/gfr-cockcroft",
+    inputs: { age: "50", weight: "70", scr: "80", sex: "1", height: "155" },
+    expect: ["98.83"],
+    ref: "D-N22：CrCl = (140−50)×70 ÷ [72×(80÷88.4)] = 96.6875 mL/min；BSA(DuBois, 70kg/155cm) = 0.007184×70^0.425×155^0.725 = 1.6925 m²；归一 = 96.6875×1.73÷1.6925 = 98.83。旧实现身高硬编码 170 cm ⇒ 得 92.43，注入后零命中。",
   },
   {
     slug: "healthcare/gfr-cockcroft",
@@ -486,12 +522,13 @@ const CASES = [
       "age": "42",
       "weight": "42",
       "scr": "42",
-      "sex": "42"
+      "sex": "42",
+      "height": "42"
     },
     "expect": [
-      "42\n42\n42\n42\nCrCl： 120.32"
+      "CrCl： 120.32"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"age\":\"42\",\"weight\":\"42\",\"scr\":\"42\",\"sex\":\"42\"}，输出区含「42\n42\n42\n42\nCrCl： 120.32」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"age\":\"42\",\"weight\":\"42\",\"scr\":\"42\",\"sex\":\"42\",\"height\":\"42\"}，CrCl = (140−42)×42 ÷ (72×(42÷88.4)) × 1 = 120.32 mL/min；默认态 60 岁/70kg/90µmol/L 得 70.94 ⇒ 不命中。D-N22 新增身高项后原「四值前缀」串失效，改为单锚 CrCl 值。"
   },
   {
     "slug": "healthcare/egfr-calculator",
@@ -658,14 +695,15 @@ const CASES = [
   {
     "slug": "healthcare/qtc",
     "inputs": {
-      "qt": "42",
-      "hr": "42",
-      "formula": "42"
+      "qt": "420",
+      "hr": "50",
+      "formula": "2"
     },
     "expect": [
-      "s 正常上限： 450 ms"
+      "所用公式： Fridericia",
+      "395.2"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"qt\":\"42\",\"hr\":\"42\",\"formula\":\"42\"}，输出区含「s 正常上限： 450 ms」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "D-N33：公式下拉选 2=Fridericia，RR=60÷50=1.2，QTc=420÷∛1.2=420÷1.062659=395.2 ms；旧实现忽略公式字段、恒输出 Bazett 447.2，且不含「Fridericia」标签 ⇒ 默认态零命中。"
   },
   {
     "slug": "healthcare/parkland",

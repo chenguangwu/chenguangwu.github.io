@@ -118,10 +118,10 @@ s.parentNode.insertBefore(el, s);
 </div>
 <div class="card">
     <h2 data-zh="📐 体表面积 BSA">📐 Body Surface Area Calculator</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="用 DuBois 公式估算体表面积。">Estimate body surface area with the DuBois equation from height and weight, used to size chemotherapy doses, burn fluid plans and paediatric drug dosing.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="按年龄与体重身高估算体表面积：成人用 DuBois 式，儿童/婴幼儿用 Haycock 式，年龄留空按成人处理。">Estimate body surface area from weight, height and age: the DuBois equation for adults and the Haycock equation for children under 18 (blank age falls back to adult), used to size chemotherapy doses, burn fluid plans and paediatric drug dosing.</p>
     <div class="input-row"><label>体重 kg</label><input type="number" id="weight" value="65" step="any" oninput="calc()" placeholder="如 65"></div>
     <div class="input-row"><label>身高 cm</label><input type="number" id="height" value="170" step="any" oninput="calc()" placeholder="如 170"></div>
-    <div class="input-row"><label>年龄</label><input type="number" id="age" value="30" step="any" oninput="calc()" placeholder="如 30"></div>
+    <div class="input-row"><label>年龄（选填，＜18 岁用 Haycock）</label><input type="number" id="age" value="30" step="any" oninput="calc()" placeholder="如 30"></div>
     <div class="toolbar">
       <div id="bsa_calculatorPresets"></div>
       <button class="btn primary" onclick="calc()">计算</button>
@@ -136,7 +136,7 @@ s.parentNode.insertBefore(el, s);
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
-    <div class="formula-eq">体表面积（DuBois 式）：BSA = 0.007184 × 体重(kg)^0.425 × 身高(cm)^0.725（m²，保留 3 位小数）。校验：体重、身高、年龄三项非空合法数值守卫（年龄读入但不参与计算）。判据：无固定分级，页面仅此一个公式，体重与身高越大 BSA 越大。</div>
+    <div class="formula-eq">成人（年龄 ≥18 或留空）：DuBois 式 BSA = 0.007184 × 体重(kg)^0.425 × 身高(cm)^0.725（m²，保留 3 位小数）。儿童/婴幼儿（年龄 &lt;18）：Haycock 式 BSA = 0.024265 × 体重(kg)^0.5378 × 身高(cm)^0.3964（m²）。校验：体重、身高两项必填合法数值守卫，年龄选填（负数拒绝）；年龄决定所用公式，留空按成人处理。判据：无固定分级，页面仅此两个公式，体重与身高越大 BSA 越大；结果供化疗/给药剂量估算参考，实际剂量须按方案与药师核定。</div>
     <p style="font-size:13px;color:var(--text-muted);margin-top:12px;">用于化疗剂量等医学计算。</p>
   </div>
 </div>
@@ -236,7 +236,7 @@ s.parentNode.insertBefore(el, s);
   var __TPL2="<p style=\"color:var(--danger)\">⚠ 「%s」是本计算的分母，不能为 0。</p>";
   var __TPL3="<p style=\"color:var(--danger)\">⚠ 「%s」不能为负值。</p>";
   var _vals=[],_firstBad=-1;
-  var _REQ=['weight', 'height', 'age'];
+  var _REQ=['weight', 'height'];
   for(var _i=0;_i<_ids.length;_i++){
     var _e=document.getElementById(_ids[_i]);
     if(!_e) continue;
@@ -302,10 +302,22 @@ function calc(){
     var __ig=__tbInputGuard(['weight', 'height', 'age'],["体重 kg", "身高 cm", "年龄"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const weight = +document.getElementById('weight').value || 0;
   const height = +document.getElementById('height').value || 0;
-  const age = +document.getElementById('age').value || 0;
+  var __ageRaw = String(document.getElementById('age').value || '').trim();
+  const age = (__ageRaw === '' ? NaN : +__ageRaw);
   let html = '';
-  const __v = (0.007184*Math.pow(weight,0.425)*Math.pow(height,0.725));
+  var __pediatric = (!isNaN(age) && age > 0 && age < 18);
+  const __v = (__pediatric
+    ? (0.024265*Math.pow(weight,0.5378)*Math.pow(height,0.3964))
+    : (0.007184*Math.pow(weight,0.425)*Math.pow(height,0.725)));
   html += `<p>BSA：<strong style="font-size:18px;color:var(--primary);">${__v.toFixed(3)}</strong> m²</p>`;
+  if (__pediatric) {
+    html += '<p style="font-size:12px;color:var(--text-muted);">所用公式：Haycock（儿童/婴幼儿，＜18 岁）</p>';
+  } else {
+    html += '<p style="font-size:12px;color:var(--text-muted);">所用公式：DuBois（成人，≥18 岁）</p>';
+  }
+  if (__pediatric && age < 1) {
+    html += '<p style="color:#f59e0b;">⚠ 1 岁以下婴幼儿体表面积估算误差较大，化疗剂量须由药师按方案核定。</p>';
+  }
   const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 function copyResult() {
@@ -419,7 +431,7 @@ function __bsa_calculatorPresets(){
     TBKit.preset.bar('#bsa_calculatorPresets',[{label:'默认参数',labelEn:'Default',values:{weight:'65', height:'170', age:'30'}},
   {'label':'成人','labelEn':'Adult','values':{'weight':'70','height':'175','age':'30'}},
   {'label':'儿童','labelEn':'Child','values':{'weight':'25','height':'120','age':'8'}},
-  {'label':'婴儿','labelEn':'Infant','values':{'weight':'8','height':'70','age':'1'}}],function(){ calc(); });
+  {'label':'婴儿','labelEn':'Infant','values':{'weight':'8','height':'70','age':'0.5'}}],function(){ calc(); });
 }
 var __bsa_calculator_f0=(typeof calc==='function')?calc:null;
 if(__bsa_calculator_f0){
@@ -448,19 +460,19 @@ else document.addEventListener('DOMContentLoaded', __bsa_calculatorBoot);
 </style>
 <section class="deep-dive" data-deep-dive="1">
 <div class="card">
-<h2>📚 深度解析：体表面积 BSA（DuBois 公式）</h2>
+<h2>📚 深度解析：体表面积 BSA（DuBois / Haycock）</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
 <li>化疗给药：多数细胞毒药物按 BSA（mg/m²）计算剂量</li>
 <li>烧伤评估：烧伤面积占 BSA 比例指导补液与救治</li>
 <li>剂量标准化：消除体重身高差异，使给药更可比</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">算法（DuBois）：BSA = 0.007184 × 体重(kg)^0.425 × 身高(cm)^0.725，单位 m²。要求体重、身高&gt;0。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例1（65kg / 170cm）：BSA = 0.007184 × 65^0.425 × 170^0.725 = 1.754 m²。例2（80kg / 185cm）：BSA = 0.007184 × 80^0.425 × 185^0.725 = 2.036 m²。</div></div>
+<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">算法：成人（年龄 ≥18 或留空）用 DuBois：BSA = 0.007184 × 体重(kg)^0.425 × 身高(cm)^0.725；儿童/婴幼儿（年龄 &lt;18）改用 Haycock：BSA = 0.024265 × 体重(kg)^0.5378 × 身高(cm)^0.3964，单位 m²。要求体重、身高均&gt;0，年龄选填（留空按成人）。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例1（成人 65kg / 170cm）：BSA = 0.007184 × 65^0.425 × 170^0.725 = 1.754 m²。例2（成人 80kg / 185cm）：BSA = 0.007184 × 80^0.425 × 185^0.725 = 2.036 m²。例3（2 岁 10kg / 80cm）：Haycock 式 BSA = 0.024265 × 10^0.5378 × 80^0.3964 = 0.476 m²。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>为什么按<a class="term-link" href="/tools/health/body-surface-area.html">体表面积</a>给药？</dt><dd>许多药物清除率与体表面积更相关，按 BSA 给药可减少胖瘦个体差异、提高治疗指数；也可用 Mosteller 简化公式 √(体重×身高/3600)。</dd>
-<dt>BSA 有误差吗？</dt><dd>DuBois 对普通成人较好；肥胖或儿童需专用公式（如 Haycock），极端体型下误差增大。</dd>
+<dt>BSA 有误差吗？</dt><dd>DuBois 对普通成人较好，本页儿童/婴幼儿（＜18 岁）自动改用 Haycock 式；肥胖或极端体型误差仍会增大，化疗剂量须按方案与药师核定。</dd>
 </dl>
 </div>
 </section>

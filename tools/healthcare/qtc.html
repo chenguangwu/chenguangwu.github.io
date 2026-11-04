@@ -118,10 +118,11 @@ s.parentNode.insertBefore(el, s);
 </div>
 <div class="card">
     <h2 data-zh="❤️ QTc 校正心率">❤️ Corrected QT Interval Calculator</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="用 Bazett 公式校正 QT 间期。">Correct the QT interval for heart rate with the Bazett, Fridericia, Framingham and Hodges formulas, and flag the prolongation thresholds for each method.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="用 Bazett、Fridericia、Framingham 或 Hodges 公式校正 QT 间期，并按性别判定是否延长。">Correct the QT interval for heart rate with the Bazett, Fridericia, Framingham and Hodges formulas, and flag the prolongation thresholds for each method.</p>
     <div class="input-row"><label>QT 间期 ms</label><input type="number" id="qt" value="400" step="any" oninput="calc()" placeholder="如 400"></div>
     <div class="input-row"><label>心率 bpm</label><input type="number" id="hr" value="75" step="1" oninput="calc()" placeholder="如 75"></div>
-    <div class="input-row"><label>公式 1=Bazett 2=Fridericia</label><input type="number" id="formula" value="1" step="1" oninput="calc()" placeholder="如 1"></div>
+    <div class="input-row"><label>公式</label><select id="formula" onchange="calc()"><option value="1" selected>Bazett</option><option value="2">Fridericia</option><option value="3">Framingham</option><option value="4">Hodges</option></select></div>
+    <div class="input-row"><label>性别</label><select id="sex" onchange="calc()"><option value="1" selected>男</option><option value="0">女</option></select></div>
     <div class="toolbar">
       <div id="qtcPresets"></div>
       <button class="btn primary" onclick="calc()">计算</button>
@@ -136,8 +137,8 @@ s.parentNode.insertBefore(el, s);
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
-    <div class="formula-eq">Bazett: QTc = QT / √RR<br>Fridericia: QTc = QT / ³√RR<br>RR = 60 / HR</div>
-    <p style="font-size:13px;color:var(--text-muted);margin-top:12px;">QTc 延长与心律失常风险相关。</p>
+    <div class="formula-eq">RR = 60 / HR（秒）<br>Bazett: QTc = QT / √RR<br>Fridericia: QTc = QT / ³√RR<br>Framingham: QTc = QT + 154 × (1 − RR)<br>Hodges: QTc = QT + 1.75 × (HR − 60)<br>正常上限：男 450 ms、女 460 ms；≥500 ms 高风险</div>
+    <p style="font-size:13px;color:var(--text-muted);margin-top:12px;">QTc 延长与心律失常风险相关；公式下拉框决定实际使用的校正公式，性别决定正常上限。</p>
   </div>
 </div>
 
@@ -236,7 +237,7 @@ s.parentNode.insertBefore(el, s);
   var __TPL2="<p style=\"color:var(--danger)\">⚠ 「%s」是本计算的分母，不能为 0。</p>";
   var __TPL3="<p style=\"color:var(--danger)\">⚠ 「%s」不能为负值。</p>";
   var _vals=[],_firstBad=-1;
-  var _REQ=['qt', 'hr', 'formula'];
+  var _REQ=['qt', 'hr', 'formula', 'sex'];
   for(var _i=0;_i<_ids.length;_i++){
     var _e=document.getElementById(_ids[_i]);
     if(!_e) continue;
@@ -299,17 +300,33 @@ s.parentNode.insertBefore(el, s);
 
 
 function calc(){
-    var __ig=__tbInputGuard(['qt', 'hr', 'formula'],["QT 间期 ms", "心率 bpm", "公式 1=Bazett 2=Fridericia"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
+    var __ig=__tbInputGuard(['qt', 'hr', 'formula', 'sex'],["QT 间期 ms", "心率 bpm", "公式", "性别"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const qt = +document.getElementById('qt').value || 0;
   const hr = +document.getElementById('hr').value || 0;
-  const formula = +document.getElementById('formula').value || 0;
+  let formula = +document.getElementById('formula').value || 1;
+  const sex = +document.getElementById('sex').value || 0;
+  if (formula < 1 || formula > 4) formula = 1;
+  if (qt <= 0) {
+    document.getElementById('result').innerHTML = '<p style="color:var(--danger)">⚠ QT 间期须大于 0 ms；无效输入不计算。</p>';
+    return;
+  }
+  if (hr < 20 || hr > 250) {
+    document.getElementById('result').innerHTML = '<p style="color:var(--danger)">⚠ 心率须在 20–250 bpm 之间；超出范围时 RR 间期不可靠，本工具不计算。</p>';
+    return;
+  }
   let html = '';
-  const __v0 = (qt/Math.sqrt(60/hr));
-  html += `<p>QTc Bazett：<strong style="font-size:18px;color:var(--primary);">${__v0.toFixed(1)}</strong> ms</p>`;
-  const __v1 = (qt/Math.cbrt(60/hr));
-  html += `<p>QTc Fridericia：<strong style="font-size:18px;color:var(--primary);">${__v1.toFixed(1)}</strong> ms</p>`;
-  const __v2 = (formula===1?440:450);
-  html += `<p>正常上限：<strong style="font-size:18px;color:var(--primary);">${__v2.toFixed(0)}</strong> ms</p>`;
+  const __rr = 60/hr;
+  var __v;
+  if (formula === 4) { __v = qt + 1.75*(hr - 60); }
+  else if (formula === 3) { __v = qt + 154*(1 - __rr); }
+  else if (formula === 2) { __v = qt/Math.cbrt(__rr); }
+  else { __v = qt/Math.sqrt(__rr); }
+  const __fname = (formula === 4 ? 'Hodges' : formula === 3 ? 'Framingham' : formula === 2 ? 'Fridericia' : 'Bazett');
+  html += `<p>所用公式：<strong style="font-size:18px;color:var(--primary);">${__fname}</strong></p>`;
+  html += `<p>QTc：<strong style="font-size:18px;color:var(--primary);">${__v.toFixed(1)}</strong> ms</p>`;
+  const __lim = (sex ? 450 : 460);
+  html += `<p>正常上限（${sex ? '男' : '女'}）：<strong style="font-size:18px;color:var(--primary);">${__lim.toFixed(0)}</strong> ms</p>`;
+  html += `<p>判定：<strong style="font-size:18px;color:var(--primary);">${__v > __lim ? '延长' : '未延长'}</strong></p>`;
   const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 function copyResult() {
@@ -459,8 +476,8 @@ else document.addEventListener('DOMContentLoaded', __qtcBoot);
 <li>心电图判读：QTc 延长提示心律失常风险</li>
 <li>随访：复查 ECG 看趋势</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">算法：QTc Bazett = QT / √(RR)，RR=60/心率(秒)；QTc Fridericia = QT / ∛(RR)；正常上限男 440ms、女 450ms，≥500ms 高风险。要求 QT、心率&gt;0。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例1（QT 400ms、HR 75、男）：RR=0.8，Bazett=400/√0.8=447.2ms，Fridericia=400/∛0.8=430.9ms，超男上限 440 需关注。例2（QT 360、HR 60、女）：Bazett=360ms，正常（女上限 450）。</div></div>
+<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">算法：RR = 60/心率(秒)；QTc Bazett = QT / √RR；Fridericia = QT / ∛RR；Framingham = QT + 154×(1−RR)；Hodges = QT + 1.75×(心率−60)。正常上限男 450ms、女 460ms，≥500ms 高风险。要求心率 20–250 bpm、QT 与心率&gt;0；公式由下拉框选择，结果给出「延长/未延长」判定。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例1（QT 400ms、HR 75、男）：RR=0.8，Bazett=447.2ms，Fridericia=430.9ms，Framingham=430.8ms，Hodges=426.3ms，未超男上限 450ms。例2（QT 500、HR 50、男）：RR=1.2，Bazett=456.4ms，超过 450ms 判延长。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>Bazett 和 Fridericia 哪个好？</dt><dd>Bazett 在心率快/慢时偏差大；Fridericia 较稳。临床多看 Bazett，异常时辅以 Fridericia 与心率校正确认。</dd>

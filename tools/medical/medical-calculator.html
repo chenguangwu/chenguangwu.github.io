@@ -189,7 +189,7 @@ s.parentNode.insertBefore(el, s);
       <div class="input-row">
         <div><label>体重 (kg)</label><input type="number" id="dose_weight" value="60" min="1" step="0.1" oninput="calcDose()" placeholder="如 60"></div>
         <div><label>推荐剂量 (mg/kg/天)</label><input type="number" id="dose_per_kg" value="10" min="0.01" step="0.1" oninput="calcDose()" placeholder="如 10"></div>
-        <div><label>服药频率 (次/天)</label><input type="number" id="dose_freq" value="3" min="1" max="24" step="1" oninput="calcDose()" placeholder="如 3（1–24）"></div>
+        <div><label>服药频率 (次/天)</label><input type="number" id="dose_freq" value="3" min="1" max="24" step="any" oninput="calcDose()" placeholder="如 3（1–24）"></div>
       </div>
       <div class="toolbar">
         <div id="medical_calculatorPresets"></div><button type="button" class="btn primary" onclick="calcDose()">计算剂量</button><button class="btn" type="button" onclick="__medical_calculatorExport()">导出明细 CSV</button>
@@ -438,9 +438,14 @@ function switchTab(name) {
 function calcDose() {
   var w = parseFloat(document.getElementById('dose_weight').value) || 0;
   var perKg = parseFloat(document.getElementById('dose_per_kg').value) || 0;
-  var freq = parseInt(document.getElementById('dose_freq').value) || 0;
-  if (w <= 0 || perKg <= 0 || freq <= 0) {
-    const __h0='<p style="color:var(--danger);">请输入有效数值（体重、剂量、频率均需大于0）</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result-dose').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result-dose').innerHTML=__h0;
+  var freq = parseFloat(document.getElementById('dose_freq').value) || 0;
+  var _bad = [];
+  if (w <= 0) _bad.push('⚠ 参数无效：体重须大于 0，请输入有效体重（kg）。');
+  if (perKg <= 0) _bad.push('⚠ 参数无效：推荐剂量须大于 0，请输入有效剂量（mg/kg/天）。');
+  if (freq <= 0) _bad.push('⚠ 参数无效：服药频率须大于 0，请输入 1–24 次/天（可填小数，如 1.5）。');
+  else if (freq > 24) _bad.push('⚠ 参数无效：服药频率须为 1–24 次/天，请核对医嘱后重新输入。');
+  if (_bad.length) {
+    document.getElementById('result-dose').innerHTML = '<p style="color:var(--danger);white-space:pre-line;">' + _bad.join('\n') + '</p>';
     return;
   }
   var dailyTotal = w * perKg;

@@ -432,15 +432,17 @@ document.getElementById('inputBase').addEventListener('change', function() {
 
 function getInputBase() {
   const sel = document.getElementById('inputBase').value;
-  if (sel === 'custom') {
-    return parseInt(document.getElementById('customBase').value) || 10;
-  }
-  return parseInt(sel);
+  const base = sel === 'custom'
+    ? parseInt(document.getElementById('customBase').value, 10)
+    : parseInt(sel, 10);
+  if (!Number.isInteger(base) || base < 2 || base > 36) return null;
+  return base;
 }
 
 function setInputBase(base) {
-  document.getElementById('inputBase').value = String(base);
-  document.getElementById('customBaseRow').style.display = 'none';
+  const preset = ['2', '8', '10', '16', '32', '36'].includes(String(base));
+  document.getElementById('inputBase').value = preset ? String(base) : 'custom';
+  document.getElementById('customBaseRow').style.display = preset ? 'none' : 'block';
   document.getElementById('customBase').value = base;
   convertFromInput();
 }
@@ -448,15 +450,23 @@ function setInputBase(base) {
 function parseNumber(str, base) {
   str = str.trim().toLowerCase();
   if (!str) return null;
-  
+  if (base === null || !Number.isInteger(base) || base < 2 || base > 36) return null;
+
+  let sign = 1n;
+  if (str[0] === '+' || str[0] === '-') {
+    if (str[0] === '-') sign = -1n;
+    str = str.slice(1);
+    if (!str) return null;
+  }
+
   if (base === 10) {
     try {
-      return BigInt(str);
+      return BigInt(str) * sign;
     } catch(e) {
       return null;
     }
   }
-  
+
   const chars = '0123456789abcdefghijklmnopqrstuvwxyz';
   const validChars = chars.substring(0, base);
   const regex = new RegExp(`^[${validChars}]+$`);
@@ -470,7 +480,7 @@ function parseNumber(str, base) {
       const digit = validChars.indexOf(str[i]);
       result = result * baseBig + BigInt(digit);
     }
-    return result;
+    return result * sign;
   } catch(e) {
     return null;
   }
@@ -478,6 +488,7 @@ function parseNumber(str, base) {
 
 function formatNumber(num, base) {
   if (num === null || num === undefined) return '';
+  if (typeof base !== 'number' || !Number.isInteger(base) || base < 2 || base > 36) return '';
   
   if (base === 10) return num.toString();
   
@@ -485,6 +496,8 @@ function formatNumber(num, base) {
   const baseBig = BigInt(base);
   let result = '';
   let n = num;
+  const negative = n < 0n;
+  if (negative) n = -n;
   
   if (n === 0n) return '0';
   
@@ -494,7 +507,7 @@ function formatNumber(num, base) {
     n = n / baseBig;
   }
   
-  return result;
+  return (negative ? '-' : '') + result;
 }
 
 function convertFromInput() {
@@ -506,6 +519,15 @@ function convertFromInput() {
     return;
   }
   
+  if (base === null) {
+    document.getElementById('binVal').textContent = '无效';
+    document.getElementById('octVal').textContent = '无效';
+    document.getElementById('decVal').textContent = '无效';
+    document.getElementById('hexVal').textContent = '无效';
+    document.getElementById('allBases').innerHTML = '<p style="color:var(--danger)">⚠ 进制必须为 2–36 的整数。</p>';
+    return;
+  }
+
   const num = parseNumber(input, base);
   if (num === null) {
     document.getElementById('binVal').textContent = '无效';
@@ -555,10 +577,15 @@ function renderAllBases(num) {
 }
 
 function doBatchConvert() {
-  const fromBase = parseInt(document.getElementById('batchFrom').value);
-  const toBase = parseInt(document.getElementById('batchTo').value);
+  const fromBase = parseInt(document.getElementById('batchFrom').value, 10);
+  const toBase = parseInt(document.getElementById('batchTo').value, 10);
   const input = document.getElementById('batchInput').value.trim();
   
+  if (!Number.isInteger(fromBase) || fromBase < 2 || fromBase > 36 || !Number.isInteger(toBase) || toBase < 2 || toBase > 36) {
+    ToolBox.showToast('进制必须为 2–36 的整数', 'warning');
+    return;
+  }
+
   if (!input) {
     ToolBox.showToast(i18nText('toast.msg908'), 'warning');
     return;

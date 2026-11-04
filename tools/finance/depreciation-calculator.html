@@ -170,6 +170,13 @@ s.parentNode.insertBefore(el, s);
       <div><label>总工作量（可选，用于工作量法）</label><input type="number" id="totalUnits" value="10000" oninput="calc()" step="any" placeholder="如：总工时/总产量"></div>
     </div>
 
+    <div class="input-row">
+      <div>
+        <label>各年工作量（按年顺序，用逗号分隔）</label>
+        <input type="text" id="yearUnits" value="3000,2500,2000,1500,1000" oninput="calc()" placeholder="如 3000,2500,2000,1500,1000">
+      </div>
+    </div>
+
     <div class="toolbar">
       <div id="depreciation_calculatorPresets"></div><button type="button" class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" onclick="__depreciation_calculatorExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="exportCSV()">导出CSV</button>
@@ -331,19 +338,26 @@ function calcSYD(cost, salvage, life){
   return table;
 }
 
-function calcUnits(cost, salvage, life, totalUnits){
+function calcUnits(cost, salvage, life, totalUnits, yearUnits){
   const perUnit = totalUnits > 0 ? (cost - salvage) / totalUnits : 0;
+  const depreciable = cost - salvage;
   const table = [];
   let accumulated = 0;
-  let remainingUnits = totalUnits;
   for(let y = 1; y <= life; y++){
-    const yearUnits = totalUnits / life;
-    const dep = yearUnits * perUnit;
+    const units = yearUnits[y-1] || 0;
+    let dep = units * perUnit;
+    // 累计折旧不得超过可折旧总额
+    if(accumulated + dep > depreciable) dep = Math.max(0, depreciable - accumulated);
     accumulated += dep;
-    remainingUnits -= yearUnits;
-    table.push({year:y, depreciation:dep, accumulated, balance:cost - accumulated, units:yearUnits});
+    table.push({year:y, depreciation:dep, accumulated, balance:cost - accumulated, units});
   }
   return table;
+}
+
+function parseYearUnits(raw, life){
+  const parts = String(raw || '').split(/[,，\s]+/).filter(Boolean).map(parseFloat);
+  if(parts.length !== life || parts.some(v => !isFinite(v) || v < 0)) return null;
+  return parts;
 }
 
 function calc(){
@@ -358,10 +372,13 @@ function calc(){
     return;
   }
 
+  const yearUnits = parseYearUnits(document.getElementById('yearUnits').value, life);
+  const unitsWarning = (totalUnits > 0 && !yearUnits) ? '请按使用年限逐年填写各年工作量（非负数字，用逗号分隔）。' : '';
+
   const straight = calcStraight(cost, salvage, life);
   const ddb = calcDDB(cost, salvage, life);
   const syd = calcSYD(cost, salvage, life);
-  const units = totalUnits > 0 ? calcUnits(cost, salvage, life, totalUnits) : null;
+  const units = totalUnits > 0 && yearUnits ? calcUnits(cost, salvage, life, totalUnits, yearUnits) : null;
 
   const straightFirst = straight[0].depreciation;
   const ddbFirst = ddb[0].depreciation;
@@ -375,6 +392,7 @@ function calc(){
   if(units) methods.push({name:'工作量法', key:'units', color:'#9c27b0', first:units[0].depreciation, data:units});
 
   const __g3=`
+    ${unitsWarning ? `<div class="stat-card" style="grid-column:1/-1;"><div class="val" style="font-size:13px;color:var(--danger);">${unitsWarning}</div></div>` : ''}
     <div class="stat-card"><div class="val">${fmt(cost)}</div><div class="lbl">资产原值</div></div>
     <div class="stat-card"><div class="val">${fmt(salvage)}</div><div class="lbl">残值</div></div>
     <div class="stat-card"><div class="val">${fmt(cost - salvage)}</div><div class="lbl">可折旧总额</div></div>
@@ -501,12 +519,13 @@ function exportCSV(){
   const salvage = parseFloat(document.getElementById('salvage').value) || 0;
   const life = parseInt(document.getElementById('life').value, 10) || 0;
   const totalUnits = parseFloat(document.getElementById('totalUnits').value) || 0;
+  const yearUnits = parseYearUnits(document.getElementById('yearUnits').value, life);
   if(cost <= 0 || life <= 0) return;
 
   const straight = calcStraight(cost, salvage, life);
   const ddb = calcDDB(cost, salvage, life);
   const syd = calcSYD(cost, salvage, life);
-  const units = totalUnits > 0 ? calcUnits(cost, salvage, life, totalUnits) : null;
+  const units = totalUnits > 0 && yearUnits ? calcUnits(cost, salvage, life, totalUnits, yearUnits) : null;
 
   let csv = '年度,直线法_折旧,直线法_净值,双倍余额_折旧,双倍余额_净值,年数总和_折旧,年数总和_净值';
   if(units) csv += ',工作量法_折旧,工作量法_净值';
@@ -525,7 +544,7 @@ function exportCSV(){
 }
 
 function clearAll(){
-  ['cost','salvage','life','totalUnits'].forEach(id => document.getElementById(id).value = '');
+  ['cost','salvage','life','totalUnits','yearUnits'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('stats').innerHTML='';
   document.getElementById('compareTable').innerHTML='';
   const canvas = document.getElementById('chart');

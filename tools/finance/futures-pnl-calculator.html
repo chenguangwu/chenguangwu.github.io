@@ -450,11 +450,28 @@ function setDirection(dir){
   calc();
 }
 
+function validateInputs(){
+  var openP = parseFloat(document.getElementById('openPrice').value);
+  var closeP = parseFloat(document.getElementById('closePrice').value);
+  var lotsRaw = String(document.getElementById('lots').value || '').trim();
+  var marginRate = parseFloat(document.getElementById('marginRate').value);
+  if(!(openP > 0)) return '开仓价须大于 0。';
+  if(!(closeP > 0)) return '平仓价须大于 0。';
+  if(!/^\d+$/.test(lotsRaw) || parseInt(lotsRaw, 10) < 1) return '手数须为不小于 1 的整数。';
+  if(!isFinite(marginRate) || marginRate <= 0 || marginRate > 100) return '保证金比例须在 0%–100% 之间（不含 0%）。';
+  return '';
+}
+
 function calc(){
+  var errMsg = validateInputs();
+  if(errMsg){
+    document.getElementById('resultGrid').innerHTML='<div class="result-item" style="grid-column:1/-1;"><div class="label">输入有误</div><div class="value" style="font-size:14px;color:var(--danger);">' + errMsg + '</div></div>';
+    return;
+  }
   var mult = currentContract.multiplier;
   var openP = parseFloat(document.getElementById('openPrice').value) || 0;
   var closeP = parseFloat(document.getElementById('closePrice').value) || 0;
-  var lots = parseInt(document.getElementById('lots').value) || 1;
+  var lots = parseInt(document.getElementById('lots').value, 10) || 1;
   var marginRate = parseFloat(document.getElementById('marginRate').value) || 0;
   var openFee = parseFloat(document.getElementById('openFee').value) || 0;
   var closeFee = parseFloat(document.getElementById('closeFee').value) || 0;
@@ -485,10 +502,11 @@ function calc(){
 }
 
 function addTrade(){
+  var errMsg = validateInputs();
+  if(errMsg){ ToolBox.showToast(errMsg, 'warning'); return; }
   var openP = parseFloat(document.getElementById('openPrice').value) || 0;
   var closeP = parseFloat(document.getElementById('closePrice').value) || 0;
-  var lots = parseInt(document.getElementById('lots').value) || 1;
-  if(!openP || !closeP){ ToolBox.showToast(i18nText('toast.msg764'), 'warning'); return; }
+  var lots = parseInt(document.getElementById('lots').value, 10) || 1;
 
   var mult = currentContract.multiplier;
   var marginRate = parseFloat(document.getElementById('marginRate').value) || 0;

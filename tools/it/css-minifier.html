@@ -152,7 +152,7 @@ s.parentNode.insertBefore(el, s);
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="🧹 CSS 压缩/格式化/美化">🧹 CSS Compress / Beautify</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">按选项处理：开启移除注释时删掉块注释；随后把连续空白压缩为单个空格，把左花括号连同两侧空白替换为「空格 + 左花括号 + 换行 + 缩进」，把分号及其后空白替换为「分号 + 换行 + 缩进」，把逗号及其后空白替换为「逗号 + 空格」，把右花括号连同两侧空白替换为「换行 + 右花括号 + 两个换行」，最后合并连续空行。缩进按选项取制表符或指定数量的空格</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">按选项处理：先把字符串（单双引号）与 url(...) 切成受保护片段，改写只作用于代码片段，字符串与 url 内的空白、逗号、冒号原样保留；开启移除注释时再删掉块注释。随后把连续空白压缩为单个空格，把左花括号连同两侧空白替换为「空格 + 左花括号 + 换行 + 缩进」，把分号及其后空白替换为「分号 + 换行 + 缩进」，把逗号及其后空白替换为「逗号 + 空格」，把右花括号连同两侧空白替换为「换行 + 右花括号 + 两个换行」，最后合并连续空行。缩进按选项取制表符或指定数量的空格</div>
   <div class="formula-desc">压缩或美化 CSS 代码。</div>
   <ul class="formula-list">
     <li><b>压缩</b>：删除注释与多余空白、去掉最后一条声明的分号、缩写颜色（#ffffff → #fff）。</li>
@@ -319,6 +319,64 @@ s.parentNode.insertBefore(el, s);
 <script>
 const HISTORY_KEY = 'css_minifier_history';
 
+/* 把 CSS 切成「代码 / 字符串 / url(...) / 注释」片段：改写只作用于代码片段，
+   字符串与 url() 内的空白、逗号、冒号原样保留，避免破坏 content / font-family 等取值。 */
+function cssSegments(css) {
+  const segs = [];
+  let code = '', i = 0;
+  const flush = () => { if (code) { segs.push({ type: 'code', text: code }); code = ''; } };
+  while (i < css.length) {
+    const ch = css[i];
+    if (ch === '/' && css[i + 1] === '*') {
+      const end = css.indexOf('*/', i + 2);
+      const stop = end === -1 ? css.length : end + 2;
+      flush();
+      segs.push({ type: 'comment', text: css.slice(i, stop) });
+      i = stop;
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      let j = i + 1;
+      while (j < css.length) {
+        if (css[j] === '\\') { j += 2; continue; }
+        if (css[j] === ch) { j++; break; }
+        j++;
+      }
+      flush();
+      segs.push({ type: 'string', text: css.slice(i, j) });
+      i = j;
+      continue;
+    }
+    if ((ch === 'u' || ch === 'U') && /^url\(/i.test(css.slice(i, i + 4)) && !/[a-zA-Z0-9_-]/.test(css[i - 1] || '')) {
+      let j = i + 4, depth = 1;
+      while (j < css.length && depth > 0) {
+        if (css[j] === '(') depth++;
+        else if (css[j] === ')') depth--;
+        j++;
+      }
+      flush();
+      segs.push({ type: 'url', text: css.slice(i, j) });
+      i = j;
+      continue;
+    }
+    code += ch;
+    i++;
+  }
+  flush();
+  return segs;
+}
+
+function cssRewrite(css, keepComments, codeFn) {
+  const segs = [];
+  for (const seg of cssSegments(css)) {
+    if (seg.type === 'comment') { if (keepComments) segs.push(seg); continue; }
+    const last = segs[segs.length - 1];
+    if (seg.type === 'code' && last && last.type === 'code') last.text += seg.text;
+    else segs.push(seg);
+  }
+  return segs.map(seg => seg.type === 'code' ? codeFn(seg.text) : seg.text).join('');
+}
+
 function beautify() {
   const input = document.getElementById('input').value;
   if (!input.trim()) { ToolBox.showToast(i18nText('toast.msg757'), 'warning'); return; }
@@ -328,18 +386,12 @@ function beautify() {
   const indentOpt = document.getElementById('indentSize').value;
   const indent = indentOpt === 'tab' ? '\t' : ' '.repeat(parseInt(indentOpt));
   
-  let css = input;
-  
-  if (removeComments) {
-    css = css.replace(/\/\*[\s\S]*?\*\//g, '');
-  }
-  
-  css = css.replace(/\s+/g, ' ')
+  let css = cssRewrite(input, !removeComments, s => s.replace(/\s+/g, ' ')
            .replace(/\s*{\s*/g, ' {\n' + indent)
            .replace(/;\s*/g, ';\n' + indent)
            .replace(/,\s*/g, ', ')
            .replace(/\s*}\s*/g, '\n}\n\n')
-           .replace(/\n\s*\n\s*\n/g, '\n\n');
+           .replace(/\n\s*\n\s*\n/g, '\n\n'));
   
   if (removeEmpty) {
     css = css.split('\n').filter(l => l.trim()).join('\n');
@@ -355,13 +407,11 @@ function minify() {
   const input = document.getElementById('input').value;
   if (!input.trim()) { ToolBox.showToast(i18nText('toast.msg757'), 'warning'); return; }
   
-  let css = input;
-  css = css.replace(/\/\*[\s\S]*?\*\//g, '');
-  css = css.replace(/\s+/g, ' ');
-  css = css.replace(/\s*([{}:;,])\s*/g, '$1');
-  css = css.replace(/;}/g, '}');
-  css = css.replace(/:0(px|em|rem|%|pt)/g, ':0');
-  css = css.replace(/#([0-9a-f])\1([0-9a-f])\2([0-9a-f])\3/gi, '#$1$2$3');
+  let css = cssRewrite(input, false, s => s.replace(/\s+/g, ' ')
+           .replace(/\s*([{}:;,])\s*/g, '$1')
+           .replace(/;}/g, '}')
+           .replace(/:0(px|em|rem|%|pt)/g, ':0')
+           .replace(/#([0-9a-f])\1([0-9a-f])\2([0-9a-f])\3/gi, '#$1$2$3'));
   css = css.trim();
   
   document.getElementById('output').textContent = css;

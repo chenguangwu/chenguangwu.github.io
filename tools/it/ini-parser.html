@@ -287,7 +287,7 @@ function iniMsg(zhPrefix, enPrefix){
   const m = parseIni.merged || 0;
   const en = /^en/i.test(document.documentElement.lang || '');
   let msg = '✅ ' + (en ? enPrefix : zhPrefix);
-  if(m){ msg += en ? ' (merged ' + m + ' duplicate section(s))' : '（合并重复节 ' + m + ' 个）'; }
+  if(m){ msg += en ? ' (duplicate sections merged)' : '（已合并重复节）'; }
   return msg;
 }
 function toIni(obj){
@@ -331,16 +331,34 @@ function doBeautify(){
     }
   }catch(e){ setErr('❌ ' + e.message); }
 }
-function doMinify(){ doBeautify(); }
+function doMinify(){
+  setErr('');
+  try{
+    const text = document.getElementById('input').value;
+    if(text.trim().startsWith('{')){
+      setOut(JSON.stringify(JSON.parse(text)));
+      setErr('✅ 压缩成功');
+    } else {
+      const obj = parseIni(text);
+      const lines = [];
+      for(const k in obj){
+        if(obj[k] && typeof obj[k] === 'object' && !Array.isArray(obj[k])){
+          lines.push('[' + k + ']');
+          for(const sk in obj[k]) lines.push(sk + '=' + obj[k][sk]);
+        } else {
+          lines.push(k + '=' + obj[k]);
+        }
+      }
+      setOut(lines.join('\n'));
+      setErr(iniMsg('压缩成功', 'Minified successfully'));
+    }
+  }catch(e){ setErr('❌ ' + e.message); }
+}
 function loadSample(){document.getElementById('input').value = SAMPLE; iniToJson();}
 function setOut(s){document.getElementById('output').textContent = s;}
 function setErr(s){const e = document.getElementById('err'); e.textContent = s || ''; e.className = 'err' + (s && s.startsWith('✅') ? ' ok' : '');}
 function clearAll(){document.getElementById('input').value = ''; setOut('等待转换...'); setErr('');}
 function getIndent(){const v=document.getElementById('indent').value;return v==='tab'?'\t':' '.repeat(parseInt(v));}
-function setOut(s){document.getElementById('output').textContent=s;}
-function setErr(s){const e=document.getElementById('err');e.textContent=s||'';e.className='err'+(s?'':' ok');}
-function clearAll(){document.getElementById('input').value='';setOut('等待输入...');setErr('');}
-function loadSample(){document.getElementById('input').value=SAMPLE;doBeautify();}
 
 </script><script>
 // tool-intro折叠交互

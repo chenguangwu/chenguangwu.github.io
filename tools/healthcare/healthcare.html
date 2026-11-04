@@ -137,7 +137,7 @@ s.parentNode.insertBefore(el, s);
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
-    <div class="formula-eq">儿童剂量按体重换算（按体重比例 + 成人剂量倍数封顶，本页代码口径）：按体重剂量 = 成人剂量 × (儿童体重 ÷ 参考成人体重)（mg）；受限剂量 = min(按体重剂量, 成人剂量 × 最大倍数限制)（mg，最大倍数须 ≥1，小于 1 时拒绝计算以防剂量被压缩至 0）；剂量比例 = 儿童体重 ÷ 成人体重 × 100（%）。校验：成人剂量、儿童体重、成人体重、最大倍数四项必填守卫，其余空值按 0 兜底。判据：无固定分级，实际用药须遵医嘱，本结果仅作儿科给药剂量参考。</div>
+    <div class="formula-eq">儿童剂量按体重换算（按体重比例 + 成人剂量倍数封顶，本页代码口径）：按体重剂量 = 成人剂量 × (儿童体重 ÷ 参考成人体重)（mg）；受限剂量 = min(按体重剂量, 成人剂量 × 最大倍数限制)（mg，最大倍数须 ≥1，小于 1 时拒绝计算以防剂量被压缩至 0）；剂量比例 = 儿童体重 ÷ 成人体重 × 100（%）。校验：成人剂量、儿童体重、成人体重、最大倍数四项必填守卫，成人剂量须 >0、最大倍数须 ≥1，否则拒绝计算。判据：无固定分级，实际用药须遵医嘱，本结果仅作儿科给药剂量参考。</div>
     <p style="font-size:13px;color:var(--text-muted);margin-top:12px;">实际用药需遵医嘱，不可自行决定。</p>
   </div>
 </div>
@@ -166,8 +166,8 @@ s.parentNode.insertBefore(el, s);
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="剂量上限">Dose ceiling</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="折算结果超过成人单次剂量时按成人剂量封顶">the scaled dose is capped at the adult dose when it exceeds it</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Chinese Pharmacopoeia 2020">Chinese Pharmacopoeia 2020</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="折算结果超过「成人剂量 × 最大倍数」时按该上限封顶">the scaled dose is capped at adult dose × maximum factor when it exceeds that ceiling</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="本工具自定的倍数上限参数">user-set maximum factor in this tool</td>
         </tr>
       </tbody>
     </table>
@@ -292,8 +292,12 @@ const adult_dose = +document.getElementById('adult_dose').value || 0;
   const child_weight = +document.getElementById('child_weight').value || 0;
   const adult_weight = +document.getElementById('adult_weight').value || 0;
   const max_factor = +document.getElementById('max_factor').value || 0;
+  if (!(adult_dose > 0)) {
+    document.getElementById('result').innerHTML = '<p style="color:var(--danger)">⚠ 成人剂量须大于 0 mg，否则换算结果无意义。</p>';
+    return;
+  }
   if (!(max_factor >= 1)) {
-    document.getElementById('result').innerHTML = `<p style="color:var(--danger)">⚠ 最大倍数限制须 ≥ 1（当前 ${max_factor}）：倍数小于 1 会把儿童剂量压缩、甚至算出 0 mg，本工具拒绝计算。请填写 ≥1 的倍数（常用 2）。</p>`;
+    document.getElementById('result').innerHTML = '<p style="color:var(--danger)">⚠ 最大倍数限制须 ≥ 1：倍数小于 1 会把儿童剂量压缩、甚至算出 0 mg，本工具拒绝计算。请填写 ≥1 的倍数（常用 2）。</p>';
     return;
   }
   let html = '';
@@ -303,6 +307,7 @@ const adult_dose = +document.getElementById('adult_dose').value || 0;
   html += `<p>受限剂量：<strong style="font-size:18px;color:var(--primary);">${__v1.toFixed(2)}</strong> mg</p>`;
   const __v2 = ((child_weight/adult_weight)*100);
   html += `<p>剂量比例：<strong style="font-size:18px;color:var(--primary);">${__v2.toFixed(2)}</strong> %</p>`;
+  html += '<p style="font-size:12px;color:var(--text-muted);">说明：封顶上限 = 成人剂量 × 最大倍数；按体重剂量低于该值时结果等于按体重剂量，高于时才被截断。</p>';
   const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 function copyResult() {
