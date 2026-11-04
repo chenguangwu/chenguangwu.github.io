@@ -165,11 +165,11 @@ s.parentNode.insertBefore(el, s);
 
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">由浓度求 pH（本页代码口径）：pH=−log₁₀[H⁺]；由 pH 反求 [H⁺]=10^(−pH)、pOH=14−pH、[OH⁻]=10^(−pOH)（25℃ 水离子积 Kw=1.0×10⁻¹⁴）。校验：[H⁺]≤0 或 pH∉[0,14] 时 toast 提示无效并中止。判据：pH&lt;3 强酸、&lt;6 弱酸、&gt;11 强碱、&gt;8 弱碱、否则中性，指示条按 pH÷14 定位。</div>
+      <div class="formula-eq">由浓度求 pH（本页代码口径）：pH=−log₁₀[H⁺]；由 pH 反求 [H⁺]=10^(−pH)、pOH=14−pH、[OH⁻]=10^(−pOH)（25℃ 水离子积 Kw=1.0×10⁻¹⁴）。校验：[H⁺]≤0 或 pH∉[0,14] 时 toast 提示无效并中止。判据：pH&lt;3 强酸、3≤pH&lt;6 弱酸、6≤pH&lt;7 微酸、pH=7 中性、7&lt;pH≤8 微碱、8&lt;pH≤11 弱碱、&gt;11 强碱，指示条按 pH÷14 定位。</div>
       <div class="formula-desc">由氢离子浓度求 pH，或其逆运算；25°C 中性时 pH=7、[H⁺]=1×10⁻⁷ mol/L。</div>
       <div class="formula-eq">pOH 判读（与上式互补，共用 Kw=1.0×10⁻¹⁴）：pOH=14−pH；[OH⁻]=10^(−pOH)（mol/L）；[H⁺]×[OH⁻] 在 25℃ 恒等于 10⁻¹⁴，pH 模式同屏输出 [H⁺]、[OH⁻]、pOH 三项。校验：[H⁺] 模式要求 [H⁺]&gt;0；pH 模式要求 0≤pH≤14。判据：pH+pOH=14，pH=7 时 [H⁺]=[OH⁻]=10⁻⁷ 为中性点，偏离越远酸碱性越强。</div>
       <div class="formula-desc">常温下水溶液中 pH + pOH = 14，可由 pH 推出 pOH 与氢氧根浓度。</div>
-      <div class="formula-eq">缓冲液 Henderson-Hasselbalch 式（本页代码口径）：pH=pKa+log₁₀([盐]÷[酸])=pKa+log₁₀(cb÷ca)；pKa 按缓冲体系选择——醋酸 4.76、磷酸二氢 6.35、磷酸氢二 7.20、氨水 9.25。校验：酸浓度、碱浓度均须&gt;0，否则 toast 提示无效并中止。判据：无固定分级，[盐]=[酸] 时 pH=pKa，比值每变 10 倍 pH 移动 1 个单位。</div>
+      <div class="formula-eq">缓冲液 Henderson-Hasselbalch 式（本页代码口径）：pH=pKa+log₁₀([盐]÷[酸])=pKa+log₁₀(cb÷ca)；pKa 按缓冲体系选择——醋酸 4.76、磷酸二氢/磷酸氢二 7.20、碳酸 6.35、氨水/铵 9.25。校验：酸浓度、碱浓度均须&gt;0，否则 toast 提示无效并中止。判据：无固定分级，[盐]=[酸] 时 pH=pKa，比值每变 10 倍 pH 移动 1 个单位。</div>
       <div class="formula-desc">Henderson-Hasselbalch 方程，用于缓冲液 pH 估算（cb 为共轭碱浓度、ca 为弱酸浓度）。</div>
     </div>
 
@@ -286,9 +286,9 @@ function renderParams() {
         <label>缓冲体系</label>
         <select id="type">
           <option value="4.76">醋酸 (pKa=4.76)</option>
-          <option value="6.35" selected>磷酸二氢 (pKa=6.35)</option>
-          <option value="7.20">磷酸氢二 (pKa=7.20)</option>
-          <option value="9.25">氨水 (pKa=9.25)</option>
+          <option value="7.20" selected>磷酸二氢/磷酸氢二 (pKa₂=7.20)</option>
+          <option value="6.35">碳酸 (pKa₁=6.35)</option>
+          <option value="9.25">氨水/铵 (pKa=9.25)</option>
         </select>
       </div>
       <div class="input-row"><label>酸浓度 (mol/L)</label><input type="number" id="ca" value="0.1" step="0.01" placeholder="如 0.1"></div>
@@ -300,6 +300,15 @@ function renderParams() {
     `;
   }
 }
+function gradePh(pH){
+  if(pH<3) return '强酸';
+  if(pH<6) return '弱酸';
+  if(pH<7) return '微酸';
+  if(pH===7) return '中性';
+  if(pH<=8) return '微碱';
+  if(pH<=11) return '弱碱';
+  return '强碱';
+}
 function calc() {
   if (cur === 'fromH') {
     const H = +document.getElementById('H').value || 0;
@@ -307,11 +316,7 @@ function calc() {
     const pH = -Math.log10(H);
     const pOH = 14 - pH;
     const OH = Math.pow(10, -pOH);
-    let type = '中性';
-    if (pH < 3) type = '强酸';
-    else if (pH < 6) type = '弱酸';
-    else if (pH > 11) type = '强碱';
-    else if (pH > 8) type = '弱碱';
+    const type = gradePh(pH);
     const __g6=`
       <h3 style="text-align:center;margin-bottom:8px;">🧬 pH 报告</h3>
       <div class="ph-bar"><div class="ph-marker" style="left:${Math.max(0, Math.min(14, pH))/14*100}%;"></div></div>
@@ -332,16 +337,13 @@ function calc() {
       </div>
     `;document.getElementById('result').innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
   } else if (cur === 'fromPh') {
-    const pH = +document.getElementById('ph').value;
-    if (pH<0||pH>14) { ToolBox.showToast(i18nText('toast.msg031'),'error'); return; }
+    const rawPh = document.getElementById('ph').value.trim();
+    const pH = Number(rawPh);
+    if (rawPh === '' || !isFinite(pH) || pH < 0 || pH > 14) { ToolBox.showToast(i18nText('toast.msg031'),'error'); return; }
     const H = Math.pow(10, -pH);
     const pOH = 14 - pH;
     const OH = Math.pow(10, -pOH);
-    let type = '中性';
-    if (pH < 3) type = '强酸';
-    else if (pH < 6) type = '弱酸';
-    else if (pH > 11) type = '强碱';
-    else if (pH > 8) type = '弱碱';
+    const type = gradePh(pH);
     const __g7=`
       <h3 style="text-align:center;margin-bottom:8px;">🧬 浓度报告</h3>
       <div class="ph-bar"><div class="ph-marker" style="left:${pH/14*100}%;"></div></div>
@@ -380,7 +382,9 @@ function calc() {
       </div>
     `;document.getElementById('result').innerHTML=(typeof __g8==='number'?(isFinite(__g8)?__g8:'—'):String(__g8).replace(/Infinity|NaN/g,'—'));
   } else if (cur === 'indicator') {
-    const pH = +document.getElementById('ph').value;
+    const rawPh = document.getElementById('ph').value.trim();
+    const pH = Number(rawPh);
+    if (rawPh === '' || !isFinite(pH) || pH < 0 || pH > 14) { ToolBox.showToast(i18nText('toast.msg031'),'error'); return; }
     const indicators = [
       { name: '甲基橙', range: [3.1, 4.4], color1: '红', color2: '黄' },
       { name: '甲基红', range: [4.4, 6.2], color1: '红', color2: '黄' },
@@ -515,9 +519,9 @@ function __ph_calculatorExport(){
 }
 function __ph_calculatorPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#ph_calculatorPresets',[{label:'默认参数',labelEn:'Default',values:{'H':'0.001', 'ph':'7', 'type':'6.35', 'ca':'0.1', 'cb':'0.1'}},
+    TBKit.preset.bar('#ph_calculatorPresets',[{label:'默认参数',labelEn:'Default',values:{'H':'0.001', 'ph':'7', 'type':'7.20', 'ca':'0.1', 'cb':'0.1'}},
   {'label':'醋酸缓冲液','labelEn':'Acetic buffer','values':{'H':'0.001','type':'4.76','ca':'0.1','cb':'0.1'}},
-  {'label':'磷酸缓冲液','labelEn':'Phosphate buffer','values':{'H':'0.001','type':'6.35','ca':'0.1','cb':'0.1'}},
+  {'label':'磷酸缓冲液','labelEn':'Phosphate buffer','values':{'H':'0.001','type':'7.20','ca':'0.1','cb':'0.1'}},
   {'label':'氨水缓冲液','labelEn':'Ammonia buffer','values':{'H':'0.001','type':'9.25','ca':'0.1','cb':'0.1'}}],function(){ calc(); });
 }
 var __ph_calculator_f0=(typeof calc==='function')?calc:null;

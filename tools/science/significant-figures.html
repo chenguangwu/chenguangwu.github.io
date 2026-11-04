@@ -221,7 +221,10 @@ function roundToSig(num, sig) {
   const abs = Math.abs(num);
   const exp = Math.floor(Math.log10(abs));
   const factor = Math.pow(10, sig - 1 - exp);
-  const rounded = Math.round(num * factor) / factor;
+  const scaled = num * factor;
+  // 十进制半值修正：二进制表示可能使 x.5 变成 x.4999…，按相对误差补偿后再取整
+  const adj = Math.abs(scaled) * Number.EPSILON * 8;
+  const rounded = Math.round(scaled + (scaled < 0 ? -adj : adj)) / factor;
   return rounded;
 }
 
@@ -240,8 +243,8 @@ function calc() {
   const sig = parseInt(document.getElementById('digits').value, 10);
   const out = document.getElementById('result');
 
-  if (!isFinite(num) || !isFinite(sig) || sig < 1) {
-    out.innerHTML='<p style="color:var(--danger)">请输入有效数值与位数</p>';
+  if (!isFinite(num) || !isFinite(sig) || sig < 1 || sig > 20) {
+    out.innerHTML='<p style="color:var(--danger)">请输入有效数值，位数须为 1–20 的整数</p>';
     return;
   }
 

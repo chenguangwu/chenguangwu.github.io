@@ -319,18 +319,36 @@ function normalCDF(z){
   let p=d*t*(0.3193815+t*(-0.3565638+t*(1.781478+t*(-1.821256+t*1.330274))));
   return z>0?1-p:p;
 }
+function parseNumsStrict(str){
+  str=str==null?'':String(str);
+  const toks=str.split(/[,\s\n;]+/).map(s=>s.trim()).filter(s=>s);
+  const vals=[];
+  for(let i=0;i<toks.length;i++){
+    const v=Number(toks[i]);
+    if(!isFinite(v)) return {error:'第 '+(i+1)+' 项「'+toks[i]+'」不是有效数值'};
+    vals.push(v);
+  }
+  return {vals:vals};
+}
 function calculate(){
   const out=document.getElementById('output');
   if(currentMode===0){
-    const obs=document.getElementById('obs').value.split(/[,\s\n;]+/).map(s=>parseFloat(s.trim())).filter(n=>!isNaN(n)&&n>0);
+    const obsP=parseNumsStrict(document.getElementById('obs').value);
+    if(obsP.error){out.innerHTML='<p style="color:var(--danger)">观察频数：'+obsP.error+'</p>';return;}
+    const obs=obsP.vals;
     const expStr=document.getElementById('exp').value.trim();
+    if(obs.some(v=>v<0)){out.innerHTML='<p style="color:var(--danger)">观察频数不能为负数</p>';return;}
     if(obs.length<2){const __h0='<p style="color:var(--danger)" data-zh="至少需要 2 个观察频数">At least 2 observed frequencies required.</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0;return;}
     let exps;
     const total=obs.reduce((a,b)=>a+b,0);
     if(expStr){
-      exps=expStr.split(/[,\s\n;]+/).map(s=>parseFloat(s.trim())).filter(n=>!isNaN(n)&&n>0);
+      const expP=parseNumsStrict(expStr);
+      if(expP.error){out.innerHTML='<p style="color:var(--danger)">期望频数：'+expP.error+'</p>';return;}
+      exps=expP.vals;
       if(exps.length!==obs.length){const __h1='<p style="color:var(--danger)">观察和期望频数个数必须相等</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;return;}
+      if(exps.some(v=>v<=0)){out.innerHTML='<p style="color:var(--danger)">期望频数必须全部 &gt; 0（否则会除以 0）</p>';return;}
     } else {
+      if(total<=0){out.innerHTML='<p style="color:var(--danger)">观察频数总和为 0，无法生成期望频数</p>';return;}
       exps=obs.map(()=>total/obs.length);
     }
     const df=obs.length-1;
