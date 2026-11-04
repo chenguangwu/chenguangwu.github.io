@@ -642,6 +642,15 @@ const CASES = [
     ref: "手机号段识别（输入 13812345678）：位数 = **11**（11 位国内手机号）；按 138 号段前缀查表得归属国家「**中国（中国大陆手机号格式）**」与推断运营商「移动」，归一化结果与输入同值（11 位无需补 86）。号段结论与位数行均由注入值唯一决定，可手算复算。默认号码不同 ⇒ 不命中。",
   },
   {
+    // 遮蔽回归：本页本地格式化函数已改名 fmtPress，避免被 js/common.js 的全局 fmtNum 覆盖。
+    // 3 Pa 换到 kPa / MPa 均是非零极小值（0.003 / 3e-6）；若被全局 2 位小数实现接管，会显示 0.00。
+    slug: "science/science-pressure-converter",
+    inputs: { val: "3", from: "Pa" },
+    clicks: ["convert()"],
+    expect: ["3.0000 m", "3.0000 μ"],
+    ref: "本地 fmtPress 按 SI 前缀定标并保留 4 位小数：3 Pa = 0.003 kPa ⇒ (0.003×1000).toFixed(4)='3.0000'+' m'；3 Pa = 3e-6 MPa ⇒ (3e-6×1e6).toFixed(4)='3.0000'+' μ'。全局 fmtNum（固定 2 位、无单位）会渲染成 '0.00'，故本断言只有本地实现生效才命中。val 取 3 而非 1 是为了避开页面默认态（默认 val=1/from=kPa 的 MPa 卡正好也是 '1.0000 m'）——否则判别器「换回默认值」时仍命中，会被判逃生项。",
+  },
+  {
     slug: "science/science-pressure-converter",
     inputs: { val: "2", from: "kPa" },
     clicks: ["convert()"],

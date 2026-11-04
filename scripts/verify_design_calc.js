@@ -2442,7 +2442,11 @@ const CASES = [
     slug: c.slug,
     inputs: {},
     clicks: [
-      "ToolBox.showToast=function(m){document.getElementById('__svg_probe').textContent='TOAST:'+m;};"
+      // 页面失败提示有两条路径：优先裸 `showToast`（common.js 全局），回落 `ToolBox.showToast`。
+      // 保真模式下 common.js 提供了裸全局 ⇒ 只替换 ToolBox.showToast 会被绕过、录音器收不到；
+      // 两条都替换，覆盖默认桩与线上真实执行。
+      "window.showToast=function(m){document.getElementById('__svg_probe').textContent='TOAST:'+m;};"
+      + "ToolBox.showToast=window.showToast;"
       + "window.canvasExportError=window.canvasExportError||function(){return null;};"
       + "var _ce=document.createElement.bind(document);"
       + "document.createElement=function(t){var e=_ce(t);if(t==='canvas'){e.toDataURL=function(){throw new Error('boom')};}return e;};"

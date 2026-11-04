@@ -626,6 +626,15 @@ const CASES = [
 
   // ── 零用例收敛（2026-10-09）：biz 11 页中 6 页可收敛 ──
   {
+    // 遮蔽回归：本页复制函数已改名 copyStyle(name, btn)，避免被 js/common.js 的全局 copyText(text) 覆盖。
+    // 断言锚在「传给剪贴板的文本」：期望复制变换后的花式文本（而非样式名）。
+    slug: "biz/fancy-text",
+    inputs: { input: "Zztop" },
+    clicks: ["var __g=document.getElementById.bind(document);document.getElementById=function(id){if(String(id).indexOf('ex_')===0){return {textContent:'𝐙𝐳𝐭𝐨𝐩'};}return __g(id);};var __n=navigator.clipboard;navigator.clipboard={writeText:function(t){document.getElementById=__g;document.getElementById('input').value='COPIED:'+t;return Promise.resolve();}};copyStyle('𝐅𝐚𝐧𝐜𝐲 粗体',{style:{}});navigator.clipboard=__n;document.getElementById=__g;"],
+    expect: ["COPIED:𝐙𝐳𝐭𝐨𝐩"],
+    ref: "copyStyle 取该风格示例单元格的 textContent 写剪贴板：注入 Zztop 后「𝐅𝐚𝐧𝐜𝐲 粗体」映射 Z→𝐙、z→𝐳、t→𝐭、o→𝐨、p→𝐩 ⇒ 期望 COPIED:𝐙𝐳𝐭𝐨𝐩。旧实现被全局 copyText 覆盖时复制的是样式名（𝐅𝐚𝐧𝐜𝐲 粗体），不命中；且本地实现本身取示例文本，行为与页面「点击复制变体」的设计一致。",
+  },
+  {
     slug: "biz/fancy-text",
     inputs: { input: "Zztop" },
     expect: ["Ⓩⓩⓣⓞⓟ", "Zᶻᵗᵒᵖ", "Zzₜₒₚ"],
