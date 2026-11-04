@@ -673,6 +673,10 @@ def apply_custom(page, dry=False):
         return None
     name = os.path.splitext(os.path.basename(page))[0]
     p = name.replace('-', '_')
+    # 幂等守卫：custom 模式重跑会再次声明同名 __<p>_f0 并覆盖为包装器，
+    # 包装器体内引用的正是这个全局变量 → 包装器调用自己 → 无限递归。
+    if ("var __%s_f0" % p) in s0 or ('id="%sTable"' % p) in s0:
+        return "skip:already-wired(custom)"
     fn = info["fn"]
     defaults = info["defaults"]
     container = info["container"]
