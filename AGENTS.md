@@ -152,6 +152,11 @@
 - 统计统一收口 `js/analytics.js`（引 `common.js` 即自动获得，勿再单独引）。
 - **手改工具页后第一次 `_build.py` 会「一次性大改写」该页并冲掉手改内容**（相关工具重算 + 索引重建），第二次起才幂等。判据：插入 \`\` 标记再构建，标记存活即证明构建本身不清除该区域。**对策：手改 → 构建 → 必须复查改动存活**（`grep -c` 关键串），被冲掉就把全部改动写进一个**幂等 apply 脚本**重跑，不要逐次手补。
 - **`<h1 class="sr-only">`、`bc-current` 面包屑、面包屑 JSON-LD 是「只写一次」字段**：构建仅在缺失时注入，已存在则不刷新。改工具名必须**同时**改 i18n 字典（`i18n/tools/<行业>.json` 的 `title`/`h1`）+ `json/tools.json` 的 `name` + 页面磁盘里的 h1/面包屑/JSON-LD，`<title>`/`og:title`/WebApplication `name` 则由构建每次刷新。
+- **禁止往「构建期整块替换区」里插任何内联片段（2026-11-05 实战）**：`_build.py::inject_ttzz_snippet()` 的 `TTZZ_BLOCK_RE` 匹配口径是「`<!-- TOOLBOX-TTZZ -->` + 紧随其后的**第一个** `<script>…</script>`」，**整块替换、不比对细部**。因此**严禁**在标记与该 script 之间插入 GUARD / try-catch / 埋点 / 测试钩子——任何一次 `_build.py` 都会静默还原，且不报错、不产生删除提交。
+  - 同类整块区：`_TOOLBOX_STUB_OLD_RE`（`<script>window.__tbq=…</script>` + `<!-- TOOLBOX-API-STUB -->`）、`old_marker_pattern`（`<!-- toolbox-theme-bootstrap -->` + `<!-- toolbox-sw-register -->` 双脚本）、`index.html` 的 `<!-- TOOLBOX_STATS_START/END -->`。当前后两者已惰性（全站 0 个旧内联桩 / 0 个旧 theme 标记），但规则不变。
+  - 正确插法：插到 TTZZ 块 `</script>` **之后**，仍在 `<head>`、且早于页面内联业务脚本。
+  - 判据：`git log -S <标记>` 找不到删除提交 + 受影响文件 mtime 同一秒 ⇒ 是构建期整块替换，不是人工改动。
+  - 守卫：`node scripts/audit_inline_marker_placement.js`（全站断言，已挂 `run_gates.py`）；新增加固脚本时优先复用它的区段判定。
 
 ### 页面内容与 \_build.py 的交互（逐分类推进必读）
 

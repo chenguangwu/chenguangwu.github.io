@@ -58,6 +58,8 @@ GATES = (
     # 存储写入失败必须可见：解析期 GUARD / 收窄 catch / 写后回读为静态硬断言（决定退出码），
     # 配额提示与 TypeError 复现为动态段（本机无 Chrome 时显式 SKIP 且不影响退出码）。
     ("storage failure visible", ("node", "scripts/audit_storage_failure_visible.js")),
+    # 内联加固片段不得落在构建期整块替换区内（TTZZ / 旧桩 / 旧 theme / STATS）
+    ("inline marker placement", ("node", "scripts/audit_inline_marker_placement.js")),
     ("calculation regression", ("node", "scripts/verify_calc.js")),
     # 与上一项区别：verify_calc 是「冒烟」（不报错即可），本项是「正确性」
     # ——注入已知输入后按权威测试向量断言输出（§4.1.1）。用例写在脚本内，逐分类扩充。
