@@ -261,29 +261,38 @@ function parseDate(s){
 function daysBetween(a, b){
   return Math.round((b - a) / 86400000);
 }
+function reqNum(id){
+  var raw = String(document.getElementById(id).value == null ? '' : document.getElementById(id).value).trim();
+  if(raw === '') return NaN;
+  var v = Number(raw);
+  return isFinite(v) ? v : NaN;
+}
 
 function calc(){
   var borrow = parseDate(document.getElementById('borrowDate').value);
   var due = parseDate(document.getElementById('dueDate').value);
   var ret = parseDate(document.getElementById('returnDate').value);
-  var borrowDays = parseInt(document.getElementById('borrowDays').value) || 0;
-  var dailyFine = parseFloat(document.getElementById('dailyFine').value) || 0;
-  var bookCount = parseInt(document.getElementById('bookCount').value) || 1;
+  var borrowDays = reqNum('borrowDays');
+  var dailyFine = reqNum('dailyFine');
+  var bookCount = reqNum('bookCount');
   var useTier = document.getElementById('useTier').checked;
   var useCap = document.getElementById('useCap').checked;
-  var cap = parseFloat(document.getElementById('cap').value) || 0;
+  var cap = reqNum('cap');
 
   if(!ret) ret = new Date(); ret.setHours(0,0,0,0);
   if(!borrow){ document.getElementById('result').innerHTML='<p>请选择借阅日期</p>'; return; }
   if(!due){
+    if(!isFinite(borrowDays) || borrowDays < 0 || Math.floor(borrowDays) !== borrowDays){
+      document.getElementById('result').innerHTML='<p>借阅天数需为不小于 0 的整数</p>'; return;
+    }
     due = new Date(borrow); due.setDate(due.getDate() + borrowDays);
   }
   if(ret < borrow){ document.getElementById('result').innerHTML='<p>归还日期不能早于借阅日期</p>'; return; }
   if(due < borrow){ document.getElementById('result').innerHTML='<p>应还日期不能早于借阅日期</p>'; return; }
-  if(borrowDays < 0){ document.getElementById('result').innerHTML='<p>借阅天数不能为负数</p>'; return; }
-  if(bookCount < 1){ document.getElementById('result').innerHTML='<p>逾期本数必须为 1 本及以上</p>'; return; }
-  if(dailyFine < 0){ document.getElementById('result').innerHTML='<p>日罚金不能为负数</p>'; return; }
-  if(useCap && cap < 0){ document.getElementById('result').innerHTML='<p>封顶金额不能为负数</p>'; return; }
+  if(!isFinite(borrowDays) || borrowDays < 0 || Math.floor(borrowDays) !== borrowDays){ document.getElementById('result').innerHTML='<p>借阅天数需为不小于 0 的整数</p>'; return; }
+  if(!isFinite(bookCount) || bookCount < 1 || Math.floor(bookCount) !== bookCount){ document.getElementById('result').innerHTML='<p>逾期本数必须为不小于 1 的整数</p>'; return; }
+  if(!isFinite(dailyFine) || dailyFine < 0){ document.getElementById('result').innerHTML='<p>日罚金需为有效数值（不能为负数，可为 0）</p>'; return; }
+  if(useCap && (!isFinite(cap) || cap < 0)){ document.getElementById('result').innerHTML='<p>启用罚款上限时，封顶金额需为有效数值（不能为负数）</p>'; return; }
 
   var totalDays = daysBetween(borrow, ret);
   var overdueDays = daysBetween(due, ret);

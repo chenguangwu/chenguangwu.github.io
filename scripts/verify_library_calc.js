@@ -153,8 +153,41 @@ const CASES = [
     "returnDate": "2026-01-25",
     "bookCount": "-2"
   },
-  "expect": ["逾期本数必须为 1 本及以上"],
+  "expect": ["逾期本数必须为不小于 1 的整数"],
   "ref": "负册数会让总罚金变成负数；旧实现 `parseInt(...)||1` 只兜住 0/NaN，负数原样参与乘法。默认 1 本不命中。"
+},
+{
+  "slug": "library/overdue-fine",
+  "inputs": {
+    "borrowDate": "2026-01-10",
+    "dueDate": "",
+    "borrowDays": "abc"
+  },
+  "expect": ["借阅天数需为不小于 0 的整数"],
+  "ref": "未选应还日期时用借阅天数推算；旧实现 parseInt('abc')||0 静默按 0 天 ⇒ 应还=借阅日、逾期天数翻倍。默认应还日期为借阅+30 天 ⇒ 不命中。"
+},
+{
+  "slug": "library/overdue-fine",
+  "inputs": {
+    "borrowDate": "2026-01-10",
+    "dueDate": "2026-01-20",
+    "returnDate": "2026-01-25",
+    "dailyFine": ""
+  },
+  "expect": ["日罚金需为有效数值（不能为负数，可为 0）"],
+  "ref": "日罚金清空后旧实现 parseFloat('')||0 ⇒ 逾期照样算出 ¥0.00，等于免罚；现显式提示。默认 0.2 ⇒ 不命中。"
+},
+{
+  "slug": "library/shelf-capacity",
+  "inputs": { "fillRate": "0" },
+  "expect": ["填充率需在 1–100 之间。"],
+  "ref": "填充率填 0 后旧实现 parseFloat('0')||100 ⇒ 静默按 100% 铺满计算，容量虚高；现显式拒绝。默认 75 ⇒ 不命中。"
+},
+{
+  "slug": "library/shelf-capacity",
+  "inputs": { "layers": "0" },
+  "expect": ["每架层数需为不小于 1 的整数。"],
+  "ref": "层数填 0 后旧实现 parseInt('0')||1 ⇒ 静默按 1 层计算；现显式拒绝。默认 6 ⇒ 不命中。"
 }
 ];
 async function main() {

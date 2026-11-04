@@ -13,7 +13,7 @@
 
 ## 进展（2026-11-04，生活/设计线）
 
-累计 **17 页**已把**静默回退**改为**显式校验**：空值/非数不再被 `+value||1`、`parseFloat||0` 静默替换为 0 或默认值，改为提示并保留原输入。这些页面**仍属本地 `parseFloat` 直读**（未抽公共函数），后续统一收编时仍需替换成 `ToolBox.parseNumber`。
+累计 **24 页**已把**静默回退**改为**显式校验**：空值/非数不再被 `+value||1`、`parseFloat||0` 静默替换为 0 或默认值，改为提示并保留原输入。这些页面**仍属本地 `parseFloat` 直读**（未抽公共函数），后续统一收编时仍需替换成 `ToolBox.parseNumber`。
 
 ### 第一批（10 页）
 
@@ -43,6 +43,18 @@
 | `tools/design/spacing-scale.html` | `parseFloat||4 / ||1.25`、`parseInt||10`（基准/比例/档数） | 已显式校验，仍本地 `parseFloat/parseInt` |
 | `tools/life/bill-splitter.html` | `parseFloat||0`（逐项分摊金额）——金额空行曾被静默跳过致合计漏项 | 已显式校验（行号定位，停止计算），仍本地 `parseFloat` |
 | `tools/life/date-difference-calculator.html` | `parseInt||0`（年/月/周/日加减量）+ 基准日期有效性 | 已显式校验 + 本地日期格式化替代 `toISOString`，仍本地 `parseInt` |
+
+### 第三批（7 页）
+
+| 页面 | 已处理的静默回退 | 现状 |
+|---|---|---|
+| `tools/library/overdue-fine.html` | `parseInt/parseFloat||0/||1`（借阅天数/日罚金/册数/封顶）——日罚金空值曾算出 ¥0 逾期费 | 已显式校验，仍本地 `parseFloat/parseInt` |
+| `tools/library/shelf-capacity.html` | `parseFloat||100 / ||1` 等（填充率/层数/书厚）——显式填 0 曾被改按 100% 或 1 计算 | 已显式校验并限定区间，仍本地 `parseFloat/parseInt` |
+| `tools/design/tester-assessor.html` | `parseFloat||1/||0/||4`（任务绩效 8 字段）——空值曾按 1 个任务、满意度 4 出总分 | 已显式校验，仍本地 `parseFloat` |
+| `tools/design/photo-print-size.html` | `+value||1/||300`（CSV 导出路径）——非法输入仍按 1px@300dpi 导出 | 导出前显式拒绝并清空最大可印尺寸，仍本地一元 `+` |
+| `tools/life/analysis-23.html` | `parseFloat` 后 `NaN||1.2`（判定标准）——空值曾按 1.2 判达标 | 已显式校验，仍本地 `parseFloat` |
+| `tools/life/analysis-cost-9.html` | `parseFloat` 直读（产量/单价）——非法值曾使单位成本/盈亏平衡整段静默消失 | 非空即校验，仍本地 `parseFloat` |
+| `tools/life/generator-random-1.html` | `parseInt||1` + 静默夹到 50（生成数量） | 已显式校验 1–50，仍本地 `parseInt` |
 
 ## A 组：已有归一化实现（4 页，抽公共函数的首批替换点）
 
