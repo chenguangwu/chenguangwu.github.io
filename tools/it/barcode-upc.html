@@ -250,10 +250,16 @@ function upcCheck(d11){
   return (10-sum%10)%10;
 }
 function buildUPC(input){
-  let d=input.replace(/\D/g,'');
-  if(d.length<11)d=d.padEnd(11,'0').slice(0,11);
-  if(d.length===11)d+=upcCheck(d);
-  if(d.length>=12)d=d.slice(0,12);
+  const raw=String(input==null?'':input).trim();
+  if(!raw) return {error:'empty'};
+  if(raw.replace(/[0-9\s]/g,'')) return {error:'nonDigit'};
+  let d=raw.replace(/\s+/g,'');
+  if(d.length===11){ d+=upcCheck(d); }
+  else if(d.length===12){
+    const expect=upcCheck(d.slice(0,11));
+    if(parseInt(d.charAt(11),10)!==expect) return {error:'check',expect};
+  }
+  else return {error:'length'};
   let bits='101'; // start guard
   for(let i=0;i<6;i++)bits+=L_CODES[parseInt(d[i])];
   bits+='01010'; // middle guard
@@ -289,10 +295,16 @@ function downloadBarcodePNG(){
 }
 function generate(){
   const input=document.getElementById('data').value;
-  const {d,bits}=buildUPC(input);
-  const canvas=drawBarcode(bits,d);
   const out=document.getElementById('output');
-  const __h0='<div class="bar-wrap"></div><div class="bar-text">'+d+'</div>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0;
+  const built=buildUPC(input);
+  if(built.error){
+    const msg={empty:'请输入 11 或 12 位数字（UPC-A）',nonDigit:'输入含非数字字符，请只填写数字',length:'位数不对：UPC-A 需要 11 或 12 位数字',check:'校验位错误：正确的第 12 位应为 '+built.expect};
+    out.innerHTML='<p style="color:var(--danger)">⚠ '+(msg[built.error]||'输入无效')+'</p>';
+    return;
+  }
+  const canvas=drawBarcode(built.bits,built.d);
+  const __h0='<div class="bar-wrap"></div><div class="bar-text">'+built.d+'</div>';
+  out.innerHTML=__h0;
   out.querySelector('.bar-wrap').appendChild(canvas);
 }
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}

@@ -159,6 +159,7 @@ s.parentNode.insertBefore(el, s);
 
     <label>文本（A-Z 0-9 - . $ / + % 空格）</label>
     <input type="text" id="data" value="CODE-39" style="margin-bottom:12px;">
+    <label style="display:inline-flex;gap:6px;align-items:center;margin-bottom:12px;"><input type="checkbox" id="addCheck"> 追加 Mod 43 校验位</label>
     <div class="toolbar">
       <div id="barcode_code39Presets"></div><button type="button" class="btn primary" onclick="generate()">生成</button><button class="btn" type="button" onclick="downloadBarcodePNG()">下载 PNG</button><button class="btn" type="button" onclick="__barcode_code39Export()">导出明细 CSV</button>
       <button type="button" class="btn success" onclick="copyResult()">复制</button>
@@ -242,56 +243,38 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
-// Code39 patterns: 9 elements (5 bars + 4 spaces), 3 wide. Each char string uses W=wide, N=narrow for b,s,b,s,b,s,b,s
+// Code 39 patterns: 12 modules per character (bar/space widths; wide=2 modules)
 const CODE39={
-'0':'NNWWN WNNWN NNNNW','1':'WNNWN NNNNW NWWNN','2':'NNWWN NNNNW NWWNN',
-'3':'WNWWN NNNNW NNWNN','4':'NNWNN NWWNW NWWNN','5':'WNWNN NWWNW NNWNN',
-'6':'NNWWN NWWNW NNWNN','7':'NNWNN NNNNW WWWNN','8':'WNWNN NNNNW WNWNN',
-'9':'NNWWN NNNNW WNWNN','A':'WNNWN NNWNN NWWNN','B':'NNWWN NNWNN NWWNN',
-'C':'WNWWN NNWNN NNWNN','D':'NNNWN WWWNN NWWNN','E':'WNNWN WWWNN NNWNN',
-'F':'NNWWN WWWNN NNWNN','G':'NNNWN NNWNN WWWNN','H':'WNNWN NNWNN WWWNN',
-'I':'NNWWN NNWNN WWWNN','J':'NNNWN WWWNN NWWNN','K':'WNNNN NWWWN NWWNN',
-'L':'NNNWN NWWWN WNWNN','M':'WNNWN NWWWN NNWNN','N':'NNNNW NWWWN NWWNN',
-'O':'WNNNW NWWWN NNWNN','P':'NNNWN NWWWW NNWNN','Q':'NNNNW WWWNN NWWNN',
-'R':'WNNNW WWWNN NNWNN','S':'NNNWN WWWNN WNWNN','T':'NNNNW NWWWN WWWNN',
-'U':'WWNNN NNNWN WNNWN','V':'NWWNN NNNWN WNNWN','W':'WWWNN NNNWN NNNWN',
-'X':'NWNWN NNNWN WNNWN','Y':'WWNNN NNNWN NWNNN','Z':'NWWNN NNNWN NWNNN',
-'-':'NWNWN NNNWN NWNNN','.':'WWNNN NNNWN NNNNW',' ':'NWWNN NNNWN NNNNW',
-'*':'NWNWN WWWNN NNNWN','$':'NWNWN NWNWN NNNNN','/':'NWNWN NNNNN NWNWN',
-'+':'NNNNN NWNWN NWNWN','%':'NNNNN WNWNW NWNWN'
+'0':'101001101101','1':'110100101011','2':'101100101011','3':'110110010101',
+'4':'101001101011','5':'110100110101','6':'101100110101','7':'101001011011',
+'8':'110100101101','9':'101100101101','A':'110101001011','B':'101101001011',
+'C':'110110100101','D':'101011001011','E':'110101100101','F':'101101100101',
+'G':'101010011011','H':'110101001101','I':'101101001101','J':'101011001101',
+'K':'110101010011','L':'101101010011','M':'110110101001','N':'101011010011',
+'O':'110101101001','P':'101101101001','Q':'101010110011','R':'110101011001',
+'S':'101101011001','T':'101011011001','U':'110010101011','V':'100110101011',
+'W':'110011010101','X':'100101101011','Y':'110010110101','Z':'100110110101',
+'-':'100101011011','.':'110010101101',' ':'100110101101','$':'100100100101',
+'/':'100100101001','+':'100101001001','%':'101001001001','*':'100101101101'
 };
-function buildCode39(text){
-  text=text.toUpperCase();
-  let bits=''; // start char
+const VAL={0:'0',1:'1',2:'2',3:'3',4:'4',5:'5',6:'6',7:'7',8:'8',9:'9',10:'A',11:'B',12:'C',13:'D',14:'E',15:'F',16:'G',17:'H',18:'I',19:'J',20:'K',21:'L',22:'M',23:'N',24:'O',25:'P',26:'Q',27:'R',28:'S',29:'T',30:'U',31:'V',32:'W',33:'X',34:'Y',35:'Z',36:'-',37:'.',38:' ',39:'$',40:'/',41:'+',42:'%'};
+function code39Check(text){
+  let sum=0;
+  for(const c of text){ const k=Object.keys(VAL).find(k=>VAL[k]===c); sum+=(k===undefined?0:parseInt(k,10)); }
+  return VAL[sum%43];
+}
+function buildCode39(text,withCheck){
+  text=String(text||'').toUpperCase();
+  if(withCheck && text) text+=code39Check(text);
   const chars='*'+text+'*';
+  let bits='';
   for(const c of chars){
-    if(!CODE39[c])continue;
-    const parts=CODE39[c].split(/\s+/);
-    let pattern='';
-    // parts: 5 elements b s b s b s b s ... actually 8 elements (4 pairs)? Re-parse: each char has 9 elements
-    // Original format: 5 bars, 4 spaces interleaved. parts length should be 5 (each is "BS" pair except last is "B")
-    // Simpler: combine into single BS sequence of 9
-    const fullStr=CODE39[c].replace(/\s+/g,'');
-    // fullStr has 10 chars: BSBSB SBSB -> actually 9 elements (5 bars, 4 spaces)
-    // We'll just alternate bar/space starting with bar
-    for(let i=0;i<fullStr.length;i++){
-      const isWide=fullStr[i]==='W';
-      pattern+= isWide?'111':'1';
-      if(i<fullStr.length-1){
-        // space between bars - width depends on next char being space; here pattern is bar/space alternating
-      }
-    }
-    // Better: build manually with bar/space alternating
-    let pat='';
-    let isBar=true;
-    for(let i=0;i<fullStr.length;i++){
-      const w=fullStr[i]==='W'?3:1;
-      pat+=(isBar?'1':'0').repeat(w);
-      isBar=!isBar;
-    }
-    bits+=pat+'0'; // inter-character gap (narrow space)
+    const p=CODE39[c];
+    if(!p) return {error:c};
+    if(bits) bits+='0';
+    bits+=p;
   }
-  return bits;
+  return {bits,text};
 }
 function drawBarcode(bits,text){
   const N=bits.length;const modW=2;const barH=120;const textH=22;
@@ -317,10 +300,16 @@ function downloadBarcodePNG(){
 }
 function generate(){
   const text=document.getElementById('data').value||' ';
-  const bits=buildCode39(text);
-  const canvas=drawBarcode(bits,text);
+  const withCheck=document.getElementById('addCheck').checked;
+  const built=buildCode39(text,withCheck);
   const out=document.getElementById('output');
-  const __h0='<div class="bar-wrap"></div><div class="bar-text">*'+escapeHtml(text.toUpperCase())+'*</div>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0;
+  if(built.error){
+    out.innerHTML='<p style="color:var(--danger)">⚠ 不支持字符「'+escapeHtml(built.error)+'」，Code 39 仅支持 A–Z、0–9、空格与 - . $ / + %。</p>';
+    return;
+  }
+  const canvas=drawBarcode(built.bits,built.text);
+  const __h0='<div class="bar-wrap"></div><div class="bar-text">*'+escapeHtml(built.text)+'*</div>';
+  out.innerHTML=__h0;
   out.querySelector('.bar-wrap').appendChild(canvas);
 }
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}

@@ -252,50 +252,40 @@ s.parentNode.insertBefore(el, s);
 </div>
 <!-- /注意事项区块 -->
 </div>
+<script src="../../js/qrcode.js"></script>
 <script>
-function strHash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
-function pseudoRandom(seed){let s=seed||1;return function(){s=(s*1664525+1013904223)>>>0;return s/4294967296;};}
 function buildGeo(){
-  const lat=parseFloat(document.getElementById('lat').value)||0;
-  const lng=parseFloat(document.getElementById('lng').value)||0;
+  const latRaw=document.getElementById('lat').value.trim();
+  const lngRaw=document.getElementById('lng').value.trim();
+  if(!latRaw||!lngRaw) return {error:'请输入纬度和经度'};
+  const lat=parseFloat(latRaw),lng=parseFloat(lngRaw);
+  if(!isFinite(lat)||lat<-90||lat>90) return {error:'纬度需在 -90 ~ 90 之间'};
+  if(!isFinite(lng)||lng<-180||lng>180) return {error:'经度需在 -180 ~ 180 之间'};
   const label=document.getElementById('label').value;
-  return 'geo:'+lat+','+lng+(label?('?q='+encodeURIComponent(label)):'');
-}
-function renderQR(text){
-  const N=25;const grid=Array.from({length:N},()=>Array(N).fill(0));
-  function finder(r,c){
-    for(let i=-1;i<=7;i++)for(let j=-1;j<=7;j++){
-      const rr=r+i,cc=c+j;if(rr<0||rr>=N||cc<0||cc>=N)continue;
-      if(i===-1||i===7||j===-1||j===7){grid[rr][cc]=0;continue;}
-      if(i===0||i===6||j===0||j===6){grid[rr][cc]=1;continue;}
-      if(i>=2&&i<=4&&j>=2&&j<=4){grid[rr][cc]=1;continue;}
-      grid[rr][cc]=0;
-    }
-  }
-  finder(0,0);finder(0,N-7);finder(N-7,0);
-  for(let i=8;i<N-8;i++){grid[6][i]=i%2===0?1:0;grid[i][6]=i%2===0?1:0;}
-  const rnd=pseudoRandom(strHash(text));
-  for(let r=0;r<N;r++)for(let c=0;c<N;c++){
-    if(r<8&&c<8)continue;if(r<8&&c>=N-8)continue;if(r>=N-8&&c<8)continue;
-    if(r===6||c===6)continue;
-    grid[r][c]=rnd()<0.5?0:1;
-  }
-  return grid;
+  return {text:'geo:'+lat+','+lng+(label?('?q='+encodeURIComponent(label)):'')};
 }
 function drawQR(text){
-  const grid=renderQR(text);const N=grid.length;const cell=8;const size=N*cell;
+  if(qrcode.stringToBytesFuncs && qrcode.stringToBytesFuncs['UTF-8']) qrcode.stringToBytes=qrcode.stringToBytesFuncs['UTF-8'];
+  const qr=qrcode(0,'M');qr.addData(text);qr.make();
+  const n=qr.getModuleCount(),margin=4,cell=8,size=(n+margin*2)*cell;
   const canvas=document.createElement('canvas');canvas.width=size;canvas.height=size;
   const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,size,size);ctx.fillStyle='#000';
-  for(let r=0;r<N;r++)for(let c=0;c<N;c++)if(grid[r][c])ctx.fillRect(c*cell,r*cell,cell,cell);
+  for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(qr.isDark(r,c))ctx.fillRect((c+margin)*cell,(r+margin)*cell,cell,cell);
   return canvas;
 }
 function generate(){
-  const text=buildGeo();const canvas=drawQR(text);
-  const out=document.getElementById('output');
-  const __h0='<div class="qr-wrap"></div><div class="qr-text">'+escapeHtml(text)+'</div>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0;
-  out.querySelector('.qr-wrap').appendChild(canvas);
+  const built=buildGeo();const out=document.getElementById('output');
+  if(built.error){out.innerHTML='<p style="color:var(--danger)">⚠ '+escapeHtml(built.error)+'</p>';return;}
+  try{
+    const canvas=drawQR(built.text);
+    const __h0='<div class="qr-wrap"></div><div class="qr-text">'+escapeHtml(built.text)+'</div>';
+    out.innerHTML=__h0;
+    out.querySelector('.qr-wrap').appendChild(canvas);
+  }catch(e){
+    out.innerHTML='<div class="qr-text">'+escapeHtml(built.text)+'</div><p style="color:var(--danger)">⚠ 无法生成二维码图形：'+escapeHtml(e.message)+'</p>';
+  }
 }
-function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function copyResult(){
   const text = document.getElementById('output').textContent || document.getElementById('output').innerText;
   navigator.clipboard.writeText(text).then(() => alert('已复制'));

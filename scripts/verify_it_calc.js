@@ -4149,12 +4149,12 @@ const CASES = [
   {
     "slug": "it/barcode-msi",
     "inputs": {
-      "data": "abc123测试"
+      "data": "abc测试"
     },
     "expect": [
-      "123"
+      "⚠ 请输入至少一位数字；MSI 仅支持 0–9。"
     ],
-    "ref": "MSI 重写后先剥离非数字：注入 data=abc123测试 ⇒ 仅保留 123，输出区显示条码文本「123」。默认样例为 6 位以上数字，不出现该串 ⇒ 强判别、零逃生。"
+    "ref": "MSI 重写后先剥离非数字：注入 data=abc测试（不含任何数字）⇒ 剥离后为空，输出「⚠ 请输入至少一位数字；MSI 仅支持 0–9。」。该串不含注入值，默认样例为数字串也不出现 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/barcode-itf",
@@ -4890,9 +4890,9 @@ const CASES = [
       "body": "1\n2\n3"
     },
     "expect": [
-      "mailto:abc123%E6%B5%8B%E8%AF%95?subject=abc123%E6%B5%8B%E8%AF%95&body=1%0A2%0A3"
+      "mailto:abc123%E6%B5%8B%E8%AF%95?subject=abc123%E6%B5%8B%E8%AF%95"
     ],
-    "ref": "真实 QR 改造后输出区仅保留 mailto 链接：注入 to/subject=abc123测试、body=1\\n2\\n3，链接为 mailto:abc123%E6%B5%8B%E8%AF%95?subject=abc123%E6%B5%8B%E8%AF%95&body=1%0A2%0A3（encodeURIComponent 结果，%0A 为换行）。默认样例链接不同 ⇒ 强判别、零逃生。"
+    "ref": "真实 QR 改造后输出区保留 mailto 链接：注入 to/subject=abc123测试、body=1\\n2\\n3，链接前缀为 mailto:abc123%E6%B5%8B%E8%AF%95?subject=abc123%E6%B5%8B%E8%AF%95（encodeURIComponent 结果；innerHTML 中后续 & 会转 &amp;，故断言只取前段）。默认样例收件箱为 a@b.com，不出现该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/email-normalizer",

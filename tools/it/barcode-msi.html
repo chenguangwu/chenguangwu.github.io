@@ -153,12 +153,18 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="📊 MSI 条形码">📊 MSI Barcode</h2>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-  <div class="formula-eq">每位数字 = 8 个单元（0→窄空宽条，1→宽条窄空，其余按二进制展开）<br>校验：Mod 10（Luhn）/ Mod 11 / Mod 1010 可选</div>
-  <div class="formula-desc">MSI（Modified Plessey）是脉冲调制型条码，每位数字用 8 个单元表示：0 编码为「窄空宽条」，1 编码为「宽条窄空」，其余数字按二进制位展开为 8 个宽窄交替的单元。它只含数字、无字母，密度中等，主要用在零售货架标签与仓库库位标识。MSI 本身不校验，实践中常追加 Mod 10（即 Luhn 算法）、Mod 11 或双重 Mod 1010 校验位，以防止扫描误读。</div>
+  <div class="formula-eq">每位数字 = 8 个「条+空」单元（0→窄条+宽空，1→宽条+窄空，其余按二进制位展开）<br>校验：Mod 10 / Mod 11 可选</div>
+  <div class="formula-desc">MSI（Modified Plessey）是脉冲调制型条码，每位数字按 4 位二进制展开为 8 个「条+空」单元：位 0 为「窄条 + 宽空」，位 1 为「宽条 + 窄空」，宽窄比 2:1。它只含数字、无字母，密度中等，主要用在零售货架标签与仓库库位标识。MSI 本身不校验，实践中常追加 Mod 10（Luhn 类算法）、Mod 11 校验位，以防止扫描误读。</div>
 </div>
 
     <label>数字</label>
     <input type="text" id="data" value="1234567" style="margin-bottom:12px;">
+    <label>校验位</label>
+    <select id="checkMode" style="margin-bottom:12px;">
+      <option value="none">不加校验位</option>
+      <option value="mod10">Mod 10 校验</option>
+      <option value="mod11">Mod 11 校验</option>
+    </select>
     <div class="toolbar">
       <div id="barcode_msiPresets"></div><button type="button" class="btn primary" onclick="generate()">生成</button><button class="btn" type="button" onclick="downloadBarcodePNG()">下载 PNG</button><button class="btn" type="button" onclick="__barcode_msiExport()">导出明细 CSV</button>
       <button type="button" class="btn success" onclick="copyResult()">复制</button>
@@ -242,19 +248,39 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
-// MSI (Modified Plessey): each digit = 4 bits, bar/space pattern where 1=wide, 0=narrow
+// MSI (Modified Plessey): each digit = 4 bits, bit 1 = wide bar + narrow space, bit 0 = narrow bar + wide space
 const MSI={'0':'0000','1':'0001','2':'0010','3':'0011','4':'0100','5':'0101','6':'0110','7':'0111','8':'1000','9':'1001'};
-function buildMSI(text){
+function msiMod10(d){
+  let odd='', even=0;
+  for(let i=0;i<d.length;i++){
+    if((d.length-1-i)%2===0) odd+=d[i]; else even+=parseInt(d[i],10);
+  }
+  let twice=parseInt(odd||'0',10)*2;
+  let sum=even;
+  while(twice>0){ sum+=twice%10; twice=Math.floor(twice/10); }
+  return String((10-sum%10)%10);
+}
+function msiMod11(d){
+  let sum=0, w=2;
+  for(let i=d.length-1;i>=0;i--){
+    sum+=parseInt(d[i],10)*w;
+    w=w===7?2:w+1;
+  }
+  let c=(11-sum%11)%11;
+  return String(c===10?0:c);
+}
+function buildMSI(text,mode){
   text=text.replace(/\D/g,'');
-  let bits='110'; // start guard
+  if(!text) return {error:'empty'};
+  if(mode==='mod10') text+=msiMod10(text);
+  else if(mode==='mod11') text+=msiMod11(text);
+  let bits='110'; // start guard: 2-module bar + 1-module space
   for(const c of text){
     const p=MSI[c];if(!p)continue;
-    for(const b of p){
-      bits+= b==='1'?'1110':'10';
-    }
+    for(const b of p) bits+= b==='1'?'110':'100';
   }
-  bits+='1001'; // end guard
-  return bits;
+  bits+='1001'; // stop guard
+  return {bits,text};
 }
 function drawBarcode(bits,text){
   const N=bits.length;const modW=2;const barH=120;const textH=22;
@@ -280,10 +306,16 @@ function downloadBarcodePNG(){
 }
 function generate(){
   const text=document.getElementById('data').value;
-  const bits=buildMSI(text);
-  const canvas=drawBarcode(bits,text.replace(/\D/g,''));
+  const mode=document.getElementById('checkMode').value;
+  const built=buildMSI(text,mode);
   const out=document.getElementById('output');
-  const __h0='<div class="bar-wrap"></div><div class="bar-text">'+escapeHtml(text)+'</div>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0;
+  if(built.error){
+    out.innerHTML='<p style="color:var(--danger)">⚠ 请输入至少一位数字；MSI 仅支持 0–9。</p>';
+    return;
+  }
+  const canvas=drawBarcode(built.bits,built.text);
+  const __h0='<div class="bar-wrap"></div><div class="bar-text">'+escapeHtml(built.text)+'</div>';
+  out.innerHTML=__h0;
   out.querySelector('.bar-wrap').appendChild(canvas);
 }
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
