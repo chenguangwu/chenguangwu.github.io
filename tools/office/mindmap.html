@@ -503,8 +503,13 @@ s.parentNode.insertBefore(el, s);
       var fo = fos[i];
       if (fo.querySelector("img")) { try { console.warn("[mindmap] image node skipped in PNG export (use SVG export to keep it)"); } catch(e){} }
       var r = fo.getBoundingClientRect();
-      var x = r.left - svgRect.left;
-      var y = r.top - svgRect.top;
+      // 必须用父节点局部坐标：markmap 的节点包在带 translate 的 <g> 里，
+      // 复用屏幕坐标会被父级 translate 整体平移，导致文字飞出画布。
+      var bb = { x: 0, y: 0, width: 0, height: 0 };
+      try { bb = fo.getBBox(); } catch(e){}
+      var x = bb.x;
+      var y = bb.y;
+      var foH = bb.height || r.height;
       var inner = fo.querySelector("div") || fo;
       var st = null;
       try { st = window.getComputedStyle(inner); } catch(e){}
@@ -515,7 +520,7 @@ s.parentNode.insertBefore(el, s);
       var txt = (fo.innerText || fo.textContent || "").replace(/\u00a0/g, " ").trim();
       var t = document.createElementNS(NS, "text");
       t.setAttribute("x", x + 4);
-      t.setAttribute("y", y + r.height / 2 + fs * 0.35);
+      t.setAttribute("y", y + foH / 2 + fs * 0.35);
       t.setAttribute("font-size", fs);
       t.setAttribute("font-family", (st && st.fontFamily) || "sans-serif");
       t.setAttribute("fill", fill);
@@ -535,7 +540,7 @@ s.parentNode.insertBefore(el, s);
         ts.textContent = lines[j].trim();
         t.appendChild(ts);
       }
-      if (fosC[i]) { clone.replaceChild(t, fosC[i]); }
+      if (fosC[i] && fosC[i].parentNode) { fosC[i].parentNode.replaceChild(t, fosC[i]); }
     }
     return clone;
   }
@@ -545,6 +550,7 @@ s.parentNode.insertBefore(el, s);
     if (!mm) { ToolBox.showToast(i18nText('toast.invalid_input'), "warning"); return; }
     mm.fit();
     setTimeout(function(){
+      try {
       var clone = buildPngClone();
       var rect = svgEl.getBoundingClientRect();
       var w = Math.ceil(rect.width);
@@ -586,7 +592,7 @@ s.parentNode.insertBefore(el, s);
             ToolBox.showToast(i18nText('toast.saved'));
           }, "image/png");
         } catch (err) {
-          if (!done) { URL.revokeObjectURL(url); ToolBox.showToast(i18nText('toast.export_failed'), "error"); }
+          if (!done) { URL.revokeObjectURL(url); ToolBox.showToast(i18nText('toast.export_failed') + (err.name || err.message || ''), "error"); }
         }
       };
       img.onerror = function(){
@@ -594,6 +600,9 @@ s.parentNode.insertBefore(el, s);
         ToolBox.showToast(i18nText('toast.export_failed'), "error");
       };
       img.src = url;
+      } catch (e) {
+        ToolBox.showToast(i18nText('toast.export_failed') + (e.name || e.message || ''), "error");
+      }
     }, 360);
   });
 
