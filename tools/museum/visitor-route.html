@@ -147,6 +147,10 @@ s.parentNode.insertBefore(el, s);
       <label>终点</label>
       <select id="endNode"></select>
     </div>
+    <div class="input-row">
+      <label>必看节点（可选，按参观顺序，逗号分隔）</label>
+      <input type="text" id="waypoints" placeholder="如 青铜馆,玉器馆" oninput="compute()">
+    </div>
 
     <div class="toolbar">
       <div id="visitor_routePresets"></div><button type="button" class="btn primary" onclick="compute()">规划最短流线</button><button class="btn" type="button" onclick="__visitor_routeExport()">导出明细 CSV</button>
@@ -350,11 +354,21 @@ function dijkstra(graph, start, end){
 
 function compute(){
   nodes = getNodes();
-  if(nodes.length < 2){ const __h5='<p>请至少输入两个展厅</p>';if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h5; return; }
+  var resultEl = document.getElementById('result');
+  if(nodes.length < 2){ resultEl.innerHTML='<p>请至少输入两个展厅</p>'; return; }
   var start = document.getElementById('startNode').value;
   var end = document.getElementById('endNode').value;
-  if(!start || !end){ const __h6='<p>请选择起终点</p>';if((typeof __h6==='number'&&!isFinite(__h6))||/Infinity/.test(String(__h6))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h6)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h6; return; }
-  if(start === end){ const __h7='<p>起点与终点相同，无需规划。</p>';if((typeof __h7==='number'&&!isFinite(__h7))||/Infinity/.test(String(__h7))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h7)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h7; return; }
+  if(!start || !end){ resultEl.innerHTML='<p>请选择起终点</p>'; return; }
+  if(start === end){ resultEl.innerHTML='<p>起点与终点相同，无需规划。</p>'; return; }
+
+  // 必看节点：按用户输入顺序串联，任一段不可达即报错
+  var wpRaw = (document.getElementById('waypoints') || {}).value || '';
+  var wps = wpRaw.split(/[,，]/).map(function(s){ return s.trim(); }).filter(function(s){ return s; });
+  var invalid = wps.filter(function(w){ return nodes.indexOf(w) === -1; });
+  if(invalid.length){
+    resultEl.innerHTML = '<div class="tip-box tip-error">必看节点不存在于展厅列表：' + invalid.map(function(w){ return ToolBox.escHtml(w); }).join('、') + '</div>';
+    return;
+  }
 
   // 构建邻接表：Dijkstra 只适用于非负权，负距离先取绝对值并提示（同时杜绝负权环导致前驱成环）
   var negativeFixed = false;
@@ -370,10 +384,20 @@ function compute(){
     }
   });
 
-  var res = dijkstra(graph, start, end);
-  if(!res){
-    const __h8='<div class="tip-box tip-error">从「'+ToolBox.escHtml(start)+'」到「'+ToolBox.escHtml(end)+'」没有可达路径，请检查通道连接。</div>';if((typeof __h8==='number'&&!isFinite(__h8))||/Infinity/.test(String(__h8))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h8)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h8;
-    return;
+  // 按「起点 → 必看节点… → 终点」分段求最短路径后拼接
+  var anchors = [start].concat(wps).concat([end]);
+  var seq = [];
+  anchors.forEach(function(a){ if(seq.length === 0 || seq[seq.length-1] !== a) seq.push(a); });
+  var fullPath = [], total = 0;
+  for(var i=0;i<seq.length-1;i++){
+    var leg = dijkstra(graph, seq[i], seq[i+1]);
+    if(!leg){
+      resultEl.innerHTML = '<div class="tip-box tip-error">从「'+ToolBox.escHtml(seq[i])+'」到「'+ToolBox.escHtml(seq[i+1])+'」没有可达路径，请检查通道连接。</div>';
+      return;
+    }
+    if(fullPath.length) leg.path.shift();
+    fullPath = fullPath.concat(leg.path);
+    total += leg.dist;
   }
 
   var html = '';
@@ -381,27 +405,29 @@ function compute(){
   html += '<div class="data-grid">';
   html += dataCard('起点', start);
   html += dataCard('终点', end);
-  html += dataCard('途经展厅', res.path.length + ' 个');
-  html += dataCard('总距离', res.dist + ' m');
+  if(wps.length) html += dataCard('必看节点', wps.length + ' 个');
+  html += dataCard('途经展厅', fullPath.length + ' 个');
+  html += dataCard('总距离', total + ' m');
   html += '</div>';
 
   html += '<h3 style="font-size:15px;margin:16px 0 8px;">推荐流线</h3>';
-  res.path.forEach(function(p, i){
-    var arrow = i < res.path.length-1 ? ' <span style="color:var(--primary);">→</span> ' : '';
+  fullPath.forEach(function(p, i){
+    var arrow = i < fullPath.length-1 ? ' <span style="color:var(--primary);">→</span> ' : '';
     var seg = '';
-    if(i < res.path.length-1){
+    if(i < fullPath.length-1){
       var w = 0;
       edges.forEach(function(e){
-        if((e[0]===p && e[1]===res.path[i+1]) || (e[1]===p && e[0]===res.path[i+1])) w = Math.abs(parseFloat(e[2])||0);
+        if((e[0]===p && e[1]===fullPath[i+1]) || (e[1]===p && e[0]===fullPath[i+1])) w = Math.abs(parseFloat(e[2])||0);
       });
       seg = ' <span style="color:var(--text-muted);font-size:12px;">('+w+'m)</span>';
     }
-    html += '<div class="path-step"><strong>'+(i+1)+'. '+ToolBox.escHtml(p)+'</strong>'+seg+arrow+'</div>';
+    var mustTag = (wps.indexOf(p) >= 0) ? ' <span style="color:var(--tool-accent,#FF6B35);font-size:12px;">（必看）</span>' : '';
+    html += '<div class="path-step"><strong>'+(i+1)+'. '+ToolBox.escHtml(p)+'</strong>'+mustTag+seg+arrow+'</div>';
   });
 
-  html += '<div class="tip-box tip-info" style="margin-top:12px;">采用 Dijkstra 最短路径算法，距离为各通道权重之和。实际参观还可结合展品热度、单向限流等调整顺序。</div>';
+  html += '<div class="tip-box tip-info" style="margin-top:12px;">采用 Dijkstra 最短路径算法，距离为各通道权重之和。'+(wps.length?'必看节点按输入顺序依次串联（每段各自取最短），中途顺序如需优化请调整输入顺序。':'实际参观还可结合展品热度、单向限流等调整顺序。')+'</div>';
 
-  const __h9=html;if((typeof __h9==='number'&&!isFinite(__h9))||/Infinity/.test(String(__h9))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h9)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h9;
+  resultEl.innerHTML = html;
 }
 
 function dataCard(lbl, num){
@@ -410,6 +436,7 @@ function dataCard(lbl, num){
 
 function resetGraph(){
   document.getElementById('nodeInput').value = '入口,青铜馆,陶瓷馆,书画馆,玉器馆,出口';
+  document.getElementById('waypoints').value = '';
   edges = defaultEdges.map(function(e){ return e.slice(); });
   syncNodes();
   compute();

@@ -117,7 +117,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="发布/接龙/统计">Aggregate pre-sale, group-buy or sign-up data into counts, shares and banded results for campaign statistics.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-      <div class="formula-eq">预售统计 = 明细行汇总：总人数 = 有效行数；总数量 = Σ 各行数量（未填数量或数量≤0 默认计 1）；分档金额 = 单价 × 数量；占比 = 单项数量 ÷ 总数量 × 100%；不做姓名去重，同名多行按多条记录分别计入，用于接龙或报名汇总核对。</div>
+      <div class="formula-eq">预售统计 = 明细行汇总：总人数 = 有效行数；总数量 = Σ 各行数量（未填数量或数量≤0 默认计 1）；金额 = 单价 × 总数量；占比 = 单项数量 ÷ 总数量 × 100%；份数分档按 1 份 / 2–3 份 / 4 份及以上统计人数；不做姓名去重，同名多行按多条记录分别计入，用于接龙或报名汇总核对。</div>
   <p class="formula-desc" data-zh="把接龙或报名的名单连同份数贴入文本框，每行一条，姓名与份数用逗号、空格或制表符分隔；只写姓名则按 1 份计。工具汇总接龙人数、总份数、人均份数与单笔最大最小值，再按单价折算预售金额，用于团购、预售与活动接龙的当场结算核对。数据在浏览器本地处理，不会上传。"></p>
 </div>
 
@@ -242,13 +242,21 @@ function calc(){
   const sorted=[...rows].sort(function(a,b){return a.qty-b.qty;});
   const maxRow=sorted[sorted.length-1], minRow=sorted[0];
   const amount=total*price, perHead=amount/people;
+  const sortedDesc=[...rows].sort(function(a,b){return b.qty-a.qty;});
+  const topN=Math.min(3,sortedDesc.length);
+  const topParts=[];
+  for(let i=0;i<topN;i++){ topParts.push(sortedDesc[i].name+' '+(sortedDesc[i].qty/total*100).toFixed(1)+'%'); }
+  const buckets=[0,0,0];
+  rows.forEach(function(r){ if(r.qty<=1) buckets[0]++; else if(r.qty<=3) buckets[1]++; else buckets[2]++; });
   const __g3='<p>接龙人数：<strong style="color:var(--primary);">'+people+'</strong> 人</p>'+
-    '<p>合计份数：<strong style="color:var(--primary);">'+fmt(total,0)+'</strong> 份</p>'+
+    '<p>合计份数：<strong style="color:var(--primary);">'+fmt(total,Number.isInteger(total)?0:2)+'</strong> 份</p>'+
     '<p>人均份数：<strong>'+fmt(mean)+'</strong> 份/人</p>'+
-    '<p>下单最多：<strong>'+fmt(maxRow.qty,0)+'</strong> 份（'+maxRow.name+'）</p>'+
-    '<p>下单最少：<strong>'+fmt(minRow.qty,0)+'</strong> 份（'+minRow.name+'）</p>'+
+    '<p>下单最多：<strong>'+fmt(maxRow.qty,Number.isInteger(maxRow.qty)?0:2)+'</strong> 份（'+maxRow.name+'）</p>'+
+    '<p>下单最少：<strong>'+fmt(minRow.qty,Number.isInteger(minRow.qty)?0:2)+'</strong> 份（'+minRow.name+'）</p>'+
     '<p>预售金额：<strong style="color:var(--primary);">'+fmt(amount)+'</strong> 元（单价 '+fmt(price)+' 元）</p>'+
-    '<p>人均金额：<strong>'+fmt(perHead)+'</strong> 元</p>';document.getElementById('res').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+    '<p>人均金额：<strong>'+fmt(perHead)+'</strong> 元</p>'+
+    '<p>份数占比前三：<strong>'+topParts.join(' · ')+'</strong></p>'+
+    '<p>份数分档：<strong>1 份 '+buckets[0]+' 人 · 2–3 份 '+buckets[1]+' 人 · 4 份及以上 '+buckets[2]+' 人</strong></p>';document.getElementById('res').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 }
 calc();function copyResult(){ToolBox.copyText(document.getElementById('res').innerText);}
 </script>
@@ -288,11 +296,11 @@ calc();function copyResult(){ToolBox.copyText(document.getElementById('res').inn
   </div>
   <div class="tool-intro-body">
     <h4><span class="h4-icon">📝</span>工具简介</h4>
-    <p>聚合报名、付款与时段分布，输出转化漏斗与参与结构，辅助活动节奏与备货。</p>
+    <p>把群接龙或报名名单连同份数贴入，按行汇总人数、总份数、人均份数与金额，并给出份数占比与分档，辅助团购、预售与活动接龙的当场结算核对。</p>
     <h4><span class="h4-icon">✨</span>功能特点</h4>
-    <ul class="intro-features"><li>报名付款聚合</li><li>转化漏斗分层</li><li>时段峰值识别</li></ul>
+    <ul class="intro-features"><li>名单与份数逐行汇总</li><li>份数占比与分档统计</li><li>按单价折算预售金额</li></ul>
     <h4><span class="h4-icon">🎯</span>使用场景</h4>
-    <ul class="intro-scenes"><li>预售报名统计</li><li>转化流失定位</li><li>库存与发车预备</li></ul>
+    <ul class="intro-scenes"><li>团购接龙结算</li><li>报名名单核对</li><li>收款与订单对账</li></ul>
     </div>
 </div>
 <!-- /SEO 介绍区块 -->

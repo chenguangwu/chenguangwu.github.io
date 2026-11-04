@@ -174,12 +174,13 @@ const CASES = [
 {
   "slug": "leather/xueyunhoudukongzhi",
   "inputs": {
-    "target": "4.5",
-    "rpm": "1200",
+    "before": "2.0",
+    "target": "1.2",
+    "rpm": "4000",
     "feed": "8"
   },
-  "expect": [ "4.50 目标厚度" ],
-  "ref": "auto-restore"
+  "expect": [ "2.00 刀痕间距 (mm/rev)", "0.80 切除量 (mm)", "70 一般 · 匹配评分" ],
+  "ref": "运动学重写：间距 = 1000×8÷4000 = 2.00 mm/rev；切除量 = 2.0−1.2 = 0.80mm；间距 ≤2 档 ⇒ 70 分「一般」。默认态（2.0/1.5/1200/8）间距 6.67、切除 0.50、30 分，三处均不命中。旧实现仅 min(100,rpm/feed×10)，输出 100，与本例不符。"
 },
 {
   "slug": "leather/yield-rate-1",

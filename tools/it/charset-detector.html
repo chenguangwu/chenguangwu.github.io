@@ -118,15 +118,14 @@ s.parentNode.insertBefore(el, s);
 </div>
 <div class="card">
     <h2 data-zh="🔤 编码识别器">🔤 Charset Detector</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="本地静态识别常见乱码特征，提供可读性修复建议。">Detect text character encoding and guess the most likely charset.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="本地静态识别常见乱码特征，提供可读性修复建议。">Restore text from common double-encoding mojibake and report its character composition.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">用内置乱码特征规则表逐条对文本做正则匹配，收集全部命中的规则名。有命中时提示检测到哪些特征并建议核对编码为 UTF-8 或 GBK 后按实际场景重新转码；无命中时提示未检测到明显乱码特征。同时对已知的典型乱码序列做替换修复（把常见双字节误码序列还原为对应的重音字符与弯引号等），并输出修复后的文本</div>
-  <div class="formula-desc">依据字节序列特征推测文本的字符编码。</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">双重编码判定：把文本中的每个字符还原为其在 cp1252 中的字节值（≤0xFF 直接用码位，€ “ ” 等特殊符号按映射表折算），得到字节序列后按 UTF-8 严格解码（fatal 模式）；解码成功且结果与原文不同 ⇒ 判定为「UTF-8 字节被按 Latin-1/Windows-1252 解读」并输出还原文本；出现非法序列则不做修复。另统计字符构成：中日韩字符、拉丁字母、U+FFFD 替换符、控制字符各自的数量。</div>
+  <div class="formula-desc">本页处理的是已经解码成字符串的文本（粘贴框里的内容），因此无法读取原始字节或 BOM，也不做 GBK/Big5 字频猜测。它只做一件可验证的事：识别并还原最常见的双重编码乱码——UTF-8 字节被当作 Latin-1 或 Windows-1252 显示（如「Ã©」应为「é」、「â€™」应为「’」、「ä¸æ–‡」应为「中文」）。如果原文含 U+FFFD 替换符，说明解码时信息已经丢失，任何工具都无法还原，只能回到原始字节重新解码。</div>
   <ul class="formula-list">
-    <li><b>BOM</b>：UTF-8 为 <code>EF BB BF</code>，UTF-16LE 为 <code>FF FE</code>，UTF-16BE 为 <code>FE FF</code>。</li>
-    <li><b>合法性</b>：UTF-8 的多字节序列有严格规则，出现非法序列即可排除 UTF-8。</li>
-    <li><b>统计</b>：对双字节编码（GBK/Big5/Shift-JIS）用字频与双字节分布做概率判断。</li>
-    <li><b>局限</b>：推测并非确定结论，短文本极易误判，需结合语言上下文人工确认。</li>
+    <li><b>可修复</b>：UTF-8 → Latin-1/cp1252 双重编码（整串字符均可折算为字节且 UTF-8 解码合法）。</li>
+    <li><b>不可修复</b>：含 U+FFFD（数据已丢失）、含超出 cp1252 的字符、或 UTF-8 解码非法（多为单向 GBK 乱码或纯 Latin-1 文本）。</li>
+    <li><b>局限</b>：无法探测 BOM 与原始字节序；短文本信息不足，判定须结合来源人工确认。</li>
   </ul>
 </div>
 
@@ -156,19 +155,19 @@ s.parentNode.insertBefore(el, s);
       </tr></thead>
       <tbody>
         <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="BOM 标记">BOM markers</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="EF BB BF 为 UTF-8，FF FE 与 FE FF 为 UTF-16 字节序">EF BB BF marks UTF-8; FF FE and FE FF mark UTF-16 orders</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="RFC 3629 / Unicode">RFC 3629 / Unicode</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="双重编码">Double encoding</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="UTF-8 字节被按 Windows-1252 解读后，每个字符可再折算回原字节">UTF-8 bytes read as Windows-1252 can be mapped back to the original bytes</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="WHATWG Encoding Standard（windows-1252 索引）">WHATWG Encoding Standard (windows-1252 index)</td>
         </tr>
         <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="字节序列校验">Byte validation</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="按 UTF-8 首字节判定后续字节数并验证续字节">lead byte determines length; continuation bytes validated</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="RFC 3629">RFC 3629</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="UTF-8 严格解码">Strict UTF-8 decode</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="首字节决定后续字节数，续字节须落在 0x80–0xBF；非法即解码失败">lead byte determines length; continuation bytes must be 0x80–0xBF; illegal sequences fail</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="RFC 3629 / TextDecoder fatal 模式">RFC 3629 / TextDecoder fatal mode</td>
         </tr>
         <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="声明优先级">Declaration precedence</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="BOM 优先于 HTTP 头，头再优先于文档内声明">BOM overrides headers, which override in-document declarations</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="WHATWG Encoding Standard">WHATWG Encoding Standard</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="替换符">Replacement character</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="U+FFFD 表示解码已失败，原始信息无法从文本还原">U+FFFD indicates decoding already failed; the original information cannot be recovered from the text</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Unicode U+FFFD">Unicode U+FFFD</td>
         </tr>
       </tbody>
     </table>
@@ -235,10 +234,52 @@ s.parentNode.insertBefore(el, s);
   </div>
 </div>
 <script>
-const RULES = [
-  {name:'UTF-8->GBK 误读', pattern: /Ã|â|�|Â/, replace: 'common'},
-  {name:'Latin1 误读', pattern: /�|�/, replace: 'latin1'}
-];
+// Windows-1252 中 0x80–0x9F 区间的特殊符号 → 原字节
+const CP1252_TO_BYTE = {
+  0x20AC:0x80, 0x201A:0x82, 0x0192:0x83, 0x201E:0x84, 0x2026:0x85,
+  0x2020:0x86, 0x2021:0x87, 0x02C6:0x88, 0x2030:0x89, 0x0160:0x8A,
+  0x2039:0x8B, 0x0152:0x8C, 0x017D:0x8E, 0x2018:0x91, 0x2019:0x92,
+  0x201C:0x93, 0x201D:0x94, 0x2022:0x95, 0x2013:0x96, 0x2014:0x97,
+  0x02DC:0x98, 0x2122:0x99, 0x0161:0x9A, 0x203A:0x9B, 0x0153:0x9C,
+  0x017E:0x9E, 0x0178:0x9F
+};
+
+function toBytes(s){
+  const bytes = [];
+  for (let i = 0; i < s.length; i++){
+    const c = s.codePointAt(i);
+    if (c > 0xFFFF) return null;          // 含增补平面字符，不可能是纯 cp1252 误读
+    if (s.charCodeAt(i) <= 0xFF) bytes.push(s.charCodeAt(i));
+    else if (CP1252_TO_BYTE[c] !== undefined) bytes.push(CP1252_TO_BYTE[c]);
+    else return null;
+  }
+  return bytes;
+}
+
+// UTF-8 字节被按 Latin-1/cp1252 解读的双重编码还原；不可还原返回 null
+function fixMojibake(s){
+  const bytes = toBytes(s);
+  if (!bytes || !bytes.length) return null;
+  try {
+    const out = new TextDecoder('utf-8', { fatal: true }).decode(new Uint8Array(bytes));
+    return out === s ? null : out;
+  } catch (e) {
+    return null;
+  }
+}
+
+function charProfile(s){
+  let cjk = 0, latin = 0, repl = 0, ctrl = 0;
+  for (let i = 0; i < s.length; i++){
+    const c = s.codePointAt(i);
+    if (c > 0xFFFF) i++;
+    if (c === 0xFFFD) repl++;
+    else if ((c < 32 && c !== 9 && c !== 10 && c !== 13) || (c >= 0x7F && c < 0xA0)) ctrl++;
+    else if ((c >= 0x4E00 && c <= 0x9FFF) || (c >= 0x3400 && c <= 0x4DBF) || (c >= 0xF900 && c <= 0xFAFF)) cjk++;
+    else if ((c >= 0x41 && c <= 0x5A) || (c >= 0x61 && c <= 0x7A)) latin++;
+  }
+  return { cjk: cjk, latin: latin, repl: repl, ctrl: ctrl };
+}
 
 function escOut(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
@@ -246,21 +287,19 @@ function escOut(s){
 
 function detect() {
   const t = document.getElementById('txt').value || '';
-  const hits = RULES.filter(r => r.pattern.test(t)).map(r => r.name);
+  const fixed = fixMojibake(t);
+  let extra;
+  if (fixed !== null) extra = '疑似 UTF-8 字节被按 Latin-1/Windows-1252 解读，已按字节还原。';
+  else if (t.indexOf('\uFFFD') >= 0) extra = '文本含 U+FFFD 替换符：原始解码已失败，信息不可还原，请回到原始字节重新解码。';
+  else if (!t) extra = '请输入待检测文本。';
+  else extra = '未检测到明显乱码特征。';
 
-  let fixed = t;
-  fixed = fixed.replace(/Ã©/g, 'é');
-  fixed = fixed.replace(/Ã¨/g, 'è');
-  fixed = fixed.replace(/Ã¯/g, 'ï');
-  fixed = fixed.replace(/Ã†/g, 'Æ');
-  fixed = fixed.replace(/â\x80\x98/g, '‘');
-  fixed = fixed.replace(/â\x80\x99/g, '’');
-
-  let extra = '未检测到明显乱码特征。';
-  if (hits.length) extra = '检测到：' + hits.join('，') + '，建议核对编码为 UTF-8/GBK 或按实际场景重新转码。';
+  const p = charProfile(t);
+  const profile = '字符构成：中日韩字符 ' + p.cjk + ' · 拉丁字母 ' + p.latin + ' · 替换符 ' + p.repl + ' · 控制字符 ' + p.ctrl;
 
   const __h0=`<p>${escOut(extra)}</p>` +
-    `<p>修复输出：</p><p>${escOut(fixed)}</p>`;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('out').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('out').innerHTML=__h0;
+    `<p>修复输出：</p><p>${escOut(fixed === null ? t : fixed)}</p>` +
+    `<p style="font-size:12px;color:var(--text-muted);">${escOut(profile)}</p>`;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('out').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('out').innerHTML=__h0;
 }
 
 function copyResult() {
@@ -403,14 +442,15 @@ else document.addEventListener('DOMContentLoaded', __charset_detectorBoot);
 <h2>📚 深度解析：编码识别器</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>拿到一段不知编码的文本（GBK/UTF-8/Big5）时推断其字符集。</li>
-<li>处理乱码文件：导入 CSV 前先探测编码，确认是 UTF-8、GBK 还是带 BOM 的 UTF-8，再按正确编码读取，避免整表出现问号或错字。</li>
+<li>网页或接口返回的中文变成「Ã¤Â¸Â­Ã¦Â–Â‡」这类西文乱码时，还原真实文本。</li>
+<li>复制来的引号、省略号显示成「â€™」「â€¦」时，按字节还原为「’」「…」。</li>
+<li>判断一段文本是否已经发生不可逆的解码失败（出现 U+FFFD 替换符）。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">识别乱码</div><div class="dd-ex-body">输入 GBK 字节 `C4E3BAC3` → 识别为 GBK，解码得“你好”（而非 UTF-8 的乱码）。</div></div>
+<div class="dd-example"><div class="dd-ex-title">还原双重编码乱码</div><div class="dd-ex-body">粘贴「Ã©」→ 折算字节 C3 A9 → 按 UTF-8 解码得「é」；粘贴「â€™」→ 折算字节 E2 80 99 → 得「’」。若文本里已经是「�」（U+FFFD），说明原始字节在解码时已被丢弃，无法从文本还原。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>识别一定准吗？</dt><dd>短文本可能误判，建议结合语言与来源综合判断。</dd>
-<dt>为什么有时判断不准？</dt><dd>因为短文本信息量不足：GBK 与 Big5 的字节区间大面积重叠，纯 ASCII 内容在几乎所有编码下都合法，UTF-8 与 Latin-1 也无 BOM 可区分。工具只能给出概率最高的猜测，可靠做法是结合语言先验（中文优先 GBK/UTF-8）与业务来源，或直接要求数据方声明编码。</dd>
+<dt>能识别 GBK、Big5 或 BOM 吗？</dt><dd>不能。粘贴框里拿到的是已经解码后的字符串，原始字节与 BOM 已不可见，因此本页不做 GBK/Big5 猜测。若需按 GBK 读取文件，请在导入 CSV/文本时直接指定正确编码。</dd>
+<dt>为什么有时无法修复？</dt><dd>双重编码还原要求整串字符都能折算回 cp1252 字节，且按 UTF-8 严格解码合法。含 U+FFFD、超出 cp1252 的字符（如已正确显示的中文）或非法续字节时解码会失败，此时工具不会强行替换，而是原样输出并提示不可还原。</dd>
 </dl>
 </div>
 </section>

@@ -21,6 +21,16 @@ const CASES = [
   "ref": "负权环终止性（N5-C）：双向边 -10/10 构成负权环，旧实现 relax 后 prev[A]=B、prev[B]=A 且回溯无访问集合 ⇒ 死循环挂死页面。修复后负距离取绝对值（均为 10）、回溯带 seen 集合与步数上限 ⇒ 正常输出 A→B 总距离 10 m。"
 },
 {
+  "slug": "museum/visitor-route",
+  "inputs": {},
+  "clicks": ["document.getElementById('nodeInput').value='A,B,C,D';syncNodes();edges=[['A','B',10],['B','C',10],['C','D',10],['A','D',100]];document.getElementById('waypoints').value='C';compute();"],
+  "expect": [
+    "30 m",
+    "（必看）"
+  ],
+  "ref": "必看节点串联：A→B→C→D 各段 10 m，途经必看节点 C 后总距离 30 m，而直达 A→D 为 100 m；「（必看）」标记只对必看节点输出。旧实现无 waypoints 输入、无条件直接求 start→end ⇒ 总距离 100 m 且无必看标记，两条均不命中。默认展线为 115 m，30 m 亦不与默认冲突。"
+},
+{
   "slug": "museum/era-comparator",
   "inputs": {},
   "clicks": ["document.getElementById('era1').value='3';document.getElementById('era2').value='9';compare()"],

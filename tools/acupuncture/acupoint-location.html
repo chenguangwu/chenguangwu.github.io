@@ -130,8 +130,8 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="📍 穴位定位(骨度分寸法)计算器">Acupoint Location</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="依据《灵枢·骨度》及全国统编教材骨度分寸折量标准，按患者实测体表长度换算取穴">Acupoint Location</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">每寸折量 = 实测长度(cm) ÷ 标准寸数；取穴距离 = 目标寸数 × 每寸折量(cm)</div>
-      <p class="formula-desc" data-zh="「依据《灵枢·骨度》及全国统编教材骨度分寸折量标准，按患者实测体表长度换算取穴」按输入参数进行专业计算并输出结果。">Acupoint Location: computes and outputs results from the input parameters.</p>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">每寸折量 = 实测长度(cm) ÷ 标准寸数；取穴距离 = 目标寸数 × 每寸折量(cm)；反算寸数 = 实测距离(cm) ÷ 每寸折量</div>
+      <div class="formula-desc">先用该段体表的实测长度除以教材规定的标准寸数，得到此患者「1 寸折合多少厘米」；再用目标寸数乘每寸折量，得到从起点沿分段方向的测量距离。反过来，体表上量得一段厘米数后，除以每寸折量即得它对应几寸，可用于核对已取穴位是否偏离。注意：寸数是按该段自身比例折算的，同一患者不同分段的每寸厘米数并不相同，跨段套用会带来误差；结果仅供学习与取穴参考，实际定位仍须结合骨性标志与医师判断。</div>
     </div>
 
     <div class="region-grid" id="regionGrid"></div>
@@ -155,6 +155,17 @@ s.parentNode.insertBefore(el, s);
       <div>
         <label>起点与止点标志</label>
         <input type="text" id="landmark" readonly>
+      </div>
+    </div>
+
+    <div class="input-row">
+      <div>
+        <label>实测距离反算 (cm，可选)</label>
+        <input type="number" id="realDist" placeholder="如 7.5" step="0.1" min="0" oninput="calc()">
+      </div>
+      <div>
+        <label>反算结果 (寸)</label>
+        <input type="text" id="revOut" readonly>
       </div>
     </div>
 
@@ -207,11 +218,12 @@ s.parentNode.insertBefore(el, s);
 <li>取足三里：犊鼻下 3 寸、胫骨前嵴外一横指。</li>
 <li>取内关：腕横纹上 2 寸、两筋之间。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">骨度换算取穴</div><div class="dd-ex-body">患者肘横纹至腕横纹骨度 12 寸，实测 24cm，则 1 寸=2cm；取内关（腕上 2 寸）即腕横纹上 4cm 处，避免以医者手指代寸造成偏差。</div></div>
+<div class="dd-example"><div class="dd-ex-title">骨度换算取穴</div><div class="dd-ex-body">患者肘横纹至腕横纹骨度 12 寸，实测 24cm，则 1 寸=2cm；取内关（腕上 2 寸）即腕横纹上 4cm 处，避免以医者手指代寸造成偏差。反算核对：若从腕横纹量到某处为 5cm，则 5 ÷ 2 = 2.5 寸，可据此判断该点是否在预期的 2 寸附近。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>骨度分寸和手指同身寸区别？</dt><dd>骨度以骨骼标志间等分为寸，更客观；手指同身寸（如中指同身寸）受手指大小影响，宜作辅助。</dd>
 <dt>骨度定位能完全替代解剖标志吗？</dt><dd>不能，需结合体表标志、解剖层次综合取穴；本工具结果仅供参考，不能替代医师诊断与处方，操作请遵医嘱。</dd>
+<dt>反算寸数有什么用？</dt><dd>反算即把体表量得的厘米数除以每寸折量，换算成寸数，用于核对已取穴位是否偏移。不同分段的每寸折量并不相同，反算时须使用该段自身的实测长度。</dd>
 </dl>
 </div>
 </section>
@@ -359,19 +371,27 @@ function selectPart(i){
   calc();
 }
 
+function setRevOut(v){
+  var e = document.getElementById('revOut');
+  if(e){ e.value = v; }
+}
+
 function calc(){
   if(currentPart===null){
+    setRevOut('');
     document.getElementById('result').innerHTML='<p style="color:var(--text-muted);">请在下表选用一段体表标志</p>';
     return;
   }
   var it = BONE_DATA[currentRegion].items[currentPart];
   var realCm = parseFloat(document.getElementById('realCm').value);
   var targetCun = parseFloat(document.getElementById('targetCun').value);
+  var realDist = parseFloat(document.getElementById('realDist').value);
   var stdCun = it.cun;
 
   var html = '<p>当前分段：<strong>'+it.part+'</strong>（标准折量 <strong>'+stdCun+'寸</strong>）</p>';
 
   if(!realCm || realCm<=0){
+    setRevOut('');
     html += '<p style="color:var(--text-muted);">请输入该段体表实测长度(cm)</p>';
     const __g5=html;document.getElementById('result').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
     return;
@@ -395,11 +415,18 @@ function calc(){
     html += '<div class="tip-box tip-success" style="margin-top:12px;">';
     html += '<strong>取穴定位：</strong>从「'+it.landmark.split('至')[0]+'」起点，沿分段方向测量 <strong>'+distCm.toFixed(2)+' cm</strong>（即 '+targetCun+'寸），即为目标穴位位置。';
     html += '</div>';
-    // 反算：若测得一定厘米，对应多少寸
-    var revCun = realCm? 0 : 0;
-    html += '<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">提示：也可反算，体表测得 X cm 对应 '+(targetCun? (targetCun).toFixed(1):'--')+' 寸 × (X/'+realCm.toFixed(1)+'×'+stdCun+')。</p>';
   }else{
     html += '<p style="color:var(--text-muted);font-size:13px;">输入"目标穴位距起点(寸)"可换算具体测量距离。</p>';
+  }
+
+  if(realDist && realDist>0){
+    var revCun = realDist / cmPerCun;
+    setRevOut(revCun.toFixed(2)+' 寸');
+    html += '<div class="tip-box tip-info" style="margin-top:12px;">';
+    html += '<strong>反算核对：</strong>体表实测 '+realDist.toFixed(2)+' cm ÷ 每寸折量 '+cmPerCun.toFixed(2)+' cm ≈ <strong>'+revCun.toFixed(2)+' 寸</strong>。';
+    html += '若该值偏离预期寸数，说明测量起点或方向有误，应重新以骨性标志校准。</div>';
+  }else{
+    setRevOut('');
   }
 
   const __g6=html;document.getElementById('result').innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
@@ -414,6 +441,8 @@ function copyResult(){
   var cmPerCun = realCm/it.cun;
   var txt = '骨度分寸：'+it.part+' 标准折量'+it.cun+'寸，实测'+realCm+'cm，1寸≈'+cmPerCun.toFixed(2)+'cm';
   if(targetCun){ txt += '，目标穴位距起点'+targetCun+'寸≈'+(targetCun*cmPerCun).toFixed(2)+'cm'; }
+  var realDist = parseFloat(document.getElementById('realDist').value);
+  if(realDist && realDist>0){ txt += '，实测'+realDist.toFixed(2)+'cm反算≈'+(realDist/cmPerCun).toFixed(2)+'寸'; }
   ToolBox.copyText(txt, i18nText('msg218'));
 }
 
@@ -601,7 +630,7 @@ else document.addEventListener('DOMContentLoaded', __acupoint_locationBoot);
 </script>
 
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "骨度分寸和手指同身寸区别？", "acceptedAnswer": {"@type": "Answer", "text": "骨度以骨骼标志间等分为寸，更客观；手指同身寸（如中指同身寸）受手指大小影响，宜作辅助。"}}, {"@type": "Question", "name": "骨度定位能完全替代解剖标志吗？", "acceptedAnswer": {"@type": "Answer", "text": "不能，需结合体表标志、解剖层次综合取穴；本工具结果仅供参考，不能替代医师诊断与处方，操作请遵医嘱。"}}]}
+{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "骨度分寸和手指同身寸区别？", "acceptedAnswer": {"@type": "Answer", "text": "骨度以骨骼标志间等分为寸，更客观；手指同身寸（如中指同身寸）受手指大小影响，宜作辅助。"}}, {"@type": "Question", "name": "骨度定位能完全替代解剖标志吗？", "acceptedAnswer": {"@type": "Answer", "text": "不能，需结合体表标志、解剖层次综合取穴；本工具结果仅供参考，不能替代医师诊断与处方，操作请遵医嘱。"}}, {"@type": "Question", "name": "反算寸数有什么用？", "acceptedAnswer": {"@type": "Answer", "text": "反算即把体表量得的厘米数除以每寸折量，换算成寸数，用于核对已取穴位是否偏移。不同分段的每寸折量并不相同，反算时须使用该段自身的实测长度。"}}]}
 </script>
 
 

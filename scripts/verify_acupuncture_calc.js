@@ -23,6 +23,15 @@ const CASES = [
   ],
   "ref": "selectRegion('chest') 自动选中首段「天突(胸骨上窝)→歧骨(胸剑联合)」（标准折量 9 寸）；实测 27 cm ⇒ 每寸 27/9 = 3.00 cm；目标 6 寸 ⇒ 定位 6×3.00 = 18.00 cm。默认态 currentPart 未选、realCm 为空 ⇒ result 只出提示文案，三串均不命中。"
 },
+{
+  "slug": "acupuncture/acupoint-location",
+  "inputs": { "realCm": "18", "targetCun": "2", "realDist": "5" },
+  "clicks": ["selectRegion('upper');calc()"],
+  "expect": [
+    "5.00 cm ÷ 每寸折量 2.00 cm ≈ 2.50 寸"
+  ],
+  "ref": "upper 首段「腋前纹头→肘横纹」标准折量 9 寸；实测 18 cm ⇒ 每寸 2.00 cm；反算输入 5 cm ⇒ 5 ÷ 2.00 = 2.50 寸。该复合串只由反算分支拼出（旧实现无真实反算、只输出错误提示式），默认态 realDist 为空不命中 ⇒ 强判别。"
+},
   // 注：acupuncture/analysis-10 已于 2026-09-19 改为 TOOLBOX-REDIRECT 存根（重定向到同义真工具），不再是工具页，用例移除。
 {
   "slug": "acupuncture/bloodletting-therapy",
