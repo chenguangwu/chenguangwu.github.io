@@ -79,8 +79,13 @@ for (const c of CASES) {
     r = { ok: false, got: "抛出异常: " + e.message };
   }
   if (r.skip) {
-    skipped++;
-    console.log(`⚠️ SKIP(no-browser): ${c.name} — ${r.got}`);
+    if (process.env.TB_REQUIRE_DYNAMIC === "1") {
+      fail++;
+      console.log(`❌ ${c.name} — TB_REQUIRE_DYNAMIC=1 但动态段被跳过：${r.got}`);
+    } else {
+      skipped++;
+      console.log(`⚠️ SKIP(no-browser): ${c.name} — ${r.got}`);
+    }
   } else if (r.ok) {
     pass++;
   } else {

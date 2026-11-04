@@ -99,7 +99,13 @@ function inlineScripts(html) {
   for (const h of hits) {
     for (const s of inlineScripts(h.code)) checkNodeSyntax(s.code, h.rel);
   }
-  console.log("动态执行页面扫描: " + hits.length + " 页");
+  if (hits.length === 0) {
+    // 判绿前提：扫描必须真的有命中。命中 0 页多半是正则失效 / 目录不对 / 扫描被跳过，
+    // 此时「0 条语法错误」是空集假绿，必须判红。
+    fail("动态执行页面扫描命中 0 页（正则失效或 tools 目录异常，拒绝判绿）");
+  } else {
+    console.log("动态执行页面扫描: " + hits.length + " 页");
+  }
 })();
 
 if (failures.length) {

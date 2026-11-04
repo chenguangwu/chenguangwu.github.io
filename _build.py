@@ -2799,6 +2799,34 @@ def _count_xml_urls(path):
 def _build_consistency_check(tools, category_inds):
     import glob
 
+    # 工具页必须带 <meta name="toolbox">（AGENTS「新增工具强制约束」）。缺 meta 的页面
+    # 会被 parse_toolbox_meta 当成空字典而**静默排除出索引**（tools.json 少一条、导航/站点
+    # 地图也少一页），此前构建仍判绿。行业聚合页 tools/<行业>/index.html 与重定向存根豁免。
+    missing_meta = []
+    for root, _dirs, filenames in os.walk(TOOLS_DIR):
+        for filename in filenames:
+            if not filename.endswith('.html') or filename == 'index.html':
+                continue
+            fp = os.path.join(root, filename)
+            try:
+                with open(fp, encoding='utf-8', errors='ignore') as fh:
+                    content = fh.read()
+            except OSError:
+                missing_meta.append(os.path.relpath(fp, ROOT))
+                continue
+            if 'TOOLBOX-REDIRECT' in content:
+                continue
+            if not re.search(r'<meta\s+name=["\']toolbox["\']', content, re.I):
+                missing_meta.append(os.path.relpath(fp, ROOT))
+    if missing_meta:
+        print('Build consistency failed: %d 个工具页缺少 <meta name="toolbox">'
+              % len(missing_meta))
+        for rel in sorted(missing_meta)[:20]:
+            print('  ' + rel)
+        if len(missing_meta) > 20:
+            print('  ...（共 %d 个）' % len(missing_meta))
+        return False
+
     expected_tools = len(tools)
     with open(TOOLS_JSON_FILE, encoding='utf-8') as f:
         tools_payload = json.load(f)

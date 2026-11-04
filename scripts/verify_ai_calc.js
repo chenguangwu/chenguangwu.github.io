@@ -1498,6 +1498,11 @@ async function main() {
   let hostPass = 0; const hostFails = []; let hostSkipped = 0;
   for (const h of hostCases) {
     if (!JSDOM) {
+      if (process.env.TB_REQUIRE_DYNAMIC === "1") {
+        hostFails.push(h.slug);
+        console.log("❌ DOM " + h.slug + "  TB_REQUIRE_DYNAMIC=1 但 jsdom 缺失 — " + JSDOM_ERR);
+        continue;
+      }
       hostSkipped++;
       console.log("⚠️ SKIP(no-jsdom): DOM " + h.slug + " — " + JSDOM_ERR);
       continue;

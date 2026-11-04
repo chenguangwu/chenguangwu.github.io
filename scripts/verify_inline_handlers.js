@@ -212,8 +212,13 @@ async function dynamicTrigger() {
     dyn = { ok: false, got: "动态段抛出异常: " + e.message };
   }
   if (dyn.skip) {
-    console.log(`\n⚠️ SKIP(no-browser): 动态触发段未执行（${dyn.skip}）`);
-    console.log("   静态断言仍生效；若本机有 Chrome，请安装 puppeteer-core 后复跑以覆盖真触发。");
+    if (process.env.TB_REQUIRE_DYNAMIC === "1") {
+      console.log(`\n❌ TB_REQUIRE_DYNAMIC=1 但动态触发段未执行（${dyn.skip}）`);
+      process.exitCode = 1;
+    } else {
+      console.log(`\n⚠️ SKIP(no-browser): 动态触发段未执行（${dyn.skip}）`);
+      console.log("   静态断言仍生效；若本机有 Chrome，请安装 puppeteer-core 后复跑以覆盖真触发。");
+    }
   } else if (dyn.ok) {
     console.log(`动态触发: ${dyn.got}`);
   } else {

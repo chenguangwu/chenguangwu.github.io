@@ -58,6 +58,10 @@ function answerRows(win, d, fn) {
 
 (async function main() {
   if (!JSDOM) {
+    if (process.env.TB_REQUIRE_DYNAMIC === '1') {
+      console.log('❌ TB_REQUIRE_DYNAMIC=1：jsdom 缺失，动态用例未执行 — ' + JSDOM_ERR);
+      process.exit(1);
+    }
     console.log('⚠️ SKIP(no-jsdom): psych-kit 行为用例未执行 — ' + JSDOM_ERR);
     console.log('   CI 由 npm ci 提供 jsdom；本机请先安装依赖后复跑。');
     return;

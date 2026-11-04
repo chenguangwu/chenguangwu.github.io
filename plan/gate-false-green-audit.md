@@ -165,3 +165,121 @@
 - 计数取自**并行线有未提交改动**的工作区（`verify_science_calc.js` 等），因此 `science 203 例`、`checked=9039`、`8980/8980` 会随该线合入小幅变动；结论（覆盖机制、缺口位置）不变。
 - 本续章**未造红、未改任何门禁脚本**；`plan/` 之外的改动为 0。
 
+## 6. 混合锚逃生项全站普查（2026-11-05，只读）
+
+### 6.1 机制与口径
+
+`verify_*_calc.js` 的 `expect` 是「**数组中任一命中即通过**」。因此一条用例只要混进一个「**不注入输入、页面默认态本来就存在**」的字符串，其余精确断言全部作废——整条退化成逃生项（土建线实例：会变的 `M_k=180.00` 与不变的 `δ=24.01` 写进同一条，`δ` 默认态即命中）。
+
+普查方法（只读，不改任何用例）：
+
+1. 对每条 `CASES` 用例以 `inputs:{}`、`checkIds:[]`、`radios:{}`、`checks:[]`、`clicks:[]`、`expect:[]` 跑一遍（`expect` 置空 ⇒ 必失败 ⇒ harness 返回默认态全量文本 blob `fullBlob`）；
+2. 逐项做 `blob.includes(expectItem)`，记录**默认态已命中**的项；
+3. 与注入后命中项比对：只有 `hit` 无 `miss` = 整条退化；`hit` 与 `miss` 并存 = 同源混合锚。
+
+范围：`scripts/verify_*.js` 中 207 个 `*_calc.js`（`verify_calc.js` 是冒烟式目标清单，无 `CASES/expect` 结构，不在口径内）；逐用例 8s 超时，`uncaughtException`/`unhandledRejection` 兜底推进。
+
+### 6.2 总量
+
+| 指标 | 数量 |
+|---|---|
+| 参与扫描用例 | **9126**（207 文件） |
+| `expect` 混入默认态命中项 | **56** |
+| 整条退化（默认态命中全部 expect，**真逃生**） | **49** |
+| 同源混合锚（默认态命中部分 expect） | **7** |
+| `expect` 长度 ≥3 | **7** |
+| 超时无法判定 | 2 |
+| 取不到 blob 无法判定 | 19 |
+
+> 56 条里，43 条是 `expect` 只有 1 项的单锚用例（默认态即命中，整条完全判别力为 0）；13 条 `expect` ≥2，因 OR 语义同样整条退化。
+
+### 6.3 清单① 疑似混合锚（`expect` ≥2 且至少一项默认态命中）——13 条，全部退化
+
+| 判定 | 文件 | 用例 | expLen | 默认态命中项 | 仅注入后命中 |
+|---|---|---|---|---|---|
+| 整条退化 | verify_aerospace_calc.js | aerospace/flight-time | 2 | 16 小时 15 分钟 实际飞行时长；-13.0 时差 | - |
+| 整条退化 | verify_design_calc.js | design/spacing-scale | 2 | space-4 9.8px；29.8px | - |
+| 整条退化 | verify_engineering_calc.js | engineering/heat-transfer | 2 | 传热量 Q 40.00 W；热阻 R 0.5000 K/W | - |
+| 整条退化 | verify_general_calc.js | general/calc-13 | 2 | 100 自然日；2400 小时数 | - |
+| 整条退化 | verify_hydraulic_calc.js | hydraulic/pressure-drop | 3 | 1.168；2.67；0.00584 | - |
+| 同源混合 | verify_hydraulic_calc.js | hydraulic/qudao-buchong-buyu-liusu | 3 | 0.7708；2.57（默认态计算值，非不变量） | 34.47 |
+| 整条退化 | verify_hydraulic_calc.js | hydraulic/daohongxi-shuitousunshi-maishen | 3 | 0.2548；0.3058；0.5607 | - |
+| 同源混合 | verify_life_calc.js | life/workday-calculator（3 条） | 3 | 周末（已排除）：0 天（合法恒值） | 自然日总数 / 工作日数 |
+| 同源混合 | verify_psychiatry_calc.js | psychiatry/rater-23 | 4 | 默认 LSAS 整段（总分 0/144） | 重度社交焦虑；144/144；78/78 |
+| 同源混合 | verify_psychology_calc.js | psychology/calc-12 | 2 | 最短板：生活满意度（0 分） | 幸福感总分 90/100 |
+| 同源混合 | verify_science_calc.js | science/science-pressure-converter | 2 | 1.0000 m（默认单位） | 1.0000 μ |
+
+判定口径：默认命中项是**默认态计算值**（qudao / pressure-converter / rater-23 / calc-12）⇒ 真逃生；是**与注入无关的合法恒值**（workday 的「周末 0 天」）⇒ 恒值本身合法，但因 OR 语义让整条失效，仍需拆条或改 AND 语义。
+
+### 6.4 清单② 同源混合锚（恒定值 + 变化值同条）——7 条
+
+即上表 6 条「同源混合」用例（workday ×3 计 3 条）。**共同缺陷**：不变量/默认值单独即可让整条 PASS，变化值断言等于没写。修法二选一：① 把不变量移出 `expect`（只留变化值）；② 若确需同时校验，把该条改用「全部命中才 PASS」的语义（需改 harness，影响面大，先做①）。
+
+### 6.5 清单③ `expect` 长度 ≥3 ——7 条（风险最高）
+
+| 文件 | 用例 | expLen | 判据 |
+|---|---|---|---|
+| verify_hydraulic_calc.js | hydraulic/pressure-drop | 3 | 3 项全在默认态命中 ⇒ 注入完全无效 |
+| verify_hydraulic_calc.js | hydraulic/daohongxi-shuitousunshi-maishen | 3 | 同上 |
+| verify_hydraulic_calc.js | hydraulic/qudao-buchong-buyu-liusu | 3 | 2 项默认命中，仅 34.47 需注入 |
+| verify_life_calc.js | life/workday-calculator ×3 | 3 | 恒值「周末 0 天」默认命中，两条变化值作废 |
+| verify_psychiatry_calc.js | psychiatry/rater-23 | 4 | 默认 LSAS 整段命中，3 条注入断言作废 |
+
+### 6.6 真逃生高亮（49 条整条退化）
+
+这 49 条的**分类门禁现在绿得毫无意义**（不注入任何输入也 100% PASS）：
+
+| 文件（简写） | 用例 |
+|---|---|
+| acupuncture | needle-retention、needling-depth |
+| admin | detector-time |
+| aerospace | flight-time |
+| agriculture | machinery-efficiency |
+| audio | audio-cut |
+| beauty | calc-2、skincare-routine |
+| ceramics | glaze-temp |
+| chess | xiangqi-endgame |
+| chinese-cook | wok-heat |
+| cognition | human-benchmark |
+| dentistry | tongue-oral-health、wisdom-tooth |
+| design | photo-print-size、spacing-scale |
+| edu | convert-area-volume |
+| electromagnetism | free-space-impedance |
+| electronics | resistor-calculator |
+| engineering | heat-transfer |
+| film | color-grading |
+| forensic-medicine | drowning-diatom |
+| gardening2 | pest-control |
+| general | calc-13 |
+| hydraulic | pressure-drop、daohongxi-shuitousunshi-maishen |
+| image | nine-grid-cutter |
+| kids | stroke-order |
+| language | idiom-solitaire |
+| legal | court-fee |
+| library | citation-format |
+| life | age-in-days |
+| mechanical | spring-rate |
+| misc2 | travel/luggage-size |
+| misc | science/physics-constants |
+| music | ear-trainer |
+| office | **mindmap** |
+| ophthalmology | amblyopia-stereopsis |
+| paper | paper-grade |
+| pet | training-planner |
+| rheumatology | anca-classification、behcet-hla、ssa-ssb |
+| science | convert-power |
+| startup | equity-calculator |
+| stats | sample-size |
+| tcm-diagnosis | etiology-tree |
+| text | convert-6 |
+| wedding | wedding-banquet |
+
+典型形态：`expect` 锚的是**默认态就存在的静态表/空状态/错误提示**（`请添加会议日程并填写时间`、`请先上传图片`、`请检查网络连接后刷新页面重试`、`请至少输入一台有效农机数据`），或**默认输入的输出值**（`376.73`、`0.224809`、`3.842`、`14 桌`、`2,300`）。
+
+### 6.7 结论
+
+- **56/9126 ≈ 0.61%** 的用例存在默认态命中项；其中 **49 条完全丧失判别力**。
+- 这批不是「用例写得不够精确」，而是**门禁语义（OR）与用例设计（多锚）冲突**。只要 harness 保持「任一命中即通过」，多锚用例必须满足「**每一项都只能由注入输入产生**」。
+- 只出清单，不改用例；各分类线按 §6.3–§6.5 自行修条。优先级：清单③（expect≥3）→ 清单② → 清单① → 剩余单锚全命中。
+- 2 条超时与 19 条无 blob 的用例**未判定**（可能含同类缺陷），需各线在页面可跑后复扫。
+

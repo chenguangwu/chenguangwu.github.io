@@ -58,6 +58,8 @@ GATES = (
     # 存储写入失败必须可见：解析期 GUARD / 收窄 catch / 写后回读为静态硬断言（决定退出码），
     # 配额提示与 TypeError 复现为动态段（本机无 Chrome 时显式 SKIP 且不影响退出码）。
     ("storage failure visible", ("node", "scripts/audit_storage_failure_visible.js")),
+    # 内联加固片段不得落在构建期整块替换区内（TTZZ / 旧桩 / 旧 theme / STATS）
+    ("inline marker placement", ("node", "scripts/audit_inline_marker_placement.js")),
     ("calculation regression", ("node", "scripts/verify_calc.js")),
     # 与上一项区别：verify_calc 是「冒烟」（不报错即可），本项是「正确性」
     # ——注入已知输入后按权威测试向量断言输出（§4.1.1）。用例写在脚本内，逐分类扩充。
@@ -323,6 +325,13 @@ GATES = (
     # 或全站均分下降即失败 —— 保证「改造只加分不减分」，杜绝为凑指标而删模块。
     # 基线提升（每批改造验收后）由人工执行：cp _ux_baseline.json _ux_baseline_snapshot.json。
     ("ux baseline regression", ("python3", "scripts/_ux_baseline.py", "--gate")),
+    # 共享层保真（运行时线）：所有 verify_*_calc.js 默认用「简化桩」，不加载 js/common.js，
+    # 因此「页面顶层同名函数被 common.js 全局赋值覆盖」这类生产独有故障在桩里根本不发生
+    # （已复现：science-pressure-converter 的 fmtNum、color-picker/fancy-text/rich-text-editor/
+    # random-string 的 copyText）。本项按线上顺序注入真实 js/common.js 重跑同一批用例。
+    # 置于 GATES 末尾：不阻塞其余门禁先跑完，且不改变「首项 expect anti-pattern」与
+    # 「--skip-build 摘除集合恰为 {build}」两条结构断言。
+    ("stub fidelity", ("node", "scripts/verify_stub_fidelity.js")),
 )
 
 
@@ -446,9 +455,51 @@ def prune_build_gate(gates: list[tuple[str, tuple[str, ...]]]) -> list[tuple[str
     return kept
 
 
+MANIFEST_PATH = Path(__file__).resolve().parent / "gates_manifest.txt"
+
+
+def check_gates_manifest(gates: list[tuple[str, tuple[str, ...]]]) -> None:
+    """清单棘轮：GATES 的名称/顺序必须与已提交清单完全一致。
+
+    防「从旧树重建把条目弄丢」而静默少跑门禁（实例：`inline marker placement`
+    曾在 7f28fc02f7 加入，8d54b89ee9 从旧树重建 run_gates.py 时丢失，无任何告警）。
+    少一条、多一条、顺序错位均判红；新增/删除/重命名/重排门禁必须同步更新
+    scripts/gates_manifest.txt（本仓 GATES 的唯一权威清单）。
+    """
+    if not MANIFEST_PATH.is_file():
+        raise SystemExit(f"ERROR: 门禁清单缺失：{MANIFEST_PATH}")
+    expected = [
+        line.strip()
+        for line in MANIFEST_PATH.read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.strip().startswith("#")
+    ]
+    actual = [name for name, _ in gates]
+    missing = [n for n in expected if n not in actual]
+    extra = [n for n in actual if n not in expected]
+    problems: list[str] = []
+    if missing:
+        problems.append(f"清单中缺少 {len(missing)} 条门禁：{', '.join(missing)}")
+    if extra:
+        problems.append(
+            f"清单外多出 {len(extra)} 条门禁（新增门禁必须同步更新 {MANIFEST_PATH.name}）："
+            + ", ".join(extra)
+        )
+    if not missing and not extra and actual != expected:
+        for index, (got, want) in enumerate(zip(actual, expected), start=1):
+            if got != want:
+                problems.append(
+                    f"门禁顺序与清单不一致：第 {index} 项实际 {got!r}，清单 {want!r}"
+                )
+                break
+    if problems:
+        raise SystemExit("ERROR: 门禁清单棘轮失败：\n  - " + "\n  - ".join(problems))
+
+
 def main() -> int:
     args = parse_args()
     gates = list(GATES)
+    # 清单棘轮在任何过滤之前执行：--skip-build 只影响执行，不应掩盖条目丢失。
+    check_gates_manifest(gates)
     if args.skip_build:
         # 按命令首项（python3 _build.py）摘除，而不是按名字：名字改名后按名字过滤会
         # 静默失效、build 仍执行。摘除范围由 prune_build_gate 内部断言（恰 1 项、
