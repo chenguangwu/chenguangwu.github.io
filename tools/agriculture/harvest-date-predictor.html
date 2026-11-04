@@ -251,10 +251,15 @@ function onCropChange(){
   calc();
 }
 function init(){
-  var today = new Date();
-  today.setMonth(today.getMonth()-4);
-  document.getElementById('sowDate').value = today.toISOString().slice(0,10);
+  var d=new Date();
+  d.setMonth(d.getMonth()-4);
+  document.getElementById('sowDate').value=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   calc();
+}
+function parseLocalDate(s){
+  var p=s.split('-');
+  if(p.length!==3)return new Date(NaN);
+  return new Date(+p[0],+p[1]-1,+p[2]);
 }
 function calc(){
   var key = document.getElementById('cropSel').value;
@@ -267,13 +272,14 @@ function calc(){
   if(!sowDateStr){ ToolBox.setResult('result','<p style="color:var(--danger);">请选择播种日期</p>'); return; }
   if(moisture<=0){ ToolBox.setResult('result','<p style="color:var(--danger);">含水量必须大于0</p>'); return; }
 
-  var sowDate = new Date(sowDateStr);
+  var sowDate = parseLocalDate(sowDateStr);
+  if(isNaN(sowDate.getTime())){ ToolBox.setResult('result','<p style="color:var(--danger);">播种日期无效</p>'); return; }
   var now = new Date();
   now.setHours(0,0,0,0);
   var daysSinceSow = Math.floor((now - sowDate) / (1000*60*60*24));
 
-  // 计算达到理想含水量的天数
-  var targetMoisture = crop.harvestMoisture;
+  // 以最佳含水区间的上限为目标：含水量降到上限即进入适宜收割窗口
+  var targetMoisture = crop.idealRange[1];
   var daysToHarvest = dryRate>0 ? Math.ceil((moisture - targetMoisture) / dryRate) : 0;
   if(daysToHarvest<0) daysToHarvest = 0;
 
@@ -338,7 +344,7 @@ function copyResult(){
   var crop=CROPS[key];
   var moisture=+document.getElementById('moisture').value||0;
   var dryRate=+document.getElementById('dryRate').value||0;
-  var daysToHarvest=dryRate>0?Math.ceil((moisture-crop.harvestMoisture)/dryRate):0;
+  var daysToHarvest=dryRate>0?Math.max(0,Math.ceil((moisture-crop.idealRange[1])/dryRate)):0;
   ToolBox.copyText(crop.name+'收割预测：\n当前含水量：'+moisture.toFixed(1)+'%\n最佳含水量：'+crop.idealRange[0]+'~'+crop.idealRange[1]+'%\n预计'+daysToHarvest+'天后可收割', i18nText('toast.msg544'));
 }
 init();

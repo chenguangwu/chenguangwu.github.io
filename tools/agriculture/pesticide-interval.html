@@ -252,31 +252,42 @@ function initSelect(){
     sel.appendChild(opt);
   });
   var today = new Date();
-  document.getElementById('sprayDate').value = today.toISOString().slice(0,10);
+  var yyyy=today.getFullYear(), mm=String(today.getMonth()+1).padStart(2,'0'), dd=String(today.getDate()).padStart(2,'0');
+  document.getElementById('sprayDate').value = yyyy+'-'+mm+'-'+dd;
+}
+function parseLocalDate(s){
+  var p=s.split('-');
+  if(p.length!==3)return new Date(NaN);
+  return new Date(+p[0], +p[1]-1, +p[2]);
+}
+function getSelectedPesticide(){
+  var v=document.getElementById('pesticideSel').value;
+  return v===''?null:(PESTICIDES[+v]||null);
 }
 function onPesticideChange(){
-  var idx = +document.getElementById('pesticideSel').value;
-  if(!isNaN(idx) && PESTICIDES[idx]){
-    document.getElementById('phiDays').value = PESTICIDES[idx].phi;
+  var p=getSelectedPesticide();
+  if(p){
+    document.getElementById('phiDays').value = p.phi;
   }
   calc();
 }
 function calc(){
-  var idx = +document.getElementById('pesticideSel').value;
   var sprayDateStr = document.getElementById('sprayDate').value;
   var phiDays = +document.getElementById('phiDays').value || 7;
 
   if(!sprayDateStr){ ToolBox.setResult('result','<p style="color:var(--danger);">请选择施药日期</p>'); return; }
 
-  var sprayDate = new Date(sprayDateStr);
+  // 按本地日期解析，避免 new Date('YYYY-MM-DD') 按 UTC 解析造成 +1 天
+  var sprayDate = parseLocalDate(sprayDateStr);
+  if(isNaN(sprayDate.getTime())){ ToolBox.setResult('result','<p style="color:var(--danger);">施药日期无效</p>'); return; }
   var safeDate = new Date(sprayDate);
   safeDate.setDate(safeDate.getDate() + phiDays);
 
   var now = new Date();
   now.setHours(0,0,0,0);
-  var diffDays = Math.ceil((safeDate - now) / (1000*60*60*24));
+  var diffDays = Math.round((safeDate - now) / (1000*60*60*24));
 
-  var sel = idx>=0 && PESTICIDES[idx] ? PESTICIDES[idx] : null;
+  var sel = getSelectedPesticide();
 
   var html = '';
   if(diffDays > 0){
@@ -317,11 +328,13 @@ function formatDate(d){
   return d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日';
 }
 function copyResult(){
-  var idx=+document.getElementById('pesticideSel').value;
-  var sel=idx>=0&&PESTICIDES[idx]?PESTICIDES[idx]:null;
+  var sel=getSelectedPesticide();
   var sprayDateStr=document.getElementById('sprayDate').value;
   var phiDays=+document.getElementById('phiDays').value||7;
-  var txt='农药安全间隔期记录\n农药：'+(sel?sel.name:'自定义')+'\n施药日期：'+sprayDateStr+'\n安全间隔期：'+phiDays+'天\n最早采收日期：'+formatDate(new Date(new Date(sprayDateStr).getTime()+phiDays*86400000));
+  var sprayDate=parseLocalDate(sprayDateStr);
+  if(isNaN(sprayDate.getTime())){ ToolBox.showToast('施药日期无效','warning'); return; }
+  var safeDate=new Date(sprayDate);safeDate.setDate(safeDate.getDate()+phiDays);
+  var txt='农药安全间隔期记录\n农药：'+(sel?sel.name:'自定义')+'\n施药日期：'+sprayDateStr+'\n安全间隔期：'+phiDays+'天\n最早采收日期：'+formatDate(safeDate);
   ToolBox.copyText(txt, i18nText('msg602'));
 }
 initSelect();

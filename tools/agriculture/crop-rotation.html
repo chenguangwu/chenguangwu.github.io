@@ -585,21 +585,20 @@ s.parentNode.insertBefore(el, s);
     return seasons[(idx + 1) % 4];
   }
 
-  // 根据季节和类型选择最合适的作物
+  // 根据季节选择作物：只选适种该季节的作物；本类型无适季作物时按轮作顺序改选其它类型
   function pickCrop(type, season, usedCrops) {
-    var candidates = getCropsByType(type);
-    // 优先选适合该季节的
-    var suitable = candidates.filter(function(name) {
-      return CROPS[name].seasons.indexOf(season) !== -1 && usedCrops.indexOf(name) === -1;
-    });
-    if (suitable.length > 0) return suitable[0];
-    // 次选未用过的
-    var unused = candidates.filter(function(name) {
-      return usedCrops.indexOf(name) === -1;
-    });
-    if (unused.length > 0) return unused[0];
-    // 兜底
-    return candidates[0];
+    var startIdx = ROTATION_ORDER.indexOf(type);
+    for (var k = 0; k < ROTATION_ORDER.length; k++) {
+      var t = ROTATION_ORDER[(startIdx + k) % ROTATION_ORDER.length];
+      var candidates = getCropsByType(t).filter(function(name) {
+        return CROPS[name].seasons.indexOf(season) !== -1;
+      });
+      if (candidates.length === 0) continue;
+      var unused = candidates.filter(function(name) { return usedCrops.indexOf(name) === -1; });
+      var picked = unused.length > 0 ? unused[0] : candidates[0];
+      return { type: t, crop: picked };
+    }
+    return null; // 该季节没有任何适种作物
   }
 
   function getReason(fromType, toType) {
@@ -627,12 +626,13 @@ s.parentNode.insertBefore(el, s);
     var seasonsPerYear = mode === 'simple' ? 2 : 4;
     var seasonList = mode === 'simple' ? ['春', '秋'] : ['春', '夏', '秋', '冬'];
 
-    // 调整起始季节在 seasonList 中的位置
-    var startSeasonIdx = seasonList.indexOf(startSeason);
-    if (startSeasonIdx === -1) {
-      // 简化模式下起始季节不在列表中，找最接近的
-      startSeasonIdx = 0;
+    // 简化模式仅支持春/秋：夏归入春茬、冬归入秋茬，摘要与导出一致使用实际起始季
+    var actualStartSeason = startSeason;
+    if (mode === 'simple' && seasonList.indexOf(startSeason) === -1) {
+      actualStartSeason = startSeason === '夏' ? '春' : '秋';
     }
+    var startSeasonIdx = seasonList.indexOf(actualStartSeason);
+    if (startSeasonIdx === -1) startSeasonIdx = 0;
 
     var currentTypeIdx = startTypeIdx;
     var currentSeasonIdx = startSeasonIdx;
@@ -643,7 +643,19 @@ s.parentNode.insertBefore(el, s);
         var season = seasonList[(currentSeasonIdx + s) % seasonsPerYear];
         var typeIdx = (currentTypeIdx + s) % ROTATION_ORDER.length;
         var type = ROTATION_ORDER[typeIdx];
-        var crop = pickCrop(type, season, usedCrops);
+        var slot = pickCrop(type, season, usedCrops);
+        if (!slot) {
+          yearPlan.push({
+            season: season,
+            type: type,
+            crop: '（无适季作物）',
+            reason: '该季节暂无可轮换作物，建议改种绿肥或休闲，并人工调整规划。',
+            empty: true
+          });
+          continue;
+        }
+        var crop = slot.crop;
+        var actualType = slot.type;
         usedCrops.push(crop);
 
         var prevType = null;
@@ -653,11 +665,11 @@ s.parentNode.insertBefore(el, s);
           var prevYear = plan[plan.length - 1];
           prevType = prevYear[prevYear.length - 1].type;
         }
-        var reason = prevType ? getReason(prevType, type) : '轮作起始，豆科固氮养地为后续作物打基础。';
+        var reason = prevType ? getReason(prevType, actualType) : '轮作起始，豆科固氮养地为后续作物打基础。';
 
         yearPlan.push({
           season: season,
-          type: type,
+          type: actualType,
           crop: crop,
           reason: reason
         });
@@ -667,7 +679,7 @@ s.parentNode.insertBefore(el, s);
       currentSeasonIdx = (currentSeasonIdx + seasonsPerYear) % seasonsPerYear;
     }
 
-    renderPlan(plan, area, startSeason, mode);
+    renderPlan(plan, area, actualStartSeason, mode);
   };
 
   function renderPlan(plan, area, startSeason, mode) {
@@ -688,6 +700,11 @@ s.parentNode.insertBefore(el, s);
     plan.forEach(function(yearPlan, yi) {
       html += '<tr><td><strong>第' + (yi + 1) + '年</strong></td>';
       yearPlan.forEach(function(slot) {
+        if (slot.empty) {
+          html += '<td><div class="crop-cell" style="color:var(--text-muted);">— 无适季作物</div>'
+            + '<div class="reason-cell" style="margin-top:4px;">' + ToolBox.escHtml(slot.reason) + '</div></td>';
+          return;
+        }
         var crop = CROPS[slot.crop];
         html += '<td>'
           + '<div class="crop-cell">' + crop.icon + ' ' + ToolBox.escHtml(slot.crop) + '</div>'
@@ -711,6 +728,10 @@ s.parentNode.insertBefore(el, s);
         + '</div>'
         + '<div class="crops-row">';
       yearPlan.forEach(function(slot) {
+        if (slot.empty) {
+          cardsHtml += '<span class="crop-pill" style="opacity:.7;">— ' + ToolBox.escHtml(slot.season) + '季·无适季作物</span>';
+          return;
+        }
         var crop = CROPS[slot.crop];
         cardsHtml += '<span class="crop-pill">' + crop.icon + ' ' + ToolBox.escHtml(slot.season) + '季·' + ToolBox.escHtml(slot.crop) + '</span>';
       });
@@ -731,6 +752,10 @@ s.parentNode.insertBefore(el, s);
     var rows = table.querySelectorAll('tbody tr');
     var area = document.getElementById('areaInput').value;
     var startSeason = document.getElementById('seasonInput').value;
+    var mode = document.getElementById('modeInput').value;
+    if (mode === 'simple' && (startSeason === '夏' || startSeason === '冬')) {
+      startSeason = startSeason === '夏' ? '春' : '秋';
+    }
     var lines = [];
     lines.push('作物轮作周期规划表');
     lines.push('种植面积：' + area + ' 亩 ｜ 起始季节：' + startSeason);
