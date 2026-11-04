@@ -121,16 +121,17 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="本地静态识别常见乱码特征，提供可读性修复建议。">Restore text from common double-encoding mojibake and report its character composition.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">双重编码判定：把文本中的每个字符还原为其在 cp1252 中的字节值（≤0xFF 直接用码位，€ “ ” 等特殊符号按映射表折算），得到字节序列后按 UTF-8 严格解码（fatal 模式）；解码成功且结果与原文不同 ⇒ 判定为「UTF-8 字节被按 Latin-1/Windows-1252 解读」并输出还原文本；出现非法序列则不做修复。另统计字符构成：中日韩字符、拉丁字母、U+FFFD 替换符、控制字符各自的数量。</div>
-  <div class="formula-desc">本页处理的是已经解码成字符串的文本（粘贴框里的内容），因此无法读取原始字节或 BOM，也不做 GBK/Big5 字频猜测。它只做一件可验证的事：识别并还原最常见的双重编码乱码——UTF-8 字节被当作 Latin-1 或 Windows-1252 显示（如「Ã©」应为「é」、「â€™」应为「’」、「ä¸æ–‡」应为「中文」）。如果原文含 U+FFFD 替换符，说明解码时信息已经丢失，任何工具都无法还原，只能回到原始字节重新解码。</div>
+  <div class="formula-desc">两档入口，按输入形态自动选择：① 粘贴<b>十六进制字节串</b>（如 <code>C4 E3 BA C3</code> 或 <code>C4E3BAC3</code>）时，用浏览器原生 TextDecoder 分别按 UTF-8 / GB18030 / Big5 / UTF-16LE / UTF-16BE 严格解码（fatal 模式），只有不出现非法序列的编码才列入候选，再按可读性打分排序，并识别 UTF-8 / UTF-16 BOM。② 粘贴<b>已解码的文本</b>时，只做可验证的双重编码还原（UTF-8 字节被当作 Latin-1/Windows-1252 显示）。单凭字节无法区分 GBK 与 GB18030（GBK 是 GB18030 的子集，浏览器 gbk 标签即按 GB18030 解码），故候选统一标注 GB18030；GB18030 与 Big5 的字节区间大面积重叠，短文本只能给概率结论。若原文已含 U+FFFD 替换符，说明解码时信息已丢失，任何工具都无法还原，只能回到原始字节重新解码。</div>
   <ul class="formula-list">
+    <li><b>字节模式</b>：输入为偶数位十六进制（可含空格）；含 >=0x80 字节或带空格分隔才按字节处理，避免把 2024 这类纯数字文本误判。</li>
     <li><b>可修复</b>：UTF-8 → Latin-1/cp1252 双重编码（整串字符均可折算为字节且 UTF-8 解码合法）。</li>
     <li><b>不可修复</b>：含 U+FFFD（数据已丢失）、含超出 cp1252 的字符、或 UTF-8 解码非法（多为单向 GBK 乱码或纯 Latin-1 文本）。</li>
-    <li><b>局限</b>：无法探测 BOM 与原始字节序；短文本信息不足，判定须结合来源人工确认。</li>
+    <li><b>局限</b>：GBK / GB18030 / Big5 无法仅凭字节严格互斥判定；判定须结合语种与来源人工确认。</li>
   </ul>
 </div>
 
     <div class="input-row">
-      <label>粘贴异常文本</label>
+      <label>粘贴异常文本或十六进制字节串</label>
       <textarea id="txt">Ã©Ã¤Ã¢Ã¢Ã«Ã¥Ã¨</textarea>
     </div>
     <div class="toolbar">
@@ -285,8 +286,99 @@ function escOut(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
+// —— 字节串识别：输入形如 "C4 E3 BA C3" / "C4E3BAC3" 时按字节交给标准解码器 ——
+// 单凭字节无法区分 GBK 与 GB18030（前者是后者的子集，WHATWG 规范里 gbk 标签即按 gb18030 解码），
+// 故输出统一标注 GB18030，并在结论中说明这一不可判定性。
+const BYTE_DECODERS = [
+  { label: 'UTF-8', enc: 'utf-8' },
+  { label: 'GB18030（含 GBK）', enc: 'gb18030' },
+  { label: 'Big5', enc: 'big5' },
+  { label: 'UTF-16LE', enc: 'utf-16le' },
+  { label: 'UTF-16BE', enc: 'utf-16be' }
+];
+
+function hexToBytes(s){
+  const t = s.replace(/[ \t\r\n]+/g, '');
+  if (!/^[0-9A-Fa-f]+$/.test(t) || t.length % 2) return null;
+  const bytes = [];
+  for (let i = 0; i < t.length; i += 2) bytes.push(parseInt(t.substr(i, 2), 16));
+  return bytes;
+}
+
+function looksLikeBytes(s){
+  const raw = s.trim();
+  if (!raw) return null;
+  const bytes = hexToBytes(raw);
+  if (!bytes) return null;
+  // 仅在「带空白分隔」或「含 >=0x80 字节」时按字节处理，
+  // 避免把 2024、123456 这类纯文本数字误判成十六进制字节串。
+  const spaced = /[ \t\r\n]/.test(raw);
+  return (spaced || bytes.some(b => b >= 0x80)) ? bytes : null;
+}
+
+function scoreText(s){
+  // 可读性打分：中日韩/假名/谚文 +3，可打印 ASCII +1，控制字符 -10
+  let score = 0;
+  for (const ch of s){
+    const c = ch.codePointAt(0);
+    if (c === 0xFFFD) score -= 10;
+    else if ((c >= 0x4E00 && c <= 0x9FFF) || (c >= 0x3400 && c <= 0x4DBF) ||
+             (c >= 0x3040 && c <= 0x30FF) || (c >= 0xAC00 && c <= 0xD7AF)) score += 3;
+    else if (c >= 0x20 && c < 0x7F) score += 1;
+    else if (c >= 0xE000 && c <= 0xF8FF) score -= 3;   // 私用区字符通常意味着解错了编码
+    else if (c < 0x20 || (c >= 0x7F && c < 0xA0)) score -= 10;
+  }
+  return score;
+}
+
+function detectBytes(bytes){
+  let bom = '', data = bytes;
+  if (bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF){ bom = 'UTF-8 BOM'; data = bytes.slice(3); }
+  else if (bytes[0] === 0xFF && bytes[1] === 0xFE){ bom = 'UTF-16LE BOM'; data = bytes.slice(2); }
+  else if (bytes[0] === 0xFE && bytes[1] === 0xFF){ bom = 'UTF-16BE BOM'; data = bytes.slice(2); }
+
+  const results = [];
+  for (const c of BYTE_DECODERS){
+    let text = null;
+    try{
+      text = new TextDecoder(c.enc, { fatal: true }).decode(new Uint8Array(data));
+    }catch(e){ text = null; }
+    if (text === null) results.push({ label: c.label, text: null, score: -Infinity });
+    else results.push({ label: c.label, text: text, score: scoreText(text) });
+  }
+
+  const ok = results.filter(r => r.text !== null).sort((a, b) => b.score - a.score);
+  let html = '<p>输入按十六进制字节串处理：共 ' + data.length + ' 字节' + (bom ? '（识别到 ' + bom + '）' : '') + '。</p>';
+  if (!ok.length){
+    return html + '<p style="color:var(--danger)">❌ 所有候选编码都无法严格解码，字节序列可能已损坏或不是完整文本。</p>';
+  }
+  html += '<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr>' +
+    '<th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);">编码</th>' +
+    '<th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);">可严格解码</th>' +
+    '<th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);">解码结果</th></tr></thead><tbody>';
+  for (const r of results){
+    const body = r.text === null ? '否' : (r.score >= 0 ? '是（可读性分 ' + r.score + '）' : '是（可读性分 ' + r.score + '，疑似误判）');
+    html += '<tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);">' + escOut(r.label) + '</td>' +
+      '<td style="padding:6px 8px;border-bottom:1px solid var(--border);">' + escOut(body) + '</td>' +
+      '<td style="padding:6px 8px;border-bottom:1px solid var(--border);">' + escOut(r.text === null ? '—' : r.text.slice(0, 60)) + '</td></tr>';
+  }
+  html += '</tbody></table>';
+  const top = ok[0], tie = ok.filter(r => r.score === top.score);
+  if (tie.length > 1){
+    html += '<p>结论：' + escOut(tie.map(r => r.label).join(' / ')) + ' 均可严格解码且可读性并列，字节区间重叠，<b>无法仅凭字节区分</b>，请结合语种与数据来源确认。</p>';
+  } else {
+    html += '<p>结论：最可能为 <b>' + escOut(top.label) + '</b>（可读性分 ' + top.score + '）；仍属概率判断，请结合来源确认。</p>';
+  }
+  return html;
+}
+
 function detect() {
   const t = document.getElementById('txt').value || '';
+  const bytes = looksLikeBytes(t);
+  if (bytes){
+    document.getElementById('out').innerHTML = detectBytes(bytes);
+    return;
+  }
   const fixed = fixMojibake(t);
   let extra;
   if (fixed !== null) extra = '疑似 UTF-8 字节被按 Latin-1/Windows-1252 解读，已按字节还原。';
@@ -442,15 +534,14 @@ else document.addEventListener('DOMContentLoaded', __charset_detectorBoot);
 <h2>📚 深度解析：编码识别器</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>网页或接口返回的中文变成「Ã¤Â¸Â­Ã¦Â–Â‡」这类西文乱码时，还原真实文本。</li>
-<li>复制来的引号、省略号显示成「â€™」「â€¦」时，按字节还原为「’」「…」。</li>
-<li>判断一段文本是否已经发生不可逆的解码失败（出现 U+FFFD 替换符）。</li>
+<li>拿到一段不知编码的字节时推断其字符集：把字节按十六进制粘贴（如 <code>C4 E3 BA C3</code>），逐种标准解码器试解。</li>
+<li>处理乱码文件：导入 CSV 前先探测编码，确认是 UTF-8、GBK 还是带 BOM 的 UTF-8，再按正确编码读取，避免整表出现问号或错字。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">还原双重编码乱码</div><div class="dd-ex-body">粘贴「Ã©」→ 折算字节 C3 A9 → 按 UTF-8 解码得「é」；粘贴「â€™」→ 折算字节 E2 80 99 → 得「’」。若文本里已经是「�」（U+FFFD），说明原始字节在解码时已被丢弃，无法从文本还原。</div></div>
+<div class="dd-example"><div class="dd-ex-title">识别字节</div><div class="dd-ex-body">输入 <code>C4 E3 BA C3</code> → UTF-8 严格解码失败（报非法序列）；GB18030 解出「你好」，Big5 解出「斕疑」且同样可通过严格解码——两者按可读性打分并列，页面会明确给出「无法仅凭字节区分」的结论，而不是硬猜一个。<br>若输入的是已解码的乱码文本（如 <code>Ã©</code>），则走双重编码还原：折算回字节后按 UTF-8 解码得 <code>é</code>。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>能识别 GBK、Big5 或 BOM 吗？</dt><dd>不能。粘贴框里拿到的是已经解码后的字符串，原始字节与 BOM 已不可见，因此本页不做 GBK/Big5 猜测。若需按 GBK 读取文件，请在导入 CSV/文本时直接指定正确编码。</dd>
-<dt>为什么有时无法修复？</dt><dd>双重编码还原要求整串字符都能折算回 cp1252 字节，且按 UTF-8 严格解码合法。含 U+FFFD、超出 cp1252 的字符（如已正确显示的中文）或非法续字节时解码会失败，此时工具不会强行替换，而是原样输出并提示不可还原。</dd>
+<dt>识别一定准吗？</dt><dd>不准。字节模式只会排除「严格解码失败」的编码，再按可读性排序；GBK 与 GB18030 完全无法区分（同一解码器），GB18030 与 Big5 的字节区间也大面积重叠，短文本只能给概率结论。</dd>
+<dt>为什么有时判断不准？</dt><dd>因为短文本信息量不足：GBK 与 Big5 的字节区间大面积重叠，纯 ASCII 内容在几乎所有编码下都合法，UTF-8 与 Latin-1 也无 BOM 可区分。工具只能给出概率最高的猜测，可靠做法是结合语言先验（中文优先 GBK/UTF-8）与业务来源，或直接要求数据方声明编码。</dd>
 </dl>
 </div>
 </section>
