@@ -115,11 +115,11 @@ s.parentNode.insertBefore(el, s);
 </div>
 <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="🫁 气胸肺压缩%估计器">Pneumothorax</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="依据立位后前位胸片测量胸膜间距，采用 Rhea 法估算气胸肺压缩百分比">Pneumothorax</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="依据立位后前位胸片测量胸膜间距，采用 Rhea 法估算气胸肺压缩百分比（本页估算，需临床复核）">Estimate pneumothorax size using the Rhea method on an upright PA chest radiograph (estimate only; clinical review required)</p>
 <div class="formula-box">
   
   
-<div class="formula-eq">气胸肺压缩比 ≈ 三处肋间测量平均距离 × 10（上限 100%）；压缩 小于20% 且无症状可观察并吸高浓度氧，继发性或张力性气胸需胸腔闭式引流或紧急排气。</div></div>
+<div class="formula-eq">气胸肺压缩比 ≈ 三处肋间测量平均距离 × 10（Rhea 法，上限 100%；本页估算，需影像/临床复核）。压缩 小于20% 且无症状可观察并吸高浓度氧；继发性、创伤性或张力性气胸需胸腔闭式引流或紧急排气。BTS 指南以胸膜间距 ≥2 cm 区分大小，CT 测量更准确。</div></div>
 
     <p style="font-size:13px;color:var(--text-light);margin-bottom:8px;">在胸片上测量三处胸膜间距(cm)：A=肺尖顶到胸膜顶；B=上半肺野中点胸膜间距；C=下半肺野中点胸膜间距</p>
     <div class="input-row">
@@ -246,21 +246,32 @@ s.parentNode.insertBefore(el, s);
 
 <script>
 function calc(){
-  var a=parseFloat(document.getElementById('a').value)||0;
-  var b=parseFloat(document.getElementById('b').value)||0;
-  var c=parseFloat(document.getElementById('c').value)||0;
+  var ra=parseFloat(document.getElementById('a').value);
+  var rb=parseFloat(document.getElementById('b').value);
+  var rc=parseFloat(document.getElementById('c').value);
   var type=document.getElementById('type').value;
   var sym=document.getElementById('symptom').value;
 
+  if(!isFinite(ra)||!isFinite(rb)||!isFinite(rc)||ra<0||rb<0||rc<0){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger)">请填写 A/B/C 三处胸膜间距（≥0 的有效数字）；空值或负值不会被当作 0 给出压缩比例。</p>';
+    return;
+  }
+  var a=ra, b=rb, c=rc;
   var avg=(a+b+c)/3;
-  var pct=avg*10;
-  if(pct>100)pct=100;
+  if(avg<=0){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger)">三处胸膜间距均为 0，无法估计气胸压缩比例；请核对测量值。</p>';
+    return;
+  }
+  var rawPct=avg*10;
+  var pct=rawPct>100?100:rawPct;
 
   var level,color,advice;
   if(sym==='severe'){
     level='警惕张力性气胸';color='#EF4444';advice='严重呼吸困难/血流动力学不稳，立即行紧急排气(锁骨中线第2肋间粗针)并胸腔闭式引流，勿等待检查结果。';
   } else if(type==='secondary'){
     level='继发性气胸';color='#EF4444';advice='SSP通常需胸腔闭式引流(小口径导管可考虑)，评估原发病(COPD/肺纤维化等)，复发率高可考虑胸膜固定术。';
+  } else if(type==='traumatic'){
+    level='创伤性气胸';color='#EF4444';advice='创伤性气胸需先按 ATLS 评估合并伤，排查开放性/张力性气胸与血气胸；多数需胸腔闭式引流，由急诊/创伤团队复核。';
   } else if(pct<20 && sym==='mild'){
     level='少量气胸';color='#10B981';advice='压缩＜20%且无症状，可观察吸氧(高浓度氧促氮气吸收)，4–6小时复评胸片，进展则引流。';
   } else if(pct<20){
@@ -277,8 +288,9 @@ function calc(){
   html+='<div class="ref-card"><h4>计算明细</h4><ul>';
   html+='<li>A='+a+', B='+b+', C='+c+' cm</li>';
   html+='<li>平均胸膜间距 = ('+a+'+'+b+'+'+c+')/3 = '+avg.toFixed(2)+' cm</li>';
-  html+='<li>肺压缩% ≈ '+avg.toFixed(2)+' × 10 = <strong>'+pct.toFixed(0)+'%</strong></li>';
+  html+='<li>肺压缩% ≈ '+avg.toFixed(2)+' × 10 = <strong>'+pct.toFixed(0)+'%</strong>'+(rawPct>100?'（原始值 '+rawPct.toFixed(0)+'%，按上限 100% 显示）':'')+'</li>';
   html+='<li>类型：'+({primary:'原发性自发性',secondary:'继发性自发性',traumatic:'创伤性'}[type])+'</li>';
+  html+='<li>参考：本页按 Rhea 法估算（本页估算），BTS 指南以胸膜间距 ≥2 cm 区分大小，CT 测量更准确；需影像科/临床复核。</li>';
   html+='</ul></div>';
 
   html+='<div class="tip-box" style="border-color:'+color+';color:'+color+';background:'+color+'1a;"><strong>'+level+'</strong><br>'+advice+'</div>';

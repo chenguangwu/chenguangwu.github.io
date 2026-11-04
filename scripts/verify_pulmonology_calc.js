@@ -94,8 +94,32 @@ const CASES = [
     "b": "1",
     "c": "1"
   },
-  "expect": ["1\n1\n1\nprimary\nmoderate\n10% 肺压缩估计 少量气胸但有症状 评估 计算明细 A=1, B=1, C=1 cm 平均胸膜间距 = (1+1+1)/3 = 1.00 cm 肺压缩% ≈ 1.00 × 10 = 10% 类型：原发性自发性 少量气胸但有症状 有症状的小量气胸可考虑简易抽气(14-16G套管针第2肋间)，若抽气后未复张或复发则胸腔闭式引流。"],
+  "expect": ["1\n1\n1\nprimary\nmoderate\n10% 肺压缩估计 少量气胸但有症状 评估 计算明细 A=1, B=1, C=1 cm 平均胸膜间距 = (1+1+1)/3 = 1.00 cm 肺压缩% ≈ 1.00 × 10 = 10% 类型：原发性自发性 参考：本页按 Rhea 法估算（本页估算），BTS 指南以胸膜间距 ≥2 cm 区分大小，CT 测量更准确；需影像科/临床复核。 少量气胸但有症状 有症状的小量气胸可考虑简易抽气(14-16G套管针第2肋间)，若抽气后未复张或复发则胸腔闭式引流。"],
   "ref": "auto-restore"
+},
+{
+  "slug": "pulmonology/pneumothorax",
+  "clicks": [
+    "document.getElementById('a').value='';document.getElementById('b').value='';document.getElementById('c').value='';calc();var r=document.getElementById('result');r.innerHTML+=' 空值拦截='+(r.innerHTML.indexOf('空值或负值')>=0)+' 仍给建议='+(r.innerHTML.indexOf('少量气胸')>=0);"
+  ],
+  "expect": ["空值拦截=true 仍给建议=false"],
+  "ref": "L-N38 空值：修复前 parseFloat('')||0 ⇒ A=B=C=0 ⇒ 0% 仍输出「少量气胸、可观察」；现提示空值/负值并清空结果。默认 2/3/2 有效 ⇒ 哨兵串不出现。"
+},
+{
+  "slug": "pulmonology/pneumothorax",
+  "inputs": { a: "0", b: "0", c: "0", type: "traumatic" },
+  "clicks": [
+    "calc();var r=document.getElementById('result');r.innerHTML+=' 零值拦截='+(r.innerHTML.indexOf('均为 0')>=0);"
+  ],
+  "expect": ["零值拦截=true"],
+  "ref": "L-N38 零值：三处均为 0 无法估计气胸，提示核对测量值；修复前照常给 0% 与观察建议。默认 2/3/2 不命中。"
+},
+{
+  "slug": "pulmonology/pneumothorax",
+  "inputs": { a: "1", b: "1", c: "1", type: "traumatic", symptom: "mild" },
+  "clicks": ["calc()"],
+  "expect": ["创伤性气胸", "按 ATLS 评估合并伤"],
+  "ref": "L-N38 分支：创伤性气胸修复前落入「少量气胸」通用分支，现单独提示 ATLS 评估合并伤与引流；默认类型 primary 不命中。"
 },
 {
   // 默认 2.10/3.50 → 60.0% 阻塞 GOLD 2；注入 3.0/3.5/95/95 → 85.7% 正常
@@ -340,6 +364,30 @@ const CASES = [
     "有传染性，需呼吸道隔离"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "pulmonology/tb-resistance",
+  "clicks": [
+    "document.getElementById('smear').value='neg';document.getElementById('culture').value='neg';document.getElementById('xpert').value='na';calc();var r=document.getElementById('result');r.innerHTML+=' 无证据拦截='+(r.innerHTML.indexOf('无细菌学证据')>=0)+' 有方案='+(r.innerHTML.indexOf('2HRZE')>=0);"
+  ],
+  "expect": ["无证据拦截=true 有方案=false"],
+  "ref": "L-N40 证据门槛：涂片阴性/培养阴性/GeneXpert 未做 ⇒ 修复前直接输出 DS-TB 与 2HRZE/4HR 方案；现提示无细菌学证据、不给分型与方案。默认即为该态 ⇒ 用 clicks 并比对哨兵；默认无「耐药分型」卡片，哨兵不出现。"
+},
+{
+  "slug": "pulmonology/tb-resistance",
+  "clicks": [
+    "document.getElementById('smear').value='neg';document.getElementById('culture').value='pos';document.getElementById('xpert').value='rif_r';document.getElementById('d_rif').checked=false;document.getElementById('d_inh').checked=false;document.getElementById('d_fq').checked=true;calc();"
+  ],
+  "expect": ["Pre-XDR-TB(准广泛耐药)", "MDR/RR + 耐氟喹诺酮"],
+  "ref": "L-N40 RR-TB+FQ：利福平耐药（GeneXpert）且异烟肼敏感、氟喹诺酮耐药 ⇒ WHO 2021 属 Pre-XDR（MDR/RR + FQ）；修复前仅 rifR&&dInh 分支才查 FQ，RR-TB 被降级为普通 RR-TB。默认 d_rif 勾选且 d_fq 未勾 ⇒ 不命中。"
+},
+{
+  "slug": "pulmonology/tb-resistance",
+  "clicks": [
+    "document.getElementById('smear').value='3+';document.getElementById('culture').value='pos';document.getElementById('xpert').value='rif_r';document.getElementById('d_rif').checked=false;document.getElementById('d_inh').checked=true;document.getElementById('d_pza').checked=true;calc();var r=document.getElementById('result');r.innerHTML+=' 含PZA提示='+(r.innerHTML.indexOf('吡嗪酰胺')>=0&&r.innerHTML.indexOf('须避免含该药')>=0)+' 含Xpert确认='+(r.innerHTML.indexOf('需培养/表型药敏确认')>=0);"
+  ],
+  "expect": ["含PZA提示=true 含Xpert确认=true"],
+  "ref": "L-N40 PZA/分子确认：MDR（R+I 耐药）且 PZA 耐药时方案提示须避开 PZA；GeneXpert rif_r 但未勾选利福平耐药表型时提示需表型确认。修复前 MDR 分支完全忽略 PZA/EMB，也不提示 Xpert 需确认。默认 d_rif 勾选 ⇒ 确认提示不出现。"
 },
 {
   // 默认 rul_ap → 右上叶尖段（叩击同侧肩胛上方）；注入 rml → 右中叶（叩击右侧乳头下方）

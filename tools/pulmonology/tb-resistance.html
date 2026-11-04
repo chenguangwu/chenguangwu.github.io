@@ -180,7 +180,7 @@ s.parentNode.insertBefore(el, s);
         <tr><td style="color:#EF4444;">XDR-TB</td><td>MDR/RR + 耐氟喹诺酮 + 耐贝达喹啉或利奈唑胺（WHO 2021）</td><td>个体化长程方案，多学科会诊</td></tr>
       </tbody>
     </table>
-    <div class="info-box" style="margin-top:16px;">提示：涂片阳性提示传染性强，需呼吸道隔离。GeneXpert利福平耐药需经表型药敏确认。BPaL/BPaLM方案(贝达喹啉+普托马尼+利奈唑胺±莫西沙星)适用于≥6岁、无氟喹诺酮及注射剂耐药的MDR/RR-TB。仅供临床参考。</div>
+    <div class="info-box" style="margin-top:16px;">提示：涂片阳性提示传染性强，需呼吸道隔离。GeneXpert 利福平耐药需经表型药敏确认。BPaL/BPaLM（贝达喹啉+普托马尼+利奈唑胺±莫西沙星）适用于符合条件的 MDR/RR-TB（WHO 2022 快速通告）：BPaLM 要求氟喹诺酮敏感，氟喹诺酮耐药者可选不含莫西沙星的 BPaL；均需年龄等准入条件并由结核专科评估。仅供临床参考，需临床复核。</div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -275,6 +275,11 @@ function calc(){
     document.getElementById('result').innerHTML='<p style="color:var(--danger)">请选择痰涂片、培养与 GeneXpert 结果后再行判读；空值不给出耐药分型。</p>';
     return;
   }
+  // 细菌学证据门槛：涂片/培养/GeneXpert 至少一项阳性，否则不能据此分型
+  if(smear==='neg' && culture!=='pos' && xpert!=='rif_s' && xpert!=='rif_r'){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger)">无细菌学证据（涂片阴性、培养非阳性、GeneXpert 阴性或未做），不能据此给出耐药分型或治疗方案。请结合临床症状、影像与重复病原学检查，由结核专科评估。</p>';
+    return;
+  }
 
   // 耐药分型
   var rifR=dRif||xpert==='rif_r';
@@ -292,17 +297,25 @@ function calc(){
       regimen='标准方案：2HRZE/4HR(异烟肼+利福平+吡嗪酰胺+乙胺丁醇2月强化期，HR 4月巩固期)。';
     }
   } else if(rifR && !dInh){
-    type='RR-TB(利福平单耐药)';color='#F59E0B';desc='利福平耐药，异烟肼敏感。';regimen='按MDR-TB方案处理，含贝达喹啉短程或长程方案，保留异烟肼。';
+    if(dFq && dAmk){type='XDR-TB(广泛耐药)';color='#EF4444';desc='MDR/RR + 耐氟喹诺酮 + 耐贝达喹啉或利奈唑胺（WHO 2021）。';regimen='个体化长程方案(≥18月)，联合氯法齐明/环丝氨酸/对氨基水杨酸等，多学科会诊并做表型药敏。';}
+    else if(dFq){type='Pre-XDR-TB(准广泛耐药)';color='#EF4444';desc='MDR/RR + 耐氟喹诺酮（WHO 2021）。';regimen='长程个体化方案，BPaLM不适用；至少4种有效二线药，优先含贝达喹啉。';}
+    else if(dAmk){type='RR-TB(伴A组耐药)';color='#F59E0B';desc='利福平耐药 + 耐贝达喹啉或利奈唑胺，氟喹诺酮仍敏感；尚未达到 XDR 定义。';regimen='个体化方案，保留氟喹诺酮并联合其他有效药物，避免沿用含贝达喹啉/利奈唑胺的短程方案。';}
+    else{type='RR-TB(利福平单耐药)';color='#F59E0B';desc='利福平耐药，异烟肼敏感。';regimen='按RR-TB处理，采用含贝达喹啉的短程或长程方案；异烟肼是否保留按药敏与方案由专科决定。';}
   } else if(rifR && dInh){
-    if(dFq && dAmk){type='XDR-TB(广泛耐药)';color='#EF4444';desc='MDR + 耐氟喹诺酮 + 耐贝达喹啉或利奈唑胺（WHO 2021）。';regimen='个体化长程方案(≥18月)，联合氯法齐明/环丝氨酸/对氨基水杨酸等，多学科会诊并做表型药敏。';}
-    else if(dFq){type='Pre-XDR-TB(准广泛耐药)';color='#EF4444';desc='MDR + 耐氟喹诺酮（WHO 2021）。';regimen='长程个体化方案，BPaLM不适用；至少4种有效二线药，优先含贝达喹啉。';}
+    if(dFq && dAmk){type='XDR-TB(广泛耐药)';color='#EF4444';desc='MDR/RR + 耐氟喹诺酮 + 耐贝达喹啉或利奈唑胺（WHO 2021）。';regimen='个体化长程方案(≥18月)，联合氯法齐明/环丝氨酸/对氨基水杨酸等，多学科会诊并做表型药敏。';}
+    else if(dFq){type='Pre-XDR-TB(准广泛耐药)';color='#EF4444';desc='MDR/RR + 耐氟喹诺酮（WHO 2021）。';regimen='长程个体化方案，BPaLM不适用；至少4种有效二线药，优先含贝达喹啉。';}
     else if(dAmk){type='MDR-TB(伴A组耐药)';color='#F59E0B';desc='MDR + 耐贝达喹啉或利奈唑胺，但氟喹诺酮仍敏感。';regimen='个体化方案，保留氟喹诺酮并联合其他有效药物，避免沿用含贝达喹啉/利奈唑胺的短程方案。';}
     else{type='MDR-TB(耐多药)';color='#F59E0B';desc='至少耐异烟肼+利福平。';regimen='推荐短程含贝达喹啉方案(9-12月)或BPaLM方案(6月)，需评估禁忌。';}
   } else {
     type='INH单耐药结核';color='#3B82F6';desc='异烟肼耐药，利福平敏感。';regimen='强化方案：6-9月 RZE + 氟喹诺酮(左氧氟沙星/莫西沙星)。';
   }
 
-  // 传染性评估
+  if(!resistNote && (rifR||dInh) && (dPza||dEmb)){
+    resistNote='药敏提示 '+extraResist.join('、')+' 耐药，所选方案须避免含该药，并按药敏联合有效药物。';
+  }
+  var confirmNote='';
+  if(xpert==='rif_r' && !dRif) confirmNote='GeneXpert 利福平耐药为分子预测，需培养/表型药敏确认；确认前按 RR-TB 防护与管理。';
+  if(xpert==='rif_s' && dRif) confirmNote='GeneXpert 提示利福平敏感，但药敏勾选利福平耐药，请核对结果来源并由实验室复核。';
   var infective = (smear!=='neg') || culture==='pos';
   var infectStr = infective?'有传染性，需呼吸道隔离':'传染性低';
 
@@ -329,7 +342,7 @@ function calc(){
   html+='<li><strong>'+type+'</strong> — '+desc+'</li>';
   html+='</ul></div>';
 
-  html+='<div class="tip-box" style="border-color:'+color+';color:'+color+';background:'+color+'1a;"><strong>治疗方向</strong><br>'+regimen+(resistNote?'<br><strong>注意：</strong>'+resistNote:'')+'</div>';
+  html+='<div class="tip-box" style="border-color:'+color+';color:'+color+';background:'+color+'1a;"><strong>治疗方向</strong><br>'+regimen+(resistNote?'<br><strong>注意：</strong>'+resistNote:'')+(confirmNote?'<br><strong>确认：</strong>'+confirmNote:'')+'<br><small>分型依据 WHO 2021 耐药结核定义；方案需结核专科医师/药师结合药敏、肝肾功能与相互作用复核。</small></div>';
 
   const __g1=html;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
