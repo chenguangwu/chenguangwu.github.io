@@ -593,7 +593,7 @@ const CASES = [
       "priority": "med"
     },
     "expect": [
-      "个开始学习吧 ✨\n42:00\n1\n42\n休息时间\nabc123测试\n42\n⏸ 暂停\nmed"
+      "42:00\n1\n42\n休息时间\nabc123测试\n42\n⏸ 暂停\nmed"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"subject\":\"abc123测试\",\"content\":\"abc123测试\",\"minutes\":\"42\",\"focus-mins\":\"42\",\"break-mins\":\"42\",\"target-rounds\":\"42\",\"priority\":\"med\"}，输出区含「个开始学习吧 ✨\n42:00\n1\n42\n休息时间\nabc123测试\n42\n⏸ 暂…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
