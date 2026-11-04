@@ -310,3 +310,52 @@
 **校验**：`node scripts/verify_civil_calc.js` = **57/57**；`node scripts/discriminate_check.js verify_civil_calc.js` = **57/57 变红、0 逃生项**（含恢复默认输入）。未跑 `_build.py`、未 push。
 
 **构建保留判断**：deep-dive 区块已按 `_build.py::_build_deep_dive_html` 的同一函数从 JSON 重新渲染，下一次构建会产出**逐字节同值**；输入组、`calcTool`、`rcBeamSls()`、extras 均在深度块之外，构建不改写。复查口径：构建后 `grep -c 'rcBeamSls'` 不变、`grep -c '2.56'` 仍为 0。
+
+## 第 18 批：SLS 收尾复查（2026-11-05）
+
+### 1. `masonry-bearing` 英文态残留
+
+真机探针（`node scripts/_en_i18n_probe.mjs --check civil/masonry-bearing`）由 **1 处残留 → 0 页残留**。缺失键为工具说明中的稳定性长句：
+
+`稳定系数 φ 由高厚比 β 实算：轴心受压 φ = 1/(1+αβ²)，α 按 GB 50003-2011 式 D.0.1-3 取 M5 及以上 0.0015、M2.5 取 0.002`
+
+已补入 `i18n/tools/en/civil/masonry-bearing.json`。属性类登记：该页 `placeholder="如 2.5 / 如 240 / 如 3000"`、`aria-label="面包屑导航"` 均命中 `i18n/tools/en/_common.json` 的精确键，运行期属性分支（placeholder/title/aria-label 走 `pickEn`，非文本节点替换）可覆盖，探针归 0，无需另补 key。
+
+### 2. `rc-beam-rebar` 质量等级复查
+
+| 版本 | own_len | inputs | formula 文本 | 等级 |
+|---|---|---|---|---|
+| 第 17 批前（`f00c52bb0e^`） | 6791 | 6 | — | **A** |
+| 第 17 批后（`f00c52bb0e`） | 9075 | 12 | 642 字 | **A** |
+
+口径：`_build.py::classify_quality`（own_len ≥ 6000 → A，或 ≥ 3000 且 inputs ≥ 3）。新增 `rcBeamSls()` 后 own_len +2284，**未掉档**。
+
+### 3. 剩余「SLS 无法核」页面复核（原 8 页，`rc-beam-rebar` 已补 w_max，余 7 页）
+
+| 页面 | 公式/参数现值 | 规范口径 | 复查结论 |
+|---|---|---|---|
+| tools/civil/one-way-slab.html | 深解 FAQ 写 `ρmin≈0.15%（HRB400）` | GB 50010-2010 表 8.5.1：`ρmin = max(0.20%, 45f_t/f_y)`，C25/C30 + HRB400 由 0.20% 控制 | **不一致已修**：改为 0.20% 并标表 8.5.1（深解 JSON + 页面 + 英文词典同步） |
+| tools/civil/beam-udl.html | 仅 `δ=5qL⁴/384EI`（弹性） | 挠度需 `B_s/B`、θ=2.0、表 3.4.3 分档限值 | **无法核**：弹性解本身正确，无 SLS 刚度与限值 |
+| tools/structural/deflection-cantilever-point.html | `δ=FL³/(3EI)` | 同上 | **无法核**：弹性解正确 |
+| tools/structural/deflection-cantilever-udl.html | `δ=wL⁴/(8EI)` | 同上 | **无法核**：弹性解正确 |
+| tools/structural/ss-point-deflection.html | `δ=PL³/(48EI)` | 同上 | **无法核**：弹性解正确 |
+| tools/civil/two-way-slab.html | 弹性薄板弯矩系数表（ν=0.2、四边简支） | 弯矩系数口径正确；无挠度/裂缝验算 | **无法核**：仅承载力弯矩，无 SLS |
+| tools/civil/rebar-anchorage.html | `l_ab=α·(f_y/f_t)·d`、`l_a=max(ζ_a·l_ab,200)` | GB 50010-2010 8.3.1/8.3.2；ζ_a 修正条件仅定性描述 | **无法核**：基本锚固式正确，但 ζ_a 未给具体表值（如 d>25 取 1.1、环氧 1.25 等），缺数值口径 |
+
+### 4. `B_s` 短期/长期刚度方案（待落盘）
+
+落点：`tools/civil/beam-udl.html`（既有 q、L、b、h 与弹性 δ，最贴近受弯构件刚度场景）；备选 `tools/structural/ss-point-deflection.html`。
+
+新增输入：`A_s`、`h₀`（或由 h−a_s）、`f_tk`、`E_c`（或混凝土等级联动）、`γ_f'`（T 形截面受压翼缘系数，矩形取 0）、`M_q`（准永久组合弯矩）、`θ`（默认 2.0）。
+
+计算链：
+1. `ρ = A_s/(b·h₀)`、`ρ_te = A_s/(0.5b·h)`（<0.01 取 0.01）、`α_E = E_s/E_c`；
+2. `σ_s = M_k/(0.87h₀A_s)`、`ψ = 1.1 − 0.65f_tk/(ρ_teσ_s)`（夹取 0.2–1.0）；
+3. `B_s = E_s·A_s·h₀² / [1.15ψ + 0.2 + 6α_Eρ/(1+3.5γ_f')]`；
+4. `B = M_q/(M_q(θ−1)+M_k)·B_s`（θ=2.0）；
+5. `δ_lt = 5·M_k·L²/(48·B)`（简支均布荷载，等价 `5qL⁴/384B`）；
+6. 限值按 GB 50010-2010 表 3.4.3 按跨度分档（页面给出 `l/200`（≤7m）等选项与判据）。
+
+用例组：ψ 上/下夹取、`ρ_te<0.01` 抬升、矩形（γ_f'=0）与 T 形（γ_f'>0）两组刚度差异、长期/短期刚度比与挠度超限，全部数字 node 实跑取值。
+
+**本批改动**：`i18n/tools/en/civil/masonry-bearing.json`（补 1 键）、`i18n/tools/content_deepdive.json`（one-way-slab ρmin）、`tools/civil/one-way-slab.html`（深解块同源重渲染）、`i18n/tools/en/civil/one-way-slab.json`（ρmin 键 + 公式/说明/placeholder 7 键）。探针复验：两页英文态残留 **0**。未跑 `_build.py`、未 push。
