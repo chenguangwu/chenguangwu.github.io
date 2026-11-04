@@ -147,9 +147,9 @@ const CASES = [
     "addFood('主食类',0);addFood('蛋白质类',1);"
   ],
   "expect": [
-    "281 总热量 (千卡)"
+    "339 总热量 (千卡)"
   ],
-  "ref": "去默认化（原 expect「116」＝主食类米饭卡片恒显的卡路里标签，注入失败仍命中 → 逃生项）：clicks 调 addFood 加米饭(116)+鸡胸肉(165)，totals 渲染「281 总热量 (千卡) 14g 蛋白质 (估) 9g 脂肪 (估) 35g 碳水 (估)」；默认 totals 为「0 总热量 (千卡)」不含 281，注入失败即不命中。（addFood 内 localStorage.setItem 在 harness 下可用，渲染先于写入，totals 已正确生成。）"
+  "ref": "去默认化（原 expect「116」＝主食类米饭卡片恒显的卡路里标签，注入失败仍命中 → 逃生项）：clicks 调 addFood 加米饭(174)+鸡胸肉(165)，totals 渲染「339 总热量 (千卡) 17g 蛋白质 (估) 11g 脂肪 (估) 42g 碳水 (估)」；默认 totals 为「0 总热量 (千卡)」不含 339，注入失败即不命中。（口径修正：米饭由每 100g 的 116 折算到 1 碗 150g = 174；addFood 内 localStorage.setItem 在 harness 下可用，渲染先于写入，totals 已正确生成。）"
 },
 {
   "slug": "food/food-pairing",
