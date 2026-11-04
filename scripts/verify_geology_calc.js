@@ -444,6 +444,13 @@ const CASES = [
       "最小样重 (g) 289.66 样重/最小样重 6.090e-4"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"d\":\"42\",\"m\":\"42\",\"w\":\"42\",\"cval\":\"42\",\"tol\":\"42\",\"mat\":\"0.25\"}，输出区含「最小样重 (g) 289.66 样重/最小样重 6.090e-4」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "geology/calc-1",
+    "inputs": { "drillLen": "2", "threshold": "100", "unit": "mm" },
+    "clicks": ["document.querySelectorAll=function(){return [{value:'120'},{value:'85'},{value:'250'},{value:'60'},{value:'180'},{value:'95'},{value:'310'},{value:'40'},{value:'150'}];};calcRQD()"],
+    "expect": ["50.5%", "1.010"],
+    "ref": "段长(mm)=120/85/250/60/180/95/310/40/150、阈值 100 mm ⇒ 有效段 120+250+180+310+150=1010 mm=1.010 m（5/9 段）；钻孔总长 2 m ⇒ RQD=1010/(2×1000)×100=50.5%（≥50 → 一般 Fair）。harness 不解析 addSegment() 动态生成的输入，故 clicks 以同值数组替换 querySelectorAll('#segments .seg-val') 的返回值后调用真实 calcRQD()，阈值比较/求和/分级仍全部走页面实现；默认态 0 段 ⇒ RQD 0.0%、有效岩芯总长 0.000，两锚均不命中（判别时清空 clicks 即回该默认态）。"
   }
 
 ];
