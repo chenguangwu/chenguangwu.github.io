@@ -298,19 +298,22 @@ s.parentNode.insertBefore(el, s);
 
 <script>
 let video = null;
+let videoUrl = null;
 let segments = [];
 
 function handleFile(file) {
   if (!file || !file.type.startsWith('video/')) {
-    ToolBox.showToast(i18nText() , 'warn');
+    ToolBox.showToast('请选择视频文件', 'warn');
     return;
   }
+  if (videoUrl) { URL.revokeObjectURL(videoUrl); videoUrl = null; }
   video = document.getElementById('video-player');
-  video.src = URL.createObjectURL(file);
+  videoUrl = URL.createObjectURL(file);
+  video.src = videoUrl;
   video.onloadedmetadata = () => {
     document.getElementById('video-section').style.display = '';
     video.ontimeupdate = updatePlayhead;
-    ToolBox.showToast(i18nText() , 'success');
+    ToolBox.showToast('视频已加载', 'success');
   };
 }
 
@@ -349,11 +352,11 @@ function getSeconds(prefix) {
 function addSegment() {
   const start = getSeconds('start');
   const end = getSeconds('end');
-  if (end <= start) { ToolBox.showToast(i18nText() , 'warn'); return; }
-  if (video && end > video.duration) { ToolBox.showToast(i18nText() , 'warn'); return; }
+  if (end <= start) { ToolBox.showToast('结束时间必须大于开始时间', 'warn'); return; }
+  if (video && end > video.duration) { ToolBox.showToast('结束时间超出视频长度', 'warn'); return; }
   segments.push({ start, end });
   renderSegments();
-  ToolBox.showToast(i18nText() , 'success');
+  ToolBox.showToast('已添加片段', 'success');
 }
 
 function renderSegments() {
@@ -398,11 +401,11 @@ function removeSegment(i) {
 function clearSegments() {
   segments = [];
   renderSegments();
-  ToolBox.showToast(i18nText() , 'success');
+  ToolBox.showToast('已清空片段', 'success');
 }
 
 function exportSegments() {
-  if (segments.length === 0) { ToolBox.showToast(i18nText() , 'warn'); return; }
+  if (segments.length === 0) { ToolBox.showToast('请先添加片段', 'warn'); return; }
   const sorted = [...segments].sort((a, b) => a.start - b.start);
   let text = `# 视频剪切时间表\n# 生成时间: ${new Date().toLocaleString('zh-CN')}\n# 片段数: ${segments.length}\n\n`;
   sorted.forEach((s, i) => {

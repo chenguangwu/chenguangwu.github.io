@@ -1508,6 +1508,10 @@ function missingEnKey(key){
   return 'Done';
 }
 function i18nText(key, fallback){
+  // 空参守卫：历史脚手架遗留大量 i18nText() 空调用，原实现会把 undefined 当键继续查表，
+  // 最终把字面量 "undefined" 弹给用户。空键统一回落到 fallback（无 fallback 则空串），
+  // 由 showToast 的二道守卫跳过空消息，避免 3000+ 处逐页返工。
+  if (key == null || key === '') return fallback != null ? fallback : '';
   var enMiss = missingEnKey(key);
   if (enMiss) return enMiss;
   key = normalizeI18nKey(key);
@@ -1942,6 +1946,7 @@ function applyEmbedMode(){
 
 function showToast(msg, type){
   msg = resolveUiText(msg, msg);
+  if (msg == null || msg === '') return;   // 空消息不渲染空气泡（配合 i18nText 空参守卫）
   type = type || 'success';
   var t = document.createElement('div');
   t.className = 'toast-msg';
@@ -2692,6 +2697,17 @@ function canvasColorWithAlpha(value, fallback, alpha){
 global.resolveCanvasColor = resolveCanvasColor;
 global.canvasColorWithAlpha = canvasColorWithAlpha;
 global.i18nText = i18nText;
+// 画布导出上限前置判据（Chrome 单边 16384、总像素约 2.68 亿；Safari 单边更严约 4096）。
+// 返回空串=可导出；否则返回可直接提示的中文原因，供各页在 toBlob 之前拦截。
+function canvasExportError(w, h){
+  if (!isFinite(w) || !isFinite(h) || w <= 0 || h <= 0) return '画布尺寸无效，请检查输入';
+  if (w > 16384 || h > 16384 || w * h > 268435456) {
+    return '当前 ' + Math.round(w) + '×' + Math.round(h) + ' 超出浏览器画布上限（单边 16384 / 总像素 2.68 亿），请降低尺寸';
+  }
+  return '';
+}
+global.canvasExportError = canvasExportError;
+window.canvasExportError = canvasExportError;
 window.resolveCanvasColor = resolveCanvasColor;
 window.canvasColorWithAlpha = canvasColorWithAlpha;
 window.i18nText = i18nText;

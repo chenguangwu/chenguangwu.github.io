@@ -332,6 +332,7 @@ s.parentNode.insertBefore(el, s);
   'use strict';
 
   var sourceImg = null;      // 原始 Image 对象
+  var sourceUrl = null;      // 原图 Object URL（换图 / 重置时释放）
   var srcDispCanvas = null;  // 显示尺寸的原始像素画布（用于采样与底图）
   var dispW = 0, dispH = 0;  // 显示画布尺寸
   var dispScale = 1;         // 显示画布 / 原图 的缩放比（预览块大小按此换算）
@@ -357,17 +358,22 @@ s.parentNode.insertBefore(el, s);
       return;
     }
     var img = new Image();
+    var url = URL.createObjectURL(file);
+    var prevUrl = sourceUrl;
     img.onload = function(){
       sourceImg = img;
+      sourceUrl = url;
+      if(prevUrl){ URL.revokeObjectURL(prevUrl); }
       initDisplay();
       document.getElementById('drop-zone').style.display = 'none';
       document.getElementById('controls').style.display = '';
       ToolBox.showToast(i18nText('tool.image_load_ok'), 'success');
     };
     img.onerror = function(){
+      URL.revokeObjectURL(url);
       ToolBox.showToast(i18nText('toast.msg118'), 'error');
     };
-    img.src = URL.createObjectURL(file);
+    img.src = url;
   };
 
   /* ============ 初始化显示画布 ============ */
@@ -437,11 +443,12 @@ s.parentNode.insertBefore(el, s);
     currentRegion = null;
     setMode('full');
     scheduleRender();
-    ToolBox.showToast(i18nText(), 'info');
+    ToolBox.showToast('已恢复默认设置', 'info');
   };
 
   window.reloadImage = function(){
     sourceImg = null;
+    if(sourceUrl){ URL.revokeObjectURL(sourceUrl); sourceUrl = null; }
     srcDispCanvas = null;
     currentRegion = null;
     document.getElementById('controls').style.display = 'none';
@@ -637,6 +644,10 @@ s.parentNode.insertBefore(el, s);
       return;
     }
     var W = sourceImg.naturalWidth, H = sourceImg.naturalHeight;
+
+    // 前置拦截：超过浏览器画布上限时不必等 toBlob 返回 null 才报错
+    var limitMsg = canvasExportError(W, H);
+    if(limitMsg){ ToolBox.showToast(limitMsg, 'error'); return; }
 
     var srcFull = document.createElement('canvas');
     srcFull.width = W;
