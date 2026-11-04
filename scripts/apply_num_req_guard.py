@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""tax 计算页空值守卫（幂等）。
+"""计算页空值守卫（幂等，M1 同族）。
 
 根因同族：calcTool() 直接 num()（空值→0）后无条件 dataGrid 渲染，
 导致「清空输入仍输出结构化零值」。本脚本在 calcTool 顶部插入
 「是否填写」守卫（空串 / parseFloat→NaN），不判非 0，
-因此 debt=0 / r=0 这类合法 0 不受影响。
+因此 debt=0 / r=0 / i=0 这类合法 0 不受影响。
 
 幂等判据：脚本标记 /* TOOLBOX-REQ-GUARD */ 已存在则整页跳过；
 可重复运行，第二次起零改动。
 
 用法：
-  python3 scripts/apply_tax_req_guard.py            # 默认处理 BATCH1 十页
-  python3 scripts/apply_tax_req_guard.py --all      # 处理 BATCH 全部 16 页
+  python3 scripts/apply_num_req_guard.py                      # 默认 tax BATCH1 十页
+  python3 scripts/apply_num_req_guard.py --all                # tax 全部 17 页
+  python3 scripts/apply_num_req_guard.py --dir economics --slugs a,b,c
 """
 import re
 import sys
@@ -30,6 +31,11 @@ BATCH2 = [
     "sales-tax-addon", "social-security-tax", "specific-duty", "tax-on-discount",
     "vat-from-exclusive", "withholding-tax", "corporate-income-tax",
 ]
+ECONOMICS = [
+    "balance-of-trade", "compound-amount", "fv-annuity", "labor-force",
+    "okuns-law", "pv-annuity", "real-gdp",
+]
+BATCHES = {"tax": BATCH1 + BATCH2, "economics": ECONOMICS}
 
 HELPER = (
     MARK + "function __tbReq(ids,names){"
@@ -82,9 +88,19 @@ def patch(path: Path) -> str:
 
 
 def main():
-    targets = BATCH1 + BATCH2 if "--all" in sys.argv else BATCH1
-    for slug in targets:
-        p = ROOT / "tools" / "tax" / (slug + ".html")
+    args = sys.argv[1:]
+    dir_name = "tax"
+    if "--dir" in args:
+        dir_name = args[args.index("--dir") + 1]
+    slugs = None
+    if "--slugs" in args:
+        slugs = [s.strip() for s in args[args.index("--slugs") + 1].split(",") if s.strip()]
+    if slugs is None:
+        slugs = BATCHES.get(dir_name, [])
+        if dir_name == "tax" and "--all" not in args:
+            slugs = BATCH1
+    for slug in slugs:
+        p = ROOT / "tools" / dir_name / (slug + ".html")
         if not p.exists():
             print("%-26s MISSING" % slug)
             continue

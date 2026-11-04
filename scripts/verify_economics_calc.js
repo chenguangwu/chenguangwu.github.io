@@ -450,7 +450,45 @@ const CASES = [
       " 失业率 (%) 0 就业人数 0"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"unemp\":\"42\",\"lf\":\"42\"}，输出区含「 失业率 (%) 0 就业人数 0」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  }
+  },
+
+  // ---- 空态守卫（2026-11-05，apply_num_req_guard.py --dir economics）----
+  // 口径：清空全部 number 输入 ⇒ calcTool 顶部 __tbReq 提前返回，只显示提示、不再渲染零值。
+  // i=0 属合法输入（fv/pv 有 i===0 分支），守卫只判「是否填写」，不判非 0。
+  { slug: "economics/balance-of-trade",
+    inputs: { X: "", M: "" },
+    expect: ["请填写「出口 X」后再计算。"],
+    ref: "空态守卫：首项 X 不合规 ⇒ 提示出口 X；默认 200/180 不触发。" },
+
+  { slug: "economics/compound-amount",
+    inputs: { p: "", r: "", t: "", n: "" },
+    expect: ["请填写「本金 P」后再计算。"],
+    ref: "空态守卫：首项 p 不合规 ⇒ 提示本金 P；默认 10000/5/10/1 不触发。" },
+
+  { slug: "economics/fv-annuity",
+    inputs: { pmt: "", i: "", n: "" },
+    expect: ["请填写「每期金额 PMT」后再计算。"],
+    ref: "空态守卫：首项 pmt 不合规 ⇒ 提示每期金额 PMT；默认 1000/1/12 不触发。" },
+
+  { slug: "economics/labor-force",
+    inputs: { E: "", U: "" },
+    expect: ["请填写「就业 E」后再计算。"],
+    ref: "空态守卫：首项 E 不合规 ⇒ 提示就业 E；默认 140/10 不触发。" },
+
+  { slug: "economics/okuns-law",
+    inputs: { g: "", gp: "" },
+    expect: ["请填写「实际 GDP 增长率」后再计算。"],
+    ref: "空态守卫：首项 g 不合规 ⇒ 提示实际 GDP 增长率；默认 4/3 不触发。" },
+
+  { slug: "economics/pv-annuity",
+    inputs: { pmt: "", i: "", n: "" },
+    expect: ["请填写「每期金额 PMT」后再计算。"],
+    ref: "空态守卫：首项 pmt 不合规 ⇒ 提示每期金额 PMT；默认 1000/1/12 不触发。" },
+
+  { slug: "economics/real-gdp",
+    inputs: { nominal: "", defl: "" },
+    expect: ["请填写「名义 GDP」后再计算。"],
+    ref: "空态守卫：首项 nominal 不合规 ⇒ 提示名义 GDP；默认 1100/10 不触发。" },
 
 ];
 
