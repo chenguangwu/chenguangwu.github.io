@@ -78,9 +78,17 @@ const CASES = [
   },
   {
     slug: "health/protein-needs",
-    inputs: { weight: "65", age: "30", activity: "1.4" },
-    expect: ["91"],
-    ref: "蛋白质 = 体重 × 活动系数 = 65 × 1.4 = 91 g；安全区间 = 65×0.8 ~ 65×2.5 = 52 – 163 g/天",
+    inputs: { weight: "72", age: "30", activity: "1.7", goal: "muscle", source: "1.0" },
+    expect: ["122 克/天", "建议范围: 58 - 180"],
+    ref: "增肌目标取下限 1.6，活动系数 1.7 → factor = max(1.7,1.6) = 1.7；蛋白质 = round(72×1.7÷1.0) = 122 g；"
+      + "安全区间 = round(72×0.8) ~ round(72×2.5) = 58 – 180 g/天（避开默认 65 kg / 1.4 / 维持 / 动物蛋白）。",
+  },
+  {
+    slug: "health/protein-needs",
+    inputs: { weight: "" },
+    expect: ["请填写体重（kg）后再计算"],
+    ref: "空态：体重清空时不得保留上一次的 91 g 结论（原实现 `if(!w||w<=0) return;` 直接返回、"
+      + "结果区仍显示旧值），应清空数值并提示补填。",
   },
   {
     slug: "health/calc-1",
@@ -104,9 +112,20 @@ const CASES = [
   // ---------- 评分与评估 ----------
   {
     slug: "health/calc-2",
-    inputs: { duration: "7", latency: "10", wakings: "10", depth: "15", alertness: "15", breathing: "0" },
-    expect: ["70"],
-    ref: "总分 = 时长20(7–9h) + 潜伏期10 + 觉醒10 + 深度15 + 警觉15 + 呼吸0 = 70",
+    inputs: { duration: "6", latency: "5", wakings: "5", depth: "10", alertness: "5", breathing: "-10" },
+    clicks: ["calculate()"],
+    expect: ["30 较差"],
+    ref: "总分 = 时长15(6–7h) + 潜伏期5 + 觉醒5 + 深度10 + 警觉5 + 呼吸(−10) = 30 → 分级「较差」"
+      + "（避开默认 7/10/10/15/15/0 = 70）。必带 clicks：本页输入无 oninput/onchange，"
+      + "原用例的「70」实际命中深解静态算例文本，从未真正触发计算。",
+  },
+  {
+    slug: "health/calc-2",
+    inputs: { duration: "" },
+    clicks: ["calculate()"],
+    expect: ["请填写睡眠时长（小时）后再评分"],
+    ref: "空态：时长留空时不得按 0 分继续算（原行为 total = 0+10+10+15+15+0 = 50 判「一般」），"
+      + "应提示补填。",
   },
   {
     slug: "health/calc-3",

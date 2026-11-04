@@ -118,8 +118,11 @@ const CASES = [
     ref: "注入非默认（HTML 默认 5.3/9.8/8.2；页面 init 调 loadGDM 载入 5.3/10.5/8.2 样例）：fpg=7.5 ≥ 7.0 ⇒ isPreDM 优先分支 ⇒ 诊断「糖尿病合并妊娠(孕前糖尿病)」，而非 GDM 分支。⚠ 该页有 loadNormal()（4.5/8.0/7.0 → 糖耐量正常）与 loadGDM()（→ GDM）两个样例载入函数，harness step-3 兜底会依次调用 ⇒ 若 expect 取「糖耐量正常」或「妊娠糖尿病(GDM)」会被兜底调出的同态命中 ⇒ 假逃生项；取两者都不产生的孕前糖尿病分支才安全。" },
   { slug: "obstetrics/taipanchengshudu-grannumfenji",
     inputs: { gaWeek: "38", chorion: "3", substance: "3", basal: "3" },
-    expect: ["Grannum II 级", "提示胎盘已成熟；常见于 33~40 周"],
-    ref: "注入非默认（默认 gaWeek=32 且三项分级 select 均取首项 0）：Grannum 三项评分合计 = 3+3+3 = 9，scoreToGrade 档位 ≤9 ⇒ 2 级（Grannum II 级），对应描述「绒毛膜板切迹加深但未达基底板…」。默认态合计 0 ⇒ 0 级（Grannum 0 级 / 胎盘未成熟 / 多见于 ≤32 周），两串均不出现。⚠ 不取「胎盘成熟」作锚：默认态「胎盘未成熟」中不含该串，但为稳妥仍用带值的合成串。孕周 38 与 grade 2 不触发任何 concern 提示（grade===3&&ga<37、grade<=1&&ga>=37 均不成立）。" },
+    expect: ["Grannum III 级", "提示胎盘老化；37 周后出现多属正常"],
+    ref: "注入非默认（默认 gaWeek=32 且三项分级 select 均取首项 0）：Grannum 三项评分合计 = 3+3+3 = 9，"
+      + "scoreToGrade 档位 ≤8 ⇒ 2 级、>8 ⇒ 3 级（修复前档位 ≤9 仍返 2，导致 3/3/3 与预设「III 级 38 周」都算成 II 级）；"
+      + "对应描述「胎盘老化…37 周后出现多属正常」。默认态合计 0 ⇒ 0 级（Grannum 0 级 / 胎盘未成熟），两串均不出现。"
+      + "38 周 + III 级不触发 concern（仅 grade===3 && ga<37 提示早熟）。" },
   { slug: "obstetrics/gestational-age",
     inputs: { lmpDate: "2024-01-01", cycleLen: "30" },
     expect: ["23+5 当前孕周", "2024-10-09 预产期(EDD)"],
