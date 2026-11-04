@@ -125,7 +125,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="按扣件式钢管脚手架轴心受压稳定思路，计算立杆稳定承载力及施工荷载验算。">Estimate load capacity of coupler-type steel scaffolds.</p>
     <div class="formula-box">
       <div class="formula-title">📐 工作原理与说明</div>
-  <div class="formula-eq">内径 d = D − 2t；截面积 A = π(D² − d²)/4；惯性矩 I = π(D⁴ − d⁴)/64；回转半径 i = √(I/A)；计算长度 l₀ = k·h + 2a</div>
+  <div class="formula-eq">内径 d = D − 2t；截面积 A = π(D² − d²)/4；惯性矩 I = π(D⁴ − d⁴)/64；回转半径 i = √(I/A)；计算长度 l₀ = k·h + 2a；λ = l₀÷i，φ 由 λ 查表；承载力 N_Rd = φ·A·f÷1000（f 为强度设计值，Q235 取 205 N/mm²，不再除材料分项系数）；荷载效应 N_Sd = (1.3×架体自重 g + 1.5×施工荷载 q)×A（GB 55023-2022）；稳定比 = N_Sd÷N_Rd，≤1 满足。</div>
       <p class="formula-desc" data-zh="「按扣件式钢管脚手架轴心受压稳定思路，计算立杆稳定承载力及施工荷载验算。」按输入参数进行专业计算并输出结果。">Estimate load capacity of coupler-type steel scaffolds.: computes and outputs results from the input parameters.</p>
     </div>
 
@@ -139,7 +139,7 @@ s.parentNode.insertBefore(el, s);
         <input type="number" id="thickness" value="3.6" step="0.1" min="0.1" placeholder="如 3.6">
       </div>
       <div>
-        <label for="fy">钢材屈服强度 fy（N/mm²）</label>
+        <label for="fy">钢材抗压强度设计值 f（N/mm²）</label>
         <input type="number" id="fy" value="205" step="1" min="1" placeholder="如 205">
       </div>
     </div>
@@ -187,7 +187,7 @@ s.parentNode.insertBefore(el, s);
         <li>计算长度 l₀ = k·h + 2a（扣件式钢管脚手架简化公式）</li>
         <li>长细比 λ = l₀ / i，i 为截面回转半径</li>
         <li>稳定系数 φ 按 a 类截面近似查表（线性插值）</li>
-        <li>立杆稳定承载力 N ≤ φ·A·f，其中 f = fy / 抗力分项系数（取 1.1）</li>
+        <li>立杆稳定承载力 N ≤ φ·A·f，其中 f 为钢材抗压强度设计值（Q235 取 205 N/mm²，已含材料分项系数）</li>
       </ul>
     </div>
   </div>
@@ -235,10 +235,10 @@ function calcScaffold() {
   const l0 = k * h + 2 * a;
   const lambda = l0 * 1000 / i;
   const phi = phiBuckle(lambda);
-  const f = fy / 1.1;
+  const f = fy; // 输入即强度设计值 f（Q235 取 205 N/mm²），不再二次除以材料分项系数
   const Nrd = phi * areaSec * f / 1000;
 
-  const Nsd = (q + g) * A;
+  const Nsd = (1.3 * g + 1.5 * q) * A; // GB 55023-2022：恒载 1.3、活载 1.5
   const ratio = Nsd / Nrd;
   const status = ratio <= 1
     ? '<span class="grade-tag grade-excellent">稳定满足</span>'
@@ -320,9 +320,9 @@ calcScaffold();
 <li>堆载平台（如放建材）前，用本工具校核施工荷载是否超过单杆容许值，防止局部失稳。</li>
 <li>对比不同步距对稳定性的影响，在满足作业面前提下尽量减小步距提升安全余量。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">单杆容许荷载初估</div><div class="dd-ex-body">Φ48×3.0 钢管，步距 1.8m，纵距 1.5m
-参考容许荷载约 20–30kN/根（依规范与扣件）
-施工荷载 2kN/㎡ × 1.5 × 0.9 ≈ 2.7kN/根，余量充足</div></div>
+<div class="dd-example"><div class="dd-ex-title">单杆容许荷载初估</div><div class="dd-ex-body">Φ48×3.0 钢管，步距 1.8m，纵距 1.5m、横距 0.9m（负担面积 A=1.35m²）
+施工荷载 2kN/㎡×1.35×1.5≈4.05kN/根（标准值 2.7kN，乘可变荷载分项系数 1.5）
+加恒载后 N_Sd≈4.66kN/根，稳定承载力约 30–40kN/根，余量充足</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>算出来能直接搭吗？</dt><dd>不能。脚手架属危险性较大的分部分项工程，须按 JGJ130 等规范由专业人员设计、验收后方可使用。</dd>
@@ -487,8 +487,8 @@ function __calc_1Export(){
 function __calc_1Presets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#calc_1Presets',[{label:'默认参数',labelEn:'Default',values:{'od':'48.3', 'thickness':'3.6', 'fy':'205', 'h':'1.8', 'k':'1.155', 'a':'0.3', 'area':'4', 'load':'3', 'self':'0.35'}},
-  {'label':'小管','labelEn':'Small Pipe','values':{'od':'25','thickness':'2','fy':'235','h':'1.2','k':'1.155','a':'0.2','area':'2','load':'2','self':'0.2'}},
-  {'label':'大管','labelEn':'Large Pipe','values':{'od':'114','thickness':'6','fy':'235','h':'3','k':'1.155','a':'0.5','area':'8','load':'5','self':'0.6'}},
+  {'label':'小管','labelEn':'Small Pipe','values':{'od':'25','thickness':'2','fy':'205','h':'1.2','k':'1.155','a':'0.2','area':'2','load':'2','self':'0.2'}},
+  {'label':'大管','labelEn':'Large Pipe','values':{'od':'114','thickness':'6','fy':'205','h':'3','k':'1.155','a':'0.5','area':'8','load':'5','self':'0.6'}},
   {'label':'标准','labelEn':'Standard','values':{'od':'48.3','thickness':'3.6','fy':'205','h':'1.8','k':'1.155','a':'0.3','area':'4','load':'3','self':'0.35'}}],function(){ calcScaffold(); });
 }
 var __calc_1_f0=(typeof calcScaffold==='function')?calcScaffold:null;

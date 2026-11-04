@@ -113,7 +113,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="按基本锚固长度公式由钢筋与混凝土强度计算锚固长度。">Rebar Anchorage</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">基本锚固长度（本页仅算 l_ab，未做后续修正）：l_ab = 0.14 × ζ_a × (f_y ÷ f_t) × d（mm，α=0.14 为带肋钢筋外形系数）；米口径 = l_ab ÷ 1000（m）。校验：f_y、f_t、d、ζ_a 任一 ≤0 报「请输入有效参数。」。判据：无固定分级；锚固长度随钢筋强度提高、混凝土抗拉强度降低而增大。</div>
+      <div class="formula-eq">基本锚固长度 l_ab = α × (f_y ÷ f_t) × d（mm，α=0.14 为带肋钢筋外形系数）；受拉锚固长度 l_a = ζ_a × l_ab；米口径 = l_a ÷ 1000（m）。校验：f_y、f_t、d、ζ_a 任一 ≤0 报「请输入有效参数。」。判据：无固定分级；锚固长度随钢筋强度提高、混凝土抗拉强度降低而增大。</div>
       <p class="formula-desc">按基本锚固长度公式由钢筋与混凝土强度计算锚固长度。</p>
     </div>
 
@@ -171,7 +171,7 @@ s.parentNode.insertBefore(el, s);
 <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
       <ul>
-        <li>l_ab = α·ζ_a·(f_y/f_t)·d，α=0.14（带肋钢筋外形系数）</li>
+        <li>l_ab = α·(f_y/f_t)·d，α=0.14（带肋钢筋外形系数）</li>
         <li>d>25mm 时 ζ_a 取 1.1，环氧涂层钢筋取 1.25 等</li>
         <li>受拉锚固长度 l_a = ζ·l_ab，按锚固区保护层等修正</li>
       </ul>
@@ -216,10 +216,12 @@ function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+=
 function calcTool(){
             const fy=num('fy'), ft=num('ft'), d=num('d'), za=num('za');
             if(fy<=0||ft<=0||d<=0||za<=0){ToolBox.setResult('result','<p class="tip-error">请输入有效参数。</p>');return;}
-            const lab = 0.14*za*(fy/ft)*d; // mm (α=0.14 带肋钢筋锚固外形系数)
+            const lab = 0.14*(fy/ft)*d; // mm 基本锚固长度（GB 50010-2010 式 8.3.1）
+            const la = za*lab; // mm 受拉锚固长度 la = ζa·lab
             const __g1=dataGrid([
                 [lab.toFixed(0),'基本锚固长度 l_ab (mm)'],
-                [(lab/1000).toFixed(2),'l_ab (m)']
+                [la.toFixed(0),'受拉锚固长度 l_a (mm)'],
+                [(la/1000).toFixed(2),'l_a (m)']
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('fy').value = '360';
@@ -234,20 +236,22 @@ function __rebar_anchorageExtras(){
     function __rebar_anchorageRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var fy=num('fy'), ft=num('ft'), d=num('d'), za=num('za');
-    var lab = 0.14*za*(fy/ft)*d; // mm (α=0.14 带肋钢筋锚固外形系数)
+    var lab = 0.14*(fy/ft)*d; // mm 基本锚固长度
+    var la = za*lab; // mm 受拉锚固长度
     if (!isFinite(__rebar_anchorageNum('fy')) || !isFinite(__rebar_anchorageNum('ft')) || !isFinite(__rebar_anchorageNum('d')) || !isFinite(__rebar_anchorageNum('za'))) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#rebar_anchorageTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
             ['基本锚固长度 l_ab (mm)', lab.toFixed(0)],
-            ['l_ab (m)', (lab/1000).toFixed(2)],
+            ['受拉锚固长度 l_a (mm)', la.toFixed(0)],
+            ['l_a (m)', (la/1000).toFixed(2)],
         ]
     });
-    TBKit.history.record({fy:__rebar_anchorageRaw('fy'), ft:__rebar_anchorageRaw('ft'), d:__rebar_anchorageRaw('d'), za:__rebar_anchorageRaw('za'), lab:lab});
+    TBKit.history.record({fy:__rebar_anchorageRaw('fy'), ft:__rebar_anchorageRaw('ft'), d:__rebar_anchorageRaw('d'), za:__rebar_anchorageRaw('za'), lab:lab, la:la});
     function __rebar_anchorageRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#rebar_anchorageHist',function(rec){ __rebar_anchorageRestore(rec); calcTool(); });
-    TBKit.util.diffBox('#rebar_anchorageDiff',['lab']);
+    TBKit.util.diffBox('#rebar_anchorageDiff',['la']);
 }
 function __rebar_anchorageExport(){
     if (typeof TBKit === 'undefined') return;
@@ -298,7 +302,7 @@ else document.addEventListener('DOMContentLoaded', __rebar_anchorageBoot);
 <li>修订正系数：带肋钢筋、保护层厚、横向钢筋多时可折减 la。</li>
 <li>机械/焊接锚固：替代弯钩减小节点拥挤，按等效锚固长度校核。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">HRB400 基本锚固</div><div class="dd-ex-body">d=20mm、C30（ft=1.43）、HRB400（fy=360）、带肋 α=0.14：la=α·(fy/ft)·d=0.14×(360/1.43)×20≈705mm；抗震 laE=ζaE·la（一二级 ζaE=1.15）≈811mm。</div></div>
+<div class="dd-example"><div class="dd-ex-title">HRB400 基本锚固</div><div class="dd-ex-body">d=20mm、C30（ft=1.43）、HRB400（fy=360）、带肋 α=0.14：l_ab=α·(fy/ft)·d=0.14×(360/1.43)×20≈705mm；la=ζa·l_ab（ζa=1.0 时取 705mm）；抗震 laE=ζaE·la（一二级 ζaE=1.15）≈811mm。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>抗震锚固 laE 为何更长？</dt><dd>抗震要求塑性铰区钢筋在反复荷载下不滑移，乘 ζaE（一二级 1.15、三级 1.05）提高锚固可靠性。</dd>
