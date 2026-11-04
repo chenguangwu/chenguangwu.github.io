@@ -105,6 +105,12 @@ const CASES = [
     ref: "空态守卫：总预算与已花费留空 ⇒ 提示，不再按 0 兜底给出「已超支/剩余」结论。"
        + "默认态总预算有初值并渲染预算结论，不含该提示 ⇒ 可判别。",
   },
+  {
+    slug: "wedding/countdown-time",
+    clicks: ["document.getElementById('weddingDate').value='2024-09-09';setWedding()"],
+    expect: ["距离 9月9日 周一 婚礼", "86", "天后举行"],
+    ref: "婚期 2024-09-09、基准日冻结 2024-06-15 ⇒ dayDiff = 86 ⇒ 主卡「距离 9月9日 周一 婚礼 / 86 / 天后举行」；同时生成 6 个里程碑（订婚/领证/策划/试妆/彩排/当天）。默认 state.weddingDate 为空 ⇒ emptyCard 显示、heroBox 置空，三锚均不命中（判别时清空 clicks 即回默认态）。"
+  },
 ];
 async function main() {
   const only = process.argv.slice(2);
