@@ -65,6 +65,25 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "nutrition/calc-60",
+  "inputs": {
+    "sex": "f",
+    "age": "40",
+    "height": "160",
+    "weight": "60",
+    "target": "55",
+    "weeks": "10",
+    "activity": "1.2",
+    "tdeeCustom": "0"
+  },
+  "expect": [
+    "1,239",
+    "1,487"
+  ],
+  "ref": "Mifflin-St Jeor 女：BMR=10·60+6.25·160−5·40−161=1239 kcal；TDEE=BMR×1.2=1486.8→显示 1,487。"
+     + "默认态（男 30 岁/170cm/75kg，系数 1.375）为 1,592/2,190 ⇒ 两值均不命中，强判别。页面引据已改为 Mifflin-St Jeor + 活动系数，不再声称 IOM EER 方程。"
+},
+{
   "slug": "nutrition/calorie-deficit",
   "inputs": {
     "age": "42",

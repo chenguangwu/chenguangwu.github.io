@@ -60,6 +60,22 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "dentistry/bruxism-force",
+  "inputs": {
+    "episodes": "20",
+    "duration": "8",
+    "emg": "90",
+    "mvc": "600",
+    "sleep": "7"
+  },
+  "expect": [
+    "重度磨牙症",
+    "86400"
+  ],
+  "ref": "自建复合分：事件 20 次/夜→3 分、EMG 90%MVC→3 分，合计 6 分 ⇒ 重度磨牙症；峰值力 600×90%=540N，累计负荷 540×20×8=86400 N·s。"
+     + "默认态（12 次/60%MVC ⇒ 4 分中度）不含「重度磨牙症」与 86400 ⇒ 强判别。该分档为工具自建，页面已标注非 ICSD 原文分级。"
+},
+{
   "slug": "dentistry/calc-1",
   "inputs": {
     "d": "5",
