@@ -240,10 +240,17 @@ s.parentNode.insertBefore(el, s);
 var dayCount = 7;
 function renderDayRows(){
   var box = document.getElementById('dayRows');
+  // 增删记录日前先读取已录入值，仅新增/删除末行，避免整表回退默认值
+  var prev = {};
+  for(var k=1;k<=dayCount;k++){
+    var old = document.getElementById('day'+k);
+    if(old) prev[k] = old.value;
+  }
   var html = '';
   for(var i=1;i<=dayCount;i++){
     var def = i===1?14:i===2?22:i===3?18:i===4?12:i===5?6:i===6?3:1;
-    html += '<div class="input-row"><label>第'+i+'天发芽数</label><input type="number" id="day'+i+'" value="'+def+'" min="0" oninput="calc()" placeholder="如 '+def+'"></div>';
+    var val = prev[i]!==undefined ? prev[i] : def;
+    html += '<div class="input-row"><label>第'+i+'天发芽数</label><input type="number" id="day'+i+'" value="'+val+'" min="0" oninput="calc()" placeholder="如 '+def+'"></div>';
   }
   const __g0=html;box.innerHTML=(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—'));
 }
@@ -271,6 +278,11 @@ function calc(){
     if(i <= energyDay) energySum += g;
     gi += g / i;
   }
+  if(totalGerm > total){
+    ToolBox.setResult('result','<p style="color:var(--danger);">发芽数合计超过供试种子数，请核对逐日记录</p>');
+    return;
+  }
+
   var germinationRate = (totalGerm / total) * 100;
   var germinationEnergy = (energySum / total) * 100;
   var vi = gi * len;
@@ -312,6 +324,8 @@ function copyResult(){
   var energyDay = +document.getElementById('energyDay').value || 4;
   var totalGerm=0,energySum=0,gi=0;
   for(var i=1;i<=dayCount;i++){var el=document.getElementById('day'+i);var g=el?(+el.value||0):0;totalGerm+=g;if(i<=energyDay)energySum+=g;gi+=g/i;}
+  if(total<=0){ ToolBox.showToast('请先输入有效的供试种子数','warning'); return; }
+  if(totalGerm>total){ ToolBox.showToast('发芽数合计超过供试种子数，请核对逐日记录','warning'); return; }
   var text='种子活力检测结果：\n发芽率：'+((totalGerm/total)*100).toFixed(1)+'%\n发芽势：'+((energySum/total)*100).toFixed(1)+'%\n发芽指数GI：'+gi.toFixed(2)+'\n活力指数VI：'+(gi*len).toFixed(2);
   ToolBox.copyText(text, i18nText('msg458'));
 }
