@@ -292,6 +292,8 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 function dbL(zh, en){ try{ if(/[?&]lang=en-US/.test(location.search)) return en; if(typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) return en; }catch(e){} return zh; }
+function __dbParseLocal(s){ if(!s) return null; var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s)); return m?new Date(+m[1],+m[2]-1,+m[3]):new Date(s); }
+function __dbFmtLocal(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 var __dbD=null;
 function calculate(){
   const debtType = document.getElementById('debtType').value;
@@ -306,12 +308,12 @@ function calculate(){
   let startNote = '';
   
   if(dueDate){
-    startDate = new Date(dueDate);
+    startDate = __dbParseLocal(dueDate);
     startNote = dbL(`约定还款日：${dueDate}，时效从次日起算`, `Agreed repayment date: ${dueDate}, the period starts the next day`);
   }else if(debtType === 'iou'){
     startNote = dbL('未约定还款日期的欠条/借条，债权人可随时主张，时效从第一次催要时起算', 'For an IOU with no repayment date the creditor may demand payment at any time; the period starts from the first demand');
     if(lastDemand){
-      startDate = new Date(lastDemand);
+      startDate = __dbParseLocal(lastDemand);
     }else{
       const __h0='<p style="color:var(--text-muted);">'+dbL('未约定还款日期，您可随时要求还款；但请保留催款证据，诉讼时效从您主张权利之日起计算3年','No repayment date was agreed, so you may demand payment at any time; keep evidence of your demands, the 3-year period starts from the date you assert your right')+'</p><p style="margin-top:8px;">'+dbL('建议：通过书面方式（EMS函件、微信、短信）催告还款，保留送达证据','Tip: demand payment in writing, by EMS letter, WeChat or SMS, and keep proof of delivery')+'</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
       return;
@@ -324,12 +326,12 @@ function calculate(){
   let effectiveStart = new Date(startDate);
   let interruptNotes = [];
   
-  if(lastPromise && new Date(lastPromise) > effectiveStart){
-    effectiveStart = new Date(lastPromise);
+  if(lastPromise && __dbParseLocal(lastPromise) > effectiveStart){
+    effectiveStart = __dbParseLocal(lastPromise);
     interruptNotes.push(dbL(`对方承诺还款：${lastPromise}（时效中断重新计算）`, `Debtor promised to repay on ${lastPromise}, the period restarts`));
   }
-  if(lastDemand && new Date(lastDemand) > effectiveStart){
-    effectiveStart = new Date(lastDemand);
+  if(lastDemand && __dbParseLocal(lastDemand) > effectiveStart){
+    effectiveStart = __dbParseLocal(lastDemand);
     interruptNotes.push(dbL(`最近一次催款：${lastDemand}（时效中断重新计算）`, `Latest demand on ${lastDemand}, the period restarts`));
   }
   if(partial){
@@ -357,14 +359,14 @@ function calculate(){
     statusColor = 'var(--success)';
   }
   
-  __dbD = {debtType: debtType, due: dueDate, demand: lastDemand, promise: lastPromise, partial: partial, written: written, start: startDate.toISOString().split('T')[0], interrupt: effectiveStart.toISOString().split('T')[0], expire: actualEnd.toISOString().split('T')[0], maxProt: maxEndDate.toISOString().split('T')[0], days: daysRemaining, notes: interruptNotes.slice()};
+  __dbD = {debtType: debtType, due: dueDate, demand: lastDemand, promise: lastPromise, partial: partial, written: written, start: __dbFmtLocal(startDate), interrupt: __dbFmtLocal(effectiveStart), expire: __dbFmtLocal(actualEnd), maxProt: __dbFmtLocal(maxEndDate), days: daysRemaining, notes: interruptNotes.slice()};
   let html = `<p>${startNote}</p>`;
   if(interruptNotes.length > 0){
     html += '<p>'+dbL('时效中断事由：','Grounds for interruption:')+'</p>';
     interruptNotes.forEach(n => html += `<div class="step-line">${n}</div>`);
   }
-  html += `<p>${dbL('时效起算日：','Period starts on: ')}<strong>${effectiveStart.toISOString().split('T')[0]}</strong></p>`;
-  html += `<p>${dbL('时效届满日：','Period expires on: ')}<strong>${actualEnd.toISOString().split('T')[0]}</strong></p>`;
+  html += `<p>${dbL('时效起算日：','Period starts on: ')}<strong>${__dbFmtLocal(effectiveStart)}</strong></p>`;
+  html += `<p>${dbL('时效届满日：','Period expires on: ')}<strong>${__dbFmtLocal(actualEnd)}</strong></p>`;
   html += `<p>${dbL('剩余天数：','Days remaining: ')}<strong style="color:${statusColor};">${Math.abs(daysRemaining)}</strong>${dbL('天',' days')}</p>`;
   html += `<p>${dbL('当前状态：','Current status: ')}<strong style="color:${statusColor};">${status}</strong></p>`;
   
@@ -377,7 +379,7 @@ function calculate(){
     html += `<div class="step-line">${dbL('及时向法院起诉或申请支付令','File a claim or apply for a payment order in time')}</div>`;
   }
   
-  html += `<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">${dbL('最长保护期20年：','20-year maximum protection until: ')}${maxEndDate.toISOString().split('T')[0]}${dbL('（不中断不中止）',' (no interruption, no suspension)')}</p>`;
+  html += `<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">${dbL('最长保护期20年：','20-year maximum protection until: ')}${__dbFmtLocal(maxEndDate)}${dbL('（不中断不中止）',' (no interruption, no suspension)')}</p>`;
   
   const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h2;
 }

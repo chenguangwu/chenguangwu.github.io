@@ -291,6 +291,8 @@ function toggleInterruption(){
 }
 
 function slL(zh, en){ try{ if(/[?&]lang=en-US/.test(location.search)) return en; if(typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) return en; }catch(e){} return zh; }
+function __slParseLocal(s){ if(!s) return null; var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s)); return m?new Date(+m[1],+m[2]-1,+m[3]):new Date(s); }
+function __slFmtLocal(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 var __slD=null;
 function calculate(){
   const startDate = document.getElementById('startDate').value;
@@ -303,12 +305,12 @@ function calculate(){
     return;
   }
   
-  let start = new Date(startDate);
+  let start = __slParseLocal(startDate);
   let effectiveStart = start;
   let interruptionNote = '';
   
   if(hasInterruption && interruptionDate){
-    const interrupt = new Date(interruptionDate);
+    const interrupt = __slParseLocal(interruptionDate);
     if(interrupt > start){
       effectiveStart = interrupt;
       interruptionNote = `<p>${slL('时效中断日期：','Interruption date: ')}<strong>${interruptionDate}</strong>${slL('，时效重新计算',' , the period restarts')}</p>`;
@@ -339,12 +341,12 @@ function calculate(){
   
   const typeName = limitType === 3 ? slL('3年普通时效','3-year general period') : limitType === 1 ? slL('1年特殊时效','1-year special period') : slL('20年最长保护期','20-year maximum period');
   
-  __slD = {start: startDate, limitType: limitType, interrupt: interruptionDate, effective: effectiveStart.toISOString().split('T')[0], expire: actualEnd.toISOString().split('T')[0], maxProt: maxEndDate.toISOString().split('T')[0], days: daysRemaining};
+  __slD = {start: startDate, limitType: limitType, interrupt: interruptionDate, effective: __slFmtLocal(effectiveStart), expire: __slFmtLocal(actualEnd), maxProt: __slFmtLocal(maxEndDate), days: daysRemaining};
   const __h1=`
     <p>${slL('时效类型：','Period type: ')}<strong>${typeName}</strong></p>
     <p>${slL('起算日期：','Start date: ')}<strong>${startDate}</strong></p>
     ${interruptionNote}
-    <p>${slL('届满日期：','Expiry date: ')}<strong style="color:var(--primary);">${actualEnd.toISOString().split('T')[0]}</strong></p>
+    <p>${slL('届满日期：','Expiry date: ')}<strong style="color:var(--primary);">${__slFmtLocal(actualEnd)}</strong></p>
     <p>${slL('剩余天数：','Days remaining: ')}<strong style="color:${statusColor};">${Math.abs(daysRemaining)}</strong>${slL(' 天',' days')}</p>
     <p>${slL('当前状态：','Current status: ')}<strong style="color:${statusColor};">${status}</strong></p>
   `;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h1;

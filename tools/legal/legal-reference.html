@@ -590,6 +590,8 @@ function showAllMarriage() {
 }
 
 /* ========== 专利有效期计算 ========== */
+function __lrParseLocal(s){ if(!s) return null; var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s)); return m?new Date(+m[1],+m[2]-1,+m[3]):new Date(s); }
+function __lrFmtLocal(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function calcPatent() {
   var type = document.getElementById('patentType').value;
   var dateStr = document.getElementById('patentDate').value;
@@ -597,7 +599,11 @@ function calcPatent() {
     const __h4='<p style="color:var(--text-muted);">请选择专利申请日期</p>';if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){document.getElementById('patentResult').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('patentResult').innerHTML=__h4;
     return;
   }
-  var applyDate = new Date(dateStr);
+  var applyDate = __lrParseLocal(dateStr);
+  if (!applyDate || isNaN(applyDate.getTime())) {
+    document.getElementById('patentResult').innerHTML = '<p style="color:var(--text-muted);">请输入有效的专利申请日期</p>';
+    return;
+  }
   var today = new Date();
   today.setHours(0,0,0,0);
 
@@ -635,7 +641,7 @@ function calcPatent() {
   html += '</div>';
   html += '<div class="tip-box ' + statusClass + '" style="margin:12px 0;">&#128336; 当前状态：' + status + '</div>';
   html += '<p style="margin:8px 0;font-size:13px;"><strong>申请日期：</strong>' + dateStr + '</p>';
-  html += '<p style="margin:8px 0;font-size:13px;"><strong>到期日期：</strong>' + ToolBox.escHtml(expireDate.toISOString().split('T')[0]) + '</p>';
+  html += '<p style="margin:8px 0;font-size:13px;"><strong>到期日期：</strong>' + ToolBox.escHtml(__lrFmtLocal(expireDate)) + '</p>';
   html += '<p style="margin:8px 0;font-size:13px;"><strong>保护期限：</strong>' + years + '年（自申请日起算）</p>';
   html += '<div style="margin-top:12px;"><span style="font-size:13px;color:var(--text-secondary);">有效期进度</span><div class="progress-bar"><div class="progress-fill" style="width:' + progress + '%;"></div></div><span style="font-size:12px;color:var(--text-muted);">' + progress + '%</span></div>';
 
@@ -772,7 +778,7 @@ document.addEventListener('DOMContentLoaded', function() {
   showAllTrademark();
   showAllMarriage();
   // 设置专利日期默认值为今天
-  var today = new Date().toISOString().split('T')[0];
+  var today = __lrFmtLocal(new Date());
   document.getElementById('patentDate').value = today;
 });
 </script><script>

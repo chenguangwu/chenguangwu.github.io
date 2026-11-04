@@ -274,6 +274,9 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 function dwL(zh, en){ try{ if(/[?&]lang=en-US/.test(location.search)) return en; if(typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) return en; }catch(e){} return zh; }
+function __dwParseLocal(s){ if(!s) return null; var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s)); return m?new Date(+m[1],+m[2]-1,+m[3]):new Date(s); }
+function __dwFmtLocal(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function __dwAddMonths(d, n){ var y=d.getFullYear(), m=d.getMonth()+n, day=d.getDate(); var last=new Date(y, m+1, 0).getDate(); return new Date(y, m, Math.min(day, last)); }
 var __dwD=null;
 function calculate(){
   const hireDate = document.getElementById('hireDate').value;
@@ -285,11 +288,10 @@ function calculate(){
     return;
   }
   
-  const hire = new Date(hireDate);
-  const end = new Date(endDate);
+  const hire = __dwParseLocal(hireDate);
+  const end = __dwParseLocal(endDate);
   
-  const startOfDouble = new Date(hire);
-  startOfDouble.setMonth(startOfDouble.getMonth() + 1);
+  const startOfDouble = __dwAddMonths(hire, 1);
   
   const maxEnd = new Date(hire);
   maxEnd.setFullYear(maxEnd.getFullYear() + 1);
@@ -302,19 +304,17 @@ function calculate(){
   }
   
   let months = 0;
-  let current = new Date(startOfDouble);
-  while(current < actualEnd){
+  while(__dwAddMonths(startOfDouble, months) < actualEnd){
     months++;
-    current.setMonth(current.getMonth() + 1);
   }
   months = Math.min(months, 11);
   
   const total = months * salary;
   
-  __dwD = {hireDate: hireDate, endDate: endDate, salary: salary, months: months, total: total, startStr: startOfDouble.toISOString().split('T')[0], endStr: actualEnd.toISOString().split('T')[0]};
+  __dwD = {hireDate: hireDate, endDate: endDate, salary: salary, months: months, total: total, startStr: __dwFmtLocal(startOfDouble), endStr: __dwFmtLocal(actualEnd)};
   const __h2=`
-    <p>${dwL('双倍工资起算：','Double wage starts from: ')}<strong>${startOfDouble.toISOString().split('T')[0]}</strong></p>
-    <p>${dwL('计算截止日期：','Calculation end date: ')}<strong>${actualEnd.toISOString().split('T')[0]}</strong></p>
+    <p>${dwL('双倍工资起算：','Double wage starts from: ')}<strong>${__dwFmtLocal(startOfDouble)}</strong></p>
+    <p>${dwL('计算截止日期：','Calculation end date: ')}<strong>${__dwFmtLocal(actualEnd)}</strong></p>
     <p>${dwL('应支付月数：','Months payable: ')}<strong>${months}</strong> ${dwL('个月（最长11个月）',' months, capped at 11')}</p>
     <p>${dwL('月工资标准：','Monthly wage: ')}<strong>${ToolBox.formatNumber(salary)}</strong> ${dwL('元','CNY')}</p>
     <hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">

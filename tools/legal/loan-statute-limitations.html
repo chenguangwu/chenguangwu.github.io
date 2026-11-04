@@ -335,6 +335,8 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 function lsL(zh, en){ try{ if(/[?&]lang=en-US/.test(location.search)) return en; if(typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) return en; }catch(e){} return zh; }
+function __lsParseLocal(s){ if(!s) return null; var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s)); return m?new Date(+m[1],+m[2]-1,+m[3]):new Date(s); }
+function __lsFmtLocal(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 var __lsD=null;
 function calculate(){
   const loanType = document.getElementById('loanType').value;
@@ -353,13 +355,13 @@ function calculate(){
   let startReason = '';
   
   if(loanType === 'normal' && dueDate){
-    startDate = new Date(dueDate);
+    startDate = __lsParseLocal(dueDate);
     startReason = lsL(`约定还款日期：${dueDate}（还款期限届满，债务人未还款即视为权利受损）`, `Agreed repayment date: ${dueDate} (the term expired without payment, so the right is deemed harmed)`);
   }else if(loanType === 'installment' && lastInstallmentDate){
-    startDate = new Date(lastInstallmentDate);
+    startDate = __lsParseLocal(lastInstallmentDate);
     startReason = lsL(`最后一期还款日期：${lastInstallmentDate}（分期债务从最后一期届满起算）`, `Last instalment date: ${lastInstallmentDate} (for instalment debts the period runs from the last instalment)`);
   }else if(loanType === 'demand' && claimDate){
-    startDate = new Date(claimDate);
+    startDate = __lsParseLocal(claimDate);
     startReason = lsL(`主张还款/宽限期届满日：${claimDate}`, `Date of demand or end of grace period: ${claimDate}`);
   }else if(loanType === 'iou'){
     startDate = null;
@@ -369,14 +371,14 @@ function calculate(){
   let interruptDate = null;
   let interruptReason = '';
   const interruptDates = [];
-  if(lastDemandDate) interruptDates.push({date: new Date(lastDemandDate), reason: lsL('催款（提出履行请求）','Demand for performance')});
-  if(lastPaymentDate) interruptDates.push({date: new Date(lastPaymentDate), reason: lsL('部分还款（义务人同意履行）','Partial repayment, the debtor acknowledges the debt')});
-  if(promiseDate) interruptDates.push({date: new Date(promiseDate), reason: lsL('承诺还款（义务人同意履行）','Promise to repay, the debtor acknowledges the debt')});
+  if(lastDemandDate) interruptDates.push({date: __lsParseLocal(lastDemandDate), reason: lsL('催款（提出履行请求）','Demand for performance')});
+  if(lastPaymentDate) interruptDates.push({date: __lsParseLocal(lastPaymentDate), reason: lsL('部分还款（义务人同意履行）','Partial repayment, the debtor acknowledges the debt')});
+  if(promiseDate) interruptDates.push({date: __lsParseLocal(promiseDate), reason: lsL('承诺还款（义务人同意履行）','Promise to repay, the debtor acknowledges the debt')});
   
   if(interruptDates.length > 0){
     interruptDates.sort((a,b) => b.date - a.date);
     interruptDate = interruptDates[0].date;
-    interruptReason = lsL(`最后一次时效中断事由：${interruptDates[0].reason}（${interruptDates[0].date.toISOString().split('T')[0]}），时效重新计算3年`, `Latest interruption event: ${interruptDates[0].reason} (${interruptDates[0].date.toISOString().split('T')[0]}), the 3-year period restarts`);
+    interruptReason = lsL(`最后一次时效中断事由：${interruptDates[0].reason}（${__lsFmtLocal(interruptDates[0].date)}），时效重新计算3年`, `Latest interruption event: ${interruptDates[0].reason} (${__lsFmtLocal(interruptDates[0].date)}), the 3-year period restarts`);
   }
   
   const actualStartDate = interruptDate || startDate;
@@ -399,14 +401,14 @@ function calculate(){
     maxProtectionDate.setFullYear(maxProtectionDate.getFullYear() + 20);
   }
   
-  __lsD = {loanType: loanType, due: dueDate, inst: lastInstallmentDate, claim: claimDate, demand: lastDemandDate, pay: lastPaymentDate, promise: promiseDate, start: actualStartDate.toISOString().split('T')[0], interrupt: interruptDate ? interruptDate.toISOString().split('T')[0] : '', expire: expirationDate.toISOString().split('T')[0], maxProt: startDate ? maxProtectionDate.toISOString().split('T')[0] : '', days: daysRemaining};
+  __lsD = {loanType: loanType, due: dueDate, inst: lastInstallmentDate, claim: claimDate, demand: lastDemandDate, pay: lastPaymentDate, promise: promiseDate, start: __lsFmtLocal(actualStartDate), interrupt: interruptDate ? __lsFmtLocal(interruptDate) : '', expire: __lsFmtLocal(expirationDate), maxProt: startDate ? __lsFmtLocal(maxProtectionDate) : '', days: daysRemaining};
   let html = '';
   html += `<p>${lsL('起算依据：','Basis for the start date: ')}${startReason}</p>`;
   if(interruptDate){
     html += `<p style="color:var(--success);">⏱️ ${interruptReason}</p>`;
   }
-  html += `<p style="margin-top:8px;">${lsL('时效起算日：','Period starts on: ')}<strong>${actualStartDate.toISOString().split('T')[0]}</strong></p>`;
-  html += `<p>${lsL('诉讼时效届满日：','Limitation period expires on: ')}<strong style="font-size:16px;">${expirationDate.toISOString().split('T')[0]}</strong></p>`;
+  html += `<p style="margin-top:8px;">${lsL('时效起算日：','Period starts on: ')}<strong>${__lsFmtLocal(actualStartDate)}</strong></p>`;
+  html += `<p>${lsL('诉讼时效届满日：','Limitation period expires on: ')}<strong style="font-size:16px;">${__lsFmtLocal(expirationDate)}</strong></p>`;
   
   if(daysRemaining > 0){
     const years = Math.floor(daysRemaining / 365);
@@ -428,7 +430,7 @@ function calculate(){
   }
   
   if(startDate){
-    html += `<p style="margin-top:12px;font-size:12px;color:var(--text-muted);">${lsL('最长保护期至：','Maximum protection until: ')}${maxProtectionDate.toISOString().split('T')[0]}${lsL('（20年，自权利受损之日起）',' (20 years from the date the right was harmed)')}</p>`;
+    html += `<p style="margin-top:12px;font-size:12px;color:var(--text-muted);">${lsL('最长保护期至：','Maximum protection until: ')}${__lsFmtLocal(maxProtectionDate)}${lsL('（20年，自权利受损之日起）',' (20 years from the date the right was harmed)')}</p>`;
   }
   
   html += `<div style="margin-top:12px;padding:12px;background:rgba(102,126,234,0.1);border-radius:8px;">`;
