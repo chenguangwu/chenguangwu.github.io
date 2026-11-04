@@ -116,7 +116,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="🏋️ 线膨胀量计算（工程）">Thermal Expansion</h2>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">热膨胀伸长：ΔL = α · L₀ · ΔT；α 线膨胀系数、L₀ 原长、ΔT 温差。</div>
+      <div class="formula-eq">热膨胀伸长：ΔL = α · L₀ · ΔT（α 线膨胀系数、L₀ 原长、ΔT 温差，降温为负即收缩）。校验：α ≥ 0，L₀ &gt; 0，ΔT 须为有效数值（降温可填负值），任一非法即中止且不沿用上次结果。</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="按线膨胀系数、原长与温差计算构件的伸长量。">Thermal Expansion</p>
 
@@ -220,8 +220,9 @@ s.parentNode.insertBefore(el, s);
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-            const a=num('alpha')*1e-6, L0=num('L0'), dT=num('dT');
-            if(L0<=0){ToolBox.setResult('result','<p class="tip-error">请输入有效的原长。</p>');return;}
+            const aRaw=parseFloat(document.getElementById('alpha').value), lRaw=parseFloat(document.getElementById('L0').value), tRaw=parseFloat(document.getElementById('dT').value);
+            if(!isFinite(aRaw)||!isFinite(lRaw)||!isFinite(tRaw)||aRaw<0||lRaw<=0){ToolBox.setResult('result','<p class="tip-error">请输入有效参数：α ≥ 0，L₀ &gt; 0，ΔT 须为有效数值（降温可填负值）。</p>');return;}
+            const a=aRaw*1e-6, L0=lRaw, dT=tRaw;
             const dL=a*L0*dT*1000;   // mm
             const html=dataGrid([
                 [dL.toFixed(3),'膨胀量 ΔL (mm)'],
@@ -239,9 +240,10 @@ function __thermal_expansionNum(id){var e=document.getElementById(id);var v=e?pa
 function __thermal_expansionExtras(){
     function __thermal_expansionRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
-    var a=num('alpha')*1e-6, L0=num('L0'), dT=num('dT');
+    var aV=__thermal_expansionNum('alpha'), lV=__thermal_expansionNum('L0'), tV=__thermal_expansionNum('dT');
+    if (!isFinite(aV) || !isFinite(lV) || !isFinite(tV) || aV<0 || lV<=0) return;
+    var a=aV*1e-6, L0=lV, dT=tV;
     var dL=a*L0*dT*1000;   // mm
-    if (!isFinite(__thermal_expansionNum('alpha')) || !isFinite(__thermal_expansionNum('L0')) || !isFinite(__thermal_expansionNum('dT'))) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#thermal_expansionTable',{
         head: en?['Item','Value']:['项目','数值'],

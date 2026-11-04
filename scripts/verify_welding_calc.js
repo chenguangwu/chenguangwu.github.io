@@ -187,6 +187,13 @@ const CASES = [
     "4.2mm"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "welding/weld-strength",
+  "inputs": { "F": "50", "hf": "6", "lw": "200", "fvw": "160" },
+  "checkIds": ["deduct"],
+  "expect": ["188.0", "63.32", "39.6%"],
+  "ref": "真机默认勾选「扣除两端弧坑」⇒ L_eff=200−2×6=188.0mm、A_e=0.7×6×188=789.6→790mm²、τ=50000/789.6=63.32MPa、利用率=63.32/160=39.6%（若未开扣除则为 200/840/59.52，用来验证开关默认态）"
 }
 ];
 async function main() {

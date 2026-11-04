@@ -116,7 +116,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="🧮 角焊缝强度计算（工程）">Weld Strength</h2>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">角焊缝有效截面积 A_e = 0.7 · h_f · l_w，焊缝应力 τ = F ÷ A_e；F 作用力、h_f 焊脚尺寸、l_w 焊缝计算长度。</div>
+      <div class="formula-eq">角焊缝有效截面积 A_e = 0.7 · h_f · L_eff，焊缝应力 τ = F ÷ A_e，利用率 = τ ÷ f_fw × 100%；F 作用力、h_f 焊脚尺寸、l_w 焊缝计算长度。默认扣除两端起灭弧缺陷：L_eff = l_w − 2h_f（可关闭该开关），f_fw 为角焊缝强度设计值（Q235+E43 常用 160 MPa）。校验：F ≥0、h_f&gt;0、L_eff&gt;0、f_fw&gt;0，τ≤f_fw 判「通过」。</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="由焊缝尺寸与作用力计算角焊缝的平均剪应力。">Weld Strength</p>
 
@@ -132,6 +132,15 @@ s.parentNode.insertBefore(el, s);
       <div>
         <label for="lw">焊缝计算长度 l_w (mm)</label>
         <input type="number" id="lw" value="200" step="10" min="10" placeholder="如 200">
+      </div>
+    </div>
+    <div class="input-row">
+      <div>
+        <label for="fvw">角焊缝强度设计值 (MPa)</label>
+        <input type="number" id="fvw" value="160" step="5" min="1" placeholder="如 160（E43 焊条取 160）">
+      </div>
+      <div>
+        <label for="deduct"><input type="checkbox" id="deduct" checked style="width:auto;margin-right:6px;">扣除两端弧坑（2h_f）</label>
       </div>
     </div>
 
@@ -174,9 +183,9 @@ s.parentNode.insertBefore(el, s);
 <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
       <ul>
-        <li>A_e = 0.7·h_f·l_w（角焊缝有效截面）</li>
-        <li>τ = F / A_e，应 ≤ 角焊缝强度设计值</li>
-        <li>l_w 应扣除起灭弧缺陷（通常减 2h_f）</li>
+        <li>A_e = 0.7·h_f·L_eff（角焊缝有效截面，L_eff 为扣除弧坑后的有效长度）</li>
+        <li>τ = F / A_e，应 ≤ 角焊缝强度设计值 f_fw</li>
+        <li>默认按「l_w − 2h_f」扣除起灭弧缺陷，可在输入区关闭</li>
       </ul>
     </div>
   </div>
@@ -217,18 +226,28 @@ s.parentNode.insertBefore(el, s);
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-            const F=num('F')*1000, hf=num('hf'), lw=num('lw');
-            if(F<=0||hf<=0||lw<=0){ToolBox.setResult('result','<p class="tip-error">请输入有效参数。</p>');return;}
-            const A=0.7*hf*lw; // mm² 有效截面
+            const F=parseFloat(document.getElementById('F').value)*1000, hf=parseFloat(document.getElementById('hf').value), lw=parseFloat(document.getElementById('lw').value), fvw=parseFloat(document.getElementById('fvw').value);
+            const deduct=document.getElementById('deduct').checked;
+            if(!isFinite(F)||!isFinite(hf)||!isFinite(lw)||!isFinite(fvw)||F<0||hf<=0||lw<=0||fvw<=0){ToolBox.setResult('result','<p class="tip-error">请输入有效参数：F ≥ 0，h_f、l_w、f_fw 均须 &gt; 0。</p>');return;}
+            const leff=lw-(deduct?2*hf:0);
+            if(leff<=0){ToolBox.setResult('result','<p class="tip-error">扣除 2h_f 后有效长度 ≤ 0，请增大 l_w 或关闭扣除开关。</p>');return;}
+            const A=0.7*hf*leff; // mm² 有效截面
             const tau=F/A; // MPa
+            const ratio=tau/fvw*100;
+            const pass=tau<=fvw;
             const __g1=dataGrid([
+                [leff.toFixed(1),'有效计算长度 L_eff (mm)'],
                 [A.toFixed(0),'焊缝有效截面 A_e (mm²)'],
-                [tau.toFixed(2),'焊缝剪应力 τ (MPa)']
+                [tau.toFixed(2),'焊缝剪应力 τ (MPa)'],
+                [ratio.toFixed(1)+'%','强度利用率 (τ / f_fw)'],
+                [pass?'✅ 通过':'❌ 不通过','判定（τ ≤ '+fvw+' MPa）']
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('F').value = '50';
       document.getElementById('hf').value = '6';
       document.getElementById('lw').value = '200';
+      document.getElementById('fvw').value = '160';
+      document.getElementById('deduct').checked = true;
       calcTool();}
 calcTool();
 
@@ -236,19 +255,24 @@ function __weld_strengthNum(id){var e=document.getElementById(id);var v=e?parseF
 function __weld_strengthExtras(){
     function __weld_strengthRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
-    var F=num('F')*1000, hf=num('hf'), lw=num('lw');
-    var A=0.7*hf*lw; // mm² 有效截面
-    var tau=F/A; // MPa
-    if (!isFinite(__weld_strengthNum('F')) || !isFinite(__weld_strengthNum('hf')) || !isFinite(__weld_strengthNum('lw'))) return;
+    var F=num('F')*1000, hf=num('hf'), lw=num('lw'), fvw=num('fvw');
+    var dv=document.getElementById('deduct');
+    var leff=lw-((dv&&dv.checked)?2*hf:0);
+    var A=0.7*hf*leff; // mm² 有效截面
+    var tau=A>0?F/A:NaN; // MPa
+    var fv=__weld_strengthNum('F'), hv=__weld_strengthNum('hf'), lv=__weld_strengthNum('lw'), fw=__weld_strengthNum('fvw');
+    if (!isFinite(fv) || !isFinite(hv) || !isFinite(lv) || !isFinite(fw) || fv<0 || hv<=0 || lv<=0 || fw<=0 || leff<=0) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#weld_strengthTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
+            ['有效计算长度 L_eff (mm)', leff.toFixed(1)],
             ['焊缝有效截面 A_e (mm²)', A.toFixed(0)],
             ['焊缝剪应力 τ (MPa)', tau.toFixed(2)],
+            ['强度利用率 (τ / f_fw)', (tau/fvw*100).toFixed(1)+'%'],
         ]
     });
-    TBKit.history.record({F:__weld_strengthRaw('F'), hf:__weld_strengthRaw('hf'), lw:__weld_strengthRaw('lw'), A:A});
+    TBKit.history.record({F:__weld_strengthRaw('F'), hf:__weld_strengthRaw('hf'), lw:__weld_strengthRaw('lw'), fvw:__weld_strengthRaw('fvw'), A:A});
     function __weld_strengthRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#weld_strengthHist',function(rec){ __weld_strengthRestore(rec); calcTool(); });
     TBKit.util.diffBox('#weld_strengthDiff',['A']);
@@ -297,10 +321,10 @@ else document.addEventListener('DOMContentLoaded', __weld_strengthBoot);
 <li>搭接接头双面焊，L 取两侧有效长度之和。</li>
 <li>动载或疲劳工况需降低<a class="term-link" href="/tools/structural/allowable-stress.html">许用应力</a>或增加焊脚。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">角焊缝剪切校核</div><div class="dd-ex-body">角焊缝承受 F=50 kN，焊脚 a=6 mm，两侧总长 L=200 mm。τ=50000/(0.707×6×200)=58.9 MPa，E43 焊条 [τ]=120–140 MPa，安全。</div></div>
+<div class="dd-example"><div class="dd-ex-title">角焊缝剪切校核</div><div class="dd-ex-body">角焊缝承受 F=50 kN，焊脚 a=6 mm，两侧总长 L=200 mm。默认扣除两端弧坑：L_eff=200−2×6=188 mm，A_e=0.7×6×188=789.6 mm²，τ=50000/789.6=63.3 MPa；取 Q235+E43 角焊缝强度设计值 f_fw=160 MPa，利用率 39.6%，通过。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>为什么乘 0.707？</dt><dd>角焊缝危险截面为 45° 喉部，喉厚=0.707a，有效面积=0.707a·L。</dd>
+<dt>为什么乘 0.707？</dt><dd>角焊缝危险截面为 45° 喉部，喉厚=0.707a，有效面积=0.707a·L_eff（L_eff 为扣除弧坑后的有效长度）。</dd>
 <dt>焊脚与板厚关系？</dt><dd>一般 a≈0.7t（薄板）~t（厚板），最大不超过 1.2t；过厚易裂，过小强度不足。</dd>
 </dl>
 </div>
@@ -309,10 +333,14 @@ else document.addEventListener('DOMContentLoaded', __weld_strengthBoot);
 function __wstChart(){
   if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
   var F=num('F')*1000, lw=num('lw');
+  var dv=document.getElementById('deduct');
+  var deduct=dv&&dv.checked;
   if(F<=0||lw<=0)return;
   var labels=[],data=[];
   for(var hf=3;hf<=12;hf++){
-    var A=0.7*hf*lw; var tau=F/A;
+    var leff=lw-(deduct?2*hf:0);
+    if(leff<=0)continue;
+    var A=0.7*hf*leff; var tau=F/A;
     labels.push(String(hf)); data.push(Math.round(tau*100)/100);
   }
   var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());

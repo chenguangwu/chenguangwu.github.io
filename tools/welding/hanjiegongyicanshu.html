@@ -125,7 +125,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="根据材料厚度和焊接方法，计算推荐电流、电压、速度和热输入">Set welding parameters by material thickness and process (SMAW/TIG/MIG).</p>
         <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">焊接电流 I = round(板厚 × 方法系数)（手工电弧焊 SMAW 45、钨极氩弧焊 TIG 60、熔化极气保焊 MIG/MAG 100），电流范围 = 0.85~1.15×I；电弧电压取方法区间中值（SMAW 20~24、TIG 10~15、MIG 20~28 V），焊接速度同理（各取区间中值）；热输入 = I×U ÷ (焊接速度×1000)（kJ/mm）。校验：板厚非数或 ≤0 提示「材料厚度须大于0」。判据：热输入 &lt;0.5 偏低可能未焊透、&gt;2.5 偏高注意热影响区、其余适中；层数 = ceil(板厚÷4)。</div>
+      <div class="formula-eq">焊接电流 I = round(min(板厚 × 方法系数, 方法上限))（SMAW 38 A/mm、上限 260 A；TIG 35 A/mm、上限 220 A；MIG/MAG 55 A/mm、上限 350 A）——厚板靠开坡口多道焊，电流不随厚度线性外推；电流范围 = 0.85~1.15×I；电弧电压取方法区间中值（SMAW 20~24、TIG 10~15、MIG 20~28 V），焊接速度同理（各取区间中值，mm/s）；热输入 = I×U ÷ (焊接速度×1000)（kJ/mm）。熔敷率分工艺：SMAW = I×0.0085×0.85；MIG/MAG 按送丝速度×焊丝截面积×密度×0.85；TIG 取手工填丝典型值 0.4 kg/h。校验：板厚非数或 ≤0 提示「材料厚度须大于0」。判据：热输入 &lt;0.5 偏低可能未焊透、&gt;2.5 偏高注意热影响区、其余适中；层数 = ceil(板厚÷4)。</div>
       <div class="formula-desc">依据材料厚度与焊接方法推荐焊接电流、电压、速度与热输入等工艺参数，给出工艺窗口与注意事项。</div>
     </div>
 <div class="input-row">
@@ -152,12 +152,12 @@ s.parentNode.insertBefore(el, s);
       <tbody>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="焊接电流">Welding current</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="I = round(板厚 × 方法系数)（SMAW45/TIG60/MIG100），范围 0.85–1.15×I">I = round(thickness × method factor) (SMAW45/TIG60/MIG100), range 0.85–1.15×I</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="I = round(min(板厚 × 方法系数, 方法上限))（SMAW38/260、TIG35/220、MIG55/350），范围 0.85–1.15×I">I = round(min(thickness × method factor, method cap)) (SMAW 38/260, TIG 35/220, MIG 55/350), range 0.85–1.15×I</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);">WPS parameters</td>
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="热输入">Heat input</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="热输入 = I × U ÷ (焊接速度 × 1000)（kJ/mm）">Heat input = I × U ÷ (speed × 1000) (kJ/mm)</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="热输入 = I × U ÷ (焊接速度 × 1000)（kJ/mm）；熔敷率按工艺分支（SMAW 经验式 / MIG 送丝式 / TIG 0.4 kg/h）">Heat input = I × U ÷ (speed × 1000) (kJ/mm); deposition rate is method-specific (SMAW empirical / MIG wire-feed / TIG 0.4 kg/h)</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);">WPS parameters</td>
         </tr>
         <tr>
@@ -206,20 +206,29 @@ function calc(){
     return;
   }
   var methodData={
-    smaw:{name:'手工电弧焊 (SMAW)',currentFactor:45,voltageMin:20,voltageMax:24,speedMin:3,speedMax:5,wireDia:function(t){return t<4?2.5:t<8?3.2:t<14?4.0:5.0;},gas:''},
-    tig:{name:'钨极氩弧焊 (TIG)',currentFactor:60,voltageMin:10,voltageMax:15,speedMin:2,speedMax:3,wireDia:function(t){return t<3?1.6:t<6?2.0:2.4;},gas:'Ar（纯氩）'},
-    gmaw:{name:'熔化极气体保护焊 (MIG/MAG)',currentFactor:100,voltageMin:20,voltageMax:28,speedMin:4,speedMax:6,wireDia:function(t){return t<3?0.8:t<8?1.0:t<15?1.2:1.6;},gas:'Ar+CO₂（混合气）'}
+    smaw:{name:'手工电弧焊 (SMAW)',currentFactor:38,currentCap:260,voltageMin:20,voltageMax:24,speedMin:3,speedMax:5,wireDia:function(t){return t<4?2.5:t<8?3.2:t<14?4.0:5.0;},gas:''},
+    tig:{name:'钨极氩弧焊 (TIG)',currentFactor:35,currentCap:220,voltageMin:10,voltageMax:15,speedMin:2,speedMax:3,wireDia:function(t){return t<3?1.6:t<6?2.0:2.4;},gas:'Ar（纯氩）'},
+    gmaw:{name:'熔化极气体保护焊 (MIG/MAG)',currentFactor:55,currentCap:350,voltageMin:20,voltageMax:28,speedMin:4,speedMax:6,wireDia:function(t){return t<3?0.8:t<8?1.0:t<15?1.2:1.6;},gas:'Ar+CO₂（混合气）'}
   };
   var md=methodData[iv.method];
-  var current=Math.round(iv.th*md.currentFactor);
+  var current=Math.round(Math.min(iv.th*md.currentFactor,md.currentCap));
   var voltage=(md.voltageMin+md.voltageMax)/2;
   var speed=(md.speedMin+md.speedMax)/2;
   var heatInput=current*voltage/(speed*1000);
   var wireDia=md.wireDia(iv.th);
   var passes=Math.ceil(iv.th/4);
-  var depRate=current*0.0085*0.85;
+  var depRate;
+  if(iv.method==='smaw'){
+    depRate=current*0.0085*0.85;
+  }else if(iv.method==='gmaw'){
+    var wireArea=Math.PI*wireDia*wireDia/4; // mm²
+    var feed=wireDia<=1.0?6000:4500;        // mm/min
+    depRate=wireArea*feed*7.85/1000*60/1000*0.85; // kg/h
+  }else{
+    depRate=0.4; // 手工填丝 TIG 典型 0.3–0.8 kg/h
+  }
   var heatNote=heatInput<0.5?'热输入偏低，可能未焊透':heatInput>2.5?'热输入偏高，注意热影响区':'热输入适中';
-  var currentRange=Math.round(iv.th*md.currentFactor*0.85)+'~'+Math.round(iv.th*md.currentFactor*1.15);
+  var currentRange=Math.round(current*0.85)+'~'+Math.round(current*1.15);
   const __g2='<div class="data-grid">'+
     '<div class="data-card"><div class="num">'+current+'</div><div class="label">焊接电流 (A)</div></div>'+
     '<div class="data-card"><div class="num">'+voltage.toFixed(0)+'</div><div class="label">电弧电压 (V)</div></div>'+
@@ -451,8 +460,8 @@ else document.addEventListener('DOMContentLoaded', __hanjiegongyicanshuBoot);
 <li>热输入控制：热输入影响熔深、变形与热影响区</li>
 <li>层数估算：厚板按每层约 4mm 定焊道数</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">算法：电流 I = 板厚×方法系数（SMAW45/TIG60/MIG100）；电压取方法区间中值；焊速取区间中值；热输入 HJ = I×U/(焊速×1000)（kJ/mm）；焊道数 = ⌈板厚/4⌉。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例：板厚 6mm、手工电弧焊(SMAW) → 电流 270A、电压 22V、焊速 4mm/s、热输入 1.49kJ/mm（适中）、焊道 2 层。若 10mm、MIG → 电流 1000A、电压 24V、焊速 5mm/s、热输入 4.8kJ/mm（偏高，需控层温）。</div></div>
+<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">算法：电流 I = round(min(板厚×方法系数, 方法上限))（SMAW 38/260A、TIG 35/220A、MIG 55/350A）；电压取方法区间中值；焊速取区间中值；热输入 HJ = I×U/(焊速×1000)（kJ/mm）；焊道数 = ⌈板厚/4⌉。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例：板厚 6mm、手工电弧焊(SMAW) → I=min(6×38,260)=228A、电压 22V、焊速 4mm/s、热输入 1.25kJ/mm（适中）、焊道 2 层。若 10mm、MIG/MAG → I=min(10×55,350)=350A、电压 24V、焊速 5mm/s、热输入 1.68kJ/mm（适中）；厚板电流有上限，其余靠开坡口多道焊完成。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>热输入多少合适？</dt><dd>依材料与厚度：低碳钢一般 0.5~2.5kJ/mm；过高热影响区大、易裂，过低未焊透，须按工艺规程。</dd>

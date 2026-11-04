@@ -156,7 +156,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="评估产线产能利用率,规划设备/工时/班次">Capacity Planning</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-      <div class="formula-eq">理论产能 = 设备数 × 单台产能 × 班次数 × 工作天数 × 设备效率；产能利用率 = 需求 ÷ 理论产能 × 100%；产能缺口 = 需求 − 理论产能（正值表示不足、需增设备或加班次）；所需设备数 = 需求 ÷（单台产能 × 班次 × 天数 × 效率）并向上取整；负荷率超过 90% 视为产能紧张、低于 60% 为产能过剩，可据此调整班次或排产计划。</div>
+      <div class="formula-eq">理论产能 = 设备数 × 单台班产能 × 班次数 × 工作天数；产能利用率 = 需求 ÷ 理论产能 × 100%（不截断，超 100% 如实显示）；产能缺口 = 需求 − 理论产能（正值表示不足、需增设备或加班次）；所需设备数 = 需求 ÷（单台班产能 × 班次 × 天数）并向上取整；负荷率超过 90% 视为产能紧张、低于 60% 为产能富余，可据此调整班次或排产计划。本页未设设备效率输入，公式不含效率项；四种模式分别输出利用率、设备需求、设备日需求与单工序瓶颈缺口。</div>
   
 </div>
 
@@ -168,7 +168,7 @@ s.parentNode.insertBefore(el, s);
       <input type="number" id="machines" value="5" min="1" placeholder="如 5">
     </div>
     <div class="input-row">
-      <label>单台日产能(件)</label>
+      <label>单台班产能(件/班)</label>
       <input type="number" id="capacityPer" value="200" min="1" placeholder="如 200">
     </div>
     <div class="input-row">
@@ -223,11 +223,11 @@ s.parentNode.insertBefore(el, s);
 <li>淡旺季切换时，调整班次（1/2/3 班）评估产能利用率，判断是否需要增加班次或将多余产能转产其他订单。</li>
 <li>接到突发大单时，快速核算当前设备配置能否在交期内达成，并定位需要优先扩容的瓶颈工序。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">车间产能核算示例</div><div class="dd-ex-body">某机加工车间 5 台 CNC、单台日产能 200 件、2 班/日、月工作 22 天，月订单 20000 件。理论月产能 = 5×200×22×2 = 44000 件；产能利用率 = 20000÷44000 ≈ 45.5%（富余）；满足该订单最少需 ⌈20000÷(200×22×2)⌉ = 3 台设备。结论：当前 5 台配置可从容接单，或可将多余 2 台转产其他订单。</div></div>
+<div class="dd-example"><div class="dd-ex-title">车间产能核算示例</div><div class="dd-ex-body">某机加工车间 5 台 CNC、单台班产能 200 件、2 班/日、月工作 22 天，月订单 20000 件。理论月产能 = 5×200×2×22 = 44000 件；产能利用率 = 20000÷44000 ≈ 45.5%（富余）；满足该订单最少需 ⌈20000÷(200×2×22)⌉ = 3 台设备。结论：当前 5 台配置可从容接单，或可将多余 2 台转产其他订单。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>产能利用率显示超过 100% 说明什么？</dt><dd>表示当前设备配置无法在交期内完成订单，缺口 = 订单量 − 理论月产能。需新增设备（⌈缺口÷单台月产能⌉ 台）或外包，并优先排查瓶颈工序。</dd>
-<dt>利用率是不是越高越好？</dt><dd>不是。利用率长期接近 100% 意味着没有缓冲，任何停机或急单都会违约。健康区间建议 70%–95%，预留维修、换型与突发订单的余量。</dd>
+<dt>利用率是不是越高越好？</dt><dd>不是。利用率长期接近 100% 意味着没有缓冲，任何停机或急单都会违约。本页判据：60%–90% 为健康区间（低于 60% 富余、高于 90% 紧张），预留维修、换型与突发订单的余量。</dd>
 </dl>
 </div>
 </section>
@@ -278,35 +278,49 @@ const MODES = [
 let cur = 'util';
 function renderModes() {
   const __h0=MODES.map(m =>
-    `<div class="mode-btn ${m.k===cur?'active':''}" onclick="cur='${m.k}';renderModes();">${m.n}<br><span style="font-size:10px;opacity:0.7;">${m.d}</span></div>`
+    `<div class="mode-btn ${m.k===cur?'active':''}" onclick="cur='${m.k}';renderModes();calc();">${m.n}<br><span style="font-size:10px;opacity:0.7;">${m.d}</span></div>`
   ).join('');const __g0=MODES.map(m =>
-    `<div class="mode-btn ${m.k===cur?'active':''}" onclick="cur='${m.k}';renderModes();">${m.n}<br><span style="font-size:10px;opacity:0.7;">${m.d}</span></div>`
+    `<div class="mode-btn ${m.k===cur?'active':''}" onclick="cur='${m.k}';renderModes();calc();">${m.n}<br><span style="font-size:10px;opacity:0.7;">${m.d}</span></div>`
   ).join('');document.getElementById('modeGrid').innerHTML=(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—'));
 }
 function calc() {
-  const m = +document.getElementById('machines').value || 0;
-  const cap = +document.getElementById('capacityPer').value || 0;
+  const m = parseFloat(document.getElementById('machines').value);
+  const cap = parseFloat(document.getElementById('capacityPer').value);
   const sh = +document.getElementById('shifts').value || 1;
-  const d = +document.getElementById('demand').value || 0;
-  const wd = +document.getElementById('workDays').value || 22;
-  if (m<=0||cap<=0||d<=0) { ToolBox.showToast(i18nText(),'error'); return; }
+  const d = parseFloat(document.getElementById('demand').value);
+  const wd = parseFloat(document.getElementById('workDays').value);
+  if (!isFinite(m)||!isFinite(cap)||!isFinite(d)||!isFinite(wd)||m<=0||Math.floor(m)!==m||cap<=0||d<=0||wd<1||wd>31||Math.floor(wd)!==wd) {
+    ToolBox.setResult('result','<p class="tip-error">请输入有效参数：设备数与每日班次须为正整数，单台班产能&gt;0，需求&gt;0，每月工作日为 1–31 的整数。</p>');
+    return;
+  }
 
-  // 单台日产能已按班次计算,理论月产能
-  const monthlyCap = m * cap * wd * sh;  // 设备数×台日产能×工作日×班次
+  // 单台班产能 × 班次 × 工作日 = 单台月产能
+  const monthlyCap = m * cap * wd * sh;
   const dailyCap = m * cap * sh;
-  const utilRate = Math.min(d / monthlyCap, 2); // 利用率
+  const utilRate = d / monthlyCap; // 利用率（不截断，超 100% 如实显示）
   const needMachines = Math.ceil(d / (cap * wd * sh));
   const needHours = d / cap; // 总工时(按单台)
 
-  let status = '✅ 充足';
+  let status = '✅ 合理';
   let color = '#10b981';
   if (utilRate > 1) { status = '⚠️ 不足'; color = '#ef4444'; }
-  else if (utilRate > 0.85) { status = '🟡 紧张'; color = '#f59e0b'; }
+  else if (utilRate > 0.9) { status = '🟡 紧张'; color = '#f59e0b'; }
+  else if (utilRate < 0.6) { status = '🔵 富余'; color = '#3b82f6'; }
 
-  const overHours = Math.max(0, d - monthlyCap); // 超负荷工时
+  const overHours = Math.max(0, d - monthlyCap); // 产能缺口（件/月）
+  let modeHtml='';
+  if (cur==='need') {
+    modeHtml='<div class="result-block"><div class="result-label">完成订单所需设备</div><div class="result-value">'+needMachines+' 台</div><p style="font-size:11px;margin-top:4px;">当前 '+m+' 台，'+(needMachines>m?'缺口 '+(needMachines-m)+' 台':'富余 '+(m-needMachines)+' 台')+'</p></div>';
+  } else if (cur==='hours') {
+    const machineDays=d/(cap*sh);
+    const days=Math.ceil(d/(cap*sh*m));
+    modeHtml='<div class="result-block"><div class="result-label">总设备日需求</div><div class="result-value">'+machineDays.toFixed(1)+' 机·日</div><p style="font-size:11px;margin-top:4px;">按当前 '+m+' 台需 '+days+' 个工作日，'+(days<=wd?'可在本月 '+wd+' 天内完成':'超出本月 '+wd+' 天，需加班或增设备')+'</p></div>';
+  } else if (cur==='bottleneck') {
+    modeHtml='<div class="result-block"><div class="result-label">本工序产能缺口</div><div class="result-value" style="color:'+(overHours>0?'#ef4444':'#10b981')+';">'+overHours.toLocaleString()+' 件/月</div><p style="font-size:11px;margin-top:4px;">单工序页：本工序即瓶颈，'+(overHours>0?'需新增 '+Math.ceil(overHours/(cap*wd*sh))+' 台或外包':'现有产能可覆盖需求')+'</p></div>';
+  }
 
   const __h1=`
-    <h3 style="text-align:center;margin-bottom:12px;">📊 产能评估报告</h3>
+    <h3 style="text-align:center;margin-bottom:12px;">📊 产能评估报告</h3>${modeHtml}
     <p style="text-align:center;font-size:12px;color:var(--text-muted);margin-bottom:16px;">设备 ${m} 台 · ${sh} 班/日 · 需求 ${d.toLocaleString()} 件/月</p>
 
     <div class="result-block">
@@ -320,22 +334,22 @@ function calc() {
     <div class="result-block">
       <div class="result-label">产能利用率</div>
       <div class="result-value" style="color:${color};">${(utilRate*100).toFixed(1)}%</div>
-      <div class="bar"><div class="bar-fill" style="width:${Math.min(utilRate*50,100)}%;"></div></div>
+      <div class="bar"><div class="bar-fill" style="width:${Math.min(utilRate*100,100)}%;"></div></div>
       <p style="font-size:11px;margin-top:4px;">${status}</p>
     </div>
 
     <div style="background:var(--bg-card);padding:12px;border-radius:8px;margin-top:8px;">
       <h4 style="margin-bottom:6px;">💡 规划建议</h4>
       <p style="font-size:13px;line-height:1.8;color:var(--text-secondary);">
-        ${utilRate < 0.7 ? `产能富余,可减少 ${m - needMachines} 台设备或增加订单` : ''}
-        ${utilRate >= 0.7 && utilRate <= 0.95 ? `产能利用合理,处于健康区间` : ''}
-        ${utilRate > 0.95 && utilRate <= 1 ? `产能紧张,建议增加班次或设备` : ''}
+        ${utilRate < 0.6 ? `产能富余,可减少 ${m - needMachines} 台设备或增加订单` : ''}
+        ${utilRate >= 0.6 && utilRate <= 0.9 ? `产能利用合理,处于健康区间` : ''}
+        ${utilRate > 0.9 && utilRate <= 1 ? `产能紧张,建议增加班次或设备` : ''}
         ${utilRate > 1 ? `产能缺口 ${overHours.toLocaleString()} 件,需新增 ${Math.ceil(overHours/(cap*wd*sh))} 台设备或外包` : ''}
         <br>📌 完成订单需 <strong>${needMachines}</strong> 台设备 (当前 ${m} 台)
       </p>
     </div>
   `;const __g1=`
-    <h3 style="text-align:center;margin-bottom:12px;">📊 产能评估报告</h3>
+    <h3 style="text-align:center;margin-bottom:12px;">📊 产能评估报告</h3>${modeHtml}
     <p style="text-align:center;font-size:12px;color:var(--text-muted);margin-bottom:16px;">设备 ${m} 台 · ${sh} 班/日 · 需求 ${d.toLocaleString()} 件/月</p>
 
     <div class="result-block">
@@ -349,16 +363,16 @@ function calc() {
     <div class="result-block">
       <div class="result-label">产能利用率</div>
       <div class="result-value" style="color:${color};">${(utilRate*100).toFixed(1)}%</div>
-      <div class="bar"><div class="bar-fill" style="width:${Math.min(utilRate*50,100)}%;"></div></div>
+      <div class="bar"><div class="bar-fill" style="width:${Math.min(utilRate*100,100)}%;"></div></div>
       <p style="font-size:11px;margin-top:4px;">${status}</p>
     </div>
 
     <div style="background:var(--bg-card);padding:12px;border-radius:8px;margin-top:8px;">
       <h4 style="margin-bottom:6px;">💡 规划建议</h4>
       <p style="font-size:13px;line-height:1.8;color:var(--text-secondary);">
-        ${utilRate < 0.7 ? `产能富余,可减少 ${m - needMachines} 台设备或增加订单` : ''}
-        ${utilRate >= 0.7 && utilRate <= 0.95 ? `产能利用合理,处于健康区间` : ''}
-        ${utilRate > 0.95 && utilRate <= 1 ? `产能紧张,建议增加班次或设备` : ''}
+        ${utilRate < 0.6 ? `产能富余,可减少 ${m - needMachines} 台设备或增加订单` : ''}
+        ${utilRate >= 0.6 && utilRate <= 0.9 ? `产能利用合理,处于健康区间` : ''}
+        ${utilRate > 0.9 && utilRate <= 1 ? `产能紧张,建议增加班次或设备` : ''}
         ${utilRate > 1 ? `产能缺口 ${overHours.toLocaleString()} 件,需新增 ${Math.ceil(overHours/(cap*wd*sh))} 台设备或外包` : ''}
         <br>📌 完成订单需 <strong>${needMachines}</strong> 台设备 (当前 ${m} 台)
       </p>
