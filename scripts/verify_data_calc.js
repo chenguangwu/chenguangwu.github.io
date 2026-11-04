@@ -178,24 +178,31 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"cnt\":\"42\"}，输出区含「GB）： 1. #03D670 rgb(3, 214, 112) 2. #A09…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    // 2026-11-05 随机源改 crypto.getRandomValues 后，原具体验证码锚点依赖 harness 的
+    // 种子 Math.random，必然失效。改为直接校验三个生成函数的「长度 × 字符集」。
     "slug": "data/random-4",
-    "inputs": {
-      "cnt": "42"
-    },
-    "expect": [
-      " 字母 混合 1 927391 cJCNpJ sJ8HJX 2 166871 cbxXXP T16DQz 3 234826 RrnjdL MubuMB 4 144264 fHgLKK FmDPIw 5 340087 FmREJR q9con"
+    "clicks": [
+      '(function(){var d=genCode(DIGITS,6),a=genCode(LETTERS,6),m=genCode(MIXED,6);var ok=/^[0-9]{6}$/.test(d)&&/^[A-Za-z]{6}$/.test(a)&&/^[A-Za-z0-9]{6}$/.test(m);document.getElementById("res").innerHTML=ok?"R4-CODE-FMT-OK-3x6":"R4-CODE-FMT-FAIL:"+d+a+m;})()'
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"cnt\":\"42\"}，输出区含「 字母 混合 1 927391 cJCNpJ sJ8HJX 2 166871 c…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "expect": [
+      "R4-CODE-FMT-OK-3x6"
+    ],
+    "ref": "genCode 三个分支：数字列仅 [0-9]、字母列仅 [A-Za-z]、混合列 [A-Za-z0-9]，长度均为 6。随机内容不可断言，故校验长度与字符集；默认输出由 5 行混合码组成，不含标记。生成路径已改 crypto.getRandomValues（拒绝采样无模偏），无 crypto 时显式提示。"
   },
   {
+    // 2026-11-05 随机源改 crypto.getRandomValues 后，原「具体密码串」锚点依赖 harness
+    // 的种子 Math.random，必然失效。改为「条数 × 长度 × 字符集」结构断言。
     "slug": "data/random-3",
     "inputs": {
-      "cnt": "42"
+      "cnt": "3"
     },
-    "expect": [
-      "强密码）： 1. Wkuf9yv>cw$i8lrd 2. t!^Qk ,&7v.8w 3. K1B(mOLl|,Qix60X 4. ^EvXXCdVpq5fs[Pf 5. I2Dysu7W1:-jRt:= 6. 5;luDHxvnOc|XG"
+    "clicks": [
+      'gen();(function(){var h=document.getElementById("res").innerHTML;var m=h.match(/<strong>[^<]*<\\/strong>/g)||[];var c=[];for(var i=0;i<3;i++)c.push(genPassword());var ok=m.length===3&&c.every(function(x){return x.length===16&&x.split("").every(function(ch){return "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?".indexOf(ch)>=0;});});document.getElementById("res").innerHTML=ok?"R3-PWD-FMT-OK-3x16":("R3-PWD-FMT-FAIL:count="+m.length);})()'
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"cnt\":\"42\"}，输出区含「强密码）： 1. Wkuf9yv>cw$i8lrd 2. t!^Qk ,&7v.…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "expect": [
+      "R3-PWD-FMT-OK-3x16"
+    ],
+    "ref": "输入条数 3 ⇒ gen() 渲染 3 条 <strong>（条数不看具体值）；另独立调用 genPassword() 3 次校验格式：固定 16 位（先各取 1 位大写/小写/数字/符号，其余 12 位从并集取，再 Fisher-Yates 打乱），逐位校验 88 字符表。gen() 输出经 escHtml 转义（字符表含 & < >，原样拼 innerHTML 会被解析成标签、显示残缺），故条数断言用 m.length 而非解析 <strong> 内文。默认 cnt=5 ⇒ 条数断言不命中。生成与打乱均用 crypto.getRandomValues（拒绝采样无模偏）。"
   },
   {
     slug: "data/yaml-json",

@@ -220,7 +220,7 @@ s.parentNode.insertBefore(el, s);
 <div class="dd-example"><div class="dd-ex-title">算例（演示）</div><div class="dd-ex-body">选项 [火锅, 炒菜, 日料, 外卖] 抽 1 → 如「日料」；抽 3 不放回 → 3 个不同项（剩 1 项）。每次抽取时剩余项等概率；抽 3 个时任一选项的入选概率为 3/N，不是 1/N。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>和 raffle-picker 区别？</dt><dd>本工具是轻量「选项级」抽取；raffle 支持名单输入、滚动动画与可复算种子，适合正式活动。</dd>
+<dt>和 raffle-picker 区别？</dt><dd>本工具是轻量「选项级」抽取；raffle 支持名单文件、权重与滚动动画，适合正式活动。</dd>
 <dt>不放回抽完会怎样？</dt><dd>抽完所有选项后提示已空，可重置重新抽。</dd>
 </dl>
 </div>
@@ -270,6 +270,7 @@ s.parentNode.insertBefore(el, s);
 <script>
 let pool,history,poolSig;
 
+function secureCrypto(){return (typeof crypto!=='undefined'&&crypto&&crypto.getRandomValues)?crypto:((typeof window!=='undefined'&&window.crypto&&window.crypto.getRandomValues)?window.crypto:null);}
 function hashSeed(s){
   let h=2166136261>>>0;
   for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}
@@ -291,7 +292,17 @@ function start(){
   const list=document.getElementById('items').value.split('\n').map(s=>s.trim()).filter(Boolean);
   if(list.length<1){alert('请至少输入 1 个选项');return;}
   const seedEl=document.getElementById('seed');
-  const seed=(seedEl&&seedEl.value.trim())?seedEl.value.trim():Math.random().toString(36).slice(2,10);
+  let seed=(seedEl&&seedEl.value.trim())?seedEl.value.trim():'';
+  if(!seed){
+    const c=secureCrypto();
+    if(!c){
+      document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 当前浏览器不支持 Web Crypto 安全随机数，无法生成不可预测的抽取种子（也不会静默回落 Math.random）；请升级浏览器后重试。</p>';
+      return;
+    }
+    const a=new Uint32Array(1);
+    c.getRandomValues(a);
+    seed=(a[0].toString(36)+Date.now().toString(36)).slice(-10);
+  }
   const unique=document.getElementById('unique').checked;
   if(unique){
     // 仅在首次抽取或选项列表变更时重建池；抽空后不再静默重置，

@@ -277,17 +277,26 @@ function togglePw(){
   else { inp.type='password'; tog.textContent='👁'; }
 }
 
+function secureCrypto(){return (typeof crypto!=='undefined'&&crypto&&crypto.getRandomValues)?crypto:((typeof window!=='undefined'&&window.crypto&&window.crypto.getRandomValues)?window.crypto:null);}
+function secureInt(max){var c=secureCrypto();if(!c)throw new Error('NO_CRYPTO');var limit=Math.floor(4294967296/max)*max;var a=new Uint32Array(1);do{c.getRandomValues(a);}while(a[0]>=limit);return a[0]%max;}
 function genPassword(){
+  if(!secureCrypto()){
+    document.getElementById('pw').value='当前浏览器不支持 Web Crypto 安全随机数';
+    ToolBox.showToast('当前浏览器不支持安全随机数，请升级浏览器');
+    return;
+  }
   var sets='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
   var pw='';
   /* 确保至少各一个 */
-  pw+='abcdefghijkmnpqrstuvwxyz'[Math.floor(Math.random()*24)];
-  pw+='ABCDEFGHJKLMNPQRSTUVWXYZ'[Math.floor(Math.random()*24)];
-  pw+='23456789'[Math.floor(Math.random()*8)];
-  pw+='!@#$%^&*'[Math.floor(Math.random()*8)];
-  for(var i=0;i<12;i++){ pw+=sets[Math.floor(Math.random()*sets.length)]; }
-  /* 打乱 */
-  pw=pw.split('').sort(function(){return Math.random()-0.5;}).join('');
+  pw+='abcdefghijkmnpqrstuvwxyz'[secureInt(24)];
+  pw+='ABCDEFGHJKLMNPQRSTUVWXYZ'[secureInt(24)];
+  pw+='23456789'[secureInt(8)];
+  pw+='!@#$%^&*'[secureInt(8)];
+  for(var i=0;i<12;i++){ pw+=sets[secureInt(sets.length)]; }
+  /* 打乱（Fisher-Yates，使用安全随机源） */
+  pw=pw.split('');
+  for(var k=pw.length-1;k>0;k--){ var j=secureInt(k+1); var t=pw[k]; pw[k]=pw[j]; pw[j]=t; }
+  pw=pw.join('');
   document.getElementById('pw').value=pw;
   analyze();
   ToolBox.showToast(i18nText());

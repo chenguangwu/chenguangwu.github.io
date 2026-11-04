@@ -564,7 +564,14 @@ s.parentNode.insertBefore(el, s);
 
   // ========== 生成验证码文本 ==========
 
+  function secureCrypto(){return (typeof crypto!=='undefined'&&crypto&&crypto.getRandomValues)?crypto:((typeof window!=='undefined'&&window.crypto&&window.crypto.getRandomValues)?window.crypto:null);}
+  function secureInt(max){var c=secureCrypto();if(!c)throw new Error('NO_CRYPTO');var limit=Math.floor(4294967296/max)*max;var a=new Uint32Array(1);do{c.getRandomValues(a);}while(a[0]>=limit);return a[0]%max;}
   function randInt(min, max) {
+    return min + secureInt(max - min + 1);
+  }
+
+  // 仅用于噪点/干扰线等视觉装饰，非安全用途
+  function visualInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
   }
 
@@ -580,6 +587,11 @@ s.parentNode.insertBefore(el, s);
   }
 
   function generateCode() {
+    if (!secureCrypto()) {
+      state.currentCode = '安全随机不可用';
+      state.currentAnswer = '';
+      return;
+    }
     var code = '';
     var answer = '';
 
@@ -664,7 +676,7 @@ s.parentNode.insertBefore(el, s);
     var displayText = options.displayText || text;
 
     // 干扰线（3-5条贝塞尔曲线）
-    var lineCount = randInt(3, 5);
+    var lineCount = visualInt(3, 5);
     for (var i = 0; i < lineCount; i++) {
       ctx.strokeStyle = randomColor(100, 220);
       ctx.lineWidth = Math.random() * 1.5 + 0.5;
@@ -707,7 +719,7 @@ s.parentNode.insertBefore(el, s);
     }
 
     // 干扰点（50-100个随机像素点）
-    var dotCount = randInt(50, 100);
+    var dotCount = visualInt(50, 100);
     for (var i = 0; i < dotCount; i++) {
       ctx.fillStyle = randomColor(80, 220);
       var dotSize = Math.random() < 0.3 ? 2 : 1;
@@ -719,7 +731,7 @@ s.parentNode.insertBefore(el, s);
       ctx.strokeStyle = randomColor(120, 200);
       ctx.lineWidth = 0.8;
       ctx.beginPath();
-      ctx.arc(Math.random() * w, Math.random() * h, randInt(10, 30), 0, Math.PI * Math.random());
+      ctx.arc(Math.random() * w, Math.random() * h, visualInt(10, 30), 0, Math.PI * Math.random());
       ctx.stroke();
     }
   }
@@ -727,6 +739,12 @@ s.parentNode.insertBefore(el, s);
   // ========== 主生成函数 ==========
 
   function generate() {
+    if (!secureCrypto()) {
+      var vr0 = document.getElementById('verifyResult');
+      vr0.style.display = 'block';
+      vr0.innerHTML = '<p style="color:var(--danger)">⚠ 当前浏览器不支持 Web Crypto 安全随机数，无法生成不可预测的验证码；请升级浏览器后重试。</p>';
+      return;
+    }
     generateCode();
 
     var canvas = document.getElementById('captchaCanvas');
@@ -807,6 +825,10 @@ s.parentNode.insertBefore(el, s);
   function batchGenerate() {
     var count = parseInt(document.getElementById('batchCount').value, 10);
     var grid = document.getElementById('batchGrid');
+    if (!secureCrypto()) {
+      grid.innerHTML = '<p style="color:var(--danger)">⚠ 当前浏览器不支持 Web Crypto 安全随机数，无法批量生成不可预测的验证码；请升级浏览器后重试。</p>';
+      return;
+    }
     const __h2='';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){grid.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}grid.innerHTML=__h2;
 
     for (var i = 0; i < count; i++) {

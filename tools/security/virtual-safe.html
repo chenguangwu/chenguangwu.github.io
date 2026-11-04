@@ -416,12 +416,15 @@ s.parentNode.insertBefore(el, s);
     return keyStream;
   }
 
-  // 生成随机盐值
+  function secureCrypto(){return (typeof crypto!=='undefined'&&crypto&&crypto.getRandomValues)?crypto:((typeof window!=='undefined'&&window.crypto&&window.crypto.getRandomValues)?window.crypto:null);}
+  function secureInt(max){var c=secureCrypto();if(!c)throw new Error('NO_CRYPTO');var limit=Math.floor(4294967296/max)*max;var a=new Uint32Array(1);do{c.getRandomValues(a);}while(a[0]>=limit);return a[0]%max;}
+  // 生成随机盐值（安全随机源；不可用时返回 null，由调用方显式提示）
   function genSalt(){
+    if(!secureCrypto()) return null;
     var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     var salt = '';
     for(var i=0;i<32;i++){
-      salt += chars.charAt(Math.floor(Math.random()*chars.length));
+      salt += chars.charAt(secureInt(chars.length));
     }
     return salt;
   }
@@ -515,6 +518,7 @@ s.parentNode.insertBefore(el, s);
     if(!hasVault()){
       // 首次创建
       var salt = genSalt();
+      if(!salt){ ToolBox.showToast('当前浏览器不支持 Web Crypto 安全随机数，无法创建保险箱', 'warning'); return; }
       var pwdHash = hashStr(pwd + salt, 0x811c9dc5).toString(36);
       try {
         localStorage.setItem(PWD_HASH_KEY, pwdHash);
@@ -572,6 +576,7 @@ s.parentNode.insertBefore(el, s);
       return;
     }
     var itemSalt = genSalt();
+    if(!itemSalt){ ToolBox.showToast('当前浏览器不支持 Web Crypto 安全随机数，无法生成条目盐值', 'warning'); return; }
     var itemKey = deriveKey('', itemSalt);
     // 用主密钥+条目盐再次混合
     var mixedKey = [];

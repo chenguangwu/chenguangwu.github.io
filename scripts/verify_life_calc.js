@@ -2532,6 +2532,17 @@ const CASES = [
     ref: "闰日跨年：2024-02-29 → 2025-03-01 时间戳差 366 天，含开始日 +1 = 367 天；"
        + "2024-02 → 2025-03 共 13 个月 = 1年1月。日期控件按本地年月日构造，"
        + "负时区不因 UTC 解析回退到 2/28（默认 6 月区间不含这三条锚）。",
+  },
+
+  // ── 密码生成器（随机源审计 B 类：长度 × 字符集）────────────────────
+  {
+    slug: "life/generator-strength",
+    checkIds: ["lower", "upper", "nums"],
+    clicks: [
+      'gen();(function(){var p=document.getElementById("mainPwd").textContent;var ok=p.length===16&&/^[A-Za-z0-9]+$/.test(p);document.getElementById("mainPwd").textContent=ok?"STRENGTH-PWD-FMT-OK-16":"STRENGTH-PWD-FMT-FAIL:"+p.length;})()'
+    ],
+    expect: ["STRENGTH-PWD-FMT-OK-16"],
+    ref: "只勾小写+大写+数字（未勾符号）⇒ 字符池 62；长度默认 16、数量默认 1 ⇒ 主密码 16 位且仅含 [A-Za-z0-9]。随机内容不可断言，故锚长度与字符集。默认 harness 下所有复选框为 false，页面自跑 gen() 走 resetPwdState 输出「请至少选择一种字符类型」，不含该标记。生成路径已改 secureInt（crypto.getRandomValues + 拒绝采样）。",
   }
 
 ];

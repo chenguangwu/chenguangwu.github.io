@@ -137,21 +137,29 @@ const CASES = [
     "ref": "SHA-256('abc') = ba7816bf…15ad（NIST 标准值）。旧实现把算法名 replace('-','') 变成 'SHA256'（非法）⇒ crypto.subtle.digest 抛 Unrecognized algorithm name，任何输入都失败；修复后直接传 'SHA-256'。默认 algo=MD5、输入为空 ⇒ 显示「请输入文本」，不命中。"
   },
   {
+    // 2026-11-05 随机源改 crypto.getRandomValues 后，原「生成密码 !jSW&t8zhK」锚点
+    // 依赖 harness 的种子 Math.random，必然失效。随机内容不可断言，改为字符集/长度断言：
+    // genPassword 固定 16 位，字符表剔除易混的 O/o/I/l/0/1，外加 8 个符号。
     "slug": "safety/manager",
-    "inputs": {
-      "setupPw1": "abc123测试",
-      "setupPw2": "abc123测试",
-      "unlockPw": "abc123测试",
-      "inSite": "abc123测试",
-      "inUser": "abc123测试",
-      "inPass": "abc123测试",
-      "searchQ": "abc123测试",
-      "inNotes": "1\n2\n3"
-    },
-    "expect": [
-      "!jSW&t8zhK\n强度：强\nabc123测试\n🔐 abc123测试 复制密码 删除 账号 abc123测试 复制 密码 •••••••• 显示 强度 强 1 2 3"
+    "clicks": [
+      'genPassword();(function(){var p=document.getElementById("inPass").value;var ok=p.length===16&&/^[A-HJ-NP-Za-km-np-z2-9!@#$%^&*]+$/.test(p);document.getElementById("inPass").value=ok?"MANAGER-PWD-FMT-OK-16":"MANAGER-PWD-FMT-FAIL:"+p.length;})()'
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"setupPw1\":\"abc123测试\",\"setupPw2\":\"abc123测试\",\"unlockPw\":\"abc123测试\",\"inSite\":\"abc123测试\",\"inUser\":\"abc123测试\",\"inPass\":\"abc123测试\",\"searchQ\":\"abc123测试\",\"inNotes\":\"1\\n2\\n3\"}，输出区含「!jSW&t8zhK\n强度：强\nabc123测试\n🔐 abc123测试 复制密…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "expect": [
+      "MANAGER-PWD-FMT-OK-16"
+    ],
+    "ref": "genPassword() 固定长度 16，字符表 = 大写去 I/O + 小写去 l/o + 数字去 0/1 + !@#$%^&* ⇒ 正则逐位校验字符集与长度；两次生成的随机内容不同，不锚具体串。默认页面不自动生成（inPass 为空）⇒ 不命中。生成路径已改 secureInt（crypto.getRandomValues + 拒绝采样）。"
+  },
+  {
+    // 新增：detector-strength 的 genPassword 亦为密码学用途，原有用例只测 analyze() 输入分支，
+    // 生成路径无覆盖。此处校验 16 位、四类字符共同构成且只含全套 88 字符表。
+    "slug": "safety/detector-strength",
+    "clicks": [
+      'genPassword();(function(){var p=document.getElementById("pw").value;var ok=p.length===16&&/^[A-Za-z0-9!@#$%^&*]+$/.test(p);document.getElementById("pw").value=ok?"DETECTOR-PWD-FMT-OK-16":"DETECTOR-PWD-FMT-FAIL:"+p.length;})()'
+    ],
+    "expect": [
+      "DETECTOR-PWD-FMT-OK-16"
+    ],
+    "ref": "genPassword() 先强制各取 1 位小写/大写/数字/符号，再补 12 位随机并 Fisher-Yates 打乱 ⇒ 串长恒为 16、每位必在 88 字符表内。默认 pw 为空，不自动生成 ⇒ 不命中。生成与打乱均已改用 secureInt（crypto.getRandomValues + 拒绝采样），不再用 sort(()=>Math.random()-0.5)。"
   }
 
 ];

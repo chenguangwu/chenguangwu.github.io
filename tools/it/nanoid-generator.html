@@ -291,13 +291,16 @@ function getAlphabet(){
   return ALPHABETS[sel];
 }
 
+function secureCrypto(){return (typeof crypto!=='undefined'&&crypto&&crypto.getRandomValues)?crypto:((typeof window!=='undefined'&&window.crypto&&window.crypto.getRandomValues)?window.crypto:null);}
 function nanoid(size, alphabet){
+  const c=secureCrypto();
+  if(!c)throw new Error('NO_CRYPTO');
   const mask = (2 << Math.floor(Math.log(alphabet.length - 1) / Math.log(2))) - 1;
   const step = Math.ceil((1.6 * mask * size) / alphabet.length);
   let id = '';
   const bytes = new Uint8Array(step);
   while(true){
-    crypto.getRandomValues(bytes);
+    c.getRandomValues(bytes);
     for(let i = 0; i < step; i++){
       const idx = bytes[i] & mask;
       if(idx < alphabet.length){
@@ -309,6 +312,7 @@ function nanoid(size, alphabet){
 }
 
 function gen(){
+  if(!secureCrypto()){document.getElementById('results').innerHTML='<p style="color:var(--danger)">⚠ 当前浏览器不支持 Web Crypto 安全随机数，无法生成不可预测的 NanoID；请升级浏览器后重试。</p>';return;}
   try{
     const size = Math.max(1, Math.min(100, parseInt(document.getElementById('length').value,10) || 21));
     const count = Math.max(1, Math.min(1000, parseInt(document.getElementById('count').value,10) || 10));

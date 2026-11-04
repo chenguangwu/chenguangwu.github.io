@@ -387,10 +387,17 @@ function togglePass(id){
   if(el.dataset.show==='1'){el.dataset.show='0';el.textContent='••••••••';}
   else{el.dataset.show='1';var e=vault.find(function(x){return x.id===id;});el.textContent=e?e.pass:'';}
 }
+function secureCrypto(){return (typeof crypto!=='undefined'&&crypto&&crypto.getRandomValues)?crypto:((typeof window!=='undefined'&&window.crypto&&window.crypto.getRandomValues)?window.crypto:null);}
+function secureInt(max){var c=secureCrypto();if(!c)throw new Error('NO_CRYPTO');var limit=Math.floor(4294967296/max)*max;var a=new Uint32Array(1);do{c.getRandomValues(a);}while(a[0]>=limit);return a[0]%max;}
 function genPassword(){
+  if(!secureCrypto()){
+    document.getElementById('inPass').value='当前浏览器不支持 Web Crypto 安全随机数，无法生成密码';
+    ToolBox.showToast('当前浏览器不支持安全随机数，请升级浏览器');
+    return;
+  }
   var len=16,ch='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%^&*';
   var p='';
-  for(var i=0;i<len;i++)p+=ch[Math.floor(Math.random()*ch.length)];
+  for(var i=0;i<len;i++)p+=ch[secureInt(ch.length)];
   document.getElementById('inPass').value=p;
   updateStrength(p,'addStr','addStrLbl');
   ToolBox.showToast(i18nText());

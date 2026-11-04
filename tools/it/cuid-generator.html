@@ -249,11 +249,12 @@ s.parentNode.insertBefore(el, s);
 <script>
 let counter=0;
 const DISCRETE_VALUES=Math.pow(36,4);
-function randInt(max){const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]%max;}
+function secureCrypto(){return (typeof crypto!=='undefined'&&crypto&&crypto.getRandomValues)?crypto:((typeof window!=='undefined'&&window.crypto&&window.crypto.getRandomValues)?window.crypto:null);}
+function randInt(max){const c=secureCrypto();if(!c)throw new Error('NO_CRYPTO');const limit=Math.floor(4294967296/max)*max;const a=new Uint32Array(1);do{c.getRandomValues(a);}while(a[0]>=limit);return a[0]%max;}
 function block(size){
   let res='';
   for(let i=0;i<size;i++){
-    const r=Math.floor(Math.random()*36);
+    const r=randInt(36);
     res+=r<10?String(r):String.fromCharCode(97+r-10);
   }
   return res;
@@ -265,7 +266,7 @@ function safeCounter(){
 function fingerprint(){
   const keys=Object.keys(navigator).sort().join('');
   const pad=(s,n)=>{while(s.length<n)s+='0';return s.slice(0,n);};
-  return pad((keys.length).toString(36)+pad(String(Math.floor(Math.random()*1000)),3),4);
+  return pad((keys.length).toString(36)+pad(String(randInt(1000)),3),4);
 }
 function cuid(){
   const stamp=(Date.now()).toString(36);
@@ -276,6 +277,7 @@ function cuid(){
   return 'c'+stamp+cnt+fingerprintStr+random1+random2;
 }
 function generate(){
+  if(!secureCrypto()){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 当前浏览器不支持 Web Crypto 安全随机数，无法生成不可预测的 CUID；请升级浏览器后重试。</p>';return;}
   const count=parseInt(document.getElementById('count').value);
   let html='';
   for(let i=0;i<count;i++){

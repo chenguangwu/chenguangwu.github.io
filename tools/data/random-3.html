@@ -195,12 +195,15 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
-function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+function secureCrypto(){return (typeof crypto!=='undefined'&&crypto&&crypto.getRandomValues)?crypto:((typeof window!=='undefined'&&window.crypto&&window.crypto.getRandomValues)?window.crypto:null);}
+function secureInt(max){var c=secureCrypto();if(!c)throw new Error('NO_CRYPTO');var limit=Math.floor(4294967296/max)*max;var a=new Uint32Array(1);do{c.getRandomValues(a);}while(a[0]>=limit);return a[0]%max;}
+function randInt(min, max) { return min + secureInt(max - min + 1); }
 const UPPER = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const LOWER = 'abcdefghijklmnopqrstuvwxyz';
 const DIGITS = '0123456789';
 const SYMBOLS = '!@#$%^&*()_+-=[]{}|;:,.<>?';
 function genPassword() {
+  if(!secureCrypto()) return '';
   const all = UPPER + LOWER + DIGITS + SYMBOLS;
   let pwd = '';
   pwd += UPPER[randInt(0, UPPER.length - 1)];
@@ -208,13 +211,20 @@ function genPassword() {
   pwd += DIGITS[randInt(0, DIGITS.length - 1)];
   pwd += SYMBOLS[randInt(0, SYMBOLS.length - 1)];
   for (let i = 4; i < 16; i++) pwd += all[randInt(0, all.length - 1)];
-  return pwd.split('').sort(() => Math.random() - 0.5).join('');
+  const arr = pwd.split('');
+  for (let i = arr.length - 1; i > 0; i--) { const j = randInt(0, i); const t = arr[i]; arr[i] = arr[j]; arr[j] = t; }
+  return arr.join('');
 }
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function gen() {
+  if(!secureCrypto()){
+    document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 当前浏览器不支持 Web Crypto 安全随机数，无法生成不可预测的密码；请升级浏览器后重试。</p>';
+    return;
+  }
   const n = Math.min(+document.getElementById('cnt').value || 5, 50);
   let h = '<p style="margin-bottom:8px;">生成结果（16 位强密码）：</p>';
   for (let i = 0; i < n; i++) {
-    h += `<p style="padding:4px 0;font-family:monospace;">${i + 1}. <strong>${genPassword()}</strong></p>`;
+    h += `<p style="padding:4px 0;font-family:monospace;">${i + 1}. <strong>${escHtml(genPassword())}</strong></p>`;
   }
   const __h0=h;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('res').innerHTML=__h0;
 }

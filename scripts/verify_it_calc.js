@@ -3209,8 +3209,8 @@ const CASES = [
     slug: "it/hash-id-generator",
     inputs: { nums: "5, 6, 7" },
     clicks: ["generate()"],
-    expect: ["HashID: JK9Q9Zxr"],
-    ref: "HashID 编码：输入序列 `5, 6, 7` 经 HashID（页面默认 salt）⇒ `JK9Q9Zxr`（**算法确定、非回显**，默认 `1, 2, 3` ⇒ `JK9A3Ww9` ⇒ 默认态不命中）。注意 `输入: [...]` 那一段是输入回显、不可锚，只锚编码结果。",
+    expect: ["HashID: JKoJLgdr"],
+    ref: "HashID 编码：输入序列 `5, 6, 7` 经 HashID（默认 salt=`my-secret-salt`、minLen=8）⇒ `JKoJLgdr`（lottery 由 salt+输入确定性派生，同一输入必得同一 ID；默认 `1, 2, 3` ⇒ `JKd3dgk2` ⇒ 默认态不命中）。注意 `输入: [...]` 那一段是输入回显、不可锚，只锚编码结果。2026-11-05 修正：原实现用 Math.random 抽 lottery，同一输入每次输出不同，违背 Hashids 的确定性语义。",
   },
   {
     slug: "it/pbkdf2",
