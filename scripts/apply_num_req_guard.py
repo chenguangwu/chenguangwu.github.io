@@ -35,7 +35,23 @@ ECONOMICS = [
     "balance-of-trade", "compound-amount", "fv-annuity", "labor-force",
     "okuns-law", "pv-annuity", "real-gdp",
 ]
-BATCHES = {"tax": BATCH1 + BATCH2, "economics": ECONOMICS}
+BANKING = [
+    "amortization-first-interest", "continuous-compounding", "effective-annual-rate",
+    "net-worth", "tax-equivalent-yield",
+]
+SECURITIES = ["enterprise-value", "market-cap", "market-risk-premium", "option-breakeven-put"]
+INSURANCE = ["ibnr-estimate"]
+INVESTMENT = ["yield-spread"]
+ROBOTICS = ["forward-kinematics-2r"]
+BATCHES = {
+    "tax": BATCH1 + BATCH2,
+    "economics": ECONOMICS,
+    "banking": BANKING,
+    "securities": SECURITIES,
+    "insurance": INSURANCE,
+    "investment": INVESTMENT,
+    "robotics": ROBOTICS,
+}
 
 HELPER = (
     MARK + "function __tbReq(ids,names){"

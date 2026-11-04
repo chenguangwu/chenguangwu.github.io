@@ -336,6 +336,48 @@ const CASES = [
     "⚠ 贷款额与抵押物价值均须大于 0，请输入正数后再计算。"
   ],
   "ref": "F-N16：负贷款旧代码被接受并算出 -10.0% LTV 与 110% 首付，必须拒绝。默认 loan=800000、val=1000000 ⇒ 不命中。"
+},
+{
+  "slug": "banking/amortization-first-interest",
+  "inputs": { "p": "", "r": "" },
+  "expect": ["请填写「贷款本金 P」后再计算。"],
+  "ref": "空态守卫（TOOLBOX-REQ-GUARD）：清空 p/r 后必须提示，不得渲染 0.00 结构化零值。"
+},
+{
+  "slug": "banking/amortization-first-interest",
+  "inputs": { "p": "500000", "r": "0" },
+  "expect": ["0.00 首月利息 I₁ 500000.00 首月还本金"],
+  "ref": "合法 0 边界：r=0（零利率）必须正常计算（I₁=500000×0=0，首月还本金=500000），不得被守卫拦掉。"
+},
+{
+  "slug": "banking/continuous-compounding",
+  "inputs": { "p": "", "r": "", "t": "" },
+  "expect": ["请填写「本金 P」后再计算。"],
+  "ref": "空态守卫：清空 p/r/t 后必须提示，不得渲染 0.00 结构化零值。"
+},
+{
+  "slug": "banking/effective-annual-rate",
+  "inputs": { "r": "", "n": "" },
+  "expect": ["请填写「名义年利率 r」后再计算。"],
+  "ref": "空态守卫：清空 r/n 后必须提示，不得渲染 0.000 结构化零值。"
+},
+{
+  "slug": "banking/net-worth",
+  "inputs": { "assets": "", "liab": "" },
+  "expect": ["请填写「总资产」后再计算。"],
+  "ref": "空态守卫：清空 assets/liab 后必须提示，不得渲染 0 净资产结构化零值。"
+},
+{
+  "slug": "banking/net-worth",
+  "inputs": { "assets": "500000", "liab": "0" },
+  "expect": ["500000 净资产 NW (元) 0.00 负债率 (%)"],
+  "ref": "合法 0 边界：liab=0（无负债）必须正常计算，不得被守卫拦掉。"
+},
+{
+  "slug": "banking/tax-equivalent-yield",
+  "inputs": { "muni": "", "tax": "" },
+  "expect": ["请填写「免税收益率」后再计算。"],
+  "ref": "空态守卫：清空 muni/tax 后必须提示，不得渲染 0.000 结构化零值。"
 }
 ];
 async function main() {

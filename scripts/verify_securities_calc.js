@@ -643,6 +643,30 @@ const CASES = [
     inputs: { C: "6", F: "100", y: "4.5", n: "8", freq: "1" },
     expect: ["103.17", "-6.12%"],
     ref: "±bp 敏感度表：P=6×年金(4.5%,8)+100/1.045^8 = 39.5753+70.3185=109.8938；+100bp → y=5.5%：P=6×6.33456+65.1599=103.1673 → '103.17'，涨跌幅 (103.1673−109.8938)/109.8938=−6.1219% → '-6.12%'。默认态（C5/y5/n10 平价 100）+100bp → 92.64/−7.36%，两锚零交集。该页此前被跳过（多参数循环），本用例补上。"
+  },
+  {
+    slug: "securities/enterprise-value",
+    inputs: { MCap: "", Debt: "", Cash: "" },
+    expect: ["请填写「股票市值」后再计算。"],
+    ref: "空态守卫：清空 MCap/Debt/Cash 后必须提示，不得渲染 0.00 结构化零值。",
+  },
+  {
+    slug: "securities/market-cap",
+    inputs: { price: "", shares: "" },
+    expect: ["请填写「股价」后再计算。"],
+    ref: "空态守卫：清空 price/shares 后必须提示，不得渲染 0.00 结构化零值。",
+  },
+  {
+    slug: "securities/market-risk-premium",
+    inputs: { rm: "", rf: "" },
+    expect: ["请填写「市场预期收益」后再计算。"],
+    ref: "空态守卫：清空 rm/rf 后必须提示，不得渲染 0.00 结构化零值。",
+  },
+  {
+    slug: "securities/option-breakeven-put",
+    inputs: { K: "", P: "" },
+    expect: ["请填写「行权价 K」后再计算。"],
+    ref: "空态守卫：清空 K/P 后必须提示，不得渲染 0.00 结构化零值。",
   }
 
 ];
