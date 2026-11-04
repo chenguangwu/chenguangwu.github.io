@@ -199,6 +199,12 @@ const CASES = [
     "ref": "高差 Δh = S·sin v = 200 × sin30° = **100.000** m；与 H 173.205 合起来满足 sin²+cos²=1（173.205²+100² = 40,000 = S²）"
   },
   {
+    "slug": "surveying/horizontal-from-slope",
+    "inputs": { "S": "200", "v": "90" },
+    "expect": [["斜距须大于 0，竖直角须在 0° 与 90° 之间（不含 90°）。"]],
+    "ref": "v=90° 时 cos≈6e-17，旧代码用 (S/Math.max(H,1e-9)) 兜底输出 2e11 量级伪「斜距水平比」；新增 0≤v<90 守卫后须提示。默认 10° 得 1.0154，不命中。"
+  },
+  {
     "slug": "surveying/circular-curve",
     "inputs": { "R": "400", "d": "45" },
     "expect": [["165.685"]],

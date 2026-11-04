@@ -117,7 +117,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入功率 P（瓦）、用电时长 h（小时）与电价，求电费。">Compute electricity cost from power rating, hours of use and the unit tariff, including daily, monthly and yearly totals.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">电器电费（本页代码口径，功率 P 为瓦特须先转千瓦）：电费 = P÷1000×h×rate（元，rate 为元/kWh）；联动量：耗电量 = P÷1000×h（kWh）、单位时间成本 = 电费÷(h||1)（元/h，h 为 0 时分母按 1 兜底）。校验：三项输入空值守卫，空值即提示。判据：无固定分级，电费与功率、时长、电价线性相关，功率减半电费即减半。</div>
+      <div class="formula-eq">电器电费（本页代码口径，功率 P 为瓦特须先转千瓦）：电费 = P÷1000×h×rate（元，rate 为元/kWh）；联动量：耗电量 = P÷1000×h（kWh）、单位时间成本 = 电费÷h（元/h）。校验：三项输入空值守卫，空值即提示；用电时长须 &gt;0、功率与电价不得为负，否则提示并中止。判据：无固定分级，电费与功率、时长、电价线性相关，功率减半电费即减半。</div>
       <p class="formula-desc">输入功率 P（瓦）、用电时长 h（小时）与电价，求电费。</p>
     </div>
 
@@ -226,11 +226,12 @@ function num(id){const v=parseFloat(document.getElementById(id).value);return is
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
             const P=num('P'),h=num('h'),rate=num('rate');
+            if(!(h>0)||P<0||rate<0){var __en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)?TBKit.util.isEn():false;ToolBox.setResult('result','<p style="color:var(--danger);">'+(__en?'Operating hours must be greater than 0; power and price cannot be negative.':'用电时长须大于 0，功率与电价不能为负。')+'</p>');return;}
             const cost=P/1000*h*rate;
             const __g1=dataGrid([
                 [cost.toFixed(2),'电费 (元)'],
                 [(P/1000*h).toFixed(3), '耗电量 (kWh)'],
-                [(cost/(h||1)).toFixed(3), '单位时间成本 (元/h)']
+                [(cost/h).toFixed(3), '单位时间成本 (元/h)']
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('P').value = '1500';
@@ -252,7 +253,7 @@ function __energy_costExtras(){
         rows: [
             ['电费 (元)', cost.toFixed(2)],
             ['耗电量 (kWh)', (P/1000*h).toFixed(3)],
-            ['单位时间成本 (元/h)', (cost/(h||1)).toFixed(3)],
+            ['单位时间成本 (元/h)', (cost/h).toFixed(3)],
         ]
     });
     TBKit.history.record({P:__energy_costRaw('P'), h:__energy_costRaw('h'), rate:__energy_costRaw('rate'), cost:cost});

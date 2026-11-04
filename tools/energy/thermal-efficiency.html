@@ -117,7 +117,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="η = 有效输出 / 能量输入。">Compute thermal efficiency as useful output divided by energy input, with losses and the fuel cost per unit of useful energy.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">热效率（本页代码口径）：η=有效输出÷能量输入×100（%）；联动量：损失率=(1−输出÷输入)×100、损失能量=输入−输出、效率小数=输出÷(输入为 0 时取 1)、输入÷输出倍数=输入÷(输出为 0 时取 1)。校验：两字段经输入守卫必填且须为合法数值，否则提示并中止。判据：无固定分级，η 与损失率互补（合计恒为 100%），η 越接近 100% 能量利用越充分。</div>
+      <div class="formula-eq">热效率（本页代码口径）：η=有效输出÷能量输入×100（%）；联动量：损失率=(1−输出÷输入)×100、损失能量=输入−输出、效率小数=输出÷输入、输入÷输出倍数=输入÷输出（输出为 0 时显示 —）。校验：两字段经输入守卫必填且须为合法数值；能量输入须 &gt;0、有效输出不得为负且不得大于输入（η 不可能超过 100%），否则提示并中止。判据：无固定分级，η 与损失率互补（合计恒为 100%），η 越接近 100% 能量利用越充分。</div>
       <p class="formula-desc">η = 有效输出 / 能量输入。</p>
     </div>
 
@@ -276,12 +276,14 @@ function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+=
 function calcTool(){
               var __ig=__tbInputGuard(['out', 'in'],["有效输出 (kJ)", "能量输入 (kJ)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const o=num('out'),i=num('in');
+            if(!(i>0)||o<0){var __en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)?TBKit.util.isEn():false;ToolBox.setResult('result','<p style="color:var(--danger);">'+(__en?'Input energy must be greater than 0 and useful output cannot be negative.':'能量输入须大于 0，有效输出不能为负。')+'</p>');return;}
+            if(o>i){var __en2=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)?TBKit.util.isEn():false;ToolBox.setResult('result','<p style="color:var(--danger);">'+(__en2?'Useful output cannot exceed input energy (thermal efficiency cannot exceed 100%).':'有效输出不能大于能量输入（热效率不可能超过 100%）。')+'</p>');return;}
             const __g2=dataGrid([
                 [(o/i*100).toFixed(2),'热效率 (%)'],
                 [((1-o/i)*100).toFixed(2),'损失率 (%)'],
                 [(i-o).toFixed(2), '损失能量 (同单位)'],
-                [(o/(i||1)).toFixed(4), '效率（小数）'],
-                [(i/(o||1)).toFixed(4), '输入/输出 倍数']
+                [(o/i).toFixed(4), '效率（小数）'],
+                [o>0?(i/o).toFixed(4):'—', '输入/输出 倍数']
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('out').value = '300';
@@ -302,8 +304,8 @@ function __thermal_efficiencyExtras(){
             ['热效率 (%)', (o/i*100).toFixed(2)],
             ['损失率 (%)', ((1-o/i)*100).toFixed(2)],
             ['损失能量 (同单位)', (i-o).toFixed(2)],
-            ['效率（小数）', (o/(i||1)).toFixed(4)],
-            ['输入/输出 倍数', (i/(o||1)).toFixed(4)],
+            ['效率（小数）', (o/i).toFixed(4)],
+            ['输入/输出 倍数', o>0?(i/o).toFixed(4):'—'],
         ]
     });
     TBKit.history.record({out:__thermal_efficiencyRaw('out'), in:__thermal_efficiencyRaw('in'), o:o});
