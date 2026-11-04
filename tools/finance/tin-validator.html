@@ -234,42 +234,63 @@ function validate(){
   const out = document.getElementById('output');
   if(!digits){ const __h0='等待输入...';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0; return; }
   let html = `<p><strong>输入：</strong>${raw}</p>`;
+  if(/[^0-9\-\s]/.test(raw)){
+    html += `<p style="color:var(--danger);">❌ 含非法字符：号码只能包含数字、连字符与空格</p>`;
+    const __h0=html;out.innerHTML=__h0;return;
+  }
   if(digits.length !== 9){
     html += `<p>⚠️ TIN 必须为 9 位数字（当前 ${digits.length} 位）</p>`;
     const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;
     return;
   }
-  // Determine type by formatting
-  // SSN: XXX-XX-XXXX (3-2-4)
-  // EIN: XX-XXXXXXX (2-7)
-  // ITIN: 9XX-XX-XXXX, 70-88 (except 76,77) middle two digits 70-88
+  // Determine type by formatting first: SSN XXX-XX-XXXX (3-2-4), EIN XX-XXXXXXX (2-7)
+  const rawFormat = /^(\d{3})-(\d{2})-(\d{4})$/.test(raw) ? 'SSN'
+    : (/^(\d{2})-(\d{7})$/.test(raw) ? 'EIN' : 'auto');
   const area = digits.substring(0,3);
   const group = digits.substring(3,5);
   const serial = digits.substring(5,9);
   const einPrefix = digits.substring(0,2);
   let type = 'Unknown';
   let html2 = '';
-  // SSN validation
-  if(area !== '000' && area !== '666' && area !== '900' && area !== '999' &&
-     parseInt(area,10) < 900 && group !== '00' && serial !== '0000'){
-    type = 'SSN (社会安全号)';
-    html2 += `<p><strong>类型：</strong>${type}</p>`;
-    html2 += `<p><strong>SSN 格式：</strong>${area}-${group}-${serial}</p>`;
-    html2 += `<p><strong>Area：</strong>${area}</p>`;
-    html2 += `<p><strong>Group：</strong>${group}</p>`;
-    html2 += `<p><strong>Serial：</strong>${serial}</p>`;
-    html2 += `<p style="color:var(--success);">✅ TIN/SSN 格式有效</p>`;
-  } else if(area.startsWith('9') && parseInt(group,10) >= 70 && parseInt(group,10) <= 88 && group !== '76' && group !== '77'){
-    type = 'ITIN (个人纳税人识别号)';
-    html2 += `<p><strong>类型：</strong>${type}</p>`;
-    html2 += `<p><strong>ITIN 格式：</strong>${area}-${group}-${serial}</p>`;
-    html2 += `<p style="color:var(--success);">✅ TIN/ITIN 格式有效</p>`;
+  const einPrefixOk = /^(0[1-6]|1[0-6]|2[0-7]|3[0-9]|4[0-8]|5[0-9]|6[0-7]|7[0-8]|8[0-8]|9[1-9])$/.test(einPrefix);
+  const ssnOk = area !== '000' && area !== '666' && area !== '900' && area !== '999' &&
+     parseInt(area,10) < 900 && group !== '00' && serial !== '0000';
+  const itinOk = area.startsWith('9') && parseInt(group,10) >= 70 && parseInt(group,10) <= 88 && group !== '76' && group !== '77';
+  if(rawFormat === 'EIN' || itinOk || rawFormat === 'SSN' || ssnOk || einPrefixOk){
+    if(itinOk){
+      type = 'ITIN (个人纳税人识别号)';
+      html2 += `<p><strong>类型：</strong>${type}${rawFormat === 'auto' ? '（按号段推断）' : ''}</p>`;
+      html2 += `<p><strong>ITIN 格式：</strong>${area}-${group}-${serial}</p>`;
+      html2 += `<p style="color:var(--success);">✅ TIN/ITIN 格式有效</p>`;
+    }else if(rawFormat === 'EIN' || (rawFormat === 'auto' && !ssnOk && einPrefixOk)){
+      if(einPrefixOk){
+        type = 'EIN (雇主识别号)';
+        html2 += `<p><strong>类型：</strong>${type}${rawFormat === 'auto' ? '（按号段推断）' : ''}</p>`;
+        html2 += `<p><strong>EIN 格式：</strong>${einPrefix}-${digits.substring(2)}</p>`;
+        html2 += `<p style="color:var(--success);">✅ TIN/EIN 格式有效</p>`;
+      }else{
+        html2 += `<p><strong>类型：</strong>EIN (雇主识别号)</p>`;
+        html2 += `<p style="color:var(--danger);">❌ EIN 前缀不在 IRS 分配号段内</p>`;
+        html2 += `<p style="color:var(--danger);">❌ 不属于 SSN/ITIN/EIN 任何有效号段</p>`;
+      }
+    }else{
+      if(ssnOk){
+        type = 'SSN (社会安全号)';
+        html2 += `<p><strong>类型：</strong>${type}${rawFormat === 'auto' ? '（按号段推断）' : ''}</p>`;
+        html2 += `<p><strong>SSN 格式：</strong>${area}-${group}-${serial}</p>`;
+        html2 += `<p><strong>Area：</strong>${area}</p>`;
+        html2 += `<p><strong>Group：</strong>${group}</p>`;
+        html2 += `<p><strong>Serial：</strong>${serial}</p>`;
+        html2 += `<p style="color:var(--success);">✅ TIN/SSN 格式有效</p>`;
+      }else{
+        html2 += `<p><strong>类型：</strong>SSN (社会安全号)</p>`;
+        html2 += `<p style="color:var(--danger);">❌ 落在 SSN 禁用号段（Area 000/666/900-999、Group 00 或 Serial 0000）</p>`;
+        html2 += `<p style="color:var(--danger);">❌ 不属于 SSN/ITIN/EIN 任何有效号段</p>`;
+      }
+    }
   } else {
-    // Treat as EIN
-    type = 'EIN (雇主识别号)';
-    html2 += `<p><strong>类型：</strong>${type}</p>`;
-    html2 += `<p><strong>EIN 格式：</strong>${einPrefix}-${digits.substring(2)}</p>`;
-    html2 += `<p style="color:var(--success);">✅ TIN/EIN 格式有效</p>`;
+    html2 += `<p><strong>类型：</strong>未知</p>`;
+    html2 += `<p style="color:var(--danger);">❌ 不属于 SSN/ITIN/EIN 任何有效号段</p>`;
   }
   html += html2;
   const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h2;

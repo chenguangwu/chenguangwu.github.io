@@ -214,7 +214,7 @@ s.parentNode.insertBefore(el, s);
       <tbody>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="GSTIN 结构">GSTIN format</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="15 位：2州码+10 PAN+1实体+1校验+'Z'">15 chars: 2state+10PAN+ent+check+Z</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="15 位：2州码+10 PAN+1实体+Z+1校验">15 chars: 2state+10PAN+ent+Z+check</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="印度 CBIC GST 识别号">India CBIC GSTIN</td>
         </tr>
       </tbody>
@@ -279,17 +279,19 @@ function validate(){
   const zChar = raw[13];
   const checkDigit = raw[14];
   const expectedCheck = gstChecksum(raw.substring(0,14));
-  const stateName = STATE_CODES[stateCode] || '未知州';
-  html += `<p><strong>州代码：</strong>${stateCode} - ${stateName}</p>`;
+  const stateName = STATE_CODES[stateCode] || null;
+  const stateOk = stateName !== null;
+  html += `<p><strong>州代码：</strong>${stateCode} - ${stateName || '❌ 未分配州码'}</p>`;
   html += `<p><strong>PAN 部分：</strong>${pan}</p>`;
   html += `<p><strong>实体位：</strong>${entity}</p>`;
   html += `<p><strong>Z 位：</strong>${zChar} ${zChar === 'Z' ? '✅' : '❌ 必须为 Z'}</p>`;
   if(expectedCheck !== -1){
     html += `<p><strong>校验位：</strong>${checkDigit}（期望 ${expectedCheck}） ${checkDigit === expectedCheck ? '✅' : '❌'}</p>`;
   }
-  if(zChar === 'Z' && expectedCheck === checkDigit){
+  if(stateOk && zChar === 'Z' && expectedCheck === checkDigit){
     html += `<p style="color:var(--success);">✅ GSTIN 有效</p>`;
   } else {
+    if(!stateOk) html += `<p style="color:var(--danger);">❌ 州代码不是 GST 已分配州码</p>`;
     html += `<p style="color:var(--danger);">❌ GSTIN 校验失败</p>`;
   }
   const __h3=html;if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h3;
