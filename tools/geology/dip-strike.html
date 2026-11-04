@@ -256,9 +256,28 @@ function calc(){
   if(len<1e-9){grid.innerHTML='';det.innerHTML='<p style="color:var(--danger);">三点共线或重合，无法确定平面，请检查输入。</p>';return;}
   // 保证法向量朝上（C>0）
   if(C<0){A=-A;B=-B;C=-C;}
-  // 三点共面但水平
-  if(Math.abs(C)<1e-9){grid.innerHTML='';det.innerHTML='<p style="color:var(--warning);">三点构成水平面，倾角为 0°，无确定倾向。</p>';return;}
-  var dipRad=Math.acos(C/len);
+  var Cn=C/len;
+  // 直立面：法向量水平（C≈0）⇒ 倾角 90°，倾向不确定
+  if(Math.abs(Cn)<1e-9){
+    var st=Math.atan2(A,B)*180/Math.PI+90; st=(st%360+360)%360;
+    const __gv='<div class="result-item"><div class="val">'+st.toFixed(1)+'°</div><div class="lbl">走向（方位角）</div></div>'+
+      '<div class="result-item"><div class="val">不确定</div><div class="lbl">倾向</div></div>'+
+      '<div class="result-item"><div class="val">90.0°</div><div class="lbl">倾角</div></div>';grid.innerHTML=(typeof __gv==='number'?(isFinite(__gv)?__gv:'—'):String(__gv).replace(/Infinity|NaN/g,'—'));
+    det.innerHTML='<p>📊 三点构成<strong>直立面</strong>：倾角 <strong>90.0°</strong>，倾向不确定（直立面无唯一倾向）。</p>'+
+      '<p>走向：'+st.toFixed(1)+'° / '+((st+180)%360).toFixed(1)+'°（'+azName(st)+'方向）</p>'+
+      '<p style="font-size:12px;color:var(--text-muted);">法向量(东,北,上)=('+A.toFixed(2)+', '+B.toFixed(2)+', '+C.toFixed(2)+')，|n|='+len.toFixed(2)+'</p>';
+    return;
+  }
+  // 水平面：法向量竖直（|C|≈|n|）⇒ 倾角 0°，走向与倾向均不确定
+  if(1-Math.abs(Cn)<1e-9){
+    grid.innerHTML='<div class="result-item"><div class="val">不确定</div><div class="lbl">走向（方位角）</div></div>'+
+      '<div class="result-item"><div class="val">不确定</div><div class="lbl">倾向</div></div>'+
+      '<div class="result-item"><div class="val">0.0°</div><div class="lbl">倾角</div></div>';
+    det.innerHTML='<p>📊 三点构成<strong>水平面</strong>：倾角 <strong>0.0°</strong>，走向与倾向均不确定。</p>'+
+      '<p style="font-size:12px;color:var(--text-muted);">法向量(东,北,上)=('+A.toFixed(2)+', '+B.toFixed(2)+', '+C.toFixed(2)+')，|n|='+len.toFixed(2)+'</p>';
+    return;
+  }
+  var dipRad=Math.acos(Math.min(1,Math.max(-1,Cn)));
   var dip=dipRad*180/Math.PI;
   // 倾向方位角：下倾方向水平分量 (A,B) = (东,北)
   var dipDir=Math.atan2(A,B)*180/Math.PI;
