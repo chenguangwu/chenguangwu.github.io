@@ -347,4 +347,14 @@
 3. **每次全量跑完必须报 `git status --short` 的条数**（worktree 内跑则报主工作区的条数，作为「这次跑动了什么」的证据；条数较上次异常增减即需逐条解释）。
 4. **发现他线页面/JSON 被回退，只报告清单，不得自行 revert**：涉及别线在途内容，由统一维护者处置；本线只提供证据（文件路径 + 差异字段 + 回写时间）。
 5. **本线自己改页面的批次**：仍按项目原流程在**主工作区**手改 + 收尾构建 + 提交（构建是提交前的最后一步）；**门禁全量验证**改用 worktree 对同一 HEAD 复跑，避免二次构建写主工作区。
+6. **【验收口径】** 全量门禁的「通过」必须来自 **detached worktree @ HEAD**，且必须同时报 `git status --short` 条数；主工作区的 `--skip-build` 结果**只作快速反馈，不作为发布依据**。理由：主工作区的树随时被 11 条线改动，**在主工作区跑出来的绿，绿的可能是别人未提交的半成品**。
+7. **【构建产物归属】主工作区的构建产物不由本线 revert / 不由本线提交**：留给集成线统一入库（它们本来就是构建输出，push 时必须带上）。
+   - 2026-11-05 报告时点待集成入库 **124 条**：构建产物类 **18**（`json/*.json` 14 + `sitemap.xml` + `sitemap.html` + `index.html` + `sw.js`）+ 分类索引 **15**（`tools/<行业>/index.html`）+ 工具页 **79**（他线在途源码改动）+ 源文件 **12**（i18n/js/scripts/`AGENTS.md`）；`zh-tw/` 为 gitignore，不进 status。
+   - 任何人不得把上述产物当垃圾清掉；数量随他线提交变动，以跑全量时实测条数为准。
+
+### 7.4 防回退措施有效性证据（幂等重放）
+
+`hematology/cml-monitoring.html`、`hematology/mpn-scoring.html` 的 mtime 为 **05:09:55 / 05:09:57**（构建确实写了这两页），但**内容与 HEAD 逐字一致、`git status` 为 clean**，且全站 `audit_deepdive_source_sync.py --check` 为 **0 页不一致**。
+
+即：当「页面修复」与 `content_deepdive.json` 源头**同批同步**之后，`_build.py` 的 deep-dive 回写从**破坏性覆盖**变成**幂等重放**（写入但产出与 HEAD 相同，不产生 diff）。这是 §7.3 与 `deepdive source sync` 门禁有效的正面证据，不只是「又加了一条门禁」。
 
