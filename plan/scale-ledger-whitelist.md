@@ -209,3 +209,58 @@
 - `TB_STUB_FIDELITY=1 node scripts/discriminate_check.js verify_edu_calc.js`：**已检 86 / 正确变红 86 / 逃生 0**。
 - `node scripts/selfcheck_false_pass.js scripts/verify_edu_calc.js --exec`：**`all_default=0`（未高于基线）**；唯一 `RISK ... edu/convert-area-volume (default-hit)` 为既有条目，与本批三页无关。
 - 本轮未执行 `_build.py`、未 push。
+
+## 八、clinical-nursing 余量 + dermatology 余量 + 加权表 3 页收口（2026-11-05）
+
+### 8.1 clinical-nursing 全目录（27 文件 = 1 个分类页 + 26 个工具页）
+
+三维核对重点：评级/分档切点、体重封顶、单位换算。
+
+| 页面 | 核对结论 |
+|---|---|
+| `braden-score` | 6–23 分，≥19 无风险 / ≥15 轻度 / ≥13 中度 / ≥10 高度 / <10 极高度，与 NPUAP 常用切点一致；英文数据行「≤9 极高危」与 `<10` 为同一整数集合，不矛盾。 |
+| `morse-score` | 0–24 无风险 / 25–44 低风险 / ≥45 高风险，与 Morse 原版一致。 |
+| `barthel-index` | 满分 100；100 独立 / 75–95 轻度 / 50–70 中度 / 25–45 重度 / 0–20 完全依赖；条目为离散分值，区间空隙不影响判定。 |
+| `calc-rater-risk` | 自动把 Braden 总分映射到同一组切点（≤9/…/≥19），与 `braden-score` 一致。 |
+| `pain-nrs` | 0–10，1–3 轻度 / 4–6 中度 / 7–10 重度，自洽。 |
+| `pressure-injury-description` | NPUAP/NPIAP 1–4 期 + 不可分期 + 深部组织损伤，定义完整。 |
+| `fall-emergency-flow` | 处置流程/时限，无数值分级。 |
+| `surgical-position-risk` | 自定义体位风险计分项累加，无原版量表切点，页面自洽。 |
+| `assessor-pressure-risk` | 自定义压力风险评分；BMI 切点 18.5/28 与中国成人标准一致。 |
+| `chest-compression-depth` | **确证缺陷（已修）**：儿童实算输出 `4–5 cm`、婴儿 `3–4 cm`，与同页 desc「约5cm / 约4cm」矛盾，也低于 AHA 2020「至少 5 cm / 至少 4 cm」。改为儿童 5 cm、婴儿 4 cm，并新增 `fmtDepth()` 统一四个输出位（大字、标尺、复制、EMR）。成人 5–6 cm 不变。 |
+| `suction-pressure` | 成人 80–120 / 儿童 80–100 / 婴儿 60–80 / 新生儿 40–60 mmHg；`1 kPa = 7.5 mmHg` 换算正确；机构区间差异大，登记不改。 |
+| `bag-valve-mask` | 成人 10 次/分（高级气道）、儿童/婴儿 20–30；潮气量 400–600 / 200–300 / 100–150 mL；30:2 正确。 |
+| `gastric-tube-depth` | `身高×0.25+10`，<45 / >55 警示，自洽。 |
+| `iv-drip-rate` | 滴速/60 → 每秒滴数，换算正确。 |
+| `oxygen-concentration` | 鼻导管 `21+4×流量`、面罩/储氧面罩分段 + Venturi 阀档位表，自洽。 |
+| `convert-flow-concentration` | `21+4×流量`（≤6 L/min 上限 100%），与鼻导管表一致。 |
+| `cvc-maintenance` | 冲管 = 导管容积 + 追加量（默认 0.2 mL/腔），封管 = 容积×1.2；肝素量 = 封管 mL × 浓度，自洽。 |
+| `cold-compress-timer` | 基础 20 min × 敏感系数（敏感/老年 0.7、糖尿病 0.5），24h 频次上限提示，自洽。 |
+| `reminder-time-1` | 输入 5–30 min、建议 ≤20 min，属「可输入范围宽于建议值」，登记口径并存、不改。 |
+| `generator-pressure`、`ostomy-bag-timing`、`tracheostomy-dressing`、`restraint-duration`、`restraint-check`、`cycle-7` | 描述/定时/周期类，无数值分级，页面自洽。 |
+
+- **体重封顶 / 单位换算**：全目录无 `kg↔斤`、`mg↔g`、`mL↔L` 换算页；涉及单位换算的仅压力（kPa↔mmHg）与流量（L/min↔FiO₂），均已核。
+- 除 `chest-compression-depth` 外，**0 处新确证缺陷**；`suction-pressure`、`reminder-time-1` 登记为口径差异不改。
+
+### 8.2 dermatology 余量（24 文件 = 1 个分类页 + 23 个工具页，排除 `easi-eczema`）
+
+- **确证缺陷（已修 3 处）**：
+  1. `onychomycosis-grading`：文本切点 `<=4 / <=9` 与同页标尺 `[0,5)/[5,10)` 在 4.2、9.6 等可达分数上矛盾；改为 `<5 / <10`。同时 `micro=0`（镜检阴性）时不再渲染阳性标尺，避免「文本阴性、标尺 2+」。
+  2. `calc-1`（烧伤面积）：公式段「不超过10 轻度、10–30 中度、30–50 重度、不低于50 特重度」在 10、50 两个边界自相重叠；改为「不足10 / 10–29 / 30–49 / ≥50」，与代码 `<10 / <30 / <50 / ≥50` 一致。
+  3. `vasi-vitiligo`：深解算例「双手 5%、95% + 躯干 20%、60% → 16+12=28」既不符 `Σ(u×d/100)` 也不自洽；按代码应为 `5×0.95=4.75` + `20×0.60=12` = **16.75**，已改写。
+- **登记不改（版本/自定义口径）**：`vss-scar`（13 分制）与 `rater-28`（14 分制，颜色 0–3）为同站两页版本差异，各自自洽；`vss-scar` 的 ≤3/≤7/≥8 为页面自定义分级（VSS 原版无统一切点）；`seborrheic-dermatitis` 与 `assessor-14` 为两份同类工具，切点各自自洽；`actinic-keratosis` 的数值合成评分映射 Olsen 1/2/3 级属页面自定义（Olsen 原版为形态分级、无分数切点）。
+- **已核自洽**：`gags-acne`（Σ系数=11×4=44，切点 1–18/19–30/31–38/≥39）、`pasi-score`（面积 0–6 ×(E+I+D)×区域权重，满分 72）、`scorad-index`（A/5+3.5B+C，满分 103）、`dermatoscopy-abcd`（TDS 1.3A+0.1B+0.5C+0.5D）、`salt-alopecia`（0.40/0.24/0.18/0.18，满分 100）、`hdss-hyperhidrosis`、`leprosy-grading`（WHO 0/1/2）、`chilblain-grading`、`contact-dermatitis-patch`（ICDRG）、`insect-bite-reaction`（局部 18+全身 6=24）、`pityriasis-rosea`、`wood-lamp`、`zoster-phn`、`miliaria`。
+
+### 8.3 加权表剩余 3 页（Agatston / VASI / LES）
+
+| 页面 | 原版满分 | 结论 |
+|---|---|---|
+| `cardiology/coronary-calcium`（Agatston） | **无固定上限**（面积×密度系数逐斑累加） | 原版 4 档密度系数：130–199→1、200–299→2、300–399→3、≥400→4。页面深解原写 3 档（200–399→2、400+→3）且参考表自称「1-4 分」，自相矛盾；已改 4 档，并修正算例 320 HU 系数 2→3、总分 155→**175**（仍属中度 100–399）。工具本身仅解读已算好的 CACS，不重算积分。 |
+| `dermatology/vasi-vitiligo` | **理论满分 100%**（全身 100% 脱色） | 页面 `Σ(u×d/100)` 无硬上限，输入手掌单位合计 >100 时可输出 >100%（超体表面积）。本轮只修正确保算例 16.75；未加上限/警示，按「页面自洽性 + 输入合理性」核，后续如需可加 >100 警示。 |
+| `psychiatry/les-stress` | **无原版满分**（43 项 LCU 权重累加） | 切点 `<150 / 150–299 / ≥300` 与 Holmes-Rahe 1967 一致；示例 100+47+35+38=220 正确。明确按「无原版满分，页面自洽性核」登记。 |
+
+### 8.4 门禁与提交
+
+- `node scripts/verify_clinical-nursing_calc.js`：**43/43**；`TB_STUB_FIDELITY=1 node scripts/discriminate_check.js verify_clinical-nursing_calc.js`：**已检 43 / 变红 43 / 逃生 0**；`all_default=0`。
+- `node scripts/verify_dermatology_calc.js`：**27/27**；fidelity **已检 27 / 变红 27 / 逃生 0**；`all_default=0`。
+- 本轮未执行 `_build.py`、未 push。

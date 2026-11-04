@@ -101,10 +101,20 @@ const CASES = [
     "selectAge('child')"
   ],
   "expect": [
-    "【胸外按压深度与参数（按年龄）】 结果：对象：儿童（肥胖） → 按压深度 4–5 cm、频率 100-120 次/分、按压通气比 30:2、回弹要求「完全回弹」、中断 ＜10s",
+    "【胸外按压深度与参数（按年龄）】 结果：对象：儿童（肥胖） → 按压深度 5 cm、频率 100-120 次/分、按压通气比 30:2、回弹要求「完全回弹」、中断 ＜10s",
     "说明：按压深度：约5cm（胸廓前后径1/3）（肥胖患者需加大力度确保达到深度）"
   ],
-  "ref": "门诊记录：clicks 调 selectAge('child') 切到儿童（4–5 cm、约 5 cm 胸廓前后径 1/3），inputs 选肥胖体型 ⇒ 追加「肥胖患者需加大力度」。默认态 currentAge='adult'、bodyType='normal' ⇒「对象：成人 → 按压深度 5–6 cm」且描述为「按压深度：5-6cm（标准成人）」，与本用例零交集。"
+  "ref": "门诊记录：clicks 调 selectAge('child') 切到儿童（AHA 2020 至少 5 cm，页面统一为 5 cm），inputs 选肥胖体型 ⇒ 追加「肥胖患者需加大力度」。默认态 currentAge='adult'、bodyType='normal' ⇒「对象：成人 → 按压深度 5-6 cm」，与本用例零交集。旧实现输出「4–5 cm」，与同页 desc「约5cm」及 AHA 至少 5 cm 矛盾，已修正。"
+},
+{
+  "slug": "clinical-nursing/chest-compression-depth",
+  "clicks": [
+    "selectAge('infant')"
+  ],
+  "expect": [
+    "对象：婴儿 → 按压深度 4 cm"
+  ],
+  "ref": "婴儿按压深度：AHA 2020 至少 4 cm，页面统一为 4 cm（旧实现输出 3–4 cm，与同页 desc「约4cm」矛盾）。clicks 切 infant；默认态成人 5-6 cm ⇒「对象：婴儿 → 按压深度 4 cm」不命中，注入/点击失败即变红。"
 },
 {
   "slug": "clinical-nursing/cold-compress-timer",

@@ -186,6 +186,21 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "dermatology/onychomycosis-grading",
+  "inputs": {
+    "hyphae": "1",
+    "spore": "0",
+    "yeast": "0",
+    "nail": "1",
+    "count": "1",
+    "thick": "1"
+  },
+  "expect": [
+    "1+ 轻度"
+  ],
+  "ref": "分档切点自洽性：micro=1、clin=1+1+1=3 ⇒ total=1×1.2+3=4.2。页面等级切点统一为 <5（与参考标尺 0–5 / 5–10 / ≥10 一致）⇒ 1+ 轻度。旧实现 `<=4` 与标尺 `<5` 边界不一致：4.2 文本判 2+、标尺却显示 1+；现两者一致。默认态 micro=4、clin=4 ⇒ 8.8 ⇒ 2+ 中度，不含「1+ 轻度」，注入失败即不命中。"
+},
+{
   // 原为 all_default 弱用例：expect「头颈(×0.1)」是数据卡片的静态标签，与输入无关。
   // PASI = Σ 区域系数×(E+I+D)×A；四区系数 0.1/0.2/0.3/0.4。
   "slug": "dermatology/pasi-score",
@@ -302,6 +317,19 @@ const CASES = [
     "7.0%"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "dermatology/vasi-vitiligo",
+  "inputs": {
+    "r2_u": "5",
+    "r2_d": "95",
+    "r3_u": "20",
+    "r3_d": "60"
+  },
+  "expect": [
+    "16.8%"
+  ],
+  "ref": "深解算例口径：双手 5 手掌单位 × 95% = 4.75，躯干 20 × 60% = 12，合计 16.75 → toFixed(1) 显示 16.8%。原正文写「16+12=28」既不符 Σ(u×d/100) 也不自洽，已改为 4.75+12=16.75。默认各 r*_u=0 ⇒ 合计 0.0%，注入失败不命中「16.8%」。"
 },
 {
   // 原为 all_default 弱用例：expect「色素(0-2)」是数据卡片的静态标签，与输入无关。
