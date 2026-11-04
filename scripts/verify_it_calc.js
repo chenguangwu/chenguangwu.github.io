@@ -3810,6 +3810,15 @@ const CASES = [
     ref: "删除所有换行 ⇒ 24 → 19 字符、行数降到 1（apshot 统计行数为结果串 split(换行).length）。python 复算：len('onetwothreefourfive') = 19。",
   },
   {
+    // 遮蔽回归：本页复制函数已改名 copyPlainText，避免被 js/common.js 的全局 copyText(text) 覆盖
+    //（原内联 onclick="copyText()" 命中全局实现，实际复制的是 undefined）。
+    slug: "it/rich-text-editor",
+    inputs: { source: "<p>hello world</p>" },
+    clicks: ["applySource();document.getElementById('editor').innerText='hello world';var __c=ToolBox.copyText;ToolBox.copyText=function(t){document.getElementById('source').value='COPIED:'+t;};copyPlainText();ToolBox.copyText=__c;"],
+    expect: ["COPIED:hello world"],
+    ref: "copyPlainText 取编辑区纯文本交给 ToolBox.copyText：注入 <p>hello world</p> 后应为 hello world（用例把 ToolBox.copyText 换成采集器，两种桩模式都成立）。被全局 copyText 覆盖时无参调用收到 undefined，采集到 COPIED:undefined 或直接抛错，均不命中。",
+  },
+  {
     slug: "it/rich-text-editor",
     inputs: {"source": "<p>hello world</p>"},
     clicks: ["applySource();"],
@@ -8372,6 +8381,16 @@ const CASES = [
     ref: "默认 Version 4、数量 3 ⇒ 3 行小写 UUID：第 13 位固定为版本号 4、第 17 位 variant 为 8/9/a/b，其余 [0-9a-f]。默认数量 1 ⇒ 3 行断言不命中。生成路径已移除 Math.random 回退，无 crypto 时显式提示。",
   },
   {
+    // 遮蔽回归：copyText 原定义在 generate() 函数作用域内，内联 onclick 看不到它（会落到 common.js 全局实现、
+    // 复制按钮元素）。已提到模块作用域并改名 copyRand；本用例直接调用它，断言交给剪贴板的文本。
+    slug: "it/random-string",
+    inputs: { len: "8", cnt: "2" },
+    checkIds: ["top_upper", "top_digit"],
+    clicks: ["calcTool();var __ce=document.createElement.bind(document);document.createElement=function(t){var e=__ce(t);if(t==='textarea'){try{Object.defineProperty(e,'value',{get:function(){return '';},set:function(v){document.getElementById('result').innerHTML='COPIED:'+v;},configurable:true});}catch(err){}}return e;};copyRand({parentNode:{querySelector:function(){return {textContent:'RAND-XYZ-01'}}}});document.createElement=__ce;"],
+    expect: ["COPIED:RAND-XYZ-01"],
+    ref: "copyRand(btn) 从同行的 <code> 取 textContent 再写入临时 textarea 复制。用例用假按钮把「行内代码文本」固定为 RAND-XYZ-01，并把 createElement('textarea') 的 value 采集到结果区 ⇒ 期望 COPIED:RAND-XYZ-01。若 copyRand 不可见（仍留在 generate() 内或仍叫 copyText），调用直接抛错、结果不命中。",
+  },
+  {
     slug: "it/random-string",
     inputs: { len: "8", cnt: "2" },
     checkIds: ["top_upper", "top_digit"],
@@ -9115,10 +9134,33 @@ async function runCaseInner(c) {
     documentElement: { setAttribute() {}, getAttribute() { return null; }, style: {}, classList: { add() {}, remove() {}, toggle() {} } },
     body: makeEl(""),
   };
-  const localStorage = { getItem() { return null; }, setItem() {}, removeItem() {} };
+  // 真实存储语义：setItem 写入 Map、getItem 回读已写值。页面改成「写后回读才宣告成功」后，
+  // 空桩（getItem 恒 null）会让回读永远失败、页面走进失败分支，用例只拿到中间态。
+  // 可选注入（用例字段 storageFail: "quota" | "typeerror"）用于验证失败路径，不影响成功路径。
+  const makeStorage = () => {
+    const map = new Map();
+    const fail = c && c.storageFail;
+    return {
+      getItem(k) { k = String(k); return map.has(k) ? map.get(k) : null; },
+      setItem(k, v) {
+        if (fail === "quota") {
+          const err = new Error("quota exceeded (injected)");
+          err.name = "QuotaExceededError";
+          throw err;
+        }
+        if (fail === "typeerror") throw new TypeError("storage fail (injected)");
+        map.set(String(k), String(v));
+      },
+      removeItem(k) { map.delete(String(k)); },
+      clear() { map.clear(); },
+      key(i) { return Array.from(map.keys())[i] ?? null; },
+      get length() { return map.size; },
+    };
+  };
+  const localStorage = makeStorage();
   // sessionStorage 桩：保守保留。任何页面顶层引用 sessionStorage 时，缺该全局会在求值期抛
   // ReferenceError ⇒ 整页成为「死页」（零用例即零回归）。当前站内已无页面真实使用 sessionStorage。
-  const sessionStorage = { getItem() { return null; }, setItem() {}, removeItem() {} };
+  const sessionStorage = makeStorage();
   const ToolBox = {
     setResult: (id, h) => { getEl(id).innerHTML = h; },
     // 页面 TOOLBOX-API-STUB 定义了 `T.$=function(id){return document.getElementById(id);}`，
@@ -9159,7 +9201,7 @@ async function runCaseInner(c) {
       return x + "</tbody></table>";
     },
   };
-  const navigator = { userAgent: "node", clipboard: { writeText() {} } };
+  const navigator = { userAgent: "node", clipboard: { writeText() { return Promise.resolve(); } } };
   // window 直接用 globalThis：内联 on* 属性编译出的函数在全局作用域执行，
   // 只能看到挂在 window（即全局）上的函数，用普通对象会导致「xxx is not defined」。
   const win = globalThis;

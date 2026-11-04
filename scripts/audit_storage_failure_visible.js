@@ -198,6 +198,7 @@ async function runCase(browser, base, rel, mode) {
   page.on("pageerror", e => errors.push(e.message));
   await page.evaluateOnNewDocument((mode) => {
     window.__tbToasts = [];
+    window.__tbOrigSetItem = Storage.prototype.setItem;
     try {
       const mo = new MutationObserver(muts => {
         for (const m of muts) {
@@ -210,9 +211,10 @@ async function runCase(browser, base, rel, mode) {
       });
       mo.observe(document, { childList: true, subtree: true });
     } catch (e) {}
-    Storage.prototype.setItem = function () {
+    Storage.prototype.setItem = function (k, v) {
       if (mode === "quota") throw new DOMException("quota exceeded", "QuotaExceededError");
-      throw new TypeError("page bug");
+      if (mode === "typeerror") throw new TypeError("page bug");
+      return __tbOrigSetItem.call(this, k, v);
     };
   }, mode);
   await page.goto(`${base}/${rel}`, { waitUntil: "load", timeout: 30000 }).catch(() => {});
@@ -220,9 +222,11 @@ async function runCase(browser, base, rel, mode) {
   const state = await page.evaluate(() => ({
     toasts: window.__tbToasts || [],
     warned: !!window.__tbSyncWarned,
+    // 成功路径证据：真实写入后能回读出键值（与注入态互不影响）
+    keys: (() => { try { return Object.keys(localStorage); } catch (e) { return []; } })(),
   }));
   await page.close();
-  return { toasts: state.toasts, warned: state.warned, errors };
+  return { toasts: state.toasts, warned: state.warned, keys: state.keys, errors };
 }
 
 async function dynamicChecks() {
@@ -264,6 +268,12 @@ async function dynamicChecks() {
     if (!t.errors.some(m => /page bug/.test(m))) {
       failures.push(`typeerror: 未产生 pageerror（errors=${t.errors.join(" | ") || "none"}）`);
     }
+
+    // ⑥ 成功路径：不注入时真实写入应能回读，且不得出现失败提示（与⑤互不冲突）
+    const n = await runCase(browser, base, "tools/it/caesar-cipher.html", "normal");
+    if (!n.keys.length) failures.push("normal: 真实写入后回读不到任何键（存储桩/页面回读链断裂）");
+    if (n.toasts.some(x => /无法保存|未保存/.test(x))) failures.push(`normal: 成功路径出现失败提示：${n.toasts.join(" | ")}`);
+    if (n.warned) failures.push("normal: __tbSyncWarned 被置位（正常写入不应触发失败分支）");
   } finally {
     if (browser) {
       await Promise.race([
@@ -278,7 +288,7 @@ async function dynamicChecks() {
       server.close(r);
     });
   }
-  return { ok: failures.length === 0, got: failures.length ? failures.join(" | ") : "配额 1 条提示 + TypeError 复现 pageerror" };
+  return { ok: failures.length === 0, got: failures.length ? failures.join(" | ") : "配额 1 条提示 + TypeError 复现 pageerror + 正常态回读成功" };
 }
 
 /* ------------------------------ 主流程 ------------------------------ */
