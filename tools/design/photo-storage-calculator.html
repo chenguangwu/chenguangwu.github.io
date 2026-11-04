@@ -370,6 +370,11 @@ s.parentNode.insertBefore(el, s);
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="IEC 80000-13">IEC 80000-13</td>
         </tr>
         <tr>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="视频体积">Video size estimate</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="按经验码率估算：1080p 约 8 Mbps ≈ 60 MB/分钟，4K 约 40 Mbps ≈ 300 MB/分钟">estimated at 8 Mbps for 1080p (about 60 MB/min) and 40 Mbps for 4K (about 300 MB/min)</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="经验码率（非标准值）">Empirical bitrate (not a standard)</td>
+        </tr>
+        <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="备份冗余">Backup overhead</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="按 3-2-1 原则需预留两份额外副本的容量">the 3-2-1 rule implies two extra copies of capacity</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Backup practice">Backup practice</td>
@@ -417,24 +422,22 @@ function getBaseSize(megapixel, bit) {
   return megapixel * 1000000 * bytesPerPixel;
 }
 
+// 存储卡厂商标称的 GB 为十进制（1 GB = 10^9 字节，见页内 IEC 80000-13 引据），
+// 因此容量、体积一律按十进制换算，避免把 64 GB 卡按 64 GiB（2^30）高估 7.4%。
 function formatBytes(bytes) {
-  if (bytes >= 1099511627776) return (bytes / 1099511627776).toFixed(2) + ' TB';
-  if (bytes >= 1073741824) return (bytes / 1073741824).toFixed(2) + ' GB';
-  if (bytes >= 1048576) return (bytes / 1048576).toFixed(2) + ' MB';
-  if (bytes >= 1024) return (bytes / 1024).toFixed(2) + ' KB';
+  if (bytes >= 1e12) return (bytes / 1e12).toFixed(2) + ' TB';
+  if (bytes >= 1e9) return (bytes / 1e9).toFixed(2) + ' GB';
+  if (bytes >= 1e6) return (bytes / 1e6).toFixed(2) + ' MB';
+  if (bytes >= 1e3) return (bytes / 1e3).toFixed(2) + ' KB';
   return bytes + ' B';
 }
 
+// 经验码率：1080p 约 8 Mbps ≈ 60 MB/分钟，4K 约 40 Mbps ≈ 300 MB/分钟
 function getVideoSize(video) {
-  const sizes = {
-    '0': 0,
-    '10': 10 * 60 * 5 * 1024 * 1024,
-    '30': 30 * 60 * 5 * 1024 * 1024,
-    '60': 60 * 60 * 5 * 1024 * 1024,
-    '30_4k': 30 * 60 * 20 * 1024 * 1024,
-    '60_4k': 60 * 60 * 20 * 1024 * 1024
-  };
-  return sizes[video] || 0;
+  if (video === '0') return 0;
+  const minutes = parseInt(video, 10) || 0;
+  const rateMbPerMin = video.indexOf('4k') >= 0 ? 300 : 60;
+  return minutes * rateMbPerMin * 1e6;
 }
 
 function calc() {
@@ -445,15 +448,24 @@ function calc() {
   const cardSize = +document.getElementById('cardSize').value;
   const video = document.getElementById('video').value;
   
+  if(!(mp > 0) || !(cardSize > 0)){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);">请填写大于 0 的像素（MP）与存储卡容量</p>';
+    document.getElementById('storageGrid').innerHTML='';
+    return;
+  }
+
   const baseSize = getBaseSize(mp, bit);
   const perPhoto = baseSize * formats[fmt].multiplier;
   const totalPhotos = perPhoto * count;
   const videoSize = getVideoSize(video);
   const total = totalPhotos + videoSize;
   
-  const cardBytes = cardSize * 1024 * 1024 * 1024;
-  const photosPerCard = Math.floor(cardBytes / perPhoto);
-  const usedPercent = Math.min(100, (total / cardBytes) * 100);
+  const cardBytes = cardSize * 1e9;
+  // 可存张数必须扣除视频已占用的空间；照片已超出容量时显示 0
+  const photosPerCard = perPhoto > 0 ? Math.max(0, Math.floor((cardBytes - videoSize) / perPhoto)) : 0;
+  const realPercent = (total / cardBytes) * 100;
+  const usedPercent = Math.min(100, realPercent);
+  const overflow = total > cardBytes;
   
   let html = `
     <div class="stat-grid">
@@ -464,13 +476,14 @@ function calc() {
     </div>
     <div style="margin-top:14px;">
       <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;">
-        <span>${cardSize} GB 存储卡</span>
-        <span>${usedPercent.toFixed(1)}%</span>
+        <span><strong>${cardSize} GB</strong> <span>存储卡</span></span>
+        <span>${realPercent.toFixed(1)}%</span>
       </div>
       <div class="size-bar"><div class="size-bar-fill" style="width:${usedPercent}%"></div></div>
       <p style="font-size:12px;color:var(--text-muted);margin-top:8px;">
-        此卡可存储约 <strong>${photosPerCard.toLocaleString()}</strong> 张照片
+        <span>此卡可存储约</span> <strong>${photosPerCard.toLocaleString()}</strong> <span>张照片（已扣除视频占用）</span>
       </p>
+      ${overflow ? `<p style="color:var(--danger);font-size:12px;margin-top:6px;"><span>超出容量：</span><strong>${formatBytes(total - cardBytes)}</strong></p>` : ''}
     </div>
   `;
   
@@ -489,7 +502,7 @@ function calc() {
   
   let gridHtml = '';
   storageItems.forEach(item => {
-    const bytes = item.size * 1024 * 1024 * 1024;
+    const bytes = item.size * 1e9;
     const num = Math.floor(bytes / perPhoto);
     gridHtml += `<div class="storage-item"><span class="v">${num.toLocaleString()}</span><span class="l">${item.label}</span></div>`;
   });

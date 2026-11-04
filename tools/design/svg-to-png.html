@@ -152,7 +152,7 @@ s.parentNode.insertBefore(el, s);
 <div class="card tool-card-accent" style="--tool-accent:#7C3AED;">
      <h2 data-zh="🖼️ SVG 转 PNG">🖼️ SVG to PNG Converter</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">把 SVG 代码包成 image/svg+xml 类型的 Blob 并创建对象 URL，交由 Image 异步加载；画布尺寸取设定的宽 × 高（默认 400 × 400），先整幅填充白底再按 drawImage(图, 0, 0, 宽, 高) 缩放绘制；导出 PNG data URL 后立即释放对象 URL，加载失败提示 SVG 加载失败</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">把 SVG 代码包成 image/svg+xml 类型的 Blob 并创建对象 URL，交由 Image 异步加载；画布像素 = 设定宽高 × 导出倍率（1x/2x/3x），背景默认透明、可选白色（仅选白色时铺底，避免透明 SVG 被刷白）；按 drawImage(图, 0, 0, 画布宽, 画布高) 缩放绘制；导出 PNG data URL 后立即释放对象 URL，加载失败提示 SVG 加载失败</div>
   <div class="formula-desc">本工具为纯前端在线工具，数据在浏览器本地处理、不上传服务器，依据对应领域标准与规范进行计算或处理，结果仅供参考。 工具名称：SVG 转 PNG - 免费图片处理工具，在线SVG 转 PNG，免费使用。</div>
 </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="将矢量 SVG 转换为 PNG 位图并支持下载，可设定尺寸与背景，便于在不支持矢量的场景使用，纯前端本地转换。">Rasterise a vector SVG into a PNG with a chosen size and background for contexts that cannot render SVG, processed locally.</p>
@@ -163,11 +163,16 @@ s.parentNode.insertBefore(el, s);
       <div><label>宽度 (px)</label><input type="number" id="width" value="400" placeholder="如 400"></div>
       <div><label>高度 (px)</label><input type="number" id="height" value="400" placeholder="如 400"></div>
     </div>
+    <div class="input-row">
+      <div><label>导出倍率</label><select id="scale"><option value="1">1x</option><option value="2">2x</option><option value="3">3x</option></select></div>
+      <div><label>背景</label><select id="bgMode"><option value="transparent">透明</option><option value="white">白色</option></select></div>
+    </div>
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="generate()">转换</button>
       <button type="button" class="btn success" onclick="copyResult()">复制 Base64</button>
       <div id="svg_to_pngPresets"></div><button type="button" class="btn" onclick="downloadPNG()">下载 PNG</button><button class="btn" type="button" onclick="__svg_to_pngExport()">导出明细 CSV</button>
     </div>
+    <p id="exportMeta" class="export-meta" style="font-size:12px;color:var(--text-muted);margin-top:8px;"><span>输出像素：</span><span id="exportMetaVal"></span></p>
     <label>预览</label>
     <div class="result-box" id="output"><div class="preview-area" id="preview">请输入 SVG 代码并点击转换</div></div> <div id="svg_to_pngTable"></div> <div id="svg_to_pngDiff"></div> <div id="svg_to_pngChart"></div> <div id="svg_to_pngHist"></div>
   </div>
@@ -201,8 +206,8 @@ s.parentNode.insertBefore(el, s);
 <div class="dd-example"><div class="dd-ex-title">SVG 转 512 PNG</div><div class="dd-ex-body">&lt;p&gt;&lt;strong&gt;输入：&lt;/strong&gt;上传 SVG、512px。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;处理：&lt;/strong&gt;canvas 绘制。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出：&lt;/strong&gt;PNG 下载。&lt;/p&gt;</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>透明保留吗？</dt><dd>导出 PNG 支持透明；如需白底可自行垫底。</dd>
-<dt>透明能保留吗？</dt><dd>导出 PNG 支持透明通道；如需白底可自行垫底再导出。</dd>
+<dt>透明保留吗？</dt><dd>默认导出透明背景；把「背景」切到白色即可得到白底 PNG。</dd>
+<dt>透明能保留吗？</dt><dd>默认保留透明通道，只有选择白色背景时才铺白底。</dd>
 <dt>会保存或上传我的内容吗？</dt><dd>结果以浏览器实时计算为准，纯前端本地处理、数据不上传；生成的样式与代码仅作快速产出参考，正式项目请以设计系统、规范与浏览器实测为准。</dd>
 </dl>
 </div>
@@ -253,21 +258,33 @@ s.parentNode.insertBefore(el, s);
 let lastDataURL = '';
 function generate(){
   const svg = document.getElementById('svgInput').value.trim();
-  const w = parseInt(document.getElementById('width').value) || 400;
-  const h = parseInt(document.getElementById('height').value) || 400;
+  const w = parseInt(document.getElementById('width').value);
+  const h = parseInt(document.getElementById('height').value);
+  const scale = parseInt(document.getElementById('scale').value) || 1;
+  const bgMode = document.getElementById('bgMode').value;
   const preview = document.getElementById('preview');
+  if(!(w > 0) || !(h > 0)){
+    document.getElementById('exportMetaVal').textContent = '⚠ 宽度和高度必须为正整数';
+    preview.textContent = '⚠ 宽度和高度必须为正整数';
+    return;
+  }
   if(!svg){ preview.textContent = '请输入 SVG 代码'; return; }
+  document.getElementById('exportMetaVal').textContent =
+    `${w * scale} × ${h * scale} · ${scale}x · ${bgMode}`;
   try{
     const blob = new Blob([svg], {type:'image/svg+xml;charset=utf-8'});
     const url = URL.createObjectURL(blob);
     const img = new Image();
     img.onload = () => {
       const canvas = document.createElement('canvas');
-      canvas.width = w; canvas.height = h;
+      canvas.width = w * scale; canvas.height = h * scale;
       const ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#fff';
-      ctx.fillRect(0,0,w,h);
-      ctx.drawImage(img, 0, 0, w, h);
+      // 默认保留透明背景；只有显式选择「白色」才铺底，避免透明 SVG 被刷成白底
+      if(bgMode === 'white'){
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       URL.revokeObjectURL(url);
       lastDataURL = canvas.toDataURL('image/png');
       const __h0='<img src="'+lastDataURL+'" alt="PNG">';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){preview.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}preview.innerHTML=__h0;

@@ -112,6 +112,29 @@ const CASES = [
        + "（长度≥3 分支依赖随机 cur.valid，不可作断言，本例不覆盖。）",
   },
 
+  // ── 不重复抽取：池抽空后不得静默重置 ─────────────────────────
+  {
+    slug: "fun/random-picker",
+    inputs: { items: "A\nB\nC" },
+    clicks: [
+      "document.getElementById('unique').checked=true;pool=[];poolSig='A\\nB\\nC';start();",
+    ],
+    expect: ["所有选项已抽完！"],
+    ref: "不重复模式下池已抽空（pool=[]）时应提示「所有选项已抽完！」；"
+       + "旧实现 `if(!pool||pool.length===0)pool=[...list]` 会把空池重新填满并继续抽 ⇒ 静默重置、提示永远不出现。"
+       + "默认池为 null 且未勾选不重复，不会命中。",
+  },
+
+  // ── 抽奖概率口径：抽 n 人时任意 1 人中签 = n/N，不是 1/N ──────
+  {
+    slug: "fun/raffle-picker",
+    inputs: { entries: "A\nB\nC", count: "2" },
+    clicks: ["updateProbNote();"],
+    expect: ["1/N=33.3%", "n/N=66.7%"],
+    ref: "3 人抽 2 人（不放回）：单次第一名 1/3 = 33.3%，任意 1 人中签 2/3 = 66.7%；"
+       + "默认 8 人抽 1 人 ⇒ 两条锚均失配（默认只显示 12.5%）。旧页面无概率面板、且文案承诺并不存在的「权重」。",
+  },
+
 ];
 
 // ---------------------------------------------------------------- main

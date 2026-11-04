@@ -247,21 +247,37 @@ s.parentNode.insertBefore(el, s);
 </div>
 
 <script>
+function pad2(n){return (n<10?'0':'')+n;}
+function localDateStr(d){return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());}
+function daysInMonth(y,m){return new Date(y,m+1,0).getDate();}
+// 按本地日历解析 YYYY-MM-DD：避免 new Date('YYYY-MM-DD') 按 UTC 零点解析，
+// 在东八区把出生时刻挪到当天 08:00，导致「今天出生」被误判为「晚于今天」。
+function parseLocalDate(str){
+  const m = String(str).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if(!m) return new Date(NaN);
+  const d = new Date(+m[1], +m[2]-1, +m[3]);
+  if(d.getFullYear()!==+m[1] || d.getMonth()!==+m[2]-1 || d.getDate()!==+m[3]) return new Date(NaN);
+  return d;
+}
 (function init(){
   const def = new Date();
   def.setFullYear(def.getFullYear() - 25);
-  document.getElementById('birthDate').value = def.toISOString().slice(0, 10);
+  document.getElementById('birthDate').value = localDateStr(def);
   calc();
 })();
 
-function calc(){
+function calc(nowArg){
   const str = document.getElementById('birthDate').value;
   if(!str){
     document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">请选择出生日期</p>';
     return;
   }
-  const birth = new Date(str);
-  const now = new Date();
+  const birth = parseLocalDate(str);
+  const now = (nowArg instanceof Date) ? nowArg : new Date();
+  if(isNaN(birth.getTime())){
+    document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">请输入有效日期（YYYY-MM-DD）</p>';
+    return;
+  }
   if(birth > now){
     document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">出生日期不能晚于今天</p>';
     return;
@@ -288,10 +304,15 @@ function calc(){
     y--;
     m += 12;
   }
-  // 下一个生日
-  const next = new Date(now.getFullYear(), birth.getMonth(), birth.getDate());
-  if(next < now) next.setFullYear(next.getFullYear() + 1);
-  const daysToBirthday = Math.ceil((next - now) / 86400000);
+  // 下一个生日：按「日历日」比较，生日当天为 0 天；2/29 出生在平年按 2/28 计
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  let next = new Date(now.getFullYear(), birth.getMonth(),
+    Math.min(birth.getDate(), daysInMonth(now.getFullYear(), birth.getMonth())));
+  if(next < todayStart){
+    const ny = now.getFullYear() + 1;
+    next = new Date(ny, birth.getMonth(), Math.min(birth.getDate(), daysInMonth(ny, birth.getMonth())));
+  }
+  const daysToBirthday = Math.round((next - todayStart) / 86400000);
   const __g3=`
     <p>出生日期：<strong>${birth.toLocaleDateString('zh-CN')}</strong></p>
     <p>当前时间：<strong>${now.toLocaleString('zh-CN')}</strong></p>
@@ -304,7 +325,7 @@ function calc(){
     <p>已度过：${minutes.toLocaleString()} 分钟</p>
     <p>已度过：${seconds.toLocaleString()} 秒</p>
     <hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">
-    <p>距离下一个生日：<strong>${daysToBirthday}</strong> 天</p>
+    <p><span>距离下一个生日：</span><strong>${daysToBirthday}</strong><span> 天</span>${daysToBirthday === 0 ? '<span>（今天）</span>' : `<span>（${localDateStr(next)}）</span>`}</p>
   `;document.getElementById('resultBox').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 }
 

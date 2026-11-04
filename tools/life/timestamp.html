@@ -447,13 +447,17 @@ function switchMode(mode) {
 
 function parseTimestamp(ts) {
   const format = document.getElementById('formatSelect').value;
-  let val = parseInt(ts, 10);
+  const raw = String(ts).trim()
+    .replace(/[０-９]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 65248))
+    .replace(/[，,]/g, '')
+    .replace(/[　\s]/g, '');
+  const val = parseFloat(raw);
   if (isNaN(val)) return NaN;
-  if (format === 's') val *= 1000;
-  else if (format === 'auto') {
-    if (String(ts).trim().length <= 10) val *= 1000;
-  }
-  return val;
+  if (format === 's') return Math.round(val * 1000);
+  if (format === 'ms') return Math.round(val);
+  // auto：按数量级判断（秒级 < 1e11，约公元 5138 年），负号/小数位不参与比较；
+  // 旧实现按字符串长度判断，"-1000000000" 长 11 位会被当成毫秒。
+  return Math.abs(val) < 1e11 ? Math.round(val * 1000) : Math.round(val);
 }
 
 function convertTimestamp() {
@@ -563,6 +567,7 @@ function initQuickTimestamps() {
   const tomorrow = new Date(now.getTime() + 86400000);
 
   const quickEls = document.querySelectorAll('.qvalue');
+  if(quickEls.length < 6) return;
   quickEls[0].textContent = todayStart.getTime();
   quickEls[1].textContent = todayEnd.getTime();
   quickEls[2].textContent = monday.getTime();

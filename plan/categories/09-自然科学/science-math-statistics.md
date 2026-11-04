@@ -749,3 +749,66 @@
 
 - 声明：本轮仅逐页通读 8 页源码（HTML + 内联 JS）并用 node 在 `/tmp` 复刻主算与边界（矩阵求逆/奇异阈值、连乘几何平均溢出、千分位解析、负整数指数开方、负指数零次根、小数取整、CMM 坑径标度律、欧姆定律增益/单位档），未开浏览器、未跑 `_build.py`/`run_gates`、未做线上与英文态验证，未修改任何工具页、构建产物或仓库文件。`nato-phonetic` 的 `else html += c` 曾按注入排查：字母字符都会被 `ALPHA[c]` 替换成 `<span>`，未转义的只剩标点/非 ASCII，无法拼出可执行标签，故不计安全条。
 - 统计：8 页 / 17 条（高 3 / 中 14，其中承诺未实现 1 条 SMS-109）/ 安全 0 条（无 eval、无 allow-same-origin、无明文存密、无第三方外传）/ 假工具 0 个 / 编号区间 SMS-107～SMS-123。
+
+## AA 批 · 自然科学·物理/数论/元素（2026-11-04）
+
+- `tools/science/pendulum-period.html`：1 条（SMS-124 中）。L=1、g=9.81 → T=2.006 s、f=0.4985 Hz、ω=3.1321 rad/s，量纲自洽；问题在默认/重置/历史预设三处都把 g 写成 9.81，与同页引据「默认 g = 9.80665」不一致。
+- `tools/science/periodic-table.html`：1 条（SMS-125 高）。118 元素及 H/Cr/Cu/Pd/La–Lu 电子排布抽样正确；问题为镧系/锕系直接 append 进 18 列 grid、未做网格定位，锕系前 3 个挤进镧系行右侧。
+- `tools/science/permutation-calculator.html`：2 条（SMS-126 高、SMS-127 中）。P(5,2)=20、P(10,3)=720、P(n,0)=1 复核正确；问题为 parseInt 静默截断（公式框承诺的整数校验未实现）与 n/r 无上限导致大数连乘冻结。
+- `tools/science/physics-constants.html`：3 条（SMS-128～130 中）。c、G、h、e、mₑ、Nₐ、k_B、R、α、a₀ 等数值抽查全部正确；问题在分类维度错置、柱图 exp 元数据与数值不符、重复行符号/数值自相矛盾。
+- `tools/science/pi-digits.html`：0 条。1000 位串长度、前缀与第 100/1000 位复核无误（…3421170679 / …2164201989），第 N 位与搜索位置 +1 口径无偏差。
+- `tools/science/polar-day-night.html`：1 条（SMS-131 中）。70°N 极昼 5/21–7/23 共 64 天、极夜 11/19–1/21 共 64 天，与深挖算例一致；问题在 66.56° 预设返回 0 天及参考卡天数与引擎冲突。
+- `tools/science/power-calculator.html`：2 条（SMS-132～133 中）。Math.pow 主算正确（2^10=1024、2^-10=9.765625e-4）；问题为 fmt 输出精度丢失与引据表残留电功率公式。
+- `tools/science/prime-number.html`：2 条（SMS-134～135 中）。单值判定/区间筛/质因数分解主算正确（97 素数、91=7×13）；问题为 parseInt 截断与筛法/试除无上限。
+
+| 页面 | 问题（tools/science/&lt;slug&gt;.html:NN） | 编号 |
+|---|---|---|
+| tools/science/pendulum-period.html | 默认重力加速度自相矛盾：输入框、`resetForm`、历史「默认」预设均为 9.81，而同页引据写明「默认 g = 9.80665 m/s²」（physics-constants 亦为 9.80665）；L=10 时 T 显示 6.344 s，按 9.80665 应为 6.345 s，f/ω 同源偏移。:131、:294、:167、:327 | SMS-124 |
+| tools/science/periodic-table.html | 镧系/锕系错位：`#periodicTable` 为 `grid-template-columns:repeat(18,1fr)` 且无 grid-column 定位，7×18=126 个单元格占满 7 行后，15 个镧系排第 8 行 1–15 列，15 个锕系从第 8 行第 16 列续排 → Ac/Th/Pa 落在镧系行右端、其余 12 个换到第 9 行 1–12 列，与深挖「单独排在下方两行」不符。:29、:444-458 | SMS-125 |
+| tools/science/permutation-calculator.html | `parseInt` 吞掉小数且未做整数校验：n=5.9、r=2.9 → 按 P(5,2)=20 输出，输入框仍显示 5.9/2.9，无任何提示；公式框明写「n、r 须为整数（非整数提示「请输入整数」）」，代码只有 `isNaN` 判断，承诺的校验未实现。:150、:248-250 | SMS-126 |
+| tools/science/permutation-calculator.html | n/r 无上限且先构造两个从未使用的 O(n) 数组，再在 `factorialRange` 做 r 次 BigInt 连乘：P(100000,100000) 需 10 万次、约 45 万位大数乘法，标签页冻结数十秒以上，n=1e6 更甚。:235、:262-263 | SMS-127 |
+| tools/science/physics-constants.html | 分类维度错置：`universal` 的标签写作「宇宙学」（英文 Cosmology），却装入 c/μ₀/ε₀/G/h/ℏ 等普适与电磁常数；「引力加速度(标准) g」归入「天文」，页面也无电磁类别——按分类查 μ₀/ε₀ 找不到对应维度。:236-244、:269、:277 | SMS-128 |
+| tools/science/physics-constants.html | 数量级柱图按手写 `exp` 字段分桶，而 c(299792458)、R∞(10973731.568160)、F(96485.33212)、atm(101325) 的 exp 均写 0（应 8/7/4/5）→「10^0」桶虚增 4 项、「≥10^10」桶缺 c/F/R∞；同屏卡片却显示 c = 2.9979246×10^8，自相矛盾。:236、:252-253、:259、:330-340 | SMS-129 |
+| tools/science/physics-constants.html | 常量表重复且行内三不对应：`玻尔兹曼常数(摩尔)` 的 sym 写 `R/Nₐ`（=k_B）、val 填 8.314462618（=R）、desc「等同气体常数」，与「摩尔气体常数 R」整行重复；按名查 k_B 的摩尔版本会拿到与符号不符的值。:258、:260 | SMS-130 |
+| tools/science/polar-day-night.html | 66.56° 预设使极昼/极夜天数均为 0，输出「该纬度无极昼现象 / 无极夜现象」，与参考卡「66.56° 极圈：极昼/极夜各约 1 天」及深挖「约 1 天」直接冲突（阈值 90−23.44=66.56，而正弦近似峰值仅 23.4398，全年无一日满足）；参考卡 70/75/80° 的 65/60、105/95、135/125 也与引擎 64/64、102/102、131/131 不符（按本公式同纬度极昼/极夜必然等长）。:145、:185-187、:222、:267 | SMS-131 |
+| tools/science/power-calculator.html | `fmt` 精度丢失：绝对值 <1e-12 直接返回 `'0'`（2^-40=9.0949e-13 → 显示 0）；1e-6≤&#124;x&#124;<1e-3 走无参 `toLocaleString()`（默认仅 3 位小数）→ 10^-4 显示「0」、3^-5=0.004115 显示「0.004」、2^-10=0.0009765 显示「0.001」，大结果与步骤行同源。:232-237、:253 | SMS-132 |
+| tools/science/power-calculator.html | 引据表第 2 行仍是「电功率 P = V·I = V²/R = I²·R」，与幂运算 b^e 无关（疑为旧「功率计算器」改题残留）；用户按表核对会把幂结果误读为电功率。:213-214 | SMS-133 |
+| tools/science/prime-number.html | `parseInt` 截断且无提示：num=97.9 → 按 97 判「97 是素数」，输入框仍显示 97.9；number 框可输入的 1e3 → parseInt=1 → 「1 不是素数」；质因数分支同理静默取整。:346、:348、:410 | SMS-134 |
+| tools/science/prime-number.html | 区间筛与单值试除均无上限：from=1、to=1e9 → `new Uint8Array(1000000001)` 约 1 GB，`sieve` 无 try/catch，分配失败即抛异常并保留上一次结果；即使分配成功，筛法仍要遍历 1e9；isPrime(1e18) 需约 1e9 次取模，同样冻结。:296、:310、:368-372 | SMS-135 |
+
+- 声明：本轮仅逐页通读 8 页源码（HTML + 内联 JS），在 `/tmp` 用 node 复刻主算与边界（单摆 T/f/ω 与 g 双值对比、极昼逐日布尔与跨年连续区间、幂 fmt 的 `toLocaleString` 默认位数、π 1000 位串头尾与第 100/1000 位、parseInt 截断、BigInt 排列的量级、sieve 内存/试除复杂度、常量 exp 分桶），未开浏览器、未跑 `_build.py`/`run_gates`、未做线上与英文态验证，未修改任何工具页、构建产物或仓库文件。默认单位复核：单摆 L(m)/g(m·s⁻²) 量纲自洽，极昼工具纬度统一按度、无角度/弧度混用。
+- 安全注记：本批 8 页无 `eval`/`new Function`/`allow-same-origin`/`document.write`、无明文存密、无页面自有网络外传；本批数值页的用户输入均经 `parseFloat`/`parseInt` 或固定数字正则后才参与运算与拼接，未形成可控 HTML 注入。公共模板统一注入的 `lf1-cdn-tos.bytegoofy.com/ttzz/push.js` 属全站既有项（前批按「非本批页面特有、不重复登记」口径处理），故未计入条数。
+- 统计：8 页 / 12 条（高 2 / 中 10）/ 安全 0 条 / 假工具 0 个 / 编号区间 SMS-124～SMS-135。
+
+## AA 批 · 自然科学·方程/统计/RC/星等（2026-11-04）
+
+- `tools/science/quadratic-equation.html`：2 条（SMS-136～137 中）。a=1、b=−3、c=2 → Δ=1、x₁=2/x₂=1，a=0 退化与重根分支复核正确；问题为判别式用绝对阈值 1e-12 把小系数方程误判为重根、a<0 的共轭根显示成「0 + -1i」。
+- `tools/science/range-calculator.html`：2 条（SMS-138 高、SMS-139 中）。默认 [12,25,8,17,33,21,6] → min 6 / max 33 / 极差 27 / 中程 19.5 正确；问题为千分位逗号被当分隔符、说明承诺的均值/中位数/标准差未实现。
+- `tools/science/rc-time-constant.html`：3 条（SMS-140 高、SMS-141～142 中）。预设「滤波 1 kΩ×100 nF → 100 μs」复核正确；问题为默认 10000(kΩ)+0.000001(μF)=10 MΩ/1 pF 使 τ=10 μs（与数值字面本意 10 ms 差 1000 倍）、简介承诺的截止频率缺失、0 V 被替换为 5 V。
+- `tools/science/science-flow-rate.html`：3 条（SMS-143 高、SMS-144～145 中）。DN50/2 m/s → A=1963.5 mm²、Q=3.93 L/s=14.14 m³/h=62.2 GPM、Re≈99,600（湍流），主算正确；问题为历史条目不还原输入（假恢复）、明细把任意单位的内径都标 mm、非法输入保留旧结果。
+- `tools/science/star-magnitude-compare.html`：2 条（SMS-146～147 中）。−1.46 vs 0 → Δm=1.46、3.84 倍；太阳/满月 Δm=14 → 3.98×10⁵，倍率落在常识区间；问题为 0.77 等重复行反查取错星名、天津四与老人星二的距离/绝对星等不自洽。
+- `tools/science/statistics-calculator.html`：3 条（SMS-148 高、SMS-149～150 中）。默认 n=15 → 均值 10.8、中位数 9、样本 sd 7.485、偏度 0.672、超额峰度 −0.918，全部正确；问题为千分位被切分、NaN 偏度/峰度仍判「对称/正态」、末组区间标 `[a,b)` 却含最大值。
+- `tools/science/{quadratic-equation,range-calculator,star-magnitude-compare,statistics-calculator}.html`：1 条（SMS-151 中，共用模板）。`__*Extras` 对中文结果文本做 `parseFloat` 恒得 NaN → 「结果趋势」图永不渲染（rc 页为 canvas 曲线，不受影响）。
+
+| 页面 | 问题（tools/science/&lt;slug&gt;.html:NN） | 编号 |
+|---|---|---|
+| tools/science/quadratic-equation.html | 判别式用绝对阈值判重根：`if(D > 1e-12)` 判两实根、`Math.abs(D) <= 1e-12` 判重根，未按系数尺度归一；a=1e-8、b=0、c=−1e-8 → Δ=4e-16 → 输出「两个相等的实数根」x=0，真根为 ±1。叠加 `fmtNum` 对 &#124;n&#124;<1e-12 直接归零（:303），小系数方程两端失真。:379、:391 | SMS-136 |
+| tools/science/quadratic-equation.html | a<0 时共轭复根符号写法错误：`im = √(−Δ)/(2a)` 为负值，x₁ 直接拼 `${re} + ${im}i` → a=−1、b=0、c=−1 显示「0 + -1i」，而 x₂ 用 `− &#124;im&#124;` 显示「0 − 1i」，两支不自洽（数值本身正确）。:401、:403 | SMS-137 |
+| tools/science/range-calculator.html | `parseData` 以 `[,\s\n;]+` 切分，千分位逗号被当分隔符：输入「1,000, 2,000」→ [1,0,2,0]，极差由 1000 变成 2；单值「1,000」→ [1,0] 极差 1，页面无任何提示。:232 | SMS-138 |
+| tools/science/range-calculator.html | 公式说明承诺「同时输出均值、中位数与标准差便于对照」，但 `calculate` 只渲染最小值/最大值/极差/中程数与步骤，全页无均值、中位数、标准差计算（承诺未实现）。:154、:240-254 | SMS-139 |
+| tools/science/rc-time-constant.html | 默认值与默认单位错配：阻值 10000 配 `kΩ`（=10 MΩ）、容值 0.000001 配 `μF`（=1 pF），τ=10⁷×10⁻¹²=10 μs；两个数值显然按 Ω/F 基单位填写（10000 Ω × 1 μF 应为 10 ms），默认 τ 与字面本意差 1000 倍，10 MΩ 电阻与 1 pF 电容也非典型默认。:134、:137、:145、:151 | SMS-140 |
+| tools/science/rc-time-constant.html | 工具简介承诺计算「各时间点充放电电压与截止频率」，但全页无 f_c=1/(2πRC) 输出、无任何频率字段（默认 τ=10 μs 对应截止频率 15.9 kHz），承诺未实现。:463 | SMS-141 |
+| tools/science/rc-time-constant.html | `var vs = +voltage.value &#124;&#124; 5` 把合法的 0 V 静默替换成 5 V：输入 0 V 后表格仍按 5 V 显示充电/放电电压（τ 不变，但电压列与曲线全错），导出路径同源。:269、:315 | SMS-142 |
+| tools/science/science-flow-rate.html | 历史记录为假恢复：`saveHistory` 只存 mode/modeName/Q_str/Q_val/A_str/v_str/time，不存 diam/vel/w/h/vol/time 等输入；`loadHistory` 仅切模式后 `calc()` 按当前输入重算，点任意历史条目得到的都是当前输入的结果，存下的 Q_val 无处使用。:669-694、:704-718 | SMS-143 |
+| tools/science/science-flow-rate.html | 明细内径单位写死 mm：`${diam} mm = ${(d*1000).toFixed(2)} mm`，`diam` 已按所选单位折算，左侧原始值却恒标 mm；选 m、输入 50 → 「50 mm = 50000.00 mm」，选 inch、输入 50 → 「50 mm = 1270.00 mm」，自相矛盾（Q 本身正确）。:581 | SMS-144 |
+| tools/science/science-flow-rate.html | 非法输入直接 `return`，不清空也不报错：圆形 `if(!diam&#124;&#124;!v)return`、矩形 `if(!w&#124;&#124;!h&#124;&#124;!v)return`，清空内径或流速设 0 后，上一次的 Q/截面积/雷诺数/明细全部留在屏上，易被当作新结果。:574、:591 | SMS-145 |
+| tools/science/star-magnitude-compare.html | 按星等值反查星名取错行：`STARS.find(s => Math.abs(s.vmag - m1) < 0.01)` 取首个匹配，而表内 0.77 等有牛郎星（:293）与十字架二（:294）两行；点选十字架二后结果卡标注为「牛郎星」，两星张冠李戴。:335-336 | SMS-146 |
+| tools/science/star-magnitude-compare.html | 表内距离/绝对星等不自洽：天津四 vmag 1.25、amag −6.95、dist 2615 ly，按距离反推 amag≈−8.27（差 1.3 等）；老人星二 vmag 1.69、amag −0.9 反推距离仅 107 ly（实际约 111 ly），表中 dist 却写 381 ly（约 3.5 倍）。:300、:304 | SMS-147 |
+| tools/science/statistics-calculator.html | 同一千分位缺陷：`parseData` 用 `[,\s\n;]+` 切分，「1,000, 2,000」→ [1,0,2,0]，n=4 而非 2，均值/方差/偏度全部按错误数据计算，页面无提示。:270 | SMS-148 |
+| tools/science/statistics-calculator.html | `fmt(NaN)` 返回「未定义」，随后仍用 `skew>0/skew<0`、`kurt>0/kurt<0` 下定性结论 → 常数数据（5,5,5）显示「偏度 = 未定义（对称）」「峰度 = 未定义（正态）」；n=2 样本偏度与 n=2/n=3 样本峰度同样 NaN 却判「对称/正态」。:293、:302、:388-389 | SMS-149 |
+| tools/science/statistics-calculator.html | 频数表末组区间标成左闭右开 `[20.4, 25.00)`，却把最大值 25 计入该组（`idx` 夹到最后一桶），末行区间与频数自相矛盾；默认数据即可复现。:411 | SMS-150 |
+| tools/science/&#123;quadratic-equation,range-calculator,star-magnitude-compare,statistics-calculator&#125;.html | 共用模板「结果趋势」图恒为空：`__*Extras` 用 `parseFloat(arr[j].d[rk])` 解析中文结果文本（「Δ = 1」「极差 Range = 27」「星等差 Δm = 1.46」「样本均值 = 10.8」），恒为 NaN，`nums.length>=2` 永不成立，图一次都不渲染（rc 页为 canvas 曲线不受影响）。quadratic:514、range:335、star:598、statistics:612 | SMS-151 |
+
+- 声明：本轮仅逐页通读 6 页源码（HTML + 内联 JS），在 `/tmp` 用 node 复刻主算与边界（RC 默认 τ=10 μs 与 Ω/F 基单位对照、二次方程小系数判别式与 a<0 复根、极差/统计的千分位切分、频数表分箱边界、星表 23 行 m–M–距离反推、流量单位换算与 Re），未开浏览器、未跑 `_build.py`/`run_gates`、未做线上与英文态验证，未修改任何工具页、构建产物或仓库文件。默认单位复核：流量 `mm`+`m/s`、星等无量纲、二次方程无量纲均自洽；RC 的默认单位组合不自洽（见 SMS-140）。星等倍率复核：天狼星/0 等 3.84 倍、太阳/满月 3.98×10⁵、南北极星对比 23.7 倍，均在常识区间。
+- 安全注记：本批 6 页无 `eval`/`new Function`/`allow-same-origin`/`document.write`、无明文存密、无页面自有网络外传；输入均经 `parseFloat`/`parseInt` 后才参与运算，HTML 拼接值来自数值或内部常量。flow 历史项虽把 `modeName`/`Q_str` 写入 `innerHTML`，但这些字符串只由页面自身生成（localStorage 被篡改属同源自注入，不计）。公共模板 `lf1-cdn-tos.bytegoofy.com/ttzz/push.js` 为全站既有项，按前批口径不重复登记。
+- 统计：6 页 / 16 条（高 4 / 中 12）/ 安全 0 条 / 假工具 1 个 / 承诺未实现 2 处 / 编号区间 SMS-136～SMS-151。

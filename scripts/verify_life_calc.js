@@ -2318,6 +2318,52 @@ const CASES = [
     ref: "LF-N50 2.54 cm ⇄ in：旧 swap 只滚动页面，点后仍是「基准： 2.54 厘米」且无目标行；"
        + "现互换 from/to 并把输入换成上次目标值 1 in ⇒ 「基准： 1 英寸」+「目标单位： 2.54 厘米」。"
        + "默认 1 m→100 cm 不含上述锚 ⇒ 强判别。",
+  },
+  // ── 年龄天数：2/29 生日在平年按 2/28、生日当天为 0 天 ─────────────
+  {
+    slug: "life/age-in-days",
+    inputs: { birthDate: "2000-02-29" },
+    expect: ["（2025-02-28）"],
+    ref: "固定基准日 2024-06-15：2000-02-29 出生的下一个生日在 2025 年（平年），"
+       + "应按 2/28 夹取 ⇒ 输出含「（2025-02-28）」。旧实现 new Date(2025,1,29) 自动进位为 3/1 ⇒「（2025-03-01）」。"
+       + "默认生日为 25 年前的同一天，不含该锚。",
+  },
+  {
+    slug: "life/age-in-days",
+    inputs: { birthDate: "2000-03-01" },
+    clicks: ["calc(new Date(2024,2,1,8,0,0));"],
+    expect: ["（今天）"],
+    ref: "注入生日 3/1、基准时刻 2024-03-01 08:00 ⇒ 下一个生日就是今天（0 天）；"
+       + "旧实现 next=今天零点 < now（08:00）⇒ 进位到 2025-03-01，显示 365 天。"
+       + "基准日改用 3/1 而非 6/15，是为了避开页面默认生日（基准日 25 年前同月日，天然也是「今天」）造成的逃生项。",
+  },
+  {
+    slug: "life/age-in-days",
+    clicks: [
+      "var t=new Date();var ds=t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');"
+        + "document.getElementById('birthDate').value=ds;"
+        + "calc(new Date(t.getFullYear(),t.getMonth(),t.getDate(),0,30));",
+    ],
+    expect: ["已活： 0 天"],
+    ref: "当天 00:30 出生（本地日历零点）⇒ 已活 0 天；"
+       + "旧实现 new Date('YYYY-MM-DD') 按 UTC 零点解析，在东八区变成当天 08:00 > 00:30 ⇒ 误报「出生日期不能晚于今天」。",
+  },
+  // ── 时间戳：负值/小数秒的 auto 单位判定 ─────────────────────────
+  {
+    slug: "life/timestamp",
+    inputs: { timestampInput: "-1000000000", formatSelect: "auto" },
+    clicks: ["document.getElementById('timezoneSelect').value='UTC';convertTimestamp();"],
+    expect: ["1938-04-24 22:13:20.000"],
+    ref: "-1,000,000,000 秒（1938-04-24T22:13:20Z）在 auto 下应按「秒」识别；"
+       + "旧实现用 String(ts).length<=10 判位，负号让长度变 11 ⇒ 当成毫秒 ⇒ 1969-12-20。锚定为 UTC 输出。",
+  },
+  {
+    slug: "life/timestamp",
+    inputs: { timestampInput: "1700000000.5", formatSelect: "auto" },
+    clicks: ["document.getElementById('timezoneSelect').value='UTC';convertTimestamp();"],
+    expect: ["2023-11-14 22:13:20.500"],
+    ref: "小数秒 1700000000.5 应保留毫秒（2023-11-14T22:13:20.500Z）；"
+       + "旧实现 parseInt 截断且按字符串长度(12)>10 判为毫秒 ⇒ 得 1970-01-20。",
   }
 
 ];

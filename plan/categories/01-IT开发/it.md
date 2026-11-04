@@ -4510,5 +4510,68 @@
 - 安全条目：0 条——本批页面未出现 `eval`/`new Function`/`allow-same-origin`/明文存密/可控 DOM 注入点（`text-qr` 的文本经 `escapeHtml`，`tmux` 全字段经 `escapeHtml`，`unicode-lookup` 注入的 name 取自硬编码表）；`xxtea` 密钥与明文仅存内存，未落 localStorage。全站公共模板的 `ttzz`（bytegoofy）第三方脚本非本批页面特有，未计入。
 - 方法：逐页通读 HTML 与全部内联 JS；`node -e` 内存复刻 `xxtea` 的 `longToBytes`/`bytesToLong`/加解密（未落盘、未建文件），逐长度核对往返与密钥前缀碰撞；`text-qr` 伪编码按源码判定（无分段/纠错/格式信息/掩码）；未开浏览器、未跑 `_build.py`/`run_gates.py`、未执行 git、未修改任何 `tools/**` 或构建产物。
 
+## AA 批 · IT 深度复扫：QR/条码同族实现矩阵（2026-11-04）
+
+> 范围：`tools/it/` 下 10 页（QR 族 5 + 一维条码族 5）。只读源码 + `node -e` 内存复算（比对 EAN G 表、Code39 元素数、Code128 符号表、`unescape` 行为），未开浏览器、未跑 `_build.py`/`run_gates.py`、未执行 git、未修改 `tools/**`/js/css/json 或构建产物。伪实现 3 页沿用既有编号（IT-N520/N521/N550），本批不重复开单；新问题从 IT-D01 起。
+
+### 同族实现矩阵
+
+| 页面 | 真实编码 | 伪实现 | 校验位 | 纠错 | 可扫码 | 结论 / 编号 |
+|---|---|---|---|---|---|---|
+| `tools/it/qrcode.html` | 是（模式分段+RS+掩码+格式信息，复用 `js/qrcode.js`） | 否 | 是（格式信息 BCH + RS 码字） | 是（L/M/Q/H Reed-Solomon） | 是 | **唯一真 QR 编码页**；`:428-435` 调库；表 L 列 v9/v10 错（IT-D02）、默认 Byte 模式（IT-D03）、容量图超限仍标 10（IT-N260） |
+| `tools/it/email-qr.html` | 否 | 是 | 无 | 无 | 否 | `:262-282` 固定 29×29，仅 3 定位角+时序线，`:275-280` LCG 噪点；无数据/格式/掩码（IT-N520 高） |
+| `tools/it/location-qr.html` | 否 | 是 | 无 | 无 | 否 | `:264-283` 固定 25×25 同型噪点（IT-N521 高）；坐标范围不校验（IT-N522） |
+| `tools/it/text-qr.html` | 否 | 是 | 无 | 无 | 否 | `:247-267` 固定 29×29，`text` 只作随机种子（IT-N550 高） |
+| `tools/it/qr-decoder.html` | 不适用（不做图像解码） | 否 | 不适用 | 不适用 | 不适用 | `:266-345` 是按前缀解析文本的真实逻辑，不是二维码解码器；`:149`/`:152` 英文与公式误称「图像/摄像头解码」（IT-D06） |
+| `tools/it/barcode-code128.html` | 是（107 符号+Start A/B/C+13 模块 Stop） | 否 | 是（加权 mod 103） | 无（一维码规范无纠错） | 是（静区偏窄） | 唯一直接复用 `js/barcode-lib.js:22-98` 的 1D 页；静区单位错位（IT-D08） |
+| `tools/it/barcode-ean.html` | 部分（95 模块、保护线/奇偶表齐全） | 否 | 是（mod 10，`:250-253`） | 无 | 否（首位≠0） | `:246` G 表由 L 表反转，实为标准 G 的反码；`:273` 用于左侧 → 默认码奇偶校验失败（IT-D01 高） |
+| `tools/it/barcode-upc.html` | 是（95 模块 L/R、保护线） | 否 | 是（mod 10；12 位输入不校验，IT-N128） | 无 | 是（静区仅 3.3 模块） | `:252-262` 编码结构正确；补零/截断（IT-N127）、首位未印左静区（IT-N129）仍在 |
+| `tools/it/barcode-code39.html` | 否（字符表每项 15 元素，标准 9 元素） | 是（形态像 Code39，内容非 Code39） | 无（承诺 Mod 43 未实现，IT-N508） | 无 | 否 | `:246-262` 表错、`:263-294` 按 15 元素生成（IT-N507）；静默丢字符（IT-N509） |
+| `tools/it/barcode-msi.html` | 部分（有 4 bit 映射，位宽/元素数不符标准） | 否 | 无（承诺 Mod 10/11/1010 未实现，IT-N510） | 无 | 否 | `:247-258` 每 bit 固定「条+空」、`1` 为 3 模块宽条，与 `:156` 公式不符（IT-N512）；显示与编码不一致（IT-N511） |
+
+**核心差异**：QR 族 5 页里**只有 `qrcode.html` 一页做了真实现**——`email-qr`/`location-qr`/`text-qr` 三页全是「定位符 + 伪随机点阵」，`qr-decoder` 只是文本前缀解析器。一维族 5 页里**只有 `code128` 直接复用共享库**；`upc` 手写但结构正确，`ean` 手写且 G 表反相（默认不可扫），`code39`/`msi` 手写且不符合规范。
+**重写线**：`email-qr`、`location-qr`、`text-qr` 改用 `js/qrcode.js`（按 byte/UTF-8 写入并保留 4 模块静区）。
+**修复线**：`barcode-ean` → `B.encode('ean13')`；`barcode-code39` → `B.encode('code39')`；`barcode-msi` 重写位宽并补校验位；`qr-decoder` 要么补图像解码，要么删除 `:149`/`:152-157` 的图像解码宣称。
+
+### 逐页结论
+
+- `qrcode.html`：真编码。除 IT-N260（超 V10 一律标 10）外，本批新增两处：数字容量表 L 列 v9/v10 取值错（IT-D02），以及未指定编码模式导致纯数字也走 Byte（IT-D03）。IT-N258 的 UTF-8 问题已由 `:430-432` 修复（`stringToBytes` 已切 UTF-8），可销案。
+- `email-qr.html`：假二维码，且无尺寸/容错/下载控件；扫码得不到 `mailto:`（IT-N520）。
+- `location-qr.html`：假二维码；`buildGeo` 仅 `parseFloat(v)||0`，非法/非数字坐标仍绘制（IT-N522）。meta `:10` 承诺「输入经纬度或地址」，实际只有经纬度两个框，地址文本会被归零。
+- `text-qr.html`：假二维码；版本固定 29，`text` 只影响噪点种子（IT-N550）。
+- `qr-decoder.html`：前缀解析逻辑真实（WIFI/mailto/tel/sms/geo/http/vCard/VEVENT），但不是图像解码器；WiFi 百分号解码用 `unescape`（IT-D04）、不识别 `SMSTO:`（IT-D05）、英文/公式误称图像解码（IT-D06）、NaN 守卫误吞结果（IT-D07）。
+- `barcode-code128.html`：编码表/校验/Stop 均正确，是 1D 族唯一可直接信任的页；问题是静区按像素计（IT-D08）与既有的空输入回退空格（IT-N125）。
+- `barcode-ean.html`：长度与校验位校验已补齐（IT-N73/N84 的旧证据已失效，勿按旧结论返工），但 G 表反相使默认 `6901234567892` 与所有首位 1–9 的码不可扫（IT-D01）。共享库 `js/barcode-lib.js:103-104` 的 EAN_G 是正确的，本页却未加载该库。
+- `barcode-upc.html`：L/R 与保护线正确，默认 `03600029145` 自动补校验位 `2`，结构合法；12 位输入不比对第 12 位（IT-N128）、空/短输入补零（IT-N127）、首位未单印左静区（IT-N129）仍在。
+- `barcode-code39.html`：`:246-262` 每字符 15 个宽窄元素、宽元素 4–7 个（规范 9 元素、恰 3 个宽元素），生成图非 Code 39（IT-N507）；无 Mod 43（IT-N508）、静默丢字符（IT-N509）。
+- `barcode-msi.html`：位宽映射与自身公式不符（IT-N512），无任何校验位（IT-N510），非数字静默剥离且显示原文（IT-N511）。
+
+### 三角度抽查
+
+- **默认值**：EAN 默认 `690123456789` → 校验位 2、首位 6（奇偶 `LGGGLL`），左侧 3 位走错误 G 表 → 默认输出即不可扫（IT-D01）。UPC 默认 `03600029145` → `036000291452` 校验位正确。Code128 默认 `ABC-1234` 合法。Code39 默认 `CODE-39` 字符合法但 15 元素表使图不可扫。MSI 默认 `1234567` 无校验（页面标为可选）。
+- **倍率/单位**：Code39 固定 3:1（规范 2:1–3:1，合规）；MSI `1` 编成 3 模块宽条（与公式「宽条窄空」不符）；条码模块宽 2–3 px 合理；QR 真页按 `pixelSize/moduleCount` 取整（`:439-465`），伪页固定 8 px/格。静区问题见 IT-D08。
+- **表维度**：`QR_NUM_CAP` 仅 L 列 v9/v10 两格错（M/Q/H 与字节容量列逐项对 ISO 表正确）；EAN `PARITY` 表、UPC `L/R` 表、MSI 数字 4 bit 表维度均正确，错的是 EAN 的 G 表内容与 Code39 的 15 元素表结构。
+
+### 问题表格
+
+| 页面 | 问题（tools/it/<slug>.html:NN） | 编号 |
+|---|---|---|
+| `tools/it/barcode-ean.html` | G 码表由 L 表逐位反转（`:246`），得到的是标准 G 的反码；`:273` 将其用于左侧第 2–7 位。默认 `6901234567892` 首位 6 → 奇偶 `LGGGLL`，第 3–5 位走错误 G，扫码器无法通过奇偶校验；只有首位 0（`LLLLLL`）不受影响。共享库 `js/barcode-lib.js:103-104` 的 EAN_G 正确，但本页未加载（`tools/it/` 下仅 `barcode-code128.html:28` 引 barcode-lib；另两处为 `tools/biz/barcode-generator.html` 与 `tools/science/barcode-pharmacode.html`）。 | IT-D01 |
+| `tools/it/qrcode.html` | `QR_NUM_CAP.L` 第 9/10 项写成 511/604（`:530`），ISO/IEC 18004 数字模式 L 应为 552/652（v9 数据码字 232、v10 274）；同表 M/Q/H 与 L/M/Q/H 字节列逐项正确，仅 L 列这两格错位，容量速查表给错数。 | IT-D02 |
+| `tools/it/qrcode.html` | `qr.addData(text)` 未传 mode（`:434`），`js/qrcode.js:388` 默认 `Byte`；公式 `:196` 却称「自动选最短」。20 位纯数字按 Byte 需 V2-L（32 字节），按数字模式 V1-L（41 位）即可；大写字母数字同理，版本/模块数被不必要抬高。 | IT-D03 |
+| `tools/it/qr-decoder.html` | `wifiValue`（`:265`）用 `unescape` 解百分号：`unescape('%E4%B8%AD')` 得 `ä¸­`（Latin-1 逐字节），不是 UTF-8 的「中」；中文 SSID/密码显示乱码，用户照抄连不上。应改 `decodeURIComponent`。 | IT-D04 |
+| `tools/it/qr-decoder.html` | 只匹配 `^sms:`（`:285`），而本站 `qrcode.html:217` 预设与 `sms-qr.html:156` 均输出 `SMSTO:号码:内容`；自家生成的短信二维码粘回来被判为「纯文本」，号码/正文都不提取。 | IT-D05 |
+| `tools/it/qr-decoder.html` | `:149` 英文与 `:152` 公式写「Decode QR codes from an image or camera」「从图片中识别并解码二维码」，`:154-157` 还列出定位/采样/RS 纠错；实际控件只有文本框（`:163`），`decode()` `:266-345` 仅按前缀解析，无文件/相机/图像处理，英文态按说明使用必然扑空。 | IT-D06 |
+| `tools/it/qr-decoder.html` | `:342` 的模板 NaN 守卫扫描 `decode()` 返回的、已拼入用户值的 HTML；正文/URL 含独立 `NaN` 或 `Infinity`（如 `mailto:...&body=NaN`、`WIFI:S:NaN;...`）即被替换成「⚠ 计算结果含无效值，请检查输入是否为有效正数」，解析结果整块消失。与 IT-N232 同型；`email-qr.html:293`、`text-qr.html:280` 同样中招。 | IT-D07 |
+| `tools/it/barcode-code128.html` | 静区单位错位：`:272` 传 `quiet:10`，`js/barcode-lib.js:343` 定义了却从未使用的 `quietModules()`，`:349-351` 把 `quiet` 当像素加在 `bits.length*scale` 两侧；`scale=2` 时仅 5 模块，低于 Code 128 规范 10 模块。同型：EAN/UPC 页 10px≈3.3 模块（规范 9–11），打印/贴标时四周留白不足；SVG 路径同样按 `q*2` 处理。 | IT-D08 |
+
+**统计**
+- 页数：10（QR 族 5 + 条码族 5）。
+- 新增问题：8 条——高 1（IT-D01）/ 中 7（IT-D02–IT-D08）；编号区间 IT-D01–IT-D08，连续、无重号，与既有 IT-N 系列不混号。
+- 复核既有：伪实现 3 页（IT-N520/N521/N550，高）；Code39 IT-N507–IT-N509；MSI IT-N510–IT-N512；UPC IT-N127–IT-N129；Code128 IT-N125；qrcode IT-N260。另确认 IT-N258 已由 `:430-432` 修复（UTF-8 编码），IT-N73/N84 已由 `:255-268` 修复（长度/校验位校验），三处可销案。
+- 假工具：3 个（`email-qr`、`location-qr`、`text-qr`），均沿用既有高优编号，不重复计数。
+- 安全条目：0 条——10 页无 `eval`/`new Function`/`allow-same-origin`/明文存密/第三方外传；用户文本均经 `escapeHtml`（`qr-decoder.html:249`、`email-qr.html:293`、`text-qr.html:280`、`barcode-msi.html:286`、`barcode-code39.html:323`），仅存主题/表单偏好于 localStorage（无敏感值）。`qrcode.html:473` 把 `e.message` 直接写入 innerHTML，但库异常文案为静态常量，不可控，未计入。
+- 方法：逐页通读 HTML 与全部内联 JS；`node -e` 验证 EAN G 表为标准 G 的反码（`reverse(L)` vs `EAN_G`）、Code39 `0` 为 15 元素/25 模块（标准 9/15）、`unescape('%E4%B8%AD')` 为 `ä¸­`、Code128 表 107 项且 Stop 13 模块；未开浏览器、未跑构建/门禁、未执行 git、未修改任何 `tools/**` 或构建产物。
+
 
 

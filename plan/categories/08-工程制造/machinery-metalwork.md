@@ -806,3 +806,94 @@
 - 安全：2 条，path:line 为 `tools/metalwork/analysis-36.html:226,234-235` 与 `tools/metalwork/analysis-cost-price-5.html:249`（均为用户输入未转义拼 innerHTML 的 DOM XSS，非第三方外传）；其余 6 页无 XSS、eval、allow-same-origin、明文存密或业务数据外传；全站模板 ttzz 脚本不单列。
 - 复算：node 复算 45 钢 500/600°C 42.6/39.7 HRC、链速 7.722 m/s 与 F 712/12951/64753 N、双销 10.301/29.135 mm、制动能量 23.06/28.82/37.47 kJ、缺陷指数 212 与 19.20%、CV 4.41%/SD 2446.38，未落盘仓库；仅源码阅读，未开浏览器、未跑 `_build.py`/`run_gates.py`、未改 `tools/**` 与构建产物，未触碰 `plan/interaction-validity.md`。
 - 去重说明：`strength-15`「按转速查表不看载荷」与 MM-H102（speed-26 额定功率表）同属选型表缺载荷维度但页面与机制不同；`temp-hardness` 的写死系数与 MM-H81（detector-stretch 写死阈值）同模式但页面不同，均按逐页口径单列。
+
+## AA 批 · 金属·检测/硬度/模具（2026-11-04）
+
+**逐页结论（8 页）**
+- `tools/metalwork/analysis-simulator.html`：充填时间、Ballman 冷却时间可跑；但「流程/壁厚比」cm 与 mm 混算且用投影面积当流程长度，默认值小 10 倍（阈值 150 几乎不触发），模具温度是死输入，冷却时间可为负。
+- `tools/metalwork/calc-feed.html`：n/Vf/f 公式正确，默认算例 1909.9 rpm、763.9 mm/min 复算一致；材料去除率 Q 算了不渲染，且公式缺切宽/切深、量纲是 mm²/min。
+- `tools/metalwork/calc-gear-2.html`：直齿 d/da/df/db 正确；滚刀转速把工件分度圆当刀具直径（φ100 滚刀时高 2.1 倍），斜齿承诺未实现。
+- `tools/metalwork/detector-21.html`：按材料/缺陷/厚度打分选法可跑；材料 6 档只分铁磁/非铁磁，strict 与 critical 同分，深度解析跑到探测器参数。
+- `tools/metalwork/detector-23.html`：偏差与合格判定正确；IT 等级只按公差带绝对值、无视公称尺寸（0.039 mm @Ø50 判 IT4，实为 IT8），却注「按 GB/T 1800.1」。
+- `tools/metalwork/detector-55.html`：18 项加权评分与 ★ 一票否决可跑；参考标尺把 <60% 的「不合格」划进「合格」带，引据表与深度解析均跑题。
+- `tools/metalwork/detector-hardness.html`：三维加权可跑；厚度允许偏差基本失效、胶带法无输入恒判合格、各涂层合格线为写死常量却称依据国标，默认组合即判不合格。
+- `tools/metalwork/detector-mold.html`：三轴偏差与空间偏差计算正确；ptName 存在 DOM XSS，「记录此点」是假功能，公式承诺的空间偏差判据未实现。
+
+**问题条目**
+
+| 页面 | 问题（含 tools/metalwork/<slug>.html:NN） | 编号 |
+|---|---|---|
+| tools/metalwork/analysis-simulator.html | 【高】流程/壁厚比量纲混算：`slender=(V/A)/h` 中 V 为 cm³、A 为 cm²、h 为 mm，默认 (200/100)/3=0.667；统一按 mm 为 (200000/10000)/3=6.67，偏小 10 倍。且 V/A 是平均厚度而非流程长度（公式框同时写「表面积」与「投影面积」），阈值 150 几乎永不触发（:111,115,230,234,240） | MM-H120 |
+| tools/metalwork/analysis-simulator.html | 【高】模具温度 tmold 是死输入：被 parseFloat 并参与 isFinite 校验，但 Tmo 之后从未进入任何公式或输出；改 40/60/80 结果完全不变（:124,221-244） | MM-H121 |
+| tools/metalwork/analysis-simulator.html | 【中】温度关系与正值未校验：Te>Tw+1.273(Tm−Tw) 时 ln 项为负，如 Tm=240/Tw=30/Te=300 → tCool≈−0.02 s；α=0 得 Infinity 显示「—」，V/A/h 为负也照算（:227-230） | MM-H122 |
+| tools/metalwork/calc-feed.html | 【高】材料去除率 Q 算了不渲染：`var Q = vf*dia*0.02` 从未进入结果/导出/历史，公式框仍承诺「材料去除率 Q ≈ Vf×D×0.02」；该式缺切宽/切深、量纲为 mm²/min，与引据表 MRR=切宽×切深×进给 自相矛盾（:127,180,216,220-226） | MM-H123 |
+| tools/metalwork/calc-gear-2.html | 【高】滚刀转速把工件分度圆当刀具直径：`n=1000*Vc/(π*d)` 中 d=m*z；m2/z24/Vc40 → 265.3 rpm，按 φ100 滚刀应约 127 rpm（高 2.1 倍）；若按工件转速理解，则「滚刀转速」标签又错。插齿同样用 d 算「转速」，与冲程数概念混淆（:176,228,238,248） | MM-H124 |
+| tools/metalwork/calc-gear-2.html | 【假】英文副标题承诺 "for spur and helical gears"，但无螺旋角 β 输入，da=m(z+2)、df=m(z−2.5)、db=mzcos20° 全按直齿，斜齿几何未实现（:127,224-227） | MM-H125 |
+| tools/metalwork/detector-21.html | 【高】材料 6 选项只分铁磁/非铁磁：铸件/锻件/管材/焊接件落入同一 isFerro 分支，打分与建议完全相同；检测等级 strict 与 critical 都只 +1 RT/+1 UT，两档无差异（:216,223-226,238-239） | MM-H126 |
+| tools/metalwork/detector-21.html | 【中】深度解析整节为「焊接/探伤探测器参数对比」（灵敏度 0.5/1.0 mm、信噪比 20 dB、设备比对），与本页按材料/缺陷/厚度选检测方法无关，页面也无对应输入（:312-320） | MM-H127 |
+| tools/metalwork/detector-23.html | 【高】IT 等级只按公差带绝对值查表、完全不看公称尺寸：0.039 mm 在 Ø50 按 GB/T 1800.1 为 IT8（30–50 mm IT8=39 μm），页面判 IT4；阈值 0.004/0.006/0.010… 不对应任何尺寸段的 IT01/IT0/IT1，属冒用国标验收（:214,236-247） | MM-H128 |
+| tools/metalwork/detector-23.html | 【中】检测方式不影响判定：measureMethod 只改方法名与「不确定度 ±0.005/0.002/0.010 mm」文本，pass 仍只看 dev∈[lt,ut]；注文称不确定度应小于公差带 1/3~1/10，激光 ±0.010 对 0.010 公差带仍判合格（:215,233,248,258-259） | MM-H129 |
+| tools/metalwork/detector-23.html | 【中】空值/负公差无校验：nominal/actual 空值经 `||0` 变 0；上偏差 −0.05、下偏差 +0.05 时 tolRange=−0.1 仍归为 IT01，pass 恒 false 并输出「尺寸偏大/偏小」建议，无参数错误提示（:224-247,260-268） | MM-H130 |
+| tools/metalwork/detector-55.html | 【中】参考区间标尺把 <75% 全部标「合格」：bands 第三段 lo:null、hi:75、label 合格，覆盖了页面实际判「不合格」的 <60% 区间（:295-298,313） | MM-H131 |
+| tools/metalwork/detector-55.html | 【中】引据表与深度解析均跑题：引据列 OEE/Weibull/MTBF，深度解析讲无损检测探测器「检出率/3σ 阈值/设备一致性」，本页是维修流程 18 项自查，无对应输入或输出（:160-172,349-362） | MM-H132 |
+| tools/metalwork/detector-hardness.html | 【高】「厚度允许偏差 ±μm」基本失效：ratio≥1.0 一律 thickScore=100/thickPass=true，实测 52 vs 标准 40、容差 ±5（差 12 μm）仍输出「✓ 通过」；ratio>1.6（70 vs 40）也 pass；仅 0.85–1.0 段才用容差（:322-335,410） | MM-H133 |
+| tools/metalwork/detector-hardness.html | 【高】胶带法（ASTM D3359）无对应等级输入：选 tape 时 crosscutRow 与 pulloffRow 都 display:none，代码仍读隐藏的 crosscutGrade（默认 0 级）→ 恒 100 分/合格，方法选择等于死选项（:137-150,289-315） | MM-H134 |
+| tools/metalwork/detector-hardness.html | 【高】各涂层合格线是写死常量却称依据国标：reqPencil paint=HB、anode=2H、pvd=6H，reqHV paint=100…pvd=800，reqNano paint=1…pvd=20，均无标准来源；GB/T 9286/6739/4957 是划格/铅笔/测厚方法标准，不规定合格线，简介仍称「依据…综合判定合格性」（:124,349,357,364,525） | MM-H135 |
+| tools/metalwork/detector-hardness.html | 【中】默认组合自相矛盾：pencilGrade 默认 6B（最软）、coatingType 默认 paint（要求 HB 指数 6），加载即显示「涂层质量良好（未达标）/不合格」，默认参数无法演示合格路径（:183,206,343,349-350） | MM-H136 |
+| tools/metalwork/detector-mold.html | 【安全】测量点编号 ptName 未转义即拼入 innerHTML（`'<p>测量点：'+…+'</p>'`），输入 `<img src=x onerror=alert(1)>` 即执行 DOM XSS（tools/metalwork/detector-mold.html:230） | MM-H137 |
+| tools/metalwork/detector-mold.html | 【高】「记录此点」是假功能：addPoint 只把 `{name,dx}` push 进 pointList，该数组从不渲染、也不导出；CSV 导出的是 TBKit 历史表（输入+结果摘要），不是多点测量报告（:243-250,414-416） | MM-H138 |
+| tools/metalwork/detector-mold.html | 【中】公式框与判定逻辑不符：说明称「各轴偏差均不超公差且空间偏差不超公差」才 PASS，代码 allPass=passX&&passY&&passZ，未判 dist；三轴各 0.019 mm、tol=0.020 → 空间偏差 0.0329 mm 仍判「合格」（:120,227-239） | MM-H139 |
+| tools/metalwork/detector-mold.html | 【中】空值/零公差无校验：坐标用 `+value` 读取，清空理论/实测坐标得 0 仍参与计算；清空公差得 ±0.000 mm，任意偏差全判超差并给出刀具补偿建议，无「请输入」提示（:222-224,238-264） | MM-H140 |
+
+**统计**
+- 条数：21（高 10 / 中 9 / 假 1 / 安全 1）；编号区间：MM-H120–MM-H140，续接 MM-H119，不重号不跳号。
+- 高优编号：MM-H120（流程比单位混算）、MM-H121（模具温度死输入）、MM-H123（Q 算了不渲染）、MM-H124（滚刀转速用分度圆）、MM-H126（材料/等级死选项）、MM-H128（IT 等级无视公称尺寸）、MM-H133（厚度容差失效）、MM-H134（胶带法恒合格）、MM-H135（写死涂层合格线冒充国标）、MM-H138（记录点假功能）。
+- 假工具：0（核心直齿/评分/偏差计算均可用）；承诺未实现：1（MM-H125 斜齿）；冒用国标：2（MM-H128、MM-H135）。
+- 安全：1 条，path:line 为 `tools/metalwork/detector-mold.html:230`（用户输入未转义拼 innerHTML 的 DOM XSS，非第三方外传）；其余 7 页无 XSS、eval、allow-same-origin、明文存密或业务数据外传；全站模板 ttzz 脚本不单列。
+- 复算：node 内存复算关键值（流程比 0.667 vs 6.67、铣削 1909.9 rpm / 763.9 mm/min / Q 305.6 mm²/min、滚齿 265.3 vs 127.3 rpm、IT8(30–50 mm)=39 μm、模腔空间偏差 0.0329 mm），未落盘仓库；仅源码阅读，未开浏览器、未跑 `_build.py`/`run_gates.py`、未改 `tools/**` 与构建产物，未触碰 `plan/interaction-validity.md`、`plan/units-factors.md`。
+- 去重说明：`detector-hardness` 的写死涂层合格线与 MM-H81（detector-stretch 写死阈值）同属「冒充国标验收」模式但页面不同；`detector-23` 的 IT 表与 MM-H91（丝杠精度等级与导程脱钩）同为「查表值不随输入维度变化」但字段不同；`detector-mold` 的 DOM XSS 与 MM-H116/H119 同为未转义拼 innerHTML，按逐页口径单列。
+
+## AA 批 · 金属·锻造/压铸/糖度（2026-11-04）
+
+**逐页结论（8 页）**
+- `tools/metalwork/lifespan-1.html`：续航/Wh/DoD 公式正确，默认 10W/5000mAh/3.7V 复算 1.26h；铅酸选项自动写入单格 2V，12V 电池续航被低估 6 倍。
+- `tools/metalwork/pinpaijiazhipinggujisuan.html`：乘数模型可跑，默认 4500 万元；年限系数可为负仍出负估值，引据 ISO 10668 却无折现，科技预设 13 亿 = 6.5 倍营收。
+- `tools/metalwork/pressure-casting.html`：五法过滤可跑；批量档漏判，压铸/低压在中批量仍入选，首选恒为砂型，承诺的浇注/冷却工艺参数与压射比压未实现。
+- `tools/metalwork/recorder-9.html`：钢种温度表与 t=k·δ+20 可跑；渗碳无渗层深度输入，保温时间只输出固定文案，核心卖点未实现。
+- `tools/metalwork/resistance-2.html`：六法评分可跑；接头形式是死输入，板厚关系与厚度可互相矛盾，默认 3mm 低碳钢对接竟首选激光焊。
+- `tools/metalwork/speed-itinerary.html`：行程/走刀/时间可跑；每刀往复数把工件长度当横向宽度，200×100 板时间偏大一倍，材料去除量算了不渲染。
+- `tools/metalwork/tangxue-tangdao-tanggan-jingdu-kongzhi.html`：第二段覆盖后 IT 可算（D50/IT7=0.0273 mm）；用实际 D 而非尺寸段几何均值偏高 9%，形位公差取 IT/2 无依据，⇄ 互换即报错。
+- `tools/metalwork/temp-forging.html`：查表温度正确；10kg/φ50 钢件加热仅 8 min、保温 2 min，低约一个数量级，温度条满量程恒按 1300℃。
+
+**问题条目**
+
+| 页面 | 问题（含 tools/metalwork/<slug>.html:NN） | 编号 |
+|---|---|---|
+| tools/metalwork/lifespan-1.html | 【中】铅酸电池选项自动把电压写成 2 V（`BAT_VOLT.lead=2`），但选项标签是「铅酸电池(12V/单格2V)」；12V/100Ah 电池续航 81.6h 被算成 13.6h，低估 6 倍，用户需手工改回 12V（:156,220,239-242） | MM-H141 |
+| tools/metalwork/pinpaijiazhipinggujisuan.html | 【中】年限系数只校验 >0（HTML `min=0.5` 仅约束步进器），键盘输 −1 得负品牌价值且仍标「初创品牌」；利润率控件 `max=80` 但校验放行到 100（:137,145,232,236,238,242-249） | MM-H142 |
+| tools/metalwork/pinpaijiazhipinggujisuan.html | 【假】引据表称 ISO 10668「收益法/特许权使用费节省法」，实算却是「利润×乘数×年限×份额」自定义模型、全程无折现；科技预设 2 亿营收×20%×10×1.3×2.5 = 13 亿（6.5 倍营收，合计 32.5 倍利润），冒用国标口径（:127,186-199,241-242,436） | MM-H143 |
+| tools/metalwork/pressure-casting.html | 【高】批量维度漏判：压铸/低压铸造 `batch:'mass'`，代码只排除 `batch==='single'`，选「中批量」时两者仍进入可选列表并被推荐，与页面「压铸适合薄壁大批量、小批不适合」自相矛盾（:167,222-223,238-239,491） | MM-H144 |
+| tools/metalwork/pressure-casting.html | 【中】首选恒为砂型：`Object.keys(METHODS)` 顺序把 sand 放首位，凡铁/钢/铝/铜命中即取 `matched[0]`；铝合金 5kg/5mm/中批的首选仍是砂型而非压铸/金属型，排序未按精度/批量/成本评分（:233,240,248） | MM-H145 |
+| tools/metalwork/pressure-casting.html | 【假】简介与 FAQ 承诺输出「浇注、冷却等工艺参数」，引据表列压射比压、Chvorinov 凝固时间、浇注系统比，页面均未计算；且 ISO 8062-3（铸件尺寸公差）被标为压射比压与浇注系统比的出处（:127,130,182-195,550） | MM-H146 |
+| tools/metalwork/recorder-9.html | 【高】渗碳工艺无渗层深度输入：`calcSoaking` 对渗碳分支恒返回字符串「按渗层深度估算（约 0.12~0.15 mm/h）」，从不按深度计算分钟数，新建作业的保温时间也没有数值；公式框却写「保温时间随渗层深度确定」（:127-128,401-405,443） | MM-H147 |
+| tools/metalwork/recorder-9.html | 【中】目标温度与记录温度均无范围校验：目标可输 0/负数/远超材料区间仍进入曲线与统计，`createJob` 只拦 ≤0；记录温度任意值均接受（:152,411,450-453） | MM-H148 |
+| tools/metalwork/resistance-2.html | 【高】接头形式 `joint` 完全不参与过滤与评分：唯一使用处是一个空 `if` 块（无任何语句/赋值），对接/搭接/T形/角接结果与首选方法完全相同，属死输入（:147-152,231,239-241,279-291） | MM-H149 |
+| tools/metalwork/resistance-2.html | 【高】默认 3mm 低碳钢对接评分：激光 50+20+15=85 > TIG 80 > 电阻 75，首选激光焊，与页面「薄板≤3mm 优先 TIG/电阻焊」及成本「低」优先的口径相反；成本「高」在评分中完全不扣分（:274,279-290） | MM-H150 |
+| tools/metalwork/resistance-2.html | 【中】板厚关系 `plateType` 与厚度 t 独立输入：t=3 可选「厚板」、t=50 可选「薄板」，过滤按 t、评分按 plateType，同一 t 可得不同首选；`resetAll` 又把 plateType 设为 medium，而页面初始/预设为 sheet（:156-161,284-286,454） | MM-H151 |
+| tools/metalwork/resistance-2.html | 【假】简介承诺推荐「工艺参数」，结果只有方法/保护气体/质量/成本，无电流、电压、气流量；引据表的热输入 Q、碳当量 CE、预热温度三项均未实现（:128,183-197） | MM-H152 |
+| tools/metalwork/speed-itinerary.html | 【高】每刀进给往复数用 `ceil(L/f)`，把工件长度 L 当作横向宽度；进给量是 mm/往复行程的横向步距，正确应为 `ceil(宽度/f)`。200×100 板应为 400 往复，页面算 800（时间 6.4 vs 3.2 min），长度/宽度比越大偏差越大（:245-247,259） | MM-H153 |
+| tools/metalwork/speed-itinerary.html | 【高】材料去除量 `materialRemoval` 算了不渲染、不进导出，公式框仍承诺；且 `L×余量×切深×0.001` 量纲错误（缺宽度，正确体积为 L×宽×余量）（:127,248） | MM-H154 |
+| tools/metalwork/tangxue-tangdao-tanggan-jingdu-kongzhi.html | 【中】IT 用实际直径 D 而非尺寸段几何均值：D50 算 IT7=0.0273 mm、IT8=0.0427 mm，GB/T 1800.1 的 30–50 段为 0.025/0.039 mm，偏高约 9%；公式框仅写「≈」，未提示应按段均值（:126,564-566） | MM-H155 |
+| tools/metalwork/tangxue-tangdao-tanggan-jingdu-kongzhi.html | 【中】圆度/同轴度建议直接取 `IT/2`：两项形位公差本属独立公差项目、同一数值无标准依据，页面却作为「建议」输出（:567） | MM-H156 |
+| tools/metalwork/tangxue-tangdao-tanggan-jingdu-kongzhi.html | 【中】⇄ 互换按钮把孔径 D 与 IT 等级互换（50↔7），第二段校验随即判「IT 等级需为 5–10 的整数」，常规输入一按即报错；重置按钮已被第二段覆盖为 50/7，但互换未同步（:131,495-501,575） | MM-H157 |
+| tools/metalwork/tangxue-tangdao-tanggan-jingdu-kongzhi.html | 【中】孔径 D 无正值校验：只判 `isFinite`，输 −50 仍按 cbrt 得负标准公差 −0.0273 mm 并正常渲染（:559,562-566） | MM-H158 |
+| tools/metalwork/temp-forging.html | 【高】加热/保温时间量级错误：`ceil(0.5W+0.05d)` 把 kg 与 mm 直接相加，10kg/φ50 钢件仅 8 min；保温 `ceil(0.2W)` 仅 2 min。φ50 钢件常规加热约 30–60 min、保温 ≥30 min，页面低约一个数量级，且与截面/装炉条件脱钩（:127,226-227,243-244） | MM-H159 |
+| tools/metalwork/temp-forging.html | 【中】温度条满量程恒取 `Math.max(maxHeat,1300)`，而所有 maxHeat≤1300 故恒为 1300：铝合金 490℃ 的「最高加热」条只占 38%、470℃ 始锻占 36%，视觉上远低于满量程，图表失去材料相对意义（:247-254） | MM-H160 |
+
+**统计**
+- 条数：20（高 7 / 中 10 / 假 3 / 安全 0）；编号区间：MM-H141–MM-H160，续接 MM-H140，不重号不跳号。
+- 高优编号：MM-H144（压铸/低压批量档漏判）、MM-H147（渗碳保温时间假功能）、MM-H149（接头形式死输入）、MM-H150（默认首选激光焊）、MM-H153（长度当横向宽度）、MM-H154（材料去除量算了不渲染）、MM-H159（加热/保温时间低一个数量级）。
+- 假工具：0（8 页核心查表/公式均可用）；承诺未实现：3（MM-H146 铸造工艺参数、MM-H152 焊接工艺参数、MM-H147 渗碳深度估算）；冒用国标：2（MM-H143 ISO 10668、MM-H146 ISO 8062-3）。
+- 安全：0 条；8 页均未发现 XSS、eval、allow-same-origin、明文存密或业务数据外传；`recorder-9` 备注经 `escHtml` 转义，`tangxue` 历史恢复仅接数值参数，全站模板 ttzz 脚本不单列。
+- 复算：node 内存复算 IT7/IT8(D50)=0.0273/0.0427 mm vs 段均值 0.025/0.039 mm、刨削 800 vs 400 往复与 6.4/3.2 min、锻造加热 8 min/保温 2 min、品牌默认 4500 万与科技预设 13 亿、铅酸 2V 13.6h vs 12V 81.6h，未落盘仓库；仅源码阅读，未开浏览器、未跑 `_build.py`/`run_gates.py`、未改 `tools/**` 与构建产物，未触碰 `plan/interaction-validity.md`、`plan/units-factors.md`。
+- 去重说明：`speed-itinerary` 的长度/宽度维度混用与 MM-H120（流程/壁厚单位混算）同为维度错配但页面与字段不同；`temp-forging` 的固定 1300 满量程与 MM-H131（detector-55 标尺区间错位）同为图表刻度失真但页面不同；`tangxue` 的 IT 近似与 MM-H128（detector-23 IT 表无视公称尺寸）同为 IT 查表口径问题但机制不同，均按逐页口径单列。
