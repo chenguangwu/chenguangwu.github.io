@@ -8606,6 +8606,11 @@ function makeEl(val, opts) {
     setAttribute() {},
     getAttribute() { return null; },
     removeAttribute() {},
+    // 复制路径：页面普遍 `ta.select(); document.execCommand('copy')`（common.js 的 copyText
+    // 与各工具页的本地复制实现都走这条），缺 .select/.setSelectionRange 会直接抛
+    // "select is not a function" ⇒ 复制用例整段中断、判别器子进程无统计行。
+    select() {},
+    setSelectionRange() {},
     // 动态 DOM 登记生效时（用例声明 clicks/dynDom），元素的 querySelectorAll 也走登记表 ——
     // 页面写成 `it.querySelectorAll('.q-opt')` 时才能拿到数组（超集即可，仅用于 classList.toggle），
     // 否则 `[].forEach.call(undefined, …)` 抛错、紧随其后的 calc() 被整段跳过。
@@ -8739,6 +8744,23 @@ function inlineHandlers(html) {
     }
   }
   return map;
+}
+
+// expect 匹配口径：除了原文命中，也接受「原文的 HTML 转义形态」命中。
+// 原因：页面若用 ToolBox.escHtml() 把结果写进 innerHTML（如 data/calc-2 的 pretty JSON），
+// 真机渲染后用户看到的是原文（引号、尖括号正常），而桩内保留的 innerHTML 字符串是转义形态
+// （&quot; / &lt;）。这是「桩只存原始 innerHTML、不建模实体解码」造成的口径差，不是页面缺陷；
+// 故对断言做等价匹配，避免把正确的页面判红。
+function htmlEscaped(s) {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+function blobHasWant(blob, want) {
+  return blob.includes(want) || blob.includes(htmlEscaped(want));
 }
 
 function collectStrings(elements) {
@@ -9150,6 +9172,9 @@ async function runCaseInner(c) {
     // 正文被整块吞掉（既有盲区，见 2678 行注释）。此处只给 createElement 路径建模该联动，
     // 不改 makeEl（id 元素的行为逐字节不变 ⇒ 既有用例不受影响）。
     createElement: () => makeEscEl(),
+    // 复制路径兜底（两条路径都覆盖）：`document.execCommand('copy')` 在真浏览器返回
+    // true/false 而非抛错，部分页的本地复制实现直接调它（it/random-string 等）。
+    execCommand: () => true,
     // SVG 类页面（accessibility/ramp-slope 等）用 createElementNS 建 svg/line/text 节点，
     // 缺此 API 整页初始化即抛 "createElementNS is not a function" ⇒ 恒不可验证。
     // 本桩不做真实命名空间渲染，仅提供与 createElement 同构的节点（含 classList/style/
@@ -9229,6 +9254,8 @@ async function runCaseInner(c) {
       return x + "</tbody></table>";
     },
   };
+  // 剪贴板桩：真浏览器的 clipboard.writeText 恒返回 Promise（页面普遍 `.then(...)` 收尾），
+  // 保真模式注入的 js/common.js.copyText 也依赖这一点；返回 undefined 会让 .then 抛 TypeError。
   const navigator = { userAgent: "node", clipboard: { writeText() { return Promise.resolve(); } } };
   // window 直接用 globalThis：内联 on* 属性编译出的函数在全局作用域执行，
   // 只能看到挂在 window（即全局）上的函数，用普通对象会导致「xxx is not defined」。
@@ -9297,11 +9324,29 @@ async function runCaseInner(c) {
   const expose = exposeNames.map((n) => `try{__f[${JSON.stringify(n)}]=typeof ${n}==='function'?${n}:null;}catch(e){}`).join("\n");
   let fns;
   try {
-    const compiled = new Function(
+    // 保真模式下，页面里的裸 `ToolBox` 在真浏览器是「每次调用时从 window 动态解析」的活引用；
+    // 而 new Function 的 ToolBox 形参会把它钉死成注入前的旧桩对象 —— common.js 整体替换
+    // window.ToolBox 后，页面代码仍指向旧对象，点击里 `window.ToolBox.showToast=...` 改的却是
+    // 新对象，页面的提示调用打到旧桩（no-op），表现为「保真模式下导出/复制类用例整片红」。
+    // 用转发代理恢复真机的动态解析语义；默认模式仍传原桩对象，既有用例逐字节不变。
+    const toolboxArg = TB_STUB_FIDELITY
+    ? new Proxy({}, {
+        get(_, k) {
+          const T = win.ToolBox;
+          if (!T) return undefined;
+          const v = T[k];
+          return typeof v === "function" ? v.bind(T) : v;
+        },
+        set(_, k, v) { if (win.ToolBox) win.ToolBox[k] = v; return true; },
+        has(_, k) { return win.ToolBox ? k in win.ToolBox : false; },
+        deleteProperty(_, k) { if (win.ToolBox) delete win.ToolBox[k]; return true; },
+      })
+    : ToolBox;
+  const compiled = new Function(
       "document", "window", "console", "navigator", "localStorage", "sessionStorage", "ToolBox", "alert", "setTimeout", "requestAnimationFrame", "setInterval", "requestIdleCallback", "Date",
       `var __f={};\n${script}\n${expose}\n__f["__pageEval"]=function(c){return eval(String(c));};\n__f["__rebindGlobal"]=function(n){try{eval(n+' = window.'+n);}catch(e){}};\nreturn __f;`
     );
-    fns = compiled(document, win, { log() {}, warn() {}, error() {} }, navigator, localStorage, sessionStorage, ToolBox, () => {}, safeTimer, safeTimer, safeTimer, safeTimer, FrozenDate);
+    fns = compiled(document, win, { log() {}, warn() {}, error() {} }, navigator, localStorage, sessionStorage, toolboxArg, () => {}, safeTimer, safeTimer, safeTimer, safeTimer, FrozenDate);
   } catch (e) {
     return { ok: false, why: "初始化失败: " + e.message.slice(0, 80) };
   }
@@ -9480,7 +9525,7 @@ async function runCaseInner(c) {
     await Promise.allSettled(pending);   // async 处理函数（如 crypto.subtle）需等其落盘
     const blob1 = collectStrings(elements);
     for (const want of (c.expect || [])) {
-      if (blob1.includes(want)) return { ok: true, via: "input event" };
+      if (blobHasWant(blob1, want)) return { ok: true, via: "input event" };
     }
   }
   // 2.5) 模拟用户点击：click 驱动型页面（选项是 span/div + onclick，页面里根本没有表单控件）。
@@ -9498,7 +9543,7 @@ async function runCaseInner(c) {
     await Promise.allSettled(pending);
     const blobC = collectStrings(elements);
     for (const want of (c.expect || [])) {
-      if (blobC.includes(want)) return { ok: true, via: "click" };
+      if (blobHasWant(blobC, want)) return { ok: true, via: "click" };
     }
   }
   // 2.6) 复制回调验证（copyCheck，opt-in）：断言复制函数同步不抛、writeText 的 then 回调不抛，
@@ -9555,7 +9600,7 @@ async function runCaseInner(c) {
     }
     const blob = collectStrings(elements);
     for (const want of c.expect) {
-      if (blob.includes(want)) return { ok: true, via: n };
+      if (blobHasWant(blob, want)) return { ok: true, via: n };
     }
   }
   const blob = collectStrings(elements);
