@@ -72,9 +72,9 @@ const CASES = [
     "co2": "20"
   },
   "expect": [
-    "98.2"
+    "12.0 Ar 流量 (L/min) 3.0 CO₂ 流量 (L/min)"
   ],
-  "ref": "auto-restore"
+  "ref": "按混合气配比拆分总流量：总流量 15 L/min、Ar 80% / CO₂ 20% ⇒ Ar 12.0 L/min、CO₂ 3.0 L/min（页面口径由百分比反算，非输入回显）。旧期望 0.98 已随页面改版失效。"
 },
 {
   "slug": "welding/hancaixuanyongtuijian",
@@ -169,7 +169,7 @@ const CASES = [
     "hours": "8"
   },
   "expect": [
-    "1200"
+    "20000"
   ],
   "ref": "auto-restore"
 },

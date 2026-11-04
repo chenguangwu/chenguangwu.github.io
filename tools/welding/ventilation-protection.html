@@ -119,8 +119,8 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="🔥 焊接安全通风计算">Ventilation Protection</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入焊材消耗量与车间体积，计算所需通风量及防护建议">Ventilation Protection</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">发尘量 = 焊材消耗 × 产尘系数；所需通风量 Q = 发尘量 / 允许浓度；换气次数 ACH = Q / 车间体积</div>
-      <p class="formula-desc" data-zh="核心计算公式（按输入变量）：fumeMass÷allowConc×60；con×coef×1000×hs；con×coef×1000">Key formulas: fumeMass÷allowConc×60; con×coef×1000×hs; con×coef×1000</p>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">发尘量 = 焊材消耗量(kg/h) × 产尘系数 × 10⁶（mg/h）；所需通风量 Q = 发尘量 ÷ 允许浓度（m³/h）；换气次数 ACH = Q ÷ 车间体积；日焊烟总量 = 发尘量 × 每日焊接时长（mg）。校验：焊材消耗量与车间体积须 &gt;0、时长 ≥0，否则标红中止。评估：ACH &lt;6 通风不足、6–10 基本满足、10–20 良好、≥20 优秀。</div>
+      <p class="formula-desc" data-zh="核心计算公式（按输入变量）：fumeMass÷allowConc；con×coef×1000000×hs；con×coef×1000000">Key formulas: fumeMass÷allowConc; con×coef×1000000×hs; con×coef×1000000</p>
     </div>
     <div class="input-row"><div><label>焊材消耗量（kg/h）</label><input type="number" id="consume" class="calc-input" value="2" step="0.1" oninput="calc()" enterkeyhint="done" aria-label="焊材消耗量" placeholder="如 2"></div><div><label>车间体积（m³）</label><input type="number" id="volume" class="calc-input" value="500" step="any" oninput="calc()" enterkeyhint="done" aria-label="车间体积" placeholder="如 500"></div><div><label>焊材类型</label><select id="type" class="calc-input" onchange="calc()"><option value="covered">药皮焊条</option><option value="solid">实心焊丝</option><option value="flux">药芯焊丝</option></select></div><div><label>每日焊接时长（h）</label><input type="number" id="hours" class="calc-input" value="8" step="any" oninput="calc()" enterkeyhint="done" aria-label="每日焊接时长" placeholder="如 8"></div></div>
     <div class="toolbar">
@@ -221,20 +221,21 @@ function calc(){
     var __ig=__tbInputGuard(['consume', 'volume', 'hours'],["焊材消耗量（kg/h）", "车间体积（m³）", "每日焊接时长（h）"]);if(__ig){const __g1=__ig;ToolBox.setResult("res",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 if(!checkNum(['consume','volume','hours'])){document.getElementById('res').innerHTML='<div class="tip-box tip-warn">请输入有效数值</div>';return;}
   var con=num('consume'),vol=num('volume'),type=sel('type'),hs=num('hours');
+  if(con<=0||vol<=0||hs<0){document.getElementById('res').innerHTML='<div class="tip-box tip-warn">⚠ 焊材消耗量与车间体积须大于 0，每日焊接时长须 ≥0。</div>';return;}
   var coef={covered:0.008,solid:0.005,flux:0.01}[type];
   var typeName={covered:'药皮焊条',solid:'实心焊丝',flux:'药芯焊丝'}[type];
-  var fumeMass=con*coef*1000;
+  var fumeMass=con*coef*1000*1000;
   var allowConc=2;
-  var Q=fumeMass/allowConc*60;
+  var Q=fumeMass/allowConc;
   var ach=Q/vol;
-  var dayFume=con*coef*1000*hs;
+  var dayFume=fumeMass*hs;
   var ventGrade,cls,rec;
   if(ach<6){ventGrade='通风不足';cls='grade-fail';rec='需增设局部排烟罩或移动式焊烟净化器，加强全面通风。';}
   else if(ach<10){ventGrade='基本满足';cls='grade-pass';rec='建议在工位增设局部排烟罩，定期检测车间空气质量。';}
   else if(ach<20){ventGrade='良好';cls='grade-good';rec='通风基本满足，建议工位配备焊烟净化装置。';}
   else{ventGrade='优秀';cls='grade-excellent';rec='通风良好，保持现有通风系统正常运行即可。';}
   var cards=[
-    {n:fumeMass.toFixed(0),l:'焊烟产生量 (mg/min)'},
+    {n:fumeMass.toFixed(0),l:'焊烟产生量 (mg/h)'},
     {n:Q.toFixed(0),l:'所需通风量 (m³/h)'},
     {n:ach.toFixed(1),l:'换气次数 (次/h)'},
     {n:dayFume.toFixed(0),l:'日焊烟总量 (mg)'}
@@ -242,7 +243,7 @@ if(!checkNum(['consume','volume','hours'])){document.getElementById('res').inner
   var html=grid(cards)+'<div class="data-grid" style="margin-top:8px;"><div class="data-card"><div class="num"><span class="grade-tag '+cls+'">'+ventGrade+'</span></div><div class="label">通风评估</div></div></div>';
   html+='<div class="ref-card" style="margin-top:10px;"><h4>防护建议</h4><p>'+rec+'</p><p>焊烟允许浓度参考 GBZ 2.1（总尘 4 mg/m³，本计算取 2 mg/m³ 安全裕度）。作业人员应佩戴防尘口罩，定期职业健康检查。</p></div>';
   const __g3=html;document.getElementById('res').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
-  lastResult='焊烟'+fumeMass.toFixed(0)+'mg/min 通风量'+Q.toFixed(0)+'m³/h '+ventGrade;
+  lastResult='焊烟'+fumeMass.toFixed(0)+'mg/h 通风量'+Q.toFixed(0)+'m³/h '+ventGrade;
   saveHistory(typeName+con+'kg/h 车间'+vol+'m³ 通风'+Q.toFixed(0)+'m³/h '+ventGrade);
 }
 var lastResult='';
@@ -410,8 +411,8 @@ else document.addEventListener('DOMContentLoaded', __ventilation_protectionBoot)
 <li>评估现有通风是否满足要求，判断需否增设局部排烟或焊烟净化器。</li>
 <li>估算日焊烟总量，配合职业健康检查与防护用品配置。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">通风模型</div><div class="dd-ex-body">焊烟产生量(mg/min) = 焊材消耗量 × 产烟系数 × 1000；产烟系数：药皮焊条 0.008、实心焊丝 0.005、药芯焊丝 0.01。所需通风量 Q(m³/h) = 焊烟产生量 ÷ 允许浓度 × 60，允许浓度取 2 mg/m³（对 GBZ 2.1 总尘 4 mg/m³ 留安全裕度）。换气次数 = Q ÷ 车间体积(m³)。评估：&lt;6 次/h 通风不足、6~10 基本满足、10~20 良好、≥20 优秀。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">药皮焊条消耗 5（工具输入单位）、车间体积 300 m³：产烟量 = 5×0.008×1000 = 40 mg/min；所需通风量 = 40/2×60 = 1200 m³/h；换气次数 = 1200/300 = 4 次/h，判为通风不足，需增设局部排烟罩或移动式焊烟净化器。若改用药芯焊丝，产烟系数升至 0.01，产烟量与所需风量将增加 25%。</div></div>
+<div class="dd-example"><div class="dd-ex-title">通风模型</div><div class="dd-ex-body">焊烟产生量(mg/h) = 焊材消耗量(kg/h) × 产烟系数 × 1000000；产烟系数：药皮焊条 0.008、实心焊丝 0.005、药芯焊丝 0.01。所需通风量 Q(m³/h) = 焊烟产生量 ÷ 允许浓度，允许浓度取 2 mg/m³（对 GBZ 2.1 总尘 4 mg/m³ 留安全裕度）。换气次数 = Q ÷ 车间体积(m³)。日焊烟总量(mg) = 焊烟产生量 × 每日焊接时长(h)。评估：&lt;6 次/h 通风不足、6~10 基本满足、10~20 良好、≥20 优秀。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">药皮焊条 2 kg/h、车间体积 500 m³、每日焊接 8 h：产烟量 = 2×0.008×1000000 = 16000 mg/h（16 g/h）；所需通风量 = 16000/2 = 8000 m³/h；换气次数 = 8000/500 = 16 次/h，判为良好，建议工位配备焊烟净化装置；日焊烟总量 = 16000×8 = 128000 mg。若改用药芯焊丝，产烟系数升至 0.01，产烟量与所需风量将增加 25%。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>为什么允许浓度取 2 而不是标准值？</dt><dd>GBZ 2.1 规定的总尘限值为 4 mg/m³，工程设计中常取一半作为安全裕度，以应对多工位叠加、气流不均与实际工况波动，降低超标风险。</dd>
