@@ -527,6 +527,18 @@ const CASES = [
     ref: 'total=120000 r1=3.2 b1=10 r2=2.8 b2=30 r3=1.8 b3=40；比例和=80（归一化）；预算 15,000/45,000/60,000；收入 48,000/126,000/108,000；总收入=¥282,000；整体ROAS=2.35x（与 total 无关）；渠道1占比=12.5%'
   },
   {
+    slug: "marketing/marketing-ad-budget-allocator",
+    inputs: { totalBudget: "120000", roas1: "3.2", budget1Pct: "10", roas2: "2.8", budget2Pct: "30", roas3: "1.8", budget3Pct: "40" },
+    expect: ["⚠ 输入比例合计 80 %", "与 100% 相差 -20.0 %"],
+    ref: "比例合计 80%：旧实现静默归一、不告知用户原始合计偏差；现在结果顶部明确提示合计与差值。默认 40/35/25=100 ⇒ 不命中。"
+  },
+  {
+    slug: "marketing/marketing-ad-budget-allocator",
+    inputs: { totalBudget: "100000", roas1: "4", budget1Pct: "-10", roas2: "2.5", budget2Pct: "35", roas3: "2", budget3Pct: "25" },
+    expect: ["总预算、分配比例与 ROAS 均须为非负数"],
+    ref: "渠道1比例为 −10%：负占比会让该渠道预算为负、收入为负，旧实现照算；现直接拦截。默认全为正 ⇒ 不命中。"
+  },
+  {
     slug: "marketing/marketing-roi",
     inputs: { m_cost: "21000", m_price: "199", m_impressions: "50000", m_ctr: "3", m_cvr: "4", m_repeat: "25" },
     expect: ["-28.9%", "¥-6,075", "¥350.00"],
@@ -893,7 +905,7 @@ const CASES = [
       "budget3Pct": "42"
     },
     "expect": [
-      "42\n42\n42\n42\n42\n42\n42\n¥42 总预算 ¥1,764 预估总收入 42.00"
+      "42\n42\n42\n42\n42\n42\n42\n⚠ 输入比例合计 126 %，与 100% 相差 26.0 %，已按比例归一；下表「分配占比」为归一后的实际占比。 ¥42 总预算 ¥1,764 预估总收入 42.00"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"totalBudget\":\"42\",\"roas1\":\"42\",\"budget1Pct\":\"42\",\"roas2\":\"42\",\"budget2Pct\":\"42\",\"roas3\":\"42\",\"budget3Pct\":\"42\"}，输出区含「42\n42\n42\n42\n42\n42\n42\n¥42 总预算 ¥1,764 预估总收…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },

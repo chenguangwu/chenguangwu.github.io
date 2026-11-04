@@ -318,8 +318,12 @@ function calc(){
   var normMethod = document.getElementById('normMethod').value;
   var exPct = +document.getElementById('excellentPct').value||0;
   var failPct = +document.getElementById('failPct').value||0;
-  var wSum = dims.reduce(function(s,d){return s+(+d.weight||0);},0);
-  if(wSum<=0) wSum=1;
+  var wSumRaw = dims.reduce(function(s,d){return s+(+d.weight||0);},0);
+  var wSum = wSumRaw>0 ? wSumRaw : 1;
+  // 权重合计必须为 100%：不等于 100 时按比例归一（结果仍可算），但必须明确提示差值
+  var weightWarn = Math.abs(wSumRaw-100)>0.01
+    ? '<p style="color:#ff9800;margin:0 0 8px;"><span>⚠ 权重合计 </span>' + wSumRaw.toFixed(1) + '<span>%，与 100% 相差 </span>' + (wSumRaw-100).toFixed(1) + '<span>%，已按比例归一后计算。</span></p>'
+    : '';
 
   // 分数越界拦截：负分/超 100 会静默改变排名与强制分布，必须先提示而不是照算
   for(var bi=0;bi<emps.length;bi++){
@@ -382,7 +386,7 @@ function calc(){
       '<span class="grade-tag '+gradeClass+'">'+grade+'</span>'
     ]);
   });
-  const __g5=ToolBox.createTable(
+  const __g5=weightWarn + ToolBox.createTable(
     ['排名','姓名','原始加权分','归一化得分','等级'], rows);document.getElementById('resultTable').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
 }
 

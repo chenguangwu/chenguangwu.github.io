@@ -27,6 +27,18 @@ const CASES = [
 },
 {
   "slug": "hr/annual-leave-calc",
+  "inputs": { "tenure": "20", "months": "13" },
+  "expect": ["15.0 天", "工作月数超过 12，已按 12 个月计。"],
+  "ref": "工作月数填 13：旧实现 Math.min 静默夹到 12 且无提示；现按 12 个月计并明确告知。默认 12 个月 ⇒ 不命中提示。"
+},
+{
+  "slug": "hr/annual-leave-calc",
+  "inputs": { "tenure": "3", "months": "6.5" },
+  "expect": ["工作月数须为 0–12 的整数（按整月折算）"],
+  "ref": "小数月数 6.5：旧实现 parseInt 静默截断为 6（少算 0.5 个月），现要求整数并提示按整月折算；如需按天折算应改用年假折算工具。默认 12 ⇒ 不命中。"
+},
+{
+  "slug": "hr/annual-leave-calc",
   "inputs": { "tenure": "", "months": "12" },
   "expect": ["请填写连续工龄与本年工作月数后再计算"],
   "ref": "空工龄不再 parseFloat(...)||0 兜底成 0 天，改为显式提示。默认 1/12 不出现该提示。"
@@ -386,6 +398,12 @@ const CASES = [
     clicks: ["emps[0].scores[0]=-5;calc();"],
     expect: ["评分须在 0–100 之间"],
     ref: "把张三第一维业绩分改为 −5 ⇒ 旧实现照算（加权分被拉低、排名与强制分布失真，无提示）；现于计算前逐项校验并提示。默认全部分数在 0–100 内 ⇒ 不命中。",
+  },
+  {
+    slug: "hr/performance-score",
+    clicks: ["dims[0].weight=70;calc();"],
+    expect: ["权重合计 120.0 %，与 100% 相差 20.0 %"],
+    ref: "把第一维权重从默认 50 改为 70 ⇒ 合计 120%，页面仍按比例归一算分，但必须提示合计与差值；默认 50/30/20=100 ⇒ 无提示，不命中。",
   },
   {
     slug: "hr/recruitment-funnel",

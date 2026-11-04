@@ -254,18 +254,20 @@ function calc() {
     return;
   }
   const tenure = parseFloat(tenureRaw);
-  const monthsInput = parseInt(monthsRaw);
-  if (!isFinite(tenure) || tenure < 0 || !isFinite(monthsInput) || monthsInput < 0) {
-    document.getElementById('result').innerHTML = '<p class="tip-error">工龄与工作月数需为 ≥0 的有效数字。</p>';
+  const monthsNum = parseFloat(monthsRaw);
+  // 本工具按「整月」折算：工作月数须为 0–12 的整数，小数（如 6.5 个月）不得静默截断
+  if (!isFinite(tenure) || tenure < 0 || !isFinite(monthsNum) || monthsNum < 0 || monthsNum !== Math.floor(monthsNum)) {
+    document.getElementById('result').innerHTML = '<p class="tip-error">工龄需为 ≥0 的有效数字，工作月数须为 0–12 的整数（按整月折算）。</p>';
     return;
   }
-  const months = Math.min(12, monthsInput);
+  const months = Math.min(12, monthsNum);
   const total = standardAnnualLeave(tenure) * (months / 12);
   const formula = tenure < 1 ? '工龄低于1年默认0天' : '满1年不满10年：5天；满10年不满20年：10天；满20年：15天';
+  const cappedTip = monthsNum > 12 ? '<p class="tip-mini"><span>工作月数超过 12，已按 12 个月计。</span></p>' : '';
 
   const __g1=`<p>参考年假天数：<strong>${total.toFixed(1)} 天</strong></p>` +
     `<p>年休规则：${formula}</p>` +
-    `<p>说明：结果按你当前月份比例折算（${months} / 12）</p>`;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+    `<p><span>说明：结果按整月口径折算</span>（<strong>${months} / 12</strong>）<span>；如需精确到日历天，请使用「年假折算计算器」。</span></p>` + cappedTip;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 
 function copyResult() {
