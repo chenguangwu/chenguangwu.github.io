@@ -94,12 +94,12 @@ const CASES = [
 {
   "slug": "gastroenterology/esophageal-varices",
   "inputs": {
-    "size": "2"
+    "size": "3"
   },
   "expect": [
-    "中度(D2)"
+    "曲张静脉大小：重度(D3)"
   ],
-  "ref": "auto-restore"
+  "ref": "弱用例收紧：原注入 size=2 与页面默认值相同，且「中度(D2)」直接出现在 select 选项文案中 ⇒ 两态恒命中。改注入 size=3（默认 2）后，结果明细由 `sizeNames[size]` 生成「曲张静脉大小：重度(D3)」——注意结果用半角括号 `(D3)`，与 select 选项里的全角「重度（D3, 直径＞6mm）」不同，故注入失败（回退默认 size=2 →「中度(D2)」）必不命中。"
 },
 {
   "slug": "gastroenterology/gastric-emptying",
@@ -257,10 +257,11 @@ const CASES = [
     "levo": "unknown"
   },
   "expect": [
-    "未检测药物：克拉霉素、甲硝唑、左氧氟沙星",
-    "中（存在未检测药物）"
+    "克拉霉素：未检测",
+    "甲硝唑：未检测",
+    "未检测药物：克拉霉素、甲硝唑、左氧氟沙星"
   ],
-  "ref": "三药全部未检测（默认 clar 敏感 / metro 耐药 / levo 未检测）：页面不再写「未检测按可能敏感」，改为列出未检测药物并降级方案可信度为「中」。回退默认（仅 levo 未检测）后两条锚均不成立。"
+  "ref": "三药全部未检测（默认 clar 敏感 / metro 耐药 / levo 未检测）：页面不再写「未检测按可能敏感」，改为列出未检测药物并降级方案可信度为「中」。原锚「中（存在未检测药物）」在默认态（仅 levo 未检测）同样出现 ⇒ 逃生；且 harness 的 expect 是「任一命中即 PASS」，`左氧氟沙星：未检测` 在默认态（levo=unknown）即出现 ⇒ 整条用例仍 PASS 残留逃生。删去该锚，只保留两条明细（clar/metro 默认分别为敏感/耐药，必不命中）与三药汇总句（默认仅 levo 未检测，汇总句为「未检测药物：左氧氟沙星」）。"
 }
 ];
 async function main() {

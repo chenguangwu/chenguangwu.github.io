@@ -124,15 +124,13 @@ const CASES = [
 
   { slug: "cosmetic-derm/pore-grading",
     inputs: { noseTip: "2", nasalAla: "2", cheek: "3", forehead: "2", poreType: "oily", sebumLevel: "2" },
-    expect: ["55", "中度毛孔粗大"],
-    ref: "评=(2×3+2×3+3×2+2×2)/10×25=22/10×25=55 → 40≤55<60 属中度毛孔粗大"
-       + "（默认 2/2/1/1→40 → 轻度 避开）" },
+    expect: ["颊部 3级 扩大伴黑头", "前额 2级 明显可见"],
+    ref: "评=(2×3+2×3+3×2+2×2)/10×25=55 → 中度毛孔粗大。原锚「55」「中度毛孔粗大」在默认态与分级图例中已存在（逃生）；改锚注入后才出现的逐部位表：颊部 3 级标签「扩大伴黑头」、前额 2 级「明显可见」。默认 2/2/1/1 ⇒ 颊部 1 级「近距离可见」、前额 1 级「近距离可见」，两条均不命中。" },
 
   { slug: "cosmetic-derm/glogau-photoaging",
     inputs: { wrinkle: "2", pigment: "4", keratosis: "3", makeup: "2", age: "4", photo: "3" },
-    expect: ["2.9", "Ⅲ型"],
-    ref: "评=(2×3+4×2+3×1.5+2×2+4×1.5)/10=28.5/10=2.85→2.9，Math.round(2.85)=3 → Ⅲ型"
-       + "（默认 3/3/3/3/3→3.0 避开）" },
+    expect: ["2.9 综合评分"],
+    ref: "评=(2×3+4×2+3×1.5+2×2+4×1.5)/10=28.5/10=2.85→2.9，Math.round(2.85)=3 → Ⅲ型。原锚「2.9」「Ⅲ型」分别命中静态示例与分型图例（逃生）；改锚「2.9 综合评分」为结果卡片结构串。默认 3/3/3/3/3→「3.0 综合评分」，不命中。" },
 
 
   { slug: "cosmetic-derm/skin-ph",
@@ -152,9 +150,8 @@ const CASES = [
 
   { slug: "cosmetic-derm/eyebag-assessment",
     inputs: { fatHerniation: "3", skinLaxity: "2", tearTrough: "2", edema: "2", bagType: "fat", age: "4" },
-    expect: ["48", "中度眼袋"],
-    ref: "raw=3×3+2×2+2×2+2×2.5+4×0.5=24 → 评分=24×2=48 → 40≤48<60 属中度眼袋"
-       + "（默认 2/2/2/1/40s-50s→40.0 为轻中度 避开）" },
+    expect: ["48 中度眼袋", "水肿程度 2/3"],
+    ref: "raw=3×3+2×2+2×2+2×2.5+4×0.5=24 → 评分=24×2=48 → 40≤48<60 属中度眼袋。原锚「48」「中度眼袋」在静态示例/分级图例中已存在（逃生）；改锚结果卡片「48 中度眼袋」+ 明细「水肿程度 2/3」。默认 2/2/2/1/40s ⇒ 评分 36「36 轻中度眼袋」、「水肿程度 1/3」，两条均不命中。" },
 
   { slug: "cosmetic-derm/wrinkle-dynamic-static",
     inputs: { crow_d: "2", crow_s: "1", glab_d: "1", glab_s: "0", fore_d: "0", fore_s: "0",
@@ -202,9 +199,9 @@ const CASES = [
     ref: "注射剂量：type=ha(玻尿酸)、鼻唇沟、effect=2(中度)→参考用量 0.8 ml。注入非默认(默认 type=botox/effect=1→以 U 计、无 '0.8 ml')，默认态不出现该串。" },
 
   { slug: "cosmetic-derm/fitzpatrick-wrinkle",
-    inputs: { wrinkleGrade: "4", elastosis: "4", laxity: "9", pigment: "30" },
-    expect: ["100 重度光老化", "皱纹等级 Ⅳ级", "弹力变性 重度"],
-    "ref": "注入四项全非默认（默认 wrinkleGrade=1 / elastosis=0 / laxity=3 / pigment=10 ⇒ 总分 45、中度光老化、Ⅰ级、弹力变性『无』）。分值：皱纹 Ⅳ级 + 弹力变性重度 + 松弛 9/10 + 色素 30 ⇒ 合计 100 ⇒ 判「重度光老化」，建议升级为综合治疗方案（激光焕肤+填充+肉毒素+线雕）。三条均不在默认态。" },
+    inputs: { wrinkleGrade: "2", elastosis: "1", laxity: "4", pigment: "8" },
+    expect: ["94 中重度光老化", "皱纹等级 Ⅱ级", "面部松弛度 4/10"],
+    "ref": "独立复算：皱纹Ⅱ级 50 + 弹力变性轻度 20 + 松弛 4/10→20 + 色素 8→4 ⇒ 94 ⇒ 中重度光老化。原用例四项打到上限 100 后与默认态同为「重度光老化」，且「100 重度光老化」「皱纹等级 Ⅳ级」「弹力变性 重度」均在静态分型表中出现 ⇒ 逃生。默认 1/0/3/10 ⇒ 45 中度光老化、Ⅰ级、面部松弛度 3/10 ⇒ 三条均不命中。" },
 
   { slug: "cosmetic-derm/cosmetic-injection",
     checkIds: ["b_glabella", "b_frontalis", "b_crowfeet"],
@@ -321,15 +318,15 @@ const CASES = [
   {
     "slug": "cosmetic-derm/fitzpatrick-wrinkle",
     "inputs": {
-      "laxity": "42",
-      "pigment": "42",
-      "wrinkleGrade": "2",
+      "laxity": "3",
+      "pigment": "10",
+      "wrinkleGrade": "1",
       "elastosis": "1"
     },
     "expect": [
-      "素沉着）。 建议：综合治疗方案——激光焕肤+填充+肉毒素+线雕提拉。需面诊制定个体化方案。"
+      "65 中重度光老化"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"laxity\":\"42\",\"pigment\":\"42\",\"wrinkleGrade\":\"2\",\"elastosis\":\"1\"}，输出区含「素沉着）。 建议：综合治疗方案——激光焕肤+填充+肉毒素+线雕提拉。需面诊制定个…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "独立复算：皱纹Ⅰ级 25 + 弹力变性轻度 20 + 松弛 3/10→15 + 色素 10→5 ⇒ 65 ⇒ 中重度光老化。原用例注入松弛/色素 42（超出 0–10 量程，被页面夹到上限）后总分仍封顶 100，与默认态同走「重度光老化」文案 ⇒ 逃生。默认 45 中度光老化 ⇒ 「65 中重度光老化」不命中。"
   },
   {
     "slug": "cosmetic-derm/glogau-photoaging",

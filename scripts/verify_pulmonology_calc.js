@@ -364,17 +364,21 @@ const CASES = [
   "ref": "STOP-BANG 八项各 1 分：S(打鼾)+T(疲倦)+O(呼吸暂停)+P(高血压)+BMI>35 = 5 → 5/8 → 高危"
 },
 {
-  // 默认（harness 首选项）smear=neg → 传染性低；注入 3+/pos/rif_s → 有传染性需隔离
+  // 默认（harness 首选项）smear=3+ / culture=pos ⇒ 有传染性；注入涂片阴性 ⇒ 传染性低
   "slug": "pulmonology/tb-resistance",
   "inputs": {
-    "smear": "3+",
-    "culture": "pos",
+    "smear": "neg",
+    "culture": "pending",
     "xpert": "rif_s"
   },
-  "expect": [
-    "有传染性，需呼吸道隔离"
+  "clicks": [
+    "document.getElementById('d_rif').checked=false;calc()"
   ],
-  "ref": "auto-restore"
+  "expect": [
+    "传染性低",
+    "药物敏感结核(DS-TB)"
+  ],
+  "ref": "涂片阴性 + 培养未回 + Xpert 利福平敏感 ⇒ 依据 Xpert 仍可分型 DS-TB；infective = smear!=='neg' || culture==='pos' ⇒ false ⇒「传染性低」。原用例期望「有传染性，需呼吸道隔离」，而页面默认态（涂片 3+、培养阳性）本就含该串 ⇒ 逃生；改锚默认态不产生的阴性分支。默认态类型为 RR-TB（Xpert rif_r）⇒ 两条均不命中。"
 },
 {
   "slug": "pulmonology/tb-resistance",
