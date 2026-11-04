@@ -539,6 +539,19 @@ const CASES = [
     expect: ["6.90", "19609.8", "71.0%"],
     ref: "注入非默认(默认 1.2/5/1/10/0/0)：ETc=6.90 mm/天、日净灌溉 4.90、12天总蒸散 82.8 mm、总灌水 19609.8 m³、占比 71.0%。默认态为 5.78/.../58.0%，三条均不命中。"
   },
+  // ── 作物需水：计算天数 0 与负值必须显式拒绝（旧实现 `|| 1` 把 0 当 1 天）──
+  {
+    slug: "agriculture/crop-water-requirement",
+    inputs: { kc: "1.0", et0: "6", rain: "2", days: "0", area: "15", cropSel: "3", irrEff: "70" },
+    expect: ["计算天数必须大于0"],
+    ref: "天数 0：旧实现 `+value || 1` 回退成 1 天并照常输出（总蒸散 6.0 mm、总灌水 75.4 m³）；修复后显式拒绝。默认 days=10 正常计算，不出现该提示。"
+  },
+  {
+    slug: "agriculture/crop-water-requirement",
+    inputs: { kc: "1.0", et0: "6", rain: "2", days: "-5", area: "15", cropSel: "3", irrEff: "70" },
+    expect: ["计算天数必须大于0"],
+    ref: "天数 −5：旧实现接受负值（总蒸散 −30 mm、总灌水为负）；修复后显式拒绝。默认 days=10 不出现该提示。"
+  },
   // ── 蜂螨寄生率（螨数 ÷ 蜂数）────
   {
     slug: "agriculture/detector-13",
@@ -606,6 +619,14 @@ const CASES = [
     inputs: { targetCN: "25", fertType: "carbonate", soilOM: "0.8" },
     expect: ["目标C/N比：25:1", "需补碳铵：30.6 kg/亩（含纯氮5.20kg）", "预计分解周期：45天", "土壤有机质偏低(0.8%)"],
     ref: "Python Decimal 复算：需纯氮 = 180.00/25 − 2.000 = 7.200 − 2.000 = 5.200；碳铵含氮 17% ⇒ 5.200/0.17 = 30.5882 → toFixed(1) = 30.6。默认态 20:1 + 尿素 + 1.5% ⇒ 四锚全不命中；且 25:1 与默认输出的「20-25:1」区间串不同（锚取「目标C/N比：25:1」整段，非裸 25:1）。"
+  },
+  // ── 秸秆还田：目标 C/N 为空/0 时不得 `|| 25` 静默回退 ──────────
+  {
+    slug: "agriculture/straw-return",
+    inputs: { targetCN: "", fertType: "sulfate", soilOM: "3.6" },
+    clicks: ["document.getElementById('targetCN').value='';calc();"],
+    expect: ["请输入有效的秸秆参数（秸秆量、碳含量、氮含量与目标C/N均须大于0）"],
+    ref: "旧实现 `+value || 25` 把空值/0 静默回退成 25:1 并照常出结果，与同函数内 `targetCN<=0` 的校验声明矛盾；改为 parseFloat 后空值（NaN）显式拒绝。默认 select 为 20:1，正常计算不出现该提示。"
   },
 {
     "slug": "agriculture/calc-38",
