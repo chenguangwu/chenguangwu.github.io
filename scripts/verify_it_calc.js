@@ -416,8 +416,8 @@ const CASES = [
   {
     slug: "it/confidence-interval",
     inputs: { mean: "100", std: "15", n: "30", conf: "0.95" },
-    expect: ["[ 94.632 , 105.368 ]", "临界值 z = 1.960"],
-    ref: "独立复算：SE=s/√n=15/√30=2.7386；95% 双侧 z=1.960 ⇒ ME=1.960×2.7386=5.3677 ⇒ CI=[94.632, 105.368]。默认输入不同（区间两端数不同）⇒ 两串均不出现。",
+    expect: ["[ 94.632 , 105.368 ]"],
+    ref: "独立复算：SE=s/√n=15/√30=2.7386；95% 双侧 z=1.960 ⇒ ME=1.960×2.7386=5.3677 ⇒ CI=[94.632, 105.368]。默认输入不同（区间两端数不同）⇒ 该串不出现。原第二条锚「临界值 z = 1.960」是 α=0.05 双侧常量、默认态即出现（静态文案），已删。",
   },
   {
     slug: "it/code-line-counter",
@@ -650,9 +650,11 @@ const CASES = [
   },
   {
     slug: "it/summary-generator",
-    inputs: { inputText: "甲一句。乙二句？丙三句。" },
-    expect: ["甲一句。"],
-    ref: "独立复算：按句号/问号/叹号分句 3 句，权重取首个选中句 ⇒ 摘要以 `甲一句。` 开头。默认示例是 14 句长文，不命中。",
+    // boot 挂在 DOMContentLoaded（晚于注入）且会调 loadExample() 重置 inputText ⇒ 文本注入无效，改用不被 boot 重置的句数参数。
+    inputs: { sentenceCount: "8" },
+    clicks: ["generateSummary()"],
+    expect: ["技术不断演进。 已选"],
+    ref: "按权重取前 8 句时第 2 句（权重 0.38）进入入选集合 ⇒ 权重图标记「已选」；默认 3 句（legacy）/ 5 句（fidelity）的入选集合不含第 2 句（标「跳过」）⇒ 该串不出现。",
   },
   {
     slug: "it/text-replace",
@@ -4495,14 +4497,15 @@ const CASES = [
   {
     "slug": "it/captcha-generator",
     "inputs": {
-      "bgColorPicker": "abc123测试",
-      "verifyInput": "abc123测试",
-      "batchCount": "6"
+      "batchCount": "8"
     },
-    "expect": [
-      "nQ6zE复制导出gre2B复制导出yq1uF复制导出0glzX复制导出"
+    "clicks": [
+      "batchGenerate()"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"bgColorPicker\":\"abc123测试\",\"verifyInput\":\"abc123测试\",\"batchCount\":\"6\"}，输出区含「nQ6zE复制导出gre2B复制导出yq1uF复制导出0glzX复制导出」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "expect": [
+      "gGANM复制导出77mCE"
+    ],
+    "ref": "批量条数改 8：每例前 PRNG 重置 ⇒ 第 7/8 条码固定为 gGANM / 77mCE，默认 6 条时不存在此二码 ⇒ 强判别、零逃生。原用例注入 bgColorPicker/verifyInput 不影响生成，锚点又与默认 6 条完全重合（默认态命中），已改为条数驱动。"
   },
   {
     "slug": "it/char-encoder",
@@ -4866,11 +4869,14 @@ const CASES = [
       "outputFormat": "hex",
       "output": ""
     },
+    "checkIds": [
+      "pkcs7"
+    ],
     "clicks": ["encrypt()"],
     "expect": [
-      "3des"
+      "80a2142026acbc3842a787847d41b09e"
     ],
-    "ref": "openssl 交叉验证：3DES-CBC/PKCS7，key=0123…cdef（24 字节）、iv=0123456789abcdef、明文 hello world ⇒ 80a2142026acbc3842a787847d41b09e。原 B 类用例注入 11 字节中文密钥，属非法输入；现按新增校验应报错，故替换为标准向量。默认示例密文不同 ⇒ 不命中。"
+    "ref": "openssl 交叉验证：3DES-CBC/PKCS7，key=0123…cdef（24 字节）、iv=0123456789abcdef、明文 hello world ⇒ 80a2142026acbc3842a787847d41b09e。checkIds 还原 HTML 默认勾选的 PKCS7（桩内 checkbox 恒 false，11 字节明文非 8 倍数会被拦下）。原锚「3des」是算法下拉框回显、默认态即有（静态文案），已删。"
   },
   {
     "slug": "it/docker-cheatsheet",
@@ -6585,14 +6591,16 @@ const CASES = [
   {
     "slug": "it/summary-generator",
     "inputs": {
-      "customCount": "42",
-      "inputText": "1\n2\n3",
-      "sentenceCount": "5"
+      "sentenceCount": "custom",
+      "customCount": "14"
     },
-    "expect": [
-      "社会的方方面面。\n5\n14\n5\n469\n68"
+    "clicks": [
+      "generateSummary()"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"customCount\":\"42\",\"inputText\":\"1\\n2\\n3\",\"sentenceCount\":\"5\"}，输出区含「社会的方方面面。\n5\n14\n5\n469\n68」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "expect": [
+      "14\n14\n469\n0%"
+    ],
+    "ref": "全部 14 句入选 ⇒ 统计卡为「原文句数 14 / 摘要句数 14 / 字符数 469 / 压缩率 0%」；默认 3 句（legacy）/ 5 句（fidelity）时摘要句数非 14、压缩率非 0% ⇒ 该串不出现。原 B 类用例的 expect 是示例文本自身在 5 句下的统计（boot 的 loadExample 会重置 inputText，注入文本永不生效）⇒ 默认态命中，已改。"
   },
   {
     "slug": "it/svg-placeholder-generator",
@@ -7380,10 +7388,10 @@ const CASES = [
   },
   {
     slug: "it/decimal-encode",
-    inputs: { input: "Hi", sep: "" },
+    inputs: { input: "Az", sep: "" },
     clicks: ["enc();"],
-    expect: ["072105"],
-    ref: "IT-N310：无分隔符时必须用定长 3 位（H=072、i=105 ⇒ 072105）才能反向还原；旧实现 join('') 得 72105，解码端无法还原。默认输出为空格分隔的 72 105，不命中。",
+    expect: ["065122"],
+    ref: "IT-N310：无分隔符时必须用定长 3 位（A=065、z=122 ⇒ 065122）才能反向还原；旧实现 join('') 得 65122，解码端无法还原。改用 Az：legacy 桩把 `<option value=' '>` 的默认分隔符 trim 成空串，与 sep='' 等价 ⇒ 原注入态与默认态输出完全相同（逃生）；默认正文的码点串不含 065122 ⇒ 不命中。",
   },
   {
     slug: "it/c-string-escape",
@@ -7821,9 +7829,10 @@ const CASES = [
   },
   {
     slug: "it/number-base-converter",
-    inputs: { inputValue: "0x10", inputBase: "10" },
-    expect: ["无效"],
-    ref: "十进制分支必须只认 0-9：BigInt('0x10') 会按 JS 字面量规则算成 16，导致十进制模式悄悄接受十六进制前缀，而十六进制模式又把 '0x10' 判为非法（两条路径自相矛盾）。默认空输入显示 '-'，不命中「无效」。",
+    inputs: { batchInput: "0x10\n10", batchFrom: "10", batchTo: "2" },
+    clicks: ["doBatchConvert()"],
+    expect: ["无效 1010"],
+    ref: "十进制分支必须只认 0-9：BigInt('0x10') 会按 JS 字面量规则算成 16，导致十进制模式悄悄接受十六进制前缀，而十六进制模式又把 '0x10' 判为非法（两条路径自相矛盾）⇒ 批量十进制→二进制须输出「无效 1010」。改走批量分支：legacy 桩把 `<option value='5' selected>` 误解析为首个 option（inputBase=2），255 在二进制非法 ⇒ 默认态同样输出「无效」（逃生）。",
   },
   {
     slug: "it/integer-base-converter",
