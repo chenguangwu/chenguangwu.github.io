@@ -340,6 +340,20 @@ function calc(){
     }
   }
 
+  // 非早晨时段统一做高湿判定：温度优先，高湿仅追加短时排湿建议
+  if(period !== 'morning' && humidity > 85){
+    if(action === 'down'){
+      advice += ' 湿度偏高（'+humidity+'%），可在午后温度较高时短时通风排湿 15–30 分钟，避免棚内结露。';
+    } else if(action === 'maintain'){
+      action = 'up';
+      urgency = 'warn';
+      reason = '温度'+inTemp+'℃在合理范围，但湿度'+humidity+'%偏高，需短时通风排湿。';
+      advice = '短时卷膜排湿 15–30 分钟，之后视温度回落情况放膜。';
+    } else {
+      advice += ' 湿度偏高（'+humidity+'%），通风同时注意排湿，避免结露。';
+    }
+  }
+
   // 风速修正
   if(wind >= 5 && action === 'up'){
     advice += ' 注意：大风天气(5级以上)卷膜需谨慎，建议只卷顶部小口，避免大风损坏棚膜。';
@@ -386,12 +400,12 @@ function calc(){
   html += '</ul>';
   html += '</div>';
   const __g1=html;ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
+  lastRollingText='大棚卷膜建议：\n时段：'+({morning:'上午',noon:'中午',afternoon:'下午',night:'夜间'}[period])+'\n棚内温度：'+inTemp+'℃（目标 '+targetTemp+'℃，作物耐温上限 '+cropMax+'℃）\n棚内湿度：'+humidity+'%\n结论：'+actionText+'\n原因：'+reason+'\n操作：'+advice;
 }
+var lastRollingText='';
 function copyResult(){
-  var inTemp=+document.getElementById('inTemp').value||0;
-  var period=document.getElementById('timePeriod').value;
-  var periodText={morning:'上午',noon:'中午',afternoon:'下午',night:'夜间'}[period];
-  ToolBox.copyText('大棚卷膜建议：\n时段：'+periodText+'\n棚内温度：'+inTemp+'℃\n建议：'+(inTemp>32?'紧急卷膜通风':inTemp>28?'建议卷膜通风':'保持现状'), i18nText('msg381'));
+  if(!lastRollingText){ToolBox.showToast(i18nText('toast.copy_target_missing'),'warning');return;}
+  ToolBox.copyText(lastRollingText, i18nText('msg381'));
 }
 calc();
 </script>

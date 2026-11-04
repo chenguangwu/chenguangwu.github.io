@@ -180,7 +180,7 @@ s.parentNode.insertBefore(el, s);
     <div id="harvest_plannerDiff"></div>
     <div id="harvest_plannerChart"></div>
     <div id="harvest_plannerHist"></div>
-<div id="chartWrap" style="display:none;"><div class="chart-container"><canvas id="chart"></canvas></div></div>
+<div id="chartWrap" style="display:none;"><h3 style="font-size:14px;margin:12px 0 8px;">📈 每日累计收获进度（按工期均分）</h3><div class="chart-container"><canvas id="chart"></canvas></div></div>
 </div>
 <div id="tab-guide" class="tab-content">
 <div class="ref-card"><h4>📐 收获效率计算</h4><p><strong>人工日收获量(亩/人/天)</strong> = 每天工作小时 × 每小时收获效率</p><p><strong>所需劳动力(人)</strong> = 总面积 ÷ (人工日收获量 × 天数)</p><p><strong>机械作业效率</strong>：联合收割机一般5-15亩/小时</p></div>
@@ -369,17 +369,30 @@ $('chartWrap').style.display='block';drawGantt(days);
 function drawGantt(days){
 var c=$('chart'),ctx=c.getContext('2d'),ct=c.parentElement;c.width=ct.clientWidth;c.height=ct.clientHeight;
 var w=c.width,h=c.height;ctx.clearRect(0,0,w,h);
-var pad={top:20,right:20,bottom:40,left:50},cw=w-pad.left-pad.right,ch=h-pad.top-pad.bottom;
-ctx.strokeStyle='rgba(128,128,128,0.15)';ctx.font='11px sans-serif';ctx.fillStyle=resolveCanvasColor('var(--text-muted)','#6B7280');
-for(var i=0;i<=days;i++){var x=pad.left+(cw*i/days);ctx.beginPath();ctx.moveTo(x,pad.top);ctx.lineTo(x,h-pad.bottom);ctx.stroke();ctx.textAlign='center';ctx.fillText('第'+(i+1)+'天',x,h-pad.bottom+16);}
-var colors=['var(--primary)','#4caf50','#ff9800'];
-var items=['收割','运输','晾晒'];
-items.forEach(function(item,row){var y=pad.top+ch*(row+0.2)/3;var bh=ch*0.2;ctx.fillStyle=colors[row];var wd=cw*((row===2)?1:0.9);ctx.fillRect(pad.left+(row>0?cw*0.1:0),y,wd,bh);ctx.fillStyle='#fff';ctx.font='11px sans-serif';ctx.textAlign='left';ctx.fillText(item,pad.left+8,y+bh/2+4);});
+var pad={top:28,right:20,bottom:40,left:50},cw=w-pad.left-pad.right,ch=h-pad.top-pad.bottom;
+var area=parseFloat($('area').value)||0;
+var dailyArea=days>0?area/days:0;
+var textColor=resolveCanvasColor('var(--text-muted)','#6B7280');
+var accent=resolveCanvasColor('var(--primary)','#FF6B35');
+ctx.font='11px sans-serif';
+for(var g=0;g<=2;g++){var gy=pad.top+ch*g/2;ctx.strokeStyle='rgba(128,128,128,0.15)';ctx.beginPath();ctx.moveTo(pad.left,gy);ctx.lineTo(w-pad.right,gy);ctx.stroke();ctx.fillStyle=textColor;ctx.textAlign='right';ctx.fillText((100-g*50)+'%',pad.left-6,gy+4);}
+var slot=cw/Math.max(days,1);
+var labelEvery=Math.max(1,Math.ceil(days/10));
+for(var i=0;i<days;i++){
+  var cum=area>0?(dailyArea*(i+1)/area)*100:0;
+  if(cum>100)cum=100;
+  var bh=ch*cum/100;
+  ctx.fillStyle=accent;
+  ctx.fillRect(pad.left+slot*i+slot*0.15,pad.top+ch-bh,Math.max(slot*0.7,2),bh);
+  if(days<=12||i%labelEvery===0||i===days-1){ctx.fillStyle=textColor;ctx.textAlign='center';ctx.fillText('第'+(i+1)+'天',pad.left+slot*i+slot/2,h-pad.bottom+16);}
 }
-function saveHistory(){var r={time:new Date().toLocaleString('zh-CN'),crop:$('crop').options[$('crop').selectedIndex].text,area:$('area').value,days:$('days').value,method:$('method').options[$('method').selectedIndex].text};var h=getHistory();h.unshift(r);if(h.length>20)h=h.slice(0,20);localStorage.setItem(HK,JSON.stringify(h));}
+ctx.fillStyle=accent;ctx.textAlign='left';ctx.font='12px sans-serif';ctx.fillText('每日累计收获进度',pad.left,16);
+ctx.fillStyle=textColor;ctx.fillText('合计 '+area.toFixed(0)+' 亩 · 日均 '+dailyArea.toFixed(1)+' 亩',pad.left+110,16);
+}
+function saveHistory(){var r={time:new Date().toLocaleString('zh-CN'),crop:$('crop').value,cropName:$('crop').options[$('crop').selectedIndex].text,area:$('area').value,"yield":$('yield').value,days:$('days').value,hours:$('hours').value,laborCost:$('laborCost').value,machineCost:$('machineCost').value,method:$('method').value,methodName:$('method').options[$('method').selectedIndex].text};var h=getHistory();h.unshift(r);if(h.length>20)h=h.slice(0,20);localStorage.setItem(HK,JSON.stringify(h));}
 function getHistory(){try{return JSON.parse(localStorage.getItem(HK)||'[]');}catch(e){return[];}}
-function renderHistory(){var h=getHistory();if(!h.length){$('historyList').innerHTML='<div class="history-empty">暂无历史</div>';return;}const __g7=h.map(function(r,i){return '<div class="history-item" onclick="loadHistory('+i+')"><div class="time">'+r.time+'</div><div class="summary">'+r.crop+' '+r.area+'亩 '+r.days+'天</div><div class="detail">'+r.method+'</div></div>';}).join('');$('historyList').innerHTML=(typeof __g7==='number'?(isFinite(__g7)?__g7:'—'):String(__g7).replace(/Infinity|NaN/g,'—'));}
-function loadHistory(i){switchTab('calc');calc();}
+function renderHistory(){var h=getHistory();if(!h.length){$('historyList').innerHTML='<div class="history-empty">暂无历史</div>';return;}const __g7=h.map(function(r,i){return '<div class="history-item" onclick="loadHistory('+i+')"><div class="time">'+r.time+'</div><div class="summary">'+(r.cropName||'')+' '+r.area+'亩 '+r.days+'天 '+r.hours+'小时/天</div><div class="detail">'+(r.methodName||'')+'</div></div>';}).join('');$('historyList').innerHTML=(typeof __g7==='number'?(isFinite(__g7)?__g7:'—'):String(__g7).replace(/Infinity|NaN/g,'—'));}
+function loadHistory(i){var h=getHistory()[i];if(!h)return;switchTab('calc');if(h.crop!=null&&Array.prototype.some.call($('crop').options,function(o){return o.value===h.crop;}))$('crop').value=h.crop;if(h['yield']!=null)$('yield').value=h['yield'];$('area').value=h.area;$('days').value=h.days;$('hours').value=h.hours;$('laborCost').value=h.laborCost;$('machineCost').value=h.machineCost;$('method').value=h.method;calc();}
 function clearHistory(){if(confirm('清空?')){localStorage.removeItem(HK);renderHistory();}}
 function resetForm(){$('crop').value=0;applyCrop();$('area').value=100;$('days').value=5;$('hours').value=8;$('laborCost').value=150;$('machineCost').value=80;$('method').value='combine';calc();}
 window.addEventListener('resize',function(){if($('chartWrap').style.display!=='none')calc();});

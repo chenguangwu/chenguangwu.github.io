@@ -124,7 +124,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入养殖面积、存栏密度与平均体重，快速估算总存栏数量、总生物量及单位面积产量。">Enter stocking area, density and average body weight to quickly estimate total stock, total biomass and yield per unit area.</p>    <div class="formula-box">
       <div class="formula-title">📐 计算公式 / 原理</div>
       <div class="formula-eq">存栏数 = 面积 × 存栏密度 × 单位换算 × 成活率%；总生物量 = 存栏数 × 平均体重；折算密度 = 存栏数 ÷ 面积</div>
-      <div class="formula-desc">面积先按所选单位归一到平方米（亩 ÷ 666.67、ha ÷ 10 000、㎡ 直用），乘存栏密度得理论存栏，再乘成活率得实际存栏数。总生物量为存栏数 × 平均体重；并把存栏数折算为「只/㎡」与「只/亩」两种密度便于横向比较，辅助养殖场产能与饲料配套规划。</div>
+      <div class="formula-desc">养殖面积一律按平方米（㎡）输入。密度单位选「只/亩」或「只/公顷」时，工具把面积换算成对应单位（1 亩 ≈ 666.67 ㎡、1 公顷 = 10 000 ㎡）后再乘密度，得理论存栏，再乘成活率得实际存栏数。总生物量为存栏数 × 平均体重（平均体重留空时只输出存栏数）；并把存栏数折算为「只/㎡」与「只/亩」两种密度便于横向比较，辅助养殖场产能与饲料配套规划。</div>
     </div>
 
 
@@ -174,12 +174,15 @@ function setInvalid(el,invalid){
   else{el.classList.remove('input-error');el.removeAttribute('aria-invalid');}
 }
 function calc(){
-  var area=getNum('area'), density=getNum('density'), weight=getNum('weight'), survival=getNum('survival');
+  var area=getNum('area'), density=getNum('density'), survival=getNum('survival');
+  var weightRaw=document.getElementById('weight').value.trim();
+  var hasWeight=weightRaw!=='';
+  var weight=hasWeight?getNum('weight'):0;
   var unit=document.getElementById('unit').value;
-  var valid=[area,density,weight,survival].every(function(v){return !isNaN(v)&&v>=0;}) && survival>=0 && survival<=100 && area>0;
+  var valid=[area,density,survival].every(function(v){return !isNaN(v)&&v>=0;}) && survival>=0 && survival<=100 && area>0 && (!hasWeight||(!isNaN(weight)&&weight>=0));
   setInvalid(document.getElementById('area'),isNaN(area)||area<=0);
   setInvalid(document.getElementById('density'),isNaN(density)||density<0);
-  setInvalid(document.getElementById('weight'),isNaN(weight)||weight<0);
+  setInvalid(document.getElementById('weight'),hasWeight&&(isNaN(weight)||weight<0));
   setInvalid(document.getElementById('survival'),isNaN(survival)||survival<0||survival>100);
   if(!valid){document.getElementById('res').innerHTML='<p style="color:var(--error);">请填写有效的参数。</p>';return;}
   var areaFactor={m2:1,mu:1/666.67,ha:1/10000}[unit];
@@ -187,16 +190,21 @@ function calc(){
   var biomass=totalHead*weight;
   var densityM2=totalHead/area;
   var densityMu=densityM2*666.67;
-  const __g2='<div class="data-grid">'+
+  var html='<div class="data-grid">'+
     '<div class="data-card"><div class="num">'+totalHead.toFixed(0)+'</div><div class="label">估算存栏数量（只）</div></div>'+
-    '<div class="data-card"><div class="num">'+biomass.toFixed(2)+'</div><div class="label">总生物量（kg）</div></div>'+
+    (hasWeight?'<div class="data-card"><div class="num">'+biomass.toFixed(2)+'</div><div class="label">总生物量（kg）</div></div>':'')+
     '<div class="data-card"><div class="num">'+densityM2.toFixed(2)+'</div><div class="label">折算密度（只/㎡）</div></div>'+
     '<div class="data-card"><div class="num">'+densityMu.toFixed(2)+'</div><div class="label">折算密度（只/亩）</div></div>'+
-    '</div>'+
-    '<div class="data-grid" style="margin-top:8px;">'+
-    '<div class="data-card"><div class="num">'+(biomass/area).toFixed(3)+'</div><div class="label">单位面积生物量（kg/㎡）</div></div>'+
-    '<div class="data-card"><div class="num">'+((biomass/area)*666.67).toFixed(2)+'</div><div class="label">单位面积生物量（kg/亩）</div></div>'+
-    '</div>';document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+    '</div>';
+  if(hasWeight){
+    html+='<div class="data-grid" style="margin-top:8px;">'+
+      '<div class="data-card"><div class="num">'+(biomass/area).toFixed(3)+'</div><div class="label">单位面积生物量（kg/㎡）</div></div>'+
+      '<div class="data-card"><div class="num">'+((biomass/area)*666.67).toFixed(2)+'</div><div class="label">单位面积生物量（kg/亩）</div></div>'+
+      '</div>';
+  }else{
+    html+='<div class="tip-box tip-info" style="margin-top:8px;">未填写平均体重，仅输出存栏数量与折算密度；填写体重后可同时估算总生物量。</div>';
+  }
+  document.getElementById('res').innerHTML=(typeof html==='number'?(isFinite(html)?html:'—'):String(html).replace(/Infinity|NaN/g,'—'));
   saveHistory();
 }
 function copyRes(){
@@ -370,8 +378,8 @@ function __estimate_area_densityPresets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#estimate_area_densityPresets',[{label:'默认参数',labelEn:'Default',values:{'area':'2000', 'unit':'m2', 'density':'8', 'weight':'2.5', 'survival':'95'}},
   {"label":"蛋鸡 1000㎡ 6 只/㎡","labelEn":"Layers 1000m2 at 6/m2","values":{"area":1000,"unit":"m2","density":6,"weight":1.8,"survival":92}},
-  {"label":"育肥猪 50 亩 100 头/亩","labelEn":"Fattening pigs 50mu","values":{"area":50,"unit":"mu","density":100,"weight":90,"survival":96}},
-  {"label":"鱼塘 2 公顷 8000 尾/公顷","labelEn":"Fish pond 2ha","values":{"area":2,"unit":"ha","density":8000,"weight":0.8,"survival":88}}],function(){ calc(); });
+  {"label":"育肥猪 50 亩 100 头/亩","labelEn":"Fattening pigs 50mu","values":{"area":33333.5,"unit":"mu","density":100,"weight":90,"survival":96}},
+  {"label":"鱼塘 2 公顷 8000 尾/公顷","labelEn":"Fish pond 2ha","values":{"area":20000,"unit":"ha","density":8000,"weight":0.8,"survival":88}}],function(){ calc(); });
 }
 var __estimate_area_density_f0=(typeof calc==='function')?calc:null;
 if(__estimate_area_density_f0){

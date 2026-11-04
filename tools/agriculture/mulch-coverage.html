@@ -126,7 +126,7 @@ s.parentNode.insertBefore(el, s);
         <div class="formula-box">
       <div class="formula-title">📐 计算公式 / 原理</div>
       <div class="formula-eq">有效膜宽 = (膜宽 − 搭接量) ÷ 100 (m)；铺膜行数 = ⌊地块宽(cm) ÷ 行距(cm)⌋；覆盖率 = 覆盖面积 ÷ 地块面积 × 100%；膜重 = 长度 × 膜宽(m) × 厚度(m) × 密度 0.92 g/cm³</div>
-      <div class="formula-desc">铺膜行数按地块宽度除以行距向下取整，与「地宽 ÷ 有效膜宽」取较大值以满足最小铺设需求；总膜长 = 行数 × 地块长度。覆盖面积 = 总膜长 × 有效膜宽，除以地块面积得覆盖率。地膜重量按 PE 密度约 0.92 g/cm³ 由长 × 宽 × 厚折算，用于采购数量与成本估算。</div>
+      <div class="formula-desc">铺膜行数按地块宽度除以行距向下取整；总膜长 = 行数 × 地块长度。理论上限覆盖面积 = 总膜长 × 有效膜宽，但实际覆盖面积不超过地块面积，超出部分计为「重叠/重复覆盖」不重复计入覆盖率。地膜重量按 PE 密度约 0.92 g/cm³ 由长 × 宽 × 厚折算，用于采购数量与成本估算。</div>
     </div>
 <div class="input-row">
       <label>地块长度(m)</label>
@@ -250,17 +250,15 @@ function calc(){
   var effectiveFilmWid = (filmWid - overlap) / 100; // 有效覆盖宽度(m)
   if(effectiveFilmWid<=0){ ToolBox.setResult('result','<p style="color:var(--danger);">搭接量过大，有效覆盖宽度为0</p>'); return; }
 
-  // 覆盖行数 = 地块宽度 / 行距
+  // 覆盖行数 = 地块宽度 / 行距（行数决定实际用膜量）
   var rows = rowSpacing>0 ? Math.floor((landWid*100) / rowSpacing) : Math.floor(landWid / effectiveFilmWid);
-  var coverRows = Math.max(rows, Math.floor(landWid / effectiveFilmWid));
-  
-  // 实际铺设行数（取行距计算和直接铺设计算的较大值）
-  var actualRows = rowSpacing>0 ? Math.floor((landWid*100)/rowSpacing) : Math.floor(landWid/effectiveFilmWid);
-  if(actualRows<1) actualRows = 1;
+  if(rows<1) rows = 1;
 
-  var filmLength = actualRows * landLen; // 总地膜长度(m)
-  var coverArea = filmLength * effectiveFilmWid; // 实际覆盖面积(m²)
+  var filmLength = rows * landLen; // 总地膜长度(m)
+  var coverAreaRaw = filmLength * effectiveFilmWid; // 铺设面积(m²，含重叠)
+  var coverArea = Math.min(coverAreaRaw, landArea); // 实际地面覆盖面积不超过地块面积
   var coverageRate = (coverArea / landArea) * 100;
+  var overlapRate = coverAreaRaw>0 ? Math.max(0,(coverAreaRaw-landArea)/coverAreaRaw*100) : 0;
 
   // 地膜用量计算: 体积 = 长度 × 宽度 × 厚度
   // PE膜密度约 0.92 g/cm³
@@ -270,7 +268,7 @@ function calc(){
 
   var html = '<div class="data-grid">';
   html += '<div class="data-card"><div class="num">'+landMu.toFixed(2)+'</div><div class="label">地块面积(亩)</div></div>';
-  html += '<div class="data-card"><div class="num">'+actualRows+'</div><div class="label">铺设行数</div></div>';
+  html += '<div class="data-card"><div class="num">'+rows+'</div><div class="label">铺设行数</div></div>';
   html += '<div class="data-card"><div class="num">'+filmLength.toFixed(0)+'</div><div class="label">地膜总长(m)</div></div>';
   html += '<div class="data-card"><div class="num" style="color:var(--primary);">'+filmWeight.toFixed(1)+'</div><div class="label">地膜用量(kg)</div></div>';
   html += '</div>';
@@ -278,6 +276,7 @@ function calc(){
   html += '<div class="data-grid" style="margin-top:4px;">';
   html += '<div class="data-card"><div class="num">'+coverArea.toFixed(0)+'</div><div class="label">覆盖面积(m²)</div></div>';
   html += '<div class="data-card"><div class="num">'+coverageRate.toFixed(1)+'%</div><div class="label">覆盖率</div></div>';
+  html += '<div class="data-card"><div class="num">'+overlapRate.toFixed(1)+'%</div><div class="label">重叠/重复覆盖</div></div>';
   html += '<div class="data-card"><div class="num">'+filmWeightPerMu.toFixed(2)+'</div><div class="label">亩均用量(kg/亩)</div></div>';
   html += '<div class="data-card"><div class="num">'+effectiveFilmWid.toFixed(2)+'</div><div class="label">有效膜宽(m)</div></div>';
   html += '</div>';
@@ -286,6 +285,7 @@ function calc(){
 
   var tipType = coverageRate>=80?'tip-success':coverageRate>=50?'tip-info':'tip-warn';
   var tipContent = coverageRate>=80?'覆盖率高，增温保墒效果显著。':coverageRate>=50?'覆盖率适中，可根据需要调整行距。':'覆盖率偏低，建议缩小行距或加宽地膜。';
+  if(overlapRate>0) tipContent += ' 当前行距小于有效膜宽，约 '+overlapRate.toFixed(1)+'% 的膜材为重叠铺设，地面覆盖率已按不超过 100% 计。';
   html += '<div class="tip-box '+tipType+'" style="margin-top:12px;">'+tipContent+'</div>';
 
   html += '<div class="tip-box tip-info" style="margin-top:10px;">';
@@ -305,10 +305,15 @@ function copyResult(){
   var overlap=+document.getElementById('overlap').value||0;
   var landMu=landLen*landWid/666.67;
   var effectiveFilmWid=(filmWid-overlap)/100;
-  var actualRows=rowSpacing>0?Math.floor((landWid*100)/rowSpacing):Math.floor(landWid/effectiveFilmWid);
-  var filmLength=actualRows*landLen;
+  var rows=rowSpacing>0?Math.floor((landWid*100)/rowSpacing):Math.floor(landWid/effectiveFilmWid);
+  if(rows<1)rows=1;
+  var filmLength=rows*landLen;
   var filmWeight=filmLength*(filmWid/100)*(filmThk/1000000)*920;
-  ToolBox.copyText('地膜覆盖计算：\n地块面积：'+landMu.toFixed(2)+'亩\n铺设行数：'+actualRows+'\n地膜总长：'+filmLength.toFixed(0)+'m\n地膜用量：'+filmWeight.toFixed(1)+'kg', i18nText('toast.msg544'));
+  var landArea=landLen*landWid;
+  var coverAreaRaw=filmLength*effectiveFilmWid;
+  var coverageRate=landArea>0?Math.min(coverAreaRaw,landArea)/landArea*100:0;
+  var overlapRate=coverAreaRaw>0?Math.max(0,(coverAreaRaw-landArea)/coverAreaRaw*100):0;
+  ToolBox.copyText('地膜覆盖计算：\n地块面积：'+landMu.toFixed(2)+'亩\n铺设行数：'+rows+'\n地膜总长：'+filmLength.toFixed(0)+'m\n地膜用量：'+filmWeight.toFixed(1)+'kg\n覆盖率：'+coverageRate.toFixed(1)+'%\n重叠/重复覆盖：'+overlapRate.toFixed(1)+'%', i18nText('toast.msg544'));
 }
 calc();
 </script>
