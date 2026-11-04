@@ -225,9 +225,9 @@ const CASES = [
       "r": "42"
     },
     "expect": [
-      "42\nnone\n42\n17.64 企业所得税额 24.36 税后利润 42"
+      "17.64 企业所得税额 24.36 税后利润"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"profit\":\"42\",\"r\":\"42\"}，输出区含「42\\nnone\\n42\\n17.64 企业所得税额 24.36 税后利润 42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。⚠ 2026-10-26 优惠口径开关批次：在 profit/r 之间插入 citOpt select，值序列锚被 'none' 打断 → 同批改锚（citOpt=none 进 blob 序列）。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"profit\":\"42\",\"r\":\"42\"}，企业所得额=42×0.42=17.64、税后=24.36；默认 1000000/25→250000.00/750000.00，零交集。⚠ 2026-11-05 空态守卫批次：__tbReq 先取 profit/r 会改变 elements 登记顺序，原锚串「42\\nnone\\n42\\n…」失效，改为只锚结果区文本（不依赖输入回读顺序）。"
   },
   {
     "slug": "tax/customs-duty",
@@ -587,6 +587,42 @@ const CASES = [
     inputs: { base: "", r: "" },
     expect: ["请填写「计税余值」后再计算。"],
     ref: "空态守卫：首项 base 不合规 ⇒ 提示计税余值；默认 800000/1.2 不触发。" },
+
+  // ---- 空态守卫 batch2（2026-11-05，apply_tax_req_guard.py --all）----
+  { slug: "tax/sales-tax-addon",
+    inputs: { price: "", r: "" },
+    expect: ["请填写「不含税价格」后再计算。"],
+    ref: "空态守卫：首项 price 不合规 ⇒ 提示不含税价格；默认 100/5 不触发。" },
+
+  { slug: "tax/social-security-tax",
+    inputs: { b: "", r: "" },
+    expect: ["请填写「缴费基数」后再计算。"],
+    ref: "空态守卫：首项 b 不合规 ⇒ 提示缴费基数；默认 10000/0.18 不触发。" },
+
+  { slug: "tax/specific-duty",
+    inputs: { q: "", u: "" },
+    expect: ["请填写「应税数量」后再计算。"],
+    ref: "空态守卫：首项 q 不合规 ⇒ 提示应税数量；默认 100/5 不触发。" },
+
+  { slug: "tax/tax-on-discount",
+    inputs: { price: "", disc: "", r: "" },
+    expect: ["请填写「原价」后再计算。"],
+    ref: "空态守卫：首项 price 不合规 ⇒ 提示原价；默认 200/20/13 不触发。" },
+
+  { slug: "tax/vat-from-exclusive",
+    inputs: { ex: "", r: "" },
+    expect: ["请填写「不含税金额」后再计算。"],
+    ref: "空态守卫：首项 ex 不合规 ⇒ 提示不含税金额；默认 100/13 不触发。" },
+
+  { slug: "tax/withholding-tax",
+    inputs: { payment: "", r: "" },
+    expect: ["请填写「支付额」后再计算。"],
+    ref: "空态守卫：首项 payment 不合规 ⇒ 提示支付额；默认 100000/10 不触发。" },
+
+  { slug: "tax/corporate-income-tax",
+    inputs: { profit: "", r: "" },
+    expect: ["请填写「应纳税所得额」后再计算。"],
+    ref: "空态守卫：判据锚定文本输入 profit 为空（citOpt=select 保留默认 none 不算未清空）；首项不合规即提示应纳税所得额；默认 1000000/25 不触发。" },
 
 
 ];

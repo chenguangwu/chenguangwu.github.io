@@ -28,7 +28,7 @@ BATCH1 = [
 ]
 BATCH2 = [
     "sales-tax-addon", "social-security-tax", "specific-duty", "tax-on-discount",
-    "vat-from-exclusive", "withholding-tax",
+    "vat-from-exclusive", "withholding-tax", "corporate-income-tax",
 ]
 
 HELPER = (
