@@ -251,13 +251,45 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 const puzzles=[
-  {letters:'listen',valid:['listen','silent','enlist','tinsel','inlets','lints','lines','lent','line','site','sin','tin','let','tie','net','ten','ice','its']},
-  {letters:'triangle',valid:['triangle','integral','relating','alerting','altering','angle','angel','large','regal','tangle','integral','gelatin']},
-  {letters:'painter',valid:['painter','repaint','pertain','retain','paint','train','print','rain','pain','ant','art','tan','rat','par','pan']},
-  {letters:'teacher',valid:['teacher','cheater','hectare','teach','cheat','crate','create','react','trace','heart','earth','hate','tea','eat','cat','rat','art']},
-  {letters:'garden',valid:['garden','danger','gander','grade','gran','rand','range','gear','rage','near','dare','dear','aged','rage','age','are','ear','era']}
+  {letters:'listen'},
+  {letters:'triangle'},
+  {letters:'painter'},
+  {letters:'teacher'},
+  {letters:'garden'}
 ];
-let cur,found,score;
+// 内置常用英文词库（3–8 字母），用于校验玩家提交的单词
+const DICT=('listen silent enlist tinsel inlets lints lines line site sin tin let tie net ten its lie lies nest nets sent sits slit slits list lists lent lens tile tiles isle inlet lint nil nit sit lit ties sine set '+
+'triangle integral relating alerting altering angle angel large regal tangle gelatin rail trail trial train grain rating tear rate late tale tile tire rite air art ear eat tea rat tar tan nag gain inlet entail align angler line nail rent near neat tier lean lane '+
+'painter repaint pertain retain paint train print rain pain ant art tan rat par pan inert pirate retina part near neat rent parent rip pit tip nap rap tar ear eat tea net ten tie air ire ate ape apt tear rate care race '+
+'teacher cheater hectare teach cheat crate create react trace heart earth hate tea eat cat rat art each ache hare hear rate care race cart chart reach cheer three her the era are car act ate hat tech arch tear '+
+'garden danger gander grade grand range gear rage near dare dear aged age are ear era den end red rag ran read darn drag anger grade '+
+'able about above add after again air all also and any are arm art ask away back bad bag ball band bank bar base bat bath be beach bear beat bed bee been before began begin behind being bell belt bend best bet better between big bike bill bird bit black block blue board boat body book born both box boy bring brown build bus but buy call came can car care carry case cat catch cause cell center chair chance change check child choose city class clean clear climb close club cold come cook cool copy corn cost could count cover cross cup cut dance dark day deep did die do dog door down draw dream dress drink drive drop dry during each ear early earth east easy eat edge egg eight end enough even ever every eye face fact fall family far farm fast father feel feet few field fight fill find fine fire first fish five flat floor fly food foot for force form four free fresh friend from front fruit full fun game garden gas gave get girl give glad glass go gold good got great green grow had hair half hand happy hard has hat have he head hear heart heat help her here high hill him his hit hold home hope horse hot hour house how hundred ice idea if in inch into is it job join joy jump just keep key kid kill kind king know land large last late laugh lay lead learn leave left leg less let letter lie life light like line list listen little live long look lose lot love low made make man many map mark may me mean meet men middle might mile milk mind miss more morning most mother move much music must my name near need never new next night nine no noon nose not note now number of off often old on once one only open or other our out over own page paint paper part pass past pay people per pick picture piece place plan plant play point poor power press pretty pull push put question quick quiet race rain raise ran read ready real red rest rich ride right ring rise river road rock roll room round run said sail salt same save saw say school sea second see seem self sell send sense set seven shall she ship shoe short should show side sing sister sit six size sky sleep slow small smile snow so soft some song soon sound speak speed spell spend stand star start stay step still stone stop store story street strong study such sun sure take talk tall teach team tell ten test than that the their them then there these they thing think this those three through time to today together too took top town train tree true try turn two under until up upon us use very wait walk want warm was watch water way we wear week well went were what when where which while white who whole why wide will wind window wish with word work world would write year yellow yes yet you young '+
+'father mother brother sister teacher student doctor driver worker farmer singer dancer player writer reader runner winner '+
+'orange apple grape lemon peach melon berry olive onion carrot potato tomato pepper '+
+'circle square triangle rectangle hexagon diamond '+
+'animal flower forest garden river ocean beach mountain valley desert island '+
+'winter spring summer autumn season weather sunny cloudy windy rainy snowy '+
+'number letter word story music movie game sport chess piano guitar violin drum '+
+'market money price shop store trade sell buy cost value profit '+
+'light color black white green blue red yellow brown pink purple orange '+
+'begin finish follow answer question problem solution idea reason result '+
+'create design build break open close start end turn move place change '+
+'friend family people person child adult baby man woman boy girl '+
+'good better best bad worse worst big bigger small smaller long longer short shorter '+
+'one two three four five six seven eight nine ten eleven twelve '+
+'monday tuesday wednesday thursday friday saturday sunday').split(/\s+/);
+let cur,curValid,found,score;
+
+// 判断单词能否由给定字母（含重复字母计数）拼出
+function canSpell(word,letters){
+  const pool=letters.split('');
+  for(let i=0;i<word.length;i++){
+    const idx=pool.indexOf(word[i]);
+    if(idx<0)return false;
+    pool.splice(idx,1);
+  }
+  return true;
+}
 
 function start(){
   reset();
@@ -271,10 +303,11 @@ function reset(){
 }
 function newRound(){
   cur=puzzles[Math.floor(Math.random()*puzzles.length)];
+  curValid=[...new Set(DICT.filter(w=>w.length>=3&&canSpell(w,cur.letters)))];
   found=new Set();
   score=0;
   document.getElementById('baseWord').textContent=cur.letters.toUpperCase();
-  const __h0=`<p>用这些字母造出英文单词（至少 3 个字母）</p>`;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h0;
+  const __h0=`<p>用这些字母造出英文单词（至少 3 个字母，来自内置常用词库）</p>`;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h0;
   document.getElementById('answer').focus();
 }
 function check(){
@@ -288,8 +321,12 @@ function check(){
     const __h2='<p style="color:var(--text-muted);">已经找过这个单词</p>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h2;
     return;
   }
-  if(!cur.valid.includes(v)){
-    const __h3='<p style="color:var(--danger);">不在答案列表中（或非有效单词）</p>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h3;
+  if(!canSpell(v,cur.letters)){
+    const __h3='<p style="color:var(--danger);">无法由这些字母拼出（请检查字母及重复次数）</p>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h3;
+    return;
+  }
+  if(!curValid.includes(v)){
+    const __h3b='<p style="color:var(--danger);">不在内置词库中，或不是该字母组的常见单词</p>';if((typeof __h3b==='number'&&!isFinite(__h3b))||/Infinity/.test(String(__h3b))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3b)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h3b;
     return;
   }
   found.add(v);
@@ -298,7 +335,7 @@ function check(){
   document.getElementById('foundList').textContent='已找：'+[...found].map(w=>w.toUpperCase()).join(', ');
   document.getElementById('answer').value='';
   document.getElementById('answer').focus();
-  if(found.size===cur.valid.filter(w=>w.length>=3).length){
+  if(found.size===curValid.length){
     const __h5='<p>🎉 全部找到！</p>';if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h5;
   }
 }

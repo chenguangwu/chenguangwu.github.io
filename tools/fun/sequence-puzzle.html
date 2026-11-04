@@ -254,45 +254,69 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 function genPuzzle(){
-  const types=['arith','geom','square','fib','alt','interleave'];
+  const types=['arith','geom','square','cube','fib','prime','factorial','alt','interleave'];
   const t=types[Math.floor(Math.random()*types.length)];
-  let seq=[],ans;
+  let seq=[],ans,why='';
   if(t==='arith'){
     const a=Math.floor(Math.random()*20)+1;
     const d=Math.floor(Math.random()*9)+2;
     for(let i=0;i<5;i++)seq.push(a+d*i);
     ans=a+d*5;
+    why='等差数列：相邻两项之差恒为 '+d+'。';
   }else if(t==='geom'){
     const a=Math.floor(Math.random()*3)+1;
     const r=Math.floor(Math.random()*2)+2;
     for(let i=0;i<5;i++)seq.push(a*Math.pow(r,i));
     ans=a*Math.pow(r,5);
+    why='等比数列：相邻两项之比恒为 '+r+'。';
   }else if(t==='square'){
     const a=Math.floor(Math.random()*5)+1;
     for(let i=0;i<5;i++)seq.push(Math.pow(a+i,2));
     ans=Math.pow(a+5,2);
+    why='平方数列：依次为 '+(a)+'²、'+(a+1)+'²……下一项是 '+(a+5)+'²。';
+  }else if(t==='cube'){
+    const a=Math.floor(Math.random()*5)+1;
+    for(let i=0;i<5;i++)seq.push(Math.pow(a+i,3));
+    ans=Math.pow(a+5,3);
+    why='立方数列：依次为 '+(a)+'³、'+(a+1)+'³……下一项是 '+(a+5)+'³。';
   }else if(t==='fib'){
     let a=Math.floor(Math.random()*5)+1,b=a+Math.floor(Math.random()*3)+1;
     seq=[a,b];
     for(let i=0;i<3;i++){const c=a+b;seq.push(c);a=b;b=c;}
     ans=a+b;
+    why='斐波那契式：每项等于前两项之和。';
+  }else if(t==='prime'){
+    const PRIMES=[2,3,5,7,11,13,17,19,23,29,31,37,41,43,47];
+    const s=Math.floor(Math.random()*10);
+    for(let i=0;i<5;i++)seq.push(PRIMES[s+i]);
+    ans=PRIMES[s+5];
+    why='连续质数：只能被 1 和自身整除的数依次排列。';
+  }else if(t==='factorial'){
+    const s=Math.floor(Math.random()*3)+1;
+    let f=1;
+    for(let i=1;i<s;i++)f*=i;
+    for(let i=s;i<s+5;i++){f*=i;seq.push(f);}
+    ans=f*(s+5);
+    why='阶乘数列：依次为 '+(s)+'!、'+(s+1)+'!……下一项是 '+(s+5)+'!。';
   }else if(t==='alt'){
     const a=Math.floor(Math.random()*10)+1;
     const b=Math.floor(Math.random()*10)+20;
     for(let i=0;i<3;i++){seq.push(a+i);seq.push(b+i);}
     ans=a+3;
+    why='交替数列：奇数位与偶数位各自按 +1 递增。';
   }else{
     const a1=Math.floor(Math.random()*10)+1,d1=Math.floor(Math.random()*3)+1;
     const a2=Math.floor(Math.random()*10)+20,d2=Math.floor(Math.random()*3)+1;
     for(let i=0;i<3;i++){seq.push(a1+d1*i);seq.push(a2+d2*i);}
     ans=a1+d1*3;
+    why='双序列交错：第 1、3、5 项等差，第 2、4、6 项另成等差，答案取下一奇数位。';
   }
   const opts=new Set([ans]);
   while(opts.size<4){
     const off=(Math.random()<0.5?-1:1)*(Math.floor(Math.random()*8)+1);
     if(off!==0&&ans+off>0)opts.add(ans+off);
   }
-  return{seq:seq.map(n=>n.toString()).join(' , ')+' , ?',opts:[...opts].sort(()=>Math.random()-0.5),ans};
+  return{seq:seq.map(n=>n.toString()).join(' , ')+' , ?',opts:[...opts].sort(()=>Math.random()-0.5),ans,why};
 }
 let qNo,score,cur;
 
@@ -331,15 +355,18 @@ function next(){
 function choose(o,el){
   const opts=document.querySelectorAll('.opt');
   opts.forEach(b=>b.onclick=null);
+  const out=document.getElementById('output');
   if(o===cur.ans){
     el.classList.add('correct');
     score++;
+    out.innerHTML='<p style="color:#10B981;">✅ 正确！规律：'+cur.why+'</p>';
   }else{
     el.classList.add('wrong');
     opts.forEach(b=>{if(parseInt(b.textContent)===cur.ans)b.classList.add('correct');});
+    out.innerHTML='<p style="color:#EF4444;">❌ 正确答案是 '+cur.ans+'。规律：'+cur.why+'</p>';
   }
   document.getElementById('score').textContent=score;
-  setTimeout(next,1000);
+  setTimeout(next,o===cur.ans?1000:2200);
 }
 function finish(){
   document.getElementById('seq').textContent='🏁 完成！';
