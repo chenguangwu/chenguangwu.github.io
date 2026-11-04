@@ -45,3 +45,10 @@
 | `tools/psychiatry/cdrisc-resilience.html` | CD-RISC-10（Campbell-Sills & Stein 2007, J Trauma Stress 20:1019-1028；原版 25 项为 Connor & Davidson 2003） | 无 | CD-RISC-10 仍为现行简版（0–40） |
 | `tools/obstetrics/kupperman-score.html` | 改良 Kupperman（Kupperman 1953, J Clin Endocrinol Metab 13:688-703；13 项加权、权重和 21、满分 63） | 无 | 改良 13 项加权法仍为国内围绝经期常用评分 |
 | `tools/healthcare/antipyretic-dose.html` | 对乙酰氨基酚儿童退热剂量（单次 10–15 mg/kg q4–6h，每日上限 60 mg/kg/d） | 无 | 每日上限 60 mg/kg/d；布洛芬对照 ≤40 mg/kg/d |
+| `tools/neurology/adas-cog.html` | ADAS-Cog（Rosen 1984；原版 11 项、满分 70） | 无 | ADAS-Cog 11 项仍为阿尔茨海默病认知评估常用版本（已删除页面多出的第 12 项） |
+| `tools/neurology/twstrs.html` | TWSTRS（Consky & Lang 1994；运动子量表 Comella 1997, Mov Disord 12:570-575；严重程度 35 + 失能 30 + 疼痛 20 = 85） | 无 | TWSTRS 原版三子量表仍为现行颈肌张力障碍评分；总分分档为页面自述，原量表未定义 |
+| `tools/neurology/rater-21.html` | 同上（TWSTRS 原版；已按 10+6+3 项、85 分制重写） | 无 | 同上 |
+| `tools/neurology/psqi.html` | PSQI（Buysse 1989, Psychiatry Res 28:193-213；7 组分 0–21，组分 5 为 9 项合计映射） | 无 | PSQI 仍为现行睡眠质量自评量表 |
+| `tools/psychiatry/panSS-schizophrenia.html` | PANSS（Kay 1987, Schizophr Bull 13:261-276；30 项、阳性 7/阴性 7/一般精神病理 16、满分 210） | 无 | PANSS 仍为现行精神分裂症症状量表；总分分档为页面自述 |
+| `tools/psychiatry/rater-23.html` | LSAS（Liebowitz 1987, Mod Probl Pharmacopsychiatry 22:141-173；24 项、恐惧+回避、满分 144） | 无 | LSAS 仍为现行社交焦虑量表；分级切点为页面自述 |
+| `tools/pulmonology/wells-pe.html` | Wells 肺栓塞评分（Wells 2000, Ann Intern Med 132:459-465；三档 <2/2–6/≥7） | 无 | Wells 三档分层仍为现行 PE 临床概率评估 |

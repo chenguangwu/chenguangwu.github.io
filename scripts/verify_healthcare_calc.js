@@ -19,6 +19,12 @@ const CASES = [
   },
   {
     slug: "healthcare/antipyretic-dose",
+    inputs: { weight: "20", dose: "5", conc: "32" },
+    expect: ["日上限次： 6 次"],
+    ref: "日上限次数 = min(floor(60/5)=12, 6) = 6：对乙酰氨基酚日总量 ≤60 mg/kg/d，同时受 q4h 给药间隔约束、24h 最多 6 次；若只按总量反推会得 12 次，与说明书给药间隔矛盾。默认 15kg/15mg/kg 为 4 次，零交集。",
+  },
+  {
+    slug: "healthcare/antipyretic-dose",
     inputs: { weight: "20", dose: "12", conc: "32" },
     expect: ["日上限次： 5 次"],
     ref: "每日上限按对乙酰氨基酚 60 mg/kg/d 反推：日总量上限 = 20×60 = 1200 mg，单次 20×12 = 240 mg ⇒ ⌊1200÷240⌋ = 5 次（旧实现按 75 mg/kg 得 ⌊1500÷240⌋ = 6 次，超过现行上限）。默认 15kg/15mg/kg 输出「日上限次：4 次」，与本用例零交集。",
