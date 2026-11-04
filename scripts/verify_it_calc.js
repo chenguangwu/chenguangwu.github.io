@@ -1506,6 +1506,13 @@ const CASES = [
     ref: "独立复算：两条 JSON 对象 ⇒ 表头 name,age + 2 行 ⇒ 2 行 × 2 列。转换走按钮 ⇒ 必须 clicks。",
   },
   {
+    slug: "it/json-to-csv",
+    inputs: { input: '[{"v":"=cmd|\' /C calc\'!A0"}]' },
+    clicks: ["toCSV()", "document.getElementById('output').value=__jsonToCsvExportSafe"],
+    expect: ["'=cmd|"],
+    ref: "CSV 公式注入回归：导出路径必须给以 = 开头的单元格加单引号；页面原始输出为 \"=cmd|…（无前导单引号），故 expect 的 '=cmd| 只能由安全导出串命中。",
+  },
+  {
     slug: "it/json-to-yaml",
     inputs: { input: '{"a":1}' },
     clicks: ["doYaml()"],
@@ -1580,6 +1587,13 @@ const CASES = [
     inputs: { csvInput: "name,age\nTom,3" },
     expect: ['[{"column1":"name","column2":"age"}'],
     ref: "走「无表头」分支（桩内 checkbox 恒未勾，与真实用户未勾表头一致）⇒ 表头占位列名 column1/column2，产物是整条 JSON 数组。用整条数组做锚避免撞默认样例。",
+  },
+  {
+    slug: "it/csv-to-json",
+    inputs: { jsonInput: '{"v":"=cmd|\' /C calc\'!A0"}' },
+    clicks: ["jsonToCsv()", "document.getElementById('csvOutput').value=csvExportSafe"],
+    expect: ["'=cmd|"],
+    ref: "CSV 公式注入回归：JSON→CSV 的导出串必须给以 = 开头的单元格加单引号；原始预览为 \"=cmd|…（无前导单引号），expect 只能由安全导出串命中。",
   },
   {
     slug: "it/bluetooth-version",

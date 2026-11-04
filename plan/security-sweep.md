@@ -390,3 +390,40 @@
 3. **`document.write` / `innerHTML +=` 残余**：`document.write` 仅 2 页（`ophthalmology/amsler-grid-test.html`、`astigmatism-chart.html`）向新窗口打印报告，备注字段经 `esc()` 转义 → 安全。`innerHTML +=` 多为数值/静态常量拼接；抽查 `it/whitespace`（`escH`）、`medical2/surgery-duration`（`PROCEDURES` 常量）、`clinical-lab/blood-routine-reference`（`DATA` 常量）均无用户输入未转义路径，本批 **0 新命中**。
 4. **CDN 版本锁定复核**：静态 HTML 内共 15 个 jsdelivr/unpkg/cdnjs 标签，**15/15 固定到确切版本、15/15 带 SRI，未固定 0 个**。剩余无法 SRI 的仅为运行时动态下发（pdf.js worker、transformers 模型分片、sql.js wasm、统计 SDK），已在第十节列明。
 5. **密码管理器加密评估**：`manager.html` 的 XOR 密钥由主口令字节循环生成，**密钥不落 localStorage**；localStorage 仅存主口令校验哈希与 XOR 密文。XOR 流对已知明文攻击强度弱，但无固定密钥硬编码、密钥也不在本地持久层 → **接受风险**（页面已有本地演示警示）。
+
+---
+
+## 十六、第七批：AB 安全条目（2026-11-04）
+
+### 16.1 SRI 口径统一（审计线「life 71 页缺 SRI」）
+
+- **统一口径**：只有「静态 HTML 中的跨域 `<script src>`」需要 SRI；自站 `js/*.js`（同源）与运行时动态注入的第三方脚本不在此口径。
+- **全站静态跨域 script 统计**：**需要 SRI 15 个 / 已带 SRI 15 个 / 缺失 0 个**（15/15 固定确切版本，无 `@latest`）。
+- **审计线 71 页的来源**：`tools/life/*` 71 页全部含 TTZZ 统计脚本，但它是构建期写入的内联 JS，运行时用 `document.createElement("script")` + `el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?<token>"` 动态插入（全站 8333 页同形态）。URL 带随机 token、内容随下发变化，**技术上无法计算稳定 SRI**，且不是静态 `<script src>`，不属于「需要 SRI」的统计范围。
+- **处置**：不为 71 页静态加 SRI；TTZZ 作为已接受的运行时动态下发依赖，单列记录（与第十节 pdf.js worker / transformers / sql.js wasm 同口径）。
+
+### 16.2 CSV 公式注入修复（含同族）
+
+- **中心修复**：`js/tool-kit.js::exp.csv()` —— `TBKit.util.exportTable` / `exportCsv` 的唯一落地点，对以 `= + - @`、`\t`、`\r` 开头的单元格统一前置 `'`。一处覆盖 `data/`、`biz/`、`it/` 及全站所有走 TBKit 导出的 CSV 页面。
+- **页面级修复（自建 Blob/文本导出）**：
+  - `tools/it/csv-to-json.html`：新增 `csvExportSafe`，复制/下载用安全版，页面预览保持原始数据；
+  - `tools/it/json-to-csv.html`：新增 `__jsonToCsvExportSafe`，复制/下载用安全版；
+  - `tools/it/keyword-density.html`：导出前对词条加前缀。
+  - `matrix-transpose`（仅数字）、`stopwatch` / `pomodoro`（仅数字/时长）经验证不含文本单元格，无需改动。
+- 页面已加可见说明（`csv-to-json`、`json-to-csv`）：导出会给公式前缀加单引号。
+- verify 新增两条：`it/json-to-csv`、`it/csv-to-json` 注入 `=cmd|' /C calc'!A0`，断言安全导出串以 `'=cmd|` 开头。
+
+### 16.3 另外三条
+
+- **`it/*` 密钥明文 localStorage**：全量检索 `localStorage` 键名与写入点，**未发现 API key/secret/token 持久化**；DES/Rabbit/HMAC/XOR 等加密工具的密钥字段无本页自动保存逻辑（`tb_uxp_` 持久化名单不含这些页面），密码类输入为 `type="password"` 且被持久化代码显式排除 → 无需改动。
+- **`it/base64` 历史写入**：`addHistory()` 仅在用户点击编码/解码时调用，非加载即写；已有「清空历史」按钮 → 无需改动。
+- **`it/json-formatter` 明文 JSON**：仅在用户输入事件后保存（非加载无条件写入）；`clearAll()` 之前只清空 textarea、不清 localStorage → 已补 `localStorage.removeItem('tb_uxp_tools/it/json-formatter.html#input')`，确保「清空」真正删除明文，并已有清空入口。
+
+### 16.4 门禁与边界
+
+- `node scripts/verify_it_calc.js it/csv-to-json it/json-to-csv` → **12/12 通过**。
+- `node scripts/discriminate_check.js verify_it_calc.js` → 已检 896 / 正确变红 896 / 逃生项 0 / 跳过 1。
+- `node scripts/selfcheck_false_pass.js scripts/verify_it_calc.js` → checked=897 risk=0 skipped=0。
+- `python3 _test_static.py` → 通过 4705 / 失败 0。
+- `python3 _audit_assets.py --check` → 0 死链 / 0 lang 缺失 / 0 重复 id。
+- 未跑 `_build.py`、未 push；`js/tool-kit.js` 与页面改动需集成线构建后刷新 SW 版本戳与 `zh-tw/` 产物。

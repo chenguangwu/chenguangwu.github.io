@@ -1201,6 +1201,8 @@
     var lines = (rows || []).map(function (r) {
       return r.map(function (c) {
         var v = c == null ? '' : String(c);
+        // 防 CSV 公式注入：Excel / WPS 会把以 = + - @ 、制表符或回车开头的单元格当公式执行
+        if (/^[=+\-@\t\r]/.test(v)) v = "'" + v;
         return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
       }).join(',');
     }).join('\n');

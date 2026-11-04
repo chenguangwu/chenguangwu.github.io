@@ -137,6 +137,9 @@ s.parentNode.insertBefore(el, s);
       <button class="btn" onclick="copyOut()">复制 CSV</button>
       <div id="json_to_csvPresets"></div><button class="btn" onclick="downloadCSV()">⬇ 下载 .csv</button><button class="btn" type="button" onclick="__json_to_csvExport()">导出明细 CSV</button>
     </div>
+    <div style="font-size:12px;color:var(--text-muted);margin-top:8px;line-height:1.5;">
+      复制 / 下载的 CSV 会给以 <code>= + - @</code> 开头的单元格自动加单引号前缀，防止 Excel / WPS 将其当作公式执行；页面预览保持原始数据。
+    </div>
   </div>
 </div>
 
@@ -262,16 +265,17 @@ s.parentNode.insertBefore(el, s);
   </div>
 </div>
 <script>
+var __jsonToCsvExportSafe='';
 function escH(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function copyOut(){
-  var v=document.getElementById('output').value;
+  var v=__jsonToCsvExportSafe||document.getElementById('output').value;
   if(!v){if(ToolBox.showToast)ToolBox.showToast(i18nText());return;}
   ToolBox.copyText(v);if(ToolBox.showToast)ToolBox.showToast(i18nText());
 }
 function toCSV(){
   var raw=document.getElementById('input').value.trim();
   var out=document.getElementById('result');
-  if(!raw){document.getElementById('output').value='';const __h0='';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0;return;}
+  if(!raw){document.getElementById('output').value='';__jsonToCsvExportSafe='';const __h0='';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0;return;}
   try{
     var data=JSON.parse(raw);
     if(!Array.isArray(data)||!data.length){const __h1='<p style="color:var(--danger)">请输入非空 JSON 数组</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;return;}
@@ -284,17 +288,27 @@ function toCSV(){
       if(typeof v==='object')v=JSON.stringify(v);
       return '"'+String(v).replace(/"/g,'""')+'"';
     }
+    // 导出/复制时给公式前缀加单引号，防止 Excel/WPS 执行；页面预览保持原样
+    function cellExport(v){
+      if(v===null||v===undefined)return cell(v);
+      if(typeof v==='object')v=JSON.stringify(v);
+      var s=String(v);
+      return cell(/^[=+\-@\t\r]/.test(s) ? "'"+s : s);
+    }
     var lines=[keys.map(cell).join(',')];
+    var linesSafe=[keys.map(cellExport).join(',')];
     data.forEach(function(o){
       lines.push(keys.map(function(k){return cell(o?o[k]:'');}).join(','));
+      linesSafe.push(keys.map(function(k){return cellExport(o?o[k]:'');}).join(','));
     });
     var csv=lines.join('\n');
+    __jsonToCsvExportSafe=linesSafe.join('\n');
     document.getElementById('output').value=csv;
     const __h2='<p>已转换 <strong>'+data.length+'</strong> 行 × <strong>'+keys.length+'</strong> 列，UTF-8 编码（Excel 打开如乱码请另存为 UTF-8 BOM）</p>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h2;
-  }catch(e){const __h3='<p style="color:var(--danger)">解析失败：'+escH((e&&e.message)||e)+'</p>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h3;document.getElementById('output').value='';}
+  }catch(e){const __h3='<p style="color:var(--danger)">解析失败：'+escH((e&&e.message)||e)+'</p>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h3;document.getElementById('output').value='';__jsonToCsvExportSafe='';}
 }
 function downloadCSV(){
-  var csv=document.getElementById('output').value;
+  var csv=__jsonToCsvExportSafe||document.getElementById('output').value;
   if(!csv){if(ToolBox.showToast)ToolBox.showToast(i18nText('toast.msg680'));return;}
   var blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});
   var a=document.createElement('a');
