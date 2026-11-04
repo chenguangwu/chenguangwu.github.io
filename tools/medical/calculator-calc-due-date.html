@@ -298,10 +298,24 @@ function calc(){
   var res=document.getElementById('res');
   if(!lmp){res.innerHTML='<p style="color:var(--danger);">请选择有效日期</p>';return;}
   var cycle=parseInt(document.getElementById('cycle').value)||28;
+  if(currentTab==='lmp'&&(cycle<20||cycle>45)){
+    res.innerHTML='<p style="color:var(--danger);">月经周期须在 20–45 天之间，空值或越界不推算预产期。</p>';
+    return;
+  }
+  if(currentTab==='ivf'){
+    var ea=parseFloat(document.getElementById('embryoAge').value);
+    if(!(ea>=1&&ea<=7)){
+      res.innerHTML='<p style="color:var(--danger);">胚胎天数须在 1–7 天（卵裂期 3 天、囊胚 5 天），空值不推算预产期。</p>';
+      return;
+    }
+  }
   // 周期校正仅适用于按末次月经（LMP）推算；受孕日/IVF 已按胚胎天数换算回 LMP，不能再校正一次
   var adjust=currentTab==='lmp'?(cycle-28):0;
   var edd=addDays(lmp,280+adjust);
-  var conception=addDays(lmp,14);
+  var conception, conceptionLabel;
+  if(currentTab==='conception'){conception=parseDate(document.getElementById('conceptionDate').value);conceptionLabel='受孕日（录入）';}
+  else if(currentTab==='ivf'){conception=parseDate(document.getElementById('ivfDate').value);conceptionLabel='胚胎移植日';}
+  else{conception=addDays(lmp,14);conceptionLabel='预计受孕日（排卵）';}
   var today=new Date();today.setHours(0,0,0,0);
   var daysPreg=Math.floor((today-lmp)/86400000);
   var weeks=Math.floor(daysPreg/7);
@@ -314,8 +328,9 @@ function calc(){
   else{trimester='已过期妊娠（>42周）';triColor='var(--danger)';}
   var status, statusColor;
   if(daysPreg<0){status='距末次月经还有 '+(-daysPreg)+' 天';statusColor='var(--text-muted)';}
-  else if(weeks>=37&&weeks<=42){status='足月妊娠（37-42周），随时可能分娩';statusColor='var(--success)';}
-  else if(weeks>=28){status='先兆临产期，注意待产';statusColor='var(--warning)';}
+  else if(weeks>42){status='已过期妊娠（>42周），请尽快产科评估';statusColor='var(--danger)';}
+  else if(weeks>=37){status='足月妊娠（37-42周），随时可能分娩';statusColor='var(--success)';}
+  else if(weeks>=28){status='孕晚期（≥28周），注意胎动并规律产检';statusColor='var(--warning)';}
   else{status='妊娠中';statusColor='var(--info)';}
   var prog=Math.min(Math.max(daysPreg/280*100,0),100);
   var html='<div class="data-grid">';
@@ -324,17 +339,17 @@ function calc(){
   html+='<div class="data-card"><div class="num" style="font-size:16px;color:'+triColor+'">'+trimester+'</div><div class="label">孕期阶段</div></div>';
   html+='</div>';
   html+='<p style="margin:8px 0 4px;font-size:14px;">末次月经（LMP）：<strong>'+fmtCN(lmp)+'</strong></p>';
-  html+='<p style="margin:4px 0;font-size:14px;">预计受孕日（排卵）：<strong>'+fmtCN(conception)+'</strong></p>';
+  html+='<p style="margin:4px 0;font-size:14px;">'+conceptionLabel+'：<strong>'+fmtCN(conception)+'</strong></p>';
   html+='<p style="margin:4px 0;font-size:14px;">'+status+'</p>';
   html+='<div class="progress-bar"><div class="progress-fill" style="width:'+prog.toFixed(0)+'%;"></div></div>';
   html+='<p style="font-size:12px;color:var(--text-muted);">孕期进度约 '+prog.toFixed(1)+'%（共 280 天）</p>';
   if(currentTab==='lmp'&&cycle!==28){html+='<div class="tip-box tip-info">月经周期 '+cycle+' 天，已按周期差异调整 '+(adjust>0?'+':'')+adjust+' 天。</div>';}
   var ms=[
-    {w:13,name:'NT 颈项透明层超声（11-13⁺⁶周）',range:'11-14周'},
-    {w:20,name:'大排畸超声（18-22周）',range:'18-22周'},
-    {w:18,name:'唐筛/无创DNA（15-20周）',range:'15-20周'},
-    {w:26,name:'妊娠期糖尿病筛查 OGTT（24-28周）',range:'24-28周'},
-    {w:36,name:'B族链球菌筛查 GBS（35-37周）',range:'35-37周'},
+    {w:13,name:'NT 颈项透明层超声（11-13⁺⁶周）',range:'11-13⁺⁶周'},
+    {w:15,name:'唐筛/无创DNA（15-20周）',range:'15-20周'},
+    {w:18,name:'大排畸超声（18-22周）',range:'18-22周'},
+    {w:24,name:'妊娠期糖尿病筛查 OGTT（24-28周）',range:'24-28周'},
+    {w:35,name:'B族链球菌筛查 GBS（35-37周）',range:'35-37周'},
     {w:37,name:'足月（37周起）',range:'≥37周'},
     {w:40,name:'预产期（40周）',range:'40周'}
   ];

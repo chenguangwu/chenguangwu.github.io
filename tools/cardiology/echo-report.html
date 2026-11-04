@@ -281,9 +281,11 @@ s.parentNode.insertBefore(el, s);
 
 <script>
 function calc(){
-  var lvef=parseFloat(document.getElementById('lvef').value)||0;
+  var lvefRaw=String(document.getElementById('lvef').value||'').trim();
+  var wmsiRaw=String(document.getElementById('wmsi').value||'').trim();
+  var lvef=parseFloat(lvefRaw);
   var lvesv=parseFloat(document.getElementById('lvesv').value)||0;
-  var wmsi=parseFloat(document.getElementById('wmsi').value);
+  var wmsi=parseFloat(wmsiRaw);
   var wmType=document.getElementById('wmType').value;
   var lvidd=parseFloat(document.getElementById('lvidd').value)||0;
   var la=parseFloat(document.getElementById('la').value)||0;
@@ -291,6 +293,16 @@ function calc(){
   var rv=parseFloat(document.getElementById('rv').value)||0;
   var ea=parseFloat(document.getElementById('ea').value)||0;
   var eprime=parseFloat(document.getElementById('eprime').value)||0;
+
+  // 空值/越界拒绝判读：LVEF 留空曾被当作 0% 判「重度降低/终末期心衰」
+  if(lvefRaw===''||!isFinite(lvef)||lvef<=0||lvef>100){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger)">请输入有效 LVEF（1–100%）；空值不判读心功能。</p>';
+    return;
+  }
+  if(wmsiRaw===''||!isFinite(wmsi)||wmsi<0.5||wmsi>5){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger)">请输入有效 WMSI（0.5–5，1.0 为正常）；空值不判读室壁运动。</p>';
+    return;
+  }
 
   // LVEF
   var efLevel,efColor,efAdvice;
@@ -323,11 +335,13 @@ function calc(){
   var aoAbn=ao>=37?'主动脉增宽':'正常';
   var rvAbn=rv>=30?'右室扩大':'正常';
 
-  // 舒张功能
+  // 舒张功能分级（结合 E/A 与 e'；完整分级还需 E/e'、LA 容积与三尖瓣反流速度）
   var diastGrade,diastColor;
-  if(ea<0.8){diastGrade='舒张功能减低(1级/松弛受损)';diastColor='#3B82F6';}
-  else if(ea>=0.8&&ea<=2.0){
-    if(eprime<7){diastGrade='舒张功能减低(2级/假性正常化可能)';diastColor='#F59E0B';}
+  if(ea<=0){diastGrade='未填 E/A，未分级';diastColor='var(--text-muted)';}
+  else if(ea<0.8){diastGrade='舒张功能减低(1级/松弛受损)';diastColor='#3B82F6';}
+  else if(ea<=2.0){
+    if(eprime>0&&eprime<7){diastGrade='舒张功能减低(2级/假性正常化可能)';diastColor='#F59E0B';}
+    else if(eprime<=0){diastGrade='E/A 正常但 e′ 未填，未分级';diastColor='var(--text-muted)';}
     else{diastGrade='舒张功能正常';diastColor='#10B981';}
   }else{diastGrade='舒张功能减低(3级/限制型)';diastColor='#EF4444';}
 

@@ -265,7 +265,12 @@ var activityData=[
 ];
 
 function calc(){
-  var mets=parseFloat(document.getElementById('mets').value)||0;
+  var metsRaw=String(document.getElementById('mets').value||'').trim();
+  var mets=parseFloat(metsRaw);
+  if(metsRaw===''||!isFinite(mets)||mets<=0||mets>25){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger)">请输入有效 METs（0.5–25）；空值不判读运动强度与康复阶段。</p>';
+    return;
+  }
   var weight=parseFloat(document.getElementById('weight').value)||0;
 
   // VO2计算: 1 MET = 3.5 mL/kg/min
@@ -278,7 +283,8 @@ function calc(){
 
   // 匹配活动
   var matched=activityData.filter(function(a){return mets>=a.min&&mets<a.max;});
-  var level=matched.length>0?matched[0]:activityData[activityData.length-1];
+  // 边界兜底：低于最低档应取最低档，高于最高档才取最高档，避免 0.5 METs 被匹配到「≥10 极高强度」
+  var level=matched.length>0?matched[0]:(mets<activityData[0].min?activityData[0]:activityData[activityData.length-1]);
 
   // 康复阶段
   var rehabStage,rehabAdvice;

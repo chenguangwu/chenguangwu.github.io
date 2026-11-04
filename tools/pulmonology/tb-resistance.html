@@ -119,7 +119,7 @@ s.parentNode.insertBefore(el, s);
 <div class="formula-box">
   
   
-<div class="formula-eq">结核耐药分型：无利福平及异烟肼耐药为药物敏感结核 DS-TB（2HRZE/4HR）；耐利福平为 RR-TB、同时耐异烟肼为耐多药 MDR-TB、再加氟喹诺酮及二线注射剂耐药为广泛耐药 XDR-TB，据耐药谱选方案。</div></div>
+<div class="formula-eq">结核耐药分型：无利福平及异烟肼耐药为药物敏感结核 DS-TB（2HRZE/4HR）；耐利福平为 RR-TB、同时耐异烟肼为耐多药 MDR-TB；MDR/RR 再耐氟喹诺酮为 Pre-XDR-TB；再加耐贝达喹啉或利奈唑胺（WHO 2021 定义，不再使用二线注射剂）为广泛耐药 XDR-TB，据耐药谱选方案。</div></div>
 
     <h3 style="margin:12px 0 8px;">一、细菌学检查</h3>
     <div class="input-row">
@@ -156,7 +156,7 @@ s.parentNode.insertBefore(el, s);
       <label><input type="checkbox" id="d_rif" checked onchange="calc()"> 利福平(RIF)</label>
       <label><input type="checkbox" id="d_inh" onchange="calc()"> 异烟肼(INH)</label>
       <label><input type="checkbox" id="d_fq" onchange="calc()"> 氟喹诺酮(左氧/莫西)</label>
-      <label><input type="checkbox" id="d_amk" onchange="calc()"> 二线注射剂(阿米卡星/卷曲)</label>
+      <label><input type="checkbox" id="d_amk" onchange="calc()"> 贝达喹啉 / 利奈唑胺（A 组）</label>
       <label><input type="checkbox" id="d_pza" onchange="calc()"> 吡嗪酰胺(PZA)</label>
       <label><input type="checkbox" id="d_emb" onchange="calc()"> 乙胺丁醇(EMB)</label>
     </div>
@@ -176,8 +176,8 @@ s.parentNode.insertBefore(el, s);
       <tbody>
         <tr><td>RR-TB</td><td>利福平耐药(无论INH)</td><td>按MDR-TB方案处理</td></tr>
         <tr><td>MDR-TB</td><td>至少耐INH+RIF</td><td>含贝达喹啉的短程或长程方案</td></tr>
-        <tr><td>Pre-XDR-TB</td><td>MDR/RR + 耐氟喹诺酮 或 二线注射剂</td><td>长程个体化方案(BPaLM不适用)</td></tr>
-        <tr><td style="color:#EF4444;">XDR-TB</td><td>MDR/RR + 耐氟喹诺酮 + 耐至少一种二线注射剂</td><td>个体化长程方案，多学科会诊</td></tr>
+        <tr><td>Pre-XDR-TB</td><td>MDR/RR + 耐氟喹诺酮（WHO 2021）</td><td>长程个体化方案(BPaLM不适用)</td></tr>
+        <tr><td style="color:#EF4444;">XDR-TB</td><td>MDR/RR + 耐氟喹诺酮 + 耐贝达喹啉或利奈唑胺（WHO 2021）</td><td>个体化长程方案，多学科会诊</td></tr>
       </tbody>
     </table>
     <div class="info-box" style="margin-top:16px;">提示：涂片阳性提示传染性强，需呼吸道隔离。GeneXpert利福平耐药需经表型药敏确认。BPaL/BPaLM方案(贝达喹啉+普托马尼+利奈唑胺±莫西沙星)适用于≥6岁、无氟喹诺酮及注射剂耐药的MDR/RR-TB。仅供临床参考。</div>
@@ -213,7 +213,7 @@ s.parentNode.insertBefore(el, s);
 <div class="dd-example"><div class="dd-ex-title">低传染</div><div class="dd-ex-body">涂片阴性+培养阴性→传染性低，仍完成疗程并复查。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>RR-TB 与 MDR？</dt><dd>RR-TB 含利福平耐药(含 MDR)，治疗以全口服短程方案为主。</dd>
+<dt>RR-TB 与 MDR？</dt><dd>RR-TB 指利福平耐药（无论异烟肼是否耐药）；若同时耐异烟肼即为 MDR-TB。2021 WHO 将 MDR/RR+耐氟喹诺酮定为 Pre-XDR，再加耐贝达喹啉或利奈唑胺定为 XDR。</dd>
 <dt>隔离到何时？</dt><dd>涂片阴转并治疗 2 周后传染性大幅下降，遵医嘱解隔。</dd>
 </dl>
 </div>
@@ -271,6 +271,11 @@ function calc(){
   var dPza=document.getElementById('d_pza').checked;
   var dEmb=document.getElementById('d_emb').checked;
 
+  if(!smear||!culture||!xpert){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger)">请选择痰涂片、培养与 GeneXpert 结果后再行判读；空值不给出耐药分型。</p>';
+    return;
+  }
+
   // 耐药分型
   var rifR=dRif||xpert==='rif_r';
   var type,color,desc,regimen;
@@ -289,8 +294,9 @@ function calc(){
   } else if(rifR && !dInh){
     type='RR-TB(利福平单耐药)';color='#F59E0B';desc='利福平耐药，异烟肼敏感。';regimen='按MDR-TB方案处理，含贝达喹啉短程或长程方案，保留异烟肼。';
   } else if(rifR && dInh){
-    if(dFq && dAmk){type='XDR-TB(广泛耐药)';color='#EF4444';desc='MDR + 耐氟喹诺酮 + 耐二线注射剂。';regimen='个体化长程方案(≥18月)，联合氯法齐明/环丝氨酸/利奈唑胺/对氨基水杨酸等，多学科会诊。';}
-    else if(dFq||dAmk){type='Pre-XDR-TB(准广泛耐药)';color='#EF4444';desc='MDR + 耐氟喹诺酮或二线注射剂。';regimen='长程个体化方案，BPaLM不适用；至少4种有效二线药。';}
+    if(dFq && dAmk){type='XDR-TB(广泛耐药)';color='#EF4444';desc='MDR + 耐氟喹诺酮 + 耐贝达喹啉或利奈唑胺（WHO 2021）。';regimen='个体化长程方案(≥18月)，联合氯法齐明/环丝氨酸/对氨基水杨酸等，多学科会诊并做表型药敏。';}
+    else if(dFq){type='Pre-XDR-TB(准广泛耐药)';color='#EF4444';desc='MDR + 耐氟喹诺酮（WHO 2021）。';regimen='长程个体化方案，BPaLM不适用；至少4种有效二线药，优先含贝达喹啉。';}
+    else if(dAmk){type='MDR-TB(伴A组耐药)';color='#F59E0B';desc='MDR + 耐贝达喹啉或利奈唑胺，但氟喹诺酮仍敏感。';regimen='个体化方案，保留氟喹诺酮并联合其他有效药物，避免沿用含贝达喹啉/利奈唑胺的短程方案。';}
     else{type='MDR-TB(耐多药)';color='#F59E0B';desc='至少耐异烟肼+利福平。';regimen='推荐短程含贝达喹啉方案(9-12月)或BPaLM方案(6月)，需评估禁忌。';}
   } else {
     type='INH单耐药结核';color='#3B82F6';desc='异烟肼耐药，利福平敏感。';regimen='强化方案：6-9月 RZE + 氟喹诺酮(左氧氟沙星/莫西沙星)。';
@@ -316,7 +322,7 @@ function calc(){
   if(dRif)rDrugs.push('利福平');
   if(dInh)rDrugs.push('异烟肼');
   if(dFq)rDrugs.push('氟喹诺酮');
-  if(dAmk)rDrugs.push('二线注射剂');
+  if(dAmk)rDrugs.push('贝达喹啉/利奈唑胺');
   if(dPza)rDrugs.push('吡嗪酰胺');
   if(dEmb)rDrugs.push('乙胺丁醇');
   html+='<li>耐药：'+(rDrugs.length?rDrugs.join('、'):'无')+'</li>';

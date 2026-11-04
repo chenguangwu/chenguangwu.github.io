@@ -128,7 +128,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="❤️ 高血压 JNC 分级与风险分层">Hypertension JNC Grading &amp; Risk Stratification</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="依据 JNC 7 血压水平分级，并结合危险因素、靶器官损害与合并症进行心血管风险分层。">Grade blood pressure by JNC 7 and stratify cardiovascular risk.</p>
     <div class="formula-box">
- <div class="formula-eq">分级：取较高级——SBP≥180 或 DBP≥110→3级(重度)；SBP≥160/DBP≥100→2级；SBP≥140/DBP≥90→1级；SBP≥120/DBP≥80→高血压前期；均低于→正常。危险分层：合并糖尿病/靶器官损害/心血管病→高危/很高危；否则按危险因素(年龄/吸烟/血脂/肥胖/家族史)计数：≥3→高危，1–2→中危，0→低危。</div>      <div class="formula-title">📐 工作原理与说明</div>
+ <div class="formula-eq">分级（JNC-7，取收缩压/舒张压较高级）：SBP≥160 或 DBP≥100→2级高血压；SBP≥140 或 DBP≥90→1级高血压；SBP≥120 或 DBP≥80→高血压前期；均低于→正常（&lt;120/80）。危险分层(JNC-7)：正常/前期无危险因素→低危；正常/前期 1–2 个危险因素，或 1级/2级无危险因素→中危；正常/前期伴临床情况，或 1级伴 1–2 个危险因素→高危；1级伴靶器官损害/临床情况，或 2级伴任一危险因素→很高危。阈值需临床复核。</div>      <div class="formula-title">📐 工作原理与说明</div>
       <p class="formula-desc" data-zh="「依据 JNC 7 血压水平分级，并结合危险因素、靶器官损害与合并症进行心血管风险分层。」按输入参数进行专业计算并输出结果。">Grade blood pressure by JNC 7 and stratify cardiovascular risk.: computes and outputs results from the input parameters.</p>
     </div>
 
@@ -136,11 +136,11 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row">
       <div>
         <label for="sbp">收缩压 (mmHg)</label>
-        <input type="number" id="sbp" min="50" max="300" placeholder="例如 142" oninput="calc()" value="118"
+        <input type="number" id="sbp" min="50" max="300" placeholder="例如 142" oninput="calc()" value="118">
       </div>
       <div>
         <label for="dbp">舒张压 (mmHg)</label>
-        <input type="number" id="dbp" min="30" max="200" placeholder="例如 92" oninput="calc()" value="76"
+        <input type="number" id="dbp" min="30" max="200" placeholder="例如 92" oninput="calc()" value="76">
       </div>
     </div>
 
@@ -284,26 +284,35 @@ function saveState(){
 }
 
 function classifyBP(sbp, dbp){
-  if(sbp >= 180 || dbp >= 110) return {level:'3级高血压（重度）', color:'grade-fail', desc:'收缩压 ≥180 或 舒张压 ≥110 mmHg'};
-  if(sbp >= 160 || dbp >= 100) return {level:'2级高血压（中度）', color:'grade-pass', desc:'收缩压 160-179 或 舒张压 100-109 mmHg'};
-  if(sbp >= 140 || dbp >= 90) return {level:'1级高血压（轻度）', color:'grade-pass', desc:'收缩压 140-159 或 舒张压 90-99 mmHg'};
-  if(sbp >= 120 || dbp >= 80) return {level:'高血压前期', color:'grade-good', desc:'收缩压 120-139 或 舒张压 80-89 mmHg'};
-  return {level:'正常血压', color:'grade-excellent', desc:'收缩压 <120 且 舒张压 <80 mmHg'};
+  // JNC-7 分级：正常 <120/80、高血压前期 120–139/80–89、1级 140–159/90–99、2级 ≥160 或 ≥100（不设 3 级）
+  if(sbp >= 160 || dbp >= 100) return {grade:3, level:'2级高血压', color:'grade-fail', desc:'收缩压 ≥160 或 舒张压 ≥100 mmHg'};
+  if(sbp >= 140 || dbp >= 90) return {grade:2, level:'1级高血压', color:'grade-pass', desc:'收缩压 140–159 或 舒张压 90–99 mmHg'};
+  if(sbp >= 120 || dbp >= 80) return {grade:1, level:'高血压前期', color:'grade-good', desc:'收缩压 120–139 或 舒张压 80–89 mmHg'};
+  return {grade:0, level:'正常血压', color:'grade-excellent', desc:'收缩压 <120 且 舒张压 <80 mmHg'};
 }
 
-function riskLayer(){
+function riskLayer(grade){
   const diabetes = document.getElementById('diabetes').checked;
   const tod = document.getElementById('tod').checked;
   const cvd = document.getElementById('cvd').checked;
-  if(diabetes || tod || cvd) return {layer:'高危 / 很高危', color:'grade-fail', desc:'存在糖尿病、靶器官损害或已确诊心脑血管疾病'};
-
+  const acc = diabetes || cvd; // 糖尿病/已确诊心血管病按「伴随临床情况」计
   let rf = 0;
   ['ageRisk','smoke','dyslipidemia','obesity','family'].forEach(id => {
     if(document.getElementById(id).checked) rf++;
   });
-  if(rf >= 3) return {layer:'高危', color:'grade-fail', desc:'具备 ≥3 个危险因素'};
-  if(rf >= 1) return {layer:'中危', color:'grade-pass', desc:'具备 1-2 个危险因素'};
-  return {layer:'低危', color:'grade-excellent', desc:'无其他危险因素'};
+  // JNC-7 风险矩阵：正常/前期、1级(grade=2)、2级及以上(grade=3)
+  if(grade<=1){
+    if(acc) return {layer:'高危', color:'grade-fail', desc:'正常/前期血压合并糖尿病或已确诊心脑血管疾病'};
+    if(rf>=1) return {layer:'中危', color:'grade-pass', desc:'正常/高血压前期伴 1–2 个危险因素'};
+    return {layer:'低危', color:'grade-excellent', desc:'血压正常/前期且无其他危险因素'};
+  }
+  if(grade===2){
+    if(acc || tod) return {layer:'很高危', color:'grade-fail', desc:'1级高血压合并靶器官损害或伴随临床情况'};
+    if(rf>=1) return {layer:'高危', color:'grade-fail', desc:'1级高血压伴 1–2 个危险因素'};
+    return {layer:'中危', color:'grade-pass', desc:'1级高血压且无其他危险因素'};
+  }
+  if(acc || tod || rf>=1) return {layer:'很高危', color:'grade-fail', desc:'2级高血压伴任一危险因素、靶器官损害或伴随临床情况'};
+  return {layer:'中危', color:'grade-pass', desc:'2级高血压且无其他危险因素'};
 }
 
 function calc(){
@@ -318,7 +327,7 @@ function calc(){
   }
 
   const bp = classifyBP(sbp, dbp);
-  const risk = riskLayer();
+  const risk = riskLayer(bp.grade);
   saveState();
 
   const __g2=`
@@ -474,10 +483,10 @@ else document.addEventListener('DOMContentLoaded', __calc_1Boot);
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
 <li>JNC-7 <a class="term-link" href="/tools/healthcare/blood-pressure-grade.html">血压分级</a>：收缩压 &lt;120 且舒张压 &lt;80 为正常；120–139 或 80–89 为高血压前期；≥140/≥90 为高血压（1 级 140–159/90–99，2 级 ≥160/≥100）。</li>
-<li>危险分层：在分级基础上叠加吸烟、血脂、糖尿病、靶器官损害与临床合并症，分为低/中/高/很高危，决定起始治疗时机与目标。</li>
+<li>危险分层（JNC-7 矩阵）：正常/前期无危险因素为低危；正常/前期有 1–2 个危险因素，或 1级/2级无危险因素为中危；正常/前期伴临床情况，或 1级伴 1–2 个危险因素为高危；1级伴靶器官损害/临床情况，或 2级伴任一危险因素为很高危。</li>
 <li>合并糖尿病/肾病目标值：一般推荐 &lt;130/80 mmHg（因证据与指南而异），老年或衰弱者适度放宽，体现个体化。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">默认数据演练（JNC-7 分级判定）</div><div class="dd-ex-body">输入：收缩压 156 mmHg、舒张压 96 mmHg、年龄 58、吸烟、LDL-C 3.8 mmol/L、无糖尿病。工具输出：分级 高血压 2 级、危险分层 中高危（合并危险因素）、建议 生活方式干预 + 启动降压药物治疗、一般目标 &lt;140/90，合并危险因素可更严。提示：家庭自测与诊室结合更准确。</div></div>
+<div class="dd-example"><div class="dd-ex-title">默认数据演练（JNC-7 分级判定）</div><div class="dd-ex-body">输入：收缩压 156 mmHg、舒张压 96 mmHg、年龄 58、吸烟、LDL-C 3.8 mmol/L、无糖尿病、无靶器官损害。工具输出：分级 1级高血压（SBP 140–159、DBP 90–99）、危险分层 高危（1级 + ≥1 个危险因素，JNC-7 矩阵）、建议 生活方式干预 + 启动降压药物治疗、一般目标 &lt;140/90，合并危险因素可更严。提示：家庭自测与诊室结合更准确，阈值需临床复核。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>家庭自测血压如何取值？</dt><dd>静息 5 分钟后、坐姿上臂式血压计、间隔 1–2 分钟测 2–3 次取均值；避开咖啡因与运动。家庭标准一般 &lt;135/85 视作达标，诊断以规范测量为准。</dd>
