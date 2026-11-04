@@ -285,8 +285,8 @@
 
 | # | 风险项 | 严重度 | 状态 | 说明 |
 |---|--------|--------|------|------|
-| 1 | 微软 Clarity 会话回放可能采集文本输入 | 高 | **待处置** | 静态代码无法确认其 masking 配置；若采集输入框内容，用户在本站输入的口令/文本可能进入第三方回放。需在 Clarity 后台开启 input masking 或下线该脚本。 |
-| 2 | GitHub Pages 无 CSP / X-Frame-Options / COOP 等安全响应头 | 中 | **待处置** | 平台不允许自定义响应头；可评估 `<meta http-equiv="Content-Security-Policy">`，但全站大量内联脚本与第三方统计，收紧需逐页回归，暂未实施。 |
+| 1 | 微软 Clarity 会话回放会随 DOM 快照上传页面可见文本 | 高 | **已处置（2026-11-04 移除脚本）** | 实测工具页回显的用户输入（哨兵串）出现在 Clarity 上传的 DOM 快照中，服务端脱敏无法自证；按 AGENTS.md §2 直接移除，详见第十一节。 |
+| 2 | GitHub Pages 无 CSP / X-Frame-Options / COOP 等安全响应头 | 中 | **待处置** | 平台不允许自定义响应头；`<meta http-equiv="Content-Security-Policy">` 试点扫描显示 0 个页面可在严格策略下运行（全部含内联脚本/内联事件），详见第十二节。 |
 | 3 | TTZZ / 51.la / 百度 / Clarity / AdSense 动态下发脚本无法 SRI | 中 | 接受风险 | URL 带服务端 token、内容随请求变化，无法固定哈希；来源为各厂商官方 CDN。被投毒时与同源脚本同等失效，已通过「不上传用户数据」降低影响面。 |
 | 4 | transformers 运行时拼版本 + 远端模型分片 | 中 | 接受风险 | 模型文件体积大、按运行时版本动态分片，无法 SRI；仅在浏览器本地推理，输入不出本机。 |
 | 5 | localStorage 弱加密（XOR 密钥流）用于口令保险库 | 中 | 接受风险 | `safety/manager.html` 等页仅作本地演示，页内有显著警示；升级为 WebCrypto 派生需另立工具并迁移既有数据，暂不处理。 |
@@ -294,5 +294,64 @@
 | 7 | Google Fonts CSS 动态下发（`design/font-pairing.html`） | 低 | **已确认安全** | 仅按 UA 下发样式表，不含用户数据；请求携带常规 UA 属浏览器行为，无 PII。 |
 | 8 | sql.js wasm 运行时加载 | 低 | **已确认安全** | 库固定 1.8.0 + SRI，wasm 路径由该版本决定；SQL 全程本地执行，不上传数据库内容。 |
 | 9 | 淘宝客 / AdSense / 社交分享外链 | 低 | **已确认安全** | 推广链接与分享参数均为静态值，不拼接用户输入；分享仅使用页面标题/URL。 |
+| 10 | 严格 CSP（`script-src 'self'`）无法落地 | 中 | 接受风险 | 全站 0 个工具页满足「无内联脚本 + 无内联事件」；要落地需构建期为每个内联脚本生成 nonce/hash，并移除全部 `onclick` 等属性，改造面过大，暂接受风险。 |
 
-**合计 9 条**：已确认安全 3 条、接受风险 4 条、待处置 2 条。
+**合计 10 条**：已确认安全 3 条、接受风险 5 条、待处置 1 条、已处置 1 条。
+
+---
+
+## 十一、Clarity 判定与移除（2026-11-04）
+
+### 11.1 实测证据
+
+- 探针页面：`it/hash.html`、`healthcare/egfr.html`、`finance/salary-after-tax.html`、`legal/will-template-generator.html`。
+- 方法：真机无头 Chrome 输入哨兵串 `SENTINEL-7f3a`（数字控件用 `987654321`），同时在页面注入普通可见文本节点 `PLAINSENTINELabc9`；抓取 `*.clarity.ms/collect` 的 POST 体，按 gzip 解压后检索。
+- 判定结果：
+  - **普通可见文本 `PLAINSENTINELabc9` 原样出现在上传的 DOM 快照中** → Clarity 确实上传页面文本。
+  - 表单控件快照中 `value=` 为空、`placeholder=` 显示为圆点，说明 SDK 会对输入框做本地掩码；但工具页把输入回显到普通 DOM（如 `it/hash` 的历史列表 `<span>`）时，回显文本以**明文**进入快照。
+  - 哨兵串在 `it/hash.html` 的上传 payload 中被命中；脱敏只可能发生在服务端，客户端无法自证「未留存」。
+- 结论：Clarity 与 `AGENTS.md` §2「禁止任何数据上传到服务器」冲突，**默认执行移除**。
+
+### 11.2 处置
+
+- 已从 `js/analytics.js` 移除 Clarity 初始化、`window.clarity` 桩、`tb-clarity-sdk` 加载，以及 `ToolBox.Analytics.track()` 内的 clarity 事件上报。
+- 保留基础统计：51.la、百度统计、百度自动推送、TTZZ（仅页面上报，不含用户输入）。
+- 清理验证（4 个哨兵页真机）：
+  - `clarity.ms` 请求数 **0/0/0/0**；
+  - `window.clarity` 全部为 `undefined`，`__tbClarityLoaded` 为 false；
+  - 0 pageerror；
+  - `#ttzz` 标签存在且 `push.js` 正常 GET；51.la `collect-v6.51.la`、百度 `hm.gif`、`zz.bdstatic.com/push.js` 均正常上报。
+
+### 11.3 待办（阻塞项）
+
+- **`js/analytics.js` 已改，但未运行构建**：SW 版本戳（`sw.js` 的 `const BUILD`）仍是旧值。
+- **需集成线执行 `python3 _build.py` 后本次移除才会随 SW 版本更新生效**；在此之前，联网访问会因 `analytics.js` 网络优先策略即时拿到新文件，但离线/弱网回退仍可能命中旧缓存，且在旧 SW 完全失效前存在残留窗口。
+- 恢复录屏分析前，必须先实现「客户端可验证的全量 mask」方案（例如 body 级 `data-clarity-mask` + 复测哨兵不出现在 payload），否则不得重新引入。
+
+---
+
+## 十二、CSP 试点结论（2026-11-04）
+
+- 扫描全站 8344 个 HTML：**0 个工具页满足「无内联可执行脚本 + 无内联事件属性」**，因此无法在 `script-src 'self'` 下做无风险试点。
+- 根页面中仅 `ByteDanceVerify.html`、`google*.html` 之类无脚本验证文件满足，但属平台验证文件，不适用 CSP。
+- 可选方案与代价：
+  - 保留 `'unsafe-inline'`：对 XSS 基本无防护价值，不做；
+  - 构建期为内联脚本生成 nonce/hash，并把 `onclick` 等内联事件全部改为事件委托：改造面覆盖全站，暂不实施。
+- 处置：**接受风险**，不新增 CSP meta；列入第十节第 10 条。后续若做，先从纯静态展示页（`about`/`privacy`/`404`）试点，再逐步推进工具页。
+
+---
+
+## 十三、上传回显与 iframe 全量结论（2026-11-04）
+
+- **上传回显 55/55 全量完成**：对全部含 `input[type=file]` 的 55 个页面真机注入文件名 `x"><img src=x onerror=alert(1)>.png`，统一断言：
+  - 0 弹窗、0 pageerror、0 个属性值含 `alert(1)` 的注入元素、0 个 `img[src="x"]`；
+  - **55/55 通过，0 反例**。此前已修的 4 页（md5/sha/image-converter 等）也纳入复测。
+- **iframe/srcdoc 全量排查**：全站仅 `tools/it/code-runner.html` 有真实 `<iframe>`；其 `sandbox="allow-scripts allow-modals"` **不含 `allow-same-origin`**，`srcdoc` 仅执行用户代码且隔离于父页面。其余页面无 `<iframe>`；`embed.html` 中的 iframe 示例为 HTML 转义展示文本，不构成实际嵌入。
+
+---
+
+## 十四、下一批方向：开头结论（2026-11-04）
+
+1. **可通过 meta 设置的安全头覆盖**：8344 个 HTML 中，4680 个已有 `Referrer-Policy` + `X-Content-Type-Options`，4624 个另有 `Permissions-Policy`；**3664 个缺失**，集中在根页面（`about`/`404`/`search`/`sitemap`/`ui/*`）与各行业 `index.html` 分类页，工具详情页基本全覆盖。下一批可按「先补根页面与分类页」推进，风险低。
+2. **`localStorage` 键名与敏感度**：工具页共 75 个唯一键，绝大多数为历史记录/最佳分数/主题/语言等中性名；`safety/manager.html` 的 `tb_pwd_master` / `tb_pwd_vault`（变量名定义，未进上表）是仅有的敏感命名，值为口令哈希与 XOR 密文、非明文。重命名会破坏既有用户数据，需迁移方案，列为后续评估项而非立即修改。
+3. **用户输入拼进 `title`/`og:` 的隐蔽外泄**：全站扫描 `document.title = <变量>`、`meta[content]` 动态写入、`og:title` 动态赋值，**命中 0 处**；页面标题与分享 meta 均为静态文案，不存在「输入进 meta 再被分享/抓取」路径。

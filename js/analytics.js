@@ -56,16 +56,6 @@
         var label = customParams && customParams.label || '';
         window._hmt.push(['_trackEvent', eventIdentification, category, label]);
       });
-      runSafely(function () {
-        if (typeof window.clarity !== 'function') return;
-        if (customParams && typeof customParams === 'object') {
-          Object.keys(customParams).forEach(function (key) {
-            if (key === 'category' || key === 'label') return;
-            window.clarity('set', key, String(customParams[key]).slice(0, 64));
-          });
-        }
-        window.clarity('event', eventIdentification);
-      });
     }
   };
   window.ToolBox = window.ToolBox || {};
@@ -85,14 +75,9 @@
     });
   });
 
-  // Microsoft Clarity
-  runSafely(function () {
-    window.__tbClarityLoaded = true;
-    window.clarity = window.clarity || function () {
-      (window.clarity.q = window.clarity.q || []).push(arguments);
-    };
-    loadScript('tb-clarity-sdk', 'https://www.clarity.ms/tag/y48102uvzx?ref=bwt');
-  });
+  // Microsoft Clarity（会话回放）已移除（2026-11-04）：实测其 DOM 快照包含页面
+  // 可见文本（工具页回显的用户输入即成明文上传），服务端脱敏不可自证，
+  // 与 AGENTS.md §2「任何数据不上传服务器」冲突。基础统计（51.la / 百度 / TTZZ）保留。
 
   // 百度统计与自动推送
   runSafely(function () {
