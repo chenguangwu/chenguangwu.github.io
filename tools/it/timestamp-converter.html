@@ -437,10 +437,11 @@ function formatInZone(date, zone){
     return g('year')+'-'+g('month')+'-'+g('day')+' '+g('hour')+':'+g('minute')+':'+g('second');
   }catch(e){ return formatDateTime(date); }
 }
-function zoneLabel(zone){
+function zoneLabel(zone, date){
   if(!zone) return '本地时间';
   try{
-    const parts = new Intl.DateTimeFormat('en-US', { timeZone: zone, timeZoneName:'shortOffset' }).formatToParts(new Date());
+    // 必须按目标日期取偏移：夏令时地区（如纽约）冬夏偏移不同，用 new Date() 会全年显示当前偏移
+    const parts = new Intl.DateTimeFormat('en-US', { timeZone: zone, timeZoneName:'shortOffset' }).formatToParts(date || new Date());
     return (parts.find(p => p.type === 'timeZoneName') || {}).value || zone;
   }catch(e){ return zone; }
 }
@@ -514,6 +515,14 @@ function fromTimestamp(type) {
   }
   
   const date = new Date(ts * 1000);
+  if(isNaN(date.getTime())){
+    document.getElementById('dateInput').value = '';
+    var en = !!(window.I18n && window.I18n.get && window.I18n.get() === 'en-US');
+    document.getElementById('convertResults').innerHTML = '<p style="color:var(--danger)">' +
+      (en ? 'Timestamp is outside the supported range (about ±8.64e15 ms)' : '时间戳超出可表示范围（约 ±8.64e15 毫秒）') + '</p>';
+    document.getElementById('timezoneGrid').innerHTML = '';
+    return;
+  }
   document.getElementById('dateInput').value = formatDateTime(date);
   
   renderResults(date, ts);
@@ -567,7 +576,7 @@ function renderTimezones(date) {
   const grid = document.getElementById('timezoneGrid');
   const __h1=TIMEZONES.map(tz => `
       <div class="tz-card">
-        <div class="tz-name">${ToolBox.escHtml(tz.name)} (${ToolBox.escHtml(zoneLabel(tz.zone))})</div>
+        <div class="tz-name">${ToolBox.escHtml(tz.name)} (${ToolBox.escHtml(zoneLabel(tz.zone, date))})</div>
         <div class="tz-time">${ToolBox.escHtml(formatInZone(date, tz.zone))}</div>
       </div>
     `).join('');if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){grid.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}grid.innerHTML=__h1;

@@ -222,8 +222,15 @@ for(var i=0;i<arr.length;i++){
   var c=arr[i]; var cp=c.codePointAt(0);
   var hex='U+'+cp.toString(16).toUpperCase();
   while(hex.length<hex.indexOf('+')+5){ hex=hex.slice(0,hex.indexOf('+')+1)+'0'+hex.slice(hex.indexOf('+')+1); }
-  var utf16='\\u'+c.charCodeAt(0).toString(16).toUpperCase();
-  while(utf16.length<6){ utf16='\\u0'+utf16.slice(2); }
+  var utf16;
+  if(cp>0xFFFF){
+    // 非 BMP 需拆成 UTF-16 代理对，单独取 charCodeAt(0) 只能得到半个代理
+    var v=cp-0x10000, hi=0xD800+(v>>10), lo=0xDC00+(v&0x3FF);
+    utf16='\\u'+hi.toString(16).toUpperCase()+'\\u'+lo.toString(16).toUpperCase();
+  }else{
+    utf16='\\u'+cp.toString(16).toUpperCase();
+    while(utf16.length<6){ utf16='\\u0'+utf16.slice(2); }
+  }
   html+='<tr><td>'+escH(c)+'</td><td><code>'+hex+'</code></td><td><code>'+utf16+'</code></td></tr>';
 }
 html+='</table>';

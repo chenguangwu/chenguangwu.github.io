@@ -452,10 +452,11 @@ function decimalToBytes(decStr){
   var tokens = cleaned.split(/\s+/).filter(function(t){ return t.length > 0; });
   var bytes = [];
   for(var i = 0; i < tokens.length; i++){
+    // 非法 token 不再静默丢弃（会导致解码结果与输入不对应），交给调用方明确报错
+    if(!/^\d+$/.test(tokens[i])) return null;
     var num = parseInt(tokens[i], 10);
-    if(!isNaN(num) && num >= 0 && num <= 255){
-      bytes.push(num);
-    }
+    if(num < 0 || num > 255) return null;
+    bytes.push(num);
   }
   return new Uint8Array(bytes);
 }
@@ -469,6 +470,15 @@ function convert(){
   if(!text){
     document.getElementById('output').value = '';
     const __h0='<span style="color:var(--text-muted);">请输入文本</span>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('viz').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('viz').innerHTML=__h0;
+    updateStats(0, 0, 0);
+    return;
+  }
+
+  if(encoding === 'ascii' && /[^\x00-\x7F]/.test(text)){
+    document.getElementById('output').value = '';
+    var en = !!(window.I18n && window.I18n.get && window.I18n.get() === 'en-US');
+    document.getElementById('viz').innerHTML = '<span style="color:var(--danger)">' +
+      (en ? 'ASCII mode supports only characters 0–127; switch to UTF-8' : 'ASCII 模式只支持 0–127 字符，请改用 UTF-8') + '</span>';
     updateStats(0, 0, 0);
     return;
   }
@@ -508,6 +518,13 @@ function convertDecToText(){
 
   try{
     var bytes = decimalToBytes(decStr);
+    if(bytes === null){
+      var en = !!(window.I18n && window.I18n.get && window.I18n.get() === 'en-US');
+      document.getElementById('outputText').value = en
+        ? 'Conversion failed: invalid decimal value (each value must be an integer 0–255)'
+        : '转换失败：非法十进制值（每个值需为 0–255 的整数）';
+      return;
+    }
     var text = bytesToText(bytes, encoding);
     document.getElementById('outputText').value = text;
     updateStats(text.length, bytes.length, 0);
