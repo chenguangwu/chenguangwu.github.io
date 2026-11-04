@@ -619,49 +619,57 @@ function drawChart(perMu, totalWater, totalPest, area){
   var padding = {top:20, right:20, bottom:40, left:50};
   var cw = w - padding.left - padding.right;
   var ch = h - padding.top - padding.bottom;
-  var maxVal = Math.max(perMu * 1.2, 200);
+  var gap = 16;
+  var panelW = (cw - gap) / 2;
 
-  ctx.strokeStyle = 'rgba(128,128,128,0.15)';
-  ctx.lineWidth = 1;
-  ctx.font = '11px -apple-system, sans-serif';
-  ctx.fillStyle = resolveCanvasColor('var(--text-muted)', '#6B7280');
-
-  for(var i=0; i<=5; i++){
-    var y = padding.top + ch - (ch * i / 5);
-    var val = maxVal * i / 5;
-    ctx.textAlign = 'right';
-    ctx.fillText(val.toFixed(0) + 'ml', padding.left - 8, y + 4);
-    ctx.beginPath();
-    ctx.moveTo(padding.left, y);
-    ctx.lineTo(w - padding.right, y);
-    ctx.stroke();
-  }
-
-  var barW = cw / 5;
-  var bars = [
-    {label:'亩用药量', val:perMu, color:'var(--primary)'},
-    {label:'1亩用水量', val:totalWater/area, color:'#2196f3'},
-    {label:'总用药量', val:totalPest, color:'#4caf50'},
-    {label:'总用水量', val:totalWater, color:'#ff9800'}
-  ];
-
-  bars.forEach(function(b, i){
-    var x = padding.left + barW * i + barW * 0.2;
-    var bh = (b.val / maxVal) * ch;
-    var by = padding.top + ch - bh;
-    var baseColor=resolveCanvasColor(b.color,'#FF6B35');
-    var gradient = ctx.createLinearGradient(0, by, 0, by + bh);
-    gradient.addColorStop(0, baseColor);
-    gradient.addColorStop(1, canvasColorWithAlpha(baseColor,'#FF6B35',0.5));
-    ctx.fillStyle = gradient;
-    ctx.fillRect(x, by, barW * 0.6, bh);
+  function drawPanel(x0, unit, title, bars){
+    var maxVal = Math.max.apply(null, bars.map(function(b){return b.val;})) * 1.2;
+    if(!isFinite(maxVal) || maxVal <= 0){ maxVal = 1; }
+    ctx.strokeStyle = 'rgba(128,128,128,0.15)';
+    ctx.lineWidth = 1;
+    for(var i=0; i<=4; i++){
+      var y = padding.top + ch - (ch * i / 4);
+      ctx.fillStyle = resolveCanvasColor('var(--text-muted)', '#6B7280');
+      ctx.font = '10px -apple-system, sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText((maxVal * i / 4).toFixed(0) + unit, x0 - 6, y + 4);
+      ctx.beginPath();
+      ctx.moveTo(x0, y);
+      ctx.lineTo(x0 + panelW, y);
+      ctx.stroke();
+    }
     ctx.fillStyle = resolveCanvasColor('var(--text)', '#1F2937');
     ctx.textAlign = 'center';
-    ctx.font = '10px -apple-system, sans-serif';
-    ctx.fillText(b.val.toFixed(0), x + barW * 0.3, by - 6);
-    ctx.fillStyle = resolveCanvasColor('var(--text-muted)', '#6B7280');
-    ctx.fillText(b.label, x + barW * 0.3, h - 12);
-  });
+    ctx.font = '11px -apple-system, sans-serif';
+    ctx.fillText(title, x0 + panelW / 2, padding.top - 6);
+    var barW = panelW / bars.length;
+    bars.forEach(function(b, i){
+      var bh = (b.val / maxVal) * ch;
+      var by = padding.top + ch - bh;
+      var x = x0 + barW * i + barW * 0.2;
+      var baseColor = resolveCanvasColor(b.color, '#FF6B35');
+      var gradient = ctx.createLinearGradient(0, by, 0, by + bh);
+      gradient.addColorStop(0, baseColor);
+      gradient.addColorStop(1, canvasColorWithAlpha(baseColor, '#FF6B35', 0.5));
+      ctx.fillStyle = gradient;
+      ctx.fillRect(x, by, barW * 0.6, bh);
+      ctx.fillStyle = resolveCanvasColor('var(--text)', '#1F2937');
+      ctx.textAlign = 'center';
+      ctx.font = '10px -apple-system, sans-serif';
+      ctx.fillText(b.val.toFixed(0), x + barW * 0.3, by - 6);
+      ctx.fillStyle = resolveCanvasColor('var(--text-muted)', '#6B7280');
+      ctx.fillText(b.label, x + barW * 0.3, h - 14);
+    });
+  }
+
+  drawPanel(padding.left, 'ml', '用药量(ml/g)', [
+    {label:'亩用药量', val:perMu, color:'var(--primary)'},
+    {label:'总用药量', val:totalPest, color:'#4caf50'}
+  ]);
+  drawPanel(padding.left + panelW + gap, 'L', '用水量(L)', [
+    {label:'亩用水量', val:totalWater/area, color:'#2196f3'},
+    {label:'总用水量', val:totalWater, color:'#ff9800'}
+  ]);
 }
 
 function saveHistory(){

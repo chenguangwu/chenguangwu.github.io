@@ -290,6 +290,19 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "livestock/vaccine-schedule",
+  "inputs": {
+    "animalType": "cattle",
+    "birthDate": "2026-11-20"
+  },
+  "checkIds": ["showDate"],
+  "expect": [
+    "2027年3月20日",
+    "2027年11月20日"
+  ],
+  "ref": "牛程序 120 日龄 ⇒ 2027-03-20、365 日龄 ⇒ 2027-11-20，均跨年；旧实现只显示「3月20日 / 11月20日」不带年份，跨年计划无法区分。默认出生日期为空 ⇒ 不输出日期串，两条锚均不命中；注入失败回退默认亦不命中。"
+},
+{
   "slug": "livestock/water-feed-ratio",
   "inputs": {
     "waterIntake": "12",

@@ -320,8 +320,14 @@ function generate(){
   var type = document.getElementById('animalType').value;
   var showDate = document.getElementById('showDate').checked;
   var birthInput = document.getElementById('birthDate');
-
-  var birthDate = birthInput.value ? new Date(birthInput.value) : null;
+  var birthDate = null;
+  if(birthInput.value){
+    var parts = String(birthInput.value).split('-');
+    if(parts.length === 3){
+      birthDate = new Date(parseInt(parts[0],10), parseInt(parts[1],10)-1, parseInt(parts[2],10));
+      if(isNaN(birthDate.getTime())) birthDate = null;
+    }
+  }
   var program = VACCINES[type] || VACCINES.pig;
 
   var html = '<div class="stat-grid">';
@@ -336,8 +342,9 @@ function generate(){
   program.forEach(function(v){
     var dateStr = '';
     if(showDate && birthDate){
-      var vaccDate = new Date(birthDate.getTime() + v.age * 86400000);
-      dateStr = ' → <span style="color:var(--primary);font-weight:600;">'+(vaccDate.getMonth()+1)+'月'+vaccDate.getDate()+'日</span>';
+      var vaccDate = new Date(birthDate.getFullYear(), birthDate.getMonth(), birthDate.getDate() + v.age);
+      var sameYear = vaccDate.getFullYear() === birthDate.getFullYear();
+      dateStr = ' → <span style="color:var(--primary);font-weight:600;">'+(sameYear?'':vaccDate.getFullYear()+'年')+(vaccDate.getMonth()+1)+'月'+vaccDate.getDate()+'日</span>';
     }
     progHtml += '<div class="vaccine-row">';
     progHtml += '<div class="v-age">'+v.day+dateStr+'</div>';
