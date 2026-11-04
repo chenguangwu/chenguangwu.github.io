@@ -858,8 +858,8 @@ const CASES = [
     "slug": "science/matrix-calculator",
     "inputs": { "size": "2", "op": "scale", "scalar": "0", "a0": "1", "a1": "2", "a2": "3", "a3": "4" },
     "clicks": ["calculate()"],
-    "expect": ["0 0 0 0"],
-    "ref": "零标量必须原样进算：旧实现 parseFloat(raw)||1 把 k=0 改成 1，输出仍为 A。注入 A=[[1,2],[3,4]]、k=0 ⇒ 零矩阵（逐格 '0 0 0 0'）。默认 scalar=2/op add ⇒ 输出 A+B 非全零，不命中。"
+    "expect": ["k·A = 0·A"],
+    "ref": "零标量必须原样进算：旧实现 parseFloat(raw)||1 把 k=0 改成 1，结果标题会写成 k·A = 1·A。注入 A=[[1,2],[3,4]]、k=0 ⇒ 标题 '结果 k·A = 0·A：' + 零矩阵。判别器把 op 换回默认 add 后标题变成 '结果 C = A + B：'，不命中（只锚标题，避免依赖零矩阵串）。"
   },
   {
     "slug": "science/probability-calculator",

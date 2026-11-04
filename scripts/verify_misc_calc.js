@@ -18,17 +18,16 @@ const CASES = [
 {
   "slug": "math/function-plotter",
   "inputs": {
-    "xMin": "-15",
-    "xMax": "10",
-    "yMin": "-10",
-    "yMax": "10",
-    "p_a": "0",
-    "p_b": "10"
+    "xMin": "-10",
+    "xMax": "10"
   },
-  "expect": [
-    "y = 0x + 10"
+  "clicks": [
+    'setType("quadratic");document.getElementById("p_a").value="0";document.getElementById("p_b").value="10";document.getElementById("p_c").value="0";draw()'
   ],
-  "ref": "旧实现 v('p_a')||1 把斜率 a=0（水平线/零幅）改成 1，图例与图形走形。修复后 0 原样参与：线性图例 y = 0x + 10。默认 a=1,b=0 ⇒ y = 1x + 0，不命中；原用例锚 '-15' 是输入回显（恒绿）已删除。"
+  "expect": [
+    "y = 0x² + 10x + 0"
+  ],
+  "ref": "参数输入 p_a/p_b 由 renderParams() 动态注入（静态 HTML 无默认值，inputs 注入无法被判别器回退），故改用点击序列切到二次函数并写入 a=0/b=10/c=0。旧实现 v('p_a')||1 把系数 0 改成 1（图例 y = 1x² + 10x + 0，零幅走形）。默认态为一次函数 y = 1x + 0，注入失败（clicks 被清空）时不命中。原用例锚 '-15' 是输入回显（恒绿）已删除。"
 },
 {
   "slug": "math/magic-square",
