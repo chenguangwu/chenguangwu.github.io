@@ -278,7 +278,11 @@ const CASES = [
     "双侧声带麻痹可致喉梗阻及呼吸困难，需评估气道安全性，必要时行气管切开"
   ],
   "ref": "var sel={mobility:正常,side:左侧,position:正中位,closure:完全闭合,arytenoid:活动正常} 默认 ⇒「声带运动正常」；clicks 置 mobility=固定/position=中间位/side=双侧/closure=无法闭合 ⇒「声带完全麻痹（III度）」+「双侧声带麻痹可致喉梗阻…行气管切开」+「声门闭合不全…声带内移术」。原 expect「声带运动功能正常」是默认档 advice 片段（常量型逃生项）。"
-}
+},
+  { slug: "ent/caloric-test",
+    inputs: { rw: "", lw: "", rc: "", lc: "" },
+    expect: ["请填写四组冷热试验反应值（°/s）后再判读。"],
+    ref: "空态守卫：四项全清空时不再把空值按 0 参与计算（旧实现 +''||0 → 总和 0 → UW=0/DP=0 →「前庭功能正常」），改为只输出填写提示，不给正常/异常结论。默认态四项 25/22/20/18 有值 ⇒ 提示串不出现。" }
 ];
 async function main() {
   const only = process.argv.slice(2);

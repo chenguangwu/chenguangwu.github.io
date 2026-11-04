@@ -434,7 +434,11 @@ const CASES = [
     "37.5%"
   ],
   "ref": "Wells PE 加权：DVT 3 + 其他诊断可能 3 + 心率>100 1.5 = 7.5 > 6 → 高危（～37.5%）"
-}
+},
+  { slug: "pulmonology/light-criteria",
+    inputs: { pfProt: "", sProt: "", pfLdh: "", sLdh: "", sLdhUl: "" },
+    expect: ["请填写胸水与血清蛋白/LDH（均需大于 0）后再判读。"],
+    ref: "空态守卫：五项全清空时不再按 0 计算（旧实现 → 蛋白比值 0.00/LDH 比值 0.00 → 判「漏出液」），改为只输出填写提示。默认态 42/65/320/200/250 有值 ⇒ 提示串不出现。" }
 ];
 async function main() {
   const only = process.argv.slice(2);

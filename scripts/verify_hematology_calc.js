@@ -383,8 +383,11 @@ const CASES = [
       "M·min 样本 10 滞后期 3.08"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"cnt\":\"42\"}，输出区含「M·min 样本 10 滞后期 3.08」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  }
-
+  },
+  { slug: "hematology/detector-5",
+    inputs: { granCD59: "", granCD55: "", rbcCD59: "", monoCD59: "", type2: "", type3: "", ldh: "", hb: "" },
+    expect: ["请填写全部流式指标（LDH、Hb 需大于 0）后再判读。"],
+    ref: "空态守卫：8 项全清空时不再按 0 计算（旧实现 → 克隆 0%「未检测到 PNH 克隆」+ LDH 0「正常/轻度升高」+ Hb 0「重度贫血」的伪结论），改为只输出填写提示。默认态 35/32/15/28/10/25/450/85 有值 ⇒ 提示串不出现。" }
 ];
 async function main() {
   const only = process.argv.slice(2);
