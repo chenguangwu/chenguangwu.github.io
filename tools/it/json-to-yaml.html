@@ -160,7 +160,7 @@ s.parentNode.insertBefore(el, s);
 <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="📄 JSON 转 YAML">📄 JSON to YAML</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">解析 JSON 后递归转 YAML：空值输出 null；布尔与数字直接转字符串；字符串在形如纯数字、或小写后属于 true / false / null / yes / no / 波浪号 之一、或包含换行冒号井号方括号花括号等特殊字符、或首尾带空白、或包含逗号加空格时加引号包裹，否则原样输出；空数组输出成对的方括号，非空数组每项以「缩进 + 短横线 + 空格」开头并递归；空对象输出成对的花括号，非空对象按键逐行输出「键: 值」并对值递归缩进</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">解析 JSON 后递归转 YAML：空值输出 null；布尔直接转字符串；数字按十进制输出，指数形态补 .0（1e+21 → 1.0e+21，避免 YAML 1.1 解析器把它当字符串）；字符串与键在空串、纯数字、YAML 布尔/空值字面量（true/false/null/yes/no/on/off/~/y/n）、.inf/.nan、日期形态、以 - ? : , [ ] { } # &amp; * ! | &gt; ' " % @ ` 开头、含冒号或空格加井号、含控制字符、首尾带空白时用双引号包裹并转义，否则原样输出；空数组输出成对的方括号，非空数组每项以「缩进 + 短横线 + 空格」开头并递归；空对象输出成对的花括号，非空对象按键逐行输出「键: 值」并对值递归缩进</div>
   <div class="formula-desc">本开发工具在前端本地完成解析、转换与处理，代码不离开浏览器，遵循对应语法与格式规范。 工具名称：JSON 转 YAML - 免费开发工具，在线JSON 转 YAML，免费使用。</div>
 </div>
 
@@ -265,26 +265,44 @@ s.parentNode.insertBefore(el, s);
 
 <script>
 const SAMPLE = JSON.stringify({app:"ToolBox",version:1.0,debug:true,tags:["util","dev"],database:{host:"localhost",port:5432,pool:10},features:[{name:"a",enabled:true},{name:"b",enabled:false}]}, null, 2);
+function yamlNum(n){
+  // 指数形态补一个 .0：`1e+21` 在 YAML 1.2 core 是数字、在 1.1 解析器（PyYAML/Psych）会退化为字符串；
+  // `1.0e+21` 两种 schema 都识别为 float。
+  const s = String(n);
+  return /^[-+]?\d+e/.test(s) ? s.replace(/^([-+]?\d+)e/, '$1.0e') : s;
+}
+function yamlPlainSafe(s){
+  if(!s) return false;
+  if(/^(?:y|n|yes|no|true|false|null|on|off|~)$/i.test(s)) return false;
+  if(/^[-+]?\.(?:inf|nan)$/i.test(s)) return false;
+  if(/^[-+]?(?:\d[\d_]*(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?$/.test(s)) return false;
+  if(/^[-+]?0(?:[xX][0-9a-fA-F_]+|[oO][0-7_]+|[bB][01_]+)$/.test(s)) return false;
+  if(/^\d{4}-\d{1,2}-\d{1,2}(?:[Tt ].*)?$/.test(s)) return false;
+  if(/^[-?:,\[\]{}#&*!|>'"%@`]/.test(s)) return false;
+  if(/^[ \t]|[ \t]$/.test(s)) return false;
+  if(/[ \t]#/.test(s)) return false;
+  if(/[:]/.test(s)) return false;
+  if(/[\x00-\x1f\x7f]/.test(s)) return false;
+  return true;
+}
+function yamlScalar(v){
+  if(v === null) return 'null';
+  if(typeof v === 'boolean') return String(v);
+  if(typeof v === 'number') return yamlNum(v);
+  if(typeof v === 'string') return yamlPlainSafe(v) ? v : JSON.stringify(v);
+  return JSON.stringify(String(v));
+}
 function toYaml(v, indent){
   indent = indent || 0;
   const pad = '  '.repeat(indent);
-  if(v === null) return 'null';
-  if(typeof v === 'boolean' || typeof v === 'number') return String(v);
-  if(typeof v === 'string'){
-    if(/^[\d.]+$/ .test(v) || ['true','false','null','yes','no','~'].includes(v.toLowerCase())) return JSON.stringify(v);
-    if(/[\n:#[\]{}&*!|>'"%@`]/.test(v) || v.trim() !== v || v.includes(', ')) return JSON.stringify(v);
-    return v;
-  }
+  if(typeof v !== 'object' || v === null) return yamlScalar(v);
   if(Array.isArray(v)){
     if(v.length === 0) return '[]';
-    return v.map(item => pad + '- ' + (typeof item === 'object' && item !== null ? '\n' + toYaml(item, indent + 1) : toYaml(item, 0))).join('\n');
+    return v.map(item => pad + '- ' + (typeof item === 'object' && item !== null ? '\n' + toYaml(item, indent + 1) : yamlScalar(item))).join('\n');
   }
-  if(typeof v === 'object'){
-    const keys = Object.keys(v);
-    if(keys.length === 0) return '{}';
-    return keys.map(k => pad + k + ': ' + (typeof v[k] === 'object' && v[k] !== null ? (Array.isArray(v[k]) && v[k].length === 0 ? '[]' : Object.keys(v[k]).length === 0 ? '{}' : '\n' + toYaml(v[k], indent + 1)) : toYaml(v[k], 0))).join('\n');
-  }
-  return String(v);
+  const keys = Object.keys(v);
+  if(keys.length === 0) return '{}';
+  return keys.map(k => pad + yamlScalar(k) + ': ' + (typeof v[k] === 'object' && v[k] !== null ? (Array.isArray(v[k]) && v[k].length === 0 ? '[]' : Object.keys(v[k]).length === 0 ? '{}' : '\n' + toYaml(v[k], indent + 1)) : yamlScalar(v[k]))).join('\n');
 }
 function doYaml(){
   setErr('');

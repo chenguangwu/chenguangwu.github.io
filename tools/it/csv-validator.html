@@ -225,11 +225,14 @@ function calcTool(){function parseCSV(text,sep){
       else{if(c==='\n')physLine++;cur+=c;}
       continue;
     }
-    if(c==='"'){q=true;pending=true;}
+    // RFC 4180：双引号仅在字段起始位置开启引用段，字段中间的 `"` 是普通字符。
+    if(c==='"'){ if(cur===''){q=true;} else {cur+='"';} pending=true; }
     else if(c===sep){endField();pending=true;}
     else if(c==='\n'||c==='\r'){
       if(c==='\r'&&text.charAt(i+1)==='\n'){i++;}
       physLine++;
+      // 空行不是一条记录（否则会误报「列数 1（应为 N）」）。
+      if(fields.length===0&&cur===''&&!pending){recLine=physLine;continue;}
       endField();
       records.push({fields:fields,line:recLine,open:false});
       fields=[];cur='';recLine=physLine;pending=false;

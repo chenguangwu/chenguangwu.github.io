@@ -213,20 +213,33 @@ s.parentNode.insertBefore(el, s);
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function escH(s){var d=document.createElement('div');const __g1=s==null?'':String(s);d.textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function yamlKey(k){
+  k=String(k);
+  if(/^[A-Za-z_][A-Za-z0-9_.-]*$/.test(k) && !/^(?:y|n|yes|no|true|false|null|on|off)$/i.test(k)) return k;
+  return JSON.stringify(k);
+}
+// RFC 4180：整段扫描（引号内允许逗号与换行），双引号为字段起始才进入引用段，`""` 表示一个字面双引号。
+function parseCsvRows(text){
+  text=(text||'').replace(/^\uFEFF/,'');
+  var rows=[],row=[],field='',inQ=false;
+  for(var i=0;i<text.length;i++){
+    var c=text.charAt(i);
+    if(inQ){
+      if(c==='"'){ if(text.charAt(i+1)==='"'){field+='"';i++;} else inQ=false; }
+      else field+=c;
+    }else{
+      if(c==='"'){ if(field===''){inQ=true;} else field+='"'; }
+      else if(c===','){ row.push(field); field=''; }
+      else if(c==='\n'){ row.push(field); rows.push(row); row=[]; field=''; }
+      else if(c!=='\r'){ field+=c; }
+    }
+  }
+  if(field!==''||row.length){ row.push(field); rows.push(row); }
+  return rows.filter(function(r){ return r.length>1||(r.length===1&&r[0].trim()!==''); });
+}
 function calcTool(){var raw=document.getElementById('csv').value||'';
 if(!raw.trim()){ document.getElementById('result').innerHTML='<p class="muted">请输入 CSV 文本</p>'; return; }
-var lines=raw.replace(/\r/g,'').split('\n').filter(function(l){return l.length>0;});
-function splitCsv(line){
-  var out=[], cur='', q=false;
-  for(var i=0;i<line.length;i++){
-    var ch=line[i];
-    if(ch==='\"'){ if(q && line[i+1]==='\"'){cur+='\"';i++;} else {q=!q;} }
-    else if(ch===',' && !q){ out.push(cur); cur=''; }
-    else { cur+=ch; }
-  }
-  out.push(cur); return out;
-}
-var rows=lines.map(splitCsv);
+var rows=parseCsvRows(raw);
 var nohead=document.getElementById('top_1') ? document.getElementById('top_1').checked : false;
 var yaml='';
 if(nohead){
@@ -234,7 +247,7 @@ if(nohead){
 }else{
   var head=rows[0];
   for(var r=1;r<rows.length;r++){
-    yaml+='- '+head.map(function(h,c){return h+': '+JSON.stringify(rows[r][c]||'');}).join('\n  ')+'\n';
+    yaml+='- '+head.map(function(h,c){return yamlKey(h)+': '+JSON.stringify(rows[r][c]||'');}).join('\n  ')+'\n';
   }
 }
 var html='<div class="result-title">YAML 输出</div><pre class="code-block">'+escH(yaml)+'</pre>';

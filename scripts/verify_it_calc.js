@@ -687,6 +687,14 @@ const CASES = [
     ref: "独立复算：首轮去重 a,a,b ⇒ a/b；随后把输入改为 `y\\nx` 再升序 ⇒ `x\\ny`（不再是旧快照的 a/b）。修复前 applyOp 只用首轮快照，第二次点击仍输出 `a\\nb`，本 expect 不命中；默认态输入为空，不命中。",
   },
   {
+    slug: "it/text-dedupe-sort",
+    // IT-N20 回归：集合键与 Object.prototype 同名（__proto__）时不得被判为「已出现」。
+    inputs: { input: "__proto__\na\n__proto__\nb" },
+    clicks: ["applyOp('dedupe')"],
+    expect: ["__proto__ a b"],
+    ref: "独立复算：4 行按整行去重保留首次出现 ⇒ `__proto__` / `a` / `b`；修复前用普通 {} 做集合，`seen['__proto__']` 从 Object.prototype 继承后恒为真，首行即被丢弃 ⇒ 输出只剩 `a b`，本锚不命中（输入回显为 `__proto__ a __proto__ b`，不含该邻接串）。默认示例无该行。",
+  },
+  {
     slug: "it/text-cleaner",
     inputs: { "input-text": "  a  b \n\n\n  c \n" },
     expect: ["a b c"],
@@ -895,6 +903,21 @@ const CASES = [
     clicks: ["esc()"],
     expect: ["a\\.b\\*c"],
     ref: "独立复算：默认「通用 (JS)」风味下 `.` `*` 被转义、`/` 不转（勾「转义 /」另算）⇒ `a\\.b\\*c`。默认态输入为空直接 return，不命中。",
+  },
+  {
+    slug: "it/regex-escape",
+    // IT-N21 回归：非法 `\\x` 转义必须原样保留，不能抛 RangeError 中断。
+    inputs: { input: "\\x41\\xzz" },
+    clicks: ["unesc()"],
+    expect: ["A\\xzz"],
+    ref: "独立复算：`\\x41` ⇒ `A`，紧随的 `\\xzz` 不是合法两位十六进制 ⇒ 原样保留，结果 `A\\xzz`；修复前 parseInt 得 NaN，String.fromCodePoint(NaN) 抛 RangeError，按钮无输出（输入回显 `\\x41\\xzz` 不含 `A\\xzz`）。默认态输入为空，不命中。",
+  },
+  {
+    slug: "it/regex-escape",
+    inputs: { input: "\\u{1F600}" },
+    clicks: ["unesc()"],
+    expect: ["😀"],
+    ref: "独立复算：ES2015 码点转义 `\\u{1F600}` ⇒ U+1F600；修复前只认 4 位 `\\uXXXX`，会残留 `u{1F600}`。默认态输入为空，不命中。",
   },
   {
     slug: "it/markdown-lint",
@@ -1522,6 +1545,14 @@ const CASES = [
     ref: "独立复算：`---` 文档分隔 + 一级键 `a: 1`。**不能用 `loadSample()`** —— 那会渲染默认样例，默认态同命中 ⇒ 逃生项。",
   },
   {
+    slug: "it/json-to-yaml",
+    // IT-N22 回归：空串 / 结构指示符开头 / 含冒号 / .inf / 日期类字符串必须加引号；指数补 .0。
+    inputs: { input: '{"a":"","b":"- item","c":"a: b","d":".inf","e":1e21,"f":"2020-01-01"}' },
+    clicks: ["doYaml()"],
+    expect: ['b: "- item"', "e: 1.0e+21", 'a: ""'],
+    ref: "独立复算：空串裸写会被 YAML 解析成 null、`- item` 会变成序列项、`a: b` 会拆成嵌套映射、`.inf` 会变成浮点、日期会被 1.1 解析器解析成日期 ⇒ 这些字符串都必须双引号；数字 `1e+21` 补 `.0` 才能被 YAML 1.1/1.2 都识别为浮点。修复前分别输出 `a: `、`b: - item`、`e: 1e+21` 等。默认样例键值不同，不含这些邻接串。",
+  },
+  {
     slug: "it/a1z26-cipher",
     inputs: { input: "XYZ", sep: "-" },
     clicks: ["enc()"],
@@ -1590,6 +1621,30 @@ const CASES = [
     clicks: ["calcTool()"],
     expect: ["第 2 行：引号未闭合"],
     ref: "独立复算：未闭合引号的记录起始于第 2 行 ⇒ 报「第 2 行：引号未闭合」；行号取记录起始物理行，多行字段场景不会错位。默认示例无此文案。",
+  },
+  {
+    slug: "it/csv-validator",
+    // IT-N24 回归：末尾空行不是一条记录，不得误报「列数 1（应为 2）」。
+    inputs: { src: "a,b\n1,2\n\n", sep: "," },
+    clicks: ["calcTool()"],
+    expect: ["2 行数", "✅ 未发现列数/引号问题。"],
+    ref: "独立复算：末尾空行不是记录 ⇒ 2 行、2 列、无问题；修复前空行被当成单列记录并报「列数 1（应为 2）」，且无 ✅ 结论。默认示例有列数问题，不命中。",
+  },
+  {
+    slug: "it/csv-to-html-table",
+    // IT-N25 回归：字段中间的 `\"` 是普通字符，不得开启引用段吞掉后续分隔符。
+    inputs: { csvInput: 'a,b\n1,x"y,2' },
+    clicks: ["calcTool()"],
+    expect: ['<td>x"y</td>'],
+    ref: "独立复算：RFC 4180 只允许字段起始处的双引号开启引用段 ⇒ 第二行是 3 个单元格 `1` / `x\"y` / `2`；修复前把中间双引号当引用起点，输出 `xy,2` 一个单元格（`<td>xy,2</td>`），本锚不命中。默认示例无引号。",
+  },
+  {
+    slug: "it/csv-to-yaml",
+    // IT-N26 回归：引号内换行不得切成两条记录；表头含空格须加引号。
+    inputs: { csv: 'first name,note\nTom,"line1\nline2"' },
+    clicks: ["calcTool()"],
+    expect: ['"first name": "Tom"', 'note: "line1\\nline2"'],
+    ref: "独立复算：引号内换行属于字段内容，转成 YAML 双引号后为转义的 `\\n`，表头 `first name` 含空格须加引号 ⇒ `- \"first name\": \"Tom\"` / `note: \"line1\\nline2\"`；修复前按行切分把多行字段拆成两条记录，表头也裸写。默认 CSV 为 name/age/city，不命中。",
   },
   {
     slug: "it/csv-to-json",
@@ -2206,6 +2261,22 @@ const CASES = [
     clicks: ["doToml()"],
     expect: ["c = 2"],
     ref: "独立复算：嵌套对象转成表节 ⇒ TOML 为 `a = 1` / `[b]` / `c = 2`。锚在末行，默认样例字段不同。",
+  },
+  {
+    slug: "it/json-to-toml",
+    // IT-N23 回归：TOML 无 null 类型，必须显式报错而不是静默改写成空字符串。
+    inputs: { input: '{"a":null}' },
+    clicks: ["doToml()"],
+    expect: ["TOML 没有 null 类型"],
+    ref: "独立复算：TOML 没有 null 类型，页面应报错；修复前 `tomlVal(null)` 返回 `\"\"`，静默把 null 变成空字符串（`a = \"\"`）。默认样例无 null，不命中。",
+  },
+  {
+    slug: "it/json-to-toml",
+    // IT-N23 回归：对象与标量混排的数组不是合法 TOML，必须报错。
+    inputs: { input: '{"a":[{"b":1},2]}' },
+    clicks: ["doToml()"],
+    expect: ["TOML 数组不支持对象与标量混排"],
+    ref: "独立复算：数组内同时含表与标量时，`tomlVal` 会退回 `JSON.stringify` 产出 `[{\"b\":1}, 2]`，这不是合法 TOML；修复后直接报错。默认样例无混排数组，不命中。",
   },
   {
     slug: "it/css-formatter",

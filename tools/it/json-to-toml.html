@@ -161,7 +161,7 @@ s.parentNode.insertBefore(el, s);
 <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="⚙️ JSON 转 TOML">⚙️ JSON to TOML</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">递归转换：把当前层级的键分为标量与表两类——值为非数组的对象时归为表，值为「元素全部是对象的非空数组」时也归为表（表数组），其余归为标量。先逐行输出标量（键 = 值），再处理表：表数组为每个元素输出一对方括号包裹的表头并递归其内容，普通表输出单个方括号包裹的表头并递归；有前缀时完整键名以前缀加点号连接</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">递归转换：把当前层级的键分为标量与表两类——值为非数组的对象时归为表，值为「元素全部是对象的非空数组」时也归为表（表数组），其余归为标量。先逐行输出标量（键 = 值），再处理表：表数组为每个元素输出一对方括号包裹的表头并递归其内容，普通表输出单个方括号包裹的表头并递归；有前缀时完整键名以前缀加点号连接。TOML 没有 null 类型，遇到 null 或「对象与标量混排的数组」时直接报错，不静默改写；字符串统一用双引号包裹并转义</div>
   <div class="formula-desc">本开发工具在前端本地完成解析、转换与处理，代码不离开浏览器，遵循对应语法与格式规范。 工具名称：JSON 转 TOML - 免费开发工具，在线JSON 转 TOML，免费使用。</div>
 </div>
 
@@ -265,11 +265,15 @@ age = 20`。</div></div>
 <script>
 const SAMPLE = JSON.stringify({title:"My App",version:"1.0",debug:true,port:8080,database:{host:"localhost",port:5432,pool:10},tags:["a","b","c"],owner:{name:"Alice",email:"alice@example.com"}}, null, 2);
 function tomlVal(v){
-  if(v === null) return '""';
+  if(v === null) throw new Error('TOML 没有 null 类型：请先移除该字段或改为空字符串 / 0');
   if(typeof v === 'boolean') return String(v);
   if(typeof v === 'number') return String(v);
   if(typeof v === 'string') return JSON.stringify(v);
-  if(Array.isArray(v)) return '[' + v.map(tomlVal).join(', ') + ']';
+  if(Array.isArray(v)){
+    // TOML 数组不能混排「表」与标量：对象数组只能整体走 [[表数组]] 分支；嵌套数组仍合法。
+    if(v.some(x => x && typeof x === 'object' && !Array.isArray(x))) throw new Error('TOML 数组不支持对象与标量混排：请拆分字段');
+    return '[' + v.map(tomlVal).join(', ') + ']';
+  }
   if(typeof v === 'object') return JSON.stringify(v);
   return JSON.stringify(String(v));
 }

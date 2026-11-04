@@ -296,14 +296,18 @@ function unesc(){
         case 'v': out += '\v'; break;
         case '0': out += '\0'; break;
         case 'x':
+          if(!/^[0-9a-fA-F]{2}$/.test(text.substr(i+2,2))){ out += '\\x'; i += 2; continue; }
           out += String.fromCodePoint(parseInt(text.substr(i+2,2),16));
           i += 4; continue;
         case 'u':
           if(text[i+2] === '{'){
             const end = text.indexOf('}', i+3);
-            out += String.fromCodePoint(parseInt(text.substring(i+3,end),16));
+            const hex = end < 0 ? '' : text.substring(i+3,end);
+            if(!/^[0-9a-fA-F]{1,6}$/.test(hex) || parseInt(hex,16) > 0x10FFFF){ out += '\\u'; i += 2; continue; }
+            out += String.fromCodePoint(parseInt(hex,16));
             i = end + 1; continue;
           } else {
+            if(!/^[0-9a-fA-F]{4}$/.test(text.substr(i+2,4))){ out += '\\u'; i += 2; continue; }
             out += String.fromCodePoint(parseInt(text.substr(i+2,4),16));
             i += 6; continue;
           }
