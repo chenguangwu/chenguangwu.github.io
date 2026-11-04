@@ -370,6 +370,16 @@ function calcBEP(fc, price, vc){
 
 function calc(){
   var p = getParams();
+  var err = '';
+  if(p.price <= 0) err = '请输入大于 0 的产品单价。';
+  else if(p.fc < 0 || p.vc < 0 || p.qty < 0) err = '固定成本、单位变动成本与销量不能为负数。';
+  else if(p.taxRate < 0 || p.taxRate > 100) err = '所得税率应在 0–100% 之间。';
+  else if(p.price - p.vc <= 0) err = '单位边际贡献 ≤ 0（单价不高于单位变动成本），不存在盈亏平衡点，请调整价格或成本。';
+  if(err){
+    document.getElementById('statGrid').innerHTML = '';
+    document.getElementById('res').innerHTML = '<p class="tip-error">' + err + '</p>';
+    return;
+  }
   var bep = calcBEP(p.fc, p.price, p.vc);
   var revenue = p.qty * p.price;
   var totalVC = p.qty * p.vc;
@@ -731,6 +741,10 @@ function updateScenarioCompare(){
 function calcSensitivity(){
   var p = getParams();
   var pct = +document.getElementById('sensPct').value || 10;
+  if(p.price <= 0 || p.price - p.vc <= 0){
+    document.getElementById('sensGrid').innerHTML = '<p class="tip-error">单价需大于 0 且高于单位变动成本，才能做敏感性分析。</p>';
+    return;
+  }
   var baseBEP = calcBEP(p.fc, p.price, p.vc);
   
   var items = [];
