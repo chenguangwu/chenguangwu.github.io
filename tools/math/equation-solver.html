@@ -337,13 +337,94 @@ const INPUT_TPL = {
     <p style="font-size:13px;margin:8px 0;">求 f(x) = 0 的所有实根</p>
     
 <div class="input-row">
-      <label>函数 (JS 语法)</label>
+      <label>函数（变量 x；支持 + - * / ^ **、括号与 sin/cos/log/sqrt 等白名单函数，不支持 Math.xxx 成员访问或赋值）</label>
       <input type="text" id="poly" value="x**4 - 5*x**2 + 4" style="width:100%;padding:8px;border:1px solid var(--border-color);border-radius:6px;background:var(--bg-body);color:var(--text-primary);font-family:monospace;">
     </div>
   `,
 };
 
 function renderInputs() { const __h1=INPUT_TPL[selectedType];if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('inputArea').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('inputArea').innerHTML=__h1; }
+
+// 受限表达式解析：仅放行运算符、数学函数与变量 x，禁止任意标识符 / 成员访问 / 动态执行
+function compileMathExpr(src, varNames){
+  var s = String(src == null ? '' : src).replace(/\*\*/g, '^');
+  var pos = 0;
+  var FNS = {
+    sin:Math.sin, cos:Math.cos, tan:Math.tan, asin:Math.asin, acos:Math.acos, atan:Math.atan,
+    sqrt:Math.sqrt, cbrt:Math.cbrt, abs:Math.abs, exp:Math.exp,
+    log:Math.log, log2:Math.log2, log10:Math.log10,
+    floor:Math.floor, ceil:Math.ceil, round:Math.round, sign:Math.sign,
+    min:Math.min, max:Math.max, pow:Math.pow, atan2:Math.atan2
+  };
+  var VARS = varNames || {x:1};
+  function ws(){ while(pos<s.length && /\s/.test(s.charAt(pos))) pos++; }
+  function fail(){ throw new Error('表达式不合法'); }
+  function parseExpr(){
+    var node = parseTerm();
+    while(true){ ws(); var c = s.charAt(pos);
+      if(c === '+' || c === '-'){ pos++; node = {t:'bin', op:c, a:node, b:parseTerm()}; }
+      else break; }
+    return node;
+  }
+  function parseTerm(){
+    var node = parseUnary();
+    while(true){ ws(); var c = s.charAt(pos);
+      if(c === '*' || c === '/' || c === '%'){ pos++; node = {t:'bin', op:c, a:node, b:parseUnary()}; }
+      else if(c === '(' || /[A-Za-z]/.test(c)){ node = {t:'bin', op:'*', a:node, b:parseUnary()}; }
+      else break; }
+    return node;
+  }
+  function parseUnary(){
+    ws(); var c = s.charAt(pos);
+    if(c === '-'){ pos++; return {t:'neg', a:parseUnary()}; }
+    if(c === '+'){ pos++; return parseUnary(); }
+    return parsePow();
+  }
+  function parsePow(){
+    var base = parseAtom(); ws();
+    if(s.charAt(pos) === '^'){ pos++; return {t:'bin', op:'^', a:base, b:parseUnary()}; }
+    return base;
+  }
+  function parseAtom(){
+    ws(); var c = s.charAt(pos);
+    if(c === '('){ pos++; var e = parseExpr(); ws(); if(s.charAt(pos) !== ')') fail(); pos++; return e; }
+    var num = /^(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?/.exec(s.slice(pos));
+    if(num){ pos += num[0].length; return {t:'num', v:Number(num[0])}; }
+    var id = /^[A-Za-z_][A-Za-z0-9_]*/.exec(s.slice(pos));
+    if(!id) fail();
+    var name = id[0]; pos += name.length; var lower = name.toLowerCase();
+    ws();
+    if(s.charAt(pos) === '('){
+      if(!FNS.hasOwnProperty(lower)) fail();
+      pos++; var args = []; ws();
+      if(s.charAt(pos) !== ')'){
+        args.push(parseExpr());
+        while(true){ ws(); if(s.charAt(pos) === ','){ pos++; args.push(parseExpr()); } else break; }
+      }
+      ws(); if(s.charAt(pos) !== ')') fail(); pos++;
+      return {t:'fn', name:lower, args:args};
+    }
+    if(VARS.hasOwnProperty(lower)) return {t:'var', name:lower};
+    if(lower === 'pi') return {t:'num', v:Math.PI};
+    if(lower === 'e') return {t:'num', v:Math.E};
+    fail();
+  }
+  function evalNode(n, env){
+    if(n.t === 'num') return n.v;
+    if(n.t === 'var') return env[n.name];
+    if(n.t === 'neg') return -evalNode(n.a, env);
+    if(n.t === 'fn'){ var a = n.args.map(function(x){ return evalNode(x, env); }); return FNS[n.name].apply(null, a); }
+    var l = evalNode(n.a, env), r = evalNode(n.b, env);
+    if(n.op === '+') return l + r;
+    if(n.op === '-') return l - r;
+    if(n.op === '*') return l * r;
+    if(n.op === '/') return l / r;
+    if(n.op === '%') return l % r;
+    return Math.pow(l, r);
+  }
+  var ast = (function(){ var a = parseExpr(); ws(); if(pos < s.length) fail(); return a; })();
+  return function(env){ return evalNode(ast, env || {}); };
+}
 
 function solve() {
   let html = '';
@@ -430,7 +511,9 @@ function solve() {
     }
   } else if (selectedType === 'polynomial') {
     const expr = document.getElementById('poly').value;
-    const f = (x) => { try { return eval(expr); } catch { return NaN; } };
+    let fn = null;
+    try { fn = compileMathExpr(expr, {x:1}); } catch (e) { fn = null; }
+    const f = (x) => { try { return fn ? fn({x:x}) : NaN; } catch { return NaN; } };
     const roots = [];
     for (let i = -20; i < 20; i += 0.2) {
       let x = i;
@@ -445,7 +528,7 @@ function solve() {
       }
       if (Math.abs(f(x)) < 1e-3 && !roots.some(r => Math.abs(r - x) < 0.1)) roots.push(x);
     }
-    html = `<div class="result-block"><div class="result-label">f(x) = ${expr}</div></div>
+    html = `<div class="result-block"><div class="result-label">f(x) = ${ToolBox.escHtml(expr)}</div></div>
     <div class="result-block"><div class="result-label">实数根</div><div class="result-value">${roots.length} 个</div></div>`;
     roots.forEach((r, i) => {
       html += `<div class="result-block"><div class="result-label">x${i+1}</div><div class="result-value">${r.toFixed(6)}</div></div>`;
