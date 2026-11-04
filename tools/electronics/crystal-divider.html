@@ -125,8 +125,8 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="🧮 晶振分频计算">Crystal Divider</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="分频系数与输出频率计算，支持 PLL 倍频分频">Crystal Divider</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">晶振分频与 PLL 倍频计算<br>整数分频：输出频率 = 晶振频率 / N（N≥1）；周期 T = 1/f<br>PLL：VCO 频率 = 晶振 / 预分频 × 倍频系数；输出 = VCO / 输出分频<br>目标频率匹配：理论分频比 = 晶振/目标，取整 N=round(理论比)，误差 = |晶振/N − 目标|/目标×100%</div>
-      <p class="formula-desc" data-zh="核心计算公式（按输入变量）：Math.round(tgt÷xr)；Math.round(ratio)">Key formulas: Math.round(tgt÷xr); Math.round(ratio)</p>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">晶振分频与 PLL 倍频计算<br>整数分频：输出频率 = 晶振频率 / N（N≥1，须为正整数）；周期 T = 1/f<br>PLL：VCO 频率 = 晶振 / 预分频 × 倍频系数 M（预分频、输出分频、M 均为正整数）；输出 = VCO / 输出分频<br>目标频率匹配：理论分频比 = 晶振/目标；比率≥1 取整数分频 N=round(晶振/目标)，比率&lt;1 则取整数倍频 M=round(目标/晶振)；误差 = |实际输出 − 目标|/目标×100%</div>
+      <p class="formula-desc" data-zh="核心计算公式（按输入变量）：Math.round(tgt÷xr)；Math.round(ratio)；倍频 M=round(目标/晶振)">Core formulas (by input): Math.round(tgt÷xr); Math.round(ratio); multiplier M = round(target/crystal)</p>
     </div>
 
     <div class="mode-tabs">
@@ -317,18 +317,25 @@ function calc(){
   var extra = document.getElementById('extraInfo');
   if(mode==='div'){
     var x = toHz(+document.getElementById('xtal1').value||0, +document.getElementById('unit1').value);
-    var n = +document.getElementById('divider1').value||1;
-    if(n<=0){ document.getElementById('freqVal').textContent='—'; document.getElementById('freqLbl').textContent='分频系数需≥1'; return; }
+    var n = parseFloat(document.getElementById('divider1').value);
+    if(!isFinite(n)||n<1||Math.abs(n-Math.round(n))>1e-9){ document.getElementById('freqVal').textContent='—'; document.getElementById('freqLbl').textContent='分频系数需为正整数（≥1）'; return; }
+    n = Math.round(n);
     var out = x/n;
     const __g2=formatFreq(out);document.getElementById('freqVal').textContent=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
     const __g3='输出频率 = 晶振('+formatFreq(x)+') ÷ '+n;document.getElementById('freqLbl').textContent=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
     extra = showPeriod(out);
   } else if(mode==='pll'){
     var xp = toHz(+document.getElementById('xtal2').value||0, +document.getElementById('unit2').value);
-    var m = +document.getElementById('multi').value||1;
-    var n2 = +document.getElementById('preDiv').value||1;
-    var od = +document.getElementById('outDiv').value||1;
-    if(n2<=0||od<=0){ document.getElementById('freqVal').textContent='—'; document.getElementById('freqLbl').textContent='分频系数需≥1'; return; }
+    var m = parseFloat(document.getElementById('multi').value);
+    var n2 = parseFloat(document.getElementById('preDiv').value);
+    var od = parseFloat(document.getElementById('outDiv').value);
+    if(!isFinite(n2)||n2<1||Math.abs(n2-Math.round(n2))>1e-9||!isFinite(od)||od<1||Math.abs(od-Math.round(od))>1e-9){
+      document.getElementById('freqVal').textContent='—'; document.getElementById('freqLbl').textContent='前/后分频系数需为正整数（≥1）'; return;
+    }
+    if(!isFinite(m)||m<1||Math.abs(m-Math.round(m))>1e-9){
+      document.getElementById('freqVal').textContent='—'; document.getElementById('freqLbl').textContent='倍频系数 M 需为正整数（≥1）'; return;
+    }
+    m = Math.round(m); n2 = Math.round(n2); od = Math.round(od);
     var vco = xp/n2*m;
     var out2 = vco/od;
     const __g6=formatFreq(out2);document.getElementById('freqVal').textContent=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
@@ -341,18 +348,27 @@ function calc(){
     if(xr<=0||tgt<=0){ document.getElementById('freqVal').textContent='—'; document.getElementById('freqLbl').textContent='请输入有效频率'; extra.innerHTML=''; return; }
     var ratio = xr/tgt;
     var idealN = ratio;
+    var useMul = ratio < 1;
     var bestN = Math.round(ratio);
-    var err = bestN>0 ? Math.abs((xr/bestN - tgt)/tgt*100) : 999;
     var bestM = Math.round(tgt/xr);
+    var err = bestN>0 ? Math.abs((xr/bestN - tgt)/tgt*100) : 999;
     var errM = bestM>0 ? Math.abs((xr*bestM - tgt)/tgt*100) : 999;
-    const __g13=(bestN>0?formatFreq(xr/bestN):'—');document.getElementById('freqVal').textContent=(typeof __g13==='number'?(isFinite(__g13)?__g13:'—'):String(__g13).replace(/Infinity|NaN/g,'—'));
-    const __g14='分频比 N='+bestN+'（理论 '+idealN.toFixed(4)+'，误差 '+err.toFixed(3)+'%）';document.getElementById('freqLbl').textContent=(typeof __g14==='number'?(isFinite(__g14)?__g14:'—'):String(__g14).replace(/Infinity|NaN/g,'—'));
+    if((useMul && bestM<1) || (!useMul && bestN<1)){
+      document.getElementById('freqVal').textContent='—';
+      document.getElementById('freqLbl').textContent='无可行整数分频/倍频方案，请调整晶振或目标频率';
+      extra.innerHTML=''; return;
+    }
+    var mainFreq = useMul ? xr*bestM : xr/bestN;
+    const __g13=formatFreq(mainFreq);document.getElementById('freqVal').textContent=(typeof __g13==='number'?(isFinite(__g13)?__g13:'—'):String(__g13).replace(/Infinity|NaN/g,'—'));
+    const __g14=(useMul
+      ? '倍频比 M='+bestM+'（理论 '+(tgt/xr).toFixed(4)+'，误差 '+errM.toFixed(3)+'%）'
+      : '分频比 N='+bestN+'（理论 '+idealN.toFixed(4)+'，误差 '+err.toFixed(3)+'%）');document.getElementById('freqLbl').textContent=(typeof __g14==='number'?(isFinite(__g14)?__g14:'—'):String(__g14).replace(/Infinity|NaN/g,'—'));
     const __g15='<div class="data-grid">'+
-      card('理论分频比', idealN.toFixed(4))+
-      card('整数分频 N', bestN)+
-      card('分频误差', err.toFixed(3)+'%')+
-      card('或倍频 M', bestM+'（误差'+errM.toFixed(2)+'%）')+
-      '</div>'+showPeriod(xr/bestN);extra.innerHTML=(typeof __g15==='number'?(isFinite(__g15)?__g15:'—'):String(__g15).replace(/Infinity|NaN/g,'—'));
+      card('理论频率比 (晶振/目标)', idealN.toFixed(4))+
+      card('整数分频 N', bestN>0?(bestN+'（误差'+err.toFixed(2)+'%）'):'不可用（目标高于晶振）')+
+      card('整数倍频 M', bestM>0?(bestM+'（误差'+errM.toFixed(2)+'%）'):'不可用（目标低于晶振）')+
+      card('推荐方案', useMul?('倍频 M='+bestM):('分频 N='+bestN))+
+      '</div>'+showPeriod(mainFreq);extra.innerHTML=(typeof __g15==='number'?(isFinite(__g15)?__g15:'—'):String(__g15).replace(/Infinity|NaN/g,'—'));
   }
 }
 

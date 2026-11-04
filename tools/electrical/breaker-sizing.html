@@ -201,6 +201,7 @@ s.parentNode.insertBefore(el, s);
         <li>断路器额定电流 ≈ 负载电流 × 1.25，并向上取常见规格（6/10/16/20/25/32/40…）</li>
         <li>电动机等冲击性负载（空调）需考虑启动电流，可选 D 型脱扣曲线</li>
         <li>额定值过高会失去过载保护，过低会频繁误跳闸</li>
+        <li>本表最高 125 A；计算值超出时不自动推荐，提示改用 160 A 及以上塑壳断路器或拆分回路</li>
         <li>结果仅供参考，正式设计按 GB 50054 与厂家选型手册执行</li>
   </ul>
 </div>
@@ -250,17 +251,33 @@ function calcTool(){const I=num('I');
    const pole=document.getElementById('pole').value;
    const target=I*1.25;
    const series=[6,10,16,20,25,32,40,50,63,80,100,125];
-   let rec=series[series.length-1];
-   for(const s of series){ if(s>=target){ rec=s; break; } }
+   const over=target>series[series.length-1];
+   let rec=null;
+   if(!over){ for(const s of series){ if(s>=target){ rec=s; break; } } }
    const useName={light:'照明',socket:'插座',ac:'空调',water:'厨卫电器'}[use]||'照明';
    const poleName={1:'1P',2:'2P',3:'3P'}[pole]||'1P';
-   let html=dataGrid([
-     [rec+' A','推荐额定电流'],
-     [target.toFixed(1)+' A','计算值（1.25×I）'],
-     [poleName,'极数'],
-     [useName,'回路用途']
-   ]);
-   const note = rec>I*2.5 ? ' <p class="tip-error" style="margin-top:8px;">⚠️ 额定值明显高于负载（>'+(I*2.5).toFixed(1)+'A），可能失去过载保护作用，请核对负载计算。</p>' : ' <p style="color:var(--ok,#16a34a);margin-top:8px;">✅ 额定值在负载的 1.25–2.5 倍之间，选择合理。</p>';
+   let html;
+   if(over){
+     html=dataGrid([
+       ['超出表内最大档','推荐额定电流'],
+       [target.toFixed(1)+' A','计算值（1.25×I）'],
+       [poleName,'极数'],
+       [useName,'回路用途']
+     ]);
+   } else {
+     html=dataGrid([
+       [rec+' A','推荐额定电流'],
+       [target.toFixed(1)+' A','计算值（1.25×I）'],
+       [poleName,'极数'],
+       [useName,'回路用途']
+     ]);
+   }
+   let note;
+   if(over){
+     note = ' <p class="tip-error" style="margin-top:8px;">⚠️ 计算值 '+target.toFixed(1)+' A 已超过本表最大 125 A 微型断路器档位，本工具不做自动推荐；请选用 160 A 及以上塑壳断路器（MCCB），或拆分回路，并由持证电工按 GB/T 16895 复核。</p>';
+   } else {
+     note = rec>I*2.5 ? ' <p class="tip-error" style="margin-top:8px;">⚠️ 额定值明显高于负载（>'+(I*2.5).toFixed(1)+'A），可能失去过载保护作用，请核对负载计算。</p>' : ' <p style="color:var(--ok,#16a34a);margin-top:8px;">✅ 额定值在负载的 1.25–2.5 倍之间，选择合理。</p>';
+   }
 
    // 常见回路配置参考表
    html += '<div style="margin-top:12px;font-size:13px;"><b>常见回路断路器配置参考</b></div>'+

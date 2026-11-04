@@ -117,7 +117,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="单缝夫琅禾费衍射第一暗纹角。">Find the first dark-fringe angle of Fraunhofer single-slit diffraction from a·sinθ = λ. For physics experiments, optical measurement and quantitative diffraction analysis.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">单缝夫琅禾费衍射暗纹（本页代码口径，含缝宽）：a×sinθ=m×λ，即 sinθ=m×λ÷a（a 缝宽 m、λ 波长 m、m 暗纹级次取整）；暗纹角 θ=arcsin(mλ÷a)×180÷π（°）、第一暗纹角 θ₁=arcsin(λ÷a)×180÷π。校验：三项空值即提示并中止；|mλ÷a|&gt;1 时反正弦无解显示 —。判据：无固定分级，缝宽越小暗纹角越大（衍射越显著），中央亮纹半角宽度即第一暗纹角 θ₁。</div>
+      <div class="formula-eq">单缝夫琅禾费衍射暗纹（本页代码口径，含缝宽）：a×sinθ=m×λ，即 sinθ=m×λ÷a（a 缝宽 m、λ 波长 m、m 暗纹级次，须为非零整数）；暗纹角 θ=arcsin(mλ÷a)×180÷π（°）、第一暗纹角 θ₁=arcsin(λ÷a)×180÷π。校验：缝宽 a 与波长 λ 须大于 0，级次 m 须为非零整数（0 级是中央亮纹），|mλ÷a|&gt;1 时提示该级次不可观测。判据：无固定分级，缝宽越小暗纹角越大（衍射越显著），中央亮纹半角宽度即第一暗纹角 θ₁。</div>
       <p class="formula-desc">单缝夫琅禾费衍射第一暗纹角。</p>
     </div>
 
@@ -263,15 +263,33 @@ s.parentNode.insertBefore(el, s);
 
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function __ssdValidate(){
+    var a=parseFloat(document.getElementById('a').value);
+    var lam=parseFloat(document.getElementById('lam').value);
+    var mRaw=parseFloat(document.getElementById('m').value);
+    if(!isFinite(a)||a<=0)
+        return {err:'<p style="color:var(--danger)">⚠ 缝宽 a 必须大于 0。</p>'};
+    if(!isFinite(lam)||lam<=0)
+        return {err:'<p style="color:var(--danger)">⚠ 波长 λ 必须大于 0（λ=0 不会形成衍射条纹）。</p>'};
+    if(!isFinite(mRaw)||Math.abs(mRaw-Math.round(mRaw))>1e-9||Math.round(mRaw)===0)
+        return {err:'<p style="color:var(--danger)">⚠ 暗纹级次 m 必须为非零整数（±1、±2、±3…）；0 级是中央亮纹，不是暗纹。</p>'};
+    var m=Math.round(mRaw);
+    var s=m*lam/a;
+    if(Math.abs(s)>1)
+        return {err:'<p style="color:var(--danger)">⚠ |mλ/a| = '+(Math.abs(s)).toFixed(4)+' &gt; 1，该级次不存在可观测暗纹（sinθ 超出定义域）。</p>'};
+    return {a:a,lam:lam,m:m,s:s};
+}
 function calcTool(){
               var __ig=__tbInputGuard(['a', 'lam', 'm'],["缝宽 a (m)", "波长 λ (m)", "暗纹级次 m"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const a = num('a'), lam = num('lam'), m = Math.round(num('m'));
-            const s = m * lam / a;
+            var __v=__ssdValidate();
+            if(__v.err){ToolBox.setResult('result',__v.err);return;}
+            const a = __v.a, lam = __v.lam, m = __v.m;
+            const s = __v.s;
             const th = Math.asin(s) * 180 / Math.PI;
             const __g2=dataGrid([
                 [th.toFixed(4), '暗纹角 θ (°)'],
-                [((m*lam/a)).toFixed(5), 'sinθ 值'],
-                [Math.asin(lam/a)*180/Math.PI, '第一暗纹角 θ₁ (°)']
+                [s.toFixed(5), 'sinθ 值'],
+                [(Math.asin(lam/a)*180/Math.PI).toFixed(4), '第一暗纹角 θ₁ (°)']
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('a').value = '1e-4';
@@ -284,17 +302,18 @@ function __single_slit_diffractionNum(id){var e=document.getElementById(id);var 
 function __single_slit_diffractionExtras(){
     function __single_slit_diffractionRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
-    var a = num('a'), lam = num('lam'), m = Math.round(num('m'));
-    var s = m * lam / a;
-    var th = Math.asin(s) * 180 / Math.PI;
-    if (!isFinite(__single_slit_diffractionNum('a')) || !isFinite(__single_slit_diffractionNum('lam')) || !isFinite(__single_slit_diffractionNum('m'))) return;
     var en=TBKit.util.isEn();
+    var __v=__ssdValidate();
+    if (__v.err) { TBKit.matrix.table('#single_slit_diffractionTable',{head:en?['Item','Value']:['项目','数值'],rows:[]}); return; }
+    var a = __v.a, lam = __v.lam, m = __v.m;
+    var s = __v.s;
+    var th = Math.asin(s) * 180 / Math.PI;
     TBKit.matrix.table('#single_slit_diffractionTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
             ['暗纹角 θ (°)', th.toFixed(4)],
-            ['sinθ 值', ((m*lam/a)).toFixed(5)],
-            ['第一暗纹角 θ₁ (°)', Math.asin(lam/a)*180/Math.PI],
+            ['sinθ 值', s.toFixed(5)],
+            ['第一暗纹角 θ₁ (°)', (Math.asin(lam/a)*180/Math.PI).toFixed(4)],
         ]
     });
     TBKit.history.record({a:__single_slit_diffractionRaw('a'), lam:__single_slit_diffractionRaw('lam'), m:__single_slit_diffractionRaw('m'), s:s});
@@ -309,9 +328,9 @@ function __single_slit_diffractionExport(){
 function __single_slit_diffractionPresets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#single_slit_diffractionPresets',[
-        {label:'默认',labelEn:'Default',values:{a:'1e-4', lam:'500e-9', m:'1'}},
-        {label:'示例 2×',labelEn:'Example 2×',values:{a:'0.0002', lam:'0', m:'2'}},
-        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{a:'0.0001', lam:'0', m:'0.5'}},
+        {label:'默认（a=0.1mm）',labelEn:'Default (a=0.1 mm)',values:{a:'1e-4', lam:'500e-9', m:'1'}},
+        {label:'第二暗纹（m=2）',labelEn:'Second minimum (m=2)',values:{a:'1e-4', lam:'500e-9', m:'2'}},
+        {label:'窄缝 20μm（m=1）',labelEn:'Narrow slit 20 µm (m=1)',values:{a:'20e-6', lam:'500e-9', m:'1'}},
     ],function(){ calcTool(); });
 }
 var __tb_fn0 = calcTool;

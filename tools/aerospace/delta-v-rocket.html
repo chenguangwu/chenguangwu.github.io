@@ -268,6 +268,10 @@ function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+=
 function calcTool(){
               var __ig=__tbInputGuard(['isp', 'm0', 'mf'],["比冲 Isp (s)", "初始质量 (kg)", "最终质量 (kg)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const isp=num('isp'),m0=num('m0'),mf=num('mf');
+            if(!isFinite(isp)||isp<=0){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 比冲 Isp 必须大于 0。</p>');return;}
+            if(!isFinite(m0)||m0<=0){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 初始质量 m₀ 必须大于 0。</p>');return;}
+            if(!isFinite(mf)||mf<=0){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 最终质量 m_f 必须大于 0（质量为 0 时对数发散）。</p>');return;}
+            if(mf>m0){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 最终质量 m_f 不能大于初始质量 m₀：推进剂消耗后质量只会减少。</p>');return;}
             const dv=isp*9.81*Math.log(m0/mf);
             const __g2=dataGrid([
                 [(dv/1000).toFixed(2),'速度增量 Δv (km/s)'],
@@ -349,8 +353,11 @@ function __delta_v_rocketExtras(){
     function __delta_v_rocketRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var isp=num('isp'),m0=num('m0'),mf=num('mf');
+    if (!(isFinite(isp)&&isFinite(m0)&&isFinite(mf)&&isp>0&&m0>0&&mf>0&&mf<=m0)) {
+        TBKit.matrix.table('#delta_v_rocketTable',{head:TBKit.util.isEn()?['Item','Value']:['项目','数值'],rows:[]});
+        return;
+    }
     var dv=isp*9.81*Math.log(m0/mf);
-    if (!isFinite(__delta_v_rocketNum('isp')) || !isFinite(__delta_v_rocketNum('m0')) || !isFinite(__delta_v_rocketNum('mf'))) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#delta_v_rocketTable',{
         head: en?['Item','Value']:['项目','数值'],

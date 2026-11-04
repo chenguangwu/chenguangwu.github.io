@@ -269,6 +269,7 @@ function renderParams() {
     p.innerHTML=`
       <div class="input-row"><label>电容 C (μF)</label><input type="number" id="C" value="1000" step="0.1" placeholder="如 1000"></div>
       <div class="input-row"><label>电压 V (V)</label><input type="number" id="V" value="5" step="0.1" placeholder="如 5"></div>
+      <div class="input-row"><label>充电电阻 R (Ω)</label><input type="number" id="Rc" value="1000" step="10" placeholder="如 1000"></div>
     `;
   }
 }
@@ -343,14 +344,15 @@ function calc() {
   } else if (cur === 'energy') {
     const C = +document.getElementById('C').value || 0;
     const V = +document.getElementById('V').value || 0;
-    if (C<=0||V<=0) { ToolBox.showToast(i18nText(),'error'); return; }
+    const R = +document.getElementById('Rc').value || 0;
+    if (C<=0||V<=0||R<=0) { ToolBox.showToast(i18nText(),'error'); return; }
     // E = 0.5 × C × V², C 单位 μF → F = C × 1e-6
     const Cf = C * 1e-6;
     const E = 0.5 * Cf * V * V;
     // 充电电荷 Q = CV
     const Q = Cf * V;
-    // 平均充电功率 (假设 5τ 内完成)
-    const tau = 0.001; // 假设
+    // 时间常数 τ = R × C；按 5τ 视为充满，平均功率 = E/(5τ)
+    const tau = R * Cf;
     const P = E / (5 * tau);
     const __g8=`
       <h3 style="text-align:center;margin-bottom:12px;">🧮 储能/充电</h3>
@@ -364,9 +366,14 @@ function calc() {
         <div class="result-value">${(Q*1000).toFixed(2)} mC</div>
       </div>
       <div class="result-block">
-        <div class="result-label">平均充电功率</div>
+        <div class="result-label">充电至 99.3% (5τ)</div>
+        <div class="result-value">${(tau*5*1000).toFixed(2)} ms</div>
+        <p style="font-size:11px;color:var(--text-muted);margin-top:4px;">τ = R×C = ${(tau*1000).toFixed(2)} ms</p>
+      </div>
+      <div class="result-block">
+        <div class="result-label">平均充电功率（0→5τ）</div>
         <div class="result-value">${(P*1000).toFixed(1)} mW</div>
-        <p style="font-size:11px;color:var(--text-muted);margin-top:4px;">假设 5ms 内充满</p>
+        <p style="font-size:11px;color:var(--text-muted);margin-top:4px;">按 R = ${R} Ω、5τ 内充满计算</p>
       </div>
     `;document.getElementById('result').innerHTML=(typeof __g8==='number'?(isFinite(__g8)?__g8:'—'):String(__g8).replace(/Infinity|NaN/g,'—'));
   }
