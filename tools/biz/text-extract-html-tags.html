@@ -178,7 +178,7 @@ s.parentNode.insertBefore(el, s);
       <div id="text_extract_html_tagsPresets"></div>
       <button type="button" class="btn primary" onclick="extract()">提取</button>
       <button class="btn" type="button" onclick="__text_extract_html_tagsExport()">导出明细 CSV</button>
-      <button type="button" class="btn success" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn success" onclick="copyResult(event)">复制结果</button>
       <button type="button" class="btn" onclick="clearAll()">清空</button>
     </div>
     <div class="stats-row">
@@ -370,13 +370,19 @@ function extract(){
     : '';
 }
 
-function copyResult(){
+function copyResult(ev){
   const text = document.getElementById('result').textContent;
   if(!text || text === '请输入 HTML...'){ alert('请先提取'); return; }
-  navigator.clipboard.writeText(text).then(() => {
-    const btn = event.target.closest('.btn');
+  function done(){
+    const btn = ev && ev.target ? ev.target.closest('.btn') : document.querySelector('button[onclick^="copyResult"]');
     if(btn){ const old = btn.textContent; btn.textContent = '✅ 已复制'; setTimeout(() => btn.textContent = old, 1500); }
-  });
+  }
+  let p = null;
+  try{
+    if(navigator.clipboard && typeof navigator.clipboard.writeText === 'function') p = navigator.clipboard.writeText(text);
+  }catch(e){ p = null; }
+  if(p && typeof p.then === 'function'){ p.then(done, () => alert(text)); }
+  else { done(); }
 }
 
 function clearAll(){

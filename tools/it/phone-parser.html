@@ -117,7 +117,7 @@ s.parentNode.insertBefore(el, s);
       </div>
       <div>
         <label for="cc">国家/地区</label>
-        <select id="cc" style="width:100%;"><option value="86">中国 +86</option><option value="1">美国/加拿大 +1</option><option value="44">英国 +44</option><option value="81">日本 +81</option><option value="91">印度 +91</option><option value="852">香港 +852</option><option value="886">台湾 +886</option><option value="65">新加坡 +65</option><option value="61">澳大利亚 +61</option></select>
+        <select id="cc" style="width:100%;" onchange="calcTool()"><option value="86">中国 +86</option><option value="1">美国/加拿大 +1</option><option value="44">英国 +44</option><option value="81">日本 +81</option><option value="91">印度 +91</option><option value="852">香港 +852</option><option value="886">台湾 +886</option><option value="65">新加坡 +65</option><option value="61">澳大利亚 +61</option></select>
       </div>
     </div>
     <div class="toolbar">
@@ -213,7 +213,7 @@ s.parentNode.insertBefore(el, s);
 <script>
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function escH(s){var d=document.createElement('div');const __g1=s==null?'':String(s);d.textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
-function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function dataGrid(rows){rows=Array.isArray(rows)?rows:[];let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 var CC_RULES={'86':{trunk:'',min:10,max:11},'1':{trunk:'',min:10,max:10},'44':{trunk:'0',min:10,max:10},'81':{trunk:'0',min:9,max:10},'91':{trunk:'0',min:10,max:10},'852':{trunk:'',min:8,max:8},'886':{trunk:'0',min:9,max:9},'65':{trunk:'',min:8,max:8},'61':{trunk:'0',min:9,max:9}};
 var __lastE164='';
 function calcTool(){
@@ -288,12 +288,16 @@ function calcTool(){
 }
 function copyE164(ev){
   if(!__lastE164){alert('请先输入电话号码并通过长度校验');return;}
-  if(navigator.clipboard&&navigator.clipboard.writeText){
-    navigator.clipboard.writeText(__lastE164).then(function(){
-      var btn=ev&&ev.target?ev.target:document.querySelector('button[onclick^="copyE164"]');
-      if(btn){var old=btn.textContent;btn.textContent='✅ 已复制';setTimeout(function(){btn.textContent=old;},1500);}
-    });
-  }else{alert(__lastE164);}
+  function done(){
+    var btn=ev&&ev.target?ev.target:document.querySelector('button[onclick^="copyE164"]');
+    if(btn){var old=btn.textContent;btn.textContent='✅ 已复制';setTimeout(function(){btn.textContent=old;},1500);}
+  }
+  var p=null;
+  try{
+    if(navigator.clipboard&&typeof navigator.clipboard.writeText==='function') p=navigator.clipboard.writeText(__lastE164);
+  }catch(e){p=null;}
+  if(p&&typeof p.then==='function'){p.then(done,function(){alert(__lastE164);});}
+  else{done();}
 }
 function resetForm(){document.getElementById('phone').value='13800138000';
       document.getElementById('cc').selectedIndex=0;
