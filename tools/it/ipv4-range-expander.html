@@ -200,7 +200,7 @@ s.parentNode.insertBefore(el, s);
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function escH(s){var d=document.createElement('div');const __g1=s==null?'':String(s);d.textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
-function calcTool(){function ip2int(ip){var p=ip.split('.');if(p.length!==4)return NaN;for(var i=0;i<4;i++){var v=+p[i];if(v<0||v>255||isNaN(v))return NaN;}return ((+p[0])<<24)+((+p[1])<<16)+((+p[2])<<8)+(+p[3]);}
+function calcTool(){function ip2int(ip){var p=ip.split('.');if(p.length!==4)return NaN;for(var i=0;i<4;i++){if(!/^\d{1,3}$/.test(p[i]))return NaN;if(p[i].length>1&&p[i].charAt(0)==='0')return NaN;var v=+p[i];if(v<0||v>255||isNaN(v))return NaN;}return ((+p[0])<<24)+((+p[1])<<16)+((+p[2])<<8)+(+p[3]);}
 function int2ip(n){return ((n>>>24)&255)+'.'+((n>>>16)&255)+'.'+((n>>>8)&255)+'.'+(n&255);}
 var v=document.getElementById('cidr').value.trim();
 var m=/^([0-9.]+)\/(\d{1,2})$/.exec(v);
@@ -212,17 +212,17 @@ var base=ip2int(ip);
 var mask=pref===0?0:((0xFFFFFFFF<<(32-pref))>>>0);
 var net=(base & mask)>>>0;
 var bcast=(net | (~mask>>>0))>>>0;
-var hosts=(pref>=31)?0:(bcast-net-1);
-var first=int2ip((net+1)>>>0), last=int2ip((bcast-1)>>>0);
+var hosts=pref===32?1:(pref===31?2:(bcast-net-1));
+var first=int2ip(pref>=31?net:((net+1)>>>0)), last=int2ip(pref>=31?bcast:((bcast-1)>>>0));
 html+='<div class="data-grid">';
 html+='<div class="data-card"><div class="num" style="font-size:13px;">'+int2ip(net)+'</div><div class="label">网络地址</div></div>';
 html+='<div class="data-card"><div class="num" style="font-size:13px;">'+int2ip(bcast)+'</div><div class="label">广播地址</div></div>';
 html+='<div class="data-card"><div class="num" style="font-size:13px;">'+hosts+'</div><div class="label">可用主机数</div></div>';
 html+='<div class="data-card"><div class="num" style="font-size:13px;">'+pref+'</div><div class="label">前缀长度</div></div>';
 html+='</div>';
-if(hosts>0)html+='<p style="margin-top:12px;"><b>可用范围：</b>'+first+' – '+last+'</p>';
-else if(pref===31)html+='<p class="muted">/31 仅两个地址，常作点对点链路，无「可用主机范围」概念。</p>';
-else html+='<p class="muted">/32 为单主机地址。</p>';
+if(hosts>0)html+='<p style="margin-top:12px;"><b>可用范围：</b>'+(first===last?first:first+' – '+last)+'</p>';
+if(pref===31)html+='<p class="muted">/31 为点对点链路，两个地址均可用。</p>';
+else if(pref===32)html+='<p class="muted">/32 为单主机地址。</p>';
 const __g4=html;document.getElementById('result').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));}
 function resetForm(){document.getElementById('cidr').value='192.168.1.0/24';
       calcTool();}

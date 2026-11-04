@@ -503,10 +503,35 @@ const CASES = [
     ref: "IPv4 内嵌（非 ffff 前缀）：64:ff9b::192.0.2.1 → 64:ff9b::c000:0201 ⇒ 最长零段（4 组）压缩为 64:ff9b::c000:201。与上条共用同一 IPv4 转换路径、不同前缀位置，默认地址不命中。",
   },
   {
+    slug: "it/ipv6-converter",
+    inputs: { addr: "::ffff:192.168.001.001" },
+    clicks: ["calcTool()"],
+    expect: ["不是合法的 IPv6 地址"],
+    ref: "内嵌 IPv4 前导零：RFC 3986 / Python ipaddress 均不接受 `001` 这样的八位组（可能被解释为八进制）。旧 ipv4ToHex 用 Number('001')=1 静默接受并输出 ::ffff:c0a8:101；修复后报非法。默认 2001:db8::1 不含该提示。",
+  },
+  {
     slug: "it/ipv4-range-expander",
     inputs: { cidr: "192.168.1.0/30" },
     expect: ["192.168.1.0 网络地址 192.168.1.3 广播地址 2 可用主机数 30 前缀长度"],
     ref: "/30 网段：网络地址 192.168.1.0、广播 192.168.1.3、可用主机 2（4−2）。默认示例前缀不同 ⇒ 不命中。",
+  },
+  {
+    slug: "it/ipv4-range-expander",
+    inputs: { cidr: "10.0.0.0/31" },
+    expect: ["可用范围： 10.0.0.0 – 10.0.0.1"],
+    ref: "RFC 3021 / Python ipaddress：/31 点对点链路的两个地址均可使用（hosts=2），可用范围即网络地址到广播地址。旧实现按 `pref>=31 ⇒ 0` 报 0 个，与 it/calc-subnet 的 /31=2 自相矛盾；默认 /24 不出现该串。",
+  },
+  {
+    slug: "it/ipv4-range-expander",
+    inputs: { cidr: "10.0.0.1/32" },
+    expect: ["可用范围： 10.0.0.1"],
+    ref: "Python ipaddress：/32 为单主机地址（hosts=1），可用范围就是该地址本身。旧实现报 0 且不输出可用范围；默认 /24 不出现该串。",
+  },
+  {
+    slug: "it/ipv4-range-expander",
+    inputs: { cidr: "10.0.0.01/32" },
+    expect: ["IP 须合法"],
+    ref: "按 Python ipaddress / it/calc-subnet 口径：前导零八位组（01）非法，不能静默当 1 解析。旧实现 `+'01'` 得 1 并输出 10.0.0.1（含前导零的歧义输入被静默接受）；默认 /24 无错误提示。",
   },
   {
     slug: "it/poisson-distribution",
@@ -1004,11 +1029,25 @@ const CASES = [
     ref: "独立复算：第 1 个 [a] 收 x=1，第 2 个同名节合并且不丢键 ⇒ {\"a\":{\"x\":\"1\",\"y\":\"2\"}}（修复前输出 { \"a\": { \"y\": \"2\" } }，x 丢失）。默认示例节名为 server/database，不命中。",
   },
   {
+    slug: "it/ini-parser",
+    inputs: { input: "[__proto__]\nx=1" },
+    clicks: ["iniToJson()"],
+    expect: ['"__proto__": { "x": "1" }'],
+    ref: "__proto__ 作为节名：修复前 `result['__proto__'] = {}` 走原型 setter、不产生自有键，JSON.stringify 输出 `{}`；改为 Object.create(null) 后是普通自有键，JSON 保留 `\"__proto__\": { \"x\": \"1\" }`。默认示例无该节名。",
+  },
+  {
     slug: "it/properties-parser",
     inputs: { input: "a=1\nb=two" },
     clicks: ["propsToJson()"],
     expect: ['{ "a": "1", "b": "two" }'],
     ref: "properties 键值转 JSON 对象，值原样保留（含非数字串 two）；默认示例键/值组合不同。",
+  },
+  {
+    slug: "it/properties-parser",
+    inputs: { input: "__proto__=x" },
+    clicks: ["propsToJson()"],
+    expect: ['"__proto__": "x"'],
+    ref: "键名恰为 `__proto__`：普通 `{}` 上赋字符串会走原型 setter 且被忽略，JSON 输出 `{}`（丢键）；Object.create(null) 后成为自有键 ⇒ `\"__proto__\": \"x\"`。默认示例键名是 app.* / db.*。",
   },
   {
     slug: "it/json-schema-validator",
@@ -1446,6 +1485,12 @@ const CASES = [
     ref: "11 字符文本 + 3 空格 + 2 词 ⇒ 总长 15；统计区随输入重算（默认示例文本不同）。",
   },
   {
+    slug: "it/calc-5",
+    inputs: { textInput: "abc\n中文" },
+    expect: ["6 字符 / 10 字节", "中文字符：2"],
+    ref: "UTF-8 字节数：abc=3、换行 LF=1、中文=6，共 10；码点 6（Array.from），行 2，词 2，中文字符 2。默认空文本走「请输入文本」提示路径，不出现本串 ⇒ 判别有效。",
+  },
+  {
     slug: "it/calc-7",
     inputs: { jsonInput: '{"a":{"b":[1,2,3]}}', pathInput: "a.b" },
     expect: ["路径： $.a.b"],
@@ -1738,6 +1783,13 @@ const CASES = [
     ref: "独立复算：解析结果逐行给出「协议/源/域名/端口/主机/路径/查询字符串/哈希/查询参数」，锚取域名行（`a.io`）。默认示例 URL 不同，不命中。",
   },
   {
+    slug: "it/url-parser",
+    inputs: { urlInput: "https://e.com/?__proto__=x&constructor=y" },
+    clicks: ["parseUrl()"],
+    expect: ["__proto__"],
+    ref: "特殊键名：URLSearchParams 保留 `__proto__` / `constructor` 两个键，参数表逐行显示；默认示例只有 q/lang/page。数据容器由 `{}` 改为 `Object.create(null)` 后，JSON 导出也不再因原型继承丢键。",
+  },
+  {
     slug: "it/redis-cheatsheet",
     inputs: { searchInput: "zzz" },
     expect: ["共 0 项"],
@@ -1971,6 +2023,13 @@ const CASES = [
     clicks: ["calc()"],
     expect: ["10.0.0.0 网络地址"],
     ref: "独立复算：10.0.0.7/28 ⇒ 网络 10.0.0.0、广播 10.0.0.15、/28、可用主机 14。注意该页是「值在前、标签在后」的排布（`10.0.0.0 网络地址`），写反了会注入态 FAIL。",
+  },
+  {
+    slug: "it/calc-subnet",
+    inputs: { ip: "10.0.0.1", cidr: "32" },
+    clicks: ["calc()"],
+    expect: ["广播地址 /32 CIDR 前缀 1 可用主机数"],
+    ref: "Python ipaddress 3.8+ 对 /32 特例：num_addresses=1、hosts() 返回该地址本身，故可用主机数为 1（旧实现硬编码 0）。网络/广播均为 10.0.0.1；默认 192.168.1.100/24 不含该串。",
   },
   {
     slug: "it/qrcode",
@@ -2366,6 +2425,13 @@ const CASES = [
     ref: "独立构造：header=`{\"alg\":\"RS256\",\"typ\":\"JWT\"}`、payload=`{\"a\":1}` 做 base64url（去填充）后拼 `.sig`，解析区应还原出 RS256。默认样例是 HS256 ⇒ 必须换成 RS256 才破双态。",
   },
   {
+    slug: "it/jwt-parser",
+    inputs: { jwtInput: "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJleHAiOjB9." },
+    clicks: ["parseJwt()"],
+    expect: ["⚠️ 已过期"],
+    ref: "RFC 7519 NumericDate：exp=0 合法且已过期。旧实现 `if(payload.exp)` 把 0 当 false 跳过过期判定，也漏掉 exp_human；修复后 payload 区出现「已过期」标记。默认样例 exp 在未来，不命中。",
+  },
+  {
     slug: "it/php-escape",
     inputs: { input: 'a"b', mode: "double" },
     clicks: ["esc()"],
@@ -2378,6 +2444,13 @@ const CASES = [
     clicks: ["decodeJwt()"],
     expect: ['{ "alg": "RS256", "typ": "JWT" }'],
     ref: "与 it/jwt-parser 同法构造测试向量：header/payload 的 base64url（去填充）+ `.sig`。锚在 header-json；默认样例是 HS256。",
+  },
+  {
+    slug: "it/jwt-debugger",
+    inputs: { "token-input": "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJleHAiOjB9." },
+    clicks: ["decodeJwt()"],
+    expect: ["Token已过期"],
+    ref: "RFC 7519 NumericDate：exp=0 是合法且已过期（1970-01-01T00:00:00Z），不得按 truthy 跳过。header/`payload`（`{\"exp\":0}`）base64url 去填充 + 空签名；默认样例 exp 在未来，不含「已过期」。",
   },
   {
     slug: "it/og-meta-tag-generator",
@@ -2408,6 +2481,20 @@ const CASES = [
     ref: "独立复算：UA 中 `Chrome/120.0.0.0` ⇒ 浏览器 Google Chrome 120.0.0.0；`Windows NT 10.0` ⇒ Windows 10/11；引擎 Blink。默认示例 UA 不同。",
   },
   {
+    slug: "it/user-agent-parser",
+    inputs: { uaInput: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/120.0.6099.119 Mobile/15E148 Safari/604.1" },
+    clicks: ["parse()"],
+    expect: ["Google Chrome 120.0.6099.119"],
+    ref: "真实 iOS Chrome UA（CriOS/，不含 `Chrome/`）：旧实现落到「未知浏览器」。按 UA 规范 Chrome iOS 应识别为 Google Chrome，版本取 CriOS/ 后的号；默认示例 UA 不同。",
+  },
+  {
+    slug: "it/user-agent-parser",
+    inputs: { uaInput: "Mozilla/5.0 (Linux; Android 14; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/23.0.1.1 Chrome/115.0.0.0 Mobile Safari/537.36" },
+    clicks: ["parse()"],
+    expect: ["Samsung Internet 23.0.1.1"],
+    ref: "真实三星浏览器 UA 同时含 `Chrome/` 与 `SamsungBrowser/`：旧实现先命中 Chrome 分支误报 Google Chrome。SamsungBrowser/ 须先于 Chrome 判定；默认示例 UA 不同。",
+  },
+  {
     slug: "it/regex-visualizer",
     inputs: { pattern: "a+" },
     clicks: ["render()"],
@@ -2420,6 +2507,13 @@ const CASES = [
     clicks: ["formatToml()"],
     expect: ["a = 1"],
     ref: "TOML 规范化：`name=value` ⇒ `name = value`。默认样例是多节 TOML，首行不是本串。",
+  },
+  {
+    slug: "it/toml-formatter",
+    inputs: { input: "__proto__=\"x\"" },
+    clicks: ["formatToml()"],
+    expect: ["__proto__ = \"x\""],
+    ref: "键名 `__proto__`：修复前根对象 `{}` 的 `obj['__proto__']='x'` 被原型 setter 丢弃，规范化输出为空；Object.create(null) 后保留并输出 `__proto__ = \"x\"`。输入回显是 `__proto__=\"x\"`（无空格），不含本锚。",
   },
   {
     slug: "it/toml-formatter",
@@ -2490,6 +2584,13 @@ const CASES = [
     clicks: ["formatYaml()"],
     expect: ["a: b: 1"],
     ref: "嵌套映射 `a: / b: 1` 在「结构化 → 纯文本」视图里被压成单行的 `a: b: 1`（层级由输出的缩进/父键串联表达），不是回显原文。默认态是页面自带样例，输出不同 ⇒ 不命中。",
+  },
+  {
+    slug: "it/yaml-formatter",
+    inputs: { input: "__proto__:\n  a: 1" },
+    clicks: ["formatYaml()"],
+    expect: ["__proto__: a: 1"],
+    ref: "键名 `__proto__`：修复前 `parent.obj['__proto__']=obj` 走原型 setter，Object.keys 看不到该键，输出丢行；改为 Object.create(null) 后正常压平为 `__proto__: a: 1`。输入是换行缩进形态，不含本锚。",
   },
   {
     slug: "it/go-escape",
@@ -3484,6 +3585,14 @@ const CASES = [
     ref: "开启 trimFields ⇒ 键名与值两端空格被裁掉，键变为 a/b。这是「去空格」这一行为的正向断言，与上一条互补。",
   },
   {
+    slug: "it/csv-to-json",
+    inputs: { csvInput: "__proto__,v\nx,1" },
+    clicks: ["document.getElementById('hasHeader').checked=true;csvToJson()"],
+    dumpIds: ["jsonOutput"],
+    expect: ['{"__proto__":"x"'],
+    ref: "表头键名 `__proto__`：修复前每行对象 `obj[h]=v` 走原型 setter，JSON 丢键只剩 v；Object.create(null) 后保留自有键 ⇒ `{\"__proto__\":\"x\"`。输入是逗号分隔，不含 JSON 引号键形态。",
+  },
+  {
     // ⚠ 存疑项：字段被引号包裹且内含分隔符时，页面把引号当普通字符切开，且后半段「y」丢失。
     //   修页面后本条须同步更新。已留档上报，未擅改页面。
     slug: "it/csv-to-json",
@@ -3973,6 +4082,12 @@ const CASES = [
     "ref": "YAML→JSON：注入嵌套映射（server.host / server.port），JSON.stringify(obj, null, 2) 应产出带引号键 `\"title\": \"probe\"`，且 port 按 YAML 标量类型推断为数值 5432（不带引号）。输入原文是 `title: probe`（无引号键），故 expect 形态不在输入中。默认 YAML 样例不含 probe/5432。"
   },
   {
+    "slug": "it/yaml-to-json",
+    "inputs": { "source": "__proto__: v" },
+    "expect": ["\"__proto__\": \"v\""],
+    "ref": "键名 `__proto__`：普通对象上 `obj[key]=v` 走原型 setter，JSON 输出丢键；Object.create(null)（含 sortKeys 的中间对象）后成为自有键。输入是 `__proto__: v`，不含带引号的 JSON 形态。"
+  },
+  {
     "slug": "it/toml-to-yaml",
     "inputs": { "source": "app = \"probe\"\ndebug = true\n\n[db]\nhost = \"127.0.0.1\"\nport = 5432" },
     "expect": ["debug: true", "db: host: \"127.0.0.1\""],
@@ -3983,6 +4098,12 @@ const CASES = [
     "inputs": { "source": "<root><item id=\"1\">Alpha</item><item id=\"2\">Beta</item></root>" },
     "expect": ["@id: \"1\" #text: Alpha", "@id: \"2\" #text: Beta"],
     "ref": "XML→YAML：注入含属性的同名兄弟节点。页面约定把属性写作 `@id`、文本节点写作 `#text`，重复元素收敛为序列 `- `。这两个约定形态在输入 XML 中完全不存在（输入为 `<item id=\"1\">Alpha</item>`），因而天然排除输入回显。默认样例为不同的 XML。"
+  },
+  {
+    "slug": "it/xml-to-yaml",
+    "inputs": { "source": "<root><__proto__>v</__proto__></root>" },
+    "expect": ["__proto__: v"],
+    "ref": "元素名 `__proto__`：修复前 groups 是普通 `{}`，`groups['__proto__']` 从原型继承后进入分支，`obj[g]` 也不产生自有键，输出丢该元素；groups/obj 改用 Object.create(null) 后保留为 `__proto__: v`（单字标量不加引号）。输入 XML 只有标签，不含冒号形态。"
   },
   {
     "slug": "it/dockerfile-generator",
@@ -4046,16 +4167,42 @@ const CASES = [
     "ref": "XML→TOML：根元素 `<srv>` 落成 TOML 表 `[srv]`，叶子落成键值。⚠️ XML 无标量类型信息，页面保守地把 `5432` 当作字符串 ⇒ 输出 `port = \"5432\"` 带引号（对照 it/yaml-to-toml 的 `port = 5432` 无引号：YAML 有类型推断，两者都正确，不构成缺陷）。带 `port = ` 前缀的形态在输入 XML 中不存在。"
   },
   {
+    "slug": "it/xml-to-toml",
+    "inputs": { "source": "<root><__proto__>v</__proto__></root>" },
+    "expect": ["__proto__ = \"v\""],
+    "ref": "元素名 `__proto__`：groups/obj 为普通 `{}` 时该键被原型吞掉、TOML 输出丢行；Object.create(null) 后保留为 `__proto__ = \"v\"`。输入 XML 仅含标签，不含等号形态。"
+  },
+  {
     "slug": "it/yaml-to-toml",
     "inputs": { "source": "srv:\n  host: 127.0.0.1\n  port: 5432" },
     "expect": ["[srv]", "port = 5432"],
     "ref": "YAML→TOML：嵌套映射落成 `[srv]` 表与子键；`port` 由 YAML 标量推断为数值 ⇒ 输出不带引号的 `port = 5432`（与 it/xml-to-toml 的带引号结果形成对照，差异源于源格式是否携带类型信息）。输入是 `port: 5432`，不含 `port = ` ⇒ 不与回显冲突。"
   },
   {
+    "slug": "it/yaml-to-toml",
+    "inputs": { "source": "__proto__: v" },
+    "expect": ["__proto__ = \"v\""],
+    "ref": "键名 `__proto__`：parseYaml 普通对象上赋值会丢键，TOML 输出为空；Object.create(null) 后输出 `__proto__ = \"v\"`。输入是冒号形态，不含等号形态。"
+  },
+  {
     "slug": "it/yaml-to-xml",
     "inputs": { "source": "srv:\n  host: 127.0.0.1\n  port: 5432" },
     "expect": ["&lt;srv&gt;&lt;host&gt;127.0.0.1&lt;/host&gt;&lt;port&gt;5432&lt;/port&gt;&lt;/srv&gt;"],
     "ref": "YAML→XML：同一份嵌套映射落成 `<srv><host>…</host><port>…</port></srv>`。expect 取整块实体形态（结果区经 escH 转义），输入的 YAML 原文不含尖括号 ⇒ 排除输入回显。默认样例为 note/to/from，不出现 srv/host。"
+  },
+  {
+    "slug": "it/yaml-to-xml",
+    "inputs": { "source": "__proto__: v" },
+    "expect": ["&lt;__proto__&gt;v&lt;/__proto__&gt;"],
+    "ref": "键名 `__proto__`：parseYaml 普通对象上赋值丢键 ⇒ XML 为空；Object.create(null) 后产生同名元素 `<__proto__>v</__proto__>`（XML 元素名允许下划线开头）。输入 YAML 不含尖括号，排除回显。"
+  },
+  {
+    "slug": "it/xml-to-json",
+    "domParser": true,
+    "inputs": { "input": "<root><__proto__>v</__proto__></root>" },
+    "clicks": ["doBeautify()"],
+    "expect": ["\"__proto__\": \"v\""],
+    "ref": "元素名 `__proto__`：xmlToJson 的普通对象上 `obj[k.tagName]=child` 会走原型 setter、JSON 丢键；Object.create(null) 后保留为自有的 `\"__proto__\": \"v\"`。输入 XML 仅含标签，不含 JSON 引号键形态。"
   },
   // ── §7.4 零用例收敛补录（纯前端、无 CDN/无 DOMParser 依赖，确定性文本输出）────
   {
@@ -4096,6 +4243,12 @@ const CASES = [
     "inputs": { "urlInput": "https://example.com/zzpath?zz=7" },
     "expect": ["https://example.com/zzpath"],
     "ref": "注入非默认 URL。默认态 urlInput 为 example.com/search?q=toolbox… ⇒ 基 URL 行 'https://example.com/search'；注入后基 URL 行变 'https://example.com/zzpath'，默认态完全不含该串 ⇒ 0 逃生。注：删除参数功能(delParam)在桩下报错，但 URL 拆分与基 URL 解析为纯字符串，结果可靠。纯前端无随机。"
+  },
+  {
+    "slug": "it/url-params",
+    "inputs": { "urlInput": "https://example.com/zz?q=%" },
+    "expect": ["https://example.com/zz"],
+    "ref": "畸形百分号：`%` 单独出现时 decodeURIComponent 抛 URIError，旧实现整段中断、结果区停在默认示例（`…/search?q=toolbox…`）；修复后按标准把非法转义按字面 `%` 保留，基 URL `…/zz` 正常回写。默认示例不含 `/zz` ⇒ 判别有效。"
   },
   {
     "slug": "it/a1z26-cipher",
@@ -5585,6 +5738,13 @@ const CASES = [
       "符\ndraft-06\n4"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"schemaVersion\":\"draft-06\",\"indent\":\"4\"}，输出区含「符\ndraft-06\n4」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "it/json-schema-generator",
+    "inputs": { "input": "{\"__proto__\":\"x\"}" },
+    "clicks": ["generateSchema()"],
+    "expect": ["\"__proto__\": {"],
+    "ref": "属性名 `__proto__`：修复前 schema.properties 是普通 `{}`，`properties['__proto__']=propSchema` 走原型 setter，生成结果丢属性；Object.create(null) 后写入自有键，schema 输出含 `\"__proto__\": {`。输入 JSON 是紧凑形态（冒号后无空格与左花括号），不含本锚。"
   },
   {
     "slug": "it/json-to-csv",

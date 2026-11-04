@@ -114,3 +114,80 @@
 
 哈希 / 编码 / 进制 / 时间 / 字符集族已在前几批收口；TOML/INI/properties/plist 独立格式页未在本族枚举范围内，留待后续批次（`json-to-toml` 作为 JSON 源页已审）。
 
+## 七、网络与协议族矩阵（2026-11-05）
+
+> 范围：`tools/it/**` 中 URL 解析/编解码、HTTP 头与状态码、Cookie、CIDR/子网、MIME、JWT、UA、端口/协议速查、Referer/redirect 九族，共 20 页（`it/ip-calculator` 按任务约定排除，归交互异常线）。
+> 外部参照：Node `URL` / `URLSearchParams` / `punycode`、Python `urllib.parse` / `http.cookies` / `ipaddress`（`ip_network` 严格模式 + `/31` `/32` 特例）/ `mimetypes`、RFC 7230/9110（HTTP）、RFC 6265（Cookie）、RFC 3021（/31）、RFC 4291/5952（IPv6）、RFC 7519（JWT）、RFC 7617（Basic Auth）。
+> 回解向量：空串 / 纯 ASCII / 中文 / emoji / 空格与 `+` / 畸形百分号 `%` / 前导零八位组 / `/31` `/32` `/0` / 内嵌 IPv4 / `__proto__` 与 `constructor` 键 / `exp=0` / 真实 iOS 与三星 UA 串。
+
+| 族 | 页数 | 真缺陷 | 声明超出 | 一致 |
+|---|---|---|---|---|
+| URL 解析/编解码（含 Punycode） | 5 | 2 | 1 | 2 |
+| HTTP 头与状态码 | 5 | 0 | 1 | 4 |
+| Cookie | 1 | 0 | 1 | 0 |
+| CIDR/子网 | 4 | 3 | 0 | 1 |
+| MIME/Content-Type | 1 | 0 | 0 | 1 |
+| JWT | 2 | 2 | 0 | 0 |
+| UA 解析 | 1 | 1 | 0 | 0 |
+| 端口/协议速查 | 1 | 0 | 0 | 1 |
+| Referer/redirect | 0 | 0 | 0 | 0 |
+| **合计** | **20** | **8** | **3** | **9** |
+
+### 7.1 真缺陷（已修，同批补 verify 用例）
+
+| 页面 | 根因（外部参照回解结论） | 修法 | 用例 |
+|---|---|---|---|
+| `url-params` | `decodeURIComponent` 遇畸形 `%` 抛 URIError，整段解析中断、结果停在默认示例；Python `parse_qs` / `URLSearchParams` 均把非法转义按字面 `%` 保留 | 逐段 `try/catch`，失败回退字面值；`collectPairs` 改用 `Object.create(null)` | IT-N28 |
+| `url-parser` | `params` 用普通 `{}`，`?__proto__=x&constructor=y` 走原型 setter，JSON 导出丢键（表格行仍在） | `Object.create(null)` | IT-N27 |
+| `ipv4-range-expander` | ① `/31` 报 0 个可用主机（RFC 3021 为 2，且与 `it/calc-subnet` 自相矛盾）；② `/32` 报 0 且不输出范围（Python `ipaddress` hosts=1）；③ `+octet` 接受空段、前导零、`0x1`、浮点形态，静默误解析 | `/31=2`、`/32=1` 分支；八位组改 `^\d{1,3}$` + 禁前导零 | IT-N29（3 条） |
+| `calc-subnet` | `/32` 硬编码可用主机 0，与 Python 3.8+ `hosts()` 返回该地址本身不符 | `/32` 可用数改 1 | IT-N30 |
+| `ipv6-converter` | 内嵌 IPv4 的八位组用 `Number('001')=1`，接受前导零（RFC 3986 / `ipaddress` 均拒绝） | 八位组校验加前导零拒绝 | IT-N31 |
+| `user-agent-parser` | iOS 上 Chrome/Firefox/Edge/Opera 的 `CriOS`/`FxiOS`/`EdgiOS`/`OPiOS` 无 `Chrome/` 或 `Version/`，落入「未知浏览器」；三星浏览器含 `Chrome/` 被误报为 Google Chrome | 新增 5 条 UA 分支与对应版本号提取；SamsungBrowser 先于 Chrome | IT-N32（2 条） |
+| `jwt-parser` / `jwt-debugger` | `if(payload.exp)` 把合法的 NumericDate `exp=0` 当 false，漏报「已过期」并漏 `exp_human`（RFC 7519） | 改 `typeof payload.exp === 'number'`，`iat`/`nbf` 同口径 | IT-N33（2 条） |
+
+门禁：`verify_it_calc.js` 971/971 通过；legacy discriminate 970 已检 / 0 逃生 / 1 跳过；`TB_STUB_FIDELITY=1` 967 已检 / 0 逃生 / 4 跳过；`selfcheck_false_pass` 的 `all_default=0`（与基线持平，预存 risk 3 未触碰）。
+
+### 7.2 声明超出实现（登记，不因好看改口径）
+
+| 页面 | 超出的声明 | 实测边界 |
+|---|---|---|
+| `punycode` | 「IDN 国际化域名编码（RFC 3492）」 | 只做 RFC 3492 裸 Punycode：不做 IDNA nameprep/大小写折叠。`Bücher` → `Bcher-kva`，而浏览器/`domainToASCII` 得 `bcher-kva`；全角字符也不会先做 NFC 归一 |
+| `http-methods` | TRACE「已废弃」 | RFC 9110 §9.3.8 仍定义 TRACE，仅因 XST 风险常被服务器禁用；状态应为「诊断用途、通常禁用」而非「废弃」 |
+| `http-cookies` | 英文简介称 “Parse and build HTTP Cookie…” | 实际是 Cookie/Set-Cookie 属性速查表 + JS 操作说明，没有输入框、不解析也不构造任何头 |
+
+### 7.3 一致（含口径说明）
+
+- **URL（2）**：`url-encode` 直接调用原生 `encodeURIComponent` / `encodeURI`（与浏览器逐字节一致，空格→`%20` 或按开关 `+`）；`url-encoder-advanced` 同样走原生函数，仅按选项切换函数，口径自洽。
+- **HTTP（4）**：`http-headers` / `http-response-headers` / `http-status` / `http-cache` 为速查表，抽样核对 RFC 7230/9110 与 RFC 9111（`immutable` 的边界描述正确：「max-age 期间连条件请求也不发」）；`http-status` 的 422 保留 WebDAV 旧名 “Unprocessable Entity”，语义与 RFC 9110 新名 “Unprocessable Content” 相同，属命名沿革，不构成错误。
+- **CIDR（1）**：`ipv6-ula` 按 RFC 4193 生成 `fd` + 40-bit Global ID（12 个十六进制位拼成 3 段）；用 `Math.random` 而非 CSPRNG，统计随机性满足 ULA 用途（未承诺密码学安全）。
+- **MIME（1）**：`mime-type` 表逐项对照 IANA 注册表，均取现行注册名；与 Python `mimetypes` 的差异集中在平台历史别名（如 `image/x-icon`），页面值更贴近 IANA。
+- **端口（1）**：`random-port-generator` 在 1024–65535 内取值、可选跳过常用保留端口，逻辑与声明一致。
+- **Referer/redirect（0）**：本目录没有 Referer/重定向解析页；`short-link-generator` 只是本地短链生成器，未解析 301/302，故不纳入本族。
+
+### 7.4 未纳入本族
+
+`it/ip-calculator` 按任务约定排除；Basic Auth 生成器（RFC 7617）与 curl 命令解析器做了抽样核对（UTF-8 凭据 / 引号与 `-H`/`-d` 合并），未发现与声明不符的静默错误，故未单列族行。
+
+## 八、全站「对象当 Set/Map」排查（2026-11-05）
+
+> 触发：`it/text-dedupe-sort` 的 `__proto__` 被 `Object.prototype` 误判。口径：只有「键来自用户可控输入（文本行、标签、字段名）」才算风险；页面内固定枚举键 / DOM id / 数值键不算。
+
+| 指标 | 数量 |
+|---|---|
+| 初筛命中（`obj[k]=` / `obj[k]=true` / `seen[k]` / `if(obj[k])` 写法） | 约 3,600 处，涉及 200+ 文件 |
+| 真风险页（键来自用户文本/键名） | 19 |
+| 已修（含前批 `text-dedupe-sort`） | 16 |
+| 登记待修 | 3 |
+
+已修（本批 15 页 + 前批 1 页）：`it/url-parser`、`it/url-params`、`it/ini-parser`、`it/properties-parser`、`it/toml-formatter`、`it/xml-to-json`、`it/xml-to-yaml`、`it/xml-to-toml`、`it/yaml-to-json`、`it/yaml-to-toml`、`it/yaml-to-xml`、`it/yaml-formatter`、`it/csv-to-json`、`it/json-schema-generator`、`it/toml-to-yaml`、`it/text-dedupe-sort`（前批）。统一改为 `Object.create(null)`（或保留键仍走自有属性），并补 `__proto__` / `constructor` 输入用例（IT-N27 / IT-N34 系列）。
+
+登记待修（3 页，未纳入 Top 10 扩展批次）：
+
+| 页面 | 写法 | 触发键 |
+|---|---|---|
+| `biz/text-remove-duplicates-lines` | `seen[key]` | 整行文本可以是 `__proto__` / `constructor` |
+| `biz/text-extract-english` | `seen[key]` | 英文单词 `constructor` 是合法命中词 |
+| `research/analysis-54` | `freq[t]` / `seen[t]` | 分词后 token 可为 `constructor`（代码类文本） |
+
+不算风险（固定键 / 数值键 / 不可产出魔法名）：`it/ipv6-ula`、`it/mime-type`（表为数组 filter）、`it/jwt-*`（固定字段）、`it/curl-parser`（固定字段）、`tools/quality/control-chart`（数值键）、`biz/text-extract-dates`（日期形态键）、`biz/text-extract-urls`（URL 形态键，不会恰为 `__proto__`）。
+
