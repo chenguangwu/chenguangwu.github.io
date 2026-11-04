@@ -79,3 +79,89 @@
 - 本批两道门禁在最终全量运行中均 **PASS**：`history field guard 3/3`；`inline handler global` 静态 2/2 + 动态真触发 6/6。
 - 首轮运行中的 `_test_static` 5 个 `__b3base_*` 反链失败与 `_audit_links` 13 个读取失败，均为并发写入竞态（第二轮已自动消失），不列入红项。
 - 本轮未改工具页、未改 `i18n/`、未 push。
+
+## 5. 续章：224 道门禁「负向自证」覆盖率普查（2026-11-05，只读）
+
+**问题**：门禁数量已到 224 道，但绝大多数从未被验证「它到底会不会红」。本续章逐项打标，只做统计与出方案，不造红、不改代码。
+
+**口径**：
+
+- **有（直接）**：有实跑证据 —— 故意注入缺陷后，该门禁本身 `exit != 0`。
+- **有（共享）**：由已在门禁内运行的元门禁逐用例证明 —— `discriminate_check.js` 把 inputs 换回页面默认值（模拟注入失败），要求每条用例 FAIL；`selfcheck_false_pass.js` 结构判定假用例。二者覆盖的 `verify_*_calc.js` 共用同一判定与退出码。
+- **无**：找不到任何「注入缺陷 → 变红」证据，只有失败路径代码。
+- **无法自证**：原理上无法在本地/CI 造红（如依赖线上数据）。
+
+**覆盖率**：**224 = 有 218（直接 13 + 共享 205）+ 无 6 + 无法自证 0**，有自证率 **97.3%**。
+
+### 5.1 有自证 · 直接 13 项
+
+| # | 门禁 | 造红证据 | 红的是什么 |
+|---|---|---|---|
+| 1 | expect anti-pattern | 本文件 §1 #2；[check_expect_antipattern.py:107-109](file:///Users/cgw/project/cgw/chenguangwu.github.io/scripts/check_expect_antipattern.py#L107-L109) | 空扫描 / 0 个 expect 数组 → exit 1 |
+| 3 | static tests | §1 #1；[_test_static.py:469](file:///Users/cgw/project/cgw/chenguangwu.github.io/_test_static.py#L469) | 注入 `__gate_selftest__/ghost` → warnings=1、exit 1 |
+| 4 | dead-link audit | §1 #4；[_audit_links.py:134-138](file:///Users/cgw/project/cgw/chenguangwu.github.io/_audit_links.py#L134-L138) | 空仓库（0 文件/0 内链）→ exit 1 |
+| 5 | asset audit | §1 #5；[_audit_assets.py:226-229](file:///Users/cgw/project/cgw/chenguangwu.github.io/_audit_assets.py#L226-L229) | 空仓库（0 页面）→ exit 1 |
+| 6 | local storage audit | 本会话造红（探针已删） | `_probe_cookie.html` 含 `document.cookie =` → `Cookie 写入 1`、exit 1；删后 exit 0 |
+| 7 | external dependency audit | 本会话造红（探针已删） | `_probe_cdn.html` 含未锁版本 lodash → `[FAIL] 外部脚本未锁定精确版本`、exit 1 |
+| 8 | inline js syntax | §1 #6；[check_inline_js_syntax.js:67](file:///Users/cgw/project/cgw/chenguangwu.github.io/scripts/check_inline_js_syntax.js#L67) | 空 `tools/` → `checked===0` → exit 1 |
+| 9 | history field guard | §2 模拟环境表 | 必败输入（`rec.conf=conf` 不转义）→ exit 1 |
+| 10 | inline handler global | §2 模拟环境表 | 静态 `onclick="__badExport()"` 未定义 → 1/2、exit 1 |
+| 17 | science calc correctness | 本次全量日志（`/tmp/gates_full.log`，未入库） | 203 例中 3 例不匹配 → `FAIL ... exit=1`（红因他线在途用例，但证明本门禁判定链路会红） |
+| 222 | anti-regression: no fake gates | §1 #3；[selfcheck_false_pass.js](file:///Users/cgw/project/cgw/chenguangwu.github.io/scripts/selfcheck_false_pass.js) | 空用例目录 → `totalChecked===0` → exit 1；本次实跑 `checked=9039 risk=0 skipped=0` |
+| 223 | anti-regression: case discrimination | [discriminate_check.js:66-73](file:///Users/cgw/project/cgw/chenguangwu.github.io/scripts/discriminate_check.js#L66-L73)、`--selftest` | 未打统计行/0 已检/低于 8000/新增逃生项 → exit 1；本次实跑 `8980/8980 变红、逃生 0、跳过 55` |
+| 224 | ux baseline regression | §1 #7；[_ux_baseline.py:142-144](file:///Users/cgw/project/cgw/chenguangwu.github.io/scripts/_ux_baseline.py#L142-L144) | 快照注入 `__ghost_gate__` 分类 → 分类页数下降、exit 1；`total==0` → exit 1 |
+
+### 5.2 有自证 · 共享 205 项
+
+覆盖：**12、14–16、18–83、85–180、182–220**（全部 `verify_*_calc.js`，不含被隔离的 181）。
+
+- 证据 1（逐用例判别力）：`discriminate_check.js` 对每条用例把 inputs 换回默认值后必须 FAIL —— 本次 **8980/8980 正确变红、逃生项 0**；基线与当前一致（`scripts/discriminate_baseline.json` 的 `escape=0`）。
+- 证据 2（假用例结构）：`selfcheck_false_pass.js scripts` 扫描 **9039 条用例、risk=0、skipped=0**；弱用例存量被基线锁定（`no_inputs=10 / all_default=4`，只降不升）。
+- 证据 3（判定链路）：200+ 脚本共用 `runCase` + `process.exit(fails.length ? 1 : 0)`（§3 机扫：ALWAYS-EXIT0=0、NO-EXIT=0、SUMMARY-AFTER-EXIT=0），且 #17 已实测该链路会红。
+- 证据 4（非空跑）：本次全量日志里每个 calc 门禁都打印了非零用例数（如 `general 362/362`、`it 988/988`、`railway 2/2`），**无 0/0**。
+
+**共享覆盖的两个缺口（已在 §5.4 列入优先项）**：`discriminate` 的 **55 条跳过用例**不参与判定（ psychiatry 6 / rheumatology 4 / hydraulic 3 / psychology 3 / pulmonology 3 等）；`verify_office_calc.js` 是**唯一无统计行的隔离文件**（4 条用例从未被判别）。
+
+### 5.3 无自证 6 项（按风险类型排序）
+
+| # | 门禁 | 类型 | 现状 | 风险点 |
+|---|---|---|---|---|
+| 2 | build | 子进程型 | 有失败路径（[_build.py:4878](file:///Users/cgw/project/cgw/chenguangwu.github.io/_build.py#L4878) `raise SystemExit(1)`、L4618），但**从未造红** | 构建是后续全部门禁的输入；假绿会让全站产物错误静默通过 |
+| 181 | office calc correctness | 判定型（计数） | 4 例正常跑，但判别器侧被隔离（见 [#L342-357](file:///Users/cgw/project/cgw/chenguangwu.github.io/scripts/discriminate_check.js#L342-L357)） | 4 条用例从未被证明「注入失败会 FAIL」 |
+| 84 | psych-kit behavior (jsdom) | 判定型（阈值 40） | 仅靠 [L213](file:///Users/cgw/project/cgw/chenguangwu.github.io/scripts/verify_psych_kit.cjs#L213) `injected >= 40`；缺 jsdom 时 [L60-61](file:///Users/cgw/project/cgw/chenguangwu.github.io/scripts/verify_psych_kit.cjs#L60-L61) `SKIP(no-jsdom)` exit 0 | 阈值/注入数从未造红；CI 有 jsdom，本地无依赖时整条不判 |
+| 221 | escHtml regression | 判定型（单元断言） | 断言具体、有反例空间，但**从未反向注入** | 若被测函数被改坏仍可能因取错文件/桩而假绿 |
+| 11 | calculation regression | 子进程型 | 有 0 页守卫（[verify_calc.js:143-147](file:///Users/cgw/project/cgw/chenguangwu.github.io/scripts/verify_calc.js#L143-L147)），但无「页面抛错必红」证据 | 冒烟只判「不报错」；页面异常被吞时可能全绿 |
+| 13 | it security correctness | 纯文本匹配型 | 4 段正则/语法断言，但第 4 段 `hits.length===0` 仍绿（[L82-103](file:///Users/cgw/project/cgw/chenguangwu.github.io/scripts/verify_it_security.js#L82-L103)） | 扫描目标消失/正则失配时静默通过 |
+
+> 「无法自证」= **0**：本批 224 项中没有依赖线上数据或只能人工比对的门禁（`_ux_baseline` 的快照已入库、`audit_*` 均本地可判）。
+
+### 5.4 最该先补自证的 10 条（方案，不执行）
+
+排序口径：**判定型（阈值/计数）> 子进程型 > 纯文本匹配型**；同级按影响面。
+
+| 序 | 门禁 | 怎么造红 | 期望报什么 | 复原/落点 |
+|---|---|---|---|---|
+| 1 | 181 office calc | 先让隔离文件产出统计行（给 `verify_office_calc.js` 的 `pdfjsReady` 轮询加超时/显式汇总），再把 `TB_DISCRIM_STRICT_CHILD=1` 设为默认 | 隔离文件 1 → `❌ 有 1 个 verify 文件无统计行` exit 1；修好后隔离 0、4/4 进入判别 | 判别器 `integrityProblems` 对 `isolatedCount` 默认判红 |
+| 2 | 223 discriminate 的 `--selftest` | 门禁命令改为 `node scripts/discriminate_check.js --selftest` 后再跑全站；临时注释掉 `total===0` 判定 | selftest 报「假 harness 被识别为无统计行」；去掉守卫时 selftest exit 1 | 每次 CI 先自检，防「自检本身失效」 |
+| 3 | 共享覆盖的 55 条跳过 | 在 `discriminate_baseline.json` 增 `skipped` 并断言 `agg.skipped <= baseline.skipped`；临时把基线改成 54 | `❌ 跳过 55 > 基线 54，判别覆盖回退` | 先补 psychiatry(6)/rheumatology(4)/hydraulic(3) 的可解析默认值 |
+| 4 | 84 psych-kit | 从 3 个 `tools/psychiatry|psychology` 页移除 `psych-kit.js` 引用 | `注入页面数 >= 40` 失败（实际 37）→ exit 1 | 造红后复原引用 |
+| 5 | 221 escHtml | 临时把 `js/common.js` 的 `escHtml` 改为 `return String(s)` | `fail>=1`、`==== escHtml regression: fail=1 ====` exit 1 | 先确认脚本读的是源文件而非桩副本 |
+| 6 | 2 build | 新建 `tools/__gate_probe__/no-meta.html`（缺 `<meta name="toolbox">`），或把 `i18n/tools/_en_override.json` 某值写成字符串 | 构建末尾一致性检查报错、exit 1（若仅 warn 则需升级为 exit 1） | 删探针页 → 重跑 build 恢复 |
+| 7 | 11 calc smoke | 在任一被扫页 `calc()` 首行注入 `throw new Error('__probe__')` | `N FAILURES (X pages)`（[verify_calc.js:149-150](file:///Users/cgw/project/cgw/chenguangwu.github.io/scripts/verify_calc.js#L149-L150)）、exit 1 | 撤销注入（注意别与其他线同页） |
+| 8 | 9/10 动态段 SKIP | 在无浏览器环境跑两条，另加 `TB_REQUIRE_DYNAMIC=1` 时 SKIP 即 exit 1 | 现状：`⚠️ SKIP(no-browser)` + exit 0；加开关后 exit 1 | CI 保持宽松，本地/发布前可强制 |
+| 9 | 13 it security | 把 `tools/it/regex.html` 的 worker 改回字符串拼装 | `regex.html 仍在用字符串拼装 Worker 源码` exit 1 | 另给第 4 段补 `hits.length===0 → fail` |
+| 10 | `run_gates.py --skip-build` | 临时加一个名为 `build-probe` 的门禁，验证过滤只摘 `build`；再临时改成 `gates[1:]` | 期望断言：剩余 **223** 项且首项仍为 `expect anti-pattern`；当前**没有该断言**，误删首项不会被发现 | 在 `main()` 加一行集合断言 |
+
+### 5.5 硬约束核对：`--skip-build` 有无静默跳过
+
+- **结论：只会跳过 `build` 这一项，其余 223 项照常执行。**
+- 证据：[run_gates.py:423-427](file:///Users/cgw/project/cgw/chenguangwu.github.io/scripts/run_gates.py#L423-L427) 为 `gates = [g for g in gates if g[0] != "build"]`（按名字精确过滤），并打印 `WARNING: build gate skipped`；**不存在 `gates[1:]`**。
+- 全表 224 项中名字恰为 `build` 的仅第 2 项（无第二项命中）。
+- CI 不使用该参数：[quality-gates.yml:45](file:///Users/cgw/project/cgw/chenguangwu.github.io/.github/workflows/quality-gates.yml#L45) 为裸 `python3 scripts/run_gates.py`。
+- 残留风险：该过滤无自证（见 §5.4 #10），若将来重命名 build 门禁（如 `build (site)`），`--skip-build` 会**静默失效并真跑构建**（不是跳过，而是反向），本地复检会意外重建产物。建议把过滤改为按命令首项 `_build.py` 识别，并加「摘除集合 == {build}」断言。
+
+### 5.6 本轮口径边界
+
+- 计数取自**并行线有未提交改动**的工作区（`verify_science_calc.js` 等），因此 `science 203 例`、`checked=9039`、`8980/8980` 会随该线合入小幅变动；结论（覆盖机制、缺口位置）不变。
+- 本续章**未造红、未改任何门禁脚本**；`plan/` 之外的改动为 0。
+
