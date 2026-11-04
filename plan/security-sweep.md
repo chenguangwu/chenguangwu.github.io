@@ -215,3 +215,29 @@
 - `selfcheck_false_pass.js` 四类 risk 0（no_inputs=0 / all_default=0）。
 - `python3 _test_static.py` exit 0（仅 1 条既有 slug-en 冗余告警，与本次无关）。
 - 真机载荷复验：md5 / sha / image-converter 注入 `x"><img src=x onerror=alert(1)>.png` → 0 弹窗、0 pageerror、0 注入元素；markdown 注入原始 `<img onerror>` 与属性逃逸链接 → 0 弹窗、0 事件属性、`javascript:` 不生成链接。
+
+---
+
+## 八、第四批：审计线 Z 批 XSS 收口（2026-11-04）
+
+审计线 Z 批报 4 处 DOM/存储型 XSS，本线负责其中 3 处（`fun/raffle-picker.html` 已由设计与生活线修复）。
+
+### 8.1 修复清单（3 页）
+
+- `automotive/countdown-engine-oil.html`（**存储型自 XSS**）：`renderGarage()` 把 `r.car` 直拼 `<td>`，删除按钮又把车名直拼进 `onclick` 的 JS 字符串；车名来自 `localStorage`（`toolbox_auto_oil_countdown`），被污染的记录在**打开页面即触发**。
+  - 新增页内 `escXss()`（`& < > " '` 五字符转义）用于车名列。
+  - 删除按钮改为索引参数 `delCarAt(i)`：渲染前按 `kmLeftOf` 排序后按位删除，彻底移除 `onclick` 里的车名插值（HTML 转义无法阻止 JS 字符串上下文逃逸）。
+- `metalwork/analysis-36.html`：缺陷类型名拼明细表 `<td>` 与「数量最多 / 加权最高缺陷」两处 `<strong>` → 全部 `escXss()`。
+- `metalwork/analysis-cost-price-5.html`：期次名拼表格首列 → `escXss()`。
+
+### 8.2 真机复验
+
+- `countdown-engine-oil`：先写入 `[{car:'<svg/onload=alert(1)>', …}]` 到 localStorage 再**刷新页面**（验证存储型路径）→ 0 弹窗 / 0 pageerror / 车库表内 0 个 `<svg>` 元素 / 任何属性值不含 `alert(1)` / HTML 为 `&lt;svg/onload=alert(1)&gt;` / 单元格文本为原样纯文本；`delCarAt(0)` 删除后 localStorage 记录归零、表格回到空态。
+- `analysis-36`：`data` 注入 `<svg/onload=alert(1)>,45,2` 后点「统计缺陷」→ 0 弹窗 / 0 pageerror / 0 `<svg>` / 0 属性命中 / 输出为转义文本。
+- `analysis-cost-price-5`：`data` 注入 `<svg/onload=alert(1)>,52000` 后点「价格分析」→ 同上全部通过。
+
+### 8.3 防回退
+
+- `scripts/verify_automotive_calc.js` 新增存储型用例：`clicks` 覆写 `localStorage.getItem` 返回恶意记录后调 `renderGarage()`，`expect` 命中 `&lt;svg/onload=alert(1)&gt;`。
+- `scripts/verify_metalwork_calc.js` 为两页各新增一条恶意名称用例（`expect` 同上）。
+- `verify_automotive_calc.js` 73/73、`verify_metalwork_calc.js` 71/71 全过；`discriminate_check.js` 两脚本合计 144 例、逃生项 0；`selfcheck_false_pass.js` 两脚本 risk 0；`_test_static.py` 0 失败。

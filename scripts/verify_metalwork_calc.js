@@ -28,6 +28,14 @@ const CASES = [
   ],
   "ref": "总数=45+28+15+8=96；加权=45×2+28×3+15×2+8×1=90+84+30+8=212；缺陷率=96/500=19.20%（默认 200 件 30/70/15.00%，避开）"
 },
+{
+  "slug": "metalwork/analysis-36",
+  "inputs": { "qty": "500", "data": "<svg/onload=alert(1)>,45,2\n缩松,28,3" },
+  "expect": [
+    "&lt;svg/onload=alert(1)&gt;"
+  ],
+  "ref": "转义：缺陷类型名来自用户输入并拼进明细表与「数量最多缺陷」；未转义时 &lt;svg onload&gt; 会被当作标签执行。转义后实体文本保留。默认数据不含尖括号，不命中。"
+},
 
   { slug: "metalwork/assessor-34",
     inputs: { testType: "nss", duration: "300", coating: "zn", stdDuration: "240",
@@ -119,6 +127,16 @@ const CASES = [
     "最大回撤： -2.82%"
   ],
   "ref": "n=7 均值 55414.29、样本标准差 2446.38、CV 4.41%；极差 6900、首末 10.38%、最大回撤 −2.82%（默认 4 期 48000..50100 均值 48975 避开）"
+},
+{
+  "slug": "metalwork/analysis-cost-price-5",
+  "inputs": {
+    "data": "<svg/onload=alert(1)>,52000\n54500"
+  },
+  "expect": [
+    "&lt;svg/onload=alert(1)&gt;"
+  ],
+  "ref": "转义：期次名取自「期次,价格」行首并拼进表格；未转义时 &lt;svg onload&gt; 会被当作标签执行。转义后实体文本保留。默认输入为纯数值，不命中。"
 },
 {
   "slug": "metalwork/analysis-35",

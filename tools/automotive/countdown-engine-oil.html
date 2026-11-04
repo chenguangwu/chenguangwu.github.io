@@ -313,6 +313,9 @@ function fmtNum(n,d){d=d==null?2:d;if(!isFinite(n))return '--';return parseFloat
 function val(id){return parseFloat(document.getElementById(id).value);}
 function str(id){return document.getElementById(id).value;}
 var KEY='toolbox_auto_oil_countdown';
+function escXss(s){
+  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
 function loadCars(){
   try{ return JSON.parse(localStorage.getItem(KEY)||'[]'); }catch(e){ return []; }
 }
@@ -336,6 +339,13 @@ function delCar(name){
   saveCars(loadCars().filter(function(x){return x.car!==name;}));
   renderGarage();
 }
+function delCarAt(i){
+  var list=loadCars();
+  list.sort(function(a,b){ return kmLeftOf(a)-kmLeftOf(b); });
+  if(i>=0 && i<list.length) list.splice(i,1);
+  saveCars(list);
+  renderGarage();
+}
 function clearCars(){
   if(!confirm('确定清空车库中所有记录？该操作仅影响本机浏览器。')) return;
   saveCars([]);
@@ -357,11 +367,11 @@ function renderGarage(){
   for(var i=0;i<list.length;i++){
     var r=list[i], left=kmLeftOf(r);
     var st = left<=0 ? '已超期' : (left<=1000 ? '即将到期' : '正常');
-    rows+='<tr><td style="padding:5px 8px;">'+r.car+'</td>'
+    rows+='<tr><td style="padding:5px 8px;">'+escXss(r.car)+'</td>'
       +'<td style="padding:5px 8px;">'+fmtNum(r.cur,0)+'</td>'
       +'<td style="padding:5px 8px;color:'+(left<=0?'#dc2626':(left<=1000?'#d97706':'#059669'))+';">'+(left>0?fmtNum(left,0):'0')+'</td>'
       +'<td style="padding:5px 8px;">'+st+'</td>'
-      +'<td style="padding:5px 8px;"><button type="button" onclick="delCar(\''+r.car.replace(/'/g,'')+'\')" style="border:none;background:transparent;color:#dc2626;cursor:pointer;">删除</button></td></tr>';
+      +'<td style="padding:5px 8px;"><button type="button" onclick="delCarAt('+i+')" style="border:none;background:transparent;color:#dc2626;cursor:pointer;">删除</button></td></tr>';
   }
   const __g2='<table style="width:100%;border-collapse:collapse;">'
     +'<tr><th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border,#e5e7eb);">车辆</th>'

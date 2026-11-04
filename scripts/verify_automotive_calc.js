@@ -218,6 +218,22 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "automotive/countdown-engine-oil",
+  "inputs": {
+    "car": "我的爱车",
+    "last": "75000",
+    "cur": "54000",
+    "kmY": "15000"
+  },
+  "clicks": [
+    "localStorage.getItem=function(){return JSON.stringify([{car:'<svg/onload=alert(1)>',last:0,cur:1000,oil:'10000|',habit:'1',turbo:'1',kmY:1000}]);};renderGarage();"
+  ],
+  "expect": [
+    "&lt;svg/onload=alert(1)&gt;"
+  ],
+  "ref": "存储型转义：车库记录来自 localStorage，车辆名直拼 innerHTML/onclick 会在打开页面时执行；转义后 &lt;svg … &gt; 仅作为文本保留。harness 的 localStorage 默认返回 null，故用 click 覆写 getItem 注入恶意记录再重渲染；默认记录为空不命中。"
+},
+{
   "slug": "automotive/current-3",
   "inputs": {
     "volt": "17.5",
