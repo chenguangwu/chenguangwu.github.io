@@ -131,8 +131,8 @@ s.parentNode.insertBefore(el, s);
       <p style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">输入B超测量值(任选参数，参数越多越准)</p>
       <div class="card formula-box">
   <h3>📐 计算公式</h3>
-  <div class="formula-eq">Hadlock 四参数 EFW(g) = 10^(1.3596 − 0.00386·AC·FL + 0.0064·HC + 0.00061·BPD·AC + 0.0424·AC + 0.174·FL)；仅 AC+FL 时用 Hadlock 两参数 10^(1.304 + 0.05281·AC + 0.1938·FL − 0.004·AC·FL)；仅 BPD+AC（缺 HC/FL）时退化为 Shepard 两参数修正 10^(−1.7492 + 0.166·BPD + 0.046·AC − 2.646·AC·BPD/1000) × 1000 g（该式原单位为 kg）；宫高腹围页签用 宫高×腹围×0.3 与 Johnson 法 (宫高 − 12) × 155。</div>
-  <p class="formula-desc">B 超参数越全越准：四参数（BPD+HC+AC+FL）优先，缺 HC 时退化为 Shepard 两参数（BPD+AC），仅 AC+FL 时用 Hadlock 两参数；单参数只能粗估。临床宫高腹围页签给出 宫高×腹围×0.3 与 Johnson 法 (宫高 − 12) × 155 两种估算。估计体重 ≥ 4000 g 为巨大儿。</p>
+  <div class="formula-eq">Hadlock 四参数（Hadlock 1985, Am J Obstet Gynecol 151:333）：EFW(g) = 10^(1.3596 − 0.00386·AC·FL + 0.0064·HC + 0.00061·BPD·AC + 0.0424·AC + 0.174·FL)；缺 HC 时用 Hadlock 三参数（BPD+AC+FL，Hadlock C 1985，同上文献）：10^(1.335 − 0.0034·AC·FL + 0.0316·BPD + 0.0457·AC + 0.1623·FL)；仅 AC+FL 时用 Hadlock 两参数（Hadlock 1985）：10^(1.304 + 0.05281·AC + 0.1938·FL − 0.004·AC·FL)；仅有 BPD+AC 时用 Shepard 1982：10^(−1.7492 + 0.166·BPD + 0.046·AC − 2.646·AC·BPD/1000)（原式以 kg 计，×1000 → g）。以上 log₁₀ 均以 10 为底、长度单位 cm，EFW 单位 g。宫高腹围页签为经验式：EFW(g) = 2900 + 0.3·宫高·腹围；Johnson 法（未入盆 n=12）：EFW(g) = (宫高 − 12)·155。</div>
+  <p class="formula-desc">B 超参数越全越准：四参数（BPD+HC+AC+FL）优先；缺 HC 用 Hadlock 三参数（BPD+AC+FL）；仅 AC+FL 用 Hadlock 两参数；仅有 BPD+AC 用 Shepard 两参数。注意 Shepard 原式单位是 kg，直接当 g 会放大 1000 倍，代码已显式 ×1000。仅有单个参数（如只有 AC 或只有 FL）时不做伪公式估算，直接提示参数不足。宫高腹围页签为床旁经验式：2900 + 0.3·宫高·腹围 与 Johnson 法（宫高 − 12）·155（n=12 指未入盆，入盆时常用 n=11）。估计体重 ≥ 4000 g 为巨大儿。</p>
 </div>
 <div class="input-row">
         <div><label>双顶径 BPD (cm)</label><input type="number" id="bpd" value="8.8" step="0.1" oninput="calcHadlock()" placeholder="如 8.8"></div>
@@ -148,7 +148,7 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="tab-content" id="tab-sfh">
-      <p style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">临床触诊宫高与腹围，简易估算(误差±200g)</p>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">临床触诊宫高与腹围，简易估算（误差常达数百克）</p>
       <div class="input-row">
         <div><label>宫底高度 (cm)</label><input type="number" id="sfh" value="32" step="0.5" oninput="calcSFH()" placeholder="如 32"></div>
         <div><label>腹围 (cm)</label><input type="number" id="ac2" value="95" step="0.5" oninput="calcSFH()" placeholder="如 95"></div>
@@ -161,12 +161,22 @@ s.parentNode.insertBefore(el, s);
 
     <h3 style="font-size:14px;margin:20px 0 8px;">📐 Hadlock公式 (1985)</h3>
     <div class="ref-card">
-      <h4>BPD + HC + AC + FL (四参数，最准确)</h4>
-      <p style="font-size:12px;font-family:monospace;">log₁₀(EFW) = 1.3596 - 0.00386×AC×FL + 0.0064×HC + 0.00061×BPD×AC + 0.0424×AC + 0.174×FL</p>
-      <h4 style="margin-top:10px;">BPD + AC (Shepard 两参数修正，缺 HC/FL 时使用)</h4>
-      <p style="font-size:12px;font-family:monospace;">log₁₀(EFW/kg) = -1.7492 + 0.166×BPD + 0.046×AC - 2.646×(AC×BPD)/1000；结果再 ×1000 换算为 g</p>
-      <h4 style="margin-top:10px;">AC + FL (Hadlock 两参数)</h4>
-      <p style="font-size:12px;font-family:monospace;">log₁₀(EFW) = 1.304 + 0.05281×AC + 0.1938×FL - 0.004×AC×FL</p>
+      <h4>BPD + HC + AC + FL（四参数，最准确）— Hadlock 1985, Am J Obstet Gynecol 151:333</h4>
+      <p style="font-size:12px;font-family:monospace;">log₁₀(EFW/g) = 1.3596 - 0.00386×AC×FL + 0.0064×HC + 0.00061×BPD×AC + 0.0424×AC + 0.174×FL</p>
+      <h4 style="margin-top:10px;">BPD + AC + FL（三参数，缺 HC）— Hadlock C 1985（同上文献）</h4>
+      <p style="font-size:12px;font-family:monospace;">log₁₀(EFW/g) = 1.335 - 0.0034×AC×FL + 0.0316×BPD + 0.0457×AC + 0.1623×FL</p>
+      <h4 style="margin-top:10px;">AC + FL（Hadlock 两参数）— Hadlock 1985（同上文献）</h4>
+      <p style="font-size:12px;font-family:monospace;">log₁₀(EFW/g) = 1.304 + 0.05281×AC + 0.1938×FL - 0.004×AC×FL</p>
+      <h4 style="margin-top:10px;">BPD + AC（Shepard 两参数，仅有 BPD+AC 时）— Shepard 1982, Am J Obstet Gynecol 142:47</h4>
+      <p style="font-size:12px;font-family:monospace;">log₁₀(EFW/kg) = -1.7492 + 0.166×BPD + 0.046×AC - 2.646×(AC×BPD)/1000；长度 cm，原式输出 kg，本工具 ×1000 换算为 g</p>
+      <h4 style="margin-top:10px;">宫高 × 腹围（床旁经验式，非回归发表式）</h4>
+      <p style="font-size:12px;font-family:monospace;">EFW(g) = 2900 + 0.3 × 宫高(cm) × 腹围(cm)（足月附近粗估；仅作床旁参考，误差常达数百克）</p>
+      <h4 style="margin-top:10px;">Johnson 法（床旁经验式）</h4>
+      <p style="font-size:12px;font-family:monospace;">EFW(g) = (宫高 − n) × 155；未入盆 n=12，入盆 n=11（本工具固定按未入盆 n=12）</p>
+    </div>
+    <div class="ref-card" style="margin-top:10px;">
+      <h4>🔎 外部交叉核对（perinatology.com Hadlock 计算器）</h4>
+      <p style="font-size:12px;line-height:1.8;">输入 BPD 9.2 cm、AC 33 cm、FL 7.2 cm（HC 留空）：本站 Hadlock 两参数（AC+FL）3102 g、Hadlock 三参数（BPD+AC+FL）3123 g；perinatology.com（Mark A. Curran, MD）同一组输入返回其编号 Hadlock 1（AC+FL）3102 g、Hadlock 2（BPD+AC+FL）3123 g，相对误差 &lt;0.1%。补 HC 32.5 cm 后，本站四参数 3074 g，对方 Hadlock 4 同为 3074 g。</p>
     </div>
 
     <h3 style="font-size:14px;margin:16px 0 8px;">📊 不同孕周胎儿体重参考(P50)</h3>
@@ -221,7 +231,7 @@ s.parentNode.insertBefore(el, s);
 <li>识别巨大儿（≥4000g）与 FGR（&lt;2500g）。</li>
 <li>分娩方式评估（体重过大需防肩难产）。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">正常体重估算</div><div class="dd-ex-body">BPD 9.2cm、HC 33.1cm、AC 31.5cm、FL 7.2cm 代入 Hadlock：log10(EFW)≈3.49，EFW≈10^3.49≈3100g，属正常体重（2500–4000g）。</div></div>
+<div class="dd-example"><div class="dd-ex-title">正常体重估算</div><div class="dd-ex-body">BPD 9.2cm、HC 33.1cm、AC 31.5cm、FL 7.2cm 代入 Hadlock 四参数：log₁₀(EFW/g)≈3.4612，EFW≈10^3.4612≈2892g，属正常体重（2500–4000g）。</div></div>
 <div class="dd-example"><div class="dd-ex-title">巨大儿预警</div><div class="dd-ex-body">若 AC 升至 36cm、BPD 9.8cm，EFW 可超 4000g 触发巨大儿提示，需评估糖尿病与肩难产风险、计划分娩方式。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
@@ -246,8 +256,18 @@ s.parentNode.insertBefore(el, s);
       <tbody>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Hadlock 公式">Hadlock formula</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="log10(EFW) = 1.3596 &minus; 0.00386×AC×FL + 0.0064×HC + 0.00061×BPD×AC + 0.0424×AC + 0.174×FL（AC/FL/HC/BPD 均为 cm）。">log10(EFW) = 1.3596 &minus; 0.00386×AC×FL + 0.0064×HC + 0.00061×BPD×AC + 0.0424×AC + 0.174×FL, with AC, FL, HC and BPD in centimetres.</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Hadlock FP et al. 1985, Radiology - estimation of fetal weight</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="log10(EFW/g) = 1.3596 &minus; 0.00386×AC×FL + 0.0064×HC + 0.00061×BPD×AC + 0.0424×AC + 0.174×FL（AC/FL/HC/BPD 均为 cm）。">log10(EFW/g) = 1.3596 &minus; 0.00386×AC×FL + 0.0064×HC + 0.00061×BPD×AC + 0.0424×AC + 0.174×FL, with AC, FL, HC and BPD in centimetres.</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Hadlock FP et al. 1985, Am J Obstet Gynecol 151:333 (four-parameter)</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Hadlock 三参数公式">Hadlock 3-parameter</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="log10(EFW/g) = 1.335 &minus; 0.0034×AC×FL + 0.0316×BPD + 0.0457×AC + 0.1623×FL（长度 cm）。">log10(EFW/g) = 1.335 &minus; 0.0034×AC×FL + 0.0316×BPD + 0.0457×AC + 0.1623×FL, with lengths in centimetres.</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Hadlock FP et al. 1985, Am J Obstet Gynecol 151:333 (Hadlock C)</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Shepard 两参数公式">Shepard 2-parameter</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="log10(EFW/kg) = &minus;1.7492 + 0.166×BPD + 0.046×AC &minus; 2.646×(AC×BPD)/1000（长度 cm）；原式输出 kg，本工具 ×1000 换算为 g。">log10(EFW/kg) = &minus;1.7492 + 0.166×BPD + 0.046×AC &minus; 2.646×(AC×BPD)/1000, with lengths in centimetres; the original equation yields kilograms, converted to grams by ×1000.</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Shepard MJ et al. 1982, Am J Obstet Gynecol</td>
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="估算误差">Estimation error</td>
@@ -255,9 +275,19 @@ s.parentNode.insertBefore(el, s);
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);">ACOG Practice Bulletin No. 233: Antepartum Fetal Surveillance (2021)</td>
         </tr>
         <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="宫高腹围法">Fundal height method</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="临床可用宫高与腹围估算胎儿体重，精度低于超声。">Fundal height and abdominal girth can estimate fetal weight clinically, with lower accuracy than ultrasound.</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Johnson's formula for clinical fetal weight estimation</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="宫高×腹围经验式">Fundal height × girth (rule of thumb)</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="EFW(g) = 2900 + 0.3 × 宫高(cm) × 腹围(cm)（足月附近床旁粗估）。">EFW(g) = 2900 + 0.3 × fundal height (cm) × abdominal girth (cm), a near-term bedside rule of thumb.</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Common clinical rule of thumb (not a published regression equation)</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Johnson 法">Johnson's method</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="EFW(g) = (宫高 − n) × 155，未入盆 n=12、入盆 n=11；本工具按未入盆 n=12。">EFW(g) = (fundal height − n) × 155, with n = 12 (not engaged) or n = 11 (engaged); this tool uses n = 12.</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Johnson's clinical rule of thumb</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="外部交叉核对">External cross-check</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="BPD 9.2 / AC 33 / FL 7.2（HC 留空）：本站与 perinatology.com 计算器均为 AC+FL 3102 g、BPD+AC+FL 3123 g；加 HC 32.5 后四参数均为 3074 g，相对误差 &lt;0.1%。">BPD 9.2 / AC 33 / FL 7.2 (HC blank): this tool and the perinatology.com calculator both give 3102 g (AC+FL) and 3123 g (BPD+AC+FL); adding HC 32.5 gives 3074 g in both (relative error &lt;0.1%).</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">perinatology.com Hadlock calculator, Mark A. Curran, MD (accessed 2026-11-05)</td>
         </tr>
       </tbody>
     </table>
@@ -297,25 +327,27 @@ function calcHadlock(){
     efw=Math.pow(10,log10w);
     method='Hadlock四参数(BPD+HC+AC+FL)';
   }else if(hasBpd&&hasAc&&hasFl){
-    // 缺 HC 时退化用 Shepard 两参数（BPD+AC）：公式给出体重(kg)
-    // log10(EFW/kg) = -1.7492 + 0.166*BPD + 0.046*AC - 2.646*(AC*BPD)/1000
-    var log10w3=-1.7492+0.166*bpd+0.046*ac-2.646*(ac*bpd)/1000;
-    efw=Math.pow(10,log10w3)*1000;
-    method='Shepard两参数(BPD+AC)修正';
+    // Hadlock 三参数（BPD+AC+FL，Hadlock C 1985）：log10 以 g 计，直接 10^log10 得 g
+    // log10(EFW/g) = 1.335 - 0.0034*AC*FL + 0.0316*BPD + 0.0457*AC + 0.1623*FL
+    var log10w3=1.335-0.0034*ac*fl+0.0316*bpd+0.0457*ac+0.1623*fl;
+    efw=Math.pow(10,log10w3);
+    method='Hadlock三参数(BPD+AC+FL)';
   }else if(hasAc&&hasFl){
     // AC+FL
     var log10w2=1.304+0.05281*ac+0.1938*fl-0.004*ac*fl;
     efw=Math.pow(10,log10w2);
     method='Hadlock两参数(AC+FL)';
-  }else if(hasAc){
-    // 单AC: 近似 EFW = (AC^3)/... 简化
-    efw=Math.pow(ac,3)*0.012;method='单腹围粗估';
-  }else if(hasFl){
-    efw=660+64.2*fl*10;method='单股骨长粗估';efw=efw;
+  }else if(hasBpd&&hasAc){
+    // Shepard 两参数（BPD+AC，Shepard 1982）：log10 以 kg 计，×1000 换算为 g
+    // log10(EFW/kg) = -1.7492 + 0.166*BPD + 0.046*AC - 2.646*(AC*BPD)/1000
+    var log10wS=-1.7492+0.166*bpd+0.046*ac-2.646*(ac*bpd)/1000;
+    efw=Math.pow(10,log10wS)*1000;
+    method='Shepard两参数(BPD+AC)';
   }else{
+    // 仅有单个参数：无可靠发表的单参数胎儿体重公式，不再用伪公式凑数
     efw=0;method='参数不足';
   }
-  if(isNaN(efw)||efw<=0){const __h1='<p style="color:var(--text-muted);">参数不足，请至少输入腹围或BPD</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('result-h').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result-h').innerHTML=__h1;return;}
+  if(isNaN(efw)||efw<=0){const __h1='<p style="color:var(--text-muted);">参数不足：仅有单个参数无法可靠估重，请至少输入 AC+FL、BPD+AC 或四参数</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('result-h').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result-h').innerHTML=__h1;return;}
 
   var category,color;
   if(efw>=4000){category='巨大儿';color='#EF4444';}
@@ -349,10 +381,9 @@ function calcSFH(){
   var sfh=parseFloat(document.getElementById('sfh').value);
   var ac=parseFloat(document.getElementById('ac2').value);
   if(isNaN(sfh)||isNaN(ac)||sfh<=0||ac<=0){const __h3='<p style="color:var(--text-muted);">请输入宫高和腹围</p>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('result-s').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result-s').innerHTML=__h3;return;}
-  // 宫高×腹围×0.9 - 各种公式，常用: EFW = 宫高×腹围 - X
-  // 法一: 胎儿体重(g) ≈ 宫高(cm) × 腹围(cm) × 0.9 × 0.28 (近似)
-  var efw=sfh*ac*0.3;
-  // 另一常用: Johnson法 EFW=(宫高-n)×155, n=12(头位)
+  // 法一（床旁经验式，足月附近）：EFW(g) = 2900 + 0.3 × 宫高(cm) × 腹围(cm)
+  var efw=2900+0.3*sfh*ac;
+  // 法二: Johnson 法 EFW=(宫高-n)×155，n=12 指未入盆（入盆常用 n=11）
   var johnson=(sfh-12)*155;
   var category,color;
   if(efw>=4000){category='巨大儿';color='#EF4444';}
@@ -367,10 +398,10 @@ function calcSFH(){
   html+='<div class="ref-card"><h4>估算详情</h4><ul>';
   html+='<li>宫底高度：'+sfh+' cm</li>';
   html+='<li>腹围：'+ac+' cm</li>';
-  html+='<li>宫高×腹围法(×0.3)：'+efw.toFixed(0)+' g</li>';
+  html+='<li>宫高×腹围经验式(2900+0.3×宫高×腹围)：'+efw.toFixed(0)+' g</li>';
   html+='<li>Johnson法((宫高-12)×155)：'+johnson.toFixed(0)+' g</li>';
   html+='</ul></div>';
-  html+='<div class="tip-box tip-warn"><strong>注意</strong><br>宫高腹围法误差较大(±200g以上)，受孕妇腹壁厚度、羊水量、胎位影响。建议以B超Hadlock法为准，本法仅作床旁粗估。</div>';
+  html+='<div class="tip-box tip-warn"><strong>注意</strong><br>宫高腹围经验式误差较大（常达数百克），受孕妇腹壁厚度、羊水量、胎位影响。建议以B超Hadlock法为准，本法仅作床旁粗估。</div>';
   const __h4=html;if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){document.getElementById('result-s').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result-s').innerHTML=__h4;
 }
 function copyResult(){
