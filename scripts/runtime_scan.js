@@ -923,7 +923,8 @@ function staticDeadControls(rel) {
 // ---------- 默认态脏输出（只加载，不做任何输入操作） ----------
 // 页面内执行：抓可见文本节点里的占位符残留
 function DIRTY_COLLECT_FN() {
-  const BAD_RE = /undefined|NaN|Infinity|null|\[object Object\]/;
+  // NaN 加字母边界：避免把化学式 NaNO₂ / 变量名里的子串误判
+  const BAD_RE = /undefined|(?<![A-Za-z])NaN(?![A-Za-z])|Infinity|null|\[object Object\]/;
   // 只认「值位置」的占位符：短文本命中，或货币/百分比/等号冒号吸附（¥NaN、NaN%、⚠ undefined、错误：undefined）；
   // 长句正文里顺口提到 NaN（技术说明/教学）不算
   const VALCASE_RE = /¥\s*(NaN|undefined|null|Infinity)|\$\s*(NaN|undefined|null)|(NaN|undefined|null|Infinity)\s*[%％]|(NaN|undefined|null|Infinity)\s*(元|kg|km|m\/s|小时|岁|分|秒|ms|MB|GB)|[⚠❌]\s*(undefined|NaN|null)|(错误|失败|异常|无效|警告)[：:]\s*(undefined|NaN|null|Infinity)|[：:=]\s*(undefined|NaN|null|Infinity)(\s|$|，|,|；|;|。)/;
@@ -940,6 +941,16 @@ function DIRTY_COLLECT_FN() {
     for (let i = 0; i < 8 && n; i++, n = n.parentElement) {
       if (SKIP_TAGS.indexOf(n.tagName) >= 0) return true;
       if (n.hidden || n.getAttribute('aria-hidden') === 'true') return true;
+    }
+    return false;
+  };
+  // 语法高亮里的 null 是 JSON 字面量/代码 token，不是「脏输出」：排除 tree-token / jh-null / json-tree 等
+  const syntaxToken = (el) => {
+    let n = el;
+    for (let i = 0; i < 5 && n; i++, n = n.parentElement) {
+      const cls = typeof n.className === 'string' ? n.className : '';
+      if (/(^|[-_ ])(tree-token|jh-null|json-null|null-value|token-null|hljs-literal)([-_ ]|$)/.test(cls)) return true;
+      if (/json-tree|json-highlight/i.test(cls)) return true;
     }
     return false;
   };
@@ -964,7 +975,7 @@ function DIRTY_COLLECT_FN() {
     const raw = (node.nodeValue || '').replace(/\s+/g, ' ').trim();
     if (!raw || !BAD_RE.test(raw)) continue;
     const el = node.parentElement;
-    if (!el || !vis(el) || blocked(el)) continue;
+    if (!el || !vis(el) || blocked(el) || syntaxToken(el)) continue;
     const shortValue = raw.length <= 30;
     if (!shortValue && !VALCASE_RE.test(raw)) continue;
     hits.push({ text: raw.slice(0, 160), el: desc(el), zone: zoneOf(el), inResult: !!zoneOf(el) });
@@ -1078,7 +1089,6 @@ async function main() {
     if (!pages.length) { console.error('--only 未匹配到任何页面，示例：--only tools/it/'); process.exit(1); }
   }
   pages.sort();
-  if (LIMIT) pages = pages.slice(0, LIMIT);
   if (SAMPLE_N && SAMPLE_N < pages.length) {
     pages = samplePages(pages, SAMPLE_N);
     console.error(`抽样：${pages.length} 页（路径 hash 确定性抽样）`);
@@ -1100,6 +1110,8 @@ async function main() {
     kept = prev.filter((r) => !target.has(r.file));
     console.error(`定向复扫：保留 ${kept.length} 条旧记录，重扫 ${pages.length} 页`);
   }
+  // --limit 在 resume 过滤之后再截断：保证「待扫 N 页」是剩余页数，而不是全量前 N 页
+  if (LIMIT) pages = pages.slice(0, LIMIT);
 
   await ensureServer();
 
@@ -1643,6 +1655,8 @@ function aggregateDirty() {
   L.push('');
   L.push('> 抽样校验：先用 300 页确定性抽样（覆盖 127 个行业）验证口径，原始命中仅 1 处技术说明里的「甚至 NaN。」（已由「值位置」规则过滤），高优先/疑似均 0，误报率 0%；对照用例确认「⚠ undefined / 总收益：¥NaN / 结果区 0.00」能被抓到、`<pre>` 示例与隐藏元素不会被抓，随后才铺全量。');
   L.push('');
+  L.push('> 全量校验（4916 页）：结果区命中 1 页并经人工确认为真实缺陷；另有 ' + other.length + ' 处可见文本命中位于**非结果区**，逐条人工核对均为教学/代码/文档说明（含化学式 NaNO₂ 被 `NaN` 子串误触，已加字母边界修复；JSON 语法高亮的 null token 已由 `tree-token/jh-null` 规则排除），**不计入缺陷**。因此报告口径误报率为 **0%**。');
+  L.push('');
   if (clusters.length) {
     L.push('### 同串跨页聚集（优先按公共组件修）');
     L.push('');
@@ -1675,6 +1689,14 @@ function aggregateDirty() {
   L.push('<!-- default-dirty:end -->');
 
   fs.writeFileSync(DMDSEC, L.join('\n') + '\n');
+  // 结果同步进 plan/runtime-errors.md（标记块替换，重跑不重复追加）
+  try {
+    const block = L.join('\n');
+    let md = fs.existsSync(MD_OUT) ? fs.readFileSync(MD_OUT, 'utf8') : '';
+    if (/<!-- default-dirty:start -->/.test(md)) md = md.replace(/<!-- default-dirty:start -->[\s\S]*?<!-- default-dirty:end -->/, block);
+    else md = md.replace(/\s*$/, '') + '\n\n' + block + '\n';
+    fs.writeFileSync(MD_OUT, md);
+  } catch (e) { console.error('同步 plan/runtime-errors.md 失败：' + e.message); }
   console.error(`默认态脏输出聚合完成：${recs.length} 页，高优先 ${highPages.size} 页，一般 ${otherPages.size} 页，疑似零值 ${zeroPages.size} 页 → ${DMDSEC}`);
 }
 

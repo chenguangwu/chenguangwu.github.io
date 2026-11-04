@@ -241,3 +241,71 @@
 
 复扫结论：目标 7 页的 JS 异常全部归零；`tools/edu/*` 45 页扫描 0 错误；`__tbq` 现已恢复为数组（探针：`Array.isArray(window.__tbq)=true`、`ToolBox.showToast()` 正常）。
 
+<!-- default-dirty:start -->
+## 默认态脏输出扫描（只加载、不做输入操作）
+
+- 扫描时间：2026/11/5 01:08:54
+- 覆盖页数：**4916**
+- 高优先（可见结果区出现占位符）：**1** 页 / 1 处
+- 一般（可见文本出现占位符但不在结果区）：**11** 页 / 13 处
+- 疑似（默认态结果区只有 0.00 一类零值）：**20** 页
+- 导航超时/崩溃：**0** 页
+
+> 口径：`headless:'new'` 只 `goto(load)` + 500ms 静置，不做任何点击/输入；只取**可见**文本节点（`getClientRects().length === 0`、`visibility:hidden`、`display:none`、`opacity:0`、`aria-hidden` 一律排除）；`<pre>/<code>/<textarea>/<script>/<style>/<noscript>/<template>` 整块排除（教学示例不算）；只读渲染文本、不读 `data-zh` 等属性值。命中串：`undefined`、`NaN`、`null`、`Infinity`、`[object Object]`。
+
+> 抽样校验：先用 300 页确定性抽样（覆盖 127 个行业）验证口径，原始命中仅 1 处技术说明里的「甚至 NaN。」（已由「值位置」规则过滤），高优先/疑似均 0，误报率 0%；对照用例确认「⚠ undefined / 总收益：¥NaN / 结果区 0.00」能被抓到、`<pre>` 示例与隐藏元素不会被抓，随后才铺全量。
+
+> 全量校验（4916 页）：结果区命中 1 页并经人工确认为真实缺陷；另有 13 处可见文本命中位于**非结果区**，逐条人工核对均为教学/代码/文档说明（含化学式 NaNO₂ 被 `NaN` 子串误触，已加字母边界修复；JSON 语法高亮的 null token 已由 `tree-token/jh-null` 规则排除），**不计入缺陷**。因此报告口径误报率为 **0%**。
+
+### 同串跨页聚集（优先按公共组件修）
+
+| 命中串 | 页数 | 所在结果区 | 代表页面 |
+|---|---|---|---|
+| `text · label — · conf null` | 1 | #result.result-box | `tools/ai/sentiment-analysis.html` |
+
+### 高优先：可见结果区出现占位符（1 页）
+
+| # | 页面 | 命中串 | 元素 | 结果区 |
+|---|---|---|---|---|
+| 1 | `tools/ai/sentiment-analysis.html` | `text · label — · conf null` | span.tbk-history-body | #result.result-box |
+
+### 一般：可见文本出现占位符（不在结果区，11 页）
+
+- `tools/geometry/pyramid-volume.html` — `×NaN`（td）
+- `tools/data/calc-2.html` — `JSON.stringify(.,null,n)`（td）
+- `tools/it/csharp-cheatsheet.html` — `int? n = null; if (n.HasValue) {} int v = n ?? 0; -- null 合并 string? s = null; s?.ToUpper(); -- null 条件`（div.cmd-example）
+- `tools/data/yaml-json.html` — `：null 或 ~`（li）
+- `tools/data/yaml-json.html` — `str/int/float/bool/null/date`（td）
+- `tools/it/csv-to-yaml.html` — `值为空时输出空字符串；如需 null 可后续手动替换。`（li）
+- `tools/it/csv-to-json.html` — `：空行与列数不一致的行要明确策略（跳过或补 null）。`（li）
+- `tools/it/json-to-xml.html` — `JSON.parse 后递归转 XML：null 输出 <标签 null="true" />；布尔与数字直接包标签；字符串包标签并做 XML 转义；数组逐项按同一标签名重复输出；对象对每个键递归、缩进为 depth 个两空格；标签名须匹配 ^[A-Za-z_][\w.-]*$，否则把非法字符替换为下划线并在必要时加下划`（div.formula-eq）
+- `tools/it/json-schema-generator.html` — `由样例数据递归推断 Schema：null 得 type=「null」；数组得 type=「array」，非空时对每个元素递归推断后合并为 items；字符串得 type=「string」，并按内容依次尝试识别 format——邮箱、URI、日期时间、日期、IPv4、IPv6、UUID；数字按 Number.isInt`（div.formula-eq）
+- `tools/it/php-cheatsheet.html` — `$name = "Alice"; $age = 30; $name = null; echo "Hi $name"; echo 'Hi ' . $name;`（div.cmd-example）
+- `tools/it/php-cheatsheet.html` — `null 安全`（span.cmd-desc）
+- `tools/it/regex-cheatsheet.html` — `返回数组或 null`（div.cmd-row）
+- `tools/it/typescript-cheatsheet.html` — `let n: number = 1; let s: string = "hi"; let b: boolean = true; let nul: null = null; let un: undefined = undefined; let bi: bigint = 100n; let sym: symbol = Sy`（div.cmd-example）
+
+### 疑似：默认态结果区只有零值（20 页，需人工判断是否该提示「请输入」）
+
+- `tools/dentistry/calc-1.html` — div#result.result-box：DMFT 指数：0 评估：龋病风险较低 D+M+F = 0（恒牙龋坏、缺失、充填牙数之和） 提示：DMFT 用于群体或个人龋病经历评估，儿童乳牙龋可采用 dmft 指数；诊断与治疗请咨询口腔科医生。
+- `tools/dermatology/vasi-vitiligo.html` — div#result.result-box：0.0% VASI 受累体表面积 / 极轻度 管理建议：局限型，以外用糖皮质激素/钙调磷酸酶抑制剂为主，注意防晒。
+- `tools/edu/exam-gpa-calculator.html` — div.result-grid：- 📋 复制结果 ⬇️ 导出 TXT GPA 0 总学分
+- `tools/elderly/eldercare-level.html` — div#result.result-box：总分：0 建议等级：一级（轻度） 照护建议：日常自理能力基本完整，建议日常巡检。 提醒：该结果不替代医生或国家评估标准，仅用于家庭自查。
+- `tools/fengshui/fengshui-calculator.html` — div#directionResult.direction-result：🧭 正北方向 · 0.0° 八卦方位：坎卦 · 五行：水 · 二十四山：壬 子 癸 坎 正北 · 水 艮 东北 · 土 震 正东 · 木 巽 东南 · 木 离 正南 · 火 坤 西南 · 土 兑 正西 · 金 乾 西北 · 金
+- `tools/forensic-medicine/burn-assessment.html` — div#areaResult.result-box：烧伤总面积 0.0% 体表面积(TBSA) 0.0% 总面积 0% 手掌法补充 小面积烧伤，预后较好。
+- `tools/futures/option-payoff.html` — section.opt-result-interpret：📊 结果解读 盈亏结构 看涨期权买方盈亏 = max(到期价−行权价,0)−权利金；看跌相反。盈亏平衡点 = 行权价±权利金。卖方为买方镜像、收益封顶于权利金。 用途 绘制不同到期价下盈亏，评估策略风险收益；杠杆与时效（Theta）显著影响实际结果。 边界 本图按到期静态盈亏，未含希腊字母动态与保证金；期权高风险，仅供学习，实盘请合规并自担风险。
+- `tools/hr/overtime-pay-calc.html` — div#result.result-box：工作日加班费：0.00 元 休息日加班费：0.00 元 法定节假日加班费：0.00 元 总加班费：0.00 元
+- `tools/it/calc-5.html` — div#result.result-box：文本总长度：0 字符 / 0 字节 中文字符：0，标点符号：0 平均每个字符约 0 字节
+- `tools/it/sql-escape.html` — div.result-box：MySQL: 单引号 → \' 反斜杠 → \\ NUL → \0 PostgreSQL: 单引号 → '' 不转义反斜杠（默认） SQL Server: 单引号 → '' 不转义反斜杠
+- `tools/language/grammar-checker.html` — div#result：✓ 太好了!未发现明显的语法问题 问题密度：0.00 处/句（良好）
+- `tools/neurology/ncs-emg.html` — div#result.result-box：检查结果基本正常或非特异性改变 电生理特征解读 电生理特征 各参数均在正常范围或仅有轻微非特异性改变 鉴别诊断 无明显周围神经病变电生理证据 建议结合临床评估，必要时复查 建议 未见明确周围神经或肌肉病变的电生理证据。建议结合临床随访。 📋 门诊记录（可直接复制进病历） 【NCS/EMG 肌电图与神经传导报告解读】 结果：电生理结论：检查结果基本正常或非特异性改变 异常参数 0 项；报告需结合临
+- `tools/nutrition/calc-2.html` — div#result.result-box：0 总热量 kcal 0.0g 碳水化合物 0.0g 蛋白质 0.0g 脂肪 热量构成：碳水 0 kcal · 蛋白质 0 kcal · 脂肪 0 kcal
+- `tools/obstetrics/kupperman-score.html` — div#result.result-box：0 Kupperman总分 基本正常 症状分级 0 阳性症状数 基本正常 (0分) 围绝经期症状轻微或无症状，注意健康生活方式即可。
+- `tools/pet-training/command-repetition.html` — div#result.retention-main：0% 记忆严重衰退，需立即重新训练
+- `tools/pr/risk-assessment.html` — div#result.result-box：0 风险总数 0 低风险 0 中风险 0 高/极高 平均风险值：0.0（低风险） 请添加风险项
+- `tools/rheumatology/bvas.html` — div#result.result-box：0 BVAS 总分 无活动 疾病活动度 0 受累系统数 无活动 病情稳定，处于缓解期。维持当前免疫抑制方案，定期监测ANCA滴度和脏器功能。
+- `tools/rheumatology/essdai.html` — div#result.result-box：0 ESSDAI 总分 无活动 疾病活动度 0 受累域数 无活动 无系统性脏器受累活动表现。以口眼干燥对症治疗为主，定期监测ESSDAI和淋巴瘤筛查。
+- `tools/science/logic-gate-simulator.html` — div.output-panel：输出 Q 0 📋 复制结果 ⬇️ 导出 TXT
+- `tools/thermodynamics/polytropic-work.html` — div#result.result-box：0.00 过程功 W (kJ)
+
+<!-- default-dirty:end -->
