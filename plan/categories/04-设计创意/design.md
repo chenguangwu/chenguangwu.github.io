@@ -1937,3 +1937,47 @@
 - 新增 15 条（高 12 / 中 3），编号 D-N204–D-N218；假工具候选 4 页（generator-8、generator-9、generator-12、blueprint-grid）
 - 未做浏览器/门禁/线上验证
 
+## AB 批 · 设计族矩阵：图像/格式转换（2026-11-04）
+
+本轮复用 T 批末尾编号，新增 D-N219 起。6 页均实读整份 HTML，并按「输出物能否被标准工具还原」取向核查：像素尺寸用页面算式复算，blob/下载路径逐行核对，换算类用 `node -e` 内存复算（未落地脚本）。无浏览器实测，故 MIME 结论以「代码实际取哪个字段」为准。
+
+| 页面 | 实现方式 | 可验证性 | 结论 |
+|---|---|---|---|
+| `tools/design/svg-to-png.html` | Canvas（Blob→Image→drawImage→`toDataURL`） | 中：PNG 可解码，像素=宽×倍率；但无尺寸/面积上限，超大画布 `toDataURL` 返回 `data:,` → 0 字节 | 真实现，需补上限 |
+| `tools/design/px-to-rem.html` | 自写算术（`px/root`） | 高：算术可复算；默认 16/16=1rem，站点 CSS 未改写根字号，与浏览器 16px 一致 | 真实现；62.5% 说明写反 |
+| `tools/image/image-compress.html` | Canvas + `toBlob` + 对比滑块 | 中：blob 可下载、长边限制正确；MIME 与极端比例不可靠 | 真实现 |
+| `tools/image/image-resize.html` | Canvas + `toBlob` + token 防竞态 | 高：尺寸/比例/质量可复算，blob 真下载；大画布内存与 MIME 有缺口 | 本批最完备 |
+| `tools/image/image-converter.html` | Canvas 三格式批量 `toBlob` | 中：三份 blob 均可下载；换图竞态会把旧图卡片追加到新网格 | 真实现 |
+| `tools/design/photo-print-size.html` | 自写算术 + 相纸规格表 | 高：`cm = px/DPI×2.54` 与相纸需求像素均可复算 | 真实现；预设与表差 1px |
+
+### 逐页结论
+
+- **svg-to-png**：透明默认已修正——背景下拉默认 `transparent`，仅选「白色」才 `fillRect`（`svg-to-png.html:168`、`:283-286`），D-N20 的「恒定铺白底」已不成立；导出像素与 `exportMeta` 一致（`w*scale`，`:273`、`:280`）。真实缺口在尺寸校验只有 `w>0&&h>0`（`:266`），6000×6000 @3x 即 18000²=3.24 亿像素，超过 Chrome 约 2.68 亿像素画布上限，`canvas.toDataURL` 返回 `data:,`，下载得到 0 字节且无提示；`img.onload` 内异常也未捕获（`:278-291`，外层 `try` 管不到异步回调）。预设「高清 2 倍图 800×800」只写 `width/height`、不重置 `scale`，选过 3x 后实际输出 2400×2400，与标签不符（`:435-441`）。
+- **px-to-rem**：默认态 `calcTool()` 加载即算，16px/16 → `1.0000rem`，合理；`num()` 支持全角数字/`px`/`rem` 后缀与千分位（`:224-232`），`root<=0` 回退 16 并在结果下提示（`:235-236`）。硬伤是参考区 `:188`：62.5% 方案下应为「上表 rem 值 **乘以** 1.6」，写成了「除以 1.6」；该句自带示例 16px→1.6rem、24px→2.4rem 恰是乘法的结果，按字面除得 0.625rem/0.9375rem，与示例自相矛盾（node 复算 1/1.6=0.625，1×1.6=1.6）。页面换算本体与 CSS 根字号口径一致。
+- **image-compress**：核心链路真实：`calcDims` 按长边等比、`toBlob(mime, 0.01~1)`、扩展名跟随 `compType`（`:507-528`、`:780`）。两处可验证性缺口：① `resolve({…,type:mime})` 把**请求的** MIME 当实际类型（`:527`），全页不读 `blob.type`，浏览器不支持 WebP 编码时 `.webp` 里是 PNG 字节；② 极端纵横比会算出 0 边——1×4000 图配 1920 长边 → `Math.round(1920*0.00025)=0`（`:511`），canvas 宽 0，产出失败且无「最小 1px」提示。JPEG 先铺白底符合预期（`:521`），PNG/WebP 保留 alpha。默认态无图时结果卡隐藏，默认 1920/WebP/80 合理。
+- **image-resize**：本批质量最高：`MAX_SIDE=10000` 校验、空/超限显式报错并停止渲染（不退化 1px）、换图用 `loadToken`/`blobToken` 丢弃过期回调（`:567-570`、`:716-724`、`:770-772`），下载名跟随实际生成时的 `resultFmt`。缺口是上限只限单边不限面积：10000×10000=1 亿像素（约 400MB），且预览 `canvas.cloneNode` 保留同样大的后备画布（`:751-763`），桌面双份约 800MB、Safari 约 1677 万像素上限下直接空白（只 toast「尺寸过大」）。MIME 同样只记请求格式（`:782`）。
+- **image-converter**：三格式并行 `toBlob` 按 0.85 质量输出，JPEG 单独铺白、PNG/WebP 保留 alpha（`:295-321`），下载为 blob URL，真实可用。缺 token：`handleFile` 换图后 `grid.innerHTML=''`，但上一张图 3 个异步回调仍会 `appendChild`（`:294`、`:308`、`:319`），快速连选两张会得到「头部文件名 B、卡片里混着 A」的可下载结果。另 PNG/WebP 卡片无条件写「已保留透明」（`:316`），源为 JPG 时并无 alpha，属误导；整图按原始像素建 3 份 canvas，无尺寸上限（`:298-299`）。
+- **photo-print-size**：公式与相纸表正确（一寸 2.5×3.5 … A3 29.7×42，`:253-263`），默认 4000×3000@300 → 33.9×25.4cm，合理；`reqW/reqH` 用 `ceil`，三档判定逻辑可复算（`:284-290`）。预设「一寸证件照 295×413」与表格自身需求 296×414 差 1px（node 复算 `ceil(2.5/2.54*300)=296`、`ceil(3.5/2.54*300)=414`），点击该预设时「一寸」行只显示「🆗 基本可用」而非「✅ 像素充足」，预设与标准表自相矛盾。CSV 恒写「是」的问题已在早前条目记录（见本文件 :44 起），本轮不重复编号。
+
+### 新增问题
+
+| 编号 | 级别 | 页面 | 问题与证据 |
+|---|---|---|---|
+| D-N219 | 高 | svg-to-png | 宽高无上限，6000×6000@3x=3.24 亿像素超画布上限，`toDataURL` 返回 `data:,`，下载为 0 字节 PNG；`img.onload` 内异常无捕获。`:261-262`、`:278-291`、`:296-302` |
+| D-N220 | 高 | px-to-rem | 62.5% 根字号换算说明方向写反：「上表 rem 值除以 1.6」应为乘以 1.6；与同句示例 16px→1.6rem 矛盾。`:178-188` |
+| D-N221 | 高 | image-compress | 极端纵横比取整为 0：1×4000 配 1920 长边 → 宽 `Math.round(1920*0.00025)=0`，canvas 0 宽、产出失败且无提示。`:507-512`、`:518` |
+| D-N222 | 高 | image-converter | 换图无 token，旧图 `toBlob` 回调晚到会向新网格追加旧图卡片，头部显示 B 却可下载 A。`:294`、`:308`、`:319` |
+| D-N223 | 中 | image-compress / image-resize / image-converter | 实际 MIME 一律按请求格式记录，不读 `blob.type`；不支持 WebP 编码时 `.webp` 落盘为 PNG 字节，卡片/CSV 仍标 WebP。compress `:527`、resize `:782`、converter `:316-317` |
+| D-N224 | 中 | image-resize | `MAX_SIDE=10000` 只限单边不限面积：1 亿像素主画布 + 同尺寸预览画布约 800MB；Safari 超约 1677 万像素上限时画布空白，仅 toast。`:527`、`:751-763`、`:771-775` |
+| D-N225 | 中 | photo-print-size | 内置「一寸证件照 295×413」与表格需求 296×414 差 1px，点该预设时「一寸」行仅「基本可用」，预设与标准表不一致。`:162`、`:284-290`、`:300` |
+| D-N226 | 低 | image-converter | PNG/WebP 卡片无条件写「已保留透明」，源为 JPG 时无 alpha，标注误导。`:316` |
+| D-N227 | 低 | svg-to-png | 「复制 Base64」复制的是含 `data:image/png;base64,` 前缀的完整 URL；`navigator.clipboard.writeText` 无 `.catch`/降级。`:303-306` |
+
+### 统计
+
+- 实读 6/6 页整份 HTML：svg-to-png 534 / px-to-rem 396 / image-compress 964 / image-resize 1002 / image-converter 540 / photo-print-size 484，合计 3920 行。
+- 新增 9 条，编号连续 D-N219–D-N227：高 4（D-N219、D-N220、D-N221、D-N222）/ 中 3 / 低 2。
+- 假工具候选 **0**：6 页均有真实 Canvas/算术输出与可下载产物（压缩/缩放/转换三页确有 blob 下载，svg 出真 PNG，打印尺寸为真换算）。
+- 安全 **0**：未见 `eval`、`allow-same-origin`、明文存密或第三方外传；用户 SVG 仅经 `image/svg+xml` Blob→`<img>` 渲染，脚本不执行；文件名均过 `escHtml`（resize 的 `file.type` 直接入模板，属浏览器已归一化的 MIME 令牌，风险可忽略）。
+- 复算说明：相纸需求像素/一寸预设判定、62.5% 换算、`calcDims` 极端比例均由 `node -e` 内存复算；未落地脚本、未改任何源码、未运行 `_build.py`/门禁、未做 git 与浏览器/线上验证。
+

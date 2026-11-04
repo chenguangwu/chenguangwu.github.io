@@ -812,3 +812,53 @@
 - 声明：本轮仅逐页通读 6 页源码（HTML + 内联 JS），在 `/tmp` 用 node 复刻主算与边界（RC 默认 τ=10 μs 与 Ω/F 基单位对照、二次方程小系数判别式与 a<0 复根、极差/统计的千分位切分、频数表分箱边界、星表 23 行 m–M–距离反推、流量单位换算与 Re），未开浏览器、未跑 `_build.py`/`run_gates`、未做线上与英文态验证，未修改任何工具页、构建产物或仓库文件。默认单位复核：流量 `mm`+`m/s`、星等无量纲、二次方程无量纲均自洽；RC 的默认单位组合不自洽（见 SMS-140）。星等倍率复核：天狼星/0 等 3.84 倍、太阳/满月 3.98×10⁵、南北极星对比 23.7 倍，均在常识区间。
 - 安全注记：本批 6 页无 `eval`/`new Function`/`allow-same-origin`/`document.write`、无明文存密、无页面自有网络外传；输入均经 `parseFloat`/`parseInt` 后才参与运算，HTML 拼接值来自数值或内部常量。flow 历史项虽把 `modeName`/`Q_str` 写入 `innerHTML`，但这些字符串只由页面自身生成（localStorage 被篡改属同源自注入，不计）。公共模板 `lf1-cdn-tos.bytegoofy.com/ttzz/push.js` 为全站既有项，按前批口径不重复登记。
 - 统计：6 页 / 16 条（高 4 / 中 12）/ 安全 0 条 / 假工具 1 个 / 承诺未实现 2 处 / 编号区间 SMS-136～SMS-151。
+
+## AB 批 · 自然科学·潮汐/换算/方程（2026-11-04）
+
+**族矩阵（7 页）**
+
+| 页面 | 类型 | 输入 | 主算 / 输出 | 默认态复算 |
+|---|---|---|---|---|
+| tools/science/tide-height-estimator.html | 潮汐估算 | 日期、纬度、海岸类型、月相(自动/手动) | 月球+太阳半日潮正弦模型 | 2026-11-04、30°N、开阔海岸、自动 → 残月 0.7、太阳 0.327、高潮 0.48 m、低潮 −0.29 m、潮差 0.77 m |
+| tools/science/torque-converter.html | 纯单位换算 | 数值 + 8 种扭矩单位 | `baseNm/f` 全单位展开 + 功率-转速表 | 10 N·m → 7.375621 lb·ft、88.50746 lb·in、1.019716 kgf·m、101,971.6 gf·cm、1,416.119 ozf·in、1e+6 dyn·m |
+| tools/science/trigonometry-calculator.html | 三角/反三角 | 角度或弧度、三角/反三角、反函数种类 | sin/cos/tan、csc/sec/cot、asin/acos/atan、象限 | 30° → 0.5 / 0.866 / 0.577；asin 0.5 = 30°、acos 0.5 = 60°、atan 1 = 45° |
+| tools/science/wavelength-to-rgb.html | 光谱派生换算 | 380–780 nm | `wlToRgb` + f=c/λ + E=1240/λ | 550 nm → #A3FF00、545.45 THz、2.25 eV |
+| tools/science/wire-gauge-converter.html | 纯单位换算 | AWG 0–40 或直径 mm | 92 指数公式 + 面积/电阻/载流/压降 | 24 AWG → 0.511 mm、0.205 mm²、载流 1.02 A；页面电阻 0.08「Ω/km」（真值 84.01，差 1000 倍） |
+| tools/science/work-done.html | 物理量计算 | 力 F、位移 d、夹角 θ | `W = F·d·cosθ` + 分解与图表 | 50×10×cos0 = 500 J |
+| tools/science/xianxingfangchengzuqiujie-2yuan-3yuan.html | 代数求解 | 2/3 元系数 | Cramer 法则 + 行列式判定 | 2 元 x=1,y=2；3 元 x=1,y=2,z=3 |
+
+族矩阵结论：真正的纯换算只有扭矩与线规两页；波长是光谱派生量，潮汐/功/三角/方程是计算器；7 页同用 TBKit 标签页、历史与导出外壳，历史与预设实现同源，故同类缺陷可跨页复现。
+
+**逐页结论**
+
+- `tools/science/tide-height-estimator.html`：默认态数值自洽（半日潮正弦、月相 0.7、纬度修正 0.906、开阔放大 1.0）；太阳引潮项相位错 90°，二分日被当成最大、二至日被当成 0，与页内「二至日约第 172/355 天、二分日潮汐较小」直接矛盾；默认日期取 UTC，东八区凌晨会落到前一天。
+- `tools/science/torque-converter.html`：8 个单位系数与功率-转速表全部正确（9549/ rpm），默认 10 N·m 展开正确；仅导出 CSV 把每一行都追加「 N·m」，非 N·m 行的单位标签全错。
+- `tools/science/trigonometry-calculator.html`：角度/弧度、倒函数保护、反三角定义域与值域、象限判断均正确；默认 30° 与三组反三角复算一致，未发现高/中/安全三类问题。
+- `tools/science/wavelength-to-rgb.html`：`wlToRgb` 与 550 nm 默认结果自洽；参考表 11 行与深挖示例才是错源，多行 RGB 与同页算法输出不符。
+- `tools/science/wire-gauge-converter.html`：AWG↔mm、面积与载流公式正确，默认 24 AWG 的 0.511 mm、0.205 mm²、1.02 A 一致；但铜电阻把 `ρ/A`（Ω/m）直接标成 Ω/km，整表与压降/每千英尺派生值全部小 1000 倍（AWG 24 显示 0.08 Ω/km，真值 84.01），深挖示例的 5 A 又与同页 5 A/mm² 结果矛盾。
+- `tools/science/work-done.html`：`W=Fd cosθ` 与默认 500 J 正确；两个预设同时翻倍/减半 F 与 d，实际倍率为 4×/0.25×，与「2×/0.5×」标签不符。
+- `tools/science/xianxingfangchengzuqiujie-2yuan-3yuan.html`：Cramer 主算与默认/三元解均正确；历史「恢复」只按元数填默认系数、完全不使用记录值，且每次按键都写历史，5 条记录均为中间态；预设不切换元数，跨元数点击无可见效果。
+
+**问题条目**
+
+| 页面 | 问题（含 tools/science/&lt;slug&gt;.html:NN） | 编号 |
+|---|---|---|
+| tools/science/tide-height-estimator.html | 【高】太阳引潮项相位错 90°：注释写「二至日约第 172/355 天，二分日潮汐较小」，代码却用 `0.46*abs(cos((doy−80)/365.25*2π))`，峰值落在春分/秋分（doy 80/262），二至日反而≈0；doy 171（夏至）得 0.002（应 0.460），doy 80（春分）得 0.460（应≈0）；「青岛 2026 春分」预设把太阳贡献顶到 46%。:394-396、:503、:719 | SMS-152 |
+| tools/science/tide-height-estimator.html | 【中】默认日期用 UTC：日期框默认值与「今天」按钮均取 `toISOString().split('T')[0]`，东八区 00:00–07:59 加载会把默认日期设成前一天，月龄与潮高随之偏一天。:287-289、:295-296 | SMS-153 |
+| tools/science/tide-height-estimator.html | 【中】纬度越界无校验：`min/max` 只约束步进器，键盘可输 120°，`latFactor=0.3+0.7cos(120°)=−0.05` 使高潮为负、潮差为负；输入 90° 以上不提示。:136、:357、:389、:405-407 | SMS-154 |
+| tools/science/torque-converter.html | 【中】导出 CSV 单位后缀写死：`__torqueExport` 对全部 8 行都追加「 N·m」，lb·ft、lb·in、kgf·m、gf·cm、ozf·in、dyn·m 行均被标成 N·m（数值本身正确）。:488-490 | SMS-155 |
+| tools/science/wavelength-to-rgb.html | 【中】参考表 RGB 与本页算法不一致：405 nm 表 #8B00FF vs 算法 #8200C8；500 nm 表 #00FFFF vs #00FF92；532 nm 表 #00FF00 vs #65FF00；700 nm 表 #8B0000 vs #FF0000；用户按表核对会得到两套值。:283-295、:418-429 | SMS-156 |
+| tools/science/wavelength-to-rgb.html | 【中】深挖算例与算法不符：示例称「520 nm→rgb(0,255,0)；450 nm→rgb(0,0,255)」，实际 `wlToRgb` 给 520 nm #36FF00（54,255,0）、450 nm #0046FF（0,70,255）。:350、:418-429 | SMS-157 |
+| tools/science/wire-gauge-converter.html | 【高】铜电阻量纲错 1000 倍：`res_km=rho/area_mm2` 实为 Ω/m，却标成「Ω/km」（:403、:409），AWG 24 显示 0.08 Ω/km（真值 84.01）、AWG 20 显示 0.03（真值 33.23）、AWG 0 因 `toFixed(2)` 直接成 0.00；由它派生的「Ω/1000ft」（`res_km×0.3048`，:419）与「100m 压降」（`res_km/1000×100`，:421）同样小 1000 倍（AWG 24 显示 0.0084 V，应 8.40 V）。:403、:409、:418-421、:436 | SMS-158 |
+| tools/science/wire-gauge-converter.html | 【中】深挖载流示例与自身口径矛盾：示例写「AWG 20 载流约 5 A」，而同页 5 A/mm² 规则与对照表给 AWG 20（0.5176 mm²）2.59 A，差约 2 倍。:314、:420、:436 | SMS-159 |
+| tools/science/work-done.html | 【中】预设倍率标签与结果不符：「示例 2×」把 F 50→100、d 10→20，做功 500→2000 J（4×）；「示例 0.5×」把 F→25、d→5，做功→125 J（0.25×），标签的 2×/0.5× 均未实现。:258-261 | SMS-160 |
+| tools/science/xianxingfangchengzuqiujie-2yuan-3yuan.html | 【高】历史为假恢复：`restoreHistory(mode)` 只按元数写入固定默认系数，`item.vals` 从未被读取；点任意记录得到的是默认示例，而非该条记录的系数。叠加 `oninput` 每次按键都 `saveHistory`，5 条上限内全是中间态，历史功能实际不可用。:273、:294、:312-314 | SMS-161 |
+| tools/science/xianxingfangchengzuqiujie-2yuan-3yuan.html | 【中】预设不切换元数且默认预设不完整：所有预设回调只调 `calc()`，当前为 3 元时点「2 元」预设只改隐藏字段、界面无变化；「默认参数」只写到 `b2_3`，缺 `c2_3/d2_3/a3_3/b3_3/c3_3/d3_3` 六项，3 元下点击不等于重置。:421-424 | SMS-162 |
+
+**统计**
+- 条数：11（高 3 / 中 8 / 假 0 / 安全 0）；编号区间 SMS-152–SMS-162，续接 SMS-151，不重号不跳号。
+- 高优编号：SMS-152（太阳引潮相位错 90°）、SMS-158（铜电阻 Ω/m 当 Ω/km）、SMS-161（线性方程组历史假恢复）。
+- 假工具：0（7 页主算均可跑）；承诺未实现：1（SMS-161 的历史恢复）；冒用标准：0。
+- 安全：0 条；7 页无 `eval`/`new Function`/`allow-same-origin`/`document.write`/明文存密/Cookie/页面自有网络外传；拼接值来自数值、内部常量或 `escHtml`。公共模板 ttzz 脚本不单列。
+- 复算：node 内存复算太阳因子 doy 171 0.002 vs 0.460、doy 80 0.460 vs 0.000；波长 405/500/532/700 → #8200C8/#00FF92/#65FF00/#FF0000；AWG 24 电阻 0.0840 vs 84.01 Ω/km、100m 压降 0.0084 vs 8.40 V、AWG 20 载流 2.59 A；功预设 2000/125 J vs 500 J；扭矩 8 系数与 9549/rpm 表；三角 sin30=0.500、cos30=0.866、tan30=0.577、asin0.5=30°；线性 2 元 x=1,y=2、3 元 x=1,y=2,z=3，未落盘仓库；仅源码阅读，未开浏览器、未跑 `_build.py`/`run_gates.py`、未改 `tools/**` 与构建产物，未触碰 `plan/interaction-validity.md`、`plan/units-factors.md`、`plan/input-parse-dup.md`。
+- 去重说明：SMS-153 的 UTC 默认日期与既有「默认值不自洽」类不同，属时区口径；SMS-158 的 Ω/m 与 Ω/km 量纲混用与既有「单位错配」同类但本页还连带压降与每千英尺两项派生值，按页单列；SMS-156/157 均为「参考数据未经同一算法生成」，按表格与示例分开记；SMS-161/162 同页但一个是历史数据未使用、一个是预设不切模式，机制不同各记一条。
