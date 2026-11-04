@@ -382,7 +382,11 @@ function __piExtras(){
       [piL('赔偿总额','Total'), ToolBox.formatNumber(__piD.total)]
     ];
     TBKit.matrix.table('#piTable', {head:[piL('项目','Item'), piL('数值','Value')], rows: rows});
-    TBKit.history.record({[piL('等级','Grade')]: __piD.level, [piL('赔偿总额','Total')]: ToolBox.formatNumber(__piD.total)});
+    // 记录完整输入快照，否则历史回填只能拿到等级/总额，其余字段会退回默认值（且 0 被吞）
+    var __piMap={disabilityLevel:'level',age:'age',income:'income',avgWage:'avgWage',medical:'medical',monthlyWage:'monthlyWage',missedDays:'missedDays',nursingDays:'nursingDays',foodAllowance:'foodPerDay',hospitalDays:'hospitalDays'};
+    var __piSnap={};
+    Object.keys(__piMap).forEach(function(id){var el=document.getElementById(id);if(el)__piSnap[__piMap[id]]=el.value;});
+    TBKit.history.record(Object.assign(__piSnap, {[piL('等级','Grade')]: __piD.level, [piL('赔偿总额','Total')]: ToolBox.formatNumber(__piD.total)}));
   }
 }
 function __piExport(){ TBKit.util.exportTable('#piTable', 'personal-injury.csv'); }
@@ -395,7 +399,8 @@ function __piPresets(){
   ], function(){ calculate(); });
 }
 function __piMountHist(){
-  TBKit.history.mount('#piHist', function(rec){ if(rec && rec.d){ var d=rec.d; document.getElementById('disabilityLevel').value=d.level||'0'; document.getElementById('age').value=d.age||35; document.getElementById('income').value=d.income||50000; document.getElementById('avgWage').value=d.avgWage||8000; document.getElementById('medical').value=d.medical||0; document.getElementById('monthlyWage').value=d.monthlyWage||8000; document.getElementById('missedDays').value=d.missedDays||0; document.getElementById('nursingDays').value=d.nursingDays||0; document.getElementById('foodAllowance').value=d.foodPerDay||0; document.getElementById('hospitalDays').value=d.hospitalDays||0; calculate(); } }, 8);
+  var __piKeep = function(v, fb){ return (v === 0 || v === '0') ? v : (v == null || v === '' ? fb : v); };
+  TBKit.history.mount('#piHist', function(rec){ if(rec && rec.d){ var d=rec.d; document.getElementById('disabilityLevel').value=__piKeep(d.level,'0'); document.getElementById('age').value=__piKeep(d.age,35); document.getElementById('income').value=__piKeep(d.income,50000); document.getElementById('avgWage').value=__piKeep(d.avgWage,8000); document.getElementById('medical').value=__piKeep(d.medical,0); document.getElementById('monthlyWage').value=__piKeep(d.monthlyWage,8000); document.getElementById('missedDays').value=__piKeep(d.missedDays,0); document.getElementById('nursingDays').value=__piKeep(d.nursingDays,0); document.getElementById('foodAllowance').value=__piKeep(d.foodPerDay,0); document.getElementById('hospitalDays').value=__piKeep(d.hospitalDays,0); calculate(); } }, 8);
 }
 function __piBoot(){
   if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', function(){ __piExtras(); __piPresets(); __piMountHist(); }); }
