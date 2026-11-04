@@ -118,6 +118,19 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "food/food-calculator",
+  "inputs": {
+    "shelfFood": "egg",
+    "shelfCondition": "freeze",
+    "shelfDate": "2026-11-01"
+  },
+  "clicks": ["calcShelf()"],
+  "expect": [
+    "该食物不建议冷冻保存"
+  ],
+  "ref": "新增回归：鸡蛋冷冻保质期 0 天曾被按「到期当天」算成剩余 0 天/已过期。现应提示不建议冷冻；默认苹果+冷藏不出现该提示"
+},
+{
   "slug": "food/food-calorie-counter",
   "clicks": [
     "addFood('主食类',0);addFood('蛋白质类',1);"
