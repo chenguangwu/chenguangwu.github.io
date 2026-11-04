@@ -307,3 +307,17 @@
 | IT开发 | `tools/it/charset-detector.html` | C | 「编码识别器」仅做 6 条固定替换，非真实检测 | `plan/categories/01-IT开发/it.md` IT-N49x | 名不副实 |
 | 文娱爱好 | `tools/fun/generator-laugh.html` | C | `:232-241` `gen()` 只输出文字方案；全文无 `AudioContext`/`OscillatorNode`，无播放与 wav 导出 | `plan/categories/11-文娱爱好/fun-entertainment.md` FE-N79 | 宣称实时合成并可导出 wav |
 | 文娱爱好 | `tools/fun/meditation-timer.html` | C | `:275-320` 只生成静态时刻表；无开始/暂停、无 `setInterval`、无 `AudioContext`，历史不记实际时长 | `plan/categories/11-文娱爱好/fun-entertainment.md` FE-N86 | 无法用于计时 |
+
+## Y 批新增假工具候选（2026-11-04）
+
+> 本轮 10 个只读子 agent 的增量产出，均已读当前源码、可由静态证据复现；**不计入上表 61 页统计**，待修复线复核后并入主表。
+
+| 分类 | 页面 | 类型 | 证据（当前行号） | 来源条目 | 说明 |
+|---|---|---|---|---|---|
+| IT开发 | `tools/it/email-qr.html` | B | `:262-282` `renderQR` 只画三个定位符与时序线，其余 29×29 模块由 `:275-280` FNV 种子伪随机填充；无数据编码、Reed-Solomon、格式/版本信息，扫码得不到 `mailto:` | `plan/categories/01-IT开发/it.md` IT-N520 | 伪二维码（与 `location-qr` 同源） |
+| IT开发 | `tools/it/location-qr.html` | B | `:264-283` 固定 25×25 网格，仅画定位角/定时线，其余用 `strHash`+LCG 填 0/1；无数据位/纠错/掩码，扫码无法还原 `geo:` 载荷 | `plan/categories/01-IT开发/it.md` IT-N521 | 伪二维码 |
+| 工程制造 | `tools/machinery/detector-stretch.html` | C | `:213,232` 阈值 0.08 g、20 MPa、1×10⁶ 次写死，却称依据 GB/T 1689、GB/T 528、GB/T 1688（均为试验方法标准，不规定该合格线）判定合格，并称「可用于质量验收」；`:125` 仍为「合法性校验」模板 | `plan/categories/08-工程制造/machinery-metalwork.md` MM-H81 | 写死阈值冒充国标 |
+| 农业养殖 | `tools/agriculture/assessor-1.html` | A | `:126,220-228` 总损失率只用「理论产量−实际收获」，田间落粒与脱粒清选两项输入不参与主结果；公式框分母「理论−实际+损失」与代码 `totalLoss/ty` 不符 | `plan/categories/10-农业养殖/agriculture.md` 10-64 | 分项损失死输入 |
+| 农业养殖 | `tools/agriculture/calc-6.html` | A | `:126-127,278-281` 饲养周期仅参与 `cycle<=0` 校验，不进入任何算式；45 天与 120 天结果相同，公式说明「年批次数=365÷饲养周期×批次数」未实现 | `plan/categories/10-农业养殖/agriculture.md` 10-67 | 饲养周期死输入 |
+
+> 说明：`tools/biz/text-sort.html`（BS-N140）主体排序可用，仅图表/数据表/历史/导出因 `textarea.textContent` 恒空而全失效，按「部分成立」留待修复线复核，暂不计入假工具页数。

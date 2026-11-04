@@ -4366,5 +4366,81 @@
 - 假工具：1 个（`charset-detector`，IT-N494）：名为「编码识别器」，实际只做 6 条固定串替换，文档宣称的 GBK 十六进制识别完全不存在。
 - 方法声明：逐页通读 8 页源码（含 `_build.py` 注入的图表/表格脚本）；在 `/tmp` 用 `node` 复刻 `json-path` 的 `parseTokens` 与切片循环（带步数上限判定死循环）、`parseInt('5:2')` 验证步长失效；用 `node` 遍历 `CODABAR` 表统计元素数与宽元素数，并对照 Wikipedia Codabar 结构（基础 12 符 1 宽条 + 1 宽空、起止符 1 宽条 + 2 宽空）逐字符核验；用 `hexdump` 确认 `RULES` 第二条正则两个分支均为同一 U+FFFD 字符；逐条比对 `--` 注解在 bash / PHP / kubectl / Vim 的语义。**未开浏览器、未跑 `_build.py`/`run_gates.py`、未做 git 写操作**；未修改任何工具页、代码或构建产物，新增脚本仅落在 `/tmp`，仅在本审计日志追加本节。
 
+## Y 批 · IT 转换/速查（2026-11-04）
+
+- `ascii-tree-generator`：中 2 —— 文件/目录标记冲突会静默丢子树；公式框承诺的「缩进文本推断层级」未实现。
+- `barcode-code39`：高 1、中 2 —— 编码表元素数与宽元素数均不符，产出非法 Code 39；Mod 43 校验位与不支持字符处理均与承诺不符。
+- `barcode-msi`：中 3 —— 校验位控件缺失、非数字静默剥离、公式框与 `buildMSI` 实现不符。
+- `camera-recorder`：中 2 —— 承诺「分辨率选择」无控件；录制中点「关闭摄像头」会触发自动下载。
+- `csharp-cheatsheet`：中 1 —— 示例 6 处 `-- 注释` 在 C# 中非法，复制后编译报错。
+- `docker-cheatsheet`：中 2 —— 3 处命令尾 `-- 注解` 破坏命令；`docker build` 语法字段写错。
+- `emacs-cheatsheet`：中 2 —— 启动命令的 `-- 注解` 被当文件名；撤销条目把 `C-/` 标成「重做」。
+- `email-qr`：高 1 —— 二维码为伪随机噪点，无任何 QR 编码/纠错，扫码无效（假工具）。
+
+| 页面 | 问题（含 tools/it/<slug>.html:NN） | 编号 |
+|---|---|---|
+| `tools/it/ascii-tree-generator.html` | 先出现 `src`（按末段规则被标成文件）再出现 `src/index.js` 时，子路径被静默丢弃：`:273` 仅在节点不存在时写入 `_file`，`:285` 对 `_file=true` 的节点不渲染子级。node 复刻输入 `src` + `src/index.js` 仅输出 `src`，`index.js` 消失。 | IT-N505 |
+| `tools/it/ascii-tree-generator.html` | 公式框 `:116` 承诺「支持缩进文本或路径列表…自动推断层级」，实际 `:268` 只按 `/` 切分；粘贴带缩进的树状文本会得到一串扁平根节点，缩进层级被忽略。 | IT-N506 |
+| `tools/it/barcode-code39.html` | 编码表 `:246-262` 每字符 15 个宽窄元素（页面自述 `:156`/`:217` 应为 9 元素=5 条 4 空）、宽元素 4–7 个（规范应恰为 3）；`:263-294` 按 15 元素交替生成，单字符 `0` 已产出 82 模块，非合法 Code 39，扫描器无法识别。 | IT-N507 |
+| `tools/it/barcode-code39.html` | 承诺「可选 Mod 43 校验位」（`:221`、`:192`、`:517` 英文简介），但页面只有 `:161` 一个文本框，`:318-325` 从未计算或追加校验位，属承诺未实现。 | IT-N508 |
+| `tools/it/barcode-code39.html` | `:267-268` 对不在 `CODE39` 表中的字符直接 `continue` 静默丢弃，而 `:304`/`:323` 仍绘制/显示完整原文：输入 `A_中文` 时条码只编码 `A`，下方文字却显示 `A_中文`，条码内容与显示不一致。 | IT-N509 |
+| `tools/it/barcode-msi.html` | `:156`/`:157`/`:192` 承诺 Mod 10 / Mod 11 / Mod 1010 校验位可选，但页面仅 `:161` 一个数字输入框，`:247-258` 的 `buildMSI` 不生成任何校验位，属承诺未实现。 | IT-N510 |
+| `tools/it/barcode-msi.html` | `:248` 与 `:284` 用 `replace(/\D/g,'')` 静默剥离非数字：输入 `12A3` 时条码只编码 `123`，但 `:286` 的 HTML 文本显示原始 `12A3`（画布内文字为 `123`），显示与编码不一致。 | IT-N511 |
+| `tools/it/barcode-msi.html` | 公式框 `:156` 称「每位数字 = 8 个单元（0→窄空宽条，1→宽条窄空）」，实际 `:253` 为 `1→'1110'`（3 模块宽条+窄空）、`0→'10'`（窄条+窄空），每位 8–12 单元不等，且代码中不存在「窄空宽条」形态，说明与实现不符。 | IT-N512 |
+| `tools/it/camera-recorder.html` | meta 描述 `:8`/`:11`/`:17` 承诺「支持分辨率选择」，但页面无任何分辨率控件（仅 `:121-123` 三个按钮），`:258` `getUserMedia({video:true,audio:true})` 也未设任何约束；同时公式框 `:107` 写 `{video:true}` 与代码不符。 | IT-N513 |
+| `tools/it/camera-recorder.html` | 录制中点「关闭摄像头」（`:123`）经 `:296-298` `stopStream→stopRec`，会触发 `:266-273` 的 `onstop` 无条件自动下载文件；按钮语义仅为关闭摄像头，却产生下载行为。 | IT-N514 |
+| `tools/it/csharp-cheatsheet.html` | 示例含 6 处 C# 非法注释：`:293`（`-- 元组`）、`:357`（`-- 仅 init 时可写`、`-- 计算属性`）、`:389`、`:453`（两处）。C# 中 `--` 是自减运算符而非注释（应为 `//`），原样复制编译报语法错误。 | IT-N515 |
+| `tools/it/docker-cheatsheet.html` | `:285`/`:293`/`:317` 命令尾 `-- 注解` 会被当作参数或容器名：如 `docker stop $(docker ps -q) -- 停所有` 报 `No such container: 停`，`docker rm -f $(docker ps -aq) -- 删所有` 同理；复制即执行失败。 | IT-N516 |
+| `tools/it/docker-cheatsheet.html` | `:427` 语法字段写成 `docker build [options] -t name:path`，把镜像 tag 与构建上下文混为一谈且漏掉必需上下文参数；按此语法照抄构建会失败。 | IT-N517 |
+| `tools/it/emacs-cheatsheet.html` | `:280` 的 `emacs -nw file.txt  -- 终端模式` 与 `emacsclient -t file.txt  -- 连接守护进程` 是真实 shell 命令，`--` 后的中文会被当作文件名分别打开（emacs 缓冲/emacsclient 文件），复制执行多开文件。 | IT-N518 |
+| `tools/it/emacs-cheatsheet.html` | `:415` 撤销条目 params 写「C-/ 重做」，但 `C-/` 实为撤销（同条 `:416` 示例自己也标「撤销」），重做需先 `C-g` 再 `C-/`；同一行说明自相矛盾，按 params 操作会撤销而非重做。 | IT-N519 |
+| `tools/it/email-qr.html` | `:262-282` 的 `renderQR` 只画三个定位符与时序线，其余 29×29 模块全部由 `:275-280` 的 FNV 种子伪随机填充；无数据编码、Reed-Solomon 纠错、格式/版本信息，图案不是 QR 码，扫码无法得到 `mailto:`（假工具，`:160`/`:200` 承诺扫码发邮件）。 | IT-N520 |
+
+**统计**
+- 页数：8（`ascii-tree-generator`、`barcode-code39`、`barcode-msi`、`camera-recorder`、`csharp-cheatsheet`、`docker-cheatsheet`、`emacs-cheatsheet`、`email-qr`）。
+- 问题：16 条——高 2（IT-N507、IT-N520）/ 中 14。
+- 编号区间：IT-N505–IT-N520，连续且无重号、无跳号（与已转修复清单无重叠）。
+- 假工具：1 个（`tools/it/email-qr.html`，IT-N520）。
+- 安全条目：0 条——8 页均未出现 `eval`/`new Function`/`allow-same-origin`/明文存密/第三方外传；用户输入均经 `escapeHtml` 或仅写入 `textarea.value`/`canvas`，未发现可控 DOM 注入点。
+- 方法：逐页通读 HTML 与全部内联 JS；用 node 复刻 `ascii-tree-generator` 的 `build()` 验证子树丢失、统计 `barcode-code39` 表每字符元素数/宽元素数与生成模块数；未开浏览器、未跑 `_build.py`/`run_gates.py`、未执行 git、未修改任何 `tools/**` 或构建产物。
+
+## Y 批 · IT 速查/生成（2026-11-04）
+
+**逐页结论（8 页，均通读 HTML 与全部内联 JS）**
+- `tools/it/emoji-cheatsheet.html`：搜索、分类、柱状图均实时遍历 `EMOJIS` 生成，确属数据驱动；但数据表有 8 组重复 emoji，统计按条目重复计数。
+- `tools/it/java-cheatsheet.html`：搜索、分类、图表均遍历 `COMMANDS` 生成，可用；4 处示例用了 Java 非法的 `--` 注释。
+- `tools/it/kubernetes-yaml-generator.html`：Deployment + Service 模板缩进与嵌套合法；端口、名称、镜像未做合法性校验，非法输入原样拼入 YAML。
+- `tools/it/location-qr.html`：**伪二维码**——不编码 geo 载荷，只画三个定位角、定时线与哈希噪点，扫码不可能得到坐标。
+- `tools/it/lorem.html`：words/sentences/paragraphs 三种主流程可用；词数边界、预设/历史回调、中文占位承诺三处有缺陷。
+- `tools/it/markdown-lint.html`：标题跳级/重复标题/列表缺空格/空链接 4 条规则真实现；承诺的行尾空格、代码块语言未实现，且行首强调符号会误报。
+- `tools/it/nato-alphabet.html`：26 字母映射覆盖完整，正/反向均可跑；`X-ray` 反查失败、字母计数不准。
+- `tools/it/nginx-cheatsheet.html`：搜索、分类、柱状图/明细表均遍历 `COMMANDS` 生成，可用；配置示例含非法 `--` 注释与永不成立的 `$https` 判断。
+
+| 页面 | 问题（含 tools/it/<slug>.html:NN） | 编号 |
+| --- | --- | --- |
+| `tools/it/location-qr.html` | `renderQR()`（264-283）不编码任何数据：固定 25×25 网格，仅 266-275 行画三个定位角、276 行画定时线，277-282 行用 `strHash(text)` + LCG 给其余模块填 0/1；没有数据位、格式信息、纠错码与掩码，扫码无法还原 262 行的 `geo:` 载荷。页面 10、161、203 行却承诺「扫码可在地图打开位置」——伪二维码（假功能） | IT-N521 |
+| `tools/it/location-qr.html` | `buildGeo()`（259-260）经纬度仅 `parseFloat(v)||0`，未校验范围：输入 `999` 会生成 `geo:999,999`，非数字则静默变 `geo:0,0`，均被系统地图拒识；`generate()`（292-293）照样渲染，无任何提示 | IT-N522 |
+| `tools/it/lorem.html` | words 分支（333-341）在 `startLorem` 时固定先塞 `['lorem','ipsum']`，`count=1` 实际输出 2 词（node 复刻确认），违反 155 行「数量 = count」；手输 `count=-5`（min=1 拦不住键入）时 332 行循环不执行，输出空串 | IT-N523 |
+| `tools/it/lorem.html` | 预设栏回调（495）与历史记录恢复回调（443）都接 `downloadTxt()` 而非 `generate()`：点预设只改输入并下载旧文本，点历史记录同样触发下载且结果区不重算——预设/历史「算了不渲染」 | IT-N524 |
+| `tools/it/lorem.html` | 199 行承诺「支持中文占位文本」、160 行承诺「可指定…句长范围」，但页面无中文/句长控件；`chineseTexts`（282-293）与 `randomChineseSentence`（323-325）无任何调用，为死代码（承诺未实现） | IT-N525 |
+| `tools/it/markdown-lint.html` | 108 行「检查项」声称含「行尾多余空格」「代码块是否标注语言」，但 `calcTool()`（213-231）只实现标题跳级、重复标题、列表符号缺空格、空链接；行尾空格、代码块语言、110 行提到的 MD013 行宽均未实现（承诺未实现） | IT-N526 |
+| `tools/it/markdown-lint.html` | 228 行 `/^\s*[-*]\S/` 把行首 `*斜体*`、`**加粗**` 当作「列表符号后缺空格」（node 复刻两处均误报）；同时循环不识别围栏代码块，代码块内 `# 注释` 会被计为标题并参与 219-226 行的层级/重复计数——误报 | IT-N527 |
+| `tools/it/kubernetes-yaml-generator.html` | 231 行 `Math.floor(num('port'))||80` 只兜底 0/NaN：负数与超 65535（如 -1、70000）原样写入 `containerPort`/Service `port`；229 行名称仅 `trim()`，未按 DNS-1123 校验，含大写、空格或 `: ` 时 233 行生成非法 YAML，`kubectl apply` 必拒；镜像同理由 230 行原样拼接 | IT-N528 |
+| `tools/it/nato-alphabet.html` | 反查 287 行先 `replace(/[^a-z]/g,'')` 再查 288 行 `REV`：`X-ray` 变成 `xray`，而 261 行 `REV` 的键是 `x-ray`，于是 290 行返回 `?`；`X` 唯一带连字符的码词无法反解（错误结果） | IT-N529 |
+| `tools/it/nato-alphabet.html` | 283 行 `raw.replace(/\s/g,'').length` 把标点、数字、汉字都算作「字母」：`Hello, World!` 显示 12 个字母（实际 10 个）；反查 293 行也把未能解析的 `?` 计入音标词数（算错） | IT-N530 |
+| `tools/it/nato-alphabet.html` | 公式 111 行称命中输出「字母=音标词」，115 行列出数字专用读法（3→Tree、9→Niner），但 272-281 行构造的 `parts`/`all` 从未渲染，283 行结果区只显示计数；278 行数字原样保留、282 行标点/CJK 原样透传，均未按承诺转换（承诺未实现） | IT-N531 |
+| `tools/it/emoji-cheatsheet.html` | `EMOJIS` 表存在重复条目：🤩 315/330、😎 328/354、🥳 331/353、🤓 327/355、🍺 526/532、❌ 800/826、☔ 862/864、❇️ 836/838；`ec_groups()`（1025-1031）按条目累加、913 行「共 N 个」也按条目，柱状图与总数对同一 emoji 重复计数（算错） | IT-N532 |
+| `tools/it/java-cheatsheet.html` | Java 没有 `--` 行注释：示例 341 行 `-- 增强 for`、405 行 `-- 方法引用`、445 行两处 `-- "Alice"`/`-- true`、509 行 `-- 10`，复制后 `--` 被解析为递减运算符，直接编译失败（错误结果） | IT-N533 |
+| `tools/it/nginx-cheatsheet.html` | nginx 注释符是 `#` 不是 `--`：445 行 `client_max_body_size 20m;  -- 上传大文件`、469 行 `access_log off;  -- 关闭` 会被当作未知指令，541 行 `nginx -s reopen  -- 重开日志` 参数非法；复制进配置后 `nginx -t` 失败（错误结果） | IT-N534 |
+| `tools/it/nginx-cheatsheet.html` | 509 行示例 `if ($https = off)` 永不成立——nginx 的 `$https` 只有 `on` 或空值，不会取 `off`，HTTP→HTTPS 跳转永远不触发（应判 `$scheme = http` 或 `$https != on`）；示例与 408-413 行 `ssl_redirect` 条目自相矛盾（错误结果） | IT-N535 |
+
+**统计**
+- 页数：8（`emoji-cheatsheet`、`java-cheatsheet`、`kubernetes-yaml-generator`、`location-qr`、`lorem`、`markdown-lint`、`nato-alphabet`、`nginx-cheatsheet`）。
+- 问题：15 条——高 1（IT-N521）/ 中 14（IT-N522–IT-N535）。
+- 编号区间：IT-N521–IT-N535，连续且无重号、无跳号（与已转修复清单无重叠）。
+- 假工具：1 个（`tools/it/location-qr.html`，IT-N521，伪二维码噪点）。
+- 安全条目：0 条——8 页均未出现 `eval`/`new Function`/`allow-same-origin`/明文存密/第三方外传；用户输入均经 `escapeHtml`/`escH` 或仅写入 `textarea.value`/`canvas`，未发现可控 DOM 注入点。
+- 方法：逐页通读 HTML 与全部内联 JS；用 node 复刻 `markdown-lint` 的 `calcTool()`、`lorem` 的 words 分支与 `nato-alphabet` 的反查/计数，确认误报与边界；未开浏览器、未跑 `_build.py`/`run_gates.py`、未执行 git、未修改任何 `tools/**` 或构建产物。
+
 
 

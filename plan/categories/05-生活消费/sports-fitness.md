@@ -754,3 +754,35 @@
 
 - 本批新增 14 条：高 3 条（SF-N69、SF-N70、SF-N71）、中 11 条（SF-N72–SF-N82），编号 SF-N69–SF-N82，接续 W 批 SF-N68，无重号。假工具 1 个（SF-N70），安全条目 1 条（SF-N71）；需临床复核 2 条（SF-N73、SF-N82）。本批无此前已记录条目，故无「已修，复核通过」项。
 - 方法声明：逐页通读源码 + 在 `/tmp` 用 node 复刻页面计算实算取数（硬度越界分、排球/柔道越界率、回合取整除零、AT%/Karvonen%、姓名拆分均已实跑）；**未开浏览器、未跑 `_build.py`/`run_gates.py`/`_test_static.py` 等门禁、未做线上验证**；未修改任何工具页、js/css/json 或构建产物。
+
+## Y 批 · 运动/场地与换算（2026-11-04）
+
+### 逐页结论（8 页）
+
+| 页面 | 结论 |
+| --- | --- |
+| `analysis-20.html` | 通过：样本标准差取 n−1、CV 在均值为 0 时归零、n<2 拦截，口径与公式框一致 |
+| `analysis-spacing.html` | 角度因子 1/(2cos(θ/2)) 与 kN 分担正确；近 180° 保护阈值失效（SF-N83） |
+| `assessor-csat.html` | 总人数 0/空兜底为 1，到场率可显示 420000.0%（SF-N84）；Kirkpatrick 四级仅文字标签（SF-N85） |
+| `assessor-risk-2.html` | 8 项等权求和正确，但引据表称「加权」（SF-N86） |
+| `calc-61.html` | 步行预设回落「跑步 13km/h」，90 分钟热量约为快走的 2.4 倍（SF-N87，高） |
+| `calculator-calc-9.html` | 通过：齿比、每圈距离、齿轮英寸、踏频↔速度正反算均正确 |
+| `convert-29.html` | 身高 0/空时输出「柔韧指数 = Infinity」与负距离（SF-N88） |
+| `convert-time.html` | 无 T1/T2 换项输入与各段占比（SF-N89）；秒数四舍五入不进位（SF-N90） |
+
+### 问题条目
+
+| 页面 | 问题（含 tools/sports/<slug>.html:NN） | 编号 |
+| --- | --- | --- |
+| `analysis-spacing.html` | （中）近 180° 保护形同虚设：`tools/sports/analysis-spacing.html:219-221` 仅在 `cosv<=0.0001`（约 179.99°）时拦截；键入 179.5° 时角度因子 114.59、单挂片 1375.1 kN，仍正常渲染「夹角评价：夹角过大」。`:121` 的 `max=170` 只约束步进按钮，不阻止手输 179.x | SF-N83 |
+| `assessor-csat.html` | （中）总人数 0/空被 `\|\|1` 兜底：`tools/sports/assessor-csat.html:340` 得 total=1，`:354` 到场 4200 时 `attendanceRate=420000`，`:377` 输出「420000.0% 达标」；公式框 `:123` 把「按 1 兜底」写成既定行为，未提供 >100% 的拦截或提示 | SF-N84 |
+| `assessor-csat.html` | （中）承诺未实现：功能特点与结果页均称「Kirkpatrick 四级评估」，实际只有 CSAT/NPS/四维评分三项计算，无四级（反应/学习/行为/结果）的维度、分值或结果；`tools/sports/assessor-csat.html:208`（功能特点）、`:401`（结果页标签） | SF-N85 |
+| `assessor-risk-2.html` | （中）口径矛盾：引据表称「风险分 = 各维度得分乘以权重后求和」（加权总分），`tools/sports/assessor-risk-2.html:146-147`；代码 `:178` 与公式框 `:117` 均为 8 项直接等权求和；深度解析示例 `:228` 又改用「既往伤史 2 + 训练量突增 1 + 肌力不平衡 1 ≥4 分即高危」的 4 分制，且两项不在本问卷 8 维内 | SF-N86 |
+| `calc-61.html` | **（高）算错**：三个预设把 `activity` 置空，`tools/sports/calc-61.html:456-458`；`setValue` 写入 `select.value=''` 后 `:302` `parseInt('')` 得 NaN，`:303` 回落 `ACTIVITIES[5]`＝「跑步 13km/h」（11.8 MET）。「步行90分」预设（65kg×90min×0.9）实得约 1035 kcal，快走 6km/h 约 439 kcal，热量放大 2.4 倍；「适中45分」同样按跑步 13km/h 计 | SF-N87 |
+| `convert-29.html` | （中）身高清空/0 时 `kick/height*100` 得 Infinity，`tools/sports/convert-29.html:208` 的 `idx.toFixed(2)` 直接渲染「柔韧指数 = Infinity」，同时「踢腿点距头顶 = -120.0 cm」；公式框 `:116` 只说明「跳过等级输出」，主指标未拦截；负数踢腿/身高同样直出负指数 | SF-N88 |
+| `convert-time.html` | （中）名不副实：标题/描述承诺「换项时间」与「各段占比」，`tools/sports/convert-time.html:120-122` 只有游泳/骑车/跑步三个秒数输入，无 T1/T2；`:167` 仅求和并输出平均/极差，无各段占比 | SF-N89 |
+| `convert-time.html` | （中）秒数不进位：`tools/sports/convert-time.html:167` `fmt()` 用 `Math.round(t%60)`，119.5 秒显示「1分60秒」、3599.6 秒显示「59分60秒」；负数秒输出「-1分-10秒」 | SF-N90 |
+
+- 本批新增 8 条：高 1 条（SF-N87）、中 7 条（SF-N83–SF-N86、SF-N88–SF-N90），编号 SF-N83–SF-N90，接续 SF-N82，无重号。
+- 覆盖 8 页；假工具 0 个；安全条目 0 条（本批 8 页计算逻辑无新增 XSS/eval/明文存密；TTZZ 第三方脚本为全站模板既有项，未重复登记）。
+- 方法声明：逐页通读源码，并在 `/tmp` 用 node 复刻 `calc()`/`fmt()` 实算（步行预设回落 1035 kcal、119.5 秒→1分60秒、身高 0→Infinity、总人数 0→420000%、179.5°→角度因子 114.59）；未开浏览器、未跑 `_build.py`/`run_gates.py`，未修改任何工具页、js/css/json 或构建产物。

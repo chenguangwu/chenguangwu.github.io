@@ -626,3 +626,60 @@
 - `tools/statistics/sample-size-mean.html`：0 条。σ=10、e=2、z=1.96 → n=97（96.04 向上取整）、中间量 9.8000、95% 参考 96.0 正确；e=1 → 385 正确；守卫覆盖必填、非数值与 e=0，附加层表格按固定 90/95/99 阈值计算正确；未发现算错/崩溃/假功能。极限输入（负 σ/负 e 平方后与正值同值、z=0 → n=0）属无效参数且不产生错误量级，未单列。
 
 - 声明：本轮仅逐页读源码并用 node 在 `/tmp` 复刻各页主算与边界分支（对数域/下溢、合并与未合并 t、守卫早退路径、`toFixed` 输出），未开浏览器、未跑 `_build.py`/`_test_static`/`run_gates`、未做线上与英文态验证，未修改任何工具页、构建产物或仓库文件。新增 9 条：高 1（SMS-56），中 8（SMS-57～SMS-64），其中承诺未实现 1 条（SMS-58），安全 0 条，假工具 0 条；8 页均完成覆盖（sample-size-mean 0 条）。
+
+## Y 批 · 自然科学·天文/地理/计算（2026-11-04）
+
+- `tools/science/astro-geo-calculator.html`：5 条 —— 地震能量（log₁₀E=1.5M+4.8）、TNT 当量、地平线公式（3.57/3.86√h）、湿度（Magnus+干湿球）与气压均正确，但日出日落时区修正符号写反（高）、蒲福表 0.1 m/s 空隙把常见风速判成 12 级飓风（高），另有半球标签、固定遮挡高度卡与图表恒空三处中等问题。
+- `tools/science/astronomy-toolkit.html`：5 条 —— 撞击坑 CMM 标度律（默认 50 m/20 km/s → 1.14 km 瞬态坑、约 9.4 Mt）、UTM 正反算、观测评分主体正确；中等问题为月相照明度线性插值偏差、等星等文案、66.5° 极昼早退、经度无校验与附加历史读错结果框。
+- `tools/science/barcode-pharmacode.html`：0 条 —— 非固定映射假工具；走共享 `js/barcode-lib.js` 的 `pharmacodeEncode`（`num+1` 二进制去最高位、1→宽条、条间 1 模块空白），3→两窄条、131070→16 宽条，取值 3～131070 有守卫，画布渲染与自动生成正常。
+- `tools/science/calc-cycle.html`：2 条 —— 元素量、括号嵌套与未知元素报错正确，但文档三处示范的水合物 `CuSO4.5H2O` 实际报「无法识别的字符：5」（承诺未实现），且多余右括号会抛未捕获 TypeError（高）。
+- `tools/science/calc-distance.html`：4 条 —— Haversine 距离、英里/海里、初始方位角、中点纬度均正确（默认北京→上海 1067.310 km、方位 153.07°），但度分秒模式在 number 输入上被清空（高），另有飞行时间 60 分不进位、中点经度越界与快捷键说明不符三处中等问题。
+
+| 页面 | 问题（含 tools/&lt;dir&gt;/&lt;slug&gt;.html:NN） | 编号 |
+|---|---|---|
+| tools/science/astro-geo-calculator.html | 日出/日落时区修正符号写反：`sunriseHour + lon/15 − 8` 应为 `+ 8 − lon/15`。北京 2026-06-21 算得 04:21，正确 04:49（偏早 28.7 min）；经度 0° 时偏差达 8 h（20:35 vs 12:35，node 复刻）。:527-528 | SMS-65 |
+| tools/science/astro-geo-calculator.html | 蒲福表各级 min/max 之间留 0.1 m/s 空隙（0.2→0.3、1.5→1.6、3.3→3.4…），落在空隙的值全部走 `!found` 兜底 → 12 级飓风；12 km/h（3.333 m/s）、0.9 km/h（0.25 m/s）实测均显示「蒲福 12 级 / 飓风」。:661-673、:693 | SMS-66 |
+| tools/science/astro-geo-calculator.html | 位置行固定拼接 `°N`/`°E`：南/西半球显示为「负值+北/东标」，如 lat=-33.86 →「-33.8600°N」。:510 | SMS-67 |
+| tools/science/astro-geo-calculator.html | 「不同距离处被遮挡的最低高度」三张卡只用 `d²/(2R)*1000`，完全不含观察高度 h：h=100 m 时 5 km 处实际无遮挡，仍固定输出 2.0 m（常量 1.96），换任何高度数字都不变（写死常量式输出）。:631-646 | SMS-68 |
+| tools/science/astro-geo-calculator.html | 历史图表对结果文本做 `parseFloat`，而结果以「📍 位置：」开头 → 恒 NaN，`nums.length<2`，图表永不绘制（表格/历史可记录）。:896-902、:936-943 | SMS-69 |
+| tools/science/astronomy-toolkit.html | 月相照明度用 8 段等距线性插值：月龄 12.9 天显示 74.9%，余弦模型实际 96.1%（偏差 21.2 pp）；且 12.91963 处由 75% 直接跳到 100%、满月窗口 3.69 天恒 100%（node 复刻）。:607-626 | SMS-70 |
+| tools/science/astronomy-toolkit.html | 两星等相等时 `brighter='一样亮'`，拼出「即天体 一样亮 比 A 亮 1.00 倍」这类自相矛盾语句。:758-762 | SMS-71 |
+| tools/science/astronomy-toolkit.html | 纬度 66.5°～66.556° 时 `declCritical>23.44` 进入早退分支，输出「理论上全年为极昼或极夜」；66.5° 实际极昼/极夜各约 1 天（输入 max=90 允许该值）。:996-1000 | SMS-72 |
+| tools/science/astronomy-toolkit.html | 正向 UTM 只校验纬度 −80～84，不校验经度：lon=180 时 `zone=floor(360/6)+1=61`，给出区号 61 与错误东移，反向又被「1-60」拒绝。:854、:908-916 | SMS-73 |
+| tools/science/astronomy-toolkit.html | 月相计算的附加历史/图表读 `document.querySelector('.result-box')`（页内首个结果框是 `#magResult`）：未算过星等时读到「请输入…」占位而被 `:1224` 的正则判空，月相历史/表/图全无；算过星等后则把星等结果当作月相结果写入历史，图表也画星等趋势（数据错配）。:205、:1219-1225、:1260-1265 | SMS-74 |
+| tools/science/calc-cycle.html | 括号栈无下溢保护：`H2O)`、`)H2O`、`(H2O))` 在 `stack.pop()` 后 `cur=undefined`，`cur[k]=…` 抛未捕获 TypeError，结果区停留旧值（node 复刻三例均确认）。:254-257 | SMS-75 |
+| tools/science/calc-cycle.html | 文档三处示范水合物 `CuSO4.5H2O`（及 `·` 写法）与「5 个结晶水」的说法，但 `parseSegment` 把段首 `5` 判为非法字符，实际报「无法识别的字符："5"」；`2H2O` 同理（系数应在段首乘算）。:133、:168、:348 对 :231、:269-270 | SMS-76 |
+| tools/science/calc-distance.html | 度分秒模式失效：四个坐标输入是 `type="number"`，`swapFmt()` 把 `39°54'…"` 写回 number 输入被浏览器清空 → 坐标全空并报「坐标格式无效」，切回十进制也因值为空无法恢复。:127-137、:275-288 | SMS-77 |
+| tools/science/calc-distance.html | 飞行时间 `hh=floor(flyHr)`、`mm=round((flyHr-hh)*60)` 未处理 60 分进位：北京(39.9042,116.4074)→南京(32.0603,118.7969) 得 898.206 km →「0 小时 60 分」。:268-270 | SMS-78 |
+| tools/science/calc-distance.html | 中点经度 `lon1+atan2(By,cosφ1+Bx)` 未归一化到 ±180：(-30,178)→(-20,-170) 输出「184.24568」（node 复刻）。:249、:265 | SMS-79 |
+| tools/science/calc-distance.html | 使用说明写「Ctrl/Cmd + Enter 复制结果」，键盘处理只匹配 Ctrl/Cmd+C（且需无选中文本），按说明操作无反应。:174 对 :367 | SMS-80 |
+
+- 统计：5 页 / 16 条（高 4 / 中 12）/ 安全 0 条 / 假工具 0 个 / 编号区间 SMS-65～SMS-80。
+
+## Y 批 · 自然科学·统计/物理/化学（2026-11-04）
+
+- `tools/science/calc-stats.html`：1 条（SMS-81 高）。默认 2,4,4,4,5,5,7,9 → 均值 5.0000、样本方差 4.5714、标准差 2.1381、CV 42.76%、Q1 4.0000/Q3 5.5000 均正确；问题为把纯文本数据框当作分母项，数据集以 0 开头即被误报“分母为 0”拒绝计算。
+- `tools/science/centripetal-force.html`：0 条。默认 2 kg / 10 m·s⁻¹ / 5 m → F=40.0 N、4.0789 kgf、a=20.0000 m/s²、T=3.1416 s 正确；预设、图表、历史与差异均按 F 正常记录；v=0 因周期 T 发散被守卫拦截属合理，未发现算错/崩溃/假功能。
+- `tools/science/chemistry-calculator.html`：4 条（SMS-82 高·安全，SMS-83～85 中）。H2O=18.016、Ca(OH)₂=74.096、Fe₂(SO₄)₃=399.910、KMnO₄=158.040 g/mol 正确，浓度/pH/理想气体主算无误；问题为分子式 XSS（反射 + localStorage 存储）、解析静默丢未知元素/前导系数、稀释“留空求另一个”只单向可用、气体无正数校验。
+- `tools/science/combination-calculator.html`：1 条（SMS-86 中）。BigInt 精确：C(10,3)=120、C(33,6)=1,107,568、C(52,5)=2,598,960，大数无浮点精度损失；问题为 parseInt 静默截断小数/科学计数输入。
+- `tools/science/convert-power.html`：1 条（SMS-87 中）。力/能/功率各系数（kgf 9.80665、lbf 4.44822、dyn 1e-5、cal 4.184、kWh 3.6e6、eV 1.602e-19、BTU 1055.06、hp 745.7、PS 735.5）与量纲分组正确，默认 1 N→0.224804 lbf；问题为空输入被 `+''` 当 0。
+- `tools/science/density-physics.html`：1 条（SMS-88 中）。ρ=m/V 默认 2/0.001 → 2000 kg/m³、2.000 g/cm³、124.856 lb/ft³、比容 0.0005 正确，V=0 已守卫；问题为 ρ≥100 时主结果取整且丢失 kg/m³ 单位。
+- `tools/science/electric-field-point.html`：1 条（SMS-89 中）。默认 q=1 µC、r=0.1 m → E=898800.0 N/C、V=89880.0 V、kq=8.9880e+3、E·r=8.9880e+4 正确，r=0 已守卫；问题为历史只记 q/r/k、差异面板比较常量 k，结果 E 不入历史。
+- `tools/science/exp-calculator.html`：2 条（SMS-90 高、SMS-91 中）。默认 x=2 → e²=7.389056、e⁻²=0.135335、10²=100、2²=4、sinh 3.626860、cosh 3.762196、tanh 0.964028 正确；问题为 |x|≈710 以上 tanh 溢出成“-∞”，以及 |结果|<1e-12 的正数被 fmt 显示为 0。
+
+| 页面 | 问题（含 tools/science/&lt;slug&gt;.html:NN） | 编号 |
+|---|---|---|
+| tools/science/calc-stats.html | 数据以 0 开头即被 `__D={"data":"data"}` 当作分母置零校验：`parseFloat("0,1,2,0")===0` → 直接返回「⚠「data」是本计算的分母，不能为 0。」，完全不计算（node 复刻 "0,1,2,0"、"0.0,5" 均命中）。:232、:238、:261 | SMS-81 |
+| tools/science/chemistry-calculator.html | 分子式未转义即拼入 innerHTML（`${formula} 的摩尔质量`），并原样存入 localStorage 后在历史面板再次拼入 innerHTML；`H<img src=x onerror=alert(1)>` 经 parseFormula 仍能识别出 H（detail 非空），点“计算”即触发，重开历史记录再触发（反射 + 存储型 XSS）。:588、:596、:807、:822 | SMS-82 |
+| tools/science/chemistry-calculator.html | parseFormula 的 else 分支静默跳字：H2Zz→2.016 g/mol（未知元素不报错）、2H2O→18.016（应为 36.032）、CuSO4.5H2O→177.636（应为 249.685）、"(OH"→16.000；`if(ELEMENTS[part.symbol])` 只跳过未知符号不报错（node 复刻）。:354-397、:404 | SMS-83 |
+| tools/science/chemistry-calculator.html | 稀释模块标注“留空一个值求另一个”，实际 C₂ 留空即报「请输入最终浓度」（即使已填 V₂）；C₂、V₂ 都填时输入的 C₂ 被 `c1*v1/v2` 覆盖忽略。:517-519、:637-641、:650-659 | SMS-84 |
+| tools/science/chemistry-calculator.html | 理想气体不校验正数：T=-10 K → n=-27.299 mol（负物质的量）；V=0/T=0 → 输出「未定义」而非错误提示（fmt 先把非有限值转成“未定义”，:782 的无效值兜底失效）。:749-771、:777-780 | SMS-85 |
+| tools/science/combination-calculator.html | n/r 用 parseInt 静默截断：10.5→10（按 C(10,3)=120 算）、1e3→1；提示语称“请输入整数”但只判 isNaN，非整数输入不报错。:259-261 | SMS-86 |
+| tools/science/convert-power.html | 数值框清空后 `+document.getElementById('val').value` 得 0，`isNaN(v)` 为 false，直接输出「0 N = 0 lbf」等，不提示缺值。:163 | SMS-87 |
+| tools/science/density-physics.html | ρ≥100 时主结果用 `rho.toFixed(0)` 拼值且未再拼「kg/m³」：默认 2/0.001 的 2000 kg/m³ 在结果卡与数据表中均显示为无单位「2000」（单位只出现在 ρ<100 分支的字符串里）。:267、:289 | SMS-88 |
+| tools/science/electric-field-point.html | 历史只记录 q/r/k（不记 E），`diffBox` 又传入常量 `['k']`，`diffLast` 判等后恒无差异 →「与上次计算相比」永不出现，历史面板也不显示计算结果。:293、:296 | SMS-89 |
+| tools/science/exp-calculator.html | tanh 在 |x|≈710 以上：eˣ/e⁻ˣ 溢出为 ∞ → sinh=cosh=∞ → tanh=NaN，`fmt` 把 NaN 落入 `x>0?'∞':'-∞'` 的 else 分支恒输出“-∞”（x=1000 与 x=-1000 均为 -∞，正确应分别为 1/-1）；且 :264 的 Infinity/NaN 兜底因 fmt 已转成 ∞/— 永不触发。:233、:256-258、:264 | SMS-90 |
+| tools/science/exp-calculator.html | `fmt` 对 |x|<1e-12 一律返回 "0"：e⁻³⁰=9.358e-14（主结果即显示 0）、e⁻²⁸=6.914e-13、10⁻¹³ 均显示 0，e^(−x) 卡片与步骤行 `fmt(1/ex)` 同样为 0，与公式框「eˣ 恒正」矛盾。:234、:246、:253 | SMS-91 |
+
+- 声明：本轮仅逐页读源码（HTML + 内联 JS）并用 node 在 `/tmp` 复刻各页 `calc()` 的主算与边界分支（样本方差/总体方差、BigInt 组合数、单位系数、密度/电场量纲、指数与双曲函数溢出），未开浏览器、未跑 `_build.py`/`run_gates`、未做线上与英文态验证，未修改任何工具页、构建产物或仓库文件。新增 11 条：高 3（SMS-81、SMS-82、SMS-90）、中 8（SMS-83～SMS-89、SMS-91）；安全 1 条（XSS，`tools/science/chemistry-calculator.html:588`、`:596`、`:822`）；假工具 0 个；8 页全覆盖（centripetal-force 0 条）。
+- 统计：8 页 / 11 条（高 3 / 中 8）/ 安全 1 条（tools/science/chemistry-calculator.html:588、:596、:822）/ 假工具 0 个 / 编号区间 SMS-81～SMS-91。

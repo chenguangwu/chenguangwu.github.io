@@ -1230,3 +1230,19 @@
 
 - **X 批合计 10 条：高 0 / 中 10 / 安全 0。假工具 0 个。**
 - 说明：本轮为**只读**审计，逐行读源码 + `node` 在 `/tmp` 复刻（`/tmp/xprobe.js`：fancy 17 张卡映射长度校验、`flip('hello')` 实测、草莓 emoji 码位实测、大小写各模式实测）。**未开浏览器**、**未运行 `_build.py` / `run_gates.py`**、**未做 git 写操作**，除本文件与 `plan/categories/11-文娱爱好/fun-entertainment.md` 外未修改任何文件。
+
+## Y 批 · 商业文本处理（2026-11-04）
+
+- `tools/biz/text-dedup.html`：0 条 —— 保留首次/末次、忽略大小写、七种排序与反转均与说明一致（`dedup-last` 用末次下标集合过滤，输出顺序正确；`dedup-case` 以 `toLowerCase()` 建键并保留首次原样），未发现算错、崩溃或假功能。
+- `tools/biz/text-extract.html`：3 条 —— 正则提取、序号列表与「无匹配项」提示可运行，但单项复制按钮存在 HTML 属性注入（高/安全），且「去重」「自定义模式」为承诺未实现，URL/IP/日期正则存在边界与取值校验缺口。
+- `tools/biz/text-sort.html`：2 条 —— 八种排序模式与 `Intl.Collator`（`sensitivity`/`numeric`）开关正确，但四个辅助面板因读取 `textarea.textContent` 而恒空（假功能，高），且「去重」承诺无对应实现。
+
+| 页面 | 问题（含 tools/&lt;dir&gt;/&lt;slug&gt;.html:NN） | 编号 |
+|---|---|---|
+| tools/biz/text-extract.html | 匹配项经 `escapeAttr`（仅把 `'` 转成 `\'`）拼进双引号属性 `onclick="copy('…')"`：HTML 标签模式可匹配含 `"` 的标签（如 `<img src=x onerror="alert(1)">`），会提前闭合属性并注入事件属性；匹配项含 `\` 或换行时还会打断 JS 字符串（DOM 型注入/自 XSS）。:314、:323 | BS-N137 |
+| tools/biz/text-extract.html | 简介、formula-desc 与引据表承诺「过滤噪声并去重」「去重后保留首次出现次序」「或自定义模式」，但 `extract()` 只做 `matches.join('\n')` 全量输出（重复项原样保留），`MODES` 也仅 16 个固定正则、无自定义模式入口（承诺未实现）。:10、:163、:247、:252 对 :301-314、:269-286 | BS-N138 |
+| tools/biz/text-extract.html | URL 正则 `[^\s<>"']+` 会吞掉紧随的中文句号/右括号（`https://a.com。` 整段被当链接）；IP 与日期正则无取值校验，`999.999.999.999`、`2024-13-45` 会作为有效 IP/日期输出。:271、:274-277 | BS-N139 |
+| tools/biz/text-sort.html | 结果区是 `<textarea id="output">`，而 `__text_sortResText()` 读 `textContent`（textarea 的 textContent 恒为初始空文本，不随 `.value` 变化）→ 恒返回空串，`__text_sortExtras()` 在 :408 直接返回；图表/数据表/历史/导出 CSV 全空，`__text_sortPresets()` 亦为空函数（预设页恒空）。假功能。:193、:350-357、:407-408、:429-435 | BS-N140 |
+| tools/biz/text-sort.html | `meta description`、formula-desc 与引据表均称「支持去重 / optional deduplication / 合并相邻重复行」，但 `sort()` 只做排序与去空行，无任何去重逻辑，重复行原样保留（:10、:157、:254-255 对 :278-319）。 | BS-N141 |
+
+- 统计：3 页 / 5 条（高 2 / 中 3）/ 安全 1 条（`tools/biz/text-extract.html:314`、`:323`）/ 假工具 0（`tools/biz/text-sort.html` 仅辅助面板空转、主体排序可用）/ 编号区间 BS-N137～BS-N141。

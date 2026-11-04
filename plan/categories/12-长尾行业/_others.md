@@ -2510,3 +2510,78 @@
 - 无缺陷页：`tools/metallurgy/analysis-grade.html` 复算 A=0.85、B=22、T=0.09、Q=1000 → γ=3.469%、精矿 34.69 t、ε=89.78%、流失 10.22%、尾矿金属 0.869 t（回收率+流失率=100%），与 `:220-232` 一致；deep-dive 算例 100 t 铜、200 t 精矿 20% → 尾矿品位 0.612%、回收率 40% 亦自洽。`tools/metallurgy/analysis-34.html` 除 N224 外，RSD 3.16%（n−1）/2.83%（n）、加标 95%（0.69−0.50）/0.20 均与 `:238-246` 复算一致。
 - 未单列（低）：`tools/chemical/checker-15.html:120` 公式框句子截断（「60-74% 合格，」后缺「<60% 不合格」）；`checker-15`、`assessor-21` 的 h2/副标题仍是占位串「Checker 15」「Assessor 21」，`analysis-34`/`stats-10`/`analysis-grade` 副标题在英文态为「Analysis 34」「Stats 10 - online utility on ToolBox.」「Analysis Grade」；`pruning-calendar.html:288` 栀子花 `icon:' white'`（带前导空格的非 emoji，渲染成「 white 栀子花」）；多页 TBKIT 注入的 `P` 映射漏掉 `*Diff` 容器，切换页签时差分块常驻可见。
 - 局限：仅逐行读源码 + `node`/手算在本地复算，**未开浏览器、未跑 `_build.py`/`run_gates.py`/`_test_static.py`、未做 git 或线上验证**；英文态/繁体页/移动端未实测。园艺与皮革的档位判定属经验规则，N226/N227 的「正确档位」需按所在气候带与草种/品种复核。
+
+## Y 批 · 长尾·汽车/通用（2026-11-04）
+
+**逐页结论**
+- `tools/automotive/auto-beauty-calc-1.html`：护理周期主流程可算，但加月用 `setMonth`，1 月 31 日 +1 月落到 3 月 3 日，月末普遍溢出。
+- `tools/automotive/shipping-cost-compare.html`：首重 + 续重与保价公式正确；自定义首/续重只改「经济快递」一行，且表格不标注自定义。
+- `tools/automotive/fuel-economy.html`：百公里油耗、单次油费、续航、月费计算正确；「油箱容量」为死输入，承诺的碳排放没有输出。
+- `tools/automotive/bus-arrival-estimator.html`：`ride>0` 时按发车时刻而非到站时刻找下一班，且跨零点不归一，两个场景都算错。
+- `tools/automotive/parking-fee-calculator.html`：首段 + 进一法 + 封顶公式正确；跨天数与免费时长的口径和自身说明冲突。
+- `tools/automotive/driver-license-validator.html`：只做正则白名单，无校验位与发证年份；`<input>` 未闭合吞掉导出按钮；输入直入 `innerHTML`。
+- `tools/automotive/voltage-2.html`：三条公式与公式框一致；24V 预设仍套 12V SOC 阈值，末端电压未采用实际发电电压。
+- `tools/automotive/time-maintenance.html`：里程/时间双阈值可用，但整周期到期被判「未到期」，`已超期` 分支不可达。
+
+| 页面 | 问题（含 tools/automotive/<slug>.html:NN） | 编号 |
+|---|---|---|
+| auto-beauty-calc-1 | 月末加月溢出：`addMonths` 直接 `setMonth(+months)`（`:269-272`），2026-01-31 +1 月得 2026-03-03（按周期语义应为 02-28），2026-08-31 +1 月得 10-01；月末用户会拿到错误的下次护理日。 | 12-N230 |
+| auto-beauty-calc-1 | 日期解析时区错位：`new Date('YYYY-MM-DD')` 按 UTC 解析（`:288`），在 UTC 负时区（如美西）`2026-03-01` 本地是 02-28 19:00，显示日期整体早一天，且「距离 X 天」与显示日期自相矛盾（`:289-297`）。 | 12-N231 |
+| shipping-cost-compare | 自定义首/续重只在 `i===0`（经济快递）生效（`:367-368`），但输入标签未说明作用渠道（`:201-202`），表格也不渲染 `ref`（`:371`）；用户的自报价被当成「经济快递」报价参与比价，最低价归属会误读。 | 12-N232 |
+| bus-arrival-estimator | `ride>0` 时 `nextArrival` 只找「发车时刻晚于 now」的班次再 `+ride`（`:414-419`），漏掉已发车但尚未到本站的车；预设「1路高峰」interval 8 / last 08:30 / now 08:36 / ride 20（`:577`），08:30 班实际 08:50 到站，页面却给 08:58。 | 12-N233 |
+| bus-arrival-estimator | 跨零点未归一：`last=23:50、now=09:12、interval=10` 时 `while(n<now)` 不推进（`:414-419`），下一班显示 00:00（早已过去），已等待 `now-last=-878` 分钟、还需 888 分钟（`:430`，渲染见 `:438-440`）；页面自身却提示「跨零点应注意时刻表跨日」（`:230`）。 | 12-N234 |
+| bus-arrival-estimator | 合法时刻 `00:00` 被误拒：输入守卫把 `last` 列入分母项（`:362-371`），`parseFloat('00:00')===0` 时返回「last 是本计算的分母，不能为 0」，午夜首班无法计算。 | 12-N235 |
+| fuel-economy | 死输入：`#tank`「油箱容量」（`:160`）从未在 `calc()` 读取，计算只用 fuelL/dist/price/remain/monthKm（`:294-326`），改它结果无任何变化。 | 12-N236 |
+| fuel-economy | 承诺未实现：meta 与页面副标题写「计算…碳排放」（`:10`、`:152`），实际只输出油耗/油费/续航/月费（`:311-315`），`CO2_PER_L` 仅出现在公式说明行（`:320`），无碳排放数值。 | 12-N237 |
+| parking-fee-calculator | 跨天与停放时长重复计入：`total=cappedDay*d`（`:339`）把已按 `parkMin` 算出的单日费再乘天数；若 `parkMin=4320`（3 天全程）、`cap=0`，会按 3×720=2160 元收（应按 720）；机场预设又用 `parkMin=480 + days=3`（`:465`），两种语义混用；另 `days=0.5` 被 `Math.floor` 成 0（`:338`）直接 0 元。 | 12-N238 |
+| parking-fee-calculator | 免费时长口径与自身 FAQ 冲突：代码 `pay=max(0, parkMin-freeMin)` 从免费结束起算（`:330`），FAQ 写「超时按规则从进场起算，非从免费结束起算」（`:82`、`:243`），引据表写「超时后按全额或分段计取」（`:271`）；例 free 30、park 100、首 60 分钟 5 元、续 30 分钟 5 元 → 页面 10 元，按 FAQ 15 元。 | 12-N239 |
+| driver-license-validator | HTML 结构破损：`:159` 的 `<input … value="D1234567"` 缺 `>`，把紧随的 `div.toolbar` 与 `button` 开标签吞成属性（`:160`），导出按钮不渲染，只剩裸文本「导出明细 CSV」，`onclick` 反挂到输入框。 | 12-N240 |
+| driver-license-validator | DOM XSS：`raw` 仅 `trim().toUpperCase()` 后直接拼进 `innerHTML`（`:262-265`、`:277`）；`<svg onload="&#97;&#108;&#101;&#114;&#116;(1)">` 经大写后实体不被改写，仍可执行；属自注入型，需用户粘贴恶意串。 | 12-N241 |
+| driver-license-validator | 名不副实：描述/简介/引据承诺「校验位、发证年份、地区」（`:10`、`:154-156`、`:220`），实现只有 16 条正则首匹配（`:237-259`，筛选在 `:267`），无加权模 11 或年份解析；公式框自己也写「无校验位算法」（`:153`）。 | 12-N242 |
+| voltage-2 | 末端电压基准错：`endV=volt-dU`（`:331`）用「系统标称 12V」，未用实际发电电压 14.4V；默认 10A/5m/2.5mm²/铜算得 11.30V（`:338`），实际应为 14.4−0.70=13.70V，偏低 2.4V，deep-dive 也沿用 11.30V（`:220`）。 | 12-N243 |
+| voltage-2 | 24V 预设 SOC 失真：SOC 阈值写死 12V（`:322-327`，对照表标题也标 12V，`:171`），而预设「24V 卡车系统」给 `vbat=24.2`（`:475`），24.2V 静态约 50% 却被判「100%（满电）」，结果卡也未提示仅适用 12V。 | 12-N244 |
+| time-maintenance | 整周期到期判错且超期分支不可达：`leftMon=(used===0&&last>0)?ivMon:(ivMon-used)`（`:346-347`），`last=12、油周期 12` 时得 12 个月 → 判「未到期」，同时 `last>=oilMon` 又提示「已达机油上限」（`:400`）；`leftKm` 恒 >0、`leftMon` 恒 ≥1，`leftKm<=0||leftMon<=0`（`:352`）永不成立，「已超期」恒为 0 项。 | 12-N245 |
+
+**统计**
+- 审计页数：8（全部为 `tools/automotive/` 下指定页面）。
+- 新增条数：16 条，编号 12-N230–12-N245（高 6 / 中 10）。
+- 高优 6 条：N230（加月溢出）、N233（到站/发车口径）、N234（跨零点）、N240（HTML 吞标签）、N241（DOM XSS）、N245（整周期到期判错）。
+- 假工具数：0。
+- 安全条目：1 条 —— `tools/automotive/driver-license-validator.html:265`（用户输入直入 `innerHTML` 的反射型 DOM XSS）。
+- 局限：仅逐行读源码并做静态复算，未开浏览器、未跑 `_build.py`/`run_gates.py`/`_test_static.py`、未执行 git 或线上验证。
+
+## Y 批 · 长尾·通用计算（2026-11-04）
+
+**逐页结论**
+- **calc-14**：年龄/总天数/生肖/星座主算正确（1990-05-15→2026-09-08 复算 36 岁 3 月 24 天、13265 天），但默认“今天”取 UTC 日期、闰日处理与自身承诺不符。
+- **power-focal**：线能量、切深、光斑、功率密度公式可复算（默认 2.52mm、0.10mm、127.3kW/mm²），但“建议速度”、功率密度卡片与历史深度有错。
+- **lifespan-5**：Q10 五因子与算例复算一致（25℃/60%/pH7/UV0→120 月；40℃/80%/pH5/UV200→18.4 月），未发现高/中问题。
+- **detector-corrosion-1**：三项阈值判定可算，默认 190/250/1 级→合格；但重置/清空误判不合格、预设“通用锂基脂”自相矛盾。
+- **detector-200**：三项阈值判定可算，默认 30/0.03/0.05→合格；但重置/清空误判不合格、预设“新变压器油”被 28~32 阈值误杀。
+- **nianjieqiangdujisuan**：F=τA、许用载荷/许用应力换算正确（默认 20MPa×500mm²、SF3→10000N/3333N/339.8kg）；仅“估算抗拉强度”术语/量纲不符。
+- **ratio-fuel-oil**：体积加权密度、质量加权热值、能量密度与算例全部一致（873 kg/m³、41.98 MJ/kg、36.65 GJ/m³、10034 kcal/kg），未发现高/中问题。
+- **calc-stats-1**：正态/泊松/二项 PMF/CDF 数值与算例一致（Φ(1.96)=0.975002、P(2;3)=0.224042、P(5;10,0.5)=0.246094）；仅大 k/n 的 CDF 复杂度问题。
+
+| 页面 | 问题（含 `tools/general/<slug>.html:NN`） | 编号 |
+|---|---|---|
+| calc-14 | 默认日期取 UTC 日：`today.toISOString().slice(0,10)`（`tools/general/calc-14.html:261-263`、`:310-312`）在 UTC+8 的 00:00–07:59 返回前一天，页面加载即把“计算日期”填成昨天，年龄/总天数少 1 天；引据表 `:158` 却写“跨时区以当地日期为准 / Use local date”。 | 12-N246 |
+| calc-14 | 闰日未按 2/29→2/28：`new Date(y,1,29)`（`tools/general/calc-14.html:235-236`）在非闰年滚到 3/1，`calcAge` 的借位（`:213-217`）也按前月实际天数算；2000-02-29 生、2026-02-28 计算得 25 岁 11 月 30 天（应为 26 岁 0 月 0 天），下次生日显示 2027-03-01（应为 02-28），与引据表 `:157` 的承诺相反。 | 12-N247 |
+| power-focal | “建议速度（按目标深度 80% 反推）”量纲/算法错：`recSpeed=(0.8*LE)/(mat.e*1)`（`tools/general/power-focal.html:244`）算出的 2.13 实际是 `0.8×dMax/fEff`（长度 mm），却被标成 mm/s 渲染（`:260`）；切深与速度成反比，取 80% 深度应把速度提到 `V/0.8=18.75 mm/s`（默认 1000W/127mm/15mm/s/碳钢），页面给 2.1，deep-dive 算例也照抄（`:470`）。 | 12-N248 |
+| power-focal | 功率密度卡片多一个 k：`(pd/1000).toFixed(1)+'k'` 与“kW/mm²”并列（`tools/general/power-focal.html:251`），默认 pd=127324 W/mm² 被渲染成“127.3k kW/mm²”=127300 kW/mm²，是正确值 127.3 kW/mm² 的 1000 倍；deep-dive `:470` 写的正是 127.3 kW/mm²。 | 12-N249 |
+| power-focal | 历史摘要深度未乘焦距效率：主结果 `dMax=(LE/mat.e)*fEff`（`tools/general/power-focal.html:233`），历史用 `dm=le/mat.e`（`:300`）；默认 fEff=94.6% 时主结果 2.52mm、历史显示 2.67mm，同一组输入出现两个深度。 | 12-N250 |
+| power-focal | 材料比切割能 e 两套量纲：公式框/注释/结果表写 J/mm²（`tools/general/power-focal.html:158`、`:199`、`:258`），FAQ 写“熔穿单位体积材料所需能量（J/mm³）”（`:474`）；`d=LE/e` 只有在 e 为 J/mm²（或按 1mm 缝宽折算）时才得 mm，读者无法判断该信哪套。 | 12-N251 |
+| detector-corrosion-1 | 重置/清空后直接判“不合格”：`calc()` 把空值当 0（`parseFloat(...)||0`，`tools/general/detector-corrosion-1.html:226`），`resetForm()` 清空后立刻 `calc()`（`:244-246`）；滴点 0<180、锥入度 0 不在 220~295，页面给出红色“综合判定：不合格”，而不是提示补填。 | 12-N252 |
+| detector-corrosion-1 | 预设与阈值自相矛盾且单牌号写死：预设“通用锂基脂”给 190/265/2 级（`tools/general/detector-corrosion-1.html:407`），2 级>1 级→综合“不合格”；阈值固定为 NLGI 2 锂基脂的 220~295、≥180、≤1（`:220`），却把 GB/T 4929/269/21621（均为测定方法）写成限值来源（`:132-134`），其他稠度等级/脂种会被误判。 | 12-N253 |
+| detector-200 | 同构重置误判：空值经 `parseFloat(...)||0`（`tools/general/detector-200.html:226`）变 0，`resetForm()` 清空后 `calc()`（`:244-247`）；运动粘度 0 不在 28~32→“综合判定：不合格”，水分/酸值 0 反而通过。 | 12-N254 |
+| detector-200 | 预设“新变压器油”被判不合格：该预设给 12/0.02/0.02（`tools/general/detector-200.html:406`），运动粘度 12 不在写死的 28~32（`:220`）→不合格；“运行 5 年油”18 同样不合格。28~32 只对应某一粘度牌号，页面却以 GB/T 265（运动粘度测定法）作为限值依据（`:132`），其他牌号新油会被误杀。 | 12-N255 |
+| detector-200 / detector-corrosion-1 | “检测服务/质量验收报告”承诺未实现且与免责声明冲突：两页标题/描述称“检测（…）服务”、结果称“检测报告可用于质量验收”（`tools/general/detector-200.html:239`、`tools/general/detector-corrosion-1.html:239`），实际只是把用户输入的实测值与固定阈值比较、无检测过程/无报告生成；同一页注意事项又写“正式检测请以权威机构报告为准”（两页 `:213`）。 | 12-N256 |
+| nianjieqiangdujisuan | “估算抗拉强度”量纲不符：简介称输出“估算抗拉强度”（`tools/general/nianjieqiangdujisuan.html:495`），结果卡/复制文本输出 `tensileKg` 的 kg 值（`:228`、`:232`），公式定义为“估算抗拉 = F×1.5”（`:128`、`:448`）——这是 1.5 倍最大载荷，不是应力（MPa）；抗拉强度应为 σ=F/A 的应力。 | 12-N257 |
+| calc-stats-1 | 大 k/n 会长时间卡死：`poisCdf` 每次循环都重算 `logFact(i)`（`tools/general/calc-stats-1.html:224-226`）→O(k²)，`binomCdf` 每个 pmf 重算 `logFact(n)`（`:228`）→O(k·n)；`kp`/`nn` 无上限（`:140`、`:144`），node 复算泊松 k=5 万已 5.1s、k=10 万约 20s，二项 n=1e5/k=5e4 更慢，浏览器主线程会假死。 | 12-N258 |
+
+**统计**
+- 审计页数：8（全部为 `tools/general/` 下指定页面）。
+- 新增条数：13 条，编号 12-N246–12-N258（高 2 / 中 11）。
+- 高优 2 条：N246（默认日期 UTC 错位）、N248（建议速度量纲/算法错）。
+- 假工具数：0。
+- 安全条目：0 条（未发现本批页面引入的 XSS/eval/`allow-same-origin`/明文存密/用户数据外传；各页数值输入未直入 `innerHTML`）。
+- 局限：仅逐行读源码 + `node` 在 `/tmp` 复算关键数值；未开浏览器、未跑 `_build.py`/`run_gates.py`/`_test_static.py`、未做 git 或线上验证；英文态/繁体页/移动端未实测。
