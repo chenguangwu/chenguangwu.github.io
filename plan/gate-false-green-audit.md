@@ -68,11 +68,14 @@
 - 本轮体检 **14 个门禁面**：已修 **7 条**（全部含防回归守卫并逐条自证变红），核实无害 **5 条**，已由他线修复 **1 条**，口径澄清 **1 条**。
 - 系统性教训：**「检查跑完再打印汇总、退出码必须包含告警、任何扫描型门禁不得以 0 样本判绿」**。后续新增门禁脚本应按此三条自检。
 
-**本轮全量门禁新增红项（均非本批改动引入，按约记录路径后跳过）**：
+**本轮全量门禁新增红项（219/222 通过；3 项红均为他线在途页面/用例，按约记录路径后跳过）**：
 
 | 红项 | 路径 | 归属判断 |
 |---|---|---|
-| 静态测试：指南链接未反链 | `tools/realestate/__b3base_return-1.html`、`tools/realestate/__b3base_yanglao-dichan-touzi-tuichu-jihui.html`、`tools/surveying/__b3base_area-24.html`、`tools/surveying/__b3base_area-25.html`、`tools/surveying/__b3base_calc-86.html` | 他线在途 `__b3base_*` 批量页，未提交/未收口 |
-| 死链门禁：13 个文件读取失败 | 构建与他人批量改名并发期间产生（`_audit_links.py` 不打印路径）；属环境竞态，非本批 | 需在无并发写入时重跑确认 |
-| 动态触发：`calc is not defined` | `tools/legal/calc-96.html`、`tools/legal/calculator-calc-6.html`、`tools/legal/jicheng-yizhu-gongzheng-yichan-fenpei.html` | 页面既有缺陷（`calc()` 在 `function calc` 定义前的脚本块内被调用）；CI 无浏览器自动 SKIP |
-- 本轮未改工具页、未改 `i18n/`、未跑 `_build.py`、未 push。
+| `aerospace calc correctness`：`aerospace/weight-balance` 未匹配期望值 | `tools/aerospace/weight-balance.html`、`scripts/verify_aerospace_calc.js` | 两文件 `M`（他线在途），非本批 |
+| `data calc correctness`：`data/random-3` 未匹配期望值 | `tools/data/random-3.html`、`scripts/verify_data_calc.js` | 两文件 `M`（他线在途），非本批 |
+| `anti-regression: case discrimination`：逃生项 4 > 基线 0 | 由 `scripts/verify_data_calc.js` 在途新增用例引入 | 同上，非本批 |
+
+- 本批两道门禁在最终全量运行中均 **PASS**：`history field guard 3/3`；`inline handler global` 静态 2/2 + 动态真触发 6/6。
+- 首轮运行中的 `_test_static` 5 个 `__b3base_*` 反链失败与 `_audit_links` 13 个读取失败，均为并发写入竞态（第二轮已自动消失），不列入红项。
+- 本轮未改工具页、未改 `i18n/`、未 push。
