@@ -89,6 +89,7 @@ function extract(html) {
 }
 
 let failures = 0;
+let checked = 0;
 for (const t of targets) {
   const file = path.join(TOOLS_DIR, t + ".html");
   const html = fs.readFileSync(file, "utf8");
@@ -98,6 +99,7 @@ for (const t of targets) {
     continue;
   }
   const { defaults, script } = extract(html);
+  checked++;
   // DOM stub
   const resultCapturer = { innerHTML: "" };
   const inputs = {};
@@ -138,5 +140,11 @@ for (const t of targets) {
     console.log(`\n[${t}] ❌ JS ERROR: ${e.message}`);
   }
 }
-console.log(`\n==== ${failures === 0 ? "ALL OK" : failures + " FAILURES"} ====`);
+// 0 页面守卫（CI 可执行性普查）：目标页全变成 redirect 存根或 targets 被清空时，
+// failures 仍为 0 会静默判绿 —— 冒烟门禁必须至少真实跑过一个页面。
+if (checked === 0) {
+  console.log("\n❌ 0 个页面实际执行（全部为 redirect 存根或目标为空），拒绝判绿");
+  process.exit(1);
+}
+console.log(`\n==== ${failures === 0 ? "ALL OK" : failures + " FAILURES"} (${checked} pages) ====`);
 process.exit(failures === 0 ? 0 : 1);

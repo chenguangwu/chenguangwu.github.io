@@ -3,7 +3,14 @@
  */
 const fs = require('fs');
 const path = require('path');
-const { JSDOM, VirtualConsole } = require('jsdom');
+// jsdom 是本门禁的唯一执行环境（全部用例都是真实 DOM 行为）；缺依赖时惰性降级为
+// 显式 SKIP(no-jsdom)，避免 require 阶段直接崩溃（假红），也避免静默跳过（假绿）。
+let JSDOM = null, VirtualConsole = null, JSDOM_ERR = '';
+try {
+  ({ JSDOM, VirtualConsole } = require('jsdom'));
+} catch (e) {
+  JSDOM_ERR = e.message.split('\n')[0];
+}
 
 const ROOT = path.resolve(__dirname, '..');
 const KIT = fs.readFileSync(path.join(ROOT, 'js', 'psych-kit.js'), 'utf8');
@@ -50,6 +57,11 @@ function answerRows(win, d, fn) {
 }
 
 (async function main() {
+  if (!JSDOM) {
+    console.log('⚠️ SKIP(no-jsdom): psych-kit 行为用例未执行 — ' + JSDOM_ERR);
+    console.log('   CI 由 npm ci 提供 jsdom；本机请先安装依赖后复跑。');
+    return;
+  }
   console.log('== 1. PHQ-9 高危路径 ==');
   {
     const dom = load('tools/psychiatry/phq9-depression.html');

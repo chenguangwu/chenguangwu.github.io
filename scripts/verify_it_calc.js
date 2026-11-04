@@ -8787,6 +8787,10 @@ function makeXmlDomParserStub() {
   };
 }
 
+// 实际执行过的用例数（redirect 存根不计）：供「0 用例拒绝判绿」守卫使用。
+// 全站 200+ 个 verify_<ind>_calc.js 都复用本 harness，故此处一处收口即可覆盖。
+let __executedCases = 0;
+
 async function runCase(c) {
   // 每个用例都会往 globalThis（当作 window）挂函数，用后清理，避免污染下一个用例
   const before = new Set(Object.keys(globalThis));
@@ -8795,7 +8799,9 @@ async function runCase(c) {
   const _proc = globalThis.process;
   const _console = globalThis.console;
   try {
-    return await runCaseInner(c);
+    const r = await runCaseInner(c);
+    if (!r.skipped) __executedCases++;
+    return r;
   } finally {
     for (const k of Object.keys(globalThis)) {
       if (!before.has(k)) { try { delete globalThis[k]; } catch (e) { /* 只读属性跳过 */ } }
@@ -9445,6 +9451,16 @@ async function main() {
 }
 
 module.exports = { runCase, CASES, inlineScripts, makeEl, collectStrings, extractCases };
+
+// 0 用例守卫（CI 可执行性普查 2026-11-05）：用例集为空、或全部页面已变成
+// TOOLBOX-REDIRECT 存根时，harness 会打印「0/0 通过」并静默 exit 0 —— 属于假绿。
+// 正常跑（无 slug 过滤）时若一个真实用例都没执行，必须在 beforeExit 把退出码翻红。
+process.once("beforeExit", () => {
+  if (process.argv.length <= 2 && __executedCases === 0) {
+    console.log("❌ 0 个用例实际执行（用例集为空或全部为 redirect 存根），拒绝判绿");
+    process.exitCode = 1;
+  }
+});
 
 // 注意：runCase 会清理用例往 globalThis（当作 window）挂的属性，process 可能被页面脚本覆盖，
 // 故此处用 process.exitCode 而非 process.exit()。

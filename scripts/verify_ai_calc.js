@@ -11,7 +11,15 @@
  */
 const fs = require("fs");
 const path = require("path");
-const { JSDOM } = require("jsdom");
+// jsdom 只在 DOM 宿主用例里用；缺依赖时不能让整条门禁在 require 阶段崩溃（假红）。
+// 数值用例走 verify_it_calc 的纯 Node stub，仍全部执行；DOM 宿主段显式 SKIP(no-jsdom)。
+let JSDOM = null;
+let JSDOM_ERR = "";
+try {
+  ({ JSDOM } = require("jsdom"));
+} catch (e) {
+  JSDOM_ERR = e.message.split("\n")[0];
+}
 const { runCase } = require("./verify_it_calc.js");
 
 const ROOT = path.resolve(__dirname, "..");
@@ -1487,8 +1495,13 @@ async function main() {
 
   // DOM 宿主回归：真实 DOM 下验证首屏 / 改输入 / 页签 / 历史回填 / 导出
   const hostCases = only.length ? HOST_CASES.filter((h) => only.some((o) => h.slug.endsWith("/" + o) || h.slug === o)) : HOST_CASES;
-  let hostPass = 0; const hostFails = [];
+  let hostPass = 0; const hostFails = []; let hostSkipped = 0;
   for (const h of hostCases) {
+    if (!JSDOM) {
+      hostSkipped++;
+      console.log("⚠️ SKIP(no-jsdom): DOM " + h.slug + " — " + JSDOM_ERR);
+      continue;
+    }
     try {
       const r = h.kind === "codeReview" ? await runCodeReviewCase() : await runTokenHostCase(h);
       if (r.ok) hostPass++;
@@ -1498,7 +1511,7 @@ async function main() {
       console.log("❌ DOM " + h.slug + "  THROWN: " + ((e && e.message) ? e.message : String(e)));
     }
   }
-  console.log("==== ai DOM host " + hostPass + "/" + hostCases.length + " ====");
+  console.log("==== ai DOM host " + hostPass + "/" + hostCases.length + " ====" + (hostSkipped ? "（SKIP " + hostSkipped + "，无 jsdom）" : ""));
 
   if (fails.length || hostFails.length) process.exit(1);
 }
