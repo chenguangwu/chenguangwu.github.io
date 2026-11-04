@@ -889,3 +889,55 @@
 - 三重点角度：①默认/单位——stats-3 默认样本完全共线给出 r=1.0000（数学正确但演示失真，未单列）；whack 固定 30 s / 800 ms，无时区/单位换算。②倍率——打地鼠命中 +1 与算例 +10 相差 10 倍、净分口径差 195（FE-N109）。③按表查值/维度——stats-3 三套强度阈值互相矛盾（FE-N110），长度 `Math.min` 与半角分隔符使样本与输入维度错配（FE-N111、FE-N112）。
 - 安全：0 条。两页无 XSS/eval/`new Function`/`allow-same-origin`/明文存密/第三方外传；`localStorage` 仅存数值型对局历史与主题，stats-3 的历史文本经 `TBKit.matrix.table` 的 `textContent` 渲染，不可注入；TTZZ 为全站模板既有项，未重复登记。安全 path:line 无。
 - 方法：逐页通读 HTML 与全部内联 JS，在 `/tmp` 用 node 复算（默认样本 r=1.0000；5+3 截断后 r=1.0000；全角逗号解析为 `[17]`；打地鼠 22 命中 = 22 分）；未开浏览器、未跑 `_build.py`/`run_gates.py`、未执行 git，除本文件末尾追加外未修改任何文件。
+
+## AC 批 · 音频处理族（2026-11-04）
+
+### 族矩阵
+
+| 页面 | 实现方式 | 可逆或可验证 | 结论 |
+|---|---|---|---|
+| `tools/audio/analysis-1` | 纯表单换算（Δf、Nyquist、k·Δf、主瓣） | 标准公式可复算 | 默认 4 项数值正确；「频谱可视化」未实现 |
+| `tools/audio/audio-cut` | 解码→Canvas 拖选→OfflineAudioContext→16bit WAV | 导出可验时长/声道 | 真裁剪真导出；淡变承诺未实现 |
+| `tools/audio/audio-echo` | Delay 反馈链 / Convolver 混响 + 离线渲染 | 冲激响应/衰减可验证 | 真回声混响；导出尾长有截断 |
+| `tools/audio/audio-recorder` | getUserMedia + MediaRecorder + Analyser 实时波形 | 录音文件/MIME 可验 | 录音真；导出不处理、无 WAV |
+| `tools/audio/audio-sample-rate` | 纯表单：比特率/体积/频响换算 | 标准公式可复算 | 主体正确；5.1/7.1 声道解析错 |
+| `tools/audio/audio-speed` | playbackRate + Offline 变速变调 | 时长=N/rate | 真变速；默认随速变调与文案一致 |
+| `tools/audio/audio-volume` | GainNode + Analyser VU + Offline 增益/淡变 | dB=20log10 可验 | 真增益/淡变导出；无缺陷 |
+| `tools/audio/audio-waveform` | AnalyserNode 示波/频谱 + 解码静态概览 | 画布像素可验 | 真查看器；上传后默认空白 |
+
+### 独立实现 vs 共享实现
+
+- 8 页均为页内内联脚本，无 `/js/tools/audio/*.js` 共享模块 → **共享模块 0 页**。
+- 能力独立：4 页真 DSP（cut/echo/speed/volume）、1 页实时分析（waveform）、1 页采集（recorder）、2 页纯换算（analysis-1、sample-rate）。
+- 同源复制：cut/echo/speed/volume 各复制一份 `audioBufferToWav`（4 份、算法一致，均按源声道数写出）；analysis-1 与 sample-rate 共用 TBKit 预设/表格/图表壳。前者的共同缺陷（无淡变、尾长截断）需分别修，但修法可复用。
+
+### 逐页结论
+
+- **analysis-1**：默认 fs=44100、N=4096、bin=200 → Δf=10.7666 Hz、Nyq=22050 Hz、bin=2153.320 Hz、主瓣 21.5332 Hz 全部正确；页面无 FFT/Canvas 入口（FE-N117）；0/空被兜底、bin 超 Nyquist（FE-N116）。
+- **audio-cut**：裁剪、试听、双声道 WAV 导出真实；FAQ 称导出自动淡入淡出，实际无（FE-N119）。
+- **audio-echo**：echo/reverb 为真实 WebAudio；默认 0.30s/0.40/40% 与控件一致；导出尾长上限 6s 硬切（FE-N120）。
+- **audio-recorder**：录音/暂停/实时波形/VU 真实；`exportAudio()` 仅下载原始 Blob，增益与速度未应用且无 WAV（FE-N114）；MIME 固定 webm（FE-N118）。
+- **audio-sample-rate**：默认 44.1k→48k/16bit/2ch/60s 得 10.09→10.99 MiB 正确；5.1/7.1 被 `parseFloat` 当 5.1/7.1 声道（FE-N115）。
+- **audio-speed**：默认 1x；导出长度 `ceil(N/rate)`，变速变调符合文案，未发现缺陷。
+- **audio-volume**：100% 对应 0.0 dB；导出按增益与淡入淡出渲染，未发现缺陷。
+- **audio-waveform**：分析链真实；上传后默认示波模式不绘制，画布停在初始背景（FE-N113）。
+
+### 问题清单（新增）
+
+| 编号 | 页面:行 | 级别 | 问题与期望值 |
+|---|---|---|---|
+| FE-N113 | `tools/audio/audio-waveform.html:601` | 高 | 上传后隐藏占位但默认 oscilloscope 模式无任何绘制：上传 1s WAV 后 `vizCanvas.toDataURL()` 与上传前完全相同，点播放才变化。期望在解码完成/`loadedmetadata` 后调用 `drawOscilloscope(true)` 或自动 `drawOverview()` |
+| FE-N114 | `tools/audio/audio-recorder.html:856-874` | 假 | 宣称「导出 WebM/Opus 或 WAV、导出处理后的音频」；`exportAudio()` 仅下载原始 `loadedBlob`，增益/速度未应用、无 WAV 编码。期望 OfflineAudioContext 渲染后导 WAV，或删除 WAV/「处理后」承诺 |
+| FE-N115 | `tools/audio/audio-sample-rate.html:180-181,319` | 中 | `<option value="5.1">`/`7.1` 被 `parseFloat` 当 5.1/7.1 声道而非 6/8：默认 44.1k/16bit/60s 页面 3599 kbps、25.74 MB，期望 4233.6 kbps、30.28 MiB（+15%）；192k/24bit/5.1/180s 页面 23501 kbps/504.27 MB，期望 27648 kbps/593.26 MB |
+| FE-N116 | `tools/audio/analysis-1.html:215-217,225` | 中 | `parseFloat(...)||44100/4096` 把 0 和空值变默认：N=0 仍输出 10.7666 Hz，与 `:218`「须大于 0」校验矛盾；bin 未按 0~N/2 限制，bin=5000 输出 53833.008 Hz 超过 Nyquist 22050。期望非法值报错或 clamp 到 2048 |
+| FE-N117 | `tools/audio/analysis-1.html:10,123` | 假 | meta/副标题称「频谱分析（可视化）」「实时绘制频谱图、输入时域信号或采样数据」，实际仅 4 条算术输出，全文无 AnalyserNode/canvas/FFT/文件入口 |
+| FE-N118 | `tools/audio/audio-recorder.html:516,693` | 中 | 录音 Blob 固定 `type:'audio/webm'`、下载扩展名恒 `.webm`，未读 `mediaRecorder.mimeType`；Firefox 默认 audio/ogg、Safari 默认 audio/mp4 → 内容与扩展名不符 |
+| FE-N119 | `tools/audio/audio-cut.html:326` | 中 | FAQ 称拖选后导出即应用淡入淡出，`:906-950` 导出仅 `src.start(0, selStart, selEnd-selStart)`，无 `linearRampToValueAtTime`，边界爆音。期望两端各 5–10ms 线性淡变 |
+| FE-N120 | `tools/audio/audio-echo.html:981` | 中 | 导出尾长 `min(6, delay+3)`：delay=2.0s、feedback=0.9 时到 −60dB 需 `ln(0.001)/ln(0.9)×2≈131.1s`，实际渲染 5s（振幅 0.9^2.5≈0.768 处硬切）。期望按 `delay×ceil(ln(0.001)/ln(fb))` 计算或提示上限 |
+
+### 统计
+
+- 页数 **8**；独立实现 **8** / 共享模块 **0**（4 页复制同一 `audioBufferToWav`）。
+- 新增 **8** 条（高 **1** / 中 **5** / 假 **2** / 安全 **0**）；编号 FE-N113–FE-N120。
+- 既有无同页条目；`plan/interaction-validity.md:875-877` 将 cut/echo 导出列为「未观察到触发」的低置信线索已失效（两页 `onclick` 与函数均存在）；`plan/runtime-errors.md:229` 的 recorder 无麦克风环境噪音仍成立。
+- 复算方式：采样率/比特率/时长按标准公式 node 复算，回声衰减按 `ln` 公式，DSP 页按源码节点链核对；未开浏览器、未跑 `_build.py`/门禁、未改仓库文件。

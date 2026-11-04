@@ -900,14 +900,16 @@
 
 ## AB 批 · 金属·对比计算器族（2026-11-04）
 
+> 页面名后的「（死键 N）」= 该页第三层英文词典（`i18n/tools/en/<ind>/<slug>.json`）高优先死键数（来源 `plan/i18n-dead-keys.md`）；各线改本页时顺手清理，本批不修英文。
+
 **族矩阵（4 页）**
 
 | 页面 | 输入 | 主算 / 输出 | 默认态复算 | 族内定位 |
 |---|---|---|---|---|
-| tools/metalwork/tester-19.html | 电缆类型、绝缘电阻(MΩ·km)、测试温度、导体电阻(Ω/km)、标称截面、U₀、长度 | 绝缘/导体/耐压三项验收报告 | PVC 70mm²、500 MΩ·km、20℃、0.268 Ω/km、0.6kV、100m → IR 500≥0.5、导体 0.268≤0.2948、耐压 3.5kV/15min → 综合合格 | 独立检测计算器（共用 TBKit 外壳，非 A/B 对比） |
-| tools/metalwork/thread.html | 螺纹类型、直径、螺距、材料、内外、批量 | 中径/小径/底孔 + 工艺方案表 | M10×1.5 碳钢外螺纹单件 → d2 9.026、d3 8.160、n 1910 rpm，单件档仅车削一项且为首选 | 独立工艺推荐器 |
-| tools/metalwork/wushua-zhinengyuqingliangduibijisuanqi.html | 无刷评分、轻量评分 | 综合差距、推荐侧重、权重比 | 90/72 → 差距 18、无刷路线优先、55.6% | A/B 双评分模板 |
-| tools/metalwork/zhineng-duogongnengyunaiyongduibijisuanqi.html | 智能评分、耐用评分 | 同上 | 85/78 → 差距 7、智能路线优先、52.1% | 与 wushua 页同源，仅换变量与文案 |
+| tools/metalwork/tester-19.html（死键 1） | 电缆类型、绝缘电阻(MΩ·km)、测试温度、导体电阻(Ω/km)、标称截面、U₀、长度 | 绝缘/导体/耐压三项验收报告 | PVC 70mm²、500 MΩ·km、20℃、0.268 Ω/km、0.6kV、100m → IR 500≥0.5、导体 0.268≤0.2948、耐压 3.5kV/15min → 综合合格 | 独立检测计算器（共用 TBKit 外壳，非 A/B 对比） |
+| tools/metalwork/thread.html（死键 1） | 螺纹类型、直径、螺距、材料、内外、批量 | 中径/小径/底孔 + 工艺方案表 | M10×1.5 碳钢外螺纹单件 → d2 9.026、d3 8.160、n 1910 rpm，单件档仅车削一项且为首选 | 独立工艺推荐器 |
+| tools/metalwork/wushua-zhinengyuqingliangduibijisuanqi.html（死键 0） | 无刷评分、轻量评分 | 综合差距、推荐侧重、权重比 | 90/72 → 差距 18、无刷路线优先、55.6% | A/B 双评分模板 |
+| tools/metalwork/zhineng-duogongnengyunaiyongduibijisuanqi.html（死键 0） | 智能评分、耐用评分 | 同上 | 85/78 → 差距 7、智能路线优先、52.1% | 与 wushua 页同源，仅换变量与文案 |
 
 族矩阵结论：4 页并非同一业务族，后两页才是「智能对比计算器」；前两页只是同用 TBKit 双列表单外壳的独立计算器。后两页除名词替换外 DOM、函数、历史逻辑完全同构，故同类缺陷按页各记。
 

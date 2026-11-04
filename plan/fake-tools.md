@@ -352,3 +352,13 @@
 |---|---|---|---|---|---|
 | 农业养殖 | `tools/fishery/ratio-hormone.html` | C | `:10-11,122,126,130-132,382-384` meta/JSON-LD 写「输入亲鱼体重与催产方案，计算 PG/HCG/LRH-A 适宜剂量与配比」，实际只有「数值 A/数值 B」通用字段，无体重/药种/方案/单尾总量；`formula-eq` 自述为代码口径的最简整数比；`:198-202` 「A 占比」实为 A÷B×100（100/50→200%） | 10-H52 | 激素剂量承诺未实现 |
 | 农业养殖 | `tools/fishery/temp-density.html` | C | `:10-11,111,122,126-132,193-204` 标题/描述/JSON-LD 称「鱼苗运输成活率（温度/密度）」，实际无密度/时长/成活率字段，只按水温算饱和溶氧并给饱和度；英文 h2 `:111` 仍写 "Fry Transport Survival (Temperature/Density)" | 10-H56 | 运输成活率承诺未实现 |
+
+## AC 批新增假工具候选（2026-11-04）
+
+| 分类 | 页面 | 类型 | 证据（当前行号） | 来源条目 | 说明 |
+|---|---|---|---|---|---|
+| 文娱爱好 | `tools/audio/audio-recorder.html` | C | `:856-874` 宣称「导出 WebM/Opus 或 WAV、导出处理后的音频」，`exportAudio()` 仅下载原始 `loadedBlob`，增益/速度未应用、无 WAV 编码；`:516,693` 扩展名恒 `.webm`，未读 `mediaRecorder.mimeType` | FE-N114/FE-N118 | 导出处理承诺未实现 |
+| 文娱爱好 | `tools/audio/analysis-1.html` | C | `:10,123` meta/副标题称「频谱分析（可视化）」「实时绘制频谱图、输入时域信号或采样数据」，全文无 `AnalyserNode`/`canvas`/FFT/文件入口，只有 4 条算术输出 | FE-N117 | 频谱可视化未实现 |
+| 设计创意 | `tools/design/color-palette.html` | C | `:248,278` FAQ「会按 WCAG 算出对比度、未达标标红」+ 引据表 4.5:1 条目，全页无相对亮度/对比度计算与红标，仅 `lum>0.5` 选字；默认 #788EED 白字仅 3.05:1 | D-N229 | WCAG 校验承诺未实现 |
+| 设计创意 | `tools/design/gradient.html` | C | `:270` 引据表称「按 sRGB 或 oklab 插值，oklab 可用」，页面无 oklab 选项/代码，输出一律浏览器 sRGB 插值 | D-N233 | oklab 插值承诺未实现 |
+| 办公文档 | `tools/office/pdf-split.html` | C | `:568,455-466` 宣称「拆分 PDF 为多个小文件」「段数=ceil(总页数/每段页数)」「文件数=段数」，实际无「每段页数」输入且只产出 1 个 PDF | IT-D34 | 多文件拆分承诺未实现 |

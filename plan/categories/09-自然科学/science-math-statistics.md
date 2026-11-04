@@ -815,17 +815,19 @@
 
 ## AB 批 · 自然科学·潮汐/换算/方程（2026-11-04）
 
+> 页面名后的「（死键 N）」= 该页第三层英文词典（`i18n/tools/en/<ind>/<slug>.json`）高优先死键数（来源 `plan/i18n-dead-keys.md`）；各线改本页时顺手清理，本批不修英文。
+
 **族矩阵（7 页）**
 
 | 页面 | 类型 | 输入 | 主算 / 输出 | 默认态复算 |
 |---|---|---|---|---|
-| tools/science/tide-height-estimator.html | 潮汐估算 | 日期、纬度、海岸类型、月相(自动/手动) | 月球+太阳半日潮正弦模型 | 2026-11-04、30°N、开阔海岸、自动 → 残月 0.7、太阳 0.327、高潮 0.48 m、低潮 −0.29 m、潮差 0.77 m |
-| tools/science/torque-converter.html | 纯单位换算 | 数值 + 8 种扭矩单位 | `baseNm/f` 全单位展开 + 功率-转速表 | 10 N·m → 7.375621 lb·ft、88.50746 lb·in、1.019716 kgf·m、101,971.6 gf·cm、1,416.119 ozf·in、1e+6 dyn·m |
-| tools/science/trigonometry-calculator.html | 三角/反三角 | 角度或弧度、三角/反三角、反函数种类 | sin/cos/tan、csc/sec/cot、asin/acos/atan、象限 | 30° → 0.5 / 0.866 / 0.577；asin 0.5 = 30°、acos 0.5 = 60°、atan 1 = 45° |
-| tools/science/wavelength-to-rgb.html | 光谱派生换算 | 380–780 nm | `wlToRgb` + f=c/λ + E=1240/λ | 550 nm → #A3FF00、545.45 THz、2.25 eV |
-| tools/science/wire-gauge-converter.html | 纯单位换算 | AWG 0–40 或直径 mm | 92 指数公式 + 面积/电阻/载流/压降 | 24 AWG → 0.511 mm、0.205 mm²、载流 1.02 A；页面电阻 0.08「Ω/km」（真值 84.01，差 1000 倍） |
-| tools/science/work-done.html | 物理量计算 | 力 F、位移 d、夹角 θ | `W = F·d·cosθ` + 分解与图表 | 50×10×cos0 = 500 J |
-| tools/science/xianxingfangchengzuqiujie-2yuan-3yuan.html | 代数求解 | 2/3 元系数 | Cramer 法则 + 行列式判定 | 2 元 x=1,y=2；3 元 x=1,y=2,z=3 |
+| tools/science/tide-height-estimator.html（死键 2） | 潮汐估算 | 日期、纬度、海岸类型、月相(自动/手动) | 月球+太阳半日潮正弦模型 | 2026-11-04、30°N、开阔海岸、自动 → 残月 0.7、太阳 0.327、高潮 0.48 m、低潮 −0.29 m、潮差 0.77 m |
+| tools/science/torque-converter.html（死键 0） | 纯单位换算 | 数值 + 8 种扭矩单位 | `baseNm/f` 全单位展开 + 功率-转速表 | 10 N·m → 7.375621 lb·ft、88.50746 lb·in、1.019716 kgf·m、101,971.6 gf·cm、1,416.119 ozf·in、1e+6 dyn·m |
+| tools/science/trigonometry-calculator.html（死键 1） | 三角/反三角 | 角度或弧度、三角/反三角、反函数种类 | sin/cos/tan、csc/sec/cot、asin/acos/atan、象限 | 30° → 0.5 / 0.866 / 0.577；asin 0.5 = 30°、acos 0.5 = 60°、atan 1 = 45° |
+| tools/science/wavelength-to-rgb.html（死键 0） | 光谱派生换算 | 380–780 nm | `wlToRgb` + f=c/λ + E=1240/λ | 550 nm → #A3FF00、545.45 THz、2.25 eV |
+| tools/science/wire-gauge-converter.html（死键 0） | 纯单位换算 | AWG 0–40 或直径 mm | 92 指数公式 + 面积/电阻/载流/压降 | 24 AWG → 0.511 mm、0.205 mm²、载流 1.02 A；页面电阻 0.08「Ω/km」（真值 84.01，差 1000 倍） |
+| tools/science/work-done.html（死键 0） | 物理量计算 | 力 F、位移 d、夹角 θ | `W = F·d·cosθ` + 分解与图表 | 50×10×cos0 = 500 J |
+| tools/science/xianxingfangchengzuqiujie-2yuan-3yuan.html（死键 0） | 代数求解 | 2/3 元系数 | Cramer 法则 + 行列式判定 | 2 元 x=1,y=2；3 元 x=1,y=2,z=3 |
 
 族矩阵结论：真正的纯换算只有扭矩与线规两页；波长是光谱派生量，潮汐/功/三角/方程是计算器；7 页同用 TBKit 标签页、历史与导出外壳，历史与预设实现同源，故同类缺陷可跨页复现。
 
@@ -862,3 +864,44 @@
 - 安全：0 条；7 页无 `eval`/`new Function`/`allow-same-origin`/`document.write`/明文存密/Cookie/页面自有网络外传；拼接值来自数值、内部常量或 `escHtml`。公共模板 ttzz 脚本不单列。
 - 复算：node 内存复算太阳因子 doy 171 0.002 vs 0.460、doy 80 0.460 vs 0.000；波长 405/500/532/700 → #8200C8/#00FF92/#65FF00/#FF0000；AWG 24 电阻 0.0840 vs 84.01 Ω/km、100m 压降 0.0084 vs 8.40 V、AWG 20 载流 2.59 A；功预设 2000/125 J vs 500 J；扭矩 8 系数与 9549/rpm 表；三角 sin30=0.500、cos30=0.866、tan30=0.577、asin0.5=30°；线性 2 元 x=1,y=2、3 元 x=1,y=2,z=3，未落盘仓库；仅源码阅读，未开浏览器、未跑 `_build.py`/`run_gates.py`、未改 `tools/**` 与构建产物，未触碰 `plan/interaction-validity.md`、`plan/units-factors.md`、`plan/input-parse-dup.md`。
 - 去重说明：SMS-153 的 UTC 默认日期与既有「默认值不自洽」类不同，属时区口径；SMS-158 的 Ω/m 与 Ω/km 量纲混用与既有「单位错配」同类但本页还连带压降与每千英尺两项派生值，按页单列；SMS-156/157 均为「参考数据未经同一算法生成」，按表格与示例分开记；SMS-161/162 同页但一个是历史数据未使用、一个是预设不切模式，机制不同各记一条。
+
+## AC 批 · 矩阵/向量运算族（2026-11-04）
+
+### 族矩阵
+
+| 页面 | 实现方式 | 可逆或可验证 | 结论 |
+|---|---|---|---|
+| `tools/science/matrix-calculator` | 自写 det（Laplace）、mul、inverse（高斯-若当）、rank、矩阵快速幂 | 可验证 | A=[[4,7],[2,6]] det=10、A·A⁻¹≈I、A⁻²≈inv(A)² 均正确；既有 SMS-107/108/109 仍成立 |
+| `tools/math/determinant-2x2` | 自写闭式 det=ad−bc | 可验证 | 默认 −2 正确；显示精度与奇异判定自相矛盾 |
+| `tools/science/vector-calculator` | 自写 dot/cross/mag/proj/angle/scale | 可验证 | 主算正确；k=0 被吞、零向量夹角 NaN |
+| `tools/design/data-matrix` | 伪实现：32 位哈希→LCG 随机格 + 外观边框，无 ECC200 编码/纠错（`:258-294`） | 不可验证（自述不可扫码） | 装饰图案，非 Data Matrix |
+
+### 独立实现 vs 共享实现
+
+- **4 页全部独立实现，族内共享 0**：det/mul/inverse 只在 matrix-calculator，向量算子只在 vector-calculator，determinant 只有一元闭式，data-matrix 只有哈希/PRNG。
+- 族外重复：matrix-calculator 的 det/mul/inverse 与 `tools/math/matrix-transpose` 等页同套公式，改动需跨页同步（不计入本族同源）。
+
+### 逐页结论
+
+- **matrix-calculator**：默认 3×3、add、A=B=I → 2I 正确（boot `:736` 自动计算）；`:430` rank 用绝对 1e-12 阈值，[[1e-13,0],[0,1e-13]] 可逆却 rank=0（SMS-167）；SMS-107（`||1` 吞 0）、SMS-108（绝对 1e-12 误杀 2e-7I）、SMS-109（`check` 死代码）实测仍在。
+- **determinant-2x2**：默认 1,2,3,4 → det −2.00、tr 5.000、非奇异正确；[[0.1,0.3],[0.3,0.9]] 数学奇异（node 复算 1.38e-17）却显示「0.00」+「非奇异」（SMS-163）。
+- **vector-calculator**：默认 A=(1,0,0)、B=(0,1,0)、add → (1,1,0) 正确（无自动计算）；点积/叉积/投影/模长与手算一致；k=0 变 1（SMS-164）、零向量夹角 NaN（SMS-166）。
+- **data-matrix**：默认 text=Data Matrix、size=14，输出确定性伪随机格 + 左/下实线、上/右交替边框（`:276-281`），与「装饰图案」自述一致；无 ECC200 编码。
+
+### 问题清单（新增）
+
+| 编号 | 页面:行 | 级别 | 问题与期望值 |
+|---|---|---|---|
+| SMS-163 | `tools/math/determinant-2x2.html:241,243,264-266` | 高 | 展示用 `det.toFixed(2)`、判定用 `det===0`：[[0.1,0.3],[0.3,0.9]]（ad=bc，数学奇异）node 复算 det=1.38e-17 → 页面「行列式 0.00」+「非奇异（可逆）」自相矛盾。期望以 `Math.abs(det)<eps`（如 1e-12）判定并与显示精度统一 |
+| SMS-164 | `tools/science/vector-calculator.html:377,500` | 高 | `parseFloat(scalar)||1`：k=0 变 1，数乘 k·A 输出 A 本身（期望零向量）；`:500` 向量图同一缺陷（与 SMS-107 同模式，不同页） |
+| SMS-165 | `tools/science/matrix-calculator.html:323,325,721` | 中 | `fmt` 以 `Math.abs(x)<1e-10` 归零并 `toLocaleString()` 加千分位：1e-11 显示 0、1234.5 显示 1,234.5；`:721` exportTable 读单元格文本 → CSV 逗号错列。期望导出用原始数值、零判定改相对阈值 |
+| SMS-166 | `tools/science/vector-calculator.html:356` | 中 | 夹角分支 `dp/(mA*mB)` 无零向量守卫，B=(0,0,0) 时 0/0→`acos(NaN)` 显示「NaN°」。期望提示「零向量无夹角」 |
+| SMS-167 | `tools/science/matrix-calculator.html:430` | 中 | rank 主元阈值同为绝对 1e-12：[[1e-13,0],[0,1e-13]] 可逆却 rank=0（应 2）；与既有 SMS-108 同根，修复时并入该条 |
+| SMS-168 | `tools/design/data-matrix.html:164,235` | 中 | 尺寸输入 8–24 与引据表「模块数自 10×10 起、四档」矛盾；D-N138 的「4px 示例、formula-desc 称 RS」已删除，仅此子项仍成立 |
+
+### 统计
+
+- 页数 **4**；独立实现 **4** / 共享实现 **0**。
+- 新增 **6** 条（高 **2** / 中 **4** / 假 **0** / 安全 **0**）；编号 SMS-163–SMS-168。
+- 复核既有：SMS-107/108/109 仍成立（矩阵页）；D-N137（data-matrix 无 ECC200）核心仍成立，但「定位边方向与 ISO 相反」已失效（当前 :277-280 符合标准），建议降级为文案承诺问题。
+- 复算方式：`/tmp` node 复刻页面函数（det/mul/inverse/rank/向量算子）；未开浏览器、未跑 `_build.py`/门禁、未改仓库文件。

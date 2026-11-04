@@ -1939,16 +1939,18 @@
 
 ## AB 批 · 设计族矩阵：图像/格式转换（2026-11-04）
 
+> 页面名后的「（死键 N）」= 该页第三层英文词典（`i18n/tools/en/<ind>/<slug>.json`）高优先死键数（来源 `plan/i18n-dead-keys.md`）；各线改本页时顺手清理，本批不修英文。
+
 本轮复用 T 批末尾编号，新增 D-N219 起。6 页均实读整份 HTML，并按「输出物能否被标准工具还原」取向核查：像素尺寸用页面算式复算，blob/下载路径逐行核对，换算类用 `node -e` 内存复算（未落地脚本）。无浏览器实测，故 MIME 结论以「代码实际取哪个字段」为准。
 
 | 页面 | 实现方式 | 可验证性 | 结论 |
 |---|---|---|---|
-| `tools/design/svg-to-png.html` | Canvas（Blob→Image→drawImage→`toDataURL`） | 中：PNG 可解码，像素=宽×倍率；但无尺寸/面积上限，超大画布 `toDataURL` 返回 `data:,` → 0 字节 | 真实现，需补上限 |
-| `tools/design/px-to-rem.html` | 自写算术（`px/root`） | 高：算术可复算；默认 16/16=1rem，站点 CSS 未改写根字号，与浏览器 16px 一致 | 真实现；62.5% 说明写反 |
-| `tools/image/image-compress.html` | Canvas + `toBlob` + 对比滑块 | 中：blob 可下载、长边限制正确；MIME 与极端比例不可靠 | 真实现 |
-| `tools/image/image-resize.html` | Canvas + `toBlob` + token 防竞态 | 高：尺寸/比例/质量可复算，blob 真下载；大画布内存与 MIME 有缺口 | 本批最完备 |
-| `tools/image/image-converter.html` | Canvas 三格式批量 `toBlob` | 中：三份 blob 均可下载；换图竞态会把旧图卡片追加到新网格 | 真实现 |
-| `tools/design/photo-print-size.html` | 自写算术 + 相纸规格表 | 高：`cm = px/DPI×2.54` 与相纸需求像素均可复算 | 真实现；预设与表差 1px |
+| `tools/design/svg-to-png.html`（死键 2） | Canvas（Blob→Image→drawImage→`toDataURL`） | 中：PNG 可解码，像素=宽×倍率；但无尺寸/面积上限，超大画布 `toDataURL` 返回 `data:,` → 0 字节 | 真实现，需补上限 |
+| `tools/design/px-to-rem.html`（死键 1） | 自写算术（`px/root`） | 高：算术可复算；默认 16/16=1rem，站点 CSS 未改写根字号，与浏览器 16px 一致 | 真实现；62.5% 说明写反 |
+| `tools/image/image-compress.html`（死键 0） | Canvas + `toBlob` + 对比滑块 | 中：blob 可下载、长边限制正确；MIME 与极端比例不可靠 | 真实现 |
+| `tools/image/image-resize.html`（死键 1） | Canvas + `toBlob` + token 防竞态 | 高：尺寸/比例/质量可复算，blob 真下载；大画布内存与 MIME 有缺口 | 本批最完备 |
+| `tools/image/image-converter.html`（死键 0） | Canvas 三格式批量 `toBlob` | 中：三份 blob 均可下载；换图竞态会把旧图卡片追加到新网格 | 真实现 |
+| `tools/design/photo-print-size.html`（死键 0） | 自写算术 + 相纸规格表 | 高：`cm = px/DPI×2.54` 与相纸需求像素均可复算 | 真实现；预设与表差 1px |
 
 ### 逐页结论
 
@@ -1980,4 +1982,77 @@
 - 假工具候选 **0**：6 页均有真实 Canvas/算术输出与可下载产物（压缩/缩放/转换三页确有 blob 下载，svg 出真 PNG，打印尺寸为真换算）。
 - 安全 **0**：未见 `eval`、`allow-same-origin`、明文存密或第三方外传；用户 SVG 仅经 `image/svg+xml` Blob→`<img>` 渲染，脚本不执行；文件名均过 `escHtml`（resize 的 `file.type` 直接入模板，属浏览器已归一化的 MIME 令牌，风险可忽略）。
 - 复算说明：相纸需求像素/一寸预设判定、62.5% 换算、`calcDims` 极端比例均由 `node -e` 内存复算；未落地脚本、未改任何源码、未运行 `_build.py`/门禁、未做 git 与浏览器/线上验证。
+
+## AC 批 · 颜色/色彩处理族（2026-11-04）
+
+> 死键口径见 AB 段图例；本段不逐页重标，按 `plan/i18n-dead-keys.md` 取数。
+
+### 族矩阵
+
+| 页面 | 实现方式 | 可逆或可验证 | 结论 |
+|---|---|---|---|
+| `tools/design/color-palette-generator` | 自写 HSL 旋转（单色/互补/三角/四角/分裂互补/随机）+ HSL→RGB；色块字色改为黑白两案取最大对比度 | HSL 定义 + WCAG 可复算 | 默认单色 5 色可复算；随机模式仍是无约束随机 HEX |
+| `tools/design/color-palette` | 自写 HSL 旋转（固定 20/35/50/65/80/95 明度） | 可复算 | 默认互补数值正确；字色仍用亮度 0.5 阈值 |
+| `tools/design/color-picker` | 自写 HSB/HSL⇄RGB、和声、WCAG 对比度、历史 | 可复算 | 取色与对比度主流程正确；「推荐文字色」用 0.5 阈值 |
+| `tools/design/color-shade-generator` | 自写 sRGB 线性混白/混黑（`C·(1−t)+目标·t`） | 可复算 | 默认 #6366F1 生成 11 卡；文档仍称 HSL/OKLCH 明度阶梯 |
+| `tools/design/color-temperature-converter` | Tanner Helland 黑体近似（正）+ 1000–12000K/100K 曼哈顿距离反查 | 正算可验证；反查无残差判据 | 默认 5500K→(255,238,222) 正确；轨迹外反查恒返回边界温 |
+| `tools/design/colorblind-simulator` | 外置共享库 `js/tools/colorblind-simulator.js`：Machado 2009 三矩阵 + 灰度 | 矩阵与官方值逐字一致 | 默认 #FF6B35 绿盲 100%→#B9A62F 正确；严重度用线性插值 |
+| `tools/design/contrast-checker` | 自写 WCAG 相对亮度/对比度 + 阈值判定 | 可复算 | 默认 14.68:1，判定正确 |
+| `tools/design/cvd-safe-palette` | 自写 OKLCH/Lab 候选集 + 8 型模拟 + ΔE2000 贪心 | 可验证（无默认结果） | 发散亮度曲线与注释相反、策略两分支同实现、首色恒灰 |
+| `tools/design/gradient-from-color` | 自写 HSL 明度阶梯（固定 L 90→20）+ 方向/步数 | 可复算 | 基色 L 被丢弃，默认 #667eea 不出现在色标里 |
+| `tools/design/gradient` | 自写 CSS 渐变拼装 + 色标解析 + WCAG 对比度 | CSS/WCAG 可验证 | 默认相邻色标 1.74:1；「正文级」标签属口径误用 |
+| `tools/design/material-color` | 纯常量表（Material 2014，19 族×10 阶）+ 亮度阈值选字 | 常量表可核对 | 数据正确；主色徽标取 600 阶、图表取 500 阶 |
+| `tools/design/mesh-gradient` | 自写 3 色 radial-gradient + Canvas farthest-corner 近似导出 | 视觉可验证 | 默认白字 vs #f093fb 仅 2.04:1；历史/预设/CSV 恒空 |
+| `tools/design/palette-cvd-checker` | 自写 Lab/CIE76/CIEDE2000 + 复制 Machado 矩阵 + 自写 OKLCH 距离 | ΔE00 可验证；oklch 分支不可信 | 默认绿盲最小 ΔE00=4.27 正确；OKLCH 分支把 Lab 当 RGB |
+| `tools/design/palette-extractor` | 自写中位切分（`maxDepth=ceil(log2 N)`）+ 降采样 200px | 频率可核对 | 默认 8 色正确；5/10/12 色丢簇、极小图产 NaN 黑块 |
+| `tools/design/tailwind-colors` | 纯常量表（Tailwind v3，22 族×11 阶）+ 亮度阈值选字 | 常量表可核对 | 数据正确；43/242 色块文字 <4.5:1 |
+| `tools/design/image-color-picker` | Canvas `getImageData` 单像素取色 + 复制 | 取样可验证 | 比例映射正确；忽略 alpha、无 WCAG 实现 |
+
+### 独立实现 vs 共享实现
+
+- **独立 6 页**：contrast-checker、color-shade-generator、color-temperature-converter、gradient、mesh-gradient、image-color-picker。
+- **共享/同模板 10 页**：
+  - `tailwind-colors` ↔ `material-color`：`getLuminance/textColor/render/filter/showDetail/copy` 整段同构（material 的 D-N204/N205 与 tailwind 的 D-N142 同源）。
+  - Machado 矩阵在 `colorblind-simulator`、`palette-cvd-checker`、`cvd-safe-palette` 三页逐字重复（数值正确，三页都用「单位阵→满矩阵」线性插值模拟严重度）。
+  - HSL 转换在 `color-palette-generator`、`color-palette`、`gradient-from-color` 三份重复（h/s/l 取整致基色回代漂移）。
+  - `lum>0.4/0.5` 选黑白字在 color-palette、tailwind、material、palette-extractor、color-picker 五页重复，同错同源。
+- 结论：本族修「字色阈值」一处口径即可同时消解 5 页同类缺陷；`palette-extractor` 的簇数问题是本页独有，需单独修。
+
+### 逐页结论
+
+- **color-palette-generator**：默认单色 #0C1A5A→#E9ECFC 五档可复算，字色取 max(CR) 正确；D-N2 已失效（旧 YIQ 已改），D-N3（随机无协调）仍成立。
+- **color-palette**：默认互补五色；#788EED 上白字仅 3.05:1（D-N228）；FAQ 宣称的 WCAG 校验不存在（D-N229）；D-N33（HEX 只校验长度）仍成立。
+- **color-picker**：默认 #4151e1 自洽、白字 6.02:1；#788EED 时「推荐文字色」仍给 #FFF（3.05:1），与同页 WCAG 面板自相矛盾（D-N230）；D-N31/D-N32 仍成立。
+- **color-shade-generator**：默认 11 卡线性混白/黑，公式一致；D-N34/D-N36 已失效，D-N35 部分仍成立（`:148`、`:383` 仍称 HSL/OKLCH 十档）。
+- **color-temperature-converter**：默认 5500K→(255,238,222) 正算可用；D-N17 已失效（已加范围校验），D-N18（轨迹外反查仍返回边界温）仍成立。
+- **colorblind-simulator**：默认绿盲 #FF6B35→#B9A62F 与 Machado 1.0 手算一致；D-N102（取色器不写回 HEX）仍成立。
+- **contrast-checker**：默认 14.68:1、AA/AAA 判定正确；D-N1（非法 HEX 不刷新结果）仍成立。
+- **cvd-safe-palette**：无默认结果；D-N106（发散亮度方向反，L 两端 0.90、中心 0.32）、D-N107（策略两分支同实现）、D-N108（首色恒 `oklch(.64,.04,0)`）仍成立。
+- **gradient-from-color**：默认 L90→20 五色标，基色 #667eea(L66) 不出现；D-N124/D-N125/D-N126 仍成立。
+- **gradient**：默认相邻色标 1.74:1；新增对比度使 D-N47/D-N48 的 gradient 部分失效（image-color-picker 部分仍成立）；D-N233/D-N234 为新增。
+- **material-color**：常量表正确；主色徽标取 600 阶而图表取 500 阶；D-N204/D-N205 仍成立。
+- **mesh-gradient**：默认白字最差 2.04:1，报告正确；D-N59（无 id → 历史/预设/CSV 恒空）仍成立，D-N60 已失效。
+- **palette-cvd-checker**：默认绿盲最小 ΔE00=4.27、判「差」正确；D-N112（OKLCH 分支把 Lab 当 RGB，复算最小距离 0.55 vs 正确 2.14）仍成立。
+- **palette-extractor**：默认 8 色正确；5/10/12 色百分比合计仅 62.5%/62.5%/75.0%（D-N231）；极小/大面积透明图产 #000000 0.0%（D-N232）；D-N56 仍成立。
+- **tailwind-colors**：数据与 Tailwind v3 一致；43/242 色块文字 <4.5:1（yellow-500 白字 1.92:1），D-N142 仍成立。
+- **image-color-picker**（实际在 `tools/design/`）：取样坐标换算正确；半透明 PNG 按原始 RGB 复制（预览为白底合成）；D-N46/D-N47 仍成立。
+
+### 问题清单（新增）
+
+| 编号 | 页面:行 | 级别 | 问题与期望值 |
+|---|---|---|---|
+| D-N228 | `tools/design/color-palette.html:401-405` | 中 | 色块字色按 `lum>0.5` 选白/黑：默认 #788EED 白字 3.05:1（黑字 6.89:1）、单色 #A5B3F3 白字 2.03:1（黑字 10.34:1）。期望按 `max(CR_black,CR_white)` 选字（阈值 L≈0.179） |
+| D-N229 | `tools/design/color-palette.html:248,278` | 假 | FAQ「会按 WCAG 算出对比度、未达标标红」+ 引据表 4.5:1 条目，全页无相对亮度/对比度计算、无红标，仅亮度阈值选字 |
+| D-N230 | `tools/design/color-picker.html:487,494,546` | 中 | 「推荐文字色」同用 `luminance>0.5`：HSL(230,76,65)=#788EED(L=0.295) 推荐 #FFF，仅 3.05:1；期望 #000（6.89:1） |
+| D-N231 | `tools/design/palette-extractor.html:840,848,859` | 中 | `maxDepth=ceil(log2 count)` 先切 2^k 簇再 `slice(0,count)`：5 色丢 3/8 簇、10 色丢 6/16、12 色丢 4/16，`percent` 合计仅 62.5%/62.5%/75.0%，JSON 导出同带错值；期望按保留簇重新归一或精确切 N 簇 |
+| D-N232 | `tools/design/palette-extractor.html:752-755` | 中 | 1 像素簇 `mid=0` 仍递归，空簇 `n=0` 分支得 NaN，`rgbToHex` 位运算把 NaN 变 #000000 0.0%。复现：不透明像素 <8 的图（2×2 PNG / 大面积透明 logo）→ 多个 #000000 0.0% |
+| D-N233 | `tools/design/gradient.html:270` | 假 | 引据表称「按 sRGB 或 oklab 插值，oklab 可用」，页面无 oklab 选项/代码，输出一律浏览器 sRGB 插值 |
+| D-N234 | `tools/design/gradient.html:365-421` | 中 | 新补对比度为「相邻色标互比」，却套 WCAG 文字档位贴「正文级/大字或图形级」；默认 1.74:1 被标「仅装饰」，易被读成文字可读性结论。期望改名「色标间对比度、不适用 WCAG 文字等级」 |
+
+### 统计
+
+- 页数 **16**；独立实现 **6** / 共享或同模板 **10**。
+- 新增 **7** 条（高 **0** / 中 **5** / 假 **2** / 安全 **0**）；编号 D-N228–D-N234。
+- 复核既有 **27** 条：22 条仍成立或部分成立，5 条已失效（D-N2、D-N17、D-N34、D-N36、D-N60）；`plan/fake-tools.md` 中 gradient/mesh 的假工具结论已随实现补齐而失效，建议降级。
+- 复算方式：按页面同款公式用 node/Python 内存复算（HSL/OKLab/WCAG/ΔE00/中位切分），未开浏览器、未跑 `_build.py`/门禁、未改源码、未做 git 写操作。
 

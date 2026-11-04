@@ -4575,18 +4575,20 @@
 
 ## AB 批 · IT 族矩阵：哈希/加密/编码（2026-11-04）
 
+> 页面名后的「（死键 N）」= 该页第三层英文词典（`i18n/tools/en/<ind>/<slug>.json`）高优先死键数（来源 `plan/i18n-dead-keys.md`）；各线改本页时顺手清理，本批不修英文。
+
 本轮只读复扫 `tools/it/` 下 md5/sha/base64/base32/hex/rc4 6 页，覆盖摘要、编码、流密码三个子类。默认态：md5/sha/base64/hex/base32 五页加载即自动计算，逐一对标准工具复算均正确；rc4 不自动运行，无默认输出。
 
 ### 矩阵
 
 | 页面 | 实现方式（共享库/自写/伪/回显） | 可验证性（标准工具复算） | 结论 |
 |---|---|---|---|
-| `md5.html` | 自写 MD5（charCode 分块；文件走 FileReader 整包） | ✅ 全部一致：`node:crypto` 复算默认 `Hello, MD5!`=`383e139e64e5f46de9d03ba3695da2d8`、`abc`=`900150983cd24fb0d6963f7d28e17f72`、空串=`d41d8cd98f00b204e9800998ecf8427e`；页面 `hmacMd5('mysecret','Hello, HMAC-MD5!')`=`f8d020bdc5de08ea93f68ad045c6d01c`，80 字节长密钥亦与 `createHmac` 一致 | 算法正确，默认文本/HMAC 输出正确；仅「任意大小文件」承诺未兑现（②） |
-| `sha.html` | 共享原生 `crypto.subtle.digest` | ✅ 一致：SHA-256(`Hello, SHA!`)=`be54d2492206f27aed3e7f822d24bd5f4f477177b712bed37c762bbad3bd2d25`，`abc`=`ba7816…0015ad`（node） | 计算正确；但承诺的 SHA-224 与「分块计算」均未实现（②） |
-| `base64-converter.html` | 自写 Base64（TextEncoder+btoa）、Base32、Base85 | ✅ 一致：默认 `Hello, World! 你好，世界！`→`SGVsbG8sIFdvcmxkISDkvaDlpb3vvIzkuJbnlYzvvIE=`；Base32 `Hello`→`JBSWY3DP`；Base85 去掉 `<~ ~>` 包裹后与 Python `a85encode` 逐字节一致（`Hi`→`88/`，`中文`→`jLD>SQA5`），标准解码器可互通 | 三种编码正确，默认自动编码结果正确 |
-| `hex-encode.html` | 自写 TextEncoder + `toString(16)` | ✅ 一致：默认 `Hi`→`0x4869`；`中文`→`e4b8ade69687`（node） | 编码与默认输出正确；解码不接受逐字节 0x 前缀 |
-| `rc4.html` | 自写 RC4 KSA/PRGA + drop | ✅ 一致：独立参考实现比对 `mysecretkey`、`secret123`、`anotherkey`、`rc4test`，drop 0/768/2048、中文与空串共 7 例全等 | 算法正确；页面不自动运行；解密输入判定有实质缺陷 |
-| `base32-encode.html` | 自写 5 位位流编码 | ✅ 一致：`Hello`→`JBSWY3DP`、`f`→`MY======`、`中文`→`4S4K3ZUWQ4======`（RFC 4648 参考实现） | 编码与默认输出正确；解码静默接受非法长度 |
+| `md5.html`（死键 5） | 自写 MD5（charCode 分块；文件走 FileReader 整包） | ✅ 全部一致：`node:crypto` 复算默认 `Hello, MD5!`=`383e139e64e5f46de9d03ba3695da2d8`、`abc`=`900150983cd24fb0d6963f7d28e17f72`、空串=`d41d8cd98f00b204e9800998ecf8427e`；页面 `hmacMd5('mysecret','Hello, HMAC-MD5!')`=`f8d020bdc5de08ea93f68ad045c6d01c`，80 字节长密钥亦与 `createHmac` 一致 | 算法正确，默认文本/HMAC 输出正确；仅「任意大小文件」承诺未兑现（②） |
+| `sha.html`（死键 0） | 共享原生 `crypto.subtle.digest` | ✅ 一致：SHA-256(`Hello, SHA!`)=`be54d2492206f27aed3e7f822d24bd5f4f477177b712bed37c762bbad3bd2d25`，`abc`=`ba7816…0015ad`（node） | 计算正确；但承诺的 SHA-224 与「分块计算」均未实现（②） |
+| `base64-converter.html`（死键 0） | 自写 Base64（TextEncoder+btoa）、Base32、Base85 | ✅ 一致：默认 `Hello, World! 你好，世界！`→`SGVsbG8sIFdvcmxkISDkvaDlpb3vvIzkuJbnlYzvvIE=`；Base32 `Hello`→`JBSWY3DP`；Base85 去掉 `<~ ~>` 包裹后与 Python `a85encode` 逐字节一致（`Hi`→`88/`，`中文`→`jLD>SQA5`），标准解码器可互通 | 三种编码正确，默认自动编码结果正确 |
+| `hex-encode.html`（死键 0） | 自写 TextEncoder + `toString(16)` | ✅ 一致：默认 `Hi`→`0x4869`；`中文`→`e4b8ade69687`（node） | 编码与默认输出正确；解码不接受逐字节 0x 前缀 |
+| `rc4.html`（死键 0） | 自写 RC4 KSA/PRGA + drop | ✅ 一致：独立参考实现比对 `mysecretkey`、`secret123`、`anotherkey`、`rc4test`，drop 0/768/2048、中文与空串共 7 例全等 | 算法正确；页面不自动运行；解密输入判定有实质缺陷 |
+| `base32-encode.html`（死键 0） | 自写 5 位位流编码 | ✅ 一致：`Hello`→`JBSWY3DP`、`f`→`MY======`、`中文`→`4S4K3ZUWQ4======`（RFC 4648 参考实现） | 编码与默认输出正确；解码静默接受非法长度 |
 
 ### 逐页结论
 
@@ -4621,6 +4623,7 @@
 - 方法：`node:crypto` 复算 MD5/SHA-256/HMAC；`vm` 提取 `md5.html` 原脚本执行（含 UTF-8、中文、长密钥）；自写独立 RC4 参考与页面实现逐字节比对（含 drop 768/2048）；Python `base64.a85encode` 校验 Base85 末组填充；未开浏览器、未跑 `_build.py`/门禁、未执行 git、未修改 `tools/**`、js/css/json 或构建产物。
 
 ## AB 批 · IT 族矩阵：文本/数据格式（2026-11-04）
+> 页面名后的「（死键 N）」= 该页第三层英文词典（`i18n/tools/en/<ind>/<slug>.json`）高优先死键数（来源 `plan/i18n-dead-keys.md`）；各线改本页时顺手清理，本批不修英文。
 
 本轮只读复扫 `tools/it/` 下 `json-formatter` / `yaml-validator` / `xml-validator` / `json-to-csv` / `text-diff` / `markdown-lint` 共 6 页，覆盖 JSON 格式化压缩、YAML、XML、CSV↔JSON、文本 diff、Markdown lint（避开已转修复的 json-path / rich-text-editor / code-runner）。默认态：5 页加载即自动出结果（`json-formatter:727` loadSample、`yaml-validator:733-738` 初始化即 validateNow、`xml-validator:281` calcTool、`json-to-csv:410` Boot 内 toCSV、`markdown-lint:241` calcTool），`text-diff` 无默认输出（`:666` 提示先点「开始对比」）。默认结果抽验：json 样例合法并渲染树/统计；YAML `SAMPLE_YAML` 验证通过；XML 默认 4 元素、根 `note` 通过；CSV 默认 2 行×3 列；Markdown 默认 2 条（缺空格列表 + 空链接）。
 
@@ -4628,12 +4631,12 @@
 
 | 页面 | 实现方式（自写解析/库/正则伪解析/回显） | 可验证性（注释/根元素/CDATA/转义/深层嵌套是否保真） | 结论 |
 |---|---|---|---|
-| `json-formatter.html` | 原生 `JSON.parse` / `JSON.stringify` + 自写递归树渲染；无第三方库 | 美化/压缩/排序/反转义结构往返等价（`{"a":1,"b":"x\"y"}`、3 层嵌套、中文与 ASCII 均等）；缩进 2/4/Tab/0 生效；「转义」对合法 JSON 与「压缩」输出逐字节相同，不生成转义串；「提取」对同段两个对象只返回第一个 | 解析真实、无伪实现；转义名不符实、提取不完整（②） |
-| `yaml-validator.html` | `js-yaml@4.1.0`（jsdelivr CDN，SRI 锁版）`loadAll` | ✅ 多键嵌套、多文档 `---`、锚点/合并键 `<<`、literal/folded 多行块标量、Tab 缩进报错、重复键报错位置准确；⚠ 非字符串键 `2024-01-01:` 被序列化成**本地时区 Date 字符串**作 JSON 键（随 TZ 漂移），`!!binary` 输出 `{"0":104,…}` 索引对象；循环锚点被 `stringify` 捕获并提示 | 解析真实；YAML→JSON 键名/类型失真（①）；CDN 依赖弱网误报见备注 |
-| `xml-validator.html` | 浏览器原生 `DOMParser('application/xml')` | ✅ CDATA、实体转义、200 层嵌套、注释内 `<`、中文标签、重复属性、未闭合标签、未声明命名空间前缀判定均正确；`<!DOCTYPE … SYSTEM>` 实体引用报 `undefined entity`（不取外部实体，XXE 安全）；默认样例根 `note`、4 元素通过；⚠ 合法根元素 `<parsererror>` 被判「格式错误」 | 原生解析无伪；`parsererror` 检测误判（①） |
-| `json-to-csv.html` | 原生 `JSON.parse` + 自写 RFC 4180 引号转义 | ✅ `A, B`、`say "hi"`、单元格内换行、嵌套对象串、null/缺失键经 Python `csv` 回读为 4 行×4 列，值逐格一致；⚠ `=1+1`、`@cmd` 原样输出未做公式前缀转义 | 序列化正确、无丢列；未防 CSV 公式注入（③）；既有 IT-N6/N7 复核仍成立 |
-| `text-diff.html` | 自写 LCS（DP 表）+ 递归回溯；字符级按 `Array.from` 码点切分 | ✅ 2000 行/2 行内差异编辑脚本可精确重建两文本（same+remove=旧、same+add=新）；⚠ 4000 行全不同文本、单行 5000 字符均抛 `RangeError: Maximum call stack size exceeded`，`doDiff` 无 try/catch 兜底 | 算法正确但规模即崩（①）；忽略空白/大小写仅作用于比较、显示保留原文，正确 |
-| `markdown-lint.html` | 纯行正则伪解析（无 CommonMark/remark 解析器） | ✅ 默认样例命中 2 条；⚠ `---` 前置元数据、行首 `*斜体*` 被误报「列表符号后缺空格」；`#标题`（井号后无空格）、行尾空格、未闭合代码块、嵌套列表缩进 MD007 均无检出 | 宣称的 3 项检查未实现 + 误报/漏报（②）；另有 `:120` 畸形 `</div` 备注 |
+| `json-formatter.html`（死键 4） | 原生 `JSON.parse` / `JSON.stringify` + 自写递归树渲染；无第三方库 | 美化/压缩/排序/反转义结构往返等价（`{"a":1,"b":"x\"y"}`、3 层嵌套、中文与 ASCII 均等）；缩进 2/4/Tab/0 生效；「转义」对合法 JSON 与「压缩」输出逐字节相同，不生成转义串；「提取」对同段两个对象只返回第一个 | 解析真实、无伪实现；转义名不符实、提取不完整（②） |
+| `yaml-validator.html`（死键 0） | `js-yaml@4.1.0`（jsdelivr CDN，SRI 锁版）`loadAll` | ✅ 多键嵌套、多文档 `---`、锚点/合并键 `<<`、literal/folded 多行块标量、Tab 缩进报错、重复键报错位置准确；⚠ 非字符串键 `2024-01-01:` 被序列化成**本地时区 Date 字符串**作 JSON 键（随 TZ 漂移），`!!binary` 输出 `{"0":104,…}` 索引对象；循环锚点被 `stringify` 捕获并提示 | 解析真实；YAML→JSON 键名/类型失真（①）；CDN 依赖弱网误报见备注 |
+| `xml-validator.html`（死键 0） | 浏览器原生 `DOMParser('application/xml')` | ✅ CDATA、实体转义、200 层嵌套、注释内 `<`、中文标签、重复属性、未闭合标签、未声明命名空间前缀判定均正确；`<!DOCTYPE … SYSTEM>` 实体引用报 `undefined entity`（不取外部实体，XXE 安全）；默认样例根 `note`、4 元素通过；⚠ 合法根元素 `<parsererror>` 被判「格式错误」 | 原生解析无伪；`parsererror` 检测误判（①） |
+| `json-to-csv.html`（死键 0） | 原生 `JSON.parse` + 自写 RFC 4180 引号转义 | ✅ `A, B`、`say "hi"`、单元格内换行、嵌套对象串、null/缺失键经 Python `csv` 回读为 4 行×4 列，值逐格一致；⚠ `=1+1`、`@cmd` 原样输出未做公式前缀转义 | 序列化正确、无丢列；未防 CSV 公式注入（③）；既有 IT-N6/N7 复核仍成立 |
+| `text-diff.html`（死键 0） | 自写 LCS（DP 表）+ 递归回溯；字符级按 `Array.from` 码点切分 | ✅ 2000 行/2 行内差异编辑脚本可精确重建两文本（same+remove=旧、same+add=新）；⚠ 4000 行全不同文本、单行 5000 字符均抛 `RangeError: Maximum call stack size exceeded`，`doDiff` 无 try/catch 兜底 | 算法正确但规模即崩（①）；忽略空白/大小写仅作用于比较、显示保留原文，正确 |
+| `markdown-lint.html`（死键 0） | 纯行正则伪解析（无 CommonMark/remark 解析器） | ✅ 默认样例命中 2 条；⚠ `---` 前置元数据、行首 `*斜体*` 被误报「列表符号后缺空格」；`#标题`（井号后无空格）、行尾空格、未闭合代码块、嵌套列表缩进 MD007 均无检出 | 宣称的 3 项检查未实现 + 误报/漏报（②）；另有 `:120` 畸形 `</div` 备注 |
 
 ### 逐页结论
 
@@ -4665,6 +4668,105 @@
 - 伪实现排查：6 页中 4 页用原生解析或正式库（`JSON.parse` ×2、`DOMParser`、`js-yaml`），`text-diff` 为自写 LCS（真实但崩溃），`markdown-lint` 为正则伪解析且宣称项缺失；无回显式假工具。
 - 安全：无 `eval`/`new Function`/`allow-same-origin`；用户文本输出均走 `textContent` / `ToolBox.escHtml`。`xml-validator` 不解析外部实体（XXE 安全），`yaml-validator` 不落盘。模板级 `lf1-cdn-tos.bytegoofy.com/ttzz` 第三方脚本本批 6 页均存在（如 `json-formatter:182`、`markdown-lint:71`），属全站通用问题、已登记，不重复计数。
 - 方法：`/tmp` 用与页面同版本 `js-yaml@4.1.0` 复算多键/多文档/锚点/日期键/`!!binary`；jsdom `DOMParser` 复算 XML（CDATA/转义/200 层/`parsererror` 根/实体）；Node 原样提取 LCS+回溯与正则跑规模与误报用例；Python `csv.reader` 回读 CSV 校验引号内逗号/换行；未开浏览器、未跑 `_build.py`/门禁、未执行 git、未修改 `tools/**`、js/css/json 或构建产物。
+
+## AC 批 · 正则族（2026-11-04）
+
+### 族矩阵
+
+| 页面 | 实现方式 | 可逆或可验证 | 结论 |
+|---|---|---|---|
+| `tools/it/regex` | 原生 RegExp：Worker 内 `new RegExp(p,f)`，替换同引擎（`:850-877`） | 同构造可验证 | 核心匹配/分组/替换正确；既有 N253/N254 仍在 |
+| `tools/it/regex-cheatsheet` | 纯查表：静态 `COMMANDS` 数组 + 过滤（无执行） | 仅内容正确性 | 检索可用；含 JS 不支持语法 |
+| `tools/it/regex-common` | 查表（8 条类别常量）+ 原生 RegExp 逐类执行 | 给定类/文本可验证 | 类别下拉为空，8 类仅 email 可达 |
+| `tools/it/regex-escape` | 自写逐字符映射转义/反转义，不走 RegExp | 部分可逆 | 转义正确；反转义吞类别转义 |
+| `tools/it/regex-visualizer` | 自写逐字符 tokenizer + 线性「状态」列表（非 AST/NFA），仅 `new RegExp` 校验合法性 | 合法性可验证；结构不可逆 | 承诺的树状层级未实现 + DOM XSS |
+
+### 独立实现 vs 共享实现
+
+- **独立 2 页**：regex（Worker 原生引擎）、regex-visualizer（自写 tokenizer）。
+- **共享模板 3 页**：regex-cheatsheet 与 regex-common 同属 `COMMANDS/escapeHtml/filter/dataGrid` 速查表脚手架（与 nginx/sql 等 20+ 速查页同源）；regex-escape 的 `esc/unesc` 骨架与 css-escape、url-parser 同源。
+- 结论：5 页 3 种实现范型（原生引擎 / 查表 / 自写字符串处理），无两页共享同一正则实现。
+
+### 逐页结论
+
+- **regex**：默认 `\d+`/`g`/含 123、456、8888、9999 的文本 → 4 条匹配正确；`escapeHtml` 覆盖全部输出（`:547/566/578/602/642`），无 XSS；`:727` 早于 `#rx-worker-src`（`:850`）调用，首屏短暂显示「组件未加载」（IT-N252 的超时部分已修，双跑仍成立）。
+- **regex-cheatsheet**：纯查表；`\A \Z` 在 JS 中是字面 A/Z（node：`/\AHello/` 命中「AHello」）；`[:alpha:]` 为 POSIX 语法，JS 不支持且未注明（IT-D30）。
+- **regex-common**：默认文本 4 token、`cat` 为空 → fallback email → 2 条；结果本身对，但类别选择器 `select` 无任何 `<option>`，8 类仅 email 可达（IT-D27）。
+- **regex-escape**：默认 `Hello (World)? [a-z]+ $19.99` → `Hello \(World\)\? \[a-z\]\+ \$19\.99` 正确；反转义 `\d+\w`→`d+w`（IT-D29）。
+- **regex-visualizer**：默认 `^a[0-9]+b$` → 10 token / 12 状态直线（node 复算），与「树状、分组/量词/字符类层级」不符（IT-D28）；token 标签原样拼 innerHTML，合法正则 `<img src=x onerror=alert(1)>` 渲染即执行（IT-N348 仍成立）。
+
+### 问题清单（新增）
+
+| 编号 | 页面:行 | 级别 | 问题与期望值 |
+|---|---|---|---|
+| IT-D27 | `tools/it/regex-common.html:127,269,323,333` | 高 | `<select id="cat"></select>` 全文件 0 个 `<option>`，`getElementById('cat').value\|\|'email'` 恒取 email → 手机/URL/IPv4/日期/身份证/用户名/中文 7 类永不生效。期望构建 8 个 option 并随选切换（默认文本下任何选择都只出 abc@example.com、test@mail.cn） |
+| IT-D28 | `tools/it/regex-visualizer.html:250-266,283-285` | 高 | `buildStates` 每个 token 建 1 状态并首尾串联，无分支、无分组/量词/字符类嵌套；默认 `^a[0-9]+b$` 得直线而非树。期望真实 AST/NFA 树渲染 |
+| IT-D29 | `tools/it/regex-escape.html:310` | 中 | `default: out += n` 丢弃反斜杠：`\d+\w`→`d+w`、`\b`→`b`、`\s`→`s`，反转义后正则语义反转。期望保留 `\d \w \b \s \p{…}` 原样 |
+| IT-D30 | `tools/it/regex-cheatsheet.html:419-424,582-584` | 中 | `\A \Z` 标「字符串首/末」，JS 无此锚点；`[:alpha:]` 为 POSIX，JS 不支持且未注明引擎。期望标注 JS 不支持或删除 |
+
+### 统计
+
+- 页数 **5**；独立实现 **2** / 共享模板 **3**。
+- 新增 **4** 条（高 **2** / 中 **2** / 假 **0** / 安全 **0**）；编号 IT-D27–IT-D30。
+- 复核既有：IT-N253（base64 `+` 被 URLSearchParams 解成空格）、IT-N254（替换/复制恒补 `g`）、IT-N348（visualizer DOM XSS）仍成立；IT-N252 的超时部分已失效（`:492-521` Worker + 800ms），「每次按键跑两遍」仍成立（`#flags` 内联 oninput 与 `:465` 双绑）。
+- 复算方式：`/tmp` node 同构造跑默认用例与 `\A`/`[:alpha:]` 语义，`new RegExp` 校验；未开浏览器、未跑 `_build.py`/门禁、未改仓库文件。
+
+## AC 批 · PDF/文件解析族（2026-11-04）
+
+### 族矩阵
+
+| 页面 | 实现方式 | 可逆或可验证 | 结论 |
+|---|---|---|---|
+| `tools/office/pdf-merge` | pdf-lib@1.17.1 `copyPages` + `save` | node 实测 2+3 页合并成 5 页、尺寸正确 | 真处理；加密文件预检有缺陷 |
+| `tools/office/pdf-split` | pdf.js 渲染缩略图 + pdf-lib 提取页 | 页数/旋转/顺序可验证 | 真提取；只产 1 个文件、强制升序 |
+| `tools/office/pdf-rotate` | pdf.js 预览 + pdf-lib `setRotation`/`save` | node 回读角度 [90,270] 正确 | 真处理，未发现缺陷 |
+| `tools/it/pdf-signature-checker` | 自读字节 + 正则匹配 `/ByteRange`、`/Contents` | 构造字节可验证 | 只判签名存在，无密码学验签 |
+| `tools/it/properties-parser` | 自写逐行扫描 + 转义还原 | node 7 组用例 | 真解析；CRLF/`\u`/续行有错 |
+| `tools/it/ini-parser` | 自写 `indexOf('=')` 逐行解析 | node 7 组用例 | 真解析；不支持 `:` 与无值键 |
+| `tools/it/curl-parser` | 正则分词 + 选项表 | node 9 组命令 | 真解析；续行/转义/urlencode 有缺陷 |
+| `tools/it/plist-parser` | 原生 `DOMParser` 解析 XML plist | 默认 SAMPLE 可验证 | 真解析（binary plist 明确不支持） |
+| `tools/it/user-agent-parser` | 正则抽取浏览器/引擎/OS/设备 | UA 用例可复现 | 覆盖不足（微信、CriOS 等） |
+
+### 独立实现 vs 共享实现
+
+- **共享 3 页**：pdf-merge、pdf-split、pdf-rotate 共用同一条 `pdf-lib@1.17.1` CDN（带 SRI）；后两页另共用 `pdf.js 3.11.174` 与同一 worker 源 → CDN/worker 失效或库升级时 3 页同时受影响。
+- **独立 6 页**：两个解析族与签名检查器各自实现，互不共享解析核心，只共用 Tab/历史/图表模板 → 缺陷不同源，可分别修。
+- 同源风险集中在 properties 与 ini 两个键值格式解析器：行切分/去空白/重复键策略各写各的，口径不一致（`host:localhost` 在 properties 正确、在 ini 整行丢弃）。
+
+### 逐页结论
+
+- **pdf-merge**：真实合并并正确转义文件名；加密 PDF 预检用 `ignoreEncryption` 判为可用，`copyPages` 不解密 → 与「跳过并继续」承诺不符（IT-D32）。
+- **pdf-split**：真实提取、真实缩略图；但只产 1 个 PDF、结果强制升序，与「拆成多个文件」「按填写顺序」矛盾（IT-D34/IT-D35）；历史回填触发下载（IT-D36）。
+- **pdf-rotate**：真旋转，预览叠加差值、写入绝对角度，回读一致，本轮无缺陷。
+- **pdf-signature-checker**：仅检测签名存在；文件头 `%PDF-49.46` 恒不匹配判红（既有 `it.md:2582`）、字节数算式错（既有 `:2588`）、PKCS#7 验签承诺未实现（既有 `:2593`）。
+- **properties-parser**：核心扫描正确；CRLF 的 `\r` 留在每个值尾（IT-D33）、`\uXXXX` 不解码（既有 `:140`）、行尾 `\\` 当续行（既有 `:141`）。
+- **ini-parser**：节/注释/重复键正常；`:` 分隔与无值键不支持（IT-D39/IT-D40）。
+- **curl-parser**：`-d`→POST、选项值消费、输出转义已修到位；末行续行 `\` 被当 URL（IT-D31）、`--data-urlencode` 不编码（IT-D37）、双引号内 `\"` 未反转义（IT-D38）。
+- **plist-parser**：XML 真解析，dict/array/integer/real/bool 正确；`data`、`date` 原样返回（既有）。
+- **user-agent-parser**：Chrome/Safari/Edge/Firefox/Googlebot 正确；微信 UA 归为 Chrome、CriOS/FxiOS 归「未知」（IT-D41 / 既有 IT-N65）。
+
+### 问题清单（新增）
+
+| 编号 | 页面:行 | 级别 | 问题与期望值 |
+|---|---|---|---|
+| IT-D31 | `tools/it/curl-parser.html:339` | 高 | URL 位于末行且上游用 `\` 续行时，`\` 被当作 URL：实测 `url:"\\"`，期望 `https://api.example.com/users`（node 复刻分词与主循环） |
+| IT-D32 | `tools/office/pdf-merge.html:512,703` | 高 | `loadPageCount` 用 `ignoreEncryption` 使加密文件列为可用；`copyPages` 不解密 → 整体抛错或输出空白，与 `:349,:391`「跳过并提示、不影响其余」矛盾。期望单文件标 error 后 `continue`（node 加载同版本 pdf-lib：正常 2+3 页合并成功，`copyPages` 无加密检查） |
+| IT-D33 | `tools/it/properties-parser.html:258,298` | 高 | 只按 `\n` 切行，CRLF 的 `\r` 留在值尾：`a=b\r\nc=d\r\n` → `{"a":"b\r","c":"d\r"}`，期望 `"b"/"d"`（node 复刻 `parseProps`） |
+| IT-D34 | `tools/office/pdf-split.html:568,455-466` | 假 | 宣称「拆分 PDF 为多个小文件」「段数=ceil(总页数/每段页数)」「文件数=段数」，实际无「每段页数」输入且只产出 1 个 PDF |
+| IT-D35 | `tools/office/pdf-split.html:907` | 中 | 强制 `sort` 升序：`7-10,1` → `[1,7,8,9,10]`，与 `:480,:519`「按填写顺序」矛盾（pdf-lib 本身保序） |
+| IT-D36 | `tools/office/pdf-split.html:1170` | 中 | 历史记录回填后直接调 `downloadResult()`：有缓存则莫名下载，无缓存弹「开始下载」错误提示 |
+| IT-D37 | `tools/it/curl-parser.html:257,173` | 中 | `--data-urlencode` 映射为普通 data、不做编码：`q=a b` 期望 `q=a%20b`（页面表格自述 percent-encodes） |
+| IT-D38 | `tools/it/curl-parser.html:357` | 中 | `trimQuote` 只剥外层引号，双引号内 `\"` 未反转义：data 为 `{\"name\":\"a\"}`，期望 `{"name":"a"}` |
+| IT-D39 | `tools/it/ini-parser.html:275` | 中 | 只认 `=`：`[s]` + `host: localhost` → `{}`，期望 `{"s":{"host":"localhost"}}`（页面称「= 或 : 分隔」） |
+| IT-D40 | `tools/it/ini-parser.html:275` | 中 | 无值键整行丢弃：`[s]` + `flag` → `{}`，期望 `{"s":{"flag":""}}` |
+| IT-D41 | `tools/it/user-agent-parser.html:316` | 中 | 微信 UA（`MicroMessenger/8.0.40 … Chrome/116`）判为 `Chrome 116`，无微信规则；`Baiduspider` 浏览器为「未知」（设备已判爬虫） |
+
+### 统计
+
+- 页数 **9**（PDF 4 + 解析 5）；独立实现 **6** / 共享实现 **3**。
+- 新增 **11** 条（高 **3** / 中 **7** / 假 **1** / 安全 **0**）；编号 IT-D31–IT-D41。
+- 复核既有 6 条（`it.md:2582`、`:2588`、`:2593`、`:140`、`:141`、IT-N65）均仍成立；确认 IT-N10（空格成键）、IT-N14（`-d` 漏判 POST/选项吞 URL/头部 XSS）、IT-N24（重复节丢键）已修。
+- 复算方式：按页面函数逐行复刻 node 桩（properties/ini/curl/UA）；PDF 用同版本 pdf-lib 真调用；未开浏览器、未跑 `_build.py`/门禁、未改仓库文件。
 
 
 
