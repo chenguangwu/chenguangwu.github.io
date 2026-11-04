@@ -161,7 +161,7 @@ s.parentNode.insertBefore(el, s);
 <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="🔗 URL Slug 生成器">🔗 URL Slug Generator</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">生成流程：Unicode 规范化 → 可选转小写 → 可选剔除停用词 → 可选剥离符号 → 空白与分隔符归一为所选分隔符（默认 -）→ 压缩重复分隔符并去首尾；四种预览：标准 slug、全小写、连字符换下划线、按 -_ 切分后首字母大写拼接的驼峰式</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">生成流程：可选移除中文或中文转拼音 → 可选剥离符号（先于 Unicode 转义执行，避免转义后的 % 被符号过滤剔除）→ Unicode 模式按码点转义 → 可选转小写 → 可选剔除停用词 → 空白与分隔符归一为所选分隔符（默认 -）→ 压缩重复分隔符并去首尾；四种预览：标准 slug、全小写、按所选分隔符转下划线、按分隔符切分后首字母大写拼接的驼峰式</div>
   <div class="formula-desc">把标题或文本转换为 URL Slug。</div>
   <ul class="formula-list">
     <li><b>步骤</b>：小写化 → 去除重音符号 → 空格与标点统一替换为连字符 → 去除首尾连字符。</li>
@@ -345,11 +345,11 @@ const STOP_WORDS = new Set(['the','a','an','of','to','in','on','at','for','and',
 
 function slugify(text, opts){
   let s = text;
-  if(opts.mode === 'pinyin') s = toPinyin(s);
-  else if(opts.mode === 'remove') s = s.replace(/[\u4e00-\u9fa5]+/g, ' ');
-  else if(opts.mode === 'unicode') s = s.replace(/[\u4e00-\u9fa5]+/g, m => encodeURIComponent(m));
-  
+  if(opts.mode === 'remove') s = s.replace(/[\u4e00-\u9fa5]+/g, ' ');
+  // 先剥离符号再编码：否则 Unicode 转义产生的 % 会被符号过滤当作分隔符剔掉
   if(opts.stripSymbols) s = s.replace(/[^\w\s\u4e00-\u9fa5-]/g, ' ');
+  if(opts.mode === 'pinyin') s = toPinyin(s);
+  else if(opts.mode === 'unicode') s = s.replace(/[\u4e00-\u9fa5]+/g, m => encodeURIComponent(m));
   if(opts.lowercase) s = s.toLowerCase();
   
   let words = s.split(/[\s_\-\.]+/).filter(Boolean);
@@ -376,8 +376,8 @@ function generate(){
   const formats = [
     {label: '标准', val: slug},
     {label: '全小写', val: slug.toLowerCase()},
-    {label: '下划线', val: slug.replace(/-/g, '_')},
-    {label: '驼峰', val: slug.split(/[-_]/).map((w,i) => i === 0 ? w.toLowerCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join('')},
+    {label: '下划线', val: slug.split(opts.separator).join('_')},
+    {label: '驼峰', val: slug.split(/[-_.]/).map((w,i) => i === 0 ? w.toLowerCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join('')},
   ];
   const __h1=formats.map(f => `
     <div class="preview-item">

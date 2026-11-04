@@ -70,6 +70,36 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "text/reading-time-estimator",
+  "inputs": {
+    "cjkwpm": "450",
+    "enwpm": "200",
+    "src": ""
+  },
+  "expect": [ "请输入要估算的文本" ],
+  "ref": "IT-N37 空文本：不再把空文本抬成 1 分钟，而是明确提示。默认示例含中文正文，不命中。"
+},
+{
+  "slug": "text/reading-time-estimator",
+  "inputs": {
+    "cjkwpm": "0",
+    "enwpm": "200",
+    "src": "abc"
+  },
+  "expect": [ "请输入大于 0 的阅读速度" ],
+  "ref": "IT-N37 速度校验：0 字/分非法 ⇒ 明确报错；修复前 Math.max(1,…) 把 0 抬成 1 后照常输出。默认速度 300/200，不命中。"
+},
+{
+  "slug": "text/reading-time-estimator",
+  "inputs": {
+    "cjkwpm": "100",
+    "enwpm": "200",
+    "src": "中".repeat(110)
+  },
+  "expect": [ "2 分钟" ],
+  "ref": "IT-N37 取整口径：110 中文字 @100 字/分 = 1.1 分钟 ⇒ 文档口径向上取整 = 2；修复前 Math.round 得 1。默认正文不足 1 分钟，不命中。"
+},
+{
   "slug": "text/sensitive-word-filter",
   "inputs": {
     "replaceWith": "*_X",

@@ -145,11 +145,11 @@ s.parentNode.insertBefore(el, s);
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="💻 文本截断工具">💻 Text Truncate</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">截断模式分四种：按字符数取前 limit 个字符，开启单词边界时从第 limit 个字符往前找到最近的空白字符作为终点，一直找不到则回退到 limit；按词数先按空白切分为词数组，取前 limit 个再以空格连接；按行数先按换行切分，取前 limit 行再以换行连接；按字节数逐字符累加字节数（中日韩统一表意文字与全角区字符记 2 字节，其余记 1 字节），累加会超过 limit 时停止。开启从末尾截断时改为取末尾对应数量的字符、词或行。发生截断且设置了省略符时，从末尾截断把省略符加在前面，否则加在后面。开启逐行处理且模式不是按行时，先按换行切分再对每一行单独执行上述截断</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">截断模式分四种：按字符数按码点（Array.from）计数，省略符占用长度上限——先从 limit 中扣除省略符的码点数，再截取正文；开启单词边界时从保留终点往前找到最近的空白字符作为截断点，一直找不到则回退到扣除后的上限；按词数先按空白切分为词数组，取前 limit 个再以空格连接；按行数先按换行切分，取前 limit 行再以换行连接；按字节数按 UTF-8 实际字节（ASCII 1 字节、2 字节区 2 字节、3 字节区 3 字节、辅助平面 4 字节）逐码点累加，先扣除省略符的字节数作为上限，累加会超过上限时停止。开启从末尾截断时改为取末尾对应数量的字符、词或行。发生截断且设置了省略符时，从末尾截断把省略符加在前面，否则加在后面。开启逐行处理且模式不是按行时，先按换行切分再对每一行单独执行上述截断</div>
   <div class="formula-desc">按长度截断文本并添加省略标记。</div>
   <ul class="formula-list">
     <li><b>处理</b>：达到指定长度后截断，并在末尾追加省略号或自定义后缀。</li>
-    <li><b>字素簇</b>：应按字素簇截断，避免切在代理对中间产生半个 emoji 或乱码。</li>
+    <li><b>码点</b>：按码点计数与截断，不会切在代理对中间产生半个 emoji；组合字符（肤色、ZWJ 序列）仍可能按码点拆开。</li>
     <li><b>词边界</b>：可选择在词边界处截断，避免把单词切成两半。</li>
     <li><b>用途</b>：列表摘要、卡片描述、控制 SEO description 长度。</li>
   </ul>
@@ -231,7 +231,7 @@ s.parentNode.insertBefore(el, s);
 <li>按长度/字数截断并加省略号。</li>
 <li>给列表或卡片统一摘要长度：按字数截断并补省略号，避免不同长度的文案把布局撑乱。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">截断</div><div class="dd-ex-body">`一二三四五六` 截 4 字 → `一二三四…`。</div></div>
+<div class="dd-example"><div class="dd-ex-title">截断</div><div class="dd-ex-body">`一二三四五六` 截 4 字（含省略符）→ `一二三…`。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>按字节还是字符？</dt><dd>可选，中文按字符更友好。</dd>
@@ -311,57 +311,78 @@ function truncate(){
   if(!text){ result.textContent = '请输入文本...'; return; }
 
   const mode = document.getElementById('mode').value;
-  const limit = parseInt(document.getElementById('limit').value) || 0;
+  const rawLimit = document.getElementById('limit').value.trim();
+  const limit = Number(rawLimit);
+  if(!Number.isInteger(limit) || limit < 1){
+    result.textContent = '请输入有效的保留数量（正整数，且不少于 1）。';
+    return;
+  }
   const ellipsis = document.getElementById('ellipsis').value;
   const perLine = document.getElementById('perLine').checked;
   const wordBoundary = document.getElementById('wordBoundary').checked;
   const fromEnd = document.getElementById('fromEnd').checked;
 
+  function utf8Bytes(cp){
+    if(cp <= 0x7f) return 1;
+    if(cp <= 0x7ff) return 2;
+    if(cp <= 0xffff) return 3;
+    return 4;
+  }
+  const ellipsisCp = Array.from(ellipsis).length;
+  const ellipsisBytes = Array.from(ellipsis).reduce(function(n, ch){ return n + utf8Bytes(ch.codePointAt(0)); }, 0);
+
   function truncOne(s){
-    let truncated = false;
-    let out = s;
     if(mode === 'chars'){
-      if(s.length > limit){
-        if(wordBoundary){
-          // 不截断单词：往前找到空格
-          let end = limit;
-          while(end > 0 && !/\s/.test(s[end])) end--;
-          if(end === 0) end = limit;
-          out = fromEnd ? s.substring(s.length - limit) : s.substring(0, end);
-        }else{
-          out = fromEnd ? s.substring(s.length - limit) : s.substring(0, limit);
-        }
-        truncated = true;
+      const cps = Array.from(s);
+      if(cps.length <= limit) return s;
+      const budget = Math.max(0, limit - ellipsisCp);
+      let keep = budget;
+      if(wordBoundary && !fromEnd){
+        while(keep > 0 && !/\s/.test(cps[keep - 1])) keep--;
+        if(keep === 0) keep = budget;
       }
+      return fromEnd ? ellipsis + cps.slice(cps.length - budget).join('')
+                     : cps.slice(0, keep).join('') + ellipsis;
     }else if(mode === 'words'){
       const words = s.split(/\s+/);
       if(words.length > limit){
-        out = fromEnd ? words.slice(words.length - limit).join(' ') : words.slice(0, limit).join(' ');
-        truncated = true;
+        const out = fromEnd ? words.slice(words.length - limit).join(' ') : words.slice(0, limit).join(' ');
+        return fromEnd ? ellipsis + out : out + ellipsis;
       }
     }else if(mode === 'lines'){
       const lines = s.split('\n');
       if(lines.length > limit){
-        out = fromEnd ? lines.slice(lines.length - limit).join('\n') : lines.slice(0, limit).join('\n');
-        truncated = true;
+        const out = fromEnd ? lines.slice(lines.length - limit).join('\n') : lines.slice(0, limit).join('\n');
+        return fromEnd ? ellipsis + out : out + ellipsis;
       }
     }else if(mode === 'bytes'){
-      // 简单字节截断
-      let bytes = 0; let i = 0;
-      for(; i < s.length; i++){
-        const b = /[\u4e00-\u9fff\uff00-\uffef]/.test(s[i]) ? 2 : 1;
-        if(bytes + b > limit) break;
-        bytes += b;
+      const cps = Array.from(s);
+      const budget = Math.max(0, limit - ellipsisBytes);
+      let total = 0, cut = 0;
+      while(cut < cps.length){
+        const b = utf8Bytes(cps[cut].codePointAt(0));
+        if(total + b > limit) break;
+        total += b; cut++;
       }
-      if(i < s.length){
-        out = fromEnd ? s.substring(s.length - i) : s.substring(0, i);
-        truncated = true;
+      if(cut >= cps.length) return s;
+      if(fromEnd){
+        let acc = 0, start = cps.length;
+        while(start > 0){
+          const b = utf8Bytes(cps[start - 1].codePointAt(0));
+          if(acc + b > budget) break;
+          acc += b; start--;
+        }
+        return ellipsis + cps.slice(start).join('');
       }
+      let acc = 0, keep = 0;
+      while(keep < cps.length){
+        const b = utf8Bytes(cps[keep].codePointAt(0));
+        if(acc + b > budget) break;
+        acc += b; keep++;
+      }
+      return cps.slice(0, keep).join('') + ellipsis;
     }
-    if(truncated && ellipsis){
-      return fromEnd ? ellipsis + out : out + ellipsis;
-    }
-    return out;
+    return s;
   }
 
   if(perLine && mode !== 'lines'){

@@ -549,6 +549,35 @@ const CASES = [
     ref: "独立复算：按空白切词取前 2 个 ⇒ `Alpha beta`，附加省略号 `...`（页面省略号默认选项）⇒ `Alpha beta...`。默认态是长中文文本 + limit 20，不命中。",
   },
   {
+    slug: "it/text-truncate",
+    // IT-N15 回归：按码点截断，省略符计入上限。
+    inputs: { input: "😀😀😀", limit: "2", mode: "chars", ellipsis: "…" },
+    clicks: ["truncate()"],
+    expect: ["😀…"],
+    ref: "独立复算：3 个 emoji 按码点计 3 > limit 2，省略符占 1 个码点 ⇒ 保留 1 个 emoji + `…`，总长恰为 2；修复前按 UTF-16 码元 substring 会把首个 emoji 切成半个代理对。默认态无 emoji，不命中。",
+  },
+  {
+    slug: "it/text-truncate",
+    inputs: { input: "abcdef", limit: "5", mode: "chars", ellipsis: "..." },
+    clicks: ["truncate()"],
+    expect: ["ab..."],
+    ref: "独立复算：6 字符 + 省略符 `...`(3) ⇒ 保留 2 字符 + 3 点 = 5，不再输出 8 字符；修复前省略符不占 limit ⇒ `abcde...`。默认态长中文文本不命中。",
+  },
+  {
+    slug: "it/text-truncate",
+    inputs: { input: "😀abc", limit: "4", mode: "bytes", ellipsis: "!!" },
+    clicks: ["truncate()"],
+    expect: ["!!"],
+    ref: "独立复算：emoji 实为 4 字节 > limit 扣除省略符 `!!`(2) 后的 2 字节预算 ⇒ 保留 0 字符、只输出 `!!`；修复前把 emoji 记 1 码元 ⇒ 4 个字符恰好不截断、输出 `😀abc`。注入非选项省略符仅为让字节边界可观测，默认态不命中。",
+  },
+  {
+    slug: "it/text-truncate",
+    inputs: { input: "abc", limit: "0" },
+    clicks: ["truncate()"],
+    expect: ["请输入有效的保留数量"],
+    ref: "独立复算：0 不是正整数 ⇒ 明确提示；修复前被 `||0` 吞成 0 后仍输出省略符。默认态 limit=20，不命中。",
+  },
+  {
     slug: "it/text-statistics",
     inputs: { textInput: "ab cd ab ef" },
     expect: ["11 总字符", "4 总词数"],
@@ -584,6 +613,22 @@ const CASES = [
     inputs: { input: "Hello World ToolBox" },
     expect: ["Hello-World-ToolBox"],
     ref: "独立复算：空格转连字符 ⇒ `Hello-World-ToolBox`（默认 `mode=空白转-`）。默认输入是中文标题（走拼音分支），不命中。",
+  },
+  {
+    slug: "it/slugify",
+    // IT-N16 回归：Unicode 模式先剥离符号再转义，% 不得被剔除。
+    inputs: { input: "中文" },
+    clicks: ["document.getElementById('mode').value='unicode';generate()"],
+    expect: ["%e4%b8%ad%e6%96%87"],
+    ref: "独立复算：中文 2 字分别转义为 `%e4%b8%ad` / `%e6%96%87` 并拼接；修复前先转义后被符号过滤把 `%` 变空格 ⇒ `e4-b8-ad-e6-96-87`。默认态走拼音分支，不命中。",
+  },
+  {
+    slug: "it/slugify",
+    // IT-N16 回归：下划线预览按实际分隔符替换。
+    inputs: { input: "aaa bbb" },
+    clicks: ["document.getElementById('separator').value='.';generate()"],
+    expect: ["aaa_bbb"],
+    ref: "独立复算：separator='.' 时标准 slug=`aaa.bbb`，下划线预览应按实际分隔符替换 ⇒ `aaa_bbb`；修复前只替换 `-`，预览仍是 `aaa.bbb`。默认态 separator='-'、输入为中文标题，不命中。",
   },
   {
     slug: "it/summary-generator",
@@ -668,6 +713,13 @@ const CASES = [
     ref: "独立复算：驼峰命名按「词边界合并」（3 词）⇒ `fooBarBaz`；同批产物 `FOO BAR BAZ` / `FOO_BAR_BAZ` 与输入仅大小写不同、易误判回显，故选形态差异最大的驼峰串。默认示例 `Hello World Test Case` 走另一分支，不命中。",
   },
   {
+    slug: "it/case-converter",
+    // IT-N17 回归：按空白分词，仅每词首字符大写、保留词内大小写与撇号。
+    inputs: { inputText: "don't O'Reilly myVar iPhone" },
+    expect: ["Don't O'Reilly MyVar IPhone"],
+    ref: "独立复算：4 个空白分词分别首字符大写、其余字符保持不变 ⇒ `Don't O'Reilly MyVar IPhone`；修复前 `\\b\\w`/`\\B\\w` 会把撇号后的 t 大写（`Don'T`）并把词内大写压低（`Myvar` / `Iphone`）。默认示例不含这些词，不命中。",
+  },
+  {
     slug: "it/url-encoder-advanced",
     inputs: { input: "a b&c=d/e?f" },
     clicks: ["enc()"],
@@ -706,6 +758,33 @@ const CASES = [
     dumpIds: ["encoderOutput"],
     expect: ["&#60;&#98;&#62;"],
     ref: "独立复算：全字符编码把 `<` `b` `>` 转成 `&#60;&#98;&#62;`（`encodeText()` 只转 `&`/`<`/`>` 命名实体，产物是 `&lt;b&gt;Tom &amp; Jerry&lt;/b&gt;`，两者形态不同故可区分）。结果容器 `encoderOutput` 不在 harness 默认回写清单，须在用例里带 `dumpIds`。",
+  },
+  {
+    slug: "it/html-entities",
+    // IT-N33 回归：按码点生成十进制实体，emoji 不得只剩 UTF-16 高位。
+    inputs: { encoderInput: "😀" },
+    clicks: ["encodeAll()"],
+    dumpIds: ["encoderOutput"],
+    expect: ["&#128512;"],
+    ref: "独立复算：😀 = U+1F600 ⇒ 十进制 128512；修复前 `charCodeAt(0)` 只取高位代理 ⇒ `&#55357;&#56832;`。默认示例不含 emoji，不命中。",
+  },
+  {
+    slug: "it/html-entities",
+    // IT-N33 回归：扩展 B 区汉字同样按码点编码。
+    inputs: { encoderInput: "𠮷" },
+    clicks: ["encodeAll()"],
+    dumpIds: ["encoderOutput"],
+    expect: ["&#134071;"],
+    ref: "独立复算：扩展 B 区汉字 𠮷 = U+20BB7 ⇒ 十进制 134071；修复前 `charCodeAt(0)` 只取高位代理 ⇒ `&#55362;&#57271;`。默认示例不含该字，不命中。",
+  },
+  {
+    slug: "it/html-entities",
+    // IT-N33 回归：解码只替换已知实体，裸 < 与标签文本原样保留。
+    inputs: { encoderInput: "a<b &amp; c" },
+    clicks: ["decodeText()"],
+    dumpIds: ["encoderOutput"],
+    expect: ["a<b & c"],
+    ref: "独立复算：`&amp;` 还原为 `&`、裸 `<` 不被当作标签 ⇒ `a<b & c`；修复前用 `div.innerHTML` 解析，裸 `<b` 被吞成 `a`。默认态编码示例为空，不命中。",
   },
   {
     slug: "it/crontab-generator",
@@ -1456,6 +1535,29 @@ const CASES = [
     ref: "独立复算：两行 CSV（`name,age` / `Tom,3`）⇒ 标准列数 2、问题数 0。默认示例是 6 行中文表，不命中本锚。",
   },
   {
+    slug: "it/csv-validator",
+    // IT-N13 回归：RFC4180 引号内换行不得误报「引号未闭合」。
+    inputs: { src: "name,note\nAlice,\"line1\nline2\"", sep: "," },
+    clicks: ["calcTool()"],
+    expect: ["2 行数", "✅ 未发现列数/引号问题。"],
+    ref: "独立复算：引号内的换行属于字段内容 ⇒ 2 条记录、每条 2 列、无问题；修复前按 \\n 切行会把第 2 条记录切成两半并误报「引号未闭合」。默认示例有列数问题、无 ✅，不命中。",
+  },
+  {
+    slug: "it/csv-validator",
+    // IT-N13 回归：CRLF + 双引号转义 + 引号内 CRLF。
+    inputs: { src: "a,b\r\n\"say \"\"hi\"\"\r\nbye\",2", sep: "," },
+    clicks: ["calcTool()"],
+    expect: ["2 行数", "✅ 未发现列数/引号问题。"],
+    ref: "独立复算：`\"\"` 转为单个 `\"`、引号内 CRLF 不切记录 ⇒ 2 条记录、2 列、无问题；修复前引号内的 CRLF 会被当成行分隔并误报未闭合。默认示例不命中。",
+  },
+  {
+    slug: "it/csv-validator",
+    inputs: { src: "a,b\n\"open,2", sep: "," },
+    clicks: ["calcTool()"],
+    expect: ["第 2 行：引号未闭合"],
+    ref: "独立复算：未闭合引号的记录起始于第 2 行 ⇒ 报「第 2 行：引号未闭合」；行号取记录起始物理行，多行字段场景不会错位。默认示例无此文案。",
+  },
+  {
     slug: "it/csv-to-json",
     inputs: { csvInput: "name,age\nTom,3" },
     expect: ['[{"column1":"name","column2":"age"}'],
@@ -1495,6 +1597,13 @@ const CASES = [
     clicks: ["calcTool()"],
     expect: ["输入为空，请粘贴文本或点击“示例”加载示例文本。"],
     ref: "独立复算：输入为空 ⇒ calcTool 走空分支，leOutput 置空、统计不显示，只给提示；示例仅由「示例」按钮注入。修复前把局部 raw 换成 line1/line2/line3，输出与统计显示示例文本，本 expect 不命中。默认态 textarea 有默认文本，不命中。",
+  },
+  {
+    slug: "it/line-ending-converter",
+    // IT-N21 附带：清空后可视化区必须回到等待态。
+    clicks: ["clearLe();document.getElementById('leInput').value='sentinel-text'"],
+    expect: ["（等待输入）"],
+    ref: "独立复算：clearLe 清空 leViz 并置为等待态；随后回填非空输入，避免兜底 calcTool 用空输入重写 viz（该空分支也会写等待态、会掩盖缺陷）。修复前 leViz 仍显示旧可视化内容，兜底也因输入非空而无法写出等待态，故必红。默认态不含「（等待输入）」。",
   },
   {
     slug: "it/js-formatter",
