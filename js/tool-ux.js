@@ -5,6 +5,7 @@
  *   1) 对「确实没有」复制/下载工具栏的结果区，注入一个复制/下载操作条；
  *   2) 输入校验友好提示（focusout 时给出具体原因，不拦截页面逻辑）；
  *   3) 输入值 localStorage 持久化（仅回填用户空字段，不覆盖页面默认/示例）；
+ *      支持 data-no-persist（<body> 或控件级）退出，并提供「清空本页本地数据」入口；
  *   4) 结果区加 aria-live，提升屏幕阅读器可访问性。
  */
 (function () {
@@ -34,6 +35,53 @@
 
   function fieldKey(el, idx) {
     return PERSIST_NS + '#' + (el.id || el.name || ('ix' + idx));
+  }
+
+  /* ---------- 持久化键的页级归属 ---------- */
+  // 本模块历史键为 tb_ux_<path>#<id>，另有 220 个旧页面用 tb_uxp_<path>#<id>，两者都按当前页路径清理
+  function pageKeyPrefixes() {
+    var p = '';
+    try { p = location.pathname || ''; } catch (e) {}
+    var noSlash = p.replace(/^\//, '');
+    var out = [];
+    if (!p) return out;
+    ['tb_ux_', 'tb_uxp_'].forEach(function (pre) {
+      out.push(pre + p);
+      if (noSlash && noSlash !== p) out.push(pre + noSlash);
+    });
+    return out;
+  }
+
+  function isPageKey(k) {
+    var pre = pageKeyPrefixes();
+    for (var i = 0; i < pre.length; i++) { if (k.indexOf(pre[i]) === 0) return true; }
+    return false;
+  }
+
+  function hasPageData() {
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        if (isPageKey(localStorage.key(i) || '')) return true;
+      }
+    } catch (e) {}
+    return false;
+  }
+
+  function clearPageData() {
+    var removed = 0;
+    try {
+      var keys = [];
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (k && isPageKey(k)) keys.push(k);
+      }
+      keys.forEach(function (k) { try { localStorage.removeItem(k); removed++; } catch (e) {} });
+    } catch (e) {}
+    return removed;
+  }
+
+  function isNoPersist(el) {
+    try { return !!(el && el.closest && el.closest('[data-no-persist]')); } catch (e) { return false; }
   }
 
   /* ---------- 1) 结果区复制/下载操作条 ---------- */
@@ -206,6 +254,7 @@
   var persistTimer = null;
   function saveField(el, idx) {
     try {
+      if (isNoPersist(el)) return;
       var v;
       var t = (el.tagName || '').toLowerCase();
       if (t === 'select') v = el.value;
@@ -217,10 +266,17 @@
   }
 
   function enhancePersistence() {
+    // 整页退出持久化（高敏身份/医疗页）：不回填、不保存，并清掉历史遗留的本页键
+    if (document.body && document.body.hasAttribute('data-no-persist')) {
+      clearPageData();
+      return;
+    }
+
     var fields = $all('.container input, .container textarea, .container select').filter(isInputField);
     if (!fields.length) return;
 
     fields.forEach(function (el, idx) {
+      if (isNoPersist(el)) return; // 控件级退出
       // 回填：仅当用户之前存过值、且当前字段为空时，避免覆盖页面默认/示例
       try {
         var saved = localStorage.getItem(fieldKey(el, idx));
@@ -239,10 +295,40 @@
       el.addEventListener(evt, function () {
         if (persistTimer) clearTimeout(persistTimer);
         var cur = idx;
-        persistTimer = setTimeout(function () { saveField(el, cur); }, 300);
+        persistTimer = setTimeout(function () { saveField(el, cur); ensureClearButton(); }, 300);
       });
-      el.addEventListener('change', function () { saveField(el, idx); });
+      el.addEventListener('change', function () { saveField(el, idx); ensureClearButton(); });
     });
+
+    ensureClearButton();
+  }
+
+  /* ---------- 3.1) 「清空本页本地数据」入口 ---------- */
+  var clearBtn = null;
+  function ensureClearButton() {
+    if (!hasPageData()) return;
+    if (clearBtn && document.body.contains(clearBtn)) return;
+    clearBtn = document.createElement('button');
+    clearBtn.type = 'button';
+    clearBtn.className = 'tool-ux-clear';
+    clearBtn.title = '清空本页保存在浏览器的输入';
+    clearBtn.setAttribute('data-i18n-title', 'ux.clear_local');
+    clearBtn.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:9990;font-size:12px;' +
+      'padding:6px 10px;border-radius:10px;border:1px solid var(--border,#ddd);' +
+      'background:var(--card-bg,#fff);color:var(--text-muted,#666);cursor:pointer;' +
+      'box-shadow:0 2px 8px rgba(0,0,0,.08);';
+    clearBtn.appendChild(document.createTextNode('🧹 '));
+    var label = document.createElement('span');
+    label.setAttribute('data-i18n', 'ux.clear_local');
+    label.textContent = '清空本地数据';
+    clearBtn.appendChild(label);
+    clearBtn.addEventListener('click', function () {
+      var n = clearPageData();
+      toast(n ? ('已清空本页本地数据（' + n + ' 项）') : '本页没有可清空的本地数据', n ? 'success' : 'info');
+      if (clearBtn) { clearBtn.remove(); clearBtn = null; }
+    });
+    try { document.body.appendChild(clearBtn); } catch (e) {}
+    try { if (window.I18n && typeof window.I18n.apply === 'function') window.I18n.apply(clearBtn); } catch (e) {}
   }
 
   /* ---------- 4) 结果区可访问性 ---------- */
@@ -257,6 +343,7 @@
     try { enhanceResults(); } catch (e) {}
     try { enhanceValidation(); } catch (e) {}
     try { enhancePersistence(); } catch (e) {}
+    try { ensureClearButton(); } catch (e) {}
     try { enhanceA11y(); } catch (e) {}
   }
 

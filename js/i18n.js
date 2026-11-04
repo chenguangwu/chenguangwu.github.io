@@ -431,6 +431,7 @@ var LANG_REGISTRY = [
       'nav.back_top': 'Back to top',
       'tool.pick_time': 'Pick a time',
       'tool.result_actions': 'Result actions',
+      'ux.clear_local': 'Clear local data',
       'foot.la_widget_aria': 'ToolBox real-time visit data',
       'about.stats_aria': 'Site statistics',
       'about.ad_section_aria': 'Sponsored',
