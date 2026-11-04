@@ -118,7 +118,7 @@ s.parentNode.insertBefore(el, s);
 <div class="formula-box">
   
   
-<div class="formula-eq">水肿分级（按凹陷深度）：1+ 不超过2mm 轻度、2+ 2–4mm 中度、3+ 4–6mm 重度、4+ 不低于6mm 极重度；结合部位与是否对称评估病因。</div></div>
+<div class="formula-eq">水肿分级（取凹陷深度与回弹时间中较重的一档）：1+ 凹陷≤2mm 且回弹≤15秒、2+ 2–4mm 或 16–30秒、3+ 4–6mm 或 31–60秒、4+ >6mm 或 >60秒；结合部位与是否对称评估病因。</div></div>
 
     <h3>凹陷性水肿检查</h3>
     <div class="input-row">
@@ -284,29 +284,34 @@ s.parentNode.insertBefore(el, s);
 
 <script>
 function calc(){
-  var depth=parseFloat(document.getElementById('depth').value)||0;
-  var recovery=parseFloat(document.getElementById('recovery').value)||0;
+  var depth=parseFloat(document.getElementById('depth').value);
+  var recovery=parseFloat(document.getElementById('recovery').value);
   var location=document.getElementById('location').value;
   var bilateral=document.getElementById('bilateral').value;
 
-  if(depth<0){
-    document.getElementById('result').innerHTML='<p style="color:var(--text-muted);">请输入有效数值</p>';
+  if(isNaN(depth)||isNaN(recovery)||depth<0||recovery<0){
+    document.getElementById('result').innerHTML='<p style="color:var(--text-muted);">请输入有效的凹陷深度与恢复时间（均需 ≥ 0）</p>';
     return;
   }
 
+  // 分级同时取「凹陷深度」与「回弹时间」两者中较重的一档
+  var depthGrade = depth<=2?1:(depth<=4?2:(depth<=6?3:4));
+  var recoveryGrade = recovery<=15?1:(recovery<=30?2:(recovery<=60?3:4));
+  var score = Math.max(depthGrade, recoveryGrade);
+
   var grade,color,desc;
-  if(depth<=2){
+  if(score===1){
     grade='1+ 轻度';color='#10B981';
-    desc='水肿较轻，凹陷浅且恢复快。';
-  }else if(depth<=4){
+    desc='凹陷 ≤2mm、回弹 ≤15 秒，水肿较轻。';
+  }else if(score===2){
     grade='2+ 中度';color='#3B82F6';
-    desc='中度水肿，凹陷明显，恢复时间10-15秒。';
-  }else if(depth<=6){
+    desc='凹陷 2–4mm 或回弹 16–30 秒，中度水肿。';
+  }else if(score===3){
     grade='3+ 重度';color='#F59E0B';
-    desc='重度水肿，凹陷深，恢复时间较长。提示显著液体潴留。';
+    desc='凹陷 4–6mm 或回弹 31–60 秒，提示显著液体潴留。';
   }else{
     grade='4+ 极重度';color='#EF4444';
-    desc='极重度水肿，凹陷极深，恢复缓慢，皮肤紧绷。提示严重液体潴留，需积极利尿治疗。';
+    desc='凹陷 >6mm 或回弹 >60 秒，皮肤紧绷，提示严重液体潴留，需积极利尿治疗。';
   }
 
   var locName={
