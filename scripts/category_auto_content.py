@@ -59,15 +59,27 @@ def build_content(ind, ind_name, en_name, count, tool_names, tool_names_en=None)
     desc_en = ('Free online %s tools collection with %d calculators and converters. '
                'Includes %s and more. All run client-side in your browser, no data uploaded.'
                % (en_name, count, rep6))
+    rep_txt = '、'.join(rep[:6]) if rep else ind_name
+    rep_txt_en = ', '.join(rep_en[:6]) if rep_en else en_name
     faq = [
-        {'q': '%s工具需要下载或注册吗？' % ind_name,
-         'a': '不需要。本页所有%s工具都是纯前端在线工具，打开网页即可直接使用，无需安装软件、无需注册账号，也不上传任何数据。' % ind_name,
+        {'q': '%s分类下的工具需要下载或注册吗？' % ind_name,
+         'a': ('不需要。本页 %d 个%s工具（如%s）都是纯前端页面，打开网页即可使用，'
+               '无需安装软件、无需注册账号；输入的数据只在你的浏览器内处理，不会上传服务器。'
+               % (count, ind_name, rep_txt)),
          'q_en': 'Do %s tools require any download or sign-up?' % en_name,
-         'a_en': 'No. Every tool on this page is a pure front-end online tool — just open the page and start using it. No software to install, no account needed, and no data is uploaded.'},
-        {'q': '%s工具的计算结果准确吗？数据安全吗？' % ind_name,
-         'a': '工具基于公开的数学公式与通用行业标准在你的浏览器本地计算，结果即时可得。所有运算都在你的设备本地完成，数据不会上传到服务器，隐私安全有保障。',
-         'q_en': 'Are the results accurate? Is my data safe?',
-         'a_en': 'Calculations are based on published formulas and common industry standards, computed locally in your browser for instant results. Everything runs on your own device — nothing is uploaded to a server.'},
+         'a_en': ('No. The %d %s tools on this page (including %s) are pure front-end pages: '
+                  'just open them and start using. No software to install, no account needed, '
+                  'and anything you enter is processed inside your browser — never uploaded.'
+                  % (count, en_name, rep_txt_en))},
+        {'q': '%s工具的结果能直接用于医疗、法律或财务决策吗？' % ind_name,
+         'a': ('不能直接作为决策依据。本页工具多为通用计算、换算与查询，结果仅供日常参考；'
+               '涉及诊断、诉讼、投资、工程验收等专业场景，请以权威标准、原始仪器读数或持证专业人士的结论为准。'
+               '所有运算都在本地完成，数据不上传。'),
+         'q_en': 'Can the results be used directly for medical, legal or financial decisions?',
+         'a_en': ('No — treat them as everyday references only. Most tools here are general-purpose '
+                  'calculators, converters and lookups; for diagnosis, litigation, investment or '
+                  'engineering acceptance, rely on authoritative standards, raw instrument readings '
+                  'or a licensed professional. Everything is computed locally and nothing is uploaded.')},
     ]
     return {
         'ind': ind, 'ind_name': ind_name, 'en_name': en_name, 'count': count,
