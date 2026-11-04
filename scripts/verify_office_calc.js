@@ -36,6 +36,17 @@ const CASES = [
     "1, 3, 5, 6, 7"
   ],
   "ref": "（2026-09-24 记为「默认空态，只能断言「已选」」）updateRangePreview() 读 #rangeInput 文本 → parseRanges(input,totalPages) 解析页码区间 → 写 #rangePreview。totalPages 初始为 0（必须等真实 PDF 上传），但它是顶层 `let`，直接赋值即可；parseRanges 的越界校验按该值做（1/3/5-7 在 1..20 内合法）。独立复算：去重排序后 = [1,3,5,6,7] ⇒ 5 页。旧锚「已选」来自 updateThumbStatus() 的空态（selectedPages 为空），默认态必命中，判别力 0，已弃。"
+},
+{
+  "slug": "office/pdf-rotate",
+  "inputs": {},
+  "clicks": [
+    "state.numPages=1;state.rotations=[90];state.pdfjsDoc=null;rotateOne(0,180);"
+  ],
+  "expect": [
+    "270°"
+  ],
+  "ref": "旋转角度累加取模：state.rotations[0]=90，rotateOne(0,180) ⇒ (90+180)%360=270，setAngle(0) 写入 #angle-0 徽标。默认态未上传 PDF 不生成缩略图 ⇒ 页面无任何 angle 徽标，「270°」只可能来自该次运算；renderThumbCanvas 无真实 pdfjsDoc，在自身 try 内失败，不影响徽标断言。"
 }
 ];
 async function main() {
