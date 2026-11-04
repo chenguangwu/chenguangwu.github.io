@@ -259,6 +259,12 @@ const CASES = [
     "SW1:1|SW2:0|NEW:1|SRC:1|HREF:1"
   ],
   "ref": "EL-J1 回归：上传 A → 水平翻转 → 换图 B（must 立即作废旧结果）→ 垂直翻转。旧实现换图不清 lastURL，s2.hasResult 仍为 1 且下载 href 指向 A；新实现换图即 clearResult()，s2=0，翻转后 dataURL/currentImg 均为 B、下载 href 与 dataURL 一致。"
+},
+{
+  "slug": "image/generator-15",
+  "inputs": { "cnt": "" },
+  "expect": ["请输入生成数量（1–50）后再生成。"],
+  "ref": "空态回归：生成数量清空时旧实现 `parseInt||5` 仍生成 5 张预览；现要求提示且不出图。默认态含「共 5 张」不含该提示 ⇒ 强判别。"
 }
 ];
 async function main() {
