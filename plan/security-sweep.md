@@ -519,3 +519,20 @@
 - **pdf.js CVE-2024-4367**：`office/pdf-split`、`office/pdf-rotate` 由 CDN 3.11.174 改为自托管 4.2.67（`vendor/pdfjs/4.2.67/`，legacy ESM，主文件与 worker 同版本）。4.x 官方仅发布 `.mjs`，`import` 语句无法挂 `integrity`，因此改为同源自托管（消除第三方供应链环节，强于 SRI）；文件与 npm 包、jsDelivr 双源 sha384 一致。
   真机实测：单页 PDF 拆 1 页、6 页 PDF 拆 `2,4-5` 得 3 页且文本逐页正确；旋转 90/180/270/0 角度与页面朝向正确、文本无损；0 pageerror。
 - **tool-ux 自动持久化**：新增「清空本地数据」浮动入口（按当前页路径前缀删除 `tb_ux_*` 与旧版 `tb_uxp_*`，不触碰其它页），并支持 `data-no-persist`（`<body>` 或控件级）；命中时不回填、不保存，并清除历史遗留键。29 个身份/医疗高敏页（遗嘱、急救联系人、婚宴座位、租客、名单生成、药名提醒、通讯录/电话/邮箱类、中医病历等）已加 body 属性。健康页不改行为，仅依赖统一入口。
+
+### 17.7 结构性无法 SRI 的两个项（2026-11-04，只记录不改代码）
+
+| 项 | 使用位置 | 为何无法 SRI | 实际风险 | 日后检测手段 |
+| --- | --- | --- | --- | --- |
+| `sql-wasm`（sql.js 1.8.0） | [tools/it/sqlite-runner.html](file:///Users/cgw/project/cgw/chenguangwu.github.io/tools/it/sqlite-runner.html#L29) | 主脚本 `sql-wasm.js` 已挂 `integrity`，但它通过 `locateFile` 在运行时按固定版本路径 `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}` 拉取 `sql-wasm.wasm`；wasm 由 Emscripten 运行时 fetch，无法给 `fetch` 挂 `integrity` | 版本路径固定意味着「替换同名 wasm」可绕过主脚本 SRI；cdnjs 同版本路径被篡改/投毒时，页面会执行被替换的 wasm。影响仅限打开 sqlite-runner 且主动执行 SQL 的用户 | ① 定期对 `sql-wasm.wasm` 取 sha256 并与 npm `sql.js@1.8.0` 包内文件比对（可写成 cron 脚本，只比对哈希不下载执行）；② 站点若上 CSP，把 `cdnjs.cloudflare.com` 收敛为白名单并记录变更告警；③ 更彻底：把 `sql-wasm.js` + `sql-wasm.wasm` 收进 `vendor/` 自托管（同 pdf.js 做法） |
+| TTZZ（字节 goofy 埋点） | 全站 16,668 个 HTML（首页、分类页、工具页；唯一 URL 去重后 1 条） | 由内联脚本 `document.createElement('script')` 动态插入 `https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?<token>`；`src` 在运行时拼出，无法在静态 HTML 上挂 `integrity`/`crossorigin` | **token 不是随机数、也不是签名**：全站为同一固定 224 位十六进制串（`85d6452a…`），因此它只是分发/版本标识，不能用于完整性校验。供应商可随时在同 URL 下发新脚本 → 全站执行面随供应商更新而变，属「第三方脚本供应链信任」而非「版本固定」 | ① 每周抓取一次该 URL，记录脚本 sha256 前缀并与上周比对，变化即人工复核（变化可能是正常更新，也可能是劫持）；② 监控 `lf1-cdn-tos.bytegoofy.com` 域名/DNS 与证书变更；③ 若日后供应商改名或该域名不可用，`try/catch` 已容错（脚本失败不阻断页面），但应在构建层统一替换注入源；④ 评估移除：该脚本不承载业务功能，可按合规要求整站下线 |
+
+### 17.8 PII 落盘复审（2026-11-04，数据驱动）
+
+判据由「页面类型敏感」改为「运行时实际写入的键与值形态」：对 68 个含身份线索（姓名/电话/邮箱/证件/地址/车牌/学号）的候选页，在真实浏览器逐页填入 PII 样例（张三 / 13800138000 / pii.test@example.com / 110101199001011234 / 北京市朝阳区建国路88号 / 京A12345 / 20260001），再读 `tb_ux_*`、`tb_uxp_*` 键并用正则判定。
+
+- 68 页抽样，0 加载错误；17 页实际落盘命中 PII 正则。
+- 人工复核后**真 PII 且未标 `data-no-persist` 的 6 页**（字段语义即个人身份数据，且为 tool-ux 自动持久化的「顺手存」）：`edu2/exam-analysis`（姓名,分数）、`sports/stats-11`（姓名,成绩）、`clinical-nursing/cycle-7`（患者编号/姓名）、`safety/reminder-cycle-protection`（使用人 姓名/工号）、`it/area-code-lookup`（电话号码）、`kids/memory-palace`（待记忆内容，示例含电话号码）。已全部加 `<body data-no-persist>`。
+- 其余 11 页为**假阳性**：数值字段（staffCount/routeLen/phone(小时数)/staff 等）、非身份文本（IPv6、UTM source/medium）、通用自由文本（keyword-extractor、nato-alphabet、qr-decoder 等）。自由文本页仍保留「用户自行粘贴 PII」的残余风险，但字段无身份语义，本轮不改。
+- **必须存（显式保存功能，非自动持久化）**：`security/emergency-contacts`、`security/virtual-safe`、`nephrology/manager-1`、`rental/reminder-4`、`funeral/memorial-date`、`cleaning/staff-schedule`、`elderly/reminder-time`、`ecommerce/cycle-15`、`edu/chinese-zodiac`、`tcm-diagnosis/tcm-medical-record` 等页有自定义 `localStorage` 键（`tb_ppe_cycle`/`tb_ckd_patients`/`leases`/`staff`/`meds`/`customers` 等）。`data-no-persist` 只停用 tool-ux 自动回填，不阻断这些显式保存；站点全局隐私徽标已声明「数据仅在本机处理、不上传」。
+- 一致性遗留：`reminder-cycle-protection` 的 PPE 队列通过自定义 `tb_ppe_cycle` 保存 `person`，属于「必须存」，加 `data-no-persist` 只关闭了输入框冗余自动保存，队列功能不受影响。
