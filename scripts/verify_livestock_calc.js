@@ -75,6 +75,36 @@ const CASES = [
   "ref": "独立复算：受胎率 = 1 ÷ 配种次数 3 × 100% = 33.33% ⇒ 页面 toFixed(0) 取 33%。产犊间隔/空怀天数不可作锚——上次产犊日期留空时脚本固定取「今天−365 天」，间隔恒 365、空怀恒 365−283=82，与默认态完全相同（注入失败仍 PASS 即逃生物）；daysToFirstBreed=113 只是「产后首次配种」回显。默认配种 2 次 ⇒ 50%，与本条 33% 不同，具判别力。"
 },
 {
+  "slug": "livestock/calving-interval",
+  "inputs": { "gestation": "0" },
+  "expect": [ "请输入有效妊娠期" ],
+  "ref": "0 天妊娠期无生物学意义：旧实现 `num('gestation') || 283` 会把留空/0 静默回退默认 283 天，用户输入 0 却按 283 计算；改为显式拒绝。默认 283 不出现该提示。"
+},
+{
+  "slug": "livestock/estimate-yield",
+  "inputs": { "qty": "1000", "ts": "20", "hrt": "0" },
+  "expect": [ "水力停留时间（>0 天）" ],
+  "ref": "HRT=0 时反应器容积恒为 0 m³，旧 `valid` 只校验 qty>0 && ts>0，仍会把 0 容积当作有效结果输出；改为要求 hrt>0。默认 hrt=20 不出现该提示。"
+},
+{
+  "slug": "livestock/estimate-yield",
+  "inputs": { "qty": "1000", "ts": "120", "hrt": "20" },
+  "expect": [ "TS（0–100%）" ],
+  "ref": "含固率 >100% 无物理意义（旧实现仅要求 ts>0，120% 会照算）；改为 ts≤100 拦截。默认 ts=20 不出现该提示。"
+},
+{
+  "slug": "livestock/fattening-pig-timeline",
+  "inputs": { "currentWeight": "60", "targetWeight": "110", "adg": "800", "fcr": "0", "feedPrice": "3.5" },
+  "expect": [ "料肉比（>0）" ],
+  "ref": "料肉比 0 会让预计饲料消耗与饲料成本恒为 0，旧实现只校验体重/日增重；改为 fcr>0（饲料单价 ≥0）显式拒绝。默认 fcr=2.8 不出现该提示。"
+},
+{
+  "slug": "livestock/poultry-light-program",
+  "inputs": { "currentAge": "0" },
+  "expect": [ "请输入有效日龄（≥1 天）" ],
+  "ref": "旧实现 `parseInt(age) || 1` 把 0 日龄静默改成 1 日龄并显示「1 天」，与用户输入不符；改为显式拒绝。默认 1 日龄不出现该提示。"
+},
+{
   "slug": "livestock/castration-timing",
   "inputs": {
     "animalType": "cattle"
