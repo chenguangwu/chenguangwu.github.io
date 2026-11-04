@@ -190,3 +190,13 @@ grep -rlE "toBlob\(|toDataURL\(" js/tools --include='*.js' | sort
 
 - **整文件 `git add` 之前必须先 `git diff <file>`**，确认没有不属于本批的行；跨线文件只提交自己的 hunk（`git diff` 过滤后 `git apply --cached`）。
 - 事故样例：`78dd6e3b1b` 整文件入库 `tools/design/svg-to-png.html`，把工作区里内容批（`5189f87ac1` / `content_deepdive.json`）的旧 FAQ 文案一并提交，覆盖了 `0e45be8eca` 与 `#bgMode` 自洽的新措辞 → 「旧文案回写覆盖新修正」。源头修法归设计生活线，本线不再改该页与 `content_deepdive.json`。
+
+## 十、B 档收口（2026-11-05，D1–D3 三批）
+
+B 档 37 页按 10/10/7 三批修完，每批独立提交（`64a7a01844` B 前 9 页；`fee40918ae` D1；`78ece2caac` D2；`033b62b912` D3）。
+
+- **统一口径**：`toDataURL` / `toBlob` 外层补同步 `try/catch` → `showToast('导出失败：…', 'error')` 并 `return`；`toBlob` 的 `!blob` / `Promise` 拒绝路径同样落可见失败文案；失败分支一律在成功提示之前返回，避免「失败被成功消息盖掉」。
+- **顺带修复**：`design/qr-code-styled` 原调用不存在的 `QRCode.toCanvas`（本地 `js/qrcode.js` 导出的是 `qrcode` 工厂），页面恒显示「未加载」→ 改为 `qrcode(0, ec)` + 手绘模块；`design/colorblind-simulator` 失败 toast 被「已载入示例图」覆盖 → `renderImagePane()` 返回 `false` 时提前 return（B 前 9 页批）。
+- **桩级失败注入**：设计 7 + 图像 2 + IT 8 + 数学 1 + 眼科 3 + 心理 2 条，全部在 `scripts/verify_*_calc.js`；模块型页面（`colorblind-simulator`、`bigfive`）仅真机验证。
+- **真机失败注入**：三批共 28 次（含 `gif-split` 双路径），失败文案可见、0 pageerror；无注入负向对照全部干净。
+- **真机观察（未修，超出导出范围）**：7 个条码页加载后不自动生成首张条码（手动点「生成」即正常），`generate()` 本身无异常。
