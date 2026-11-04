@@ -3462,22 +3462,34 @@ document.addEventListener('DOMContentLoaded', autoInjectCopyBtn);
 
 // 数字型文本框识别关键词（用于判断 text 输入框是否为数字输入）
 var NUM_HINT_RE = /数字|数值|金额|单价|数量|长度|宽度|高度|重量|体积|温度|时间|年份|百分比|利率|费用|价格|面积|距离|速度|频率|电压|电流|功率|能量|容量|人数|次数|系数|比例|分数|半径|直径|边长|年龄|天数|月数|年数|公里|米|千克|克|吨|升|毫升|小时|分钟|秒|元|万|亿/;
+// 多值列表输入：逗号/分号/顿号/空白是合法分隔符，数字净化不得删除
+var LIST_SEP_RE = /[,;、，]/;
+function isListInput(inp){
+  if (inp.hasAttribute('data-list') || inp.hasAttribute('multiple')) return true;
+  var init = inp.getAttribute('value');
+  if (init && LIST_SEP_RE.test(init)) return true;
+  return false;
+}
 function enhanceNumberInputs(){
   try {
     document.querySelectorAll('input[type="text"]').forEach(function(inp){
       if (inp.hasAttribute('data-tb-time-input')) return;
+      if (isListInput(inp)) return;
       if (!inp.getAttribute('inputmode') && NUM_HINT_RE.test(inp.placeholder || '')) {
         inp.setAttribute('inputmode', 'decimal');
         inp.setAttribute('pattern', '[0-9.\\-]*');
       }
     });
-    document.querySelectorAll('input[inputmode="decimal"], input[inputmode="numeric"]').forEach(function(inp){
+    document.querySelectorAll('input[inputmode="decimal"], input[inputmode="numeric"], input[data-list]').forEach(function(inp){
       if (inp.hasAttribute('data-tb-time-input')) return;
       if (inp.__numGuard) return;
       inp.__numGuard = true;
+      var listField = isListInput(inp);
       inp.addEventListener('input', function(){
-        // 非法字符阻止（保留数字、小数点、负号）
-        var cleaned = inp.value.replace(/[^0-9.\-]/g, '');
+        // 非法字符阻止：单值只留数字/小数点/负号；多值另留分隔符（逗号、分号、顿号、空白）
+        var cleaned = listField
+          ? inp.value.replace(/[^0-9.\-,\s;、，]/g, '')
+          : inp.value.replace(/[^0-9.\-]/g, '');
         if (cleaned !== inp.value) inp.value = cleaned;
         if (inp.getAttribute('data-invalid')) { inp.style.borderColor = ''; inp.removeAttribute('data-invalid'); }
       });
