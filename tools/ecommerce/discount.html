@@ -123,13 +123,26 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按标价与折扣率计算实付金额、优惠额与折数。">Discount - online utility on ToolBox.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">促销折扣计算：实付金额 = 标价 × (1 − 折扣率 ÷ 100)（元）；联动卡：优惠金额 = 标价 − 实付、等效折数 = (1 − 折扣率÷100) × 10（折，保留 1 位小数）。校验：标价需 ≥ 0、折扣率需在 0–100% 之间，非有限数值或越界时标红并停止计算。判据：折扣率 &gt;50% 判「力度偏大」并提示复核毛利，否则「力度适中」。</div>
-      <p class="formula-desc">本工具按折扣率、满减门槛与优惠券叠加规则计算到手价与优惠力度，支持多方案对比。</p>
+      <div class="formula-eq">① 多级折扣：折扣系数 = (1 − 一级折扣率÷100) × (1 − 二级折扣率÷100)，两级必须<b>连乘</b>、不能相加；② 满减：门槛按<b>折前总额</b>（标价）判断、不按折后金额，减额可填固定值或阶梯「门槛:减额,门槛:减额」；③ 优惠券固定在第 2 步：叠加顺序「先折扣后满减」= 折扣 → 券 → 满减，「先满减后折扣」= 满减 → 券 → 折扣；④ 到手价 = 按上述顺序逐步扣减后的金额（券或满减超过当前应付时按应付封顶）；⑤ 折后毛利率 =（到手价 − 货品成本）÷ 到手价 × 100%（分母是售价/到手价，不是成本）。</div>
+      <div class="formula-desc">本工具按「折扣 → 优惠券 → 满减」的指定顺序计算到手价，并在结果区展示每一步的中间金额与折后毛利率。</div>
     </div>
     <div class="input-row">
-      <div><label>标价（元）</label><input type="number" id="v0" value="880" step="any" oninput="calc()" enterkeyhint="done" aria-label="折扣" placeholder="如 880"></div>
-      <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label>折扣率（%）</label><input type="number" id="v1" value="15" step="any" oninput="calc()" enterkeyhint="done" aria-label="满减" placeholder="如 15"></div>
+      <div><label>标价（元，折前总额）</label><input type="number" id="v0" value="880" step="any" min="0" oninput="calc()" enterkeyhint="done" aria-label="标价" placeholder="如 880"></div>
+      <div><label>一级折扣率（%）</label><input type="number" id="v1" value="15" step="any" min="0" max="100" oninput="calc()" enterkeyhint="done" aria-label="一级折扣率" placeholder="如 15"></div>
+      <div><label>二级折扣率（%，0=不用）</label><input type="number" id="v2" value="0" step="any" min="0" max="100" oninput="calc()" enterkeyhint="done" aria-label="二级折扣率" placeholder="如 10"></div>
+    </div>
+    <div class="input-row">
+      <div><label>满减门槛（元，0=不启用）</label><input type="number" id="v3" value="0" step="any" min="0" oninput="calc()" aria-label="满减门槛" placeholder="如 300"></div>
+      <div><label>满减金额（元）</label><input type="number" id="v4" value="0" step="any" min="0" oninput="calc()" aria-label="满减金额" placeholder="如 50"></div>
+      <div><label>满减阶梯（可选，门槛:减额,…）</label><input type="text" id="v5" value="" oninput="calc()" aria-label="满减阶梯" placeholder="如 300:50,600:120"></div>
+    </div>
+    <div class="input-row">
+      <div><label>券类型</label><select id="v6" onchange="calc()" aria-label="券类型"><option value="none" selected>不使用券</option><option value="flat">立减券（元）</option><option value="percent">折扣券（%）</option></select></div>
+      <div><label>券面额 / 折扣（元 或 %）</label><input type="number" id="v7" value="0" step="any" min="0" oninput="calc()" aria-label="券面额或折扣" placeholder="如 20 或 10"></div>
+      <div><label>叠加顺序</label><select id="v8" onchange="calc()" aria-label="叠加顺序"><option value="discount_first" selected>先折扣后满减</option><option value="threshold_first">先满减后折扣</option></select></div>
+    </div>
+    <div class="input-row">
+      <div><label>货品成本（元，用于折后毛利率）</label><input type="number" id="v9" value="500" step="any" min="0" oninput="calc()" aria-label="货品成本" placeholder="如 500"></div>
     </div>
     <div class="toolbar">
       <div id="discountPresets"></div><button class="btn primary" type="button" onclick="calc()">🧮 计算</button><button class="btn" type="button" onclick="__discountExport()">导出明细 CSV</button>
@@ -137,7 +150,7 @@ s.parentNode.insertBefore(el, s);
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div> <div id="discountTable"></div> <div id="discountDiff"></div> <div id="discountChart"></div> <div id="discountHist"></div>
-    <div class="info-box">💡 实付 = 标价 ×（1 − 折扣率）；折数 =（1 − 折扣率）× 10；折扣率高于 50% 需复核毛利。</div>
+    <div class="info-box">💡 多级折扣用 (1−a)(1−b) 连乘；满减门槛按折前总额判断、不按折后金额；优惠券固定在折扣与满减之间；折后毛利率分母为到手价（售价），不是成本。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
 <div class="card" id="constRefBox">
   <h3 data-zh="📐 公式与标准引据">Formula &amp; Standard References</h3>
@@ -550,10 +563,12 @@ calc();
 <script>
 /* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
 function calc(){
-  var e0=document.getElementById('v0'),e1=document.getElementById('v1');
-  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
+  var e0=document.getElementById('v0'),e1=document.getElementById('v1'),e2=document.getElementById('v2');
+  var e3=document.getElementById('v3'),e4=document.getElementById('v4'),e5=document.getElementById('v5');
+  var e6=document.getElementById('v6'),e7=document.getElementById('v7'),e8=document.getElementById('v8'),e9=document.getElementById('v9');
   var box=document.getElementById('res');
   if(!box)return;
+  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
   if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
   if(A<0||B<0||B>100){
     setInvalid(e0,A<0);
@@ -561,22 +576,121 @@ function calc(){
     box.innerHTML='<div class="info-box" style="color:var(--danger)">⚠ 标价需 ≥ 0，折扣率需在 0–100% 之间（当前输入：标价 '+A+'、折扣率 '+B+'%），请修正后重算。</div>';
     return;
   }
-  setInvalid(e0,false);setInvalid(e1,false);
+  var C=e2?parseFloat(e2.value):0; if(!isFinite(C))C=0;
+  var Q=e3?parseFloat(e3.value):0; if(!isFinite(Q))Q=0;
+  var R=e4?parseFloat(e4.value):0; if(!isFinite(R))R=0;
+  var CV=e7?parseFloat(e7.value):0; if(!isFinite(CV))CV=0;
+  var COST=e9?parseFloat(e9.value):0; if(!isFinite(COST))COST=0;
+  var couponType=(e6&&e6.value)?e6.value:'none';
+  var order=(e8&&e8.value)?e8.value:'discount_first';
+  var ladder=(e5&&e5.value)?String(e5.value).trim():'';
+  var msgs=[], tiers=[];
+  if(C<0||C>100)msgs.push('二级折扣率需在 0–100% 之间（当前输入：'+C+'%）');
+  if(Q<0||R<0)msgs.push('满减门槛与满减金额需 ≥ 0');
+  if(CV<0||(couponType==='percent'&&CV>100))msgs.push(couponType==='percent'?'折扣券折扣率需在 0–100% 之间':'券面额需 ≥ 0');
+  if(COST<0)msgs.push('货品成本需 ≥ 0');
+  if(ladder){
+    var parts=ladder.split(/[,，;；]/);
+    for(var i=0;i<parts.length;i++){
+      var seg=parts[i].trim();
+      if(!seg)continue;
+      var mm=seg.split(/[:：]/);
+      var t=parseFloat(mm[0]),d=parseFloat(mm[1]);
+      if(mm.length<2||!isFinite(t)||!isFinite(d)||t<0||d<0){
+        msgs.push('满减阶梯格式应为「门槛:减额,门槛:减额」（如 300:50,600:120），当前为「'+seg+'」');
+        break;
+      }
+      tiers.push({min:t,cut:d});
+    }
+    tiers.sort(function(x,y){return y.min-x.min;});
+  }
+  if(msgs.length){
+    setInvalid(e2,C<0||C>100);
+    setInvalid(e3,Q<0);
+    setInvalid(e4,R<0);
+    setInvalid(e7,CV<0||(couponType==='percent'&&CV>100));
+    setInvalid(e9,COST<0);
+    box.innerHTML='<div class="info-box" style="color:var(--danger)">⚠ '+msgs.join('；')+'。请修正后重算。</div>';
+    return;
+  }
+  setInvalid(e0,false);setInvalid(e1,false);setInvalid(e2,false);setInvalid(e3,false);
+  setInvalid(e4,false);setInvalid(e7,false);setInvalid(e9,false);
+
+  var base=A, cut=0, cutNote='';
+  if(tiers.length){
+    var hit=null;
+    for(var j=0;j<tiers.length;j++){ if(base>=tiers[j].min){hit=tiers[j];break;} }
+    if(hit){
+      cut=hit.cut;
+      cutNote='满减阶梯生效：折前总额 ¥'+base.toFixed(2)+' 达到阶梯门槛 ¥'+hit.min.toFixed(2)+'，减 ¥'+hit.cut.toFixed(2)+'。';
+    }else{
+      cutNote='折前总额 ¥'+base.toFixed(2)+' 未达任何阶梯门槛，满减不生效。';
+    }
+  }else if(Q>0){
+    if(base>=Q){
+      cut=R;
+      cutNote='折前总额 ¥'+base.toFixed(2)+' 已达到满 '+Q.toFixed(2)+' 元门槛（按折前总额判断），减 ¥'+R.toFixed(2)+'。';
+    }else{
+      cutNote='折前总额 ¥'+base.toFixed(2)+' 未达满 '+Q.toFixed(2)+' 元门槛（按折前总额判断），满减不生效。';
+    }
+  }else{
+    cutNote='未启用满减（满减门槛为 0）。';
+  }
+
+  var factor=(1-B/100)*(1-C/100);
+  var cappedInfo=null;
+  function couponStep(x){
+    if(couponType==='flat'&&CV>0){
+      var v=Math.min(CV,x);
+      if(CV>x)cappedInfo={amount:CV,payable:x};
+      return {out:x-v,note:'立减券 ¥'+v.toFixed(2)};
+    }
+    if(couponType==='percent'&&CV>0){
+      var d=x*CV/100;
+      return {out:x-d,note:'折扣券 '+CV+'% 减 ¥'+d.toFixed(2)};
+    }
+    return {out:x,note:'未使用优惠券'};
+  }
+  var steps=[], final=0, cp, s1;
+  if(order==='threshold_first'){
+    s1=Math.max(0,base-cut);
+    steps.push(['① 满减后金额',s1]);
+    cp=couponStep(s1);
+    steps.push(['② 优惠券后金额（'+cp.note+'）',cp.out]);
+    final=cp.out*factor;
+    steps.push(['③ 折扣后到手价',final]);
+  }else{
+    s1=base*factor;
+    steps.push(['① 折扣后金额',s1]);
+    cp=couponStep(s1);
+    steps.push(['② 优惠券后金额（'+cp.note+'）',cp.out]);
+    final=Math.max(0,cp.out-cut);
+    steps.push(['③ 满减后到手价',final]);
+  }
+
   var items=[];
-  var pay=A*(1-B/100);
-  items.push([pay.toFixed(2), "实付金额（元）"]);
-  items.push([(A-pay).toFixed(2), "优惠金额（元）"]);
-  items.push([((1-B/100)*10).toFixed(1)+" 折", "等效折数"]);
-  items.push([(B>50?"力度偏大":"力度适中"), "折扣力度判读"]);
+  items.push([base.toFixed(2),'标价 / 折前总额（元）']);
+  for(var k=0;k<steps.length;k++) items.push([steps[k][1].toFixed(2),steps[k][0]+'（元）']);
+  items.push([(base-final).toFixed(2),'优惠合计（元）']);
+  items.push([(base>0?((1-final/base)*100).toFixed(2):'0.00')+'%','等效折扣率']);
+  items.push([(base>0?(final/base*10).toFixed(1):'0.0')+' 折','等效折数']);
+  var gm=final>0?((final-COST)/final*100):null;
+  items.push([gm===null?'—':gm.toFixed(2)+'%','折后毛利率（分母为售价）']);
 
   var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
-  html+='💡 实付 = 标价 ×（1 − 折扣率）；折数 =（1 − 折扣率）× 10；折扣率高于 50% 需复核毛利。';
+  html+='<div class="tip-mini" style="margin-top:10px;font-size:13px;color:var(--text-muted);">满减口径：门槛按<b>折前总额</b>（标价）判断、不按折后金额。'+cutNote+'</div>';
+  html+='<div class="tip-mini" style="margin-top:4px;font-size:13px;color:var(--text-muted);">叠加顺序：'+(order==='threshold_first'?'满减 → 优惠券 → 折扣':'折扣 → 优惠券 → 满减')+'；优惠券固定在折扣与满减之间。</div>';
+  if(factor<=0)html+='<div class="tip-mini" style="margin-top:6px;color:var(--danger);">⚠ 多级折扣累积为 0（相当于免费），请复核折扣率是否误设。</div>';
+  if(cappedInfo)html+='<div class="tip-mini" style="margin-top:6px;color:var(--danger);">⚠ 券面额 ¥'+cappedInfo.amount.toFixed(2)+' 超过当前应付 ¥'+cappedInfo.payable.toFixed(2)+'，已按应付封顶（该步后金额为 ¥0.00）。</div>';
+  if(gm!==null&&gm<0)html+='<div class="tip-mini" style="margin-top:6px;color:var(--danger);">⚠ 折后毛利率为负（到手价低于货品成本），本方案亏损。</div>';
   const __g6=html;box.innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
   if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
 }
 function resetAll(){
-  var a=document.getElementById('v0'),b=document.getElementById('v1');
-  if(a)a.value='880';if(b)b.value='15';calc();
+  var d={v0:'880',v1:'15',v2:'0',v3:'0',v4:'0',v5:'',v6:'none',v7:'0',v8:'discount_first',v9:'500'};
+  for(var k in d){var el=document.getElementById(k);if(el)el.value=d[k];}
+  ['v0','v1','v2','v3','v4','v7','v9'].forEach(function(id){setInvalid(document.getElementById(id),false);});
+  calc();
 }
 try{calc();}catch(e){}
 
@@ -678,7 +792,13 @@ function __discountExport(){
 }
 function __discountPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#discountPresets',[{label:'默认参数',labelEn:'Default',values:{'v0':'880', 'v1':'15'}},{"label":"6 折清仓","labelEn":"40% off clearance","values":{"v0":"1299","v1":"40"}},{"label":"会员 8 折","labelEn":"Member 20% off","values":{"v0":"699","v1":"20"}},{"label":"季末 5 折","labelEn":"50% off season end","values":{"v0":"459","v1":"50"}}],function(){ calc(); });
+    TBKit.preset.bar('#discountPresets',[
+      {label:'默认参数',labelEn:'Default',values:{'v0':'880','v1':'15','v2':'0','v3':'0','v4':'0','v5':'','v6':'none','v7':'0','v8':'discount_first','v9':'500'}},
+      {"label":"6 折清仓","labelEn":"40% off clearance","values":{"v0":"1299","v1":"40","v2":"0","v3":"0","v4":"0","v5":"","v6":"none","v7":"0","v8":"discount_first","v9":"700"}},
+      {"label":"会员 8 折","labelEn":"Member 20% off","values":{"v0":"699","v1":"20","v2":"0","v3":"0","v4":"0","v5":"","v6":"none","v7":"0","v8":"discount_first","v9":"400"}},
+      {"label":"季末 5 折","labelEn":"50% off season end","values":{"v0":"459","v1":"50","v2":"0","v3":"0","v4":"0","v5":"","v6":"none","v7":"0","v8":"discount_first","v9":"300"}},
+      {"label":"满 300 减 50 + 9 折","labelEn":"Spend 300 save 50 + 10% off","values":{"v0":"400","v1":"10","v2":"0","v3":"300","v4":"50","v5":"","v6":"none","v7":"0","v8":"threshold_first","v9":"200"}}
+    ],function(){ calc(); });
 }
 var __discount_f0=(typeof calc==='function')?calc:null;
 if(__discount_f0){
