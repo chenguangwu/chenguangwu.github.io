@@ -231,9 +231,22 @@ s.parentNode.insertBefore(el, s);
   </div>
 </div>
 <script>
-function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
+function num(id){const v=parseFloat(document.getElementById(id).value);return isFinite(v)?v:NaN;}
+function __svReq(id,label,minN){
+  var e=document.getElementById(id);
+  var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  var raw=e?String(e.value==null?'':e.value).trim():'';
+  var ok=(raw!=='');
+  if(ok&&minN){var a=raw.split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});ok=a.length>=minN;}
+  else if(ok){ok=isFinite(parseFloat(raw));}
+  if(ok)return '';
+  if(e&&e.classList&&e.classList.add)e.classList.add('input-error');
+  return '<p style="color:var(--danger)">⚠ '+(en?'Please fill in "'+label+'" before calculating.':'请填写「'+label+'」后再计算。')+'</p>';
+}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
+            var __bad=__svReq('D','距离 D (米)')||__svReq('a','方位角 α (度)');
+            if(__bad){ToolBox.setResult('result',__bad);return;}
             const D=num('D'),a=num('a')*Math.PI/180;
             const dN=D*Math.cos(a), dE=D*Math.sin(a);
             const __g1=dataGrid([
@@ -262,7 +275,7 @@ function __boExtras(){
     if(typeof TBKit==='undefined')return;
     try{
         var D=__boN('D'), a=__boN('a');
-        if(!(D>0))return;
+        if(!(isFinite(D)&&isFinite(a)&&D>0))return;
         var rad=a*Math.PI/180, dN=D*Math.cos(rad), dE=D*Math.sin(rad);
         var back=Math.atan2(dE,dN)*180/Math.PI; if(back<0)back+=360;
         TBKit.chart.bar('#boChart',{labels:[__boL('ΔN (north)','ΔN 北向'),__boL('ΔE (east)','ΔE 东向')],series:[{name:__boL('offset (m)','增量 (m)'),data:[dN,dE]}],height:220,title:__boL('Distance-azimuth to increments (D='+D+'m, α='+a+'°)','距离方位角反算增量（D='+D+'m，α='+a+'°）')});
