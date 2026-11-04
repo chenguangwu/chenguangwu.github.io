@@ -51,3 +51,10 @@
 - 自检：落盘前后比对 `application/ld+json` / `<meta name="toolbox"` / `TOOLBOX-SECURITY` / `js/privacy.js` / `js/i18n.js` / `hreflang` 六项计数，任一变化即中止且不写盘；单行 LD 块额外校验文件行数不变。
 - 回归：取 `f723934c82^` 的 `heat-stress-index` / `feed-conversion-ratio` / `inbreeding-coefficient` 三页副本跑 `--apply`，行数 605/588/592 **零减少**，`diff` 仅 1 个 hunk、只替换 FAQ 那一行。
 
+### 已修 G05-D：heat-stress-index head 结构丢失实为陈旧 zh-tw 产物（2026-11-04）
+- 现象：集成线报「`<head>` 被整块替换，丢 WebApplication/FAQPage LD、privacy/统计/i18n 脚本、hreflang、`TOOLBOX-SECURITY`」，且 `zh-tw` 对应页同样缺失。
+- 核对：源页 `tools/livestock/heat-stress-index.html` 与 HEAD 逐字节一致（`git status` 干净），3 个 LD 块（WebApplication / BreadcrumbList / FAQPage）全部 `json.loads` 通过；`js/i18n.js` / `js/privacy.js` / `js/metrics.js` / `js/analytics.js` / `hreflang`×4 / `TOOLBOX-SECURITY` 计数均与 HEAD 同值。真正缺损的是 `zh-tw/` 构建产物（565 行、仅 1 个 LD、无脚本引用）——它在 22:46 源页处于损坏状态时被构建，源页 22:50 复原后未重建。
+- 处理：`node scripts/gen_opencc_locales.mjs` 重建 8333 个繁体页；该页恢复 3 个 LD + 全部脚本/hreflang/安全 meta（598 行），三块 LD 均可解析。
+- 英文态：`_en_i18n_probe.mjs --check livestock/heat-stress-index` 仅 4 条既有残留（1 条公式说明、3 条 placeholder），非整页回退中文；残留属第三层词典缺口，与本次 head 无关。
+- 教训：① 批量文案/结构脚本**禁止整段替换 head**，必须逐块解析、写盘前后比对结构计数（即 `opt_faq_ld_sync.py` 的六项守卫）；② 源页修复后必须重建 `zh-tw`，否则构建产物仍带旧缺陷，集成线会直接判红。
+
