@@ -482,6 +482,13 @@ const CASES = [
     expect: ["32℃ 棚内温度", "17℃ 内外温差"],
     ref: "注入非默认(默认 28/18/25/75/32/morning/0)：棚内 32℃、内外温差 32−15 = 17℃。默认态为 28℃/10℃，两条均不命中。"
   },
+  // ── 棚温卷膜（温度达标但湿度 >85%，需短时排湿）────
+  {
+    slug: "agriculture/greenhouse-rolling-time",
+    inputs: { inTemp: "26", outTemp: "18", targetTemp: "26", humidity: "95", cropMaxTemp: "35", timePeriod: "noon", windLevel: "1" },
+    expect: ["卷膜通风", "湿度95%偏高"],
+    ref: "独立复算：棚温 26℃ 等于目标 26℃ ⇒ 温度分支为 maintain；湿度 95% > 85 且非早晨 ⇒ 改判卷膜通风并给出「湿度95%偏高」原因（旧实现维持现状，不命中）。默认态湿度 75%，两串均不命中；本条验证高湿分支而非纯文本锚。"
+  },
   // ── 温室通风量（体积 × 换气次数 ÷ 风机效率）────
   {
     slug: "agriculture/greenhouse-ventilation",
