@@ -114,19 +114,27 @@ s.parentNode.insertBefore(el, s);
 
   <div class="card">
     <h2>E_min = 2·m_e·c²</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="光子产生正负电子对所需最小能量。">Compute the minimum photon energy (≥ 2m_e c²) required to produce an electron-positron pair, for high-energy physics and gamma-ray matter-interaction analysis.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="光子产生正负粒子对所需最小能量，可选电子/μ 子/τ 子对并计入靶核反冲。">Compute the minimum photon energy required to produce a lepton pair (electron, muon or tau), optionally including nuclear recoil, for high-energy physics and gamma-ray interaction analysis.</p>
 
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">电子对产生阈值（纯常量计算，页面输入框未参与计算）：E_min = 2·m_e·c²，m_e = 9.10938356×10⁻³¹ kg、c = 299792458 m/s，约 1.022 MeV；联动量：阈值 eV = E_min ÷ (1.602176634×10⁻¹⁹)、对应光子波长 λ = h·c ÷ E_min（m）。校验：无输入校验（结果不随输入变化）。判据：光子能量低于该阈值无法产生正负电子对。</div>
-      <p class="formula-desc">光子产生正负电子对所需最小能量。</p>
+      <div class="formula-eq">粒子对产生阈值：E_min = 2·m·c²（m 为所选轻子对单个粒子质量：电子 9.10938356×10⁻³¹ kg、μ 子 1.8836485×10⁻²⁸ kg、τ 子 3.16745×10⁻²⁷ kg；c = 299792458 m/s）<br>核反冲修正（靶核质量数 A&gt;0）：E_th = 2·m·c²·(1 + m/M)，M = A×1.66053906660×10⁻²⁷ kg<br>联动量：阈值 eV = E_min ÷ 1.602176634×10⁻¹⁹、对应光子波长 λ = h·c ÷ E_min（m）<br>校验：靶核质量数 A 须为 ≥0 的整数（0 表示不计反冲）；判据：光子能量低于阈值无法产生该粒子对。</div>
+      <p class="formula-desc">光子产生正负粒子对所需最小能量，可按轻子种类并计入靶核反冲。</p>
     </div>
 
 
     <div class="input-row">
       <div>
-        <label for="dummy">（常量计算）</label>
-        <input type="number" id="dummy" value="1" step="1" placeholder="如 1">
+        <label for="lepton">轻子对类型</label>
+        <select id="lepton" onchange="calcTool()">
+          <option value="e" selected>电子对 e⁺e⁻</option>
+          <option value="mu">μ 子对 μ⁺μ⁻</option>
+          <option value="tau">τ 子对 τ⁺τ⁻</option>
+        </select>
+      </div>
+      <div>
+        <label for="targetA">靶核质量数 A（0=纯阈值）</label>
+        <input type="number" id="targetA" value="0" min="0" step="1" placeholder="如 0 或 27">
       </div>
     </div>
 
@@ -167,8 +175,9 @@ s.parentNode.insertBefore(el, s);
 <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
       <ul>
-        <li>E_min = 2m_e c² ≈ 1.022 MeV。</li>
-        <li>需 ≥ 两电子静能之和。</li>
+        <li>E_min = 2m c²：电子对约 1.022 MeV，μ 子对约 211.4 MeV，τ 子对约 3556 MeV。</li>
+        <li>靶核质量数 A&gt;0 时计入核反冲，阈值略高于纯 2mc²。</li>
+        <li>轻子对产生阈值仅取决所选粒子质量，与光子波长无关（波长由阈值反推）。</li>
       </ul>
     </div>
   </div>
@@ -208,17 +217,34 @@ s.parentNode.insertBefore(el, s);
 <script>
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+var PAIR_MASS={e:9.10938356e-31,mu:1.8836485e-28,tau:3.16745e-27};
+var PAIR_NAME={e:'电子对 e⁺e⁻',mu:'μ 子对 μ⁺μ⁻',tau:'τ 子对 τ⁺τ⁻'};
+function __ppParams(){
+    var key=document.getElementById('lepton').value;
+    if(!PAIR_MASS[key]) key='e';
+    var aRaw=parseFloat(document.getElementById('targetA').value);
+    if(!isFinite(aRaw)) aRaw=0;
+    if(aRaw<0||Math.abs(aRaw-Math.round(aRaw))>1e-9) return {err:'<p style="color:var(--danger)">⚠ 靶核质量数 A 须为 ≥0 的整数（0 表示不计反冲）。</p>'};
+    var A=Math.round(aRaw);
+    var m=PAIR_MASS[key];
+    var M=A>0?A*1.66053906660e-27:0;
+    var factor=M>0?(1+m/M):1;
+    return {key:key,m:m,A:A,M:M,factor:factor};
+}
 function calcTool(){
             const H=6.62607015e-34,C=299792458,ME=9.10938356e-31,EV=1.602176634e-19,A0=5.291772109e-11,RY=1.0973731568e7,B_WIEN=2.897771955e-3;
-            const Emin = 2 * ME * C * C;
+            var p=__ppParams();
+            if(p.err){ToolBox.setResult('result',p.err);return;}
+            const Emin = 2 * p.m * C * C * p.factor;
             const __g1=dataGrid([
                 [Emin.toExponential(3), '最小能量 (J)'],
                 [(Emin / EV / 1e6).toFixed(4), '阈值 (MeV)'],
                 [(6.62607015e-34*299792458/Emin).toExponential(4), '对应光子波长 λ (m)'],
-                [(Emin/1.602176634e-19).toExponential(4), '阈值能量 (eV)']
+                [PAIR_NAME[p.key], '粒子对'],
+                [p.factor.toFixed(6), '反冲修正因子']
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
-function resetForm(){document.getElementById('dummy').value = '1';
+function resetForm(){document.getElementById('lepton').value = 'e';document.getElementById('targetA').value = '0';
       calcTool();}
 calcTool();
 
@@ -226,22 +252,40 @@ function __pair_production_thresholdNum(id){var e=document.getElementById(id);va
 function __pair_production_thresholdExtras(){
     function __pair_production_thresholdRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
-    var H=6.62607015e-34,C=299792458,ME=9.10938356e-31,EV=1.602176634e-19,A0=5.291772109e-11,RY=1.0973731568e7,B_WIEN=2.897771955e-3;
-    var Emin = 2 * ME * C * C;
+    var p=__ppParams();
     var en=TBKit.util.isEn();
+    if(p.err){
+        TBKit.matrix.table('#pair_production_thresholdTable',{head:en?['Item','Value']:['项目','数值'],rows:[]});
+        return;
+    }
+    var C=299792458,EV=1.602176634e-19;
+    var Emin = 2 * p.m * C * C * p.factor;
+    var rows = [
+        ['当前粒子对', en?'Current pair':PAIR_NAME[p.key]],
+        ['最小能量 (J)', Emin.toExponential(3)],
+        ['阈值 (MeV)', (Emin / EV / 1e6).toFixed(4)],
+        ['对应光子波长 λ (m)', (6.62607015e-34*299792458/Emin).toExponential(4)],
+        ['反冲修正因子', p.factor.toFixed(6)],
+        ['电子对阈值 (MeV)', (2*PAIR_MASS.e*C*C/EV/1e6).toFixed(4)],
+        ['μ 子对阈值 (MeV)', (2*PAIR_MASS.mu*C*C/EV/1e6).toFixed(4)],
+        ['τ 子对阈值 (MeV)', (2*PAIR_MASS.tau*C*C/EV/1e6).toFixed(4)]
+    ];
+    rows[0][0] = en ? 'Current pair' : '当前粒子对';
+    rows[1][0] = en ? 'Minimum energy (J)' : '最小能量 (J)';
+    rows[2][0] = en ? 'Threshold (MeV)' : '阈值 (MeV)';
+    rows[3][0] = en ? 'Photon wavelength λ (m)' : '对应光子波长 λ (m)';
+    rows[4][0] = en ? 'Recoil correction factor' : '反冲修正因子';
+    rows[5][0] = en ? 'Electron pair threshold (MeV)' : '电子对阈值 (MeV)';
+    rows[6][0] = en ? 'Muon pair threshold (MeV)' : 'μ 子对阈值 (MeV)';
+    rows[7][0] = en ? 'Tau pair threshold (MeV)' : 'τ 子对阈值 (MeV)';
     TBKit.matrix.table('#pair_production_thresholdTable',{
         head: en?['Item','Value']:['项目','数值'],
-        rows: [
-            ['最小能量 (J)', Emin.toExponential(3)],
-            ['阈值 (MeV)', (Emin / EV / 1e6).toFixed(4)],
-            ['对应光子波长 λ (m)', (6.62607015e-34*299792458/Emin).toExponential(4)],
-            ['阈值能量 (eV)', (Emin/1.602176634e-19).toExponential(4)],
-        ]
+        rows: rows
     });
-    TBKit.history.record({H:H});
+    TBKit.history.record({lepton:document.getElementById('lepton').value,targetA:document.getElementById('targetA').value});
     function __pair_production_thresholdRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#pair_production_thresholdHist',function(rec){ __pair_production_thresholdRestore(rec); calcTool(); });
-    TBKit.util.diffBox('#pair_production_thresholdDiff',['H']);
+    TBKit.util.diffBox('#pair_production_thresholdDiff',['lepton','targetA']);
 }
 function __pair_production_thresholdExport(){
     if (typeof TBKit === 'undefined') return;
@@ -250,9 +294,10 @@ function __pair_production_thresholdExport(){
 function __pair_production_thresholdPresets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#pair_production_thresholdPresets',[
-        {label:'默认',labelEn:'Default',values:{}},
-        {label:'示例 2×',labelEn:'Example 2×',values:{}},
-        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{}},
+        {label:'电子对（纯阈值）',labelEn:'Electron pair (pure threshold)',values:{lepton:'e',targetA:'0'}},
+        {label:'μ 子对',labelEn:'Muon pair',values:{lepton:'mu',targetA:'0'}},
+        {label:'τ 子对',labelEn:'Tau pair',values:{lepton:'tau',targetA:'0'}},
+        {label:'电子对 + 铝靶 (A=27)',labelEn:'Electron pair + Al target (A=27)',values:{lepton:'e',targetA:'27'}},
     ],function(){ calcTool(); });
 }
 var __tb_fn0 = calcTool;
@@ -303,7 +348,7 @@ else document.addEventListener('DOMContentLoaded', __pair_production_thresholdBo
 </section>
 <script>
 function __ppSweep(){
-  if(!isFinite(num('dummy')))return null;
+  if(!isFinite(num('targetA')))return null;
   var names=['电子 e⁻','μ子 μ⁻','质子 p','中子 n','τ子 τ⁻','氘核 d'];
   var rest=[0.511,105.658,938.272,939.565,1776.86,1875.613];
   var labels=[],dThr=[],dRest=[],rows=[];
