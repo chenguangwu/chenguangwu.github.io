@@ -161,6 +161,14 @@ const CASES = [
     ref: "MD5('hello') = 5d41402abc4b2a76b9719d911017c592（RFC 1321 常见向量）",
   },
   {
+    slug: "it/md5",
+    inputs: { textInput: "a\nb" },
+    checkIds: ["lineMode"],
+    clicks: ["calcText()"],
+    expect: ["0cc175b9c0f1b6a831c399e269772661", "92eb5ffee6ae2fec3ad71c777531578f"],
+    ref: "逐行批量分支（勾选 lineMode）：'a' → 0cc175b9c0f1b6a831c399e269772661、'b' → 92eb5ffee6ae2fec3ad71c777531578f（RFC 1321 单字符向量）。默认态未勾选 lineMode，逐行表 display:none，两串均不出现；整段 'a\\nb' 的摘要也不是这两串。",
+  },
+  {
     slug: "it/sha",
     inputs: { textInput: "hello" },
     checks: ["sha-256"],
@@ -5734,9 +5742,10 @@ const CASES = [
       "hmacInput": "1\n2\n3"
     },
     "expect": [
-      "bfb77520994c313d1abff83000f19dc3\n1 2 3\n13febef193a79e5e7bf4453985265338\nabc123测试\n1 2 3"
+      "bfb77520994c313d1abff83000f19dc3",
+      "13febef193a79e5e7bf4453985265338"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"hmacKey\":\"abc123测试\",\"textInput\":\"1\\n2\\n3\",\"hmacInput\":\"1\\n2\\n3\"}，输出区含「bfb77520994c313d1abff83000f19dc3\n1 2 3\n1…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）改为单值锚：注入 textInput/hmacInput='1\\n2\\n3'、hmacKey='abc123测试' ⇒ 文本 MD5('1\\n2\\n3')=bfb77520994c313d1abff83000f19dc3、HMAC-MD5=13febef193a79e5e7bf4453985265338（可独立用 openssl/node 复算）。原断言把「输入值 + 两个哈希 + 表格顺序」拼成一整串，表格行顺序变化即误报（已改为只锚两个派生哈希，默认态 'Hello, MD5!' 输出不同，均不命中）。"
   },
   {
     "slug": "it/mime-type",

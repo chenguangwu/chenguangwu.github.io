@@ -151,7 +151,7 @@ s.parentNode.insertBefore(el, s);
   <div class="gen-field"><label for="year">年度</label><input type="text" id="year" value="2024" oninput="gen()" placeholder="2024"></div>
   <div class="gen-field"><label for="org">机构（或问题）</label><input type="text" id="org" value="办公室" oninput="gen()" placeholder="Office"></div>
   <div class="gen-field"><label for="range">起止件号</label><input type="text" id="range" value="0001-0150" oninput="gen()" placeholder="0001-0150"></div>
-  <div class="gen-field"><label for="boxNo">盒号</label><input type="text" id="boxNo" value="012" oninput="gen()" placeholder="012"></div>
+  <div class="gen-field"><label for="boxNo">盒号</label><input type="text" id="boxNo" value="012" oninput="gen()" placeholder="012"><small style="font-size:11px;color:var(--text-muted);">支持 012-015 或 012,013 批量</small></div>
   <div class="gen-field"><label for="unit">单位名称</label><input type="text" id="unit" value="" oninput="gen()" placeholder="City Archives"></div>
   <div class="gen-field"><label for="thick">脊背厚度</label><select id="thick" onchange="gen()"><option value="30">30 mm</option><option value="40">40 mm</option><option value="50">50 mm</option></select></div>
 </div>
@@ -246,28 +246,72 @@ function labelRows(){
   if(boxNo)rows.push({key:'盒号',val:boxNo});
   return rows;
 }
+function labelBoxes(raw){
+  raw=String(raw||'').trim();
+  if(!raw) return [];
+  var m=raw.match(/^(\d+)\s*[-~～]\s*(\d+)$/);
+  if(m){
+    var a=parseInt(m[1],10),b=parseInt(m[2],10);
+    if(a<=b&&b-a<=500){
+      var w=Math.max(m[1].length,m[2].length),arr=[];
+      for(var i=a;i<=b;i++){
+        var v=String(i);
+        while(v.length<w)v='0'+v;
+        arr.push(v);
+      }
+      return arr;
+    }
+  }
+  return raw.split(/[,，、\s]+/).filter(function(x){return x;});
+}
+function labelFit(fs,rows){
+  var maxW=0;
+  rows.forEach(function(r){
+    var s=String(r.key)+' '+String(r.val),w=0;
+    for(var i=0;i<s.length;i++){ w += /[^\x00-\xff]/.test(s.charAt(i)) ? 1 : 0.55; }
+    if(w>maxW)maxW=w;
+  });
+  var limit=76/(fs*0.3528); // 80mm 宽 - 2mm×2 边距，1pt≈0.3528mm
+  if(maxW>limit) fs=Math.max(6,76/(maxW*0.3528));
+  return Math.round(fs*10)/10;
+}
 function gen(){
   var res=document.getElementById('res');if(!res)return;
   var rows=labelRows();
   if(!rows.length){res.innerHTML='<p>请至少填写一项标签内容。</p>';window.__labelData=null;return;}
-  var thick=labelThick();
-  var fs=labelFont(thick,rows.length);
-  var h='<div class="label-stage"><div class="label-sheet" id="labelSheet" style="height:'+thick+'mm;font-size:'+fs+'pt">';
-  for(var i=0;i<rows.length;i++){
-    h+='<div class="lbl-line"><span class="lbl-k">'+labelEsc(rows[i].key)+'</span><span class="lbl-v">'+labelEsc(rows[i].val)+'</span></div>';
+  var thick=labelThick(),boxes=labelBoxes(labelVal('boxNo'));
+  var base=rows.filter(function(r){return r.key!=='盒号';});
+  var labels=[];
+  if(boxes.length){
+    boxes.forEach(function(b){
+      labels.push(base.concat([{key:'盒号',val:b}]));
+    });
+  }else{
+    labels.push(base);
   }
-  h+='</div></div>';
-  h+='<div class="label-meta"><span>标签行数</span> <b>'+rows.length+'</b> · <span>字号</span> <b>'+fs.toFixed(1)+'pt</b> · <span>脊背厚度</span> <b>'+thick+'mm</b></div>';
+  var fs=labelFit(labelFont(thick,labels[0].length),labels[0]);
+  var h='<div class="label-stage" style="flex-direction:column;gap:12px;">';
+  labels.forEach(function(rs,idx){
+    h+='<div class="label-sheet"'+(idx===0?' id="labelSheet"':'')+' style="height:'+thick+'mm;font-size:'+fs+'pt">';
+    for(var i=0;i<rs.length;i++){
+      h+='<div class="lbl-line"><span class="lbl-k">'+labelEsc(rs[i].key)+'</span><span class="lbl-v">'+labelEsc(rs[i].val)+'</span></div>';
+    }
+    h+='</div>';
+  });
+  h+='</div>';
+  h+='<div class="label-meta"><span>本次生成</span> <b>'+labels.length+'</b> 张 · <span>标签行数</span> <b>'+labels[0].length+'</b> · <span>字号</span> <b>'+fs.toFixed(1)+'pt</b> · <span>脊背厚度</span> <b>'+thick+'mm</b></div>';
   res.innerHTML=h;
-  window.__labelData={rows:rows,thick:thick,font:fs};
+  window.__labelData={rows:labels[0],labels:labels,thick:thick,font:fs};
 }
 function copyRes(){var r=document.getElementById('res');if(r&&ToolBox)ToolBox.copyText(r.innerText||r.textContent||'');}
 function printLabel(){try{if(typeof window.print==='function')window.print();}catch(e){}}
 function downloadLabel(){
   try{
     var d=window.__labelData;if(!d)return;
-    var dpi=300,pxPerMm=dpi/25.4;
-    var W=Math.round(80*pxPerMm),H=Math.round(d.thick*pxPerMm);
+    var dpi=300,pxPerMm=dpi/25.4,gap=Math.round(4*pxPerMm);
+    var W=Math.round(80*pxPerMm),sheetH=Math.round(d.thick*pxPerMm);
+    var labels=d.labels||[d.rows];
+    var H=sheetH*labels.length+gap*(labels.length-1);
     var c=document.createElement('canvas');if(!c||!c.getContext)return;
     c.width=W;c.height=H;
     var ctx=c.getContext('2d');if(!ctx)return;
@@ -275,17 +319,21 @@ function downloadLabel(){
     ctx.fillStyle='#111';ctx.textAlign='center';ctx.textBaseline='middle';
     var fsPx=Math.round(d.font*dpi/72);
     ctx.font=fsPx+'px "Songti SC","SimSun",serif';
-    var slot=H/d.rows.length,maxW=W-Math.round(4*pxPerMm),lh=fsPx*1.2;
-    d.rows.forEach(function(r,i){
-      var text=r.key+' '+r.val,lines=[],line='';
-      for(var j=0;j<text.length;j++){
-        var t=line+text.charAt(j);
-        if(ctx.measureText(t).width>maxW&&line){lines.push(line);line=text.charAt(j);}
-        else line=t;
-      }
-      if(line)lines.push(line);
-      var y0=(i+0.5)*slot-(lines.length-1)*lh/2;
-      lines.forEach(function(ln,k){ctx.fillText(ln,W/2,y0+k*lh);});
+    var maxW=W-Math.round(4*pxPerMm),lh=fsPx*1.2;
+    labels.forEach(function(rows,li){
+      var top=li*(sheetH+gap);
+      var slot=sheetH/rows.length;
+      rows.forEach(function(r,i){
+        var text=r.key+' '+r.val,lines=[],line='';
+        for(var j=0;j<text.length;j++){
+          var t=line+text.charAt(j);
+          if(ctx.measureText(t).width>maxW&&line){lines.push(line);line=text.charAt(j);}
+          else line=t;
+        }
+        if(line)lines.push(line);
+        var y0=top+(i+0.5)*slot-(lines.length-1)*lh/2;
+        lines.forEach(function(ln,k){ctx.fillText(ln,W/2,y0+k*lh);});
+      });
     });
     var a=document.createElement('a');
     a.href=c.toDataURL('image/png');a.download='archive-spine-label.png';
@@ -331,20 +379,20 @@ gen();
   </div>
   <div class="tool-intro-body">
     <h4><span class="h4-icon">📝</span>工具简介</h4>
-    <p>档案盒脊背标签打印格式生成。免费在线工具，纯前端处理，数据不上传，保护隐私安全。</p>
+    <p>按全宗号、年度、机构、起止件号与盒号生成档案盒脊背标签，字号随脊背厚度与行数自动收缩、并按最长字段宽度二次适配，避免打印溢出；盒号支持 012-015 或 012,013 批量展开，一次生成多张标签并合并下载为一张 PNG。</p>
     <h4><span class="h4-icon">✨</span>功能特点</h4>
     <ul class="intro-features">
-      <li>纯前端处理，数据不上传服务器</li>
-      <li>操作简单，一键完成</li>
-      <li>实时显示结果，所见即所得</li>
-      <li>支持复制和下载结果</li>
+      <li>盒号范围 / 列表批量生成，最多 500 张</li>
+      <li>字号双重收缩：按行高 + 按最长字段宽度</li>
+      <li>30 / 40 / 50 mm 脊背厚度切换</li>
+      <li>打印、下载 PNG、导出 CSV、复制文本</li>
     </ul>
     <h4><span class="h4-icon">🎯</span>使用场景</h4>
     <ul class="intro-scenes">
-      <li>日常办公与学习</li>
-      <li>开发调试与数据处理</li>
-      <li>快速计算与格式转换</li>
-      <li>信息查询与参考</li>
+      <li>年度归档时批量打印盒脊标签</li>
+      <li>盒号连续编号的一次性排版</li>
+      <li>移交前核对盒号与起止件号</li>
+      <li>不同厚度档案盒的字号适配</li>
     </ul>
     </div>
 </div>

@@ -126,7 +126,7 @@ s.parentNode.insertBefore(el, s);
 <textarea id="data" rows="5" oninput="calc()" placeholder="第1期,120000,3400,3.5,28&#10;第2期,138000,3900,3.1,26&#10;第3期,152000,4200,2.8,25">第1期,120000,3400,3.5,28
 第2期,138000,3900,3.1,26
 第3期,152000,4200,2.8,25</textarea>
-<div class="toolbar"><div id="analysis_70Presets"></div><button type="button" class="btn primary" onclick="calc()">复盘分析</button><button class="btn" type="button" onclick="__analysis_70Export()">导出明细 CSV</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<div class="toolbar"><div id="analysis_70Presets"><button type="button" class="btn" onclick="applyPreset(0)">增长依赖客单价</button><button type="button" class="btn" onclick="applyPreset(1)">退款与获客恶化</button><button type="button" class="btn" onclick="applyPreset(2)">全面改善</button></div><button type="button" class="btn primary" onclick="calc()">复盘分析</button><button class="btn" type="button" onclick="__analysis_70Export()">导出明细 CSV</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
 <div class="result-box" id="res"></div> <div id="analysis_70Table"></div> <div id="analysis_70Diff"></div> <div id="analysis_70Chart"></div> <div id="analysis_70Hist"></div>
   </div>
 
@@ -236,13 +236,24 @@ function calc(){
   var avgCac=rows.reduce(function(a,b){return a+b.cac;},0)/rows.length;
   var last=rows[rows.length-1],first=rows[0];
   var health=(last.gmv>=first.gmv&&last.ref<=first.ref&&last.cac<=first.cac)?'改善':'需关注';
-  var riskHtml=risks.length?('<p>风险预警：</p><ul style="margin:4px 0 0 18px;font-size:13px;line-height:1.8;color:var(--text-muted">'+risks.map(function(x){return '<li>'+ToolBox.escHtml(x)+'</li>';}).join('')+'</ul>'):'<p>风险预警：本期各项指标未见明显异常。</p>';
+  var riskHtml=risks.length?('<p>风险预警：</p><ul style="margin:4px 0 0 18px;font-size:13px;line-height:1.8;color:var(--text-muted)">'+risks.map(function(x){return '<li>'+ToolBox.escHtml(x)+'</li>';}).join('')+'</ul>'):'<p>风险预警：本期各项指标未见明显异常。</p>';
   var refWarnHtml=refOutOfRange?'<p style="color:var(--danger,#dc2626)">⚠️ 退款率应在 0–100% 之间，已按边界值处理，请核对原始数据。</p>':'';
   const __g2='<p>复盘期数：<strong>'+rows.length+'</strong>　整体结论：<strong style="color:var(--primary)">'+health+'</strong></p><div style="overflow-x:auto"><table><thead><tr><th>期次</th><th>期名</th><th>GMV</th><th>GMV 环比</th><th>订单数</th><th>订单环比</th><th>客单价</th><th>退款率</th><th>获客成本</th></tr></thead><tbody>'+h+'</tbody></table></div><p>平均退款率：<strong>'+avgRef.toFixed(2)+'%</strong>　平均获客成本：<strong>'+avgCac.toFixed(2)+'</strong></p>'+refWarnHtml+riskHtml;res.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 function fmtMoney(n){return '¥'+n.toLocaleString('zh-CN');}
 function fmtNum(n){return Math.round(n).toLocaleString('zh-CN');}
 function copyRes(){ToolBox.copyText(document.getElementById('res').innerText);}
+
+function applyPreset(i){
+  var sets=[
+    '第1期,100000,3000,3.5,26\n第2期,113000,3050,3.4,26',
+    '第1期,100000,3000,3.0,25\n第2期,98000,2900,4.2,31',
+    '第1期,90000,2600,4.0,30\n第2期,102000,3100,3.4,27'
+  ];
+  if(i<0||i>=sets.length) return;
+  document.getElementById('data').value=sets[i];
+  calc();
+}
 </script>
 
 <!-- SEO 介绍区块 -->
@@ -288,20 +299,20 @@ function copyRes(){ToolBox.copyText(document.getElementById('res').innerText);}
   </div>
   <div class="tool-intro-body">
     <h4><span class="h4-icon">📝</span>工具简介</h4>
-    <p>复盘（数据/分析/改进）机制。免费在线工具，纯前端处理，数据不上传，保护隐私安全。</p>
+    <p>逐期粘贴「期次,GMV,订单数,退款率%,获客成本」五行数据，工具按时间顺序算 GMV 与订单的环比、客单价，逐期标记退款率或获客成本上升超过 0.3 的风险期，并用末期对比首期给出「改善 / 需关注」结论。</p>
     <h4><span class="h4-icon">✨</span>功能特点</h4>
     <ul class="intro-features">
-      <li>纯前端处理，数据不上传服务器</li>
-      <li>操作简单，一键完成</li>
-      <li>实时显示结果，所见即所得</li>
-      <li>支持复制和下载结果</li>
+      <li>逐期 GMV / 订单环比与客单价自动计算</li>
+      <li>退款率、获客成本环比上升超 0.3 即预警</li>
+      <li>识别「GMV 增速明显快于订单增速」的客单价驱动</li>
+      <li>三个一键预设：客单价驱动 / 退款与获客恶化 / 全面改善</li>
     </ul>
     <h4><span class="h4-icon">🎯</span>使用场景</h4>
     <ul class="intro-scenes">
-      <li>日常办公与学习</li>
-      <li>开发调试与数据处理</li>
-      <li>快速计算与格式转换</li>
-      <li>信息查询与参考</li>
+      <li>周会 / 月会前的经营数据复盘</li>
+      <li>投放放量后退款率与获客成本是否失控</li>
+      <li>区分「单量增长」与「客单价拉动的虚增长」</li>
+      <li>多期活动效果的横向对比</li>
     </ul>
     </div>
 </div>

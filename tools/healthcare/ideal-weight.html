@@ -121,7 +121,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="用 Devine 公式估算成人理想体重。">Compute ideal body weight with the Devine formula plus the Hamwi, Miller and Robinson variants, and compare your current weight against each estimate.</p>
     <div class="input-row"><label>身高 cm</label><input type="number" id="height" value="170" step="any" oninput="calc()" placeholder="如 170"></div>
     <div class="input-row"><label>性别 1男/2女</label><input type="number" id="sex" value="1" step="1" oninput="calc()" placeholder="如 1"></div>
-    <div class="input-row"><label>年龄</label><input type="number" id="age" value="30" step="any" oninput="calc()" placeholder="如 30"></div>
+    <div class="input-row"><label>当前体重 kg（可选）</label><input type="number" id="curWeight" value="" step="any" oninput="calc()" placeholder="如 65"></div>
     <div class="toolbar">
       <div id="ideal_weightPresets"></div>
       <button class="btn primary" onclick="calc()">计算</button>
@@ -136,8 +136,8 @@ s.parentNode.insertBefore(el, s);
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
-    <div class="formula-eq">Devine：男 50+2.3×(in−60)，女 45.5+2.3×(in−60)</div>
-    <p style="font-size:13px;color:var(--text-muted);margin-top:12px;">仅作营养评估参考，非健康标准。</p>
+    <div class="formula-eq">in = 身高(cm) ÷ 2.54（超过 5 英尺的英寸数 = in − 60）<br>Devine：男 50 + 2.3×超出英寸，女 45.5 + 2.3×超出英寸<br>Hamwi：男 48 + 2.7×超出英寸，女 45.5 + 2.2×超出英寸<br>Miller：男 56.2 + 1.41×超出英寸，女 53.1 + 1.41×超出英寸<br>Robinson：男 52 + 1.9×超出英寸，女 49 + 1.7×超出英寸<br>单位均为 kg；身高 &lt; 152.4 cm（5 英尺）时公式外推不可靠，本页不给结果</div>
+    <p style="font-size:13px;color:var(--text-muted);margin-top:12px;">IBW 是给药、通气等临床计算基准，不是健康体重或胖瘦评判标准；四式结果本身就有数公斤差异。</p>
   </div>
 </div>
 
@@ -234,20 +234,52 @@ s.parentNode.insertBefore(el, s);
 <script>
 function calc(){
   const height = +document.getElementById('height').value || 0;
-  const sex = +document.getElementById('sex').value || 0;
-  const age = +document.getElementById('age').value || 0;
-  let html = '';
-  const __v = ((()=>{const hIn=height/2.54;return (sex===1?50:45.5)+2.3*(hIn-60);})());
-  html += `<p>理想体重：<strong style="font-size:18px;color:var(--primary);">${__v.toFixed(1)}</strong> kg</p>`;
-  const __g1=html;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+  const male = (+document.getElementById('sex').value || 0) === 1;
+  const cur = +document.getElementById('curWeight').value || 0;
+  const result = document.getElementById('result');
+  if(!height || height < 152.4){
+    result.innerHTML = '<p style="color:var(--danger)">身高需 ≥ 152.4 cm（5 英尺）才能套用这些公式；低于该值请改用儿科或专用公式。</p>';
+    return;
+  }
+  const over = height / 2.54 - 60;
+  const vals = {
+    Devine: (male ? 50 : 45.5) + 2.3 * over,
+    Hamwi: (male ? 48 : 45.5) + (male ? 2.7 : 2.2) * over,
+    Miller: (male ? 56.2 : 53.1) + 1.41 * over,
+    Robinson: (male ? 52 : 49) + (male ? 1.9 : 1.7) * over
+  };
+  const keys = Object.keys(vals);
+  const avg = keys.reduce(function(a,k){return a+vals[k];},0) / keys.length;
+  let html = '<p>理想体重（Devine）：<strong style="font-size:18px;color:var(--primary);">' + vals.Devine.toFixed(1) + '</strong> kg</p>';
+  html += '<ul style="font-size:13px;line-height:1.9;margin:6px 0 0;padding-left:18px;">';
+  ['Hamwi','Miller','Robinson'].forEach(function(k){
+    html += '<li>' + k + '：' + vals[k].toFixed(1) + ' kg</li>';
+  });
+  html += '<li>四式均值：' + avg.toFixed(1) + ' kg</li></ul>';
+  if(cur > 0){
+    const d = cur - vals.Devine;
+    const pct = d / vals.Devine * 100;
+    html += '<p style="margin-top:8px;">当前体重 ' + cur.toFixed(1) + ' kg，较 Devine ' + (d >= 0 ? '高 ' : '低 ') + Math.abs(d).toFixed(1) + ' kg（' + (pct >= 0 ? '+' : '') + pct.toFixed(1) + '%）。这是与公式基准的差值，不代表健康评价。</p>';
+  }
+  result.innerHTML = html;
 }
 function copyResult() {
   const txt = document.getElementById('result').innerText;
   if (!txt) return;
-  navigator.clipboard.writeText(txt).then(() => ToolBox.toast && ToolBox.toast('已复制结果')).catch(() => {
-    const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta);
-    ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
-  });
+  const fallback = function(){
+    try{
+      const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta);
+      ta.select(); if(document.execCommand) document.execCommand('copy'); document.body.removeChild(ta);
+    }catch(e){}
+    if(ToolBox && ToolBox.toast) ToolBox.toast('已复制结果');
+  };
+  try{
+    if(navigator.clipboard && typeof navigator.clipboard.writeText === 'function'){
+      const p = navigator.clipboard.writeText(txt);
+      if(p && typeof p.then === 'function'){ p.then(function(){ if(ToolBox && ToolBox.toast) ToolBox.toast('已复制结果'); }, fallback); return; }
+    }
+  }catch(e){}
+  fallback();
 }
 calc();
 

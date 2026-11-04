@@ -187,9 +187,9 @@ const CASES = [
   },
   {
     slug: "healthcare/ideal-weight",
-    inputs: { height: "175", sex: "1", age: "30" },
-    expect: ["70.5"],
-    ref: "Devine = 50 + 2.3×(175÷2.54 − 60) = 50 + 2.3×8.8976 = 50 + 20.464 = 70.46 → 70.5 kg",
+    inputs: { height: "175", sex: "1" },
+    expect: ["Devine）： 70.5", "Hamwi： 72.0", "Robinson： 68.9"],
+    ref: "175 cm 男性，in=68.8976、超出 8.8976 英寸：Devine = 50+2.3×8.8976 = 70.46 ⇒ 70.5；Hamwi = 48+2.7×8.8976 = 72.02 ⇒ 72.0；Miller = 56.2+1.41×8.8976 = 68.75 ⇒ 68.7；Robinson = 52+1.9×8.8976 = 68.91 ⇒ 68.9。默认态 170 cm 男性为 65.9 / 66.9 / 64.9 / 64.8，均不命中。旧用例只锚 Devine 单值，已随四公式实现更新。"
   },
   {
     slug: "healthcare/healthcare-5",
@@ -632,13 +632,12 @@ const CASES = [
     "slug": "healthcare/ideal-weight",
     "inputs": {
       "height": "42",
-      "sex": "42",
-      "age": "42"
+      "sex": "42"
     },
     "expect": [
-      "42\n42\n42\n理想体重： -54.5 kg"
+      "身高需 ≥ 152.4 cm（5 英尺）才能套用这些公式"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"height\":\"42\",\"sex\":\"42\",\"age\":\"42\"}，输出区含「42\n42\n42\n理想体重： -54.5 kg」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "身高 42 cm 低于 5 英尺基准 ⇒ 页面走「公式外推不可靠」保护分支，不再输出负值（旧断言 -54.5 kg 是未加保护的负值外推，已随实现修正）。默认态 170 cm 正常输出，不含该警告串。"
   },
   {
     "slug": "healthcare/heart-rate-zones",
