@@ -252,6 +252,12 @@ const CASES = [
     "expect": ["\"col_2\":\"200\""],
     "ref": "csv→json(无表头)：第二行第二列 200 ⇒ \"col_2\":\"200\"（默认 textarea 无该值，注入失败即不命中）。"
   },
+  {
+    "slug": "data/csv-json",
+    "inputs": { "input": "x,y\n100,200" },
+    "copyCheck": { "fn": "copyResult", "expect": "\"col_2\":\"200\"" },
+    "ref": "复制路径：注入转换后 copyResult(event) 写入剪贴板的内容必须等于结果区 \"col_2\":\"200\"，且 then 回调不抛异常；旧实现 .then 内读隐式 event.target 会抛 TypeError 被 Promise 吞掉。"
+  },
 
   {
     "slug": "data/yaml-json",

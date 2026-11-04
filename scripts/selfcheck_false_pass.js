@@ -73,7 +73,9 @@ function hasRealInputs(c) {
 // 这样「无输入但 expect 为真实输出片段（静态展示页）」不会被误伤。
 const PLACEHOLDER = /^(ok|ok\.|结果|result|通过|pass|✓|√|占位|占位符|暂无|计算中|test|测试|-|—|·|\.|\s*)$/i;
 function isPlaceholderExpect(c) {
-  const toks = (c.expect || []).map((s) => String(s).trim());
+  // copyCheck 用例的断言写在 copyCheck.expect（复制内容），与顶层 expect 等价
+  const toks = (c.copyCheck && c.copyCheck.expect ? [c.copyCheck.expect] : (c.expect || []))
+    .map((s) => String(s).trim());
   if (!toks.length) return true;
   return toks.every((t) => PLACEHOLDER.test(t));
 }

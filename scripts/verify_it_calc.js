@@ -1527,6 +1527,13 @@ const CASES = [
     ref: "独立复算：A=1/Z=26 ⇒ `24-25-26`。**注入必须避开默认文本 `HELLO WORLD`** —— 它的编码结果以 `23-15-18-12-4` 结尾，与本例锚成子串关系，默认态会命中 ⇒ 逃生项。",
   },
   {
+    slug: "it/a1z26-cipher",
+    inputs: { input: "XYZ", sep: "-" },
+    clicks: ["enc()"],
+    copyCheck: { fn: "copyResult", expect: "24-25-26" },
+    ref: "复制路径：enc() 后 copyResult(event) 写入剪贴板的内容必须等于结果区 `24-25-26`，且 then 回调不抛异常；旧实现 .then 内读隐式 event.target 会抛 TypeError 被 Promise 吞掉。",
+  },
+  {
     slug: "it/baudot-code",
     inputs: { input: "AB1" },
     clicks: ["enc()"],
@@ -8850,7 +8857,7 @@ async function runCaseInner(c) {
     }
     await Promise.allSettled(pending);   // async 处理函数（如 crypto.subtle）需等其落盘
     const blob1 = collectStrings(elements);
-    for (const want of c.expect) {
+    for (const want of (c.expect || [])) {
       if (blob1.includes(want)) return { ok: true, via: "input event" };
     }
   }
@@ -8868,9 +8875,41 @@ async function runCaseInner(c) {
     }
     await Promise.allSettled(pending);
     const blobC = collectStrings(elements);
-    for (const want of c.expect) {
+    for (const want of (c.expect || [])) {
       if (blobC.includes(want)) return { ok: true, via: "click" };
     }
+  }
+  // 2.6) 复制回调验证（copyCheck，opt-in）：断言复制函数同步不抛、writeText 的 then 回调不抛，
+  // 且写入内容与断言一致。navigator.clipboard 替换为会记录写入并在 then 内同步执行回调的桩，
+  // 使回调异常能被本用例捕获（真机里该异常会被 Promise 吞掉）。
+  // 字段：{ fn, args?, btnArg?, expect? }；btnArg=true 时按 `fn(...args, btn)` 调用（this 传按钮的页面）。
+  if (c.copyCheck) {
+    const cc = c.copyCheck;
+    const cfn = fns[cc.fn] || globalThis[cc.fn];
+    if (typeof cfn !== "function") return { ok: false, why: "copyCheck: 函数缺失 " + cc.fn };
+    let written = "";
+    let cbErr = null;
+    const fakeBtn = {
+      textContent: "复制", innerHTML: "复制", style: {},
+      classList: { add() {}, remove() {}, toggle() {}, contains() { return false; } },
+      setAttribute() {}, getAttribute() { return null; }, closest() { return null; },
+    };
+    navigator.clipboard.writeText = (t) => {
+      written = String(t);
+      return { then(ok) { try { if (typeof ok === "function") ok(); } catch (e) { cbErr = e.message; } } };
+    };
+    try {
+      if (cc.btnArg) cfn(...(cc.args || []), fakeBtn);
+      else cfn({ target: { closest: () => fakeBtn } }, ...(cc.args || []));
+    } catch (e) {
+      return { ok: false, why: "copyCheck 抛出: " + String(e.message).slice(0, 80) };
+    }
+    if (cbErr) return { ok: false, why: "copyCheck 回调抛出: " + String(cbErr).slice(0, 80) };
+    if (!written) return { ok: false, why: "copyCheck 未写入剪贴板" };
+    if (cc.expect && !written.includes(cc.expect)) {
+      return { ok: false, why: "copyCheck 内容不匹配", sample: written.slice(0, 120) };
+    }
+    return { ok: true, via: "copyCheck" };
   }
   // 3) 兜底：直接调用候选函数
   // 跳过「状态破坏性 / 辅助」类函数：resetAll / clearHistory / restoreHistory / saveHistory /
