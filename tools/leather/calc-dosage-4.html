@@ -125,10 +125,10 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="📐 脱毛硫化钠用量">Calc Dosage 4</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入皮重、液比与硫化钠浓度，计算脱毛液量及硫化钠用量">Calc Dosage 4</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">液量 = 皮重 × 液比 (L)；硫化钠用量 = 液量 × 浓度% ÷ 100 (kg)；占皮重比例 = 用量 ÷ 皮重 × 100%；皮重须大于 0，浓度须在 0–100 之间，液比非负</div>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">液量 = 皮重 × 液比 (L)；硫化钠用量 = 液量 × 浓度% ÷ 100 (kg)；占皮重比例 = 用量 ÷ 皮重 × 100%；皮重须大于 0，浓度须在 0–20% 之间（常温溶解度上限），液比非负</div>
       <p class="formula-desc" data-zh="核心计算公式（按输入变量）：liq×c÷100">Key formulas: liq×c÷100</p>
     </div>
-<div class="input-row"><div><label>皮重 (kg)</label><input type="number" class="calc-input" id="weight" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="皮重 (kg)" placeholder="如 100"></div><div><label>液比</label><input type="number" class="calc-input" id="lr" value="2.0" step="any" oninput="calc()" enterkeyhint="done" aria-label="液比" placeholder="如 2.0"></div><div><label>硫化钠浓度 (%)</label><input type="number" class="calc-input" id="conc" value="60" step="any" oninput="calc()" enterkeyhint="done" aria-label="硫化钠浓度 (%)" placeholder="如 60"></div></div>
+<div class="input-row"><div><label>皮重 (kg)</label><input type="number" class="calc-input" id="weight" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="皮重 (kg)" placeholder="如 100"></div><div><label>液比</label><input type="number" class="calc-input" id="lr" value="2.0" step="any" oninput="calc()" enterkeyhint="done" aria-label="液比" placeholder="如 2.0"></div><div><label>硫化钠浓度 (%)</label><input type="number" class="calc-input" id="conc" value="3" step="any" oninput="calc()" enterkeyhint="done" aria-label="硫化钠浓度 (%)" placeholder="如 3（0–20）"></div></div>
     <div class="toolbar">
       <div id="calc_dosage_4Presets"></div>
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
@@ -171,7 +171,7 @@ s.parentNode.insertBefore(el, s);
 
       <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
       <ul>
-<li>浓度按溶液中硫化钠质量百分比计</li>
+<li>浓度按溶液中硫化钠质量百分比计，常规脱毛约 2–5%，上限受常温溶解度限制（约 20%）</li>
         <li>硫化钠有腐蚀性，实际操作须做好防护</li>
         <li>结果为估算值，需结合工艺调整</li>
       </ul>
@@ -198,9 +198,16 @@ function copyRes(){if(!lastResult){ToolBox.showToast(i18nText(),'warning');retur
 document.addEventListener('DOMContentLoaded',function(){renderHistory();});
 function calc(){
   var w=num('weight'),lr=num('lr'),c=num('conc');
-  setInvalid(document.getElementById('weight'),w<=0);
-  setInvalid(document.getElementById('lr'),lr<0);
-  setInvalid(document.getElementById('conc'),c<0||c>100);
+  var wBad=w<=0,lrBad=lr<0,cBad=c<0||c>20;
+  setInvalid(document.getElementById('weight'),wBad);
+  setInvalid(document.getElementById('lr'),lrBad);
+  setInvalid(document.getElementById('conc'),cBad);
+  if(wBad||lrBad||cBad){
+    lastResult='';
+    var msg=wBad?'皮重须大于 0':(lrBad?'液比不得为负':'硫化钠浓度须在 0–20% 之间（常温溶解度上限）');
+    document.getElementById('res').innerHTML='<p style="color:var(--danger);">⚠ '+msg+'</p>';
+    return;
+  }
   var liq=w*lr;
   var dose=liq*c/100;
   var pct=w>0?dose/w*100:0;
@@ -209,7 +216,7 @@ function calc(){
     para('按液量 = 皮重 × 液比计算，硫化钠用量 = 液量 × 浓度%。实际投料需结合皮张状态与脱毛效果调整。');document.getElementById('res').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
   if(w>0&&lr>0) saveHistory('皮重'+w+'kg 用量'+dose.toFixed(2)+'kg');
 }
-function resetAll(){document.getElementById('weight').value=100;document.getElementById('lr').value=2.0;document.getElementById('conc').value=60;setInvalid(document.getElementById('weight'),false);setInvalid(document.getElementById('lr'),false);setInvalid(document.getElementById('conc'),false);calc();ToolBox.showToast(i18nText(),'info');}
+function resetAll(){document.getElementById('weight').value=100;document.getElementById('lr').value=2.0;document.getElementById('conc').value=3;setInvalid(document.getElementById('weight'),false);setInvalid(document.getElementById('lr'),false);setInvalid(document.getElementById('conc'),false);calc();ToolBox.showToast(i18nText(),'info');}
 calc();
   
 var __calc_dosage_4_last=0,__calc_dosage_4_skip=false;
@@ -310,7 +317,7 @@ function __calc_dosage_4Export(){
 }
 function __calc_dosage_4Presets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#calc_dosage_4Presets',[{label:'默认参数',labelEn:'Default',values:{'weight':'100', 'lr':'2.0', 'conc':'60'}},{"label":"小规模","labelEn":"Small scale","values":{"weight":"50"}},{"label":"大规模","labelEn":"Large scale","values":{"weight":"150"}},{"label":"极端工况","labelEn":"Extreme case","values":{"weight":"200"}}],function(){ calc(); });
+    TBKit.preset.bar('#calc_dosage_4Presets',[{label:'默认参数',labelEn:'Default',values:{'weight':'100', 'lr':'2.0', 'conc':'3'}},{"label":"小规模","labelEn":"Small scale","values":{"weight":"50"}},{"label":"大规模","labelEn":"Large scale","values":{"weight":"150"}},{"label":"极端工况","labelEn":"Extreme case","values":{"weight":"200"}}],function(){ calc(); });
 }
 var __calc_dosage_4_f0=(typeof calc==='function')?calc:null;
 if(__calc_dosage_4_f0){

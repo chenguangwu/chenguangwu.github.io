@@ -120,8 +120,8 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根据目标合金元素含量(Cr/Ni/Mo等)，计算各铁合金原料加入量，支持回收率修正。">Alloy Ratio</p>
     <div class="formula-box">
       <div class="formula-title">📐 工作原理与说明</div>
-  <div class="formula-eq">合金加入量 = 钢水量 × (目标成分% − 初始成分%) ÷ (合金元素含量% × 收得率%)</div>
-      <p class="formula-desc" data-zh="核心计算公式（按输入变量）：delta÷(e.rawPct÷100×e.recovery÷100)；W×(e.target-initPct)÷100">Key formulas: delta÷(e.rawPct÷100×e.recovery÷100); W×(e.target-initPct)÷100</p>
+  <div class="formula-eq">合金加入量 = 钢水量 × (目标成分 − 初始成分) ÷ (合金元素含量 × 收得率 − 目标成分)　（含量均用小数，按加入后钢液总量衡算）</div>
+      <p class="formula-desc" data-zh="核心计算公式：加入量 = W×(目标%−初始%)÷(原料含量%×回收率%−目标%)，按加入后钢液总量衡算">Key formula: addition = W×(target%−initial%)÷(alloy content%×recovery%−target%), balanced on the final melt mass</p>
     </div>
     <div class="input-row">
       <div><label>钢液重量 W (t)</label><input type="number" id="steelW" value="5" min="0.01" step="0.1" oninput="calc()" placeholder="如 5"></div>
@@ -143,9 +143,8 @@ s.parentNode.insertBefore(el, s);
     <h2>📋 计算说明</h2>
     <div class="info-box">
       <strong>计算公式：</strong><br>
-      某元素需增量 ΔM = W × (目标含量 − 初始含量) / 100 (t)<br>
-      原料加入量 = ΔM / (原料合金含量 × 回收率)<br><br>
-      <strong>示例：</strong>5t 钢液需增 Cr 至 18%，原料为高碳铬铁(含Cr 60%，回收率 95%)，则加入量 = 5×18% / (60%×95%) ≈ 1.58 t。<br>
+      原料加入量 = W × (目标含量 − 初始含量) ÷ (原料合金含量 × 回收率 − 目标含量)（各含量均用小数）<br><br>
+      <strong>示例：</strong>5t 钢液需增 Cr 至 18%，原料为高碳铬铁(含Cr 60%，回收率 95%)，则加入量 = 5×0.18 ÷ (0.60×0.95 − 0.18) ≈ 2.31 t；投料后钢液约 7.31 t，Cr 恰为 18%。<br>
       注：本工具为理论估算，未考虑原料带入的碳/磷等副作用及温度影响。
     </div>
   </div>
@@ -174,14 +173,14 @@ s.parentNode.insertBefore(el, s);
 <ul class="dd-list">
 <li>按目标<a class="term-link" href="/tools/metallurgy/calc-1.html">合金成分</a>反算需加入的原料合金质量，用于熔炼配料单。</li>
 <li>考虑原料合金含量与冶炼回收率，避免投入不足导致成分偏低。</li>
-<li>多元素目标时逐元素分别反算，取各原料加入量的最大值统筹投料。</li>
+<li>多元素目标时联立终态衡算，同时计入各合金自身带入的质量，避免逐一近似导致终态偏低。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">反算公式</div><div class="dd-ex-body">需补元素质量 ΔM = W × (目标含量 − 初始含量) / 100（W 为钢液质量）。原料加入量 = ΔM ÷ (原料合金含量 × 回收率)。回收率反映该元素在冶炼中的实收比例，易氧化元素低于 1。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">5 t 钢液目标 Cr 18%（初始可忽略），用高碳铬铁（含 Cr 60%、回收率 95%）：ΔM = 5000×(18−0)/100 = 900 kg；加入量 = 900 ÷ (0.60×0.95) = 900 ÷ 0.57 ≈ 1579 kg ≈ 1.58 t。即需加约 1.58 t 高碳铬铁补足 Cr。</div></div>
+<div class="dd-example"><div class="dd-ex-title">反算公式</div><div class="dd-ex-body">按终态衡算：原料加入量 = W × (目标含量 − 初始含量) ÷ (原料合金含量 × 回收率 − 目标含量)，各含量均用小数。回收率反映该元素在冶炼中的实收比例；分母中的“− 目标含量”用于抵消加入合金后钢液总量增大带来的稀释效应。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">5 t 钢液目标 Cr 18%（初始 0），用高碳铬铁（含 Cr 60%、回收率 95%）：加入量 = 5×0.18 ÷ (0.60×0.95 − 0.18) = 0.9 ÷ 0.39 ≈ 2.31 t。投料后钢液约 7.31 t，带入 Cr = 2.31×0.60×0.95 ≈ 1.317 t，占比 18.0%。若沿用旧近似式 1.58 t，终态 Cr 仅约 13.7%。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>回收率怎么取？</dt><dd>按炉型与元素氧化倾向取经验值（如 Cr 95%、Si 85%、Mn 80% 量级），并由炉前化验回调；取低会投料不足、成分偏低。</dd>
-<dt>初始含量不能忽略时？</dt><dd>用公式中的 (目标−初始)；若钢液已含部分 Cr，只需补差额，加入量相应减少，避免过合金化。</dd>
+<dt>初始含量不能忽略时？</dt><dd>用公式中的 (目标−初始)，并按加入后钢液总量衡算；若钢液已含部分 Cr，只需补差额，加入量相应减少，避免过合金化。</dd>
 </dl>
 </div>
 </section>
@@ -246,6 +245,7 @@ function renderElems(){
 function updateElem(idx,field,val){
   if(field==='name') ELEM_DEFS[idx].name=val;
   else ELEM_DEFS[idx][field]=parseFloat(val)||0;
+  calc();
 }
 function addElem(){
   ELEM_DEFS.push({name:'新元素',target:0,rawPct:50,recovery:90});
@@ -262,30 +262,33 @@ function calc(){
   var initPct=parseFloat(document.getElementById('initPct').value);
   var out=document.getElementById('result');
   if(isNaN(W)||W<=0||isNaN(initPct)){out.innerHTML='<p style="color:var(--danger)">请输入有效钢液重量</p>';return;}
-  var results=[];
-  var totalAdd=0;
+  var results=[],active=[],badMsg='',i=initPct/100;
   ELEM_DEFS.forEach(function(e){
-    var delta=W*(e.target-initPct)/100;
-    if(delta<=0||e.rawPct<=0||e.recovery<=0){
-      results.push({name:e.name,delta:0,add:0,target:e.target});
-      return;
-    }
-    var add=delta/(e.rawPct/100*e.recovery/100);
-    results.push({name:e.name,delta:delta,add:add,target:e.target});
-    totalAdd+=add;
+    var t=e.target/100,rEff=(e.rawPct/100)*(e.recovery/100);
+    if(e.rawPct<=0||e.rawPct>100||e.recovery<=0||e.recovery>100){badMsg=e.name+'：原料合金含量与回收率需在 0–100% 之间';return;}
+    var rec={name:e.name,target:e.target,delta:0,add:0,final:0,rawPct:e.rawPct,recovery:e.recovery,t:t,rEff:rEff};
+    results.push(rec);
+    if(e.target<=initPct)return;
+    if(rEff<=t){badMsg=e.name+'：目标含量 '+e.target+'% 超过原料可带入上限 '+(rEff*100).toFixed(2)+'%（'+e.rawPct+'%×'+e.recovery+'%），无法达到';return;}
+    active.push(rec);
   });
+  if(badMsg){out.innerHTML='<p style="color:var(--danger)">⚠ '+badMsg+'</p>';return;}
+  var sumT=0,sumInv=0;
+  active.forEach(function(r){sumT+=r.t/r.rEff;sumInv+=1/r.rEff;});
+  var denom=1-sumT;
+  if(denom<=0){out.innerHTML='<p style="color:var(--danger)">⚠ 各元素目标含量合计超出原料可带入能力，无法同时达到，请降低目标或提高合金含量/回收率。</p>';return;}
+  var finalMass=W*(1-i*sumInv)/denom,totalAdd=0;
+  active.forEach(function(r){r.delta=W*(r.t-i);r.add=(r.t*finalMass-W*i)/r.rEff;totalAdd+=r.add;});
+  results.forEach(function(r){r.final=(W*i+r.add*r.rEff)/(W+totalAdd)*100;});
   var html='<div class="big-result">总原料加入量 '+totalAdd.toFixed(3)+' t</div>';
-  html+='<table style="margin-top:10px;"><thead><tr><th>元素</th><th>目标含量(%)</th><th>需增量(t)</th><th>原料加入量(t)</th><th>加入量(kg)</th></tr></thead><tbody>';
+  html+='<table style="margin-top:10px;"><thead><tr><th>元素</th><th>目标含量(%)</th><th>需增量(t)</th><th>原料加入量(t)</th><th>加入量(kg)</th><th>预计终态(%)</th></tr></thead><tbody>';
   results.forEach(function(r){
-    html+='<tr><td>'+r.name+'</td><td>'+r.target+'</td><td>'+r.delta.toFixed(4)+'</td><td><strong>'+r.add.toFixed(4)+'</strong></td><td>'+(r.add*1000).toFixed(1)+'</td></tr>';
+    html+='<tr><td>'+r.name+'</td><td>'+r.target+'</td><td>'+r.delta.toFixed(4)+'</td><td><strong>'+r.add.toFixed(4)+'</strong></td><td>'+(r.add*1000).toFixed(1)+'</td><td>'+r.final.toFixed(2)+'</td></tr>';
   });
   html+='</tbody></table>';
   html+='<h3 style="margin-top:14px;">分步计算</h3>';
-  results.forEach(function(r){
-    if(r.add>0){
-      var e=ELEM_DEFS[results.indexOf(r)];
-      html+='<div class="step-line"><strong>'+r.name+'</strong>　ΔM = '+W+'×('+e.target+'% − '+initPct+'%) = '+r.delta.toFixed(4)+' t；加入量 = '+r.delta.toFixed(4)+' / ('+e.rawPct+'%×'+e.recovery+'%) = '+r.add.toFixed(4)+' t ('+(r.add*1000).toFixed(0)+' kg)</div>';
-    }
+  active.forEach(function(r){
+    html+='<div class="step-line"><strong>'+r.name+'</strong>　加入量 = ('+r.target+'%×'+(W+totalAdd).toFixed(3)+' − '+initPct+'%×'+W+') ÷ ('+r.rawPct+'%×'+r.recovery+'%) = '+r.add.toFixed(4)+' t ('+(r.add*1000).toFixed(0)+' kg)</div>';
   });
   html+='<div class="step-line" style="border-color:var(--success);background:rgba(16,185,129,0.08);"><strong>结论</strong>　共需加入 '+totalAdd.toFixed(3)+' t 铁合金原料，钢液总量约 '+(W+totalAdd).toFixed(3)+' t（含原料增量）。</div>';
   const __g3=html;out.innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
