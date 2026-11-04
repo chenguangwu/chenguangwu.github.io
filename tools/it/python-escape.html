@@ -277,11 +277,15 @@ function esc(){
   if(qtype === 'single'){ q = "'"; }
   else if(qtype === 'triple'){ q = '"""'; }
   if(isRaw){
-    // 原始字符串不做任何转义（r"a\b" 的值就是 a\b）。但原始字符串既不能以单个反斜杠结尾，
-    // 也不能包含其闭合引号序列；这两种文本无法用 r"..." 精确表示，退回普通字符串转义
-    // （不带 r 前缀），保证产物能被 Python 解析且转义后与原文等价。
+    // 原始字符串不做任何转义（r"a\b" 的值就是 a\b）。遇到无法用 r"..." 精确表示的文本时，
+    // 退回普通字符串转义（不带 r 前缀），保证产物能被 Python 解析且转义后与原文等价。
     const delim = qtype === 'triple' ? '"""' : q;
-    if(!text.endsWith('\\') && !text.includes(delim)){
+    // raw 字面量会原样嵌进源码，以下内容会让源码本身非法：
+    // NUL（Python 词法器直接拒收 null 字节）、单/双引号模式下的换行（变成未闭合字符串）、
+    // 三引号模式末尾的 "（会与收尾三引号连成 4 个引号）。
+    const canRaw = !text.endsWith('\\') && !text.includes(delim) && !text.includes('\0')
+      && (qtype === 'triple' ? !text.endsWith('"') : !/[\r\n]/.test(text));
+    if(canRaw){
       document.getElementById('output').value = 'r' + q + text + q;
       return;
     }
@@ -300,7 +304,9 @@ function esc(){
         case '\b': out += '\\b'; break;
         case '\f': out += '\\f'; break;
         case '\v': out += '\\v'; break;
-        case '\0': out += '\\0'; break;
+        // \0 后面若紧跟八进制数字会被 Python 继续读成 \012 等三位八进制转义；
+        // 用定长两位的 \x00 才不会再吞掉后续字符。
+        case '\0': out += '\\x00'; break;
         case '\x1b': out += '\\x1b'; break;
         default:
           if(cp < 0x20){

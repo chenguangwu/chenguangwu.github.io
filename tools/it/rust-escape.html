@@ -274,6 +274,18 @@ function esc(){
     document.getElementById('output').value = 'r' + hashes + '"' + text + '"' + hashes;
     return;
   }
+  if(kind === 'char' && [...text].length !== 1){
+    // Rust char 字面量必须恰好是一个 Unicode 标量；'ab'、'\u{e9}\u{fc}' 均无法编译。
+    return alert('char 字面量只能包含一个字符（当前 ' + [...text].length + ' 个）');
+  }
+  if(kind === 'byte'){
+    // Rust 字节字符串 b"..." 只允许 ASCII 与转义；直接写入非 ASCII 字符（或 b"\u{...}"）无法编译。
+    for(const ch of text){
+      if(ch.codePointAt(0) > 0x7F){
+        return alert('字节字符串 b"..." 只能包含 ASCII 字符；含非 ASCII 字符时请改用字符串模式');
+      }
+    }
+  }
   let prefix = '';
   let q = '"';
   if(kind === 'byte'){ prefix = 'b'; }
@@ -289,16 +301,13 @@ function esc(){
       case '\r': out += '\\r'; break;
       case '\t': out += '\\t'; break;
       case '\0': out += '\\0'; break;
-      case '\x07': out += '\\u{7}'; break;
-      case '\x08': out += '\\u{8}'; break;
-      case '\x0c': out += '\\u{c}'; break;
-      case '\x0b': out += '\\u{b}'; break;
+      // 控制字符统一交给下面的 \xNN 分支：\xNN 在 string / char / byte 三种字面量里都合法，
+      // 而 \u{...} 不能出现在 b"..." 中（旧实现字节模式输出 \u{7} 等，无法编译）。
       default:
         if(cp < 0x20 || cp === 0x7F){
           out += '\\x' + cp.toString(16).padStart(2,'0');
-        } else if(kind === 'byte' && cp > 0xFF){
-          out += '\\u{' + cp.toString(16) + '}';
-        } else if(cp > 0x7F && kind !== 'byte'){
+        } else if(cp > 0x7F){
+          // byte 模式已在上方拒绝非 ASCII，能走到这里的只可能是 string / char。
           out += '\\u{' + cp.toString(16) + '}';
         } else {
           out += ch;
@@ -313,10 +322,12 @@ function unesc(){
   let text = document.getElementById('input').value;
   if(!text) return alert('请输入要反转义的 Rust 字符串');
   text = text.trim();
-  if(/^r#*"/.test(text) && text.endsWith('"')){
-    const m = text.match(/^r(#*)"/);
-    const hashes = m[1] || '';
-    const inner = text.slice(1 + hashes.length + 1, -(hashes.length + 1));
+  // 原始字符串以 r"..." / r#"..."# / r##"..."## 结尾；只认结尾的裸双引号会把
+  // r#"q'""# 误判为非 raw（末尾是 #），导致反转义原样回显。
+  const rawMatch = text.match(/^r(#*)"/);
+  if(rawMatch && text.endsWith('"' + rawMatch[1])){
+    const hashes = rawMatch[1];
+    const inner = text.slice(2 + hashes.length, text.length - (hashes.length + 1));
     document.getElementById('output').value = inner;
     return;
   }

@@ -495,7 +495,9 @@ s.parentNode.insertBefore(el, s);
     for(var i=0;i<bytes.length;i+=4){
       // >>> 0 转无符号：UTF-8 多字节（≥0x80）时 <<24 会溢出为负数，导致 value%85 为负、字符表取到 undefined
       var value = (((bytes[i] << 24) | (bytes[i+1] << 16) | (bytes[i+2] << 8) | bytes[i+3]) >>> 0);
-      if(value === 0 && i < len){
+      // 'z' 只代表「完整 4 字节全零组」；末组不足 4 字节时若也走 'z'，随后的
+      // 截断会把 'z' 一并裁掉，导致 NUL 末组（如单个 "\0"）编码成 "<~~>" 丢字节。
+      if(value === 0 && i + 4 <= len){
         result += 'z';
         continue;
       }
