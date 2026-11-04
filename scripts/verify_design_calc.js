@@ -523,6 +523,15 @@ const CASES = [
       + "⚠ 不用「第1句」做锚：默认 textarea 预填 20 字示例诗，默认态也会出现「第1句」。",
   },
   {
+    // 遮蔽回归：本页复制函数已改名 copySwatch(btn, text)，避免被 js/common.js 的全局 copyText(text) 覆盖。
+    // 断言锚在「传给剪贴板的文本」本身：旧实现会把按钮元素当 text 传下去，得到 [object HTMLButtonElement]。
+    slug: "design/color-picker",
+    inputs: { hexInput: "#123456" },
+    clicks: ["var __c=ToolBox.copyText;ToolBox.copyText=function(t){document.getElementById('hexInput').value='COPIED:'+t;};copySwatch({textContent:'复制'},'#123456');ToolBox.copyText=__c;"],
+    expect: ["COPIED:#123456"],
+    ref: "copySwatch(btn, text) 调用 ToolBox.copyText(text, …)：点击复制按钮时应把该色值原样交给剪贴板。用例把 ToolBox.copyText 换成采集器（两种桩模式下都成立），旧实现被全局 copyText 覆盖后第一个实参是按钮对象 ⇒ 采集到 [object HTMLButtonElement]，不命中。",
+  },
+  {
     slug: "design/color-picker",
     inputs: { hexInput: "#e11d48" },
     expect: ["4.70:1", "\u63a8\u8350\u5b57\u4f53\u8272 #1ee2b7", "#B61DE1"],
@@ -2201,6 +2210,28 @@ const CASES = [
     expect: ["⚠ 宽度和高度必须为正整数"],
     ref: "宽 0 时旧实现 parseInt||400 回退成 400，静默导出与输入不符的图；现直接提示。默认 400×400 不命中。",
   },
+  // ── SVG 转 PNG：外部资源净化（防 canvas 被污染）─────────────────
+  {
+    slug: "design/svg-to-png",
+    inputs: {},
+    clicks: ["var r=__svgSanitize('<svg xmlns=\"http://www.w3.org/2000/svg\"><foreignObject width=\"10\" height=\"10\"><div xmlns=\"http://www.w3.org/1999/xhtml\">x</div></foreignObject><image href=\"https://evil.example/x.png\" xlink:href=\"https://evil.example/x.png\"/><style>@import url(\"https://evil.example/a.css\");</style></svg>');document.getElementById('exportMetaVal').textContent='FO:'+r.report.foreignObject+' EXT:'+r.report.externalRefs+' CSS:'+r.report.cssRefs+' GONE:'+(r.svg.indexOf('evil.example')>=0?'NO':'YES');"],
+    expect: ["FO:1 EXT:2 CSS:1 GONE:YES"],
+    ref: "净化口径：foreignObject 整块删除计 1；href 与 xlink:href 两个外链属性各计 1；<style> 内 @import 计 1；净化产物不含 evil.example ⇒ 外链确被剥离。"
+      + "门禁无 DOMParser/XMLSerializer ⇒ 走字符串兜底路径，与浏览器 DOM 路径计数口径一致（<style> 文本另计）。"
+      + "默认态（空输入）exportMetaVal 为「输出像素：」且不含 FO:/EXT: 串 ⇒ 判别明确。",
+  },
+
+  // ── 导出失败必须可见（canvas.toDataURL 抛异常时不得静默）───────
+  ...["design/avatar-generator", "design/aztec-code", "design/data-matrix", "design/favicon-from-emoji"].map(function (slug) {
+    return {
+      slug: slug,
+      inputs: {},
+      clicks: ["var _ce=document.createElement.bind(document);document.createElement=function(t){var el=_ce(t);if(t==='canvas'){el.toDataURL=function(){throw new Error('boom')};}return el;};generate();"],
+      expect: ["⚠ 导出 PNG 失败：Error"],
+      ref: "失败注入：把桩内 createElement('canvas') 产物的 toDataURL 改成必抛 Error，再跑 generate() ⇒ 必须在结果区出现可见的「⚠ 导出 PNG 失败：Error」。"
+        + "修复前裸调 toDataURL，异常直接冒成 pageerror、页面无任何提示；默认态（不注入）无该文案 ⇒ 判别明确。",
+    };
+  }),
   // ── px→rem：全角数字/单位后缀解析 + 根字号夹取提示 ────────────
   {
     slug: "design/px-to-rem",

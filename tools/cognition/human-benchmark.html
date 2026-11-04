@@ -1046,6 +1046,17 @@ s.parentNode.insertBefore(el, s);
     const __h18=list;if((typeof __h18==='number'&&!isFinite(__h18))||/Infinity/.test(String(__h18))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h18)){$('hbHistList').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('hbHistList').innerHTML=__h18;
   }
 
+  function __hbExportFail(msg) {
+    var host = document.getElementById('aCv');
+    if (host && host.parentNode) {
+      var p = document.createElement('p');
+      p.className = 'export-error';
+      p.style.color = '#dc2626';
+      p.textContent = '⚠ ' + msg;
+      host.parentNode.insertBefore(p, host.nextSibling);
+    }
+    if (window.ToolBox && ToolBox.showToast) ToolBox.showToast(msg, 'error');
+  }
   function exportPng() {
     var ab = computeAbilities(), idx = computeIndex();
     var out = document.createElement('canvas');
@@ -1078,15 +1089,21 @@ s.parentNode.insertBefore(el, s);
     });
     x.fillStyle = '#9CA3AF'; x.font = '12px sans-serif'; x.textAlign = 'center';
     x.fillText('ToolBox · 本地生成 · ' + new Date().toLocaleString('zh-CN'), out.width / 2, out.height - 18);
-    out.toBlob(function (blob) {
-      if (blob) {
-        var url = URL.createObjectURL(blob);
-        var a = document.createElement('a');
-        a.href = url; a.download = 'human-benchmark-scorecard.png';
-        document.body.appendChild(a); a.click();
-        setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 400);
-      }
-    }, 'image/png');
+    try {
+      out.toBlob(function (blob) {
+        if (blob) {
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement('a');
+          a.href = url; a.download = 'human-benchmark-scorecard.png';
+          document.body.appendChild(a); a.click();
+          setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 400);
+        } else {
+          __hbExportFail('导出失败：浏览器未能生成 PNG（画布可能为空或被污染）');
+        }
+      }, 'image/png');
+    } catch (e) {
+      __hbExportFail('导出失败：' + ((e && (e.name || e.message)) || '未知错误'));
+    }
   }
 
   /* ============================================================

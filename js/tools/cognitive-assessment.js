@@ -1111,9 +1111,26 @@
     ctx.font = '13px -apple-system,system-ui,sans-serif';
     ctx.fillText(B('娱乐与自测参考，非临床诊断 · chenguangwu.github.io/tools/cognition/',
       'For self-tracking and entertainment, not a clinical diagnosis - chenguangwu.github.io/tools/cognition/'), 56, H - 56);
-    cv.toBlob(function (blob) {
-      if (blob) { download(blob, 'scope-cognitive-result.png', 'image/png'); }
-    }, 'image/png');
+    try {
+      cv.toBlob(function (blob) {
+        if (blob) { download(blob, 'scope-cognitive-result.png', 'image/png'); }
+        else { __scaExportFail(B('导出失败：浏览器未能生成 PNG（画布可能为空或被污染）', 'Export failed: the browser could not produce a PNG (the canvas may be empty or tainted).')); }
+      }, 'image/png');
+    } catch (e) {
+      __scaExportFail(B('导出失败：', 'Export failed: ') + ((e && (e.name || e.message)) || B('未知错误', 'unknown error')));
+    }
+  }
+
+  function __scaExportFail(msg) {
+    var box = $('scaResult');
+    if (box) {
+      var p = document.createElement('p');
+      p.className = 'export-error';
+      p.style.color = '#dc2626';
+      p.textContent = '⚠ ' + msg;
+      box.appendChild(p);
+    }
+    if (window.ToolBox && ToolBox.showToast) ToolBox.showToast(msg, 'error');
   }
 
   function bandText(b) {

@@ -350,6 +350,18 @@ s.parentNode.insertBefore(el, s);
    * ========================================================== */
   function $(id) { return document.getElementById(id); }
   function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function __csExportFail(msg) {
+    var box = document.getElementById('csOut');
+    if (box) {
+      var p = document.createElement('p');
+      p.className = 'export-error';
+      p.style.color = '#dc2626';
+      p.textContent = '⚠ ' + msg;
+      box.appendChild(p);
+    }
+    if (window.ToolBox && ToolBox.showToast) ToolBox.showToast(msg, 'error');
+  }
+
   function copyText(t) {
     if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(t).then(function () { toast(B('已复制 ', 'Copied ') + t); }, function () { fallbackCopy(t); }); }
     else { fallbackCopy(t); }
@@ -625,7 +637,15 @@ s.parentNode.insertBefore(el, s);
     });
     $('csExport').addEventListener('click', function () {
       var cv = $('csCanvas');
-      cv.toBlob(function (blob) { if (blob) { downloadBlob(blob, 'cvd-safe-palette.png', 'image/png'); } }, 'image/png');
+      if (!cv) { __csExportFail('导出失败：画布尚未生成'); return; }
+      try {
+        cv.toBlob(function (blob) {
+          if (blob) { downloadBlob(blob, 'cvd-safe-palette.png', 'image/png'); }
+          else { __csExportFail('导出失败：浏览器未能生成 PNG（画布可能为空或被污染）'); }
+        }, 'image/png');
+      } catch (e) {
+        __csExportFail('导出失败：' + ((e && (e.name || e.message)) || '未知错误'));
+      }
     });
     $('csExportCsv').addEventListener('click', function () {
       if (typeof TBKit === 'undefined' || !S.result) { return; }

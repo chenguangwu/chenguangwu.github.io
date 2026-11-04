@@ -206,8 +206,8 @@ s.parentNode.insertBefore(el, s);
 <div class="dd-example"><div class="dd-ex-title">SVG 转 512 PNG</div><div class="dd-ex-body">&lt;p&gt;&lt;strong&gt;输入：&lt;/strong&gt;上传 SVG、512px。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;处理：&lt;/strong&gt;canvas 绘制。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出：&lt;/strong&gt;PNG 下载。&lt;/p&gt;</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>透明保留吗？</dt><dd>默认导出透明背景；把「背景」切到白色即可得到白底 PNG。</dd>
-<dt>透明能保留吗？</dt><dd>默认保留透明通道，只有选择白色背景时才铺白底。</dd>
+<dt>透明保留吗？</dt><dd>导出 PNG 支持透明；如需白底可自行垫底。</dd>
+<dt>透明能保留吗？</dt><dd>导出 PNG 支持透明通道；如需白底可自行垫底再导出。</dd>
 <dt>会保存或上传我的内容吗？</dt><dd>结果以浏览器实时计算为准，纯前端本地处理、数据不上传；生成的样式与代码仅作快速产出参考，正式项目请以设计系统、规范与浏览器实测为准。</dd>
 </dl>
 </div>
@@ -256,6 +256,84 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 let lastDataURL = '';
+/* 净化外部资源：foreignObject / 外链 href|src / @import / 外链 url()
+   目的：SVG 经 <img> 解码后若含外部资源会污染 canvas，toDataURL 直接抛 SecurityError。
+   优先用 DOMParser 做结构删除；无 DOM 环境（如门禁桩）退回等价的字符串清理。 */
+function __svgStripCss(css){
+  return String(css || '')
+    .replace(/@import\s+(?:url\()?[^;]*;/gi, '')
+    .replace(/url\(\s*(['"]?)(?:https?:)?\/\/[^)]*\)/gi, 'none');
+}
+function __svgSanitize(raw){
+  const report = { foreignObject: 0, externalRefs: 0, cssRefs: 0 };
+  let out = String(raw || '');
+  const canDom = typeof DOMParser !== 'undefined' && typeof XMLSerializer !== 'undefined';
+  if (canDom) {
+    let doc = null;
+    try { doc = new DOMParser().parseFromString(out, 'image/svg+xml'); } catch (e) { doc = null; }
+    const perr = doc && doc.getElementsByTagName ? doc.getElementsByTagName('parsererror') : [];
+    if (perr && perr.length) return { ok: false, svg: '', report: report, reason: 'SVG 语法解析失败' };
+    const root = doc && doc.documentElement;
+    if (root && root.nodeType === 1 && root.getAttribute) {
+      const stack = [root];
+      while (stack.length) {
+        const el = stack.pop();
+        const kids = Array.prototype.slice.call(el.childNodes || []);
+        for (let i = 0; i < kids.length; i++) {
+          const k = kids[i];
+          if (k.nodeType !== 1) continue;
+          if (String(k.tagName || k.nodeName || '').replace(/\s/g, '').toLowerCase() === 'foreignobject') {
+            el.removeChild(k); report.foreignObject++; continue;
+          }
+          stack.push(k);
+        }
+        for (const a of ['href', 'xlink:href', 'src']) {
+          const v = el.getAttribute(a);
+          if (v && !/^#/.test(v.trim()) && !/^data:/.test(v.trim())) {
+            el.removeAttribute(a); report.externalRefs++;
+          }
+        }
+        const st = el.getAttribute('style');
+        if (st) {
+          const clean = __svgStripCss(st);
+          if (clean !== st) { el.setAttribute('style', clean); report.cssRefs++; }
+        }
+      }
+      const styles = doc.getElementsByTagName('style');
+      for (let i = 0; i < (styles ? styles.length : 0); i++) {
+        const node = styles[i];
+        const txt = node.textContent || '';
+        const clean = __svgStripCss(txt);
+        if (clean !== txt) { node.textContent = clean; report.cssRefs++; }
+      }
+      out = new XMLSerializer().serializeToString(doc);
+    }
+  }
+  // 字符串兜底（同时覆盖 DOM 序列化后的残留）
+  out = out.replace(/<foreignObject[\s\S]*?(?:<\/foreignObject>|\/>)/gi, function () { report.foreignObject++; return ''; });
+  out = out.replace(/<[^>]+>/g, function (tag) {
+    const tag2 = tag.replace(/\s(?:xlink:)?(?:href|src)\s*=\s*(?:"([^"]*)"|'([^']*)')/gi, function (m, d, s) {
+      const v = (d !== undefined ? d : s) || '';
+      if (/^#/.test(v.trim()) || /^data:/.test(v.trim())) return m;
+      report.externalRefs++; return '';
+    });
+    const m = tag2.match(/\sstyle\s*=\s*("([^"]*)"|'([^']*)')/i);
+    if (m) {
+      const v = m[2] !== undefined ? m[2] : m[3];
+      const clean = __svgStripCss(v);
+      if (clean !== v) { report.cssRefs++; return tag2.replace(m[0], ' style="' + clean + '"'); }
+    }
+    return tag2;
+  });
+  // <style> 文本里的外链（字符串兜底路径不计入属性清理，这里补计并清除）
+  const imports = (out.match(/@import\s+(?:url\()?[^;]*;/gi) || []).length;
+  if (imports) report.cssRefs += imports;
+  out = out.replace(/@import\s+(?:url\()?[^;]*;/gi, '');
+  const leftoverUrls = (out.match(/url\(\s*(['"]?)(?:https?:)?\/\/[^)]*\)/gi) || []).length;
+  if (leftoverUrls) report.cssRefs += leftoverUrls;
+  out = out.replace(/url\(\s*(['"]?)(?:https?:)?\/\/[^)]*\)/gi, 'none');
+  return { ok: true, svg: out, report: report };
+}
 function generate(){
   const svg = document.getElementById('svgInput').value.trim();
   const w = parseInt(document.getElementById('width').value);
@@ -269,29 +347,50 @@ function generate(){
     return;
   }
   if(!svg){ preview.textContent = '请输入 SVG 代码'; return; }
+  const cleaned = __svgSanitize(svg);
+  if(!cleaned.ok){
+    lastDataURL = '';
+    preview.textContent = '⚠ ' + cleaned.reason;
+    return;
+  }
+  if(cleaned.report.foreignObject || cleaned.report.externalRefs || cleaned.report.cssRefs){
+    const n = cleaned.report.foreignObject + cleaned.report.externalRefs + cleaned.report.cssRefs;
+    if(window.ToolBox && ToolBox.showToast) ToolBox.showToast('已自动移除 ' + n + ' 处外部资源引用，避免污染画布', 'info');
+  }
   document.getElementById('exportMetaVal').textContent =
     `${w * scale} × ${h * scale} · ${scale}x · ${bgMode}`;
+  lastDataURL = '';
   try{
-    const blob = new Blob([svg], {type:'image/svg+xml;charset=utf-8'});
+    const blob = new Blob([cleaned.svg], {type:'image/svg+xml;charset=utf-8'});
     const url = URL.createObjectURL(blob);
     const img = new Image();
     img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = w * scale; canvas.height = h * scale;
-      const ctx = canvas.getContext('2d');
-      // 默认保留透明背景；只有显式选择「白色」才铺底，避免透明 SVG 被刷成白底
-      if(bgMode === 'white'){
-        ctx.fillStyle = '#fff';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      try{
+        const canvas = document.createElement('canvas');
+        canvas.width = w * scale; canvas.height = h * scale;
+        const ctx = canvas.getContext('2d');
+        // 默认保留透明背景；只有显式选择「白色」才铺底，避免透明 SVG 被刷成白底
+        if(bgMode === 'white'){
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        lastDataURL = canvas.toDataURL('image/png');
+        const __h0='<img src="'+lastDataURL+'" alt="PNG">';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){preview.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}preview.innerHTML=__h0;
+      }catch(e){
+        lastDataURL = '';
+        preview.textContent = '⚠ 该 SVG 含外部资源，无法导出为图片';
+      }finally{
+        URL.revokeObjectURL(url);
       }
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      URL.revokeObjectURL(url);
-      lastDataURL = canvas.toDataURL('image/png');
-      const __h0='<img src="'+lastDataURL+'" alt="PNG">';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){preview.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}preview.innerHTML=__h0;
     };
-    img.onerror = () => { preview.textContent = 'SVG 加载失败'; URL.revokeObjectURL(url); };
+    img.onerror = () => {
+      lastDataURL = '';
+      preview.textContent = '⚠ SVG 加载失败：可能含外部资源或语法错误，无法导出为图片';
+      URL.revokeObjectURL(url);
+    };
     img.src = url;
-  }catch(e){ preview.textContent = '转换失败: '+e.message; }
+  }catch(e){ lastDataURL = ''; preview.textContent = '转换失败: '+e.message; }
 }
 function downloadPNG(){
   if(!lastDataURL){ alert('请先转换'); return; }
