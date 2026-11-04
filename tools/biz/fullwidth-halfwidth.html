@@ -153,7 +153,7 @@ s.parentNode.insertBefore(el, s);
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="🔄 全角半角互转">🔄 Full-width &amp; Half-width Converter</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">逐字符取码位判定：全角转半角时，码位在 0xFF01–0xFF5E 区间则减 0xFEE0；码位为 0x3000（全角空格）则转普通空格；半角转全角时，码位在 0x21–0x7E 区间则加 0xFEE0；码位为 0x20 则转 U+3000；ASCII 与空格两项可分别开关，未开启的转换项保持原字符</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">逐字符取码位判定：全角转半角时，码位在 0xFF01–0xFF5E 区间则减 0xFEE0；码位为 0x3000（全角空格）则转普通空格；半角转全角时，码位在 0x21–0x7E 区间则加 0xFEE0；码位为 0x20 则转 U+3000。假名项启用后，按 Unicode 半角片假名区（U+FF66–U+FF9D）与全角片假名（U+30A2–U+30F4）双向映射，ｶﾞ/ﾊﾟ 这类「半角字 + ﾞ/ﾟ」先合成浊音/半浊音再映射；平假名无半角形态，保持原样。ASCII、空格与假名三项可分别开关，未开启的转换项保持原字符</div>
   <p class="formula-desc" data-zh="本文本工具基于标准字符编码与文本处理规则，纯前端运行，代码不离开浏览器。 工具名称：全角半角互转 - 免费文本处理工具，在线全角半角互转，免费使用。">Convert bidirectionally between Chinese full-width and English half-width characters, handling punctuation and spaces for mixed-language typesetting and data cleaning.</p>
 </div>
 
@@ -165,7 +165,7 @@ s.parentNode.insertBefore(el, s);
     <div class="checkbox-row">
       <label><input type="checkbox" id="ascii" checked> ASCII 字符（字母数字符号）</label>
       <label><input type="checkbox" id="space" checked> 空格</label>
-      <label><input type="checkbox" id="kana"> 假名（仅日文）</label>
+      <label><input type="checkbox" id="kana"> 假名（日文片假名）</label>
     </div>
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="convertTo('half')">转半角</button>
@@ -252,6 +252,11 @@ s.parentNode.insertBefore(el, s);
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="全角与半角在兼容分解下可互转，转换后需重新校验长度">compatibility decomposition maps between widths and changes the length</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Unicode UAX #15, normalisation forms">Unicode UAX #15, normalisation forms</td>
         </tr>
+        <tr>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="假名映射">Kana mapping</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="半角片假名 U+FF66–FF9D 与全角片假名 U+30A2–30F4 双向映射；ｶﾞ/ﾊﾟ 先由半角字 + ﾞ/ﾟ 合成浊音（ガ/パ）再转换">halfwidth katakana U+FF66–FF9D maps to fullwidth katakana U+30A2–30F4; ｶﾞ/ﾊﾟ are combined from base + ﾞ/ﾟ before mapping</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Unicode Halfwidth and Fullwidth Forms block">Unicode Halfwidth and Fullwidth Forms block</td>
+        </tr>
       </tbody>
     </table>
   </div>
@@ -291,6 +296,18 @@ function toggleToolTheme(){
 
 let currentMode = 'half';
 
+const KANA_HALF = 'ｦｧｨｩｪｫｬｭｮｯｰｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ';
+const KANA_FULL = 'ヲァィゥェォャュョッーアイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワン';
+const KANA_VOICED = {
+  'ガ':'ｶﾞ','ギ':'ｷﾞ','グ':'ｸﾞ','ゲ':'ｹﾞ','ゴ':'ｺﾞ',
+  'ザ':'ｻﾞ','ジ':'ｼﾞ','ズ':'ｽﾞ','ゼ':'ｾﾞ','ゾ':'ｿﾞ',
+  'ダ':'ﾀﾞ','ヂ':'ﾁﾞ','ヅ':'ﾂﾞ','デ':'ﾃﾞ','ド':'ﾄﾞ',
+  'バ':'ﾊﾞ','ビ':'ﾋﾞ','ブ':'ﾌﾞ','ベ':'ﾍﾞ','ボ':'ﾎﾞ',
+  'パ':'ﾊﾟ','ピ':'ﾋﾟ','プ':'ﾌﾟ','ペ':'ﾍﾟ','ポ':'ﾎﾟ','ヴ':'ｳﾞ'
+};
+const KANA_VOICED_HALF = {};
+for(const k in KANA_VOICED) KANA_VOICED_HALF[KANA_VOICED[k]] = k;
+
 function convertTo(mode){
   currentMode = mode;
   convert();
@@ -303,8 +320,11 @@ function convert(){
 
   const ascii = document.getElementById('ascii').checked;
   const space = document.getElementById('space').checked;
+  const kana = document.getElementById('kana').checked;
   let out = '';
-  for(const ch of text){
+  for(let i = 0; i < text.length; i++){
+    const ch = text[i];
+    const next = text[i + 1] || '';
     const code = ch.charCodeAt(0);
     if(currentMode === 'half'){
       // 全角转半角
@@ -312,6 +332,10 @@ function convert(){
         out += String.fromCharCode(code - 0xFEE0);
       }else if(space && code === 0x3000){
         out += ' ';
+      }else if(kana && KANA_VOICED[ch]){
+        out += KANA_VOICED[ch];
+      }else if(kana && KANA_FULL.indexOf(ch) >= 0){
+        out += KANA_HALF[KANA_FULL.indexOf(ch)];
       }else{
         out += ch;
       }
@@ -321,6 +345,11 @@ function convert(){
         out += String.fromCharCode(code + 0xFEE0);
       }else if(space && code === 0x20){
         out += String.fromCharCode(0x3000);
+      }else if(kana && KANA_VOICED_HALF[ch + next]){
+        out += KANA_VOICED_HALF[ch + next];
+        i++;
+      }else if(kana && KANA_HALF.indexOf(ch) >= 0){
+        out += KANA_FULL[KANA_HALF.indexOf(ch)];
       }else{
         out += ch;
       }

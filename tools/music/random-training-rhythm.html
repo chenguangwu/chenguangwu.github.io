@@ -51,7 +51,7 @@
 <!-- TOOLBOX-I18N-SCRIPT -->
 
 <meta name="title-en" content="Random Training Rhythm">
-<meta name="desc-en" content="Random Training Rhythm - online utility on ToolBox.">
+<meta name="desc-en" content="Generate random rhythm patterns for score reading, plus a metronome tap trainer that reports hit rate, mean error and timing standard deviation.">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/music/random-training-rhythm.html">
 <link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/music/random-training-rhythm.html">
@@ -117,13 +117,33 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="随机节奏点击">Random Training Rhythm</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-      <div class="formula-eq">节奏准确率 = 命中节拍数 ÷ 总节拍数 × 100%；单次偏差 = 实际点击时刻 − 标准节拍时刻（正为拖后、负为提前），平均偏差 = Σ 偏差 ÷ 次数；稳定度可用偏差标准差衡量，标准差低于 30 ms 为稳定；节拍间隔 = 60000 ÷ BPM 毫秒（如 120 BPM 为 500 ms）。</div>
+      <div class="formula-eq">命中判定：|实际点击时刻 − 最近标准拍点| ≤ 40 ms；节奏准确率 = 命中节拍数 ÷ 总节拍数 × 100%；单次偏差 = 实际点击时刻 − 标准节拍时刻（正为拖后、负为提前），平均偏差 = Σ 偏差 ÷ 次数；稳定度可用偏差标准差衡量，标准差低于 30 ms 为稳定；节拍间隔 = 60000 ÷ BPM 毫秒（如 120 BPM 为 500 ms）。</div>
   
 </div>
 
 <div class="input-row"><div><label>生成数量</label><input type="number" id="cnt" value="5" min="1" max="50" oninput="gen()" placeholder="如 5（1–50）"></div></div>
 <div class="toolbar"><div id="random_training_rhythmPresets"></div><button type="button" class="btn primary" onclick="gen()">生成</button><button class="btn" type="button" onclick="__random_training_rhythmExport()">导出明细 CSV</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
 <div class="result-box" id="res"></div> <div id="random_training_rhythmTable"></div> <div id="random_training_rhythmDiff"></div> <div id="random_training_rhythmChart"></div> <div id="random_training_rhythmHist"></div>
+
+<h3 style="margin-top:16px;">🎯 跟拍练习（节拍器 + 敲击准确率）</h3>
+<div class="input-row">
+  <div><label>练习 BPM</label><input type="number" id="tapBpm" value="100" min="40" max="200" onchange="tapReset()" placeholder="40–200"></div>
+  <div><label>每拍细分</label><select id="tapSub" onchange="tapReset()">
+    <option value="1">四分（每拍 1 下）</option>
+    <option value="2">八分（每拍 2 下）</option>
+    <option value="3">三连音（每拍 3 下）</option>
+    <option value="4">十六分（每拍 4 下）</option>
+  </select></div>
+  <div><label>练习小节数（4 拍/小节）</label><input type="number" id="tapBars" value="4" min="1" max="16" onchange="tapReset()" placeholder="1–16"></div>
+</div>
+<div class="toolbar">
+  <button type="button" class="btn primary" onclick="tapStart()">开始跟拍</button>
+  <button type="button" class="btn" onclick="tapStop()">停止</button>
+  <span id="tapPulse" style="display:inline-block;width:16px;height:16px;border-radius:50%;background:var(--tool-accent,#FF6B35);opacity:.25;vertical-align:middle;"></span>
+  <span id="tapState" style="font-size:13px;color:var(--text-muted);">未开始</span>
+</div>
+<div class="toolbar"><button type="button" class="btn" onclick="tapHit()">敲击（或按空格）</button></div>
+<div class="result-box" id="tapResult">设置 BPM 与细分后点「开始跟拍」，在每个拍点按下空格或点击「敲击」；差值在 ±40 ms 内记为命中。</div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -209,6 +229,121 @@ const RHYTHMS = [
 ];
 const BPM = [60, 70, 80, 90, 100, 120];
 function rand(arr){return arr[Math.floor(Math.random()*arr.length)];}
+/* 跟拍练习：节拍器 + 敲击偏差统计 */
+var tapRun = null;
+
+function tapReset(){
+  tapStop();
+  document.getElementById('tapResult').textContent='设置 BPM 与细分后点「开始跟拍」，在每个拍点按下空格或点击「敲击」；差值在 ±40 ms 内记为命中。';
+  document.getElementById('tapState').textContent='未开始';
+}
+
+function tapStop(){
+  if(tapRun){
+    if(tapRun.timer) clearTimeout(tapRun.timer);
+    if(tapRun.raf) cancelAnimationFrame(tapRun.raf);
+    if(tapRun.ac){ try{ tapRun.ac.close(); }catch(e){} }
+    tapRun=null;
+    document.getElementById('tapState').textContent='已停止';
+  }
+  window.removeEventListener('keydown', tapKey);
+}
+
+function tapKey(e){
+  if(e.code==='Space'||e.key===' '){ e.preventDefault(); tapHit(); }
+}
+
+function tapStart(){
+  tapStop();
+  var bpm=parseInt(document.getElementById('tapBpm').value)||100;
+  bpm=Math.max(40,Math.min(200,bpm));
+  var sub=parseInt(document.getElementById('tapSub').value)||1;
+  var bars=parseInt(document.getElementById('tapBars').value)||4;
+  bars=Math.max(1,Math.min(16,bars));
+  var interval=60000/(bpm*sub);
+  var n=bars*4*sub;
+  var beats=[]; for(var i=0;i<n;i++) beats.push({done:false,diff:0});
+  var ac=null;
+  try{
+    var Ctx=window.AudioContext||window.webkitAudioContext;
+    if(Ctx) ac=new Ctx();
+  }catch(e){}
+  tapRun={bpm:bpm,sub:sub,bars:bars,interval:interval,beats:beats,ac:ac,t0:performance.now(),timer:0,raf:0,finishAt:0,running:true};
+  document.getElementById('tapState').textContent='进行中（共 '+n+' 拍）';
+  document.getElementById('tapResult').textContent='跟拍中… 共 '+n+' 个拍点，敲击后自动统计。';
+  window.addEventListener('keydown', tapKey);
+  tapSchedule(0);
+}
+
+function tapSchedule(k){
+  if(!tapRun||!tapRun.running) return;
+  var delay=tapRun.t0+k*tapRun.interval-performance.now();
+  tapRun.timer=setTimeout(function(){
+    if(!tapRun||!tapRun.running) return;
+    var pulse=document.getElementById('tapPulse');
+    if(pulse){
+      pulse.style.opacity='1';
+      setTimeout(function(){ if(pulse) pulse.style.opacity='.25'; },120);
+    }
+    if(tapRun.ac){
+      try{
+        var o=tapRun.ac.createOscillator(), g=tapRun.ac.createGain();
+        o.frequency.value=(k%(tapRun.sub*4)===0)?880:620;
+        g.gain.value=0.05;
+        o.connect(g); g.connect(tapRun.ac.destination);
+        o.start(); o.stop(tapRun.ac.currentTime+0.04);
+      }catch(e){}
+    }
+    if(k+1<tapRun.beats.length){
+      tapSchedule(k+1);
+    }else{
+      tapRun.finishAt=tapRun.t0+tapRun.beats.length*tapRun.interval;
+      tapRun.raf=requestAnimationFrame(tapCheckEnd);
+    }
+  }, Math.max(0,delay));
+}
+
+function tapCheckEnd(){
+  if(!tapRun||!tapRun.running) return;
+  if(performance.now()>=tapRun.finishAt+tapRun.interval*0.5){ tapFinish(); return; }
+  tapRun.raf=requestAnimationFrame(tapCheckEnd);
+}
+
+function tapHit(){
+  if(!tapRun||!tapRun.running) return;
+  var now=performance.now();
+  var idx=Math.round((now-tapRun.t0)/tapRun.interval);
+  if(idx<0||idx>=tapRun.beats.length) return;
+  var diff=now-(tapRun.t0+idx*tapRun.interval);
+  if(Math.abs(diff)>tapRun.interval*0.5) return;
+  var b=tapRun.beats[idx];
+  if(!b.done||Math.abs(diff)<Math.abs(b.diff)){ b.done=true; b.diff=diff; }
+}
+
+function tapFinish(){
+  if(!tapRun) return;
+  var beats=tapRun.beats, n=beats.length;
+  var valid=beats.filter(function(b){return b.done;});
+  var hits=valid.filter(function(b){return Math.abs(b.diff)<=40;});
+  var diffs=valid.map(function(b){return b.diff;});
+  var mean=0, sd=0;
+  if(diffs.length){
+    for(var i=0;i<diffs.length;i++) mean+=diffs[i];
+    mean/=diffs.length;
+    var ss=0; for(var j=0;j<diffs.length;j++) ss+=Math.pow(diffs[j]-mean,2);
+    sd=diffs.length>1?Math.sqrt(ss/(diffs.length-1)):0;
+  }
+  var acc=hits.length/n*100;
+  var note=valid.length===0?'没有检测到敲击，请重新开始。':(sd<30?'节奏稳定（标准差 < 30 ms）。':'标准差 ≥ 30 ms，可降低 BPM 或减少细分再练。');
+  document.getElementById('tapResult').innerHTML=
+    '<div style="line-height:1.9;">命中：<strong>'+hits.length+' / '+n+'</strong>（'+acc.toFixed(1)+'%）<br>'+
+    '平均偏差：<strong>'+(mean>=0?'+':'')+mean.toFixed(1)+' ms</strong>（正为拖后、负为提前）<br>'+
+    '偏差标准差：<strong>'+sd.toFixed(1)+' ms</strong><br>'+
+    '有效敲击：'+valid.length+' 次，未敲击：'+(n-valid.length)+' 拍<br>'+note+'</div>';
+  tapStop();
+  document.getElementById('tapState').textContent='已完成';
+}
+
 function gen(){
   const n=Math.min(+document.getElementById("cnt").value||5,50);
   let h='<p style="margin-bottom:8px;">生成结果：</p>';
