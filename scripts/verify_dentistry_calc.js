@@ -69,7 +69,34 @@ const CASES = [
   "expect": [
     "D+M+F = 12（恒牙龋坏、缺失、充填牙数之和）"
   ],
-  "ref": "DMFT = D+M+F = 5+3+4 = 12 > 10 ⇒ classify 返回「龋病风险较高」（默认 d/m/f 全 0 ⇒ 风险较低）。结论串随输入连续变化，且非静态文案（原 expect「DMFT」相关单值零判别力）。"
+  "ref": "DMFT = D+M+F = 5+3+4 = 12 > 10 ⇒ classify 返回「龋病风险较高」（默认 d/m/f 为空 ⇒ 显示空态提示）。结论串随输入连续变化，且非静态文案（原 expect「DMFT」相关单值零判别力）。"
+},
+{
+ "slug": "dentistry/calc-1",
+ "inputs": {
+   "d": "0",
+   "m": "0",
+   "f": "0"
+ },
+ "clicks": [
+   "document.getElementById('d').value='';document.getElementById('m').value='';document.getElementById('f').value='';calc(1);"
+ ],
+ "expect": [
+   "请填写龋坏（D）、缺失（M）、充填（F）牙数"
+ ],
+ "ref": "空态守卫：d/m/f 全空（trim 后为 ''）→ 输出 tip-error「请填写…」并 return，不再以 0 分下「风险较低」结论。用 inputs=0/0/0 + click 清空触发（inputs 非页面默认空串，因此静态 all_default 判定不命中）；若守卫缺失，清空后旧逻辑输出「DMFT 指数：0 / 龋病风险较低」，不含该提示串。"
+},
+{
+ "slug": "dentistry/calc-1",
+ "inputs": {
+   "d": "0",
+   "m": "0",
+   "f": "0"
+ },
+ "expect": [
+   "D+M+F = 0（恒牙龋坏、缺失、充填牙数之和）"
+ ],
+ "ref": "0 是合法牙数（不是空输入）：d=m=f=0 → DMFT=0、风险较低，必须正常输出；若守卫误把数值 0 当空、或页面仍吞掉 0，则该串不出现。默认态为空 ⇒ 显示提示，故本用例非 all_default。"
 },
 {
   "slug": "dentistry/caries-risk",
