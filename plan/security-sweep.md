@@ -15,6 +15,8 @@
 > 校正：`tools/edu/exam-gpa-calculator.html` **不存在 `eval(` / `new Function`**，此前「eval」为模板字符串插值的误报；该页真实风险是 `c.name` 未转义拼 `innerHTML`，已由运行时扫描线修复。
 >
 > 回归护栏：`scripts/verify_esc_html.js`（锁定 `escHtml` 五类字符编码、禁止回退 `textContent→innerHTML`、抽查 3 个真实调用页），运行 `node scripts/verify_esc_html.js` 通过；**需集成线将该脚本注册进 `run_gates.py` / CI 门禁**（本批只提供脚本与说明）。
+>
+> 第三批（传输面与隐私：SRI / `target=_blank` / `postMessage` / 上传回显 / 敏感存储）见 **第七节**（2026-11-04）。
 
 ---
 
@@ -159,3 +161,57 @@
 - 纯静态启发式，未做全站运行时插桩；`innerHTML` 间接赋值（先拼变量再赋值）可能漏检。
 - 未覆盖 `js/**/*.js` 公共库与 `zh-tw/` 构建产物；`i18n/**` 字典为静态文案，未纳入。
 - 行号以当前工作区源码为准，页面后续被其他线改动时需重新定位。
+
+---
+
+## 七、第三批：传输面与隐私（2026-11-04）
+
+扫描口径：`tools/**/*.html` 4916 页（不含 `zh-tw/` 构建产物），按 5 类问题静态扫描 + 本地无头浏览器复验。
+
+### 7.1 外部 CDN 脚本 SRI
+
+- 非本站 `<script src="https://…">` 共 15 处 / 13 页；外部 `<link rel=stylesheet>` 仅 `it/html-tags.html` 教学示例（example.com，非真实引用）与 `design/font-pairing.html` 动态 Google Fonts。
+- **已补 `integrity` + `crossorigin="anonymous"` 8 处 / 6 页**（固定版本，哈希取自实际下载文件并二次拉取校验一致）：
+  - `office/pdf-merge.html`、`office/pdf-split.html`、`office/pdf-rotate.html` —— pdf-lib 1.17.1 / pdf.js 3.11.174
+  - `it/bcrypt.html` —— bcryptjs 2.4.3
+  - `it/sqlite-runner.html` —— sql.js 1.8.0
+  - `it/typescript-compiler.html` —— TypeScript 5.3.3
+- **无法提供 SRI 7 处**（浮动版本号，内容哈希不稳定，按约定不瞎编）：`mermaid@10`、`d3@7`、`markmap-view`（无版本）、`markmap-lib@0.17`、`js-yaml@4`、`less@4`、`acorn@8`。
+- 动态加载类同样无法 SRI：`js/ai-core.js` 的 transformers（运行时拼版本 + 远端模型分片）、`font-pairing` 的 Google Fonts CSS（按 UA 下发）、全站构建注入的 TTZZ 统计脚本（URL 带服务端 token）。
+- 顺带修复：`it/bcrypt.html` 原代码直接用 `bcrypt` 全局，而 bcryptjs 2.4.3 只暴露 `dcodeIO.bcrypt`（页面此前点击即报 `bcrypt is not defined`）；补一行带守卫的别名脚本，真机 `hashSync` 实测可用。
+- 真机复验：6 页外链脚本全部加载成功，0 pageerror、0 CDN 请求失败。
+
+### 7.2 `target="_blank"` 缺 `rel`
+
+- `tools/` 共 8 处，其中 6 处已带 `rel`；**补 `rel="noopener noreferrer"` 2 处**：`biz/markdown.html`（渲染链接模板）、`it/mac-lookup.html`（IEEE OUI 外链）。
+- 剩余 2 处为 `it/html-tags.html` 的 `<base>` / `<a>` 属性教学示例，非真实链接，不改。
+- `ui/tool-editor.html`（内部编辑页）同步补 `rel`。
+
+### 7.3 `postMessage` 校验
+
+- 全站 `addEventListener('message')` 仅 `it/code-runner.html` 1 处：消息源为 `sandbox="allow-scripts allow-modals"`、无 `allow-same-origin` 的隔离 iframe，且只接受 `type === 'console'`、输出经 `escapeConsoleHtml`；**已知安全，不处理**。
+- `it/regex.html` 的 `postMessage` 仅用于页面与自建同源 Worker 通信，无跨源消息面；**已知安全，不处理**。
+
+### 7.4 文件上传回显
+
+- `input[type=file]` 共 55 页，逐页检查文件名 / 文件内容是否拼 HTML 或 `document.write`。**真 XSS 4 页已修**：
+  - `it/md5.html`、`it/sha.html`：`file.name` 直拼 `#fileInfo` 的 `innerHTML` → 改 `ToolBox.escHtml(file.name)`。
+  - `image/image-converter.html`：`file.name` / `file.type` 直拼 `#info` → 改 `ToolBox.escHtml`。
+  - `biz/markdown.html`：导入 `.md` 后原文直渲染（`<img onerror>` 可执行），链接 / 图片 `href`、`src`、`alt` 存在属性注入与 `javascript:` 协议 → 先整体转义 HTML，链接改为协议白名单（http(s) / mailto / 相对 / 锚点），`href`/`src`/`alt` 属性转义，图片仅额外放行 `data:image`；渲染回归（标题 / 粗斜体 / 引用 / 列表 / 表格 / 代码块）全部通过。
+- 其余上传页均为 `textContent`、已转义、或文件名仅用于下载，无需修改。
+
+### 7.5 敏感存储
+
+- localStorage / sessionStorage 键名含 password / token / secret / key / auth 的 3 页逐个核查：
+  - `safety/manager.html`：`tb_pwd_master`（口令派生哈希）+ `tb_pwd_vault`（XOR 密文），非明文；键名与实际内容一致，不改名（改名会使既有用户保险库失联）。
+  - `security/virtual-safe.html`：仅存口令哈希，页内有「勿存真实口令、仅教学演示」显著警示。
+  - `it/password-generator.html`：生成历史存 `sessionStorage`（`password_generator_session_history`），随标签页关闭清除，UI 明示「本次会话记录」。
+- 结论：**0 处明文口令/令牌**；键名无误导，无需改中性名。
+
+### 7.6 门禁与验证
+
+- `verify_office_calc.js` 3/3、`verify_image_calc.js` 23/23、`verify_it_calc.js` 852/852、`verify_biz_calc.js` 144/144。
+- `discriminate_check.js` 对应四类：逃生项 0（office 检 2 跳 1、image 检 22 跳 1、it 检 851 跳 1、biz 检 144 跳 0）。
+- `selfcheck_false_pass.js` 四类 risk 0（no_inputs=0 / all_default=0）。
+- `python3 _test_static.py` exit 0（仅 1 条既有 slug-en 冗余告警，与本次无关）。
+- 真机载荷复验：md5 / sha / image-converter 注入 `x"><img src=x onerror=alert(1)>.png` → 0 弹窗、0 pageerror、0 注入元素；markdown 注入原始 `<img onerror>` 与属性逃逸链接 → 0 弹窗、0 事件属性、`javascript:` 不生成链接。
