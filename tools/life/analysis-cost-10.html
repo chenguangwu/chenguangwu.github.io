@@ -215,12 +215,20 @@ s.parentNode.insertBefore(el, s);
 <script>
 function calc(){
 var lines=document.getElementById("data").value.split("\n").map(function(s){return s.trim();}).filter(function(s){return s.length>0;});
+function norm(s){
+  s=String(s).replace(/[０-９]/g,function(d){return String.fromCharCode(d.charCodeAt(0)-65248);})
+           .replace(/．/g,'.').replace(/，/g,',')
+           .replace(/[￥¥]/g,'').replace(/(\d)\s*(元|块)/g,'$1');
+  while(/(\d),(\d{3})(?!\d)/.test(s)) s=s.replace(/(\d),(\d{3})(?!\d)/g,'$1$2');
+  return s;
+}
 var rows='',tb=0,ta=0,n=0,over=0,under=0,worst="—",worstV=0,skipped=[];
 function esc(s){return (typeof ToolBox!=='undefined'&&ToolBox.escHtml)?ToolBox.escHtml(String(s)):String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-lines.forEach(function(ln){
-// 名称允许含空格：取行末两个数字作为预算/实际，其余全部视为名称
+lines.forEach(function(raw){
+// 名称允许含空格：先归一化全角数字/千分位/单位后缀，再取行末两个数字作为预算/实际
+var ln=norm(raw);
 var m=ln.match(/^(.+?)[\s,，\t;；]+(-?\d+(?:\.\d+)?)[\s,，\t;；]+(-?\d+(?:\.\d+)?)$/);
-if(!m){skipped.push(ln);return;}
+if(!m){skipped.push(raw);return;}
 var name=m[1].trim(),b=parseFloat(m[2]),a=parseFloat(m[3]);
 if(isNaN(b)||isNaN(a)){skipped.push(ln);return;}
 var d=a-b,dr=b!==0?(d/b*100).toFixed(2)+'%':(d!==0?'—（预算为 0）':'0.00%');

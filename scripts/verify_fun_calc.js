@@ -48,6 +48,25 @@ const CASES = [
        + "默认 FEN（'… w KQkq - 0 1'）三条字段分别是白方 / KQkq / 减号，与本锚不重合。",
   },
 
+  {
+    slug: "fun/chess-fen-viewer",
+    inputs: { fen: "4k3/8/8/8/8/8/4P3/4K3 b - - 0 1" },
+    clicks: ["loadPreset()"],
+    expect: ["轮到： 黑方 / 王车易位： 无 / 吃过路兵： -"],
+    ref: "预设栏/历史回填以无参 loadPreset() 调用时应保留当前 FEN：注入黑方 FEN 后点击，"
+       + "输出仍为 黑方/无/-；旧实现把 presets[undefined]（undefined）写入输入框并 render ⇒ 抛错或无输出，"
+       + "注入失败时回退默认起始局面（白方/KQkq/-）也失配。",
+  },
+
+  // ── 抽奖结果转义 ─────────────────────────────────────────────
+  {
+    slug: "fun/raffle-picker",
+    clicks: ["pickAndShow(['张三<b>X</b>'],1)"],
+    expect: ["张三&lt;b&gt;X&lt;/b&gt;"],
+    ref: "参与者名称按 HTML 转义后输出：<b> 不得被当作标签渲染；"
+       + "旧实现直接拼 innerHTML ⇒ 输出只剩「张三 X」，注入失败/默认态不出现转义串。",
+  },
+
   // ── 冥想分段计划 ─────────────────────────────────────────────
   {
     slug: "fun/meditation-timer",
