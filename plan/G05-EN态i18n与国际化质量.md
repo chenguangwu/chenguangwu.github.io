@@ -44,3 +44,10 @@
 - 影响：全站英文态。
 - 方案：第二轮用 `scripts/_en_i18n_probe.mjs --check` 抽样 50 个新增 preset 页，产出 miss 清单后补第三层；禁止只改 HTML 内联（构建会还原场景外的数据源文案）。
 
+### 已修 G05-C：`opt_faq_ld_sync.py` 整段正则吞行（2026-11-04，commit 随脚本落地）
+- 症状：旧实现正则 `(<script …ld+json>\s*)(\{.*?"@type":"FAQPage".*?\})(</script>)` 的 `.*?` 含换行，会从**页面第一个** ld+json 块的 `{` 一路跨到 FAQPage 块的 `}`，把中间的 `WebApplication` LD、`TOOLBOX-SECURITY` meta、privacy/metrics/i18n/nav 脚本、hreflang 整段当成「old」替换掉。实测 `tools/livestock/heat-stress-index.html` 少 47 行（结构全丢）。
+- 复现页面：`tools/livestock/heat-stress-index.html`（多行 LD，第一个块是 WebApplication，FAQPage 在第三个块）。
+- 修法：改为逐块匹配 `<script type="application/ld+json">…</script>`，每块单独 `json.loads`，只替换 `@type=="FAQPage"` 且含套话的那块，其余块字节原样保留；默认 dry-run，写盘需 `--apply`。
+- 自检：落盘前后比对 `application/ld+json` / `<meta name="toolbox"` / `TOOLBOX-SECURITY` / `js/privacy.js` / `js/i18n.js` / `hreflang` 六项计数，任一变化即中止且不写盘；单行 LD 块额外校验文件行数不变。
+- 回归：取 `f723934c82^` 的 `heat-stress-index` / `feed-conversion-ratio` / `inbreeding-coefficient` 三页副本跑 `--apply`，行数 605/588/592 **零减少**，`diff` 仅 1 个 hunk、只替换 FAQ 那一行。
+
