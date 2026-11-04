@@ -10,6 +10,37 @@
 > 复现：`TB_STUB_FIDELITY=1 node scripts/discriminate_check.js`（默认仍走 legacy，避免直接翻默认）。
 > 逃生：`TB_STUB_LEGACY=1` 强制回 legacy。
 
+## 0. 纪律：新增 / 修改 verify 用例必须过 fidelity（任何线都适用）
+
+> **新增或修改 verify 用例后，必须用 `TB_STUB_FIDELITY=1` 跑该文件，且逃生项 = 0、all_default 不高于基线；否则视为用例不合格。**
+
+判定口径（两条都要满足）：
+
+1. 输出行 `仍 PASS(逃生项): 0` —— 逐键回退到**真实默认值**后，用例必须变红；
+2. `TB_DISCRIM_REPORT=1` 导出的 `kind:"all-default"` 条数 **不得高于该文件的历史基线**（新增用例不得再拿默认输入当注入值）。
+
+只跑 legacy 变绿**不算通过**：legacy 的假默认值会把「注入值与默认值算出同一结果」的用例掩护成绿（§4 已实测：fidelity 比 legacy 多暴露 19 条）。`TB_STUB_LEGACY=1` 仅用于定位历史差异，不能作为验收口径。
+
+可直接复制的命令模板：
+
+```bash
+# ① 单文件（改完某个 verify_*_calc.js 后必跑）
+TB_STUB_FIDELITY=1 node scripts/discriminate_check.js verify_<行业>_calc.js
+
+# ② 单行业多文件（一条命令并列多个裸文件名）
+TB_STUB_FIDELITY=1 node scripts/discriminate_check.js verify_<行业>_calc.js verify_<行业2>_calc.js
+
+# ③ 全站（提交前/收口时跑；逐文件子进程，约数分钟）
+TB_STUB_FIDELITY=1 node scripts/discriminate_check.js
+
+# 辅助：导出逐条明细（含 kind/why/expect/reverted），用来核对 all-default 与逃生项
+TB_STUB_FIDELITY=1 TB_DISCRIM_REPORT=1 node scripts/discriminate_check.js verify_<行业>_calc.js
+```
+
+> 计数说明：`已检` 不含隔离项；有文件「无统计行就退出」时会单独打印
+> `⚠️ 逐文件隔离：N 个 verify 文件无统计行（贡献计 0；已单独列出，未当作通过）`，
+> 该类文件**不得计入通过率**。`已检` 还受 `TB_DISCRIM_MIN`（默认 8000）下限约束，低于即 FAIL。
+
 ## 1. 共享模块与接入范围
 
 - 新增 `scripts/lib_stub.js`：input 默认值解析（属性顺序/引号无关）、`<select>` 尊重 `selected`（两种写法）+ `<select multiple>`、textarea 初始文本、checkbox/radio `checked` 默认态。
@@ -99,13 +130,21 @@
 如矩阵打分 `m0_0`、尿检 `ua_leu`）、**无注入 10**（本来就不适用）。详见 §8。
 
 legacy 自身 3 条逃生项（`construction/calc-204`、`it/decimal-encode`、`it/number-base-converter`），
-与 `scripts/discriminate_baseline.json` 的 `escape: 0` 不一致 —— 不是本批引入，需各线收紧后同步基线
-（`calc-204` 属 general 线，两条 it 属 IT 线）。
+与 `scripts/discriminate_baseline.json` 的 `escape: 0` 不一致 —— 不是本批引入，需各线收紧后同步基线。
+其中 `construction/calc-204` 已由本线在 §6.3 收紧（2026-11-05），当前只剩两条 it 用例待 IT 线处理。
 
 > **口径修正（2026-11-05）**：上一版（`b96ec6d21d`）报的「fidelity 86 逃生 / 跳过 259」是
 > `lib_stub.parseInputDefaults` 的缺陷造成的假象 —— 无 `value` 属性的 `<input>`（如 `type="date"`）
 > 被整键丢弃，导致 214 条用例被判「控件解析不到」而跳过、部分错位成逃生。已修（无 value ⇒ 空串，
 > 与真机 `.value`/legacy 一致），修正后为 **22 逃生 / 跳过 85**。以本节数字为准。
+
+> **复测（2026-11-05，本线收紧 5 条后；当前工作区含其他线并行改动）**：
+> legacy `已检 8728 / 正确变红 8726 / 逃生 2 / 跳过 54`（2 条均为 it：`decimal-encode`、`number-base-converter`）；
+> fidelity `已检 8698 / 正确变红 8690 / 逃生 8 / 跳过 84`。两模式均隔离 1（`verify_office_calc.js` 无统计行）。
+> 剩余 8 条 fidelity 全部属其他线：agriculture/dli-calculator、gastroenterology/hp-resistance、image/image-collage、
+> it/confidence-interval、it/captcha-generator、it/des、it/summary-generator、sports/calculator-calc-time。
+> `construction/calc-204`、`machinery/torque`、`electrical/temp-26`、`hvac/kongtiaolengfuhejisuan`、
+> `fire-rescue/calc-1` 已不再出现在任一模式的逃生列表（收紧方式见 §6.3）。
 
 > **注意（静默退出）**：`tools/office/pdf-split` 的用例会让**单进程**全站跑静默退出（0 字节输出、exit 0）——
 > 该页 `pdfjsReady()` 的轮询 Promise 在 harness 内永不 settle、定时器又不持有事件循环，Node 事件循环空后静默 exit 0。
@@ -179,6 +218,20 @@ legacy 自身 3 条逃生项（`construction/calc-204`、`it/decimal-encode`、`
   是 harness 固定 PRNG 的输出）、或需要多步交互/异步渲染，**必须人工复核**后才能定性质。
 
 **按行业**：cosmetic-derm 5、it 4、obstetrics 3、fire-rescue 1、gastroenterology 1、machinery 1、electrical 1、construction 1、image 1、hvac 1、sports 1、pulmonology 1、agriculture 1。
+
+### 6.3 本批收口记录（2026-11-05，construction 线）
+
+已收紧并复验（`verify_general_calc.js` / `verify_fire-rescue_calc.js`，仅改用例、未改桩、未改页面）：
+
+| slug | 逃生根因 | 收紧方式 | 结果 |
+|---|---|---|---|
+| `construction/calc-204` | 注入 42/42/42/42 时 s=√(42/63)=0.82，与真实默认 6/3/30/30 的 √(30/45)=0.82 **同值** | 改注入 5/2/40/20（q_d=60），锚 `0.58` / `36` / `9×4` / `16.7` / `600`，全部带输出标签 | 注入态命中，回退默认全不命中 |
+| `machinery/torque` | vSize 取了默认 M10，expect 首位 `58.0` 回退默认仍命中 | 改 M12（As=84.3），锚 `84.3` / `32.37` / `0.220` / `85.5` / `384` | 同上 |
+| `electrical/temp-26` | v1 取了默认 T4，expect 含 `135`（T4 上限） | 改 T5，锚 `Ex i IIB T5` / `100 最高表面温度 (℃)` / `0区、1区、2区` | 同上 |
+| `hvac/kongtiaolengfuhejisuan` | 只锚档位文案「3-5匹柜机/天井机」，默认 area=50 也落同一档 | 改 area=100，锚实算 `17.16` / `172` / `6.9`（档位文案在静态说明里也出现，弃用） | 同上 |
+| `fire-rescue/calc-1` | 第三锚 `24.26`（出口流速）只由压力决定、与口径无关 | 剔除 `24.26`，保留 `19.68` / `13.92`（均依赖 16 mm 口径） | 同上 |
+
+判别力验证：把 `construction/calc-204` 的五项 expect 全部改成错值后，`node scripts/verify_general_calc.js calc-204` 输出 `❌ 未匹配期望值`、exit 1；恢复后 2/2 通过。两文件 discriminate（legacy 与 `TB_STUB_FIDELITY=1`）均为 `仍 PASS(逃生项): 0`。
 
 ## 7. 弱用例与解析缺口工单
 
