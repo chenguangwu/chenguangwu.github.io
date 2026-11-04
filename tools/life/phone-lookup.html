@@ -267,6 +267,24 @@ function splitChinaLandline(num){
   const len = num.length >= 12 ? 4 : 3;
   return { area: rest.substring(0,len), code: '0' + rest.substring(0,len) };
 }
+var CN_OP_MAP = {'130':'联通','131':'联通','132':'联通','133':'电信','134':'移动','135':'移动','136':'移动','137':'移动','138':'移动','139':'移动','145':'联通','146':'联通','147':'移动','148':'移动','149':'移动','150':'移动','151':'移动','152':'移动','153':'电信','155':'联通','156':'联通','157':'移动','158':'移动','159':'联通','166':'联通','170':'虚拟运营商','171':'虚拟运营商','173':'电信','175':'移动','176':'联通','177':'电信','178':'移动','180':'电信','181':'电信','182':'移动','183':'移动','184':'移动','185':'联通','186':'联通','187':'移动','188':'移动','189':'电信','190':'电信','191':'电信','193':'电信','195':'移动','196':'联通','197':'移动','198':'移动','199':'电信'};
+function chinaInference(num, skipCountry){
+  let h = '';
+  if(/^1[3-9]\d{9}$/.test(num)){
+    const seg = num.slice(0,3);
+    if(!skipCountry) h += '<p><strong>推断国家：</strong>中国（中国大陆手机号格式）</p>';
+    h += '<p><strong>可能运营商：</strong>'+(CN_OP_MAP[seg] || '未知')+'（按号段推断，携号转网后可能变化）</p>';
+  } else {
+    // +86 国际格式通常省略长途前缀 0，这里补齐后再识别区号
+    const land = /^0\d{10,11}$/.test(num) ? num : (/^[1-9]\d{9,10}$/.test(num) ? '0' + num : '');
+    if(land){
+      const l = splitChinaLandline(land);
+      if(!skipCountry) h += '<p><strong>推断国家：</strong>中国（固话）</p>';
+      h += '<p><strong>区号：</strong>'+l.code+' - '+(CN_AREA_CODES[l.area] || '未知城市')+'</p>';
+    }
+  }
+  return h;
+}
 function validate(){
   const raw = document.getElementById('input').value.trim();
   const out = document.getElementById('output');
@@ -291,23 +309,14 @@ function validate(){
     }
     html += `<p><strong>国家代码：</strong>+${cc} - ${country}</p>`;
     html += `<p><strong>国内号码：</strong>${nationalNum}</p>`;
+    if(cc === '86') html += chinaInference(nationalNum, true);
   } else {
     nationalNum = normalized;
     html += `<p><strong>未指定国家代码，按本地号码处理</strong></p>`;
     html += `<p><strong>号码：</strong>${nationalNum}</p>`;
-    // Heuristic: if starts with 1 and 11 digits, Chinese mobile
-    if(/^1[3-9]\d{9}$/.test(nationalNum)){
-      country = '中国';
-      html += `<p><strong>推断国家：</strong>${country}（中国大陆手机号格式）</p>`;
-      const seg = nationalNum.slice(0,3);
-      const opMap = {'130':'联通','131':'联通','132':'联通','133':'电信','134':'移动','135':'移动','136':'移动','137':'移动','138':'移动','139':'移动','145':'联通','146':'联通','147':'移动','148':'移动','149':'移动','150':'移动','151':'移动','152':'移动','153':'电信','155':'联通','156':'联通','157':'移动','158':'移动','159':'联通','166':'联通','170':'虚拟运营商','171':'虚拟运营商','173':'电信','175':'移动','176':'联通','177':'电信','178':'移动','180':'电信','181':'电信','182':'移动','183':'移动','184':'移动','185':'联通','186':'联通','187':'移动','188':'移动','189':'电信','190':'电信','191':'电信','193':'电信','195':'移动','196':'联通','197':'移动','198':'移动','199':'电信'};
-      html += `<p><strong>可能运营商：</strong>${opMap[seg] || '未知'}（按号段推断，携号转网后可能变化）</p>`;
-    } else if(/^0\d{10,11}$/.test(nationalNum)){
-      // Chinese landline starting with 0
-      const landline = splitChinaLandline(nationalNum);
-      html += `<p><strong>推断国家：</strong>中国（固话）</p>`;
-      html += `<p><strong>区号：</strong>${landline.code} - ${CN_AREA_CODES[landline.area] || '未知城市'}</p>`;
-    }
+    // Heuristic: Chinese mobile or landline without country code
+    if(/^1[3-9]\d{9}$/.test(nationalNum)) country = '中国';
+    html += chinaInference(nationalNum, false);
   }
   // Format display
   html += `<p><strong>归一化：</strong>${hasPlus?'+':''}${normalized}</p>`;
