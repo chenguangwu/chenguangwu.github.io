@@ -151,7 +151,7 @@ s.parentNode.insertBefore(el, s);
       </div>
       <div>
         <label>文丘里阀值 (仅文丘里面罩)</label>
-        <select id="venturiValve" onchange="calc()" disabled>
+        <select id="venturiValve" onchange="onVenturiChange()" disabled>
           <option value="24">24% (2 L/min)</option>
           <option value="28">28% (4 L/min)</option>
           <option value="31">31% (6 L/min)</option>
@@ -288,6 +288,8 @@ var deviceConfig = {
 };
 var currentDevice = 'nasal';
 
+var VENTURI_FLOW = {24:2,28:4,31:6,35:8,40:10,50:12};
+
 function selectDevice(device, btn){
   currentDevice = device;
   document.querySelectorAll('.device-tab button').forEach(function(b){ b.classList.remove('active'); });
@@ -295,13 +297,29 @@ function selectDevice(device, btn){
   var venturiSelect = document.getElementById('venturiValve');
   venturiSelect.disabled = device !== 'venturi';
   if(device === 'venturi'){
-    document.getElementById('flowRate').value = 4;
+    // 阀值决定所需流量，切到文丘里时按当前阀值同步流量，避免文书流量与阀值不符
+    document.getElementById('flowRate').value = VENTURI_FLOW[parseInt(venturiSelect.value)] || 4;
+  }
+  calc();
+}
+
+function onVenturiChange(){
+  if(currentDevice === 'venturi'){
+    var valve = parseInt(document.getElementById('venturiValve').value);
+    document.getElementById('flowRate').value = VENTURI_FLOW[valve] || 4;
   }
   calc();
 }
 
 function calc(){
-  var flow = parseFloat(document.getElementById('flowRate').value) || 0;
+  var flowRaw = String(document.getElementById('flowRate').value||'').trim();
+  if(flowRaw==='' || !isFinite(parseFloat(flowRaw))){
+    window.__EMR_SUM=null;
+    document.getElementById('fio2').textContent='—';
+    document.getElementById('fio2Desc').textContent='请填写氧流量（0.5–15 L/min）后再换算，空值不给出 FiO₂。';
+    return;
+  }
+  var flow = parseFloat(flowRaw);
   var cfg = deviceConfig[currentDevice];
   var fio2 = 21;
   var desc = '';

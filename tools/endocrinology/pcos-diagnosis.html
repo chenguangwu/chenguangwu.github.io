@@ -131,7 +131,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="🔍 多囊卵巢(PCOS)诊断标准器">Pcos Diagnosis</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="基于鹿特丹标准(需满足2/3)评估PCOS，结合表型分类和代谢风险分层">Pcos Diagnosis</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">PCOS 鹿特丹标准：3 项中满足 ≥2 项且排除其他病因(17-OHP/TSH/PRL/皮质醇等)即诊断。①排卵障碍：周期&gt;35天 或 月经&lt;8次/年 或 临床/超声无排卵；②高雄激素：临床(多毛/痤疮，FG评分≥8) 或 生化(总睾酮&gt;60 ng/dL，约 2.1 nmol/L)；③多囊卵巢形态(PCOM)：单侧卵泡≥20 或 卵巢体积≥10 mL。表型分 A–D 四型。</div>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">PCOS 鹿特丹标准：3 项中满足 ≥2 项且排除其他病因(17-OHP/TSH/PRL/皮质醇等)即诊断。①排卵障碍：周期&gt;35天 或 月经&lt;8次/年 或 临床/超声无排卵；②高雄激素：临床(多毛/痤疮，FG评分≥8) 或 生化(总睾酮&gt;60 ng/dL，约 2.08 nmol/L；两者单位可切换)；③多囊卵巢形态(PCOM)：单侧卵泡≥20 或 卵巢体积≥10 mL。表型分 A–D 四型。</div>
       <p class="formula-desc" data-zh="「基于鹿特丹标准(需满足2/3)评估PCOS，结合表型分类和代谢风险分层」按输入参数进行专业计算并输出结果。">Pcos Diagnosis: computes and outputs results from the input parameters.</p>
     </div>
 
@@ -165,7 +165,15 @@ s.parentNode.insertBefore(el, s);
         <label><input type="checkbox" id="biochemHA" onclick="calc()"> 生化高雄（总睾酮>60ng/dL 或游离睾酮升高）</label>
       </div>
       <div class="input-row" style="margin-top:8px;">
-        <div><label>总睾酮 (ng/dL)</label><input type="number" id="testosterone" value="72" oninput="calc()" placeholder="如 72"></div>
+        <div><label>总睾酮</label>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <input type="number" id="testosterone" value="72" step="0.1" oninput="calc()" placeholder="如 72" style="flex:1;min-width:0;">
+            <select id="tUnit" onchange="calc()" style="width:auto;">
+              <option value="ngdl">ng/dL</option>
+              <option value="nmol">nmol/L</option>
+            </select>
+          </div>
+        </div>
         <div><label>F-G多毛评分</label><input type="number" id="fgScore" value="9" oninput="calc()" placeholder="如 9"></div>
       </div>
     </div>
@@ -333,11 +341,14 @@ function calc(){
 
   // Criterion 2: hyperandrogenism
   var t = parseFloat(document.getElementById('testosterone').value);
+  // 统一换算为 ng/dL 再与阈值比较：1 nmol/L ≈ 28.8 ng/dL
+  var tUnit=(document.getElementById('tUnit')||{}).value||'ngdl';
+  var tNgdl = (!isNaN(t) && tUnit==='nmol') ? t*28.8 : t;
   var fg = parseInt(document.getElementById('fgScore').value);
   var clinicalHA = document.getElementById('clinicalHA').checked;
   var biochemHA = document.getElementById('biochemHA').checked;
   var clinicalMet = clinicalHA || (!isNaN(fg) && fg >= 8);
-  var biochemMet = biochemHA || (!isNaN(t) && t > 60);
+  var biochemMet = biochemHA || (!isNaN(tNgdl) && tNgdl > 60);
   var crit2 = clinicalMet || biochemMet;
   document.getElementById('c2').classList.toggle('met', crit2);
 

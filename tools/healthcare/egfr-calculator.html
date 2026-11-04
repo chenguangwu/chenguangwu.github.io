@@ -119,9 +119,20 @@ s.parentNode.insertBefore(el, s);
 <div class="card">
     <h2 data-zh="🫘 eGFR 肾小球滤过率">🫘 eGFR Calculator with CKD-EPI and MDRD</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="用 MDRD 简化公式（175 式）估算 eGFR。">Estimate the glomerular filtration rate from creatinine, age and sex with the simplified MDRD (175) equation, and read the matching kidney function stage.</p>
-    <div class="input-row"><label>血肌酐 mg/dL</label><input type="number" id="scr" value="1.0" step="any" oninput="calc()" placeholder="如 1.0"></div>
+    <div class="input-row"><label>血肌酐</label>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <input type="number" id="scr" value="1.0" step="any" oninput="calc()" placeholder="如 1.0" style="flex:1;min-width:0;">
+        <select id="scrUnit" onchange="calc()" style="width:auto;">
+          <option value="mgdl">mg/dL</option>
+          <option value="umol">µmol/L</option>
+        </select>
+      </div>
+    </div>
     <div class="input-row"><label>年龄</label><input type="number" id="age" value="50" step="any" oninput="calc()" placeholder="如 50"></div>
-    <div class="input-row"><label>性别 1男/2女</label><input type="number" id="sex" value="1" step="1" oninput="calc()" placeholder="如 1"></div>
+    <div class="input-row"><label>性别</label><select id="sex" onchange="calc()">
+      <option value="1">男</option>
+      <option value="2">女</option>
+    </select></div>
     <div class="toolbar">
       <div id="egfr_calculatorPresets"></div>
       <button class="btn primary" onclick="calc()">计算</button>
@@ -156,7 +167,7 @@ s.parentNode.insertBefore(el, s);
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="估算公式">Estimation equation</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="估算肾小球滤过率以血肌酐年龄性别代入经验公式计算">estimated filtration rate comes from creatinine age and sex in an empirical equation</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="CKD-EPI 2021 creatinine equation">CKD-EPI 2021 creatinine equation</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="MDRD 175 简化式（Levey 2006）">MDRD 175 simplified equation (Levey 2006)</td>
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="分期判据">Staging criteria</td>
@@ -300,12 +311,19 @@ s.parentNode.insertBefore(el, s);
 
 function calc(){
     var __ig=__tbInputGuard(['scr', 'age', 'sex'],["血肌酐 mg/dL", "年龄", "性别 1男/2女"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const scr = +document.getElementById('scr').value || 0;
+const scrVal = +document.getElementById('scr').value;
   const age = +document.getElementById('age').value || 0;
   const sex = +document.getElementById('sex').value || 0;
+  const unit=(document.getElementById('scrUnit')||{value:'mgdl'}).value;
+  // 单位换算：µmol/L → mg/dL（1 mg/dL ≈ 88.4 µmol/L）
+  const scr = unit==='umol' ? scrVal/88.4 : scrVal;
+  if(!(age>=18&&age<=120)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">年龄须在 18–120 岁之间；MDRD 不适用于儿童及孕期。</p>';return;}
+  if(!(scr>0&&scr<=22.6)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">血肌酐须为 0–22.6 mg/dL（0–2000 µmol/L）的有效值。</p>';return;}
   let html = '';
   const __v = (175*Math.pow(scr,-1.154)*Math.pow(age,-0.203)*(sex===2?0.742:1));
-  html += `<p>eGFR：<strong style="font-size:18px;color:var(--primary);">${__v.toFixed(1)}</strong> mL/min</p>`;
+  html += `<p>eGFR：<strong style="font-size:18px;color:var(--primary);">${__v.toFixed(1)}</strong> mL/min/1.73m²</p>`;
+  const __v1 = (__v>=90?'G1':(__v>=60?'G2':(__v>=45?'G3a':(__v>=30?'G3b':(__v>=15?'G4':'G5')))));
+  html += `<p>CKD 分期：<strong style="font-size:18px;color:var(--primary);">${__v1}</strong>${__v1==='G1'||__v1==='G2'?'（需合并白蛋白尿/影像学异常才诊断 CKD）':''}</p>`;
   const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 function copyResult() {
@@ -448,18 +466,18 @@ else document.addEventListener('DOMContentLoaded', __egfr_calculatorBoot);
 </style>
 <section class="deep-dive" data-deep-dive="1">
 <div class="card">
-<h2>📚 深度解析：eGFR 简化估算（CKD-EPI 175 式）</h2>
+<h2>📚 深度解析：eGFR 简化估算（MDRD 175 式）</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
 <li>快速筛查：由血肌酐(mg/dL)、年龄、性别估 eGFR</li>
 <li>科普教学：理解肌酐与肾功能的关系</li>
 <li>参考边界：eGFR&lt;60 持续三月提示慢性肾病需就医</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">算法（简化式）：eGFR = 175 × SCr^(-1.154) × 年龄^(-0.203) × (女 ×0.742)。血肌酐单位 mg/dL。要求 SCr&gt;0、年龄&gt;0。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例1（SCr 1.0 mg/dL、50 岁、男）：eGFR = 175×1.0^(-1.154)×50^(-0.203) = 79.1 mL/min。例2（SCr 1.5 mg/dL、65 岁、女）：eGFR = 175×1.5^(-1.154)×65^(-0.203)×0.742 = 34.9 mL/min（低于 60，提示肾功能下降，建议肾内科就诊）。</div></div>
+<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">算法（MDRD 175 简化式）：eGFR = 175 × SCr^(-1.154) × 年龄^(-0.203) × (女 ×0.742)，单位 mL/min/1.73m²。血肌酐可填 mg/dL 或 µmol/L（工具自动换算，1 mg/dL≈88.4 µmol/L）。要求 SCr&gt;0、年龄 18–120 岁。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例1（SCr 1.0 mg/dL、50 岁、男）：eGFR = 175×1.0^(-1.154)×50^(-0.203) = 79.1 mL/min/1.73m²，分期 G2。例2（SCr 1.5 mg/dL、65 岁、女）：eGFR = 175×1.5^(-1.154)×65^(-0.203)×0.742 = 34.9 mL/min/1.73m²，分期 G3b（低于 60，建议肾内科就诊）。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>和 egfr 那版有何不同？</dt><dd>本版用简化 175 式且血肌酐按 mg/dL；egfr 那版用完整 CKD-EPI 且按 µmol/L。两版公式与单位都不同，数字不可直接比较，请按页面单位填写。</dd>
+<dt>和 egfr 那版有何不同？</dt><dd>本版用 MDRD 175 简化式，血肌酐可选 mg/dL 或 µmol/L；egfr 那版用完整 CKD-EPI 2009。两版公式不同，数字不可直接比较，请按页面所选单位填写。</dd>
 <dt>eGFR 低就一定是肾病吗？</dt><dd>不一定，脱水、感染、药物可一过性降低；慢性肾病定义为 eGFR&lt;60 持续 ≥3 个月，需复查并结合尿蛋白判断。</dd>
 </dl>
 </div>

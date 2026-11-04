@@ -145,11 +145,11 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row">
       <div>
         <label>当前吸引压力 (mmHg)</label>
-        <input type="number" id="currentPressure" value="150" min="0" max="600" oninput="checkPressure()" placeholder="如 100（80–120 mmHg）">
+        <input type="number" id="currentPressure" value="100" min="0" max="600" oninput="checkPressure()" placeholder="如 100（80–120 mmHg）">
       </div>
       <div>
         <label>吸引压力 (kPa，自动换算)</label>
-        <input type="number" id="currentKpa" value="20" min="0" max="80" step="0.5" oninput="checkPressureKpa()" placeholder="如 13（成人 10.6–16.0 kPa）">
+        <input type="number" id="currentKpa" value="13.3" min="0" max="80" step="0.5" oninput="checkPressureKpa()" placeholder="如 13（成人 10.6–16.0 kPa）">
       </div>
     </div>
     <div class="result-box" id="result">
@@ -164,7 +164,7 @@ s.parentNode.insertBefore(el, s);
     <div id="suction_pressureChart"></div>
     <div id="suction_pressureHist"></div>
     <div class="result-box" style="margin-top:12px;">
-      <p class="check-input" id="checkResult">当前压力 150 mmHg（≈20.0 kPa）过高（超过安全上限 120 mmHg），有黏膜损伤风险！</p>
+      <p class="check-input" id="checkResult">当前压力 100 mmHg（≈13.3 kPa）在安全范围内 ✓</p>
     </div>
     <div class="toolbar" style="margin-top:16px;">
       <button type="button" class="btn primary" onclick="copyResult()">复制参考信息</button>
@@ -292,15 +292,19 @@ function selectAge(age, btn){
 }
 
 function checkPressure(){
-  var p = parseFloat(document.getElementById('currentPressure').value) || 0;
-  document.getElementById('currentKpa').value = (p * 0.133).toFixed(1);
+  var raw=String(document.getElementById('currentPressure').value||'').trim();
+  if(raw===''){document.getElementById('currentKpa').value='';evaluate(NaN);return;}
+  var p = parseFloat(raw);
+  document.getElementById('currentKpa').value = isFinite(p) ? (p * 0.1333).toFixed(1) : '';
   evaluate(p);
 }
 
 function checkPressureKpa(){
-  var k = parseFloat(document.getElementById('currentKpa').value) || 0;
-  var p = Math.round(k * 7.5);
-  document.getElementById('currentPressure').value = p;
+  var raw=String(document.getElementById('currentKpa').value||'').trim();
+  if(raw===''){document.getElementById('currentPressure').value='';evaluate(NaN);return;}
+  var k = parseFloat(raw);
+  var p = isFinite(k) ? Math.round(k * 7.5) : NaN;
+  document.getElementById('currentPressure').value = isFinite(p) ? p : '';
   evaluate(p);
 }
 
@@ -309,7 +313,12 @@ function evaluate(p){
   var r = ranges[currentAge];
   var box = document.querySelector('.range-box');
   var result = document.getElementById('checkResult');
-  var kpa = (p * 0.133).toFixed(1);
+  if(typeof p!=='number'||!isFinite(p)||p<=0){
+    box.className = 'range-box range-warn';
+    result.textContent = '请输入有效负压（0–600 mmHg），空值不参与安全判定';
+    return;
+  }
+  var kpa = (p * 0.1333).toFixed(1);
   if(p < r.min){
     box.className = 'range-box range-warn';
     result.textContent = '当前压力 ' + p + ' mmHg（≈' + kpa + ' kPa）偏低（低于推荐下限 ' + r.min + ' mmHg），吸引效果可能不足';
@@ -557,7 +566,7 @@ function __suction_pressureExport(){
 }
 function __suction_pressurePresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#suction_pressurePresets',[{label:'默认参数',labelEn:'Default',values:{currentPressure:'150', currentKpa:'20'}},{"label":"痰栓加大负压","labelEn":"Thick secretion, higher suction","values":{"currentPressure":"220","currentKpa":"29"}},{"label":"成人低负压吸引","labelEn":"Adult low suction","values":{"currentPressure":"60","currentKpa":"8"}},{"label":"儿童误设成人负压","labelEn":"Pediatric with adult setting","values":{"currentPressure":"120","currentKpa":"16"}}],function(){ selectAge(); });
+    TBKit.preset.bar('#suction_pressurePresets',[{label:'默认参数',labelEn:'Default',values:{currentPressure:'100', currentKpa:'13.3'}},{"label":"痰栓加大负压","labelEn":"Thick secretion, higher suction","values":{"currentPressure":"220","currentKpa":"29"}},{"label":"成人低负压吸引","labelEn":"Adult low suction","values":{"currentPressure":"60","currentKpa":"8"}},{"label":"儿童误设成人负压","labelEn":"Pediatric with adult setting","values":{"currentPressure":"120","currentKpa":"16"}}],function(){ selectAge(); });
 }
 var __suction_pressure_f0=(typeof selectAge==='function')?selectAge:null;
 if(__suction_pressure_f0){

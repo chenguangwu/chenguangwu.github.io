@@ -119,9 +119,20 @@ s.parentNode.insertBefore(el, s);
 <div class="card">
     <h2 data-zh="🫘 eGFR 估算肾小球滤过率">🫘 Estimated Glomerular Filtration Rate Calculator</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="用 CKD-EPI 公式估算 eGFR。">Estimate eGFR from serum creatinine, age and sex using the CKD-EPI equation, and stage the result from G1 to G5 with the chronic kidney disease category.</p>
-    <div class="input-row"><label>血肌酐 µmol/L</label><input type="number" id="scr" value="80" step="any" oninput="calc()" placeholder="如 80"></div>
+    <div class="input-row"><label>血肌酐</label>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <input type="number" id="scr" value="80" step="any" oninput="calc()" placeholder="如 80" style="flex:1;min-width:0;">
+        <select id="scrUnit" onchange="calc()" style="width:auto;">
+          <option value="umol">µmol/L</option>
+          <option value="mgdl">mg/dL</option>
+        </select>
+      </div>
+    </div>
     <div class="input-row"><label>年龄</label><input type="number" id="age" value="50" step="1" oninput="calc()" placeholder="如 50"></div>
-    <div class="input-row"><label>性别 1=男 0=女</label><input type="number" id="sex" value="1" step="1" oninput="calc()" placeholder="如 1"></div>
+    <div class="input-row"><label>性别</label><select id="sex" onchange="calc()">
+      <option value="1">男</option>
+      <option value="0">女</option>
+    </select></div>
     <div class="input-row"><label>种族系数</label><select id="race" onchange="calc()">
       <option value="1">非非裔（种族系数 1.0）</option>
       <option value="1.159">非裔（种族系数 1.159）</option>
@@ -303,16 +314,21 @@ s.parentNode.insertBefore(el, s);
 
 
 function calc(){
-    var __ig=__tbInputGuard(['scr', 'age', 'sex', 'race'],["血肌酐 µmol/L", "年龄", "性别 1=男 0=女", "种族系数"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const scr = +document.getElementById('scr').value || 0;
+    var __ig=__tbInputGuard(['scr', 'age', 'sex', 'race'],["血肌酐（单位可选）", "年龄", "性别", "种族系数"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
+const scrVal = +document.getElementById('scr').value;
   const age = +document.getElementById('age').value || 0;
   const sex = +document.getElementById('sex').value || 0;
   const race = +document.getElementById('race').value || 0;
+  const unit=(document.getElementById('scrUnit')||{value:'umol'}).value;
+  // 单位换算：mg/dL → µmol/L（1 mg/dL ≈ 88.4 µmol/L）
+  const scr = unit==='mgdl' ? scrVal*88.4 : scrVal;
+  if(!(age>=18&&age<=120)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">年龄须在 18–120 岁之间；CKD-EPI 不适用于儿童。</p>';return;}
+  if(!(scr>0&&scr<=2000)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">血肌酐须为 0–2000 µmol/L（0–22.6 mg/dL）的有效值。</p>';return;}
   // CKD-EPI 2009 种族系数：非非裔取 1、非裔取 1.159；0 或空值一律按 1（无校正），避免结果被归零
   const raceCoef = race > 0 ? race : 1;
   let html = '';
   const __v0 = (sex?141*Math.pow(Math.min(scr/88.4/0.9,1),-0.411)*Math.pow(Math.max(scr/88.4/0.9,1),-1.209)*Math.pow(0.993,age)*raceCoef:141*Math.pow(Math.min(scr/88.4/0.7,1),-0.329)*Math.pow(Math.max(scr/88.4/0.7,1),-1.209)*Math.pow(0.993,age)*1.018*raceCoef);
-  html += `<p>eGFR：<strong style="font-size:18px;color:var(--primary);">${__v0.toFixed(1)}</strong> mL/min/1.73m²</p>`;
+  html += `<p>eGFR：<strong style="font-size:18px;color:var(--primary);">${__v0.toFixed(1)}</strong> mL/min/1.73m² <span style="font-size:12px;color:var(--text-muted);">（按 ${unit==='mgdl'?'mg/dL':'µmol/L'} 输入的肌酐换算后计算）</span></p>`;
   const __v1 = (__v0>=90?'G1':(__v0>=60?'G2':(__v0>=45?'G3a':(__v0>=30?'G3b':(__v0>=15?'G4':'G5')))));
   html += `<p>CKD 分期：<strong style="font-size:18px;color:var(--primary);">${__v1}</strong></p>`;
   const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
@@ -464,12 +480,12 @@ else document.addEventListener('DOMContentLoaded', __egfrBoot);
 <li>用药参考：慢性肾病患者调剂量、避肾毒药物</li>
 <li>随访监测：追踪 eGFR 趋势，识别急性肾损伤</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">算法（CKD-EPI 2009，种族系数可选）：男 κ=0.9、女 κ=0.7（血肌酐 mg/dL；本工具按 µmol/L 输入，先 ÷88.4 换算）；eGFR=141×min(SCr/κ,1)^α×max(SCr/κ,1)^(-1.209)×0.993^年龄×(女性 ×1.018)×(黑人 ×1.159)。α：男 -0.411、女 -0.329。分期：≥90 G1、60–89 G2、45–59 G3a、30–44 G3b、15–29 G4、&lt;15 G5。注：CKD-EPI 2021 已取消种族系数。</div></div>
+<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">算法（CKD-EPI 2009，种族系数可选）：男 κ=0.9、女 κ=0.7（血肌酐 mg/dL；本工具支持 µmol/L 或 mg/dL 两种输入，按下拉框自动换算）；eGFR=141×min(SCr/κ,1)^α×max(SCr/κ,1)^(-1.209)×0.993^年龄×(女性 ×1.018)×(黑人 ×1.159)。α：男 -0.411、女 -0.329。分期：≥90 G1、60–89 G2、45–59 G3a、30–44 G3b、15–29 G4、&lt;15 G5。注：CKD-EPI 2021 已取消种族系数。</div></div>
 <div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例1（血肌酐 80µmol/L、50 岁、男）：SCr=80/88.4=0.905 mg/dL，eGFR=141×(0.905/0.9)^(-1.209)×0.993^50 ≈ 98.6 mL/min/1.73m²，属 G1（正常）。例2（血肌酐 200µmol/L、65 岁、女）：SCr=2.262 mg/dL，eGFR=141×(2.262/0.7)^(-1.209)×0.993^65×1.018 ≈ 22.0，属 G4（重度下降）。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>eGFR 和肌酐哪个准？</dt><dd>血肌酐受肌肉量、饮食影响；eGFR 用公式校正年龄性别更接近真实肾功能，是 CKD 分期与用药的主要依据，但仍需结合胱抑素 C、尿蛋白等。</dd>
-<dt>单位搞错会怎样？</dt><dd>该工具血肌酐按 µmol/L 输入（÷88.4 转 mg/dL）；egfr-calculator 那版则按 mg/dL 输入，两版单位不同，填错会差约 88 倍，务必看清单位。</dd>
+<dt>单位搞错会怎样？</dt><dd>该工具血肌酐可选 µmol/L 或 mg/dL（µmol/L 时 ÷88.4 转 mg/dL）；egfr-calculator 那版同样支持两种单位。填错单位会差约 88 倍，务必先核对单位下拉框。</dd>
 </dl>
 </div>
 </section>
