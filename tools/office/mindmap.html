@@ -355,6 +355,53 @@ s.parentNode.insertBefore(el, s);
   // 校验 markmap 库是否加载成功
   if (!window.markmap || !window.markmap.Markmap || !window.markmap.Transformer) {
     const __h0='<div class="mm-error">思维导图库加载失败，请检查网络连接后刷新页面重试。</div>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){mmWrap.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}mmWrap.innerHTML=__h0;
+    // 降级渲染：CDN 被墙 / 离线时库不可用，若只留一句报错页面对用户毫无价值。
+    // 这里用纯 JS 把 Markdown 大纲渲染成嵌套 <ul>，并保持输入实时刷新（Tab 缩进等
+    // 依赖库的功能不可用，但内容始终可见）。不改 PNG/SVG 导出路径（库缺失时按钮已禁用）。
+    var __mmEsc = function(s){
+      return String(s == null ? "" : s)
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    };
+    var __mmIsEn = /^en/i.test((document.documentElement && document.documentElement.lang) || "") ||
+      /[?&]lang=en/i.test((window.location && window.location.search) || "");
+    var __mmOutline = function(md){
+      var nodes = [];
+      var cur = 0;
+      String(md || "").split(/\r?\n/).forEach(function(line){
+        var t = line.replace(/\t/g, "  ");
+        var h = t.match(/^\s{0,3}(#{1,6})\s+(\S.*)$/);
+        if (h) { cur = h[1].length; nodes.push({ level: cur, text: h[2] }); return; }
+        var li = t.match(/^\s*([-*+])\s+(\S.*)$/);
+        if (li) {
+          var indent = (t.match(/^\s*/) || [""])[0].length;
+          nodes.push({ level: cur + 1 + Math.floor(indent / 2), text: li[2] });
+        }
+      });
+      var html = '<div class="mm-fallback">';
+      html += '<p class="mm-fallback-note" data-zh="思维导图库未加载，已降级为纯文本大纲（仍可继续编辑）。">' +
+        (__mmIsEn ? "Mindmap library failed to load; showing a plain outline instead." : "思维导图库未加载，已降级为纯文本大纲（仍可继续编辑）。") + '</p>';
+      html += '<div class="mm-fallback-meta" data-zh="大纲节点：' + nodes.length + '">' +
+        (__mmIsEn ? "Outline nodes: " : "大纲节点：") + nodes.length + '</div>';
+      if (nodes.length) {
+        html += '<ul class="mm-fallback-list">';
+        var depth = 0, prev = 0;
+        nodes.forEach(function(n, i){
+          var lv = Math.max(1, n.level);
+          if (i === 0) lv = 1;
+          else if (lv > prev + 1) lv = prev + 1;
+          if (lv > depth) { while (depth < lv) { html += "<ul>"; depth++; } }
+          else { while (depth > lv) { html += "</ul></li>"; depth--; } html += "</li>"; }
+          html += '<li data-level="' + lv + '">' + __mmEsc(n.text);
+          prev = lv;
+        });
+        while (depth > 0) { html += "</li></ul>"; depth--; }
+      }
+      return html + '</div>';
+    };
+    var __mmPaint = function(){ mmWrap.innerHTML = __h0 + __mmOutline(editor.value); };
+    __mmPaint();
+    editor.addEventListener("input", __mmPaint);
     ['btnSvg','btnPng','btnFit','btnFitInner'].forEach(function(id){var b=document.getElementById(id);if(b)b.disabled=true;});
     return;
   }

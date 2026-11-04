@@ -262,7 +262,7 @@
 | misc2 | travel/luggage-size |
 | misc | science/physics-constants |
 | music | ear-trainer |
-| office | **mindmap** |
+| office | ~~mindmap~~ **已修复（2026-11-05）**：降级大纲 + 2 条判别用例，跳过 55→54 |
 | ophthalmology | amblyopia-stereopsis |
 | paper | paper-grade |
 | pet | training-planner |
@@ -278,8 +278,29 @@
 
 ### 6.7 结论
 
-- **56/9126 ≈ 0.61%** 的用例存在默认态命中项；其中 **49 条完全丧失判别力**。
+- **56/9126 ≈ 0.61%** 的用例存在默认态命中项；其中 **49 条完全丧失判别力**（`office/mindmap` 已于 2026-11-05 修复，**待修 48 条**）。
 - 这批不是「用例写得不够精确」，而是**门禁语义（OR）与用例设计（多锚）冲突**。只要 harness 保持「任一命中即通过」，多锚用例必须满足「**每一项都只能由注入输入产生**」。
 - 只出清单，不改用例；各分类线按 §6.3–§6.5 自行修条。优先级：清单③（expect≥3）→ 清单② → 清单① → 剩余单锚全命中。
 - 2 条超时与 19 条无 blob 的用例**未判定**（可能含同类缺陷），需各线在页面可跑后复扫。
+
+### 6.8 mindmap 修复记录（2026-11-05，本线）
+
+- **页面**：库缺失分支新增纯 JS 降级大纲（嵌套 `<ul>` + `data-zh` 双语提示 + 「大纲节点：N」计数），并绑定 `input` 实时刷新；保留原加载失败提示，**未改** PNG/SVG 导出路径。
+- **用例**：`office/mindmap` 由锚「库加载失败文案」（默认态必命中）重写为锚降级产物；另加 1 条反向用例（仅该条注入 `window.markmap` 桩，断言 `MARKMAP-STUB-OK` 只可能来自 markmap 分支）。
+- **判别**：office 单文件 `已检 9 / 正确变红 9 / 逃生 0 / 跳过 0`；跳过基线 55 → 54（已检 4920 → 4922）。
+- **断 CDN 真机**（Chrome headless，拦截 `cdn.jsdelivr.net` 3 个请求）：中/英两态均渲染 7 节点、层级 `1,2,3,3,2,3,4`，`pageerror = 0`。
+
+### 6.9 待修 48 条的分派建议（按分类归属）
+
+| 建议归属 | 条数 | 用例 |
+|---|---|---|
+| 临床/医学线 | 9 | dentistry/tongue-oral-health、dentistry/wisdom-tooth、ophthalmology/amblyopia-stereopsis、rheumatology/anca-classification、behcet-hla、ssa-ssb、forensic-medicine/drowning-diatom、tcm-diagnosis/etiology-tree、psychiatry/rater-23（同源）、psychology/calc-12（同源） |
+| 土建/工程线 | 8 | hydraulic/pressure-drop、daohongxi-shuitousunshi-maishen、qudao-buchong-buyu-liusu（同源）、engineering/heat-transfer、mechanical/spring-rate、ceramics/glaze-temp、agriculture/machinery-efficiency、gardening2/pest-control |
+| 数理/科学线 | 10 | science/convert-power、science/science-pressure-converter（同源）、stats/sample-size、misc/science/physics-constants、electromagnetism/free-space-impedance、electronics/resistor-calculator、general/calc-13、edu/convert-area-volume、aerospace/flight-time、design/spacing-scale |
+| 生活/文化线 | 11 | life/age-in-days、life/workday-calculator ×3（同源）、wedding/wedding-banquet、kids/stroke-order、music/ear-trainer、chess/xiangqi-endgame、language/idiom-solitaire、library/citation-format、text/convert-6、chinese-cook/wok-heat |
+| 设计/影像/内容线 | 6 | design/photo-print-size、image/nine-grid-cutter、film/color-grading、audio/audio-cut、beauty/calc-2、beauty/skincare-routine |
+| 杂项线 | 5 | admin/detector-time、pet/training-planner、startup/equity-calculator、legal/court-fee、cognition/human-benchmark、misc2/travel/luggage-size、paper/paper-grade |
+| 办公线（本线） | 0（已修） | office/mindmap（降级渲染 + 反向桩用例） |
+
+注：同源混合锚的修法统一为「把恒定值/默认值移出 `expect`，只留注入后才出现的变化值」；`expect≥3` 的三条（pressure-drop / daohongxi / qudao）需优先拆条。
 

@@ -59,15 +59,34 @@ const CASES = [
   "ref": "（推翻 auto-restore）关键词过滤型页：render() 读 #keyword 后对 DATA 做顺序保持型过滤，命中项依次 appendChild 进 #list，collectStrings 采集其 innerHTML（标签→空格）⇒ 过滤态的「相邻条目」串可被断言。注入关键词「数字」⇒ 只有 SUM / AVERAGE / TEXT 命中（三处 syntax 含「数字」），于是 AVERAGE 与 TEXT 在全表中间隔 IF、VLOOKUP、INDEX、MATCH、SUMIFS、COUNTIFS 六项，在过滤态却紧邻 ⇒ 锚跨边界串「求平均值。 TEXT 分类：文本」（默认全量渲染下 AVERAGE 之后是 IF，故默认态必失配）。另一条锚「分类：统计 =AVERAGE(...) 求平均值。 TEXT」同属该边界。已实测排除的逃生项候选：`=TEXT(数字,\"0.00\")` 与 `TEXT 分类：文本 =TEXT(数字,\"0.00\") 数字转文本与格式控制。` —— 二者整段是 TEXT 条目自身的渲染结果，默认全量渲染里同样 contiguous ⇒ 判别力 0（BATCH110①「锚不得成为默认态某串的子串」）。"
 },
 {
+  // 降级渲染（CDN 被墙 / 离线）：库缺失分支不再只留一句报错，而是把 Markdown 渲染成
+  // 嵌套 <ul>，并绑定 input 实时刷新 ⇒ 注入 editor 后可在桩内断言真实产出。
   "slug": "office/mindmap",
   "inputs": {
-    "editor": ""
+    "editor": "# 项目知识库\n## 双向链接\n- 笔记A\n- 笔记B\n## 层级结构\n### 子层级\n- 子项"
   },
   "expect": [
-    "请检查网络连接后刷新页面重试"
+    "双向链接",
+    "大纲节点：7"
   ],
-  "ref": "结构性不可改造（保留 all_default，勿重复评估）：render() 产出 SVG / Canvas 布局，harness 无真实布局与字体度量；"
-     + "默认态文案本身即渲染失败提示，注入 editor 后 mindmap 容器仍为空（2026-09-25 实测）。"
+  "ref": "降级大纲：7 个节点（一级标题 1 + 二级标题 2 + 三级标题 1 + 列表项 3）；"
+     + "「双向链接」与「大纲节点：7」都只在注入本文后出现（默认 editor 为空 ⇒ 大纲节点：0），"
+     + "因此 OR 语义下两条锚各自具备判别力（不再是「库加载失败」这种默认态文案）。"
+},
+{
+  // 反向用例：仅在本条用例内提供 window.markmap 桩 ⇒ 页面必须走 markmap 分支，
+  // 不得落入降级大纲（降级分支只有库缺失时才会执行）。
+  "slug": "office/mindmap",
+  "markmapStub": true,
+  "inputs": {
+    "editor": "# 根主题\n## 分支A\n- 子节点"
+  },
+  "expect": [
+    "MARKMAP-STUB-OK"
+  ],
+  "ref": "反向：markmapStub 在用例开始前把伪造的 window.markmap（Markmap.create 往 #mindmap 写 "
+     + "MARKMAP-STUB-OK）+ MutationObserver 挂到 globalThis，runCase 结束后立即删除，不泄漏到其它用例。"
+     + "该串只可能来自 markmap 分支；若页面误入降级分支则断言必失配。"
 },
 {
   "slug": "office/pdf-split",
@@ -178,6 +197,26 @@ async function main() {
   const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
   let pass = 0; const fails = [];
   for (const c of cases) {
+    // markmapStub：仅该条用例内提供「库存在」环境（反向验证不进入降级分支）。
+    // 必须在 runCase 之前挂到 globalThis（runCase 把它当 window），并在用例结束后删除，
+    // 否则会泄漏到后续用例（runCase 的 finally 只清理用例期间新增的键，清理不到预先存在的）。
+    const withMarkmap = !!c.markmapStub;
+    const prevMarkmap = globalThis.markmap;
+    const prevMO = globalThis.MutationObserver;
+    if (withMarkmap) {
+      globalThis.markmap = {
+        Transformer: function () {
+          this.transform = function (md) { return { root: { content: String(md || "") } }; };
+        },
+        Markmap: {
+          create: function (svg) {
+            if (svg) svg.innerHTML = '<div class="mm-stub">MARKMAP-STUB-OK</div>';
+            return { setData: function () {} };
+          },
+        },
+      };
+      globalThis.MutationObserver = function () { return { observe: function () {}, disconnect: function () {} }; };
+    }
     try {
       const r = await runCaseWithTimeout(c);
       if (r.ok) { pass++; }
@@ -190,6 +229,15 @@ async function main() {
     } catch (e) {
       fails.push(c.slug);
       console.log("❌ " + c.slug + "  THROWN: " + ((e && e.message) ? e.message : String(e)));
+    } finally {
+      if (withMarkmap) {
+        // 必须还原而非一律 delete：MutationObserver 是运行环境预置全局（jsdom 提供），
+        // delete 会让后续 flowchart 用例整页初始化失败。
+        if (prevMarkmap === undefined) { try { delete globalThis.markmap; } catch (e) {} }
+        else { globalThis.markmap = prevMarkmap; }
+        if (prevMO === undefined) { try { delete globalThis.MutationObserver; } catch (e) {} }
+        else { globalThis.MutationObserver = prevMO; }
+      }
     }
   }
 
