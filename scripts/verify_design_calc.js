@@ -2004,20 +2004,25 @@ const CASES = [
   {
     "slug": "design/tester-assessor",
     "inputs": {
-      "totalTasks": "42",
-      "successTasks": "42",
-      "avgTime": "42",
-      "expectedTime": "42",
-      "errors": "42",
-      "helpCount": "42",
-      "userCount": "42",
-      "satisfaction": "42",
-      "sus": "2"
+      "totalTasks": "10",
+      "successTasks": "7",
+      "avgTime": "160",
+      "expectedTime": "100",
+      "errors": "3",
+      "helpCount": "2",
+      "userCount": "6",
+      "satisfaction": "4",
+      "sus0": "5", "sus1": "1", "sus2": "5", "sus3": "1", "sus4": "5",
+      "sus5": "1", "sus6": "5", "sus7": "1", "sus8": "5", "sus9": "1"
     },
     "expect": [
-      " 完成时间比 1.00x (42s/42s) 100 操作错误率 1.0次/任务 (42次) 67 求助频率 1.0次/任务 (42次) 0 用户满意度 42/7 683"
+      "70% (7/10)",
+      "1.60x (160s/100s)",
+      "0.3次/任务 (3次)",
+      "4/7",
+      "86 综合可用性评分"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"totalTasks\":\"42\",\"successTasks\":\"42\",\"avgTime\":\"42\",\"expectedTime\":\"42\",\"errors\":\"42\",\"helpCount\":\"42\",\"userCount\":\"42\",\"satisfaction\":\"42\",\"sus\":\"2\"}，输出区含「 完成时间比 1.00x (42s/42s) 100 操作错误率 1.0次/任务…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "重写：原注入裸键 sus（页面只生成 sus0..sus9、calc 循环读 getElementById('sus'+i)，裸 sus 从不被读取 ⇒ 注入落空）。改为真实动态键 sus0..sus9：奇数题(索引偶数)取 5 → (5−1)=4 共 5 题，偶数题(索引奇数)取 1 → (5−1)=4 共 5 题，susSum=40 ⇒ SUS=100 分（默认全 3 ⇒ susSum=20 ⇒ 50 分；且**均匀取值恒为 50 分**——5*(v−1)+5*(5−v)=20，故只有混合取值才能证明这些键真被读取）。绩效锚：成功率 7/10=70%、时间比 160/100=1.60x、错误率 3/10=0.3次/任务、满意度 4 → 4/7；默认 5/4/120/90/3/2/5/5 ⇒ 80% (4/5)、1.33x、0.6次/任务、5/7。末锚「86 综合可用性评分」= taskScore 65.5×(40%) + susScore 100×(60%) = 86.2 → 86，同时依赖绩效注入与 SUS 注入（performance 不变而 sus 落空时得 56、sus 生效而绩效回退时得 89），是证明 sus0..sus9 真被读取的唯一可靠锚。不直接锚「SUS得分（等级A）」——sus* 由 JS 动态生成，discriminate_check 的 pageDefaults 解析不到、无法回退，该锚会恒真成为逃生项。"
   },
   {
     "slug": "design/tailwind-colors",

@@ -85,11 +85,10 @@ const CASES = [
 {
   "slug": "gastroenterology/ercp-success",
   "inputs": {
-    "stoneSize": "18",
-    "cbd": "12"
+    "stoneSize": "18"
   },
   "expect": ["5 难度评分"],
-  "ref": "auto-restore"
+  "ref": "重写：页面无 CBD 字段（仅 stoneSize/stoneCount/stonePos/purpose/surgery/priorEst/diverticulum），原注入键 cbd 属僵尸 id（getEl 造游离桩、页面从不读取），已删除。难度分由页面真实分支累加：注入 stoneSize=18 ⇒ ＞15mm +3，其余保持默认（stoneCount=1 即 2-3 枚 +1、stonePos=1 即胆总管中段 +1）= 5 分；默认 stoneSize=12 ⇒ 10-15mm +2，其余同 = 4 分，故「5 难度评分」在默认态不命中。"
 },
 {
   "slug": "gastroenterology/esophageal-varices",
