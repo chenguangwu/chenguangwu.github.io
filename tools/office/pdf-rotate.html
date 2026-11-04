@@ -25,9 +25,12 @@
 <script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js" integrity="sha384-weMABwrltA6jWR8DDe9Jp5blk+tZQh7ugpCsF3JwSA53WZM9/14PjS5LAJNHNjAI" crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" integrity="sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e" crossorigin="anonymous"></script>
-<script>
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+<script type="module">
+// pdf.js 4.2.67（CVE-2024-4367 修复版）改为自托管 ESM：4.x 官方只发布 .mjs，
+// 无法挂 integrity 到 import 语句，故把文件纳入本站 vendor（同源、无第三方供应链环节）。
+import * as pdfjsLib from '/vendor/pdfjs/4.2.67/pdf.min.mjs';
+pdfjsLib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/4.2.67/pdf.worker.min.mjs';
+window.pdfjsLib = pdfjsLib;
 </script>
 <style>
 .drop-zone{border:2px dashed var(--border);border-radius:14px;padding:40px 20px;text-align:center;color:var(--text-muted);cursor:pointer;transition:all .2s;background:var(--result-bg);}
@@ -328,6 +331,19 @@ s.parentNode.insertBefore(el, s);
 <script>
 const { PDFDocument, degrees } = PDFLib;
 
+// pdf.js 4.x 为 ESM，模块脚本延迟执行；此处只等待加载完成，不做 worker 配置（交给上方 module）
+function pdfjsReady(timeoutMs) {
+  return new Promise(function (resolve, reject) {
+    if (window.pdfjsLib) return resolve(window.pdfjsLib);
+    var t0 = Date.now();
+    (function poll() {
+      if (window.pdfjsLib) return resolve(window.pdfjsLib);
+      if (Date.now() - t0 > (timeoutMs || 10000)) return reject(new Error('pdfjs-not-ready'));
+      setTimeout(poll, 50);
+    })();
+  });
+}
+
 let state = {
   file:null, fileBuffer:null, pdfjsDoc:null,
   rotations:[], originalRotations:[],
@@ -370,7 +386,7 @@ async function loadPdf(file){
     const pdfjsData = new Uint8Array(raw.slice(0));
     const pdfLibData = raw.slice(0);
 
-    const pdfjsDoc = await pdfjsLib.getDocument({ data: pdfjsData }).promise;
+    const pdfjsDoc = await (await pdfjsReady()).getDocument({ data: pdfjsData }).promise;
     const pdfLibDoc = await PDFDocument.load(pdfLibData, { ignoreEncryption:true });
     const pages = pdfLibDoc.getPages();
     const rotations = [];
@@ -395,7 +411,8 @@ async function loadPdf(file){
     ToolBox.showToast(i18nText('toast.saved', 'PDF 加载完成，共 ' + state.numPages + ' 页'), 'success');
   }catch(e){
     console.error(e);
-    ToolBox.showToast('PDF 加载失败：' + (e.message || e),'error');
+    const msg = (e && e.message === 'pdfjs-not-ready') ? 'PDF 解析引擎加载失败，请刷新页面重试' : ('PDF 加载失败：' + ((e && e.message) || e));
+    ToolBox.showToast(msg,'error');
   }
 }
 

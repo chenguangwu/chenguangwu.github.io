@@ -26,7 +26,13 @@
 <script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js" integrity="sha384-weMABwrltA6jWR8DDe9Jp5blk+tZQh7ugpCsF3JwSA53WZM9/14PjS5LAJNHNjAI" crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" integrity="sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e" crossorigin="anonymous"></script>
+<script type="module">
+// pdf.js 4.2.67（CVE-2024-4367 修复版）改为自托管 ESM：4.x 官方只发布 .mjs，
+// 无法挂 integrity 到 import 语句，故把文件纳入本站 vendor（同源、无第三方供应链环节）。
+import * as pdfjsLib from '/vendor/pdfjs/4.2.67/pdf.min.mjs';
+pdfjsLib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/4.2.67/pdf.worker.min.mjs';
+window.pdfjsLib = pdfjsLib;
+</script>
 
 <script type="application/ld+json">
 {
@@ -578,9 +584,17 @@ s.parentNode.insertBefore(el, s);
 </div>
 
 <script>
-// pdf.js worker 配置
-if (typeof pdfjsLib !== 'undefined') {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+// pdf.js 4.x 为 ESM，模块脚本延迟执行；此处只等待加载完成，不做 worker 配置（交给上方 module）
+function pdfjsReady(timeoutMs) {
+  return new Promise(function (resolve, reject) {
+    if (window.pdfjsLib) return resolve(window.pdfjsLib);
+    var t0 = Date.now();
+    (function poll() {
+      if (window.pdfjsLib) return resolve(window.pdfjsLib);
+      if (Date.now() - t0 > (timeoutMs || 10000)) return reject(new Error('pdfjs-not-ready'));
+      setTimeout(poll, 50);
+    })();
+  });
 }
 
 // 全局状态
@@ -676,7 +690,8 @@ async function handleFile(file) {
 
     // 用 pdf.js 加载（传副本，避免 buffer 被 transfer）
     const pdfjsData = new Uint8Array(buf.slice(0));
-    const loadingTask = pdfjsLib.getDocument({ data: pdfjsData });
+    const lib = await pdfjsReady();
+    const loadingTask = lib.getDocument({ data: pdfjsData });
     pdfjsDoc = await loadingTask.promise;
     totalPages = pdfjsDoc.numPages;
 
@@ -715,7 +730,9 @@ async function handleFile(file) {
   } catch (err) {
     console.error('PDF 加载失败:', err);
     let msg = 'PDF 加载失败';
-    if (err.message && err.message.includes('password')) {
+    if (err.message === 'pdfjs-not-ready') {
+      msg = 'PDF 解析引擎加载失败，请刷新页面重试';
+    } else if (err.message && err.message.includes('password')) {
       msg = '该 PDF 需要密码才能打开，请先解除密码保护';
     } else if (err.message && err.message.includes('Invalid')) {
       msg = '文件可能已损坏或不是有效的 PDF';

@@ -8079,6 +8079,8 @@ function inlineScripts(html) {
   for (const m of html.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/gi)) {
     const attrs = m[1] || "";
     if (/\bsrc=/i.test(attrs)) continue;
+    // ESM 内联模块（如 pdf.js 4.x 页面）不能在 harness 的 new Function 里按经典脚本执行，跳过
+    if (/type\s*=\s*["']?module/i.test(attrs)) continue;
     if (/type\s*=\s*["']?(application|text\/template|text\/tailwindcss|text\/js-worker)/i.test(attrs)) continue;
     out.push(m[2]);
   }
