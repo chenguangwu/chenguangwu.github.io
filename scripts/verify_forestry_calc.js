@@ -131,12 +131,13 @@ const CASES = [
 {
   "slug": "forestry/shengwuduoyangxingshannon",
   "inputs": {
-    "data": "23\n15\n12\n8\n5_X"
+    "data": "30 10 5 3"
   },
   "expect": [
-    "5_X"
+    "1.029",
+    "0.743"
   ],
-  "ref": "⚠ 输入回显（结构性不可修）：数据块含非法记号「5_X」，页面按行原样回显该行并跳过统计，无派生量可锚，维持原断言不制造逃生。"
+  "ref": "独立复算：N=48，p=0.625/0.2083/0.1042/0.0625 ⇒ H=−Σp ln p=1.029；J=H/ln4=0.743；Simpson D=1−Σp²=0.551；Margalef=(4−1)/ln48=0.775。默认态 23/15/12/8/5 ⇒ H=1.488、J=0.925，两条均不命中。"
 },
 {
   "slug": "forestry/strength-4",
@@ -237,6 +238,38 @@ const CASES = [
     "inputs": { "spacing": "5", "rowSpacing": "5", "area": "0", "site": "poor" },
     "expect": ["请输入有效的株距、行距和造林面积"],
     "ref": "面积 0 ⇒ 需苗量 = 密度×0 = 0 株，旧实现照常给结论；修复后必须拦截。默认 100 亩不触发。"
+  },
+  // ── 定义域收紧：实验形数 / 根茎比 / 回归年 / 区域面积 ──────────────
+  {
+    "slug": "forestry/estimate-32",
+    "inputs": { "area": "667", "n": "120", "dbh": "14", "h": "12", "f": "1.5" },
+    "expect": ["实验形数 f 应在 0.1–0.9 之间"],
+    "ref": "输入框声明 f 域 0.1–0.9（min/max/placeholder），旧校验只要求 f>0，f=1.5 会照算并放大 3 倍材积；改为超域显式拒绝。默认 0.5 不触发。"
+  },
+  {
+    "slug": "forestry/strength-4",
+    "inputs": { "stock": "270", "ratio": "25", "cycle": "0.5", "area": "500" },
+    "expect": ["回归年 ≥ 1 年"],
+    "ref": "回归年输入框声明 min=1、step=1，旧校验只要求 cycle>0，0.5 年会把年均采伐量放大一倍；改为 <1 显式拒绝。默认 10 年不触发。"
+  },
+  {
+    "slug": "forestry/estimate-33",
+    "inputs": { "len": "5", "w": "25", "n": "12", "tarea": "-5" },
+    "expect": ["区域面积留空或 ≥ 0"],
+    "ref": "区域面积为可选字段，旧实现遇负数直接静默跳过估算（NaN），用户无从察觉；改为负值显式拒绝、留空仍按不估算处理。默认 50 不触发。"
+  },
+  {
+    "slug": "forestry/carbon-sequestration",
+    "inputs": {},
+    "clicks": ["selectMethod(1);document.getElementById('rootRatio').value='0.8';calc()"],
+    "expect": ["根茎比应在 0.1–0.5 之间"],
+    "ref": "生物量法下根茎比输入框声明 0.1–0.5，旧校验只要求 >0，0.8 会把总生物量放大到 1.8 倍；改为超域显式拒绝。默认方法 0（蓄积量法）不渲染该输入、不触发。"
+  },
+  {
+    "slug": "forestry/shengwuduoyangxingshannon",
+    "inputs": { "data": "30 10 5_X" },
+    "expect": ["个体数须逐项为正数"],
+    "ref": "旧实现 parseFloat('5_X') 会静默截成 5 继续统计，非法记号被悄悄吞掉；改为逐项校验有限正数并显式拒绝。默认合法数据不触发。"
   }
 ];
 async function main() {
