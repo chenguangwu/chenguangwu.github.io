@@ -14,6 +14,24 @@ const CASES = [
   "ref": "工龄3年落入1-10年档=5天，按在职月份折算 5×6/12=2.5 天（默认 1年/12月 得 5.0 天）"
 },
 {
+  "slug": "hr/annual-leave-calc",
+  "inputs": { "tenure": "10", "months": "12" },
+  "expect": ["10.0 天"],
+  "ref": "满 10 年整应落「满10年不满20年」档 = 10 天；原实现 `years <= 10` 误判为 5 天。默认 1 年/12 月输出 5.0 天，注入失败即失配。"
+},
+{
+  "slug": "hr/annual-leave-calc",
+  "inputs": { "tenure": "20", "months": "12" },
+  "expect": ["15.0 天"],
+  "ref": "满 20 年整应落「满20年」档 = 15 天；原实现 `years <= 20` 误判为 10 天。"
+},
+{
+  "slug": "hr/annual-leave-calc",
+  "inputs": { "tenure": "", "months": "12" },
+  "expect": ["请填写连续工龄与本年工作月数后再计算"],
+  "ref": "空工龄不再 parseFloat(...)||0 兜底成 0 天，改为显式提示。默认 1/12 不出现该提示。"
+},
+{
   "slug": "hr/assessor-training-hr",
   "inputs": {
     "trainees": "45",
@@ -86,6 +104,18 @@ const CASES = [
     "12.0 天"
   ],
   "ref": "W5-B 核心回归：96h 休息日加班 ÷ 8h/天 = 12.0 天（旧实现 96×2/8 = 24.0 天）。"
+},
+{
+  "slug": "hr/comp-time-calculator",
+  "inputs": { "hours": "8", "dayType": "weekend", "workday": "16" },
+  "expect": ["每日标准工时应在 4–12 小时之间"],
+  "ref": "每日工时 16h 超出输入框 max=12，原实现照算并产出 16h 口径的补休天数；现拦截提示。默认 12h/8h 不出现该提示。"
+},
+{
+  "slug": "hr/comp-time-calculator",
+  "inputs": { "hours": "", "dayType": "weekend", "workday": "8" },
+  "expect": ["请填写加班时长与每日标准工时"],
+  "ref": "空加班时长不再 parseFloat||0 兜底为 0，改为显式提示。默认 12h 不出现该提示。"
 },
 {
   "slug": "hr/comp-time-calculator",

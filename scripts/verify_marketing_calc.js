@@ -635,10 +635,46 @@ const CASES = [
       "quantity": "2"
     },
     "expect": [
-      "最终实付 ¥400.00",
+      "最终实付 ¥0.00",
       "未达到满500元门槛"
     ],
-    "ref": "商品原价 200 × 数量 2 = ¥400.00；优惠券门槛 minSpend=500，实付 400 < 500 → 优惠券不满足条件、不抵扣，折扣优惠 ¥0.00，最终实付 ¥400.00。页面输出与独立复算吻合。HTML 默认 (299, 券50, 门槛199, 数量1) → 满足门槛并抵扣 50 元，实付 ¥249.00，默认态不产生 ¥400.00。"
+    "ref": "商品原价 200 × 数量 2 = ¥400.00；折扣率 0 表示 0 折 ⇒ 折后 0 元，优惠券门槛 500 不满足 ⇒ 最终实付 ¥0.00。原实现 `parseFloat(...)||1` 把合法 0 折当空值，错误输出 ¥400.00（即本条旧期望）；修复后 0 折按 0 计。默认 (299, 券50, 门槛199, 数量1, 折扣1) → 实付 ¥249.00，两条均不命中。"
+  },
+  {
+    "slug": "marketing/marketing-coupon-discount",
+    "inputs": {
+      "originalPrice": "299",
+      "couponAmount": "50",
+      "minSpend": "199",
+      "extraDiscount": "0.8",
+      "quantity": "2"
+    },
+    "expect": ["¥428.40"],
+    "ref": "多件整单券口径：299×2×0.8 − 50 = 428.40；公式框原写 (原价×折扣率−券)×数量 会得 378.40。默认 299×1×1−50 = 249.00，不命中。"
+  },
+  {
+    "slug": "marketing/marketing-coupon-discount",
+    "inputs": {
+      "originalPrice": "299",
+      "couponAmount": "50",
+      "minSpend": "199",
+      "extraDiscount": "1.5",
+      "quantity": "1"
+    },
+    "expect": ["折扣率应在 0–1 之间"],
+    "ref": "折扣率 1.5 越界（原实现 output 448.50、省 −149.50、15.0 折）；现拦截并提示。默认折扣率 1 不出现该提示。"
+  },
+  {
+    "slug": "marketing/marketing-coupon-discount",
+    "inputs": {
+      "originalPrice": "299",
+      "couponAmount": "50",
+      "minSpend": "199",
+      "extraDiscount": "1",
+      "quantity": "-2"
+    },
+    "expect": ["购买数量需为正整数"],
+    "ref": "负数量原实现显示负原价/负节省（299×−2=−598）；现拦截并提示。默认数量 1 不出现该提示。"
   },
 
   // ── 零用例收敛（2026-10-09）：marketing 8 页中 4 页可收敛 ──
@@ -861,6 +897,18 @@ const CASES = [
       "营销端CAC ¥1 销售端CAC 21"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"marketingSpend\":\"42\",\"salesSpend\":\"42\",\"newCustomers\":\"42\",\"ltv\":\"42\"}，输出区含「营销端CAC ¥1 销售端CAC 21」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "marketing/marketing-cac-calculator",
+    "inputs": { "marketingSpend": "8000", "salesSpend": "2000", "newCustomers": "100", "ltv": "1000" },
+    "expect": ["3.6 个月"],
+    "ref": "CAC = (8000+2000)/100 = 100；回本周期 = CAC ÷ (LTV/36) = 100 ÷ (1000/36) = 3.6 个月。原实现算出 paybackMonths 却从未渲染（深解承诺回收期而结果卡缺失）；默认组 CAC 100 / LTV 500 ⇒ 7.2 个月，不命中。"
+  },
+  {
+    "slug": "marketing/marketing-cac-calculator",
+    "inputs": { "marketingSpend": "8000", "salesSpend": "2000", "newCustomers": "100", "ltv": "-100" },
+    "expect": ["客户终身价值 LTV 需大于 0"],
+    "ref": "显式填写负 LTV 时原实现 hasLTV=false 静默隐藏整块分析；现拦截提示（留空仍视为跳过分析）。默认 LTV 500 不出现该提示。"
   },
   {
     "slug": "marketing/marketing-conversion-rate-calculator",

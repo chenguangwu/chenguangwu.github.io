@@ -246,7 +246,7 @@ s.parentNode.insertBefore(el, s);
       </div>
       <div class="explain-section">
         <h4>计算方式</h4>
-        <div class="formula-box">最终价格 = (原价 × 折扣率 - 优惠券) × 数量</div>
+        <div class="formula-box">最终价格 = 原价 × 数量 × 折扣率 − 优惠券（优惠券按整单抵扣一次，不按件重复减）</div>
         <p>注意：需先判断是否满足优惠券使用条件。</p>
       </div>
     </div>
@@ -377,18 +377,37 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => switchTab(btn.dataset.tab));
 });
 
-function calc() {
-  const orig = parseFloat(document.getElementById('originalPrice').value);
-  const coupon = parseFloat(document.getElementById('couponAmount').value);
-  const min = parseFloat(document.getElementById('minSpend').value) || 0;
-  const extra = parseFloat(document.getElementById('extraDiscount').value) || 1;
-  const qty = parseInt(document.getElementById('quantity').value) || 1;
-  const r = document.getElementById('result');
+function readNum(id, fallback) {
+  const el = document.getElementById(id);
+  if (!el) return fallback;
+  const raw = String(el.value == null ? '' : el.value).trim();
+  return raw === '' ? fallback : parseFloat(raw);
+}
 
-  if (isNaN(orig) || orig <= 0) {
-    r.innerHTML='<div class="metric-card"><p style="color:var(--text-muted);">请输入有效价格</p></div>';
-    return;
+function validateCoupon(showError) {
+  const orig = readNum('originalPrice', NaN);
+  const coupon = readNum('couponAmount', NaN);
+  const min = readNum('minSpend', 0);
+  const extra = readNum('extraDiscount', 1);
+  const qty = readNum('quantity', 1);
+  let msg = '';
+  if (!isFinite(orig) || orig <= 0) msg = '请输入有效价格（大于 0）。';
+  else if (!isFinite(coupon) || coupon < 0) msg = '请输入有效的优惠券金额（≥0）。';
+  else if (!isFinite(min) || min < 0) msg = '满减门槛需为 ≥0 的数字。';
+  else if (!isFinite(extra) || extra < 0 || extra > 1) msg = '折扣率应在 0–1 之间（1 表示不打折，0 表示 0 折）。';
+  else if (!isFinite(qty) || qty < 1 || qty % 1 !== 0) msg = '购买数量需为正整数。';
+  if (msg) {
+    if (showError) document.getElementById('result').innerHTML = '<div class="metric-card"><p class="tip-error">' + msg + '</p></div>';
+    return null;
   }
+  return { orig: orig, coupon: coupon, min: min, extra: extra, qty: qty };
+}
+
+function calc() {
+  const r = document.getElementById('result');
+  const input = validateCoupon(true);
+  if (!input) return;
+  const orig = input.orig, coupon = input.coupon, min = input.min, extra = input.extra, qty = input.qty;
 
   const totalOrig = orig * qty;
   const canUse = totalOrig >= min && coupon > 0;
@@ -447,16 +466,12 @@ function calc() {
 }
 
 function saveHistory() {
-  const orig = parseFloat(document.getElementById('originalPrice').value);
-  const coupon = parseFloat(document.getElementById('couponAmount').value);
-  const min = parseFloat(document.getElementById('minSpend').value) || 0;
-  const extra = parseFloat(document.getElementById('extraDiscount').value) || 1;
-  const qty = parseInt(document.getElementById('quantity').value) || 1;
-
-  if (isNaN(orig) || orig <= 0) {
+  const input = validateCoupon(false);
+  if (!input) {
     ToolBox.showToast(i18nText(),'error');
     return;
   }
+  const orig = input.orig, coupon = input.coupon, min = input.min, extra = input.extra, qty = input.qty;
 
   const totalOrig = orig * qty;
   const canUse = totalOrig >= min && coupon > 0;

@@ -241,16 +241,27 @@ s.parentNode.insertBefore(el, s);
 <script>
 function standardAnnualLeave(years) {
   if (years < 1) return 0;
-  if (years <= 10) return 5;
-  if (years <= 20) return 10;
+  if (years < 10) return 5;
+  if (years < 20) return 10;
   return 15;
 }
 
 function calc() {
-  const tenure = Math.max(0, parseFloat(document.getElementById('tenure').value) || 0);
-  const months = Math.min(12, Math.max(0, parseInt(document.getElementById('months').value) || 0));
+  const tenureRaw = document.getElementById('tenure').value.trim();
+  const monthsRaw = document.getElementById('months').value.trim();
+  if (tenureRaw === '' || monthsRaw === '') {
+    document.getElementById('result').innerHTML = '<p class="tip-error">请填写连续工龄与本年工作月数后再计算。</p>';
+    return;
+  }
+  const tenure = parseFloat(tenureRaw);
+  const monthsInput = parseInt(monthsRaw);
+  if (!isFinite(tenure) || tenure < 0 || !isFinite(monthsInput) || monthsInput < 0) {
+    document.getElementById('result').innerHTML = '<p class="tip-error">工龄与工作月数需为 ≥0 的有效数字。</p>';
+    return;
+  }
+  const months = Math.min(12, monthsInput);
   const total = standardAnnualLeave(tenure) * (months / 12);
-  const formula = tenure <= 1 ? '工龄低于1年默认0天' : '1-10年：5天；10-20年：10天；20年以上：15天';
+  const formula = tenure < 1 ? '工龄低于1年默认0天' : '满1年不满10年：5天；满10年不满20年：10天；满20年：15天';
 
   const __g1=`<p>参考年假天数：<strong>${total.toFixed(1)} 天</strong></p>` +
     `<p>年休规则：${formula}</p>` +

@@ -402,11 +402,20 @@ function calc() {
   const mSpend = parseFloat(document.getElementById('marketingSpend').value);
   const sSpend = parseFloat(document.getElementById('salesSpend').value);
   const customers = parseFloat(document.getElementById('newCustomers').value);
-  const ltv = parseFloat(document.getElementById('ltv').value);
+  const ltvRaw = document.getElementById('ltv').value.trim();
+  const ltv = ltvRaw === '' ? NaN : parseFloat(ltvRaw);
   const r = document.getElementById('result');
 
   if (isNaN(mSpend) || isNaN(sSpend) || isNaN(customers) || customers <= 0) {
     r.innerHTML='<div class="metric-card"><p style="color:var(--text-muted);">请输入有效数值</p></div>';
+    return;
+  }
+  if (mSpend < 0 || sSpend < 0) {
+    r.innerHTML='<div class="metric-card"><p class="tip-error">营销费用与销售费用需为 ≥0 的数字。</p></div>';
+    return;
+  }
+  if (ltvRaw !== '' && (!isFinite(ltv) || ltv <= 0)) {
+    r.innerHTML='<div class="metric-card"><p class="tip-error">客户终身价值 LTV 需大于 0（留空则跳过 LTV 分析）。</p></div>';
     return;
   }
 
@@ -451,7 +460,9 @@ function calc() {
         <tr><td style="padding:4px 0;color:var(--text-light);">LTV:CAC比率</td><td style="text-align:right;font-weight:600;color:${ltvCacRatio >= 3 ? '#4caf50' : ltvCacRatio >= 1 ? '#ff9800' : '#f44336'};">${ltvCacRatio.toFixed(2)} : 1</td></tr>
         <tr><td style="padding:4px 0;color:var(--text-light);">健康状态</td><td style="text-align:right;font-weight:600;">${ltvCacRatio >= 3 ? '健康' : ltvCacRatio >= 2 ? '一般' : ltvCacRatio >= 1 ? '偏低' : '危险'}</td></tr>
         <tr><td style="padding:4px 0;color:var(--text-light);">投资回报率</td><td style="text-align:right;font-weight:600;">${((ltv - cac) / cac * 100).toFixed(0)}%</td></tr>
+        <tr><td style="padding:4px 0;color:var(--text-light);">回本周期（LTV 按 36 个月均摊）</td><td style="text-align:right;font-weight:600;">${paybackMonths.toFixed(1)} 个月</td></tr>
       </table>
+      <p style="font-size:12px;color:var(--text-muted);margin-top:6px;">回本周期 = CAC ÷ (LTV ÷ 36)；若实际客户生命周期不等于 36 个月，请按真实月数换算后再参考。</p>
     </div>
     ` : ''}
 
