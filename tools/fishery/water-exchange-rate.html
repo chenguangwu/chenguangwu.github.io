@@ -117,7 +117,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="按换水量计算稳态污染物浓度、水质稳定时间与有效换水率">Compute the water exchange rate and water-quality stability of a fish pond.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">鱼池换水率与稳态浓度（本页代码口径）：日换水率=日换水量÷池体积；时间常数 τ=池体积÷日换水量（天）；稳态浓度 C_ss=进水浓度+污染物产生率×τ（mg/L）；达标最小换水率=产生率÷(目标浓度−进水浓度)、最小换水量=该率×池体积；目标低于稳态时达标时间 t=−τ×ln(1−目标÷C_ss)。校验：五项须为有效数值且池体积&gt;0、日换水量≥0，否则提示并中止。判据：换水量≤0 判污染物持续累积（红）；C_ss≤目标判可稳定达标（绿）；否则稳态超标需加大换水（黄）。</div>
+      <div class="formula-eq">鱼池换水率与稳态浓度（本页代码口径）：日换水率=日换水量÷池体积；时间常数 τ=池体积÷日换水量（天）；稳态浓度 C_ss=进水浓度+污染物产生率×τ（mg/L）；最小换水率=产生率÷(目标浓度−进水浓度)、最小换水量=该率×池体积；仅当目标&lt;稳态时，从初始浓度 0 升到目标的时间 t=−τ×ln(1−目标÷C_ss)。校验：池体积&gt;0，日换水量、产生率、进水浓度均≥0，目标&gt;0，否则提示并中止。判据：换水量=0 判污染物持续累积（红）；目标≤进水浓度判水源本身不达标、换水无解（红，不给换水量建议）；C_ss≤目标判可稳定达标（绿）；否则稳态超标（黄），并说明即使升到目标后仍会继续升高。</div>
       <p class="formula-desc">按换水量计算稳态污染物浓度、水质稳定时间与有效换水率</p>
     </div>
 
@@ -139,7 +139,7 @@ s.parentNode.insertBefore(el, s);
     <div class="result-box" id="result"></div> <div id="water_exchange_rateTable"></div> <div id="water_exchange_rateDiff"></div> <div id="water_exchange_rateChart"></div> <div id="water_exchange_rateHist"></div>
 
     <div class="tip-box tip-info">
-      <strong>计算依据：</strong>日换水率=换水量÷水量；时间常数τ=水量÷换水量；稳态浓度 C_ss=C_in+产生率×τ；从初始浓度 C₀ 趋近稳态：C(t)=C_ss+(C₀-C_ss)e^(-t/τ)；达标时间按指数趋近求解。
+      <strong>计算依据：</strong>日换水率=换水量÷水量；时间常数τ=水量÷换水量；稳态浓度 C_ss=C_in+产生率×τ；从初始浓度 C₀ 趋近稳态：C(t)=C_ss+(C₀-C_ss)e^(-t/τ)。注意 C_ss 恒 ≥ 进水浓度，若目标浓度低于进水浓度，任何换水量都无法达标，应先处理水源。
     </div>
   </div>
 
@@ -217,29 +217,32 @@ function calc(){
   const prod=+document.getElementById('prod').value;
   const cin=+document.getElementById('cin').value;
   const ctarget=+document.getElementById('ctarget').value;
-  if([vol,exch,prod,cin,ctarget].some(isNaN)||vol<=0||exch<0){ToolBox.showToast(i18nText('toast.msg721'),'error');return;}
+  if([vol,exch,prod,cin,ctarget].some(isNaN)||vol<=0||exch<0||prod<0||cin<0||ctarget<=0){
+    lastResult='';
+    document.getElementById('result').innerHTML='<p style="color:var(--danger,#EF4444);">请检查输入：池体积需 &gt;0，日换水量/产生率/进水浓度需 ≥0，目标浓度需 &gt;0。</p>';
+    ToolBox.showToast(i18nText('toast.msg721'),'error');
+    return;
+  }
   const rate=exch/vol; // /天
   const tau=exch>0?vol/exch:Infinity; // 天
   const css=cin+prod*tau; // mg/L 稳态
-  // 假设初始为0，到达目标(若目标<稳态)的时间
-  let reachTime='—',reachNote;
+  let reachTime='—',reachNote='',cls;
+  const exchMin=(ctarget>cin&&prod>0)?(prod/(ctarget-cin))*vol:0;
   if(exch<=0){
     reachNote='无换水，污染物持续累积，无法稳定。';
-  } else if(ctarget>=css){
-    reachNote=`目标 ${ctarget} mg/L ≥ 稳态 ${css.toFixed(2)} mg/L，换水可满足稳定要求。`;
-    // 从0到目标时间 t=-τ*ln(1-ctarget/css) 若 ctarget<css; 这里目标<稳态才求
-    if(ctarget<css){
-      reachTime=(-tau*Math.log(1-ctarget/css)).toFixed(1)+' 天';
-    } else {
-      reachTime='稳态即可达标';
-    }
+    cls='error';
+  } else if(ctarget<=cin){
+    reachNote=`进水浓度 ${cin} mg/L 已达到或高于目标 ${ctarget} mg/L，换水无法把浓度降到目标以下；需先处理水源或改用低浓度水源，单纯加大换水量无解。`;
+    cls='error';
+  } else if(css<=ctarget){
+    reachNote=`稳态浓度 ${css.toFixed(2)} mg/L ≤ 目标 ${ctarget} mg/L，换水可稳定达标。`;
+    cls='success';
   } else {
-    reachNote=`稳态浓度 ${css.toFixed(2)} mg/L 已超过目标 ${ctarget} mg/L，需增大换水量或减少污染源。`;
+    const t=-tau*Math.log(1-ctarget/css);
+    reachTime=t.toFixed(1)+' 天';
+    reachNote=`稳态浓度 ${css.toFixed(2)} mg/L 高于目标 ${ctarget} mg/L；从 0 升到目标约需 ${t.toFixed(1)} 天，之后仍会继续升高并超标，需增大换水量或减少污染源。`;
+    cls='warn';
   }
-  // 达标所需最小换水量: rate_min = prod/(ctarget-cin)
-  const rateMin=(ctarget-cin)>0?prod/(ctarget-cin):0;
-  const exchMin=rateMin*vol;
-  let cls=exch>0&&css<=ctarget?'success':exch<=0?'error':'warn';
   lastResult=`鱼池换水率与水质稳定性
 ====================
 水量：${vol} m³  日换水：${exch} m³  换水率：${(rate*100).toFixed(1)}%/天
@@ -247,12 +250,13 @@ function calc(){
 时间常数τ：${isFinite(tau)?tau.toFixed(1):'∞'} 天
 稳态浓度：${isFinite(css)?css.toFixed(2):'∞'} mg/L
 目标浓度：${ctarget} mg/L
-达标所需最小换水量：${exchMin>0?exchMin.toFixed(0)+' m³/天':'—'}
+最低换水量（目标>进水时）：${exchMin>0?exchMin.toFixed(0)+' m³/天':'—'}
+升至目标时间（初始按 0 计）：${reachTime}
 ${reachNote}`;
   const __g1=`
     <div class="tip-box tip-${cls}" style="text-align:center;">
       <div style="font-size:24px;font-weight:700;">${isFinite(css)?css.toFixed(2):'∞'} mg/L</div>
-      <div>稳态浓度 · ${exch>0&&css<=ctarget?'🟢 可稳定达标':exch<=0?'🔴 无换水，无法稳定':'🟠 稳态超标'}</div>
+      <div>稳态浓度 · ${exch<=0?'🔴 无换水，无法稳定':ctarget<=cin?'🔴 水源已超目标':css<=ctarget?'🟢 可稳定达标':'🟠 稳态超标'}</div>
     </div>
     <div class="stat-grid">
       <div class="stat-card"><div class="val">${(rate*100).toFixed(1)}%</div><div class="lbl">日换水率</div></div>
@@ -262,7 +266,7 @@ ${reachNote}`;
     </div>
     <div class="step-line">日换水率 ${(rate*100).toFixed(1)}%，时间常数 ${isFinite(tau)?tau.toFixed(1):'∞'} 天</div>
     <div class="step-line">稳态浓度 <strong>${isFinite(css)?css.toFixed(2):'∞'} mg/L</strong>（目标 ${ctarget}）</div>
-    <div class="step-line">达标时间：${reachTime}</div>
+    <div class="step-line">升至目标时间（初始按 0 计）：${reachTime}</div>
     <div class="tip-box tip-${cls}">${reachNote}</div>`;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 function copyResult(){if(!lastResult){ToolBox.showToast(i18nText(),'warning');return;}ToolBox.copyText(lastResult);}

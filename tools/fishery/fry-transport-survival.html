@@ -117,7 +117,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="综合密度、时长、水温与增氧方式估算鱼苗运输成活率，并给出建议密度">Estimate fry survival during transport from density, temperature and duration.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">风险 = 0.02 × (密度/100) × (时长/6) × e^((T−15)/12) × 溶氧系数；成活率 = 100·e^(−风险)%</div>
+      <div class="formula-eq">风险 = 0.02 × (密度/100) × (时长/6) × e^((T−15)/12) × 溶氧系数；成活率 = 100·e^(−风险)%；纯氧系数 0.5、空气 1.0、无增氧 2.0（越小越安全）；建议密度由目标成活率反解，不设静默钳位。适用水温 5–30℃、目标成活率 50–99%，超出范围提示并清空结果；估算值不等于实际成活率。</div>
       <p class="formula-desc">综合密度、时长、水温与增氧方式估算鱼苗运输成活率，并给出建议密度</p>
     </div>
 
@@ -145,7 +145,7 @@ s.parentNode.insertBefore(el, s);
     <div class="result-box" id="result"></div> <div id="fry_transport_survivalTable"></div> <div id="fry_transport_survivalDiff"></div> <div id="fry_transport_survivalChart"></div> <div id="fry_transport_survivalHist"></div>
 
     <div class="tip-box tip-info">
-      <strong>计算依据：</strong>风险率=0.02×(密度/100)×(时长/6)×exp((水温-15)/12)×增氧系数；成活率=100×exp(-风险率)。纯氧系数0.5，空气1.0，无增氧2.0。建议密度按目标成活率反推。
+      <strong>计算依据：</strong>风险率=0.02×(密度/100)×(时长/6)×exp((水温-15)/12)×增氧系数；成活率=100×exp(-风险率)。纯氧系数0.5（最安全），空气1.0，无增氧2.0（最危险）。建议密度按目标成活率反推。模型适用：水温 5–30℃、目标成活率 50–99%；超出范围不作估算，结果不等同实际成活率。
     </div>
   </div>
 
@@ -223,13 +223,18 @@ function calc(){
   const T=+document.getElementById('temp').value;
   const target=+document.getElementById('target').value;
   const oxy=document.getElementById('oxy').value;
-  if([dens,dur,T,target].some(isNaN)||dens<=0||dur<=0){ToolBox.showToast(i18nText('toast.msg721'),'error');return;}
+  if([dens,dur,T,target].some(isNaN)||dens<=0||dur<=0||target<50||target>=100||T<5||T>30){
+    lastResult='';
+    document.getElementById('result').innerHTML='<p style="color:var(--danger,#EF4444);">请检查输入：密度与时长须 &gt;0，目标成活率须在 50–99%（不含 100%），水温须在模型适用区间 5–30℃。</p>';
+    ToolBox.showToast(i18nText('toast.msg721'),'error');
+    return;
+  }
   const oxyFactor={pure:0.5,air:1.0,none:2.0}[oxy];
   const hazard=0.02*(dens/100)*(dur/6)*Math.exp((T-15)/12)*oxyFactor;
-  const survival=Math.max(0,100*Math.exp(-hazard));
-  // 反推建议密度：hazard_target=-ln(target/100); dens = hazard_target /(0.02*(dur/6)*exp()*oxy)
-  const hazardTarget=-Math.log(Math.max(0.01,target/100));
-  const recDensity=Math.max(10,hazardTarget/(0.02*(dur/6)*Math.exp((T-15)/12)*oxyFactor)*100);
+  const survival=Math.min(100,Math.max(0,100*Math.exp(-hazard)));
+  // 反推建议密度：风险目标 = -ln(target/100)，按完整模型反解，不做静默钳位
+  const hazardTarget=-Math.log(target/100);
+  const recDensity=Math.max(0,hazardTarget/(0.02*(dur/6)*Math.exp((T-15)/12)*oxyFactor)*100);
   let cls=survival>=target?'success':survival>=85?'warn':'error';
   let txt=survival>=target?'🟢 达到目标成活率':survival>=85?'🟡 成活率一般':'🔴 成活率偏低，调整方案';
   lastResult=`鱼苗运输成活率估算
@@ -238,7 +243,7 @@ function calc(){
 增氧：${oxy}  目标成活率：${target}%
 风险率：${hazard.toFixed(4)}
 估算成活率：${survival.toFixed(1)}%
-建议密度(达目标)：${recDensity.toFixed(0)} g/L
+建议密度(达目标)：${recDensity.toFixed(1)} g/L
 ${txt}`;
   const __g1=`
     <div class="tip-box tip-${cls}" style="text-align:center;">
@@ -247,14 +252,15 @@ ${txt}`;
     </div>
     <div class="stat-grid">
       <div class="stat-card"><div class="val">${hazard.toFixed(4)}</div><div class="lbl">风险率</div></div>
-      <div class="stat-card"><div class="val">${recDensity.toFixed(0)}</div><div class="lbl">建议密度(g/L)</div></div>
+      <div class="stat-card"><div class="val">${recDensity.toFixed(1)}</div><div class="lbl">建议密度(g/L)</div></div>
       <div class="stat-card"><div class="val">${dens}</div><div class="lbl">当前密度(g/L)</div></div>
       <div class="stat-card"><div class="val">${target}%</div><div class="lbl">目标成活率</div></div>
     </div>
     <div class="step-line">密度 ${dens}g/L、时长 ${dur}h、水温 ${T}℃、增氧系数 ${oxyFactor}</div>
     <div class="step-line">估算成活率 <strong>${survival.toFixed(1)}%</strong></div>
-    <div class="step-line">为达到 ${target}% 成活率，建议密度 ≤ ${recDensity.toFixed(0)} g/L</div>
-    ${survival<target?`<div class="tip-box tip-warn">建议：降低密度至 ${recDensity.toFixed(0)} g/L，或降温、改用纯氧、缩短时长。</div>`:''}`;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+    <div class="step-line">为达到 ${target}% 成活率，建议密度 ≤ ${recDensity.toFixed(1)} g/L</div>
+    <p style="margin-top:6px;font-size:12px;color:var(--text-muted);">模型适用条件：水温 5–30℃、目标成活率 50–99%；估算值为经验模型结果，不代表实际运输成活率，请结合品种、规格与苗种运输规范复核。</p>
+    ${survival<target?`<div class="tip-box tip-warn">建议：降低密度至 ${recDensity.toFixed(1)} g/L，或降温、改用纯氧、缩短时长。</div>`:''}`;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 function copyResult(){if(!lastResult){ToolBox.showToast(i18nText('toast.msg607'),'warning');return;}ToolBox.copyText(lastResult);}
 calc();

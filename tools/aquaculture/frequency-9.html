@@ -131,11 +131,11 @@ s.parentNode.insertBefore(el, s);
       <div>
         <label>养殖品种</label>
         <select id="species" aria-label="养殖品种">
-          <option value="1.0">四大家鱼</option>
-          <option value="1.0">鲤鱼/鲫鱼</option>
-          <option value="1.1">罗非鱼</option>
-          <option value="0.9">鲈鱼/鳜鱼</option>
-          <option value="1.2">虾蟹</option>
+          <option value="grass" data-coef="1.0">四大家鱼</option>
+          <option value="carp" data-coef="1.0">鲤鱼/鲫鱼</option>
+          <option value="tilapia" data-coef="1.1">罗非鱼</option>
+          <option value="bass" data-coef="0.9">鲈鱼/鳜鱼</option>
+          <option value="shrimp" data-coef="1.2">虾蟹</option>
         </select>
       </div>
       <div><label>存塘总量（kg）</label><input type="number" id="biomass" value="1000" min="0" step="any" enterkeyhint="done" aria-label="存塘总量" placeholder="如 1000"></div>
@@ -180,7 +180,7 @@ s.parentNode.insertBefore(el, s);
 
       <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
       <ul>
-        <li>水温修正：&lt;15°C ×0.5、15–25°C ×1.0、25–30°C ×1.1、&gt;30°C ×0.5。</li>
+        <li>水温修正：&lt;15°C ×0.5、15–25°C ×1.0、25–30°C ×1.1、&gt;30°C ×0.5；水温须在 0–40℃ 内且必填，留空不会按 0℃ 计算。</li>
         <li>基础投喂率随鱼体增大递减（鱼苗约 5%–6%，成鱼约 1.5%）。</li>
         <li>饲料粒径按鱼体口径匹配，约为体重的对应规格查表值。</li>
         <li>结果仅供参考，实际应结合摄食状况、天气与水质动态调整。纯前端运行，数据不上传。</li>
@@ -234,17 +234,20 @@ function pelletSize(w){
   return '5.0 mm';
 }
 function readInputs(){
-  var weight=getNum('weight'),temp=getNum('temp'),biomass=getNum('biomass');
-  var coef=parseFloat(document.getElementById('species').value)||1.0;
+  var tempRaw=document.getElementById('temp').value.trim();
+  var weight=getNum('weight'),temp=tempRaw===''?NaN:+tempRaw,biomass=getNum('biomass');
+  var sel=document.getElementById('species');
+  var coef=sel.selectedIndex>=0?(parseFloat(sel.options[sel.selectedIndex].getAttribute('data-coef'))||1.0):1.0;
   setInvalid(document.getElementById('weight'),!(weight>0));
   setInvalid(document.getElementById('biomass'),!(biomass>=0));
-  var valid=weight>0&&biomass>=0;
+  setInvalid(document.getElementById('temp'),!(temp>=0&&temp<=40));
+  var valid=weight>0&&biomass>=0&&temp>=0&&temp<=40;
   return {weight:weight,temp:temp,biomass:biomass,coef:coef,valid:valid};
 }
 function calc(){
   var iv=readInputs();
   if(!iv.valid){
-    document.getElementById('res').innerHTML='<p style="color:var(--danger,#EF4444);">请检查输入：鱼体均重需 >0，存塘总量需 ≥0。</p>';
+    document.getElementById('res').innerHTML='<p style="color:var(--danger,#EF4444);">请检查输入：鱼体均重需 >0，存塘总量需 ≥0，水温需在 0–40℃ 且不能留空。</p>';
     return;
   }
   var br=baseRate(iv.weight);
@@ -276,9 +279,9 @@ function copyRes(){
 function resetAll(){
   document.getElementById('weight').value=50;
   document.getElementById('temp').value=22;
-  document.getElementById('species').value='1.0';
+  document.getElementById('species').value='grass';
   document.getElementById('biomass').value=1000;
-  ['weight','biomass'].forEach(function(id){setInvalid(document.getElementById(id),false);});
+  ['weight','biomass','temp'].forEach(function(id){setInvalid(document.getElementById(id),false);});
   calc();
   ToolBox.showToast(i18nText('toast.reset'),'info');
 }
@@ -319,6 +322,11 @@ function restoreHistory(idx){
     document.getElementById('weight').value=h.weight;
     document.getElementById('temp').value=h.temp;
     document.getElementById('species').value=h.species;
+    // 兼容旧记录里按系数存的值（1.0 无法区分四大家鱼/鲤鱼，按第一项处理）
+    if(document.getElementById('species').selectedIndex<0){
+      var legacy={'1.0':'grass','1.1':'tilapia','0.9':'bass','1.2':'shrimp'};
+      document.getElementById('species').value=legacy[h.species]||'grass';
+    }
     document.getElementById('biomass').value=h.biomass;
     calc();
     ToolBox.showToast(i18nText('toast.history_restored'),'info');
@@ -433,7 +441,7 @@ function __frequency_9Export(){
 }
 function __frequency_9Presets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#frequency_9Presets',[{label:'默认参数',labelEn:'Default',values:{'weight':'50', 'temp':'22', 'species':'1.0', 'biomass':'1000'}},{"label":"小规模","labelEn":"Small scale","values":{"weight":"25"}},{"label":"大规模","labelEn":"Large scale","values":{"weight":"75"}},{"label":"极端工况","labelEn":"Extreme case","values":{"weight":"100"}}],function(){ calc(); });
+    TBKit.preset.bar('#frequency_9Presets',[{label:'默认参数',labelEn:'Default',values:{'weight':'50', 'temp':'22', 'species':'grass', 'biomass':'1000'}},{"label":"小规模","labelEn":"Small scale","values":{"weight":"25"}},{"label":"大规模","labelEn":"Large scale","values":{"weight":"75"}},{"label":"极端工况","labelEn":"Extreme case","values":{"weight":"100"}}],function(){ calc(); });
 }
 var __frequency_9_f0=(typeof calc==='function')?calc:null;
 if(__frequency_9_f0){
