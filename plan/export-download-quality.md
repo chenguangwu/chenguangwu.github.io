@@ -72,3 +72,11 @@
 | `image/wechat-cover-maker` | 固定 900×383 | 固定小尺寸 |
 
 其余 `toDataURL` 页为固定尺寸生成（二维码 / 条形码 / 头像 / 视标等），不涉及用户放大。
+
+## 4. `i18nText` 中心拦截后的大样本回归（Batch 14）
+
+- 口径：从 `tools/**/*.html`（排除 index）以固定种子随机抽 100 页（必含高用量 8 页：virtual-safe、astro-geo-calculator、subtitle-tool、study-planner、currency-cheat-sheet、countdown-5、video-trimmer、image-mosaic）。
+- 探针：真机 Chrome（puppeteer-core），加载后点击最多 5 个「重置 / 清空 / 恢复默认 / 复制 / 开始 / 计算 / 生成 / 转换」按钮；同时劫持 `ToolBox.showToast` / `window.showToast` 记录消息。
+- 判定：`document.body.innerText` 可见文本含 `undefined`、或 toast 消息含 `undefined`、或 `#toast` DOM 文本含 `undefined`，任一即失败。
+- 结果：**100/100 页 0 命中、0 页面异常**（2026-11-05）。
+- 结论：`i18nText` 空键回落空串 + `showToast` 空消息跳过后，全站空参调用不再把 `undefined` 交付给用户；剩余 3365 处空参无需逐页返工。
