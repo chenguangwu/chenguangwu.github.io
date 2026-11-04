@@ -173,7 +173,27 @@ const CASES = [
     "请填写 车价、购置税率、保险费、上牌费 后再计算"
   ],
   "ref": "空态守卫：四项留空 ⇒ 提示，不再按 0 兜底把落地价算成 0.00。默认态各字段有初值并输出总价，不含该提示 ⇒ 可判别。"
-}
+  },
+  {
+    "slug": "usedcar/checker-3",
+    "inputs": {
+      "ck_frame": "4", "ck_floorpan": "4", "ck_subframe": "4", "ck_shock": "4",
+      "ck_control": "4", "ck_spring": "4", "ck_exhaust": "4", "ck_fuel": "4",
+      "ck_brakeline": "4", "ck_wheelwell": "4", "ck_bushing": "4"
+    },
+    "expect": ["100", "优秀"],
+    "ref": "底盘 11 个检查项权重加权、每项状态「好(4)」计 100 分 ⇒ 加权总分/总权重 = 100（满分 100）⇒ ≥85「优秀」、问题项数 0。默认态 ck_* 下拉由 innerHTML 生成、桩取不到值（+''=0）⇒ statusOpts 找不到 v=0 直接抛错，结果区为空，两锚均不命中。"
+  },
+  {
+    "slug": "usedcar/rater-37",
+    "inputs": {
+      "ck_start": "4", "ck_idle": "4", "ck_accel": "4", "ck_vibration": "4",
+      "ck_oilleak": "4", "ck_coolantleak": "4", "ck_transleak": "4", "ck_sound": "4",
+      "ck_smoke": "4", "ck_temp": "4", "ck_cel": "4"
+    },
+    "expect": ["100", "优秀"],
+    "ref": "发动机 11 个检查项加权、每项「好(4)」计 100 分 ⇒ 综合 100 分 ⇒ ≥85「优秀」。默认态动态下拉取不到值（v=0）⇒ opts 查找失败、结果区为空，两锚均不命中。"
+  }
 
 ];
 async function main() {
