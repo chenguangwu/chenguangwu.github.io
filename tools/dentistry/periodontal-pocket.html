@@ -234,7 +234,7 @@ CAL = PD + (龈缘至CEJ距离)<br>
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="分级">Staging</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="轻度1-2 中度3-4 重度≥5">Mild1-2 Mod3-4 Severe≥5</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="轻度2-3 中度4-5 重度≥6">Mild2-3 Mod4-5 Severe≥6</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);">2017 WWP staging</td>
         </tr>
       </tbody>
@@ -265,9 +265,9 @@ function calc() {
   const cal = Math.max(0, rawCal);
   let grade, color, desc;
   if (cal <= 1) { grade = '正常'; color = '#4caf50'; desc = rawCal < 0 ? '龈缘位于 CEJ 冠方（假性袋），无临床附着丧失，CAL 按 0 计' : '无明显附着丧失，牙周组织健康'; }
-  else if (cal <= 3) { grade = '轻度'; color = '#ffc107'; desc = '轻度附着丧失，建议基础治疗与定期维护'; }
-  else if (cal <= 5) { grade = '中度'; color = '#ff9800'; desc = '中度附着丧失，需系统牙周治疗'; }
-  else { grade = '重度'; color = '#f44336'; desc = '重度附着丧失，需综合治疗，可能需手术干预'; }
+  else if (cal < 4) { grade = '轻度'; color = '#ffc107'; desc = '轻度附着丧失（CAL 2–3 mm），建议基础治疗与定期维护'; }
+  else if (cal < 6) { grade = '中度'; color = '#ff9800'; desc = '中度附着丧失（CAL 4–5 mm），需系统牙周治疗'; }
+  else { grade = '重度'; color = '#f44336'; desc = '重度附着丧失（CAL ≥6 mm），需综合治疗，可能需手术干预'; }
 
   const pdGrade = pd <= 3 ? '健康' : pd <= 5 ? '轻/中度袋' : pd <= 7 ? '深袋' : '极深袋';
   const recess = gmcej > 0 ? `牙龈退缩 ${gmcej.toFixed(1)} mm` : (gmcej < 0 ? `牙龈增生 ${Math.abs(gmcej).toFixed(1)} mm（假性袋成分）` : '龈缘位于CEJ');
@@ -298,15 +298,35 @@ function addSite() {
   const pd = parseFloat(document.getElementById('pd').value);
   const gmcej = parseFloat(document.getElementById('gmcej').value);
   if (isNaN(pd) || isNaN(gmcej) || pd < 0) { ToolBox.showToast(i18nText('toast.msg690'), 'error'); return; }
-  const cal = pd + gmcej;
+  const cal = Math.max(0, pd + gmcej);
   sites.push({ pd, gmcej, cal });
   renderSites();
+  __periodontal_pocketSaveSites();
   ToolBox.showToast(i18nText('toast.msg172'));
+}
+
+function __periodontal_pocketSaveSites() {
+  try { localStorage.setItem('periodontal_sites_v1', JSON.stringify(sites)); } catch (e) {}
+}
+
+function __periodontal_pocketLoadSites() {
+  try {
+    const raw = localStorage.getItem('periodontal_sites_v1');
+    if (!raw) return;
+    const arr = JSON.parse(raw);
+    if (Array.isArray(arr)) {
+      sites = arr.filter(s => isFinite(parseFloat(s.pd)) && isFinite(parseFloat(s.gmcej))).map(s => {
+        const pd = parseFloat(s.pd), gmcej = parseFloat(s.gmcej);
+        return { pd, gmcej, cal: Math.max(0, pd + gmcej) };
+      });
+    }
+  } catch (e) { sites = []; }
 }
 
 function clearSites() {
   sites = [];
   renderSites();
+  __periodontal_pocketSaveSites();
   ToolBox.showToast(i18nText());
 }
 
@@ -518,7 +538,7 @@ var __periodontal_pocket_f0=(typeof calc==='function')?calc:null;
 if(__periodontal_pocket_f0){
     calc=function(){ var __r=__periodontal_pocket_f0.apply(null,arguments); try{ __periodontal_pocketExtras(); }catch(e){} return __r; };
 }
-function __periodontal_pocketBoot(){ try{ __periodontal_pocketPresets(); }catch(e){} }
+function __periodontal_pocketBoot(){ try{ __periodontal_pocketPresets(); __periodontal_pocketLoadSites(); renderSites(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __periodontal_pocketBoot();
 else document.addEventListener('DOMContentLoaded', __periodontal_pocketBoot);
 </script>
