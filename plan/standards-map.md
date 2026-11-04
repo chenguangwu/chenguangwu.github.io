@@ -520,3 +520,42 @@
 - 英文探针：`structural/deflection-cantilever-point` / `-udl` / `ss-point-deflection` / `civil/rebar-anchorage` / `civil/two-way-slab` 全部 **0 残留**。
 - 资产门禁：`python3 _audit_assets.py --check` = 0 死链 / 0 lang 缺失 / 0 重复 id；`python3 _audit_links.py --check` = 0 死链；`node scripts/audit_inline_marker_placement.js` = 0 违规。
 - 构建保留判断：改动仅工具页内联脚本/表单/正文、英文词典与台账；按本批纪律**未跑 `_build.py`、未 push**，英文词典子树版本戳留待维护者构建时更新。
+
+## 第 21 批（第 20 批返工）：同截面 RC 对照 + 未开裂/开裂分界（2026-11-05）
+
+### 1. 返工原因（用户验收意见）
+
+- **A 截面不可比**：第 20 批弹性解为 φ100 圆钢，RC 块统一 250×500 / A_s=1884 / C30，出现「弹性 2.037 mm vs RC 0.05 mm」，会被读成「混凝土比钢梁刚 40 倍」——差异实际来自截面。本批改为**等面积、等惯性矩反推等效矩形截面**（圆截面 b≈0.907d、h≈0.866d；ss 页只给 I，取 b=200mm 反推 h），并让 RC 准永久荷载默认等于弹性页荷载；结果区并列「弹性解截面 / RC 验算截面 / 等效偏差（面积、惯性矩）」三行，差异可解释而非免责。
+- **B ψ 撞 0.200 下限**：σ_s 仅 26.2 / 2.6 / 6.6 MPa，ψ 原始值为负 → 构件实际**未开裂**，裂后刚度公式不适用。本批新增 `M_cr = f_tk·W_0`（W_0=bh²/6，未计塑性影响系数 γ，偏安全）判定：`M_q ≤ M_cr` → 未开裂，`B_s = E_c·I_0`、ψ/σ_s 显示「不适用（未开裂）」；`M_q > M_cr` 才走 `ψ → B_s → B`（式 7.2.3-1 + 7.2.2-2）。上批把「ψ_raw=−31.58 下夹取 0.200」当边界用例的写法**已废弃**——未开裂构件硬套裂后公式，夹取发生在物理无意义区间，属缺陷而非边界素材。
+- **C 同类缺陷扩散排查**：`civil/beam-udl` 允许小 `q_q`（qk=2、qq=2 → σ_s=15.0、ψ 撞 0.200），同样未开裂；`civil/rc-beam-rebar`（裂缝宽度，M_k=1 → ψ_raw=−31.58）同病。两页一并按同一口径补 `M_cr` 判定，不只修 3 个 structural 页。
+
+### 2. 同截面默认对照（默认准永久荷载，C30 f_tk=2.01 MPa / E_c=30 GPa）
+
+| 页面 | 弹性截面 | RC 验算截面 | 等效偏差 | 弹性 δ_el | RC 判定 | RC B (kN·m²) | RC δ_lt |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `deflection-cantilever-point` | φ100 mm（A=7854 mm²，I=4.91e6 mm⁴） | 91×87 mm（A=7917 mm²，I=4.99e6 mm⁴，A_s=65 mm²） | 面积 0.8% / 惯性矩 1.7% | 0.272 mm | 未开裂（M_q=0.20 ≤ M_cr=0.23） | 75（B_s=150，θ=2.000） | 3.56 mm |
+| `deflection-cantilever-udl` | 同上 φ100 | 同上 91×87 | 面积 0.8% / 惯性矩 1.7% | 2.037 mm | 已开裂（M_q=2.00 > M_cr=0.23） | 19（B_s=39） | 102.77 mm |
+| `ss-point-deflection` | 矩形等效 I=1.00e-6 m⁴（上方未给面积） | 200×39 mm（A=7800 mm²，I=9.89e5 mm⁴≈0.989e-6 m⁴，A_s=58 mm²） | 惯性矩 1.1% | 8.333 mm | 已开裂（M_q=5.00 > M_cr=0.10） | 3（B_s=6） | 597.95 mm |
+
+> 同截面下 RC 仍比钢梁柔，主因是材料模量差（E_c=30 GPa vs E_s=200 GPa，约 6.7 倍），不是截面差异；ss 页开裂后 σ_s=3416.8 MPa、B=3 kN·m²，是「等 I 反推 200×39 板 + 1% 配筋」的诚实结果（截面等效但配筋量由 1% 规则给出）。
+
+### 3. 未开裂 / 开裂分支实测（用例注入值）
+
+| 页面 | 未开裂分支 | 跨过 M_cr 分支 |
+| --- | --- | --- |
+| `deflection-cantilever-point` | `rcQ=0.115` → M_q=0.23 ≤ M_cr=0.2307，未开裂，δ_lt=**4.09 mm** | `rcQ=0.116` → M_q=0.232 > M_cr，已开裂，ψ_raw=−0.277→规范下限 0.200，B_s=78.7、B=39.4，δ_lt=**7.86 mm** |
+| `deflection-cantilever-udl` | `rcQ=115` → M_q=0.23 ≤ M_cr，未开裂，δ_lt=**3.07 mm** | `rcQ=116` → M_q=0.232 > M_cr，已开裂，B_s=78.7、B=39.4，δ_lt=**5.89 mm** |
+| `ss-point-deflection` | `rcQ=0.1` → M_q=0.05 ≤ M_cr=0.1019，未开裂，δ_lt=**1.12 mm** | `rcQ=0.205` → M_q=0.1025 > M_cr，已开裂，ψ_raw=−0.154→0.200，B_s=11.75、B=5.88，δ_lt=**5.81 mm** |
+| `civil/beam-udl` | `qq=2` → M_q=9.00 ≤ M_cr=10.72，未开裂，δ_lt=**2.11 mm** | `qq=2.39` → M_q=10.755 > M_cr，已开裂，ψ_raw=−0.443→0.200，B_s=34328、B=17164，δ_lt=**2.35 mm** |
+| `civil/rc-beam-rebar` | `Mk=1` → M_k=1.00 ≤ M_cr=20.94，未开裂，ψ 不适用、w_max=**0.000** | 默认 `Mk=80` → M_k=80 > M_cr，已开裂，σ_s=212.2、ψ=0.692、w_max=**0.214 mm** |
+
+> 说明：未开裂区间已完全不进入裂后公式；开裂初期 ψ_raw 为负而取 0.200，是 GB 50010-2010 式 7.1.3 明文规定的下限（`ψ<0.2 取 0.2`），不再是「未开裂构件被硬套公式」的夹取。beam-udl 在 M_cr 临界处未开裂 δ（2.51 mm @qq=2.38）略大于开裂 δ（2.35 mm @qq=2.39），源于开裂初期 ψ 取下限时公式 B_s 略高于 E_c·I_0，属规范公式在临界点的衔接现象，随 M_q 增大即单调下降。
+
+### 4. 校验与门禁
+
+- `node scripts/verify_structural_calc.js` = **53/53**（原 3 条失效 RC 用例 → 6 条分支用例：point 4.09 / 已开裂，udl 未开裂 / 5.89，ss 未开裂 / 5.81）。
+- `node scripts/discriminate_check.js verify_structural_calc.js` = **53/53 变红、0 逃生**。
+- `node scripts/verify_civil_calc.js` = **73/73**（beam-udl 原 ψ 夹取用例 → 未开裂 + 跨 M_cr 两条；rc-beam-rebar 原 ψ 夹取用例 → 未开裂判定）。
+- `node scripts/discriminate_check.js verify_civil_calc.js` = **73/73 变红、0 逃生**。
+- 英文探针 `scripts/_en_i18n_probe.mjs --check`：`structural/deflection-cantilever-point` / `-udl` / `ss-point-deflection` / `civil/beam-udl` / `civil/rc-beam-rebar` = 5 页 **0 残留**（rc-beam-rebar 同批补齐长公式、表单元格、8 个 placeholder 等 12 条历史残留）。
+- 构建保留判断：本批只改工具页内联脚本/正文、英文词典与台账；按约定**未跑 `_build.py`、未 push**，英文词典子树版本戳留待维护者构建时更新。

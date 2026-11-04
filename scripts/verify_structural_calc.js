@@ -319,10 +319,15 @@ const CASES = [
   }
 
 ,
-  // —— 第 20 批：弹性解 + RC 长期刚度对照（GB 50010-2010 3.4.3 / 7.2.2-2 / 7.2.3-1 / 表 3.4.3）——
-  { slug: "structural/deflection-cantilever-point", inputs: {"rcQ":"50"}, expect: ["5.67 RC 长期挠度 δ_lt (mm)"], ref: "悬臂端集中力：弹性解 δ_el=F·L³/(3EI)（默认 F=10kN、L=2m、E=200GPa、d=0.1m ⇒ 0.2716mm）保留；RC 独立截面默认 b=250、h=500、a_s=35、A_s=1884、C30、ρ′=0 ⇒ θ=2.000，q_q=50kN 时 M_q=50×2=100kN·m、σ_s=131.2MPa、ψ=0.770、B_s=47003kN·m²、B=23502kN·m²，δ_lt=(1/3)·M_q·L²/B=5.67mm（按 2L=4m 档限值 20.00mm 满足）。默认 rcQ=10 为 0.71mm ⇒ 不命中。" },
-  { slug: "structural/deflection-cantilever-udl", inputs: {"rcQ":"5000"}, expect: ["0.26 RC 长期挠度 δ_lt (mm)"], ref: "悬臂均布：弹性解 δ_el=w·L⁴/(8EI)（默认 w=1000N/m、L=2m、d=0.1m ⇒ 2.037mm）保留；RC 默认截面 C30、ρ′=0 ⇒ θ=2.000，q_q=5000N/m ⇒ M_q=(5000/1000)×2²/2=10kN·m、σ_s=13.1MPa、ψ=0.200、B_s=75560kN·m²、B=37780kN·m²，δ_lt=(1/4)·M_q·L²/B=0.26mm。默认 rcQ=1000 为 0.05mm ⇒ 不命中。" },
-  { slug: "structural/ss-point-deflection", inputs: {"rcQ":"50"}, expect: ["0.22 RC 长期挠度 δ_lt (mm)"], ref: "简支跨中集中力：弹性解 δ_el=P·L³/(48EI)（默认 P=10kN、L=2m、E=200GPa、I=1e-6m⁴ ⇒ 8.333mm）保留；RC 默认截面 C30、ρ′=0 ⇒ θ=2.000，q_q=50kN ⇒ M_q=50×2/4=25kN·m、σ_s=33.0MPa、ψ=0.200、B_s=75560kN·m²、B=37780kN·m²，δ_lt=(1/12)·M_q·L²/B=0.22mm（限值 L=2m → 10.00mm）。默认 rcQ=10 为 0.04mm ⇒ 不命中。" }
+  // —— 第 21 批：同截面 RC 对照 + 未开裂/开裂分支（GB 50010-2010 7.1.1 M_cr、7.2.3-1 裂后、7.2.2-2 长期刚度）——
+  // 默认 RC 截面由上方弹性截面等面积/等惯性矩反推（point/udl：φ100 圆钢 → 91×87、A_s=65；ss：I=1e-6 m⁴ → 200×39、A_s=58）；
+  // M_cr = f_tk·W_0（W_0=bh²/6，未计塑性影响系数 γ，偏安全）；M_q ≤ M_cr 走未开裂 B_s=E_c·I_0，ψ 不适用。
+  { slug: "structural/deflection-cantilever-point", inputs: {"rcQ":"0.115"}, expect: ["4.09 RC 长期挠度 δ_lt (mm)"], ref: "未开裂分支（M_q < M_cr）：C30 f_tk=2.01、截面 91×87 ⇒ W_0=91×87²/6=114796.5mm³ ⇒ M_cr=0.23kN·m；q_q=0.115kN ⇒ M_q=0.115×2=0.23kN·m ≤ M_cr ⇒ B_s=E_c·I_0=30000×4.9936e6=1.4981e11N·mm²（150kN·m²）、θ=2.0 ⇒ B=7.491e10；δ_lt=(1/3)×0.23×10⁶×2000²/B=4.09mm（默认 rcQ=0.1 ⇒ 3.56mm，不命中）。" },
+  { slug: "structural/deflection-cantilever-point", inputs: {"rcQ":"0.116"}, expect: ["已开裂（M_q > M_cr）"], ref: "跨过 M_cr 的分支切换：M_q=0.116×2=0.232kN·m > M_cr=0.2307kN·m ⇒ 走裂后式 7.2.3-1：h₀=71、ρ=65/(91×71)=0.01006、ρ_te=65/(0.5×91×87)=0.01642、σ_s=0.232×10⁶/(0.87×71×65)=57.8MPa、ψ_raw=−0.277⇒夹取 0.200、B_s=78.7kN·m²、B=39kN·m²、δ_lt=7.86mm。默认 rcQ=0.1 为未开裂 ⇒「已开裂」标签不存在，不命中。" },
+  { slug: "structural/deflection-cantilever-udl", inputs: {"rcQ":"115"}, expect: ["未开裂（M_q ≤ M_cr）"], ref: "未开裂分支（M_q < M_cr）：同 91×87 截面、M_cr=0.2307kN·m；w_q=115N/m ⇒ M_q=(115/1000)×2²/2=0.23kN·m ≤ M_cr ⇒ B_s=E_c·I_0=150kN·m²、B=75kN·m²、δ_lt=(1/4)×0.23×10⁶×2000²/B=3.07mm。默认 rcQ=1000 为已开裂 ⇒ 该标签不命中。" },
+  { slug: "structural/deflection-cantilever-udl", inputs: {"rcQ":"116"}, expect: ["5.89 RC 长期挠度 δ_lt (mm)"], ref: "跨过 M_cr：M_q=(116/1000)×2²/2=0.232kN·m > 0.2307 ⇒ 裂后 σ_s=57.8MPa、ψ=0.200、B_s=78.7kN·m²、B=39.4kN·m²；δ_lt=(1/4)×0.232×10⁶×2000²/B=5.89mm（默认 rcQ=1000 ⇒ 102.77mm，不命中）。" },
+  { slug: "structural/ss-point-deflection", inputs: {"rcQ":"0.1"}, expect: ["未开裂（M_q ≤ M_cr）"], ref: "未开裂分支：截面 200×39、W_0=200×39²/6=50700mm³、M_cr=2.01×50700/10⁶=0.1019kN·m；P_q=0.1kN ⇒ M_q=0.1×2/4=0.05kN·m ≤ M_cr ⇒ B_s=E_c·I_0=30000×988650=2.966e10（30kN·m²）、B=15kN·m²、δ_lt=(1/12)×0.05×10⁶×2000²/B=1.12mm。默认 rcQ=10 为已开裂 ⇒ 该标签不命中。" },
+  { slug: "structural/ss-point-deflection", inputs: {"rcQ":"0.205"}, expect: ["5.81 RC 长期挠度 δ_lt (mm)"], ref: "跨过 M_cr：M_q=0.205×2/4=0.1025kN·m > 0.1019 ⇒ 裂后 h₀=29、ρ_te=58/(0.5×200×39)=0.01487、σ_s=0.1025×10⁶/(0.87×29×58)=70.0MPa、ψ_raw=−0.154⇒夹取 0.200、B_s=11.75kN·m²、B=5.88kN·m²；δ_lt=(1/12)×0.1025×10⁶×2000²/B=5.81mm（默认 rcQ=10 ⇒ 597.95mm，不命中）。" }
 
 ];
 
