@@ -216,14 +216,21 @@ function calc(){
  var html='<table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:12px;">';
  html+='<tr style="background:var(--th-bg);"><th style="padding:8px;text-align:left;border:1px solid var(--border);">检测项目</th><th style="padding:8px;text-align:center;border:1px solid var(--border);">实测值</th><th style="padding:8px;text-align:center;border:1px solid var(--border);">标准要求</th><th style="padding:8px;text-align:center;border:1px solid var(--border);">判定</th></tr>';
  stdItems.forEach(function(item){
-  var val=parseFloat(document.getElementById(item.id).value)||0;
+  var raw=document.getElementById(item.id).value.trim();
+  var val=raw===''?NaN:parseFloat(raw);
   var pass=false;
-  if(item.op==="<="){pass=val<=item.threshold;}
-  else if(item.op===">="){pass=val>=item.threshold;}
-  else if(item.op==="range"){pass=val>=item.threshold[0]&&val<=item.threshold[1];}
+  if(!isNaN(val)){
+   if(item.name==="密封泄漏率"&&val<0){val=NaN;}
+   if(!isNaN(val)){
+    if(item.op==="<="){pass=val<=item.threshold;}
+    else if(item.op===">="){pass=val>=item.threshold;}
+    else if(item.op==="range"){pass=val>=item.threshold[0]&&val<=item.threshold[1];}
+   }
+  }
   if(!pass){allPass=false;}
-  var pc=pass?"var(--success)":"var(--danger)";var pt=pass?"合格":"不合格";
-  html+='<tr><td style="padding:8px;border:1px solid var(--border);">'+item.name+'</td><td style="padding:8px;text-align:center;border:1px solid var(--border);">'+val+' '+item.unit+'</td><td style="padding:8px;text-align:center;border:1px solid var(--border);">'+item.stdDesc+'</td><td style="padding:8px;text-align:center;border:1px solid var(--border);color:'+pc+';font-weight:600;">'+pt+'</td></tr>';
+  var pc=pass?"var(--success)":"var(--danger)";var pt=isNaN(val)?"未填/非法":(pass?"合格":"不合格");
+  var shown=isNaN(val)?"—":val;
+  html+='<tr><td style="padding:8px;border:1px solid var(--border);">'+item.name+'</td><td style="padding:8px;text-align:center;border:1px solid var(--border);">'+shown+' '+item.unit+'</td><td style="padding:8px;text-align:center;border:1px solid var(--border);">'+item.stdDesc+'</td><td style="padding:8px;text-align:center;border:1px solid var(--border);color:'+pc+';font-weight:600;">'+pt+'</td></tr>';
  });
  html+='</table>';
  var oc=allPass?"var(--success)":"var(--danger)";

@@ -256,7 +256,11 @@ function calc(){
   setInvalid(document.getElementById('D1'), D1 <= 0);
   setInvalid(document.getElementById('D2'), D2 <= 0);
   setInvalid(document.getElementById('center'), a <= 0);
-  if(D1 <= 0 || D2 <= 0 || a <= 0){ document.getElementById('res').innerHTML='<p style="color:var(--danger);">参数无效</p>'; return; }
+  setInvalid(document.getElementById('n1'), n1 <= 0);
+  setInvalid(document.getElementById('power'), P <= 0);
+  if(D1 <= 0 || D2 <= 0 || a <= 0 || n1 <= 0 || P <= 0){ document.getElementById('res').innerHTML='<p style="color:var(--danger);">参数无效：D₁、D₂、中心距、转速与功率均需大于 0</p>'; return; }
+  if(D1 > D2){ document.getElementById('res').innerHTML='<p style="color:var(--danger);">主动轮直径 D₁ 不应大于从动轮 D₂，否则包角公式不适用（若为增速传动请互换两轮输入）</p>'; return; }
+  if(Math.abs((D2 - D1) / (2 * a)) > 1){ document.getElementById('res').innerHTML='<p style="color:var(--danger);">几何无解：两轮半径差超过中心距允许范围，请增大中心距</p>'; return; }
 
   var fmt = function(n){ return n.toFixed(2); };
   var fmt0 = function(n){ return n.toFixed(0); };
@@ -272,7 +276,7 @@ function calc(){
   var L = 2 * a + Math.PI * (D1 + D2) / 2 + Math.pow(D2 - D1, 2) / (4 * a);
 
   // 小轮包角
-  var alpha1Rad = Math.PI - 2 * Math.asin(Math.min(1, (D2 - D1) / (2 * a)));
+  var alpha1Rad = Math.PI - 2 * Math.asin(Math.max(-1, Math.min(1, (D2 - D1) / (2 * a))));
   var alpha1 = alpha1Rad * 180 / Math.PI;
   var alpha2 = 360 - alpha1; // 大轮包角
 
@@ -341,7 +345,7 @@ function calc(){
     html += '<div class="tip-box tip-warn" style="margin-top:8px;">⚠️ 带速 ' + fmt(v) + ' m/s 偏高（建议≤25m/s），离心力大，传动效率下降。</div>';
   } else if(v < 5 && P > 0){
     html += '<div class="tip-box tip-warn" style="margin-top:8px;">⚠️ 带速 ' + fmt(v) + ' m/s 偏低（建议5~25m/s），有效拉力较大。</div>';
-  } else {
+  } else if(v >= 5 && v <= 25){
     html += '<div class="tip-box tip-success" style="margin-top:8px;">✓ 带速 ' + fmt(v) + ' m/s 在合理范围（5~25 m/s）。</div>';
   }
 
