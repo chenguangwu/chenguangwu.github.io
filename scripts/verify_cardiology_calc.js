@@ -64,15 +64,18 @@ const CASES = [
   "ref": "extent=descOnly（仅降主动脉）→ Stanford B 型 / DeBakey IIIa；malPerf=脏器灌注不良 → complicated → 紧急 TEVAR 腔内修复"
 },
 {
+  // 出血增量公式 + 50–59 岁个体化分支
   "slug": "cardiology/aspirin-prevention",
   "inputs": {
-    "age": "83",
+    "age": "55",
     "ascvd": "12"
   },
+  "checkIds": ["priorBleed", "anticoag"],
   "expect": [
-    "83岁"
+    "谨慎个体化决策(C级)",
+    "增加6–10例/1000人"
   ],
-  "ref": "auto-restore"
+  "ref": "2 项出血因素 → 出血增量 (2×2+2)–(3×2+4)=6–10 例/1000人；55 岁、ASCVD 12% → 50–59 岁分支「谨慎个体化决策(C级)」。3 项及以上会落入「不推荐使用」分支，故取 2 项。默认无勾选 → factors=0 → 「推荐考虑…」+「增加2–7例」，两条均不命中。"
 },
 {
   // 原为 no_inputs 弱用例（空输入只能断言提示语，零判别力）。
@@ -91,6 +94,19 @@ const CASES = [
   "ref": "classifyBP(150,95) → 1级高血压（轻度）（收缩压140-159 或 舒张压90-99）；riskLayer 见 diabetes=true → 「高危 / 很高危」（糖尿病/靶器官损害/确诊CVD 任一即高危）。回退默认（空输入）→ 仅提示「请输入有效的收缩压和舒张压」；不勾选 → 低危。两串均不命中。"
 },
 {
+  // JNC 7 的 2 级边界：SBP≥160 或 DBP≥100（区别于 2017 ACC/AHA 的 ≥140/90）
+  "slug": "cardiology/calc-1",
+  "inputs": {
+    "sbp": "165",
+    "dbp": "102"
+  },
+  "expect": [
+    "2级高血压",
+    "收缩压 ≥160 或 舒张压 ≥100 mmHg"
+  ],
+  "ref": "classifyBP(165,102)：SBP≥160 → 2级高血压，描述串为「收缩压 ≥160 或 舒张压 ≥100 mmHg」。默认 118/76 → 正常血压，回退默认不命中；150/95 用例已单独锁定 1 级，本例锁定 JNC 7 的 2 级下界。"
+},
+{
   "slug": "cardiology/calc-3",
   "inputs": {
     "age": "2"
@@ -99,6 +115,17 @@ const CASES = [
     "2.2%"
   ],
   "ref": "auto-restore"
+},
+{
+  // ≥75 岁计 3 分 → mortality[3]='3.1%'（默认 <65 岁为 0.8%）
+  "slug": "cardiology/calc-3",
+  "inputs": {
+    "age": "3"
+  },
+  "expect": [
+    "3.1%"
+  ],
+  "ref": "age 选项值 3 = ≥75 岁计 3 分，其余默认未勾选 → 总分 3；mortality[3]='3.1%'。默认 <65 岁 → 0.8%，注入失败回退默认不命中。"
 },
 {
   "slug": "cardiology/cardiac-rehab-mets",

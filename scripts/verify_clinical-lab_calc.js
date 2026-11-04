@@ -548,6 +548,18 @@ const CASES = [
 },
 {
   "slug": "clinical-lab/mic-breakpoint",
+  "inputs": {
+    "bacteria": "gn",
+    "micVal": "2"
+  },
+  "expect": [
+    "敏感 12 药 · 中介 4 药 · 耐药 2 药"
+  ],
+  "ref": "CLSI M100 2023 肠杆菌目折点：环丙沙星 S≤0.25 / R≥1、左氧氟沙星 S≤0.5 / R≥2（此前误用旧版 R≥4，已改正），MIC=2 时两药均判耐药；哌拉西林/他唑巴坦 S≤16（此前误写 8）。"
+     + "按 18 药统计：S 12、I 4（头孢曲松/厄他培南/亚胺培南/美罗培南）、R 2（环丙/左氧）。默认 micVal 空 ⇒ 汇总卡不渲染，零交集。"
+},
+{
+  "slug": "clinical-lab/mic-breakpoint",
   "inputs": { "bacteria": "gn", "micVal": "-1" },
   "expect": ["请输入有效 MIC（>0）；当前输入“-1”无效"],
   "ref": "L-N5 非法 MIC：-1 非正数 ⇒ micOk=false，清空判定汇总卡、逐药判定列保持「—」并输出提示；修复前 parseFloat(-1)=-1 落在 mic<=d.s 被误判「S 敏感」（最危险方向）。默认 micVal 空 ⇒ 空值提示串不含“-1”，判别器把 micVal 换回默认空串后本串失配。"

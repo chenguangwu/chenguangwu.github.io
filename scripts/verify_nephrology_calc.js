@@ -210,6 +210,13 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  // 0.15 g/d 边界：<0.15 为正常，恰好 0.15 应落入轻度
+  "slug": "nephrology/proteinuria-24h",
+  "inputs": { "protein24h": "0.15", "uVol": "1500" },
+  "expect": [ "轻度蛋白尿" ],
+  "ref": "代码为 prot<0.15 正常、prot<0.5 轻度，故 0.15 应判「轻度蛋白尿」。默认 2.5 → 中度，回退默认不命中。"
+},
+{
   "slug": "nephrology/renal-anemia-epo",
   "inputs": {
     "hgb": "128",
