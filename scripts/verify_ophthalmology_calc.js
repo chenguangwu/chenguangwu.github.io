@@ -361,6 +361,20 @@ const CASES = [
     "ref": "OD 直接反射 1（迟钝）+ OS 2（减弱）+ RAPD 2+ ⇒ 输出「双眼直接反射均减弱，警惕动眼神经(传出)障碍或广泛病变，建议排查。」与综合「瞳孔反射异常，建议进一步评估」。"
        + "页面用 innerHTML 批量生成分级按钮后立刻读 children[def].classList，桩默认 children 为空 ⇒ 初始化即抛错；afterLoad 开启浏览器保真初始化后可用。"
        + "默认态（3/3/0）为「瞳孔反射未见明显异常」⇒ 两条断言均不命中。"
+  },
+  {
+    "slug": "ophthalmology/amsler-grid-test",
+    "clicks": ["var __gei=document.getElementById.bind(document);document.getElementById=function(id){if(id==='amToast')return __gei('__svg_probe');return __gei(id);};var __ce=document.createElement.bind(document);document.createElement=function(t){var e=__ce(t);if(t==='canvas'){e.toDataURL=function(){throw new Error('boom');};}return e;};document.getElementById('amPng').fire('click');"],
+    "expect": ["导出失败：Error"],
+    "ref": "失败注入：createElement('canvas') 的 toDataURL 必抛 Error，并把页面 toast 读取的 #amToast 重定向到 #__svg_probe ⇒ 必须出现「导出失败：Error」。"
+       + "修复前异常裸冒成 pageerror、无任何可见提示且不弹「已导出 PNG」；默认态无该串 ⇒ 判别明确。"
+  },
+  {
+    "slug": "ophthalmology/astigmatism-chart",
+    "clicks": ["var __gei=document.getElementById.bind(document);document.getElementById=function(id){if(id==='asToast')return __gei('__svg_probe');return __gei(id);};var __ce=document.createElement.bind(document);document.createElement=function(t){var e=__ce(t);if(t==='canvas'){e.toDataURL=function(){throw new Error('boom');};}return e;};document.getElementById('asPng').fire('click');"],
+    "expect": ["导出失败：Error"],
+    "ref": "失败注入：createElement('canvas') 的 toDataURL 必抛 Error，并把页面 toast 读取的 #asToast 重定向到 #__svg_probe ⇒ 必须出现「导出失败：Error」。"
+       + "修复前异常裸冒成 pageerror、无任何可见提示且不弹「已导出 PNG」；默认态无该串 ⇒ 判别明确。"
   }
 
 ];

@@ -8443,6 +8443,21 @@ const CASES = [
     expect: ["9.992007e-14"],
     ref: "2×2 近奇异矩阵 [[1,1],[1,1+1e-13]]：det = 1×(1+1e-13) − 1×1 = 9.992e-14（补码可表示的 1e-13 级差值）。这是条件数信号，不是浮点噪声；原 fmt 先判 |x|<1e-12 → 0 把真实小行列式吞成 0，现改为仅 x===0 返回 0、小值走科学计数法。默认 3×3 单位阵 det=1，不命中。",
   },
+  // ── D2 批：7 个条码页的 PNG 导出失败可见（downloadBarcodePNG 的 cv.toDataURL 裸调）──
+  ...["barcode-codabar", "barcode-code128", "barcode-code39", "barcode-ean", "barcode-itf", "barcode-msi", "barcode-upc"].map(function (slug) {
+    return {
+      slug: "it/" + slug,
+      clicks: [
+        "ToolBox.showToast=function(m){document.getElementById('__svg_probe').textContent='TOAST:'+m;};"
+        + "var __qs=document.querySelector.bind(document);"
+        + "document.querySelector=function(s){if(s==='#output canvas')return {toDataURL:function(){throw new Error('boom')}};return __qs(s);};"
+        + "downloadBarcodePNG();",
+      ],
+      expect: ["TOAST:导出失败：Error"],
+      ref: "失败注入：让 `#output canvas` 返回 toDataURL 必抛 Error 的假画布 + 录制 ToolBox.showToast ⇒ 必须出现「TOAST:导出失败：Error」。"
+        + "修复前异常裸冒成 pageerror、且紧随其后仍弹「PNG 已下载」（给出错误事实）；默认态无 TOAST: 串 ⇒ 判别明确。",
+    };
+  }),
 ];
 
 // ---------------------------------------------------------------- DOM stub

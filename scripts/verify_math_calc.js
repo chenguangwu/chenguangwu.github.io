@@ -715,6 +715,12 @@ const CASES = [
     "inputs": { "old": "80", "new": "" },
     "expect": ["请输入原始值和新值"],
     "ref": "旧实现 num('new') 把空值静默当 0，输出「−100%」；新实现要求两个输入都有值。默认 80→100 不出现该提示。"
+  },
+  {
+    "slug": "math/function-plotter",
+    "clicks": ["ToolBox.showToast=function(m){document.getElementById('__svg_probe').textContent='TOAST:'+m;};document.getElementById('plotCanvas').toDataURL=function(){throw new Error('boom')};downloadPlot();"],
+    "expect": ["TOAST:导出失败：Error"],
+    "ref": "失败注入：plotCanvas.toDataURL 抛 Error + 录制 ToolBox.showToast ⇒ 必须出现「TOAST:导出失败：Error」。修复前异常裸冒成 pageerror、成功 toast 不执行；默认态无 TOAST: 串 ⇒ 判别明确。"
   }
 
 ];
