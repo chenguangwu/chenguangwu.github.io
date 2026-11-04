@@ -1060,6 +1060,56 @@ const CASES = [
       "性系数 PED 1,764 元 原收入 1,764 元 新收入 +0 元 (0"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"p1\":\"42\",\"q1\":\"42\",\"p2\":\"42\",\"q2\":\"42\"}，输出区含「性系数 PED 1,764 元 原收入 1,764 元 新收入 +0 元 (0」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  // ── 2026-11-04 口径守卫：负流失 / 超量转化 / CTR>100 / 毛利率越界 / 亏损无平衡点 / 负数折扣 / 漏斗倒挂 ──
+  {
+    slug: "marketing/marketing-churn-rate",
+    inputs: { startCustomers: "1000", endCustomers: "1200", newCustomers: "0", arpu: "50" },
+    expect: ["流失人数不能为负"],
+    ref: "期初 1000 + 新增 0 < 期末 1200 ⇒ 流失人数 −200；旧实现照算得 −20.00% 流失率与 −40000 收入损失。现拦截并提示口径不一致；默认态 1000/950/80 ⇒ 流失 130，不含该提示。",
+  },
+  {
+    slug: "marketing/marketing-conversion-rate-calculator",
+    inputs: { visitors: "100", conversions: "150", totalCost: "5000", avgOrder: "200" },
+    expect: ["转化数不能大于访问量"],
+    ref: "转化 150 > 访问 100 ⇒ 旧实现输出 150.00% 转化率；现拦截（转化率物理上限 100%）。默认 1000/50 ⇒ 不命中。",
+  },
+  {
+    slug: "marketing/marketing-cpm-calculator",
+    inputs: { spend: "3000", impressions: "12000", clicks: "20000" },
+    expect: ["点击量须在 0 与展示量之间"],
+    ref: "点击 20000 > 展示 12000 ⇒ 旧实现输出 166.7% CTR；现拦截并提示核对口径。默认 5000/200000/500 ⇒ 不命中。",
+  },
+  {
+    slug: "marketing/marketing-cpa-calculator",
+    inputs: { totalSpend: "1000", newCustomers: "50", avgOrderValue: "200", grossMargin: "150", clicks: "500", repeatRate: "20" },
+    expect: ["毛利率须在 0–100% 之间"],
+    ref: "毛利率 150% ⇒ 旧实现给出 LTV=30000、LTV/CAC=30 的伪结果；现拦截。默认毛利率 50% ⇒ 不命中。",
+  },
+  {
+    slug: "marketing/marketing-cpa-calculator",
+    inputs: { totalSpend: "1000", newCustomers: "50", avgOrderValue: "200", grossMargin: "50", clicks: "40", repeatRate: "20" },
+    expect: ["新增客户数不能大于点击量"],
+    ref: "新增客户 50 > 点击 40 ⇒ 隐含转化率 125%，旧实现照算；现拦截。默认 clicks=0 时跳过该守卫 ⇒ 不命中。",
+  },
+  {
+    slug: "marketing/marketing-roas-calculator",
+    inputs: { adSpend: "5000", adRevenue: "4500" },
+    expect: ["盈亏平衡ROAS（毛利为负，无平衡点）"],
+    ref: "收入 4500 < 花费 5000 ⇒ 毛利率 −11.1%；旧实现 100/(−11.1) 得 −9.00x 伪平衡点，现改为 null 并显示「无平衡点」。默认 5000/20000 ⇒ 毛利率 75%、平衡点 1.33x，不含该串。",
+  },
+  {
+    slug: "marketing/marketing-discount-rate",
+    inputs: { origPrice: "200", discountPct: "20", origPrice2: "100", salePrice2: "120", origPrice3: "200", saveAmount: "40" },
+    clicks: ["switchMode('price');"],
+    expect: ["折后价不能高于原价"],
+    ref: "price 模式 原价 100、折后 120 ⇒ 旧实现折扣率 −20.00%；现拦截。默认 299/209.3 ⇒ 折扣 30%，不命中。",
+  },
+  {
+    slug: "marketing/marketing-sales-funnel",
+    inputs: { visitors: "1000", leads: "800", qualified: "900", opportunities: "300", customers: "120" },
+    expect: ["「合格线索」人数不能大于「线索」"],
+    ref: "合格线索 900 > 线索 800 ⇒ 旧实现输出 112.5% 环节转化率；现拦截并指出倒挂环节。默认 8000/2400/1200 逐级递减 ⇒ 不命中。",
   }
 
 ];
