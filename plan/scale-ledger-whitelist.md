@@ -1,29 +1,35 @@
 # 量表总账白名单（无法机械核对上限的页面）
 
 > 由 `scripts/audit_scale_ledger.py` 生成口径分类后人工复核。  
-> 收录口径：页面含 `refBar` 或「满分」字样、但静态求和规则无法可靠还原总分上限的 27 页（119 页中的剩余部分）。  
+> 收录口径：页面含 `refBar` 或「满分」字样、但静态求和规则无法可靠还原总分上限的 17 页（119 页中的剩余部分）。  
+> 2026-11-04 台账修复后，原 27 页中有 10 页已可机械还原（essdai、assessor-10、womac、rater-16、easi、gags、pasi、kupperman、rater-26、fim），逐页核对见第五节。  
 > 维护规则：新增同类页面先跑脚本；落入下列口径的，在此登记并人工核一次，不得默认「脚本已覆盖」。
 
 ## 一、口径分类与机械覆盖
 
 | 口径 | 页面数 | 处理方式 |
 |---|---|---|
-| 逐项求和（静态 select / `o:[…]` / `opts:[{v}]` / radio 组 / 构造式声明 / score-pts / number max / ×2 加权项） | 92 | 已机械化，脚本自动比对满分与切点 |
-| 加权表（区域权重 × 严重度 × 面积，或条目权重表） | 17 | 白名单（本文件） |
+| 逐项求和（静态 select / `o:[…]` / `opts:[{v}]` / radio 组 / 构造式声明 / score-pts / number max / 系数数组 × 单项上限 / 显式系数表 / 域对象 / 症状权重 / 嵌套分组） | 102 | 已机械化，脚本自动比对满分与切点 |
+| 加权量表（TBSA / TDS / SALT / VASI / Agatston / LES / BASDAI 等非逐项求和口径） | 7 | 白名单 |
+| 复合加权公式（SCORAD = A/5 + 3.5B + C，含归一除法） | 1 | 白名单 |
 | 动态/分支（行数或满分随年龄、性别、病程变化） | 3 | 白名单 |
 | 同页多量表（ACT + GINA 分级等） | 2 | 白名单 |
 | 成分计分（PSQI 等由 C1–C7 成分合成） | 1 | 白名单 |
 | 序数量表（EDSS 等 0.5 步进） | 1 | 白名单 |
 | radio 动态生成（静态 HTML 不含选项） | 2 | 白名单 |
-| 结果非满分制（均分 / 标准化 0–100 / 阳性项计数 / 指数） | 1（BASDAI 归入加权类，人工判定） | 白名单 |
 
-机械判定新增规则（本批）：
-- `radio` 组按 `name` 分组取组内最大 value 再求和（HAS-BLED 等；同页 checkbox 按 `.checked?1:0` 计 1 分）。
-- 模板串 + `questions` 数组：`<select id="q${i}">` × 题数 × `opts` 真实分值（PHQ-9、IPSS 等）。
-- 构造式声明：`N 项（每项 0–M）`、`A 项+B 项+C 项之和（每项 0–M）`、`N 项×1–M`、`权重合计 W × 程度 0–M`。
-- `o:[…]` 数组：有配套 `v:[…]` 用真实分值，否则按下标（最大 = 元素数 − 1）。
+合计 119 页 = 102 机械覆盖 + 17 白名单。
 
-## 二、白名单（27 页，人工核对记录）
+机械判定新增规则（本批，`audit_scale_ledger.py`）：
+- **系数数组**：`(factors|weights|coefs)=[…]` 与静态 select 数量相等且 ≥3 → `Σ(单项上限 × 系数)`（GAGS 6 个 `[2,2,2,1,1,3]` = 44）。
+- **显式系数表**：表头含「系数/权重」且为「部位 / 系数 / 严重度」三列 → `Σ(单部位满分 × 系数)`（ESSDAI = 123）。
+- **域对象**：`{name,weight,levels:[{v:0}…{v:M}]}` → `Σ(权重 × 本域最高档 v)`。
+- **症状对象**：存在 `setSev(` / `data-s="3"` 时，`{name,weight}` → `Σ(权重 × 3)`（Kupperman = 63）。
+- **嵌套分组**：`{group,weight,list:[{key:…}]}` → 组内条目数 × 组权重（SLEDAI-2K = 105）。
+- **复合除法公式**：`A/5 + …` 形式的归一加权显式跳过，避免把 SCORAD 的静态和 38 误标成「已补解析」。
+- **自检**：`python3 scripts/audit_scale_ledger.py --self-test` 断言 GAGS = 44、PHQ-9 = 27。
+
+## 二、白名单（17 页，人工核对记录）
 
 | 页面 | 口径 | 页面自述 | 人工核对结论 |
 |---|---|---|---|
@@ -31,28 +37,18 @@
 | neurology/psqi.html | 成分 | 7 成分合计 21 | C1–C7 各 0–3，满分 21 ✔（C5 已按原版 9 项合计映射） |
 | neurology/phq9-stroke.html | 动态 radio | 9 题 0–3 = 27 | 动态生成 radio，静态不可还原；按题数×上限=27 ✔ |
 | neurology/rls-severity.html | 动态 radio | 10 题 0–4 = 40 | 同上，10×4=40 ✔ |
-| psychiatry/les-stress.html | 加权 | 未声明满分 | LES 为加权生活事件量表，无固定满分，跳过合理 |
+| psychiatry/les-stress.html | 加权 | 未声明满分 | LES 43 项生活事件按 LCU 权重累加，无固定满分，跳过合理 |
 | psychiatry/rater-23.html | 动态 | LSAS 24 项 | 24 项（恐惧/回避各 0–3）上限 144；`refBar` 顶档 105+ 为页面自述分档 |
 | psychiatry/self-assess-4.html | 结果非满分制 | 阳性项数 | 输出阳性条目计数而非分值总和，不适用满分比对 |
-| rheumatology/assessor-10.html | 加权/动态 | 未声明满分 | DAS28 类复合指数，非简单求和 |
 | rheumatology/basdai.html | 结果非满分制 | 0–10 均分 | 6 项 0–10，取前 4 项 + 后 2 项均值再除以 5，结果 0–10 |
-| rheumatology/essdai.html | 加权 | 12 个域 | ESSDAI 各域按权重分级（0–3），满分由域权重决定，静态不可还原 |
-| rheumatology/guguanjieyan-womac-zhishu.html | 加权/标准化 | 原始 96 → 标准化 0–100 | 原始总分 96 =（5+2+17）×4 ✔；页面输出为标准化 0–100 |
-| rheumatology/rater-16.html | 加权 | SLEDAI-2K 105 | 24 项按权重计分，原版满分 105 ✔（页面自述一致） |
 | pulmonology/gina-asthma.html | 同页多量表 | ACT 25 / 分级 | ACT 5 题×5=25 ✔，另有 GINA 控制分级，非单一满分 |
 | dentistry/rater-risk-2.html | 动态 | 7 项 0–2 = 14 | 7×2=14 ✔（页面自述一致） |
 | cardiology/coronary-calcium.html | 加权 | Agatston 指数 | 输出钙化积分（无上限），不适用满分比对 |
-| rehabilitation/fim-scale.html | 加权/动态 | 18 项 1–7 = 126 | 18×7=126 ✔（页面自述一致） |
-| dermatology/calc-1.html | 加权 | 未声明满分 | 皮肤病损面积/严重度复合指数，非简单求和 |
-| dermatology/dermatoscopy-abcd.html | 加权 | 未声明满分 | ABCD 各项加权，非固定满分 |
-| dermatology/easi-eczema.html | 加权 | 72 | 4 区域 × 面积 0–6 × 严重度 0–12 × 权重和 1.0 = 72 ✔ |
-| dermatology/gags-acne.html | 加权 | 44 | 已按原版系数实现（前额/双颊 2、鼻/下颌 1、胸部与上背 3，合计 11），满分 4×11 = 44 ✔；此前台账「6×4=24 vs 44」是静态求和未计部位系数导致的**脚本误报**，页面计分本身正确。已补显式系数表（部位 / 系数 / 严重度 / 单部位最高分）与 8 分、44 分两条 verify 用例 |
-| dermatology/pasi-score.html | 加权 | 72 | 同 EASI 结构，72 ✔ |
-| dermatology/salt-alopecia.html | 加权 | 未声明满分 | SALT 为脱发面积百分比，非分值求和 |
-| dermatology/scorad-index.html | 加权 | 未声明满分 | SCORAD = 面积/强度/主观症状加权，非简单求和 |
-| dermatology/vasi-vitiligo.html | 加权 | 未声明满分 | VASI 为面积×色素脱失加权，无固定满分 |
-| obstetrics/kupperman-score.html | 加权 | 63 | 13 项权重合计 21 × 程度 0–3 = 63 ✔ |
-| obstetrics/rater-26.html | 加权 | 未声明满分 | 各症状 × 权重（4/2/1）求和，无固定满分 |
+| dermatology/calc-1.html | 加权 | 九分法 TBSA | 头 9 + 双臂 9×2 + 前后躯干 18×2 + 双腿 18×2 + 会阴 1 = 100% ✔ |
+| dermatology/dermatoscopy-abcd.html | 加权 | 未声明满分 | TDS = A×1.3 + B×0.1 + C×0.5 + D×0.5；最大 2.6+0.8+3.0+2.5 = 8.9 ✔ |
+| dermatology/salt-alopecia.html | 加权 | 0–100% | 0.40/0.24/0.18/0.18 权重和 1.0，满分 100% ✔ |
+| dermatology/scorad-index.html | 复合公式 | 未声明满分 | SCORAD = A/5（0–20）+ 7B/2（0–63）+ C（0–20）= 103；静态 select 和 38 不可用，保持跳过 |
+| dermatology/vasi-vitiligo.html | 加权 | 未声明满分 | 5 区域 × 手掌单位 × 色素脱失 %，无固定满分 |
 | pediatrics/pediatric-asthma.html | 同页多量表 | ACT 25 / TRACK 等 | 同页含多个量表（ACT 25、TRACK 等），非单一满分 |
 
 ## 三、反向计分扫描（`scripts/audit_reverse_scoring.py`）
@@ -78,6 +74,25 @@
 
 **抽样结论**：这 5 个常用量表本身均无反向条目，因此「未声明反向」对它们不构成缺陷；「负向措辞但未声明」的风险主要在其它自评量表，需继续逐页人工抽样。
 
+### 3.2 高频自评量表 Top 10 反向条目逐题比对（2026-11-04，只出结论、不改页面）
+
+挑选口径：覆盖高频标准化自评量表，并纳入已有反向实现的量表验证「声明 = 实现」。PHQ-9 / GAD-7 / PSQI 沿用 3.1 结论。
+
+| 量表 | 页面 | 原版反向条目（英文原文） | 页面声明 | 实现 | 结论 |
+|---|---|---|---|---|---|
+| PHQ-9 | `psychiatry/phq9-depression.html` | 无反向条目 | 未声明 | 不适用 | 未声明但原版无反向 |
+| GAD-7 | `psychiatry/gad7-anxiety.html` | 无反向条目 | 未声明 | 不适用 | 未声明但原版无反向 |
+| PSQI | `neurology/psqi.html` | 无反向条目（C1–C7 成分计分） | 未声明 | 不适用 | 未声明但原版无反向 |
+| SAS（Zung） | `psychology/sas-assessment.html` | 第 5/9/13/17/19 题为正向措辞，需反向：5 “I feel that everything is all right and nothing bad will happen.”；9 “I feel calm and can sit still easily.”；13 “I can breathe in and out easily.”；17 “My hands are usually dry and warm.”；19 “I fall asleep easily and get a good night's rest.”（Zung 1971） | 显式声明 5/9/13/17/19 反向 | `SAS_REV` 0 基索引 + `5-v` | 声明+实现 |
+| SCL-90 | `psychology/scl90-assessment.html` | 无反向条目（90 项均为症状严重度，越高越重） | 未声明 | 不适用 | 未声明但原版无反向 |
+| ISI | `psychiatry/isi-insomnia.html` | 无反向条目（7 项均「越重分越高」：入睡困难、维持睡眠困难、早醒、睡眠满意度、他人可见程度、担忧程度、日间功能影响） | 未声明 | 不适用 | 未声明但原版无反向 |
+| PSS-10 | `psychology/self-test-pressure.html` | 第 4/5/7/8 题为正向措辞，需反向：4 “felt confident about your ability to handle your personal problems”；5 “felt that things were going your way”；7 “been able to control irritations in your life”；8 “felt that you were on top of things”（Cohen 1983） | 显式声明 4/5/7/8 反向 | `PSS_REV` 0 基 `{3,4,6,7}` + `4-v` | 声明+实现 |
+| Big Five（BFI） | `psychology/bigfive-personality-test.html` | 16 道反向键：2 “Tends to find fault with others”；6 “Is reserved”；8 “Can be somewhat careless”；9 “Is relaxed, handles stress well”；12 “Starts quarrels with others”；18 “Tends to be disorganized”；21 “Tends to be quiet”；23 “Tends to be lazy”；24 “Is emotionally stable, not easily upset”；27 “Can be cold and aloof”；31 “Is sometimes shy, inhibited”；34 “Remains calm in tense situations”；35 “Prefers work that is routine”；37 “Is sometimes rude to others”；41 “Has few artistic interests”；43 “Is easily distracted”（John & Srivastava 1999） | 显式声明「反向」标签 | 外置脚本 `if (it.r) v = 6 - v` | 声明+实现 |
+| ECR | `psychology/attachment-style-test.html` | 原版回避维度含反向键条目，如 “I am very comfortable being close to romantic partners”；“I find it relatively easy to get close to my partner”；“I feel comfortable depending on romantic partners”；“I tell my partner just about everything”（Brennan 1998）；本页 36 题中 8 道反向（焦虑 13–16、回避 29–32） | 显式声明「含 8 道反向计分题」 | `q.r ? 8 - raw : raw` | 声明+实现 |
+| EAT-26 | `psychiatry/eat26-eating.html` | 原版反向键 8 “I feel that others would prefer if I ate more”；13 “Other people think that I am too thin”；26 “I enjoy trying new rich foods”（Garner 1982） | 显式声明「反向条目(8/13/25)」 | `REV_IDX {7,12,24}` 0 基 + `REV/NORM` 权重表 | 声明+实现（注：页面第 25/26 题顺序与原版相反，反向键与页面自身措辞一致，计分不受影响） |
+
+**结论分布**：`声明+实现` 5 条（SAS、PSS-10、Big Five、ECR、EAT-26）；`未声明但原版无反向` 5 条（PHQ-9、GAD-7、PSQI、SCL-90、ISI）；`原版有反向但页面全正向` **0 条（无真缺陷）**。
+
 ## 四、工作区未提交改动（WIP）处置纪律（2026-11-04 起）
 
 > 背景：本仓多个批次共用同一工作区，已多次出现「工作区里的未提交改动其实是别线正在写的 WIP」。
@@ -86,4 +101,30 @@
 2. **判断是否可能是别线正在写**：mtime 在近 10 分钟内，或改动主题与在办批次一致 → **只上报、不动**（不改、不 `git checkout`、不 `git add`、不 `git restore --staged` 以外任何操作）。
 3. 只有确认是「僵尸遗留 / 与页面实现矛盾」时才处置；处置前先把摘要存档到 `plan/_stash_notes.md`，再决定收编提交或 `git checkout -- <明确路径>`，**禁止批量回退**。
 4. **每次回报前**对自己要提交的路径跑 `git status --short`，确认只剩本批改动；提交一律 `git commit -m "..." -- <具体路径>`，提交前 `git diff --cached --name-only` 自查。若误暂存了他人文件，用 `git restore --staged <路径>` **只 unstage，不 checkout**。
+
+## 五、17 页加权表逐页系数核对（2026-11-04）
+
+口径：`部位/条目 → 系数 → 单部位满分`；合计满分 = `Σ(单部位满分 × 系数)`。状态：已核 / 待核 / 无原版满分。只核对，不改页面；本批仅 ESSDAI、assessor-10 发现真实系数错并已修（同批改 verify）。
+
+| 页面 | 部位/条目 → 系数 → 单部位满分 | 合计满分 | 原版出处 | 状态 |
+|---|---|---|---|---|
+| dermatology/gags-acne.html | 前额/右颊/左颊 → 2 → 8；鼻/下颌 → 1 → 4；胸+上背 → 3 → 12（严重度 0–4） | 44 | Doshi et al. 1997, Int J Dermatol（GAGS） | 已核 |
+| dermatology/easi-eczema.html | 头 → 0.1 → 7.2；躯干 → 0.3 → 21.6；上肢 → 0.2 → 14.4；下肢 → 0.4 → 28.8（每区面积 0–6 + 4 项强度 0–3，未加权单区 72） | 72 | Hanifin et al. 2001, J Am Acad Dermatol（EASI） | 已核 |
+| dermatology/pasi-score.html | 头 → 0.1 → 7.2；躯干 → 0.3 → 21.6；上肢 → 0.2 → 14.4；下肢 → 0.4 → 28.8（每区 E/I/D 0–4 + 面积 0–6，未加权单区 72） | 72 | Fredriksson & Pettersson 1978, Dermatologica（PASI） | 已核 |
+| rheumatology/rater-16.html | 8 分组 8 项 ×8 = 64；4 分组 6 项 ×4 = 24；2 分组 7 项 ×2 = 14；1 分组 3 项 ×1 = 3 | 105 | Bombardier et al. 1992, Arthritis Rheum（SLEDAI；SLEDAI-2K Gladman 2002） | 已核 |
+| obstetrics/kupperman-score.html | 13 项权重：潮热 4；感觉异常/失眠/易激动/泌尿/性生活各 2；抑郁疑心/眩晕/疲乏/骨关节痛/头痛/心悸/蚁走感各 1；每项 × 程度 0–3 → 12/6/6/6/6/6/3×7 | 63（权重和 21 × 3） | Kupperman et al. 1953, J Clin Endocrinol Metab（国内改良 13 项） | 已核 |
+| obstetrics/rater-26.html | 11 项权重 `[4,2,2,2,1,1,1,1,1,1,1]`，每项 × 程度 0–3 → 12/6/6/6/3×7 | 51（权重和 17 × 3） | Kupperman et al. 1953（原版 11 项） | 已核 |
+| rheumatology/essdai.html | 12 域权重 `[3,4,2,2,3,5,5,6,5,5,2,1]`；单域满分 = 权重 × 最高档（全身/腺体/生化 2 档，其余 3 档）→ 6/12/4/6/9/15/15/18/15/15/6/2 | 123 | Seror et al. 2010/2015, Ann Rheum Dis（EULAR ESSDAI） | 已核（已修：原权重 3/4/2/3/3/6/4/3/3/5/2/3 + 三域 3 档 → 129/96；现 123，并修 5 分切点） |
+| rheumatology/assessor-10.html | 同 ESSDAI 12 域权重与单域满分 | 123 | 同 ESSDAI | 已核（已修：同 ESSDAI；另修 5 分切点与 refBar 0–5/5–14） |
+| rheumatology/guguanjieyan-womac-zhishu.html | 疼痛 5 项 + 僵硬 2 项 + 功能 17 项 = 24 项 × 0–4 → 每项 4 | 96（原始分；标准分 0–100） | Bellamy et al. 1988, J Rheumatol（WOMAC） | 已核 |
+| rehabilitation/fim-scale.html | 18 项（13 运动 + 5 认知）× 1–7 → 每项 7 | 126（最低 18） | Keith et al. 1987, Am J Phys Med Rehabil（FIM） | 已核 |
+| cardiology/coronary-calcium.html | Agatston：面积 × 密度系数 1–4 | 无固定上限 | Agatston et al. 1990, J Am Coll Cardiol | 无原版满分 |
+| dermatology/calc-1.html | 头 9；双臂 9/9；前后躯干 18/18；双腿 18/18；会阴 1 | 100% | Wallace 九分法 / 中国九分法 | 已核（TBSA 百分比） |
+| dermatology/dermatoscopy-abcd.html | A ×1.3 → 2.6；B ×0.1 → 0.8；C ×0.5 → 3.0；D ×0.5 → 2.5 | 8.9 | Stolz et al. 1989 / Nachbar et al. 1994（TDS） | 已核 |
+| dermatology/salt-alopecia.html | 顶 0.40 → 40；后 0.24 → 24；右 0.18 → 18；左 0.18 → 18（各 0–100%） | 100% | Olsen et al. 2004, J Am Acad Dermatol（SALT） | 已核 |
+| dermatology/scorad-index.html | A/5 → 0–20；7B/2 → 0–63；C → 0–20 | 103 | European Task Force on Atopic Dermatitis 1993, Dermatology（SCORAD） | 已核（复合除法公式，脚本保持跳过） |
+| dermatology/vasi-vitiligo.html | 5 区域 × 手掌单位 × 色素脱失 % | 无固定上限 | Hamzavi et al. 2004, J Am Acad Dermatol（VASI） | 无原版满分 |
+| psychiatry/les-stress.html | 43 项生活事件 → LCU 权重累加（各项权重不同） | 无固定满分（全选 = ΣLCU） | Holmes & Rahe 1967, J Psychosom Res（LES） | 无固定满分 |
+
+**核对结论**：17 页中 14 页「已核」、3 页「无原版满分/无固定上限」（Agatston 指数、VASI、LES LCU 累加）。真实系数错 2 页（ESSDAI、assessor-10），已改页面并同批更新 `scripts/verify_rheumatology_calc.js`（28/28 通过）。
 

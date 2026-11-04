@@ -65,8 +65,116 @@ def num(x):
         return None
 
 
+def strip_tags(s):
+    return re.sub(r"<[^>]+>", "", s).replace("&nbsp;", " ").strip()
+
+
+def parse_weighted_composition(html):
+    """解析「单项满分 × 系数」的加权量表，返回 (总分上限, 依据) 或 (None, "")。
+
+    覆盖三类真实页面结构（均由原版量表直接决定，不做语义猜测）：
+      A 数字系数数组：`var factors=[2,2,2,1,1,3]` 与 N 个静态 select 一一对应
+        → Σ(各 select 最大值 × 对应系数)
+      B 显式系数表：表头含「系数 / 权重」，逐行为 部位/条目、系数、严重度上限（0–N）
+        或末列为单行最高分 → Σ(系数 × 严重度上限)
+      C 症状对象数组：`{name:'潮热出汗',weight:4}` + 0–3 严重度按钮
+        → Σ权重 × 3；嵌套分组 `{group:…,weight:8,list:[{key:…}…]}`（SLEDAI）
+        → 每组内条目数 × 组权重
+    """
+    # A 数字系数数组 × 静态 select
+    sel_max = []
+    for m in SELECT_RE.finditer(html):
+        vals = [float(v) for v in OPTION_RE.findall(m.group(1).replace("−", "-"))]
+        if vals:
+            sel_max.append(max(vals))
+    if len(sel_max) >= 3:
+        for name, body in re.findall(
+                r"(?:var\s+)?(factors?|weights?|coefs?)\s*=\s*\[([-\d.,\s]+)\]", html, re.I):
+            coefs = [float(x) for x in re.findall(r"-?\d+(?:\.\d+)?", body)]
+            if len(coefs) == len(sel_max):
+                total = sum(a * b for a, b in zip(sel_max, coefs))
+                return total, (f"{len(sel_max)} 个静态 select × {name}=[...]："
+                               f"Σ(单项上限 × 系数) = {total:g}")
+
+    # B 显式系数表
+    for tbl in re.findall(r"<table[^>]*>.*?</table>", html, re.S | re.I):
+        if "系数" not in tbl and "权重" not in tbl:
+            continue
+        rows = re.findall(r"<tr[^>]*>(.*?)</tr>", tbl, re.S | re.I)
+        if len(rows) < 3:
+            continue
+        header = [strip_tags(c) for c in re.findall(r"<th[^>]*>(.*?)</th>", rows[0], re.S | re.I)]
+        sev_default = 3 if any("重度" in h or h.strip() == "重" for h in header) else None
+        total, n = 0.0, 0
+        for r in rows[1:]:
+            cells = [strip_tags(c) for c in re.findall(r"<td[^>]*>(.*?)</td>", r, re.S | re.I)]
+            if not cells or re.search(r"合计|总计", cells[0]):
+                continue
+            coef = num(cells[1]) if len(cells) >= 2 else None
+            if coef is None or not (0 < float(coef) <= 10):
+                continue
+            sev = None
+            for c in cells[2:]:
+                m = re.search(r"0\s*[–\-~—]\s*(\d+)", c)
+                if m:
+                    sev = int(m.group(1))
+                    break
+            if sev is None:
+                nums = [num(c) for c in cells[2:]]
+                nums = [x for x in nums if x is not None and float(x) > 0]
+                if nums:
+                    total += max(float(x) for x in nums)
+                    n += 1
+                    continue
+                sev = sev_default
+            if sev:
+                total += float(coef) * sev
+                n += 1
+        if n >= 2:
+            return total, f"系数表 {n} 行（Σ 系数 × 严重度上限）= {total:g}"
+
+    # D 域对象数组：{name:'…',weight:N,levels:[{v:0}…{v:M}]} → Σ(权重 × 本域最高档)
+    dom_total, dom_n = 0.0, 0
+    for w, body in re.findall(r"\{[^{}]*?name\s*:\s*['\"][^'\"]{1,30}['\"][^{}]*?"
+                              r"weight\s*:\s*(\d+(?:\.\d+)?)[^{}]*?levels\s*:\s*\[(.*?)\]\s*\}",
+                              html, re.S):
+        vs = [int(x) for x in re.findall(r"v\s*:\s*(\d+)", body)]
+        if vs:
+            dom_total += float(w) * max(vs)
+            dom_n += 1
+    if dom_n >= 2:
+        return dom_total, f"{dom_n} 个域 × 域权重 × 本域最高档 = {dom_total:g}"
+
+    # C 症状对象数组（需 0–3 严重度控件，避免把「权重」误当乘数）
+    if re.search(r'data-s\s*=\s*"3"|setSev\(', html):
+        hits = re.findall(r"\{[^{}]*?name\s*:\s*['\"][^'\"]{1,30}['\"][^{}]*?weight\s*:\s*(\d+(?:\.\d+)?)", html)
+        if len(hits) >= 2:
+            wsum = sum(float(x) for x in hits)
+            return wsum * 3, f"{len(hits)} 个症状 × 权重合计 {wsum:g} × 严重度 3 = {wsum*3:g}"
+
+    # C' 嵌套分组对象（SLEDAI 等）
+    groups = re.findall(r"\{[^{}]*?group\s*:\s*['\"][^'\"]*['\"][^{}]*?weight\s*:\s*(\d+)"
+                        r"[^{}]*?list\s*:\s*\[(.*?)\]\s*\}", html, re.S)
+    if groups:
+        total, n = 0, 0
+        for w, body in groups:
+            cnt = len(re.findall(r"\{key\s*:", body))
+            if cnt:
+                total += int(w) * cnt
+                n += cnt
+        if n >= 2:
+            return total, f"{len(groups)} 组 × {n} 个条目（条目权重按组权重）= {total:g}"
+    return None, ""
+
+
 def parse_item_maxes(html):
     """返回 (条目最大分之和, 依据说明) 或 (None, ...)"""
+
+    # 0) 加权结构优先：系数数组 / 系数表 / 症状权重对象
+    wt = parse_weighted_composition(html)
+    if wt[0] is not None:
+        return wt
+
     # 0a) JS 数组型条目（o:[…] / opts|options:[{v}]）优先于动态模板判定
     arr0 = []
     for m in re.finditer(r"o\s*:\s*\[([^\]]*)\]([^}]{0,200})", html):
@@ -202,13 +310,24 @@ def parse_declared_composition(html):
         if len(rs) >= 3:
             return sum(rs), f"括号内 {len(rs)} 项逐项上限求和"
 
-    # A 均匀条目：N 项/题/个问题 + 每项 0–M
-    m = re.search(r"(\d+)\s*(?:个)?(?:项|题|条|个问题|个条目)[^。；\n]{0,40}?"
-                  r"每(?:\s*项|\s*题|\s*条)?\s*(?:0\s*(?:至|[–\-~—])\s*(\d+))", html)
+    # A0 「ΣN 个条目（每项 0–M）」/「共 N 题，每题 0–M」：N 为总条目数，优先于局部「前/后 5 项」
+    m = re.search(r"(?:Σ\s*|共\s*)(\d+)\s*(?:个)?(?:条目|项|题)"
+                  r"[^。；\n]{0,30}?每(?:\s*项|\s*题)?\s*0\s*(?:至|[–\-~—])\s*(\d+)", html)
     if m:
         n, hi = int(m.group(1)), int(m.group(2))
         if n >= 2 and hi >= 1:
-            return n * hi, f"{n} 项 × 每项上限 {hi}"
+            return n * hi, f"{n} 项 × 每项上限 {hi}（Σ/共 总条目数）"
+
+    # A 均匀条目：取离「每项 0–M」最近的 N（避免「5 项+2 项+17 项，共 24 项」误取首个 5）
+    m = re.search(r"((?:\d+\s*(?:个)?(?:项|题|条|个问题|个条目)[^。；\n]{0,40}?))"
+                  r"每\s*(?:项|题|条)?\s*(?:0\s*(?:至|[–\-~—])\s*(\d+))", html)
+    if m:
+        ns = re.findall(r"(\d+)\s*(?:个)?(?:项|题|条|个问题|个条目)", m.group(1))
+        hi = int(m.group(2))
+        if ns:
+            n = int(ns[-1])
+            if n >= 2 and hi >= 1:
+                return n * hi, f"{n} 项 × 每项上限 {hi}"
 
     # A' `N 个问题（每项 0 至 5）`
     m = re.search(r"(\d+)\s*个(?:问题|条目)\s*（\s*每项\s*0\s*至\s*(\d+)", html)
@@ -270,6 +389,10 @@ def classify_mode(html, path=""):
         return '序数量表（非求和）'
     if re.search(r"C[1-7]\b", html) and '成分' in html:
         return '成分计分（非逐项求和）'
+    # 复合加权公式（如 SCORAD = A/5 + 3.5×B + C）：维度间含「归一除法 + 加权」，
+    # 静态 select 求和无法还原真实上限（SCORAD 静态和 38，真值 103），保持跳过。
+    if re.search(r"\b[A-Z]\s*/\s*\d+\s*\+", html):
+        return '复合加权公式（非简单求和）'
     if ('权重' in html or '加权' in html) and ('Σ' in html or '×' in html):
         return '加权量表'
     if html.count('<input type="radio"') >= 4:
@@ -289,8 +412,8 @@ def audit_page(path, html):
     issues = []
     mode = classify_mode(html, path)
     item_max, basis = parse_item_maxes(html)
-    # radio / 动态生成的页面只要总账能静态还原条目上限，就纳入求和核对
-    if item_max is not None and mode in ('radio 单选计分', '动态生成条目'):
+    # radio / 动态生成 / 加权系数已补解析的页面，只要总账能静态还原上限，就纳入求和核对
+    if item_max is not None and mode in ('radio 单选计分', '动态生成条目', '加权量表'):
         mode = '逐项求和（已补解析）'
     claims = parse_claims(html)
     band = parse_bands(html)
@@ -357,12 +480,33 @@ def audit_page(path, html):
     }
 
 
+def self_test():
+    """对已知形状做断言，防止后续改规则再次引入「漏乘系数」类假阳性/假阴性。"""
+    cases = [
+        ("tools/dermatology/gags-acne.html", 44, "GAGS（6 部位系数 2/2/2/1/1/3 × 严重度 0–4）"),
+        ("tools/psychiatry/phq9-depression.html", 27, "PHQ-9（9 题 × 0–3）"),
+    ]
+    ok = True
+    for rel, expect, name in cases:
+        total, basis = parse_item_maxes(read(os.path.join(ROOT, rel)))
+        hit = total is not None and abs(float(total) - expect) < 1e-6
+        print(f"[{'PASS' if hit else 'FAIL'}] {name}：解析 {total}，期望 {expect} — {basis}")
+        ok = ok and hit
+    print("self-test " + ("通过" if ok else "失败"))
+    return 0 if ok else 1
+
+
 def main():
-    args = [a for a in sys.argv[1:] if not a.startswith("-")]
+    argv = sys.argv[1:]
+    if "--self-test" in argv:
+        sys.exit(self_test())
     out_json = "/tmp/scale_ledger.json"
-    if "--json" in sys.argv:
-        out_json = sys.argv[sys.argv.index("--json") + 1]
-    inds = args or INDUSTRIES
+    if "--json" in argv:
+        i = argv.index("--json")
+        if i + 1 < len(argv):
+            out_json = argv[i + 1]
+        del argv[i:i + 2]
+    inds = [a for a in argv if not a.startswith("-")] or INDUSTRIES
     results = []
     for ind in inds:
         d = os.path.join(TOOLS, ind)
