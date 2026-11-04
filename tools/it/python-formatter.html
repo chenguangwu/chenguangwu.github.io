@@ -291,42 +291,35 @@ function stripCommentAndString(line){
 function formatPython(){
   setErr('');
   try{
-    const src = document.getElementById('input').value;
-    const lines = src.split('\n');
+    const lines = document.getElementById('input').value.split('\n');
     const out = [];
-    const stack = [0];
+    const indStack = [0];
     let prevBlank = false;
-    let inTripleStr = false;
-    let tripleCh = '';
-    for(const line of lines){
-      const trimmed = line.trim();
-      if(inTripleStr){
-        out.push(line);
-        if(line.includes(tripleCh)) inTripleStr = false;
+    let inTriple = false, tripleCh = '', tripleOpenOld = 0, tripleOpenNew = 0;
+    const expand = s => s.replace(/\t/g, '    ');
+    for(const raw of lines){
+      if(inTriple){
+        if(raw.trim() === ''){ out.push(''); if(raw.includes(tripleCh)) inTriple = false; continue; }
+        let rest = raw;
+        if(rest.length >= tripleOpenOld) rest = rest.slice(tripleOpenOld);
+        out.push(IND().repeat(tripleOpenNew) + rest);
+        if(rest.includes(tripleCh)) inTriple = false;
         continue;
       }
-      const tripleMatch = line.match(/([']{3}|["]{3})/);
-      if(tripleMatch && line.split(tripleMatch[1]).length < 3){
-        tripleCh = tripleMatch[1]; inTripleStr = true; out.push(line); continue;
-      }
-      if(trimmed === ''){
+      if(raw.trim() === ''){
         if(!prevBlank){ out.push(''); prevBlank = true; }
         continue;
       }
       prevBlank = false;
-      while(stack.length > 1 && stack[stack.length - 1] > 0 && !trimmed.startsWith('else') && !trimmed.startsWith('elif') && !trimmed.startsWith('except') && !trimmed.startsWith('finally') && !trimmed.startsWith('case') && !/^\w+:/.test(trimmed) && !(stack[stack.length - 1] === 1 && /^[a-zA-Z]/.test(trimmed) && !stack._defStarted)) {
-        if(stack._allowDedent) { stack.pop(); } else break;
-      }
-      stack._allowDedent = false;
-      const currentIndent = stack[stack.length - 1];
-      const content = trimmed;
-      out.push(IND().repeat(currentIndent) + content);
-      const codeOnly = stripCommentAndString(content);
-      const endsColon = /:\s*$/.test(codeOnly);
-      const isDedent = /^(return|break|continue|pass|raise|yield\b|else:|elif |except|finally:)/.test(trimmed) || /^\w+:/.test(trimmed);
-      if(endsColon){
-        stack.push(currentIndent + 1);
-        stack._allowDedent = true;
+      const indent = expand(raw).match(/^ */)[0].length;
+      while(indent < indStack[indStack.length - 1]) indStack.pop();
+      if(indent > indStack[indStack.length - 1]) indStack.push(indent);
+      const depth = indStack.length - 1;
+      const content = raw.trim();
+      out.push(IND().repeat(depth) + content);
+      const tm = content.match(/('''|""")/);
+      if(tm && content.split(tm[1]).length < 3){
+        inTriple = true; tripleCh = tm[1]; tripleOpenOld = indent; tripleOpenNew = depth;
       }
     }
     setOut(out.join('\n'));
@@ -336,31 +329,25 @@ function formatPython(){
 function minifyPython(){
   setErr('');
   try{
-    const src = document.getElementById('input').value;
-    const lines = src.split('\n');
+    const lines = document.getElementById('input').value.split('\n');
     const out = [];
-    let prevBlank = false;
-    let inTripleStr = false;
-    let tripleCh = '';
-    for(let i = 0; i < lines.length; i++){
-      let line = lines[i];
-      if(inTripleStr){ out.push(line); if(line.includes(tripleCh)) inTripleStr = false; continue; }
-      const tripleMatch = line.match(/([']{3}|["]{3})/);
-      if(tripleMatch && line.split(tripleMatch[1]).length < 3){ tripleCh = tripleMatch[1]; inTripleStr = true; out.push(line); continue; }
-      let trimmed = line.trim();
+    let prevBlank = false, inTriple = false, tripleCh = '';
+    for(const line of lines){
+      if(inTriple){
+        out.push(line);
+        if(line.includes(tripleCh)) inTriple = false;
+        continue;
+      }
+      const tm = line.match(/('''|""")/);
+      if(tm && line.split(tm[1]).length < 3){ tripleCh = tm[1]; inTriple = true; out.push(line); continue; }
+      const trimmed = line.trim();
       if(trimmed === ''){ if(!prevBlank){ out.push(''); prevBlank = true; } continue; }
       prevBlank = false;
-      if(trimmed.startsWith('#')){ out.push(trimmed); continue; }
-      const prev = out[out.length - 1] || '';
-      const prevCode = stripCommentAndString(prev);
-      if(prev && !prev.endsWith(':') && !prev.endsWith('\\') && !prev.endsWith('(') && !prev.endsWith('[') && !prev.endsWith('{') && !prev.endsWith(',') && !prevCode.endsWith(':') && !trimmed.startsWith('else') && !trimmed.startsWith('elif') && !trimmed.startsWith('except') && !trimmed.startsWith('finally') && !/^\w+:/.test(trimmed) && !trimmed.startsWith('#')){
-        out[out.length - 1] = prev + '; ' + trimmed;
-      } else {
-        out.push(trimmed);
-      }
+      // 保留行首缩进（Python 块结构依赖缩进），仅去掉行尾空白
+      out.push(line.replace(/\s+$/,'').replace(/\t/g,'    '));
     }
     setOut(out.join('\n'));
-    setErr('✅ 压缩成功');
+    setErr('✅ 压缩成功（保留物理行与块缩进以维持语义）');
   }catch(e){ setErr('❌ ' + e.message); }
 }
 function doBeautify(){ formatPython(); }
@@ -370,34 +357,38 @@ function doValidate(){
   try{
     const src = document.getElementById('input').value;
     const lines = src.split('\n');
-    let depth = 0;
-    let maxDepth = 0;
-    let inTripleStr = false;
-    let tripleCh = '';
     const issues = [];
+    let inTriple = false, tripleCh = '';
+    let bracket = 0;
+    let pendingBlockLine = 0, pendingBlockIndent = 0;
+    const expand = s => s.replace(/\t/g, '    ');
     for(let i = 0; i < lines.length; i++){
-      const line = lines[i];
-      if(inTripleStr){ if(line.includes(tripleCh)) inTripleStr = false; continue; }
-      const tripleMatch = line.match(/([']{3}|["]{3})/);
-      if(tripleMatch && line.split(tripleMatch[1]).length < 3){ tripleCh = tripleMatch[1]; inTripleStr = true; continue; }
-      const codeOnly = stripCommentAndString(line);
-      if(codeOnly.includes(':') && !/def |class |if |elif |else:|for |while |try:|except|finally:|with |match |case /.test(codeOnly.trim())){
-        // ignore
+      const raw = lines[i];
+      if(inTriple){
+        if(raw.includes(tripleCh)) inTriple = false;
+        continue;
       }
-      if(/:\s*$/.test(codeOnly)){ depth++; if(depth > maxDepth) maxDepth = depth; }
-      if(/^\s*(return|break|continue|pass|raise)/.test(line) && depth > 0) depth = Math.max(0, depth - 1);
-      if(/^\s*(else:|elif |except|finally:)/.test(line)) depth = Math.max(0, depth);
+      const tm = raw.match(/('''|""")/);
+      if(tm && raw.split(tm[1]).length < 3){ tripleCh = tm[1]; inTriple = true; }
+      if(raw.trim() === '') continue;
+      const indent = expand(raw).match(/^ */)[0].length;
+      if(pendingBlockLine){
+        if(indent <= pendingBlockIndent) issues.push('第 ' + pendingBlockLine + ' 行以冒号结尾，但第 ' + (i + 1) + ' 行未缩进');
+        pendingBlockLine = 0;
+      }
+      const codeOnly = stripCommentAndString(raw);
+      for(const ch of codeOnly){ if(ch === '(' || ch === '[' || ch === '{') bracket++; else if(ch === ')' || ch === ']' || ch === '}') bracket--; }
+      if(/:\s*$/.test(codeOnly.trim())){ pendingBlockLine = i + 1; pendingBlockIndent = indent; }
     }
-    const stats = '✅ Python 代码分析\n' +
+    if(inTriple) issues.push('三引号字符串未闭合');
+    if(bracket !== 0) issues.push('括号不平衡（差值 ' + bracket + '）');
+    const stats = 'Python 代码分析\n' +
       '总行数: ' + lines.length + '\n' +
-      '最大缩进深度: ' + maxDepth + '\n' +
       'def 数量: ' + (src.match(/^\s*def\s/gm) || []).length + '\n' +
       'class 数量: ' + (src.match(/^\s*class\s/gm) || []).length + '\n' +
-      'import 数量: ' + (src.match(/^\s*(import|from)\s/gm) || []).length + '\n' +
-      '三引号字符串未闭合: ' + (inTripleStr ? '是 ❌' : '否 ✅');
+      'import 数量: ' + (src.match(/^\s*(import|from)\s/gm) || []).length;
     setOut(stats);
-    if(inTripleStr) setErr('❌ 三引号字符串未闭合');
-    else setErr('✅ 校验通过');
+    setErr(issues.length ? '❌ ' + issues.join('；') : '✅ 结构检查通过（缩进/括号/三引号）');
   }catch(e){ setErr('❌ ' + e.message); }
 }
 function getIndent(){const v=document.getElementById('indent').value;return v==='tab'?'\t':' '.repeat(parseInt(v));}

@@ -282,12 +282,23 @@ function parseProto(){
     let i = 0;
     const result = {syntax:'', package:'', imports:[], options:[], messages:[], enums:[], services:[]};
     const peek = () => tokens[i];
-    const next = () => tokens[i++];
+    const next = () => { if(i >= tokens.length) throw new Error('意外的文件结尾'); return tokens[i++]; };
     const expect = (v) => { if(!peek() || peek().v !== v) throw new Error('期望 '+v); return next(); };
     const parseField = () => {
       const mods = [];
       while(peek() && ['repeated','optional','required'].includes(peek().v)) mods.push(next().v);
       let type = next().v;
+      let mapKey = null, mapValue = null;
+      if(type === 'map' && peek() && peek().v === '<'){
+        next();
+        mapKey = next().v;
+        while(peek() && peek().v === '.'){ next(); mapKey += '.' + next().v; }
+        expect(',');
+        mapValue = next().v;
+        while(peek() && peek().v === '.'){ next(); mapValue += '.' + next().v; }
+        expect('>');
+        type = 'map<' + mapKey + ', ' + mapValue + '>';
+      }
       while(peek() && peek().v === '.'){ next(); type += '.' + next().v; }
       const name = next().v;
       let num = null;
@@ -303,7 +314,7 @@ function parseProto(){
         expect(']');
       }
       expect(';');
-      return {label:'', type, name, number:num, repeated:mods.includes('repeated'), optional:mods.includes('optional'), required:mods.includes('required'), options};
+      return {label:'', type, name, number:num, repeated:mods.includes('repeated'), optional:mods.includes('optional'), required:mods.includes('required'), options, mapKey, mapValue};
     };
     const parseOneof = () => {
       next();
@@ -403,18 +414,22 @@ function doMinify(){
 }
 function doValidate(){
   setErr('');
+  parseProto();
+  const msg = document.getElementById('err').textContent || '';
+  if(msg.indexOf('❌') >= 0){
+    setErr('❌ 校验失败：' + msg.replace(/^❌\s*/, ''));
+    return;
+  }
   try{
-    const tokens = tokenizeProto(document.getElementById('input').value);
-    let depth = 0;
-    for(const tk of tokens){
-      if(tk.v === '{' || tk.v === '[' || tk.v === '(') depth++;
-      if(tk.v === '}' || tk.v === ']' || tk.v === ')') depth--;
-      if(depth < 0) throw new Error('括号不匹配');
-    }
-    if(depth !== 0) throw new Error('括号未闭合');
-    setOut('✅ .proto 语法正确\nTokens: ' + tokens.length + '\n括号平衡');
-    setErr('✅ 校验通过');
-  }catch(e){ setErr('❌ ' + e.message); }
+    const parsed = JSON.parse(document.getElementById('output').textContent);
+    let msgCount = 0, fieldCount = 0, enumCount = 0, serviceCount = 0;
+    const walk = m => { msgCount++; fieldCount += m.fields.length; m.messages.forEach(walk); enumCount += m.enums.length; };
+    parsed.messages.forEach(walk);
+    enumCount += parsed.enums.length;
+    serviceCount = parsed.services.length;
+    setOut('✅ .proto 解析通过\n消息: ' + msgCount + '\n字段: ' + fieldCount + '\n枚举: ' + enumCount + '\n服务: ' + serviceCount);
+    setErr('✅ 校验通过（基于完整语法解析）');
+  }catch(e){ setErr('❌ 校验失败：' + e.message); }
 }
 function getIndent(){const v=document.getElementById('indent').value;return v==='tab'?'\t':' '.repeat(parseInt(v));}
 function setOut(s){document.getElementById('output').textContent=s;}

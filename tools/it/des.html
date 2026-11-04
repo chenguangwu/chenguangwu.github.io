@@ -331,53 +331,51 @@ function base64ToBytes(b64){var s=atob(b64);var b=new Uint8Array(s.length);for(v
 function randomHex(n){var b=new Uint8Array(n);crypto.getRandomValues(b);return bytesToHex(b);}
 function xorBytes(a,b,c){for(var i=0;i<a.length;i++)c[i]=a[i]^b[i];}
 
+// 按位数组实现：64 位分组不再受 JS 32 位移位限制，密钥按字节逐位装入
+function desPermute(bits,table){var out=new Array(table.length);for(var i=0;i<table.length;i++)out[i]=bits[table[i]-1];return out;}
+function desLeftShift(bits,n){return bits.slice(n).concat(bits.slice(0,n));}
+
 function desCreateSubkeys(keyBytes){
-  var k=new Array(8);
-  for(var i=0;i<8;i++){var v=0;for(var j=0;j<8;j++)v=(v<<8)|keyBytes[i*8+j];k[i]=v;}
-  var cd=new Array(56);
-  for(var i=0;i<56;i++){var bit=k[Math.floor((PC1[i]-1)/8)];cd[i]=(bit>>>(7-((PC1[i]-1)%8)))&1;}
-  var subKeys=new Array(16);
+  var keyBits=[];
+  for(var i=0;i<8;i++)for(var b=7;b>=0;b--)keyBits.push((keyBytes[i]>>b)&1);
+  var cd=desPermute(keyBits,PC1);
   var C=cd.slice(0,28),D=cd.slice(28,56);
+  var subKeys=new Array(16);
   for(var r=0;r<16;r++){
-    var s=shifts[r];
-    C=C.slice(s).concat(C.slice(0,s));
-    D=D.slice(s).concat(D.slice(0,s));
-    var CD=C.concat(D);
-    var sk=new Uint8Array(6);var skv=[0,0,0,0,0,0];
-    for(var i=0;i<48;i++){skv[Math.floor(i/8)]|=CD[PC2[i]-1]<<(7-(i%8));}
-    for(var i=0;i<6;i++)sk[i]=skv[i];
-    subKeys[r]=sk;
+    C=desLeftShift(C,shifts[r]);
+    D=desLeftShift(D,shifts[r]);
+    subKeys[r]=desPermute(C.concat(D),PC2);
   }
   return subKeys;
 }
 
 function desBlock(block,subKeys,decrypt){
-  var L=0,R=0;
-  for(var i=0;i<32;i++){
-    var bit=(block[Math.floor((IP[i]-1)/8)]>>>(7-((IP[i]-1)%8)))&1;
-    if(i<16)L=(L<<1)|bit;else R=(R<<1)|bit;
-  }
+  var bits=[];
+  for(var i=0;i<8;i++)for(var b=7;b>=0;b--)bits.push((block[i]>>b)&1);
+  var ip=desPermute(bits,IP);
+  var L=ip.slice(0,32),R=ip.slice(32,64);
   for(var r=0;r<16;r++){
     var sk=subKeys[decrypt?15-r:r];
-    var ER=0;
-    for(var i=0;i<48;i++){var e=E[i]-1;ER=(ER<<1)|((R>>>(31-e))&1);}
-    var K=0;
-    for(var i=0;i<6;i++)K=(K<<8)|sk[i];
-    var tmp=ER^K;
-    var out=0;
-    for(var b=0;b<8;b++){
-      var bb=(tmp>>>(42-b*6))&0x3f;
-      var row=((bb>>4)&0x2)|(bb&1);
-      var col=(bb>>1)&0xf;
-      out=(out<<4)|S[b][row][col];
+    var prevR=R;
+    var er=desPermute(R,E);
+    var x=new Array(48);
+    for(var i=0;i<48;i++)x[i]=er[i]^sk[i];
+    var out=[];
+    for(var b0=0;b0<8;b0++){
+      var s0=x[b0*6],s5=x[b0*6+5];
+      var row=(s0<<1)|s5;
+      var col=(x[b0*6+1]<<3)|(x[b0*6+2]<<2)|(x[b0*6+3]<<1)|x[b0*6+4];
+      var v=S[b0][row][col];
+      out.push((v>>3)&1,(v>>2)&1,(v>>1)&1,v&1);
     }
-    var fVal=0;
-    for(var i=0;i<32;i++){var p=P[i]-1;fVal|=((out>>>(31-p))&1)<<(31-i);}
-    var newR=L^fVal;L=R;R=newR;
+    var fVal=desPermute(out,P);
+    var newR=new Array(32);
+    for(var i=0;i<32;i++)newR[i]=L[i]^fVal[i];
+    L=prevR;R=newR;
   }
-  var RL=(R<<32)|L>>>0;
+  var pre=desPermute(R.concat(L),FP);
   var result=new Uint8Array(8);
-  for(var i=0;i<64;i++){var fp=FP[i]-1;result[Math.floor(i/8)]|=((RL>>>(63-fp))&1)<<(7-(i%8));}
+  for(var i=0;i<64;i++)result[Math.floor(i/8)]|=pre[i]<<(7-(i%8));
   return result;
 }
 
@@ -429,31 +427,29 @@ function pkcs7Unpad(data){
 }
 
 function getKeyBytes(){
-  var keyStr=document.getElementById('key').value;
+  var keyStr=document.getElementById('key').value.trim();
   var algo=document.getElementById('algo').value;
   var isText=document.getElementById('keyAsText').checked;
+  var needed=algo==='3des'?24:8;
   var keyBytes;
   if(isText){
     keyBytes=new TextEncoder().encode(keyStr);
   }else{
+    if(!/^[0-9a-fA-F]+$/.test(keyStr.replace(/\s/g,''))||keyStr.replace(/\s/g,'').length%2!==0)
+      throw new Error('密钥必须是十六进制字符且长度为偶数（'+needed*2+' 个 hex 字符）');
     keyBytes=hexToBytes(keyStr);
   }
-  var needed=algo==='3des'?24:8;
-  if(keyBytes.length<needed){
-    var padded=new Uint8Array(needed);
-    padded.set(keyBytes);
-    keyBytes=padded;
-  }else if(keyBytes.length>needed){
-    keyBytes=keyBytes.slice(0,needed);
-  }
+  if(keyBytes.length!==needed)
+    throw new Error('密钥长度必须为 '+needed+' 字节（当前 '+keyBytes.length+' 字节，'+(isText?'文本模式':'hex 模式')+'）');
   return keyBytes;
 }
 
 function getIvBytes(){
   var iv=document.getElementById('iv').value.trim();
   if(!iv)return new Uint8Array(8);
-  try{var b=hexToBytes(iv);if(b.length>=8)return b.slice(0,8);}catch(e){}
-  return new Uint8Array(8);
+  if(!/^[0-9a-fA-F]+$/.test(iv.replace(/\s/g,''))||iv.replace(/\s/g,'').length!==16)
+    throw new Error('IV 必须是 16 个十六进制字符（8 字节）');
+  return hexToBytes(iv);
 }
 
 function updateKeyHint(){
@@ -531,8 +527,14 @@ function process(isEncrypt){
       else if(data.length%8!==0){ToolBox.showToast(i18nText('toast.msg399'),'error');return;}
     }else{
       var t=input.trim();
-      if(/^[0-9a-fA-F\s]+$/.test(t)&&t.replace(/\s/g,'').length%2===0)data=hexToBytes(t);
-      else data=base64ToBytes(t);
+      var hexOnly=/^[0-9a-fA-F]+$/.test(t.replace(/\s/g,''));
+      if(hexOnly){
+        if(t.replace(/\s/g,'').length%2!==0)throw new Error('密文 hex 长度必须为偶数');
+        data=hexToBytes(t);
+      }else{
+        try{data=base64ToBytes(t);}catch(e){throw new Error('密文必须是合法的 hex 或 Base64 文本');}
+      }
+      if(data.length%8!==0)throw new Error('密文长度必须是 8 字节的倍数（当前 '+data.length+' 字节）');
     }
     
     var keyBytes=getKeyBytes();

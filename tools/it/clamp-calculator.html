@@ -272,10 +272,11 @@ function calc(){
   var vwMin=parseFloat(document.getElementById('vwMin').value)||375;
   var vwMax=parseFloat(document.getElementById('vwMax').value)||1440;
   if(vwMin>=vwMax){document.getElementById('result').innerHTML='<p style="color:var(--danger)">最小视口必须小于最大视口</p>';return;}
-  var slope=(pref-min)/(vwMin/100);   // 每 100vw 增长 px
-  var slope2=(max-min)/(vwMax/100);
-  var vw=Math.max(slope,slope2);
-  var rem=pref-vw*vwMin/100;
+  if(pref<min||pref>max){document.getElementById('result').innerHTML='<p style="color:var(--danger)">首选值必须介于最小值与最大值之间</p>';return;}
+  // 线性插值：在 vwMin 时取 preferred，在 vwMax 时取 max；min 作为下限钳制
+  var slope=(max-pref)/(vwMax-vwMin)*100;   // 每 100vw 增长 px
+  var rem=pref-slope*vwMin/100;
+  var vw=slope;
   var clamp='clamp('+fmt(min)+'px, '+fmt(vw)+'vw + '+fmt(rem)+'px, '+fmt(max)+'px)';
   const __g2='<p>生成表达式：<code style="background:rgba(0,0,0,.05);padding:4px 10px;border-radius:8px;font-size:14px;">'+escH(clamp)+'</code></p>'+
     '<p style="font-size:12px;color:var(--muted,#6B7280);">斜率 '+fmt(vw)+'vw · 截距 '+fmt(rem)+'px · 视口 '+vwMin+'~'+vwMax+'px</p>';document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
@@ -286,11 +287,13 @@ function slide(){
   var w=parseInt(document.getElementById('slider').value)||800;
   const __g3=w;document.getElementById('vwNow').textContent=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
   var min=parseFloat(document.getElementById('min').value)||16;
+  var pref=parseFloat(document.getElementById('pref').value)||24;
   var max=parseFloat(document.getElementById('max').value)||48;
   var vwMin=parseFloat(document.getElementById('vwMin').value)||375;
   var vwMax=parseFloat(document.getElementById('vwMax').value)||1440;
-  var t=Math.max(0,Math.min(1,(w-vwMin)/(vwMax-vwMin)));
-  var size=fmt(min+(max-min)*t);
+  var slope=(max-pref)/(vwMax-vwMin)*100;
+  var rem=pref-slope*vwMin/100;
+  var size=fmt(Math.max(min,Math.min(max,rem+slope*w/100)));
   document.getElementById('preview').style.fontSize=size+'px';
 }
 function copyClamp(){

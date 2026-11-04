@@ -254,25 +254,32 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
+function readDims(){
+  const ri=+document.getElementById('rows').value, ci=+document.getElementById('cols').value;
+  if(!Number.isInteger(ri)||!Number.isInteger(ci)||ri<1||ri>6||ci<1||ci>6) return null;
+  return {r:ri,c:ci};
+}
 function build(){
-  let r=Math.round(+document.getElementById('rows').value)||2, c=Math.round(+document.getElementById('cols').value)||3;
-  r=Math.max(1,Math.min(6,r)); c=Math.max(1,Math.min(6,c));
+  const d=readDims();
+  if(!d){ document.getElementById('output').innerHTML='<p style="color:var(--danger)">行数和列数必须是 1–6 的整数。</p>'; return; }
+  const r=d.r,c=d.c;
+  const olds=Array.from(document.querySelectorAll('#inputArea .cell')).map(function(el){return el.value;});
   document.getElementById('rows').value=r;
   document.getElementById('cols').value=c;
   let html='<div class="matrix-block"><h3>矩阵 A ('+r+'×'+c+')</h3><div class="matrix-grid" style="grid-template-columns:repeat('+c+',70px);">';
-  for(let i=0;i<r*c;i++) html+='<input class="cell" type="number" id="a'+i+'" value="'+(i+1)+'" step="any" placeholder="如 '+(i+1)+'">';
+  for(let i=0;i<r*c;i++) html+='<input class="cell" type="number" id="a'+i+'" value="'+(olds[i]!==undefined?olds[i]:(i+1))+'" step="any" placeholder="如 '+(i+1)+'">';
   html+='</div></div>';
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('inputArea').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('inputArea').innerHTML=__h0;
   const __h1='<p style="color:var(--text-muted);">点击「计算转置」查看结果。</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h1;
 }
 function getM(r,c){
   const m=[];
-  for(let i=0;i<r;i++){ m.push([]); for(let j=0;j<c;j++){ const el=document.getElementById('a'+(i*c+j)); const v=parseFloat(el?el.value:''); m[i].push(isNaN(v)?0:v); } }
+  for(let i=0;i<r;i++){ m.push([]); for(let j=0;j<c;j++){ const el=document.getElementById('a'+(i*c+j)); if(!el) throw new Error('矩阵单元格缺失，请重新点击「构建矩阵」'); const raw=(el.value||'').trim(); if(raw===''||!isFinite(Number(raw))){ el.style.borderColor='var(--danger)'; throw new Error('单元格 A['+(i+1)+']['+(j+1)+'] 不能为空或非数字'); } const v=Number(raw); el.style.borderColor=''; m[i].push(v); } }
   return m;
 }
 function fmt(x){
   if(Math.abs(x)<1e-12) return '0';
-  return (Math.round(x*1e10)/1e10).toLocaleString();
+  return String(Number(x.toPrecision(12)));
 }
 function matrixHTML(m){
   if(m.length===0) return '';
@@ -281,11 +288,17 @@ function matrixHTML(m){
   for(const row of m){ html+='<tr>'; for(const v of row) html+='<td style="border:none;padding:4px 12px;text-align:center;font-family:monospace;">'+fmt(v)+'</td>'; html+='</tr>'; }
   return html+'</table></div>';
 }
+let __lastTranspose=null;
 function calculate(){
-  const r=+document.getElementById('rows').value, c=+document.getElementById('cols').value;
-  const A=getM(r,c);
-  const T=[];
+  const d=readDims();
+  if(!d){ document.getElementById('output').innerHTML='<p style="color:var(--danger)">行数和列数必须是 1–6 的整数。</p>'; return; }
+  const r=d.r,c=d.c;
+  if(document.querySelectorAll('#inputArea .cell').length!==r*c) build();
+  let A,T;
+  try{ A=getM(r,c); }catch(e){ document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ '+e.message+'</p>'; return; }
+  T=[];
   for(let j=0;j<c;j++){ T.push([]); for(let i=0;i<r;i++) T[j].push(A[i][j]); }
+  __lastTranspose=T;
   let html='<p><strong>转置矩阵 Aᵀ （'+c+'×'+r+'）：</strong></p>'+matrixHTML(T);
   html+='<p style="margin-top:10px;"><strong>转置规则：</strong></p>';
   html+='<div class="step-line">Aᵀ[j][i] = A[i][j]，即原矩阵第 i 行第 j 列 → 转置后第 j 行第 i 列</div>';
@@ -414,8 +427,13 @@ function __matrix_transposeExtras(){
     __matrix_transposeRender(keys,rk,en);
 }
 function __matrix_transposeExport(){
-    if (typeof TBKit === 'undefined') return;
-    try { TBKit.util.exportTable('#matrix_transposeTable','matrix-transpose.csv'); } catch(e){}
+    if(!__lastTranspose){ ToolBox.showToast('请先点击「计算转置」'); return; }
+    var csv=__lastTranspose.map(function(row){return row.map(function(v){return fmt(v);}).join(',');}).join('\n');
+    var blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);a.download='transpose-result.csv';
+    document.body.appendChild(a);a.click();
+    setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},100);
 }
 function __matrix_transposePresets(){
     if (typeof TBKit === 'undefined') return;

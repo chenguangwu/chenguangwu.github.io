@@ -346,74 +346,59 @@ function formatJs(){
     const tokens = tokenizeJs(document.getElementById('input').value);
     let out = '';
     let depth = 0;
-    let atLineStart = true;
     let parenDepth = 0;
     let bracketDepth = 0;
-    let prevType = null;
-    let prevVal = '';
-    const pad = () => IND().repeat(depth);
+    let atLineStart = true;
+    let pendingNewline = false;
+    let pendingSpace = false;
+    const wordLike = t => t === 'name' || t === 'num' || t === 'keyword' || t === 'str' || t === 'regex';
+    const pad = () => IND().repeat(Math.max(0, depth));
     const newline = () => { out = out.replace(/\s+$/, ''); out += '\n'; atLineStart = true; };
+    let prevType = null, prevVal = '';
     for(let k = 0; k < tokens.length; k++){
       const tk = tokens[k];
-      if(tk.t === 'ws') continue;
+      if(tk.t === 'ws'){
+        if(tk.v.indexOf('\n') >= 0) pendingNewline = true;
+        else pendingSpace = true;
+        continue;
+      }
       if(tk.t === 'comment'){
+        if(pendingNewline && !atLineStart) newline();
+        else if(pendingSpace && !atLineStart && out.slice(-1) !== ' ') out += ' ';
+        if(atLineStart) out += pad();
+        out += tk.v;
+        atLineStart = false;
+        pendingNewline = pendingSpace = false;
+        if(tk.v.slice(0,2) === '//') newline();
+        prevType = 'comment'; prevVal = tk.v;
+        continue;
+      }
+      // 关闭花括号前先降级，避免缩进多一级
+      if(tk.v === '}') depth = Math.max(0, depth - 1);
+      if(pendingNewline){
         if(!atLineStart) newline();
-        out += pad() + tk.v;
-        newline();
-        continue;
+        else if(out === '' ) atLineStart = true;
       }
-      if(tk.v === '{'){
-        if(!atLineStart && prevVal && !/[\s(\[{,;:=+\-*%<>!|&^~?]/.test(prevVal.slice(-1))) out += ' ';
-        out += '{';
-        depth++;
-        newline();
-        continue;
+      if(atLineStart){ out += pad(); atLineStart = false; }
+      else {
+        let needSpace = false;
+        if(pendingSpace && prevType && !['(','[','.'].includes(prevVal) && ![')',']','.',',',';',':'].includes(tk.v)) needSpace = true;
+        if(prevType && wordLike(prevType) && wordLike(tk.t)) needSpace = true;
+        if(prevVal === 'return' || prevVal === 'throw') needSpace = true;
+        if(prevType === 'op' && tk.t === 'op' && /[+\-]$/.test(prevVal) && /^[+\-]/.test(tk.v)) needSpace = true;
+        if((prevVal === '++' || prevVal === '--') && wordLike(tk.t)) needSpace = true;
+        if(needSpace && out.slice(-1) !== ' ') out += ' ';
       }
-      if(tk.v === '}'){
-        depth = Math.max(0, depth - 1);
-        if(!atLineStart) newline();
-        out += pad() + '}';
-        if(depth === 0 && parenDepth === 0 && bracketDepth === 0){
-          out += '\n\n';
-          atLineStart = true;
-        } else {
-          atLineStart = false;
-        }
-        prevVal = '}';
-        continue;
-      }
-      if(tk.v === '('){ parenDepth++; }
-      if(tk.v === ')'){ parenDepth = Math.max(0, parenDepth - 1); }
-      if(tk.v === '['){ bracketDepth++; }
-      if(tk.v === ']'){ bracketDepth = Math.max(0, bracketDepth - 1); }
-      if(tk.v === ';'){
-        out += ';';
-        if(parenDepth === 0 && bracketDepth === 0) newline();
-        else out += ' ';
-        continue;
-      }
-      if(tk.v === ','){
-        out += ',';
-        if(parenDepth > 0 || bracketDepth > 0) out += ' ';
-        else newline();
-        continue;
-      }
-      let needSpace = false;
-      if(prevType){
-        if(prevVal !== '(' && prevVal !== '[' && prevVal !== '.' && tk.v !== ')' && tk.v !== ']' && tk.v !== '.' && tk.v !== ',' && tk.v !== ';' && tk.v !== ':'){
-          if((prevType === 'name' || prevType === 'num' || prevType === 'keyword' || prevType === 'str' || prevType === 'regex') && (tk.t === 'name' || tk.t === 'num' || tk.t === 'keyword' || tk.t === 'str' || tk.t === 'regex')) needSpace = true;
-          if((tk.t === 'op' || tk.t === 'punct') && (prevType === 'op' || prevType === 'punct')) needSpace = true;
-          if(prevType === 'op' && tk.t === 'name' && !['++','--','!','~','+','-'].includes(prevVal)) needSpace = true;
-          if(prevType === 'name' && tk.t === 'op' && !['++','--'].includes(tk.v) && !['.','?.'].includes(tk.v)) needSpace = true;
-          if(prevVal === 'return' || prevVal === 'typeof' || prevVal === 'instanceof' || prevVal === 'new' || prevVal === 'throw' || prevVal === 'delete' || prevVal === 'void' || prevVal === 'in' || prevVal === 'of' || prevVal === 'await' || prevVal === 'yield') needSpace = true;
-          if(tk.v === '=>') needSpace = true;
-          if(prevVal === '=>') needSpace = true;
-        }
-      }
-      if(atLineStart){ out += pad() + tk.v; atLineStart = false; }
-      else { if(needSpace) out += ' '; out += tk.v; }
-      prevType = tk.t;
-      prevVal = tk.v;
+      out += tk.v;
+      pendingNewline = pendingSpace = false;
+      if(tk.v === '{'){ depth++; newline(); }
+      else if(tk.v === '}'){ if(k + 1 < tokens.length){ const n = tokens[k+1]; if(n.t !== 'ws' && ![';',',',')',']'].includes(n.v)) newline(); } }
+      else if(tk.v === ';' && parenDepth === 0 && bracketDepth === 0){ newline(); }
+      if(tk.v === '(') parenDepth++;
+      if(tk.v === ')') parenDepth = Math.max(0, parenDepth - 1);
+      if(tk.v === '[') bracketDepth++;
+      if(tk.v === ']') bracketDepth = Math.max(0, bracketDepth - 1);
+      prevType = tk.t; prevVal = tk.v;
     }
     setOut(out.replace(/\n{3,}/g, '\n\n').trim() + '\n');
     setErr('✅ 格式化成功');
@@ -424,24 +409,28 @@ function minifyJs(){
   try{
     const tokens = tokenizeJs(document.getElementById('input').value);
     let out = '';
-    let prevType = null;
-    let prevVal = '';
+    let prevType = null, prevVal = '';
+    const wordLike = t => t === 'name' || t === 'num' || t === 'keyword' || t === 'str' || t === 'regex';
     for(const tk of tokens){
-      if(tk.t === 'ws' || tk.t === 'comment') continue;
-      if(tk.v === 'regex'){ out += tk.v; prevType = 'regex'; prevVal = tk.v; continue; }
+      // 注释直接丢弃
+      if(tk.t === 'comment') continue;
+      if(tk.t === 'ws'){
+        if(tk.v.indexOf('\n') >= 0) out += '\n';
+        else if(prevType && wordLike(prevType) && out.slice(-1) !== ' ') out += ' ';
+        continue;
+      }
       let needSpace = false;
       if(prevType){
-        if((prevType === 'name' || prevType === 'num' || prevType === 'keyword') && (tk.t === 'name' || tk.t === 'num' || tk.t === 'keyword')) needSpace = true;
+        if(wordLike(prevType) && wordLike(tk.t)) needSpace = true;
         if(prevVal === 'return' || prevVal === 'typeof' || prevVal === 'instanceof' || prevVal === 'new' || prevVal === 'throw' || prevVal === 'delete' || prevVal === 'void' || prevVal === 'in' || prevVal === 'of' || prevVal === 'await' || prevVal === 'yield') needSpace = true;
-        if(prevVal === '++' || prevVal === '--'){ const pl = (out.match(/\b[a-zA-Z_$][a-zA-Z0-9_$]*$/) || [])[0]; if(pl){ needSpace = false; } }
+        if(prevType === 'op' && tk.t === 'op' && /[+\-]$/.test(prevVal) && /^[+\-]/.test(tk.v)) needSpace = true;
       }
-      if(needSpace) out += ' ';
+      if(needSpace && out.slice(-1) !== ' ' && out.slice(-1) !== '\n') out += ' ';
       out += tk.v;
-      prevType = tk.t;
-      prevVal = tk.v;
+      prevType = tk.t; prevVal = tk.v;
     }
     setOut(out);
-    setErr('✅ 压缩成功');
+    setErr('✅ 压缩成功（保留必要的换行以维持语义）');
   }catch(e){ setErr('❌ ' + e.message); }
 }
 function doBeautify(){ formatJs(); }
@@ -457,7 +446,7 @@ function doValidate(){
       if(tk.v === '(') parenO++; if(tk.v === ')') parenC++;
       if(tk.v === '[') brackO++; if(tk.v === ']') brackC++;
     }
-    const stats = '✅ JavaScript 分析\n' +
+    const stats = 'JavaScript 分析\n' +
       '总 Token: ' + tokens.length + '\n' +
       '行数: ' + src.split('\n').length + '\n' +
       '字符数: ' + src.length + '\n' +
@@ -467,10 +456,17 @@ function doValidate(){
       'function 数量: ' + (src.match(/\bfunction\b/g) || []).length + '\n' +
       'const/let 数量: ' + (src.match(/\b(const|let)\b/g) || []).length;
     setOut(stats);
-    if(braceO !== braceC) setErr('❌ 花括号不平衡：{ ' + braceO + ' / } ' + braceC);
-    else if(parenO !== parenC) setErr('❌ 圆括号不平衡：( ' + parenO + ' / ) ' + parenC);
-    else if(brackO !== brackC) setErr('❌ 方括号不平衡：[ ' + brackO + ' / ] ' + brackC);
-    else setErr('✅ 校验通过');
+    if(braceO !== braceC || parenO !== parenC || brackO !== brackC){ setErr('❌ 括号不平衡'); return; }
+    if(/\b(import|export)\b/.test(src)){
+      setErr('⚠ 含 import/export 模块语法，浏览器脚本编译器无法校验，仅做括号配对检查');
+      return;
+    }
+    try{
+      new Function(src);
+      setErr('✅ 语法校验通过');
+    }catch(err){
+      setErr('❌ 语法错误：' + err.message);
+    }
   }catch(e){ setErr('❌ ' + e.message); }
 }
 function getIndent(){const v=document.getElementById('indent').value;return v==='tab'?'\t':' '.repeat(parseInt(v));}
