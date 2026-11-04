@@ -289,14 +289,29 @@ s.parentNode.insertBefore(el, s);
 
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function parseListStrict(str){
+  const toks=(str==null?'':String(str)).split(/[,\s]+/).map(s=>s.trim()).filter(s=>s);
+  const vals=[];
+  for(let i=0;i<toks.length;i++){
+    const v=Number(toks[i]);
+    if(!isFinite(v)) return {error:'第 '+(i+1)+' 项「'+toks[i]+'」不是有效数值'};
+    vals.push(v);
+  }
+  return {vals:vals};
+}
 function calcTool(){
               var __ig=__tbInputGuard(['x', 'y'],["X 数据（逗号分隔）", "Y 数据（逗号分隔）"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const xa = document.getElementById('x').value.split(',').map(s=>parseFloat(s.trim()));
-            const ya = document.getElementById('y').value.split(',').map(s=>parseFloat(s.trim()));
-            const n = Math.min(xa.length, ya.length);
-            const mx = xa.slice(0,n).reduce((a,b)=>a+b,0)/n, my = ya.slice(0,n).reduce((a,b)=>a+b,0)/n;
+const xp = parseListStrict(document.getElementById('x').value), yp = parseListStrict(document.getElementById('y').value);
+            const perr = xp.error ? 'X 数据：'+xp.error : yp.error ? 'Y 数据：'+yp.error : '';
+            if(perr){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ '+perr+'，请修正后重算。</p>');return;}
+            const xa = xp.vals, ya = yp.vals;
+            if(xa.length !== ya.length){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ X 与 Y 的数据个数必须相等（当前 X='+xa.length+' 个、Y='+ya.length+' 个）</p>');return;}
+            const n = xa.length;
+            if(n < 2){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 至少需要 2 组数据点</p>');return;}
+            const mx = xa.reduce((a,b)=>a+b,0)/n, my = ya.reduce((a,b)=>a+b,0)/n;
             let num_=0, den=0;
             for(let i=0;i<n;i++){num_+=(xa[i]-mx)*(ya[i]-my);den+=Math.pow(xa[i]-mx,2);}
+            if(den === 0){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ X 全部取值相同（方差为 0），回归斜率无定义</p>');return;}
             const b = num_/den, a = my - b*mx;
             const __g2=dataGrid([
                 [a.toFixed(4), '截距 a'],

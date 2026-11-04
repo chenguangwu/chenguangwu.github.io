@@ -238,10 +238,19 @@ s.parentNode.insertBefore(el, s);
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-            const n = Math.min(Math.round(num('n')), 1000), k = Math.min(Math.round(num('k')), 1000), p = num('p');
-            let __logC=0; for(let i=1;i<=Math.min(k,n-k);i++) __logC += Math.log((n-Math.min(k,n-k)+i)/i);
-            const C = Math.exp(__logC);
-            const P = C * Math.pow(p, k) * Math.pow(1 - p, n - k);
+            const nRaw=parseFloat(document.getElementById('n').value), kRaw=parseFloat(document.getElementById('k').value), p=parseFloat(document.getElementById('p').value);
+            if(!isFinite(nRaw)||!isFinite(kRaw)||!isFinite(p)||nRaw<0||nRaw>1000||Math.abs(nRaw-Math.round(nRaw))>1e-9||Math.abs(kRaw-Math.round(kRaw))>1e-9||kRaw<0||kRaw>nRaw||p<0||p>1){
+              ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 需满足：n 为 0–1000 的整数、0 ≤ k ≤ n、0 ≤ p ≤ 1</p>');return;
+            }
+            const n = Math.round(nRaw), k = Math.round(kRaw);
+            let P, C;
+            if(p===0){ P=(k===0?1:0); C=(k===0?1:0); }
+            else if(p===1){ P=(k===n?1:0); C=(k===n?1:0); }
+            else {
+              let __logC=0; const kk=Math.min(k,n-k); for(let i=1;i<=kk;i++) __logC += Math.log((n-kk+i)/i);
+              const logP = __logC + k*Math.log(p) + (n-k)*Math.log1p(-p);
+              P = Math.exp(logP); C = Math.exp(__logC);
+            }
             const __g1=dataGrid([
                 [P.toFixed(5), 'P(X=' + k + ')'],
                 [C>=1e15?C.toExponential(4):C.toFixed(0), '组合数 C(' + n + ',' + k + ')']
