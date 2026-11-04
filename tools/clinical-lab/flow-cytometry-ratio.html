@@ -264,7 +264,10 @@ function calc(){
   var cd3Abs = absLymph * (cd3/100);
   var cd19Abs = absLymph * (cd19/100);
   var nkAbs = absLymph * (nk/100);
-  var ratio = cd8>0 ? cd4/cd8 : 0;
+  var tregAbs = absLymph * (treg/100);
+  var tregOfCd4 = cd4>0 ? (treg/cd4*100) : NaN; // Treg 占 CD4+ 百分比，正常约 5–10%
+  var ratioValid = cd4>0 && cd8>0;
+  var ratio = ratioValid ? cd4/cd8 : NaN;
 
   // —— 参考区间定位（S3 标尺）：比值/绝对数判读（__EN 必须在首段 html 之前）——
   var __EN=(function(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search)||/^en/i.test(document.documentElement.lang||'');}catch(e){}return false;})();
@@ -277,17 +280,18 @@ function calc(){
 
   // Ratio
   var ratioStatus, ratioColor;
-  if(ratio<0.71){ratioStatus=__T('Ratio decreased (inverted)','比值降低');ratioColor='#dc2626';}
+  if(!ratioValid){ratioStatus=__T('Enter CD4% and CD8% to compute','请输入 CD4% 与 CD8% 后计算');ratioColor='var(--text-muted)';}
+  else if(ratio<0.71){ratioStatus=__T('Ratio decreased (inverted)','比值降低');ratioColor='#dc2626';}
   else if(ratio>2.78){ratioStatus=__T('Ratio elevated','比值升高');ratioColor='#3b82f6';}
   else {ratioStatus=__T('Normal range','正常范围');ratioColor='#059669';}
 
-  html += '<div class="ratio-big"><div class="v" style="color:'+ratioColor+';">'+ratio.toFixed(2)+'</div><div style="font-size:13px;color:var(--text-muted);">'+__T('CD4/CD8 ratio — ','CD4/CD8 比值 — ')+ratioStatus+'</div></div>';
+  html += '<div class="ratio-big"><div class="v" style="color:'+ratioColor+';">'+(ratioValid?ratio.toFixed(2):'—')+'</div><div style="font-size:13px;color:var(--text-muted);">'+__T('CD4/CD8 ratio — ','CD4/CD8 比值 — ')+ratioStatus+'</div></div>';
 
   // ratio bands（S3 标尺 ref-card，仅在 cd8>0 有效时判定）
   var __ratioBands=[{lo:0,hi:0.71,label:{zh:'降低(倒置)',en:'Low (inverted)'},color:'#DC2626'},
                     {lo:0.71,hi:2.78,label:{zh:'正常范围',en:'Normal'},color:'#059669'},
                     {lo:2.78,hi:null,label:{zh:'升高',en:'Elevated'},color:'#3B82F6'}];
-  if(cd8>0){
+  if(cd8>0 && cd4>0){
     var __rb=__hit(ratio,__ratioBands);
     if(__rb) __refHtml+='<li>'+__T('CD4/CD8 ratio ','CD4/CD8比值')+ratio.toFixed(2)+__T(' → falls in ',' → 落在 ')+(__EN?__rb.label.en:__rb.label.zh)+__T(' (0.71–2.78 normal, &lt;0.71 inverted, &gt;2.78 elevated)','（0.71–2.78 正常、&lt;0.71 降低(倒置)、&gt;2.78 升高）')+'</li>';
   }
@@ -296,10 +300,11 @@ function calc(){
   html += '<div class="stat-grid">';
   html += '<div class="stat-card"><div class="val">'+Math.round(absLymph)+'</div><div class="lbl">'+__T('Lymphocytes (/μL)','淋巴细胞(/μL)')+'</div></div>';
   html += '<div class="stat-card"><div class="val">'+Math.round(cd3Abs)+'</div><div class="lbl">'+__T('CD3+ T (/μL)','CD3+ T(/μL)')+'</div></div>';
-  html += '<div class="stat-card"><div class="val" style="color:'+(cd4Abs<414?'#dc2626':'inherit')+';">'+Math.round(cd4Abs)+'</div><div class="lbl">'+__T('CD4+ T (/μL)','CD4+ T(/μL)')+'</div></div>';
+  html += '<div class="stat-card"><div class="val" style="color:'+((cd4>0&&cd4Abs<414)?'#dc2626':'inherit')+';">'+Math.round(cd4Abs)+'</div><div class="lbl">'+__T('CD4+ T (/μL)','CD4+ T(/μL)')+'</div></div>';
   html += '<div class="stat-card"><div class="val">'+Math.round(cd8Abs)+'</div><div class="lbl">'+__T('CD8+ T (/μL)','CD8+ T(/μL)')+'</div></div>';
   html += '<div class="stat-card"><div class="val">'+Math.round(cd19Abs)+'</div><div class="lbl">'+__T('B cells (/μL)','B细胞(/μL)')+'</div></div>';
   html += '<div class="stat-card"><div class="val">'+Math.round(nkAbs)+'</div><div class="lbl">'+__T('NK (/μL)','NK(/μL)')+'</div></div>';
+  html += '<div class="stat-card"><div class="val" style="color:'+(tregOfCd4>10?'#dc2626':'inherit')+';">'+(treg>0?Math.round(tregAbs):'—')+'</div><div class="lbl">'+__T('Treg (/μL) · ','Treg(/μL) · ')+(isFinite(tregOfCd4)?tregOfCd4.toFixed(1)+'% CD4':'—')+'</div></div>';
   html += '</div>';
 
   // CD4 absolute count bands（S3 标尺）
@@ -312,22 +317,30 @@ function calc(){
     if(__cb) __refHtml+='<li>'+__T('CD4 absolute count ','CD4绝对值')+Math.round(cd4Abs)+__T('/μL → falls in ','/μL → 落在 ')+(__EN?__cb.label.en:__cb.label.zh)+__T(' (≥500 normal, 200–500 suppressed, &lt;200 AIDS stage)','（≥500 正常、200–500 免疫抑制、&lt;200 重度抑制 AIDS 分期）')+'</li>';
   }
 
-  // Abnormal flags
+  // Abnormal flags（未填写的指标不参与判读，避免空值被判成异常）
   var flags = [];
-  if(cd4Abs<414) flags.push(__T('CD4 absolute count decreased','CD4绝对值降低'));
-  if(cd4Abs<200) flags.push(__T('CD4<200/μL (severe immunosuppression, AIDS stage)','CD4<200/μL(重度免疫抑制，AIDS分期)'));
-  else if(cd4Abs<500) flags.push(__T('CD4<500/μL (immunosuppressed)','CD4<500/μL(免疫抑制)'));
-  if(ratio<0.71) flags.push(__T('CD4/CD8 inversion','CD4/CD8倒置'));
-  if(ratio>2.78) flags.push(__T('CD4/CD8 elevated','CD4/CD8升高'));
-  if(cd3Abs<770) flags.push(__T('Total T cells decreased','总T细胞降低'));
-  if(cd19Abs<92) flags.push(__T('B cells decreased (humoral immunodeficiency)','B细胞降低(体液免疫缺陷)'));
+  if(cd4>0){
+    if(cd4Abs<414) flags.push(__T('CD4 absolute count decreased','CD4绝对值降低'));
+    if(cd4Abs<200) flags.push(__T('CD4<200/μL (severe immunosuppression, AIDS stage)','CD4<200/μL(重度免疫抑制，AIDS分期)'));
+    else if(cd4Abs<500) flags.push(__T('CD4<500/μL (immunosuppressed)','CD4<500/μL(免疫抑制)'));
+  }
+  if(cd8>0&&cd4>0&&ratio<0.71) flags.push(__T('CD4/CD8 inversion','CD4/CD8倒置'));
+  if(cd8>0&&cd4>0&&ratio>2.78) flags.push(__T('CD4/CD8 elevated','CD4/CD8升高'));
+  if(cd3>0&&cd3Abs<770) flags.push(__T('Total T cells decreased','总T细胞降低'));
+  if(cd19>0&&cd19Abs<92) flags.push(__T('B cells decreased (humoral immunodeficiency)','B细胞降低(体液免疫缺陷)'));
+  if(treg>0&&cd4>0){
+    if(tregOfCd4>10) flags.push(__T('Treg proportion elevated (>10% of CD4+)','Treg 占 CD4+ 比例升高(>10%)'));
+    else if(tregOfCd4<5) flags.push(__T('Treg proportion decreased (<5% of CD4+)','Treg 占 CD4+ 比例降低(<5%)'));
+  }
 
   if(flags.length){
     html += '<div class="result-box" style="border-left:4px solid #dc2626;"><strong style="color:#dc2626;">'+__T('Abnormal findings','异常提示')+'</strong><ul style="margin:6px 0 0 18px;font-size:13px;line-height:1.8;">';
     flags.forEach(function(f){html += '<li>'+f+'</li>';});
     html += '</ul></div>';
-  } else {
+  } else if(wbc>0 && lpct>0){
     html += '<div class="result-box" style="border-left:4px solid var(--success);color:var(--success);"><strong>'+__T('All indicators within reference range','各项指标在参考范围内')+'</strong></div>';
+  } else {
+    html += '<div class="info-box">'+__T('Enter WBC, lymphocyte %, and subset percentages to see interpretation.','请先填写白细胞、淋巴细胞百分比及各项亚群百分比后再判读。')+'</div>';
   }
 
   // HIV staging if CD4 low
@@ -342,7 +355,7 @@ function calc(){
 
   try{
     if(typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){
-      if(cd8>0) TBKit.chart.refBar('#flow_ratioBar',{value:ratio,unit:'',min:0,max:4,bands:__ratioBands,ticks:[0,0.71,2,2.78,4],title:__T('CD4/CD8 ratio scale','CD4/CD8 比值判读标尺')});
+      if(ratioValid) TBKit.chart.refBar('#flow_ratioBar',{value:ratio,unit:'',min:0,max:4,bands:__ratioBands,ticks:[0,0.71,2,2.78,4],title:__T('CD4/CD8 ratio scale','CD4/CD8 比值判读标尺')});
       if(absLymph>0&&cd4>0) TBKit.chart.refBar('#flow_cd4Bar',{value:Math.round(cd4Abs),unit:'/μL',min:0,max:1600,bands:__cd4Bands,ticks:[0,200,414,500,1000,1600],title:__T('CD4 absolute count scale','CD4 绝对值判读标尺 (/μL)')});
     }
   }catch(e){}

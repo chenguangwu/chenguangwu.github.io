@@ -297,7 +297,7 @@ function calc() {
   const remainingParts = parseInt(document.getElementById('remainingParts').value) || 1;
   const resEl = document.getElementById('res');
 
-  if ([currentScore, currentWeight, targetScore].some(isNaN) || currentWeight < 0 || currentWeight > 100 || targetScore < 0 || targetScore > 100 || remainingParts < 1) {
+  if ([currentScore, currentWeight, targetScore].some(isNaN) || currentScore < 0 || currentScore > 100 || currentWeight < 0 || currentWeight > 100 || targetScore < 0 || targetScore > 100 || remainingParts < 1) {
     resEl.innerHTML='<p style="color:var(--danger);">请输入有效的成绩、权重和考核项数。</p>';
     return;
   }
@@ -308,13 +308,18 @@ function calc() {
     return;
   }
 
-  const neededTotal = targetScore - currentScore;
-  const neededAvg = neededTotal / remainingWeight * 100;
+  // 已获得加权分 = 当前成绩 × 当前权重；还差加权分 = 目标总分 − 已获得加权分
+  const earnedPoints = currentScore * currentWeight / 100;
+  const neededTotal = targetScore - earnedPoints;
+  const neededAvg = neededTotal / (remainingWeight / 100);
   const perPart = neededAvg;
 
   let feasibleText = '';
   let feasibleColor = 'var(--success)';
-  if (neededAvg > 100) {
+  if (neededAvg <= 0) {
+    feasibleText = '目标已达成：当前加权成绩已不低于目标总分。';
+    feasibleColor = 'var(--success)';
+  } else if (neededAvg > 100) {
     feasibleText = '目标不可行：后续考核即使全部满分也无法达到目标。';
     feasibleColor = 'var(--danger)';
   } else if (neededAvg > 90) {

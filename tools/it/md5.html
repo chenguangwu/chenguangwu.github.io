@@ -382,7 +382,12 @@ function md5Bytes(buf) {
 function hmacMd5(key, msg) {
   var k = unescape(encodeURIComponent(key));
   var m = unescape(encodeURIComponent(msg));
-  if (k.length > 64) k = md51(k); // simplify - key too long, hash it
+  if (k.length > 64) {
+    // RFC 2104：超长密钥取 MD5 原始 16 字节摘要（不是十六进制字符串）
+    var st = md51(k), raw = '', q;
+    for (q = 0; q < 4; q++) raw += String.fromCharCode(st[q] & 0xff, (st[q] >>> 8) & 0xff, (st[q] >>> 16) & 0xff, (st[q] >>> 24) & 0xff);
+    k = raw;
+  }
   var ipad = [], opad = [], i;
   for (i = 0; i < 64; i++) { ipad[i] = (i < k.length ? k.charCodeAt(i) : 0) ^ 0x36; opad[i] = (i < k.length ? k.charCodeAt(i) : 0) ^ 0x5c; }
   var inner = String.fromCharCode.apply(null, ipad) + m;

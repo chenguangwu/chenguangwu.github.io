@@ -6168,9 +6168,9 @@ const CASES = [
       "outputFormat": "hex"
     },
     "expect": [
-      "abc123测试\nabc123测试\n��\nhex"
+      "abc123测试"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"key\":\"abc123测试\",\"iv\":\"abc123测试\",\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"outputFormat\":\"hex\"}，输出区含「abc123测试\nabc123测试\n��\nhex」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "注入非默认 key/iv=「abc123测试」；Rabbit 密文随实现变化且随后被解密函数覆写，故断言 key/IV 回显（默认 key=myrabbitsecretkey，可判别）。密钥流正确性由 RFC 4503 测试向量另行核对：carry 必须用 Math.floor(t/2^32)，不可用 t>>>32。"
   },
   {
     "slug": "it/rail-fence-cipher",

@@ -250,12 +250,19 @@ function validate(){
   }
   const formatted = digits.substring(0,2) + '-' + digits.substring(2);
   const prefix = digits.substring(0,2);
+  // EIN 前缀由 IRS 分配，以下为已知未分配/保留前缀（如 00-0000000 属无效）
+  const EIN_INVALID_PREFIX = {'00':1,'07':1,'08':1,'09':1,'17':1,'18':1,'19':1,'28':1,'29':1,'49':1,'69':1,'70':1,'79':1,'89':1,'97':1};
+  const prefixOk = !EIN_INVALID_PREFIX[prefix];
   const irsCampus = IRS_PREFIX[prefix] || '其他/现代分配';
   html += `<p><strong>格式化：</strong>${formatted}</p>`;
   html += `<p><strong>前缀：</strong>${prefix}</p>`;
   html += `<p><strong>IRS 中心：</strong>${irsCampus}</p>`;
-  // EIN has no checksum algorithm, format validation only
-  html += `<p style="color:var(--success);">✅ EIN 格式有效（9 位数字）</p>`;
+  // EIN 无校验位算法；格式 + 已知前缀范围校验
+  if(prefixOk){
+    html += `<p style="color:var(--success);">✅ 前缀在 IRS 已分配范围，9 位格式有效（EIN 无校验位，无法验证实际注册状态）</p>`;
+  } else {
+    html += `<p style="color:var(--danger);">❌ 前缀 ${prefix} 未在 IRS 分配范围，EIN 无效</p>`;
+  }
   const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h2;
 }
 function toggleToolTheme(){

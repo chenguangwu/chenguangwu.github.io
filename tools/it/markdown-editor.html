@@ -703,6 +703,17 @@ s.parentNode.insertBefore(el, s);
   var saveTimer = null;
 
   // --- Markdown 解析器 ---
+  function escAttr(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  // 只放行 http(s)/mailto/站内相对链接；图片额外允许 data:image，阻断 javascript: 与属性注入
+  function safeUrl(u, allowDataImage) {
+    u = String(u).trim().replace(/&amp;/g, '&');
+    if (/^(javascript|vbscript|data:text\/html)/i.test(u)) return '';
+    if (allowDataImage && /^data:image\/(png|jpe?g|gif|webp|svg\+xml);base64,/i.test(u)) return u;
+    if (/^(https?:\/\/|\/|\.{1,2}\/|#|mailto:)/i.test(u)) return u;
+    return '';
+  }
   function parseMarkdown(md) {
     var html = md;
 
@@ -756,10 +767,18 @@ s.parentNode.insertBefore(el, s);
     html = html.replace(/~~(.+?)~~/g, '<del>$1</del>');
 
     // 图片 ![alt](url)
-    html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1">');
+    html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, function(m, alt, url) {
+      var u = safeUrl(url, true);
+      if (!u) return escAttr(alt);
+      return '<img src="' + escAttr(u) + '" alt="' + escAttr(alt) + '">';
+    });
 
     // 链接 [text](url)
-    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, function(m, text, url) {
+      var u = safeUrl(url, false);
+      if (!u) return text;
+      return '<a href="' + escAttr(u) + '" target="_blank" rel="noopener">' + text + '</a>';
+    });
 
     // 表格
     html = parseTable(html);

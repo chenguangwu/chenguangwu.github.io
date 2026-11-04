@@ -487,6 +487,43 @@ function switchTab(name, trigger) {
   if (name === 'replace') doReplace();
 }
 
+// 正则执行超时保护：用户可控正则可能触发灾难性回溯（如 (a+)+$），
+// 放到 Web Worker 执行并在超时后强制终止，避免主线程卡死。
+const RX_TIMEOUT_MS = 800;
+const RX_WORKER_SRC = [
+  'self.onmessage=function(e){var d=e.data,o;try{',
+  'var re=new RegExp(d.pattern,d.flags);',
+  'if(d.mode==="test"){var ms=[],m;',
+  'if(d.global){while((m=re.exec(d.text))!==null){ms.push({i:m.index,g:Array.prototype.slice.call(m),n:Object.assign({},m.groups||{})});if(m.index===re.lastIndex)re.lastIndex++;if(ms.length>1000)break;}}',
+  'else{m=re.exec(d.text);if(m)ms.push({i:m.index,g:Array.prototype.slice.call(m),n:Object.assign({},m.groups||{})});}',
+  'o={ok:true,matches:ms};}',
+  'else{var re2=new RegExp(d.pattern,d.flags);var cnt=(d.text.match(re2)||[]).length;o={ok:true,result:d.text.replace(re2,d.repl),count:cnt};}',
+  '}catch(err){o={ok:false,err:String(err&&err.message||err);}}postMessage(o);};'
+].join('\n');
+
+function runRegexGuarded(payload, done){
+  let worker, url, timer, finished = false;
+  function finish(res){
+    if(finished) return;
+    finished = true;
+    clearTimeout(timer);
+    try { worker.terminate(); } catch(e){}
+    try { URL.revokeObjectURL(url); } catch(e){}
+    done(res);
+  }
+  try {
+    url = URL.createObjectURL(new Blob([RX_WORKER_SRC], {type:'text/javascript'}));
+    worker = new Worker(url);
+  } catch(e){
+    done({ok:false, err:'当前浏览器不支持正则超时保护：' + e.message});
+    return;
+  }
+  timer = setTimeout(function(){ finish({ok:false, err:'__timeout__'}); }, RX_TIMEOUT_MS);
+  worker.onmessage = function(ev){ finish(ev.data || {ok:false, err:'执行失败'}); };
+  worker.onerror = function(){ finish({ok:false, err:'正则执行失败'}); };
+  worker.postMessage(payload);
+}
+
 function testRegex(){
   const t0 = performance.now();
   const pattern = document.getElementById('pattern').value;
@@ -505,21 +542,24 @@ function testRegex(){
     return;
   }
   
-  try {
-    const regex = new RegExp(pattern, flags);
-    const matches = [];
-    let match;
-    
-    if(flags.includes('g')){
-      while((match = regex.exec(text)) !== null){
-        matches.push(match);
-        if(match.index === regex.lastIndex) regex.lastIndex++;
-        if (matches.length > 1000) break;
-      }
-    } else {
-      match = regex.exec(text);
-      if(match) matches.push(match);
+  runRegexGuarded({mode:'test', pattern:pattern, flags:flags, text:text, global:flags.includes('g')}, function(res){
+    if(!res.ok){
+      const msg = res.err === '__timeout__'
+        ? '⏱ 正则执行超过 ' + RX_TIMEOUT_MS + 'ms 已强制中止：该表达式可能触发灾难性回溯，请改写表达式或缩短文本后重试。'
+        : '正则错误: ' + res.err;
+      resultDiv.innerHTML = '<span style="color:#f44336;">❌ ' + escapeHtml(msg) + '</span>';
+      highlightDiv.textContent = text;
+      document.getElementById('matchCount').textContent = '0';
+      document.getElementById('groupCount').textContent = '0';
+      document.getElementById('execTime').textContent = (performance.now() - t0).toFixed(2);
+      return;
     }
+    const matches = res.matches.map(function(x){
+      const arr = x.g.slice();
+      arr.index = x.i;
+      arr.groups = (x.n && Object.keys(x.n).length) ? x.n : undefined;
+      return arr;
+    });
     
     const t1 = performance.now();
     document.getElementById('execTime').textContent = (t1 - t0).toFixed(2);
@@ -567,12 +607,7 @@ function testRegex(){
     });
     highlighted += escapeHtml(text.substring(lastEnd));
     const __h5=highlighted;if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){highlightDiv.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}highlightDiv.innerHTML=__h5;
-  } catch(e){
-    const __h6=`<span style="color:#f44336;">❌ 正则错误: ${escapeHtml(e.message)}</span>`;if((typeof __h6==='number'&&!isFinite(__h6))||/Infinity/.test(String(__h6))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h6)){resultDiv.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}resultDiv.innerHTML=__h6;
-    highlightDiv.textContent = text;
-    document.getElementById('matchCount').textContent = '0';
-    document.getElementById('groupCount').textContent = '0';
-  }
+  });
 }
 
 function doReplace() {
@@ -595,21 +630,20 @@ function doReplace() {
     return;
   }
   
-  try {
-    const regex = new RegExp(pattern, flags.includes('g') ? flags : flags + 'g');
-    const matches = text.match(regex) || [];
-    const count = matches.length;
-    // 使用原生 replace，完整支持 $&, $1…$99、$`、$' 和 $<name> 命名分组引用。
-    const result = text.replace(regex, replaceWith);
-    
-    countEl.textContent = count;
-    newLenEl.textContent = result.length;
-    const __h7=escapeHtml(result);if((typeof __h7==='number'&&!isFinite(__h7))||/Infinity/.test(String(__h7))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h7)){outputEl.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}outputEl.innerHTML=__h7;
-  } catch(e) {
-    const __h8=`<span style="color:#f44336;">❌ 正则错误: ${escapeHtml(e.message)}</span>`;if((typeof __h8==='number'&&!isFinite(__h8))||/Infinity/.test(String(__h8))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h8)){outputEl.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}outputEl.innerHTML=__h8;
-    countEl.textContent = '0';
-    newLenEl.textContent = '0';
-  }
+  runRegexGuarded({mode:'replace', pattern:pattern, flags:flags.includes('g') ? flags : flags + 'g', text:text, repl:replaceWith}, function(res){
+    if(!res.ok){
+      const msg = res.err === '__timeout__'
+        ? '⏱ 正则执行超过 ' + RX_TIMEOUT_MS + 'ms 已强制中止：该表达式可能触发灾难性回溯，请改写表达式或缩短文本后重试。'
+        : '正则错误: ' + res.err;
+      outputEl.innerHTML = '<span style="color:#f44336;">❌ ' + escapeHtml(msg) + '</span>';
+      countEl.textContent = '0';
+      newLenEl.textContent = '0';
+      return;
+    }
+    countEl.textContent = res.count;
+    newLenEl.textContent = res.result.length;
+    const __h7=escapeHtml(res.result);if((typeof __h7==='number'&&!isFinite(__h7))||/Infinity/.test(String(__h7))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h7)){outputEl.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}outputEl.innerHTML=__h7;
+  });
 }
 
 function escapeHtml(s){
@@ -629,14 +663,11 @@ function copyMatches(){
   const text = document.getElementById('testText').value;
   if (!pattern) return;
   
-  try {
-    const regex = new RegExp(pattern, flags.includes('g') ? flags : flags + 'g');
-    const matches = text.match(regex) || [];
-    if (matches.length === 0) { ToolBox.showToast(i18nText('toast.msg475')); return; }
-    ToolBox.copyText(matches.join('\n'));
-  } catch(e) {
-    ToolBox.showToast(i18nText('toast.msg455'));
-  }
+  runRegexGuarded({mode:'test', pattern:pattern, flags:flags.includes('g') ? flags : flags + 'g', text:text, global:true}, function(res){
+    if(!res.ok){ ToolBox.showToast(i18nText('toast.msg455')); return; }
+    if(res.matches.length === 0){ ToolBox.showToast(i18nText('toast.msg475')); return; }
+    ToolBox.copyText(res.matches.map(function(m){ return m.g[0]; }).join('\n'));
+  });
 }
 
 function copyPattern() {
