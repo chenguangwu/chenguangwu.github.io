@@ -330,6 +330,14 @@ const CASES = [
   "ref": "fasting=1（空腹）→ 阈值 2.8；bg=2.0 < 2.8 且仅勾选 symptom → metCount=2（症状✓、血糖✓、补糖缓解✗）→ 走「!hasRelief」分支文案。注意不可断言「Whipple三联征完整」——兜底预设 loadInsulinoma()（bg1.8+两项全勾）也产出它（逃生项）。"
 }
   ,{
+    // 宣称 vs 实现：100g OGTT 应走 Carpenter-Coustan（5.3/10.0/8.6/7.8），旧实现套用 IADPSG 75g 阈值（5.1/8.5）。
+    "slug": "endocrinology/ogtt-interpretation",
+    "inputs": { "fpg": "5.2", "h1": "9.5", "h2": "8.5", "h3": "7.0" },
+    "radios": { "testType": "100g" },
+    "expect": ["OGTT正常", "所有指标均正常，可排除GDM"],
+    "ref": "四个时点均低于 Carpenter-Coustan 阈值（5.3/10.0/8.6/7.8）⇒ 「OGTT正常」。旧实现用 IADPSG 5.1/8.5 ⇒ 空腹 5.2≥5.1、2h 8.5≥8.5 ⇒ 误判 GDM，故为强判别。默认 75g 路径下同样不出现 GDM 判读串。"
+  }
+  ,{
     "slug": "endocrinology/homa-ir",
     "inputs": { "fpg": "5.5", "insulin": "12" },
     "radios": { "population": "general" },
