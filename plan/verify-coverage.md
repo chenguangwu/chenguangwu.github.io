@@ -56,3 +56,28 @@
 
 - 旧版台账把 `index.html` 计入分母、且 slug 匹配未归一，导致「117 目录整目录零覆盖 1492 页」的结论失真（实际 0 个整目录零覆盖，零用例最集中的目录也只有少量页）。
 - `clinical-nursing/**` 由临床线在途，本台账只统计、不在本线改动。
+
+## 用例期望值标准（2026-11-05 定稿）
+
+> **用例的期望值必须能被第三个人手算复现。** 只有页面自己算得出来的“期望值”不是用例，是快照——页面错了快照跟着错，永远绿。
+
+- 写法：先在 `ref` 里写独立复算式，再取页面同口径输出比对；`ref` 必须给出输入、公式、中间量、结果与默认态差异。
+- 示例（本批已落地）：`beer-gravity-estimator` OG = 1 + 37×8×2.20462×0.75/5.28344/1000 = 1.093；`solar-elevation` sin h = sin40°sin23.45° + cos40°cos23.45°cos(-4.5°) = 0.9563 ⇒ 73.03°；`noise-superposition` 10·lg(10^9 + 10^7) = 100.04 ⇒ 100.0 dB；`calc-1` RQD = 1010/(2×1000)×100 = 50.5%。
+- 动态 `innerHTML` 生成的输入：允许「真实公式 + 显式注入 + `ref` 写明桩不解析 innerHTML 的原因」，不得硬凑一个“能跑通”的假输入。
+
+## 工作量归因（2026-11-05）
+
+- `general` / `fun` / `agriculture` / `geology` / `metalwork` 5 个分类红已由他线修复；本线仅复核全绿（361/361、19/19、177/177、55/55、71/71，逃生 0），**归因他线，本线未重复动**。
+
+## fun 39 个零用例页三分类（2026-11-05）
+
+口径：满足任一豁免条件才可豁免，且须在用例 `ref` 写明编号——① 输出无确定性锚（仅 `Math.random`/`Date.now`/外部文件，且无“固定输入→固定输出”路径）；② 纯媒体输出（仅 canvas/audio，无稳定文本数值；**有元数据则必须测**）；③ 纯静态内容页（无计算，应从覆盖率统计剔除）。**有分数/步数/计时/生成数量/词数等确定性输出者一律不得豁免。**
+
+| 类别 | 页数 | 清单 |
+|---|---|---|
+| 可正常测 | 5 | `keyboard-heatmap`（`loadSample()` ⇒ 总按键 44/唯一 28）、`coin-flip`（抛一次 ⇒ 总次数 1）、`generator-2`（cnt=10 ⇒ `#10 数独`）、`generator-3`（cnt=10 ⇒ `#10 迷宫`）、`generator-laugh`（cnt=10 ⇒ 第 10 条笑声文本） |
+| 该测但难注入 | 30 | `1a2b-guess`、`zodiac-match`、`othello`、`daily-riddle`、`tic-tac-toe`、`space-shooter`、`breakout`、`tongue-twister`、`sequence-puzzle`、`snake-game`、`sequence-memory`、`color-guess`、`hangman`、`pong`、`number-puzzle`、`rock-paper-scissors`、`gomoku-ai`、`emoji-memory`、`tetris`、`word-scramble`、`memory-game`、`solitaire`、`sliding-puzzle`、`gomoku`、`2048-game`、`pattern-memory`、`minesweeper`、`shape-memory`、`color-memory`、`random-name-gen` |
+| 豁免 | 4 | ① `riddle-generator`（题库纯随机、无计数/数值文本）、`bingo-generator`（随机号码卡、无尺寸/数量文本）；③ `blood-type-personality`、`fingerprint-types`（纯静态内容页，无计算） |
+
+- 上表“可正常测”5 页已在探针中实测可注入并通过（未提交用例，待派工确认后补）。
+- 其余 30 页均有分数/步数/计时/胜负数等确定性语义，只因棋盘 canvas、随机对手或动态棋盘点击在现有桩中难以注入而暂列 B 类，**不得整类豁免**。
