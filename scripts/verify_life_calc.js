@@ -63,6 +63,14 @@ const CASES = [
     expect: ["30 是 150 的 20%"],
     ref: "30 ÷ 150 × 100 = 20 → 显示 20%（单断言“20%”会被页面默认 ofWhatPct=20 的区块命中 → 逃生项）",
   },
+  {
+    slug: "life/percentage-calculator",
+    inputs: { isWhatX: "１，２００", isWhatY: "２,０００" },
+    clicks: ["calcIsWhat()"],
+    expect: ["1,200 是 2,000 的 60%"],
+    ref: "输入归一化：全角数字 １２００、千分位 2,000 归一后为 1200/2000 ⇒ 60%；"
+       + "旧实现 parseFloat('１，２００')=NaN ⇒ 显示 --，注入失败即不命中。",
+  },
   // ── 温度换算（°F = °C×9/5+32）────────────────────────────────
   {
     slug: "life/temperature-converter",
