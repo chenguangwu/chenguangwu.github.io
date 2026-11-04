@@ -521,9 +521,9 @@ const CASES = [
   // ── 连作障碍指数 OCI（年限/敏感/病原/土壤/管理 加权）────
   {
     slug: "agriculture/continuous-cropping-index",
-    inputs: { years: "5", om: "3", ph: "6.0", cropType: "tomato", pathogen: "cucumber", resistance: "tomato", disinfection: "tomato" },
+    inputs: { years: "5", om: "3", ph: "6.0", cropType: "tomato", pathogen: "3", resistance: "0", disinfection: "1" },
     expect: ["72", "重度障碍"],
-    ref: "注入非默认(默认 3/2/6.5/cucumber...)：番茄敏感 8/10、连作 5 年超安全年限 ⇒ OCI 72、重度障碍。默认态为 42/中度障碍，两条均不命中。"
+    ref: "注入非默认(默认 3/2/6.5/cucumber/病原3/抗性1/消毒1)：番茄敏感 8/10、连作 5 年超安全年限(2 年) ⇒ 年限因子封顶 100、病原 60、土壤 20、管理 80 ⇒ OCI=30+16+15+3+8=72、重度障碍。旧用例把 select 塞成 cucumber/tomato 等非法值，靠 NaN 静默回退才得出 72；改为合法档位后同样命中，默认态 64.75/中度障碍两条均不命中。"
   },
   // ── 轮作方案（季节 + 模式 决定年度作物序列）────
   {
@@ -831,15 +831,18 @@ const CASES = [
   {
     "slug": "agriculture/calc-36",
     "inputs": {
-      "eto": "42",
-      "kc": "42",
-      "area": "42",
-      "eff": "42"
+      "eto": "4",
+      "kc": "1.5",
+      "area": "10",
+      "eff": "100"
     },
     "expect": [
-      "42\n42\n42\n42\n1764.00"
+      "6.00",
+      "40.00",
+      "280.00",
+      "1200.00"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"eto\":\"42\",\"kc\":\"42\",\"area\":\"42\",\"eff\":\"42\"}，输出区含「42\n42\n42\n42\n1764.00」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "作物系数定义域核对（Kc 0–3 且 >0）：ETc = 1.5×4 = 6.00 mm/日；日净需水 = 6×10×666.67/1000 = 40.00 m³；周 = 280.00；月 = 1200.00。原用例 kc=42 超出定义域会被显式拒绝；默认 5.0/1.0/10/85 为 5.00/33.33/39.22/233.33/1000.00，四条均不命中。"
   },
   {
     "slug": "agriculture/calc-37",
@@ -923,15 +926,16 @@ const CASES = [
   {
     "slug": "agriculture/calc-8",
     "inputs": {
-      "phNow": "42",
-      "phTarget": "42",
-      "area": "42",
-      "buffer": "42"
+      "phNow": "6.0",
+      "phTarget": "7.0",
+      "area": "8",
+      "buffer": "1.2"
     },
     "expect": [
-      "42\n42\n42\n42\n— 无需调节 当前 pH 已接近目标，无需额外施用改良剂。"
+      "9.6",
+      "1.20"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"phNow\":\"42\",\"phTarget\":\"42\",\"area\":\"42\",\"buffer\":\"42\"}，输出区含「42\n42\n42\n42\n— 无需调节 当前 pH 已接近目标，无需额外施用改良剂…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "pH 定义域核对（0–14）：提升 1.0 个 pH × 缓冲系数 1.2 × 8 亩 = 石灰 9.6 kg；折 0.01 t 显示 1.20（页面把 t 与 kg/亩 同网格渲染，这里锚 9.6 与 1.20）。原用例 pH=42 超域会被显式拒绝；默认 5.5/6.5/10/100 为 1000.0 kg，两条均不命中。"
   },
   {
     "slug": "agriculture/calculator-calc-concentration",
@@ -1017,7 +1021,7 @@ const CASES = [
     "inputs": {
       "years": "42",
       "om": "42",
-      "ph": "42",
+      "ph": "3.5",
       "cropType": "tomato",
       "pathogen": "2",
       "resistance": "0",
@@ -1163,17 +1167,83 @@ const CASES = [
   {
     "slug": "agriculture/dli-calculator",
     "inputs": {
-      "ppfd": "42",
-      "hours": "42",
-      "lightPPFD": "42",
-      "lightHours": "42",
+      "ppfd": "800",
+      "hours": "12",
+      "lightPPFD": "200",
+      "lightHours": "4",
       "cropType": "medium"
     },
     "expect": [
-      "6.4 自然光DLI(mol/m²/d)",
-      "12.7 总DLI(mol/m²/d)"
+      "34.6 自然光DLI(mol/m²/d)",
+      "37.4 总DLI(mol/m²/d)"
     ],
-    "ref": "自动补强（B类零用例）收紧锚点：注入 ppfd=42、hours=42、lightPPFD=42、lightHours=42 → 自然光 DLI = 42×42×3600÷1e6 = 6.3504 ⇒ 6.4；补光同为 6.4；总 DLI = 12.7008 ⇒ 12.7。原锚「（代表：黄瓜…） DLI达标…」中的作物描述与「DLI达标」都是静态/默认态文案（默认 400×12 得 17.3，同样 ≥ 10 → 达标），回退默认仍命中 ⇒ 已被 fidelity 判为逃生。改锚到注入态独有的数值 + 标签组合，默认态（17.3 自然光 / 0.0 补光 / 17.3 总）均不出现。"
+    "ref": "光照时长定义域核对（0–24 h）：自然光 DLI = 800×12×3600÷1e6 = 34.56 ⇒ 34.6；补光 = 200×4×3600÷1e6 = 2.88 ⇒ 2.9；总 = 37.44 ⇒ 37.4。原用例 hours=42 超出 24 h 会被显式拒绝；默认 400×12（17.3）与 0 补光不命中。"
+  },
+  {
+    "slug": "agriculture/calc-36",
+    "inputs": { "eto": "4", "kc": "0", "area": "10", "eff": "85" },
+    "expect": ["作物系数 Kc 应在 0–3 之间且大于 0"],
+    "ref": "Kc=0 时 ETc 恒为 0，会让灌水需求整体消失；旧条件 kc>=0 放行，改为 kc>0 且 ≤3 显式拒绝。默认 kc=1.0 不出现该提示。"
+  },
+  {
+    "slug": "agriculture/calc-8",
+    "inputs": { "phNow": "15", "phTarget": "7", "area": "8", "buffer": "1.2" },
+    "expect": ["应在 0–14 之间"],
+    "ref": "pH 定义域 0–14：旧实现只校验 buf/area<0，pH=15 会照算；改为超域显式拒绝。默认 5.5/6.5 不出现该提示。"
+  },
+  {
+    "slug": "agriculture/continuous-cropping-index",
+    "inputs": { "years": "3", "om": "2", "ph": "0", "cropType": "tomato", "pathogen": "3", "resistance": "1", "disinfection": "1" },
+    "expect": ["pH 3–10"],
+    "ref": "pH 0 旧实现被 `||7` 静默回退到 7（判为适宜），用户输入 0 却按中性土壤评分；改为按输入框 3–10 域显式拒绝。默认 6.5 不出现该提示。"
+  },
+  {
+    "slug": "agriculture/dli-calculator",
+    "inputs": { "ppfd": "800", "hours": "25", "lightPPFD": "0", "lightHours": "0", "cropType": "medium" },
+    "expect": ["0–24 小时"],
+    "ref": "光照时长 25 h/日 超出物理定义域（旧实现只拦负值会照算 72.0 mol/m²/d）；改为自然光与补光时长均须 0–24 h。默认 10/0 小时不出现该提示。"
+  },
+  {
+    "slug": "agriculture/estimate-yield-rate",
+    "inputs": { "fert": "225", "uptake": "400", "soil": "90" },
+    "expect": ["表观利用率须为 0–100%"],
+    "ref": "作物吸收 400 > 土壤供肥 90 + 施肥 225 = 315 ⇒ 表观利用率 137.8% 无物理意义；改为要求吸收量介于 [土壤供肥, 土壤供肥+施肥] 显式拒绝。默认 180/90/225（40%）不出现该提示。"
+  },
+  {
+    "slug": "agriculture/estimate-soil",
+    "inputs": { "years": "5", "init": "100", "rate": "10", "threshold": "0" },
+    "expect": ["阈值密度必须大于 0"],
+    "ref": "阈值 0 时旧实现把障碍指数直接置 0（视作安全），掩盖了任何病原菌累积；改为 threshold>0 显式拒绝。默认阈值 100 不出现该提示。"
+  },
+  {
+    "slug": "agriculture/harvest-date-predictor",
+    "inputs": { "sowDate": "2026-05-01", "moisture": "120", "dryRate": "0.5", "gdd": "1500" },
+    "expect": ["含水量应在 0–100% 之间"],
+    "ref": "含水量 120% 超出定义域（旧实现照算降水天数）；改为 0–100% 显式拒绝。默认 28% 不出现该提示。"
+  },
+  {
+    "slug": "agriculture/harvest-date-predictor",
+    "inputs": { "sowDate": "2099-01-01", "moisture": "28", "dryRate": "0.5", "gdd": "1500" },
+    "expect": ["播种日期不能晚于今天"],
+    "ref": "未来播期的「已生长天数」为负、GDD 进度无意义；改为显式拒绝。默认播期为过去日期，不出现该提示。"
+  },
+  {
+    "slug": "agriculture/assessor-1",
+    "inputs": { "theoryYield": "450", "actualYield": "500", "fieldLoss": "15", "threshLoss": "10" },
+    "expect": ["实际收获产量不能为负或高于理论产量"],
+    "ref": "实际 500 > 理论 450 时旧实现总损失为 −50、损失率 −11.1% 并判「优秀」；改为显式拒绝。默认 415 < 450 不出现该提示。"
+  },
+  {
+    "slug": "agriculture/detector-nutrition",
+    "inputs": { "protein": "120", "fat": "5", "sugar": "18", "water": "7", "ash": "2.5", "lactic": "1.8" },
+    "expect": ["各营养成分含量应在 0–100% 之间"],
+    "ref": "蛋白质 120% 超出质量分数定义域（旧实现只查 NaN 会照算并给出等级）；改为 0–100% 显式拒绝。默认 22% 不出现该提示。"
+  },
+  {
+    "slug": "agriculture/calc-38",
+    "inputs": { "values": "0,0,0,0,0,0,0,0" },
+    "expect": ["收集水量均值必须大于 0"],
+    "ref": "8 个测点全 0 时均值 0，旧实现 CU 与 CV 均变成 Infinity/NaN 仍渲染；改为均值必须 >0 显式拒绝。默认 120/135/… 不出现该提示。"
   },
   {
     "slug": "agriculture/estimate-3",
