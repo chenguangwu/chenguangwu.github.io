@@ -123,7 +123,7 @@ s.parentNode.insertBefore(el, s);
 <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="👶 新生儿黄疸(小时胆红素)曲线器">Neonatal Jaundice</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="基于Bhutani小时胆红素百分位曲线，评估新生儿高胆红素血症风险分区及光疗/换血指征">Neonatal Jaundice</p>
-    <div class="ref-cite" style="font-size:12.5px;line-height:1.75;color:var(--text-muted);background:var(--bg-hover);border-left:3px solid var(--primary);border-radius:0 8px 8px 0;padding:8px 12px;margin:0 0 14px;" data-zh="📖 原始文献/指南：Kemper AR, Newman TB, Slaughter JL, et al. Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation. Pediatrics. 2022;150(3):e2022058859. ｜ ≥35 周新生儿 · 按「小时龄 + 总胆红素」对照光疗/换血阈值曲线 · 同时按神经毒性风险因素（<38 周、溶血、G6PD 缺乏、败血症等）上下调阈值">📖 Source: Kemper AR, Newman TB, Slaughter JL, et al. Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation. Pediatrics. 2022;150(3):e2022058859. | Infants ≥35 weeks · hour-specific total bilirubin thresholds for phototherapy and exchange transfusion · adjust for neurotoxicity risk factors</div>
+    <div class="ref-cite" style="font-size:12.5px;line-height:1.75;color:var(--text-muted);background:var(--bg-hover);border-left:3px solid var(--primary);border-radius:0 8px 8px 0;padding:8px 12px;margin:0 0 14px;" data-zh="📖 原始文献/指南：American Academy of Pediatrics Subcommittee on Hyperbilirubinemia. Management of hyperbilirubinemia in the newborn infant 35 or more weeks of gestation. Pediatrics. 2004;114(1):297-316. ｜ Bhutani 小时胆红素百分位曲线（1999）· 按「小时龄 + 总胆红素」对照光疗/换血阈值 · 35–37 周或伴神经毒性风险因素（溶血、G6PD 缺乏、败血症等）应下调阈值 · 胎龄 &lt;35 周请按 2022 AAP 早产儿指南单独评估" data-en="📖 Source: AAP Subcommittee on Hyperbilirubinemia. Management of hyperbilirubinemia in the newborn infant 35 or more weeks of gestation. Pediatrics. 2004;114(1):297-316. | Bhutani hour-specific bilirubin nomogram (1999) · hour-specific phototherapy/exchange thresholds · lower thresholds for 35-37 weeks or neurotoxicity risk factors (hemolysis, G6PD deficiency, sepsis) · for &lt;35 weeks use the 2022 AAP preterm guideline">📖 Source: AAP Subcommittee on Hyperbilirubinemia. Management of hyperbilirubinemia in the newborn infant 35 or more weeks of gestation. Pediatrics. 2004;114(1):297-316. | Bhutani hour-specific bilirubin nomogram (1999) · hour-specific phototherapy/exchange thresholds · lower thresholds for 35-37 weeks or neurotoxicity risk factors (hemolysis, G6PD deficiency, sepsis) · for &lt;35 weeks use the 2022 AAP preterm guideline</div>
 <div class="formula-box">
       <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">新生儿黄疸按 Bhutani 曲线：血清总胆红素(TSB, mg/dL) 结合出生小时、胎龄、有无风险因素查第25/40/75/95百分位与光疗/换血阈值。危险分区：≥p95 高危险、≥p75 中高、≥p40 中低、&lt;p40 低危险；TSB≥光疗阈值启动光疗，≥换血阈值紧急换血。</div>
       <p class="formula-desc" data-zh="核心计算公式（按输入变量）：min(100,(tsb÷(pct.p95×1.2))×100)">Key formulas: min(100,(tsb÷(pct.p95×1.2))×100)</p>
@@ -291,52 +291,63 @@ function getPercentile(hours){
   return {p40:__bhInterp(__BH_P40,h),p75:__bhInterp(__BH_P75,h),p95:__bhInterp(__BH_P95,h)};
 }
 
-// 光疗/换血阈值（高危 vs 中危 vs 低危）
+// 光疗/换血阈值（按 AAP 2004 小时胆红素曲线近似取值，需临床复核）
+// 低危=≥38周且无危险因素；中危=≥38周有危险因素，或 35–37 周无危险因素；高危=35–37 周有危险因素
+// <35 周不在 AAP 2004 适用范围内，统一按高危保守处理，并提示按 2022 AAP/NICHD 早产儿曲线复核
 function getThresholds(hours,ga,riskFactors){
   var h=parseFloat(hours)||48;
   var g=parseFloat(ga)||38;
-  var risk=riskFactors||(g<35)||false;
+  var risk=riskFactors||(g<38)||false;
   var phototherapy,exchange;
   if(g>=38&&!risk){
     // 低危足月儿
+    if(h<24){phototherapy=12;exchange=19;}
+    else if(h<48){phototherapy=15;exchange=22;}
+    else if(h<72){phototherapy=18;exchange=24;}
+    else if(h<96){phototherapy=19;exchange=25;}
+    else{phototherapy=20;exchange=25;}
+  }else if(g>=35&&!(g<38&&risk)){
+    // 中危：≥38周伴危险因素，或 35–37 周无危险因素
     if(h<24){phototherapy=10;exchange=16;}
     else if(h<48){phototherapy=13;exchange=19;}
     else if(h<72){phototherapy=15;exchange=21;}
     else if(h<96){phototherapy=17;exchange=22;}
-    else{phototherapy=18;exchange=24;}
-  }else if(g>=35){
-    // 中危(35-37周或高危)
-    if(h<24){phototherapy=8;exchange=15;}
-    else if(h<48){phototherapy=11;exchange=18;}
-    else if(h<72){phototherapy=13;exchange=20;}
-    else if(h<96){phototherapy=15;exchange=21;}
-    else{phototherapy=16;exchange=22;}
+    else{phototherapy=18;exchange=23;}
   }else{
-    // 高危(<35周)
-    if(h<24){phototherapy=6;exchange=13;}
-    else if(h<48){phototherapy=8;exchange=16;}
-    else if(h<72){phototherapy=10;exchange=18;}
-    else if(h<96){phototherapy=12;exchange=19;}
-    else{phototherapy=13;exchange=20;}
+    // 高危：35–37 周伴危险因素（<35 周亦按此保守处理）
+    if(h<24){phototherapy=8;exchange=14;}
+    else if(h<48){phototherapy=11;exchange=17;}
+    else if(h<72){phototherapy=13;exchange=19;}
+    else if(h<96){phototherapy=15;exchange=20;}
+    else{phototherapy=16;exchange=21;}
   }
   return {phototherapy:phototherapy,exchange:exchange};
 }
 
 function calc(){
-  var hours=parseFloat(document.getElementById('hours').value)||0;
-  var tsb=parseFloat(document.getElementById('tsb').value)||0;
-  var ga=parseFloat(document.getElementById('ga').value)||38;
-  var bw=parseFloat(document.getElementById('bw').value)||3000;
+  var hoursRaw=String(document.getElementById('hours').value||'').trim();
+  var tsbRaw=String(document.getElementById('tsb').value||'').trim();
+  var gaRaw=String(document.getElementById('ga').value||'').trim();
+  var bwRaw=String(document.getElementById('bw').value||'').trim();
+  var hours=parseFloat(hoursRaw), tsb=parseFloat(tsbRaw), ga=parseFloat(gaRaw), bw=parseFloat(bwRaw);
   var hasRisk=document.getElementById('risk').checked;
-  var preterm=document.getElementById('preterm').checked||(ga<38);
+  var preterm=document.getElementById('preterm').checked;
 
+  // 空值/非法值拒绝判读（此前 tsb 留空会被当作 0 并判「低危险区」）
+  if(hoursRaw===''||tsbRaw===''||gaRaw===''||bwRaw===''||!isFinite(hours)||!isFinite(tsb)||!isFinite(ga)||!isFinite(bw)||tsb<0||ga<20||ga>44||bw<=0||bw>6000){
+    document.getElementById('result').innerHTML='<div class="tip-box tip-danger">请填写全部参数：出生小时（12–240h）、TSB（≥0 mg/dL）、胎龄（20–44 周）、出生体重（0–6000 g）。空值拒绝判读。</div>';
+    return;
+  }
   if(hours<12||hours>240){
     document.getElementById('result').innerHTML='<div class="tip-box tip-warn">请输入有效的出生小时数(12-240小时)</div>';
     return;
   }
 
+  // SGA（出生体重<2500g）按危险因素计入
+  var lbw=bw<2500;
+
   var pct=getPercentile(hours);
-  var th=getThresholds(hours,ga,hasRisk||preterm);
+  var th=getThresholds(hours,ga,hasRisk||preterm||lbw);
 
   // 判定风险分区
   var zone,zoneColor,zoneAdvice;
@@ -376,7 +387,7 @@ function calc(){
   html+='<li>第40百分位：'+pct.p40.toFixed(1)+' mg/dL</li>';
   html+='<li>第75百分位：'+pct.p75.toFixed(1)+' mg/dL</li>';
   html+='<li>第95百分位：'+pct.p95.toFixed(1)+' mg/dL</li>';
-  html+='</ul></div>';
+  html+='</ul><p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">光疗/换血阈值为 AAP 2004 小时胆红素曲线近似值，需临床复核；胎龄 &lt;35 周应按 2022 AAP/NICHD 早产儿曲线单独评估。</p></div>';
 
   if(needExchange){
     html+='<div class="tip-box tip-error"><strong>紧急换血指征</strong><br>TSB('+tsb+')≥换血阈值('+th.exchange.toFixed(0)+' mg/dL)，需立即换血治疗，警惕胆红素脑病！</div>';

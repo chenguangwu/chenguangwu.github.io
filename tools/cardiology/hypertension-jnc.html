@@ -123,7 +123,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="❤️ 高血压(JNC-7)分级与风险分层器">Hypertension Jnc</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="基于JNC-7高血压分级标准，结合心血管危险因素、靶器官损害及伴随临床情况，进行综合风险分层">Hypertension Jnc</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">血压分级取收缩压(SBP)与舒张压(DBP)较高级别：正常 &lt;120/80、高血压前期 &lt;140/90、1级 &lt;160/100、2级 ≥160或≥100 mmHg。危险分层综合分级、心血管危险因素(≥3项或糖尿病)、靶器官损害及临床合并症(卒中/心梗/心衰/肾损/外周血管/视网膜病变)——很高危(临床合并症或2级伴糖尿病)、高危(靶器官损害或危险因素≥3)、中危、低危。</div>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">血压分级取收缩压(SBP)与舒张压(DBP)较高级别：正常 &lt;120/80、高血压前期 &lt;140/90、1级 &lt;160/100、2级 ≥160或≥100 mmHg。风险分层按 JNC-7：低危(正常/前期且无危险因素)；中危(正常/前期有 1–2 个危险因素，或 1级/2级无危险因素)；高危(正常/前期伴伴随临床情况，或 1级伴 1–2 个危险因素)；很高危(1级伴靶器官损害/临床情况，或 2级伴任一危险因素/靶器官损害)。</div>
       <p class="formula-desc" data-zh="核心计算公式（按输入变量）：max(sbpGrade,dbpGrade)">Key formulas: max(sbpGrade,dbpGrade)</p>
     </div>
 
@@ -186,10 +186,10 @@ s.parentNode.insertBefore(el, s);
     <table>
       <thead><tr><th>风险分层</th><th>条件</th></tr></thead>
       <tbody>
-        <tr><td style="color:#10B981;font-weight:600;">低危</td><td>1级高血压 + 无危险因素</td></tr>
-        <tr><td style="color:#3B82F6;font-weight:600;">中危</td><td>2级高血压 + 无/≤2危险因素；或 1级 + 1–2危险因素</td></tr>
-        <tr><td style="color:#F59E0B;font-weight:600;">高危</td><td>≥3危险因素或靶器官损害</td></tr>
-        <tr><td style="color:#EF4444;font-weight:600;">很高危</td><td>伴随临床情况/糖尿病；或 3级高血压</td></tr>
+        <tr><td style="color:#10B981;font-weight:600;">低危</td><td>正常或高血压前期 + 无危险因素</td></tr>
+        <tr><td style="color:#3B82F6;font-weight:600;">中危</td><td>正常/前期 + 1–2 个危险因素；或 1级/2级 + 无危险因素</td></tr>
+        <tr><td style="color:#F59E0B;font-weight:600;">高危</td><td>正常/前期 + 伴随临床情况；或 1级 + 1–2 个危险因素</td></tr>
+        <tr><td style="color:#EF4444;font-weight:600;">很高危</td><td>1级 + 靶器官损害/伴随临床情况；或 2级 + 任一危险因素或靶器官损害</td></tr>
       </tbody>
     </table>
   </div>
@@ -245,8 +245,8 @@ s.parentNode.insertBefore(el, s);
       <tbody>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="JNC 分级">JNC staging</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="正常 <120/80; 1级 130-139/80-89; 2级 ≥140/90">Normal <120/80; Stage 1 130-139/80-89; Stage 2 ≥140/90</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Whelton PK et al. ACC/AHA 2017</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="正常 <120/80; 前期 120-139/80-89; 1级 140-159/90-99; 2级 ≥160/≥100">Normal &lt;120/80; Prehypertension 120-139/80-89; Stage 1 140-159/90-99; Stage 2 ≥160/≥100</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Chobanian AV et al. JNC-7, JAMA 2003</td>
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="风险分层">Risk stratification</td>
@@ -274,8 +274,14 @@ s.parentNode.insertBefore(el, s);
 
 <script>
 function calc(){
-  var sbp=parseFloat(document.getElementById('sbp').value)||0;
-  var dbp=parseFloat(document.getElementById('dbp').value)||0;
+  // 空值/越界拒绝分层（此前 ||0 会把空输入当作 0/95 并给出用药建议）
+  var sbpRaw=String(document.getElementById('sbp').value||'').trim();
+  var dbpRaw=String(document.getElementById('dbp').value||'').trim();
+  var sbp=parseFloat(sbpRaw), dbp=parseFloat(dbpRaw);
+  if(sbpRaw===''||dbpRaw===''||!isFinite(sbp)||!isFinite(dbp)||sbp<=0||dbp<=0||sbp>300||dbp>200||sbp<=dbp){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger)">请输入有效血压（0&lt;收缩压≤300 mmHg、0&lt;舒张压≤200 mmHg，且收缩压须大于舒张压）；空值或越界拒绝分层。</p>';
+    return;
+  }
 
   var checked=function(id){return document.getElementById(id).checked;};
   var rf=0;
@@ -303,25 +309,19 @@ function calc(){
   else if(grade===2){gradeName='1级高血压';gradeColor='#F59E0B';}
   else{gradeName='2级高血压';gradeColor='#EF4444';}
 
-  // 风险分层（JNC 7 表：分级 × 危险因素/TOD/ACC）
+  // 风险分层（JNC-7 表：分级 × 危险因素 / 靶器官损害 / 伴随临床情况）
   var risk,riskColor,advice;
-  var highBurden = acc>0 || tod>0 || rf>=3;
-  if(grade===3){
-    if(highBurden){risk='很高危';riskColor='#EF4444';advice='立即启动药物治疗，严格控制血压<130/80mmHg，积极治疗伴随疾病，定期随访评估。';}
-    else if(rf>=1){risk='高危';riskColor='#EF4444';advice='生活方式干预+药物治疗，目标血压<130/80mmHg，定期评估靶器官损害。';}
-    else{risk='中危';riskColor='#F59E0B';advice='生活方式干预并启动药物治疗，目标<140/90mmHg，1–3个月复评。';}
+  if(grade<=1){
+    if(acc>0){risk='高危';riskColor='#EF4444';advice='合并临床情况，建议启动药物治疗并强化危险因素管理，目标血压<130/80mmHg，定期随访。';}
+    else if(rf>=1){risk='中危';riskColor='#F59E0B';advice='先生活方式干预1–3个月，血压不达标则启动药物治疗，目标<140/90mmHg。';}
+    else{risk='低危';riskColor='#10B981';advice='以生活方式干预为主，3–6个月复查评估血压。';}
   }else if(grade===2){
-    if(highBurden){risk='高危';riskColor='#F59E0B';advice='生活方式干预+药物治疗，目标血压<130/80mmHg，定期评估靶器官损害。';}
-    else if(rf>=1){risk='中危';riskColor='#3B82F6';advice='先生活方式干预1–3个月，血压不达标则启动药物治疗，目标<140/90mmHg。';}
-    else{risk='低危';riskColor='#10B981';advice='以生活方式干预为主，3–6个月未达标再考虑药物治疗。';}
-  }else if(grade===1){
-    if(highBurden){risk='高危';riskColor='#F59E0B';advice='生活方式干预+药物治疗，并处理危险因素与靶器官损害，目标<130/80mmHg。';}
-    else if(rf>=1){risk='高危';riskColor='#F59E0B';advice='生活方式干预+药物治疗，目标血压<130/80mmHg，定期随访。';}
-    else{risk='低危';riskColor='#10B981';advice='生活方式干预，监测血压，3–6个月评估。';}
+    if(acc>0||tod>0){risk='很高危';riskColor='#EF4444';advice='立即启动药物治疗，严格控制血压<130/80mmHg，并处理靶器官损害/伴随疾病，定期随访。';}
+    else if(rf>=1){risk='高危';riskColor='#EF4444';advice='生活方式干预+药物治疗，目标血压<130/80mmHg，定期评估靶器官损害。';}
+    else{risk='中危';riskColor='#F59E0B';advice='生活方式干预1–3个月，未达标则启动药物治疗，目标<140/90mmHg。';}
   }else{
-    if(highBurden){risk='高危';riskColor='#F59E0B';advice='控制危险因素与靶器官损害，监测血压，必要时启动药物治疗。';}
-    else if(rf>=1){risk='低危';riskColor='#10B981';advice='正常高值伴危险因素：强化生活方式干预，定期监测血压。';}
-    else{risk='低危';riskColor='#10B981';advice='血压正常：保持健康生活方式，定期监测。';}
+    if(acc>0||tod>0||rf>=1){risk='很高危';riskColor='#EF4444';advice='立即启动药物治疗，严格控制血压<130/80mmHg，积极治疗伴随疾病与靶器官损害，定期随访。';}
+    else{risk='中危';riskColor='#F59E0B';advice='生活方式干预并启动药物治疗，目标<140/90mmHg，1–3个月复评。';}
   }
 
   var dmFlag=checked('dm');

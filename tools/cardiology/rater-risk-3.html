@@ -214,11 +214,24 @@ function seg(v, arr){
   return arr[arr.length-1][1];
 }
 function calc(){
-  var age=+document.getElementById('age').value;
-  var hr=+document.getElementById('hr').value;
-  var sbp=+document.getElementById('sbp').value;
-  var cr=+document.getElementById('cr').value;
-  if([age,hr,sbp,cr].some(isNaN)){ document.getElementById('res').innerHTML='<p style="color:var(--danger)">请填写完整的临床指标</p>'; return; }
+  // 用原始字符串判定空值（此前 +'' === 0 使空输入绕过校验并被当作极值）
+  var ids=['age','hr','sbp','cr'], raw={}, vals={}, bad=false;
+  for(var i=0;i<ids.length;i++){
+    raw[ids[i]]=String(document.getElementById(ids[i]).value||'').trim();
+    vals[ids[i]]=Number(raw[ids[i]]);
+    if(raw[ids[i]]===''||!isFinite(vals[ids[i]])||vals[ids[i]]<0) bad=true;
+  }
+  var selIds=['killip','arrest','st','enzyme'], selVals={};
+  for(var j=0;j<selIds.length;j++){
+    var sr=String(document.getElementById(selIds[j]).value||'').trim();
+    if(sr===''){ bad=true; }
+    selVals[selIds[j]]=Number(sr);
+  }
+  if(bad||vals.age>120||vals.hr<=0||vals.hr>250||vals.sbp<=0||vals.sbp>300||vals.cr<=0||vals.cr>20){
+    document.getElementById('res').innerHTML='<p style="color:var(--danger)">请填写完整的临床指标（年龄 0–120 岁、心率 0–250 次/分、收缩压 0–300 mmHg、肌酐 0–20 mg/dL），并选择全部评分项。</p>';
+    return;
+  }
+  var age=vals.age, hr=vals.hr, sbp=vals.sbp, cr=vals.cr;
   var sAge=seg(age,[[29,0],[39,8],[49,18],[59,28],[69,40],[79,50],[89,58],[999,64]]);
   var sHr=seg(hr,[[49,0],[69,3],[89,9],[109,15],[119,19],[139,23],[159,27],[199,34],[9999,43]]);
   var sSbp=seg(sbp,[[79,58],[99,53],[119,43],[139,34],[159,24],[199,10],[99999,0]]);

@@ -256,8 +256,19 @@ s.parentNode.insertBefore(el, s);
 function num(id){var v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 
 function calc(){
+  var wbcRaw=String(document.getElementById('wbc').value||'').trim();
+  var lpctRaw=String(document.getElementById('lymphPct').value||'').trim();
+  var wbcV=parseFloat(wbcRaw), lpctV=parseFloat(lpctRaw);
+  if(wbcRaw===''||lpctRaw===''||!isFinite(wbcV)||!isFinite(lpctV)||wbcV<=0||lpctV<=0||lpctV>100){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger)">请先填写有效的白细胞计数（>0）与淋巴细胞百分比（0–100%），否则无法计算绝对计数。</p>';
+    return;
+  }
   var wbc=num('wbc'), lpct=num('lymphPct');
   var cd3=num('cd3'), cd4=num('cd4'), cd8=num('cd8'), cd19=num('cd19'), nk=num('nk'), treg=num('treg');
+  if([cd3,cd4,cd8,cd19,nk,treg].some(function(v){return v<0||v>100;})){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger)">各亚群百分比须在 0–100% 之间，请核对输入。</p>';
+    return;
+  }
   var absLymph = wbc * (lpct/100) * 1000; // /μL
   var cd4Abs = absLymph * (cd4/100);
   var cd8Abs = absLymph * (cd8/100);
@@ -328,6 +339,8 @@ function calc(){
   if(cd8>0&&cd4>0&&ratio>2.78) flags.push(__T('CD4/CD8 elevated','CD4/CD8升高'));
   if(cd3>0&&cd3Abs<770) flags.push(__T('Total T cells decreased','总T细胞降低'));
   if(cd19>0&&cd19Abs<92) flags.push(__T('B cells decreased (humoral immunodeficiency)','B细胞降低(体液免疫缺陷)'));
+  if(nk>0&&nkAbs<95) flags.push(__T('NK cells decreased (<95/μL; interpret with the laboratory reference interval)','NK细胞绝对值降低(<95/μL，需结合实验室参考区间)'));
+  if(nk>30) flags.push(__T('NK percentage above reference (>30%)','NK 比例高于参考(>30%)'));
   if(treg>0&&cd4>0){
     if(tregOfCd4>10) flags.push(__T('Treg proportion elevated (>10% of CD4+)','Treg 占 CD4+ 比例升高(>10%)'));
     else if(tregOfCd4<5) flags.push(__T('Treg proportion decreased (<5% of CD4+)','Treg 占 CD4+ 比例降低(<5%)'));
@@ -337,7 +350,7 @@ function calc(){
     html += '<div class="result-box" style="border-left:4px solid #dc2626;"><strong style="color:#dc2626;">'+__T('Abnormal findings','异常提示')+'</strong><ul style="margin:6px 0 0 18px;font-size:13px;line-height:1.8;">';
     flags.forEach(function(f){html += '<li>'+f+'</li>';});
     html += '</ul></div>';
-  } else if(wbc>0 && lpct>0){
+  } else if(wbc>0 && lpct>0 && (cd3>0||cd4>0||cd8>0||cd19>0||nk>0||treg>0)){
     html += '<div class="result-box" style="border-left:4px solid var(--success);color:var(--success);"><strong>'+__T('All indicators within reference range','各项指标在参考范围内')+'</strong></div>';
   } else {
     html += '<div class="info-box">'+__T('Enter WBC, lymphocyte %, and subset percentages to see interpretation.','请先填写白细胞、淋巴细胞百分比及各项亚群百分比后再判读。')+'</div>';

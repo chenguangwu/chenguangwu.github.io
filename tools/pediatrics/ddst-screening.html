@@ -318,8 +318,9 @@ function getAgeGroups(age){
 }
 
 function getEvalAge(){
-  var age=parseFloat(document.getElementById('age').value);
-  if(!isFinite(age)||age<=0)age=18;
+  var ageRaw=String(document.getElementById('age').value||'').trim();
+  var age=parseFloat(ageRaw);
+  if(ageRaw===''||!isFinite(age)||age<=0)return null;
   var ga=parseFloat(document.getElementById('correctGA').value);
   if(isFinite(ga)&&ga>0&&ga<37&&age<=24){
     return Math.max(1,Math.round((age-(40-ga)*7/30.44)*10)/10);
@@ -329,6 +330,10 @@ function getEvalAge(){
 
 function renderTests(){
   var age=getEvalAge();
+  if(age===null||age<1||age>72){
+    document.getElementById('testList').innerHTML='<p style="color:var(--danger)">请先填写有效月龄（1–72 月，早产儿请填矫正胎龄）。留空或越界时不再生成测试项。</p>';
+    return;
+  }
   var groups=getAgeGroups(age);
   var html='';
   html+='<p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">当前月龄：<strong style="color:var(--primary);">'+age+'月</strong>。请逐项测试并标记结果（通过/未通过/拒绝）。</p>';
@@ -366,17 +371,27 @@ function markTest(id,result){
 
 function calc(){
   var age=getEvalAge();
+  if(age===null||age<1||age>72){
+    var box=document.getElementById('result');
+    box.style.display='block';
+    box.innerHTML='<p style="color:var(--danger)">请先填写有效月龄（1–72 月），空值/越界不生成筛查结论。</p>';
+    return;
+  }
   var groups=getAgeGroups(age);
   var ageLineKey=groups.filter(function(g){return g<=age;}).pop()||2;
 
   var domainResults=[];
   domains.forEach(function(d){
-    var passed=0,failed=0,total=0,delayed=0;
+    var passed=0,failed=0,total=0,delayed=0,ageTotal=0,ageTested=0;
     groups.forEach(function(g){
       var items=d.items[g]||[];
       items.forEach(function(item,idx){
         var id=d.key+'_'+g+'_'+idx;
         total++;
+        if(g<=ageLineKey){
+          ageTotal++;
+          if(testResults[id]==='pass'||testResults[id]==='fail')ageTested++;
+        }
         if(testResults[id]==='pass')passed++;
         else if(testResults[id]==='fail'){
           failed++;
@@ -385,9 +400,11 @@ function calc(){
       });
     });
     var rate=total>0?Math.round(passed/total*100):0;
-    var status=delayed>=2?'异常':(failed>0?'可疑':(passed>0?'正常':'未测'));
-    var statusColor=delayed>=2?'#EF4444':(failed>0?'#F59E0B':'#10B981');
-    domainResults.push({name:d.name,color:d.color,passed:passed,failed:failed,total:total,rate:rate,status:status,delayed:delayed,statusColor:statusColor});
+    // 年龄线及以下未测完时只报「资料不完整」，避免把「少测」当成「正常」
+    var incomplete=ageTested<ageTotal;
+    var status=incomplete?'资料不完整':(delayed>=2?'异常':(delayed>0?'可疑':'正常'));
+    var statusColor=incomplete?'#64748B':(delayed>=2?'#EF4444':(delayed>0?'#F59E0B':'#10B981'));
+    domainResults.push({name:d.name,color:d.color,passed:passed,failed:failed,total:total,rate:rate,status:status,delayed:delayed,statusColor:statusColor,ageTotal:ageTotal,ageTested:ageTested});
   });
 
   var html='<h3 style="margin-bottom:12px;">📊 DDST筛查报告</h3>';

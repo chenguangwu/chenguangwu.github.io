@@ -13,7 +13,7 @@
 <meta property="og:description" content="约束带松紧度(一指法则)检验器是一款免费的在线临床护理工具，逐项检查约束带松紧度是否合适，采用&quot;一指法则&quot;评估，确保安全有效约束。点击各项完成检查。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
 <meta property="og:url" content="https://chenguangwu.github.io/tools/clinical-nursing/restraint-check.html">
 <meta name="twitter:card" content="summary">
-<meta name="description" content="约束带松紧度(一指法则)检验器是一款免费的在线临床护理工具，逐项检查约束带松紧度是否合适，采用&quot;一指法则&quot;评估，确保安全有效约束。点击各项完成检查。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。"一指法则"评估，确保安全有效约束。点击各项完成检查。免费在线工具，纯前端本地处理，数据不上传。">
+<meta name="description" content="约束带松紧度(一指法则)检验器是一款免费的在线临床护理工具，逐项检查约束带松紧度是否合适，采用&quot;一指法则&quot;评估，确保安全有效约束。点击各项完成检查。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
 <link rel="stylesheet" href="../../css/common.css">
 <script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
@@ -216,9 +216,9 @@ s.parentNode.insertBefore(el, s);
 <h2>📚 深度解析：约束带松紧度(一指法则)检验器</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>肢体约束后以一指（成人）可伸入为度，过紧改松。</li>
+<li>约束带与皮肤间可伸入 1–2 横指为度（成人至少一指），过紧需松解。</li>
 <li>每班查末梢脉搏、皮温与颜色。</li>
-<li>小儿用两指或按体重调整。</li>
+<li>小儿按机构规范调整（约 1 指，以不影响循环与呼吸为宜）。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">复核一例上肢约束松紧</div><div class="dd-ex-body">输入可伸入一指、末梢红润，工具判合适并提示每班查循环，与规范一致。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
@@ -293,7 +293,7 @@ var checkItems = {
   ],
   chest: [
     {title:'呼吸观察', desc:'患者呼吸平稳，胸廓起伏正常，无呼吸困难。'},
-    {title:'约束带松紧度', desc:'约束带下可伸入2-3横指，确保不影响呼吸运动。'},
+    {title:'约束带松紧度', desc:'约束带下可伸入1-2横指，确保不影响呼吸运动。'},
     {title:'皮肤检查', desc:'胸部皮肤无发红、压痕过深。'},
     {title:'患者体位', desc:'患者上半身适度抬高（15-30°），保持舒适。'},
     {title:'血氧监测', desc:'SpO2 ≥95%，无低氧表现。'},
@@ -536,6 +536,8 @@ function __restraint_checkSnap(){
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
         if(v!==''&&v!=null) out[e.id]=v;
     }
+    // 勾选状态不在表单控件内，单独序列化入历史快照，回放时恢复
+    try{ out.__restraint_checks=JSON.stringify(checkedState); }catch(e0){}
     return out;
 }
 function __restraint_checkResText(){
@@ -568,6 +570,10 @@ function __restraint_checkRender(keys,rk,en){
             try{
                 for(var k in rec){
                     if(k===rk) continue;
+                    if(k==='__restraint_checks'){
+                        try{ checkedState=JSON.parse(rec[k])||{}; }catch(e4){ checkedState={}; }
+                        continue;
+                    }
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
@@ -592,7 +598,7 @@ function __restraint_checkExtras(){
     if (typeof TBKit === 'undefined') return;
     if (__restraint_check_skip) return;
     var snap=__restraint_checkSnap();
-    var keys=Object.keys(snap);
+    var keys=Object.keys(snap).filter(function(k){return k!=='__restraint_checks';});
     if(!keys.length) return;
     if(keys.length>12) keys=keys.slice(0,12);
     var res=__restraint_checkResText();
@@ -608,11 +614,12 @@ function __restraint_checkExtras(){
         for(var i=0;i<keys.length;i++){
             if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
         }
-        if(same&&String(last[rk])===String(res)) return;
+        if(same&&String(last[rk])===String(res)&&String(last.__restraint_checks||'')===String(snap.__restraint_checks||'')) return;
     }
     __restraint_check_last=now;
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec.__restraint_checks=snap.__restraint_checks;
     rec[rk]=res;
     TBKit.history.record(rec);
     __restraint_checkRender(keys,rk,en);

@@ -259,19 +259,22 @@ function setInterp(id,ok,lowText,highText){
 
 function analyze(){
   var vol=num('volume'), conc=num('conc'), pr=num('pr'), np=num('np'), im=num('im'), morph=num('morph'), vital=num('vital'), ph=num('ph');
-  if([vol,conc,pr,np,morph,vital,ph].some(function(v){return isNaN(v);})){
-    document.getElementById('result').innerHTML='<p style="color:var(--text-muted);">请填写精液量、精子浓度、PR/NP 活力、形态、存活率与 pH（不可留空）。</p>';
+  // 空值/越界一律拒绝判读，避免把未填写的 IM 当成正常
+  var bad=[vol,conc,pr,np,im,morph,vital,ph].some(function(v){return isNaN(v)||v<0;})||pr>100||np>100||im>100||pr+np+im>100.5;
+  if(bad){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger)">请填写全部参数（精液量、浓度、PR/NP/IM 活力、形态、存活率与 pH），且 PR、NP、IM 均为 0–100%，三者之和不超过 100%。</p>';
     return;
   }
   var total = vol*conc;
   var totalMot = pr+np;
+  var motilitySum = pr+np+im;
   var tmsc = total * totalMot/100;
 
   setInterp('volume', vol>=REF.volume, '↓ 少精液症');
   setInterp('conc', conc>=REF.conc, '↓ 少精子症');
   setInterp('pr', pr>=REF.pr, '↓ 弱精子症');
   setInterp('np', true, '', '');
-  setInterp('im', true, '', '');
+  setInterp('im', totalMot>=REF.totalmot, '', '↑ 不动精子比例偏高(总活力不足40%)');
   setInterp('morph', morph>=REF.morph, '↓ 畸精症');
   setInterp('vital', vital>=REF.vital, '↓ 死精症');
   setInterp('ph', ph>=REF.ph, '↓ 偏低(梗阻?)');
@@ -292,6 +295,11 @@ function analyze(){
   html += '<div class="stat-card"><div class="val">'+totalMot.toFixed(0)+'%</div><div class="lbl">总活力(PR+NP)</div></div>';
   html += '<div class="stat-card"><div class="val">'+tmsc.toFixed(1)+'</div><div class="lbl">TMSC(×10⁶)</div></div>';
   html += '</div>';
+
+  // 活力三分类一致性校验（PR+NP+IM 应为 100%，允许计数取整误差 ±5%）
+  if(Math.abs(motilitySum-100)>5){
+    html += '<div class="tip-box tip-warn"><strong>请核对活力计数</strong><br>PR+NP+IM = '+motilitySum.toFixed(1)+'%，与 100% 相差超过 5%，建议复核活力分类计数。</div>';
+  }
 
   // TMSC interpretation
   var tmscStatus, tmscColor;

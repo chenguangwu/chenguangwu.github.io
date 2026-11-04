@@ -250,7 +250,12 @@ s.parentNode.insertBefore(el, s);
 <script>
 function calc(){
   var type=document.getElementById('type').value;
-  var size=parseFloat(document.getElementById('size').value)||0;
+  var sizeRaw=String(document.getElementById('size').value||'').trim();
+  var size=parseFloat(sizeRaw);
+  if(sizeRaw===''||!isFinite(size)||size<=0||size>100){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger)">请输入有效结节直径（0–100mm）；空值或越界不判读，避免被当作 &lt;6mm 归为 2 类。</p>';
+    return;
+  }
   var grow=document.getElementById('grow').checked;
   var mal=document.getElementById('malignant').checked;
   var isNew=document.getElementById('new').checked;
@@ -263,8 +268,12 @@ function calc(){
     else if(size<15){cat='4A';color='#F59E0B';desc='实性结节 8–15mm，可疑恶性';fu='3个月复查CT，考虑PET-CT或经支气管/经皮活检。';}
     else{cat='4B';color='#EF4444';desc='实性结节 ≥15mm，非常可疑恶性';fu='活检或手术切除评估，多学科会诊。';}
   } else if(type==='partsolid'){
-    var sc=parseFloat(document.getElementById('solidSize').value);
-    if(isNaN(sc))sc=0;
+    var scRaw=String(document.getElementById('solidSize').value||'').trim();
+    var sc=parseFloat(scRaw);
+    if(scRaw===''||!isFinite(sc)||sc<0||sc>size){
+      document.getElementById('result').innerHTML='<p style="color:var(--danger)">部分实性结节须填写实性成分大小（0 至总径 '+size+'mm）；空值或大于总径不判读。</p>';
+      return;
+    }
     if(size<6){cat='2';color='#10B981';desc='部分实性结节 &lt;6mm';fu='年度低剂量CT复查。';}
     else if(sc>=8){cat='4B';color='#EF4444';desc='部分实性结节 ≥6mm，实性成分 ≥8mm，非常可疑恶性';fu='活检或手术切除评估，多学科会诊。';}
     else if(sc>=6){cat='4A';color='#F59E0B';desc='部分实性结节 ≥6mm，实性成分 6–8mm，可疑恶性';fu='3个月复查CT，考虑PET-CT或活检。';}
@@ -275,8 +284,10 @@ function calc(){
   }
 
   if(grow){cat=cat.startsWith('4')?cat:'4A';color='#F59E0B';desc+='；结节增长，风险升级';fu='缩短复查间隔(3个月)，考虑活检。';}
-  if(mal){cat='4X';color='#EF4444';desc+='；伴典型恶性征象(4X)';fu='强烈建议活检或手术评估，多学科会诊。';}
-  if(isNew && size>=6 && (type==='solid'||type==='partsolid')){cat='4A';color='#F59E0B';desc+='；新发结节，按 4A 管理';fu='3个月复查CT，必要时 PET-CT 或活检。';}
+  // 4X 仅用于本已达 3/4 类的结节；<6mm 实性或 <30mm 纯磨玻璃即使勾选恶性征象也不升为 4X
+  if(mal && cat!=='2'){cat='4X';color='#EF4444';desc+='；伴典型恶性征象(4X)';fu='强烈建议活检或手术评估，多学科会诊。';}
+  // 新发结节仅把 2/3 类升为 4A，不得把已达 4A/4B 的结节降级
+  if(isNew && size>=6 && (cat==='2'||cat==='3') && (type==='solid'||type==='partsolid')){cat='4A';color='#F59E0B';desc+='；新发结节，按 4A 管理';fu='3个月复查CT，必要时 PET-CT 或活检。';}
 
   var html='<div class="stat-grid">';
   html+='<div class="stat-card"><div class="val" style="color:'+color+';">'+cat+'</div><div class="lbl">Lung-RADS类别</div></div>';

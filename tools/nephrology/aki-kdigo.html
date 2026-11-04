@@ -149,6 +149,10 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div class="checkbox-row" style="margin-top:8px;">
+      <label><input type="checkbox" id="rrt" onchange="calc()"> 已开始肾脏替代治疗（RRT/透析）</label>
+    </div>
+
     <div class="toolbar">
       <div id="aki_kdigoPresets"></div><button type="button" class="btn primary" onclick="calc()">分期评估</button><button class="btn" type="button" onclick="__aki_kdigoExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
@@ -249,20 +253,30 @@ s.parentNode.insertBefore(el, s);
 
 <script>
 function calc(){
-  var baselineScr=parseFloat(document.getElementById('baselineScr').value)||0;
-  var currentScr=parseFloat(document.getElementById('currentScr').value)||0;
-  var urine=parseFloat(document.getElementById('urine').value)||0;
-  var duration=parseFloat(document.getElementById('duration').value)||0;
+  // 空值不得按 0 参与分期（尿量 0 本身合法，因此用原始字符串区分空值）
+  var baselineRaw=String(document.getElementById('baselineScr').value||'').trim();
+  var currentRaw=String(document.getElementById('currentScr').value||'').trim();
+  var urineRaw=String(document.getElementById('urine').value||'').trim();
+  var durationRaw=String(document.getElementById('duration').value||'').trim();
+  var baselineScr=parseFloat(baselineRaw);
+  var currentScr=parseFloat(currentRaw);
+  var urine=parseFloat(urineRaw);
+  var duration=parseFloat(durationRaw);
   var elapsed=parseFloat(document.getElementById('elapsed').value);
 
-  if(baselineScr<=0||currentScr<=0){
-    document.getElementById('result').innerHTML='<p style="color:var(--text-muted);">请输入有效的血肌酐数值</p>';
+  if(baselineRaw===''||currentRaw===''||!isFinite(baselineScr)||!isFinite(currentScr)||baselineScr<=0||currentScr<=0){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger)">请输入有效的基线/当前血肌酐（均须大于 0），空值拒绝分期。</p>';
+    return;
+  }
+  if(urineRaw===''||durationRaw===''||!isFinite(urine)||!isFinite(duration)||urine<0||duration<0){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger)">请填写尿量（mL/kg/h，可为 0）与低尿量持续时间（小时，可为 0）；空值拒绝分期。</p>';
     return;
   }
   if(!isFinite(elapsed)||elapsed<0){
     document.getElementById('result').innerHTML='<p style="color:var(--text-muted);">请输入距基线时间（小时，0–168）</p>';
     return;
   }
+  var rrt=!!(document.getElementById('rrt')&&document.getElementById('rrt').checked);
 
   // 肌酐标准分期（须落在 KDIGO 时间窗内）
   var scrRatio=currentScr/baselineScr;
@@ -305,8 +319,8 @@ function calc(){
     urineDetail='尿量未达AKI标准';
   }
 
-  // 取较高分期
-  var finalStage=Math.max(scrStage,urineStage);
+  // 取较高分期（已开始 RRT 直接判 3 期）
+  var finalStage=Math.max(scrStage,urineStage,rrt?3:0);
   var isAKI=finalStage>0;
 
   var color,diagnosis,advice;
@@ -330,6 +344,7 @@ function calc(){
   html+='<li>'+scrDetail+'</li>';
   html+='<li>尿量：'+urine+' mL/kg/h，持续'+duration+'h → 尿量标准 '+urineStage+'期</li>';
   html+='<li>'+urineDetail+'</li>';
+  if(rrt){ html+='<li>已开始肾脏替代治疗（RRT）→ 按 KDIGO 直接判 3期</li>'; }
   html+='<li><strong>综合分期取较高者：'+finalStage+'期</strong></li>';
   html+='</ul></div>';
 
