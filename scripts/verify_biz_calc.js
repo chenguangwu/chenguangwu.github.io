@@ -1436,6 +1436,18 @@ const CASES = [
       "1 2 3\n1̷̵͛ͦ͛͗̽͒ͯͫͯͥͪ̔ͮ̍ͫͨ̎̿̃ͣ͗̃̃̿̽͊͗̍͗̈́͒ͫͬ̀ͬ͑̄̀͟͜͠҉̨͘͘̕͡͞͝͏̸̡̢̡̛̛͔̠̱̗̼̬̥̰̟̼̞̹̦͕͓͚̠̬̹̙̰̻̝͎̞́̀̕͘͠͞͡ͅͅ 2̵̴̸̶̴̶̢̇͒̋́́̀̕͠͞͡͞͝"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"upMax\":\"42\",\"midMax\":\"42\",\"downMax\":\"42\",\"input\":\"1\\n2\\n3\",\"intensity\":\"2\"}，输出区含「1 2 3\n1͛ͦ͛͗̽͒ͯͫͯͥͪ̔ͮ̍ͫͨ̎̿̃ͣ͗̃̃̿̽͊͗̍͗̈́͒ͫͬ…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/text-remove-duplicates-lines",
+    "inputs": { "input": "__proto__\nconstructor\n__proto__\nnormal" },
+    "expect": ["__proto__ constructor normal"],
+    "ref": "原型键回归：去重计数改用 Object.create(null) 后，'__proto__' 与 'constructor' 都是普通文本键，不再被 Object.prototype 判为「已出现」；三行按首次出现顺序全部保留。旧实现 {} 会静默丢弃 __proto__ 行（输出只有 constructor normal）。默认样例不含这些串 ⇒ 强判别。"
+  },
+  {
+    "slug": "biz/text-extract-english",
+    "inputs": { "input": "__proto__ constructor __proto__" },
+    "expect": ["proto constructor"],
+    "ref": "原型键回归：提取英文单词并去重，去重表改 Object.create(null) 后 '__proto__' 提取出的 proto 与 constructor 都保留、重复的 proto 合并为一次；输出 'proto constructor'。默认样例（Hello This is text…）不含该串 ⇒ 强判别。"
   }
 
 ];

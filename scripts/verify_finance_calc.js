@@ -3107,6 +3107,31 @@ const CASES = [
     expect: ["8,974"],
     ref: "期初还款（年金先付）：月利率 0.5%、36 期，月供 3,027.06 于每期期初支付，总利息 = 3,027.06×36 − 100,000 = 8,974.16 ⇒ 总利息 8,974；旧实现用先付报价却按期末计息、末期 balloon，总利息 9,569（末期 3,622.42），与报价不一致。默认期末还款 ⇒ 不命中。",
   },
+  {
+    slug: "finance/inflation-calculator",
+    inputs: { amt: "0", rate: "3", years: "20" },
+    expect: ["「amt」是本计算的分母，不能为 0"],
+    ref: "边界例：当前金额 0 会使购买力变化率 (现值/0−1)×100 无定义，页面已有 __tbInputGuard 分母守卫并显式提示（已拦截，无需改算）。默认态 100,000 元不出现该串。",
+  },
+  {
+    slug: "finance/analysis-risk",
+    inputs: { s: "1000", v: "0", f: "0", i: "1000", t: "0", n: "1", dec: "2" },
+    expect: ["(1000.00 − 1000.00) = —"],
+    ref: "边界负例：DFL = EBIT ÷ (EBIT−利息)，利息恰好等于 EBIT 时 EBT=0，旧实现把 0 校验写在分子 ebit!==0 上 ⇒ 输出 Infinity；现分母 ebt===0 返回 —。默认态 EBIT 300,000 / 利息 50,000 不命中。",
+  },
+  {
+    slug: "finance/position-size-calculator",
+    inputs: { "k-capital": "100000", "k-winrate": "55", "k-ratio": "0", "k-fraction": "0.5" },
+    expect: ["盈亏比须大于 0"],
+    ref: "边界负例：凯利公式 f*=(p×b−q)/b 在盈亏比 b=0 时分母为 0，旧实现输出 Infinity 仓位；现显式拒绝。默认态盈亏比 2 不命中。",
+  },
+  {
+    slug: "finance/insurance-calculator",
+    inputs: { ft_income: "20", ft_members: "0" },
+    clicks: ["switchMethod('four-three')"],
+    expect: ["家庭人口数需大于 0"],
+    ref: "边界负例：4321 法则的人均保额 = 年收入/家庭人口数，人口 0 时分母为 0，旧实现输出 Infinity；现显式拒绝。默认 3 人不命中。",
+  },
 ];
 
 // ---------------------------------------------------------------- main

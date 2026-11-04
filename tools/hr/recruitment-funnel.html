@@ -321,29 +321,30 @@ function calc(){
   var rows = [];
   var worstStage = '', worstRate = -1;
   for(var i=0;i<stages.length;i++){
-    var pct = i===0?100:(stages[i].count/(stages[i-1].count||1)*100);
+    var prev = i>0 ? stages[i-1].count : 0;
+    var pct = i===0 ? 100 : (prev>0 ? stages[i].count/prev*100 : NaN);
     var widthPct = stages[i].count/maxCount*100;
-    var lost = i===0?0:(stages[i-1].count-stages[i].count);
-    var lostPct = i===0?0:(100-pct);
+    var lost = i===0 ? 0 : (prev-stages[i].count);
+    var lostPct = i===0 ? 0 : (prev>0 ? 100-pct : NaN);
     var color = colors[i%colors.length];
     html += '<div class="funnel-step">'+
       '<div class="funnel-bar" style="width:'+Math.max(widthPct,12)+'%;background:'+color+';">'+
-      '<span>'+(stages[i].name||'—')+'</span><span>'+fmt(stages[i].count)+(i>0?(' · '+pct.toFixed(1)+'%'):'')+'</span>'+
+      '<span>'+(stages[i].name||'—')+'</span><span>'+fmt(stages[i].count)+(i>0?(' · '+(isFinite(pct)?pct.toFixed(1)+'%':'—')):'')+'</span>'+
       '</div>'+
-      (i>0 && lost>0?'<div class="funnel-lost">↓ 流失 '+fmt(lost)+' 人（'+lostPct.toFixed(1)+'%）</div>':'')+
+      (i>0 && lost>0?'<div class="funnel-lost">↓ 流失 '+fmt(lost)+' 人（'+(isFinite(lostPct)?lostPct.toFixed(1)+'%':'—')+'）</div>':'')+
       '</div>';
-    rows.push([stages[i].name||'—', fmt(stages[i].count), i===0?'—':pct.toFixed(2)+'%', i===0?'—':lostPct.toFixed(2)+'%']);
+    rows.push([stages[i].name||'—', fmt(stages[i].count), i===0||!isFinite(pct)?'—':pct.toFixed(2)+'%', i===0||!isFinite(lostPct)?'—':lostPct.toFixed(2)+'%']);
     if(i>0 && lostPct>worstRate){ worstRate=lostPct; worstStage=stages[i].name; }
   }
   const __g3=html;funnel.innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 
   var first = stages[0].count||0;
   var last = stages[stages.length-1].count||0;
-  var overall = first>0?(last/first*100):0;
+  var overall = first>0?(last/first*100):NaN;
   var pos = document.getElementById('position').value;
   // 该分支无自动化用例，原因：verify harness 兜底会无参调用 addStage() 追加 0 人阶段，默认态同样出现 last=0，无法构造有判别力的用例。
   var avgResume = last>0 ? Math.ceil(first/last) : null;
-  const __g4='<div class="v">'+overall.toFixed(2)+'%</div>'+
+  const __g4='<div class="v">'+(isFinite(overall)?overall.toFixed(2)+'%':'—')+'</div>'+
     '<div class="l" style="font-size:13px;color:var(--text-muted);">'+(pos||'该岗位')+'整体转化率　·　'+fmt(first)+' → '+fmt(last)+'　·　'+(avgResume===null?'成交 0 人，无法估算平均筛选份数':'平均每招 1 人需筛选 '+avgResume+' 份简历')+'</div>';document.getElementById('overallBox').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
 
   const __g5=ToolBox.createTable(
@@ -365,20 +366,21 @@ function __rfExport(){
   var tb=document.querySelector('#rfHidden tbody');
   tb.innerHTML='';
   for(var i=0;i<stages.length;i++){
-    var pct=i===0?100:(stages[i].count/(stages[i-1].count||1)*100);
+    var prev=i>0?stages[i-1].count:0;
+    var pct=i===0?100:(prev>0?stages[i].count/prev*100:NaN);
     var widthPct=stages[i].count/maxCount*100;
-    var lost=i===0?0:(stages[i-1].count-stages[i].count);
-    var lostPct=i===0?0:(100-pct);
+    var lost=i===0?0:(prev-stages[i].count);
+    var lostPct=i===0?0:(prev>0?100-pct:NaN);
     var tr=document.createElement('tr');
-    tr.innerHTML='<td>'+(stages[i].name||'-')+'</td><td>'+stages[i].count+'</td><td>'+(i===0?'-':pct.toFixed(2)+'%')+'</td><td>'+(i===0?'-':lostPct.toFixed(2)+'%')+'</td><td>'+(i===0?'-':lost)+'</td><td>'+widthPct.toFixed(1)+'%</td>';
+    tr.innerHTML='<td>'+(stages[i].name||'-')+'</td><td>'+stages[i].count+'</td><td>'+(i===0||!isFinite(pct)?'-':pct.toFixed(2)+'%')+'</td><td>'+(i===0||!isFinite(lostPct)?'-':lostPct.toFixed(2)+'%')+'</td><td>'+(i===0?'-':lost)+'</td><td>'+widthPct.toFixed(1)+'%</td>';
     tb.appendChild(tr);
   }
   var first=stages[0].count||0;
   var last=stages[stages.length-1].count||0;
-  var overall=first>0?(last/first*100):0;
+  var overall=first>0?(last/first*100):NaN;
   var pos=document.getElementById('position').value;
   var tr=document.createElement('tr');
-  tr.innerHTML='<td>Overall ('+(pos||'position')+')</td><td>'+first+' -> '+last+'</td><td>'+overall.toFixed(2)+'%</td><td>-</td><td>'+(first-last)+'</td><td>100.0%</td>';
+  tr.innerHTML='<td>Overall ('+(pos||'position')+')</td><td>'+first+' -> '+last+'</td><td>'+(isFinite(overall)?overall.toFixed(2)+'%':'-')+'</td><td>-</td><td>'+(first-last)+'</td><td>100.0%</td>';
   tb.appendChild(tr);
   TBKit.util.exportTable('#rfHidden',en?'recruitment-funnel.csv':'招聘漏斗分析.csv');
 }

@@ -169,6 +169,13 @@ const CASES = [
       "建议售价 ¥130.00"
     ],
     "ref": "售价 = 100 × (1 + 30%) = ¥130.00。页面输出 '建议售价 ¥130.00'。默认态其他输入不产生 ¥130.00。"
+  },
+  {
+    "slug": "sales/conversion-funnel",
+    "inputs": { "preset": "ecom" },
+    "clicks": ["stages.forEach(function(s,i){if(i>0)s.count=0;});calc()"],
+    "expect": [" · —"],
+    "ref": "边界负例：漏斗上一阶段为 0 时转化率 0/0 无定义，旧实现 `count || 1` 把分母兜成 1，真机出现 3300%/40000% 这类放大值；现显示 —（不可计算）。默认各阶段人数为正、全部比率有限，不出现「 · —」。"
   }
 ];
 async function main() {

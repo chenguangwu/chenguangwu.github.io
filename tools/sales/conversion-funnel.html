@@ -271,30 +271,48 @@ function delStage(i){ if(stages.length<=2){ToolBox.showToast(i18nText(), 'warnin
 
 function calc(){
   var funnel = document.getElementById('funnel');
+  var badMsg = '';
+  for (var vi = 0; vi < stages.length; vi++) {
+    if (!isFinite(stages[vi].count) || stages[vi].count < 0) {
+      badMsg = '各阶段人数不能为负数，请修正后再计算。';
+      break;
+    }
+    if (vi > 0 && stages[vi].count > stages[vi - 1].count) {
+      badMsg = '后一阶段人数不能多于前一阶段，请检查漏斗数据。';
+      break;
+    }
+  }
+  if (badMsg) {
+    document.getElementById('funnel').innerHTML = '';
+    document.getElementById('overallBox').innerHTML = '<div class="v">—</div><div class="l" style="font-size:13px;color:var(--danger);">' + badMsg + '</div>';
+    document.getElementById('resultTable').innerHTML = '';
+    return;
+  }
   var colors = ['#FF6B35','#F97316','#FB923C','#7C3AED','#9333EA','#00C9A7','#0D9488'];
   var html = '';
   var maxCount = stages[0].count || 1;
   var rows = [];
   for(var i=0;i<stages.length;i++){
-    var pct = i===0?100:(stages[i].count/(stages[i-1].count||1)*100);
+    var prev = i>0 ? stages[i-1].count : 0;
+    var pct = i===0 ? 100 : (prev>0 ? stages[i].count/prev*100 : NaN);
     var widthPct = (stages[i].count/maxCount*100);
-    var lost = i===0?0:(stages[i-1].count - stages[i].count);
-    var lostPct = i===0?0:(100-pct);
+    var lost = i===0 ? 0 : (prev - stages[i].count);
+    var lostPct = i===0 ? 0 : (prev>0 ? 100-pct : NaN);
     var color = colors[i%colors.length];
     html += '<div class="funnel-step">'+
       '<div class="funnel-bar" style="width:'+Math.max(widthPct,12)+'%;background:'+color+';">'+
-      '<span>'+(stages[i].name||'—')+'</span><span>'+fmt(stages[i].count)+(i>0?(' · '+pct.toFixed(1)+'%'):'')+'</span>'+
+      '<span>'+(stages[i].name||'—')+'</span><span>'+fmt(stages[i].count)+(i>0?(' · '+(isFinite(pct)?pct.toFixed(1)+'%':'—')):'')+'</span>'+
       '</div>'+
-      (i>0 && lost>0?'<div class="funnel-lost">↓ 流失 '+fmt(lost)+' 人（'+lostPct.toFixed(1)+'%）</div>':'')+
+      (i>0 && lost>0?'<div class="funnel-lost">↓ 流失 '+fmt(lost)+' 人（'+(isFinite(lostPct)?lostPct.toFixed(1)+'%':'—')+'）</div>':'')+
       '</div>';
-    rows.push([stages[i].name||'—', fmt(stages[i].count), i===0?'—':pct.toFixed(2)+'%', i===0?'—':lostPct.toFixed(2)+'%']);
+    rows.push([stages[i].name||'—', fmt(stages[i].count), i===0||!isFinite(pct)?'—':pct.toFixed(2)+'%', i===0||!isFinite(lostPct)?'—':lostPct.toFixed(2)+'%']);
   }
   const __g3=html;funnel.innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 
   var first = stages[0].count||0;
   var last = stages[stages.length-1].count||0;
-  var overall = first>0?(last/first*100):0;
-  const __g4='<div class="v">'+overall.toFixed(2)+'%</div>'+
+  var overall = first>0?(last/first*100):NaN;
+  const __g4='<div class="v">'+(isFinite(overall)?overall.toFixed(2)+'%':'—')+'</div>'+
     '<div class="l" style="font-size:13px;color:var(--text-muted);">整体转化率　·　'+fmt(first)+' → '+fmt(last)+'　·　共 '+stages.length+' 个阶段</div>';document.getElementById('overallBox').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
 
   const __g5=ToolBox.createTable(
