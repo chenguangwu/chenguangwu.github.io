@@ -2375,10 +2375,10 @@ const CASES = [
   },
   {
     slug: "it/go-escape",
-    inputs: { input: "a b" },
+    inputs: { input: "a\tb" },
     clicks: ["esc()"],
-    expect: ["\\a b"],
-    ref: "Go 字符串转义：整串用双引号包裹，内部双引号被转义 ⇒ 手算结果等价于「反斜杠 + 双引号」包裹 a、b 串（**逐字符可手算复算**）。默认输入不同 ⇒ 不命中。",
+    expect: ["\"a\\tb\""],
+    ref: "Go 字符串转义：制表符必须输出为 \\t（Go 规范转义表），产物形如「双引号 + a\\tb + 双引号」。旧实现 `case '\\a'` 里 JS 的 \\a 等于字符 a，导致每个 a 被误写成 \\a 而制表符之外的 'a' 串味；本例锚定 a 保持原样 + 制表符转义。默认输入不同 ⇒ 不命中。",
   },
   {
     slug: "it/crontab-generator",
@@ -2875,8 +2875,8 @@ const CASES = [
     slug: "it/go-escape",
     inputs: { input: "a\"b" },
     clicks: ["esc()"],
-    expect: ["\"\\a\\\"b\""],
-    ref: "Go 字符串转义：整串用双引号包裹，内部双引号被转义 ⇒ 手算结果等价于「反斜杠 + 双引号」包裹 a、b 串（**逐字符可手算复算**）。默认输入不同 ⇒ 不命中。",
+    expect: ["\"a\\\"b\""],
+    ref: "Go 字符串转义：整串用双引号包裹，内部双引号被转义 ⇒ \"a\\\"b\"。旧实现 `case '\\a'`（JS 里等于字符 a）把开头的 a 误转义成 \\a ⇒ 产物 \"\\a\\\"b\"，不命中本串。",
   },
   {
     slug: "it/java-escape",
@@ -4132,9 +4132,9 @@ const CASES = [
       "data": "abc123测试"
     },
     "expect": [
-      "abc123测试\n*ABC123测试*"
+      "⚠ 不支持字符「测」，Code 39 仅支持 A–Z、0–9、空格与 - . $ / + %。"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"data\":\"abc123测试\"}，输出区含「abc123测试\n*ABC123测试*」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "标准 Code 39 重写后校验字符集：注入 data=abc123测试（含汉字「测」）⇒ 输出不支持字符提示。默认样例仅含合法字符，不出现该提示 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/barcode-ean",
@@ -4152,9 +4152,9 @@ const CASES = [
       "data": "abc123测试"
     },
     "expect": [
-      "abc123测试\nabc123测试"
+      "123"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"data\":\"abc123测试\"}，输出区含「abc123测试\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "MSI 重写后先剥离非数字：注入 data=abc123测试 ⇒ 仅保留 123，输出区显示条码文本「123」。默认样例为 6 位以上数字，不出现该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/barcode-itf",
@@ -4172,9 +4172,9 @@ const CASES = [
       "data": "abc123测试"
     },
     "expect": [
-      "abc123测试\n123000000006"
+      "⚠ 输入含非数字字符，请只填写数字"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"data\":\"abc123测试\"}，输出区含「abc123测试\n123000000006」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "UPC-A 重写后严格校验字符集：注入 data=abc123测试（含汉字）⇒ 输出「⚠ 输入含非数字字符，请只填写数字」。默认样例为 12 位数字，不出现该提示 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/base32-encode",
@@ -4890,9 +4890,9 @@ const CASES = [
       "body": "1\n2\n3"
     },
     "expect": [
-      "abc123测试\nabc123测试\n1 2 3\nmailto:abc123%E6%B5%8B%E8%AF%95?subject=abc123%E6%B5%8B%E8%AF%95"
+      "mailto:abc123%E6%B5%8B%E8%AF%95?subject=abc123%E6%B5%8B%E8%AF%95&body=1%0A2%0A3"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"to\":\"abc123测试\",\"subject\":\"abc123测试\",\"body\":\"1\\n2\\n3\"}，输出区含「abc123测试\nabc123测试\n1 2 3\nmailto:abc123%E6…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "真实 QR 改造后输出区仅保留 mailto 链接：注入 to/subject=abc123测试、body=1\\n2\\n3，链接为 mailto:abc123%E6%B5%8B%E8%AF%95?subject=abc123%E6%B5%8B%E8%AF%95&body=1%0A2%0A3（encodeURIComponent 结果，%0A 为换行）。默认样例链接不同 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/email-normalizer",
@@ -5635,9 +5635,9 @@ const CASES = [
       "label": "abc123测试"
     },
     "expect": [
-      "abc123测试\nabc123测试\nabc123测试\ngeo:0,0?q=abc123%E6%B5%8B%E8%AF%95"
+      "⚠ 纬度需在 -90 ~ 90 之间"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"lat\":\"abc123测试\",\"lng\":\"abc123测试\",\"label\":\"abc123测试\"}，输出区含「abc123测试\nabc123测试\nabc123测试\ngeo:0,0?q=abc…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "真实 QR 改造后经纬度做数值校验：注入 lat/lng=abc123测试，parseFloat 得 NaN ⇒ 输出「⚠ 纬度需在 -90 ~ 90 之间」。默认样例（39.9/116.4）不出现该提示 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/linux-cheatsheet",
@@ -6106,16 +6106,23 @@ const CASES = [
   {
     "slug": "it/python-escape",
     "inputs": {
-      "input": "1\n2\n3",
-      "output": "1\n2\n3",
+      "input": "a\\b",
+      "output": "",
       "mode": "raw",
-      "qtype": "single"
+      "qtype": "double"
     },
-    "expect": [
-      "1 2 3\n1 2 3\nraw\nsingle",
-      "1 2 3\nraw\nsingle\n1 2 3"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"mode\":\"raw\",\"qtype\":\"single\"}，输出区含「1 2 3\n1 2 3\nraw\nsingle」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。G06-S1 首屏自跑改变了元素创建序 ⇒ blob 字段序随之改变，expect 容忍新旧两种字段序；判别力不变。"
+    "expect": ["r\"a\\b\""],
+    "ref": "Python 原始字符串不做任何转义：r\"a\\b\" 的值就是 a\\b。旧实现把反斜杠再翻倍成 r\"a\\\\b\"（值与原文不符）；本例锚定单反斜杠形态。默认 normal 模式产物带引号但与 r 前缀不同 ⇒ 回退态不命中。"
+  },
+  {
+    "slug": "it/python-escape",
+    "inputs": {
+      "input": "a\"b",
+      "mode": "raw",
+      "qtype": "double"
+    },
+    "expect": ["\"a\\\"b\""],
+    "ref": "原始字符串无法精确表示含闭合引号的文本（r\"a\"b\" 会被截断）⇒ 本页退回普通字符串转义，产物 \"a\\\"b\" 且不带 r 前缀。旧实现输出 r\"a\\\"b\"（值里残留反斜杠）⇒ 不命中。"
   },
   {
     "slug": "it/qr-decoder",
@@ -6612,9 +6619,9 @@ const CASES = [
       "text": "1\n2\n3"
     },
     "expect": [
-      "1 2 3\n1 2 3"
+      "1 2 3"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"text\":\"1\\n2\\n3\"}，输出区含「1 2 3\n1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "真实 QR 改造后输出区仅回显文本（canvas 不参与文本比对）：注入 text=1\\n2\\n3，innerText 归一为「1 2 3」。默认样例为「Hello, World! 你好，世界！」，不出现该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/text-replace",
@@ -7610,6 +7617,42 @@ const CASES = [
     clicks: ["document.getElementById('result').textContent='LOC='+xmlErrorLoc('error on line 3 at column 5: mismatched tag');"],
     expect: ["LOC=（第 3 行，第 5 列）"],
     ref: "错误定位：Chrome 的 parsererror 文案「line 3 at column 5」应被提取为结构化行列；旧实现只原样贴整段英文错误文本。",
+  },
+  {
+    slug: "it/base32-encode",
+    inputs: { input: "😀" },
+    clicks: ["encode32()"],
+    expect: ["6CPZRAA="],
+    ref: "基数编码边界（非 BMP 字符）：UTF-8 字节 F0 9F 98 80 的标准 Base32 为 6CPZRAA=（Python base64.b32encode 独立核对，RFC 4648）。页面按码点遍历不拆坏 emoji，旧式按 UTF-16 代理对处理会得到两段错误码。",
+  },
+  {
+    slug: "it/base85-encode",
+    inputs: { input: "😀" },
+    clicks: ["enc()"],
+    expect: ["<~n=Q(u~>"],
+    ref: "Ascii85 边界：UTF-8 四字节 F0 9F 98 80 一组压成 n=Q(u，Adobe 包裹 <~…~>（Python base64.a85encode(adobe=True) 独立核对）。默认模式即 Ascii85 ⇒ 无需切档。",
+  },
+  {
+    slug: "it/quoted-printable",
+    inputs: { input: "😀" },
+    checkIds: ["upper"],
+    clicks: ["enc()"],
+    expect: ["=F0=9F=98=80"],
+    ref: "QP 边界：非 ASCII 字节一律编成 =XX；页面「大写十六进制」默认勾选（HTML checked），harness 的 checkbox 桩恒 false，故用 checkIds 还原真机默认态。Python quopri.encodestring 独立核对为 =F0=9F=98=80（大写形态）。",
+  },
+  {
+    slug: "it/html-entities-encode",
+    inputs: { input: "😀" },
+    clicks: ["document.getElementById('mode').value='decimal';enc()"],
+    expect: ["&#128512;"],
+    ref: "实体编码边界：十进制模式按码点（而非 UTF-16 码元）输出 &#128512;（U+1F600 = 128512）；按码元实现的旧班会拆成两个代理对实体。默认 named 模式对 emoji 回退十进制，但串形不同。",
+  },
+  {
+    slug: "it/punycode",
+    inputs: { input: "xn--fiq228c.a_b" },
+    clicks: ["dec()"],
+    expect: ["中文.a_b"],
+    ref: "解码边界：xn-- 标签解回中文；纯 ASCII 标签 a_b 含下划线，不在 Punycode 数字字符表（a-z/0-9/-）内，不可能是裸 Punycode ⇒ 两种勾选态下都必须原样保留。旧实现对无前缀标签一律 decode('a_b')（非法数字直接抛错），本串不命中。",
   }
 
 ];

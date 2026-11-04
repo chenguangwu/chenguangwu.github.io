@@ -274,14 +274,20 @@ function esc(){
   const qtype = document.getElementById('qtype').value;
   const isRaw = mode === 'raw';
   let q = '"';
-  let prefix = '';
   if(qtype === 'single'){ q = "'"; }
   else if(qtype === 'triple'){ q = '"""'; }
-  if(isRaw) prefix = 'r';
-  let out = prefix + q;
   if(isRaw){
-    out += text.replace(/\\/g, '\\\\').replace(new RegExp('\\' + (qtype === 'triple' ? '"""' : q), 'g'), '\\' + (qtype === 'triple' ? '"""' : q));
-  } else {
+    // 原始字符串不做任何转义（r"a\b" 的值就是 a\b）。但原始字符串既不能以单个反斜杠结尾，
+    // 也不能包含其闭合引号序列；这两种文本无法用 r"..." 精确表示，退回普通字符串转义
+    // （不带 r 前缀），保证产物能被 Python 解析且转义后与原文等价。
+    const delim = qtype === 'triple' ? '"""' : q;
+    if(!text.endsWith('\\') && !text.includes(delim)){
+      document.getElementById('output').value = 'r' + q + text + q;
+      return;
+    }
+  }
+  let out = q;
+  {
     for(const ch of text){
       const cp = ch.codePointAt(0);
       switch(ch){
@@ -330,7 +336,8 @@ function unesc(){
     text = text.slice(1, -1);
   }
   if(isRaw){
-    document.getElementById('output').value = text.replace(/\\(.)/g, '$1');
+    // 原始字符串里反斜杠就是字面反斜杠，不参与转义解析：去掉 r 前缀与引号后原样返回。
+    document.getElementById('output').value = text;
     return;
   }
   let out = '';
