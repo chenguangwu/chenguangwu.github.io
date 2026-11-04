@@ -2053,6 +2053,20 @@ const CASES = [
     ref: "独立复算：100 m = 0.1 km = 10000 cm = 100000 mm = 0.062137 mi = 109.36133 yd = 328.08399 ft（量纲换算，逐项可手算）。默认示例换算的不是 `m`。",
   },
   {
+    slug: "it/unit-converter-advanced",
+    inputs: { cat: "length", from: "nmi", val: "1" },
+    clicks: ["calcTool()"],
+    expect: ["1852", "1.852"],
+    ref: "国际海里 nmi = 1852 m（BIPM/国际度量衡定义）：1 nmi = 1852 m = 1.852 km；默认态（from=km）输出 1000 而非 1852，故为强判别。修复前键 `nm:1852` 把海里写成了纳米，误差 1.852×10¹² 倍。",
+  },
+  {
+    slug: "it/unit-converter-advanced",
+    inputs: { cat: "length", from: "nm", val: "1" },
+    clicks: ["calcTool()"],
+    expect: ["1e-9"],
+    ref: "纳米 nm = 10⁻⁹ m（SI 词头 nano）：1 nm 换算为 1e-9 m；修复前 `nm` 键值为 1852（海里），会输出 1852 而非 1e-9。",
+  },
+  {
     slug: "it/text-qr",
     inputs: { text: "TOOLBOX-QR-2026" },
     clicks: ["generate()"],
