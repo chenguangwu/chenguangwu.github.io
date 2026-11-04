@@ -66,6 +66,13 @@ function loadToolboxStubSrc() {
 // 共享层 /js/common.js 源缓存：TB_STUB_FIDELITY=1 时按线上真实顺序注入（defer → 页面内联之后）。
 // 目的：复现「页面顶层同名函数被共享层全局赋值覆盖」这类静默遮蔽（如 fmtNum），
 // 避免 harness 因为没加载 common.js 而把生产缺陷跑成绿。
+//
+// 开关在模块加载时一次性读取：runCase 期间页面脚本可能把 globalThis.process 覆盖成页面自己的
+// 函数（如 it/caesar-cipher 的 `process=function(){…}`，线上无害——那里 process 本就是页面函数），
+// 若在用例执行中再访问 process.env 会 TypeError、整条门禁崩掉。
+const TB_STUB_FIDELITY = process.env.TB_STUB_FIDELITY === "1";
+const TB_FIDELITY_DEBUG = !!process.env.TB_FIDELITY_DEBUG;
+const NODE_STDERR = process.stderr;
 let _commonSrc = null;
 function loadCommonSrc() {
   if (_commonSrc === null) {
@@ -9214,7 +9221,7 @@ async function runCaseInner(c) {
   ];
 
   // 定时器桩（safeTimer）已前移至桩注入之前定义，供 ToolBox 早期桩的 debounce 复用，此处不再重复定义。
-  const exposeNames = process.env.TB_STUB_FIDELITY === "1"
+  const exposeNames = TB_STUB_FIDELITY
     ? [...ordered, ...varNames.filter((n) => !ordered.includes(n))]
     : ordered;
   const expose = exposeNames.map((n) => `try{__f[${JSON.stringify(n)}]=typeof ${n}==='function'?${n}:null;}catch(e){}`).join("\n");
@@ -9239,7 +9246,7 @@ async function runCaseInner(c) {
   // 线上页面顶层 `function fmtNum(){}` 是 window 属性，common.js 末尾 `global.fmtNum = ...` 会把它覆盖；
   // harness 里页面声明只是 new Function 的局部绑定，因此注入后再把同名局部绑定显式重指到全局实现，
   // 才能复现「桩里绿、线上错」的遮蔽。未设置该环境变量时完全不执行，既有用例逐字节不变。
-  if (process.env.TB_STUB_FIDELITY === "1") {
+  if (TB_STUB_FIDELITY) {
     const _commonSrc = loadCommonSrc();
     if (_commonSrc) {
       try {
@@ -9267,8 +9274,8 @@ async function runCaseInner(c) {
       } catch (e) {
         win.__tbFidelityError = e && e.message;
       }
-      if (process.env.TB_FIDELITY_DEBUG) {
-        process.stderr.write("[fidelity] err=" + win.__tbFidelityError + " fmtNum=" + (typeof win.fmtNum) + " ToolBox=" + (typeof win.ToolBox) + "\n");
+      if (TB_FIDELITY_DEBUG) {
+        NODE_STDERR.write("[fidelity] err=" + win.__tbFidelityError + " fmtNum=" + (typeof win.fmtNum) + " ToolBox=" + (typeof win.ToolBox) + "\n");
       }
       // 页面顶层声明与共享层重名时，以共享层实现为准（等价线上的后执行覆盖）。
       for (const [n, f] of Object.entries(fns)) {
