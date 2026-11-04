@@ -177,9 +177,32 @@ s.parentNode.insertBefore(el, s);
 
 <script>
 var lastResult='';
+function __tbInputGuard(_ids,_labels){
+  var __TPL='请填写「%s」后再计算。';
+  var _firstBad=-1;
+  for(var _i=0;_i<_ids.length;_i++){
+    var _e=document.getElementById(_ids[_i]);
+    if(!_e) continue;
+    var _raw=String(_e.value==null?'':_e.value).trim();
+    if(_raw===''||isNaN(parseFloat(_raw))){ if(_firstBad<0)_firstBad=_i; }
+  }
+  if(_firstBad>=0){
+    var _lbl=(_labels&&_labels[_firstBad])||_ids[_firstBad];
+    var _fe=document.getElementById(_ids[_firstBad]);
+    if(_fe&&_fe.classList&&_fe.classList.add)_fe.classList.add('input-error');
+    return __TPL.replace('%s',_lbl);
+  }
+  for(var _k=0;_k<_ids.length;_k++){
+    var _e2=document.getElementById(_ids[_k]);
+    if(_e2&&_e2.classList&&_e2.classList.remove)_e2.classList.remove('input-error');
+  }
+  return '';
+}
+function __tbClear(ids){for(var i=0;i<ids.length;i++){var e=document.getElementById(ids[i]);if(e)e.innerHTML='';}}
 function getNum(id){var v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function clamp01(x){return Math.max(0,Math.min(1,x));}
 function calc(){
+  var __ig=__tbInputGuard(['dbz','h','area'],['回波强度 (dBZ)','回波顶高 (km)','回波面积 (km²)']);if(__ig){__tbClear(['strength_3Table','strength_3Diff','strength_3Chart']);lastResult='';document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ '+__ig+'</p>';return;}
   var dbz=getNum('dbz'),h=Math.max(0,getNum('h')),area=Math.max(0,getNum('area'));
   var Z=Math.pow(10,dbz/10);
   var R=Math.pow(Z/200,1/1.6); // mm/h
