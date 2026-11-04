@@ -310,10 +310,11 @@ s.parentNode.insertBefore(el, s);
 <script>
 // Minimal Markdown parser
 function parseMD(text) {
-  let html = text;
-  // Code blocks
+  // 先转义 HTML：Markdown 源文本按纯文本处理，不允许注入原始标签
+  let html = escapeHTML(text);
+  // Code blocks（内容已在上一步转义，不再二次转义）
   html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
-    return '<pre><code>' + escapeHTML(code.trim()) + '</code></pre>';
+    return '<pre><code>' + code.trim() + '</code></pre>';
   });
   // Inline code
   html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
@@ -324,12 +325,20 @@ function parseMD(text) {
   // Bold & italic
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  // Images（先于链接处理，避免 ![alt](url) 被链接规则截断）
+  html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, alt, url) => {
+    const u = safeUrl(url, true);
+    if (!u) return escapeHTML(alt);
+    return '<img src="' + escAttr(u) + '" alt="' + escAttr(alt) + '">';
+  });
   // Links
-  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
-  // Images
-  html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1">');
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, txt, url) => {
+    const u = safeUrl(url, false);
+    if (!u) return txt;
+    return '<a href="' + escAttr(u) + '" target="_blank" rel="noopener noreferrer">' + txt + '</a>';
+  });
   // Blockquotes
-  html = html.replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>');
+  html = html.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
   // Horizontal rule
   html = html.replace(/^---$/gm, '<hr>');
   // Tables
@@ -357,6 +366,19 @@ function parseMD(text) {
 
 function escapeHTML(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function escAttr(s) {
+  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// 只放行 http(s)/mailto/站内相对链接；图片额外允许 data:image，阻断 javascript: 与属性注入
+function safeUrl(u, allowDataImage) {
+  u = String(u || '').trim().replace(/&amp;/g,'&');
+  if (/^(javascript|vbscript|data:text\/html)/i.test(u)) return '';
+  if (allowDataImage && /^data:image\/(png|jpe?g|gif|webp|svg\+xml);base64,/i.test(u)) return u;
+  if (/^(https?:\/\/|\/|\.{1,2}\/|#|mailto:)/i.test(u)) return u;
+  return '';
 }
 
 function render() {
