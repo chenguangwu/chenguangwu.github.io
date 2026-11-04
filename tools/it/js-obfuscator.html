@@ -740,24 +740,46 @@ s.parentNode.insertBefore(el, s);
   // 字符串加密 - 将每个字符转为 \xNN
   function encryptString(str) {
     var quote = str[0]; // ' or " or `
+    if (quote === '`' && str.indexOf('${') >= 0) return str; // 模板插值无法按字符串整体加密，原样保留
     var inner = str.substring(1, str.length - 1);
-    // 处理已有的转义
-    var unescaped = inner
-      .replace(/\\n/g, '\n')
-      .replace(/\\r/g, '\r')
-      .replace(/\\t/g, '\t')
-      .replace(/\\\\/g, '\\')
-      .replace(/\\"/g, '"')
-      .replace(/\\'/g, "'");
+    // 单次扫描还原转义（顺序敏感的多轮 replace 会把 "\\n" 这类双反斜杠解错）
+    var unescaped = '';
+    for (var i = 0; i < inner.length; i++) {
+      if (inner[i] !== '\\') { unescaped += inner[i]; continue; }
+      var n = inner[i + 1];
+      if (n === undefined) { unescaped += '\\'; break; }
+      if (n === 'n') { unescaped += '\n'; i++; }
+      else if (n === 'r') { unescaped += '\r'; i++; }
+      else if (n === 't') { unescaped += '\t'; i++; }
+      else if (n === 'b') { unescaped += '\b'; i++; }
+      else if (n === 'f') { unescaped += '\f'; i++; }
+      else if (n === 'v') { unescaped += '\v'; i++; }
+      else if (n === '0') { unescaped += '\x00'; i++; }
+      else if (n === 'x') { unescaped += String.fromCharCode(parseInt(inner.substr(i + 2, 2), 16)); i += 3; }
+      else if (n === 'u') {
+        if (inner[i + 2] === '{') {
+          var close = inner.indexOf('}', i + 3);
+          unescaped += String.fromCodePoint(parseInt(inner.slice(i + 3, close), 16));
+          i = close;
+        } else {
+          unescaped += String.fromCharCode(parseInt(inner.substr(i + 2, 4), 16));
+          i += 5;
+        }
+      }
+      else if (n === '\n') { i++; } // 续行
+      else { unescaped += n; i++; }
+    }
     var result = quote;
-    for (var i = 0; i < unescaped.length; i++) {
-      var ch = unescaped.charCodeAt(i);
-      if (ch < 128 && ch !== 0 && unescaped[i] !== quote) {
+    for (var j = 0; j < unescaped.length; j++) {
+      var ch = unescaped.charCodeAt(j);
+      // ASCII（含引号、反斜杠、NUL）一律写成 \xNN：引号不转义会直接截断字符串，
+      // 反斜杠与 NUL 原样写出会生成非法源码。
+      if (ch < 128) {
         var hex = ch.toString(16);
         if (hex.length === 1) hex = '0' + hex;
         result += '\\x' + hex;
       } else {
-        result += unescaped[i];
+        result += unescaped[j];
       }
     }
     result += quote;

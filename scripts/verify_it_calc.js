@@ -1147,10 +1147,10 @@ const CASES = [
   },
   {
     slug: "it/js-obfuscator",
-    inputs: { inputCode: "var a=1;" },
-    clicks: ["obfuscate()"],
-    expect: ["+0%"],
-    ref: "混淆前后字节数相同 ⇒ 增幅 0%；默认示例代码更长，不命中。",
+    inputs: { inputCode: "var s=\"a\\\"b\";" },
+    clicks: ["window.ToolBox=window.ToolBox||{showToast(){},copy(){}};document.getElementById('optStringEncrypt').checked=true;obfuscate()"],
+    expect: ["\\x22"],
+    ref: "字符串加密必须把内嵌双引号写成 \\x22。旧实现条件 `ch < 128 && unescaped[i] !== quote` 直接跳过引号字符，产出 var s=\"\\x61\"\\x62\"; 这类引号提前闭合的非法源码（vm 报 Invalid or unexpected token），\\x22 不出现。默认示例代码的引号是分隔符而非内容，不含 \\x22 ⇒ 强判别。",
   },
   {
     slug: "it/regex-common",
