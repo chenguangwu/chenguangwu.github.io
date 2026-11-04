@@ -186,6 +186,8 @@ grep -rlE "toBlob\(|toDataURL\(" js/tools --include='*.js' | sort
 
 > C 档守卫仅覆盖「浏览器画布上限 / 实现 bug」等非污染型同步异常，不作为上传口污染兜底；上传口污染由 C1 的 `__svgFileBlocked` 与 `design/svg-to-png` 的 sanitize 负责。
 
+**C2 归因（避免与内容批混淆）**：`design/svg-to-png` 的 **JS 修复由本线完成**——`__svgSanitize()` 默认路径（DOMParser 删 `foreignObject`、删非 `#`/`data:` 的 `href|xlink:href|src`、`@import`/外链 `url()`；无 DOM 环境走等价字符串兜底）、`img.onload` 内部 try/catch、失败时清空 `lastDataURL`；verify 侧新增字符串兜底用例（`FO:1 EXT:2 CSS:1 GONE:YES`），真机两条反证通过 ⇒ **已闭环，无欠账**。设计与生活线 `664ba5099d` 只改内容层（FAQ 措辞 + `content_deepdive.json` + 英文键），未碰该页 JS。两件事分开记。
+
 ## 九、批次纪律（本条为事故复盘，后续批次沿用）
 
 - **整文件 `git add` 之前必须先 `git diff <file>`**，确认没有不属于本批的行；跨线文件只提交自己的 hunk（`git diff` 过滤后 `git apply --cached`）。
