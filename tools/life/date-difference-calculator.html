@@ -406,7 +406,7 @@ function switchTab(tab){
 }
 
 function setToday(type){
-  const today = new Date().toISOString().split('T')[0];
+  const today = fmtLocalDate(new Date());
   if(type === 'start') document.getElementById('startDate').value = today;
   if(type === 'end') document.getElementById('endDate').value = today;
   if(type === 'base') document.getElementById('baseDate').value = today;
@@ -414,8 +414,21 @@ function setToday(type){
   if(type === 'base') calcAddSub();
 }
 
+// 日期控件值为 YYYY-MM-DD：按本地年月日构造，避免 new Date('YYYY-MM-DD') 按 UTC 解析后在负时区偏移一天
+function parseLocalDate(str){
+  const p = String(str).split('-');
+  return new Date(+p[0], +p[1] - 1, +p[2]);
+}
+function fmtLocalDate(d){
+  const p = n => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+}
+
 function getDaysDiff(start, end){
-  return Math.floor((end - start) / (1000 * 60 * 60 * 24));
+  // 用本地年月日的 UTC 零点做差，避开夏令时 23/25 小时日导致的 floor 偏差
+  const a = Date.UTC(start.getFullYear(), start.getMonth(), start.getDate());
+  const b = Date.UTC(end.getFullYear(), end.getMonth(), end.getDate());
+  return Math.floor((b - a) / (1000 * 60 * 60 * 24));
 }
 
 function countWorkdays(start, end){
@@ -442,8 +455,8 @@ function calcDiff(){
     return;
   }
   
-  let start = new Date(startStr);
-  let end = new Date(endStr);
+  let start = parseLocalDate(startStr);
+  let end = parseLocalDate(endStr);
   
   if(start > end){
     [start, end] = [end, start];
@@ -502,7 +515,7 @@ function calcAddSub(){
     return;
   }
   
-  const base = new Date(baseStr);
+  const base = parseLocalDate(baseStr);
   if(!isFinite(base.getTime())){
     document.getElementById('addsubResult').textContent = '基准日期无效';
     document.getElementById('addsubSub').textContent = '';
@@ -793,7 +806,7 @@ function saveHistory(){
   
   if(!startStr || !endStr) return;
   
-  const days = Math.abs(getDaysDiff(new Date(startStr), new Date(endStr))) + 1;
+  const days = Math.abs(getDaysDiff(parseLocalDate(startStr), parseLocalDate(endStr))) + 1;
   
   const item = {
     id: Date.now(),
@@ -853,11 +866,13 @@ function renderHistory(){
   `).join('');if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h4;
 }
 
-const today = new Date().toISOString().split('T')[0];
+const today = fmtLocalDate(new Date());
 document.getElementById('startDate').value = today;
-const nextMonth = new Date();
-nextMonth.setMonth(nextMonth.getMonth() + 1);
-document.getElementById('endDate').value = nextMonth.toISOString().split('T')[0];
+const now = new Date();
+const nm = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+const nmLastDay = new Date(nm.getFullYear(), nm.getMonth() + 1, 0).getDate();
+nm.setDate(Math.min(now.getDate(), nmLastDay));
+document.getElementById('endDate').value = fmtLocalDate(nm);
 document.getElementById('baseDate').value = today;
 
 loadHistory();
