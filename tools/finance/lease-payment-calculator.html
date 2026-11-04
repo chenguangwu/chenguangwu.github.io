@@ -513,26 +513,51 @@ function calc(){
     totalInterest = pmt * n - (principal - fv);
 
     var balance = principal;
-    for(var i = 1; i <= n; i++){
-      var interest = balance * r;
-      var pay, principalPart;
-      if(i === n){
-        principalPart = balance;
-        pay = balance + interest;
-        balance = 0;
-      } else {
-        principalPart = pmt - interest;
-        pay = pmt;
-        balance -= principalPart;
+    if(timing === 'begin'){
+      // 期初还款：付款发生在期初，付款后才开始计息（首期不计息）；
+      // 最后一期结清余额（含残值按 t=n−1 折现），与 pmt 的年金现值口径一致
+      for(var i = 1; i <= n; i++){
+        var interest = (i === 1) ? 0 : balance * r;
+        var pay, principalPart;
+        if(i === n){
+          pay = balance + interest;
+          principalPart = balance;
+        } else {
+          pay = pmt;
+          principalPart = pay - interest;
+        }
+        balance = balance + interest - pay;
+        totalInterest += interest;
+        schedule.push({
+          period: i,
+          payment: pay,
+          principal: principalPart,
+          interest: interest,
+          balance: Math.max(balance, 0)
+        });
       }
-      totalInterest += interest;
-      schedule.push({
-        period: i,
-        payment: pay,
-        principal: principalPart,
-        interest: interest,
-        balance: Math.max(balance, 0)
-      });
+    } else {
+      for(var i = 1; i <= n; i++){
+        var interest = balance * r;
+        var pay, principalPart;
+        if(i === n){
+          principalPart = balance;
+          pay = balance + interest;
+          balance = 0;
+        } else {
+          principalPart = pmt - interest;
+          pay = pmt;
+          balance -= principalPart;
+        }
+        totalInterest += interest;
+        schedule.push({
+          period: i,
+          payment: pay,
+          principal: principalPart,
+          interest: interest,
+          balance: Math.max(balance, 0)
+        });
+      }
     }
     var sumPay = 0, sumInterest = 0;
     schedule.forEach(function(s){ sumPay += s.payment; sumInterest += s.interest; });
