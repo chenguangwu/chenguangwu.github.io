@@ -455,6 +455,8 @@ function initRateChips(){
 }
 
 function setRate(r, el){
+  // 无参调用（如键盘/自动化兜底）不得把利率写成 undefined 或 0，否则会静默产出 0% 结果
+  if(r === undefined || r === null || r === '' || !isFinite(+r)) return;
   document.getElementById('rate').value = r;
   document.querySelectorAll('.rate-chip').forEach(function(c){c.classList.remove('active');});
   if(el) el.classList.add('active');
@@ -633,7 +635,8 @@ function calcIRR(monthly, initial, months, finalValue, monthStart){
   for(var k = 0; k < cashFlows.length; k++) scale = Math.max(scale, Math.abs(cashFlows[k]));
   var residual = npvAt(monthlyIRR);
   if(!isFinite(residual) || Math.abs(residual) > 1e-6 * Math.max(1, scale)) return NaN;
-  return monthlyIRR * 12 * 100;
+  // IRR 求得的是月利率 ⇒ 年化按复利换算（(1+r)^12 − 1），而不是单利 ×12
+  return (Math.pow(1 + monthlyIRR, 12) - 1) * 100;
 }
 
 function renderStats(r){
@@ -660,14 +663,17 @@ function renderResult(r){
   resHtml += '<hr style="border:none;border-top:1px solid var(--border);margin:12px 0;">';
   resHtml += '<p>定投周期：<strong>' + r.years + '年（' + r.months + '期）</strong></p>';
   resHtml += '<p>每月定投：<strong>¥' + ToolBox.formatNumber(r.monthly, 2) + '</strong></p>';
-  resHtml += '<p>预期年化：<strong>' + r.annualRate.toFixed(2) + '%</strong></p>';
+  var nominalAnnual = r.annualRate;
+  // 收益按「年利率/12」逐月复利累乘 ⇒ 同一页并列名义年化与有效年化，避免把名义值当有效值
+  var effectiveAnnual = (Math.pow(1 + nominalAnnual / 100 / 12, 12) - 1) * 100;
+  resHtml += '<p>预期年化：<strong>' + nominalAnnual.toFixed(2) + '%</strong>（<span>名义年化</span>） · <span>有效年化（按月复利）</span> <strong>' + effectiveAnnual.toFixed(2) + '%</strong></p>';
   resHtml += '<p>申购费率：<strong>' + r.buyFee.toFixed(2) + '%</strong> · 管理费率：<strong>' + r.manageFee.toFixed(2) + '%/年</strong></p>';
   resHtml += '<p>托管费率：<strong>' + r.custodyFee.toFixed(2) + '%/年</strong> · 赎回费率：<strong>' + r.sellFee.toFixed(2) + '%</strong></p>';
   resHtml += '<p>分红方式：<strong>' + (r.reinvest ? '红利再投资' : '现金分红') + '</strong> · 扣款时间：<strong>' + (r.monthStart ? '月初' : '月末') + '</strong></p>';
   if(isFinite(r.annualized)){
-    resHtml += '<p>年化收益率（IRR）：<strong style="color:var(--primary);">' + r.annualized.toFixed(2) + '%</strong></p>';
+    resHtml += '<p><span>年化收益率（IRR，按月复利有效）</span>：<strong style="color:var(--primary);">' + r.annualized.toFixed(2) + '%</strong></p>';
   } else {
-    resHtml += '<p>年化收益率（IRR）：<strong style="color:var(--danger);">无法计算（请输入有效现金流）</strong></p>';
+    resHtml += '<p><span>年化收益率（IRR，按月复利有效）</span>：<strong style="color:var(--danger);">无法计算（请输入有效现金流）</strong></p>';
   }
   resHtml += '<p style="font-size:18px;font-weight:700;color:var(--primary);margin-top:8px;">期末总资产：¥' + ToolBox.formatNumber(r.finalBalance, 2) + '</p>';
 

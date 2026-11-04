@@ -363,11 +363,13 @@ function parseYearUnits(raw, life){
 function calc(){
   const cost = parseFloat(document.getElementById('cost').value) || 0;
   const salvage = parseFloat(document.getElementById('salvage').value) || 0;
-  const life = parseInt(document.getElementById('life').value, 10) || 0;
+  const lifeRaw = parseFloat(document.getElementById('life').value);
+  const life = isFinite(lifeRaw) ? Math.floor(lifeRaw) : 0;
   const totalUnits = parseFloat(document.getElementById('totalUnits').value) || 0;
 
-  if(cost <= 0 || life <= 0 || salvage < 0 || salvage >= cost){
-    document.getElementById('stats').innerHTML='<div class="stat-card"><div class="val" style="font-size:14px;color:var(--danger);">请检查：原值 > 残值 ≥ 0，年限 > 0</div></div>';
+  // 折旧按整年计提：年限必须是正整数，小数不得静默截断（否则 5.5 年会被当成 5 年）
+  if(cost <= 0 || !isFinite(lifeRaw) || lifeRaw <= 0 || lifeRaw !== life || salvage < 0 || salvage >= cost){
+    document.getElementById('stats').innerHTML='<div class="stat-card"><div class="val" style="font-size:14px;color:var(--danger);">请检查：原值 > 残值 ≥ 0，使用年限须为正整数（折旧按整年计提）</div></div>';
     document.getElementById('compareTable').innerHTML='';
     return;
   }
@@ -517,10 +519,12 @@ function drawChart(straight, ddb, syd, units){
 function exportCSV(){
   const cost = parseFloat(document.getElementById('cost').value) || 0;
   const salvage = parseFloat(document.getElementById('salvage').value) || 0;
-  const life = parseInt(document.getElementById('life').value, 10) || 0;
+  const lifeRaw = parseFloat(document.getElementById('life').value);
+  const life = isFinite(lifeRaw) ? Math.floor(lifeRaw) : 0;
   const totalUnits = parseFloat(document.getElementById('totalUnits').value) || 0;
   const yearUnits = parseYearUnits(document.getElementById('yearUnits').value, life);
-  if(cost <= 0 || life <= 0) return;
+  // 与页面计算同口径：年限非正整数时拒绝导出，避免导出与屏幕结果不一致
+  if(cost <= 0 || !isFinite(lifeRaw) || lifeRaw !== life || life <= 0) return;
 
   const straight = calcStraight(cost, salvage, life);
   const ddb = calcDDB(cost, salvage, life);
