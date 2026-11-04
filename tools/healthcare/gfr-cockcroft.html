@@ -124,6 +124,11 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><label>血肌酐 µmol/L</label><input type="number" id="scr" value="80" step="any" oninput="calc()" placeholder="如 80"></div>
     <div class="input-row"><label>性别 1=男 0=女</label><input type="number" id="sex" value="1" step="1" oninput="calc()" placeholder="如 1"></div>
     <div class="input-row"><label>身高 cm（用于体表面积归一）</label><input type="number" id="height" value="170" step="any" oninput="calc()" placeholder="如 170"></div>
+    <div class="input-row"><label>体重口径（肥胖者建议 IBW/ABW）</label><select id="wtBasis" onchange="calc()">
+      <option value="tbw" selected>实际体重 TBW（默认）</option>
+      <option value="ibw">理想体重 IBW（Devine）</option>
+      <option value="abw">校正体重 ABW = IBW + 0.4(TBW − IBW)</option>
+    </select></div>
     <div class="toolbar">
       <div id="gfr_cockcroftPresets"></div>
       <button class="btn primary" onclick="calc()">计算</button>
@@ -138,7 +143,7 @@ s.parentNode.insertBefore(el, s);
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
-    <div class="formula-eq">CrCl = (140 − 年龄) × 体重 / [72 × (血肌酐 µmol/L ÷ 88.4)] × 性别系数（女 0.85）<br>女性 ×0.85<br>体表面积归一：BSA = 0.007184 × 体重(kg)^0.425 × 身高(cm)^0.725（DuBois），归一值 = CrCl × 1.73 ÷ BSA<br>体重口径：一般用实际体重；肥胖（BMI ≥30）建议改用理想体重（IBW）或校正体重（ABW），否则 CrCl 会被高估。</div>
+    <div class="formula-eq">CrCl = (140 − 年龄) × 体重 / [72 × (血肌酐 µmol/L ÷ 88.4)] × 性别系数（女 0.85）<br>女性 ×0.85<br>体表面积归一：BSA = 0.007184 × 体重(kg)^0.425 × 身高(cm)^0.725（DuBois），归一值 = CrCl × 1.73 ÷ BSA<br>体重口径可选：实际体重 TBW（默认）｜理想体重 IBW = 50/45.5 + 0.91×(身高cm − 152.4)｜校正体重 ABW = IBW + 0.4×(TBW − IBW)；BMI ≥30 且用实际体重时提示改用 IBW/ABW，否则 CrCl 会被高估。</div>
     <p style="font-size:13px;color:var(--text-muted);margin-top:12px;">用于药物剂量调整。</p>
   </div>
 </div>
@@ -301,19 +306,34 @@ s.parentNode.insertBefore(el, s);
 
 
 function calc(){
-    var __ig=__tbInputGuard(['age', 'weight', 'scr', 'sex', 'height'],["年龄", "体重 kg", "血肌酐 µmol/L", "性别 1=男 0=女", "身高 cm"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
+    var __ig=__tbInputGuard(['age', 'weight', 'scr', 'sex', 'height','wtBasis'],["年龄", "体重 kg", "血肌酐 µmol/L", "性别 1=男 0=女", "身高 cm","体重口径"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const age = +document.getElementById('age').value || 0;
   const weight = +document.getElementById('weight').value || 0;
   const scr = +document.getElementById('scr').value || 0;
   const sex = +document.getElementById('sex').value || 0;
   const height = +document.getElementById('height').value || 0;
+  const wtBasis = (document.getElementById('wtBasis')||{}).value || 'tbw';
+  // 体重口径：TBW 实际体重；IBW Devine；ABW = IBW + 0.4×(TBW − IBW)
+  const ibw = height > 0 ? (sex ? 50 + 0.91 * (height - 152.4) : 45.5 + 0.91 * (height - 152.4)) : NaN;
+  const abw = isFinite(ibw) && weight > ibw ? ibw + 0.4 * (weight - ibw) : ibw;
+  let useW = weight;
+  if (wtBasis === 'ibw' && isFinite(ibw)) useW = ibw;
+  else if (wtBasis === 'abw' && isFinite(ibw)) useW = abw;
+  const basisName = { tbw: '实际体重 TBW', ibw: '理想体重 IBW（Devine）', abw: '校正体重 ABW' }[wtBasis] || '实际体重 TBW';
   let html = '';
-  const __v0 = (((140-age)*weight)/(72*(scr/88.4))*(sex?1:0.85));
+  const __v0 = (((140-age)*useW)/(72*(scr/88.4))*(sex?1:0.85));
   html += `<p>CrCl：<strong style="font-size:18px;color:var(--primary);">${__v0.toFixed(2)}</strong> mL/min</p>`;
   const __bsa = (0.007184*Math.pow(weight,0.425)*Math.pow(height,0.725));
   const __v1 = (__v0*1.73/__bsa);
   html += `<p>体表面积归一：<strong style="font-size:18px;color:var(--primary);">${__v1.toFixed(2)}</strong> mL/min/1.73m²</p>`;
   html += `<p style="font-size:12px;color:var(--text-muted);">所用 BSA：<strong>${__bsa.toFixed(3)}</strong> m²（DuBois 式，按输入身高计算）</p>`;
+  html += `<p style="font-size:12px;color:var(--text-muted);">计算体重：<strong>${useW.toFixed(1)}</strong> kg（${basisName}；IBW ${isFinite(ibw)?ibw.toFixed(1):'—'} kg，ABW ${isFinite(abw)?abw.toFixed(1):'—'} kg）</p>`;
+  if (height > 0 && weight > 0) {
+    const bmi = weight / Math.pow(height / 100, 2);
+    if (bmi >= 30 && wtBasis === 'tbw') {
+      html += `<p style="font-size:12px;color:#f59e0b;">⚠ BMI ${bmi.toFixed(1)} ≥ 30：按实际体重估算 CrCl 会被高估，建议切换为 IBW 或 ABW 口径。</p>`;
+    }
+  }
   const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 function copyResult() {

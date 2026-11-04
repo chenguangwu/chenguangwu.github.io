@@ -204,6 +204,12 @@ const CASES = [
     ref: "Devine（男）= 50 + 0.91×(175−152.4) = 50 + 20.566 = 70.6 kg；上限 ×1.1 = 77.6；下限 ×0.9 = 63.5",
   },
   {
+    slug: "healthcare/ibw",
+    inputs: { height: "170", sex: "1", tbw: "100" },
+    expect: ["校正体重 ABW： 79.6", "（IBW + 0.4 × (实际体重 − IBW)）"],
+    ref: "ABW = IBW + 0.4×(TBW−IBW)：170 cm 男 IBW = 50 + 0.91×17.6 = 66.016；TBW 100 kg ⇒ 66.016 + 0.4×(100−66.016) = 79.6096 → 79.6。默认态（170 cm 男、TBW 留空）不输出 ABW 行 ⇒ 两条均不命中（不复用默认就有的「IBW 66.0」串）。",
+  },
+  {
     slug: "healthcare/ideal-weight",
     inputs: { height: "175", sex: "1" },
     expect: ["Devine）： 70.5", "Hamwi： 72.0", "Robinson： 68.9"],
@@ -258,6 +264,12 @@ const CASES = [
     inputs: { age: "60", weight: "65", scr: "90", sex: "0" },
     expect: ["60.30"],
     ref: "Scr = 90÷88.4 = 1.01810 mg/dL；CrCl = (140−60)×65 ÷ (72×1.01810) × 0.85 = 5200÷73.303×0.85 = 60.30 mL/min",
+  },
+  {
+    slug: "healthcare/gfr-cockcroft",
+    inputs: { age: "60", weight: "100", scr: "90", sex: "1", height: "170", wtBasis: "abw" },
+    expect: ["CrCl： 86.88", "计算体重：79.6 kg（校正体重 ABW"],
+    ref: "肥胖口径：170 cm 男 IBW = 50 + 0.91×17.6 = 66.016；ABW = 66.016 + 0.4×(100−66.016) = 79.6096 → 79.6 kg；CrCl = (140−60)×79.6096 ÷ (72×90/88.4) = 6368.77÷73.30 = 86.88 mL/min。默认口径 TBW（70 kg）得 96.69 且显示「实际体重 TBW」⇒ 两条均不命中。",
   },
 
   // ---------- 输液与电解质 ----------

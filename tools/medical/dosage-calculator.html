@@ -157,8 +157,8 @@ s.parentNode.insertBefore(el, s);
       按体重或体表面积（BSA）计算药物剂量，内置常用药物数据库。
     ">Dosage Calculator</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">按体表面积（BSA）给药计算<br>BSA(m²) = √(身高cm × 体重kg ÷ 3600)（Mosteller 公式）<br>体表面积法：单次剂量 = BSA × 单位剂量(mg/m²)<br>体重法：单次剂量 = 体重(kg) × 单位剂量(mg/kg)<br>日剂量 = 单次 × 给药频次(次/日)<br><strong>给药基准以说明书为准：mg/m² 与 mg/kg 不可互相折算；BSA 基准药物自动按体表面积计算，不乘体重</strong><br>超过药物最大日剂量时红色警告<br>儿童无剂量资料或说明书禁用的药物不输出剂量，仅提示查阅儿科专用资料/遵医嘱</div>
-      <p class="formula-desc" data-zh="核心计算公式（按输入变量）：√(h × w ÷ 3600)">Key formulas: √(h × w ÷ 3600)</p>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">按体表面积（BSA）给药计算<br>BSA(m²) = √(身高cm × 体重kg ÷ 3600)（Mosteller 公式）<br>体表面积法：单次剂量 = BSA × 单位剂量(mg/m²)<br>体重法：单次剂量 = 体重(kg) × 单位剂量(mg/kg)<br>日剂量 = 单次 × 给药频次(次/日)<br><strong>给药基准以说明书为准：mg/m² 与 mg/kg 不可互相折算；BSA 基准药物自动按体表面积计算，不乘体重</strong><br>单次极量封顶：单次 &gt; 该药 maxSingle（如对乙酰氨基酚 1000 mg）时按极量封顶并告警，未收录单次极量者退回 maxDay<br>超过药物最大日剂量时红色警告（日上限与单次上限分开判定）<br>儿童无剂量资料或说明书禁用的药物不输出剂量，仅提示查阅儿科专用资料/遵医嘱</div>
+      <p class="formula-desc" data-zh="核心计算公式（按输入变量）：√(h × w ÷ 3600)；Math.min(单次剂量, maxSingle)">Key formulas: √(h × w ÷ 3600); Math.min(singleDose, maxSingle)</p>
     </div>
 
     <div class="input-row">
@@ -349,21 +349,21 @@ ToolBox.initToolTheme();
 
 // 药物数据库
 var DRUGS = [
-  {name:'对乙酰氨基酚', en:'Acetaminophen', cat:'解热镇痛', adultW:10, childW:10, bsa:0, maxDay:4000, interval:'每 4-6 小时', note:'肝功能不全者慎用，避免与含对乙酰氨基酚复方药同服。'},
-  {name:'布洛芬', en:'Ibuprofen', cat:'解热镇痛', adultW:5, childW:5, bsa:0, maxDay:2400, interval:'每 6-8 小时', note:'消化道溃疡慎用，餐后服用，孕妇晚期禁用。'},
-  {name:'阿司匹林', en:'Aspirin', cat:'解热镇痛/抗血小板', adultW:10, childW:0, bsa:0, maxDay:4000, interval:'每 4-6 小时', childContra:true, note:'儿童禁用（瑞氏综合征风险），抗血小板 75-100mg/日。'},
-  {name:'阿莫西林', en:'Amoxicillin', cat:'抗生素', adultW:7, childW:25, bsa:0, maxDay:3000, interval:'每 8 小时', note:'青霉素过敏者禁用，肾功能不全需调整剂量。'},
-  {name:'头孢氨苄', en:'Cephalexin', cat:'抗生素', adultW:7, childW:25, bsa:0, maxDay:4000, interval:'每 6 小时', note:'青霉素交叉过敏约 5-10%，妊娠期 B 类。'},
-  {name:'头孢曲松', en:'Ceftriaxone', cat:'抗生素', adultW:0, childW:50, bsa:1500, maxDay:4000, interval:'每日 1 次', note:'新生儿禁与含钙输液配伍，胆囊淤积风险。'},
-  {name:'阿奇霉素', en:'Azithromycin', cat:'抗生素', adultW:7, childW:10, bsa:500, maxDay:500, interval:'每日 1 次', note:'QT 间期延长风险，肝功能不全慎用。'},
-  {name:'克拉霉素', en:'Clarithromycin', cat:'抗生素', adultW:0, childW:7.5, bsa:0, maxDay:1000, interval:'每 12 小时', note:'与多种药物相互作用（CYP3A4 抑制）。'},
-  {name:'甲硝唑', en:'Metronidazole', cat:'抗生素', adultW:0, childW:7.5, bsa:0, maxDay:2000, interval:'每 8 小时', note:'用药期间及停药 3 天内禁酒。'},
-  {name:'万古霉素', en:'Vancomycin', cat:'抗生素', adultW:15, childW:10, bsa:0, maxDay:4000, interval:'每 12 小时', note:'需监测血药浓度（谷浓度 10-20 mg/L）。'},
-  {name:'氨茶碱', en:'Aminophylline', cat:'呼吸系统', adultW:0, childW:5, bsa:0, maxDay:1000, interval:'每 8 小时', note:'治疗窗窄，需监测血药浓度。'},
-  {name:'地塞米松', en:'Dexamethasone', cat:'糖皮质激素', adultW:0, childW:0.1, bsa:0, maxDay:20, interval:'每日 1-2 次', note:'长期使用需逐步减量，监测血糖。'},
-  {name:'苯妥英钠', en:'Phenytoin', cat:'抗癫痫', adultW:0, childW:5, bsa:0, maxDay:500, interval:'每 12 小时', note:'非线性药代动力学，需监测血药浓度。'},
-  {name:'芬太尼', en:'Fentanyl', cat:'镇痛', adultW:0, childW:0, bsa:0, maxDay:0, interval:'按需', note:'阿片类，呼吸抑制风险，需密切监护。'},
-  {name:'环磷酰胺', en:'Cyclophosphamide', cat:'抗肿瘤', adultW:0, childW:0, bsa:500, maxDay:0, interval:'按方案', note:'化疗药物，需水化、监测血象与出血性膀胱炎。'}
+  {name:'对乙酰氨基酚', en:'Acetaminophen', cat:'解热镇痛', adultW:10, childW:10, bsa:0, maxDay:4000, maxSingle:1000, interval:'每 4-6 小时', note:'肝功能不全者慎用，避免与含对乙酰氨基酚复方药同服。'},
+  {name:'布洛芬', en:'Ibuprofen', cat:'解热镇痛', adultW:5, childW:5, bsa:0, maxDay:2400, maxSingle:800, interval:'每 6-8 小时', note:'消化道溃疡慎用，餐后服用，孕妇晚期禁用。'},
+  {name:'阿司匹林', en:'Aspirin', cat:'解热镇痛/抗血小板', adultW:10, childW:0, bsa:0, maxDay:4000, maxSingle:1000, interval:'每 4-6 小时', childContra:true, note:'儿童禁用（瑞氏综合征风险），抗血小板 75-100mg/日。'},
+  {name:'阿莫西林', en:'Amoxicillin', cat:'抗生素', adultW:7, childW:25, bsa:0, maxDay:3000, maxSingle:1000, interval:'每 8 小时', note:'青霉素过敏者禁用，肾功能不全需调整剂量。'},
+  {name:'头孢氨苄', en:'Cephalexin', cat:'抗生素', adultW:7, childW:25, bsa:0, maxDay:4000, maxSingle:1000, interval:'每 6 小时', note:'青霉素交叉过敏约 5-10%，妊娠期 B 类。'},
+  {name:'头孢曲松', en:'Ceftriaxone', cat:'抗生素', adultW:0, childW:50, bsa:1500, maxDay:4000, maxSingle:2000, interval:'每日 1 次', note:'新生儿禁与含钙输液配伍，胆囊淤积风险。'},
+  {name:'阿奇霉素', en:'Azithromycin', cat:'抗生素', adultW:7, childW:10, bsa:500, maxDay:500, maxSingle:500, interval:'每日 1 次', note:'QT 间期延长风险，肝功能不全慎用。'},
+  {name:'克拉霉素', en:'Clarithromycin', cat:'抗生素', adultW:0, childW:7.5, bsa:0, maxDay:1000, maxSingle:500, interval:'每 12 小时', note:'与多种药物相互作用（CYP3A4 抑制）。'},
+  {name:'甲硝唑', en:'Metronidazole', cat:'抗生素', adultW:0, childW:7.5, bsa:0, maxDay:2000, maxSingle:500, interval:'每 8 小时', note:'用药期间及停药 3 天内禁酒。'},
+  {name:'万古霉素', en:'Vancomycin', cat:'抗生素', adultW:15, childW:10, bsa:0, maxDay:4000, maxSingle:2000, interval:'每 12 小时', note:'需监测血药浓度（谷浓度 10-20 mg/L）。'},
+  {name:'氨茶碱', en:'Aminophylline', cat:'呼吸系统', adultW:0, childW:5, bsa:0, maxDay:1000, maxSingle:500, interval:'每 8 小时', note:'治疗窗窄，需监测血药浓度。'},
+  {name:'地塞米松', en:'Dexamethasone', cat:'糖皮质激素', adultW:0, childW:0.1, bsa:0, maxDay:20, maxSingle:20, interval:'每日 1-2 次', note:'长期使用需逐步减量，监测血糖。'},
+  {name:'苯妥英钠', en:'Phenytoin', cat:'抗癫痫', adultW:0, childW:5, bsa:0, maxDay:500, maxSingle:500, interval:'每 12 小时', note:'非线性药代动力学，需监测血药浓度。'},
+  {name:'芬太尼', en:'Fentanyl', cat:'镇痛', adultW:0, childW:0, bsa:0, maxDay:0, maxSingle:0, interval:'按需', note:'阿片类，呼吸抑制风险，需密切监护。'},
+  {name:'环磷酰胺', en:'Cyclophosphamide', cat:'抗肿瘤', adultW:0, childW:0, bsa:500, maxDay:0, maxSingle:0, interval:'按方案', note:'化疗药物，需水化、监测血象与出血性膀胱炎。'}
 ];
 
 // 主要清除途径（肝肾功能减量提示用）
@@ -520,15 +520,21 @@ function calc(){
   if(method === 'bsa' && (!h || h <= 0)){ ToolBox.showToast(i18nText(),'error'); return; }
   if(perDose <= 0){ ToolBox.showToast(i18nText(),'error'); return; }
 
-  var bsa = 0, singleDose = 0, dailyDose = 0;
+  var bsa = 0, singleRaw = 0, singleDose = 0, dailyDose = 0, singleWarn = '';
   if(method === 'weight'){
-    singleDose = w * perDose;
-    dailyDose = singleDose * freq;
+    singleRaw = w * perDose;
   } else {
     bsa = Math.sqrt(h * w / 3600);
-    singleDose = bsa * perDose;
-    dailyDose = singleDose * freq;
+    singleRaw = bsa * perDose;
   }
+  // 单次极量封顶：优先取该药 maxSingle，未收录时退回 maxDay
+  var singleMax = d.maxSingle || d.maxDay || 0;
+  singleDose = singleRaw;
+  if(singleMax > 0 && singleRaw > singleMax){
+    singleDose = singleMax;
+    singleWarn = '<div class="warn-line">⚠ 按当前基准计算单次 '+singleRaw.toFixed(0)+' mg 已超过该药物单次极量 '+singleMax+' mg，已按 '+singleMax+' mg 封顶。</div>';
+  }
+  dailyDose = singleDose * freq;
 
   // 超最大日剂量警告
   var maxWarn = '';
@@ -552,7 +558,7 @@ function calc(){
     : '按体重（mg/kg）：'+perDose+' mg/kg × '+w+' kg（来源：说明书 mg/kg 基准）')+'</div>';
   html += '<div class="step-line">单次剂量：'+singleDose.toFixed(2)+' mg，每 '+(24/freq)+' 小时一次</div>';
   html += '<div class="step-line">日剂量：'+dailyDose.toFixed(2)+' mg' + (d.maxDay?'（最大 '+d.maxDay+' mg）':'')+'</div>';
-  html += basisNote + maxWarn;
+  html += basisNote + singleWarn + maxWarn;
 
   // —— 儿童参考体重核对（WHO 生长标准 P50）——
   if (age > 0 && age <= 18 && w > 0) {

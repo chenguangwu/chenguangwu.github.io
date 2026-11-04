@@ -121,7 +121,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="⚖️ 用药剂量计算器（按体重kg）">Calculator Calc 2</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="选择药物并输入体重，自动按 mg/kg 计算单次剂量、每日总量及最大日剂量校验。">Calculator Calc 2</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">按体重给药计算（含日剂量封顶）<br>单次剂量 = 单位剂量(mg/kg) × 体重(kg)<br>单位剂量取档：低档 doseMin｜高档 doseMax｜中档 (doseMin+doseMax)/2<br>每日次数 = round(24 ÷ 给药间隔 h)<br>每日总量 = 单次 × 次数；儿童按体重上限 = maxDaily × 体重<br>有效上限 = min(成人绝对上限 adultMaxDaily, 儿童按体重上限)；年龄空值按成人口径<br>超限封顶：单次 = 封顶日量 ÷ 次数；两套上限同时展示<br>婴儿（<1 岁）与老年（≥65 岁）提示专科核定</div>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">按体重给药计算（含日剂量封顶）<br>单次剂量 = 单位剂量(mg/kg) × 体重(kg)<br>单位剂量取档：低档 doseMin｜高档 doseMax｜中档 (doseMin+doseMax)/2<br>每日次数 = round(24 ÷ 给药间隔 h)<br>每日总量 = 单次 × 次数；儿童按体重上限 = maxDaily × 体重<br>有效上限：年龄空值或 ≥14 岁按成人口径，取成人绝对上限 adultMaxDaily；&lt;14 岁取 min(成人绝对上限, 儿童按体重上限)<br>超限封顶：单次 = 封顶日量 ÷ 次数；儿童口径同时展示两套上限<br>婴儿（<1 岁）与老年（≥65 岁）提示专科核定</div>
       <p class="formula-desc" data-zh="核心计算公式（按输入变量）：(d.doseMin+d.doseMax)÷2；min(dailyDose,maxDaily)；Math.round(24÷hours)">Key formulas: (d.doseMin+d.doseMax)÷2; min(dailyDose,maxDaily); Math.round(24÷hours)</p>
     </div>
 
@@ -317,13 +317,15 @@ function calc(){
   var dailyDose=singleDose*timesPerDay;
   var maxChild=d.maxDaily*w;
   var adultMax=d.adultMaxDaily;
-  // 年龄空值按成人口径；有效上限始终取「成人绝对上限」与「儿童按体重上限」的较小值
-  var maxDaily=Math.min(adultMax,maxChild);
+  var isChild=age!==null&&age<14;
+  // 年龄空值或 ≥14 岁按成人口径，仅取成人绝对上限；<14 岁取「成人绝对上限」与「儿童按体重上限」的较小值
+  var maxDaily=isChild?Math.min(adultMax,maxChild):adultMax;
+  var maxDailyLabel=isChild?'有效最大日剂量（成人绝对上限与儿童体重上限取较小值）':'有效最大日剂量（成人绝对上限）';
   var ageNote;
   if(age===null){
-    ageNote='👤 年龄未填写：按成人口径处理（≥14 岁视为成人）；有效上限仍与儿童按体重上限取较小值。';
+    ageNote='👤 年龄未填写：按成人口径处理（≥14 岁视为成人）；有效上限取成人绝对上限，不采用儿童按体重上限。';
   }else if(age>=14){
-    ageNote='👤 年龄 '+age+' 岁：按成人口径处理（≥14 岁）；有效上限取「成人绝对上限」与「儿童按体重上限」的较小值。';
+    ageNote='👤 年龄 '+age+' 岁：按成人口径处理（≥14 岁）；有效上限取成人绝对上限，不采用儿童按体重上限。';
   }else{
     ageNote='👤 年龄 '+age+' 岁：按儿童口径处理（未满 14 岁）；有效上限取「成人绝对上限」与「儿童按体重上限」的较小值。';
   }
@@ -333,9 +335,9 @@ function calc(){
   var html='<div class="data-grid">';
   html+='<div class="data-card"><div class="num">'+fmt(singleDose)+'</div><div class="label">单次剂量</div></div>';
   html+='<div class="data-card"><div class="num">'+fmt(dailyDose)+'</div><div class="label">每日总量（'+timesPerDay+'次）</div></div>';
-  html+='<div class="data-card"><div class="num">'+fmt(maxDaily)+'</div><div class="label">有效最大日剂量（取较小值）</div></div>';
+  html+='<div class="data-card"><div class="num">'+fmt(maxDaily)+'</div><div class="label">'+maxDailyLabel+'</div></div>';
   html+='</div>';
-  html+='<div class="tip-box tip-info">🧮 上限口径：成人绝对上限 '+fmt(adultMax)+'/日；儿童按体重上限 '+d.maxDaily+' mg/kg × '+w+' kg = '+fmt(maxChild)+'/日；有效上限取较小值 '+fmt(maxDaily)+'/日。</div>';
+  html+='<div class="tip-box tip-info">🧮 上限口径：成人绝对上限 '+fmt(adultMax)+'/日；儿童按体重上限 '+d.maxDaily+' mg/kg × '+w+' kg = '+fmt(maxChild)+'/日；'+(isChild?'有效上限取较小值 '+fmt(maxDaily)+'/日。':'成人按成人绝对上限，不采用儿童体重上限。')+'</div>';
   html+='<div class="tip-box tip-info">'+ageNote+'</div>';
   if(overLimit){
     html+='<div class="tip-box tip-error">⚠️ 计算日剂量 '+fmt(dailyDose)+' 已超过最大日剂量 '+fmt(maxDaily)+'，建议调整：<br>单次剂量 = '+fmt(cappedSingle)+'，按 q'+hours+'h 给药 '+timesPerDay+' 次 = '+fmt(cappedDaily)+'/日。</div>';
