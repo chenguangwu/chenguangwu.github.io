@@ -498,6 +498,28 @@ const CASES = [
     "ref": "默认 textInput 为空→输出「请输入内容。」；注入 'ToolBox' 走默认 encode 模式→ btoa(unescape(encodeURIComponent('ToolBox')))='VG9vbEJveA=='（与页面 deep-dive 示例一致）。锚 base64 串，回退默认态(空)不命中 ⇒ 强判别、零逃生。"
   }
 
+  // ── 空态回归：全部输入清空后必须提示「请输入」，不得输出 0/伪结论 ──
+  ,{
+    "slug": "encode/encode-2",
+    "inputs": { "len": "", "diff_rate": "", "samples": "" },
+    "expect": ["请输入二进制串长度、差异比特比例与采样数后再计算。"],
+    "ref": "空态回归：三项全空时旧实现 `+value||0` 输出「估算差异比特数 0 位 / 采样差异 0 位 / 汉明距离 0 位」伪结论；现要求提示且不输出数值。默认态 256/10/1000 输出 26/100/26，不含该提示 ⇒ 强判别。"
+  }
+
+  ,{
+    "slug": "encode/shannon-entropy",
+    "inputs": { "p1": "", "p2": "", "p3": "", "p4": "" },
+    "expect": ["请输入各事件概率后再计算。"],
+    "ref": "空态回归：四项概率全空时旧实现输出「信息熵 H：0.0000 bit/符号」；现要求提示且不输出数值。默认态 0.5/0.25/0.15/0.1 得 1.7427，不含该提示 ⇒ 强判别。"
+  }
+
+  ,{
+    "slug": "encode/url-encoded-length",
+    "inputs": { "textLen": "", "special": "", "alreadyEnc": "" },
+    "expect": ["请输入原始字符数、特殊字符数与已编码字符数后再计算。"],
+    "ref": "空态回归：三项全空时旧实现输出「编码后长度 0 字符 / 膨胀率 0.0%」；现要求提示且不输出数值。默认态 20/5/0 得 30/150.0，不含该提示 ⇒ 强判别。"
+  }
+
 ];
 
 async function main() {
