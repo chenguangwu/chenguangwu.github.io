@@ -319,11 +319,22 @@ function __inverse_kinematics_2rExtras(){
     var c2 = (r2 - sum) / (2 * L1 * L2);
     if (!isFinite(__inverse_kinematics_2rNum('x')) || !isFinite(__inverse_kinematics_2rNum('y')) || !isFinite(__inverse_kinematics_2rNum('L1')) || !isFinite(__inverse_kinematics_2rNum('L2'))) return;
     var en=TBKit.util.isEn();
+    if (L1 <= 0 || L2 <= 0) return;
+    var reach = c2 >= -1 && c2 <= 1;
+    var rows = [];
+    if (reach) {
+        var t2 = Math.acos(c2);
+        var t1 = Math.atan2(y, x) - Math.atan2(L2 * Math.sin(t2), L1 + L2 * Math.cos(t2));
+        rows.push([(t1 * 180 / Math.PI).toFixed(2), 'θ₁ 肘下 (°)']);
+        rows.push([(t2 * 180 / Math.PI).toFixed(2), 'θ₂ (°)']);
+        rows.push([(-(t2 * 180 / Math.PI)).toFixed(2), 'θ₂ 肘上 (°)']);
+        rows.push(['可达', '工作空间判定']);
+    } else {
+        rows.push(['不可达', '目标超出工作空间']);
+    }
     TBKit.matrix.table('#inverse_kinematics_2rTable',{
         head: en?['Item','Value']:['项目','数值'],
-        rows: [
-            ['不可达', '目标超出工作空间'],
-        ]
+        rows: rows
     });
     TBKit.history.record({x:__inverse_kinematics_2rRaw('x'), y:__inverse_kinematics_2rRaw('y'), L1:__inverse_kinematics_2rRaw('L1'), L2:__inverse_kinematics_2rRaw('L2'), r2:r2});
     function __inverse_kinematics_2rRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
