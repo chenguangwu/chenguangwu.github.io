@@ -124,11 +124,10 @@ s.parentNode.insertBefore(el, s);
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
       <div class="formula-eq">所需齿数 = 单边余量 ÷ 齿升量；切削力 F = 单位切削力 × 切削宽度 × 齿升量 × 同时工作齿数</div>
-      <p class="formula-desc">按单位切削力 250 N/mm²、切削宽度 10 mm、同时工作齿数 3 计算切屑总面积对应的拉削力，再按 1.3 倍安全系数与刀杆许用拉应力 600 MPa 反推刀杆最小截面；齿数按 余量÷齿升 向上取整（先消除浮点尾差再取整）。校验：余量与齿升均须 &gt;0。</p>
+      <p class="formula-desc">按单位切削力 250 N/mm²、固定切削宽度 10 mm、同时工作齿数 3 计算切屑总面积对应的拉削力（F = 250×10×齿升×3），再按 1.3 倍安全系数与刀杆许用拉应力 600 MPa 反推刀杆最小截面；齿数按 余量÷齿升 向上取整（先消除浮点尾差再取整）。校验：余量与齿升均须 &gt;0，且齿升不得大于余量；两参数角色固定（余量在前、齿升在后），不做互换，避免把齿升当切削宽度导致拉力被成倍放大。</p>
     </div>
     <div class="input-row">
       <div><label>单边余量 (mm)</label><input type="number" id="v0" value="2.4" step="any" oninput="calc()" enterkeyhint="done" aria-label="拉刀" placeholder="如 2.4"></div>
-      <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
       <div><label>齿升量 (mm/齿)</label><input type="number" id="v1" value="0.08" step="any" oninput="calc()" enterkeyhint="done" aria-label="齿升" placeholder="如 0.08"></div>
     </div>
     <div class="toolbar">
@@ -137,7 +136,7 @@ s.parentNode.insertBefore(el, s);
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div> <div id="laxue_ladao_chisheng_lali_shejiTable"></div> <div id="laxue_ladao_chisheng_lali_shejiDiff"></div> <div id="laxue_ladao_chisheng_lali_shejiChart"></div> <div id="laxue_ladao_chisheng_lali_shejiHist"></div>
-    <div class="info-box">💡 所需齿数 = 单边余量 ÷ 齿升量；F = 250 N/mm² × 10 mm × 齿升量 × 3 齿；刀杆截面按 1.3F ÷ 600 MPa。</div>
+    <div class="info-box">💡 所需齿数 = 单边余量 ÷ 齿升量；F = 250 N/mm² × 10 mm × 齿升量 × 3 齿；刀杆截面按 1.3F ÷ 600 MPa。两个输入角色固定（余量在前、齿升在后），页面不再提供互换按钮。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
 <div class="card" id="constRefBox">
   <h3 data-zh="📐 公式与标准引据">Formula &amp; Standard References</h3>
@@ -599,13 +598,6 @@ function resetAll(){
   calc();
   ToolBox.showToast(i18nText(),'info');
 }
-function swapValues(){
-  var a=document.getElementById('v0').value;
-  var b=document.getElementById('v1').value;
-  document.getElementById('v0').value=b;
-  document.getElementById('v1').value=a;
-  calc();
-}
 function historyKey(){
   try{return 'tb_history_'+location.pathname;}catch(e){return 'tb_history_'+(document.title||'calc');}
 }
@@ -668,6 +660,7 @@ var e0=document.getElementById('v0'),e1=document.getElementById('v1');
   var box=document.getElementById('res');
   if(!box)return;
   if(!isFinite(A)||!isFinite(B)||A<=0||B<=0){box.innerHTML='<div class="info-box" style="color:var(--danger)">单边余量与齿升量均须大于 0。</div>';return;}
+  if(B>A){box.innerHTML='<div class="info-box" style="color:var(--danger)">齿升量不应大于单边余量：两者角色固定（余量在前、齿升在后），请检查是否填反。</div>';return;}
   var teeth=Math.ceil(+(A/B).toFixed(6));
   var items=[];
   items.push([teeth+" 齿", "所需拉刀齿数"]);
