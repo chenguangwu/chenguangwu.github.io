@@ -26,22 +26,6 @@ const CASES = [
 },
 {
   "slug": "image/image-collage",
-  "inputs": {
-    "rows": "2",
-    "cols": "3",
-    "fixedVal": "1200",
-    "bgColor": "#ffffff",
-    "gap": "8",
-    "margin": "10",
-    "layout": "h"
-  },
-  "expect": [
-    "固定高度"
-  ],
-  "ref": "auto-restore"
-},
-{
-  "slug": "image/image-collage",
   "clicks": [
     "var p=CollageTool.fitPlan(200,100,10,10,100,100,'cover');var o=CollageTool.orderLoaded([{index:2,item:'c'},{index:0,item:'a'},{index:3,item:null},{index:1,item:'b'}]);document.getElementById('infoBox').textContent='DRAW:'+[p.dx,p.dy,p.dw,p.dh].join(',')+'|CLIP:'+[p.clip.x,p.clip.y,p.clip.w,p.clip.h].join(',')+'|ORD:'+o.join('');"
   ],

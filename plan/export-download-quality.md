@@ -58,4 +58,17 @@
 | `tools/office/flowchart.html` | 建画布前 | 图宽高 ×2 |
 | `tools/office/mindmap.html` | 建画布前 | 图宽高 ×2 |
 
-尚未前置拦截（尺寸受源图约束、放大倍数 ≤1，列为第二档）：`image/image-crop`、`image/image-filter`、`image/image-compress`、`image/image-converter`、`image/id-photo-crop`、`image/nine-grid-cutter`、`image/gif-split`、`image/wechat-cover-maker`；其余 `toDataURL` 页为固定尺寸生成（二维码 / 条形码 / 头像 / 视标等），不涉及用户放大。
+第二档逐页判定（输出尺寸不可能超过源图解码尺寸，或固定小尺寸 ⇒ **无需前置拦截**）：
+
+| 页面 | 输出尺寸来源 | 判定理由 |
+|---|---|---|
+| `image/image-crop` | 裁剪框 `getOutputRect()`，且限制在旋转后的源画布内 | 裁剪 ≤ 源图；旋转仅交换宽高，不放大 |
+| `image/image-filter` | `originalImg.naturalWidth/Height` | 1:1 源图 |
+| `image/image-compress` | `calcDims()`：`maxSize` 只缩不放，无上限时用原尺寸 | ≤ 源图 |
+| `image/image-converter` | `originalImg.naturalWidth/Height` | 1:1 源图 |
+| `image/id-photo-crop` | 证件照预设 258×335 / 413×531 / 354×472 / 300×300 | 固定小尺寸，远低于阈值 |
+| `image/nine-grid-cutter` | `cell = side / rows(cols)` | 每格 ≤ 源图，拼接图 ≤ 源图 |
+| `image/gif-split` | GIF 逻辑宽高；缩略图另有 `min(1, 320/w)` 只缩 | ≤ 源图 |
+| `image/wechat-cover-maker` | 固定 900×383 | 固定小尺寸 |
+
+其余 `toDataURL` 页为固定尺寸生成（二维码 / 条形码 / 头像 / 视标等），不涉及用户放大。
