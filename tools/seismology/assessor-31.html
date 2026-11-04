@@ -32,7 +32,7 @@
     <meta name="twitter:description" content="地震震害综合评估是一款免费的在线地震学工具，评估地震对建筑、生命线工程和地质环境的破坏程度，计算震害指数并给出损失等级与应急建议。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "综合震害指数怎么加权？", "acceptedAnswer": {"@type": "Answer", "text": "综合指数 = 建筑得分×0.40 + 生命线得分×0.35 + 地质灾害得分×0.25（各得分均归一到 0-100）。权重体现「建筑破坏为主、生命线与地质并重」的灾后评估思路。"}}, {"@type": "Question", "name": "等级划分的阈值是什么？", "acceptedAnswer": {"@type": "Answer", "text": "综合指数 ≥0.7 毁灭性、≥0.5 特大、≥0.3 严重、≥0.1 中等、其余为轻微；对应启动 I 级（毁灭性/特大）或 II~IV 级应急响应，阈值可在工具内按地方标准微调。"}}]}
+{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "综合震害指数怎么加权？", "acceptedAnswer": {"@type": "Answer", "text": "综合指数 = 建筑得分×0.40 + 生命线得分×0.35 + 地质灾害得分×0.25（各得分均归一到 0-100）。权重体现「建筑破坏为主、生命线与地质并重」的灾后评估思路。"}}, {"@type": "Question", "name": "等级划分的阈值是什么？", "acceptedAnswer": {"@type": "Answer", "text": "综合指数 ≥0.7 毁灭性、≥0.5 特大、≥0.3 严重、≥0.1 中等、其余为轻微；对应启动 I 级（毁灭性/特大）或 II~IV 级应急响应。阈值按固定五级划分，工具内不支持自定义；地方标准不同时以当地预案为准。"}}]}
 </script>
 
 <script type="application/ld+json">
@@ -213,7 +213,7 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 function calc(){
-  var totalBldg=parseFloat(document.getElementById('totalBldg').value)||1;
+  var totalBldg=parseFloat(document.getElementById('totalBldg').value);
   var minor=parseFloat(document.getElementById('minorDmg').value)||0;
   var moderate=parseFloat(document.getElementById('moderateDmg').value)||0;
   var severe=parseFloat(document.getElementById('severeDmg').value)||0;
@@ -228,6 +228,15 @@ function calc(){
   var rockfall=parseFloat(document.getElementById('rockfall').value)||0;
   var cracks=parseFloat(document.getElementById('cracks').value)||0;
   var liquefaction=parseFloat(document.getElementById('liquefaction').value)||0;
+
+  var tbEl=document.getElementById('totalBldg');
+  var tbBad=!isFinite(totalBldg)||totalBldg<=0;
+  if(tbEl)tbEl.classList.toggle('input-error',tbBad);
+  if(tbBad){document.getElementById('res').innerHTML='<p style="color:var(--danger);">⚠ 请输入大于 0 的建筑总数（栋）</p>';return;}
+  var countList=[['minorDmg',minor],['moderateDmg',moderate],['severeDmg',severe],['partialCol',partial],['totalCol',total],['water',water],['power',power],['gas',gas],['road',road],['comm',comm],['landslide',landslide],['rockfall',rockfall],['cracks',cracks],['liquefaction',liquefaction]];
+  var negBad=false;
+  countList.forEach(function(p){var bad=p[1]<0;if(bad)negBad=true;var el=document.getElementById(p[0]);if(el)el.classList.toggle('input-error',bad);});
+  if(negBad){document.getElementById('res').innerHTML='<p style="color:var(--danger);">⚠ 各项破坏数量不得为负数</p>';return;}
 
   /* 建筑震害指数 */
   var bldgDI=(minor*0.1+moderate*0.3+severe*0.5+partial*0.7+total*1.0)/totalBldg;
@@ -287,6 +296,7 @@ function calc(){
   html+='<tr><td>严重破坏以上</td><td>'+((severe+partial+total)/totalBldg*100).toFixed(1)+'%</td><td>需大修或重建比例</td></tr>';
   html+='<tr><td>生命线瘫痪程度</td><td>'+lifelineScore.toFixed(0)+'%</td><td>'+(lifelineScore>=60?'大面积瘫痪':lifelineScore>=30?'较大损坏':'局部受损')+'</td></tr>';
   html+='<tr><td>地质灾害风险</td><td>'+geoScore.toFixed(0)+'</td><td>'+(geoScore>=50?'高风险，需转移':geoScore>=25?'中等风险':'低风险')+'</td></tr>';
+  html+='<tr><td>需安置人口比例(粗估)</td><td>'+Math.min(displacedPop,100)+'%</td><td>按倒塌率×5 + 严重破坏占比×2 粗略估算，仅供参考</td></tr>';
   html+='</tbody></table>';
   html+='<div class="tip-box '+(overallDI>=0.5?'tip-error':overallDI>=0.3?'tip-warn':'tip-info')+'" style="margin-top:10px;"><strong>评估结论：</strong>'+advice+'</div>';
   const __g1=html;try{ if(typeof overallDI==='number'&&isFinite(overallDI)&&typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){ TBKit.chart.refBar('#resRefBar',{value:overallDI,unit:'',bands:[{"lo":0.7,"hi":null,"label":{"zh":"毁灭性震害","en":"Devastating damage"},"color":"#7B181C"},{"lo":0.5,"hi":0.7,"label":{"zh":"特大震害","en":"Very heavy damage"},"color":"#B71C1C"},{"lo":0.3,"hi":0.5,"label":{"zh":"严重震害","en":"Heavy damage"},"color":"#EF4444"},{"lo":0.1,"hi":0.3,"label":{"zh":"中等震害","en":"Moderate damage"},"color":"var(--warning)"},{"lo":null,"hi":0.1,"label":{"zh":"轻微震害","en":"Slight damage"},"color":"var(--success)"}],title:((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Reference range':'参考区间标尺')}); } }catch(e){}

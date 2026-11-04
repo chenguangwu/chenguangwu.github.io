@@ -160,8 +160,8 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="⚗️ 反应产率计算">Reaction Yield</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="理论产量/实际产量/限制反应物/产率">Reaction Yield</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">化学产率与放大计算<br>产率 = 实际产量 ÷ 理论产量 × 100%<br>评级：<50% 偏低｜<70% 一般｜<90% 优秀｜≥90% 卓越<br>限制反应物判定：需 B 量 = n_A ÷ r，需 A 量 = n_B × r（r = A:B 计量比）<br>理论产量(g) = (质量 ÷ 摩尔质量) × 计量系数 × 产物摩尔质量<br>放大：理论产量 = 小试量 × 放大倍数；预计产量 = 理论 × 放大收率%<br>放大损失 = 理论量 × (小试收率 − 放大收率)</div>
-      <p class="formula-desc" data-zh="核心计算公式（按输入变量）：(act ÷ theo) × 100；scale × (y1 - y2) ÷ 100；scale × y2 ÷ 100">Key formulas: (act ÷ theo) × 100; scale × (y1 - y2) ÷ 100; scale × y2 ÷ 100</p>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">化学产率与放大计算<br>产率 = 实际产量 ÷ 理论产量 × 100%<br>评级：<50% 偏低｜<70% 一般｜<90% 优秀｜≥90% 卓越<br>限制反应物判定：需 B 量 = n_A ÷ r，需 A 量 = n_B × r（r = A:B 计量比）<br>理论产量(g) = (质量 ÷ 摩尔质量) × 计量系数 × 产物摩尔质量<br>放大：小试理论产量 = 小试实际产量 ÷ 小试收率%；理论产量 = 小试理论产量 × 放大倍数；预计产量 = 理论 × 放大收率%；放大损失 = 理论量 × (小试收率 − 放大收率)</div>
+      <p class="formula-desc" data-zh="核心计算公式（按输入变量）：(act ÷ theo) × 100；s ÷ (y1 ÷ 100) × t；theoScale × (y1 - y2) ÷ 100；theoScale × y2 ÷ 100">Key formulas: (act ÷ theo) × 100; s ÷ (y1 ÷ 100) × t; theoScale × (y1 - y2) ÷ 100; theoScale × y2 ÷ 100</p>
     </div>
 
     <p style="font-size:13px;margin-bottom:8px;">计算模式</p>
@@ -266,7 +266,7 @@ const MODES = {
 let cur = 'yield';
 function renderModes() {
   const __g1=Object.entries(MODES).map(([k, v]) =>
-    `<div class="mode-btn ${k===cur?'active':''}" onclick="cur='${k}';renderModes();renderParams();">${v.n}</div>`
+    `<div class="mode-btn ${k===cur?'active':''}" onclick="cur='${k}';renderModes();renderParams();calc();">${v.n}</div>`
   ).join('');document.getElementById('modeGrid').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 function renderParams() {
@@ -303,6 +303,8 @@ function calc() {
     const theo = +document.getElementById('theo').value || 0;
     const act = +document.getElementById('actual').value || 0;
     if (theo<=0) { ToolBox.showToast(i18nText('toast.invalid_input'),'error'); return; }
+    if (act<=0) { document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 请输入大于 0 的实际产量</p>'; return; }
+    if (act>theo) { document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 实际产量高于理论产量，数据异常（产率不可能超过 100%）</p>'; return; }
     const yieldPct = (act / theo) * 100;
     let level = '✅ 良好';
     if (yieldPct < 50) level = '⚠️ 偏低';
@@ -373,15 +375,15 @@ function calc() {
     const t = +document.getElementById('times').value || 0;
     const y1 = +document.getElementById('yield').value || 0;
     const y2 = +document.getElementById('big').value || 0;
-    if (s<=0||t<=0) { ToolBox.showToast(i18nText('toast.invalid_input'),'error'); return; }
-    const scale = s * t;
-    const expYield = scale * y2 / 100;
-    const loss = scale * (y1 - y2) / 100;
+    if (s<=0||t<=0||y1<=0||y1>100||y2<=0||y2>100) { ToolBox.showToast(i18nText('toast.invalid_input'),'error'); return; }
+    const theoScale = s / (y1/100) * t;
+    const expYield = theoScale * y2 / 100;
+    const loss = theoScale * (y1 - y2) / 100;
     const __g9=`
       <h3 style="text-align:center;margin-bottom:12px;">⚗️ 放大报告</h3>
       <div class="result-block">
         <div class="result-label">理论产量 (放大)</div>
-        <div class="result-value">${scale.toFixed(1)} g</div>
+        <div class="result-value">${theoScale.toFixed(1)} g</div>
       </div>
       <div class="result-block">
         <div class="result-label">预计产量</div>
