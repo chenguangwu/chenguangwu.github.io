@@ -284,19 +284,37 @@ function getYearGanZhi(year) {
   return { gan, zhi };
 }
 
-function getMonthGanZhi(year, month) {
-  const yearGan = getYearGanZhi(year).gan;
-  const yearGanIdx = HEAVENLY_STEMS.indexOf(yearGan);
-  const monthStart = (yearGanIdx % 5) * 2 + 2;
-  const gan = HEAVENLY_STEMS[((monthStart + month - 1) % 10 + 10) % 10];
-  const zhi = EARTHLY_BRANCHES[((month + 1) % 12 + 12) % 12];
-  return { gan, zhi };
+// 按节气近似确定月支（寅=2…子=0、丑=1），节气日期采用常用近似值
+function getSolarMonthBranch(month, day) {
+  const md = month * 100 + day;
+  if (md >= 204 && md < 306) return 2;   // 寅（立春~惊蛰）
+  if (md >= 306 && md < 405) return 3;   // 卯
+  if (md >= 405 && md < 506) return 4;   // 辰
+  if (md >= 506 && md < 606) return 5;   // 巳
+  if (md >= 606 && md < 707) return 6;   // 午
+  if (md >= 707 && md < 808) return 7;   // 未
+  if (md >= 808 && md < 908) return 8;   // 申
+  if (md >= 908 && md < 1008) return 9;  // 酉
+  if (md >= 1008 && md < 1108) return 10; // 戌
+  if (md >= 1108 && md < 1207) return 11; // 亥
+  if (md >= 106 && md < 204) return 1;   // 丑（小寒~立春）
+  return 0;                              // 子（大雪~小寒）
+}
+
+// 月干由年干按五虎遁推出：甲己丙作首，乙庚戊为头……
+function getMonthGanZhi(year, month, day) {
+  const yearGanIdx = HEAVENLY_STEMS.indexOf(getYearGanZhi(year).gan);
+  const branch = getSolarMonthBranch(month, day);
+  const elapsed = (branch - 2 + 12) % 12;
+  const gan = HEAVENLY_STEMS[((((yearGanIdx % 5) * 2 + 2 + elapsed) % 10) + 10) % 10];
+  return { gan, zhi: EARTHLY_BRANCHES[branch] };
 }
 
 function getDayGanZhi(date) {
+  // 1900-01-31 为甲辰日（六十甲子序号 40），故在距基准天数上再加 40 校正
   const baseDate = new Date(1900, 0, 31);
   const days = Math.floor((date - baseDate) / 86400000);
-  const offset = (days % 60 + 60) % 60;
+  const offset = ((days + 40) % 60 + 60) % 60;
   return { gan: HEAVENLY_STEMS[offset % 10], zhi: EARTHLY_BRANCHES[offset % 12] };
 }
 
@@ -336,8 +354,10 @@ function analyze() {
   const month = d.getMonth() + 1;
   const day = d.getDate();
 
-  const yearP = getYearGanZhi(year);
-  const monthP = getMonthGanZhi(year, month);
+  // 以立春（约 2 月 4 日）换年，立春前归上一干支年
+  const solarYear = (month * 100 + day < 204) ? year - 1 : year;
+  const yearP = getYearGanZhi(solarYear);
+  const monthP = getMonthGanZhi(solarYear, month, day);
   const dayP = getDayGanZhi(d);
   const hourP = getHourGanZhi(dayP.gan, hourIdx);
 
@@ -373,7 +393,7 @@ function analyze() {
 
     <div class="analysis-item">
       <h4>⚖️ 五行分布</h4>
-      <p>${Object.entries(elemCount).map(([e, c]) => `${e}:${'★'.repeat(c)}${'☆'.repeat(4-c)}(${c})`).join(' · ')}</p>
+      <p>${Object.entries(elemCount).map(([e, c]) => `${e}:${'★'.repeat(c)}${'☆'.repeat(Math.max(0, 8-c))}(${c})`).join(' · ')}</p>
     </div>
 
     <div class="analysis-item">

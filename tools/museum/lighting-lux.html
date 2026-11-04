@@ -317,7 +317,10 @@ function calc(){
   // 光斑直径
   var spotDiameter = 2 * dist * Math.tan(halfBeam);
 
-  var compliant = avgLux <= limit.lux;
+  // 合规须同时满足平均照度与中心照度（峰值）不超限，避免平均值掩盖局部过曝
+  var avgOk = avgLux <= limit.lux;
+  var centerOk = centerLux <= limit.lux;
+  var compliant = avgOk && centerOk;
 
   var html = '<div class="summary-grid">';
   html += card('总有效光通量', totalLumens.toFixed(0) + ' lm');
@@ -330,7 +333,10 @@ function calc(){
 
   // 合规判定
   var grade = compliant ? 'grade-excellent' : 'grade-fail';
-  var status = compliant ? '达标 ✓' : '超标 ✕';
+  var status;
+  if(compliant) status = '达标 ✓';
+  else if(!avgOk) status = '平均照度超标 ✕';
+  else status = '中心照度过曝 ✕';
   html += '<div style="text-align:center;margin:16px 0;"><span class="grade-tag '+grade+'" style="font-size:14px;padding:8px 20px;">照度'+status+'</span></div>';
 
   html += '<table><thead><tr><th>项目</th><th>数值</th></tr></thead><tbody>';
@@ -345,13 +351,17 @@ function calc(){
   html += '</tbody></table>';
 
   if(!compliant){
-    var ratio = avgLux / limit.lux;
-    var advice;
-    if(ratio > 2){ advice = '严重超标，建议减少灯具数量或换低光通光源，并加装调光/防紫外滤片。'; }
-    else { advice = '轻微超标，建议调低灯具功率或加装柔光片/调光器。'; }
-    html += '<div class="tip-box tip-error">照度超标！当前 '+avgLux.toFixed(0)+' lx 超过 '+limit.name+' 展品限值 '+limit.lux+' lx。'+advice+'</div>';
+    if(!avgOk){
+      var ratio = avgLux / limit.lux;
+      var advice;
+      if(ratio > 2){ advice = '严重超标，建议减少灯具数量或换低光通光源，并加装调光/防紫外滤片。'; }
+      else { advice = '轻微超标，建议调低灯具功率或加装柔光片/调光器。'; }
+      html += '<div class="tip-box tip-error">照度超标！当前平均 '+avgLux.toFixed(0)+' lx 超过 '+limit.name+' 展品限值 '+limit.lux+' lx。'+advice+'</div>';
+    }else{
+      html += '<div class="tip-box tip-error">中心照度（峰值）'+centerLux.toFixed(0)+' lx 超过 '+limit.name+' 展品限值 '+limit.lux+' lx，尽管平均照度达标。建议加大照射距离、加装柔光片或调低单灯功率，避免局部光斑灼伤展品。</div>';
+    }
   }else{
-    html += '<div class="tip-box tip-success">照度达标。高敏感展品建议年曝光量不超过限值，可配合感应照明缩短点亮时间。</div>';
+    html += '<div class="tip-box tip-success">平均与中心照度均达标。高敏感展品建议年曝光量不超过限值，可配合感应照明缩短点亮时间。</div>';
   }
 
   const __g1=html;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
