@@ -232,3 +232,39 @@
 - `tools/construction/brick-calculator.html` 水泥 250 kg/m³ 未分砂浆标号 → 已补「未分标号，取 M5–M10 综合估算；分级用量见『水泥砂浆配合比』工具」，与 `cement-mortar-ratio` 的 M5 220 / M7.5 280 / M10 330 / M15 380 分级口径分开表述。
 
 **本批改动**：`calc-205` 参考表（管型统一）、`cement-mortar-ratio` 参考表（M5 比值双口径）、`brick-calculator` 公式说明（水泥用量口径）。均为说明文字，不改计算逻辑；`verify_construction_calc` 39/39 通过。未跑 `_build.py`。
+
+## 第 16 批：正常使用极限状态族审计（2026-11-05）
+
+**扫描范围**：`tools/civil` / `tools/construction` / `tools/structural` 中含「裂缝 / 挠度 / 保护层 / 耐久性 / 碳化 / 水胶比 / 抗渗 / 氯离子」的页面，共 **14 页**（已剔除 `index.html` 与仅命中「0.2mm 漆膜厚度」等无关串的页面）。
+
+**四分计数**：一致 **4** / 不一致已修 **1** / 无法核 **8** / 未覆盖 **1**。
+
+**逐页台账**：
+
+| 页面 | 公式或参数 | 标准值 | 判定 |
+|---|---|---|---|
+| tools/civil/carbonation-depth.html | 碳化深度 `x = K·√t`（K 为 mm/√a 速率） | GB/T 50476 平方扩散模型 `x = k·√t`；参考表与深解算例（k=1.0、t=20 → 4.5mm）同口径 | **不一致已修**：原公式/代码乘 2.56（`x=2.56K√t`），与同页参考表、算例矛盾；已统一为 `x=K√t`，公式框/计算说明/`calcTool`/`extras`/图表 sweep/图表标题 6 处同步，英文词典 2 行与 verify 期望值同步 |
+| tools/civil/concrete-wb-ratio.html | 耐久最大水胶比：一类 0.60 / 二a 0.55 / 二b 0.50 / 三a 0.45 / 三b 0.40 | GB 50010-2010 表 3.5.2 同值 | **一致**（已补出处「GB 50010-2010 表 3.5.2」；氯离子含量限值本页未列，归子项未覆盖） |
+| tools/construction/detector-131.html | 抗渗等级 P6/P8/P10/P12 ↔ 0.6/0.8/1.0/1.2 MPa 逐级加压不渗透 | GB/T 50082-2009 同口径 | **一致** |
+| tools/construction/calc-204.html | 模板挠度 `5qL⁴/384EI ≤ L/400`（外露）/ `L/250`（隐蔽） | GB 50666-2011 §4.4.4 同值 | **一致**（施工规范口径，非 GB 50010 构件挠度，页内已标 GB 50666） |
+| tools/civil/load-combination.html | SLS 用标准组合（分项系数=1），承载力用基本组合（1.2/1.4） | GB 50068/GB 50009 组合口径 | **一致** |
+| tools/civil/beam-udl.html | 仅弹性挠度 `δ=5qL⁴/384EI` | GB 50010 需 `B_s`（含 ψ、α_E、ρ、γ_f'）与长期刚度 `B`（θ=2.0）再验算限值 | **无法核**：无短期/长期刚度、无 ψ/θ、无限值，只给弹性值 |
+| tools/structural/deflection-cantilever-point.html | `δ=FL³/(3EI)` | 纯弹性解，无 GB 50010 长期刚度与限值 | **无法核** |
+| tools/structural/deflection-cantilever-udl.html | `δ=wL⁴/(8EI)` | 同上 | **无法核** |
+| tools/structural/ss-point-deflection.html | `δ=PL³/(48EI)` | 同上 | **无法核** |
+| tools/civil/rc-beam-rebar.html | 正文仅提及「使用阶段验算裂缝与挠度」，无 `w_max` 公式 | GB 50010-2010 式 7.1.2 需 α_cr、ψ、σ_s、c、d_eq、ρ_te | **无法核**（另登记：输入标签「保护层 a_s」实为受拉钢筋合力点至截面边缘距离 a_s，非保护层厚度 c） |
+| tools/civil/one-way-slab.html | 仅 ρmin、构造间距说明 | 无裂缝宽度/挠度计算 | **无法核** |
+| tools/civil/two-way-slab.html | 弹性薄板弯矩系数（ν=0.2） | 无挠度/裂缝验算 | **无法核** |
+| tools/civil/rebar-anchorage.html | 锚固长度修正提及保护层 | 无最小保护层厚度/耐久限值 | **无法核** |
+| tools/civil/temp-7.html | 大体积温控：内表/基础温差 25°C、R 按厚度 0.4/0.5/0.6/0.7、K≥1.15 | GB 50496 大体积混凝土温控体系 | **未覆盖**：属温度裂缝预防，不并入 GB 50010 SLS 裂缝宽度四分 |
+
+**子项覆盖结论（GB 50010-2010 正常使用极限状态）**：
+
+- **裂缝宽度式 7.1.2**：全站 0 页实现（α_cr 受弯 1.9 / 偏心受压 1.66、ψ 0.2–1.0、d_eq、ρ_te≥0.01、c 按环境类别）——`rc-beam-rebar` 仅文字提及。
+- **挠度 B_s / B（θ=2.0）**：0 页实现，4 个挠度页均为纯弹性解。
+- **最小保护层厚度 / 最大水胶比 / 氯离子限值**：仅 `concrete-wb-ratio` 覆盖最大水胶比并已对齐表 3.5.2；保护层与氯离子限值 0 页。
+- **裂缝控制等级（表 3.3.1，0.2/0.1/0.3mm）**：0 页覆盖。
+
+**本批改动**：`tools/civil/carbonation-depth.html`（去 2.56 因子，6 处）、`i18n/tools/en/civil/carbonation-depth.json`（2 键）、`tools/civil/concrete-wb-ratio.html`（补表 3.5.2 出处）、`i18n/tools/en/civil/concrete-wb-ratio.json`（同键）、`scripts/verify_civil_calc.js`（carbonation 正例 42.9→16.8、B 类自动补强例 69.68→272.2）。`node scripts/verify_civil_calc.js` = 51/51；`node scripts/discriminate_check.js verify_civil_calc.js` = 51/51 变红、0 逃生项。未跑 `_build.py`。
+
+**构建保留判断**：`_build.py` 只重建 `<!-- TOOLBOX-DEEP-DIVE -->` 区块（由 `i18n/tools/content_deepdive.json` 的 `civil/carbonation-depth` 条目生成），而该条目本身已是 `x=k·√t`（与本页算例一致），故重建后深度解析块与本页现值一致；公式框、`calcTool`、`extras`、`__cadSweep`、图表标题均位于深度块之外，构建不会改写。verify 脚本与英文词典不参与页面正文生成。因此下次构建「深度块重写为同值、其余保留」。复查口径：构建后 `grep -c '2.56'` 应为 0、`grep -c 'K*Math.sqrt'` 计数不变。
