@@ -132,10 +132,6 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="input-row">
       <div>
-        <label for="phi">稳定系数 φ</label>
-        <input type="number" id="phi" value="1.0" step="0.05" min="0.1" max="1" placeholder="如 1.0（0.1–1）">
-      </div>
-      <div>
         <label for="h0">计算高度 H₀ (mm)</label>
         <input type="number" id="h0" value="3000" step="100" min="100" placeholder="如 3000">
       </div>
@@ -183,7 +179,7 @@ s.parentNode.insertBefore(el, s);
       <div class="tool-notes-title">📌 计算说明</div>
       <ul>
         <li>N = φ·f·A（f 单位 N/mm²，A 单位 mm² → N）</li>
-        <li>稳定系数 φ 由高厚比查表确定</li>
+        <li>稳定系数 φ 由高厚比 β 实算：轴心受压 φ = 1/(1+αβ²)，α 按 GB 50003-2011 式 D.0.1-3 取 M5 及以上 0.0015、M2.5 取 0.002</li>
         <li>开洞墙应按净面积计算</li>
       </ul>
     </div>
@@ -224,18 +220,25 @@ s.parentNode.insertBefore(el, s);
 <script>
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function masonryPhi(beta,mortar){
+  // GB 50003-2011 式 D.0.1-3：轴心受压（e=0）φ = φ0 = 1/(1+αβ²)
+  const alpha = mortar==='2.5' ? 0.002 : 0.0015;
+  return 1/(1+alpha*beta*beta);
+}
 function calcTool(){
-            const f=num('f'), b=num('b'), L=num('L'), phi=num('phi'), h0=num('h0');
+            const f=num('f'), b=num('b'), L=num('L'), h0=num('h0');
             const mortar=document.getElementById('mortar').value;
-            if(f<=0||b<=0||L<=0||phi<=0||h0<=0){ToolBox.setResult('result','<p class="tip-error">请输入有效参数。</p>');return;}
+            if(f<=0||b<=0||L<=0||h0<=0){ToolBox.setResult('result','<p class="tip-error">请输入有效参数。</p>');return;}
             const A=b*L;            // mm²
-            const N=phi*f*A/1000;   // kN (f MPa=N/mm²)
             const beta=h0/b;
+            const phi=masonryPhi(beta,mortar); // 由高厚比实算，不再用固定输入
+            const N=phi*f*A/1000;   // kN (f MPa=N/mm²)
             const betaAllow = mortar==='2.5'?22:(mortar==='7.5'?26:24);
             const __g1=dataGrid([
                 [(A/1e6).toFixed(3),'截面面积 A (m²)'],
                 [N.toFixed(0),'承载力 N (kN)'],
                 [beta.toFixed(1),'高厚比 β'],
+                [phi.toFixed(3),'稳定系数 φ'],
                 [betaAllow.toFixed(0),'允许高厚比 [β]'],
                 [beta<=betaAllow?'满足':'超限','高厚比判定']
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
@@ -243,7 +246,6 @@ function calcTool(){
 function resetForm(){document.getElementById('f').value = '2.5';
       document.getElementById('b').value = '240';
       document.getElementById('L').value = '3000';
-      document.getElementById('phi').value = '1.0';
       document.getElementById('h0').value = '3000';
       document.getElementById('mortar').value = '5';
       calcTool();}
@@ -253,13 +255,14 @@ function __masonry_bearingNum(id){var e=document.getElementById(id);var v=e?pars
 function __masonry_bearingExtras(){
     function __masonry_bearingRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
-    var f=num('f'), b=num('b'), L=num('L'), phi=num('phi'), h0=num('h0');
+    var f=num('f'), b=num('b'), L=num('L'), h0=num('h0');
     var mortar=document.getElementById('mortar').value;
     var A=b*L;            // mm²
-    var N=phi*f*A/1000;   // kN (f MPa=N/mm²)
     var beta=h0/b;
+    var phi=masonryPhi(beta,mortar);
+    var N=phi*f*A/1000;   // kN (f MPa=N/mm²)
     var betaAllow = mortar==='2.5'?22:(mortar==='7.5'?26:24);
-    if (!isFinite(__masonry_bearingNum('f')) || !isFinite(__masonry_bearingNum('b')) || !isFinite(__masonry_bearingNum('L')) || !isFinite(__masonry_bearingNum('phi')) || !isFinite(__masonry_bearingNum('h0'))) return;
+    if (!isFinite(__masonry_bearingNum('f')) || !isFinite(__masonry_bearingNum('b')) || !isFinite(__masonry_bearingNum('L')) || !isFinite(__masonry_bearingNum('h0'))) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#masonry_bearingTable',{
         head: en?['Item','Value']:['项目','数值'],
@@ -267,11 +270,12 @@ function __masonry_bearingExtras(){
             ['截面面积 A (m²)', (A/1e6).toFixed(3)],
             ['承载力 N (kN)', N.toFixed(0)],
             ['高厚比 β', beta.toFixed(1)],
+            ['稳定系数 φ', phi.toFixed(3)],
             ['允许高厚比 [β]', betaAllow.toFixed(0)],
             ['高厚比判定', beta<=betaAllow?'满足':'超限'],
         ]
     });
-    TBKit.history.record({f:__masonry_bearingRaw('f'), b:__masonry_bearingRaw('b'), L:__masonry_bearingRaw('L'), phi:__masonry_bearingRaw('phi'), h0:__masonry_bearingRaw('h0'), mortar:__masonry_bearingRaw('mortar'), A:A, beta:beta});
+    TBKit.history.record({f:__masonry_bearingRaw('f'), b:__masonry_bearingRaw('b'), L:__masonry_bearingRaw('L'), h0:__masonry_bearingRaw('h0'), mortar:__masonry_bearingRaw('mortar'), A:A, beta:beta, phi:phi});
     function __masonry_bearingRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#masonry_bearingHist',function(rec){ __masonry_bearingRestore(rec); calcTool(); });
     TBKit.util.diffBox('#masonry_bearingDiff',['A']);
@@ -283,9 +287,9 @@ function __masonry_bearingExport(){
 function __masonry_bearingPresets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#masonry_bearingPresets',[
-        {label:'默认',labelEn:'Default',values:{f:'2.5', b:'240', L:'3000', phi:'1.0'}},
-        {label:'示例 2×',labelEn:'Example 2×',values:{f:'5', b:'480', L:'6000', phi:'2'}},
-        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{f:'1.25', b:'120', L:'1500', phi:'0.5'}},
+        {label:'默认',labelEn:'Default',values:{f:'2.5', b:'240', L:'3000', h0:'3000', mortar:'5'}},
+        {label:'高墙',labelEn:'Tall wall',values:{f:'2.5', b:'240', L:'6000', h0:'4800', mortar:'5'}},
+        {label:'薄墙',labelEn:'Thin wall',values:{f:'1.5', b:'120', L:'1500', h0:'3000', mortar:'7.5'}},
     ],function(){ calcTool(); });
 }
 var __tb_fn0 = calcTool;
@@ -336,8 +340,10 @@ else document.addEventListener('DOMContentLoaded', __masonry_bearingBoot);
 </section>
 <script>
 function __msbSweep(){
-  var f=num('f'), b=num('b'), phi=num('phi');
-  if(!isFinite(f)||!isFinite(b)||!isFinite(phi)||f<=0||b<=0||phi<=0)return null;
+  var f=num('f'), b=num('b'), h0=num('h0');
+  var mortar=document.getElementById('mortar').value;
+  if(!isFinite(f)||!isFinite(b)||!isFinite(h0)||f<=0||b<=0||h0<=0)return null;
+  var phi=masonryPhi(h0/b,mortar);
   var labels=[], dN=[], dA=[];
   var Ls=[500,1000,1500,2400,3000,4000,5000,6000];
   for(var k=0;k<Ls.length;k++){

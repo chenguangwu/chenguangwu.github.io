@@ -186,7 +186,8 @@ s.parentNode.insertBefore(el, s);
       <ul>
         <li>计算长度 l₀ = k·h + 2a（扣件式钢管脚手架简化公式）</li>
         <li>长细比 λ = l₀ / i，i 为截面回转半径</li>
-        <li>稳定系数 φ 按 a 类截面近似查表（线性插值）</li>
+        <li>稳定系数 φ 按 JGJ 130-2011 附录A 表A.0.6（Q235 钢）线性插值；λ&gt;250 时按表末值并提示专项验算</li>
+        <li>表A.0.6 仅适用于 Q235 钢；若 f 取其他钢种强度设计值，φ 须另按 GB 50017 附录D 重算</li>
         <li>立杆稳定承载力 N ≤ φ·A·f，其中 f 为钢材抗压强度设计值（Q235 取 205 N/mm²，已含材料分项系数）</li>
       </ul>
     </div>
@@ -195,11 +196,13 @@ s.parentNode.insertBefore(el, s);
 
 <script>
 function phiBuckle(lambda) {
-  // 简化的 Q235 轴心受压稳定系数（a 类截面，线性插值）
+  // JGJ 130-2011 附录A 表A.0.6 轴心受压构件稳定系数（Q235 钢），线性插值
+  // 原表 λ≥80 段偏高、λ>200 恒定 0.300，与同规范 calc-206 的 φ 表不一致
   const table = [
-    [0, 1.000], [20, 0.981], [40, 0.941], [60, 0.883],
-    [80, 0.807], [100, 0.710], [120, 0.606], [140, 0.507],
-    [160, 0.421], [180, 0.353], [200, 0.300]
+    [0, 1.000], [20, 0.998], [40, 0.949], [60, 0.883],
+    [80, 0.783], [100, 0.638], [120, 0.494], [140, 0.376],
+    [160, 0.291], [180, 0.230], [200, 0.186], [220, 0.154],
+    [240, 0.130], [250, 0.120]
   ];
   if (lambda <= table[0][0]) return table[0][1];
   if (lambda >= table[table.length - 1][0]) return table[table.length - 1][1];
@@ -209,7 +212,7 @@ function phiBuckle(lambda) {
       return table[i][1] + t * (table[i+1][1] - table[i][1]);
     }
   }
-  return 0.3;
+  return table[table.length - 1][1];
 }
 
 function calcScaffold() {
@@ -217,14 +220,15 @@ function calcScaffold() {
   const t = parseFloat(document.getElementById('thickness').value) || 0;
   const fy = parseFloat(document.getElementById('fy').value) || 0;
   const h = parseFloat(document.getElementById('h').value) || 0;
-  const k = parseFloat(document.getElementById('k').value) || 1;
+  const kRaw = parseFloat(document.getElementById('k').value);
+  const k = isNaN(kRaw) ? 1.155 : kRaw; /* 仅空串/NaN 回退；k=0 非法，下面显式报错 */
   const a = parseFloat(document.getElementById('a').value) || 0;
   const A = parseFloat(document.getElementById('area').value) || 0;
   const q = parseFloat(document.getElementById('load').value) || 0;
   const g = parseFloat(document.getElementById('self').value) || 0;
 
-  if (D <= 0 || t <= 0 || fy <= 0 || h <= 0) {
-    ToolBox.setResult('result', '<p class="tip-error">请输入有效的钢管及几何参数。</p>');
+  if (D <= 0 || t <= 0 || fy <= 0 || h <= 0 || k <= 0) {
+    ToolBox.setResult('result', '<p class="tip-error">请输入有效的钢管及几何参数（计算长度系数 k 须大于 0）。</p>');
     return;
   }
 
@@ -256,6 +260,8 @@ function calcScaffold() {
       <div class="data-card"><div class="num">${(ratio*100).toFixed(1)}%</div><div class="label">稳定利用率</div></div>
     </div>
     <p style="margin-top:12px;font-size:14px;">验算结果：${status}</p>
+    ${lambda > 250 ? '<p class="tip-warn" style="margin-top:8px;">λ 超过 250，已超出 JGJ 130-2011 附录A 表A.0.6 范围，须专项验算。</p>' : ''}
+    ${Math.abs(fy - 205) > 1e-9 ? `<p class="tip-warn" style="margin-top:8px;">φ 表为 Q235 钢（f=205 N/mm²）；当前 f=${fy}，其他钢种须按 GB 50017 附录D 重算 φ。</p>` : ''}
   `;
   const __g1=html;ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
 }

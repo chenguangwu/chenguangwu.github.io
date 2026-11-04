@@ -85,3 +85,40 @@
 - 发现并修正 7 项不一致（上表 7 行）；其余 28 页「声明口径 / 实现口径 / 外部参照」一致，无改动。
 - 已复核但未改的代表页：荷载族 `slope-stability-fos`、`beam-udl`、`dijichengzailijisuan`、`assessor-19`、`calc-206`、`wind-load`、`masonry-bearing`、`calc-204`；配筋族 `two-way-slab`（弹性理论系数表，页面标注经验系数）、`isolated-footing`（pmin≥0 / pavg≤f_a / pmax≤1.2f_a 与 GB 50007-2011 5.2 一致）、`pile-capacity`、`cft-capacity`（页面明示简化约束增强系数 1.2）、`rebar-weight`、`calc-2`；工程量族 `concrete-volume`、`excavation-earth`、`calc-dosage-1`、`calc-5`（原木材积 GB/T 4814 公式）、`estimate-area-dosage`、`cost-estimator`；水暖电族 `cooling-load`、`kongtiaolengfuhejisuan`、`duct-calculator`、`pump-calculator`、`calc-1`、`calc-2`、`breaker-sizing`、`voltage-drop`、`transformer-sizing`。
 - 留待统一：`calc-206` 同页 N 用 GB 55023-2022 的 1.3/1.5、Mw 仍用 JGJ 130-2011 的 0.9×1.4（页面已注明两套出处，跨规范混用但未判缺陷；若要统一为 1.5 需同步改 3 处 verify 期望）。
+
+## 第 13 批：硬编码规范限值专项 + 结构/岩土族 + `|| 默认值` 吞 0
+
+### 扫描口径与结果（2026-11-05）
+
+- 范围：`tools/civil/` 25 页、`tools/structural/` 27 页、`tools/construction/` 38 页，共 **90 页**（其中 3 页为行业 `index.html`，实际工具页 **87 页**）。
+- 扫描脚本区数值字面量（`[NUM]` 标记）**80 处**，逐条人工分拣出「规范限值形态」候选 **15 处**：
+  - **推导值被写死（必修）2 处**：`calc-1` 的 φ 分段表（末端 `return 0.3`）、`masonry-bearing` 的 φ 固定输入框（默认 1.0）。
+  - **跨规范混用 / 引用不符（登记）4 处**：`calc-206`（GB 55023 的 1.3/1.5 与 JGJ 130 的 `0.9×1.4` 混用，页内已注明出处、无内部矛盾，维持不动）、`cft-capacity`（引 GB 50936 实为 `A_s f_y + 1.2 A_c f_c` 简化叠加）、`dijichengzailijisuan`（引 GB 50007 5.2.4 实为 Terzaghi `qu`）、`assessor-19`（`βz=1+0.038√H` 为经验式，非 GB 50009 第 8.4 节计算值）。
+  - **正常 9 处**：`isolated-footing` `p_max≤1.2f_a`、`load-combination` 1.3/1.5、`rebar-anchorage` `max(200, ζ_a l_ab)`、`slope-stability-fos` 分级阈值、`calc-204` `1.5q` 与 `1.3(g)+1.5q`、`calc-206` φ 表（JGJ 130 表 A.0.6 一致）、`two-way-slab` 弹性系数表（经验系数已标注）等。
+
+### 本批修改页面
+
+| 页面路径 | 页面声称的标准 / 条款 | 代码实际采用 | 偏差与处置 | 是否已核对 |
+|---|---|---|---|---|
+| tools/construction/calc-1.html | JGJ 130-2011 附录A 表A.0.6（Q235 钢）稳定系数 φ | φ 由 λ 按表 A.0.6 线性插值（20→0.998 … 250→0.120），λ>250 取表末值并提示专项验算；`k` 改 NaN 回退 | **推导值写死（必修）**：原分段表末端 `return 0.3` 且与 JGJ 130 表不符（λ=169 原给 0.3，应为 0.264）；默认态由 31.81 kN/65.1% 变为 27.32 kN/72.5% | 是 |
+| tools/civil/masonry-bearing.html | GB 50003-2011 式 D.0.1-3 轴心受压影响系数 | `φ=1/(1+αβ²)`，α：M5 及以上 0.0015、M2.5 0.002；删除 φ 输入框，改为按 β 实算 | **推导值写死（必修）**：原 φ 固定输入 1.0，与页面「φ 由高厚比查表确定」自相矛盾；β=12.5 时 φ=0.810，承载力 1458 kN | 是 |
+| tools/civil/excavation-earth.html | Rankine 主动土压力；φ 声明 0–45° | 守卫由 `φ≤0` 改 `φ<0`（φ=0 合法，K_a=1），空串单独拦截 | 边界拒绝错误：原代码拒绝合法 φ=0 | 是 |
+| tools/civil/slope-stability-fos.html | GB 50330-2013 表 5.3.1 边坡稳定安全系数 | 阈值文案改为一级 1.35、二级 1.30、三级 1.25，删除「永久 1.5」错误表述 | 文案与规范不符（代码按用户等级判定） | 是 |
+| tools/civil/dijichengzailijisuan.html | Terzaghi/Meyerhof 极限承载力 | 参考表改为 `qu` 与 `f_a≈qu/K`，注明 GB 50007-2011 5.2.4 的 η_b/η_d 深宽修正本工具未实现 | **跨规范引用不符（登记并改引用口径）** | 是 |
+| tools/civil/cft-capacity.html | GB 50936-2014 钢管混凝土 | 参考表改为本工具简化叠加 `A_s f_y + 1.2 A_c f_c`，注明 1.2 为经验系数、正式设计按 GB 50936 | **跨规范混用（登记并注明）** | 是 |
+| tools/construction/assessor-19.html | GB 50009-2012 风荷载 | βz 标签改「经验估算」，注明 `1+0.038√H` 非第 8.4 节计算值 | **跨规范引用口径（登记并注明）** | 是 |
+| tools/structural/bearing-pressure.html | `q=N/A` | `N` 由 `N||1` 改 NaN 回退；N=0 输出 p=0 并提示「竖向力为 0」，不再替换为 1 kN | **`||` 吞 0**：原 0 荷载按 1 kN 算，给出看似合理的错误值 | 是 |
+| tools/construction/pipe-flow.html | 水的运动粘度温度修正 | `temperature||20` 改 NaN 回退；ν 改 Vogel 式（0°C≈1.75e-6、20°C≈1.00e-6 m²/s） | **`||` 吞 0**：0°C 为合法冷藏/冬季工况；同配置 0°C 水头损失比 20°C 高约 8%（ν 近 1.75 倍） | 是 |
+| tools/construction/area-calculator.html | 公摊率 → 得房率 | `rooms`、`shared` 改 NaN 回退；`shared=0` 合法（得房率 100%），并拦截 `<0 / ≥100` | **`||` 吞 0**：0% 公摊为合法输入 | 是 |
+| tools/construction/window-shading.html | 几何外遮阳近似 | `hour` 改 NaN 回退，0 时（午夜）原样进算 | **`||` 吞 0** | 是 |
+| tools/civil/calc-2.html | 钢筋下料长度 | `num` 改 NaN 回退，0 根合法 | **`||` 吞 0** | 是 |
+| tools/construction/timber-volume.html | 原木材积 | `logQty`、`boardQty` 0 合法 | **`||` 吞 0** | 是 |
+| tools/construction/estimate-area-dosage.html | 涂布用量估算 | `coats` 0 合法 | **`||` 吞 0** | 是 |
+| tools/construction/soundproof-material.html | 隔声材料层数 | `layers` 0 合法 | **`||` 吞 0** | 是 |
+
+### 维护备注（第 13 批）
+
+- 结构力学族核对 27 页：受弯配筋（rc-beam-rebar、one-way-slab、two-way-slab）、挠度/裂缝（beam-udl、deflection-*）、剪力箍筋（beam-shear-stress 等）、地震组合（load-combination、calc-206）、稳定性（slenderness-ratio、euler-buckling、allowable-stress、calc-1）。除 calc-1 φ 表外，公式与单位（kN/N/MPa）均一致；`ξ_b` 派生限值已在第 12 批改为实算。
+- 岩土族核对 9 页：`isolated-footing`（1.2f_a 正常）、`dijichengzailijisuan`（已改引用）、`pile-capacity`（R_a/K 正常）、`slope-stability-fos`（阈值文案已修）、`excavation-earth`（φ=0 边界已修）、`active-earth-rankine`（第 12 批已修 φ=0）、`cft-capacity`（已注明）、`masonry-bearing`（φ 实算）、`rock-mass-rating`（RMR 计分正常）。
+- 本批新增/更新 verify：`calc-1` 期望改 21.00 kN / 98.6%（φ=0.2415）、`masonry-bearing` 去 phi 输入并改 4041 kN/0.910、新增 `pipe-flow` T=0、`window-shading` hour=0、`area-calculator` shared=0、`excavation-earth` φ=0 边界用例；`assessor-19` 锚串随标签变更。
+- 门禁：`verify_civil_calc` 50/50、`verify_construction_calc` 38/38、`verify_structural_calc` 47/47、`verify_general_calc` 362/362 全绿；fidelity 逃生 0（civil 50/50、construction 38/38）；all_default 0（四套均 0）；`_test_static.py` 4705/4705、0 告警；`_audit_assets.py --check` 0 死链 / 0 lang 缺失 / 0 重复 id。

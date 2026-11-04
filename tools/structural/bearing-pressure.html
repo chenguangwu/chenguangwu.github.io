@@ -283,13 +283,18 @@ function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+=
 function calcTool(){
               var __ig=__tbInputGuard(['N', 'A'],["竖向力 (kN)", "底面积 (m²)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const N = num('N'), A = num('A');
+            if (!isFinite(N) || !isFinite(A) || A <= 0) {
+                ToolBox.setResult('result','<p class="tip-error">请输入有效的竖向力与底面积（底面积须大于 0）。</p>');
+                return;
+            }
             const p = N / A;
+            const N0 = N === 0;
             const __g2=dataGrid([
                 [p.toFixed(3), '基底压力 p (kPa)'],
                 [(p * 1000).toFixed(1), 'p (Pa)'],
-                [(p*(A||1)).toFixed(3), '荷载复算 N (kN)'],
-                [(A/(N||1)).toFixed(4), '单位荷载所需面积 (m2/kN)']
-            ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
+                [(p*A).toFixed(3), '荷载复算 N (kN)'],
+                [N0 ? '—' : (A/N).toFixed(4), '单位荷载所需面积 (m2/kN)']
+            ]) + (N0 ? '<p class="tip-warn" style="margin-top:8px;">竖向力为 0：基底压力按 0 kPa 计算（不再替换为 1 kN）。</p>' : '');ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('N').value = '100';
       document.getElementById('A').value = '10';
@@ -301,16 +306,16 @@ function __bearing_pressureExtras(){
     function __bearing_pressureRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var N = num('N'), A = num('A');
+    if (!isFinite(__bearing_pressureNum('N')) || !isFinite(__bearing_pressureNum('A')) || A <= 0) return;
     var p = N / A;
-    if (!isFinite(__bearing_pressureNum('N')) || !isFinite(__bearing_pressureNum('A'))) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#bearing_pressureTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
             ['基底压力 p (kPa)', p.toFixed(3)],
             ['p (Pa)', (p * 1000).toFixed(1)],
-            ['荷载复算 N (kN)', (p*(A||1)).toFixed(3)],
-            ['单位荷载所需面积 (m2/kN)', (A/(N||1)).toFixed(4)],
+            ['荷载复算 N (kN)', (p*A).toFixed(3)],
+            ['单位荷载所需面积 (m2/kN)', N === 0 ? '—' : (A/N).toFixed(4)],
         ]
     });
     TBKit.history.record({N:__bearing_pressureRaw('N'), A:__bearing_pressureRaw('A'), p:p});
