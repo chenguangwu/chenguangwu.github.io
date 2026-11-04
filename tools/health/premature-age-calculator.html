@@ -385,6 +385,14 @@ var growthData = [
   document.getElementById('todayDate').value = yyyy + '-' + mm + '-' + dd;
 })();
 
+function parseLocalDate(v){
+  var p=String(v).split('-');
+  if(p.length!==3) return new Date(NaN);
+  return new Date(parseInt(p[0],10), parseInt(p[1],10)-1, parseInt(p[2],10));
+}
+function dayDiff(a,b){
+  return Math.round((Date.UTC(a.getFullYear(),a.getMonth(),a.getDate())-Date.UTC(b.getFullYear(),b.getMonth(),b.getDate()))/86400000);
+}
 function toggleMode() {
   var mode = document.getElementById('inputMode').value;
   document.getElementById('eddMode').style.display = mode === 'edd' ? 'block' : 'none';
@@ -402,8 +410,8 @@ function calcAge() {
     return;
   }
 
-  var birthDate = new Date(birthStr);
-  var todayDate = new Date(todayStr);
+  var birthDate = parseLocalDate(birthStr);
+  var todayDate = parseLocalDate(todayStr);
 
   if (birthDate > todayDate) {
     const __h1='<p style="color:var(--danger);">出生日期不能晚于当前日期</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h1;
@@ -418,7 +426,7 @@ function calcAge() {
       const __h2='<p style="color:var(--text-muted);">请填写预产期</p>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h2;
       return;
     }
-    eddDate = new Date(eddStr);
+    eddDate = parseLocalDate(eddStr);
     if (eddDate <= birthDate) {
       const __h3='<p style="color:var(--danger);">预产期应晚于出生日期（早产儿的预产期在实际出生之后）</p>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h3;
       return;
@@ -434,19 +442,17 @@ function calcAge() {
     eddDate = new Date(birthDate.getTime() + totalDaysPremature * 86400000);
   }
 
-  // 计算实际月龄
-  var actualMs = todayDate.getTime() - birthDate.getTime();
-  var actualDays = Math.floor(actualMs / 86400000);
+  // 计算实际月龄（按日历日差，避免跨夏令时被 1 小时差值蚀掉一天）
+  var actualDays = dayDiff(todayDate, birthDate);
   var actualMonths = actualDays / 30.44;
   var actualWeeks = actualDays / 7;
 
   // 计算矫正月龄
-  var correctedMs = todayDate.getTime() - eddDate.getTime();
-  var correctedDays = Math.floor(correctedMs / 86400000);
+  var correctedDays = dayDiff(todayDate, eddDate);
   var correctedMonths = correctedDays / 30.44;
 
   // 早产天数
-  var premDays = Math.floor((eddDate.getTime() - birthDate.getTime()) / 86400000);
+  var premDays = dayDiff(eddDate, birthDate);
 
   // 发育追赶进度
   var catchUp = correctedMonths < 0 ? 0 : (correctedMonths > actualMonths ? 100 : Math.min(100, (correctedMonths / actualMonths * 100)));

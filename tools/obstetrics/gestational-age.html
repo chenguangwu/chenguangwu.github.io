@@ -132,7 +132,7 @@ s.parentNode.insertBefore(el, s);
     <div class="tab-content active" id="tab-lmp">
       <div class="card formula-box">
   <h3>📐 计算公式</h3>
-  <div class="formula-eq">孕周 = 末次月经(LMP) + 280 天 或 超声径线校正；周期长度调整预产期</div>
+  <div class="formula-eq">孕周 = 末次月经(LMP) + 280 天 或 超声径线校正；周期长度调整预产期<br>Hadlock 1984（测量值 cm）：BPD GA=9.54+1.482×BPD+0.1676×BPD²；HC GA=8.96+0.540×HC+0.0003×HC³；AC GA=8.14+0.753×AC+0.0036×AC²；FL GA=10.35+2.460×FL+0.170×FL²；CRL 采用 Robinson GA(天)=8.052×√CRL(mm)+23.73</div>
   <p class="formula-desc">结合 LMP 与超声测量重新确定孕周，周期差调整预产期（周期超过 28 天后延/前移）。</p>
 </div>
 <div class="input-row">
@@ -153,6 +153,9 @@ s.parentNode.insertBefore(el, s);
           <select id="usType" onchange="calcUS()">
             <option value="crl">头臀长 CRL (早孕期)</option>
             <option value="bpd">双顶径 BPD (中孕期)</option>
+            <option value="hc">头围 HC (中晚孕期)</option>
+            <option value="ac">腹围 AC (中晚孕期)</option>
+            <option value="fl">股骨长 FL (中晚孕期)</option>
           </select>
         </div>
       </div>
@@ -288,14 +291,22 @@ function formatDate(d){
   var y=d.getFullYear(),m=('0'+(d.getMonth()+1)).slice(-2),day=('0'+d.getDate()).slice(-2);
   return y+'-'+m+'-'+day;
 }
+function parseLocalDate(v){
+  var p=String(v).split('-');
+  if(p.length!==3) return new Date(NaN);
+  return new Date(parseInt(p[0],10), parseInt(p[1],10)-1, parseInt(p[2],10));
+}
+function dayDiff(a,b){
+  return Math.round((Date.UTC(a.getFullYear(),a.getMonth(),a.getDate())-Date.UTC(b.getFullYear(),b.getMonth(),b.getDate()))/86400000);
+}
 
 function calcLMP(){
   var lmpStr=document.getElementById('lmpDate').value;
   var cycle=parseInt(document.getElementById('cycleLen').value)||28;
   if(!lmpStr){const __h0='<p style="color:var(--text-muted);">请选择末次月经日期</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result-lmp').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result-lmp').innerHTML=__h0;return;}
-  var lmp=new Date(lmpStr);
+  var lmp=parseLocalDate(lmpStr);
   var today=new Date(); today.setHours(0,0,0,0);
-  var diffDays=Math.floor((today-lmp)/86400000);
+  var diffDays=dayDiff(today,lmp);
   if(diffDays<0){const __h1='<p style="color:#EF4444;">末次月经日期不能晚于今天</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('result-lmp').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result-lmp').innerHTML=__h1;return;}
 
   // 周期校正：以28天为标准排卵，周期差调整预产期
@@ -339,29 +350,36 @@ function calcUS(){
   var val=parseFloat(document.getElementById('usValue').value);
   var lmpStr=document.getElementById('lmpDate2').value;
   var lbl=document.getElementById('usLabel');
-  lbl.textContent=type==='crl'?'CRL 值 (mm)':'BPD 值 (mm)';
+  lbl.textContent=type==='crl'?'CRL 值 (mm)':(type==='bpd'?'BPD 值 (mm)':(type==='hc'?'HC 值 (mm)':(type==='ac'?'AC 值 (mm)':'FL 值 (mm)')));
   if(!usStr||isNaN(val)||val<=0){const __h3='<p style="color:var(--text-muted);">请填写B超日期和测量值</p>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('result-us').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result-us').innerHTML=__h3;return;}
 
   // 估算孕周
   var gaDays;
+  var cm=val/10;
   if(type==='crl'){
-    // CRL公式: GA(天) = 8.052 × √CRL(mm) + 23.73  (Robinson)
-    // 或 Hadlock: GA(周) = 6.964 + 0.0224×CRL... 简化用 Robinson
+    // CRL 公式: GA(天) = 8.052 × √CRL(mm) + 23.73  (Robinson)
     gaDays=8.052*Math.sqrt(val)+23.73;
+  }else if(type==='bpd'){
+    // Hadlock 1984: GA(周) = 9.54 + 1.482×BPD(cm) + 0.1676×BPD(cm)²
+    gaDays=(9.54+1.482*cm+0.1676*cm*cm)*7;
+  }else if(type==='hc'){
+    // Hadlock 1984: GA(周) = 8.96 + 0.540×HC(cm) + 0.0003×HC(cm)³
+    gaDays=(8.96+0.540*cm+0.0003*cm*cm*cm)*7;
+  }else if(type==='ac'){
+    // Hadlock 1984: GA(周) = 8.14 + 0.753×AC(cm) + 0.0036×AC(cm)²
+    gaDays=(8.14+0.753*cm+0.0036*cm*cm)*7;
   }else{
-    // BPD简易: GA(周) ≈ (BPD(mm) - 12) / 3.2 + 13  (中孕期近似)
-    // Hadlock: GA = 9.54 + 0.45×BPD(cm)... 用 mm 转 cm
-    var bpdCm=val/10;
-    gaDays=(2.11+bpdCm*1.942)*7; // 线性近似周→天
+    // Hadlock 1984: GA(周) = 10.35 + 2.460×FL(cm) + 0.170×FL(cm)²
+    gaDays=(10.35+2.460*cm+0.170*cm*cm)*7;
   }
   var weeks=Math.floor(gaDays/7);
   var days=Math.round(gaDays%7);
   if(days>=7){weeks++;days-=7;}
 
-  var usDate=new Date(usStr);
+  var usDate=parseLocalDate(usStr);
   var edd=new Date(usDate); edd.setDate(edd.getDate()+(280-Math.round(gaDays)));
   var today=new Date(); today.setHours(0,0,0,0);
-  var currentGA=Math.round(gaDays)+Math.floor((today-usDate)/86400000);
+  var currentGA=Math.round(gaDays)+dayDiff(today,usDate);
 
   var html='<div class="stat-grid">';
   html+='<div class="stat-card"><div class="val">'+weeks+'+'+days+'</div><div class="lbl">B超孕周</div></div>';
@@ -370,8 +388,8 @@ function calcUS(){
   html+='</div>';
 
   if(lmpStr){
-    var lmp=new Date(lmpStr);
-    var lmpGA=Math.floor((usDate-lmp)/86400000);
+    var lmp=parseLocalDate(lmpStr);
+    var lmpGA=dayDiff(usDate,lmp);
     var diff=gaDays-lmpGA;
     var absDiff=Math.abs(diff);
     var threshold=weeks<10?5:(weeks<14?7:(weeks<22?10:(weeks<28?14:21)));
