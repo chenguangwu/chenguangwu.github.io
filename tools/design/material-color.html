@@ -172,7 +172,7 @@ s.parentNode.insertBefore(el, s);
   <div class="card tool-card-accent" style="--tool-accent:#7C3AED;">
      <h2 data-zh="🎨 Material Design 配色板">🎨 Material Design Color Palette</h2>
     <p style="color:var(--text-light);font-size:13px;margin-bottom:12px;" data-zh="完整 Material Design 色板，共 19 色系 × 10 阶色值。点击色块复制 HEX。">Browse the full Material Design palette of 19 colour families at 10 shades each and click a swatch to copy its HEX value.</p>    <div class="formula-box">
-      <div class="formula-title">📐 计算公式 / 原理</div> <div class="formula-eq">调色板过滤：色名或任一色值包含关键词即命中（忽略大小写）；色块文字色按相对亮度判定，亮度 &gt; 0.5 用黑字、否则白字</div>
+      <div class="formula-title">📐 计算公式 / 原理</div> <div class="formula-eq">调色板过滤：色名或任一色值包含关键词即命中（忽略大小写）；色块文字色按 WCAG 对比度取较大者：与白 1.05/(L+0.05)、与黑 (L+0.05)/0.05，分界 L≈0.179（不再用亮度 &gt; 0.5 阈值）</div>
       <div class="formula-desc">Material Design 色板共 19 色系 × 10 阶（50–900 及 A100–A700），点击色块可复制对应 HEX；用于遵循 Material 设计规范的配色。</div>
     </div>
 
@@ -347,6 +347,15 @@ function getLuminance(r,g,b){
   return 0.2126*rs+0.7152*gs+0.0722*bs;
 }
 
+// 黑白字按 WCAG 对比度取较大者（分界 L≈0.179），不能用亮度 >0.5 阈值。
+function pickTextColor(r,g,b){
+  const L = getLuminance(r,g,b);
+  const crWhite = 1.05 / (L + 0.05);
+  const crBlack = (L + 0.05) / 0.05;
+  const useBlack = crBlack >= crWhite;
+  return { color: useBlack ? '#000' : '#fff', crBlack: crBlack, crWhite: crWhite };
+}
+
 function render(filter = ''){
   const container = document.getElementById('colorContainer');
   const lower = filter.toLowerCase().trim();
@@ -363,8 +372,7 @@ function render(filter = ''){
         </div>
         <div class="color-shades">
           ${shades.map((hex, i) => {
-            const lum = getLuminance(...hexToRgb(hex));
-            const textColor = lum > 0.5 ? '#000' : '#fff';
+            const textColor = pickTextColor(...hexToRgb(hex)).color;
             return `<div class="shade" style="background:${hex};color:${textColor};" onclick="showDetail('${name}',${i},'${hex}')">
               <div class="level">${SHADE_LEVELS[i]}</div>
               <div class="hex">${hex.toUpperCase()}</div>
@@ -390,7 +398,8 @@ function showDetail(name, index, hex){
   const rgb = hexToRgb(hex);
   const hsl = rgbToHsl(...rgb);
   const lum = getLuminance(...rgb);
-  const textColor = lum > 0.5 ? '#000' : '#fff';
+  const pick = pickTextColor(...rgb);
+  const textColor = pick.color;
   document.getElementById('detailPreview').style.background = hex;
   document.getElementById('detailPreview').style.color = textColor;
   document.getElementById('detailPreview').textContent = hex.toUpperCase();
@@ -402,7 +411,7 @@ function showDetail(name, index, hex){
     <div class="detail-row"><span class="label">HSL</span><span class="value">hsl(${hsl[0]}, ${hsl[1]}%, ${hsl[2]}%)</span><button type="button" class="btn success" onclick="copyText('hsl(${hsl[0]}, ${hsl[1]}%, ${hsl[2]}%)')">复制</button></div>
     <div class="detail-row"><span class="label">CSS Variable</span><span class="value">--${name.toLowerCase()}-${SHADE_LEVELS[index]}: ${hex};</span><button type="button" class="btn success" onclick="copyText('--${name.toLowerCase()}-${SHADE_LEVELS[index]}: ${hex};')">复制</button></div>
     <div class="detail-row"><span class="label">亮度</span><span class="value">${(lum*100).toFixed(1)}%</span></div>
-    <div class="detail-row"><span class="label">推荐文字色</span><span class="value" style="color:${textColor};background:${textColor === '#000' ? '#fff' : '#000'};padding:2px 8px;">${textColor === '#000' ? '#000000' : '#FFFFFF'}</span></div>
+    <div class="detail-row"><span class="label">推荐文字色</span><span class="value" style="color:${textColor};background:${textColor === '#000' ? '#fff' : '#000'};padding:2px 8px;">${textColor === '#000' ? '#000000' : '#FFFFFF'}（${Math.max(pick.crBlack, pick.crWhite).toFixed(2)}:1）</span></div>
   `;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('detailInfo').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('detailInfo').innerHTML=__h1;
   document.getElementById('detailBox').classList.add('show');
   document.getElementById('detailOverlay').classList.add('show');
@@ -535,10 +544,15 @@ document.addEventListener('DOMContentLoaded',function(){
 (function(){
   function mc_hexToRgb(h){h=h.replace('#','');return [parseInt(h.substr(0,2),16),parseInt(h.substr(2,2),16),parseInt(h.substr(4,2),16)];}
   function mc_lum(hex){var c=mc_hexToRgb(hex).map(function(v){v/=255;return v<=0.03928?v/12.92:Math.pow((v+0.055)/1.055,2.4);});return 0.2126*c[0]+0.7152*c[1]+0.0722*c[2];}
+  function mc_pick(hex){
+    var l=mc_lum(hex);
+    var cw=1.05/(l+0.05), cb=(l+0.05)/0.05;
+    return {text:cb>=cw?'#000000':'#FFFFFF', ratio:(cb>=cw?cb:cw)};
+  }
   function mc_groups(){
     return Object.keys(MATERIAL_COLORS).map(function(k){
-      var hex=MATERIAL_COLORS[k][4]; var l=mc_lum(hex);
-      return {name:k,hex:hex,n:Math.round(l*100),lum:l};
+      var hex=MATERIAL_COLORS[k][4]; var l=mc_lum(hex); var p=mc_pick(hex);
+      return {name:k,hex:hex,n:Math.round(l*100),lum:l,text:p.text,ratio:p.ratio};
     });
   }
   function mc_render(){
@@ -548,7 +562,7 @@ document.addEventListener('DOMContentLoaded',function(){
     var g=mc_groups();
     TBKit.chart.bar('#mcChart',{labels:g.map(function(x){return x.name;}),series:[{name:en?'Luminance':'明度',data:g.map(function(x){return x.n;})}],height:320,title:en?'Primary 500 Luminance':'色系主色(500)相对明度'});
     var t=document.getElementById('mcTbody'); if(!t) return;
-    t.innerHTML=g.map(function(x,i){ return '<tr><td>'+(i+1)+'</td><td>'+x.name+'</td><td>'+x.hex+'</td><td>'+x.n+'</td><td>'+(x.lum>0.5?(en?'White text':'白字'):(en?'Black text':'黑字'))+'</td></tr>'; }).join('');
+    t.innerHTML=g.map(function(x,i){ return '<tr><td>'+(i+1)+'</td><td>'+x.name+'</td><td>'+x.hex+'</td><td>'+x.n+'</td><td>'+(x.text==='#000000'?(en?'Black text':'黑字'):(en?'White text':'白字'))+' '+x.ratio.toFixed(2)+':1</td></tr>'; }).join('');
     var tt=document.getElementById('mcTableTitle'); if(tt) tt.textContent=en?'Material 500 Shades':'Material 500 主色与明度';
     var hs=[['mcTh0','#'],['mcTh1',en?'Family':'色系'],['mcTh2',en?'Hex(500)':'主色(500)'],['mcTh3',en?'Luminance':'明度(0-100)'],['mcTh4',en?'Text':'建议文字色']];
     hs.forEach(function(p){var el=document.getElementById(p[0]); if(el) el.textContent=p[1];});

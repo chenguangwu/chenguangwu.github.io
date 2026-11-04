@@ -75,9 +75,10 @@ const CASES = [
   },
   {
     slug: "design/typography-scale",
-    inputs: { baseSize: "16", ratio: "1.2" },
-    expect: ["h5 19.2px"],
-    ref: "等比字阶 size_i = base × ratio^i：16 × 1.2¹ = 19.2（h6 为基准 16，h5 为 19.2）",
+    inputs: { baseSize: "20", ratio: "1.125" },
+    expect: ["h5 22.5px"],
+    ref: "等比字阶 size_i = base × ratio^i：20 × 1.125¹ = 22.5（h6 为基准 20，h5 为 22.5）。"
+       + "默认 baseSize=16 / ratio=1.200 ⇒ h5=19.2px；旧用例注入的正是这两个默认值，判别器回退后仍 PASS ⇒ 已改注入非默认值。",
   },
   {
     slug: "design/typography-scale",
@@ -1427,7 +1428,7 @@ const CASES = [
       "checkContrast()"
     ],
     "expect": [
-      "最低对比度： 21.00:1"
+      "#000000 ↔ #ffffff：21.00:1"
     ],
     "ref": "WCAG 相邻色标对比度：粘贴纯黑(#000000)→纯白(#ffffff)渐变，相对亮度 0 与 1，对比度=(1+0.05)/(0+0.05)=21.00:1。默认 667eea/764ba2 约 1.35:1，输入为空或注入失败即不命中。"
   },
@@ -2283,6 +2284,35 @@ const CASES = [
     expect: ["导出前请先填写有效的像素尺寸与 DPI。"],
     ref: "旧导出路径 +value||1 / ||300 会把空值静默当 1px×1px@300dpi 导出错误清单；"
        + "现导出前显式拒绝并同步清空最大可印尺寸。默认 4032×3024@300 ⇒ 不命中。",
+  },
+  {
+    slug: "design/color-palette",
+    inputs: { hexInput: "#F5F5F5" },
+    expect: ["黑字 19.26:1 ✔ · 白字 1.09:1 ✘"],
+    ref: "黑白字改按 WCAG 对比度取较大者：L(#F5F5F5)=0.913099，黑字 (0.963099)/0.05=19.26:1 ✔、"
+       + "白字 1.05/0.963099=1.09:1 ✘。旧阈值 lum>0.5 在 L=0.2369 的 #667eea 上选白字（3.66:1，未过 AA），"
+       + "新口径选黑字（5.74:1）。默认 #667eea ⇒ 不含 19.26:1 串。",
+  },
+  {
+    slug: "design/color-picker",
+    inputs: { hexInput: "#788EED" },
+    expect: ["#000000（6.89:1）"],
+    ref: "L(#788EED)=0.294535：黑字 (0.344535)/0.05=6.89:1、白字 1.05/0.344535=3.05:1 ⇒ 应选黑字。"
+       + "旧阈值 lum>0.5 会选白字（3.05:1，未过 AA）。默认 #4151e1（L=0.1319）选白字 ⇒ 不含该串。",
+  },
+  {
+    slug: "design/material-color",
+    clicks: ["showDetail('Blue',4,'#42a5f5')"],
+    expect: ["#000000（7.93:1）"],
+    ref: "Material Blue 400 #42a5f5：L=0.346611，黑字 (0.396611)/0.05=7.93:1、白字 2.65:1 ⇒ 应选黑字；"
+       + "旧阈值 lum>0.5 选白字（2.65:1）。默认未打开详情（自动调用无参数）⇒ 不含该串。",
+  },
+  {
+    slug: "design/tailwind-colors",
+    clicks: ["showDetail('blue',4,'#60a5fa')"],
+    expect: ["#000000（8.26:1）"],
+    ref: "Tailwind blue-400 #60a5fa：L=0.362992，黑字 (0.412992)/0.05=8.26:1、白字 2.54:1 ⇒ 应选黑字；"
+       + "旧阈值 lum>0.5 选白字（2.54:1）。默认未打开详情 ⇒ 不含该串。",
   }
 
 ];

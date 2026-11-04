@@ -460,6 +460,15 @@ function getLuminance(r, g, b){
   return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
 }
 
+// 黑白字选择按 WCAG 对比度取较大者（分界 L≈0.179），不用亮度 >0.5 阈值。
+function pickTextColor(r, g, b){
+  const L = getLuminance(r, g, b);
+  const crWhite = 1.05 / (L + 0.05);
+  const crBlack = (L + 0.05) / 0.05;
+  const useBlack = crBlack >= crWhite;
+  return { color: useBlack ? '#000' : '#fff', crBlack, crWhite };
+}
+
 function getColorName(h, s, l){
   if(l < 8) return '黑色';
   if(l > 92 && s < 15) return '白色';
@@ -484,7 +493,8 @@ function update(){
   const hex = rgbToHex(r, g, b);
   const [h, s, v] = rgbToHsv(r, g, b);
   const luminance = getLuminance(r, g, b);
-  const isLight = luminance > 0.5;
+  const pick = pickTextColor(r, g, b);
+  const isLight = pick.color === '#000';
   const colorName = getColorName(state.h, state.s, state.l);
 
   // 预览
@@ -543,7 +553,7 @@ function update(){
       <div class="data-card"><div class="num">${(luminance * 100).toFixed(1)}%</div><div class="label">亮度</div></div>
       <div class="data-card"><div class="num">${(1.05 / (luminance + 0.05)).toFixed(2)}:1</div><div class="label">白底对比度</div></div>
       <div class="data-card"><div class="num">${((luminance + 0.05) / 0.05).toFixed(2)}:1</div><div class="label">黑底对比度</div></div>
-      <div class="data-card"><div class="num" style="font-size:12px;color:${isLight ? '#000' : '#fff'};background:${isLight ? '#fff' : '#000'};padding:2px 8px;border-radius:4px;">${isLight ? '#000000' : '#FFFFFF'}</div><div class="label">推荐文字色</div></div>
+      <div class="data-card"><div class="num" style="font-size:12px;color:${isLight ? '#000' : '#fff'};background:${isLight ? '#fff' : '#000'};padding:2px 8px;border-radius:4px;">${isLight ? '#000000' : '#FFFFFF'}（${Math.max(pick.crBlack, pick.crWhite).toFixed(2)}:1）</div><div class="label">推荐文字色</div></div>
       <div class="data-card"><div class="num" style="display:flex;align-items:center;justify-content:center;gap:6px;"><span style="display:inline-block;width:14px;height:14px;background:${rgbToHex(255-r, 255-g, 255-b)};border-radius:3px;border:1px solid var(--border);"></span>${rgbToHex(255-r, 255-g, 255-b)}</div><div class="label">互补色</div></div>
     </div>
   `;
@@ -742,8 +752,8 @@ function renderHarmony(){
   list.innerHTML = offsets.map(offset => {
     const hex = hueToHex(state.h + offset);
     const [r, g, b] = hexToRgb(hex);
-    const light = getLuminance(r, g, b) > 0.5;
-    return `<button type="button" class="harmony-color" style="background:${hex};color:${light ? '#111' : '#fff'};" title="使用 ${hex.toUpperCase()}" onclick="loadHistoryColor('${hex}')">${hex.toUpperCase()}</button>`;
+    const pick = pickTextColor(r, g, b);
+    return `<button type="button" class="harmony-color" style="background:${hex};color:${pick.color === '#000' ? '#111' : '#fff'};" title="使用 ${hex.toUpperCase()}" onclick="loadHistoryColor('${hex}')">${hex.toUpperCase()}</button>`;
   }).join('');
 }
 
@@ -757,7 +767,9 @@ function renderContrast(r, g, b, hex){
   const large = ratio >= 3 ? '通过 AA 大号文字' : '未通过 AA 大号文字';
   const foreground = document.getElementById('contrastForeground');
   foreground.style.background = hex;
-  foreground.style.color = foregroundLum > .5 ? '#000' : '#fff';
+  // 前景演示块的文字落在前景色上，按该前景色与黑/白的对比度取较大者。
+  const fgPick = pickTextColor(r, g, b);
+  foreground.style.color = fgPick.color === '#000' ? '#111' : '#fff';
   foreground.textContent = hex.toUpperCase();
   document.getElementById('contrastScore').textContent = `${ratio.toFixed(2)}:1`;
   document.getElementById('contrastResult').textContent = `${normal}；${large}。`;

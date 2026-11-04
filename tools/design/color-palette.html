@@ -245,7 +245,7 @@ s.parentNode.insertBefore(el, s);
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>能存自己的色板吗？</dt><dd>可临时编辑复制；持久化请保存到设计系统或导出。结果以浏览器实时计算为准，纯前端本地处理、数据不上传；生成的样式与代码仅作快速产出参考，正式项目请以设计系统、规范与浏览器实测为准。</dd>
-<dt>两种色对比度不够会提示吗？</dt><dd>会按 WCAG 算出对比度值与等级，未达标会标红提醒，便于及时换色或调深。</dd>
+<dt>两种色对比度不够会提示吗？</dt><dd>会按 WCAG 算出与黑字、白字各一组对比度，自动采用对比度更高的一侧；低于 4.5:1 的一侧标红，便于及时换色或调深。</dd>
 <dt>会保存或上传我的内容吗？</dt><dd>结果以浏览器实时计算为准，纯前端本地处理、数据不上传；生成的样式与代码仅作快速产出参考，正式项目请以设计系统、规范与浏览器实测为准。</dd>
 </dl>
 </div>
@@ -366,6 +366,20 @@ function getLuminance(r,g,b){
   return 0.2126*rs+0.7152*gs+0.0722*bs;
 }
 
+// 黑白字选择按 WCAG 对比度取较大者（与白 1.05/(L+0.05)、与黑 (L+0.05)/0.05），
+// 分界在 L≈0.179，不能用亮度 >0.5 的阈值。
+function pickTextColor(r,g,b){
+  const L = getLuminance(r,g,b);
+  const crWhite = 1.05 / (L + 0.05);
+  const crBlack = (L + 0.05) / 0.05;
+  const useBlack = crBlack >= crWhite;
+  return {
+    color: useBlack ? '#000' : '#fff',
+    crBlack: crBlack,
+    crWhite: crWhite
+  };
+}
+
 function generatePalette(scheme){
   const rgb = hexToRgb(baseHex);
   if(!rgb) return [];
@@ -398,8 +412,10 @@ function generatePalette(scheme){
 function renderPalette(){
   const palette = generatePalette(currentScheme);
   document.getElementById('paletteGrid').innerHTML = palette.map(c => {
-    const lum = getLuminance(...c.rgb);
-    const textColor = lum > 0.5 ? '#000' : '#fff';
+    const pick = pickTextColor(...c.rgb);
+    const textColor = pick.color;
+    const okBlack = pick.crBlack >= 4.5;
+    const okWhite = pick.crWhite >= 4.5;
     return `
       <div class="palette-item" onclick="copyValue('${c.hex.toUpperCase()}')">
         <div class="palette-color" style="background:${c.hex};color:${textColor};">
@@ -410,6 +426,7 @@ function renderPalette(){
           <div class="hex">${c.hex.toUpperCase()}</div>
           <div class="rgb">rgb(${c.rgb.join(', ')})</div>
           <div class="rgb">hsl(${c.hsl[0]}, ${c.hsl[1]}%, ${c.hsl[2]}%)</div>
+          <div class="rgb"><span style="color:${okBlack ? 'inherit' : 'var(--danger)'}">黑字 ${pick.crBlack.toFixed(2)}:1 ${okBlack ? '✔' : '✘'}</span> · <span style="color:${okWhite ? 'inherit' : 'var(--danger)'}">白字 ${pick.crWhite.toFixed(2)}:1 ${okWhite ? '✔' : '✘'}</span></div>
         </div>
       </div>
     `;
