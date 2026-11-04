@@ -457,12 +457,15 @@ var amount = +loanAmountEl.value || 0;
   var balloonMonths = isFinite(balloonMonthsRaw) ? Math.floor(balloonMonthsRaw) : 60;
   var balloonRatio = isFinite(balloonRatioRaw) ? balloonRatioRaw : 50;
 
-  var basicOk = amount > 0 && annualRate >= 0 && annualRate <= 100 && years > 0;
+  // 贷款年限按整年计（期数 = 年 × 12），小数年限不得静默按小数折算
+  var yearsInt = Math.floor(years);
+  var yearsOk = years > 0 && years === yearsInt;
+  var basicOk = amount > 0 && annualRate >= 0 && annualRate <= 100 && yearsOk;
   loanAmountEl.classList.toggle('input-error', !(amount > 0));
   annualRateEl.classList.toggle('input-error', !(annualRate >= 0 && annualRate <= 100));
-  loanYearsEl.classList.toggle('input-error', !(years > 0));
+  loanYearsEl.classList.toggle('input-error', !yearsOk);
   if (!basicOk) {
-    document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">请输入有效的贷款参数</p>';
+    document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">贷款金额须 > 0、年利率 0–100%，贷款年限须为正整数年</p>';
     return;
   }
   if (method === 'balloon') {
@@ -498,6 +501,8 @@ var amount = +loanAmountEl.value || 0;
   html += '<div class="stat-card"><div class="val" style="color:var(--danger);">' + fmt(result.totalInterest) + '</div><div class="lbl">总利息</div></div>';
   html += '<div class="stat-card"><div class="val">' + fmt(totalPayment) + '</div><div class="lbl">总还款额</div></div>';
   html += '<div class="stat-card"><div class="val">' + totalMonths + '</div><div class="lbl">还款期数</div></div>';
+  // 输入为名义年利率、按月计息 ⇒ 有效年化 = (1+名义/12)^12 − 1，与名义值并列
+  html += '<div class="stat-card"><div class="val">' + ((Math.pow(1 + annualRate / 100 / 12, 12) - 1) * 100).toFixed(2) + '%</div><div class="lbl">有效年化（按月复利）</div></div>';
   html += '</div>';
 
   html += '<div class="bar-row"><span class="bar-lbl">本金</span><div class="bar-bg"><div class="bar-fill" style="width:' + (amount / totalPayment * 100) + '%;background:var(--primary);">' + (amount / totalPayment * 100).toFixed(1) + '%</div></div></div>';

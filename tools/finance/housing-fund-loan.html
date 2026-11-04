@@ -307,7 +307,8 @@ function calc() {
   var loanYears = parseInt(document.getElementById('loanYears').value) || 20;
   // 利率由用户填写，默认 2.85%（以当地公积金中心最新公告为准）
   var RATE = parseFloat(document.getElementById('rate').value);
-  if (isNaN(RATE) || RATE <= 0 || RATE > 20) RATE = 2.85;
+  var rateAdjusted = isNaN(RATE) || RATE <= 0 || RATE > 20;
+  if (rateAdjusted) RATE = 2.85;
   RATE = RATE / 100;
 
   var rule = cityRules[city];
@@ -357,6 +358,8 @@ function calc() {
   html += '<div class="stat-card"><div class="val">' + (repayType === 'equal_installment' ? fmtM(monthlyPayment) : fmtM(firstMonth)) + '</div><div class="lbl">首月月供（元）</div></div>';
   html += '<div class="stat-card"><div class="val">' + fmtW(totalInterest / 10000) + '</div><div class="lbl">总利息（万元）</div></div>';
   html += '<div class="stat-card"><div class="val">' + fmtW((maxLoanYuan + totalInterest) / 10000) + '</div><div class="lbl">还款总额（万元）</div></div>';
+  // 名义年利率按月计息 ⇒ 有效年化 = (1+名义/12)^12 − 1
+  html += '<div class="stat-card"><div class="val">' + ((Math.pow(1 + monthlyRate, 12) - 1) * 100).toFixed(2) + '%</div><div class="lbl">有效年化（按月复利）</div></div>';
   html += '</div>';
 
   html += '<h3 style="margin-top:16px;margin-bottom:8px;">额度计算依据</h3>';
@@ -370,7 +373,8 @@ function calc() {
   html += '<h3 style="margin-top:16px;margin-bottom:8px;">还款明细</h3>';
   html += '<table id="housing_fund_loanDetail"><thead><tr><th>项目</th><th>数值</th></tr></thead><tbody>';
   html += '<tr><td>贷款本金</td><td>' + ToolBox.formatNumber(maxLoanYuan, 0) + ' 元</td></tr>';
-  html += '<tr><td>贷款利率</td><td>' + (RATE * 100).toFixed(2) + '%/年</td></tr>';
+  html += '<tr><td>贷款利率</td><td>' + (RATE * 100).toFixed(2) + '%/年（名义）' + (rateAdjusted ? '，输入无效已按 2.85% 计' : '') + '</td></tr>';
+  html += '<tr><td>有效年化（按月复利）</td><td>' + ((Math.pow(1 + monthlyRate, 12) - 1) * 100).toFixed(2) + '%</td></tr>';
   html += '<tr><td>贷款期限</td><td>' + loanYears + '年（' + months + '期）</td></tr>';
   html += '<tr><td>还款方式</td><td>' + (repayType === 'equal_installment' ? '等额本息' : '等额本金') + '</td></tr>';
   if (repayType === 'equal_installment') {
