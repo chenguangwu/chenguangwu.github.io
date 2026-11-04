@@ -490,16 +490,11 @@ function switchTab(name, trigger) {
 // 正则执行超时保护：用户可控正则可能触发灾难性回溯（如 (a+)+$），
 // 放到 Web Worker 执行并在超时后强制终止，避免主线程卡死。
 const RX_TIMEOUT_MS = 800;
-const RX_WORKER_SRC = [
-  'self.onmessage=function(e){var d=e.data,o;try{',
-  'var re=new RegExp(d.pattern,d.flags);',
-  'if(d.mode==="test"){var ms=[],m;',
-  'if(d.global){while((m=re.exec(d.text))!==null){ms.push({i:m.index,g:Array.prototype.slice.call(m),n:Object.assign({},m.groups||{})});if(m.index===re.lastIndex)re.lastIndex++;if(ms.length>1000)break;}}',
-  'else{m=re.exec(d.text);if(m)ms.push({i:m.index,g:Array.prototype.slice.call(m),n:Object.assign({},m.groups||{})});}',
-  'o={ok:true,matches:ms};}',
-  'else{var re2=new RegExp(d.pattern,d.flags);var cnt=(d.text.match(re2)||[]).length;o={ok:true,result:d.text.replace(re2,d.repl),count:cnt};}',
-  '}catch(err){o={ok:false,err:String(err&&err.message||err);}}postMessage(o);};'
-].join('\n');
+// Worker 源码放在静态 <script type="text/js-worker"> 中，避免字符串拼接产生游离分号
+function getRxWorkerSrc(){
+  const el = document.getElementById('rx-worker-src');
+  return el ? el.textContent : '';
+}
 
 function runRegexGuarded(payload, done){
   let worker, url, timer, finished = false;
@@ -512,7 +507,9 @@ function runRegexGuarded(payload, done){
     done(res);
   }
   try {
-    url = URL.createObjectURL(new Blob([RX_WORKER_SRC], {type:'text/javascript'}));
+    const src = getRxWorkerSrc();
+    if(!src){ done({ok:false, err:'正则执行组件未加载，请刷新页面重试'}); return; }
+    url = URL.createObjectURL(new Blob([src], {type:'text/javascript'}));
     worker = new Worker(url);
   } catch(e){
     done({ok:false, err:'当前浏览器不支持正则超时保护：' + e.message});
@@ -520,7 +517,7 @@ function runRegexGuarded(payload, done){
   }
   timer = setTimeout(function(){ finish({ok:false, err:'__timeout__'}); }, RX_TIMEOUT_MS);
   worker.onmessage = function(ev){ finish(ev.data || {ok:false, err:'执行失败'}); };
-  worker.onerror = function(){ finish({ok:false, err:'正则执行失败'}); };
+  worker.onerror = function(ev){ finish({ok:false, err:(ev && ev.message) ? ev.message : '正则执行失败'}); };
   worker.postMessage(payload);
 }
 
@@ -849,6 +846,41 @@ if(__regex_f0){
 function __regexBoot(){ try{ __regexPresets(); }catch(e){} try{ if(typeof testRegex==='function') testRegex(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __regexBoot();
 else document.addEventListener('DOMContentLoaded', __regexBoot);
+</script>
+<script type="text/js-worker" id="rx-worker-src">
+self.onmessage = function(e){
+  var d = e.data, o;
+  try {
+    var re = new RegExp(d.pattern, d.flags);
+    if (d.mode === 'test') {
+      var ms = [], m;
+      if (d.global) {
+        while ((m = re.exec(d.text)) !== null) {
+          var g1 = {}, k1;
+          if (m.groups) { for (k1 in m.groups) { if (Object.prototype.hasOwnProperty.call(m.groups, k1)) g1[k1] = m.groups[k1]; } }
+          ms.push({ i: m.index, g: Array.prototype.slice.call(m), n: g1 });
+          if (m.index === re.lastIndex) re.lastIndex++;
+          if (ms.length > 1000) break;
+        }
+      } else {
+        m = re.exec(d.text);
+        if (m) {
+          var g2 = {}, k2;
+          if (m.groups) { for (k2 in m.groups) { if (Object.prototype.hasOwnProperty.call(m.groups, k2)) g2[k2] = m.groups[k2]; } }
+          ms.push({ i: m.index, g: Array.prototype.slice.call(m), n: g2 });
+        }
+      }
+      o = { ok: true, matches: ms };
+    } else {
+      var re2 = new RegExp(d.pattern, d.flags);
+      var cnt = (d.text.match(re2) || []).length;
+      o = { ok: true, result: d.text.replace(re2, d.repl), count: cnt };
+    }
+  } catch (err) {
+    o = { ok: false, err: String((err && err.message) || err) };
+  }
+  postMessage(o);
+};
 </script>
 <!-- SEO 介绍区块 -->
 

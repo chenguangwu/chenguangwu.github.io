@@ -491,7 +491,7 @@ s.parentNode.insertBefore(el, s);
           <span class="preview-title">预览</span>
         </div>
         <div class="preview-iframe-wrap">
-          <iframe id="preview" sandbox="allow-scripts allow-modals allow-same-origin"></iframe>
+          <iframe id="preview" sandbox="allow-scripts allow-modals"></iframe>
         </div>
         <div class="console-panel" id="consolePanel">
           <div class="console-header" onclick="toggleConsoleBody()">
@@ -722,7 +722,8 @@ function executeInIframe(html, css, js) {
   var oldFrame = document.getElementById('preview');
   var iframe = oldFrame.cloneNode(false);
   oldFrame.parentNode.replaceChild(iframe, oldFrame);
-  var doc = iframe.contentDocument || iframe.contentWindow.document;
+  // 沙箱不含 allow-same-origin：iframe 为不透明源，父页无法通过 contentDocument 写文档，
+  // 改用 srcdoc 注入本页拼好的源码；iframe 内的 postMessage 用 "*" 目标仍可送达父页。
 
   /* Console intercept script */
   // ⚠ 幂等守卫：doc.open() 只换 document 不换 window，第二次运行时 console.log 已是补丁版，
@@ -755,9 +756,7 @@ function executeInIframe(html, css, js) {
     '}' +
     '<\/script>';
 
-  doc.open();
-  doc.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><style>' + css + '</style></head><body>' + consoleScript + html + '<script>' + js + '<\/script></body></html>');
-  doc.close();
+  iframe.srcdoc = '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>' + css + '</style></head><body>' + consoleScript + html + '<script>' + js + '<\/script></body></html>';
 }
 
 /* ===== Console ===== */
@@ -890,10 +889,7 @@ function clearAll() {
   clearConsole();
   /* Clear iframe */
   var iframe = document.getElementById('preview');
-  var doc = iframe.contentDocument || iframe.contentWindow.document;
-  doc.open();
-  doc.write('<!DOCTYPE html><html><head></head><body></body></html>');
-  doc.close();
+  iframe.srcdoc = '<!DOCTYPE html><html><head></head><body></body></html>';
   ToolBox.showToast(i18nText('toast.msg274'));
 }
 

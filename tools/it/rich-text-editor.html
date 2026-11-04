@@ -332,6 +332,62 @@ s.parentNode.insertBefore(el, s);
 function editorEl(){ return document.getElementById('editor'); }
 function sourceEl(){ return document.getElementById('source'); }
 
+/* ---------- HTML 净化：导入 / 源码应用 / 粘贴统一走标签与属性白名单 ---------- */
+var RTE_ALLOWED = {A:1,B:1,STRONG:1,I:1,EM:1,U:1,S:1,STRIKE:1,DEL:1,CODE:1,PRE:1,H1:1,H2:1,H3:1,H4:1,H5:1,H6:1,P:1,DIV:1,BR:1,HR:1,UL:1,OL:1,LI:1,BLOCKQUOTE:1,SPAN:1,TABLE:1,THEAD:1,TBODY:1,TR:1,TH:1,TD:1,IMG:1};
+var RTE_DROP = {SCRIPT:1,STYLE:1,IFRAME:1,OBJECT:1,EMBED:1,LINK:1,META:1,BASE:1,FORM:1,INPUT:1,BUTTON:1,SELECT:1,TEXTAREA:1,SVG:1,MATH:1,VIDEO:1,AUDIO:1};
+function escapeHtml(s){
+  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function rteSafeUrl(u){
+  u = String(u || '').trim();
+  if (/^(https?:\/\/|mailto:|#|\/|\.{1,2}\/)/i.test(u)) return true;
+  return /^data:image\/(png|jpe?g|gif|webp);base64,/i.test(u);
+}
+function sanitizeHtml(html){
+  var src = String(html || '');
+  // 无 DOMParser 的精简环境（门禁 DOM 桩）走保守的字符串兜底；浏览器均走下方白名单遍历
+  if (typeof DOMParser !== 'function') return sanitizeHtmlFallback(src);
+  var doc = new DOMParser().parseFromString(src, 'text/html');
+  var nodes = [], walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_ELEMENT, null);
+  while (walker.nextNode()) nodes.push(walker.currentNode);
+  for (var i = nodes.length - 1; i >= 0; i--) {
+    var el = nodes[i];
+    if (RTE_DROP[el.tagName]) { el.parentNode.removeChild(el); continue; }
+    if (!RTE_ALLOWED[el.tagName]) {
+      while (el.firstChild) el.parentNode.insertBefore(el.firstChild, el);
+      el.parentNode.removeChild(el);
+      continue;
+    }
+    var attrs = Array.prototype.slice.call(el.attributes);
+    for (var j = 0; j < attrs.length; j++) {
+      var name = attrs[j].name.toLowerCase(), val = attrs[j].value;
+      if (name.indexOf('on') === 0 || name === 'srcdoc' || name === 'formaction') { el.removeAttribute(attrs[j].name); continue; }
+      if (name === 'style') {
+        if (/expression\(|javascript:|url\s*\(|@import|behavior\s*:/i.test(val)) el.removeAttribute('style');
+        continue;
+      }
+      if (name === 'href' || name === 'src') {
+        if (!rteSafeUrl(val)) el.removeAttribute(name);
+        else if (name === 'href') el.setAttribute('rel', 'noopener noreferrer');
+        continue;
+      }
+      if (name === 'target' || name === 'rel' || name === 'alt' || name === 'title' || name === 'colspan' || name === 'rowspan') continue;
+      el.removeAttribute(attrs[j].name);
+    }
+    if (el.tagName === 'IMG') el.setAttribute('loading', 'lazy');
+  }
+  return doc.body.innerHTML;
+}
+function sanitizeHtmlFallback(src){
+  var dropped = '(script|style|iframe|object|embed|link|meta|base|form|input|button|select|textarea|svg|math|video|audio)';
+  src = src.replace(new RegExp('<' + dropped + '\\b[\\s\\S]*?<\\/' + dropped + '\\s*>', 'gi'), '');
+  src = src.replace(new RegExp('<' + dropped + '\\b[^>]*\\/?>', 'gi'), '');
+  src = src.replace(/\son\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '');
+  src = src.replace(/(href|src)\s*=\s*(?:"\s*javascript:[^"]*"|'\s*javascript:[^']*'|javascript:[^\s>]*)/gi, '$1=""');
+  src = src.replace(/\sstyle\s*=\s*(?:"[^"]*(?:expression\(|javascript:|url\s*\(|@import)[^"]*"|'[^']*(?:expression\(|javascript:|url\s*\(|@import)[^']*')/gi, '');
+  return src;
+}
+
 function execCmd(cmd, val){
   try { editorEl().focus(); document.execCommand(cmd, false, val === undefined ? null : val); }
   catch(e){ if(window.ToolBox && ToolBox.showToast) ToolBox.showToast('该命令当前浏览器不支持'); }
@@ -421,15 +477,21 @@ function applySource(){
   if(v.trim() === ''){
     if(!confirm('源码为空，确定要清空编辑区吗？')) return;
   }
-  editorEl().innerHTML = v;
+  editorEl().innerHTML = sanitizeHtml(v);
   updateStats();
   toast('已应用到编辑区');
 }
 
 /* ---------- Markdown 转换 ---------- */
 function toMarkdown(html){
-  var div = document.createElement('div');
-  div.innerHTML = html;
+  // DOMParser 生成的文档是惰性的：不执行脚本、不加载图片，避免转换时触发事件属性
+  var div;
+  if (typeof DOMParser === 'function') {
+    div = new DOMParser().parseFromString(String(html || ''), 'text/html').body;
+  } else {
+    div = document.createElement('div');
+    div.innerHTML = sanitizeHtmlFallback(String(html || ''));
+  }
   // 代码块先占位，避免内部被二次处理
   var codes = [];
   var pres = div.querySelectorAll('pre');
@@ -545,9 +607,9 @@ function loadFile(ev){
   if(!f) return;
   var fr = new FileReader();
   fr.onload = function(){
-    editorEl().innerHTML = String(fr.result || '');
+    editorEl().innerHTML = sanitizeHtml(String(fr.result || ''));
     updateStats();
-    showResult('<p>✅ 已导入 <strong>' + f.name + '</strong>（' + fmtSize(f.size) + '）</p>');
+    showResult('<p>✅ 已导入 <strong>' + escapeHtml(f.name) + '</strong>（' + fmtSize(f.size) + '）</p>');
   };
   fr.readAsText(f, 'utf-8');
   ev.target.value = '';
@@ -566,6 +628,16 @@ function clearAll(){
 (function(){
   var ts = document.getElementById('tableSize');
   if(ts) ts.addEventListener('change', insertTable);
+  // 粘贴外部 HTML 时先按白名单净化，阻断 onerror / onload 等事件属性
+  editorEl().addEventListener('paste', function(ev){
+    var cd = ev.clipboardData || window.clipboardData;
+    var html = cd && cd.getData ? cd.getData('text/html') : '';
+    if(!html) return;
+    ev.preventDefault();
+    document.execCommand('insertHTML', false, sanitizeHtml(html));
+    syncSource();
+    onEdit();
+  });
   updateStats();
 })();
 
