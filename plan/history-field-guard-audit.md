@@ -2,11 +2,17 @@
 
 根因：`js/tool-kit.js` 的 `history.mount` 曾把 `it.d[k]` 原样拼进 `textContent`，`null/undefined/NaN` 会渲染成 `conf null` 之类脏文本。已在公共组件加入守卫（跳过 `val == null || Number.isNaN(val)`，并同时跳过 Infinity）。
 
+## 两档判定结果
+
+- **170 页清单中：真风险 0 页 / 无影响 170 页** —— 记录中的 `NaN` 为 number 类型，`fmt()` 内部经 `num()` 回退为 0，不会以 `NaN` 文本出现；且全站无「直接 `.toFixed()` 字符串结果进 record」的写法（0 命中）。
+- **清单外的唯一真风险：1 页** —— `tools/ai/sentiment-analysis.html`（`conf: null` 会作为字符串 `null` 渲染；已修，改为缺省时省略该键）。
+- 公共守卫 `tool-kit.js` 已统一跳过 `null/undefined/NaN/Infinity`，回归用例见 `scripts/verify_history_guard.js`（3/3，已纳入 `run_gates.py`）。
+
 ## 显式 null/undefined 的 record 字段
 
 - 全站扫描 `history.record(...)`：除 `tools/ai/sentiment-analysis.html` 外，未发现其他页面把显式 `null/undefined` 变量写入记录；该页已改为缺省时省略 `conf` 键。
 
-## 可能产生 NaN 的记录字段（170 页，仅清单、不在本轮逐页修改）
+## 可能产生 NaN 的记录字段（170 页，均无文本级 NaN 风险，仅保留清单）
 
 判据：record 值使用 `parseFloat` / `Number(...)` 且未带 `||` 或 `isFinite` 兜底；空输入时可能为 NaN。公共守卫已统一兜住显示层。
 
