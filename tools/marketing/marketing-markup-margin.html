@@ -232,12 +232,12 @@ s.parentNode.insertBefore(el, s);
         <div class="input-row">
           <div class="input-group">
             <label>加价率（%）</label>
-            <input type="number" id="convMarkup" value="50" min="0" oninput="calc()" placeholder="如 50">
+            <input type="number" id="convMarkup" value="50" min="0" oninput="convSource='markup';calc()" placeholder="如 50">
             <div class="input-hint">输入加价率算利润率</div>
           </div>
           <div class="input-group">
             <label>利润率（%）</label>
-            <input type="number" id="convMargin" value="33.33" min="0" max="99" oninput="calc()" placeholder="如 33.33（0–99）">
+            <input type="number" id="convMargin" value="33.33" min="0" max="99" oninput="convSource='margin';calc()" placeholder="如 33.33（0–99）">
             <div class="input-hint">输入利润率算加价率</div>
           </div>
         </div>
@@ -389,9 +389,11 @@ s.parentNode.insertBefore(el, s);
 const STORAGE_KEY = 'markup_margin_history';
 const MAX_HISTORY = 20;
 let currentMode = 'markup';
+let convSource = 'markup';   // convert 模式以「最后编辑的字段」为源，真正双向换算
 
 function switchMode(mode) {
   currentMode = mode;
+  if (mode === 'convert') convSource = 'markup';
   document.querySelectorAll('.calc-mode button').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.mode === mode);
   });
@@ -440,15 +442,29 @@ function calc() {
     profit = price - cost;
     markupRate = cost > 0 ? (profit / cost) * 100 : 0;
   } else {
-    const m = parseFloat(document.getElementById('convMarkup').value);
-    const g = parseFloat(document.getElementById('convMargin').value);
-    if (isNaN(m) || isNaN(g) || m < 0) {
-      r.innerHTML='<div class="metric-card"><p style="color:var(--text-muted);">请输入有效数值（加价率不可为负）</p></div>';
-      return;
+    const mEl = document.getElementById('convMarkup');
+    const gEl = document.getElementById('convMargin');
+    if (convSource === 'margin') {
+      // 以利润率为源：利润率基于售价，加价率 = 利润率 ÷ (1 − 利润率)
+      const g = parseFloat(gEl.value);
+      if (isNaN(g) || g < 0 || g >= 100) {
+        r.innerHTML='<div class="metric-card"><p style="color:var(--text-muted);">请输入有效数值（利润率需在 0–99% 之间）</p></div>';
+        return;
+      }
+      marginRate = g;
+      markupRate = g / (100 - g) * 100;
+      mEl.value = markupRate.toFixed(2);
+    } else {
+      // 以加价率为源：加价率基于成本，利润率 = 加价率 ÷ (1 + 加价率/100)
+      const m = parseFloat(mEl.value);
+      if (isNaN(m) || m < 0) {
+        r.innerHTML='<div class="metric-card"><p style="color:var(--text-muted);">请输入有效数值（加价率不可为负）</p></div>';
+        return;
+      }
+      markupRate = m;
+      marginRate = m / (1 + m / 100);
+      gEl.value = marginRate.toFixed(2);
     }
-    markupRate = m;
-    // 加价率→利润率：两者同为百分数，利润率 = 加价率 ÷ (1 + 加价率/100)，不能再乘 100
-    marginRate = m / (1 + m / 100);
     cost = 100;
     price = cost * (1 + markupRate / 100);
     profit = price - cost;

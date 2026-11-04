@@ -205,6 +205,11 @@ s.parentNode.insertBefore(el, s);
           <input type="number" id="adRevenue" value="20000" min="0" oninput="calc()" placeholder="如 20000">
           <div class="input-hint">广告直接或间接带来的收入</div>
         </div>
+        <div class="input-group">
+          <label>商品毛利率（%）</label>
+          <input type="number" id="grossMargin" value="40" min="0" max="100" oninput="calc()" placeholder="如 40">
+          <div class="input-hint">扣货品成本后的毛利率，用于盈亏平衡 ROAS = 1/毛利率</div>
+        </div>
       </div>
 
       <div class="toolbar">
@@ -229,6 +234,8 @@ s.parentNode.insertBefore(el, s);
         <h4>计算公式</h4>
         <div class="formula-box">ROAS = 广告收入 / 广告花费</div>
         <p>例如：花费5000元广告费，带来20000元收入，则 ROAS = 20000 / 5000 = 4x（或400%）。</p>
+        <div class="formula-box">盈亏平衡 ROAS = 1 / 毛利率（毛利率须扣货品成本，不含广告费）</div>
+        <p>「广告费后利润率」= (广告收入 − 广告花费)/广告收入，只扣广告费、未扣货品成本，<strong>不是毛利率也不是净利率</strong>；真正的盈亏平衡判断要用输入的商品毛利率。</p>
       </div>
       <div class="explain-section">
         <h4>ROAS等级标准</h4>
@@ -447,7 +454,11 @@ function calc() {
   }
 
   const roas = revenue / spend;
-  const breakEvenRoas = revenue > 0 && revenue > spend ? 100 / ((revenue - spend) / revenue * 100) : null;
+  // 盈亏平衡 ROAS = 1/毛利率（毛利率=扣货品成本后的口径，不含广告费）；毛利率≤0 时无平衡点
+  const gmEl = document.getElementById('grossMargin');
+  const gmRaw = gmEl ? parseFloat(gmEl.value) : NaN;
+  const gm = isNaN(gmRaw) ? 0 : gmRaw;
+  const breakEvenRoas = (gm > 0 && gm < 100) ? 100 / gm : null;
   const roasPercent = roas * 100;
   const profit = revenue - spend;
   const profitMargin = (profit / revenue) * 100;
@@ -482,8 +493,8 @@ function calc() {
       <table style="margin-top:8px;font-size:13px;width:100%;">
         <tr><td style="padding:4px 0;color:var(--text-light);">广告花费</td><td style="text-align:right;font-weight:600;">¥${ToolBox.formatNumber(spend, 2)}</td></tr>
         <tr><td style="padding:4px 0;color:var(--text-light);">广告收入</td><td style="text-align:right;font-weight:600;">¥${ToolBox.formatNumber(revenue, 2)}</td></tr>
-        <tr><td style="padding:4px 0;color:var(--text-light);">广告毛利润</td><td style="text-align:right;font-weight:600;color:${profit >= 0 ? '#4caf50' : '#f44336'};">¥${ToolBox.formatNumber(profit, 2)}</td></tr>
-        <tr><td style="padding:4px 0;color:var(--text-light);">毛利率</td><td style="text-align:right;font-weight:600;">${profitMargin.toFixed(1)}%</td></tr>
+        <tr><td style="padding:4px 0;color:var(--text-light);">广告费后利润</td><td style="text-align:right;font-weight:600;color:${profit >= 0 ? '#4caf50' : '#f44336'};">¥${ToolBox.formatNumber(profit, 2)}</td></tr>
+        <tr><td style="padding:4px 0;color:var(--text-light);">广告费后利润率（非毛利率）</td><td style="text-align:right;font-weight:600;">${profitMargin.toFixed(1)}%</td></tr>
         <tr><td style="padding:4px 0;color:var(--text-light);">每1元广告回报</td><td style="text-align:right;font-weight:600;">¥${roas.toFixed(2)}</td></tr>
       </table>
     </div>
@@ -493,11 +504,11 @@ function calc() {
       <div class="related-metrics">
         <div class="related-metric">
           <div class="val">${profitMargin.toFixed(1)}%</div>
-          <div class="lbl">广告毛利率</div>
+          <div class="lbl">广告费后利润率</div>
         </div>
         <div class="related-metric">
           <div class="val">${breakEvenRoas === null ? '—' : breakEvenRoas.toFixed(2) + 'x'}</div>
-          <div class="lbl">${breakEvenRoas === null ? '盈亏平衡ROAS（毛利为负，无平衡点）' : '盈亏平衡ROAS'}</div>
+          <div class="lbl">${breakEvenRoas === null ? '盈亏平衡ROAS（毛利率≤0，无平衡点）' : '盈亏平衡ROAS（=1/输入毛利率）'}</div>
         </div>
         <div class="related-metric">
           <div class="val">${(roas / 3 * 100).toFixed(0)}%</div>
@@ -606,6 +617,7 @@ function clearHistory() {
 function resetForm() {
   document.getElementById('adSpend').value = 5000;
   document.getElementById('adRevenue').value = 20000;
+  document.getElementById('grossMargin').value = 40;
   calc();
 }
 

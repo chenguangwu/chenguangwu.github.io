@@ -302,7 +302,8 @@ function calc(){
   var roas = budget>0?revenue/budget:0;
   var roi = totalCost>0?(profit/totalCost*100):0;
   var grossMargin = 1-costRate;
-  var breakEvenRoas = grossMargin>0?1/grossMargin:0;
+  var hasBreakEven = grossMargin > 0;
+  var breakEvenRoas = hasBreakEven ? 1/grossMargin : null;
   var cpa = conversions>0?budget/conversions:0;
 
   var color = profit>0?'#10B981':'#EF4444';
@@ -318,20 +319,24 @@ function calc(){
     card('CPA 单转化成本', fmt(cpa)+' 元');document.getElementById('dataGrid').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
 
   var beBox = document.getElementById('breakEven');
-  var beakEvenNote = breakEvenRoas.toFixed(2);
+  var beakEvenNote = hasBreakEven ? breakEvenRoas.toFixed(2) : '—（毛利率 ≤ 0，无平衡点）';
   var profitable = profit > 0;
   const __g5='<div class="tip-box '+(profitable?'tip-success':'tip-error')+'">'+
-    '盈亏平衡 ROAS = <strong>'+beakEvenNote+'</strong>（毛利率 '+(grossMargin*100).toFixed(0)+'%，未计固定成本）　·　实际利润 '+fmt(profit)+' 元 '+
+    '盈亏平衡 ROAS = <strong>'+beakEvenNote+'</strong>（'+(hasBreakEven?'毛利率 '+(grossMargin*100).toFixed(0)+'%，未计固定成本':'货品成本率 ≥ 100%，广告投多少都覆盖不了货品成本')+'）　·　实际利润 '+fmt(profit)+' 元 '+
     (profitable?' ✓ 盈利':' ✗ 亏损')+
     '</div>';beBox.innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
 
   var tipBox = document.getElementById('tipBox');
   var advice = '';
   if(!profitable){
+    if(!hasBreakEven){
+      advice = '当前货品成本率 ≥ 100%（毛利率 ≤ 0），任何转化率或客单价都无法覆盖货品成本，请先下调货品成本率。';
+    } else {
     var requiredConversions = aov>0 && grossMargin>0 ? totalCost/(aov*grossMargin) : 0;
     var neededCvr = clicks>0 ? requiredConversions/clicks : 0;
     var aovNeeded = (clicks*cvr>0 && grossMargin>0) ? fmt(totalCost/(clicks*cvr*grossMargin))+' 元' : '—（转化率为 0，无法测算）';
     advice = '当前利润为负。按总成本 '+fmt(totalCost)+' 元计，转化率需提升至 '+(neededCvr*100).toFixed(2)+'% 或客单价提升至 '+aovNeeded+'。';
+    }
   } else {
     advice = '当前盈利（已扣除广告预算、货品成本与固定成本）。可通过优化 CTR、CVR 或提升客单价进一步提高 ROI。';
   }
@@ -396,7 +401,7 @@ function __adRoiExport(){
   var conversions=clicks*cvr, revenue=conversions*aov, goodsCost=revenue*costRate;
   var totalCost=budget+goodsCost+fixed, profit=revenue-totalCost;
   var roas=budget>0?revenue/budget:0, roi=totalCost>0?profit/totalCost*100:0;
-  var grossMargin=1-costRate, breakEvenRoas=grossMargin>0?1/grossMargin:0;
+  var grossMargin=1-costRate, hasBreakEven=grossMargin>0, breakEvenRoas=hasBreakEven?1/grossMargin:null;
   var cpa=conversions>0?budget/conversions:0;
   var en=TBKit.util.isEn();
   var t=document.getElementById('adRoiHidden'); if(!t) return;
@@ -411,7 +416,7 @@ function __adRoiExport(){
     [en?'ROAS':'ROAS', roas.toFixed(2)],
     [en?'ROI':'ROI', roi.toFixed(1)+'%'],
     [en?'Gross Margin':'毛利率', (grossMargin*100).toFixed(0)+'%'],
-    [en?'Break-even ROAS':'盈亏平衡ROAS', breakEvenRoas.toFixed(2)],
+    [en?'Break-even ROAS':'盈亏平衡ROAS', hasBreakEven?breakEvenRoas.toFixed(2):'—'],
     [en?'CPA':'CPA单转化成本', Math.round(cpa)+' 元']
   ];
   t.querySelector('thead').innerHTML='<tr><th>'+(en?'Metric':'指标')+'</th><th>'+(en?'Value':'数值')+'</th></tr>';

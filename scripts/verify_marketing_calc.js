@@ -51,9 +51,11 @@ const CASES = [
   },
   {
     slug: "marketing/marketing-roas-calculator",
-    inputs: { adSpend: "8000", adRevenue: "50000" },
-    expect: ["6.25x", "广告毛利润 ¥42,000.00"],
-    ref: "roas=50000/8000=6.25；profit=42000；profitMargin=42000/50000×100=84.0（原 10000/40000 与默认 5000/20000 比值相同 → 逃生项）",
+    inputs: { adSpend: "8000", adRevenue: "50000", grossMargin: "20" },
+    expect: ["6.25x", "广告费后利润 ¥42,000.00", "5.00x"],
+    ref: "roas=50000/8000=6.25；广告费后利润=42000；广告费后利润率=84.0%（旧标签「广告毛利润/毛利率」实为扣广告费后口径，非毛利率）。"
+      + "盈亏平衡 ROAS=1/毛利率：注入毛利率 20% ⇒ 5.00x（旧实现按 (收入−广告费)/收入 反推得 1.67x，与本锚不符）；"
+      + "默认毛利率 40% ⇒ 2.50x、默认 ROAS 4.00x，三条均不命中。",
   },
   {
     slug: "marketing/marketing-cac-calculator",
@@ -85,6 +87,23 @@ const CASES = [
   {
     slug: "marketing/marketing-markup-margin",
     clicks: [
+      "switchMode('convert');document.getElementById('convMarkup').value='';document.getElementById('convMargin').value='40';convSource='margin';calc();",
+    ],
+    expect: ["加价率（成本基数） 66.67%", "¥166.67"],
+    ref: "反向换算（页面标注「输入利润率算加价率」但旧实现完全忽略 convMargin）：利润率 40% ⇒ 加价率 = 40/(100−40)×100 = 66.67%，售价 = 100×(1+.6667) = ¥166.67。"
+      + "旧实现只读 convMarkup 且要求两个字段都非空 ⇒ 本例报「请输入有效数值」，两条锚均不命中；默认 50%/33.33%/¥150.00 亦不命中。",
+  },
+  {
+    slug: "marketing/marketing-markup-margin",
+    clicks: [
+      "switchMode('convert');document.getElementById('convMargin').value='-10';convSource='margin';calc();",
+    ],
+    expect: ["利润率需在 0–99% 之间"],
+    ref: "以利润率为源时负数/≥100% 无意义（分母 1−利润率 ≤ 0）；旧实现只看 convMarkup，负利润率被静默忽略。默认 33.33 不出现该提示。",
+  },
+  {
+    slug: "marketing/marketing-markup-margin",
+    clicks: [
       "switchMode('convert');document.getElementById('convMarkup').value='-50';calc();",
     ],
     expect: ["加价率不可为负"],
@@ -95,6 +114,29 @@ const CASES = [
     inputs: { origPrice: "200", discountPct: "20" },
     expect: ["160.00", "40.00"],
     ref: "salePrice=200×0.8=160.00；saveAmount=40.00（percent 模式默认）",
+  },
+  {
+    slug: "marketing/marketing-coupon-discount",
+    inputs: { originalPrice: "200", quantity: "1", couponAmount: "20", minSpend: "150", extraDiscount: "0.5" },
+    expect: ["¥80.00", "折前总额 ¥200.00 已达到满 150 元门槛，优惠券可用"],
+    ref: "先折扣后减券：实付 = 200×0.5 − 20 = 80.00。门槛按折前总额判断：折前 200 ≥ 150 可用（折后 100 < 150 也照样可用，旧文案「满足一定金额」未写明基数）。"
+      + "默认 299×1/券50/门槛199 ⇒ 实付 249.00，两条均不命中。",
+  },
+  {
+    slug: "marketing/marketing-coupon-discount",
+    inputs: { originalPrice: "100", quantity: "1", couponAmount: "20", minSpend: "150", extraDiscount: "1" },
+    expect: ["未使用（折前总额 ¥100.00 未达满 150 元门槛）"],
+    ref: "折前总额 100 < 门槛 150 ⇒ 券不可用，实付 100.00；页面须明确这是「折前」口径而非折后金额。默认 299/199 满足门槛，不命中。",
+  },
+  {
+    slug: "marketing/marketing-roi",
+    inputs: { m_cost: "50000", m_price: "200", m_impressions: "100000", m_ctr: "5", m_cvr: "3", m_repeat: "20" },
+    clicks: ["calcMarketing()"],
+    expect: ["-28.0%"],
+    ref: "点击 100000×5% = 5000；转化 5000×3% = 150；复购 150×20% = 30；总单 180；收入 180×200 = 36000；"
+      + "本页 ROI = (36000−50000)/50000 = −28.0%（只扣营销投入、未扣货品成本，故 ROI% = (ROAS−1)×100%）。"
+      + "旧文案把同一分母的 ROI 说成「ROI 为负时 ROAS 仍可能大于 1」，与本页口径矛盾（ROAS = 36000/50000 = 0.72）。"
+      + "默认 10000/299/2.5%/3%/20% ⇒ ROI 169.1%，不命中。",
   },
   {
     slug: "marketing/marketing-break-even-roas",
@@ -188,12 +230,11 @@ const CASES = [
     slug: "marketing/ad-roi",
     inputs: { budget: "5000", cpm: "50", ctr: "2", cvr: "3", aov: "150", costRate: "100", fixedCost: "0" },
     clicks: ["setBuy('cpm');calc();"],
-    expect: ["0.00 盈亏平衡 ROAS", "-35.7%"],
+    expect: ["无平衡点", "-35.7%", "任何转化率或客单价都无法覆盖货品成本"],
     ref: "CPM：展示 = 5000/50×1000 = 100,000，点击 2000，转化 60，收入 9000，商品成本 = 9000×100% = 9000，"
      + "总成本 = 5000+9000 = 14000，利润 = −5000 ⇒ ROI = −35.7%、ROAS = 1.80。"
-     + "毛利率 = 1−100% = 0 ⇒ breakEvenRoas = 1/0 走 else 分支取 0（`grossMargin>0?1/grossMargin:0`）"
-     + " ⇒ roasOk = 1.80≥0 恒真 ⇒ 页面输出「✓ 盈利」/**「当前盈利」**，与利润为负矛盾。"
-     + "本条用例锚的是页面**当前实际产物**（修复后须同步更新）。",
+     + "毛利率 = 1−100% = 0 ⇒ 无盈亏平衡 ROAS（旧实现取 0 并输出「0.00 盈亏平衡 ROAS」，且补亏建议给出「转化率需提升至 0.00%」伪结论）；"
+     + "现渲染「—（毛利率 ≤ 0，无平衡点）」并提示先下调货品成本率。默认态毛利率 50% ⇒ 平衡点 2.00x，三条均不命中。",
   },
   {
     // S2 预设「抖音千川」：clicks 直调 applyAdRoiPreset，锚依赖预设全部字段（CPM 模式）
@@ -1232,9 +1273,10 @@ const CASES = [
   },
   {
     slug: "marketing/marketing-roas-calculator",
-    inputs: { adSpend: "5000", adRevenue: "4500" },
-    expect: ["盈亏平衡ROAS（毛利为负，无平衡点）"],
-    ref: "收入 4500 < 花费 5000 ⇒ 毛利率 −11.1%；旧实现 100/(−11.1) 得 −9.00x 伪平衡点，现改为 null 并显示「无平衡点」。默认 5000/20000 ⇒ 毛利率 75%、平衡点 1.33x，不含该串。",
+    inputs: { adSpend: "5000", adRevenue: "4500", grossMargin: "0" },
+    expect: ["盈亏平衡ROAS（毛利率≤0，无平衡点）"],
+    ref: "注入商品毛利率 0 ⇒ 无盈亏平衡点（价值显示「—」）。旧实现把「(收入−广告费)/收入」当作毛利率，收入 4500 < 花费 5000 时得 −11.1%、算出 −9.00x 伪平衡点；"
+      + "默认毛利率 40% ⇒ 2.50x，不含该串。",
   },
   {
     slug: "marketing/marketing-discount-rate",
