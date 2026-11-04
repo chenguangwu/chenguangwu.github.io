@@ -195,6 +195,7 @@ s.parentNode.insertBefore(el, s);
         <select id="toUnit" style="margin-top:8px;" onchange="convertFrom('from')"></select>
       </div>
     </div>
+    <div id="convertMsg" style="color:var(--danger);font-size:13px;margin-top:8px;"></div>
 
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="saveHistory()">保存到历史</button>
@@ -504,23 +505,23 @@ const CATEGORIES = {
     units: {
       bit: { name: '位', symbol: 'bit', factor: 0.125 },
       byte: { name: '字节', symbol: 'B', factor: 1 },
-      kilobyte: { name: '千字节', symbol: 'KB', factor: 1024 },
-      megabyte: { name: '兆字节', symbol: 'MB', factor: 1048576 },
-      gigabyte: { name: '吉字节', symbol: 'GB', factor: 1073741824 },
-      terabyte: { name: '太字节', symbol: 'TB', factor: 1099511627776 },
-      petabyte: { name: '拍字节', symbol: 'PB', factor: 1125899906842624 },
-      exabyte: { name: '艾字节', symbol: 'EB', factor: 1152921504606846976 },
+      kilobyte: { name: '千字节', symbol: 'KB', factor: 1000 },
+      megabyte: { name: '兆字节', symbol: 'MB', factor: 1000000 },
+      gigabyte: { name: '吉字节', symbol: 'GB', factor: 1000000000 },
+      terabyte: { name: '太字节', symbol: 'TB', factor: 1000000000000 },
+      petabyte: { name: '拍字节', symbol: 'PB', factor: 1000000000000000 },
+      exabyte: { name: '艾字节', symbol: 'EB', factor: 1000000000000000000 },
       kibibyte: { name: '千比字节', symbol: 'KiB', factor: 1024 },
       mebibyte: { name: '兆比字节', symbol: 'MiB', factor: 1048576 },
       gibibyte: { name: '吉比字节', symbol: 'GiB', factor: 1073741824 }
     },
     quick: [
-      { from: 'kilobyte', to: 'byte', value: 1, label: '1 KB = 1024 B' },
-      { from: 'megabyte', to: 'kilobyte', value: 1, label: '1 MB = 1024 KB' },
-      { from: 'gigabyte', to: 'megabyte', value: 1, label: '1 GB = 1024 MB' },
-      { from: 'terabyte', to: 'gigabyte', value: 1, label: '1 TB = 1024 GB' },
+      { from: 'kilobyte', to: 'byte', value: 1, label: '1 KB = 1000 B' },
+      { from: 'megabyte', to: 'kilobyte', value: 1, label: '1 MB = 1000 KB' },
+      { from: 'gigabyte', to: 'megabyte', value: 1, label: '1 GB = 1000 MB' },
+      { from: 'terabyte', to: 'gigabyte', value: 1, label: '1 TB = 1000 GB' },
       { from: 'byte', to: 'bit', value: 1, label: '1 B = 8 bit' },
-      { from: 'gigabyte', to: 'byte', value: 1, label: '1 GB ≈ 10亿字节' }
+      { from: 'gigabyte', to: 'byte', value: 1, label: '1 GB = 10亿字节' }
     ]
   },
   pressure: {
@@ -559,6 +560,7 @@ const CATEGORIES = {
       kilocalorie: { name: '千卡/大卡', symbol: 'kcal', factor: 4184 },
       watt_hour: { name: '瓦时', symbol: 'Wh', factor: 3600 },
       kilowatt_hour: { name: '千瓦时/度', symbol: 'kWh', factor: 3600000 },
+      megajoule: { name: '兆焦', symbol: 'MJ', factor: 1000000 },
       megawatt_hour: { name: '兆瓦时', symbol: 'MWh', factor: 3600000000 },
       electronvolt: { name: '电子伏', symbol: 'eV', factor: 1.602e-19 },
       btu: { name: '英热单位', symbol: 'BTU', factor: 1055.06 },
@@ -730,6 +732,11 @@ function initQuickRef(){
 function applyQuick(idx){
   const cat = CATEGORIES[currentCategory];
   const q = cat.quick[idx];
+  if(!cat.units[q.from] || !cat.units[q.to]){
+    document.getElementById('convertMsg').textContent = '该速查项的单位在当前分类中不存在，已跳过。';
+    return;
+  }
+  document.getElementById('convertMsg').textContent = '';
   document.getElementById('fromValue').value = q.value;
   document.getElementById('fromUnit').value = q.from;
   document.getElementById('toUnit').value = q.to;
@@ -740,11 +747,13 @@ function applyQuick(idx){
 // 与基准 L/100km 成反比，必须用 base = factor / value 换算。
 function unitToBase(cat, unitKey, val){
   const unit = cat.units[unitKey];
+  if(unit.special === 'dbm') return Math.pow(10, (val - 30) / 10);
   return unit.reciprocal ? unit.factor / val : val * unit.factor;
 }
 // 基准单位 → 单位：倒数单位同样取反（value = factor / base），保证双向关系一致。
 function unitFromBase(cat, unitKey, baseVal){
   const unit = cat.units[unitKey];
+  if(unit.special === 'dbm') return baseVal > 0 ? 30 + 10 * Math.log10(baseVal) : NaN;
   return unit.reciprocal ? unit.factor / baseVal : baseVal / unit.factor;
 }
 
@@ -786,6 +795,12 @@ function convertFrom(source){
       const baseVal = unitToBase(cat, fromUnit, val);
       result = unitFromBase(cat, toUnit, baseVal);
     }
+    if(!isFinite(result)){
+      document.getElementById('toValue').value = '';
+      document.getElementById('convertMsg').textContent = '当前输入无法换算：dBm 仅对正功率有定义，且不能除以 0。';
+      return;
+    }
+    document.getElementById('convertMsg').textContent = '';
     document.getElementById('toValue').value = formatNumber(result);
   } else {
     const val = parseFloat(document.getElementById('toValue').value);
@@ -800,6 +815,12 @@ function convertFrom(source){
       const baseVal = unitToBase(cat, toUnit, val);
       result = unitFromBase(cat, fromUnit, baseVal);
     }
+    if(!isFinite(result)){
+      document.getElementById('fromValue').value = '';
+      document.getElementById('convertMsg').textContent = '当前输入无法换算：dBm 仅对正功率有定义，且不能除以 0。';
+      return;
+    }
+    document.getElementById('convertMsg').textContent = '';
     document.getElementById('fromValue').value = formatNumber(result);
   }
 }

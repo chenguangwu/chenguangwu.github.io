@@ -312,10 +312,17 @@ const names = {
 
 function fmt(n){
   if(!isFinite(n)) return '--';
-  if(Math.abs(n) >= 1e6 || (Math.abs(n) < 1e-6 && n !== 0)){
+  if(Math.abs(n) >= 1e12 || (Math.abs(n) < 1e-6 && n !== 0)){
     return n.toExponential(6);
   }
   return parseFloat(n.toPrecision(10)).toString();
+}
+// 展示用：整数部分加千分位，便于直接抄写；科学计数法保持原样
+function fmtOut(n){
+  const s = fmt(n);
+  const m = /^(-?)(\d+)(\.\d+)?$/.exec(s);
+  if(!m) return s;
+  return m[1] + m[2].replace(/\B(?=(\d{3})+(?!\d))/g, ',') + (m[3] || '');
 }
 
 function convert(){
@@ -326,18 +333,13 @@ function convert(){
     return;
   }
   const meters = v * factors[from];
-  let html = `<p>基准：<strong>${fmt(v)} ${names[from]}</strong> = <strong>${fmt(meters)} 米</strong></p>`;
+  let html = `<p>基准：<strong>${fmtOut(v)} ${names[from]}</strong> = <strong>${fmtOut(meters)} 米</strong></p>`;
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">';
   Object.keys(factors).forEach(k => {
     if(k !== from){
-      html += `<p>${fmt(meters / factors[k])} ${names[k]}</p>`;
+      html += `<p>${fmtOut(meters / factors[k])} ${names[k]}</p>`;
     }
   });
-  const toEl = document.getElementById('toUnit');
-  const to = toEl ? toEl.value : '';
-  if(to && factors[to] && to !== from){
-    html += `<p style="margin-top:6px;">目标单位：<strong>${fmt(meters / factors[to])} ${names[to]}</strong></p>`;
-  }
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h1;
 }
 
