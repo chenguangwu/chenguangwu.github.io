@@ -122,3 +122,36 @@
 - 岩土族核对 9 页：`isolated-footing`（1.2f_a 正常）、`dijichengzailijisuan`（已改引用）、`pile-capacity`（R_a/K 正常）、`slope-stability-fos`（阈值文案已修）、`excavation-earth`（φ=0 边界已修）、`active-earth-rankine`（第 12 批已修 φ=0）、`cft-capacity`（已注明）、`masonry-bearing`（φ 实算）、`rock-mass-rating`（RMR 计分正常）。
 - 本批新增/更新 verify：`calc-1` 期望改 21.00 kN / 98.6%（φ=0.2415）、`masonry-bearing` 去 phi 输入并改 4041 kN/0.910、新增 `pipe-flow` T=0、`window-shading` hour=0、`area-calculator` shared=0、`excavation-earth` φ=0 边界用例；`assessor-19` 锚串随标签变更。
 - 门禁：`verify_civil_calc` 50/50、`verify_construction_calc` 38/38、`verify_structural_calc` 47/47、`verify_general_calc` 362/362 全绿；fidelity 逃生 0（civil 50/50、construction 38/38）；all_default 0（四套均 0）；`_test_static.py` 4705/4705、0 告警；`_audit_assets.py --check` 0 死链 / 0 lang 缺失 / 0 重复 id。
+
+### 维护备注（第 14 批：施工临时结构族 + 工程量族）
+
+临时结构族核对 9 页，确证缺陷 4 处：
+
+| 页面 | 缺陷 | 修正与规范出处 |
+|---|---|---|
+| tools/construction/calc-1.html | 计算长度用 `l₀=k·h+2a`（非规范式），且输入把 k=1.155 标成「计算长度系数 μ」 | 改为 `l₀=k·μ·h`（JGJ 130-2011 §5.3.3；k=1.155 附加系数，μ 按表5.3.3 二步三跨 1.5 / 三步三跨 1.7）；新增 μ 输入、删除 a 输入。默认态 48.3/3.6/1.8/μ=1.5：λ 169→196.8、N_Rd 27.32→20.03 kN、利用率 72.5%→98.9%（仍「满足」，结论未翻转） |
+| tools/construction/calc-1.html | 深度解析仍写「稳定承载力约 30–40 kN/根」，与 A.0.6 实算 φ 差约 2 倍（危险的方向：低估需求） | 改为 Φ48×3.0、h=1.8、μ=1.5 实算 λ=195.6、φ=0.195、N_Rd≈17.0 kN |
+| tools/construction/calc-1.html | 引据表仍写 `N=1.2×NG1K×H+1.2×NG2K+1.4×ΣNQK` 并指向 JGJ 130-2011 §5.2.6，与代码已用 1.3/1.5 冲突 | 改为 `N=1.3×(NG1K×H+NG2K)+1.5×ΣNQK`，出处改 GB 55023-2022（并注原 JGJ 130 的 1.2/1.4 已被更新） |
+| tools/construction/calc-206.html | `λ=1.6×h×1000/15.8`：1.6 既不是 k(1.155) 也不是 μ(1.5/1.7)，属自造系数 | 改为 `l₀=k·μ·h`（JGJ 130-2011 §5.3.3），新增「连墙件布置（μ）」下拉（二步三跨 1.5 / 三步三跨 1.7）。默认态 λ 182→197、K 0.75→0.67（原本即「不满足」，结论未翻转）；深度解析 1/6 应力占比同步改 1/4、删除未参与计算的「挡风系数 φ≈0.6」说明 |
+| tools/construction/calc-204.html | 支撑根数 `n=⌈L/s⌉` 且实际间距取 `L/n`：9 根只有 8 个间隔，均匀布置后实际间距 0.50 m > 容许 0.447 m（少一排/一列，偏不安全） | 改为 `n=⌈L/s⌉+1`、实际间距 `L/(n−1)`（两端各设一根）；竖向同理。单根荷载不变（14.3 kN），布置 9×7→10×8、总根数 63→80；引据注明 GB 55001-2021 可变荷载 1.5 |
+
+- 一致（已核代码取值）：`calc-205`（脚手架钢管用量，几何估算式；`steps=⌊H/h⌋` 为半步取整的估算，页已注明不含扣件/脚手板，登记不改进）、`active-earth-rankine`（K_a=tan²(45°−φ/2)，含 c 修正项）、`excavation-earth`（E_a=½γH²K_a+qH K_a）、`slope-stability-fos`（无限边坡 F_s 公式正确，1.3 阈值明示为二级一般工况参考、一级/地震工况按 GB 50330-2013 表5.3.1 提高）、`pile-capacity`（R_a=(q_p A_p+u q_s L)/K，K=2 特征值口径，JGJ 94/GB 50007 一致）、`calc-power-voltage`（三相 I=P/(√3 U cosφ)、单相 I=P/(U cosφ)，断路器 ≥1.25I，WIRE_MAP 只大不小）。
+- 缺页登记（不做新页）：① 吊装（T=G/(n cosθ)、吊耳/卸扣安全系数）在 `tools/construction`、`tools/civil` 无对口页面；② 基坑抗倾覆/抗隆起/抗渗流安全系数无专页，`excavation-earth`/`active-earth-rankine` 只算土压力合力；③ 模板支架立杆轴力/可调托座/剪刀撑无专页，`calc-204` 只算侧压力支撑间距；④ 临时用电漏电保护额定值（JGJ 46-2005 §8.2.10：末级 ≤30 mA、≤0.1 s，潮湿场所 ≤15 mA）未进入 `calc-power-voltage`，该页只做导线/断路器选型；⑤ 混凝土浇筑侧压力 `F=0.22γt₀β₁β₂√V` 与 `γH` 取小无专页，`calc-204` 以输入 q 代替。
+
+工程量族核对 9 页（扣减/叠加方向）：
+
+| 页面 | 核对点 | 结论 |
+|---|---|---|
+| tools/construction/construction-calculator.html | 门窗洞口扣除 | **修正**：GB 50854-2013 墙面抹灰/涂饰只扣单个 >0.3 m² 洞口，原代码对任意洞口一律扣除（0.25 m² 也扣）⇒ 改为 `area>0.3` 才计入扣除；页面自述规则与代码自此一致 |
+| tools/construction/concrete-calculator.html | 混凝土损耗 | 正确：`volReal=vol×(1+loss)`，再按 m³ 指标计钢筋（t）与模板（m²），方向为「加」 |
+| tools/civil/concrete-volume.html | 混凝土体积/重量 | 正确：`V=a·b·c`、`t=V×ρ/1000`，无反向扣减 |
+| tools/civil/rebar-weight.html | 钢筋每米重量 | 正确：`0.00617·d²`（≈0.617 kg/m@d10，GB/T 1499.2 表值同口径） |
+| tools/construction/brick-calculator.html | 砌体砖/砂浆 | 正确：砖=`vol/brickVol×(1−mortar)×(1+loss)`、砂浆=`vol×mortar×(1+loss)`，灰缝占比是「减砖、加浆」，损耗两处都「加」；水泥 250 kg/m³ 为经验值（M5–M10 区间），登记 |
+| tools/mining/excavation-volume.html | 土方放坡/虚实方 | 方向正确（上口宽=底宽+2D·放坡系数、虚方=实方×松散系数）；**修正** `swell=+value||1.3` 吞 0：改为仅空串/NaN 回退，`swell<1` 明确报错（开挖后体积不可能变小） |
+| tools/construction/calculator-calc-area.html | 公摊反推建筑面积 | 正确：`建面=套内/(1−公摊率)` |
+| tools/construction/area-calculator.html | 公摊面积/得房率 | 正确：`公摊=套内×r/(100−r)`、`得房率=套内/建面` |
+| tools/construction/calc-dosage-1.html | 瓷砖损耗 | 正确：`总用量=⌈净用量×(1+损耗%)⌉`，按含缝模块面积计净用量 |
+
+- 砌体砂浆等级↔砌体强度设计值：`masonry-bearing` 的 f 由用户输入设计值，砂浆等级只参与 α（φ 公式）与 [β]（M2.5 22 / M5 24 / M7.5 26，GB 50003-2011 表6.1.1）；页面不做 f 与砂浆组合的合理性反查（如 M5 配 f=3.0 在烧结普通砖中不存在），登记为「输入职责」不构成计算错误。
+- 本批 verify 更新：`calc-1`（inputs 去 a、加 mu=1.7；期望 λ=246.3、N_Rd=10.76 kN、利用率 192.4%）、`calc-206`（加 muVal=1.7；λ=186、K=1.11；general 套 175/0.71）、`calc-204`（9×7→10×8；general 36→50 根、改 10×5）、`construction-calculator` 新增「≤0.3 m² 洞口不扣除」边界用例（65.52 m² / 13.10 L，注入 6/4.2/2.6 保证 fidelity 不依赖 clicks）。
+- 门禁：`verify_civil_calc` 50/50、`verify_construction_calc` 39/39、`verify_structural_calc` 47/47、`verify_general_calc` 362/362 全绿；fidelity 逃生 0（civil 50/50、construction 39/39）；all_default 0；`_test_static.py` 4705/4705；`_audit_assets.py --check` 0/0/0。

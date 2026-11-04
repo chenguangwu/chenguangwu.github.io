@@ -125,7 +125,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="按扣件式钢管脚手架轴心受压稳定思路，计算立杆稳定承载力及施工荷载验算。">Estimate load capacity of coupler-type steel scaffolds.</p>
     <div class="formula-box">
       <div class="formula-title">📐 工作原理与说明</div>
-  <div class="formula-eq">内径 d = D − 2t；截面积 A = π(D² − d²)/4；惯性矩 I = π(D⁴ − d⁴)/64；回转半径 i = √(I/A)；计算长度 l₀ = k·h + 2a；λ = l₀÷i，φ 由 λ 查表；承载力 N_Rd = φ·A·f÷1000（f 为强度设计值，Q235 取 205 N/mm²，不再除材料分项系数）；荷载效应 N_Sd = (1.3×架体自重 g + 1.5×施工荷载 q)×A（GB 55023-2022）；稳定比 = N_Sd÷N_Rd，≤1 满足。</div>
+  <div class="formula-eq">内径 d = D − 2t；截面积 A = π(D² − d²)/4；惯性矩 I = π(D⁴ − d⁴)/64；回转半径 i = √(I/A)；计算长度 l₀ = k·μ·h；λ = l₀÷i，φ 由 λ 查表；承载力 N_Rd = φ·A·f÷1000（f 为强度设计值，Q235 取 205 N/mm²，不再除材料分项系数）；荷载效应 N_Sd = (1.3×架体自重 g + 1.5×施工荷载 q)×A（GB 55023-2022）；稳定比 = N_Sd÷N_Rd，≤1 满足。</div>
       <p class="formula-desc" data-zh="「按扣件式钢管脚手架轴心受压稳定思路，计算立杆稳定承载力及施工荷载验算。」按输入参数进行专业计算并输出结果。">Estimate load capacity of coupler-type steel scaffolds.: computes and outputs results from the input parameters.</p>
     </div>
 
@@ -150,12 +150,12 @@ s.parentNode.insertBefore(el, s);
         <input type="number" id="h" value="1.8" step="0.05" min="0.1" placeholder="如 1.8">
       </div>
       <div>
-        <label for="k">计算长度系数 μ</label>
+        <label for="k">计算长度附加系数 k</label>
         <input type="number" id="k" value="1.155" step="0.001" min="0.1" placeholder="如 1.155">
       </div>
       <div>
-        <label for="a">立杆伸出长度 a（m）</label>
-        <input type="number" id="a" value="0.3" step="0.05" min="0" placeholder="如 0.3">
+        <label for="mu">立杆计算长度系数 μ</label>
+        <input type="number" id="mu" value="1.5" step="0.1" min="1" placeholder="二步三跨 1.5 / 三步三跨 1.7">
       </div>
     </div>
 
@@ -184,7 +184,7 @@ s.parentNode.insertBefore(el, s);
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
       <ul>
-        <li>计算长度 l₀ = k·h + 2a（扣件式钢管脚手架简化公式）</li>
+        <li>计算长度 l₀ = k·μ·h（JGJ 130-2011 §5.3.3）：k=1.155 为计算长度附加系数，μ 按表5.3.3 取 1.5（二步三跨）或 1.7（三步三跨）</li>
         <li>长细比 λ = l₀ / i，i 为截面回转半径</li>
         <li>稳定系数 φ 按 JGJ 130-2011 附录A 表A.0.6（Q235 钢）线性插值；λ&gt;250 时按表末值并提示专项验算</li>
         <li>表A.0.6 仅适用于 Q235 钢；若 f 取其他钢种强度设计值，φ 须另按 GB 50017 附录D 重算</li>
@@ -222,13 +222,14 @@ function calcScaffold() {
   const h = parseFloat(document.getElementById('h').value) || 0;
   const kRaw = parseFloat(document.getElementById('k').value);
   const k = isNaN(kRaw) ? 1.155 : kRaw; /* 仅空串/NaN 回退；k=0 非法，下面显式报错 */
-  const a = parseFloat(document.getElementById('a').value) || 0;
+  const muRaw = parseFloat(document.getElementById('mu').value);
+  const mu = isNaN(muRaw) ? 1.5 : muRaw; /* 仅空串/NaN 回退；μ=0 非法，下面显式报错 */
   const A = parseFloat(document.getElementById('area').value) || 0;
   const q = parseFloat(document.getElementById('load').value) || 0;
   const g = parseFloat(document.getElementById('self').value) || 0;
 
-  if (D <= 0 || t <= 0 || fy <= 0 || h <= 0 || k <= 0) {
-    ToolBox.setResult('result', '<p class="tip-error">请输入有效的钢管及几何参数（计算长度系数 k 须大于 0）。</p>');
+  if (D <= 0 || t <= 0 || fy <= 0 || h <= 0 || k <= 0 || mu <= 0) {
+    ToolBox.setResult('result', '<p class="tip-error">请输入有效的钢管及几何参数（计算长度附加系数 k 与系数 μ 须大于 0）。</p>');
     return;
   }
 
@@ -236,7 +237,7 @@ function calcScaffold() {
   const areaSec = Math.PI * (D * D - d * d) / 4;
   const I = Math.PI * (Math.pow(D, 4) - Math.pow(d, 4)) / 64;
   const i = Math.sqrt(I / areaSec);
-  const l0 = k * h + 2 * a;
+  const l0 = k * mu * h;
   const lambda = l0 * 1000 / i;
   const phi = phiBuckle(lambda);
   const f = fy; // 输入即强度设计值 f（Q235 取 205 N/mm²），不再二次除以材料分项系数
@@ -272,7 +273,7 @@ function resetForm() {
   document.getElementById('fy').value = 205;
   document.getElementById('h').value = 1.8;
   document.getElementById('k').value = 1.155;
-  document.getElementById('a').value = 0.3;
+  document.getElementById('mu').value = 1.5;
   document.getElementById('area').value = 4;
   document.getElementById('load').value = 3;
   document.getElementById('self').value = 0.35;
@@ -294,8 +295,8 @@ calcScaffold();
       <tbody>
         <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="恒载计算">Permanent load</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="NG = 钢管自重×长度 + 脚手板/挡脚板/安全网折算线荷载（每步距约 0.3~0.5 kN/m）">NG = tube self-weight × length + decking/kickboard/net as line load (≈0.3–0.5 kN/m per lift)</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="JGJ 130-2011《建筑施工扣件式钢管脚手架安全技术规范》">JGJ 130-2011 Technical Code for Safety of Frame Tubular Steel Scaffolding</span></td></tr>
         <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="施工活载">Live load</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="结构架 3.0 kN/m²、装修架 2.0 kN/m²，一个纵距内不折减">Structural 3.0 kN/m², finishing 2.0 kN/m², not reduced within one bay</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="JGJ 130-2011 表 4.2.2">JGJ 130-2011 Table 4.2.2</span></td></tr>
-        <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="轴力组合">Axial force combination</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="N = 1.2×NG1K×H + 1.2×NG2K + 1.4×ΣNQK">N = 1.2×NG1K×H + 1.2×NG2K + 1.4×ΣNQK</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="JGJ 130-2011 第 5.2.6 条">JGJ 130-2011 Clause 5.2.6</span></td></tr>
-        <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="承载能力限值">Capacity limit</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="立杆稳定承载力 [N] = φ·A·f ≈ 30~40 kN（λ 与壁厚敏感）">Upright capacity [N] = φ·A·f ≈ 30–40 kN (sensitive to slenderness and wall thickness)</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="JGJ 130-2011 第 5.2 节">JGJ 130-2011 Section 5.2</span></td></tr>
+        <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="轴力组合">Axial force combination</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="N = 1.3×(NG1K×H + NG2K) + 1.5×ΣNQK（恒载分项 1.3、活载分项 1.5）">N = 1.3×(NG1K×H + NG2K) + 1.5×ΣNQK (partial factors 1.3 permanent / 1.5 variable)</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="GB 55023-2022（原 JGJ 130-2011 的 1.2/1.4 已更新）">GB 55023-2022 (supersedes JGJ 130-2011's 1.2/1.4)</span></td></tr>
+        <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="承载能力限值">Capacity limit</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="立杆稳定承载力 [N] = φ·A·f（由 λ 查 φ 实算：Φ48×3.0、步距 1.8m、μ=1.5 时约 17.0 kN；λ 与壁厚敏感）">Upright capacity [N] = φ·A·f (φ from actual λ: Φ48×3.0, 1.8 m lift, μ=1.5 gives about 17.0 kN; sensitive to slenderness and wall thickness)</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="JGJ 130-2011 第 5.2 节">JGJ 130-2011 Section 5.2</span></td></tr>
       </tbody>
     </table>
   </div>
@@ -328,7 +329,7 @@ calcScaffold();
 </ul>
 <div class="dd-example"><div class="dd-ex-title">单杆容许荷载初估</div><div class="dd-ex-body">Φ48×3.0 钢管，步距 1.8m，纵距 1.5m、横距 0.9m（负担面积 A=1.35m²）
 施工荷载 2kN/㎡×1.35×1.5≈4.05kN/根（标准值 2.7kN，乘可变荷载分项系数 1.5）
-加恒载后 N_Sd≈4.66kN/根，稳定承载力约 30–40kN/根，余量充足</div></div>
+加恒载后 N_Sd≈4.66kN/根，稳定承载力约 17.0kN/根（λ≈195.6，φ≈0.195），余量充足</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>算出来能直接搭吗？</dt><dd>不能。脚手架属危险性较大的分部分项工程，须按 JGJ130 等规范由专业人员设计、验收后方可使用。</dd>
@@ -492,10 +493,10 @@ function __calc_1Export(){
 }
 function __calc_1Presets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#calc_1Presets',[{label:'默认参数',labelEn:'Default',values:{'od':'48.3', 'thickness':'3.6', 'fy':'205', 'h':'1.8', 'k':'1.155', 'a':'0.3', 'area':'4', 'load':'3', 'self':'0.35'}},
-  {'label':'小管','labelEn':'Small Pipe','values':{'od':'25','thickness':'2','fy':'205','h':'1.2','k':'1.155','a':'0.2','area':'2','load':'2','self':'0.2'}},
-  {'label':'大管','labelEn':'Large Pipe','values':{'od':'114','thickness':'6','fy':'205','h':'3','k':'1.155','a':'0.5','area':'8','load':'5','self':'0.6'}},
-  {'label':'标准','labelEn':'Standard','values':{'od':'48.3','thickness':'3.6','fy':'205','h':'1.8','k':'1.155','a':'0.3','area':'4','load':'3','self':'0.35'}}],function(){ calcScaffold(); });
+    TBKit.preset.bar('#calc_1Presets',[{label:'默认参数',labelEn:'Default',values:{'od':'48.3', 'thickness':'3.6', 'fy':'205', 'h':'1.8', 'k':'1.155', 'mu':'1.5', 'area':'4', 'load':'3', 'self':'0.35'}},
+  {'label':'小管','labelEn':'Small Pipe','values':{'od':'25','thickness':'2','fy':'205','h':'1.2','k':'1.155','mu':'1.5','area':'2','load':'2','self':'0.2'}},
+  {'label':'大管','labelEn':'Large Pipe','values':{'od':'114','thickness':'6','fy':'205','h':'3','k':'1.155','mu':'1.7','area':'8','load':'5','self':'0.6'}},
+  {'label':'标准','labelEn':'Standard','values':{'od':'48.3','thickness':'3.6','fy':'205','h':'1.8','k':'1.155','mu':'1.5','area':'4','load':'3','self':'0.35'}}],function(){ calcScaffold(); });
 }
 var __calc_1_f0=(typeof calcScaffold==='function')?calcScaffold:null;
 if(__calc_1_f0){
