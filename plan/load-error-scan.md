@@ -5,9 +5,9 @@
 
 ## 0. 结论（先给可派工结论）
 
-- **可复现的「页面自身加载期抛错」= 0 页 / 0 条**。两遍全量扫描中出现的 30 个异常页，逐页复核后**全部不复现**，原因分别是扫描器 MIME 缺陷、并发写入瞬态、本机超时抖动（明细见 §4）。
-- **已知基线 legal 3 页（`calc-96` / `calculator-calc-6` / `jicheng-yizhu-gongzheng-yichan-fenpei`）当前加载期 0 报错**，已由他线提交 `c16a36530f`（清理通用 calc 模板死代码）连带消失；旧版在真机下同样不复现，说明此前门禁里的 `calc is not defined` 来自**并发半写入态 / 静态桩环境**，不是稳定的线上缺陷。→ 标注「已归商业与HR线修」，本批无需再派工。
-- **② 资源类噪声 7 页**，全部是第一方资源 404（4 个行业索引 JSON + 3 个行业 i18n 字典缺失），页面均有降级兜底、不抛 JS 异常；按本批口径**排除**，但清单见 §5，可另行派给「资源补齐」线。
+- **可复现的「页面自身加载期抛错」= 0 页 / 0 条**。两遍全量中共出现 36 个异常页（pass1 26 行 / pass2 20 行，含重叠），逐页复核后**全部不复现**，原因分别是扫描器 MIME 缺陷、并发写入瞬态、本机超时抖动（明细见 §4）。
+- **已知基线 legal 3 页（`calc-96` / `calculator-calc-6` / `jicheng-yizhu-gongzheng-yichan-fenpei`）当前加载期 0 报错**：确认是真实缺陷（`ReferenceError: calc is not defined` @ 页内 275:1），由 `c16a36530f`（删除通用 calc 模板）引入、由同线 `1a7240e849`（清理 81 页残留顶层 `calc()`）修复。→ 标注「已归商业与HR线修」，本批无需再派工。缺陷态复现证据见 §6.2。
+- **② 资源类噪声 7 页**，全部是第一方资源 404（4 个行业索引 JSON + 3 个行业 i18n 字典缺失），页面均有降级兜底、不抛 JS 异常；按本批口径**排除**，但清单见 §3，可另行派给「资源补齐」线。
 - **③ 依赖用户操作才触发的一档不在本批范围**，已有两批产出可对照：`plan/inline-handler-scan.md`（6 页真缺陷已修）、`plan/dom-id-scan.md`（13 条必然 null 已修/守卫）。
 
 ## 1. 方法与口径
@@ -98,18 +98,27 @@
 
 ## 5. 已知基线：legal 3 页复核
 
-| 页面 | 本批实测 | 归属结论 |
-|---|---|---|
-| `tools/legal/calc-96.html` | `cleanPages=1`，0 error | 已归商业与HR线修（`c16a36530f` 清理通用 calc 模板死代码后消失） |
-| `tools/legal/calculator-calc-6.html` | `cleanPages=1`，0 error | 同上 |
-| `tools/legal/jicheng-yizhu-gongzheng-yichan-fenpei.html` | `cleanPages=1`，0 error | 同上 |
+| 页面 | 本批实测 | 根因 / 修复 | 归属结论 |
+|---|---|---|---|
+| `tools/legal/calc-96.html` | `cleanPages=1`，0 error | `c16a36530f` 删除模板 `function calc` 后，同脚本块尾部 `calc();` 失去提升目标 → 加载期 `ReferenceError: calc is not defined`（275:1）；`1a7240e849` 删除残留调用 | 已归商业与HR线修 |
+| `tools/legal/calculator-calc-6.html` | `cleanPages=1`，0 error | 同上（275:1） | 同上 |
+| `tools/legal/jicheng-yizhu-gongzheng-yichan-fenpei.html` | `cleanPages=1`，0 error | 同上（275:1） | 同上 |
 
-补充自证：用 `c16a36530f^` 的旧版三页在真机加载，同样 0 报错（旧版脚本块内已有同名 `function calc` 提升）；因此此前门禁里的 `calc is not defined` 更可能是**并发写入时的一段临时半成品**，线上从未形成稳定缺陷。三页均按用户要求保留在清单中并标注归属。
+结论：这是**真实缺陷，且确由本扫描能捕获的一类问题**（脚本在 `calc` 定义之前调用它）。同线在 02:34 的 `1a7240e849` 已批量清理 81 页的残留顶层调用，本批扫描（02:40 后）确认已归零；三页按用户要求保留在清单中并标注归属。
 
 ## 6. 扫描器自证（防假绿）
 
 1. 三通道探针：注入 `calc()` 未定义 + `console.error` + `Promise.reject` 的页面 → `pageerror` / `console` / `unhandledrejection` 全部命中（`ok:true`）。
-2. 端到端门禁自证：临时在 `tools/legal/__scan_selfcheck.html` 写入同样三条错误，跑 `--match __scan_selfcheck` →
+2. **缺陷态复现（本批最关键自证）**：把 `c16a36530f` 版本的三页（模板已删、顶层 `calc()` 尚存）原样挂到本地服务加载，三页全部命中：
+
+```
+tools/legal/calc-96.html                                → ReferenceError: calc is not defined @ .../calc-96.html:275:1
+tools/legal/calculator-calc-6.html                      → ReferenceError: calc is not defined @ .../calculator-calc-6.html:275:1
+tools/legal/jicheng-yizhu-gongzheng-yichan-fenpei.html  → ReferenceError: calc is not defined @ .../jicheng-yizhu-gongzheng-yichan-fenpei.html:275:1
+```
+
+   对照：`c16a36530f^` 的旧版（模板 `function calc` 仍在、函数提升生效）加载 0 报错 —— 证明错误源自「删模板但留调用」，而非扫描误报。
+3. 端到端门禁自证：临时在 `tools/legal/__scan_selfcheck.html` 写入未定义调用 + `console.error` + `Promise.reject`，跑 `--match __scan_selfcheck` →
 
 ```json
 { "pages": 1, "defectPages": 1, "noisePages": 0, "cleanPages": 0, "defectErrors": 4, "navErrorPages": 0 }
@@ -117,7 +126,7 @@ tools/legal/__scan_selfcheck.html | tools/legal/__scan_selfcheck.html:6 | selfch
 ```
 
    自证文件已在验证后删除（工作区无残留）。
-3. 分档口径自证：上述 7 个资源 404 被稳定判为 `noise`（不计缺陷），两个 PDF 页在 MIME 修正后从 `defect` 归零。
+4. 分档口径自证：上述 7 个资源 404 被稳定判为 `noise`（不计缺陷），两个 PDF 页在 MIME 修正后从 `defect` 归零。
 
 ## 7. 复跑命令
 
