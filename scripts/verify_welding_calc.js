@@ -67,14 +67,14 @@ const CASES = [
   "slug": "welding/flow-ratio",
   "inputs": {
     "nozzle": "18",
-    "flow": "15",
+    "flow": "20",
     "ar": "80",
     "co2": "20"
   },
   "expect": [
-    "12.0 Ar 流量 (L/min) 3.0 CO₂ 流量 (L/min)"
+    "16.0 Ar 流量 (L/min) 4.0 CO₂ 流量 (L/min)"
   ],
-  "ref": "按混合气配比拆分总流量：总流量 15 L/min、Ar 80% / CO₂ 20% ⇒ Ar 12.0 L/min、CO₂ 3.0 L/min（页面口径由百分比反算，非输入回显）。旧期望 0.98 已随页面改版失效。"
+  "ref": "按混合气配比拆分总流量：总流量 20 L/min、Ar 80% / CO₂ 20% ⇒ Ar 16.0 L/min、CO₂ 4.0 L/min（页面口径由百分比反算，非输入回显）。总流量必须偏离默认 15 L/min——否则分项串与默认态同值，会成为逃生项。旧期望 0.98 已随页面改版失效。"
 },
 {
   "slug": "welding/hancaixuanyongtuijian",
