@@ -355,3 +355,38 @@
 1. **可通过 meta 设置的安全头覆盖**：8344 个 HTML 中，4680 个已有 `Referrer-Policy` + `X-Content-Type-Options`，4624 个另有 `Permissions-Policy`；**3664 个缺失**，集中在根页面（`about`/`404`/`search`/`sitemap`/`ui/*`）与各行业 `index.html` 分类页，工具详情页基本全覆盖。下一批可按「先补根页面与分类页」推进，风险低。
 2. **`localStorage` 键名与敏感度**：工具页共 75 个唯一键，绝大多数为历史记录/最佳分数/主题/语言等中性名；`safety/manager.html` 的 `tb_pwd_master` / `tb_pwd_vault`（变量名定义，未进上表）是仅有的敏感命名，值为口令哈希与 XOR 密文、非明文。重命名会破坏既有用户数据，需迁移方案，列为后续评估项而非立即修改。
 3. **用户输入拼进 `title`/`og:` 的隐蔽外泄**：全站扫描 `document.title = <变量>`、`meta[content]` 动态写入、`og:title` 动态赋值，**命中 0 处**；页面标题与分享 meta 均为静态文案，不存在「输入进 meta 再被分享/抓取」路径。
+
+---
+
+## 十五、第六批：meta 安全头 / localStorage 命名评估 / 下一批方向扫描（2026-11-04）
+
+### 15.1 meta 安全头补齐（3664 → 0 缺失）
+
+- 缺失结构：指南页 3410、行业分类索引 211、根页面 8、`ui/*` 9、零散工具页 26。
+- 是否生成的判定：
+  - **行业分类 `tools/<ind>/index.html`**：由 `_build.py::generate_category_indexes()` 每次重写 → 已直接改模板（追加三条 meta + `<!-- TOOLBOX-SECURITY -->`）。
+  - **指南页**：由 `scripts/gen_guide_pages.py` 等生成 → 已改该模板；其余历史指南生成器由下面这条兜底。
+  - **构建末尾新增统一兜底**：`_build.py` 调用 `scripts/security_meta.py::inject()`，对所有 HTML（含根页面、指南、ui、历史遗留页）按「缺则补」注入，幂等。
+- 现存文件：用 `python3 scripts/security_meta.py` 一次性注入，重复执行结果一致；再次 `--check` 为 **missing=0**。
+- 覆盖口径与既有 4680 页一致：`Referrer-Policy` + `X-Content-Type-Options` + `Permissions-Policy`。
+- 门禁：`_test_static.py` exit 0；`_audit_assets.py --check` exit 0（0 缺 `<html lang>` / 0 重复 id）。
+- **待办（需集成线构建）**：`zh-tw/` 繁体产物与 SW 版本戳需 `python3 _build.py` 后刷新；本次未跑构建。另有 4 个分类索引页（hr / nephrology / rehabilitation / sports）同时含其他线未提交改动，未纳入本批路径提交，构建后由模板自动覆盖。
+
+### 15.2 localStorage 敏感键改名评估（结论：不改名）
+
+对象：`tools/safety/manager.html` 的 `tb_pwd_master`（主口令校验哈希）与 `tb_pwd_vault`（条目密文）。
+
+- **多标签页迁移竞态**：一次性「读旧键 → 写新键 → 删旧键」在 A/B 两个标签页同时打开时，B 可能仍以旧键为数据源写回，造成新键被旧数据覆盖或迁移后新写入丢失；本项目无跨标签锁机制，风险真实存在。
+- **只读兼容**：若保留旧键只读，则「删除旧键」目标无法达成，等于长期双键并存，复杂度上升而无收益。
+- **安全收益**：键名可被任意同源脚本/开发者工具枚举，改名不改变值的可读性；真正敏感的是值（当前为哈希与 XOR 密文），键名本身不泄露内容。
+- **结论**：**不改名**。改名收益接近于 0，却引入用户数据丢失与迁移失败风险。当前值非明文；后续若升级加密方案，应连同值格式做一次性迁移，而不是仅重命名键。
+
+### 15.3 下一批方向扫描结果
+
+1. **`postMessage`**：命中 3 页。
+   - `it/code-runner.html`：iframe → 父页使用 `targetOrigin="*"`，父页监听未校验 `event.source`；但只接受 `type:"console"` 并把 `data` 经 `escapeConsoleHtml` 转义后写入 `innerHTML`，`method` 仅拼进 class 名，无脚本执行路径 → **接受风险**（`*` 为 srcdoc 不透明源的必需写法）。
+   - `it/regex.html`、`it/text-replace.html`：同源 Worker 的 `postMessage`，无跨窗口面 → **已确认安全**。
+2. **`eval` / `new Function` / 字符串定时器**：仅 `it/math-evaluator.html` 仍运行时使用 `new Function`，但入口已做字符白名单 + 标识符白名单（仅数学函数/常量）+ 拒绝成员访问，`Math`、`constructor`、`this`、`arguments` 等均被拒 → **已确认安全**；`ai-code-review.html` 中的 `eval` 仅为检测规则与示例字符串，不执行。无 `setTimeout('string')` 命中。
+3. **`document.write` / `innerHTML +=` 残余**：`document.write` 仅 2 页（`ophthalmology/amsler-grid-test.html`、`astigmatism-chart.html`）向新窗口打印报告，备注字段经 `esc()` 转义 → 安全。`innerHTML +=` 多为数值/静态常量拼接；抽查 `it/whitespace`（`escH`）、`medical2/surgery-duration`（`PROCEDURES` 常量）、`clinical-lab/blood-routine-reference`（`DATA` 常量）均无用户输入未转义路径，本批 **0 新命中**。
+4. **CDN 版本锁定复核**：静态 HTML 内共 15 个 jsdelivr/unpkg/cdnjs 标签，**15/15 固定到确切版本、15/15 带 SRI，未固定 0 个**。剩余无法 SRI 的仅为运行时动态下发（pdf.js worker、transformers 模型分片、sql.js wasm、统计 SDK），已在第十节列明。
+5. **密码管理器加密评估**：`manager.html` 的 XOR 密钥由主口令字节循环生成，**密钥不落 localStorage**；localStorage 仅存主口令校验哈希与 XOR 密文。XOR 流对已知明文攻击强度弱，但无固定密钥硬编码、密钥也不在本地持久层 → **接受风险**（页面已有本地演示警示）。

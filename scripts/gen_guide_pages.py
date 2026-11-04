@@ -26,6 +26,10 @@ TPL = '''<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
 <title>{title}使用指南 - ToolBox</title>
 <meta name="description" content="{desc}">
 <meta property="og:title" content="{title}使用指南 - ToolBox">

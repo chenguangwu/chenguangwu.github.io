@@ -30,6 +30,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'scr
 import tool_desc_source as TDS
 # 分类聚合页差异化 SEO 正文（修复 GSC「Thin Content」：全站共用套话导致页面互为重复）
 import category_auto_content as CAUTO
+# 基线安全 meta 幂等注入（覆盖分类页/指南/根页面等非工具详情页）
+import security_meta as SECMETA
 
 
 def _strip_seo_extra(s):
@@ -4441,6 +4443,10 @@ def generate_category_indexes(tools):
         parts.append('<!DOCTYPE html>\n<html lang="zh-CN">\n<head>\n')
         parts.append('<meta charset="UTF-8">\n')
         parts.append('<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">\n')
+        parts.append('<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">\n')
+        parts.append('<meta http-equiv="X-Content-Type-Options" content="nosniff">\n')
+        parts.append('<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">\n')
+        parts.append('<!-- TOOLBOX-SECURITY -->\n')
         # 中文优先：初始 description/og:description 渲染中文（desc_meta_zh），
         # 英文描述存 desc-en 供前端 en-US 切换（见 js/i18n.js syncDesc）。
         parts.append('<meta name="description" content="%s">\n' % esc_html_py(desc_meta_zh))
@@ -4834,6 +4840,12 @@ def main():
     # 头条搜索自动推送（ttzz）：全站 head 注入（幂等）；须在繁体静态站生成之前，
     # 这样 zh-tw/ 复制简体页时会一并继承该片段。
     inject_ttzz_snippet()
+
+    # 基线安全 meta 兜底：所有 HTML（含分类索引、指南、根页面）缺失时补
+    # Referrer-Policy / X-Content-Type-Options / Permissions-Policy（幂等）。
+    # 必须早于繁体站生成，zh-tw/ 复制时一并继承。
+    _sec_changed, _sec_missing = SECMETA.inject(ROOT)
+    print('Injected security meta into %d pages (remaining missing: %d)' % (_sec_changed, _sec_missing))
 
     # 只在源页面、JSON 与 sitemap 都已完成后生成繁体静态站，避免复制中间产物。
     generate_opencc_static_locales()
