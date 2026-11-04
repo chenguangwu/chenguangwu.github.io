@@ -49,6 +49,8 @@ GATES = (
     # 与上一项区别：verify_calc 是「冒烟」（不报错即可），本项是「正确性」
     # ——注入已知输入后按权威测试向量断言输出（§4.1.1）。用例写在脚本内，逐分类扩充。
     ("it calc correctness", ("node", "scripts/verify_it_calc.js")),
+    # it 安全回归（Worker 源码语法 / 富文本净化入口 / iframe 沙箱属性），与计算用例分开维护。
+    ("it security correctness", ("node", "scripts/verify_it_security.js")),
     # general 分类的正确性验证（工程标准公式 / 独立复算），与 it 分开维护用例集。
     ("general calc correctness", ("node", "scripts/verify_general_calc.js")),
     # finance 分类的正确性验证（校验位算法 / 金融公式），用例集独立维护。
