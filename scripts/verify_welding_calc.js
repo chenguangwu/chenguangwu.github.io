@@ -127,6 +127,19 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "welding/hanjiezidonghuapinggu",
+  "inputs": {
+    "output": "5000",
+    "seamlen": "2",
+    "mansec": "600",
+    "labor": "60",
+    "robotcost": "30",
+    "workdays": "250"
+  },
+  "expect": [ "32000", "9.4" ],
+  "ref": "算例低产量支路：人工 5000×600/3600×60=50,000 元；机器人 5000×240/3600×60×0.6+6,000=18,000 元；节省 32,000 元；回收期 300,000/32,000=9.4 年 ⇒ 评级≥5 年「需谨慎评估」。expect 只锚 32000/9.4 两个派生量：默认态（10000 件）回收期 45.0 年同样含「需谨慎评估」，带上该评级串会变成逃生项。"
+},
+{
   "slug": "welding/speed-voltage-current",
   "inputs": {
     "thickness": "9"

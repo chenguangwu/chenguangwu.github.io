@@ -57,7 +57,8 @@ const CASES = [
     "bQty": "50"
   },
   "expect": [
-    "3217.00"
+    "3.4378",
+    "1.457 千板英尺 MBF"
   ],
   "ref": "auto-restore"
 },
@@ -118,6 +119,18 @@ const CASES = [
   },
   "expect": ["C20\n15\n450\n120\n130\n0.56 水灰比 37.1% 砂率 4.95 水泥 (吨) ¥5798 材料成本 材料 每方用量 (kg) 总用量 (kg) 总用量 (吨) 水泥 330 4950 4.95 水 185 2775 2.77 砂 700 10500 10.50 石子 1185 17775 17.77 C20 方量 15m³，材料成本 ¥5798 （不含外加剂与人工）。\n暂无计算记录"],
   "ref": "auto-restore"
+},
+{
+  "slug": "construction/calculator-calc-ratio-2",
+  "inputs": {
+    "grade": "C25",
+    "volume": "15",
+    "pCement": "450",
+    "pSand": "120",
+    "pStone": "130"
+  },
+  "expect": ["0.51 水灰比 35.9% 砂率 5.59 水泥 (吨) ¥6001 材料成本"],
+  "ref": "C25 配比与 MIX 表一致：水泥 373、砂 660、石 1177、水 190；15 m³ ⇒ 水泥 5595 kg，JS 浮点 toFixed(2) 得 5.59 吨。"
 },
 {
   "slug": "construction/cement-mortar-ratio",
@@ -183,6 +196,18 @@ const CASES = [
     "waste": "5"
   },
   "expect": ["75\n0.15\n1400\n25\n5\n2\n22.5 涂料体积 (L) 31.50 净重 (kg) 33.08 含损耗重 (kg) 2 采购桶数 75m² × 0.15mm × 2遍 = 总厚 0.30mm，体积 0.0225 m³ （22.5 L）。 体积 × 密度 1400 = 31.50kg，含 5% 损耗 = 33.08kg。 每桶 25kg，需采购 2 桶 。\n暂无计算记录"],
+  "ref": "auto-restore"
+},
+{
+  "slug": "construction/estimate-area-dosage",
+  "inputs": {
+    "area": "50",
+    "thk": "0.15",
+    "density": "1400",
+    "perBucket": "25",
+    "waste": "5"
+  },
+  "expect": ["15.0 涂料体积 (L) 21.00 净重 (kg) 22.05 含损耗重 (kg) 1 采购桶数"],
   "ref": "auto-restore"
 },
 {
