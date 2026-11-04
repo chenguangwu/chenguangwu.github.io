@@ -264,3 +264,61 @@
 - `node scripts/verify_clinical-nursing_calc.js`：**43/43**；`TB_STUB_FIDELITY=1 node scripts/discriminate_check.js verify_clinical-nursing_calc.js`：**已检 43 / 变红 43 / 逃生 0**；`all_default=0`。
 - `node scripts/verify_dermatology_calc.js`：**27/27**；fidelity **已检 27 / 变红 27 / 逃生 0**；`all_default=0`。
 - 本轮未执行 `_build.py`、未 push。
+
+## 九、剂量族与检验族核对（2026-11-05）
+
+口径：每页按「页面声明 → 实现公式 → 权威口径」三列比对；算例数值全部由 node 实跑，不凭印象。范围覆盖 `clinical-nursing`（无剂量页）、`pediatrics`、`obstetrics`、`hematology`、`health`、`healthcare`、`medical`、`nephrology`、`cardiology`、`pulmonology`、`clinical-lab`。`pharmacy` / `anesthesia` 目录不存在，不虚列。
+
+### 9.1 剂量族六轴（每轴 ≥3 页）
+
+| 轴 | 核对页 | 结论 |
+|---|---|---|
+| 体重封顶 | `health/child-medication-dose`、`healthcare/antipyretic-dose`、`healthcare/weight-dosage`、`pulmonology/anti-tb-dosing` | 2 页确证缺陷已修（见 9.2 #1/#2）；`anti-tb-dosing` 的 INH 封顶 300 mg、RIF/PZA/EMB 按体重分段与国内指南一致；`weight-dosage` 仅做 >300kg/>100mg/kg 提示，属提示型不封顶，保持 |
+| IBW vs ABW | `health/ibw-calculator`、`healthcare/ibw`、`healthcare/ideal-weight`、`healthcare/gfr-cockcroft` | Devine 男 50+2.3×(英寸−60)、女 45.5+…；`health/ibw-calculator` ABW=IBW+0.4×(实际−IBW) 正确；`ideal-weight` 深解误称「lb、÷2.2」已修（公式本就按 kg）；两页 Cockcroft 已补体重口径说明（肥胖用 IBW/ABW） |
+| BSA | `health/body-surface-area`、`healthcare/bsa-calculator`、`medical/dosage-calculator` | Mosteller √(h·w/3600) 为唯一默认口径；`bsa-calculator` 成人 DuBois、儿童 Haycock 分支正确；`medical/dosage-calculator` 的 mg/m² 剂量确实按 BSA 相乘 |
+| CrCl / eGFR | `healthcare/gfr-cockcroft`、`health/gfr-calculator`、`cardiology/ckd-epi`、`nephrology/creatinine-clearance` | Cockcroft 的 µmol/L→mg/dL 全部用 88.4（`72×Scr/88.4`）；CKD-EPI 2021 用去种族系数 142/−1.200/0.9938/1.012；`ckd-epi` 深解误称提供胱抑素 C/联合公式，已改为「仅肌酐版」并修正算例单位；24h Ccr 用 µmol 比值、单位自洽 |
+| 日剂量 vs 单次 | `health/child-medication-dose`、`healthcare/antipyretic-dose`、`pulmonology/anti-tb-dosing`、`healthcare/weight-dosage` | 2 页已修：儿童页单次范围/Clark/日剂量三处封顶；退热页 60 mg/kg/日与既有实现统一（元数据/深解原写 75）并加 4 g/日绝对上限；TB 页按日剂量给药、未混用单次 |
+| 负荷 vs 维持 | `hematology/hemophilia-treatment`、`pulmonology/anti-tb-dosing`、`medical/dosage-calculator` | 血友病页 `expectedLevel` 误用「÷回收率」，FVIII 峰值被低估 4 倍（算例 11% vs 目标 40%），已改为 `(剂量/体重)×回收率`，算例改为 55%；TB 强化期/继续期分开；剂量参考表负荷/维持列口径正确 |
+
+### 9.2 确证不一致与修法（算例均为 node 实跑）
+
+1. `health/child-medication-dose`
+   - 缺陷：80 kg 儿童按线性缩放 → Clark 571.4 mg（>成人单次极量 500）；标准范围下限 10×80=800 > 封顶后上限 500（区间倒挂）；日剂量 60×80=4800 mg 未封顶（>成人 4 g/日）。年龄 0 被 `age<=0` 拒绝，与页面「0-18 岁」声明矛盾。
+   - 修法：Clark、标准范围上下限全部按 `maxSingleAbs` 封顶；日剂量加 `min(体重×mg/kg, 成人日极量)`（对乙酰氨基酚 4000 mg、布洛芬 3200 mg）；年龄 0 改为合法值（空值单独判空）。
+   - 算例：80 kg/12 岁/对乙酰氨基酚 → Clark **500.0 mg**、范围 **500.0~500.0 mg/次**、日剂量 **4000 mg**（旧：571.4 / 800~1200 / 4800）；0 岁/3.5 kg → Clark **25.0 mg**、范围 **35.0~52.5 mg/次**。
+2. `healthcare/antipyretic-dose`
+   - 缺陷：摘要/og/twitter/JSON-LD/深解/FAQ 写「每日上限 75 mg/kg」，但剂量表与实现均为 60 mg/kg；且日上限只按体重反推，未受成人 4 g/日约束。
+   - 修法：全部统一为 60 mg/kg；日上限次数改为 `min(floor(min(体重×60,4000)/单次剂量), 6)`。
+   - 算例：80 kg/15 mg/kg → 单次 **37.5 mL**、日上限 **3 次**（旧按 60/kg 得 4 次，超成人 4 g/日）。
+3. `healthcare/ideal-weight`：深解「Devine 单位 lb、÷2.2 得 kg」与实现（直接按 kg 计）矛盾，已改为「2.3 kg/英寸，无需磅换算」。
+4. `hematology/hemophilia-treatment`：`expectedLevel` 与同页活性提升栏自相矛盾（前者除、后者乘回收率），已统一为乘；公式框/深解同步。算例 84 kg、当前 2%、目标 55% → 剂量 **2230 IU**、峰值 **55%**（旧 15%）。
+5. `cardiology/ckd-epi`：深解称「肌酐/胱抑素 C/联合三种算法」，实际仅肌酐输入；已明确标注仅肌酐版，并把算例单位改为页内口径 1.24 mg/dL（≈110 µmol/L）。
+6. `healthcare/gfr-cockcroft`、`health/gfr-calculator`：补「Cockcroft 体重口径」说明——一般用实际体重，肥胖（BMI≥30）改用 IBW/ABW，避免 CrCl 高估。
+
+### 9.3 检验族（16 页）
+
+| 页面 | 核对点 | 结论 |
+|---|---|---|
+| `clinical-lab/hba1c-converter` | HbA1c↔eAG：eAG=28.7×A1c−46.7，mg/dL→mmol/L 18.0 | 正确（7%=154.2 mg/dL=8.6 mmol/L） |
+| `clinical-lab/convert-glucose-1` | eAG 换算 18.0；页面是否真提供直接单位换算 | 计算正确；页面明确不提供 mg/dL 直接输入，深解仅演示 18.0，口径自洽 |
+| `clinical-lab/biochemistry-ratio` | BUN 2.8、Cr 88.4、BUN/Cr 比值 | 代码正确；说明原写「mmol/L÷µmol/L 需×1000」系错误换算，已改为「BUN×2.8、Cr÷88.4 后相比」 |
+| `clinical-lab/blood-routine-reference` | 成人/性别参考区间；WHO 2024 Hb 切点 | 表用 WS/T 405-2012（女 115–150）；已补 WHO 2024 贫血切点（男<130、非孕女<120、孕妇<110）并注明两套口径用途不同 |
+| `clinical-lab/csf-analysis` | 蛋白/葡萄糖/氯化物、CSF/血清糖比值 0.55 | 区间与比值正确 |
+| `clinical-lab/urinalysis-interpretation` | RBC/WBC/蛋白/pH/比重参考 | 正确 |
+| `clinical-lab/semen-analysis` | WHO 5th：1.5 mL、15×10⁶/mL、39×10⁶、PR 32%、总活力 40%、形态 4% | 页面显式声明第 5 版，数值一致；第 6 版差异已在说明中提示 |
+| `clinical-lab/thyroid-function-model` | TSH/FT3/FT4 参考区间 | 正确 |
+| `clinical-lab/cardiac-marker-curve` | hs-cTn 99th percentile 切点 | 默认切点与「按检测平台设定」提示一致 |
+| `clinical-lab/tumor-marker-doubling` | DT=Δt×ln2/ln(C1/C2) | 正确（倍增/减半两分支符号处理正确） |
+| `clinical-lab/blood-gas-analysis` | Henderson-Hasselbalch 6.1、Winter 1.5×HCO₃+8 | 正确 |
+| `clinical-lab/coagulation-inr` | INR=(PT/对照)^ISI | 正确 |
+| `clinical-lab/convert-39` | 页面实际为 INR，非单位换算 | 实现与中文标题一致；仅英文 h2 仍为占位「Convert 39」，不影响计算 |
+| `clinical-lab/mic-breakpoint` | CLSI S/I/R 方向（MIC≤S 敏感） | 正确 |
+| `clinical-lab/flow-cytometry-ratio` | 绝对值=WBC×淋巴%×10 | 正确（6.0×35×10=2100/µL） |
+| `obstetrics/gdm-ogtt` | 75g OGTT 诊断切点 5.1/10.0/8.5；5.3/7.8/6.7 属治疗后目标 | 代码正确；深解与 FAQ 误把 5.3/7.8/6.7 当诊断切点，已改（算例 5.1 由「正常」改为「异常」） |
+
+### 9.4 门禁
+
+- `verify_health_calc.js` 79/79、`verify_healthcare_calc.js` 92/92、`verify_hematology_calc.js` 27/27、`verify_clinical-lab_calc.js` 147/147、`verify_cardiology_calc.js` 29/29、`verify_obstetrics_calc.js` 48/48、`verify_nephrology_calc.js` 27/27。
+- fidelity（`TB_STUB_FIDELITY=1`）：上述 7 个脚本逃生项均 **0**（health 跳过 2、lab 跳过 1，均为既有跳过项）。
+- `selfcheck_false_pass`：`all_default` 全部 **0**；health 的 2 个 RISK 为既有 `protein-needs` / `calc-2`，非本批页面。
+- 本批未执行 `_build.py`、未 push。

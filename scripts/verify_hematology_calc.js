@@ -150,6 +150,21 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "hematology/hemophilia-treatment",
+  "inputs": {
+    "weight": "84",
+    "current": "2"
+  },
+  "clicks": [
+    "document.getElementById('bleedType').value='custom';document.getElementById('target').value='55';calc();"
+  ],
+  "expect": [
+    "2230",
+    "预期峰值活性 ≈ 55%"
+  ],
+  "ref": "FVIII 自定义目标 55%、当前 2%：剂量 = 84×(55−2)×0.5 = 2226 → 取整 2230 IU；1 IU/kg 提升 2%，预期峰值 = 2 + round((2230/84)×2) = 2 + round(53.10) = 55%。修复前实现误用「÷回收率」，得 2+round(2230/84/2)=2+13=15%，与目标 55% 自相矛盾。注入值 weight=84/current=2 均异于页面默认 70/1，避免 all_default。"
+},
+{
   "slug": "hematology/hlh-diagnosis",
   "inputs": {
     "c4_tg": "6.5",

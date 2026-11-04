@@ -207,8 +207,8 @@ s.parentNode.insertBefore(el, s);
     <h3>📐 换算公式说明</h3>
     <div class="ref-card">
       <h4>Clark 公式（按体重）</h4>
-      <p>儿童剂量 = 体重(kg) × 成人剂量 ÷ 70</p>
-      <p style="margin-top:4px;">适用于已知体重的儿童，是最常用的换算方法。</p>
+      <p>儿童剂量 = min(体重(kg) × 成人剂量 ÷ 70, 成人单次极量)</p>
+      <p style="margin-top:4px;">适用于已知体重的儿童，是最常用的换算方法。计算结果封顶至成人单次极量，避免超重儿童线性外推超过成人剂量。</p>
     </div>
     <div class="ref-card">
       <h4>Young 公式（按年龄）</h4>
@@ -359,6 +359,7 @@ var drugDB = {
     maxSingleAbs: 400, // 单次绝对上限 mg
     maxDaily: 40, // mg/kg/日
     maxDailyAbs: false,
+    maxDailyAbsMg: 3200, // 成人日极量
     interval: '6-8小时',
     notes: '退热不超过3天，止痛不超过5天'
   },
@@ -370,6 +371,7 @@ var drugDB = {
     maxSingleAbs: 500,
     maxDaily: 60,
     maxDailyAbs: false,
+    maxDailyAbsMg: 4000, // 成人日极量
     interval: '4-6小时',
     notes: '每日不超过4次，退热不超过3天'
   },
@@ -460,7 +462,9 @@ function refWeightOf(age) {
 function updateWeightHint() {
   var el = document.getElementById('refWeightBox');
   if (!el) return;
-  var age = parseFloat(document.getElementById('age').value) || 0;
+  var ageRaw = document.getElementById('age').value.trim();
+  if (ageRaw === '') { el.innerHTML = ''; return; }
+  var age = parseFloat(ageRaw);
   var r = refWeightOf(age);
   if (!r) { el.innerHTML = ''; return; }
   el.innerHTML = '📏 同年龄中位体重（WHO P50）：男童约 <strong>' + r.boy.toFixed(1) + ' kg</strong> ｜ 女童约 <strong>'
@@ -469,19 +473,22 @@ function updateWeightHint() {
 
 function calcDose() {
   updateWeightHint();
-  var age = parseFloat(document.getElementById('age').value) || 0;
-  var weight = parseFloat(document.getElementById('weight').value) || 0;
+  var ageRaw = document.getElementById('age').value.trim();
+  var weightRaw = document.getElementById('weight').value.trim();
+  var age = parseFloat(ageRaw);
+  var weight = parseFloat(weightRaw);
   var drugKey = document.getElementById('drugSelect').value;
   var drug = drugDB[drugKey];
 
-  if (age <= 0 || weight <= 0 || age > 18) {
-    const __h0='<p style="color:var(--danger);">请输入有效的年龄（0-18岁）和体重（>0 kg）</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
+  if (ageRaw === '' || weightRaw === '' || !isFinite(age) || !isFinite(weight) || age < 0 || weight <= 0 || age > 18) {
+    const __h0='<p style="color:var(--danger);">请输入有效的年龄（0-18岁，0 表示新生儿）和体重（>0 kg）</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
     return;
   }
 
   var adultDose = drug.adultDose;
-  // Clark公式
-  var clarkDose = weight * adultDose / 70;
+  // Clark公式（与标准范围一样封顶至成人单次极量，避免超重儿童线性外推到成人剂量以上）
+  var clarkDoseRaw = weight * adultDose / 70;
+  var clarkDose = drug.maxSingleAbs ? Math.min(clarkDoseRaw, drug.maxSingleAbs) : clarkDoseRaw;
   // Young公式（年龄1-12岁有效）
   var youngDose = (age > 0 && age <= 12) ? (age * adultDose / (age + 12)) : 0;
 
@@ -489,6 +496,7 @@ function calcDose() {
   var stdMin = drug.unitRange[0] * weight;
   var stdMaxRaw = drug.unitRange[1] * weight;
   var stdMax = drug.maxSingleAbs ? Math.min(stdMaxRaw, drug.maxSingleAbs) : stdMaxRaw;
+  if (drug.maxSingleAbs) stdMin = Math.min(stdMin, drug.maxSingleAbs);
 
   // 计算ml
   var isMont = (drugKey === 'montmorillonite');
@@ -520,7 +528,12 @@ function calcDose() {
   var maxDailyStr = '';
   if (drug.maxDaily > 0) {
     var maxDailyVal = drug.maxDailyAbs ? drug.maxDaily : drug.maxDaily * weight;
-    var maxDailyTag = drug.maxDailyAbs ? '（说明书绝对上限）' : '（按体重）';
+    var __dailyCapped = false;
+    if (!drug.maxDailyAbs && drug.maxDailyAbsMg && maxDailyVal > drug.maxDailyAbsMg) {
+      maxDailyVal = drug.maxDailyAbsMg;
+      __dailyCapped = true;
+    }
+    var maxDailyTag = drug.maxDailyAbs ? '（说明书绝对上限）' : (__dailyCapped ? '（按体重，已达成人日上限）' : '（按体重）');
     if (isMont) {
       maxDailyStr = '<p>最大日剂量：<strong>' + maxDailyVal.toFixed(1) + ' g</strong>' + maxDailyTag + '（约 ' + (maxDailyVal / 3).toFixed(1) + ' 袋）</p>';
     } else {
@@ -556,7 +569,7 @@ function calcDose() {
     var __diffTxt = (__diff >= 0 ? '高 ' : '低 ') + Math.abs(__diff).toFixed(0) + '%';
     html += '<div class="ref-card" style="margin-top:12px;"><h4>同年龄参考体重（WHO 生长标准 P50）</h4><ul>';
     html += '<li>' + age + ' 岁：男童约 <strong>' + __wR.boy.toFixed(1) + ' kg</strong>，女童约 <strong>' + __wR.girl.toFixed(1) + ' kg</strong></li>';
-    html += '<li>你输入 ' + weight + ' kg，较同龄男童中位体重' + __diffTxt + '；剂量按<strong>实际体重</strong>计算，参考体重仅用于核对是否填错</li>';
+    html += '<li>你输入 ' + weight + ' kg，较同龄男童中位体重' + __diffTxt + '；剂量按<strong>实际体重</strong>计算，并封顶至成人单次/日极量，参考体重仅用于核对是否填错</li>';
     html += '</ul></div>';
   }
 

@@ -13,6 +13,12 @@ const CASES = [
   // ---------- 儿科给药与剂量 ----------
   {
     slug: "healthcare/antipyretic-dose",
+    inputs: { weight: "80", dose: "15", conc: "32" },
+    expect: ["单次药量： 37.5", "日上限次： 3 次"],
+    ref: "体重封顶：80 kg×60 mg/kg = 4800 mg/日，但成人日极量为 4000 mg ⇒ 日上限 = floor(4000/(80×15)) = floor(3.33) = 3 次；单次 = 80×15÷32 = 37.5 mL。修复前只按 60 mg/kg 反推（4800/1200=4 次）会超过成人 4 g/日上限；默认 15kg/15mg/kg 为 7.0 mL/4 次，两锚均不命中。",
+  },
+  {
+    slug: "healthcare/antipyretic-dose",
     inputs: { weight: "20", dose: "10", conc: "32" },
     expect: ["单次药量： 6.3"],
     ref: "单次液量 = 20×10÷32 = 6.25 → 6.3 mL；日上限次数 = ⌊20×60÷32÷6.25⌋ = 6。⚠ 原锚裸「6.3」被 03-47 新增 refWeightBox 静态提示「16.3 kg」子串误伤（默认态命中→逃生项），改「单次药量： 6.3」派生串（默认 7.0 不含）。",
