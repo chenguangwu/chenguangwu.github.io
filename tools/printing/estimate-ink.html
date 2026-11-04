@@ -174,7 +174,7 @@ s.parentNode.insertBefore(el, s);
       <div class="result-box" id="cRes"></div>
     </div>
 
-    <div class="info-box">💡 公式：墨量(kg) = 面积(m²) × 覆盖率 × 墨膜厚度(μm) × 密度(g/cm³) × 印数 × (1+损耗率) ÷ 100000。注：1 μm × 1 m² = 1 cm³（1e4 cm² × 1e-4 cm）</div>
+    <div class="info-box">💡 公式：墨量(kg) = 面积(m²) × 覆盖率 × 墨膜厚度(μm) × 密度(g/cm³) × 印数 × (1+损耗率) ÷ 1000。注：1 μm × 1 m² = 1 cm³（1e4 cm² × 1e-4 cm）；按 g/cm³ 相乘得克，再 ÷1000 换算为 kg。</div>
 
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
 <div class="card" id="constRefBox">
@@ -279,13 +279,13 @@ function calcSingle(){
     res+='<div class="data-grid" style="margin-top:8px;">'+
       '<div class="data-card"><div class="num">'+cost.toFixed(2)+'<span style="font-size:12px;"> 元</span></div><div class="label">总油墨成本</div></div>'+
       '<div class="data-card"><div class="num">'+(cost/copies).toFixed(4)+'<span style="font-size:12px;"> 元</span></div><div class="label">单张油墨成本</div></div>'+
-      '<div class="data-card"><div class="num">'+(totalWithWaste-totalG).toFixed(1)+'<span style="font-size:12px;"> g</span></div><div class="label">损耗墨量</div></div>'+
+      '<div class="data-card"><div class="num">'+(totalWithWaste-totalG).toFixed(1)+'<span style="font-size:12px;"> g</span></div><div class="label">损耗墨量'+(waste>0?'('+waste+'%)':'')+'</div></div>'+
       '<div class="data-card"><div class="num">'+(totalG/1000).toFixed(3)+'<span style="font-size:12px;"> kg</span></div><div class="label">净墨量(无损耗)</div></div>'+
       '</div>';
   }else{
     res+='<div class="data-grid" style="margin-top:8px;">'+
       '<div class="data-card"><div class="num">'+(totalG/1000).toFixed(3)+'<span style="font-size:12px;"> kg</span></div><div class="label">净墨量(无损耗)</div></div>'+
-      '<div class="data-card"><div class="num">'+(totalWithWaste-totalG).toFixed(1)+'<span style="font-size:12px;"> g</span></div><div class="label">损耗墨量(5%)</div></div>'+
+      '<div class="data-card"><div class="num">'+(totalWithWaste-totalG).toFixed(1)+'<span style="font-size:12px;"> g</span></div><div class="label">损耗墨量'+(waste>0?'('+waste+'%)':'')+'</div></div>'+
       '<div class="data-card"><div class="num">'+(totalKg*1000).toFixed(0)+'<span style="font-size:12px;"> g</span></div><div class="label">总墨量(克)</div></div>'+
       '<div class="data-card"><div class="num">'+(totalKg/copies*1000).toFixed(2)+'<span style="font-size:12px;"> mg</span></div><div class="label">单张墨量(毫克)</div></div>'+
       '</div>';
@@ -314,6 +314,12 @@ function calcCmyk(){
   if(isNaN(thk)||thk<=0){const __h7='<p style="color:var(--danger);">墨膜厚度需大于 0</p>';if((typeof __h7==='number'&&!isFinite(__h7))||/Infinity/.test(String(__h7))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h7)){document.getElementById('cRes').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('cRes').innerHTML=__h7;return;}
   if(isNaN(den)||den<=0){const __h8='<p style="color:var(--danger);">油墨密度需大于 0</p>';if((typeof __h8==='number'&&!isFinite(__h8))||/Infinity/.test(String(__h8))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h8)){document.getElementById('cRes').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('cRes').innerHTML=__h8;return;}
   if(isNaN(copies)||copies<1){const __h9='<p style="color:var(--danger);">印数需为正整数</p>';if((typeof __h9==='number'&&!isFinite(__h9))||/Infinity/.test(String(__h9))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h9)){document.getElementById('cRes').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('cRes').innerHTML=__h9;return;}
+
+  var covList=[['cC',covC],['cM',covM],['cY',covY],['cK',covK]];
+  var covBad=false;
+  covList.forEach(function(p){var bad=isNaN(p[1])||p[1]<0||p[1]>100;if(bad)covBad=true;var el=document.getElementById(p[0]);if(el)el.classList.toggle('input-error',bad);});
+  if(covBad){document.getElementById('cRes').innerHTML='<p style="color:var(--danger);">CMYK 各色覆盖率需填写 0–100% 的数值</p>';return;}
+  if(waste<0||waste>100){document.getElementById('cRes').innerHTML='<p style="color:var(--danger);">损耗率需在 0–100% 之间</p>';return;}
 
   var colors=[
     {name:'青 (C)',cov:isNaN(covC)?0:covC,color:'#00B7EB'},
