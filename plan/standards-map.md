@@ -268,3 +268,45 @@
 **本批改动**：`tools/civil/carbonation-depth.html`（去 2.56 因子，6 处）、`i18n/tools/en/civil/carbonation-depth.json`（2 键）、`tools/civil/concrete-wb-ratio.html`（补表 3.5.2 出处）、`i18n/tools/en/civil/concrete-wb-ratio.json`（同键）、`scripts/verify_civil_calc.js`（carbonation 正例 42.9→16.8、B 类自动补强例 69.68→272.2）。`node scripts/verify_civil_calc.js` = 51/51；`node scripts/discriminate_check.js verify_civil_calc.js` = 51/51 变红、0 逃生项。未跑 `_build.py`。
 
 **构建保留判断**：`_build.py` 只重建 `<!-- TOOLBOX-DEEP-DIVE -->` 区块（由 `i18n/tools/content_deepdive.json` 的 `civil/carbonation-depth` 条目生成），而该条目本身已是 `x=k·√t`（与本页算例一致），故重建后深度解析块与本页现值一致；公式框、`calcTool`、`extras`、`__cadSweep`、图表标题均位于深度块之外，构建不会改写。verify 脚本与英文词典不参与页面正文生成。因此下次构建「深度块重写为同值、其余保留」。复查口径：构建后 `grep -c '2.56'` 应为 0、`grep -c 'K*Math.sqrt'` 计数不变。
+
+## 第 17 批：`a_s` vs `c` 概念清扫 + 裂缝宽度补齐（2026-11-05）
+
+### 任务 1：`a_s` / `c` 混淆扫描（civil / construction / structural）
+
+扫描口径：`id="as"`、`h₀ = h − a_s`、label 含「保护层」、正文含 `a_s`。结果：**仅 2 页设 `a_s` 输入，2 页均把标签写成「保护层 a_s」，均判混淆并已改**；`h₀` 算式 2/2 正确；默认值 2/2 合理。
+
+| 页面 | 标签原文 | 是否混淆 | h₀ 算式 | 判定 |
+|---|---|---|---|---|
+| tools/civil/rc-beam-rebar.html | `保护层 a_s (mm)` | **是**：把 a_s 叫保护层 | `h0=h-as_`（页面与 extras 一致） | 已改为 `a_s 受拉钢筋合力点至受拉边缘距离 (mm)`；默认 40mm（单排梁合理） |
+| tools/civil/one-way-slab.html | `保护层 a_s (mm)` | **是**：把 a_s 叫保护层 | `h0=h-as_` | 已改为 `a_s 受拉钢筋合力点至板底距离 (mm)`；默认 20mm（板单排合理） |
+
+- 其余页面（`construction`/`structural` 全部、`civil` 其他页）无 `a_s` 输入；`rebar-anchorage` 仅正文提保护层、无 `h₀` 计算，不涉及混淆。
+- 两页均补「c 为保护层厚度、a_s 为合力点距离，h₀=h−a_s，不可用 c 代替 a_s」的说明；英文词典同步。
+- 未发现「用 c 值当 a_s」导致 h₀ 偏小的页面（2 页默认 a_s 分别为 40/20mm，均含保护层 + 钢筋半径量级）。
+
+### 任务 2：裂缝宽度验算落到 `civil/rc-beam-rebar`
+
+在既有页新增「正常使用极限状态（裂缝宽度）」输入组（M_k、A_s、d、c、f_tk、钢筋类型 ν），按 GB 50010-2010 式 7.1.2 实现：
+
+- `A_te = 0.5bh`（矩形受弯）；`ρ_te = A_s/A_te`，`<0.01` 取 `0.01`；
+- `σ_s = M_k/(0.87h₀A_s)`；`ψ = 1.1 − 0.65f_tk/(ρ_te σ_s)`，夹取 `0.2≤ψ≤1.0`；
+- `d_eq = d/ν`（带肋 1.0、光面 0.7，等价于 `Σn_i d_i²/Σn_iν_i d_i` 单直径形式）；
+- `w_max = 1.9·ψ·σ_s/2×10⁵·(1.9c + 0.08d_eq/ρ_te)`；
+- 对照 GB 50010-2010 表 3.3.1 三级 0.3mm（页面同时标注二级 0.2mm、一级 0.1mm/预应力）。
+
+**实跑算例（node 取值，页面默认 b=250、h=500、h₀=460、A_te=62500）**：
+
+| 场景 | 输入 | σ_s (MPa) | ψ | ρ_te | d_eq | w_max (mm) | 判定 |
+|---|---|---|---|---|---|---|---|
+| ψ 上夹取 | Mk=500、A_s=942 | 1326.3 | 1.000（raw 1.0346） | 0.0151 | 20.0 | 1.936 | 不满足 |
+| ψ 下夹取 | Mk=1、A_s=3000 | 0.8 | 0.200（raw −31.58） | 0.0480 | 20.0 | 0.000 | 满足 |
+| ρ_te<0.01 抬升 | Mk=300、A_s=400 | 1874.1 | 1.000 | 0.0100（raw 0.0064） | 20.0 | 3.694 | 不满足 |
+| 超限不满足 | Mk=60、A_s=400 | 374.8 | 0.751 | 0.0100 | 20.0 | 0.555 | 不满足 |
+| 光面 ν=0.7 | Mk=80、A_s=942、ν=0.7 | 212.2 | 0.692 | 0.0151 | 28.6 | 0.278 | 满足 |
+| 满足（非默认） | Mk=60、A_s=942 | 159.2 | 0.555 | 0.0151 | 20.0 | 0.129 | 满足 |
+
+**同步**：页面（输入组 + calcTool + extras 表格 + 图表历史字段）→ `i18n/tools/content_deepdive.json`（新增「裂缝宽度验算」示例与 c/a_s FAQ，`indent=1`，`json.loads` 校验）→ 页面深度块由 `_build_deep_dive_html` 同源重渲染 → `i18n/tools/en/civil/rc-beam-rebar.json`（新增 30 键）→ `scripts/verify_civil_calc.js` 新增 6 用例。
+
+**校验**：`node scripts/verify_civil_calc.js` = **57/57**；`node scripts/discriminate_check.js verify_civil_calc.js` = **57/57 变红、0 逃生项**（含恢复默认输入）。未跑 `_build.py`、未 push。
+
+**构建保留判断**：deep-dive 区块已按 `_build.py::_build_deep_dive_html` 的同一函数从 JSON 重新渲染，下一次构建会产出**逐字节同值**；输入组、`calcTool`、`rcBeamSls()`、extras 均在深度块之外，构建不改写。复查口径：构建后 `grep -c 'rcBeamSls'` 不变、`grep -c '2.56'` 仍为 0。
