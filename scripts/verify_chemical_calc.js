@@ -119,6 +119,18 @@ const CASES = [
   "ref": "去默认化（原 expect「损失量」是卡片标签，与输入无关）：默认页签 cur=yield，产率 = 21.25/25×100 = 85.00%（70≤x<90 ⇒ 🟢 优秀），损失量 = 25−21.25 = 3.75 g。默认 7.5/10 得 75.00% 与 2.50 g，注入失败即不命中"
 },
 {
+  "slug": "chemical/reaction-yield",
+  "clicks": ["cur='scale';renderModes();renderParams();calc()"],
+  "inputs": {
+    "small": "5",
+    "times": "10",
+    "yield": "90",
+    "big": "80"
+  },
+  "expect": ["55.6 g", "44.4 g"],
+  "ref": "新增回归：小试 5 g、收率 90% ⇒ 小试理论量 5/0.9=5.556 g，放大 10 倍 = 55.6 g；放大收率 80% ⇒ 预计 44.4 g。旧实现直接用 5×10=50 g，会把理论量低估 10%"
+},
+{
   "slug": "chemical/solution-concentration",
   "inputs": {
     "mass": "90",

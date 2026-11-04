@@ -110,6 +110,23 @@ const CASES = [
     "2118.60"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "printing/estimate-ink",
+  "inputs": {
+    "cArea": "0.21",
+    "cThk": "1.2",
+    "cDen": "1.1",
+    "cCopies": "1000",
+    "cC": "-5",
+    "cM": "25",
+    "cY": "35",
+    "cK": "15"
+  },
+  "expect": [
+    "CMYK 各色覆盖率需填写 0–100% 的数值"
+  ],
+  "ref": "新增回归：青色覆盖率 -5 越界，必须给出校验提示而不是算出负墨量"
 }
 ];
 async function main() {

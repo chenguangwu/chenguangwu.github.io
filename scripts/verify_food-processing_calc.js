@@ -118,6 +118,12 @@ const CASES = [
   "ref": "L = 10^((110−121.1)/10) = 0.077625 → F = 0.077625×40 = 3.1050 → 3.105 min（默认 1×15 = 15.000）"
 },
 {
+  "slug": "food-processing/sterilization-f-value",
+  "inputs": { "T": "120", "Tref": "110", "Z": "10", "t": "10" },
+  "expect": ["不能与 F₀≥3 基准直接比较"],
+  "ref": "新增回归：参考温度 110℃ 不是 121.1℃ 基准，F=10^(10/10)×10=100 min 只能作为 110℃ 等效时间，不得套用 F₀≥3 安全判据"
+},
+{
   // 非默认输入：kw = 诱惑红（默认空 → 全表 36 条）
   "slug": "food-processing/additive-limit-lookup",
   "inputs": { "kw": "诱惑红" },

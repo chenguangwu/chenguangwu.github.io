@@ -49,6 +49,16 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "seismology/assessor-31",
+  "inputs": {
+    "totalBldg": "0"
+  },
+  "expect": [
+    "请输入大于 0 的建筑总数（栋）"
+  ],
+  "ref": "新增回归：建筑总数 0 曾因 `||1` 兜底把倒塌 1 栋算成 100%、直接判毁灭性；现应提示输入非法"
+},
+{
   "slug": "seismology/generator-drill",
   "inputs": {
     "cnt": "8"
