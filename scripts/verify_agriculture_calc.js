@@ -1727,6 +1727,21 @@ const CASES = [
     dumpIds: ["result"],
     expect: ["5000 稀释倍数", "3.00 每亩用药量(ml/g)"],
     ref: "亩用量反推分支：稀释倍数 = 15 L × 1000 ÷ 3 g = 5000 倍；目标 ppm = 25% × 10000 ÷ 5000 = 50 ppm。旧实现把分母再乘 effectivePct/100（3 × 0.25），得 20000 倍（差 4 倍），两条锚均不命中；默认 ppm 模式（10%、20 ppm）虽同为 5000 倍，但亩用药量为 0.00，第二条不命中。"
+  },
+  // ── 零用例补强：孵化 / 种植倒计时（基准日冻结 2024-06-15） ──
+  {
+    slug: "agriculture/countdown-4",
+    inputs: { batchName: "批次A" },
+    clicks: ["state.startDate='2024-06-01';render()"],
+    expect: ["第 15 天", "距离出壳约 7 天"],
+    ref: "基准日冻结 2024-06-15：入孵 2024-06-01 ⇒ dayNum = floor(14 天) + 1 = 15、hatchingDay = 06-22 ⇒ left = 7 ⇒ 卡片显示「第 15 天」「距离出壳约 7 天」。默认 state.startDate 为空 ⇒ render 直接隐藏 heroBox，两条锚均不命中（判别时清空 clicks 即回到该默认态）。"
+  },
+  {
+    slug: "agriculture/countdown-cycle",
+    inputs: { cropSel: "0", plantDate: "2024-06-01" },
+    clicks: ["addPlanting()"],
+    expect: ["86 天后收获", "已生长 14/100 天 (14%)", "当前：幼苗期"],
+    ref: "番茄 = CROPS[0]（cycle 100 天）：种植 2024-06-01、基准日 2024-06-15 ⇒ elapsed = 14、left = 100 − 14 = 86 ⇒「86 天后收获」；frac = 14/100 = 0.14 落在 0.07 < f ≤ 0.25 ⇒「幼苗期」，进度串「已生长 14/100 天 (14%)」。默认无种植记录 ⇒ 列表显示空态「还没有种植记录」，三条锚均不命中（判别时清空 clicks/inputs 即回该默认态）。"
   }
 
 ];
