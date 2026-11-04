@@ -130,19 +130,19 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="🔍 寄生虫虫卵形态识别器">Parasite Egg ID</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="常见肠道寄生虫虫卵形态学特征查询，辅助镜检识别（文字版要点速查，不含镜检图片）">Parasite Egg ID — text-only morphology quick reference (no microscopy images)</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">过滤：分类非「全部」时要求条目分类相等；关键词非空时名称与描述转小写后任一包含该关键词即保留；无命中提示未找到匹配虫卵</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">过滤：分类非「全部」时要求条目分类相等；关键词非空时依次匹配名称/说明/形状/颜色/卵壳/卵盖/内容物（转小写包含即命中），纯数字或「a-b」形态的关键词另按虫卵尺寸区间匹配；结果卡片显示命中字段；图表按当前筛选结果重算</div>
   <p class="formula-desc">对粪便常见寄生虫虫卵形态要点做结构化对照，辅助镜检识别复习；确诊由寄生虫室判读。</p>
 </div>
 
 
     <div class="input-row">
-      <div><label>搜索虫卵名称</label><input type="search" id="search" placeholder="如：蛔虫、钩虫、血吸虫" oninput="filterEggs()"></div>
+      <div><label>搜索名称或形态特征</label><input type="search" id="search" placeholder="如：虫名、卵盖、腰鼓、70-106" oninput="filterEggs()"></div>
     </div>
     <div class="filter-bar" id="filterBar"></div>
 
     <div id="eggList"></div>
     <div class="toolbar" style="margin-top:14px;">
-      <button id="eggExport" class="btn" onclick="__eggExport()">⬇️ 导出全部虫卵对照 CSV</button>
+      <button id="eggExport" class="btn" onclick="__eggExport()">⬇️ 导出当前筛选结果 CSV</button>
     </div>
     <div class="tabs" id="eggTabs" style="margin-top:12px;">
       <button class="tab-btn active" data-v="chart"></button>
@@ -243,7 +243,7 @@ var EGGS = [
   {name:'肺吸虫(卫氏)卵',cat:'fluke',size:'80-118 × 48-60 μm',shape:'椭圆形',color:'金黄色',shell:'厚薄不均',operculum:'有(明显倾斜)',content:'卵细胞+卵黄细胞',desc:'卵盖明显倾斜，卵壳近盖端薄、远盖端厚。痰液或粪便检出。'},
   {name:'姜片虫卵',cat:'fluke',size:'130-140 × 80-85 μm',shape:'椭圆形',color:'淡黄色',shell:'薄而均匀',operculum:'有(不明显)',content:'卵细胞+卵黄细胞',desc:'最大的人体寄生吸虫卵，卵壳薄，卵盖小不明显。'},
   {name:'带绦虫卵(猪/牛)',cat:'tape',size:'31-43 μm',shape:'圆球形',color:'棕黄色',shell:'厚(胚膜放射状条纹)',operculum:'无',content:'六钩蚴',desc:'猪带绦虫与牛带绦虫卵形态相同，无法区分。胚膜有放射状条纹为特征。'},
-  {name:'短膜壳绦虫卵',cat:'tape',size:'47-37 μm',shape:'圆/椭圆',color:'无色',shell:'薄，有极丝',operculum:'无',content:'六钩蚴',desc:'卵壳内有极丝从两极延伸，内含六钩蚴，可自身感染。'},
+  {name:'短膜壳绦虫卵',cat:'tape',size:'37-47 μm',shape:'圆/椭圆',color:'无色',shell:'薄，有极丝',operculum:'无',content:'六钩蚴',desc:'卵壳内有极丝从两极延伸，内含六钩蚴，可自身感染。'},
   {name:'肝片形吸虫卵',cat:'fluke',size:'132-150 × 63-90 μm',shape:'椭圆形',color:'黄褐色',shell:'薄，光滑',operculum:'有(小)',content:'卵细胞+卵黄细胞',desc:'较大，与姜片虫卵相似，需结合流行病学鉴别。'}
 ];
 
@@ -261,19 +261,49 @@ function buildFilter(){
 
 function setCat(c){ currentCat=c; filterEggs(); }
 
+var FIELD_LABELS={name:'名称',desc:'说明',size:'大小',shape:'形状',color:'颜色',shell:'卵壳',operculum:'卵盖',content:'内容物'};
+var currentList = EGGS.slice();
+
+function parseSizeRange(s){
+  var nums=(String(s||'').match(/\d+(?:\.\d+)?/g)||[]).map(Number);
+  if(nums.length>=2){ return [Math.min(nums[0],nums[1]),Math.max(nums[0],nums[1])]; }
+  if(nums.length===1){ return [nums[0],nums[0]]; }
+  return null;
+}
+function matchSizeQuery(e,q){
+  if(!e) return false;
+  var r=parseSizeRange(e.size); if(!r) return false;
+  var m=String(q||'').replace(/μm|um|微米/gi,'').trim();
+  var mm=m.match(/^(\d+(?:\.\d+)?)\s*[-~到]\s*(\d+(?:\.\d+)?)$/);
+  if(mm){ var lo=+mm[1],hi=+mm[2]; if(lo>hi){var tmp=lo;lo=hi;hi=tmp;} return !(hi<r[0]||lo>r[1]); }
+  if(/^\d+(?:\.\d+)?$/.test(m)){ var v=+m; return v>=r[0]&&v<=r[1]; }
+  return false;
+}
+function matchedFields(e,ql){
+  if(!e || !ql) return [];
+  var hit=[];
+  ['name','desc','shape','color','shell','operculum','content'].forEach(function(k){
+    if(String(e[k]||'').toLowerCase().indexOf(ql)>=0) hit.push(FIELD_LABELS[k]);
+  });
+  if(matchSizeQuery(e,ql)) hit.push(FIELD_LABELS.size);
+  return hit;
+}
+
 function filterEggs(){
-  var q = document.getElementById('search').value.toLowerCase();
-  var list = EGGS.filter(function(e){
+  var q = document.getElementById('search').value.trim().toLowerCase();
+  currentList = EGGS.filter(function(e){
     if(currentCat!=='all' && e.cat!==currentCat) return false;
-    if(q && e.name.toLowerCase().indexOf(q)<0 && e.desc.toLowerCase().indexOf(q)<0) return false;
-    return true;
+    if(!q) return true;
+    return matchedFields(e,q).length>0;
   });
   var html = '';
-  if(list.length===0){ html = '<div class="result-box" style="text-align:center;">未找到匹配的虫卵</div>'; }
-  list.forEach(function(e,i){
+  if(currentList.length===0){ html = '<div class="result-box" style="text-align:center;">未找到匹配的虫卵</div>'; }
+  currentList.forEach(function(e,i){
+    var hits=matchedFields(e,q);
     html += '<div class="egg-card" id="egg-'+i+'">';
     html += '<div class="egg-head" onclick="toggleEgg('+i+')"><span>'+e.name+'</span><span class="arrow">▼</span></div>';
     html += '<div class="egg-body">';
+    if(hits.length){ html += '<div class="feat"><span class="k">命中：'+hits.join('、')+'</span></div>'; }
     html += '<div class="feat"><span class="k">大小</span><span>'+e.size+'</span></div>';
     html += '<div class="feat"><span class="k">形状</span><span>'+e.shape+'</span></div>';
     html += '<div class="feat"><span class="k">颜色</span><span>'+e.color+'</span></div>';
@@ -285,6 +315,7 @@ function filterEggs(){
     html += '</div></div>';
   });
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('eggList').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('eggList').innerHTML=__h1;
+  if(typeof window.__eggRefresh==='function') window.__eggRefresh();
 }
 
 function toggleEgg(i){
@@ -302,11 +333,12 @@ filterEggs();
     if(!host) return;
     var en=TBKit.util.isEn();
     var counts={line:0,fluke:0,tape:0};
-    EGGS.forEach(function(e){ if(counts[e.cat]!=null) counts[e.cat]++; });
+    currentList.forEach(function(e){ if(counts[e.cat]!=null) counts[e.cat]++; });
+    if(currentList.length===0){ host.innerHTML='<div style="padding:24px;text-align:center;color:var(--text-muted)">'+(en?'No eggs match the current filter.':'当前筛选无匹配虫卵，图表为空。')+'</div>'; return; }
     TBKit.chart.pie('#eggChart',{
       labels:[en?'Nematode':'线虫',en?'Trematode':'吸虫',en?'Cestode':'绦虫'],
       data:[counts.line,counts.fluke,counts.tape],
-      title:en?'Egg categories count':'虫卵类别数量统计'
+      title:en?'Egg categories (current filter)':'当前筛选的虫卵类别分布'
     });
   }
   function __eggTable(){
@@ -315,14 +347,14 @@ filterEggs();
     var en=TBKit.util.isEn();
     var t=document.getElementById('eggTbody'); if(!t) return;
     var counts={line:0,fluke:0,tape:0};
-    EGGS.forEach(function(e){ if(counts[e.cat]!=null) counts[e.cat]++; });
+    currentList.forEach(function(e){ if(counts[e.cat]!=null) counts[e.cat]++; });
     var rows=[
       [en?'Nematode':'线虫', counts.line],
       [en?'Trematode':'吸虫', counts.fluke],
       [en?'Cestode':'绦虫', counts.tape]
     ];
     t.innerHTML=rows.map(function(r,i){return '<tr><td>'+(i+1)+'</td><td>'+r[0]+'</td><td>'+r[1]+'</td></tr>';}).join('');
-    var tt=document.getElementById('eggTableTitle'); if(tt) tt.textContent=en?'Egg category breakdown':'虫卵类别明细';
+    var tt=document.getElementById('eggTableTitle'); if(tt) tt.textContent=en?'Egg category breakdown (current filter)':'当前筛选的虫卵类别明细';
     var th0=document.getElementById('eggTh0'); if(th0) th0.textContent='#';
     var th1=document.getElementById('eggTh1'); if(th1) th1.textContent=en?'Category':'类别';
     var th2=document.getElementById('eggTh2'); if(th2) th2.textContent=en?'Count':'数量';
@@ -333,7 +365,8 @@ filterEggs();
     var t=document.getElementById('eggHidden');
     if(!t){ t=document.createElement('table'); t.id='eggHidden'; t.style.display='none'; document.body.appendChild(t); }
     var rows=[[en?'Name':'名称',en?'Category':'类别',en?'Size':'大小',en?'Shape':'形状',en?'Color':'颜色',en?'Shell':'卵壳',en?'Operculum':'卵盖',en?'Content':'内容物',en?'Note':'说明']];
-    EGGS.forEach(function(e){
+    var data=currentList.length?currentList:EGGS;
+    data.forEach(function(e){
       rows.push([e.name, cats[e.cat], e.size, e.shape, e.color, e.shell, e.operculum, e.content, e.desc]);
     });
     t.innerHTML='<tbody>'+rows.map(function(r){return '<tr>'+r.map(function(c){return '<td>'+(c==null?'':c)+'</td>';}).join('')+'</tr>';}).join('')+'</tbody>';
@@ -359,6 +392,10 @@ filterEggs();
       });
     });
   }
+  window.__eggRefresh=function(){
+    try{__eggChart();}catch(e){}
+    try{__eggTable();}catch(e){}
+  };
   document.addEventListener('DOMContentLoaded',function(){
     if(typeof TBKit==='undefined') return;
     __eggChart();
@@ -415,7 +452,7 @@ filterEggs();
     <h4><span class="h4-icon">📝</span>工具简介</h4>
     <p>寄生虫虫卵形态对照工具。结构化提示常见虫卵鉴别要点；确诊由寄生虫室判读。</p>
     <h4><span class="h4-icon">✨</span>功能特点</h4>
-    <ul class="intro-features"><li>形态要点对照</li><li>易混淆项提示</li><li>图谱复习</li></ul>
+    <ul class="intro-features"><li>形态要点对照</li><li>易混淆项提示</li><li>形态字段与尺寸区间检索</li></ul>
     <h4><span class="h4-icon">🎯</span>使用场景</h4>
     <ul class="intro-scenes"><li>粪检复习</li><li>教学演示虫卵差异</li><li>筛查前温习</li></ul>
     </div>

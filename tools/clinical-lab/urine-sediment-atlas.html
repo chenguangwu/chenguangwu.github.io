@@ -135,13 +135,13 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="📚 尿沉渣镜检(管型/结晶)图谱查询器">Urine Sediment Atlas</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="查询尿沉渣中管型、结晶、细胞等有形成分的形态与临床意义（文字版要点，不含镜检图片）">Urine Sediment Atlas — text-only morphology reference (no microscopy images)</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">过滤规则：分类非「全部」时要求条目分类精确匹配；关键词非空时，名称、临床意义、形态三字段任一转小写后包含该关键词即保留；结果为空显示未找到匹配项目</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">过滤规则：分类非「全部」时要求条目分类精确匹配；关键词非空时依次匹配名称、临床意义、形态、大小、外观、参考范围（转小写包含即命中）；图表按当前筛选结果重算；结果为空显示未找到匹配项目</div>
   <p class="formula-desc">对尿沉渣有形成分（红细胞/白细胞/管型/结晶）的形态与提示做文字要点对照，辅助镜检复习；本页不含真实镜检图片。</p>
 </div>
 
 
     <div class="input-row">
-      <div><label>搜索关键词</label><input type="search" id="search" placeholder="如：管型、结晶、红细胞" oninput="filterItems()"></div>
+      <div><label>搜索名称或形态特征</label><input type="search" id="search" placeholder="如：管型、结晶、红细胞、7-8" oninput="filterItems()"></div>
     </div>
     <div class="filter-bar" id="filterBar"></div>
 
@@ -273,14 +273,20 @@ function buildFilter(){
 
 function setCat(c){currentCat=c;filterItems();}
 
+var __urineList = ITEMS.slice();
+
 function filterItems(){
-  var q=document.getElementById('search').value.toLowerCase();
+  var q=document.getElementById('search').value.trim().toLowerCase();
   var list=ITEMS.filter(function(it){
     if(currentCat!=='all' && it.cat!==currentCat) return false;
-    if(q && it.name.toLowerCase().indexOf(q)<0 && it.sig.toLowerCase().indexOf(q)<0 && it.morph.toLowerCase().indexOf(q)<0) return false;
-    return true;
+    if(!q) return true;
+    return ['name','sig','morph','size','bg','mean'].some(function(k){
+      return String(it[k]||'').toLowerCase().indexOf(q)>=0;
+    });
   });
+  __urineList = list;
   var html='';
+  html+='<p style="font-size:12px;color:var(--text-muted);margin:4px 0 8px;">共 '+list.length+' 项 · 按类别与关键词过滤</p>';
   if(list.length===0){html='<div class="result-box" style="text-align:center;">未找到匹配项目</div>';}
   list.forEach(function(it,i){
     html+='<div class="sed-card" id="sed-'+i+'">';
@@ -294,6 +300,29 @@ function filterItems(){
     html+='</div></div>';
   });
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('itemList').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('itemList').innerHTML=__h1;
+  __urineDrawChart();
+}
+
+function __urineDrawChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.pie) return;
+  var host=document.getElementById('urine_sediment_atlasChart');
+  if(!host || host.style.display==='none') return;
+  var en=TBKit.util.isEn();
+  if(!__urineList.length){
+    host.innerHTML='<div style="padding:24px;text-align:center;color:var(--text-muted)">'+(en?'No items match the current filter.':'当前筛选无匹配项目，图表为空。')+'</div>';
+    return;
+  }
+  var order=['cast','crystal','cell','other'];
+  var labelsZh=cats, labelsEn={cast:'Casts',crystal:'Crystals',cell:'Cells',other:'Others'};
+  var data=order.map(function(c){
+    return __urineList.filter(function(it){return it.cat===c;}).length;
+  });
+  host.innerHTML='';
+  TBKit.chart.pie('#urine_sediment_atlasChart',{
+    labels:order.map(function(c){return en?(labelsEn[c]||c):labelsZh[c];}),
+    data:data,
+    title:en?'Items by category (current filter)':'当前筛选的类别分布'
+  });
 }
 
 function toggleItem(i){
@@ -495,6 +524,7 @@ else document.addEventListener('DOMContentLoaded', __urine_sediment_atlasBoot);
     function show(pane){
       for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el&&el.style)el.style.display=(k===pane?'':'none');}}
       for(var j=0;j<btns.length;j++){btns[j].className='tbk-tab'+(btns[j].getAttribute('data-pane')===pane?' active':'');}
+      if(pane==='chart'&&typeof window.__urineDrawChart==='function'){try{window.__urineDrawChart();}catch(e){}}
     }
     for(var i=0;i<btns.length;i++){(function(b){b.addEventListener('click',function(){show(b.getAttribute('data-pane'));});})(btns[i]);}
     show(btns[0].getAttribute('data-pane'));

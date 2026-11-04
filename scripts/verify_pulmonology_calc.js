@@ -113,6 +113,34 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "pulmonology/pulmonary-function",
+  "inputs": {
+    "fev1": "3.0",
+    "fvc": "3.5",
+    "fev1pp": "55",
+    "fvcpp": "95",
+    "cutoff": "0.70"
+  },
+  "expect": [
+    "FEV1 占预计值降低（未达阻塞/限制判据）"
+  ],
+  "ref": "ATS/ERS 三参数口径：一秒率 0.857 不低于 0.70、FVC 95% 不低于 80%，但 FEV1 55% <80% ⇒ 不得判「正常」，输出 FEV1 降低分支。修复前该输入被判「通气功能正常」；默认态无此分型串 ⇒ 强判别。"
+},
+{
+  "slug": "pulmonology/pulmonary-function",
+  "inputs": {
+    "fev1": "3.0",
+    "fvc": "3.5",
+    "fev1pp": "85",
+    "fvcpp": "95",
+    "cutoffCustom": "0.90"
+  },
+  "expect": [
+    "轻度气流受限"
+  ],
+  "ref": "自定义阈值/LLN 输入生效：一秒率 0.857 < 自定义 0.90 ⇒ 阻塞性；FEV1%pred 85 ⇒ GOLD 1（轻度）。默认态（阈值 0.70、FEV1%pred 68）为 GOLD 2「中度」⇒ 「轻度气流受限」仅注入态出现。"
+},
+{
   // 默认 mip=45 → 高于下限 43（正常）；注入 mip=30 → 吸气肌无力
   "slug": "pulmonology/pulmonary-rehab",
   "inputs": {
