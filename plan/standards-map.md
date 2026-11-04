@@ -155,3 +155,47 @@
 - 砌体砂浆等级↔砌体强度设计值：`masonry-bearing` 的 f 由用户输入设计值，砂浆等级只参与 α（φ 公式）与 [β]（M2.5 22 / M5 24 / M7.5 26，GB 50003-2011 表6.1.1）；页面不做 f 与砂浆组合的合理性反查（如 M5 配 f=3.0 在烧结普通砖中不存在），登记为「输入职责」不构成计算错误。
 - 本批 verify 更新：`calc-1`（inputs 去 a、加 mu=1.7；期望 λ=246.3、N_Rd=10.76 kN、利用率 192.4%）、`calc-206`（加 muVal=1.7；λ=186、K=1.11；general 套 175/0.71）、`calc-204`（9×7→10×8；general 36→50 根、改 10×5）、`construction-calculator` 新增「≤0.3 m² 洞口不扣除」边界用例（65.52 m² / 13.10 L，注入 6/4.2/2.6 保证 fidelity 不依赖 clicks）。
 - 门禁：`verify_civil_calc` 50/50、`verify_construction_calc` 39/39、`verify_structural_calc` 47/47、`verify_general_calc` 362/362 全绿；fidelity 逃生 0（civil 50/50、construction 39/39）；all_default 0；`_test_static.py` 4705/4705；`_audit_assets.py --check` 0/0/0。
+
+## 输入净化 × 列表分隔符（2026-11-05）
+
+**判据**（`js/common.js::isListInput`）：输入框满足任一条件即为多值列表字段——① 带 `data-list` 属性；② 带 `multiple`；③ 初值 `value` 含 `,` `;` `、` `，` 之一。列表字段的数字净化只删「非数字、非小数点、非负号、非分隔符」字符，分隔符与空白原样保留；单值字段维持原口径（`12a3`→`123`）。
+
+**共享层两支逻辑**：
+- `enhanceNumberInputs()` 自动补 `inputmode="decimal"` 时跳过列表字段（避免把列表框变成无逗号的数字键盘）。
+- 事件净化选择器为 `input[inputmode="decimal"], input[inputmode="numeric"], input[data-list]`；`listField` 分支保留 `, ; 、 ，` 与空白，非列表分支只留 `0-9 . -`。
+
+**页面侧**：列表输入统一 `inputmode="text" data-list="1"`（`inputmode="decimal"` 在 iOS 数字键盘上打不出逗号）。本次修复 **22 页 / 26 个输入框**：`statistics` 13 页、`securities` 3 页、`metrology` 3 页、`investment` 1 页、`math` 1 页、`insurance` 1 页（明细见提交 `428576699d`）。
+
+**扫描口径与三档计数**：全站含列表输入的页面 57 页 / 71 个输入框——① 真吞分隔符 22 页 / 26 框；② 单值误带 decimal 0 页；③ 安全 35 页 / 45 框（无 `inputmode`、placeholder 不含数字关键词，净化根本不挂载）。另有 3 个单值数字文本框（`cognition/digit-span-test`、`edu/number-memory`、`fun/1a2b-guess`）语义正确未动。
+
+**已知取舍**：`inputmode="text"` 在手机端失去数字键盘（需切到符号页输入逗号）。长期更优解是「列表拆多个输入框」或「空格分隔 + 数字键盘（`inputmode="numeric"` 的键盘通常带空格）」，本次不做，避免批量改交互结构。后续再碰净化逻辑时，先确认没有把列表字段重新标成 `decimal`。
+
+## 第 14 批：推导值写死复查 + 4 处跨规范复核（2026-11-05）
+
+**扫描范围**：`tools/civil`（25 页）、`tools/construction`（38 页）、`tools/structural`（27 页），共 90 页。
+
+**裸 `return <数字>` 命中 2 处**，均为安全守卫返回值（固定常数，非规范推导值）：
+
+| 文件:行 | 现值 | 判定 |
+|---|---|---|
+| tools/civil/calc-2.html:251 | `return 0`（default 分支） | 固定常数：角度类型未命中时返回 0，不参与规范推导 |
+| tools/civil/calc-2.html:257 | `if (angleDeg <= 0) return 0` | 固定常数：非正角度的零值守卫 |
+
+**四分计数**：命中 2 处 / 改公式 0 处 / 固定常数 2 处 / 查表 0 处（φ 表另计，见下）。
+
+**可疑常量人工分拣（16 项，全部固定常数，无需改公式）**：`calc-206` 的 `K_ADD=1.155` 为 JGJ 130-2011 §5.3.3 规定的计算长度附加系数 k（固定值）；`BAY=1.05`、`A_SEC=489`、`W_SEC=5078`、`I_SEC=15.8`、`F_STEEL=205` 为截面/材料常数；`calc-205` 的 `WT=3.84` 为钢管单位重量；`temp-7` 的 `nu=0.2` 为材料泊松比；`wasteFactor=1.05`、`margin=1.1`、`rec=5`、`curWall=2`、`curScale=100`、`calc-196` 的 `h=10 W/m²K` 为估算/默认假定；`cement-mortar-ratio` 的 `v=0.5` 为绘图循环步长。均非「应由 `f_y`/`f_c`/钢筋级别推导却写死」的形态。
+
+**查表 2 页（保留，检索依据已注明）**：`tools/construction/calc-1.html` φ 表（JGJ 130-2011 附录 A 表 A.0.6，λ 线性插值）；`tools/construction/calc-206.html` `PHI_LAM/PHI_VAL`（同一表 A.0.6，A 类截面）。两表均按 λ 插值，末端越界取表末值，不构成写死推导值。
+
+**受弯派生限值复核（未发现写死）**：`rc-beam-rebar`、`one-way-slab` 的 `ξ_b` 均按 `0.8/[1+f_y/(E_s·ε_cu)]` 实算（`E_s=2e5`、`ε_cu=0.0033`），`α_s,max=ξ_b(1−0.5ξ_b)` 同步实算，未出现 `0.44`/`0.518`/`0.384` 一类字面量；`masonry-bearing` 的 φ 已按 `1/(1+αβ²)` 实算（第 13 批修复）。`cft-capacity`、`dijichengzailijisuan`、`assessor-19` 未复活旧缺陷。
+
+**4 处跨规范混用复核结论**（均维持现状，理由如下）：
+
+| 页面 | 混用点 | 结论与理由 |
+|---|---|---|
+| tools/construction/calc-206.html | N 用 GB 55023-2022 的 1.3/1.5；Mw 用 JGJ 130-2011 §5.2.6 的 `0.9×1.4` | **必须混用**：GB 55023-2022 只更新荷载分项系数，未给出脚手架风弯矩公式；JGJ 130-2011 的 `0.9×1.4` 是配套风弯矩组合系数，两处各引其源、页内已分段注明，统一到单一规范会丢失 Mw 依据 |
+| tools/civil/cft-capacity.html | 引 GB 50936-2014，实算 `A_s f_y + 1.2 A_c f_c` | **维持并注明**：GB 50936 的 `f_sc` 需套箍系数 θ 与其经验系数，页面定位为快速估算，已注明 1.2 为经验系数、正式设计按 GB 50936；未虚构标准系数 |
+| tools/civil/dijichengzailijisuan.html | 引 GB 50007-2011 5.2.4，实算 Terzaghi `qu` | **维持并注明**：GB 50007 5.2.4 用 η_b/η_d 深宽修正，本页为 Terzaghi 极限承载力 + 经验安全系数折减，页内已明确「fa 不等同于 GB 50007 深宽修正后的 f_a」 |
+| tools/construction/assessor-19.html | `βz=1+0.038√H` 非 GB 50009-2012 第 8.4 节计算值 | **维持并注明**：GB 50009 8.4 的 βz 需振型/阻尼等结构动力参数，本页无此输入，已把 βz 标为「经验估算」，不宣称按 8.4 计算 |
+
+- 本批未改任何工具页与 verify（复查结论为「无新增写死、4 处维持并已注明」）。
