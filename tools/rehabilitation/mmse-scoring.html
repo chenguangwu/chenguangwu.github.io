@@ -114,6 +114,15 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="📋 认知障碍(MMSE)量表自动计分器">Mmse Scoring</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="简易精神状态检查(MMSE)30项量表，总分30分，用于认知障碍筛查">Mmse Scoring</p>
 
+    <div style="margin:0 0 12px;max-width:320px;">
+      <label for="eduLevel" style="font-size:13px;font-weight:600;">受教育程度（用于划界分校正）</label>
+      <select id="eduLevel" onchange="calcScore()" style="width:100%;padding:8px 10px;margin-top:4px;">
+        <option value="college" selected>初中及以上（界值 ≤24）</option>
+        <option value="primary">小学（界值 ≤20）</option>
+        <option value="illiterate">文盲（界值 ≤17）</option>
+      </select>
+    </div>
+
     <div class="stat-grid" id="scoreGrid"></div>
 
     <div id="mmseItems"></div>
@@ -204,12 +213,12 @@ s.parentNode.insertBefore(el, s);
       <tbody>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="MMSE总分">MMSE total</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="11维度求和 0-30">11 domains = 0-30</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="5领域11项 = 0-30">5 domains / 11 items = 0-30</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Folstein et al. 1975</td>
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="认知分级">Cognitive grade</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="≥27正常 21-26轻 10-20中 below10重">≥27 normal, 21-26 mild, 10-20 mod, below 10 severe</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="≥27正常；文盲≤17/小学≤20/中学及以上≤24提示障碍；低于界值再分21-26轻、11-20中、10及以下重">≥27 normal; education cutoffs 17/20/24; below cutoff 21-26 mild, 11-20 moderate, below 10 severe</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);">MMSE cutoff</td>
         </tr>
         <tr>
@@ -347,18 +356,25 @@ function calcScore() {
     sectionScores.push(sScore);
   });
 
+  var eduSel = document.getElementById('eduLevel');
+  var edu = eduSel ? eduSel.value : 'college';
+  var eduCut = edu === 'illiterate' ? 17 : (edu === 'primary' ? 20 : 24);
+  var eduLabel = edu === 'illiterate' ? '文盲（界值 ≤17）' : (edu === 'primary' ? '小学（界值 ≤20）' : '初中及以上（界值 ≤24）');
+
   var level, color, advice;
   if (total >= 27) { level = '认知功能正常'; color = '#10B981'; advice = '认知功能正常，建议定期复查'; }
+  else if (total > eduCut) { level = '未达认知障碍界值（教育校正）'; color = '#0EA5E9'; advice = '按' + eduLabel + '校正后未达认知障碍界值，建议结合受教育年限、听力与情绪状态复核；若主诉记忆下降仍应做 MoCA 等进一步评估'; }
   else if (total >= 21) { level = '轻度认知障碍'; color = '#3B82F6'; advice = '可能为轻度认知障碍(MCI)，建议进一步神经心理学评估，进行认知训练'; }
   else if (total >= 11) { level = '中度认知障碍'; color = '#F59E0B'; advice = '中度认知障碍，日常生活需部分协助，建议药物治疗+认知训练'; }
   else { level = '重度认知障碍'; color = '#EF4444'; advice = '重度认知障碍，日常生活需全面照顾，建议多学科治疗和护理'; }
 
-  __EMR_S={t:total, lv:level, adv:advice, sec:sectionScores.slice()};
+  __EMR_S={t:total, lv:level, adv:advice, sec:sectionScores.slice(), edu:eduLabel, cut:eduCut};
   var html = '<div style="text-align:center;margin-bottom:12px;">';
   html += '<div style="font-size:48px;font-weight:700;color:' + color + ';">' + total + '</div>';
   html += '<div style="font-size:14px;color:var(--text-muted);">/ 30分</div>';
   html += '</div>';
   html += '<p><strong>评估结果：</strong><span class="grade-tag" style="background:' + color + '22;color:' + color + ';">' + level + '</span></p>';
+  html += '<p style="font-size:12.5px;color:var(--text-muted);">受教育程度校正：' + eduLabel + '，本次划界分 ≤' + eduCut + ' 分提示认知障碍（≥27 分仍判正常）</p>';
 
   html += '<p style="margin-top:8px;"><strong>各领域得分：</strong></p>';
   var maxScores = [10, 3, 5, 3, 9];
@@ -519,8 +535,8 @@ var __emrData=function(){
     result:'总分 '+s.t+'/30 → '+s.lv+' · '+zs.join(' · '),
     resultEn:'total '+s.t+'/30; '+lvEn+'; '+es.join('; '),
     noPos:true, hintZh:hz, hintEn:he,
-    extra:'处理建议：'+s.adv+'。评分口径：满分 30 分，27–30 正常、21–26 轻度、11–20 中度、≤10 重度；结果受受教育程度影响，文盲与低教育者界值需下调。',
-    extraEn:'Management: recommended actions per the grading above. Scoring: maximum 30; 27-30 normal, 21-26 mild, 11-20 moderate, 10 or less severe; education affects the cut-off, lower it for low-education or illiterate patients.'});
+    extra:'处理建议：'+s.adv+'。评分口径：满分 30 分；≥27 分判正常，否则按受教育程度划界分判定（文盲 ≤17、小学 ≤20、初中及以上 ≤24 提示认知障碍）；低于界值者再按 21–26 轻、11–20 中、≤10 重分度。',
+    extraEn:'Management: recommended actions per the grading above. Scoring: maximum 30; 27 or more is normal, otherwise use education-adjusted cutoffs (illiterate 17 or less, primary school 20 or less, junior high or above 24 or less indicates impairment); below the cutoff, stage as 21-26 mild, 11-20 moderate, 10 or less severe.'});
 };
 var __emrW0=(typeof calcScore==='function')?calcScore:null;
 if(__emrW0){ calcScore=function(){ try{ return __emrW0.apply(null,arguments); } finally { try{__emrData();}catch(e){} } }; }

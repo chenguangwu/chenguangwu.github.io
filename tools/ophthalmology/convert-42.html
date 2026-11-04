@@ -168,7 +168,29 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){var v=+document.getElementById('val').value;var from=document.getElementById('from').value;var to=document.getElementById('to').value;var dec;if(from==='dec'){dec=v;}else if(from==='log'){dec=Math.pow(10,-v);}else{dec=20/v;}var r;if(to==='dec'){r=dec;}else if(to==='log'){r=(dec<=0)?NaN:-Math.log10(dec);}else{r=20/dec;}var five=(dec>0)?(5+Math.log10(dec)).toFixed(2):'-';var amin=(dec>0)?(1/dec).toFixed(2):'-';var sn=(dec>0)?Math.round(20/dec):0;var unit=(to==='dec')?'':(to==='log'?' logMAR':' (Snellen 20/'+Math.round(r)+')');const __g1='<p style="font-size:20px;color:var(--primary);"><strong>'+(isFinite(r)?r.toFixed(2):'无效')+'</strong></p><p style="font-size:12px;color:var(--text-muted);">'+unit+'</p><p style="font-size:12px;color:var(--text-muted);">五分记录法 '+five+'；视角 '+amin+' 弧分；Snellen 20/'+sn+'</p>';document.getElementById('res').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));}calc();
+function calc(){
+  var v=parseFloat(document.getElementById('val').value);
+  var from=document.getElementById('from').value;
+  var to=document.getElementById('to').value;
+  var res=document.getElementById('res');
+  var bad='<p style="color:var(--danger)">请输入有效数值：小数视力 0.01–2.0、logMAR −0.3–2.0、Snellen 分母 2–400（20/xx）；空值或越界不换算。</p>';
+  if(!isFinite(v)||v<=0){res.innerHTML=bad;return;}
+  var dec;
+  if(from==='dec'){ if(v<0.01||v>2.0){res.innerHTML=bad;return;} dec=v; }
+  else if(from==='log'){ if(v<-0.3||v>2.0){res.innerHTML=bad;return;} dec=Math.pow(10,-v); }
+  else { if(v<2||v>400){res.innerHTML=bad;return;} dec=20/v; }
+  var logmar=-Math.log10(dec);
+  var five=5+Math.log10(dec);
+  var etdrs=Math.max(0,Math.min(70,Math.round((1.10-logmar)/0.02)));
+  var main,unit;
+  if(to==='dec'){ main=dec.toFixed(2); unit=''; }
+  else if(to==='log'){ main=logmar.toFixed(2); unit=' logMAR'; }
+  else { main='20/'+Math.round(20/dec); unit=' Snellen'; }
+  res.innerHTML='<p style="font-size:20px;color:var(--primary);"><strong>'+main+'</strong>'+unit+'</p>'
+    +'<p style="font-size:12px;color:var(--text-muted);">五分记录法 '+(isFinite(five)?five.toFixed(2):'-')+'；小数视力 '+(isFinite(dec)?dec.toFixed(2):'-')+'；logMAR '+(isFinite(logmar)?logmar.toFixed(2):'-')+'</p>'
+    +'<p style="font-size:12px;color:var(--text-muted);">Snellen 20/'+Math.round(20/dec)+'（6/'+(Math.round(6/dec*10)/10)+'）；ETDRS 字母数 ≈ '+etdrs+'（0–70，20/20=55）</p>';
+}
+calc();
 <!-- TOOLBOX-REALIZED -->
 </script>
 

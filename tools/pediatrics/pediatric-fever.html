@@ -269,13 +269,22 @@ function setMethod(m){
 }
 
 function calc(){
-  var temp=parseFloat(document.getElementById('temp').value)||0;
-  var age=parseFloat(document.getElementById('age').value)||0;
+  var temp=parseFloat(document.getElementById('temp').value);
+  var age=parseFloat(document.getElementById('age').value);
   var fever3d=document.getElementById('fever3d').checked;
   var fever5d=document.getElementById('fever5d').checked;
   var abx=document.getElementById('antibiotic').checked;
 
-  // 换算为腋温等效值
+  if(!isFinite(temp)||temp<34||temp>43){
+    document.getElementById('result').innerHTML='<div class="tip-box tip-warn">请输入有效体温（34–43 °C）；空值或越界不做分度与用药判断。</div>';
+    return;
+  }
+  if(!isFinite(age)||age<0||age>216){
+    document.getElementById('result').innerHTML='<div class="tip-box tip-warn">请输入有效年龄（0–216 月，即 0–18 岁）；空值或越界不做判断。</div>';
+    return;
+  }
+
+  // 换算为腋温等效值（口温 +0.3 / 肛温 +0.5 / 耳温 +0.5 为常用近似值，不同设备有差异）
   var axTemp=temp-methodOffset[method];
 
   // 发热分度（以腋温为准）
@@ -299,9 +308,9 @@ function calc(){
   var drugAdvice='';
   if(axTemp>=38.5||(axTemp>=38&&age>=2&&discomfort())){
     if(age>=6){
-      drugAdvice='可选用对乙酰氨基酚(每次10-15mg/kg，q4-6h)或布洛芬(每次5-10mg/kg，q6-8h)，24小时内不超过4次。';
+      drugAdvice='按体重分档给药（非固定剂量）：对乙酰氨基酚每次10–15mg/kg，q4–6h，≤5次/24h且≤60mg/kg/d；布洛芬每次5–10mg/kg，q6–8h，≤4次/24h且≤40mg/kg/d。';
     }else if(age>=2){
-      drugAdvice='可选用对乙酰氨基酚(每次10-15mg/kg，q4-6h)，6月以下不推荐布洛芬。';
+      drugAdvice='按体重分档给药：对乙酰氨基酚每次10–15mg/kg，q4–6h，≤5次/24h且≤60mg/kg/d；6月龄以下不推荐布洛芬。';
     }else{
       drugAdvice='3月以下婴儿发热不建议自行使用退热药，需就医评估。';
     }

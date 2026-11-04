@@ -71,10 +71,10 @@ const CASES = [
 {
   "slug": "ophthalmology/convert-42",
   "inputs": {
-    "val": "4"
+    "val": "0.25"
   },
-  "expect": ["4\ndec\nlog\n-0.60 logMAR 五分记录法 5.60；视角 0.25 弧分；Snellen 20/5"],
-  "ref": "auto-restore"
+  "expect": ["0.60 logMAR", "五分记录法 4.40；小数视力 0.25；logMAR 0.60", "Snellen 20/80（6/24）；ETDRS 字母数 ≈ 25（0–70，20/20=55）"],
+  "ref": "小数 0.25 ⇒ logMAR = −log10(0.25) = 0.60；五分记录法 5 + log10(0.25) = 4.40；Snellen 20/80（6/24）；ETDRS 字母数 round((1.10−0.60)/0.02)=25。默认态 1.0 ⇒「0.00 logMAR」「Snellen 20/20」「ETDRS 字母数 ≈ 55」，与本用例零交集。原用例注入 val=4（小数视力 4.0，超出 0.01–2.0 有效域）只会命中「无效」提示，已改为有效值。"
 },
 {
   "slug": "ophthalmology/corneal-curvature",
