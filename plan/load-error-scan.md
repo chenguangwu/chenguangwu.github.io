@@ -142,3 +142,38 @@ node scripts/scan_load_errors.js --match tools/psychiatry/
 产物：`/tmp/load_error_scan.jsonl`（逐页）、`/tmp/load_error_summary.json`（汇总 + 明细）；环境变量 `SCAN_OUT` 可改路径。
 
 **入清单门槛（建议作为后续批次口径）**：同一页两遍全量都红，或单页复核仍红，才进入派工清单；只在一遍出现的异常必须先逐页复核，避免把并发写入/超时抖动当缺陷。
+
+## 8. 7 页资源 404 的根因与修复（同日第二批）
+
+### 8.1 三列表
+
+| 页面 | 根因 | 修法（理由） |
+|---|---|---|
+| `tools/misc/index.html` | 空壳分类页：目录下只有 `index.html`、`json/tools.json` 中 `misc` 行业 0 工具、行业不在 `INDUSTRY_INFO` 也不在 sitemap；`js/category-index.js` 无条件 `fetch('/json/industry-misc.json')`，而 `_build.py` 只为「有工具的行业」生成该文件 → 404 | **③ 物理下线**：页面与目录均为空壳，且该 URL 早在 2026-10-13 已登记进 `sitemap-deadlinks.xml`，保留只会造成「死链地图说已死、实际仍 200 可索引」的矛盾 |
+| `tools/misc2/index.html` | 同上（`misc2` 行业 0 工具、不在导航/sitemap） | **③ 物理下线**（同上，已在死链地图登记） |
+| `tools/network/index.html` | 同上（`network` 行业 0 工具） | **③ 物理下线**（同上） |
+| `tools/niche/index.html` | 同上（`niche` 行业 0 工具） | **③ 物理下线**（同上） |
+| `tools/beekeeping/honey-estimator.html` | 页面没有任何 `data-i18n`，但 `js/tool-i18n.js::init()` 无条件调用 `loadIndustryDict('<ind>')`，请求 `i18n/tools/beekeeping.json`；该行业只有 `-body.json`、没有 `<ind>.json` 源文件 → 404 | **① 加「存在才加载」守卫**：行业字典只服务 `data-i18n="<industry>.<slug>.*"` 元素，页面无此命名空间就不发请求（与既有 `-phrases.json` 的索引守卫同一思路；不补空字典糊门禁） |
+| `tools/daily-goods/shoe-size.html` | 同上（缺 `i18n/tools/daily-goods.json`） | **① 同上** |
+| `tools/express/insurance-fee.html` | 同上（缺 `i18n/tools/express.json`） | **① 同上** |
+
+> 全站只有 22 页真正使用 `<industry>.<slug>.*` 命名空间（design / energy / health / it / life / optical / ai，均有对应字典文件），其余页的 `loadIndustryDict` 请求本来就是无效请求。
+
+### 8.2 修复明细
+
+- `js/tool-i18n.js`：新增 `needsIndustryDict(industry)`，按 `document.querySelector('[data-i18n^="<ind>."]')` 判定，`loadIndustryDict` 无匹配直接返回。
+- 删除 4 个空壳分类页（`tools/misc|misc2|network|niche/index.html`）。
+- 连带修正 `tools/life/date-diff.html`：其面包屑 JSON-LD 原指向 `tools/misc/index.html`（删页后会成为 JSON-LD 死链），已改为 `tools/life/index.html` + 「日常生活」，可见面包屑文案同步修正。
+- **未改任何 `json/*.json`**（构建产物）；也未新增 `i18n/tools/<ind>.json` 空壳。
+
+### 8.3 复扫与验证
+
+- `node scripts/scan_load_errors.js --match tools/beekeeping/`、`tools/daily-goods/`、`tools/express/` → 各 2 页 `cleanPages=2, noisePages=0, defect=0`（404 消失）。
+- 守卫不回归（真机 + `?lang=en-US`）：`tools/it/regex.html` 仍请求 `/i18n/tools/it.json` → **200**，`data-i18n^="it."` 元素显示 `Regex Tester`；`tools/legal/calc-96.html` 不再请求 `legal.json`，0 报错。
+- 删除后剩余分类页一致性：207 个 `tools/*/index.html` 与 208 个 `json/industry-*.json` 比对，**0 缺失**（不会再有同类 404）。
+- `python3 _audit_links.py --check` → 16689 文件 / 165820 内链 / **0 死链**（exit 0）。
+
+### 8.4 运维提示（本批未执行）
+
+- 4 个旧 URL（简体 + `zh-tw/` 变体）已在 `sitemap-deadlinks.xml` 中登记，无需重复加入；部署成功（Actions `success`）后按 AGENTS §4.6 用**默认校验**跑一次 `python3 _submit_indexnow_deadlinks.py` 即可。
+- 本批修改了 `js/tool-i18n.js`：按项目红线，正式部署前需由维护者执行 `python3 _build.py` 刷新 Service Worker 版本戳；本批按要求未跑 `_build.py`、未 push。

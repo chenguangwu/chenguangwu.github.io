@@ -373,8 +373,15 @@
     }
   }
 
+  // 行业字典只服务 data-i18n="<industry>.<slug>.*" 的元素（见文件头设计说明）。
+  // 全站仅 22 页使用该命名空间；其余页无条件 fetch 会给 54 个无 <ind>.json 的行业打出 404
+  // （beekeeping / daily-goods / express 等新行业实测）。先按页面实际使用情况判定，无匹配就不发请求。
+  function needsIndustryDict(industry) {
+    return !!document.querySelector('[data-i18n^="' + industry + '."]');
+  }
+
   function loadIndustryDict(industry) {
-    if (!industry) return;
+    if (!industry || !needsIndustryDict(industry)) return;
     var url = sharedI18nUrl(industry + '.json');
     if (window.fetch) {
       fetch(url, { cache: 'no-cache' })
