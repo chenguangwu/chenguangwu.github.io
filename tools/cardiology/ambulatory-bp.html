@@ -123,7 +123,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="📊 动态血压昼夜节律与晨峰分析器">Ambulatory Bp</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根据24h ABPM数据分析昼夜节律分型(杓型/非杓型/反杓型/极度杓型)及晨峰现象">Ambulatory Bp</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">动态血压(ABPM)分析：夜间SBP下降率 =（白昼SBP − 夜间SBP）÷ 白昼SBP × 100% — 分型：反杓型&lt;0%、非杓型&lt;10%、杓型(正常)10–20%、极度杓型&gt;20%；晨峰值 = 清晨SBP − 夜间最低SBP（&lt;23正常、23–35轻度、≥35显著）。24h均值≥135/85、白昼≥140/90、夜间≥125/75 mmHg 为高血压。</div>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">动态血压(ABPM)分析：夜间SBP下降率 =（白昼SBP − 夜间SBP）÷ 白昼SBP × 100% — 分型：反杓型&lt;0%、非杓型&lt;10%、杓型(正常)10–20%、极度杓型&gt;20%；晨峰值 = 清晨SBP − 夜间最低SBP（&lt;23正常、23–35轻度、≥35显著，本页估算）。ABPM 高血压阈值（2023 ESH / 2018 ESC-ESH）：24h ≥130/80、白昼 ≥135/85、夜间 ≥120/70 mmHg。</div>
       <p class="formula-desc" data-zh="「根据24h ABPM数据分析昼夜节律分型(杓型/非杓型/反杓型/极度杓型)及晨峰现象」按输入参数进行专业计算并输出结果。">Ambulatory Bp: computes and outputs results from the input parameters.</p>
     </div>
 
@@ -157,13 +157,14 @@ s.parentNode.insertBefore(el, s);
   <div class="card">
     <h3>📋 ABPM 诊断标准</h3>
     <table>
-      <thead><tr><th>时段</th><th>正常 (mmHg)</th><th>高血压 (mmHg)</th></tr></thead>
+      <thead><tr><th>时段</th><th>正常 (mmHg)</th><th>达到高血压阈值 (mmHg)</th></tr></thead>
       <tbody>
-        <tr><td>24h平均</td><td>&lt;130/80</td><td>≥135/85</td></tr>
-        <tr><td>白昼(清醒)</td><td>&lt;135/85</td><td>≥140/90</td></tr>
-        <tr><td>夜间(睡眠)</td><td>&lt;120/70</td><td>≥125/75</td></tr>
+        <tr><td>24h平均</td><td>&lt;130/80</td><td>≥130/80</td></tr>
+        <tr><td>白昼(清醒)</td><td>&lt;135/85</td><td>≥135/85</td></tr>
+        <tr><td>夜间(睡眠)</td><td>&lt;120/70</td><td>≥120/70</td></tr>
       </tbody>
     </table>
+    <p style="font-size:12px;color:var(--text-muted);">阈值依据 2023 ESH 高血压指南（与 2018 ESC/ESH 的动态血压等价值一致）。ABPM 达到阈值只提示血压升高，不能单独确诊高血压；需结合诊室/家庭血压与临床复核。</p>
 
     <h3 style="margin-top:16px;">📊 昼夜节律分型（杓型比值）</h3>
     <table>
@@ -267,14 +268,22 @@ s.parentNode.insertBefore(el, s);
 
 <script>
 function calc(){
-  var avg24s=parseFloat(document.getElementById('avg24_sbp').value)||0;
-  var avg24d=parseFloat(document.getElementById('avg24_dbp').value)||0;
-  var dayS=parseFloat(document.getElementById('day_sbp').value)||0;
-  var dayD=parseFloat(document.getElementById('day_dbp').value)||0;
-  var nightS=parseFloat(document.getElementById('night_sbp').value)||0;
-  var nightD=parseFloat(document.getElementById('night_dbp').value)||0;
-  var lowestS=parseFloat(document.getElementById('lowest_sbp').value)||0;
-  var morningS=parseFloat(document.getElementById('morning_sbp').value)||0;
+  var ids=['avg24_sbp','avg24_dbp','day_sbp','day_dbp','night_sbp','night_dbp','lowest_sbp','morning_sbp'];
+  var vals={}, bad=false;
+  ids.forEach(function(id){
+    var raw=String(document.getElementById(id).value||'').trim();
+    var n=parseFloat(raw);
+    if(raw===''||!isFinite(n)||n<=0||n>300) bad=true;
+    vals[id]=n;
+  });
+  if(bad){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger)">请填写 8 项 ABPM 数值（收缩压/舒张压均须为 1–300 mmHg 的有效值）；空值不判读昼夜节律、晨峰与血压分级。</p>';
+    return;
+  }
+  var avg24s=vals.avg24_sbp, avg24d=vals.avg24_dbp;
+  var dayS=vals.day_sbp, dayD=vals.day_dbp;
+  var nightS=vals.night_sbp, nightD=vals.night_dbp;
+  var lowestS=vals.lowest_sbp, morningS=vals.morning_sbp;
 
   // 昼夜节律
   var dipRatio=dayS>0?((dayS-nightS)/dayS*100):0;
@@ -291,15 +300,15 @@ function calc(){
   else if(surge<35){surgeLevel='轻度升高';surgeColor='#3B82F6';surgeAdvice='轻度晨峰，注意监测，晨起服药。';}
   else{surgeLevel='显著晨峰';surgeColor='#EF4444';surgeAdvice='显著晨峰，卒中/心梗风险增加，建议晨起前服药，考虑长效降压药覆盖清晨时段。';}
 
-  // ABPM诊断
-  function dxLabel(sbp,dbp,normalS,normalD,htnS,htnD){
-    if(sbp>=htnS||dbp>=htnD)return{text:'高血压',color:'#EF4444'};
-    if(sbp>=normalS||dbp>=normalD)return{text:'血压偏高',color:'#F59E0B'};
-    return{text:'正常',color:'#10B981'};
+  // ABPM 高血压阈值：采用 2023 ESH / 2018 ESC-ESH 的动态血压等价值
+  // 24h ≥130/80；白昼 ≥135/85；夜间 ≥120/70（三者任一达到即符合 ABPM 高血压阈值）
+  function dxLabel(sbp,dbp,htnS,htnD){
+    if(sbp>=htnS||dbp>=htnD)return{text:'达到ABPM高血压阈值',color:'#EF4444'};
+    return{text:'未达ABPM高血压阈值',color:'#10B981'};
   }
-  var dx24=dxLabel(avg24s,avg24d,130,80,135,85);
-  var dxDay=dxLabel(dayS,dayD,135,85,140,90);
-  var dxNight=dxLabel(nightS,nightD,120,70,125,75);
+  var dx24=dxLabel(avg24s,avg24d,130,80);
+  var dxDay=dxLabel(dayS,dayD,135,85);
+  var dxNight=dxLabel(nightS,nightD,120,70);
 
   var html='<div class="stat-grid">';
   html+='<div class="stat-card"><div class="val" style="color:'+dipColor+';font-size:16px;">'+dipType+'</div><div class="lbl">昼夜节律分型</div></div>';
@@ -325,8 +334,7 @@ function calc(){
   var __bd=document.getElementById('followDate')?document.getElementById('followDate').value:'';
   if(__bd){
     var __sch;
-    if(dx24.text==='高血压'){__sch=[[14,'家庭自测血压记录，评估启动/调整药物治疗'],[30,'评估达标情况（家庭自测 7 日记录）'],[90,'达标后随访：血压、心率、生活方式依从性'],[365,'年度复查 24h 动态血压与靶器官损害筛查']];}
-    else if(dx24.text==='血压偏高'){__sch=[[30,'家庭自测血压 7 日记录并复诊'],[90,'复测动态血压或家庭自测确认趋势'],[365,'年度复查动态血压']];}
+    if(dx24.text==='达到ABPM高血压阈值'){__sch=[[14,'家庭自测血压记录，评估启动/调整药物治疗'],[30,'评估达标情况（家庭自测 7 日记录）'],[90,'达标后随访：血压、心率、生活方式依从性'],[365,'年度复查 24h 动态血压与靶器官损害筛查']];}
     else{__sch=[[365,'年度体检复测血压（必要时复查动态血压）']];}
     var __d0=new Date(__bd+'T00:00:00');
     var __items='';

@@ -262,7 +262,7 @@ s.parentNode.insertBefore(el, s);
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="方案选择">Regimen choice</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="按耐药结果调整方案">Adjust the regimen by the resistance result</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Maastricht consensus</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Maastricht VI (2022) / 中国幽门螺杆菌感染处理共识（2022）</td>
         </tr>
       </tbody>
     </table>
@@ -300,7 +300,12 @@ function calc(){
   var color;
   var advice='';
 
-  // 药敏过滤：耐药药物直接从方案池剔除（未检测按可能敏感处理，但提示失败风险）
+  var unknownDrugs=[];
+  if(clarithro==='unknown') unknownDrugs.push('克拉霉素');
+  if(metronidazole==='unknown') unknownDrugs.push('甲硝唑');
+  if(levo==='unknown') unknownDrugs.push('左氧氟沙星');
+
+  // 药敏过滤：耐药药物直接从方案池剔除；未检测药物不视为敏感，仅保留方案并标注可信度下降
   var blocked={amox:penicillin, clar:clarithro==='resistant', levo:levo==='resistant', metro:metronidazole==='resistant', tetra:false};
   var pool=[
     {key:'bi_amox_clar', needs:['bismuth','amox','clar'], text:'铋剂四联：PPI bid + 铋剂 bid + 阿莫西林 1g bid + 克拉霉素 0.5g bid，14天'},
@@ -329,7 +334,12 @@ function calc(){
     if(r && okReg(r) && chosen.indexOf(r)<0) chosen.push(r);
   });
   var limit=(history==='two')?3:2;
-  chosen.slice(0,limit).forEach(function(r){ regimens.push(r.text); });
+  var drugLabel={clar:'克拉霉素',metro:'甲硝唑',levo:'左氧氟沙星',amox:'阿莫西林',bismuth:'铋剂',tetra:'四环素'};
+  chosen.slice(0,limit).forEach(function(r){
+    var miss=[];
+    r.needs.forEach(function(d){ if(unknownDrugs.indexOf(drugLabel[d])>=0 && miss.indexOf(drugLabel[d])<0) miss.push(drugLabel[d]); });
+    regimens.push(r.text+(miss.length?'　⚠️ 含未检测药物（'+miss.join('、')+'），方案可信度下降，根除失败风险较高':''));
+  });
 
   var resistantNames=[];
   if(penicillin) resistantNames.push('阿莫西林（青霉素过敏）');
@@ -355,11 +365,15 @@ function calc(){
     }
   }
   if(resistantNames.length) advice+=' 已剔除含耐药/禁用药物（'+resistantNames.join('、')+'）的方案；铋剂可在一定程度上克服甲硝唑耐药，但本工具仍按耐药结果避用，需临床复核。';
-  if(clarithro==='unknown'||metronidazole==='unknown'||levo==='unknown') advice+=' 未检测药物按可能敏感处理，失败风险较高，条件允许时建议补做药敏。';
+  if(unknownDrugs.length) advice+=' 未检测药物：'+unknownDrugs.join('、')+'（未检测，不作为敏感依据；含该药的方案可信度下降，条件允许时建议补做药敏）。';
+  var confidence=unknownDrugs.length?'中（存在未检测药物）':(history==='two'||resistantNames.length?'中':'高');
+  var confidenceColor=confidence.charAt(0)==='高'?'#10B981':'#F59E0B';
+  if(history==='two'&&resistantNames.length) confidence='低（多次失败且存在耐药）';
 
   var html='<div class="stat-grid">';
   html+='<div class="stat-card"><div class="val" style="color:'+color+';font-size:16px;">'+{none:'初次',one:'二线',two:'难治性'}[history]+'</div><div class="lbl">治疗阶段</div></div>';
   html+='<div class="stat-card"><div class="val" style="color:'+color+';">'+regimens.length+'</div><div class="lbl">推荐方案数</div></div>';
+  html+='<div class="stat-card"><div class="val" style="color:'+confidenceColor+';font-size:16px;">'+confidence+'</div><div class="lbl">方案可信度</div></div>';
   html+='</div>';
 
   html+='<div class="ref-card"><h4>药敏与治疗信息</h4><ul>';

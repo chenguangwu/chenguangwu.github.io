@@ -125,7 +125,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="❤️ GRACE 评分死亡风险评估器">Grace Score</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="Global Registry of Acute Coronary Events，用于ACS患者院内及出院后死亡风险预测">Grace Score</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">GRACE 院内死亡风险总分 = 年龄分 + 心率分 + 收缩压分 + 肌酐分 + Killip分级分 + 心脏骤停(39) + ST段偏移(28) + 心肌酶升高(14)。分项分段查表（例：年龄 &lt;30→0、&lt;40→8、&lt;50→18、&lt;60→28、&lt;70→39、&lt;80→50、&lt;90→59、≥90→64；Killip 0/Ⅰ/Ⅱ/Ⅲ/Ⅳ → 0/0/20/39/59）。分层：≤108 低危（院内&lt;1%、6月&lt;3%）、≤140 中危（1–3%/3–8%）、&gt;140 高危（&gt;3% / &gt;8%）。</div>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">GRACE 风险总分 = 年龄分 + 心率分 + 收缩压分 + 肌酐分 + Killip分级分 + 心脏骤停(39) + ST段偏移(28) + 心肌酶升高(14)。分项分段查表（例：年龄 &lt;30→0、&lt;40→8、&lt;50→18、&lt;60→28、&lt;70→39、&lt;80→50、&lt;90→59、≥90→64；Killip 0/Ⅰ/Ⅱ/Ⅲ/Ⅳ → 0/0/20/39/59）。<strong>院内死亡分层：≤108 低危、109–140 中危、&gt;140 高危；6个月死亡分层另用一套切点：≤88 低危、89–118 中危、&gt;118 高危</strong>（两套切点不可混用）。依据 GRACE 原始模型（Granger 2003）与 6 个月验证（Fox 2006），风险分层引用 2023 ESC ACS 指南。</div>
       <p class="formula-desc" data-zh="「Global Registry of Acute Coronary Events，用于ACS患者院内及出院后死亡风险预测」按输入参数进行专业计算并输出结果。">Grace Score: computes and outputs results from the input parameters.</p>
     </div>
 
@@ -167,11 +167,12 @@ s.parentNode.insertBefore(el, s);
     <table>
       <thead><tr><th>风险分层</th><th>总分</th><th>院内死亡率</th><th>出院至6月死亡率</th></tr></thead>
       <tbody>
-        <tr><td style="color:#10B981;font-weight:600;">低危</td><td>≤108</td><td>&lt;1%</td><td>&lt;3%</td></tr>
-        <tr><td style="color:#3B82F6;font-weight:600;">中危</td><td>109–140</td><td>1–3%</td><td>3–8%</td></tr>
-        <tr><td style="color:#EF4444;font-weight:600;">高危</td><td>&gt;140</td><td>&gt;3%</td><td>&gt;8%</td></tr>
+        <tr><td style="color:#10B981;font-weight:600;">低危</td><td>≤108</td><td>&lt;1%</td><td>≤88 为低危（6个月切点）</td></tr>
+        <tr><td style="color:#3B82F6;font-weight:600;">中危</td><td>109–140</td><td>1–3%</td><td>89–118 为中危（6个月切点）</td></tr>
+        <tr><td style="color:#EF4444;font-weight:600;">高危</td><td>&gt;140</td><td>&gt;3%</td><td>&gt;118 为高危（6个月切点）</td></tr>
       </tbody>
     </table>
+    <p style="font-size:12px;color:var(--text-muted);">注：上表第三列为院内死亡分层；第四列为 6 个月死亡分层，其分值切点与院内分层不同（GRACE 6 个月模型：≤88 / 89–118 / &gt;118），不可用院内切点直接判读 6 个月风险。</p>
 
     <h3 style="margin-top:16px;">📊 各变量评分明细</h3>
     <table>
@@ -251,7 +252,7 @@ s.parentNode.insertBefore(el, s);
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="介入时机">Invasive timing</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="高危(>140) 建议早期介入">High risk (>140) suggests early invasive strategy</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">2015 ESC NSTEMI-ACS Guideline</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">2023 ESC Guidelines for the management of acute coronary syndromes (Eur Heart J 2023)</td>
         </tr>
       </tbody>
     </table>
@@ -259,7 +260,7 @@ s.parentNode.insertBefore(el, s);
 </div>
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
-      <li>本工具纯前端运行，数据不会上传到服务器</li>
+      <li>分期按 GRACE 原始模型（Granger 2003）与 6 个月验证（Fox 2006）；院内与 6 个月死亡分层切点不同，页面分别判定；结果为风险提示，需临床复核</li>
       <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
       <li>计算结果仅供参考，请以实际应用场景为准</li>
   </ul>
@@ -308,14 +309,25 @@ function crScore(cr){
 function killipScore(k){return [0,0,20,39,59][k]||0;}
 
 function calc(){
-  var age=parseFloat(document.getElementById('age').value)||0;
-  var hr=parseFloat(document.getElementById('hr').value)||0;
-  var sbp=parseFloat(document.getElementById('sbp').value)||0;
-  var cr=parseFloat(document.getElementById('cr').value)||0;
+  var rawAge=String(document.getElementById('age').value||'').trim();
+  var rawHr=String(document.getElementById('hr').value||'').trim();
+  var rawSbp=String(document.getElementById('sbp').value||'').trim();
+  var rawCr=String(document.getElementById('cr').value||'').trim();
+  var age=parseFloat(rawAge);
+  var hr=parseFloat(rawHr);
+  var sbp=parseFloat(rawSbp);
+  var cr=parseFloat(rawCr);
   var killip=parseInt(document.getElementById('killip').value);
   var arrest=document.getElementById('arrest').checked;
   var stDev=document.getElementById('stDev').checked;
   var enz=document.getElementById('enzymes').checked;
+
+  // 空值/越界不得按 0 计分：缺项会使总分系统性偏低、被误判为低危
+  if(rawAge===''||rawHr===''||rawSbp===''||rawCr===''||!isFinite(age)||!isFinite(hr)||!isFinite(sbp)||!isFinite(cr)||age<=0||age>120||hr<=0||hr>300||sbp<=0||sbp>300||cr<=0||cr>20){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger)">请填写有效的年龄、心率、收缩压与血肌酐（年龄 1–120 岁、心率 1–300 次/分、收缩压 1–300 mmHg、肌酐 0–20 mg/dL）；空值或越界拒绝评分。</p>';
+    var rb=document.getElementById('resultRefBar'); if(rb) rb.innerHTML='';
+    return;
+  }
 
   var aS=ageScore(age);
   var hS=hrScore(hr);
@@ -328,16 +340,20 @@ function calc(){
 
   var total=aS+hS+sS+cS+kS+arS+stS+enS;
 
-  var risk,riskColor,inHospMort,mort6m,advice;
-  if(total<=108){risk='低危';riskColor='#10B981';inHospMort='<1%';mort6m='<3%';advice='可考虑保守治疗或择期冠脉造影，强调规范二级预防。';}
-  else if(total<=140){risk='中危';riskColor='#3B82F6';inHospMort='1–3%';mort6m='3–8%';advice='建议早期侵入性策略（72小时内冠脉造影），评估血运重建。';}
-  else{risk='高危';riskColor='#EF4444';inHospMort='>3%';mort6m='>8%';advice='推荐紧急侵入性策略（24小时内冠脉造影），积极血运重建，强化抗血小板及抗凝治疗。';}
+  // 院内死亡与 6 个月死亡使用不同分值切点，分别判定，避免混用
+  var riskInHosp,risk6m,riskColor,inHospMort,mort6m,advice;
+  if(total<=108){riskInHosp='低危';riskColor='#10B981';inHospMort='<1%';advice='可考虑保守治疗或择期冠脉造影，强调规范二级预防。';}
+  else if(total<=140){riskInHosp='中危';riskColor='#3B82F6';inHospMort='1–3%';advice='建议早期侵入性策略（72小时内冠脉造影），评估血运重建。';}
+  else{riskInHosp='高危';riskColor='#EF4444';inHospMort='>3%';advice='推荐紧急侵入性策略（24小时内冠脉造影），积极血运重建，强化抗血小板及抗凝治疗。';}
+  if(total<=88){risk6m='低危';mort6m='<3%';}
+  else if(total<=118){risk6m='中危';mort6m='3–8%';}
+  else{risk6m='高危';mort6m='>8%';}
 
   var html='<div class="stat-grid">';
   html+='<div class="stat-card"><div class="val" style="color:'+riskColor+';">'+total+'</div><div class="lbl">GRACE 总分</div></div>';
-  html+='<div class="stat-card"><div class="val" style="color:'+riskColor+';font-size:18px;">'+risk+'</div><div class="lbl">风险分层</div></div>';
-  html+='<div class="stat-card"><div class="val" style="color:'+riskColor+';">'+inHospMort+'</div><div class="lbl">院内死亡率</div></div>';
-  html+='<div class="stat-card"><div class="val" style="color:'+riskColor+';">'+mort6m+'</div><div class="lbl">6月死亡率</div></div>';
+  html+='<div class="stat-card"><div class="val" style="color:'+riskColor+';font-size:16px;">'+riskInHosp+'</div><div class="lbl">院内死亡分层</div></div>';
+  html+='<div class="stat-card"><div class="val" style="color:'+riskColor+';font-size:16px;">'+risk6m+'</div><div class="lbl">6个月死亡分层</div></div>';
+  html+='<div class="stat-card"><div class="val" style="color:'+riskColor+';">'+inHospMort+' / '+mort6m+'</div><div class="lbl">院内 / 6月死亡</div></div>';
   html+='</div>';
 
   html+='<div class="ref-card"><h4>评分明细</h4><ul>';
@@ -352,7 +368,7 @@ function calc(){
   html+='<li><strong>总分 = '+total+'</strong></li>';
   html+='</ul></div>';
 
-  html+='<div class="tip-box" style="border-color:'+riskColor+';color:'+riskColor+';background:'+riskColor+'1a;"><strong>'+risk+'</strong><br>'+advice+'</div>';
+  html+='<div class="tip-box" style="border-color:'+riskColor+';color:'+riskColor+';background:'+riskColor+'1a;"><strong>院内死亡分层：'+riskInHosp+'（6个月：'+risk6m+'）</strong><br>'+advice+'<br><span style="font-size:12px;">GRACE 为风险提示工具，不构成 ACS 确诊；诊断与侵入策略需结合症状、心电图、肌钙蛋白与临床复核。</span></div>';
 
   const __g1=html;try{ if(typeof total==='number'&&isFinite(total)&&typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){ TBKit.chart.refBar('#resultRefBar',{value:total,unit:'',bands:[{"lo":0,"hi":109,"label":{"zh":"低危","en":"Low risk"},"color":"#10B981"},{"lo":109,"hi":141,"label":{"zh":"中危","en":"Intermediate risk"},"color":"#3B82F6"},{"lo":141,"hi":null,"label":{"zh":"高危","en":"High risk"},"color":"#EF4444"}],title:((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Reference range':'参考区间标尺')}); } }catch(e){}
   document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));

@@ -312,6 +312,18 @@ const CASES = [
   "inputs": { "albumin": "30", "ucr": "10" },
   "expect": ["26.5 UACR (mg/g)"],
   "ref": "注入非默认白蛋白30/尿肌酐10（默认35/8.8）→ UACR=30/(8.8×0.113)=30/0.994≈26.5 mg/g（默认35.2）；26.5 为转换后数值，默认态不含，0 逃生。"
+},
+{
+  "slug": "nephrology/proteinuria-24h",
+  "inputs": { "protein24h": "" },
+  "expect": ["留空不判读"],
+  "ref": "空值不得按 0 判为正常：默认 2.5 g/d，注入空串后应显示「留空不判读」；discriminator 回退默认 2.5 即不再命中。"
+},
+{
+  "slug": "nephrology/microalbuminuria",
+  "inputs": { "uacrVal": "" },
+  "expect": ["留空不判读"],
+  "ref": "空值不得按 0 判为正常：默认 UACR 非空，注入空串后应显示「留空不判读」；回退默认值即不再命中。"
 }
 ];
 async function main() {

@@ -123,7 +123,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="🫀 心脏彩超(LVEF/室壁运动)报告解读器">Echo Report</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入超声心动图关键参数，自动评估收缩功能、室壁运动、心腔大小及舒张功能">Echo Report</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">LVEF分级：≥50% 正常；40–49% HFmrEF(中间值)；30–39% HFrEF(降低)；&lt; 30% 重度降低WMSI：≤1.0 正常、≤1.5 轻度、≤2.0 中度、&gt; 2.0 重度心腔：LVIDd ≥ 55mm 左室扩大、左房 ≥ 40mm 扩大、主动脉 ≥ 37mm 增宽、右室 ≥ 30mm 扩大舒张功能：E/A &lt; 0.8 → 1级(松弛受损)；0.8–2.0 且间隔 e′&lt;7 cm/s → 2级(假性正常可能，充盈压评估需结合绝对 E/e′&gt;14 综合判断)；&gt; 2.0 → 3级(限制型)；间隔 e′ 正常参考 ≥7 cm/sICD 一级预防评估指征：LVEF ≤35%，需结合 NYHA II–III 级与优化 GDMT≥3 个月；LVESV 单独不构成指征。</div>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">LVEF 分级（参考 2021 ESC 心衰指南与 ASE/EACVI 2015 心腔定量建议）：≥50% 正常；40–49% HFmrEF(中间值)；30–39% HFrEF(降低)；&lt;30% 重度降低。WMSI：≤1.0 正常、≤1.5 轻度、≤2.0 中度、&gt;2.0 重度。心腔：LVIDd ≥55mm 左室扩大、左房 ≥40mm 扩大、主动脉 ≥37mm 增宽、右室 ≥30mm 扩大（留空按「未检测」，不按 0 判为正常）。舒张功能（ASE/EACVI 2016）：E/A &lt;0.8 提示松弛受损可能；0.8–2.0 且间隔 e′&lt;7 cm/s 提示假性正常可能（需结合 E/e′&gt;14、左房容积与三尖瓣反流速度）；&gt;2.0 提示限制型；间隔 e′ 正常参考 ≥7 cm/s。完整分级不能仅凭 E/A。ICD 一级预防评估指征：LVEF ≤35%，需结合 NYHA II–III 级与优化 GDMT≥3 个月；LVESV 单独不构成指征。</div>
       <p class="formula-desc" data-zh="「输入超声心动图关键参数，自动评估收缩功能、室壁运动、心腔大小及舒张功能」按输入参数进行专业计算并输出结果。">Echo Report: computes and outputs results from the input parameters.</p>
     </div>
 
@@ -287,10 +287,14 @@ function calc(){
   var lvesv=parseFloat(document.getElementById('lvesv').value)||0;
   var wmsi=parseFloat(wmsiRaw);
   var wmType=document.getElementById('wmType').value;
-  var lvidd=parseFloat(document.getElementById('lvidd').value)||0;
-  var la=parseFloat(document.getElementById('la').value)||0;
-  var ao=parseFloat(document.getElementById('ao').value)||0;
-  var rv=parseFloat(document.getElementById('rv').value)||0;
+  var lviddRaw=String(document.getElementById('lvidd').value||'').trim();
+  var laRaw=String(document.getElementById('la').value||'').trim();
+  var aoRaw=String(document.getElementById('ao').value||'').trim();
+  var rvRaw=String(document.getElementById('rv').value||'').trim();
+  var lvidd=parseFloat(lviddRaw);
+  var la=parseFloat(laRaw);
+  var ao=parseFloat(aoRaw);
+  var rv=parseFloat(rvRaw);
   var ea=parseFloat(document.getElementById('ea').value)||0;
   var eprime=parseFloat(document.getElementById('eprime').value)||0;
 
@@ -309,7 +313,7 @@ function calc(){
   if(lvef>=50){efLevel='正常';efColor='#10B981';efAdvice='左室收缩功能正常。';}
   else if(lvef>=40){efLevel='轻度降低(HFmrEF)';efColor='#F59E0B';efAdvice='射血分数中间值心衰，优化GDMT，评估合并症。';}
   else if(lvef>=30){efLevel='中度降低(HFrEF)';efColor='#EF4444';efAdvice='射血分数降低心衰，规范GDMT(ARNI/β阻滞剂/MRA/SGLT2i)，评估ICD/CRT。';}
-  else{efLevel='重度降低';efColor='#EF4444';efAdvice='终末期心衰，强烈评估ICD/CRT/心脏移植/LVAD。';}
+  else{efLevel='重度降低';efColor='#EF4444';efAdvice='LVEF &lt;30% 属重度收缩功能降低（HFrEF 范围）；是否终末期、是否需移植/LVAD 须由心衰专科结合症状、BNP、影像与整体状况评估，本页仅提示，需临床复核。';}
 
   // WMSI
   var wmsiText,wmsiColor;
@@ -324,26 +328,28 @@ function calc(){
   else if(wmType==='aki')wmAdvice='无运动节段提示透壁性心肌梗死或严重缺血，建议冠脉评估。';
   else if(wmType==='hypo')wmAdvice='运动减弱提示心肌缺血/心肌病，结合临床评估。';
 
-  // 心腔大小
-  var lviddAbn=lvidd>55?'左室扩大':'';
-  if(lvidd>=55&&lvidd<60)lviddAbn='轻度扩大';
-  else if(lvidd>=60&&lvidd<65)lviddAbn='中度扩大';
-  else if(lvidd>=65)lviddAbn='重度扩大';
-  else lviddAbn='正常';
-
-  var laAbn=la>=40?'左房扩大':'正常';
-  var aoAbn=ao>=37?'主动脉增宽':'正常';
-  var rvAbn=rv>=30?'右室扩大':'正常';
+  // 心腔大小：空值不得按 0 处理（0mm 会被误显示为「正常」）
+  function chamberText(raw,val,abnNormal,normalText,hi){
+    if(raw===''||!isFinite(val)||val<=0)return '未检测（未纳入判读）';
+    if(hi){if(val>=65)return '重度扩大';if(val>=60)return '中度扩大';if(val>=55)return '轻度扩大';return normalText;}
+    return val>=abnNormal?'扩大':'正常';
+  }
+  var lviddAbn=chamberText(lviddRaw,lvidd,55,'正常',true);
+  var laAbn=chamberText(laRaw,la,40,'正常',false);
+  var aoAbn=chamberText(aoRaw,ao,37,'正常',false);
+  var rvAbn=chamberText(rvRaw,rv,30,'正常',false);
+  var chamberNote=(lviddRaw===''||laRaw===''||aoRaw===''||rvRaw==='')?'；存在未检测的心腔径线，结构判读可信度下降':'';
+  var allChamberBlank=(lviddRaw===''&&laRaw===''&&aoRaw===''&&rvRaw==='');
 
   // 舒张功能分级（结合 E/A 与 e'；完整分级还需 E/e'、LA 容积与三尖瓣反流速度）
   var diastGrade,diastColor;
   if(ea<=0){diastGrade='未填 E/A，未分级';diastColor='var(--text-muted)';}
-  else if(ea<0.8){diastGrade='舒张功能减低(1级/松弛受损)';diastColor='#3B82F6';}
+  else if(ea<0.8){diastGrade='提示松弛受损可能(1级，需完整参数)';diastColor='#3B82F6';}
   else if(ea<=2.0){
-    if(eprime>0&&eprime<7){diastGrade='舒张功能减低(2级/假性正常化可能)';diastColor='#F59E0B';}
+    if(eprime>0&&eprime<7){diastGrade='提示假性正常可能(2级，需完整参数)';diastColor='#F59E0B';}
     else if(eprime<=0){diastGrade='E/A 正常但 e′ 未填，未分级';diastColor='var(--text-muted)';}
-    else{diastGrade='舒张功能正常';diastColor='#10B981';}
-  }else{diastGrade='舒张功能减低(3级/限制型)';diastColor='#EF4444';}
+    else{diastGrade='E/A 与 e′ 未见异常（仍需结合其他参数）';diastColor='#10B981';}
+  }else{diastGrade='提示限制型(3级，需完整参数)';diastColor='#EF4444';}
 
   // ICD 一级预防评估指征（LVEF≤35% 为基础，需结合 NYHA II–III 级与优化 GDMT≥3 个月）
   var icdFlag=lvef<=35;
@@ -368,17 +374,22 @@ function calc(){
   html+='</ul></div>';
 
   html+='<div class="ref-card"><h4>心腔大小</h4><ul>';
-  html+='<li>LVIDd = '+lvidd+'mm → '+lviddAbn+'</li>';
-  html+='<li>左房 = '+la+'mm → '+laAbn+'</li>';
-  html+='<li>主动脉 = '+ao+'mm → '+aoAbn+'</li>';
-  html+='<li>右室 = '+rv+'mm → '+rvAbn+'</li>';
+  if(allChamberBlank){html+='<li>心腔径线未检测（LVIDd/左房/主动脉/右室均留空），本页不判读结构大小。</li>';}
+  else{
+    html+='<li>LVIDd = '+(lviddRaw===''?'未检测':lvidd+'mm')+' → '+lviddAbn+'</li>';
+    html+='<li>左房 = '+(laRaw===''?'未检测':la+'mm')+' → '+laAbn+'</li>';
+    html+='<li>主动脉 = '+(aoRaw===''?'未检测':ao+'mm')+' → '+aoAbn+'</li>';
+    html+='<li>右室 = '+(rvRaw===''?'未检测':rv+'mm')+' → '+rvAbn+'</li>';
+  }
+  if(chamberNote)html+='<li style="color:var(--text-muted);">'+chamberNote.replace('；','')+'</li>';
   html+='</ul></div>';
 
   html+='<div class="ref-card"><h4>舒张功能</h4><ul>';
-  html+='<li>E/A = '+ea+'</li>';
-  html+='<li>e\' = '+eprime+'cm/s</li>';
-  html+='<li>间隔 e\' = '+eprime.toFixed(1)+' cm/s'+(eprime<7?'（&lt;7，松弛受损标志）':'（≥7）')+'</li>';
+  html+='<li>E/A = '+(ea>0?ea:'未检测')+'</li>';
+  html+='<li>e\' = '+(eprime>0?eprime+'cm/s':'未检测')+'</li>';
+  if(eprime>0)html+='<li>间隔 e\' = '+eprime.toFixed(1)+' cm/s'+(eprime<7?'（&lt;7，松弛受损标志）':'（≥7）')+'</li>';
   html+='<li>评估：<strong style="color:'+diastColor+';">'+diastGrade+'</strong></li>';
+  html+='<li style="color:var(--text-muted);">舒张功能分级依据 ASE/EACVI 2016 建议，完整分级还需 E/e′、左房容积与三尖瓣反流速度；仅凭 E/A 不能确诊舒张功能不全，需临床复核。</li>';
   html+='</ul></div>';
 
   html+='<div class="tip-box" style="border-color:'+efColor+';color:'+efColor+';background:'+efColor+'1a;"><strong>收缩功能：'+efLevel+'</strong><br>'+efAdvice+'</div>';

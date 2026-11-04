@@ -290,7 +290,14 @@ function lookup(){
   var paris=document.getElementById('paris').value;
   var kudo=document.getElementById('kudo').value;
   var nice=document.getElementById('nice').value;
-  var size=parseFloat(document.getElementById('size').value)||0;
+  var sizeRaw=String(document.getElementById('size').value||'').trim();
+  var size=parseFloat(sizeRaw);
+
+  // 空值不得按 0 处理：留空曾被判为「微小息肉/低风险」
+  if(sizeRaw===''||!isFinite(size)||size<=0||size>200){
+    document.getElementById('result').innerHTML='<p style="color:var(--text-muted);">请输入有效的息肉直径（1–200 mm）；留空不判读，也不按 0 计为微小息肉。</p>';
+    return;
+  }
 
   var parisInfo={
     'Ip':{desc:'有蒂型，基底有明确蒂部',risk:'低',mgmt:'圈套器电切，完整切除送病理'},
@@ -308,14 +315,14 @@ function lookup(){
     'IIIS':{desc:'小管状/圆形（密集小）',path:'腺瘤（凹陷型常见）',mgmt:'内镜切除'},
     'IIIL':{desc:'大管状/圆形',path:'腺瘤（隆起型常见）',mgmt:'内镜切除'},
     'IV':{desc:'沟状/分支状',path:'管状绒毛状腺瘤',mgmt:'内镜切除'},
-    'V_I':{desc:'腺管开口不规则',path:'可疑癌变（M或SM浅层）',mgmt:'内镜切除+病理评估深度'},
-    'V_N':{desc:'腺管开口消失（无结构）',path:'深层SM浸润癌',mgmt:'外科手术（不建议内镜切除）'}
+    'V_I':{desc:'腺管开口不规则',path:'可疑癌变（需病理确认）',mgmt:'内镜切除+病理评估深度'},
+    'V_N':{desc:'腺管开口消失（无结构）',path:'高度提示深层SM浸润（需病理确认）',mgmt:'外科手术（不建议内镜切除）'}
   };
 
   var niceInfo={
     '1':{desc:'浅色或与背景同色， Lack of vessels',path:'增生性/SSL',color:'#3B82F6'},
     '2':{desc:'棕色，血管增粗',path:'腺瘤',color:'#F59E0B'},
-    '3':{desc:'深棕色/偏红，血管紊乱或缺失',path:'深层SM癌',color:'#EF4444'}
+    '3':{desc:'深棕色/偏红，血管紊乱或缺失',path:'高度提示深层SM浸润（需病理确认）',color:'#EF4444'}
   };
 
   // 综合风险评估
@@ -338,7 +345,7 @@ function lookup(){
   else sizeAdvice='大息肉（≥20mm），恶变风险高，建议ESD整块切除';
 
   var html='<div class="stat-grid">';
-  html+='<div class="stat-card"><div class="val" style="color:'+riskColor+';font-size:16px;">'+overallRisk+'</div><div class="lbl">综合恶性风险</div></div>';
+  html+='<div class="stat-card"><div class="val" style="color:'+riskColor+';font-size:16px;">'+overallRisk+'</div><div class="lbl">综合风险提示（非病理确诊）</div></div>';
   html+='<div class="stat-card"><div class="val">'+size+'</div><div class="lbl">直径(mm)</div></div>';
   html+='</div>';
 
@@ -362,8 +369,10 @@ function lookup(){
   html+='<div class="ref-card"><h4>大小评估</h4><p>'+sizeAdvice+'</p></div>';
 
   html+='<div class="tip-box" style="border-color:'+riskColor+';color:'+riskColor+';background:'+riskColor+'1a;">';
-  html+='<strong>综合建议：</strong>当前息肉综合恶性风险为'+overallRisk+'。'+(overallRisk==='高'?'建议术前EUS评估浸润深度，考虑ESD或外科手术':'建议内镜下完整切除，标本送病理评估切缘和浸润深度')+'。';
+  html+='<strong>综合建议：</strong>当前息肉综合恶性风险为'+overallRisk+'（仅为内镜光学印象，非病理确诊）。'+(overallRisk==='高'?'建议术前EUS评估浸润深度，考虑ESD或外科手术':'建议内镜下完整切除，标本送病理评估切缘和浸润深度')+'。最终以病理诊断为准，需消化内镜/病理复核。';
   html+='</div>';
+
+  html+='<div class="ref-card"><h4>判读口径说明</h4><ul><li>Paris 分型描述形态，Kudo 与 NICE 分型描述表面/血管结构，均为内镜光学印象。</li><li>NICE 3 / Kudo V 提示深层黏膜下浸润可能，但不能替代病理诊断；是否外科手术需结合 EUS/病理与多学科评估。</li><li>息肉大小以病理测量或内镜测量为准，本页按输入直径分层。</li></ul></div>';
 
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
 }

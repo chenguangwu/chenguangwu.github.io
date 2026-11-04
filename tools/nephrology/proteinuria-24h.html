@@ -115,7 +115,7 @@ s.parentNode.insertBefore(el, s);
 <div class="formula-box">
   
   
-<div class="formula-eq">24 小时尿蛋白分级：小于0.15g 正常、0.15–0.5 轻度、0.5–3.5 中度、不低于3.5g 为肾病综合征范围蛋白尿。</div></div>
+<div class="formula-eq">24 小时尿蛋白分级：&lt;0.15 g 正常、0.15–0.5 g/d 轻度、0.5–3.5 g/d 中度、≥3.5 g/d 为肾病范围蛋白尿。切点参照 KDIGO 2012 CKD 评估与管理指南的白蛋白尿分级口径。<strong>≥3.5 g/d 只提示肾病范围蛋白尿，不能单独诊断肾病综合征</strong>（后者还需血清白蛋白 &lt;30 g/L 与水肿），需临床复核。</div></div>
 
     <div class="input-row">
       <div>
@@ -145,7 +145,7 @@ s.parentNode.insertBefore(el, s);
         <tr><td>正常</td><td>&lt;0.15</td><td>生理性蛋白尿</td></tr>
         <tr><td>轻度蛋白尿</td><td>0.15-0.5</td><td>早期或轻度肾损伤</td></tr>
         <tr><td>中度蛋白尿</td><td>0.5-3.5</td><td>显著肾小球损伤</td></tr>
-        <tr><td>重度蛋白尿（肾病级）</td><td>≥3.5</td><td>肾病综合征范围</td></tr>
+        <tr><td>重度蛋白尿（肾病级）</td><td>≥3.5</td><td>肾病范围（需结合白蛋白/水肿，本页不确诊）</td></tr>
       </tbody>
     </table>
 
@@ -192,7 +192,7 @@ s.parentNode.insertBefore(el, s);
 <li>肾病范围判定</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">1.5g / 1500mL</div><div class="dd-ex-body">24h 蛋白 1.5g、尿量 1500mL→浓度约 1.0g/L，未达肾病范围(&lt;3.5g)。</div></div>
-<div class="dd-example"><div class="dd-ex-title">肾病范围</div><div class="dd-ex-body">≥3.5g/24h 伴低白蛋白→肾病综合征标准，需病理评估。</div></div>
+<div class="dd-example"><div class="dd-ex-title">肾病范围</div><div class="dd-ex-body">≥3.5g/24h 属肾病范围；是否诊断肾病综合征还需低白蛋白(&lt;30g/L)与水肿，并由肾内科评估是否需病理检查。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>留尿不全？</dt><dd>留尿天数不足会低估，建议完整 24h 并记录总量。</dd>
@@ -240,11 +240,13 @@ s.parentNode.insertBefore(el, s);
 
 <script>
 function calc(){
-  var prot=parseFloat(document.getElementById('protein24h').value)||0;
+  var protRaw=String(document.getElementById('protein24h').value||'').trim();
+  var prot=parseFloat(protRaw);
   var uVol=parseFloat(document.getElementById('uVol').value)||0;
 
-  if(prot<0){
-    document.getElementById('result').innerHTML='<p style="color:var(--text-muted);">请输入有效的尿蛋白数值</p>';
+  // 空值不得按 0 处理：留空会被判为「正常」，属缺项当正常
+  if(protRaw===''||!isFinite(prot)||prot<0||prot>50){
+    document.getElementById('result').innerHTML='<p style="color:var(--text-muted);">请输入有效的 24h 尿蛋白定量（0–50 g/d）；留空不判读，也不按 0 计为正常。</p>';
     return;
   }
 
@@ -259,9 +261,9 @@ function calc(){
     grade='中度蛋白尿';color='#F59E0B';
     desc='提示显著肾小球损伤。常见于各类肾小球肾炎。建议肾内科进一步评估，包括尿沉渣、肾功能、免疫学检查，必要时肾活检。';
   }else{
-    grade='重度蛋白尿（肾病综合征范围）';color='#EF4444';
+    grade='重度蛋白尿（肾病范围，需结合白蛋白/水肿）';color='#EF4444';
     nephrotic=true;
-    desc='达到肾病综合征级蛋白尿。需评估血清白蛋白、血脂、肾功能，排查继发因素（糖尿病、系统性红斑狼疮、肿瘤等），强烈建议肾活检明确病理类型。';
+    desc='24h 尿蛋白 ≥3.5 g，属肾病综合征范围蛋白尿；但肾病综合征的诊断还需血清白蛋白 &lt;30 g/L 与水肿，本页不能据此单独确诊。需评估血清白蛋白、血脂、肾功能，排查继发因素（糖尿病、系统性红斑狼疮、肿瘤等），建议肾内科评估是否肾活检。';
   }
 
   var html='<div class="data-grid">';
@@ -278,14 +280,14 @@ function calc(){
   html+='</div>';
 
   if(nephrotic){
-    html+='<div class="ref-card" style="margin-top:12px;"><h4>肾病综合征评估清单</h4><ul>';
-    html+='<li>✓ 大量蛋白尿：'+prot.toFixed(2)+' g/d ≥ 3.5 g/d</li>';
-    html+='<li>□ 查血清白蛋白是否 &lt;30 g/L</li>';
+    html+='<div class="ref-card" style="margin-top:12px;"><h4>肾病综合征评估清单（本页不诊断，仅提示需核查）</h4><ul>';
+    html+='<li>✓ 大量蛋白尿：'+prot.toFixed(2)+' g/d ≥ 3.5 g/d（本页已测）</li>';
+    html+='<li>□ 查血清白蛋白是否 &lt;30 g/L（肾病综合征必需条件之一）</li>';
     html+='<li>□ 评估有无水肿</li>';
     html+='<li>□ 查血脂（总胆固醇、LDL、甘油三酯）</li>';
     html+='<li>□ 排查继发因素：血糖、ANA、补体、肿瘤标志物等</li>';
     html+='<li>□ 评估血栓风险（D-二聚体、纤维蛋白原）</li>';
-    html+='<li>□ 强烈建议肾穿刺活检明确病理类型</li>';
+    html+='<li>□ 肾内科评估是否需肾穿刺活检（是否活检由专科决定，本页不建议「强烈」活检）</li>';
     html+='</ul></div>';
   }
 

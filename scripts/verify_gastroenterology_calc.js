@@ -242,6 +242,25 @@ const CASES = [
   },
   "expect": [ "75 FIT" ],
   "ref": "auto-restore"
+},
+{
+  "slug": "gastroenterology/colonoscopy-polyp",
+  "inputs": { "size": "" },
+  "expect": ["留空不判读"],
+  "ref": "息肉直径空值不得按 0 判为「微小息肉/低风险」：默认 8mm，注入空串后应显示「留空不判读」；回退默认 8 即不再命中。"
+},
+{
+  "slug": "gastroenterology/hp-resistance",
+  "inputs": {
+    "clarithro": "unknown",
+    "metronidazole": "unknown",
+    "levo": "unknown"
+  },
+  "expect": [
+    "未检测药物：克拉霉素、甲硝唑、左氧氟沙星",
+    "中（存在未检测药物）"
+  ],
+  "ref": "三药全部未检测（默认 clar 敏感 / metro 耐药 / levo 未检测）：页面不再写「未检测按可能敏感」，改为列出未检测药物并降级方案可信度为「中」。回退默认（仅 levo 未检测）后两条锚均不成立。"
 }
 ];
 async function main() {
