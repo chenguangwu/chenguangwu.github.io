@@ -49,13 +49,26 @@ const CASES = [
   "ref": "旋转角度累加取模：state.rotations[0]=90，rotateOne(0,180) ⇒ (90+180)%360=270，setAngle(0) 写入 #angle-0 徽标。默认态未上传 PDF 不生成缩略图 ⇒ 页面无任何 angle 徽标，「270°」只可能来自该次运算；renderThumbCanvas 无真实 pdfjsDoc，在自身 try 内失败，不影响徽标断言。"
 }
 ];
+// 单例超时：office 两个 PDF 页的「注入失败态」会等待 pdfjsReady 轮询，该 Promise 在
+// harness 内永不 settle，Node 事件循环一空就静默 exit 0（判别器报「无统计行」）。
+// 用 Promise.race 强制每个用例在有限时间内落地：超时计入 FAIL（不放宽判定），
+// 并让底层计时器在用例结束后被清理，避免正常路径被拖慢。
+const CASE_TIMEOUT = Number(process.env.TB_OFFICE_CASE_TIMEOUT || 5000);
+function runCaseWithTimeout(c) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error("CASE_TIMEOUT " + CASE_TIMEOUT + "ms")), CASE_TIMEOUT);
+  });
+  return Promise.race([runCase(c), timeout]).finally(() => clearTimeout(timer));
+}
+
 async function main() {
   const only = process.argv.slice(2);
   const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
   let pass = 0; const fails = [];
   for (const c of cases) {
     try {
-      const r = await runCase(c);
+      const r = await runCaseWithTimeout(c);
       if (r.ok) { pass++; }
       else {
         fails.push(c.slug);

@@ -420,13 +420,40 @@ def extract_problems(output: str) -> str:
     return "\n".join(uniq)
 
 
+def prune_build_gate(gates: list[tuple[str, tuple[str, ...]]]) -> list[tuple[str, tuple[str, ...]]]:
+    """摘除 build 门禁（--skip-build 用），并断言摘除范围精确。
+
+    识别口径是**命令首项**（`python3 _build.py`）而不是名字：名字可被改名/翻译，
+    改名后按名字过滤会静默失效——build 仍会执行，本地复检意外重建产物。
+    """
+    kept = [g for g in gates if tuple(g[1][:2]) != ("python3", "_build.py")]
+    removed = [g for g in gates if tuple(g[1][:2]) == ("python3", "_build.py")]
+    problems: list[str] = []
+    if len(removed) != 1:
+        problems.append(f"按命令首项识别到 {len(removed)} 个 build 门禁（期望恰 1 个）")
+    if removed and removed[0][0] != "build":
+        problems.append(f"被摘除的门禁名为 {removed[0][0]!r}（期望 'build'）")
+    if len(kept) != len(gates) - 1:
+        problems.append(f"摘除后剩 {len(kept)} 项，期望 {len(gates) - 1} 项")
+    if not kept:
+        problems.append("摘除后没有任何门禁（GATES 结构异常）")
+    elif kept[0][0] != "expect anti-pattern":
+        problems.append(f"摘除后首项为 {kept[0][0]!r}（期望 'expect anti-pattern'，说明摘错了项）")
+    if problems:
+        raise SystemExit(
+            "ERROR: --skip-build 摘除断言失败：\n  - " + "\n  - ".join(problems)
+        )
+    return kept
+
+
 def main() -> int:
     args = parse_args()
     gates = list(GATES)
     if args.skip_build:
-        # 按名字摘除 build 门禁：GATES[0] 并不是 build（早前 gates[1:] 会误删首项、
-        # 反而仍执行 _build.py），此处改为显式过滤，避免本地复检意外重建产物。
-        gates = [g for g in gates if g[0] != "build"]
+        # 按命令首项（python3 _build.py）摘除，而不是按名字：名字改名后按名字过滤会
+        # 静默失效、build 仍执行。摘除范围由 prune_build_gate 内部断言（恰 1 项、
+        # 名称为 build、剩余首项仍为 expect anti-pattern）。
+        gates = prune_build_gate(gates)
         print("WARNING: build gate skipped; use this mode for local re-checks only.")
 
     failures: list[tuple[str, int, str]] = []

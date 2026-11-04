@@ -20,7 +20,8 @@
  *   - 父进程注册 exit 钩子：只要没打印统计行就强制 exit 1（绝不静默退出）；
  *   - 统计行缺失、`已检 = 0`、`已检 < TB_DISCRIM_MIN`（默认 8000）一律 FAIL；
  *   - 子进程无统计行的文件单独列为「隔离跑」，可显式报告，不吞掉；
- *     设 `TB_DISCRIM_STRICT_CHILD=1` 可把「有隔离文件」也判 FAIL。
+ *     「有隔离文件」默认判 FAIL（子进程无统计行 = 该文件用例从未被判别）；本地排障可
+ *     设 `TB_DISCRIM_STRICT_CHILD=0` 临时放宽。
  *
  * 用法：
  *   node scripts/discriminate_check.js                        # 全站（逐文件隔离子进程）
@@ -56,8 +57,15 @@ const FILES_ONLY = ARGV.filter((a) => !a.startsWith("--"));
 const SELFTEST = ARGV.includes("--selftest");
 const MIN_CHECKED = Number(process.env.TB_DISCRIM_MIN || 8000);
 const CHILD_TIMEOUT = Number(process.env.TB_DISCRIM_CHILD_TIMEOUT || 120000);
+// 单条用例超时：harness 兜底阶段会无参调用页面全部顶层函数，若某函数返回一个「永不
+// settle 的 Promise」（如 office/pdf-split 的 pdfjsReady() 轮询在桩定时器预算耗尽后
+// 再也不会 resolve/reject），await 就永远挂住 —— 子进程静默退出、整个文件被判隔离，
+// 其用例从未真正判别。用 Promise.race 给每条用例兜底：超时按 FAIL 计（注入失败时该
+// 用例没有 PASS，属负向证据成立），并单独打印 ⏱ 行便于追溯，不放宽任何判定。
+const CASE_TIMEOUT = Number(process.env.TB_DISCRIM_CASE_TIMEOUT || 15000);
 const REPORT = process.env.TB_DISCRIM_REPORT === "1";
-const STRICT_CHILD = process.env.TB_DISCRIM_STRICT_CHILD === "1";
+// 默认严格：任何「无统计行的隔离文件」都必须判 FAIL（其用例全部逃过判别）。
+const STRICT_CHILD = process.env.TB_DISCRIM_STRICT_CHILD !== "0";
 
 // ---------------------------------------------------------------- 产出完整性断言
 // 关键：任何「没跑到终点就退出」都必须变成 exit 1。Node 在事件循环为空时会静默
@@ -130,6 +138,16 @@ function reportRec(obj) {
   if (REPORT) REAL_PROCESS.stdout.write("REPORT " + JSON.stringify(obj) + "\n");
 }
 
+/** 单条用例带超时执行：返回值与 runCase 相同；超时抛 message=CASE_TIMEOUT 的错误 */
+async function runCaseGuarded(c) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error("CASE_TIMEOUT")), CASE_TIMEOUT);
+  });
+  try { return await Promise.race([runCase(c), timeout]); }
+  finally { clearTimeout(timer); }
+}
+
 /** 单文件用例扫描（子进程与单进程严格模式共用）；返回统计与逃生清单 */
 async function sweepFile(f) {
   const stats = { total: 0, fail: 0, stillPass: 0, skipped: 0 };
@@ -166,8 +184,13 @@ async function sweepFile(f) {
       // 清空复选框/单选注入 → 页面回到「全未勾选」态，expect 必须失配，否则即逃生项。
       stats.total++;
       let r0;
-      try { r0 = await runCase(Object.assign({}, c, clearInject)); }
-      catch (e) { stats.fail++; continue; }
+      try { r0 = await runCaseGuarded(Object.assign({}, c, clearInject)); }
+      catch (e) {
+        if (e && e.message === "CASE_TIMEOUT") {
+          REAL_LOG(`⏱ ${c.slug} 用例超时 ${CASE_TIMEOUT}ms（无参兜底函数返回永不 settle 的 Promise），按注入失败态计 FAIL`);
+        }
+        stats.fail++; continue;
+      }
       if (r0.ok) {
         stats.stillPass++;
         bad.push(`${c.slug} (via=${r0.via})`);
@@ -213,8 +236,13 @@ async function sweepFile(f) {
     }
     stats.total++;
     let r;
-    try { r = await runCase(Object.assign({}, c, { inputs: injected }, clearInject)); }
-    catch (e) { stats.fail++; continue; }
+    try { r = await runCaseGuarded(Object.assign({}, c, { inputs: injected }, clearInject)); }
+    catch (e) {
+      if (e && e.message === "CASE_TIMEOUT") {
+        REAL_LOG(`⏱ ${c.slug} 用例超时 ${CASE_TIMEOUT}ms（无参兜底函数返回永不 settle 的 Promise），按注入失败态计 FAIL`);
+      }
+      stats.fail++; continue;
+    }
     if (r.ok) {
       stats.stillPass++;
       bad.push(`${c.slug} (via=${r.via})`);
@@ -269,8 +297,15 @@ function selftest() {
     "];",
     "",
   ].join("\n"));
-  const truncated = runIsolated(fakePath);
-  say(!truncated.ok, `假 harness（用例内 process.exit(0)）→ ${truncated.ok ? "被当成通过" : "识别为无统计行：" + truncated.why}`);
+  const truncated = (() => {
+    // 子进程静默退出是「无统计行」的唯一可靠模拟：页面作用域里 process 不可达
+    // （clicks 里的 process.exit(0) 会被 sandbox 拦成普通异常），故用测试专用环境变量
+    // 让子进程在扫描前直接退出（见文件末尾 TB_DISCRIM_SELFTEST_SILENT 分支）。
+    REAL_PROCESS.env.TB_DISCRIM_SELFTEST_SILENT = "1";
+    try { return runIsolated(fakePath); }
+    finally { delete REAL_PROCESS.env.TB_DISCRIM_SELFTEST_SILENT; }
+  })();
+  say(!truncated.ok, `子进程静默退出（无统计行）→ ${truncated.ok ? "被当成通过" : "识别为隔离：" + truncated.why}`);
 
   // ③ 统计行存在但已检过低 → 下限守卫必须变红
   const problems = integrityProblems({ total: 3, fail: 3, stillPass: 0, skipped: 0 }, { enforceMin: true });
@@ -280,13 +315,23 @@ function selftest() {
   const okProblems = integrityProblems({ total: 9000, fail: 8998, stillPass: 2, skipped: 54 }, { enforceMin: true });
   say(okProblems.length === 0, `已检=9000 → ${okProblems.length ? "误判 FAIL：" + okProblems[0] : "正常放行"}`);
 
+  // ⑤ 隔离文件（子进程无统计行）：默认严格必须判 FAIL（只有 TB_DISCRIM_STRICT_CHILD=0 才放宽）
+  const isoProblems = integrityProblems(
+    { total: 9000, fail: 8990, stillPass: 0, skipped: 55 },
+    { enforceMin: true, isolatedCount: 1 }
+  );
+  say(
+    isoProblems.some((x) => x.includes("无统计行")),
+    `默认严格：1 个隔离文件 → ${isoProblems.length ? "判 FAIL：" + isoProblems[0] : "被放过"}`,
+  );
+
   REAL_LOG(failed ? `\n❌ 自检失败 ${failed} 项` : "\n✅ 自检通过：静默退出/截断跑/低总量均会变红");
   statsPrinted = true;   // 自检本身已完整输出，勿触发「产出不完整」钩子
   REAL_PROCESS.exitCode = failed ? 1 : 0;
 }
 
 // 模拟「跑到一半就 return」：不打印任何统计行直接退出（供 --selftest 的第 ① 项）
-if (process.env.TB_DISCRIM_SELFTEST_SILENT === "1" && FILES_ONLY.length === 0) {
+if (process.env.TB_DISCRIM_SELFTEST_SILENT === "1") {
   REAL_PROCESS.exitCode = 0;
   return;
 }
@@ -369,7 +414,24 @@ if (process.env.TB_DISCRIM_SELFTEST_SILENT === "1" && FILES_ONLY.length === 0) {
       REAL_PROCESS.exitCode = 1;   // 强制棘轮：下降时必须更新基线，防止悄悄回涨
       return;
     }
-    REAL_LOG(`\n✅ 逃生项 ${agg.stillPass} = 基线 ${basey.escape}，无新增（存量见基线注释）`);
+    // 跳过数棘轮：跳过 = 无任何可模拟注入的用例，其 expect 从未被判别。新增跳过必须
+    // 显式改基线（逼提交者看一眼「这条用例为什么判别不了」），下降同样要求同步。
+    if (typeof basey.skipped !== "number") {
+      REAL_LOG(`\n❌ 基线缺少 skipped 字段（当前跳过 ${agg.skipped}）：请在 discriminate_baseline.json 显式登记。`);
+      REAL_PROCESS.exitCode = 1;
+      return;
+    }
+    if (agg.skipped > basey.skipped) {
+      REAL_LOG(`\n❌ 跳过 ${agg.skipped} > 基线 ${basey.skipped}（新增 ${agg.skipped - basey.skipped} 条未参与判别，需补可解析默认值或显式改基线）`);
+      REAL_PROCESS.exitCode = 1;
+      return;
+    }
+    if (agg.skipped < basey.skipped) {
+      REAL_LOG(`\n⚠️ 跳过已下降（${basey.skipped} → ${agg.skipped}），请将基线同步下调后提交。`);
+      REAL_PROCESS.exitCode = 1;
+      return;
+    }
+    REAL_LOG(`\n✅ 逃生项 ${agg.stillPass} = 基线 ${basey.escape}，跳过 ${agg.skipped} = 基线 ${basey.skipped}（无新增）`);
     REAL_PROCESS.exitCode = 0;
     return;
   }
