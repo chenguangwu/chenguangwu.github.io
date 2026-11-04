@@ -464,31 +464,51 @@ function toggleLoan(){
   calc();
 }
 
+function rawNum(id){
+  var el = document.getElementById(id);
+  if(!el) return NaN;
+  var raw = String(el.value == null ? '' : el.value).trim();
+  return raw === '' ? NaN : parseFloat(raw);
+}
+
 function calc(){
-  var price = (parseFloat(document.getElementById('price').value) || 0) * 10000;
-  var area = parseFloat(document.getElementById('area').value) || 0;
+  var grid = document.getElementById('resultGrid');
+  function fail(msg){
+    grid.innerHTML = '<div class="result-item"><div class="label">无法计算</div><div class="value" style="font-size:15px;color:var(--danger);">' + msg + '</div></div>';
+    document.getElementById('costList').innerHTML = '';
+  }
+  var priceRaw = rawNum('price');
+  if(!isFinite(priceRaw) || priceRaw <= 0){ fail('请输入大于 0 的房屋总价（万元）。'); return; }
+  var price = priceRaw * 10000;
+  var area = rawNum('area');
+  if(!isFinite(area)) area = 0;
   var rentMode = document.getElementById('rentMode').value;
-  var rent = parseFloat(document.getElementById('rent').value) || 0;
+  var rent = rawNum('rent');
+  if(!isFinite(rent) || rent < 0){ fail('请输入 ≥0 的租金。'); return; }
 
   const __g0=rentMode === 'month' ? '月租金 (元)' : '年租金 (元)';document.getElementById('rentLabel').textContent=(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—'));
 
   var monthlyRent = rentMode === 'month' ? rent : rent / 12;
   var yearlyRent = monthlyRent * 12;
 
-  var monthlyFee = parseFloat(document.getElementById('fee').value) || 0;
-  var heat = parseFloat(document.getElementById('heat').value) || 0;
-  var decor = parseFloat(document.getElementById('decor').value) || 0;
-  var repair = parseFloat(document.getElementById('repair').value) || 0;
-  var agency = parseFloat(document.getElementById('agency').value) || 0;
-  var tax = parseFloat(document.getElementById('tax').value) || 0;
+  var feeInputs = ['fee','heat','decor','repair','agency','tax'];
+  var feeNames = ['物业费','取暖费','装修折旧','维修基金','中介费','税费及其他'];
+  var feeValues = [];
+  for(var fi = 0; fi < feeInputs.length; fi++){
+    var fv = rawNum(feeInputs[fi]);
+    if(!isFinite(fv)) fv = 0;
+    if(fv < 0){ fail(feeNames[fi] + '需为 ≥0 的数字。'); return; }
+    feeValues.push(fv);
+  }
+  var monthlyFee = feeValues[0], heat = feeValues[1], decor = feeValues[2], repair = feeValues[3], agency = feeValues[4], tax = feeValues[5];
 
   var yearlyExpense = monthlyFee * 12 + heat + decor + repair + agency + tax;
   var monthlyExpense = yearlyExpense / 12;
   var netYearlyIncome = yearlyRent - yearlyExpense;
   var netMonthlyIncome = monthlyRent - monthlyExpense;
 
-  var grossYield = price ? (yearlyRent / price * 100) : 0;
-  var netYield = price ? (netYearlyIncome / price * 100) : 0;
+  var grossYield = yearlyRent / price * 100;
+  var netYield = netYearlyIncome / price * 100;
   var paybackYears = netYield > 0 ? (price / netYearlyIncome) : Infinity;
 
   var monthlyPayment = 0;
@@ -497,16 +517,29 @@ function calc(){
   var cashFlow = netMonthlyIncome;
 
   if(loanEnabled){
-    var loanRatio = parseFloat(document.getElementById('loanRatio').value) || 0;
-    var loanRate = (parseFloat(document.getElementById('loanRate').value) || 0) / 100;
-    var loanYears = parseInt(document.getElementById('loanYears').value) || 30;
+    var loanRatio = rawNum('loanRatio');
+    if(!isFinite(loanRatio)) loanRatio = 0;
+    if(loanRatio < 0 || loanRatio > 100){ fail('贷款比例应在 0–100% 之间。'); return; }
+    var loanRatePct = rawNum('loanRate');
+    if(!isFinite(loanRatePct)) loanRatePct = 0;
+    if(loanRatePct < 0){ fail('贷款年利率不能为负数。'); return; }
+    var loanYears = rawNum('loanYears');
+    if(!isFinite(loanYears) || loanYears <= 0){ fail('贷款年限必须大于 0。'); return; }
     var loanType = document.getElementById('loanType').value;
+    var loanRate = loanRatePct / 100;
 
     loanAmount = price * loanRatio / 100;
     var monthlyRate = loanRate / 12;
-    var months = loanYears * 12;
+    var months = Math.round(loanYears * 12);
 
-    if(loanType === 'equal'){
+    if(loanAmount <= 0){
+      monthlyPayment = 0;
+      totalInterest = 0;
+    } else if(monthlyRate === 0){
+      // 0% 利率：等额本息与等额本金月供相同，均为本金均摊、无利息
+      monthlyPayment = loanAmount / months;
+      totalInterest = 0;
+    } else if(loanType === 'equal'){
       monthlyPayment = loanAmount * monthlyRate * Math.pow(1 + monthlyRate, months) / (Math.pow(1 + monthlyRate, months) - 1);
       totalInterest = monthlyPayment * months - loanAmount;
     } else {

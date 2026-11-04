@@ -2228,6 +2228,43 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"salary\":\"42\",\"bonus\":\"42\",\"pension\":\"42\",\"medical\":\"42\",\"unemployment\":\"42\",\"housing\":\"42\",\"base\":\"42\",\"children\":\"42\",\"continuing\":\"42\",\"housingLoan\":\"42\",\"rent\":\"42\",\"elderly\":\"42\",\"baby\":\"42\",\"medicalBig\":\"42\",\"threshold\":\"42\",\"city\":\"beijing\"}，输出区含「计个税 第1月 ¥42.00 ¥9.45 ¥0.00 ¥32.55 ¥0.00 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    "slug": "finance/payroll-calculator",
+    "inputs": { "salary": "15000", "pension": "-8" },
+    "expect": ["养老保险比例不能为负数"],
+    "ref": "负社保比例原实现照算，五险一金为负 ⇒ 税后到手反而超过税前；现拦截提示。默认 8% 不出现该提示。"
+  },
+  {
+    "slug": "finance/payroll-calculator",
+    "inputs": { "salary": "" },
+    "expect": ["请输入大于 0 的税前工资"],
+    "ref": "空工资原实现 +el.value||0 ⇒ 全 0 结果；现显式提示。默认 15000 不出现该提示。"
+  },
+  {
+    "slug": "finance/payroll-calculator",
+    "inputs": { "salary": "15000", "base": "0" },
+    "expect": ["8,280.00", "171,720.00"],
+    "ref": "社保基数显式填 0（原实现 `base || salary` 无法表达「不缴」）：五险一金 0；月应纳税所得 15000−0−5000−1000=9000；全年 108000 ⇒ 个税 = 108000×10%−2520 = 8280；年税后 = 180000−8280 = 171720。默认基数 15000 的个税为 4230、年税后 175770，两锚均不命中。"
+  },
+  {
+    "slug": "finance/rental-yield-calculator",
+    "inputs": { "price": "300", "area": "0", "rentMode": "month", "rent": "5000", "fee": "0", "heat": "0", "decor": "0", "repair": "0", "agency": "0", "tax": "0", "loanRatio": "70", "loanRate": "0", "loanYears": "30", "loanType": "equal" },
+    "clicks": ["toggleLoan();"],
+    "expect": ["5,833"],
+    "ref": "0% 利率分支：贷款 300×70% = 210 万、360 期 ⇒ 月供 = 2100000/360 = 5833（等额本息公式分母 0 会得 NaN，旧实现输出 —）。默认关闭贷款，结果卡不含「月供 5,833」。"
+  },
+  {
+    "slug": "finance/rental-yield-calculator",
+    "inputs": { "price": "", "rent": "5000" },
+    "expect": ["请输入大于 0 的房屋总价（万元）"],
+    "ref": "空房价原实现 `||0` ⇒ 总价 0、回报率恒 0%；现拦截提示。默认 300 万不出现该提示。"
+  },
+  {
+    "slug": "finance/cagr",
+    "inputs": { "start": "100", "end": "-50", "years": "2" },
+    "expect": ["终值必须大于 0"],
+    "ref": "负终值时 Math.pow(负值, 1/2) = NaN，原实现静默显示「—」；现拦截并说明 CAGR 无定义。默认 100→180 不出现该提示。"
+  },
+  {
     "slug": "finance/retirement-calculator",
     "inputs": {
       "age": "42",

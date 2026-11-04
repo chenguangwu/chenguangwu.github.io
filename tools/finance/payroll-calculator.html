@@ -481,14 +481,46 @@ function getVal(id){
   return el ? (+el.value || 0) : 0;
 }
 
+function rawNum(id){
+  var el = document.getElementById(id);
+  if (!el) return NaN;
+  var raw = String(el.value == null ? '' : el.value).trim();
+  return raw === '' ? NaN : parseFloat(raw);
+}
+
 function calc(){
-  var salary = getVal('salary');
-  var bonus = getVal('bonus');
-  var pension = getVal('pension') / 100;
-  var medical = getVal('medical') / 100;
-  var unemployment = getVal('unemployment') / 100;
-  var housing = getVal('housing') / 100;
-  var base = getVal('base') || salary;
+  var res = document.getElementById('res');
+  function fail(msg){ res.innerHTML = '<p class="tip-error">' + msg + '</p>'; }
+  var salaryRaw = rawNum('salary');
+  if (!isFinite(salaryRaw) || salaryRaw <= 0) { fail('请输入大于 0 的税前工资。'); return; }
+  var limits = [['pension','养老保险比例'],['medical','医疗保险比例'],['unemployment','失业保险比例'],['housing','住房公积金比例']];
+  var rates = {};
+  for (var li = 0; li < limits.length; li++) {
+    var key = limits[li][0], label = limits[li][1];
+    var raw = rawNum(key);
+    var val = raw === raw && isFinite(raw) ? raw : 0;
+    if (val < 0) { fail(label + '不能为负数。'); return; }
+    rates[key] = val / 100;
+  }
+  var bonusRaw = rawNum('bonus');
+  if (isFinite(bonusRaw) && bonusRaw < 0) { fail('年终奖需为 ≥0 的数字。'); return; }
+  var baseRaw = rawNum('base');
+  if (isFinite(baseRaw) && baseRaw < 0) { fail('社保缴费基数需为 ≥0 的数字。'); return; }
+  var thresholdRaw = rawNum('threshold');
+  if (!isFinite(thresholdRaw) || thresholdRaw < 0) { fail('起征点需为 ≥0 的数字。'); return; }
+  var deductIds = ['children','continuing','housingLoan','rent','elderly','baby','medicalBig'];
+  for (var di = 0; di < deductIds.length; di++) {
+    var dv = rawNum(deductIds[di]);
+    if (isFinite(dv) && dv < 0) { fail('专项附加扣除需为 ≥0 的数字。'); return; }
+  }
+
+  var salary = salaryRaw;
+  var bonus = isFinite(bonusRaw) ? bonusRaw : 0;
+  var pension = rates.pension;
+  var medical = rates.medical;
+  var unemployment = rates.unemployment;
+  var housing = rates.housing;
+  var base = isFinite(baseRaw) ? baseRaw : salary;
   var children = getVal('children');
   var continuing = getVal('continuing');
   var housingLoan = getVal('housingLoan');
@@ -496,7 +528,7 @@ function calc(){
   var elderly = getVal('elderly');
   var baby = getVal('baby');
   var medicalBig = getVal('medicalBig');
-  var threshold = getVal('threshold');
+  var threshold = thresholdRaw;
 
   var insuranceRate = pension + medical + unemployment + housing;
   var insuranceMonthly = base * insuranceRate;
