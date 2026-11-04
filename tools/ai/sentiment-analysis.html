@@ -346,7 +346,8 @@ function __sxPresets(){
 }
 
 
-function __sxExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#sxTable','sentiment-analysis.csv');}catch(e){} }
+// module 作用域的声明不是全局，onclick 只能看到 window 属性
+window.__sxExport=function(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#sxTable','sentiment-analysis.csv');}catch(e){} };
 function __sxExtras(){
     if(typeof TBKit==='undefined')return;
     try{
@@ -359,7 +360,9 @@ function __sxExtras(){
             [['sentiment',label],['confidence',conf!=null?conf.toFixed(1)+'%':'—'],['positive words hit',d?d.posHit.length:'—'],['negative words hit',d?d.negHit.length:'—'],['word density',d?d.density.toFixed(2)+'%':'—'],['text length',text.length],['sentences',__sxSent(text)]],
             [['情感倾向',label],['置信度',conf!=null?conf.toFixed(1)+'%':'—'],['正面命中词',d?d.posHit.length:'—'],['负面命中词',d?d.negHit.length:'—'],['情感词密度',d?d.density.toFixed(2)+'%':'—'],['文本长度',text.length],['句子数',__sxSent(text)]]);
         TBKit.matrix.table('#sxTable',{head:__sxL(['Metric','Value'],['指标','数值']),rows:rows});
-        TBKit.history.record({text:text.slice(0,300),label:label,conf:conf});
+        var rec={text:text.slice(0,300),label:label};
+        if(conf!=null) rec.conf=conf; // 无置信度时省略该键，避免历史条目渲染出 "conf null"
+        TBKit.history.record(rec);
         TBKit.util.diffBox('#sxDiff',['conf']);
         TBKit.history.mount('#sxHist',function(v){ if(v.label!=null){document.getElementById('text').value=v.text||''; runAI(); } });
     }catch(e){}

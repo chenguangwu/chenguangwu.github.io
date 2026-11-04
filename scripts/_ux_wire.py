@@ -45,6 +45,9 @@ def last_js_script_close(s):
             continue
         if _is_nonjs_type(attrs):
             continue
+        # type="module" 的顶层声明不是全局，注入其中的函数无法被 onclick 访问
+        if re.search(r'\btype\s*=\s*["\']module["\']', attrs, re.I):
+            continue
         close = s.find('</script>', m.end())
         if close == -1:
             continue
@@ -564,10 +567,10 @@ def apply_page(page, dry=False):
     js.append("function __%sNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}" % p)
     js.extend(gen_classic_extras(p, inputs, compute, rows, primary, info.get("num_ids")))
     # export
-    js.append("function __%sExport(){" % p)
+    js.append("window.__%sExport = function(){" % p)
     js.append("    if (typeof TBKit === 'undefined') return;")
     js.append("    try { TBKit.util.exportTable('#%sTable','%s.csv'); } catch(e){}" % (p, name))
-    js.append("}")
+    js.append("};")
     # presets
     js.append("function __%sPresets(){" % p)
     js.append("    if (typeof TBKit === 'undefined') return;")
@@ -599,8 +602,13 @@ def apply_page(page, dry=False):
     #    必须跳过 application/ld+json 等非 JS 块（注进去浏览器不执行=死代码）
     pos = last_js_script_close(s)
     if pos == -1:
-        return "skip:no-js-script"
-    s = s[:pos] + "\n" + js_code + "\n" + s[pos:]
+        # 仅剩 module / JSON-LD 块时，新建经典脚本块，避免注入进非全局或非 JS 区域
+        body_end = s.rfind('</body>')
+        if body_end == -1:
+            return "skip:no-js-script"
+        s = s[:body_end] + '<script>\n' + js_code + '\n</script>\n' + s[body_end:]
+    else:
+        s = s[:pos] + "\n" + js_code + "\n" + s[pos:]
 
     if dry:
         return "DRY ok: inputs=%s primary=%s rows=%d" % (inputs, primary, len(rows))
@@ -745,11 +753,11 @@ def apply_custom(page, dry=False):
     js.append("    TBKit.history.record(rec);")
     js.append("    __%sRender(keys,rk,en);" % p)
     js.append("}")
-    # 导出
-    js.append("function __%sExport(){" % p)
+    # 导出（window 属性：即使注入到非全局作用域也可被 onclick 解析）
+    js.append("window.__%sExport = function(){" % p)
     js.append("    if (typeof TBKit === 'undefined') return;")
     js.append("    try { TBKit.util.exportTable('#%sTable','%s.csv'); } catch(e){}" % (p, name))
-    js.append("}")
+    js.append("};")
     # 预设（默认参数回填；键一律加引号——输入 id 可含连字符如 temp-slider，裸键会语法错）
     pv = ", ".join("'%s':'%s'" % (k, str(v).replace("'", "").replace("\\", "")[:40]) for k, v in defaults.items() if v != '')
     js.append("function __%sPresets(){" % p)
@@ -813,8 +821,13 @@ def apply_custom(page, dry=False):
     #    必须跳过 application/ld+json 等非 JS 块（注进去浏览器不执行=死代码）
     pos = last_js_script_close(s)
     if pos == -1:
-        return "skip:custom-no-js-script"
-    s = s[:pos] + "\n" + js_code + "\n" + s[pos:]
+        # 仅剩 module / JSON-LD 块时，新建经典脚本块，避免注入进非全局或非 JS 区域
+        body_end = s.rfind('</body>')
+        if body_end == -1:
+            return "skip:custom-no-js-script"
+        s = s[:body_end] + '<script>\n' + js_code + '\n</script>\n' + s[body_end:]
+    else:
+        s = s[:pos] + "\n" + js_code + "\n" + s[pos:]
 
     open(page, 'w', encoding='utf-8').write(s)
     # EN 字典补 导出明细 CSV

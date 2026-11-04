@@ -835,7 +835,7 @@ function drawChart(r){
       cashflows.push({year: t, amount: annualC});
       maxVal = Math.max(maxVal, annualC);
     }
-    cashflows[cashflows.length-1].amount += r.face;
+    if(cashflows.length) cashflows[cashflows.length-1].amount += r.face;
     maxVal = Math.max(maxVal, r.face + annualC);
   }
   else if(currentMethod === 'price'){
@@ -845,7 +845,7 @@ function drawChart(r){
       cashflows.push({year: t, amount: annualC});
       maxVal = Math.max(maxVal, annualC);
     }
-    cashflows[cashflows.length-1].amount += r.face;
+    if(cashflows.length) cashflows[cashflows.length-1].amount += r.face;
     maxVal = Math.max(maxVal, r.face + annualC);
   }
   else if(currentMethod === 'holding'){
@@ -855,7 +855,7 @@ function drawChart(r){
       maxVal = Math.max(maxVal, r.annualCoupon);
     }
     maxVal = Math.max(maxVal, r.sell + r.annualCoupon);
-    cashflows[cashflows.length-1].amount += r.sell;
+    if(cashflows.length) cashflows[cashflows.length-1].amount += r.sell;
   }
   else {
     for(var t = 1; t <= 5; t++){
@@ -868,6 +868,15 @@ function drawChart(r){
   }
   
   maxVal *= 1.2;
+
+  // 期限/金额无效时 cashflows 为空或 maxVal 非有限值，坐标会变成 NaN 传给 canvas
+  if(!cashflows.length || !isFinite(maxVal) || maxVal <= 0){
+    ctx.fillStyle = textColor;
+    ctx.font = '14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('请输入有效参数后查看现金流图', w / 2, h / 2);
+    return;
+  }
   
   ctx.strokeStyle = gridColor;
   ctx.lineWidth = 1;

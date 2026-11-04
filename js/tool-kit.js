@@ -1168,7 +1168,10 @@
       var parts = [];
       for (var k in it.d) {
         if (!Object.prototype.hasOwnProperty.call(it.d, k)) continue;
-        parts.push(k + ' ' + (typeof it.d[k] === 'number' ? fmt(it.d[k]) : it.d[k]));
+        var v = it.d[k];
+        // 历史记录字段可能缺失（null/undefined/NaN），直接拼接会渲染出 "conf null" 之类的脏文本
+        if (v == null || (typeof v === 'number' && !isFinite(v))) continue;
+        parts.push(k + ' ' + (typeof v === 'number' ? fmt(v) : v));
       }
       body.textContent = parts.join(' · ');
       btn.appendChild(when); btn.appendChild(body);

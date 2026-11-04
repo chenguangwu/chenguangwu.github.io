@@ -1,0 +1,182 @@
+# TBKit.history 字段守卫排查清单
+
+根因：`js/tool-kit.js` 的 `history.mount` 曾把 `it.d[k]` 原样拼进 `textContent`，`null/undefined/NaN` 会渲染成 `conf null` 之类脏文本。已在公共组件加入守卫（跳过 `val == null || Number.isNaN(val)`，并同时跳过 Infinity）。
+
+## 显式 null/undefined 的 record 字段
+
+- 全站扫描 `history.record(...)`：除 `tools/ai/sentiment-analysis.html` 外，未发现其他页面把显式 `null/undefined` 变量写入记录；该页已改为缺省时省略 `conf` 键。
+
+## 可能产生 NaN 的记录字段（170 页，仅清单、不在本轮逐页修改）
+
+判据：record 值使用 `parseFloat` / `Number(...)` 且未带 `||` 或 `isFinite` 兜底；空输入时可能为 NaN。公共守卫已统一兜住显示层。
+
+- `tools/aerospace/lift-to-drag-ratio.html` — result
+- `tools/aerospace/wing-loading.html` — result
+- `tools/ai/ai-10.html` — out
+- `tools/ai/ai-11.html` — lg
+- `tools/ai/ai-12.html` — eff
+- `tools/ai/ai-13.html` — maxEp
+- `tools/ai/ai-14.html` — cos
+- `tools/ai/ai-15.html` — ppv
+- `tools/ai/ai-16.html` — wavg
+- `tools/ai/ai-17.html` — pct
+- `tools/ai/ai-4.html` — cos
+- `tools/ai/ai-5.html` — total
+- `tools/ai/ai-6.html` — total
+- `tools/ai/ai-7.html` — mcc
+- `tools/ai/ai-8.html` — nw
+- `tools/ai/ai-9.html` — gain
+- `tools/ai/ai-text-summarizer.html` — ratio
+- `tools/ai/ai.html` — f1
+- `tools/ai/attention-flops.html` — gflops
+- `tools/ai/attention-head-dim.html` — total
+- `tools/ai/auc-rank.html` — auc
+- `tools/ai/augmentation-multiplier.html` — total
+- `tools/ai/best-epoch.html` — best
+- `tools/ai/cohens-kappa.html` — kappa
+- `tools/ai/context-window.html` — pct
+- `tools/ai/cross-entropy.html` — loss
+- `tools/ai/dropout.html` — keep
+- `tools/ai/elbow-wcss.html` — drop
+- `tools/ai/epoch-time.html` — hours
+- `tools/ai/flops.html` — total
+- `tools/ai/grad-accumulation.html` — accum
+- `tools/ai/image-classification.html` — top
+- `tools/ai/inference-throughput.html` — tp
+- `tools/ai/k-means.html` — inertia
+- `tools/ai/l1-l2-regularization.html` — l1, l2
+- `tools/ai/l1-l2.html` — total
+- `tools/ai/lr-decay.html` — lr
+- `tools/ai/min-max.html` — n01
+- `tools/ai/model-accuracy.html` — acc
+- `tools/ai/multi-agent-overhead.html` — msgs
+- `tools/ai/precision-recall.html` — f1
+- `tools/ai/quantization-ratio.html` — ratio
+- `tools/ai/rag.html` — f1
+- `tools/ai/relu-leakyrelu.html` — relu
+- `tools/ai/rmse.html` — rmse
+- `tools/ai/roc-auc.html` — auc
+- `tools/ai/sigmoid.html` — sig
+- `tools/ai/softmax-2.html` — ent
+- `tools/ai/softmax.html` — p1
+- `tools/ai/specificity.html` — spec
+- `tools/ai/steps-per-epoch.html` — perCard
+- `tools/ai/temperature-scaling.html` — scaled
+- `tools/ai/text-summarization.html` — ratio
+- `tools/ai/token-2.html` — total
+- `tools/ai/token-usage.html` — total
+- `tools/ai/token.html` — tokens
+- `tools/ai/training-flops.html` — months
+- `tools/ai/transformer-params.html` — total
+- `tools/ai/vram-estimate.html` — total
+- `tools/energy/daily-irradiation.html` — result
+- `tools/energy/energy-density.html` — result
+- `tools/energy/energy-payback.html` — result
+- `tools/engineering/section-inertia.html` — result
+- `tools/fluid/buoyancy-force.html` — result
+- `tools/fluid/hydrostatic-pressure.html` — result
+- `tools/investment/eps-calc.html` — result
+- `tools/investment/holding-period-return.html` — result
+- `tools/investment/sortino-ratio.html` — result
+- `tools/legal/child-support.html` — income, totalMonthly
+- `tools/legal/inheritance-share.html` — estate, perShare
+- `tools/legal/labor-compensation-n1.html` — total
+- `tools/legal/late-payment-interest.html` — principal, total
+- `tools/legal/overtime-pay.html` — total
+- `tools/legal/severance-pay.html` — total
+- `tools/math/modulo-calc.html` — result
+- `tools/meteorology/isa-temperature.html` — result
+- `tools/optical/critical-angle.html` — result
+- `tools/optics/refractive-index-speed.html` — result
+- `tools/securities/current-yield.html` — result
+- `tools/securities/market-risk-premium.html` — result
+- `tools/securities/option-breakeven-call.html` — result
+- `tools/statistics/binomial-cdf.html` — pct
+- `tools/statistics/chi-square-test.html` — chi
+- `tools/statistics/coefficient-of-variation.html` — cv
+- `tools/statistics/cohens-d.html` — d
+- `tools/statistics/confidence-proportion.html` — p
+- `tools/statistics/correlation-coefficient.html` — r
+- `tools/statistics/correlation-r-squared.html` — r2
+- `tools/statistics/cramers-v.html` — V, chi
+- `tools/statistics/f-test-variance.html` — f
+- `tools/statistics/geometric-mean.html` — g
+- `tools/statistics/harmonic-mean.html` — h
+- `tools/statistics/independent-t-test.html` — t
+- `tools/statistics/iqr.html` — iqr
+- `tools/statistics/linear-regression.html` — slope
+- `tools/statistics/mean-absolute-deviation.html` — mad
+- `tools/statistics/normal-cdf.html` — phi
+- `tools/statistics/odds-ratio.html` — or
+- `tools/statistics/one-sample-t-test.html` — t
+- `tools/statistics/one-sample-z-test.html` — z
+- `tools/statistics/p.html` — p
+- `tools/statistics/paired-t-test.html` — t
+- `tools/statistics/percentile-rank.html` — pr
+- `tools/statistics/poisson-pmf.html` — p
+- `tools/statistics/pooled-variance.html` — sp2
+- `tools/statistics/population-variance.html` — var
+- `tools/statistics/probability-complement.html` — pc
+- `tools/statistics/range-stat.html` — r
+- `tools/statistics/relative-risk.html` — rr
+- `tools/statistics/sample-variance.html` — mean, sd, var
+- `tools/statistics/skewness-sample.html` — g1, mean
+- `tools/statistics/standard-error-proportion.html` — se
+- `tools/statistics/standard-error.html` — se
+- `tools/statistics/statistics-10.html` — cv1, cv2
+- `tools/statistics/statistics-11.html` — wm, ws
+- `tools/statistics/statistics-12.html` — mean, median, range
+- `tools/statistics/statistics-13.html` — cv, sd, var
+- `tools/statistics/statistics-16.html` — a, b, r2
+- `tools/statistics/statistics-4.html` — me
+- `tools/statistics/statistics-7.html` — kurt, mean, sd, skew
+- `tools/statistics/statistics.html` — pr
+- `tools/statistics/stddev-list.html` — s
+- `tools/statistics/t-score.html` — t
+- `tools/statistics/t.html` — t
+- `tools/statistics/variance-list.html` — v
+- `tools/statistics/z-score-calc.html` — pr, z
+- `tools/statistics/z.html` — pr, z
+- `tools/surveying/analysis-17.html` — aLine
+- `tools/surveying/analysis-cycle.html` — total
+- `tools/surveying/area-24.html` — area
+- `tools/surveying/area-calc.html` — area, peri
+- `tools/surveying/area-coordinates.html` — area
+- `tools/surveying/assessor-16.html` — pErr
+- `tools/surveying/bearing-azimuth.html` — az
+- `tools/surveying/bearing-from-coordinates.html` — az
+- `tools/surveying/bearing-to-offset.html` — dN
+- `tools/surveying/calc-1.html` — fh
+- `tools/surveying/calc-86.html` — L
+- `tools/surveying/chord-length-curve.html` — C
+- `tools/surveying/circular-curve.html` — L
+- `tools/surveying/convert-33.html` — D
+- `tools/surveying/convert-46.html` — dd
+- `tools/surveying/convert-angle-slope-1.html` — pct
+- `tools/surveying/coordinate-convert.html` — x
+- `tools/surveying/coordinate-distance-2d.html` — D
+- `tools/surveying/coordinate-distance-3d.html` — d
+- `tools/surveying/coordinate-rotation.html` — xp
+- `tools/surveying/cut-fill-volume.html` — v
+- `tools/surveying/distance-calc.html` — S
+- `tools/surveying/distance-calc.html` — S
+- `tools/surveying/earthwork-pyramid-volume.html` — V
+- `tools/surveying/elevation-diff.html` — h
+- `tools/surveying/end-area-volume.html` — V
+- `tools/surveying/external-distance-curve.html` — E
+- `tools/surveying/grade-angle.html` — pct
+- `tools/surveying/grade-intersection-elev.html` — y
+- `tools/surveying/horizontal-distance.html` — d
+- `tools/surveying/horizontal-from-slope.html` — H
+- `tools/surveying/leveling-calc.html` — sumH
+- `tools/surveying/middle-ordinate-curve.html` — M
+- `tools/surveying/prismoidal-volume.html` — V
+- `tools/surveying/reduced-level-bsfs.html` — RL
+- `tools/surveying/slope-percent.html` — pct
+- `tools/surveying/stadia-distance.html` — D
+- `tools/surveying/subtense-distance.html` — D
+- `tools/surveying/tangent-length-curve.html` — T
+- `tools/surveying/triangulation-side.html` — b
+- `tools/surveying/vertical-curve-elev.html` — y
+- `tools/thermodynamics/convective-heat-rate.html` — result
+- `tools/thermodynamics/fourier-number.html` — result

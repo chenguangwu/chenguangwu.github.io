@@ -1,11 +1,11 @@
 # 交互有效性扫描（第二轮：点了到底有没有用）
 
-- 扫描时间：2026/11/5 01:01:50
+- 扫描时间：2026/11/5 01:13:15
 - 覆盖工具页：**4916**
 - 有输入控件的页：**4512**
 - 无输入控件（纯展示/参考卡，跳过）：**404**
 - 有输入但无主按钮（实时计算/表单提交，不计缺陷）：**588**
-- 命中至少一类问题：**452**
+- 命中至少一类问题：**436**
 
 > 口径：① 有效性＝先填值→记录快照→**改一个输入为明显不同的合法值**→再点主按钮→比较前后快照（排除「加载时已自动算过一次」的假阴性）；② 空态＝清空所有输入后点主按钮，结果区给出 NaN/Infinity/undefined/null/0/空串或结论即为缺陷；③ 死控件＝控件 id 在全部 `<script>` 中从未出现（且页面无 `querySelectorAll('input')` / `FormData` 这类泛化读取，内联 oninput 绑定的不计）。快照优先取 `#result/#output/.result*` 等结果容器，无则回退整页正文（剔除控件内的当前值）。
 
@@ -17,12 +17,12 @@
 | 空输入直接给出结论（优秀/正常/合格…） | **56** | 中 |
 | 改了输入再点主按钮，输出快照不变（低置信度线索，需人工复验） | **53** | 低 |
 | 重置按钮未改变任何输入 | **31** | 低 |
-| 清空输入 / 改值时页内抛异常 | **12** | 高 |
-| 点击主按钮抛异常（含 console 报错） | **9** | 高 |
-| 导出/下载按钮 onclick 目标函数不存在（必死） | **4** | 中 |
+| 点击主按钮抛异常（含 console 报错） | **1** | 高 |
+| 清空输入 / 改值时页内抛异常 | **1** | 高 |
+| 导出/下载按钮 onclick 目标函数不存在（必死） | **1** | 中 |
 | 死控件（静态） | **1** 页 / 2 个控件 | 低-中 |
 
-> **置信度分层**：高/中置信度缺陷页 **401** 页（点击抛异常、空态坏值/结论、死按钮、死控件）；`no_effect` **53** 页为**低置信度线索**——探针值可能不符合页面格式（URL 列表 / Dockerfile 字段 / 专有格式），抽样用合法输入复验发现部分页面其实可正常计算；该类别不计入高置信度统计与 Top 50 主排序，需人工复验。
+> **置信度分层**：高/中置信度缺陷页 **385** 页（点击抛异常、空态坏值/结论、死按钮、死控件）；`no_effect` **53** 页为**低置信度线索**——探针值可能不符合页面格式（URL 列表 / Dockerfile 字段 / 专有格式），抽样用合法输入复验发现部分页面其实可正常计算；该类别不计入高置信度统计与 Top 50 主排序，需人工复验。
 
 ## 按行业分布（便于分派修复线）
 
@@ -32,93 +32,74 @@
 | 空输入直接给出结论（优秀/正常/合格…） | tools/leather/ 4、tools/ent/ 3、tools/safety/ 3、tools/agriculture/ 2、tools/biz/ 2、tools/eco/ 2、tools/electronics/ 2、tools/energy/ 2 |
 | 改了输入再点主按钮，输出快照不变（低置信度线索，需人工复验） | tools/it/ 11、tools/hematology/ 3、tools/life/ 3、tools/design/ 2、tools/food-processing/ 2、tools/forensic-medicine/ 2、tools/image/ 2、tools/music/ 2 |
 | 重置按钮未改变任何输入 | tools/rheumatology/ 4、tools/it/ 3、tools/rehabilitation/ 3、tools/elderly/ 2、tools/general/ 2、tools/hematology/ 2、tools/audio/ 1、tools/biz/ 1 |
-| 清空输入 / 改值时页内抛异常 | tools/finance/ 3、tools/astronomy/ 2、tools/it/ 2、tools/dermatology/ 1、tools/gas/ 1、tools/life/ 1、tools/maritime/ 1、tools/sports/ 1 |
-| 点击主按钮抛异常（含 console 报错） | tools/it/ 3、tools/ai/ 2、tools/dermatology/ 1、tools/life/ 1、tools/math/ 1、tools/sports/ 1 |
-| 导出/下载按钮 onclick 目标函数不存在（必死） | tools/ai/ 2、tools/it/ 2 |
+| 点击主按钮抛异常（含 console 报错） | tools/it/ 1 |
+| 清空输入 / 改值时页内抛异常 | tools/astronomy/ 1 |
+| 导出/下载按钮 onclick 目标函数不存在（必死） | tools/it/ 1 |
 
 ## Top 50 高影响页面（按严重度加权）
 
 | # | 页面 | 得分 | 类型 | 证据 |
 |---|---|---|---|---|
-| 1 | `tools/dermatology/easi-eczema.html` | 6 | click_error, interact_error | 按钮「计算 EASI」｜load: Cannot set properties of null (setting 'textContent') @ calc (/tools/dermatology/e… |
-| 2 | `tools/life/base-convert.html` | 6 | click_error, interact_error | 按钮「转换」｜fill: toString() radix argument must be between 2 and 36 Number.toString (<anonymous>) conver… |
-| 3 | `tools/sports/rater-motion.html` | 6 | click_error, interact_error | 按钮「计算评估」｜fill: Cannot read properties of null (reading 'value') @ calc (/tools/sports/rater-motion.h… |
-| 4 | `tools/astronomy/hubble-redshift-distance.html` | 5.6 | empty_bogus, interact_error | 空输入点「计算」→ 结果区 0.00距离 d (Mpc)0.00d (百万光年)0.00退行速度 v = cz (km/s)0.0000d (十亿光年) ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 5 | `tools/it/matrix-multiplier.html` | 5.6 | empty_bogus, click_error | 空输入点「计算乘法」→ 结果区 结果 C = A × B （0×0）：计算步骤： ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 6 | `tools/ai/sentiment-analysis.html` | 4.6 | export_dead, click_error | 「导出 CSV」｜onclick 调用 __sxExport() 但该函数不存在（typeof=false） |
-| 7 | `tools/ai/text-summarization.html` | 4.6 | export_dead, click_error | 「导出 CSV」｜onclick 调用 __tsExport() 但该函数不存在（typeof=false） |
-| 8 | `tools/it/markdown-to-html.html` | 4.6 | export_dead, click_error | 「导出明细 CSV」｜onclick 调用 __markdown_to_htmlExport() 但该函数不存在（typeof=false） |
-| 9 | `tools/pr/risk-assessment.html` | 3.4 | empty_bogus, no_effect | 空输入点「📋 评估」→ 结果区 0风险总数0低风险0中风险0高/极高 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 10 | `tools/structural/von-mises-2d.html` | 3.4 | empty_bogus, no_effect | 空输入点「计算」→ 结果区 0.00等效应力 σ_vm (MPa)0.00忽略剪应力时等效应力 (MPa)0.00最大剪应力 τ_max (MPa) ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 11 | `tools/astronomy/horizon-distance.html` | 3 | interact_error | 清空/改值阶段｜empty: __charDistUpdate is not defined @ oninput (/tools/astronomy/horizon-distance.html:427… |
-| 12 | `tools/finance/bond-yield-calculator.html` | 3 | interact_error | 清空/改值阶段｜empty: Failed to execute 'createLinearGradient' on 'CanvasRenderingContext2D': The provided … |
-| 13 | `tools/finance/dca-calculator.html` | 3 | interact_error | 清空/改值阶段｜empty: Cannot read properties of undefined (reading 'totalInvest') @ calc (/tools/finance/dc… |
-| 14 | `tools/finance/option-profit-calculator.html` | 3 | interact_error | 清空/改值阶段｜empty: Cannot set properties of null (setting 'innerHTML') @ calc (/tools/finance/option-pro… |
-| 15 | `tools/gas/length-pipeline.html` | 3 | interact_error | 清空/改值阶段｜empty: __charDistUpdate is not defined @ oninput (/tools/gas/length-pipeline.html:496:252) \|… |
-| 16 | `tools/it/affine-cipher.html` | 3 | interact_error | 清空/改值阶段｜empty: Maximum call stack size exceeded @ gcd (/tools/it/affine-cipher.html:253:9) \| empty: … |
-| 17 | `tools/it/ip-calculator.html` | 3 | click_error | 按钮「🧮 批量计算」｜buttons: Cannot read properties of null (reading 'textContent') /tools/it/ip-calculator.… |
-| 18 | `tools/it/rail-fence-cipher.html` | 3 | interact_error | 清空/改值阶段｜empty: Cannot set properties of undefined (setting '0') @ buildRailMatrix (/tools/it/rail-fe… |
-| 19 | `tools/maritime/speed-distance.html` | 3 | interact_error | 清空/改值阶段｜empty: __charDistUpdate is not defined @ oninput (/tools/maritime/speed-distance.html:613:25… |
-| 20 | `tools/math/calculus-tools.html` | 3 | click_error | 按钮「🧮 计算」｜click console: Error: <line> attribute y1: Expected length, "—". \| click console: Error: <… |
-| 21 | `tools/accounting/cash-conversion-cycle.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00现金转换周期 CCC (天)0.00营业周期（存货 + 应收）(天)0.00应付占营业周期比 (%) ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 22 | `tools/accounting/ebit.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00EBIT (万元)0.00毛利 (万元)0.00营业利润率 (%) ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 23 | `tools/accounting/ebitda.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00EBITDA (万元)0.00EBIT 占 EBITDA (%)0.00折旧摊销占比 (%)0.00折旧与摊销 (万元) ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 24 | `tools/accounting/free-cash-flow.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00自由现金流 FCF (万元)0.00资本支出占经营现金流 (%)0.000经营现金流覆盖资本支出倍数0.00经营活动现金流净额 (万元) ⏐ 📋 复制结果⬇️ 导… |
-| 25 | `tools/accounting/gross-profit.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00毛利 (万元)0.00毛利率 (%)0.000收入成本倍数0.0000成本毛利比 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 26 | `tools/accounting/operating-cash-flow.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00经营现金流 OCF (万元)0.0000现金流/净利 比0.000折旧占经营现金流比 (%) ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 27 | `tools/accounting/roe-dupont.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00净资产收益率 ROE (%)0.000净利率 NM (%)0.0000资产收益率 ROA (%) ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 28 | `tools/accounting/working-capital.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00营运资金 WC (万元)0.000流动比率0.00营运资金占流动资产 (%)0.00流动资产负债合计 (万元) ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 29 | `tools/advertising/assessor-52.html` | 2.6 | empty_bogus | 空输入点「评估活动方案」→ 结果区 0.0%活动 ROI¥0净收益/亏损¥0单客获取成本 CPA¥0.00千次曝光成本 CPM ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 30 | `tools/advertising/assessor-54.html` | 2.6 | empty_bogus | 空输入点「计算投放效果」→ 结果区 0OTS 接触机会0.0%到达率 Reach0.0平均频次 Frequency0.0GRP 总收视点 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 31 | `tools/advertising/assessor-55.html` | 2.6 | empty_bogus | 空输入点「评估投放效果」→ 结果区 0.0GRP 总收视点0.0%到达率 Reach0.0平均频次¥0CPP 每收视点成本 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 32 | `tools/advertising/convert-26.html` | 2.6 | empty_bogus | 空输入点「换算」→ 结果区 物理尺寸 = NaN mm DPI 与 PPI 同义，均指每英寸像素数 常用 DPI 参考：屏幕 96，高清 150–220，印刷 300，精细宣传册 600 300 dp… |
-| 33 | `tools/advertising/reach-frequency.html` | 2.6 | empty_bogus | 空输入点「🧮 计算指标」→ 结果区 0.0%到达率0.00平均频次0GRP 总收视点 ⏐ ¥0.00CPM 千次曝光¥0.00CPR 单人到达¥0.00CP/GRP ⏐ 📋 复制结果⬇️ 导出 T… |
-| 34 | `tools/aerospace/descent-rate.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.0下降率 (m/min)0.00下降率 (m/s)0.00水平速度 (m/s)0.000下降梯度 (%) ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 35 | `tools/aerospace/drag-force.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00阻力 D (N)0.0动压 q = ½ρv² (Pa)0.00阻力 (kgf) ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 36 | `tools/aerospace/lift-equation.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00升力 L (N)0.0动压 q = ½ρv² (Pa)0.00升力 (kgf) ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 37 | `tools/aerospace/lift-force.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00升力 L (kN)0.0升力 (kgf) ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 38 | `tools/aerospace/thrust-required.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.000所需推力 (kN)0.0动压 q = ½ρv² (Pa)0.00等效推力 (kgf) ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 39 | `tools/agriculture/agri-calculator.html` | 2.6 | empty_bogus | 空输入点「计算配比」→ 结果区 氮 (N)0.00kg磷 (P₂O₅)0.00kg钾 (K₂O)0.00kg配方比例：0-0-0施肥面积：0 亩每亩用量：0 kg/亩肥料总量：0.0 kg ⏐ 📋 … |
-| 40 | `tools/ai/ai-11.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 损失差距：0.0000 准确率差距：0.00 %过拟合风险：低 建议：继续训练或早停 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 41 | `tools/ai/ai-12.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 理论扩充量：0 张有效等效量：0 张避免过拟合建议：建议继续收集真实数据 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 42 | `tools/ai/ai-13.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 早停等待时间：0.0 分钟最小训练时间：0.0 分钟最大建议 epoch：0 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 43 | `tools/ai/ai-14.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 点积：0.0000 查询模：0.0000 文档模：0.0000 余弦相似度：0.0000 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 44 | `tools/ai/ai-4.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 欧氏距离：0.0000 曼哈顿距离：0.0000 余弦相似度：0.0000 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 45 | `tools/ai/ai-6.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 全连接参数：0 个卷积核参数：0 个显存估算 MB：0.0000 MB ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 46 | `tools/ai/attention-flops.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 单层 FLOPs：0 全模型 GFLOPs：0.0 GFLOP ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 47 | `tools/ai/augmentation-multiplier.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 增强后总量：0 样本 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 48 | `tools/ai/flops.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 卷积 FLOPs：0 全连接 FLOPs：0 总 FLOPs：0 MACs（约）：0 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 49 | `tools/ai/lr-decay.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 当前 LR：0.000000 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 50 | `tools/ai/lr-warmup.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 预热步数：0 步预热末 LR：0.000000 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 1 | `tools/astronomy/hubble-redshift-distance.html` | 5.6 | empty_bogus, interact_error | 空输入点「计算」→ 结果区 0.00距离 d (Mpc)0.00d (百万光年)0.00退行速度 v = cz (km/s)0.0000d (十亿光年) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 2 | `tools/it/matrix-multiplier.html` | 5.6 | empty_bogus, click_error | 空输入点「计算乘法」→ 结果区 结果 C = A × B （0×0）：计算步骤： ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 3 | `tools/pr/risk-assessment.html` | 3.4 | empty_bogus, no_effect | 空输入点「📋 评估」→ 结果区 0风险总数0低风险0中风险0高/极高 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 4 | `tools/structural/von-mises-2d.html` | 3.4 | empty_bogus, no_effect | 空输入点「计算」→ 结果区 0.00等效应力 σ_vm (MPa)0.00忽略剪应力时等效应力 (MPa)0.00最大剪应力 τ_max (MPa) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 5 | `tools/accounting/cash-conversion-cycle.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00现金转换周期 CCC (天)0.00营业周期（存货 + 应收）(天)0.00应付占营业周期比 (%) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 6 | `tools/accounting/ebit.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00EBIT (万元)0.00毛利 (万元)0.00营业利润率 (%) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 7 | `tools/accounting/ebitda.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00EBITDA (万元)0.00EBIT 占 EBITDA (%)0.00折旧摊销占比 (%)0.00折旧与摊销 (万元) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 8 | `tools/accounting/free-cash-flow.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00自由现金流 FCF (万元)0.00资本支出占经营现金流 (%)0.000经营现金流覆盖资本支出倍数0.00经营活动现金流净额 (万元) ⏐ 📋 复制结果⬇️ 导… |
+| 9 | `tools/accounting/gross-profit.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00毛利 (万元)0.00毛利率 (%)0.000收入成本倍数0.0000成本毛利比 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 10 | `tools/accounting/operating-cash-flow.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00经营现金流 OCF (万元)0.0000现金流/净利 比0.000折旧占经营现金流比 (%) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 11 | `tools/accounting/roe-dupont.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00净资产收益率 ROE (%)0.000净利率 NM (%)0.0000资产收益率 ROA (%) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 12 | `tools/accounting/working-capital.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00营运资金 WC (万元)0.000流动比率0.00营运资金占流动资产 (%)0.00流动资产负债合计 (万元) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 13 | `tools/advertising/assessor-52.html` | 2.6 | empty_bogus | 空输入点「评估活动方案」→ 结果区 0.0%活动 ROI¥0净收益/亏损¥0单客获取成本 CPA¥0.00千次曝光成本 CPM ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 14 | `tools/advertising/assessor-54.html` | 2.6 | empty_bogus | 空输入点「计算投放效果」→ 结果区 0OTS 接触机会0.0%到达率 Reach0.0平均频次 Frequency0.0GRP 总收视点 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 15 | `tools/advertising/assessor-55.html` | 2.6 | empty_bogus | 空输入点「评估投放效果」→ 结果区 0.0GRP 总收视点0.0%到达率 Reach0.0平均频次¥0CPP 每收视点成本 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 16 | `tools/advertising/convert-26.html` | 2.6 | empty_bogus | 空输入点「换算」→ 结果区 物理尺寸 = NaN mm DPI 与 PPI 同义，均指每英寸像素数 常用 DPI 参考：屏幕 96，高清 150–220，印刷 300，精细宣传册 600 300 dp… |
+| 17 | `tools/advertising/reach-frequency.html` | 2.6 | empty_bogus | 空输入点「🧮 计算指标」→ 结果区 0.0%到达率0.00平均频次0GRP 总收视点 ⏐ ¥0.00CPM 千次曝光¥0.00CPR 单人到达¥0.00CP/GRP ⏐ 📋 复制结果⬇️ 导出 T… |
+| 18 | `tools/aerospace/descent-rate.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.0下降率 (m/min)0.00下降率 (m/s)0.00水平速度 (m/s)0.000下降梯度 (%) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 19 | `tools/aerospace/drag-force.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00阻力 D (N)0.0动压 q = ½ρv² (Pa)0.00阻力 (kgf) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 20 | `tools/aerospace/lift-equation.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00升力 L (N)0.0动压 q = ½ρv² (Pa)0.00升力 (kgf) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 21 | `tools/aerospace/lift-force.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00升力 L (kN)0.0升力 (kgf) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 22 | `tools/aerospace/thrust-required.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.000所需推力 (kN)0.0动压 q = ½ρv² (Pa)0.00等效推力 (kgf) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 23 | `tools/agriculture/agri-calculator.html` | 2.6 | empty_bogus | 空输入点「计算配比」→ 结果区 氮 (N)0.00kg磷 (P₂O₅)0.00kg钾 (K₂O)0.00kg配方比例：0-0-0施肥面积：0 亩每亩用量：0 kg/亩肥料总量：0.0 kg ⏐ 📋 … |
+| 24 | `tools/ai/ai-11.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 损失差距：0.0000 准确率差距：0.00 %过拟合风险：低 建议：继续训练或早停 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 25 | `tools/ai/ai-12.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 理论扩充量：0 张有效等效量：0 张避免过拟合建议：建议继续收集真实数据 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 26 | `tools/ai/ai-13.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 早停等待时间：0.0 分钟最小训练时间：0.0 分钟最大建议 epoch：0 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 27 | `tools/ai/ai-14.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 点积：0.0000 查询模：0.0000 文档模：0.0000 余弦相似度：0.0000 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 28 | `tools/ai/ai-4.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 欧氏距离：0.0000 曼哈顿距离：0.0000 余弦相似度：0.0000 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 29 | `tools/ai/ai-6.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 全连接参数：0 个卷积核参数：0 个显存估算 MB：0.0000 MB ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 30 | `tools/ai/attention-flops.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 单层 FLOPs：0 全模型 GFLOPs：0.0 GFLOP ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 31 | `tools/ai/augmentation-multiplier.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 增强后总量：0 样本 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 32 | `tools/ai/flops.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 卷积 FLOPs：0 全连接 FLOPs：0 总 FLOPs：0 MACs（约）：0 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 33 | `tools/ai/lr-decay.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 当前 LR：0.000000 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 34 | `tools/ai/lr-warmup.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 预热步数：0 步预热末 LR：0.000000 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 35 | `tools/ai/multi-agent-overhead.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 消息总数：0 条总流量 KB：0 KB ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 36 | `tools/ai/relu-leakyrelu.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 ReLU：0.00 LeakyReLU：0.00 ELU：0.00 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 37 | `tools/ai/token-2.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 输入费用：0.0000 USD输出费用：0.0000 USD总费用：0.0000 USD人民币约：0.0000 CNY ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 38 | `tools/ai/token-usage.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 估算 tokens：0 token ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 39 | `tools/ai/transformer-params.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 Transformer主体(亿)：0.00 亿嵌入参数(亿)：0.00 亿 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 40 | `tools/ai/vram-estimate.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 权重显存：0.0 GB总显存估算：0.0 GB ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 41 | `tools/astronomy/kepler-equation.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.000偏近点角 E (°)0.00000E (rad) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 42 | `tools/astronomy/light-travel-time.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.000传播时间 t (min)0.0t (s)0.0000距离 (天文单位 AU)0.0000传播时间 (h)0.000e+0距离 (光年) ⏐ 📋 复制结果⬇️ 导… |
+| 43 | `tools/baking/recipe-scaler.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 缩放后配方（×0） ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 44 | `tools/banking/amortization-first-interest.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00首月利息 I₁0.00首月还本金0.000年利率 (%)0.0000首月利息占本金比 (%) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 45 | `tools/banking/continuous-compounding.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00连续复利终值 A0.00利息总额0.0000年实际收益率 (%)0.0000较年复利增益 (%) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 46 | `tools/banking/effective-annual-rate.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.000有效年利率 EAR (%)0.00000EAR (小数)0.0000EAR 高于名义利率 (百分点)0.0000与连续复利之差 (百分点) ⏐ 📋 复制结果⬇️… |
+| 47 | `tools/banking/net-worth.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0净资产 NW (元)0.00负债率 (%)0.000资产覆盖倍数0.00净资产占资产 (%) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 48 | `tools/banking/tax-equivalent-yield.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.000税后等效收益率 TEY (%)0.000应税需高出的百分点0.0边际税率 (%)0.0000免税溢价系数减一 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 49 | `tools/chemistry/gibbs-free-energy.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.000ΔG (kJ/mol)平衡反应方向 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 50 | `tools/chemistry/kp-kc.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.000e+0压力平衡常数 Kp0.0RT (L·atm/(mol·K)) ⏐ 📋 复制结果⬇️ 导出 TXT |
 
 ## 一、按钮有效性（点了没反应 / 点了报错）
 
-### 清空输入 / 改值时页内抛异常（12 页）
+### 点击主按钮抛异常（含 console 报错）（1 页）
 
-- `tools/dermatology/easi-eczema.html` — 清空/改值阶段｜load: Cannot set properties of null (setting 'textContent') @ calc (/tools/dermatology/easi-eczema.html:295:45) \| empty: Cannot se…
-- `tools/life/base-convert.html` — 清空/改值阶段｜fill: toString() radix argument must be between 2 and 36 Number.toString (<anonymous>) convert (/tools/life/base-convert.html:330:…
-- `tools/sports/rater-motion.html` — 清空/改值阶段｜fill: Cannot read properties of null (reading 'value') @ calc (/tools/sports/rater-motion.html:188:60) \| fill: Cannot read propert…
-- `tools/astronomy/hubble-redshift-distance.html` — 清空/改值阶段｜empty: __charDistUpdate is not defined @ oninput (/tools/astronomy/hubble-redshift-distance.html:403:252) \| fill: __charDistUpdate…
-- `tools/astronomy/horizon-distance.html` — 清空/改值阶段｜empty: __charDistUpdate is not defined @ oninput (/tools/astronomy/horizon-distance.html:427:252) \| fill: __charDistUpdate is not …
-- `tools/finance/bond-yield-calculator.html` — 清空/改值阶段｜empty: Failed to execute 'createLinearGradient' on 'CanvasRenderingContext2D': The provided double value is non-finite. /tools/fin…
-- `tools/finance/dca-calculator.html` — 清空/改值阶段｜empty: Cannot read properties of undefined (reading 'totalInvest') @ calc (/tools/finance/dca-calculator.html:428:26) \| empty: Can…
-- `tools/finance/option-profit-calculator.html` — 清空/改值阶段｜empty: Cannot set properties of null (setting 'innerHTML') @ calc (/tools/finance/option-profit-calculator.html:466:49) \| empty: C…
-- `tools/gas/length-pipeline.html` — 清空/改值阶段｜empty: __charDistUpdate is not defined @ oninput (/tools/gas/length-pipeline.html:496:252) \| fill: __charDistUpdate is not defined…
-- `tools/it/affine-cipher.html` — 清空/改值阶段｜empty: Maximum call stack size exceeded @ gcd (/tools/it/affine-cipher.html:253:9) \| empty: Maximum call stack size exceeded @ gcd…
-- `tools/it/rail-fence-cipher.html` — 清空/改值阶段｜empty: Cannot set properties of undefined (setting '0') @ buildRailMatrix (/tools/it/rail-fence-cipher.html:275:18)
-- `tools/maritime/speed-distance.html` — 清空/改值阶段｜empty: __charDistUpdate is not defined @ oninput (/tools/maritime/speed-distance.html:613:252) \| fill: __charDistUpdate is not def…
-
-### 点击主按钮抛异常（含 console 报错）（9 页）
-
-- `tools/dermatology/easi-eczema.html` — 按钮「计算 EASI」｜load: Cannot set properties of null (setting 'textContent') @ calc (/tools/dermatology/easi-eczema.html:295:45) \| empty:…
-- `tools/life/base-convert.html` — 按钮「转换」｜fill: toString() radix argument must be between 2 and 36 Number.toString (<anonymous>) convert (/tools/life/base-convert…
-- `tools/sports/rater-motion.html` — 按钮「计算评估」｜fill: Cannot read properties of null (reading 'value') @ calc (/tools/sports/rater-motion.html:188:60) \| fill: Cannot re…
 - `tools/it/matrix-multiplier.html` — 按钮「计算乘法」｜click: Cannot read properties of null (reading 'value') @ getM (/tools/it/matrix-multiplier.html:283:68)
-- `tools/ai/sentiment-analysis.html` — 按钮「分析情感」｜buttons: __sxExport is not defined @ onclick (/tools/ai/sentiment-analysis.html:126:64)
-- `tools/ai/text-summarization.html` — 按钮「生成摘要」｜buttons: __tsExport is not defined @ onclick (/tools/ai/text-summarization.html:135:64)
-- `tools/it/markdown-to-html.html` — 按钮「计算」｜buttons: __markdown_to_htmlExport is not defined @ onclick (/tools/it/markdown-to-html.html:151:178)
-- `tools/it/ip-calculator.html` — 按钮「🧮 批量计算」｜buttons: Cannot read properties of null (reading 'textContent') /tools/it/ip-calculator.html:595:47 @ <anonymous> (/tool…
-- `tools/math/calculus-tools.html` — 按钮「🧮 计算」｜click console: Error: <line> attribute y1: Expected length, "—". \| click console: Error: <line> attribute y2: Expected l…
+
+### 清空输入 / 改值时页内抛异常（1 页）
+
+- `tools/astronomy/hubble-redshift-distance.html` — 清空/改值阶段｜empty: __charDistUpdate is not defined @ oninput (/tools/astronomy/hubble-redshift-distance.html:403:252) \| fill: __charDistUpdate…
 
 ## 二、空态（没填也敢给结论）
 
@@ -527,11 +508,8 @@
 - `tools/tcm-diagnosis/tongue-diagnosis.html` — 「重置」｜点击后所有输入值未变化
 - `tools/transport/calc-4.html` — 「🗑️ 清空选择」｜点击后所有输入值未变化
 
-### 导出/下载按钮 onclick 目标函数不存在（必死）（4 页）
+### 导出/下载按钮 onclick 目标函数不存在（必死）（1 页）
 
-- `tools/ai/sentiment-analysis.html` — 「导出 CSV」｜onclick 调用 __sxExport() 但该函数不存在（typeof=false）
-- `tools/ai/text-summarization.html` — 「导出 CSV」｜onclick 调用 __tsExport() 但该函数不存在（typeof=false）
-- `tools/it/markdown-to-html.html` — 「导出明细 CSV」｜onclick 调用 __markdown_to_htmlExport() 但该函数不存在（typeof=false）
 - `tools/it/typescript-compiler.html` — 「⬇ 下载 JS」｜onclick 调用 downloadJs() 但该函数不存在（typeof=false）
 
 ### 死控件（静态检测，1 页）
@@ -540,7 +518,7 @@
 
 - `tools/legal/legal-calculator.html` — lit-type-labor(input/radio)、lit-type-ip(input/radio)
 
-### 低置信度线索：导出/下载未观察到触发（368 页）
+### 低置信度线索：导出/下载未观察到触发（367 页）
 
 > 这些页的导出按钮 onclick 函数存在、点击也不报错，但没观察到带 download 的 `a.click()`；多为结果为空时静默 return，需人工复核，不计入缺陷数。
 
@@ -644,7 +622,6 @@
 - `tools/data/yaml-json.html` —「导出明细 CSV」（__yaml_jsonExport）
 - `tools/dentistry/sialography.html` —「导出明细 CSV」（__sialographyExport）
 - `tools/dermatology/chilblain-grading.html` —「导出明细 CSV」（__chilblain_gradingExport）
-- `tools/dermatology/easi-eczema.html` —「导出明细 CSV」（__easi_eczemaExport）
 - `tools/dermatology/hdss-hyperhidrosis.html` —「导出明细 CSV」（__hdss_hyperhidrosisExport）
 - `tools/dermatology/pityriasis-rosea.html` —「导出明细 CSV」（__pityriasis_roseaExport）
 - `tools/design/blueprint-grid.html` —「导出明细 CSV」（__blueprint_gridExport）
@@ -745,7 +722,8 @@
 - `tools/it/des.html` —「导出明细 CSV」（__desExport）
 - `tools/it/env-generator.html` —「导出明细 CSV」（__env_generatorExport）
 - `tools/it/hmac-generator.html` —「导出明细 CSV」（__hmac_generatorExport）
-- …… 其余 168 页见 JSON
+- `tools/it/html-entities.html` —「导出明细 CSV」（__html_entitiesExport）
+- …… 其余 167 页见 JSON
 
 
 ## 定向复扫用法
@@ -764,3 +742,7 @@ node scripts/runtime_scan.js --interact --files /tmp/pages.txt --timeout 10000
 > 定向复扫会强制重扫命中页，其余记录原样保留，并在结束时自动重算本报告与 JSON；不要与 `--resume` 混用。
 > 全量原始数据：`scripts/out/interaction-invalid.jsonl`（逐行、4916 条）与 `scripts/out/interaction-invalid.json`（8 MB），均被 `.gitignore` 忽略，只留本地。
 > 精简摘要（401 个高/中置信页）：`plan/interaction-invalid-top100.json`。
+
+## 本轮修复根因记录（16 页）
+
+- `__charDistUpdate is not defined`（horizon-distance / length-pipeline / speed-distance）：三页内联的同一段 IIFE 定义了函数，但内联 `oninput` 只能访问全局；已收口为 `js/tools/char-distance-ref.js` 一份实现并挂 `window.__charDistUpdate`，三页改为外部引用。
