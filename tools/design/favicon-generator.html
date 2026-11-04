@@ -505,7 +505,7 @@ function downloadCanvas(size, filename, silent){
   draw(canvas, size);
   const name = filename || `favicon-${size}x${size}.png`;
   try { canvas.toBlob(blob => {
-    if (!blob) { showToast(`导出失败：${size}×${size} 画布超出浏览器上限`); return; }
+    if (!blob) { favToast(`导出失败：${size}×${size} 画布超出浏览器上限`); return; }
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -513,8 +513,8 @@ function downloadCanvas(size, filename, silent){
     a.click();
     // 延迟释放：部分浏览器在 click 后立即 revoke 会取消下载
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    if (!silent) showToast(`已下载 ${name}`);
-  }); } catch (e) { showToast('导出失败：' + ((e && (e.name || e.message)) || '未知错误')); }
+    if (!silent) favToast(`已下载 ${name}`);
+  }); } catch (e) { favToast('导出失败：' + ((e && (e.name || e.message)) || '未知错误')); }
 }
 
 function downloadSingle(size){
@@ -523,13 +523,13 @@ function downloadSingle(size){
 
 function downloadAll(){
   if(state.sizes.length === 0){
-    showToast(i18nText('toast.msg741'));
+    favToast(i18nText('toast.msg741'));
     return;
   }
   state.sizes.forEach((s, i) => {
     setTimeout(() => downloadCanvas(s, `favicon-${s}x${s}.png`, true), i * 200);
   });
-  showToast(`开始下载 ${state.sizes.length} 个 favicon 文件`);
+  favToast(`开始下载 ${state.sizes.length} 个 favicon 文件`);
 }
 
 function copyDataURL(){
@@ -537,11 +537,14 @@ function copyDataURL(){
   draw(canvas, 64);
   let dataUrl;
   try { dataUrl = canvas.toDataURL('image/png'); }
-  catch (e) { showToast('复制失败：' + ((e && (e.name || e.message)) || '未知错误')); return; }
-  navigator.clipboard.writeText(dataUrl).then(() => showToast(i18nText('toast.msg193')));
+  catch (e) { favToast('复制失败：' + ((e && (e.name || e.message)) || '未知错误')); return; }
+  navigator.clipboard.writeText(dataUrl).then(() => favToast(i18nText('toast.msg193')));
 }
 
-function showToast(msg){
+// 本页私有 toast 实现（只写页内 #toast）。刻意不叫 showToast：
+// common.js 已把 showToast 挂到 global，同名会遮蔽共享实现，
+// 也让「真实 common.js 环境」与简化桩行为不一致（stub fidelity 门禁）。
+function favToast(msg){
   const toast = document.getElementById('toast');
   toast.textContent = msg;
   toast.classList.add('show');
