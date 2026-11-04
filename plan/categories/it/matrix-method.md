@@ -176,12 +176,12 @@
 |---|---|
 | 初筛命中（`obj[k]=` / `obj[k]=true` / `seen[k]` / `if(obj[k])` 写法） | 约 3,600 处，涉及 200+ 文件 |
 | 真风险页（键来自用户文本/键名） | 19 |
-| 已修（含前批 `text-dedupe-sort`） | 16 |
-| 登记待修 | 3 |
+| 已修（含前批 `text-dedupe-sort`） | 17 |
+| 登记待修（已划给商业线） | 2 |
 
-已修（本批 15 页 + 前批 1 页）：`it/url-parser`、`it/url-params`、`it/ini-parser`、`it/properties-parser`、`it/toml-formatter`、`it/xml-to-json`、`it/xml-to-yaml`、`it/xml-to-toml`、`it/yaml-to-json`、`it/yaml-to-toml`、`it/yaml-to-xml`、`it/yaml-formatter`、`it/csv-to-json`、`it/json-schema-generator`、`it/toml-to-yaml`、`it/text-dedupe-sort`（前批）。统一改为 `Object.create(null)`（或保留键仍走自有属性），并补 `__proto__` / `constructor` 输入用例（IT-N27 / IT-N34 系列）。
+已修（本批 15 页 + 前批 1 页）：`it/url-parser`、`it/url-params`、`it/ini-parser`、`it/properties-parser`、`it/toml-formatter`、`it/xml-to-json`、`it/xml-to-yaml`、`it/xml-to-toml`、`it/yaml-to-json`、`it/yaml-to-toml`、`it/yaml-to-xml`、`it/yaml-formatter`、`it/csv-to-json`、`it/json-schema-generator`、`it/toml-to-yaml`、`it/text-dedupe-sort`（前批）。统一改为 `Object.create(null)`（或保留键仍走自有属性），并补 `__proto__` / `constructor` 输入用例（IT-N27 / IT-N34 系列）。后续补修 `research/analysis-54`（`freq`/`seen` 改 null 原型，补两键计数用例）。
 
-登记待修（3 页，未纳入 Top 10 扩展批次）：
+登记待修（2 页，已划给商业线，本线不碰）：
 
 | 页面 | 写法 | 触发键 |
 |---|---|---|

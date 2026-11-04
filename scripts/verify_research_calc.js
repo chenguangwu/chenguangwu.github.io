@@ -69,6 +69,17 @@ const CASES = [
   "ref": "重做为定性编码：6 条全编码，主题频次 价格高×4/配送慢×3/质量差×2/服务好×2，总编码数=12（默认数据=10，故 discriminative），覆盖率=100%。非默认输入+独立复算。"
 },
 {
+  "slug": "research/analysis-54",
+  "inputs": {
+    "data": "用户A,__proto__,constructor\n用户B,__proto__,constructor\n用户C,constructor"
+  },
+  "expect": [
+    "__proto__ 2",
+    "constructor 3"
+  ],
+  "ref": "主题名可恰为 Object.prototype 的魔法键：旧实现 `freq={}` 下 `freq['__proto__']` 读到原型对象、赋值又被 __proto__ setter 丢弃，该主题整行不出现在 Top10；`constructor` 同理读到继承函数。改 Object.create(null) 后两键按普通键计数：__proto__×2、constructor×3。默认数据不含这两个词。"
+},
+{
   "slug": "research/assessor-50",
   "inputs": {
     "reach": "75000",
