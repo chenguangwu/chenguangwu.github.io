@@ -165,7 +165,7 @@ s.parentNode.insertBefore(el, s);
    <option value="0.999">99.9%</option>
   </select>
  </div>
- <div><label>误差范围 E (绝对)</label><input type="number" id="e" value="5" step="0.1" oninput="calc()" placeholder="如 5"></div>
+ <div><label>误差范围 E (%)</label><input type="number" id="e" value="5" step="0.1" oninput="calc()" placeholder="如 5"></div>
  <div><label>总体比例 p (0-1)</label><input type="number" id="p" value="0.5" step="0.05" min="0" max="1" oninput="calc()" placeholder="如 0.5（0–1）"></div>
  <div><label>总体规模 N (0=无限)</label><input type="number" id="n" value="0" min="0" step="100" oninput="calc()" placeholder="如 0"></div>
 </div>
@@ -286,14 +286,35 @@ function setErrPct(p){
  calc();
 }
 
+function setInvalid(el,invalid){
+ if(!el)return;
+ if(invalid){el.classList.add('input-error');el.setAttribute('aria-invalid','true');}
+ else{el.classList.remove('input-error');el.removeAttribute('aria-invalid');}
+}
+
 function calc(){
  const conf = +document.getElementById('conf').value;
- const E = +document.getElementById('e').value / 100; // 假设输入的是百分比
- const p = +document.getElementById('p').value;
- const N = +document.getElementById('n').value;
+ const eEl = document.getElementById('e');
+ const pEl = document.getElementById('p');
+ const nEl = document.getElementById('n');
+ const eRaw = eEl.value.trim();
+ const pRaw = pEl.value.trim();
+ const nRaw = nEl.value.trim();
+ const E = eRaw === '' ? NaN : parseFloat(eRaw) / 100; // 界面输入百分比如 5，内部按 0.05 计算
+ const p = pRaw === '' ? NaN : parseFloat(pRaw);
+ const N = nRaw === '' ? NaN : parseFloat(nRaw);
 
- if(E <= 0 || p < 0 || p > 1){
+ const eOk = isFinite(E) && E > 0 && E <= 1;
+ const pOk = isFinite(p) && p > 0 && p < 1;
+ const nOk = isFinite(N) && N >= 0 && Math.floor(N) === N;
+ setInvalid(eEl,!eOk);
+ setInvalid(pEl,!pOk);
+ setInvalid(nEl,!nOk);
+
+ if(!eOk || !pOk || !nOk){
   document.getElementById('sample-size').textContent = '参数无效';
+  document.getElementById('sample-label').textContent = '';
+  document.getElementById('calc-detail').innerHTML = '';
   return;
  }
  const z = Z_TABLE[conf];
@@ -443,7 +464,7 @@ function __sample_sizeExport(){
 }
 function __sample_sizePresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#sample_sizePresets',[{label:'默认参数',labelEn:'Default',values:{'conf':'0.95', 'e':'5', 'p':'0.5', 'n':'0'}},{"label":"低值","labelEn":"Low","values":{"p":"0.25"}},{"label":"高值","labelEn":"High","values":{"p":"1"}},{"label":"极端值","labelEn":"Extreme","values":{"p":"1.5"}}],function(){ calc(); });
+    TBKit.preset.bar('#sample_sizePresets',[{label:'默认参数',labelEn:'Default',values:{'conf':'0.95', 'e':'5', 'p':'0.5', 'n':'0'}},{"label":"低值","labelEn":"Low","values":{"p":"0.25"}},{"label":"高值","labelEn":"High","values":{"p":"0.9"}},{"label":"极端值","labelEn":"Extreme","values":{"p":"1.5"}}],function(){ calc(); });
 }
 var __sample_size_f0=(typeof calc==='function')?calc:null;
 if(__sample_size_f0){

@@ -281,6 +281,16 @@ function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+=
 function calcTool(){
               var __ig=__tbInputGuard(['usl', 'lsl', 'mu', 'sigma'],["上规格限 USL", "下规格限 LSL", "过程均值 μ", "过程标准差 σ"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const usl=num('usl'),lsl=num('lsl'),m=num('mu'),s=num('sigma');
+            const sigmaBad=!(isFinite(s)&&s>0);
+            const orderBad=!(isFinite(usl)&&isFinite(lsl)&&usl>lsl);
+            document.getElementById('usl').classList.toggle('input-error',orderBad);
+            document.getElementById('lsl').classList.toggle('input-error',orderBad);
+            document.getElementById('sigma').classList.toggle('input-error',sigmaBad);
+            if(sigmaBad||orderBad){
+                ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 输入无效：过程标准差 σ 须大于 0，且上规格限 USL 须大于下规格限 LSL。</p>');
+                var __tb=document.getElementById('cpk_indexTable');if(__tb)__tb.innerHTML='';
+                return;
+            }
             const cpk=Math.min((usl-m)/(3*s),(m-lsl)/(3*s));
             const __g2=dataGrid([
                 [cpk.toFixed(3),'Cpk']
@@ -300,6 +310,7 @@ function __cpk_indexExtras(){
     var usl=num('usl'),lsl=num('lsl'),m=num('mu'),s=num('sigma');
     var cpk=Math.min((usl-m)/(3*s),(m-lsl)/(3*s));
     if (!isFinite(__cpk_indexNum('usl')) || !isFinite(__cpk_indexNum('lsl')) || !isFinite(__cpk_indexNum('mu')) || !isFinite(__cpk_indexNum('sigma'))) return;
+    if (!(s>0) || !(usl>lsl)) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#cpk_indexTable',{
         head: en?['Item','Value']:['项目','数值'],

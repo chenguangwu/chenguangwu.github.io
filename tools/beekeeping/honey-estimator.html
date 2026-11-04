@@ -310,18 +310,36 @@ function selectSource(id){
   calc();
 }
 
+function setInvalid(el,invalid){
+  if(!el)return;
+  if(invalid){el.classList.add('input-error');el.setAttribute('aria-invalid','true');}
+  else{el.classList.remove('input-error');el.removeAttribute('aria-invalid');}
+}
+
 function calc(){
-  const hives = parseFloat(document.getElementById('hives').value) || 0;
-  const area = parseFloat(document.getElementById('area').value) || 0;
+  const hivesEl = document.getElementById('hives');
+  const areaEl = document.getElementById('area');
+  const hivesRaw = hivesEl.value.trim();
+  const areaRaw = areaEl.value.trim();
+  const hives = hivesRaw === '' ? NaN : parseFloat(hivesRaw);
+  const area = areaRaw === '' ? NaN : parseFloat(areaRaw);
   const climate = parseFloat(document.getElementById('climate').value);
   const exp = parseFloat(document.getElementById('experience').value);
   const source = HONEY_SOURCES.find(s => s.id === selectedSource);
 
-  if(hives <= 0){
+  const hivesOk = isFinite(hives) && hives > 0 && hives <= 1000;
+  const areaOk = isFinite(area) && area > 0 && area <= 10000;
+  setInvalid(hivesEl, !hivesOk);
+  setInvalid(areaEl, !areaOk);
+
+  if(!hivesOk || !areaOk){
+    window.__honeyInvalid = true;
     document.getElementById('honeyResult').textContent = '--';
-    document.getElementById('honeyStats').innerHTML='';
+    document.getElementById('honeyStats').innerHTML = '';
+    document.getElementById('honeyDesc').textContent = '请输入有效参数：蜂箱数量须为 1–1000 群，花源面积须大于 0 且不超过 10000 亩';
     return;
   }
+  window.__honeyInvalid = false;
 
   // 花源承载能力：每群蜂需要约4亩花源
   const needArea = hives * 4;
@@ -502,6 +520,7 @@ function __honey_estimatorRender(keys,rk,en){
 function __honey_estimatorExtras(){
     if (typeof TBKit === 'undefined') return;
     if (__honey_estimator_skip) return;
+    if (window.__honeyInvalid) return;
     var snap=__honey_estimatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;

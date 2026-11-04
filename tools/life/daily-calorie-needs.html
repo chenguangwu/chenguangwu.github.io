@@ -364,7 +364,7 @@ s.parentNode.insertBefore(el, s);
       <p style="color:var(--text-muted);font-size:13px;padding:12px 0;" data-zh="暂无历史记录">Estimate calories from ingredients and portion weights for a full-day meal plan.</p>    <div class="formula-box">
       <div class="formula-title">📐 计算公式 / 原理</div>
       <div class="formula-eq">BMR(Mifflin) = 10×体重 + 6.25×身高 − 5×年龄 + (男 5 / 女 −161)；TDEE = BMR × 活动系数</div>
-      <div class="formula-desc">默认 Mifflin-St Jeor 公式，另可选 Harris-Benedict（男 66.5+13.75W+5.003H−6.755A）与 Katch-McArdle（370+21.6×去脂体重，先用 BMI 估算体脂率）。每日目标摄入 = TDEE + 目标差额（减脂/维持/增肌），数值为估算参考。</div>
+      <div class="formula-desc">默认 Mifflin-St Jeor 公式，另可选 Harris-Benedict（男 66.5+13.75W+5.003H−6.755A）与 Katch-McArdle（370+21.6×去脂体重，体脂率用 Deurenberg 公式：男 1.20×BMI+0.23×年龄−16.2、女 1.20×BMI+0.23×年龄−5.4，限 2%–60%）。每日目标摄入 = TDEE + 目标差额（减脂/维持/增肌），数值为估算参考。</div>
     </div>
 
     </div>
@@ -548,10 +548,15 @@ function switchTab(tab){
 function calcBMI(){
   const height = parseFloat(document.getElementById('bmiHeight').value);
   const weight = parseFloat(document.getElementById('bmiWeight').value);
-  
-  if(!height || !weight || height <= 0 || weight <= 0){
+  const hOk = isFinite(height) && height >= 50 && height <= 250;
+  const wOk = isFinite(weight) && weight >= 10 && weight <= 300;
+  document.getElementById('bmiHeight').classList.toggle('input-error', !hOk);
+  document.getElementById('bmiWeight').classList.toggle('input-error', !wOk);
+
+  if(!hOk || !wOk){
     document.getElementById('bmiValue').textContent = '--';
     document.getElementById('bmiStatus').textContent = '请输入有效数据';
+    document.getElementById('bmiStats').innerHTML = '';
     return;
   }
   
@@ -576,12 +581,25 @@ function calcBMI(){
   
   const idealMin = 18.5 * ((height / 100) ** 2);
   const idealMax = 23.9 * ((height / 100) ** 2);
-  
+
+  // 体脂率改用 Deurenberg 公式（与 BMR 面板 Katch-McArdle 同源），并限定 2%–60%
+  const age = parseFloat(document.getElementById('bmiAge').value);
+  const gender = document.getElementById('bmiGender').value;
+  const ageOk = isFinite(age) && age >= 1 && age <= 120;
+  document.getElementById('bmiAge').classList.toggle('input-error', !ageOk);
+  let bodyFatText = '--';
+  if(ageOk){
+    const bodyFat = gender === 'male'
+      ? 1.20 * bmi + 0.23 * age - 16.2
+      : 1.20 * bmi + 0.23 * age - 5.4;
+    bodyFatText = (bodyFat >= 2 && bodyFat <= 60) ? bodyFat.toFixed(1) + '%' : '超出估算范围';
+  }
+
   const __h0=`
     <div class="stat-card"><div class="v">${idealMin.toFixed(1)}-${idealMax.toFixed(1)}</div><div class="l">理想体重(kg)</div></div>
     <div class="stat-card"><div class="v">${(weight - idealMax > 0 ? '+' : '')}${(weight - idealMax).toFixed(1)}</div><div class="l">与理想体重差(kg)</div></div>
     <div class="stat-card"><div class="v">${(height - 105).toFixed(1)}</div><div class="l">简单标准体重(kg)</div></div>
-    <div class="stat-card"><div class="v">${((weight / (height * height / 10000)) * 100 / 22).toFixed(0)}%</div><div class="l">体脂率估计</div></div>
+    <div class="stat-card"><div class="v">${bodyFatText}</div><div class="l">体脂率估算</div></div>
   `;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('bmiStats').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('bmiStats').innerHTML=__h0;
 }
 
@@ -651,7 +669,8 @@ function initActivityList(){
 function selectActivity(id){
   selectedActivity = id;
   document.querySelectorAll('.activity-item').forEach(el => el.classList.remove('active'));
-  event.currentTarget.classList.add('active');
+  const active = document.querySelector('.activity-item[onclick="selectActivity(\'' + id + '\')"]');
+  if(active) active.classList.add('active');
   calcTDEE();
 }
 
@@ -668,7 +687,8 @@ function initGoalList(){
 function selectGoal(id){
   selectedGoal = id;
   document.querySelectorAll('.goal-item').forEach(el => el.classList.remove('active'));
-  event.currentTarget.classList.add('active');
+  const active = document.querySelector('.goal-item[onclick="selectGoal(\'' + id + '\')"]');
+  if(active) active.classList.add('active');
   calcTDEE();
 }
 
@@ -693,6 +713,7 @@ function calcTDEE(){
   
   const activity = ACTIVITY_LEVELS.find(a => a.id === selectedActivity);
   const goal = GOALS.find(g => g.id === selectedGoal);
+  if(!activity || !goal) return;
   const tdee = bmr * activity.factor;
   const target = tdee + goal.cal;
   

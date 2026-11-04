@@ -336,18 +336,64 @@ function addMonths(date, months) {
   return d;
 }
 
+// 最低还款循环模拟：最多 120 期，返回是否真正还清
+function simulateMinimum(bill, dailyRate, minRatio, lateFeeRatio) {
+  var balance = bill, totalInterest = 0, totalLateFee = 0, months = 0;
+  var schedule = [], maxMonths = 120, negative = false;
+  while (balance > 0.01 && months < maxMonths) {
+    months++;
+    var interest = balance * dailyRate * 30;
+    var minPayment = Math.max(balance * minRatio + interest, 10);
+    var payment = Math.min(minPayment, balance + interest);
+    var lateFee = 0;
+    if (payment < balance * minRatio + interest) {
+      lateFee = Math.max((balance * minRatio + interest - payment) * lateFeeRatio, 1);
+      totalLateFee += lateFee;
+    }
+    totalInterest += interest;
+    var principal = payment - interest - lateFee;
+    if (principal < 0) { principal = 0; negative = true; }
+    balance -= principal;
+    if (balance < 0) balance = 0;
+    schedule.push({
+      month: months, payment: payment, principal: principal,
+      interest: interest, lateFee: lateFee, balance: balance
+    });
+  }
+  return {
+    schedule: schedule, totalInterest: totalInterest, totalLateFee: totalLateFee,
+    months: months, balance: balance, cleared: balance <= 0.01, negative: negative
+  };
+}
+
 function calc() {
   var type = document.getElementById('repayType').value;
   document.getElementById('installmentBox').style.display = type === 'installment' ? 'block' : 'none';
 
-  var bill = +document.getElementById('billAmount').value || 0;
+  var billEl = document.getElementById('billAmount');
+  var bill = +billEl.value || 0;
   var dailyRate = +document.getElementById('dailyRate').value / 100 || 0;
   var billDay = +document.getElementById('billDay').value || 1;
   var dueDay = +document.getElementById('dueDay').value || 1;
-  var minRatio = +document.getElementById('minRatio').value / 100 || 0;
+  var minRatioEl = document.getElementById('minRatio');
+  var minRatioRaw = +minRatioEl.value;
+  var minRatio = minRatioRaw / 100 || 0;
   var lateFeeRatio = +document.getElementById('lateFeeRatio').value / 100 || 0;
   var instMonths = +document.getElementById('installmentMonths').value || 12;
   var instFee = +document.getElementById('installmentFee').value / 100 || 0;
+
+  billEl.classList.toggle('input-error', !(bill > 0));
+  minRatioEl.classList.toggle('input-error', type === 'minimum' && !(minRatioRaw >= 1 && minRatioRaw <= 100));
+  if (bill <= 0) {
+    document.getElementById('resultBox').innerHTML = '<p style="color:var(--danger);">请输入有效的账单金额</p>';
+    document.getElementById('scheduleCard').style.display = 'none';
+    return;
+  }
+  if (type === 'minimum' && !(minRatioRaw >= 1 && minRatioRaw <= 100)) {
+    document.getElementById('resultBox').innerHTML = '<p style="color:var(--danger);">最低还款比例须为 1%–100%，低于 1% 会造成负摊还，无法还清</p>';
+    document.getElementById('scheduleCard').style.display = 'none';
+    return;
+  }
 
   var interestFreeDays = 0;
   if (dueDay > billDay) {
@@ -370,40 +416,14 @@ function calc() {
     html += '<p style="color:var(--success);">✅ 全额还款可享受免息期，无需支付利息</p>';
     document.getElementById('scheduleCard').style.display = 'none';
   } else if (type === 'minimum') {
-    var minPay = bill * minRatio;
-    var balance = bill;
-    var totalInterest = 0;
-    var totalLateFee = 0;
-    var months = 0;
-    var maxMonths = 120;
-
-    while (balance > 0.01 && months < maxMonths) {
-      months++;
-      var interest = balance * dailyRate * 30;
-      var lateFee = 0;
-      var minPayment = Math.max(balance * minRatio + interest, 10);
-      var payment = Math.min(minPayment, balance + interest);
-
-      if (payment < balance * minRatio + interest) {
-        lateFee = Math.max((balance * minRatio + interest - payment) * lateFeeRatio, 1);
-        totalLateFee += lateFee;
-      }
-
-      totalInterest += interest;
-      var principal = payment - interest - lateFee;
-      if (principal < 0) principal = 0;
-      balance -= principal;
-      if (balance < 0) balance = 0;
-
-      schedule.push({
-        month: months,
-        payment: payment,
-        principal: principal,
-        interest: interest,
-        lateFee: lateFee,
-        balance: balance
-      });
-    }
+    var minPay = Math.max(bill * minRatio + bill * dailyRate * 30, 10);
+    var sim = simulateMinimum(bill, dailyRate, minRatio, lateFeeRatio);
+    schedule = sim.schedule;
+    var totalInterest = sim.totalInterest;
+    var totalLateFee = sim.totalLateFee;
+    var months = sim.months;
+    var remaining = sim.balance;
+    var cleared = sim.cleared;
 
     var totalPaid = bill + totalInterest + totalLateFee;
 
@@ -411,9 +431,15 @@ function calc() {
     html += '<div class="stat-card"><div class="val">' + fmt(minPay) + '</div><div class="lbl">首月最低还款</div></div>';
     html += '<div class="stat-card"><div class="val" style="color:var(--danger);">' + fmt(totalInterest) + '</div><div class="lbl">循环利息总额</div></div>';
     html += '<div class="stat-card"><div class="val" style="color:var(--danger);">' + fmt(totalLateFee) + '</div><div class="lbl">滞纳金总额</div></div>';
-    html += '<div class="stat-card"><div class="val">' + months + '</div><div class="lbl">还清月数</div></div>';
+    html += '<div class="stat-card"><div class="val">' + (cleared ? months : '未还清') + '</div><div class="lbl">还清月数</div></div>';
     html += '</div>';
     html += '<p>总支出：<strong style="color:var(--primary);font-size:18px;">' + fmt(totalPaid) + '</strong> 元</p>';
+    if (!cleared) {
+      html += '<p style="color:var(--danger);">⚠️ 120 期内未还清，剩余本金 <strong>' + fmt(remaining) + '</strong> 元，以上总支出仅为 120 期累计</p>';
+    }
+    if (sim.negative) {
+      html += '<p style="color:var(--danger);">⚠️ 还款额低于当期利息，已发生负摊还，本金将持续增加</p>';
+    }
     html += '<p style="color:var(--danger);">⚠️ 最低还款利息成本很高，年化利率约 ' + (dailyRate * 365 * 100).toFixed(2) + '%</p>';
 
     renderSchedule(schedule);
@@ -483,26 +509,29 @@ function renderSchedule(schedule) {
 function showCompare() {
   var bill = +document.getElementById('billAmount').value || 0;
   var dailyRate = +document.getElementById('dailyRate').value / 100 || 0;
-  var minRatio = +document.getElementById('minRatio').value / 100 || 0;
+  var minRatioRaw = +document.getElementById('minRatio').value;
+  var minRatio = minRatioRaw / 100 || 0;
   var lateFeeRatio = +document.getElementById('lateFeeRatio').value / 100 || 0;
   var instMonths = +document.getElementById('installmentMonths').value || 12;
   var instFee = +document.getElementById('installmentFee').value / 100 || 0;
 
-  var minTotalInterest = 0;
-  var minMonths = 0;
-  var balance = bill;
-  while (balance > 0.01 && minMonths < 120) {
-    minMonths++;
-    var interest = balance * dailyRate * 30;
-    var minPayment = Math.max(balance * minRatio + interest, 10);
-    var payment = Math.min(minPayment, balance + interest);
-    minTotalInterest += interest;
-    var principal = payment - interest;
-    if (principal < 0) principal = 0;
-    balance -= principal;
-    if (balance < 0) balance = 0;
+  if (bill <= 0) {
+    document.getElementById('compareCard').style.display = 'none';
+    return;
   }
-  var minTotal = bill + minTotalInterest;
+  if (!(minRatioRaw >= 1 && minRatioRaw <= 100)) {
+    document.getElementById('minRatio').classList.add('input-error');
+    document.getElementById('compareContent').innerHTML = '<p style="color:var(--danger);">最低还款比例须为 1%–100% 才能进行对比</p>';
+    document.getElementById('compareCard').style.display = 'block';
+    return;
+  }
+
+  var sim = simulateMinimum(bill, dailyRate, minRatio, lateFeeRatio);
+  var minTotalInterest = sim.totalInterest;
+  var minTotalLateFee = sim.totalLateFee;
+  var minMonths = sim.months;
+  var minCleared = sim.cleared;
+  var minTotal = bill + minTotalInterest + minTotalLateFee;
 
   var instTotalFee = bill * instFee * instMonths;
   var instTotal = bill + instTotalFee;
@@ -514,11 +543,14 @@ function showCompare() {
 
   var html = '';
   html += '<table><thead><tr><th>项目</th><th>最低还款</th><th>分期还款(' + instMonths + '期)</th></tr></thead><tbody>';
-  html += '<tr><td>每月还款</td><td>首月约 ' + fmt(bill * minRatio + bill * dailyRate * 30) + '</td><td>' + fmt(instMonthly) + '</td></tr>';
-  html += '<tr><td>利息/手续费总额</td><td style="color:var(--danger);">' + fmt(minTotalInterest) + '</td><td style="color:var(--danger);">' + fmt(instTotalFee) + '</td></tr>';
+  html += '<tr><td>每月还款</td><td>首月约 ' + fmt(Math.max(bill * minRatio + bill * dailyRate * 30, 10)) + '</td><td>' + fmt(instMonthly) + '</td></tr>';
+  html += '<tr><td>利息/手续费总额</td><td style="color:var(--danger);">' + fmt(minTotalInterest + minTotalLateFee) + '</td><td style="color:var(--danger);">' + fmt(instTotalFee) + '</td></tr>';
   html += '<tr><td>总支出</td><td>' + fmt(minTotal) + '</td><td>' + fmt(instTotal) + '</td></tr>';
-  html += '<tr><td>还清时间</td><td>' + minMonths + ' 个月</td><td>' + instMonths + ' 个月</td></tr>';
+  html += '<tr><td>还清时间</td><td>' + (minCleared ? minMonths + ' 个月' : '120 期内未还清') + '</td><td>' + instMonths + ' 个月</td></tr>';
   html += '</tbody></table>';
+  if (!minCleared) {
+    html += '<p style="color:var(--danger);">⚠️ 最低还款 120 期内未还清，剩余本金 ' + fmt(sim.balance) + ' 元，对比结论仅供参考</p>';
+  }
 
   html += '<div style="margin-top:16px;padding:12px;background:var(--result-bg);border-radius:8px;">';
   html += '<p><strong>结论：</strong><span style="color:var(--success);font-size:16px;">' + better + '更省钱</span></p>';

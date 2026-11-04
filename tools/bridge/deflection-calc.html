@@ -295,25 +295,64 @@ function setMode(m,btn){
   calc();
 }
 function fmt(v,d){if(!isFinite(v))return '--';return Number(v).toFixed(d!=null?d:4);}
+function setInvalid(el,invalid){
+  if(!el)return;
+  if(invalid){el.classList.add('input-error');el.setAttribute('aria-invalid','true');}
+  else{el.classList.remove('input-error');el.removeAttribute('aria-invalid');}
+}
+function clearResults(){
+  ['resF','resLimit','resRatio','resCheck'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(el)el.textContent='--';
+  });
+  document.getElementById('result').innerHTML='';
+  window._lastResult=null;
+}
 function calc(){
-  var L=parseFloat(document.getElementById('inL').value);
-  var E=parseFloat(document.getElementById('inE').value)*1e9; // Pa
-  var I=parseFloat(document.getElementById('inI').value);
+  var lEl=document.getElementById('inL');
+  var eEl=document.getElementById('inE');
+  var iEl=document.getElementById('inI');
+  var L=parseFloat(lEl.value);
+  var Eraw=parseFloat(eEl.value);
+  var E=Eraw*1e9; // Pa
+  var I=parseFloat(iEl.value);
   var limitN=parseInt(document.getElementById('inLimit').value,10);
-  if(!L||!E||!I||L<=0)return;
+  var baseOk=isFinite(L)&&L>0&&isFinite(Eraw)&&Eraw>0&&isFinite(I)&&I>0;
+  setInvalid(lEl,!(isFinite(L)&&L>0));
+  setInvalid(eEl,!(isFinite(Eraw)&&Eraw>0));
+  setInvalid(iEl,!(isFinite(I)&&I>0));
+  if(!baseOk){
+    clearResults();
+    document.getElementById('result').innerHTML='<p style="color:var(--danger,#EF4444);">请输入有效的跨径 L、弹性模量 E 与惯性矩 I（均需大于 0）。</p>';
+    return;
+  }
   var EI=E*I;
   var f=0,detail='',loadDesc='';
   if(calcMode==='uniform'){
-    var q=parseFloat(document.getElementById('inQ').value)*1000; // N/m
-    if(!q)return;
+    var qEl=document.getElementById('inQ');
+    var q=parseFloat(qEl.value)*1000; // N/m
+    var qOk=isFinite(q)&&q>0;
+    setInvalid(qEl,!qOk);
+    if(!qOk){
+      clearResults();
+      document.getElementById('result').innerHTML='<p style="color:var(--danger,#EF4444);">请输入有效的均布荷载 q（需大于 0）。</p>';
+      return;
+    }
     f=5*q*Math.pow(L,4)/(384*EI);
     loadDesc='均布荷载 q='+fmt(q/1000,1)+' kN/m';
     detail='<p><strong>均布荷载 q：</strong>'+fmt(q/1000,1)+' kN/m</p>'+
       '<p><strong>抗弯刚度 EI：</strong>'+fmt(EI/1e6,2)+' MN·m²</p>'+
       '<p><strong>跨中最大挠度 f：</strong>'+fmt(f*1000,3)+' mm</p>';
   }else{
-    var P=parseFloat(document.getElementById('inP').value)*1000; // N
-    if(!P)return;
+    var pEl=document.getElementById('inP');
+    var P=parseFloat(pEl.value)*1000; // N
+    var pOk=isFinite(P)&&P>0;
+    setInvalid(pEl,!pOk);
+    if(!pOk){
+      clearResults();
+      document.getElementById('result').innerHTML='<p style="color:var(--danger,#EF4444);">请输入有效的集中荷载 P（需大于 0）。</p>';
+      return;
+    }
     f=P*Math.pow(L,3)/(48*EI);
     loadDesc='集中荷载 P='+fmt(P/1000,1)+' kN';
     detail='<p><strong>集中荷载 P：</strong>'+fmt(P/1000,1)+' kN（作用于跨中）</p>'+

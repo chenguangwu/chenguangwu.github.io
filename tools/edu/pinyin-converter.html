@@ -167,12 +167,12 @@ s.parentNode.insertBefore(el, s);
 
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="🔄 拼音转换器">🔄 Chinese to Pinyin Converter</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="汉字转拼音 · 多音字识别 · 批量转换 · 速查参考">Convert Chinese characters to pinyin with tone marks and romanization lookup.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="汉字转拼音 · 按词消歧（整词优先）· 批量转换 · 速查参考">Convert Chinese characters to pinyin with tone marks; polyphones are disambiguated by whole-word matching.</p>
     
     <div class="tabs">
       <div class="tab active" onclick="switchTab('convert')">转换</div>
       <div class="tab" onclick="switchTab('polyphone')">多音字</div>
-      <div class="tab" onclick="switchTab('reference')">拼音表</div>
+      <div class="tab" onclick="switchTab('reference')">单字拼音表</div>
       <div class="tab" onclick="switchTab('history')">历史</div>
     </div>
 
@@ -191,7 +191,7 @@ s.parentNode.insertBefore(el, s);
       <div class="checkbox-row">
         <label><input type="checkbox" id="withSpace" checked onchange="convert()"> 字间空格</label>
         <label><input type="checkbox" id="firstUpper" onchange="convert()"> 首字母大写</label>
-        <label><input type="checkbox" id="ignorePoly" onchange="convert()"> 忽略多音字（取常用音）</label>
+        <label><input type="checkbox" id="ignorePoly" onchange="convert()"> 忽略多音字（按单字默认音）</label>
       </div>
 
       <div class="stat-info" id="statInfo"></div>
@@ -240,6 +240,7 @@ s.parentNode.insertBefore(el, s);
     <div class="step-line"><strong>无声调：</strong>不带声调符号，如：ni hao shi jie</div>
     <div class="step-line"><strong>首字母：</strong>只显示拼音首字母，如：N H S J</div>
     <div class="step-line"><strong>多音字：</strong>常见多音字会标注多个读音，可在「多音字」标签查看详情</div>
+    <div class="step-line"><strong>按词消歧：</strong>多音字按整词优先匹配，如「银行」→ yín háng、「音乐」→ yīn yuè、「头发」→ tóu fà、「好了」→ hǎo le</div>
     <div class="step-line"><strong>批量转换：</strong>支持大段文字批量转换，保留标点符号和格式</div>
   </div>
 
@@ -266,13 +267,13 @@ s.parentNode.insertBefore(el, s);
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
 <li>汉字转拼：输出拼音与声调。</li>
-<li>多音字：按常见音标注。</li>
+<li>多音字：按整词优先消歧。</li>
 <li>批量：整段转换。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">示例</div><div class="dd-ex-body">示例：「你好」→ nǐ hǎo。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>多音字？</dt><dd>按常用读音标注，特殊语境需人工校正。</dd>
+<dt>多音字？</dt><dd>按整词优先匹配（如「银行」「音乐」「头发」「好了」），未登录词语回落到单字默认音，特殊语境仍需人工校正。</dd>
 <dt>声调？</dt><dd>标注四声与轻声。</dd>
 <dt>用途？</dt><dd>识字教学与注音辅助。</dd>
 </dl>
@@ -323,93 +324,121 @@ s.parentNode.insertBefore(el, s);
 const HISTORY_KEY = 'toolbox_pinyin_history';
 let currentMode = 'tone';
 
-const pinyinData = {
-  '一':'yī','二':'èr','三':'sān','四':'sì','五':'wǔ','六':'liù','七':'qī','八':'bā','九':'jiǔ','十':'shí',
-  '零':'líng','百':'bǎi','千':'qiān','万':'wàn','亿':'yì',
-  '你':'nǐ','好':'hǎo','世':'shì','界':'jiè','我':'wǒ','他':'tā','她':'tā','们':'men','的':'de','是':'shì',
-  '在':'zài','有':'yǒu','和':'hé','不':'bù','了':'le','人':'rén','这':'zhè','中':'zhōng','大':'dà','为':'wèi',
-  '上':'shàng','个':'gè','国':'guó','到':'dào','时':'shí','来':'lái','生':'shēng','会':'huì','对':'duì','子':'zǐ',
-  '学':'xué','而':'ér','年':'nián','也':'yě','说':'shuō','出':'chū','能':'néng','方':'fāng','地':'dì','行':'xíng',
-  '种':'zhǒng','过':'guò','家':'jiā','水':'shuǐ','理':'lǐ','事':'shì','法':'fǎ','正':'zhèng','心':'xīn','当':'dāng',
-  '月':'yuè','没':'méi','面':'miàn','同':'tóng','天':'tiān','起':'qǐ','看':'kàn','定':'dìng','分':'fēn','还':'hái',
-  '进':'jìn','小':'xiǎo','成':'chéng','那':'nà','机':'jī','民':'mín','发':'fā','电':'diàn','如':'rú','口':'kǒu',
+const PINYIN_CHARS = {
+  '一':'yī','二':'èr','三':'sān','四':'sì','五':'wǔ','六':'liù','七':'qī','八':'bā','九':'jiǔ','十':'shí','零':'líng',
+  '百':'bǎi','千':'qiān','万':'wàn','亿':'yì','你':'nǐ','好':'hǎo','世':'shì','界':'jiè','我':'wǒ','他':'tā','她':'tā',
+  '们':'men','的':'de','是':'shì','在':'zài','有':'yǒu','和':'hé','不':'bù','了':'le','人':'rén','这':'zhè','中':'zhōng',
+  '大':'dà','为':'wèi','上':'shàng','个':'gè','国':'guó','到':'dào','时':'shí','来':'lái','生':'shēng','会':'huì',
+  '对':'duì','子':'zǐ','学':'xué','而':'ér','年':'nián','也':'yě','说':'shuō','出':'chū','能':'néng','方':'fāng','地':'dì',
+  '行':'xíng','种':'zhǒng','过':'guò','家':'jiā','水':'shuǐ','理':'lǐ','事':'shì','法':'fǎ','正':'zhèng','心':'xīn',
+  '当':'dāng','月':'yuè','没':'méi','面':'miàn','同':'tóng','天':'tiān','起':'qǐ','看':'kàn','定':'dìng','分':'fēn',
+  '还':'hái','进':'jìn','小':'xiǎo','成':'chéng','那':'nà','机':'jī','民':'mín','发':'fā','电':'diàn','如':'rú','口':'kǒu',
   '多':'duō','全':'quán','后':'hòu','已':'yǐ','动':'dòng','高':'gāo','长':'cháng','意':'yì','主':'zhǔ','产':'chǎn',
   '道':'dào','现':'xiàn','山':'shān','工':'gōng','军':'jūn','很':'hěn','最':'zuì','新':'xīn','书':'shū','话':'huà',
   '听':'tīng','实':'shí','读':'dú','写':'xiě','字':'zì','手':'shǒu','见':'jiàn','明':'míng','问':'wèn','老':'lǎo',
-  '师':'shī','朋':'péng','友':'yǒu','爸':'bà','妈':'mā','哥':'gē','姐':'jiě','弟':'dì','妹':'mèi','爱':'ài',
-  '吃':'chī','喝':'hē','睡':'shuì','走':'zǒu','跑':'pǎo','跳':'tiào','坐':'zuò','站':'zhàn','躺':'tǎng',
-  '学':'xué','习':'xí','教':'jiāo','师':'shī','生':'shēng','校':'xiào','班':'bān','课':'kè','题':'tí','答':'dá',
-  '语':'yǔ','文':'wén','数':'shù','学':'xué','英':'yīng','语':'yǔ','物':'wù','理':'lǐ','化':'huà','学':'xué',
-  '早':'zǎo','上':'shàng','中':'zhōng','午':'wǔ','晚':'wǎn','上':'shàng','今':'jīn','天':'tiān','明':'míng','天':'tiān',
-  '昨':'zuó','天':'tiān','前':'qián','后':'hòu','左':'zuǒ','右':'yòu','东':'dōng','西':'xī','南':'nán','北':'běi',
-  '春':'chūn','夏':'xià','秋':'qiū','冬':'dōng','季':'jì','节':'jié','冷':'lěng','热':'rè','温':'wēn','暖':'nuǎn',
-  '风':'fēng','雨':'yǔ','雪':'xuě','雷':'léi','电':'diàn','云':'yún','雾':'wù','霜':'shuāng','露':'lù','晴':'qíng',
-  '阴':'yīn','多':'duō','云':'yún','台':'tái','风':'fēng','龙':'lóng','卷':'juǎn','风':'fēng',
-  '红':'hóng','橙':'chéng','黄':'huáng','绿':'lǜ','青':'qīng','蓝':'lán','紫':'zǐ','白':'bái','黑':'hēi','灰':'huī',
-  '金':'jīn','银':'yín','铜':'tóng','铁':'tiě','铝':'lǚ','钢':'gāng',
-  '苹':'píng','果':'guǒ','香':'xiāng','蕉':'jiāo','葡':'pú','萄':'táo','西':'xī','瓜':'guā','草':'cǎo','莓':'méi',
-  '橘':'jú','子':'zǐ','柠':'níng','檬':'méng','樱':'yīng','桃':'táo','梨':'lí','桃':'táo','李':'lǐ','杏':'xìng',
-  '菠':'bō','萝':'luó','芒':'máng','果':'guǒ','榴':'liú','莲':'lián','山':'shān','竹':'zhú',
-  '米':'mǐ','面':'miàn','饭':'fàn','粥':'zhōu','汤':'tāng','菜':'cài','肉':'ròu','鱼':'yú','鸡':'jī','蛋':'dàn',
-  '牛':'niú','羊':'yáng','猪':'zhū','狗':'gǒu','猫':'māo','鸟':'niǎo','虫':'chóng','鱼':'yú','虾':'xiā','蟹':'xiè',
-  '马':'mǎ','虎':'hǔ','狮':'shī','子':'zi','熊':'xióng','猫':'māo','大':'dà','象':'xiàng','长':'cháng','颈':'jǐng','鹿':'lù',
-  '猴':'hóu','子':'zi','兔':'tù','子':'zi','松':'sōng','鼠':'shǔ','企':'qǐ','鹅':'é','鹦':'yīng','鹉':'wǔ',
-  '眼':'yǎn','睛':'jīng','鼻':'bí','子':'zi','嘴':'zuǐ','巴':'ba','耳':'ěr','朵':'duo','头':'tóu','发':'fà',
-  '脸':'liǎn','眉':'méi','毛':'mao','牙':'yá','齿':'chǐ','舌':'shé','头':'tóu','颈':'jǐng','肩':'jiān','背':'bèi',
-  '胸':'xiōng','肚':'dù','子':'zi','手':'shǒu','臂':'bì','腿':'tuǐ','脚':'jiǎo','心':'xīn','肝':'gān','脾':'pí',
-  '肺':'fèi','肾':'shèn','胃':'wèi','肠':'cháng',
-  '衣':'yī','服':'fu','鞋':'xié','子':'zi','帽':'mào','子':'zi','袜':'wà','子':'zi','裤':'kù','子':'zi','裙':'qún','子':'zi',
-  '衬':'chèn','衫':'shān','外':'wài','套':'tào','毛':'máo','衣':'yī','羽':'yǔ','绒':'róng','服':'fu',
-  '书':'shū','包':'bāo','笔':'bǐ','本':'běn','纸':'zhǐ','墨':'mò','砚':'yàn','台':'tái','尺':'chǐ','子':'zi',
-  '刀':'dāo','剪':'jiǎn','子':'zi','胶':'jiāo','水':'shuǐ','橡':'xiàng','皮':'pí','颜':'yán','料':'liào',
-  '住':'zhù','房':'fáng','子':'zi','家':'jiā','门':'mén','窗':'chuāng','户':'hù','楼':'lóu','层':'céng',
-  '厨':'chú','房':'fáng','卫':'wèi','生':'shēng','间':'jiān','卧':'wò','室':'shì','客':'kè','厅':'tīng',
-  '桌':'zhuō','椅':'yǐ','子':'zi','沙':'shā','发':'fa','床':'chuáng','柜':'guì','子':'zi','灯':'dēng','镜':'jìng','子':'zi',
-  '看':'kàn','电':'diàn','视':'shì','电':'diàn','影':'yǐng','听':'tīng','音':'yīn','乐':'yuè','唱':'chàng','歌':'gē',
-  '跳':'tiào','舞':'wǔ','游':'yóu','泳':'yǒng','跑':'pǎo','步':'bù','打':'dǎ','球':'qiú','爬':'pá','山':'shān',
-  '旅':'lǚ','游':'yóu','旅':'lǚ','行':'xíng','参':'cān','观':'guān','玩':'wán','耍':'shuǎ','休':'xiū','息':'xī',
-  '工':'gōng','作':'zuò','上':'shàng','班':'bān','下':'xià','班':'bān','加':'jiā','班':'bān','休':'xiū','假':'jià',
-  '公':'gōng','司':'sī','老':'lǎo','板':'bǎn','同':'tóng','事':'shì','客':'kè','户':'hù','订':'dìng','单':'dān',
-  '钱':'qián','银':'yín','行':'háng','存':'cún','款':'kuǎn','取':'qǔ','款':'kuǎn','转':'zhuǎn','账':'zhàng',
-  '买':'mǎi','卖':'mài','商':'shāng','店':'diàn','超':'chāo','市':'shì','市':'shì','场':'chǎng',
-  '网':'wǎng','络':'luò','电':'diàn','脑':'nǎo','手':'shǒu','机':'jī','软':'ruǎn','件':'jiàn','硬':'yìng','件':'jiàn',
-  '系':'xì','统':'tǒng','程':'chéng','序':'xù','代':'dài','码':'mǎ','编':'biān','程':'chéng','开':'kāi','发':'fā',
-  '数':'shù','据':'jù','信':'xìn','息':'xī','文':'wén','件':'jiàn','图':'tú','片':'piàn','视':'shì','频':'pín',
-  '音':'yīn','频':'pín','软':'ruǎn','件':'jiàn','硬':'yìng','件':'jiàn','内':'nèi','存':'cún','硬':'yìng','盘':'pán',
-  '键':'jiàn','盘':'pán','鼠':'shǔ','标':'biāo','显':'xiǎn','示':'shì','器':'qì','打':'dǎ','印':'yìn','机':'jī',
-  '复':'fù','印':'yìn','机':'jī','扫':'sǎo','描':'miáo','仪':'yí','摄':'shè','像':'xiàng','头':'tóu',
-  '重':'zhòng','要':'yào','重':'zhòng','量':'liàng','轻':'qīng','重':'zhòng','要':'yào','紧':'jǐn','急':'jí',
-  '快':'kuài','慢':'màn','多':'duō','少':'shǎo','大':'dà','小':'xiǎo','高':'gāo','矮':'ǎi','长':'cháng','短':'duǎn',
-  '宽':'kuān','窄':'zhǎi','厚':'hòu','薄':'báo','深':'shēn','浅':'qiǎn','远':'yuǎn','近':'jìn',
-  '真':'zhēn','假':'jiǎ','对':'duì','错':'cuò','好':'hǎo','坏':'huài','美':'měi','丑':'chǒu','善':'shàn','恶':'è',
-  '喜':'xǐ','怒':'nù','哀':'āi','乐':'lè','爱':'ài','恨':'hèn','悲':'bēi','欢':'huān','惊':'jīng','怕':'pà',
-  '思':'sī','念':'niàn','想':'xiǎng','念':'niàn','忘':'wàng','记':'jì','记':'jì','得':'de','忘':'wàng','了':'le',
-  '知':'zhī','道':'dào','懂':'dǒng','了':'liǎo','明':'míng','白':'bai','清':'qīng','楚':'chu','迷':'mí','惑':'huò',
-  '开':'kāi','关':'guān','启':'qǐ','闭':'bì','打':'dǎ','开':'kāi','关':'guān','掉':'diào',
-  '进':'jìn','出':'chū','入':'rù','回':'huí','来':'lái','去':'qù','走':'zǒu','到':'dào',
-  '上':'shàng','下':'xià','升':'shēng','降':'jiàng','抬':'tái','放':'fàng','拿':'ná','放':'fàng',
-  '给':'gěi','拿':'ná','送':'sòng','收':'shōu','借':'jiè','还':'huán','买':'mǎi','卖':'mài',
-  '做':'zuò','干':'gàn','办':'bàn','搞':'gǎo','弄':'nòng','制':'zhì','作':'zuò',
-  '想':'xiǎng','要':'yào','愿':'yuàn','意':'yì','希':'xī','望':'wàng','期':'qī','待':'dài',
-  '可':'kě','以':'yǐ','能':'néng','够':'gòu','会':'huì','不':'bù','行':'xíng','可':'kě','行':'xíng',
-  '非':'fēi','常':'cháng','十':'shí','分':'fēn','很':'hěn','太':'tài','最':'zuì','更':'gèng','比':'bǐ','较':'jiào',
-  '已':'yǐ','经':'jīng','曾':'céng','经':'jīng','将':'jiāng','要':'yào','正':'zhèng','在':'zài',
-  '就':'jiù','才':'cái','都':'dōu','也':'yě','还':'hái','又':'yòu','再':'zài','便':'biàn',
-  '于':'yú','从':'cóng','向':'xiàng','往':'wǎng','到':'dào','在':'zài','由':'yóu','自':'zì',
-  '把':'bǎ','被':'bèi','让':'ràng','使':'shǐ','给':'gěi','对':'duì','跟':'gēn','和':'hé',
-  '虽':'suī','然':'rán','但':'dàn','是':'shì','如':'rú','果':'guǒ','假':'jiǎ','如':'rú',
-  '因':'yīn','为':'wèi','所':'suǒ','以':'yǐ','由':'yóu','于':'yú','因':'yīn','此':'cǐ',
-  '不':'bù','但':'dàn','而':'ér','且':'qiě','不':'bù','仅':'jǐn','还':'hái',
-  '无':'wú','论':'lùn','都':'dōu','不':'bù','管':'guǎn','也':'yě',
-  '只':'zhǐ','要':'yào','就':'jiù','只':'zhǐ','有':'yǒu','才':'cái',
-  '即':'jí','使':'shǐ','也':'yě','哪':'nǎ','怕':'pà','也':'yě',
-  '既':'jì','然':'rán','就':'jiù','既':'jì','又':'yòu',
-  '一':'yī','边':'biān','一':'yī','边':'biān','一':'yī','面':'miàn','一':'yī','面':'miàn',
-  '首':'shǒu','先':'xiān','其':'qí','次':'cì','然':'rán','后':'hòu','最':'zuì','后':'hòu',
-  '第':'dì','一':'yī','第':'dì','二':'èr','第':'dì','三':'sān',
-  '啊':'a','呀':'ya','哇':'wa','呢':'ne','吧':'ba','吗':'ma','哦':'ò','嗯':'ǹg',
-  '哎':'āi','喂':'wèi','嗨':'hāi','哈':'hā','呵':'hē','哼':'hng','咦':'yí','唉':'ài'
+  '师':'shī','朋':'péng','友':'yǒu','爸':'bà','妈':'mā','哥':'gē','姐':'jiě','弟':'dì','妹':'mèi','爱':'ài','吃':'chī',
+  '喝':'hē','睡':'shuì','走':'zǒu','跑':'pǎo','跳':'tiào','坐':'zuò','站':'zhàn','躺':'tǎng','习':'xí','教':'jiāo',
+  '校':'xiào','班':'bān','课':'kè','题':'tí','答':'dá','语':'yǔ','文':'wén','数':'shù','英':'yīng','物':'wù','化':'huà',
+  '早':'zǎo','午':'wǔ','晚':'wǎn','今':'jīn','昨':'zuó','前':'qián','左':'zuǒ','右':'yòu','东':'dōng','西':'xī','南':'nán',
+  '北':'běi','春':'chūn','夏':'xià','秋':'qiū','冬':'dōng','季':'jì','节':'jié','冷':'lěng','热':'rè','温':'wēn',
+  '暖':'nuǎn','风':'fēng','雨':'yǔ','雪':'xuě','雷':'léi','云':'yún','雾':'wù','霜':'shuāng','露':'lù','晴':'qíng',
+  '阴':'yīn','台':'tái','龙':'lóng','卷':'juǎn','红':'hóng','橙':'chéng','黄':'huáng','绿':'lǜ','青':'qīng','蓝':'lán',
+  '紫':'zǐ','白':'bái','黑':'hēi','灰':'huī','金':'jīn','银':'yín','铜':'tóng','铁':'tiě','铝':'lǚ','钢':'gāng',
+  '苹':'píng','果':'guǒ','香':'xiāng','蕉':'jiāo','葡':'pú','萄':'táo','瓜':'guā','草':'cǎo','莓':'méi','橘':'jú',
+  '柠':'níng','檬':'méng','樱':'yīng','桃':'táo','梨':'lí','李':'lǐ','杏':'xìng','菠':'bō','萝':'luó','芒':'máng',
+  '榴':'liú','莲':'lián','竹':'zhú','米':'mǐ','饭':'fàn','粥':'zhōu','汤':'tāng','菜':'cài','肉':'ròu','鱼':'yú','鸡':'jī',
+  '蛋':'dàn','牛':'niú','羊':'yáng','猪':'zhū','狗':'gǒu','猫':'māo','鸟':'niǎo','虫':'chóng','虾':'xiā','蟹':'xiè',
+  '马':'mǎ','虎':'hǔ','狮':'shī','熊':'xióng','象':'xiàng','颈':'jǐng','鹿':'lù','猴':'hóu','兔':'tù','松':'sōng',
+  '鼠':'shǔ','企':'qǐ','鹅':'é','鹦':'yīng','鹉':'wǔ','眼':'yǎn','睛':'jīng','鼻':'bí','嘴':'zuǐ','巴':'ba','耳':'ěr',
+  '朵':'duo','头':'tóu','脸':'liǎn','眉':'méi','毛':'máo','牙':'yá','齿':'chǐ','舌':'shé','肩':'jiān','背':'bèi',
+  '胸':'xiōng','肚':'dù','臂':'bì','腿':'tuǐ','脚':'jiǎo','肝':'gān','脾':'pí','肺':'fèi','肾':'shèn','胃':'wèi',
+  '肠':'cháng','衣':'yī','服':'fú','鞋':'xié','帽':'mào','袜':'wà','裤':'kù','裙':'qún','衬':'chèn','衫':'shān','外':'wài',
+  '套':'tào','羽':'yǔ','绒':'róng','包':'bāo','笔':'bǐ','本':'běn','纸':'zhǐ','墨':'mò','砚':'yàn','尺':'chǐ','刀':'dāo',
+  '剪':'jiǎn','胶':'jiāo','橡':'xiàng','皮':'pí','颜':'yán','料':'liào','住':'zhù','房':'fáng','门':'mén','窗':'chuāng',
+  '户':'hù','楼':'lóu','层':'céng','厨':'chú','卫':'wèi','间':'jiān','卧':'wò','室':'shì','客':'kè','厅':'tīng',
+  '桌':'zhuō','椅':'yǐ','沙':'shā','床':'chuáng','柜':'guì','灯':'dēng','镜':'jìng','视':'shì','影':'yǐng','音':'yīn',
+  '乐':'lè','唱':'chàng','歌':'gē','舞':'wǔ','游':'yóu','泳':'yǒng','步':'bù','打':'dǎ','球':'qiú','爬':'pá','旅':'lǚ',
+  '参':'cān','观':'guān','玩':'wán','耍':'shuǎ','休':'xiū','息':'xī','作':'zuò','下':'xià','加':'jiā','假':'jiǎ',
+  '公':'gōng','司':'sī','板':'bǎn','订':'dìng','单':'dān','钱':'qián','存':'cún','款':'kuǎn','取':'qǔ','转':'zhuǎn',
+  '账':'zhàng','买':'mǎi','卖':'mài','商':'shāng','店':'diàn','超':'chāo','市':'shì','场':'chǎng','网':'wǎng','络':'luò',
+  '脑':'nǎo','软':'ruǎn','件':'jiàn','硬':'yìng','系':'xì','统':'tǒng','程':'chéng','序':'xù','代':'dài','码':'mǎ',
+  '编':'biān','开':'kāi','据':'jù','信':'xìn','图':'tú','片':'piàn','频':'pín','内':'nèi','盘':'pán','键':'jiàn',
+  '标':'biāo','显':'xiǎn','示':'shì','器':'qì','印':'yìn','复':'fù','扫':'sǎo','描':'miáo','仪':'yí','摄':'shè',
+  '像':'xiàng','重':'zhòng','要':'yào','量':'liàng','轻':'qīng','紧':'jǐn','急':'jí','快':'kuài','慢':'màn','少':'shǎo',
+  '矮':'ǎi','短':'duǎn','宽':'kuān','窄':'zhǎi','厚':'hòu','薄':'báo','深':'shēn','浅':'qiǎn','远':'yuǎn','近':'jìn',
+  '真':'zhēn','错':'cuò','坏':'huài','美':'měi','丑':'chǒu','善':'shàn','恶':'è','喜':'xǐ','怒':'nù','哀':'āi','恨':'hèn',
+  '悲':'bēi','欢':'huān','惊':'jīng','怕':'pà','思':'sī','念':'niàn','想':'xiǎng','忘':'wàng','记':'jì','得':'de',
+  '知':'zhī','懂':'dǒng','清':'qīng','楚':'chu','迷':'mí','惑':'huò','关':'guān','启':'qǐ','闭':'bì','掉':'diào','入':'rù',
+  '回':'huí','去':'qù','升':'shēng','降':'jiàng','抬':'tái','放':'fàng','拿':'ná','给':'gěi','送':'sòng','收':'shōu',
+  '借':'jiè','做':'zuò','干':'gàn','办':'bàn','搞':'gǎo','弄':'nòng','制':'zhì','愿':'yuàn','希':'xī','望':'wàng',
+  '期':'qī','待':'dài','可':'kě','以':'yǐ','够':'gòu','非':'fēi','常':'cháng','太':'tài','更':'gèng','比':'bǐ','较':'jiào',
+  '经':'jīng','曾':'céng','将':'jiāng','就':'jiù','才':'cái','都':'dōu','又':'yòu','再':'zài','便':'biàn','于':'yú',
+  '从':'cóng','向':'xiàng','往':'wǎng','由':'yóu','自':'zì','把':'bǎ','被':'bèi','让':'ràng','使':'shǐ','跟':'gēn',
+  '虽':'suī','然':'rán','但':'dàn','因':'yīn','所':'suǒ','此':'cǐ','且':'qiě','仅':'jǐn','无':'wú','论':'lùn','管':'guǎn',
+  '只':'zhǐ','即':'jí','哪':'nǎ','既':'jì','边':'biān','首':'shǒu','先':'xiān','其':'qí','次':'cì','第':'dì','啊':'a',
+  '呀':'ya','哇':'wa','呢':'ne','吧':'ba','吗':'ma','哦':'ò','嗯':'ǹg','哎':'āi','喂':'wèi','嗨':'hāi','哈':'hā','呵':'hē',
+  '哼':'hng','咦':'yí','唉':'ài'
 };
+
+// 词语级多音词表：整词优先（长词优先）匹配，用于覆盖单字默认音无法判定的读音
+const POLY_WORDS = {
+  '银行':['yín','háng'],'行业':['háng','yè'],'行长':['háng','zhǎng'],
+  '音乐':['yīn','yuè'],'乐器':['yuè','qì'],'乐章':['yuè','zhāng'],
+  '快乐':['kuài','lè'],'乐园':['lè','yuán'],
+  '头发':['tóu','fà'],'白发':['bái','fà'],'理发':['lǐ','fà'],
+  '好了':['hǎo','le'],'来了':['lái','le'],'走了':['zǒu','le'],'对了':['duì','le'],
+  '了解':['liǎo','jiě'],'了不起':['liǎo','bu','qǐ'],
+  '发现':['fā','xiàn'],'发生':['fā','shēng'],'出发':['chū','fā'],
+  '行走':['xíng','zǒu'],'行动':['xíng','dòng'],'行为':['xíng','wéi'],
+  '成长':['chéng','zhǎng'],'长大':['zhǎng','dà'],'校长':['xiào','zhǎng'],
+  '长城':['cháng','chéng'],'长度':['cháng','dù'],
+  '重复':['chóng','fù'],'重新':['chóng','xīn'],'重要':['zhòng','yào'],'重量':['zhòng','liàng'],
+  '多少':['duō','shǎo'],'少年':['shào','nián'],'少女':['shào','nǚ'],
+  '首都':['shǒu','dū'],'都市':['dū','shì'],
+  '因为':['yīn','wèi'],'为了':['wèi','le'],'作为':['zuò','wéi'],'成为':['chéng','wéi'],
+  '归还':['guī','huán'],'还书':['huán','shū'],'还有':['hái','yǒu'],'还是':['hái','shì'],
+  '要求':['yāo','qiú'],'需要':['xū','yào'],
+  '看见':['kàn','jiàn'],'看书':['kàn','shū'],'看守':['kān','shǒu'],
+  '大夫':['dài','fu'],'衣服':['yī','fu'],'耳朵':['ěr','duo'],'嘴巴':['zuǐ','ba'],
+  '着急':['zháo','jí'],'睡着':['shuì','zháo'],'和平':['hé','píng'],
+  '出差':['chū','chāi'],'差事':['chāi','shì'],'调查':['diào','chá'],'调整':['tiáo','zhěng'],
+  '数学':['shù','xué'],'数字':['shù','zì'],'数一数':['shǔ','yī','shǔ'],
+  '种树':['zhòng','shù'],'种子':['zhǒng','zi'],
+  '天空':['tiān','kōng'],'空气':['kōng','qì'],'空闲':['kòng','xián'],
+  '干净':['gān','jìng'],'干活':['gàn','huó'],'分开':['fēn','kāi'],'成分':['chéng','fèn']
+};
+
+function isHanziChar(ch){
+  return /[\u4e00-\u9fa5]/.test(ch);
+}
+
+const POLY_KEYS = Object.keys(POLY_WORDS).sort(function(a,b){ return b.length - a.length; });
+
+// 切分为 {ch, py} 序列：整词优先匹配，未命中回落单字默认音；useWords=false 时只取单字默认音
+function segmentPinyin(text, useWords){
+  const chars = Array.from(text);
+  const items = [];
+  let i = 0;
+  while(i < chars.length){
+    const ch = chars[i];
+    if(!isHanziChar(ch)){ items.push({ch:ch, py:null}); i++; continue; }
+    let hit = null;
+    if(useWords){
+      for(let k=0; k<POLY_KEYS.length; k++){
+        const w = POLY_KEYS[k];
+        if(w.length <= chars.length - i && chars.slice(i, i+w.length).join('') === w){ hit = w; break; }
+      }
+    }
+    if(hit){
+      POLY_WORDS[hit].forEach(function(py, idx){ items.push({ch:hit[idx], py:py, word:hit}); });
+      i += hit.length;
+    } else {
+      items.push({ch:ch, py:PINYIN_CHARS[ch] || null});
+      i++;
+    }
+  }
+  return items;
+}
 
 const polyphones = {
   '行': [
@@ -550,47 +579,54 @@ function convert(){
   const withSpace = document.getElementById('withSpace').checked;
   const firstUpper = document.getElementById('firstUpper').checked;
   const ignorePoly = document.getElementById('ignorePoly').checked;
-  
+
   let result = '';
-  let charCount = 0;
   let hanziCount = 0;
   let convertedCount = 0;
-  
-  for(let ch of input){
-    charCount++;
-    if(/[\u4e00-\u9fa5]/.test(ch)){
-      hanziCount++;
-      let py = pinyinData[ch];
-      if(py){
-        convertedCount++;
-        if(currentMode==='notone'){
-          py = removeTone(py);
-        } else if(currentMode==='first'){
-          py = removeTone(py).charAt(0);
-        }
-        if(firstUpper && py.length>0){
-          py = py.charAt(0).toUpperCase() + py.slice(1);
-        }
-        result += py + (withSpace?' ':'');
-      } else {
-        result += ch + (withSpace?' ':'');
-      }
-    } else {
-      result += ch;
+  const items = segmentPinyin(input, !ignorePoly);
+  const matchedWords = [];
+
+  items.forEach(function(it){
+    if(it.py===null){
+      if(withSpace && result.slice(-1)===' ') result = result.slice(0,-1);
+      result += it.ch;
+      if(isHanziChar(it.ch)) hanziCount++;
+      return;
     }
-  }
-  
+    hanziCount++;
+    convertedCount++;
+    if(it.word && matchedWords.indexOf(it.word)<0) matchedWords.push(it.word);
+    let py = it.py;
+    if(currentMode==='notone'){
+      py = removeTone(py);
+    } else if(currentMode==='first'){
+      py = removeTone(py).charAt(0);
+    }
+    if(firstUpper && py.length>0){
+      py = py.charAt(0).toUpperCase() + py.slice(1);
+    }
+    result += py + (withSpace?' ':'');
+  });
+
   const rate = hanziCount>0 ? ((convertedCount/hanziCount)*100).toFixed(0) : 0;
   const __h0=`
-    <span>总字符：${charCount}</span>
+    <span>总字符：${items.length}</span>
     <span>汉字：${hanziCount}</span>
     <span>已转换：${convertedCount}</span>
     <span>覆盖率：${rate}%</span>
   `;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('statInfo').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('statInfo').innerHTML=__h0;
-  
+
   let resultHtml = '<h3>拼音结果</h3>';
   resultHtml += `<p style="font-size:18px;letter-spacing:1px;word-break:break-all;line-height:1.8;">${ToolBox.escHtml(result.trim())}</p>`;
-  
+
+  if(matchedWords.length>0){
+    resultHtml += '<p style="font-size:13px;color:var(--text-muted);margin-top:8px;">已按整词优先匹配：';
+    resultHtml += matchedWords.map(function(w){
+      return `<span style="display:inline-block;padding:2px 8px;background:var(--result-bg);border-radius:4px;margin:2px;">${ToolBox.escHtml(w)} → ${ToolBox.escHtml((POLY_WORDS[w]||[]).join(' '))}</span>`;
+    }).join('');
+    resultHtml += '</p>';
+  }
+
   const polyChars = [];
   for(const ch of input){
     if(polyphones[ch] && !polyChars.includes(ch)){
@@ -599,14 +635,14 @@ function convert(){
   }
   if(polyChars.length>0 && !ignorePoly){
     resultHtml += '<div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border);">';
-    resultHtml += '<p style="font-size:13px;font-weight:500;margin-bottom:8px;">⚠️ 包含多音字（以下为常用读音）：</p>';
+    resultHtml += '<p style="font-size:13px;font-weight:500;margin-bottom:8px;">⚠️ 包含多音字（已按整词优先消歧；以下为该字常用读音）：</p>';
     polyChars.forEach(c=>{
       const readings = polyphones[c].map(r=>r.pinyin).join(' / ');
       resultHtml += `<span style="display:inline-block;padding:4px 8px;background:var(--result-bg);border-radius:4px;font-size:13px;margin:2px;"><strong>${c}</strong>：${readings}</span>`;
     });
     resultHtml += '</div>';
   }
-  
+
   const __h1=resultHtml;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h1;
   saveHistory(input, result.trim());
 }
@@ -705,10 +741,10 @@ function renderReference(){
   let html = '<table><thead><tr><th>汉字</th><th>拼音</th></tr></thead><tbody>';
   let count = 0;
   const shown = new Set();
-  for(const ch in pinyinData){
+  for(const ch in PINYIN_CHARS){
     if(shown.has(ch)) continue;
     shown.add(ch);
-    const py = pinyinData[ch];
+    const py = PINYIN_CHARS[ch];
     if(search && ch!==search && !py.toLowerCase().includes(search) && !ch.includes(search)) continue;
     if(count>200) break;
     html += `<tr><td>${ch}</td><td>${py}</td></tr>`;

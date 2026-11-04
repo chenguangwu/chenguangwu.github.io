@@ -29,9 +29,9 @@ const CASES = [
     "efficiency": "40"
   },
   "expect": [
-    "75963.71"
+    "每转排量： 75.96 cm³/rev 每分钟排量： 6077 cm³/min 挤出产量： 138.6 kg/h"
   ],
-  "ref": "auto-restore"
+  "ref": "2026-11-04 排量单位修正（volumePerRev = 流道面积×螺距/1000，mm³→cm³）：π/4×(68²−56²)×65/1000 = 75.96 cm³/rev；×80 = 6077 cm³/min；×0.95×0.40×3.6 = 138.6 kg/h。默认参数不同，不含该串。"
 },
 {
   "slug": "plastic/injection-cycle",

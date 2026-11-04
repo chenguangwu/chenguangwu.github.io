@@ -236,7 +236,7 @@ s.parentNode.insertBefore(el, s);
       <div class="option-row">
         <label><input type="checkbox" id="optComment" onchange="generatePreview()"> 生成注释</label>
         <label><input type="checkbox" id="optQuote" onchange="generatePreview()"> 字符串加引号</label>
-        <label><input type="checkbox" id="optBase64" onchange="generatePreview()"> 密钥值 Base64 编码</label>
+        <label><input type="checkbox" id="optBase64" onchange="generatePreview()"> 密钥值 Base64 编码（非加密）</label>
         <label><input type="checkbox" id="optSort" onchange="generatePreview()"> 按字母排序</label>
       </div>
     </div>
@@ -667,16 +667,60 @@ function sortArrow(key) {
   return sortDir === 1 ? '<span class="sort-arrows">↑</span>' : '<span class="sort-arrows">↓</span>';
 }
 
-// Format value for output
-function formatValue(v) {
+// 所有格式统一先取"编码后"的值，再按目标格式分别转义
+function effectiveValue(v) {
   let val = v.value;
   if (getOptBase64() && v.type === 'secret' && val) {
     val = b64Encode(val);
   }
-  if (getOptQuote() && (v.type === 'string' || v.type === 'secret' || v.type === 'json') && val) {
-    val = '"' + val + '"';
-  }
   return val;
+}
+
+function escDq(s) {
+  return String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+    .replace(/\r/g, '\\r').replace(/\n/g, '\\n').replace(/\t/g, '\\t');
+}
+
+function envValue(v) {
+  const val = effectiveValue(v);
+  const needQuote = getOptQuote() || /[\s#"'\\$`]/.test(val);
+  return needQuote ? '"' + escDq(val) + '"' : val;
+}
+
+function shellValue(v) {
+  // 单引号包裹：$、反引号等不会被 shell 展开；内部单引号按 '\'' 转义
+  return "'" + String(effectiveValue(v)).replace(/'/g, "'\\''") + "'";
+}
+
+function propValue(v) {
+  let s = String(effectiveValue(v)).replace(/\\/g, '\\\\')
+    .replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t');
+  if (/^[ \f]/.test(s)) s = '\\' + s;
+  return s;
+}
+
+function yamlValue(v) {
+  const val = effectiveValue(v);
+  if (v.type === 'boolean') return (val === 'true') ? 'true' : 'false';
+  if (v.type === 'number') {
+    const n = Number(val);
+    return (val !== '' && isFinite(n)) ? String(n) : JSON.stringify(val);
+  }
+  if (v.type === 'json') {
+    try { return JSON.stringify(JSON.parse(val)); } catch (e) { /* keep as string */ }
+  }
+  return JSON.stringify(val);
+}
+
+function tomlValue(v) {
+  const val = effectiveValue(v);
+  if (v.type === 'number') {
+    const n = Number(val);
+    return (val !== '' && isFinite(n)) ? String(n) : JSON.stringify(val);
+  }
+  if (v.type === 'boolean') return (val === 'true') ? 'true' : 'false';
+  // TOML 没有 JSON 对象字面量；JSON 类型的值按字符串输出，保证生成结果可被 TOML 解析
+  return JSON.stringify(val);
 }
 
 // Generate output by format
@@ -692,7 +736,7 @@ function generateOutput(format, vars) {
       lines.push('');
       vars.forEach(v => {
         if (comment) lines.push('# ' + v.key + ' (' + typeLabels[v.type] + ')');
-        lines.push(v.key + '=' + formatValue(v));
+        lines.push(v.key + '=' + envValue(v));
         lines.push('');
       });
       break;
@@ -702,15 +746,14 @@ function generateOutput(format, vars) {
       lines.push('environment:');
       vars.forEach(v => {
         if (comment) lines.push('  # ' + v.key + ' (' + typeLabels[v.type] + ')');
-        lines.push('  - ' + v.key + '=' + formatValue(v));
+        lines.push('  - ' + v.key + '=' + envValue(v));
       });
       break;
 
     case 'json':
       const jsonObj = {};
       vars.forEach(v => {
-        let val = v.value;
-        if (getOptBase64() && v.type === 'secret' && val) val = b64Encode(val);
+        let val = effectiveValue(v);
         if (v.type === 'number') val = Number(val) || 0;
         else if (v.type === 'boolean') val = val === 'true';
         else if (v.type === 'json') {
@@ -724,14 +767,7 @@ function generateOutput(format, vars) {
       lines.push('# Environment variables (YAML)');
       vars.forEach(v => {
         if (comment) lines.push('# ' + v.key + ' (' + typeLabels[v.type] + ')');
-        let val = formatValue(v);
-        if (val === 'true' || val === 'false') {
-          lines.push(v.key + ': ' + val);
-        } else if (val !== '' && !isNaN(Number(val)) && v.type === 'number') {
-          lines.push(v.key + ': ' + Number(val));
-        } else {
-          lines.push(v.key + ': ' + (val ? '"' + val.replace(/"/g, '\\"') + '"' : '""'));
-        }
+        lines.push(v.key + ': ' + yamlValue(v));
         lines.push('');
       });
       break;
@@ -742,7 +778,7 @@ function generateOutput(format, vars) {
       lines.push('');
       vars.forEach(v => {
         if (comment) lines.push('# ' + v.key + ' (' + typeLabels[v.type] + ')');
-        lines.push('export ' + v.key + '=' + formatValue(v));
+        lines.push('export ' + v.key + '=' + shellValue(v));
         lines.push('');
       });
       break;
@@ -751,7 +787,7 @@ function generateOutput(format, vars) {
       lines.push('# Java Properties configuration');
       vars.forEach(v => {
         if (comment) lines.push('# ' + v.key + ' (' + typeLabels[v.type] + ')');
-        lines.push(v.key + '=' + formatValue(v));
+        lines.push(v.key + '=' + propValue(v));
         lines.push('');
       });
       break;
@@ -762,14 +798,7 @@ function generateOutput(format, vars) {
       lines.push('[env]');
       vars.forEach(v => {
         if (comment) lines.push('# ' + v.key + ' (' + typeLabels[v.type] + ')');
-        let val = formatValue(v);
-        if (v.type === 'number') {
-          lines.push(v.key + ' = ' + Number(v.value || 0));
-        } else if (v.type === 'boolean') {
-          lines.push(v.key + ' = ' + (v.value === 'true'));
-        } else {
-          lines.push(v.key + ' = "' + (v.value || '').replace(/"/g, '\\"') + '"');
-        }
+        lines.push(v.key + ' = ' + tomlValue(v));
         lines.push('');
       });
       break;

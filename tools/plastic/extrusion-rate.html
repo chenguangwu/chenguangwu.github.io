@@ -198,7 +198,7 @@ s.parentNode.insertBefore(el, s);
 <li>设备校核时，用产量估算核对挤出机能力是否匹配订单节拍，避免产能不足或长时间低负荷运行。</li>
 <li>工艺调试时，观察产量随转速、螺槽深度的线性/非线性变化，定位加料或漏流短板。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title"><a class="term-link" href="/guides/extrusion-rate-guide.html">挤出产量</a>估算示例</div><div class="dd-ex-body">螺杆直径 10 mm、螺槽深 1 mm、螺距 5 mm、转速 10 rpm、密度 0.92、效率 90%。流道截面积 = π/4×(10²−(10−2)²) = π/4×36 ≈ 28.27 mm²；每转排量 28.27×5 ≈ 141.4 mm³；每分钟 1414 mm³、每秒 23.6 mm³；质量产量 = 23.6×0.92×0.90 ≈ 19.5 g/s ≈ 70.2 kg/h（实验室微型机组示例）。实际产线按同公式代入大螺杆参数即可。</div></div>
+<div class="dd-example"><div class="dd-ex-title"><a class="term-link" href="/guides/extrusion-rate-guide.html">挤出产量</a>估算示例</div><div class="dd-ex-body">螺杆直径 10 mm、螺槽深 1 mm、螺距 5 mm、转速 10 rpm、密度 0.92、效率 90%。流道截面积 = π/4×(10²−(10−2)²) = π/4×36 ≈ 28.27 mm²；每转排量 28.27×5 ≈ 141.4 mm³ = 0.1414 cm³；每分钟 1.414 cm³、每秒 0.0236 cm³；质量产量 = 0.0236×0.92×0.90 ≈ 0.0195 g/s ≈ 0.0702 kg/h（实验室微型机组示例）。实际产线按同公式代入大螺杆参数即可。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>产量为什么随转速近似线性？</dt><dd>螺槽体积流量 ∝ 转速（每转排量固定），质量产量 = 体积流量×密度×效率，故在效率稳定时与转速近似线性。高转速下漏流与剪切发热会拉低实际效率。</dd>
@@ -245,27 +245,48 @@ s.parentNode.insertBefore(el, s);
 </div>
 
 <script>
+function setInvalid(el,invalid){
+  if(!el)return;
+  if(invalid){el.classList.add('input-error');el.setAttribute('aria-invalid','true');}
+  else{el.classList.remove('input-error');el.removeAttribute('aria-invalid');}
+}
+function strictNum(id){
+  var raw=document.getElementById(id).value.trim();
+  return raw===''?NaN:parseFloat(raw);
+}
 function calc() {
-  var D = parseFloat(document.getElementById('screwDia').value) || 0;
-  var rpm = parseFloat(document.getElementById('screwRpm').value) || 0;
-  var rho = parseFloat(document.getElementById('density').value) || 0;
-  var p = parseFloat(document.getElementById('pitch').value) || 0;
-  var h = parseFloat(document.getElementById('channelDepth').value) || 0;
-  var eff = parseFloat(document.getElementById('efficiency').value) || 0;
+  var dEl=document.getElementById('screwDia');
+  var rpmEl=document.getElementById('screwRpm');
+  var rhoEl=document.getElementById('density');
+  var pEl=document.getElementById('pitch');
+  var hEl=document.getElementById('channelDepth');
+  var effEl=document.getElementById('efficiency');
+  var D = strictNum('screwDia');
+  var rpm = strictNum('screwRpm');
+  var rho = strictNum('density');
+  var p = strictNum('pitch');
+  var h = strictNum('channelDepth');
+  var eff = strictNum('efficiency');
 
-  if (D <= 0 || rpm <= 0 || rho <= 0 || p <= 0 || h <= 0) {
-    ToolBox.setResult('result', '<p style="color:var(--danger);">所有参数需大于 0</p>');
+  var dOk=isFinite(D)&&D>0, rpmOk=isFinite(rpm)&&rpm>0, rhoOk=isFinite(rho)&&rho>0;
+  var pOk=isFinite(p)&&p>0, hOk=isFinite(h)&&h>0, effOk=isFinite(eff)&&eff>0&&eff<=100;
+  setInvalid(dEl,!dOk); setInvalid(rpmEl,!rpmOk); setInvalid(rhoEl,!rhoOk);
+  setInvalid(pEl,!pOk); setInvalid(hEl,!hOk); setInvalid(effEl,!effOk);
+
+  if (!dOk || !rpmOk || !rhoOk || !pOk || !hOk || !effOk) {
+    ToolBox.setResult('result', '<p style="color:var(--danger);">请输入有效参数：所有参数需大于 0，输送效率需在 0–100% 之间</p>');
     return;
   }
   if (h * 2 >= D) {
-    ToolBox.setResult('result', '<p style="color:var(--danger);">螺槽深度过大，请检查</p>');
+    setInvalid(dEl,true); setInvalid(hEl,true);
+    ToolBox.setResult('result', '<p style="color:var(--danger);">请输入有效参数：螺槽深度过大，请检查</p>');
     return;
   }
 
-  var flowArea = Math.PI / 4 * (D * D - Math.pow(D - 2 * h, 2));
-  var volumePerRev = flowArea * p;
-  var volumePerMin = volumePerRev * rpm;
-  var volumePerSec = volumePerMin / 60;
+  var flowArea = Math.PI / 4 * (D * D - Math.pow(D - 2 * h, 2)); // mm²
+  var volumePerRev = flowArea * p / 1000; // mm³ → cm³
+  var volumePerMin = volumePerRev * rpm; // cm³/min
+  var volumePerSec = volumePerMin / 60; // cm³/s
   var effDec = eff / 100;
 
   var outputGps = volumePerSec * rho * effDec;
@@ -289,7 +310,7 @@ function copyResult() {
   var h = parseFloat(document.getElementById('channelDepth').value) || 0;
   var eff = parseFloat(document.getElementById('efficiency').value) || 0;
   var flowArea = Math.PI/4*(D*D-Math.pow(D-2*h,2));
-  var outputKgh = (flowArea * p * rpm / 60) * rho * (eff/100) * 3.6;
+  var outputKgh = (flowArea * p / 1000 * rpm / 60) * rho * (eff/100) * 3.6;
   var text = '挤出产量: ' + outputKgh.toFixed(1) + ' kg/h (螺杆' + D + 'mm, 转速' + rpm + 'rpm)';
   ToolBox.copyText(text, i18nText('msg409'));
 }

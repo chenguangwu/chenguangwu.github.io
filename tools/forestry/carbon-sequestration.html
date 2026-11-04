@@ -212,8 +212,8 @@ s.parentNode.insertBefore(el, s);
 <li>林分固碳量与 CO₂ 当量测算</li>
 <li>碳汇价值与交易评估</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">蓄积量扩展法：生物量 B=V×ρ×BEF（ρ 木材密度、BEF 生物量扩展因子），碳储量 C=B×CF（含碳率约 0.5），CO₂=C×3.667；总 CO₂=CO₂/ha×面积，年均=总 CO₂/林龄，价值=总 CO₂×碳价。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">杉木（ρ=0.307,BEF=1.53,CF=0.52）蓄积 V=120 m³/ha、面积 10 ha、林龄 20 年、碳价 60 元/t：B=56.4、C=29.3 t/ha、CO₂=107.5 t/ha；总 CO₂≈1075 t、年均≈53.7 t、价值≈6.45 万元。</div></div>
+<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">蓄积量扩展法：生物量 B=V×ρ×BEF（ρ 木材密度、BEF 生物量扩展因子），碳储量 C=B×CF（含碳率约 0.5），CO₂=C×3.667；总 CO₂=CO₂/ha×面积，单位面积年固=CO₂/ha÷林龄，年固总量=总 CO₂÷林龄，价值=总 CO₂×碳价。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">杉木（ρ=0.307,BEF=1.53,CF=0.52）蓄积 V=120 m³/ha、面积 10 ha、林龄 20 年、碳价 60 元/t：B=56.4、C=29.3 t/ha、CO₂=107.5 t/ha；总 CO₂≈1075 t、年固总量≈53.7 t/年（单位面积约5.37 t/ha·年）、价值≈6.45 万元。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>碳价按多少算？</dt><dd>参考当年 CCER 市场，2024 年约 50~80 元/t CO₂；实际交易以成交价为准，且需经第三方审定与减排量签发方可交易。</dd>
@@ -277,27 +277,38 @@ html+='<div class="input-row"><div><label>碳价(元/吨CO₂)</label><input typ
 const __g2=html;$('inputArea').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));calc();
 }
 function selectSp(){curSpecies=parseInt($('species').value);calc();}
+function markBad(id,bad){var e=$(id);if(e&&e.classList)e.classList.toggle('input-error',!!bad);}
 function calc(){
-var sp=SPECIES[curSpecies];var area=parseFloat($('area').value)||1;var price=parseFloat($('carbonPrice').value)||60;
-var biomass=0,carbon=0,co2=0;
+var sp=SPECIES[curSpecies];
+var area=parseFloat($('area').value),price=parseFloat($('carbonPrice').value);
+var badArea=!(isFinite(area)&&area>0),badPrice=!(isFinite(price)&&price>0);
+markBad('area',badArea);markBad('carbonPrice',badPrice);
+var biomass=0,carbon=0,co2=0,ageYears=20,valid=!badArea&&!badPrice,msg='面积与碳价须为正数';
 if(curMethod===0){
-var V=parseFloat($('volume').value)||0;
-biomass=V*sp.rho*sp.bef;
-carbon=biomass*sp.cf;
-co2=carbon*3.667;
+var V=parseFloat($('volume').value),age=parseFloat($('age').value);
+var badV=!(isFinite(V)&&V>0),badAge=!(isFinite(age)&&age>0);
+markBad('volume',badV);markBad('age',badAge);
+if(badV||badAge){valid=false;msg='蓄积量与林龄须为正数';}
+if(valid){biomass=V*sp.rho*sp.bef;carbon=biomass*sp.cf;co2=carbon*3.667;ageYears=age;}
 }else if(curMethod===1){
-var B=parseFloat($('biomass').value)||0;var rr=parseFloat($('rootRatio').value)||0.25;
-biomass=B*(1+rr);
-carbon=biomass*sp.cf;
-co2=carbon*3.667;
+var B=parseFloat($('biomass').value),rr=parseFloat($('rootRatio').value);
+var badB=!(isFinite(B)&&B>0),badRR=!(isFinite(rr)&&rr>0);
+markBad('biomass',badB);markBad('rootRatio',badRR);
+if(badB||badRR){valid=false;msg='地上生物量与根茎比须为正数';}
+if(valid){biomass=B*(1+rr);carbon=biomass*sp.cf;co2=carbon*3.667;}
 }else{
-var ft=$('forestType').value;var mai=parseFloat($('mai').value)||10;var age=20;
-var def=ft==='young'?40:ft==='middle'?120:250;
-biomass=def*sp.rho*sp.bef;
-carbon=biomass*sp.cf;
-co2=carbon*3.667;
+var ft=$('forestType').value,mai=parseFloat($('mai').value);
+var badMai=!(isFinite(mai)&&mai>0);
+markBad('mai',badMai);
+if(badMai){valid=false;msg='年均生长量须为正数';}
+if(valid){var def=ft==='young'?40:ft==='middle'?120:250;biomass=def*sp.rho*sp.bef;carbon=biomass*sp.cf;co2=carbon*3.667;}
 }
-var totalCo2=co2*area;var annualCo2=totalCo2/(curMethod===0?parseFloat($('age').value)||20:20);var value=totalCo2*price;
+if(!valid){
+$('result').innerHTML='<p style="color:var(--danger)">⚠ 输入无效：'+msg+'，请修正后重新计算。</p>';
+$('chartWrap').style.display='none';
+return;
+}
+var totalCo2=co2*area;var annualUnit=co2/ageYears;var annualTotal=totalCo2/ageYears;var value=totalCo2*price;
 const __g3='<h3 style="text-align:center;margin-bottom:12px;">🌳 碳汇计算结果</h3>'+
 '<div class="data-grid">'+
 '<div class="data-card"><div class="num">'+biomass.toFixed(1)+'</div><div class="label">生物量(t/ha)</div></div>'+
@@ -306,10 +317,11 @@ const __g3='<h3 style="text-align:center;margin-bottom:12px;">🌳 碳汇计算�
 '<div class="data-card"><div class="num">'+(totalCo2/1000).toFixed(1)+'</div><div class="label">总CO₂(千吨)</div></div>'+
 '</div>'+
 '<div class="data-grid" style="margin-top:8px;">'+
-'<div class="data-card" style="background:#e8f5e9;"><div class="num" style="color:#2e7d32;">'+annualCo2.toFixed(1)+'</div><div class="label">年固CO₂(t/ha)</div></div>'+
+'<div class="data-card" style="background:#e8f5e9;"><div class="num" style="color:#2e7d32;">'+annualUnit.toFixed(2)+'</div><div class="label">单位面积年固CO₂(t/ha·年)</div></div>'+
+'<div class="data-card" style="background:#e8f5e9;"><div class="num" style="color:#2e7d32;">'+annualTotal.toFixed(1)+'</div><div class="label">年固CO₂总量(t/年)</div></div>'+
 '<div class="data-card" style="background:#fff3e0;"><div class="num" style="color:#e65100;">'+(value/10000).toFixed(1)+'</div><div class="label">碳汇价值(万元)</div></div>'+
 '</div>'+
-'<div class="tip-box tip-success" style="margin-top:12px;">💡 每亩年固碳约'+(annualCo2/15).toFixed(2)+'吨CO₂，相当于'+Math.round(annualCo2/15*45)+'棵树一年的固碳量</div>';$('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+'<div class="tip-box tip-success" style="margin-top:12px;">💡 每亩年固碳约'+(annualUnit/15).toFixed(2)+'吨CO₂，相当于'+Math.round(annualUnit/15*45)+'棵树一年的固碳量</div>';$('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 $('chartWrap').style.display='block';drawChart(biomass,carbon,co2);
 }
 function drawChart(b,c,co2){
@@ -320,10 +332,28 @@ var maxY=Math.max(b,c,co2)*1.2;var bw=50;
 function bar(x,v,color,label){var h=v/maxY*ch;ctx.fillStyle=color;ctx.fillRect(x,pad.top+ch-h,bw,h);ctx.fillStyle=resolveCanvasColor('var(--text)','#1F2937');ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText(v.toFixed(0)+'t',x+bw/2,pad.top+ch-h-5);ctx.fillText(label,x+bw/2,pad.top+ch+15);}
 bar(pad.left+cw*0.15,b,'#8bc34a','生物量');bar(pad.left+cw*0.15+bw+20,c,'#4caf50','碳储量');bar(pad.left+cw*0.15+(bw+20)*2,co2,'#009688','CO₂当量');
 }
-function saveHistory(){var r={time:new Date().toLocaleString('zh-CN'),sp:SPECIES[curSpecies].name,area:$('area').value};var h=getHistory();h.unshift(r);if(h.length>20)h=h.slice(0,20);localStorage.setItem(HK,JSON.stringify(h));}
+function saveHistory(){
+var rEl=$('result');if(rEl&&/请输入|无效|错误/.test(rEl.textContent))return;
+var pick=function(id){var e=$(id);return e?e.value:'';};
+var r={time:new Date().toLocaleString('zh-CN'),method:curMethod,species:curSpecies,sp:SPECIES[curSpecies].name,
+area:pick('area'),volume:pick('volume'),age:pick('age'),biomass:pick('biomass'),rootRatio:pick('rootRatio'),
+forestType:pick('forestType'),mai:pick('mai'),carbonPrice:pick('carbonPrice'),
+result:rEl?(rEl.textContent||'').replace(/\s+/g,' ').trim().slice(0,80):''};
+var h=getHistory();h.unshift(r);if(h.length>20)h=h.slice(0,20);localStorage.setItem(HK,JSON.stringify(h));
+}
 function getHistory(){try{return JSON.parse(localStorage.getItem(HK)||'[]');}catch(e){return[];}}
-function renderHistory(){var h=getHistory();if(!h.length){$('historyList').innerHTML='<div class="history-empty">暂无历史</div>';return;}const __g5=h.map(function(r,i){return '<div class="history-item" onclick="loadHistory('+i+')"><div class="time">'+r.time+'</div><div class="summary">'+r.sp+' '+r.area+'ha</div></div>';}).join('');$('historyList').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));}
-function loadHistory(i){switchTab('calc');calc();}
+function renderHistory(){var h=getHistory();if(!h.length){$('historyList').innerHTML='<div class="history-empty">暂无历史</div>';return;}const __g5=h.map(function(r,i){var m=METHODS[r.method||0];return '<div class="history-item" onclick="loadHistory('+i+')"><div class="time">'+r.time+'</div><div class="summary">'+(m?m.name:'')+' · '+(r.sp||'')+' '+r.area+'ha · 林龄'+(r.age||'—')+' · 碳价'+(r.carbonPrice||'—')+'</div></div>';}).join('');$('historyList').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));}
+function loadHistory(i){
+var h=getHistory(),r=h[i];if(!r)return;
+__carbon_sequestration_skip=true;
+curMethod=(r.method!=null?r.method:0);curSpecies=(r.species!=null?r.species:0);
+renderMethods();
+['area','volume','age','biomass','rootRatio','mai','carbonPrice'].forEach(function(id){var e=$(id);if(e&&r[id]!=null)e.value=r[id];});
+if(r.forestType!=null&&$('forestType'))$('forestType').value=r.forestType;
+switchTab('calc');
+__carbon_sequestration_skip=false;
+calc();
+}
 function clearHistory(){if(confirm('清空?')){localStorage.removeItem(HK);renderHistory();}}
 function resetForm(){curMethod=0;curSpecies=0;renderMethods();}
 window.addEventListener('resize',function(){if($('chartWrap').style.display!=='none')calc();});

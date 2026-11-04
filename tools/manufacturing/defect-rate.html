@@ -291,11 +291,21 @@ function dpmoToSigma(dpmo) {
 }
 
 function calc() {
-  const t = +document.getElementById('total').value || 0;
-  const d = +document.getElementById('defects').value || 0;
-  const p = +document.getElementById('processes').value || 1;
-  if (t<=0) { ToolBox.showToast(i18nText('toast.msg830'),'error'); return; }
-  if (d>t) { ToolBox.showToast(i18nText('toast.msg045'),'error'); return; }
+  const totalEl=document.getElementById('total'),defectsEl=document.getElementById('defects'),procEl=document.getElementById('processes');
+  const t = parseFloat(totalEl.value);
+  const d = parseFloat(defectsEl.value);
+  const p = parseFloat(procEl.value);
+  const tBad = !(isFinite(t) && t > 0 && Math.floor(t) === t);
+  const dBad = !(isFinite(d) && d >= 0 && Math.floor(d) === d && d <= t);
+  const pBad = !(isFinite(p) && p > 0 && Math.floor(p) === p);
+  totalEl.classList.toggle('input-error',tBad);
+  defectsEl.classList.toggle('input-error',dBad);
+  procEl.classList.toggle('input-error',pBad);
+  if (tBad || dBad || pBad) {
+    document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 输入无效：投入数量与工序数须为正整数，不良数量须为 0 到投入数量之间的整数。</p>';
+    ['defect_rateTable','defect_rateDiff','defect_rateChart'].forEach(function(id){var e=document.getElementById(id);if(e)e.innerHTML='';});
+    return;
+  }
 
   const defectRate = (d / t) * 100;  // %
   const yieldSingle = 1 - d/t;       // 单工序直通率

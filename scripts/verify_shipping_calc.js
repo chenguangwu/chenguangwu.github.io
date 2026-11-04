@@ -24,10 +24,11 @@ const CASES = [
   "slug": "shipping/convert-speed-1",
   "inputs": {
     "val": "1",
-    "from": "1.852"
+    "from": "0.539956803456",
+    "to": "1"
   },
-  "expect": [ "1 千米/时" ],
-  "ref": "auto-restore"
+  "expect": [ "= 0.539956803456 节 (kn)" ],
+  "ref": "2026-11-04 换算系数修正（1 km/h = 0.5399568 kn）：1 千米/时 → 0.539956803456 节。默认 1 节 → 1.852 km/h，不含该串。"
 },
 {
   "slug": "shipping/convert-time-speed",

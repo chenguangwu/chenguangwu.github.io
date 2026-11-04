@@ -187,6 +187,7 @@ s.parentNode.insertBefore(el, s);
 
 <script>
 function getNum(id){var v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
+function getStrictNum(id){var raw=document.getElementById(id).value.trim();return raw===''?NaN:parseFloat(raw);}
 function setInvalid(el,invalid){
   if(!el)return;
   if(invalid){el.classList.add('input-error');el.setAttribute('aria-invalid','true');}
@@ -201,18 +202,23 @@ function tempCoef(t){
   return 2.0;
 }
 function readInputs(){
-  var hours=getNum('hours'),temp=getNum('temp'),density=getNum('density'),weight=getNum('weight');
-  setInvalid(document.getElementById('hours'),!(hours>=0));
-  setInvalid(document.getElementById('temp'),true&&false);
-  setInvalid(document.getElementById('density'),!(density>=0));
-  setInvalid(document.getElementById('weight'),!(weight>0));
-  var valid=hours>=0&&density>=0&&weight>0;
+  var hours=getStrictNum('hours'),temp=getStrictNum('temp'),density=getStrictNum('density'),weight=getStrictNum('weight');
+  var hoursOk=isFinite(hours)&&hours>0&&hours<=240;
+  var tempOk=isFinite(temp)&&temp>=-2&&temp<=40;
+  var densityOk=isFinite(density)&&density>=0;
+  var weightOk=isFinite(weight)&&weight>0;
+  setInvalid(document.getElementById('hours'),!hoursOk);
+  setInvalid(document.getElementById('temp'),!tempOk);
+  setInvalid(document.getElementById('density'),!densityOk);
+  setInvalid(document.getElementById('weight'),!weightOk);
+  var valid=hoursOk&&tempOk&&densityOk&&weightOk;
   return {hours:hours,temp:temp,density:density,weight:weight,valid:valid};
 }
 function calc(){
   var iv=readInputs();
   if(!iv.valid){
-    document.getElementById('res').innerHTML='<p style="color:var(--danger,#EF4444);">请检查输入：运输时间、密度需 ≥0，鱼体均重需 >0。</p>';
+    document.getElementById('res').innerHTML='<p style="color:var(--danger,#EF4444);">请输入有效参数：运输时间需大于 0（≤240 小时），水温需在 -2–40 ℃，密度需 ≥0，鱼体均重需 >0。</p>';
+    document.getElementById('resRefBar').innerHTML='';
     return;
   }
   var wt=tempCoef(iv.temp);

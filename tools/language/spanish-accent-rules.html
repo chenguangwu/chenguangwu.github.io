@@ -275,35 +275,78 @@ function hasAccent(ch) {
 }
 
 function splitSyllables(word) {
-  word = word.toLowerCase().trim();
+  word = (word || '').toLowerCase().trim();
+  if (!word) return [];
+  // 非纯西语字母输入（数字/汉字/标点等）不套用音节规则，沿用逐字符切分以便回显
+  if (!/^[a-záéíóúüñ]+$/.test(word)) return splitSyllablesLegacy(word);
+
+  // 1) 先定位每个音节核：相邻元音按二重元音规则合并；
+  //    强元音+强元音、或带重音符号的弱元音（如 -aís 中的 í）则分属两个音节。
+  var groups = [];
+  var i = 0;
+  while (i < word.length) {
+    if (!isVowel(word[i])) { i++; continue; }
+    var j = i;
+    while (j + 1 < word.length && isVowel(word[j + 1])) {
+      var v1 = word[j];
+      var v2 = word[j + 1];
+      if ((hasAccent(v1) && isWeakVowel(v1)) || (hasAccent(v2) && isWeakVowel(v2))) break;
+      if (isStrongVowel(v1) && isStrongVowel(v2)) break;
+      j++;
+    }
+    groups.push([i, j]);
+    i = j + 1;
+  }
+  if (!groups.length) return [word];
+
+  // 2) 相邻音节核之间的辅音串按西语音节规则分派：
+  //    单个辅音归后一音节（ca-sa）；两个辅音若构成合法 onset 连缀则整体归后（pe-rro）；
+  //    否则在两个辅音之间切开（can-tar）；三个及以上则把末尾的 onset 连缀归后，其余作前一音节韵尾（es-pá-rra-go）。
+  var onsetClusters = ['bl','br','cl','cr','dr','fl','fr','gl','gr','pl','pr','tr','ll','rr','ch'];
+  function isOnsetCluster(c){ return onsetClusters.indexOf(c) >= 0; }
+
+  var cuts = [];
+  for (var g = 0; g < groups.length - 1; g++) {
+    var gapStart = groups[g][1] + 1;
+    var gapEnd = groups[g + 1][0] - 1;
+    var cLen = gapEnd - gapStart + 1;
+    if (cLen <= 0) { cuts.push(groups[g + 1][0]); continue; }
+    if (cLen === 1) { cuts.push(gapStart); continue; }
+    var lastTwo = word.slice(gapEnd - 1, gapEnd + 1);
+    if (cLen === 2) {
+      cuts.push(isOnsetCluster(lastTwo) ? gapStart : gapStart + 1);
+    } else if (cLen === 3) {
+      cuts.push(isOnsetCluster(lastTwo) ? gapStart + 1 : gapStart + 2);
+    } else {
+      cuts.push(isOnsetCluster(lastTwo) ? gapStart + cLen - 2 : gapStart + cLen - 1);
+    }
+  }
+
+  var syllables = [];
+  var start = 0;
+  cuts.forEach(function (c) {
+    if (c > start) { syllables.push(word.slice(start, c)); start = c; }
+  });
+  if (start < word.length) syllables.push(word.slice(start));
+  return syllables;
+}
+
+function splitSyllablesLegacy(word) {
   var syllables = [];
   var current = '';
   var i = 0;
-  
+  var clusters = ['bl','br','cl','cr','dr','fr','gl','gr','pl','pr','tr','ll','rr','ch'];
   while (i < word.length) {
     var ch = word[i];
-    
-    // Handle consonant clusters at start of syllable
     if (!isVowel(ch)) {
-      // Check for consonant clusters (bl, br, cl, cr, dr, fr, gl, gr, pl, pr, tr, ll, rr, ch)
-      if (i + 1 < word.length && !isVowel(word[i+1])) {
-        var cluster = ch + word[i+1];
-        var clusters = ['bl','br','cl','cr','dr','fr','gl','gr','pl','pr','tr','ll','rr','ch'];
+      if (i + 1 < word.length && !isVowel(word[i + 1])) {
+        var cluster = ch + word[i + 1];
         if (clusters.indexOf(cluster) >= 0) {
-          // If current syllable is empty, cluster starts new syllable
-          if (current === '') {
-            current = cluster;
-            i += 2;
-            continue;
-          } else {
-            // Cluster starts new syllable, close current
-            syllables.push(current);
-            current = cluster;
-            i += 2;
-            continue;
-          }
+          if (current !== '') { syllables.push(current); }
+          current = cluster;
+          i += 2;
+          continue;
         } else {
-          // Two consonants not a cluster - split between them
           current += ch;
           syllables.push(current);
           current = '';
@@ -316,41 +359,21 @@ function splitSyllables(word) {
         continue;
       }
     }
-    
-    // It's a vowel
     current += ch;
-    
-    // Check if next char is also a vowel (diphthong/triphthong)
-    if (i + 1 < word.length && isVowel(word[i+1])) {
+    if (i + 1 < word.length && isVowel(word[i + 1])) {
       var v1 = ch;
-      var v2 = word[i+1];
-      
-      if (hasAccent(v1) && hasAccent(v2)) {
-        // Two accented vowels - split (hiatus)
+      var v2 = word[i + 1];
+      if ((hasAccent(v1) && hasAccent(v2)) || (isStrongVowel(v1) && isStrongVowel(v2))) {
         syllables.push(current);
         current = '';
         i++;
         continue;
       }
-      
-      if (isStrongVowel(v1) && isStrongVowel(v2)) {
-        // Two strong vowels - split (hiatus)
-        syllables.push(current);
-        current = '';
-        i++;
-        continue;
-      }
-      
-      // Diphthong: strong+weak, weak+strong, weak+weak
       i++;
       continue;
     }
-    
-    // Check for diphthong with weak vowel before
-    // Move on
     i++;
   }
-  
   if (current) syllables.push(current);
   return syllables;
 }

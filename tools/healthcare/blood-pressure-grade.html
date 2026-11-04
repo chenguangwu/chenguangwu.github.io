@@ -121,7 +121,6 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根据收缩压/舒张压判定血压分级。">Classify a systolic and diastolic reading into the normal, elevated or hypertension grade bands, and show pulse pressure and mean arterial pressure for context.</p>
     <div class="input-row"><label>收缩压 mmHg</label><input type="number" id="sys" value="120" step="any" oninput="calc()" placeholder="如 120"></div>
     <div class="input-row"><label>舒张压 mmHg</label><input type="number" id="dia" value="80" step="any" oninput="calc()" placeholder="如 80"></div>
-    <div class="input-row"><label>年龄</label><input type="number" id="age" value="40" step="any" oninput="calc()" placeholder="如 40"></div>
     <div class="toolbar">
       <div id="blood_pressure_gradePresets"></div>
       <button class="btn primary" onclick="calc()">计算</button>
@@ -136,7 +135,7 @@ s.parentNode.insertBefore(el, s);
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
-    <div class="formula-eq">脉压 = 收缩压 − 舒张压（mmHg）；分级取较高档：≥180/≥110 → 3 级高血压，160–179/100–109 → 2 级高血压，140–159/90–99 → 1 级高血压，120–139/80–89 → 正常高值，&lt;120/&lt;80 → 正常；收缩压≥140 且舒张压&lt;90 → 单纯收缩期高血压。校验：收缩压须大于舒张压且均为正，否则拒绝计算；年龄输入仅作登记展示，未参与分级。</div>
+    <div class="formula-eq">脉压 = 收缩压 − 舒张压（mmHg）；平均动脉压 =（收缩压 + 2×舒张压）/ 3；分级取较高档：≥180/≥110 → 3 级高血压，160–179/100–109 → 2 级高血压，140–159/90–99 → 1 级高血压，120–139/80–89 → 正常高值，&lt;120/&lt;80 → 正常；收缩压≥140 且舒张压&lt;90 → 单纯收缩期高血压。校验：0&lt;收缩压≤300、0&lt;舒张压≤200 且收缩压&gt;舒张压，空值或越界拒绝计算。</div>
     <p style="font-size:13px;color:var(--text-muted);margin-top:12px;">分级采用中国高血压防治指南的五档文字分级（正常、正常高值、1–3 级高血压、单纯收缩期高血压）。仅供参考，以医生诊断为准。</p>
   </div>
 </div>
@@ -233,16 +232,20 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 function calc(){
-  const sys = +document.getElementById('sys').value || 0;
-  const dia = +document.getElementById('dia').value || 0;
+  const sysRaw = document.getElementById('sys').value.trim();
+  const diaRaw = document.getElementById('dia').value.trim();
+  const sys = Number(sysRaw);
+  const dia = Number(diaRaw);
   let html = '';
-  if (!(sys > 0 && dia > 0 && sys > dia)) {
-    html = '<p>请输入有效血压：收缩压须大于舒张压。</p>';
+  if (!sysRaw || !diaRaw || !isFinite(sys) || !isFinite(dia) || !(sys > 0) || !(dia > 0) || sys > 300 || dia > 200 || !(sys > dia)) {
+    html = '<p style="color:var(--danger)">请输入有效血压：0&lt;收缩压≤300 mmHg、0&lt;舒张压≤200 mmHg，且收缩压须大于舒张压；空值或越界拒绝计算。</p>';
     document.getElementById('result').innerHTML = html;
     return;
   }
   const __v0 = (sys-dia);
   html += `<p>脉压：<strong style="font-size:18px;color:var(--primary);">${__v0.toFixed(0)}</strong> mmHg</p>`;
+  const __v2 = ((sys + 2 * dia) / 3).toFixed(0);
+  html += `<p>平均动脉压：<strong style="font-size:18px;color:var(--primary);">${__v2}</strong> mmHg</p>`;
   const __v1 = ((()=>{if(sys>=180||dia>=110)return '3 级高血压';if(sys>=160||dia>=100)return '2 级高血压';if(sys>=140||dia>=90)return dia<90?'单纯收缩期高血压':'1 级高血压';if(sys>=120||dia>=80)return '正常高值';return '正常';})());
   html += `<p>分级：<strong style="font-size:18px;color:var(--primary);">${__v1}</strong></p>`;
   const __g1=html;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
@@ -355,10 +358,10 @@ function __blood_pressure_gradeExport(){
 }
 function __blood_pressure_gradePresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#blood_pressure_gradePresets',[{label:'默认参数',labelEn:'Default',values:{sys:'120', dia:'80', age:'40'}},
-  {'label':'理想血压','labelEn':'Optimal','values':{'sys':'118','dia':'76','age':'35'}},
-  {'label':'高血压2级','labelEn':'HTN Grade 2','values':{'sys':'165','dia':'105','age':'55'}},
-  {'label':'单纯收缩期','labelEn':'Isolated Systolic','values':{'sys':'150','dia':'85','age':'72'}}],function(){ calc(); });
+    TBKit.preset.bar('#blood_pressure_gradePresets',[{label:'默认参数',labelEn:'Default',values:{sys:'120', dia:'80'}},
+  {'label':'理想血压','labelEn':'Optimal','values':{'sys':'118','dia':'76'}},
+  {'label':'高血压2级','labelEn':'HTN Grade 2','values':{'sys':'165','dia':'105'}},
+  {'label':'单纯收缩期','labelEn':'Isolated Systolic','values':{'sys':'150','dia':'85'}}],function(){ calc(); });
 }
 var __blood_pressure_grade_f0=(typeof calc==='function')?calc:null;
 if(__blood_pressure_grade_f0){

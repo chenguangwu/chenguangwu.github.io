@@ -225,14 +225,14 @@ s.parentNode.insertBefore(el, s);
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
 <li>按风速控制（velocity 模式）：需风量 Q=断面积 A×控制风速 v×3600（m³/h），同时给出 Q÷3600（m³/s）；换气次数按 v×3600÷100 估算（即以 100 m 洞段为基准的每小时换气次数）。工具另给出<a class="term-link" href="/tools/machinery/fengjixuanxingjisuan.html">风机选型</a>参考：按 2 台并联，单台风量=Q÷3600÷2（m³/s）。</li>
-<li>按 CO 稀释（CO 模式）：CO 排放总量=单车排放量 q×小时交通量 N×隧道长度 L；需风量 Q=q×N×L÷δ（δ 为 CO 容许浓度，直接以 ppm 数值代入）；再反算所需控制风速 v=Q÷3600÷A，以及换气次数 n=v×3600÷L。</li>
+<li>按 CO 稀释（CO 模式）：CO 排放总量=单车排放量 q×小时交通量 N×隧道长度 L(km)，L(km)=L(m)/1000；需风量 Q=q×N×L(km)÷δ(体积比)，δ(体积比)=δ(ppm)/10⁶；再反算所需控制风速 v=Q÷3600÷A，以及换气次数 n=v×3600÷L。</li>
 <li>两模式互校与选型：先用风速法得到满足最低风速的风量，再用 CO 法校核稀释有害气体的需求，取两者较大值作为设计风量；风机选型按并联台数与风量余量（一般再乘 1.1~1.2 备用系数）确定。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">算例：60 m² 断面、控制风速 2.5 m/s 的风速法</div><div class="dd-ex-body">风速模式输入 A=60 m²、v=2.5 m/s：需风量 Q=60×2.5×3600=540000 m³/h=150.00 m³/s；换气次数=2.5×3600÷100=90.00 次/h；风机选型参考=单台 75.00 m³/s×2 台。另一组 A=80 m²、v=2.0 m/s → Q=576000 m³/h=160.00 m³/s、换气 72.00 次/h、单台 80.00 m³/s。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>CO 模式算出的风量为什么比风速法小很多，能直接用吗？</dt><dd>不能直接用。工具的 CO 模式按 Q=q×N×L÷δ 直接代入数值计算：默认 q=0.02、N=800 辆/h、L=1000 m、δ=100 时输出 Q=160 m³/h（0.04 m³/s），v=0.001 m/s。这里 L 以「米」代入、δ 以「ppm 数值」代入，未按工程惯例换算为 km 与体积比（100 ppm=1×10⁻⁴）。按标准口径 Q=q×N×L(km)÷δ(体积比)，同样物理条件为 0.02×800×1.0÷1e-4=160000 m³/h≈44.4 m³/s。因此 CO 模式的结果只能作为同口径下的相对比较，工程计算请按标准单位自行换算，并以风速法与规范限值取大值。</dd>
-<dt>换气次数里的 100 是什么意思？</dt><dd>工具按 v×3600÷100 估算每小时换气次数，即默认以 100 m 长的洞段为基准（风速乘以一小时走过的距离，再除以 100 m 段长）。若实际通风区段长度不同，应自行按 v×3600÷实际段长 换算，否则换气次数会被系统性放大或缩小。</dd>
+<dt>CO 模式的单位口径是怎样的？</dt><dd>工具已按工程惯例统一口径：长度 L 以 m 输入后换算为 km（÷1000），容许浓度 δ 以 ppm 输入后换算为体积比（÷10⁶）。默认 q=0.02 m³/(km·辆)、N=800 辆/h、L=1000 m、δ=100 ppm 时，Q=0.02×800×1.0÷1×10⁻⁴=160000 m³/h≈44.4 m³/s；断面 A=60 m² 时反算 v≈0.741 m/s。结果可直接与风速法比较，取两者较大值作为设计风量，并按规范限值校核。</dd>
 </dl>
 </div>
 </section>
@@ -284,12 +284,35 @@ function setMode(m,btn){
   calc();
 }
 function fmt(v,d){if(!isFinite(v))return '--';return Number(v).toFixed(d!=null?d:3);}
+function setInvalid(el,invalid){
+  if(!el)return;
+  if(invalid){el.classList.add('input-error');el.setAttribute('aria-invalid','true');}
+  else{el.classList.remove('input-error');el.removeAttribute('aria-invalid');}
+}
+function clearResults(){
+  ['resQ','resQs','resV','resN'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(el)el.textContent='--';
+  });
+  document.getElementById('result').innerHTML='';
+  window._lastResult=null;
+}
 function calc(){
   var Q=0,v=0,n=0,detail='';
   if(calcMode==='velocity'){
-    var A=parseFloat(document.getElementById('inA').value);
-    v=parseFloat(document.getElementById('inV').value);
-    if(!A||!v||A<=0||v<=0)return;
+    var aEl=document.getElementById('inA');
+    var vEl=document.getElementById('inV');
+    var A=parseFloat(aEl.value);
+    v=parseFloat(vEl.value);
+    var aOk=isFinite(A)&&A>0;
+    var vOk=isFinite(v)&&v>0;
+    setInvalid(aEl,!aOk);
+    setInvalid(vEl,!vOk);
+    if(!aOk||!vOk){
+      clearResults();
+      document.getElementById('result').innerHTML='<p style="color:var(--danger,#EF4444);">请输入有效的断面积 A 与控制风速 v（均需大于 0）。</p>';
+      return;
+    }
     Q=A*v*3600;
     n=v*3600/100;
     detail='<p><strong>隧道断面积 A：</strong>'+fmt(A,1)+' m²</p>'+
@@ -297,18 +320,38 @@ function calc(){
       '<p><strong>需风量 Q：</strong>'+fmt(Q/3600,2)+' m³/s = '+fmt(Q,0)+' m³/h</p>'+
       '<p><strong>风机选型参考：</strong>单台风量 '+fmt(Q/3600/2,2)+' m³/s × 2 台</p>';
   }else{
-    var L=parseFloat(document.getElementById('inL').value);
-    var N=parseFloat(document.getElementById('inN').value);
-    var q=parseFloat(document.getElementById('inQco').value);
-    var delta=parseFloat(document.getElementById('inDelta').value);
-    var A=parseFloat(document.getElementById('inAco').value);
-    if(!L||!N||!q||!delta||!A||L<=0)return;
-    Q=q*N*L/delta;
+    var lEl=document.getElementById('inL');
+    var nEl=document.getElementById('inN');
+    var qEl=document.getElementById('inQco');
+    var dEl=document.getElementById('inDelta');
+    var aEl=document.getElementById('inAco');
+    var L=parseFloat(lEl.value);
+    var N=parseFloat(nEl.value);
+    var q=parseFloat(qEl.value);
+    var delta=parseFloat(dEl.value);
+    var A=parseFloat(aEl.value);
+    var lOk=isFinite(L)&&L>0;
+    var nOk=isFinite(N)&&N>0;
+    var qOk=isFinite(q)&&q>0;
+    var dOk=isFinite(delta)&&delta>0;
+    var aOk=isFinite(A)&&A>0;
+    setInvalid(lEl,!lOk);
+    setInvalid(nEl,!nOk);
+    setInvalid(qEl,!qOk);
+    setInvalid(dEl,!dOk);
+    setInvalid(aEl,!aOk);
+    if(!lOk||!nOk||!qOk||!dOk||!aOk){
+      clearResults();
+      document.getElementById('result').innerHTML='<p style="color:var(--danger,#EF4444);">请输入有效参数：隧道长度、交通量、CO 排放量与容许浓度、断面积均需大于 0。</p>';
+      return;
+    }
+    // 标准口径：L 用 km、δ 用体积比（ppm/10⁶）
+    Q=q*N*(L/1000)/(delta/1e6);
     v=Q/3600/A;
     n=v*3600/L;
     detail='<p><strong>隧道长度 L：</strong>'+fmt(L,0)+' m</p>'+
       '<p><strong>小时交通量 N：</strong>'+fmt(N,0)+' 辆/h</p>'+
-      '<p><strong>CO排放总量：</strong>'+fmt(q*N*L,2)+' m³/h</p>'+
+      '<p><strong>CO排放总量：</strong>'+fmt(q*N*(L/1000),2)+' m³/h</p>'+
       '<p><strong>CO容许浓度 δ：</strong>'+fmt(delta,0)+' ppm</p>'+
       '<p><strong>稀释需风量 Q：</strong>'+fmt(Q,1)+' m³/h = '+fmt(Q/3600,2)+' m³/s</p>'+
       '<p><strong>所需控制风速 v：</strong>'+fmt(v,3)+' m/s</p>';

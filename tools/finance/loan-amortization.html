@@ -418,20 +418,12 @@ function generateSchedule(amount, annualRate, years, method, balloonMonths, ball
       schedule.push({month: i, payment: payment, principal: principal, interest: interest, balance: balance});
     }
   } else if (method === 'balloon') {
+    // 气球贷：月供只摊还 (1 − 尾款比例) 的本金，期末单列尾款
     var balloonAmount = amount * (balloonRatio / 100);
     var loanMonths = balloonMonths;
-    if (monthlyRate === 0) {
-      // r=0：气球贷月供同样退化为 本金/期数，利息为 0
-      var flatPmt = amount / loanMonths;
-      for (var j = 1; j <= loanMonths; j++) {
-        var flatPay = flatPmt;
-        var flatBal = amount - flatPmt * j;
-        if (flatBal < 0) flatBal = 0;
-        schedule.push({month: j, payment: flatPay, principal: flatPmt, interest: 0, balance: j === loanMonths ? 0 : flatBal});
-      }
-      return {schedule: schedule, totalInterest: 0};
-    }
-    var pmt = amount * monthlyRate * Math.pow(1 + monthlyRate, loanMonths) / (Math.pow(1 + monthlyRate, loanMonths) - 1);
+    var pmt = monthlyRate === 0
+      ? (amount - balloonAmount) / loanMonths
+      : (amount - balloonAmount / Math.pow(1 + monthlyRate, loanMonths)) * monthlyRate / (1 - 1 / Math.pow(1 + monthlyRate, loanMonths));
     var tempBal = amount;
     for (var i = 1; i <= loanMonths; i++) {
       var interest = tempBal * monthlyRate;
@@ -439,28 +431,51 @@ function generateSchedule(amount, annualRate, years, method, balloonMonths, ball
       tempBal -= principal;
       totalInterest += interest;
       var isLast = i === loanMonths;
+      var tail = isLast ? tempBal : 0;
       var bal = isLast ? 0 : tempBal;
-      var pay = isLast ? pmt + tempBal : pmt;
-      var prin = isLast ? principal + tempBal : principal;
+      var pay = isLast ? pmt + tail : pmt;
+      var prin = isLast ? principal + tail : principal;
       schedule.push({month: i, payment: pay, principal: prin, interest: interest, balance: bal});
     }
+    return {schedule: schedule, totalInterest: totalInterest, balloonAmount: balloonAmount};
   }
 
-  return {schedule: schedule, totalInterest: totalInterest};
+  return {schedule: schedule, totalInterest: totalInterest, balloonAmount: 0};
 }
 
 function calc() {
     var __ig=__tbInputGuard(['loanAmount', 'annualRate', 'loanYears', 'balloonMonths', 'balloonRatio', 'prepayMonth', 'prepayAmount'],["贷款金额（元）", "年利率（%）", "贷款年限", "气球贷还款期数（月）", "期末尾款比例（%）", "提前还款期数（第N期后）", "提前还款金额（元）"]);if(__ig){const __g1=__ig;ToolBox.setResult("resultBox",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-var amount = +document.getElementById('loanAmount').value || 0;
-  var annualRate = +document.getElementById('annualRate').value || 0;
-  var years = +document.getElementById('loanYears').value || 0;
+var loanAmountEl = document.getElementById('loanAmount');
+var annualRateEl = document.getElementById('annualRate');
+var loanYearsEl = document.getElementById('loanYears');
+var amount = +loanAmountEl.value || 0;
+  var annualRate = +annualRateEl.value || 0;
+  var years = +loanYearsEl.value || 0;
   var method = document.getElementById('repayMethod').value;
-  var balloonMonths = +document.getElementById('balloonMonths').value || 60;
-  var balloonRatio = +document.getElementById('balloonRatio').value || 50;
+  var balloonMonthsRaw = parseFloat(document.getElementById('balloonMonths').value);
+  var balloonRatioRaw = parseFloat(document.getElementById('balloonRatio').value);
+  var balloonMonths = isFinite(balloonMonthsRaw) ? Math.floor(balloonMonthsRaw) : 60;
+  var balloonRatio = isFinite(balloonRatioRaw) ? balloonRatioRaw : 50;
 
-  if (amount <= 0 || annualRate < 0 || years <= 0) {
+  var basicOk = amount > 0 && annualRate >= 0 && annualRate <= 100 && years > 0;
+  loanAmountEl.classList.toggle('input-error', !(amount > 0));
+  annualRateEl.classList.toggle('input-error', !(annualRate >= 0 && annualRate <= 100));
+  loanYearsEl.classList.toggle('input-error', !(years > 0));
+  if (!basicOk) {
     document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">请输入有效的贷款参数</p>';
     return;
+  }
+  if (method === 'balloon') {
+    var bmEl = document.getElementById('balloonMonths');
+    var brEl = document.getElementById('balloonRatio');
+    var bmOk = isFinite(balloonMonthsRaw) && balloonMonths > 0;
+    var brOk = isFinite(balloonRatioRaw) && balloonRatio >= 0 && balloonRatio <= 100;
+    bmEl.classList.toggle('input-error', !bmOk);
+    brEl.classList.toggle('input-error', !brOk);
+    if (!bmOk || !brOk) {
+      document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">气球贷还款期数须大于 0，期末尾款比例须为 0–100</p>';
+      return;
+    }
   }
 
   var result = generateSchedule(amount, annualRate, years, method, balloonMonths, balloonRatio);
@@ -476,6 +491,9 @@ var amount = +document.getElementById('loanAmount').value || 0;
   html += '<div class="stat-card"><div class="val">' + fmt(firstPayment) + '</div><div class="lbl">首月月供</div></div>';
   if (method === 'principal' || method === 'interest') {
     html += '<div class="stat-card"><div class="val">' + fmt(lastPayment) + '</div><div class="lbl">末月月供</div></div>';
+  }
+  if (method === 'balloon') {
+    html += '<div class="stat-card"><div class="val">' + fmt(result.balloonAmount) + '</div><div class="lbl">期末尾款</div></div>';
   }
   html += '<div class="stat-card"><div class="val" style="color:var(--danger);">' + fmt(result.totalInterest) + '</div><div class="lbl">总利息</div></div>';
   html += '<div class="stat-card"><div class="val">' + fmt(totalPayment) + '</div><div class="lbl">总还款额</div></div>';

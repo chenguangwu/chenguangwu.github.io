@@ -327,89 +327,301 @@ function switchTab(tab) {
   document.getElementById(`tab-${tab}`).classList.add('active');
 }
 
-function parseToml(text) {
-  const result = {};
-  const lines = text.split('\n');
-  let currentTable = result;
-  let currentPath = [];
-  
-  for (let line of lines) {
-    line = line.trim();
-    if (!line || line.startsWith('#')) continue;
-    
-    if (line.startsWith('[[') && line.endsWith(']]')) {
-      const tableName = line.slice(2, -2).trim();
-      const parts = tableName.split('.');
-      let obj = result;
-      for (let i = 0; i < parts.length - 1; i++) {
-        if (!obj[parts[i]]) obj[parts[i]] = {};
-        obj = obj[parts[i]];
-      }
-      const lastKey = parts[parts.length - 1];
-      if (!obj[lastKey]) obj[lastKey] = [];
-      const newObj = {};
-      obj[lastKey].push(newObj);
-      currentTable = newObj;
-      currentPath = parts;
-      continue;
-    }
-    
-    if (line.startsWith('[') && line.endsWith(']')) {
-      const tableName = line.slice(1, -1).trim();
-      const parts = tableName.split('.');
-      let obj = result;
-      for (const part of parts) {
-        if (!obj[part]) obj[part] = {};
-        obj = obj[part];
-      }
-      currentTable = obj;
-      currentPath = parts;
-      continue;
-    }
-    
-    const eqIdx = line.indexOf('=');
-    if (eqIdx > 0) {
-      const key = line.substring(0, eqIdx).trim();
-      const valueStr = line.substring(eqIdx + 1).trim();
-      currentTable[key] = parseTomlValue(valueStr);
-    }
-  }
-  return result;
+// —— 严格 TOML 解析器（按 TOML 1.0 的语法子集，用于验证/格式化/转换统一入口）——
+// 无法合法解析时抛错，调用方据此拒绝输出，避免把非法配置静默"修正"成合法内容。
+function __tomlIsEn(){
+  return typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn();
 }
+function parseToml(text) {
+  if (typeof text !== 'string') text = '';
+  var pos = 0;
+  var root = {};
+  var definedTables = Object.create(null);
+  var current = root;
 
-function parseTomlValue(str) {
-  if (str.startsWith('"""') && str.endsWith('"""')) return str.slice(3, -3);
-  if (str.startsWith("'''") && str.endsWith("'''")) return str.slice(3, -3);
-  if ((str.startsWith('"') && str.endsWith('"')) || (str.startsWith("'") && str.endsWith("'"))) return str.slice(1, -1);
-  if (str === 'true') return true;
-  if (str === 'false') return false;
-  if (str.startsWith('[') && str.endsWith(']')) {
-    try {
-      return JSON.parse(str);
-    } catch(e) {
-      return str.slice(1, -1).split(',').map(s => parseTomlValue(s.trim())).filter(s => s !== '');
+  function fail(zh, en) {
+    var line = text.slice(0, pos).split('\n').length;
+    throw new Error((__tomlIsEn() ? 'Line ' + line + ': ' : '第 ' + line + ' 行：') + (__tomlIsEn() ? en : zh));
+  }
+  function atEnd(){ return pos >= text.length; }
+  function cur(){ return text.charAt(pos); }
+  function skipSpaces(){ while(pos < text.length && (text.charAt(pos) === ' ' || text.charAt(pos) === '\t' || text.charAt(pos) === '\r')) pos++; }
+  function skipComment(){ if(text.charAt(pos) === '#'){ while(pos < text.length && text.charAt(pos) !== '\n') pos++; } }
+  function skipWs(){
+    while(pos < text.length){
+      var c = text.charAt(pos);
+      if(c === ' ' || c === '\t' || c === '\r' || c === '\n') pos++;
+      else if(c === '#') skipComment();
+      else break;
     }
   }
-  if (/^-?\d+$/.test(str)) return parseInt(str);
-  if (/^-?\d+\.\d+$/.test(str)) return parseFloat(str);
-  return str;
+  function expectLineEnd(){
+    skipSpaces();
+    if(text.charAt(pos) === '#') skipComment();
+    if(pos < text.length && text.charAt(pos) !== '\n') fail('值后存在多余字符', 'unexpected trailing characters after value');
+    if(pos < text.length) pos++;
+  }
+  function parseEscape(){
+    pos++; // 跳过反斜杠
+    var c = text.charAt(pos); pos++;
+    switch(c){
+      case 'b': return '\b';
+      case 't': return '\t';
+      case 'n': return '\n';
+      case 'f': return '\f';
+      case 'r': return '\r';
+      case '"': return '"';
+      case '\\': return '\\';
+      case 'u': {
+        var h = text.substr(pos, 4);
+        if(!/^[0-9a-fA-F]{4}$/.test(h)) fail('Unicode 转义格式错误', 'invalid Unicode escape');
+        pos += 4; return String.fromCharCode(parseInt(h, 16));
+      }
+      case 'U': {
+        var h8 = text.substr(pos, 8);
+        if(!/^[0-9a-fA-F]{8}$/.test(h8)) fail('Unicode 转义格式错误', 'invalid Unicode escape');
+        pos += 8; return String.fromCodePoint(parseInt(h8, 16));
+      }
+      default: fail('非法转义字符', 'invalid escape sequence');
+    }
+  }
+  function parseBasicString(){
+    pos++; // 起始 "
+    var out = '';
+    while(pos < text.length){
+      var c = text.charAt(pos);
+      if(c === '"'){ pos++; return out; }
+      if(c === '\\'){ out += parseEscape(); continue; }
+      if(c === '\n') fail('字符串未闭合', 'unterminated string');
+      out += c; pos++;
+    }
+    fail('字符串未闭合', 'unterminated string');
+  }
+  function parseLiteralString(){
+    pos++; // 起始 '
+    var out = '';
+    while(pos < text.length){
+      var c = text.charAt(pos);
+      if(c === "'"){ pos++; return out; }
+      if(c === '\n') fail('字符串未闭合', 'unterminated string');
+      out += c; pos++;
+    }
+    fail('字符串未闭合', 'unterminated string');
+  }
+  function parseMultilineBasic(){
+    pos += 3;
+    if(text.charAt(pos) === '\n') pos++;
+    var out = '';
+    while(pos < text.length){
+      if(text.substr(pos, 3) === '"""'){ pos += 3; return out; }
+      var c = text.charAt(pos);
+      if(c === '\\'){
+        // 行尾反斜杠：吞掉换行及其后空白（TOML 的多行字符串续行规则）
+        var save = pos;
+        pos++;
+        while(pos < text.length && (text.charAt(pos) === ' ' || text.charAt(pos) === '\t' || text.charAt(pos) === '\r')) pos++;
+        if(text.charAt(pos) === '\n'){
+          while(pos < text.length && /\s/.test(text.charAt(pos))) pos++;
+          continue;
+        }
+        pos = save;
+        out += parseEscape();
+        continue;
+      }
+      out += c; pos++;
+    }
+    fail('多行字符串未闭合', 'unterminated multiline string');
+  }
+  function parseMultilineLiteral(){
+    pos += 3;
+    if(text.charAt(pos) === '\n') pos++;
+    var end = text.indexOf("'''", pos);
+    if(end < 0) fail('多行字符串未闭合', 'unterminated multiline string');
+    var out = text.slice(pos, end);
+    pos = end + 3;
+    return out;
+  }
+  function assign(obj, keys, val){
+    for(var i = 0; i < keys.length - 1; i++){
+      var k = keys[i];
+      if(!Object.prototype.hasOwnProperty.call(obj, k)) obj[k] = {};
+      else if(obj[k] === null || typeof obj[k] !== 'object' || Array.isArray(obj[k])) fail('点号键与已有值冲突', 'dotted key conflicts with an existing value');
+      obj = obj[k];
+    }
+    var last = keys[keys.length - 1];
+    if(Object.prototype.hasOwnProperty.call(obj, last)) fail('重复的键：' + last, 'duplicate key: ' + last);
+    obj[last] = val;
+  }
+  function parseKeyPart(){
+    skipSpaces();
+    var c = cur();
+    if(c === '"') return parseBasicString();
+    if(c === "'") return parseLiteralString();
+    var start = pos;
+    while(pos < text.length && /[A-Za-z0-9_-]/.test(text.charAt(pos))) pos++;
+    if(start === pos) fail('键名为空或含非法字符', 'empty or invalid key');
+    return text.slice(start, pos);
+  }
+  function parseDottedKey(){
+    var keys = [parseKeyPart()];
+    skipSpaces();
+    while(cur() === '.'){
+      pos++; keys.push(parseKeyPart()); skipSpaces();
+    }
+    return keys;
+  }
+  function parseValue(){
+    skipSpaces();
+    var c = cur();
+    if(c === '"'){
+      if(text.substr(pos, 3) === '"""') return parseMultilineBasic();
+      return parseBasicString();
+    }
+    if(c === "'"){
+      if(text.substr(pos, 3) === "'''") return parseMultilineLiteral();
+      return parseLiteralString();
+    }
+    if(c === '['){
+      pos++;
+      var arr = [];
+      while(true){
+        skipWs();
+        if(cur() === ']'){ pos++; break; }
+        arr.push(parseValue());
+        skipWs();
+        if(cur() === ','){ pos++; continue; }
+        if(cur() === ']'){ pos++; break; }
+        fail('数组缺少逗号或 ]', 'expected comma or ] in array');
+      }
+      return arr;
+    }
+    if(c === '{'){
+      pos++;
+      var tbl = {};
+      while(true){
+        skipSpaces();
+        if(cur() === '}'){ pos++; break; }
+        var keys = parseDottedKey();
+        skipSpaces();
+        if(cur() !== '=') fail('内联表缺少 =', 'missing = in inline table');
+        pos++; skipSpaces();
+        assign(tbl, keys, parseValue());
+        skipSpaces();
+        if(cur() === ','){ pos++; continue; }
+        if(cur() === '}'){ pos++; break; }
+        fail('内联表缺少逗号或 }', 'expected comma or } in inline table');
+      }
+      return tbl;
+    }
+    if(text.substr(pos, 4) === 'true'){ pos += 4; return true; }
+    if(text.substr(pos, 5) === 'false'){ pos += 5; return false; }
+    var rest = text.slice(pos);
+    var m = /^[+-]?(?:inf|nan)/.exec(rest);
+    if(m){
+      pos += m[0].length;
+      if(m[0].indexOf('nan') >= 0) return NaN;
+      return m[0].charAt(0) === '-' ? -Infinity : Infinity;
+    }
+    // 日期/时间（本工具按字符串保留，避免误当数字截断）
+    m = /^\d{4}-\d{2}-\d{2}(?:[Tt ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:[Zz]|[+-]\d{2}:\d{2})?)?/.exec(rest);
+    if(m){ pos += m[0].length; return m[0]; }
+    m = /^\d{2}:\d{2}:\d{2}(?:\.\d+)?/.exec(rest);
+    if(m){ pos += m[0].length; return m[0]; }
+    m = /^[+-]?(?:0x[0-9A-Fa-f](?:_?[0-9A-Fa-f])*|0o[0-7](?:_?[0-7])*|0b[01](?:_?[01])*|\d(?:_?\d)*(?:\.\d(?:_?\d)*)?(?:[eE][+-]?\d(?:_?\d)*)?)/.exec(rest);
+    if(m){
+      var raw = m[0], sign = 1;
+      pos += raw.length;
+      if(raw.charAt(0) === '-'){ sign = -1; raw = raw.slice(1); }
+      else if(raw.charAt(0) === '+') raw = raw.slice(1);
+      var body = raw.replace(/_/g, '');
+      if(/^0x/i.test(body)) return sign * parseInt(body.slice(2), 16);
+      if(/^0o/i.test(body)) return sign * parseInt(body.slice(2), 8);
+      if(/^0b/i.test(body)) return sign * parseInt(body.slice(2), 2);
+      return sign * Number(body);
+    }
+    fail('值不是合法的字符串/数字/布尔/日期/数组/内联表', 'value is not a valid string, number, boolean, date, array or inline table');
+  }
+  function parseTableHeader(){
+    pos++; // [
+    var isArray = cur() === '[';
+    if(isArray) pos++;
+    skipSpaces();
+    var keys = parseDottedKey();
+    skipSpaces();
+    if(isArray){
+      if(text.substr(pos, 2) !== ']]') fail('数组表头应以 ]] 结尾', 'array table header must end with ]]');
+      pos += 2;
+    } else {
+      if(cur() !== ']') fail('表头应以 ] 结尾', 'table header must end with ]');
+      pos++;
+    }
+    expectLineEnd();
+    var obj = root;
+    for(var i = 0; i < keys.length - 1; i++){
+      var k = keys[i];
+      if(!Object.prototype.hasOwnProperty.call(obj, k)) obj[k] = {};
+      else if(obj[k] === null || typeof obj[k] !== 'object') fail('表名与已有值冲突', 'table name conflicts with an existing value');
+      if(Array.isArray(obj[k])) obj = obj[k][obj[k].length - 1];
+      else obj = obj[k];
+    }
+    var last = keys[keys.length - 1];
+    var path = keys.join('\u0000');
+    if(isArray){
+      if(!Object.prototype.hasOwnProperty.call(obj, last)) obj[last] = [];
+      else if(!Array.isArray(obj[last])) fail('同名键不是数组表', 'existing key is not an array of tables');
+      var t = {};
+      obj[last].push(t);
+      current = t;
+    } else {
+      if(definedTables[path]) fail('重复定义的表：' + keys.join('.'), 'duplicate table definition: ' + keys.join('.'));
+      if(Object.prototype.hasOwnProperty.call(obj, last)){
+        if(obj[last] === null || typeof obj[last] !== 'object' || Array.isArray(obj[last])) {
+          fail('表名与已有值冲突', 'table name conflicts with an existing value');
+        }
+        current = obj[last];
+      } else {
+        obj[last] = {};
+        current = obj[last];
+      }
+      definedTables[path] = true;
+    }
+  }
+
+  while(true){
+    skipWs();
+    if(atEnd()) break;
+    if(cur() === '[') parseTableHeader();
+    else {
+      var keys = parseDottedKey();
+      skipSpaces();
+      if(cur() !== '=') fail('键值对缺少 =', 'missing = in key-value pair');
+      pos++;
+      assign(current, keys, parseValue());
+      expectLineEnd();
+    }
+  }
+  return root;
 }
 
 function tomlStringify(obj, prefix = '') {
+  if (!obj || typeof obj !== 'object') obj = {};
   let result = '';
   const tables = [];
+  const tableArrays = [];
   const values = [];
-  
+
   for (const [key, value] of Object.entries(obj)) {
     if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
       tables.push([key, value]);
+    } else if (Array.isArray(value) && value.length && value.every(v => v && typeof v === 'object' && !Array.isArray(v))) {
+      tableArrays.push([key, value]);
     } else {
       values.push([key, value]);
     }
   }
   
   for (const [key, value] of values) {
-    result += `${key} = ${formatTomlValue(value)}\n`;
+    result += `${formatTomlKey(key)} = ${formatTomlValue(value)}\n`;
   }
   
   for (const [key, value] of tables) {
@@ -418,30 +630,59 @@ function tomlStringify(obj, prefix = '') {
     result += `[${fullKey}]\n`;
     result += tomlStringify(value, fullKey);
   }
+
+  for (const [key, list] of tableArrays) {
+    const fullKey = prefix ? `${prefix}.${key}` : key;
+    for (const item of list) {
+      if (result) result += '\n';
+      result += `[[${fullKey}]]\n` + tomlStringify(item, fullKey);
+    }
+  }
   
   return result;
+}
+
+function formatTomlKey(key) {
+  return /^[A-Za-z0-9_-]+$/.test(key) ? key : formatTomlValue(String(key));
 }
 
 function formatTomlValue(val) {
   if (val === null) return '""';
   if (typeof val === 'boolean') return val ? 'true' : 'false';
-  if (typeof val === 'number') return String(val);
-  if (Array.isArray(val)) return '[' + val.map(v => formatTomlValue(v)).join(', ') + ']';
-  if (typeof val === 'string') {
-    if (val.includes('\n')) return `"""\n${val}\n"""`;
-    return `"${val.replace(/"/g, '\\"')}"`;
+  if (typeof val === 'number') {
+    if (isNaN(val)) return 'nan';
+    if (!isFinite(val)) return val < 0 ? '-inf' : 'inf';
+    return String(val);
   }
-  return `"${val}"`;
+  if (Array.isArray(val)) return '[' + val.map(v => formatTomlValue(v)).join(', ') + ']';
+  if (typeof val === 'object') {
+    return '{ ' + Object.entries(val).map(([k, v]) => formatTomlKey(k) + ' = ' + formatTomlValue(v)).join(', ') + ' }';
+  }
+  if (typeof val === 'string') {
+    if (val.includes('\n')) {
+      return '"""\n' + val.replace(/\\/g, '\\\\').replace(/"""/g, '\\"""') + '"""';
+    }
+    return '"' + val.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t') + '"';
+  }
+  return '"' + String(val) + '"';
 }
 
+function markField(id, invalid) {
+  var el = document.getElementById(id);
+  if (el) el.style.borderColor = invalid ? 'var(--danger)' : '';
+}
 function showError(msg) {
   const el = document.getElementById('error-msg');
   el.textContent = '❌ ' + msg;
   el.style.display = 'block';
+  markField('input', true);
+  const out = document.getElementById('output');
+  if (out) out.textContent = '';
 }
 
 function hideError() {
   document.getElementById('error-msg').style.display = 'none';
+  markField('input', false);
 }
 
 function formatToml() {
@@ -457,54 +698,35 @@ function formatToml() {
   } catch(e) { showError(e.message); }
 }
 
-// —— 严格逐行校验（validate 专用；format/转换仍走宽松 parseToml，互不影响）——
-// 只报结构性硬错误：表头格式、缺少 =、空键名、空值。返回错误串（带行号）或 null。
-function validateTomlStrict(text) {
-  var __en = (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn());
-  var lines = text.split('\n');
-  var inStr = null; // 多行字符串状态（''' 或 """），页面解析按行处理，此处跳过内容行不误报
-  var kvCount = 0, tableCount = 0;
-  for (var i = 0; i < lines.length; i++) {
-    var raw = lines[i];
-    var line = raw.trim();
-    var n = i + 1;
-    if (inStr) {
-      if (line.indexOf(inStr) !== -1) inStr = null;
-      continue;
-    }
-    if (!line || line.charAt(0) === '#') continue;
-    if (line.charAt(0) === '[') {
-      // 去掉行内注释（表名内 # 非法，此处 strip 安全）
-      var header = line.replace(/\s+#.*$/, '');
-      var isArr = header.indexOf('[[') === 0;
-      var close = isArr ? ']]' : ']';
-      if (!header.endsWith(close) || header.replace(/^\[+/, '').replace(/\]+$/, '').trim() === '') {
-        return { err: __en ? ('Line ' + n + ': invalid table header — expected [table] or [[array_of_tables]]')
-                    : ('第 ' + n + ' 行：表头格式错误（应为 [table] 或 [[array_of_tables]]）') };
+// —— 严格校验：与格式化/转换共用同一个 parseToml，非法 TOML 一律拒绝 ——
+function countToml(obj) {
+  if (!obj || typeof obj !== 'object') obj = {};
+  var kv = 0, tables = 0;
+  function walk(o) {
+    Object.keys(o).forEach(function(k) {
+      var v = o[k];
+      if (Array.isArray(v)) {
+        tables++;
+        v.forEach(function(item) { if (item && typeof item === 'object' && !Array.isArray(item)) walk(item); });
+      } else if (v && typeof v === 'object') {
+        tables++;
+        walk(v);
+      } else {
+        kv++;
       }
-      tableCount++;
-      continue;
-    }
-    var eq = line.indexOf('=');
-    if (eq === -1) {
-      return { err: __en ? ('Line ' + n + ': missing "=" — this line is neither a valid table header nor a key-value pair')
-                  : ('第 ' + n + ' 行：缺少「=」——既不是合法表头也不是键值对') };
-    }
-    if (line.substring(0, eq).trim() === '') {
-      return { err: __en ? ('Line ' + n + ': empty key name before "="') : ('第 ' + n + ' 行：「=」前键名为空') };
-    }
-    var val = line.substring(eq + 1).trim();
-    if (val === '') {
-      return { err: __en ? ('Line ' + n + ': empty value after "="') : ('第 ' + n + ' 行：「=」后值为空') };
-    }
-    kvCount++;
-    // 多行字符串（值侧三引号开启，如 desc = """multi）：未在本行闭合 ⇒ 进入多行状态，跳过内容行
-    for (var qi = 0; qi < 2; qi++) {
-      var q2 = qi === 0 ? '"""' : "'''";
-      if (val.indexOf(q2) === 0 && val.lastIndexOf(q2) < 3) { inStr = q2; break; }
-    }
+    });
   }
-  return { err: null, kv: kvCount, tables: tableCount };
+  walk(obj);
+  return { kv: kv, tables: tables };
+}
+
+function validateTomlStrict(text) {
+  try {
+    var stat = countToml(parseToml(text));
+    return { err: null, kv: stat.kv, tables: stat.tables };
+  } catch (e) {
+    return { err: e.message };
+  }
 }
 
 function validateToml() {
@@ -527,9 +749,12 @@ function tomlToJson() {
   if (!input.trim()) { ToolBox.showToast(i18nText('toast.msg761'), 'warning'); return; }
   try {
     const obj = parseToml(input);
+    markField('toml-input', false);
     document.getElementById('json-output').textContent = JSON.stringify(obj, null, 2);
     ToolBox.showToast(i18nText('toast.msg966'), 'success');
   } catch(e) {
+    markField('toml-input', true);
+    document.getElementById('json-output').textContent = '';
     const __h1=`<span style="color:var(--danger);">转换失败: ${e.message}</span>`;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('json-output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('json-output').innerHTML=__h1;
   }
 }
@@ -539,9 +764,12 @@ function jsonToToml() {
   if (!input.trim()) { ToolBox.showToast(i18nText('toast.msg759'), 'warning'); return; }
   try {
     const obj = JSON.parse(input);
+    markField('json-input', false);
     document.getElementById('toml-output').textContent = tomlStringify(obj);
     ToolBox.showToast(i18nText('toast.msg966'), 'success');
   } catch(e) {
+    markField('json-input', true);
+    document.getElementById('toml-output').textContent = '';
     const __h2=`<span style="color:var(--danger);">转换失败: ${e.message}</span>`;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('toml-output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('toml-output').innerHTML=__h2;
   }
 }

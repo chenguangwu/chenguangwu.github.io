@@ -491,7 +491,8 @@ s.parentNode.insertBefore(el, s);
         // For counting, we need global flag temporarily
         const countRegex = new RegExp(pattern, buildFlags({ ...opts, global: true }));
         const allMatches = text.match(countRegex);
-        const count = allMatches ? allMatches.length : 0;
+        // 非全局模式只替换首个匹配，计数也应为 1（此前恒按全部匹配计数，展示次数与实际不符）
+        const count = allMatches ? (opts.global ? allMatches.length : 1) : 0;
 
         // Collect match positions for preview (limit to first 200)
         const posRegex = new RegExp(pattern, buildFlags({ ...opts, global: true }));
@@ -514,7 +515,8 @@ s.parentNode.insertBefore(el, s);
         while (true) {
           const foundIdx = targetStr.indexOf(searchStr, startIdx);
           if (foundIdx === -1) break;
-          matches.push({ index: foundIdx, length: searchStr.length, text: pattern });
+          // text 用原文切片，保留命中处的真实大小写（不能回填 pattern）
+          matches.push({ index: foundIdx, length: searchStr.length, text: text.substr(foundIdx, searchStr.length) });
           count++;
           if (!opts.global) break;
           startIdx = foundIdx + 1;
@@ -584,6 +586,17 @@ s.parentNode.insertBefore(el, s);
     return html;
   }
 
+  // 标记非法输入字段并清空历史结果，避免旧结果被误复制/下载
+  function markField(id, invalid) {
+    const el = document.getElementById(id);
+    if (el) el.style.borderColor = invalid ? 'var(--danger)' : '';
+  }
+  function clearReplaceResult() {
+    document.getElementById('resultArea').style.display = 'none';
+    document.getElementById('resultText').value = '';
+    document.getElementById('statsArea').style.display = 'none';
+  }
+
   // 执行替换
   window.doReplace = function() {
     const text = document.getElementById('sourceText').value;
@@ -592,14 +605,20 @@ s.parentNode.insertBefore(el, s);
     const opts = getOptions();
 
     // Clear previous
+    markField('sourceText', false);
+    markField('findInput', false);
     const __h0='';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('errorArea').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('errorArea').innerHTML=__h0;
     document.getElementById('previewArea').style.display = 'none';
 
     if (!text) {
+      markField('sourceText', true);
+      clearReplaceResult();
       ToolBox.showToast(i18nText('toast.msg685'), 'warning');
       return;
     }
     if (!pattern) {
+      markField('findInput', true);
+      clearReplaceResult();
       ToolBox.showToast(i18nText('toast.msg875'), 'warning');
       return;
     }
@@ -607,6 +626,8 @@ s.parentNode.insertBefore(el, s);
     // Find matches for counting
     const matchInfo = findMatches(text, pattern, opts);
     if (matchInfo.error) {
+      markField('findInput', true);
+      clearReplaceResult();
       const __h1='<div class="error-tip">正则表达式错误：' + ToolBox.escHtml(matchInfo.error) + '</div>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('errorArea').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('errorArea').innerHTML=__h1;
       ToolBox.showToast(i18nText('toast.msg454'), 'error');
       return;
@@ -627,13 +648,19 @@ s.parentNode.insertBefore(el, s);
         }
       } else {
         if (opts.global) {
-          if (!opts.caseSensitive) {
-            const parts = text.toLowerCase().split(pattern.toLowerCase());
-            result = parts.join(replacement);
-          } else {
-            const parts = text.split(pattern);
-            result = parts.join(replacement);
+          // 在原文中逐处查找并拼接替换，未命中的片段（含大小写）保持原样
+          const hay = opts.caseSensitive ? text : text.toLowerCase();
+          const needle = opts.caseSensitive ? pattern : pattern.toLowerCase();
+          let out = '';
+          let start = 0;
+          while (true) {
+            const idx = hay.indexOf(needle, start);
+            if (idx === -1) break;
+            out += text.slice(start, idx) + replacement;
+            start = idx + needle.length;
           }
+          out += text.slice(start);
+          result = out;
         } else {
           // Non-global case-insensitive plain replace
           const searchStr = opts.caseSensitive ? pattern : pattern.toLowerCase();
@@ -647,6 +674,8 @@ s.parentNode.insertBefore(el, s);
         }
       }
     } catch (e) {
+      markField('findInput', true);
+      clearReplaceResult();
       const __h2='<div class="error-tip">替换执行错误：' + ToolBox.escHtml(e.message) + '</div>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('errorArea').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('errorArea').innerHTML=__h2;
       ToolBox.showToast(i18nText('toast.msg436'), 'error');
       return;
@@ -684,18 +713,23 @@ s.parentNode.insertBefore(el, s);
 
     const __h3='';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('errorArea').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('errorArea').innerHTML=__h3;
     document.getElementById('resultArea').style.display = 'none';
+    markField('sourceText', false);
+    markField('findInput', false);
 
     if (!text) {
+      markField('sourceText', true);
       ToolBox.showToast(i18nText('toast.msg685'), 'warning');
       return;
     }
     if (!pattern) {
+      markField('findInput', true);
       ToolBox.showToast(i18nText('toast.msg875'), 'warning');
       return;
     }
 
     const matchInfo = findMatches(text, pattern, opts);
     if (matchInfo.error) {
+      markField('findInput', true);
       const __h4='<div class="error-tip">正则表达式错误：' + ToolBox.escHtml(matchInfo.error) + '</div>';if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){document.getElementById('errorArea').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('errorArea').innerHTML=__h4;
       ToolBox.showToast(i18nText('toast.msg454'), 'error');
       return;

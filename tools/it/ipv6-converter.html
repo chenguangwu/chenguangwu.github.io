@@ -267,13 +267,34 @@ function expand(ip){
   for(var m=0;m<8;m++){if(!/^[0-9a-f]{1,4}$/.test(segs[m]))return null;segs[m]=pad4(segs[m]);}
   return segs;
 }
+function ipv6IsEn(){return typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn();}
+function addrMark(on){
+  var el=document.getElementById('addr');
+  if(el) el.style.borderColor=on?'#dc2626':'';
+}
 function calcTool(){
-var ip=document.getElementById('addr').value;
+var raw=document.getElementById('addr').value.trim();
+var ip=raw;
+var prefix=null;
 var html='<div class="result-title">转换结果</div>';
+addrMark(false);
+var slash=ip.indexOf('/');
+if(slash>=0){
+  var prefixStr=ip.slice(slash+1).trim();
+  ip=ip.slice(0,slash).trim();
+  if(!/^\d{1,3}$/.test(prefixStr)||Number(prefixStr)>128){
+    addrMark(true);
+    html+='<p style="color:#dc2626;">⚠️ '+(ipv6IsEn()?'Prefix length must be an integer from 0 to 128.':'前缀长度必须是 0–128 的整数。')+'</p>';
+    document.getElementById('result').innerHTML=html;
+    return;
+  }
+  prefix=Number(prefixStr);
+}
 var segs=expand(ip);
-if(!segs){html+='<p style="color:#dc2626;">⚠️ 不是合法的 IPv6 地址。</p>';const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));return;}
+if(!segs){addrMark(true);html+='<p style="color:#dc2626;">⚠️ '+(ipv6IsEn()?'Not a valid IPv6 address.':'不是合法的 IPv6 地址。')+'</p>';const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));return;}
 html+='<div class="big-result" style="font-size:14px;word-break:break-all;">'+segs.join(':')+'</div>';
-html+='<p class="muted">压缩形式：'+compressV6(segs)+'</p>';
+html+='<p class="muted">'+'压缩形式：'+compressV6(segs)+'</p>';
+if(prefix!==null)html+='<p class="muted">'+(ipv6IsEn()?'Prefix length: /'+prefix+' (address segments kept as entered)':'前缀长度：/'+prefix+'（地址段按原值保留）')+'</p>';
 html+='<p style="margin-top:8px;"><b>8 段：</b>'+segs.map(function(s,i){return '['+i+'] '+s;}).join('  ')+'</p>';
 const __g3=html;document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));}
 function resetForm(){document.getElementById('addr').value='2001:db8::1';

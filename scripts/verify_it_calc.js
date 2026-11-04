@@ -2180,8 +2180,8 @@ const CASES = [
     slug: "it/toml-formatter",
     inputs: { input: "a = 1\nbroken line\nb = 2" },
     clicks: ["validateToml()"],
-    expect: ["第 2 行：缺少「=」"],
-    ref: "严格校验（validateToml 专用，format 仍宽松）：第 2 行 `broken line` 无 `=` 且非表头 ⇒ 报「第 2 行：缺少「=」」。默认样例合法 ⇒ 默认态无该串，强判别。",
+    expect: ["第 2 行：键值对缺少 ="],
+    ref: "严格校验（validateToml 专用，format 仍宽松）：第 2 行 `broken line` 无 `=` 且非表头 ⇒ 报「第 2 行：键值对缺少 =」。默认样例合法 ⇒ 默认态无该串，强判别。",
   },
   {
     slug: "it/toml-formatter",
@@ -6936,7 +6936,7 @@ const CASES = [
       "indent": "2"
     },
     "clicks": [
-      "document.getElementById('output').value = document.getElementById('output').textContent;"
+      "doBeautify(); document.getElementById('probe').value = document.getElementById('output').textContent;"
     ],
     "expect": [
       "<note> <!-- 头部注释 -->",
@@ -6944,7 +6944,7 @@ const CASES = [
       "<raw> <![CDATA[<unparsed>text</unparsed>]]> </raw>",
       "</meta> </note>"
     ],
-    "ref": "根标签与 CDATA 必须存活：序列化从 documentElement 起算（旧实现只遍历 documentElement.childNodes ⇒ 输出以 '></note>' 开头、<note> 丢失）；子节点判定纳入 CDATA（旧实现 `<raw>` 仅剩 CDATA 子节点被滤掉 ⇒ 输出 `<raw/>`、原文丢失）。期望串带格式化空白（如「<raw> <![CDATA[…]]> </raw>」），注入的原始输入为紧凑 XML 不含该形态 ⇒ 强判别。"
+    "ref": "根标签与 CDATA 必须存活：序列化从 documentElement 起算（旧实现只遍历 documentElement.childNodes ⇒ 输出以 '></note>' 开头、<note> 丢失）；子节点判定纳入 CDATA（旧实现 `<raw>` 仅剩 CDATA 子节点被滤掉 ⇒ 输出 `<raw/>`、原文丢失）。期望串带格式化空白（如「<raw> <![CDATA[…]]> </raw>」），注入的原始输入为紧凑 XML 不含该形态 ⇒ 强判别。**断言走 probe.value**：collectStrings 对 innerHTML/textContent 会剥标签（尖括号语法会被整块吃掉），故点击时把格式化结果同步写入 probe 的 value（value 保留原文），断言才能覆盖标签形态。"
   },
   {
     "slug": "it/xor-cipher",

@@ -154,9 +154,9 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="💍 戒指尺寸换算器">💍 Ring Size Converter</h2>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">戒指码数换算（先归一到基准内周长 mm）：周长直通；直径 ×π；港码 ×3.14；美码 = v×2.76+36.25；英码 = v×2.6+36.25；欧码 = v+40；反算取各自逆运算（港码 = 周长 ÷ 3.14、美码 = (周长−36.25) ÷ 2.76、英码 = (周长−36.25) ÷ 2.6、欧码 = 周长 − 40、直径 = 周长 ÷ π）。校验：须为有效正数，换算后周长非正或非有限报「输入值无效」。判据：无固定分级，一次输出基准周长与其余五制式号码。</div>
+      <div class="formula-eq">戒指码数换算（先归一到基准内周长 mm）：周长直通；直径 ×π；港码按对照表（1 号 ≈ 41 mm，每号 +1 mm）；美码 = v×2.76+36.25；英码 = v×2.6+36.25；欧码 = 内周长 mm 直通（ISO 8653）；意码 = 内周长 − 40。反算取各自逆运算（港码 = 周长 − 40、美码 = (周长−36.25) ÷ 2.76、英码 = (周长−36.25) ÷ 2.6、欧码 = 周长、意码 = 周长 − 40、直径 = 周长 ÷ π）。校验：须为有效正数，任一支制式换算结果非正或非有限时报「低于可换算范围」。</div>
     </div>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="支持 中国港码 / 美码 / 英码 / 欧码 / 周长mm">Convert ring sizes across US, UK, EU, JP and CN systems from a diameter or circumference measurement.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="支持 中国港码 / 美码 / 英码 / 欧码 / 意码 / 周长mm">Convert ring sizes across US, UK, EU, IT, HK and perimeter systems.</p>
 
     <div class="input-row">
       <div>
@@ -167,6 +167,7 @@ s.parentNode.insertBefore(el, s);
           <option value="us">美码</option>
           <option value="uk">英码</option>
           <option value="eu">欧码</option>
+          <option value="it">意码</option>
           <option value="dia">直径（毫米）</option>
         </select>
       </div>
@@ -189,10 +190,11 @@ s.parentNode.insertBefore(el, s);
     <div class="result-box">
       <p>基准：<strong>戒指内周长（mm）</strong></p>
       <p>直径 = 周长 / π</p>
-      <p>港码 = 周长 / 3.14 × 10 ÷ 10（如 54mm → 17号，标准港码）</p>
+      <p>港码 = 周长 − 40（1 号 ≈ 41 mm、11 号 ≈ 51 mm、17 号 ≈ 57 mm，标准港码）</p>
       <p>美码 US ≈ (周长 mm - 36.25) / 2.76</p>
       <p>英码 UK ≈ (周长 mm - 36.25) / 2.6</p>
-      <p>欧码 EU = 周长 mm - 40（如 54mm → 14）</p>
+      <p>欧码 EU = 周长 mm（ISO 8653 直通，如 54mm → 14 意码 / 54 欧码）</p>
+      <p>意码 IT = 周长 mm - 40（如 54mm → 14）</p>
       <p>测量建议：用细绳绕指一圈，量其长度</p>
     </div>
   </div>
@@ -283,10 +285,14 @@ function toCirc(v, type){
   switch(type){
     case 'circ': return v;
     case 'dia': return v * Math.PI;
-    case 'hk': return v * 3.14;  // 港码 1号 ≈ 周长 3.14mm？ 实际港码11号=50mm，则 1号=3.14mm
+    // 港码对照表：1 号 ≈ 内周长 41 mm，每号 +1 mm（11 号 ≈ 51 mm、17 号 ≈ 57 mm）
+    case 'hk': return v + 40;
     case 'us': return v * 2.76 + 36.25;
     case 'uk': return v * 2.6 + 36.25;
-    case 'eu': return v + 40;
+    // 欧码按 ISO 8653 直接以内周长 mm 表示
+    case 'eu': return v;
+    // 意码 = 内周长 − 40，单列
+    case 'it': return v + 40;
   }
   return NaN;
 }
@@ -295,31 +301,47 @@ function fromCirc(circ, type){
   switch(type){
     case 'circ': return circ;
     case 'dia': return circ / Math.PI;
-    case 'hk': return circ / 3.14;
+    case 'hk': return Math.round((circ - 40) * 10) / 10;
     case 'us': return (circ - 36.25) / 2.76;
     case 'uk': return (circ - 36.25) / 2.6;
-    case 'eu': return circ - 40;
+    case 'eu': return circ;
+    case 'it': return circ - 40;
   }
   return NaN;
 }
 
 const labels = {
   circ:'周长(mm)', dia:'直径(mm)', hk:'中国港码',
-  us:'美码', uk:'英码', eu:'欧码'
+  us:'美码', uk:'英码', eu:'欧码', it:'意码'
 };
 
 function convert(){
-  const v = parseFloat(document.getElementById('inputVal').value);
+  const input = document.getElementById('inputVal');
+  const v = parseFloat(input.value);
   const type = document.getElementById('inputType').value;
   if(isNaN(v) || v <= 0){
+    input.classList.add('input-error');
     const __h0='<p style="color:var(--danger);">请输入有效正数</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h0;
     return;
   }
   const circ = toCirc(v, type);
   if(!isFinite(circ) || circ <= 0){
+    input.classList.add('input-error');
     const __h1='<p style="color:var(--danger);">输入值无效</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h1;
     return;
   }
+  // 各制式结果须为正数，否则说明该码数低于可换算范围
+  const bad = Object.keys(labels).some(k => {
+    if(k === type) return false;
+    const out = fromCirc(circ, k);
+    return !isFinite(out) || out <= 0;
+  });
+  if(bad){
+    input.classList.add('input-error');
+    document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">该码数低于可换算范围，请检查输入</p>';
+    return;
+  }
+  input.classList.remove('input-error');
   let html = `<p>基准戒指内周长：<strong>${fmt(circ)} mm</strong>（直径 ${fmt(circ / Math.PI)} mm）</p>`;
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">';
   Object.keys(labels).forEach(k => {

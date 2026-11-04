@@ -269,13 +269,25 @@ s.parentNode.insertBefore(el, s);
 
 <script>
 function calc(){
-  const u = parseFloat(document.getElementById('under').value);
-  const up = parseFloat(document.getElementById('upper').value);
-  if(isNaN(u) || isNaN(up) || u <= 0 || up <= 0){
+  const uEl = document.getElementById('under');
+  const upEl = document.getElementById('upper');
+  const u = parseFloat(uEl.value);
+  const up = parseFloat(upEl.value);
+  const uOk = isFinite(u) && u > 0 && u <= 200;
+  const upOk = isFinite(up) && up > 0 && up <= 250;
+  uEl.classList.toggle('input-error', !uOk);
+  upEl.classList.toggle('input-error', !upOk);
+  if(!uOk || !upOk){
     document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">请输入有效的正数</p>';
     return;
   }
   const diff = up - u;
+  if(diff < 0){
+    uEl.classList.add('input-error');
+    upEl.classList.add('input-error');
+    document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">上胸围应不小于下胸围，请检查输入</p>';
+    return;
+  }
   // 下胸围对应尺码
   let band;
   if(u < 73) band = 70;
@@ -285,12 +297,24 @@ function calc(){
   else if(u < 93) band = 90;
   else if(u < 98) band = 95;
   else band = Math.round(u / 5) * 5;
-  // 罩杯
-  const cups = ['AA','A','B','C','D','E','F','G','H','I','J','K'];
-  let cupIdx = Math.round(diff / 2.5) - 1;  // diff=10 -> A
-  if(diff < 8) cupIdx = -1; // AA
-  if(cupIdx < -1) cupIdx = -1;
-  const cup = cups[cupIdx + 1] || '?';
+  // 罩杯按标准区间（上限归入本级）：10 cm = A、12.5 cm = B、15 cm = C…
+  let cup = '';
+  if(diff < 7.5) cup = 'AA';
+  else if(diff <= 10) cup = 'A';
+  else if(diff <= 12.5) cup = 'B';
+  else if(diff <= 15) cup = 'C';
+  else if(diff <= 17.5) cup = 'D';
+  else if(diff <= 20) cup = 'E';
+  else if(diff <= 22.5) cup = 'F';
+  else if(diff <= 25) cup = 'G';
+  else if(diff <= 27.5) cup = 'H';
+  else if(diff <= 30) cup = 'I';
+  else if(diff <= 32.5) cup = 'J';
+  else if(diff <= 35) cup = 'K';
+  if(!cup){
+    document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">上下胸围差 <strong>'+diff.toFixed(1)+'</strong> cm 超出换算范围（最大 35 cm），请核对测量值</p>';
+    return;
+  }
   let html = `<p>上下胸围差：<strong>${diff.toFixed(1)} cm</strong></p>`;
   html += `<p>下胸围尺码：<strong>${band}</strong></p>`;
   html += `<p>罩杯：<strong>${cup}</strong> 杯</p>`;

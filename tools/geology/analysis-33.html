@@ -207,17 +207,30 @@ S-03,7.6,7.5</textarea>
 </div>
 <script>
 function calc(){
-var lines=document.getElementById("data").value.split("\n").map(function(s){return s.trim();}).filter(function(s){return s.length>0;});
-var lim=parseFloat(document.getElementById("lim").value);
-if(isNaN(lim))lim=5;
-var arr=[];
-lines.forEach(function(ln){
-var p=ln.split(/[,，\t ]+/);
-if(p.length<3)return;
+var dataEl=document.getElementById("data"),limEl=document.getElementById("lim");
+var lim=parseFloat(limEl.value);
+var arr=[],rejected=[];
+var rawLines=dataEl.value.split("\n");
+rawLines.forEach(function(ln,idx){
+var s=ln.trim();
+if(!s)return;
+var p=s.split(/[,，\t ]+/);
+if(p.length<3){rejected.push({no:idx+1,text:s,reason:'列数不足，需「样品编号,基本分析值,检查分析值」'});return;}
 var a=parseFloat(p[1]),b=parseFloat(p[2]);
-if(isNaN(a)||isNaN(b))return;
+if(isNaN(a)||isNaN(b)||!isFinite(a)||!isFinite(b)){rejected.push({no:idx+1,text:s,reason:'分析值不是有效数字'});return;}
 arr.push({name:p[0],a:a,b:b});
 });
+var limBad=!isFinite(lim)||lim<=0;
+limEl.classList.toggle('input-error',limBad);
+dataEl.classList.toggle('input-error',rejected.length>0);
+if(limBad){document.getElementById("res").innerHTML='<p style="color:var(--danger)">⚠ 请输入有效的允许相对偏差限（%）后再计算。</p>';document.getElementById("analysis_33Table").innerHTML='';return;}
+if(rejected.length){
+function esc(t){return t.replace(/[<>&]/g,function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;'}[c];});}
+var rowsHtml=rejected.map(function(r){return '<li>第 '+r.no+' 行：<code>'+esc(r.text)+'</code>　原因：'+r.reason+'</li>';}).join('');
+document.getElementById("res").innerHTML='<p style="color:var(--danger)">⚠ 数据无效：'+rejected.length+' 行无法解析，已接受 '+arr.length+' 行、拒绝 '+rejected.length+' 行。请修正后重新计算。</p><ul style="font-size:13px;color:var(--danger);">'+rowsHtml+'</ul><p style="font-size:13px;color:var(--text-muted);">存在无效行时不输出批次合格结论。</p>';
+document.getElementById("analysis_33Table").innerHTML='';
+return;
+}
 if(!arr.length){document.getElementById("res").innerHTML='<p>请输入至少一行「样品编号,基本分析值,检查分析值」</p>';return;}
 var sum=0,mx=null,over=0;
 arr.forEach(function(o){

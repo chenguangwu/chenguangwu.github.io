@@ -260,18 +260,36 @@ function parseProps(text){
   while(i < lines.length){
     let line = lines[i];
     i++;
-    let t = line.trim();
+    // 行首空白不属于键名
+    let t = line.replace(/^[ \t\f]+/, '');
     if(!t || t.startsWith('#') || t.startsWith('!')) continue;
-    while(line.endsWith('\\') && i < lines.length){ line = line.slice(0, -1) + lines[i].trim(); i++; }
-    t = line;
-    let sep = -1;
+    while(t.endsWith('\\') && i < lines.length){
+      t = t.slice(0, -1) + lines[i].replace(/^[ \t\f]+/, '');
+      i++;
+    }
+    // 键在首个未转义的 = / : 或空白处结束；空白分隔后可选再吞一个 = / :
+    let keyEnd = -1;
+    let sepKind = '';
     for(let j = 0; j < t.length; j++){
-      if(t[j] === '=' || t[j] === ':'){ sep = j; break; }
-      if(t[j] === ' ' || t[j] === '\t' || t[j] === '\\'){ if(j > 0) break; }
+      const c = t[j];
+      if(c === '\\'){ j++; continue; }
+      if(c === '=' || c === ':'){ keyEnd = j; sepKind = c; break; }
+      if(c === ' ' || c === '\t' || c === '\f'){ keyEnd = j; sepKind = ' '; break; }
     }
     let k, v;
-    if(sep < 0){ k = t.trim(); v = ''; }
-    else { k = t.slice(0, sep).trim(); v = t.slice(sep + 1).trim(); }
+    if(keyEnd < 0){
+      k = t;
+      v = '';
+    } else {
+      k = t.slice(0, keyEnd);
+      let p = keyEnd + 1;
+      if(sepKind === ' '){
+        while(p < t.length && (t[p] === ' ' || t[p] === '\t' || t[p] === '\f')) p++;
+        if(p < t.length && (t[p] === '=' || t[p] === ':')) p++;
+      }
+      while(p < t.length && (t[p] === ' ' || t[p] === '\t' || t[p] === '\f')) p++;
+      v = t.slice(p);
+    }
     result[unescapeKey(k)] = unescapeVal(v);
   }
   return result;

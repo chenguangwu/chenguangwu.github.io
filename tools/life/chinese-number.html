@@ -166,7 +166,8 @@ s.parentNode.insertBefore(el, s);
     <div class="result-box">
       <p>简体：〇 一 二 三 四 五 六 七 八 九 十 百 千 万 亿</p>
       <p>大写：零 壹 贰 叁 肆 伍 陆 柒 捌 玖 拾 佰 仟 万 亿</p>
-      <p>金额：阿拉伯数字 → 人民币大写，金额末尾加"元整"</p>
+      <p>金额：量化到分后按元/角/分大写，不足分进位，元与角之间补零</p>
+      <p>小数：简体/大写支持「点」逐位；负数前置「负」</p>
       <p>范围：整数部分最多支持 12 位（千亿）</p>
     </div></div>
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -253,33 +254,21 @@ const bigUnits = ['','万','亿','万亿'];
 
 function numberToSimpleChinese(n){
   if(n === 0) return '〇';
-  let str = Math.floor(n).toString();
-  let result = '';
-  // 按万亿、亿、万分段，每段 4 位
-  const segs = [];
-  let num = parseInt(str, 10);
-  while(num > 0){
-    segs.unshift(num % 10000);
-    num = Math.floor(num / 10000);
-  }
-  segs.forEach((seg, i) => {
-    if(seg === 0) return;
-    const segStr = seg4ToChinese(seg, false);
-    result += segStr + bigUnits[segs.length - 1 - i];
-  });
-  return result || '〇';
+  return intToChinese(n, simpleDigits, '〇');
 }
 
 function seg4ToChinese(seg, upper){
+  if(seg === undefined || seg === null || !isFinite(Number(seg))) return '';
   const digits = upper ? upperDigits : simpleDigits;
   let res = '';
-  const s = seg.toString().padStart(4, '0');
+  const s = seg.toString();
   let zero = false;
-  for(let i = 0; i < 4; i++){
+  for(let i = 0; i < s.length; i++){
     const d = parseInt(s[i], 10);
-    const pos = 3 - i;
+    const pos = s.length - 1 - i;
     if(d === 0){
-      zero = true;
+      // 只标记段内高位零；段首补位零不应读出
+      if(res) zero = true;
     } else {
       if(zero){
         res += digits[0];
@@ -291,41 +280,51 @@ function seg4ToChinese(seg, upper){
   return res;
 }
 
-function numberToUpperChinese(n){
-  if(n === 0) return '零';
-  let str = Math.floor(n).toString();
-  let result = '';
+function intToChinese(n, digits, zeroChar){
+  if(n === 0) return zeroChar;
   const segs = [];
-  let num = parseInt(str, 10);
+  let num = n;
   while(num > 0){
     segs.unshift(num % 10000);
     num = Math.floor(num / 10000);
   }
+  let result = '';
+  let needZero = false;
   segs.forEach((seg, i) => {
-    if(seg === 0) return;
-    const segStr = seg4ToChinese(seg, true);
-    result += segStr + bigUnits[segs.length - 1 - i];
+    const unit = bigUnits[segs.length - 1 - i];
+    if(seg === 0){
+      if(result) needZero = true;
+      return;
+    }
+    // 跨段补零：上段有跳过的零段，或本段不足四位
+    if(result && (needZero || seg < 1000)) result += zeroChar;
+    result += seg4ToChinese(seg, digits === upperDigits) + unit;
+    needZero = false;
   });
-  return result || '零';
+  return result || zeroChar;
 }
 
-// 人民币大写金额
+function numberToUpperChinese(n){
+  if(n === 0) return '零';
+  return intToChinese(n, upperDigits, '零');
+}
+
+// 人民币大写金额：先量化到分，再按元/角/分拼接，元与角之间补零
 function toRMB(n){
-  if(n === 0) return '零元整';
-  const intPart = Math.floor(Math.abs(n));
-  const decPart = Math.round((Math.abs(n) - intPart) * 100);
-  const yuanStr = intPart === 0 ? '' : numberToUpperChinese(intPart) + '元';
-  let jiaoStr = '', fenStr = '';
-  const jiao = Math.floor(decPart / 10);
-  const fen = decPart % 10;
-  if(jiao > 0) jiaoStr = upperDigits[jiao] + '角';
-  if(fen > 0) fenStr = upperDigits[fen] + '分';
-  else if(jiao > 0) fenStr = '整';
-  let rmb = yuanStr + jiaoStr + fenStr;
-  if(intPart === 0) rmb = jiaoStr + fenStr;
-  if(!fenStr && !jiaoStr) rmb = yuanStr + '整';
-  if(n < 0) rmb = '负' + rmb;
-  return rmb;
+  if(!isFinite(n)) return '--';
+  const neg = n < 0;
+  const cents = Math.round(Math.abs(n) * 100);
+  if(cents === 0) return '零元整';
+  const yuan = Math.floor(cents / 100);
+  const jiao = Math.floor((cents % 100) / 10);
+  const fen = cents % 10;
+  let rmb = '';
+  if(yuan > 0) rmb += numberToUpperChinese(yuan) + '元';
+  if(jiao > 0) rmb += upperDigits[jiao] + '角';
+  else if(yuan > 0 && fen > 0) rmb += '零';
+  if(fen > 0) rmb += upperDigits[fen] + '分';
+  if(fen === 0) rmb += '整';
+  return (neg ? '负' : '') + rmb;
 }
 
 // 中文转数字
@@ -341,6 +340,11 @@ function chineseToNumber(str){
   if(!str) return NaN;
   // 移除元整、角、分等
   str = str.replace(/[元整角分]/g, '');
+  let neg = false;
+  if(str.charAt(0) === '负'){ neg = true; str = str.slice(1); }
+  let decStr = '';
+  const dotIdx = str.indexOf('点');
+  if(dotIdx >= 0){ decStr = str.slice(dotIdx + 1); str = str.slice(0, dotIdx); }
   let total = 0;
   let seg = 0;       // 当前段累计
   let cur = 0;       // 当前数字
@@ -356,14 +360,26 @@ function chineseToNumber(str){
       total += seg * bigUnitMap[ch];
       seg = 0;
       cur = 0;
+    } else {
+      return NaN;
     }
   }
   total += seg + cur;
-  return total;
+  if(decStr){
+    let place = 0.1;
+    for(const ch of decStr){
+      if(!(ch in chMap)) return NaN;
+      total += chMap[ch] * place;
+      place /= 10;
+    }
+  }
+  return neg ? -total : total;
 }
 
 function convert(){
   const v = (document.getElementById('inputVal').value || '').trim();
+  const inputEl = document.getElementById('inputVal');
+  inputEl.classList.remove('input-error');
   if(!v){
     const __h0='<p style="color:var(--danger);">请输入内容</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h0;
     return;
@@ -371,17 +387,27 @@ function convert(){
   // 判断是阿拉伯数字还是中文
   if(/^-?\d+(\.\d+)?$/.test(v)){
     const n = parseFloat(v);
-    const intPart = Math.floor(Math.abs(n));
+    const neg = v.charAt(0) === '-';
+    const absStr = neg ? v.slice(1) : v;
+    const dotPos = absStr.indexOf('.');
+    const intStr = dotPos < 0 ? absStr : absStr.slice(0, dotPos);
+    const decStr = dotPos < 0 ? '' : absStr.slice(dotPos + 1);
+    const intVal = parseInt(intStr, 10) || 0;
+    const sign = neg ? '负' : '';
+    const decSimple = decStr ? '点' + decStr.split('').map(d => simpleDigits[parseInt(d, 10)]).join('') : '';
+    const decUpper = decStr ? '点' + decStr.split('').map(d => upperDigits[parseInt(d, 10)]).join('') : '';
     let html = `<p>阿拉伯数字：<strong>${v}</strong></p>`;
     html += `<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">`;
-    html += `<p>简体中文：<strong>${numberToSimpleChinese(intPart)}</strong></p>`;
-    html += `<p>大写中文：<strong>${numberToUpperChinese(intPart)}</strong></p>`;
+    html += `<p>简体中文：<strong>${sign}${numberToSimpleChinese(intVal)}${decSimple}</strong></p>`;
+    html += `<p>大写中文：<strong>${sign}${numberToUpperChinese(intVal)}${decUpper}</strong></p>`;
     html += `<p>人民币大写：<strong>${toRMB(n)}</strong></p>`;
     const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h1;
-  } else if(/^[〇零一二壹贰两三叁四肆五伍六陆七柒八捌九玖十拾百佰千仟万亿元整角分负]+$/i.test(v)){
+  } else if(/^[负〇零一二壹贰两三叁四肆五伍六陆七柒八捌九玖十拾百佰千仟万亿元整角分点]+$/i.test(v)){
     const n = chineseToNumber(v);
     if(isNaN(n) || n === 0 && v.indexOf('〇') < 0 && v.indexOf('零') < 0){
-      const __h2=`<p style="color:var(--danger);">无法识别：${v}</p>`;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h2;
+      inputEl.classList.add('input-error');
+      document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">无法识别：'+v+'</p>';
+      return;
     } else {
       const __h3=`
         <p>中文数字：<strong>${v}</strong></p>
@@ -389,7 +415,8 @@ function convert(){
       `;if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h3;
     }
   } else {
-    const __h4=`<p style="color:var(--danger);">无法识别输入</p>`;if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h4;
+    inputEl.classList.add('input-error');
+    document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">无法识别输入</p>';
   }
 }
 

@@ -1068,8 +1068,8 @@ const CASES = [
   {
     slug: "life/ring-size-converter",
     inputs: { inputVal: "50" },
-    expect: ["中国港码： 15.9236"],
-    ref: 'v=50 from=circ: 港码=50/3.14=15.9236'
+    expect: ["中国港码： 10"],
+    ref: 'v=50 from=circ: 港码=周长−40=10（港码按周长带截距对照）'
   },
   {
     slug: "life/ring-size-converter",
@@ -1086,8 +1086,8 @@ const CASES = [
   {
     slug: "life/ring-size-converter",
     inputs: { inputVal: "100" },
-    expect: ["欧码： 60"],
-    ref: 'v=100 from=circ: 欧码=100-40=60'
+    expect: ["欧码： 100"],
+    ref: 'v=100 from=circ: 欧码=周长 mm 直通=100'
   },
   {
     slug: "life/ring-size-converter",
@@ -1098,8 +1098,8 @@ const CASES = [
   {
     slug: "life/ring-size-converter",
     inputs: { inputVal: "1000" },
-    expect: ["中国港码： 318.471"],
-    ref: 'v=1000 from=circ: 港码=1000/3.14=318.471'
+    expect: ["中国港码： 960"],
+    ref: 'v=1000 from=circ: 港码=周长−40=960'
   },
   {
     slug: "life/shoe-size-converter",
@@ -1336,7 +1336,7 @@ const CASES = [
   {
     "slug": "life/chinese-number",
     "inputs": { "inputVal": "98765.43" },
-    "expect": ["零玖万捌千柒百陆十伍元肆角叁分"],
+    "expect": ["玖万捌千柒百陆十伍元肆角叁分"],
     "ref": "数字转中文：98765.43 → 简体'〇九万八千七百六十五'、人民币大写'零玖万捌千柒百陆十伍元肆角叁分'。注入非默认(默认 12345.67→'零壹万贰千叁百肆拾伍元陆角柒分')，默认态不出现该串。"
   },
   {
@@ -1557,7 +1557,7 @@ const CASES = [
       "tdeeGender": "female"
     },
     "expect": [
-      "体重(kg) 1082% 体脂率估计\nfemale\n42\n42\n42\n312 千卡\n13"
+      "312 基础代谢 483 目标摄入 3380 每周消耗 0.00kg 每周体重变化"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"bmiAge\":\"42\",\"bmiHeight\":\"42\",\"bmiWeight\":\"42\",\"bmrAge\":\"42\",\"bmrHeight\":\"42\",\"bmrWeight\":\"42\",\"tdeeAge\":\"42\",\"tdeeHeight\":\"42\",\"tdeeWeight\":\"42\",\"bmiGender\":\"female\",\"bmrGender\":\"female\",\"tdeeGender\":\"female\"}，输出区含「体重(kg) 1082% 体脂率估计\nfemale\n42\n42\n42\n312 千…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -1788,7 +1788,7 @@ const CASES = [
       "inputType": "hk"
     },
     "expect": [
-      "基准戒指内周长： 131.88 mm （直径 41.9787 mm） 周长(mm)： 131.88 直径(mm)： 41.9787 美码： 34.6486 英码： 36.7808 欧码： 91.88"
+      "基准戒指内周长： 82 mm （直径 26.1014 mm） 周长(mm)： 82 直径(mm)： 26.1014 美码： 16.5761 英码： 17.5962 欧码： 82 意码： 42"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"inputType\":\"hk\"}，输出区含「基准戒指内周长： 131.88 mm （直径 41.9787 mm） 周长(mm…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },

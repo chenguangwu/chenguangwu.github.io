@@ -115,7 +115,7 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row">
       <div>
         <label for="mode">场景</label>
-        <select id="mode" style="width:100%;"><option value="static">静态站点</option><option value="proxy">反向代理</option></select>
+        <select id="mode" style="width:100%;"><option value="static">静态站点</option><option value="proxy">反向代理</option><option value="https">HTTPS 静态站</option></select>
       </div>
       <div>
         <label for="domain">域名（server_name）</label>
@@ -125,13 +125,23 @@ s.parentNode.insertBefore(el, s);
         <label for="root">静态根目录 / 代理上游</label>
         <input type="text" id="root" value="/var/www/html" style="width:100%;">
       </div>
-    </div
+    </div>
     <div class="input-row">
       <div>
         <label for="port">监听端口</label>
         <input type="number" id="port" value="80" step="1" placeholder="如 80">
       </div>
-    </div
+    </div>
+    <div class="input-row">
+      <div>
+        <label for="cert">SSL 证书路径（HTTPS 场景）</label>
+        <input type="text" id="cert" value="/etc/nginx/ssl/server.crt" style="width:100%;">
+      </div>
+      <div>
+        <label for="certKey">SSL 私钥路径（HTTPS 场景）</label>
+        <input type="text" id="certKey" value="/etc/nginx/ssl/server.key" style="width:100%;">
+      </div>
+    </div>
     <div class="toolbar">
       <div id="nginx_config_generatorPresets"></div><button class="btn primary" onclick="calcTool()">计算</button><button class="btn" type="button" onclick="__nginx_config_generatorExport()">导出明细 CSV</button>
       <button class="btn" onclick="resetForm()">重置</button>
@@ -224,13 +234,34 @@ s.parentNode.insertBefore(el, s);
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function escH(s){var d=document.createElement('div');const __g1=s==null?'':String(s);d.textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function nginxMark(id,on){var e=document.getElementById(id);if(e)e.style.borderColor=on?'#dc2626':'';}
+function nginxIsEn(){return typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn();}
+function nginxError(zh,en){return '<div class="result-title">nginx 配置</div><p style="color:#dc2626;">⚠️ ' + (nginxIsEn() ? en : '配置错误：' + zh) + '</p>';}
 function calcTool(){var mode=document.getElementById('mode').value;
 var domain=document.getElementById('domain').value.trim()||'_';
-var root=document.getElementById('root').value.trim()||'/var/www/html';
-var port=Math.floor(num('port'))||80;
+var root=document.getElementById('root').value.trim();
+var cert=document.getElementById('cert').value.trim();
+var certKey=document.getElementById('certKey').value.trim();
+var portRaw=document.getElementById('port').value.trim();
+['mode','domain','root','port','cert','certKey'].forEach(function(id){nginxMark(id,false);});
+var port=Number(portRaw);
+if(!/^\d+$/.test(portRaw)||port<1||port>65535){nginxMark('port',true);document.getElementById('result').innerHTML=nginxError('监听端口必须是 1–65535 的整数。','Listen port must be an integer from 1 to 65535.');return;}
+if(mode==='proxy'){
+  if(!root){nginxMark('root',true);document.getElementById('result').innerHTML=nginxError('反向代理模式必须填写上游地址（如 http://127.0.0.1:8080）。','Reverse proxy mode requires an upstream address (e.g. http://127.0.0.1:8080).');return;}
+  if(!/^https?:\/\/[^\s]+$/.test(root)){nginxMark('root',true);document.getElementById('result').innerHTML=nginxError('上游地址必须以 http:// 或 https:// 开头。','The upstream address must start with http:// or https://.');return;}
+}else{
+  if(!root){nginxMark('root',true);document.getElementById('result').innerHTML=nginxError('静态根目录不能为空。','The static root directory cannot be empty.');return;}
+  if(root.charAt(0)!=='/'){nginxMark('root',true);document.getElementById('result').innerHTML=nginxError('静态根目录必须以 / 开头。','The static root directory must start with /.');return;}
+  if(mode==='https'){
+    if(!cert){nginxMark('cert',true);document.getElementById('result').innerHTML=nginxError('HTTPS 场景必须填写 SSL 证书路径。','HTTPS mode requires an SSL certificate path.');return;}
+    if(!certKey){nginxMark('certKey',true);document.getElementById('result').innerHTML=nginxError('HTTPS 场景必须填写 SSL 私钥路径。','HTTPS mode requires an SSL private key path.');return;}
+  }
+}
 var cfg;
 if(mode==='static'){
   cfg='server {\n  listen '+port+';\n  server_name '+domain+';\n  root '+root+';\n  index index.html;\n  location / {\n    try_files $uri $uri/ =404;\n  }\n}';
+}else if(mode==='https'){
+  cfg='server {\n  listen '+port+' ssl;\n  server_name '+domain+';\n  ssl_certificate '+cert+';\n  ssl_certificate_key '+certKey+';\n  root '+root+';\n  index index.html;\n  location / {\n    try_files $uri $uri/ =404;\n  }\n}';
 }else{
   cfg='server {\n  listen '+port+';\n  server_name '+domain+';\n  location / {\n    proxy_pass '+root+';\n    proxy_set_header Host $host;\n    proxy_set_header X-Real-IP $remote_addr;\n  }\n}';
 }
@@ -241,6 +272,9 @@ function resetForm(){document.getElementById('mode').selectedIndex=0;
       document.getElementById('domain').value='example.com';
       document.getElementById('root').value='/var/www/html';
       document.getElementById('port').value='80';
+      document.getElementById('cert').value='/etc/nginx/ssl/server.crt';
+      document.getElementById('certKey').value='/etc/nginx/ssl/server.key';
+      ['mode','domain','root','port','cert','certKey'].forEach(function(id){nginxMark(id,false);});
       calcTool();}
 calcTool();
 
@@ -344,8 +378,8 @@ function __nginx_config_generatorPresets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#nginx_config_generatorPresets',[{label:'默认参数',labelEn:'Default',values:{'mode':'static', 'domain':'example.com', 'root':'/var/www/html', 'port':'80'}},
   {"label":"静态博客","labelEn":"Static blog","values":{"domain":"myblog.com","root":"/srv/blog","port":"80","mode":"static"}},
-  {"label":"反向代理 API","labelEn":"Reverse proxy","values":{"domain":"api.myapp.com","root":"","port":"8080","mode":"proxy"}},
-  {"label":"HTTPS 静态站","labelEn":"HTTPS static","values":{"domain":"cdn.example.org","root":"/data/web","port":"443","mode":"static"}}],function(){ calcTool(); });
+  {"label":"反向代理 API","labelEn":"Reverse proxy","values":{"domain":"api.myapp.com","root":"http://127.0.0.1:8080","port":"8080","mode":"proxy"}},
+  {"label":"HTTPS 静态站","labelEn":"HTTPS static","values":{"domain":"cdn.example.org","root":"/data/web","port":"443","mode":"https","cert":"/etc/nginx/ssl/cdn.example.org.crt","certKey":"/etc/nginx/ssl/cdn.example.org.key"}}],function(){ calcTool(); });
 }
 var __nginx_config_generator_f0=(typeof calcTool==='function')?calcTool:null;
 if(__nginx_config_generator_f0){
@@ -378,13 +412,13 @@ else document.addEventListener('DOMContentLoaded', __nginx_config_generatorBoot)
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
 <li>可视化生成 server/location 配置。</li>
-<li>新站点上线前生成配置：填域名、端口与后端地址得到可用的 server 块，再按需要补 HTTPS 与安全头。</li>
+<li>新站点上线前生成配置：填域名、端口与后端地址得到可用的 server 块；需要 TLS 时直接选择「HTTPS 静态站」并填写证书/私钥路径，再按需要补 HTTP/2、80→443 跳转与安全头。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">生成</div><div class="dd-ex-body">填域名+端口+根目录 → 输出 server 块。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>生成后怎么用？</dt><dd>放入 conf.d 并 `nginx -t` 校验后 reload。</dd>
-<dt>生成后还要补什么？</dt><dd>至少三件事：一是 HTTPS（证书路径、HTTP/2，以及 80 端口跳转）；二是安全头（HSTS、X-Content-Type-Options，CSP 视情况）；三是上传大小与超时（client_max_body_size、proxy_read_timeout），默认值常不适合实际业务。上线前务必 nginx -t 校验。</dd>
+<dt>生成后还要补什么？</dt><dd>至少三件事：一是 HTTPS 的收尾（本工具可生成证书与私钥路径，仍需自行补 HTTP/2 与 80→443 跳转）；二是安全头（HSTS、X-Content-Type-Options，CSP 视情况）；三是上传大小与超时（client_max_body_size、proxy_read_timeout），默认值常不适合实际业务。上线前务必 nginx -t 校验。</dd>
 </dl>
 </div>
 </section>
