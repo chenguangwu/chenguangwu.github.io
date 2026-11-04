@@ -520,6 +520,17 @@
   真机实测：单页 PDF 拆 1 页、6 页 PDF 拆 `2,4-5` 得 3 页且文本逐页正确；旋转 90/180/270/0 角度与页面朝向正确、文本无损；0 pageerror。
 - **tool-ux 自动持久化**：新增「清空本地数据」浮动入口（按当前页路径前缀删除 `tb_ux_*` 与旧版 `tb_uxp_*`，不触碰其它页），并支持 `data-no-persist`（`<body>` 或控件级）；命中时不回填、不保存，并清除历史遗留键。29 个身份/医疗高敏页（遗嘱、急救联系人、婚宴座位、租客、名单生成、药名提醒、通讯录/电话/邮箱类、中医病历等）已加 body 属性。健康页不改行为，仅依赖统一入口。
 
+### 17.6.1 线上真机复核：pdf.js 4.2.67 自托管（2026-11-05）
+
+- 线上 commit：`d7fa6da8d6`（含 pdf.js 4.2.67 自托管、`5a7becf407` 的 `js/common.js`、`e6712423d5` 的守卫用例）。
+- 复核方式：headless Chrome 直接访问 `https://chenguangwu.github.io`（非本地），全新浏览器上下文（无旧 SW 缓存），用 `page.pdf()` 生成 6 页 / 1 页四角文本测试 PDF 后真实上传、真实点击。
+- **pdf-split**：6 页 PDF 提取 `1` → 输出 1 页，文本 `PAGE-1`；提取 `2,4-5` → 输出 3 页，逐页文本依次为 `PAGE-2` / `PAGE-4` / `PAGE-5`。
+- **pdf-rotate**：90/180/270/0 四档都输出正确的 `/Rotate`，四角标签落位与顺时针旋转映射一致（90: TL→TR, TR→BR, BR→BL, BL→TL；180: TL→BR, TR→BL；270: TL→BL, TR→TL, BR→TR, BL→BR；0: 原位）。
+- **运行时报错**：两页 `pageerror = 0`；`console.error = 0`；无任何 `Failed to fetch` / `Cannot find module`。
+- **网络与 SW**：页面只拉 `/vendor/pdfjs/4.2.67/pdf.min.mjs`（200, `text/javascript; charset=utf-8`；部分响应 `fromServiceWorker=true`，但 URL 与内容均为当前 4.2.67，非旧版回灌）；无任何 `3.11.174` / `pdfjs@3` 请求。
+- **4xx 扫描**：两页全量子资源（含 pdf-lib CDN、图标、JSON）0 个 4xx / 0 个 requestfailed。旧路径 `vendor/pdfjs/3.11.174/*.mjs` 线上返回 404，确认旧版本未残留。
+- 结论：**线上复核通过（2026-11-05，线上 commit `d7fa6da8d6`）**。
+
 ### 17.7 结构性无法 SRI 的两个项（2026-11-04，只记录不改代码）
 
 | 项 | 使用位置 | 为何无法 SRI | 实际风险 | 日后检测手段 |
