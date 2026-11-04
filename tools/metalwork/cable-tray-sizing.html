@@ -126,7 +126,7 @@ s.parentNode.insertBefore(el, s);
 
     <div class="card formula-box">
   <h3>📐 计算公式</h3>
-  <div class="formula-eq">单根截面积 A₁ = π·D²/4；电缆总截面积 A = A₁·N；所需桥架面积 A_need = A / 填充率；推荐规格取满足「宽×高 ≥ A_need」的最小规格；实际填充率 = A /(宽×高)×100%</div>
+  <div class="formula-eq">单根截面积 A₁ = π·D²/4；电缆总截面积 A = A₁·N；所需桥架面积 A_need = A / 填充率；推荐规格取满足「宽×高 ≥ A_need」的最小规格；实际填充率 = A /(宽×高)×100%；当 A_need 超过常规最大 600×200（120000 mm²）时提示需定制或双排，不给出误导性的推荐规格</div>
   <p class="formula-desc">D 为单根电缆外径(mm)，N 为电缆根数；填充率按用途取 40%（动力）、50%（控制）等。按面积法选型可保证散热余量与施工空间。</p>
 </div>
 <div class="input-row">
@@ -277,12 +277,15 @@ function calcTool(){const od=num('od'), cnt=Math.floor(num('cnt')), fill=parseIn
    }
    const useRate=(totalArea/(chosen[0]*chosen[1])*100).toFixed(1);
    const fillName={40:'40%',50:'50%',60:'60%'}[fill]||'40%';
+   const maxArea=specs[specs.length-1][0]*specs[specs.length-1][1];
+   const oversize=needArea>maxArea;
    let html=dataGrid([
      [totalArea.toFixed(0)+' mm²','电缆总截面积'],
      [needArea.toFixed(0)+' mm²','所需桥架面积（填充率 '+fillName+'）'],
-     [chosen[0]+'×'+chosen[1]+' mm','推荐桥架规格（宽×高）'],
-     [useRate+'%','实际填充率']
+     [oversize?'需定制/双排':chosen[0]+'×'+chosen[1]+' mm','推荐桥架规格（宽×高）'],
+     [oversize?'—':useRate+'%','实际填充率']
    ]);
+   if(oversize){html+='<div class="info-box" style="background:var(--warning-bg,#fff7ed);color:var(--warning,#b45309);margin-top:10px;">所需面积已超过常规最大规格 600×200（120000 mm²），请改用定制桥架或双排并联，并按实际规格重新校核填充率。</div>';}
    html += '<div style="margin-top:12px;font-size:13px;"><b>常用桥架规格表</b></div>'+
      '<table class="csv-prev" style="margin-top:6px;border-collapse:collapse;width:100%;font-size:12.5px;">'+
      '<tr><th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">规格（宽×高 mm）</th>'+

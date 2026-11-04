@@ -124,7 +124,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="计算锻造比与变形程度，支持拔长（截面缩减）与镦粗（高度压缩），判断是否达到锻造比要求以细化晶粒、改善力学性能。">Calculate forging ratio from pre- and post-forging cross-sectional area to evaluate deformation and internal quality.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">锻造比：拔长 K = F₀ ÷ F₁（圆截面按 πd²/4、矩形按 w×h）；镦粗 K = H₀ ÷ H₁；变形程度 ε = (F₀−F₁) ÷ F₀ × 100（%，镦粗按 (H₀−H₁) ÷ H₀）。校验：目标锻造比或各尺寸非数、≤0 报「请输入有效目标锻造比/尺寸」。判据：K ≥ 目标判「合格」（达标），否则「不足」并建议增大变形。</div>
+      <div class="formula-eq">锻造比：拔长 K = F₀ ÷ F₁（圆截面按 πd²/4、矩形按 w×h）；镦粗 K = H₀ ÷ H₁；变形程度 ε = (F₀−F₁) ÷ F₀ × 100（%，镦粗按 (H₀−H₁) ÷ H₀）。校验：目标锻造比须 ≥1，各尺寸非数或 ≤0 报「请输入有效目标锻造比/尺寸」；拔长须保证锻后直径/截面积小于原始值，镦粗须 H₁ &lt; H₀，否则提示方向错误。判据：K ≥ 目标判「合格」（达标），否则「不足」并建议增大变形。</div>
       <p class="formula-desc">计算锻造比与变形程度，支持拔长（截面缩减）与镦粗（高度压缩），判断是否达到锻造比要求以细化晶粒、改善力学性能。</p>
     </div>
     <div class="input-row">
@@ -269,13 +269,14 @@ function calc(){
   var shape=document.getElementById('shape').value;
   var target=parseFloat(document.getElementById('targetRatio').value);
   var out=document.getElementById('result');
-  if(isNaN(target)||target<=0){out.innerHTML='<p style="color:var(--danger)">请输入有效目标锻造比</p>';return;}
+  if(isNaN(target)||target<1){out.innerHTML='<p style="color:var(--danger)">目标锻造比应 ≥1</p>';return;}
   var a0,a1,h0,h1,K,deform,ok;
   if(mode==='draw'){
     if(shape==='round'){
       var d0=num('d0'),d1=num('d1');
       if(isNaN(d0)||isNaN(d1)||d0<=0||d1<=0){out.innerHTML='<p style="color:var(--danger)">请输入有效直径</p>';return;}
       a0=roundArea(d0);a1=roundArea(d1);
+      if(d1>=d0){out.innerHTML='<p style="color:var(--danger)">拔长时锻后直径 d₁ 应小于原始直径 d₀</p>';return;}
       K=a0/a1;deform=(a0-a1)/a0*100;
       ok=K>=target;
       htmlResult(K,deform,target,ok,'拔长','F₀=π·'+d0+'²/4='+a0.toFixed(0)+'mm²，F₁=π·'+d1+'²/4='+a1.toFixed(0)+'mm²，K=F₀/F₁='+a0.toFixed(0)+'/'+a1.toFixed(0));
@@ -283,12 +284,14 @@ function calc(){
       var w0=num('w0'),hh0=num('h0'),w1=num('w1'),hh1=num('h1');
       if([w0,hh0,w1,hh1].some(isNaN)||w0<=0||hh0<=0||w1<=0||hh1<=0){out.innerHTML='<p style="color:var(--danger)">请输入有效尺寸</p>';return;}
       a0=rectArea(w0,hh0);a1=rectArea(w1,hh1);
+      if(a1>=a0){out.innerHTML='<p style="color:var(--danger)">拔长时锻后截面积应小于原始截面积</p>';return;}
       K=a0/a1;deform=(a0-a1)/a0*100;ok=K>=target;
       htmlResult(K,deform,target,ok,'拔长','F₀='+w0+'×'+hh0+'='+a0.toFixed(0)+'mm²，F₁='+w1+'×'+hh1+'='+a1.toFixed(0)+'mm²，K=F₀/F₁');
     }
   }else{
     h0=num('h0'),h1=num('h1');
     if(isNaN(h0)||isNaN(h1)||h0<=0||h1<=0){out.innerHTML='<p style="color:var(--danger)">请输入有效高度</p>';return;}
+    if(h1>=h0){out.innerHTML='<p style="color:var(--danger)">镦粗时锻后高度 H₁ 应小于原始高度 H₀</p>';return;}
     K=h0/h1;deform=(h0-h1)/h0*100;ok=K>=target;
     htmlResult(K,deform,target,ok,'镦粗','H₀='+h0+'mm，H₁='+h1+'mm，K=H₀/H₁='+h0+'/'+h1);
   }
