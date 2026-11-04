@@ -84,6 +84,18 @@ const CASES = [
   "ref": "去默认化：金属总量 = 3×500 = 1500 g，矿石价值 = 1500×1.2 = 1800 元。默认态不命中。"
 },
 {
+  "slug": "mining/convert-grade-ore",
+  "inputs": {
+    "grade": "",
+    "ton": "1000",
+    "price": "400"
+  },
+  "expect": [
+    "品位需填写 ≥0 的数值（g/t）"
+  ],
+  "ref": "新增回归：品位清空曾被 `+value||0` 当作 0 静默出「金属总量 = 0 g / 矿石价值 = 0 元」。现应提示并拒绝计算；默认 5/1000/0.5 不出现该提示"
+},
+{
   "slug": "mining/excavation-volume",
   "inputs": {
     "swell": "1.25",

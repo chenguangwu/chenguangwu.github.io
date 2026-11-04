@@ -81,10 +81,11 @@ const CASES = [
     "copies": "2000",
     "waste": "5"
   },
+  "checkIds": ["doubleSide"],
   "expect": [
-    "393.75"
+    "12,600 张"
   ],
-  "ref": "auto-restore"
+  "ref": "163 页 / 16 开 / 双面（页面默认 checked，桩内恒 false 故用 checkIds 还原）→ 5.09375 印张，按整张向上取整为 6；全张用纸 = 6×2000×1.05 = 12,600 张（25.2 令）。旧实现按小数印张算得 10,696.98 张，少备 15.1%"
 },
 {
   "slug": "printing/estimate-ink",

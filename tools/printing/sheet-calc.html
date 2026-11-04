@@ -134,7 +134,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="🧮 印张数量计算">Sheet Calc</h2>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">每册印张数 = 页数 ÷ (开数 × 双面系数)（双面印刷系数取 2、单面取 1）；全张用纸量 = 每册印张 × 册数 × (1 + 加放率% ÷ 100)；令数 = 全张用纸量 ÷ 500（1 令 = 500 张全张）。校验：页数或册数 ≤0 提示「请输入合理的页数与册数」。判据：开数越大每册印张越少，双面印刷使全张用量约减半，加放率按比例上浮。</div>
+      <div class="formula-eq">每册印张数 = ⌈页数 ÷ (开数 × 双面系数)⌉（双面印刷系数取 2、单面取 1；不足一整张按整张向上取整备纸）；全张用纸量 = 每册印张 × 册数 × (1 + 加放率% ÷ 100)；令数 = 全张用纸量 ÷ 500（1 令 = 500 张全张）。校验：页数或册数 ≤0 提示「请输入合理的页数与册数」。判据：开数越大每册印张越少，双面印刷使全张用量约减半，加放率按比例上浮。</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="按总页数与开本计算印张数量、用纸量与开数对应关系">Sheet Calc</p>
 
@@ -182,7 +182,7 @@ s.parentNode.insertBefore(el, s);
   <div class="card">
     <h3>📐 计算说明</h3>
     <div class="result-box">
-      <p><strong>印张</strong> = 总页数 / 开数（单面）；双面印刷则 ÷2</p>
+      <p><strong>印张</strong> = 总页数 / 开数（单面）；双面印刷则 ÷2；结果向上取整（不足一整张按整张备纸）</p>
       <p><strong>全张用纸量</strong> = 印张 × 册数 × (1 + 加放率)</p>
       <p><strong>开数</strong>：全张纸裁切份数，如 16 开即全张裁 16 份</p>
       <p>注：实际印刷还需考虑拼版、出血、装订方式等，本工具为基本估算。</p>
@@ -279,9 +279,10 @@ function calc(){
     return;
   }
 
-  // 每册印张 = 页数 / (开数 × 双面系数)
+  // 每册印张 = ⌈页数 / (开数 × 双面系数)⌉（不足一整张按整张备纸）
   const sideFactor = doubleSide ? 2 : 1;
-  const sheetsPerBook = pages / (format * sideFactor);
+  const rawSheets = pages / (format * sideFactor);
+  const sheetsPerBook = Math.ceil(rawSheets);
   // 全张用纸量
   const totalSheets = sheetsPerBook * copies * (1 + waste / 100);
   // 令数（1令 = 500张全张）
@@ -296,6 +297,7 @@ function calc(){
     </div>
     <hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">
     <p>每册 ${pages} 页 / ${format} 开 / ${doubleSide ? '双面' : '单面'} = <strong>${fmt(sheetsPerBook)}</strong> 印张</p>
+    <p>原始印张（未取整）：<strong>${fmt(rawSheets)}</strong>${rawSheets!==sheetsPerBook?'，不足一整张按整张备纸':''}</p>
     <p>印 ${fmt(copies)} 册（加放 ${waste}%）→ 全张纸 <strong style="color:var(--primary);">${fmt(totalSheets)}</strong> 张（${fmt(reams)} 令）</p>
     <p style="font-size:12px;color:var(--text-muted);">1 令 = 500 张全张纸</p>
   `;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));

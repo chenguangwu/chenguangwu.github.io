@@ -113,8 +113,8 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="克/吨">Convert Grade Ore - convert values in-browser instantly with local processing.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-  <div class="formula-eq">金属总量(g) = 品位(g/t) × 矿石量(t)；衍生：品位(%) = 品位(g/t) ÷ 10000，金衡盎司 = 金属总量 ÷ 31.1035，品位+1g/t 增值(元) = 矿石量 × 金属价格。校验：无强校验，数值缺省按 0。判据：金属总量与品位百分比双口径输出，便于选矿与储量评估。</div>
-  <div class="formula-eq">矿石价值(元) = 金属总量(g) × 金属价格(元/g)，每吨矿石价值(元/t) = 品位(g/t) × 金属价格；另按 0.9–1.1 倍给出价格波动区间参考。校验：无强校验，数值缺省按 0。判据：波动区间覆盖 ±10%，用于价值敏感性毛估；每吨口径便于横向比较矿石品位经济性。</div>
+  <div class="formula-eq">金属总量(g) = 品位(g/t) × 矿石量(t)；衍生：每吨矿石价值(元/t) = 品位(g/t) × 金属价(元/g)，品位(%) = 品位(g/t) ÷ 10000，金衡盎司 = 金属总量 ÷ 31.1035（1 oz = 31.1035 g），品位+1 g/t 增值(元) = 矿石量 × 金属价格。校验：品位/矿石量/金属价格均须为 ≥0 的有效数值，空值或负数给出提示、不计算。判据：金属总量与品位百分比双口径输出，便于选矿与储量评估。</div>
+  <div class="formula-eq">矿石价值(元) = 金属总量(g) × 金属价格(元/g)，每吨矿石价值(元/t) = 品位(g/t) × 金属价格；另按 0.9–1.1 倍给出价格波动区间参考。校验：品位/矿石量/金属价格为空或负数时提示不计算。判据：波动区间覆盖 ±10%，用于价值敏感性毛估；每吨口径便于横向比较矿石品位经济性。</div>
   <p class="formula-desc">品位以克/吨(g/t)计；1% = 10000 g/t。输入品位、矿石量与金属价格估算资源价值。</p>
 </div>
 <div class="input-row"><div><label>矿石品位（g/t）</label><input type="number" id="grade" value="5" step="any" oninput="calc()" placeholder="如 5"></div>
@@ -176,7 +176,7 @@ s.parentNode.insertBefore(el, s);
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="矿石价值">Ore value per tonne</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="价值 = 品位(g/t) × 金属价 ÷ 31.1035">value = grade (g/t) * metal price / 31.1035</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="价值 = 品位(g/t) × 金属价(元/g)">value = grade (g/t) * metal price (CNY/g)</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);">JORC Code grade reporting</td>
         </tr>
         <tr>
@@ -199,7 +199,21 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){const grade=+document.getElementById("grade").value||0;const ton=+document.getElementById("ton").value||0;const price=+document.getElementById("price").value||0;
+function setInvalid(el,inv){if(!el)return;if(inv){el.classList.add('input-error');el.setAttribute('aria-invalid','true');}else{el.classList.remove('input-error');el.removeAttribute('aria-invalid');}}
+function calc(){
+const gEl=document.getElementById("grade"),tEl=document.getElementById("ton"),pEl=document.getElementById("price");
+const gs=gEl.value.trim(),ts=tEl.value.trim(),ps=pEl.value.trim();
+const grade=+gs,ton=+ts,price=+ps;
+const gBad=!(gs!==""&&isFinite(grade)&&grade>=0),tBad=!(ts!==""&&isFinite(ton)&&ton>=0),pBad=!(ps!==""&&isFinite(price)&&price>=0);
+setInvalid(gEl,gBad);setInvalid(tEl,tBad);setInvalid(pEl,pBad);
+if(gBad||tBad||pBad){
+  var msgs=[];
+  if(gBad)msgs.push("品位需填写 ≥0 的数值（g/t）");
+  if(tBad)msgs.push("矿石量需填写 ≥0 的数值（t）");
+  if(pBad)msgs.push("金属价格需填写 ≥0 的数值（元/g）");
+  document.getElementById("res").innerHTML='<p style="color:var(--danger,#dc2626);font-size:14px;">'+msgs.join("；")+'</p>';
+  return;
+}
 const total=grade*ton;const value=total*price;
 const out="金属总量 = "+total.toFixed(0)+" g\n矿石价值 = "+value.toFixed(0)+" 元";
 var _d="\n每吨矿石价值 = "+(grade*price).toFixed(2)+" 元/吨\n金属质量分数 = "+(grade/10000).toFixed(4)+" %\n金属量折合金衡盎司 = "+(total/31.1035).toFixed(3)+" oz\n品位每提高 1 g/t 增值 = "+(ton*price).toFixed(0)+" 元\n价格波动 ±10% 价值区间 = "+(value*0.9).toFixed(0)+" 至 "+(value*1.1).toFixed(0)+" 元";
