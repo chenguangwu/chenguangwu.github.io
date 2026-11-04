@@ -312,9 +312,9 @@ const CASES = [
     "T": "300"
   },
   "expect": [
-    "1837.08"
+    "1837.20"
   ],
-  "ref": "auto-restore"
+  "ref": "σ 统一为 CODATA 5.670374419e-8：P=4×5.670374419e-8×1×300⁴=1837.20"
 },
 {
   "slug": "thermodynamics/thermal-resistance-series",
