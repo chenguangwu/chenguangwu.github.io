@@ -2018,6 +2018,13 @@ const CASES = [
     ref: "空态口径：四个维度全空 ⇒ 提示并 return；修复前 `+''` 得 0，ac===br 成立且 getM(...,0,0) 返回空数组，输出 `结果 C = A × B （0×0）`。默认 3×3 示例不含该提示。",
   },
   {
+    slug: "it/matrix-multiplier",
+    inputs: { ar: "2.5", ac: "2", br: "2", bc: "2" },
+    clicks: ["calculate()"],
+    expect: ["行列数须为 1–6 的整数"],
+    ref: "维度须为正整数：旧实现直接 `+value` 取 2.5，`build()` 只渲染 5 个 A 单元格，而 `getM` 按 rows=2.5 读 a4 时取到 null ⇒ 抛 `Cannot read properties of null`。修复后先校验 1–6 整数，非法即提示并 return。默认 3×3 正常计算，不含该提示。",
+  },
+  {
     slug: "it/calc-subnet",
     inputs: { ip: "10.0.0.7", cidr: "28" },
     clicks: ["calc()"],
@@ -4362,15 +4369,12 @@ const CASES = [
   },
   {
     "slug": "it/ast-viewer",
-    "inputs": {
-      "codeInput": "1\n2\n3",
-      "ecmaVersion": "2015",
-      "sourceType": "module"
-    },
+    "inputs": {},
+    "clicks": ["window.acorn={parse:function(){return {type:'Program',start:0,end:0,body:[{type:'ToolBoxProbeNode',start:0,end:0}]}}};document.getElementById('btnParse').fire('click')"],
     "expect": [
-      "1 2 3\n2015\nmodule"
+      "ToolBoxProbeNode"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"codeInput\":\"1\\n2\\n3\",\"ecmaVersion\":\"2015\",\"sourceType\":\"module\"}，输出区含「1 2 3\n2015\nmodule」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "renderJson 旧实现把守卫写成 `const __h4=esc(...).replace(cb)`，并在回调里读取 __h4 ⇒ TDZ 抛 `Cannot access '__h4' before initialization`，整个解析结果被 catch 替换成「解析失败」，AST 树与 JSON 全部丢失。修复后注入独立解析桩（window.acorn.parse 返回含唯一节点 ToolBoxProbeNode 的 AST），该串出现在结果区。默认态（无 acorn 外链）走「未能加载解析器」提示，不含该串。"
   },
   {
     "slug": "it/atbash-cipher",
@@ -4749,17 +4753,35 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"inputText\":\"1\\n2\\n3\"}，输出区含「#128196; 3 行\n1 2 3\n1 2 3\n1 2 3\n1 2 3\n123…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    // 2026-11-05 随机源改 crypto.getRandomValues 后，原「固定码 gGANM/77mCE」锚点
+    // 依赖 harness 的种子 Math.random，必然失效。随机内容不可断言，改为「条数 × 长度 ×
+    // 字符集」的结构断言：批量 8 条、每条 5 位 [0-9A-Za-z]，且 grid 恰好由 8 个
+    // 「码 + 复制导出」片段拼成。默认 batchCount=6 且不自动批量 ⇒ 不命中。
     "slug": "it/captcha-generator",
     "inputs": {
       "batchCount": "8"
     },
     "clicks": [
-      "batchGenerate()"
+      'batchGenerate();(function(){var g=document.getElementById("batchGrid").innerHTML;var ok=/^([0-9A-Za-z]{5}复制导出){8}$/.test(g);document.getElementById("verifyInput").value=ok?"CAPTCHA-BATCH-8x5-ALNUM-OK":"CAPTCHA-BATCH-FAIL:"+g.length;})()'
     ],
     "expect": [
-      "gGANM复制导出77mCE"
+      "CAPTCHA-BATCH-8x5-ALNUM-OK"
     ],
-    "ref": "批量条数改 8：每例前 PRNG 重置 ⇒ 第 7/8 条码固定为 gGANM / 77mCE，默认 6 条时不存在此二码 ⇒ 强判别、零逃生。原用例注入 bgColorPicker/verifyInput 不影响生成，锚点又与默认 6 条完全重合（默认态命中），已改为条数驱动。"
+    "ref": "批量 8 条：batchGenerate 为每条渲染 canvas（空）+ 答案 5 位字母数字 + 复制/导出按钮；桩内 appendChild 把子串拼进父 innerHTML，故 #batchGrid.innerHTML 恰为 8 组「5 位 [0-9A-Za-z] + 复制导出」的重复。断言验证条数、长度、字符集三项，随机内容本身不断言。默认 6 条且需点击批量 ⇒ 默认态为空。"
+  },
+  {
+    // 数字模式同口径复核：字符集收窄为 [0-9]，长度仍 5，条数 3。
+    "slug": "it/captcha-generator",
+    "inputs": {
+      "batchCount": "3"
+    },
+    "clicks": [
+      'setType("num");batchGenerate();(function(){var g=document.getElementById("batchGrid").innerHTML;var ok=/^([0-9]{5}复制导出){3}$/.test(g);document.getElementById("verifyInput").value=ok?"CAPTCHA-BATCH-3x5-DIGIT-OK":"CAPTCHA-BATCH-FAIL:"+g.length;})()'
+    ],
+    "expect": [
+      "CAPTCHA-BATCH-3x5-DIGIT-OK"
+    ],
+    "ref": "setType('num') 把字符集切到 0-9，batch 3 条、长度仍 5 ⇒ #batchGrid.innerHTML 恰为 3 组「5 位数字 + 复制导出」。验证数字模式字符集不含字母，同时避免「批量条数固定为 8」的单点依赖。"
   },
   {
     "slug": "it/char-encoder",
@@ -6214,19 +6236,6 @@ const CASES = [
       " 36进制 复制\n42\n1 2 3\n1 无效 无效\n2\n2"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"inputValue\":\"abc123测试\",\"customBase\":\"42\",\"batchInput\":\"1\\n2\\n3\",\"batchOutput\":\"1\\n2\\n3\",\"inputBase\":\"8\",\"batchFrom\":\"2\",\"batchTo\":\"2\"}，输出区含「 36进制 复制\n42\n1 2 3\n1 无效 无效\n2\n2」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
-    "slug": "it/matrix-multiplier",
-    "inputs": {
-      "ar": "42",
-      "ac": "42",
-      "br": "42",
-      "bc": "42"
-    },
-    "expect": [
-      "42\n42\n42\n42\nA (42×42) × B (42×4"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"ar\":\"42\",\"ac\":\"42\",\"br\":\"42\",\"bc\":\"42\"}，输出区含「42\n42\n42\n42\nA (42×42) × B (42×4」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/otp-generator",
@@ -8267,6 +8276,72 @@ const CASES = [
     clicks: ["calcTool()"],
     expect: ["未知 无法仅凭该值判定"],
     ref: "12 位十六进制 = 48 bit，不是 CRC-32（8 位）；旧表误标为「CRC32 / 短校验」。修正后归入无法判定；默认 64 位值不命中。",
+  },
+
+  // —— 随机源审计（2026-11-05）：B 类密码学用途改 crypto.getRandomValues 后，
+  // 随机内容本身不可断言，改为「长度 / 字符集 / 条数」结构断言。以下用例均落在
+  // 页面真实生成路径上，默认态（不点按钮或默认参数）不命中，保持判别力。 ——
+  {
+    slug: "it/cuid-generator",
+    clicks: [
+      '(function(){var id1=cuid(),id2=cuid();var ok=/^c[0-9a-z]+$/.test(id1)&&id1.length===13+Date.now().toString(36).length&&id2.length===id1.length&&id1!==id2;document.getElementById("output").innerHTML=ok?"CUID-FMT-OK":"CUID-FMT-FAIL";})()'
+    ],
+    expect: ["CUID-FMT-OK"],
+    ref: "cuid 结构 = 'c' + base36 时间戳(8) + 4 位计数器 + 4 位指纹 + 2×2 位随机 ⇒ 21 位 [0-9a-z]；计数段随调用递增，故两次值不同但长度一致。默认输出区为空，不命中。",
+  },
+  {
+    slug: "it/invite-code-generator",
+    inputs: { count: "2", len: "8" },
+    checkIds: ["upper", "num"],
+    clicks: [
+      'generate();(function(){var h=document.getElementById("output").innerHTML;var m=h.match(/<div class=\\S+>[A-Z0-9]{8}<\\/div>/g)||[];document.getElementById("output").innerHTML=m.length===2?"INVITE-FMT-OK-2x8":"INVITE-FMT-FAIL:"+m.length;})()'
+    ],
+    expect: ["INVITE-FMT-OK-2x8"],
+    ref: "只勾大写+数字（字符集 36），长度 8、条数 2 ⇒ 输出恰为 2 个 [A-Z0-9]{8} 的 code-row；默认条数 8、长度 10 且默认勾选小写，故不命中。生成路径已改 crypto.getRandomValues（拒绝采样无模偏）。",
+  },
+  {
+    slug: "it/pin-generator",
+    inputs: { len: "6", count: "3" },
+    clicks: [
+      'generate();(function(){var h=document.getElementById("output").innerHTML;var m=h.match(/<div class=\\S+>[0-9]{6}<\\/div>/g)||[];document.getElementById("output").innerHTML=m.length===3?"PIN-FMT-OK-3x6":"PIN-FMT-FAIL:"+m.length;})()'
+    ],
+    expect: ["PIN-FMT-OK-3x6"],
+    ref: "长度 6、条数 3 ⇒ 输出恰为 3 个 6 位纯数字 pin-row；默认长度 4、条数 5 ⇒ 不命中。生成路径已改 crypto.getRandomValues（拒绝采样无模偏）。",
+  },
+  {
+    slug: "it/nanoid-generator",
+    inputs: { length: "12", count: "4" },
+    clicks: [
+      'gen();(function(){var h=document.getElementById("results").innerHTML;var m=h.match(/<code>[^<]+<\\/code>/g)||[];var c=m.map(function(s){return s.slice(6,-7);});var ok=c.length===4&&c.every(function(x){return x.length===12&&/^[A-Za-z0-9_-]+$/.test(x);});document.getElementById("results").innerHTML=ok?"NANOID-FMT-OK-4x12":"NANOID-FMT-FAIL:"+c.length;})()'
+    ],
+    expect: ["NANOID-FMT-OK-4x12"],
+    ref: "默认 URL-safe 字母表（A-Za-z0-9_-），长度 12、条数 4 ⇒ 4 个 12 位串，字符集校验禁止出现表外字符。默认长度 21、条数 5 ⇒ 不命中。生成路径已改 crypto.getRandomValues。",
+  },
+  {
+    slug: "it/uuid-generator",
+    inputs: { count: "3" },
+    clicks: [
+      'generateUuid();(function(){var v=document.getElementById("output").value;var l=v.split("\\n");var ok=l.length===3&&l.every(function(x){return /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(x);});document.getElementById("output").value=ok?"UUID-V4-FMT-OK-3":"UUID-FMT-FAIL";})()'
+    ],
+    expect: ["UUID-V4-FMT-OK-3"],
+    ref: "默认 Version 4、数量 3 ⇒ 3 行小写 UUID：第 13 位固定为版本号 4、第 17 位 variant 为 8/9/a/b，其余 [0-9a-f]。默认数量 1 ⇒ 3 行断言不命中。生成路径已移除 Math.random 回退，无 crypto 时显式提示。",
+  },
+  {
+    slug: "it/random-string",
+    inputs: { len: "8", cnt: "2" },
+    checkIds: ["top_upper", "top_digit"],
+    clicks: ["calcTool()"],
+    expect: ["字符集大小 36 单串长度 8 理论熵值 41 bits"],
+    ref: "只勾大写+数字 ⇒ 字符集 36；长度 8、条数 2 ⇒ 熵 = 8·log2(36) = 41.36 → 41 bits。默认四项全勾（含小写/符号）时字符集 87、熵不同；harness 默认 checkbox 全 false 时输出「请至少选择一种字符集」，故该表头只在注入后出现。生成的字符内容不可经 escH 桩读回，故以字符集/长度/熵锚定真实生成参数。",
+  },
+  {
+    slug: "it/password-generator",
+    inputs: { length: "12" },
+    clicks: [
+      'document.getElementById("lowercase").checked=true;document.getElementById("uppercase").checked=true;document.getElementById("numbers").checked=true;generatePassword();(function(){var p=document.getElementById("passwordDisplay").textContent;var ok=p.length===12&&/^[A-Za-z0-9]+$/.test(p);document.getElementById("passwordDisplay").textContent=ok?"PWD-FMT-OK-12-ALNUM":"PWD-FMT-FAIL:"+p.length;})()'
+    ],
+    expect: ["PWD-FMT-OK-12-ALNUM"],
+    ref: "长度 12、只启用小写+大写+数字 ⇒ 每位必落在 62 字符集内（未选符号），串长恒为 12。默认长度 16、默认四项全选（含符号）⇒ 不命中。生成路径已移除 Math.random 回退。",
   },
 ];
 

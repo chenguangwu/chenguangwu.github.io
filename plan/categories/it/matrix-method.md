@@ -204,3 +204,15 @@
 | `it/json-to-tsv` | 根因 **① 事件没绑**：仅在页面加载末调用一次 `jsonToTsv()`，textarea 无 `input` 监听 | 改成合法 JSON 数组即自动重算（静默模式不写历史/不弹 toast），表头、数据行与行列统计同步刷新 |
 
 门禁：`verify_it_calc.js` 977/977；legacy 判别 976 已检 / 0 逃生 / 1 跳过；fidelity 973 已检 / 0 逃生 / 4 跳过；`all_default=0`（risk 3 为既有 `calc-2`、`vector-dot-product`、`vector-magnitude`，未新增）。
+
+## 十、`tools/it/` 异常路径复扫（2026-11-05）
+
+命令：`node scripts/runtime_scan.js --interact --only tools/it/ --timeout 10000 --concurrency 8`。`tools/it/` 实际 339 个 HTML（非 947），19 页命中；其余 320 页无可复现异常。
+
+| 分档 | 页数 | 页面 |
+|---|---:|---|
+| 真缺陷（已修） | 2 | `ast-viewer`（renderJson 的 `const __h4` 在 replace 回调内自引用 ⇒ TDZ，解析结果整块变「解析失败」）；`matrix-multiplier`（维度 `+value` 未校验，2.5 行时 `getM` 读到 null 抛异常） |
+| 探针失真 | 13 | `calc-7`（探针 JSON 路径不存在）、`docker-run-converter`（非法命令）、`dockerfile-generator`（端口 3000→2400 实测 EXPOSE 已变，仅快照区过薄）、`hill-cipher`（探针密钥非 4 整数）、`html-nesting-checker`（两输入都合法）、`json-to-tsv`（对象入参按页规约报错，合法数组实测实时刷新）、`mac-lookup`（非法 MAC）、`password-generator`（快照只取说明区，实测 32 位已生成）、`plist-parser`（非法 plist）、`protobuf-parser`（非法 proto）、`sitemap-generator`（URL 变异被截断为同值）、`toml-formatter`（非法 TOML）、`uuid-v5-generator`（ns 探针非 32 位十六进制） |
+| 非缺陷 / 正常 | 4 | `typescript-compiler`（导出函数为全局 lexical `const`，`window[fn]` 取不到但内联 onclick 可调用，实测 `typeof downloadJs === 'function'`）；`nanoid-generator` / `random` / `uuid-v7-generator`（「清空」仅清结果区，输入保持属预期语义） |
+
+修复用例：`it/ast-viewer` 注入独立 `window.acorn` 桩并 `fire('click')`，断言唯一节点 `ToolBoxProbeNode` 出现；`it/matrix-multiplier` 注入 2.5 行断言「行列数须为 1–6 的整数」。门禁 978/978，fidelity 974 已检 / 0 逃生 / 4 跳过，legacy 977 / 0 / 1，`all_default=0`。

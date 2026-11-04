@@ -259,9 +259,18 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
+function dimVal(id){
+  const raw=document.getElementById(id).value.trim();
+  const v=Number(raw);
+  return raw!=='' && Number.isInteger(v) && v>=1 && v<=6 ? v : null;
+}
 function build(){
-  const ar=+document.getElementById('ar').value, ac=+document.getElementById('ac').value;
-  const br=+document.getElementById('br').value, bc=+document.getElementById('bc').value;
+  const dims=['ar','ac','br','bc'].map(dimVal);
+  if(dims.some(v=>v===null)){
+    document.getElementById('inputArea').innerHTML='<p style="color:var(--danger);">⚠️ 行列数须为 1–6 的整数。</p>';
+    return;
+  }
+  const [ar,ac,br,bc]=dims;
   let html='<div class="matrix-block"><h3>A ('+ar+'×'+ac+')</h3><div class="matrix-grid" style="grid-template-columns:repeat('+ac+',70px);">';
   for(let i=0;i<ar*ac;i++) html+='<input class="cell" type="number" id="a'+i+'" value="'+(i===0?1:0)+'" step="any" placeholder="如 '+(i===0?1:0)+'">';
   html+='</div></div><div class="op-symbol">×</div>';
@@ -302,8 +311,10 @@ function matrixHTML(m){
 function calculate(){
   const dimIds=['ar','ac','br','bc'];
   if(dimIds.every(id=>document.getElementById(id).value.trim()==='')){document.getElementById('output').innerHTML='<p class="muted">请输入矩阵 A 与 B 的行列数</p>';return;}
-  const ar=+document.getElementById('ar').value, ac=+document.getElementById('ac').value;
-  const br=+document.getElementById('br').value, bc=+document.getElementById('bc').value;
+  const dims=['ar','ac','br','bc'].map(dimVal);
+  if(dims.some(v=>v===null)){ document.getElementById('output').innerHTML='<p style="color:var(--danger);">⚠️ 行列数须为 1–6 的整数。</p>'; return; }
+  const [ar,ac,br,bc]=dims;
+  if(!document.getElementById('a'+(ar*ac-1))||!document.getElementById('b'+(br*bc-1))){ document.getElementById('output').innerHTML='<p class="muted">请先点击「构建矩阵」再计算。</p>'; return; }
   if(ac!==br){ const __h3='<p style="color:var(--danger);">⚠️ 维度不匹配，无法相乘。</p>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h3; return; }
   const A=getM('a',ar,ac), B=getM('b',br,bc);
   const C=[];
