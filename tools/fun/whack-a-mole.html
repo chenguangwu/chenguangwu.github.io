@@ -252,7 +252,8 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 const DURATION=30,HIT=10,PENALTY=5,BEST_KEY='toolbox_whack_best';
-let holes,score,miss,state,startTime,timer,spawnTimer,best=0;
+let holes,score,miss,state,startTime,timer,spawnTimer,best=0,hits=0,blanks=0;
+function calcWhackScore(hits,misses,blanks){return hits*HIT-misses*PENALTY-blanks*PENALTY;}
 
 function buildGrid(){
   const g=document.getElementById('grid');
@@ -270,7 +271,7 @@ function buildGrid(){
 }
 function start(){
   reset();
-  score=0;miss=0;
+  score=0;miss=0;hits=0;blanks=0;
   state='go';
   startTime=Date.now();
   timer=setInterval(tick,100);
@@ -280,7 +281,7 @@ function reset(){
   if(timer)clearInterval(timer);
   if(spawnTimer)clearInterval(spawnTimer);
   state='idle';
-  score=0;miss=0;
+  score=0;miss=0;hits=0;blanks=0;
   document.getElementById('score').textContent='0';
   document.getElementById('miss').textContent='0';
   document.getElementById('time').textContent=DURATION+'s';
@@ -304,7 +305,7 @@ function spawn(){
   holes.forEach(h=>{if(h.classList.contains('up')&&!h.classList.contains('hit')){
     h.classList.remove('up');
     miss++;
-    score-=PENALTY;
+    score=calcWhackScore(hits,miss,blanks);
     document.getElementById('miss').textContent=miss;
     document.getElementById('score').textContent=score;
   }});
@@ -318,12 +319,13 @@ function hit(i){
   if(h.classList.contains('up')&&!h.classList.contains('hit')){
     h.classList.add('hit');
     h.classList.remove('up');
-    score+=HIT;
+    hits++;
   }else if(!h.classList.contains('up')){
-    score-=PENALTY;
+    blanks++;
   }else{
     return;
   }
+  score=calcWhackScore(hits,miss,blanks);
   document.getElementById('score').textContent=score;
 }
 function toggleToolTheme(){

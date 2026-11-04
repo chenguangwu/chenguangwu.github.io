@@ -950,3 +950,17 @@
 - 验证（真机 Chrome 注入驱动）：命中 +10 → 点空 −5 → 漏点 −5 归零（10−5−5=0）→ 结算 195 且 `best=195` 落盘，与算例一致。
 - 未加 verify 用例：该页为纯计时游戏，`runCase` 桩内 `start()`/`setInterval`/`classList` 链无法可靠驱动（实测桩输出停在默认态），故以真机 Chrome 取证代替。
 - 未跑 `_build.py`：SW 版本戳/索引需由集成线构建。
+
+## AE 批 · 计时类结算分纯函数化 + 门禁用例（2026-11-04）
+
+- 抽出清单（DOM/`setInterval`/`classList` 全部留在外层，算分函数可独立调用）：
+  - `fun/whack-a-mole`：`calcWhackScore(hits,misses,blanks)`；计数改为 `hits/misses/blanks` 累加，`score` 由纯函数派生（点击/漏点/点空三条路径统一）。
+  - `fun/reaction-tester`：`calcReactionAvg(arr)`（空样本返回 `NaN`）。
+  - `fun/typing-rhythm`：`calcRhythmScore(cv)`（0–100 截断）+ `calcWpm(chars,ms)`。
+  - `fun/cps-test`：`calcCps(clicks,duration)` + `cpsLabel(cps)`；同时统一评级口径——原文案「慢 <4、一般 4~7、不错 8~11、很强 >12」与代码「<5/<8/<11/<14/神速」不符，按代码改文案（含算例 13.0 由「很强」改「很快」）。
+  - `fun/click-speed`：`calcCps(clicks,duration)`。
+- 新增用例 5 条（`scripts/verify_fun_calc.js`，只测纯函数）：whack 四组 195/−25/100/−25（覆盖“可为负”）、reaction 300/NaN、typing 70/0/20、cps 8.00 + 四档标签、click 8.00/0.40。
+- 门禁：`verify_fun_calc.js` **16/16**；`discriminate_check` **16/16 正确变红、逃生 0**。
+- 真机 Chrome 复跑：whack 命中→点空→漏点→结算 195 且 `best=195` 落盘；其余四页纯函数返回值与用例逐值一致（`8/0.4`、`70/0/20`、`300/NaN`、`慢/不错/很快/神速`）。
+- 未纳入：`shape-memory`（结算=关卡计数）、`color-guess`（结算=答对计数），无算术口径可抽；`tetris/2048/snake` 属实时累计玩法分而非结算公式，暂不动。
+- 未跑 `_build.py`：待集成线构建。

@@ -134,10 +134,46 @@ const CASES = [
     ref: "3 人抽 2 人（不放回）：单次第一名 1/3 = 33.3%，任意 1 人中签 2/3 = 66.7%；"
        + "默认 8 人抽 1 人 ⇒ 两条锚均失配（默认只显示 12.5%）。旧页面无概率面板、且文案承诺并不存在的「权重」。",
   },
+  // ── 计时/回合制结算分：只测算分纯函数（DOM/定时器/classList 不参与）──
+  {
+    slug: "fun/whack-a-mole",
+    inputs: {},
+    clicks: ["document.getElementById('output').textContent='S='+calcWhackScore(22,5,0)+'/'+calcWhackScore(0,0,5)+'/'+calcWhackScore(10,0,0)+'/'+calcWhackScore(0,5,0)"],
+    expect: ["S=195/-25/100/-25"],
+    ref: "独立复算：命中 22×10=220，漏点 5×5=25，净 195（与页面算例一致）；点空 5 次 −25（覆盖“可为负”语义）；"
+       + "命中 10 次 = 100；漏点 5 次 = −25。纯函数 calcWhackScore(hits,misses,blanks) 与 DOM/定时器无关。",
+  },
+  {
+    slug: "fun/reaction-tester",
+    inputs: {},
+    clicks: ["document.getElementById('output').textContent='A='+calcReactionAvg([300,200,400])+'/'+calcReactionAvg([])"],
+    expect: ["A=300/NaN"],
+    ref: "独立复算：平均反应 = (300+200+400)/3 = 300 ms；空样本返回 NaN（页面此时显示“—”）。",
+  },
+  {
+    slug: "fun/typing-rhythm",
+    inputs: {},
+    clicks: ["document.getElementById('result').textContent='T='+calcRhythmScore(0.25)+'/'+calcRhythmScore(1.5)+'/'+calcWpm(100,60000)"],
+    expect: ["T=70/0/20"],
+    ref: "独立复算：score = clamp(100 − cv×120, 0, 100)；cv=0.25 ⇒ 70，cv=1.5 ⇒ −80 截断为 0；"
+       + "WPM = 字符数 ÷ 分钟 ÷ 5 = 100 ÷ 1 ÷ 5 = 20（ms=60000 即 1 分钟）。",
+  },
+  {
+    slug: "fun/cps-test",
+    inputs: {},
+    clicks: ["document.getElementById('output').textContent='C='+calcCps(40,5).toFixed(2)+'/'+cpsLabel(4.99)+'/'+cpsLabel(8)+'/'+cpsLabel(13)+'/'+cpsLabel(14)"],
+    expect: ["C=8.00/慢/不错/很快/神速 ⚡"],
+    ref: "独立复算：CPS = 40÷5 = 8.00；阈值 5/8/11/14 分档 ⇒ 4.99 慢、8 不错、13 很快、14 神速（原文案 4/7/11/12 与代码不符，已按代码统一）。",
+  },
+  {
+    slug: "fun/click-speed",
+    inputs: {},
+    clicks: ["document.getElementById('output').textContent='C='+calcCps(40,5).toFixed(2)+'/'+calcCps(12,30).toFixed(2)"],
+    expect: ["C=8.00/0.40"],
+    ref: "独立复算：CPS = 点击数 ÷ 时长 ⇒ 40÷5 = 8.00、12÷30 = 0.40。",
+  },
 
 ];
-
-// ---------------------------------------------------------------- main
 async function main() {
   const only = process.argv.slice(2);
   const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
