@@ -80,6 +80,22 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"annualDemand\":\"42\",\"orderCost\":\"42\",\"holdCost\":\"42\",\"dailyDemand\":\"42\",\"leadTime\":\"42\",\"stdDev\":\"42\",\"serviceLevel\":\"1.65\"}，输出区含「货量 年订货次数 4.6 次 订货周期约 80 天 平均库存 5 件 安全库存 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    "slug": "manufacturing/inventory-calculator",
+    "inputs": {
+      "annualDemand": "1000",
+      "orderCost": "0",
+      "holdCost": "2",
+      "dailyDemand": "10",
+      "leadTime": "5",
+      "stdDev": "2",
+      "serviceLevel": "1.65"
+    },
+    "expect": [
+      "是本计算的分母，不能为 0"
+    ],
+    "ref": "新增守卫：S=0 时旧代码 EOQ=0、年订货次数=∞、订货成本=0 并输出伪结果（Infinity 被替换成 —，周期 0 天）。桩内 __tbInputGuard 已把 orderCost 列为分母并先行拦截，页面自身 D/S/H≤0 守卫为第二道；默认订货成本非 0，不命中 ⇒ 强判别。"
+  },
+  {
     "slug": "manufacturing/defect-rate",
     "inputs": {
       "total": "42",

@@ -154,9 +154,31 @@ const CASES = [
     "height": "75"
   },
   "expect": [
-    "2.00h"
+    "建筑高度：75.0m"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：默认公共建筑 50 m ⇒ 一级，注入 75 m 后输出「建筑高度：75.0m」且仍为一级；原 expect「2.00h」在默认态已出现（梁 2.00h）属逃生项，改用高度串收紧。"
+},
+{
+  "slug": "fire-rescue/fire-resistance-rating",
+  "inputs": {
+    "btype": "industrial",
+    "height": "12"
+  },
+  "expect": [
+    "多层厂房耐火等级不应低于三级"
+  ],
+  "ref": "独立复算：单/多层厂房高度 12 m ≤ 24 m ⇒ 三级（GB 50016-2014 第 3.2.1 条，多层厂房不应低于三级）；判别器把 btype 回退到首个 option「住宅」时输出「多层住宅…」，与本串不符 ⇒ 强判别。"
+},
+{
+  "slug": "fire-rescue/fire-resistance-rating",
+  "inputs": {
+    "btype": "warehouse",
+    "height": "12"
+  },
+  "expect": [
+    "仓库耐火等级不应低于二级"
+  ],
+  "ref": "独立复算：仓库高度 12 m ≤ 24 m ⇒ 二级（GB 50016-2014 第 3.2.1 条，仓库不应低于二级；高架仓库应为一级）；判别器把 btype 回退到首个 option「住宅」时输出「二类高层住宅」缓冲串，与本串不符 ⇒ 强判别。"
 },
 {
   "slug": "fire-rescue/fire-risk-assessment",
@@ -469,9 +491,9 @@ const CASES = [
       "level": "medium"
     },
     "expect": [
-      "42\nB\nmedium\n单具保护面积： 1 m²/具 估算灭火器总数： 42 具 按每处 2 具布置，约需 21 个设置点"
+      "42\nB\nmedium\n单位灭火级别最大保护面积： 1 m²/B（GB 50140-2005 表 6.2.1） 所需灭火级别： 42 B（Q=K·S/U，K 取 1.0） 按 4kg ABC 干粉（55B）估算： 2 具（每个计算单元不少于 2 具） 按每处 2 具布置，约需 1 个设置点（每点不宜多于 5 具）"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"area\":\"42\",\"fireClass\":\"B\",\"level\":\"medium\"}，输出区含「42\nB\nmedium\n单具保护面积： 1 m²/具 估算灭火器总数： 42 具…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "独立复算：B 类中危险级 U=1.0 m²/B ⇒ Q=⌈42/1⌉=42B；4kg ABC 干粉 55B ⇒ 具数=max(2, ⌈42/55⌉)=2；设置点=max(1, ⌊2/2⌋)=1。默认 A 类轻危险级 300 m² ⇒ 3A/2 具，输出串不同 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "fire-rescue/calc-3",
