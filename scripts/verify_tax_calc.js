@@ -535,6 +535,59 @@ const CASES = [
     "ref": "分项模拟（03-71）：ed_child 24000 + ed_elder 36000 = 60000 → __edSum 合计行「分项合计：60000 元/年」（默认态为 0 元/年，零交集）；__edApply 将 60000 填入 extra 并 calc ⇒ baseTaxable = 10000×12 − 60000 − 0 − 60000 = 0，mergedTaxable = 36000 → tax = 1080；separate = 0 + 1080 = 1080 ⇒ 两方案相等 → separate best（<= 分支）→ diff = 0 →「可少缴税 ¥0」。默认态 extra=0 → diff = 7080 − 4560 = 2520 →「可少缴税 ¥2,520」，零交集。"
   },
 
+  // ---- 空态守卫（2026-11-05，apply_tax_req_guard.py 同批）----
+  // 口径：清空全部 number 输入 ⇒ calcTool 顶部 __tbReq 提前返回，结果区只有提示、不再渲染零值。
+  // 判别力：默认态输入有值、不触发提示 ⇒ discriminant_check 注入默认值后必 FAIL（零逃生）。
+  { slug: "tax/ad-valorem-duty",
+    inputs: { p: "", r: "" },
+    expect: ["请填写「计税价格」后再计算。"],
+    ref: "空态守卫：p/r 均空 ⇒ 首个不合规字段 p ⇒ 提示「请填写『计税价格』后再计算。」；默认 1000/0.1 不触发提示。" },
+
+  { slug: "tax/break-even-taxable",
+    inputs: { target: "", deduct: "", r: "" },
+    expect: ["请填写「目标税后所得」后再计算。"],
+    ref: "空态守卫：按输入顺序首项 target 不合规 ⇒ 提示目标税后所得；默认 750000/0/25 不触发。" },
+
+  { slug: "tax/capital-gains-tax",
+    inputs: { sell: "", cost: "", r: "" },
+    expect: ["请填写「售价」后再计算。"],
+    ref: "空态守卫：首项 sell 不合规 ⇒ 提示售价；默认 150000/100000/20 不触发。" },
+
+  { slug: "tax/customs-duty",
+    inputs: { value: "", r: "" },
+    expect: ["请填写「完税价格」后再计算。"],
+    ref: "空态守卫：首项 value 不合规 ⇒ 提示完税价格；默认 50000/10 不触发。" },
+
+  { slug: "tax/excise-tax",
+    inputs: { p: "", q: "", r: "" },
+    expect: ["请填写「出厂单价」后再计算。"],
+    ref: "空态守卫：首项 p 不合规 ⇒ 提示出厂单价；默认 10/100/0.2 不触发。" },
+
+  { slug: "tax/foreign-tax-credit",
+    inputs: { ft: "", lim: "" },
+    expect: ["请填写「境外已纳税」后再计算。"],
+    ref: "空态守卫：首项 ft 不合规 ⇒ 提示境外已纳税；默认 2000/1500 不触发。" },
+
+  { slug: "tax/gift-tax",
+    inputs: { a: "", e: "", r: "" },
+    expect: ["请填写「赠与额」后再计算。"],
+    ref: "空态守卫：首项 a 不合规 ⇒ 提示赠与额；默认 1000000/200000/0.2 不触发。" },
+
+  { slug: "tax/interest-income-tax",
+    inputs: { interest: "", r: "" },
+    expect: ["请填写「利息金额」后再计算。"],
+    ref: "空态守卫：首项 interest 不合规 ⇒ 提示利息金额；默认 5000/20 不触发。" },
+
+  { slug: "tax/payroll-tax",
+    inputs: { w: "", er: "", ee: "" },
+    expect: ["请填写「工资总额」后再计算。"],
+    ref: "空态守卫：首项 w 不合规 ⇒ 提示工资总额；默认 10000/0.2/0.08 不触发。" },
+
+  { slug: "tax/property-tax",
+    inputs: { base: "", r: "" },
+    expect: ["请填写「计税余值」后再计算。"],
+    ref: "空态守卫：首项 base 不合规 ⇒ 提示计税余值；默认 800000/1.2 不触发。" },
+
 
 ];
 
