@@ -328,7 +328,7 @@ function crcGeneric(bytes, params){
 const ALGOS = [
   {name:'CRC-8', width:8, poly:0x07, init:0x00, refin:false, refout:false, xorout:0x00},
   {name:'CRC-8/ITU (CCITT)', width:8, poly:0x07, init:0x00, refin:false, refout:false, xorout:0x55},
-  {name:'CRC-16/CCITT', width:16, poly:0x1021, init:0xFFFF, refin:false, refout:false, xorout:0x0000},
+  {name:'CRC-16/CCITT-FALSE (IBM-3740)', width:16, poly:0x1021, init:0xFFFF, refin:false, refout:false, xorout:0x0000},
   {name:'CRC-16/Modbus', width:16, poly:0x8005, init:0xFFFF, refin:true, refout:true, xorout:0x0000},
   {name:'CRC-16/XModem', width:16, poly:0x1021, init:0x0000, refin:false, refout:false, xorout:0x0000},
   {name:'CRC-32', width:32, poly:0x04C11DB7, init:0xFFFFFFFF, refin:true, refout:true, xorout:0xFFFFFFFF},
@@ -341,6 +341,13 @@ function getInputBytes(){
   const hexInput = document.getElementById('hexInput').checked;
   if(hexInput){
     const s = text.replace(/[\s:,;_\-]/g,'');
+    if(!s) return new Uint8Array(0);
+    // 旧实现直接 new Uint8Array(s.length/2)：奇数位时小数长度被截断、末尾半字节静默丢弃，
+    // 非十六进制字符经 parseInt 得 NaN 转成 0x00 ⇒ 两种都给出「看似正常」的错误 CRC。
+    if(!/^[0-9a-fA-F]+$/.test(s) || s.length % 2 !== 0){
+      document.getElementById('results').innerHTML='<p style="color:var(--danger,#dc2626);font-size:13px;">十六进制输入须为偶数位、且仅含 0-9 / A-F。</p>';
+      return null;
+    }
     const bytes = new Uint8Array(s.length / 2);
     for(let i = 0; i < bytes.length; i++) bytes[i] = parseInt(s.substr(i*2,2),16);
     return bytes;
@@ -371,6 +378,7 @@ function renderResult(name, hex){
 
 function calc(){
   const bytes = getInputBytes();
+  if(bytes === null) return;   // 十六进制格式错误：提示已写入结果区，勿再清空
   if(bytes.length === 0){ document.getElementById('results').innerHTML=''; return; }
   const upper = document.getElementById('upper').checked;
   document.getElementById('results').innerHTML='';
