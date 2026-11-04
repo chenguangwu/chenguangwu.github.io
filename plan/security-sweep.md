@@ -547,3 +547,20 @@
 - 其余 11 页为**假阳性**：数值字段（staffCount/routeLen/phone(小时数)/staff 等）、非身份文本（IPv6、UTM source/medium）、通用自由文本（keyword-extractor、nato-alphabet、qr-decoder 等）。自由文本页仍保留「用户自行粘贴 PII」的残余风险，但字段无身份语义，本轮不改。
 - **必须存（显式保存功能，非自动持久化）**：`security/emergency-contacts`、`security/virtual-safe`、`nephrology/manager-1`、`rental/reminder-4`、`funeral/memorial-date`、`cleaning/staff-schedule`、`elderly/reminder-time`、`ecommerce/cycle-15`、`edu/chinese-zodiac`、`tcm-diagnosis/tcm-medical-record` 等页有自定义 `localStorage` 键（`tb_ppe_cycle`/`tb_ckd_patients`/`leases`/`staff`/`meds`/`customers` 等）。`data-no-persist` 只停用 tool-ux 自动回填，不阻断这些显式保存；站点全局隐私徽标已声明「数据仅在本机处理、不上传」。
 - 一致性遗留：`reminder-cycle-protection` 的 PPE 队列通过自定义 `tb_ppe_cycle` 保存 `person`，属于「必须存」，加 `data-no-persist` 只关闭了输入框冗余自动保存，队列功能不受影响。
+
+**§17.7 四档结论（2026-11-05 收口）**
+
+| 项 | 结论档位 | 依据 |
+|---|---|---|
+| `sql-wasm`（sql.js 1.8.0） | **已核 + 登记待改** | 已确认主脚本有 `integrity`、wasm 由 Emscripten `fetch` 无法挂 SRI；版本路径固定≠内容固定。待改项：自托管到 `vendor/`，或加 sha256 巡检。 |
+| TTZZ（字节 goofy 埋点） | **已核 + 登记待改** | 已确认 token 为全站同一固定串、非签名，无法做完整性校验；属第三方供应链信任。待改项：每周哈希巡检 / 评估整站下线。 |
+
+**§17.8 四档结论（2026-11-05 收口）**
+
+| 对象 | 结论档位 | 依据 |
+|---|---|---|
+| 68 个身份线索候选页 | **已核** | 真实浏览器逐页注入 PII 样例后读取 `tb_ux_*` / `tb_uxp_*`，17 页命中、0 加载错误。 |
+| 6 个真 PII 且自动持久化页 | **已修** | `edu2/exam-analysis`、`sports/stats-11`、`clinical-nursing/cycle-7`、`safety/reminder-cycle-protection`、`it/area-code-lookup`、`kids/memory-palace` 均已加 `<body data-no-persist>`。 |
+| 11 个假阳性页 | **判安全** | 命中项为数值字段、IPv6、UTM 参数、通用自由文本，字段无身份语义；自由文本「用户自行粘贴」的残余风险保留记录。 |
+| 显式保存页（`emergency-contacts` / `virtual-safe` / `manager-1` / `staff-schedule` / `tcm-medical-record` 等） | **判安全（功能所需）** | 均为用户主动点击保存的本地业务数据，非自动回填；全局隐私徽标已声明仅本机、不上传。 |
+| `reminder-cycle-protection` 一致性遗留 | **判安全** | `tb_ppe_cycle` 保存 PPE 队列属必须存；`data-no-persist` 仅关闭输入框冗余自动保存，队列功能不受影响。 |

@@ -347,7 +347,9 @@ s.parentNode.insertBefore(el, s);
 </div>
 
 <script>
-const HISTORY_KEY = 'jwt_debugger_history';
+// 历史里的 JWT 是完整令牌（可能仍是有效 bearer credential），不得落盘；
+// 仅保存在当前页面内存中，刷新/关闭即清除。
+let jwtHistory = [];
 
 function switchTab(tab) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -517,21 +519,20 @@ function clearToken() {
 }
 
 function addToHistory(token) {
-  const h = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
-  h.unshift({ time: new Date().toLocaleString(), token });
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(h.slice(0, 30)));
+  jwtHistory.unshift({ time: new Date().toLocaleString(), token });
+  if (jwtHistory.length > 30) jwtHistory = jwtHistory.slice(0, 30);
   renderHistory();
 }
 
 function renderHistory() {
-  const h = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+  const h = jwtHistory;
   const el = document.getElementById('history-list');
   const __h6=h.length === 0 ? '<div class="history-empty">暂无解析历史</div>' :
     h.map((x, i) => `<div class="history-item" onclick="loadHist(${i})"><div class="time">${x.time}</div><div class="detail" style="font-family:monospace;font-size:12px;word-break:break-all;">${x.token}</div></div>`).join('');if((typeof __h6==='number'&&!isFinite(__h6))||/Infinity/.test(String(__h6))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h6)){el.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}el.innerHTML=__h6;
 }
 
 function loadHist(i) {
-  const h = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+  const h = jwtHistory;
   if (h[i]) {
     document.getElementById('token-input').value = h[i].token;
     switchTab('decode');
@@ -540,7 +541,7 @@ function loadHist(i) {
 }
 
 function clearHistory() {
-  if (confirm('清空历史？')) { localStorage.removeItem(HISTORY_KEY); renderHistory(); }
+  if (confirm('清空历史？')) { jwtHistory = []; renderHistory(); }
 }
 
 renderHistory();

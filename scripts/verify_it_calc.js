@@ -9050,8 +9050,8 @@ async function runCaseInner(c) {
     body: makeEl(""),
   };
   const localStorage = { getItem() { return null; }, setItem() {}, removeItem() {} };
-  // sessionStorage 桩：站内只有 it/password-generator 顶层写了 `const HISTORY_STORE = sessionStorage`，
-  // 缺该全局 ⇒ 整个脚本在求值期就抛 ReferenceError ⇒ 该页在任何用例里都是「死页」（零用例即零回归）。
+  // sessionStorage 桩：保守保留。任何页面顶层引用 sessionStorage 时，缺该全局会在求值期抛
+  // ReferenceError ⇒ 整页成为「死页」（零用例即零回归）。当前站内已无页面真实使用 sessionStorage。
   const sessionStorage = { getItem() { return null; }, setItem() {}, removeItem() {} };
   const ToolBox = {
     setResult: (id, h) => { getEl(id).innerHTML = h; },
@@ -9456,7 +9456,9 @@ module.exports = { runCase, CASES, inlineScripts, makeEl, collectStrings, extrac
 // TOOLBOX-REDIRECT 存根时，harness 会打印「0/0 通过」并静默 exit 0 —— 属于假绿。
 // 正常跑（无 slug 过滤）时若一个真实用例都没执行，必须在 beforeExit 把退出码翻红。
 process.once("beforeExit", () => {
-  if (process.argv.length <= 2 && __executedCases === 0) {
+  // TB_DISCRIM_PARENT：discriminate_check.js 的全站模式由**子进程**跑用例，父进程自身
+  // 一条也不执行（已检/下限由父进程自己的产出完整性断言把关），不能按「0 用例」判红。
+  if (process.argv.length <= 2 && __executedCases === 0 && !process.env.TB_DISCRIM_PARENT) {
     console.log("❌ 0 个用例实际执行（用例集为空或全部为 redirect 存根），拒绝判绿");
     process.exitCode = 1;
   }
