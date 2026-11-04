@@ -125,8 +125,8 @@ for (const t of targets) {
     toggleToolTheme() {},
   };
   try {
-    const fn = new Function("document", "ToolBox", "Math", "parseFloat", "isNaN", "console", script + "\n; calcTool(); return document.getElementById('result').innerHTML;");
-    const out = fn(document, ToolBox, Math, parseFloat, isNaN, console);
+    const fn = new Function("document", "ToolBox", "Math", "parseFloat", "isNaN", "console", "location", script + "\n; calcTool(); return document.getElementById('result').innerHTML;");
+    const out = fn(document, ToolBox, Math, parseFloat, isNaN, console, { search: "", href: "http://localhost/", pathname: "/", origin: "http://localhost" });
     // sanity: result not empty, no obvious "NaN"/"undefined"
     const bad = /NaN|undefined|Infinity/.test(out);
     const len = out ? out.length : 0;

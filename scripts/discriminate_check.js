@@ -40,6 +40,9 @@ const fs = require("fs");
 const path = require("path");
 const { spawnSync } = require("child_process");
 
+// 全站模式：用例全部在逐文件子进程里执行，父进程自身 __executedCases 恒 0。
+// 告知 verify_it_calc 的「0 用例守卫」不要按父进程判红（子进程 argv 含文件名，不受影响）。
+process.env.TB_DISCRIM_PARENT = "1";
 const ARGV = process.argv.slice(2);        // 必须提前保存：verify_it_calc.js 运行期会替换 process
 const REAL_PROCESS = process;             // 同上：运行期写 REAL_PROCESS.exitCode 无效，须用真实引用
 // 同理保存真实 console.log：tools/it/code-runner.html 会在用例里改写 window.console，

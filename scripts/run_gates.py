@@ -414,7 +414,9 @@ def main() -> int:
     args = parse_args()
     gates = list(GATES)
     if args.skip_build:
-        gates = gates[1:]
+        # 按名字摘除 build 门禁：GATES[0] 并不是 build（早前 gates[1:] 会误删首项、
+        # 反而仍执行 _build.py），此处改为显式过滤，避免本地复检意外重建产物。
+        gates = [g for g in gates if g[0] != "build"]
         print("WARNING: build gate skipped; use this mode for local re-checks only.")
 
     failures: list[tuple[str, int, str]] = []
