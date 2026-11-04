@@ -80,3 +80,28 @@ headless 实测 4 页 `typeof window.X === "function"`、点击无报错，故�
    共享脚本 `char-distance-ref.js` 单独放行——防止「写别名不挂全局」再次复发。
 
 当前：`==== inline handler global 2/2 ====`。
+
+## CI 安全性（2026-11-05 补）
+
+原用例依赖动态触发，若 CI 无浏览器会出现两种坏结果：报 PASS（假绿）或整条流水线红（环境缺失）。
+已拆成两段：
+
+| 段 | 实现 | 是否决定退出码 | CI 行为 |
+|---|---|---|---|
+| 静态断言 | 纯文本解析（无 DOM / 无浏览器） | **是** | 始终执行；失败即红 |
+| 动态触发 | puppeteer-core + 本机 Chrome，真点按钮 / 真输入 | 否（仅本地增强） | 缺模块或 Chrome 时打印 `⚠️ SKIP(no-browser)`，不影响退出码 |
+
+断言内容：静态段检查 6 个修复页存在 `window.<别名> =`（或共享脚本）以及全站 `__` 前缀内联函数可全局解析；
+动态段逐页触发内联事件并断言 `typeof window.X === "function"`、无 `is not defined`。
+动态段只统计**触发之后**的报错（监听器在页面加载完成后才挂上），避免把无关的加载期历史报错算进本用例。
+
+验证记录：
+
+- 本地正常：`静态断言 2/2 通过` + `动态触发: 6/6 页真触发无 ReferenceError`。
+- 模拟无浏览器：`PUPPETEER_EXECUTABLE_PATH=/nonexistent node scripts/verify_inline_handlers.js`
+  → 输出 `⚠️ SKIP(no-browser): 动态触发段未执行（未找到 Chrome…）`，**exit 0**。
+- 静态造错：临时把 `calc-16` 的 `window.__c16Export = c16Export;` 改成 `window.c16Export = c16Export;`
+  → 静态段报 `缺全局挂载`，**exit 1**；改回后复绿。
+
+CI 的 `npm ci` 未安装 puppeteer-core，因此流水线只跑静态段并显式 SKIP 动态段；本机安装后自动启用。
+

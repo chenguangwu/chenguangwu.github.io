@@ -137,11 +137,12 @@ async function dynamicTrigger() {
     for (const [rel, action, name] of FIXED) {
       const page = await browser.newPage();
       const errs = [];
-      page.on("pageerror", e => errs.push(e.message));
-      page.on("console", m => { if (m.type() === "error") errs.push(m.text()); });
       await page.goto(`http://127.0.0.1:${port}/${rel}`, { waitUntil: "domcontentloaded", timeout: 30000 });
       // 只等目标全局函数就绪，不等第三方分析脚本的 networkidle（否则易拖到超时）
       await page.waitForFunction(n => typeof window[n] === "function", { timeout: 10000 }, name).catch(() => {});
+      // 只统计「触发内联事件之后」的报错，避免把无关的加载期历史报错算到本用例头上
+      page.on("pageerror", e => errs.push(e.message));
+      page.on("console", m => { if (m.type() === "error") errs.push(m.text()); });
       if (action === "input") {
         await page.evaluate(() => {
           const el = document.getElementById("__charDistVal");
