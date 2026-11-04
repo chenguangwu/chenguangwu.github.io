@@ -329,6 +329,21 @@ const CASES = [
   "ref": "总精子数=1.0×5=5×10⁶，总活力=20+15=35% → TMSC=5×0.35=1.75<5×10⁶ → 生育力受损；存活率40%<58% → 死精症"
 },
 {
+  "slug": "clinical-lab/semen-analysis",
+  "inputs": {
+    "volume": "2",
+    "conc": "0",
+    "pr": "0",
+    "np": "0",
+    "im": "100",
+    "morph": "1",
+    "vital": "1",
+    "ph": "7.2"
+  },
+  "expect": ["无精子症（需离心沉淀复检确认）"],
+  "ref": "L-N39 边界：浓度 0 时提示无精子症，但必须注明「需离心沉淀复检确认」（单次未见精子不能直接确诊）；TMSC=0 ⇒ 生育力受损。默认浓度 60 不命中。"
+},
+{
   "slug": "clinical-lab/thyroid-function-model",
   "inputs": {
     "tsh": "0.02",
@@ -503,8 +518,8 @@ const CASES = [
     "upper": "2.0"
   },
   "expect": [
-    "非ST段抬高型心梗(NSTEMI)",
-    "可能为NSTEMI、不稳定心绞痛或非缺血性心肌损伤"
+    "轻度升高，需警惕 NSTEMI 或非缺血性心肌损伤",
+    "可能为 NSTEMI、不稳定心绞痛或非缺血性心肌损伤"
   ],
   "ref": "峰值8.5，上限2.0 → 8.5>2 且 8.5≤2×5=10 → 落入「轻度升高，警惕NSTEMI」分支（默认上限0.04时走典型AMI曲线分支）"
 },
@@ -633,13 +648,13 @@ const CASES = [
 {
   "slug": "clinical-lab/urinalysis-interpretation",
   "clicks": [
-    "document.getElementById('ua_sg').value='1.030'; document.getElementById('ua_ph').value='8.0'; interpret();"
+    "document.getElementById('ua_sg').value='1.030'; document.getElementById('ua_ph').value='8.5'; interpret();"
   ],
   "expect": [
-    "尿比重 1.030 → 落在 偏高",
-    "pH 8.0 → 落在 偏碱"
+    "尿比重 1.030 → 落在 正常",
+    "pH 8.5 → 落在 偏碱"
   ],
-  "ref": "S3 标尺 ref-card：sg 1.030≥1.025 → 偏高带、pH 8.0≥7.5 → 偏碱带。该页 select 无 onchange（interpret 仅按钮/启动触发），inputs 注入不重渲染，故用 clicks 在页面作用域直调 interpret()。判别器清 clicks 且无 inputs → 兜底 interpret 渲染默认 sg=1.015/pH=6.0（正常带），两条 expect 均随注入变化、默认态不出现。"
+  "ref": "L-N11 参考区间：sg 1.030 为参考上限内（1.003–1.030）→ 正常带；pH 8.5>8.0 → 偏碱带。修复前正常上限 1.025/7.5 ⇒ 1.030 判偏高、8.0 判偏碱，窄区间误报。默认 sg=1.015/pH=6.0 均正常 ⇒ 两条 expect 不出现。"
 },
 {
   "slug": "clinical-lab/urinalysis-interpretation",
@@ -966,6 +981,20 @@ const CASES = [
     ref: 'CD4 24%/CD8 12% 比值2.00 正常'
   },
   {
+    slug: "clinical-lab/flow-cytometry-ratio",
+    inputs: { wbc: "6", lpct: "30", cd4: "25", cd8: "20", cd3: "60", cd19: "10", nk: "10", treg: "5" },
+    clicks: ["calc();document.getElementById('result').innerHTML+=' 含免疫抑制='+(document.getElementById('result').innerHTML.indexOf('免疫抑制')>=0);"],
+    expect: ["CD4绝对值 450/μL → 落在 参考下限内(414–500)", "含免疫抑制=false"],
+    ref: "L-N30 阈值：wbc 6×10⁹/L、淋巴 30% ⇒ 淋巴细胞 1800/μL，CD4 25% ⇒ 450/μL，落在参考区间 414–1611 内；修复前另设 <500 即判「免疫抑制」，与参考表冲突。哨兵同时断言不出现「免疫抑制」。默认输入下 CD4 绝对值 0 ⇒ 该行不渲染。"
+  },
+  {
+    slug: "clinical-lab/flow-cytometry-ratio",
+    inputs: { wbc: "6", lpct: "30", cd4: "60", cd8: "20", cd3: "70", cd19: "8", nk: "12", treg: "4" },
+    clicks: ["calc()"],
+    expect: ["CD4 比例高于参考(>51%)"],
+    ref: "L-N30 百分比上限：CD4 60%>51% 应提示高于参考；修复前只查绝对计数、不查百分比上限 ⇒ 漏报。默认 CD4 30% 不命中。"
+  },
+  {
     slug: "clinical-lab/thyroid-function-model",
     inputs: { tsh: "0.1", ft3: "5.0", ft4: "16", tt3: "1.5", tt4: "100", tpo: "0" },
     expect: ["亚临床甲状腺功能亢进症"],
@@ -1214,7 +1243,7 @@ const CASES = [
     "clicks": [
       "document.getElementById('markerType').value='ckmb';onMarkerChange();"
     ],
-    "expect": ["CK-MB 动态分析", "上限 5", "非ST段抬高型心梗(NSTEMI)"],
+    "expect": ["CK-MB 动态分析", "上限 5", "轻度升高，需警惕 NSTEMI 或非缺血性心肌损伤"],
     "ref": "L-N15 切换联动：切到 CK-MB 时 onMarkerChange 把 99th 上限同步为 5.0 ng/mL（修复前沿用 0.04 ⇒ 8.5 被放大 213×、误判典型 AMI）；8.5>5 且 ≤25 ⇒ NSTEMI 分支，SVG 标注「上限 5」。判别器清 clicks 回到 cTnI/0.04 默认态，不命中。"
   },
   {
@@ -1222,6 +1251,50 @@ const CASES = [
     "inputs": { upper: "-0.04" },
     "expect": ["请输入大于 0 的参考上限（99百分位，ng/mL）；当前输入「-0.04」无效。"],
     "ref": "L-N15 上限校验：负值修复前被 parseFloat 后照常参与运算（比值方向相反），现直接提示并清空结果。默认 0.04 有效 ⇒ 提示串不出现。"
+  },
+  {
+    "slug": "clinical-lab/csf-analysis",
+    "clicks": [
+      "document.getElementById('appearance').value='clear';document.getElementById('pressure').value='160';document.getElementById('wbc').value='8';document.getElementById('poly').value='45';document.getElementById('protein').value='0.35';document.getElementById('glu').value='';document.getElementById('bg').value='';document.getElementById('cl').value='';analyze();var r=document.getElementById('result');r.innerHTML+=' 糖未测='+(r.innerHTML.indexOf('脑脊液糖 —')>=0)+' 缺项提示='+(r.innerHTML.indexOf('未纳入评分与判读')>=0)+' 误判化脓='+(r.innerHTML.indexOf('最可能：化脓性脑膜炎')>=0);"
+    ],
+    "expect": ["糖未测=true 缺项提示=true 误判化脓=false"],
+    "ref": "L-N20 空值：糖/血糖/氯化物留空时修复前 parseFloat('')=0 ⇒ 糖 0<1.0 记化脓 +3、氯 0<110 记结核 +2，正常脑脊液被误判；现空值不参与评分并列入「未检测（未纳入评分与判读）」，糖显示 —。默认各字段有值 ⇒ 哨兵串不出现。"
+  },
+  {
+    "slug": "clinical-lab/csf-analysis",
+    "clicks": [
+      "document.getElementById('wbc').value='';document.getElementById('protein').value='';analyze();var r=document.getElementById('result');r.innerHTML+=' 拦截='+(r.innerHTML.indexOf('请至少填写白细胞计数与蛋白定量')>=0)+' 有诊断='+(r.innerHTML.indexOf('最可能：')>=0);"
+    ],
+    "expect": ["拦截=true 有诊断=false"],
+    "ref": "L-N20 关键两项缺失：修复前 wbc/protein 为空被读成 0，仍可能给出分型；现直接提示至少填写两项并清空结果。默认两项有值 ⇒ 提示串不出现。"
+  },
+  {
+    "slug": "clinical-lab/convert-glucose-1",
+    "inputs": { a1c: "6.0" },
+    "expect": ["HbA1c 5.7–6.4%，属糖尿病前期"],
+    "ref": "L-N21 切点：a1c=6.0 按 ADA 切点判糖尿病前期；修复前用 eAG=125.5<140 判「正常糖耐量」⇒ 误判。默认 6.5 不命中。"
+  },
+  {
+    "slug": "clinical-lab/convert-glucose-1",
+    "inputs": { a1c: "7.0" },
+    "expect": ["平均血糖 eAG = 154.2 mg/dL", "与控制目标（154 mg/dL）差距 = 0.0"],
+    "ref": "L-N21 切点：a1c=7.0 ⇒ eAG=154.2，判糖尿病范围且距目标 0.0；修复前 eAG=154.2<200 判「糖尿病前期」⇒ 误判。默认 6.5 的差距为 -14.2 ⇒ 不命中。"
+  },
+  {
+    "slug": "clinical-lab/cardiac-marker-curve",
+    "clicks": [
+      "analyze([{t:0,v:0.5},{t:3,v:1},{t:12,v:2},{t:24,v:1},{t:30,v:25}]);var r=document.getElementById('result');r.innerHTML+=' 延迟='+(r.innerHTML.indexOf('延迟达峰，仍提示心肌损伤')>=0)+' 不显著='+(r.innerHTML.indexOf('曲线变化不显著')>=0);"
+    ],
+    "expect": ["延迟=true 不显著=false"],
+    "ref": "L-N19 迟达峰：峰值 25 倍上限出现在 30h（>24h），修复前不满足 peak≤24 分支且 >5× 上限 ⇒ 落入「变化不显著」；现单独输出延迟达峰提示。默认峰值 12h ⇒ 哨兵串不出现。"
+  },
+  {
+    "slug": "clinical-lab/cardiac-marker-curve",
+    "clicks": [
+      "analyze([{t:0,v:-1},{t:6,v:2}]);var r=document.getElementById('result');r.innerHTML+=' 负值拦截='+(r.innerHTML.indexOf('空值或负值')>=0)+' 仍有分析='+(r.innerHTML.indexOf('动态分析')>=0);"
+    ],
+    "expect": ["负值拦截=true 仍有分析=false"],
+    "ref": "L-N19 负值：检测值 -1 修复前照常进入排序与峰值判读；现提示「空值或负值」并清空结果。默认数据均为正 ⇒ 哨兵串不出现。"
   },
   {
     "slug": "clinical-lab/autoantibody-interpretation",
@@ -1235,6 +1308,15 @@ const CASES = [
       "含抗Sm=false"
     ],
     "ref": "L-N16 动态拼接：仅抗dsDNA 阳性（ANA 1:320、核型未选）⇒ SLE 评分 3≥3，标志抗体只列实际阳性的抗dsDNA；修复前 filter 恒真把未检出的抗Sm/抗Rib-P/抗PCNA 一并列出 ⇒ 哨兵为 true。默认态 ANA 阴性、无 SLE 卡片，不命中。"
+  },
+  {
+    "slug": "clinical-lab/autoantibody-interpretation",
+    "inputs": { anaTiter: "1:160" },
+    "clicks": [
+      "document.getElementById('ena_pm-scl').value='pos';document.getElementById('ena_ma2').value='pos';updateRow('pm-scl');var r=document.getElementById('result');r.innerHTML+=' 含PM-Scl='+(r.innerHTML.indexOf('硬化症-肌炎重叠综合征')>=0)+' 含Ma2='+(r.innerHTML.indexOf('副肿瘤神经综合征相关')>=0);"
+    ],
+    "expect": ["含PM-Scl=true 含Ma2=true"],
+    "ref": "L-N23 未覆盖抗体：抗PM-Scl 阳性应给出 SSc-肌炎重叠综合征、抗Ma-2 给出副肿瘤神经综合征提示（修复前两条仅有下拉定义、无疾病规则，输出「ANA阳性但未发现疾病特异性抗体组合」）；同时验证 updateRow 修改后即时重算（修复前只改样式、不重算）。默认 ENA 全阴性 ⇒ 哨兵串不出现。"
   },
   {
     "slug": "clinical-lab/hba1c-converter",

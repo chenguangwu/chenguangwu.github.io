@@ -267,40 +267,45 @@ function loadType(t){
   analyze();
 }
 
-function num(id){var v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
+function num(id){var v=parseFloat(document.getElementById(id).value);return isFinite(v)?v:NaN;}
 
 function analyze(){
   var app=document.getElementById('appearance').value;
   var pres=num('pressure'), wbc=num('wbc'), poly=num('poly'), protein=num('protein'), glu=num('glu'), bg=num('bg'), cl=num('cl');
-  if(!wbc && !protein) return;
+  var hasPres=isFinite(pres), hasWbc=isFinite(wbc), hasPoly=isFinite(poly), hasProtein=isFinite(protein), hasGlu=isFinite(glu), hasBg=isFinite(bg), hasCl=isFinite(cl);
+  if(!hasWbc && !hasProtein){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger)">请至少填写白细胞计数与蛋白定量（其余项可留空）；空值不会被当作 0 参与评分。</p>';
+    return;
+  }
 
-  // scoring for each type（正常项不计分，不参与分母；异常项累计后才进入倾向判读）
+  // scoring for each type（正常项不计分；未填写项不参与评分，避免空值被读成病理性）
   var scores = {bacterial:0, tb:0, viral:0};
   var abnormalCount = 0;
   // appearance
   if(app==='purulent'){scores.bacterial+=3;abnormalCount++;}
   else if(app==='cloudy'){scores.tb+=2;scores.bacterial+=1;abnormalCount++;}
   // pressure
-  if(pres>250){scores.bacterial+=2;scores.tb+=1;abnormalCount++;}
-  else if(pres>200){scores.bacterial+=1;scores.tb+=1;scores.viral+=0.5;abnormalCount++;}
+  if(hasPres && pres>250){scores.bacterial+=2;scores.tb+=1;abnormalCount++;}
+  else if(hasPres && pres>200){scores.bacterial+=1;scores.tb+=1;scores.viral+=0.5;abnormalCount++;}
   // WBC
-  if(wbc>1000){scores.bacterial+=3;abnormalCount++;}
-  else if(wbc>100){scores.bacterial+=1;scores.tb+=2;scores.viral+=1;abnormalCount++;}
-  else if(wbc>10){scores.tb+=1;scores.viral+=2;abnormalCount++;}
+  if(hasWbc && wbc>1000){scores.bacterial+=3;abnormalCount++;}
+  else if(hasWbc && wbc>100){scores.bacterial+=1;scores.tb+=2;scores.viral+=1;abnormalCount++;}
+  else if(hasWbc && wbc>10){scores.tb+=1;scores.viral+=2;abnormalCount++;}
   // cell type
-  if(poly>60){scores.bacterial+=3;abnormalCount++;}
-  else if(poly<40){scores.tb+=2;scores.viral+=2;abnormalCount++;}
+  if(hasPoly && poly>60){scores.bacterial+=3;abnormalCount++;}
+  else if(hasPoly && poly<40){scores.tb+=2;scores.viral+=2;abnormalCount++;}
   // protein
-  if(protein>1.5){scores.bacterial+=2;scores.tb+=2;abnormalCount++;}
-  else if(protein>0.45){scores.tb+=1;scores.viral+=1;scores.bacterial+=1;abnormalCount++;}
-  // glucose ratio
-  var gluRatio = bg>0 ? glu/bg : 1;
-  if(glu<1.0){scores.bacterial+=3;abnormalCount++;}
-  else if(glu<2.0){scores.tb+=2;abnormalCount++;}
-  else if(gluRatio<0.4){scores.tb+=1;abnormalCount++;}
+  if(hasProtein && protein>1.5){scores.bacterial+=2;scores.tb+=2;abnormalCount++;}
+  else if(hasProtein && protein>0.45){scores.tb+=1;scores.viral+=1;scores.bacterial+=1;abnormalCount++;}
+  // glucose ratio（糖比值统一以 <0.55 为降低；<0.40 更偏向化脓性）
+  var gluRatio = (hasGlu && hasBg && bg>0) ? glu/bg : NaN;
+  if(hasGlu && glu<1.0){scores.bacterial+=3;abnormalCount++;}
+  else if(hasGlu && glu<2.0){scores.tb+=2;abnormalCount++;}
+  else if(isFinite(gluRatio) && gluRatio<0.4){scores.bacterial+=2;abnormalCount++;}
+  else if(isFinite(gluRatio) && gluRatio<0.55){scores.tb+=1;abnormalCount++;}
   // chloride
-  if(cl<110){scores.tb+=2;abnormalCount++;}
-  else if(cl<115){scores.tb+=1;scores.bacterial+=0.5;abnormalCount++;}
+  if(hasCl && cl<110){scores.tb+=2;abnormalCount++;}
+  else if(hasCl && cl<115){scores.tb+=1;scores.bacterial+=0.5;abnormalCount++;}
 
   var total = scores.bacterial+scores.tb+scores.viral;
   var names = {bacterial:'化脓性脑膜炎', tb:'结核性脑膜炎', viral:'病毒性脑膜炎'};
@@ -334,22 +339,22 @@ function analyze(){
   var findings = [];
   if(app==='purulent') findings.push('脓性外观高度提示化脓性感染');
   if(app==='cloudy') findings.push('毛玻璃样混浊可见于结核性脑膜炎');
-  if(wbc>1000) findings.push('白细胞显著升高(>1000)，符合化脓性');
-  else if(wbc>10 && wbc<500) findings.push('白细胞轻中度升高，结合分类判断');
-  if(poly>60) findings.push('多核细胞为主('+poly+'%)，提示化脓性');
-  else if(poly<40) findings.push('淋巴细胞为主('+(100-poly)+'%)，提示结核或病毒性');
-  if(glu<1.0) findings.push('糖明显降低('+glu+'mmol/L)，高度提示化脓性');
-  else if(glu<2.0) findings.push('糖降低('+glu+'mmol/L)，提示结核性');
-  else if(gluRatio<0.4) findings.push('糖比值降低(脑脊液/血糖='+gluRatio.toFixed(2)+')，提示结核性');
-  if(cl<110) findings.push('氯化物降低('+cl+'mmol/L)，结核性多见');
-  if(protein>1.0) findings.push('蛋白升高('+protein+'g/L)，提示血脑屏障破坏');
+  if(hasWbc && wbc>1000) findings.push('白细胞显著升高(>1000)，符合化脓性');
+  else if(hasWbc && wbc>10 && wbc<500) findings.push('白细胞轻中度升高，结合分类判断');
+  if(hasPoly && poly>60) findings.push('多核细胞为主('+poly+'%)，提示化脓性');
+  else if(hasPoly && poly<40) findings.push('淋巴细胞为主('+(100-poly)+'%)，提示结核或病毒性');
+  if(hasGlu && glu<1.0) findings.push('糖明显降低('+glu+'mmol/L)，高度提示化脓性');
+  else if(hasGlu && glu<2.0) findings.push('糖降低('+glu+'mmol/L)，提示结核性');
+  else if(isFinite(gluRatio) && gluRatio<0.55) findings.push('糖比值降低(脑脊液/血糖='+gluRatio.toFixed(2)+'，低于 0.55)，需结合糖值与病原学判断');
+  if(hasCl && cl<110) findings.push('氯化物降低('+cl+'mmol/L)，结核性多见');
+  if(hasProtein && protein>1.0) findings.push('蛋白升高('+protein+'g/L)，提示血脑屏障破坏');
 
   if(findings.length){
     html += '<div class="result-box" style="margin-top:8px;"><strong>判读依据：</strong><ul style="margin:6px 0 0 18px;font-size:13px;line-height:1.8;">';
     findings.forEach(function(f){ html += '<li>'+f+'</li>'; });
     html += '</ul></div>';
   }
-  html += '<div class="tip-box tip-warn">⚠️ 鉴别结果为辅助参考，确诊需依赖病原学检查(革兰染色/抗酸染色/培养/PCR)及临床综合判断。</div>';
+  html += '<div class="tip-box tip-warn">⚠️ 鉴别结果为辅助参考（本页按成人 CSF 常用参考区间做启发式评分，属本页估算），确诊需依赖病原学检查(革兰染色/抗酸染色/培养/PCR)及临床综合判断，需临床复核。</div>';
 
   // —— 参考区间定位（S3 标尺）：CSF 压力/蛋白/糖/氯化物 ——
   var __EN=(function(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search)||/^en/i.test(document.documentElement.lang||'');}catch(e){}return false;})();
@@ -364,11 +369,20 @@ function analyze(){
                  {lo:1.5,hi:5,label:{zh:'显著增高',en:'Markedly high'},color:'#EF4444'}];
   function __hit(v,bands){for(var i=0;i<bands.length;i++){var b=bands[i];if(v>=(b.lo==null?-Infinity:b.lo)&&v<(b.hi==null?Infinity:b.hi))return b;}return null;}
   var __pb=__hit(pres,__pBands),__prb=__hit(protein,__prBands);
+  var __miss=[];
+  if(!hasPres)__miss.push(__T('opening pressure','压力'));
+  if(!hasWbc)__miss.push(__T('WBC','白细胞'));
+  if(!hasPoly)__miss.push(__T('polymorph %','多核比例'));
+  if(!hasProtein)__miss.push(__T('protein','蛋白'));
+  if(!hasGlu)__miss.push(__T('CSF glucose','脑脊液糖'));
+  if(!hasBg)__miss.push(__T('blood glucose','同步血糖'));
+  if(!hasCl)__miss.push(__T('chloride','氯化物'));
   var __refHtml='<div class="ref-card"><h4>'+__T('Reference range','参考区间定位')+'</h4><ul>';
   if(__pb){__refHtml+='<li>'+__T('Opening pressure ','压力 ')+pres+__T(' mmH2O → ',' → 落在 ')+(__EN?__pb.label.en:__pb.label.zh)+__T(' (normal 80–180)','（正常 80–180 mmH2O）')+'</li>';}
   if(__prb){__refHtml+='<li>'+__T('Protein ','蛋白 ')+protein.toFixed(2)+__T(' g/L → ',' → 落在 ')+(__EN?__prb.label.en:__prb.label.zh)+__T(' (normal 0.15–0.45)','（正常 0.15–0.45 g/L）')+'</li>';}
-  __refHtml+='<li>'+__T('CSF glucose ','脑脊液糖 ')+glu.toFixed(1)+__T(' mmol/L (normal 2.2–4.4; CSF/blood ratio ≥0.55, current '+(bg>0?(glu/bg).toFixed(2):'—')+')','（正常 2.2–4.4 mmol/L；糖比值 ≥0.55，当前 '+(bg>0?(glu/bg).toFixed(2):'—')+'）')+'</li>';
-  __refHtml+='<li>'+__T('Chloride ','氯化物 ')+cl.toFixed(0)+__T(' mmol/L (normal 117–127; &lt;115 suggests TB meningitis)','（正常 117–127 mmol/L；&lt;115 提示结核性脑膜炎）')+'</li>';
+  __refHtml+='<li>'+__T('CSF glucose ','脑脊液糖 ')+(hasGlu?glu.toFixed(1):'—')+__T(' mmol/L (normal 2.2–4.4; CSF/blood ratio ≥0.55, current '+(isFinite(gluRatio)?gluRatio.toFixed(2):'—')+')','（正常 2.2–4.4 mmol/L；糖比值 ≥0.55，当前 '+(isFinite(gluRatio)?gluRatio.toFixed(2):'—')+'）')+'</li>';
+  __refHtml+='<li>'+__T('Chloride ','氯化物 ')+(hasCl?cl.toFixed(0):'—')+__T(' mmol/L (normal 117–127; &lt;115 suggests TB meningitis)','（正常 117–127 mmol/L；&lt;115 提示结核性脑膜炎）')+'</li>';
+  if(__miss.length){__refHtml+='<li>'+__T('Not tested: ','未检测：')+__miss.join(__T(', ','、'))+__T(' (excluded from scoring)','（未纳入评分与判读）')+'</li>';}
   __refHtml+='</ul></div>';
 
   const __h0=html+__refHtml;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;

@@ -319,21 +319,26 @@ function calc(){
   html += '</div>';
 
   // CD4 absolute count bands（S3 标尺）
-  var __cd4Bands=[{lo:0,hi:200,label:{zh:'重度抑制(<200, AIDS分期)',en:'Severe suppression (<200, AIDS)'},color:'#DC2626'},
+  var __cd4Bands=[{lo:0,hi:200,label:{zh:'重度抑制(<200；仅 HIV 阳性者按 AIDS 分期)',en:'Severe (<200; AIDS stage only if HIV+)'},color:'#DC2626'},
                   {lo:200,hi:414,label:{zh:'偏低(<414)',en:'Low (<414)'},color:'#F59E0B'},
-                  {lo:414,hi:500,label:{zh:'边缘(414–500)',en:'Borderline (414–500)'},color:'#F59E0B'},
+                  {lo:414,hi:500,label:{zh:'参考下限内(414–500)',en:'Low-normal (414–500)'},color:'#059669'},
                   {lo:500,hi:null,label:{zh:'正常(≥500)',en:'Normal (≥500)'},color:'#059669'}];
   if(absLymph>0 && cd4>0){
     var __cb=__hit(cd4Abs,__cd4Bands);
-    if(__cb) __refHtml+='<li>'+__T('CD4 absolute count ','CD4绝对值')+Math.round(cd4Abs)+__T('/μL → falls in ','/μL → 落在 ')+(__EN?__cb.label.en:__cb.label.zh)+__T(' (≥500 normal, 200–500 suppressed, &lt;200 AIDS stage)','（≥500 正常、200–500 免疫抑制、&lt;200 重度抑制 AIDS 分期）')+'</li>';
+    if(__cb) __refHtml+='<li>'+__T('CD4 absolute count ','CD4绝对值')+Math.round(cd4Abs)+__T('/μL → falls in ','/μL → 落在 ')+(__EN?__cb.label.en:__cb.label.zh)+__T(' (reference 414–1611/μL, lab-specific; <200 only indicates AIDS stage in HIV+ persons)','（参考 414–1611/μL，以实验室区间为准；<200 仅在 HIV 阳性者提示 AIDS 分期）')+'</li>';
   }
 
   // Abnormal flags（未填写的指标不参与判读，避免空值被判成异常）
   var flags = [];
   if(cd4>0){
-    if(cd4Abs<414) flags.push(__T('CD4 absolute count decreased','CD4绝对值降低'));
-    if(cd4Abs<200) flags.push(__T('CD4<200/μL (severe immunosuppression, AIDS stage)','CD4<200/μL(重度免疫抑制，AIDS分期)'));
-    else if(cd4Abs<500) flags.push(__T('CD4<500/μL (immunosuppressed)','CD4<500/μL(免疫抑制)'));
+    if(cd4Abs<414) flags.push(__T('CD4 absolute count decreased (<414/μL)','CD4绝对值降低(<414/μL)'));
+    if(cd4Abs<200) flags.push(__T('CD4<200/μL (only indicates AIDS stage if HIV+)','CD4<200/μL(仅在 HIV 阳性者提示 AIDS 分期)'));
+    if(cd4>51) flags.push(__T('CD4 percentage above reference (>51%)','CD4 比例高于参考(>51%)'));
+    else if(cd4<27) flags.push(__T('CD4 percentage below reference (<27%)','CD4 比例低于参考(<27%)'));
+  }
+  if(cd8>0){
+    if(cd8>44) flags.push(__T('CD8 percentage above reference (>44%)','CD8 比例高于参考(>44%)'));
+    else if(cd8<14) flags.push(__T('CD8 percentage below reference (<14%)','CD8 比例低于参考(<14%)'));
   }
   if(cd8>0&&cd4>0&&ratio<0.71) flags.push(__T('CD4/CD8 inversion','CD4/CD8倒置'));
   if(cd8>0&&cd4>0&&ratio>2.78) flags.push(__T('CD4/CD8 elevated','CD4/CD8升高'));
@@ -350,16 +355,18 @@ function calc(){
     html += '<div class="result-box" style="border-left:4px solid #dc2626;"><strong style="color:#dc2626;">'+__T('Abnormal findings','异常提示')+'</strong><ul style="margin:6px 0 0 18px;font-size:13px;line-height:1.8;">';
     flags.forEach(function(f){html += '<li>'+f+'</li>';});
     html += '</ul></div>';
+  } else if(wbc>0 && lpct>0 && cd3>0 && cd4>0 && cd8>0 && cd19>0 && nk>0 && treg>0){
+    html += '<div class="result-box" style="border-left:4px solid var(--success);color:var(--success);"><strong>'+__T('All entered indicators within reference range','已录入指标均在参考范围内')+'</strong></div>';
   } else if(wbc>0 && lpct>0 && (cd3>0||cd4>0||cd8>0||cd19>0||nk>0||treg>0)){
-    html += '<div class="result-box" style="border-left:4px solid var(--success);color:var(--success);"><strong>'+__T('All indicators within reference range','各项指标在参考范围内')+'</strong></div>';
+    html += '<div class="info-box">'+__T('Some subsets were not entered and are excluded from the reading; enter all subsets for a complete assessment.','部分亚群未填写，未纳入判读；补全全部亚群后再做完整评估。')+'</div>';
   } else {
     html += '<div class="info-box">'+__T('Enter WBC, lymphocyte %, and subset percentages to see interpretation.','请先填写白细胞、淋巴细胞百分比及各项亚群百分比后再判读。')+'</div>';
   }
 
-  // HIV staging if CD4 low
+  // HIV staging reference (conditional on HIV status, which this page does not collect)
   if(cd4Abs>0 && cd4Abs<500){
-    var stage = cd4Abs<200?__T('AIDS stage (C3): CD4<200, high risk of opportunistic infections, prophylaxis needed','艾滋病期(C3)：CD4<200，机会性感染风险高，需预防用药'):cd4Abs<350?__T('HIV clinical stage 3 (C2)','HIV感染临床3期(C2)'):__T('HIV clinical stage 2 (C1)','HIV感染临床2期(C1)');
-    if(stage) html += '<div class="tip-box tip-warn">'+__T('HIV staging reference: ','HIV分期参考：')+stage+__T('. CD4 is the key indicator for starting ART and opportunistic infection prophylaxis in HIV.','。CD4是HIV抗病毒治疗启动和机会性感染预防的关键指标。')+'</div>';
+    var stage = cd4Abs<200?__T('CD4<200/μL corresponds to AIDS stage (C3) in HIV-positive persons; opportunistic infection prophylaxis should be evaluated','CD4<200/μL 在 HIV 阳性者对应艾滋病期(C3)，需评估机会性感染预防'):cd4Abs<350?__T('CD4 200–349/μL corresponds to advanced HIV disease (C2) in HIV-positive persons','CD4 200–349/μL 在 HIV 阳性者对应 HIV 进展期(C2)'):__T('CD4 350–499/μL is below the reference lower limit; interpret with HIV status','CD4 350–499/μL 低于参考下限，需结合 HIV 状态判读');
+    html += '<div class="tip-box tip-warn">'+__T('HIV staging reference (this page does not collect HIV status): ','HIV 分期参考（本页未采集 HIV 状态）：')+stage+__T('. CD4 staging applies only to HIV-positive persons and requires clinical review.','。CD4 分期仅适用于 HIV 阳性者，需临床复核。')+'</div>';
   }
 
   if(__refHtml) html += __refCard(__refHtml);
@@ -410,9 +417,9 @@ calc();
       <span class="rt-icon">📊</span>
       <span class="rt-info"><span class="rt-name">血气分析代偿判断器</span><span class="rt-desc">输入 pH、PaCO2、HCO3- 判断酸碱失衡类型(代酸/呼碱等)及代偿是否充分，按 Winte…</span></span>
     </a>
-    <a href="blood-gas-analysis.html" class="related-tool-card">
+    <a href="urinalysis-interpretation.html" class="related-tool-card">
       <span class="rt-icon">🧪</span>
-      <span class="rt-info"><span class="rt-name">血气分析（pH/PaO2/PaCO2）代偿判断</span><span class="rt-desc">血气分析（pH/PaO2/PaCO2）代偿判断</span></span>
+      <span class="rt-info"><span class="rt-name">尿常规干化学结果判读器</span><span class="rt-desc">输入 11 项尿干化学结果，逐项判读并提示异常组合</span></span>
     </a>
   </div>
 </div>
@@ -423,7 +430,7 @@ calc();
   </div>
   <div class="tool-intro-body">
     <h4><span class="h4-icon">📝</span>工具简介</h4>
-    <p>流式细胞术 CD4/CD8 比值与淋巴细胞亚群计算器。输入各亚群百分比或绝对计数，计算 CD4/CD8 比值并对照参考范围，辅助免疫状态评估；结果仅供复核，不替代专科诊断。</p>
+    <p>流式细胞术 CD4/CD8 比值与淋巴细胞亚群计算器。输入白细胞、淋巴细胞百分比与各亚群百分比，自动换算绝对计数、计算 CD4/CD8 比值并对照常用成人参考区间；参考区间随实验室/机型不同（本页估算），结果需临床复核，不替代专科诊断。</p>
     <h4><span class="h4-icon">✨</span>功能特点</h4>
     <ul class="intro-features"><li>CD4/CD8 比值自动计算</li><li>亚群百分比与绝对计数对照</li><li>参考范围高亮提示</li></ul>
     <h4><span class="h4-icon">🎯</span>使用场景</h4>
@@ -499,10 +506,14 @@ function __flow_cytometry_ratioRender(keys,rk,en){
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
             var v=parseFloat(arr[j].d[rk]);
+            if(!isFinite(v)){
+                var c4=parseFloat(arr[j].d.cd4), c8=parseFloat(arr[j].d.cd8);
+                v=(c4>0&&c8>0)?c4/c8:NaN;
+            }
             if(isFinite(v)){nums.push(v);labels.push(__flow_cytometry_ratioTime(arr[j].t));}
         }
         if(nums.length>=2){
-            TBKit.chart.line('#flow_cytometry_ratioChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+            TBKit.chart.line('#flow_cytometry_ratioChart',{labels:labels,series:[{name:en?'CD4/CD8 ratio trend':'CD4/CD8 比值趋势',data:nums}]});
         }
     }catch(e3){}
 }

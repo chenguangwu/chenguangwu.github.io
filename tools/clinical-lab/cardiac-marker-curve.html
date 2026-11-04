@@ -131,8 +131,8 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="📊 心肌标志物动态曲线分析器">Cardiac Marker Curve</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入连续检测的cTnI/cTnT值与时间，绘制动态曲线并分析变化趋势">Cardiac Marker Curve</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">心肌标志物动态判读（时序展示与辅助判读，非剂量公式）：cTnI/cTnT 发病 3–6h 升高、10–24h 达峰、持续 7–14 天；CK-MB 3–8h 升高、12–24h 达峰、48–72h 恢复（宜判再梗死）；MYO 1–2h 升高、6–8h 达峰、24h 恢复。以 99th 百分位参考上限(URL) 为 cutoff；0/3/6h 序列呈「升高+回落」、Δ值(1h 内变化&gt;上限20%)提示急性心肌损伤。</div>
-      <p class="formula-desc" data-zh="「输入连续检测的cTnI/cTnT值与时间，绘制动态曲线并分析变化趋势」按输入参数进行专业计算并输出结果。">Cardiac Marker Curve: computes and outputs results from the input parameters.</p>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">心肌标志物动态判读（时序展示与辅助判读，非剂量公式）：cTnI/cTnT 发病 3–6h 升高、10–24h 达峰、持续 7–14 天；CK-MB 3–8h 升高、12–24h 达峰、48–72h 恢复（宜判再梗死）；MYO 1–2h 升高、6–8h 达峰、24h 恢复。以 99th 百分位参考上限(URL) 为 cutoff；0/3/6h 序列呈「升高+回落」提示急性心肌损伤。Δ值提示阈值取「上限的 20%」为本页估算（并非通用诊断标准），需临床复核。</div>
+      <p class="formula-desc" data-zh="输入同一标志物连续时间点的检测值与 99th 百分位参考上限，绘制动态曲线并给出提示性判读（本页估算）；不能单凭曲线诊断心肌梗死，需结合症状、心电图、影像与临床复核。">Enter serial values of one cardiac marker and its 99th-percentile upper reference limit; the page plots the trend and gives an indicative reading (estimate only). It cannot diagnose MI by itself; integrate symptoms, ECG, imaging, and clinical review.</p>
     </div>
 
     <div class="input-row">
@@ -211,7 +211,7 @@ s.parentNode.insertBefore(el, s);
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="99th百分位">99th percentile URL</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="肌钙蛋白正常上限">URL = 99th pct of ref</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Fourth Universal MI Def (ESC/ACC)</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Fourth Universal Definition of MI (2018, ESC/ACC/AHA/WHF)</td>
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="动态曲线">Dynamic curve</td>
@@ -310,7 +310,7 @@ function loadAMI(){
   analyze();
 }
 
-function analyze(){
+function analyze(inputPoints){
   var type = document.getElementById('markerType').value;
   var d = currentMarkerDefault();
   var raw = document.getElementById('upper').value;
@@ -322,7 +322,21 @@ function analyze(){
   }
   var name = markerNames[type];
   // sort by time
-  var pts = points.slice().sort(function(a,b){return a.t-b.t;});
+  var pts = (inputPoints && inputPoints.length ? inputPoints : points).slice().sort(function(a,b){return a.t-b.t;});
+  if(pts.length<2){
+    document.getElementById('result').innerHTML = '<p style="color:var(--danger,#dc2626)">⚠ 至少需要两个不同时间点的检测值才能绘制动态曲线。</p>';
+    return;
+  }
+  for(var vi=0;vi<pts.length;vi++){
+    if(!isFinite(pts[vi].t)||!isFinite(pts[vi].v)||pts[vi].t<0||pts[vi].v<0){
+      document.getElementById('result').innerHTML = '<p style="color:var(--danger,#dc2626)">⚠ 时间与检测值均须为 ≥0 的有效数字；当前存在空值或负值，未参与分析。</p>';
+      return;
+    }
+    if(vi>0 && pts[vi].t===pts[vi-1].t){
+      document.getElementById('result').innerHTML = '<p style="color:var(--danger,#dc2626)">⚠ 时间点必须严格递增且不能重复（'+pts[vi].t+'h 重复），请修改后再分析。</p>';
+      return;
+    }
+  }
   var html = '<h3 style="margin-bottom:8px;">'+name+' 动态分析</h3>';
 
   // Find peak
@@ -386,13 +400,15 @@ function analyze(){
   var riseEarly = pts.length>=2 && (pts[1].v - pts[0].v) > 0.2;
   var hasPeak = peak.v > upper * 5;
   if(hasPeak && peak.t<=24){
-    interp = '<div class="result-box" style="border-left:4px solid #dc2626;"><strong style="color:#dc2626;">典型急性心肌梗死(AMI)曲线</strong><br>'+name+'在发病后数小时升高，10-24小时达峰，峰值达参考上限'+(peak.v/upper).toFixed(0)+'倍，符合AMI动态变化特征。结合胸痛症状和心电图可诊断AMI。</div>';
-  } else if(peak.v>upper && peak.v<=upper*5){
-    interp = '<div class="result-box" style="border-left:4px solid #f59e0b;"><strong style="color:#f59e0b;">轻度升高，需警惕非ST段抬高型心梗(NSTEMI)</strong><br>'+name+'升高未达典型AMI峰值，可能为NSTEMI、不稳定心绞痛或非缺血性心肌损伤(心衰、心肌炎、肾衰等)。建议结合Δ值(1h内>上限20%提示急性损伤)和临床综合判断。</div>';
-  } else if(riseEarly && peak.v>upper){
-    interp = '<div class="result-box" style="border-left:4px solid #3b82f6;"><strong style="color:#3b82f6;">早期升高趋势</strong><br>早期即出现升高，若为MYO可能提示早期心肌损伤；若为cTn需动态复查观察是否继续升高。</div>';
+    interp = '<div class="result-box" style="border-left:4px solid #dc2626;"><strong style="color:#dc2626;">急性心肌损伤动态模式（峰值显著升高）</strong><br>'+name+'在发病后数小时升高、24 小时内达峰，峰值达参考上限'+(peak.v/upper).toFixed(0)+'倍，符合急性心肌损伤的动态变化（本页估算）。是否诊断心肌梗死须结合胸痛症状、心电图与影像，并由临床医师复核。</div>';
+  } else if(peak.v>upper && peak.t>24){
+    interp = '<div class="result-box" style="border-left:4px solid #dc2626;"><strong style="color:#dc2626;">延迟达峰，仍提示心肌损伤</strong><br>'+name+'峰值出现在 '+peak.t+'h（超过 24h），达参考上限'+(peak.v/upper).toFixed(1)+'倍。延迟达峰可见于就诊延迟、肾功能不全、心衰或其他非缺血性心肌损伤，不能仅凭达峰时间判为「变化不显著」；需结合症状、ECG、肾功能与临床复核。</div>';
+  } else if(peak.v>upper){
+    interp = '<div class="result-box" style="border-left:4px solid #f59e0b;"><strong style="color:#f59e0b;">轻度升高，需警惕 NSTEMI 或非缺血性心肌损伤</strong><br>'+name+'升高但未达典型显著峰值，可能为 NSTEMI、不稳定心绞痛或非缺血性心肌损伤（心衰、心肌炎、肾衰等）。Δ值提示阈值（相邻点变化超过上限 20%）为本页估算，需结合临床与动态复查综合判断。</div>';
+  } else if(riseEarly){
+    interp = '<div class="result-box" style="border-left:4px solid #3b82f6;"><strong style="color:#3b82f6;">早期升高趋势（未超过参考上限）</strong><br>早期即出现上升趋势但仍在参考范围内；若为 MYO 可能提示早期心肌损伤，若为 cTn 需动态复查观察是否继续升高。</div>';
   } else {
-    interp = '<div class="result-box" style="border-left:4px solid #059669;"><strong style="color:#059669;">曲线变化不显著</strong><br>'+name+'整体在参考范围内或轻度波动，不支持急性心肌梗死。请结合临床其他检查。</div>';
+    interp = '<div class="result-box" style="border-left:4px solid #059669;"><strong style="color:#059669;">曲线变化不显著</strong><br>'+name+'整体在参考范围内或轻度波动，不支持急性心肌损伤；请结合临床其他检查。</div>';
   }
   html += interp;
 
