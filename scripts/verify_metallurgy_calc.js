@@ -275,6 +275,17 @@ const CASES = [
   "ref": "de-default: 非默认 inType=hv（默认 hrc）+ inVal=300（默认 45）。Python 独立复算（DATA 按输入列升序重排后插值）：HV 300 落在 284(HRC28)~302(HRC30) 之间，t=16/18=0.8889 → HRC=28+0.8889×2=29.78→29.8、HBW=280+0.8889×15=293→293、HV=300、σb=300×3.0=900 MPa。默认态输出 45.0/429/446/1338，两条 expect 均不命中。**缺陷 E 已修**：buildAxis 现按输入列升序重排；此前 DATA 四列全递减而 interp 假定 xs 递增，任意输入恒取首行（HRC45 与 60 输出完全相同）。refTable 静态表（有 id，进 blob）恒含 300/2820，故不可单独锚数字，须带「洛氏 HRC」「MPa」上下文"
 },
 {
+  "slug": "metallurgy/hardness-conversion",
+  "inputs": {
+    "inType": "hrc",
+    "inVal": "90"
+  },
+  "expect": [
+    "输入超出该标尺的标定范围"
+  ],
+  "ref": "新增回归：HRC 标定上限 68，输入 90 曾被静默钳到 68 且无任何提示。现应给出端点近似提示；默认 45（在 20–68 内）不出现该提示"
+},
+{
   "slug": "metallurgy/energy-1",
   "inputs": {
     "v0": "100000",
