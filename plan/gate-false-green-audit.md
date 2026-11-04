@@ -304,3 +304,18 @@
 
 注：同源混合锚的修法统一为「把恒定值/默认值移出 `expect`，只留注入后才出现的变化值」；`expect≥3` 的三条（pressure-drop / daohongxi / qudao）需优先拆条。
 
+## 7. 待接入门禁（预留，脚本未就绪）
+
+| 项 | 状态 | 条目原文（暂定） | 语义 |
+|---|---|---|---|
+| `deepdive source sync` | **待设计生活线交脚本路径与自证** | `("deepdive source sync", ("python3", "scripts/audit_deepdive_source_sync.py", "--check"))` | 页面 deep-dive 段与 `content_deepdive.json` 逐字不一致即 exit 1（`--report` 只列不判红） |
+
+背景：设计生活线普查 4726 条 deep-dive（一致 4569 / 无对应页面 153 / **有差异 4**）。那 4 条（`dic-scoring`、`ipss-r`、`cml-monitoring`、`mpn-scoring`）页面已由临床线修正，但 `content_deepdive.json` 仍是 2026-09-09 旧值；`_build.py` 在页面找不到 deep-dive 段时会用 JSON **重建整段**，因此跑一次构建就会把修复回退。门禁用于拦截「页面已改、JSON 未同批改（indent=1）」的状态。
+
+接入约束（插入时必做）：
+
+1. **条目总数 227 → 228**，同批更新 `scripts/gates_manifest.txt`（清单棘轮会拦「多一条未登记」）；
+2. 插入位置按运行时线惯例放 `GATES` 末尾（不影响「首项 expect anti-pattern」与「--skip-build 摘除恰为 {build}」两条断言）；
+3. 插后重跑 `--skip-build` 造红（首项改名 / build 改名），并在干净 worktree 口径验证脚本无依赖（纯 python3 标准库）；
+4. 造红：临时把某页 deep-dive 段改一个字 → `--check` 必须 exit 1 并报「页面与 source 不一致」。
+
