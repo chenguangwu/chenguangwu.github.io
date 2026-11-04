@@ -25,8 +25,12 @@ const path = require("path");
 
 const ARGV = process.argv.slice(2);        // 必须提前保存：verify_it_calc.js 运行期会替换 process
 const REAL_PROCESS = process;             // 同上：运行期写 REAL_PROCESS.exitCode 无效，须用真实引用
+// 同理保存真实 console.log：tools/it/code-runner.html 会在用例里改写 window.console，
+// 直接用 console.log 的话，跑过该页之后所有输出（含最终汇总）都会被吞掉。
+const REAL_LOG = console.log.bind(console);
 const ROOT = path.resolve(__dirname, "..");
 const { runCase } = require(path.join(ROOT, "scripts", "verify_it_calc.js"));
+const stub = require(path.join(ROOT, "scripts", "lib_stub.js"));
 
 /** 从页面 HTML 提取 input/select 的 id → 默认值（截断 deep-dive，避免抓到示例） */
 function pageDefaults(slug) {
@@ -43,49 +47,17 @@ function pageDefaults(slug) {
   const CTRL = /<(?:input|select|textarea)\b/i;
   if (cut > 0 && !CTRL.test(body) && CTRL.test(raw)) body = raw;
   const out = {};
-  // 1) <input> 的 value 默认
-  const re = /<input\b[^>]*>/g;
-  let m;
-  while ((m = re.exec(body))) {
-    const tag = m[0];
-    const id = (tag.match(/id=["']([^"']+)["']/) || [])[1];
-    const val = (tag.match(/value=["']([^"']*)["']/) || [])[1];
-    // 复选框/单选/按钮的 `value` 不是页面读取的「输入值」（页面读 .checked），
-    // 把它们「回退空串」既无意义、又会把行为等同默认的用例误报成逃生项 ⇒ 跳过。
-    const typ = ((tag.match(/type=["']([^"']*)["']/) || [])[1] || "text").toLowerCase();
-    if (!id || /^(checkbox|radio|button|submit|reset|file|image)$/.test(typ)) continue;
-    // 无 value 属性 ⇒ 真机默认空串（与 runCase 的 defaults/sel 口径一致）。
-    // 旧版直接丢弃这类键 ⇒ 判别器无法把它们换回默认 ⇒ 整例被判「跳过」而漏检。
-    // 「首次出现优先」（2026-09-24）：部分页面存在**重复 id**（多页签结构，如
-    // engineering/heat-transfer 有两个 id="k"，value 分别 50 与 0.04）。浏览器
-    // getElementById 返回**第一个**，旧版循环覆盖会取到最后一个 ⇒ 与真机默认不符，
-    // 导致「注入值恰等于末个同名控件的默认值」时 usable=false，整例又被静默跳过。
-    if (out[id] === undefined) out[id] = val !== undefined ? val : "";
+  // 默认走 legacy（TB_STUB_FIDELITY=1 才启用保真解析；TB_STUB_LEGACY=1 永久逃生）。
+  if (!stub.stubFidelity()) return stub.legacyPageDefaults(body);
+  // 1) <input> 的 value 默认（共用 lib_stub：属性顺序/引号无关；跳过 checkbox/radio）
+  Object.assign(out, stub.parseInputDefaults(body, { skipTypes: /^(checkbox|radio|button|submit|reset|file|image)$/ }));
+  // 2) <textarea> 初始文本（首次出现优先，input 同名时不覆盖）
+  for (const [id, v] of Object.entries(stub.parseTextareaDefaults(body))) {
+    if (out[id] === undefined) out[id] = v;
   }
-  // 2) <select> 的默认选中项（selected option 优先，否则取首个 option）
-  //    关键修复：旧版只抓 input，导致 select 类输入（如 hirschberg 的 fixing/reflex）
-  //    永远无法「换回默认」→ 判别力校验误报逃生项。真实测试其实有效（默认「正位」/
-  //    非默认「明显眼位偏斜」经 probe 实测确认），是校验器盲区而非盲区用例。
-  const selRe = /<select\b[^>]*\bid=["']([^"']+)["'][^>]*>([\s\S]*?)<\/select>/g;
-  // 3) <textarea> 默认值（如各分析/统计页的 id="data" 多值输入）
-  //    关键修复（2026-09-20）：旧版 pageDefaults 不解析 textarea，导致「注入失败」模拟
-  //    永远无法把 textarea 类输入换回默认 → 这类用例被误报为「逃生项」（实为校验器盲区），
-  //    同时真正依赖 textarea 默认值的弱用例也从未被本门禁覆盖（基线注释已记录此缺口）。
-  //    补齐后与 runCase 的 defaults 提取口径一致：textarea 也能被回退、被真实校验。
-  const taRe = /<textarea[^>]*id=["']([^"']+)["'][^>]*>([\s\S]*?)<\/textarea>/g;
-  let ta;
-  while ((ta = taRe.exec(body))) {
-    if (out[ta[1]] === undefined) {
-      out[ta[1]] = ta[2].replace(/&#10;/g, "\n").replace(/&quot;/g, '"').replace(/&amp;/g, "&");
-    }
-  }
-  let s;
-  while ((s = selRe.exec(body))) {
-    const id = s[1];
-    const inner = s[2];
-    const sel = inner.match(/<option[^>]*\bselected\b[^>]*value=["']([^"']*)["']/i)
-             || inner.match(/<option[^>]*value=["']([^"']*)["']/i);
-    if (out[id] === undefined) out[id] = sel ? sel[1] : "";
+  // 3) <select> 默认选中项（共用 lib_stub：尊重 selected，两种写法皆可，无则回退首个）
+  for (const [id, opts] of Object.entries(stub.parseSelects(body))) {
+    if (out[id] === undefined) out[id] = stub.selectDefault(opts);
   }
   return out;
 }
@@ -105,12 +77,12 @@ function listFiles() {
 
   for (const f of files) {
     const fp = path.join(ROOT, "scripts", f);
-    if (!fs.existsSync(fp)) { console.log("SKIP(不存在)", f); continue; }
+    if (!fs.existsSync(fp)) { REAL_LOG("SKIP(不存在)", f); continue; }
     const src = fs.readFileSync(fp, "utf8");
     const m = src.match(/const CASES = (\[[\s\S]*?\n\]);/);
-    if (!m) { console.log("SKIP(无 CASES)", f); continue; }
+    if (!m) { REAL_LOG("SKIP(无 CASES)", f); continue; }
     let CASES;
-    try { CASES = eval(m[1]); } catch (e) { console.log("SKIP(解析失败)", f, e.message); continue; }
+    try { CASES = eval(m[1]); } catch (e) { REAL_LOG("SKIP(解析失败)", f, e.message); continue; }
 
     for (const c of CASES) {
       // checkIds（复选框选中态）/ radios（单选组取值）/ clicks（click 驱动页的模拟点击序列）
@@ -158,11 +130,11 @@ function listFiles() {
     }
   }
 
-  console.log(`\n==== 判别力验证（模拟注入失败 → 用例应 FAIL）====`);
-  console.log(`已检: ${total} | 正确变红: ${fail} | 仍 PASS(逃生项): ${stillPass} | 跳过: ${skipped}`);
+  REAL_LOG(`\n==== 判别力验证（模拟注入失败 → 用例应 FAIL）====`);
+  REAL_LOG(`已检: ${total} | 正确变红: ${fail} | 仍 PASS(逃生项): ${stillPass} | 跳过: ${skipped}`);
   if (bad.length) {
-    console.log("\n仍 PASS（expect 含不依赖被测点的逃生项，需收紧）:");
-    bad.forEach((b) => console.log("  -", b));
+    REAL_LOG("\n仍 PASS（expect 含不依赖被测点的逃生项，需收紧）:");
+    bad.forEach((b) => REAL_LOG("  -", b));
   }
 
   // 基线防回归：存量逃生项入基线，只准降不准增；新增逃生项立即变红。
@@ -172,16 +144,16 @@ function listFiles() {
   if (isFullSite && fs.existsSync(BASE_FP)) {
     const base = JSON.parse(fs.readFileSync(BASE_FP, "utf8"));
     if (stillPass > base.escape) {
-      console.log(`\n❌ 突破基线：逃生项 ${stillPass} > 基线 ${base.escape}（新增 ${stillPass - base.escape} 个）`);
+      REAL_LOG(`\n❌ 突破基线：逃生项 ${stillPass} > 基线 ${base.escape}（新增 ${stillPass - base.escape} 个）`);
       REAL_PROCESS.exitCode = 1;   // 注意：verify_it_calc.js 会覆盖 process.exit，只能用 exitCode
       return;
     }
     if (stillPass < base.escape) {
-      console.log(`\n⚠️ 逃生项已下降（${base.escape} → ${stillPass}），请将基线同步下调后提交。`);
+      REAL_LOG(`\n⚠️ 逃生项已下降（${base.escape} → ${stillPass}），请将基线同步下调后提交。`);
       REAL_PROCESS.exitCode = 1;   // 强制棘轮：下降时必须更新基线，防止悄悄回涨
       return;
     }
-    console.log(`\n✅ 逃生项 ${stillPass} = 基线 ${base.escape}，无新增（存量见基线注释）`);
+    REAL_LOG(`\n✅ 逃生项 ${stillPass} = 基线 ${base.escape}，无新增（存量见基线注释）`);
     REAL_PROCESS.exitCode = 0;
     return;
   }
@@ -190,6 +162,6 @@ function listFiles() {
     REAL_PROCESS.exitCode = 1;
     return;
   }
-  if (total) console.log("✅ 全部用例在注入失败时均会变红 —— 判别力真实有效");
+  if (total) REAL_LOG("✅ 全部用例在注入失败时均会变红 —— 判别力真实有效");
   REAL_PROCESS.exitCode = 0;
 })();
