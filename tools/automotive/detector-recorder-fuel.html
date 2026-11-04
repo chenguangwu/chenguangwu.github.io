@@ -305,7 +305,8 @@ s.parentNode.insertBefore(el, s);
   </div>
 </div>
 <script>
-function fmtNum(n,d){d=d==null?2:d;if(!isFinite(n))return '--';return parseFloat(n.toFixed(d)).toString();}
+// 此名不得与 common.js 全局 fmtNum 同名（保真模式会重绑，见 be1ead4b9b）
+function fmtLocal(n,d){d=d==null?2:d;if(!isFinite(n))return '--';return parseFloat(n.toFixed(d)).toString();}
 function val(id){return parseFloat(document.getElementById(id).value);}
 function str(id){return document.getElementById(id).value;}
 function sdOf(a,sample){
@@ -363,31 +364,31 @@ function calc(){
 
   const __g5='<div class="result-grid">'
     +'<div class="result-item"><div class="result-label">有效记录</div><div class="result-value">'+vals.length+' 条</div></div>'
-    +'<div class="result-item"><div class="result-label">平均油耗</div><div class="result-value">'+fmtNum(mean,2)+' L/100km</div></div>'
-    +'<div class="result-item"><div class="result-label">标准差 σ</div><div class="result-value">'+fmtNum(sd,2)+' L</div></div>'
+    +'<div class="result-item"><div class="result-label">平均油耗</div><div class="result-value">'+fmtLocal(mean,2)+' L/100km</div></div>'
+    +'<div class="result-item"><div class="result-label">标准差 σ</div><div class="result-value">'+fmtLocal(sd,2)+' L</div></div>'
     +'<div class="result-item"><div class="result-label">异常记录</div><div class="result-value">'+hi.length+' 条</div></div>'
     +'</div>';R.innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
 
-  var rr=fmtNum(hi[0]?hi[0].v:0,2);
+  var rr=fmtLocal(hi[0]?hi[0].v:0,2);
   const __g6='<div class="dist-grid">'
-    +'<div class="dist-card"><h4>正常区间</h4><p>'+fmtNum(lo,2)+' ~ '+fmtNum(up,2)+' L</p><p>均值 ± '+fmtNum(k,1)+'σ</p></div>'
-    +'<div class="dist-card"><h4>最低 / 最高</h4><p>'+fmtNum(Math.min.apply(null,vals),2)+' / '+fmtNum(Math.max.apply(null,vals),2)+'</p><p>极差 '+fmtNum(Math.max.apply(null,vals)-Math.min.apply(null,vals),2)+' L</p></div>'
-    +'<div class="dist-card"><h4>近期趋势</h4><p style="font-size:12px;">'+trend+'</p><p>近 '+win+' 条均值 '+fmtNum(tMean,2)+' L</p></div>'
-    +'<div class="dist-card"><h4>波动离散度</h4><p>'+fmtNum(mean>0?sd/mean*100:0,1)+' %</p><p>'+(sd/mean>0.15?'波动较大':'波动平稳')+'</p></div>'
+    +'<div class="dist-card"><h4>正常区间</h4><p>'+fmtLocal(lo,2)+' ~ '+fmtLocal(up,2)+' L</p><p>均值 ± '+fmtLocal(k,1)+'σ</p></div>'
+    +'<div class="dist-card"><h4>最低 / 最高</h4><p>'+fmtLocal(Math.min.apply(null,vals),2)+' / '+fmtLocal(Math.max.apply(null,vals),2)+'</p><p>极差 '+fmtLocal(Math.max.apply(null,vals)-Math.min.apply(null,vals),2)+' L</p></div>'
+    +'<div class="dist-card"><h4>近期趋势</h4><p style="font-size:12px;">'+trend+'</p><p>近 '+win+' 条均值 '+fmtLocal(tMean,2)+' L</p></div>'
+    +'<div class="dist-card"><h4>波动离散度</h4><p>'+fmtLocal(mean>0?sd/mean*100:0,1)+' %</p><p>'+(sd/mean>0.15?'波动较大':'波动平稳')+'</p></div>'
     +'</div>';G.innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
 
   var rows='';
   for(var i=0;i<vals.length;i++){
     var isHi=(vals[i]>up||vals[i]<lo);
     rows+='<tr><td style="padding:5px 8px;">'+(i+1)+'</td>'
-      +'<td style="padding:5px 8px;">'+fmtNum(vals[i],2)+'</td>'
-      +'<td style="padding:5px 8px;">'+fmtNum(vals[i]-mean,2)+'</td>'
-      +'<td style="padding:5px 8px;">'+fmtNum(sd>0?(vals[i]-mean)/sd:0,2)+'σ</td>'
+      +'<td style="padding:5px 8px;">'+fmtLocal(vals[i],2)+'</td>'
+      +'<td style="padding:5px 8px;">'+fmtLocal(vals[i]-mean,2)+'</td>'
+      +'<td style="padding:5px 8px;">'+fmtLocal(sd>0?(vals[i]-mean)/sd:0,2)+'σ</td>'
       +'<td style="padding:5px 8px;color:'+(isHi?'#dc2626':'#059669')+';">'+(isHi?'异常':'正常')+'</td></tr>';
   }
   const __g7='<div class="formula-title">📐 计算口径</div> <div class="formula-eq">油耗记录统计与异常筛查<br>单条油耗(L/100km)：两列输入按 加油量 ÷ 里程 × 100 折算；单列直接取值<br>均值 μ = Σx ÷ n；标准差 σ = √(Σ(x−μ)² ÷ (n−1))（样本）或 ÷n（总体）<br>正常区间 = μ ± kσ（k 可调，下限截 0）；超出者标记异常记录<br>偏离度 z = (x−μ) ÷ σ<br>近期趋势：后 win 条均值高于/低于总体 5% 判定油耗上升/下降<br>变异系数 CV = σ ÷ μ × 100%，>15% 波动较大<br>至少 2 条记录方可统计；建议累计 8~12 条再做异常筛查</div>'
     +'<div class="formula-line">均值 μ = Σx ÷ n；标准差 σ = √(Σ(x−μ)² ÷ '+(sample?'(n−1)':'n')+')</div>'
-    +'<div class="formula-line">正常区间 = μ ± '+fmtNum(k,1)+'σ ；超出者标记为异常记录</div>'
+    +'<div class="formula-line">正常区间 = μ ± '+fmtLocal(k,1)+'σ ；超出者标记为异常记录</div>'
     +'<div class="formula-line">里程折算：[加油量 L ÷ 区间里程 km × 100] = 百公里油耗</div>'
     +'<table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:10px;">'
     +'<tr><th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border,#e5e7eb);">序</th>'
@@ -398,9 +399,9 @@ function calc(){
     +rows+'</table>';F.innerHTML=(typeof __g7==='number'?(isFinite(__g7)?__g7:'—'):String(__g7).replace(/Infinity|NaN/g,'—'));
 
   var ad='';
-  if(!hi.length) ad+='<div class="tip-info">✅ 共 '+vals.length+' 条记录，均值 '+fmtNum(mean,2)+' L/100km，未见超出 '+fmtNum(k,1)+'σ（'+fmtNum(lo,2)+'~'+fmtNum(up,2)+' L）的异常值，油耗表现稳定。</div>';
+  if(!hi.length) ad+='<div class="tip-info">✅ 共 '+vals.length+' 条记录，均值 '+fmtLocal(mean,2)+' L/100km，未见超出 '+fmtLocal(k,1)+'σ（'+fmtLocal(lo,2)+'~'+fmtLocal(up,2)+' L）的异常值，油耗表现稳定。</div>';
   else{
-    var names=hi.map(function(x){return x.tag+'='+fmtNum(x.v,2)+'L';}).join('、');
+    var names=hi.map(function(x){return x.tag+'='+fmtLocal(x.v,2)+'L';}).join('、');
     ad+='<div class="tip-warn">⚠️ 检出 '+hi.length+' 条异常记录：'+names+'。请结合当期工况（长途/空调/拥堵）判断，若排除工况后仍持续偏高，再排查车辆状态。</div>';
   }
   if(tCls==='warn') ad+='<div class="tip-warn">⚠️ '+trend+'，建议提前检查空气滤芯、节气门积碳、氧传感器与胎压。</div>';

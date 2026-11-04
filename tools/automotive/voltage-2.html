@@ -296,7 +296,8 @@ s.parentNode.insertBefore(el, s);
   </div>
 </div>
 <script>
-function fmtNum(n,d){d=d==null?2:d;if(!isFinite(n))return '--';return parseFloat(n.toFixed(d)).toString();}
+// 此名不得与 common.js 全局 fmtNum 同名（保真模式会重绑，见 be1ead4b9b）
+function fmtLocal(n,d){d=d==null?2:d;if(!isFinite(n))return '--';return parseFloat(n.toFixed(d)).toString();}
 function val(id){return parseFloat(document.getElementById(id).value);}
 function str(id){return document.getElementById(id).value;}
 function calc(){
@@ -332,15 +333,15 @@ function calc(){
   var lineJudge = pct<=3 ? '良好（≤3%）' : (pct<=5 ? '尚可（3%~5%）' : (pct<=8 ? '偏高（5%~8%）' : '过高（>8%）'));
 
   const __g1='<div class="result-grid">'
-    +'<div class="result-item"><div class="result-label">发电机输出电压</div><div class="result-value">'+fmtNum(genV,1)+' V</div></div>'
-    +'<div class="result-item"><div class="result-label">充电电流</div><div class="result-value">'+fmtNum(chg,1)+' A</div></div>'
+    +'<div class="result-item"><div class="result-label">发电机输出电压</div><div class="result-value">'+fmtLocal(genV,1)+' V</div></div>'
+    +'<div class="result-item"><div class="result-label">充电电流</div><div class="result-value">'+fmtLocal(chg,1)+' A</div></div>'
     +'<div class="result-item"><div class="result-label">电池荷电状态</div><div class="result-value">'+soc+'</div></div>'
-    +'<div class="result-item"><div class="result-label">末端电压</div><div class="result-value">'+fmtNum(endV,2)+' V</div></div>'
+    +'<div class="result-item"><div class="result-label">末端电压</div><div class="result-value">'+fmtLocal(endV,2)+' V</div></div>'
     +'</div>';R.innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 
   const __g2='<div class="dist-grid">'
     +'<div class="dist-card"><h4>充电状态</h4><p>'+state+'（调节器'+(limited?'已达目标':'未达目标，转速不足')+'）</p></div>'
-    +'<div class="dist-card"><h4>线路压降</h4><p>'+fmtNum(dU,2)+' V（'+fmtNum(pct,1)+'%）</p><p>'+lineJudge+'</p></div>'
+    +'<div class="dist-card"><h4>线路压降</h4><p>'+fmtLocal(dU,2)+' V（'+fmtLocal(pct,1)+'%）</p><p>'+lineJudge+'</p></div>'
     +'</div>';G.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 
   var rows='';
@@ -348,7 +349,7 @@ function calc(){
   for(var i=0;i<rl.length;i++){
     var r=rl[i], gv=vreg*Math.min(1,cutin>0?r/cutin:1);
     var ic=(gv>vbat)?(gv-vbat)/Math.max(rloop,0.001):0;
-    rows+='<tr><td style="padding:5px 8px;">'+r+'</td><td style="padding:5px 8px;">'+fmtNum(gv,1)+'</td><td style="padding:5px 8px;">'+fmtNum(ic,1)+'</td><td style="padding:5px 8px;">'+(ic>1?'充电':(ic>0?'微弱充电':'不充电'))+'</td></tr>';
+    rows+='<tr><td style="padding:5px 8px;">'+r+'</td><td style="padding:5px 8px;">'+fmtLocal(gv,1)+'</td><td style="padding:5px 8px;">'+fmtLocal(ic,1)+'</td><td style="padding:5px 8px;">'+(ic>1?'充电':(ic>0?'微弱充电':'不充电'))+'</td></tr>';
   }
   const __g3='<div class="formula-title">📐 计算口径</div> <div class="formula-eq">发电电压 = 调节器电压 × min(1, 转速 ÷ 切入转速)；单根导线电阻 R = ρ × 长度 ÷ 截面积；回路电阻 = 2R</div>'
     +'<div class="formula-line">发电电压 V<sub>gen</sub> = V<sub>reg</sub> × min(1, n / n<sub>cutin</sub>)</div>'
@@ -364,9 +365,9 @@ function calc(){
   var ad='';
   if(!limited) ad+='<div class="tip-warn">⚠️ 当前转速低于切入转速，发电电压未达调节目标，怠速长时间使用大功率电器会消耗电池电量。</div>';
   if(chg>0 && chg<3) ad+='<div class="tip-warn">⚠️ 充电电流偏小，电池回充缓慢；若长期如此，检查皮带打滑、调节器与搭铁点。</div>';
-  if(pct>5) ad+='<div class="tip-warn">⚠️ 线路压降 '+fmtNum(pct,1)+'%，末端仅 '+fmtNum(endV,2)+' V，建议加粗线径或缩短走线。</div>';
+  if(pct>5) ad+='<div class="tip-warn">⚠️ 线路压降 '+fmtLocal(pct,1)+'%，末端仅 '+fmtLocal(endV,2)+' V，建议加粗线径或缩短走线。</div>';
   if(genV>15.2) ad+='<div class="tip-warn">⚠️ 充电电压超过 15.2 V，可能过充，需检查调节器。</div>';
-  if(vbat<12.06) ad+='<div class="tip-warn">⚠️ 电池电压 '+fmtNum(vbat,2)+' V 已属亏电，建议充电并做负载测试。</div>';
+  if(vbat<12.06) ad+='<div class="tip-warn">⚠️ 电池电压 '+fmtLocal(vbat,2)+' V 已属亏电，建议充电并做负载测试。</div>';
   if(!ad) ad='<div class="tip-info">✅ 当前转速下发电机输出正常，充电电流与线路压降均在合理范围。</div>';
   const __g4=ad;A.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
 }
