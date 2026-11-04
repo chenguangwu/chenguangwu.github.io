@@ -119,7 +119,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入可用安全疏散时间 ASET 与所需疏散时间 RSET 各组成阶段，比较判断疏散安全性。">Time Evacuation</p>
     <div class="formula-box">
       <div class="formula-title">📐 工作原理与说明</div>
-  <div class="formula-eq">RSET = 探测时间 + 预动作时间 + 移动时间；安全余量 = ASET − RSET；安全系数 = ASET ÷ RSET</div>
+  <div class="formula-eq">RSET = 探测时间 + 预动作时间 + 移动时间；安全余量 = ASET − RSET；安全系数 = ASET ÷ RSET。ASET 须 &gt;0，三项 RSET 分项须 ≥0 且合计 &gt;0，空值或非数直接报错（不再按 0 兜底，避免 RSET=0 被误判为“安全充裕”）。</div>
       <p class="formula-desc" data-zh="必需疏散时间 RSET = 探测报警 t_det + 疏散前运动 t_pre + 行走 t_move；安全裕度 margin = ASET − RSET；安全系数 K = ASET/RSET，K≥1.5 为安全、K<1.0 为不安全。">Required safe egress time RSET = t_det + t_pre + t_move; safety margin = ASET − RSET; safety factor K = ASET/RSET (K≥1.5 safe, K<1.0 unsafe).</p>
     </div>
     <div class="input-row">
@@ -154,13 +154,15 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 var lastResult='', lastSummary='';
-function num(id){var v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
+function num(id){var el=document.getElementById(id);var v=el?parseFloat(el.value):NaN;return isFinite(v)?v:NaN;}
 function calc(){
   var aset=num('aset'), tdet=num('tdet'), tpre=num('tpre'), tmove=num('tmove');
-  if(aset<=0){document.getElementById('res').innerHTML='<p style="color:var(--danger);">ASET 需大于 0。</p>';lastResult='';return;}
+  if(!(aset>0)){document.getElementById('res').innerHTML='<p style="color:var(--danger);">ASET 需大于 0。</p>';lastResult='';return;}
+  if(!(tdet>=0)||!(tpre>=0)||!(tmove>=0)){document.getElementById('res').innerHTML='<p style="color:var(--danger);">探测、疏散前、行走时间须为 ≥0 的有效数值（空值请填 0）。</p>';lastResult='';return;}
   var rset=tdet+tpre+tmove;
+  if(!(rset>0)){document.getElementById('res').innerHTML='<p style="color:var(--danger);">RSET 合计须大于 0，否则安全系数无意义。</p>';lastResult='';return;}
   var margin=aset-rset;
-  var factor=rset>0?aset/rset:Infinity;
+  var factor=aset/rset;
   var grade, gText, advice;
   if(margin<=0){grade='grade-fail';gText='不安全';advice='ASET 不足以容纳疏散，须延长 ASET 或缩短 RSET（增通道、降报警时间）。';}
   else if(factor>=1.5){grade='grade-excellent';gText='安全（充裕）';advice='疏散安全裕度充裕，满足重要场所要求。';}

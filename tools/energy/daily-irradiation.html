@@ -117,7 +117,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-i18n="energy.daily-irradiation.intro" data-i18n-fb="日辐照量在线计算器，输入峰值辐照度与等效日照时数求得每日接收太阳能，用于光伏收益与系统设计评估，纯前端运行。">Compute daily solar irradiation from peak irradiance and equivalent sunshine hours, for photovoltaic sizing and yield estimates.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">日辐照量：日辐照量 = 峰值辐照度 × 等效日照时数 ÷ 1000（kWh/m²）；联动量：辐照总量 = 峰值 × 时数（Wh/m²）、按 24 小时折算 = 峰值×24 ÷ 1000、辐照度倒数 = 1000 ÷ max(峰值,10⁻⁹)（m²/kW）。校验：无强校验，空值按 0 兜底。判据：无固定分级，kWh/m² 数值上即峰值日照时数（PSH）口径。</div>
+      <div class="formula-eq">日辐照量：日辐照量 = 峰值辐照度 × 等效日照时数 ÷ 1000（kWh/m²，因 W/m²×h=Wh/m²）；联动量：辐照总量 = 峰值 × 时数（Wh/m²）、24h 理论上限 = 峰值×24 ÷ 1000（假设全天恒定辐照，实际夜间为 0，仅作上限参考）、辐照度倒数 = 1000 ÷ 峰值（m²/kW）。校验：峰值辐照度须 >0、时数须 ≥0 且为有效数值，空值或非数直接报错并中止。判据：无固定分级，kWh/m² 数值上即峰值日照时数（PSH）口径。</div>
       <p class="formula-desc">H = G_peak × t_equiv。</p>
     </div>
 
@@ -206,15 +206,16 @@ s.parentNode.insertBefore(el, s);
   </div>
 </div>
 <script>
-function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
+function num(id){const el=document.getElementById(id);const v=el?parseFloat(el.value):NaN;return isFinite(v)?v:NaN;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
             const g=num('g'),t=num('t');
+            if(!(g>0)||!(t>=0)){ToolBox.setResult('result','<p class="tip-error">请输入有效的峰值辐照度（>0，W/m²）与等效日照时数（≥0，h）。</p>');return;}
             const __g1=dataGrid([
                 [(g*t/1000).toFixed(2),'日辐照量 (kWh/m²)'],
                 [(g*t).toFixed(2), '辐照总量 (Wh/m²)'],
-                [(g*24/1000).toFixed(4), '按 24 小时折算日辐照量 (kWh/m²)'],
-                [(1000/Math.max(g,1e-9)).toFixed(6), '辐照度倒数 (m²/kW)']
+                [(g*24/1000).toFixed(4), '24h 理论上限 (kWh/m²)'],
+                [(1000/g).toFixed(6), '辐照度倒数 (m²/kW)']
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('g').value = '1000';
@@ -227,15 +228,15 @@ function __daily_irradiationExtras(){
     function __daily_irradiationRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var g=num('g'),t=num('t');
-    if (!isFinite(__daily_irradiationNum('g')) || !isFinite(__daily_irradiationNum('t'))) return;
+    if (!(g>0)||!(t>=0)) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#daily_irradiationTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
             ['日辐照量 (kWh/m²)', (g*t/1000).toFixed(2)],
             ['辐照总量 (Wh/m²)', (g*t).toFixed(2)],
-            ['按 24 小时折算日辐照量 (kWh/m²)', (g*24/1000).toFixed(4)],
-            ['辐照度倒数 (m²/kW)', (1000/Math.max(g,1e-9)).toFixed(6)],
+            ['24h 理论上限 (kWh/m²)', (g*24/1000).toFixed(4)],
+            ['辐照度倒数 (m²/kW)', (1000/g).toFixed(6)],
         ]
     });
     TBKit.history.record({g:__daily_irradiationRaw('g'), t:__daily_irradiationRaw('t'), result: Number((g*t/1000).toFixed(2))});

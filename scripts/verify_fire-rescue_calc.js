@@ -263,15 +263,41 @@ const CASES = [
   "inputs": {
     "qfire": "7500",
     "z": "5",
-    "zl": "0",
+    "zl": "3",
     "hc": "3",
     "nports": "2",
     "portmax": "15000"
   },
   "expect": [
-    "196160"
+    "47.47 烟羽质量流量 (kg/s) 54.5 体积流量 (m³/s) 196162 排烟量 (m³/h)"
   ],
-  "ref": "auto-restore"
+  "ref": "qfire=7500kW、z=5m、zl=3m（z>zl 走轴对称烟羽）、hc=3m、portmax=15000：Qc=5250kW，m=0.071×Qc^(1/3)×z^(5/3)×(1+0.027×Qc^(2/3)/z)≈47.47kg/s，Vh≈196162m³/h（独立复算一致）；zl/hc 现要求 >0，原 zl=0 用例无效。"
+},
+{
+  "slug": "fire-rescue/time-evacuation",
+  "inputs": {
+    "aset": "120",
+    "tdet": "0",
+    "tpre": "0",
+    "tmove": "0"
+  },
+  "expect": [
+    "RSET 合计须大于 0，否则安全系数无意义。"
+  ],
+  "ref": "新增校验分支：三项 RSET 分项全为 0 时不再输出“安全（充裕）”，直接报错。"
+},
+{
+  "slug": "fire-rescue/smoke-management",
+  "inputs": {
+    "qfire": "7500",
+    "z": "5",
+    "zl": "0",
+    "hc": "0"
+  },
+  "expect": [
+    "请输入有效的热释放速率（&gt;0）、烟层底部高度（&gt;0）、清晰高度（&gt;0）；火焰高度限制须 ≥0（0 表示不设限）。"
+  ],
+  "ref": "新增校验分支：清晰高度 hc=0 时报错；火焰高度限制 zl=0 属合法（不设限），不再误判。"
 },
 {
   "slug": "fire-rescue/speed-3",

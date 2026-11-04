@@ -117,7 +117,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入功率 P（瓦）与用电时长 t（小时），求电能（千瓦时）。">Compute electrical energy in kWh, MJ or J from power and duration, and convert between the common energy units.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">功率与电能换算（本页代码口径）：E=P÷1000×t（kWh，P 功率 W 内部化 kW、t 时间 h）；联动量：瓦时=E×1000（Wh）、兆焦=E×3.6（MJ，1kWh=3.6MJ）、由 E 反推平均功率=E÷t（kW，t 按下限 10⁻⁹ 兜底）。校验：无强校验，空值按 0 兜底。判据：无固定分级，电能与功率和时间均成正比，1000W 连续运行 1 小时即 1 度电。</div>
+      <div class="formula-eq">功率与电能换算：E=P÷1000×t（kWh，P 功率 W 内部化 kW、t 时间 h）；联动量：瓦时=E×1000（Wh）、兆焦=E×3.6（MJ，1kWh=3.6MJ）、由 E 反推平均功率=E÷t（kW）。校验：P 须 ≥0、t 须 >0 且均为有效数值，空值或非数直接报错并中止（不再按 0 兜底）。判据：无固定分级，电能与功率和时间均成正比，1000W 连续运行 1 小时即 1 度电。</div>
       <p class="formula-desc">输入功率 P（瓦）与用电时长 t（小时），求电能（千瓦时）。</p>
     </div>
 
@@ -218,16 +218,17 @@ s.parentNode.insertBefore(el, s);
   </div>
 </div>
 <script>
-function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
+function num(id){const el=document.getElementById(id);const v=el?parseFloat(el.value):NaN;return isFinite(v)?v:NaN;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
             const P=num('P'),t=num('t');
+            if(!(P>=0)||!(t>0)){ToolBox.setResult('result','<p class="tip-error">请输入有效的功率（≥0，W）与时长（>0，h）。</p>');return;}
             const E=P/1000*t;
             const __g1=dataGrid([
                 [E.toFixed(3),'电能 E (kWh)'],
                 [(E*1000).toFixed(3), '电能 (Wh)'],
                 [(E*3.6).toFixed(3), '电能 (MJ)'],
-                [(E/Math.max(t,1e-9)).toFixed(4), '由 E 反推平均功率 (kW)']
+                [(E/t).toFixed(4), '由 E 反推平均功率 (kW)']
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('P').value = '1000';
@@ -241,7 +242,7 @@ function __energy_from_powerExtras(){
     if (typeof TBKit === 'undefined') return;
     var P=num('P'),t=num('t');
     var E=P/1000*t;
-    if (!isFinite(__energy_from_powerNum('P')) || !isFinite(__energy_from_powerNum('t'))) return;
+    if (!(P>=0)||!(t>0)) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#energy_from_powerTable',{
         head: en?['Item','Value']:['项目','数值'],
@@ -249,7 +250,7 @@ function __energy_from_powerExtras(){
             ['电能 E (kWh)', E.toFixed(3)],
             ['电能 (Wh)', (E*1000).toFixed(3)],
             ['电能 (MJ)', (E*3.6).toFixed(3)],
-            ['由 E 反推平均功率 (kW)', (E/Math.max(t,1e-9)).toFixed(4)],
+            ['由 E 反推平均功率 (kW)', (E/t).toFixed(4)],
         ]
     });
     TBKit.history.record({P:__energy_from_powerRaw('P'), t:__energy_from_powerRaw('t'), E:E});

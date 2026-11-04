@@ -127,7 +127,7 @@ s.parentNode.insertBefore(el, s);
     <div class="formula-box">
       <div class="formula-title">📐 工作原理与说明</div>
   <div class="formula-eq">正午太阳高度角 = 90° − |纬度 − 太阳赤纬|；时角 = (时刻 − 12) × 15°；据此算遮阳投影与遮挡率</div>
-      <p class="formula-desc" data-zh="「根据太阳高度角和窗户朝向计算遮阳系数，简化模型仅供参考」按输入参数进行专业计算并输出结果。">Window Shading: computes and outputs results from the input parameters.</p>
+      <div class="formula-desc" data-zh="按太阳高度角与遮阳板挑出长度估算窗面被遮挡的高度比例，输出「外遮阳系数（几何近似）」= 1 − 遮挡高度 ÷ 窗高；它只是外遮阳的几何估算，并非 GB 50189 定义的 SC（SC = SHGC ÷ 0.87），综合遮阳系数需再乘窗自身 SC。">This page estimates the shaded fraction of the window from the solar altitude and overhang depth and outputs a geometric external-shading coefficient (SC_ext ≈ 1 − shaded height ÷ window height). It is a geometric approximation, not the GB 50189 SC (SC = SHGC ÷ 0.87); the combined shading coefficient is obtained by multiplying by the glass SC.</div>
     </div>
 
 <div class="input-row">
@@ -174,7 +174,7 @@ s.parentNode.insertBefore(el, s);
 </div>
 
 <div class="toolbar">
-  <div id="window_shadingPresets"></div><button type="button" class="btn primary" onclick="calcShading()">计算遮阳系数</button><button class="btn" type="button" onclick="__window_shadingExport()">导出明细 CSV</button>
+  <div id="window_shadingPresets"></div><button type="button" class="btn primary" onclick="calcShading()">计算外遮阳系数</button><button class="btn" type="button" onclick="__window_shadingExport()">导出明细 CSV</button>
   <button type="button" class="btn" onclick="copyResult()">复制结果</button>
 </div>
 
@@ -187,7 +187,7 @@ s.parentNode.insertBefore(el, s);
 <h3>计算说明</h3>
 <div class="info-box">
   <p><strong>简化模型公式:</strong></p>
-  <p>投影深度 = P / tan(α)；SC = 1 - min(H, P / tan(α)) / H</p>
+  <p>投影深度 = P / tan(α)；外遮阳系数（几何近似）SC_ext = 1 - min(H, P / tan(α)) / H；综合遮阳系数 SC总 = SC玻璃 × SC_ext</p>
   <p>其中: P=遮阳板挑出长度, H=窗户高度, α=太阳高度角, K=朝向修正系数（作用于辐射得热估算）</p>
   <p style="margin-top:8px;"><strong>朝向修正系数:</strong> 南向 K=1.0, 北向 K=0.3, 东西向 K=0.7</p>
   <p style="margin-top:8px;"><strong>太阳高度角:</strong> α = 90 - |纬度 - 太阳赤纬|</p>
@@ -321,7 +321,7 @@ function calcShading() {
   var shadowLen = tanAlt > 0 ? P / Math.max(tanAlt, 0.01) : 9999;
   var coveredH = Math.min(winH, shadowLen);
 
-  /* 遮阳系数 SC = 1 - 遮挡比，遮挡比 = 投影覆盖高度/窗高 */
+  /* 外遮阳系数（几何近似）= 1 - 遮挡比，遮挡比 = 投影覆盖高度/窗高 */
   var SC = Math.max(0, Math.min(1, 1 - coveredH / winH));
 
   /* 窗户面积 */
@@ -329,29 +329,35 @@ function calcShading() {
   var shadedArea = coveredH * winW;
   var solarHeat = winArea * SC * 600 * K; /* 简化: 600 W/m² 太阳辐射，SC 为透过比例，K 为朝向修正 */
 
-  lastResultText = '窗户遮阳系数计算\n'
-    + '纬度: ' + lat + '°, 月份: ' + (mon + 1) + '月, 时间: ' + hr + '时\n'
-    + '太阳高度角: ' + altitude.toFixed(1) + '°\n'
-    + '太阳方位角: ' + azimuth.toFixed(1) + '°\n'
-    + '朝向: ' + DIR_LABEL[selectedDir] + ' (修正系数 ' + K + ')\n'
-    + '遮阳系数 SC: ' + SC.toFixed(3) + '\n'
-    + '遮阳投影深度: ' + shadowLen.toFixed(2) + 'm\n'
-    + '窗户面积: ' + winArea.toFixed(2) + 'm²\n'
-    + '辐射得热估算: ' + solarHeat.toFixed(0) + 'W';
+  var en = (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+  var dirTxt = en ? ({south:'South',north:'North',east:'East',west:'West'})[selectedDir] : DIR_LABEL[selectedDir];
+
+  lastResultText = (en ? 'Window shading calculation' : '窗户遮阳系数计算') + '\n'
+    + (en ? 'Latitude: ' + lat + '°, month: ' + (mon + 1) + ', time: ' + hr + 'h'
+          : '纬度: ' + lat + '°, 月份: ' + (mon + 1) + '月, 时间: ' + hr + '时') + '\n'
+    + (en ? 'Solar altitude: ' : '太阳高度角: ') + altitude.toFixed(1) + '°\n'
+    + (en ? 'Solar azimuth: ' : '太阳方位角: ') + azimuth.toFixed(1) + '°\n'
+    + (en ? 'Orientation: ' : '朝向: ') + dirTxt + (en ? ' (factor ' : ' (修正系数 ') + K + ')\n'
+    + (en ? 'External shading coefficient (geometric approximation): ' : '外遮阳系数（几何近似）: ') + SC.toFixed(3) + '\n'
+    + (en ? 'Projection depth: ' : '遮阳投影深度: ') + shadowLen.toFixed(2) + 'm\n'
+    + (en ? 'Window area: ' : '窗户面积: ') + winArea.toFixed(2) + 'm²\n'
+    + (en ? 'Estimated solar heat gain: ' : '辐射得热估算: ') + solarHeat.toFixed(0) + 'W';
 
   var scColor = SC <= 0.3 ? 'var(--success)' : SC <= 0.6 ? 'var(--warning)' : 'var(--danger)';
-  var scLabel = SC <= 0.3 ? '优秀' : SC <= 0.6 ? '一般' : '较差';
+  var scLabel = en ? (SC <= 0.3 ? 'Excellent' : SC <= 0.6 ? 'Fair' : 'Poor')
+                   : (SC <= 0.3 ? '优秀' : SC <= 0.6 ? '一般' : '较差');
 
   var html = '<div class="stat-grid">'
-    + '<div class="stat-card"><div class="val" style="color:' + scColor + ';">' + SC.toFixed(3) + '</div><div class="lbl">遮阳系数 SC</div></div>'
-    + '<div class="stat-card"><div class="val">' + altitude.toFixed(1) + '°</div><div class="lbl">太阳高度角</div></div>'
-    + '<div class="stat-card"><div class="val">' + azimuth.toFixed(1) + '°</div><div class="lbl">太阳方位角</div></div>'
-    + '<div class="stat-card"><div class="val">' + solarHeat.toFixed(0) + '</div><div class="lbl">辐射得热估算 (W)</div></div>'
+    + '<div class="stat-card"><div class="val" style="color:' + scColor + ';">' + SC.toFixed(3) + '</div><div class="lbl">' + (en ? 'External shading coeff. (geometric)' : '外遮阳系数（几何）') + '</div></div>'
+    + '<div class="stat-card"><div class="val">' + altitude.toFixed(1) + '°</div><div class="lbl">' + (en ? 'Solar altitude' : '太阳高度角') + '</div></div>'
+    + '<div class="stat-card"><div class="val">' + azimuth.toFixed(1) + '°</div><div class="lbl">' + (en ? 'Solar azimuth' : '太阳方位角') + '</div></div>'
+    + '<div class="stat-card"><div class="val">' + solarHeat.toFixed(0) + '</div><div class="lbl">' + (en ? 'Estimated solar heat gain (W)' : '辐射得热估算 (W)') + '</div></div>'
     + '</div>';
-  html += '<p>朝向: <strong>' + DIR_LABEL[selectedDir] + '</strong> (修正系数 K=' + K + ')</p>';
-  html += '<p>遮阳板挑出 ' + P + 'm, 窗户高 ' + winH + 'm</p>';
-  html += '<p>遮阳投影深度: <strong>' + shadowLen.toFixed(2) + 'm</strong>，覆盖窗户高度 <strong>' + coveredH.toFixed(2) + 'm</strong></p>';
-  html += '<p>遮阳系数 SC = ' + SC.toFixed(3) + '，遮阳效果评级: <strong style="color:' + scColor + ';">' + scLabel + '</strong></p>';
+  html += '<p>' + (en ? 'Orientation: ' : '朝向: ') + '<strong>' + dirTxt + '</strong>' + (en ? ' (factor K=' : ' (修正系数 K=') + K + ')</p>';
+  html += '<p>' + (en ? 'Overhang ' + P + 'm, window height ' + winH + 'm' : '遮阳板挑出 ' + P + 'm, 窗户高 ' + winH + 'm') + '</p>';
+  html += '<p>' + (en ? 'Projection depth: ' : '遮阳投影深度: ') + '<strong>' + shadowLen.toFixed(2) + 'm</strong>' + (en ? ', covered height ' : '，覆盖窗户高度 ') + '<strong>' + coveredH.toFixed(2) + 'm</strong></p>';
+  html += '<p>' + (en ? 'External shading coefficient (geometric approximation) = ' : '外遮阳系数（几何近似）= ') + SC.toFixed(3) + (en ? ', shading rating: ' : '，遮阳效果评级: ') + '<strong style="color:' + scColor + ';">' + scLabel + '</strong></p>';
+  html += '<p style="font-size:12px;color:var(--text-muted);">' + (en ? 'Note: this value is a geometric shading approximation and cannot be directly compared with the SC limits in GB 50189/GB 55015; estimate the combined SC as "glass SC × this value".' : '说明：本值为几何遮挡近似，不能直接套用 GB 50189/GB 55015 的 SC 限值；综合 SC 请用「窗自身 SC × 本值」估算。') + '</p>';
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
 }
 

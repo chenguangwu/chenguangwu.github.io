@@ -117,7 +117,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入低温热源温度 T_c 与高温热源温度 T_h（开尔文），求卡诺效率。">Compute the maximum theoretical efficiency of a heat engine from cold and hot reservoir temperatures using eta = 1 minus Tc over Th.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">卡诺效率：η = 1 − T_c ÷ T_h（热力学温标 K）；联动卡：温差 = T_h − T_c（K）、低温高温比 = T_c ÷ max(T_h,10⁻⁹)、热量排弃比 = 1 − η。校验：T_c 与 T_h 两项非空守卫（无分母报错项）。判据：无固定分级，η 为同温限可逆热机效率上限，T_c 越低、T_h 越高 η 越大。</div>
+      <div class="formula-eq">卡诺效率：η = 1 − T_c ÷ T_h（热力学温标 K）；联动卡：温差 = T_h − T_c（K）、低温高温比 = T_c ÷ T_h（要求 T_c &lt; T_h）、热量排弃比 = 1 − η。校验：T_c 须 ≥0、T_h 须 >0，且 T_c 必须小于 T_h；否则提示错误并中止（防止输入摄氏温度或高低颠倒时输出负效率）。判据：无固定分级，η 为同温限可逆热机效率上限，T_c 越低、T_h 越高 η 越大。</div>
       <p class="formula-desc">输入低温热源温度 T_c 与高温热源温度 T_h（开尔文），求卡诺效率。</p>
     </div>
 
@@ -258,16 +258,17 @@ s.parentNode.insertBefore(el, s);
 }
 
 
-function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
+function num(id){const el=document.getElementById(id);const v=el?parseFloat(el.value):NaN;return isFinite(v)?v:NaN;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
               var __ig=__tbInputGuard(['Tc', 'Th'],["低温 T_c (K)", "高温 T_h (K)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const Tc=num('Tc'),Th=num('Th');
+            if(!(Tc>=0)||!(Th>0)||Tc>=Th){ToolBox.setResult('result','<p class="tip-error">低温 T_c 须 ≥0 且小于高温 T_h（单位 K）；请确认未误填摄氏温度或高低颠倒。</p>');return;}
             const eta=1-Tc/Th;
             const __g2=dataGrid([
                 [(eta*100).toFixed(2),'卡诺效率 η (%)'],
                 [(Th-Tc).toFixed(3), '温差 (K)'],
-                [(Tc/Math.max(Th,1e-9)).toFixed(5), '低温高温比'],
+                [(Tc/Th).toFixed(5), '低温高温比'],
                 [(1-eta).toFixed(5), '热量排弃比']
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
@@ -282,14 +283,14 @@ function __carnot_efficiencyExtras(){
     if (typeof TBKit === 'undefined') return;
     var Tc=num('Tc'),Th=num('Th');
     var eta=1-Tc/Th;
-    if (!isFinite(__carnot_efficiencyNum('Tc')) || !isFinite(__carnot_efficiencyNum('Th'))) return;
+    if (!(Tc>=0)||!(Th>0)||Tc>=Th) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#carnot_efficiencyTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
             ['卡诺效率 η (%)', (eta*100).toFixed(2)],
             ['温差 (K)', (Th-Tc).toFixed(3)],
-            ['低温高温比', (Tc/Math.max(Th,1e-9)).toFixed(5)],
+            ['低温高温比', (Tc/Th).toFixed(5)],
             ['热量排弃比', (1-eta).toFixed(5)],
         ]
     });

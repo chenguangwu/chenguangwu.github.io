@@ -279,7 +279,7 @@ function renderItems(){
   const __g1=html;document.getElementById('itemList').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 function updateMat(i,v){items[+i].mat=+v;calc();}
-function updateMass(i,v){items[+i].mass=parseFloat(v)||0;calc();}
+function updateMass(i,v){var x=parseFloat(v);items[+i].mass=isFinite(x)?x:0;calc();}
 function clearItems(){items=[];renderItems();calc();}
 function calc(){
   var area=parseFloat(document.getElementById('area').value);
@@ -293,8 +293,14 @@ function calc(){
   }
   var totalQ=0;
   var detailHtml='';
+  var skipped=0;
   items.forEach(function(it,i){
     var m=MATERIALS[it.mat];
+    if(!(it.mass>0)){
+      skipped++;
+      detailHtml+='<tr><td>'+m.name+'</td><td>0.0</td><td>'+m.h+'</td><td>未计入</td></tr>';
+      return;
+    }
     var q=it.mass*m.h;
     totalQ+=q;
     detailHtml+='<tr><td>'+m.name+'</td><td>'+it.mass.toFixed(1)+'</td><td>'+m.h+'</td><td>'+q.toFixed(1)+'</td></tr>';
@@ -316,6 +322,11 @@ function calc(){
   html+='<div style="text-align:center;margin:8px 0;"><span class="grade-tag '+gradeClass+'">火灾严重程度：'+level+'</span></div>';
 
   html+='<table style="margin-top:8px;"><thead><tr><th>可燃物</th><th>质量(kg)</th><th>热值(MJ/kg)</th><th>热值(MJ)</th></tr></thead><tbody>'+detailHtml+'</tbody></table>';
+
+  if(skipped>0){
+    var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+    html+='<p style="margin-top:6px;font-size:12px;color:var(--text-muted);">'+(en?skipped+' item(s) with blank or zero mass were excluded from the total fire load.':'有 '+skipped+' 项质量为 0 或未填，已从总火灾荷载中排除。')+'</p>';
+  }
 
   html+='<div class="bar-row"><span class="bar-lbl">荷载密度</span><div class="bar-bg"><div class="bar-fill" style="width:'+Math.min(100,density/3000*100).toFixed(0)+'%;">'+density.toFixed(0)+' MJ/m²</div></div></div>';
 
