@@ -357,3 +357,99 @@
 - `tools/machinery/fengjixuanxingjisuan.html`：未发现中/高缺陷；轴功率 `Q·Δp/(3600·η·1000)`、电机 1.15 系数与 0.5 kW 向上圆整、比转速 `5.54·n·√Q/Δp^0.75`、叶轮直径 `60·v/(π·n)` 与三项正数校验均正确，未记缺陷。
 - 编号：本批新增 `MM-H24`–`MM-H37`（1 高 / 13 中），续接 `MM-H23`，不重号。
 - 验证声明：仅源码阅读 + node 内存复算（复算脚本在 `/tmp/u_batch.js`）；未开浏览器、未跑 `run_gates.py` / `_build.py`、未做英文态/移动端/线上验证。本批未修改任何工具页或构建产物。
+
+## V 批 · 机械/金属/焊接/制造（2026-11-04）
+
+> 范围：`tools/machinery/` 4 页（低噪音寿命、涂装用量、润滑系统、输送带选型）+ `tools/metalwork/` 1 页（螺纹规格）+ `tools/welding/` 2 页（保护气体配比、安全通风）+ `tools/manufacturing/` 1 页（CPK）。方法：逐页源码阅读 + node 内存复算（脚本 `/tmp/v_batch.js`）；未开浏览器、未跑 `_build.py` / `run_gates.py`、未做英文态/移动端/线上验证。编号续接 `MM-H37`，从 `MM-H38` 起。
+
+### MM-H38 保护气体配比页出口流速以 cm/s 计算却标为 m/s，默认参数即放大 100 倍（高，确认缺陷）
+- 问题：`area = π(d/2)²/100` 得到 cm²，`velocity = flow×1000/60/area` 得到 **cm/s**，结果卡却以 `喷嘴出口流速 (m/s)` 渲染。同页深度解析明确写「结果单位为 cm/s，换算为 m/s 需再 ÷100」，与结果卡自相矛盾；下方提示「出口流速建议 8~15 m/s」也与显示值量级不符。
+- 证据：`tools/welding/flow-ratio.html:230-231`（cm² 与 cm/s 计算）、`:240`（标签写 m/s）、`:243`（提示 8~15 m/s）、`:414-415`（深度解析写 cm/s 并说明 ÷100）。
+- 复现：喷嘴 12 mm、总流量 15 L/min → 截面积 1.131 cm²、流速 221.05 cm/s；结果卡显示 **221.1 (m/s)**，期望 **2.21 m/s**（或标签改为 cm/s）。换成 16 mm/18 L/min → 显示 149.2「m/s」，实际 1.49 m/s。
+- 影响：`tools/welding/flow-ratio.html`。出口流速是判断层流/紊流与保护效果好坏的唯一量化指标，100 倍错标会让用户误以为流速远超 8~15 m/s 合理区间。
+- 方案：`velocity` 改为 `flow*1000/60/area/100`（m/s）并按 8~15 m/s 判定；或保留 cm/s 数值并把标签、阈值、深度解析统一为 cm/s。
+- 严重度：高（假工具：否，配比拆分本身正确）。
+
+### MM-H39 焊接通风页把 g/h 当 mg/min，所需通风量低估 16.7 倍、默认工况恒判「通风不足」（高，确认缺陷）
+- 问题：`fumeMass = con(kg/h) × coef × 1000` 的量纲是 **g/h**，却标注为 `mg/min`；`Q = fumeMass/2×60` 又按 mg/min 乘 60，导致所需通风量比正确值低 `1000/60 = 16.67` 倍。`dayFume` 实际是 g 却标成 mg，再差 1000 倍。
+- 证据：`tools/welding/ventilation-protection.html:226`（`fumeMass=con*coef*1000`）、`:228`（`Q=fumeMass/allowConc*60`）、`:237-240`（三张卡分别标 mg/min、m³/h、mg）、`:243`（引 GBZ 2.1 总尘 4 mg/m³）、`:413-414`（深度解析复述同一错算）。
+- 复现：药皮焊条 2 kg/h、车间 500 m³ → 实际发尘 16 g/h = 266.7 mg/min，所需风量 266.7/2×60 = **8000 m³/h**、ACH **16 次/h（良好）**；页面显示 16 mg/min、**480 m³/h**、ACH **0.96（通风不足）**。日总量实际 128 g = 128000 mg，页面显示 128 mg。
+- 影响：`tools/welding/ventilation-protection.html`。按 480 m³/h 选排烟风机/净化器，实际需要 8000 m³/h，通风量差一个量级；同时几乎所有真实工况都会被判「通风不足」，评估结论失真。
+- 方案：统一为 mg/h：`fumeMass=con*coef*1000*1000`（mg/h）、`Q=fumeMass/allowConc`（m³/h）、`dayFume=fumeMass*hs`（mg）；或统一为 mg/min 后 `Q=fumeMass/min*60`，并修正深度解析算例。
+- 严重度：高（假工具：否）。
+
+### MM-H40 保护气体配比页负比例/比例和为 0 未拦截，输出「—」却仍给「良好」结论（中，确认缺陷）
+- 问题：`__tbInputGuard` 只拦「全为 0」，不校验各比例为非负、也不校验 `ar+co2>0`。比例为负或和为零时 `arFlow/co2Flow` 变成负值或 ±Infinity，后者被全局 `replace(/Infinity|NaN/g,'—')` 静默替换，但流速、推荐区间与「良好」等级照常渲染。
+- 证据：`tools/welding/flow-ratio.html:169-220`（守卫仅判空/非数/全零）、`:227-236`（`sum` 与归一化、等级）、`:245`（Infinity→「—」）。
+- 复现：Ar=-50%、CO₂=50%、流量 15 L/min、喷嘴 12 mm → sum=0，两张组分卡显示「—」，出口流速 221.1、「保护效果评估：良好」；Ar=-80%、CO₂=20% → CO₂ 流量 **-5.0 L/min**。期望：标红并中止。
+- 影响：`tools/welding/flow-ratio.html`。非法配比仍产出看似完整的评估结论，负组分流量可被复制。
+- 方案：校验 `ar>=0 && co2>=0 && ar+co2>0`，越界逐项标红并清空结果。
+- 严重度：中（假工具：否）。
+
+### MM-H41 润滑系统「所需油量 (mL/s)」换算用 ×60，放大 3.6 倍（中，确认缺陷）
+- 问题：`QLmin` 为 L/min，换算 mL/s 应为 `×1000/60 = ×16.67`，代码用 `QLmin*60`，结果放大 3.6 倍。
+- 证据：`tools/machinery/runhuaxitongsheji.html:243`（`QLmin=Q*60*1000`）、`:273`（`(QLmin*60).toFixed(0)` 标 mL/s）。
+- 复现：d=80、L=80、n=1500 r/min、W=10 kN、η=30 mPa·s、ψ=1.5‰、ΔT=20℃ → 摩擦功率 396.9 W、Q=0.661 L/min；页面 mL/s 显示 **40**，正确 **11.0**。
+- 影响：`tools/machinery/runhuaxitongsheji.html`。按 mL/s 选油泵/分流器排量会偏大 3.6 倍；L/min 主值正确，但两值互相矛盾。
+- 方案：改为 `QLmin*1000/60`（或直接 `Q*1e6`）。
+- 严重度：中（假工具：否）。
+
+### MM-H42 润滑系统「轴承类型」不改计算：选滚动/推力轴承仍按径向滑动轴承投影面积算比压并给「巴氏合金 PV 可用」结论（中，确认缺陷）
+- 问题：`v_type` 只影响推荐润滑方式文案；`p=W/(d·L)`、`v`、`PV`、Petroff 摩擦系数、油量与 `PV≤15（巴氏合金）` 判定对三种类型完全相同。滚动轴承无「比压/PV/巴氏合金」概念，推力滑动轴承的投影面积也不是 `d·L`（应为环形面积）。
+- 证据：`tools/machinery/runhuaxitongsheji.html:219-220`（读取 type）、`:230-238`（p/v/PV/f 与类型无关）、`:246-255`（type 仅切换润滑方式文案）、`:256-258,276`（固定 PV≤15 与「巴氏合金可用」）。
+- 复现：选「滚动轴承」、d=80、L=80、n=1500、W=10 kN → 仍输出 p=1.56 MPa、PV=9.82 MPa·m/s、f=0.0063，并提示「✓ PV值 9.82 ≤ 许用 15，巴氏合金可用」；期望滚动轴承不出现该判据。
+- 影响：`tools/machinery/runhuaxitongsheji.html`。用户以为已按滚动轴承校核，实际拿到的是滑动轴承比压与材料结论，选型依据错误。
+- 方案：rolling 分支改用当量动载荷/额定寿命或直接隐藏 p/PV/巴氏合金判定；thrust 分支按环形面积计算；或移除不适用的类型选项。
+- 严重度：中（假工具：部分——类型选择器为半装饰）。
+
+### MM-H43 输送带页倾角不校验，200° 得提升高度 −34.2 m、驱动功率 −24.39 kW（中，确认缺陷）
+- 问题：`readInputs` 只校验 Q、L、ρ、v，`ang` 原样进入 `H=L·sin(ang)`。倾角 >90° 时 sin 变负，>180° 后符号反复；负驱动功率仍正常渲染，倾角评估也照常输出「倾角较大」。
+- 证据：`tools/machinery/shusongdaixuanxingjisuan.html:194-199`（ang 未校验、valid 不含 ang）、`:211`（`H=L*Math.sin(...)`）、`:217`（`P=Q*(L*f+H)*...`）、`:221`（倾角文案）。
+- 复现：Q=200 t/h、L=100 m、ang=200° → H=**-34.20 m**、驱动功率 **-24.39 kW**；ang=-10° → H=-17.36 m、P=-11.43 kW。期望：倾角须在 0~90°（输送机常用 ≤30~35°），越界提示并中止。
+- 影响：`tools/machinery/shusongdaixuanxingjisuan.html`。把下运/反向倾角或误输入大角度当成上运时，得到负功率与负提升高度，功率选型与带宽结论全部失效。
+- 方案：校验 `0<=ang<=90`（并按带式输送机工况给出 >30° 需花纹带/挡边带提示）；`H<0` 时单独标注「下运」或拒绝计算。
+- 严重度：中（假工具：否）。
+
+### MM-H44 输送带历史只存 Q/L/倾角，缺物料密度与带速，恢复后推荐带宽不复现（中，确认缺陷）
+- 问题：`saveHistory` 与 `restoreHistory` 只处理 `{Q,L,ang}`，而推荐带宽由 `A=Q/(3600·ρ·v)` 决定，ρ 与 v 既不保存也不回填，恢复记录时沿用当前输入。
+- 证据：`tools/machinery/shusongdaixuanxingjisuan.html:244`（保存字段）、`:246`（恢复仅回填 vQ/vL/vAng）、`:213-215`（A 与带宽）。
+- 复现：Q=200、L=100、ang=10、ρ=1.0、v=1.6 → 计算带宽 498 mm、推荐 **500**；保存后把带速改为 1.0 → 计算带宽 630、推荐 **650**；点「恢复」→ 仍按 1.0 算得 **650**，期望回到 500。
+- 影响：`tools/machinery/shusongdaixuanxingjisuan.html`。同一历史记录恢复后带宽变档，选型记录不可复现；摘要也不显示 ρ/v。
+- 方案：item 增加 `rho`、`v`，restore 回填 `vRho`、`vV`，摘要同步显示。
+- 严重度：中（假工具：否）。
+
+### MM-H45 低噪音寿命深度解析第二算例三值与同页公式不符（中，确认缺陷）
+- 问题：算例写「载荷因子 0.758、增长率 0.013291 dB/h、寿命 1504.8 h、月增长 9.57 dB」，按同页 `(载荷/500)^0.3`、`k=0.0008`、类型 1.5、油雾 0.5 复算均对不上。
+- 证据：`tools/machinery/lifespan-18.html:226-238`（实际公式）、`:429`（算例文本）。
+- 复现：300 N/500 N → `0.6^0.3 = 0.858`（页面 0.758）；rate = 0.0008×√1500×0.858×1.5×0.5 = **0.019936 dB/h**（页面 0.013291）；寿命 = 20/0.019936 = **1003.2 h**（页面 1504.8 h）；月增长 = **14.35 dB**（页面 9.57）。第一算例（228.2 h）与公式一致。
+- 影响：`tools/machinery/lifespan-18.html` 深度解析区。用户按算例手算核对会与工具结果差 50%，误判为工具算错。
+- 方案：按 `:226-238` 公式重算第二算例四个数值；并注明类型/润滑因子取值。
+- 严重度：中（假工具：否）。
+
+### MM-H46 CPK 页「PPK 长期能力」未使用长期标准差，PPK 恒约等于 CP（中，承诺未实现）
+- 问题：页面只有短期 σ 输入，`σ_LT = σ·∛[1+1/(4(n−1))]`（n>25 时）仅比 σ 大 0.3%，n≤25 时干脆等于 σ，`PPK=T/(6σ_LT)` 因而恒 ≈ CP；结果卡却标为「PPK (长期能力)」。真正的 PPK 应用总体/长期标准差（通常比组内 σ 大 10%~30%）。
+- 证据：`tools/manufacturing/quality-control.html:148`（公式行）、`:289-290`（σLT 与 PPK）、`:324-326`（结果卡标签）、`:211`（算例称 PPK≈1.66）。
+- 复现：USL=10.5、LSL=9.5、μ=10、σ=0.15、n=30 → CP=1.111、PPK=1.108（仅差 0.3%）；σ=0.1 → CP=1.667、PPK=1.662。若真实长期 σ 为 0.18（大 20%），正确 PPK=1.0/(6×0.18)=**0.926（不合格）**，页面仍显示 1.108「合格」。
+- 影响：`tools/manufacturing/quality-control.html`。用户会以为已完成长期能力评估；PPK 与 CPK 并列展示但无独立信息，可能掩盖过程漂移。
+- 方案：增加「长期/总体标准差」输入并据此算 PPK（`(USL−LSL)/(6σ_overall)`）；无该输入时隐藏 PPK 或明确标注「未计算」，不要用短期 σ 近似冒充。
+- 严重度：中（假工具：部分——CP/CPK/CA/良率计算正确）。
+
+### MM-H47 螺纹规格页「导出明细 CSV」导出的是空历史表/搜索历史，不是可见规格表（中，承诺未实现）
+- 问题：按钮调用 `exportTable('#thread_specTable')`，而规格明细渲染在 `#tableWrap`；`#thread_specTable` 只是 TBKit 历史表。无历史时 `exportTable` 直接 `return false`，点击无任何反馈、无文件；有历史时导出的是「时间 + search + 结果摘要」而非螺距/中径/小径/底孔。
+- 证据：`tools/metalwork/thread-spec.html:134`（按钮）、`:252`（`tableWrap` 为规格表容器）、`:397`（历史表 `#thread_specTable`）、`:455`（导出指向历史表）；`js/tool-kit.js:221-226`（空表直接返回 false）。
+- 复现：打开页面直接点「导出明细 CSV」→ 无文件、无提示；输入 M8 后点导出 → CSV 为搜索历史行，缺少 P、d₂、d₁、底孔列。期望导出当前筛选后的四张规格表之一。
+- 影响：`tools/metalwork/thread-spec.html`。菜单最直接的「拿数据」入口失效，用户无法把规格明细带到 Excel/检验单。
+- 方案：改为 `exportTable('#tableWrap','thread-spec.csv')`（或给规格表独立 id），空结果时提示「当前无数据」。
+- 严重度：中（假工具：否，查询与尺寸计算正确）。
+
+### 覆盖清单
+- `tools/welding/flow-ratio.html`：1 高 + 1 中（MM-H38、MM-H40）。
+- `tools/welding/ventilation-protection.html`：1 高（MM-H39）。
+- `tools/machinery/runhuaxitongsheji.html`：2 中（MM-H41、MM-H42）。
+- `tools/machinery/shusongdaixuanxingjisuan.html`：2 中（MM-H43、MM-H44）。
+- `tools/machinery/lifespan-18.html`：1 中（MM-H45）。
+- `tools/manufacturing/quality-control.html`：1 中（MM-H46）。
+- `tools/metalwork/thread-spec.html`：1 中（MM-H47）。
+- `tools/machinery/area-dosage-1.html`：未发现中/高缺陷；`10·VS/DFT` 涂布率、`A/(理论×TE)` 实际用量、1.3 kg/L 质量估算与 0~100 区间校验均正确，未记缺陷。
+- 编号：本批新增 `MM-H38`–`MM-H47`（2 高 / 8 中），续接 `MM-H37`，不重号。
+- 验证声明：仅源码阅读 + node 内存复算；未开浏览器、未跑 `run_gates.py` / `_build.py`、未做英文态/移动端/线上验证。本批未修改任何工具页、js/css/json 或构建产物。

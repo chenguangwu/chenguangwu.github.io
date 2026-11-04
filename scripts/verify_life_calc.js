@@ -486,19 +486,19 @@ const CASES = [
   {
     slug: "life/length-converter",
     inputs: { inputVal: "5" },
-    expect: ["5000 毫米 500 厘米 0.005 千米 196.8503937 英寸"],
-    ref: 'fromUnit 框架默认 mm；meters=v*0.001；锚取『实际:』后真值+单位，避开默认 v=1/mm 产物'
+    expect: ["5,000 毫米 500 厘米 0.005 千米 196.8503937 英寸"],
+    ref: 'fromUnit 框架默认 mm；meters=v*0.001；锚取「基准：」后连排真值（页面用 toLocaleString 千分位，≥1000 的毫米/厘米带逗号），避开默认 v=1/mm 产物'
   },
   {
     slug: "life/length-converter",
     inputs: { inputVal: "100" },
-    expect: ["100000 毫米 10000 厘米 0.1 千米 3937.007874 英寸"],
+    expect: ["100,000 毫米 10,000 厘米 0.1 千米 3,937.007874 英寸"],
     ref: 'ft=0.1/0.3048'
   },
   {
     slug: "life/length-converter",
     inputs: { inputVal: "3" },
-    expect: ["3000 毫米 300 厘米 0.003 千米 118.1102362 英寸"],
+    expect: ["3,000 毫米 300 厘米 0.003 千米 118.1102362 英寸"],
     ref: 'ft=0.003/0.3048'
   },
   {
@@ -510,19 +510,19 @@ const CASES = [
   {
     slug: "life/length-converter",
     inputs: { inputVal: "2" },
-    expect: ["2000 毫米 200 厘米 0.002 千米 78.74015748 英寸"],
+    expect: ["2,000 毫米 200 厘米 0.002 千米 78.74015748 英寸"],
     ref: 'yd=0.002/0.9144'
   },
   {
     slug: "life/length-converter",
     inputs: { inputVal: "10" },
-    expect: ["10000 毫米 1000 厘米 0.01 千米 393.7007874 英寸"],
+    expect: ["10,000 毫米 1,000 厘米 0.01 千米 393.7007874 英寸"],
     ref: 'in=0.01/0.0254'
   },
   {
     slug: "life/length-converter",
     inputs: { inputVal: "175", fromUnit: "cm" },
-    expect: ["基准： 175 厘米 = 1.75 米 1750 毫米"],
+    expect: ["基准： 175 厘米 = 1.75 米 1,750 毫米"],
     ref: '修复判别：175cm 换算后毫米应为 1750（旧模板拼成 175000 → 实际: 1750）；锚定基准行与首个结果行紧邻形态，旧输出在中间插入 175000 故不命中'
   },
   {

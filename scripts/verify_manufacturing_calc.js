@@ -10,16 +10,16 @@ const CASES = [
   {
     "slug": "manufacturing/capacity-planning",
     "inputs": {
-      "machines": "42",
-      "capacityPer": "42",
-      "demand": "42",
-      "workDays": "42",
+      "machines": "10",
+      "capacityPer": "300",
+      "demand": "30000",
+      "workDays": "20",
       "shifts": "2"
     },
     "expect": [
-      "/月 理论月产能 148,176 件 日产能 3,528 件 产能利用率 0.0% ✅ 充足"
+      "理论月产能 120,000 件 日产能 6,000 件 产能利用率 25.0%"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"machines\":\"42\",\"capacityPer\":\"42\",\"demand\":\"42\",\"workDays\":\"42\",\"shifts\":\"2\"}，输出区含「/月 理论月产能 148,176 件 日产能 3,528 件 产能利用率 0.0…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：原注入 workDays=42 超出页面 1–31 合法域，页面正确走「每月工作日为 1–31 的整数」卫语句、不产出 148,176；已改为合法非默认 machines=10/capacityPer=300/shifts=2/workDays=20/demand=30000 ⇒ 月产能 10×300×20×2 = 120,000、日产能 10×300×2 = 6,000、利用率 30000/120000 = 25.0%（默认 5/200/22 组合不重合）。"
   },
   {
     "slug": "manufacturing/production-efficiency",

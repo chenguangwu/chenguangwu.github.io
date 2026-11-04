@@ -3537,5 +3537,105 @@
 - `keycode-info`：IT-N425（中）；无高优缺陷（key/code/keyCode 展示与速查表数值均正确）。
 - 方法声明：本轮仅通读上述 10 页源码 + `node` 在 `/tmp` 复刻页面原函数实算（每条均给出「输入 → 实际 / 期望」），**未开浏览器、未跑 `_build.py`/`run_gates.py`、未做线上验证**；未修改任何工具页、代码或构建产物，仅在审计日志追加本节。IT-N412 的输入框行为依据 HTML 规范的 number value sanitization 判定，未做真机粘贴验证。
 
+## V 批 · IT 生成/校验/计算（2026-11-04）
+
+### IT-N428 meta 生成器的 twitter:title / twitter:description 写死为本站文案，完全忽略用户输入（高，假功能）
+- 页面：`tools/it/meta-tags-generator.html`
+- 问题：`calcTool` 里 og:title / og:description 用的是用户输入 `t` / `d`（`:230-231`），但 twitter 卡两行直接拼了本工具自己的标题与简介常量（`:236-237`），与输入的 `t`、`d` 无关。原理说明还写着「社交：……以及 Twitter Card 的 twitter:card 等」（`:105`），暗示按输入生成。
+- 行号：`:227-238`（核心 `:236`、`:237`）
+- 复现：`title=我的站点`、`description=这是站点描述`、`url=https://example.com/` → 实际输出 `twitter:title="Meta 标签生成器 - 免费在线开发工具"`、`twitter:description="Meta 标签生成器是一款免费的在线IT 开发工具，……"`；期望 `twitter:title="我的站点"`、`twitter:description="这是站点描述"`。
+- 影响：用户复制整段 meta 后，Twitter/X 分享卡片显示的是本工具的名字与简介，与其站点无关；且 twitter:description 里还有重复两遍的套话。
+- 方案：改为 `'<meta name="twitter:title" content="'+t+'">'`、`…content="'+d+'">'`，与 og 两行同源。
+- 假工具：否（核心输出错误）
+
+### IT-N429 说明把 viewport 列为「必需」，生成结果却完全没有 viewport / charset / robots / keywords（中，承诺未实现）
+- 页面：`tools/it/meta-tags-generator.html`
+- 问题：原理框列出「基础」五项含 keywords、viewport、robots、charset（`:104`），并强调「viewport 是移动端正确适配的前提，缺失会触发桌面版缩放」（`:107`）；但 `calcTool` 只输出 `<title>`、`description`、`og:*`、`twitter:*`（`:228-238`），页面也没有这些字段的输入控件。
+- 行号：`:104-107`（说法）、`:223-238`（实现）
+- 复现：输入 `title=T`、`description=D`、`url=https://example.com/` → 实际输出 9 行，无 `<meta name="viewport">`、无 `<meta charset>`、无 `robots`、无 `keywords`；期望至少输出 `viewport`（或明确标注「不含 viewport」，由用户自加）。
+- 影响：工具名叫「Meta 标签生成器」、说明也称「生成完整 meta 片段」，但用户把结果贴进 `<head>` 后移动端仍走桌面缩放，必须自己补标签。
+- 假工具：否（功能缺口）
+
+### IT-N430 用户输入里的双引号未转义，复制出的 meta 标签属性被提前闭合（中，确认缺陷）
+- 页面：`tools/it/meta-tags-generator.html`
+- 问题：`escH` 走 `div.textContent → innerHTML`（`:221`），HTML 文本节点序列化只转义 `& < >`，不转义 `"`；随后把整段字符串塞进 `<pre>` 展示（`:229-231` 的 `content="'+d+'"`）。用户据此复制粘贴得到的是原始双引号。同一行末的 `replace(/Infinity|NaN/g,'—')` 还会把用户文本里的 `NaN` / `Infinity` 字样改写为「—」。
+- 行号：`:221`、`:228-234`、`:236-237`
+- 复现：`description=He said "hi"` → 实际展示并可复制 `<meta name="description" content="He said "hi"">`，粘贴后属性在 `He said ` 处闭合，description 被截成 `He said `；期望 `content="He said &quot;hi&quot;"`。另：`title=NaN` → 实际显示 `—`。
+- 影响：description/og/twitter 任一字段含引号（常见于引用型文案、含英寸/尺寸的文案）都会产出坏 HTML，页面本身不报错，难以发现。
+- 方案：拼装时对字段单独做 `&quot;` 转义（或在 `escH` 里补 `"`/`'`），并把 NaN/Infinity 兜底只施加于数值结果、不施加到用户文本。
+- 假工具：否
+
+### IT-N431 CSS 压缩在引号字符串内照常删空白与 `: ; , > }`，合法 CSS 被静默改义（高，确认缺陷）
+- 页面：`tools/it/css-minify.html`
+- 问题：`minify` 是 4 条全局正则（`:216-221`），不区分字符串/`url()`：`\s*([{}:;,>])\s*`（`:219`）会把 `content:"a: b"` 里的 `:` 后空格删掉，`\s+/g→' '`（`:218`）把字符串内连续空格压成一个，`;\}`（`:220`）把字符串内的 `;}` 也删掉。页面却承诺「压缩仅去注释与空白，不改变选择器与声明语义」（`:168`），只是在 `:176` 含糊提了一句 content 特殊空格。
+- 行号：`:216-221`（核心 `:218-220`）、`:168`、`:176`、`:224`
+- 复现（node 复刻页内 `minify`，输入 → 实际）：
+  - `.a::after{content:"a: b";}` → `.a::after{content:"a:b"}`（渲染文本由 `a: b` 变成 `a:b`）
+  - `.a::after{content:"x; }";}` → `.a::after{content:"x}"}`（少了 `; `）
+  - `.a::after{content:"A  B";}` → `.a::after{content:"A B"}`
+  - `.a[title="a, b"]{color:red}` → `.a[title="a,b"]{color:red}`（属性选择器不再匹配原值）
+  - 期望：字符串 / `url()` 内容原样保留，仅压缩字符串外空白。
+- 影响：图标字、`content` 文案、属性选择器值会被改掉，且压缩结果看起来正常、只在上线后表现为文案或匹配错；对「压缩器」而言属输出错误而非样式问题。另 `:231` 的 `replace(/Infinity|NaN/g,'—')` 会把 CSS 里的 `.NaN` 选择器改写成 `.—`。
+- 方案：先把 `"…"` / `'…'` / `url(…)` 用占位符替换，压缩完再还原（或写 tokenizer）；去掉对整段 HTML 的 NaN/Infinity 替换。
+- 假工具：否
+
+### IT-N432 短链页「复制」把「短链 + 原始 URL」拼在一起写入剪贴板（中，假功能）
+- 页面：`tools/it/tiny-url.html`
+- 问题：结果区同时渲染两行（`code-row` 短链、`原始 URL: …`，`:280`），`copyResult` 直接取 `#output` 的 `textContent`（`:295`）复制；两个 div 的文本没有分隔符，`textContent` 拼成 `短链原始 URL: 长链`。同时 `writeText(...).then(...)` 没有 `.catch`（`:296`），写入失败时静默无提示。
+- 行号：`:280`、`:294-296`
+- 复现：输入 `https://example.com/a?x=1`，生成后点「复制」→ 剪贴板实际内容 `https://tinyurl.com/AbC123原始 URL: https://example.com/a?x=1`；期望仅 `https://tinyurl.com/AbC123`。真机粘贴到聊天框即可复现。
+- 影响：短链工具的核心动作产出不可直接使用的字符串，用户需手工截断；这也是该页唯一的「出站」路径。
+- 方案：复制 `state` 里保存的短链（或单独 `#shortCode` 元素的文本），并对 `writeText` 补 `.catch` 提示。
+- 假工具：否（页面已声明是「短链效果演示」，非真缩短服务）
+
+### IT-N433 标准差的数据解析静默丢弃非数字项、并截断半数字符串，n 与结果随之失真（中，确认缺陷）
+- 页面：`tools/it/standard-deviation.html`
+- 问题：`parseData` 用 `parseFloat` + `isNaN` 过滤（`:256`），既不做整串校验也不报错：`abc` 之类整段被丢弃，`12abc` 被截成 `12`，`0x10` 被解析成 `0`；页面照常以「n=…」的确定口吻输出均值/方差/标准差。
+- 行号：`:256`、`:258-262`、`:268`
+- 复现（node 复刻页内 `parseData`/`calculate`）：
+  - `1,2,3,abc` → 实际 `n=3`、`x̄=2`、`s=1`；期望提示「abc 不是有效数字」并拒绝计算（或明确列出被忽略项）。
+  - `12abc, 3` → 实际按 `12, 3` 计算（s=6.364）；`0x10, 5` → 实际按 `0, 5` 计算（s=3.536）。
+- 影响：从表格粘贴一列数据时，表头（如 `value`）会被无声吃掉，n 少 1、s 变化，而输出界面上没有任何异常信号，用户会误信结果。
+- 方案：改用 `Number(s)` 并校验 `Number.isFinite`，非法 token 收集后提示；`12abc`、`0x10` 这类应报错而不是截断。
+- 假工具：否
+
+### IT-N434 CAA 生成器对域名不做任何校验，完整 URL / 含空格 / 大写域名都原样输出成「记录」（中，确认缺陷）
+- 页面：`tools/it/caa-record-generator.html`
+- 问题：`gen()` 只做 `trim()` 和去掉前导点（`:281`），随后直接把 `d` 拼进记录（`:297`），没有 hostname 合法性检查、没有小写归一、也不补结尾点；而 deep-dive 示例给的是带结尾点的 `example.com. CAA 0 issue "letsencrypt.org"`（`:181`），与输出格式不一致。
+- 行号：`:281`、`:287-298`（核心 `:297`）、`:181`
+- 复现：`domain=https://example.com`、勾选 Let's Encrypt → 实际输出 `https://example.com  CAA  0 issue "letsencrypt.org"`；期望拒绝并提示「请填写裸域名 example.com」。`domain=example com` → 输出 `example com  CAA …`；`Example.COM` → 保持大写不被归一。
+- 影响：输出框被当作可直接粘贴的记录，非法 owner name 会被 DNS 服务商拒绝或写坏 zone；再者按 RFC 1035 主文件相对名规则，不带结尾点在 BIND zone 里会被拼上 `$ORIGIN`，指向错误的域名。
+- 方案：`new URL`/正则校验 hostname（仅 `[a-z0-9.-]`、至少一个点、非 IP），统一小写，输出可选补 `.`。
+- 假工具：否
+
+### IT-N435 验证码「排除易混淆字符」在纯数字 / 纯字母模式下可见但代码未生效（中，承诺未实现）
+- 页面：`tools/it/captcha-generator.html`
+- 问题：`setType` 只在 `math`/`cn` 时隐藏该勾选框（`:921-924`），所以「纯数字」「纯字母」下勾选框仍然显示；但过滤逻辑只写在 `alnum` 分支（`:615-619`），`num` 分支死用 `0123456789`（`:588`），`alpha` 分支死用大小写字母表（`:596-604`），均未读 `state.excludeConfused`。默认预设「8个深色」还专门勾了这个选项（`:1081`）。
+- 行号：`:344-346`、`:588-592`、`:596-604`、`:615-619`、`:921-924`、`:952-955`
+- 复现：类型选「纯数字」+ 勾选「排除易混淆字符(0/O/o/I/l/1)」→ 实际仍生成如 `1010`、`0183`（含 0/1）；类型选「纯字母」+ 勾选 → 实际仍出现 `I`、`l`、`O`、`o`。期望结果中不含 `0OoIl1`。
+- 影响：用户以为已规避易读错字符，实测仍出现，抄写验证码时按 0/O、1/l 混淆导致「验证失败」；对一个验证码示例工具而言等于选项无效。
+- 方案：把过滤抽成公共函数对 `num`、`alpha`、`alnum` 的字符池统一应用（`num` 过滤后剩 8 位，需保证长度上限）。
+- 假工具：否
+
+### IT-N436 CSS 属性表把 `vertical-align` 登记了两条（不同分类、不同描述），统计与检索出现重复（中，确认缺陷）
+- 页面：`tools/it/css-properties.html`
+- 问题：`PROPERTIES` 里同名条目出现两次：`:379`（`cat:'文本'`，desc「垂直对齐」）与 `:454`（`cat:'表格'`，desc「表格垂直对齐」），其余字段仅 values 顺序不同。`renderProps` 不去重，`stats` 直接显示 `filtered.length`（`:493`）。
+- 行号：`:379`、`:454`、`:482-493`（核心 `:493`）
+- 复现：页面计数实际显示「共 133 个属性」（去重后为 132）；搜索框输入 `vertical-align` → 实际返回两张同名卡片，分别落在「文本」「表格」两个分类标签下，值为 `baseline, sub, super…` 与 `baseline, top, middle…`；期望只有一条，值表合并。
+- 影响：属性总数与检索结果重复，且同一属性给出两套不同的取值顺序，用户会以为存在两个不同属性。
+- 方案：删除 `:454` 那条（它落在「表格」分类，`vertical-align` 本就属文本/行内对齐），或在渲染前按 `name` 去重。
+- 假工具：否
+
+### 覆盖清单（V 批 IT 生成/校验/计算）
+- `css-properties`：IT-N436（中）；无高优缺陷（属性值/初始值/继承性抽查未发现错误）。
+- `meta-tags-generator`：IT-N428（高）、IT-N429、IT-N430（中）。
+- `sqlite-cheatsheet`：无高优/中优缺陷（命令语法、`.mode`/JSON1/窗口函数示例与版本注记抽查正确；Chart/Table 双视图与检索联动正常）。
+- `standard-deviation`：IT-N433（中）；无高优缺陷（sample/population 公式与 32/7≈4.57、s≈2.138 复算一致）。
+- `tiny-url`：IT-N432（中）；无高优缺陷（随机短码生成与历史去重逻辑正常）。
+- `css-minify`：IT-N431（高）。
+- `caa-record-generator`：IT-N434（中）；无高优缺陷（CAA 记录语法、flag 128 关键位、iodef mailto 形式正确）。
+- `captcha-generator`：IT-N435（中）；无高优缺陷（四种类型出题、数学答案校验、大小写归一逻辑正确）。
+- 方法声明：本轮逐页通读上述 8 页源码，用 `node` 在 `/tmp` 复刻页面原函数实算（`minify`、`parseData/calculate`、`PROPERTIES` 去重）并给出「输入 → 实际 / 期望」；**未开浏览器、未跑 `_build.py`/`run_gates.py`、未做线上验证**；未修改任何工具页、代码或构建产物，仅在审计日志追加本节。IT-N430 的引号未转义依据 HTML 文本节点序列化规则判定（`& < >` 转义、引号不转义），未做真机粘贴验证；两处 `</div`（缺 `>`，`meta-tags-generator.html:124`、`css-minify.html:127`）会吞掉紧随的 `<div class="toolbar">` 开标签，属结构/布局问题，未计入本批条目。
+
 
 

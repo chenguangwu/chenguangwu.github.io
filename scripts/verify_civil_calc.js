@@ -2,7 +2,7 @@
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
-  { slug: "civil/active-earth-rankine", inputs: {"gamma":"20","H":"6","phi":"32","c":"5"}, expect: ["77.4"], ref: "K_a = tan²(45°−32°/2) = 0.3073；z₀ = 2c/(√K_a·γ) = 0.90 m；E_a = ½γH²K_a − 2cH√K_a = 110.63 − 33.27 = 77.4 kN/m（避开默认 18/5/30/0）" },
+  { slug: "civil/active-earth-rankine", inputs: {"gamma":"20","H":"6","phi":"32","c":"5"}, expect: ["79.9"], ref: "K_a = tan²(45°−32°/2) = 0.3073；z₀ = 2c/(√K_a·γ) = 0.90 m；E_a = ½γH²K_a − 2cH√K_a + 2c²/γ = 110.63 − 33.27 + 2.50 = 79.87 → 79.9 kN/m（页面已补上黏聚力修正项 2c²/γ，与式子和深解一致；无黏性土 c=0 时仍退化为 ½γH²K_a）" },
   { slug: "civil/beam-udl", inputs: {"L":"8","q":"25","E":"30","I":"8000","b":"250","h":"500"}, expect: ["19.20"], ref: "M_max = qL²/8 = 25×64/8 = 200 kN·m；W = bh²/6 = 250×500²/6 = 1.0417×10⁷ mm³；σ = M/W = 200×10⁶/1.0417×10⁷ = 19.20 MPa（避开默认 6/20/200/400）" },
   { slug: "civil/calc-1", inputs: {"fcuk":"40","sigma":"5.0","wc":"0.45","mw":"185","beta":"40","rhoC":"3100","rhoS":"2650","rhoG":"2700","air":"1.0"}, expect: ["1.75 : 2.63 : 0.45"], ref: "f_cu,0 = 40 + 1.645×5 = 48.2 MPa；m_c = m_w/(W/C) = 185/0.45 = 411.1 kg；绝对体积法解得 m_g = 1081.1、m_s = 720.7 kg；质量比 水泥:砂:石:水 = 1 : 1.75 : 2.63 : 0.45（避开默认 C30/W=0.50/β=38）" },
   { slug: "civil/calc-2", inputs: {"straight1":"2500","straight2":"1200","diameter":"25","angle1":"90","angle2":"45","bendFactor":"2.5","num":"3"}, expect: ["3644.0"], ref: "D=2.5d=62.5；Δ₁(90°)=2(D/2+d)tan45°−(D+d)π/4=112.5−68.72=43.8；Δ₂(45°)=2(D/2+d)tan22.5°−(D+d)π/8=46.60−34.36=12.2；单根=2500+1200−43.8−12.2=3644.0mm（避开默认 3000/0/20/90/0）" },
