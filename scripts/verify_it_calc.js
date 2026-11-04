@@ -1213,6 +1213,14 @@ const CASES = [
     ref: "i×k = −j ⇒ (0,−1,0)。默认示例 (1,0,0)×(0,1,0)=(0,0,1) 结论不同，不可用其做锚。",
   },
   {
+    slug: "it/vector-cross-product",
+    // IT-E1 空态：六分量全空时不得输出 (0, 0, 0)。
+    inputs: { a0: "", a1: "", a2: "", b0: "", b1: "", b2: "" },
+    clicks: ["calculate()"],
+    expect: ["请输入向量 A 与 B"],
+    ref: "空态口径：六分量全空 ⇒ 提示并 return，不给出零向量结论；修复前 getV 把空值 parseFloat 成 0，输出 `A × B = (0, 0, 0)`。默认示例 (1,2,3)×(4,5,6) 不含该提示。",
+  },
+  {
     slug: "it/bayes-theorem",
     inputs: { prior: "0.01", likelihood: "0.9", falsePositive: "0.05" },
     clicks: ["calculate()"],
@@ -1536,6 +1544,14 @@ const CASES = [
     clicks: ["toCSV()", "document.getElementById('output').value=__jsonToCsvExportSafe"],
     expect: ["'=cmd|"],
     ref: "CSV 公式注入回归：导出路径必须给以 = 开头的单元格加单引号；页面原始输出为 \"=cmd|…（无前导单引号），故 expect 的 '=cmd| 只能由安全导出串命中。",
+  },
+  {
+    slug: "it/json-to-csv",
+    // IT-E3 空态：清空输入后不得只留效率工具栏的空结果。
+    inputs: { input: "" },
+    clicks: ["toCSV()"],
+    expect: ["请输入非空 JSON 数组"],
+    ref: "空态口径：输入为空 ⇒ 结果区提示；修复前空分支 `out.innerHTML=''`，既不报错也无提示，结果区只剩效率工具栏的「0 个参数」。默认示例已预填 JSON，不命中。",
   },
   {
     slug: "it/json-to-yaml",
@@ -1940,6 +1956,14 @@ const CASES = [
     ],
     expect: ["结果 C = A × B （2×2）： 19 8 43 22"],
     ref: "独立复算：A=[[1,2],[3,4]]，B=[[5,6],[7,1]] ⇒ C[1][1]=1×5+2×7=19、C[1][2]=1×6+2×1=8、C[2][1]=3×5+4×7=43、C[2][2]=3×6+4×1=22。单元格 `a0..a3`／`b0..b3` 是运行期渲染（HTML 无字面 id）⇒ 必须 clicks 内按 id 赋值再 `build();calculate()`。",
+  },
+  {
+    slug: "it/matrix-multiplier",
+    // IT-E2 空态：四个维度全空时不得输出 0×0 结果。
+    inputs: { ar: "", ac: "", br: "", bc: "" },
+    clicks: ["calculate()"],
+    expect: ["请输入矩阵 A 与 B 的行列数"],
+    ref: "空态口径：四个维度全空 ⇒ 提示并 return；修复前 `+''` 得 0，ac===br 成立且 getM(...,0,0) 返回空数组，输出 `结果 C = A × B （0×0）`。默认 3×3 示例不含该提示。",
   },
   {
     slug: "it/calc-subnet",
