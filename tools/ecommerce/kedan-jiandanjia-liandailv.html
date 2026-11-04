@@ -120,16 +120,16 @@ s.parentNode.insertBefore(el, s);
 </div>
 <div class="card tool-card-accent" style="--tool-accent:#FF6B35;--tool-accent-dark:#FF6B35;">
     <h2 data-zh="🛍️ 客单（件单价/连带率）">Kedan Jiandanjia Liandailv</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按销售额与成交件数计算件单价、客单价与销售额量级。">Kedan Jiandanjia Liandailv</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按销售额、成交件数与订单数计算件单价、客单价与连带率，辅助门店连带销售分析。">Compute unit price, average order value and attach rate from sales, units sold and orders.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">件单价与客单价（生效算法，页内后一个 calc 覆盖通用模板）：件单价 = 销售额 ÷ 成交件数（元/件）；客单价 = 件单价 × 1.5（连带率按参考值 1.5 件/单固定）；联动量：销售额万元 = 销售额 ÷ 10000、十单销售额 = 件单价 × 1.5 × 10（元）。校验：两项非空守卫，非有限数报「请输入两个有效数值后再计算」。判据：无固定分级，成交件数为 0 时除法无定义由渲染兜底。</div>
-      <p class="formula-desc">本工具按销售额、订单数与件数计算客单价、件单价与连带率，辅助门店连带销售分析。</p>
+      <div class="formula-eq">件单价 = 销售额 ÷ 成交件数（元/件）；客单价 = 销售额 ÷ 订单数（元/单）；连带率 = 成交件数 ÷ 订单数（件/单）；销售额万元 = 销售额 ÷ 10000、十单销售额 = 客单价 × 10。校验：销售额、成交件数、订单数均须 &gt; 0；成交件数 &lt; 订单数时提示「件数不应少于订单数（每单至少 1 件）」，但按实际数据继续计算、不强制拦截（退货场景可能存在）。</div>
+      <p class="formula-desc">本工具按销售额、成交件数与订单数分别计算件单价、客单价与连带率，辅助门店连带销售分析。</p>
     </div>
     <div class="input-row">
-      <div><label>销售额（元）</label><input type="number" id="v0" value="186000" step="any" oninput="calc()" enterkeyhint="done" aria-label="件单价" placeholder="如 186000"></div>
-      <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label>成交件数</label><input type="number" id="v1" value="3100" step="any" oninput="calc()" enterkeyhint="done" aria-label="连带率" placeholder="如 3100"></div>
+      <div><label>销售额（元）</label><input type="number" id="v0" value="186000" step="any" oninput="calc()" enterkeyhint="done" aria-label="销售额" placeholder="如 186000"></div>
+      <div><label>成交件数（件）</label><input type="number" id="v1" value="3100" step="any" oninput="calc()" enterkeyhint="done" aria-label="成交件数" placeholder="如 3100"></div>
+      <div><label>订单数（单）</label><input type="number" id="v2" value="2000" step="any" oninput="calc()" enterkeyhint="done" aria-label="订单数" placeholder="如 2000"></div>
     </div>
     <div class="toolbar">
       <div id="kedan_jiandanjia_liandailvPresets"></div><button class="btn primary" type="button" onclick="calc()">🧮 计算</button><button class="btn" type="button" onclick="__kedan_jiandanjia_liandailvExport()">导出明细 CSV</button>
@@ -137,7 +137,7 @@ s.parentNode.insertBefore(el, s);
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div> <div id="kedan_jiandanjia_liandailvTable"></div> <div id="kedan_jiandanjia_liandailvDiff"></div> <div id="kedan_jiandanjia_liandailvChart"></div> <div id="kedan_jiandanjia_liandailvHist"></div>
-    <div class="info-box">💡 件单价 = 销售额 ÷ 成交件数；客单价 = 件单价 × 连带率（参考 1.5 件/单）。</div>
+    <div class="info-box">💡 件单价 = 销售额 ÷ 成交件数；客单价 = 销售额 ÷ 订单数；连带率 = 成交件数 ÷ 订单数（件/单）。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
 <div class="card" id="constRefBox">
   <h3 data-zh="📐 公式与标准引据">Formula &amp; Standard References</h3>
@@ -183,7 +183,7 @@ s.parentNode.insertBefore(el, s);
   var __TPL='请填写「%s」后再计算。';
   var __TPL2="<p style=\"color:var(--danger)\">⚠ 「%s」是本计算的分母，不能为 0。</p>";
   var _vals=[],_firstBad=-1;
-  var _REQ=['v0', 'v1'];
+  var _REQ=['v0', 'v1', 'v2'];
   for(var _i=0;_i<_ids.length;_i++){
     var _e=document.getElementById(_ids[_i]);
     if(!_e) continue;
@@ -205,7 +205,7 @@ s.parentNode.insertBefore(el, s);
     return __msg;
   }
   // 分母项：__D 由真浏览器逐项置零探测得出，命中即说明该输入在此页作分母
-  var __D={"v1": "v1"};
+  var __D={"v1": "成交件数", "v2": "订单数"};
   for(var _d=0;_d<_ids.length;_d++){
     if(!(_ids[_d] in __D)) continue;
     var _de=document.getElementById(_ids[_d]);
@@ -236,7 +236,7 @@ function __tbInputGuard(_ids,_labels){
   var __TPL='请填写「%s」后再计算。';
   var __TPL2="<p style=\"color:var(--danger)\">⚠ 「%s」是本计算的分母，不能为 0。</p>";
   var _vals=[],_firstBad=-1;
-  var _REQ=['v0', 'v1'];
+  var _REQ=['v0', 'v1', 'v2'];
   for(var _i=0;_i<_ids.length;_i++){
     var _e=document.getElementById(_ids[_i]);
     if(!_e) continue;
@@ -258,7 +258,7 @@ function __tbInputGuard(_ids,_labels){
     return __msg;
   }
   // 分母项：__D 由真浏览器逐项置零探测得出，命中即说明该输入在此页作分母
-  var __D={"v1": "v1"};
+  var __D={"v1": "成交件数", "v2": "订单数"};
   for(var _d=0;_d<_ids.length;_d++){
     if(!(_ids[_d] in __D)) continue;
     var _de=document.getElementById(_ids[_d]);
@@ -604,12 +604,12 @@ function swapValues(){
 function historyKey(){
   try{return 'tb_history_'+location.pathname;}catch(e){return 'tb_history_'+(document.title||'calc');}
 }
-function saveHistory(a,b){
+function saveHistory(a,b,c){
   try{
     var key=historyKey();
     var list=JSON.parse(localStorage.getItem(key)||'[]');
     var now=new Date();
-    var item={a:a,b:b,time:now.toLocaleString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})};
+    var item={a:a,b:b,c:c,time:now.toLocaleString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})};
     list.unshift(item);
     if(list.length>5)list=list.slice(0,5);
     localStorage.setItem(key,JSON.stringify(list));
@@ -624,17 +624,18 @@ function renderHistory(){
     if(list.length===0){box.innerHTML='<div class="history-empty">暂无计算记录</div>';return;}
     var html='<div class="history-list">';
     list.forEach(function(h){
-      html+='<div class="history-item" onclick="restoreHistory('+h.a+','+h.b+')">'+
-        '<div><div class="time">'+ToolBox.escHtml(h.time)+'</div><div class="summary">A='+h.a+' &nbsp; B='+h.b+'</div></div>'+
+      html+='<div class="history-item" onclick="restoreHistory('+h.a+','+h.b+','+(h.c==null?NaN:h.c)+')">'+
+        '<div><div class="time">'+ToolBox.escHtml(h.time)+'</div><div class="summary">A='+h.a+' &nbsp; B='+h.b+' &nbsp; C='+(h.c==null?'—':h.c)+'</div></div>'+
         '<span style="font-size:12px;color:var(--primary);">恢复</span></div>';
     });
     html+='</div>';
     const __g4=html;box.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
   }catch(e){box.innerHTML='<div class="history-empty">读取记录失败</div>';}
 }
-function restoreHistory(a,b){
+function restoreHistory(a,b,c){
   document.getElementById('v0').value=a;
   document.getElementById('v1').value=b;
+  if(isFinite(c))document.getElementById('v2').value=c;
   calc();
   ToolBox.showToast(i18nText(),'info');
 }
@@ -657,27 +658,33 @@ calc();
 <script>
 /* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
 function calc(){
-    var __ig=__tbInputGuard(['v0', 'v1'],["销售额（元）", "成交件数"]);if(__ig){const __g6=__ig;ToolBox.setResult("res",(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—')));return;}
-var e0=document.getElementById('v0'),e1=document.getElementById('v1');
-  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
+    var __ig=__tbInputGuard(['v0', 'v1', 'v2'],["销售额（元）", "成交件数", "订单数"]);if(__ig){const __g6=__ig;ToolBox.setResult("res",(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—')));return;}
+var e0=document.getElementById('v0'),e1=document.getElementById('v1'),e2=document.getElementById('v2');
+  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN,C=e2?parseFloat(e2.value):NaN;
   var box=document.getElementById('res');
   if(!box)return;
-  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  if(!isFinite(A)||!isFinite(B)||!isFinite(C)){box.innerHTML='<div class="info-box">请输入三个有效数值后再计算。</div>';return;}
+  if(A<=0||B<=0||C<=0){
+    box.innerHTML='<div class="info-box" style="color:var(--danger)">⚠ 销售额、成交件数与订单数均需大于 0（当前输入：销售额 '+A+'、件数 '+B+'、订单数 '+C+'），请修正后重算。</div>';
+    return;
+  }
   var items=[];
-  var up=A/B;
+  var up=A/B, aov=A/C, attach=B/C;
   items.push([up.toFixed(2), "件单价（元/件）"]);
-  items.push([(up*1.5).toFixed(2), "客单价（连带率 1.5）"]);
+  items.push([aov.toFixed(2), "客单价（元/单）"]);
+  items.push([attach.toFixed(2), "连带率（件/单）"]);
   items.push([(A/10000).toFixed(4), "销售额（万元）"]);
-  items.push([((A/B*1.5*10).toFixed(2)), "十单销售额（元）"]);
+  items.push([(aov*10).toFixed(2), "十单销售额（元）"]);
 
   var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
-  html+='💡 件单价 = 销售额 ÷ 成交件数；客单价 = 件单价 × 连带率（参考 1.5 件/单）。';
+  html+='💡 件单价 = 销售额 ÷ 成交件数；客单价 = 销售额 ÷ 订单数；连带率 = 成交件数 ÷ 订单数。';
+  if(B<C)html+='<div class="tip-mini" style="margin-top:8px;color:var(--danger);">⚠ 件数不应少于订单数（每单至少 1 件）；当前件数 '+B+'、订单数 '+C+'，已按实际数据计算，如为退货场景请复核。</div>';
   const __g8=html;box.innerHTML=(typeof __g8==='number'?(isFinite(__g8)?__g8:'—'):String(__g8).replace(/Infinity|NaN/g,'—'));
-  if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
+  if(typeof saveHistory==='function'){try{saveHistory(A,B,C);}catch(e){}}
 }
 function resetAll(){
-  var a=document.getElementById('v0'),b=document.getElementById('v1');
-  if(a)a.value='186000';if(b)b.value='3100';calc();
+  var a=document.getElementById('v0'),b=document.getElementById('v1'),c=document.getElementById('v2');
+  if(a)a.value='186000';if(b)b.value='3100';if(c)c.value='2000';calc();
 }
 try{calc();}catch(e){}
 
@@ -779,7 +786,7 @@ function __kedan_jiandanjia_liandailvExport(){
 }
 function __kedan_jiandanjia_liandailvPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#kedan_jiandanjia_liandailvPresets',[{label:'默认参数',labelEn:'Default',values:{'v0':'186000', 'v1':'3100'}},{"label":"服饰 268000 元","labelEn":"Apparel CNY 268k","values":{"v0":"268000","v1":"2100"}},{"label":"生鲜 96000 元","labelEn":"Fresh food CNY 96k","values":{"v0":"96000","v1":"4800"}},{"label":"数码 560000 元","labelEn":"Digital CNY 560k","values":{"v0":"560000","v1":"850"}}],function(){ calc(); });
+    TBKit.preset.bar('#kedan_jiandanjia_liandailvPresets',[{label:'默认参数',labelEn:'Default',values:{'v0':'186000','v1':'3100','v2':'2000'}},{"label":"服饰 268000 元","labelEn":"Apparel CNY 268k","values":{"v0":"268000","v1":"2100","v2":"1400"}},{"label":"生鲜 96000 元","labelEn":"Fresh food CNY 96k","values":{"v0":"96000","v1":"4800","v2":"3000"}},{"label":"数码 560000 元","labelEn":"Digital CNY 560k","values":{"v0":"560000","v1":"850","v2":"560"}}],function(){ calc(); });
 }
 var __kedan_jiandanjia_liandailv_f0=(typeof calc==='function')?calc:null;
 if(__kedan_jiandanjia_liandailv_f0){

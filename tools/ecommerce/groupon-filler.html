@@ -121,7 +121,7 @@ s.parentNode.insertBefore(el, s);
     <h2>🧮 满减凑单计算器</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">满 300 减 50，还差 12 元？把候选商品价格列出来，工具自动找出最优凑单组合（一个或多个商品），算出最小差额与最终实付。</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">差额 need = max(0, 满减门槛 − 当前金额)；单件最优取候选中 ≥ need 且 (v − need) 最小者；两件最优在升序候选上双指针——和 ≥ need 时记录最小 gap 并右移 hi，否则左移 lo；两者皆无解时取全部候选求和；实付 = max(0, 当前 + 凑单 − 减免)；折扣率 = (当前 + 凑单 − 减免) ÷ (当前 + 凑单) × 100%</div>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">差额 need = max(0, 满减门槛 − 当前金额)；单件最优取候选中 ≥ need 且 (v − need) 最小者；两件最优在升序候选上双指针——和 ≥ need 时记录最小 gap 并右移 hi，否则左移 lo；两者皆无解时取全部候选求和；实付 = max(0, 当前 + 凑单 − 减免)；实付比例 = 实付 ÷ 总价 × 100%（下限 0、上限 100%，不做负数）；折扣力度 = 100% − 实付比例 = 优惠 ÷ 总价 × 100%。注意本页不使用「折扣率」一词，避免与全站「折扣率 = 优惠/原价」口径混淆。</div>
       <p class="formula-desc" data-zh="「Groupon Filler」按输入参数进行专业计算并输出结果。">Groupon Filler: computes and outputs results from the input parameters.</p>
     </div>
 
@@ -221,7 +221,7 @@ s.parentNode.insertBefore(el, s);
   <ul>
         <li>单件最优 + 两件双指针组合求最小差额</li>
         <li>候选价格需为可单独凑单的商品（平台部分商品不参与满减）</li>
-        <li>实付 = 当前金额 + 凑单 - 优惠，折扣率越低越划算</li>
+        <li>实付 = 当前金额 + 凑单 - 优惠；实付比例越低（折扣力度越高）越划算</li>
         <li>结果仅供参考，以电商平台结算页为准</li>
   </ul>
 </div>
@@ -273,12 +273,15 @@ function calcTool(){const target=num('target'), cut=num('cut'), cur=num('cur');
    const need=Math.max(0,target-cur);
    if(need<=0){
      const paid=Math.max(0,cur-cut);
+     const ratio=cur>0?Math.max(0,Math.min(100,paid/cur*100)):0;
      let html=dataGrid([
        ['已满足','满减门槛'],
        ['0.00 元','无需凑单'],
        [fmtMoney(paid),'实付金额'],
-       [(paid/cur*100).toFixed(2)+'%','折扣率']
+       [ratio.toFixed(2)+'%','实付比例（实付/总价）'],
+       [(100-ratio).toFixed(2)+'%','折扣力度（优惠/总价）']
      ]);
+     if(cut>cur)html+='<p class="tip-error" style="font-size:13px;margin-top:8px;">⚠ 减免 ¥'+fmtMoney(cut)+' 超过总价 ¥'+fmtMoney(cur)+'，实付比例已按 0 封顶（不会出现负数）。</p>';
      html += '<p style="font-size:13px;color:var(--text-muted);margin-top:8px;">当前金额已达到满减门槛，无需再加购；如需叠加更高档位，请把「满减门槛」改成更高档位后重算。</p>';
      const __g1=html;ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;
    }
@@ -304,26 +307,29 @@ function calcTool(){const target=num('target'), cut=num('cut'), cur=num('cur');
      const sum=cands.reduce((a,b)=>a+b,0);
      best={items:cands,gap:Math.max(0,sum-need),total:sum};
    }
-   const finalPay=Math.max(0,cur+best.total-cut);
-   const effective=(cur+best.total-cut)/(cur+best.total)*100;
+   const total=cur+best.total;
+   const finalPay=Math.max(0,total-cut);
+   const effective=total>0?Math.max(0,Math.min(100,finalPay/total*100)):0;
    let html=dataGrid([
      ['差 '+need.toFixed(2)+' 元','距离满减差额'],
      [best.items.join(' + ')+' 元','推荐凑单'],
      ['+'+best.gap.toFixed(2)+' 元','最小差额'],
      [fmtMoney(finalPay),'实付金额'],
-     [effective.toFixed(2)+'%','折扣率']
+     [effective.toFixed(2)+'%','实付比例（实付/总价）'],
+     [(100-effective).toFixed(2)+'%','折扣力度（优惠/总价）']
    ]);
+   if(cut>total)html+='<p class="tip-error" style="font-size:13px;margin-top:8px;">⚠ 减免 ¥'+fmtMoney(cut)+' 超过总价 ¥'+fmtMoney(total)+'，实付比例已按 0 封顶（不会出现负数）。</p>';
    html += '<p style="font-size:13px;color:var(--text-muted);margin-top:8px;">若候选价均不足差额，已取全部候选总和估算。实际可用多个商品叠加，购物车结算前请以平台券规则为准。</p>';
 
    // 常见满减档位参考
    html += '<div style="margin-top:12px;font-size:13px;"><b>常见满减档位参考</b></div>'+
      '<table class="csv-prev" style="margin-top:6px;border-collapse:collapse;width:100%;font-size:12.5px;">'+
      '<tr><th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">档位</th>'+
-     '<th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">折扣率</th>'+
+     '<th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">实付比例（折数）</th>'+
      '<th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">凑单建议</th></tr>'+
-     '<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">满200减30</td><td style="border:1px solid #d1d5db;padding:5px 8px;">85折</td><td style="border:1px solid #d1d5db;padding:5px 8px;">差 30 内买日用品</td></tr>'+
-     '<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">满300减50</td><td style="border:1px solid #d1d5db;padding:5px 8px;">83折</td><td style="border:1px solid #d1d5db;padding:5px 8px;">差 50 内买耗材</td></tr>'+
-     '<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">满400减60</td><td style="border:1px solid #d1d5db;padding:5px 8px;">85折</td><td style="border:1px solid #d1d5db;padding:5px 8px;">差 60 内买零食</td></tr>'+
+     '<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">满200减30</td><td style="border:1px solid #d1d5db;padding:5px 8px;">85.00%（8.5 折）</td><td style="border:1px solid #d1d5db;padding:5px 8px;">差 30 内买日用品</td></tr>'+
+     '<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">满300减50</td><td style="border:1px solid #d1d5db;padding:5px 8px;">83.33%（8.3 折）</td><td style="border:1px solid #d1d5db;padding:5px 8px;">差 50 内买耗材</td></tr>'+
+     '<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">满400减60</td><td style="border:1px solid #d1d5db;padding:5px 8px;">85.00%（8.5 折）</td><td style="border:1px solid #d1d5db;padding:5px 8px;">差 60 内买零食</td></tr>'+
      '</table>';
  
    const __g1=html;ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));}
