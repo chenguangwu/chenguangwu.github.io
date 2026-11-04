@@ -233,6 +233,20 @@ const CASES = [
       "abc123测试\n共 1 条\n⚠ 计算结果含无效值，请检查输入是否为有效正数。\n巡检路线 1"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"routeName\":\"abc123测试\",\"routeLast\":\"abc123测试\",\"newChk\":\"abc123测试\",\"routeFreq\":\"7\"}，输出区含「abc123测试\n共 1 条\n⚠ 计算结果含无效值，请检查输入是否为有效正数。\n…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "property/cleaning-allocation",
+    "inputs": { "staffCount": "2" },
+    "dynDom": true,
+    "expect": ["2 保洁人数"],
+    "ref": "保洁人数卡片直读 staffCount：注入 2 ⇒ 结果区「2 保洁人数」；页面默认 4 ⇒「4 保洁人数」，不含「2 保洁人数」⇒ 注入失败必 FAIL。动态任务行在桩内未登记（querySelectorAll 取不到 .task-row），故断言只锚定人数分支，不伪造工作量数值。"
+  },
+  {
+    "slug": "property/irrigation-schedule",
+    "inputs": { "days": "10", "seed": "7", "rainProb": "80" },
+    "dynDom": true,
+    "expect": ["6/22 ☀️ 晴 35℃ 需浇"],
+    "ref": "冻结时钟 2024-06-15 起排 10 天；seed=7 + rainProb=80% 的确定性序列第 8 天（6/22）为晴 35℃ 需浇。默认 seed=42/rainProb=25%/14 天，同一格天气与日期不同 ⇒ 注入失败必 FAIL。区域表因动态行未登记不参与断言。"
   }
 
 ];
