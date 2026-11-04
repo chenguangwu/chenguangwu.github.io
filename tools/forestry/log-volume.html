@@ -261,13 +261,15 @@ function gbVolume(D,L){
 if(D<14)return 0.00007854*L*(D+0.45*L+0.2)*(D+0.45*L+0.2);
 return 0.00007854*L*(D+0.5*L+0.005*L*L+0.000125*L*(14-L)*(14-L)*(D-10))*(D+0.5*L+0.005*L*L+0.000125*L*(14-L)*(14-L)*(D-10));
 }
+function singleVolume(D,L){
+if(curMethod===0)return gbVolume(D,L);
+if(curMethod===1)return 0.00007854*L*D*D;
+return 0.00007854*L*(D+0.8*L)*(D+0.8*L);
+}
 function calc(){
 var D=parseFloat($('diameter').value)||0;var L=parseFloat($('length').value)||0;var q=parseInt($('quantity').value)||1;
 if(D<=0||L<=0){$('result').innerHTML='<div class="error">请输入有效尺寸</div>';return;}
-var V;
-if(curMethod===0)V=gbVolume(D,L);
-else if(curMethod===1)V=0.00007854*L*D*D;
-else V=0.00007854*L*(D+0.8*L)*(D+0.8*L);
+var V=singleVolume(D,L);
 var total=V*q;
 var density=0.55;var weight=V*density*1000*q;
 const __g3='<h3 style="text-align:center;margin-bottom:12px;">⚖️ 原木材积计算结果</h3>'+
@@ -289,11 +291,11 @@ const __g3='<h3 style="text-align:center;margin-bottom:12px;">⚖️ 原木材�
 if(logs.length)renderLogs();
 }
 function addLog(){var D=parseFloat($('diameter').value)||0;var L=parseFloat($('length').value)||0;var q=parseInt($('quantity').value)||1;
-if(D<=0||L<=0){ToolBox.showToast(i18nText('toast.msg820'),'error');return;}var V=gbVolume(D,L);logs.push({d:D,l:L,q:q,v:V*q});ToolBox.showToast(i18nText('toast.msg257'),'success');renderLogs();calc();}
+if(D<=0||L<=0){ToolBox.showToast(i18nText('toast.msg820'),'error');return;}var V=singleVolume(D,L);logs.push({d:D,l:L,q:q,v:V*q});ToolBox.showToast(i18nText('toast.msg257'),'success');renderLogs();calc();}
 function renderLogs(){$('logsBox').style.display='block';var total=0;const __g4=logs.map(function(l,i){total+=l.v;return '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:13px;"><span>Φ'+l.d+'×'+l.l+'m ×'+l.q+'根</span><span>'+l.v.toFixed(3)+'m³ <button onclick="removeLog('+i+')" style="color:#f44336;background:none;border:none;cursor:pointer;font-size:12px;">×</button></span></div>';}).join('');$('logsList').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));const __g5='<strong>合计：'+total.toFixed(3)+' m³</strong>';$('logsTotal').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));}
 function removeLog(i){logs.splice(i,1);if(!logs.length)$('logsBox').style.display='none';renderLogs();calc();}
 function renderRefTable(){var rows='';var lens=[2,3,4,5,6];[8,10,12,14,16,18,20,24,30,40].forEach(function(d){rows+='<tr><td>'+d+'</td>';lens.forEach(function(l){rows+='<td>'+gbVolume(d,l).toFixed(3)+'</td>';});rows+='</tr>';});const __g6=rows;$('refTable').innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));}
-function saveHistory(){var r={time:new Date().toLocaleString('zh-CN'),d:$('diameter').value,l:$('length').value,q:$('quantity').value,v:gbVolume(parseFloat($('diameter').value)||0,parseFloat($('length').value)||0)};var h=getHistory();h.unshift(r);if(h.length>20)h=h.slice(0,20);localStorage.setItem(HK,JSON.stringify(h));}
+function saveHistory(){var r={time:new Date().toLocaleString('zh-CN'),d:$('diameter').value,l:$('length').value,q:$('quantity').value,v:singleVolume(parseFloat($('diameter').value)||0,parseFloat($('length').value)||0)*(parseInt($('quantity').value)||1)};var h=getHistory();h.unshift(r);if(h.length>20)h=h.slice(0,20);localStorage.setItem(HK,JSON.stringify(h));}
 function getHistory(){try{return JSON.parse(localStorage.getItem(HK)||'[]');}catch(e){return[];}}
 function renderHistory(){var h=getHistory();if(!h.length){$('historyList').innerHTML='<div class="history-empty">暂无历史</div>';return;}const __g8=h.map(function(r,i){return '<div class="history-item" onclick="loadHistory('+i+')"><div class="time">'+r.time+'</div><div class="summary">Φ'+r.d+'×'+r.l+'m ×'+r.q+'根</div><div class="detail">'+r.v.toFixed(4)+'m³</div></div>';}).join('');$('historyList').innerHTML=(typeof __g8==='number'?(isFinite(__g8)?__g8:'—'):String(__g8).replace(/Infinity|NaN/g,'—'));}
 function loadHistory(i){switchTab('calc');calc();}

@@ -156,7 +156,7 @@ s.parentNode.insertBefore(el, s);
       </div>
       <div>
         <label>预计/实际产犊日期</label>
-        <input type="date" id="nextCalving" oninput="calc()">
+        <input type="date" id="nextCalving" oninput="this.dataset.auto='0';calc()">
       </div>
     </div>
 
@@ -267,33 +267,56 @@ function num(id){
   return isNaN(v) ? 0 : v;
 }
 
+function parseLocalDate(s){
+  var p=s.split('-');
+  if(p.length!==3)return new Date(NaN);
+  return new Date(+p[0],+p[1]-1,+p[2]);
+}
+function fmtLocal(d){
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
 function calc(){
   var lastStr = document.getElementById('lastCalving').value;
   var breedStr = document.getElementById('breedingDate').value;
-  var nextStr = document.getElementById('nextCalving').value;
+  var nextEl = document.getElementById('nextCalving');
+  var nextStr = nextEl.value;
+  var nextAuto = nextEl.dataset.auto === '1';
   var daysFirst = num('daysToFirstBreed');
   var breedTimes = num('breedTimes');
   var gestation = num('gestation') || 283;
 
-  // 设置默认日期
+  // 默认上次产犊日期 = 一年前（本地时间，避免 toISOString 的 UTC 偏移）
   if(!lastStr){
     var d = new Date(); d.setDate(d.getDate() - 365);
-    lastStr = d.toISOString().split('T')[0];
+    lastStr = fmtLocal(d);
     document.getElementById('lastCalving').value = lastStr;
   }
 
-  var lastDate = new Date(lastStr);
+  var lastDate = parseLocalDate(lastStr);
+  if(isNaN(lastDate.getTime())){
+    document.getElementById('result').innerHTML='<div class="tip-box tip-warn">请输入有效的上次产犊日期</div>';
+    return;
+  }
 
-  // 预计下次产犊：配种日期 + 妊娠期
+  // 预计下次产犊：用户手填优先；自动推算值随配种日期/妊娠期联动刷新
   var nextDate;
-  if(nextStr){
-    nextDate = new Date(nextStr);
-  } else if(breedStr){
-    var breedDate = new Date(breedStr);
-    nextDate = new Date(breedDate.getTime() + gestation * 86400000);
-    document.getElementById('nextCalving').value = nextDate.toISOString().split('T')[0];
-  } else {
-    nextDate = new Date(lastDate.getTime() + 365 * 86400000);
+  if(nextStr && !nextAuto){
+    nextDate = parseLocalDate(nextStr);
+    if(isNaN(nextDate.getTime())){ nextDate = null; }
+  }
+  if(!nextDate){
+    if(breedStr){
+      var breedDate = parseLocalDate(breedStr);
+      if(isNaN(breedDate.getTime())){
+        document.getElementById('result').innerHTML='<div class="tip-box tip-warn">请输入有效的配种日期</div>';
+        return;
+      }
+      nextDate = new Date(breedDate.getFullYear(), breedDate.getMonth(), breedDate.getDate() + gestation);
+    } else {
+      nextDate = new Date(lastDate.getFullYear(), lastDate.getMonth(), lastDate.getDate() + 365);
+    }
+    nextEl.value = fmtLocal(nextDate);
+    nextEl.dataset.auto = '1';
   }
 
   // 产犊间隔

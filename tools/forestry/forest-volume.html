@@ -290,7 +290,8 @@ var pA=parseFloat($('plotArea').value)||0,pV=parseFloat($('plotVol').value)||0;
 if(pA>0)volPerHa=pV/pA*10000;var area=parseFloat($('area').value)||0;total=volPerHa*area;
 }else{
 var D=parseFloat($('dbh').value)||0,H=parseFloat($('avgH').value)||0,N=parseFloat($('treesPerHa').value)||0,f=parseFloat($('formFactor').value)||0.42;
-treeVol=0.00007854*D*D*(H+3)*f;volPerHa=treeVol*N/1000;var area=parseFloat($('area').value)||0;total=volPerHa*area;
+// v = 0.00007854 × DBH² × (H+3) × f，单位已为 m³/株，单株材积 × 株数即为 m³/公顷
+treeVol=0.00007854*D*D*(H+3)*f;volPerHa=treeVol*N;var area=parseFloat($('area').value)||0;total=volPerHa*area;
 }
 if(volPerHa<=0){$('result').innerHTML='<div class="error">请输入有效参数</div>';return;}
 const __g4='<h3 style="text-align:center;margin-bottom:12px;">🌳 林分蓄积量计算结果</h3>'+
@@ -315,10 +316,24 @@ for(var i=0;i<5;i++){var bx=pad.left+cw/2-bw*2.5+bw*i*1.2;var bh=vals[i]/maxY*ch
 var pos=v/maxY*ch;if(v<=maxY){ctx.fillStyle='#ff5722';ctx.beginPath();ctx.arc(pad.left+cw/2,pad.top+ch-pos,6,0,Math.PI*2);ctx.fill();ctx.fillStyle='#ff5722';ctx.textAlign='left';ctx.fillText('当前: '+v.toFixed(0),pad.left+cw/2+10,pad.top+ch-pos+3);}
 ctx.fillStyle=resolveCanvasColor('var(--text-light)','#9CA3AF');ctx.textAlign='center';ctx.fillText('单位：m³/公顷',pad.left+cw/2,H-8);
 }
-function saveHistory(){var r={time:new Date().toLocaleString('zh-CN'),method:METHODS[curMethod].name};var h=getHistory();h.unshift(r);if(h.length>20)h=h.slice(0,20);localStorage.setItem(HK,JSON.stringify(h));}
+function saveHistory(){
+var r={time:new Date().toLocaleString('zh-CN'),method:METHODS[curMethod].name,m:curMethod};
+if(curMethod===0){r.fConst=$('fConst').value;r.count=$('count').value;r.avgH=$('avgH').value;r.formFactor=$('formFactor').value;r.area=$('area').value;}
+else if(curMethod===1){r.plotArea=$('plotArea').value;r.plotVol=$('plotVol').value;r.area=$('area').value;}
+else{r.dbh=$('dbh').value;r.avgH=$('avgH').value;r.treesPerHa=$('treesPerHa').value;r.formFactor=$('formFactor').value;r.area=$('area').value;}
+var h=getHistory();h.unshift(r);if(h.length>20)h=h.slice(0,20);localStorage.setItem(HK,JSON.stringify(h));
+}
 function getHistory(){try{return JSON.parse(localStorage.getItem(HK)||'[]');}catch(e){return[];}}
 function renderHistory(){var h=getHistory();if(!h.length){$('historyList').innerHTML='<div class="history-empty">暂无历史</div>';return;}const __g6=h.map(function(r,i){return '<div class="history-item" onclick="loadHistory('+i+')"><div class="time">'+r.time+'</div><div class="summary">'+r.method+'</div></div>';}).join('');$('historyList').innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));}
-function loadHistory(i){switchTab('calc');calc();}
+function loadHistory(i){
+var r=getHistory()[i];
+if(!r)return;
+if(typeof r.m==='number'){curMethod=r.m;renderMethods();}
+['fConst','count','avgH','formFactor','area','plotArea','plotVol','dbh','treesPerHa'].forEach(function(k){
+  if(r[k]!==undefined&&$(k))$(k).value=r[k];
+});
+calc();
+}
 function clearHistory(){if(confirm('清空?')){localStorage.removeItem(HK);renderHistory();}}
 function resetForm(){curMethod=0;renderMethods();}
 window.addEventListener('resize',function(){if($('chartWrap').style.display!=='none')calc();});
