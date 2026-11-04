@@ -273,6 +273,9 @@ function tomlVal(v){
   if(typeof v === 'object') return JSON.stringify(v);
   return JSON.stringify(String(v));
 }
+function tomlKey(k){
+  return /^[A-Za-z0-9_-]+$/.test(k) ? k : JSON.stringify(String(k));
+}
 function toToml(v, prefix){
   prefix = prefix || '';
   let s = '';
@@ -283,9 +286,9 @@ function toToml(v, prefix){
     else if(Array.isArray(val) && val.length && val.every(x => x && typeof x === 'object' && !Array.isArray(x))){ tables[k] = val; }
     else { scalar[k] = val; }
   }
-  for(const k in scalar) s += k + ' = ' + tomlVal(scalar[k]) + '\n';
+  for(const k in scalar) s += tomlKey(k) + ' = ' + tomlVal(scalar[k]) + '\n';
   for(const k in tables){
-    const full = prefix ? prefix + '.' + k : k;
+    const full = prefix ? prefix + '.' + tomlKey(k) : tomlKey(k);
     if(Array.isArray(tables[k])){
       tables[k].forEach(item => { s += '\n[[' + full + ']]\n' + toToml(item, full); });
     } else {

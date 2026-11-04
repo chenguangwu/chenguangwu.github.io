@@ -312,19 +312,24 @@ function minifyShell(){
   setErr('');
   try{
     const src = document.getElementById('input').value;
-    const lines = src.split('\n').map(l => l.trim()).filter((l, i, arr) => {
-      if(l === '' && (i === 0 || arr[i-1] === '')) return false;
-      return true;
-    });
-    let out = '';
+    const lines = src.split('\n');
+    const out = [];
+    let heredoc = null;
     for(let i = 0; i < lines.length; i++){
-      const cur = lines[i];
-      const next = lines[i+1] || '';
-      const needsSep = cur.endsWith(';') || cur.endsWith('{') || cur.endsWith('(') || cur.endsWith('\\') || cur.endsWith('then') || cur.endsWith('do') || next.startsWith('then') || next.startsWith('do') || next.startsWith('fi') || next.startsWith('done') || next.startsWith('else') || next.startsWith('elif') || next.startsWith('esac') || next.startsWith('}') || next.startsWith(')') || cur.startsWith('#!');
-      out += cur + (needsSep || cur === '' ? '\n' : '; ');
+      const raw = lines[i];
+      if(heredoc){
+        out.push(raw);
+        if(raw.trim() === heredoc) heredoc = null;
+        continue;
+      }
+      const t = raw.trim();
+      if(!t) continue;
+      const m = t.match(/<<-?\s*['"]?([A-Za-z_][A-Za-z0-9_]*)['"]?/);
+      out.push(t);
+      if(m) heredoc = m[1];
     }
-    setOut(out.trim());
-    setErr('✅ 压缩成功');
+    setOut(out.join('\n'));
+    setErr('✅ 压缩成功（保留换行，确保 && / | / else / case / heredoc 语法有效）');
   }catch(e){ setErr('❌ ' + e.message); }
 }
 function doBeautify(){ formatShell(); }

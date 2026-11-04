@@ -431,7 +431,7 @@ s.parentNode.insertBefore(el, s);
       <h2>&#127758; 世界时钟</h2>
       <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">同时查看世界主要城市当前时间</p>
       <div class="card formula-box">
-  <div class="formula-title">📐 计算方式</div> <div class="formula-eq">时区换算<br>时差(分钟) = 时区B 的 UTC 偏移 − 时区A 的 UTC 偏移<br>目标时间 = 源时间 + 时差（对 1440 分钟取模，保持 0:00~23:59）<br>夏令时：勾选 DST 后按各地区夏令时规则取偏移量（+1 小时）<br>时差为正 → B 比 A 快；为负 → 慢；为 0 → 同时区</div>
+  <div class="formula-title">📐 计算方式</div> <div class="formula-eq">时区换算<br>时差(分钟) = 时区B 的 UTC 偏移 − 时区A 的 UTC 偏移<br>目标时间 = 源时间 + 时差（对 1440 分钟取模，保持 0:00~23:59）<br>夏令时：勾选 DST 后，仅当所选日期落在该地区夏令时月份内时才使用夏令时偏移，否则使用标准偏移<br>时差为正 → B 比 A 快；为负 → 慢；为 0 → 同时区</div>
   <p>目标地当地时刻 = 本地时刻 + (目标地 UTC 偏移 − 本地 UTC 偏移)；UTC 偏移含半小时制与夏令时调整，跨日时自动进位。</p>
 </div>
 <div class="card formula-box">
@@ -670,8 +670,11 @@ s.parentNode.insertBefore(el, s);
     return tz.dstMonths.indexOf(month) !== -1;
   }
 
-  function getOffset(tz, useDST) {
-    if (useDST && tz.dstOffset !== null) return tz.dstOffset;
+  function getOffset(tz, useDST, month) {
+    if (useDST && tz.dstOffset !== null) {
+      var m = month || (new Date().getMonth() + 1);
+      if (tz.dstMonths.indexOf(m) !== -1) return tz.dstOffset;
+    }
     return tz.stdOffset;
   }
 
@@ -829,8 +832,8 @@ s.parentNode.insertBefore(el, s);
       day = parseInt(parts[2]);
     }
 
-    var srcOffset = getOffset(srcTz, useDST);
-    var dstOffset = getOffset(dstTz, useDST);
+    var srcOffset = getOffset(srcTz, useDST, month);
+    var dstOffset = getOffset(dstTz, useDST, month);
 
     var result = convertTime(srcOffset, dstOffset, h, m, s, year, month, day);
     var diffMinutes = dstOffset - srcOffset;
@@ -840,10 +843,10 @@ s.parentNode.insertBefore(el, s);
     else if (result.dayDiff < 0) dayDiffText = ' ' + result.dayDiff + ' 天';
 
     var dstNote = '';
-    if (useDST && dstTz.dstOffset !== null) {
+    if (useDST && getOffset(dstTz, true, month) === dstTz.dstOffset) {
       dstNote = '<div class="dst-note">&#9728;&#65039; 使用夏令时偏移：' + offsetToStr(dstTz.dstOffset) + '</div>';
     }
-    if (useDST && srcTz.dstOffset !== null) {
+    if (useDST && getOffset(srcTz, true, month) === srcTz.dstOffset) {
       dstNote += '<div class="dst-note" style="margin-top:2px;">&#9728;&#65039; 源时区使用夏令时偏移：' + offsetToStr(srcTz.dstOffset) + '</div>';
     }
 
@@ -921,8 +924,9 @@ s.parentNode.insertBefore(el, s);
     var tzB = TIMEZONES[idxB];
     var useDST = document.getElementById('chkDiffDST').checked;
 
-    var offsetA = getOffset(tzA, useDST);
-    var offsetB = getOffset(tzB, useDST);
+    var curMonth = new Date().getMonth() + 1;
+    var offsetA = getOffset(tzA, useDST, curMonth);
+    var offsetB = getOffset(tzB, useDST, curMonth);
     var diff = offsetB - offsetA;
 
     var direction = '';

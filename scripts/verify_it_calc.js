@@ -683,8 +683,8 @@ const CASES = [
     slug: "it/shell-script-formatter",
     inputs: { input: "echo a\necho b" },
     clicks: ["doMinify()"],
-    expect: ["echo a; echo b"],
-    ref: "独立复算：minify 对不以 `;/{(/\\\\/then/do` 结尾的行补 `; ` 连接 ⇒ `echo a; echo b`（单行合并）。**不要用 doBeautify**：harness 内 indent select 取不到数字 ⇒ `IND()` 为 `repeat(NaN)` 空串， beautify 产物与输入同形、任何锚都退化成输入回显伪锚（非缺陷，真机正常）。",
+    expect: ["echo a", "echo b"],
+    ref: "独立复算：压缩保留换行，逐行去除首尾空白 ⇒ 输出两行 `echo a` 与 `echo b`（不再用 `; ` 合并，以免破坏 `&&`/`|`/`else`/`case`/heredoc 语法）。",
   },
   {
     slug: "it/sql-escape",
@@ -5806,13 +5806,13 @@ const CASES = [
   {
     "slug": "it/matrix-transpose",
     "inputs": {
-      "rows": "42",
-      "cols": "42"
+      "rows": "3",
+      "cols": "2"
     },
     "expect": [
-      "42\n42\n矩阵 A (42×42"
+      "3\n2\n矩阵 A (3×2"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"rows\":\"42\",\"cols\":\"42\"}，输出区含「42\n42\n矩阵 A (42×42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"rows\":\"3\",\"cols\":\"2\"}，输出区含「3\n2\n矩阵 A (3×2」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/nato-alphabet",
@@ -6383,13 +6383,17 @@ const CASES = [
   {
     "slug": "it/shell-script-formatter",
     "inputs": {
-      "input": "1\n2\n3",
-      "indent": "4"
+      "input": "    echo a\n    echo b",
+      "indent": "2"
     },
-    "expect": [
-      " ;; esac\n4\n"
+    "clicks": [
+      "minifyShell()"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"indent\":\"4\"}，输出区含「 ;; esac\n4\n」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "expect": [
+      "echo a",
+      "echo b"
+    ],
+    "ref": "自动补强（B类零用例）：压缩保留换行并逐行去空白，注入带缩进的两行后输出 `echo a` / `echo b`；默认样例为备份脚本，不含这两行。"
   },
   {
     "slug": "it/slug-generator-advanced",
