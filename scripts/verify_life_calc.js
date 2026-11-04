@@ -2486,6 +2486,42 @@ const CASES = [
     ref: "出生日期按本地年月日构造（new Date(2000,1,29)）而非 new Date('2000-02-29') 的 UTC 解析："
        + "后者在 UTC 负时区会回退到 2 月 28 日。2000 年为闰年、2 月 29 日存在 ⇒ 回显必须与输入一致。"
        + "默认值为 25 年前的日期（1999-06-15），不命中。",
+  },
+  {
+    slug: "life/generator-price",
+    inputs: { unitPrice: "20000", qty: "3", taxRate: "13", discountRate: "25" },
+    expect: ["合同总额：¥50,850", "预付款（30%）：¥15,255", "尾款：¥35,595", "违约金（10%）：¥5,085"],
+    ref: "先折扣后计税：小计 20000×3=60000，折扣 60000×25%=15000，净额 45000，税额 45000×13%=5850，"
+       + "总额 round(50850)=50850；预付款 round(50850×30%)=round(15255)=15255，尾款 50850−15255=35595，"
+       + "违约金 round(5085)=5085。默认输入为 10000/2/6/10（总额 19080），注入值不同 ⇒ 旧随机生成器不可能命中固定四值。",
+  },
+  {
+    slug: "life/chinese-number",
+    inputs: { inputVal: "54321.78" },
+    expect: ["五万四千三百二十一点七八", "伍万肆仟叁佰贰拾壹元柒角捌分"],
+    ref: "简体读数 54321 → 五万四千三百二十一、小数逐位「点七八」；人民币大写按分量化："
+       + "伍万肆仟叁佰贰拾壹元柒角捌分（54321.78 元）。默认 12345.67 ⇒ 注入值不同，旧实现也不会命中该组串。",
+  },
+  {
+    slug: "life/chinese-number",
+    inputs: { inputVal: "10086" },
+    expect: ["一万零八十六"],
+    ref: "10086 = 1×10000 + 86，节内补「零」⇒ 一万零八十六（deep-dive 示例值）。"
+       + "默认 12345.67 的读数不含该串 ⇒ 注入失败即不命中。",
+  },
+  {
+    slug: "life/cycle-pruning-lawn",
+    clicks: ["document.getElementById('lawnList').innerHTML='PARSE='+fmtDate(parseLocalDate('2024-02-29'));"],
+    expect: ["PARSE=2024-02-29"],
+    ref: "日期字符串必须按本地年月日解析（new Date(2024,1,29)），闰日 2 月 29 日往返格式化仍为 2024-02-29；"
+       + "旧实现 new Date('2024-02-29') 按 UTC 解析，在 UTC 负时区会回退到 2 月 28 日。默认草坪列表不含 PARSE 串。",
+  },
+  {
+    slug: "life/reminder-cycle",
+    clicks: ["document.getElementById('applList').innerHTML='PARSE='+fmtDate(parseLocalDate('2024-02-29'));"],
+    expect: ["PARSE=2024-02-29"],
+    ref: "同上：周期提醒的下次日期基于本地闰日解析，2 月 29 日往返不偏移；旧 UTC 解析在负时区回退一天。"
+       + "默认提醒列表不含 PARSE 串。",
   }
 
 ];

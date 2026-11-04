@@ -267,6 +267,10 @@ function fmtDate(d) {
   var p = function(n){ return n < 10 ? '0' + n : n; };
   return d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate());
 }
+function parseLocalDate(str){
+  var p = String(str).split('-');
+  return new Date(+p[0], +p[1] - 1, +p[2]);
+}
 function todayStr() { return fmtDate(new Date()); }
 function fillToday() {
   document.getElementById('lawnStart').value = todayStr();
@@ -279,21 +283,21 @@ function getTaskFreq(taskId, lawnType) {
 }
 
 function getLastLog(lawnId, taskId) {
-  var filtered = logs.filter(function(l){ return l.lawnId === lawnId && l.type === taskId; }).sort(function(a, b){ return new Date(a.date) - new Date(b.date); });
+  var filtered = logs.filter(function(l){ return l.lawnId === lawnId && l.type === taskId; }).sort(function(a, b){ return parseLocalDate(a.date) - parseLocalDate(b.date); });
   return filtered.length ? filtered[filtered.length - 1] : null;
 }
 
 function getNextDate(lawn, taskId) {
   var freq = getTaskFreq(taskId, lawn.type);
   var last = getLastLog(lawn.id, taskId);
-  var base = last ? new Date(last.date) : new Date(lawn.start);
+  var base = last ? parseLocalDate(last.date) : parseLocalDate(lawn.start);
   var next = new Date(base);
   next.setDate(next.getDate() + freq);
   return next;
 }
 
 function getDaysUntil(date) {
-  var today = new Date(todayStr());
+  var today = parseLocalDate(todayStr());
   return Math.ceil((date - today) / (1000 * 60 * 60 * 24));
 }
 
@@ -442,7 +446,7 @@ function renderLogList() {
   var sel = document.getElementById('logLawn');
   const __h3='<option value="">请选择草坪</option>' + lawns.map(function(l){ return '<option value="' + l.id + '">' + ToolBox.escHtml(l.name) + '</option>'; }).join('');if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){sel.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}sel.innerHTML=__h3;
   if (!logs.length) { const __h4='<div class="empty">暂无维护记录</div>';if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h4; return; }
-  var sorted = logs.slice().sort(function(a, b){ return new Date(b.date) - new Date(a.date); });
+  var sorted = logs.slice().sort(function(a, b){ return parseLocalDate(b.date) - parseLocalDate(a.date); });
   var html = '<table><thead><tr><th>日期</th><th>草坪</th><th>类型</th><th>备注</th><th>操作</th></tr></thead><tbody>';
   sorted.forEach(function(l) {
     html += '<tr><td>' + l.date + '</td><td>' + ToolBox.escHtml(l.lawnName) + '</td><td>' + l.typeName + '</td><td>' + ToolBox.escHtml(l.note) + '</td><td><button class="mini-btn" onclick="delLog(' + l.id + ')" style="color:var(--danger);">删除</button></td></tr>';

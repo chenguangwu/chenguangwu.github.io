@@ -114,14 +114,14 @@ s.parentNode.insertBefore(el, s);
 </div>
 <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="⚖️ 合同（服务/价格/条款）生成">⚖️ Service Contract &amp; Pricing Generator</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="服务/价格/条款">Contract - ( Service / Price / Clause ) Generate - generate results in-browser quickly and keep all data local.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入单价、数量、税率与折扣率，按「先折扣、再计税」计算合同总额、预付款、尾款与违约金，并生成合同条款草案；全部计算在浏览器本地完成。">Enter unit price, quantity, tax rate and discount rate to compute the contract total, deposit, balance and penalty (discount first, then tax), then generate contract drafts locally in your browser.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-      <div class="formula-eq">合同金额 = 随机单价（1000–50000 元）；预付款 = round(合同金额 × 30%)；尾款 = 合同金额 − 预付款；违约金 = 合同金额 × 10%；服务条款按「服务内容 + 交付标准 + 结算方式 + 违约责任 + 争议解决」逐条编号组装。</div>
+      <div class="formula-eq">小计 = 单价 × 数量；折扣额 = 小计 × 折扣率；含税价 = (小计 − 折扣额) × (1 + 税率)；合同总额 = round(含税价)；预付款 = round(合同总额 × 30%)；尾款 = 合同总额 − 预付款；违约金 = round(合同总额 × 10%)。计算顺序固定为「先折扣、再计税」，折扣与税率均以百分数输入。</div>
   
 </div>
 
-<div class="input-row"><div><label>生成数量</label><input type="number" id="cnt" value="5" min="1" max="50" oninput="gen()" placeholder="如 5（1–50）"></div></div>
+<div class="input-row"><div><label>单价（元）</label><input type="number" id="unitPrice" value="10000" min="0" step="0.01" oninput="gen()" placeholder="如 10000（≥0）"></div><div><label>数量</label><input type="number" id="qty" value="2" min="1" step="1" oninput="gen()" placeholder="如 2（≥1 整数）"></div><div><label>税率（%）</label><input type="number" id="taxRate" value="6" min="0" max="100" step="0.01" oninput="gen()" placeholder="如 6（0–100）"></div><div><label>折扣率（%）</label><input type="number" id="discountRate" value="10" min="0" max="100" step="0.01" oninput="gen()" placeholder="如 10（0–100）"></div><div><label>生成数量</label><input type="number" id="cnt" value="5" min="1" max="50" oninput="gen()" placeholder="如 5（1–50）"></div></div>
 <div class="toolbar"><div id="generator_pricePresets"></div><button type="button" class="btn primary" onclick="gen()">生成</button><button class="btn" type="button" onclick="__generator_priceExport()">导出明细 CSV</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
 <div class="result-box" id="res"></div> <div id="generator_priceTable"></div> <div id="generator_priceDiff"></div> <div id="generator_priceChart"></div> <div id="generator_priceHist"></div>
   </div>
@@ -149,16 +149,16 @@ s.parentNode.insertBefore(el, s);
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
 <li>起草服务合同时批量生成条款与报价样例，作为初稿再逐条修改。</li>
-<li>给客户做报价前先生成几版不同服务项与价格的组合，供内部讨论取舍。</li>
+<li>给客户做报价前先生成几版不同服务项的报价组合，供内部讨论取舍。</li>
 <li>整理<a class="term-link" href="/tools/legal/contract-templates.html">合同模板库</a>时，用生成的样例补充常见条款措辞。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">批量生成报价条款</div><div class="dd-ex-body">设定生成数量 5，页面从内置服务项（网站开发、品牌策划、法律咨询等）中随机组合，生成含服务内容、数量与金额的中文大写报价条目，直接作为报价单骨架。</div></div>
-<div class="dd-example"><div class="dd-ex-title">数量上限</div><div class="dd-ex-body">生成数量被限制在 1–50 条之间，超出范围会按边界取值；需要更多条目可分次生成后合并。</div></div>
+<div class="dd-example"><div class="dd-ex-title">按单价与折扣真算报价</div><div class="dd-ex-body">设定生成数量 5，页面按「单价 × 数量 → 折扣 → 税」算出合同总额、预付款、尾款与违约金，再把金额套入服务条款草案（服务项从内置清单中轮换选取），直接作为报价单骨架。</div></div>
+<div class="dd-example"><div class="dd-ex-title">数量上限</div><div class="dd-ex-body">生成数量需为 1–50 的整数，超出范围会直接提示输入有误，不再按边界静默夹取；需要更多条目可分次生成后合并。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>生成的内容能直接当合同用吗？</dt><dd>不能。生成的是措辞样例，条款效力、金额与权责需由双方确认并经法务审核，正式合同请以审定版本为准。</dd>
-<dt>数据会上传吗？</dt><dd>不会。生成与随机组合全部在浏览器本地完成，服务端不接收任何输入。</dd>
-<dt>能固定某些条款吗？</dt><dd>当前为随机组合生成，暂不支持锁定指定项；可先生成再从结果中挑选合适的条目手工拼接。</dd>
+<dt>数据会上传吗？</dt><dd>不会。金额计算与条款组装全部在浏览器本地完成，服务端不接收任何输入。</dd>
+<dt>能固定某些条款吗？</dt><dd>服务项从内置清单轮换选取，暂不支持锁定指定项；可先生成再从结果中挑选合适的条目手工拼接。</dd>
 </dl>
 </div>
 </section>
@@ -176,14 +176,14 @@ s.parentNode.insertBefore(el, s);
       </tr></thead>
       <tbody>
         <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="随机报价">Random quote</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="合同金额 = 随机整数 1000–50000 元">contract amount = a random integer from 1000 to 50000 CNY</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="本页生成规则">generation rule on this page</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="计价明细">Pricing breakdown</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="小计 = 单价 × 数量；折扣额 = 小计 × 折扣率；含税价 = (小计 − 折扣额) × (1 + 税率)">subtotal = unit price × quantity; discount = subtotal × discount rate; taxed = (subtotal − discount) × (1 + tax rate)</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="本页计算规则">calculation rule on this page</td>
         </tr>
         <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="付款拆分">Payment split</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="预付款 = round(合同金额 × 30%)，尾款 = 合同金额 − 预付款">deposit = round(contract amount × 30%), balance = contract amount − deposit</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="本页生成规则">generation rule on this page</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="总额取整">Whole-yuan total</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="合同总额 = round(含税价)，按元取整；预付款 = round(总额 × 30%)，尾款 = 总额 − 预付款；违约金 = round(总额 × 10%)">contract total = round(taxed price) in whole yuan; deposit = round(total × 30%); balance = total − deposit; penalty = round(total × 10%)</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="本页计算规则">calculation rule on this page</td>
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="人民币大写">Amount in Chinese capitals</td>
@@ -232,15 +232,42 @@ function numberToChinese(num) {
   return str.replace(/零+$/, '');
 }
 function gen() {
-  const n = Math.min(Math.max(parseInt(document.getElementById('cnt').value) || 5, 1), 50);
+  const unitPrice = parseFloat(document.getElementById('unitPrice').value);
+  const qty = parseFloat(document.getElementById('qty').value);
+  const taxRate = parseFloat(document.getElementById('taxRate').value);
+  const discountRate = parseFloat(document.getElementById('discountRate').value);
+  const n = parseInt(document.getElementById('cnt').value);
+  if (!isFinite(unitPrice) || !isFinite(qty) || !isFinite(taxRate) || !isFinite(discountRate) || !isFinite(n)
+      || unitPrice < 0 || qty < 1 || Math.floor(qty) !== qty || taxRate < 0 || taxRate > 100
+      || discountRate < 0 || discountRate > 100 || n < 1 || n > 50) {
+    document.getElementById('res').innerHTML = '<p style="color:var(--danger)">请输入完整的单价、数量（正整数）、税率（0–100%）与折扣率（0–100%），生成数量需为 1–50 的整数。</p>';
+    return;
+  }
+  const subtotal = unitPrice * qty;
+  const discountAmt = subtotal * discountRate / 100;
+  const net = subtotal - discountAmt;
+  const taxAmt = net * taxRate / 100;
+  const total = Math.round(net + taxAmt);
+  const deposit = Math.round(total * 0.3);
+  const finalPrice = total - deposit;
+  const penalty = Math.round(total * 0.1);
+  const fmt = function(v){ return v.toLocaleString('en-US', {maximumFractionDigits:2}); };
+  let html = '<div style="margin-bottom:10px;padding:10px;background:var(--bg-hover);border-radius:8px;line-height:1.8;"><span class="tb-bi">'
+    + '<span class="t-zh"><strong>计价明细</strong><br>'
+    + '小计：' + fmt(subtotal) + ' 元；折扣（' + discountRate + '%）：−' + fmt(discountAmt) + ' 元；'
+    + '税额（' + taxRate + '%）：+' + fmt(taxAmt) + ' 元<br>'
+    + '<strong>合同总额：¥' + fmt(total) + '</strong>（大写：' + numberToChinese(total) + '元整）<br>'
+    + '预付款（30%）：¥' + fmt(deposit) + '；尾款：¥' + fmt(finalPrice) + '；违约金（10%）：¥' + fmt(penalty)
+    + '</span><span class="t-en"><strong>Pricing breakdown</strong><br>'
+    + 'Subtotal: CNY ' + fmt(subtotal) + '; discount (' + discountRate + '%): −' + fmt(discountAmt)
+    + '; tax (' + taxRate + '%): +' + fmt(taxAmt) + '<br>'
+    + '<strong>Contract total: CNY ' + fmt(total) + '</strong><br>'
+    + 'Deposit (30%): CNY ' + fmt(deposit) + '; balance: CNY ' + fmt(finalPrice) + '; penalty (10%): CNY ' + fmt(penalty)
+    + '</span></span></div><p style="margin-bottom:8px;">合同条款草案：</p>';
   const services = ['网站开发','UI设计','品牌策划','法律咨询','翻译服务','摄影摄像','培训课程','家政保洁','搬家运输','设备维修'];
-  let html = '<p style="margin-bottom:8px;">生成结果：</p>';
   const serviceBatch = services.slice().sort(function(){ return Math.random() - 0.5; });
   for (let i = 0; i < n; i++) {
     const service = serviceBatch[i % serviceBatch.length];
-    const price = randInt(1000, 50000);
-    const deposit = Math.round(price * 0.3);
-    const finalPrice = price - deposit;
     const duration = randInt(7, 90);
     html += `<div style="margin:8px 0;padding:10px;background:var(--bg-hover);border-radius:8px;">
       <strong>${i+1}. 《${service}合同》草案</strong>
@@ -250,7 +277,7 @@ function gen() {
 乙方为甲方提供${service}服务，具体需求以双方确认的《需求确认单》为准。
 
 第二条 合同金额
-本合同总金额为人民币 ${price.toLocaleString()} 元（大写：${numberToChinese(price)}元整）。
+本合同总金额为人民币 ${total.toLocaleString()} 元（大写：${numberToChinese(total)}元整），其中小计 ${fmt(subtotal)} 元、折扣 ${fmt(discountAmt)} 元、税额 ${fmt(taxAmt)} 元。
 
 第三条 付款方式
 1. 合同签订后 3 个工作日内，甲方向乙方支付预付款 ${deposit.toLocaleString()} 元；
@@ -266,7 +293,7 @@ function gen() {
 双方对在履行合同过程中知悉的对方商业秘密负有保密义务。
 
 第七条 违约责任
-任何一方违约，应向守约方支付合同总金额 10% 的违约金。
+任何一方违约，应向守约方支付违约金 ${penalty.toLocaleString()} 元（合同总额的 10%）。
 
 第八条 争议解决
 因本合同引起的争议，双方应友好协商；协商不成的，提交甲方所在地人民法院诉讼解决。</pre>

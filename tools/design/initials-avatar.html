@@ -347,10 +347,28 @@ function generate(){
   if(ci){
     const ratioText = ratio.toFixed(2) + ':1';
     const ok = ratio >= 4.5;
+    let suggestion = '', suggestionEnText = '';
+    if(!ok && style !== 'hash'){
+      let best = '#000000', bestRatio = 0;
+      ['#ffffff','#000000'].forEach(function(c){
+        const r = style === 'gradient'
+          ? Math.min(contrastRatio(c, bg1), contrastRatio(c, bg2))
+          : contrastRatio(c, bg);
+        if(r > bestRatio){ bestRatio = r; best = c; }
+      });
+      if(bestRatio >= 4.5){
+        suggestion = '，建议改用 ' + best + '（' + bestRatio.toFixed(2) + ':1）';
+        suggestionEnText = '; suggested text color ' + best + ' (' + bestRatio.toFixed(2) + ':1)';
+      }else{
+        suggestion = '，黑/白字最高仅 ' + bestRatio.toFixed(2) + ':1，建议调整底色';
+        suggestionEnText = '; best black/white text is only ' + bestRatio.toFixed(2) + ':1, adjust the fill';
+      }
+    }
     ci.innerHTML = '<span class="tb-bi"><span class="t-zh">文字对比度 ' + ratioText + '（' + (ok ? '达到 WCAG AA' : '低于 4.5:1')
-      + '）' + (style === 'hash' ? '· 已按底色自动选黑/白字' : '')
+      + '）' + (style === 'hash' ? '· 已按底色自动选黑/白字' : '') + suggestion
       + '</span><span class="t-en">Text contrast ' + ratioText + ' (' + (ok ? 'meets WCAG AA' : 'below 4.5:1')
       + ')' + (style === 'hash' ? ' · black/white text auto-selected from the fill' : '')
+      + suggestionEnText
       + '</span></span>';
   }
 }

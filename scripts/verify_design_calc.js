@@ -2320,6 +2320,20 @@ const CASES = [
     expect: ["文字对比度 10.69:1"],
     ref: "姓名 AB 哈希取调色板 #1dd1a1（WCAG 相对亮度 L=0.4844）：与黑 (0.5344)/0.05=10.69:1、与白 1.05/0.5344=1.96:1 ⇒ 应自动选黑字。"
        + "默认 Tool Box 哈希为 #5f27cd（白字 7.90:1），不含 10.69:1；旧页无对比度输出 ⇒ 注入后必红。",
+  },
+  {
+    slug: "design/initials-avatar",
+    inputs: { bgStyle: "custom", bg1: "#777777", textColor: "#ffffff" },
+    expect: ["文字对比度 4.48:1", "建议改用 #000000（4.69:1）"],
+    ref: "#777777 相对亮度 L=0.1845：白字 1.05/0.2345=4.48:1（<4.5），黑字 0.2345/0.05=4.69:1 ⇒ "
+       + "自定义模式应给出具体建议色与比值。默认 hash 模式为 7.90:1 且无「建议改用」，注入后旧实现不命中。",
+  },
+  {
+    slug: "design/bpm-tapper",
+    clicks: ["document.getElementById('bpm').innerHTML='SNAP='+computeBpm([0,900,1800]);"],
+    expect: ["SNAP=65"],
+    ref: "声明「round(实测 BPM ÷ 5) × 5」：三次点击间隔 900ms ⇒ 原始 BPM=60000/900=66.67，"
+       + "按 5 取整 = round(13.33)×5=65；旧实现直接 round(66.67)=67。默认 BPM 区不含 SNAP 串。",
   }
 
 ];
