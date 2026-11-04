@@ -13,6 +13,17 @@
 const TF_VERSION = '3.8.1';
 const CDN = `https://cdn.jsdelivr.net/npm/@huggingface/transformers@${TF_VERSION}`;
 
+// 模型 revision 锁定：固定到 commit sha，避免上游更新 resolve/main 时静默换权重。
+// 这些 sha 取自 https://huggingface.co/api/models/<repo> 的 sha 字段；
+// 升级模型或 Transformers.js 时需复验 pipeline({ revision }) 仍被透传。
+const MODEL_REVISIONS = {
+  'Xenova/whisper-base': '64da57285918e20ea79ea5c88eed7197933abaa8',
+  'Xenova/distilbert-base-uncased-finetuned-sst-2-english': '0b6928efcb76139cae2c6881d49cda67fe119f42',
+  'Xenova/trocr-base-printed': 'cf024f7df347684b6ee92859452962b67c6873fb',
+  'Xenova/vit-base-patch16-224': '66fef688e8dbe77dd9d5aa256353f9ad8b0ef799',
+  'Xenova/distilbart-cnn-6-6': '6b476295a3cf27d5b20e8c8b847a54ab8e5d0df9',
+};
+
 let _tf = null;
 let _tfPromise = null;
 
@@ -23,6 +34,13 @@ export async function getTransformers() {
     _tfPromise = import(/* @vite-ignore */ CDN);
   }
   _tf = await _tfPromise;
+  // 版本断言：CDN 若下发非 3.8.1 内容则拒绝继续（动态 import 无法挂 SRI）
+  if (_tf.env && _tf.env.version && _tf.env.version !== TF_VERSION) {
+    const actual = _tf.env.version;
+    _tf = null;
+    _tfPromise = null;
+    throw new Error(`Transformers.js 版本校验失败：期望 ${TF_VERSION}，实际 ${actual}`);
+  }
   // 纯前端：禁用本地模型目录，全部走 CDN 缓存
   _tf.env.allowLocalModels = false;
   return _tf;
@@ -31,7 +49,11 @@ export async function getTransformers() {
 // 带缓存的 pipeline 加载（同一模型只初始化一次）
 const _cache = new Map();
 export async function getPipeline(task, model, onProgress) {
-  const key = `${task}|${model}`;
+  const revision = MODEL_REVISIONS[model];
+  if (!revision) {
+    console.warn(`[ai-core] 模型 ${model} 未登记 revision，回退 main；上游更新不会被感知。`);
+  }
+  const key = `${task}|${model}|${revision || 'main'}`;
   if (_cache.has(key)) {
     // 命中缓存视为模型可用（成功路径）
     if (typeof window !== 'undefined' && window.ToolBox && window.ToolBox.Metrics) {
@@ -40,10 +62,10 @@ export async function getPipeline(task, model, onProgress) {
     return _cache.get(key);
   }
   const tf = await getTransformers();
+  const options = { progress_callback: (e) => { if (onProgress) onProgress(e); } };
+  if (revision) options.revision = revision;
   try {
-    const p = await tf.pipeline(task, model, {
-      progress_callback: (e) => { if (onProgress) onProgress(e); },
-    });
+    const p = await tf.pipeline(task, model, options);
     _cache.set(key, p);
     if (typeof window !== 'undefined' && window.ToolBox && window.ToolBox.Metrics) {
       window.ToolBox.Metrics.track('ai_model_success', { model: model });

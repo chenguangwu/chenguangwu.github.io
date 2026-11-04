@@ -574,12 +574,12 @@
 | 指标 | 数值 |
 | --- | --- |
 | origin 总数 | **10**（功能库 4 + 统计/广告 6） |
-| 资源条目 | **25**（11 个静态 CDN 脚本文件 + 1 个 Transformers ESM + 1 个 sql-wasm.wasm + 5 个 HF 模型仓 + 1 个 Google Fonts CSS + 6 个统计/广告端点） |
-| 静态外链脚本标签 | 13 个（11 个文件；pdf-lib 在 3 个 PDF 页复用） |
-| ① 无版本锁 | **12**（可锁未锁 0；供应商动态下发 6；可改需权衡 6） |
-| ② 有版本但无 SRI | **2** |
-| ③ vendor 台账 | **3 条** |
-| 无降级页 | 修前 4 → **修后 0**（17 个外部依赖页全部有降级） |
+| 资源条目 | **23**（10 个静态 CDN 脚本文件 + 1 个 Transformers ESM + 5 个 HF 模型仓 + 1 个 Google Fonts CSS + 6 个统计/广告端点） |
+| 静态外链脚本标签 | 12 个（10 个文件；pdf-lib 在 3 个 PDF 页复用） |
+| ① 无版本锁 | **7**（可锁未锁 0；供应商动态下发 6；Google Fonts CSS 1） |
+| ② 有版本但无 SRI | **1**（Transformers ESM；sql-wasm 已自托管并加哈希校验） |
+| ③ vendor 台账 | **4 条** |
+| 无降级页 | 修前 4 → **修后 0**（16 个第三方依赖页全部有降级） |
 
 功能库 origin：`cdn.jsdelivr.net`、`cdnjs.cloudflare.com`、`huggingface.co`、`fonts.googleapis.com`（`fonts.gstatic.com` 仅 preconnect，字体二进制由 Google CSS 间接拉取）。
 统计/广告 origin：`sdk.51.la`、`v6-widget.51.la`、`hm.baidu.com`、`zz.bdstatic.com`、`lf1-cdn-tos.bytegoofy.com`、`pagead2.googlesyndication.com`（AdSense 仅在设置 `TOOLBOX_ADS_CLIENT` 时才注入）。
@@ -590,35 +590,32 @@
 | --- | --- | --- | --- | --- | --- |
 | cdn.jsdelivr.net | `acorn@8.19.0` / `bcryptjs@2.4.3` / `d3@7.9.2` / `js-yaml@4.1.0` / `less@4.9.1` / `markmap-lib@0.17.2` / `markmap-view@0.17.2` / `mermaid@10.9.8` / `pdf-lib@1.17.1` | 精确 | **有** | **有** | 无 vendor 副本；页面级守卫（见 17.9.6） |
 | cdn.jsdelivr.net | `@huggingface/transformers@3.8.1`（`js/ai-core.js` 动态 `import()`） | 精确 | **不可用**（动态 import 无法挂 `integrity`） | 不适用 | 5 个 AI 页 `try/catch` 显示错误 |
-| cdnjs.cloudflare.com | `sql.js/1.8.0`（`sql-wasm.js`） | 精确 | **有** | **有** | `setStatus('error','加载失败')` |
-| cdnjs.cloudflare.com | `sql.js/1.8.0/sql-wasm.wasm`（`locateFile` 动态拼接） | 路径含版本 | **不可用**（Emscripten `fetch` 无法挂 `integrity`） | 不适用 | 同上 |
 | cdnjs.cloudflare.com | `typescript/5.3.3` | 精确 | **有** | **有** | `tsReady` 状态提示 |
-| huggingface.co | 5 个模型仓（`Xenova/whisper-base`、`distilbert-…-sst-2-english`、`trocr-base-printed`、`vit-base-patch16-224`、`distilbart-cnn-6-6`） | **无**（`resolve/main`） | **不可用** | 不适用 | `catch` 显示错误 |
+| huggingface.co | 5 个模型仓，均已 pin commit sha（`resolve/<sha>/`） | **精确**（sha） | **不可用** | 不适用 | `catch` 显示错误 |
 | fonts.googleapis.com | `css2?family=…`（`design/font-pairing.html` 动态创建 `<link>`） | **无** | **不可用**（CSS 由 Google 按 UA 生成） | preconnect 有 | 字体栈回退 `sans-serif` |
 
-#### 17.9.3 ① 无版本锁清单（12 处）
+#### 17.9.3 ① 无版本锁清单（7 处）
 
 | # | 项 | 类别 | 处置判断 |
 | --- | --- | --- | --- |
-| 1–5 | `huggingface.co` 5 个模型仓（`resolve/main`） | 可改需权衡 | `main` 分支浮动：上游更新即静默换权重。Transformers.js 的 `pipeline()` 未透出 `revision`，改 pin 需绕开库 API，登记风险；模型仅在用户主动点击时下载。 |
-| 6 | `fonts.googleapis.com/css2` | 可改需权衡 | CSS 无版本号；字体名来自页面内置白名单（非用户输入），失败回退 `sans-serif`。全量自托管成本高，登记。 |
-| 7 | `sdk.51.la/js-sdk-pro.min.js` | 不可锁 | 供应商动态下发，官方要求直引；统计 SDK，无业务功能。 |
-| 8 | `v6-widget.51.la/v6/<id>/quote.js` | 不可锁 | 同上；滚动到页脚才懒挂载。 |
-| 9 | `hm.baidu.com/hm.js?id=…` | 不可锁 | 百度统计，URL 带站点 id 而非版本。 |
-| 10 | `zz.bdstatic.com/linksubmit/push.js` | 不可锁 | 百度自动推送。 |
-| 11 | `lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?<token>` | 不可锁 | 见 §17.7：token 为固定分发标识、非签名。 |
-| 12 | `pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=…` | 不可锁（条件启用） | 仅 `window.TOOLBOX_ADS_CLIENT` 存在时注入。 |
+| 1 | `fonts.googleapis.com/css2` | 可改需权衡 | CSS 无版本号；字体名来自页面内置白名单（非用户输入），失败回退 `sans-serif`。全量自托管成本高，登记为后续候选。 |
+| 2 | `sdk.51.la/js-sdk-pro.min.js` | 不可锁 | 供应商动态下发，官方要求直引；统计 SDK，无业务功能。 |
+| 3 | `v6-widget.51.la/v6/<id>/quote.js` | 不可锁 | 同上；滚动到页脚才懒挂载。 |
+| 4 | `hm.baidu.com/hm.js?id=…` | 不可锁 | 百度统计，URL 带站点 id 而非版本。 |
+| 5 | `zz.bdstatic.com/linksubmit/push.js` | 不可锁 | 百度自动推送。 |
+| 6 | `lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?<token>` | 不可锁 | 见 §17.7：token 为固定分发标识、非签名。 |
+| 7 | `pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=…` | 不可锁（条件启用） | 仅 `window.TOOLBOX_ADS_CLIENT` 存在时注入。 |
 
-**「可锁但未锁」= 0 处**。11 个静态 CDN 脚本全部精确版本 + `integrity` + `crossorigin="anonymous"`（§9.1 已把浮动版本清零）。
+**「可锁但未锁」= 0 处**。HF 5 个模型仓已从本清单移出（改为 commit sha pin，见 17.9.7）；10 个静态 CDN 脚本全部精确版本 + `integrity` + `crossorigin="anonymous"`（§9.1 已把浮动版本清零）。
 
-#### 17.9.4 ② 有版本但无 SRI（2 处，均不可加）
+#### 17.9.4 已知限制：有版本但无 SRI（2 处）
 
-| 项 | 为何不能加 SRI |
-| --- | --- |
-| `@huggingface/transformers@3.8.1` | 由 `import()` 动态加载，`import()` 没有 `integrity` 参数；且内部还会再拉 ESM 分片。 |
-| `sql.js/1.8.0/sql-wasm.wasm` | 由 Emscripten 运行时 `fetch` 后 `WebAssembly.instantiate`，`integrity` 只作用于 `<script>/<link>` 标签，不作用于程序内 `fetch`。 |
+| 项 | 为何结构上无法挂 SRI | 缓解手段（落地状态） |
+| --- | --- | --- |
+| `@huggingface/transformers@3.8.1` | `import()` 语法没有 `integrity` 参数；库内部还会二次 `import` 分片，SRI 无处挂载。 | **已落地**：精确版本 `3.8.1` + 固定 `cdn.jsdelivr.net` 域名 + `getTransformers()` 内 `tf.env.version !== '3.8.1'` 断言（不匹配即抛错，AI 页显示「出错：Transformers.js 版本校验失败」）。残留：无法做内容哈希校验。 |
+| `sql.js/1.8.0/sql-wasm.wasm` | `integrity` 只作用于 HTML 解析器的 `<script>/<link>` 请求；Emscripten 是程序内 `fetch` + `WebAssembly.instantiate`，标签属性无法注入。 | **已彻底解决**：改为 `vendor/sql.js/1.8.0/` 自托管，页面先 `fetch → crypto.subtle.digest('SHA-256')` 比对，通过后才 `initSqlJs({ wasmBinary })`（字节直接交给实例化，不再二次请求）。校验失败时明确拒绝启动并提示「校验失败：拒绝启动」。 |
 
-处置：两者版本均已锁死，登记待改（wasm 可自托管 + 启动前 sha256 校验；transformers 可改 vendor 精选构建）。
+> 结论：wasm 已从「已知限制」转为「已加固」；Transformers ESM 因动态 import 的结构限制保留登记，但断言使其从「静默换码」降为「可感知失败」。
 
 #### 17.9.5 ③ vendor 台账
 
@@ -626,7 +623,8 @@
 | --- | --- | --- | --- | --- |
 | PDF.js | 4.2.67 | `vendor/pdfjs/4.2.67/pdf.min.mjs`、`pdf.worker.min.mjs` | npm `pdfjs-dist` | §17.6 由 CDN 3.11.174 升级自托管（CVE-2024-4367） |
 | Fuse.js | 7.0.0 | `vendor/fuse.min.js` | npm `fuse.js` | `index.html` 搜索 + SW 预缓存 |
-| Plus Jakarta Sans | **未标注** | `vendor/fonts/`（5 字重 × woff2/ttf + `fonts.css`） | Google Fonts 本地副本 | `index.html` / `404.html` 使用；文件无版本元数据，升级时需人工核对 |
+| Plus Jakarta Sans | **2.071** | `vendor/fonts/`（5 字重 × woff2/ttf + `fonts.css`） | Google Fonts 本地副本 | `index.html` / `404.html` 使用；版本取自 TTF name 表 ID5（`Version 2.071;gftools[0.9.30]`） |
+| sql.js | 1.8.0 | `vendor/sql.js/1.8.0/sql-wasm.js`、`sql-wasm.wasm` | cdnjs `sql.js/1.8.0` | 自托管；wasm 启动前 SHA-256 校验（失败拒绝启动） |
 
 台账由 `vendor_ledger()` 从磁盘读取版本目录 / 文件头注释自动生成，避免手写漂移。
 
@@ -648,10 +646,61 @@ RESULT 4/4
 
 `blocked/true` = 出现提示且位于容器首位；`normal=false` = 正常加载时不误报。改动后 `python3 scripts/audit_external_deps.py` 的「无降级页」由 4 变 0。
 
-#### 17.9.7 门禁与边界
+#### 17.9.7 本批加固与自证
+
+**① HF 模型 pin commit sha**（`js/ai-core.js`）
+
+- 新增 `MODEL_REVISIONS`（5 个仓库 → 40 位 sha），`getPipeline()` 内部自动补 `revision`；cache key 改为 `${task}|${model}|${revision}`。
+- 未登记模型走 `main` 时 `console.warn('[ai-core] 模型 X 未登记 revision，回退 main；上游更新不会被感知。')`，防止新增模型静默漏 pin。
+- 依据：`pipelines.js:3448-3488` 接收 `revision` → `pretrainedOptions` → `hub.js:467-478` 替换 `env.remotePathTemplate` 的 `{revision}`；`hub.js:486-488` 在 revision ≠ main 时把 revision 计入缓存键。**pin 后首载会重新下载属预期；升级 Transformers.js 时需复验该 API 仍被透传。**
+- 真机取证（无头 Chrome 打开 `tools/ai/sentiment-analysis.html`，输入英文后点击分析，拦截 HF 请求）：
+
+```
+https://huggingface.co/Xenova/distilbert-base-uncased-finetuned-sst-2-english/resolve/0b6928efcb76139cae2c6881d49cda67fe119f42/...
+```
+
+请求 URL 已从 `resolve/main/` 变为 `resolve/<commit-sha>/`。
+
+**② sql-wasm 自托管 + 启动前 SHA-256 校验**（`tools/it/sqlite-runner.html`、`vendor/sql.js/1.8.0/`）
+
+- `sql-wasm.js` 与 `sql-wasm.wasm` 均移入 vendor，页面不再向 `cdnjs.cloudflare.com` 发请求（该页 origin 归零）。
+- 加载顺序：`fetch(local wasm)` → `crypto.subtle.digest('SHA-256')` → 与内置常量比对 → `initSqlJs({ wasmBinary })`。用 `wasmBinary` 传入字节，Emscripten 不再二次请求 wasm。
+- 校验失败：`setStatus('error','校验失败：拒绝启动')`，执行按钮保持禁用，不创建数据库实例。
+
+两向自证（同一 URL，正常响应 vs 篡改末字节）：
+
+```
+PASS sqlite positive: ready
+PASS sqlite positive: no cdnjs request :: cdnjs=0
+PASS sqlite positive: local wasm fetched
+PASS sqlite positive: query executes :: 共执行 1 条语句 · 失败 0 条
+PASS sqlite negative: refuses tampered wasm :: intercepted=1
+PASS sqlite negative: run disabled
+PASS sqlite negative: status not ready :: 校验失败：拒绝启动
+```
+
+**③ Google Fonts 瘦身（自托管暂缓）**
+
+- `font-pairing.html` 的 `loadFonts()` 去掉未使用的 `300` 字重：`wght@300;400;500;600;700` → `wght@400;500;600;700`，@font-face 声明由 **175 降至 140**（-20%）。
+- 自托管（42 文件 / 0.8–1.2MB / OFL 许可证 / 懒加载改造）记为后续候选，本批不做。
+- `vendor/fonts/` 的 Plus Jakarta Sans 版本由 TTF name 表 ID5 解析为 **2.071**，已进台账。
+
+**AI + 字体回归**（同一无头脚本）：
+
+```
+PASS ai: HF request observed
+PASS ai: URL contains pinned sha
+PASS ai: no version assertion failure
+PASS font: css2 drops 300 weight :: ...wght@400;500;600;700&display=swap
+RESULT 11/11
+```
+
+#### 17.9.8 门禁与边界
 
 - `python3 _test_static.py`：4705/4705 通过，0 失败 0 告警。
-- 计算回归：`verify_it_calc.js bcrypt`、`verify_it_calc.js yaml-validator` 全过；office 两页无既有用例（0/0）。
-- 本批未运行 `_build.py`、未改 `json/*.json`、未 push（按用户纪律）。工具页 HTML 改动在下次构建时随 SW 版本戳统一生效。
-- 新增脚本仅入库 `scripts/audit_external_deps.py`；本地验证脚本放 `/tmp`，未入库。
+- `python3 scripts/audit_external_deps.py --check`：exit 0（① 中「可锁未锁」为 0）。
+- `python3 _audit_assets.py --check` / `python3 _audit_links.py --check`：16689 文件，0 死链 / 0 lang 缺失 / 0 重复 id。
+- 计算回归：`verify_it_calc.js sqlite-runner`、`bcrypt`、`yaml-validator` 全过；office 两页无既有用例（0/0）。
+- 本批未运行 `_build.py`、未改 `json/*.json`、未 push（按用户纪律）。工具页 HTML / `js/ai-core.js` 改动在下次构建时随 SW 版本戳统一生效。
+- 新增入库文件：`scripts/audit_external_deps.py`、`vendor/sql.js/1.8.0/sql-wasm.js`、`vendor/sql.js/1.8.0/sql-wasm.wasm`；本地无头验证脚本放 `/tmp`，未入库。
 

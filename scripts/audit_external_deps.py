@@ -117,7 +117,22 @@ def tf_version() -> str:
     return "3"
 
 
+def model_revisions() -> dict[str, str]:
+    """从 js/ai-core.js 的 MODEL_REVISIONS 读取模型 → commit sha。"""
+    p = ROOT / "js" / "ai-core.js"
+    if not p.is_file():
+        return {}
+    txt = p.read_text(encoding="utf-8", errors="ignore")
+    m = re.search(r"MODEL_REVISIONS\s*=\s*\{(.*?)\};", txt, re.S)
+    if not m:
+        return {}
+    return dict(re.findall(r"'([^']+)':\s*'([0-9a-f]{40})'", m.group(1)))
+
+
 def version_of(url: str) -> tuple[bool, str]:
+    m = re.search(r"/resolve/([0-9a-f]{40})/", url)
+    if m:
+        return True, m.group(1)[:12] + "…"
     m = VERSION_IN_JSDEVLIRR.search(url)
     if m:
         return True, m.group(1)
@@ -232,18 +247,14 @@ def collect_records() -> list[dict]:
         rel = p.relative_to(ROOT).as_posix()
         for m in re.finditer(r"getPipeline\('([^']+)',\s*'([^']+)'", text):
             model = m.group(2)
-            add("huggingface.co", f"https://huggingface.co/{model}/resolve/main/", "model", rel, dynamic=True)
-
-    # sql.js 的 .wasm 由 locateFile 动态拼接，无法挂 integrity（§17.7 的根因）
-    sqlite = ROOT / "tools" / "it" / "sqlite-runner.html"
-    if sqlite.is_file():
-        add(
-            "cdnjs.cloudflare.com",
-            "https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.wasm",
-            "wasm",
-            "tools/it/sqlite-runner.html",
-            dynamic=True,
-        )
+            rev = model_revisions().get(model)
+            add(
+                "huggingface.co",
+                f"https://huggingface.co/{model}/resolve/{rev or 'main'}/",
+                "model",
+                rel,
+                dynamic=True,
+            )
 
     return sorted(records.values(), key=lambda r: (r["origin"], r["url"])) 
 
@@ -281,13 +292,55 @@ def vendor_ledger() -> list[dict]:
         fam = re.search(r"font-family:\s*'([^']+)'", txt)
         entries.append({
             "component": fam.group(1) if fam else "本地字体",
-            "version": "未标注",
+            "version": font_version(ROOT / "vendor" / "fonts" / "plus-jakarta-sans-400.ttf"),
             "local": "vendor/fonts/",
             "files": sorted(x.name for x in (ROOT / "vendor" / "fonts").iterdir()),
-            "source": "Google Fonts（Plus Jakarta Sans，本地 woff2/ttf 副本）",
-            "note": "index.html / 404.html 使用；字体文件无版本元数据",
+            "source": "Google Fonts（本地 woff2/ttf 副本）",
+            "note": "index.html / 404.html 使用；版本取自 TTF name 表 ID5",
         })
+    sqljs = ROOT / "vendor" / "sql.js"
+    if sqljs.is_dir():
+        for d in sorted(sqljs.iterdir()):
+            if d.is_dir() and re.fullmatch(r"\d+\.\d+\.\d+", d.name):
+                entries.append({
+                    "component": "sql.js",
+                    "version": d.name,
+                    "local": f"vendor/sql.js/{d.name}/",
+                    "files": sorted(x.name for x in d.iterdir()),
+                    "source": "https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/",
+                    "note": "自托管；wasm 启动前 SHA-256 校验（失败拒绝启动）",
+                })
     return entries
+
+
+def font_version(ttf: Path) -> str:
+    """读取 TTF name 表 ID5（版本字符串），如 'Version 2.071;gftools[0.9.30]' → '2.071'。"""
+    try:
+        import struct
+        b = ttf.read_bytes()
+        num = struct.unpack(">H", b[4:6])[0]
+        name_off = None
+        for i in range(num):
+            off = 12 + i * 16
+            if b[off:off + 4] == b"name":
+                name_off = struct.unpack(">I", b[off + 8:off + 12])[0]
+                break
+        if name_off is None:
+            return "未标注"
+        _fmt, count, str_off = struct.unpack(">HHH", b[name_off:name_off + 6])
+        for i in range(count):
+            r = name_off + 6 + i * 12
+            pid, eid, _lid, nid, ln, soff = struct.unpack(">HHHHHH", b[r:r + 12])
+            if nid != 5:
+                continue
+            raw = b[name_off + str_off + soff:name_off + str_off + soff + ln]
+            s = raw.decode("utf-16-be", "ignore") if pid == 3 else raw.decode("latin1", "ignore")
+            m = re.search(r"Version\s+(\d+\.\d+)", s)
+            if m:
+                return m.group(1)
+        return "未标注"
+    except Exception:
+        return "未标注"
 
 
 def main() -> int:

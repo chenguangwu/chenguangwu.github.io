@@ -26,7 +26,7 @@
 <link rel="stylesheet" href="../../css/common.css">
 <script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js" integrity="sha384-KsfptB549CXfbfsdxZmPo2PlmgCyJ+RNqHTQE1Gj45t3p4DaA1QbZYVyqlni4pOO" crossorigin="anonymous"></script>
+<script src="../../vendor/sql.js/1.8.0/sql-wasm.js"></script>
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -515,20 +515,35 @@ const sqlHighlight = $('sqlHighlight');
 const dbStatus = $('dbStatus');
 const runBtn = $('runBtn');
 
-/* ---------- 数据库初始化 ---------- */
+/* ---------- 数据库初始化（本地 WASM + SHA-256 完整性校验） ---------- */
+const SQL_WASM_URL = '../../vendor/sql.js/1.8.0/sql-wasm.wasm';
+const SQL_WASM_SHA256 = '18fc45ef410e6015296dad9fa775684c96e71e7007b99f2d87799a18a354e750';
+
+async function loadVerifiedWasm(){
+  const res = await fetch(SQL_WASM_URL, { cache: 'no-cache' });
+  if(!res.ok) throw new Error('WASM 文件请求失败 HTTP ' + res.status);
+  const bytes = new Uint8Array(await res.arrayBuffer());
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  const hex = Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, '0')).join('');
+  if(hex !== SQL_WASM_SHA256){
+    throw new Error('WASM 完整性校验失败：期望 ' + SQL_WASM_SHA256 + '，实际 ' + hex);
+  }
+  return bytes;
+}
+
 async function initDB(){
   setStatus('loading', '数据库加载中…');
   try{
-    const SQL = await initSqlJs({
-      locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`
-    });
+    const wasmBinary = await loadVerifiedWasm();
+    const SQL = await initSqlJs({ wasmBinary });
     db = new SQL.Database();
     setStatus('ready', '数据库就绪');
     runBtn.disabled = false;
     refreshTables();
   }catch(e){
-    setStatus('error', '加载失败');
-    ToolBox.showToast(i18nText('toast.msg016'), 'error');
+    const failed = /完整性校验失败/.test(e && e.message || '');
+    setStatus('error', failed ? '校验失败：拒绝启动' : '加载失败');
+    try{ ToolBox.showToast(i18nText('toast.msg016'), 'error'); }catch(_){}
     console.error(e);
   }
 }
