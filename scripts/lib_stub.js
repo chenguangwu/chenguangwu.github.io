@@ -42,7 +42,10 @@ function parseInputDefaults(html, opts) {
       if (skip.test(typ)) continue;
     }
     const val = tag.match(/\bvalue\s*=\s*["']([^"']*)["']/i);
-    if (val && out[id] === undefined) out[id] = val[1];
+    // 无 value 属性 ⇒ 真机默认空串（runCase 的 defaults 口径），不能整键丢弃：
+    // 丢弃会让「回退默认」永远无法作用于这类控件（如 type="date" 的日期框），
+    // 判别器把整例误判成「控件解析不到」。
+    if (out[id] === undefined) out[id] = val ? val[1] : "";
   }
   return out;
 }

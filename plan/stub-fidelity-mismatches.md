@@ -87,27 +87,31 @@
 
 | 模式 | 已检 | 正确变红 | 仍 PASS（逃生项） | 跳过 |
 |---|---|---|---|---|
-| legacy（默认） | 8725 | 8723 | **2** | 54 |
-| fidelity（`TB_STUB_FIDELITY=1`） | 8520 | 8434 | **86** | 259 |
+| legacy（默认） | 8725 | 8722 | **3** | 54 |
+| fidelity（`TB_STUB_FIDELITY=1`） | 8694 | 8672 | **22** | 85 |
 
-结论（与「保真后逃生项应减少」的直觉相反，但含义更强）：
-- **逃生项 2 → 86**：不是保真把用例弄坏，而是 legacy 的错误默认值在**掩护**逃生项 ——
-  回退到「假默认值」时输出自然不命中 expect，看起来「判别力有效」；回退到**真默认值**后 expect 照样命中，
-  说明这些用例的 expect 根本不依赖被测输入（典型如 `it/uuid-generator` 8 例、`it/timestamp-converter` 5 例、
-  `life/workday-calculator` 5 例）。
-- **跳过 54 → 259**：多出的 205 条是「注入值与页面真实默认值完全相同」的 all_default 弱用例 ——
-  legacy 因解析错默认值而让它们**看起来**有注入。
-- legacy 自身仍有 2 条逃生项（`it/decimal-encode`、`it/number-base-converter`），与
-  `scripts/discriminate_baseline.json` 的 `escape: 0` 不一致；这两条是 IT 线 `6bad8fd7a4` 新增用例引入的，
-  **不在本批提交范围**，需 IT 线自查后同步基线。
+结论（与「保真后逃生项应减少」的直觉相反，但含义更强）：**legacy 的假默认值在掩护逃生项** ——
+回退到「假默认值」时输出自然不命中 expect，看起来「判别力有效」；回退到**真默认值**后 expect 照样命中，
+说明这些用例的 expect 根本不依赖被测输入。fidelity 比 legacy 多暴露 19 条；逃生的具体位置见 §7 工单。
 
-fidelity 下 86 条逃生项按文件分布（前 10）：`it` 26（uuid 8 / timestamp 5 / 其余 13）、
-`life` 9（workday 5 / 其余 4）、`obstetrics` 4、`cosmetic-derm` 5、`legal` 3、
-`general` 4、`chinese` 2、`cardiology` 2、`science` 3、`health` 2；其余散见各行业 1–2 条。
+跳过 54 → 85（+31）的构成（`TB_DISCRIM_REPORT=1` 逐条导出）：
+**all_default 弱用例 36**（注入值 = 真实默认值）、**无法静态解析 40**（控件 id 由页面脚本运行时生成，
+如矩阵打分 `m0_0`、尿检 `ua_leu`）、**无注入 10**（本来就不适用）。详见 §8。
 
-> **注意**：`tools/office/pdf-split` 的用例会让单进程全站跑**静默退出**（0 字节输出、exit 0）——
-> 该页 `pdfjsReady()` 的轮询 Promise 在 harness 内永不 settle 且定时器不持有事件循环，Node 空事件循环后正常退出。
-> 这是既有缺陷，本批不改 `verify_it_calc.js`；因此全站统计采用「逐文件子进程」跑法，该文件无汇总行（贡献 0）。
+legacy 自身 3 条逃生项（`construction/calc-204`、`it/decimal-encode`、`it/number-base-converter`），
+与 `scripts/discriminate_baseline.json` 的 `escape: 0` 不一致 —— 不是本批引入，需各线收紧后同步基线
+（`calc-204` 属 general 线，两条 it 属 IT 线）。
+
+> **口径修正（2026-11-05）**：上一版（`b96ec6d21d`）报的「fidelity 86 逃生 / 跳过 259」是
+> `lib_stub.parseInputDefaults` 的缺陷造成的假象 —— 无 `value` 属性的 `<input>`（如 `type="date"`）
+> 被整键丢弃，导致 214 条用例被判「控件解析不到」而跳过、部分错位成逃生。已修（无 value ⇒ 空串，
+> 与真机 `.value`/legacy 一致），修正后为 **22 逃生 / 跳过 85**。以本节数字为准。
+
+> **注意（静默退出）**：`tools/office/pdf-split` 的用例会让**单进程**全站跑静默退出（0 字节输出、exit 0）——
+> 该页 `pdfjsReady()` 的轮询 Promise 在 harness 内永不 settle、定时器又不持有事件循环，Node 事件循环空后静默 exit 0。
+> 现在判别器改为「逐文件子进程 + 父进程汇总」，该文件被单独列为**隔离跑**（不计入总量、不当作通过），
+> 并加了「未打印统计行 ⇒ exit 1」「已检 < 下限 ⇒ exit 1」两道闸；`--selftest` 可自证这两道闸会变红。
+> 根因仍在页面（`pdfjsReady` 的轮询未绑定可清理的定时器），需 office 线修。
 
 ## 5. 共享模块实现与接入范围
 
@@ -115,7 +119,7 @@ fidelity 下 86 条逃生项按文件分布（前 10）：`it` 26（uuid 8 / tim
 
 | 能力 | 实现方式 |
 |---|---|
-| input 默认值 | 正则扫 `<input …>` 全标签再按 `\bid\s*=\s*["']…["']` / `\bvalue\s*=\s*["']…["']` 各自独立取值 ⇒ 属性顺序、单双引号都无关；`opts.skipTypes` 排除 checkbox/radio/button 等 |
+| input 默认值 | 正则扫 `<input …>` 全标签再按 `\bid\s*=\s*["']…["']` / `\bvalue\s*=\s*["']…["']` 各自独立取值 ⇒ 属性顺序、单双引号都无关；**无 `value` 属性 ⇒ 空串**（真机 `.value` 语义）；`opts.skipTypes` 排除 checkbox/radio/button 等 |
 | `<select multiple>` | `parseSelects()` 返回 id → options 数组（数组上挂 `.multiple`），`selected` 布尔属性与 `selected="selected"` 都识别；全选值由调用方按 `.multiple` 自行取全部 selected |
 | `<select>` 默认 | `selectDefault()` 优先任意带 `selected` 的 option（不论位置/属性顺序），无则回退首个；option 无 `value` 时取文本，与真机 `.value` 一致 |
 | textarea 初始文本 | `parseTextareaDefaults()` 取内联文本并解码 `&#10;`/`&quot;`/`&amp;`，调用方**同时**写 `.value` 与 `.textContent` |
@@ -131,46 +135,158 @@ fidelity 下 86 条逃生项按文件分布（前 10）：`it` 26（uuid 8 / tim
 「跑完页面后读一次真实 `select.value`」时补，属 verify 侧接入工作，`discriminate_check.js`
 （只做静态解析）无法覆盖，已在第 2 节的清单里按「需人工」标注。
 
-## 6. 附录：fidelity 模式下的 86 条逃生项（按 `verify_*` 文件）
+## 6. 逃生项修复工单（fidelity 22 条，按行业认领）
 
-> 判据：把用例 inputs 逐键换回**页面真实默认值**（模拟注入失败）后仍 PASS ⇒ expect 不依赖被测输入。
-> 每条都需该行业线收紧 expect（改成非默认输入下的派生量）。注意部分文件含跨行业 slug（`finance` 文件里有
-> `automotive/vin-validator`、`science` 文件里有 `tax/rfc-validator`），按 slug 归属认领。
+> 判据：把用例 inputs 逐键换回**页面真实默认值**（模拟注入失败）后仍 PASS ⇒ 该 expect 不依赖被测输入。
+> 「为什么逃生」列的真机证据来自 headless Chrome（默认态 / 注入态各跑一次，采集可见文本 + 控件值）；
+> 「建议新锚点」是从注入态输出里自动挑出、**默认态与页面静态文案都不出现**的数字/单位片段，
+> **仅供参考**（评级按钮、色值等低置信候选已尽量剔除），行业线须按页面语义确认。
+> 本工单**不代表改动用例** —— 每条由所属行业线自行收紧，严禁跨线改。
 
-- `aerospace`：1 — aerospace/flight-time
-- `agriculture`：1 — agriculture/dli-calculator
-- `astronomy`：1 — astronomy/sunrise-sunset
-- `baking`：1 — baking/oven-temp
-- `cardiology`：2 — cardiology/ambulatory-bp、cardiology/coronary-calcium
-- `chinese`：2 — chinese/chinese-character、chinese/chinese-radical-lookup
-- `clinical-lab`：1 — clinical-lab/hba1c-converter
-- `cosmetic-derm`：5 — pore-grading、glogau-photoaging、eyebag-assessment、fitzpatrick-wrinkle ×2
-- `design`：1 — design/gradient
-- `edu`：1 — edu/ebbinghaus-curve
-- `endocrinology`：1 — endocrinology/metabolic-syndrome
-- `finance`：2 — automotive/vin-validator、finance/currency-symbol
-- `fire-rescue`：1 — fire-rescue/calc-1
-- `fishery`：1 — fishery/breeding-cycle
-- `funeral`：1 — funeral/reminder-3
-- `gastroenterology`：1 — gastroenterology/hp-resistance
-- `general`：4 — general/calc-14、electrical/temp-26、machinery/torque、hvac/kongtiaolengfuhejisuan
-- `health`：2 — health/premature-age-calculator、health/ovulation-calculator
-- `image`：1 — image/image-collage
-- `it`：26 — uuid-generator ×8、timestamp-converter ×6、confidence-interval、unicode-lookup、
-  og-meta-tag-generator、git-commands、regex-cheatsheet、tmux-cheatsheet、url-encode、
-  emoji-meaning、captcha-generator、des、rabbit、summary-generator
-- `legal`：3 — legal/calendar-qr、legal/calc-17、legal/labor-compensation
-- `life`：9 — life/workday-calculator ×5、color-name-finder、date-add-subtract、
-  date-difference-calculator、temperature-converter
-- `livestock`：1 — livestock/castration-timing
-- `marketing`：2 — marketing/marketing-roi、marketing/social-media-image-sizes
-- `medical`：1 — medical/reminder-2
-- `museum`：1 — museum/historical-calendar
-- `obstetrics`：4 — bishop-score、placenta-grading、gestational-age、preeclampsia-prediction
-- `pulmonology`：1 — pulmonology/tb-resistance
-- `quality`：1 — quality/table-sampling
-- `safety`：1 — safety/detector-strength
-- `science`：3 — tax/rfc-validator、science/si-unit-converter、science/star-magnitude-compare
-- `security`：1 — security/emergency-contacts
-- `sports`：1 — sports/calculator-calc-time
-- `telecom`：1 — telecom/quick-calc-time-bandwidth
+### 6.1 明细（22 条）
+
+| 行业 | slug | 文件 | 用例 ref | 当前 expect | 为什么逃生（具体位置） | 建议新锚点 |
+|---|---|---|---|---|---|---|
+| cosmetic-derm | `cosmetic-derm/eyebag-assessment` | verify_cosmetic-derm_calc.js | raw=3×3+2×2+2×2+2×2.5+4×0.5=24 → 评 | 48 / 中度眼袋 | expect 含页面默认态就生成的输出（回退默认后仍命中）：`中度眼袋` 默认态就已输出 | `3/4` / `2/3` |
+| cosmetic-derm | `cosmetic-derm/glogau-photoaging` | verify_cosmetic-derm_calc.js | 评=(2×3+4×2+3×1.5+2×2+4×1.5)/10=28. | 2.9 / Ⅲ型 | expect 含页面静态文案（源码可见，不随输入变化）：`Ⅲ型` 是页面静态文案 | `2.85` / `2.9` |
+| cosmetic-derm | `cosmetic-derm/fitzpatrick-wrinkle` | verify_cosmetic-derm_calc.js | 注入四项全非默认（默认 wrinkleGrade=1 / elast | 100 重度光老化 / 皱纹等级 Ⅳ级 / 弹力变性 重度 | 真机两态都未复现（随机种子/交互路径/异步），需人工复核 | `9/10` / `200` |
+| fire-rescue | `fire-rescue/calc-1` | verify_fire-rescue_calc.js | 同一 0.30 MPa 换 16 mm 水枪（默认口径 19 mm） | 19.68 / 13.92 / 24.26 | expect 含页面默认态就生成的输出（回退默认后仍命中）：`24.26` 默认态就已输出 | `19.68 m` / `13.92 m` |
+| cosmetic-derm | `cosmetic-derm/fitzpatrick-wrinkle` | verify_cosmetic-derm_calc.js | 自动补强（B类零用例） | 素沉着）。 建议：综合治疗方案——激光焕肤+填充+肉毒素+线雕提拉。 | 真机两态都未复现（随机种子/交互路径/异步），需人工复核 | `10/10` |
+| gastroenterology | `gastroenterology/hp-resistance` | verify_gastroenterology_calc.js | 三药全部未检测（默认 clar 敏感 / metro 耐药 / le | 未检测药物：克拉霉素、甲硝唑、左氧氟沙星 / 中（存在未检测药物） | expect 含页面默认态就生成的输出（回退默认后仍命中）：`中（存在未检测药物）` 默认态就已输出 | （无可靠候选，需人工） |
+| machinery | `machinery/torque` | verify_general_calc.js | M10 公称应力截面积 As=58.0mm²（标准值） | 58.0 / 22.27 / 0.220 / 384 / 49.0 | expect 含页面静态文案（源码可见，不随输入变化）：`58.0` 是页面静态文案；`0.220` 是页面静态文案 | `22.27` / `49.0` |
+| electrical | `electrical/temp-26` | verify_general_calc.js | 标志按 Ex+型式+气体类别+温度组别 拼接 = 「Ex i IIB | Ex i IIB T4 / 135 / 0区、1区、2区 | expect 含页面静态文案（源码可见，不随输入变化）：`135` 是页面静态文案 | `Ex i IIB T4` / `0区、1区、2区` |
+| construction | `construction/calc-204` | verify_general_calc.js | 自动补强（B类零用例） | 0.82 理论支撑间距 s (m) / 2704 支撑总根数 / 5 | 真机两态都未复现（随机种子/交互路径/异步），需人工复核 | `52×52` / `0.81` |
+| image | `image/image-collage` | verify_image_calc.js | auto-restore | 固定高度 | expect 含页面默认态就生成的输出（回退默认后仍命中）：`固定高度` 默认态就已输出 | （无可靠候选，需人工） |
+| hvac | `hvac/kongtiaolengfuhejisuan` | verify_general_calc.js | 自动补强（B类零用例） | � 推荐空调配置：3-5匹柜机/天井机 暂无计算记录 | 真机两态都未复现（随机种子/交互路径/异步），需人工复核 | `13.14` / `13144` |
+| it | `it/confidence-interval` | verify_it_calc.js | 独立复算：SE=s/√n=15/√30=2.7386；95% 双侧  | [ 94.632 , 105.368 ] / 临界值 z = 1.9 | expect 含页面默认态就生成的输出（回退默认后仍命中）：`临界值 z = 1.960` 默认态就已输出 | `94.632 ,` / `15/√30 =` |
+| it | `it/des` | verify_it_calc.js | openssl 交叉验证 | 3des | expect 含页面默认态就生成的输出（回退默认后仍命中）：`3des` 默认态就已输出 | `0.8` / `0.5` |
+| it | `it/captcha-generator` | verify_it_calc.js | 自动补强（B类零用例） | nQ6zE复制导出gre2B复制导出yq1uF复制导出0glzX复制 | 真机两态都未复现（随机种子/交互路径/异步），需人工复核 | （无可靠候选，需人工） |
+| it | `it/summary-generator` | verify_it_calc.js | 自动补强（B类零用例） | 社会的方方面面。 5 14 5 469 68 | 真机两态都未复现（随机种子/交互路径/异步），需人工复核 | `1 2 3` / `0.00` |
+| obstetrics | `obstetrics/placenta-grading` | verify_obstetrics_calc.js | 注入孕周 32 周 + Grannum 2 级（默认 36 周 +  | II级(成熟) / 32–36周 / 绒毛板切迹深入实质未达基底 / | expect 含页面静态文案（源码可见，不随输入变化）：`II级(成熟)` 默认态就已输出；`32–36周` 是页面静态文案；`绒毛板切迹深入实质未达基底` 默认态就已输出；`胎盘成熟度与孕周基本相符` 默认态就已输出 | `II级(成熟)Grannum分级32周当前孕周32–` |
+| obstetrics | `obstetrics/bishop-score` | verify_obstetrics_calc.js | 注入五项 Bishop 项（默认全 0）。独立复算（页面权重表） | 11/13 / Bishop总分 11 / 可直接用缩宫素引产 /  | expect 含页面静态文案（源码可见，不随输入变化）：`11/13` 是页面静态文案；`可直接用缩宫素引产` 默认态就已输出 | `宫口扩张：3分` / `宫颈消退：3分` |
+| obstetrics | `obstetrics/preeclampsia-prediction` | verify_obstetrics_calc.js | 自动补强（B类零用例） | %） 确诊界值：≥110（晚 | 真机两态都未复现（随机种子/交互路径/异步），需人工复核 | `1,500 →` / `1.0` |
+| sports | `sports/calculator-calc-time` | verify_sports_calc.js | 总用时 12600 s ÷ 42.195 km = 298.61 s | 4:59 / 半程马拉松 21.098 / 3:30:00 | expect 含页面静态文案（源码可见，不随输入变化）：`半程马拉松 21.098` 默认态就已输出；`3:30:00` 是页面静态文案 | `1 km 4:59 4:59/km` / `12.06` |
+| pulmonology | `pulmonology/tb-resistance` | verify_pulmonology_calc.js | auto-restore | 有传染性，需呼吸道隔离 | expect 含页面默认态就生成的输出（回退默认后仍命中）：`有传染性，需呼吸道隔离` 默认态就已输出 | （无可靠候选，需人工） |
+| cosmetic-derm | `cosmetic-derm/pore-grading` | verify_cosmetic-derm_calc.js | 评=(2×3+2×3+3×2+2×2)/10×25=22/10×25 | 55 / 中度毛孔粗大 | expect 含页面默认态就生成的输出（回退默认后仍命中）：`中度毛孔粗大` 默认态就已输出 | `颊部 3级 扩大伴黑头` / `前额 2级 明显可见` |
+| agriculture | `agriculture/dli-calculator` | verify_agriculture_calc.js | 自动补强（B类零用例） | /m²/d（代表：黄瓜、番茄幼苗、草本植物） DLI达标，当前光照满 | 真机两态都未复现（随机种子/交互路径/异步），需人工复核 | `400 →` / `12.7` |
+
+### 6.2 原因分布与按行业
+
+**原因分布**：默认态输出 8 / 静态文案 6 / 其它 8。
+- **默认态输出（8）**：expect 里有一项是页面默认输入就能生成的数值/结论（回退默认后必然命中）。
+- **静态文案（6）**：expect 里有一项是页面可见静态文字（如 `Ⅲ型`、`58.0`、`3:30:00`），与输入完全无关。
+- **其它（8）**：真机默认态与注入态都未复现该串 —— 多为随机种子（`captcha-generator` 的验证码串
+  是 harness 固定 PRNG 的输出）、或需要多步交互/异步渲染，**必须人工复核**后才能定性质。
+
+**按行业**：cosmetic-derm 5、it 4、obstetrics 3、fire-rescue 1、gastroenterology 1、machinery 1、electrical 1、construction 1、image 1、hvac 1、sports 1、pulmonology 1、agriculture 1。
+
+## 7. 弱用例与解析缺口工单
+
+> 判据来自 `TB_DISCRIM_REPORT=1` 的逐条导出（fidelity 模式，207 个 verify 全跑）。
+> 三类处置不同：**all_default** 改用例输入；**无法静态解析** 补 verify 侧桩（控件由页面脚本运行时生成）；
+> **无注入** 本就不适用，无需处理。
+
+### 7.1 all_default 弱用例工单（36 条）
+
+| 行业 | slug | 用例 ref | 默认值 = 注入值 | 建议改成什么输入 |
+|---|---|---|---|---|
+| acupuncture | `acupuncture/needle-retention` | auto-restore | `age`=`adult` | 改用下拉另一项 `child`（默认 `adult`） |
+| acupuncture | `acupuncture/needling-depth` | auto-restore | `bodyType`=`medium` | 改用下拉另一项 `thin`（默认 `medium`） |
+| audio | `audio/audio-cut` | 结构性不可改造（保留 all_default，勿重复评估）： | `startInput`=`0`、`endInput`=`0` | 改用 `5`（默认 `0`，翻倍/避开默认） |
+| beauty | `beauty/calc-2` | auto-restore | `tone`=`light` | 改用下拉另一项 `fair`（默认 `light`） |
+| beauty | `beauty/skincare-routine` | auto-restore | `ageGroup`=`25` | 改用下拉另一项 `20`（默认 `25`） |
+| chinese-cook | `chinese-cook/wok-heat` | auto-restore | `heat`=`zhong` | 改用下拉另一项 `wang`（默认 `zhong`） |
+| cognition | `cognition/human-benchmark` | 结构性不可改造（保留 all_default，勿重复评估）： | `tArea`=`空` | 改用非空值（默认空串，注入空值等于没注入） |
+| cognition | `cognition/time-perception` | auto-restore | `bSel`=`90` | 改用下拉另一项 `60`（默认 `90`） |
+| dentistry | `dentistry/tongue-oral-health` | auto-restore | `color`=`normal` | 改用下拉另一项 `pale`（默认 `normal`） |
+| dentistry | `dentistry/wisdom-tooth` | auto-restore | `winter`=`mesioangular` | 改用下拉另一项 `vertical`（默认 `mesioangular`） |
+| design | `design/photo-print-size` | 冲印尺寸 = 像素 ÷ DPI × 2.54cm：4000/ | `pw`=`4000`、`ph`=`3000`、`dpi`=`300` | 改用 `8000`（默认 `4000`，翻倍/避开默认） |
+| design | `design/spacing-scale` | 等比数列 size_i = round(base × rat | `baseSize`=`4`、`ratio`=`1.25`、`levels`=`10` | 改用 `8`（默认 `4`，翻倍/避开默认） |
+| electromagnetism | `electromagnetism/free-space-impedance` | Z₀=√(μ₀/ε₀)=376.73 Ω（常数页，页面无有效 | `x`=`0` | 改用 `5`（默认 `0`，翻倍/避开默认） |
+| forensic-medicine | `forensic-medicine/drowning-diatom` | auto-restore | `waterDiatom`=`medium` | 改用下拉另一项 `high`（默认 `medium`） |
+| gastroenterology | `gastroenterology/esophageal-varices` | auto-restore | `size`=`2` | 改用下拉另一项 `1`（默认 `2`） |
+| health | `health/protein-needs` | 蛋白质 = 体重 × 活动系数 = 65 × 1.4 = 9 | `weight`=`65`、`age`=`30`、`activity`=`1.4` | 改用 `130`（默认 `65`，翻倍/避开默认） |
+| health | `health/calc-2` | 总分 = 时长20(7–9h) + 潜伏期10 + 觉醒10 | `duration`=`7`、`latency`=`10`、`wakings`=`10`、`depth`=`15`、`alertness`=`15`、`breathing`=`0` | 改用 `14`（默认 `7`，翻倍/避开默认） |
+| it | `it/calc-2` | format(255,'X') = FF | `numInput`=`255`、`fromBase`=`10` | 改用 `510`（默认 `255`，翻倍/避开默认） |
+| it | `it/vector-dot-product` | 自动补强（B类零用例）：注入非默认输入{"dim":"3"} | `dim`=`3` | 改用下拉另一项 `2`（默认 `3`） |
+| it | `it/vector-magnitude` | 自动补强（B类零用例）：注入非默认输入{"dim":"3"} | `dim`=`3` | 改用下拉另一项 `2`（默认 `3`） |
+| kids | `kids/stroke-order` | auto-restore | `charInput`=`永`、`speedSel`=`900` | 改用 `永-x` 或语义不同的合法值（默认 `永`） |
+| language | `language/idiom-solitaire` | auto-restore | `timeLimit`=`20` | 改用下拉另一项 `15`（默认 `20`） |
+| mechanical | `mechanical/spring-rate` |  | `d`=`5`、`D`=`30`、`n`=`6`、`G`=`79` | 改用 `10`（默认 `5`，翻倍/避开默认） |
+| travel | `travel/luggage-size` | auto-restore | `size`=`20` | 改用下拉另一项 `18`（默认 `20`） |
+| music | `music/web-tuner` | auto-restore | `refFreq`=`440` | 改用下拉另一项 `432`（默认 `440`） |
+| office | `office/mindmap` | 结构性不可改造（保留 all_default，勿重复评估）： | `editor`=`空` | 改用非空值（默认空串，注入空值等于没注入） |
+| ophthalmology | `ophthalmology/amblyopia-stereopsis` | auto-restore | `age`=`5`、`stereoLevel`=`60` | 改用 `10`（默认 `5`，翻倍/避开默认） |
+| pet | `pet/training-planner` | auto-restore | `age`=`junior` | 改用下拉另一项 `puppy`（默认 `junior`） |
+| rheumatology | `rheumatology/anca-classification` | auto-restore | `iif`=`canca` | 改用下拉另一项 `neg`（默认 `canca`） |
+| rheumatology | `rheumatology/behcet-hla` | auto-restore | `age`=`middle` | 改用下拉另一项 `young`（默认 `middle`） |
+| rheumatology | `rheumatology/ssa-ssb` | auto-restore | `ssa`=`ro60` | 改用下拉另一项 `neg`（默认 `ro60`） |
+| science | `science/convert-power` | 1 N = 0.2248089 lbf（1 lbf = 4. | `val`=`1`、`from`=`N`、`to`=`lbf` | 改用 `2`（默认 `1`，翻倍/避开默认） |
+| startup | `startup/equity-calculator` | auto-restore | `w_idea`=`3`、`w_money`=`1`、`w_time`=`2`、`w_res`=`2`、`pool`=`15`、`mode`=`weighted` | 改用 `6`（默认 `3`，翻倍/避开默认） |
+| stats | `stats/sample-size` | auto-restore | `e`=`5`、`p`=`0.5`、`n`=`0`、`conf`=`0.95` | 改用 `10`（默认 `5`，翻倍/避开默认） |
+| text | `text/convert-6` | auto-restore | `val`=`Hello World`、`to`=`lower` | 改用 `Hello World-x` 或语义不同的合法值（默认 `Hello World |
+| wedding | `wedding/wedding-banquet` | 主桌 ceil(120/10)=12；备桌 mid=2；合计 | `guests`=`120`、`type`=`round10`、`backup`=`mid` | 改用 `240`（默认 `120`，翻倍/避开默认） |
+
+**按行业**：it 3、rheumatology 3、acupuncture 2、beauty 2、cognition 2、dentistry 2、design 2、health 2、audio 1、chinese-cook 1、electromagnetism 1、forensic-medicine 1、gastroenterology 1、kids 1、language 1、mechanical 1、travel 1、music 1、office 1、ophthalmology 1、pet 1、science 1、startup 1、stats 1、text 1、wedding 1。
+
+### 7.2 无法静态解析（40 条，页面控件运行时生成）
+
+| 行业 | slug | 用例 ref | 解析不到的 id |
+|---|---|---|---|
+| chemical | `chemical/checker-15` | 去默认化（原 expect「0/10」＝全零默认态即命中）： | `m0_0`、`m0_1`、`m0_2`、`m0_3`、`m0_4`、`m1_0`、`m1_1`、`m1_2`、`m1_3`、`m1_4`、`m1_5`、`m2_0`、`m2_1`、`m2_2`、`m2_3`、`m2_4` |
+| cleaning | `cleaning/checker-10` | 去默认化（16 项打分全部非默认）：地面 4 项全 5 →  | `a0_0`、`a0_1`、`a0_2`、`a0_3`、`a1_0`、`a1_1`、`a1_2`、`a1_3`、`a1_4`、`a2_0`、`a2_1`、`a2_2`、`a3_0`、`a3_1`、`a3_2`、`a3_3` |
+| cleaning | `cleaning/checker-9` | 去默认化（15 项评级全部非默认）：一、SOP 5 项全「已 | `m0_0`、`m0_1`、`m0_2`、`m0_3`、`m0_4`、`m1_0`、`m1_1`、`m1_2`、`m1_3`、`m1_4`、`m2_0`、`m2_1`、`m2_2`、`m2_3`、`m2_4` |
+| clinical-lab | `clinical-lab/urinalysis-interpretation` | LEU 3+(500) 且 NIT 阳性 → 满足「(leu | `ua_leu`、`ua_nit`、`ua_pro`、`ua_glu`、`ua_ket`、`ua_ery`、`ua_bil`、`ua_ubg`、`ua_vc` |
+| decor | `decor/curtain-fabric` | 2026-10-27 新增「遮光+纱帘双层组合估算」：注入杆 | `dblRod`、`dblH`、`dblFullA`、`dblFabA`、`dblFullB`、`dblFabB` |
+| dentistry | `dentistry/gingival-index` | 6 牙 × 4 位点全部显式注入（动态 id `<tooth | `t16_0`、`t16_1`、`t16_2`、`t16_3`、`t16_bop`、`t21_0`、`t21_1`、`t21_2`、`t21_3`、`t21_bop`、`t24_0`、`t24_1`、`t24_2`、`t24_3`、`t24_bop`、`t36_0`、`t36_1`、`t36_2`、`t36_3`、`t36_bop`、`t41_0`、`t41_1`、`t41_2`、`t41_3`、`t41_bop`、`t44_0`、`t44_1`、`t44_2`、`t44_3`、`t44_bop` |
+| dentistry | `dentistry/rater-risk-2` | 7 维（exp/ms/diet/plaque/fluorid | `d_exp`、`d_ms`、`d_diet`、`d_plaque`、`d_fluoride`、`d_flow`、`d_buffer` |
+| electrical | `electrical/load-curve` | auto-restore | `h'+h+'` |
+| endocrinology | `endocrinology/catecholamine-test` | 注入血浆游离 MN/NMN（默认页签 plasma）→ 结果 | `mn`、`nmn` |
+| fitness | `fitness/bodyfat-caliper` | 注入非默认（默认 gender=male/sites=3 但 | `site_chest`、`site_abdomen`、`site_thigh` |
+| forensic-medicine | `forensic-medicine/bone-age-estimation` | auto-restore | `femurLen`、`crl`、`carpalNum`、`metaNum`、`radiusGrade`、`metaGrade`、`phalGrade` |
+| futures | `futures/option-greeks` | auto-restore | `marketPrice` |
+| hydraulic | `hydraulic/pressure-drop` | v0=1.6,v1=137 → 计算壁厚 δ=1.6×200 | `v0`、`v1` |
+| hydraulic | `hydraulic/qudao-buchong-buyu-liusu` | v0=0.8,v1=0.0005 → 谢才 v=(1/0.0 | `v0`、`v1` |
+| hydraulic | `hydraulic/daohongxi-shuitousunshi-maishen` | v0=2.0,v1=50 → 沿程损失 h_f=0.025× | `v0`、`v1` |
+| it | `it/vector-dot-product` | 注入非默认(默认 2D a=(1,0)/b=(0,1)点积  | `a0`、`a1`、`b0`、`b1` |
+| legal | `legal/court-fee` | 财产案件10万：100000×2.5%−200=2300（分 | `hasPropertySplit`、`simplified` |
+| library | `library/citation-format` | auto-restore | `edition`、`place`、`publisher`、`year`、`pages`、`journal`、`volissue`、`degree`、`school`、`conf`、`stdno`、`patno`、`paper`、`date`、`url`、`cited` |
+| project | `project/analysis-28` | auto-restore | `sn'+idx+'` |
+| property | `property/cycle-elevator` | auto-restore | `logDate_'+el.id+'` |
+| psychiatry | `psychiatry/assessor-risk-5` | C-SSRS 自杀意念第3项=是（其余=否）→ maxIde | `ide0`、`ide1`、`ide2`、`ide3`、`ide4`、`beh0`、`beh1`、`beh2` |
+| psychiatry | `psychiatry/calc-1` | PHQ-9 九项=3,3,2,2,1,2,2,1,2 → 总 | `q0`、`q1`、`q2`、`q3`、`q4`、`q5`、`q6`、`q7`、`q8` |
+| psychiatry | `psychiatry/mmpi2-personality` | MMPI-2 十量表 T 分（动态 id sc0..sc9  | `sc0`、`sc1` |
+| psychiatry | `psychiatry/rater-23` | LSAS 24 项（表演型 13 + 社交互动型 11，动态 | `f0`、`f1`、`f2`、`f3`、`f4`、`f5`、`f6`、`f7`、`f8`、`f9`、`f10`、`f11`、`f12`、`f13`、`f14`、`f15`、`f16`、`f17`、`f18`、`f19`、`f20`、`f21`、`f22`、`f23`、`a0`、`a1`、`a2`、`a3`、`a4`、`a5`、`a6`、`a7`、`a8`、`a9`、`a10`、`a11`、`a12`、`a13`、`a14`、`a15`、`a16`、`a17`、`a18`、`a19`、`a20`、`a21`、`a22`、`a23` |
+| psychiatry | `psychiatry/rater-24` | CD-RISC 25 项（动态 id q0..q24 由 b | `q0`、`q1`、`q2`、`q3`、`q4`、`q5`、`q6`、`q7`、`q8`、`q9`、`q10`、`q11`、`q12`、`q13`、`q14`、`q15`、`q16`、`q17`、`q18`、`q19`、`q20`、`q21`、`q22`、`q23`、`q24` |
+| psychiatry | `psychiatry/self-assess-4` | ASRS-v1.1 六项（动态 id q0..q5，posi | `q0`、`q1`、`q2`、`q3`、`q4`、`q5` |
+| psychology | `psychology/attachment-style-test` | auto-restore | `at' + i + '_' + l.v + '` |
+| psychology | `psychology/calc-12` | inputs 写 10 个滑杆（id=s-<维度键>）：li | `s-life`、`s-health`、`s-relation`、`s-work`、`s-finance`、`s-growth`、`s-leisure`、`s-safety`、`s-self`、`s-mood` |
+| psychology | `psychology/holland-career-test` | auto-restore | `hl' + i + '_' + val + '` |
+| pulmonology | `pulmonology/copd-cat` | auto-restore | `q0`、`q1`、`q2`、`q3`、`q4`、`q5`、`q6`、`q7` |
+| pulmonology | `pulmonology/rater-13` | auto-restore | `q0`、`q1`、`q2`、`q3`、`q4`、`q5`、`q6` |
+| pulmonology | `pulmonology/self-assess-3` | auto-restore | `q0`、`q1`、`q2`、`q3`、`q4`、`q5` |
+| rehabilitation | `rehabilitation/asia-impairment-scale` | 门诊记录：全量注入 28 皮节×4 位点（sens_*_lt | `sens_C2_lt_l`、`sens_C2_lt_r`、`sens_C2_pp_l`、`sens_C2_pp_r`、`sens_C3_lt_l`、`sens_C3_lt_r`、`sens_C3_pp_l`、`sens_C3_pp_r`、`sens_C4_lt_l`、`sens_C4_lt_r`、`sens_C4_pp_l`、`sens_C4_pp_r`、`sens_C5_lt_l`、`sens_C5_lt_r`、`sens_C5_pp_l`、`sens_C5_pp_r`、`sens_C6_lt_l`、`sens_C6_lt_r`、`sens_C6_pp_l`、`sens_C6_pp_r`、`sens_C7_lt_l`、`sens_C7_lt_r`、`sens_C7_pp_l`、`sens_C7_pp_r`、`sens_C8_lt_l`、`sens_C8_lt_r`、`sens_C8_pp_l`、`sens_C8_pp_r`、`sens_T1_lt_l`、`sens_T1_lt_r`、`sens_T1_pp_l`、`sens_T1_pp_r`、`sens_T2_lt_l`、`sens_T2_lt_r`、`sens_T2_pp_l`、`sens_T2_pp_r`、`sens_T3_lt_l`、`sens_T3_lt_r`、`sens_T3_pp_l`、`sens_T3_pp_r`、`sens_T4_lt_l`、`sens_T4_lt_r`、`sens_T4_pp_l`、`sens_T4_pp_r`、`sens_T5_lt_l`、`sens_T5_lt_r`、`sens_T5_pp_l`、`sens_T5_pp_r`、`sens_T6_lt_l`、`sens_T6_lt_r`、`sens_T6_pp_l`、`sens_T6_pp_r`、`sens_T7_lt_l`、`sens_T7_lt_r`、`sens_T7_pp_l`、`sens_T7_pp_r`、`sens_T8_lt_l`、`sens_T8_lt_r`、`sens_T8_pp_l`、`sens_T8_pp_r`、`sens_T9_lt_l`、`sens_T9_lt_r`、`sens_T9_pp_l`、`sens_T9_pp_r`、`sens_T10_lt_l`、`sens_T10_lt_r`、`sens_T10_pp_l`、`sens_T10_pp_r`、`sens_T11_lt_l`、`sens_T11_lt_r`、`sens_T11_pp_l`、`sens_T11_pp_r`、`sens_T12_lt_l`、`sens_T12_lt_r`、`sens_T12_pp_l`、`sens_T12_pp_r`、`sens_L1_lt_l`、`sens_L1_lt_r`、`sens_L1_pp_l`、`sens_L1_pp_r`、`sens_L2_lt_l`、`sens_L2_lt_r`、`sens_L2_pp_l`、`sens_L2_pp_r`、`sens_L3_lt_l`、`sens_L3_lt_r`、`sens_L3_pp_l`、`sens_L3_pp_r`、`sens_L4_lt_l`、`sens_L4_lt_r`、`sens_L4_pp_l`、`sens_L4_pp_r`、`sens_L5_lt_l`、`sens_L5_lt_r`、`sens_L5_pp_l`、`sens_L5_pp_r`、`sens_S1_lt_l`、`sens_S1_lt_r`、`sens_S1_pp_l`、`sens_S1_pp_r`、`sens_S2_lt_l`、`sens_S2_lt_r`、`sens_S2_pp_l`、`sens_S2_pp_r`、`sens_S3_lt_l`、`sens_S3_lt_r`、`sens_S3_pp_l`、`sens_S3_pp_r`、`sens_S4-S5_lt_l`、`sens_S4-S5_lt_r`、`sens_S4-S5_pp_l`、`sens_S4-S5_pp_r`、`motor_0_l`、`motor_0_r`、`motor_1_l`、`motor_1_r`、`motor_2_l`、`motor_2_r`、`motor_3_l`、`motor_3_r`、`motor_4_l`、`motor_4_r`、`motor_5_l`、`motor_5_r`、`motor_6_l`、`motor_6_r`、`motor_7_l`、`motor_7_r`、`motor_8_l`、`motor_8_r`、`motor_9_l`、`motor_9_r` |
+| rheumatology | `rheumatology/assessor-10` | 各域取本域最高档：全身/腺体/生化只有 0–2 档，其余取  | `d0`、`d1`、`d2`、`d3`、`d4`、`d5`、`d6`、`d7`、`d8`、`d9`、`d10`、`d11` |
+| rheumatology | `rheumatology/assessor-10` | 切点回归：腺体低 2×2=4 + 生化低 1×1=1 = 5 | `d2`、`d11` |
+| rheumatology | `rheumatology/guguanjieyan-womac-zhishu` | auto-restore | `' + name + '_' + v + '` |
+| rheumatology | `rheumatology/womac` | WOMAC：疼痛 Σ14/20、僵硬 Σ4/8、功能 Σ34 | `p0`、`p1`、`p2`、`p3`、`p4`、`s0`、`s1`、`f0`、`f1`、`f2`、`f3`、`f4`、`f5`、`f6`、`f7`、`f8`、`f9`、`f10`、`f11`、`f12`、`f13`、`f14`、`f15`、`f16` |
+| surveying | `surveying/calc-1` | SV-5 新增：注入 4 测段高差 Σh=1.256+2.3 | `dh-1`、`dh-2`、`dh-3`、`dh-4`、`fc-1`、`fc-2`、`fc-3`、`fc-4` |
+| urology | `urology/calc-1` | fix broken template: q0-6=3→总分 | `q0`、`q1`、`q2`、`q3`、`q4`、`q5`、`q6` |
+| urology | `urology/iief5-score` | fix broken template: q0-4=3→总分 | `q0`、`q1`、`q2`、`q3`、`q4` |
+
+**按行业**：psychiatry 6、rheumatology 4、hydraulic 3、psychology 3、pulmonology 3、cleaning 2、dentistry 2、urology 2、chemical 1、clinical-lab 1、decor 1、electrical 1、endocrinology 1、fitness 1、forensic-medicine 1、futures 1、it 1、legal 1、library 1、project 1、property 1、rehabilitation 1、surveying 1。
+
+### 7.3 无注入用例（10 条，本来就不适用判别力）
+
+| 行业 | slug | 用例 ref |
+|---|---|---|
+| admin | `admin/detector-time` | 结构性不可注入（沿用 tcm-diagnosis/etiology-tree 的 |
+| ceramics | `ceramics/glaze-temp` | 结构性不可注入（2026-10-10 复核，原 ref 为 auto-resto |
+| chess | `chess/xiangqi-endgame` | 结构性不可注入（沿用 tcm-diagnosis/etiology-tree 口 |
+| film | `film/color-grading` | 结构性不可注入（2026-09-26 复核，原 ref 为 auto-resto |
+| gardening2 | `gardening2/pest-control` | 结构性不可注入（2026-09-26 复核，原 ref 为 auto-resto |
+| image | `image/nine-grid-cutter` | 结构性不可注入（2026-10-10 复核，原 ref 为 auto-resto |
+| science | `science/physics-constants` | auto-restore(default)；**2026-09-26 复核判死（ |
+| music | `music/ear-trainer` | auto-restore(default)；**2026-09-26 复核判死（ |
+| paper | `paper/paper-grade` | 结构性不可注入（2026-09-26 复核，原 ref 为 auto-resto |
+| tcm-diagnosis | `tcm-diagnosis/etiology-tree` | 结构性不可注入：页面仅 treeContainer 一个容器，节点由 build |
