@@ -117,7 +117,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="回收期 = 初投资 / 年节约。">Compute the payback period of an energy-saving investment from its initial cost and annual savings, plus the simple return rate.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">节能投资回收期（本页代码口径）：回收期=初投资÷年节约额（年）；联动量：年回报率=年节约额÷初投资×100（%）、10 年净收益=年节约额×10−初投资、10 年累计节省=年节约额×10（元）。校验：两项空值即提示并中止；年节约额为 0 时回收期 Infinity 由结果层按 — 兜底。判据：无固定分级，回收期越短项目越优，通常明显短于设备寿命才具吸引力。</div>
+      <div class="formula-eq">节能投资回收期（本页代码口径）：回收期=初投资÷年节约额（年）；联动量：年回报率=年节约额÷初投资×100（%）、10 年净收益=年节约额×10−初投资、10 年累计节省=年节约额×10（元）。校验：两项空值即提示并中止；两项均不得为负；年节约额为 0 时单独输出「∞（无法回收）」并保留其余三项。判据：无固定分级，回收期越短项目越优，通常明显短于设备寿命才具吸引力。</div>
       <p class="formula-desc">回收期 = 初投资 / 年节约。</p>
     </div>
 
@@ -244,7 +244,7 @@ s.parentNode.insertBefore(el, s);
     return __msg;
   }
   // 分母项：__D 由真浏览器逐项置零探测得出，命中即说明该输入在此页作分母
-  var __D={"inv": "初投资 (元)", "save": "年节约 (元/年)"};
+  var __D={"inv": "初投资 (元)"};
   for(var _d=0;_d<_ids.length;_d++){
     if(!(_ids[_d] in __D)) continue;
     var _de=document.getElementById(_ids[_d]);
@@ -277,6 +277,19 @@ function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+=
 function calcTool(){
               var __ig=__tbInputGuard(['inv', 'save'],["初投资 (元)", "年节约 (元/年)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const inv=num('inv'),s=num('save');
+            if(inv<0||s<0){
+                ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 初投资与年节约不能为负值。</p>');
+                return;
+            }
+            if(s===0){
+                ToolBox.setResult('result',dataGrid([
+                    ['∞（无法回收）','回收期 (年)'],
+                    ['—','年回报率 (%)'],
+                    [(-inv).toFixed(2), '10 年净收益 (元)'],
+                    ['0.00', '10 年累计节省 (元)']
+                ])+'<p style="margin-top:8px;color:var(--warning)">年节约为 0：投资永远无法回收。</p>');
+                return;
+            }
             const __g2=dataGrid([
                 [(inv/s).toFixed(2),'回收期 (年)'],
                 [(s/inv*100).toFixed(1),'年回报率 (%)'],

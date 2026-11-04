@@ -295,22 +295,28 @@ function switchMode(mode) {
   calc();
 }
 
+function readVal(id, def){
+  var raw = document.getElementById(id).value.trim();
+  if(raw === '') return def;
+  var x = parseFloat(raw);
+  return isFinite(x) ? x : def;
+}
 function calc() {
   let output, input, ratio, label, unit;
-  if (currentMode === 'cop') {
-    output = parseFloat(document.getElementById('heatOutput').value) || 0;
-    input = parseFloat(document.getElementById('copInput').value) || 0.1;
-    ratio = output / input;
-    label = 'COP（制热能效比）';
-  } else {
-    output = parseFloat(document.getElementById('coolOutput').value) || 0;
-    input = parseFloat(document.getElementById('eerInput').value) || 0.1;
-    ratio = output / input;
-    label = 'EER（制冷能效比）';
+  const outId = currentMode === 'cop' ? 'heatOutput' : 'coolOutput';
+  const inId = currentMode === 'cop' ? 'copInput' : 'eerInput';
+  output = readVal(outId, 0);
+  input = readVal(inId, 0);
+  if(output <= 0 || input <= 0){
+    document.getElementById('result').innerHTML = '<p style="color:var(--danger)">请输入有效参数：' + (currentMode === 'cop' ? '制热量' : '制冷量') + '与输入功率均须大于 0。</p>';
+    document.getElementById('copValue').textContent = '—';
+    return;
   }
+  ratio = output / input;
+  label = currentMode === 'cop' ? 'COP（制热能效比）' : 'EER（制冷能效比）';
 
-  const hours = parseFloat(document.getElementById('runHours').value) || 0;
-  const price = parseFloat(document.getElementById('elecPrice').value) || 0.58;
+  const hours = readVal('runHours', 0);
+  const price = readVal('elecPrice', 0.58);
 
   const grade = copGrades.find(function(g) {
     const minOk = ratio >= g.min;
@@ -352,6 +358,10 @@ function calc() {
 }
 
 function buildCompare(cop, output, input, hours, price) {
+  if(currentMode === 'eer'){
+    document.getElementById('compareList').innerHTML = '<p style="font-size:13px;color:var(--text-muted);">制冷模式不适用于锅炉制热对比；EER 反映制冷量与输入功率之比，可与同冷量的电制冷设备对照。</p>';
+    return;
+  }
   const elecBoilerCop = 0.95;
   const gasBoilerCop = 0.85;
   const annualHeat = output * hours;
@@ -364,21 +374,22 @@ function buildCompare(cop, output, input, hours, price) {
   const gasCost = gasEnergy * price * 0.9; // gas price ~0.9x electricity per kWh equivalent
 
   const maxCost = Math.max(hpCost, elecCost, gasCost);
+  const pct = function(x){ return maxCost > 0 ? (x / maxCost * 100).toFixed(1) : '0'; };
 
   let html = '';
   html += '<div class="compare-row">';
   html += '<div class="icon">🔄</div><div class="info"><div class="name">热泵 COP=' + cop.toFixed(2) + '</div><div class="meta">耗电 ' + hpEnergy.toFixed(0) + ' kWh | ¥' + hpCost.toFixed(0) + '</div></div>';
-  html += '<div class="bar-wrap"><div class="bar-in" style="width:' + (hpCost / maxCost * 100) + '%;background:#10B981;">¥' + hpCost.toFixed(0) + '</div></div>';
+  html += '<div class="bar-wrap"><div class="bar-in" style="width:' + pct(hpCost) + '%;background:#10B981;">¥' + hpCost.toFixed(0) + '</div></div>';
   html += '</div>';
 
   html += '<div class="compare-row">';
   html += '<div class="icon">⚡</div><div class="info"><div class="name">电锅炉 COP=0.95</div><div class="meta">耗电 ' + elecEnergy.toFixed(0) + ' kWh | ¥' + elecCost.toFixed(0) + '</div></div>';
-  html += '<div class="bar-wrap"><div class="bar-in" style="width:' + (elecCost / maxCost * 100) + '%;background:#EF4444;">¥' + elecCost.toFixed(0) + '</div></div>';
+  html += '<div class="bar-wrap"><div class="bar-in" style="width:' + pct(elecCost) + '%;background:#EF4444;">¥' + elecCost.toFixed(0) + '</div></div>';
   html += '</div>';
 
   html += '<div class="compare-row">';
   html += '<div class="icon">🔥</div><div class="info"><div class="name">燃气锅炉 COP=0.85</div><div class="meta">耗能 ' + gasEnergy.toFixed(0) + ' kWh | ¥' + gasCost.toFixed(0) + '</div></div>';
-  html += '<div class="bar-wrap"><div class="bar-in" style="width:' + (gasCost / maxCost * 100) + '%;background:#F59E0B;">¥' + gasCost.toFixed(0) + '</div></div>';
+  html += '<div class="bar-wrap"><div class="bar-in" style="width:' + pct(gasCost) + '%;background:#F59E0B;">¥' + gasCost.toFixed(0) + '</div></div>';
   html += '</div>';
 
   const __g5=html;document.getElementById('compareList').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
