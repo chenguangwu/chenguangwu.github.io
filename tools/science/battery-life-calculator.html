@@ -416,11 +416,30 @@ function switchTab(tab,btn){
   if(tab==='history')renderHistory();
 }
 
+function __t(zh,en){try{return (typeof TBKit!=='undefined'&&TBKit.util&&typeof TBKit.util.isEn==='function'&&TBKit.util.isEn())?en:zh;}catch(e){return zh;}}
+
 function fmtTime(h){
+  if(!isFinite(h)||h<0)return '—';
   if(h<1/60)return Math.round(h*3600)+' 秒';
   if(h<1)return Math.round(h*60)+' 分钟';
   const d=Math.floor(h/24);h-=d*24;const hr=Math.floor(h);const m=Math.round((h-hr)*60);
-  let s='';if(d>0)s+=d+'天 ';if(hr>0)s+=hr+'小时 ';if(m>0)s+=m+'分钟';return s.trim();
+  let s='';if(d>0)s+=d+'天 ';if(hr>0)s+=hr+'小时 ';if(m>0)s+=m+'分钟';return s.trim()||'0 分钟';
+}
+
+function clearResults(msg){
+  ['resTime','resPower','resEnergy','resEff'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.textContent='—';
+  });
+  const tbl=document.getElementById('timeTable');
+  if(tbl) tbl.innerHTML='';
+  const fill=document.getElementById('batteryFill');
+  if(fill) fill.style.width='0%';
+  lastResult=null;
+  if(msg&&typeof ToolBox!=='undefined'){
+    if(typeof ToolBox.showToast==='function') ToolBox.showToast(msg);
+    else if(typeof ToolBox.toast==='function') ToolBox.toast(msg);
+  }
 }
 
 function calc(){
@@ -428,7 +447,8 @@ function calc(){
   const curr=parseFloat(document.getElementById('curr').value)*parseFloat(document.getElementById('currUnit').value);
   const volt=parseFloat(document.getElementById('volt').value);
   const eff=parseFloat(document.getElementById('eff').value);
-  if(!cap||!curr||!volt)return;
+  if(!(cap>0)||!(curr>0)||!(volt>0)){clearResults(__t('电池容量、放电电流与电压均须大于 0','Battery capacity, discharge current and voltage must all be > 0'));return;}
+  if(!(eff>0)||eff>1){clearResults(__t('效率须在 0–100% 之间','Efficiency must be between 0 and 100%'));return;}
   const hours=cap/curr*eff;
   const power=volt*curr/1000;
   const energy=cap*volt/1000;
@@ -439,7 +459,7 @@ function calc(){
   const __g4=Math.round(effCap)+' mAh';document.getElementById('resEff').textContent=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
   const fill=document.getElementById('batteryFill');
   const pct=Math.min(100,hours/24*100);
-  fill.style.width='100%';
+  fill.style.width=pct+'%';
   fill.className='battery-fill';
   if(pct<20)fill.classList.add('low');
   else if(pct<50)fill.classList.add('medium');

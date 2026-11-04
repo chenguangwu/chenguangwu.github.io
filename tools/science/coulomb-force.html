@@ -265,10 +265,13 @@ function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+=
 function calcTool(){
               var __ig=__tbInputGuard(['q1', 'q2', 'r'],["电荷 q₁ (µC)", "电荷 q₂ (µC)", "距离 r (m)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const k=8.988e9, q1=num('q1')*1e-6, q2=num('q2')*1e-6, r=num('r');
-            const F = k*q1*q2/(r*r);
-            const __g2=dataGrid([ [F.toFixed(4)+' N', '静电力 F = k·q₁q₂/r²'],
-                [(k*q1/(r*r)).toFixed(4), 'q1 在 r 处场强 E (N/C)'],
-                [(k*q1*q2/r).toFixed(4), '电势能 U (J)']
+            const F = Math.abs(k*q1*q2/(r*r));
+            const en=(typeof TBKit!=='undefined'&&TBKit.util&&typeof TBKit.util.isEn==='function'&&TBKit.util.isEn());
+            const dir = (q1*q2===0) ? (en?'Zero charge → no force':'含零电荷 → 无静电力') : (q1*q2>0 ? (en?'Like charges → repel':'同号电荷 → 相互排斥') : (en?'Opposite charges → attract':'异号电荷 → 相互吸引'));
+            const __g2=dataGrid([ [F.toFixed(4)+' N', en?'Force magnitude F = k·|q₁q₂|/r²':'静电力大小 F = k·|q₁q₂|/r²'],
+                [Math.abs(k*q1/(r*r)).toFixed(4), en?'Field magnitude E at r (N/C)':'q1 在 r 处场强大小 E (N/C)'],
+                [(k*q1*q2/r).toFixed(4), en?'Potential energy U (J)':'电势能 U (J)'],
+                [dir, en?'Interaction direction':'相互作用方向']
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('q1').value = 1;
@@ -282,15 +285,15 @@ function __coulomb_forceExtras(){
     function __coulomb_forceRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var k=8.988e9, q1=num('q1')*1e-6, q2=num('q2')*1e-6, r=num('r');
-    var F = k*q1*q2/(r*r);
+    var F = Math.abs(k*q1*q2/(r*r));
     if (!isFinite(__coulomb_forceNum('q1')) || !isFinite(__coulomb_forceNum('q2')) || !isFinite(__coulomb_forceNum('r'))) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#coulomb_forceTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
-            ['静电力 F = k·q₁q₂/r²', F.toFixed(4)+' N'],
-            ['q1 在 r 处场强 E (N/C)', (k*q1/(r*r)).toFixed(4)],
-            ['电势能 U (J)', (k*q1*q2/r).toFixed(4)],
+            [en?'Force magnitude F = k·|q₁q₂|/r²':'静电力大小 F = k·|q₁q₂|/r²', F.toFixed(4)+' N'],
+            [en?'Field magnitude E at r (N/C)':'q1 在 r 处场强大小 E (N/C)', Math.abs(k*q1/(r*r)).toFixed(4)],
+            [en?'Potential energy U (J)':'电势能 U (J)', (k*q1*q2/r).toFixed(4)],
         ]
     });
     TBKit.history.record({q1:__coulomb_forceRaw('q1'), q2:__coulomb_forceRaw('q2'), r:__coulomb_forceRaw('r'), k:k});
