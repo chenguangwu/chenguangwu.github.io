@@ -293,3 +293,17 @@
 | 生活消费 | `tools/sports/analysis-19.html` | C | `:120-121` 仅一个「回合,攻/防,成/败」文本框；`:210-245` 只做计数与百分比，无视频上传/播放/时间轴/标注 | `plan/categories/05-生活消费/sports-fitness.md` SF-N65 | 标题称「视频分析」 |
 | 工程制造 | `tools/machinery/detector-159.html` | C | `:136-138`、`:221` 三项自定义阈值（刚度≥100 N/mm、载荷≥50 kN、疲劳≥1×10⁶）被标为 GB/T 1448 / GB/T 307 要求；`:240` 称「可用于质量验收」 | `plan/categories/08-工程制造/machinery-metalwork.md` MM-H56 | 冒用国标验收口径 |
 | 文娱爱好 | `tools/fun/tongue-twister.html` | C | `:275` `function start(){next();}`；全页无计时状态/停止按钮/用时显示，`:199-204` 算例与 FAQ 却称 performance 计时 | `plan/categories/11-文娱爱好/fun-entertainment.md` FE-N59 | 「跟读计时」完全未实现 |
+
+## X 批新增假工具候选（2026-11-04）
+
+> 本轮 10 个只读子 agent 的增量产出，均已读当前源码、可由静态证据复现；**不计入上表 61 页统计**，待修复线复核后并入主表。
+
+| 分类 | 页面 | 类型 | 证据（当前行号） | 来源条目 | 说明 |
+|---|---|---|---|---|---|
+| 长尾行业 | `tools/leather/xueyunhoudukongzhi.html` | A | 削匀评分恒 100，目标厚度输入不参与判定 | `plan/categories/12-长尾行业/_others.md` 12-N222 | 评分与输入无关 |
+| 生活消费 | `tools/sports/calc-angle-slope.html` | C | 实为百分比计算器，无坡度换算/角度制换算 | `plan/categories/05-生活消费/sports-fitness.md` SF-N74 | 名不副实 |
+| 工程制造 | `tools/machinery/detector-134.html`、`detector-hardness-torque.html`、`detector-155.html` | C | 三页共用模板，`stdItems` 硬编码阈值标注为 GB/T 528/1689/16823/230/1800/24600/4604/307 要求，并输出「可用于质量验收」；`formula-desc` 仍是「合法性校验」模板残留 | `plan/categories/08-工程制造/machinery-metalwork.md` MM-H63 | 与 MM-H56 同源蔓延 3 页 |
+| 文娱爱好 | `tools/music/random-training-rhythm.html` | C | 唯一输入「生成数量」，`gen()` 只拼文本；无 `AudioContext`、无敲击采集/命中判定/准确率 | `plan/categories/11-文娱爱好/fun-entertainment.md` FE-N72 | 宣称节拍训练与准确率统计 |
+| IT开发 | `tools/it/charset-detector.html` | C | 「编码识别器」仅做 6 条固定替换，非真实检测 | `plan/categories/01-IT开发/it.md` IT-N49x | 名不副实 |
+| 文娱爱好 | `tools/fun/generator-laugh.html` | C | `:232-241` `gen()` 只输出文字方案；全文无 `AudioContext`/`OscillatorNode`，无播放与 wav 导出 | `plan/categories/11-文娱爱好/fun-entertainment.md` FE-N79 | 宣称实时合成并可导出 wav |
+| 文娱爱好 | `tools/fun/meditation-timer.html` | C | `:275-320` 只生成静态时刻表；无开始/暂停、无 `setInterval`、无 `AudioContext`，历史不记实际时长 | `plan/categories/11-文娱爱好/fun-entertainment.md` FE-N86 | 无法用于计时 |

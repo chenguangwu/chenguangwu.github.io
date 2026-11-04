@@ -4075,5 +4075,296 @@
 - `keyword-extractor`：IT-N478（中）；无高优缺陷（停用词表实测 183 中文 + 132 英文，标签/表格/图表输出均经 `ToolBox.escHtml`）。
 - 方法声明：逐页通读上述 8 页源码，在 `/tmp` 用 `node` 直接抽取/复刻页面原函数（页面真实 `md5()`、表达式白名单 + `new Function`、叉积夹角、`detRec` + BigInt Bareiss、页面真实 `PINYIN` 表 + `slugify()`、`tokenizeChinese`/`filterKeywords`/`deduplicateSubstrings` + 页面真实停用词表、`isPrime`/因式分解）逐一给出「输入 → 实际 / 期望」；MD5 用 `crypto.createHash('md5')` 与 `printf '中文' | md5` 双对照；`onclick` 截断用 `python3 html.parser` 验证属性拆分。**未开浏览器、未跑 `_build.py`/`run_gates.py`、未做线上验证**；未修改任何工具页、代码或构建产物，仅在本审计日志追加本节。
 
+## X 批 · IT 速查/工具（2026-11-04）
+
+> 只读审计 8 页：`tools/it/` 下 ruby-cheatsheet、pomodoro、convert-11、postgresql-cheatsheet、typescript-cheatsheet、typing-test、cpp-cheatsheet、git-commands。未开浏览器、未跑 `_build.py`/`run_gates.py`；验证脚本仅落 `/tmp`。
+
+### IT-N479 — git-commands 58 个「复制」按钮的内联 onclick 无法编译，一键复制全部失效（高，承诺未实现）
+- 页面：`tools/it/git-commands.html`
+- 行号：`tools/it/git-commands.html:474`（模板拼接）、`:464`（转义）、`:480-489`（复制函数）
+- 问题：`renderCommands()` 把示例原文（含真实换行）仅做 `"→&quot;`、`'→&#39;` 处理后拼进 `onclick="copyCode(this, '...')"`。HTML 解析会保留属性内换行（`html.parser` 实测 onclick 值含 `\n`），内联处理器按 JS 编译时单引号字符串出现字面换行 → `SyntaxError: Invalid or unexpected token`；`git tag -l 'v1.*'`（:382）这类含单引号的示例，即使去掉换行也会因 `&#39;` 被 HTML 还原成 `'` 而提前闭合字符串。
+- 复现：`node` 从页面抽取 `COMMANDS`（58 条），按页面同款转义后 `new Function('copyCode', attr)` 编译 → **58/58 抛 `Invalid or unexpected token`**；把换行替换为空格后才可编译。
+- 实际：点击任一示例右上角「复制」→ 无复制、无 ✅/toast，控制台 SyntaxError；58 个按钮全灭。
+- 期望：点击后把该条 `c.example` 写入剪贴板并提示“已复制”。
+- 影响：页面 description / og:description（:10、:15）承诺“点击示例右上角按钮可一键复制”，与实际完全相反，属承诺未实现。
+- 方案：改 `data-idx="${idx}"` + 容器事件委托（`copyCode(btn, COMMANDS[+btn.dataset.idx].example)`），或 `JSON.stringify(example)` 写入 `data-code`；禁止把多行/含引号文本内联进 `onclick`。
+- 假工具：否
+
+### IT-N480 — pomodoro 记账用“配置时长”而非实际时长，未开始/跳过/中途改设置都会虚增统计（中）
+- 页面：`tools/it/pomodoro.html`
+- 行号：`tools/it/pomodoro.html:517`、`:525-527`、`:559-561`、`:467-480`
+- 问题：`completeSession()` 直接 `const duration = durations[currentMode]` 落账；`skipTimer()` 无条件调 `completeSession()`（既不校验是否 running，也不计实际停留）；`updateDurations()` 在运行中只改 `durations`，不改 `timeLeft/totalTime`。
+- 复现（3 组）：① 从未开始计时，直接点「⏭ 跳过」→ 确认 → 实际「完成番茄 1、专注分钟 25、总计时 1」、历史新增“专注 25分钟”；期望不计入。② 开始 25 分钟专注、1 分钟后点跳过 → 实际 +25 分钟；期望按实际约 1 分钟（或跳过不落账）。③ 开始 25 分钟后把「专注」改成 50（onchange 生效但倒计时仍走 25:00）→ 走完 → 实际 +50 分钟、历史 50分钟；期望 25 或实际时长。
+- 期望：统计与历史反映真实完成次数与实际时长。
+- 影响：今日专注分钟/完成番茄数可无成本刷高，番茄工作法的度量失真。
+- 方案：记 `startedAt`，完成时用 `Math.round((Date.now()-startedAt)/60000)`；跳过记 0 或不落账；运行中禁止改时长或改后重置本段。
+- 假工具：否
+
+### IT-N481 — pomodoro 倒计时按 setInterval 递减，后台标签页被节流后计时严重偏慢（中）
+- 页面：`tools/it/pomodoro.html`
+- 行号：`tools/it/pomodoro.html:491`、`:504-511`
+- 问题：`startTimer()` 每 1000ms 调 `tick()`，`tick` 只做 `timeLeft--`，不按真实时间校准；Chrome 对隐藏标签页节流定时器（隐藏 5 分钟后可降至约 1 次/分钟）。
+- 复现：设专注 25 分钟 → 开始 → 切到编辑器工作 10 分钟再回来 → 实际剩余约 20:00（10 分钟只推进约 5 分钟），与真实应剩 15:00 不符，结束提示相应推迟。
+- 期望：剩余时间 = 设定时长 −（`Date.now()` − `startedAt`），切回时立即重算。
+- 影响：番茄钟的核心使用方式就是“切走专注”，回来看到的剩余时间是错的；页面 `:188` 自述“应以时间戳差值计算剩余时间，而非累加计时”，实现与自述矛盾。
+- 方案：保存 `startedAt` + `remainingAtStart`，`tick` 用时间戳算剩余；`visibilitychange` 时立即刷新。
+- 假工具：否
+
+### IT-N482 — typing-test 错字仍标绿，错误反馈与准确率自相矛盾（中）
+- 页面：`tools/it/typing-test.html`
+- 行号：`tools/it/typing-test.html:438`（类别判定）、`:42-43`（从未被应用的 `.char.wrong`）、`:459-463`（错误计数）
+- 问题：`renderText()` 只按位置判断 `i < pos ? 'correct'`，从不比较 `input[i]` 与 `text[i]`；全站没有任何代码添加 `wrong` 类。
+- 复现：任取一段文本，第 2 个字符故意打错（`abc` 输成 `axc`）→ 实际第 1、2 个字符均为绿色 `.correct`，页面无任何红色；结果卡准确率却显示 66.7%。
+- 期望：`i < pos` 且字符不相等时给 `.wrong`（红底），与错误计数一致。
+- 影响：用户看不到错在哪，练习反馈失效；CSS 里的错字样式成了死代码。
+- 方案：`renderText(input)`，类别改 `i < pos ? (input[i] === text[i] ? 'correct' : 'wrong') : ...`。
+- 假工具：否
+
+### IT-N483 — convert-11 非法段/非整数输入通过校验并静默输出错误值（中）
+- 页面：`tools/it/convert-11.html`
+- 行号：`tools/it/convert-11.html:168`（`calc()` 单行体，含 `ps.some(...)` 与 `parseInt(v,10)`）
+- 问题：点分校验 `x === '' || +x < 0 || +x > 255` 对 `NaN` 两个比较均为 false，任一段写成非数字即放行，`reduce` 得 `NaN`：`to=bin` → `toBin32(NaN)` 全 0、`to=dot` → `0.0.0.0`、`to=dec` → 字符串 `NaN`。十进制分支 `parseInt(v,10)` 只判范围，`1e3`→1、`12.9`→12、`0x10`→0。
+- 复现（`node` 复刻页面原函数逐条实跑）：`from=dot, "1.2.3.x", to=dot` → 实际 `0.0.0.0`；`from=dot, "1a.2.3.4", to=bin` → 实际 `00000000.00000000.00000000.00000000`；`from=dec, "1e3", to=dot` → 实际 `0.0.0.1`；`from=dec, "12.9", to=dot` → 实际 `0.0.0.12`。
+- 期望：非法 IPv4 提示“IPv4 格式无效”；十进制仅接受 `/^\d+$/` 且 0–4294967295 的整数（`1e3`→1000 或拒绝，`12.9`/`0x10` 拒绝）。
+- 影响：用户以为转换成功，实际得到 0.0.0.0/截断值；`0.0.0.0` 还能通过 `__convert_11ResText` 的 NaN 过滤进入历史与导出。
+- 方案：每段加 `/^\d{1,3}$/` 且 `Number.isInteger`、0–255；十进制先 `/^\d+$/` 再 `Number()`。
+- 假工具：否
+
+### IT-N484 — cpp-cheatsheet「函数重载」示例与默认参数冲突，add(1) 编译歧义（中）
+- 页面：`tools/it/cpp-cheatsheet.html`
+- 行号：`tools/it/cpp-cheatsheet.html:365`
+- 问题：示例同时给出 `int add(int a, int b = 0)` 与 `int add(int a)`，并调用 `add(1);`；两个候选对 1 个实参的转换序列完全相同 → 歧义。
+- 复现：`printf 'int add(int a,int b=0){return a+b;}\nint add(int a){return a+1;}\nint use(){return add(1);}' > /tmp/x.cpp && clang++ -std=c++20 -fsyntax-only /tmp/x.cpp` → 实际 `error: call to 'add' is ambiguous` 并列出两候选；`add(1,2)` 正常。
+- 期望：示例可编译（删掉单参重载，或去掉默认参数）。
+- 影响：标为“重载”的示例复制后直接编译失败；默认参数+重载本就是常见误区，示例反而示范了错误写法。
+- 方案：`int add(int a, int b)` 与 `int add(int a)`，或保留默认参数时删掉单参版本。
+- 假工具：否
+
+### IT-N485 — typescript-cheatsheet 非空断言示例对 Element 取 .value，类型检查报错（中）
+- 页面：`tools/it/typescript-cheatsheet.html`
+- 行号：`tools/it/typescript-cheatsheet.html:520`（同页 `:512` 已给出正确写法 `as HTMLInputElement`）
+- 问题：`let el = document.querySelector("#x"); el!.value;` 中 `el` 为 `Element | null`，`!` 只去 null 不去 `Element`，`Element` 上没有 `value`。
+- 复现：粘入 `.ts`、`strict` 下 `tsc --noEmit` → 实际 `TS2339: Property 'value' does not exist on type 'Element'`；期望通过（`document.querySelector<HTMLInputElement>("#x")!.value`）。
+- 影响：页面教“非空断言”，示例本身类型却不通过，用户会误以为 `!` 能解决类型不匹配。
+- 方案：`let el = document.querySelector<HTMLInputElement>("#x"); el!.value;`。
+- 假工具：否
+
+### IT-N486 — ruby/cpp/typescript 速查示例用 `--` 作注解，复制粘贴即运行报错（中）
+- 页面：`tools/it/ruby-cheatsheet.html`、`tools/it/cpp-cheatsheet.html`、`tools/it/typescript-cheatsheet.html`
+- 行号：`ruby-cheatsheet.html:280`、`:288`、`:304`；`cpp-cheatsheet.html:365`、`:413`、`:429`；`typescript-cheatsheet.html:392`、`:408`、`:424`
+- 问题：这三门语言没有 `--` 注释（Ruby 用 `#`、TS/C++ 用 `//`），但 `.cmd-example` 把示例与注解放同一文本节点，`copyCode()` 复制整块，注解随代码一起进剪贴板。
+- 复现：复制 ruby `p [1, 2, 3]  -- inspect` 运行 → 实际 `TypeError: no implicit conversion of String into Array`（:280）；复制 `PI = 3.14  -- 常量大写` → 实际 `NameError: undefined local variable or method '常量大写'`（:288）。TS/C++ 的 `-- 推断/重载` 同理报未声明标识符/不可赋值。
+- 期望：复制出的示例可直接运行。
+- 影响：一键复制的主要用途（带走代码）产出不可执行文本。
+- 方案：注解改用目标语言注释符（`#` / `//`），不要指望用户手工删注解。
+- 假工具：否
+
+### IT-N487 — git-commands「切换到远程分支」示例直接 fatal 失败（中）
+- 页面：`tools/it/git-commands.html`
+- 行号：`tools/it/git-commands.html:367`
+- 问题：`git switch origin/feature` 不是合法用法，`switch` 只接受本地分支名，不会自动创建跟踪分支。
+- 复现：`git init; git commit --allow-empty; git update-ref refs/remotes/origin/feature HEAD; git switch origin/feature` → 实际 `fatal: a branch is expected, got remote branch 'origin/feature'`（exit 128，提示改用 `--detach`）。
+- 期望：`git switch -c feature origin/feature`（或本地已有跟踪分支时 `git switch feature`）。
+- 影响：按示例“切换到远程分支”会直接失败。
+- 方案：示例改为 `git switch -c feature origin/feature`；如确需游离 HEAD 用 `git switch --detach origin/feature`。
+- 假工具：否
+
+### 覆盖清单（X 批 IT 速查/工具）
+- `git-commands`：IT-N479（高，承诺未实现）、IT-N487（中）；无其它高优（搜索/分类过滤逻辑正确，`copyCode` 本体无注入）。低优备注：`git cherry-pick`（:370/:422）与 `git bisect`（:407/:424）各重复一条，使分类计数与表格总数虚增 2。
+- `pomodoro`：IT-N480、IT-N481（中）；无高优（模式切换、时长设置、图表/统计渲染主流程可跑）。
+- `convert-11`：IT-N483（中）；其余主路径正确（`192.168.1.1 ↔ 3232235777 ↔ 11000000.00000000.00000001.00000001`，`4294967295 ↔ 255.255.255.255 ↔ 全 1` 均对齐）。
+- `typescript-cheatsheet`：IT-N485、IT-N486（中）；无高优（泛型/工具类型/`keyof` 等示例经核对正确）。
+- `typing-test`：IT-N482（中）；无高优（WPM/准确率公式正确，中文按字/分、英文按 5 字符/词，历史与图表取数正确）。
+- `cpp-cheatsheet`：IT-N484、IT-N486（中）；无其它高优（`constexpr` 阶乘、`std::optional`、模板示例经核对正确）。
+- `ruby-cheatsheet`：IT-N486（中）；无高优（搜索/分类/复制/图表逻辑正常，块/Proc/Lambda 示例正确）。
+- `postgresql-cheatsheet`：无高优/中优（`--` 在 SQL/psql 中是合法注释；`psql` 元命令、DML/DDL、JSONB、`pg_dump -Fc` 与 `pg_restore -j` 组合均与官方文档一致——`-j` 明确支持 custom 与 directory 两种格式）。
+- 安全：本批 8 页未发现可利用的安全问题（唯一 HTML 拼接点是 `git-commands` 的静态 `COMMANDS` 与搜索文本匹配，不写入 `innerHTML`；`typing-test` 历史渲染的 localStorage 内容仅在同源自污染范围内，不计）。
+- 方法声明：逐页通读 8 页源码；在 `/tmp` 用 `node` 抽取 `git-commands` 的 `COMMANDS` 并对 58 条内联 `onclick` 逐一 `new Function` 编译、用 `python3 html.parser` 验证属性换行保留；用 `node` 复刻 `convert-11` 的 `calc()`/`toBin32()` 逐输入实跑；用 `clang++ -std=c++20 -fsyntax-only` 编译重载示例；用 `ruby`/`ruby -c` 实跑 `--` 注解示例；用真实 `git update-ref` + `git switch` 复现远程分支错误。**未开浏览器、未跑 `_build.py`/`run_gates.py`、未做线上验证**；未修改任何工具页、代码或构建产物，仅在本审计日志追加本节。
+
+## X 批 · IT 速查/编码 II（2026-11-04）
+
+### IT-N488 — JSONPath 过滤表达式直接 eval 用户输入（安全，高）
+- 页面：`tools/it/json-path.html`
+- 行号：`tools/it/json-path.html:509`（调用处 `:501`，过滤分支 `:386`）
+- 问题：`evalFilter()` 仅把 `@.prop` 替换成对应值，随后 `return eval(expr)`，而 `expr` 来自用户在路径输入框里写的 `[?(...)]`。等于把用户输入当 JavaScript 执行。
+- 复现：输入 JSON `{"a":[1]}`，路径填 `$.a[?(alert(document.domain))]` → 直接弹窗；填 `[?(fetch('https://example.com/x'))]` 可外发请求。
+- 期望：过滤表达式按白名单语法（比较、逻辑、括号、字面量）自行解析，不做 `eval`。
+- 影响：任意 JS 在页面源执行（自触发型，需受害者粘贴表达式，但属于可控代码执行）。
+- 方案：删除 `eval`，改为分词 + 递归下降求值；至少用 `new Function` 也不行（同样可逃逸）。
+- 假工具：否
+
+### IT-N489 — JSONPath 开区间切片死循环，点击自带预设即冻结标签页（高）
+- 页面：`tools/it/json-path.html`
+- 行号：`tools/it/json-path.html:376`、`tools/it/json-path.html:466`、预设 `tools/it/json-path.html:196`
+- 问题：解析 `[-1:]`、`[0:]`、`[1:]` 这类省略上界的切片时，`end` 被赋成 `Infinity`；执行处 `for (let i = token.start; i < token.end; i += step)` 的条件恒真，循环永不退出。
+- 复现：用 `node` 复刻 `parseTokens`/切片循环，加入 50 步上限：`$.store.book[-1:]` 得到 `[20, 8, 10, 12, 20]` 后仍继续（判定 `INFINITE`），且负索引起点把末项重复取了一次；`[0:]` 同样判定 `INFINITE`。页面「$.store.book[-1:] 最后一个」预设（`:196`）点击即触发。
+- 期望：省略上界按 `current.length` 处理，负起点先折算成 `length + start`。
+- 影响：任何开区间切片都会卡死页面；自带预设之一必现。另 `[0:5:2]` 的步长被忽略（解析出 `end=5`、`step` 缺省 1），与公式「按步长遍历」不符。
+- 方案：解析阶段不要写入 `Infinity`，运行时按当前数组长度收敛；补齐 `step` 解析。
+- 假工具：否
+
+### IT-N490 — JSONPath 高亮结果拼进 innerHTML，JSON 字符串可注入 HTML（安全，高）
+- 页面：`tools/it/json-path.html`
+- 行号：`tools/it/json-path.html:516`（输出 `:557`）
+- 问题：`highlightJSON()` 只做正则加 `<span>`，原样保留 `JSON.stringify` 的内容；`JSON.stringify` 不转义 `<`、`>`、`&`，结果又被赋给 `output.innerHTML`。
+- 复现：输入 `{"a":"<img src=x onerror=alert(1)>"}`，路径 `$` → 生成 `<span class="jh-string">"<img src=x onerror=alert(1)>"</span>`，图片加载失败即执行脚本。
+- 期望：先对 JSON 文本做 HTML 转义再着色，或改用 `textContent` + DOM 节点着色。
+- 影响：任意 HTML/脚本注入（同样是自触发，但属于真实 DOM XSS sink）。
+- 方案：`escapeHtml(jsonStr)` 后再跑正则；或按 token 建节点。
+- 假工具：否
+
+### IT-N491 — Codabar 编码表大面积非法，默认预设起止符就错（高）
+- 页面：`tools/it/barcode-codabar.html`
+- 行号：`tools/it/barcode-codabar.html:277`–`:282`
+- 问题：`CODABAR` 表与页面自述规则（`:157`「4 条 + 3 空共 7 单元，其中 2 或 3 个为宽元素」）自相矛盾：`$` 为 `NWWWWWN`（5 个宽）、`:` `WNWWWNN`、`/` `WNWWNNW`、`.` `WWNNWNW`、`C` `NWNWWNW`（均 4 个宽）、`D` 只有 6 个单元。按 Codabar 结构（基础 12 符 = 1 宽条 + 1 宽空；`:/.+` = 3 宽条 0 宽空；起止符 A–D = 1 宽条 + 2 宽空）再用 node 逐字符核验，`4/5/6/7/8/9/A/B` 也不符合，20 个字符中共 15 个非法（仅 `0/1/2/3/-` 正确）。
+- 复现：`node` 遍历该表统计元素数与宽元素数，见上面 6 个违规项；页面默认预设 `A12345B`（`:448`）与 `C9999D`（`:450`）的 A/B/C/D 全部落在错误集合里。
+- 期望：换用权威 Codabar 编码表（AIM BC3-1995 / USD-4）。
+- 影响：默认参数生成的条码起止符即非法，扫描器会拒读或误读；并非「个别字符」问题。
+- 方案：整表替换并加单元测试（对每个字符校验「7 单元、2–3 宽、条空交替、首尾为条」）。
+- 假工具：否
+
+### IT-N492 — 非法字符被静默丢弃，标签却显示原文；不校验起止符（中）
+- 页面：`tools/it/barcode-codabar.html`
+- 行号：`tools/it/barcode-codabar.html:288`、`tools/it/barcode-codabar.html:329`
+- 问题：`buildCodabar()` 遇到表外字符直接 `continue`，不报错；`generate()` 生成的 `label.textContent = raw` 仍是含非法字符的原串。
+- 复现：输入 `A12X345B` → 条码实际只编码 `A12345B`，下方文字仍显示 `A12X345B`；输入 `12345`（无起止符）也能生成，但 Codabar 规范要求首尾起止符，读码器无法判读。
+- 期望：遇非法字符立即提示并定位；校验首尾必须为 A–D。
+- 影响：打印出的条码与页面标注内容不一致，扫码得到的数据与人工核对值不同。
+- 方案：非法字符抛错并高亮；生成前做起止符校验（或自动补 A/B）。
+- 假工具：否
+
+### IT-N493 — Codabar 承诺「可调整尺寸 / 实时生成 / 可选校验位」均未实现（中）
+- 页面：`tools/it/barcode-codabar.html`
+- 行号：`tools/it/barcode-codabar.html:10`、`:310`、`:468`、`:194`
+- 问题：meta/og 描述写「实时生成…可调整尺寸」；源码把 `narrow=2,wide=6,h=100` 写死（`:310`），没有任何尺寸控件；输入框无 `input` 监听，必须点「生成」；英文简介（`:468`）写 “with an optional check digit”，`:194` 提示「请按规范长度与校验位填写」，但页面无校验位计算。
+- 复现：查 DOM 只有 `#data` 一个输入，无宽/高/校验位控件；改输入后条码不刷新，需点按钮。
+- 期望：去掉不实描述，或补上尺寸滑块、输入即渲染、校验位开关。
+- 影响：宣传与实物不符（属承诺未实现）。
+- 方案：按实际能力改文案；若要保留承诺则补控件。
+- 假工具：否
+
+### IT-N494 — 「编码识别器」并不识别编码，只做 6 条固定替换（高，假工具）
+- 页面：`tools/it/charset-detector.html`
+- 行号：`tools/it/charset-detector.html:239`–`:252`、`:405`、`:135`
+- 问题：`RULES` 只有两条正则，且第二条 `pattern: /�|�/` 两个分支是同一个 U+FFFD（恒等价于单字符匹配，等于没有独立的 «Latin1» 判据）；`detect()` 只会把 `Ã©/Ã¨/Ã¯/Ã†/â\x80\x98/â\x80\x99` 6 种串做固定替换，从不判定 UTF-8/GBK/Big5/Shift-JIS，不读 BOM，不做字节合法性/统计打分，输出里也不会给出编码名，只说「建议核对编码为 UTF-8/GBK」。
+- 复现：页面默认输入 `Ã©Ã¤Ã¢Ã¢Ã«Ã¥Ã¨`（`:135`）→「修复输出」为 `éÃ¤Ã¢Ã¢Ã«Ã¥Ã¨`，7 个乱码单元只修好 1 个；深层解析 `:405` 声称「输入 GBK 字节 `C4E3BAC3` → 识别为 GBK，解码得“你好”」，但页面没有十六进制输入、也没有任何 GBK 解码路径。
+- 期望：要么实现真正的探测（BOM 优先、UTF-8 合法性、候选编码打分），要么改名为「乱码修复对照表」并删除识别类承诺。
+- 影响：核心功能（识别编码）不存在；用户按文档输入十六进制什么也不会发生。
+- 方案：按期望二选一；若保留识别，至少要输出候选编码名与依据。
+- 假工具：是
+
+### IT-N495 — 编码识别器把修复结果直接拼进 innerHTML（安全，高）
+- 页面：`tools/it/charset-detector.html`
+- 行号：`tools/it/charset-detector.html:259`
+- 问题：`const __h0=\`<p>${extra}</p><p>修复输出：</p><p>${fixed}</p>\`` 后 `document.getElementById('out').innerHTML=__h0`，`fixed` 是 textarea 原文，未转义。
+- 复现：在文本框输入 `<img src=x onerror=alert(1)>` 并点「检测」（载入时 `detect()` 也会执行一次）→ 脚本执行。
+- 期望：用 `textContent` 分段渲染，或先 `escapeHtml(fixed)`。
+- 影响：任意 HTML/脚本注入（自触发型）。
+- 方案：`escapeHtml` 后再拼，或改用 DOM API 建 `<p>`。
+- 假工具：否
+
+### IT-N496 — PHP 速查用 `--` 当行内注释，复制后语法错误或输出残字（中）
+- 页面：`tools/it/php-cheatsheet.html`
+- 行号：`tools/it/php-cheatsheet.html:280`、`:312`、`:336`
+- 问题：PHP 没有 `--` 注释。`:280` 的 `<?= $var ?>  -- 等同 echo` 中 `--` 落在 `?>` 之外，会被当普通文本输出；`:312` `strlen($s);  -- 字节` 与 `:336` `$fn = fn($x) => $x * 2;  -- 箭头函数` 中 `--` 是自减运算符，后接中文裸词/常量 → PHP 8 解析或「Undefined constant」错误。
+- 复现：把这三段「复制」出的文本存成 `.php` 执行（本机无 php CLI，按 PHP 语法规则判定；`--` 后接裸标识符必然报错）。
+- 期望：注解改用 `//` 或 `#`。
+- 影响：一键复制的主要用途（带走代码）产出不可执行文本。
+- 方案：批量把示例里的 `  -- xxx` 换成 `  // xxx`。
+- 假工具：否
+
+### IT-N497 — Kubernetes 速查 `--` 注解被当成额外参数，复制后命令失败（中）
+- 页面：`tools/it/kubernetes-cheatsheet.html`
+- 行号：`tools/it/kubernetes-cheatsheet.html:405`
+- 问题：`kubectl label pod web-xxx env-  -- 删除标签` 中 `--` 是 shell/kubectl 的选项终止符，`删除标签` 会被当作第二个 label 规格。
+- 复现：`kubectl label pod web-xxx env- -- 删除标签` → kubectl 报无效 label 规格（不是预期的「删除 env 标签」）。
+- 期望：示例改 `kubectl label pod web-xxx env-`，注解放 `#` 行或省略。
+- 影响：复制示例直接失败。
+- 方案：删除行内中文注解或改 `#`。
+- 假工具：否
+
+### IT-N498 — Linux 速查 `--` 注释与 `!!` 注解会被 shell 当参数执行（中）
+- 页面：`tools/it/linux-cheatsheet.html`
+- 行号：`tools/it/linux-cheatsheet.html:622`、`:686`、`:1174`
+- 问题：shell 里 `--` 不是注释。`:1174` 的 `history\n !!  -- 上一条\n !42  -- 第 42 条` 复制后 `!!` 会展开成上一条命令并追加 `-- 上一条` 参数——实际是「重跑上一条命令并多带两个参数」，可能重复执行危险操作；`:622` `echo $!  -- 进程 PID` 只会多打印 `-- 进程 PID`；`:686` `ls -l file.txt  -- rwxr-xr-x ...` 会把后面的说明当文件名，报 cannot access。
+- 复现：bash 中先执行 `rm -rf /tmp/x`，再粘贴 `!!  -- 上一条` → 再次执行 `rm -rf /tmp/x`（带多余参数）。
+- 期望：注解统一用 `#`，`history` 示例不要用 `!!` 配注解。
+- 影响：复制示例可能重跑上一条命令，存在误删/误操作风险。
+- 方案：`  -- ` 全部替换为 `  # `。
+- 假工具：否
+
+### IT-N499 — Linux 速查 `chmod -R 644 docs/` 会让目录失去执行位（中）
+- 页面：`tools/it/linux-cheatsheet.html`
+- 行号：`tools/it/linux-cheatsheet.html:390`
+- 问题：递归 644 同时作用于目录；目录需要 `x` 位才能进入/遍历。
+- 复现：`mkdir -p docs/sub && chmod -R 644 docs && cd docs` → `Permission denied`；`ls docs/sub` 同样失败。
+- 期望：文件 644、目录 755（如 `find docs -type d -exec chmod 755 {} +`）。
+- 影响：照抄会直接锁死自己的目录访问。
+- 方案：示例拆成两条或改用 755。
+- 假工具：否
+
+### IT-N500 — Linux 速查 `alias unalias ll` 是无效命令（中）
+- 页面：`tools/it/linux-cheatsheet.html`
+- 行号：`tools/it/linux-cheatsheet.html:1070`
+- 问题：`alias unalias ll` 不是取消别名（`unalias` 才是）；缺 `=` 的 `alias` 只会查询名为 `unalias`/`ll` 的别名并报 not found，示例完全无效。
+- 复现：bash 执行 `alias unalias ll` → `-bash: alias: unalias: not found`（无 `=` 时 `alias` 只是查询给定名字，既没定义也没取消别名）。
+- 期望：示例写 `unalias ll`。
+- 影响：按示例无法取消别名。
+- 方案：改为 `unalias ll`。
+- 假工具：否
+
+### IT-N501 — Vim 速查用 `--` 当注释，复制后 E488/E518 报错（中）
+- 页面：`tools/it/vim-cheatsheet.html`
+- 行号：`tools/it/vim-cheatsheet.html:280`、`:320`、`:328`、`:504`、`:512`
+- 问题：Vim 命令行/`:set` 都不把 `--` 当注释。`:320` `:q!  -- 不保存退出` → `E488: Trailing characters`；`:504` `:set number  -- 显示行号` → `E518: Unknown option: --`；`:280` `vim +100 file.txt  -- 跳到 100 行` 会把 `跳到`/`100`/`行` 当文件打开；`:512` `:%!jq .  -- 格式化整个文件` 会把注解传给 jq 导致过滤失败。
+- 复现：Vim 中依次输入上述命令行，逐条报上述错误。
+- 期望：示例去掉行内注解（Vim 内可用 `"` 作注释，但命令行模式不支持行尾注解）。
+- 影响：复制出的命令在 Vim 中不可用。
+- 方案：删除 `  -- xxx` 注解或移到示例外。
+- 假工具：否
+
+### IT-N502 — 昵称生成器词库残留「奶2/喵2/泡2」，会生成乱码昵称（中）
+- 页面：`tools/it/nickname-generator.html`
+- 行号：`tools/it/nickname-generator.html:261`、`:264`、`:160`
+- 问题：`SETS.cute` 的 a 含 `'奶2'`、b 含 `'喵2'`/`'泡2'`，明显是去重脚本留下的后缀；组合会产出「奶2糖」「甜喵2」「奶2泡2」等带数字的垃圾昵称（emoji 风格复用 cute 库，同样中招）。另外 `chinese` 的 a 只有 8 项、b 13 项（8×13=104），与 `:160`「软萌/高冷/诗意/中文四套各 14×14 组合」不符。
+- 复现：读 `SETS.cute.a/b` 即可见；`pick(a)+pick(b)` 无过滤，直接输出。
+- 期望：清掉 `2` 后缀残留；说明按实际词库数量描述。
+- 影响：部分生成结果不可用（把内部去重标记当成词）。
+- 方案：删除三项残留，补 `chinese` 词库或改文案。
+- 假工具：否
+
+### IT-N503 — 昵称生成器说明承诺「数字后缀 / 固定随机种子 / 长度」均无控件（中）
+- 页面：`tools/it/nickname-generator.html`
+- 行号：`tools/it/nickname-generator.html:161`、`:10`
+- 问题：`:161` 公式说明写「可选追加数字后缀以降低重名概率」「若需要可复现的结果，可固定随机种子」，meta `:10` 写「可设风格与长度」；实际页面只有 `style`（风格）与 `count`（条数）两个控件（`:267` 的 `randInt` 直接取 `crypto.getRandomValues`，无种子参数）。
+- 复现：查 DOM `input/select` 只有 `#style`、`#count`；生成结果每次不同，无长度/后缀选项。
+- 期望：删除不实描述，或补长度、数字后缀、种子输入。
+- 影响：用户按说明找不到对应功能（承诺未实现）。
+- 方案：改文案为「按风格随机组合」。
+- 假工具：否
+
+### IT-N504 — 昵称生成器批量「一键复制」把多条昵称粘成一串（中）
+- 页面：`tools/it/nickname-generator.html`
+- 行号：`tools/it/nickname-generator.html:285`
+- 问题：`copyResult()` 取 `document.getElementById('output').textContent`，而 10 条结果是 10 个 `<div>`，`textContent` 不带换行/分隔符。
+- 复现：生成 10 条后点复制 → 剪贴板为「甜糖软喵…」连写，无法逐条使用。
+- 期望：按行 `join('\n')`，或只复制首条。
+- 影响：批量复制结果不可用（错误结果）。
+- 方案：`Array.from(output.children).map(el=>el.textContent).join('\n')`。
+- 假工具：否
+
+### 覆盖清单（X 批 IT 速查/编码 II）
+- `json-path`：IT-N488（高，安全）、IT-N489（高，死循环）、IT-N490（高，安全）；无其它高优（预设、递归/通配符/`length()` 主路径正确）。
+- `barcode-codabar`：IT-N491（高，编码表）、IT-N492（中）、IT-N493（中）；其余绘制/导出 PNG 主流程可跑。
+- `charset-detector`：IT-N494（高，假工具）、IT-N495（高，安全）；无其它高优。
+- `php-cheatsheet`：IT-N496（中）；PDO/Composer/trait/命名空间示例均存在，其余命令与语法经核对正确。
+- `kubernetes-cheatsheet`：IT-N497（中）；32 条命令的 `kubectl get/apply/scale/rollout/logs/exec/cp` 与 YAML 示例（selector、port、pathType）经核对正确。
+- `linux-cheatsheet`：IT-N498、IT-N499、IT-N500（中）；114 条命令主体正确，搜索/分类/复制/图表渲染无注入（数据为静态，渲染前统一 `escapeHtml`）。
+- `vim-cheatsheet`：IT-N501（中）；模式/移动/替换/窗口/寄存器示例经核对正确。
+- `nickname-generator`：IT-N502、IT-N503、IT-N504（中）；无高优（生成主流程可跑，输出经 `escapeHtml`）。
+- 安全：本批 3 条——`json-path` 的 `eval()`（IT-N488）与高亮 `innerHTML`（IT-N490）、`charset-detector` 的 `innerHTML`（IT-N495），均为「用户输入未转义/未隔离」型 DOM 注入，属自触发（无持久化、无跨用户传播路径），但都是真实可控代码执行点，建议按高优修。`barcode-codabar` 的输入只进 `canvas` 与 `textContent`，无注入。
+- 假工具：1 个（`charset-detector`，IT-N494）：名为「编码识别器」，实际只做 6 条固定串替换，文档宣称的 GBK 十六进制识别完全不存在。
+- 方法声明：逐页通读 8 页源码（含 `_build.py` 注入的图表/表格脚本）；在 `/tmp` 用 `node` 复刻 `json-path` 的 `parseTokens` 与切片循环（带步数上限判定死循环）、`parseInt('5:2')` 验证步长失效；用 `node` 遍历 `CODABAR` 表统计元素数与宽元素数，并对照 Wikipedia Codabar 结构（基础 12 符 1 宽条 + 1 宽空、起止符 1 宽条 + 2 宽空）逐字符核验；用 `hexdump` 确认 `RULES` 第二条正则两个分支均为同一 U+FFFD 字符；逐条比对 `--` 注解在 bash / PHP / kubectl / Vim 的语义。**未开浏览器、未跑 `_build.py`/`run_gates.py`、未做 git 写操作**；未修改任何工具页、代码或构建产物，新增脚本仅落在 `/tmp`，仅在本审计日志追加本节。
+
 
 

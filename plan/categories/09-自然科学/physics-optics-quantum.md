@@ -114,3 +114,83 @@
 - 前批已覆盖（本批未重复）：`tools/optics/snells-law.html`、`prism-deviation.html`、`tools/quantum/rydberg-wavelength.html`、`photoelectric-effect.html`。
 - 方法：仅静态阅读源码 + node 内存复算（输入→输出逐条记录如上）；**未**开浏览器、未做英文态/繁体态、未做移动端、未跑 `_build.py`/`run_gates.py` 或任何门禁，也未验证线上表现。
 - 未覆盖：`tools/optics` 余 15 页、`tools/quantum` 余 21 页、`tools/optical`(41)、`tools/astronomy`(24) 及 `tools/kinematics|dynamics|thermodynamics|acoustics|fluid`，留待后续批次。
+
+## X 批 · 物理/光学（2026-11-04）
+
+### PQ-11 多普勒页把有符号速度约定封死，远离场景无法计算（高，确认）
+- 描述：两个速度输入按标签是「朝向为正」的有符号量，但输入守卫把 vo、vs 列入「不能为负值」，导致观察者后退、声源后退等页面自己承诺的场景根本无法输入；「声源远离」卡片另用 `(v+vs)` 替代，与用户输入的实际符号语义脱节。
+- 证据：`tools/science/doppler-effect.html:130-137`（标签「观察者速度 v₀（朝向源为正）」「波源速度 v_s（朝向观察者为正）」）、`:254`（`__N` 把 f/v/vo/vs 全部登记为不能为负）、`:287`（主式 `f*(v+vo)/(v-vs)`）、`:289`/`:312`（「声源远离」固定用 `(v+vs)`）。静态推导：vo=-10 被守卫直接拦下并中止计算。
+- 影响：`tools/science/doppler-effect.html`，页面标称的双向（接近/远离）能力实际只剩「接近」一半，用户按标签填负值得到「观察者速度不能为负值」。
+- 方案：仅 f、v 限非负，vo、vs 允许负值；主式统一按 `f′ = f(v+vo)/(v−vs)` 计算一次，并据结果给出「接近/远离」文字判定，不要用替换分母的卡片冒充远离分支。
+
+### PQ-12 球面镜页明示「凸面镜 f 为负」却拒绝负焦距（高，确认）
+- 描述：公式框、输入标签和深挖算例都写明凸面镜取 f<0，但输入守卫把 f 登记为「不能为负值」，凸面镜（后视镜）这一半功能被直接屏蔽，页面自带算例也无法复现。
+- 证据：`tools/optics/mirror-equation.html:121`（「凹面镜 f 为正、凸面镜 f 为负」）、`:128`（标签「焦距 f（凹正凸负）」）、`:247-256`（`__N` 含 f，返回「焦距 f（凹正凸负） (m)」不能为负）、`:365`（算例 f=−0.2、d_o=0.5 → d_i=−0.1429 m）。
+- 影响：`tools/optics/mirror-equation.html`，明确承诺的凸面镜成像无法计算，与页面文案、FAQ、算例自相矛盾。
+- 方案：f 允许负值，仅拦截 f=0 与非有限值；补凸面镜算例（f=−0.2/d_o=0.5 → d_i=−0.1429 m、虚像缩小正立）回归。
+
+### PQ-13 光子能量页两个预设把波长写成 0，点击即报错（高，确认）
+- 描述：「示例 2×」「示例 0.5×」两个预设的 `lam` 均为 `'0'`，而 λ 又被守卫列为分母，点预设后不再计算，而是显示「波长 λ (m) 是本计算的分母，不能为 0」。
+- 证据：`tools/quantum/photon-energy.html:342-343`（两条 `values:{lam:'0'}`）、`:269`（`__D` 含 lam）、`:275-277`（分母报错文案）。
+- 影响：`tools/quantum/photon-energy.html`，两个预设按钮形同虚设，用户点「示例」得到的不是示例结果而是错误提示。
+- 方案：预设改为真实波长（如 250e-9 / 1000e-9），并按 2×/0.5× 语义给出可核对算例。
+
+### PQ-14 重力势能页空值静默为 0，主区与明细/CSV 分裂（中，确认）
+- 描述：`num()` 把空值兜底为 0，主结果直接按 `mgh=0` 渲染「0.0 J」；明细侧另用独立校验，遇空值提前 return，保留上一轮的有效数据，形成主区 0、明细旧值的分裂。另「高度复算」= U/(m·g) 恒等于输入 h，作为独立指标与图表系列具有误导性。
+- 证据：`tools/science/gravitational-potential.html:215`（`num` 空值→0）、`:217-223`（U=mgh 与三张卡）、`:237`（`__gravitational_potentialNum` 遇空值 NaN 提前 return）、`:239-246`（明细/CSV 沿用旧值）、`:222`/`:244`（「高度复算」）。node 复算：默认 m=10、g=9.81、h=5 → 490.5 J；清空 h 后主区 0.0 J、明细仍 490.5。
+- 影响：`tools/science/gravitational-potential.html`，空输入被当成「势能为 0」的正常结果，且导出与页面正文不一致。
+- 方案：加「必填且有限」守卫，空值不渲染结果并禁用导出；明细复用同一校验状态；「高度复算」若保留须标为校验项，否则与图表同删。
+
+### PQ-15 磁通量反解忽略夹角，B/S 结果偏大 cosθ 倍（中，确认）
+- 描述：`Φ = BS cosθ` 正解含 cosθ，但反解 B 和 S 时直接 `phi/S`、`phi/B`，完全不读用户填写的夹角；θ≠0 时结果系统性偏差。
+- 证据：`tools/science/physics-calculator.html:401-404`（`phi_bs` 分支：`:402` 正解含 cosθ，`:403` B=phi/S，`:404` S=phi/B）。node 复算：φ=1 Wb、S=2 m²、θ=60° → 页面 B=0.5000 T，正确值 1.0000 T。
+- 影响：`tools/science/physics-calculator.html`，单页计算器的磁通量反解给出错误数值且无提示。
+- 方案：反解并入 cosθ（B=φ/(S·cosθ)、S=φ/(B·cosθ)），cosθ=0 时提示「磁通量与面积垂直时无解」。
+
+### PQ-16 折射定律入射角未限幅，100°/负角被当合法（中，确认）
+- 描述：θ₁ 不经任何范围校验就投入 `sin`，大于 90° 或负值按三角函数周期继续计算，输出看似正常的折射角。
+- 证据：`tools/science/physics-calculator.html:449-457`（`:451` 直接 `Math.sin(theta1.v*π/180)`，`:457` 反解 θ₁ 亦无校验）。node 复算：n₁=1、n₂=1.5、θ₁=100° → θ₂=41.036°；θ₁=−30° → θ₂=−19.471°。
+- 影响：`tools/science/physics-calculator.html`，物理上不存在的入射角被接受，折射角与临界角判断随之失真。
+- 方案：限定 0°≤θ₁≤90°（含 90° 边界），越界明确提示；θ₂ 同理限定 0–90°。
+
+### PQ-17 光电效应低于阈值仍显示负的「最大初动能」（中，确认）
+- 描述：`Eₖₘₐₓ = hf − W₀` 不做阈值判断，hf<W₀ 时把负值照常标成最大初动能。
+- 证据：`tools/science/physics-calculator.html:496-500`（`:498` 直接 `hval*f.v-W0.v`）。node 复算：f=1e14 Hz、W₀=2 eV（3.204e-19 J）→ −2.542e-19 J，页面仍显示为「最大初动能」。
+- 影响：`tools/science/physics-calculator.html`，低于阈频时给出负动能，概念误导（与前一页 photoelectric-effect 同类缺陷）。
+- 方案：hf<W₀ 时显示「无光电子逸出，最大初动能不适用」，若展示 hf−W₀ 须另命名并注明为有符号能量差。
+
+### PQ-18 薄透镜在 d_o=f 时输出「—/-—」与 Infinity 明细（中，确认）
+- 描述：守卫只拦截 f=0、d_o=0，未处理 d_o=f；此时像距发散，主区字符串被 `/Infinity/` 替换成「—-」，明细/CSV 保留原始 `Infinity`，SVG 坐标被钳到边界但仍按无穷放大率绘制。
+- 证据：`tools/optics/thin-lens-equation.html:239`（`__D` 仅判等于 0）、`:284`（`di=1/(1/f-1/do)`）、`:302`（`calcRay` 同式）、`:319-320`（`xI=xL+di*scale` 后钳位）。node 复算：f=0.1、d_o=0.1 → d_i=Infinity、m=−Infinity，`toFixed(4)` 得到字符串 `Infinity`。
+- 影响：`tools/optics/thin-lens-equation.html`，物距等于焦距（成像于无穷远，物理上合法）时出现「像距 —、放大率 -—、像性质 实像」的分裂显示，光路图失真。
+- 方案：|d_o−f| 小于阈值时判「成像在无穷远」，清空像距/放大率/光路图并提示；明细与 CSV 走同一状态分支。
+
+### PQ-19 折射率页允许介质光速超过真空光速，n<1 与 3×10¹⁷ 联动值（中，确认）
+- 描述：只拦截 v=0，不校验 v≤c；v>c 时 n<1、v 为负时 n 为负，「速度差与光速之比倒数」又用 `max(c−v,1e-9)` 兜底，输出天文数字。
+- 证据：`tools/optics/refractive-index-speed.html:268`（`__D` 只含 v）、`:301-306`（n=c/v 与 `c/Math.max(c-v,1e-9)`）、`:386`（FAQ 自己承认 n<1 说明输入有误）。node 复算：v=4e8、c=3e8 → n=0.7500、末项 3e17。
+- 影响：`tools/optics/refractive-index-speed.html`，狭义相对论上不可能的输入被当作正常值，主卡与明细同时给出错误物理量。
+- 方案：要求 c>0 且 0<v≤c，越界提示「介质光速不可能超过真空光速」；删除「速度差与光速之比倒数」这类无物理意义卡片，或改成 n−1。
+
+### PQ-20 球面镜焦距为 0 未拦截，得到「像距 0、放大率 0」伪结果（中，确认）
+- 描述：守卫的 `__D` 只列 d_o，f=0 放行；`1/f` 为无穷，`di=1/(∞−1/do)` 收敛成 0，页面据此判「虚像、放大率 0」。
+- 证据：`tools/optics/mirror-equation.html:235`（`__D` 仅 `do`）、`:280`（di 计算）、`:282-283`（输出卡）。node 复算：f=0、d_o=0.5 → d_i=0.0000、|m|=0.0000。
+- 影响：`tools/optics/mirror-equation.html`，无意义的焦距被包装成一组正常数值。
+- 方案：f 与 d_o 均须非零且有限，f=0 单独提示「焦距不能为 0」；主区、明细、CSV 共用该状态。
+
+### PQ-21 多普勒在 v_s=v 时主区「—」、明细/CSV 为 Infinity（中，确认）
+- 描述：分母 `v−vs` 为 0 时没有任何守卫（`__D` 为空对象），主区字符串被替换成「—」，明细表与导出却保留字符串 `Infinity`，Δf 同样失效。
+- 证据：`tools/science/doppler-effect.html:242`（`var __D={}`）、`:287-290`（fp 与 Δf）、`:311-313`（明细同式）。node 复算：f=1000、v=343、vo=0、vs=343 → fp=Infinity。
+- 影响：`tools/science/doppler-effect.html`，波源速度达到波速时页面既无物理解释，又出现主区与明细互相矛盾的输出。
+- 方案：vs≥v 时提示「波源速度不能达到或超过波速」并停算；明细/导出与主区共用同一校验结果。
+
+### PQ-22 光子能量接受负波长得负能量，差异框只监视常量 H（中，确认）
+- 描述：λ 无符号校验，负值照算得负能量与负 eV；同页历史记录写入常量 H，`diffBox` 也只监视 `H`，差异面板永远没有差异。
+- 证据：`tools/quantum/photon-energy.html:301-303`（H/C/EV 与 `E=H*C/lam`）、`:325-326`（明细表同式）、`:329`（`record({lam,H})`）、`:332`（`diffBox(...,['H'])`）。node 复算：λ=−500e-9 → E=−3.973e-19 J、−2.480 eV。
+- 影响：`tools/quantum/photon-energy.html`，负波长被当作有效输入；差异对照功能形同虚设（假功能），无法反映波长变化。
+- 方案：λ 须 >0 且有限，非法输入停算并禁用导出；diffBox 改监视 `lam`，历史记录不再写入常量 H。
+
+### 覆盖
+- 本批实查 8 页：`tools/science/physics-calculator.html`、`gravitational-potential.html`、`spring-oscillation-period.html`、`doppler-effect.html`、`tools/quantum/photon-energy.html`、`tools/optics/thin-lens-equation.html`、`mirror-equation.html`、`refractive-index-speed.html`。
+- 页面名替换说明：`tools/physics/` 目录不存在，8 页实际分布在 `tools/science`（4）、`tools/quantum`（1）、`tools/optics`（3）；清单中的 `lens-equation`、`ray-optics`、`refraction-angle` 在仓库中无同名页，按「同目录顺延未审计页」分别取 `thin-lens-equation`、`mirror-equation`、`refractive-index-speed`（`snells-law` 已在前批覆盖，故未重复）。
+- `spring-oscillation-period.html` 本批未发现符合入账口径的缺陷（仅 `__D` 把分子 m 误标为「分母」的文案问题，属低危，未计入编号）。
+- 方法：仅静态读源码 + node 内存复算（关键输入→输出已逐条记录）；**未**开浏览器、未做英文态/繁体态与移动端、未跑 `_build.py`/`run_gates.py` 或任何门禁，也未验证线上表现。

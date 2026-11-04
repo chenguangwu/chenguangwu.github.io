@@ -1136,3 +1136,97 @@
 
 - **本批合计 18 条：高 3（BS-N110、BS-N113、BS-N121）/ 中 14 / 安全 1（BS-N125）。假工具 0 个。**
 - 说明：本轮为**只读**审计，逐行读源码 + `node` 在 `/tmp` 复刻（脚本 `/tmp/w_biz_text_d.js`、`/tmp/w_biz_text_d2.js`、`/tmp/w_rand2.js`，含 10 万次随机分布统计与 2 万条生成抽样）；生成器随机性用多次抽样统计口径，非单次结果。**未开浏览器**、**未运行 `_build.py` / `run_gates.py`**、**未做线上验证**，除本文件外未修改任何仓库文件。
+
+## X 批 · 商业文本收尾（2026-11-04）
+
+> 覆盖 `tools/biz/zalgo-text.html`、`strawberry-text.html`、`fancy-text.html`、`text-case-advanced.html`、`upside-down-text.html` 共 5 页。行号为源码行号；`/tmp` Node 复刻脚本 `/tmp/xprobe.js`。
+
+### BS-N127 装饰文字：标称「15+ / 数十种 / 含全角」，实际仅 14 种可用，另 3 张是点不动的占位卡（中，承诺未实现）
+- 页面：`tools/biz/fancy-text.html`
+- 问题：`styles` 共 17 项，其中 3 项值为字符串占位（区域指示符 / 颠倒 / 加点），点击只 `alert('该风格不可用')`；可真正转换的只有 14 种，少于 h2 的「15+」与 meta 的「数十种…含全角」。深解算例还宣称「全角样式输出「ＴｏｏｌＢｏｘ」」，而全页不存在全角（U+FF01–FF5E）映射。
+- 证据：`tools/biz/fancy-text.html:296-298`（三张占位卡）、`:349`（`text.includes('使用')` → alert）、`:176`（h2「15+」）、`:10`/`:15`（meta「数十种…全角」）、`:208`（深解「全角样式输出ＴｏｏｌＢｏｘ」）。
+- 复现：打开页面数出 17 张卡；点「🇫🇦🇳🇨🇾 区域指示符」「ɟɐuɔʎ 颠倒」「H̥e̥l̥l̥o̥ 加点」→ 一律 alert「该风格不可用」；输入 `ToolBox` 无任何全角结果可复制。
+- 影响：宣称能力与实物不符，3 张卡为死功能；主体 14 种映射可用，故假工具：否。
+- 方案：补全角与区域指示符映射，或删掉 3 张占位卡并把「15+/数十种/全角」文案改为实际 14 种。
+
+### BS-N128 草莓文字：第 9 个 emoji 按钮显示 🌺 却写入 🌸，与第 2 个按钮输出重复（中，确认缺陷）
+- 页面：`tools/biz/strawberry-text.html`
+- 问题：按钮的显示字符取自标签文字、实际装饰符取自 `data-emoji`，两者不一致：`data-emoji="🌸"` 却显示 🌺；而第 2 个按钮同样是 🌸，导致 12 个按钮只有 11 种输出，用户点 🌺 永远得不到 🌺。
+- 证据：`tools/biz/strawberry-text.html:172`（`data-emoji="🌸"` > 🌺）、`:165`（重复的 🌸）、`:291`（`currentEmoji = el.getAttribute('data-emoji')`）。
+- 复现：点第 9 个卡片（🌺）→ 结果前后插入的是 🌸；全页无任何路径能选到 🌺。
+- 影响：装饰字符与所见不符，属错误输出；假工具：否。
+- 方案：把 `:172` 改为 `data-emoji="🌺"`（或把显示字符改成 🌸 并删掉重复项）。
+
+### BS-N129 草莓文字：按 UTF-16 码元遍历，输入含 emoji 时输出被拆成孤立代理项（中，确认缺陷）
+- 页面：`tools/biz/strawberry-text.html`
+- 问题：`for(var i=0;i<input.length;i++){ var ch = input[i]; }` 按码元取字符，非 BMP 字符（emoji、部分扩展 CJK）被拆成高低代理两半，两半之间被插入装饰 emoji，拼接后成为非法代理序列，显示为 �/方框。
+- 证据：`tools/biz/strawberry-text.html:308-310`（`input.length` + `input[i]`）、`:322-324`（在 `ch` 两侧拼接 emoji）。
+- 复现：输入 `Hi😀`，勾选「字符前加/后加」→ 结果码位序列为 `… 1f353 48 1f353 1f353 69 1f353 1f353 d83d 1f353 1f353 de00 1f353`（`d83d`/`de00` 被拆开，孤立代理项）。
+- 影响：贴 emoji 的昵称场景恰好是本工具主用途，输出直接坏字；假工具：否。
+- 方案：改用 `Array.from(input)` 或 `for...of` 按码点遍历。
+
+### BS-N130 草莓文字：深解与引据表把功能写成「叠加组合字符 / UTS #39 同形替换」，实际是拼 emoji（中，承诺未实现）
+- 页面：`tools/biz/strawberry-text.html`
+- 问题：方案宣传「在文字上叠加组合字符形成「草莓/带点」观感」「每字符上叠加组合标记」，引据表还给出「同形/近形字符替换，属视觉替换」「兼容归一化可部分还原」（Unicode UTS #39 / UAX #15），FAQ 也称「装饰依赖组合字符」；实现只是在字符前后拼接 emoji（U+1F353 等），与组合标记、同形替换、归一化均无关。
+- 证据：`tools/biz/strawberry-text.html:232`、`:236`、`:239`、`:257-259`（引据表三行）；实现 `:312-327`（`currentEmoji + ch + currentEmoji`）。
+- 复现：输入 `hello` → 输出 `🍓h🍓🍓e🍓…`（emoji 拼接），不存在任何组合标记；对结果做 NFC/NFKC 也不会还原成原词（emoji 不在兼容等价映射内，且它会作为独立字符留存）。
+- 影响：用户按说明预期「可归一化还原/无副作用」，实际插入的是 emoji，平台过滤、字数与检索行为完全不同；假工具：否。
+- 方案：把深解/引据表/FAQ 改为 emoji 拼接原理（或真的实现组合标记方案）。
+
+### BS-N131 高级大小写：meta 与公式承诺「保留专有名词」，实现一律小写化，iPhone→Iphone、USA→Usa（中，承诺未实现+算错）
+- 页面：`tools/biz/text-case-advanced.html`
+- 问题：meta 描述（3 处）与 formula-desc 均写「按句/按标题规则智能转换…并保留专有名词」，实现中 `title` 与 `sentence` 都先 `toLowerCase()` 再首字母大写，没有任何专有名词表、缩写保留或大小写例外分支。
+- 证据：`tools/biz/text-case-advanced.html:10`/`:15`/`:68`（meta「保留专有名词」）、`:164`（formula-desc "preserving proper nouns"）；实现 `:318`（title）、`:319`（sentence）。
+- 复现：输入 `iPhone is from the USA` → 标题模式得 `Iphone Is From The Usa`，句首模式得 `Iphone is from the usa`（品牌名与缩写被破坏）。
+- 影响：长文档排版的核心承诺落空，且输出对专有名词是错的；假工具：否。
+- 方案：加专有名词/全大写缩写保留规则（或删掉「保留专有名词」文案）。
+
+### BS-N132 高级大小写：「交替 / 交替反」两张卡的示例与真实输出正好对调（中，说明与实现相反）
+- 页面：`tools/biz/text-case-advanced.html`
+- 问题：「交替」卡示例写 `hElLo`，实现初值 `up=false`，首个字母即转大写 → 实际 `HeLlO`；「交替反」示例写 `HeLlO`，实现初值 `up=true`，首字母转小写 → 实际 `hElLo`。两卡示例互为对方的输出。
+- 证据：`tools/biz/text-case-advanced.html:192`（交替示例 `hElLo`）、`:193`（交替反示例 `HeLlO`）、`:335-341`（`let up = false`）、`:343-349`（`let up = true`）。
+- 复现：输入 `hello` 点「交替」→ `HeLlO`；点「交替反」→ `hElLo`，与卡片示例相反。
+- 影响：用户按示例选模式会得到与预览不符的结果；假工具：否。
+- 方案：交换两处示例文案，或把两个模式的初值对调。
+
+### BS-N133 高级大小写：`updatePreview()` 是空函数，改输入不重算，复制会拿到上一次结果（中，确认缺陷）
+- 页面：`tools/biz/text-case-advanced.html`
+- 问题：textarea 绑定 `oninput="updatePreview()"`，但 `updatePreview` 函数体只有注释「保留上次结果」；页面又没有「转换」按钮（只有模式卡）。用户改完输入后预览仍是旧文本，此时点「复制结果」复制的也是旧文本。
+- 证据：`tools/biz/text-case-advanced.html:169`（`oninput="updatePreview()"`）、`:367-369`（空实现）、`:171`（复制按钮）、`:175`（`#preview`）、`:493-497`（boot 也调空 `updatePreview`）、`:464-483`（每次 oninput 仍落库一条「新输入 + 旧结果」记录）、`:443`（历史回填后也只调空 `updatePreview`，预览不跟着变）。
+- 复现：点「全大写」得 `HELLO WORLD` → 把输入改成 `abc`（不点任何模式）→ 预览仍显示 `HELLO WORLD` → 点「复制结果」→ 剪贴板是 `HELLO WORLD`；同时历史表新增一条「输入 abc / 结果 HELLO WORLD」的错配记录（`last<1000ms` 限流，每秒最多 1 条）。
+- 影响：输出与当前输入不一致，静默复制错误结果，且把错配结果写进历史/CSV；假工具：否。
+- 方案：记住 `lastMode`，在 `updatePreview` 里重跑 `convert(lastMode)`；或去掉 `oninput` 并明确提示「点模式卡才计算」。
+
+### BS-N134 颠倒文字：末步 `split('')` 反转拆散代理对，含 emoji 输出为非法序列（中，确认缺陷）
+- 页面：`tools/biz/upside-down-text.html`
+- 问题：映射阶段用 `for...of`（按码点，安全），但最后 `out.split('').reverse().join('')`（按 UTF-16 码元）反转；非 BMP 字符被拆成两个代理项并倒序，产生孤立代理项。
+- 证据：`tools/biz/upside-down-text.html:300-302`（按码点映射）、`:304`（`split('').reverse().join('')`）。
+- 复现：输入 `a😀` → 结果码位顺序 `U+DE00 U+D83D U+0250`（高低代理倒置，浏览器显示 �）。
+- 影响：贴 emoji 即坏字（中文 BMP 不受影响）；假工具：否。
+- 方案：改为 `[...out].reverse().join('')`。
+
+### BS-N135 颠倒文字：深解算例「oʅʅǝɥ」与实现输出「ollǝɥ」不符（中，算例错误）
+- 页面：`tools/biz/upside-down-text.html`
+- 问题：深解写「输入 hello，倒置输出 oʅʅǝɥ」，但映射表把 `l` 映射为 `l`（恒等），实际结果为 `ollǝɥ`；文档比实现多两个 `ʅ`。
+- 证据：`tools/biz/upside-down-text.html:212`（算例）、`:285`（`'l':'l'`）、`:304`（反转）。
+- 复现：`/tmp` Node 复刻 → `flip('hello')` = `ollǝɥ`；`flip('Hello World!')` = `¡plɹoM ollǝH`。
+- 影响：算例与实物不符，用户以为映射缺字；假工具：否。
+- 方案：把算例改成 `ollǝɥ`，或把 `l` 改为 `ʅ`（并同步全部含 l 的示例）。
+
+### BS-N136 Zalgo 文字：公式称「上限放大后向下取整」，`rand(上限+1)` 未取整，轻度档可超出文档上限（中，说明与实现不符）
+- 页面：`tools/biz/zalgo-text.html`
+- 问题：formula-desc 明确写「上限被强度放大后再向下取整」「每字符附加数 ~ U{0, ⌊上限⌋}」，实现直接把可能带小数的 `upMax` 传给 `rand(upMax+1)`；小数时上界变 `⌈上限⌉`，轻度档也会超出文档所述最大值。
+- 证据：`tools/biz/zalgo-text.html:325-327`（`parseInt(...) * intensity / 2` 未取整）、`:333-335`（`rand(upMax + 1)`）、`:531-532`（formula-eq/formula-desc「向下取整」「⌊上限⌋」）。
+- 复现：上/中/下设为 3/1/3、强度「轻度」→ upMax=1.5，`rand(2.5)` 返回 0/1/2，单字符上方可出现 2 个标记（文档上限为 1）。
+- 影响：按文档调参得到的强度偏强且不可预测；输出本身不算错，属说明与实现不符；假工具：否。
+- 方案：`rand(Math.floor(upMax) + 1)`（三档同改），或把文档改成 `⌈上限⌉ + 1`。
+
+### X 批覆盖清单（商业文本收尾 5 页）
+- `tools/biz/zalgo-text.html`：1 条（BS-N136 中）。复核通过项：按码点叠加、空格/换行跳过、三组符号独立抽样、历史回填与预设接线正常。
+- `tools/biz/strawberry-text.html`：3 条（BS-N128/129/130 中）。复核通过项：包夹/前后/跳过空白三模式与公式一致、清空与复制接线正常。
+- `tools/biz/fancy-text.html`：1 条（BS-N127 中）。复核通过项：14 张映射表 `src/dst` 长度全部相等（`/tmp` 逐表校验，无 `undefined` 空洞）、未命中保留原字符、中文/emoji 按码点安全。
+- `tools/biz/text-case-advanced.html`：3 条（BS-N131/132/133 中）。复核通过项：22 个模式中 camel/pascal/snake/kebab/constant/dot/path 分词与取词正确，`sentence` 句首规则正确。
+- `tools/biz/upside-down-text.html`：2 条（BS-N134/135 中）。复核通过项：映射覆盖 a–z/A–Z/0–9/常用标点，未命中保留原字符，空格映射恒等。
+
+- **X 批合计 10 条：高 0 / 中 10 / 安全 0。假工具 0 个。**
+- 说明：本轮为**只读**审计，逐行读源码 + `node` 在 `/tmp` 复刻（`/tmp/xprobe.js`：fancy 17 张卡映射长度校验、`flip('hello')` 实测、草莓 emoji 码位实测、大小写各模式实测）。**未开浏览器**、**未运行 `_build.py` / `run_gates.py`**、**未做 git 写操作**，除本文件与 `plan/categories/11-文娱爱好/fun-entertainment.md` 外未修改任何文件。

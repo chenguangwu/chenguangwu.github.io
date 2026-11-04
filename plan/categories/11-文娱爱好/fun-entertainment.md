@@ -632,3 +632,179 @@
 - `tools/fun/number-puzzle.html`：2 条（FE-N66、FE-N67 中）。复核通过项：`solve24` 覆盖 4!×4³×5 种括号结构（`/tmp` 实测单次约 2.6ms）、无解提示、参考解法输出、退格还原牌面、连胜/最佳连胜。
 - `tools/fun/word-scramble.html`：2 条（FE-N68、FE-N69 中）。复核通过项：打乱结果必与原词不同（重排重试）、分类/难度过滤、三级提示与 -5/次扣分、跳过重置连胜、最佳成绩本地保存。
 - 声明：本轮仅源码通读 + `/tmp` Node 复算（24 点拼接求值 `24+5−5=24`、86 组「标准无解但拼接可解」枚举、`solve24` 单次约 2.6ms），未开浏览器、未跑构建/门禁、未改动任何工具页/js/css/json；除本文件外未写入其他文件。
+
+## X 批 · 音乐训练（2026-11-04）
+
+> 覆盖 `tools/music/rhythm-trainer.html`、`random-training-rhythm.html`、`sheet-music.html` 共 3 页。行号为源码行号；`/tmp` Node 复刻脚本 `/tmp/xprobe.js`（12 调音名/唱名逐调复算）。
+
+### FE-N70 敲击用 `performance.now()`、期望时刻用 `AudioContext.currentTime`，两钟不同源导致偏差恒为固定偏移、几乎全部判漏击（高，确认源码缺陷）
+- 页面：`tools/music/rhythm-trainer.html`
+- 问题：`startTime = ctx.currentTime + countInDuration`（音频上下文时钟，从 AudioContext 创建时归零）；`onTap` 却用 `performance.now()/1000`（页面导航时钟）。两者原点相差「页面打开到首次点『开始训练』」的时长，`calculateScore` 直接相减，偏差被整体平移该时长；容差仅 `max(0.8×格长, 80) ms`（60 BPM 宽拍也仅 800 ms），因此绝大多数敲击被判「漏击」，命中数≈0。
+- 证据：`tools/music/rhythm-trainer.html:916`（`const now = ctx.currentTime`）、`:935`（`startTime = now + countInDuration`）、`:1011`（`const now = performance.now() / 1000`）、`:1023`（`noteTimes = startTime + idx*cellDuration`）、`:1027`（容差）、`:1033`/`:1039`（两钟直接相减）、`:1040-1049`（判漏与偏差）。
+- 复现：打开页面停留 3 s 后点「开始训练」，严格跟着节拍器敲 → 结果「完美命中 0 个」「准确率 0%」，且所有敲击都落在同一侧偏差（系统偏移=3 s 左右）。
+- 影响：核心评分链路恒失效，历史记录被 0 分污染；有节拍音频与网格但评分不可用，假工具：否。
+- 方案：统一时钟——`onTap` 改记 `getAudioCtx().currentTime`（音频上下文在页面加载即创建并复用）；或把 `startTime` 改成 `performance.now()/1000 + countInDuration`，二者只保留一个时基。
+
+### FE-N71 命中列表小节号 off-by-one，每小节第 4 拍被标成下一小节（中，确认源码缺陷）
+- 页面：`tools/music/rhythm-trainer.html`
+- 问题：`beatIdx` 是 1 基拍号，`measureNum = Math.floor(beatIdx/4)+1` 应为 `Math.floor((beatIdx-1)/4)+1`；于是 `beatIdx=4`（第 1 小节第 4 拍）算出「第 2 小节」，每小节最后一拍都被错标到下一小节。
+- 证据：`tools/music/rhythm-trainer.html:1151-1153`（`beatIdx` / `measureNum` / `beatInMeasure`）、`:1156`（渲染「第 N 小节 第 M 拍」）。
+- 复现：简单难度 4 小节，命中第 1 小节第 4 拍（`noteIndex=3`，`subdivision=1` → `beatIdx=4`）→ 列表显示「第2小节 第4拍」。
+- 影响：反馈定位错误（约 1/4 的命中被标错小节），用户按提示复盘会找错位置；假工具：否。
+- 方案：`const measureNum = Math.floor((beatIdx - 1) / 4) + 1;`。
+
+### FE-N72 只随机打印节奏型文本，无节拍器音频/敲击采集/偏差与准确率（高，确认源码缺陷；假功能）
+- 页面：`tools/music/random-training-rhythm.html`
+- 问题：标题/meta/twitter/JSON-LD 均宣称「随机播放节奏型要求跟点，训练节拍感与稳定度，统计准确率与速度」，formula-eq 给出准确率/偏差/标准差公式，深解要求「用空格或点击敲击」「±30 ms 内敲击」；实际页面唯一输入是「生成数量」，`gen()` 只把随机节奏型名称+图案+BPM 拼成文本，全页无 `AudioContext`、无 keydown/click 监听、无命中判定与统计，也没有 BPM/细分选项。FAQ 甚至把评分整段外包给 `rhythm-trainer`。
+- 证据：`tools/music/random-training-rhythm.html:10`/`:14`/`:29`/`:32`（四处 meta 文案）、`:120`（公式承诺）、`:124`（唯一输入）、`:151-159`（深解与 FAQ「外包评分」）、`:212-221`（`gen()` 仅拼字符串）、`:215`（`for(let i=1;i<=n;i++)` 只生成文本）。
+- 复现：打开页面 → 直接得到 5 行「八分音符：♪♪…（速度 90 BPM）」；点「生成」只换文字；无法播放任何声音、无法敲击，更无准确率/偏差输出。
+- 影响：承诺的训练与评分 0 实现，用户无法完成任何训练动作；假工具：是。
+- 方案：接入 WebAudio 调度+敲击采集（或复用 `rhythm-trainer` 的评分实现）；否则把标题/meta/深解改为「随机节奏型示例生成器」。
+
+### FE-N73 预设数量写成 2.5/7.5，输入框实际只生成 2/7 条，且残留「极端工况」模板（中，确认源码缺陷）
+- 页面：`tools/music/random-training-rhythm.html`
+- 问题：`#cnt` 是整数输入（step 默认 1，min 1 / max 50），但预设「小规模/大规模」写入 `2.5`/`7.5`；`gen()` 取 `Math.min(+value||5,50)` 后 `for(i=1;i<=n;i++)`，2.5 只循环 2 次、7.5 只 7 次。数量框显示 2.5，结果只有 2 条。预设还带有与本工具无关的「极端工况」。
+- 证据：`tools/music/random-training-rhythm.html:397`（`cnt:'2.5'`/`'7.5'`、`极端工况`）、`:124`（`type="number"` 整数输入）、`:213-215`（`Math.min(+value||5,50)` + `i<=n`）。
+- 复现：点「小规模」→ 数量框显示 `2.5`，结果仅 2 条；点「大规模」→ 显示 `7.5`，结果仅 7 条。
+- 影响：显示数量与实际输出不一致，预设不可信；假工具：否（叠加 FE-N72 的假功能结论）。
+- 方案：预设改整数 `2`/`8`，`gen()` 内 `Math.floor`，并删除「极端工况」。
+
+### FE-N74 降号调音名全按升号输出：Bb 调主音显示 A#、4 级显示 D#，F 调 4 级显示 A#（应为 B♭）（高，确认源码缺陷）
+- 页面：`tools/music/sheet-music.html`
+- 问题：`NOTE_NAMES` 只有升号拼写，`renderStaff` 与 `__staffExport` 一律用 `NOTE_NAMES[(offset+semitone)%12]`，不按调号选 ♭/♯ 拼写。12 个调的半音偏移本身正确（`/tmp` 逐调复算通过），但降号调的音名未按 ♭ 拼写。
+- 证据：`tools/music/sheet-music.html:286`（`NOTE_NAMES` 全升号）、`:338`/`:344`（表格取音名）、`:379-383`（CSV 同源取值）。
+- 复现：Node 复刻 → Bb 调输出 `A# C↑ D↑ D#↑ F↑ G↑ A↑ A#↑`（应为 `B♭ C D E♭ F G A B♭`）；F 调 4 级 `A#`（应 `B♭`）；Db 调 4 级 `F#`（应 `G♭`）；Eb 调 4 级 `G#`（应 `A♭`）；F# 调 7 级 `F`（应 `E#`）。
+- 影响：12 调中 6 个调存在错拼（Bb/Eb/Ab/Db 的 1 级与 4 级、F 的 4 级、F# 的 7 级），视唱/乐理速查场景直接教错；假工具：否。
+- 方案：按调定义调内音名表（含 ♭/♯），表格、试听与 CSV 共用同一份「音级→音名」映射。
+
+### FE-N75 简谱查询：标题/meta/公式/FAQ 均承诺「五线谱位置」，实际只渲染「数字+音名」色块，无谱线/线间定位（中，承诺未实现）
+- 页面：`tools/music/sheet-music.html`
+- 问题：title/description/og/twitter/JSON-LD、副标题、formula-eq（「高音谱表下加一线为中央 C」）、FAQ（「按音阶级数把简谱数字落到对应线/间」）都承诺五线谱位置；`renderStaff` 只输出 8 个 `.staff-note`（简谱数字 + 音名 + 八度箭头），`.staff-row/.staff-note` 是 flex 盒子，没有任何谱线、线/间坐标或谱号渲染，也没算「第几线/第几间」。
+- 证据：`tools/music/sheet-music.html:10`/`:15`/`:20`（title/meta 五线谱位置）、`:157`（副标题）、`:160`（公式「加一线为 C4」）、`:241`（FAQ 落到线/间）、`:333-348`（`renderStaff` 实现）。
+- 复现：任选调号 → 页面只有「1 C / 2 D / …」文字块，无五线谱图形、无高音谱号、无线/间信息。
+- 影响：工具名与主卖点「简谱与五线谱对照」中五线谱一侧完全缺失；简谱↔音名/唱名/频率可用，假工具：否。
+- 方案：用 SVG 画五线谱并按音级算线/间 y 坐标（至少高音谱号），或把标题/描述改为「简谱与音名/唱名对照查询」。
+
+### FE-N76 CSV 第八级唱名取 `SOLFEGE[7]` 为 undefined，导出列出现字面「undefined」（中，确认源码缺陷）
+- 页面：`tools/music/sheet-music.html`
+- 问题：`SOLFEGE` 仅 7 项（`do…si`），导出循环 `i` 到 7（`1(8va)` 行）仍执行 `SOLFEGE[i]`，得到 `undefined` 并被拼进 CSV 单元格。
+- 证据：`tools/music/sheet-music.html:287`（7 项数组）、`:379-383`（`deg=(i===7)?'1(8va)':NUMERALS[i]` 与 `SOLFEGE[i]`）。
+- 复现：点「导出当前音阶 CSV」→ 第 8 行「1(8va)」的唱名列写为 `undefined`。
+- 影响：导出文件含脏值，导入表格/统计时出错；假工具：否。
+- 方案：`SOLFEGE[i === 7 ? 0 : i]`（八度重复用 do）。
+
+### X 批覆盖清单（音乐训练 3 页）
+- `tools/music/rhythm-trainer.html`：2 条（FE-N70 高、FE-N71 中）。复核通过项：节奏型生成保证每小节至少 1 个音符且总音符 ≥30%、4 拍预备拍、WebAudio 按 `ctx.currentTime` 预调度、停止/结束守卫、历史落库与导出接线。
+- `tools/music/random-training-rhythm.html`：2 条（FE-N72 高·假功能、FE-N73 中）。复核通过项：6 种节奏型与 6 档 BPM 随机、数量上限 50 钳制、复制/导出/历史接线。
+- `tools/music/sheet-music.html`：3 条（FE-N74 高、FE-N75/FE-N76 中）。复核通过项：12 调 `KEY_OFFSETS` 半音偏移全部正确、频率按 `NOTE_FREQS×2^oct` 与十二平均律一致、12 个调号按钮与历史回填。
+
+- **X 批合计 7 条：高 3（FE-N70、FE-N72、FE-N74）/ 中 4 / 安全 0。假工具 1 个（FE-N72）。**
+- 说明：本轮为**只读**审计，逐行读源码 + `node` 在 `/tmp` 复刻（`/tmp/xprobe.js`：12 调音名/唱名逐调复算、八级唱名 `SOLFEGE[7]` 实测；节奏训练器时基问题为源码口径推演，未开浏览器录音验证）。**未开浏览器**、**未运行 `_build.py` / `run_gates.py`**、**未做 git 写操作**，除本文件与 `plan/categories/06-商业运营/biz-startup.md` 外未修改任何文件。
+
+## X 批 · 测试/记忆/小游戏（2026-11-04）
+
+### FE-N77 暂停后再继续会叠加第二条 rAF 主循环，球速成倍递增（高，确认源码缺陷）
+- 页面：`tools/fun/breakout.html`
+- 问题：`gameLoop()` 无论是否暂停都会在每帧末尾 `requestAnimationFrame(gameLoop)`，暂停只是跳过更新、循环本身不停；而 `togglePause()` 在恢复时又直接调用一次 `gameLoop()`，于是恢复瞬间存在两条并行循环，球/挡板每帧各推进两次。
+- 证据：`tools/fun/breakout.html:760-769`（暂停分支仍续帧）、`:789-794`（恢复时重复启动）、`:771-775`（暂停态点「开始」也走 `togglePause`→重复启动）。
+- 复现（源码推演）：开始 → 空格发射 → 空格暂停 → 空格继续，球速与挡板速度变为 2 倍；再暂停/继续一次变 4 倍，以此类推，关卡基本无法游玩。
+- 影响：核心玩法在任一暂停后失准，且越暂停越失控；假工具：否。
+- 方案：主循环只启动一次（`togglePause` 只翻转 `paused`，不调用 `gameLoop`），或在暂停时 `cancelAnimationFrame(state.animId)`、恢复时再重新起一条循环。
+
+### FE-N78 位移按「每帧固定量」推进，与公式表「按时间差积分、帧率无关」相反（中，确认源码缺陷）
+- 页面：`tools/fun/breakout.html`
+- 问题：公式表明确承诺「位移按时间差积分，避免高刷新率下速度变快」，但 `moveBall()`/`movePaddle()` 每帧固定加 `dx/dy` 与固定挡板速度，未使用任何时间差。
+- 证据：`tools/fun/breakout.html:344-345`（帧率无关承诺）、`:658-666`（球每帧固定位移）、`:646-656`（挡板每帧固定速度）。
+- 影响：120Hz 屏上球速约为 60Hz 屏的 2 倍，同一关卡难度随显示器刷新率变化；属结果不正确，非崩溃。
+- 方案：在 `gameLoop` 里记录 `dt`（并按 60fps 归一化，如 `dt/16.67`），所有位移乘该系数；否则删掉公式表的帧率无关表述。
+
+### FE-N79 宣称 Web Audio 实时合成笑声并可导出 wav，实际只输出文字方案、无任何音频（高，假工具）
+- 页面：`tools/fun/generator-laugh.html`
+- 问题：标题/简介/公式/深度解析/FAQ 均宣称「Web Audio API 实时合成」「可调基频、颤音、时长」「导出本地 wav」；实际页面只有「生成」按钮，`gen()` 仅拼出一段描述文字（音型、音节串、基频数值、时长），全文件无 `AudioContext`/`OscillatorNode`，也没有播放按钮或音频下载，导出仅是历史表格 CSV。
+- 证据：`tools/fun/generator-laugh.html:117`（英文副标题实时合成+下载）、`:118-127`（公式描述音频合成）、`:168-169`（深度解析「导出本地 wav」）、`:232-241`（`gen()` 只写文字、无音频调用）；全文件检索 `AudioContext|oscillator|wav` 零命中，按钮区仅 `:132-136` 生成/CSV/复制。
+- 影响：用户拿不到任何可听的笑声，「试听/下载」承诺全部落空；假工具：是。
+- 方案：补 `AudioContext` 合成 + `OfflineAudioContext` 渲染 WAV 下载与试听；或把标题、简介、公式、深度解析、FAQ 全部改为「笑声音效文字方案生成器」并删除音频/下载承诺（后者更省）。
+
+### FE-N80 预设「小规模/大规模」写入 2.5/7.5，实际只生成 2/7 条（中，确认源码缺陷）
+- 页面：`tools/fun/generator-laugh.html`
+- 问题：预设把 `cnt` 写成小数 `2.5`、`7.5`，输入框是整数步进 number；`gen()` 取 `+value` 后直接 `for(i=1;i<=n;i++)`，2.5 只循环 2 次、7.5 只 7 次，页面标称数量与实际条目数不一致；另「极端工况」预设与本工具语义无关。
+- 证据：`tools/fun/generator-laugh.html:410`（预设 `2.5/7.5/10`）、`:131`（整数输入 `min=1 max=50`）、`:233-235`（未取整直接循环）。
+- 影响：用户按预设期望 3/8 条，实得 2/7 条，导出/复制数量对不上；假工具：否。
+- 方案：预设改整数（如 2/8），`gen()` 用 `Math.floor`/`Math.trunc` 并钳制 `1..50`；删除或替换「极端工况」。
+
+### FE-N81 深度解析/FAQ 承诺「两人血型配对指数」，页面只有四种单型介绍（中，承诺未实现）
+- 页面：`tools/fun/blood-type-personality.html`
+- 问题：深度解析写「选自己与 TA 的血型，查看配对指数与相处解读（A/B/O/AB 两两组合）」「按两两组合的内置相性表输出配对指数」，FAQ 也解释「配对指数准吗」；实际界面只有 A/B/O/AB 四个 tab，`showBlood()` 只渲染单血型的性格、优缺点与该型对四类的相处文案，没有第二血型选择器、没有 4×4 相性表、没有任何评分/指数计算（全文件检索 `score/配对指数` 仅注释文案命中）。FAQ 还残留外部工具名 `analysis-4`。
+- 证据：`tools/fun/blood-type-personality.html:191-196`、`:199-200`（配对承诺与 `analysis-4` 引用）、`:141-148`（仅四个单型 tab）、`:307-326`（`showBlood` 单型渲染）。
+- 影响：用户按说明找不到「配对指数」，功能与说明不符；假工具：否。
+- 方案：补两个 `<select>` + 16 组相性表/指数，或把深度解析/FAQ 改为「四种血型单型速查」并删掉配对承诺与 `analysis-4` 引用。
+
+### FE-N82 关键词过滤实为「6 个固定分类名精确匹配」，默认值「天气」永远静默落入普通池（中，确认源码缺陷）
+- 页面：`tools/fun/riddle-generator.html`
+- 问题：公式称「按关键词过滤：候选数=命中关键词的谜语条数」，实际 `BANK[t] || BANK.普通` 只做对象键精确匹配，题库仅「动物/植物/物件/数字/普通」等固定键；输入「猫」「动」都不命中。更直接的缺陷是输入框默认值与默认预设都写「天气」，该键不存在，因此首次打开与点默认预设都无声地变成普通池（无任何未命中提示）。
+- 证据：`tools/fun/riddle-generator.html:123`（关键词过滤公式）、`:129`（默认 `value="天气"`）、`:239-245`（BANK 固定键）、`:268`（`BANK[t] || BANK.普通` 静默回退）、`:397`（预设 `topic='天气'`）。
+- 影响：默认入口即偏离用户预期，关键词检索能力名存实亡；假工具：否。
+- 方案：改为在 `tags/谜面` 上做包含匹配并显示命中数；或换成分类 `<select>`；默认键改为存在的分类，未命中时给提示而非静默回退。
+
+### FE-N83 「连抽不重复/同一轮去重」未实现，普通池仅 2 条，连抽必重（中，确认源码缺陷）
+- 页面：`tools/fun/riddle-generator.html`
+- 问题：公式写「同一轮内去重以避免重复出题」，深度解析写「可连续抽且不重复（已抽集合去重），直到题库循环」「连抽 5 题不重复」；实际 `pick()` 纯随机、无已抽集合，`generate()` 每点一次都从池中独立抽取。普通池只有 2 条，连续两次重复概率 50%，5 题全不重复不可能。
+- 证据：`tools/fun/riddle-generator.html:123`、`:433-434`（去重承诺）、`:262-264`（`pick` 无状态）、`:268-269`（每次直接 `pick(pool)`）；`/tmp/xfun_probe.js` 复算普通池 2 条、重复概率 0.5。
+- 影响：连续出同一题，「连抽 5 题不重复」的用户预期直接落空；假工具：否。
+- 方案：按池维护 `used` Set，抽完再循环清空；或在界面改为「随机一条」并删除去重表述。
+
+### FE-N84 页面通篇描述「翻牌配对（翻两张、相同消除）」，实际玩法是序列记忆点击（高，承诺未实现/名不符实）
+- 页面：`tools/fun/emoji-memory.html`
+- 问题：meta/JSON-LD/深度解析/FAQ 全部描述成翻牌配对游戏：棋盘全盖住、每次翻两张、相同消除、第 1 关 6 对（12 格）、第 3 关 10 对（20 格）、「错配后记住那两张的位置」；实际实现无任何卡片网格与翻面状态，而是先逐字展示一串 Emoji，再让用户在选项按钮中按原顺序点击（Simon 式序列记忆），关卡长度 = `level+2`。两者玩法、过关条件、记忆策略完全不同。
+- 证据：`tools/fun/emoji-memory.html:10`（meta 配对描述）、`:73`（JSON-LD）、`:194-199`（深度解析配对规则与 6 对/10 对算例）、`:161-169`（界面只有序列展示区+选项区）、`:267-278`（生成序列）、`:279-293`（逐字播放）、`:312-329`（按顺序比对）。另公式称序列长度取「level+2 与表情总数较小值」，代码 `:269` 未对 `emojis.length` 钳制。
+- 影响：按页面说明练习「位置记忆/翻牌配对」的用户会得到完全不同的训练；SEO 描述也与实际产物不符；假工具：否（游戏可玩，但核心玩法与文案不符）。
+- 方案：实现真正的翻牌配对盘（cards/flipped/matched、关卡对数递增）；或把标题/meta/JSON-LD/深度解析/FAQ 全部改写为「Emoji 序列记忆挑战」，并修正算例与长度钳制。
+
+### FE-N85 重置不清除序列播放定时链，重置后冒出 2 个幽灵选项、点击即判负（中，确认源码缺陷）
+- 页面：`tools/fun/emoji-memory.html`
+- 问题：`reset()` 只重置 `playing/sequence/level` 与文本，没有清除 `nextLevel()` 排下的 800ms 定时器及 `showSeq` 的递归定时器。若在「准备...」阶段点「重置」（或开局后快速连点「开始」），旧定时链仍会执行 `showSeq` → `showOptions()`；此时全局 `sequence` 已被清空，`showOptions` 用空序列也能凑出 2 个随机选项并置 `playing=true`，任意点击都会走 `choose` 的 `e===sequence[0]`（undefined）失败分支。
+- 证据：`tools/fun/emoji-memory.html:258-266`（`reset` 不清理定时器）、`:277`（`setTimeout(showSeq,800)`）、`:289-292`（递归定时）、`:294-311`（空序列仍生成选项并 `playing=true`）、`:315`、`:328`（与 undefined 比对后显示空「正确序列」）。
+- 复现（源码推演）：点「开始」→ 在 800ms 内点「重置」→ 等待约 0.8s，选项区出现 2 个 Emoji；任点一个即「游戏结束！达到第 1 关 / 正确序列：」。
+- 影响：重置/重开逻辑不可靠，出现无法解释的判负与空答案；假工具：否。
+- 方案：保存所有 `timerId`，在 `reset()/start()` 中 `clearTimeout` 全清；`showSeq/showOptions` 增加 `sequence.length===0` 守卫。
+
+### FE-N86 名为「冥想计时器」，实际无倒计时、无提示音、无计时会话记录（高，假功能）
+- 页面：`tools/fun/meditation-timer.html`
+- 问题：meta/副标题/公式/深度解析/使用提示均承诺「纯前端本地计时」「段末提示音」「可选 interval bells 与结束 chime」「session counts kept locally」；实际 `calcTool()` 只按当前时钟算出各段「时刻」并渲染静态表格，页面没有任何开始/暂停/继续按钮，没有 `setInterval`/倒计时状态，没有 `AudioContext`（检索零命中），历史记录也只存 dur/seg/style/nSeg，不记录实际完成的冥想次数或时长。用户无法用它计时。
+- 证据：`tools/fun/meditation-timer.html:13`、`:16`（meta「本地计时」）、`:115`（英文承诺 bells/chime/session counts）、`:120`（公式「段末给出提示音」）、`:189`（深度解析计时提示）、`:233-236`（提示音说明）、`:275-320`（只生成时刻表）、`:347`（历史仅存输入参数）；`:146` 仅有「重置」，无开始/暂停。
+- 影响：核心功能缺失，只得到一张纸面计划表；假工具：是。
+- 方案：实现基于 `Date.now()` 的倒计时（暂停可续）+ 段末/结束提示音（WebAudio）；或改名为「冥想分段计划生成器」，删除计时、提示音、会话统计相关文案与 FAQ。
+
+### FE-N87 分段数用四舍五入，计划表不覆盖总时长、末段时长与标称不符（中，确认源码缺陷）
+- 页面：`tools/fun/meditation-timer.html`
+- 问题：公式定义「分段数 = 总时长 ÷ 单段时长」，代码取 `Math.round(dur/seg)` 且只输出各段起始时刻，不显示段止时刻、也不把末段截到总时长。非整除输入即产生偏差：10 分钟 / 每 3 分钟 → 3 段（0/3/6 分），最后 1 分钟没有安排，但「预计结束」仍写 +10 分钟；7 分钟 / 每 2 分钟 → 4 段，标称「每 2 分钟」而末段 6→7 只有 1 分钟。
+- 证据：`tools/fun/meditation-timer.html:119`（分段公式）、`:277`（`Math.max(1, Math.round(dur/seg))`）、`:285-287`（标称「每 seg 分钟」与「预计结束」）、`:294-299`（只列起始时刻、无边界钳制）；`/tmp/xfun_probe.js` 复算 10/3→[0,3,6]、7/2→[0,2,4,6]。
+- 影响：计划缺段或末段缩水，用户按表执行会漏掉最后一分钟；假工具：否。
+- 方案：用 `Math.ceil(dur/seg)` 生成边界并 `Math.min(boundary, dur)` 截断，表格同时显示「起—止」；或在 UI 强制要求单段时长整除总时长。
+
+### FE-N88 胜利弹层容器缺 `class="win-overlay"`，通关提示渲染在页面底部而非居中遮罩（中，确认源码缺陷）
+- 页面：`tools/fun/memory-game.html`
+- 问题：CSS 已写好 `.win-overlay{position:fixed;…z-index:2000}`，但触发用的容器只有 `id="winOverlay"`，没有 `class="win-overlay"`；`showWin()` 把它设为 `display:flex` 后，它只是一个普通静态 div，位于正文/工具说明之后，通关弹窗会出现在页面最底部，用户停留在上方棋盘区时看不到任何通关反馈。
+- 证据：`tools/fun/memory-game.html:54`（`.win-overlay` 样式）、`:345`（`<div id="winOverlay" style="display:none;">` 无 class）、`:577`（`showWin` 仅改 display）。
+- 影响：通关提示不可见（需滚到页尾），用户误以为游戏卡死；假工具：否。
+- 方案：给容器补 `class="win-overlay"`（或 CSS 选择器改为 `#winOverlay`）。
+
+### FE-N89 切换难度/主题不重建棋盘，配对总数与胜利判定改用新难度，导致盘面永远无法通关（中，确认源码缺陷）
+- 页面：`tools/fun/memory-game.html`
+- 问题：`setDifficulty()`/`setTheme()` 只改 `currentDiff/currentTheme` 与最佳成绩显示，不调用 `startGame()`；已有棋盘仍是旧难度。此时翻牌后 `updateStats()` 显示 `matched/新难度对数`，`checkMatch()` 也用新难度阈值判胜。例如简单盘 12 格（6 对）切到专家后显示 `0/18`，最多只能配 6 对，永远达不到 18，直到用户主动点「开始/重玩」。
+- 证据：`tools/fun/memory-game.html:398-409`（切换仅改变量与最佳成绩）、`:411-429`（只有 `startGame` 重建棋盘）、`:491`（以 `currentDiff.pairs` 判胜）、`:526`（以 `currentDiff.pairs` 显示总数）。
+- 影响：难度按钮看起来即时生效，实际进入不可通关状态且统计错误；假工具：否。
+- 方案：难度/主题切换时自动 `startGame()`（或弹确认后重开），并在切换后同步刷新盘面与统计。
+
+### X 批覆盖清单（测试/记忆/小游戏 8 页）
+- `tools/fun/zodiac-match.html`：0 条。复核通过项：同象 88±5（90/82）、同元素 86±5、火风/土水 84/82、土火 52、火水 46、风土/风水 54，分数区间与公式表「同象 80-90、互补 70-85、需磨合 40-60」基本一致；环半径按 `2πr` 实时重算；随机配对、四类相处建议与复制/导出/历史接线均正常。
+- `tools/fun/breakout.html`：2 条（FE-N77 高、FE-N78 中）。复核通过项：砖块碰撞回弹方向、挡板分区反弹角、道具掉落/接取、生命与关卡推进、触屏左右按钮、`__ebk` 档案记录。
+- `tools/fun/blood-type-personality.html`：1 条（FE-N81 中）。复核通过项：A/B/O/AB 四型分布 28/24/41/7 合计 100%；四种血型的性格、优缺点、对四类相处文案完整；tab 切换、主题切换正常。
+- `tools/fun/generator-laugh.html`：2 条（FE-N79 高·假工具、FE-N80 中）。复核通过项：随机音型/音节串/基频/时长生成、空值与 NaN 守卫、复制/CSV/历史接线。
+- `tools/fun/riddle-generator.html`：2 条（FE-N82、FE-N83 中）。复核通过项：谜面与答案成对存储、显示答案/复制/历史、五类池均可命中（输入准确分类名时）。
+- `tools/fun/emoji-memory.html`：2 条（FE-N84 高、FE-N85 中）。复核通过项：序列随机生成、逐字播放间隔随关卡递减（最低 500ms）、选项去重并补 2 个干扰项、通关后 1.5s 进入下一关、主题切换。
+- `tools/fun/meditation-timer.html`：2 条（FE-N86 高·假功能、FE-N87 中）。复核通过项：4-7-8 一轮 19 秒（4+7+8）正确、时刻格式、styles 切换、图表分段数、历史/导出接线。
+- `tools/fun/memory-game.html`：2 条（FE-N88、FE-N89 中）。复核通过项：洗牌、翻牌锁、配对消除、步数/计时、最佳成绩按步数与用时比较、难度对数 6/8/12/18 与主题卡片数匹配、再玩一次/关闭弹窗接线。
+
+- **X 批合计 13 条：高 4（FE-N77、FE-N79、FE-N84、FE-N86）/ 中 9 / 安全 0。假工具 2 个（FE-N79、FE-N86）。**
+- 说明：本轮为**只读**审计，逐行读源码 + `node` 在 `/tmp` 复算（`/tmp/xfun_probe.js`：冥想分段 `Math.round` 边界、普通谜语池条数与重复概率）。暂停叠加循环、emoji 重置定时链、难度切换判胜等动态缺陷为**源码口径推演**，未开浏览器实机点击。**未运行 `_build.py` / `run_gates.py`**、**未做 git 写操作**，除本文件外未修改任何文件。
