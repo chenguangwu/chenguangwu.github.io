@@ -2719,6 +2719,12 @@ const CASES = [
     expect: ["4.59%"],
     ref: "年利率 4.5%（名义）⇒ 有效年化 = (1+4.5%/12)^12−1 = **4.59%**，与名义值并列；默认 2.85% ⇒ 2.89%，不命中。"
   },
+  {
+    slug: "finance/housing-fund-loan",
+    inputs: { balance: "12", monthlySave: "3000", saveYears: "8", housePrice: "450", age: "40", rate: "99" },
+    expect: ["输入无效已按 2.85% 计"],
+    ref: "年利率 99% 超出 0–20% 有效区间：旧实现静默回退 2.85% 不告知；现显式标注「输入无效已按 2.85% 计」。默认 2.85% 且有效 ⇒ 不命中。"
+  },
 
   {
     "slug": "finance/housing-fund-loan",

@@ -811,6 +811,12 @@ const CASES = [
     "ref": "把第一家企业销售额改为 −1000：负份额会让占比为负、饼图反转，旧实现照算；现拦截并清空 HHI/占比条/排名表。默认全为正 ⇒ 不命中。"
   },
   {
+    "slug": "marketing/market-share",
+    "clicks": ["comps.forEach(function(c){c.value=0;});calc();"],
+    "expect": ["合计须大于 0"],
+    "ref": "所有企业销售额置 0：合计为 0 时旧实现直接 return，页面残留上一次的占比与 HHI（看起来仍然有效）；现提示合计须大于 0 并清空旧结果。默认合计 10,000 ⇒ 不命中。"
+  },
+  {
     "slug": "marketing/marketing-qr-campaign-tracker",
     "inputs": { "qrSource": "线上广告", "qrCampaign": "618大促" },
     "expect": ["utm_source=%E7%BA%BF%E4%B8%8A%E5%B9%BF%E5%91%8A", "utm_campaign=618%E5%A4%A7%E4%BF%83"],
