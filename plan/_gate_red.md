@@ -39,6 +39,21 @@
 
 新增 `escHtml regression`（`node scripts/verify_esc_html.js`，安全线 `b44a53da52`），注册于分类计算门禁之后、anti-regression 组之前。
 
+## 2026-11-04 · 科学线批次（本地提交 `a112e59303` / `35034a0a2d`）
+
+### 快检结果（主工作区）
+
+- `science calc correctness`：190/190 通过。
+- `discriminate_check`：8518 检 / 8517 正确变红 / **1 逃生项**。
+
+| 门禁 | 页面 slug | 错误摘要 | 归属线 | 状态 |
+| --- | --- | --- | --- | --- |
+| anti-regression: case discrimination | `hr/recruitment-funnel` (via=addStage) | 逃生项 1 > 基线 0；`expect` 在默认态/不依赖计算点即可命中 | 商业HR线（`tools/hr/recruitment-funnel.html` 与 `scripts/verify_hr_calc.js` 均有未提交改动，集成线未动） | 待 HR 线回批时修 |
+
+### 说明
+- 科学线本批 10 页，新增 7 条回归用例，科学用例零逃生。
+- `i18n/tools/content_deepdive.json` 与 `i18n/tools/en/**` 的 `M` 均来自其他线，**未纳入本批**（待合流）。
+
 断言范围：
 - `escHtml` 必须对 `"` `'` `<` `>` `&` 全编码；
 - 禁止回退成 `textContent → innerHTML` 实现；
