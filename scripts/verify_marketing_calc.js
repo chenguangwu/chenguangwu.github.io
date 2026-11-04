@@ -15,6 +15,24 @@ const { runCase } = require("./verify_it_calc.js");
 const CASES = [
   {
     slug: "marketing/marketing-ctr-calculator",
+    inputs: { impressions: "10000", clicks: "12000", cost: "2000", conversions: "50" },
+    expect: ["点击量不能超过展示量"],
+    ref: "点击 12000 > 展示 10000 时原实现产出 120% CTR 与「优秀」评级；现拦截提示。默认 500/10000 不出现该提示。",
+  },
+  {
+    slug: "marketing/marketing-ctr-calculator",
+    inputs: { impressions: "10000", clicks: "500", cost: "-2000", conversions: "50" },
+    expect: ["点击量、花费与转化数不能为负数"],
+    ref: "负花费原实现产出负 CPC/负 CPM；现拦截提示。默认 2000 不出现该提示。",
+  },
+  {
+    slug: "marketing/marketing-ctr-calculator",
+    inputs: { impressions: "10000", clicks: "500", cost: "2000", conversions: "600" },
+    expect: ["转化数不能超过点击量"],
+    ref: "转化 600 > 点击 500 时原实现产出 120% CVR；现拦截提示。默认 50 不出现该提示。",
+  },
+  {
+    slug: "marketing/marketing-ctr-calculator",
     inputs: { impressions: "10000", clicks: "500", cost: "2000", conversions: "50" },
     expect: ["10.00", "4.00"],
     ref: "ctr=500/10000×100=5.00；cvr=50/500×100=10.00；cpc=2000/500=4.00；cpm=2000/10000×1000=200.00",
@@ -97,6 +115,12 @@ const CASES = [
     inputs: { ltv: "600", cac: "200" },
     expect: [ "600.00 客户获取成本CAC" ],
     ref: "ratio=600/200=3.00；profit=400；roi=(400/200)×100=200.00；paybackMonths=200/(600/36)=12.00",
+  },
+  {
+    slug: "marketing/marketing-ltv-cac-ratio",
+    inputs: { ltv: "0", cac: "200" },
+    expect: ["LTV 与 CAC 均需大于 0"],
+    ref: "LTV=0 原实现 ratio=0、ROI=-100%、回本周期 0 个月且无任何提示；现拦截。默认 3000/500 不出现该提示。",
   },
   {
     slug: "marketing/calc-price-elasticity",
@@ -265,8 +289,21 @@ const CASES = [
     inputs: { currentCart: "30", freeShipThreshold: "50", shippingFee: "5", avgMargin: "60" },
     expect: ["还差 ¥20.00 包邮", "建议直接支付运费¥5更划算"],
     ref: '阈值改 ¥50：差额 = 50−30 = ¥20.00；凑单成本 = 20×40% = ¥8.00 ≥ 运费¥5 ⇒ 付运费更划算。',
-  }
-,
+  },
+  {
+    slug: "marketing/marketing-free-shipping-threshold",
+    name: "包邮门槛计算器",
+    inputs: { currentCart: "50", freeShipThreshold: "99", shippingFee: "12", avgMargin: "120" },
+    expect: ["商品平均毛利率应在 0–100% 之间"],
+    ref: '毛利率 120% 原实现照算并给出「凑单成本 = 49×(1−120%) = −¥9.80」的负成本结论；现拦截提示。默认 45% 不出现该提示。',
+  },
+  {
+    slug: "marketing/marketing-free-shipping-threshold",
+    name: "包邮门槛计算器",
+    inputs: { currentCart: "-50", freeShipThreshold: "99", shippingFee: "12", avgMargin: "40" },
+    expect: ["购物车金额、包邮门槛与运费不能为负数"],
+    ref: '负购物车原实现算出「还差 ¥149」并给出凑单建议；现拦截提示。默认 78 不出现该提示。',
+  },
   {
     slug: "marketing/marketing-engagement-rate",
     name: "社交媒体互动率计算器",

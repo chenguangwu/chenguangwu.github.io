@@ -282,6 +282,33 @@ const CASES = [
 }
 ,
 {
+  "slug": "hr/tracking-hours",
+  "inputs": { "required": "50", "dept": "研发部" },
+  "clicks": ["emps[0].hours=-5;calc();"],
+  "expect": ["已完成学时不能为负数，请修正后再计算"],
+  "ref": "负学时原实现照算并把完成率拉低（甚至负百分比）；现拦截提示，且不渲染结果表。默认 45h 不出现该提示。"
+},
+{
+  "slug": "hr/tracking-hours",
+  "inputs": { "required": "0", "dept": "研发部" },
+  "expect": ["请填写大于 0 的达标学时要求"],
+  "ref": "要求学时为 0 原实现静默 return、页面无任何反馈；现显式提示。默认 40h 不出现该提示。"
+},
+{
+  "slug": "hr/recruitment-funnel",
+  "inputs": {},
+  "clicks": ["stages[0].count=-1;calc();"],
+  "expect": ["各阶段人数不能为负数，请修正后再计算"],
+  "ref": "负人数原实现产出负转化率/负流失率；现拦截提示。默认漏斗（简历→…）不出现该提示。"
+},
+{
+  "slug": "hr/recruitment-funnel",
+  "inputs": {},
+  "clicks": ["stages[1].count=stages[0].count+10;calc();"],
+  "expect": ["后一阶段人数不能多于前一阶段"],
+  "ref": "后一阶段人数多于前一阶段时原实现算出 >100% 转化率；现拦截并指出越界阶段。默认单调递减漏斗不出现该提示。"
+},
+{
   "slug": "hr/hris-zizhuyuaiduibijisuanqi",
   "inputs": { "v0": "50", "v1": "90" },
   "expect": ["64.3% HRIS 权重占比"],
