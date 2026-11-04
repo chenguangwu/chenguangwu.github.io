@@ -113,7 +113,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="按单位宽度单向板，由弯矩计算受拉钢筋面积。">One Way Slab</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">A_s = ξ·α₁·f_c·b·h₀ / f_y，ξ = 1−√(1−2α_s)，α_s ≤ 0.44</div>
+      <div class="formula-eq">A_s = ξ·α₁·f_c·b·h₀ / f_y，ξ = 1−√(1−2α_s)，α_s ≤ ξ_b(1−0.5ξ_b)（ξ_b = 0.8/[1+f_y/(2×10⁵×0.0033)]，GB 50010-2010 式 6.2.7/6.2.10）</div>
       <p class="formula-desc">按单位宽度单向板，由弯矩计算受拉钢筋面积。</p>
     </div>
 
@@ -176,7 +176,7 @@ s.parentNode.insertBefore(el, s);
       <div class="tool-notes-title">📌 计算说明</div>
       <ul>
         <li>α_s = M/(α₁·f_c·b·h₀²)，b 取 1000mm（单位宽板带）</li>
-        <li>ξ = 1−√(1−2α_s)，单筋适筋上限 ξ_b ≈ 0.44</li>
+        <li>ξ = 1−√(1−2α_s)，单筋适筋上限 α_s,max = ξ_b(1−0.5ξ_b)，HRB400 时约 0.384（GB 50010-2010 式 6.2.7）</li>
         <li>A_s = ξ·α₁·f_c·b·h₀ / f_y</li>
       </ul>
     </div>
@@ -222,7 +222,8 @@ function calcTool(){
             const a1=1.0, h0=h-as_;
             if(M<=0||h0<=0||fc<=0||fy<=0){ToolBox.setResult('result','<p class="tip-error">请输入有效参数。</p>');return;}
             const aS=M/(a1*fc*b*h0*h0);
-            if(aS>0.44){ToolBox.setResult('result','<p class="tip-error">α_s 超限，需增大板厚。</p>');return;}
+            const xiB=0.8/(1+fy/(2e5*0.0033)), asMax=xiB*(1-0.5*xiB);
+            if(aS>asMax){ToolBox.setResult('result','<p class="tip-error">α_s 超限（限值 '+asMax.toFixed(3)+'，GB 50010-2010 式 6.2.7/6.2.10），需增大板厚。</p>');return;}
             const xi=1-Math.sqrt(1-2*aS);
             const As=xi*a1*fc*b*h0/fy;
             const __g1=dataGrid([
@@ -332,7 +333,7 @@ function __owsSweep(){
     var hv=hs[k], h0=hv-as_;
     if(h0<=0)continue;
     var aS=Mn/(1.0*fc*b*h0*h0);
-    if(aS>0.44)continue;
+    var xiB=0.8/(1+fy/(2e5*0.0033)); if(aS>xiB*(1-0.5*xiB))continue;
     var xi=1-Math.sqrt(1-2*aS);
     var As=xi*b*h0*fc/fy;
     labels.push(hv.toFixed(0));

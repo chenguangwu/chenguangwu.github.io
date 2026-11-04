@@ -355,6 +355,20 @@ const CASES = [
     "ref": "墙面面积 = 15 × 5 = 75 m²；240 墙砌体体积 = 75 × 0.24 = 18.00 m³（与损耗、砂浆无关）。页面输出 '18.00 砌体体积(m³)'。默认态 length=10、height=3 产出 7.20，不出现 18.00。"
   },
   {
+    "slug": "construction/brick-calculator",
+    "inputs": {
+      "length": "12",
+      "height": "4",
+      "loss": "5",
+      "includeMortar": "1"
+    },
+    "checkIds": ["includeMortar"],
+    "expect": [
+      "4.17 吨（约2.78m³）"
+    ],
+    "ref": "砌体体积 = 12×4×0.24 = 11.52 m³；砂浆量 = 11.52×0.23×1.05 = 2.782 m³；水泥 = 2.782×250/1000 = 0.70 t；中砂 = 2.782×1.5 = 4.17 t（t/m³ 密度口径）、体积≈2.78 m³。默认态 10/3/3 输出中砂 2.56 吨（约1.71m³）⇒ 不命中。原代码 sand=mortar×1.0 与同一行的 t→m³ 换算（÷1.5）自相矛盾，已按 1.5 t/m³ 修正。"
+  },
+  {
     "slug": "construction/area",
     "inputs": { "area": "35", "height": "3.2", "roomType": "200", "orient": "1.20" },
     "expect": [

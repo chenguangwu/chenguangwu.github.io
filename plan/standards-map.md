@@ -66,3 +66,22 @@
 - 凡页面引用 GB 50016 / GB 50084 / GB 50974 / GB 51251 / GB 50140 的，均已在本批或前批加注「现行以 GB 55037-2022 / GB 55036-2022 为准」；后续新页必须沿用该写法。
 - 尚未覆盖：GB 50116 火灾自动报警剩余页、GB 51309 应急照明、GB 50017 焊接剩余页、GB 50026 测绘剩余页，后续批次增量补入。
 - 第 11 批新增 agriculture 1 行（pesticide-interval）：依据《农药标签和说明书管理办法》第十八条与登记标签实例（PD20142114 标注 0 天），定稿「PHI=0 为合法标签值、负值显式拒绝」。
+
+## 第 12 批：工程族三列核对（工程量 / 配筋 / 荷载 / 水暖电）
+
+| 页面路径 | 页面声称的标准与条款 | 代码实际采用的取值 | 出处与现行状态 | 是否已核对代码取值 | 实际取值 vs 标准要求 |
+|---|---|---|---|---|---|
+| tools/civil/load-combination.html | 承载能力极限状态基本组合（GB 55001-2021 / GB 50068-2018） | `S=γ_G·S_Gk+γ_Q·S_Qk`；默认 γ_G=1.3、γ_Q=1.5；S_Gk、S_Qk 全空时提示并 return | GB 55001-2021 现行。第 12 批复核 | 是 | 一致：1.3/1.5 为现行分项系数；原公式说明仍写「无输入守卫，空值按 0」，已按实际守卫更新 |
+| tools/civil/active-earth-rankine.html | Rankine（1857）主动土压力；页面声明 φ 取 0–45° | `K_a=tan²(45°−φ/2)`；`E_a=½γH²K_a−2cH√K_a+2c²/γ`；守卫由 `φ≤0` 改 `φ<0` | 经典朗金理论。第 12 批修正边界 | 是 | 已修正：原代码拒绝 φ=0，与「0–45°」声明矛盾；φ=0 时 K_a=1、公式仍成立 |
+| tools/civil/rc-beam-rebar.html | GB 50010-2010 式 6.2.7/6.2.10 相对界限受压区高度 | `α_s=M/(α₁f_cbh₀²)`；超筋判据原 `α_s>0.44`，改为 `α_s>ξ_b(1−0.5ξ_b)`，`ξ_b=0.8/[1+f_y/(2×10⁵×0.0033)]` | GB 50010-2010（2015 版）现行。第 12 批修正 | 是 | 已修正：HRB400 的 ξ_b=0.518、α_s,max≈0.384；原 0.44 会放行 ξ>ξ_b 的少筋/超筋截面（脆性破坏） |
+| tools/civil/one-way-slab.html | GB 50010-2010 式 6.2.7/6.2.10 相对界限受压区高度 | 同 rc-beam-rebar，单位宽板带 b=1000 mm；超筋判据改为 `ξ_b(1−0.5ξ_b)` | GB 50010-2010（2015 版）现行。第 12 批修正 | 是 | 已修正：同上，原 0.44 阈值高于 HRB400 的 0.384 |
+| tools/civil/rebar-anchorage.html | GB 50010-2010 8.3.1 锚固长度构造下限 | `l_ab=0.14(f_y/f_t)d`；`l_a=max(ζ_a·l_ab, 200 mm)` | GB 50010-2010 现行。第 12 批补构造下限 | 是 | 已修正：原 `l_a=ζ_a·l_ab` 无 200 mm 下限，与 8.3.1「锚固长度不应小于 200mm」不符 |
+| tools/construction/brick-calculator.html | GB/T 5101-2017（砖规格）；工程定额砂浆用量 2.1–2.4 m³/10m³ | 砂浆量 `V·灰缝率·(1+损耗)`；水泥 250 kg/m³；中砂由 `mortar×1.0` 改 `mortar×1.5`（t），m³ 口径 ÷1.5 | 定额经验值。第 12 批修正单位口径 | 是 | 已修正：原「吨」值与同行「约 m³（÷1.5）」自相矛盾；按中砂 1.5 t/m³、体积≈砂浆体积统一 |
+| tools/construction/area-calculator.html | GB/T 17986.1-2000 房产测量；得房率=套内/建筑面积 | `公摊面积=套内×r/(100−r)`；`建筑面积=套内+公摊`；输入标签与正文由「公摊系数」改「公摊率」 | GB/T 17986.1-2000 现行。第 12 批修正命名 | 是 | 已修正：公式实际按公摊率（占建筑面积）计算，原名「公摊系数」（占套内）与实现不符 |
+
+### 维护备注（第 12 批）
+
+- 本批按四族抽样核对 35 页：工程量 8、配筋 9、荷载 9、水暖电 9。
+- 发现并修正 7 项不一致（上表 7 行）；其余 28 页「声明口径 / 实现口径 / 外部参照」一致，无改动。
+- 已复核但未改的代表页：荷载族 `slope-stability-fos`、`beam-udl`、`dijichengzailijisuan`、`assessor-19`、`calc-206`、`wind-load`、`masonry-bearing`、`calc-204`；配筋族 `two-way-slab`（弹性理论系数表，页面标注经验系数）、`isolated-footing`（pmin≥0 / pavg≤f_a / pmax≤1.2f_a 与 GB 50007-2011 5.2 一致）、`pile-capacity`、`cft-capacity`（页面明示简化约束增强系数 1.2）、`rebar-weight`、`calc-2`；工程量族 `concrete-volume`、`excavation-earth`、`calc-dosage-1`、`calc-5`（原木材积 GB/T 4814 公式）、`estimate-area-dosage`、`cost-estimator`；水暖电族 `cooling-load`、`kongtiaolengfuhejisuan`、`duct-calculator`、`pump-calculator`、`calc-1`、`calc-2`、`breaker-sizing`、`voltage-drop`、`transformer-sizing`。
+- 留待统一：`calc-206` 同页 N 用 GB 55023-2022 的 1.3/1.5、Mw 仍用 JGJ 130-2011 的 0.9×1.4（页面已注明两套出处，跨规范混用但未判缺陷；若要统一为 1.5 需同步改 3 处 verify 期望）。
