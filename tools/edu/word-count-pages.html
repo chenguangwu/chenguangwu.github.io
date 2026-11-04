@@ -424,6 +424,7 @@ function saveToHistory(){
   const f=document.getElementById('format').value;
   const imgs=parseFloat(document.getElementById('imgs').value)||0;
   const paper=document.getElementById('paper').value;
+  const fontSize=document.getElementById('fontSize').value;
   
   try{
     let list=JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]');
@@ -432,7 +433,8 @@ function saveToHistory(){
       words:w,
       format:f,
       imgs:imgs,
-      paper:paper
+      paper:paper,
+      fontSize:fontSize
     });
     list=list.slice(0,20);
     localStorage.setItem(HISTORY_KEY,JSON.stringify(list));
@@ -454,7 +456,10 @@ function renderHistory(){
       const dateStr=d.getMonth()+1+'/'+d.getDate();
       const fmtName=formats[item.format]?formats[item.format].name:item.format;
       const basePer=formats[item.format]?formats[item.format].per:900;
-      const pages=Math.ceil(item.words*(1+item.imgs)/basePer);
+      // 历史页数与当前计算同口径：计入纸张与字号系数
+      const paperMul=paperFactor[item.paper]||1;
+      const fontMul=fontFactor[item.fontSize||'0.8']||1;
+      const pages=Math.ceil(item.words*(1+item.imgs)/(basePer*paperMul*fontMul));
       html+=`<div class="history-item" onclick="loadHistory(${i})">
         <div class="time">${dateStr}</div>
         <div class="summary">${item.words}字 ≈ ${pages}页</div>
@@ -474,6 +479,7 @@ function loadHistory(i){
       document.getElementById('format').value=item.format;
       document.getElementById('imgs').value=item.imgs;
       document.getElementById('paper').value=item.paper;
+      document.getElementById('fontSize').value=item.fontSize||'0.8';
       calc();
       switchTabByName('calc');
       ToolBox.showToast(i18nText());

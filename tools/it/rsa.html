@@ -422,23 +422,29 @@ let lastKeys = null;
 async function generateKeys() {
   const size = parseInt(document.getElementById('keySize').value);
   try {
-    const pair = await crypto.subtle.generateKey(
+    // OAEP 与 PSS 是互不兼容的算法标识：分别生成加密密钥对与签名密钥对
+    const encPair = await crypto.subtle.generateKey(
       { name: 'RSA-OAEP', modulusLength: size, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },
       true,
-      ['encrypt', 'decrypt', 'sign', 'verify']
+      ['encrypt', 'decrypt']
     );
-    const pubAb = await crypto.subtle.exportKey('spki', pair.publicKey);
-    const privAb = await crypto.subtle.exportKey('pkcs8', pair.privateKey);
-    const pubPem = ab2pem(pubAb, 'PUBLIC KEY');
-    const privPem = ab2pem(privAb, 'PRIVATE KEY');
-    document.getElementById('pubKeyOut').value = pubPem;
-    document.getElementById('privKeyOut').value = privPem;
-    document.getElementById('encPubKey').value = pubPem;
-    document.getElementById('encPrivKey').value = privPem;
-    document.getElementById('signPrivKey').value = privPem;
-    document.getElementById('signPubKey').value = pubPem;
-    lastKeys = { pub: pubPem, priv: privPem };
-    ToolBox.showToast(`${size}位密钥生成成功`);
+    const signPair = await crypto.subtle.generateKey(
+      { name: 'RSA-PSS', modulusLength: size, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },
+      true,
+      ['sign', 'verify']
+    );
+    const encPubPem = ab2pem(await crypto.subtle.exportKey('spki', encPair.publicKey), 'PUBLIC KEY');
+    const encPrivPem = ab2pem(await crypto.subtle.exportKey('pkcs8', encPair.privateKey), 'PRIVATE KEY');
+    const signPubPem = ab2pem(await crypto.subtle.exportKey('spki', signPair.publicKey), 'PUBLIC KEY');
+    const signPrivPem = ab2pem(await crypto.subtle.exportKey('pkcs8', signPair.privateKey), 'PRIVATE KEY');
+    document.getElementById('pubKeyOut').value = encPubPem;
+    document.getElementById('privKeyOut').value = encPrivPem;
+    document.getElementById('encPubKey').value = encPubPem;
+    document.getElementById('encPrivKey').value = encPrivPem;
+    document.getElementById('signPrivKey').value = signPrivPem;
+    document.getElementById('signPubKey').value = signPubPem;
+    lastKeys = { pub: encPubPem, priv: encPrivPem, signPub: signPubPem, signPriv: signPrivPem };
+    ToolBox.showToast(`${size}位密钥对生成成功（加密 OAEP / 签名 PSS 各一对）`);
   } catch(e) {
     ToolBox.showToast('生成失败: ' + e.message, 'error');
   }
@@ -532,8 +538,10 @@ function copySignResult() {
 }
 function downloadKeys() {
   if (!lastKeys) { ToolBox.showToast(i18nText('toast.msg658'), 'error'); return; }
-  ToolBox.downloadText('public.pem', lastKeys.pub);
-  setTimeout(() => ToolBox.downloadText('private.pem', lastKeys.priv), 200);
+  ToolBox.downloadText('private-oaep.pem', lastKeys.priv);
+  setTimeout(() => ToolBox.downloadText('public-oaep.pem', lastKeys.pub), 200);
+  setTimeout(() => ToolBox.downloadText('private-pss.pem', lastKeys.signPriv), 400);
+  setTimeout(() => ToolBox.downloadText('public-pss.pem', lastKeys.signPub), 600);
 }
 </script><script>
 // tool-intro折叠交互

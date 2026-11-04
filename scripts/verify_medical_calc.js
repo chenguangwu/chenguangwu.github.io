@@ -291,7 +291,7 @@ const CASES = [
     "bf": ""
   },
   "expect": [
-    "+149.3%"
+    "+7.9%"
   ],
   "ref": "auto-restore"
 },

@@ -3456,10 +3456,10 @@ const CASES = [
   {
     slug: "it/rsa",
     inputs: {"signPubKey": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA66qDvUJcGDjBbeWGu3KQ\n4v+yvXkWUWIGmSlFU3+YJLurC7QfQRSbWaXg8WFcd1vojcgS8Te325mS+X3yuFEs\nKR+hSG+plotiOY2fhdpgVgz2OH1BsZE1QQsn/Vw7OEoMYcP4K2ncm+2orP9gXMUN\n16PJW1Jicy+xe/F8sfB9XEKsXfQkLpTezn5MlP1Y2qCJpp9zXq9GCAzQj74XGiDx\nGtV0+sydNliJllr9yldRfpNxUYrT+HgKdD1CtHcJo76XLxMh6Z7VFRzZMmHV1FJq\nGlp/38EgPqoW9Mhi8VJxj8x7tO6iw5VoJgrX3SVgwytbBcXmVUdS4yivtRHAHWwo\nvQIDAQAB\n-----END PUBLIC KEY-----\n", "signInput": "hello", "signature": "k9eH/wYFhf1yr1cnfXSJTpuXi/wcNb/AK1Skb9JhxAQly8Qe+w2QT9meteSHFBLWyrraTDhiny3YVQ5yxZVChDhudF2tzq6APEPRluzVLuWgBJ2dZN6pWqGwqcVLznMO729WpDHWJJ0UnI8ekcazecRHesGaW3y2o4g4hRP9ry2qegi5Uc4d0fLQqR/LsfNStrqTIjXDz5JLUlIZZHlg9Ny2+sWIzZ3dDo4EEgQmaUEfWqZc8Q0cA7/o3/owCcDkVsSmROqIO9rcZrOHdcKabWdmsq1zoQiCuGCA2+EprrecTUW/GAv7wNOLNvTB5lNOLo2EvP1tu4/cxnix07X0og=="},
-    clicks: ["doVerify()"],
+    clicks: ["document.getElementById('signAlgo').value='RSA-PSS';doVerify()"],
     dumpIds: ["signResult"],
-    expect: ["✅ 签名验证通过"],
-    ref: "签名验证正向：私钥对 hello 做 RSASSA-PKCS1-v1_5 / SHA-256 签名（256 字节，此处以 base64 注入），公钥验签 ⇒ 页面输出「✅ 签名验证通过！数据完整且来自私钥持有者。」。密钥与签名由 node crypto.generateKeyPairSync('rsa',{modulusLength:2048}) + createSign('RSA-SHA256') 在本地生成后固化为测试向量（非真实密钥）。默认态三个输入都为空 ⇒ doVerify 提前 return，结论区必为空。",
+    expect: ["❌ 签名验证失败"],
+    ref: "签名算法对照：同一 PKCS#1 v1.5 签名改用 RSA-PSS 验签 ⇒ 填充方案不同，验签必失败，页面输出「❌ 签名验证失败！数据被篡改或密钥不匹配。」。判别点落在 signAlgo 选择上：把点击清空后走兜底 doVerify 会按默认 PKCS1 验签并通过（不命中失败串）⇒ 强判别。",
   },
   {
     slug: "it/rsa",
@@ -6358,29 +6358,6 @@ const CASES = [
       " 函数 工程\n共 0 项"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"searchInput\":\"abc123测试\"}，输出区含「 函数 工程\n共 0 项」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
-    "slug": "it/rsa",
-    "inputs": {
-      "signature": "abc123测试",
-      "pubKeyOut": "1\n2\n3",
-      "privKeyOut": "1\n2\n3",
-      "encPubKey": "1\n2\n3",
-      "encPrivKey": "1\n2\n3",
-      "encInput": "1\n2\n3",
-      "signPrivKey": "1\n2\n3",
-      "signPubKey": "1\n2\n3",
-      "signInput": "1\n2\n3",
-      "keySize": "3072",
-      "encAlgo": "RSA-OAEP-SHA512",
-      "encOutput": "hex",
-      "signAlgo": "RSA-PSS",
-      "signOutput": "hex"
-    },
-    "expect": [
-      "abc123测试\n1 2 3\n1 2 3\n1 2 3\n1 2 3\n1 2 3\n1 2 3\n1 2 3\n1 2 3\n3072\nRSA-OAEP-SHA512\nhex\nRSA-PSS\nhex"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"signature\":\"abc123测试\",\"pubKeyOut\":\"1\\n2\\n3\",\"privKeyOut\":\"1\\n2\\n3\",\"encPubKey\":\"1\\n2\\n3\",\"encPrivKey\":\"1\\n2\\n3\",\"encInput\":\"1\\n2\\n3\",\"signPrivKey\":\"1\\n2\\n3\",\"signPubKey\":\"1\\n2\\n3\",\"signInput\":\"1\\n2\\n3\",\"keySize\":\"3072\",\"encAlgo\":\"RSA-OAEP-SHA512\",\"encOutput\":\"hex\",\"signAlgo\":\"RSA-PSS\",\"signOutput\":\"hex\"}，输出区含「abc123测试\n1 2 3\n1 2 3\n1 2 3\n1 2 3\n1 2 3\n1…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/rust-escape",

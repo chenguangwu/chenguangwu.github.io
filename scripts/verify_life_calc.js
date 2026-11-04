@@ -1032,13 +1032,13 @@ const CASES = [
   {
     slug: "life/radiation-converter",
     inputs: { inputVal: "2" },
-    expect: ["2\nmSv\n基准： 2 mSv (当量剂量) = 0.002 Gy 等效 戈瑞 (吸收剂量)： 0.002 Gy 拉德 (吸收剂量)： 0.2 rad 毫戈 (吸收剂量)： 2 mGy 希沃特 (当量剂量)： 0.002 Sv 微希 (当量剂量)： 2000 uSv 雷姆 (当量剂量)： 0.2 rem"],
+    expect: ["2\nmSv\n基准： 2 mSv (当量剂量) = 0.002 Sv 等效 戈瑞 (吸收剂量)： 0.002 Gy 拉德 (吸收剂量)： 0.2 rad 毫戈 (吸收剂量)： 2 mGy 希沃特 (当量剂量)： 0.002 Sv 微希 (当量剂量)： 2000 uSv 雷姆 (当量剂量)： 0.2 rem"],
     ref: 'v=2 from=Gy: 拉德(吸收剂量)=2/0.01=200 rad'
   },
   {
     slug: "life/radiation-converter",
     inputs: { inputVal: "2" },
-    expect: ["2\nmSv\n基准： 2 mSv (当量剂量) = 0.002 Gy 等效 戈瑞 (吸收剂量)： 0.002 Gy 拉德 (吸收剂量)： 0.2 rad 毫戈 (吸收剂量)： 2 mGy 希沃特 (当量剂量)： 0.002 Sv 微希 (当量剂量)： 2000 uSv 雷姆 (当量剂量)： 0.2 rem"],
+    expect: ["2\nmSv\n基准： 2 mSv (当量剂量) = 0.002 Sv 等效 戈瑞 (吸收剂量)： 0.002 Gy 拉德 (吸收剂量)： 0.2 rad 毫戈 (吸收剂量)： 2 mGy 希沃特 (当量剂量)： 0.002 Sv 微希 (当量剂量)： 2000 uSv 雷姆 (当量剂量)： 0.2 rem"],
     ref: 'v=2 from=Gy: 毫戈=2/0.001=2000 mGy'
   },
   {
@@ -1050,19 +1050,19 @@ const CASES = [
   {
     slug: "life/radiation-converter",
     inputs: { inputVal: "2" },
-    expect: ["2\nmSv\n基准： 2 mSv (当量剂量) = 0.002 Gy 等效 戈瑞 (吸收剂量)： 0.002 Gy 拉德 (吸收剂量)： 0.2 rad 毫戈 (吸收剂量)： 2 mGy 希沃特 (当量剂量)： 0.002 Sv 微希 (当量剂量)： 2000 uSv 雷姆 (当量剂量)： 0.2 rem"],
+    expect: ["2\nmSv\n基准： 2 mSv (当量剂量) = 0.002 Sv 等效 戈瑞 (吸收剂量)： 0.002 Gy 拉德 (吸收剂量)： 0.2 rad 毫戈 (吸收剂量)： 2 mGy 希沃特 (当量剂量)： 0.002 Sv 微希 (当量剂量)： 2000 uSv 雷姆 (当量剂量)： 0.2 rem"],
     ref: 'v=2 from=Gy: 毫希=2/0.001=2000 mSv'
   },
   {
     slug: "life/radiation-converter",
     inputs: { inputVal: "2" },
-    expect: ["2\nmSv\n基准： 2 mSv (当量剂量) = 0.002 Gy 等效 戈瑞 (吸收剂量)： 0.002 Gy 拉德 (吸收剂量)： 0.2 rad 毫戈 (吸收剂量)： 2 mGy 希沃特 (当量剂量)： 0.002 Sv 微希 (当量剂量)： 2000 uSv 雷姆 (当量剂量)： 0.2 rem"],
+    expect: ["2\nmSv\n基准： 2 mSv (当量剂量) = 0.002 Sv 等效 戈瑞 (吸收剂量)： 0.002 Gy 拉德 (吸收剂量)： 0.2 rad 毫戈 (吸收剂量)： 2 mGy 希沃特 (当量剂量)： 0.002 Sv 微希 (当量剂量)： 2000 uSv 雷姆 (当量剂量)： 0.2 rem"],
     ref: 'v=2 from=Gy: 雷姆=2/0.01=200 rem'
   },
   {
     slug: "life/radiation-converter",
     inputs: { inputVal: "5" },
-    expect: ["5\nmSv\n基准： 5 mSv (当量剂量) = 0.005 Gy 等效 戈瑞 (吸收剂量)： 0.005 Gy 拉德 (吸收剂量)： 0.5 rad 毫戈 (吸收剂量)： 5 mGy 希沃特 (当量剂量)： 0.005 Sv 微希 (当量剂量)： 5000 uSv 雷姆 (当量剂量)： 0.5 rem"],
+    expect: ["5\nmSv\n基准： 5 mSv (当量剂量) = 0.005 Sv 等效 戈瑞 (吸收剂量)： 0.005 Gy 拉德 (吸收剂量)： 0.5 rad 毫戈 (吸收剂量)： 5 mGy 希沃特 (当量剂量)： 0.005 Sv 微希 (当量剂量)： 5000 uSv 雷姆 (当量剂量)： 0.5 rem"],
     ref: 'v=5 from=Gy: 拉德=5/0.01=500 rad'
   },
   {

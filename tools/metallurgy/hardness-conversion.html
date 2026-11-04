@@ -228,51 +228,45 @@ var DATA=[
   [18,null,216,97],[15,null,198,92],[12,null,182,87],[10,null,170,83],
   [5,null,150,75],[null,100,100,52]
 ];
-function interp(x,xs,ys){
-  if(x<=xs[0])return ys[0];
-  if(x>=xs[xs.length-1])return ys[ys.length-1];
-  for(var i=0;i<xs.length-1;i++){
-    if(x>=xs[i]&&x<=xs[i+1]){
-      var t=(x-xs[i])/(xs[i+1]-xs[i]);
-      return ys[i]+t*(ys[i+1]-ys[i]);
+function idx(key){return {hrc:0,hb:1,hv:2,hrb:3}[key];}
+// 只在该「输入列 → 目标列」两端都有值的行上插值，避免 null 被当成 0 参与计算
+function convertVal(x,fromKey,toKey){
+  var pts=[];
+  DATA.forEach(function(r){
+    var f=r[idx(fromKey)],t=r[idx(toKey)];
+    if(f===null||t===null)return;
+    pts.push([f,t]);
+  });
+  if(!pts.length)return null;
+  pts.sort(function(a,b){return a[0]-b[0];});
+  if(x<=pts[0][0])return pts[0][1];
+  if(x>=pts[pts.length-1][0])return pts[pts.length-1][1];
+  for(var i=0;i<pts.length-1;i++){
+    if(x>=pts[i][0]&&x<=pts[i+1][0]){
+      var t=(x-pts[i][0])/(pts[i+1][0]-pts[i][0]);
+      return pts[i][1]+t*(pts[i+1][1]-pts[i][1]);
     }
   }
   return null;
 }
-function buildAxis(key){
-  // DATA 四列（HRC/HBW/HV/HRB）在表中均为递减排列，而 interp() 假定 xs 递增；
-  // 必须先按输入列升序重排，否则 interp 的 `x<=xs[0]` 恒真 → 任意输入都返回首行。
-  var rows=[];
-  DATA.forEach(function(r){
-    var v=r[idx(key)];
-    if(v!==null){rows.push([v,r[idx('hrc')],r[idx('hb')],r[idx('hv')]]);}
-  });
-  rows.sort(function(p,q){return p[0]-q[0];});
-  var xs=[],a=[],b=[],c=[];
-  rows.forEach(function(t){xs.push(t[0]);a.push(t[1]);b.push(t[2]);c.push(t[3]);});
-  return {xs:xs,hrc:a,hb:b,hv:c};
-}
-function idx(key){return {hrc:0,hb:1,hv:2,hrb:3}[key];}
 function calc(){
   var inType=document.getElementById('inType').value;
   var inVal=parseFloat(document.getElementById('inVal').value);
   var out=document.getElementById('result');
   if(isNaN(inVal)){out.innerHTML='<p style="color:var(--danger)">请输入有效数值</p>';return;}
-  var ax=buildAxis(inType);
-  var hrc=interp(inVal,ax.xs,ax.hrc);
-  var hb=interp(inVal,ax.xs,ax.hb);
-  var hv=interp(inVal,ax.xs,ax.hv);
-  var hrb=inType==='hrb'?inVal:interp(inVal,ax.xs,ax.xs.map(function(v,i){return DATA.find(function(r){return r[idx(inType)]===v;});}));
+  var hrc=inType==='hrc'?inVal:convertVal(inVal,inType,'hrc');
+  var hb=inType==='hb'?inVal:convertVal(inVal,inType,'hb');
+  var hv=inType==='hv'?inVal:convertVal(inVal,inType,'hv');
   var typeLabel={hrc:'HRC',hb:'HBW',hv:'HV',hrb:'HRB'}[inType];
   var html='<div class="big-result">'+inVal+' '+typeLabel+' 换算结果</div>';
   html+='<div class="stat-grid">';
-  html+='<div class="stat-card"><div class="val">'+(hrc?hrc.toFixed(1):'-')+'</div><div class="lbl">洛氏 HRC</div></div>';
-  html+='<div class="stat-card"><div class="val">'+(hb?hb.toFixed(0):'-')+'</div><div class="lbl">布氏 HBW</div></div>';
-  html+='<div class="stat-card"><div class="val">'+(hv?hv.toFixed(0):'-')+'</div><div class="lbl">维氏 HV</div></div>';
+  html+='<div class="stat-card"><div class="val">'+(hrc!==null?hrc.toFixed(1):'-')+'</div><div class="lbl">洛氏 HRC</div></div>';
+  html+='<div class="stat-card"><div class="val">'+(hb!==null?hb.toFixed(0):'-')+'</div><div class="lbl">布氏 HBW</div></div>';
+  html+='<div class="stat-card"><div class="val">'+(hv!==null?hv.toFixed(0):'-')+'</div><div class="lbl">维氏 HV</div></div>';
   html+='</div>';
-  if(hv){
+  if(hv!==null){
     var tsHv=hv*3.0;
-    html+='<p style="font-size:13px;margin-top:10px;">近似抗拉强度 σb ≈ '+hv+' × 3.0 ≈ <strong>'+tsHv.toFixed(0)+' MPa</strong>（HV×3 经验式，碳钢近似）</p>';
+    html+='<p style="font-size:13px;margin-top:10px;">近似抗拉强度 σb ≈ '+hv.toFixed(0)+' × 3.0 ≈ <strong>'+tsHv.toFixed(0)+' MPa</strong>（HV×3 经验式，碳钢近似）</p>';
   }
   const __g2=html;out.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }

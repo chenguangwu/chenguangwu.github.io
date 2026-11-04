@@ -556,6 +556,9 @@ function fmtShort(n){
 }
 
 function switchMode(mode){
+  const prevMonthly = currentMode === 'annual'
+    ? getNum('salary') / (getNum('monthsPerYear') || 12)
+    : getNum('salary');
   currentMode = mode;
   document.getElementById('tabMonthly').classList.toggle('active', mode === 'monthly');
   document.getElementById('tabAnnual').classList.toggle('active', mode === 'annual');
@@ -563,6 +566,15 @@ function switchMode(mode){
   document.getElementById('resultTitle').textContent = mode === 'monthly' ? '📊 月薪计算结果' : '📊 年薪计算结果';
   document.getElementById('afterTaxLabel').textContent = mode === 'monthly' ? '税后到手（月）' : '税后到手（年）';
   document.getElementById('annualStats').style.display = mode === 'annual' ? 'grid' : 'none';
+  // 缴费基数仍按月薪口径；若用户未单独改过基数（仍等于切换前月薪），随模式同步为新月薪
+  const newMonthly = mode === 'annual' ? getNum('salary') / (getNum('monthsPerYear') || 12) : getNum('salary');
+  ['baseSalary', 'housingBase'].forEach(function(id){
+    const el = document.getElementById(id);
+    const v = parseFloat(el.value);
+    if (!isFinite(v) || v <= 0 || Math.abs(v - prevMonthly) < 0.01){
+      el.value = newMonthly > 0 ? String(Math.round(newMonthly * 100) / 100) : '';
+    }
+  });
   calculate();
 }
 

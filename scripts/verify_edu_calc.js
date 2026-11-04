@@ -203,10 +203,10 @@ const CASES = [
   },
   {
     slug: "edu/grade-calculator",
-    clicks: ["addCourse();addCourse();addCourse();addCourse();updateCourse(1,'92');updateCourse(2,'78');updateCourse(3,'65');updateCourse(4,'88');calc();"],
-    expect: ["82.8"],
-    ref: "成绩分析器：四门课加权后 avgScore = 82.8。默认态加满 4 门默认课 ⇒ avgScore 为另一值（不命中 82.8）。"
-       + "这是唯一需要确认的强判别量；rankResult / percentile 等派生量随课程表变动，本例只锚加权均分。",
+    clicks: ["removeCourse(4);removeCourse(3);removeCourse(2);updateCourse(0,'score',90);updateCourse(0,'credit',2);updateCourse(1,'score',70);updateCourse(1,'credit',3);calc();"],
+    dumpIds: ["totalScore"],
+    expect: ["78.00"],
+    ref: "成绩分析器：两门课 90 分×2 学分 + 70 分×3 学分 ⇒ 加权均分 = (180+210)/5 = 78.00。默认 5 门课加权为 85.89 ⇒ 强判别。",
   },
   {
     slug: "edu/chinese-zodiac",
@@ -482,7 +482,7 @@ const CASES = [
       "text": "1\n2\n3"
     },
     "expect": [
-      "1 2 3\n📊 字数统计 0 中文字数 5 总字符数 3 不含空格 0 标点符号 1 段落数 3 行数 短文 字数偏少，建议补充内容"
+      "1 2 3\n📊 字数统计 0 中文字数 5 总字符数 3 不含空格 0 标点符号 3 段落数 3 行数 短文 字数偏少，建议补充内容"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"title\":\"abc123测试\",\"text\":\"1\\n2\\n3\"}，输出区含「1 2 3\n📊 字数统计 0 中文字数 5 总字符数 3 不含空格 0 标点符…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -607,7 +607,7 @@ const CASES = [
       "rStd": "42"
     },
     "expect": [
-      "5\nB - 良好\n42\n42\n42\n42\n42\n42\n35.3\n6.7\n16.0 分\n很容易 🌟\n目标很容易达到，保持状态即可\n42\n42\n42\n42\n0.00\n50.0%\n第 22 名\n超过 50.0% 的同学\n+0.0 分\n前50% "
+      "5\nB - 良好\n42\n42\n42\n42\n42\n42\n28.0\n14.0\n42.0 分\n很容易 🌟\n目标很容易达到，保持状态即可\n42\n42\n42\n42\n0.00\n50.0%\n第 22 名\n超过 50.0% 的同学\n+0.0 分\n前50% "
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"tRegular\":\"42\",\"tRegularWeight\":\"42\",\"tMidterm\":\"42\",\"tMidtermWeight\":\"42\",\"tTarget\":\"42\",\"tFinalWeight\":\"42\",\"rMyScore\":\"42\",\"rAvg\":\"42\",\"rTotal\":\"42\",\"rStd\":\"42\"}，输出区含「5\nB - 良好\n42\n42\n42\n42\n42\n42\n35.3\n6.7\n16.0…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
