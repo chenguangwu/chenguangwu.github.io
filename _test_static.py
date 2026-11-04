@@ -398,7 +398,11 @@ def main():
                 except:
                     pass
                 check_tool(filepath, rel_path)
-    
+
+    # 所有检查必须先跑完，再打印汇总（否则末尾告警不会进入 ⚠️ 警告 计数与详情）
+    check_i18n_foundation()
+    check_related_slug_map()
+
     # 输出结果
     print(f'扫描完成，共检查 {stats["total"]} 个工具页面')
     print()
@@ -442,10 +446,6 @@ def main():
         print(f'  {ind:12s} {cnt:4d}  {bar}')
     print()
     
-    # i18n 基础设施检查（不计入 errors/warnings）
-    check_i18n_foundation()
-    check_related_slug_map()
-
     # 保存详细报告
     report = {
         'total': stats['total'],
@@ -463,7 +463,10 @@ def main():
     
     print(f'详细报告已保存到: {report_path}')
     
-    return 0 if stats['failed'] == 0 else 1
+    # 退出码与汇总行同口径：失败或告警都判红。
+    # 历史缺陷：此前只看 failed，告警（含 slug-en 游离键）在 stdout 与 JSON 都记录了，
+    # 但 run_gates.py 读退出码 → CI 永远绿，属「报绿但实际有告警」。
+    return 0 if (stats['failed'] == 0 and stats['warnings'] == 0) else 1
 
 
 if __name__ == '__main__':

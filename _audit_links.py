@@ -103,12 +103,14 @@ def main():
     total_links = 0
     checked_links = 0
     scanned = 0
+    read_errors = 0
 
     for f in html_files:
         try:
             with open(os.path.join(ROOT, f), 'r', encoding='utf-8', errors='ignore') as fh:
                 content = fh.read()
         except Exception:
+            read_errors += 1
             continue
         scanned += 1
         # 仅审计 href（导航/内链）；先剔除 <script>/<style> 块（示例源码非真实链接）
@@ -129,6 +131,11 @@ def main():
 
     # —— 门禁模式：仅校验，不落盘，存在死链返回 1 ——
     if args.check:
+        # 防空跑假绿：0 文件 / 0 内链 / 有读失败，都不能以「0 死链」判通过
+        if scanned == 0 or total_links == 0 or read_errors > 0:
+            print('❌ 死链门禁未有效执行：扫描 %d 文件 / %d 内链 / 读取失败 %d 个'
+                  % (scanned, total_links, read_errors), file=sys.stderr)
+            return 1
         if broken:
             print('❌ 死链门禁失败：%d 个死链目标 / %d 处引用' % (len(broken), total_broken),
                   file=sys.stderr)

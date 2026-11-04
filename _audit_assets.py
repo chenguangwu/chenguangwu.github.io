@@ -223,6 +223,10 @@ def main():
         len(broken_assets), len(lang_missing), len(dup_ids)))
 
     if check_mode:
+        # 防空跑假绿：一个页面都没扫到时，不能以「0 问题」判通过
+        if scanned == 0:
+            print('❌ 资产完整性审计未有效执行：未扫描到任何 HTML 页面')
+            return 1
         problems = (len(broken_assets) > 0) or (len(lang_missing) > 0) or (len(dup_ids) > 0)
         if problems:
             print(report)

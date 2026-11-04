@@ -103,6 +103,10 @@ def main() -> int:
             pos = j + 1
 
     print(f"expect anti-pattern: 扫描 {len(files)} 个行业脚本 / {scanned} 个 expect 数组")
+    # 防空跑假绿：脚本缺失或抽取规则失配时，不能以「0 条问题」判通过
+    if not files or scanned == 0:
+        print("  ❌ 未扫描到任何行业脚本 / expect 数组（目录缺失或抽取规则失配）")
+        return 1
     if problems:
         for x in problems:
             print("  ❌ " + x)

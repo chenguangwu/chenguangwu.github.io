@@ -63,6 +63,11 @@ for (const f of files) {
 }
 
 console.log('inline scripts checked: %d', checked);
+// 防空跑假绿：tools 目录缺失或正则失配时 checked=0，不能判「全部语法正确」
+if (checked === 0) {
+  console.error('\n✗ 未检查到任何内联脚本（tools 目录缺失或抽取规则失配）');
+  process.exit(1);
+}
 if (bad.length) {
   console.error('\n✗ inline JS 语法错误 %d 页：', bad.length);
   for (const b of bad) console.error('   %s :: %s', b.file, b.err);

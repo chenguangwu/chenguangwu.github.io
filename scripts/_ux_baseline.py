@@ -138,6 +138,10 @@ def main():
         }
 
     total = len(rows)
+    # 防空跑假绿：未扫描到页面时 .total=0 会触发除零崩溃；显式判红并给出原因
+    if total == 0:
+        print("❌ UX 基线未扫描到任何页面（tools 目录缺失或筛选条件失配）")
+        sys.exit(1)
     allfeat = {k: round(sum(1 for r in rows if r["feats"][k]) * 100.0 / total, 1) for k in feat_names}
     out = {
         "total": total,
@@ -160,18 +164,24 @@ def main():
         for ind, a in base.get("by_ind", {}).items():
             base_map[ind] = a
         regressed = []
-        for ind, a in agg.items():
-            b = base_map.get(ind)
-            if not b:
+        for ind, b in base_map.items():
+            a = agg.get(ind)
+            # 基线里有的分类在当前扫描中消失，不能静默跳过（否则整类页面漏检仍报绿）
+            if not a:
+                regressed.append(f"{ind}: 分类页数 {b['n']} → 0（分类消失）")
                 continue
+            if a["n"] < b["n"]:
+                regressed.append(f"{ind}: 页数 {b['n']} → {a['n']}（覆盖收缩）")
             if a["avg"] + 1e-9 < b["avg"]:
                 regressed.append(f"{ind}: 均分 {b['avg']} → {a['avg']}")
             elif a["weak"] > b["weak"]:
                 regressed.append(f"{ind}: 薄弱页 {b['weak']} → {a['weak']}")
+        if out["total"] < base.get("total", 0):
+            regressed.append(f"全站页数 {base.get('total')} → {out['total']}（覆盖收缩）")
         if out["avg_score"] + 1e-9 < base["avg_score"]:
             regressed.append(f"全站均分 {base['avg_score']} → {out['avg_score']}")
         if regressed:
-            print("❌ UX 门禁失败（分数回退）：")
+            print("❌ UX 门禁失败（分数回退 / 覆盖收缩）：")
             for r in regressed[:30]:
                 print("   -", r)
             sys.exit(1)

@@ -225,6 +225,15 @@ async function scanFile(file, exec) {
   console.log(`\n==== false-pass selfcheck: checked=${totalChecked} risk=${totalRisk} skipped=${skipped} ====`);
   console.log("弱用例(无判别力): no_inputs=" + weak.no_inputs + " all_default=" + weak.all_default +
               (base ? (" | 基线: no_inputs=" + base.no_inputs + " all_default=" + base.all_default) : ""));
+  // 防空跑假绿：用例提取全部失败（skipped）或一个都没检查到，不能报「无假门禁」
+  if (totalChecked === 0) {
+    console.log("结论：0 个用例被检查（用例文件缺失或 extractCases 失配）—— 判红，不得报绿。");
+    process.exit(1);
+  }
+  if (skipped > 0) {
+    console.log(`结论：${skipped} 个用例文件 eval 失败被跳过 —— 判红，跳过等于漏检。`);
+    process.exit(1);
+  }
   if (totalRisk) {
     console.log("结论：存在 %d 个疑似假门禁（_selfcheck 标记或占位 expect），需还原为真实 expect。", totalRisk);
     process.exit(1);
