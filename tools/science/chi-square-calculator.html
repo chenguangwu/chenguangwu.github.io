@@ -161,6 +161,10 @@ s.parentNode.insertBefore(el, s);
       <textarea id="obs" rows="3">30, 25, 20, 15, 10</textarea>
       <label style="margin-top:12px;">期望频数 E（与 O 等长；留空则等概率）</label>
       <input type="text" id="exp" placeholder="例如：20, 20, 20, 20, 20">
+      <div class="input-row" style="margin-top:12px;">
+        <div><label data-zh="列联表行数 r（拟合优度填 1）">Rows r (use 1 for goodness-of-fit)</label><input type="number" id="rowsIn" value="1" min="1" step="1" placeholder="e.g. 2 (2x2)"></div>
+      </div>
+      <p data-zh="拟合优度检验 df = k−1；列联表独立性检验按行数 r 与列数 c=k/r 计 df=(r−1)(c−1)。" style="font-size:12px;color:var(--text-muted);margin-top:6px;">Goodness-of-fit uses df = k−1; a contingency table uses df = (r−1)(c−1), where c = k/r.</p>
     </div>
     <div id="mode1" style="display:none;">
           <div class="formula-box">
@@ -180,7 +184,7 @@ s.parentNode.insertBefore(el, s);
   </div>
   <div class="card">
     <h2>📋 卡方分布公式</h2>
-    <div class="formula-display">χ² = Σ (Oᵢ − Eᵢ)² / Eᵢ &nbsp;|&nbsp; df = k − 1</div>
+    <div class="formula-display">χ² = Σ (Oᵢ − Eᵢ)² / Eᵢ &nbsp;|&nbsp; 拟合优度 df = k − 1，列联表 df = (r − 1)(c − 1)</div>
     <div class="info-box">
       <strong>用途：</strong>检验观察频数与期望频数是否一致（拟合优度）、检验两个分类变量是否独立（独立性检验）。<br>
       <strong>判读：</strong>若 p &lt; 0.05，拒绝原假设（即观察与期望有显著差异）。
@@ -330,6 +334,7 @@ function parseNumsStrict(str){
   }
   return {vals:vals};
 }
+function __t(zh,en){try{return (typeof TBKit!=='undefined'&&TBKit.util&&typeof TBKit.util.isEn==='function'&&TBKit.util.isEn())?en:zh;}catch(e){return zh;}}
 function calculate(){
   const out=document.getElementById('output');
   if(currentMode===0){
@@ -351,7 +356,16 @@ function calculate(){
       if(total<=0){out.innerHTML='<p style="color:var(--danger)">观察频数总和为 0，无法生成期望频数</p>';return;}
       exps=obs.map(()=>total/obs.length);
     }
-    const df=obs.length-1;
+    const rowsRaw=String(document.getElementById('rowsIn').value).trim();
+    const r=rowsRaw===''?1:Number(rowsRaw);
+    if(!Number.isInteger(r)||r<1){out.innerHTML='<p style="color:var(--danger)">'+__t('列联表行数 r 须为 ≥1 的整数（拟合优度填 1）','Rows r must be an integer ≥1 (use 1 for goodness-of-fit)')+'</p>';return;}
+    let df;
+    if(r===1){
+      df=obs.length-1;
+    } else {
+      if(obs.length%r!==0||obs.length/r<2){out.innerHTML='<p style="color:var(--danger)">'+__t('观察频数个数 '+obs.length+' 无法按 '+r+' 行 ÷ 每行 ≥2 列 组成列联表','Cannot build a contingency table: '+obs.length+' values cannot be split into '+r+' rows with ≥2 columns each')+'</p>';return;}
+      df=(r-1)*(obs.length/r-1);
+    }
     let chi=0;
     obs.forEach((o,i)=>{chi+=(o-exps[i])**2/exps[i];});
     const p=1-chiSquareCDF(chi,df);
@@ -362,11 +376,25 @@ function calculate(){
       <div class="stat-card"><div class="v">${fmt(p)}</div><div class="l">p 值</div></div>
       <div class="stat-card"><div class="v">${fmt(total)}</div><div class="l">总观察数</div></div>
     </div>`;
+    if(r>1){
+      const c=obs.length/r;
+      let table='';
+      for(let i=0;i<r;i++){
+        table+='<tr>';
+        for(let j=0;j<c;j++){
+          const idx=i*c+j;
+          table+='<td>'+fmt(obs[idx])+' / '+fmt(exps[idx])+'</td>';
+        }
+        table+='</tr>';
+      }
+      html+='<h3 style="margin-top:14px;">'+__t('列联表（每格 O / E，按行优先顺序）','Contingency table (each cell shows O / E, row-major order)')+'</h3>';
+      html+='<table>'+table+'</table>';
+    }
     html+=`<h3 style="margin-top:14px;">分步计算</h3>`;
     html+=`<table><tr><th>#</th><th>O</th><th>E</th><th>O−E</th><th>(O−E)²</th><th>(O−E)²/E</th></tr>`;
     obs.forEach((o,i)=>{const d=o-exps[i];html+=`<tr><td>${i+1}</td><td>${fmt(o)}</td><td>${fmt(exps[i])}</td><td>${fmt(d)}</td><td>${fmt(d*d)}</td><td>${fmt(d*d/exps[i])}</td></tr>`;});
     html+=`<tr><td colspan="5"><strong>合计 χ²</strong></td><td><strong>${fmt(chi)}</strong></td></tr></table>`;
-    html+=`<div class="step-line"><strong>步骤：</strong>χ² = Σ (O−E)²/E = ${fmt(chi)}，df = k−1 = ${obs.length}−1 = ${df}</div>`;
+    html+=`<div class="step-line"><strong>${__t('步骤：','Steps:')}</strong>χ² = Σ (O−E)²/E = ${fmt(chi)}，df = ${r>1?'(r−1)(c−1) = ('+(r-1)+')×('+(obs.length/r-1)+') = '+df:'k−1 = '+obs.length+'−1 = '+df}</div>`;
     html+=`<div class="step-line"><strong>解读：</strong>${p<0.05?'<span style="color:var(--danger)">p &lt; 0.05，拒绝原假设，观察与期望分布有显著差异</span>':'<span style="color:var(--success)">p ≥ 0.05，不拒绝原假设，观察与期望分布无显著差异</span>'}</div>`;
     const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h2;
   } else {
@@ -504,10 +532,10 @@ function __chi_square_calculatorExport(){
 }
 function __chi_square_calculatorPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#chi_square_calculatorPresets',[{label:'默认参数',labelEn:'Default',values:{'chiIn':'9.49', 'dfIn':'4'}},
-  {"label":"豌豆 9:3:3:1 遗传","labelEn":"Pea 9:3:3:1 genetics","values":{"obs":"315, 108, 101, 32","exp":"312.75, 104.25, 104.25, 34.75"}},
-  {"label":"骰子 60 次均匀性","labelEn":"Dice 60 rolls uniformity","values":{"obs":"12, 8, 11, 9, 10, 10","exp":"10, 10, 10, 10, 10, 10"}},
-  {"label":"2×2 独立性检验","labelEn":"2x2 independence test","values":{"obs":"30, 20, 15, 35","exp":"25, 25, 25, 25"}}],function(){ calculate(); });
+    TBKit.preset.bar('#chi_square_calculatorPresets',[{label:'默认参数',labelEn:'Default',values:{'chiIn':'9.49', 'dfIn':'4', 'rowsIn':'1'}},
+  {"label":"豌豆 9:3:3:1 遗传","labelEn":"Pea 9:3:3:1 genetics","values":{"obs":"315, 108, 101, 32","exp":"312.75, 104.25, 104.25, 34.75","rowsIn":"1"}},
+  {"label":"骰子 60 次均匀性","labelEn":"Dice 60 rolls uniformity","values":{"obs":"12, 8, 11, 9, 10, 10","exp":"10, 10, 10, 10, 10, 10","rowsIn":"1"}},
+  {"label":"2×2 独立性检验","labelEn":"2x2 independence test","values":{"obs":"30, 20, 15, 35","exp":"25, 25, 25, 25","rowsIn":"2"}}],function(){ calculate(); });
 }
 var __chi_square_calculator_f0=(typeof calculate==='function')?calculate:null;
 if(__chi_square_calculator_f0){

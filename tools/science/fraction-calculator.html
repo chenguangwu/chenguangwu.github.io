@@ -187,9 +187,9 @@ s.parentNode.insertBefore(el, s);
     <div class="frac-row">
       <div class="frac">
         <div data-tb="preset" data-tb-presets='[{"label":"n1:1·d1:2·n2:1·d2:3·分数→小数（分子/…","labelEn":"n1=1 · d1=2 · n2=1 · d2=3 · cvN=3 · cvD…","values":{"n1":"1","d1":"2","n2":"1","d2":"3","cvN":"3","cvD":"8","cvOut":"0.375","cvDec":"0.375","cvFracOut":"3/8","op":"+"}}]'></div>
-<input type="number" id="n1" value="1" oninput="calc()" placeholder="如 1">
+<input type="number" id="n1" value="1" step="1" oninput="calc()" placeholder="如 1">
         <div class="bar"></div>
-        <input type="number" id="d1" value="2" oninput="calc()" placeholder="如 2">
+        <input type="number" id="d1" value="2" step="1" oninput="calc()" placeholder="如 2">
       </div>
       <select class="op-sel" id="op" onchange="calc()">
         <option value="+">+</option>
@@ -198,9 +198,9 @@ s.parentNode.insertBefore(el, s);
         <option value="/">÷</option>
       </select>
       <div class="frac">
-        <input type="number" id="n2" value="1" oninput="calc()" placeholder="如 1">
+        <input type="number" id="n2" value="1" step="1" oninput="calc()" placeholder="如 1">
         <div class="bar"></div>
-        <input type="number" id="d2" value="3" oninput="calc()" placeholder="如 3">
+        <input type="number" id="d2" value="3" step="1" oninput="calc()" placeholder="如 3">
       </div>
       <span style="font-size:20px;color:var(--text-muted);">=</span>
       <div id="resultDisplay" class="frac-display"><span>--</span><div class="bar"></div><span>--</span></div>
@@ -350,24 +350,44 @@ function mixedStr(n, d){
   return rem === 0 ? whole + '' : whole + ' ' + rem + '/' + r.d;
 }
 
+function __t(zh,en){
+  return (typeof TBKit!=='undefined'&&TBKit.util&&typeof TBKit.util.isEn==='function'&&TBKit.util.isEn())?en:zh;
+}
+
+function readFracInputs(){
+  const raw=['n1','d1','n2','d2'].map(id=>{
+    const el=document.getElementById(id);
+    return el ? String(el.value).trim() : '';
+  });
+  if(raw.some(v=>v==='')) return {err:__t('请输入完整分数','Please enter all four values')};
+  const vals=raw.map(Number);
+  if(vals.some(v=>!isFinite(v))) return {err:__t('请输入有效数字','Please enter valid numbers')};
+  if(vals.some(v=>!Number.isInteger(v))) return {err:__t('分子/分母须为整数（不支持小数）','Numerators and denominators must be integers (decimals are not supported)')};
+  return {n1:vals[0],d1:vals[1],n2:vals[2],d2:vals[3]};
+}
+
 function calc(){
-  const n1 = parseInt(document.getElementById('n1').value);
-  const d1 = parseInt(document.getElementById('d1').value);
-  const n2 = parseInt(document.getElementById('n2').value);
-  const d2 = parseInt(document.getElementById('d2').value);
-  const op = document.getElementById('op').value;
   const stepsEl = document.getElementById('steps');
   const finalEl = document.getElementById('resultFinal');
   const dispEl = document.getElementById('resultDisplay');
-
-  if(isNaN(n1)||isNaN(d1)||isNaN(n2)||isNaN(d2)){
-    finalEl.textContent = '请输入完整分数';
+  const f = readFracInputs();
+  if(f.err){
+    finalEl.textContent = f.err;
     stepsEl.innerHTML='';
     dispEl.innerHTML='<span>--</span><div class="bar"></div><span>--</span>';
     return;
   }
+  const {n1, d1, n2, d2} = f;
+  const op = document.getElementById('op').value;
+
   if(d1 === 0 || d2 === 0){
-    finalEl.textContent = '分母不能为 0';
+    finalEl.textContent = __t('分母不能为 0','Denominator cannot be 0');
+    stepsEl.innerHTML='';
+    dispEl.innerHTML='<span>×</span><div class="bar"></div><span>0</span>';
+    return;
+  }
+  if(op === '/' && n2 === 0){
+    finalEl.textContent = __t('除数为 0（','Division by zero (') + n2 + '/' + d2 + __t(' = 0），该除法无意义',' = 0) is undefined');
     stepsEl.innerHTML='';
     dispEl.innerHTML='<span>×</span><div class="bar"></div><span>0</span>';
     return;
@@ -394,6 +414,12 @@ function calc(){
       break;
   }
   const r = reduce(rn, rd);
+  if(!r){
+    finalEl.textContent = __t('结果无定义（分母为 0）','Result undefined (denominator is 0)');
+    stepsEl.innerHTML='';
+    dispEl.innerHTML='<span>--</span><div class="bar"></div><span>--</span>';
+    return;
+  }
   const g = gcd(Math.abs(rn), Math.abs(rd));
   let html = `<div class="step"><strong>步骤：</strong><br>${stepText}</div>`;
   html += `<div class="step"><strong>约分：</strong>GCD(${Math.abs(rn)}, ${Math.abs(rd)}) = ${g}，${rn}/${rd} = ${r.n}/${r.d}</div>`;
@@ -434,12 +460,11 @@ function convertD2F(){
 }
 
 function currentExpr(){
-  const n1 = parseInt(document.getElementById('n1').value);
-  const d1 = parseInt(document.getElementById('d1').value);
-  const n2 = parseInt(document.getElementById('n2').value);
-  const d2 = parseInt(document.getElementById('d2').value);
+  const f = readFracInputs();
+  if(f.err) return null;
+  const {n1, d1, n2, d2} = f;
   const op = document.getElementById('op').value;
-  if(isNaN(n1)||isNaN(d1)||isNaN(n2)||isNaN(d2)||d1===0||d2===0) return null;
+  if(d1===0 || d2===0 || (op==='/' && n2===0)) return null;
   let rn, rd;
   switch(op){
     case '+': rn = n1*d2 + n2*d1; rd = d1*d2; break;

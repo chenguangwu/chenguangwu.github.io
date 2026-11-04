@@ -376,6 +376,16 @@ function setCalc(v){
   calc();
 }
 
+function __t(zh,en){try{return (typeof TBKit!=='undefined'&&TBKit.util&&typeof TBKit.util.isEn==='function'&&TBKit.util.isEn())?en:zh;}catch(e){return zh;}}
+function clearResults(msg){
+  ['resVout','resRatio','resCur','resPow'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.textContent='—';
+  });
+  lastResult=null;
+  if(msg&&typeof ToolBox!=='undefined'&&typeof ToolBox.toast==='function') ToolBox.toast(msg);
+}
+
 function calc(){
   let Vin=parseFloat(document.getElementById('vin').value)||0;
   let R1=parseFloat(document.getElementById('r1').value)||0;
@@ -383,18 +393,25 @@ function calc(){
   let Vout=0;
   if(calcVar==='vout'){
     if(R1+R2>0)Vout=Vin*R2/(R1+R2);
-  }else if(calcVar==='r1'&&R2>0){
-    let desiredV=parseFloat(document.getElementById('voutDesired').value)||5;
-    if(desiredV>0&&desiredV<Vin){R1=R2*(Vin/desiredV-1);document.getElementById('r1').value=Math.round(R1);}
-    Vout=desiredV;
-  }else if(calcVar==='r2'&&R1>0){
-    let desiredV=parseFloat(document.getElementById('voutDesired').value)||5;
-    if(desiredV>0&&desiredV<Vin){R2=R1/(Vin/desiredV-1);document.getElementById('r2').value=Math.round(R2);}
-    Vout=desiredV;
-  }else if(calcVar==='vin'&&R2>0){
-    let desiredV=parseFloat(document.getElementById('voutDesired').value)||5;
-    if(R2>0){Vin=desiredV*(R1+R2)/R2;document.getElementById('vin').value=Vin.toFixed(2);}
-    Vout=desiredV;
+  }else{
+    const raw=String(document.getElementById('voutDesired').value).trim();
+    const desiredV=raw===''?NaN:Number(raw);
+    if(!isFinite(desiredV)||desiredV<=0){clearResults(__t('目标输出电压必须大于 0','Target output voltage must be > 0'));return;}
+    if(calcVar==='r1'||calcVar==='r2'){
+      if(desiredV>=Vin){clearResults(__t('目标电压须小于 Vin，无源分压无法升压','Target voltage must be below Vin; a passive divider cannot step up'));return;}
+      if(calcVar==='r1'&&R2>0){
+        R1=R2*(Vin/desiredV-1);document.getElementById('r1').value=Math.round(R1);
+      }else if(calcVar==='r2'&&R1>0){
+        R2=R1/(Vin/desiredV-1);document.getElementById('r2').value=Math.round(R2);
+      }else{
+        clearResults(calcVar==='r1'?__t('R2 必须大于 0 才能反推 R1','R2 must be > 0 to solve for R1'):__t('R1 必须大于 0 才能反推 R2','R1 must be > 0 to solve for R2'));return;
+      }
+      Vout=desiredV;
+    }else{
+      if(!(R2>0)){clearResults(__t('R2 必须大于 0 才能反推 Vin','R2 must be > 0 to solve for Vin'));return;}
+      Vin=desiredV*(R1+R2)/R2;document.getElementById('vin').value=Vin.toFixed(2);
+      Vout=desiredV;
+    }
   }
   const totalR=R1+R2;
   const I=totalR>0?Vin/totalR:0;

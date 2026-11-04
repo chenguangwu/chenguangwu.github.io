@@ -314,11 +314,24 @@ function logGamma(x){
   return 0.5*Math.log(2*Math.PI)+(x+0.5)*Math.log(t)-t+Math.log(a);
 }
 if(!Math.lgamma) Math.lgamma=logGamma;
+function __t(zh,en){try{return (typeof TBKit!=='undefined'&&TBKit.util&&typeof TBKit.util.isEn==='function'&&TBKit.util.isEn())?en:zh;}catch(e){return zh;}}
 function calculate(){
   const out=document.getElementById('output');
   const lines=document.getElementById('groups').value.split('\n').map(l=>l.trim()).filter(l=>l);
   if(lines.length<2){const __h0='<p style="color:var(--danger)" data-zh="至少需要 2 组数据">At least 2 groups of data required.</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0;return;}
-  const groups=lines.map(l=>l.split(/[,\s;]+/).map(s=>parseFloat(s.trim())).filter(n=>!isNaN(n)));
+  const parsed=lines.map((l,gi)=>{
+    const toks=l.split(/[,\s;]+/).map(s=>s.trim()).filter(s=>s);
+    const vals=[];
+    for(let i=0;i<toks.length;i++){
+      const v=Number(toks[i]);
+      if(!isFinite(v)) return {error:__t('第 '+(gi+1)+' 组第 '+(i+1)+' 项「'+toks[i]+'」不是有效数值','Group '+(gi+1)+', item '+(i+1)+' ("'+toks[i]+'") is not a valid number')};
+      vals.push(v);
+    }
+    return {vals:vals};
+  });
+  const bad=parsed.find(p=>p.error);
+  if(bad){out.innerHTML='<p style="color:var(--danger)">'+bad.error+'</p>';return;}
+  const groups=parsed.map(p=>p.vals);
   if(groups.some(g=>g.length===0)){const __h1='<p style="color:var(--danger)">有组数据为空</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;return;}
   if(groups.some(g=>g.length<2)){const __h2='<p style="color:var(--danger)">每组至少需要 2 个观测值（否则组内自由度 N−k ≤ 0，F 无定义）</p>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h2;return;}
   const k=groups.length;
