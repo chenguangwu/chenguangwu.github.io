@@ -167,7 +167,7 @@ s.parentNode.insertBefore(el, s);
 <!-- TOOLBOX-POLISH -->
 
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">农药配比计算<br>总用水量 = 每亩用水量(L) × 面积(亩)<br>由目标浓度：稀释倍数 = (1,000,000 × 有效成分%) / 目标ppm；每亩用药量 = 每亩用水 / 稀释倍数<br>由稀释倍数反推：目标ppm = (1,000,000 × 有效成分%) / 稀释倍数<br>由亩用药量反推：稀释倍数 = 每亩用水(mL) / (亩用药量 × 有效成分%)<br>总用药量 = 每亩用药量 × 面积；采用二步稀释法（先母液后加水）</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">农药配比计算<br>总用水量 = 每亩用水量(L) × 面积(亩)<br>由目标浓度：稀释倍数 = 有效成分百分数 × 10000 / 目标ppm；每亩用药量 = 每亩用水 ÷ 稀释倍数<br>由稀释倍数反推：目标ppm = 有效成分百分数 × 10000 / 稀释倍数<br>由亩用药量反推：稀释倍数 = 每亩用水(mL) / 亩用药量(g，按制剂实物计)<br>总用药量 = 每亩用药量 × 面积；采用二步稀释法（先母液后加水）</div>
   <p class="formula-desc">按标签推荐浓度换算实际用药量。<b>原药体积 = 目标药液总量 ÷ 稀释倍数</b>；或 <b>用药量 = 面积 × 单位面积推荐量</b>（如 mL/亩、g/亩）。已给水量时：原药量 = 水量 × 推荐浓度比。</p>
   <ul class="formula-list">
     <li>严格遵守安全间隔期与最大残留限量（MRL），禁止超量。</li>
@@ -204,6 +204,10 @@ s.parentNode.insertBefore(el, s);
         <div id="dilutionRow" style="display:none;">
           <label>稀释倍数</label>
           <input type="number" id="dilutionTimes" value="1000" min="10" step="10" oninput="calc()" placeholder="如 1000">
+        </div>
+        <div id="dosageRow" style="display:none;">
+          <label>每亩制剂用量(g 或 mL)</label>
+          <input type="number" id="pesticidePerMu" value="50" min="0.1" step="0.1" oninput="calc()" placeholder="如 50">
         </div>
       </div>
 
@@ -263,7 +267,7 @@ s.parentNode.insertBefore(el, s);
       <div class="ref-card">
         <h4>📐 计算公式</h4>
         <p><strong>按稀释倍数计算：</strong>药剂用量 = 配水量 ÷ 稀释倍数</p>
-        <p><strong>按ppm浓度计算：</strong>稀释倍数 = (1,000,000 × 有效成分%) ÷ 目标ppm；药剂用量 = 配水量 ÷ 稀释倍数</p>
+        <p><strong>按ppm浓度计算：</strong>稀释倍数 = 有效成分百分数 × 10000 ÷ 目标ppm；药剂用量 = 配水量 ÷ 稀释倍数</p>
         <p><strong>按有效成分用量：</strong>药剂用量 = (有效成分用量 ÷ 有效成分含量) × 100</p>
       </div>
 
@@ -477,6 +481,7 @@ function selectMethod(id){
   renderMethodGrid();
   $('ppmRow').style.display = id === 'ppm' ? 'block' : 'none';
   $('dilutionRow').style.display = id === 'dilution' ? 'block' : 'none';
+  $('dosageRow').style.display = id === 'dosage' ? 'block' : 'none';
   calc();
 }
 
@@ -539,8 +544,13 @@ function calc(){
     targetPpm = activePct * 10000 / dilutionTimes;
     pesticidePerMu = water / dilutionTimes;
   } else {
-    pesticidePerMu = parseFloat($('pesticidePerMu') ? $('pesticidePerMu').value : 50) || 50;
-    dilutionTimes = (water * 1000) / (pesticidePerMu * activePct / 100);
+    pesticidePerMu = parseFloat($('pesticidePerMu').value) || 0;
+    if(pesticidePerMu <= 0){
+      $('result').innerHTML='<p style="text-align:center;color:var(--danger);">请输入有效的每亩制剂用量</p>';
+      $('chartWrap').style.display = 'none';
+      return;
+    }
+    dilutionTimes = (water * 1000) / pesticidePerMu;
     targetPpm = activePct * 10000 / dilutionTimes;
   }
 

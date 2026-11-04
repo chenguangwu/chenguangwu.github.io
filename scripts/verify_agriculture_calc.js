@@ -171,7 +171,16 @@ const CASES = [
     expect: ["1207.6", "681.2", "1 : 0.50 : 0.72"],
     ref: "独立复算（CROPS[1]=小麦 yield450 n14 p7 k10；FERTILIZERS[3]=硝酸铵 n34、[5]=重过磷酸钙 p46、[9]=氯化钾 k60）：factor = 620 ÷ 450 = 1.377778；needN = 14 × 1.377778 = 19.2889 ⇒ 19.3、needP = 7 × 1.377778 = 9.6444 ⇒ 9.6、needK = 10 × 1.377778 = 13.7778 ⇒ 13.8；亩养分总量 = 19.2889 + 9.6444 + 13.7778 = 42.7111 ⇒ 42.7；硝酸铵 = 19.2889 × 12 ÷ 0.34 = 681.1765 ⇒ 681.2（产物同为 56.8 kg/亩 = 681.1765 ÷ 12）；重过磷酸钙 = 9.6444 × 12 ÷ 0.46 = 250.4348 ⇒ 250.4；氯化钾 = 13.7778 × 12 ÷ 0.60 = 276.0；总施肥量 = 1207.6113 ⇒ 1207.6；NPK 比 = 9.6444 ÷ 19.2889 = 0.4978 ⇒ 0.50、13.7778 ÷ 19.2889 = 0.7155 ⇒ 0.72。默认态为 575.0 / 375.0 / 200.0 / 1 : 0.50 : 0.83，三条均不命中。注：crop / fertN / fertP / fertK 的 option value 是 CROPS / FERTILIZERS 的数组下标字符串，灌作物名（如 wheat）会取到 undefined。",
   },
-  // ── S2 追肥场景预设（2026-10-26）：needP=0 合法（仅追氮肥），依赖上方 __D 分母误判修正（needN 才是 needP/needN 的分母）──
+  // ── 磷/钾肥携入氮抵扣（2026-11-04）：磷酸二铵 18%N 须先从氮需求中扣除 ──
+  {
+    slug: "agriculture/fertilizer-calculator",
+    inputs: { crop: "1", yield: "450", area: "10", needN: "12", needP: "2", needK: "1", fertN: "0", fertP: "6", fertK: "9" },
+    clicks: ["calc();"],
+    dumpIds: ["result"],
+    expect: ["243.9", "304.0", "7.8 kg（0.8 kg/亩）"],
+    ref: "独立复算（FERTILIZERS[6]=磷酸二铵 n18/p46、[9]=氯化钾 k60、[0]=尿素 n46）：amtP = 2×10 ÷ 0.46 = 43.4783 kg，携入氮 = 43.4783 × 18% = 7.8261 ⇒ 7.8 kg（0.8 kg/亩）；剩余氮 = 120 − 7.8261 = 112.1739，尿素 = 112.1739 ÷ 0.46 = 243.8563 ⇒ 243.9 kg；氯化钾 = 1×10 ÷ 0.60 = 16.6667 kg；总施肥量 = 243.8563 + 43.4783 + 16.6667 = 304.0013 ⇒ 304.0 kg。旧实现不抵扣携入氮会得 260.9 kg 尿素 / 321.0 kg 总量且无携入氮提示，三条均不命中。",
+  },
+
   {
     slug: "agriculture/fertilizer-calculator",
     inputs: {},
@@ -222,7 +231,28 @@ const CASES = [
     expect: ["52.9", "422.8", "1014.77"],
     ref: "独立复算（clay: gamma=1.35, fc=30；drip: eff=0.92）：田间持水量上限 betaMax=30、下限 betaMin=55%×30=16.5；净灌水 = 667 × 0.40 × (30−16.5) ÷ 100 × 1.35 = 48.6243 m³/亩；毛灌 = 48.6243 ÷ 0.92 = 52.8525 ⇒ 52.9 m³/亩；总毛灌 = 52.8525 × 8 = 422.82 ⇒ 422.8 m³；单次水费 = 422.82 × 0.8 = 338.256 ⇒ 338.26 元；月用水 = 52.8525 × 8 × 30 ÷ 10 = 1268.46 ⇒ 1268.5 m³，月费 = 1268.46 × 0.8 = 1014.77 元。默认态为 34.9 / 349.3 / 748.43，三条均不命中。",
   },
-  // ── 收获计划（半机械化：机械占日进度 70%，人工按人均日效率配人数）──
+  // ── 收获日期预测（2026-11-04）：干燥速率 0 时旧实现直接判「0 天后可收」 ──
+  {
+    slug: "agriculture/harvest-date-predictor",
+    inputs: { dryRate: "0", moisture: "28" },
+    dumpIds: ["result"],
+    expect: ["请输入大于 0 的日均降水速率（%/天）"],
+    ref: "干燥速率 0（%/天）时旧分支 daysToHarvest=0，页面显示「预计 0 天后达到最佳收割含水量」，与含水 28% 仍高于适收上限矛盾；现改为显式拦截。默认干燥速率 0.5 不出现该提示。",
+  },
+  {
+    slug: "agriculture/irrigation-calculator",
+    inputs: { area: "8", depth: "40", moisture: "55", cycle: "0" },
+    dumpIds: ["result"],
+    expect: ["灌水周期须为不小于 1 的天数"],
+    ref: "周期 0 天时月灌水次数为 30÷0 = Infinity，旧实现用 `|| 7` 静默回退 7 天、掩盖非法输入；现改为显式拦截（周期 ≥ 1 天）。默认周期 7 天不出现该提示。",
+  },
+  {
+    slug: "agriculture/irrigation-calculator",
+    inputs: { crop: "0", method: "drip", soil: "clay", area: "8", depth: "40", moisture: "55", price: "0.8", cycle: "10" },
+    dumpIds: ["result"],
+    expect: ["全生育期需水约600 mm ≈ 400 m³/亩", "全期约需灌 8 次"],
+    ref: "选作物=水稻（water 600 mm）：600 mm × 0.667 = 400.2 ⇒ 400 m³/亩；净定额沿用上条 48.6243 m³/亩 ⇒ 全期次数 = round(400.2 ÷ 48.6243) = 8。旧实现只回填湿润层深度、作物需水量与 kc 全为死数据，两条锚均不命中。",
+  },
   {
     slug: "agriculture/harvest-planner",
     inputs: { area: "240", yield: "520", method: "semi",
@@ -1540,6 +1570,15 @@ const CASES = [
     },
     "expect": ["&lt;img src=x onerror=alert(1)&gt;"],
     "ref": "注入 <img src=x onerror=alert(1)> 到营养成分/原料 A/原料 B 名称框：旧实现原样拼进 res.innerHTML ⇒ 生成真实 img 元素；修复后经 ToolBox.escHtml 转义，输出只含实体 &lt;img…&gt;（harness 剥标签不会吞掉实体串）。默认原料名「豆粕/玉米」不含实体，注入态才命中；输入框 value 原文不含 &lt; 前缀，故不能靠回显通过。"
+  },
+  // ── 农药 ppm / 亩用量口径（2026-11-04）：稀释倍数须按制剂实物量算，不能乘以有效成分% ──
+  {
+    slug: "agriculture/pesticide-dose",
+    inputs: { water: "15", area: "1", activePct: "25", pesticidePerMu: "3" },
+    clicks: ["currentMethod=METHODS.find(function(m){return m.id==='dosage';});calc();"],
+    dumpIds: ["result"],
+    expect: ["5000 稀释倍数", "3.00 每亩用药量(ml/g)"],
+    ref: "亩用量反推分支：稀释倍数 = 15 L × 1000 ÷ 3 g = 5000 倍；目标 ppm = 25% × 10000 ÷ 5000 = 50 ppm。旧实现把分母再乘 effectivePct/100（3 × 0.25），得 20000 倍（差 4 倍），两条锚均不命中；默认 ppm 模式（10%、20 ppm）虽同为 5000 倍，但亩用药量为 0.00，第二条不命中。"
   }
 
 ];

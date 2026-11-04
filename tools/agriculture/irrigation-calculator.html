@@ -278,8 +278,10 @@ function applyCrop(){var i=$('crop').value;if(i==='')return;var c=CROPS[i];$('de
 function calc(){
 var area=parseFloat($('area').value)||0,m=$('method').value,s=$('soil').value;
 var depth=parseFloat($('depth').value)||0,moisture=parseFloat($('moisture').value)||0;
-var price=parseFloat($('price').value)||0,cycle=parseFloat($('cycle').value)||7;
+var price=parseFloat($('price').value)||0,cycle=parseFloat($('cycle').value);
 if(area<=0||depth<=0){$('result').innerHTML='<p style="text-align:center;color:var(--text-muted);">请输入有效参数</p>';$('chartWrap').style.display='none';return;}
+if(!(cycle>=1)){$('result').innerHTML='<p style="text-align:center;color:var(--danger);">灌水周期须为不小于 1 的天数</p>';$('chartWrap').style.display='none';return;}
+if(moisture<30||moisture>100){$('result').innerHTML='<p style="text-align:center;color:var(--danger);">土壤适宜含水量下限须在 30–100% 之间</p>';$('chartWrap').style.display='none';return;}
 var soil=SOILS[s],method=METHODS[m];
 var betaMax=soil.fc,betaMin=betaMax*moisture/100;
 var netPerMu=667*(depth/100)*(betaMax-betaMin)/100*soil.gamma;
@@ -288,6 +290,10 @@ var totalNet=netPerMu*area,totalGross=grossPerMu*area;
 var cost=totalGross*price;
 var monthlyWater=grossPerMu*area*(30/cycle);
 var monthlyCost=monthlyWater*price;
+var cropIdx=$('crop').value,crop=cropIdx!==''?CROPS[cropIdx]:null;
+var dailyMm=grossPerMu/cycle*1.5; // 1 m³/亩 = 1.5 mm 水深
+var cropTip='';
+if(crop){var seasonM3=crop.water*0.667,times=Math.max(1,Math.round(seasonM3/netPerMu));var isEN=String(document.documentElement.lang||'').toLowerCase().indexOf('en')===0;cropTip='<div class="tip-box tip-info" style="margin-top:8px;">'+(isEN?'🌱 '+crop.name+' ('+crop.period+'): seasonal water need ≈ '+crop.water+' mm ≈ '+seasonM3.toFixed(0)+' m³/mu; at '+netPerMu.toFixed(1)+' m³/mu net per irrigation, about '+times+' applications across the season (a larger single dose means fewer applications).':'🌱 '+crop.name+'（'+crop.period+'）全生育期需水约'+crop.water+' mm ≈ '+seasonM3.toFixed(0)+' m³/亩；按本次净定额 '+netPerMu.toFixed(1)+' m³/亩，全期约需灌 '+times+' 次（单次定额越大、次数越少）')+'</div>';}
 const __g4='<h3 style="text-align:center;margin-bottom:12px;">🏦 '+method.name+' 灌溉方案</h3>'+
 '<div class="data-grid">'+
 '<div class="data-card"><div class="num">'+grossPerMu.toFixed(1)+'</div><div class="label">亩灌水量(m³)</div></div>'+
@@ -297,7 +303,7 @@ const __g4='<h3 style="text-align:center;margin-bottom:12px;">🏦 '+method.name
 '</div>'+
 '<div style="margin-top:12px;"><div class="bar-row"><div class="bar-lbl">净水量</div><div class="bar-bg"><div class="bar-fill" style="width:'+(netPerMu/grossPerMu*100)+'%">'+netPerMu.toFixed(1)+'m³/亩</div></div></div>'+
 '<div class="bar-row"><div class="bar-lbl">损失量</div><div class="bar-bg"><div class="bar-fill" style="width:'+(grossPerMu-netPerMu)/grossPerMu*100+'%;background:#ff9800;">'+(grossPerMu-netPerMu).toFixed(1)+'m³/亩</div></div></div></div>'+
-'<div class="tip-box tip-info" style="margin-top:12px;"><strong>📅 周期估算</strong>: 每'+cycle+'天灌溉一次，月用水量约'+monthlyWater.toFixed(1)+'m³，月水费约'+monthlyCost.toFixed(2)+'元</div>';$('result').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+'<div class="tip-box tip-info" style="margin-top:12px;"><strong>📅 周期估算</strong>: 每'+cycle+'天灌溉一次（月灌 '+(30/cycle).toFixed(1)+' 次，折合日均 '+dailyMm.toFixed(1)+' mm），月用水量约'+monthlyWater.toFixed(1)+'m³，月水费约'+monthlyCost.toFixed(2)+'元</div>'+cropTip;$('result').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
 $('chartWrap').style.display='block';drawChart(netPerMu,grossPerMu-netPerMu,monthlyWater/area);
 }
 function drawChart(net,loss,monthly){
