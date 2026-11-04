@@ -261,6 +261,21 @@ const CASES = [
 {
   "slug": "medical/dosage-calculator",
   "inputs": {
+    "weight": "70",
+    "height": "165",
+    "age": "28"
+  },
+  "clicks": ["document.getElementById('drug').value='3';onDrugChange();"],
+  "expect": [
+    "490.0 mg",
+    "按体重（mg/kg）：7 mg/kg × 70 kg",
+    "日剂量：1470.00 mg"
+  ],
+  "ref": "阿莫西林（DRUGS[3]）成人单次剂量为 0.5 g q8h ⇒ 折算 7 mg/kg/次；单次 = 70×7 = 490.0 mg，日剂量 = 490×3 = 1470.00 mg（未超最大日剂量 3000 mg）。修复前 adultW=50 被当作单次 mg/kg，输出单次 3500.0 mg、日 10500.00 mg（约为说明书成人单次的 7 倍、超过最大日剂量 3.5 倍）。默认药物为对乙酰氨基酚（10 mg/kg）⇒ 三条均不命中。"
+},
+{
+  "slug": "medical/dosage-calculator",
+  "inputs": {
     "weight": "20",
     "height": "118",
     "age": "5"

@@ -18,6 +18,17 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "pulmonology/anti-tb-dosing",
+  "inputs": {
+    "wt": "72",
+    "age": "30"
+  },
+  "expect": [
+    "Z 2000mg + E 1250mg"
+  ],
+  "ref": "体重分档边界回归：72 kg 属 >70 kg 档 ⇒ PZA 2000 mg、EMB 1250 mg（INH=min(72×5,300)=300、RIF=600）。页面旧实现以 75 kg 为档界，72 kg 落在 50–75 档输出 Z 1750 + E 1000；体重分档（中国指南/WHO ≥70 kg 档）应以 70 kg 为界。默认 55 kg 输出 Z 1750 + E 1000 ⇒ 零交集。"
+},
+{
   // 默认 pao2=80/fio2=40 → P/F=200 重度 ARDS；注入 90/21 → P/F=429 → 氧合功能正常
   "slug": "pulmonology/calc-48",
   "inputs": {
