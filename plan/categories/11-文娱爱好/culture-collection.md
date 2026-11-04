@@ -149,3 +149,29 @@
 - 本轮覆盖 8 页：`tools/fengshui/fengshui-calculator.html`、`tools/fengshui/birthday-analysis.html`、`tools/fengshui/good-day-selector.html`、`tools/fengshui/zodiac-lookup.html`、`tools/museum/historical-calendar.html`、`tools/museum/lighting-lux.html`、`tools/library/citation-format.html`、`tools/archaeology/dating-method.html`。
 - 方法：逐页读源码；关键算法用 Node 内存复算（含儒略日独立公式、时区差异、五行计数穷举、照度公式、农历表长度）；未做浏览器、移动端、英文态或门禁验证，未修改任何工具文件。
 - 与前批去重：未重复 `lunar-calendar`、`chinese-radical-lookup`、`porcelain-date`、`era-comparator` 四页；其缺陷仍按上文记录。
+
+## U 批 · 收藏鉴赏（2026-11-04）
+
+> 只读审计（未改工具页/未跑构建）。范围：`tools/antiques/bronze-identification.html`（1 页）。该页为纯速查表，无计算逻辑，以下为数据/导出缺陷；其余页面见 `fun-entertainment.md`。
+
+### G-15 秦汉「代表器」混入唐代海兽葡萄镜，且搜索会把它当秦汉命中（中，确认数据缺陷）
+- 页面：`tools/antiques/bronze-identification.html`
+- 描述：`qinhan` 条目的 `reps` 末尾列「海兽葡萄镜(唐)」，唐代器物被归到秦汉；而搜索用 `JSON.stringify(e)` 全文匹配，搜「唐」时返回的却是「秦汉」卡片，断代信息被反向强化。
+- 证据：`:284-292`（秦汉条目，`:292` 为 `reps:'长信宫灯、马踏飞燕、铜车马、海兽葡萄镜(唐)'`）、`:301-302`（`content=JSON.stringify(e).toLowerCase(); if(q&&content.indexOf(q)<0)return;`）。
+- 复现：时代选「全部」→ 秦汉卡片「代表」显示含「(唐)」的镜类；搜索框输入「唐」→ 实际返回「秦汉」卡片（其余 4 个时代均不含该字），期望该镜出现在唐代条目或不出现在秦汉条目。
+- 影响：断代错误的代表器被当作秦汉标准器，用户比对器型/纹饰时会误判年代；检索「唐」得到秦汉结果，检索可信度受损。
+- 方案：把该条改为汉代铜镜（如规矩镜、四神镜），或新增「隋唐」条目收录海兽葡萄镜并同步说明；搜索命中时高亮命中字段而非整卡展示。
+- 假工具：否（速查表，非伪造计算）。
+
+### G-16 「复制对照表」忽略时代筛选与搜索，导出内容与屏幕不一致（中，确认源码缺陷）
+- 页面：`tools/antiques/bronze-identification.html`
+- 描述：`copyResult()` 无条件遍历 `ERAS` 全量拼接，而页面展示走 `showEra()` 的 `era` + `search` 过滤，二者取数口径不同。
+- 证据：`:321-335`（`ERAS.forEach(...)` 拼 5 段）、`:295-320`（按 `key`/`q` 过滤后才渲染）、`:140`/`:149`/`:152`（筛选控件与复制按钮）。
+- 复现：时代选「商代」、搜索框输入「饕餮」→ 屏幕仅 1 张商代卡片 → 点「复制对照表」→ 实际剪贴板含夏、商、西周、春秋战国、秦汉 5 段（Node 复算 `ERAS.length=5`，逐条拼接无过滤）；期望只复制当前可见的 1 条，或按钮明确写「复制全部对照表」。
+- 影响：导出结果与所见不符，用户会把 5 个时代的资料当作筛选结果留存/转发。
+- 方案：复用 `showEra()` 的 `list` 作为复制数据源（提取成公共函数），无筛选时才复制全量。
+- 假工具：否。
+
+### U 批覆盖（收藏鉴赏）
+- `tools/antiques/bronze-identification.html`：2 条（G-15、G-16，均中）。复核通过项：5 个时代的起止年代（约前2070-前1600 / 前1600-前1046 / 前1046-前771 / 前770-前221 / 前221-220）与主流断代一致；`showEra()` 的 `all`/单时代分支、空结果提示、首屏 `showEra()` 初始化均正常；其余条目（夏爵斝、商后母戊鼎 832.84kg、西周毛公鼎 497 字、春秋战国失蜡法/曾侯乙尊盘、秦汉长信宫灯/马踏飞燕/铜车马）未发现年代或常识性错误。
+- 声明：本轮仅源码通读 + `/tmp` Node 复算（时代条目数与拼接范围），未开浏览器、未跑门禁、未改任何工具文件。

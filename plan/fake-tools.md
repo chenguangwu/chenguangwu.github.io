@@ -258,3 +258,15 @@
 | 生活消费 | `tools/sports/rehab-motion.html` | C（+A） | `:118-131`（仅体重/次数等输入）、`:559-575`（输出为体重×次数） | `plan/categories/05-生活消费/sports-fitness.md` SF-N28（高） | 标题/英文简介承诺「按损伤部位给出动作库」，实际无动作库、无部位选择，并把体重×次数当训练负荷（840kg 伪负荷） |
 | 生活消费 | `tools/sports/training-planner.html` | C | 模板固定 4 条训练日；选 5/6 天仍只生成 4 天 | `plan/categories/05-生活消费/sports-fitness.md` SF-N24（高） | 宣称按每周天数生成计划，天数选项不参与模板条数；同日核心分化动作整组重复（SF-N25） |
 | 商业运营 | `tools/biz/text-extract-html-tags.html` | A | `:166-170`（五个开关中两个默认勾选）、`:313-315`（仅取三个）、`:326-332`（「含属性」未勾仍剥属性） | `plan/categories/06-商业运营/biz-startup.md` BS-N31/BS-N32（中） | 宣称「指定标签/仅正文」筛选，实际开关未参与过滤；`uniqueCount` 在清空输入后保留上次值 |
+
+## U 批新增假工具候选（2026-11-04）
+
+> 本轮 10 个只读子 agent 的增量产出，均读当前源码、可由静态证据复现；**不计入上表 61 页统计**，待修复线复核后并入主表。
+
+| 分类 | 页面 | 类型 | 证据（当前行号） | 来源条目 | 说明 |
+|---|---|---|---|---|---|
+| IT开发 | `tools/it/phone-parser.html` | C | `:329-345` 输入框为 `type="number"` 无法粘贴示例号码；解析结果仅做分段拼接，无运营商/归属地解析 | `plan/categories/01-IT开发/it.md` IT-N412/IT-N413 | 宣称「手机号归属地/运营商解析」，实际只按长度切分并回显 |
+| 医疗健康 | `tools/gastroenterology/ercp-success.html` | B（局部） | 关键成功率输入未进入最终判定，仅按固定基线输出「可成功」 | `plan/categories/03-医疗健康/specialties.md` 03-17x | 名不副实；需临床复核 |
+| 生活消费 | `tools/sports/pingpangqiu-xiangchi-faqiu-defen.html` | C | 仅两个通用数值输入，按模板算比值；页面承诺的得分率/关键分统计未实现 | `plan/categories/05-生活消费/sports-fitness.md` SF-N43 | 通用两参模板套体育标题 |
+| 文娱爱好 | `tools/fun/anagram-game.html` | A | `:15-24` 5 套固定字母题 + 每条硬编码 `valid` 词表，判定 `cur.valid.includes(v)`，无字母多重集校验、无词典、不可换题 | `plan/categories/11-文娱爱好/fun-entertainment.md` FE-N27 | 合法词 SILT 判错、不可拼的 ICE 判对 |
+| 文娱爱好 | `tools/fun/sequence-puzzle.html` | C | 仅 6 类数字序列；承诺的质数/阶乘/图形序列与「做错有解析」均无实现 | `plan/categories/11-文娱爱好/fun-entertainment.md` FE-N30 | 教学价值落空 |
