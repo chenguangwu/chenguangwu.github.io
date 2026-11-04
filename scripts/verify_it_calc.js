@@ -46,6 +46,7 @@ if (typeof globalThis.MutationObserver === "undefined") {
     takeRecords() { return []; }
   };
 }
+
 // Mermaid：office/flowchart.html 顶层首句就是 `mermaid.initialize({...})`，而页面依赖 CDN
 // 加载 mermaid，harness 不加载外部脚本 ⇒ 缺桩时页面脚本在首句抛 ReferenceError，整页函数
 // 一个都导不出（`saveCode`/`downloadPNG` 均 undefined），只能零用例。
@@ -8734,19 +8735,6 @@ function inlineHandlers(html) {
 function collectStrings(elements) {
   // 收集所有「可能被写入结果」的字符串：value 与 innerHTML
   const seen = [];
-  // 浏览器把 `innerHTML` 里的实体（&lt; / &quot; …）渲染成对应字符，`textContent`/`innerText`
-  // 读回的是解码后的文本。桩只保留原始 innerHTML 字符串，故断言前必须「先剥标签、再解码实体」：
-  // 顺序不能反 —— 反了会把「单元里本应显示的 <span> 字面文本」当标签剥掉，掩盖生产缺陷。
-  const decodeText = (s) => s.replace(/&(?:lt|gt|amp|quot|apos|nbsp|#\d+|#x[0-9a-fA-F]+);/g, (m) => {
-    if (m === "&lt;") return "<";
-    if (m === "&gt;") return ">";
-    if (m === "&amp;") return "&";
-    if (m === "&quot;") return '"';
-    if (m === "&apos;") return "'";
-    if (m === "&nbsp;") return " ";
-    const hex = /^&#x/i.test(m);
-    return String.fromCodePoint(parseInt(m.slice(hex ? 3 : 2, -1), hex ? 16 : 10));
-  });
   for (const [id, el] of Object.entries(elements)) {
     const v = el && el.value !== undefined && el.value !== "" ? String(el.value) : "";
     const h = el && el.innerHTML ? String(el.innerHTML) : "";
@@ -8758,7 +8746,7 @@ function collectStrings(elements) {
     // 保留剥标签 —— 只有这两者才可能含真实标签。
     if (v && v.trim()) seen.push(v.replace(/\s+/g, " ").trim());
     for (const s of [h, tc]) {
-      if (s && s.trim()) seen.push(decodeText(s.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim());
+      if (s && s.trim()) seen.push(s.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim());
     }
   }
   return seen.join("\n");
@@ -9192,16 +9180,6 @@ async function runCaseInner(c) {
   // sessionStorage 桩：保守保留。任何页面顶层引用 sessionStorage 时，缺该全局会在求值期抛
   // ReferenceError ⇒ 整页成为「死页」（零用例即零回归）。当前站内已无页面真实使用 sessionStorage。
   const sessionStorage = makeStorage();
-  // 与生产 js/common.js::escHtml 同实现（含引号）。此前桩内是恒等函数（不转义任何字符），
-  // 会让「页面把 HTML 片段塞进表格单元」这类生产缺陷在桩里消失（createTable 会转义单元内容）：
-  // 桩里片段被当标签渲染、剥标签后命中断言，线上却是原样显示的 <span> 字面文本。
-  // 保真模式把这条差异暴露出来，故桩也必须按生产口径转义。
-  const escHtmlProd = (x) => String(x == null ? "" : x)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
   const ToolBox = {
     setResult: (id, h) => { getEl(id).innerHTML = h; },
     // 页面 TOOLBOX-API-STUB 定义了 `T.$=function(id){return document.getElementById(id);}`，
@@ -9210,8 +9188,8 @@ async function runCaseInner(c) {
     $: (id) => getEl(id),
     validateNumberInput: () => true,
     toggleToolTheme() {},
-    escHtml: escHtmlProd,
-    escapeHtml: escHtmlProd,
+    escHtml: (x) => String(x == null ? "" : x),
+    escapeHtml: (x) => String(x == null ? "" : x),
     copy: () => {}, copyText: () => {}, toast: () => {}, showToast: () => {},
     t: (k, d) => d || k,
     // 与页面 TOOLBOX-API-STUB 保持一致：多数工具的 fmt() 直接转发到 formatNumber，
@@ -9242,8 +9220,6 @@ async function runCaseInner(c) {
       return x + "</tbody></table>";
     },
   };
-  // 剪贴板桩：真浏览器的 clipboard.writeText 恒返回 Promise（页面普遍 `.then(...)` 收尾），
-  // 保真模式注入的 js/common.js.copyText 也依赖这一点；返回 undefined 会让 .then 抛 TypeError。
   const navigator = { userAgent: "node", clipboard: { writeText() { return Promise.resolve(); } } };
   // window 直接用 globalThis：内联 on* 属性编译出的函数在全局作用域执行，
   // 只能看到挂在 window（即全局）上的函数，用普通对象会导致「xxx is not defined」。
