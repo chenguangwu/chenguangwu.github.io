@@ -203,6 +203,44 @@ const CASES = [
        + "默认态 total=0、maxStreak=0、headsPct=—，不命中。",
   },
 
+  // ── fun 零覆盖补强（C 类：可正常测 5 页） ──────────────────
+  {
+    slug: "fun/keyboard-heatmap",
+    clicks: ["loadSample();loadSample()"],
+    expect: ["90"],
+    ref: "样例文本「The quick brown fox jumps over the lazy dog. 敏捷的棕色狐狸跃过懒狗。」单次统计（页内正则 `\\w` + 空格 + `,./` 等符号）："
+       + "字母 35 + 空格 9（8 个词间空格 + 句点后 1 个）+ 句点 1 = 45；中文段不匹配该字符类、不计入；唯一按键 28。"
+       + "loadSample 是累加（不清零），连调两次 ⇒ 总按键 90。默认输入框为空 ⇒ 0；判别器清空 clicks 后兜底只调一次 loadSample ⇒ 45，不命中 90。"
+       + "（不用唯一键 28 作锚：单次调用即可命中，属兜底可复现的逃生项。）",
+  },
+  {
+    slug: "fun/coin-flip",
+    clicks: ["(function(){var R=Math.random;Math.random=function(){return 0.1};flip();Math.random=function(){return 0.9};flip();flip();Math.random=R;})()"],
+    expect: ["33.3"],
+    ref: "把 Math.random 依次钉为 0.1 / 0.9 / 0.9 后连掷 3 次：正、反、反 ⇒ 正面 1 / 总 3 ⇒ 正面率 (1/3*100).toFixed(1) = 33.3%、反面率 66.7%。"
+       + "默认未掷 ⇒ 百分比为静态 50；判别器清空 clicks 后兜底按种子随机序列掷 11 次（flip 1 次 + flipMultiple 10 次）⇒ 8 正 3 反 = 72.7%，不命中 33.3。"
+       + "（不用结果文案「🎊 反面！」作锚：兜底的末次掷同样可能落反面。）",
+  },
+  {
+    slug: "fun/generator-2",
+    inputs: { cnt: "10" },
+    expect: ["#10 数独"],
+    ref: "cnt=10 ⇒ 逐条输出「#1 数独」…「#10 数独」（题面随机，但编号与条数确定）；默认 cnt=5 ⇒ 最多到 #5，锚串不出现。",
+  },
+  {
+    slug: "fun/generator-3",
+    inputs: { cnt: "10" },
+    expect: ["#10 迷宫"],
+    ref: "cnt=10 ⇒ 逐条输出「#1 迷宫」…「#10 迷宫」（迷宫随机，但编号与条数确定）；默认 cnt=5 ⇒ 最多到 #5，锚串不出现。",
+  },
+  {
+    slug: "fun/generator-laugh",
+    inputs: { cnt: "10" },
+    expect: ["10. "],
+    ref: "cnt=10 ⇒ 笑声列表渲染到第 10 条（`10. 「哈哈哈…」 基频…/持续…秒`）；编号与条数确定，音色参数随机。"
+       + "默认 cnt=5 ⇒ 列表最多到「5. 」，锚串「10. 」不出现。",
+  },
+
 ];
 async function main() {
   const only = process.argv.slice(2);
