@@ -174,22 +174,63 @@ function main() {
       "tools/it/playfair-cipher.html", "tools/it/vigenere-visualizer.html",
       "tools/usedcar/recorder-maintenance.html",
     ];
+    const GUARD_START = "(function(){try{var o=Storage.prototype.setItem";
+    const GUARD_END = "s.__tbSafe=true;Storage.prototype.setItem=s;}}catch(e){}})();";
+    const stripGuard = (html) => {
+      let i = html.indexOf(GUARD_START);
+      while (i >= 0) {
+        const j = html.indexOf(GUARD_END, i);
+        if (j < 0) break;
+        let a = i, b = j + GUARD_END.length;
+        // guard 独占一个 <script> 块时连外壳一起删，避免残留空 script
+        const open = html.lastIndexOf("<script", i);
+        const openEnd = open >= 0 ? html.indexOf(">", open) : -1;
+        const close = html.indexOf("</script>", b);
+        if (open >= 0 && openEnd >= 0 && openEnd < i &&
+            /^\s*$/.test(html.slice(openEnd + 1, i)) &&
+            close >= 0 && /^\s*$/.test(html.slice(b, close))) {
+          a = open; b = close + "</script>".length;
+          // 连插入时补的前后换行一起去掉，保证重复运行不累积空行
+          if (a > 0 && html[a - 1] === "\n") a--;
+          if (html[b] === "\n") b++;
+        }
+        html = html.slice(0, a) + html.slice(b);
+        i = html.indexOf(GUARD_START, a);
+      }
+      return html;
+    };
+    // 必须插在 TTZZ 整块之后：_build.py::inject_ttzz_snippet 用
+    // TTZZ_MARKER + 紧随其后的首个 <script> 做整块替换，插在标记与 script 之间会被构建抹掉。
+    const TTZZ_RE = /<!--\s*TOOLBOX-TTZZ\s*-->\s*<script\b[^>]*>[\s\S]*?<\/script>/i;
     let changed = 0;
     for (const rel of rels) {
       const abs = path.join(ROOT, rel);
       let html = fs.readFileSync(abs, "utf8");
-      if (html.includes("__tbSafe=true;Storage.prototype.setItem=s;")) { continue; }
-      const m = html.match(/<script\b([^>]*)>/i);
-      let idx = -1, n = 0;
-      for (const x of html.matchAll(/<script\b([^>]*)>/gi)) {
-        if (/\bsrc\s*=/.test(x[1])) continue;
-        if (/type\s*=\s*["']application\/ld\+json/i.test(x[1])) continue;
-        idx = x.index + x[0].length; break;
+      const before = html;
+      html = stripGuard(html);
+      // 归一 TTZZ 块头部空白（旧 guard 曾嵌在块内，删除后会残留空行，构建端会判定不一致而整块重写）
+      html = html.replace(/<!--\s*TOOLBOX-TTZZ\s*-->\s*<script\s*>\s*/i,
+        "<!-- TOOLBOX-TTZZ -->\n<script>\n");
+      let idx = -1;
+      const tz = TTZZ_RE.exec(html);
+      if (tz) {
+        idx = tz.index + tz[0].length;
+      } else {
+        for (const x of html.matchAll(/<script\b([^>]*)>/gi)) {
+          if (/\bsrc\s*=/.test(x[1])) continue;
+          if (/type\s*=\s*["']application\/ld\+json/i.test(x[1])) continue;
+          idx = x.index; break;
+        }
       }
       if (idx < 0) { console.log("SKIP(no inline script)", rel); continue; }
-      html = html.slice(0, idx) + GUARD + html.slice(idx);
-      if (!DRY) fs.writeFileSync(abs, html);
-      changed++;
+      html = html.slice(0, idx) + "\n<script>" + GUARD + "</script>\n" + html.slice(idx);
+      // 折叠 guard 之后的多余空行（历史插入累积）
+      const gEnd = html.indexOf("</script>", idx) + "</script>".length;
+      let k = gEnd;
+      while (html[k] === "\n") k++;
+      if (k - gEnd > 2) html = html.slice(0, gEnd) + "\n\n" + html.slice(k);
+      if (!DRY && html !== before) fs.writeFileSync(abs, html);
+      if (html !== before) changed++;
     }
     console.log(`parse-time 兜底：${changed} 页${DRY ? "（dry-run）" : ""}`);
   }

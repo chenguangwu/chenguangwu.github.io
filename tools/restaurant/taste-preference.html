@@ -236,25 +236,27 @@ const tastes=[
 function loadRecords(){
   try{return JSON.parse(localStorage.getItem(TASTE_KEY)||'[]');}catch(e){return [];}
 }
-function saveRecords(r){try{localStorage.setItem(TASTE_KEY,JSON.stringify(r));}catch(e){}}
+function saveRecords(r){try{var p=JSON.stringify(r);localStorage.setItem(TASTE_KEY,p);return localStorage.getItem(TASTE_KEY)===p;}catch(e){return false;}}
 
 function recordTaste(key){
   const records=loadRecords();
   records.push({taste:key,time:new Date().toISOString()});
-  saveRecords(records);
+  var ok=saveRecords(records);
   renderGrid();
   renderStats();
-  ToolBox.showToast('已记录：'+tastes.find(t=>t.key===key).name);
+  if(ok)ToolBox.showToast('已记录：'+tastes.find(t=>t.key===key).name);
+  else ToolBox.showToast('未保存（本次计算不受影响）','warning');
 }
 
 function undoLast(){
   const records=loadRecords();
   if(records.length===0){ToolBox.showToast(i18nText(), 'warning');return;}
   records.pop();
-  saveRecords(records);
+  var ok=saveRecords(records);
   renderGrid();
   renderStats();
-  ToolBox.showToast(i18nText());
+  if(ok)ToolBox.showToast(i18nText()||'已撤销上次记录');
+  else ToolBox.showToast('未保存（本次计算不受影响）','warning');
 }
 
 function clearAll(){

@@ -55,6 +55,9 @@ GATES = (
     ("history field guard", ("node", "scripts/verify_history_guard.js")),
     # 内联事件属性在全局作用域求值：实现被 IIFE / module 包住即抛 "X is not defined"
     ("inline handler global", ("node", "scripts/verify_inline_handlers.js")),
+    # 存储写入失败必须可见：解析期 GUARD / 收窄 catch / 写后回读为静态硬断言（决定退出码），
+    # 配额提示与 TypeError 复现为动态段（本机无 Chrome 时显式 SKIP 且不影响退出码）。
+    ("storage failure visible", ("node", "scripts/audit_storage_failure_visible.js")),
     ("calculation regression", ("node", "scripts/verify_calc.js")),
     # 与上一项区别：verify_calc 是「冒烟」（不报错即可），本项是「正确性」
     # ——注入已知输入后按权威测试向量断言输出（§4.1.1）。用例写在脚本内，逐分类扩充。

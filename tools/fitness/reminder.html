@@ -261,13 +261,15 @@ var lastNotifyKey='tb_water_lastnotify';
 
 function dateStr(d){d=d||new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function todayRec(){var k=dateStr();if(!records[k]){records[k]={goal:settings.goal,logs:[]};}return records[k];}
-function saveRec(){localStorage.setItem(RKEY,JSON.stringify(records));}
+function saveRec(){var p=JSON.stringify(records);localStorage.setItem(RKEY,p);return localStorage.getItem(RKEY)===p;}
 function saveSet(){localStorage.setItem(SKEY,JSON.stringify(settings));}
 
 function addWater(ml){
   var r=todayRec();
   r.logs.push({t:new Date().toTimeString().slice(0,5),ml:ml});
-  saveRec();render();ToolBox.showToast('已记录 +'+ml+'ml');
+  var ok=saveRec();render();
+  if(ok)ToolBox.showToast('已记录 +'+ml+'ml');
+  else ToolBox.showToast('未保存（本次计算不受影响）','warning');
 }
 function addCustom(){
   var ml=parseInt(document.getElementById('customMl').value,10);
@@ -277,13 +279,17 @@ function addCustom(){
 function undoLast(){
   var r=todayRec();
   if(!r.logs.length){ToolBox.showToast(i18nText('toast.msg051'),'warning');return;}
-  var last=r.logs.pop();saveRec();render();ToolBox.showToast('已撤销 '+last.ml+'ml');
+  var last=r.logs.pop();var ok=saveRec();render();
+  if(ok)ToolBox.showToast('已撤销 '+last.ml+'ml');
+  else ToolBox.showToast('未保存（本次计算不受影响）','warning');
 }
 function clearToday(){
   var r=todayRec();
   if(!r.logs.length)return;
   if(!confirm('清空今日所有饮水记录？'))return;
-  r.logs=[];saveRec();render();ToolBox.showToast(i18nText('toast.msg272'));
+  r.logs=[];var ok=saveRec();render();
+  if(ok)ToolBox.showToast(i18nText('toast.msg272'));
+  else ToolBox.showToast('未保存（本次计算不受影响）','warning');
 }
 function delLog(i){
   var r=todayRec();r.logs.splice(i,1);saveRec();render();
