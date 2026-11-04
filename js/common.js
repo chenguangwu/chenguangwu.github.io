@@ -2020,9 +2020,13 @@ function formatNumber(n, decimals){
 }
 
 function escHtml(s){
-  var d = document.createElement('div');
-  d.textContent = s;
-  return d.innerHTML;
+  // 同时转义引号：escHtml 常被用于 value="..." 等属性上下文，仅转义 &<> 会造成属性逃逸
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function qs(sel, ctx){ return (ctx||document).querySelector(sel); }
