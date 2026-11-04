@@ -4447,13 +4447,12 @@ const CASES = [
   {
     "slug": "it/atbash-cipher",
     "inputs": {
-      "input": "1\n2\n3",
-      "output": "1\n2\n3"
+      "input": "abc"
     },
     "expect": [
-      "A\n暂无历史记录\n1 2 3\n1 2 3"
+      "zyx"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\"}，输出区含「A\n暂无历史记录\n1 2 3\n1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "Atbash 自校验：a↔z、b↔y、c↔x ⇒ 加密 'abc' 得 'zyx'。原用例注入 '1\\n2\\n3' 且把只读输出框 output 也一并注入，期望串恰等于「输入回显 + 注入的 output 值」（'1 2 3\\n1 2 3'），属逃生形态；改注入纯字母后锚点由输入派生。2026-11-05 同批修正：真实 localStorage 桩下 saveHistory 会写历史并重渲染，原 expect 里的「暂无历史记录」不再出现（旧空桩把 setItem 吞掉才侥幸保留）。默认态输入为空 ⇒ 不命中。"
   },
   {
     "slug": "it/barcode-codabar",
@@ -5392,9 +5391,9 @@ const CASES = [
       "batchAlgoSelect": "sha1"
     },
     "expect": [
-      "abc123测试\n暂无历史记录\n1 2 3\nabc123测试\n1 2 3\n1 2 3\nsha1\n1 复制 2 复制 3 复制\nMD5 bfb77520994c313d1abff83000f19dc3 复制\n❌ 未找到匹配的哈希值"
+      "MD5 bfb77520994c313d1abff83000f19dc3 复制"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"hmacKey\":\"abc123测试\",\"verifyHash\":\"abc123测试\",\"textInput\":\"1\\n2\\n3\",\"batchInput\":\"1\\n2\\n3\",\"verifyInput\":\"1\\n2\\n3\",\"batchAlgoSelect\":\"sha1\"}，输出区含「abc123测试\n暂无历史记录\n1 2 3\nabc123测试\n1 2 3\n1 2…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "独立复算：md5('1\\n2\\n3') = bfb77520994c313d1abff83000f19dc3（node crypto 实测，与页面 MD5 结果行逐字一致）。注入另一键 batchInput / verifyInput 用于覆盖批量与校验区。2026-11-05 同批修正：真实 localStorage 桩下注入即 saveHistory 写历史并重渲染，原自动补强 expect 里的「暂无历史记录」是本就不该出现的占位串（旧空桩把 setItem 吞掉才侥幸保留）；改锚结果区派生摘要，绕开 #historyList（历史行含运行时刻，必然漂移）。默认态 textInput 为空 ⇒ 不渲染摘要。"
   },
   {
     "slug": "it/hex-encode",
@@ -5513,13 +5512,13 @@ const CASES = [
   {
     "slug": "it/html-escape",
     "inputs": {
-      "input": "1\n2\n3",
+      "input": "<b>x</b>",
       "batchInput": "1\n2\n3"
     },
     "expect": [
-      ";\n暂无历史记录\n1 2 3\n1 2 3"
+      "&lt;b&gt;x&lt;/b&gt;"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"batchInput\":\"1\\n2\\n3\"}，输出区含「;\n暂无历史记录\n1 2 3\n1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "HTML 转义语义自校验：'<b>x</b>' 转义后为 '&lt;b&gt;x&lt;/b&gt;'（标签括号变实体，字母原样）。原用例注入 '1\\n2\\n3'（无特殊字符）导致输出与输入逐字相同、期望串恰等于输入回显的逃生形态；改注入含标签的文本后锚点由转义结果派生。2026-11-05 同批修正：真实 localStorage 桩下注入即写历史并重渲染，原 expect 里的「暂无历史记录」不再出现。默认态输入为空 ⇒ 不命中。"
   },
   {
     "slug": "it/html-tags",
@@ -6380,13 +6379,12 @@ const CASES = [
     "slug": "it/playfair-cipher",
     "inputs": {
       "key": "abc123测试",
-      "input": "1\n2\n3",
-      "output": "1\n2\n3"
+      "input": "HELLOWORLD"
     },
     "expect": [
-      "暂无历史记录\n1 2 3\nabc123测试\nA B C D E F G H I K L M N O P Q R"
+      "KCNVMPYMQMCY"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"key\":\"abc123测试\",\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\"}，输出区含「暂无历史记录\n1 2 3\nabc123测试\nA B C D E F G H I …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "独立复算（Python 手写 Playfair，key='ABC'、明文 'HELLOWORLD'）：去重字母表 A B C D E / F G H I K / L M N O P / Q R S T U / V W X Y Z，补 X 分组得 HE LX LO WO RL DX，逐对加密 KC NV MP YM QM CY ⇒ KCNVMPYMQMCY。原用例注入 '1\\n2\\n3'（无字母，输出为空故 saveHistory 未触发）才侥幸未见历史行；改注入字母明文后由输入真实派生，且锚结果区密文、绕开 #historyList（历史行含运行时刻，必然漂移）。默认态明文为 ATTACKATDAWN ⇒ 不命中该串。"
   },
   {
     "slug": "it/polybius-cipher",
@@ -7309,9 +7307,9 @@ const CASES = [
       "builtUrl": "1\n2\n3"
     },
     "expect": [
-      "删除\n暂无历史记录\n1 2 3\n1 2 3\nabc123测试\nabc123测试\nabc123测试\nabc123测试\n5\n5\n5 B\n+0.0%"
+      "5 B\n+0.0%"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"baseUrl\":\"abc123测试\",\"parseInput\":\"abc123测试\",\"asciiFilter\":\"abc123测试\",\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"builtUrl\":\"1\\n2\\n3\"}，输出区含「删除\n暂无历史记录\n1 2 3\n1 2 3\nabc123测试…」；2026-10-26 页面加默认样例+首屏静默渲染后段序变化，按漂移修复流程以隔离 fullBlob 实测重写（判别力不变：abc123测试 为注入专属值，默认样例编码产物不含该串）。默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "派生量锚：注入 '1\\n2\\n3'（5 字符 / 5 字节）后统计卡渲染输入大小 5 B、膨胀率 +0.0%（输出长度与输入字节数相等，按页面口径 (5−5)/5×100）。2026-11-05 同批修正：真实 localStorage 桩下注入即写历史并重渲染，原自动补强 expect 里的「暂无历史记录」不再出现（旧空桩把 setItem 吞掉才侥幸保留）；改为锚结果区统计值、绕开 #historyList（历史行含运行时刻，必然漂移）。默认输入为长 URL 样例 ⇒ 不出现 5 B / +0.0%。"
   },
   {
     "slug": "it/url-encoder-advanced",
@@ -7546,9 +7544,9 @@ const CASES = [
       "output": "1\n2\n3"
     },
     "expect": [
-      "Y\n暂无历史记录\n1 2 3\nabc123测试\n1 2 3\n0\n明文 1 2 3 密钥 密文 1 2 3"
+      "明文 1 2 3 密钥 密文 1 2 3"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"key\":\"abc123测试\",\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\"}，输出区含「Y\n暂无历史记录\n1 2 3\nabc123测试\n1 2 3\n0\n明文 1 2 3…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "锚可视化分步表的三行结构（明文 / 密钥 / 密文，逐字符格），其值由注入 '1\\n2\\n3' 经 vigenere() 生成。2026-11-05 同批修正：真实 localStorage 桩下注入即写历史并重渲染，原自动补强 expect 里的「暂无历史记录」不再出现（旧空桩把 setItem 吞掉才侥幸保留）；改为锚结果区派生行、绕开 #historyList（历史行含运行时刻，必然漂移）。默认明文 ATTACKATDAWN ⇒ 不命中该串。"
   },
   {
     "slug": "it/yaml-formatter",
