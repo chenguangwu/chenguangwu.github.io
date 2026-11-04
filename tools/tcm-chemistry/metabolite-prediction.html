@@ -339,12 +339,20 @@ function predict(){
   const mw = +document.getElementById('mw').value || 0;
   const data = METABOLISM_DATA[type];
 
-  // 更新化合物下拉
+  // 仅在化合物类型变化时重建下拉，避免选择化合物时把自身 value 重置为「自动匹配」
   const compSelect = document.getElementById('compound');
-  const __h0='<option value="">自动匹配</option>' + data.compounds.map(c => `<option value="${c}">${c}</option>`).join('');if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){compSelect.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}compSelect.innerHTML=__h0;
+  let compound = compSelect.value;
+  if(compSelect.getAttribute('data-type') !== type){
+    compSelect.innerHTML = '<option value="">自动匹配</option>' + data.compounds.map(c => `<option value="${c}">${c}</option>`).join('');
+    compSelect.setAttribute('data-type', type);
+    compound = '';
+  }
 
   let html = '<h3 style="text-align:center;margin-bottom:12px;">代谢途径预测</h3>';
-  html += `<p style="font-size:14px;margin-bottom:8px;"><strong>化合物类型：</strong>${data.name} | <strong>给药途径：</strong>${{oral:'口服',iv:'静脉注射',topical:'外用'}[route]}</p>`;
+  html += `<p style="font-size:14px;margin-bottom:8px;"><strong>化合物类型：</strong>${data.name}${compound?'（'+compound+'）':''} | <strong>给药途径：</strong>${{oral:'口服',iv:'静脉注射',topical:'外用'}[route]}</p>`;
+  if(compound){
+    html += `<div class="tip-box tip-info"><strong>已选择：${compound}</strong>。本工具按「${data.name}」类的共性代谢框架给出 I/II 相途径；该化合物的实际代谢还受取代基、共代谢与种属差异影响，结论需体外/体内实验验证（需专业复核）。</div>`;
+  }
 
   if(route === 'oral'){
     html += `<div class="tip-box tip-warn"><strong>口服给药代谢特点：</strong>首过效应显著，肠道菌群代谢参与度高，生物利用度通常较低。</div>`;
