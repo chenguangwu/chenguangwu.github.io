@@ -128,8 +128,8 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根据腹泻次数、大便性状及脱水体征，评估脱水程度并给出补液方案">Diarrhea Dehydration</p>
     <div class="ref-cite" style="font-size:12.5px;line-height:1.75;color:var(--text-muted);background:var(--bg-hover);border-left:3px solid var(--primary);border-radius:0 8px 8px 0;padding:8px 12px;margin:0 0 14px;" data-zh="📖 原始文献/指南：World Health Organization. The Treatment of Diarrhoea: A Manual for Physicians and Other Senior Health Workers. 4th rev. Geneva: WHO; 2005 (WHO/FCH/CAH/05.1). ｜ 按腹泻次数 + 脱水体征分级；补液方案 A/B/C：A 居家 ORS、B 门诊 ORS 4 小时 75 mL/kg、C 静脉 Ringer 100 mL/kg（<1 岁 30 mL/kg·1h + 70 mL/kg·5h）">📖 Source: World Health Organization. The Treatment of Diarrhoea: A Manual for Physicians and Other Senior Health Workers. 4th rev. Geneva: WHO; 2005 (WHO/FCH/CAH/05.1). | Plan A home ORS / Plan B clinic ORS 75 mL/kg over 4 h / Plan C IV Ringer 100 mL/kg (infant 30 mL/kg in 1 h + 70 mL/kg in 5 h)</div>
 <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">脱水程度按体征计数：重度(≥2项重度体征，或≥1重+≥2中) 失体液10%、中度(≥2中 或 ≥1中+≥2轻) 7.5%、轻度 4%、无 0%。累计丢失量(mL) = 体重(kg) × 缺失% × 1000；日维持量：&lt;10kg 100 mL/kg、10–20kg 1000+(体重−10)×50、&gt;20kg 1500+(体重−20)×20。口服补液盐(ORS III) 50–100 mL/kg 分次给予，补锌 6月内10/&gt;6月20 mg/d×10–14天。</div>
-      <p class="formula-desc" data-zh="核心计算公式（按输入变量）：weight×deficit×1000；freq×10×weight÷10">Key formulas: weight×deficit×1000; freq×10×weight÷10</p>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">脱水程度按体征计数：重度(≥2项重度体征，或≥1重+≥2中) 失体液10%、中度(≥2中 或 ≥1中+≥2轻) 7.5%、轻度 4%、无 0%。累计丢失量(mL) = 体重(kg) × 缺失% × 1000；日维持量：&lt;10kg 100 mL/kg、10–20kg 1000+(体重−10)×50、&gt;20kg 1500+(体重−20)×20。WHO 2005 补液：Plan A 每次稀便后 ORS（&lt;2岁 50–100 mL、≥2岁 100–200 mL）；Plan B ORS 75 mL/kg 4 小时；Plan C 静脉 100 mL/kg（&lt;12月 30 mL/kg·1h + 70 mL/kg·5h）。补锌 6月内10/&gt;6月20 mg/d×10–14天。</div>
+      <p class="formula-desc" data-zh="核心计算公式（按输入变量）：weight×deficit×1000；维持量 100-50-20 法">Key formulas: weight×deficit×1000; maintenance by the 100-50-20 rule</p>
     </div>
 
     <div class="input-row">
@@ -287,11 +287,16 @@ var signs=[
 })();
 
 function calc(){
-  var age=parseFloat(document.getElementById('age').value)||0;
-  var weight=parseFloat(document.getElementById('weight').value)||0;
-  var freq=parseFloat(document.getElementById('stoolFreq').value)||0;
-  var dur=parseFloat(document.getElementById('duration').value)||0;
+  var age=parseFloat(document.getElementById('age').value);
+  var weight=parseFloat(document.getElementById('weight').value);
+  var freq=parseFloat(document.getElementById('stoolFreq').value);
+  var dur=parseFloat(document.getElementById('duration').value);
   var stoolType=document.getElementById('stoolType').value;
+
+  if(!isFinite(age)||age<0||age>60||!isFinite(weight)||weight<=0||weight>100||!isFinite(freq)||freq<1||freq>30||!isFinite(dur)||dur<0||dur>30){
+    document.getElementById('result').innerHTML='<p style="color:var(--text-muted);">请输入有效年龄（0–60 月）、体重（0.5–100 kg）、腹泻次数（1–30 次/日）与病程（0–30 天）；空值或越界不做判读。</p>';
+    return;
+  }
 
   var checked=[];
   signs.forEach(function(s){
@@ -329,7 +334,6 @@ function calc(){
   // 补液量计算
   var deficitML=weight*deficit*1000;
   var maintenance=weight<10?weight*100:(weight<20?1000+(weight-10)*50:1500+(weight-20)*20);
-  var stoolLoss=freq*10*weight/10; // 估算每次便量约10ml/kg
 
   // 大便性状分析
   var stoolAdvice='';
@@ -357,27 +361,26 @@ function calc(){
   html+='<li>大便性状：'+({watery:'水样便',mucous:'黏液便',bloody:'血便',rice:'米泔水样'}[stoolType])+'</li>';
   html+='</ul></div>';
 
-  html+='<div class="ref-card"><h4>补液方案</h4><ul>';
+  html+='<div class="ref-card"><h4>补液方案（WHO 2005 Plan A/B/C）</h4><ul>';
   if(degree==='无脱水'){
-    html+='<li>居家补液：ORSIII 50ml/kg，4小时内</li>';
-    html+='<li>继续母乳/饮食喂养</li>';
+    html+='<li>Plan A：每次稀便后补充 ORS，<2 岁 50–100 mL/次、≥2 岁 100–200 mL/次</li>';
+    html+='<li>继续母乳/饮食喂养，不禁食</li>';
     html+='<li>补锌：'+(age<6?'10':'20')+'mg/日，10-14天</li>';
   }else if(degree==='轻度脱水'){
-    html+='<li>口服补液：ORSIII 50-80ml/kg，4小时内分次给予</li>';
+    html+='<li>Plan B：ORSIII 75 mL/kg，4 小时内少量多次；4 小时后复评</li>';
     html+='<li>累计丢失量：'+deficitML.toFixed(0)+'mL</li>';
     html+='<li>维持量：'+maintenance.toFixed(0)+'mL/日</li>';
     html+='<li>补锌：'+(age<6?'10':'20')+'mg/日，10-14天</li>';
     html+='<li>继续饮食，避免高糖饮料</li>';
   }else if(degree==='中度脱水'){
-    html+='<li>口服补液：ORSIII 80-100ml/kg，4-6小时内</li>';
-    html+='<li>若口服困难/呕吐频繁：静脉补液</li>';
-    html+='<li>累计丢失量：'+deficitML.toFixed(0)+'mL，半量8h内补完</li>';
+    html+='<li>Plan B：ORSIII 75 mL/kg，4 小时内；若持续呕吐/口服失败或 4 小时后仍中度 → 转静脉补液</li>';
+    html+='<li>累计丢失量：'+deficitML.toFixed(0)+'mL</li>';
     html+='<li>维持量：'+maintenance.toFixed(0)+'mL/日</li>';
     html+='<li>补锌：'+(age<6?'10':'20')+'mg/日，10-14天</li>';
     html+='<li>建议就医评估</li>';
   }else{
-    html+='<li>紧急就医！静脉快速补液</li>';
-    html+='<li>首剂20ml/kg等渗盐水/林格液，30-60分钟内输入</li>';
+    html+='<li>Plan C：静脉补液 100 mL/kg，3–6 小时；&lt;12 月：30 mL/kg 1 小时内 + 70 mL/kg 5 小时；≥12 月：30 mL/kg 30 分钟内 + 70 mL/kg 2.5 小时</li>';
+    html+='<li>如伴休克，先以 20 mL/kg 等渗盐水/林格液快速复苏并复评</li>';
     html+='<li>累计丢失量：'+deficitML.toFixed(0)+'mL</li>';
     html+='<li>维持量：'+maintenance.toFixed(0)+'mL/日</li>';
     html+='<li>监测：血压、尿量、电解质、意识</li>';
@@ -385,6 +388,7 @@ function calc(){
   }
   html+='</ul></div>';
 
+  html+='<div class="tip-box tip-info"><strong>分度口径</strong><br>本页按体征计数简化分度；WHO IMCI 以精神状态、眼窝、口渴、皮肤回缩四项体征判定。结果仅作补液估算，重度或持续恶化需急诊。</div>';
   html+='<div class="tip-box tip-info"><strong>大便分析</strong><br>'+stoolAdvice+'</div>';
 
   // 危险信号

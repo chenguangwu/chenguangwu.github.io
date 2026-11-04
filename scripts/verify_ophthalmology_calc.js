@@ -159,9 +159,9 @@ const CASES = [
     "cct": "545"
   },
   "expect": [
-    "26.3"
+    "26.4"
   ],
-  "ref": "auto-restore"
+  "ref": "三公式均值：(25.225+26.94+27.15)/3=26.438→26.4；比值法 25.761 仅单列、不纳入均值。默认态 iop=15/cct=540 ⇒「校正后眼压(三公式估算均值)： 15.3」不命中该串。"
 },
 {
   "slug": "ophthalmology/meibomian-grading",

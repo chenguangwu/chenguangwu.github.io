@@ -158,6 +158,7 @@ s.parentNode.insertBefore(el, s);
     <table>
       <thead><tr><th>程度</th><th>体液丢失</th><th>主要表现</th><th>处理</th></tr></thead>
       <tbody>
+        <tr><td style="color:#10B981;font-weight:600;">无脱水</td><td>&lt;3%</td><td>无或仅轻度口渴</td><td>按需口服补液、继续喂养</td></tr>
         <tr><td style="color:#10B981;font-weight:600;">轻度</td><td>3-5%</td><td>口渴、尿量略减</td><td>口服补液(ORS)</td></tr>
         <tr><td style="color:#F59E0B;font-weight:600;">中度</td><td>5-10%</td><td>皮肤弹性差、眼窝凹陷、尿少</td><td>口服/静脉补液</td></tr>
         <tr><td style="color:#EF4444;font-weight:600;">重度</td><td>&gt;10%</td><td>嗜睡/昏迷、无尿、休克</td><td>紧急静脉补液</td></tr>
@@ -264,18 +265,28 @@ var gorelickSigns=[
   const __g1=html;document.getElementById('signList').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 })();
 
+function maintMl(w){ if(w<=10) return 100*w; if(w<=20) return 1000+(w-10)*50; return 1500+(w-20)*20; }
+
 function calc(){
-  var weight=parseFloat(document.getElementById('weight').value)||0;
-  var prevWeight=parseFloat(document.getElementById('prevWeight').value)||0;
+  var weight=parseFloat(document.getElementById('weight').value);
+  var prevWeight=parseFloat(document.getElementById('prevWeight').value);
+
+  if(!isFinite(weight)||weight<=0||weight>100){
+    document.getElementById('result').innerHTML='<p style="color:var(--text-muted);">请输入有效体重（0.5–100 kg）；空值或越界不做判读。</p>';
+    return;
+  }
+  if(!isFinite(prevWeight)) prevWeight=0;
+  if(prevWeight>100) prevWeight=0;
 
   var score=0;
   gorelickSigns.forEach(function(s){
     if(document.getElementById(s.id).checked)score++;
   });
 
-  // 脱水程度判定
+  // 脱水程度判定（Gorelick 原始分层：0 = 无脱水，1–2 轻度，3–6 中度，≥7 重度）
   var degree,deColor,dehydrationPercent,advice;
-  if(score<=2){degree='轻度脱水';deColor='#10B981';dehydrationPercent='3-5%';advice='可口服补液(ORS)，少量多次。'}
+  if(score===0){degree='无脱水';deColor='#10B981';dehydrationPercent='<3%';advice='按需口服补液，继续喂养；无需静脉补液。'}
+  else if(score<=2){degree='轻度脱水';deColor='#10B981';dehydrationPercent='3-5%';advice='可口服补液(ORS)，少量多次。'}
   else if(score<=6){degree='中度脱水';deColor='#F59E0B';dehydrationPercent='5-10%';advice='建议就医，口服或静脉补液。'}
   else{degree='重度脱水';deColor='#EF4444';dehydrationPercent='>10%';advice='紧急就医！需立即静脉补液，警惕休克。'}
 
@@ -286,10 +297,9 @@ function calc(){
   }
 
   // 补液量计算
-  var deficitPercent=score<=2?0.04:(score<=6?0.075:0.12);
+  var deficitPercent=score===0?0:(score<=2?0.04:(score<=6?0.075:0.12));
   if(weightLoss!==null){deficitPercent=weightLoss/100;}
   var deficitML=weight*deficitPercent*1000; // 累计丢失量mL
-
   var html='<div class="temp-gauge" style="text-align:center;padding:20px;border-radius:12px;margin:12px 0;background:'+deColor+'1a;border:1px solid '+deColor+'66;">';
   html+='<div style="font-size:28px;font-weight:700;color:'+deColor+';">'+degree+'</div>';
   html+='<div style="font-size:13px;color:var(--text-light);margin-top:4px;">Gorelick评分：'+score+'/10 | 体液丢失：'+dehydrationPercent+'</div>';
@@ -302,7 +312,7 @@ function calc(){
   if(weightLoss!==null){
     html+='<div class="stat-card"><div class="val" style="font-size:16px;color:#3B82F6;">'+weightLoss.toFixed(1)+'%</div><div class="lbl">体重丢失</div></div>';
   }else{
-    html+='<div class="stat-card"><div class="val" style="font-size:16px;color:var(--text);">'+(weight*1.5).toFixed(0)+'-~</div><div class="lbl">日需维持量(mL)</div></div>';
+    html+='<div class="stat-card"><div class="val" style="font-size:16px;color:var(--text);">'+maintMl(weight).toFixed(0)+'</div><div class="lbl">日需维持量(mL)</div></div>';
   }
   html+='</div>';
 
@@ -311,20 +321,20 @@ function calc(){
     // 轻度
     html+='<li>口服补液盐(ORS)：50-80ml/kg，4小时内分次给予</li>';
     html+='<li>累计丢失量：约'+deficitML.toFixed(0)+'mL</li>';
-    html+='<li>维持量：'+(weight*80).toFixed(0)+'mL/日(100-50ml/kg法)</li>';
+    html+='<li>维持量：'+maintMl(weight).toFixed(0)+'mL/日(Holliday-Segar 100-50-20 法)</li>';
     html+='<li>继续喂养(母乳/饮食)，补充含电解质液体</li>';
   }else if(score<=6){
     // 中度
     html+='<li>口服补液：ORS 80-100ml/kg，4-6小时内</li>';
     html+='<li>若口服困难，静脉补液：20ml/kg等渗盐水首剂</li>';
     html+='<li>累计丢失量：约'+deficitML.toFixed(0)+'mL</li>';
-    html+='<li>维持量：'+(weight*80).toFixed(0)+'mL/日</li>';
+    html+='<li>维持量：'+maintMl(weight).toFixed(0)+'mL/日</li>';
     html+='<li>监测：尿量、电解质、体重变化</li>';
   }else{
     // 重度
     html+='<li>紧急静脉补液：首剂20ml/kg等渗盐水/林格液，30-60分钟内输入</li>';
     html+='<li>累计丢失量：约'+deficitML.toFixed(0)+'mL，半量8h内、半量16h内补完</li>';
-    html+='<li>维持量：'+(weight*80).toFixed(0)+'mL/日</li>';
+    html+='<li>维持量：'+maintMl(weight).toFixed(0)+'mL/日</li>';
     html+='<li>纠正休克后，补充继续丢失量</li>';
     html+='<li>监测：血压、尿量、电解质、血糖、意识状态</li>';
     html+='<li>见尿补钾：浓度&lt;0.3%，速度&lt;0.3mmol/kg/h</li>';
@@ -338,7 +348,7 @@ function calc(){
   }
 
   window.__EMR_SUM={w:weight,pw:prevWeight,score:score,degree:degree,pct:dehydrationPercent,deficit:deficitML,wl:weightLoss,adv:advice};
-  const __g2=html;try{ if(typeof score==='number'&&isFinite(score)&&typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){ TBKit.chart.refBar('#resultRefBar',{value:score,unit:'',bands:[{"lo":0,"hi":3,"label":{"zh":"轻度脱水","en":"Mild dehydration"},"color":"#10B981"},{"lo":3,"hi":7,"label":{"zh":"中度脱水","en":"Moderate dehydration"},"color":"#F59E0B"},{"lo":7,"hi":null,"label":{"zh":"重度脱水","en":"Severe dehydration"},"color":"#EF4444"}],title:((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Reference range':'参考区间标尺')}); } }catch(e){}
+  const __g2=html;try{ if(typeof score==='number'&&isFinite(score)&&typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){ TBKit.chart.refBar('#resultRefBar',{value:score,unit:'',bands:[{"lo":0,"hi":1,"label":{"zh":"无脱水","en":"No dehydration"},"color":"#10B981"},{"lo":1,"hi":3,"label":{"zh":"轻度脱水","en":"Mild dehydration"},"color":"#10B981"},{"lo":3,"hi":7,"label":{"zh":"中度脱水","en":"Moderate dehydration"},"color":"#F59E0B"},{"lo":7,"hi":null,"label":{"zh":"重度脱水","en":"Severe dehydration"},"color":"#EF4444"}],title:((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Reference range':'参考区间标尺')}); } }catch(e){}
   document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 
@@ -380,9 +390,10 @@ function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText
 function __emrData(){
   var el=document.getElementById('result'); if(!el) return;
   var s=window.__EMR_SUM; if(!s) return;
-  var m={'轻度脱水':'mild dehydration','中度脱水':'moderate dehydration','重度脱水':'severe dehydration'};
+  var m={'无脱水':'no dehydration','轻度脱水':'mild dehydration','中度脱水':'moderate dehydration','重度脱水':'severe dehydration'};
   var he;
-  if(s.degree==='轻度脱水') he='Mild dehydration: oral rehydration solution in small frequent amounts.';
+  if(s.degree==='无脱水') he='No dehydration: offer oral fluids as needed and continue feeding.';
+  else if(s.degree==='轻度脱水') he='Mild dehydration: oral rehydration solution in small frequent amounts.';
   else if(s.degree==='中度脱水') he='Moderate dehydration: medical review, oral or intravenous rehydration.';
   else he='Severe dehydration: emergency care with immediate intravenous rehydration; watch for shock.';
   __emrNote({name:'小儿脱水评估（Gorelick 评分 + 体重丢失法）', nameEn:'Paediatric Dehydration Assessment (Gorelick score and weight-loss method)',

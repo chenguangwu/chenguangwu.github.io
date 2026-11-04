@@ -131,7 +131,7 @@ s.parentNode.insertBefore(el, s);
 <div class="formula-box">
   
   
-<div class="formula-eq">眼压角膜厚度多公式校正：Ehlers = IOP +（520 − CCT）× 0.071；Doughty = IOP +（542 − CCT）× 0.020；Feltgen = IOP +（550 − CCT）× 0.030；比值法 = IOP × 520 ÷ CCT；取四式均值与最值，CCT 小于500μm 读数偏低估。</div></div>
+<div class="formula-eq">眼压角膜厚度多公式校正：Ehlers = IOP +（520 − CCT）× 0.071；Doughty = IOP +（542 − CCT）× 0.020；Feltgen = IOP +（550 − CCT）× 0.030；比值法 = IOP × 520 ÷ CCT。取 <strong>Ehlers/Doughty/Feltgen 三式均值与最值</strong>；比值法非验证公式，仅单独列出、不纳入均值。CCT 小于 500 μm 读数偏低估。</div></div>
 
     <div class="input-row">
       <div><div data-tb="preset" data-tb-presets='[{"label":"测量眼压(mmHg)18·角膜中央厚度CCT(μm)545…","labelEn":"iop=18 · cct=545 · method=gat","values":{"iop":"18","cct":"545","method":"gat"}}]'></div>
@@ -362,26 +362,26 @@ function calc(){
     var __ig=__tbInputGuard(['iop', 'cct'],["测量眼压 (mmHg)", "角膜中央厚度 CCT (μm)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 var iop=parseFloat($('iop').value);
   var cct=parseFloat($('cct').value);
-  if(isNaN(iop)||isNaN(cct)){
-    $('result').innerHTML='<p style="color:var(--text-muted);">请输入眼压与角膜厚度</p>';
+  if(!isFinite(iop)||iop<1||iop>80||!isFinite(cct)||cct<300||cct>800){
+    $('result').innerHTML='<p style="color:var(--text-muted);">请输入有效眼压（1–80 mmHg）与角膜中央厚度（300–800 μm）；空值或越界不做校正。</p>';
     $('grid').innerHTML='';$('formulaList').innerHTML='';
     return;
   }
-  // 多种校正公式（ref 不同，k 单位 mmHg/μm）
+  // 三种已发表 CCT 校正公式（k 单位 mmHg/μm）；比值法仅作换算参考，不纳入均值
   var ehlers = iop + (520 - cct) * 0.071;          // 经典 Ehlers，1mmHg≈14μm
   var doughty = iop + (542 - cct) * 0.020;        // Doughty 保守
   var feltgen = iop + (550 - cct) * 0.030;        // Feltgen
-  var ratio = iop * (520 / cct);                  // 比值法(参考)
+  var ratio = iop * (520 / cct);                  // 比值法(非验证公式)
   var formulas=[
     {name:'Ehlers(520,0.071)',v:ehlers},
     {name:'Doughty(542,0.020)',v:doughty},
     {name:'Feltgen(550,0.030)',v:feltgen},
-    {name:'比值法(520/CCT)',v:ratio}
+    {name:'比值法(520/CCT，仅参考)',v:ratio}
   ];
 
-  var avg=(ehlers+doughty+feltgen+ratio)/4;
-  var min=Math.min(ehlers,doughty,feltgen,ratio);
-  var max=Math.max(ehlers,doughty,feltgen,ratio);
+  var avg=(ehlers+doughty+feltgen)/3;
+  var min=Math.min(ehlers,doughty,feltgen);
+  var max=Math.max(ehlers,doughty,feltgen);
 
   // CCT 分级
   var cctGrade,cctColor,cctNote;
@@ -394,9 +394,10 @@ var iop=parseFloat($('iop').value);
   var delta=avg-iop;
   var deltaTxt=(delta>=0?'+':'')+delta.toFixed(1);
 
-  const __g5='<p>校正后眼压(均值)：<strong>'+avg.toFixed(1)+' mmHg</strong>　测量值 '+iop.toFixed(1)+' mmHg</p>'+
+  const __g5='<p>校正后眼压(三公式估算均值)：<strong>'+avg.toFixed(1)+' mmHg</strong>　测量值 '+iop.toFixed(1)+' mmHg</p>'+
     '<p>校正范围：<strong>'+min.toFixed(1)+' ~ '+max.toFixed(1)+' mmHg</strong>（Δ '+deltaTxt+' mmHg）</p>'+
-    '<p>角膜分级：<strong style="color:'+cctColor+'">'+cctGrade+'</strong> · '+cctNote+'</p>';$('result').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
+    '<p>角膜分级：<strong style="color:'+cctColor+'">'+cctGrade+'</strong> · '+cctNote+'</p>'+
+    '<p style="font-size:12px;color:var(--text-muted);">CCT 校正公式证据有限，比值法非验证公式已排除出均值；结果仅供研究参考，不能替代 Goldmann 压平眼压或动态轮廓眼压，诊断以临床为准。</p>';$('result').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
 
   var cells=[
     {v:avg.toFixed(1),l:'校正均值'},
@@ -411,6 +412,7 @@ var iop=parseFloat($('iop').value);
   var fh='';
   formulas.forEach(function(f){
     var risk=f.v>=21?'偏高':(f.v<=10?'偏低':'正常范围');
+    if(f.name.indexOf('比值法')===0)risk='仅参考';
     fh+='<div class="formula-row"><span class="k">'+f.name+'</span><span class="v">'+f.v.toFixed(1)+' mmHg · '+risk+'</span></div>';
   });
   const __g7=fh;$('formulaList').innerHTML=(typeof __g7==='number'?(isFinite(__g7)?__g7:'—'):String(__g7).replace(/Infinity|NaN/g,'—'));
