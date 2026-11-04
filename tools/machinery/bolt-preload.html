@@ -116,7 +116,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="🧮 螺栓预紧力计算（工程）">Bolt Preload</h2>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">螺栓预紧力：F = T ÷ (K · d)，T 拧紧扭矩(N·m)、K 扭矩系数(约 0.2)、d 螺纹公称直径(m)；预紧力常取屈服载荷的 60% 至 70%。</div>
+      <div class="formula-eq">螺栓预紧力：F = T ÷ (K · d)，T 拧紧扭矩(N·m)、K 扭矩系数(约 0.2)、d 螺纹公称直径(m)；预紧力常取屈服载荷的 60% 至 70%。T、d、K 均须大于 0，空值或 0 时不计算（避免被当作 0 输出）。</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="按拧紧扭矩与扭矩系数估算螺栓轴向预紧力。">Bolt Preload</p>
 
@@ -209,11 +209,11 @@ s.parentNode.insertBefore(el, s);
   </div>
 </div>
 <script>
-function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
+function num(id){const el=document.getElementById(id);const v=el?parseFloat(el.value):NaN;return isFinite(v)?v:NaN;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
             const T=num('T'), d=num('d')/1000, K=num('K');
-            if(d<=0||K<=0){ToolBox.setResult('result','<p class="tip-error">请输入有效的螺栓参数。</p>');return;}
+            if(!(T>0)||!(d>0)||!(K>0)){ToolBox.setResult('result','<p class="tip-error">请输入有效的螺栓参数：拧紧扭矩 T、公称直径 d、扭矩系数 K 均须大于 0。</p>');return;}
             const F=T/(K*d);   // N
             const html=dataGrid([
                 [(F/1000).toFixed(2),'预紧力 F (kN)'],
@@ -233,7 +233,7 @@ function __bolt_preloadExtras(){
     if (typeof TBKit === 'undefined') return;
     var T=num('T'), d=num('d')/1000, K=num('K');
     var F=T/(K*d);   // N
-    if (!isFinite(__bolt_preloadNum('T')) || !isFinite(__bolt_preloadNum('d')) || !isFinite(__bolt_preloadNum('K'))) return;
+    if (!isFinite(F) || !(F > 0)) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#bolt_preloadTable',{
         head: en?['Item','Value']:['项目','数值'],
@@ -307,8 +307,8 @@ else document.addEventListener('DOMContentLoaded', __bolt_preloadBoot);
 <script>/*TBKIT-INJECT-START*/
 function __bplChart(){
   if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
-  var d=(typeof num==='function')?num('d')/1000:0.012; if(d<=0)d=0.012;
-  var K=(typeof num==='function')?num('K'):0.2; if(K<=0)K=0.2;
+  var d=(typeof num==='function')?num('d')/1000:0.012; if(!(d>0))d=0.012;
+  var K=(typeof num==='function')?num('K'):0.2; if(!(K>0))K=0.2;
   var labels=[],data=[];
   for(var F=10000;F<=100000;F+=10000){ var T=K*d*F; labels.push(String(F/1000)); data.push(Math.round(T*100)/100); }
   var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
