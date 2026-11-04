@@ -191,3 +191,16 @@
 
 不算风险（固定键 / 数值键 / 不可产出魔法名）：`it/ipv6-ula`、`it/mime-type`（表为数组 filter）、`it/jwt-*`（固定字段）、`it/curl-parser`（固定字段）、`tools/quality/control-chart`（数值键）、`biz/text-extract-dates`（日期形态键）、`biz/text-extract-urls`（URL 形态键，不会恰为 `__proto__`）。
 
+
+## 九、「`x || 默认值` 吞 0」与输入事件缺失（2026-11-05）
+
+> 口径：只有空串 / NaN 才回退默认值；0 是合法值必须原样进入计算；定义域确实排除 0 的（数量、长度）显式拒绝并给原因，不静默改成默认值。
+
+| 页面 | 原缺陷 | 注入 0 后的输出（修复后） |
+|---|---|---|
+| `it/random` | `max \|\| 100` 把上限 0 当假值回退 100 | min=-5 / max=0 / count=1 → `-4`（落在 [-5,0]）；count=0 → 「生成数量须为不小于 1 的整数」 |
+| `it/vector-magnitude` | 6 处 `m \|\| 1` 把零向量分母改成 1 | (0,0,0) → 「零向量无方向余弦与方向角」；2D 零向量 → 「零向量无方向角」；非零 (3,4,0) 仍为 cos α=0.6 / β=0.8 / γ=0 |
+| `it/random-string` | `parseInt(value\|\|'5')\|\|5` 双段兜底 | cnt=0 → 「生成数量至少为 1 个」；len=0 → 「长度至少为 1 位」 |
+| `it/json-to-tsv` | 根因 **① 事件没绑**：仅在页面加载末调用一次 `jsonToTsv()`，textarea 无 `input` 监听 | 改成合法 JSON 数组即自动重算（静默模式不写历史/不弹 toast），表头、数据行与行列统计同步刷新 |
+
+门禁：`verify_it_calc.js` 977/977；legacy 判别 976 已检 / 0 逃生 / 1 跳过；fidelity 973 已检 / 0 逃生 / 4 跳过；`all_default=0`（risk 3 为既有 `calc-2`、`vector-dot-product`、`vector-magnitude`，未新增）。

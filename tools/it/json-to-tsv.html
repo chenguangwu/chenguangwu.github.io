@@ -492,10 +492,11 @@ function escapeTsvValue(v, options = {}) {
   return s;
 }
 
-function jsonToTsv() {
+function jsonToTsv(opts) {
+  const auto = !!(opts && opts.auto);
   const input = document.getElementById('jsonInput').value.trim();
   if (!input) {
-    ToolBox.showToast(i18nText('toast.msg749'), 'error');
+    if (!auto) ToolBox.showToast(i18nText('toast.msg749'), 'error');
     return;
   }
   
@@ -540,10 +541,12 @@ function jsonToTsv() {
       <div class="stat-item">字符数：<strong>${result.length}</strong></div>
     `;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){stats.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}stats.innerHTML=__h0;
     
-    saveToHistory('json2tsv', input, data.length, keys.length);
-    ToolBox.showToast(i18nText('toast.msg966'));
+    if (!auto) {
+      saveToHistory('json2tsv', input, data.length, keys.length);
+      ToolBox.showToast(i18nText('toast.msg966'));
+    }
   } catch(e) {
-    ToolBox.showToast('转换失败：' + e.message, 'error');
+    if (!auto) ToolBox.showToast('转换失败：' + e.message, 'error');
   }
 }
 
@@ -816,7 +819,7 @@ function downloadTsv() {
     ToolBox.showToast(i18nText('toast.msg476'), 'error');
     return;
   }
-  ToolBox.downloadText(val, 'data.tsv');
+  ToolBox.downloadText('data.tsv', val);
 }
 
 function downloadJson() {
@@ -825,9 +828,22 @@ function downloadJson() {
     ToolBox.showToast(i18nText('toast.msg476'), 'error');
     return;
   }
-  ToolBox.downloadText(val, 'data.json');
+  ToolBox.downloadText('data.json', val);
 }
 try{ jsonToTsv(); }catch(e){}
+document.getElementById('jsonInput').addEventListener('input', function(){
+  const raw = this.value.trim();
+  if (!raw) {
+    document.getElementById('j2tStats').innerHTML = '';
+    return;
+  }
+  let data;
+  try { data = JSON.parse(raw); } catch(e) { return; }
+  if (!Array.isArray(data)) return;
+  jsonToTsv({ auto: true });
+  const preview = document.getElementById('previewTable');
+  if (preview && preview.innerHTML) renderPreview(data);
+});
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

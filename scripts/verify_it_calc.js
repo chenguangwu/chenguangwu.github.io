@@ -3368,6 +3368,12 @@ const CASES = [
     expect: ["a l1l2", "行数： 1 列数： 1 字符数： 6"],
     ref: "同数据切 j2tNewline=remove ⇒ 换行被直接删除，输出 a l1l2（6 字符，行数/列数均 1）。与 br 例共同覆盖换行处理的两条分支。",
   },
+  {
+    slug: "it/json-to-tsv",
+    inputs: { jsonInput: "[{\"a\":1,\"b\":2},{\"a\":3,\"b\":4}]" },
+    expect: ["a b\n1 2\n3 4", "行数： 2 列数： 2"],
+    ref: "实时重算：旧实现只在页面加载时调用一次 jsonToTsv()，textarea 没有 input 监听，改 JSON 后输出区与统计保持首屏结果。修复后输入合法 JSON 数组即自动重算 ⇒ TSV 表头 a/b、两行 1 2 与 3 4，统计 2 行 2 列。默认样本为 3 列（name/age/city），不含该表头与 `列数： 2`。",
+  },
 
   // —— it/uuid-generator：UUID 解析器的结构化派生输出（版本号 / 变体 / 分段），
   //    锚点均为「解析产物」而非输入回显；默认态 parseInput 为空 → parseUuid() 直接 return，无输出。——
@@ -6507,6 +6513,52 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"min\":\"42\",\"max\":\"42\",\"count\":\"42\"}，输出区含「42\n42\n42\n6\n反面\n红: 4 7 9 22」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    "slug": "it/random",
+    "inputs": {
+      "min": "-5",
+      "max": "0",
+      "count": "1"
+    },
+    "checkIds": ["integer"],
+    "clicks": ["generateNumbers()"],
+    "expect": ["-4"],
+    "ref": "上限 0 是合法值：旧实现 `max || 100` 把 0 当假值回退成 100，[-5,100) 的整数输出不可能为 -4；修复后按 [-5,0] 生成，固定种子下首个整数为 -4。默认态（min=0/max=100）输出非负数，不含 `-4`（输入值 -5/0/1 也不含该串）。"
+  },
+  {
+    "slug": "it/random",
+    "inputs": {
+      "min": "-5",
+      "max": "0",
+      "count": "0"
+    },
+    "checkIds": ["integer"],
+    "clicks": ["generateNumbers()"],
+    "expect": ["生成数量须为不小于 1 的整数"],
+    "ref": "数量 0 的定义域不成立：旧实现 `parseInt(...) || 1` 静默改成 1 并生成数字；修复后显式拒绝并说明原因。默认 count=1 走正常生成路径，不出现该提示。"
+  },
+  {
+    "slug": "it/random-string",
+    "inputs": {
+      "len": "8",
+      "cnt": "0"
+    },
+    "checkIds": ["top_upper"],
+    "clicks": ["calcTool()"],
+    "expect": ["生成数量至少为 1 个"],
+    "ref": "数量 0 的定义域不成立：旧实现 `parseInt(value||'5')||5` 双段兜底把 0 静默改成 5，与同函数 `if(cnt<1) cnt=1` 自相矛盾；修复后显式拒绝。默认 cnt=5 走正常生成路径，不含该提示。"
+  },
+  {
+    "slug": "it/random-string",
+    "inputs": {
+      "len": "0",
+      "cnt": "2"
+    },
+    "checkIds": ["top_upper"],
+    "clicks": ["calcTool()"],
+    "expect": ["长度至少为 1 位"],
+    "ref": "长度 0 的定义域不成立：旧实现 `parseInt(value||'16')||16` 把 0 静默改成 16；修复后显式拒绝。默认 len=16 走正常生成路径，不含该提示。"
+  },
+  {
     "slug": "it/rc4",
     "inputs": {
       "key": "abc123测试",
@@ -7302,9 +7354,18 @@ const CASES = [
       "dim": "3"
     },
     "expect": [
-      "无单位向量。 方向余弦：cos α = 0, cos β = 0, cos γ = 0 方向角：α = 90°, β = 90°, γ = 90°"
+      "零向量无方向余弦与方向角。"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"dim\":\"3\"}，输出区含「无单位向量。 方向余弦：cos α = 0, cos β = 0, cos γ …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "零向量（|v|=0）：方向余弦 vᵢ/|v| 分母为 0，旧实现 `m||1` 把分母改成 1，得到 cos=0、α=90° 的伪结果，且与同页「零向量无单位向量」自相矛盾。修复后显式输出「零向量无方向余弦与方向角」。默认 3D 维度下页面 build() 生成的 v 输入在无头桩内无初始值（按 0 处理），即零向量场景。"
+  },
+  {
+    "slug": "it/vector-magnitude",
+    "inputs": {},
+    "clicks": ["document.getElementById('v0').value=3;document.getElementById('v1').value=4;document.getElementById('v2').value=0;calculate()"],
+    "expect": [
+      "cos α = 0.6, cos β = 0.8, cos γ = 0"
+    ],
+    "ref": "非零向量方向余弦回归：v=(3,4,0)、|v|=5 ⇒ cos α=3/5=0.6、cos β=4/5=0.8、cos γ=0/5=0。防「零向量守卫」误拦正常输入；运行时输入框无 HTML 默认值，故用 clicks 赋值。"
   },
   {
     "slug": "it/whitespace",
