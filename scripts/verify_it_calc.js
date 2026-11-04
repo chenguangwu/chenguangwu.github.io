@@ -6515,6 +6515,15 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"fg\":\"abc123测试\",\"bg\":\"abc123测试\",\"text\":\"1\\n2\\n3\",\"ecc\":\"M\",\"style\":\"square\"}，输出区含「 defined\nM\nabc123测试\nabc123测试\nsquare」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    "slug": "it/qr-beautify",
+    "clicks": ["ToolBox.showToast=function(m){document.getElementById('__svg_probe').textContent='TOAST:'+m;};var c=document.getElementById('qrCanvas');c.width=100;c.toDataURL=function(){throw new Error('boom')};downloadPng();"],
+    "expect": [
+      "TOAST:导出失败：Error"
+    ],
+    "ref": "B 类失败注入：downloadPng() 内 `a.href=c.toDataURL('image/png')` 裸调。把 #qrCanvas 的 toDataURL 改为必抛 Error 并把 ToolBox.showToast 换成录音器 ⇒ 结果区必须出现「TOAST:导出失败：Error」。"
+      + "修复前异常裸冒成 pageerror、无任何提示；默认态无 TOAST: 串 ⇒ 判别明确。"
+  },
+  {
     "slug": "it/python-formatter",
     "inputs": {
       "input": "1\n2\n3",

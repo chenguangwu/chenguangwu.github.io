@@ -332,6 +332,13 @@ const CASES = [
   "clicks": ["var g=(typeof window!=='undefined'?window.__svgFileBlocked:null)||(typeof __svgFileBlocked==='function'?__svgFileBlocked:null);document.getElementById('__svg_probe').textContent='SVG:'+(g&&g({name:'evil.svg',type:'image/svg+xml'})?'BLOCK':'PASS')+'|PNG:'+(g&&g({name:'ok.png',type:'image/png'})?'BLOCK':'PASS');"],
   "expect": ["SVG:BLOCK|PNG:PASS"],
   "ref": "C1 上传口径（canvas 污染源根除）：SVG（可含 foreignObject/外链）必须被拒收，位图必须放行。由真机负向自证（21/21）配套覆盖。"
+},
+{
+  "slug": "image/nine-grid-cutter",
+  "clicks": ["ToolBox.showToast=function(m){document.getElementById('__svg_probe').textContent='TOAST:'+m;};downloadOne(document.createElement('canvas'),1);"],
+  "expect": ["TOAST:导出失败："],
+  "ref": "B 类失败注入：桩内 canvas.toBlob 恒回调 null（等价画布被污染时浏览器返回 null）。原本 downloadOne 里 `if (!blob) return;` 静默跳过，"
+    + "现必须走 __ngcExportFail → toast「导出失败：浏览器未能生成 PNG（画布可能被污染）」。默认态无 TOAST: 串 ⇒ 判别明确。"
 }
 ];
 async function main() {

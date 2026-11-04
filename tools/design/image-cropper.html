@@ -305,6 +305,11 @@ document.getElementById('fileInput').addEventListener('change', (e) => {
   };
   reader.readAsDataURL(file);
 });
+function __icExportFail(msg){
+  if(typeof showToast==='function')showToast(msg,'error');
+  else if(window.ToolBox&&ToolBox.showToast)ToolBox.showToast(msg,'error');
+  else alert(msg);
+}
 function generate(){
   if(!origImg){ alert('请先上传图片'); return; }
   let x = parseInt(document.getElementById('cx').value) || 0;
@@ -319,17 +324,21 @@ function generate(){
   canvas.width = w; canvas.height = h;
   const ctx = canvas.getContext('2d');
   ctx.drawImage(origImg, x, y, w, h, 0, 0, w, h);
-  lastURL = canvas.toDataURL('image/png');
+  try { lastURL = canvas.toDataURL('image/png'); }
+  catch (e) { lastURL=''; __icExportFail('导出失败：' + ((e && (e.name || e.message)) || '未知错误')); return; }
   const name = cropName(x, y, w, h);
   revokeCropURL();
   updateDownload(name);
   const token = ++cropSeq;
   if(typeof canvas.toBlob === 'function' && typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function'){
-    canvas.toBlob(function(blob){
-      if(token !== cropSeq || !blob) return;
-      lastBlobURL = URL.createObjectURL(blob);
-      updateDownload(name);
-    }, 'image/png');
+    try {
+      canvas.toBlob(function(blob){
+        if(token !== cropSeq) return;
+        if(!blob){ __icExportFail('导出失败：浏览器未能生成 PNG（画布可能被污染）'); return; }
+        lastBlobURL = URL.createObjectURL(blob);
+        updateDownload(name);
+      }, 'image/png');
+    } catch (e) { __icExportFail('导出失败：' + ((e && (e.name || e.message)) || '未知错误')); }
   }
   const __h1='<img src="'+lastURL+'" alt="裁剪后">';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('preview').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('preview').innerHTML=__h1;
 }

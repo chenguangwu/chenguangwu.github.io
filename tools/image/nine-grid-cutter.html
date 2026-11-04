@@ -393,22 +393,35 @@ function splitAndRender() {
 
       grid.appendChild(wrapper);
 
-      blobs.push(new Promise(resolve => cs.toBlob(resolve, 'image/png')));
+      blobs.push(new Promise(resolve => {
+        try { cs.toBlob(resolve, 'image/png'); }
+        catch (e) { __ngcExportFail(__ngcT('导出失败：', 'Export failed: ') + ((e && (e.name || e.message)) || '')); resolve(null); }
+      }));
     }
   }
   __ngcRenderInfo();
 }
 
+function __ngcExportFail(msg){
+  try { if (window.ToolBox && ToolBox.showToast) ToolBox.showToast(msg, 'error'); else alert(msg); } catch (e) {}
+}
 function downloadOne(canvas, idx) {
-  canvas.toBlob(function (blob) {
-    if (!blob) return;
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'grid-' + idx + '.png';
-    a.click();
-    URL.revokeObjectURL(url);
-  }, 'image/png');
+  try {
+    canvas.toBlob(function (blob) {
+      if (!blob) {
+        __ngcExportFail(__ngcT('导出失败：浏览器未能生成 PNG（画布可能被污染）', 'Export failed: the browser could not produce a PNG (canvas may be tainted)'));
+        return;
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'grid-' + idx + '.png';
+      a.click();
+      URL.revokeObjectURL(url);
+    }, 'image/png');
+  } catch (e) {
+    __ngcExportFail(__ngcT('导出失败：', 'Export failed: ') + ((e && (e.name || e.message)) || ''));
+  }
 }
 
 function __ngcSleep(ms){

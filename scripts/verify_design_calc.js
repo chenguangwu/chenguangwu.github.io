@@ -2409,7 +2409,53 @@ const CASES = [
   "clicks": ["var g=(typeof window!=='undefined'?window.__svgFileBlocked:null)||(typeof __svgFileBlocked==='function'?__svgFileBlocked:null);document.getElementById('__svg_probe').textContent='SVG:'+(g&&g({name:'evil.svg',type:'image/svg+xml'})?'BLOCK':'PASS')+'|PNG:'+(g&&g({name:'ok.png',type:'image/png'})?'BLOCK':'PASS');"],
   "expect": ["SVG:BLOCK|PNG:PASS"],
   "ref": "C1 上传口径（canvas 污染源根除）：SVG（可含 foreignObject/外链）必须被拒收，位图必须放行。由真机负向自证（21/21）配套覆盖。"
-}
+},
+// ── B 类：导出失败必须可见（toDataURL/toBlob 抛异常或返回 null 时不得静默）──
+...[
+  {
+    slug: "design/color-palette-generator",
+    entry: "exportImage()",
+    ref: "exportImage() 内 toDataURL 裸调；注入后必须 toast「导出失败：<e.name||e.message>」。",
+  },
+  {
+    slug: "design/image-resizer",
+    entry: "origImg={width:20,height:20};generate()",
+    ref: "image-resizer generate() 内 toDataURL 裸调；注入后必须 toast。默认态（无注入）无该文案 ⇒ 判别明确。",
+  },
+  {
+    slug: "design/image-rotator",
+    entry: "origImg={width:20,height:20};generate()",
+    ref: "image-rotator generate() 内 toDataURL 裸调；注入后必须 toast。",
+  },
+  {
+    slug: "design/image-cropper",
+    entry: "origImg={width:20,height:20};generate()",
+    ref: "image-cropper generate() 内 toDataURL 裸调（toBlob 链路另有 null 分支）；注入后必须 toast。",
+  },
+  {
+    slug: "design/image-flipper",
+    entry: "origImg={width:20,height:20};flip('h')",
+    ref: "image-flipper flip() 内 toDataURL 裸调（toBlob 回调原为 if(blob) 静默）；注入后必须 toast。",
+  },
+].map(function (c) {
+  return {
+    slug: c.slug,
+    inputs: {},
+    clicks: [
+      "ToolBox.showToast=function(m){document.getElementById('__svg_probe').textContent='TOAST:'+m;};"
+      + "window.canvasExportError=window.canvasExportError||function(){return null;};"
+      + "var _ce=document.createElement.bind(document);"
+      + "document.createElement=function(t){var e=_ce(t);if(t==='canvas'){e.toDataURL=function(){throw new Error('boom')};}return e;};"
+      + c.entry,
+    ],
+    expect: ["TOAST:导出失败：Error"],
+    ref: "失败注入：把桩内 canvas.toDataURL 改成必抛 Error 并把 ToolBox.showToast 换成录音器，再走真实导出入口 ⇒ 结果区必须出现「TOAST:导出失败：Error」。"
+      + "修复前异常裸冒成 pageerror、页面无提示；默认态无 TOAST: 串 ⇒ 判别明确。" + c.ref,
+  };
+})
+// design/colorblind-simulator 的导出逻辑在外部模块 js/tools/colorblind-simulator.js（IIFE）里，
+// 门禁 harness 不加载 /js/tools/*.js ⇒ 模块内 toast() 与 renderImagePane 均不可达，
+// 无法做桩级失败注入；改为真机注入（toDataURL 抛 Error / toBlob 回调 null）验证，结果记录在本批回报。
 ];
 
 // ---------------------------------------------------------------- main

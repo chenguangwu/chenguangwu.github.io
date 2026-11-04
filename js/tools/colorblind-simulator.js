@@ -588,7 +588,7 @@
   function renderImagePane() {
     if (!S3.srcCanvas) { return; }
     var stage = $('c3Stage');
-    var w = S3.w, h = S3.h;
+    var w = S3.w, h = S3.h, failed = false;
     var thumbs = [];
     TYPES.forEach(function (t) {
       thumbs.push({ key: t.key, zh: t.zh, en: t.en, note: t.note });
@@ -613,7 +613,9 @@
     stage.innerHTML = htm;
     $('c3Export').disabled = false;
 
-    var srcUrl = S3.srcCanvas.toDataURL('image/png');
+    var srcUrl;
+    try { srcUrl = S3.srcCanvas.toDataURL('image/png'); }
+    catch (e) { toast('导出失败：' + ((e && (e.name || e.message)) || '未知错误')); return false; }
     $('c3OrigImg').src = srcUrl;
 
     function drawSim(key) {
@@ -631,8 +633,10 @@
 
     function updateSim() {
       var k = $('c3Pick').value;
-      var c = drawSim(k);
-      $('c3SimImg').src = c.toDataURL('image/png');
+      var c = drawSim(k), url;
+      try { url = c.toDataURL('image/png'); }
+      catch (e) { toast('导出失败：' + ((e && (e.name || e.message)) || '未知错误')); failed = true; return; }
+      $('c3SimImg').src = url;
       $('c3CmpRight').textContent = TYPE_MAP[k].zh;
       buildCompare(k);
     }
@@ -642,14 +646,17 @@
     // 并列网格
     var gh = '';
     TYPES.forEach(function (t) {
-      var c = drawSim(t.key);
+      var c = drawSim(t.key), src;
+      try { src = c.toDataURL('image/png'); }
+      catch (e) { toast('导出失败：' + ((e && (e.name || e.message)) || '未知错误')); src = ''; failed = true; }
       gh += '<div class="cbs-swatch"><div style="position:relative">' +
-        '<img src="' + c.toDataURL('image/png') + '" alt="' + esc(tn(t)) + '" style="display:block;width:100%;height:auto">' +
+        '<img src="' + src + '" alt="' + esc(tn(t)) + '" style="display:block;width:100%;height:auto">' +
         (S3.label ? '<span class="cbs-tag l">' + esc(tn(t)) + '</span>' : '') +
         '</div><div class="cbs-meta"><div class="n">' + esc(tn(t)) + '</div>' +
         '<div class="d">' + esc(nt(t)) + '</div></div></div>';
     });
     $('c3Grid').innerHTML = gh;
+    return !failed;
   }
 
   function buildCompare(key) {
@@ -785,7 +792,7 @@
   $('c3Demo').addEventListener('click', function () {
     var c = buildDemoImage();
     S3.srcCanvas = c; S3.w = c.width; S3.h = c.height; S3.rendered = {}; S3.name = 'demo';
-    renderImagePane();
+    if (renderImagePane() === false) { return; }
     toast(B('已载入内置示例图', 'Built-in sample image loaded'));
   });
 
@@ -821,9 +828,12 @@
         x.fillText(tn(t), px + cw / 2, py + chh + 30);
       }
     });
-    out.toBlob(function (blob) {
-      if (blob) { downloadBlob(blob, 'cvd-8types-' + S3.name + '.png', 'image/png'); }
-    }, 'image/png');
+    try {
+      out.toBlob(function (blob) {
+        if (!blob) { toast('导出失败：浏览器未能生成 PNG（画布可能被污染）'); return; }
+        downloadBlob(blob, 'cvd-8types-' + S3.name + '.png', 'image/png');
+      }, 'image/png');
+    } catch (e) { toast('导出失败：' + ((e && (e.name || e.message)) || '未知错误')); }
   });
 
   function downloadBlob(data, filename, mime) {

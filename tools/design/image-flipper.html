@@ -295,6 +295,9 @@ document.getElementById('fileInput').addEventListener('change', (e) => {
   };
   reader.readAsDataURL(file);
 });
+function __flExportFail(msg){
+  try{ if(typeof showToast==='function') showToast(msg,'error'); else if(window.ToolBox&&ToolBox.showToast) ToolBox.showToast(msg,'error'); else alert(msg); }catch(e){}
+}
 function flip(mode){
   const src = currentImg || origImg;
   if(!src){ alert('请先上传图片'); return; }
@@ -309,7 +312,12 @@ function flip(mode){
     ctx.translate(canvas.width, canvas.height); ctx.scale(-1, -1);
   }
   ctx.drawImage(src, 0, 0);
-  lastURL = canvas.toDataURL('image/png');
+  try { lastURL = canvas.toDataURL('image/png'); }
+  catch (e) {
+    lastURL = ''; lastBlob = null;
+    __flExportFail('导出失败：' + ((e && (e.name || e.message)) || '未知错误'));
+    return;
+  }
   lastBlob = null;
   if(lastObjectURL){
     try { URL.revokeObjectURL(lastObjectURL); } catch(e){}
@@ -318,9 +326,13 @@ function flip(mode){
   // 优先保留 Blob 便于下载，异步回调只接受本次翻转的结果
   const sourceURL = lastURL;
   if(canvas.toBlob){
-    canvas.toBlob((blob) => {
-      if(blob && lastURL === sourceURL) lastBlob = blob;
-    }, 'image/png');
+    try {
+      canvas.toBlob((blob) => {
+        if(lastURL !== sourceURL) return;
+        if(!blob){ __flExportFail('导出失败：浏览器未能生成 PNG（画布可能被污染）'); return; }
+        lastBlob = blob;
+      }, 'image/png');
+    } catch (e) { __flExportFail('导出失败：' + ((e && (e.name || e.message)) || '未知错误')); }
   }
   const newImg = new Image();
   newImg.onload = () => { currentImg = newImg; };

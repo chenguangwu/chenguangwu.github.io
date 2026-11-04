@@ -396,11 +396,16 @@ function drawLogoOverlay(ctx,size,ecc){
   var dw=__qrLogoImg.width*scale,dh=__qrLogoImg.height*scale;
   ctx.drawImage(__qrLogoImg,x+(w-dw)/2,y+(w-dh)/2,dw,dh);
 }
+function __qrExportFail(msg){
+  if(window.ToolBox&&ToolBox.showToast)ToolBox.showToast(msg,'error');
+  else alert(msg);
+}
 function downloadPng(){
   var c=document.getElementById('qrCanvas');
   if(!c.width){if(ToolBox.showToast)ToolBox.showToast(i18nText('toast.msg650'));return;}
   var a=document.createElement('a');
-  a.href=c.toDataURL('image/png');
+  try { a.href=c.toDataURL('image/png'); }
+  catch (e) { __qrExportFail('导出失败：'+((e&&(e.name||e.message))||'未知错误')); return; }
   a.download='qrcode-'+Date.now()+'.png';
   document.body.appendChild(a);a.click();document.body.removeChild(a);
   if(ToolBox.showToast)ToolBox.showToast(i18nText('toast.msg143'));
@@ -408,7 +413,10 @@ function downloadPng(){
 function copyBase64(){
   var c=document.getElementById('qrCanvas');
   if(!c.width){if(ToolBox.showToast)ToolBox.showToast(i18nText('toast.msg650'));return;}
-  ToolBox.copyText(c.toDataURL('image/png'));
+  var data;
+  try { data=c.toDataURL('image/png'); }
+  catch (e) { __qrExportFail('导出失败：'+((e&&(e.name||e.message))||'未知错误')); return; }
+  ToolBox.copyText(data);
   if(ToolBox.showToast)ToolBox.showToast(i18nText('toast.msg190'));
 }
 draw();
