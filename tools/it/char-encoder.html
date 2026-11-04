@@ -272,30 +272,31 @@ function b32(bytes){
 function convert(){
   const text = document.getElementById('input').value;
   const results = document.getElementById('results');
-  if(!text){ document.getElementById('byteViewBox').innerHTML=''; const __h0='<p style="color:var(--text-muted);">请输入文本</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){results.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}results.innerHTML=__h0; return; }
+  const EN = /(?:^|[?&])lang=en/i.test(location.search);
+  if(!text){ document.getElementById('byteViewBox').innerHTML=''; const __h0='<p style="color:var(--text-muted);">'+(EN?'Please enter text':'请输入文本')+'</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){results.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}results.innerHTML=__h0; return; }
   const bytes = new TextEncoder().encode(text);
   const codePoints = [];
   for(const ch of text) codePoints.push(ch.codePointAt(0));
 
   const formats = [
-    ['ASCII 码', bytes.length <= 1 ? bytes.join(', ') : '多字节序列: ' + Array.from(bytes).join(', ')],
-    ['Unicode 码点', codePoints.map(cp => 'U+' + cp.toString(16).toUpperCase().padStart(4,'0')).join(' ')],
+    [(EN?'ASCII code':'ASCII 码'), bytes.length <= 1 ? bytes.join(', ') : (EN?'Multi-byte sequence: ':'多字节序列: ') + Array.from(bytes).join(', ')],
+    [(EN?'Unicode code point':'Unicode 码点'), codePoints.map(cp => 'U+' + cp.toString(16).toUpperCase().padStart(4,'0')).join(' ')],
     ['UTF-8 Bytes', Array.from(bytes).map(b => b).join(' ')],
-    ['HTML 十进制', codePoints.map(cp => '&#' + cp + ';').join('')],
-    ['HTML 十六进制', codePoints.map(cp => '&#x' + cp.toString(16) + ';').join('')],
-    ['HTML 命名', (() => {
+    [(EN?'HTML decimal':'HTML 十进制'), codePoints.map(cp => '&#' + cp + ';').join('')],
+    [(EN?'HTML hex':'HTML 十六进制'), codePoints.map(cp => '&#x' + cp.toString(16) + ';').join('')],
+    [(EN?'HTML named':'HTML 命名'), (() => {
       const map = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','\u00A9':'&copy;','\u00AE':'&reg;','\u2122':'&trade;','\u20AC':'&euro;'};
       let s = '';
       for(const ch of text) s += map[ch] || ch;
       return s;
     })()],
-    ['URL 编码', encodeURIComponent(text)],
+    [(EN?'URL encoding':'URL 编码'), encodeURIComponent(text)],
     ['Base64', b64(bytes)],
     ['Base32', b32(bytes)],
     ['Hex', Array.from(bytes).map(b => b.toString(16).padStart(2,'0')).join(' ')],
     ['Binary', Array.from(bytes).map(b => b.toString(2).padStart(8,'0')).join(' ')],
     ['Octal', Array.from(bytes).map(b => b.toString(8).padStart(3,'0')).join(' ')],
-    ['JS 转义', (() => {
+    [(EN?'JS escape':'JS 转义'), (() => {
       let s = '"';
       for(const ch of text){
         const cp = ch.codePointAt(0);
@@ -307,14 +308,14 @@ function convert(){
       }
       return s + '"';
     })()],
-    ['字符数', text.length + ' (UTF-16 code units)'],
-    ['码点数', codePoints.length],
-    ['字节数', bytes.length + ' (UTF-8)'],
+    [(EN?'Characters':'字符数'), text.length + ' (UTF-16 code units)'],
+    [(EN?'Code points':'码点数'), codePoints.length],
+    [(EN?'Bytes':'字节数'), bytes.length + ' (UTF-8)'],
   ];
 
   let html = '';
   for(const [name, val] of formats){
-    html += `<div class="format-card"><div class="name">${name}</div><div class="val">${escapeHtml(val)}</div><button type="button" class="btn success" style="padding:4px 10px;font-size:12px;">复制</button></div>`;
+    html += `<div class="format-card"><div class="name">${name}</div><div class="val">${escapeHtml(val)}</div><button type="button" class="btn success" style="padding:4px 10px;font-size:12px;">${EN?'Copy':'复制'}</button></div>`;
   }
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){results.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}results.innerHTML=__h1;
   __renderByteView(text, bytes);
@@ -335,7 +336,7 @@ function escapeHtml(s){
 function __renderByteView(text, bytes){
   var box = document.getElementById('byteViewBox');
   if(!box) return;
-  var en=false; try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) en=TBKit.util.isEn(); }catch(e){}
+  var en=/(?:^|[?&])lang=en/i.test(location.search); try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) en=TBKit.util.isEn(); }catch(e){}
   var MAX=64, chars=[...text], trunc=chars.length>MAX;
   if(trunc) chars=chars.slice(0,MAX);
   var bi=0;

@@ -253,35 +253,36 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 function fmt(x){ if(!isFinite(x)) return '未定义'; if(Math.abs(x)<1e-12) return '0'; return (Math.round(x*1e10)/1e10).toLocaleString(); }
+var SD_EN=/(?:^|[?&])lang=en/i.test(location.search);
 function parseData(str){ return str.split(/[,\s\n;]+/).map(s=>s.trim()).filter(s=>s).map(s=>parseFloat(s)).filter(n=>!isNaN(n)); }
 function calculate(){
   const data=parseData(document.getElementById('data').value);
   const type=document.getElementById('dtype').value;
-  if(data.length<1){ const __h0='<p style="color:var(--danger);">请输入数据</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h0; return; }
-  if(type==='sample' && data.length<2){ const __h1='<p style="color:var(--danger);">样本标准差需要至少 2 个数据</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h1; return; }
+  if(data.length<1){ const __h0='<p style="color:var(--danger);">'+(SD_EN?'Please enter data':'请输入数据')+'</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h0; return; }
+  if(type==='sample' && data.length<2){ const __h1='<p style="color:var(--danger);">'+(SD_EN?'Sample standard deviation requires at least 2 data points':'样本标准差需要至少 2 个数据')+'</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h1; return; }
   const n=data.length;
   const sum=data.reduce((s,x)=>s+x,0);
   const mean=sum/n;
   const ss=data.reduce((s,x)=>s+(x-mean)*(x-mean),0);
   const variance=type==='sample'?ss/(n-1):ss/n;
   const sd=Math.sqrt(variance);
-  let html='<p><strong>数据（n='+n+'）：</strong>'+data.map(fmt).join(', ')+'</p>';
+  let html='<p><strong>'+(SD_EN?'Data (n=':'数据（n=')+n+(SD_EN?'):':'）：')+'</strong>'+data.map(fmt).join(', ')+'</p>';
   html+='<div class="big-result">'+(type==='sample'?'s':'σ')+' = '+fmt(sd)+'</div>';
   html+='<div class="stat-grid">';
-  html+='<div class="stat-card"><div class="name">均值 x̄</div><div class="val">'+fmt(mean)+'</div></div>';
-  html+='<div class="stat-card"><div class="name">方差</div><div class="val">'+fmt(variance)+'</div></div>';
-  html+='<div class="stat-card"><div class="name">标准差</div><div class="val">'+fmt(sd)+'</div></div>';
-  html+='<div class="stat-card"><div class="name">平方和 SS</div><div class="val">'+fmt(ss)+'</div></div>';
+  html+='<div class="stat-card"><div class="name">'+(SD_EN?'Mean x̄':'均值 x̄')+'</div><div class="val">'+fmt(mean)+'</div></div>';
+  html+='<div class="stat-card"><div class="name">'+(SD_EN?'Variance':'方差')+'</div><div class="val">'+fmt(variance)+'</div></div>';
+  html+='<div class="stat-card"><div class="name">'+(SD_EN?'Std. deviation':'标准差')+'</div><div class="val">'+fmt(sd)+'</div></div>';
+  html+='<div class="stat-card"><div class="name">'+(SD_EN?'Sum of squares SS':'平方和 SS')+'</div><div class="val">'+fmt(ss)+'</div></div>';
   html+='</div>';
-  html+='<p style="margin-top:12px;"><strong>计算步骤：</strong></p>';
-  html+='<div class="step-line">1. 计算均值：x̄ = ('+data.map(fmt).join(' + ')+') / '+n+' = '+fmt(sum)+' / '+n+' = '+fmt(mean)+'</div>';
-  html+='<div class="step-line">2. 计算各偏差平方：</div>';
+  html+='<p style="margin-top:12px;"><strong>'+(SD_EN?'Calculation steps:':'计算步骤：')+'</strong></p>';
+  html+='<div class="step-line">'+(SD_EN?'1. Compute the mean: x̄ = (':'1. 计算均值：x̄ = (')+data.map(fmt).join(' + ')+') / '+n+' = '+fmt(sum)+' / '+n+' = '+fmt(mean)+'</div>';
+  html+='<div class="step-line">'+(SD_EN?'2. Compute each squared deviation:':'2. 计算各偏差平方：')+'</div>';
   let ssDisplay=[];
   for(const x of data) ssDisplay.push('('+fmt(x)+'−'+fmt(mean)+')² = '+fmt((x-mean)*(x-mean)));
-  html+='<div class="step-line">&nbsp;&nbsp;'+ssDisplay.join('， ')+'</div>';
-  html+='<div class="step-line">3. 平方和 Σ(xᵢ − x̄)² = '+fmt(ss)+'</div>';
-  html+='<div class="step-line">4. 方差 = '+fmt(ss)+' / '+(type==='sample'?(n-1):n)+' = '+fmt(variance)+'</div>';
-  html+='<div class="step-line">5. 标准差 = √'+fmt(variance)+' = <strong style="color:var(--primary);">'+fmt(sd)+'</strong></div>';
+  html+='<div class="step-line">&nbsp;&nbsp;'+ssDisplay.join(SD_EN?', ':'， ')+'</div>';
+  html+='<div class="step-line">'+(SD_EN?'3. Sum of squares Σ(xᵢ − x̄)² = ':'3. 平方和 Σ(xᵢ − x̄)² = ')+fmt(ss)+'</div>';
+  html+='<div class="step-line">'+(SD_EN?'4. Variance = ':'4. 方差 = ')+fmt(ss)+' / '+(type==='sample'?(n-1):n)+' = '+fmt(variance)+'</div>';
+  html+='<div class="step-line">'+(SD_EN?'5. Standard deviation = √':'5. 标准差 = √')+fmt(variance)+' = <strong style="color:var(--primary);">'+fmt(sd)+'</strong></div>';
   const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h2;
 }
 function toggleToolTheme(){

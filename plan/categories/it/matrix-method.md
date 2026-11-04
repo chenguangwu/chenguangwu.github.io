@@ -216,3 +216,29 @@
 | 非缺陷 / 正常 | 4 | `typescript-compiler`（导出函数为全局 lexical `const`，`window[fn]` 取不到但内联 onclick 可调用，实测 `typeof downloadJs === 'function'`）；`nanoid-generator` / `random` / `uuid-v7-generator`（「清空」仅清结果区，输入保持属预期语义） |
 
 修复用例：`it/ast-viewer` 注入独立 `window.acorn` 桩并 `fire('click')`，断言唯一节点 `ToolBoxProbeNode` 出现；`it/matrix-multiplier` 注入 2.5 行断言「行列数须为 1–6 的整数」。门禁 978/978，fidelity 974 已检 / 0 逃生 / 4 跳过，legacy 977 / 0 / 1，`all_default=0`。
+
+## 十一、`tools/it/` 英文态真机回归（2026-11-05）
+
+**抽样口径**：固定种子样本 30 页（按 slug 字典序 + 固定种子补足，必含本批改动的 `url-parser`、`url-params`、`ipv4-range-expander`、`calc-subnet`、`ipv6-converter`、`user-agent-parser`、`jwt-parser`、`jwt-debugger`、`json-to-tsv`、`ast-viewer`、`matrix-multiplier`、`random`、`vector-magnitude`、`random-string`、`calc-5`、`unit-converter-advanced`）。任务单里的 `analysis-54` 不在 `tools/it/`（实际位于 `tools/research/analysis-54.html`），故以本批新改的 `unit-converter-advanced` 替换。
+
+样本（30）：`url-parser`、`url-params`、`ipv4-range-expander`、`calc-subnet`、`ipv6-converter`、`user-agent-parser`、`jwt-parser`、`jwt-debugger`、`json-to-tsv`、`ast-viewer`、`matrix-multiplier`、`random`、`vector-magnitude`、`random-string`、`calc-5`、`kubernetes-yaml-generator`、`standard-deviation`、`ascii-art`、`char-encoder`、`css-properties`、`affine-cipher`、`yaml-to-xml`、`docker-cheatsheet`、`meta-tags-generator`、`string-obfuscator`、`rich-text-editor`、`qr-decoder`、`text-to-binary`、`unit-converter-advanced`、`area-code-lookup`。
+
+**探针**：① `node scripts/_en_i18n_probe.mjs --check it/<slug>`（静态字典覆盖）；② 真机 Chrome headless + `?lang=en-US`，`[data-i18n]` 残留汉字、可见文本汉字（`getClientRects().length===0` + 祖先 `display:none/visibility:hidden/0 透明度/1×1/离屏` 过滤）、点击主按钮后结果区/toast 的 `undefined` 与汉字。
+
+| 轮次 | 结果 |
+|---|---|
+| 首轮真机（含点击） | 10 页残留：`url-parser`、`url-params`、`jwt-parser`、`ast-viewer`、`random-string`、`calc-5`、`kubernetes-yaml-generator`、`meta-tags-generator`、`string-obfuscator`、`rich-text-editor`；另 `standard-deviation`、`calc-subnet` 为真实残留（此前误判为隐藏导出表） |
+| 复检 | **30/30 通过**（静态探针 30/30 + 真机点击 30/30） |
+
+**根因归类与修法（均改到正确数据源）**：
+
+| 根因 | 页面 | 数据源与修法 |
+|---|---|---|
+| 第三层字典缺键 | `url-parser`（`完整URL`）、`calc-5`、`kubernetes-yaml-generator`、`rich-text-editor`、`random-string`（复制/强度评估等静态词）、`jwt-parser`（7 个声明名） | `i18n/tools/en/it/<slug>.json` 的 `map` 补键；27 个 `en/it/*.json` 同时补齐 formula-eq / placeholder 长句 |
+| 动态结果串（快照先于运行时翻译） | `url-params`（复制 toast）、`ipv4-range-expander`（网络/广播地址等）、`ipv6-converter`（`转换结果`、`压缩形式`、`8 段`）、`unit-converter-advanced`（`换算结果`）、`matrix-multiplier`（维度匹配提示）、`affine-cipher`（互素状态）、`standard-deviation`（整套步骤）、`vector-magnitude`（步骤/单位向量）、`area-code-lookup`（区号/地区/未知区号）、`qr-decoder`（空态）、`char-encoder`（格式名/字节视图，首屏 `TBKit` 未就绪时回退中文） | 源文 `?lang=en-US` 分支（`/(?:^|[?&])lang=en/i`），保证结果在生成时即为英文，快照不再截到中文；旧键删除，避免游离键 |
+| 默认值/硬编码中文 | `meta-tags-generator`（输入默认值、twitter title/description、`Meta 标签`）、`random-string`（`生成 N 个…`）、`string-obfuscator`（`混淆完成：原文 N 字符`）、`ascii-art`（字体名 `Slim 紧凑`） | 源文分支或字典键（`Slim 紧凑 → Slim Compact` 等） |
+| 初始加载中文 toast | `ast-viewer` | 初始化调用改 `parseCode(true)`，静默不弹 toast |
+
+改动的 `i18n/tools/en/**`：`i18n/tools/en/it/` 下 27 个工具字典（`url-parser`、`url-params`、`jwt-parser`、`jwt-debugger`、`json-to-tsv`、`ast-viewer`、`matrix-multiplier`、`random`、`vector-magnitude`、`random-string`、`calc-5`、`kubernetes-yaml-generator`、`standard-deviation`、`ascii-art`、`char-encoder`、`css-properties`、`affine-cipher`、`yaml-to-xml`、`docker-cheatsheet`、`meta-tags-generator`、`string-obfuscator`、`rich-text-editor`、`qr-decoder`、`text-to-binary`、`unit-converter-advanced`、`area-code-lookup`、`user-agent-parser`）。
+
+**门禁**：`verify_it_calc.js` 987/987；legacy 986 已检 / 0 逃生 / 1 跳过；fidelity 983 已检 / 0 逃生 / 4 跳过；`selfcheck_false_pass --exec` checked=987、`all_default=0`、`no_inputs=0`（risk 3 为既有 `calc-2`、`vector-dot-product`、`vector-magnitude`，本批未新增）。

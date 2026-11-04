@@ -491,11 +491,12 @@ function verifySignature(){
 }
 
 /* ---------- 标准声明检查 ---------- */
+var JWT_EN=/(?:^|[?&])lang=en/i.test(location.search);
 function relTime(sec){
-  if(sec < 60) return sec + ' 秒';
-  if(sec < 3600) return Math.floor(sec/60) + ' 分钟';
-  if(sec < 86400) return Math.floor(sec/3600) + ' 小时';
-  return Math.floor(sec/86400) + ' 天';
+  if(sec < 60) return sec + (JWT_EN?'s':' 秒');
+  if(sec < 3600) return Math.floor(sec/60) + (JWT_EN?'m':' 分钟');
+  if(sec < 86400) return Math.floor(sec/3600) + (JWT_EN?'h':' 小时');
+  return Math.floor(sec/86400) + (JWT_EN?'d':' 天');
 }
 function checkClaims(){
   var box = document.getElementById('claimsCheck');
@@ -508,21 +509,21 @@ function checkClaims(){
   var now = Math.floor(Date.now() / 1000);
   var rows = [];
   function fmtTs(ts){ return new Date(ts * 1000).toLocaleString('zh-CN'); }
-  if(typeof p.iat === 'number') rows.push(['iat 签发时间', fmtTs(p.iat), '签发于 ' + relTime(Math.max(now - p.iat, 0)) + '前', 'ℹ️']);
+  if(typeof p.iat === 'number') rows.push(['iat 签发时间', fmtTs(p.iat), (JWT_EN?'issued ':'签发于 ') + relTime(Math.max(now - p.iat, 0)) + (JWT_EN?' ago':'前'), 'ℹ️']);
   if(typeof p.nbf === 'number'){
     var nbfOk = now >= p.nbf;
-    rows.push(['nbf 生效时间', fmtTs(p.nbf), nbfOk ? '已生效' : '尚未生效（' + relTime(p.nbf - now) + '后生效）', nbfOk ? '✅' : '⚠️']);
+    rows.push(['nbf 生效时间', fmtTs(p.nbf), nbfOk ? (JWT_EN?'active':'已生效') : (JWT_EN?'not yet active (in ' + relTime(p.nbf - now) + ')':'尚未生效（' + relTime(p.nbf - now) + '后生效）'), nbfOk ? '✅' : '⚠️']);
   }
   if(typeof p.exp === 'number'){
     var expOk = now < p.exp;
-    rows.push(['exp 过期时间', fmtTs(p.exp), expOk ? '剩余 ' + relTime(p.exp - now) : '已过期（' + relTime(now - p.exp) + '前）', expOk ? '✅' : '❌']);
+    rows.push(['exp 过期时间', fmtTs(p.exp), expOk ? (JWT_EN?'remaining ':'剩余 ') + relTime(p.exp - now) : (JWT_EN?'expired (' + relTime(now - p.exp) + ' ago)':'已过期（' + relTime(now - p.exp) + '前）'), expOk ? '✅' : '❌']);
   }
   if(typeof p.iss === 'string') rows.push(['iss 签发者', escH(p.iss), '', 'ℹ️']);
   if(typeof p.sub === 'string') rows.push(['sub 主体', escH(p.sub), '', 'ℹ️']);
   if(p.aud !== undefined) rows.push(['aud 受众', escH(String(p.aud)), '', 'ℹ️']);
   if(typeof p.jti === 'string') rows.push(['jti 令牌 ID', escH(p.jti), '', 'ℹ️']);
-  if(!rows.length){ box.innerHTML = '<p style="font-size:12px;color:var(--text-muted);">Payload 中未包含标准时间或身份声明</p>'; return; }
-  box.innerHTML = '<div class="table-scroll"><table class="result-table"><thead><tr><th>声明</th><th>值</th><th>状态</th></tr></thead><tbody>' +
+  if(!rows.length){ box.innerHTML = '<p style="font-size:12px;color:var(--text-muted);">'+(JWT_EN?'Payload contains no standard time or identity claims':'Payload 中未包含标准时间或身份声明')+'</p>'; return; }
+  box.innerHTML = '<div class="table-scroll"><table class="result-table"><thead><tr><th>'+(JWT_EN?'Claim':'声明')+'</th><th>'+(JWT_EN?'Value':'值')+'</th><th>'+(JWT_EN?'Status':'状态')+'</th></tr></thead><tbody>' +
     rows.map(function(r){
       return '<tr><td><code>' + r[0] + '</code></td><td style="font-size:12px;">' + r[1] + '</td><td>' + r[3] + ' ' + r[2] + '</td></tr>';
     }).join('') + '</tbody></table></div>';
