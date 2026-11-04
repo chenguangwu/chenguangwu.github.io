@@ -315,7 +315,17 @@ const CASES = [
   "expect": [
     "保持病区环境安全"
   ],
-  "ref": "静态按钮量表页：selectScore 到 total=25+10=35 落「低度跌倒风险(25-50)」分支，其 desc 独有串「保持病区环境安全」。默认全 0 走「无跌倒风险」；零参兜底 total=NaN 落 else「高度跌倒风险」，两态均不含该串。"
+  "ref": "静态按钮量表页：selectScore 到 total=25+10=35 落「低度跌倒风险(25-44)」分支，其 desc 独有串「保持病区环境安全」。默认全 0 走「无跌倒风险」；零参兜底 total=NaN 落 else「高度跌倒风险」，两态均不含该串。"
+},
+{
+  "slug": "clinical-nursing/morse-score",
+  "clicks": [
+    "selectScore('history',25);selectScore('gait',20)"
+  ],
+  "expect": [
+    "45"
+  ],
+  "ref": "Morse 1989 原版切点 ≥45 为高度风险：25+20=45 必须落「高度跌倒风险」；旧实现以 >50 为高危会把 45 误判为低危。锚定 totalNum=45（注入失败时默认 0 或兜底 NaN→—，均不含 45），与高危 desc 的 NaN 兜底不可分，故不用 desc。"
 },
 {
   "slug": "clinical-nursing/ostomy-bag-timing",

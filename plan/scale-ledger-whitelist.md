@@ -128,3 +128,51 @@
 
 **核对结论**：17 页中 14 页「已核」、3 页「无原版满分/无固定上限」（Agatston 指数、VASI、LES LCU 累加）。真实系数错 2 页（ESSDAI、assessor-10），已改页面并同批更新 `scripts/verify_rheumatology_calc.js`（28/28 通过）。
 
+## 六、教育 / 心理 / 认知 / 护理评分族三维核对（2026-11-05）
+
+口径：① 量表满分 / 项数 / 权重 / 切点；② 反向计分（声明 vs 实现）；③ 学业评分（GPA / 加权 / 标准分）；④ `selectedIndex` 当分值。
+
+机械覆盖：`python3 scripts/audit_scale_ledger.py edu edu2 psychology cognition clinical-nursing`。台账命中 2 页，经人工核对**均为台账误判**（符合「先怀疑台账」的历史经验）：`psychology/calc-self-assess` 的 6 题 1–5 制上限 30 被按静态 select 上限 4 误读为 24；`psychology/self-assess` 的「维度满分 16」是页面旧文案，总分上限 100 本身正确。修复后复跑台账 **0 偏差**。`selectedIndex` 在四个目录零命中（第 ④ 类无样本）。
+
+覆盖：**42 页**（教育 12、心理 14、认知 8、护理评分 8）。判定：**真缺陷 8 条**（已改页面并同批更新 verify）；**登记不改 13 条**（无权威依据 / 版本差异 / 自建量表）。另有 3 个类型归类页（`bubble-tea-personality-quiz`、`tester-2`、`tester-3`）沿用前批结论，不计入本批页数。
+
+### 6.1 真缺陷（已修）
+
+| 页面 | 指标 | 修前页面取值 | 权威取值 / 依据 | 修法 |
+|---|---|---|---|---|
+| `clinical-nursing/morse-score.html` | 高度风险切点 | 25–50 低危、≥51 高危 | **≥45 高危、25–44 低危**（Morse 1989；页面自身 ref-cite 与深读段亦写 ≥45） | refBar 与 3 处 classify 改为 25/45；补 verify「45 分」用例 |
+| `clinical-nursing/braden-score.html` | 中文备注方向 | 「≥9 为极高危」 | **≤9**（Braden 原版；同页英文为 9 or below） | `data-zh` 改「≤9」 |
+| `psychology/self-assess.html` | 维度满分 / 总分区间 | 每题 0~4、维度满分 16、合计 0–100 | **每题 1–5、维度满分 20、合计 20–100**（同页代码 `ans+1` 与 `dim.s/20`） | 文案改为 1–5 / 20 / 20–100 |
+| `psychology/calc-self-assess.html` | 满分 / 题目构成 / 反向题数 | 总分 0–30、FAQ 0~24；宣称 3 乐观 + 3 悲观，实际 4 乐观 + 2 悲观且 2 道 filler 计入 | **LOT-R 6 个计分项 = 3 乐观 + 3 悲观、3 道反向；1–5 制总分 6–30**（Scheier, Carver & Bridges 1994） | 用原版缺失的 2 个计分项替换 filler；`LR_REV` 改 `{1,2,5}`；文案改 6–30；verify 20→18 |
+| `psychology/scl90-assessment.html` | 计分制 / 总分 / 阳性项 | 深读段写 0–4、0–360、阳性≥1 | **1–5、90–450、阳性≥2；PSDI=(总分−90)/阳性数**（页面自身实现与公式段） | 改深读段（HTML + `content_deepdive.json` + en 字典） |
+| `psychology/calc-12.html` | 分级阈值文案 | 60 中等 / 70+ 良好 / 80+ 较高 | **31–50 偏下、51–70 中等、71–85 较高、≥86 很高（≤30 偏低）**（同页代码） | info-box 对齐代码 |
+| `edu/calc-4.html` | 深读算例 | (85−70×0.4)/0.6 = **91.7** | **95.0**（node 实算：57 ÷ 0.6） | 改 95.0 |
+| `edu/gpa-calculator.html` | 4.0 制 C− 文案 | C− = 1.5 | **C− = 1.7**（同页 `gradeSystems` 4.0 表 65–67 → 1.7） | 改 1.7 |
+
+反向计分复核：SAS（5 题 `5-v`）、PSS-10（4 题 `4-v`）、Big Five（`6-v`）、ECR（`8-raw`）、EAT-26（前批）均**声明 + 实现一致**；PHQ-9 / GAD-7 / PSQI / SCL-90 / ISI 原版无反向条目。本批新增确认 `calc-self-assess` 的反向题数声明与实现不一致（已修，见上表）。
+
+### 6.2 登记不改（13 条）
+
+| 页面 | 项 | 处置理由 |
+|---|---|---|
+| `edu/exam-gpa-calculator.html` | 4.0 制「D (60)」与「D+ (60–63)」标签在 60 分重叠 | 各校 GPA 换算不统一，无单一权威；仅标签提示、不参与自动换算 |
+| `edu/exam-score-calculator.html` | 64–67 → 1.5（与 `exam-gpa` 的 1.7 不同） | 两套常见院校口径并存，无官方统一表；不改数字 |
+| `edu2/exam-analysis.html` | 标准差按总体口径（÷n） | 页面未声明样本/总体；班级成绩描述性统计用总体口径合理，无权威强制 |
+| `edu/assessor-27.html` | 6 维 0–10 自评 → 5 级 | 自建量表，等级线无外部权威 |
+| `clinical-nursing/barthel-index.html` | 75/50/25 分级 | 国内常见版本之一（另有 61/41/21 版本）；满分 100 与 10 项权重已核正确 |
+| `clinical-nursing/assessor-rater-risk.html` | 25–44 标「中风险」 | 数值 ≥45 / 25 与 Morse 原版一致，仅中文命名与 low risk 不同；无统一译名 |
+| `clinical-nursing/assessor-pressure-risk.html` | 手术体位压力风险 6/10 界值 | 自建评分，无权威切点 |
+| `clinical-nursing/surgical-position-risk.html` | 高危压力点计数分级 | 自建评分，无权威切点 |
+| `cognition/cognitive-assessment.html` | 四层年龄常模 | 页面已声明非标准化常模；`SS=100+15z`、`PR=Φ(z)` 公式与方向处理正确，常模数值无公开出处 |
+| `cognition/*` 7 个绩效测试（corsi / digit-span / nback / schulte / stroop / time-perception / human-benchmark） | 原始成绩 | 无临床切点，不属满分制量表 |
+| `psychology/psqi-assessment.html`、`psychology/rater.html` | 7 项简版 PSQI，6/11/16 分级 | 页面已明确声明与完整版 7 成分计分不同；完整版无单一分级权威 |
+| `psychology/assessor.html` | 拖延自评 10 题 | 自建量表，无权威满分/切点 |
+| `psychology/calc-12.html` | 常模 62 分 | 页面自述「约 62 分」，无公开常模出处；仅登记 |
+
+### 6.3 门禁
+
+- fidelity（`TB_STUB_FIDELITY=1 node scripts/discriminate_check.js <file>`）：psychology 11/11、逃生 0；clinical-nursing 42/42、逃生 0；edu 83/83；cognition 13/13；edu2 14/14。
+- `selfcheck_false_pass` 的 `all_default`：psychology 0（基线 0）、clinical-nursing 0（基线 0），未上升。
+- 「注入失败会变红」：新增 Morse 45 分用例在 fidelity 下为红；初版用高危 desc 会因「NaN 兜底 → 高度风险」逃生，已改锚 `totalNum=45`（默认 0 / NaN 均不含 45）。
+- 本轮未执行 `_build.py`、未 push（按工单要求）。
+
