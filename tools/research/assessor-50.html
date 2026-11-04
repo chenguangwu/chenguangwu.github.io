@@ -126,7 +126,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="📣 广告效果综合评估">Assessor 50</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入广告投放数据（曝光效果/记忆效果/态度效果），系统计算广告效果指数（AEI），给出效果评级与优化建议。">Assessor 50</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">广告效果指数 AEI（三维度加权）<br>曝光效果 = 触达率分 + 频次分 + CTR 分：触达率 = 触达人数 ÷ 目标人群 × 100%<br>触达率分 = min(触达率,100)×0.3；频次分：3–7 次 40｜2–10 次 25｜其余 10<br>CTR 分 = min(CTR%÷5×30, 30)（CTR 5% 满分）<br>记忆效果 = 辅助回忆×0.35 + 无辅助回忆×0.40 + 识别×0.25<br>态度效果 = min(好感度,50)×0.7 + min(购买意向,50)×0.7 + (NPS+100)÷200×36<br>AEI = 曝光×0.30 + 记忆×0.35 + 态度×0.35<br>CPM(元/千次) = 投入万元×10000 ÷ 触达人数<br>每回忆用户成本 = 投入×10000 ÷ (触达×无辅助回忆%)<br>评级：≥80 卓越｜≥65 良好｜≥50 一般｜<50 较差</div>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">广告效果指数 AEI（三维度加权）<br>曝光效果 = 触达率分 + 频次分 + CTR 分：触达率 = 触达人数 ÷ 目标人群 × 100%<br>触达率分 = min(触达率,100)×0.3；频次分：3–7 次 40｜2–10 次 25｜其余 10<br>CTR 分 = min(CTR%÷5×30, 30)（CTR 5% 满分）<br>记忆效果 = 辅助回忆×0.35 + 无辅助回忆×0.40 + 识别×0.25<br>态度效果 = min(好感度,50)×0.7 + min(购买意向,50)×0.7 + (NPS+100)÷200×36<br>AEI = 曝光×0.30 + 记忆×0.35 + 态度×0.35<br>CPM(元/千次) = 投入万元×10000 ÷ (触达人数÷1000)<br>每回忆用户成本 = 投入×10000 ÷ (触达×无辅助回忆%)<br>评级：≥80 卓越｜≥65 良好｜≥50 一般｜<50 较差</div>
       <p class="formula-desc" data-zh="核心计算公式（按输入变量）：Math.round(min(aidedRecall,100)×0.35+min(unaidedRecall,100)×0.40+min(recognition,100)×0.25)；Math.round(min(favorability,50)×0.7+min(purchaseIntent,50)×0.7+((nps+100)÷200)×36)；Math.round(exposureScore×0.30+memoryScore×0.35+attitudeScore×0.35)">Key formulas: Math.round(min(aidedRecall,100)×0.35+min(unaidedRecall,100)×0.40+min(recognition,100)×0.25); Math.round(min(favorability,50)×0.7+min(purchaseIntent,50)×0.7+((nps+100)÷200)×36); Math.round(exposureScore×0.30+memoryScore×0.35+attitudeScore×0.35)</p>
     </div>
 
@@ -230,7 +230,7 @@ s.parentNode.insertBefore(el, s);
     return __msg;
   }
   // 分母项：__D 由真浏览器逐项置零探测得出，命中即说明该输入在此页作分母
-  var __D={"reach": "reach", "unaidedRecall": "unaidedRecall"};
+  var __D={"reach": "reach", "target": "target", "unaidedRecall": "unaidedRecall"};
   for(var _d=0;_d<_ids.length;_d++){
     if(!(_ids[_d] in __D)) continue;
     var _de=document.getElementById(_ids[_d]);
@@ -272,6 +272,16 @@ var reach=parseFloat(document.getElementById('reach').value)||0;
   var nps=parseFloat(document.getElementById('nps').value)||0;
   var cost=parseFloat(document.getElementById('cost').value)||1;
 
+  // 去重触达人数不可能超过目标人群，否则触达率失真
+  if(reach>target){
+    ToolBox.setResult('res','<p style="color:var(--danger);">⚠ 触达人数（'+reach+'）不能大于目标人群总数（'+target+'）。若统计的是重复触达人次，请改为去重触达人数。</p>');
+    return;
+  }
+  // 态度三维度按合法范围收紧，避免负值把 AEI 拉成负数
+  var fav=Math.max(0,Math.min(50,favorability));
+  var intent=Math.max(0,Math.min(50,purchaseIntent));
+  var npsV=Math.max(-100,Math.min(100,nps));
+
   /* 曝光效果得分 */
   var reachRate=target>0?reach/target*100:0;
   var reachScore=Math.min(reachRate,100)*0.3;
@@ -283,13 +293,13 @@ var reach=parseFloat(document.getElementById('reach').value)||0;
   var memoryScore=Math.round(Math.min(aidedRecall,100)*0.35+Math.min(unaidedRecall,100)*0.40+Math.min(recognition,100)*0.25);
 
   /* 态度效果得分 */
-  var attitudeScore=Math.round(Math.min(favorability,50)*0.7+Math.min(purchaseIntent,50)*0.7+((nps+100)/200)*36);
+  var attitudeScore=Math.round(fav*0.7+intent*0.7+((npsV+100)/200)*36);
 
   /* 广告效果指数 AEI */
   var aei=Math.round(exposureScore*0.30+memoryScore*0.35+attitudeScore*0.35);
 
   /* 成本效益 */
-  var cpm=cost*10000/reach/(frequency>0?1:1); /* 每千人次成本 */
+  var cpm=reach>0?cost*10000/(reach/1000):0; /* 每千人次成本：投入元 ÷ (触达人数÷1000) */
   var cpr=cost*10000/(reach*unaidedRecall/100); /* 每回忆用户成本 */
 
   /* 评级 */
@@ -303,10 +313,10 @@ var reach=parseFloat(document.getElementById('reach').value)||0;
   html+='<div class="data-card"><div class="num" style="color:'+color+';">'+aei+'</div><div class="label">广告效果指数AEI</div></div>';
   html+='<div class="data-card"><div class="num">'+reachRate.toFixed(1)+'%</div><div class="label">触达率</div></div>';
   html+='<div class="data-card"><div class="num">'+frequency.toFixed(1)+'</div><div class="label">平均频次</div></div>';
-  html+='<div class="data-card"><div class="num">¥'+(cpm/1000).toFixed(2)+'</div><div class="label">CPM(元/千次)</div></div>';
+  html+='<div class="data-card"><div class="num">¥'+cpm.toFixed(2)+'</div><div class="label">CPM(元/千次)</div></div>';
   html+='</div>';
   html+='<p>效果评级：<strong style="font-size:24px;color:'+color+';">'+level+'</strong></p>';
-  html+='<div class="progress-bar" style="margin:8px 0;"><div class="progress-fill" style="width:'+aei+'%;background:'+color+';"></div></div>';
+  html+='<div class="progress-bar" style="margin:8px 0;"><div class="progress-fill" style="width:'+Math.max(0,Math.min(100,aei))+'%;background:'+color+';"></div></div>';
   /* 三维度明细 */
   var dims=[
     {name:'曝光效果',score:exposureScore,weight:'30%',detail:'触达率'+reachRate.toFixed(0)+'%/频次'+frequency+'/CTR'+ctr+'%'},

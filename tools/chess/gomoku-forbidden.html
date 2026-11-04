@@ -138,8 +138,8 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="📚 五子棋禁手判断">Gomoku Forbidden</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="判断五子棋黑棋三三、四四、长连禁手，附禁手规则详解">Gomoku Forbidden</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">五子棋禁手判断（黑方规则）<br>三三禁手：一手同时形成 ≥2 个活三<br>四四禁手：一手同时形成 ≥2 个四<br>长连禁手：形成 ≥6 连（超过五连）<br>恰好五连 = 胜利条件，非禁手<br>综合判定顺序：长连（≥6）→ 五连胜利（=5 且活四&lt;2）<br>　→ 三三/四四禁手（活子≥2）→ 合法<br>禁手判黑方负<br>输入：棋型类型、连续子数、活子数<br>复杂棋型需结合实际棋盘分析</div>
-  <p class="formula-desc">依据中国五子棋竞赛规则判断黑棋禁手（三三、四四、长连），落子后自动识别活三、冲四与连五，辅助规则判定、对局复核与禁手战术练习。</p>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">五子棋禁手判断（黑方规则）<br>三三禁手：一手同时形成 ≥2 个活三<br>四四禁手：一手同时形成 ≥2 个四<br>长连禁手：形成 ≥6 连（超过五连）<br>恰好五连 = 胜利条件，非禁手<br>综合判定顺序：长连（≥6）→ 五连胜利（=5）<br>　→ 三三/四四禁手（活子≥2）→ 合法<br>禁手判黑方负<br>输入：棋型类型、连续子数、活子数<br>本页为规则参数演示，不提供棋盘自动识别</div>
+  <p class="formula-desc">依据中国五子棋竞赛规则，按输入的棋型类型、连续子数与活子数判断黑棋禁手（三三、四四、长连），用于规则参数演示与对局复核；不提供棋盘落子自动识别。</p>
 </div>
 
 
@@ -283,36 +283,33 @@ function analyze(){
   var type=$('patternType').value;
   var stones=parseInt($('stoneCount').value)||0;
   var live=parseInt($('liveCount').value)||0;
-  var result='',badge='';
-  if(type==='three_three'){
-    if(live>=2){result='三三禁手';badge='<span class="rule-badge rule-forbidden">禁手</span>';
-      result+='<br>黑棋一手同时形成'+live+'个活三，违反三三禁手规则。黑方判负。';}
+  var result='',badge='',isWin=false,isBad=false;
+  // 统一优先级：长连(≥6) → 五连(=5) 胜利 → 三三/四四 → 其他
+  if(stones>=6){
+    result='长连禁手';badge='<span class="rule-badge rule-forbidden">禁手</span>';isBad=true;
+    result+='<br>黑棋形成'+stones+'连（超过五连），违反长连禁手规则。黑方判负。';
+  }else if(stones===5){
+    result='五连胜利';badge='<span class="rule-badge rule-ok">胜利</span>';isWin=true;
+    result+='<br>恰好五连，为胜利条件，非禁手。';
+  }else if(type==='three_three'||type==='four_four'){
+    var label=type==='three_three'?'活三':'四';
+    if(live>=2){result=(type==='three_three'?'三三':'四四')+'禁手';badge='<span class="rule-badge rule-forbidden">禁手</span>';isBad=true;
+      result+='<br>黑棋一手同时形成'+live+'个'+label+'，违反'+result+'规则。黑方判负。';}
     else{result='非禁手';badge='<span class="rule-badge rule-ok">合法</span>';
-      result+='<br>仅形成'+live+'个活三，不构成三三禁手。';}
-  }else if(type==='four_four'){
-    if(live>=2){result='四四禁手';badge='<span class="rule-badge rule-forbidden">禁手</span>';
-      result+='<br>黑棋一手同时形成'+live+'个四，违反四四禁手规则。黑方判负。';}
-    else{result='非禁手';badge='<span class="rule-badge rule-ok">合法</span>';
-      result+='<br>仅形成'+live+'个四，不构成四四禁手。';}
+      result+='<br>仅形成'+live+'个'+label+'，不构成'+(type==='three_three'?'三三':'四四')+'禁手。';}
   }else if(type==='overline'){
-    if(stones>=6){result='长连禁手';badge='<span class="rule-badge rule-forbidden">禁手</span>';
-      result+='<br>黑棋形成'+stones+'连（超过五连），违反长连禁手规则。黑方判负。';}
-    else if(stones===5){result='五连胜利';badge='<span class="rule-badge rule-ok">胜利</span>';
-      result+='<br>恰好五连，为胜利条件，非禁手。';}
-    else{result='非禁手';badge='<span class="rule-badge rule-warn">未成五</span>';
-      result+='<br>仅'+stones+'连，既非胜利也非禁手。';}
+    result='非禁手';badge='<span class="rule-badge rule-warn">未成五</span>';
+    result+='<br>仅'+stones+'连，既非长连也非五连胜利。';
   }else{
-    if(stones>=6){result='长连禁手';badge='<span class="rule-badge rule-forbidden">禁手</span>';}
-    else if(stones===5&&live<2){result='五连胜利';badge='<span class="rule-badge rule-ok">胜利</span>';}
-    else if(live>=2){result='三三/四四禁手';badge='<span class="rule-badge rule-forbidden">禁手</span>';}
+    if(live>=2){result='三三/四四禁手';badge='<span class="rule-badge rule-forbidden">禁手</span>';isBad=true;}
     else{result='合法着法';badge='<span class="rule-badge rule-ok">合法</span>';}
     result+='<br>连续子数：'+stones+'，活子数：'+live;
   }
   var html='<p>判断结果：<strong>'+badge+'</strong></p>'+
     '<p style="margin-top:8px;">'+result.replace(/\n/g,'<br>')+'</p>';
-  if(badge.indexOf('forbidden')>=0){
+  if(isBad){
     html+='<div class="tip-box tip-error"><strong>🔴 判定禁手</strong>：该着法违反五子棋禁手规则，黑方判负。</div>';
-  }else if(badge.indexOf('ok')>=0&&stones===5){
+  }else if(isWin){
     html+='<div class="tip-box tip-success"><strong>✅ 五连胜利</strong>：恰好五连为胜利条件。</div>';
   }else{
     html+='<div class="tip-box tip-success"><strong>✅ 合法着法</strong>：该着法符合五子棋规则。</div>';
@@ -493,7 +490,7 @@ function __gomoku_forbiddenExport(){
 }
 function __gomoku_forbiddenPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#gomoku_forbiddenPresets',[{label:'默认参数',labelEn:'Default',values:{'patternType':'three_three', 'stoneCount':'3', 'liveCount':'2'}},{"label":"低值","labelEn":"Low","values":{"liveCount":"1"}},{"label":"高值","labelEn":"High","values":{"liveCount":"4"}},{"label":"极端值","labelEn":"Extreme","values":{"liveCount":"6"}}],function(){ analyze(); });
+    TBKit.preset.bar('#gomoku_forbiddenPresets',[{label:'默认参数',labelEn:'Default',values:{'patternType':'three_three', 'stoneCount':'3', 'liveCount':'2'}},{"label":"低值","labelEn":"Low","values":{"liveCount":"1"}},{"label":"高值","labelEn":"High","values":{"liveCount":"4"}},{"label":"极端值","labelEn":"Extreme","values":{"liveCount":"4"}}],function(){ analyze(); });
 }
 var __gomoku_forbidden_f0=(typeof analyze==='function')?analyze:null;
 if(__gomoku_forbidden_f0){

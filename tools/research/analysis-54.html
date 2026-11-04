@@ -200,15 +200,21 @@ function calc(){
   var rows=parseRows(v('data'));
   var res=document.getElementById('res');
   if(!rows.length){res.innerHTML='请输入资料条目。';return;}
-  var n=0,coded=0,totalCodes=0,stableThemes=0;
+  var n=0,coded=0,uncoded=0,totalCodes=0,stableThemes=0,dupThemes=0;
   var freq={};var seen={};var lastNew=0;var win=5;var sat=false;
   for(var i=0;i<rows.length;i++){
-    var p=rows[i].split(',');
+    // 同时兼容半角/全角逗号、顿号、分号与制表符，避免中文输入法粘贴后整行识别失败
+    var p=rows[i].split(/[,，、;；\t]+/);
     var text=p[0].trim();
     if(!text)continue;
     n++;
     var themes=p.slice(1).map(function(x){return x.trim();}).filter(function(x){return x.length;});
+    // 行内重复主题去重，避免手误重复虚增频次与密度
+    var uniq=[];
+    for(var u=0;u<themes.length;u++){ if(uniq.indexOf(themes[u])<0) uniq.push(themes[u]); else dupThemes++; }
+    themes=uniq;
     if(themes.length){coded++;totalCodes+=themes.length;}
+    else {uncoded++; lastNew=0; continue;} // 未编码行不参与饱和窗口累积
     var newInRow=false;
     for(var k=0;k<themes.length;k++){
       var t=themes[k];
@@ -217,7 +223,8 @@ function calc(){
     }
     if(newInRow)lastNew=0;else lastNew++;
   }
-  if(n>=win&&lastNew>=win)sat=true;
+  // 饱和度须建立在「确有编码」且窗口内每行都有主题的基础上
+  if(coded>0&&n>=win&&lastNew>=win)sat=true;
   var entries=Object.keys(freq).map(function(t){return {t:t,c:freq[t]};});
   entries.sort(function(a,b){return b.c-a.c;});
   for(var m=0;m<entries.length;m++){if(entries[m].c>=3)stableThemes++;}
@@ -227,7 +234,10 @@ function calc(){
   h+='<p>资料条目：'+n+' 条，已编码：'+coded+' 条（覆盖率 '+cov.toFixed(1)+'%）</p>';
   h+='<p>总编码数：'+totalCodes+'，平均每条目主题数：'+density.toFixed(2)+'</p>';
   h+='<p>稳定主题（出现≥3次）：'+stableThemes+' 个</p>';
-  if(sat)h+='<p>近 '+win+' 条未出现新主题，主题趋于饱和，可考虑停止抽样。</p>';
+  if(uncoded)h+='<p style="color:var(--danger);">⚠ 有 '+uncoded+' 条资料仅填写了资料文本、未填写任何主题，已计入条目但未编码；请检查分隔符（支持半角/全角逗号、顿号、分号）。</p>';
+  if(dupThemes)h+='<p style="color:var(--text-muted);font-size:12px;">已自动忽略 '+dupThemes+' 个行内重复主题。</p>';
+  if(sat)h+='<p>近 '+win+' 条均含主题且未出现新主题，主题趋于饱和，可考虑停止抽样。</p>';
+  else if(coded===0)h+='<p style="color:var(--warning);">尚未编码任何主题，无法判断主题饱和。</p>';
   h+='<h3>主题频次 Top10</h3><table class="tb-table"><tr><th>主题</th><th>频次</th></tr>';
   var top=entries.slice(0,10);
   for(var q=0;q<top.length;q++)h+='<tr><td>'+esc(top[q].t)+'</td><td>'+top[q].c+'</td></tr>';

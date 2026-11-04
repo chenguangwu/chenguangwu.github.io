@@ -210,6 +210,18 @@ function calc(){
   var cost=parseFloat(document.getElementById('cost').value)||0;
   var sampleSize=parseFloat(document.getElementById('sampleSize').value)||0;
 
+  /* 输入校验：PSM 四价必须为正且单调递增，概念四项须在 1–10 内 */
+  var conceptVals=[novelty,usefulness,feasibility,marketFit];
+  var conceptBad=conceptVals.some(function(x){return !isFinite(x)||x<1||x>10;});
+  var priceVals=[tooCheap,cheap,expensive,tooExpensive];
+  var priceBad=priceVals.some(function(x){return !isFinite(x)||x<=0;})||!(tooCheap<cheap&&cheap<expensive&&expensive<tooExpensive);
+  if(conceptBad||priceBad){
+    document.getElementById('res').innerHTML='<p style="color:var(--danger);">⚠ '+(conceptBad?'概念四项评分须在 1–10 之间。':'请填写四个有效正价格，并满足「太便宜 < 便宜 < 贵 < 太贵」的单调递增关系。')+'</p>';
+    if(conceptBad){['novelty','usefulness','feasibility','marketFit'].forEach(function(id){var e=document.getElementById(id);if(e)e.classList.add('input-error');});}
+    if(priceBad){['tooCheap','cheap','expensive','tooExpensive'].forEach(function(id){var e=document.getElementById(id);if(e)e.classList.add('input-error');});}
+    return;
+  }
+
   /* 概念评分 */
   var conceptScore=(novelty+usefulness+feasibility+marketFit)/4*10; /* 转百分制 */
   var conceptLevel,conceptColor,conceptAdvice;
@@ -233,8 +245,8 @@ function calc(){
   var priceFloor=(tooCheap+tooExpensive)/2*0.6+tooCheap*0.4; /* 价格下限近似 */
   var priceCeiling=tooExpensive*0.7+expensive*0.3; /* 价格上限近似 */
   /* 确保逻辑合理 */
-  if(priceFloor>opp)priceFloor=tooCheap;
-  if(priceCeiling<opp)priceCeiling=tooExpensive;
+  if(priceFloor>opp)priceFloor=opp;
+  if(priceCeiling<opp)priceCeiling=opp;
   /* 毛利率 */
   var margin=opp>0&&cost>0?((opp-cost)/opp*100):0;
   /* 接受区间 */
@@ -251,7 +263,7 @@ function calc(){
   /* 概念评估 */
   html+='<p style="font-weight:600;margin-top:12px;">产品概念评估</p>';
   html+='<p>概念评级：<strong style="font-size:20px;color:'+conceptColor+';">'+conceptLevel+'</strong>（'+conceptScore.toFixed(1)+'/100）</p>';
-  html+='<div class="progress-bar" style="margin:6px 0;"><div class="progress-fill" style="width:'+conceptScore+'%;background:'+conceptColor+';"></div></div>';
+  html+='<div class="progress-bar" style="margin:6px 0;"><div class="progress-fill" style="width:'+Math.min(100,Math.max(0,conceptScore))+'%;background:'+conceptColor+';"></div></div>';
   html+='<table style="margin-top:6px;"><thead><tr><th>评估维度</th><th>评分</th><th>百分制</th><th>诊断</th></tr></thead><tbody>';
   dims.forEach(function(d){
     var st=d.score>=70?'<span style="color:var(--success);">强</span>':d.score>=50?'<span style="color:#2563EB;">中</span>':'<span style="color:var(--danger);">弱</span>';
