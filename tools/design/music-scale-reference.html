@@ -140,16 +140,16 @@ s.parentNode.insertBefore(el, s);
 <div class="container">
   <div class="card tool-card-accent" style="--tool-accent:#7C3AED;">
      <h2 data-zh="🎵 音阶调号参考">🎵 Music Scale &amp; Key Reference</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="查看各调式的音阶组成、升降记号">Look up the notes and accidentals of major and minor scales and modes to check key signatures and chord tones.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="查看各调式的音阶组成、升降记号">Look up the notes, accidentals and frequencies of major, minor, pentatonic and blues scales.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
       <div class="formula-eq">十二平均律 f = f₀ × 2^(n/12)（n 为半音数）；大调音阶半音结构 2-2-1-2-2-2-1</div>
-      <div class="formula-desc">依据十二平均律与大调/小调音阶结构，列出各调式的音名与升降记号分布，可对照调号与和弦构成，用于乐理学习与音乐创作。</div>
+      <div class="formula-desc">依据十二平均律与大调/小调音阶结构，按标准调名拼写列出音阶音名与调号升降记号（如 F 大调第四级为 B♭），并给出关系小调与各音级频率，用于乐理学习与音乐创作；不提供和弦计算。</div>
   
 </div>
 
     <div class="input-row">
-      <div><label>根音</label><select id="root" onchange="render()"><option>C</option><option>C#</option><option>D</option><option>D#</option><option>E</option><option>F</option><option>F#</option><option>G</option><option selected>G</option><option>G#</option><option>A</option><option>A#</option><option>B</option></select></div>
+      <div><label>根音</label><select id="root" onchange="render()"><option>C</option><option>Db</option><option>D</option><option>Eb</option><option>E</option><option>F</option><option>F#</option><option>G</option><option>Ab</option><option>A</option><option>Bb</option><option>B</option></select></div>
       <div><label>音阶类型</label><select id="scaleType" onchange="render()"><option value="major">自然大调</option><option value="minor">自然小调</option><option value="pentMaj">大调五声音阶</option><option value="pentMin">小调五声音阶</option><option value="blues">布鲁斯音阶</option></select></div>
     </div>
     <div class="toolbar" style="flex-wrap:wrap;gap:6px;margin-top:10px;">
@@ -248,6 +248,35 @@ s.parentNode.insertBefore(el, s);
 const notes=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 const scales={major:[0,2,4,5,7,9,11],minor:[0,2,3,5,7,8,10],pentMaj:[0,2,4,7,9],pentMin:[0,3,5,7,10],blues:[0,3,5,6,7,10]};
 const keySig={'C':0,'G':1,'D':2,'A':3,'E':4,'B':5,'F#':6,'C#':7,'F':-1,'Bb':-2,'Eb':-3,'Ab':-4,'Db':-5,'Gb':-6,'Cb':-7};
+const ROOT_PC={'C':0,'Db':1,'D':2,'Eb':3,'E':4,'F':5,'F#':6,'G':7,'Ab':8,'A':9,'Bb':10,'B':11};
+const SPELL_MAJOR={
+  'C':['C','D','E','F','G','A','B'],
+  'Db':['Db','Eb','F','Gb','Ab','Bb','C'],
+  'D':['D','E','F#','G','A','B','C#'],
+  'Eb':['Eb','F','G','Ab','Bb','C','D'],
+  'E':['E','F#','G#','A','B','C#','D#'],
+  'F':['F','G','A','Bb','C','D','E'],
+  'F#':['F#','G#','A#','B','C#','D#','E#'],
+  'G':['G','A','B','C','D','E','F#'],
+  'Ab':['Ab','Bb','C','Db','Eb','F','G'],
+  'A':['A','B','C#','D','E','F#','G#'],
+  'Bb':['Bb','C','D','Eb','F','G','A'],
+  'B':['B','C#','D#','E','F#','G#','A#']
+};
+const SPELL_MINOR={
+  'C':['C','D','Eb','F','G','Ab','Bb'],
+  'Db':['C#','D#','E','F#','G#','A','B'],
+  'D':['D','E','F','G','A','Bb','C'],
+  'Eb':['Eb','F','Gb','Ab','Bb','Cb','Db'],
+  'E':['E','F#','G','A','B','C','D'],
+  'F':['F','G','Ab','Bb','C','Db','Eb'],
+  'F#':['F#','G#','A','B','C#','D','E'],
+  'G':['G','A','Bb','C','D','Eb','F'],
+  'Ab':['Ab','Bb','Cb','Db','Eb','Fb','Gb'],
+  'A':['A','B','C','D','E','F','G'],
+  'Bb':['Bb','C','Db','Eb','F','Gb','Ab'],
+  'B':['B','C#','D','E','F#','G','A']
+};
 function applyScalePreset(kind){
   if(!kind) return;
   var P={cMajor:{root:'C',scale:'major'},aMinor:{root:'A',scale:'minor'},gPent:{root:'G',scale:'pentMaj'},eBlues:{root:'E',scale:'blues'}};
@@ -260,9 +289,12 @@ function applyScalePreset(kind){
 function render(){
   const root=document.getElementById('root').value;
   const type=document.getElementById('scaleType').value;
-  const rootIdx=notes.indexOf(root);
+  const rootIdx=(ROOT_PC[root]!==undefined?ROOT_PC[root]:notes.indexOf(root));
   const pattern=scales[type];
-  const scaleNotes=pattern.map(i=>notes[(rootIdx+i)%12]);
+  let scaleNotes;
+  if(type==='major'&&SPELL_MAJOR[root]) scaleNotes=SPELL_MAJOR[root].slice();
+  else if(type==='minor'&&SPELL_MINOR[root]) scaleNotes=SPELL_MINOR[root].slice();
+  else scaleNotes=pattern.map(i=>i===0?root:notes[(rootIdx+i)%12]);
   let pianoHtml='';
   for(let oct=0;oct<2;oct++){
     for(let i=0;i<12;i++){
@@ -270,7 +302,7 @@ function render(){
       const note=notes[noteIdx];
       const isBlack=note.includes('#');
       const inScale=pattern.includes(i%12) || (oct===1&&pattern.includes(i%12));
-      const isRoot=note===root;
+      const isRoot=noteIdx===rootIdx;
       pianoHtml+=`<span class="scale-key ${isBlack?'black':'white'} ${inScale?'in-scale':''} ${isRoot?'root':''}" style="${isBlack?'position:relative;z-index:1;margin-left:-18px;margin-right:-18px;vertical-align:top;':''}">${isRoot?'●':''}</span>`;
     }
   }
@@ -282,7 +314,7 @@ function render(){
     if(sharps>0)sigText=`调号：${sharps}个升号（${['F#','C#','G#','D#','A#','E#','B#'].slice(0,sharps).join(' ')}）`;
     else if(sharps<0)sigText=`调号：${-sharps}个降号（${['Bb','Eb','Ab','Db','Gb','Cb','Fb'].slice(0,-sharps).join(' ')}）`;
     else sigText='调号：无升降号（C大调/A小调）';
-    const relMin=notes[(rootIdx+9)%12];
+    const relMin=(SPELL_MINOR[Object.keys(ROOT_PC).find(k=>ROOT_PC[k]===(rootIdx+9)%12)]||[notes[(rootIdx+9)%12]])[0];
     sigText+=`<br>关系小调：${relMin}m`;
   }
   const __h1=sigText+`<br>💡 红色是根音，蓝色是音阶内音`;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('sigInfo').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('sigInfo').innerHTML=__h1;
@@ -293,13 +325,14 @@ function __musicExtras(){
   var host=document.getElementById('musicChart'); if(!host) return;
   var root=document.getElementById('root').value;
   var type=document.getElementById('scaleType').value;
-  var rootIdx=notes.indexOf(root);
+  var rootIdx=(ROOT_PC[root]!==undefined?ROOT_PC[root]:notes.indexOf(root));
   var pattern=scales[type];
   if(!pattern||rootIdx<0){ host.innerHTML=''; return; }
+  var scaleNotes=(type==='major'&&SPELL_MAJOR[root])?SPELL_MAJOR[root].slice():(type==='minor'&&SPELL_MINOR[root])?SPELL_MINOR[root].slice():pattern.map(function(i){return i===0?root:notes[(rootIdx+i)%12];});
   var labels=[],data=[];
-  pattern.forEach(function(i){
-    var note=notes[(rootIdx+i)%12];
-    var pc=notes.indexOf(note);
+  pattern.forEach(function(i,k){
+    var note=scaleNotes[k]||notes[(rootIdx+i)%12];
+    var pc=(rootIdx+i)%12;
     var midi=60+pc;
     var freq=440*Math.pow(2,(midi-69)/12);
     labels.push(note);
@@ -364,20 +397,20 @@ document.addEventListener('DOMContentLoaded',function(){
   </div>
   <div class="tool-intro-body">
     <h4><span class="h4-icon">📝</span>工具简介</h4>
-    <p>音阶调号参考。设计创意工具，可视化操作，一键生成 CSS 代码。</p>
+    <p>音阶调号参考。选择根音与调式，按十二平均律列出音阶音名、调号升降记号、关系小调与各音级频率，用于乐理学习与音乐创作。</p>
     <h4><span class="h4-icon">✨</span>功能特点</h4>
     <ul class="intro-features">
-      <li>可视化操作，所见即所得</li>
-      <li>支持实时预览与调试</li>
-      <li>一键复制 CSS 代码</li>
+      <li>12 个常用根音 × 大调/小调/五声/布鲁斯调式</li>
+      <li>按标准拼写给出升降音名与调号数量</li>
+      <li>钢琴键位高亮根音与音阶内音</li>
       <li>纯前端运行，无需安装</li>
     </ul>
     <h4><span class="h4-icon">🎯</span>使用场景</h4>
     <ul class="intro-scenes">
-      <li>前端开发中的样式设计</li>
-      <li>UI 设计师配色与布局参考</li>
-      <li>快速生成 CSS 效果代码</li>
-      <li>设计灵感探索与原型制作</li>
+      <li>乐理学习：核对各调音阶音名与调号</li>
+      <li>作曲编配：查看根音与关系小调</li>
+      <li>视唱练耳：对照音级频率</li>
+      <li>教学演示：钢琴键位直观展示音阶</li>
     </ul>
     </div>
 </div>

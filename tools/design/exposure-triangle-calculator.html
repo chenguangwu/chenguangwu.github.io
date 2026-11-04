@@ -242,7 +242,7 @@ const apertures=[1.4,2,2.8,4,5.6,8,11,16,22];
 const shutters=[1/4000,1/2000,1/1000,1/500,1/250,1/125,1/60,1/30,1/15,1/8,1/4,1/2,1,2];
 const shutterLabels=['1/4000','1/2000','1/1000','1/500','1/250','1/125','1/60','1/30','1/15','1/8','1/4','1/2','1','2s'];
 const isos=[100,200,400,800,1600,3200,6400];
-function evFromIdx(ai,si,ii){return (3-ai)+(6-si)+(ii-1);}
+function evFromIdx(ai,si,ii){return Math.log2((apertures[ai]*apertures[ai])/shutters[si])-Math.log2(isos[ii]/100);}
 function fmtShutter(s){if(s>=1)return s+'s';return '1/'+Math.round(1/s);}
 function calc(){
   const ai=document.getElementById('aperture').selectedIndex;
@@ -250,16 +250,16 @@ function calc(){
   const ii=document.getElementById('iso').selectedIndex;
   const a=apertures[ai],s=shutters[si],iso=isos[ii];
   const ev=evFromIdx(ai,si,ii);
-  let html='<h3 style="font-size:14px;margin:12px 0 8px;">🔄 等效曝光组合（相同曝光量）</h3><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;">';
+  let html='<h3 style="font-size:14px;margin:12px 0 8px;">🔄 等效曝光组合（相同曝光量，EV '+ev.toFixed(1)+'）</h3><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;">';
   for(let da=-2;da<=2;da++){
     const na=Math.max(0,Math.min(apertures.length-1,ai+da));
     const neededSi=si+(na-ai);
-    if(neededSi>=0&&neededSi<shutters.length){
+    if(na!==ai&&neededSi>=0&&neededSi<shutters.length){
       html+=`<div style="padding:10px;background:#f8f9ff;border-radius:8px;text-align:center;font-size:13px;"><strong>f/${apertures[na]}</strong><br>${fmtShutter(shutters[neededSi])}<br>ISO ${iso}</div>`;
     }
     const niso=Math.max(0,Math.min(isos.length-1,ii+da));
     const ns=si-da;
-    if(ns>=0&&ns<shutters.length){
+    if(niso!==ii&&ns>=0&&ns<shutters.length){
       html+=`<div style="padding:10px;background:#f8f9ff;border-radius:8px;text-align:center;font-size:13px;"><strong>f/${a}</strong><br>${fmtShutter(shutters[ns])}<br>ISO ${isos[niso]}</div>`;
     }
   }
@@ -283,7 +283,7 @@ function applyExpPreset(kind){
 function changeExp(delta){
   const ai=document.getElementById('aperture').selectedIndex;
   let si=document.getElementById('shutter').selectedIndex;
-  si=Math.max(0,Math.min(shutters.length-1,si-delta));
+  si=Math.max(0,Math.min(shutters.length-1,si+delta));
   document.getElementById('shutter').selectedIndex=si;calc();
 }
 var __expF0 = calc;
@@ -299,12 +299,12 @@ function __expExtras(){
     for(var da=-2; da<=2; da++){
       var na=Math.max(0,Math.min(apertures.length-1,ai+da));
       var neededSi=si+(na-ai);
-      if(neededSi>=0 && neededSi<shutters.length){
+      if(na!==ai && neededSi>=0 && neededSi<shutters.length){
         rows.push(['f/'+apertures[na], fmtShutter(shutters[neededSi]), 'ISO '+iso]);
       }
       var niso=Math.max(0,Math.min(isos.length-1,ii+da));
       var ns=si-da;
-      if(ns>=0 && ns<shutters.length){
+      if(niso!==ii && ns>=0 && ns<shutters.length){
         rows.push(['f/'+a, fmtShutter(shutters[ns]), 'ISO '+isos[niso]]);
       }
     }

@@ -154,7 +154,7 @@ s.parentNode.insertBefore(el, s);
 <div class="card tool-card-accent" style="--tool-accent:#7C3AED;">
      <h2 data-zh="🔤 Base64 转图片">🔤 Base64 to Image Converter</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">输入去首尾空白后，若不以 data: 开头则自动补上 data:image/png;base64, 前缀；交由 Image 加载校验，加载成功则插入图片并把该 data URL 记为结果地址，加载失败提示无效的 Base64 数据并清空结果</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">输入去首尾空白后，若不以 data: 开头则按解码出的前几个字节识别 PNG（89 50 4E 47）、JPEG（FF D8 FF）、GIF、WEBP 或 SVG，并自动补上对应 data:image/…;base64, 前缀；交由 Image 加载校验，加载成功则插入图片并把该 data URL 记为结果地址，加载失败提示无效的 Base64 数据并清空结果</div>
   <div class="formula-desc">本工具为纯前端在线工具，数据在浏览器本地处理、不上传服务器，依据对应领域标准与规范进行计算或处理，结果仅供参考。 工具名称：Base64 转图片 - 免费图片处理工具，在线Base64 转图片，免费使用。</div>
 </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="将 Base64 编码字符串还原为图片并预览下载；本工具只做解码，图片转 Base64 请用反向工具。">Decode a Base64 string back into a viewable image and download it; encoding an image to Base64 is not supported here.</p>
@@ -249,12 +249,23 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 let lastURL = '';
+function sniffMime(b64){
+  try{
+    const bin = atob(b64.replace(/\s+/g,'').slice(0,64));
+    if(bin.startsWith('\x89PNG')) return 'image/png';
+    if(bin.startsWith('\xFF\xD8\xFF')) return 'image/jpeg';
+    if(bin.startsWith('GIF8')) return 'image/gif';
+    if(bin.startsWith('RIFF') && bin.slice(8,12)==='WEBP') return 'image/webp';
+    if(/^<svg|^<?xml/i.test(bin.trim())) return 'image/svg+xml';
+  }catch(e){}
+  return 'image/png';
+}
 function generate(){
   let b64 = document.getElementById('b64Input').value.trim();
   const preview = document.getElementById('preview');
-  if(!b64){ preview.textContent = '请粘贴 Base64 字符串'; return; }
+  if(!b64){ preview.textContent = '请粘贴 Base64 字符串'; lastURL=''; return; }
   if(!b64.startsWith('data:')){
-    b64 = 'data:image/png;base64,' + b64;
+    b64 = 'data:' + sniffMime(b64) + ';base64,' + b64.replace(/\s+/g,'');
   }
   const img = new Image();
   img.onload = () => {
@@ -268,7 +279,7 @@ function downloadImg(){
   if(!lastURL){ alert('请先转换'); return; }
   const a = document.createElement('a');
   a.href = lastURL;
-  const ext = (lastURL.match(/data:image\/(\w+);/) || [,'png'])[1];
+  const ext = ((lastURL.split(';')[0].split('/')[1] || 'png').replace('+xml', ''));
   a.download = 'base64-image.' + ext;
   a.click();
 }
