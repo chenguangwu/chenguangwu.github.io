@@ -126,12 +126,12 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="input-row" style="align-items:center;">
       <span style="white-space:nowrap;font-size:13px;">算法：</span>
-      <label style="flex:0 0 auto;"><input type="checkbox" id="al_md5" checked> MD5</label>
-      <label style="flex:0 0 auto;"><input type="checkbox" id="al_sha1" checked> SHA-1</label>
-      <label style="flex:0 0 auto;"><input type="checkbox" id="al_sha256" checked> SHA-256</label>
-      <label style="flex:0 0 auto;"><input type="checkbox" id="al_sha512"> SHA-512</label>
-      <label style="flex:0 0 auto;"><input type="checkbox" id="al_crc32"> CRC32</label>
-      <label style="flex:0 0 auto;"><input type="checkbox" id="opt_upper"> 大写</label>
+      <label style="flex:0 0 auto;"><input type="checkbox" id="al_md5" onchange="calc()" checked> MD5</label>
+      <label style="flex:0 0 auto;"><input type="checkbox" id="al_sha1" onchange="calc()" checked> SHA-1</label>
+      <label style="flex:0 0 auto;"><input type="checkbox" id="al_sha256" onchange="calc()" checked> SHA-256</label>
+      <label style="flex:0 0 auto;"><input type="checkbox" id="al_sha512" onchange="calc()"> SHA-512</label>
+      <label style="flex:0 0 auto;"><input type="checkbox" id="al_crc32" onchange="calc()"> CRC32</label>
+      <label style="flex:0 0 auto;"><input type="checkbox" id="opt_upper" onchange="calc()"> 大写</label>
     </div>
     <div class="result-box" id="result"></div> <div id="hash_multiTable"></div> <div id="hash_multiDiff"></div> <div id="hash_multiChart"></div> <div id="hash_multiHist"></div>
     <div id="outBox" style="display:flex;flex-direction:column;gap:10px;"></div>
@@ -333,14 +333,14 @@ function calc(){
     lastHashPairs.push({label:String(label),value:String(hash)});
     items.push('<div style="background:var(--bg,#FFFAF7);border:1px solid var(--border,#E5E7EB);border-radius:12px;padding:12px 14px;">'+
       '<div style="font-size:12px;color:var(--muted,#6B7280);margin-bottom:4px;">'+label+'</div>'+
-      '<div style="font-family:monospace;font-size:13.5px;word-break:break-all;">'+hash+' <button class="btn" style="padding:1px 10px;font-size:12px;float:right;margin-left:6px;" onclick="copyItem(this)">复制</button></div></div>');
+      '<div data-hash-label="'+label+'" style="font-family:monospace;font-size:13.5px;word-break:break-all;">'+hash+' <button class="btn" style="padding:1px 10px;font-size:12px;float:right;margin-left:6px;" onclick="copyItem(this)">复制</button></div></div>');
   }
   var selected=0;
   if(document.getElementById('al_md5').checked){push('MD5',md5(text));selected++;}
   if(document.getElementById('al_sha1').checked){push('SHA-1','—');selected++;}
   if(document.getElementById('al_sha256').checked){push('SHA-256','—');selected++;}
   if(document.getElementById('al_sha512').checked){push('SHA-512','—');selected++;}
-  if(document.getElementById('al_crc32').checked){push('CRC32',crc32(text).toString(16));selected++;}
+  if(document.getElementById('al_crc32').checked){push('CRC32',('00000000'+crc32(text).toString(16)).slice(-8));selected++;}
   const __h2=items.join('');if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){box.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}box.innerHTML=__h2;
   // SHA 系列走异步 crypto.subtle
   var jobs=[];
@@ -355,14 +355,8 @@ function calc(){
         for(var p=0;p<lastHashPairs.length;p++){
           if(lastHashPairs[p].label===r[0]){lastHashPairs[p].value=v;break;}
         }
-        var boxes=box.querySelectorAll('div');
-        for(var i=0;i<boxes.length;i++){
-          if(boxes[i].textContent.indexOf(r[0]+'复制')>-1&&boxes[i].querySelector('div:last-child')){
-            var target=boxes[i].querySelector('div:nth-child(2)');
-            if(target){target.firstChild.textContent=v;}
-            break;
-          }
-        }
+        var target=box.querySelector('[data-hash-label="'+r[0]+'"]');
+        if(target){target.firstChild.textContent=v;}
       });
     }).catch(function(){});
   }

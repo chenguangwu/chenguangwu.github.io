@@ -191,10 +191,10 @@ s.parentNode.insertBefore(el, s);
 
     
     <div class="tabs">
-      <div class="tab active" onclick="switchTab('convert')">时间戳转换</div>
-      <div class="tab" onclick="switchTab('quick')">常用时间戳</div>
-      <div class="tab" onclick="switchTab('calc')">时间计算</div>
-      <div class="tab" onclick="switchTab('history')">历史记录</div>
+      <div class="tab active" onclick="switchTab('convert',event)">时间戳转换</div>
+      <div class="tab" onclick="switchTab('quick',event)">常用时间戳</div>
+      <div class="tab" onclick="switchTab('calc',event)">时间计算</div>
+      <div class="tab" onclick="switchTab('history',event)">历史记录</div>
     </div>
 
     <div id="tab-convert" class="tab-content active">
@@ -414,22 +414,42 @@ const HISTORY_KEY = 'timestamp_converter_history';
 const MAX_HISTORY = 20;
 
 const TIMEZONES = [
-  { name: '本地时间', offset: null },
-  { name: 'UTC', offset: 0 },
-  { name: '北京 (GMT+8)', offset: 8 },
-  { name: '东京 (GMT+9)', offset: 9 },
-  { name: '悉尼 (GMT+11)', offset: 11 },
-  { name: '伦敦 (GMT+0)', offset: 0 },
-  { name: '巴黎 (GMT+1)', offset: 1 },
-  { name: '纽约 (GMT-5)', offset: -5 },
-  { name: '洛杉矶 (GMT-8)', offset: -8 },
-  { name: '夏威夷 (GMT-10)', offset: -10 }
+  { name: '本地时间', zone: null },
+  { name: 'UTC', zone: 'UTC' },
+  { name: '北京', zone: 'Asia/Shanghai' },
+  { name: '东京', zone: 'Asia/Tokyo' },
+  { name: '悉尼', zone: 'Australia/Sydney' },
+  { name: '伦敦', zone: 'Europe/London' },
+  { name: '巴黎', zone: 'Europe/Paris' },
+  { name: '纽约', zone: 'America/New_York' },
+  { name: '洛杉矶', zone: 'America/Los_Angeles' },
+  { name: '夏威夷', zone: 'Pacific/Honolulu' }
 ];
+function formatInZone(date, zone){
+  if(!zone) return formatDateTime(date);
+  try{
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: zone, year:'numeric', month:'2-digit', day:'2-digit',
+      hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false,
+      timeZoneName:'shortOffset'
+    }).formatToParts(date);
+    const g = t => (parts.find(p => p.type === t) || {}).value || '';
+    return g('year')+'-'+g('month')+'-'+g('day')+' '+g('hour')+':'+g('minute')+':'+g('second');
+  }catch(e){ return formatDateTime(date); }
+}
+function zoneLabel(zone){
+  if(!zone) return '本地时间';
+  try{
+    const parts = new Intl.DateTimeFormat('en-US', { timeZone: zone, timeZoneName:'shortOffset' }).formatToParts(new Date());
+    return (parts.find(p => p.type === 'timeZoneName') || {}).value || zone;
+  }catch(e){ return zone; }
+}
 
-function switchTab(tab) {
+function switchTab(tab, ev) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-  event.target.classList.add('active');
+  const target = (ev && ev.currentTarget) || document.querySelector('.tab[onclick*="' + tab + '"]');
+  if(target) target.classList.add('active');
   document.getElementById('tab-' + tab).classList.add('active');
   if (tab === 'history') renderHistory();
 }
@@ -545,21 +565,12 @@ function renderResults(date, tsSec) {
 
 function renderTimezones(date) {
   const grid = document.getElementById('timezoneGrid');
-  const __h1=TIMEZONES.map(tz => {
-    let tzDate;
-    if (tz.offset === null) {
-      tzDate = date;
-    } else {
-      const utc = date.getTime() + date.getTimezoneOffset() * 60000;
-      tzDate = new Date(utc + tz.offset * 3600000);
-    }
-    return `
+  const __h1=TIMEZONES.map(tz => `
       <div class="tz-card">
-        <div class="tz-name">${tz.name}</div>
-        <div class="tz-time">${formatDateTime(tzDate)}</div>
+        <div class="tz-name">${ToolBox.escHtml(tz.name)} (${ToolBox.escHtml(zoneLabel(tz.zone))})</div>
+        <div class="tz-time">${ToolBox.escHtml(formatInZone(date, tz.zone))}</div>
       </div>
-    `;
-  }).join('');if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){grid.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}grid.innerHTML=__h1;
+    `).join('');if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){grid.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}grid.innerHTML=__h1;
 }
 
 function getDayOfYear(date) {
@@ -711,14 +722,24 @@ function calculateDiff() {
   const diffDay = Math.floor(diffHour / 24);
   const diffWeek = Math.floor(diffDay / 7);
   
-  const diffMonth = Math.abs((end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()));
-  const diffYear = Math.abs(end.getFullYear() - start.getFullYear());
-  
+  const earlier = start <= end ? start : end;
+  const later = start <= end ? end : start;
+  let wholeMonths = (later.getFullYear() - earlier.getFullYear()) * 12 + (later.getMonth() - earlier.getMonth());
+  const monthProbe = new Date(earlier.getTime());
+  monthProbe.setMonth(monthProbe.getMonth() + wholeMonths);
+  if (monthProbe > later) wholeMonths--;
+  wholeMonths = Math.max(0, wholeMonths);
+  let wholeYears = later.getFullYear() - earlier.getFullYear();
+  const yearProbe = new Date(earlier.getTime());
+  yearProbe.setFullYear(yearProbe.getFullYear() + wholeYears);
+  if (yearProbe > later) wholeYears--;
+  wholeYears = Math.max(0, wholeYears);
+
   const __h4=`
     <p><strong>相差天数:</strong> ${diffDay.toLocaleString()} 天</p>
     <p><strong>相差周数:</strong> ${diffWeek.toLocaleString()} 周</p>
-    <p><strong>相差月数:</strong>约 ${diffMonth} 个月</p>
-    <p><strong>相差年数:</strong>约 ${diffYear} 年</p>
+    <p><strong>相差整月数:</strong> ${wholeMonths} 个月</p>
+    <p><strong>相差整年数:</strong> ${wholeYears} 年</p>
     <p><strong>相差小时:</strong> ${diffHour.toLocaleString()} 小时</p>
     <p><strong>相差分钟:</strong> ${diffMin.toLocaleString()} 分钟</p>
     <p><strong>相差秒数:</strong> ${diffSec.toLocaleString()} 秒</p>
