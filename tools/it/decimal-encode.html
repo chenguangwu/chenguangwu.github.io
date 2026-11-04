@@ -257,13 +257,26 @@ function enc(){
   if(!text) return alert('请输入要编码的文本');
   const bytes = new TextEncoder().encode(text);
   const sep = document.getElementById('sep').value;
-  document.getElementById('output').value = Array.from(bytes).join(sep);
+  document.getElementById('output').value = sep === ''
+    ? Array.from(bytes).map(b => String(b).padStart(3,'0')).join('')   // 无分隔符：定长 3 位，保证可逆
+    : Array.from(bytes).join(sep);
 }
 
 function dec(){
   let text = document.getElementById('input').value.trim();
   if(!text) return alert('请输入要解码的十进制数字串');
-  const parts = text.split(/[\s,\-;]+/).filter(Boolean);
+  let parts;
+  if(/[\s,\-;]/.test(text)){
+    parts = text.split(/[\s,\-;]+/).filter(Boolean);
+  } else {
+    if(text.length % 3 !== 0){
+      const en = !!(window.I18n && window.I18n.get && window.I18n.get() === 'en-US');
+      return alert(en ? 'No-separator mode requires fixed 3-digit groups (length must be a multiple of 3)'
+                      : '无分隔符模式需为定长 3 位数字串（长度须为 3 的倍数）');
+    }
+    parts = [];
+    for(let i = 0; i < text.length; i += 3) parts.push(text.substr(i, 3));
+  }
   const bytes = new Uint8Array(parts.length);
   for(let i = 0; i < parts.length; i++){
     const v = parseInt(parts[i], 10);

@@ -447,7 +447,7 @@ function doEscape(text, format, escQuote, escSingle, escAll){
       if(escAll){
         return Array.from(text).map(c => {
           if(NAMED_ENTITIES[c]) return NAMED_ENTITIES[c];
-          if(c.charCodeAt(0) > 127) return `&#${c.charCodeAt(0)};`;
+          if(c.codePointAt(0) > 127) return `&#${c.codePointAt(0)};`;
           return c;
         }).join('');
       }
@@ -458,7 +458,7 @@ function doEscape(text, format, escQuote, escSingle, escAll){
       
     case 'html-dec':
       if(escAll){
-        return Array.from(text).map(c => `&#${c.charCodeAt(0)};`).join('');
+        return Array.from(text).map(c => `&#${c.codePointAt(0)};`).join('');
       }
       let outd = text.replace(/&/g, '&#38;').replace(/</g, '&#60;').replace(/>/g, '&#62;');
       if(escQuote) outd = outd.replace(/"/g, '&#34;');
@@ -467,7 +467,7 @@ function doEscape(text, format, escQuote, escSingle, escAll){
       
     case 'html-hex':
       if(escAll){
-        return Array.from(text).map(c => `&#x${c.charCodeAt(0).toString(16).toUpperCase()};`).join('');
+        return Array.from(text).map(c => `&#x${c.codePointAt(0).toString(16).toUpperCase()};`).join('');
       }
       let outh = text.replace(/&/g, '&#x26;').replace(/</g, '&#x3C;').replace(/>/g, '&#x3E;');
       if(escQuote) outh = outh.replace(/"/g, '&#x22;');
@@ -515,16 +515,29 @@ function doUnescape(text, format){
       ta.innerHTML = text;
       return ta.value;
       
-    case 'js':
-      return text
-        .replace(/\\n/g, '\n')
-        .replace(/\\r/g, '\r')
-        .replace(/\\t/g, '\t')
-        .replace(/\\"/g, '"')
-        .replace(/\\'/g, "'")
-        .replace(/\\\\/g, '\\')
-        .replace(/\\0/g, '\0')
-        .replace(/\\u([\da-fA-F]{4})/g, (m, hex) => String.fromCharCode(parseInt(hex, 16)));
+    case 'js': {
+      // 单遍状态机：先成对消费 \\，避免「\n 先于 \\ 替换」把转义反斜杠误当真实换行
+      let out = '';
+      let i = 0;
+      const SIMPLE = { n: '\n', r: '\r', t: '\t', b: '\b', f: '\f', v: '\v', '0': '\0', '"': '"', "'": "'", '\\': '\\' };
+      while(i < text.length){
+        if(text[i] === '\\' && i + 1 < text.length){
+          const n = text[i + 1];
+          if(n === 'u'){
+            const h = text.substr(i + 2, 4);
+            if(/^[0-9a-fA-F]{4}$/.test(h)){ out += String.fromCharCode(parseInt(h, 16)); i += 6; continue; }
+          }
+          if(n === 'x'){
+            const h = text.substr(i + 2, 2);
+            if(/^[0-9a-fA-F]{2}$/.test(h)){ out += String.fromCharCode(parseInt(h, 16)); i += 4; continue; }
+          }
+          if(Object.prototype.hasOwnProperty.call(SIMPLE, n)){ out += SIMPLE[n]; i += 2; continue; }
+          out += n; i += 2; continue;
+        }
+        out += text[i]; i++;
+      }
+      return out;
+    }
       
     case 'unicode':
       let result = text.replace(/\\u([\da-fA-F]{4})/g, (m, hex) => String.fromCharCode(parseInt(hex, 16)));
