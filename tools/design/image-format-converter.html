@@ -892,7 +892,7 @@ s.parentNode.insertBefore(el, s);
       if (state.results[idx]) {
         statusCls = 'done';
         statusText = formatSize(state.results[idx].size);
-        meta += ' → ' + getFormatName(state.targetFormat);
+        meta += ' → ' + getFormatName(state.results[idx].format || state.targetFormat);
       }
       html += '<div class="file-item" onclick="showPreview(' + idx + ')">'
         + '<img class="file-thumb" src="' + item.img.src + '" alt="">'
@@ -1049,11 +1049,14 @@ s.parentNode.insertBefore(el, s);
   function onConverted(idx, item, blob, format) {
     var url = URL.createObjectURL(blob);
     var baseName = item.name.replace(/\.[^.]+$/, '');
+    // 与实际 MIME 对齐：浏览器不支持 WebP 时会静默回落 PNG，扩展名不能沿用选择器
+    var actualFormat = mimeToFormat(blob.type) || format;
     state.results[idx] = {
       blob: blob,
       url: url,
       size: blob.size,
-      name: baseName + '.' + getExtension(format)
+      format: actualFormat,
+      name: baseName + '.' + getExtension(actualFormat)
     };
     renderFileList();
     updateUI();
@@ -1242,6 +1245,10 @@ s.parentNode.insertBefore(el, s);
   function getExtension(format) {
     var map = { png: 'png', jpeg: 'jpg', webp: 'webp', bmp: 'bmp' };
     return map[format] || format;
+  }
+
+  function mimeToFormat(mime) {
+    return { 'image/png': 'png', 'image/jpeg': 'jpeg', 'image/webp': 'webp', 'image/bmp': 'bmp' }[mime] || '';
   }
 
   function getFormatName(format) {

@@ -309,12 +309,17 @@ function convertAll() {
         return;
       }
       const url = URL.createObjectURL(blob);
+      // 浏览器不支持所选格式时会静默回落为 PNG（如老版 Safari 的 WebP）：
+      // 扩展名与展示一律跟随 blob 实际 MIME，避免 .webp 文件里装的是 PNG。
+      const actualType = blob.type || f.type;
+      const actualExt = actualType === 'image/webp' ? 'webp' : actualType === 'image/jpeg' ? 'jpg' : 'png';
+      const fallback = actualType !== f.type;
       const card = document.createElement('div');
       card.className = 'preview-card';
       const __h2=`
         <img alt=""  src="${url}">
-        <div class="info"><strong>${f.label}</strong><br>${formatSize(blob.size)}<br><span class="alpha-note">${flatten ? '已铺白底' : '已保留透明'}</span></div>
-        <a href="${url}" download="converted-${Date.now()}.${f.ext}" class="download">⬇ 下载</a>
+        <div class="info"><strong>${f.label}${fallback ? `（已回落为 ${actualExt.toUpperCase()}）` : ''}</strong><br>${formatSize(blob.size)}<br><span class="alpha-note">${flatten ? '已铺白底' : '已保留透明'}</span></div>
+        <a href="${url}" download="converted-${Date.now()}.${actualExt}" class="download">⬇ 下载</a>
       `;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){card.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}card.innerHTML=__h2;
       grid.appendChild(card);
     }, f.type, f.lossy ? 0.85 : undefined);
