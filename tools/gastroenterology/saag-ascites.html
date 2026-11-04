@@ -259,8 +259,24 @@ s.parentNode.insertBefore(el, s);
 
 <script>
 function calc(){
-  var serumAlb=parseFloat(document.getElementById('serumAlb').value)||0;
-  var ascitesAlb=parseFloat(document.getElementById('ascitesAlb').value)||0;
+  var val=function(id){
+    var raw=document.getElementById(id).value.trim();
+    if(raw==='') return null;
+    var n=parseFloat(raw);
+    return isFinite(n)?n:null;
+  };
+  var serumAlb=val('serumAlb');
+  var ascitesAlb=val('ascitesAlb');
+
+  // 空值不按 0 计算：缺项直接提示，避免被判为「非门脉高压性腹水」
+  if(serumAlb===null||ascitesAlb===null){
+    document.getElementById('result').innerHTML='<div class="tip-box tip-warn">请填写血清白蛋白与腹水白蛋白（单位 g/L）。缺项时 SAAG 无法计算，不能据此判断腹水类型（需临床复核）。</div>';
+    return;
+  }
+  if(serumAlb<=0||serumAlb>60||ascitesAlb<0||ascitesAlb>60||ascitesAlb>serumAlb){
+    document.getElementById('result').innerHTML='<div class="tip-box tip-warn">数值异常：血清白蛋白与腹水白蛋白均应在 0–60 g/L，且腹水白蛋白不应高于血清白蛋白。请核对单位（g/L 与 g/dL 相差 10 倍）后重算（需临床复核）。</div>';
+    return;
+  }
 
   var saag=serumAlb-ascitesAlb;
 

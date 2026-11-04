@@ -284,10 +284,19 @@ function calc(){
   else if(mass>0) mass=2;
   else mass=0;
 
-  // CDAI(Best 1976) 标准 Hct：男 47、女 42。空 Hct 不按 0 处理（否则凭空 +252/+222 分）
+  // Hct 必填：空值按 0 会凭空 +222~252 分，必须拦截；并校验 20–60% 合理范围
+  if(hct===null){
+    document.getElementById('result').innerHTML='<div class="tip-box tip-warn">请填写红细胞压积 Hct。Hct 缺项时按 0 计算会凭空增加 222~252 分，导致误判为中/重度活动，因此本工具不出分（需临床复核）。</div>';
+    return;
+  }
+  if(hct<20||hct>60){
+    document.getElementById('result').innerHTML='<div class="tip-box tip-warn">红细胞压积 Hct 应为 20–60%，当前填入 '+hct+'%，请核对单位与数值后重算（需临床复核）。</div>';
+    return;
+  }
+
+  // CDAI(Best 1976) 标准 Hct：男 47、女 42
   var hctStd=gender==='male'?47:42;
-  var hctDiff=hct===null?0:(hctStd-hct);
-  var hctMissing=(hct===null);
+  var hctDiff=hctStd-hct;
 
   var cdai=stool*2+pain*5+wellbeing*7+complications*20+loperamide*30+mass*10+hctDiff*6+weight*1;
 
@@ -298,8 +307,7 @@ function calc(){
   details.push('并发症 '+complications+' × 20 = '+(complications*20).toFixed(0));
   details.push('止泻药 '+loperamide+' × 30 = '+(loperamide*30).toFixed(0));
   details.push('腹部包块 '+mass+' × 10 = '+(mass*10).toFixed(0));
-  if(hctMissing){details.push('Hct 未填 → 该项不计分（不得按 0 计算，请补测血常规）');}
-  else{details.push('Hct 标准 '+hctStd+'% − 实测 '+hct+'% = '+hctDiff.toFixed(1)+' × 6 = '+(hctDiff*6).toFixed(1));}
+  details.push('Hct 标准 '+hctStd+'% − 实测 '+hct+'% = '+hctDiff.toFixed(1)+' × 6 = '+(hctDiff*6).toFixed(1));
   details.push('体重偏差 '+weight+'% × 1 = '+weight.toFixed(1));
 
   var severity,color,advice;
@@ -329,8 +337,6 @@ function calc(){
   html+='<div class="ref-card"><h4>评分明细</h4><ul>';
   details.forEach(function(d){html+='<li>'+d+'</li>';});
   html+='</ul></div>';
-
-  if(hctMissing){html+='<div class="tip-box tip-warn" style="margin-top:10px;">Hct 未填：该项按 0 处理会凭空增加 222~252 分，因此本工具已跳过该项；评分可能被低估，请补测血常规后重新计算（需临床复核）。</div>';}
 
   html+='<div class="tip-box" style="border-color:'+color+';color:'+color+';background:'+color+'1a;">'+advice+'</div>';
 

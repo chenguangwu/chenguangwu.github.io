@@ -119,7 +119,7 @@ s.parentNode.insertBefore(el, s);
 <div class="formula-box">
   
   
-<div class="formula-eq">Child-Pugh 分级 = 胆红素 + 白蛋白 + 凝血酶原时间/INR + 腹水 + 肝性脑病（各 1 至 3 分）之和；5–6 分 A 级、7–9 B 级、10–15 C 级。</div></div>
+<div class="formula-eq">Child-Pugh 分级 = 胆红素 + 白蛋白 + 凝血酶原时间/INR + 腹水 + 肝性脑病（各 1 至 3 分）之和；5–6 分 A 级、7–9 B 级、10–15 C 级。胆红素分档：一般 34/51 μmol/L，原发性胆汁性胆管炎（PBC）按 68/170 μmol/L。PT 延长与 INR 取较高分；缺项不按 0 计算（阈值需临床复核）。</div></div>
 
     <div class="input-row">
       <div><label>总胆红素 (μmol/L)</label><input type="number" id="bilirubin" value="35" step="0.1" oninput="calc()" placeholder="如 35"></div>
@@ -134,19 +134,23 @@ s.parentNode.insertBefore(el, s);
       <div>
         <label>腹水</label>
         <select id="ascites" onchange="calc()">
-          <option value="0">无</option>
-          <option value="1">少量（易控制）</option>
-          <option value="2" selected>中-大量（不易控制）</option>
+          <option value="1" selected>无</option>
+          <option value="2">少量（易控制）</option>
+          <option value="3">中-大量（不易控制）</option>
         </select>
       </div>
       <div>
         <label>肝性脑病</label>
         <select id="encephalopathy" onchange="calc()">
-          <option value="0">无</option>
-          <option value="1">I-II级</option>
-          <option value="2" selected>III-IV级</option>
+          <option value="1" selected>无</option>
+          <option value="2">I-II级</option>
+          <option value="3">III-IV级</option>
         </select>
       </div>
+    </div>
+
+    <div class="checkbox-row">
+      <label><input type="checkbox" id="pbc" onchange="calc()"> 原发性胆汁性胆管炎（PBC，胆红素分档改用 68/170）</label>
     </div>
 
     <div class="toolbar">
@@ -261,53 +265,83 @@ s.parentNode.insertBefore(el, s);
 
 <script>
 function calc(){
-  var bilirubin=parseFloat(document.getElementById('bilirubin').value)||0;
-  var albumin=parseFloat(document.getElementById('albumin').value)||0;
-  var pt=parseFloat(document.getElementById('pt').value)||0;
-  var inr=parseFloat(document.getElementById('inr').value)||0;
+  var val=function(id){
+    var raw=document.getElementById(id).value.trim();
+    if(raw==='') return null;
+    var n=parseFloat(raw);
+    return isFinite(n)?n:null;
+  };
+  var bilirubin=val('bilirubin');
+  var albumin=val('albumin');
+  var pt=val('pt');
+  var inr=val('inr');
   var ascites=parseInt(document.getElementById('ascites').value);
   var encephalopathy=parseInt(document.getElementById('encephalopathy').value);
+  var pbc=document.getElementById('pbc').checked;
+
+  // 必填校验：缺项不按 0 计算
+  var missing=[];
+  if(bilirubin===null) missing.push('总胆红素');
+  if(albumin===null) missing.push('白蛋白');
+  if(pt===null&&inr===null) missing.push('PT 延长或 INR（至少填一项）');
+  if(missing.length){
+    document.getElementById('result').innerHTML='<div class="tip-box tip-warn">请填写：'+missing.join('、')+'。Child-Pugh 需各项齐全，缺项不计算分级（需临床复核）。</div>';
+    var rb=document.getElementById('cpRefBar'); if(rb) rb.innerHTML='';
+    return;
+  }
+  if(bilirubin<=0||bilirubin>800||albumin<=0||albumin>60||(pt!==null&&(pt<0||pt>60))||(inr!==null&&(inr<0.5||inr>10))){
+    document.getElementById('result').innerHTML='<div class="tip-box tip-warn">数值超出常见范围（胆红素 0–800 μmol/L、白蛋白 5–60 g/L、PT 延长 0–60 s、INR 0.5–10），请核对单位与录入（需临床复核）。</div>';
+    var rb2=document.getElementById('cpRefBar'); if(rb2) rb2.innerHTML='';
+    return;
+  }
 
   var score=0;
   var details=[];
 
-  // 胆红素
-  if(bilirubin>51){score+=3;details.push('总胆红素 '+bilirubin+' μmol/L (＞51) → 3分');}
-  else if(bilirubin>=34){score+=2;details.push('总胆红素 '+bilirubin+' μmol/L (34-51) → 2分');}
+  // 胆红素（PBC 用 68/170 分档）
+  if(pbc){
+    if(bilirubin>170){score+=3;details.push('总胆红素 '+bilirubin+' μmol/L (＞170，PBC) → 3分');}
+    else if(bilirubin>=68){score+=2;details.push('总胆红素 '+bilirubin+' μmol/L (68–170，PBC) → 2分');}
+    else{score+=1;details.push('总胆红素 '+bilirubin+' μmol/L (＜68，PBC) → 1分');}
+  }else if(bilirubin>51){score+=3;details.push('总胆红素 '+bilirubin+' μmol/L (＞51) → 3分');}
+  else if(bilirubin>=34){score+=2;details.push('总胆红素 '+bilirubin+' μmol/L (34–51) → 2分');}
   else{score+=1;details.push('总胆红素 '+bilirubin+' μmol/L (＜34) → 1分');}
 
   // 白蛋白
   if(albumin<28){score+=3;details.push('白蛋白 '+albumin+' g/L (＜28) → 3分');}
-  else if(albumin<=35){score+=2;details.push('白蛋白 '+albumin+' g/L (28-35) → 2分');}
+  else if(albumin<=35){score+=2;details.push('白蛋白 '+albumin+' g/L (28–35) → 2分');}
   else{score+=1;details.push('白蛋白 '+albumin+' g/L (＞35) → 1分');}
 
-  // PT延长和INR取较高分
-  var ptScore;
-  if(pt>6){ptScore=3;}
-  else if(pt>=4){ptScore=2;}
-  else{ptScore=1;}
+  // PT 延长和 INR 取较高分；仅填一项时使用该项
+  var ptScore=null, inrScore=null;
+  if(pt!==null){
+    if(pt>6){ptScore=3;}
+    else if(pt>=4){ptScore=2;}
+    else{ptScore=1;}
+  }
+  if(inr!==null){
+    if(inr>2.3){inrScore=3;}
+    else if(inr>=1.7){inrScore=2;}
+    else{inrScore=1;}
+  }
 
-  var inrScore;
-  if(inr>2.3){inrScore=3;}
-  else if(inr>=1.7){inrScore=2;}
-  else{inrScore=1;}
-
-  var coagScore=Math.max(ptScore,inrScore);
-  var coagItem=ptScore>=inrScore?'PT延长':'INR';
-  if(coagScore===3){details.push(coagItem+' → 3分');}
-  else if(coagScore===2){details.push(coagItem+' → 2分');}
-  else{details.push(coagItem+' → 1分');}
+  var coagScore,coagItem;
+  if(ptScore===null){coagScore=inrScore;coagItem='INR';}
+  else if(inrScore===null){coagScore=ptScore;coagItem='PT延长';}
+  else if(ptScore>=inrScore){coagScore=ptScore;coagItem='PT延长';}
+  else{coagScore=inrScore;coagItem='INR';}
+  details.push(coagItem+' → '+coagScore+'分');
   score+=coagScore;
 
-  // 腹水
+  // 腹水（无 1 分、少量 2 分、中大量 3 分）
   var ascitesNames=['无','少量（易控制）','中-大量（不易控制）'];
   score+=ascites;
-  details.push('腹水：'+ascitesNames[ascites]+' → '+ascites+'分');
+  details.push('腹水：'+ascitesNames[ascites-1]+' → '+ascites+'分');
 
-  // 肝性脑病
+  // 肝性脑病（无 1 分、I-II 级 2 分、III-IV 级 3 分）
   var encNames=['无','I-II级','III-IV级'];
   score+=encephalopathy;
-  details.push('肝性脑病：'+encNames[encephalopathy]+' → '+encephalopathy+'分');
+  details.push('肝性脑病：'+encNames[encephalopathy-1]+' → '+encephalopathy+'分');
 
   var grade,color,survival,advice;
   if(score<=6){
@@ -533,10 +567,10 @@ function __child_pughExport(){
 }
 function __child_pughPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#child_pughPresets',[{label:'默认参数',labelEn:'Default',values:{'bilirubin':'35', 'albumin':'30', 'pt':'4', 'inr':'1.7', 'ascites':'2', 'encephalopathy':'2'}},
-  {"label":"Child-Pugh A 级","labelEn":"Child-Pugh A","values":{"bilirubin":18,"albumin":42,"pt":2,"inr":1.1,"ascites":"0","encephalopathy":"0"}},
-  {"label":"Child-Pugh B 级","labelEn":"Child-Pugh B","values":{"bilirubin":40,"albumin":30,"pt":4,"inr":1.7,"ascites":"1","encephalopathy":"1"}},
-  {"label":"Child-Pugh C 级","labelEn":"Child-Pugh C","values":{"bilirubin":80,"albumin":22,"pt":8,"inr":2.6,"ascites":"2","encephalopathy":"2"}}],function(){ calc(); });
+    TBKit.preset.bar('#child_pughPresets',[{label:'默认参数',labelEn:'Default',values:{'bilirubin':'35', 'albumin':'30', 'pt':'4', 'inr':'1.7', 'ascites':'1', 'encephalopathy':'1'}},
+  {"label":"Child-Pugh A 级","labelEn":"Child-Pugh A","values":{"bilirubin":18,"albumin":42,"pt":2,"inr":1.1,"ascites":"1","encephalopathy":"1"}},
+  {"label":"Child-Pugh B 级","labelEn":"Child-Pugh B","values":{"bilirubin":40,"albumin":30,"pt":4,"inr":1.7,"ascites":"2","encephalopathy":"2"}},
+  {"label":"Child-Pugh C 级","labelEn":"Child-Pugh C","values":{"bilirubin":80,"albumin":22,"pt":8,"inr":2.6,"ascites":"3","encephalopathy":"3"}}],function(){ calc(); });
 }
 var __child_pugh_f0=(typeof calc==='function')?calc:null;
 if(__child_pugh_f0){
