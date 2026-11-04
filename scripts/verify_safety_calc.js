@@ -128,13 +128,13 @@ const CASES = [
   {
     "slug": "safety/haxijisuan",
     "inputs": {
-      "input": "1\n2\n3",
-      "algo": "SHA-1"
+      "input": "abc",
+      "algo": "SHA-256"
     },
     "expect": [
-      "1 2 3\nSHA-1\n❌ Unrecognized algorithm name"
+      "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"algo\":\"SHA-1\"}，输出区含「1 2 3\nSHA-1\n❌ Unrecognized algorithm nam…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "SHA-256('abc') = ba7816bf…15ad（NIST 标准值）。旧实现把算法名 replace('-','') 变成 'SHA256'（非法）⇒ crypto.subtle.digest 抛 Unrecognized algorithm name，任何输入都失败；修复后直接传 'SHA-256'。默认 algo=MD5、输入为空 ⇒ 显示「请输入文本」，不命中。"
   },
   {
     "slug": "safety/manager",

@@ -813,6 +813,13 @@ const CASES = [
     "ref": "点积 A·B=1×3+2×4+0×0=11（dim 默认即 3D，a/b 各分量为注入值）。刻意选非默认运算 op=dot（默认 op=add）⇒ 判别器把 op 换回 add 后输出 A+B=(4,6,0)，不出现 'A · B = 11'（该页向量分量是 build() 动态生成的 id=a0/b0..，静态 HTML 无默认值，故只能靠静态 op/size 的回落来制造判别力）。"
   },
   {
+    "slug": "science/vector-calculator",
+    "inputs": { "dim": "3", "op": "scaleA", "scalar": "0", "a0": "1", "a1": "2", "a2": "3", "b0": "4", "b1": "5", "b2": "6" },
+    "clicks": ["calculate()"],
+    "expect": ["0·A = (0, 0, 0)"],
+    "ref": "零标量必须原样进算：旧实现 scalar||1 把 0 改成 1，零向量被放大成 A。注入 k=0、A=(1,2,3) ⇒ 0·A=(0,0,0)。默认 scalar=2 ⇒ 2·A=(2,4,6)，不命中（scalar 是静态控件，判别器可回退）。"
+  },
+  {
     "slug": "science/xianxingfangchengzuqiujie-2yuan-3yuan",
     "inputs": { "a1": "2", "b1": "1", "c1": "5", "a2": "1", "b2": "-1", "c2": "1" },
     "clicks": ["calc()"],
@@ -839,6 +846,20 @@ const CASES = [
     "clicks": ["calculate()"],
     "expect": ["19 22 43 50"],
     "ref": "2×2 矩阵乘法 A=[[1,2],[3,4]]、B=[[5,6],[7,8]] ⇒ C=[[1·5+2·7,1·6+2·8],[3·5+4·7,3·6+4·8]]=[[19,22],[43,50]]，逐格输出 '19 22 43 50'。刻意选非默认 size=2×2 与 op=mul（默认 3×3、add）⇒ 判别器换回默认后输出 A+B，不出现该串（a0..b3 为 buildMatrices() 动态生成的 id，静态 HTML 无默认值）。"
+  },
+  {
+    "slug": "science/matrix-calculator",
+    "inputs": { "size": "2", "op": "power", "scalar": "0", "a0": "2", "a1": "3", "a2": "4", "a3": "5" },
+    "clicks": ["calculate()"],
+    "expect": ["1 0 0 1"],
+    "ref": "A⁰ 应为单位矩阵：旧实现 parseInt(raw)||1 把指数 0 改成 1 ⇒ 输出 A 本身（2 3 4 5）。注入 A=[[2,3],[4,5]]、power=0 ⇒ I=[[1,0],[0,1]]，逐格 '1 0 0 1'。默认 size 3×3/op add/scalar 2 ⇒ 不命中（size/op/scalar 均为静态控件，判别器可回退）。"
+  },
+  {
+    "slug": "science/matrix-calculator",
+    "inputs": { "size": "2", "op": "scale", "scalar": "0", "a0": "1", "a1": "2", "a2": "3", "a3": "4" },
+    "clicks": ["calculate()"],
+    "expect": ["0 0 0 0"],
+    "ref": "零标量必须原样进算：旧实现 parseFloat(raw)||1 把 k=0 改成 1，输出仍为 A。注入 A=[[1,2],[3,4]]、k=0 ⇒ 零矩阵（逐格 '0 0 0 0'）。默认 scalar=2/op add ⇒ 输出 A+B 非全零，不命中。"
   },
   {
     "slug": "science/probability-calculator",

@@ -20,6 +20,7 @@ const CASES = [
   { slug: "math/slope-line", inputs: { x1: "0", y1: "0", x2: "2", y2: "6" }, expect: ["3.0000"], ref: "斜率 k=(6−0)/(2−0)=3.0000（默认 (1,2)-(4,8)=2.0000 避开）" },
   { slug: "math/fibonacci-n", inputs: { n: "30" }, expect: ["832,040"], ref: "F(30)=832040（千分位 832,040；默认 n=20→6765 避开）" },
   { slug: "math/factorial-calc", inputs: { n: "12" }, expect: ["4.7900e+8"], ref: "12!=479001600=4.7900e+8（科学计数法；默认 n=10 避开）" },
+  { slug: "math/factorial-calc", inputs: { n: "0" }, clicks: ["calcTool()"], expect: ["1.0000e+0"], ref: "0!=1（约定）：科学计数 1.0000e+0；n=0 时几何平均 (0!)^(1/0) 未定义，页面显式标 '—'（旧实现被 ||1 替换成 1.0000）。默认 n=10 ⇒ 3.6288e+6，不命中。" },
   { slug: "math/combination", inputs: { n: "12", r: "5" }, expect: ["792"], ref: "C(12,5)=792（默认 10,3→120 避开）" },
   { slug: "math/permutation", inputs: { n: "9", r: "4" }, expect: ["3,024"], ref: "P(9,4)=9×8×7×6=3024（千分位 3,024；默认 10,3→720 避开）" },
   { slug: "math/root-calc", inputs: { x: "27" }, expect: ["3.000000"], ref: "∛27=3.000000（√27=5.196152；默认 x=2 避开）" },

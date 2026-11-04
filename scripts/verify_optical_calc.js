@@ -231,6 +231,12 @@ const CASES = [
     ref: "注入非默认(默认 25/5/gray)：UV=8、30°C、棕色 ⇒ 变深 49s、褪色 3.6min、变深程度 72%、描述「UV=8、30°C下，约 49 秒变深至 72%」。默认态为 45s/4.0min/47%/UV=5、25°C，三锚均不命中。"
   },
   {
+    slug: "optical/photochromic-lens",
+    inputs: { temp: "0", uv: "5", type: "gray" },
+    expect: ["约 11 秒变深至 64%", "6.0min", "UV=5、0°C下"],
+    ref: "0°C 是合法输入（旧实现 temp||25 改成 25°C）。gray 基准 45s/240s/75%：tempFactorDark=1+(0−25)×0.03=0.25 ⇒ 45×0.25=11.25⇒11s；fade=240×(1+25×0.02)=360⇒6.0min；darkness=75×0.625×1.375=64.45⇒64%。默认 25°C ⇒ 45s/4.0min/47%，三锚均不命中。"
+  },
+  {
     slug: "optical/polarized-stress",
     inputs: { colorSelect: "3" },
     expect: ["光程差约 350 nm", "350nm 光程差"],

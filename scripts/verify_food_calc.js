@@ -104,6 +104,19 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "food/dough-fermentation-time",
+  "inputs": {
+    "temp": "0",
+    "yeast": "1"
+  },
+  "expect": [
+    "8小时29分钟",
+    "0°C",
+    "过冷"
+  ],
+  "ref": "0°C 是页面允许输入（input min=0、placeholder 0–45），旧实现 temp||25 静默改成 25°C（1小时30分钟/适宜）。按 Q10：90×2^((25−0)/10)=509.1min ⇒ 8小时29分钟，温度评价「过冷」。默认 25°C ⇒ 1小时30分钟/适宜，三锚均不命中。"
+},
+{
   "slug": "food/food-calculator",
   "inputs": {
     "bakeOriginalSize": "30",
