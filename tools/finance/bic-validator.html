@@ -229,19 +229,21 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 const COUNTRY_CODES = ['AD','AE','AF','AG','AI','AL','AM','AO','AQ','AR','AT','AU','AW','AX','AZ','BA','BB','BD','BE','BF','BG','BH','BI','BJ','BL','BM','BN','BO','BQ','BR','BS','BT','BV','BW','BY','BZ','CA','CC','CD','CF','CG','CH','CI','CK','CL','CM','CN','CO','CR','CU','CV','CW','CX','CY','CZ','DE','DJ','DK','DM','DO','DZ','EC','EE','EG','EH','ER','ES','ET','FI','FJ','FK','FM','FO','FR','GA','GB','GD','GE','GF','GG','GH','GI','GL','GM','GN','GP','GQ','GR','GS','GT','GU','GW','GY','HK','HM','HN','HR','HT','HU','ID','IE','IL','IM','IN','IO','IQ','IR','IS','IT','JE','JM','JO','JP','KE','KG','KH','KI','KM','KN','KP','KR','KW','KY','KZ','LA','LB','LC','LI','LK','LR','LS','LT','LU','LV','LY','MA','MC','MD','ME','MF','MG','MH','MK','ML','MM','MN','MO','MP','MQ','MR','MS','MT','MU','MV','MW','MX','MY','MZ','NA','NC','NE','NF','NG','NI','NL','NO','NP','NR','NU','NZ','OM','PA','PE','PF','PG','PH','PK','PL','PM','PN','PR','PS','PT','PW','PY','QA','RE','RO','RS','RU','RW','SA','SB','SC','SD','SE','SG','SH','SI','SJ','SK','SL','SM','SN','SO','SR','SS','ST','SV','SX','SY','SZ','TC','TD','TF','TG','TH','TJ','TK','TL','TM','TN','TO','TR','TT','TV','TW','TZ','UA','UG','UM','US','UY','UZ','VA','VC','VE','VG','VI','VN','VU','WF','WS','YE','YT','ZA','ZM','ZW'];
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function validate(){
   const raw = document.getElementById('input').value.trim().toUpperCase();
+  const clean = raw.replace(/[\s-]/g,'');
   const out = document.getElementById('output');
-  if(!raw){ const __h0='等待输入...';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0; return; }
+  if(!clean){ const __h0='等待输入...';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0; return; }
   const re = /^[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}([A-Z0-9]{3})?$/;
-  let html = `<p><strong>输入：</strong>${raw}</p>`;
-  html += `<p><strong>长度：</strong>${raw.length} 字符（8 或 11）</p>`;
-  if(!re.test(raw)){
-    if(raw.length !== 8 && raw.length !== 11){
-      html += `<p style="color:var(--danger);">❌ 长度必须为 8 或 11</p>`;
-    } else if(!/^[A-Z]{4}/.test(raw)){
+  let html = `<p><strong>输入：</strong>${esc(clean)}</p>`;
+  html += `<p><strong>长度：</strong>${clean.length} 字符（8 或 11）</p>`;
+  if(!re.test(clean)){
+    if(clean.length !== 8 && clean.length !== 11){
+      html += `<p style="color:var(--danger);">❌ 长度必须为 8 或 11（已忽略空格与连字符）</p>`;
+    } else if(!/^[A-Z]{4}/.test(clean)){
       html += `<p style="color:var(--danger);">❌ 前 4 位必须为字母（银行代码）</p>`;
-    } else if(!/^[A-Z]{4}[A-Z]{2}/.test(raw)){
+    } else if(!/^[A-Z]{4}[A-Z]{2}/.test(clean)){
       html += `<p style="color:var(--danger);">❌ 第 5-6 位必须为字母（国家代码）</p>`;
     } else {
       html += `<p style="color:var(--danger);">❌ 格式不符</p>`;
@@ -249,10 +251,14 @@ function validate(){
     const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;
     return;
   }
-  const bank = raw.substring(0,4);
-  const country = raw.substring(4,6);
-  const location = raw.substring(6,8);
-  const branch = raw.length === 11 ? raw.substring(8,11) : '（无，主办公室）';
+  const bank = clean.substring(0,4);
+  const country = clean.substring(4,6);
+  const location = clean.substring(6,8);
+  let branch = '（无，主办公室）';
+  if(clean.length === 11){
+    const b = clean.substring(8,11);
+    branch = b === 'XXX' ? 'XXX（主办公室）' : b;
+  }
   html += `<p><strong>银行代码：</strong>${bank}</p>`;
   html += `<p><strong>国家代码：</strong>${country} ${COUNTRY_CODES.includes(country)?'✅':'❌'}</p>`;
   html += `<p><strong>位置代码：</strong>${location}</p>`;
@@ -263,18 +269,6 @@ function validate(){
     html += `<p style="color:var(--success);">✅ BIC 代码格式有效（BIC 与 SWIFT 等同）</p>`;
   }
   const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h2;
-}
-function toggleToolTheme(){
-  const cur = document.documentElement.getAttribute('data-theme');
-  if(cur === 'dark'){
-    document.documentElement.removeAttribute('data-theme');
-    document.querySelector('.theme-btn').textContent = '🌙';
-    localStorage.setItem('toolbox_theme','light');
-  } else {
-    document.documentElement.setAttribute('data-theme','dark');
-    document.querySelector('.theme-btn').textContent = '☀️';
-    localStorage.setItem('toolbox_theme','dark');
-  }
 }
 (function(){
   if(localStorage.getItem('toolbox_theme') === 'dark'){

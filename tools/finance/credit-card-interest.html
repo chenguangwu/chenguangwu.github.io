@@ -173,10 +173,6 @@ s.parentNode.insertBefore(el, s);
         <label>最低还款比例（%）</label>
         <input type="number" id="minRatio" value="10" step="any" oninput="calc()" placeholder="如 10">
       </div>
-      <div>
-        <label>滞纳金比例（%）</label>
-        <input type="number" id="lateFeeRatio" value="5" step="any" oninput="calc()" placeholder="如 5">
-      </div>
     </div>
 
     <label>还款方式</label>
@@ -209,7 +205,7 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="showCompare()">对比分析</button>
     </div>
 
-    <div class="formula-box"><div class="formula-title">📐 计算公式 / 说明</div><div class="formula-eq">信用卡循环利息 ≈ 消费金额 × 日利率(0.05%) × 计息天数；按月计收复利。</div>
+    <div class="formula-box"><div class="formula-title">📐 计算公式 / 说明</div><div class="formula-eq">信用卡循环利息 ≈ 剩余本金 × 日利率(0.05%) × 30；本工具按「按月单利」逐期模拟（每期利息 = 余额 × 日利率 × 30，不滚入本金计息）。</div>
       <div class="formula-desc">基于信用卡计息规则：全额还款享免息；仅还最低或逾期时按全部消费额从记账日起计息；分期仅收手续费但实际年化更高，用于还款方式成本对比。</div></div>
 <div class="result-box" id="resultBox" data-viz="bar" data-unit="元" data-labels="本金,利息,应还总额"></div> <div id="credit_card_interestTable"></div> <div id="credit_card_interestDiff"></div> <div id="credit_card_interestChart"></div> <div id="credit_card_interestHist"></div> <div id="rateNavBox" style="margin-top:12px;padding:10px 12px;border:1px solid var(--border,#e5e7eb);border-left:4px solid #3B82F6;border-radius:8px;background:var(--card-bg,#fff);"></div><script>
 // —— 利率口径导航（F1）：名义 vs 实际，多口径互链 ——
@@ -302,7 +298,7 @@ else document.addEventListener('DOMContentLoaded', __rateNavBoot);
         <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="出处 / 标准">Source / Standard</th>
       </tr></thead>
       <tbody>
-        <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="透支利息口径">Credit interest convention</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="按日计息（万分之五/日）并按月复利">Daily rate 0.05% with monthly compounding</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="人民银行《银行卡业务管理办法》及利率市场化通知">PBOC bank card rules</span></td></tr>
+        <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="透支利息口径">Credit interest convention</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="按日计息（万分之五/日），本工具按月单利近似模拟">Daily rate 0.05%, modeled with simple monthly interest</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="人民银行《银行卡业务管理办法》及利率市场化通知">PBOC bank card rules</span></td></tr>
         <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="全额罚息提示">Interest trigger note</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="未全额还款部分从记账日起计息（各行细则不同）">Interest accrues from posting date if not paid in full</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="发卡行领用合约条款">Cardholder agreement terms</span></td></tr>
       </tbody>
     </table>
@@ -327,6 +323,7 @@ function fmt(n) {
 }
 
 function getDaysInMonth(date) {
+  if(!date) return 0;
   return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
 }
 
@@ -337,7 +334,7 @@ function addMonths(date, months) {
 }
 
 // 最低还款循环模拟：最多 120 期，返回是否真正还清
-function simulateMinimum(bill, dailyRate, minRatio, lateFeeRatio) {
+function simulateMinimum(bill, dailyRate, minRatio) {
   var balance = bill, totalInterest = 0, totalLateFee = 0, months = 0;
   var schedule = [], maxMonths = 120, negative = false;
   while (balance > 0.01 && months < maxMonths) {
@@ -345,19 +342,14 @@ function simulateMinimum(bill, dailyRate, minRatio, lateFeeRatio) {
     var interest = balance * dailyRate * 30;
     var minPayment = Math.max(balance * minRatio + interest, 10);
     var payment = Math.min(minPayment, balance + interest);
-    var lateFee = 0;
-    if (payment < balance * minRatio + interest) {
-      lateFee = Math.max((balance * minRatio + interest - payment) * lateFeeRatio, 1);
-      totalLateFee += lateFee;
-    }
     totalInterest += interest;
-    var principal = payment - interest - lateFee;
+    var principal = payment - interest;
     if (principal < 0) { principal = 0; negative = true; }
     balance -= principal;
     if (balance < 0) balance = 0;
     schedule.push({
       month: months, payment: payment, principal: principal,
-      interest: interest, lateFee: lateFee, balance: balance
+      interest: interest, lateFee: 0, balance: balance
     });
   }
   return {
@@ -378,9 +370,19 @@ function calc() {
   var minRatioEl = document.getElementById('minRatio');
   var minRatioRaw = +minRatioEl.value;
   var minRatio = minRatioRaw / 100 || 0;
-  var lateFeeRatio = +document.getElementById('lateFeeRatio').value / 100 || 0;
   var instMonths = +document.getElementById('installmentMonths').value || 12;
   var instFee = +document.getElementById('installmentFee').value / 100 || 0;
+
+  if (dailyRate < 0) {
+    document.getElementById('resultBox').innerHTML = '<p style="color:var(--danger);">日利率不能为负，请填写 ≥0 的数值</p>';
+    document.getElementById('scheduleCard').style.display = 'none';
+    return;
+  }
+  if (type === 'installment' && instFee < 0) {
+    document.getElementById('resultBox').innerHTML = '<p style="color:var(--danger);">分期手续费率不能为负，请填写 ≥0 的数值</p>';
+    document.getElementById('scheduleCard').style.display = 'none';
+    return;
+  }
 
   billEl.classList.toggle('input-error', !(bill > 0));
   minRatioEl.classList.toggle('input-error', type === 'minimum' && !(minRatioRaw >= 1 && minRatioRaw <= 100));
@@ -417,7 +419,7 @@ function calc() {
     document.getElementById('scheduleCard').style.display = 'none';
   } else if (type === 'minimum') {
     var minPay = Math.max(bill * minRatio + bill * dailyRate * 30, 10);
-    var sim = simulateMinimum(bill, dailyRate, minRatio, lateFeeRatio);
+    var sim = simulateMinimum(bill, dailyRate, minRatio);
     schedule = sim.schedule;
     var totalInterest = sim.totalInterest;
     var totalLateFee = sim.totalLateFee;
@@ -430,17 +432,17 @@ function calc() {
     html += '<div class="stat-grid">';
     html += '<div class="stat-card"><div class="val">' + fmt(minPay) + '</div><div class="lbl">首月最低还款</div></div>';
     html += '<div class="stat-card"><div class="val" style="color:var(--danger);">' + fmt(totalInterest) + '</div><div class="lbl">循环利息总额</div></div>';
-    html += '<div class="stat-card"><div class="val" style="color:var(--danger);">' + fmt(totalLateFee) + '</div><div class="lbl">滞纳金总额</div></div>';
+    html += '<div class="stat-card"><div class="val" style="color:var(--danger);">' + fmt(totalPaid) + '</div><div class="lbl">总支出</div></div>';
     html += '<div class="stat-card"><div class="val">' + (cleared ? months : '未还清') + '</div><div class="lbl">还清月数</div></div>';
     html += '</div>';
-    html += '<p>总支出：<strong style="color:var(--primary);font-size:18px;">' + fmt(totalPaid) + '</strong> 元</p>';
     if (!cleared) {
       html += '<p style="color:var(--danger);">⚠️ 120 期内未还清，剩余本金 <strong>' + fmt(remaining) + '</strong> 元，以上总支出仅为 120 期累计</p>';
     }
     if (sim.negative) {
       html += '<p style="color:var(--danger);">⚠️ 还款额低于当期利息，已发生负摊还，本金将持续增加</p>';
     }
-    html += '<p style="color:var(--danger);">⚠️ 最低还款利息成本很高，年化利率约 ' + (dailyRate * 365 * 100).toFixed(2) + '%</p>';
+    var ear = (Math.pow(1 + dailyRate * 30, 12) - 1) * 100;
+    html += '<p style="color:var(--danger);">⚠️ 最低还款利息成本很高，按日计息折合有效年利率约 ' + ear.toFixed(2) + '%</p>';
 
     renderSchedule(schedule);
     document.getElementById('scheduleCard').style.display = 'block';
@@ -490,7 +492,8 @@ function calc() {
 }
 
 function renderSchedule(schedule) {
-  var html = '<table><thead><tr><th>期数</th><th>还款金额</th><th>本金</th><th>利息/手续费</th><th>滞纳金</th><th>剩余本金</th></tr></thead><tbody>';
+  if(!schedule || !schedule.length) return;
+  var html = '<table><thead><tr><th>期数</th><th>还款金额</th><th>本金</th><th>利息/手续费</th><th>剩余本金</th></tr></thead><tbody>';
   for (var i = 0; i < schedule.length; i++) {
     var s = schedule[i];
     html += '<tr>';
@@ -498,7 +501,6 @@ function renderSchedule(schedule) {
     html += '<td>' + fmt(s.payment) + '</td>';
     html += '<td>' + fmt(s.principal) + '</td>';
     html += '<td style="color:var(--danger);">' + fmt(s.interest) + '</td>';
-    html += '<td>' + fmt(s.lateFee) + '</td>';
     html += '<td>' + fmt(s.balance) + '</td>';
     html += '</tr>';
   }
@@ -511,7 +513,6 @@ function showCompare() {
   var dailyRate = +document.getElementById('dailyRate').value / 100 || 0;
   var minRatioRaw = +document.getElementById('minRatio').value;
   var minRatio = minRatioRaw / 100 || 0;
-  var lateFeeRatio = +document.getElementById('lateFeeRatio').value / 100 || 0;
   var instMonths = +document.getElementById('installmentMonths').value || 12;
   var instFee = +document.getElementById('installmentFee').value / 100 || 0;
 
@@ -526,12 +527,12 @@ function showCompare() {
     return;
   }
 
-  var sim = simulateMinimum(bill, dailyRate, minRatio, lateFeeRatio);
+  var sim = simulateMinimum(bill, dailyRate, minRatio);
   var minTotalInterest = sim.totalInterest;
-  var minTotalLateFee = sim.totalLateFee;
   var minMonths = sim.months;
   var minCleared = sim.cleared;
-  var minTotal = bill + minTotalInterest + minTotalLateFee;
+  var minRemaining = minCleared ? 0 : sim.balance;
+  var minTotal = bill + minTotalInterest + minRemaining;
 
   var instTotalFee = bill * instFee * instMonths;
   var instTotal = bill + instTotalFee;
@@ -544,8 +545,8 @@ function showCompare() {
   var html = '';
   html += '<table><thead><tr><th>项目</th><th>最低还款</th><th>分期还款(' + instMonths + '期)</th></tr></thead><tbody>';
   html += '<tr><td>每月还款</td><td>首月约 ' + fmt(Math.max(bill * minRatio + bill * dailyRate * 30, 10)) + '</td><td>' + fmt(instMonthly) + '</td></tr>';
-  html += '<tr><td>利息/手续费总额</td><td style="color:var(--danger);">' + fmt(minTotalInterest + minTotalLateFee) + '</td><td style="color:var(--danger);">' + fmt(instTotalFee) + '</td></tr>';
-  html += '<tr><td>总支出</td><td>' + fmt(minTotal) + '</td><td>' + fmt(instTotal) + '</td></tr>';
+  html += '<tr><td>利息/手续费总额</td><td style="color:var(--danger);">' + fmt(minTotalInterest) + '</td><td style="color:var(--danger);">' + fmt(instTotalFee) + '</td></tr>';
+  html += '<tr><td>总支出</td><td>' + fmt(minTotal) + (minCleared ? '' : '（含剩余本金，未计后续利息）') + '</td><td>' + fmt(instTotal) + '</td></tr>';
   html += '<tr><td>还清时间</td><td>' + (minCleared ? minMonths + ' 个月' : '120 期内未还清') + '</td><td>' + instMonths + ' 个月</td></tr>';
   html += '</tbody></table>';
   if (!minCleared) {
@@ -571,7 +572,7 @@ function updateAdvice() {
   advice += '<div class="step-line"><strong>1. 优先全额还款</strong><br>全额还款可享受免息期，是最优选择。如果暂时资金紧张，可考虑账单分期。</div>';
   advice += '<div class="step-line"><strong>2. 谨慎使用最低还款</strong><br>最低还款年化利率约 ' + annualRate.toFixed(2) + '%，远高于普通贷款，仅适合短期周转。</div>';
   advice += '<div class="step-line"><strong>3. 对比分期与最低还款</strong><br>一般来说，超过3个月无法还清时，账单分期通常比最低还款更划算。</div>';
-  advice += '<div class="step-line"><strong>4. 注意还款日</strong><br>错过还款日会产生滞纳金并影响征信，建议设置自动还款。</div>';
+  advice += '<div class="step-line"><strong>4. 注意还款日</strong><br>错过还款日会产生违约金并影响征信，建议设置自动还款。</div>';
   advice += '<div class="step-line"><strong>5. 合理规划消费</strong><br>信用卡是工具不是收入，建议每月还款额不超过月收入的20%。</div>';
 
   const __g4=advice;document.getElementById('adviceBox').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
@@ -687,7 +688,7 @@ function __credit_card_interestExport(){
 }
 function __credit_card_interestPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#credit_card_interestPresets',[{label:"默认参数",labelEn:"Default",values:{"billAmount":"10000", "dailyRate":"0.05", "billDay":"10", "dueDay":"30", "minRatio":"10", "lateFeeRatio":"5", "installmentFee":"0.75", "repayType":"minimum", "installmentMonths":"12"}}, {label:"全额还款·账单1万",labelEn:"Pay in full · 10k bill",values:{"billAmount":"10000", "dailyRate":"0.05", "billDay":"10", "dueDay":"30", "minRatio":"10", "lateFeeRatio":"5", "installmentFee":"0.75", "repayType":"full", "installmentMonths":"12"}}, {label:"分12期·账单1.2万",labelEn:"12-month instalment · 12k bill",values:{"billAmount":"12000", "dailyRate":"0.05", "billDay":"10", "dueDay":"30", "minRatio":"10", "lateFeeRatio":"5", "installmentFee":"0.75", "repayType":"installment", "installmentMonths":"12"}}, {label:"分24期·大额2万",labelEn:"24-month instalment · 20k bill",values:{"billAmount":"20000", "dailyRate":"0.05", "billDay":"10", "dueDay":"30", "minRatio":"10", "lateFeeRatio":"5", "installmentFee":"0.75", "repayType":"installment", "installmentMonths":"24"}}],function(){ calc(); });
+    TBKit.preset.bar('#credit_card_interestPresets',[{label:"默认参数",labelEn:"Default",values:{"billAmount":"10000", "dailyRate":"0.05", "billDay":"10", "dueDay":"30", "minRatio":"10", "installmentFee":"0.75", "repayType":"minimum", "installmentMonths":"12"}}, {label:"全额还款·账单1万",labelEn:"Pay in full · 10k bill",values:{"billAmount":"10000", "dailyRate":"0.05", "billDay":"10", "dueDay":"30", "minRatio":"10", "installmentFee":"0.75", "repayType":"full", "installmentMonths":"12"}}, {label:"分12期·账单1.2万",labelEn:"12-month instalment · 12k bill",values:{"billAmount":"12000", "dailyRate":"0.05", "billDay":"10", "dueDay":"30", "minRatio":"10", "installmentFee":"0.75", "repayType":"installment", "installmentMonths":"12"}}, {label:"分24期·大额2万",labelEn:"24-month instalment · 20k bill",values:{"billAmount":"20000", "dailyRate":"0.05", "billDay":"10", "dueDay":"30", "minRatio":"10", "installmentFee":"0.75", "repayType":"installment", "installmentMonths":"24"}}],function(){ calc(); });
 }
 var __credit_card_interest_f0=(typeof calc==='function')?calc:null;
 if(__credit_card_interest_f0){
@@ -755,7 +756,7 @@ else document.addEventListener('DOMContentLoaded', __credit_card_interestBoot);
     </div>
 </div>
 <!-- /SEO 介绍区块 -->
-<section class="opt-guide"><h2>如何使用信用卡利息计算器</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>账单金额（元）</li><li>日利率（%）</li><li>账单日（每月）</li><li>还款日（每月）</li><li>最低还款比例（%）</li><li>滞纳金比例（%）</li><li>还款方式</li><li>分期期数</li></ul><h2>适用场景</h2><p>个人或家庭的理财规划、贷款与投资收益测算、日常收支与税务估算。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>信用卡利息计算器是做什么的？</dt><dd>输入信用卡账单金额并选择全额、最低或分期还款，工具对比各方式产生的利息与手续费，帮你选择更省钱的还款策略。</dd><dt>如何使用信用卡利息计算器？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>信用卡利息计算器适合哪些场景？</dt><dd>个人或家庭的理财规划、贷款与投资收益测算、日常收支与税务估算。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>
+<section class="opt-guide"><h2>如何使用信用卡利息计算器</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>账单金额（元）</li><li>日利率（%）</li><li>账单日（每月）</li><li>还款日（每月）</li><li>最低还款比例（%）</li><li>还款方式</li><li>分期期数</li></ul><h2>适用场景</h2><p>个人或家庭的理财规划、贷款与投资收益测算、日常收支与税务估算。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>信用卡利息计算器是做什么的？</dt><dd>输入信用卡账单金额并选择全额、最低或分期还款，工具对比各方式产生的利息与手续费，帮你选择更省钱的还款策略。</dd><dt>如何使用信用卡利息计算器？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>信用卡利息计算器适合哪些场景？</dt><dd>个人或家庭的理财规划、贷款与投资收益测算、日常收支与税务估算。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>
 <section class="char-module" id="__charCc" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px;">
   <h2 id="__charCcTitle" style="font-size:16px;margin:0 0 8px;"></h2>
   <p id="__charCcDesc" style="font-size:13px;color:var(--text-muted);margin:0 0 10px;"></p>

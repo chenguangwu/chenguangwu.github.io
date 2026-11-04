@@ -254,7 +254,7 @@ function loadSample(){
 function clearAll(){
   document.getElementById('scoreInput').value = '';
   document.getElementById('result').style.display='none';
-  ToolBox.showToast(i18nText(),'info');
+  ToolBox.showToast('已清空输入','info');
 }
 
 function parseScores(text){
@@ -264,17 +264,33 @@ function parseScores(text){
   for(var i=0;i<lines.length;i++){
     var line = lines[i].trim();
     if(!line) continue;
-    var p = line.split(/[,，\t]/);
-    var name, score;
-    if(p.length >= 2){
-      name = p[0].trim();
-      score = parseFloat(p[1]);
-    } else {
-      name = '学生' + autoIdx;
-      score = parseFloat(p[0]);
-      autoIdx++;
+    var p = line.split(/[,，\t]+|\s+/).filter(function(x){return x!=='';});
+    if(!p.length) continue;
+    // 整行都是数字：按「纯分数序列」拆成多名学生（92,85,78,88）
+    var allNum = p.every(function(x){ return /^-?\d+(\.\d+)?$/.test(x); });
+    if(allNum){
+      for(var k=0;k<p.length;k++){
+        list.push({name:'学生'+autoIdx, score:parseFloat(p[k])});
+        autoIdx++;
+      }
+      continue;
     }
-    if(isNaN(score)) continue;
+    // 交替的「姓名 分数」对（张三 92 李四 85）
+    var pairMode = p.length % 2 === 0;
+    if(pairMode){
+      for(var k2=1;k2<p.length;k2+=2){
+        if(!/^-?\d+(\.\d+)?$/.test(p[k2])){ pairMode=false; break; }
+      }
+    }
+    if(pairMode){
+      for(var k3=0;k3<p.length;k3+=2){
+        list.push({name:p[k3], score:parseFloat(p[k3+1])});
+      }
+      continue;
+    }
+    var name = p[0];
+    var score = parseFloat(p.length>=2 ? p[1] : p[0]);
+    if(!isFinite(score)) continue;
     list.push({name:name, score:score});
   }
   return list;
@@ -288,9 +304,19 @@ function calc(){
     document.getElementById('result').style.display='none';
     return;
   }
-  var full = parseFloat(document.getElementById('fullScore').value) || 100;
-  var passPct = parseFloat(document.getElementById('passLine').value) || 60;
-  var excelPct = parseFloat(document.getElementById('excellentLine').value) || 85;
+  var full = parseFloat(document.getElementById('fullScore').value);
+  var passPct = parseFloat(document.getElementById('passLine').value);
+  var excelPct = parseFloat(document.getElementById('excellentLine').value);
+  var __err = '';
+  if(!isFinite(full) || full <= 0) __err = '满分必须大于 0。';
+  else if(!isFinite(passPct) || passPct < 0 || passPct > 100) __err = '及格线须在 0–100% 之间（可填 0）。';
+  else if(!isFinite(excelPct) || excelPct < 0 || excelPct > 100) __err = '优秀线须在 0–100% 之间。';
+  else if(excelPct < passPct) __err = '优秀线不应低于及格线。';
+  if(__err){
+    ToolBox.showToast(__err,'error');
+    document.getElementById('result').style.display='none';
+    return;
+  }
   var passScore = full * passPct / 100;
   var excelScore = full * excelPct / 100;
 
@@ -309,13 +335,16 @@ function calc(){
 
   // 分数段分布（按满分比例）
   var bands = [
-    {label:'90-100%', min:full*0.9, max:full+1, count:0},
+    {label:'90-100%', min:full*0.9, max:Infinity, count:0},
     {label:'80-89%', min:full*0.8, max:full*0.9, count:0},
     {label:'70-79%', min:full*0.7, max:full*0.8, count:0},
     {label:'60-69%', min:full*0.6, max:full*0.7, count:0},
-    {label:'60%以下', min:-1, max:full*0.6, count:0}
+    {label:'60%以下', min:0, max:full*0.6, count:0}
   ];
+  var overFull = 0, negativeCnt = 0;
   list.forEach(function(s){
+    if(s.score > full) overFull++;
+    if(s.score < 0) negativeCnt++;
     for(var i=0;i<bands.length;i++){
       if(s.score >= bands[i].min && s.score < bands[i].max){ bands[i].count++; break; }
     }
@@ -338,6 +367,13 @@ function calc(){
   html += '<div class="stat-card"><div class="val">'+excelRate.toFixed(1)+'%</div><div class="lbl">优秀率</div></div>';
   html += '<div class="stat-card"><div class="val"><span class="grade-tag '+meanGrade.tag+'">'+meanGrade.text+'</span></div><div class="lbl">整体水平</div></div>';
   html += '</div>';
+  if(overFull > 0){
+    html += '<p style="color:#ff9800;">⚠️ 有 '+overFull+' 个分数超过满分 '+full+'，已计入最高分段，请核对原始数据。</p>';
+  }
+  if(negativeCnt > 0){
+    html += '<p style="color:var(--danger);">⚠️ 有 '+negativeCnt+' 个分数小于 0，未计入任何分段，请核对原始数据。</p>';
+  }
+  window.__EXAM_METRICS = {mean: mean, passRate: passRate};
 
   html += '<h3 style="margin-top:8px;">分数段分布</h3>';
   var maxBand = Math.max.apply(null, bands.map(function(b){return b.count;})) || 1;
@@ -480,8 +516,9 @@ function __exam_analysisRender(keys,rk,en){
         });
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
-            var v=parseFloat(arr[j].d[rk]);
-            if(isFinite(v)){nums.push(v);labels.push(__exam_analysisTime(arr[j].t));}
+            var v=arr[j].d['__mean'];
+            if(v==null) v=parseFloat(arr[j].d[rk]);
+            if(isFinite(+v)){nums.push(+v);labels.push(__exam_analysisTime(arr[j].t));}
         }
         if(nums.length>=2){
             TBKit.chart.line('#exam_analysisChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
@@ -514,6 +551,7 @@ function __exam_analysisExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
+    try{ if(window.__EXAM_METRICS) rec['__mean']=window.__EXAM_METRICS.mean; }catch(e){}
     TBKit.history.record(rec);
     __exam_analysisRender(keys,rk,en);
 }
@@ -521,9 +559,19 @@ function __exam_analysisExport(){
     if (typeof TBKit === 'undefined') return;
     try { TBKit.util.exportTable('#exam_analysisTable','exam-analysis.csv'); } catch(e){}
 }
+function __exam_analysisScaleSample(full){
+  return SAMPLE.split('\n').map(function(l){
+    var p = l.split(',');
+    return p[0] + ',' + (parseFloat(p[1]) * full / 100).toFixed(1);
+  }).join('\n');
+}
 function __exam_analysisPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#exam_analysisPresets',[{label:'默认参数',labelEn:'Default',values:{'fullScore':'100', 'passLine':'60', 'excellentLine':'85'}},{"label":"小规模","labelEn":"Small scale","values":{"fullScore":"50"}},{"label":"大规模","labelEn":"Large scale","values":{"fullScore":"150"}},{"label":"极端工况","labelEn":"Extreme case","values":{"fullScore":"200"}}],function(){ calc(); });
+    TBKit.preset.bar('#exam_analysisPresets',[{label:'默认参数',labelEn:'Default',values:{'fullScore':'100', 'passLine':'60', 'excellentLine':'85'}},{"label":"小规模","labelEn":"Small scale","values":{"fullScore":"50"}},{"label":"大规模","labelEn":"Large scale","values":{"fullScore":"150"}},{"label":"极端工况","labelEn":"Extreme case","values":{"fullScore":"200"}}],function(){
+        var full = parseFloat(document.getElementById('fullScore').value) || 100;
+        document.getElementById('scoreInput').value = Math.abs(full - 100) < 0.01 ? SAMPLE : __exam_analysisScaleSample(full);
+        calc();
+    });
 }
 var __exam_analysis_f0=(typeof calc==='function')?calc:null;
 if(__exam_analysis_f0){

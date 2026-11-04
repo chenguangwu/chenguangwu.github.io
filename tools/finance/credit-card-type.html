@@ -238,14 +238,28 @@ s.parentNode.insertBefore(el, s);
 const BRANDS = [
   {name:'Visa',cls:'visa',pattern:/^4\d{0,}$/,lengths:[13,16,19]},
   {name:'Mastercard',cls:'mastercard',pattern:/^(5[1-5]\d{0,}|2(2[2-9]\d{0,}|[3-6]\d{0,}|7[01]\d{0,}|720\d{0,}))$/,lengths:[16]},
+  {name:'Maestro',cls:'mastercard',pattern:/^(50|5[6-9]\d{0,}|6\d{0,})$/,lengths:[12,13,14,15,16,17,18,19]},
   {name:'American Express',cls:'amex',pattern:/^3[47]\d{0,}$/,lengths:[15]},
+  {name:'Diners Club',cls:'discover',pattern:/^(30[0-5]|36|38|39)\d{0,}$/,lengths:[14,15,16,17,18,19]},
   {name:'Discover',cls:'discover',pattern:/^(6011|65|64[4-9])\d{0,}$/,lengths:[16,17,18,19]},
   {name:'JCB',cls:'jcb',pattern:/^35(2[89]|[3-8]\d)\d{0,}$/,lengths:[16,17,18,19]},
-  {name:'UnionPay',cls:'unionpay',pattern:/^(62|88)\d{0,}$/,lengths:[16,17,18,19]}
+  {name:'MIR',cls:'unionpay',pattern:/^220[0-4]\d{0,}$/,lengths:[16,17,18,19]},
+  {name:'UnionPay',cls:'unionpay',pattern:/^62\d{0,}$/,lengths:[16,17,18,19]}
 ];
 function detect(digits){
   for(const b of BRANDS){ if(b.pattern.test(digits)) return b; }
   return {name:'未知',cls:'unknown',lengths:[]};
+}
+function luhnCheck(digits){
+  if(!digits) return false;
+  let sum = 0, alt = false;
+  for(let i = digits.length - 1; i >= 0; i--){
+    let n = +digits[i];
+    if(alt){ n *= 2; if(n > 9) n -= 9; }
+    sum += n;
+    alt = !alt;
+  }
+  return sum % 10 === 0;
 }
 function validate(){
   const raw = document.getElementById('input').value.trim();
@@ -255,14 +269,26 @@ function validate(){
   const brand = detect(digits);
   let html = `<p><strong>输入数字：</strong>${digits}</p>`;
   html += `<p><strong>长度：</strong>${digits.length} 位</p>`;
-  html += `<p><strong>卡片类型：</strong> <span class="brand-tag ${brand.cls}">${brand.name}</span></p>`;
+  html += `<p><strong>卡片类型（前缀初步判断）：</strong> <span class="brand-tag ${brand.cls}">${brand.name}</span></p>`;
   if(brand.lengths.length){
+    const minLen = Math.min.apply(null, brand.lengths);
+    const maxLen = Math.max.apply(null, brand.lengths);
     const lenOk = brand.lengths.includes(digits.length);
-    html += `<p><strong>长度校验：</strong> ${lenOk?'✅':'⚠️'} 期望 ${brand.lengths.join('/')} 位</p>`;
     if(lenOk){
-      html += `<p style="color:var(--success);">✅ 类型识别完成</p>`;
+      html += `<p><strong>长度校验：</strong> ✅ 符合 ${brand.lengths.join('/')} 位</p>`;
+    } else if(digits.length < minLen){
+      html += `<p><strong>长度校验：</strong> ⏳ 当前 ${digits.length} 位，${brand.name} 至少 ${minLen} 位，请继续输入</p>`;
+    } else if(digits.length > maxLen){
+      html += `<p><strong>长度校验：</strong> ❌ 当前 ${digits.length} 位，超出 ${brand.name} 最长 ${maxLen} 位，请核对</p>`;
     } else {
-      html += `<p style="color:#ff9800;">⏳ 继续输入以完成长度校验</p>`;
+      html += `<p><strong>长度校验：</strong> ⚠️ 当前 ${digits.length} 位，${brand.name} 常见为 ${brand.lengths.join('/')} 位</p>`;
+    }
+    const luhnOk = luhnCheck(digits);
+    html += `<p><strong>Luhn 校验：</strong> ${luhnOk ? '<span style="color:var(--success);">✅ 通过</span>' : '<span style="color:var(--danger);">❌ 未通过（卡号可能录错或不存在）</span>'}</p>`;
+    if(lenOk && luhnOk){
+      html += `<p style="color:var(--success);">✅ 前缀、长度与 Luhn 校验均通过</p>`;
+    } else if(lenOk){
+      html += `<p style="color:#ff9800;">⚠️ 前缀与长度匹配，但 Luhn 校验未通过，仍不是有效卡号</p>`;
     }
   } else {
     html += `<p style="color:var(--danger);">❌ 无法识别的卡片类型</p>`;

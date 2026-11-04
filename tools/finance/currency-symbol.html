@@ -173,7 +173,7 @@ s.parentNode.insertBefore(el, s);
 <div class="container">
   <div class="card tool-card-accent" style="--tool-accent:#F59E0B;">
      <h2 data-zh="💱 货币符号速查">💱 Currency Symbol Reference</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="170+ 种货币符号、代码、国家/地区快速查询">Find the symbol, three-letter code and country of a currency by ISO code, country or region.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="ISO 4217 与常用非 ISO 货币符号、代码、国家/地区快速查询（已按代码去重）">Find the symbol, three-letter code and country of a currency by ISO code, country or region.</p>
 
     <div class="search-box">
       <input type="text" id="searchInput" placeholder="搜索货币名称、代码、国家/地区..." oninput="search()">
@@ -326,7 +326,7 @@ var currencies = [
   {code:'EUR', symbol:'€', name:'欧元', nameEn:'Euro', country:'欧元区', region:'europe', major:true, unit:'Euro', subunit:'Cent', subunitRate:100},
   {code:'JPY', symbol:'¥', name:'日元', nameEn:'Japanese Yen', country:'日本', region:'asia', major:true, unit:'Yen', subunit:'Sen', subunitRate:100},
   {code:'GBP', symbol:'£', name:'英镑', nameEn:'British Pound', country:'英国', region:'europe', major:true, unit:'Pound', subunit:'Penny', subunitRate:100},
-  {code:'CNY', symbol:'¥', name:'人民币', nameEn:'Chinese Yuan', country:'中国', region:'asia', major:true, unit:'Yuan', subunit:'Jiao/Fen', subunitRate:10},
+  {code:'CNY', symbol:'¥', name:'人民币', nameEn:'Chinese Yuan', country:'中国', region:'asia', major:true, unit:'Yuan', subunit:'Fen', subunitRate:100},
   {code:'CHF', symbol:'Fr', name:'瑞士法郎', nameEn:'Swiss Franc', country:'瑞士', region:'europe', major:true, unit:'Franc', subunit:'Rappen', subunitRate:100},
   {code:'CAD', symbol:'C$', name:'加元', nameEn:'Canadian Dollar', country:'加拿大', region:'americas', major:true, unit:'Dollar', subunit:'Cent', subunitRate:100},
   {code:'AUD', symbol:'A$', name:'澳元', nameEn:'Australian Dollar', country:'澳大利亚', region:'oceania', major:true, unit:'Dollar', subunit:'Cent', subunitRate:100},
@@ -473,11 +473,42 @@ var currencies = [
   {code:'XBT', symbol:'₿', name:'比特币', nameEn:'Bitcoin', country:'全球', region:'all', major:false, unit:'Bitcoin', subunit:'Satoshi', subunitRate:100000000},
   {code:'ETH', symbol:'Ξ', name:'以太坊', nameEn:'Ethereum', country:'全球', region:'all', major:false, unit:'Ether', subunit:'Gwei', subunitRate:1000000000},
   {code:'CLF', symbol:'UF', name:'智利发展单位', nameEn:'Chilean Unit of Account', country:'智利', region:'americas', major:false, unit:'Unidad de Fomento', subunit:'', subunitRate:1},
-  {code:'CNH', symbol:'¥', name:'离岸人民币', nameEn:'Chinese Yuan (Offshore)', country:'中国香港', region:'asia', major:false, unit:'Yuan', subunit:'Jiao/Fen', subunitRate:10},
+  {code:'CNH', symbol:'¥', name:'离岸人民币', nameEn:'Chinese Yuan (Offshore)', country:'中国香港', region:'asia', major:false, unit:'Yuan', subunit:'Fen', subunitRate:100},
   {code:'SVC', symbol:'₡', name:'萨尔瓦多科朗', nameEn:'Salvadoran Colon', country:'萨尔瓦多', region:'americas', major:false, unit:'Colon', subunit:'Centavo', subunitRate:100},
 ];
 
+// 按货币代码去重（保留最后一条，合并重复项）
+(function(){
+  var seen = {};
+  for(var i = currencies.length - 1; i >= 0; i--){
+    var code = currencies[i].code;
+    if(seen[code]){ currencies.splice(i,1); }
+    else { seen[code] = 1; }
+  }
+})();
+
 var currentRegion = 'all';
+
+// 标注非 ISO 4217 与已停用/被取代的代码
+(function(){
+  function mark(code, status, note, extra){
+    for(var i=0;i<currencies.length;i++){
+      if(currencies[i].code === code){
+        currencies[i].status = status;
+        currencies[i].statusNote = note;
+        if(extra){ for(var k in extra) currencies[i][k] = extra[k]; }
+      }
+    }
+  }
+  mark('HRK','obsolete','已停用：克罗地亚 2023 年加入欧元区，由 EUR 取代');
+  mark('SLL','obsolete','已停用：2022 年由 SLE（新利昂）取代');
+  mark('VEF','obsolete','已停用：2018 年由 VES（主权玻利瓦尔）取代，历史符号 Bs.','Bs.');
+  mark('ANG','obsolete','已停用：2025 年由 XCG（加勒比盾）取代');
+  mark('XBT','non-iso','非 ISO 4217：比特币的市场惯用代码');
+  mark('ETH','non-iso','非 ISO 4217：以太坊的市场惯用代码');
+  mark('KID','non-iso','非 ISO 4217：基里巴斯元为当地非正式单位');
+  mark('TVD','non-iso','非 ISO 4217：图瓦卢元为当地非正式单位');
+})();
 
 function search(){
   var q = document.getElementById('searchInput').value.toLowerCase().trim();
@@ -526,6 +557,7 @@ function __curExport(){
   });
   t.style.display='';
   try{ TBKit.util.exportTable('#curTable','currency-symbols.csv'); }catch(e){}
+  t.style.display='none';
 }
 function __curExtras(){
   if(typeof TBKit==='undefined')return;
@@ -571,6 +603,7 @@ function renderCurrencies(query, region){
     html += '<div class="currency-code">' + c.code + ' · ' + c.name + '</div>';
     html += '<div class="currency-name">' + c.nameEn + '</div>';
     html += '<div class="currency-country">' + c.country + '</div>';
+    if(c.status) html += '<div class="currency-country" style="color:#ff9800;">' + (c.status==='obsolete' ? '已停用/已取代' : '非 ISO 4217') + '</div>';
     html += '</div>';
   });
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){grid.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}grid.innerHTML=__h1;
@@ -589,6 +622,7 @@ function showDetail(index){
   html += '<div class="detail-row"><span class="label">主单位</span><span class="value">' + c.unit + '</span></div>';
   html += '<div class="detail-row"><span class="label">辅单位</span><span class="value">' + (c.subunit || '-') + '</span></div>';
   html += '<div class="detail-row"><span class="label">换算比例</span><span class="value">1 ' + c.unit + ' = ' + c.subunitRate + ' ' + (c.subunit || '') + '</span></div>';
+  if(c.status) html += '<div class="detail-row"><span class="label">状态</span><span class="value" style="color:#ff9800;">' + c.statusNote + '</span></div>';
   html += '<div class="detail-row"><span class="label">主要货币</span><span class="value">' + (c.major ? '是 ✅' : '否') + '</span></div>';
   const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('detailContent').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('detailContent').innerHTML=__h2;
   document.getElementById('detailOverlay').classList.add('active');

@@ -173,6 +173,7 @@ s.parentNode.insertBefore(el, s);
 
   <div class="card">
     <h2>📖 国家 IBAN 长度速查表</h2>
+    <p style="font-size:13px;color:var(--text-muted);">收录 41 个国家/地区（ISO 13616 注册表节选，2026 版）。未收录的国家代码会提示「本工具未收录，不代表 IBAN 无效」，仍可完成 mod-97 数学校验。</p>
     <p style="font-size:13px;color:#666;margin-bottom:8px;">点击国家代码可快速加载示例</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
@@ -271,7 +272,7 @@ s.parentNode.insertBefore(el, s);
 </div>
 
 <script>
-// 国家 IBAN 长度规则（部分主要国家）
+// 国家 IBAN 长度规则（ISO 13616 注册表节选）
 const IBAN_COUNTRIES = [
   {cc:'AD', name:'安道尔', flag:'🇦🇩', length:24, bban:'4!a12!n2!n2!n4!n'},
   {cc:'AE', name:'阿联酋', flag:'🇦🇪', length:23, bban:'3!n16!n'},
@@ -305,14 +306,30 @@ const IBAN_COUNTRIES = [
   {cc:'RO', name:'罗马尼亚', flag:'🇷🇴', length:24, bban:'4!a16!c'},
   {cc:'SE', name:'瑞典', flag:'🇸🇪', length:24, bban:'3!n16!n1!n'},
   {cc:'SI', name:'斯洛文尼亚', flag:'🇸🇮', length:19, bban:'5!n8!n2!n'},
-  {cc:'SK', name:'斯洛伐克', flag:'🇸🇰', length:24, bban:'4!n6!n10!n'}
+  {cc:'SK', name:'斯洛伐克', flag:'🇸🇰', length:24, bban:'4!n6!n10!n'},
+  {cc:'SA', name:'沙特阿拉伯', flag:'🇸🇦', length:24, bban:'2!n18!c'},
+  {cc:'TR', name:'土耳其', flag:'🇹🇷', length:26, bban:'5!n1!n16!c'},
+  {cc:'UA', name:'乌克兰', flag:'🇺🇦', length:29, bban:'6!n19!c'},
+  {cc:'QA', name:'卡塔尔', flag:'🇶🇦', length:29, bban:'4!a21!c'},
+  {cc:'IL', name:'以色列', flag:'🇮🇱', length:23, bban:'3!n3!n13!n'},
+  {cc:'JO', name:'约旦', flag:'🇯🇴', length:30, bban:'4!a4!n18!c'},
+  {cc:'KW', name:'科威特', flag:'🇰🇼', length:30, bban:'4!a22!c'},
+  {cc:'BH', name:'巴林', flag:'🇧🇭', length:22, bban:'4!a14!c'}
 ];
 
 const EXAMPLES = {
   GB: 'GB82WEST12345698765432',
   DE: 'DE89370400440532013000',
   FR: 'FR1420041010050500013M02606',
-  CH: 'CH9300762011623852957'
+  CH: 'CH9300762011623852957',
+  SA: 'SA0380000000608010167519',
+  TR: 'TR330006100519786457841326',
+  UA: 'UA213223130000026007233566001',
+  QA: 'QA58DOHB00001234567890ABCDEFG',
+  IL: 'IL620108000000099999999',
+  JO: 'JO94CBJO0010000000000131000302',
+  KW: 'KW81CBKU0000000000001234560101',
+  BH: 'BH67BMAG00001299123456'
 };
 
 function getCountry(cc){
@@ -320,6 +337,7 @@ function getCountry(cc){
 }
 
 function mod97Check(iban){
+  if(!iban) return null;
   // 移动前 4 位到末尾
   const rearranged = iban.substring(4) + iban.substring(0, 4);
   // 字母转数字
@@ -342,6 +360,7 @@ function mod97Check(iban){
 }
 
 function formatIBAN(iban){
+  if(!iban) return '';
   return iban.replace(/(.{4})(?=.)/g, '$1 ');
 }
 
@@ -376,23 +395,36 @@ function validate(){
   html += ` <span class="iban-seg bban">${bban}</span>BBAN`;
   html += `</p>`;
 
+  const rem = mod97Check(raw);
   if(country){
     html += `<p><strong>国家/地区：</strong><span class="country-flag">${country.flag}</span> ${country.name} (${country.cc})</p>`;
     const lengthOk = raw.length === country.length;
     html += `<p><strong>长度校验：</strong> ${lengthOk ? '✅' : '❌'} 当前 ${raw.length} 位，期望 ${country.length} 位</p>`;
     html += `<p><strong>BBAN 结构：</strong>${country.bban}</p>`;
   } else {
-    html += `<p><strong>国家/地区：</strong> ⚠️ 未知国家代码 ${cc}</p>`;
+    html += `<p><strong>国家/地区：</strong> ⚠️ 未收录的国家代码 ${cc}（本工具未收录不代表 IBAN 无效）</p>`;
   }
 
-  // mod-97 校验
-  const rem = mod97Check(raw);
   if(rem === null){
     html += `<p style="color:var(--danger);">❌ 含非法字符</p>`;
   } else if(rem === 1){
-    html += `<p><span class="valid-tag ok">✅ mod-97 校验通过</span></p>`;
+    html += country
+      ? `<p><span class="valid-tag ok">✅ mod-97 校验通过</span></p>`
+      : `<p><span class="valid-tag ok">仅数学校验通过</span> 国家代码未收录，无法确认有效性</p>`;
   } else {
     html += `<p><span class="valid-tag fail">❌ mod-97 校验失败</span> 余数=${rem}（应为 1）</p>`;
+  }
+
+  // 总体结论：国家已收录 + 长度正确 + mod-97 通过 三者同时满足才判有效
+  const lengthOk = country && raw.length === country.length;
+  if(!country){
+    html += `<p style="color:#ff9800;"><strong>结论：</strong>⚠️ 国家代码未收录，仅完成数学校验，不能判定有效。</p>`;
+  } else if(!lengthOk){
+    html += `<p style="color:var(--danger);"><strong>结论：</strong>❌ 长度与国家规则不符，IBAN 无效。</p>`;
+  } else if(rem !== 1){
+    html += `<p style="color:var(--danger);"><strong>结论：</strong>❌ mod-97 校验未通过，IBAN 无效。</p>`;
+  } else {
+    html += `<p style="color:var(--success);"><strong>结论：</strong>✅ 国家、长度与 mod-97 校验均通过（仅校验格式，不代表账户真实存在）。</p>`;
   }
 
   const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){resultBox.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}resultBox.innerHTML=__h2;
@@ -402,6 +434,8 @@ function loadExample(cc){
   if(EXAMPLES[cc]){
     document.getElementById('ibanInput').value = EXAMPLES[cc];
     validate();
+  } else {
+    ToolBox.showToast('该国暂无示例 IBAN，可按表格长度规则手工核对', 'info');
   }
 }
 
@@ -415,7 +449,7 @@ function buildCountryTable(){
   const tbl = document.getElementById('countryTable');
   let html = '';
   for(const c of IBAN_COUNTRIES){
-    html += `<tr style="cursor:pointer;" onclick="loadExample('${c.cc}')" title="点击加载示例">`;
+    html += `<tr style="cursor:${EXAMPLES[c.cc]?'pointer':'default'};" onclick="loadExample('${c.cc}')" title="${EXAMPLES[c.cc]?'点击加载示例':'该国暂无示例'}">`;
     html += `<td><span class="country-flag">${c.flag}</span> ${c.name}</td>`;
     html += `<td><strong>${c.cc}</strong></td>`;
     html += `<td>${c.length}</td>`;

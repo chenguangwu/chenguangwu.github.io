@@ -153,13 +153,12 @@ s.parentNode.insertBefore(el, s);
 <div class="tbk-tabbar" role="tablist">
   <button type="button" class="tbk-tab" data-pane="res">结果</button>
   <button type="button" class="tbk-tab" data-pane="tbl">数据表</button>
-  <button type="button" class="tbk-tab" data-pane="pre">预设</button>
   <button type="button" class="tbk-tab" data-pane="his">历史</button>
 </div>
 <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="⌨️ 打字游戏">⌨️ Typing Game</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">用时 = (当前时间戳 − 开始时间戳) ÷ 1000（秒）；WPM = 用时 &gt; 0 ? round((正确按键数 ÷ 5) ÷ (用时 ÷ 60)) : 0；准确率 = 总按键数 &gt; 0 ? round(正确按键数 ÷ 总按键数 × 100) : 0；重置时清除计时器、禁用并清空输入框，用时归 0 秒、WPM 归 0、准确率归 0%，全程共 5 句目标文本</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">用时 = (当前时间戳 − 开始时间戳) ÷ 1000（秒）；WPM = 用时 &gt; 0 ? round((正确按键数 ÷ 5) ÷ (用时 ÷ 60)) : 0（正确按键数只统计新增字符，不重复累计）；准确率 = 总按键数 &gt; 0 ? round(正确按键数 ÷ 总按键数 × 100) : 0；重置时清除计时器、禁用并清空输入框，用时归 0 秒、WPM 归 0、准确率归 0%，全程共 5 句目标文本</div>
   <p class="formula-desc" data-zh="本工具为纯前端在线工具，数据在浏览器本地处理、不上传服务器，依据对应领域标准与规范进行计算或处理，结果仅供参考。 工具名称：打字游戏 - 教育学习领域的在线工具。">Improve typing speed and accuracy through a gamified typing challenge.</p>
 </div>
 
@@ -202,8 +201,8 @@ s.parentNode.insertBefore(el, s);
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
 <li>段落练习：跟打给定文本。</li>
-<li>速度统计：WPM 与正确率。</li>
-<li>排行：本地最高分。</li>
+<li>速度统计：WPM、正确率与字符速度 CPM。</li>
+<li>进度统计：记录每次完成的用时与准确率，历史保存在本地浏览器。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">示例</div><div class="dd-ex-body">示例：跟打一段 100 词，速度 60 WPM、正确率 98%。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
@@ -265,7 +264,7 @@ const sentences=[
   'to be or not to be that is the question',
   'knowledge is power but enthusiasm pulls the switch'
 ];
-let cur,startTime,timer,totalKeys,correctKeys,completed,totalChars;
+let cur,startTime,timer,totalKeys,correctKeys,completed,totalChars,lastLen;
 
 function start(){
   reset();
@@ -277,6 +276,7 @@ function start(){
   correctKeys=0;
   completed=0;
   totalChars=0;
+  lastLen=0;
   timer=setInterval(updateStats,200);
   next();
 }
@@ -297,6 +297,7 @@ function next(){
   }
   cur=sentences[Math.floor(Math.random()*sentences.length)];
   totalChars+=cur.length;
+  lastLen=0;
   render('');
   document.getElementById('input').value='';
   const __h1=`<p>进度：${completed}/5 句</p>`;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h1;
@@ -328,17 +329,22 @@ function finish(){
   document.getElementById('input').disabled=true;
   const elapsed=(Date.now()-startTime)/1000;
   const wpm=Math.round((correctKeys/5)/(elapsed/60));
+  const cpm=Math.round(totalChars/(elapsed/60));
   const acc=totalKeys>0?Math.round(correctKeys/totalKeys*100):0;
   const __h3='🎉 完成！';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('target').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('target').innerHTML=__h3;
-  const __h4=`<p>用时 ${elapsed.toFixed(1)}s / WPM ${wpm} / 准确率 ${acc}%</p>`;if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h4;
+  const __h4=`<p>用时 ${elapsed.toFixed(1)}s / WPM ${wpm} / 准确率 ${acc}% / 总字符 ${totalChars} / 字符速度 ${cpm} CPM</p>`;if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h4;
 }
 document.getElementById('input').addEventListener('input',e=>{
   const v=e.target.value;
-  for(let i=0;i<v.length;i++){
-    if(i>=cur.length)break;
-    if(v[i]===cur[i])correctKeys++;
-    totalKeys++;
+  // 只统计本次新增的字符，避免每次 input 事件把已输入内容重复计入
+  if(v.length>lastLen){
+    for(let i=lastLen;i<v.length;i++){
+      if(i>=cur.length)break;
+      totalKeys++;
+      if(v[i]===cur[i])correctKeys++;
+    }
   }
+  lastLen=v.length;
   render(v);
   if(v===cur){
     completed++;
@@ -476,9 +482,9 @@ function __typing_gameExport(){
 function __typing_gamePresets(){
     if (typeof TBKit === 'undefined') return;
 }
-var __typing_game_f0=(typeof start==='function')?start:null;
-if(__typing_game_f0){
-    start=function(){ var __r=__typing_game_f0.apply(null,arguments); try{ __typing_gameExtras(); }catch(e){} return __r; };
+var __typing_game_f1=(typeof finish==='function')?finish:null;
+if(__typing_game_f1){
+    finish=function(){ var __r=__typing_game_f1.apply(null,arguments); try{ __typing_gameExtras(); }catch(e){} return __r; };
 }
 function __typing_gameBoot(){ try{ __typing_gamePresets(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __typing_gameBoot();
@@ -535,7 +541,7 @@ else document.addEventListener('DOMContentLoaded', __typing_gameBoot);
 
 <script>/*TBKIT-INJECT-START*/
 (function(){
-  var P={"res": ["output", "typing_gameChart"], "tbl": ["typing_gameTable"], "pre": ["typing_gamePresets"], "his": ["typing_gameHist"]};
+  var P={"res": ["output", "typing_gameChart"], "tbl": ["typing_gameTable"], "his": ["typing_gameHist"]};
   var L={res:['结果','Result'],chart:['图表','Chart'],tbl:['数据表','Data'],pre:['预设','Presets'],his:['历史','History']};
   function tabify(){
     var bar=document.querySelector('.tbk-tabbar');

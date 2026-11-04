@@ -164,7 +164,7 @@ s.parentNode.insertBefore(el, s);
 <div class="card tool-card-accent" style="--tool-accent:#F59E0B;">
      <h2 data-zh="📚 ISBN 验证与转换">📚 ISBN Validator &amp; Converter</h2>
     <label>请输入 ISBN（ISBN-10 或 ISBN-13，支持连字符/空格）</label>
-    <input type="text" id="isbnInput" class="isbn-input" placeholder="如：978-0-306-40615-7" oninput="validate()" value="9787111111115"
+    <input type="text" id="isbnInput" class="isbn-input" placeholder="如：978-0-306-40615-7" oninput="validate()" value="9787111111115">
 
     <div class="result-box" id="result">
       <p style="color:#999;" data-zh="请在上方输入 ISBN 以开始校验">Validate ISBN-10 (mod-11) and ISBN-13 (mod-10) check digits and convert between the two formats.</p>    <div class="formula-box">
@@ -401,10 +401,17 @@ function validate(){
     html += `<span class="isbn-seg title">${digits.substring(4,9)}</span>书名`;
     html += `<span class="isbn-seg cd">${digits[9]}</span>校验位`;
     html += `</p>`;
-    html += `<p><strong>对应 ISBN-13：</strong>${formatISBN13('978' + digits.substring(0,9) + isbn13CalcCheck('978' + digits.substring(0,9)))}</p>`;
+    html += `<p><strong>对应 ISBN-13：</strong>${ok ? formatISBN13('978' + digits.substring(0,9) + isbn13CalcCheck('978' + digits.substring(0,9))) : '<span style="color:var(--danger);">源 ISBN-10 校验未通过，不生成对应 ISBN-13</span>'}</p>`;
   } else {
     const ok = isbn13Check(digits);
+    const isIsbnPrefix = digits.substring(0,3) === '978' || digits.substring(0,3) === '979';
     const formatted = formatISBN13(digits);
+    if(!isIsbnPrefix){
+      html += `<p><strong>类型：</strong> 13 位 EAN <span class="valid-tag fail">❌ 非 ISBN 前缀</span></p>`;
+      html += `<p style="color:var(--danger);">前缀 ${digits.substring(0,3)} 不是 978/979，这是普通商品条码（EAN-13），不是 ISBN。</p>`;
+      const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){resultBox.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}resultBox.innerHTML=__h1;
+      return;
+    }
     html += `<p><strong>类型：</strong> ISBN-13 <span class="valid-tag ${ok?'ok':'fail'}">${ok?'✅ 校验通过':'❌ 校验失败'}</span></p>`;
     html += `<p><strong>格式化：</strong><br>${formatted}</p>`;
     html += `<p><strong>分段：</strong>`;
@@ -420,7 +427,7 @@ function validate(){
     html += `<span class="isbn-seg pub">${pub}</span>出版者`;
     html += `<span class="isbn-seg title">${title}</span>书名`;
     html += `<span class="isbn-seg cd">${digits[12]}</span>校验位`;
-    html += `</p>`;
+    html += `</p><p style="font-size:12px;color:var(--text-muted);">分段为示意分组，非官方登记组解析。</p>`;
     // 转换为 ISBN-10
     if(digits.substring(0,3) === '978'){
       const d9 = digits.substring(3,12);
@@ -441,6 +448,10 @@ function convertTo13(){
     alert('请先输入有效的 10 位 ISBN');
     return;
   }
+  if(!isbn10Check(digits)){
+    alert('源 ISBN-10 校验失败，不能转换为 ISBN-13；请先核对校验位。');
+    return;
+  }
   const d9 = digits.substring(0,9);
   const cd = isbn13CalcCheck('978' + d9);
   document.getElementById('isbnInput').value = formatISBN13('978' + d9 + cd);
@@ -455,6 +466,10 @@ function convertTo10(){
   }
   if(digits.substring(0,3) !== '978'){
     alert('仅 978 前缀的 ISBN-13 可转换为 ISBN-10');
+    return;
+  }
+  if(!isbn13Check(digits)){
+    alert('源 ISBN-13 校验失败，不能转换为 ISBN-10；请先核对校验位。');
     return;
   }
   const d9 = digits.substring(3,12);
@@ -634,8 +649,7 @@ else document.addEventListener('DOMContentLoaded', __isbn_validatorBoot);
   </div>
   <div class="tool-intro-body">
     <h4><span class="h4-icon">📝</span>工具简介</h4>
-    <p>ISBN 验证与转换。ISBN-10（mod-11）：前 9 位分别乘以权重 10,9,8,…,2，求和后加校验位，总和能被 11 整除则通过。校验位为 10 时用 X 表示。
-      ISBN-13（mod-10）：12 位数字交替乘以 1 和 3，求和后</p>
+    <p>ISBN 验证与转换。ISBN 校验与转换工具：按 mod-11 校验 ISBN-10、按 mod-10 校验 ISBN-13（并识别非 978/979 前缀的普通 EAN 条码），支持 ISBN-10 与 ISBN-13 双向转换，纯前端本地运行。</p>
     <h4><span class="h4-icon">✨</span>功能特点</h4>
     <ul class="intro-features">
       <li>采用标准金融计算公式</li>

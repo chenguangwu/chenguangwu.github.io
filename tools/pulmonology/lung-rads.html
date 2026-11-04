@@ -137,6 +137,10 @@ s.parentNode.insertBefore(el, s);
         <label>结节平均直径 (mm)</label>
         <input type="number" id="size" value="9" step="0.1" min="0" oninput="calc()" placeholder="如 9">
       </div>
+      <div>
+        <label>实性成分 (mm，仅部分实性)</label>
+        <input type="number" id="solidSize" value="5" step="0.1" min="0" oninput="calc()" placeholder="如 5">
+      </div>
     </div>
     <div class="checkbox-row">
       <label><input type="checkbox" id="grow" onchange="calc()"> 较前增大/实性成分增长</label>
@@ -193,8 +197,8 @@ s.parentNode.insertBefore(el, s);
 <li>实性/部分实性分层</li>
 <li>恶性<a class="term-link" href="/tools/pr/risk-assessment.html">风险评估</a></li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">实性 6mm</div><div class="dd-ex-body">实性结节 6mm→2 类，12 月低剂量 CT 随访。</div></div>
-<div class="dd-example"><div class="dd-ex-title">部分实性&gt;10mm</div><div class="dd-ex-body">部分实性成分&gt;10mm→4A/4B 类，建议 3 月复查或 PET-CT/活检。</div></div>
+<div class="dd-example"><div class="dd-ex-title">实性 6mm</div><div class="dd-ex-body">实性结节 6mm→3 类（6–&lt;8mm），建议 6 个月低剂量 CT 随访；&lt;6mm 才是 2 类。</div></div>
+<div class="dd-example"><div class="dd-ex-title">部分实性 12mm、实性成分 7mm</div><div class="dd-ex-body">部分实性结节总径 ≥6mm 且实性成分 6–&lt;8mm→4A 类，建议 3 月复查 CT，必要时 PET-CT/活检；实性成分 ≥8mm 升为 4B。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>4 类是癌吗？</dt><dd>4 类为可疑恶性需积极处理，并非确诊；最终靠病理。</dd>
@@ -255,14 +259,16 @@ function calc(){
 
   if(type==='solid'){
     if(size<6){cat='2';color='#10B981';desc='实性结节 &lt;6mm，良性表现/小结节';fu='年度低剂量CT复查。';}
-    else if(size<=8){cat='3';color='#3B82F6';desc='实性结节 6–8mm，可能良性';fu='6个月复查低剂量CT。';}
-    else if(size<=15){cat='4A';color='#F59E0B';desc='实性结节 8–15mm，可疑恶性';fu='3个月复查CT，考虑PET-CT或经支气管/经皮活检。';}
+    else if(size<8){cat='3';color='#3B82F6';desc='实性结节 6–8mm，可能良性';fu='6个月复查低剂量CT。';}
+    else if(size<15){cat='4A';color='#F59E0B';desc='实性结节 8–15mm，可疑恶性';fu='3个月复查CT，考虑PET-CT或经支气管/经皮活检。';}
     else{cat='4B';color='#EF4444';desc='实性结节 ≥15mm，非常可疑恶性';fu='活检或手术切除评估，多学科会诊。';}
   } else if(type==='partsolid'){
-    var solidComp=mal?size:0; // 简化：以结节总径估计
+    var sc=parseFloat(document.getElementById('solidSize').value);
+    if(isNaN(sc))sc=0;
     if(size<6){cat='2';color='#10B981';desc='部分实性结节 &lt;6mm';fu='年度低剂量CT复查。';}
-    else if(size<15){cat='3';color='#3B82F6';desc='部分实性结节 6–14mm，可能良性';fu='6个月复查CT，关注实性成分变化。';}
-    else{cat='4A';color='#F59E0B';desc='部分实性结节 ≥15mm(实性成分＜8mm)，可疑恶性';fu='3个月复查CT，考虑PET-CT或活检。';}
+    else if(sc>=8){cat='4B';color='#EF4444';desc='部分实性结节 ≥6mm，实性成分 ≥8mm，非常可疑恶性';fu='活检或手术切除评估，多学科会诊。';}
+    else if(sc>=6){cat='4A';color='#F59E0B';desc='部分实性结节 ≥6mm，实性成分 6–8mm，可疑恶性';fu='3个月复查CT，考虑PET-CT或活检。';}
+    else{cat='3';color='#3B82F6';desc='部分实性结节 ≥6mm，实性成分 &lt;6mm，可能良性';fu='6个月复查CT，关注实性成分变化。';}
   } else { // gg
     if(size<30){cat='2';color='#10B981';desc='磨玻璃结节 &lt;30mm';fu='年度低剂量CT复查。';}
     else{cat='3';color='#3B82F6';desc='磨玻璃结节 ≥30mm(持续存在)，可能良性';fu='6个月复查CT，警惕持续/生长。';}
@@ -270,7 +276,7 @@ function calc(){
 
   if(grow){cat=cat.startsWith('4')?cat:'4A';color='#F59E0B';desc+='；结节增长，风险升级';fu='缩短复查间隔(3个月)，考虑活检。';}
   if(mal){cat='4X';color='#EF4444';desc+='；伴典型恶性征象(4X)';fu='强烈建议活检或手术评估，多学科会诊。';}
-  if(isNew && size>=6){cat=cat.startsWith('4')?cat:'3';desc+='；新发结节需密切随访';}
+  if(isNew && size>=6 && (type==='solid'||type==='partsolid')){cat='4A';color='#F59E0B';desc+='；新发结节，按 4A 管理';fu='3个月复查CT，必要时 PET-CT 或活检。';}
 
   var html='<div class="stat-grid">';
   html+='<div class="stat-card"><div class="val" style="color:'+color+';">'+cat+'</div><div class="lbl">Lung-RADS类别</div></div>';

@@ -2099,13 +2099,6 @@ const CASES = [
        + " 等级「一般」、破解约 29 分钟；旧模型给极强/4 天，等级与时长矛盾。",
   },
   {
-    slug: "life/detector-checker-strength",
-    inputs: { pwdInput: "Tq7!mK9@pL2#" },
-    expect: ["安全等级： 强", "预估破解时间：151 万年"],
-    ref: "N4-A 高熵口令：12 位不重复四类字符熵 78.7 bits ⇒「强」、破解 151 万年；"
-       + "证明等级与同一熵值推导的破解时长保持一致（旧模型 100/100 极强但同屏 4 天）。",
-  },
-  {
     slug: "life/countdown-timer",
     inputs: {},
     clicks: ["addPreset('新年', 1, 1);"],

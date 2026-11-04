@@ -216,11 +216,11 @@ s.parentNode.insertBefore(el, s);
       </div>
 
       <div class="stat-grid-4" id="statGrid"></div>
-      <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__lease_payment_calculatorExport()">导出明细 CSV</button></div><div class="result-box" id="res"></div> <div id="lease_payment_calculatorTable"></div> <div id="lease_payment_calculatorDiff"></div> <div id="lease_payment_calculatorChart"></div> <div id="lease_payment_calculatorHist"></div>
+      <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="exportCSV()">📥 导出摊销明细 CSV</button></div><div class="result-box" id="res"></div> <div id="lease_payment_calculatorTable"></div> <div id="lease_payment_calculatorDiff"></div> <div id="lease_payment_calculatorChart"></div> <div id="lease_payment_calculatorHist"></div>
 
       <div class="toolbar" style="margin-top:12px;">
         <button type="button" class="btn primary" onclick="saveHistory()">💾 保存到历史</button>
-        <button type="button" class="btn" onclick="exportCSV()">📥 导出CSV</button>
+        <button type="button" class="btn" onclick="__lease_payment_calculatorExport()">📥 导出历史 CSV</button>
         <button type="button" class="btn" onclick="resetInputs()">🔄 重置</button>
       </div>
     </div>
@@ -480,6 +480,20 @@ function calc(){
   var principal = pv - downPayment;
   var r = annualRate / 100 / 12;
 
+  var __err = '';
+  if(!isFinite(pv) || pv <= 0) __err = '租赁物价值必须大于 0。';
+  else if(downPct < 0 || downPct > 100) __err = '首付比例须在 0–100% 之间。';
+  else if(fee < 0) __err = '手续费不能为负。';
+  else if(fv < 0) __err = '残值不能为负。';
+  else if(fv >= principal) __err = '残值须小于融资本金（否则融资额无效）。';
+  else if(!isFinite(n) || n < 1) __err = '期数须在 1–12000 之间。';
+  if(__err){
+    schedule = [];
+    currentResult = null;
+    document.getElementById('res').innerHTML = '<p style="color:var(--danger);">⚠ ' + __err + '</p>';
+    return;
+  }
+
   schedule = [];
   var pmt = 0;
   var totalPayment = 0;
@@ -501,25 +515,29 @@ function calc(){
     var balance = principal;
     for(var i = 1; i <= n; i++){
       var interest = balance * r;
-      var principalPart = pmt - interest;
-      if(timing === 'begin'){
-        balance -= pmt;
-        interest = balance * r;
-        principalPart = pmt - interest;
+      var pay, principalPart;
+      if(i === n){
+        principalPart = balance;
+        pay = balance + interest;
+        balance = 0;
       } else {
+        principalPart = pmt - interest;
+        pay = pmt;
         balance -= principalPart;
       }
-      if(i === n && fv > 0){
-        balance = fv;
-      }
+      totalInterest += interest;
       schedule.push({
         period: i,
-        payment: pmt,
+        payment: pay,
         principal: principalPart,
         interest: interest,
         balance: Math.max(balance, 0)
       });
     }
+    var sumPay = 0, sumInterest = 0;
+    schedule.forEach(function(s){ sumPay += s.payment; sumInterest += s.interest; });
+    totalPayment = sumPay + downPayment + fee;
+    totalInterest = sumInterest;
   }
   else if(type === 'principal'){
     var principalPer = (principal - fv) / n;
@@ -527,30 +545,28 @@ function calc(){
     totalInterest = 0;
     for(var i = 1; i <= n; i++){
       var interest = balance * r;
-      var pay = principalPer + interest;
-      if(timing === 'begin'){
-        balance -= principalPer;
-        interest = balance * r;
-        pay = principalPer + interest;
+      var pay, principalPart;
+      if(i === n){
+        principalPart = balance;
+        pay = balance + interest;
+        balance = 0;
       } else {
-        balance -= principalPer;
+        principalPart = (type === 'principal') ? principalPer : 0;
+        pay = principalPart + interest;
+        balance -= principalPart;
       }
       totalInterest += interest;
-      if(i === n && fv > 0){
-        balance = fv;
-      }
       schedule.push({
         period: i,
         payment: pay,
-        principal: principalPer,
+        principal: principalPart,
         interest: interest,
         balance: Math.max(balance, 0)
       });
     }
-    pmt = schedule[0].payment;
-    totalPayment = pmt * (n > 0 ? 1 : 0) + (totalInterest - schedule[0].interest) + principalPer * (n - 1) + downPayment + fee;
     var sumPay = 0;
     schedule.forEach(function(s){ sumPay += s.payment; });
+    pmt = schedule[0].payment;
     totalPayment = sumPay + downPayment + fee;
   }
   else if(type === 'interest'){
@@ -561,12 +577,14 @@ function calc(){
     var balance = principal;
     for(var i = 1; i <= n; i++){
       var interest = balance * r;
-      var pay = interest;
-      var principalPart = 0;
+      var pay, principalPart;
       if(i === n){
-        pay = principal + interest;
-        principalPart = principal;
-        balance = fv;
+        principalPart = balance;
+        pay = balance + interest;
+        balance = 0;
+      } else {
+        principalPart = 0;
+        pay = interest;
       }
       totalInterest += interest;
       schedule.push({
@@ -617,17 +635,18 @@ function __leaseNPV(cashFlows, rate){
   return npv;
 }
 function calcIRR(principal, schedule, fv, timing, fee){
+  if(!schedule || !schedule.length) return null;
   var n = schedule.length;
   var cashFlows = [];
   for(var t = 0; t <= n; t++) cashFlows.push(0);
-  // 手续费与本金同为 t=0 流出
-  cashFlows[0] -= principal + (fee || 0);
+  // 手续费是期初支付的成本：净融资额 = 本金 - 手续费
+  cashFlows[0] -= principal - (fee || 0);
   for(var i = 0; i < n; i++){
     // 期初还款首期发生在 t=0，期末还款发生在 t=1..n
     var idx = (timing === 'begin') ? i : i + 1;
     cashFlows[idx] += schedule[i].payment;
   }
-  if(fv > 0 && n > 0) cashFlows[n] -= fv;
+  // 残值为租赁物到期残值，不是额外现金流出；只通过付款行体现
 
   var low = -0.5, high = 1;
   var fLow = __leaseNPV(cashFlows, low), fHigh = __leaseNPV(cashFlows, high);
@@ -642,6 +661,7 @@ function calcIRR(principal, schedule, fv, timing, fee){
 }
 
 function renderStats(r){
+  if(!r) return;
   var statHtml = '<div class="stat-card"><div class="val">¥' + ToolBox.formatNumber(r.pmt, 0) + '</div><div class="lbl">' + (r.type === 'principal' ? '首月还款' : '每月还款') + '</div></div>'
     + '<div class="stat-card"><div class="val">¥' + ToolBox.formatNumber(r.totalPayment, 0) + '</div><div class="lbl">总还款额</div></div>'
     + '<div class="stat-card negative"><div class="val">¥' + ToolBox.formatNumber(r.totalInterest, 0) + '</div><div class="lbl">总利息</div></div>'
@@ -650,12 +670,13 @@ function renderStats(r){
 }
 
 function renderResult(r){
+  if(!r) return;
   var typeNames = {'equal':'等额本息','principal':'等额本金','interest':'先息后本'};
   var timingNames = {'end':'期末还款','begin':'期初还款'};
 
   var resHtml = '<h3 style="margin-bottom:10px;font-size:15px;">📋 计算详情</h3>';
   resHtml += '<div class="bar-row"><span class="bar-lbl" style="width:100px;">租赁物价值</span><div class="bar-bg"><div class="bar-fill" style="width:100%;justify-content:space-between;padding:0 10px;"><span>¥' + ToolBox.formatNumber(r.pv, 2) + '</span></div></div></div>';
-  resHtml += '<div class="bar-row"><span class="bar-lbl" style="width:100px;">首付款</span><div class="bar-bg"><div class="bar-fill" style="width:' + Math.max(r.downPct, 5) + '%;justify-content:space-between;padding:0 10px;"><span>¥' + ToolBox.formatNumber(r.downPayment, 2) + ' (' + r.downPct + '%)</span></div></div></div>';
+  resHtml += '<div class="bar-row"><span class="bar-lbl" style="width:100px;">首付款</span><div class="bar-bg"><div class="bar-fill" style="width:' + Math.min(Math.max(r.downPct, 5), 100) + '%;justify-content:space-between;padding:0 10px;"><span>¥' + ToolBox.formatNumber(r.downPayment, 2) + ' (' + r.downPct + '%)</span></div></div></div>';
   resHtml += '<div class="bar-row"><span class="bar-lbl" style="width:100px;">融资金额</span><div class="bar-bg"><div class="bar-fill" style="width:' + Math.max(100 - r.downPct, 5) + '%;justify-content:space-between;padding:0 10px;"><span>¥' + ToolBox.formatNumber(r.principal, 2) + '</span></div></div></div>';
   
   if(r.fv > 0){
@@ -833,14 +854,15 @@ function loadHistory(index){
   try { history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch(e){}
   var h = history[index];
   if(!h) return;
-  document.getElementById('pv').value = h.pv || 100000;
-  document.getElementById('downPct').value = h.downPct || 0;
-  document.getElementById('rate').value = h.annualRate || 6;
-  document.getElementById('months').value = h.months || 36;
-  document.getElementById('fv').value = h.fv || 0;
+  function __num(v, d){ return (v === undefined || v === null || v === '' || !isFinite(+v)) ? d : +v; }
+  document.getElementById('pv').value = __num(h.pv, 100000);
+  document.getElementById('downPct').value = __num(h.downPct, 0);
+  document.getElementById('rate').value = __num(h.annualRate, 6);
+  document.getElementById('months').value = __num(h.months, 36);
+  document.getElementById('fv').value = __num(h.fv, 0);
   document.getElementById('type').value = h.type || 'equal';
   document.getElementById('timing').value = h.timing || 'end';
-  document.getElementById('fee').value = h.fee || 0;
+  document.getElementById('fee').value = __num(h.fee, 0);
   calc();
   switchTab('calc', document.querySelectorAll('.tab-btn')[0]);
 }
@@ -849,7 +871,7 @@ function clearHistory(){
   if(confirm('确定要清空所有历史记录吗？')){
     try { localStorage.removeItem(HISTORY_KEY); } catch(e){}
     renderHistory();
-    ToolBox.showToast(i18nText());
+    ToolBox.showToast('历史记录已清空');
   }
 }
 

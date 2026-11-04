@@ -160,10 +160,10 @@ s.parentNode.insertBefore(el, s);
 
     <div class="info-box" style="margin-top:16px;">
       <strong>Ct值(Cycle threshold)：</strong>荧光信号越过阈值线所经历的循环数。<br>
-      • Ct&lt;29：强阳性，模板浓度高<br>
+      • Ct&lt;30：强阳性，模板浓度高<br>
       • Ct 30-37：阳性，模板中等浓度<br>
-      • Ct 38-40：弱阳性/灰区，需重复确认<br>
-      • Ct&gt;40 或无Ct：阴性<br>
+      • Ct 38-cutoff：弱阳性/灰区，需重复确认<br>
+      • Ct&gt;cutoff 或无 Ct：阴性<br>
       <strong>ΔCt法：</strong>ΔCt = Ct_target - Ct_reference；<strong>ΔΔCt法：</strong>相对表达量 = 2^(-ΔΔCt)
     </div>
   </div>
@@ -256,11 +256,17 @@ function interpretQual(){
   var cutoff=parseFloat(document.getElementById('cutoff').value)||40;
   var __EN=(function(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search)||/^en/i.test(document.documentElement.lang||'');}catch(e){}return false;})();
   function __T(en,zh){return __EN?en:zh;}
-  if(isNaN(ct)){const __h0='';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('qualResult').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('qualResult').innerHTML=__h0;return;}
+  if(isNaN(ct)){
+    document.getElementById('qualResult').innerHTML='<p style="color:var(--danger)">⚠ '+__T('Please enter a valid Ct value (> 0).','请输入有效的 Ct 值（&gt;0）；空值不能按阴性处理。')+'</p>';
+    return;
+  }
 
   var html='<h3 style="margin-bottom:8px;">'+__T('Interpretation','判读结果')+'</h3>';
   var status, color;
-  if(ct===0 || ct>=cutoff || isNaN(ct)){
+  if(ct<=0){
+    document.getElementById('qualResult').innerHTML='<p style="color:var(--danger)">⚠ '+__T('Ct ≤ 0 means no valid amplification signal; it cannot be interpreted as negative, and no quantitative value will be calculated.','Ct ≤ 0 表示无有效扩增信号，不能判为阴性，也不输出定量结果；请核对原始数据或留空。')+'</p>';
+    return;
+  } else if(ct>=cutoff){
     status=__T('Negative','阴性');color='#059669';
   } else if(ct>=38){
     status=__T('Weak positive (gray zone)','弱阳性(灰区)');color='#f59e0b';
@@ -287,14 +293,17 @@ function interpretQual(){
 
   // QC checks
   var qc=[];
-  if(!isNaN(neg) && neg>0 && neg<cutoff) qc.push(__T('Negative control amplified (Ct='+neg+') — possible contamination! Result unreliable','阴性对照扩增(Ct='+neg+')，提示污染！结果不可靠'));
-  if(!isNaN(pos) && (pos>=cutoff||pos===0)) qc.push(__T('Positive control failed to amplify — amplification system failure','阳性对照未扩增，提示扩增体系失败'));
+  var negFilled = isFinite(neg) && neg>0;
+  var posFilled = isFinite(pos) && pos>0;
+  if(negFilled && neg<cutoff) qc.push(__T('Negative control amplified (Ct='+neg+') — possible contamination! Result unreliable','阴性对照扩增(Ct='+neg+')，提示污染！结果不可靠'));
+  if(isFinite(pos) && (pos>=cutoff||pos===0)) qc.push(__T('Positive control failed to amplify — amplification system failure','阳性对照未扩增，提示扩增体系失败'));
   if(!isNaN(ref) && ref>35) qc.push(__T('Reference gene Ct='+ref+' too high — poor sample quality or low extraction efficiency','内参Ct='+ref+'偏高，提示样本质量差或提取效率低'));
   if(qc.length) html += '<div class="tip-box tip-error"><strong>'+__T('QC abnormal:','质控异常：')+'</strong><br>'+qc.join('<br>')+'</div>';
+  else if(!(negFilled && posFilled)) html += '<div class="tip-box"><strong>'+__T('QC incomplete:','质控未完成：')+'</strong>'+__T('Please fill in both negative and positive control Ct (> 0) before concluding that QC has passed.','请同时填写阴性对照与阳性对照的 Ct 值（&gt;0），再判断质控是否通过。')+'</div>';
   else html += '<div class="tip-box tip-success">'+__T('QC normal: no negative-control amplification, positive control amplified well.','质控正常：阴性对照无扩增，阳性对照扩增良好。')+'</div>';
 
   // delta Ct
-  if(!isNaN(ref) && ref>0){
+  if(!isNaN(ref) && ref>0 && ct>0){
     var dCt = ct - ref;
     var relExpr = Math.pow(2, -dCt);
     html += '<div class="result-box"><p>ΔCt = '+ct+' - '+ref+' = <strong>'+dCt.toFixed(2)+'</strong></p>';
@@ -303,7 +312,7 @@ function interpretQual(){
   }
 
   // estimated copy number (rough)
-  if(ct<cutoff){
+  if(ct>0 && ct<cutoff){
     var copies = Math.pow(2, cutoff-ct);
     html += '<div class="result-box"><p>'+__T('Rough copy number ≈ ','粗略估算拷贝数 ≈ ')+'<strong>'+copies.toExponential(2)+'</strong> '+__T('copies (100% efficiency, Ct='+cutoff+' baseline)','copies（基于100%效率，Ct='+cutoff+'基线）')+'</p></div>';
   }
