@@ -497,23 +497,111 @@ function collectRecursive(obj, property, wildcard, out) {
 }
 
 function evalFilter(obj, filter) {
+  // 受限解析：只支持 @.prop 取值、数字/字符串/布尔/ null 字面量、比较与 && || ! ( )
+  // 不把用户输入交给 eval，避免任意脚本执行
   try {
-    const expr = filter.replace(/@\.([a-zA-Z_][a-zA-Z0-9_]*)/g, (match, prop) => {
-      if (obj !== null && typeof obj === 'object' && prop in obj) {
-        const val = obj[prop];
-        if (typeof val === 'string') return JSON.stringify(val);
-        return val;
+    var s = String(filter), i = 0;
+    function skip() { while (i < s.length && /\s/.test(s.charAt(i))) i++; }
+    function fail() { throw new Error('invalid filter'); }
+    function readPath() {
+      i++; // 跳过 @
+      var cur = obj;
+      while (s.charAt(i) === '.') {
+        i++;
+        var m = /^[A-Za-z_$][\w$]*/.exec(s.slice(i));
+        if (!m) fail();
+        i += m[0].length;
+        cur = (cur !== null && typeof cur === 'object') ? cur[m[0]] : undefined;
       }
-      return 'undefined';
-    });
-    return eval(expr);
-  } catch(e) {
+      return cur;
+    }
+    function readOperand() {
+      skip();
+      var c = s.charAt(i);
+      if (c === '@') return readPath();
+      if (c === '"' || c === "'") {
+        var q = c, out = '';
+        i++;
+        while (i < s.length) {
+          var ch = s.charAt(i);
+          if (ch === '\\') { out += s.charAt(i + 1); i += 2; continue; }
+          if (ch === q) { i++; return out; }
+          out += ch; i++;
+        }
+        fail();
+      }
+      if (c === '-' || /[0-9]/.test(c)) {
+        var num = /^-?\d+(\.\d+)?([eE][+-]?\d+)?/.exec(s.slice(i));
+        if (!num) fail();
+        i += num[0].length;
+        return Number(num[0]);
+      }
+      var kw = /^(true|false|null)/.exec(s.slice(i));
+      if (kw) {
+        i += kw[0].length;
+        return kw[0] === 'true' ? true : (kw[0] === 'false' ? false : null);
+      }
+      fail();
+    }
+    function readPrimary() {
+      skip();
+      if (s.charAt(i) === '(') {
+        i++;
+        var v = readOr();
+        skip();
+        if (s.charAt(i) !== ')') fail();
+        i++;
+        return v;
+      }
+      if (s.charAt(i) === '!' && s.charAt(i + 1) !== '=') { i++; return !readPrimary(); }
+      var left = readOperand();
+      skip();
+      var ops = ['===', '!==', '==', '!=', '>=', '<=', '>', '<'], op = null;
+      for (var k = 0; k < ops.length; k++) {
+        if (s.substr(i, ops[k].length) === ops[k]) { op = ops[k]; i += ops[k].length; break; }
+      }
+      if (!op) return left;
+      var right = readOperand();
+      if (op === '>') return left > right;
+      if (op === '<') return left < right;
+      if (op === '>=') return left >= right;
+      if (op === '<=') return left <= right;
+      if (op === '===') return left === right;
+      if (op === '!==') return left !== right;
+      return left == right; // == 按 JSONPath 习惯做宽松比较
+    }
+    function readAnd() {
+      var v = readPrimary();
+      while (true) {
+        skip();
+        if (s.substr(i, 2) !== '&&') break;
+        i += 2;
+        v = readPrimary() && v;
+      }
+      return v;
+    }
+    function readOr() {
+      var v = readAnd();
+      while (true) {
+        skip();
+        if (s.substr(i, 2) !== '||') break;
+        i += 2;
+        v = readAnd() || v;
+      }
+      return v;
+    }
+    var result = !!readOr();
+    skip();
+    if (i < s.length) fail();
+    return result;
+  } catch (e) {
     return false;
   }
 }
 
 function highlightJSON(obj) {
-  const jsonStr = JSON.stringify(obj, null, 2);
+  const jsonStr = JSON.stringify(obj, null, 2)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   let html = jsonStr
     .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?)/g, function(match) {
       let cls = 'jh-string';
