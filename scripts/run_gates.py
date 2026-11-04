@@ -41,6 +41,13 @@ GATES = (
     ("static tests", ("python3", "_test_static.py")),
     ("dead-link audit", ("python3", "_audit_links.py", "--check")),
     ("asset audit", ("python3", "_audit_assets.py", "--check")),
+    # 纯前端数据安全红线（AGENTS.md §2）：localStorage/sessionStorage 允许，Cookie 与
+    # IndexedDB 禁止，明文凭证禁止落盘，跨页字面量键禁止互相覆盖。扫正文 + js/**，
+    # 显式不含 zh-tw/（繁体为构建产物），故不依赖 _build.py 产物即可在 CI 跑。
+    ("local storage audit", ("python3", "scripts/audit_local_storage.py", "--check")),
+    # 供应链红线：第三方 <script src> 必须锁精确版本（@x.y.z / /x.y.z/ / resolve/<40hex>）。
+    # SKIP_DIRS 已排除 zh-tw/ 与 node_modules/，只读源文件，CI 干净检出可直接跑。
+    ("external dependency audit", ("python3", "scripts/audit_external_deps.py", "--check")),
     # 防复发（缺陷 N）：构建期英文预渲染曾把页面 intro 注入 <script> 内 JS 字符串的
     # <p> 提示位（未转义撇号/换行）→ 脚本整块 SyntaxError、计算器静默失效。既有门禁
     # （静态结构/链接/资源/calc 冒烟/用例断言）都不校验 inline JS 语法，故单列一道。

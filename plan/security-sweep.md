@@ -666,6 +666,7 @@ https://huggingface.co/Xenova/distilbert-base-uncased-finetuned-sst-2-english/re
 - `sql-wasm.js` 与 `sql-wasm.wasm` 均移入 vendor，页面不再向 `cdnjs.cloudflare.com` 发请求（该页 origin 归零）。
 - 加载顺序：`fetch(local wasm)` → `crypto.subtle.digest('SHA-256')` → 与内置常量比对 → `initSqlJs({ wasmBinary })`。用 `wasmBinary` 传入字节，Emscripten 不再二次请求 wasm。
 - 校验失败：`setStatus('error','校验失败：拒绝启动')`，执行按钮保持禁用，不创建数据库实例。
+- **哈希来源与升级流程**：`SQL_WASM_SHA256` 是页面内 JS 常量（`tools/it/sqlite-runner.html:520`），**不读清单/构建元数据**。升级时须整组同改：① 换 `vendor/sql.js/<新版本>/sql-wasm.js` + `sql-wasm.wasm`；② `shasum -a 256 sql-wasm.wasm` 取新值；③ 同步改 `SQL_WASM_URL`（含版本目录）与 `SQL_WASM_SHA256`。三者任一漏改都会在启动时因哈希不符而拒绝启动，属于可感知失败。
 
 两向自证（同一 URL，正常响应 vs 篡改末字节）：
 
@@ -697,10 +698,17 @@ RESULT 11/11
 
 #### 17.9.8 门禁与边界
 
-- `python3 _test_static.py`：4705/4705 通过，0 失败 0 告警。
-- `python3 scripts/audit_external_deps.py --check`：exit 0（① 中「可锁未锁」为 0）。
+- **两个审计脚本已挂进 `scripts/run_gates.py`**（紧随 `asset audit`，与既有 python 门禁同等待遇，只读退出码）：
+  `local storage audit` → `python3 scripts/audit_local_storage.py --check`；
+  `external dependency audit` → `python3 scripts/audit_external_deps.py --check`。门禁总数 **222 → 224**。
+- **造红自证（探针用完即删）**：
+  - 根目录探针页含真实 `document.cookie = '...'` → `audit_local_storage.py --check` **exit 1**（`违规：Cookie 写入 1`）；
+  - 根目录探针页含 `<script src="https://cdn.jsdelivr.net/npm/lodash/dist/lodash.min.js">`（无 `@x.y.z`）→ `audit_external_deps.py --check` **exit 1**（`[FAIL] 外部脚本未锁定精确版本：…lodash.min.js（_probe_cdn.html）`）；
+  - 删除两个探针后复跑，双双 **exit 0**（Cookie 0 / 未锁 0）。
+- **CI 可跑性（干净 worktree 实测）**：`git worktree add --detach /tmp/tb-clean HEAD` 后确认无 `node_modules/`、无 `zh-tw/`，两脚本均 **exit 0**；`audit_external_deps.py` 的 `SKIP_DIRS` 显式排除 `zh-tw`/`node_modules`，`audit_local_storage.py` 只遍历根 `*.html` + `tools/` + `guides/` + `js/`，均不读构建产物。
+- **本批全量门禁结果**：`python3 scripts/run_gates.py` → **222/224 通过**。两项未通过均非本批引入：`science calc correctness`（203 例中 3 例失败）来自并行线未提交的 `verify_science_calc.js` 新用例与 3 个 science 页面改动，同一脚本在 **HEAD 干净树 196/196 全过**；`marketing calc correctness` 的 `social-media-image-sizes`（`ToolBox.downloadText` 桩失效）在 **HEAD 干净树上同样 exit 1**，属导出收敛批次遗留。
 - `python3 _audit_assets.py --check` / `python3 _audit_links.py --check`：16689 文件，0 死链 / 0 lang 缺失 / 0 重复 id。
 - 计算回归：`verify_it_calc.js sqlite-runner`、`bcrypt`、`yaml-validator` 全过；office 两页无既有用例（0/0）。
-- 本批未运行 `_build.py`、未改 `json/*.json`、未 push（按用户纪律）。工具页 HTML / `js/ai-core.js` 改动在下次构建时随 SW 版本戳统一生效。
+- 为拿到全量门禁计数，本批按用户指令跑了一次 `run_gates.py`（内含 `_build.py`），`zh-tw/` 与 `json/*.json` 因此被重建；按路径级提交纪律，构建产物与并行线未提交改动**均未纳入本批提交**。未 push。工具页 HTML / `js/ai-core.js` 改动在下次构建时随 SW 版本戳统一生效。
 - 新增入库文件：`scripts/audit_external_deps.py`、`vendor/sql.js/1.8.0/sql-wasm.js`、`vendor/sql.js/1.8.0/sql-wasm.wasm`；本地无头验证脚本放 `/tmp`，未入库。
 
