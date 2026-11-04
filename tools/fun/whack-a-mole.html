@@ -153,7 +153,7 @@ s.parentNode.insertBefore(el, s);
   <div class="card tool-card-accent" style="--tool-accent:#EC4899;">
     <h2 data-zh="🔨 打地鼠">🔨 Whack-a-Mole</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">命中判定：地鼠处于冒出状态且未被击中时得分 +1 并标记为已击中；刷新时先把仍冒出且未被击中的洞计为错过 +1，再从 0–8 号洞中随机取一个重新冒出；剩余时间 = max(0, 时长 − (当前时间戳 − 开始时间戳) ÷ 1000)，归零时结束并汇总得分与错过数</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">计分口径：命中冒出且未击中的地鼠 +10 分；刷新时仍冒出未被击中的洞计为错过并 −5 分；点击空洞 −5 分；剩余时间 = max(0, 时长 − (当前时间戳 − 开始时间戳) ÷ 1000)，归零时按净分结算（可为负）并更新本地最高分</div>
   <p class="formula-desc" data-zh="本工具为纯前端在线工具，数据在浏览器本地处理、不上传服务器，依据对应领域标准与规范进行计算或处理，结果仅供参考。 工具名称：打地鼠 - 娱乐游戏领域的在线工具。">Classic Whack-a-Mole: click the moles as they pop up within the time limit to score. Trains reaction and hand-eye coordination, with a high-score record.</p>
 </div>
 
@@ -161,6 +161,7 @@ s.parentNode.insertBefore(el, s);
       <div>得分：<strong id="score">0</strong></div>
       <div>错过：<strong id="miss">0</strong></div>
       <div>时间：<strong id="time">30s</strong></div>
+      <div>最高分：<strong id="best">0</strong></div>
     </div>
     <div class="grid" id="grid"></div>
     <div class="result-box" id="output">点击冒出的地鼠</div>
@@ -198,12 +199,12 @@ s.parentNode.insertBefore(el, s);
 <li>手眼协调挑战</li>
 <li>亲子互动</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">限时内地鼠随机冒出，点中得分、漏点或点空扣分；时间到结算最高分。</div></div>
+<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">限时内地鼠随机冒出，点中 +10 分、漏点 −5 分、点空 −5 分；时间到按净分结算并更新本地最高分。</div></div>
 <div class="dd-example"><div class="dd-ex-title">算例（演示）</div><div class="dd-ex-body">30 秒关卡：点中 22 只各 +10 分共 220 分，漏 5 只各 -5 分共 -25 分，净 195 分刷新最高。分数本地记录。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>最高分存哪里？</dt><dd>存浏览器本地，不联网不上传；清缓存会重置。</dd>
-<dt>地鼠出现有规律吗？</dt><dd>随机出现，无规律；难度可调出现频率与时限。</dd>
+<dt>地鼠出现有规律吗？</dt><dd>随机出现，无规律；出现间隔与时限为固定值。</dd>
 </dl>
 </div>
 </section>
@@ -250,8 +251,8 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
-const DURATION=30;
-let holes,score,miss,state,startTime,timer,spawnTimer;
+const DURATION=30,HIT=10,PENALTY=5,BEST_KEY='toolbox_whack_best';
+let holes,score,miss,state,startTime,timer,spawnTimer,best=0;
 
 function buildGrid(){
   const g=document.getElementById('grid');
@@ -294,7 +295,8 @@ function tick(){
     clearInterval(spawnTimer);
     state='done';
     holes.forEach(h=>h.classList.remove('up'));
-    const __h2=`<p>时间到！得分 ${score} / 错过 ${miss}</p>`;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h2;
+    if(score>best){best=score;try{localStorage.setItem(BEST_KEY,String(best));}catch(e){}document.getElementById('best').textContent=best;}
+    const __h2=`<p>时间到！得分 ${score} / 错过 ${miss} / 最高分 ${best}</p>`;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h2;
   }
 }
 function spawn(){
@@ -302,7 +304,9 @@ function spawn(){
   holes.forEach(h=>{if(h.classList.contains('up')&&!h.classList.contains('hit')){
     h.classList.remove('up');
     miss++;
+    score-=PENALTY;
     document.getElementById('miss').textContent=miss;
+    document.getElementById('score').textContent=score;
   }});
   const i=Math.floor(Math.random()*9);
   holes[i].classList.remove('hit');
@@ -314,9 +318,13 @@ function hit(i){
   if(h.classList.contains('up')&&!h.classList.contains('hit')){
     h.classList.add('hit');
     h.classList.remove('up');
-    score++;
-    document.getElementById('score').textContent=score;
+    score+=HIT;
+  }else if(!h.classList.contains('up')){
+    score-=PENALTY;
+  }else{
+    return;
   }
+  document.getElementById('score').textContent=score;
 }
 function toggleToolTheme(){
   const cur=document.documentElement.getAttribute('data-theme');
@@ -340,6 +348,8 @@ function toggleToolTheme(){
   }
 })();
 buildGrid();
+try{best=parseInt(localStorage.getItem(BEST_KEY)||'0',10)||0;}catch(e){best=0;}
+document.getElementById('best').textContent=String(best);
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){
