@@ -138,38 +138,30 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="📚 五子棋禁手判断">Gomoku Forbidden</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="判断五子棋黑棋三三、四四、长连禁手，附禁手规则详解">Gomoku Forbidden</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">五子棋禁手判断（黑方规则）<br>三三禁手：一手同时形成 ≥2 个活三<br>四四禁手：一手同时形成 ≥2 个四<br>长连禁手：形成 ≥6 连（超过五连）<br>恰好五连 = 胜利条件，非禁手<br>综合判定顺序：长连（≥6）→ 五连胜利（=5）<br>　→ 三三/四四禁手（活子≥2）→ 合法<br>禁手判黑方负<br>输入：棋型类型、连续子数、活子数<br>本页为规则参数演示，不提供棋盘自动识别</div>
-  <p class="formula-desc">依据中国五子棋竞赛规则，按输入的棋型类型、连续子数与活子数判断黑棋禁手（三三、四四、长连），用于规则参数演示与对局复核；不提供棋盘落子自动识别。</p>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">五子棋禁手判断（黑方规则，棋盘自动分析）<br>黑方落子后按横 / 竖 / 撇 / 捺四个方向统计连子数<br>恰好五连（=5）= 胜利条件，非禁手<br>长连禁手：任一方向连子数 ≥ 6<br>四四禁手：该手同时形成 ≥ 2 个「四」<br>三三禁手：该手同时形成 ≥ 2 个「活三」<br>「四」：某方向 5 格窗口含 4 黑 1 空，补一子即成恰好五连<br>「活三」：补一子后可形成两端开放的活四<br>判定优先级：五连胜利 → 长连 → 四四 → 三三 → 合法着法<br>输入：15×15 棋盘落子 / 粘贴局面 + 待判点坐标（如 H8）<br>复杂棋型（假活三、同向多四、边界限制）需对照正式规则与裁判复核</div>
+  <div class="formula-desc">在 15×15 棋盘上按中国五子棋竞赛规则自动分析：可直接点击棋盘落子，也可粘贴 15 行局面文本并指定待判点坐标。工具按四方向连子数与「四 / 活三」计数给出结论，每个方向最多计 1 个；复杂棋型仍建议人工复核。</div>
 </div>
 
 
+    <style>
+.gomoku-board{display:grid;grid-template-columns:repeat(15,1fr);gap:1px;max-width:420px;margin:10px auto;padding:6px;background:#dcb978;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.12);}
+.gomoku-cell{aspect-ratio:1;border:1px solid rgba(90,60,20,.25);background:rgba(255,248,225,.55);color:#111;font-size:11px;line-height:1;padding:0;cursor:pointer;border-radius:2px;}
+.gomoku-cell.b{color:#111;font-weight:700;}
+.gomoku-cell.w{color:#fff;font-weight:700;}
+.gomoku-cell.last{outline:2px solid #EC4899;outline-offset:-2px;}
+.go-status{font-size:12px;color:var(--text-muted);text-align:center;margin:6px 0;}
+</style>
+    <div class="gomoku-board" id="goBoard" role="grid" aria-label="15×15 五子棋棋盘"></div>
+    <p class="go-status" id="goStatus">点击棋盘落子：空→黑→白→空，自动分析最后一手黑棋（黑方禁手规则）。</p>
     <div class="input-row">
-      <div>
-        <label>棋型类型</label>
-        <select id="patternType" onchange="analyze()">
-          <option value="three_three">三三禁手</option>
-          <option value="four_four">四四禁手</option>
-          <option value="overline">长连禁手（六连以上）</option>
-          <option value="custom">自定义判断</option>
-        </select>
-      </div>
-      <div>
-        <label>连续黑子数</label>
-        <input type="number" id="stoneCount" value="3" min="1" max="9" oninput="analyze()" placeholder="如 3（1–9）">
-      </div>
-      <div>
-        <label>同方向活子数</label>
-        <input type="number" id="liveCount" value="2" min="0" max="4" oninput="analyze()" placeholder="如 2（0–4）">
-      </div>
+      <div><label>待判点·列（A-O）</label><input id="goCol" value="H" maxlength="1" oninput="analyzeCoordinate()"></div>
+      <div><label>待判点·行（1-15）</label><input id="goRow" type="number" value="8" min="1" max="15" oninput="analyzeCoordinate()"></div>
     </div>
+    <label>粘贴局面（15 行、每行 15 位：0 空 / 1 黑 / 2 白；末行可写 judge:H8）</label>
+    <textarea id="boardInput" rows="3" placeholder="111111111111111&#10;...（15 行；也可留空，直接在棋盘点击）" style="font-family:'SF Mono',monospace;font-size:12px;"></textarea>
+    <div class="toolbar"><div id="gomoku_forbiddenPresets"><button type="button" class="btn" onclick="loadPreset(0)">三三示例</button><button type="button" class="btn" onclick="loadPreset(1)">长连示例</button><button type="button" class="btn" onclick="loadPreset(2)">五连胜利</button></div><button type="button" class="btn primary" onclick="loadBoardInput()">载入局面并分析</button><button class="btn" type="button" onclick="clearBoard()">清空棋盘</button><button class="btn" type="button" onclick="__gomoku_forbiddenExport()">导出明细 CSV</button><button type="button" class="btn" onclick="copyResult()">📋 复制结果</button></div>
 
-    <div class="toolbar">
-      <div id="gomoku_forbiddenPresets"></div><button type="button" class="btn primary" onclick="analyze()">📚 判断</button><button class="btn" type="button" onclick="__gomoku_forbiddenExport()">导出明细 CSV</button>
-      <button type="button" class="btn" onclick="copyResult()">📋 复制结果</button>
-    </div>
-
-    <div class="result-box" id="result"></div> <div id="gomoku_forbiddenTable"></div> <div id="gomoku_forbiddenDiff"></div> <div id="gomoku_forbiddenChart"></div> <div id="gomoku_forbiddenHist"></div>
-  </div>
+    <div class="result-box" id="result"></div>  </div>
 
   <div class="card">
     <h3 style="margin-bottom:12px;">📋 禁手规则详解</h3>
@@ -279,59 +271,200 @@ s.parentNode.insertBefore(el, s);
 
 <script>
 function $(id){return document.getElementById(id);}
-function analyze(){
-  var type=$('patternType').value;
-  var stones=parseInt($('stoneCount').value)||0;
-  var live=parseInt($('liveCount').value)||0;
-  var result='',badge='',isWin=false,isBad=false;
-  // 统一优先级：长连(≥6) → 五连(=5) 胜利 → 三三/四四 → 其他
-  if(stones>=6){
-    result='长连禁手';badge='<span class="rule-badge rule-forbidden">禁手</span>';isBad=true;
-    result+='<br>黑棋形成'+stones+'连（超过五连），违反长连禁手规则。黑方判负。';
-  }else if(stones===5){
-    result='五连胜利';badge='<span class="rule-badge rule-ok">胜利</span>';isWin=true;
-    result+='<br>恰好五连，为胜利条件，非禁手。';
-  }else if(type==='three_three'||type==='four_four'){
-    var need = type==='three_three'?3:4;
-    var label = type==='three_three'?'活三':'四';
-    if(stones<need){
-      result='非禁手';badge='<span class="rule-badge rule-ok">合法</span>';
-      result+='<br>当前仅 '+stones+' 连，未达到'+need+'连，不能构成'+(type==='three_three'?'三三':'四四')+'禁手。';
-    }else if(live>=2){
-      result=(type==='three_three'?'三三':'四四')+'禁手';badge='<span class="rule-badge rule-forbidden">禁手</span>';isBad=true;
-      result+='<br>黑棋一手同时形成 '+live+' 个'+label+'，且连子数达 '+stones+'，违反'+(type==='three_three'?'三三':'四四')+'禁手规则，黑方判负。';
-    }else{
-      result='非禁手';badge='<span class="rule-badge rule-ok">合法</span>';
-      result+='<br>仅形成 '+live+' 个'+label+'（需 ≥2 个），不构成'+(type==='three_three'?'三三':'四四')+'禁手。';
-    }
-  }else if(type==='overline'){
-    result='非禁手';badge='<span class="rule-badge rule-warn">未成五</span>';
-    result+='<br>仅'+stones+'连，既非长连也非五连胜利。';
-  }else{
-    if(live>=2 && stones>=3){
-      result=(stones>=4?'四四':'三三')+'禁手';badge='<span class="rule-badge rule-forbidden">禁手</span>';isBad=true;
-      result+='<br>自定义棋型下，一手形成 '+live+' 个活棋型且连子数 '+stones+'，按'+(stones>=4?'四四':'三三')+'禁手判定。';
-    }else{
-      result='合法着法';badge='<span class="rule-badge rule-ok">合法</span>';
-      result+='<br>连续子数：'+stones+'，活子数：'+live+'；未同时形成两个活三/四，不构成禁手。';
+var N=15;
+var board=[];
+var lastBlack=null;
+var DIRS=[[0,1],[1,0],[1,1],[1,-1]];
+function inB(r,c){return r>=0&&r<N&&c>=0&&c<N;}
+function initBoard(){
+  board=[];
+  for(var r=0;r<N;r++){var row=[];for(var c=0;c<N;c++)row.push(0);board.push(row);}
+  renderBoard();
+}
+function renderBoard(){
+  var el=$('goBoard');
+  if(!el)return;
+  if(el.children.length!==N*N){
+    el.innerHTML='';
+    for(var r=0;r<N;r++){
+      for(var c=0;c<N;c++){
+        var b=document.createElement('button');
+        b.type='button';b.className='gomoku-cell';
+        b.id='gc_'+r+'_'+c;
+        b.setAttribute('data-r',r);b.setAttribute('data-c',c);
+        b.onclick=(function(rr,cc){return function(){placeStone(rr,cc);};})(r,c);
+        el.appendChild(b);
+      }
     }
   }
-  var html='<p>判断结果：<strong>'+badge+'</strong></p>'+
-    '<p style="margin-top:8px;">'+result.replace(/\n/g,'<br>')+'</p>';
-  if(isBad){
-    html+='<div class="tip-box tip-error"><strong>🔴 判定禁手</strong>：该着法违反五子棋禁手规则，黑方判负。</div>';
-  }else if(isWin){
-    html+='<div class="tip-box tip-success"><strong>✅ 五连胜利</strong>：恰好五连为胜利条件。</div>';
-  }else{
-    html+='<div class="tip-box tip-success"><strong>✅ 合法着法</strong>：该着法符合五子棋规则。</div>';
+  for(var r2=0;r2<N;r2++){
+    for(var c2=0;c2<N;c2++){
+      var cell=$('gc_'+r2+'_'+c2);
+      cell.textContent=board[r2][c2]===1?'●':(board[r2][c2]===2?'○':'');
+      cell.className='gomoku-cell'+(board[r2][c2]===1?' b':(board[r2][c2]===2?' w':''))+(lastBlack&&lastBlack[0]===r2&&lastBlack[1]===c2?' last':'');
+    }
   }
-  html+='<p style="color:var(--text-muted);font-size:12px;margin-top:8px;">* 本工具提供基础禁手判断参考，复杂棋型的精确判断需结合实际棋盘分析。</p>';
-  const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){$('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('result').innerHTML=__h0;
+}
+function coordName(r,c){return String.fromCharCode(65+c)+(N-r);}
+function placeStone(r,c){
+  board[r][c]=(board[r][c]+1)%3;
+  if(board[r][c]===1)lastBlack=[r,c];
+  renderBoard();
+  if(board[r][c]===1){
+    $('goStatus').textContent='已落黑子 '+coordName(r,c)+'，自动分析该点。';
+    analyzePoint(r,c);
+  }else{
+    $('goStatus').textContent='该点当前为'+(board[r][c]===2?'白子':'空')+'，不触发禁手分析。';
+  }
+}
+function clearBoard(){
+  initBoard();lastBlack=null;
+  $('goStatus').textContent='棋盘已清空，点击落子。';
+  $('result').innerHTML='';
+}
+function runLen(r,c,dr,dc){
+  var n=1,k=1;
+  while(inB(r+k*dr,c+k*dc)&&board[r+k*dr][c+k*dc]===1){n++;k++;}
+  k=1;
+  while(inB(r-k*dr,c-k*dc)&&board[r-k*dr][c-k*dc]===1){n++;k++;}
+  return n;
+}
+function hasFour(r,c,dr,dc){
+  for(var s=-4;s<=0;s++){
+    var blacks=0,er=-1,ec=-1,ok=true;
+    for(var d=0;d<5;d++){
+      var rr=r+(s+d)*dr,cc=c+(s+d)*dc;
+      if(!inB(rr,cc)){ok=false;break;}
+      if(board[rr][cc]===1)blacks++;
+      else if(board[rr][cc]===0){if(er>=0){ok=false;break;}er=rr;ec=cc;}
+      else {ok=false;break;}
+    }
+    if(!ok||blacks!==4||er<0)continue;
+    board[er][ec]=1;
+    var after=runLen(r,c,dr,dc);
+    board[er][ec]=0;
+    if(after===5)return true;
+  }
+  return false;
+}
+function hasOpenFour(r,c,dr,dc){
+  for(var s=-3;s<=0;s++){
+    var ok=true;
+    for(var d=0;d<4;d++){
+      var rr=r+(s+d)*dr,cc=c+(s+d)*dc;
+      if(!inB(rr,cc)||board[rr][cc]!==1){ok=false;break;}
+    }
+    if(!ok)continue;
+    var br=r+(s-1)*dr,bc=c+(s-1)*dc;
+    var ar=r+(s+4)*dr,ac=c+(s+4)*dc;
+    if(!inB(br,bc)||!inB(ar,ac))continue;
+    if(board[br][bc]===0&&board[ar][ac]===0)return true;
+  }
+  return false;
+}
+function hasLiveThree(r,c,dr,dc){
+  for(var e=-4;e<=4;e++){
+    if(e===0)continue;
+    var rr=r+e*dr,cc=c+e*dc;
+    if(!inB(rr,cc)||board[rr][cc]!==0)continue;
+    board[rr][cc]=1;
+    var live=hasOpenFour(r,c,dr,dc);
+    board[rr][cc]=0;
+    if(live)return true;
+  }
+  return false;
+}
+function analyzePoint(r,c){
+  var placed=false;
+  if(board[r][c]===0){board[r][c]=1;placed=true;}
+  var five=0,over=0,fours=0,threes=0,runs=[];
+  for(var i=0;i<DIRS.length;i++){
+    var dr=DIRS[i][0],dc=DIRS[i][1];
+    var run=runLen(r,c,dr,dc);
+    runs.push(run);
+    if(run===5)five++;
+    if(run>=6&&run>over)over=run;
+    if(run<5){
+      if(hasFour(r,c,dr,dc))fours++;
+      else if(hasLiveThree(r,c,dr,dc))threes++;
+    }
+  }
+  if(placed)board[r][c]=0;
+  var html='<p>待判点：<strong>'+coordName(r,c)+'</strong>（'+(placed?'该点为空，按黑棋落子模拟':'该点已有黑子')+'）　四方向连子：'+runs.join(' / ')+'</p>';
+  if(five>0){
+    html+='<p>判断结果：<strong><span class="rule-badge rule-ok">五连胜利</span></strong></p><p>黑棋在 '+five+' 个方向形成恰好五连，为胜利条件，不属于禁手。</p>';
+    html+='<div class="tip-box tip-success"><strong>✅ 五连胜利</strong>：恰好五连即胜，黑方不被判负。</div>';
+  }else if(over>=6){
+    html+='<p>判断结果：<strong><span class="rule-badge rule-forbidden">长连禁手</span></strong></p><p>黑棋形成 '+over+' 连（≥6），超过五连，按 RIF 规则判长连禁手，黑方判负。</p>';
+    html+='<div class="tip-box tip-error"><strong>🔴 长连禁手</strong>：黑棋不得形成六连及以上，白棋长连则算胜。</div>';
+  }else if(fours>=2){
+    html+='<p>判断结果：<strong><span class="rule-badge rule-forbidden">四四禁手</span></strong></p><p>该点同时形成 '+fours+' 个四（每个方向计 1 个），构成四四禁手，黑方判负。</p>';
+    html+='<div class="tip-box tip-error"><strong>🔴 四四禁手</strong>：一手同时形成两个及以上“四”，黑方判负。</div>';
+  }else if(threes>=2){
+    html+='<p>判断结果：<strong><span class="rule-badge rule-forbidden">三三禁手</span></strong></p><p>该点同时形成 '+threes+' 个活三（每个方向计 1 个），构成三三禁手，黑方判负。</p>';
+    html+='<div class="tip-box tip-error"><strong>🔴 三三禁手</strong>：一手同时形成两个及以上活三，黑方判负。</div>';
+  }else{
+    html+='<p>判断结果：<strong><span class="rule-badge rule-ok">合法着法</span></strong></p><p>未检出长连、四四或三三禁手（四：'+fours+' 个，活三：'+threes+' 个）。</p>';
+    html+='<div class="tip-box tip-success"><strong>✅ 合法着法</strong>：该点未触发黑方禁手。</div>';
+  }
+  html+='<p style="color:var(--text-muted);font-size:12px;margin-top:8px;">* 判定口径：五连与长连按四方向连子数精确判断；四四/三三按“该方向存在可成五的四 / 可成活四的活三”计数，每个方向最多计 1 个。复杂棋型（假活三、同向多四、边界限制）仍建议对照正式规则与裁判判定复核。</p>';
+  const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){$('result').innerHTML='<p style="color:var(--danger)">⚠ 计算异常，请点击“清空棋盘”后重试。</p>';return;}$('result').innerHTML=__h2;
+}
+function analyzeCoordinate(){
+  var col=(document.getElementById('goCol').value||'').trim().toUpperCase();
+  var row=parseInt(document.getElementById('goRow').value);
+  var c=col.charCodeAt(0)-65;
+  var r=N-row;
+  if(!(c>=0&&c<N&&r>=0&&r<N)){$('result').innerHTML='<p>坐标无效：列取 A-O，行取 1-15。</p>';return;}
+  analyzePoint(r,c);
+}
+function loadBoardInput(){
+  var txt=document.getElementById('boardInput').value||'';
+  var lines=txt.split(/\r?\n/).map(function(x){return x.trim();}).filter(Boolean);
+  var rows=[],judge=null;
+  lines.forEach(function(ln){
+    if(/^judge:/i.test(ln)){judge=ln.split(':')[1].trim().toUpperCase();return;}
+    if(/^[012]{15}$/.test(ln))rows.push(ln);
+  });
+  if(rows.length!==15){$('result').innerHTML='<p>局面格式错误：需要 15 行、每行 15 位 0/1/2（1=黑，2=白）。</p>';return;}
+  initBoard();
+  for(var r=0;r<15;r++)for(var c=0;c<15;c++)board[r][c]=parseInt(rows[r][c]);
+  lastBlack=null;
+  renderBoard();
+  if(!judge){$('result').innerHTML='<p>局面已载入。请点击棋盘黑子或在下方输入待判点坐标后分析。</p>';return;}
+  var c=judge.charCodeAt(0)-65,r=N-parseInt(judge.slice(1));
+  if(!(c>=0&&c<15&&r>=0&&r<15)){$('result').innerHTML='<p>judge 坐标无效：示例 H8。</p>';return;}
+  analyzePoint(r,c);
+}
+function loadPreset(i){
+  var r,c,judge;
+  initBoard();
+  for(r=0;r<15;r++)for(c=0;c<15;c++)board[r][c]=0;
+  if(i===0){
+    // 三三示例：F8/G8 与 H6/H7 已有黑，待判 H8 ⇒ 横、竖各 1 个活三
+    [[7,5],[7,6],[8,7],[9,7]].forEach(function(p){board[p[0]][p[1]]=1;});
+    judge='H8';
+  }else if(i===1){
+    for(c=3;c<=7;c++)board[7][c]=1; // D8..H8 五连，待判 I8 补成六连
+    judge='I8';
+  }else{
+    [[7,6],[7,7],[7,8],[7,9]].forEach(function(p){board[p[0]][p[1]]=1;}); // G8..J8 四子
+    judge='K8';
+  }
+  renderBoard();
+  var cc=judge.charCodeAt(0)-65,rr=N-parseInt(judge.slice(1));
+  analyzePoint(rr,cc);
 }
 function copyResult(){
-  ToolBox.copyText($('result').innerText, i18nText('msg269'));
+  var text=$('result').innerText||$('result').textContent||'';
+  function done(){}
+  var p=null;
+  try{if(navigator.clipboard&&typeof navigator.clipboard.writeText==='function')p=navigator.clipboard.writeText(text);}catch(e){p=null;}
+  if(p&&typeof p.then==='function'){p.then(function(){},function(){alert(text);});}
+  else{ToolBox.copyText(text,i18nText('msg269'));}
 }
-analyze();
+initBoard();
+
 </script>
 <script>
 document.addEventListener('DOMContentLoaded',function(){
@@ -376,20 +509,20 @@ document.addEventListener('DOMContentLoaded',function(){
   </div>
   <div class="tool-intro-body">
     <h4><span class="h4-icon">📝</span>工具简介</h4>
-    <p>五子棋禁手判断器，依据棋型判断三三、四四、长连禁手，附禁手规则详解与棋型图示。</p>
+    <p>在 15×15 棋盘上落子或粘贴局面，工具按横、竖、撇、捺四个方向自动分析黑棋该手是否构成三三、四四、长连禁手，并给出连子数与判定依据。</p>
     <h4><span class="h4-icon">✨</span>功能特点</h4>
     <ul class="intro-features">
-      <li>三种禁手类型判断</li>
-      <li>棋型可视化图示</li>
-      <li>禁手规则详解</li>
-      <li>自定义棋型分析</li>
+      <li>15×15 可点击棋盘，落子即分析</li>
+      <li>三三 / 四四 / 长连 / 五连四类判定</li>
+      <li>支持粘贴 15 行局面文本 + 指定待判点</li>
+      <li>内置三三、长连、五连三个示例</li>
     </ul>
     <h4><span class="h4-icon">🎯</span>使用场景</h4>
     <ul class="intro-scenes">
-      <li>五子棋规则学习</li>
-      <li>对局禁手判断</li>
-      <li>禁手利用战术</li>
-      <li>教学演示</li>
+      <li>自学与教学时核对禁手判定</li>
+      <li>复盘对局中争议的一手</li>
+      <li>练习利用禁手逼迫黑方</li>
+      <li>棋谱局面批量复核</li>
     </ul>
     </div>
 </div><script>
@@ -500,12 +633,12 @@ function __gomoku_forbiddenExport(){
     try { TBKit.util.exportTable('#gomoku_forbiddenTable','gomoku-forbidden.csv'); } catch(e){}
 }
 function __gomoku_forbiddenPresets(){
-    if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#gomoku_forbiddenPresets',[{label:'默认参数',labelEn:'Default',values:{'patternType':'three_three', 'stoneCount':'3', 'liveCount':'2'}},{"label":"低值","labelEn":"Low","values":{"liveCount":"1"}},{"label":"高值","labelEn":"High","values":{"liveCount":"4"}},{"label":"极端值","labelEn":"Extreme","values":{"liveCount":"4"}}],function(){ analyze(); });
+    // 本页预设为自绘按钮（三三 / 长连 / 五连），不走 TBKit.preset.bar 重绘，避免覆盖按钮。
+    return;
 }
-var __gomoku_forbidden_f0=(typeof analyze==='function')?analyze:null;
+var __gomoku_forbidden_f0=(typeof analyzePoint==='function')?analyzePoint:null;
 if(__gomoku_forbidden_f0){
-    analyze=function(){ var __r=__gomoku_forbidden_f0.apply(null,arguments); try{ __gomoku_forbiddenExtras(); }catch(e){} return __r; };
+    analyzePoint=function(){ var __r=__gomoku_forbidden_f0.apply(null,arguments); try{ __gomoku_forbiddenExtras(); }catch(e){} return __r; };
 }
 function __gomoku_forbiddenBoot(){ try{ __gomoku_forbiddenPresets(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __gomoku_forbiddenBoot();

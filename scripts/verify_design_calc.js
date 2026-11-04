@@ -1417,6 +1417,19 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"angle\":\"42\",\"cssOutput\":\"1\\n2\\n3\",\"gradientType\":\"radial\"}，输出区含「× 100% ×\nradial」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    "slug": "design/gradient",
+    "inputs": {
+      "cssCheck": "linear-gradient(90deg, #000000 0%, #ffffff 100%)"
+    },
+    "clicks": [
+      "checkContrast()"
+    ],
+    "expect": [
+      "最低对比度： 21.00:1"
+    ],
+    "ref": "WCAG 相邻色标对比度：粘贴纯黑(#000000)→纯白(#ffffff)渐变，相对亮度 0 与 1，对比度=(1+0.05)/(0+0.05)=21.00:1。默认 667eea/764ba2 约 1.35:1，输入为空或注入失败即不命中。"
+  },
+  {
     "slug": "design/grid-pattern",
     "inputs": {
       "bgColor": "abc123测试",

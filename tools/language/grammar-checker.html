@@ -8,7 +8,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=calculator,industry=language,icon=🌐,bg=#3b82f6">
 <meta name="description" content="语法检查是一款免费的在线语言翻译工具，语法检查工具检测中英文文本中的常见语法、标点与搭配问题，给出修改建议，适合写作润色、论文校对与日常文案质量提升。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
-<meta name="keywords" content="语法检查,语法检查在线,在线语法检查,语言翻译,在线工具,免费工具,ToolBox">
+<meta name="keywords" content="语法检查,语法检查在线,在线语法检查,中英文校对,写作检查,在线工具,免费工具,ToolBox">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="https://chenguangwu.github.io/tools/language/grammar-checker.html">
 <meta property="og:title" content="语法检查 - 免费在线语言翻译工具">
@@ -33,6 +33,7 @@
 .stat-box { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px; text-align: center; }
 .stat-num { font-size: 22px; font-weight: bold; color: var(--primary); }
 .stat-lbl { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.density-line { margin: 8px 0 12px; font-size: 13px; color: var(--text-muted); }
 .issue-card { background: var(--bg-card); border-left: 4px solid var(--warning); border-radius: 6px; padding: 12px; margin-bottom: 8px; }
 .issue-card.error { border-color: var(--danger); }
 .issue-card.warning { border-color: var(--warning); }
@@ -49,7 +50,7 @@
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
   "name": "语法检查",
-  "description": "语法检查 - 免费在线工具，在线语法检查，免费使用。",
+  "description": "语法检查（规则版）：扫描中英文文本中的常见拼写、主谓一致、a/an 误用、重复词与中文标点、的地得、在/再混用等问题，并计算问题密度。",
   "url": "https://chenguangwu.github.io/tools/language/grammar-checker.html",
   "applicationCategory": "UtilitiesApplication",
   "operatingSystem": "Web",
@@ -163,13 +164,13 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="检查中英文文本的常见语法问题">Grammar Check</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-      <div class="formula-eq">按规则与统计模型双重检测：常见问题含中英文标点混用、句子成分缺失、主谓不一致、搭配不当、同一词在 20 字内重复出现；每处问题给出位置偏移与修改建议，问题密度 = 问题数 ÷ 总句数；改写建议按最小编辑距离优选；密度低于 0.5 属良好、0.5 至 1.5 建议局部修订、超过 1.5 需整体润色。</div>
+      <div class="formula-eq">纯规则匹配：按内置规则表逐条扫描，覆盖英文拼写与常见搭配、主谓一致、a/an 误用、重复词，以及中文标点混用、叠字、的地得与“在/再”混用；每处问题给出上下文片段、位置与修改建议。问题密度 = 问题数 ÷ 总句数（句数按句末标点计，无标点时按 1 句计）：低于 0.5 属良好、0.5 至 1.5 建议局部修订、超过 1.5 需整体润色。本页不使用统计语言模型，也不做自动改写，仅做规则提示。</div>
   
 </div>
 
     
     <textarea class="input-area" id="input-text" placeholder="输入中英文文本进行语法检查...">ToolBox 提供 5000 多个在线工具，支持文本处理、编码转换与开发辅助。欢迎使用 ToolBox 在线工具集，我们致力于提升你的工作效率。</textarea>
-    <div id="grammar_checkerPresets"></div>
+    <div id="grammar_checkerPresets"><button type="button" class="btn" onclick="applyGrammarPreset(0)">英文常见错误</button><button type="button" class="btn" onclick="applyGrammarPreset(1)">中文的地得</button><button type="button" class="btn" onclick="applyGrammarPreset(2)">干净样例</button></div>
       <button type="button" class="check-btn" onclick="check()">🔍 检查</button>
       <button class="btn" type="button" onclick="__grammar_checkerExport()">导出明细 CSV</button>
     
@@ -272,13 +273,15 @@ const RULES = [
   { p: /\buntill\b/g, c: 'error', type: '拼写错误', msg: '"untill" 拼写错误', fix: '改为 "until"' },
   { p: /\bwich\b/gi, c: 'warning', type: '常见错误', msg: '"wich" 可能是错误', fix: '检查是否应为 "which"' },
   { p: /\byour\s+welcome\b/gi, c: 'warning', type: '常见错误', msg: '"your welcome" 写法错误', fix: '改为 "you\'re welcome"' },
-  { p: /\bits\s+a\s+good\b/gi, c: 'info', type: '冠词', msg: '检查冠词使用', fix: '确认上下文是否正确' },
-  { p: /\boveruse\s+of\s+very\b/gi, c: 'info', type: '用词', msg: '"very" 经常过度使用', fix: '考虑用 "extremely" 或更具体的词替代' },
+  { p: /\b(he|she|it)\s+(go|do|have|make|take|eat|want|need|like|look|work|play|come|see|know)\b/gi, c: 'warning', type: '主谓一致', msg: '第三人称单数动词缺 -s', fix: '一般现在时第三人称单数动词加 -s（如 go→goes）' },
+  { p: /\ba\s+(apple|orange|hour|honest|idea|ant|egg|umbrella|interesting|important|old|open|easy|early|extra)\b/gi, c: 'warning', type: '冠词', msg: '元音音素前应用 an', fix: '改为 "an ..."' },
+  { p: /\ban\s+(user|university|unique|one|European|uniform|useful|usual)\b/gi, c: 'warning', type: '冠词', msg: '辅音音素前应用 a', fix: '改为 "a ..."' },
   // 中文常见错误
-  { p: /的地得(?=[一-龥])/g, c: 'info', type: '的地得', msg: '检查"的地得"用法', fix: '修饰动词用"地",修饰名词用"的",修饰动词补语用"得"' },
-  { p: /做(车|下|着|位)/g, c: 'warning', type: '字词', msg: '可能混淆"做/坐"', fix: '表示乘坐或位置时用"坐"' },
-  { p: /在再/g, c: 'info', type: '字词', msg: '注意"在/再"区分', fix: '正在进行用"在",又一次用"再"' },
-  { p: /的的|了了|是是/g, c: 'error', type: '叠词错误', msg: '重复字词', fix: '删除重复字' },
+  { p: /(很|非常|慢慢|快速|认真|仔细|努力|不断|逐步|默默|轻轻)的(?=[一-龥])/g, c: 'info', type: '的地得', msg: '状语后的“的”应为“地”', fix: '修饰动词用“地”，如“慢慢地走”' },
+  { p: /(做|写|说|跑|唱|表现|完成|讲)的(很|非常|太|不)/g, c: 'info', type: '的地得', msg: '动词后的“的”应为“得”', fix: '动词后的程度补语用“得”，如“做得好”' },
+  { p: /在(次|见|来一次|一次)/g, c: 'warning', type: '字词', msg: '可能混淆“在/再”', fix: '表示重复或又一次时用“再”，如“再次”“再见”' },
+  { p: /做(车|船|飞机)/g, c: 'warning', type: '字词', msg: '可能混淆“做/坐”', fix: '表示乘坐时用“坐”' },
+  { p: /的的|了了|是是|着着/g, c: 'error', type: '叠词错误', msg: '重复字词', fix: '删除重复字' },
   { p: /，。|。,|，;|；,/g, c: 'warning', type: '标点混用', msg: '中英文标点混用', fix: '保持统一风格' },
   { p: / +$/gm, c: 'info', type: '格式', msg: '行尾多余空格', fix: '删除行尾空格' },
   { p: /[?]{2,}|[!]{2,}/g, c: 'info', type: '标点', msg: '多重问号/叹号', fix: '一般用一个即可' },
@@ -296,6 +299,16 @@ function escHtml(v) {
     .replace(/'/g, '&#39;');
 }
 
+function applyGrammarPreset(i){
+  const P=[
+    'He go to school every day. I recieve teh report. your welcome!',
+    '他认真的完成了工作，慢慢的走过来。请再次确认结果。',
+    'ToolBox 提供文本处理与编码转换工具，所有计算均在浏览器本地完成。'
+  ][i];
+  if(P==null)return;
+  document.getElementById('input-text').value=P;
+  check();
+}
 function check() {
   const text = document.getElementById('input-text').value;
   if (!text.trim()) {
@@ -334,13 +347,16 @@ function check() {
     }
   }
   document.getElementById('s-issues').textContent = issues.length;
+  const density = issues.length / sentences;
+  const densityLevel = density < 0.5 ? '良好' : (density <= 1.5 ? '建议局部修订' : '需整体润色');
+  const densityHtml = '<p class="density-line">问题密度：<strong>' + density.toFixed(2) + '</strong> 处/句（' + densityLevel + '）</p>';
   
   const el = document.getElementById('result');
   if (issues.length === 0) {
-    const __h1='<div style="background:rgba(16,185,129,0.1);border-radius:8px;padding:20px;text-align:center;color:#10b981;">✓ 太好了!未发现明显的语法问题</div>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){el.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}el.innerHTML=__h1;
+    const __h1='<div style="background:rgba(16,185,129,0.1);border-radius:8px;padding:20px;text-align:center;color:#10b981;">✓ 太好了!未发现明显的语法问题</div>'+densityHtml;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){el.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}el.innerHTML=__h1;
     return;
   }
-  const __h2='<h3 style="font-size:14px;margin-bottom:10px;color:var(--text-primary);">📋 发现的问题</h3>' +
+  const __h2='<h3 style="font-size:14px;margin-bottom:10px;color:var(--text-primary);">📋 发现的问题</h3>' + densityHtml +
     issues.map(i => {
       const ctx = escHtml(i.ctx);
       const match = escHtml(i.match);

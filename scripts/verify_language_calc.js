@@ -159,6 +159,20 @@ const CASES = [
   {
     "slug": "language/grammar-checker",
     "inputs": {
+      "input-text": "He go home. She go home."
+    },
+    "clicks": [
+      "check()"
+    ],
+    "expect": [
+      "主谓一致",
+      "问题密度： 1.00"
+    ],
+    "ref": "主谓一致规则 + 密度：注入 2 句、2 处 he/she + go 缺 -s ⇒ 问题 2、句数 2、密度 1.00（建议局部修订）。默认样例无问题、密度 0.00 ⇒ 注入失败即不命中。"
+  },
+  {
+    "slug": "language/grammar-checker",
+    "inputs": {
       "input-text": "1\n2\n3"
     },
     "expect": [

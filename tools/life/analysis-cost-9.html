@@ -122,16 +122,20 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="💰 成本（控制/优化/分析）体系">💰 Cost Optimization &amp; Analysis</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="控制/优化/分析">Paste a cost breakdown to output the total, mean and range and identify the items with the most optimisation potential.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">成本结构占比分析<br>成本合计 = Σ 各成本项金额；项均 = 合计 ÷ 项数<br>单项占比 = 单项金额 ÷ 合计 × 100%<br>极差 = 最大项金额 − 最小项金额<br>解读：占比最大项即优先优化对象；极差大可判断波动来自个别异常项</div>
-  <p class="formula-desc">本工具按固定/变动与单位/总口径拆解成本结构，输出可控项与降本优先级，结果仅供参考，正式预算以财务制度与最新法规为准。</p>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">成本结构占比与固定/变动拆解<br>成本合计 = Σ 各成本项金额；项均 = 合计 ÷ 项数<br>单项占比 = 单项金额 ÷ 合计 × 100%<br>固定成本 = Σ 标注「固定」的金额；变动成本 = Σ 标注「变动」的金额<br>单位成本 = 合计 ÷ 产量；单位变动成本 = 变动成本 ÷ 产量<br>盈亏平衡产量 = 固定成本 ÷ (单价 − 单位变动成本)，仅当单价高于单位变动成本时有效<br>极差 = 最大项金额 − 最小项金额<br>降本优先级：变动成本按金额从大到小排序（直接可控项），固定成本单列（结构性/可重谈项）</div>
+  <p class="formula-desc">在「成本项,金额」后可选加第三列「固定/变动」，工具据此拆出固定成本、变动成本与单位口径，并给出降本优先级与盈亏平衡产量；未标注类型时只做总量与占比统计。结果仅供参考，正式预算以财务制度与最新法规为准。</p>
 </div>
 
-<label>每行输入「成本项,金额」，如：原料,42</label>
-<textarea id="data" rows="4" oninput="calc()" placeholder="如：原料,42 人工,31 物流,15 能耗,9">原料,42
-人工,31
-物流,15
-能耗,9</textarea>
-<div class="toolbar"><div id="analysis_cost_9Presets"></div><button type="button" class="btn primary" onclick="calc()">统计分析</button><button class="btn" type="button" onclick="__analysis_cost_9Export()">导出明细 CSV</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<label>每行输入「成本项,金额[,固定/变动]」，如：原料,42,变动</label>
+<textarea id="data" rows="5" oninput="calc()" placeholder="如：原料,42,变动 人工,31,固定 物流,15,变动 能耗,9,固定">原料,42,变动
+人工,31,固定
+物流,15,变动
+能耗,9,固定</textarea>
+<div class="input-row">
+  <div><label>产量（可选，金额与产量需同一口径）</label><input type="number" id="qty" value="1000" min="0" step="1" oninput="calc()" placeholder="如 1000"></div>
+  <div><label>单价（可选，示例按万元/件）</label><input type="number" id="price" value="0.12" min="0" step="0.01" oninput="calc()" placeholder="如 0.12"></div>
+</div>
+<div class="toolbar"><div id="analysis_cost_9Presets"><button type="button" class="btn" onclick="applyCostPreset(0)">门店月度</button><button type="button" class="btn" onclick="applyCostPreset(1)">电商单量</button><button type="button" class="btn" onclick="applyCostPreset(2)">项目制</button></div><button type="button" class="btn primary" onclick="calc()">统计分析</button><button class="btn" type="button" onclick="__analysis_cost_9Export()">导出明细 CSV</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
 <div class="result-box" id="res"></div> <div id="analysis_cost_9Table"></div> <div id="analysis_cost_9Diff"></div> <div id="analysis_cost_9Chart"></div> <div id="analysis_cost_9Hist"></div>
   </div>
 
@@ -194,8 +198,8 @@ s.parentNode.insertBefore(el, s);
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Management accounting practice">Management accounting practice</td>
         </tr>
         <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="差异分析">Variance analysis</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="实际与标准成本之差分为价差与量差，分别归属责任人">the gap splits into price and quantity variances by owner</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="降本优先级">Cost-reduction priority</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="变动成本按金额降序排列，固定成本单列为结构性项">variable costs ranked by amount; fixed costs listed separately</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Management accounting practice">Management accounting practice</td>
         </tr>
       </tbody>
@@ -214,23 +218,73 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 function esc(s){return String(s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];});}
+function costType(raw){
+  var t=(raw||'').trim().toLowerCase();
+  if(!t) return '';
+  if(/^(固定|固|fixed|fix|f)$/.test(t)) return 'fix';
+  if(/^(变动|变|variable|var|v)$/.test(t)) return 'var';
+  return '';
+}
+function applyCostPreset(i){
+  var P=[
+    {data:'房租,12000,固定\n人工,18000,固定\n原料,9000,变动\n水电,2000,变动',qty:'600',price:'80'},
+    {data:'平台佣金,1500,变动\n广告投放,4000,固定\n仓储,1200,固定\n快递,900,变动',qty:'300',price:'45'},
+    {data:'人工,50000,固定\n外包,20000,变动\n软件订阅,3000,固定\n差旅,2000,变动',qty:'',price:''}
+  ][i];
+  if(!P) return;
+  document.getElementById('data').value=P.data;
+  document.getElementById('qty').value=P.qty;
+  document.getElementById('price').value=P.price;
+  calc();
+}
 function calc(){
   var lines=document.getElementById("data").value.split(/\n+/).map(function(s){return s.trim();}).filter(Boolean);
-  var rows=[],total=0;
+  var rows=[],total=0,fix=0,vr=0,un=0;
   for(var i=0;i<lines.length;i++){
     var p=lines[i].split(/[,，\t]/);
     var name=(p[0]||"").trim(), v=parseFloat((p[1]||"").trim());
     if(!name||isNaN(v))continue;
-    rows.push({name:name,v:v}); total+=v;
+    var t=costType(p[2]);
+    rows.push({name:name,v:v,t:t}); total+=v;
+    if(t==='fix')fix+=v; else if(t==='var')vr+=v; else un+=v;
   }
-  if(!rows.length){document.getElementById("res").innerHTML='<p>请输入「成本项,金额」每行一条，如：原料,42</p>';return;}
+  if(!rows.length){document.getElementById("res").innerHTML='<p>请输入「成本项,金额[,固定/变动]」每行一条，如：原料,42,变动</p>';return;}
   var mean=total/rows.length;
   var maxR=rows[0], minR=rows[0];
   rows.forEach(function(r){if(r.v>maxR.v)maxR=r; if(r.v<minR.v)minR=r;});
   var html='<p>成本合计：<strong>'+total.toFixed(2)+'</strong> ｜ 项均：<strong>'+mean.toFixed(2)+'</strong> ｜ 最大项：<strong>'+esc(maxR.name)+' ('+maxR.v.toFixed(2)+')</strong></p>';
-  html+='<table><thead><tr><th>成本项</th><th>金额</th><th>占比</th></tr></thead><tbody>';
-  rows.forEach(function(r){html+='<tr><td>'+esc(r.name)+'</td><td>'+r.v.toFixed(2)+'</td><td><strong>'+(r.v/total*100).toFixed(2)+'%</strong></td></tr>';});
+  if(un>0||fix>0||vr>0){
+    html+='<p>固定成本：<strong>'+fix.toFixed(2)+'</strong>（'+(total?fix/total*100:0).toFixed(2)+'%）　变动成本：<strong>'+vr.toFixed(2)+'</strong>（'+(total?vr/total*100:0).toFixed(2)+'%）'+(un>0?'　未分类：<strong>'+un.toFixed(2)+'</strong>（'+(total?un/total*100:0).toFixed(2)+'%）':'')+'</p>';
+  }
+  var qty=parseFloat(document.getElementById('qty').value);
+  var price=parseFloat(document.getElementById('price').value);
+  if(isFinite(qty)&&qty>0){
+    html+='<p>单位成本（合计 ÷ 产量 '+qty+'）：<strong>'+(total/qty).toFixed(4)+'</strong>'+(isFinite(price)&&price>0?'　单位变动成本：<strong>'+(vr/qty).toFixed(4)+'</strong>':'')+'</p>';
+    if(isFinite(price)&&price>0&&vr>0){
+      var uvc=vr/qty, cm=price-uvc;
+      if(cm>0){
+        html+='<p>盈亏平衡产量：<strong>'+(fix/cm).toFixed(1)+'</strong>（固定 '+fix.toFixed(2)+' ÷ 边际贡献 '+cm.toFixed(4)+'）；当前产量 '+(qty>=fix/cm?'高于平衡点':'低于平衡点')+'</p>';
+      }else{
+        html+='<p style="color:var(--danger)">⚠ 单价 '+price+' 不高于单位变动成本 '+uvc.toFixed(4)+'，边际贡献 ≤ 0，任何产量都无法覆盖固定成本。</p>';
+      }
+    }
+  }
+  html+='<table><thead><tr><th>成本项</th><th>金额</th><th>类型</th><th>占比</th><th>降本属性</th></tr></thead><tbody>';
+  rows.forEach(function(r){
+    var label=r.t==='fix'?'固定':r.t==='var'?'变动':'未分类';
+    var attr=r.t==='var'?'直接可控':r.t==='fix'?'结构性（重谈合同/降规格）':'先标注类型';
+    html+='<tr><td>'+esc(r.name)+'</td><td>'+r.v.toFixed(2)+'</td><td>'+label+'</td><td><strong>'+(r.v/total*100).toFixed(2)+'%</strong></td><td>'+attr+'</td></tr>';
+  });
   html+='</tbody></table>';
+  var vars=rows.filter(function(r){return r.t==='var';}).sort(function(a,b){return b.v-a.v;});
+  if(vars.length){
+    html+='<p>降本优先级（变动成本，从大到小）：'+vars.slice(0,3).map(function(r,i){return '<strong>'+(i+1)+'. '+esc(r.name)+'</strong> '+r.v.toFixed(2)+'（'+(r.v/total*100).toFixed(2)+'%）';}).join('；')+'</p>';
+  }else{
+    html+='<p style="font-size:12px;color:var(--text-muted);">未标注「变动」成本项，暂无降本优先级；在每行第三列加「变动」即可排序。</p>';
+  }
+  if(fix>0){
+    html+='<p style="font-size:12px;color:var(--text-muted);">固定成本合计 '+fix.toFixed(2)+'（'+(total?fix/total*100:0).toFixed(2)+'%）：短期难压缩，优先通过重谈合同、降低规格或调整产能分摊来摊薄。</p>';
+  }
   html+='<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">占比最大项即优先优化对象；极差（最大−最小）= '+(maxR.v-minR.v).toFixed(2)+'，可判断波动是普遍还是个别项异常。</p>';
   const __g2=html;document.getElementById("res").innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
@@ -274,11 +328,11 @@ function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
   </div>
   <div class="tool-intro-body">
     <h4><span class="h4-icon">📝</span>工具简介</h4>
-    <p>按固定/变动与单位/总口径拆解成本结构，定位可控优化项与降本空间。</p>
+    <p>在「成本项,金额」后标注固定/变动，拆出固定与变动成本、单位成本与盈亏平衡产量，并按变动成本金额排出降本优先级。</p>
     <h4><span class="h4-icon">✨</span>功能特点</h4>
-    <ul class="intro-features"><li>成本结构拆解</li><li>降本优先级排序</li><li>预算偏差归因</li></ul>
+    <ul class="intro-features"><li>固定/变动成本拆分</li><li>单位成本与盈亏平衡产量</li><li>降本优先级排序</li></ul>
     <h4><span class="h4-icon">🎯</span>使用场景</h4>
-    <ul class="intro-scenes"><li>成本结构分析</li><li>降本项筛选</li><li>实际 vs 预算对照</li></ul>
+    <ul class="intro-scenes"><li>月度成本复盘</li><li>门店/产品线对比</li><li>降本项排序</li></ul>
     </div>
 </div>
 <!-- /SEO 介绍区块 -->

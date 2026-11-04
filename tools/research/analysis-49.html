@@ -113,13 +113,14 @@ s.parentNode.insertBefore(el, s);
   <button type="button" class="tbk-tab" data-pane="his">历史</button>
 </div>
 <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
-    <h2 data-zh="📋 量表（信度/效度/因子）分析">Scale Reliability Analysis (Cronbach Alpha)</h2>
+    <h2 data-zh="📋 量表（信度/效度/因子）分析">Scale Reliability, KMO &amp; Bartlett Analysis</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="信度/效度/因子">Analysis 49</p>
 <div class="formula-box">
   <div class="formula-title">📐 计算公式</div>
   <div class="formula-eq">Cronbach α = k ÷ (k − 1) × (1 − Σ条目方差 ÷ 总分方差)，k 为条目数；各条目方差与总分方差均按总体方差口径（÷n）计算，非样本方差。校验：至少 2 名被试、2 个条目，各行得分个数须与首行一致，否则报错。判据：α ≥0.9 优秀、≥0.8 良好、≥0.7 可接受、≥0.6 勉强可用、&lt;0.6 建议重构量表。</div>
+  <div class="formula-eq">结构效度（可因子性）：KMO = Σr² ÷ (Σr² + Σp²)，r 为条目间简单相关，p 为偏相关（由相关矩阵逆矩阵求得），取值 0~1，越接近 1 越适合做因子分析。Bartlett 球形检验：χ² = −[n − 1 − (2k+5) ÷ 6] × ln|R|，df = k(k−1) ÷ 2，R 为相关矩阵；p&lt;0.05 表示相关矩阵显著偏离单位阵。条目分析给出校正后条目-总分相关与删除该条目后的 α，仅作删题参考，不自动删题。</div>
   <div class="formula-eq">总分方差以全体被试的行合计得分（每人各条目求和）为数据、按总体方差 ÷n 计算；总分方差为 0 时 α 直接记 0；条目方差合计 Σ 为各列总体方差之和。校验：有效行不足 2 行时不计算并提示。判据：Σ条目方差相对总分方差越小，条目间内部一致性越高。</div>
-  <p class="formula-desc" data-zh="把量表数据矩阵录入（每行一名被试、每列一个条目），计算克隆巴赫 α 系数，评估量表内部一致性信度。通常 α 达到 0.70 以上认为可靠，0.60~0.70 勉强可用，低于 0.60 需修订条目。数据仅在浏览器本地处理，不会上传。">把量表数据矩阵录入（每行一名被试、每列一个条目），计算克隆巴赫 α 系数，评估量表内部一致性信度。通常 α 达到 0.70 以上认为可靠，0.60 到 0.70 勉强可用，低于 0.60 需要修订条目。所有数据仅在浏览器本地处理，不上传。</p>
+  <p class="formula-desc" data-zh="把量表数据矩阵录入（每行一名被试、每列一个条目），计算 Cronbach α 评估内部一致性，并给出 KMO 与 Bartlett 球形检验判断数据是否适合做因子分析，同时列出条目-总分相关与删除后 α。数据仅在浏览器本地处理，不会上传。">把量表数据矩阵录入（每行一名被试、每列一个条目），计算 Cronbach α 评估内部一致性，并给出 KMO 与 Bartlett 球形检验判断数据是否适合做因子分析，同时列出条目-总分相关与删除后 α。数据仅在浏览器本地处理，不会上传。</p>
 </div>
 
 <label>量表数据（每行一名被试，逗号分隔各条目得分）</label>
@@ -129,7 +130,7 @@ s.parentNode.insertBefore(el, s);
 3,2,3,2,2
 4,4,4,3,4
 5,3,5,4,4</textarea>
-<div class="toolbar"><div id="analysis_49Presets"></div><button type="button" class="btn primary" onclick="calc()">计算信度</button><button class="btn" type="button" onclick="__analysis_49Export()">导出明细 CSV</button><button type="button" class="btn" onclick="copyResult()">复制</button></div>
+<div class="toolbar"><div id="analysis_49Presets"><button type="button" class="btn" onclick="applyRelPreset(0)">5 条目试测</button><button type="button" class="btn" onclick="applyRelPreset(1)">8 条目高信度</button><button type="button" class="btn" onclick="applyRelPreset(2)">低相关反例</button></div><button type="button" class="btn primary" onclick="calc()">计算信度</button><button class="btn" type="button" onclick="__analysis_49Export()">导出明细 CSV</button><button type="button" class="btn" onclick="copyResult()">复制</button></div>
 <div class="result-box" id="res"></div>
 <div id="resRefBar" style="margin-top:12px"></div> <div id="analysis_49Table"></div> <div id="analysis_49Diff"></div> <div id="analysis_49Chart"></div> <div id="analysis_49Hist"></div>
   </div>
@@ -214,6 +215,102 @@ function variance(arr){
   const n=arr.length,mean=arr.reduce((a,b)=>a+b,0)/n;
   return arr.reduce((a,b)=>a+(b-mean)**2,0)/n;
 }
+function meanOf(arr){return arr.reduce((a,b)=>a+b,0)/arr.length;}
+function corrOf(a,b){
+  const n=a.length,ma=meanOf(a),mb=meanOf(b);
+  let sab=0,saa=0,sbb=0;
+  for(let i=0;i<n;i++){sab+=(a[i]-ma)*(b[i]-mb);saa+=(a[i]-ma)**2;sbb+=(b[i]-mb)**2;}
+  if(saa<=0||sbb<=0)return NaN;
+  return sab/Math.sqrt(saa*sbb);
+}
+function alphaFrom(cols,totals){
+  const kk=cols.length,tv=variance(totals);
+  if(kk<2||tv<=0)return NaN;
+  return kk/(kk-1)*(1-cols.reduce((s,c)=>s+variance(c),0)/tv);
+}
+function matInv(M){
+  const k=M.length,a=M.map(r=>r.slice()),I=M.map((r,i)=>r.map((_,j)=>i===j?1:0));
+  for(let c=0;c<k;c++){
+    let p=c;
+    for(let r=c+1;r<k;r++)if(Math.abs(a[r][c])>Math.abs(a[p][c]))p=r;
+    if(Math.abs(a[p][c])<1e-10)return null;
+    if(p!==c){const t=a[p];a[p]=a[c];a[c]=t;const t2=I[p];I[p]=I[c];I[c]=t2;}
+    const d=a[c][c];
+    for(let j=0;j<k;j++){a[c][j]/=d;I[c][j]/=d;}
+    for(let r=0;r<k;r++){
+      if(r===c)continue;
+      const f=a[r][c];
+      for(let j=0;j<k;j++){a[r][j]-=f*a[c][j];I[r][j]-=f*I[c][j];}
+    }
+  }
+  return I;
+}
+function detOf(M){
+  const k=M.length,a=M.map(r=>r.slice());let d=1;
+  for(let c=0;c<k;c++){
+    let p=c;
+    for(let r=c+1;r<k;r++)if(Math.abs(a[r][c])>Math.abs(a[p][c]))p=r;
+    if(Math.abs(a[p][c])<1e-12)return 0;
+    if(p!==c){const t=a[p];a[p]=a[c];a[c]=t;d=-d;}
+    d*=a[c][c];
+    for(let r=c+1;r<k;r++){
+      const f=a[r][c]/a[c][c];
+      for(let j=c;j<k;j++)a[r][j]-=f*a[c][j];
+    }
+  }
+  return d;
+}
+function gammaln(x){
+  const cof=[76.18009172947146,-86.50532032941677,24.01409824083091,-1.231739572450155,0.1208650973866179e-2,-0.5395239384953e-5];
+  let y=x,t=x+5.5;t-=(x+0.5)*Math.log(t);let s=1.000000000190015;
+  for(let j=0;j<6;j++)s+=cof[j]/++y;
+  return -t+Math.log(2.5066282746310005*s/x);
+}
+function gser(a,x){
+  let ap=a,sum=1/a,del=sum;
+  for(let it=0;it<500;it++){ap++;del*=x/ap;sum+=del;if(Math.abs(del)<Math.abs(sum)*1e-15)break;}
+  return sum*Math.exp(-x+a*Math.log(x)-gammaln(a));
+}
+function gcf(a,x){
+  const FPMIN=1e-300;let b=x+1-a,c=1/FPMIN,d=1/b,h=d;
+  for(let i=1;i<=500;i++){
+    const an=-i*(i-a);b+=2;d=an*d+b;if(Math.abs(d)<FPMIN)d=FPMIN;
+    c=b+an/c;if(Math.abs(c)<FPMIN)c=FPMIN;
+    d=1/d;const del=d*c;h*=del;
+    if(Math.abs(del-1)<1e-15)break;
+  }
+  return Math.exp(-x+a*Math.log(x)-gammaln(a))*h;
+}
+function chi2P(x,df){
+  if(!isFinite(x)||df<=0)return NaN;
+  const a=df/2,x2=x/2;
+  if(x<=0)return 1;
+  return x2<a+1?1-gser(a,x2):gcf(a,x2);
+}
+function kmoLevel(v){
+  if(!isFinite(v))return '无法判定';
+  if(v>=0.9)return '极佳（Kaiser 1974）';
+  if(v>=0.8)return '良好';
+  if(v>=0.7)return '中等';
+  if(v>=0.6)return '勉强';
+  if(v>=0.5)return '较差';
+  return '不适合做因子分析';
+}
+function fmtP(p){
+  if(!isFinite(p))return '—';
+  if(p<0.001)return '<0.001';
+  return p.toFixed(3);
+}
+function applyRelPreset(i){
+  const P=[
+    '5,4,5,3,4\n4,3,4,2,3\n5,5,4,4,5\n3,2,3,2,2\n4,4,4,3,4\n5,3,5,4,4',
+    '5,4,5,4,5,4,5,4\n4,4,4,3,4,4,4,4\n5,5,4,5,5,4,5,5\n3,3,2,3,3,2,3,3\n4,4,4,4,4,4,4,4\n5,4,4,5,4,4,5,4\n4,3,4,4,3,4,4,3\n5,4,5,4,5,5,4,4',
+    '5,2,4,1\n2,5,1,4\n4,1,5,2\n1,4,2,5\n3,3,3,3\n2,2,5,5'
+  ][i];
+  if(!P)return;
+  document.getElementById('matrix').value=P;
+  calc();
+}
 function calc(){
   const res=document.getElementById("res");
   const lines=document.getElementById("matrix").value.split("\n").map(s=>s.trim()).filter(Boolean);
@@ -248,6 +345,59 @@ function calc(){
   html+='<p><span style="color:var(--primary);">Cronbach α：<strong>'+fmt(alpha,4)+'</strong></span></p><hr>';
   html+='<p>判读：<strong style="color:'+color+';">'+level+'</strong></p>';
   html+='<p>常用门槛：α ≥ 0.90 优秀，0.80~0.90 良好，0.70~0.80 可接受，0.60~0.70 勉强可用，&lt;0.60 需重构条目</p>';
+  // 结构效度：KMO 取样适切性 + Bartlett 球形检验 + 条目分析
+  const cols=[];
+  for(let j=0;j<k;j++)cols.push(rows.map(r=>r[j]));
+  const sds=cols.map(c=>Math.sqrt(variance(c)));
+  const R=[];
+  for(let i=0;i<k;i++){
+    R[i]=[];
+    for(let j=0;j<k;j++){
+      R[i][j]=i===j?1:(sds[i]>0&&sds[j]>0?corrOf(cols[i],cols[j]):NaN);
+    }
+  }
+  const singular=R.some(r=>r.some(v=>!isFinite(v)));
+  const iv=singular?null:matInv(R);
+  const det=singular?0:detOf(R);
+  html+='<hr><p><strong>结构效度（可因子性检验）</strong></p>';
+  if(!iv||!(det>0)){
+    html+='<p style="color:var(--text-muted)">相关矩阵奇异（存在方差为 0 的条目或条目完全共线），KMO 与 Bartlett 无法计算；请检查数据是否含常数列或样本量是否过少。</p>';
+  }else{
+    let sR=0,sP=0;
+    for(let i=0;i<k;i++)for(let j=0;j<k;j++){
+      if(i===j)continue;
+      sR+=R[i][j]*R[i][j];
+      const part=-iv[i][j]/Math.sqrt(iv[i][i]*iv[j][j]);
+      sP+=part*part;
+    }
+    const kmo=sR/(sR+sP);
+    const chi=-(n-1-(2*k+5)/6)*Math.log(det);
+    const df=k*(k-1)/2;
+    const p=chi2P(chi,df);
+    html+='<p>KMO 取样适切性：<strong>'+kmo.toFixed(3)+'</strong>（'+kmoLevel(kmo)+'）</p>';
+    html+='<p>Bartlett 球形检验：χ²=<strong>'+chi.toFixed(3)+'</strong>，df=<strong>'+df+'</strong>，p=<strong>'+fmtP(p)+'</strong>（'+(p<0.05?'p<0.05，相关矩阵显著偏离单位阵，适合做因子分析':'p≥0.05，未通过检验，不宜做因子分析')+'）</p>';
+    html+='<p style="font-size:12px;color:var(--text-muted)">KMO 分档采用 Kaiser (1974)：≥0.90 极佳、≥0.80 良好、≥0.70 中等、≥0.60 勉强、≥0.50 较差、&lt;0.50 不适合。Bartlett 检验假设数据近似多元正态，样本量过小或条目过少时结果不稳定。</p>';
+  }
+  const itemRows=[];
+  const totalsAll=totals;
+  for(let j=0;j<k;j++){
+    const rest=totalsAll.map((t,i)=>t-rows[i][j]);
+    const ct=corrOf(cols[j],rest);
+    let da=NaN;
+    if(k>2){
+      const subCols=cols.filter((_,x)=>x!==j);
+      const subTotals=rows.map(r=>r.reduce((s,v,x)=>x===j?s:s+v,0));
+      da=alphaFrom(subCols,subTotals);
+    }
+    itemRows.push({j:j+1,mean:meanOf(cols[j]),sd:sds[j],ct:ct,da:da});
+  }
+  html+='<p style="margin-top:10px;"><strong>条目分析（校正后条目-总分相关 / 删除该条目后的 α）</strong></p>';
+  html+='<table><thead><tr><th>条目</th><th>均值</th><th>标准差</th><th>校正后条目-总分相关</th><th>删除后 α</th></tr></thead><tbody>';
+  itemRows.forEach(function(r){
+    html+='<tr><td>条目 '+r.j+'</td><td>'+fmt(r.mean)+'</td><td>'+fmt(r.sd)+'</td><td>'+(isFinite(r.ct)?r.ct.toFixed(3):'—')+'</td><td>'+(isFinite(r.da)?r.da.toFixed(4):'—')+'</td></tr>';
+  });
+  html+='</tbody></table>';
+  html+='<p style="font-size:12px;color:var(--text-muted)">删题参考：若某条目的校正后相关低于 0.30，或删除后 α 明显高于当前 α，可考虑删题；本表只给指标，不自动删题。</p>';
   const __g4=html;try{ if(typeof alpha==='number'&&isFinite(alpha)&&typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){ TBKit.chart.refBar('#resRefBar',{value:alpha,unit:'',bands:[{"lo":0.9,"hi":null,"label":{"zh":"信度优秀","en":"Excellent"},"color":"#10B981"},{"lo":0.8,"hi":0.9,"label":{"zh":"信度良好","en":"Good"},"color":"#84CC16"},{"lo":0.7,"hi":0.8,"label":{"zh":"信度可接受","en":"Acceptable"},"color":"#F59E0B"},{"lo":0.6,"hi":0.7,"label":{"zh":"勉强可用","en":"Marginal"},"color":"#F97316"},{"lo":null,"hi":0.6,"label":{"zh":"信度不足","en":"Insufficient"},"color":"#EF4444"}],title:((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Reference range':'参考区间标尺')}); } }catch(e){}
   res.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
 }
@@ -297,20 +447,19 @@ calc();function copyResult(){ToolBox.copyText(document.getElementById("res").inn
   </div>
   <div class="tool-intro-body">
     <h4><span class="h4-icon">📝</span>工具简介</h4>
-    <p>量表（信度/效度/因子）分析。免费在线工具，纯前端处理，数据不上传，保护隐私安全。</p>
+    <p>录入量表数据矩阵，计算 Cronbach α、KMO 取样适切性与 Bartlett 球形检验，并列出条目-总分相关和删除后 α，用于信度诊断与可因子性判断。</p>
     <h4><span class="h4-icon">✨</span>功能特点</h4>
     <ul class="intro-features">
-      <li>纯前端处理，数据不上传服务器</li>
-      <li>操作简单，一键完成</li>
-      <li>实时显示结果，所见即所得</li>
-      <li>支持复制和下载结果</li>
+      <li>内部一致性信度（Cronbach α）</li>
+      <li>KMO 与 Bartlett 可因子性检验</li>
+      <li>条目-总分相关与删除后 α</li>
+      <li>可复制结果，数据仅本地处理</li>
     </ul>
     <h4><span class="h4-icon">🎯</span>使用场景</h4>
     <ul class="intro-scenes">
-      <li>日常办公与学习</li>
-      <li>开发调试与数据处理</li>
-      <li>快速计算与格式转换</li>
-      <li>信息查询与参考</li>
+      <li>自编量表预试与修题</li>
+      <li>正式施测前的信度复核</li>
+      <li>因子分析前的数据适切性检查</li>
     </ul>
     </div>
 </div>

@@ -169,10 +169,14 @@ s.parentNode.insertBefore(el, s);
      <h2 data-zh="🌈 CSS 渐变生成器">🌈 CSS Gradient Generator</h2>
     
     <div class="gradient-preview" id="preview"></div>
+    <div id="contrastInfo" style="font-size:12px;color:var(--text-muted);margin:6px 0 4px;"></div>
+    <label>粘贴任意 CSS 渐变，检测相邻色标对比度</label>
+    <input id="cssCheck" type="text" placeholder="如 linear-gradient(90deg, #000000 0%, #ffffff 100%)" oninput="checkContrast()">
+    <div id="cssCheckResult" style="font-size:12px;color:var(--text-muted);margin:4px 0 8px;"></div>
     
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="addColorStop()">+ 添加颜色</button>
-      <button type="button" class="btn success" onclick="copyCSS()">复制 CSS</button>
+      <button type="button" class="btn success" onclick="copyCSS(event)">复制 CSS</button>
       <button type="button" class="btn" onclick="randomGradient()">随机渐变</button>
     </div>
     
@@ -199,7 +203,7 @@ s.parentNode.insertBefore(el, s);
   </div>
 
   <div class="formula-box">
-    <div class="formula-title">📐 计算公式 / 原理</div> <div class="formula-eq">色标按位置升序排列后拼为「色值 位置%」序列：线性 → linear-gradient(角度deg, …)；径向 → radial-gradient(circle, …)；锥形 → conic-gradient(from 角度deg, …)；角度控件仅在线性/锥形下显示；随机渐变生成 2-4 个色标，位置 = ⌊i ÷ (色标数 − 1) × 100⌋，角度取 0-359 随机整数</div>
+    <div class="formula-title">📐 计算公式 / 原理</div> <div class="formula-eq">色标按位置升序排列后拼为「色值 位置%」序列：线性 → linear-gradient(角度deg, …)；径向 → radial-gradient(circle, …)；锥形 → conic-gradient(from 角度deg, …)；角度控件仅在线性/锥形下显示；随机渐变生成 2-4 个色标，位置 = ⌊i ÷ (色标数 − 1) × 100⌋，角度取 0-359 随机整数。相邻色标对比度按 WCAG 相对亮度计算：L = 0.2126R + 0.7152G + 0.0722B（通道值先线性化），对比度 = (L亮 + 0.05) ÷ (L暗 + 0.05)，≥4.5 正文级、≥3 大字/图形级、&lt;3 仅装饰。</div>
     <div class="formula-desc">把起止颜色、角度与颜色停靠点拼装为 linear-gradient / radial-gradient 声明，实时预览并复制；用于网页背景与按钮配色。</div>
   </div>
 
@@ -311,8 +315,8 @@ function renderStops(){
   const container = document.getElementById('colorStops');
   const __h0=stops.map((stop, i) => `
     <div class="color-stop">
-      <input type="color" value="${stop.color}" oninput="updateColor(${i}, this.value)">
-      <input type="range" min="0" max="100" value="${stop.pos}" oninput="updatePos(${i}, this.value)">
+      <input type="color" id="stopColor${i}" value="${stop.color}" oninput="updateColor(${i}, this.value)">
+      <input type="range" id="stopPos${i}" min="0" max="100" value="${stop.pos}" oninput="updatePos(${i}, this.value)">
       <span class="pos">${stop.pos}%</span>
       <button type="button" class="btn danger" onclick="removeStop(${i})" ${stops.length <= 2 ? 'disabled' : ''}>×</button>
     </div>
@@ -345,6 +349,38 @@ function removeStop(i){
   updateGradient();
 }
 
+function relLum(hex){
+  let h=String(hex).replace('#','');
+  if(h.length===3)h=h.split('').map(c=>c+c).join('');
+  if(h.length!==6)return null;
+  const rgb=[0,2,4].map(i=>parseInt(h.slice(i,i+2),16)/255).map(v=>v<=0.03928?v/12.92:Math.pow((v+0.055)/1.055,2.4));
+  return 0.2126*rgb[0]+0.7152*rgb[1]+0.0722*rgb[2];
+}
+function contrastRatio(a,b){
+  const la=relLum(a),lb=relLum(b);
+  if(la==null||lb==null)return null;
+  const hi=Math.max(la,lb),lo=Math.min(la,lb);
+  return (hi+0.05)/(lo+0.05);
+}
+function checkContrast(){
+  const raw=document.getElementById('cssCheck').value.trim();
+  const box=document.getElementById('cssCheckResult');
+  if(!raw){box.textContent='';return;}
+  const g=parseGradient(raw.indexOf('(')>=0?raw:('background:'+raw));
+  if(!g||g.stops.length<2){box.textContent='无法解析：请粘贴至少含两个 #hex 色标的 linear-gradient / radial-gradient / conic-gradient';return;}
+  const list=[...g.stops].sort((a,b)=>a.pos-b.pos);
+  const parts=[],ratios=[];
+  for(let i=0;i<list.length-1;i++){
+    const r=contrastRatio(list[i].color,list[i+1].color);
+    if(r==null)continue;
+    ratios.push(r);
+    parts.push(list[i].color+' ↔ '+list[i+1].color+'：'+r.toFixed(2)+':1');
+  }
+  if(!ratios.length){box.textContent='无法解析颜色值';return;}
+  const min=Math.min.apply(null,ratios);
+  const level=min>=4.5?'≥4.5:1，正文级':(min>=3?'≥3:1，大字/图形级':'<3:1，仅装饰用');
+  box.innerHTML='最低对比度：<strong>'+min.toFixed(2)+':1</strong>（'+level+'）　'+parts.join('；');
+}
 function updateGradient(){
   const type = document.getElementById('gradientType').value;
   const angle = document.getElementById('angle').value;
@@ -366,15 +402,59 @@ function updateGradient(){
   
   document.getElementById('preview').style.background = css;
   document.getElementById('cssOutput').value = `background: ${css};`;
+
+  // 相邻色标的 WCAG 对比度（不是文字与背景的对比度）
+  let minPair=null, minRatio=Infinity;
+  for(let i=0;i<sortedStops.length-1;i++){
+    const r=contrastRatio(sortedStops[i].color, sortedStops[i+1].color);
+    if(r!=null&&r<minRatio){minRatio=r;minPair=[sortedStops[i],sortedStops[i+1]];}
+  }
+  const info=document.getElementById('contrastInfo');
+  if(info){
+    if(minPair==null){info.textContent='相邻色标对比度：无法解析颜色';}
+    else{
+      const level=minRatio>=4.5?'≥4.5:1，正文级':(minRatio>=3?'≥3:1，大字/图形级':'<3:1，仅装饰用');
+      info.innerHTML='相邻色标最低对比度：<strong>'+minRatio.toFixed(2)+':1</strong>（'+minPair[0].color+' ↔ '+minPair[1].color+'，'+level+'）';
+    }
+  }
 }
 
-function copyCSS(){
+function parseGradient(css){
+  const type=/radial-gradient/.test(css)?'radial':(/conic-gradient/.test(css)?'conic':'linear');
+  const angleMatch=css.match(/(?:from\s+|)(\d+)deg/);
+  const angle=angleMatch?parseInt(angleMatch[1]):135;
+  const body=css.slice(css.indexOf('(')+1, css.lastIndexOf(')'));
+  const re=/(#[0-9a-fA-F]{3,8})\s*(\d{1,3}%)?/g;
+  const found=[];
+  let m;
+  while((m=re.exec(body))!==null){found.push({color:m[1],pos:m[2]?parseInt(m[2]):null});}
+  if(!found.length)return null;
+  const n=found.length;
+  const out=found.map((f,i)=>({color:f.color,pos:f.pos==null?Math.round(i/(n-1)*100):f.pos}));
+  return {type:type,angle:angle,stops:out};
+}
+function applyGradient(css){
+  const g=parseGradient(css);
+  if(!g)return;
+  document.getElementById('gradientType').value=g.type;
+  document.getElementById('angle').value=g.angle;
+  document.getElementById('angleDisplay').textContent=g.angle+'°';
+  stops=g.stops.slice();
+  renderStops();
+  updateGradient();
+}
+
+function copyCSS(ev){
   const css = document.getElementById('cssOutput').value;
   if(!css) return;
-  navigator.clipboard.writeText(css).then(() => {
-    const btn = event.target.closest('.btn');
+  function done(){
+    const btn = ev && ev.target ? ev.target.closest('.btn') : document.querySelector('button[onclick^="copyCSS"]');
     if(btn){ btn.textContent='✅ 已复制'; setTimeout(()=>btn.textContent='复制 CSS',1500); }
-  });
+  }
+  let p=null;
+  try{ if(navigator.clipboard && typeof navigator.clipboard.writeText==='function') p=navigator.clipboard.writeText(css); }catch(e){ p=null; }
+  if(p && typeof p.then==='function'){ p.then(done,()=>alert(css)); }
+  else { done(); }
 }
 
 function randomGradient(){
@@ -397,12 +477,8 @@ function initPresets(){
     const item = document.createElement('div');
     item.className = 'preset-gradient';
     item.style.background = p;
-    item.onclick = () => {
-      document.getElementById('cssOutput').value = `background: ${p};`;
-      document.getElementById('preview').style.background = p;
-      navigator.clipboard.writeText(`background: ${p};`).then(() => alert('已复制: ' + p));
-    };
-    item.title = '点击复制';
+    item.onclick = () => { applyGradient(p); };
+    item.title = '点击载入编辑器';
     list.appendChild(item);
   });
 }

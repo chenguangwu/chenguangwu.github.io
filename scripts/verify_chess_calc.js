@@ -51,22 +51,34 @@ const CASES = [
 {
   "slug": "chess/gomoku-forbidden",
   "inputs": {
-    "patternType": "overline",
-    "stoneCount": "6",
-    "liveCount": "0"
+    "boardInput": "000000000000000\n000000000000000\n000000000000000\n000000000000000\n000000000000000\n000000000000000\n000000000000000\n000001100000000\n000000010000000\n000000010000000\n000000000000000\n000000000000000\n000000000000000\n000000000000000\n000000000000000\njudge:H8"
   },
-  "expect": [
-    "黑棋形成6连（超过五连），违反长连禁手规则。黑方判负"
-  ],
-  "ref": "非默认输入（默认 patternType 取首项 three_three / stoneCount=3 / liveCount=2）：切到 overline 分支且 stones=6 ≥ 6 ⇒ 落「长连禁手」子分支，专属文案「黑棋形成6连（超过五连），违反长连禁手规则。黑方判负。」；默认态为 three_three + live=2 ⇒ 渲染「三三禁手 / 黑棋一手同时形成2个活三…」（不含该串）。**注意**：等级词「长连禁手」在页面静态规则说明表里出现 6 次 ⇒ 零判别力，不可单独作锚点（已弃用原 expect「结合实际棋盘分析」—— 那是页脚常驻免责文案）。"
+  "clicks": ["loadBoardInput()"],
+  "expect": ["同时形成 2 个活三"],
+  "ref": "粘贴 15 行局面 + judge:H8：F8/G8 与 H6/H7 已有黑，H8 落下后横向 F8-G8-H8、纵向 H6-H7-H8 均为可补成活四的活三，横竖各计 1 个 ⇒ 渲染「该点同时形成 2 个活三…构成三三禁手」。默认态 result 为空，且静态规则表只写「一手同时形成两个活三」，不含「同时形成 2 个活三」这一动态结果串。"
 },
+{
+  "slug": "chess/gomoku-forbidden",
+  "inputs": {},
+  "clicks": ["loadPreset(1)"],
+  "expect": ["长连禁手", "形成 6 连"],
+  "ref": "预设「长连示例」：D8..H8 五连，待判 I8 补成六连 ⇒ 长连禁手分支（结果区「黑棋形成 6 连（≥6）…判长连禁手，黑方判负」）。注意「长连禁手」在静态规则说明表中出现多次，须同时锚定动态串「形成 6 连」才有判别力。"
+},
+{
+  "slug": "chess/gomoku-forbidden",
+  "inputs": {},
+  "clicks": ["loadPreset(2)"],
+  "expect": ["五连胜利"],
+  "ref": "预设「五连胜利」：G8..J8 四连，待判 K8 补成恰好五连 ⇒ 五连胜利分支（「黑棋在 1 个方向形成恰好五连，为胜利条件」）。静态页面无「五连胜利」四字（正文写作「五连（恰好五连）为胜利」），故该锚点只在动态结果出现。"
+}
+,
 {
   "slug": "chess/xiangqi-endgame",
   "inputs": {},
   "expect": [
-    "黑将5平6"
+    "成杀条件：双炮同线且前炮能借后炮作架"
   ],
-  "ref": "结构性不可注入（沿用 tcm-diagnosis/etiology-tree 口径）：页面无任何 input/select，内容由常量对象 `ENDGAMES` 经 renderEndgames() 一次性渲染进三个 tab 容器（`$('tab-one/two/classic').innerHTML`），交互只有 switchTab() 的 classList.toggle 与 toggleCard() 的 classList.toggle —— **两者都不写入任何被采集的字符串**，且 14 个残局的标题与全部步骤在初始渲染时已同时落盘 ⇒ 无论怎么点，可用文本集合完全相同、无任何随交互变化的输出。维持 no_inputs，断言初始化渲染中的棋谱串。"
+  "ref": "结构性不可注入（沿用 tcm-diagnosis/etiology-tree 口径）：页面无任何 input/select，内容由常量对象 `ENDGAMES` 经 renderEndgames() 一次性渲染进三个 tab 容器（`$('tab-one/two/classic').innerHTML`），交互只有 switchTab() 的 classList.toggle 与 toggleCard() 的 classList.toggle —— **两者都不写入任何被采集的字符串**，15 个杀法卡片的标题、成杀条件与要点在初始渲染时已同时落盘 ⇒ 无论怎么点，可用文本集合完全相同、无任何随交互变化的输出。维持 no_inputs，断言首卡「重炮」的成杀条件（旧版伪着法「黑将5平6」已随页面重写删除）。"
 }
 ];
 async function main() {
