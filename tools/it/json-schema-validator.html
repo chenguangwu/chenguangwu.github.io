@@ -237,11 +237,31 @@ s.parentNode.insertBefore(el, s);
   </div>
 </div>
 <script>
+const MAX_DEPTH = 64;
+function escHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function isEnLang() {
+  return !!(window.I18n && window.I18n.get && window.I18n.get() === 'en-US');
+}
+// 解析结果用 {ok, value, err} 区分：合法的 JSON null 也是有效数据，不能与解析失败混为一谈
 function parseSafely(id) {
+  const raw = document.getElementById(id).value;
+  if (!raw.trim()) return { ok: false, err: isEnLang() ? 'Content is empty' : '内容为空' };
   try {
-    return JSON.parse(document.getElementById(id).value || 'null');
-  } catch {
-    return null;
+    return { ok: true, value: JSON.parse(raw) };
+  } catch (e) {
+    const msg = String((e && e.message) || e);
+    const m = /position\s+(\d+)/i.exec(msg);
+    let pos = m ? Number(m[1]) : -1;
+    let loc = '';
+    if (pos >= 0) {
+      const before = raw.slice(0, pos);
+      const line = before.split('\n').length;
+      const col = pos - before.lastIndexOf('\n');
+      loc = isEnLang() ? ` (line ${line}, column ${col})` : `（第 ${line} 行，第 ${col} 列）`;
+    }
+    return { ok: false, err: msg + loc };
   }
 }
 
@@ -257,8 +277,14 @@ function typeOK(schemaType, val) {
   return true;
 }
 
-function walk(schema, val, path, out) {
+function walk(schema, val, path, out, depth) {
   if (!schema || typeof schema !== 'object') return;
+  if (depth > MAX_DEPTH) {
+    out.push(isEnLang()
+      ? `Nesting exceeds ${MAX_DEPTH} levels (${path}); validation stopped`
+      : `嵌套层级超过 ${MAX_DEPTH} 层（${path}），已停止继续校验`);
+    return;
+  }
   if (!typeOK(schema.type, val)) {
     out.push(`类型不匹配 ${path}: 期望 ${schema.type}`);
     return;
@@ -277,7 +303,7 @@ function walk(schema, val, path, out) {
     const props = schema.properties || {};
     for (const [k, s] of Object.entries(props)) {
       if (k in val) {
-        walk(s, val[k], path ? `${path}.${k}` : k, out);
+        walk(s, val[k], path ? `${path}.${k}` : k, out, depth + 1);
       }
     }
 
@@ -294,24 +320,29 @@ function walk(schema, val, path, out) {
       return;
     }
     const itemSchema = schema.items || null;
-    val.forEach((v, idx) => walk(itemSchema, v, `${path}[${idx}]`, out));
+    val.forEach((v, idx) => walk(itemSchema, v, `${path}[${idx}]`, out, depth + 1));
   }
 }
 
 function validateJSON() {
   const schema = parseSafely('schema');
   const data = parseSafely('data');
-  if (!schema || data === null) {
-    const __h0='<p>JSON 格式错误</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
+  if (!schema.ok || !data.ok) {
+    const msgs = [];
+    if (!schema.ok) msgs.push((isEnLang() ? 'Schema JSON parse failed: ' : 'JSON Schema 解析失败：') + schema.err);
+    if (!data.ok) msgs.push((isEnLang() ? 'Data JSON parse failed: ' : '数据 JSON 解析失败：') + data.err);
+    document.getElementById('result').innerHTML = msgs.map(function(m){
+      return '<p style="color:var(--danger)">' + escHtml(m) + '</p>';
+    }).join('');
     return;
   }
 
   const out = [];
-  walk(schema, data, 'root', out);
+  walk(schema.value, data.value, 'root', out, 0);
   if (!out.length) {
     const __h1='<p>校验通过 ✅</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h1;
   } else {
-    const __h2='<p>未通过：</p>' + out.map(x => `<p>${x}</p>`).join('');if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h2;
+    const __h2='<p>未通过：</p>' + out.map(x => `<p>${escHtml(x)}</p>`).join('');if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h2;
   }
 }
 

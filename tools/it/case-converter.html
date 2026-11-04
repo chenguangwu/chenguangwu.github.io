@@ -429,7 +429,8 @@ function toDotCase(text) {
 
 // 11. 反转大小写
 function toSwapCase(text) {
-  return text.split('').map(c => {
+  // Array.from 按码点遍历，emoji 不会被拆成两个代理半体
+  return Array.from(text).map(c => {
     if (c === c.toUpperCase() && c !== c.toLowerCase()) return c.toLowerCase();
     if (c === c.toLowerCase() && c !== c.toUpperCase()) return c.toUpperCase();
     return c;
@@ -470,7 +471,13 @@ function convert() {
 
 // 更新统计
 function updateStats(text) {
-  const chars = text.length;
+  // 字符按字素簇计（emoji / 组合音标算一个可见字符），避免 UTF-16 长度让 emoji 算 2
+  let chars;
+  try{
+    chars = Array.from(new Intl.Segmenter(undefined, {granularity:'grapheme'}).segment(text)).length;
+  }catch(e){
+    chars = Array.from(text).length;
+  }
   const words = text.trim() ? text.trim().split(/\s+/).length : 0;
   const lines = text.trim() ? text.split('\n').length : 0;
   const __h1='&#128196; ' + chars + ' 字符';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('statChars').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('statChars').innerHTML=__h1;

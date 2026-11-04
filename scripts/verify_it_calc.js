@@ -598,8 +598,8 @@ const CASES = [
   {
     slug: "it/text-statistics",
     inputs: { textInput: "ab cd ab ef" },
-    expect: ["11 总字符", "4 总词数"],
-    ref: "独立复算：\"ab cd ab ef\" 共 11 个字符（含 2 个空格）、按空白切出 4 个英文词、去重 3 个 ⇒ `11 总字符` / `4 总词数`。默认态为中文长文本，不命中。",
+    expect: ["11 总字符(字素)", "4 总词数"],
+    ref: "独立复算：\"ab cd ab ef\" 共 11 个字符（含 2 个空格，字素簇口径同上）、按空白切出 4 个英文词、去重 3 个 ⇒ `11 总字符(字素)` / `4 总词数`。默认态为中文长文本，不命中。",
   },
   {
     slug: "it/string-obfuscator",
@@ -5426,9 +5426,9 @@ const CASES = [
       "data": "1\n2\n3"
     },
     "expect": [
-      "1 2 3\n1 2 3\nJSON 格式错误"
+      "JSON Schema 解析失败"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"schema\":\"1\\n2\\n3\",\"data\":\"1\\n2\\n3\"}，输出区含「1 2 3\n1 2 3\nJSON 格式错误」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"schema\":\"1\\n2\\n3\",\"data\":\"1\\n2\\n3\"}，输出区点名「JSON Schema 解析失败」并附 JSON.parse 的行列位置；默认示例（合法 schema/data）通过校验，不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/json-formatter",
@@ -6635,7 +6635,7 @@ const CASES = [
       "textInput": "1\n2\n3"
     },
     "expect": [
-      "1 2 3\n5 总字符 3 字符(无空格) 0 中文字 0 英文词 3 行数 1 段落 1 句子 0 总词数 0 不同词 0分钟 阅读时间\n请输入文本"
+      "1 2 3\n5 总字符(字素) 5 码点数 3 字符(无空格) 0 中文字 0 英文词 3 行数 1 段落 1 句子 0 总词数 0 不同词 0分钟 阅读时间\n请输入文本"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"textInput\":\"1\\n2\\n3\"}，输出区含「1 2 3\n5 总字符 3 字符(无空格) 0 中文字 0 英文词 3 行数 1…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -7542,6 +7542,74 @@ const CASES = [
     clicks: ["convertDecToText()"],
     expect: ["非法十进制值"],
     ref: "IT 往返：十进制解码遇 300（超出 0–255）应报错；旧实现静默丢弃该 token，输出空串，用户无法察觉数据丢失。",
+  },
+  {
+    slug: "it/text-statistics",
+    inputs: { textInput: "😀e\u0301" },
+    clicks: ["document.getElementById('result').innerHTML='GP='+graphemeCount('😀e\\u0301')+'/CP='+Array.from('😀e\\u0301').length;"],
+    expect: ["GP=2/CP=3"],
+    ref: "字素簇口径：'😀'（1 个字素/1 码点/2 码元）+ 'e'+U+0301（1 个字素/2 码点）合计字素 2、码点 3；旧实现 totalChars 取 UTF-16 length=4。",
+  },
+  {
+    slug: "it/text-similarity",
+    inputs: { textA: "😀abc", textB: "abc" },
+    expect: ["75.00%"],
+    ref: "字素/码点口径：A='😀abc' 按码点长度 4、B='abc' 长度 3，编辑距离 1 ⇒ 1−1/4=75.00%；旧实现按 UTF-16 码元（A 长 5、距离 2）得 60.00%。默认空输入为 0%，不命中。",
+  },
+  {
+    slug: "it/text-diff",
+    inputs: { text1: "😀", text2: "x", charDiff: true },
+    clicks: ["document.getElementById('unifiedDiff').textContent='N='+(charDiffLine('😀','x').oldHtml.match(/line-through/g)||[]).length;"],
+    expect: ["N=1"],
+    ref: "代理对：逐字符 diff 必须把 '😀' 当一个单位，与 'x' 比较只有 1 段删除；旧实现 split('') 拆成两个代理半体，产生 2 段 line-through。",
+  },
+  {
+    slug: "it/nato-alphabet",
+    inputs: { input: "😀" },
+    clicks: ["convert();document.getElementById('output').value='LEN='+document.getElementById('output').value.length;"],
+    expect: ["LEN=2"],
+    ref: "代理对：Array.from 后 emoji 保持一个码点（UTF-16 length=2）；旧实现 split('') 把两个代理半体用空格拼接，长度 5。",
+  },
+  {
+    slug: "it/case-converter",
+    inputs: { inputText: "😀😀" },
+    expect: ["2 字符"],
+    ref: "字素簇口径：两个 emoji 是 2 个可见字符，统计区显示「2 字符」；旧实现 text.length 得 4 字符。默认样例 11 字符，不含「2 字符」⇒ 强判别。",
+  },
+  {
+    slug: "it/text-replace",
+    inputs: { sourceText: "😀", findInput: "😀", replaceInput: "😁😁" },
+    clicks: ["document.getElementById('optRegex').checked=false;doReplace();document.getElementById('charDelta').textContent='DELTA='+document.getElementById('charDelta').textContent;"],
+    expect: ["DELTA=+1"],
+    ref: "字素/码点口径：'😀'→'😁😁' 按码点由 1 增至 2，字符变化 +1；旧实现按 UTF-16 长度 2→4 得 +2。",
+  },
+  {
+    slug: "it/json-schema-validator",
+    inputs: { schema: '{"type":"object"}', data: "null" },
+    clicks: ["validateJSON()"],
+    expect: ["类型不匹配"],
+    ref: "JSON 语义：字符串 null 是合法 JSON 值，应在解析成功后被判为「类型不匹配 root: 期望 object」；旧实现 parseSafely 失败返回 null 并判定「JSON 格式错误」，不会出现类型不匹配文案。默认样例（合法对象）校验通过，不命中。",
+  },
+  {
+    slug: "it/yaml-validator",
+    inputs: {},
+    clicks: ["var d={},c=d;for(var i=0;i<300;i++){c.a={};c=c.a;}var st=analyzeDocs([d]);document.getElementById('jsonOutput').textContent='DEEP='+st.tooDeep;"],
+    expect: ["DEEP=true"],
+    ref: "深度上限：300 层嵌套超过 analyzeDocs 的 200 层统计上限，应标记 tooDeep 并停止递归；旧实现无上限、会继续深递归（更深输入可栈溢出）。默认样例仅数层，不命中。",
+  },
+  {
+    slug: "it/json-path",
+    inputs: {},
+    clicks: ["var o={},c=o;for(var i=0;i<5000;i++){c.x={};c=c.x;}c.x=1;var out=[];collectRecursive(o,'x',false,out,0);document.getElementById('output').textContent='N='+out.length;"],
+    expect: ["N=65"],
+    ref: "递归上限：5000 层对象在 collectRecursive 深度 65 处截断，收集到 65 个 x；旧实现无深度上限，递归回溯栈溢出导致点击执行抛错、无输出。",
+  },
+  {
+    slug: "it/xml-validator",
+    inputs: {},
+    clicks: ["document.getElementById('result').textContent='LOC='+xmlErrorLoc('error on line 3 at column 5: mismatched tag');"],
+    expect: ["LOC=（第 3 行，第 5 列）"],
+    ref: "错误定位：Chrome 的 parsererror 文案「line 3 at column 5」应被提取为结构化行列；旧实现只原样贴整段英文错误文本。",
   }
 
 ];
@@ -7787,7 +7855,7 @@ function inlineScripts(html) {
   for (const m of html.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/gi)) {
     const attrs = m[1] || "";
     if (/\bsrc=/i.test(attrs)) continue;
-    if (/type\s*=\s*["']?(application|text\/template|text\/tailwindcss)/i.test(attrs)) continue;
+    if (/type\s*=\s*["']?(application|text\/template|text\/tailwindcss|text\/js-worker)/i.test(attrs)) continue;
     out.push(m[2]);
   }
   return out.filter((c) => c.trim().length > 40).join("\n");

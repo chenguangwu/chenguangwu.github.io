@@ -598,7 +598,7 @@ s.parentNode.insertBefore(el, s);
   }
 
   // 执行替换
-  window.doReplace = function() {
+  function doReplaceCore() {
     const text = document.getElementById('sourceText').value;
     const pattern = document.getElementById('findInput').value;
     const replacement = document.getElementById('replaceInput').value;
@@ -685,8 +685,8 @@ s.parentNode.insertBefore(el, s);
     originalText = text;
     lastResultText = result;
 
-    // Calculate char delta
-    const delta = result.length - text.length;
+    // Calculate char delta（按码点计，emoji 记 1 而非 UTF-16 的 2）
+    const delta = Array.from(result).length - Array.from(text).length;
 
     // Show stats
     document.getElementById('statsArea').style.display = 'block';
@@ -703,10 +703,11 @@ s.parentNode.insertBefore(el, s);
     } else {
       ToolBox.showToast('替换完成，共 ' + replaceCount + ' 处', 'success');
     }
-  };
+  }
+  window.doReplace = doReplaceCore;
 
   // 预览匹配
-  window.previewMatch = function() {
+  function previewMatchCore() {
     const text = document.getElementById('sourceText').value;
     const pattern = document.getElementById('findInput').value;
     const opts = getOptions();
@@ -755,7 +756,8 @@ s.parentNode.insertBefore(el, s);
     } else {
       ToolBox.showToast('找到 ' + matchInfo.count + ' 个匹配', 'info');
     }
-  };
+  }
+  window.previewMatch = previewMatchCore;
 
   // 撤销替换
   window.undoReplace = function() {
@@ -979,9 +981,94 @@ var __trReplace0 = window.doReplace;
 window.doReplace = function(){ var __r=__trReplace0.apply(null,arguments); try{ __trExtras(); }catch(e){} return __r; };
 var __trPreview0 = window.previewMatch;
 window.previewMatch = function(){ var __r=__trPreview0.apply(null,arguments); try{ __trExtras(); }catch(e){} return __r; };
+
+// ---- ReDoS 防护 ----
+// 用户表达式在工作线程里先试跑一次：超过 3 秒（如 (a+)+$ 遇长串 a 的灾难性回溯）直接 terminate，
+// 主线程只收到「超时」结果并提示，不会把标签页卡死。无 Worker / 非正则模式时保持原同步路径。
+function __trGuardFlags(o){
+  return (o.g ? 'g' : '') + (o.m ? 'm' : '') + (o.cs ? '' : 'i');
+}
+function __trRunGuard(pattern, flags, text, cb){
+  var worker = null, url = null, timer = null, done = false;
+  function finish(res){
+    if(done) return; done = true;
+    if(timer) clearTimeout(timer);
+    try{ if(worker) worker.terminate(); }catch(e){}
+    try{ if(url) URL.revokeObjectURL(url); }catch(e){}
+    cb(res || {ok:false, err:'执行失败'});
+  }
+  try{
+    var src = document.getElementById('tr-worker-src');
+    if(!src) return false;
+    url = URL.createObjectURL(new Blob([src.textContent], {type:'text/javascript'}));
+    worker = new Worker(url);
+  }catch(e){ return false; }
+  timer = setTimeout(function(){ finish({ok:false, err:'__timeout__'}); }, 3000);
+  worker.onmessage = function(ev){ finish(ev.data); };
+  worker.onerror = function(ev){ finish({ok:false, err:(ev && ev.message) || '执行失败'}); };
+  worker.postMessage({pattern:pattern, flags:flags, text:text});
+  return true;
+}
+function __trWrapGuard(sync){
+  return function(){
+    var text = document.getElementById('sourceText').value;
+    var pattern = document.getElementById('findInput').value;
+    var o = __trOpts();
+    if(!o.re || !text || !pattern || typeof Worker === 'undefined' || typeof Blob === 'undefined' ||
+       typeof URL === 'undefined' || !URL.createObjectURL){
+      return sync();
+    }
+    if(!__trRunGuard(pattern, __trGuardFlags(o), text, function(res){
+      if(res && res.ok){ sync(); return; }
+      if(res && res.err === '__timeout__'){
+        document.getElementById('errorArea').innerHTML =
+          '<p style="color:var(--danger)">⏱ 正则执行超过 3 秒已强制中止：该表达式可能触发灾难性回溯，请简化表达式或缩短文本。</p>';
+        ['statsArea','previewArea','resultArea'].forEach(function(id){
+          var el = document.getElementById(id); if(el) el.style.display = 'none';
+        });
+        var ctx = document.getElementById('contextArea'); if(ctx) ctx.innerHTML = '';
+        var out = document.getElementById('resultText'); if(out) out.value = '';
+        try{ ToolBox.showToast('正则执行超时（疑似灾难性回溯）', 'error'); }catch(e){}
+        return;
+      }
+      // 语法错误等：交回原同步路径，沿用原有错误提示
+      sync();
+    })){ return sync(); }
+  };
+}
+window.doReplace = __trWrapGuard(window.doReplace);
+window.previewMatch = __trWrapGuard(window.previewMatch);
 function __trBoot(){ try{ __trExtras(); }catch(e){} try{ if(typeof doReplace==='function') doReplace(); }catch(e){} }
 if(document.readyState && document.readyState!=='loading') __trBoot();
 else document.addEventListener('DOMContentLoaded', __trBoot);
+</script>
+
+<!-- 正则试跑工作线程：主线程负责 3 秒超时与 terminate -->
+<script type="text/js-worker" id="tr-worker-src">
+// 只在真正的 Worker 作用域注册；静态门禁/无 Worker 环境会跳过整段
+if (typeof self !== 'undefined' && typeof self.postMessage === 'function') {
+self.onmessage = function(e){
+  var d = e.data || {};
+  try{
+    var re = new RegExp(d.pattern, d.flags);
+    var text = String(d.text || '');
+    var count = 0;
+    if(re.global){
+      var m;
+      while((m = re.exec(text)) !== null){
+        count++;
+        if(m[0] === '') re.lastIndex++;   // 零宽匹配必须手动前进，否则死循环
+        if(count > 500000) break;
+      }
+    }else{
+      count = re.test(text) ? 1 : 0;
+    }
+    self.postMessage({ok:true, count:count});
+  }catch(err){
+    self.postMessage({ok:false, err:String((err && err.message) || err)});
+  }
+};
+}
 </script>
 
 

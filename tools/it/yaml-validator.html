@@ -481,8 +481,9 @@ function parseYaml(text) {
 
 /* ===== 结构统计 ===== */
 function analyzeDocs(docs) {
-  const stats = { keys: 0, arrays: 0, scalars: 0, strings: 0, numbers: 0, bools: 0, nulls: 0, maxDepth: 0 };
+  const stats = { keys: 0, arrays: 0, scalars: 0, strings: 0, numbers: 0, bools: 0, nulls: 0, maxDepth: 0, tooDeep: false };
   function walk(obj, depth) {
+    if (depth > 200) { stats.tooDeep = true; return; }
     if (obj === null) { stats.scalars++; stats.nulls++; return; }
     if (Array.isArray(obj)) {
       stats.arrays++;
@@ -506,6 +507,11 @@ function analyzeDocs(docs) {
 
 /* ===== 验证主流程 ===== */
 let lastJson = '';
+const MAX_INPUT = 2 * 1024 * 1024; // 2 MB，超出后浏览器解析易长时间无响应
+function tooLargeHint(container) {
+  container.innerHTML = '<div class="status-banner status-err"><span class="status-icon">❌</span>' +
+    '<span>输入超过 2 MB，已停止解析：请拆分文档或精简内容后再试。</span></div>';
+}
 function validateNow(showToast) {
   const input = $('input');
   const text = input.value;
@@ -513,6 +519,15 @@ function validateNow(showToast) {
     resetResult();
     setLiveHint('等待输入', '');
     if (showToast) ToolBox.showToast(i18nText('toast.msg753'), 'warning');
+    return;
+  }
+  if (text.length > MAX_INPUT) {
+    tooLargeHint($('statusBanner'));
+    $('statsArea').innerHTML = '';
+    $('resultArea').style.display = 'none';
+    $('errorArea').style.display = 'none';
+    lastJson = '';
+    setLiveHint('输入过大', 'err');
     return;
   }
   let result;
@@ -552,8 +567,22 @@ function renderSuccess(docs, text) {
     statCard(stats.scalars, '标量值') +
     statCard(lineCount, '总行数') +
     '</div>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){$('statsArea').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('statsArea').innerHTML=__h2;
-  // JSON 输出
-  const jsonText = JSON.stringify(docCount === 1 ? docs[0] : docs, null, 2);
+  // JSON 输出（YAML 锚点可产生循环引用，stringify 会抛 TypeError，此处兜底为可见提示）
+  let jsonText = '';
+  try {
+    jsonText = JSON.stringify(docCount === 1 ? docs[0] : docs, null, 2);
+  } catch (e) {
+    jsonText = '';
+    $('jsonOutput').textContent = '无法转换为 JSON：文档包含循环引用或结构过深。';
+    $('resultArea').style.display = 'block';
+    $('errorArea').style.display = 'none';
+    ToolBox.showToast('文档无法序列化为 JSON（循环引用/层级过深）', 'warning');
+    return;
+  }
+  if (stats.tooDeep) {
+    const note = '<div class="tip-box" style="margin-top:10px;">⚠ 嵌套超过 200 层，结构统计已截断（其余内容仍可查看 JSON 输出）。</div>';
+    $('statsArea').innerHTML += note;
+  }
   lastJson = jsonText;
   $('jsonOutput').textContent = jsonText;
   $('resultArea').style.display = 'block';
@@ -569,7 +598,10 @@ function renderError(e, text) {
   const mark = e.mark || {};
   const line = (mark.line != null ? mark.line : -1) + 1;
   const col = (mark.column != null ? mark.column : -1) + 1;
-  const reason = e.reason || e.message || '未知错误';
+  let reason = e.reason || e.message || '未知错误';
+  if (/Maximum call stack|too much recursion/i.test(String(reason))) {
+    reason = '嵌套层级过深，解析器栈溢出（请减少缩进层级后重试）';
+  }
   const name = e.name || 'YAMLException';
   // 状态横幅
   const __h4='<div class="status-banner status-err">' +
@@ -656,6 +688,11 @@ function convertToJson() {
     ToolBox.showToast(i18nText('toast.msg753'), 'warning');
     return;
   }
+  if (text.length > MAX_INPUT) {
+    errEl.innerHTML = '<div class="tip-box tip-error">❌ 输入超过 2 MB，已停止解析：请拆分文档或精简内容后再试。</div>';
+    $('jsonOutput2').textContent = '转换失败';
+    return;
+  }
   try {
     const docs = jsyaml.loadAll(text);
     const out = docs.length === 1 ? docs[0] : docs;
@@ -666,6 +703,9 @@ function convertToJson() {
     const line = (mark.line != null ? mark.line : -1) + 1;
     const col = (mark.column != null ? mark.column : -1) + 1;
     let msg = (e.reason || e.message || '解析错误');
+    if (/Maximum call stack|too much recursion/i.test(msg)) {
+      msg = '嵌套层级过深，解析器栈溢出（请减少缩进层级后重试）';
+    }
     if (line > 0) msg += '（第 ' + line + ' 行' + (col > 0 ? '，第 ' + col + ' 列' : '') + '）';
     const __h11='<div class="tip-box tip-error">❌ ' + ToolBox.escHtml(msg) + '</div>';if((typeof __h11==='number'&&!isFinite(__h11))||/Infinity/.test(String(__h11))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h11)){errEl.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}errEl.innerHTML=__h11;
     $('jsonOutput2').textContent = '转换失败';

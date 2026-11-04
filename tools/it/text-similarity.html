@@ -425,8 +425,8 @@ function onTokenModeChange() {
 function autoCalc() {
   var a = document.getElementById('textA').value;
   var b = document.getElementById('textB').value;
-  document.getElementById('countA').textContent = a.length;
-  document.getElementById('countB').textContent = b.length;
+  document.getElementById('countA').textContent = Array.from(a).length;
+  document.getElementById('countB').textContent = Array.from(b).length;
   if (a.trim() && b.trim()) {
     calculate();
   }
@@ -437,8 +437,8 @@ function tokenize(text, mode) {
   if (!text) return [];
   switch (mode) {
     case 'char':
-      // 按字符分词（过滤空白）
-      return text.replace(/\s/g, '').split('');
+      // 按码点分词（Array.from 不会把 emoji 的代理对拆成两半）
+      return Array.from(text.replace(/\s/g, ''));
     case 'word':
       // 按空格/标点分词
       return text.toLowerCase().split(/[\s,.\-;:!?"'()\[\]{}\/\\]+/).filter(function(w) { return w.length > 0; });
@@ -447,15 +447,16 @@ function tokenize(text, mode) {
     case 'trigram':
       return ngramize(text, 3);
     default:
-      return text.split('');
+      return Array.from(text);
   }
 }
 
 function ngramize(text, n) {
-  var cleaned = text.replace(/\s/g, '');
+  // 按码点滑窗，避免把 emoji 切成半个代理
+  var cleaned = Array.from(text.replace(/\s/g, ''));
   var result = [];
   for (var i = 0; i <= cleaned.length - n; i++) {
-    result.push(cleaned.substring(i, i + n));
+    result.push(cleaned.slice(i, i + n).join(''));
   }
   return result;
 }
@@ -652,17 +653,19 @@ function calculate() {
   var setB = tokensToSet(tokensB);
   var jacScore = jaccardSimilarity(setA, setB);
 
-  // 3. 莱文斯坦距离（基于原始文本）
-  var levResult = levenshtein(textA, textB);
+  // 3. 莱文斯坦距离（基于原始文本，按码点比较：emoji 记 1 个单位而非 2 个代理半体）
+  var aUnits = Array.from(textA);
+  var bUnits = Array.from(textB);
+  var levResult = levenshtein(aUnits, bUnits);
   var levDist = levResult.distance;
-  var maxLen = Math.max(textA.length, textB.length);
+  var maxLen = Math.max(aUnits.length, bUnits.length);
   var levScore = maxLen ? 1 - (levDist / maxLen) : (textA === textB ? 1 : 0);
 
-  // 4. 汉明距离（基于原始文本）
-  var hamDist = hammingDistance(textA, textB);
+  // 4. 汉明距离（基于原始文本，按码点比较）
+  var hamDist = hammingDistance(aUnits, bUnits);
   var hamScore = -1;
   if (hamDist >= 0) {
-    hamScore = textA.length ? 1 - (hamDist / textA.length) : (textA === textB ? 1 : 0);
+    hamScore = aUnits.length ? 1 - (hamDist / aUnits.length) : (textA === textB ? 1 : 0);
   }
 
   // 显示结果
@@ -698,10 +701,10 @@ function calculate() {
   // 莱文斯坦编辑详情
   var levDetail = document.getElementById('levDetail');
   levDetail.style.display = 'block';
-  var ops = backtrackOps(textA, textB, levResult.matrix);
+  var ops = backtrackOps(aUnits, bUnits, levResult.matrix);
   const __h2='编辑距离: <strong>' + levDist + '</strong> &nbsp;|&nbsp; ' +
-    '文本A长度: ' + textA.length + ' &nbsp;|&nbsp; ' +
-    '文本B长度: ' + textB.length;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('levDistInfo').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('levDistInfo').innerHTML=__h2;
+    '文本A长度: ' + aUnits.length + ' &nbsp;|&nbsp; ' +
+    '文本B长度: ' + bUnits.length;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('levDistInfo').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('levDistInfo').innerHTML=__h2;
   var stepsHtml = '操作统计: ';
   if (ops.insertions > 0) stepsHtml += '<span class="step">插入 ' + ops.insertions + ' 次</span> ';
   if (ops.deletions > 0) stepsHtml += '<span class="step">删除 ' + ops.deletions + ' 次</span> ';
@@ -716,13 +719,13 @@ function calculate() {
   hamDetail.style.display = 'block';
   if (hamDist >= 0) {
     const __h4='汉明距离: <strong>' + hamDist + '</strong> &nbsp;|&nbsp; ' +
-      '不同位数: ' + hamDist + ' / ' + textA.length + ' (' + (hamDist / textA.length * 100).toFixed(1) + '%)';if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){document.getElementById('hammingDistInfo').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('hammingDistInfo').innerHTML=__h4;
+      '不同位数: ' + hamDist + ' / ' + aUnits.length + ' (' + (hamDist / aUnits.length * 100).toFixed(1) + '%)';if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){document.getElementById('hammingDistInfo').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('hammingDistInfo').innerHTML=__h4;
   } else {
-    const __h5='文本长度不等（A: ' + textA.length + ', B: ' + textB.length + '），汉明距离仅适用于等长字符串。';if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){document.getElementById('hammingDistInfo').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('hammingDistInfo').innerHTML=__h5;
+    const __h5='文本长度不等（A: ' + aUnits.length + ', B: ' + bUnits.length + '），汉明距离仅适用于等长字符串。';if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){document.getElementById('hammingDistInfo').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('hammingDistInfo').innerHTML=__h5;
   }
 
-  // 差异高亮（基于原始文本的逐字符对比）
-  var diff = computeDiff(textA, textB);
+  // 差异高亮（基于原始文本的逐码点对比）
+  var diff = computeDiff(aUnits, bUnits);
   renderDiff(diff.diffA, 'diffA');
   renderDiff(diff.diffB, 'diffB');
 
@@ -753,8 +756,8 @@ function swapText() {
   var temp = a.value;
   a.value = b.value;
   b.value = temp;
-  document.getElementById('countA').textContent = a.value.length;
-  document.getElementById('countB').textContent = b.value.length;
+  document.getElementById('countA').textContent = Array.from(a.value).length;
+  document.getElementById('countB').textContent = Array.from(b.value).length;
   autoCalc();
   ToolBox.showToast(i18nText('toast.msg154'));
 }
@@ -787,8 +790,8 @@ function toggleIntro() {
 // 页面加载初始化
 document.getElementById('textA').value = '今天天气真好，适合出去散步。';
 document.getElementById('textB').value = '今天天气不错，很适合出去走走。';
-document.getElementById('countA').textContent = document.getElementById('textA').value.length;
-document.getElementById('countB').textContent = document.getElementById('textB').value.length;
+document.getElementById('countA').textContent = Array.from(document.getElementById('textA').value).length;
+document.getElementById('countB').textContent = Array.from(document.getElementById('textB').value).length;
 calculate();
 </script><script>
 // tool-intro折叠交互

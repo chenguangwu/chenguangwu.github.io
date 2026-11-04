@@ -366,7 +366,7 @@ function jsonPath(obj, expr) {
           }
         }
       } else if (token.type === 'recursive') {
-        collectRecursive(current, token.property, token.wildcard, next);
+        collectRecursive(current, token.property, token.wildcard, next, 0);
       } else if (token.type === 'index') {
         if (Array.isArray(current)) {
           if (token.wildcard) {
@@ -478,20 +478,23 @@ function parseTokens(expr) {
   return tokens;
 }
 
-function collectRecursive(obj, property, wildcard, out) {
+function collectRecursive(obj, property, wildcard, out, depth) {
   if (obj === null || typeof obj !== 'object') return;
+  // 深度上限：JSON 输入可深达数千层，递归回溯会栈溢出并卡死页面
+  if ((depth || 0) > 64) return;
+  depth = (depth || 0) + 1;
   
   if (Array.isArray(obj)) {
     for (const item of obj) {
       if (wildcard) out.push(item);
-      collectRecursive(item, property, wildcard, out);
+      collectRecursive(item, property, wildcard, out, depth);
     }
   } else {
     for (const key in obj) {
       if (wildcard || key === property) {
         out.push(obj[key]);
       }
-      collectRecursive(obj[key], property, wildcard, out);
+      collectRecursive(obj[key], property, wildcard, out, depth);
     }
   }
 }
