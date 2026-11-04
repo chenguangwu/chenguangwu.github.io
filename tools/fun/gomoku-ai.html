@@ -308,27 +308,43 @@ function checkWin(r, c, color) {
   return false;
 }
 
-function score(r, c, color) {
+// 评估在 (r,c) 落子 color 后各方向的棋型价值：连续子数 + 两端是否开放，不跨空格累加
+function lineScore(r, c, color) {
   if (board[r][c] !== EMPTY) return -1e9;
   const dirs = [[1,0],[0,1],[1,1],[1,-1]];
-  let s = 0;
+  let total = 0;
   for (const [dr, dc] of dirs) {
-    let link = 1;
-    for (let k = 1; k <= 4; k++) {
-      const nr = r + dr * k;
-      const nc = c + dc * k;
+    let count = 1;
+    let openA = false, openB = false;
+    let k = 1;
+    while (true) {
+      const nr = r + dr * k, nc = c + dc * k;
       if (nr < 0 || nr >= SIZE || nc < 0 || nc >= SIZE) break;
-      if (board[nr][nc] === color) link += 1;
+      if (board[nr][nc] === color) { count++; k++; continue; }
+      if (board[nr][nc] === EMPTY) openA = true;
+      break;
     }
-    for (let k = 1; k <= 4; k++) {
-      const nr = r - dr * k;
-      const nc = c - dc * k;
+    k = 1;
+    while (true) {
+      const nr = r - dr * k, nc = c - dc * k;
       if (nr < 0 || nr >= SIZE || nc < 0 || nc >= SIZE) break;
-      if (board[nr][nc] === color) link += 1;
+      if (board[nr][nc] === color) { count++; k++; continue; }
+      if (board[nr][nc] === EMPTY) openB = true;
+      break;
     }
-    s += Math.pow(10, link);
+    const bothOpen = openA && openB;
+    if (count >= 5) total += 1000000;
+    else if (count === 4) total += bothOpen ? 100000 : (openA || openB ? 10000 : 1000);
+    else if (count === 3) total += bothOpen ? 5000 : (openA || openB ? 500 : 50);
+    else if (count === 2) total += bothOpen ? 200 : (openA || openB ? 50 : 10);
+    else total += 1;
   }
-  return s;
+  return total;
+}
+
+// 兼容旧调用名：单色棋型评估
+function score(r, c, color) {
+  return lineScore(r, c, color);
 }
 
 function aiMove() {
@@ -339,7 +355,8 @@ function aiMove() {
   for (let r = 0; r < SIZE; r++) {
     for (let c = 0; c < SIZE; c++) {
       if (board[r][c] !== EMPTY) continue;
-      const val = score(r, c, WHITE) * 1.6 + score(r, c, BLACK) * 0.8;
+      // 防守权重大于进攻：优先堵对方的活四/活三，再考虑自己成四
+      const val = lineScore(r, c, WHITE) * 1.0 + lineScore(r, c, BLACK) * 1.15;
       if (val > best) {
         best = val;
         pickR = r;
