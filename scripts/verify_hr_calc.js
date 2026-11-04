@@ -386,6 +386,34 @@ const CASES = [
     clicks: ["emps[0].scores[0]=-5;calc();"],
     expect: ["评分须在 0–100 之间"],
     ref: "把张三第一维业绩分改为 −5 ⇒ 旧实现照算（加权分被拉低、排名与强制分布失真，无提示）；现于计算前逐项校验并提示。默认全部分数在 0–100 内 ⇒ 不命中。",
+  },
+  {
+    slug: "hr/recruitment-funnel",
+    inputs: { position: "测试岗" },
+    clicks: ["stages=[{name:'简历',count:100},{name:'面试',count:20},{name:'Offer',count:5}];renderStages();calc();"],
+    expect: ["“面试”环节流失最严重（流失率 80.0%，环节通过率 20.0%）"],
+    ref: "100→20→5：简历→面试流失 80 人为最大流失环节（面试→Offer 流失 75%）；旧实现把流失率误标为「通过率仅 80.0%」。默认技术岗预设不同 ⇒ 注入失败不命中。",
+  },
+  {
+    slug: "hr/recruitment-funnel",
+    inputs: { position: "校招岗" },
+    clicks: ["stages=[{name:'简历',count:100},{name:'面试',count:-5},{name:'Offer',count:10}];renderStages();calc();"],
+    expect: ["各阶段人数不能为负数，请修正后再计算。"],
+    ref: "面试人数为 −5 ⇒ 旧实现照算并产出负转化率；现于计算前拦截。默认技术岗各阶段非负 ⇒ 注入失败不命中（兜底 addStage 只追加 0 人阶段，也不会产生负值）。",
+  },
+  {
+    slug: "hr/annual-leave-prorate",
+    inputs: { start: "2024-03-15", end: "2024-12-31", years: "5" },
+    clicks: ["calcTool()"],
+    expect: ["366 天", "3.5 天"],
+    ref: "2024 闰年总天数 366（旧文案写「÷365」与实际分母不符）；在职 292 天，5×292/366=3.99 → 取 0.5 天档 3.5 天。默认 2026 年 ⇒ 365 天/4 天，注入失败不命中。",
+  },
+  {
+    slug: "hr/annual-leave-prorate",
+    inputs: { start: "2026-06-01", end: "2026-12-31", years: "12" },
+    clicks: ["calcTool()"],
+    expect: ["214 天", "5.5 天"],
+    ref: "2026 平年：6-01 至 12-31 含首尾共 214 天；基数 10 天 × 214/365 = 5.86 → 取 0.5 天档 5.5 天。默认 3-15 入职/工龄 5 ⇒ 292 天/4 天，注入失败不命中。",
   }
 
 ];

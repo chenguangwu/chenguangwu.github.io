@@ -1218,6 +1218,24 @@ const CASES = [
     inputs: { visitors: "1000", leads: "800", qualified: "900", opportunities: "300", customers: "120" },
     expect: ["「合格线索」人数不能大于「线索」"],
     ref: "合格线索 900 > 线索 800 ⇒ 旧实现输出 112.5% 环节转化率；现拦截并指出倒挂环节。默认 8000/2400/1200 逐级递减 ⇒ 不命中。",
+  },
+  {
+    slug: "marketing/marketing-churn-rate",
+    inputs: { startCustomers: "100", endCustomers: "150", newCustomers: "20" },
+    expect: ["期末客户数与新增客户数口径不一致"],
+    ref: "期末 150 > 期初 100 + 新增 20 ⇒ 流失人数为负、流失率分母（期初）失去意义；现拦截并提示核对口径。默认 1000/900/100 自洽 ⇒ 注入失败不命中。",
+  },
+  {
+    slug: "marketing/marketing-conversion-rate-calculator",
+    inputs: { visitors: "1000", conversions: "0", totalCost: "5000", avgOrder: "200" },
+    expect: ["本次无转化，CPA 不可计算"],
+    ref: "转化数 0 且有花费时旧实现输出「CPA ¥0.00」，会误导为获客免费；现显示「—」并说明不可计算。默认转化数非 0 ⇒ 注入失败不命中。",
+  },
+  {
+    slug: "marketing/marketing-engagement-rate",
+    inputs: { followers: "10000", likes: "-10", comments: "0", shares: "0", impressionsEng: "0" },
+    expect: ["点赞、评论、分享与曝光量不能为负数"],
+    ref: "点赞为负时旧实现总互动 −10、互动率 −0.10%；现拦截。默认点赞 1200 ⇒ 注入失败不命中。",
   }
 
 ];
