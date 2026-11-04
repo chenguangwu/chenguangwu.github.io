@@ -286,8 +286,33 @@ function normalPDF(x, mu, sigma){
   return Math.exp(-0.5*((x-mu)/sigma)**2)/(sigma*Math.sqrt(2*Math.PI));
 }
 
+// erf 级数：|x|≤1 时收敛极快、精度接近双精度（供中央区使用）
+function erfSeries(x){
+  let term=x, sum=0;
+  for(let n=0;n<60;n++){
+    sum += term/(2*n+1);
+    term *= -x*x/(n+1);
+  }
+  return 2/Math.sqrt(Math.PI)*sum;
+}
+// 标准正态上尾 Q(z)：|z|<2 用 erf 级数（连分式在中央区不收敛），|z|≥2 用连分式（大 z 不饱和）
+function normalSF(z){
+  z=Math.abs(z);
+  if(z<2) return 0.5*(1-erfSeries(z/Math.SQRT2));
+  let t=0;
+  for(let k=80;k>=1;k--) t=k/(z+t);
+  return Math.exp(-0.5*z*z)/Math.sqrt(2*Math.PI)/(z+t);
+}
 function normalCDF(x, mu, sigma){
-  return 0.5*(1+erf((x-mu)/(sigma*Math.SQRT2)));
+  const z=(x-mu)/sigma;
+  return z<=0 ? normalSF(z) : 1-normalSF(z);
+}
+// 正态区间概率：按区间所在侧直接取上尾差，避免两个 CDF 相减相消
+function normalProb(a, b, mu, sigma){
+  const za=(a-mu)/sigma, zb=(b-mu)/sigma;
+  if(za>=0) return normalSF(za)-normalSF(zb);
+  if(zb<=0) return normalSF(-zb)-normalSF(-za);
+  return (1-normalSF(zb)) - normalSF(-za);
 }
 
 function normalInv(p, mu, sigma){
@@ -497,25 +522,23 @@ function calculate(){
       if(type === 'pdf'){
         const x = parseFloat(document.getElementById('x1').value);
         const pdf = normalPDF(x, mu, sigma);
-        html = renderDistResult('正态分布 N('+fmt(mu)+', '+fmt(sigma)+'²)', 'f('+fmt(x)+') = '+fmt(pdf), pdf, 'prob');
+        html = renderDistResult('正态分布 N('+num(mu)+', '+num(sigma)+'²)', 'f('+num(x)+') = '+num(pdf), pdf, 'prob');
       } else if(type === 'cdf'){
         const x = parseFloat(document.getElementById('x1').value);
         const cdf = normalCDF(x, mu, sigma);
-        html = renderDistResult('正态分布 N('+fmt(mu)+', '+fmt(sigma)+'²)', 'P(X ≤ '+fmt(x)+') = '+fmt(cdf)+' ('+(cdf*100).toFixed(4)+'%)', cdf, 'cdf');
+        html = renderDistResult('正态分布 N('+num(mu)+', '+num(sigma)+'²)', 'P(X ≤ '+num(x)+') = '+fmt(cdf), cdf, 'cdf');
       } else if(type === 'inv'){
         const p = parseFloat(document.getElementById('x1').value);
         if(p<=0||p>=1){ html = '<p style="color:var(--danger);">概率必须在 0 ~ 1 之间（不含端点）</p>'; }
         else {
           const x = normalInv(p, mu, sigma);
-          html = renderDistResult('正态分布 N('+fmt(mu)+', '+fmt(sigma)+'²)', 'P(X ≤ '+fmt(x)+') = '+fmt(p), x, 'inv');
+          html = renderDistResult('正态分布 N('+num(mu)+', '+num(sigma)+'²)', 'P(X ≤ '+num(x)+') = '+fmt(p), x, 'inv');
         }
       } else if(type === 'between'){
         const a = parseFloat(document.getElementById('x1').value);
         const b = parseFloat(document.getElementById('x2').value);
-        const pa = normalCDF(a, mu, sigma);
-        const pb = normalCDF(b, mu, sigma);
-        const p = pb - pa;
-        html = renderDistResult('正态分布 N('+fmt(mu)+', '+fmt(sigma)+'²)', 'P('+fmt(a)+' ≤ X ≤ '+fmt(b)+') = '+fmt(p)+' ('+(p*100).toFixed(4)+'%)', p, 'between');
+        const p = normalProb(a, b, mu, sigma);
+        html = renderDistResult('正态分布 N('+num(mu)+', '+num(sigma)+'²)', 'P('+num(a)+' ≤ X ≤ '+num(b)+') = '+fmt(p), p, 'between');
       }
       saveHistory('正态分布', {mu, sigma, type, result: extractResult(html)});
     }
@@ -528,18 +551,18 @@ function calculate(){
       if(type === 'pmf'){
         const k = parseInt(document.getElementById('k1').value);
         const pmf = binomialPMF(k, n, p);
-        html = renderDistResult('二项分布 B('+n+', '+fmt(p)+')', 'P(X = '+k+') = '+fmt(pmf)+' ('+(pmf*100).toFixed(4)+'%)', pmf, 'prob');
+        html = renderDistResult('二项分布 B('+n+', '+fmt(p)+')', 'P(X = '+k+') = '+fmt(pmf), pmf, 'prob');
       } else if(type === 'cdf'){
         const k = parseInt(document.getElementById('k1').value);
         const cdf = binomialCDF(k, n, p);
-        html = renderDistResult('二项分布 B('+n+', '+fmt(p)+')', 'P(X ≤ '+k+') = '+fmt(cdf)+' ('+(cdf*100).toFixed(4)+'%)', cdf, 'cdf');
+        html = renderDistResult('二项分布 B('+n+', '+fmt(p)+')', 'P(X ≤ '+k+') = '+fmt(cdf), cdf, 'cdf');
       } else if(type === 'between'){
         const a = parseInt(document.getElementById('k1').value);
         const b = parseInt(document.getElementById('k2').value);
         const pa = a>0 ? binomialCDF(a-1, n, p) : 0;
         const pb = binomialCDF(b, n, p);
         const prob = pb - pa;
-        html = renderDistResult('二项分布 B('+n+', '+fmt(p)+')', 'P('+a+' ≤ X ≤ '+b+') = '+fmt(prob)+' ('+(prob*100).toFixed(4)+'%)', prob, 'between');
+        html = renderDistResult('二项分布 B('+n+', '+fmt(p)+')', 'P('+a+' ≤ X ≤ '+b+') = '+fmt(prob), prob, 'between');
       }
       saveHistory('二项分布', {n, p, type, result: extractResult(html)});
     }
@@ -551,18 +574,18 @@ function calculate(){
       if(type === 'pmf'){
         const k = parseInt(document.getElementById('k1').value);
         const pmf = poissonPMF(k, lambda);
-        html = renderDistResult('泊松分布 P('+fmt(lambda)+')', 'P(X = '+k+') = '+fmt(pmf)+' ('+(pmf*100).toFixed(4)+'%)', pmf, 'prob');
+        html = renderDistResult('泊松分布 P('+num(lambda)+')', 'P(X = '+k+') = '+fmt(pmf), pmf, 'prob');
       } else if(type === 'cdf'){
         const k = parseInt(document.getElementById('k1').value);
         const cdf = poissonCDF(k, lambda);
-        html = renderDistResult('泊松分布 P('+fmt(lambda)+')', 'P(X ≤ '+k+') = '+fmt(cdf)+' ('+(cdf*100).toFixed(4)+'%)', cdf, 'cdf');
+        html = renderDistResult('泊松分布 P('+num(lambda)+')', 'P(X ≤ '+k+') = '+fmt(cdf), cdf, 'cdf');
       } else if(type === 'between'){
         const a = parseInt(document.getElementById('k1').value);
         const b = parseInt(document.getElementById('k2').value);
         const pa = a>0 ? poissonCDF(a-1, lambda) : 0;
         const pb = poissonCDF(b, lambda);
         const prob = pb - pa;
-        html = renderDistResult('泊松分布 P('+fmt(lambda)+')', 'P('+a+' ≤ X ≤ '+b+') = '+fmt(prob)+' ('+(prob*100).toFixed(4)+'%)', prob, 'between');
+        html = renderDistResult('泊松分布 P('+num(lambda)+')', 'P('+a+' ≤ X ≤ '+b+') = '+fmt(prob), prob, 'between');
       }
       saveHistory('泊松分布', {lambda, type, result: extractResult(html)});
     }
@@ -575,17 +598,17 @@ function calculate(){
       if(type === 'pdf'){
         const x = parseFloat(document.getElementById('x1').value);
         const pdf = uniformPDF(x, a, b);
-        html = renderDistResult('均匀分布 U('+fmt(a)+', '+fmt(b)+')', 'f('+fmt(x)+') = '+fmt(pdf), pdf, 'prob');
+        html = renderDistResult('均匀分布 U('+num(a)+', '+num(b)+')', 'f('+num(x)+') = '+num(pdf), pdf, 'prob');
       } else if(type === 'cdf'){
         const x = parseFloat(document.getElementById('x1').value);
         const cdf = uniformCDF(x, a, b);
-        html = renderDistResult('均匀分布 U('+fmt(a)+', '+fmt(b)+')', 'P(X ≤ '+fmt(x)+') = '+fmt(cdf)+' ('+(cdf*100).toFixed(4)+'%)', cdf, 'cdf');
+        html = renderDistResult('均匀分布 U('+num(a)+', '+num(b)+')', 'P(X ≤ '+num(x)+') = '+fmt(cdf), cdf, 'cdf');
       } else if(type === 'inv'){
         const p = parseFloat(document.getElementById('x1').value);
         if(p<0||p>1){ html = '<p style="color:var(--danger);">概率必须在 0 ~ 1 之间</p>'; }
         else {
           const x = uniformInv(p, a, b);
-          html = renderDistResult('均匀分布 U('+fmt(a)+', '+fmt(b)+')', 'P(X ≤ '+fmt(x)+') = '+fmt(p), x, 'inv');
+          html = renderDistResult('均匀分布 U('+num(a)+', '+num(b)+')', 'P(X ≤ '+num(x)+') = '+fmt(p), x, 'inv');
         }
       } else if(type === 'between'){
         const c = parseFloat(document.getElementById('x1').value);
@@ -593,7 +616,7 @@ function calculate(){
         const pc = uniformCDF(c, a, b);
         const pd = uniformCDF(d, a, b);
         const prob = pd - pc;
-        html = renderDistResult('均匀分布 U('+fmt(a)+', '+fmt(b)+')', 'P('+fmt(c)+' ≤ X ≤ '+fmt(d)+') = '+fmt(prob)+' ('+(prob*100).toFixed(4)+'%)', prob, 'between');
+        html = renderDistResult('均匀分布 U('+num(a)+', '+num(b)+')', 'P('+num(c)+' ≤ X ≤ '+num(d)+') = '+fmt(prob), prob, 'between');
       }
       saveHistory('均匀分布', {a, b, type, result: extractResult(html)});
     }
@@ -605,17 +628,17 @@ function calculate(){
       if(type === 'pdf'){
         const x = parseFloat(document.getElementById('x1').value);
         const pdf = exponentialPDF(x, lambda);
-        html = renderDistResult('指数分布 Exp('+fmt(lambda)+')', 'f('+fmt(x)+') = '+fmt(pdf), pdf, 'prob');
+        html = renderDistResult('指数分布 Exp('+num(lambda)+')', 'f('+num(x)+') = '+num(pdf), pdf, 'prob');
       } else if(type === 'cdf'){
         const x = parseFloat(document.getElementById('x1').value);
         const cdf = exponentialCDF(x, lambda);
-        html = renderDistResult('指数分布 Exp('+fmt(lambda)+')', 'P(X ≤ '+fmt(x)+') = '+fmt(cdf)+' ('+(cdf*100).toFixed(4)+'%)', cdf, 'cdf');
+        html = renderDistResult('指数分布 Exp('+num(lambda)+')', 'P(X ≤ '+num(x)+') = '+fmt(cdf), cdf, 'cdf');
       } else if(type === 'inv'){
         const p = parseFloat(document.getElementById('x1').value);
         if(p<=0||p>=1){ html = '<p style="color:var(--danger);">概率必须在 0 ~ 1 之间（不含端点）</p>'; }
         else {
           const x = exponentialInv(p, lambda);
-          html = renderDistResult('指数分布 Exp('+fmt(lambda)+')', 'P(X ≤ '+fmt(x)+') = '+fmt(p), x, 'inv');
+          html = renderDistResult('指数分布 Exp('+num(lambda)+')', 'P(X ≤ '+num(x)+') = '+fmt(p), x, 'inv');
         }
       } else if(type === 'between'){
         const xa = parseFloat(document.getElementById('x1').value);
@@ -623,7 +646,7 @@ function calculate(){
         const pa = exponentialCDF(xa, lambda);
         const pb = exponentialCDF(xb, lambda);
         const prob = pb - pa;
-        html = renderDistResult('指数分布 Exp('+fmt(lambda)+')', 'P('+fmt(xa)+' ≤ X ≤ '+fmt(xb)+') = '+fmt(prob)+' ('+(prob*100).toFixed(4)+'%)', prob, 'between');
+        html = renderDistResult('指数分布 Exp('+num(lambda)+')', 'P('+num(xa)+' ≤ X ≤ '+num(xb)+') = '+fmt(prob), prob, 'between');
       }
       saveHistory('指数分布', {lambda, type, result: extractResult(html)});
     }
@@ -643,39 +666,39 @@ function renderDistResult(title, resultText, value, type){
     const mu = parseFloat(document.getElementById('mu').value);
     const sigma = parseFloat(document.getElementById('sigma').value);
     html += '<div class="func-grid">';
-    html += '<div class="func-card"><div class="name">均值 E(X)</div><div class="val">'+fmt(mu)+'</div></div>';
-    html += '<div class="func-card"><div class="name">方差 Var(X)</div><div class="val">'+fmt(sigma*sigma)+'</div></div>';
-    html += '<div class="func-card"><div class="name">标准差</div><div class="val">'+fmt(sigma)+'</div></div>';
+    html += '<div class="func-card"><div class="name">均值 E(X)</div><div class="val">'+num(mu)+'</div></div>';
+    html += '<div class="func-card"><div class="name">方差 Var(X)</div><div class="val">'+num(sigma*sigma)+'</div></div>';
+    html += '<div class="func-card"><div class="name">标准差</div><div class="val">'+num(sigma)+'</div></div>';
     html += '</div>';
   } else if(currentDist==='binomial'){
     const n = parseInt(document.getElementById('n').value);
     const p = parseFloat(document.getElementById('p').value);
     html += '<div class="func-grid">';
-    html += '<div class="func-card"><div class="name">均值 E(X)</div><div class="val">'+fmt(n*p)+'</div></div>';
-    html += '<div class="func-card"><div class="name">方差 Var(X)</div><div class="val">'+fmt(n*p*(1-p))+'</div></div>';
-    html += '<div class="func-card"><div class="name">标准差</div><div class="val">'+fmt(Math.sqrt(n*p*(1-p)))+'</div></div>';
+    html += '<div class="func-card"><div class="name">均值 E(X)</div><div class="val">'+num(n*p)+'</div></div>';
+    html += '<div class="func-card"><div class="name">方差 Var(X)</div><div class="val">'+num(n*p*(1-p))+'</div></div>';
+    html += '<div class="func-card"><div class="name">标准差</div><div class="val">'+num(Math.sqrt(n*p*(1-p)))+'</div></div>';
     html += '</div>';
   } else if(currentDist==='poisson'){
     const lambda = parseFloat(document.getElementById('lambda').value);
     html += '<div class="func-grid">';
-    html += '<div class="func-card"><div class="name">均值 E(X)</div><div class="val">'+fmt(lambda)+'</div></div>';
-    html += '<div class="func-card"><div class="name">方差 Var(X)</div><div class="val">'+fmt(lambda)+'</div></div>';
-    html += '<div class="func-card"><div class="name">标准差</div><div class="val">'+fmt(Math.sqrt(lambda))+'</div></div>';
+    html += '<div class="func-card"><div class="name">均值 E(X)</div><div class="val">'+num(lambda)+'</div></div>';
+    html += '<div class="func-card"><div class="name">方差 Var(X)</div><div class="val">'+num(lambda)+'</div></div>';
+    html += '<div class="func-card"><div class="name">标准差</div><div class="val">'+num(Math.sqrt(lambda))+'</div></div>';
     html += '</div>';
   } else if(currentDist==='uniform'){
     const a = parseFloat(document.getElementById('a').value);
     const b = parseFloat(document.getElementById('b').value);
     html += '<div class="func-grid">';
-    html += '<div class="func-card"><div class="name">均值 E(X)</div><div class="val">'+fmt((a+b)/2)+'</div></div>';
-    html += '<div class="func-card"><div class="name">方差 Var(X)</div><div class="val">'+fmt((b-a)*(b-a)/12)+'</div></div>';
-    html += '<div class="func-card"><div class="name">标准差</div><div class="val">'+fmt(Math.sqrt((b-a)*(b-a)/12))+'</div></div>';
+    html += '<div class="func-card"><div class="name">均值 E(X)</div><div class="val">'+num((a+b)/2)+'</div></div>';
+    html += '<div class="func-card"><div class="name">方差 Var(X)</div><div class="val">'+num((b-a)*(b-a)/12)+'</div></div>';
+    html += '<div class="func-card"><div class="name">标准差</div><div class="val">'+num(Math.sqrt((b-a)*(b-a)/12))+'</div></div>';
     html += '</div>';
   } else if(currentDist==='exponential'){
     const lambda = parseFloat(document.getElementById('lambda').value);
     html += '<div class="func-grid">';
-    html += '<div class="func-card"><div class="name">均值 E(X)</div><div class="val">'+fmt(1/lambda)+'</div></div>';
-    html += '<div class="func-card"><div class="name">方差 Var(X)</div><div class="val">'+fmt(1/(lambda*lambda))+'</div></div>';
-    html += '<div class="func-card"><div class="name">标准差</div><div class="val">'+fmt(1/lambda)+'</div></div>';
+    html += '<div class="func-card"><div class="name">均值 E(X)</div><div class="val">'+num(1/lambda)+'</div></div>';
+    html += '<div class="func-card"><div class="name">方差 Var(X)</div><div class="val">'+num(1/(lambda*lambda))+'</div></div>';
+    html += '<div class="func-card"><div class="name">标准差</div><div class="val">'+num(1/lambda)+'</div></div>';
     html += '</div>';
   }
   return html;
@@ -711,9 +734,16 @@ function calcBasic(){
   const __h10=html;if((typeof __h10==='number'&&!isFinite(__h10))||/Infinity/.test(String(__h10))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h10)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h10;
 }
 
+function num(x){
+  if(!isFinite(x)) return '未定义';
+  if(x===0) return '0';
+  if(Math.abs(x)>1e15||Math.abs(x)<1e-6) return x.toExponential(6);
+  return (Math.round(x*1e10)/1e10).toLocaleString();
+}
 function fmt(x){
   if(!isFinite(x)) return '未定义';
-  if(Math.abs(x)<1e-12) return '0';
+  if(x===0) return '0';
+  if(Math.abs(x)<1e-6) return (x*100).toExponential(6)+'%';
   return (Math.round(x*1e10)/1e10).toLocaleString(undefined,{style:'percent',minimumFractionDigits:2,maximumFractionDigits:6});
 }
 function fmtD(x){
@@ -831,7 +861,7 @@ function drawDistPlot(){
   for(let i=0;i<=xTicks;i++){
     const x = padL + (i/xTicks)*chartW;
     const val = xMin + (i/xTicks)*(xMax-xMin);
-    ctx.fillText(fmt(val), x, padT+chartH+5);
+    ctx.fillText(num(val), x, padT+chartH+5);
   }
   if(isDiscrete){
     const barW = chartW/(xMax-xMin)*0.6;
@@ -921,7 +951,7 @@ function showHistory(){
     const p = h.params;
     let paramStr = '';
     for(const k in p){
-      if(k !== 'result') paramStr += k+'='+fmt(p[k])+', ';
+      if(k !== 'result') paramStr += k+'='+num(p[k])+', ';
     }
     paramStr = paramStr.slice(0,-2);
     html += `<div class="history-item">

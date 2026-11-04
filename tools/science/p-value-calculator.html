@@ -290,8 +290,25 @@ function setMode(m){
 function fmt(x){
   if(!isFinite(x)) return '未定义';
   if(x===0) return '0';
-  if(Math.abs(x)>1e15||Math.abs(x)<1e-6) return x.toExponential(8);
+  if(Math.abs(x)>1e15||Math.abs(x)<1e-6) return x.toExponential(6);
   return (Math.round(x*1e10)/1e10).toLocaleString();
+}
+// erf 级数：|x|≤1 时收敛极快、精度接近双精度（供中央区使用）
+function erfSeries(x){
+  let term=x, sum=0;
+  for(let n=0;n<60;n++){
+    sum += term/(2*n+1);
+    term *= -x*x/(n+1);
+  }
+  return 2/Math.sqrt(Math.PI)*sum;
+}
+// 标准正态上尾 Q(z)：|z|<2 用 erf 级数（连分式在中央区不收敛），|z|≥2 用连分式（大 z 不饱和，可算到 1e-300）
+function normalSF(z){
+  z=Math.abs(z);
+  if(z<2) return 0.5*(1-erfSeries(z/Math.SQRT2));
+  let t=0;
+  for(let k=80;k>=1;k--) t=k/(z+t);
+  return Math.exp(-0.5*z*z)/Math.sqrt(2*Math.PI)/(z+t);
 }
 function normalCDF(z){
   if(z<-8) return 0; if(z>8) return 1;
@@ -370,6 +387,21 @@ function gammp(a,x){
   }
   return sum*Math.exp(-x+a*Math.log(x)-logGamma(a));
 }
+// 正则化不完全 Gamma 上尾 Q(a,x)：直接返回 Q，避免 1-P 相消
+function gammq(a,x){
+  if(x<=0) return 1;
+  if(x<a+1) return 1-gammp(a,x);
+  const FPMIN=1e-300, EPS=1e-15;
+  let b=x+1-a, c=1/FPMIN, d=1/b, h=d;
+  for(let i=1;i<500;i++){
+    const an=-i*(i-a);
+    b+=2; d=an*d+b; if(Math.abs(d)<FPMIN) d=FPMIN;
+    c=b+an/c; if(Math.abs(c)<FPMIN) c=FPMIN;
+    d=1/d; const del=d*c; h*=del;
+    if(Math.abs(del-1)<EPS) break;
+  }
+  return Math.exp(-x+a*Math.log(x)-logGamma(a))*h;
+}
 function chiSquareCDF(x,df){
   if(x<=0) return 0;
   // 精确：χ²(df) 的 CDF = P(df/2, x/2)。原实现用 Wilson–Hilferty 正态近似，
@@ -387,10 +419,10 @@ function calculate(){
     const tail=document.getElementById('tail0').value;
     if(isNaN(z)){const __h1='<p style="color:var(--danger)">请输入 Z</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;return;}
     stat=z; distName='Z';
-    const cdf=normalCDF(z);
-    if(tail==='two') p=2*Math.min(cdf,1-cdf);
-    else if(tail==='left') p=cdf;
-    else p=1-cdf;
+    const sf=normalSF(z);
+    if(tail==='two') p=2*sf;
+    else if(tail==='left') p=(z>=0)?1-sf:sf;
+    else p=(z>=0)?sf:1-sf;
     label=`Z = ${fmt(z)}`;
   } else if(currentMode===1){
     const t=parseFloat(document.getElementById('t1').value);
@@ -398,17 +430,18 @@ function calculate(){
     const tail=document.getElementById('tail1').value;
     if(isNaN(t)||isNaN(df)||df<=0){const __h2=__t('<p style="color:var(--danger)">请输入有效 t 和 df（df 须大于 0，可为小数）</p>','<p style="color:var(--danger)">Enter a valid t and df (df must be > 0 and may be a decimal)</p>');if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h2;return;}
     stat=t; distName='t';
-    const cdf=tCDF(t,df);
-    if(tail==='two') p=2*Math.min(cdf,1-cdf);
-    else if(tail==='left') p=cdf;
-    else p=1-cdf;
+    // 直接取上尾 0.5*I_x(df/2,0.5)，避免 1-CDF 相消导致极端 t 显示 0
+    const tailHalf=0.5*betaI(df/(df+t*t), df/2, 0.5);
+    if(tail==='two') p=2*tailHalf;
+    else if(tail==='left') p=(t>=0)?1-tailHalf:tailHalf;
+    else p=(t>=0)?tailHalf:1-tailHalf;
     label=`t = ${fmt(t)}，df = ${df}`;
   } else {
     const chi=parseFloat(document.getElementById('chi2').value);
     const df=parseFloat(document.getElementById('df2').value);
     if(isNaN(chi)||chi<0||isNaN(df)||df<=0){const __h3=__t('<p style="color:var(--danger)">请输入有效 χ² 和 df（df 须大于 0，可为小数）</p>','<p style="color:var(--danger)">Enter a valid χ² and df (df must be > 0 and may be a decimal)</p>');if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h3;return;}
     stat=chi; distName='χ²';
-    p=1-chiSquareCDF(chi,df);
+    p=gammq(df/2, chi/2);
     label=`χ² = ${fmt(chi)}，df = ${df}`;
   }
   let html=`<div class="big-result">p = ${fmt(p)}</div>`;

@@ -8358,6 +8358,14 @@ const CASES = [
     expect: ["PWD-FMT-OK-12-ALNUM"],
     ref: "长度 12、只启用小写+大写+数字 ⇒ 每位必落在 62 字符集内（未选符号），串长恒为 12。默认长度 16、默认四项全选（含符号）⇒ 不命中。生成路径已移除 Math.random 回退。",
   },
+  {
+    slug: "it/matrix-determinant",
+    clicks: [
+      'document.getElementById("size").value="2";build();document.getElementById("a0").value="1";document.getElementById("a1").value="1";document.getElementById("a2").value="1";document.getElementById("a3").value="1.0000000000001";calculate()'
+    ],
+    expect: ["9.992007e-14"],
+    ref: "2×2 近奇异矩阵 [[1,1],[1,1+1e-13]]：det = 1×(1+1e-13) − 1×1 = 9.992e-14（补码可表示的 1e-13 级差值）。这是条件数信号，不是浮点噪声；原 fmt 先判 |x|<1e-12 → 0 把真实小行列式吞成 0，现改为仅 x===0 返回 0、小值走科学计数法。默认 3×3 单位阵 det=1，不命中。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
@@ -9072,6 +9080,14 @@ async function runCaseInner(c) {
       if (typeof n !== "number" || isNaN(n)) return String(n);
       dec = dec != null ? dec : 0;
       return n.toLocaleString("zh-CN", { minimumFractionDigits: dec, maximumFractionDigits: dec });
+    },
+    // 与 js/common.js::csvCell 同实现：导出收敛到 ToolBox.csvCell 的页面，
+    // 在 `[...].map(ToolBox.csvCell)` 处若缺该成员会抛 "undefined is not a function"，
+    // 使后面的 ToolBox.downloadText 覆盖根本执行不到（表面现象就是「downloadText 桩失效」）。
+    csvCell: (value) => {
+      let t = String(value == null ? "" : value);
+      if (/^[=+\-@\t\r]/.test(t)) t = "'" + t;
+      return /[",\n\r]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
     },
     // 同 stub：明细表渲染。返回 HTML 字符串即可，collectStrings 会剥离标签后再断言。
     createTable: (headers, rows) => {
