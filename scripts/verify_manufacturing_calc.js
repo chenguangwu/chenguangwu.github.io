@@ -64,6 +64,21 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"usl\":\"42\",\"lsl\":\"42\",\"mean\":\"42\",\"stddev\":\"42\",\"n\":\"42\"}，输出区含「移 PPK 长期\n42\n42\n42\n42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    "slug": "manufacturing/quality-control",
+    "inputs": {
+      "usl": "110",
+      "lsl": "90",
+      "mean": "105",
+      "stddev": "3",
+      "n": "100",
+      "sigmaOverall": "4"
+    },
+    "expect": [
+      "PPK (长期能力) 0.417"
+    ],
+    "ref": "独立复算：T=110−90=20，PPK=min((110−105)/(3×4), (105−90)/(3×4))=min(0.417,1.250)=0.417；旧实现把 PP=T/(6σ)=20/24=0.833 直接当作 PPK，故该串仅修复后命中 ⇒ 强判别。"
+  },
+  {
     "slug": "manufacturing/inventory-calculator",
     "inputs": {
       "annualDemand": "42",

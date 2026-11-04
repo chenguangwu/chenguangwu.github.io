@@ -49,6 +49,21 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "welding/detector-25",
+  "inputs": {
+    "ndtMethod": "rt",
+    "weldType": "fillet",
+    "plateThick": "24",
+    "circDef": "3",
+    "stripDef": "8",
+    "evalArea": "500"
+  },
+  "expect": [
+    "角焊缝通常不宜采用射线检测"
+  ],
+  "ref": "角焊缝 + RT 应给出适用性提示（NB/T 47013 的 RT 评定针对对接接头）；默认 butt+rt 不含该串 ⇒ 可判别。原代码 weldType 仅回显、不参与条件分支（死控件）。"
+},
+{
   "slug": "welding/energy-cost-1",
   "inputs": {
     "current": "300",

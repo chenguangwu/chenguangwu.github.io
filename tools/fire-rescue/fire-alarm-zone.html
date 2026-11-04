@@ -242,7 +242,7 @@ s.parentNode.insertBefore(el, s);
         <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="出处 / 标准">Source / Standard</th>
       </tr></thead>
       <tbody>
-        <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:top;"><span data-zh="探测分区">Detection zone</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:top;"><span data-zh="一个分区≤5000m²（感烟）">≤5000 m² per smoke zone</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:top;"><span data-zh="GB 50116-2013">GB 50116-2013 §3.2</span></td></tr>
+        <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:top;"><span data-zh="探测分区">Detection zone</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:top;"><span data-zh="一个探测区域≤500 m²（出入口可看清内部时≤1000 m²）">≤500 m² per detector zone (≤1000 m² if visible from the entrance)</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:top;"><span data-zh="GB 50116-2013">GB 50116-2013 §3.3.1</span></td></tr>
         <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:top;"><span data-zh="地址容量">Address capacity</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:top;"><span data-zh="报警总线单回路≤200点（留10%余量）">≤200 points per loop, 10% spare</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:top;"><span data-zh="GB 50116-2013">GB 50116-2013 §3.1</span></td></tr>
         <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:top;"><span data-zh="探测器保护面积">Detector coverage</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:top;"><span data-zh="感烟 A=60-80 m²/h（层高）">60–80 m² per detector</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:top;"><span data-zh="GB 50116-2013 Appendix">GB 50116 Appendix D</span></td></tr>
         <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:top;"><span data-zh="手报距离">Manual call point</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:top;"><span data-zh="步行距离≤30m（任一点）">≤30 m travel to MCP</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:top;"><span data-zh="GB 50116-2013">GB 50116-2013 §6.3</span></td></tr>
@@ -292,17 +292,20 @@ function calc(){
     protArea=height<=26?500:0; // 吸气式
   }
 
-  // 报警区域数
-  var alarmZones;
-  if(btype===1){
-    alarmZones=floors*fireZones; // 高层每防火分区一个报警区域
-  }else{
-    alarmZones=floors*fireZones;
+  // 单层大空间按一层计，楼层输入不参与（避免按多层重复累计）
+  var effFloors=(btype===3)?1:floors;
+  var btypeNote='';
+  if(btype===3){
+    var __en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+    btypeNote='<p style="font-size:12px;color:var(--text-muted);margin-top:6px;">'+(__en?'Single-storey large space is treated as one storey: alarm zones = fire compartments, and the floor count does not add to the building area or detector totals.':'单层大空间按单层计：报警区域数 = 防火分区数，楼层数不参与建筑面积与探测器累计。')+'</p>';
   }
+
+  // 报警区域数：每个防火分区一个报警区域
+  var alarmZones=effFloors*fireZones;
 
   // 探测区域数（每层）
   var detectZonesPerFloor=Math.ceil(floorArea/500);
-  var totalDetectZones=detectZonesPerFloor*floors;
+  var totalDetectZones=detectZonesPerFloor*effFloors;
 
   // 探测器数量
   var detectorsPerZone, totalDetectors;
@@ -310,7 +313,7 @@ function calc(){
     detectorsPerZone=Math.ceil(500/protArea);
     // 每个探测区域探测器数 × 探测区域数
     var perFloorDetectors=Math.ceil(floorArea/protArea);
-    totalDetectors=perFloorDetectors*floors;
+    totalDetectors=perFloorDetectors*effFloors;
   }else{
     detectorsPerZone=0;
     totalDetectors=0;
@@ -322,17 +325,18 @@ function calc(){
   if(totalDetectors>0){
     html+='<div class="stat-card"><div class="val">'+totalDetectors+'</div><div class="lbl">探测器总数</div></div>';
   }
-  html+='<div class="stat-card"><div class="val">'+(floors*floorArea).toFixed(0)+'</div><div class="lbl">建筑总面积(m²)</div></div>';
+  html+='<div class="stat-card"><div class="val">'+(effFloors*floorArea).toFixed(0)+'</div><div class="lbl">建筑总面积(m²)</div></div>';
   html+='</div>';
+  html+=btypeNote;
 
   // 分区方案表
   var rows=[];
-  for(var f=1;f<=Math.min(floors,6);f++){
+  for(var f=1;f<=Math.min(effFloors,6);f++){
     var startZone=(f-1)*fireZones+1;
     var endZone=f*fireZones;
     rows.push([f+'层', startZone+'~'+endZone, detectZonesPerFloor, totalDetectors>0?Math.ceil(floorArea/protArea):'-']);
   }
-  if(floors>6)rows.push(['...','...','...','...']);
+  if(effFloors>6)rows.push(['...','...','...','...']);
   html+='<h3 style="margin:12px 0 8px;">分区方案</h3>';
   html+=ToolBox.createTable(['楼层','报警区域','探测区域数','探测器数'],rows);
 
@@ -343,7 +347,7 @@ function calc(){
   }
 
   html+='<div class="info-box"><strong>分区要点：</strong><br>';
-  html+='• '+(['高层建筑','多层建筑','单层大空间','地下建筑'])[btype-1]+'，共 '+floors+' 层<br>';
+  html+='• '+(['高层建筑','多层建筑','单层大空间','地下建筑'])[btype-1]+'，共 '+effFloors+' 层'+(btype===3?'（单层大空间按 1 层计）':'')+'<br>';
   html+='• 每层 '+fireZones+' 个防火分区 → 每层 '+fireZones+' 个报警区域<br>';
   html+='• 每层探测区域：'+detectZonesPerFloor+' 个（按500m²上限划分）<br>';
   if(totalDetectors>0){

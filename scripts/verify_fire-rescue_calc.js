@@ -99,6 +99,20 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "fire-rescue/fire-alarm-zone",
+  "inputs": {
+    "btype": "3",
+    "floors": "3",
+    "floorArea": "2000",
+    "fireZones": "2",
+    "height": "3.5"
+  },
+  "expect": [
+    "单层大空间按单层计"
+  ],
+  "ref": "单层大空间（btype=3）应把楼层数按 1 计：报警区域 2 个、建筑总面积 2000 m²；预期醒目提示文案，默认多层态不含该串 ⇒ 可判别。原代码 if(btype===1) 与 else 分支完全相同，楼层数对单层多算。"
+},
+{
   "slug": "fire-rescue/fire-extinguisher-selection",
   "inputs": {
     "area": "800"
@@ -147,6 +161,16 @@ const CASES = [
     "2 荷载密度 (MJ/m²)"
   ],
   "ref": "独立复算：总热值 360 MJ（木材 10 kg×18 MJ/kg ×2 行）÷ 面积 150 m² = 2.4 ⇒ 显示 2 MJ/m²。⚠ 原 expect '150' 为面积输入回显（零判别力）。默认面积下荷载密度不同，不命中 ⇒ 无逃生（已双态实测）。"
+},
+{
+  "slug": "fire-rescue/fire-load",
+  "inputs": {
+    "area": "0.1"
+  },
+  "expect": [
+    "火灾严重程度：极高"
+  ],
+  "ref": "360 MJ ÷ 0.1 m² = 3600 MJ/m² > 2000，判定应为最高档「极高」；默认 150 m² 为 2 MJ/m²「低」，不命中该串 ⇒ 可判别（覆盖页内分级口径与进度条上限一致性）。"
 },
 {
   "slug": "fire-rescue/fire-resistance-rating",
