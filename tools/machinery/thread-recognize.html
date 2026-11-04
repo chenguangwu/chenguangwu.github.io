@@ -143,7 +143,6 @@ s.parentNode.insertBefore(el, s);
           <option value="0" selected>自动判断</option>
           <option value="60">60°（公制/美制）</option>
           <option value="55">55°（英制惠氏）</option>
-          <option value="30">30°（梯形/管螺纹）</option>
         </select>
       </div>
     </div>
@@ -303,6 +302,12 @@ var THREADS = [
   ['3/8-16 BSW', 9.525, 1.588, 55, '英制粗牙'], ['7/16-14 BSW', 11.113, 1.814, 55, '英制粗牙'],
   ['1/2-12 BSW', 12.700, 2.117, 55, '英制粗牙'], ['5/8-11 BSW', 15.875, 2.309, 55, '英制粗牙'],
   ['3/4-10 BSW', 19.050, 2.540, 55, '英制粗牙'], ['1-8 BSW', 25.400, 3.175, 55, '英制粗牙'],
+  // BSPP (G 系列圆柱管螺纹, 55°, ISO 228)
+  ['G1/8', 9.728, 0.907, 55, 'BSPP 管螺纹'], ['G1/4', 13.157, 1.337, 55, 'BSPP 管螺纹'],
+  ['G3/8', 16.662, 1.337, 55, 'BSPP 管螺纹'], ['G1/2', 20.955, 1.814, 55, 'BSPP 管螺纹'],
+  ['G5/8', 22.911, 1.814, 55, 'BSPP 管螺纹'], ['G3/4', 26.441, 1.814, 55, 'BSPP 管螺纹'],
+  ['G1', 33.249, 2.309, 55, 'BSPP 管螺纹'], ['G1-1/4', 41.910, 2.309, 55, 'BSPP 管螺纹'],
+  ['G1-1/2', 47.803, 2.309, 55, 'BSPP 管螺纹'], ['G2', 59.614, 2.309, 55, 'BSPP 管螺纹'],
   // BSF (惠氏细牙, 55°)
   ['3/16-32 BSF', 4.763, 0.794, 55, '英制细牙'], ['1/4-26 BSF', 6.350, 0.977, 55, '英制细牙'],
   ['5/16-22 BSF', 7.938, 1.154, 55, '英制细牙'], ['3/8-20 BSF', 9.525, 1.270, 55, '英制细牙'],
@@ -359,11 +364,13 @@ function calc(){
     var best = null, bestScore = Infinity;
     for(var i = 0; i < THREADS.length; i++){
       var t = THREADS[i];
+      if(angleSel !== 0 && t[3] !== angleSel) continue; // 仅在相同牙型角内比较
       var score = Math.abs(t[1] - dia) + Math.abs(t[2] - pitch) * 2;
-      if(angleSel !== 0 && t[3] !== angleSel) score += 100;
       if(score < bestScore){ bestScore = score; best = t; }
     }
-    if(best){
+    if(!best){
+      html += '<div class="tip-box tip-warn">所选牙型角下无可用标准螺纹数据，请改选「自动判断」。</div>';
+    } else {
       html += '<div class="data-grid" style="margin-top:8px;">';
       html += '<div class="data-card"><div class="num">' + best[0] + '</div><div class="label">最接近规格</div></div>';
       html += '<div class="data-card"><div class="num">' + fmt(best[1]) + '</div><div class="label">标准外径 (mm)</div></div>';
@@ -561,11 +568,11 @@ else document.addEventListener('DOMContentLoaded', __thread_recognizeBoot);
 <li>推算中径 d2、小径 d1、牙型高 H。</li>
 <li>公英制换算（TPI=25.4/螺距）。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">M10×1.5 识别</div><div class="dd-ex-body">外径≈10、螺距 1.5、牙型角 60°：H=p/(2·tan30°)=1.5/1.1547≈1.299 mm；d2=10−0.75×1.299×cos30°=10−0.843≈9.157 mm；d1=10−1.0825×1.5≈8.376 mm。匹配标准 M10×1.5。</div></div>
+<div class="dd-example"><div class="dd-ex-title">M10×1.5 识别</div><div class="dd-ex-body">外径≈10、螺距 1.5、牙型角 60°：H=p/(2·tan30°)=1.5/1.1547≈1.299 mm；d2=10−0.64952×1.5≈9.026 mm；d1=10−1.0825×1.5≈8.376 mm。匹配标准 M10×1.5。</div></div>
 <div class="dd-example"><div class="dd-ex-title">英制换算</div><div class="dd-ex-body">1/2-20 UNF：TPI=20 → 螺距=25.4/20=1.27 mm；外径 12.7 mm。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>中径为何用 0.75H·cos(α/2)？</dt><dd>60° 公制三角螺纹理论牙型，中径 = 大径 − 2×(H/2 在轴向投影)，几何推导得此式（H 为理论牙高）。</dd>
+<dt>中径如何计算？</dt><dd>60° 公制三角螺纹基本中径 d₂ = d − 0.64952P；55° 惠氏螺纹 d₂ = d − 0.6403P（P 为螺距）。牙型高度 H 仅用于描述牙型几何，不再与 cos(α/2) 连乘。</dd>
 <dt>测外径能唯一确定螺纹？</dt><dd>不能，需同时测螺距（或 TPI）与牙型角；外径相同螺距不同是不同规格。</dd>
 </dl>
 </div>
