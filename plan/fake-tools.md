@@ -321,3 +321,14 @@
 | 农业养殖 | `tools/agriculture/calc-6.html` | A | `:126-127,278-281` 饲养周期仅参与 `cycle<=0` 校验，不进入任何算式；45 天与 120 天结果相同，公式说明「年批次数=365÷饲养周期×批次数」未实现 | `plan/categories/10-农业养殖/agriculture.md` 10-67 | 饲养周期死输入 |
 
 > 说明：`tools/biz/text-sort.html`（BS-N140）主体排序可用，仅图表/数据表/历史/导出因 `textarea.textContent` 恒空而全失效，按「部分成立」留待修复线复核，暂不计入假工具页数。
+
+## Z 批新增假工具候选（2026-11-04）
+
+| 分类 | 页面 | 类型 | 证据（当前行号） | 来源条目 | 说明 |
+|---|---|---|---|---|---|
+| IT开发 | `tools/it/text-qr.html` | B | `:247-267` 3 个定位图形（`:249-257`）+ 定时线（`:259`），数据区 `:260-265` 按 `strHash(text)` 逐格 `rnd()<0.5` 填色；`:248` `N=29` 写死；无分段/比特流/Reed-Solomon/格式信息/掩码，扫码无内容 | `plan/categories/01-IT开发/it.md` IT-N550 | 伪二维码（同 `email-qr`/`location-qr`） |
+| 工程制造 | `tools/machinery/lifespan-20.html` | C | `:209-210,232` 精度因子 1.0–1.5、润滑因子 0.8–1.5 无 ISO 281 依据，且 `precisionLife=L10h*cf*lf` 把润滑二次计入（P2+喷油可放大至疲劳寿命 2.25 倍，与注文相反）；`:235-236,243` dn 值按 `n*25` 写死内径 25 mm，无内径输入 | `plan/categories/08-工程制造/machinery-metalwork.md` MM-H95/H96 | 核心结论失真 |
+| 工程制造 | `tools/machinery/speed-26.html` | C | `:206-214,218-219` 链号表每档只有单一 `maxKw/maxRpm`，与转速/齿数/排数无关，却称「查 06B~24A 额定功率/转速表」；`:217-220,228-233` 超表上限静默沿用 24A | `plan/categories/08-工程制造/machinery-metalwork.md` MM-H102/H103 | 额定功率表名不副实 |
+| 工程制造 | `tools/metalwork/analysis-36.html` | C | `:117` 英文副标题称 "assess likely causes and remedies"，`:286-292` 实际只做「数量×权重」统计，成因/对策、标准差、控制界限、位置溯源均未实现 | `plan/categories/08-工程制造/machinery-metalwork.md` MM-H114 | 诊断能力未实现 |
+| 工程制造 | `tools/metalwork/analysis-cost-price-5.html` | C | `:125` 标题含「成本」、`:191-203` 引据表列材料成本=体积×密度×单价与总成本=材料+加工+损耗+废品率，页面 `:220-256` 只有价格序列统计，无任何成本输入 | `plan/categories/08-工程制造/machinery-metalwork.md` MM-H117 | 成本分析未实现 |
+| 农业养殖 | `tools/fishery/calc-39.html` | C | `:10,34` 描述与 JSON-LD 称「输入体重/水温/投喂率算日投喂量」，`:116-123` 实际只有两个数字输入与求部分/百分比/增长率三页签，无体重/水温/投喂率字段 | `plan/categories/10-农业养殖/fishery-aquaculture.md` 10-H34 | 承诺工具与实际不符 |

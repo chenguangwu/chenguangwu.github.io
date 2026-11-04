@@ -726,3 +726,83 @@
 - 假工具：1（`tools/machinery/detector-stretch.html`）。安全条目：0（无 XSS、eval、allow-same-origin、明文存密、第三方外传）。
 - 复算：node 内存复算关键值（根切 zmin、负体积/负密度、泵功率与 nq、制动能耗、离合器扭矩/压力），未落盘仓库；仅源码阅读，未开浏览器、未跑构建/门禁、未改工具页。
 - 去重说明：`detector-stretch` 与既有 MM-H63 同为「写死阈值冒充国标」模式，但页面不同，按逐页口径单列。
+
+## Z 批 · 机械·选型/寿命/传动（2026-11-04）
+
+**逐页结论（8 页）**
+- `tools/machinery/flow-itinerary.html`：推力/拉力/容积/流量公式与默认算例复算一致；仅预设条把 16 MPa 标成「16bar」，点击后按 16 MPa 计算，与标签差 10 倍。
+- `tools/machinery/frequency-17.html`：k/m 固有频率、阻尼透射率、隔振效率与静变形公式及深度解析算例均复算一致，0 问题。
+- `tools/machinery/jingmishebeixuanxing.html`：导轨 6 倍载荷、导程按 3000 rpm 的选择逻辑成立；但「导程精度」按导程写死 ±3/±5/±8 μm 与 C3/C5/C7 无关，超表上限静默取下限，历史漏存速度。
+- `tools/machinery/lifespan-20.html`：L10 与其两个算例复算一致；但精度/润滑因子无 ISO 281 依据却冠以 ISO 281，dn 值固定按内径 25 mm 估算，两项核心结论失真。
+- `tools/machinery/lifespan-7.html`：Arrhenius Q10 与四因子连乘复算一致；PV 固定 50 mm 轴径、限值 0.3，默认工况即报超限；超温段固定 0.05、低温无材料下限。
+- `tools/machinery/lifespan-bearing-1.html`：p、v、pV、L10 与所需 C 复算一致；pV 合格线固定 10 忽略材料许用 6–30，且 pV>20 仍推荐滑动轴承，与「超限」自相矛盾。
+- `tools/machinery/power-voltage.html`：P=Tn/9550、额定电流与两个算例一致；极数按阈值下取导致 1100/2000/2400 rpm 出现 −10%~−60% 负转差率，>400 kW 静默封顶。
+- `tools/machinery/speed-26.html`：节距/链速/链节数公式与默认算例一致；链号「额定功率」实为与转速无关的单值常量，非峰值转速下普遍高估许用功率，超表上限静默取 24A。
+
+**问题条目**
+
+| 页面 | 问题（含 tools/machinery/<slug>.html:NN） | 编号 |
+|---|---|---|
+| tools/machinery/flow-itinerary.html | 【中】预设条标签写「16bar/8bar/25bar」，但 `press` 输入单位是 MPa、值为 16/8/25；点击后按 16 MPa 计算推力 125.66 kN，而 16 bar=1.6 MPa 应为 12.57 kN，量纲差 10 倍（:132, :338-340） | MM-H90 |
+| tools/machinery/jingmishebeixuanxing.html | 【高】「导程精度」由导程写死（5→±3、10→±5、其余±8 μm/300mm），与所选 C3/C5/C7 无关：acc=50 判 C7（标准 ±50 μm/300mm），默认导程 5 却显示 ±3μm/300mm；acc=5 判 C3、导程 40 又显示 ±8μm/300mm，精度等级与精度值自相矛盾（:217, :220, :232） | MM-H91 |
+| tools/machinery/jingmishebeixuanxing.html | 【高】导轨/导程超表静默取末项：负载 2000 kg→需 117.6 kN，仍推荐 HGR65（动额定仅 101 kN）；速度 200 m/min→导程 40mm 时转速 5000 rpm，超过页面自称 3000 rpm 上限，均无超范围提示（:200-202, :205-208, :216, :230） | MM-H92 |
+| tools/machinery/jingmishebeixuanxing.html | 【中】历史记录 `saveHistory` 未存 vSpeed，`restoreHistory` 也不恢复速度；恢复后按当前速度重算，同一记录的导程/转速/扭矩与保存时不一致（:239, :241, :216） | MM-H93 |
+| tools/machinery/jingmishebeixuanxing.html | 【中】预设标签写「50N/20N/200N」，而 `vLoad` 输入单位是 kg、代码按 kg×9.8 计载；点击「200N」实为 200 kg（1960 N），量纲差约 10 倍（:128, :345-347） | MM-H94 |
+| tools/machinery/lifespan-20.html | 【高】精度因子 p0..p2=1.0/1.05/1.1/1.2/1.5、润滑因子 grease..jet=0.8/1.0/1.3/1.5 均无 ISO 281 依据；`precisionLife=L10h*cf*lf` 把润滑影响二次计入（L10 本身已受润滑影响），P2+喷油可把「精度保持寿命」放大至疲劳寿命 2.25 倍，与注文「精度保持寿命通常低于疲劳寿命」矛盾；meta/简介仍称「基于 ISO 281…结合精度等级因子」（:10, :209-210, :232） | MM-H95 |
+| tools/machinery/lifespan-20.html | 【高】dn 值按 `n*25` 写死内径 25mm，页面无内径输入；5000 rpm 下实际 100mm 内径 dn=500000（已到高速润滑警戒线），页面显示 125000 并判「工况良好」，dn 结论随真实轴承内径完全失真（:235-236, :243） | MM-H96 |
+| tools/machinery/lifespan-7.html | 【高】PV 校核固定轴径 0.05m（无轴径输入），限值 PTFE 0.5、其余 0.3 MPa·m/s；默认 5MPa/1500rpm→PV=19.64 即「超限」，PTFE 预设 2MPa/500rpm→2.62 也「超限」却同时判寿命「优」，油润滑 O 形圈被系统性误判为干摩擦超限（:246, :249-250） | MM-H97 |
+| tools/machinery/lifespan-7.html | 【中】温度因子超材料上限一律取 0.05：NBR 在 300℃ 仍与 130℃ 同为 231h；低温侧不按材料下限校验（NBR 可输入 -50℃），Q10 因子 2^13=8192，寿命放大到 3781 万小时（:221, :233-235, :243-244） | MM-H98 |
+| tools/machinery/lifespan-bearing-1.html | 【中】滑动 pV 合格线固定 10 MPa·m/s，忽略注文给出的材料许用（巴氏合金 6–10、铝青铜 20–30）；pV=25 时既标「超限」，又因 `pV>20` 推荐「滑动轴承（高速或重载）」，结论自相矛盾（:175, :223, :226） | MM-H99 |
+| tools/machinery/power-voltage.html | 【高】极数按转速阈值下取（≥2500→2、≥1200→4、≥800→6），不校验实际转速是否高于同步转速：1100rpm→6极(n1=1000, s=−10%)、2000rpm→4极(n1=1500, s=−33.3%)、2400rpm→4极(s=−60%)，页面直接输出负转差率，物理上不可能（:198-205, :237） | MM-H100 |
+| tools/machinery/power-voltage.html | 【中】Pm>400kW 时 `pickMotor` 静默返回 400，仍标「推荐电机功率」并据此算极数/电流；K=1、Pm=500 → 推荐 400kW、负载率 125%，无超范围提示（:194-196, :225, :238） | MM-H101 |
+| tools/machinery/speed-26.html | 【高】链号表每档只有单一 maxKw/maxRpm（06B 3kW/9000rpm … 24A 250kW/1300rpm），与转速、齿数、排数无关，却称「查 06B~24A 额定功率/转速表」；任意转速都直接套用同一峰值额定值，非峰值转速下普遍高估许用功率（5.5kW@960rpm 选 08A、30kW@1450rpm 选 12A），且无工况系数/齿数/排数修正（:206-214, :218-219, :465-466） | MM-H102 |
+| tools/machinery/speed-26.html | 【中】无链号满足时 `sel` 保持末项 24A 并照常出结果：1000kW 时修正功率 1000kW 仍推荐 24A（maxKw 250）；n=10000rpm 仍推荐 24A（maxRpm 1300），无「超出选型范围」提示（:217-220, :228-233） | MM-H103 |
+
+**统计**
+- 条数：14（高 7 / 中 7）；编号区间：MM-H90–MM-H103，续接 MM-H89，不重号不跳号。
+- 高优编号：MM-H91（丝杠精度等级与导程精度脱钩）、MM-H92（导轨/导程超限静默取下限）、MM-H95（无依据因子冒充 ISO 281）、MM-H96（dn 内径写死 25mm）、MM-H97（PV 轴径写死 50mm）、MM-H100（极数推断产生负转差）、MM-H102（链号额定功率表与转速无关）。
+- 假工具：2（`tools/machinery/lifespan-20.html` 的核心精度/润滑因子无标准来源；`tools/machinery/speed-26.html` 的「额定功率/转速表」名不副实）。承诺未实现：0。
+- 安全：0（8 页均无 XSS、eval、allow-same-origin、明文存密或业务数据第三方外传，无 path:line 可列；全站模板 ttzz 脚本不单列）。
+- 复算：node 内存复算关键值（2000kg 导轨需求 117.6kN、200m/min 导程 40→5000rpm、PV 19.635 与 2.618、-50℃ NBR 3781 万小时、dn 500000、1100/2000/2400rpm 负转差、30kW@1450rpm 链速 9.67m/s），未落盘仓库；仅源码阅读，未开浏览器、未跑 `_build.py`/`run_gates.py`、未改 `tools/**` 与构建产物，未触碰 `plan/interaction-validity.md`。
+- 去重说明：`lifespan-20` 与既有寿命类工具同属「L10 正确但附加因子无依据」模式，但本页新增 dn 写死内径，按逐页口径单列；`power-voltage` 的 400kW 封顶与 MM-H86（flow-14）同模式但页面不同，不合并。
+
+## Z 批 · 机械·强度/扭矩/定位（2026-11-04）
+
+**逐页结论（8 页）**
+- `tools/machinery/strength-15.html`：实为「链条设计」（URL 名不符实，按 §7 不改名）；链速、圆周力、传动比、中心距、链节数复算正确，但节距/链号只按小链轮转速查表、功率 P 不参与，且无 meta 承诺的静/疲劳强度校核（高）。
+- `tools/machinery/strength-7.html`：剪切/挤压/撕裂三式与默认算例复算一致，铆缝效率口径成立；但 n 同时充当铆钉数与单剪面积、净截面按全部铆钉同排扣除，缺剪切面数/排数输入，双剪与多排工况失真（中）。
+- `tools/machinery/temp-hardness.html`：流程可跑，但回火软化斜率、介质系数、截面折减均为无来源写死常量，45 钢 500/600°C 硬度高估约 10–16 HRC（高）。
+- `tools/machinery/torque-motion.html`：推力档位、速度、功率与默认算例一致；仅深度解析两个算例的效率用了页面不存在的 0.9 与错配的 0.6/0.7，历史不存执行器类型（中）。
+- `tools/machinery/torque-response.html`: ω/α/T/峰值功率与两个算例一致；制动能量未乘负载系数（默认高 25%、反向负载低 23%），「默认参数」预设 vLoad 与页面默认不符（中）。
+- `tools/machinery/xiao-dingwei-lianjie-chicun.html`：主算 d=√(4F/πτ) 正确；「双销并联直径=2×d」算错（应 d/√2，放大 2.83 倍），⇄ 互换按钮错位量纲，挤压/销长/配合未实现（高 + 中）。
+- `tools/metalwork/analysis-36.html`：计数/加权/缺陷率与算例（212、19.20%）一致；仅是统计器，可见英文副标题与简介承诺的成因/对策、标准差、控制界限、位置溯源均未实现，缺陷名未转义（假 + 中 + 安全）。
+- `tools/metalwork/analysis-cost-price-5.html`：均值/样本标准差/CV/极差/首末涨跌幅/最大回撤与算例一致；标题与引据表承诺材料成本构成但无任何成本输入，价格 0/负值未校验，期次名未转义（假 + 中 + 安全）。
+
+**问题条目**
+
+| 页面 | 问题（含 tools/<dir>/<slug>.html:NN） | 编号 |
+|---|---|---|
+| tools/machinery/strength-15.html | 【高】选型只按小链轮转速查节距表，功率 P 完全不参与：5.5 kW 与 500 kW @960 r/min 都推荐 p=25.4 mm / 16A（v=7.722 m/s，F 分别 712 / 64753 N），无额定功率、抗拉、疲劳任何校核；meta 与 JSON-LD 仍称「并校核滚子链静强度与疲劳强度」，引据表列 ISO 606 / GB/T 1243 / ISO 10823 的强度与磨损三项，页面一项未算（:10, :154-166, :205-215, :223, :230） | MM-H104 |
+| tools/machinery/strength-7.html | 【中】铆钉数 n 同时被当作剪切面数与同一排铆钉数：As=n·πd²/4 按单剪、A_net=(W−n·d)·t 把全部铆钉在同一净截面扣除，页面无剪切面数/排数输入，双剪或多排铆缝的剪切与撕裂承载力系统性失真；深度解析「双剪 n=2」实际按 2 个铆钉单剪计算（:277-282, :519） | MM-H105 |
+| tools/machinery/temp-hardness.html | 【高】回火软化按固定斜率 k×(T−150)/100（k=1.0–4.0）线性外推，45 钢水淬：500°C 页面 42.6 HRC（手册回火曲线约 30–33）、600°C 页面 39.7 HRC（约 22–26），高估约 10–16 HRC；介质系数 1.0/0.85/0.6 与截面折减 1−0.15·ln(D/d)、0.5 下限同为无来源写死常量，却在引据表列 ISO 6507/642/4885（三者均为试验/术语标准，不给出硬度预测式）（:125, :206-218, :340-358） | MM-H106 |
+| tools/machinery/torque-motion.html | 【中】深度解析两个算例的效率与页面档位不符：算例一称「蜗轮丝杠 η=0.7」（页面蜗轮丝杠为 0.6），算例二用 η=0.9（页面无此档）；默认工况按页面档位实算功率 0.15 kW（0.6）而非 0.13 kW，6000N/500mm/5s 实算 1.06 kW（0.85）而非 1.00 kW（:136-138, :386） | MM-H107 |
+| tools/machinery/torque-motion.html | 【中】历史只存 F/S/t/SF，不存执行器类型（η），恢复记录后按当前档位重算，同一记录的电机功率与保存时不一致（:235, :237） | MM-H108 |
+| tools/machinery/torque-response.html | 【中】制动能量 0.5·J·ω²/1000 未乘负载系数，而制动力矩/峰值功率已乘：默认 0.8（阻力辅助）页面 28.82 kJ 应为 23.06（高 25%）；提升反向 1.3 时页面仍 28.82，应为 37.47（低 23%），制动器热容量校核偏差（:208, :210-212） | MM-H109 |
+| tools/machinery/torque-response.html | 【中】预设「默认参数」vLoad=1.0（纯惯性），页面默认选中 0.8（有阻力辅助）；点该预设后制动力矩由 101.23 变 126.54 N·m、选型力矩 151.84→189.81，与初始结果不一致（:137, :337） | MM-H110 |
+| tools/machinery/xiao-dingwei-lianjie-chicun.html | 【高】「双销并联直径=2×d」算错：两销并联每销只承担 F/2，所需直径应为 d/√2≈0.707d；20 kN/120 MPa 时正确每销 10.30 mm，页面输出 2×14.567=29.135 mm，放大约 2.83 倍（:562-566） | MM-H111 |
+| tools/machinery/xiao-dingwei-lianjie-chicun.html | 【中】「⇄ 互换 A/B」沿用通用两参模板，交换 F(kN) 与 τ(MPa) 后仍按 d=√(4F/πτ) 计算：20/120 互换后成 120 kN / 20 MPa，d=87.4 mm、截面积 5999 mm²，无单位/量纲提示（:131, :493-498, :562） | MM-H112 |
+| tools/machinery/xiao-dingwei-lianjie-chicun.html | 【中】深度解析称「圆柱销/圆锥销的直径 d 与长度 L 按剪力与挤压选定」并给出 σc=F/(d·t)，页面无板厚 t、销长 L 与配合输入，只输出直径/截面积，「尺寸」与挤压校核未实现（:720-724, :563-566） | MM-H113 |
+| tools/metalwork/analysis-36.html | 【假】只做「数量×权重」统计；可见英文副标题承诺 "Diagnose common casting defects … assess likely causes and remedies"，简介功能承诺均值/标准差/极差、控制界限判定批次合格性、按浇道/型腔定位高发位置，代码全部未实现，无任何成因/对策输出（:117, :286-292, :209-239） | MM-H114 |
+| tools/metalwork/analysis-36.html | 【中】数量与权重不校验：cnt 可为负或 0（缺陷总数/缺陷率变负），权重不限 1–3（输 100 使加权指数虚高约 30 倍），页脚仍写「权重按严重度取 1~3」（:217-219, :237） | MM-H115 |
+| tools/metalwork/analysis-36.html | 【安全】缺陷类型名 r.n 未转义即拼入 innerHTML（明细表、数量最多、加权最高三处）；一行 `<img/src=x/onerror=alert(1)>,5,1` 即可执行脚本（tools/metalwork/analysis-36.html:226, :234-235） | MM-H116 |
+| tools/metalwork/analysis-cost-price-5.html | 【假】标题含「成本」、引据表列「材料成本=体积×密度×单价（铜 8.96 g/cm³）」与「总成本=材料+加工+损耗+废品率」，页面只有价格序列统计，无体积/密度/加工费/废品率任何输入，成本分析未实现（:125, :191-203, :220-256） | MM-H117 |
+| tools/metalwork/analysis-cost-price-5.html | 【中】价格 0/负值未校验：前一期为 0 时环比得 Infinity（被全局替换成「—」），均值为 0 时 CV 直接取 0 显示「无波动」，负价仍参与均值/标准差/回撤（:236, :239, :248） | MM-H118 |
+| tools/metalwork/analysis-cost-price-5.html | 【安全】期次名 o.name 未转义即拼入表格 innerHTML；`<img/src=x/onerror=alert(1)>,48000` 再加一行价格即可执行脚本（tools/metalwork/analysis-cost-price-5.html:249） | MM-H119 |
+
+**统计**
+- 条数：16（高 3 / 中 9 / 假 2 / 安全 2）；编号区间：MM-H104–MM-H119，续接 MM-H103，不重号不跳号。
+- 高优编号：MM-H104（链条选型不看功率、无强度校核）、MM-H106（回火线性模型高估 10–16 HRC）、MM-H111（双销并联直径 2d）。
+- 假工具：2（`tools/metalwork/analysis-36.html`、`tools/metalwork/analysis-cost-price-5.html`，均核心统计可用但宣称的分析/诊断/成本能力未实现）。承诺未实现另有：MM-H104（meta 称校核静/疲劳强度）、MM-H113（挤压与销长）。
+- 安全：2 条，path:line 为 `tools/metalwork/analysis-36.html:226,234-235` 与 `tools/metalwork/analysis-cost-price-5.html:249`（均为用户输入未转义拼 innerHTML 的 DOM XSS，非第三方外传）；其余 6 页无 XSS、eval、allow-same-origin、明文存密或业务数据外传；全站模板 ttzz 脚本不单列。
+- 复算：node 复算 45 钢 500/600°C 42.6/39.7 HRC、链速 7.722 m/s 与 F 712/12951/64753 N、双销 10.301/29.135 mm、制动能量 23.06/28.82/37.47 kJ、缺陷指数 212 与 19.20%、CV 4.41%/SD 2446.38，未落盘仓库；仅源码阅读，未开浏览器、未跑 `_build.py`/`run_gates.py`、未改 `tools/**` 与构建产物，未触碰 `plan/interaction-validity.md`。
+- 去重说明：`strength-15`「按转速查表不看载荷」与 MM-H102（speed-26 额定功率表）同属选型表缺载荷维度但页面与机制不同；`temp-hardness` 的写死系数与 MM-H81（detector-stretch 写死阈值）同模式但页面不同，均按逐页口径单列。

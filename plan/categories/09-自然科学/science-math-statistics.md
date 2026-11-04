@@ -683,3 +683,69 @@
 
 - 声明：本轮仅逐页读源码（HTML + 内联 JS）并用 node 在 `/tmp` 复刻各页 `calc()` 的主算与边界分支（样本方差/总体方差、BigInt 组合数、单位系数、密度/电场量纲、指数与双曲函数溢出），未开浏览器、未跑 `_build.py`/`run_gates`、未做线上与英文态验证，未修改任何工具页、构建产物或仓库文件。新增 11 条：高 3（SMS-81、SMS-82、SMS-90）、中 8（SMS-83～SMS-89、SMS-91）；安全 1 条（XSS，`tools/science/chemistry-calculator.html:588`、`:596`、`:822`）；假工具 0 个；8 页全覆盖（centripetal-force 0 条）。
 - 统计：8 页 / 11 条（高 3 / 中 8）/ 安全 1 条（tools/science/chemistry-calculator.html:588、:596、:822）/ 假工具 0 个 / 编号区间 SMS-81～SMS-91。
+
+## Z 批 · 自然科学·数学/地学/热学（2026-11-04）
+
+- `tools/science/factorial-calculator.html`：2 条（SMS-92 高、SMS-93 中）。BigInt 主算精确（20!=2,432,902,008,176,640,000、52! 68 位、100! 158 位、0!/1!=1），但 n≥171 的合法输入被斯特林近似溢出整块判成「无效值」，数量级 log₁₀ 公式亦写错。
+- `tools/science/gcd-calculator.html`：3 条（SMS-94、SMS-95 高、SMS-106）。默认 48,36,24 → GCD 12、辗转相除步骤与质因数分解正确；问题在 `parseInt` 解析小数/科学计数/超 2⁵³ 与 √n 枚举无上限，另共用 SMS-106 的附加历史模板。
+- `tools/science/lcm-calculator.html`：1 条（SMS-96 中）。默认 12,18,24 → LCM 72，gcd 链路正确；问题为 `a·b` 双精度溢出（另与 SMS-95 同源的 factorize 同样可卡死）。
+- `tools/science/geo-distance-calculator.html`：1 条（SMS-97 中）。Haversine、初始方位角与英里/海里换算正确（北京 39.9042,116.4074 → 上海 31.2304,121.4737 = 1067.310 km）；问题为同组两输入共用错误容器，提示会被后一个合法输入抹掉（另共用 SMS-106）。
+- `tools/science/heat-transfer-calculator.html`：3 条（SMS-98、SMS-99 中，SMS-100 承诺未实现）。默认铜 401 W/m·K / 10 cm² / 10 mm / ΔT 75 → 3007.50 W、热流密度 3,007,500.00 W/m² 正确；问题为守卫早退且负面积放行、历史点击不回填、热辐射只有公式没有计算。
+- `tools/science/latlon-utm-converter.html`：1 条（SMS-101 中）。北京 39.9042,116.4074 → 50N 449345.061E 4417292.495N（收敛角 −0.2916°、比例因子 0.999632），正反算往返准确；问题为 lon=180 得 61 带以及反算无 E/N 范围校验。
+- `tools/science/led-resistor-calculator.html`：3 条（SMS-102、SMS-103 高，SMS-104 中）。串联 5 V/20 mA/2.2 V → R 140 Ω、P 56.0 mW 正确，标准电阻与实际电流亦正确；问题为并联功率少乘 n、精度下拉死输入、取最近值导致实际电流超额定。
+- `tools/science/log-calculator.html`：1 条（SMS-105 中）。x=100 → log₁₀ 2、ln 4.605170、log₂ 6.643856，换底与验证行正确；问题为 `fmt` 把 |v|<1e-12 归零。
+
+| 页面 | 问题（含 tools/science/&lt;slug&gt;.html:NN） | 编号 |
+|---|---|---|
+| tools/science/factorial-calculator.html | `stirling=Math.sqrt(2πn)·(n/e)^n` 在 n≥171 溢出为 `Infinity`，`:298` 的 `/Infinity/` 兜底把整块结果（BigInt 精确的 375 位）替换成「⚠ 计算结果含无效值，请检查输入是否为有效正数。」；允许域 0–10000 中 171–10000 全废（n=200 实测，node 复刻）。:292、:295、:298 | SMS-92 |
+| tools/science/factorial-calculator.html | 数量级用 `Math.floor(log10(前16位)+15×(ceil(位数/15)−1))`，正确应为 `+(位数−16)`：20! 显示 30（实际 18.4）、52! 显示 75 而同屏「结果位数」为 68（10^75 应有 76 位），自相矛盾；n=100 显示 165（实际 157.97）。:271 | SMS-93 |
+| tools/science/gcd-calculator.html | 解析用裸 `parseInt`：`1.5,3`→[1,3] 得 GCD 1、`1e3,500`→[1,500] 得 1、`0.5,1.5`→[0,1] 误报「不能包含 0」；`9007199254740993,3` 被截为 …992，输出 GCD 1 而真值 3（node 复刻）。:249、:254 | SMS-94 |
+| tools/science/gcd-calculator.html | `factorize` 按 `for(let i=2;i*i<=x;i++)` 穷举到 √n，无上限、无 BigInt：20 位输入（parseInt→1.2e19，√≈3.5×10⁹ 次取模）使标签页冻结数分钟；lcm:238-241 同源代码。:280-289 | SMS-95 |
+| tools/science/lcm-calculator.html | `lcm2 = abs(a·b)/gcd` 全用双精度：lcm(1000000007,1000000009) 显示 1,000,000,016,000,000,000，真值 …0063（差 63）；步骤行打印的同一乘积同样失真。:234、:249 | SMS-96 |
+| tools/science/geo-distance-calculator.html | `validateInput` 开头无条件 `errEl.classList.remove('show')`，且 lat1/lon1 共用 `error1`、lat2/lon2 共用 `error2`：lat1 非法 + lon1 合法 → 提示被后一次校验抹掉，结果全部清成「—」且用户看不到原因。:630、:684-687、:689-697 | SMS-97 |
+| tools/science/heat-transfer-calculator.html | 三处守卫 `if(!k||!A||!L)return` / `if(!m||!c)return` / `if(!h||!A)return` 早退时不清空结果卡，清空 A 或 L 会保留上一次 Q；且不做正数校验，A=-10 放行得 Q=-3007.5，经 fmtPower 负值落末档显示「-3007500000.00 μW」。:626、:644、:669、:600-606 | SMS-98 |
+| tools/science/heat-transfer-calculator.html | `loadHistory` 只设 `mode`、切三个 mode 区块显隐、再 `calc()`（用当前输入），从不回填任何输入值；历史条目只存 mode/modeName/Q/dT/detail，点击后重算结果与条目 Q 不一致，历史「加载」是假恢复。:730-743、:706-708 | SMS-99 |
+| tools/science/heat-transfer-calculator.html | 承诺未实现：英文 intro「conductive, convective and radiative … Stefan-Boltzmann」、公式列表、公式框「☀️ 热辐射公式」、FAQ「传导、对流与辐射的热量传递」均承诺辐射计算，但页面仅 conduction/specific/convection 三模式，无 ε、辐射面积、T₁⁴/T₂⁴ 输入，Q=εσA(T₁⁴−T₂⁴) 无法计算。:179、:362、:395、:904 对 :198-201、:620-683 | SMS-100 |
+| tools/science/latlon-utm-converter.html | `zone=Math.floor((lon+180)/6)+1` 在 lon=180 得 61 带（无此带、中央经线 183°、E 166021.443），反向却只收 1–60 无法回转；反向亦不校验 easting/northing，0/0 → 0.000000°,112.511256°，1e6/2e7 → 纬度 180.036710°（node 复刻）。:337-338、:420-427 | SMS-101 |
+| tools/science/led-resistor-calculator.html | 并联功率少乘 n：R=(Vs−Vf)/(If·n) 正确，但 `P=If²·R·n` 应为 `(n·If)²·R`，`:578` 的 actualP 同错。12 V/20 mA/2.2 V/2 只显示 196.0 mW（真值 400.2 mW）、建议 1/2W（应 1W）；n=4 仍显示 196.0 mW（真值 800.3 mW）。:546-547、:578、:566-575 | SMS-102 |
+| tools/science/led-resistor-calculator.html | 「电阻精度」死输入：`nearestStdR(v,tol)` 的 `tol` 在函数体内从未使用，始终只查 E24 表，±1%(E96)/±10%(E12)/±20%(E6) 四个选项对结果零影响，明细却打印「(±xx%)」造成有效假象。:480-492、:245-250、:590 | SMS-103 |
+| tools/science/led-resistor-calculator.html | `nearestStdR` 取绝对差最近值而非「不小于」：R=140 Ω（5 V/20 mA/2.2 V）选 130 Ω，实际电流 21.54 mA 超设定 20 mA（+7.7%）；取 150 Ω 则为 20.53 mA。:482-492、:565、:577 | SMS-104 |
+| tools/science/log-calculator.html | `fmt` 对绝对值 <1e-12 直接返回 `'0'`：真数 x=1e-13 回显「x = 0」而 log₁₀(x) 正确显示 −13；底数填 1e-13（通过 >0 且 ≠1 校验）输出「log₀(1) = 0」，把合法底数显示成非法 0。:234-237、:244、:256 | SMS-105 |
+| tools/science/gcd-calculator.html | 附加历史模板把 `.result-box` 文本截 80 字存入「结果」列，趋势图再 `parseFloat` 该文本：gcd/lcm 以「输入：」开头、log 以「x = 」开头、geo 以「📊 计算详情」开头 → 恒 NaN，图永不绘制且结果列显示输入串；factorial「10! = …」得 10，图表画的是输入 n 而非 n!。:326-332、:368（同模板 lcm:307/349、log:308/350、geo:1027/1069、factorial:343/385） | SMS-106 |
+
+- 声明：本轮仅逐页通读 8 页源码（HTML + 内联 JS），用 node 在 `/tmp` 复刻主算与边界（BigInt 阶乘位数、斯特林溢出、parseInt 精度、√n 枚举、双精度乘积、UTM 正反算、LED 并联功率/标准电阻、对数 fmt），未开浏览器、未跑 `_build.py`/`run_gates`、未做线上与英文态验证，未修改任何工具页、构建产物或仓库文件。
+- 统计：8 页 / 15 条（高 4 / 中 11，其中承诺未实现 1 条 SMS-100）/ 安全 0 条（无 eval、无第三方外传、无明文存密）/ 假工具 0 个 / 编号区间 SMS-92～SMS-106。
+
+## Z 批 · 自然科学·矩阵/统计/电学（2026-11-04）
+
+- `tools/science/matrix-calculator.html`：3 条（SMS-107 高、SMS-108～109 中）。2×2/3×3 乘、行列式、逆、秩主算复核正确（[[4,7],[2,6]] det=10、A⁻¹=[[0.6,-0.7],[-0.2,0.4]]）；问题为 0 标量与 0 次幂被 `||1` 吞掉、逆矩阵奇异判据用绝对阈值误杀微小可逆矩阵、`check` 算完不输出。
+- `tools/science/mean-calculator.html`：2 条（SMS-110 高、SMS-111 中）。2,4,8 → AM 4.6667、GM 4.0000、HM 3.4286，HM≤GM≤AM 正确；问题为几何平均走连乘，n 上百即溢出/下溢，以及千分位逗号被当作数据分隔符静默改数。
+- `tools/science/mechanical-power.html`：1 条（SMS-117 中）。P=F·v 与 kW/hp/kgf·m/s 系数（745.6999、9.80665）换算正确（100 N×5 m/s=500 W）；问题为主结果 `toFixed(0)` 丢失小数。
+- `tools/science/meteor-crater-estimator.html`：3 条（SMS-119 高、SMS-120～121 中）。CMM 标度律与能量/破坏半径自洽（50 m/13 km/s 铁陨石 → 1.2 km、10 km/20 km/s → 119.6 km）；问题为水面/冰面地表密度死输入、质量单位标签错 1000 倍、通古斯按钮与预设参数互相矛盾。
+- `tools/science/nato-phonetic.html`：2 条（SMS-112～113 中）。NATO 表 Alfa/Juliett 与数字读法（Three/Tree、Nine/Niner）正确；问题为 ANSI 老表 Y/Z 错词、历史回填强制切到 ANSI。
+- `tools/science/newtons-second.html`：1 条（SMS-118 中）。F=ma、kN、a×3.6（km/h/s）、kgf 换算正确（10 kg/3 m/s² → 30.0 N、0.030000 kN、10.8000、3.0591）；问题为主结果 `toFixed(1)` 丢失小数。
+- `tools/science/nth-root-calculator.html`：3 条（SMS-114～116 中）。∛27=3、⁴√16=2、x>0 全部复数根（27 的立方根 −1.5±2.598i）正确；问题在负指数奇次根、0 的负次根、极小被开方数回显。
+- `tools/science/ohms-law-calculator.html`：2 条（SMS-122～123 中）。12 V/220 Ω → I 54.55 mA、P 654.55 mW、G 4.55 mS、Q 54.55 mC 正确；问题为 I=0 开路被拒算、能耗单位拼成 mWh/h 及负值单位档错。
+
+| 页面 | 问题（tools/science/&lt;slug&gt;.html:NN） | 编号 |
+|---|---|---|
+| tools/science/matrix-calculator.html | 标量/幂次用 `parseFloat(...) &#124;&#124; 1`、`parseInt(...) &#124;&#124; 1` 兜底：k=0 被改成 1 → k·A 输出 A 本身；n=0 被改成 1 → A⁰ 显示 A；n=0.5 先被 parseInt 截成 0 再变 1 → 标为 A^0.5 却按 A¹ 计算（node 复刻）。:498、:541 | SMS-107 |
+| tools/science/matrix-calculator.html | 逆矩阵奇异判据用绝对阈值 `Math.abs(det)<1e-12`：[[2e-7,0],[0,2e-7]]（det≈4.0e-14，逆=5e6·I）被判「奇异/不可逆」；:403 的主元判断同样用绝对 1e-12，量级偏小的可逆矩阵整类被误杀。:391、:403 | SMS-108 |
+| tools/science/matrix-calculator.html | 求逆分支算了不渲染：`const check = mul(A, inv)` 计算后从未使用，步骤行只打印「验证：A · A⁻¹ = I（单位矩阵）」这句定义，不输出实际乘积，`check` 为死代码（承诺的验证结果未实现）。:526、:529 | SMS-109 |
+| tools/science/mean-calculator.html | 几何平均用连乘后 `Math.pow(prod,1/n)`：100 个 1e4 → prod=Infinity → GM 显示「未定义」，不等式行成「10,000 ≤ 未定义 ≤ 10,000 ✓」；200 个 1e-2 → prod=0 → GM 显示 0，不等式「0.01 ≤ 0 ≤ 0.01 ✓」（node 复刻）。:252-253、:273、:278 | SMS-110 |
+| tools/science/mean-calculator.html | `parseData` 以 `[,\s\n;]+` 切分后静默丢弃非数值 token：「1,000, 2,000」被切成 1/0/2/0 → n=4、AM=0.75（真值 1500），数据列表与 n 均随之改变，无任何提示。:242、:246-248 | SMS-111 |
+| tools/science/nato-phonetic.html | ANSI 老式字母表两处错词：Y 写作 YOUNG（应为 YOKE）、Z 写作 ZEBA（应为 ZEBRA），切到 ANSI 模式后表格与输出均显示错词。:253 | SMS-112 |
+| tools/science/nato-phonetic.html | 历史回填调用 `setMode()` 未传参 → `m===undefined` 落 else 分支 `modeIdx=2`，点击任意历史条目整表强制切到 ANSI；模式本身也未写入历史，无法还原（:349 对 :260）。:349、:260 | SMS-113 |
+| tools/science/nth-root-calculator.html | 负奇整数根漏判：`isIntN && n%2===1` 对 n=-3 得 -1（JS 负数取余），落进 else 报「负数的非整数次根在实数范围内无定义」；x=-8、n=-3 实根应为 -0.5（node 复刻）。:245-249、:254 | SMS-114 |
+| tools/science/nth-root-calculator.html | `x===0` 分支不区分 n 正负：x=0、n=-1 输出「0 的 n 次根 = 0」并补「0 的 n 次根仅为 0」，而 0 的负次根无定义（Math.pow(0,-1)=Infinity）。:257-258、:274、:292 | SMS-115 |
+| tools/science/nth-root-calculator.html | `fmt` 把 &#124;x&#124;<1e-12 归零且用于被开方数回显：x=1e-13、n=3 时标题与大结果成「3√0 = 4.6416e-05」，同屏自相矛盾（步骤/验证行仍保留真值）。:234、:243、:265-267 | SMS-116 |
+| tools/science/mechanical-power.html | 主结果 `P.toFixed(0)`：F=0.4 N、v=0.5 m/s → P=0.2 W 显示「0 W」，0.5 W 显示「1 W」（toFixed 进位）；同期 kW 卡仍为 0.000200，数据表同错。:213、:235 | SMS-117 |
+| tools/science/newtons-second.html | 主结果 `F.toFixed(1)`：m=0.001 kg、a=0.1 m/s² → 0.0001 N 显示「0.0 N」，kN 档 0.000000 也无法还原；数据表与历史同用该值。:225、:249 | SMS-118 |
+| tools/science/meteor-crater-estimator.html | 「地表密度」在目标地表=水面/海洋、冰川/冰盖时被 `calc()` 每次无条件回写 1000/917（输入框又绑 `oninput="calc()"`）：用户改成 1030 立即被覆盖，输入形同只读，死输入。:382-387、:168 | SMS-119 |
+| tools/science/meteor-crater-estimator.html | `formatMass` 单位标签错 1000 倍：m≥1e6 kg 标「(吨)」（该档实为千吨，50 m/3000 kg·m⁻³ 的 1.9635e8 kg 显示「196.35 x 10⁶ kg (吨)」，真值 196 350 t）；m≥1e9 kg 标「(千吨)」（实为百万吨）。:567-568 | SMS-120 |
+| tools/science/meteor-crater-estimator.html | 「通古斯事件」按钮与自带预设冲突：按钮用石质 3000 kg·m⁻³ / 27 km·s⁻¹ / 沉积岩，预设「通古斯 60m 彗星」用 1500 kg·m⁻³ / 15 km·s⁻¹ / 冰盖，同一事件两套参数（撞击能量相差约 6.5 倍）。:587-593 对 :851 | SMS-121 |
+| tools/science/ohms-law-calculator.html | 有效性判断把 `calcI===0` 当无效：求解电压时 I=0 A、R=220 Ω（开路）本应得 V=0 V、P=0 W，却直接显示「请输入两个有效的已知量」；I=0 或 V=0 的合法电路全部拒算。:509-523 | SMS-122 |
+| tools/science/ohms-law-calculator.html | 单位显示两处错：`fmtEnergy(E)+'/h'` 把每小时能耗拼成「mWh/h」（能量/时间=功率量纲，12 V/220 Ω → 654.55 mWh/h）；且 fmtVolt/fmtCurrent/fmtResistance/fmtPower 只判 `>=` 正阈值，负值全落最小单位档（V=-5 →「-5000000.00 μV」）。:531、:454-484、:544 | SMS-123 |
+
+- 声明：本轮仅逐页通读 8 页源码（HTML + 内联 JS）并用 node 在 `/tmp` 复刻主算与边界（矩阵求逆/奇异阈值、连乘几何平均溢出、千分位解析、负整数指数开方、负指数零次根、小数取整、CMM 坑径标度律、欧姆定律增益/单位档），未开浏览器、未跑 `_build.py`/`run_gates`、未做线上与英文态验证，未修改任何工具页、构建产物或仓库文件。`nato-phonetic` 的 `else html += c` 曾按注入排查：字母字符都会被 `ALPHA[c]` 替换成 `<span>`，未转义的只剩标点/非 ASCII，无法拼出可执行标签，故不计安全条。
+- 统计：8 页 / 17 条（高 3 / 中 14，其中承诺未实现 1 条 SMS-109）/ 安全 0 条（无 eval、无 allow-same-origin、无明文存密、无第三方外传）/ 假工具 0 个 / 编号区间 SMS-107～SMS-123。

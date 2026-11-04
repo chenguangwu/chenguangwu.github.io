@@ -786,3 +786,36 @@
 - 本批新增 8 条：高 1 条（SF-N87）、中 7 条（SF-N83–SF-N86、SF-N88–SF-N90），编号 SF-N83–SF-N90，接续 SF-N82，无重号。
 - 覆盖 8 页；假工具 0 个；安全条目 0 条（本批 8 页计算逻辑无新增 XSS/eval/明文存密；TTZZ 第三方脚本为全站模板既有项，未重复登记）。
 - 方法声明：逐页通读源码，并在 `/tmp` 用 node 复刻 `calc()`/`fmt()` 实算（步行预设回落 1035 kcal、119.5 秒→1分60秒、身高 0→Infinity、总人数 0→420000%、179.5°→角度因子 114.59）；未开浏览器、未跑 `_build.py`/`run_gates.py`，未修改任何工具页、js/css/json 或构建产物。
+
+## Z 批 · 运动·专项评分/生理（2026-11-04）
+
+### 逐页结论（8 页）
+
+| 页面 | 结论 |
+| --- | --- |
+| `dianjiezhi-diushi-buchong.html` | 有缺陷：钠丢失 1380 mg、补液 2.25 L 正确，但「食盐 ≈ 钠 ÷ 0.393」与代码 `/393` 差 1000 倍（SF-N99） |
+| `estimate-tester.html` | 有缺陷：时间空/0 被 `\|\|1` 兜底成 1 秒，VO2max 28983.5；第三个方法与第二个方法算法完全相同（SF-N93、SF-N94） |
+| `hongxibao-xieyang-shiyingxing.html` | 通过：2500 m × 4 周 → 携氧指数 15.0、预期 Hb +8.0 g/L，与公式框一致；空值有 `>0` 拦截 |
+| `juzhongzongchengji-sinclair-xishu.html` | 有缺陷：Sinclair 系数 73 kg 男 1.286、总成绩 398.6 正确；体重级别表缺 89/102 级且「跨体重预测」未实现（SF-N92、SF-N95） |
+| `lingmin-zhefanpao-chengji.html` | 通过：10 m / 15 s → 0.67 m/s、2.40 km/h、15.00 s/10m，与公式框一致 |
+| `pilaohuifuqushi.html` | 有缺陷：默认 CK 320 / BUN 6.5 页面 FI 27，按公式框口径应为 128.5（SF-N96） |
+| `pingheng-biyandanjiao-shichang.html` | 有缺陷：30 s / 40 岁 → 常模 12.0 s、比值 2.50 正确；年龄 ≥70 时常模 ≤0，评级恒「优秀」（SF-N91） |
+| `rater-36.html` | 有缺陷：四维均分 7.5、罚 1 分 → 7.0 正确；公式框仍是「跳水/4 名裁判」模板，类型选择不影响计分（SF-N97、SF-N98） |
+
+### 问题条目
+
+| 页面 | 问题（tools/sports/<slug>.html:NN） | 编号 |
+| --- | --- | --- |
+| `pingheng-biyandanjiao-shichang.html` | （中）年龄 ≥70 常模 ≤0、评级恒「优秀」：`tools/sports/pingheng-biyandanjiao-shichang.html:565` 只校验 `0<年龄<120`，`:567` `(70-年龄)*0.4` 在 70 岁得 0.0、80 岁得 −4.0；`:568` 比值随之 `Infinity` / −7.50，`:569` `A >= 常模*1.5` 在常模为负时恒真。复现：时长 30 s、年龄 80 → 「常模 −4.0 s｜实测/常模比 −7.50｜平衡优秀」；时长 0 s 同样「平衡优秀」 | SF-N91 |
+| `juzhongzongchengji-sinclair-xishu.html` | （中）体重级别表与「巴黎周期」不符：`tools/sports/juzhongzongchengji-sinclair-xishu.html:297` 男级别为 55/61/67/73/81/**96**/109/+109，缺 89kg 与 102kg 两级；`:299` 女同样固定旧档；`:301` 却输出「（巴黎周期级别）」。复现：男 85 kg 判 96kg、100 kg 判 109kg（巴黎周期应为 89kg/102kg 档） | SF-N92 |
+| `estimate-tester.html` | （中）时间空/0 被 `\|\|1` 兜底成 1 秒：`tools/sports/estimate-tester.html:188` `+value\|\|1`，清空或填 0 后 `:198` 按 1 秒计，VO2max=483/(1/60)+3.5=**28983.5**，页面仍标「优秀」并渲染「0 秒/km」配速；距离清空时 `:187` 取 0，`:194` 得 −11.29 再被 `:206` 夹到 0，给出「很差」 | SF-N93 |
+| `estimate-tester.html` | （②承诺未实现）3 个选项只有 2 种算法：`tools/sports/estimate-tester.html:200-205` 的 `method===2` 与 `method===1` 完全同一段 `(483/(time/60))+3.5`；`:201` `var miles=1.5` 赋值后从未使用（标注「英制」却无英里换算）；`:129` 仍提供 3 个选项、`:337-338` 简介与功能特点称「支持12分钟跑和1.5英里跑两种方法」「双测试方法支持」 | SF-N94 |
+| `juzhongzongchengji-sinclair-xishu.html` | （②承诺未实现）「跨体重预测总成绩」未实现：`tools/sports/juzhongzongchengji-sinclair-xishu.html:10`（meta description）、`:11`（title）、`:118`（页面说明）、`:122`（公式说明）均承诺「跨体重预测总成绩」，但 `:278-306` 结果仅输出总成绩、Sinclair 系数、Sinclair 总成绩、老将修正与体重级别，无任何预测项 | SF-N95 |
+| `pilaohuifuqushi.html` | （中）疲劳指数口径与公式框不符：`tools/sports/pilaohuifuqushi.html:122-123` 声明 `FI≈w1·(CK/上限)+w2·(BUN/上限)`（男 CK≈200、女≈160、BUN≈8），代码 `:228` 用 `CK/1000×100`、`:229` 用 `(BUN−5)/8×100`；默认 CK 320 / BUN 6.5 时公式框口径 **128.5**、页面显示 **27**。另 `:179` 说明 CK 正常上限 308/192 与公式框 200/160 自相矛盾，`:157-171` 引据表列的却是 Foster RPE/单调性/应变，与 CK/BUN 无关 | SF-N96 |
+| `rater-36.html` | （中）公式框为跳水模板残留：`tools/sports/rater-36.html:117` 写「跳水动作评分 = 4 名裁判评分均值 − 惩罚 × 0.5」，本页实际是马术 4 个维度（步态/跳跃/骑手/路线）的算术平均，`:182-183` 为四维均值再减罚分×0.5；「4 名裁判」与跳水均与页面无关，0.5 折算亦无论据 | SF-N97 |
+| `rater-36.html` | （②承诺未实现）比赛类型选择不参与计分：`tools/sports/rater-36.html:176` 读入 `type` 后仅在 `:204-206` 换文案，`:182-183` 三种类型一律用同一四维均值与同一罚分折算；简介称「3 种比赛类型支持 / 适用于盛装舞步和障碍赛」但评分模型无差异 | SF-N98 |
+| `dianjiezhi-diushi-buchong.html` | （中）食盐换算公式单位差 1000 倍：`tools/sports/dianjiezhi-diushi-buchong.html:122` 写「食盐 ≈ 钠 ÷ 0.393」、`:123` 写「折算食盐=钠÷0.393」，而 `:568` 代码为 `A×B×23/393`（钠以 mg 计时应除以 393）。复现：出汗 1.5 L、汗钠 40 mmol/L → 钠 1380 mg，页面食盐 **3.51 g**，照公式字面算得 **3511 g** | SF-N99 |
+
+- 本批新增 9 条：编号 SF-N91–SF-N99，接续 Y 批 SF-N90，无重号；**高 0 条、中 6 条**（SF-N91、SF-N92、SF-N93、SF-N96、SF-N97、SF-N99）、承诺未实现 3 条（SF-N94、SF-N95、SF-N98）。
+- 覆盖 8 页：通过 2 页（`hongxibao-xieyang-shiyingxing`、`lingmin-zhefanpao-chengji`）、有缺陷 6 页；假工具 0 个；安全 0 条（8 页均无 XSS/eval/`allow-same-origin`/明文存密/第三方外传，`localStorage` 仅存数值历史；TTZZ 为全站模板既有项，未重复登记）。安全 path:line 无。
+- 方法声明：逐页通读完整源码（含各页末尾覆盖通用两参脚本的「真实业务计算逻辑」段），并在 `/tmp` 用 node 复刻实算（Sinclair 73kg 男系数 1.2857/总成绩 398.57、马术 rater 四维均值 7.5−0.5=7.0、FI 26.7 vs 128.5、年龄 70/80 常模 0/−4.0、VO2max 1 秒 28983.5、食盐 3.51 g vs 3511 g、速度 0.67/2.40/15.00）；未开浏览器、未跑 `_build.py`/`run_gates.py`，未修改任何工具页、js/css/json 或构建产物。

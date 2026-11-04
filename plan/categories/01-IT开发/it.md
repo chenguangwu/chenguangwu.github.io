@@ -4442,5 +4442,73 @@
 - 安全条目：0 条——8 页均未出现 `eval`/`new Function`/`allow-same-origin`/明文存密/第三方外传；用户输入均经 `escapeHtml`/`escH` 或仅写入 `textarea.value`/`canvas`，未发现可控 DOM 注入点。
 - 方法：逐页通读 HTML 与全部内联 JS；用 node 复刻 `markdown-lint` 的 `calcTool()`、`lorem` 的 words 分支与 `nato-alphabet` 的反查/计数，确认误报与边界；未开浏览器、未跑 `_build.py`/`run_gates.py`、未执行 git、未修改任何 `tools/**` 或构建产物。
 
+## Z 批 · IT 校验/速查（2026-11-04）
+
+**逐页结论（8 页，均通读 HTML 与全部内联 JS）**
+- `tools/it/password-strength.html`：熵、字符集、检查项与破解时间均实时计算；但三档破解时间标签与实际速率不符，且「强度等级」用 6 项清单评分，未按公式声明的熵阈值判读。
+- `tools/it/python-cheatsheet.html`：搜索、分类、柱状图与明细表均遍历 `COMMANDS` 生成，可用；15 条示例用 Python 非法的 `--` 注释，复制即语法错误。
+- `tools/it/redis-cheatsheet.html`：常用命令、数据结构、事务、Stream、Lua 条目覆盖完整；4 条示例的 `-- 注解` 会被 redis-cli 当作参数，复制执行报错。
+- `tools/it/rust-cheatsheet.html`：条目筛选、分类统计正常；5 条示例用 `--` 注释、2 条用 `...` 占位，且部分片段缺少上下文，复制不可编译。
+- `tools/it/screen-size.html`：PPI、物理宽高、长宽比与点距计算正确；公式框声明的「屏幕面积」从未计算输出。
+- `tools/it/summary-generator.html`：分句、词频、长度/位置/关键词权重与压缩率均已实现；长文本下 5% 句频阈值可把关键词全部滤掉，导致权重全 0、摘要退化为前 N 句。
+- `tools/it/svg-placeholder-generator.html`：宽高钳制、字号、SVG 转义、复制与下载可用；历史记录回填后调用的是 `downloadSvg()` 而非 `render()`，结果区不重算还会触发下载。
+- `tools/it/team-name-generator.html`：词库随机组合真实可用、输出经 `escapeHtml`；页面只有「领域」与「数量」，meta/公式/FAQ 承诺的风格、长度、数字后缀与语言切换均无对应控件。
+
+| 页面 | 问题（含 tools/it/<slug>.html:NN） | 编号 |
+|---|---|---|
+| `tools/it/password-strength.html` | `:448-452` 以 `seconds=combos/(1e10*2)`（即 2×10¹⁰ 次/秒）为基准，却把三档标成 10 亿/秒、1000 亿/秒、1 万亿/秒并用 `/100`、`/100000` 换算，实际速率变成 2×10¹² 与 2×10¹⁵ 次/秒。node 复刻默认 `ToolBox@2026`（78 bit）：首行显示 479 千年（按 10 亿/秒应约 1000 万年）、第三档显示 4 年（按 1 万亿/秒应约 9584 年），分别约偏短 20/20/2000 倍（算错） | IT-N536 |
+| `tools/it/password-strength.html` | `:161` 公式框写「判读：<40 弱｜40~60 中｜60~120 强｜≥120 极强」，但 `:437-440` 只用 6 项清单得分映射等级，从未比较熵值；如 32 个 `a` 熵为 150（公式应判「极强」），实际得分 3 →「一般」（承诺未实现/说明与实现矛盾） | IT-N537 |
+| `tools/it/password-strength.html` | `:430` 的键盘序列正则以 `^` 锚定，只在密码开头匹配；`xxqwe123`、`Tq7!abc123` 等中段序列不会被 `:433` 的风险提示命中，`:349` 的同类检查亦同（错误结果） | IT-N538 |
+| `tools/it/python-cheatsheet.html` | 15 条示例共 32 处用 `--` 作为行内注释（`:277`、`:293`、`:301`、`:309`、`:325`、`:341`、`:357`、`:373`、`:413`、`:453`、`:469`、`:485`、`:517`、`:525`、`:533`）；Python 无 `--` 注释，`:571` 渲染「复制」按钮、`:584-593` 原样复制 textContent，粘贴即 `SyntaxError`；`:453` 的裸 `raise` 也缺少 `except` 上下文（错误结果） | IT-N539 |
+| `tools/it/python-cheatsheet.html` | `:435` 语法字段写成 `@dataclass class C:`，装饰器必须独立成行，照此书写会报语法错误；`:469` 示例 `from . import helper` 仅在包内有效，独立脚本复制后报 `ImportError`（错误结果） | IT-N540 |
+| `tools/it/rust-cheatsheet.html` | 5 条示例共 7 处用 `--` 作注释（`:280` 两处、`:312`、`:328` 两处、`:392`、`:448`）；Rust 没有 `--` 运算符（注释须用 `//`），`a + b  -- 末尾无分号即返回` 等原样复制无法编译（`:523-532` 的复制按钮原样输出）（错误结果） | IT-N541 |
+| `tools/it/rust-cheatsheet.html` | `:352`、`:368` 示例用 `...` 作代码占位，Rust 表达式位置无此语法；`:392` 的 `let n = parse("1")?;` 位于顶层且未导入 `ParseIntError`，`:392` 片段脱离 `fn -> Result` 上下文也不可用（错误结果） | IT-N542 |
+| `tools/it/redis-cheatsheet.html` | 4 条示例把 `-- 注解` 写进命令：`:309`（`PING  -- 返回 PONG`）、`:357`、`:885`、`:925`；redis-cli 不支持行内注释，`PING`/`TYPE`/`EXEC`/`OBJECT ENCODING` 会收到多余参数报 `wrong number of arguments`，`:971`/`:984` 的复制按钮原样输出（错误结果） | IT-N543 |
+| `tools/it/redis-cheatsheet.html` | `:736-741` 的 SINTER/SUNION/SDIFF 条目 params 写「STORE 可存结果」，但这三个命令不接受 `STORE`，需改用 `SINTERSTORE`/`SUNIONSTORE`/`SDIFFSTORE`；照 params 书写会报语法错误（错误结果） | IT-N544 |
+| `tools/it/screen-size.html` | `:130` 公式框声明「屏幕面积 = 物理宽 × 物理高」，但 `calc()`（`:178-209`）只输出分辨率、PPI、长宽比、物理宽高与点距，`:198-207` 无面积字段（承诺未实现） | IT-N545 |
+| `tools/it/summary-generator.html` | `:551-558` 用 `freq[w]/total > 0.05` 过滤关键词，公式 `:212` 只说明剔除停用词、未披露该阈值；node 复刻 60 句唯一文本得 0 个关键词、60 句权重全 0，`:636-641` 退化为按原序取前 N 句（错误结果） | IT-N546 |
+| `tools/it/summary-generator.html` | `:481-505` 的分句器除 `. ! ?` 外还按 `…`、`、` 与换行（当前段 ≥20 字）切分，且小数点后为数字时照切（如 `价格 3.14 元` 被切成 `价格 3.`）；公式 `:212` 只承诺「遇 . ! ? 切分」，句数与摘要片段均可能失真（错误结果） | IT-N547 |
+| `tools/it/svg-placeholder-generator.html` | 历史记录恢复回调 `:340-354` 在回填输入后调用 `:351` 的 `downloadSvg()` 而非 `render()`；`:405-408` 又把 `downloadSvg` 包成带历史写入的函数，点历史记录只下载旧 SVG，`:142` 的预览与 `:141` 的结果区都不重算（算了不渲染） | IT-N548 |
+| `tools/it/team-name-generator.html` | meta `:10` 承诺「可设风格与长度」，公式 `:158-159` 写「风格下拉」及「热血、搞笑、专业、古风」「可追加数字或符号后缀」，FAQ `:210` 称「可切换语言风格」，英文简介 `:470` 称含 optional numbers；实际 `:163-169` 只有「领域」下拉（科技/体育/电竞/创业/创意），`:274` 只追加词库后缀，全页无风格/长度/语言/数字后缀控件（承诺未实现） | IT-N549 |
+
+**统计**
+- 页数：8（`password-strength`、`python-cheatsheet`、`redis-cheatsheet`、`rust-cheatsheet`、`screen-size`、`summary-generator`、`svg-placeholder-generator`、`team-name-generator`）。
+- 问题：14 条——高 1（IT-N536）/ 中 13（IT-N537–IT-N549）。
+- 编号区间：IT-N536–IT-N549，连续且无重号、无跳号（与已转修复清单无重叠）。
+- 假工具：0 个（无整页伪工具；IT-N545、IT-N549 为承诺未实现，已计入中）。
+- 安全条目：0 条——8 页均未出现 `eval`/`new Function`/`allow-same-origin`/明文存密/第三方外传；`password-strength.html:542` 的 localStorage 持久化选择器显式排除 `input[type=password]`，密码未落盘；其余用户输入均经 `escapeHtml`/`escH` 或仅写入 `textContent`/`value`，未发现可控 DOM 注入点。
+- 方法：逐页通读 HTML 与全部内联 JS；node 复刻 `password-strength` 的熵/破解时间换算（确认标签倍率偏差）与 `summary-generator` 的 5% 句频过滤（60 句唯一文本过滤后 0 关键词、60 句权重全 0）；未开浏览器、未跑 `_build.py`/`run_gates.py`、未执行 git、未修改任何 `tools/**` 或构建产物。
+
+## Z 批 · IT 编码/速查（二）（2026-11-04）
+
+逐页结论（5 页）：
+
+- `tools/it/text-qr.html`：2 条（IT-N550 高、IT-N551 中）。页面能画出定位图形，但数据区是伪随机噪声，text 只当种子，不是二维码编码；承诺的尺寸/容错/配色与 PNG/SVG 下载均无控件。
+- `tools/it/tmux-cheatsheet.html`：2 条（IT-N552、IT-N553 中）。39 条速查与搜索/分类/图表均可用；问题在示例与参数说明的可复制性。
+- `tools/it/unicode-lookup.html`：3 条（IT-N554–IT-N556 中）。逐字符码点浏览、UTF-8/UTF-16 换算与区段遍历正确；码点/名称检索未实现、名称字段写死、特定字符的复制按钮失效。
+- `tools/it/username-generator.html`：1 条（IT-N557 中）。词根随机组合、数字/下划线/Leet/前缀与长度截断可运行，输出经 `escapeHtml`；「风格」承诺无对应控件。
+- `tools/it/xxtea.html`：2 条（IT-N558 高、IT-N559 中）。加解密算法本体正确（node 复刻 1–255 字节逐长度往返一致）；缺陷在长度字只取低 8 位导致长文本解密截断，以及超长密钥静默丢弃。
+
+| 页面 | 问题（tools/it/<slug>.html:NN） | 编号 |
+|---|---|---|
+| `tools/it/text-qr.html` | 伪二维码：`renderQR` `:247-267` 只按 `:249-257` 画 3 个定位图形、`:259` 画定时线，数据区 `:260-265` 用 `pseudoRandom(strHash(text))` 逐格 `rnd()<0.5` 填黑白，全程无模式分段/比特流/Reed-Solomon/格式信息/掩码；`text` 仅作随机种子，生成图形不含任何可扫描数据。`:248` 的 `N=29` 写死，版本不随内容增长（V3 容量约 32 字节）（高·伪生成） | IT-N550 |
+| `tools/it/text-qr.html` | meta `:10` 与 og `:15` 承诺「支持尺寸、容错与配色调节，一键下载 PNG/SVG」；实际 `:160-165` 只有文本框与「生成 / 导出明细 CSV / 复制」三个按钮，无尺寸/纠错等级/配色控件，无 `toDataURL`/`toBlob`/SVG 导出路径，CSV 导出的是历史表（承诺未实现） | IT-N551 |
+| `tools/it/tmux-cheatsheet.html` | 示例混入 `--` 行内注释（全页 29 行示例，可执行命令集中在 `:280`、`:304`、`:312`、`:520`、`:552`）：`tmux  -- 匿名会话`、`tmux kill-server  -- 关闭所有 tmux`、`tmux kill-session -a  -- 关闭除当前外所有`、`set -g mouse on  -- 在 .tmux.conf 中`；shell/tmux 无 `--` 注释语法，`--` 及其后中文被当作参数，粘贴后报 `unknown command`/`usage: kill-session`，`:606` 渲染、`:619-628` 实现的复制按钮原样输出（错误结果） | IT-N552 |
+| `tools/it/tmux-cheatsheet.html` | `:295` 把 `tmux a` 的 `-d` 写成「不接管」，实际 `attach -d` 是分离其它已连接客户端、由本客户端接管，语义相反；`:304`「关闭除当前外所有」示例写成 `tmux kill-session -a` 未带 `-t`，在 tmux 外执行因无当前会话直接报错（错误结果） | IT-N553 |
+| `tools/it/unicode-lookup.html` | 码点/名称检索未实现：`:172` 占位符写「输入字符、码点或字符名」，`:161` 公式与深度解析 `:221` 举例 `U+2603`→`☃`、`snowman` 可命中；实际 `render()` `:292-299` 对输入 `for (const ch of q)` 逐字符取码点，`U+2603` 被拆成 `U`/`+`/`2`/`6`/`0`/`3` 六格，`snowman` 拆成 7 个字母，码点与名称永远不会被解析（承诺未实现/死输入） | IT-N554 |
+| `tools/it/unicode-lookup.html` | 名称字段写死常量：`lookupName` `:346-355` 仅 11 条硬编码映射（`0x21`/`0x22`/`0x23`/`0x40`/`0x00A9`/`0x00AE`/`0x2122`/`0x2603`/`0x2605`/`0x2665`/`0x2660`），其余一律返回 `Code Point N`；meta `:10` 承诺「展示名称」，而区段中 99% 以上字符的名称是常量占位（写死常量） | IT-N555 |
+| `tools/it/unicode-lookup.html` | `escapeAttr` `:389` 仅把 `'` 转成 `\'`，未处理 `"` 与 `\`；`:341` 生成 `onclick="copy('${escapeAttr(ch)}')"`，详情为 U+0022（`"`）时双引号提前闭合属性、U+005C（`\`）时反斜杠吞掉收尾引号，onclick 语法错误、按钮点击无反应（错误结果） | IT-N556 |
+| `tools/it/username-generator.html` | 「风格」承诺未实现：meta `:10`「可设长度与风格」、公式 `:163`「可控制长度、风格（简短/专业/趣味）」；`:169-186` 的控件只有关键词、数量、最大长度与加数字/下划线/Leet/前缀四个开关，`generate` `:274-299` 也无风格分支，全页无风格下拉或权重（承诺未实现） | IT-N557 |
+| `tools/it/xxtea.html` | ≥256 字节明文解密被截断且仍提示成功：`longToBytes` `:290-296` 用 `:292` 的 `m = v[n-1] & 0xff` 取回长度，长度字只保留低 8 位；`:383` 解密走同一路径。node 复刻（同页算法）1/10/100/254/255 字节往返一致，**256 字节→0 字符、300 字节→44 字符、400 字节→144 字符**（按 256 取模），`:385` 仍 toast「解密成功」（高·错误结果） | IT-N558 |
+| `tools/it/xxtea.html` | 超长密钥静默丢弃：`:350` 的 `keyToLongs` 不归一化，`:304-311` 的 `fixKey` 只在不足 4 字时补零、不截断，而 `:324`/`:327` 仅索引 `k[(p & 3) ^ e]`（恒为 0–3），第 5 个及以后字永不参与；`:185` 占位符却写「任意长度」。node 验证前 16 字节相同的两组 20 字节密钥（`abcdefghijklmnopQRST` 与 `abcdefghijklmnopXXXX`）产生完全相同密文（密钥处理/错误结果） | IT-N559 |
+
+**统计**
+- 页数：5（`text-qr`、`tmux-cheatsheet`、`unicode-lookup`、`username-generator`、`xxtea`）。
+- 问题：10 条——高 2（IT-N550、IT-N558）/ 中 8（IT-N551–IT-N557、IT-N559）。
+- 编号区间：IT-N550–IT-N559，连续且无重号、无跳号（与上批 IT-N536–IT-N549 衔接）。
+- 假工具：0 个（无整页空壳；text-qr 有真实 UI 与历史模板，但核心渲染为伪生成，已计高）。
+- 安全条目：0 条——本批页面未出现 `eval`/`new Function`/`allow-same-origin`/明文存密/可控 DOM 注入点（`text-qr` 的文本经 `escapeHtml`，`tmux` 全字段经 `escapeHtml`，`unicode-lookup` 注入的 name 取自硬编码表）；`xxtea` 密钥与明文仅存内存，未落 localStorage。全站公共模板的 `ttzz`（bytegoofy）第三方脚本非本批页面特有，未计入。
+- 方法：逐页通读 HTML 与全部内联 JS；`node -e` 内存复刻 `xxtea` 的 `longToBytes`/`bytesToLong`/加解密（未落盘、未建文件），逐长度核对往返与密钥前缀碰撞；`text-qr` 伪编码按源码判定（无分段/纠错/格式信息/掩码）；未开浏览器、未跑 `_build.py`/`run_gates.py`、未执行 git、未修改任何 `tools/**` 或构建产物。
+
 
 
