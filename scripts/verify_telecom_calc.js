@@ -173,6 +173,24 @@ const CASES = [
   },
   "expect": [ "低于双精度下限" ],
   "ref": "Eb/N0=1000 ⇒ 0.5·erfc(√1000) 双精度下溢为 0，旧实现输出「1e-Infinity」；新实现显式提示。默认 snr=10 不出现该串。"
+},
+{
+  "slug": "telecom/estimate-9",
+  "inputs": { "freq": "3600", "dist": "1", "ptx": "20", "gt": "2", "gr": "2" },
+  "expect": [ "11.051 pW" ],
+  "ref": "Pr=20+2+2−(20log10 3600+32.44)=−79.57 dBm ⇒ 1.105e−8 mW=11.051 pW（旧实现只降到 µW，显示 0.000 µW）。默认 2400 MHz 得 24.900 pW，不命中。"
+},
+{
+  "slug": "telecom/estimate-9",
+  "inputs": { "freq": "2400", "dist": "1", "ptx": "" },
+  "expect": [ "未填写发射功率" ],
+  "ref": "页面文案声明 Pt/Gt/Gr 可空，但旧守卫把 ptx 列入必填清单、空值直接拦截，与「跳过链路预算」分支矛盾；改为只强制 freq/dist 后空 Pt 走该提示。默认 Pt=20 不出现。"
+},
+{
+  "slug": "telecom/bandwidth-calculator",
+  "inputs": { "bandwidth": "100", "fileSize": "4.7", "efficiency": "120" },
+  "expect": [ "传输效率需在 1–100% 之间" ],
+  "ref": "传输效率 >100% 物理上不存在，旧实现按 120% 照算（高估下载速度）；新实现拒绝。默认 85% 不出现该提示。"
 }
 ];
 async function main() {

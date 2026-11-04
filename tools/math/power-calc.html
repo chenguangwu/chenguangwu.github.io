@@ -249,7 +249,7 @@ s.parentNode.insertBefore(el, s);
     return __msg;
   }
   // 分母项：__D 由真浏览器逐项置零探测得出，命中即说明该输入在此页作分母
-  var __D={"x": "底数 x"};
+  var __D={};
   for(var _d=0;_d<_ids.length;_d++){
     if(!(_ids[_d] in __D)) continue;
     var _de=document.getElementById(_ids[_d]);
@@ -261,7 +261,7 @@ s.parentNode.insertBefore(el, s);
     }
   }
   // 负值受限项：__N 由真浏览器逐项置 -1 探测得出（质量/体积/年限/样本量等物理量）
-  var __N={"x": "底数 x", "y": "指数 y"};
+  var __N={};
   for(var _n=0;_n<_ids.length;_n++){
     if(!(_ids[_n] in __N)) continue;
     var _ne=document.getElementById(_ids[_n]);
@@ -294,7 +294,19 @@ function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+=
 function calcTool(){
               var __ig=__tbInputGuard(['x', 'y'],["底数 x", "指数 y"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const x = num('x'), y = num('y');
+            if (x === 0 && y <= 0) {
+                ToolBox.setResult('result', '<p style="color:var(--danger);">0 的非正次幂无定义（0 的 0 次幂与负次幂均不应作为实数结果输出）。</p>');
+                return;
+            }
+            if (x < 0 && Math.abs(y - Math.round(y)) > 1e-12) {
+                ToolBox.setResult('result', '<p style="color:var(--danger);">负底数配非整数指数在实数范围内无定义，结果为一组复数（多值），本工具只处理实数主值。</p>');
+                return;
+            }
             const r = Math.pow(x, y);
+            if (!isFinite(r)) {
+                ToolBox.setResult('result', '<p style="color:var(--danger);">结果超出双精度范围（溢出为无穷大）。</p>');
+                return;
+            }
             const __g2=dataGrid([
                 [r.toExponential(4), x + '^' + y + ' (科学)'],
                 [r.toLocaleString('en-US'), x + '^' + y],
