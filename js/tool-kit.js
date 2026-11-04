@@ -1193,11 +1193,23 @@
       var blob = new Blob([text], { type: (mime || 'text/plain') + ';charset=utf-8' });
       var url = URL.createObjectURL(blob);
       var a = document.createElement('a');
-      a.href = url; a.download = filename;
+      a.href = url; a.download = safeName(filename, 'download');
       document.body.appendChild(a); a.click();
       setTimeout(function () { a.parentNode.removeChild(a); URL.revokeObjectURL(url); }, 200);
       return true;
     } catch (e) { toast('下载失败', 'error'); return false; }
+  }
+
+  function safeName(name, fallback) {
+    var s = String(name == null ? '' : name).replace(/[\u0000-\u001f\u007f<>:"/\\|?*]/g, '_');
+    s = s.replace(/\s+/g, ' ').replace(/^\s+|\s+$/g, '').replace(/^\.+/, '_');
+    if (!s || /^\.+$/.test(s)) s = fallback || 'download';
+    if (s.length > 120) {
+      var m = /(\.[a-z0-9]{1,8})$/i.exec(s);
+      var ext = m ? m[1] : '';
+      s = s.slice(0, 120 - ext.length) + ext;
+    }
+    return s;
   }
 
   exp.csv = function (filename, rows) {
@@ -1206,7 +1218,7 @@
         var v = c == null ? '' : String(c);
         // 防 CSV 公式注入：Excel / WPS 会把以 = + - @ 、制表符或回车开头的单元格当公式执行
         if (/^[=+\-@\t\r]/.test(v)) v = "'" + v;
-        return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+        return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
       }).join(',');
     }).join('\n');
     // BOM 保证 Excel 打开中文不乱码

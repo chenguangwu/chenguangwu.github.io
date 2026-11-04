@@ -2006,12 +2006,38 @@ function copyFromElement(elId, successMsg){
   copyText(text.trim(), successMsg);
 }
 
+// 文件名安全化：去掉路径分隔符与 Windows 非法字符，限长并保留后缀
+function safeFilename(name, fallback){
+  var s = String(name == null ? '' : name).replace(/[\u0000-\u001f\u007f<>:"/\\|?*]/g, '_');
+  s = s.replace(/\s+/g, ' ').replace(/^\s+|\s+$/g, '').replace(/^\.+/, '_');
+  if (!s || /^\.+$/.test(s)) s = fallback || 'download';
+  if (s.length > 120) {
+    var m = /(\.[a-z0-9]{1,8})$/i.exec(s);
+    var ext = m ? m[1] : '';
+    s = s.slice(0, 120 - ext.length) + ext;
+  }
+  return s;
+}
+
+// CSV 单元格安全化：防公式注入（=+-@ 与 Tab/CR 开头加单引号）+ 标准引号转义
+function csvCell(value){
+  var t = String(value == null ? '' : value);
+  if (/^[=+\-@\t\r]/.test(t)) t = "'" + t;
+  return /[",\n\r]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+}
+
 function downloadText(filename, content, mime){
-  var blob = new Blob([content], {type: mime || 'text/plain;charset=utf-8'});
+  mime = mime || 'text/plain;charset=utf-8';
+  if (/^text\//i.test(mime) && mime.indexOf('charset=') < 0) mime += ';charset=utf-8';
+  // CSV 统一补 UTF-8 BOM，避免 Excel 打开中文乱码；已有 BOM 不重复
+  if (typeof content === 'string' && /csv/i.test(mime) && content.charCodeAt(0) !== 0xFEFF) {
+    content = '\ufeff' + content;
+  }
+  var blob = new Blob([content], {type: mime});
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
   a.href = url;
-  a.download = filename;
+  a.download = safeFilename(filename, 'download');
   document.body.appendChild(a);
   a.click();
   if (window.ToolBox && ToolBox.Metrics) { var pp = (location.pathname || '').split('/').filter(Boolean); ToolBox.Metrics.track('download', { tool: pp[pp.length - 1], industry: pp.length >= 2 ? pp[pp.length - 2] : '' }); }
@@ -2112,6 +2138,8 @@ global.ToolBox = {
   copyToClipboard: copyToClipboard,
   copyFromElement: copyFromElement,
   downloadText: downloadText,
+  safeFilename: safeFilename,
+  csvCell: csvCell,
   formatNumber: formatNumber,
   escHtml: escHtml,
   debounce: debounce,
