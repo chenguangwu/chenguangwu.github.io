@@ -54,6 +54,18 @@
 - 科学线本批 10 页，新增 7 条回归用例，科学用例零逃生。
 - `i18n/tools/content_deepdive.json` 与 `i18n/tools/en/**` 的 `M` 均来自其他线，**未纳入本批**（待合流）。
 
+### 推送前干净 worktree 全量（HEAD `70a268bd05`，220 门禁，2:51）
+
+| 门禁 | 页面 slug | 错误摘要 | 归属线 | 状态 |
+| --- | --- | --- | --- | --- |
+| agriculture calc correctness | `agriculture/seed-germination-rate` | 用例 expect 未匹配；got 仅输出「第1天发芽数 … 第7天发芽数」标签 | 农业线 | 待农业线修 |
+| agriculture calc correctness | `agriculture/straw-return` | 未匹配期望值；got 仅「45」 | 农业线 | 待农业线修 |
+| agriculture calc correctness | `agriculture/soil-organic-matter` | 未匹配期望值；got 仅「10」 | 农业线 | 待农业线修 |
+| agriculture calc correctness | `agriculture/crop-water-requirement` | 未匹配期望值；got 仅「1.2」 | 农业线 | 待农业线修 |
+| livestock calc correctness | `livestock/heat-stress-index` | `copyResult: Cannot read properties of undefined` + 未匹配（got 仅「30」） | 农业线 | 待农业线修 |
+
+- 以上 5 条均在干净 worktree（仅 HEAD 内容）复现，非集成线改动引入；本批按「红了照推」继续推送，并已记录归属。
+
 断言范围：
 - `escHtml` 必须对 `"` `'` `<` `>` `&` 全编码；
 - 禁止回退成 `textContent → innerHTML` 实现；
