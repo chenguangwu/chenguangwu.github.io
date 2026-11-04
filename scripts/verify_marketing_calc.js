@@ -541,8 +541,30 @@ const CASES = [
   {
     slug: "marketing/marketing-roi",
     inputs: { a_cost: "30000", a_revenue: "0", a_impressions: "2000", a_clicks: "20000", a_conversions: "400", a_price: "299" },
-    expect: ["3.99", "298.7%", "¥75.00"],
-    ref: 'revenue=0 ⇒ finalRevenue 走 || 回退 = conv×price=400×299=119600（覆盖回退分支）；profit=89600；ROAS=3.99；ROI=298.7%；CPA=75.00'
+    clicks: ["calcAdvertising()"],
+    expect: ["-100.0%", "¥-30,000", "¥75.00"],
+    ref: '收入显式填 0 视为「0 收入」，不再被 revenue || conv×price 回退成 119,600：profit=-30000；ROI=-100.0%；ROAS=0.00；CPA=75.00。旧实现输出 ROAS 3.99 / ROI 298.7% ⇒ 本条即守护「0 当没填」回归。清空收入（而非填 0）才回退折算（见下一条）。'
+  },
+  {
+    slug: "marketing/marketing-roi",
+    inputs: { a_cost: "50000", a_impressions: "500", a_clicks: "10000", a_conversions: "200", a_price: "100" },
+    clicks: ["document.getElementById('a_revenue').value='';calcAdvertising()"],
+    expect: ["-60.0%", "0.40"],
+    ref: '收入输入框留空 ⇒ 按 转化量×客单价 折算收入 = 200×100 = 20,000；利润 -30,000，ROI -60.0%，ROAS 0.40。默认收入 80,000 的 ROI 60.0%/ROAS 1.60 不命中。'
+  },
+  {
+    slug: "marketing/marketing-roi",
+    inputs: { i_principal: "100000", i_final: "160000", i_years: "2", i_annual: "10" },
+    clicks: ["onFinalEdit()"],
+    expect: ["60.00%", "26.49%"],
+    ref: '修改最终价值触发 onFinalEdit 清空年化输入，从「年化→终值」切回「终值→年化」：160,000/100,000 两年 ⇒ 总 ROI 60.00%、年化 = 1.6^(1/2)−1 = 26.49%。旧实现无法从已知终值反算（年化一填就永久抢占）；按年化 10% 推算会得 121,000/21.00%，两条均不命中。'
+  },
+  {
+    slug: "marketing/marketing-roi",
+    inputs: { i_principal: "-100" },
+    clicks: ["calcInvestment()"],
+    expect: ["⚠ 初始投资与投资期限须大于 0。"],
+    ref: "负本金原实现照样算出终值与负 ROI；现拦截。默认 100000 不出现该提示。"
   },
   {
     slug: "marketing/marketing-roi",
@@ -579,7 +601,8 @@ const CASES = [
   {"slug": "marketing/email-subject-line-tester", "inputs": {"subject": "Your order #A4821 has shipped — track it in 3 clicks", "previewText": "Track your package"}, "expect": ["52 11 ✓ 完整 52字", "100 优秀 👍 标题质量良好，继续保持！", "✅ 标题长度适中（52字符） 🔢 包含数字，有助于吸引注意力 ✅ 未检测到明显垃圾邮件关键词"], "ref": "独立复算：标题 52 字符（Python len 验证）、按空白切分 11 词；10 ≤ 52 ≤ 70 ⇒ 不扣长度分（不奖不罚）、11 词 ≤ 15 不扣词数分、含数字只加分不扣、无中文垃圾词、无【】括号 ⇒ 四项均不扣分，总分 = 100 ⇒ 标签「优秀」。默认态标题「【限时优惠】夏季新品上市，全场5折起，错过等一年！」= 25 字符、含【】扣 2 分、含垃圾词（限时/优惠类）扣分 ⇒ 总分远低于 100，且「52字符」「11」「52字」三锚均不命中。预览文案由 desktopPreview/mobilePreview 双处回显，同串出现两次，注入值本身不作锚。"},
   {"slug": "marketing/email-subject-line-tester", "inputs": {"subject": "限时秒杀", "previewText": "仅今日"}, "expect": ["4 1 ✓ 完整 4字", "87 优秀 👍 标题质量良好，继续保持！", "💡 标题较短，建议提供更多信息吸引读者 ⚠️ 标题包含垃圾词「限时」，可能影响送达率 🚫 标题包含垃圾词「秒杀」，可能影响送达率"], "ref": "独立复算：标题「限时秒杀」4 字符（< 10 ⇒ 扣 5 分，并输出「标题较短」建议）、1 词；命中垃圾词表两项「限时」「秒杀」，各扣 4 分（warn 级 ⚠️ / 强拦截级 🚫 两档）；4 字无数字加分、无括号 ⇒ 总分 100 − 5 − 4 − 4 = 87。默认态 25 字符、含【】与「限时优惠」类词，总分与建议串均不同；「4 1」「4字」两锚不命中。与上一例互为对照：一条满分无扣分、一条 13 分扣分，同时覆盖「过短」与「适中」两个长度分支及两档垃圾词。"},
   {"slug": "marketing/email-subject-line-tester", "inputs": {"subject": "本周行业简报", "previewText": "限时福利"}, "expect": ["6 1 ✓ 完整 6字", "94 优秀 👍 标题质量良好，继续保持！", "💡 标题较短，建议提供更多信息吸引读者 ⚠️ 预览正文包含垃圾词「限时」，可能影响送达率"], "ref": "独立复算：标题 6 字符（<10 ⇒ 扣 5 分）、1 词、无数字无括号；垃圾词扫描覆盖标题 + 预览正文，预览「限时福利」命中垃圾词「限时」扣 4 分（标题内未命中 ⇒ 提示标注「预览正文」），同时「福利」命中积极词加 3 分 ⇒ 100 − 5 − 4 + 3 = 94。该例专测预览正文参与扫描的分支：若只看标题则总分为 98 且不出现「预览正文包含垃圾词」提示。"},
-  {"slug": "marketing/social-media-image-sizes", "inputs": {"searchInput": "竖版封面视频"}, "clicks": ["filterSizes();"], "expect": ["未找到匹配的尺寸"], "ref": "独立判定：关键词「竖版封面视频」在页面 12 个平台 × 各类尺寸的名称/平台名/宽高/比例数据中均无任何子串命中 ⇒ 过滤后集合为空，filterSizes() 走空分支渲染「未找到匹配的尺寸」。默认态（空关键词）全量渲染 12 个平台的全部尺寸卡，blob 无该提示串；兜底无参 filterSizes() 读空 searchInput 同样渲染全量、不会复现空提示 ⇒ 非兜底产物。过滤命中的串（如搜「头像」得 11 条头像卡连排）**不可作锚**：默认态本就全量含这些串，判别器回退 searchInput 后照样命中。搜索词在输入框 value 中回显，不作锚。"}
+  {"slug": "marketing/social-media-image-sizes", "inputs": {"searchInput": "竖版封面视频"}, "clicks": ["filterSizes();"], "expect": ["未找到匹配的尺寸"], "ref": "独立判定：关键词「竖版封面视频」在页面 12 个平台 × 各类尺寸的名称/平台名/宽高/比例数据中均无任何子串命中 ⇒ 过滤后集合为空，filterSizes() 走空分支渲染「未找到匹配的尺寸」。默认态（空关键词）全量渲染 12 个平台的全部尺寸卡，blob 无该提示串；兜底无参 filterSizes() 读空 searchInput 同样渲染全量、不会复现空提示 ⇒ 非兜底产物。过滤命中的串（如搜「头像」得 11 条头像卡连排）**不可作锚**：默认态本就全量含这些串，判别器回退 searchInput 后照样命中。搜索词在输入框 value 中回显，不作锚。"},
+  {"slug": "marketing/social-media-image-sizes", "inputs": {"searchInput": "Instagram"}, "clicks": ["ToolBox.downloadText=function(n,c){document.getElementById('sizesList').textContent=c;};exportSizes();"], "expect": ["\"Instagram\",\"头像\""], "ref": "按平台名搜索后导出（方向 5 导出/屏幕一致性）：屏幕过滤含 p.name，旧导出过滤漏掉 p.name ⇒ 0 行只剩表头。本用例把导出 CSV 写回 sizesList 再锚「平台,类型」行；修复前该串不存在。默认空关键词虽含 Instagram 卡，但无 CSV 形态的「\"Instagram\",\"头像\"」串。"}
 ,
 {
     "slug": "marketing/marketing-cpa-calculator",

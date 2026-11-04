@@ -240,12 +240,13 @@ s.parentNode.insertBefore(el, s);
     <div id="tab-investment" class="tab-content">
       <div class="input-row">
         <div><label>初始投资（元）</label><input type="number" id="i_principal" value="100000" oninput="calcInvestment()" placeholder="如 100000"></div>
-        <div><label>最终价值（元）</label><input type="number" id="i_final" value="135000" oninput="calcInvestment()" placeholder="如 135000"></div>
+        <div><label>最终价值（元）</label><input type="number" id="i_final" value="135000" oninput="onFinalEdit()" placeholder="如 135000"></div>
       </div>
       <div class="input-row">
         <div><label>投资期限（年）</label><input type="number" id="i_years" value="3" step="0.5" oninput="calcInvestment()" placeholder="如 3"></div>
         <div><label>年化收益率（%）</label><input type="number" id="i_annual" step="0.01" oninput="calcInvestment()"></div>
       </div>
+      <p style="font-size:12px;color:var(--text-muted);margin-top:4px;">两个口径互斥：填写年化收益率时按其推算最终价值；修改最终价值会自动清空年化收益率，改为按终值反算年化。</p>
     </div>
 
     <div id="tab-history" class="tab-content">
@@ -389,6 +390,11 @@ function calcMarketing(){
   const cvr = parseFloat(document.getElementById('m_cvr').value)||0;
   const repeat = parseFloat(document.getElementById('m_repeat').value)||0;
 
+  if(cost < 0 || price < 0 || impressions < 0 || ctr < 0 || ctr > 100 || cvr < 0 || cvr > 100 || repeat < 0 || repeat > 100){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 投入、客单价与曝光量不能为负，点击率/转化率/复购率须在 0–100% 之间。</p>';
+    document.getElementById('funnel').innerHTML='';return;
+  }
+
   const clicks = impressions * ctr / 100;
   const conversions = clicks * cvr / 100;
   const repeatOrders = conversions * repeat / 100;
@@ -441,14 +447,19 @@ function calcMarketing(){
 
 function calcAdvertising(){
   const cost = parseFloat(document.getElementById('a_cost').value)||0;
-  const revenue = parseFloat(document.getElementById('a_revenue').value)||0;
   const impressions = parseFloat(document.getElementById('a_impressions').value)||0;
   const clicks = parseFloat(document.getElementById('a_clicks').value)||0;
   const conversions = parseFloat(document.getElementById('a_conversions').value)||0;
   const price = parseFloat(document.getElementById('a_price').value)||0;
 
   const calcRevenue = conversions * price;
-  const finalRevenue = revenue || calcRevenue;
+  const revenueRaw = document.getElementById('a_revenue').value.trim();
+  const revenueInput = revenueRaw === '' ? NaN : parseFloat(revenueRaw);
+  const finalRevenue = isFinite(revenueInput) ? revenueInput : calcRevenue;
+  if(cost < 0 || (isFinite(revenueInput) && revenueInput < 0) || impressions < 0 || clicks < 0 || conversions < 0 || price < 0){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 投入、收入、展示量、点击量、转化量与客单价均不能为负数。</p>';
+    document.getElementById('funnel').innerHTML='';return;
+  }
   const profit = finalRevenue - cost;
   const roi = cost>0 ? ((finalRevenue-cost)/cost)*100 : 0;
   const ctr = impressions>0 ? (clicks/(impressions*1000))*100 : 0;
@@ -486,26 +497,45 @@ function calcAdvertising(){
   `;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){r.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}r.innerHTML=__h2;
 }
 
+function onFinalEdit(){
+  const a = document.getElementById('i_annual');
+  if(a.value !== '') a.value = '';
+  calcInvestment();
+}
+
 function calcInvestment(){
   const principal = parseFloat(document.getElementById('i_principal').value)||0;
   const finalVal = parseFloat(document.getElementById('i_final').value)||0;
   const years = parseFloat(document.getElementById('i_years').value)||1;
-  let annualRate = parseFloat(document.getElementById('i_annual').value);
+  const annualRate = parseFloat(document.getElementById('i_annual').value);
+  const hasAnnual = !isNaN(annualRate);
+
+  const r = document.getElementById('result');
+  if(!(principal > 0) || !(years > 0)){
+    r.innerHTML='<p style="color:var(--danger)">⚠ 初始投资与投资期限须大于 0。</p>';return;
+  }
+  if(hasAnnual && annualRate <= -100){
+    r.innerHTML='<p style="color:var(--danger)">⚠ 年化收益率须大于 -100%。</p>';return;
+  }
+  if(!hasAnnual && finalVal < 0){
+    r.innerHTML='<p style="color:var(--danger)">⚠ 最终价值不能为负数。</p>';return;
+  }
 
   let roi, finalValue, calcAnnual;
-  if(annualRate && !isNaN(annualRate)){
+  if(hasAnnual){
     finalValue = principal * Math.pow(1 + annualRate/100, years);
     roi = ((finalValue - principal)/principal)*100;
     calcAnnual = annualRate;
   } else {
     finalValue = finalVal;
-    roi = principal>0 ? ((finalVal-principal)/principal)*100 : 0;
-    calcAnnual = principal>0 && years>0 ? (Math.pow(finalVal/principal, 1/years)-1)*100 : 0;
+    roi = ((finalVal-principal)/principal)*100;
+    calcAnnual = (Math.pow(finalVal/principal, 1/years)-1)*100;
   }
+  const modeNote = hasAnnual ? '当前口径：按年化收益率推算最终价值' : '当前口径：按最终价值反算年化收益率';
   const profit = finalValue - principal;
 
-  const r = document.getElementById('result');
   const __h3=`
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">${modeNote}</p>
     <div class="stat-grid">
       <div class="stat-card"><div class="val">${roi.toFixed(2)}%</div><div class="lbl">总ROI</div></div>
       <div class="stat-card"><div class="val">${calcAnnual.toFixed(2)}%</div><div class="lbl">年化收益</div></div>
@@ -516,7 +546,7 @@ function calcInvestment(){
     <p><strong>投资期限：</strong>${years} 年</p>
     <p><strong>收益金额：</strong>¥${ToolBox.formatNumber(profit,2)}</p>
     <p style="margin-top:8px;font-size:12px;color:var(--text-muted);">
-      年化收益率 = (最终价值/本金)^(1/年数) - 1
+      ${hasAnnual ? '最终价值 = 本金 × (1 + 年化收益率)^年数' : '年化收益率 = (最终价值/本金)^(1/年数) - 1'}
     </p>
     <p style="margin-top:10px;font-size:12px;color:var(--text-muted);">
       <button type="button" class="btn" onclick="saveHistory('investment')" style="padding:6px 12px;font-size:12px;">💾 保存记录</button>

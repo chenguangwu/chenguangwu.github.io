@@ -530,6 +530,8 @@ function getSizeIcon(type){
 function exportSizes(){
   const search = document.getElementById('searchInput').value.toLowerCase();
   let csv = '平台,类型,名称,宽度,高度,比例\n';
+  let rowCount = 0;
+  const cell = v => '"' + String(v).replace(/"/g, '""') + '"';
   
   const platforms = currentPlatform==='all' ? Object.keys(platformData) : [currentPlatform];
   
@@ -537,12 +539,14 @@ function exportSizes(){
     const p = platformData[pkey];
     p.sizes.filter(s=>{
       const matchType = currentType==='all' || s.type===currentType;
-      const matchSearch = !search || s.name.toLowerCase().includes(search) || s.type.toLowerCase().includes(search);
+      const matchSearch = !search || s.name.toLowerCase().includes(search) || s.type.toLowerCase().includes(search) || p.name.toLowerCase().includes(search);
       return matchType && matchSearch;
     }).forEach(s=>{
-      csv += `${p.name},${s.type},${s.name},${s.width},${s.height},${s.ratio}\n`;
+      rowCount++;
+      csv += [p.name, s.type, s.name, s.width, s.height, s.ratio].map(cell).join(',') + '\n';
     });
   });
+  if(rowCount === 0){ ToolBox.showToast('当前筛选无结果，无可导出内容'); return; }
   
   ToolBox.downloadText('social_media_sizes.csv', csv, 'text/csv');
 }
