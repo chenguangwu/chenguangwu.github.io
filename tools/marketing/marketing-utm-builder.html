@@ -249,20 +249,27 @@ function calc(){
     const __h0='<p>请填写网址、来源、媒介、活动名称（必填项）</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){r.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}r.innerHTML=__h0;
     return;
   }
-  const params = new URLSearchParams();
-  params.set('utm_source', source);
-  params.set('utm_medium', medium);
-  params.set('utm_campaign', campaign);
-  if(term) params.set('utm_term', term);
-  if(content) params.set('utm_content', content);
-  const sep = url.includes('?') ? '&' : '?';
-  const finalUrl = url + sep + params.toString();
+  const pairs = [['utm_source', source], ['utm_medium', medium], ['utm_campaign', campaign]];
+  if(term) pairs.push(['utm_term', term]);
+  if(content) pairs.push(['utm_content', content]);
+  // 在 # 片段之前插入查询串；已有同名 utm_* 参数先剔除，避免重复累积
+  const hashIdx = url.indexOf('#');
+  const base = hashIdx >= 0 ? url.slice(0, hashIdx) : url;
+  const hash = hashIdx >= 0 ? url.slice(hashIdx) : '';
+  const qIdx = base.indexOf('?');
+  const pathOnly = qIdx >= 0 ? base.slice(0, qIdx) : base;
+  const kept = new URLSearchParams(qIdx >= 0 ? base.slice(qIdx + 1) : '');
+  pairs.forEach(function(p){ kept.delete(p[0]); });
+  pairs.forEach(function(p){ kept.set(p[0], p[1]); });
+  const finalUrl = pathOnly + '?' + kept.toString() + hash;
   r.innerHTML = `
     <p style="margin-bottom:8px;font-weight:500;">生成的UTM追踪链接：</p>
-    <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:12px;word-break:break-all;font-family:monospace;font-size:13px;margin-bottom:12px;">${finalUrl}</div>
-    <button type="button" class="btn primary" onclick="ToolBox.copyText('${finalUrl.replace(/'/g,"\'")}')">复制链接</button>
-    <p style="margin-top:12px;font-size:12px;color:var(--text-muted);">UTM参数用于Google Analytics等工具追踪流量来源</p>
+    <div id="utmOut" style="background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:12px;word-break:break-all;font-family:monospace;font-size:13px;margin-bottom:12px;"></div>
+    <button type="button" class="btn primary" onclick="ToolBox.copyText(document.getElementById('utmOut').textContent)">复制链接</button>
+    <p style="margin-top:12px;font-size:12px;color:var(--text-muted);">UTM参数用于Google Analytics等工具追踪流量来源；若网址含 # 锚点，参数会插在锚点之前。</p>
   `;
+  // 用 textContent 写入，避免 & 被转义成 &amp; 导致复制/校验得到错误链接
+  document.getElementById('utmOut').textContent = finalUrl;
 
 }
 document.addEventListener('DOMContentLoaded', calc);

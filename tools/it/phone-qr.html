@@ -191,7 +191,7 @@ s.parentNode.insertBefore(el, s);
 <h2>📚 深度解析：电话二维码</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>生成 tel: <a class="term-link" href="/guides/qrcode-guide.html">二维码</a>一键拨号。</li>
+<li>生成 tel: <a class="term-link" href="/tools/it/qrcode.html">二维码</a>一键拨号。</li>
 <li>在名片或海报上放二维码，扫码即可一键拨号。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">生成</div><div class="dd-ex-body">`tel:+8613800138000` → QR，扫码唤起拨号。</div></div>
@@ -244,35 +244,17 @@ s.parentNode.insertBefore(el, s);
 </div>
 <!-- /注意事项区块 -->
 </div>
+<script src="../../js/qrcode.js"></script>
 <script>
-function strHash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
-function pseudoRandom(seed){let s=seed||1;return function(){s=(s*1664525+1013904223)>>>0;return s/4294967296;};}
-function renderQR(text){
-  const N=25;const grid=Array.from({length:N},()=>Array(N).fill(0));
-  function finder(r,c){
-    for(let i=-1;i<=7;i++)for(let j=-1;j<=7;j++){
-      const rr=r+i,cc=c+j;if(rr<0||rr>=N||cc<0||cc>=N)continue;
-      if(i===-1||i===7||j===-1||j===7){grid[rr][cc]=0;continue;}
-      if(i===0||i===6||j===0||j===6){grid[rr][cc]=1;continue;}
-      if(i>=2&&i<=4&&j>=2&&j<=4){grid[rr][cc]=1;continue;}
-      grid[rr][cc]=0;
-    }
-  }
-  finder(0,0);finder(0,N-7);finder(N-7,0);
-  for(let i=8;i<N-8;i++){grid[6][i]=i%2===0?1:0;grid[i][6]=i%2===0?1:0;}
-  const rnd=pseudoRandom(strHash(text));
-  for(let r=0;r<N;r++)for(let c=0;c<N;c++){
-    if(r<8&&c<8)continue;if(r<8&&c>=N-8)continue;if(r>=N-8&&c<8)continue;
-    if(r===6||c===6)continue;
-    grid[r][c]=rnd()<0.5?0:1;
-  }
-  return grid;
-}
+// 使用 qrcode-generator 库生成真正可扫描的二维码（此前为随机图案，扫码无效）
 function drawQR(text){
-  const grid=renderQR(text);const N=grid.length;const cell=8;const size=N*cell;
+  if(typeof qrcode!=='function')return null;
+  if(qrcode.stringToBytesFuncs&&qrcode.stringToBytesFuncs['UTF-8'])qrcode.stringToBytes=qrcode.stringToBytesFuncs['UTF-8'];
+  const qr=qrcode(0,'M');qr.addData(text);qr.make();
+  const n=qr.getModuleCount(),margin=4,cell=8,size=(n+margin*2)*cell;
   const canvas=document.createElement('canvas');canvas.width=size;canvas.height=size;
   const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,size,size);ctx.fillStyle='#000';
-  for(let r=0;r<N;r++)for(let c=0;c<N;c++)if(grid[r][c])ctx.fillRect(c*cell,r*cell,cell,cell);
+  for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(qr.isDark(r,c))ctx.fillRect((c+margin)*cell,(r+margin)*cell,cell,cell);
   return canvas;
 }
 function generate(){
@@ -281,13 +263,18 @@ function generate(){
   if(!/^tel:/i.test(phone))phone='tel:'+phone.replace(/\s+/g,'');
   const canvas=drawQR(phone);
   const out=document.getElementById('output');
+  if(!canvas){out.innerHTML='<p style="color:var(--danger)">⚠ 二维码库加载失败，请刷新页面重试。</p><div class="qr-text">'+escapeHtml(phone)+'</div>';return;}
   const __h0='<div class="qr-wrap"></div><div class="qr-text">'+escapeHtml(phone)+'</div>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0;
   out.querySelector('.qr-wrap').appendChild(canvas);
 }
 function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function copyResult(){
   const text = document.getElementById('output').textContent || document.getElementById('output').innerText;
-  navigator.clipboard.writeText(text).then(() => alert('已复制'));
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function(){ alert('已复制'); });
+  } else if (window.ToolBox && ToolBox.copyText) {
+    ToolBox.copyText(text);
+  }
 }
 function toggleToolTheme(){
   const cur = document.documentElement.getAttribute('data-theme');

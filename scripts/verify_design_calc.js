@@ -242,16 +242,11 @@ const CASES = [
   },
   {
     slug: "design/exposure-triangle-calculator",
-    inputs: {},
-    clicks: [
-      "document.getElementById('aperture').selectedIndex=0;",
-      "document.getElementById('shutter').selectedIndex=11;",
-      "document.getElementById('iso').selectedIndex=0;",
-      "calc();"
-    ],
-    expect: ["f/1.4 1/2 ISO 100"],
-    ref: "三个 select 都按 selectedIndex 注入（`apertures[0]=1.4`、`shutters[11]=1/2`、`isos[0]=100`）⇒ 等效组合区首选卡为 `f/1.4` / `1/2` / `ISO 100` 连排。"
-       + "⚠ 该页 #equiv 内容含大量 `f/1.4 …` 卡，但只有这条 `f/1.4 1/2 ISO 100` 三字段连排同时成立；默认态 shutters 默认档与 apertures 默认档不同 ⇒ 不命中。",
+    inputs: { aperture: "1.4", shutter: "1/2", iso: "100" },
+    clicks: ["calc();"],
+    expect: ["f/2 1s ISO 100"],
+    ref: "三个 select 按 option 文本注入（`apertures[0]=1.4`、`1/2`、`ISO 100`）⇒ 等效组合区首张卡为放大一档光圈 `f/2` + 放慢一档快门 `1s` + `ISO 100` 连排。"
+       + "⚠ 默认态（f/4、1/60、ISO 200）首张卡是 `f/2.8 1/125 ISO 200` ⇒ 不命中，判别成立。",
   },
   {
     slug: "design/css-grid-generator",
@@ -414,8 +409,8 @@ const CASES = [
   {
     slug: "design/music-scale-reference",
     inputs: { root: "D", scaleType: "minor" },
-    expect: ["D - E - F - G - A - A# - C"],
-    ref: "自然小调按半音阶逐级推导（D → E F G A A# C，第 6 音升八度内的 A#）。同页 `#notesDisplay` 还输出 `调号` 与 `关系小调`，但结果串里只有音符序列随 root/scale 变化，故取其作为锚。",
+    expect: ["D - E - F - G - A - Bb - C"],
+    ref: "自然小调按半音阶逐级推导（D → E F G A Bb C，第 6 音按降号记谱写 Bb）。同页 `#notesDisplay` 还输出 `调号` 与 `关系小调`，但结果串里只有音符序列随 root/scale 变化，故取其作为锚。",
   },
   {
     slug: "design/music-scale-reference",

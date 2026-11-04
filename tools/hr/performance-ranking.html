@@ -126,13 +126,18 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按本人得分与团队最高分做归一化（百分制）并给出相对差距与排名百分位，用于绩效横向比较。">Performance Ranking</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">归一化得分 = min(100, 本人得分 ÷ 团队最高分 × 100)；相对差距 = (最高 − 本人) ÷ 最高 × 100%</div>
-      <p class="formula-desc">绩效归一化把不同量纲、不同团队得分映射到 0–100 的同一尺度：归一化得分=本人÷最高×100，相对差距=(最高−本人)÷最高，便于跨组横向排名。</p>
+      <div class="formula-eq">归一化得分 = min(100, 本人得分 ÷ 团队最高分 × 100)；z 分数 = (本人得分 − 团队平均分) ÷ 得分标准差；百分位 = Φ(z)；估算名次 ≈ 团队人数 × (1 − 百分位)</div>
+      <p class="formula-desc">绩效归一化把不同量纲、不同团队得分映射到 0–100 的同一尺度：归一化得分=本人÷最高×100，相对差距=(最高−本人)÷最高；再结合团队平均分与标准差换算 z 分数，按正态分布估算百分位与名次，便于跨组横向比较。</p>
     </div>
     <div class="input-row">
       <div><label>本人得分</label><input type="number" id="v0" value="80" step="any" oninput="calc()" enterkeyhint="done" aria-label="评分 A" placeholder="如 80"></div>
       <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
       <div><label>团队最高分</label><input type="number" id="v1" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="评分 B" placeholder="如 100"></div>
+    </div>
+    <div class="input-row">
+      <div><label>团队平均分</label><input type="number" id="v2" value="82" step="any" oninput="calc()" placeholder="如 82"></div>
+      <div><label>得分标准差</label><input type="number" id="v3" value="8" step="any" min="0" oninput="calc()" placeholder="如 8"></div>
+      <div><label>团队人数</label><input type="number" id="v4" value="30" step="1" min="1" oninput="calc()" placeholder="如 30"></div>
     </div>
     <div class="toolbar">
       <div id="performance_rankingPresets"></div><button class="btn primary" type="button" onclick="calc()">🧮 计算</button><button class="btn" type="button" onclick="__performance_rankingExport()">导出明细 CSV</button>
@@ -140,7 +145,7 @@ s.parentNode.insertBefore(el, s);
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div> <div id="performance_rankingTable"></div> <div id="performance_rankingDiff"></div> <div id="performance_rankingChart"></div> <div id="performance_rankingHist"></div>
-    <div class="info-box">💡 归一化得分 = 本人 ÷ 团队最高 × 100（上限 100）；相对差距 = (最高 − 本人) ÷ 最高。</div>
+    <div class="info-box">💡 归一化得分 = 本人 ÷ 团队最高 × 100（上限 100）；百分位与名次按正态分布由 z 分数估算，标准差填 0 时不估算排名。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
 <div class="card" id="constRefBox">
   <h3 data-zh="📐 公式与标准引据">Formula &amp; Standard References</h3>
@@ -149,9 +154,9 @@ s.parentNode.insertBefore(el, s);
       <thead><tr><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="项目">Item</th><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="公式">Formula</th><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="来源 / 标准">Source / Standard</th></tr></thead>
       <tbody>
         <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="归一化">Normalization</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="(得分-最低)/(最高-最低)">(score-min)/(max-min)</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">min-max normalization</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="部分/整体">Ratio to max</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="本人得分 ÷ 团队最高分 × 100">score / max score × 100</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">ratio normalization</td>
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="标准分">Standard score</td>
@@ -184,6 +189,13 @@ s.parentNode.insertBefore(el, s);
 
 <script>
 function gcd(a,b){a=Math.abs(a);b=Math.abs(b);while(b){[a,b]=[b,a%b];}return a||1;}
+// 正态分布累积分布函数（Abramowitz-Stegun 7.1.26 误差函数近似，精度约 1e-7）
+function normCdf(z){
+  var x=Math.abs(z)/Math.SQRT2;
+  var t=1/(1+0.3275911*x);
+  var erf=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-x*x);
+  return z>=0?0.5*(1+erf):0.5*(1-erf);
+}
 function getV0(){return parseFloat(document.getElementById('v0').value);}
 function getV1(){return parseFloat(document.getElementById('v1').value);}
 function setInvalid(el,invalid){
@@ -401,15 +413,32 @@ function calc(){
     '<div class="data-card"><div class="num">'+b.toFixed(2)+'%</div><div class="label">增长率</div></div>'+
     '</div>';
   }else if(/评分|得分|指数/.test(title)){
-    var total=a+b;
-    var avg=(a+b)/2;
-    var diff=Math.abs(a-b);
+    var max=b;
+    var mean=parseFloat(document.getElementById('v2').value);
+    var sd=parseFloat(document.getElementById('v3').value);
+    var n=parseFloat(document.getElementById('v4').value);
+    if(isNaN(mean)) mean=82;
+    if(isNaN(sd)) sd=8;
+    if(isNaN(n)) n=30;
+    var norm=max>0?Math.min(100, a/max*100):null;
+    var gap=max>0?(max-a)/max*100:null;
+    var z=sd>0?(a-mean)/sd:null;
+    var pct=z!==null?normCdf(z)*100:null;
+    var rank=(pct!==null&&n>0)?Math.max(1, Math.min(Math.round(n), Math.round(n*(1-pct/100)+0.5))):null;
+    var grade=norm===null?'—':norm>=90?'A（前 20%）':norm>=75?'B（中上）':norm>=60?'C（达标）':'D（待改进）';
     html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+total.toFixed(1)+'</div><div class="label">总分</div></div>'+
-    '<div class="data-card"><div class="num">'+avg.toFixed(1)+'</div><div class="label">平均分</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(1)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(1)+'</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
+    '<div class="data-card"><div class="num">'+(norm===null?'-':norm.toFixed(1))+'</div><div class="label">归一化得分</div></div>'+
+    '<div class="data-card"><div class="num">'+(gap===null?'-':gap.toFixed(1)+'%')+'</div><div class="label">与最高分差距</div></div>'+
+    '<div class="data-card"><div class="num">'+(pct===null?'-':pct.toFixed(1)+'%')+'</div><div class="label">估算百分位</div></div>'+
+    '<div class="data-card"><div class="num">'+(rank===null?'-':rank+' / '+Math.round(n))+'</div><div class="label">估算名次</div></div>'+
+    '</div>'+
+    '<div class="data-grid" style="margin-top:8px;">'+
+    '<div class="data-card"><div class="num">'+grade+'</div><div class="label">归一化等级</div></div>'+
+    '<div class="data-card"><div class="num">'+(z===null?'-':(z>=0?'+':'')+z.toFixed(2))+'</div><div class="label">z 分数</div></div>'+
+    '<div class="data-card"><div class="num">'+mean.toFixed(1)+'</div><div class="label">团队平均分</div></div>'+
+    '<div class="data-card"><div class="num">'+(a-mean).toFixed(1)+'</div><div class="label">高于平均分</div></div>'+
+    '</div>'+
+    '<p style="margin-top:10px;font-size:12px;color:var(--text-muted);">百分位与名次按正态分布估算：z=(得分−平均分)/标准差，百分位=Φ(z)，名次≈人数×(1−百分位)。若团队得分分布明显偏态，结果仅供参考。</p>';
   }else if(/尺寸|规格|孔径/.test(title)){
     var area=a*b;
     var ratio=b?(a/b).toFixed(4):'-';

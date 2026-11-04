@@ -124,6 +124,7 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row"><label>进入面试人数</label><input type="number" id="interview" value="120" min="0" step="1" oninput="calc()" placeholder="如 120"></div>
 <div class="input-row"><label>发放 Offer 人数</label><input type="number" id="offer" value="40" min="0" step="1" oninput="calc()" placeholder="如 40"></div>
 <div class="input-row"><label>实际入职人数</label><input type="number" id="hire" value="32" min="0" step="1" oninput="calc()" placeholder="如 32"></div>
+<div class="input-row"><label>招聘渠道总花费（元）</label><input type="number" id="cost" value="30000" min="0" step="100" oninput="calc()" placeholder="如 30000"></div>
 <div class="toolbar"><div id="stats_funnel_recruitPresets"></div><button type="button" class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" onclick="__stats_funnel_recruitExport()">导出明细 CSV</button><button type="button" class="btn" onclick="copyResult()">复制</button></div>
 <div class="result-box" id="res"></div> <div id="stats_funnel_recruitTable"></div> <div id="stats_funnel_recruitDiff"></div> <div id="stats_funnel_recruitChart"></div> <div id="stats_funnel_recruitHist"></div>
   </div>
@@ -261,12 +262,20 @@ const r=parseFloat(document.getElementById("resume").value);
   const i=parseFloat(document.getElementById("interview").value);
   const o=parseFloat(document.getElementById("offer").value);
   const h=parseFloat(document.getElementById("hire").value);
+  const cost=parseFloat(document.getElementById("cost").value);
   if(!(r>0)){document.getElementById("res").innerHTML='<p>简历人数需大于 0</p>';return;}
   const c1=i/r*100,c2=o/i*100,c3=h/o*100,total=h/r*100;
+  const drop1=r-i,drop2=i-o,drop3=o-h;
+  const worst=[[drop1,'简历→面试',c1],[drop2,'面试→Offer',c2],[drop3,'Offer→入职',c3]].sort(function(x,y){return y[0]-x[0];})[0];
+  let costLine='';
+  if(!isNaN(cost)&&cost>0){
+    costLine='<p>单个 Offer 成本（CPO）：<strong>¥'+(o>0?(cost/o).toFixed(0):'—')+'</strong>；单个入职成本：<strong>¥'+(h>0?(cost/h).toFixed(0):'—')+'</strong></p>';
+  }
   const __g3=`<p>简历 → 面试：<strong>${c1.toFixed(2)}%</strong>（${fmt(i)}/${fmt(r)}）</p>`+
     `<p>面试 → Offer：<strong>${c2.toFixed(2)}%</strong>（${fmt(o)}/${fmt(i)}）</p>`+
     `<p>Offer → 入职：<strong>${c3.toFixed(2)}%</strong>（${fmt(h)}/${fmt(o)}）</p>`+
-    `<p style="margin-top:8px;">整体转化率（入职/简历）：<strong style="color:var(--primary);">${total.toFixed(2)}%</strong></p>`;document.getElementById("res").innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+    `<p style="margin-top:8px;">整体转化率（入职/简历）：<strong style="color:var(--primary);">${total.toFixed(2)}%</strong></p>`+
+    `<p>流失最严重环节：<strong>${worst[1]}</strong>（流失 ${fmt(worst[0])} 人，该环节转化率 ${worst[2].toFixed(2)}%）</p>`+costLine;document.getElementById("res").innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 }
 calc();
 function copyResult(){ToolBox.copyText(document.getElementById("res").innerText);}

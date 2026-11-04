@@ -129,6 +129,10 @@ s.parentNode.insertBefore(el, s);
         <label for="workday">每日标准工时（h）</label>
         <input type="number" id="workday" value="8" step="1" min='4' max='12' placeholder="如 8">
       </div>
+      <div>
+        <label for="monthlyPay">月薪（元，可选）</label>
+        <input type="number" id="monthlyPay" value="8000" step="100" min='0' placeholder="如 8000">
+      </div>
     </div>
 
     <div id="comp_time_calculatorPresets"></div>
@@ -269,13 +273,17 @@ function calcTool(){const hours=num('hours'), workday=num('workday')||8;
      : (dayType==='holiday'
         ? '法定节假日加班应支付 300% 工资，不可用补休替代（可补休天数记 0）。'
         : '工作日延时加班支付 150% 工资，不折算补休（可补休天数记 0）。');
+   const monthlyPay=num('monthlyPay');
+   // 计薪日按 21.75 天（劳社部发〔2008〕3 号），小时工资 = 月薪 ÷ 21.75 ÷ 8
+   const hourly=monthlyPay>0?(monthlyPay/21.75/8):null;
+   const otPay=hourly!==null?(hourly*hours*mult):null;
    let html=dataGrid([
      [compDays.toFixed(1)+' 天','可补休天数'],
      [payHours.toFixed(1)+' h','折算加班费工时'],
-     [hours.toFixed(1)+' h','原始加班'],
-     [mult+' 倍',typeName+'工资倍数']
+     [otPay===null?'—':'¥'+fmtMoney(otPay),'加班费金额'],
+     [hourly===null?'—':'¥'+fmtMoney(hourly)+'/h','小时工资']
    ]);
-   html += '<p style="font-size:13px;color:var(--text-muted);margin-top:8px;">'+compNote+'实际以公司制度与当地政策为准。</p>';
+   html += '<p style="font-size:13px;color:var(--text-muted);margin-top:8px;">'+compNote+'加班费金额按 21.75 个计薪日、每日 8 小时折算小时工资后乘以加班倍数；月薪为 0 时不计金额。</p>';
 
    // 加班补偿规则参考表
    html += '<div style="margin-top:12px;font-size:13px;"><b>加班补偿规则参考</b></div>'+
@@ -292,6 +300,7 @@ function calcTool(){const hours=num('hours'), workday=num('workday')||8;
 function resetForm(){document.getElementById('hours').value='12';
       document.getElementById('dayType').selectedIndex=0;
       document.getElementById('workday').value='8';
+      document.getElementById('monthlyPay').value='8000';
       calcTool();}
 calcTool();
 

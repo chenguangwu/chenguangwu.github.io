@@ -249,6 +249,7 @@ def build_guard_js(inputs, out_id, fname, denoms=None, negs=None):
     nlab = json_str({n['id']: n['label'] for n in (negs or [])})
     js = f"""
 function {FN_NAME}(_ids,_labels){{
+  if(!Array.isArray(_ids)||!_ids.length) return 0;
   var __TPL='请填写「%s」后再计算。';
   var __TPL2={denom_tpl};
   var __TPL3={neg_tpl};

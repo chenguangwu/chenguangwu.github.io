@@ -222,11 +222,14 @@ function calc(){
   var h='';var prev=null;var risks=[];
   rows.forEach(function(r,i){
     var grow=(prev)?((r.gmv-prev.gmv)/prev.gmv*100):null;
+    var ogrow=(prev&&prev.ord>0)?((r.ord-prev.ord)/prev.ord*100):null;
+    var aov=(r.ord>0)?(r.gmv/r.ord):null;
     var rdelta=(prev)?(r.ref-prev.ref):null;
     var cdelta=(prev)?(r.cac-prev.cac):null;
     if(rdelta>0.3) risks.push(r.name+' 退款率升至 '+r.ref.toFixed(1)+'%（环比 +'+rdelta.toFixed(1)+'pt）');
     if(cdelta>0.3) risks.push(r.name+' 获客成本升至 '+r.cac.toFixed(1)+'（环比 +'+cdelta.toFixed(1)+'）');
-    h+='<tr><td>'+(i+1)+'</td><td>'+ToolBox.escHtml(r.name)+'</td><td>'+fmtMoney(r.gmv)+'</td><td>'+(grow===null?'—':(grow>=0?'+':'')+grow.toFixed(1)+'%')+'</td><td>'+r.ref.toFixed(1)+'%</td><td>'+fmtMoney(r.cac)+'</td></tr>';
+    if(ogrow!==null&&grow!==null&&grow-ogrow>=5) risks.push(r.name+' GMV 增速（'+(grow>=0?'+':'')+grow.toFixed(1)+'%）快于订单增速（'+(ogrow>=0?'+':'')+ogrow.toFixed(1)+'%），增长依赖客单价而非单量');
+    h+='<tr><td>'+(i+1)+'</td><td>'+ToolBox.escHtml(r.name)+'</td><td>'+fmtMoney(r.gmv)+'</td><td>'+(grow===null?'—':(grow>=0?'+':'')+grow.toFixed(1)+'%')+'</td><td>'+fmtNum(r.ord)+'</td><td>'+(ogrow===null?'—':(ogrow>=0?'+':'')+ogrow.toFixed(1)+'%')+'</td><td>'+(aov===null?'—':fmtMoney(aov))+'</td><td>'+r.ref.toFixed(1)+'%</td><td>'+fmtMoney(r.cac)+'</td></tr>';
     prev=r;
   });
   var avgRef=rows.reduce(function(a,b){return a+b.ref;},0)/rows.length;
@@ -235,9 +238,10 @@ function calc(){
   var health=(last.gmv>=first.gmv&&last.ref<=first.ref&&last.cac<=first.cac)?'改善':'需关注';
   var riskHtml=risks.length?('<p>风险预警：</p><ul style="margin:4px 0 0 18px;font-size:13px;line-height:1.8;color:var(--text-muted">'+risks.map(function(x){return '<li>'+ToolBox.escHtml(x)+'</li>';}).join('')+'</ul>'):'<p>风险预警：本期各项指标未见明显异常。</p>';
   var refWarnHtml=refOutOfRange?'<p style="color:var(--danger,#dc2626)">⚠️ 退款率应在 0–100% 之间，已按边界值处理，请核对原始数据。</p>':'';
-  const __g2='<p>复盘期数：<strong>'+rows.length+'</strong>　整体结论：<strong style="color:var(--primary)">'+health+'</strong></p><div style="overflow-x:auto"><table><thead><tr><th>期次</th><th>期名</th><th>GMV</th><th>GMV 环比</th><th>退款率</th><th>获客成本</th></tr></thead><tbody>'+h+'</tbody></table></div><p>平均退款率：<strong>'+avgRef.toFixed(2)+'%</strong>　平均获客成本：<strong>'+avgCac.toFixed(2)+'</strong></p>'+refWarnHtml+riskHtml;res.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+  const __g2='<p>复盘期数：<strong>'+rows.length+'</strong>　整体结论：<strong style="color:var(--primary)">'+health+'</strong></p><div style="overflow-x:auto"><table><thead><tr><th>期次</th><th>期名</th><th>GMV</th><th>GMV 环比</th><th>订单数</th><th>订单环比</th><th>客单价</th><th>退款率</th><th>获客成本</th></tr></thead><tbody>'+h+'</tbody></table></div><p>平均退款率：<strong>'+avgRef.toFixed(2)+'%</strong>　平均获客成本：<strong>'+avgCac.toFixed(2)+'</strong></p>'+refWarnHtml+riskHtml;res.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 function fmtMoney(n){return '¥'+n.toLocaleString('zh-CN');}
+function fmtNum(n){return Math.round(n).toLocaleString('zh-CN');}
 function copyRes(){ToolBox.copyText(document.getElementById('res').innerText);}
 </script>
 
