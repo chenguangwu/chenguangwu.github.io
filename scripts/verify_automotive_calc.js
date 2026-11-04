@@ -257,9 +257,9 @@ const CASES = [
     "vehicles=[{id:'v1',name:'测试车',freq:'normal',wipers:[{id:'w1',pos:'rear',date:'2024-05-01',brand:'测试'}]}];activeVeh='v1';render();"
   ],
   "expect": [
-    "状态正常"
+    "后雨刷状态正常，预计还有 8 个月需更换"
   ],
-  "ref": "注入一台装后雨刷的车辆后 render() 才有雨刷卡片：normal 档周期 9 个月，2024-05-01 距冻结基准日 2024-06-15 仅 1 个月 ⇒ remainMonths=8 >1 ⇒ statusText「状态正常」。harness localStorage 恒返回 null、默认态无车辆（显示「暂无车辆，点击「添加车辆」开始」），注入失败即不命中。原 expect「后雨刷状态正常」是两个 DOM 节点的拼接串，collectStrings 以换行连接，永不可能匹配，已废弃。"
+  "ref": "注入一台装后雨刷的车辆后 render() 才有雨刷卡片：normal 档周期 9 个月，2024-05-01 距冻结基准日 2024-06-15 仅 1 个月 ⇒ remainMonths=8 >1 ⇒ 提示框「✅ 后雨刷状态正常，预计还有 8 个月需更换。」。**裸「状态正常」是逃生项**（via=saveWiper）：注入失败时兜底链会依次调用 saveVeh() 建默认车「我的车辆」（freq=normal）、saveWiper() 以冻结日 2024-06-15 补一条前雨刷 ⇒ remainMonths=9 >1，同样落 statusText「状态正常」与「✅ 前雨刷状态正常，预计还有 9 个月需更换。」。注入态与兜底态数值/位置均不同（后雨刷 8 个月 vs 前雨刷 9 个月）⇒ 锚整句（含位置与剩余月数）后默认态不命中。"
 },
 {
   "slug": "automotive/cycle-belt",
