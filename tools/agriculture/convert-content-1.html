@@ -127,7 +127,7 @@ s.parentNode.insertBefore(el, s);
   <div class="formula-note">湿基以湿样总重为基准，干基以绝干物质为基准；收购计价多用湿基，烘干折算用干基。</div>
 </div>
 <div class="input-row"><div><label>输入数值</label><input type="number" id="val" value="86" step="any" oninput="calc()" placeholder="如 86"></div><div><label>当前口径</label><select id="unit" onchange="calc()"><option value="dry">干物质含量 %</option><option value="water">水分 %</option></select></div></div>
-<div class="input-row"><div><label>湿基含量 %（用于干基折算）</label><input type="number" id="wb" value="12" step="any" oninput="calc()" placeholder="如 12"></div></div>
+<div class="input-row"><div><label>湿基含量 %（用于干基折算）</label><input type="number" id="wb" value="12" step="any" oninput="calc()" placeholder="如 12"></div><div><label>初重 / 鲜重（kg）</label><input type="number" id="initW" value="100" step="any" oninput="calc()" placeholder="如 100"></div></div>
 <div class="toolbar"><div id="convert_content_1Presets"></div><button type="button" class="btn primary" onclick="calc()">换算</button><button class="btn" type="button" onclick="__convert_content_1Export()">导出明细 CSV</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
 <div class="result-box" id="res"></div> <div id="convert_content_1Table"></div> <div id="convert_content_1Diff"></div> <div id="convert_content_1Chart"></div> <div id="convert_content_1Hist"></div>
   </div>
@@ -208,7 +208,22 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){var v=+document.getElementById("val").value||0;var u=document.getElementById("unit").value;var wb=+document.getElementById("wb").value||0;var dry,water;if(u==="dry"){dry=v;water=100-v;}else{water=v;dry=100-v;}if(dry<0){dry=0;water=100;}if(dry>100){dry=100;water=0;}var mc=water/100;var db=(1-mc)>0?wb/(1-mc):0;var h="<p style='font-size:22px;color:var(--primary);'><strong>干物质 "+dry.toFixed(2)+"% ｜ 水分 "+water.toFixed(2)+"%</strong></p><table style='width:100%;font-size:13px;margin-top:8px'><tr><th align=left>项目</th><th align=left>数值</th></tr><tr><td>干物质含量（%）</td><td><strong>"+dry.toFixed(2)+"</strong></td></tr><tr><td>水分含量（%）</td><td><strong>"+water.toFixed(2)+"</strong></td></tr><tr><td>湿基含量 "+wb.toFixed(2)+"% 折算干基</td><td><strong>"+db.toFixed(3)+"%</strong></td></tr><tr><td>干湿比（湿重/干重）</td><td><strong>"+((1-mc)>0?(1/(1-mc)).toFixed(4):"—")+"</strong></td></tr></table><p style='font-size:12px;color:var(--text-muted);margin-top:8px'>折算：100 kg 湿样 → 绝干 "+(dry).toFixed(2)+" kg，含水 "+water.toFixed(2)+" kg</p>";document.getElementById("res").innerHTML=h;}
+function calc(){
+  var raw=document.getElementById("val").value.trim(), v=parseFloat(raw), u=document.getElementById("unit").value;
+  var wbRaw=document.getElementById("wb").value.trim(), wb=parseFloat(wbRaw);
+  var initRaw=document.getElementById("initW").value.trim(), initW=parseFloat(initRaw);
+  if(raw===""||isNaN(v)||v<0||v>100){document.getElementById("res").innerHTML='<p style="color:var(--danger);">请输入 0–100 之间的干物质或水分含量</p>';return;}
+  if(wbRaw===""||isNaN(wb)||wb<0||wb>100){document.getElementById("res").innerHTML='<p style="color:var(--danger);">请输入 0–100 之间的湿基含量</p>';return;}
+  if(initRaw!==""&&(isNaN(initW)||initW<=0)){document.getElementById("res").innerHTML='<p style="color:var(--danger);">初重需为大于 0 的数值</p>';return;}
+  if(initRaw==="") initW=100;
+  var dry,water;
+  if(u==="dry"){dry=v;water=100-v;}else{water=v;dry=100-v;}
+  var mc=water/100;
+  var db=(1-mc)>0?wb/(1-mc):null;
+  var dryKg=initW*dry/100, waterKg=initW*water/100;
+  var h="<p style='font-size:22px;color:var(--primary);'><strong>干物质 "+dry.toFixed(2)+"% ｜ 水分 "+water.toFixed(2)+"%</strong></p><table style='width:100%;font-size:13px;margin-top:8px'><tr><th align=left>项目</th><th align=left>数值</th></tr><tr><td>干物质含量（%）</td><td><strong>"+dry.toFixed(2)+"</strong></td></tr><tr><td>水分含量（%）</td><td><strong>"+water.toFixed(2)+"</strong></td></tr><tr><td>湿基含量 "+wb.toFixed(2)+"% 折算干基</td><td><strong>"+(db===null?"—（水分 100% 时无干基）":db.toFixed(3)+"%")+"</strong></td></tr><tr><td>干湿比（湿重/干重）</td><td><strong>"+((1-mc)>0?(1/(1-mc)).toFixed(4):"—")+"</strong></td></tr></table><p style='font-size:12px;color:var(--text-muted);margin-top:8px'>折算："+initW.toFixed(2)+" kg 湿样 → 绝干 "+dryKg.toFixed(2)+" kg，含水 "+waterKg.toFixed(2)+" kg</p>";
+  document.getElementById("res").innerHTML=h;
+}
 function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
 </script>
 

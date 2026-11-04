@@ -264,12 +264,23 @@ var PESTS = {
     {name:'印度谷螟', tBase:12, tOpt:[26,30], tMax:34, rhMin:55, risk:'中'}
   ]
 };
+var lastResult='';
 function calc(){
   var key = document.getElementById('grainType').value;
-  var temp = +document.getElementById('temp').value || 0;
-  var rh = +document.getElementById('humidity').value || 0;
-  var gm = +document.getElementById('grainMoisture').value || 0;
-  var days = +document.getElementById('storageDays').value || 0;
+  var tempRaw=document.getElementById('temp').value.trim();
+  var rhRaw=document.getElementById('humidity').value.trim();
+  var gmRaw=document.getElementById('grainMoisture').value.trim();
+  var daysRaw=document.getElementById('storageDays').value.trim();
+  var temp = parseFloat(tempRaw), rh = parseFloat(rhRaw), gm = parseFloat(gmRaw), days = parseFloat(daysRaw);
+  if(tempRaw===''||rhRaw===''||isNaN(temp)||isNaN(rh)||temp<-20||temp>60||rh<0||rh>100){
+    ToolBox.setResult('result','<p style="color:var(--danger);">请输入有效仓温（−20~60℃）与湿度（0~100%RH）</p>');
+    lastResult='';return;
+  }
+  if(gmRaw!==''&&(isNaN(gm)||gm<0||gm>40)){ToolBox.setResult('result','<p style="color:var(--danger);">粮食含水率需在 0~40% 之间</p>');lastResult='';return;}
+  if(daysRaw!==''&&(isNaN(days)||days<0||days>3650)){ToolBox.setResult('result','<p style="color:var(--danger);">存储天数需在 0~3650 天之间</p>');lastResult='';return;}
+  if(gmRaw==='') gm=0;
+  if(daysRaw==='') days=0;
+  var grainName=document.getElementById('grainType').options[document.getElementById('grainType').selectedIndex].text;
 
   var pests = PESTS[key];
   var activePests = [];
@@ -337,19 +348,11 @@ function calc(){
   html += '安全含水率：小麦≤12.5% | 玉米≤14% | 稻谷≤13.5%';
   html += '</div>';
   const __g1=html;ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
+  lastResult='仓储虫害预警：\n粮种：'+grainName+'\n仓温：'+temp.toFixed(1)+'℃\n湿度：'+rh.toFixed(1)+'%\n储粮水分：'+(gm>0?gm.toFixed(1)+'%':'未填')+'\n存储天数：'+(days>0?days.toFixed(0)+' 天':'未填')+'\n综合风险指数：'+overall.toFixed(0)+'/100\n风险等级：'+gradeText+'\n防治建议：'+tips.join('；');
 }
 function copyResult(){
-  var temp=+document.getElementById('temp').value||0;
-  var rh=+document.getElementById('humidity').value||0;
-  var overall=0;
-  var key=document.getElementById('grainType').value;
-  var pests=PESTS[key];
-  for(var i=0;i<pests.length;i++){
-    var p=pests[i];var ts=0;
-    if(temp>=p.tOpt[0]&&temp<=p.tOpt[1])ts=100;else if(temp>p.tOpt[1]&&temp<=p.tMax)ts=80;else if(temp>=p.tBase)ts=50;else ts=5;
-    if(ts>overall)overall=ts;
-  }
-  ToolBox.copyText('仓储虫害预警：\n仓温：'+temp+'℃\n湿度：'+rh+'%\n综合风险指数：'+overall.toFixed(0)+'/100', i18nText('msg655'));
+  if(!lastResult){ToolBox.showToast(i18nText('toast.copy_target_missing'),'warning');return;}
+  ToolBox.copyText(lastResult, i18nText('msg655'));
 }
 calc();
 </script>

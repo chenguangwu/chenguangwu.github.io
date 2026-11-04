@@ -199,7 +199,7 @@ function setInvalid(el,invalid){
 function readInputs(){
   var width=getNum('width'),speed=getNum('speed'),time=getNum('time'),actualArea=getNum('actualArea');
   ['width','speed','time','actualArea'].forEach(function(id){setInvalid(document.getElementById(id),isNaN(parseFloat(document.getElementById(id).value)));});
-  var valid=width>0&&speed>0&&time>0&&!isNaN(parseFloat(document.getElementById('width').value))&&!isNaN(parseFloat(document.getElementById('speed').value))&&!isNaN(parseFloat(document.getElementById('time').value))&&!isNaN(parseFloat(document.getElementById('actualArea').value));
+  var valid=width>0&&speed>0&&time>0&&actualArea>=0&&!isNaN(parseFloat(document.getElementById('width').value))&&!isNaN(parseFloat(document.getElementById('speed').value))&&!isNaN(parseFloat(document.getElementById('time').value))&&!isNaN(parseFloat(document.getElementById('actualArea').value));
   return {width:width,speed:speed,time:time,actualArea:actualArea,valid:valid};
 }
 function calc(){
@@ -212,13 +212,17 @@ function calc(){
   var theoryEff=theoryArea/iv.time; // 理论效率 亩/h
   var actualEff=iv.actualArea/iv.time; // 实际效率 亩/h
   var ratio=theoryEff>0?(actualEff/theoryEff*100):0; // 效率比%
-  var idleTime=theoryArea-iv.actualArea; // 损失面积(亩)
+  var overArea=iv.actualArea-theoryArea; // 超出理论面积(亩)，可能为负
+  var capped=false;
+  if(overArea>0){ratio=100;capped=true;}
+  var idleTime=Math.max(0,-overArea); // 损失面积(亩)=理论−实际，实际超出时为0
   var level,color;
-  if(ratio>=85){level='优秀';color='#10B981';}
+  if(capped){level='超出理论值';color='#F59E0B';}
+  else if(ratio>=85){level='优秀';color='#10B981';}
   else if(ratio>=70){level='良好';color='#65A30D';}
   else if(ratio>=55){level='一般';color='#F59E0B';}
   else{level='偏低';color='#EF4444';}
-  lastResult='作业幅宽: '+iv.width.toFixed(1)+' m\n作业速度: '+iv.speed.toFixed(1)+' km/h\n作业时长: '+iv.time.toFixed(1)+' h\n理论作业面积: '+theoryArea.toFixed(2)+' 亩\n实际作业面积: '+iv.actualArea.toFixed(1)+' 亩\n理论效率: '+theoryEff.toFixed(2)+' 亩/h\n实际效率: '+actualEff.toFixed(2)+' 亩/h\n效率比: '+ratio.toFixed(1)+'%\n损失面积: '+idleTime.toFixed(2)+' 亩\n利用率评价: '+level;
+  lastResult='作业幅宽: '+iv.width.toFixed(1)+' m\n作业速度: '+iv.speed.toFixed(1)+' km/h\n作业时长: '+iv.time.toFixed(1)+' h\n理论作业面积: '+theoryArea.toFixed(2)+' 亩\n实际作业面积: '+iv.actualArea.toFixed(1)+' 亩\n理论效率: '+theoryEff.toFixed(2)+' 亩/h\n实际效率: '+actualEff.toFixed(2)+' 亩/h\n效率比: '+ratio.toFixed(1)+'%'+(capped?'（按 100% 封顶）':'')+'\n损失面积: '+idleTime.toFixed(2)+' 亩'+(capped?'\n超出理论面积: '+overArea.toFixed(2)+' 亩':'')+'\n利用率评价: '+level;
   const __g2='<div class="data-grid">'+
     '<div class="data-card"><div class="num" style="color:var(--tool-accent,#65A30D);">'+actualEff.toFixed(2)+'</div><div class="label">实际效率 (亩/h)</div></div>'+
     '<div class="data-card"><div class="num">'+theoryEff.toFixed(2)+'</div><div class="label">理论效率 (亩/h)</div></div>'+
@@ -229,7 +233,7 @@ function calc(){
     '<div class="data-card"><div class="num">'+iv.actualArea.toFixed(1)+'</div><div class="label">实际面积 (亩)</div></div>'+
     '<div class="data-card"><div class="num" style="color:'+color+';">'+level+'</div><div class="label">利用率评价</div></div>'+
     '</div>'+
-    '<div style="margin-top:10px;padding:10px 12px;border-radius:10px;background:'+color+'1A;color:'+color+';font-size:13px;">📌 效率比 '+ratio.toFixed(1)+'%，损失面积约 '+idleTime.toFixed(1)+' 亩（转弯、加种加肥、转移等），'+(ratio<70?'建议优化作业路线与减少空行':'利用率良好')+'</div>';try{ if(typeof ratio==='number'&&isFinite(ratio)&&typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){ TBKit.chart.refBar('#resRefBar',{value:ratio,unit:'%',bands:[{"lo":85,"hi":null,"label":{"zh":"优秀","en":"Excellent"},"color":"#10B981"},{"lo":70,"hi":85,"label":{"zh":"良好","en":"Good"},"color":"#84CC16"},{"lo":null,"hi":70,"label":{"zh":"一般","en":"Fair"},"color":"#F59E0B"}],title:((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Reference range':'参考区间标尺')}); } }catch(e){}
+    '<div style="margin-top:10px;padding:10px 12px;border-radius:10px;background:'+color+'1A;color:'+color+';font-size:13px;">'+(capped?'⚠️ 实际面积比理论值多 '+overArea.toFixed(2)+' 亩，效率比按 100% 封顶；请核对幅宽、速度、时长，或确认是否重复计亩、地块重叠。':'📌 效率比 '+ratio.toFixed(1)+'%，损失面积约 '+idleTime.toFixed(1)+' 亩（转弯、加种加肥、转移等），'+(ratio<70?'建议优化作业路线与减少空行':'利用率良好'))+'</div>';try{ if(typeof ratio==='number'&&isFinite(ratio)&&typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){ TBKit.chart.refBar('#resRefBar',{value:ratio,unit:'%',bands:[{"lo":85,"hi":null,"label":{"zh":"优秀","en":"Excellent"},"color":"#10B981"},{"lo":70,"hi":85,"label":{"zh":"良好","en":"Good"},"color":"#84CC16"},{"lo":null,"hi":70,"label":{"zh":"一般","en":"Fair"},"color":"#F59E0B"}],title:((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Reference range':'参考区间标尺')}); } }catch(e){}
   document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 function copyRes(){

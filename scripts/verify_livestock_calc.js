@@ -346,6 +346,28 @@ const CASES = [
   "expect": ["妊娠期 约 114 天"],
   "ref": "注入非默认动物类型 sow（默认 cow）→ 妊娠期 114 天（默认牛 280 天）；妊娠期为物种固定常数、与基准日无关，默认态不含，0 逃生。"
 }
+,
+{
+  "slug": "livestock/silage-density-ph",
+  "inputs": { "siloLength": "10", "siloWidth": "4", "siloHeight": "2.5", "siloWeight": "80", "dmContent": "33", "phValue": "3.8", "phDM": "32", "smellScore": "5" },
+  "dumpIds": ["resultPH"],
+  "expect": ["综合评分 97.0 / 100"],
+  "ref": "独立复算：玉米青贮 pH 3.8 ≤ 4.0 ⇒ phScore 95；干物质 32% 落在 30–40 ⇒ dmScore 100；气味 5/5 ⇒ smellScore 100。综合 = 95×0.6 + 100×0.2 + 100×0.2 = 97.0。默认（pH 4.0/33%/4）恰为 93.0，故不能用 93.0 作锚；旧线性 phScore（≈100）得 100.0，本条 97.0 只有分级子分口径生效才产出。"
+},
+{
+  "slug": "livestock/silage-density-ph",
+  "inputs": { "siloLength": "10", "siloWidth": "4", "siloHeight": "2.5", "siloWeight": "80", "dmContent": "33", "phValue": "3.9", "phDM": "18", "smellScore": "1" },
+  "dumpIds": ["resultPH"],
+  "expect": ["67.0 / 100", "综合品质 一般"],
+  "ref": "独立复算：pH 3.9 优秀 ⇒ phScore 95；干物质 18%（<20）⇒ dmScore 30；气味 1/5 ⇒ smellScore 20。综合 = 95×0.6 + 30×0.2 + 20×0.2 = 67.0 ⇒ 一般。旧实现 pH 优秀却因低干物质/低气味仍得 70.0 ⇒ 良好，本条即针对「pH 优秀但综合一般」的矛盾；默认态干物质 33%、气味 4 得 92.0 优秀，两条均不命中。"
+},
+{
+  "slug": "livestock/ammonia-ventilation",
+  "inputs": { "nh3Current": "10", "nh3Target": "15", "houseLength": "30", "houseWidth": "10", "houseHeight": "3", "efficiency": "0.6", "nh3Gen": "50" },
+  "dumpIds": ["result"],
+  "expect": ["7937 维持通风量", "需维持至少 7937 m³/h", "约 8.8 次/h"],
+  "ref": "独立复算：当前 10 ppm ≤ 目标 15 ppm，但持续产氨 50 g/h ⇒ 维持通风量 = 50×1000 ÷ (15×0.7) ÷ 0.6 = 7936.5079 ⇒ 7937 m³/h；换气 = 7937 ÷ 900 = 8.8 次/h。旧实现此分支只提示「正常通风即可」、不输出维持风量，三条均不命中；默认态（25/15/0 g/h）浓度高于目标、走稀释分支，亦不命中。"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);
