@@ -120,16 +120,16 @@ s.parentNode.insertBefore(el, s);
 </div>
 <div class="card tool-card-accent" style="--tool-accent:#FF6B35;--tool-accent-dark:#FF6B35;">
     <h2 data-zh="🌐 薪酬（带宽/分位/公平性）设计">Salary Bandwidth & Percentile Design</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按薪酬中位值与带宽幅度计算薪酬带宽的上下限、带宽绝对值与带宽比，用于职级薪酬体系设计。">Bandwidth 1</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按薪酬中位值与带宽幅度算上下限、带宽比与 P25/P75，并用员工当前薪酬算 Compa-ratio 与区间位置。">Compute band limits, bandwidth ratio and approximate P25/P75 from the midpoint and band width, then place an employee's pay by Compa-ratio and range position.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">下限 = 中位 × (1 − 幅度%)；上限 = 中位 × (1 + 幅度%)；带宽 = 上限 − 下限</div>
-      <p class="formula-desc">薪酬带宽以中位值为中心、按幅度%向两侧展开：下限=中位×(1−幅度%)，上限=中位×(1+幅度%)，带宽为上下限之差，带宽比=上限÷下限。典型幅度 20%–50%，用于界定同一职级的可浮动薪酬区间。</p>
+      <div class="formula-eq">下限 = 中位 × (1 − 幅度%)；上限 = 中位 × (1 + 幅度%)；带宽 = 上限 − 下限；带宽比 = 上限 ÷ 下限；Compa-ratio = 当前薪酬 ÷ 中位 × 100%；区间位置 = (当前 − 下限) ÷ (上限 − 下限) × 100%；P25/P75 ≈ 中位 × (1 ∓ 幅度%/2)。</div>
+      <p class="formula-desc">以中位值为中心、按幅度%向两侧展开带宽，再算员工薪酬的 Compa-ratio 与区间位置，判断偏低/正常/偏高及是否超出带宽；P25/P75 为按均匀分布的近似分位点。</p>
     </div>
     <div class="input-row">
-      <div><label>薪酬中位值 (元)</label><input type="number" id="v0" value="8000" step="any" oninput="calc()" enterkeyhint="done" aria-label="带宽" placeholder="如 8000"></div>
-      <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label>带宽幅度 (±%)</label><input type="number" id="v1" value="30" step="any" oninput="calc()" enterkeyhint="done" aria-label="分位" placeholder="如 30"></div>
+      <div><label>薪酬中位值 (元)</label><input type="number" id="v0" value="8000" step="any" oninput="calc()" enterkeyhint="done" aria-label="薪酬中位值" placeholder="如 8000"></div>
+      <div><label>带宽幅度 (±%)</label><input type="number" id="v1" value="30" step="any" oninput="calc()" enterkeyhint="done" aria-label="带宽幅度" placeholder="如 30（0–100）"></div>
+      <div><label>员工当前薪酬 (元)</label><input type="number" id="v2" value="9000" step="any" oninput="calc()" enterkeyhint="done" aria-label="员工当前薪酬" placeholder="如 9000"></div>
     </div>
     <div class="toolbar">
       <div id="bandwidth_1Presets"></div><button class="btn primary" type="button" onclick="calc()">🧮 计算</button><button class="btn" type="button" onclick="__bandwidth_1Export()">导出明细 CSV</button>
@@ -137,7 +137,7 @@ s.parentNode.insertBefore(el, s);
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div> <div id="bandwidth_1Table"></div> <div id="bandwidth_1Diff"></div> <div id="bandwidth_1Chart"></div> <div id="bandwidth_1Hist"></div>
-    <div class="info-box">💡 下限 = 中位 × (1 − 幅度%)；上限 = 中位 × (1 + 幅度%)；带宽 = 上限 − 下限。</div>
+    <div class="info-box">💡 中位值决定带宽中心，幅度决定宽度；Compa-ratio 低于 80% 视为偏低、80–120% 为正常、高于 120% 为偏高；超出上下限需单独审批。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
 <div class="card" id="constRefBox">
   <h3 data-zh="📐 公式与标准引据">Formula &amp; Standard References</h3>
@@ -657,26 +657,44 @@ calc();
 <script>
 /* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
 function calc(){
-    var __ig=__tbInputGuard(['v0', 'v1'],["薪酬中位值 (元)", "带宽幅度 (±%)"]);if(__ig){const __g6=__ig;ToolBox.setResult("res",(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—')));return;}
-var e0=document.getElementById('v0'),e1=document.getElementById('v1');
-  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
+  var e0=document.getElementById('v0'),e1=document.getElementById('v1'),e2=document.getElementById('v2');
+  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN,C=e2?parseFloat(e2.value):NaN;
   var box=document.getElementById('res');
   if(!box)return;
-  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
-  var items=[];
-  items.push([(A*(1-B/100)).toFixed(2), "薪酬下限（元）"]);
-  items.push([(A*(1+B/100)).toFixed(2), "薪酬上限（元）"]);
-  items.push([(A*(1+B/100)-A*(1-B/100)).toFixed(2), "带宽绝对值（元）"]);
-  items.push([((A*(1+B/100))/(A*(1-B/100))).toFixed(3), "带宽比（上限/下限）"]);
-
+  if(!isFinite(A)||!isFinite(B)||!isFinite(C)){
+    box.innerHTML='<div class="info-box" style="color:var(--danger)">⚠ 请填写有效的薪酬中位值、带宽幅度与员工当前薪酬（均为数值）。</div>';return;
+  }
+  if(A<=0){box.innerHTML='<div class="info-box" style="color:var(--danger)">⚠ 薪酬中位值需大于 0。</div>';return;}
+  if(B<0||B>=100){box.innerHTML='<div class="info-box" style="color:var(--danger)">⚠ 带宽幅度需在 0–100% 之间（不含 100）。</div>';return;}
+  if(C<0){box.innerHTML='<div class="info-box" style="color:var(--danger)">⚠ 员工当前薪酬不能为负。</div>';return;}
+  var lo=A*(1-B/100), hi=A*(1+B/100), band=hi-lo, ratio=hi/lo;
+  var p25=A*(1-B/200), p75=A*(1+B/200);
+  var compa=C/A*100;
+  var pos=(C-lo)/(hi-lo)*100;
+  var verdict, color;
+  if(compa<80){verdict='低于中位 80%（偏低）';color='#FF6B35';}
+  else if(compa<=120){verdict='处于中位 ±20% 正常区间';color='#10B981';}
+  else {verdict='高于中位 120%（偏高）';color='#FF6B35';}
+  var outOfRange=C>hi?'已超上限，需按超带宽审批':(C<lo?'低于下限，需按低于下限审批':'在带宽区间内');
+  var items=[
+    [(lo).toFixed(2),'薪酬下限（元）'],
+    [(hi).toFixed(2),'薪酬上限（元）'],
+    [(band).toFixed(2),'带宽绝对值（元）'],
+    [ratio.toFixed(3),'带宽比（上限/下限）'],
+    [p25.toFixed(2),'P25 近似（元）'],
+    [p75.toFixed(2),'P75 近似（元）'],
+    [compa.toFixed(1)+'%','Compa-ratio（当前/中位）'],
+    [pos.toFixed(1)+'%','区间位置（当前所处位置）']
+  ];
   var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
-  html+='💡 下限 = 中位 × (1 − 幅度%)；上限 = 中位 × (1 + 幅度%)；带宽 = 上限 − 下限。';
-  const __g8=html;box.innerHTML=(typeof __g8==='number'?(isFinite(__g8)?__g8:'—'):String(__g8).replace(/Infinity|NaN/g,'—'));
+  html+='<p>判读：<strong style="color:'+color+'">'+verdict+'</strong>；'+outOfRange+'。</p>';
+  html+='<p style="font-size:12px;color:var(--text-muted);">P25/P75 为按均匀分布对半带宽的近似值；Compa-ratio 以中位值为锚，区间位置以带宽上下限为锚。</p>';
+  box.innerHTML=html;
   if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
 }
 function resetAll(){
-  var a=document.getElementById('v0'),b=document.getElementById('v1');
-  if(a)a.value='8000';if(b)b.value='30';calc();
+  var a=document.getElementById('v0'),b=document.getElementById('v1'),c=document.getElementById('v2');
+  if(a)a.value='8000';if(b)b.value='30';if(c)c.value='9000';calc();
 }
 try{calc();}catch(e){}
 
@@ -778,7 +796,7 @@ function __bandwidth_1Export(){
 }
 function __bandwidth_1Presets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#bandwidth_1Presets',[{label:'默认参数',labelEn:'Default',values:{'v0':'8000', 'v1':'30'}},{"label":"专员 6000 元","labelEn":"Specialist CNY 6000","values":{"v0":"6000","v1":"40"}},{"label":"经理 15000 元","labelEn":"Manager CNY 15000","values":{"v0":"15000","v1":"25"}},{"label":"总监 30000 元","labelEn":"Director CNY 30000","values":{"v0":"30000","v1":"20"}}],function(){ calc(); });
+    TBKit.preset.bar('#bandwidth_1Presets',[{label:'默认参数',labelEn:'Default',values:{'v0':'8000', 'v1':'30', 'v2':'9000'}},{"label":"专员 6000 元","labelEn":"Specialist CNY 6000","values":{"v0":"6000","v1":"40","v2":"6500"}},{"label":"经理 15000 元","labelEn":"Manager CNY 15000","values":{"v0":"15000","v1":"25","v2":"16000"}},{"label":"总监 30000 元","labelEn":"Director CNY 30000","values":{"v0":"30000","v1":"20","v2":"33000"}}],function(){ calc(); });
 }
 var __bandwidth_1_f0=(typeof calc==='function')?calc:null;
 if(__bandwidth_1_f0){
@@ -815,19 +833,20 @@ else document.addEventListener('DOMContentLoaded', __bandwidth_1Boot);
 </style>
 <section class="deep-dive" data-deep-dive="1">
 <div class="card">
-<h2>📚 深度解析：薪酬带宽与分位设计</h2>
+<h2>📚 深度解析：薪酬带宽、Compa-ratio 与区间位置</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>按职等职级中位值设带宽（如 ±50%），框定工资区间。</li>
-<li>校准入职定薪是否落在带宽内，避免超宽或挤压。</li>
-<li>年度调薪时看员工处于分位，决定调幅。</li>
+<li>职级带宽设计：按中位值设幅度（如 ±30%），得到同职级的薪酬上下限与带宽比。</li>
+<li>定薪校准：把候选人/员工当前薪酬代入，算 Compa-ratio 与区间位置，判断偏低、正常、偏高或超带宽。</li>
+<li>调薪参考：结合 P25/P75 近似分位，判断员工在带宽中的相对位置与调幅空间。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">中位 10000、带宽 50%</div><div class="dd-ex-body">区间 = 10000×(1±0.5) = 5000~15000；新员工定薪 13000 处 80 分位，偏高需审批。</div></div>
-<div class="dd-example"><div class="dd-ex-title">重叠度</div><div class="dd-ex-body">相邻职级带宽重叠 30% 利于横向调动，工具给出重叠提示。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例 1（页面默认参数）</div><div class="dd-ex-body">中位 8000、幅度 ±30%、当前薪酬 9000：下限 = 5600，上限 = 10400，带宽 = 4800，带宽比 = 10400/5600 ≈ 1.857，P25 ≈ 6800、P75 ≈ 9200；Compa-ratio = 9000/8000 = 112.5%（正常区间），区间位置 = (9000−5600)/4800 = 70.8%，在带宽内。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例 2（中位 10000、±50%）</div><div class="dd-ex-body">下限 = 5000，上限 = 15000，带宽 = 10000，带宽比 = 3.000；当前薪酬 13000 时 Compa-ratio = 130.0%（高于 120%，偏高），区间位置 = 80.0%，虽仍在带宽内但接近上限，需按偏高薪酬审批。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>带宽越宽越好吗？</dt><dd>过宽削弱职级区分、过窄限制定薪灵活，通常 40%-60% 较常见，按人才市场流动性定。</dd>
-<dt>分位怎么看？</dt><dd>员工薪资÷（区间上限−下限）+下限映射为分位，处高位说明接近顶薪、晋升或宽带化需求大。</dd>
+<dt>带宽比和带宽幅度有什么区别？</dt><dd>幅度是参数输入（相对中位值向两侧展开的<a class="term-link" href="/tools/math/calc-1.html">百分比</a>）；带宽比 = 上限 ÷ 下限，是结果指标。例如中位 8000、±30% 时带宽比为 1.857，而不是 30%。</dd>
+<dt>Compa-ratio 与区间位置怎么区分？</dt><dd>Compa-ratio 以中位值为锚（当前薪酬 ÷ 中位 × 100%）；区间位置以带宽上下限为锚（(当前 − 下限) ÷ (上限 − 下限) × 100%）。前者看相对市场中位，后者看落在带宽内的位置。</dd>
+<dt>P25/P75 是真实分位吗？</dt><dd>不是。工具按<a class="term-link" href="/tools/it/uniform-distribution.html">均匀分布</a>近似，取中位 × (1 ∓ 幅度%/2)；真实市场分位需以薪酬调研数据为准。</dd>
 </dl>
 </div>
 </section>

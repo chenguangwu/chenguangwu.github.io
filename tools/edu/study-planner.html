@@ -48,6 +48,10 @@
 .task-info{flex:1;min-width:0;}
 .task-name{font-size:14px;}
 .task-time{font-size:12px;color:var(--text-muted);}
+.task-pri{flex-shrink:0;font-size:11px;padding:2px 6px;border-radius:6px;border:1px solid var(--border);}
+.task-pri.p1{color:#e53935;border-color:#e53935;}
+.task-pri.p2{color:#fb8c00;border-color:#fb8c00;}
+.task-pri.p3{color:#757575;border-color:#9e9e9e;}
 .week-days{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:16px;}
 .week-day{padding:10px 4px;text-align:center;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:12px;transition:all 0.15s;}
 .week-day.active{border-color:var(--primary);background:var(--result-bg);color:var(--primary);font-weight:500;}
@@ -188,11 +192,7 @@ s.parentNode.insertBefore(el, s);
     
     <div class="card formula-box">
   <div class="formula-title">📐 计算方式</div> <div class="formula-eq">科目权重 = 难度²，总权重 = Σ 难度²；每日时间 = 该科权重 ÷ 总权重 × 每日总时长，每周时间 = 每日时间 × 每周学习天数，占比 = 权重 ÷ 总权重 × 100%；每周总学习时间 = 每日时长 × 学习天数。科目时长占比 = 该科累计分钟 ÷ 全部分钟 × 100%，小时数 = 分钟 ÷ 60（保留一位小数）</div>
-  <p>番茄钟累计专注 = 单次专注分钟数 × 完成轮数；任务完成率 = 已完成任务数 ÷ 任务总数。按优先级排序后优先推进高优先任务。</p>
-</div>
-<div class="card formula-box">
-  <div class="formula-title">📐 计算方式</div>
-  <p>番茄钟累计专注 = 单次专注分钟数 × 完成轮数；任务完成率 = 已完成任务数 ÷ 任务总数。按优先级排序后优先推进高优先任务。</p>
+  <p>番茄钟累计专注 = 单次专注分钟数 × 完成轮数；任务完成率 = 已完成任务数 ÷ 任务总数 × 100%；待办计划分钟 = 未完成任务分钟之和。任务按优先级（高 → 中 → 低）排序展示。</p>
 </div>
 <div class="tabs">
       <div class="tab active" onclick="switchTab('today')">今日计划</div>
@@ -244,6 +244,8 @@ s.parentNode.insertBefore(el, s);
         <div class="stat-card"><div class="val" id="statWeek">0</div><div class="lbl">本周小时</div></div>
         <div class="stat-card"><div class="val" id="statTotal">0</div><div class="lbl">累计小时</div></div>
         <div class="stat-card"><div class="val" id="statTasks">0</div><div class="lbl">完成任务</div></div>
+        <div class="stat-card"><div class="val" id="statRate">—</div><div class="lbl">今日完成率</div></div>
+        <div class="stat-card"><div class="val" id="statPending">0</div><div class="lbl">待办计划分钟</div></div>
       </div>
 
       <h3 style="font-size:14px;margin:16px 0 10px;">各科目时长分布</h3>
@@ -286,19 +288,19 @@ s.parentNode.insertBefore(el, s);
 </style>
 <section class="deep-dive" data-deep-dive="1">
 <div class="card">
-<h2>📚 深度解析：按目标与可用时间生成每日/每周学习计划，辅助长期备考节奏管理。</h2>
+<h2>📚 深度解析：按科目难度²分配每日/每周学习时长，并用优先级与完成率管理任务节奏。</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>日程生成：拆目标到天。</li>
-<li>周计划：可视化周安排。</li>
-<li>可调：随时增删任务。</li>
+<li>备考分配：把每日总时长按科目难度²加权拆分，难科目自动拿到更多时间。</li>
+<li>今日任务：任务带高/中/低优先级，列表按高→中→低排序，勾选完成后自动累计科目时长。</li>
+<li>进度复盘：完成率 = 已完成任务 ÷ 任务总数，待办计划分钟提示剩余工作量。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">示例</div><div class="dd-ex-body">示例：30 天备考拆为每周 5 天、每天 3 任务。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例（与页面默认参数一致）</div><div class="dd-ex-body">默认 4 门科目难度 5/4/4/3，权重为 25/16/16/9，总权重 66。设每日 6 小时、每周 6 天：数学 = 25/66×6 ≈ 2.27h → 136 分钟（2h16m）；英语、物理 = 16/66×6 ≈ 1.45h → 87 分钟（1h27m）；语文 = 9/66×6 ≈ 0.82h → 49 分钟；周合计 36.0 小时。默认 4 个任务完成 1 个 → 完成率 25%，待办计划分钟 60+45+40 = 145 分钟。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>怎么拆？</dt><dd>按目标总量与可用天数均摊，可加权重。</dd>
-<dt>弹性？</dt><dd>支持手动调整与重排。</dd>
-<dt>用途？</dt><dd>考研/考证长期规划。</dd>
+<dt>难度怎么影响分配？</dt><dd>权重取难度平方：1–5 星对应权重 1–25，难度 5 的科目拿 25 份，难度 3 只拿 9 份，因此难科目时间显著更多。</dd>
+<dt>完成率怎么算？</dt><dd>已完成任务数 ÷ 当前任务总数 × 100%；任务列表为空时显示「—」，避免除零。</dd>
+<dt>数据保存在哪里？</dt><dd>任务、科目与统计仅保存在本机浏览器 localStorage，清理缓存或更换设备不会同步，重要计划请自行导出备份。</dd>
 </dl>
 </div>
 </section>
@@ -357,10 +359,10 @@ let data = {
     {id:4, name:'语文', color:'#ffa726', difficulty:3, goal:100, progress:70}
   ],
   tasks: [
-    {id:1, name:'做数学练习册第3章', subjectId:1, minutes:60, done:false},
-    {id:2, name:'背英语单词50个', subjectId:2, minutes:30, done:true},
-    {id:3, name:'复习物理公式', subjectId:3, minutes:45, done:false},
-    {id:4, name:'语文文言文阅读', subjectId:4, minutes:40, done:false}
+    {id:1, name:'做数学练习册第3章', subjectId:1, minutes:60, done:false, priority:1},
+    {id:2, name:'背英语单词50个', subjectId:2, minutes:30, done:true, priority:2},
+    {id:3, name:'复习物理公式', subjectId:3, minutes:45, done:false, priority:1},
+    {id:4, name:'语文文言文阅读', subjectId:4, minutes:40, done:false, priority:3}
   ],
   stats: {
     todayMinutes: 90,
@@ -414,9 +416,16 @@ function renderTasks(){
     const __h0='<p style="text-align:center;color:var(--text-muted);padding:20px;">暂无任务，点击上方添加</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){el.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}el.innerHTML=__h0;
     return;
   }
+  const PRI_LABEL = {1:'高', 2:'中', 3:'低'};
+  const idxOrder = data.tasks.map((t,i)=>i).sort((a,b)=>{
+    const pa = data.tasks[a].priority||2, pb = data.tasks[b].priority||2;
+    return pa - pb;
+  });
   let html = '';
-  data.tasks.forEach((t,i)=>{
+  idxOrder.forEach(i=>{
+    const t = data.tasks[i];
     const subj = data.subjects.find(s=>s.id===t.subjectId);
+    const pri = t.priority||2;
     html += `
       <div class="task-item ${t.done?'done':''}">
         <div class="task-checkbox ${t.done?'checked':''}" onclick="toggleTask(${i})">${t.done?'✓':''}</div>
@@ -424,6 +433,7 @@ function renderTasks(){
           <div class="task-name">${ToolBox.escHtml(t.name)}</div>
           <div class="task-time">${subj?subj.name:'未分类'} · ${t.minutes}分钟</div>
         </div>
+        <span class="task-pri p${pri}">${PRI_LABEL[pri]||'中'}</span>
         <button type="button" class="btn danger" style="padding:4px 8px;font-size:12px;" onclick="deleteTask(${i})">删除</button>
       </div>
     `;
@@ -452,11 +462,15 @@ function addTask(){
   const name = prompt('请输入任务名称：');
   if(!name) return;
   const minutes = parseInt(prompt('预计需要多少分钟？', '30'))||30;
+  if(minutes<=0){ ToolBox.showToast('分钟数需为正整数', 'error'); return; }
+  const priRaw = prompt('优先级？1=高 2=中 3=低', '2');
+  const priority = (priRaw==='1'||priRaw==='3') ? parseInt(priRaw) : 2;
   data.tasks.push({
     id: Date.now(),
     name: name,
     subjectId: data.subjects[0]?.id || 0,
     minutes: minutes,
+    priority: priority,
     done: false
   });
   saveData();
@@ -579,6 +593,12 @@ function renderStats(){
   document.getElementById('statWeek').textContent = data.stats.weekHours;
   document.getElementById('statTotal').textContent = data.stats.totalHours;
   document.getElementById('statTasks').textContent = data.stats.tasksDone;
+
+  const totalTasks = data.tasks.length;
+  const doneTasks = data.tasks.filter(t=>t.done).length;
+  const pendingMins = data.tasks.filter(t=>!t.done).reduce((s,t)=>s+(t.minutes||0),0);
+  document.getElementById('statRate').textContent = totalTasks>0 ? (doneTasks/totalTasks*100).toFixed(0)+'%' : '—';
+  document.getElementById('statPending').textContent = pendingMins;
   
   const el = document.getElementById('subjectStats');
   let totalMins = 0;
