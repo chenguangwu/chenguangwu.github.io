@@ -20,6 +20,12 @@ const CASES = [
     ref: "坡度=8/50×100=16.00%；坡度角=atan(8/50)×180/π=9.09°（默认 5/100 避开）",
   },
   {
+    slug: "surveying/slope-percent",
+    inputs: { h: "0", d: "50" },
+    expect: ["50.000 斜距 (同单位) — 坡度倒数（1:m）"],
+    ref: "h=0 为水平线：斜距=√(0²+50²)=50.000；坡度倒数为无穷，页面须显示「—」而非旧的 1/((h/d)||1)=1.00 退化值。默认 h=5 得 100.502/20.00，不命中。",
+  },
+  {
     slug: "surveying/horizontal-distance",
     inputs: { l: "200", a: "30" },
     expect: ["173.205", "100.000"],
@@ -74,6 +80,12 @@ const CASES = [
     ref: "V=A·h/3=150×6/3=300.00 m³（默认 100/3 避开）",
   },
   {
+    slug: "surveying/earthwork-pyramid-volume",
+    inputs: { A: "150", h: "0" },
+    expect: ["底面积与高度均须大于 0。"],
+    ref: "h=0：旧代码用 Math.max(h,1e-9) 兜底分母，输出 1.5e11 量级的伪「底面积与高之比」与 0.0000 体积；新增守卫后须提示并中止。默认 h=3 不命中。",
+  },
+  {
     slug: "surveying/coordinate-rotation",
     inputs: { x: "10", y: "10", t: "90" },
     expect: [ "10.000 旋转后" ],
@@ -108,6 +120,12 @@ const CASES = [
     inputs: { a: "45" },
     expect: ["100.00", "1.000"],
     ref: "角度→坡度：tan45°×100=100.00%；坡比=1/tan45°=1.000（默认 5° 避开）",
+  },
+  {
+    slug: "surveying/grade-angle",
+    inputs: { a: "90" },
+    expect: ["坡度角须在 0° 与 90° 之间（不含端点）。"],
+    ref: "θ=90° 时 tan 无定义：旧代码输出 1.63e16 % 量级的伪坡度与 0.000 坡比；新增 0<θ<90 守卫后须输出错误提示。默认 5° 不命中。",
   },
   {
     "slug": "surveying/analysis-cycle",
@@ -342,6 +360,12 @@ const CASES = [
     inputs: { a1: "150", a2: "220", l: "30" },
     expect: ["5550.00", "5.550", "185.000"],
     ref: "注入非默认(默认 a1=120/a2=180/l=20)：平均断面积 = (150+220)/2 = 185.000 m²；体积 = 185×30 = 5550.00 m³ = 5.550 千 m³。默认态 3000.00/3.000/150.000 均不命中。"
+  },
+  {
+    slug: "surveying/cut-fill-volume",
+    inputs: { a1: "150", a2: "220", l: "0" },
+    expect: ["请输入两个非负断面积与大于 0 的断面间距。"],
+    ref: "L=0：旧代码卡片用 v/(l||1)=0.000、矩阵用 v/l=Infinity→— 两套口径；新增守卫后须提示并中止。默认 l=20 不命中。"
   },
   {
     slug: "surveying/analysis-17",

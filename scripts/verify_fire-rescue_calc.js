@@ -109,6 +109,16 @@ const CASES = [
   "ref": "独立复算：300 m² ÷ 75 m²/具 = 4 具（最少 2 具规则不触发）。⚠ 原 expect '150' 为保护面积输入回显（零判别力）；面积改 300 才能让配置数量与默认 100 m²（2 具）区分。默认 100 m² ⇒ 2 具，不命中 ⇒ 无逃生（已双态实测）。"
 },
 {
+  "slug": "fire-rescue/fire-extinguisher-selection",
+  "inputs": {
+    "area": "0"
+  },
+  "expect": [
+    "请输入大于 0 的保护面积。"
+  ],
+  "ref": "面积=0 时旧代码 parseFloat||0 直接进入公式，输出「建议配置数量：2 具」并把保护面积显示为 0 m²（空值兜底成 0 的伪结果）；新增 >0 守卫后须提示。默认 100 m² 不命中。"
+},
+{
   "slug": "fire-rescue/fire-fighting-tactics",
   "inputs": {
     "fireArea": "300"

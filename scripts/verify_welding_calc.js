@@ -162,6 +162,30 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "welding/temp-time-6",
+  "inputs": {
+    "thickness": "30",
+    "ce": "0.45",
+    "c": "0.22",
+    "mn": "1.6",
+    "cr": "0.35",
+    "mo": "0.15"
+  },
+  "expect": ["0.587 简化式 CEV（不含 Ni/Cu）"],
+  "ref": "页面元素估算仅取 C/Mn/Cr/Mo（简化式，不含 Ni/Cu）：0.22+1.6/6+(0.35+0.15)/5=0.587。旧标签「IIW 公式计算 CEV」会让人误以为已含 Ni/Cu 项，故收紧为简化式标签；默认元素 0.18/1.4/0.1/0 得 0.433，不命中。"
+},
+{
+  "slug": "welding/calc-1",
+  "inputs": {
+    "diameter": "5",
+    "thickness": "8",
+    "voltage": "0",
+    "speed": "3"
+  },
+  "expect": ["— 热输入 E（kJ/mm）"],
+  "ref": "U=0 时线能量无法估算：旧代码直接 toFixed 输出 0.00 kJ/mm（伪值）；改为显示「—」，且推荐电流仍随直径 5 mm 输出。默认直径 3.2/U=24/v=3 得 111.84，不命中。"
+},
+{
   "slug": "welding/ventilation-protection",
   "inputs": {
     "consume": "5",

@@ -124,7 +124,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">V = (A₁ + A₂) / 2 × L。</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">土方量平均断面法：V = (A₁+A₂)÷2×L（m³，A₁/A₂ 为相邻两断面挖填面积、L 为段长）；联动量：平均断面积 = (A₁+A₂)÷2（m²）、每米平均方量 = V÷(L||1)（m³/m，L 为 0 时分母按 1 兜底）。校验：无强校验，空值按 0 兜底。判据：无固定分级，另按千 m³ 口径输出便于大面积土方汇总，结果保留两至三位小数。</div>
+      <div class="formula-eq">土方量平均断面法：V = (A₁+A₂)÷2×L（m³，A₁/A₂ 为相邻两断面挖填面积、L 为段长）；联动量：平均断面积 = (A₁+A₂)÷2（m²）、每米平均方量 = V÷L（m³/m）。校验：断面积须非负、断面间距须大于 0，否则提示并中止（避免空值按 0 兜底得出 0 m³ 或除以 0）。判据：无固定分级，另按千 m³ 口径输出便于大面积土方汇总，结果保留两至三位小数。</div>
       <p class="formula-desc">V = (A₁ + A₂) / 2 × L。</p>
     </div>
 
@@ -234,16 +234,21 @@ s.parentNode.insertBefore(el, s);
   </div>
 </div>
 <script>
-function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
+function num(id){const v=parseFloat(document.getElementById(id).value);return isFinite(v)?v:NaN;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
             const a1=num('a1'),a2=num('a2'),l=num('l');
+            if(!(a1>=0&&a2>=0&&l>0)){
+                var __en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+                ToolBox.setResult('result','<p style="color:var(--danger)">'+(__en?'Enter two non-negative section areas and a length greater than 0.':'请输入两个非负断面积与大于 0 的断面间距。')+'</p>');
+                return;
+            }
             const v=(a1+a2)/2*l;
             const __g1=dataGrid([
                 [v.toFixed(2),'体积 (m³)'],
                 [(v/1000).toFixed(3),'体积 (千m³)'],
                 [((a1+a2)/2).toFixed(3), '平均断面积 (m²)'],
-                [(v/(l||1)).toFixed(3), '每米平均方量 (m³/m)']
+                [(v/l).toFixed(3), '每米平均方量 (m³/m)']
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('a1').value = '120';

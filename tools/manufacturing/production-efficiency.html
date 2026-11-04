@@ -168,7 +168,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="OEE = 可用率 × 性能率 × 合格率 (世界级 ≥85%)">OEE Production Efficiency Calculate</p>
     <div class="formula-box">
       <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">OEE = 可用率 × 性能 × 良率；可用率 = 运行时间/计划时间（运行=计划−停机）；性能 = 实际产量/理论产量（理论=运行×60/节拍）；良率 = 良品/总产量</div>
-      <p class="formula-desc" data-zh="核心计算公式（按输入变量）：(1 - min(performance,1)) × 100；min(O ÷ idealCount, 1.5)；(runTime × 60) ÷ CT">Key formulas: (1 - min(performance,1)) × 100; min(O ÷ idealCount, 1.5); (runTime × 60) ÷ CT</p>
+      <p class="formula-desc" data-zh="核心计算公式（按输入变量）：(1 - performance) × 100；performance = min(O ÷ idealCount, 1)（性能率封顶 100%，OEE 不会超过可用率×合格率）；(runTime × 60) ÷ CT">Key formulas: (1 - performance) × 100; performance = min(O / idealCount, 1) (capped at 100%); (runTime × 60) / CT</p>
     </div>
 
     <p style="font-size:13px;margin-bottom:8px;">场景</p>
@@ -303,18 +303,19 @@ function calc() {
   const O = +document.getElementById('output').value || 0;
   const G = +document.getElementById('goodOutput').value || 0;
   if (PT<=0||CT<=0) { ToolBox.showToast(i18nText(),'error'); return; }
+  if (DT<0||DT>=PT) { var __en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)?TBKit.util.isEn():false; document.getElementById('result').innerHTML='<p style="color:var(--danger);">'+(__en?'Downtime must be less than planned time and cannot be negative.':'停机时间须小于计划时间（且不能为负）。')+'</p>'; return; }
   if (G>O) { ToolBox.showToast(i18nText('toast.msg107'),'error'); return; }
 
   const runTime = PT - DT; // 实际运行时间(分钟)
   const availability = runTime / PT;
   const idealCount = (runTime * 60) / CT; // 理论产量
-  const performance = Math.min(O / idealCount, 1.5);
+  const performance = Math.min(O / idealCount, 1);
   const quality = O > 0 ? G / O : 0;
   const oee = availability * performance * quality;
 
   // 损失分解
   const availLoss = (1 - availability) * 100;  // 停机损失%
-  const perfLoss = (1 - Math.min(performance,1)) * 100;
+  const perfLoss = (1 - performance) * 100;
   const qualLoss = (1 - quality) * 100;
 
   let level = '⚠️ 较差';
@@ -336,7 +337,7 @@ function calc() {
     </div>
     <div class="result-block">
       <div class="result-label">性能率 (Performance)</div>
-      <div class="result-value">${(Math.min(performance,1)*100).toFixed(1)}%</div>
+      <div class="result-value">${(performance*100).toFixed(1)}%</div>
       <p style="font-size:11px;color:var(--text-muted);margin-top:4px;">速度损失 ${perfLoss.toFixed(1)}%</p>
     </div>
     <div class="result-block">

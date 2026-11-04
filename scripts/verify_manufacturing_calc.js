@@ -24,16 +24,30 @@ const CASES = [
   {
     "slug": "manufacturing/production-efficiency",
     "inputs": {
-      "plannedTime": "42",
-      "downtime": "42",
-      "cycleTime": "42",
-      "output": "42",
-      "goodOutput": "42"
+      "plannedTime": "480",
+      "downtime": "30",
+      "cycleTime": "60",
+      "output": "400",
+      "goodOutput": "380"
     },
     "expect": [
-      "ability) 0.0% 停机损失 100.0"
+      "可用率 (Availability) 93.8% 停机损失 6.3%"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"plannedTime\":\"42\",\"downtime\":\"42\",\"cycleTime\":\"42\",\"output\":\"42\",\"goodOutput\":\"42\"}，输出区含「ability) 0.0% 停机损失 100.0」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "独立复算：runTime=480−30=450，可用率=450/480=93.8%、停机损失 6.3%；idealCount=450×60/60=450，性能率=400/450=88.9%（旧实现封顶 1.5 可让 OEE 超 100%）；合格率=380/400=95.0%；OEE=0.9375×0.8889×0.95=79.2%。默认 480/60/30/500/475 得可用率 87.5%/停机损失 12.5%，不命中。"
+  },
+  {
+    "slug": "manufacturing/production-efficiency",
+    "inputs": {
+      "plannedTime": "60",
+      "downtime": "60",
+      "cycleTime": "30",
+      "output": "500",
+      "goodOutput": "475"
+    },
+    "expect": [
+      "停机时间须小于计划时间（且不能为负）。"
+    ],
+    "ref": "DT=PT 时 runTime=0、availability=0、idealCount=0 ⇒ 旧代码 performance=min(0/0→NaN,1.5) 经字符串兜底显示「—」，但 OEE 无意义；新增 DT<PT 守卫后须提示并中止。默认 DT=60/PT=480 不命中。"
   },
   {
     "slug": "manufacturing/quality-control",
