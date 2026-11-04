@@ -1,11 +1,11 @@
 # 交互有效性扫描（第二轮：点了到底有没有用）
 
-- 扫描时间：2026/11/5 01:13:15
+- 扫描时间：2026/11/5 01:37:10
 - 覆盖工具页：**4916**
 - 有输入控件的页：**4512**
 - 无输入控件（纯展示/参考卡，跳过）：**404**
 - 有输入但无主按钮（实时计算/表单提交，不计缺陷）：**588**
-- 命中至少一类问题：**436**
+- 命中至少一类问题：**431**
 
 > 口径：① 有效性＝先填值→记录快照→**改一个输入为明显不同的合法值**→再点主按钮→比较前后快照（排除「加载时已自动算过一次」的假阴性）；② 空态＝清空所有输入后点主按钮，结果区给出 NaN/Infinity/undefined/null/0/空串或结论即为缺陷；③ 死控件＝控件 id 在全部 `<script>` 中从未出现（且页面无 `querySelectorAll('input')` / `FormData` 这类泛化读取，内联 oninput 绑定的不计）。快照优先取 `#result/#output/.result*` 等结果容器，无则回退整页正文（剔除控件内的当前值）。
 
@@ -13,16 +13,16 @@
 
 | 类型 | 页数 | 严重度 |
 |---|---|---|
-| 空输入直接给出 NaN/Infinity/undefined/null/0 | **297** | 高 |
+| 空输入直接给出 NaN/Infinity/undefined/null/0 | **296** | 高 |
 | 空输入直接给出结论（优秀/正常/合格…） | **56** | 中 |
-| 改了输入再点主按钮，输出快照不变（低置信度线索，需人工复验） | **53** | 低 |
+| 改了输入再点主按钮，输出快照不变（低置信度线索，需人工复验） | **48** | 低 |
 | 重置按钮未改变任何输入 | **31** | 低 |
 | 点击主按钮抛异常（含 console 报错） | **1** | 高 |
 | 清空输入 / 改值时页内抛异常 | **1** | 高 |
 | 导出/下载按钮 onclick 目标函数不存在（必死） | **1** | 中 |
 | 死控件（静态） | **1** 页 / 2 个控件 | 低-中 |
 
-> **置信度分层**：高/中置信度缺陷页 **385** 页（点击抛异常、空态坏值/结论、死按钮、死控件）；`no_effect` **53** 页为**低置信度线索**——探针值可能不符合页面格式（URL 列表 / Dockerfile 字段 / 专有格式），抽样用合法输入复验发现部分页面其实可正常计算；该类别不计入高置信度统计与 Top 50 主排序，需人工复验。
+> **置信度分层**：高/中置信度缺陷页 **384** 页（点击抛异常、空态坏值/结论、死按钮、死控件）；`no_effect` **48** 页已改用「0.8× 相对量级变异」主探针，并在无变化时追加「5× 放大探针」——放大后仍无变化才保留本类，放大后才变化的 **0** 页归入 `probe_masked`（显示精度/分档阈值掩蔽，不计缺陷）。剩余 `no_effect` 页的逐页三档结论（真无效 / 阈值掩蔽 / 探针失真）见 `plan/no-effect-recheck.md`。
 
 ## 按行业分布（便于分派修复线）
 
@@ -30,7 +30,7 @@
 |---|---|
 | 空输入直接给出 NaN/Infinity/undefined/null/0 | tools/eco/ 18、tools/ai/ 17、tools/tax/ 16、tools/surveying/ 14、tools/dynamics/ 12、tools/robotics/ 12、tools/geometry/ 11、tools/accounting/ 8 |
 | 空输入直接给出结论（优秀/正常/合格…） | tools/leather/ 4、tools/ent/ 3、tools/safety/ 3、tools/agriculture/ 2、tools/biz/ 2、tools/eco/ 2、tools/electronics/ 2、tools/energy/ 2 |
-| 改了输入再点主按钮，输出快照不变（低置信度线索，需人工复验） | tools/it/ 11、tools/hematology/ 3、tools/life/ 3、tools/design/ 2、tools/food-processing/ 2、tools/forensic-medicine/ 2、tools/image/ 2、tools/music/ 2 |
+| 改了输入再点主按钮，输出快照不变（低置信度线索，需人工复验） | tools/it/ 11、tools/design/ 2、tools/food-processing/ 2、tools/forensic-medicine/ 2、tools/hematology/ 2、tools/image/ 2、tools/life/ 2、tools/music/ 2 |
 | 重置按钮未改变任何输入 | tools/rheumatology/ 4、tools/it/ 3、tools/rehabilitation/ 3、tools/elderly/ 2、tools/general/ 2、tools/hematology/ 2、tools/audio/ 1、tools/biz/ 1 |
 | 点击主按钮抛异常（含 console 报错） | tools/it/ 1 |
 | 清空输入 / 改值时页内抛异常 | tools/astronomy/ 1 |
@@ -43,53 +43,53 @@
 | 1 | `tools/astronomy/hubble-redshift-distance.html` | 5.6 | empty_bogus, interact_error | 空输入点「计算」→ 结果区 0.00距离 d (Mpc)0.00d (百万光年)0.00退行速度 v = cz (km/s)0.0000d (十亿光年) ⏐ 📋 复制结果⬇️ 导出 TXT |
 | 2 | `tools/it/matrix-multiplier.html` | 5.6 | empty_bogus, click_error | 空输入点「计算乘法」→ 结果区 结果 C = A × B （0×0）：计算步骤： ⏐ 📋 复制结果⬇️ 导出 TXT |
 | 3 | `tools/pr/risk-assessment.html` | 3.4 | empty_bogus, no_effect | 空输入点「📋 评估」→ 结果区 0风险总数0低风险0中风险0高/极高 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 4 | `tools/structural/von-mises-2d.html` | 3.4 | empty_bogus, no_effect | 空输入点「计算」→ 结果区 0.00等效应力 σ_vm (MPa)0.00忽略剪应力时等效应力 (MPa)0.00最大剪应力 τ_max (MPa) ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 5 | `tools/accounting/cash-conversion-cycle.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00现金转换周期 CCC (天)0.00营业周期（存货 + 应收）(天)0.00应付占营业周期比 (%) ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 6 | `tools/accounting/ebit.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00EBIT (万元)0.00毛利 (万元)0.00营业利润率 (%) ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 7 | `tools/accounting/ebitda.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00EBITDA (万元)0.00EBIT 占 EBITDA (%)0.00折旧摊销占比 (%)0.00折旧与摊销 (万元) ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 8 | `tools/accounting/free-cash-flow.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00自由现金流 FCF (万元)0.00资本支出占经营现金流 (%)0.000经营现金流覆盖资本支出倍数0.00经营活动现金流净额 (万元) ⏐ 📋 复制结果⬇️ 导… |
-| 9 | `tools/accounting/gross-profit.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00毛利 (万元)0.00毛利率 (%)0.000收入成本倍数0.0000成本毛利比 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 10 | `tools/accounting/operating-cash-flow.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00经营现金流 OCF (万元)0.0000现金流/净利 比0.000折旧占经营现金流比 (%) ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 11 | `tools/accounting/roe-dupont.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00净资产收益率 ROE (%)0.000净利率 NM (%)0.0000资产收益率 ROA (%) ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 12 | `tools/accounting/working-capital.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00营运资金 WC (万元)0.000流动比率0.00营运资金占流动资产 (%)0.00流动资产负债合计 (万元) ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 13 | `tools/advertising/assessor-52.html` | 2.6 | empty_bogus | 空输入点「评估活动方案」→ 结果区 0.0%活动 ROI¥0净收益/亏损¥0单客获取成本 CPA¥0.00千次曝光成本 CPM ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 14 | `tools/advertising/assessor-54.html` | 2.6 | empty_bogus | 空输入点「计算投放效果」→ 结果区 0OTS 接触机会0.0%到达率 Reach0.0平均频次 Frequency0.0GRP 总收视点 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 15 | `tools/advertising/assessor-55.html` | 2.6 | empty_bogus | 空输入点「评估投放效果」→ 结果区 0.0GRP 总收视点0.0%到达率 Reach0.0平均频次¥0CPP 每收视点成本 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 16 | `tools/advertising/convert-26.html` | 2.6 | empty_bogus | 空输入点「换算」→ 结果区 物理尺寸 = NaN mm DPI 与 PPI 同义，均指每英寸像素数 常用 DPI 参考：屏幕 96，高清 150–220，印刷 300，精细宣传册 600 300 dp… |
-| 17 | `tools/advertising/reach-frequency.html` | 2.6 | empty_bogus | 空输入点「🧮 计算指标」→ 结果区 0.0%到达率0.00平均频次0GRP 总收视点 ⏐ ¥0.00CPM 千次曝光¥0.00CPR 单人到达¥0.00CP/GRP ⏐ 📋 复制结果⬇️ 导出 T… |
-| 18 | `tools/aerospace/descent-rate.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.0下降率 (m/min)0.00下降率 (m/s)0.00水平速度 (m/s)0.000下降梯度 (%) ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 19 | `tools/aerospace/drag-force.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00阻力 D (N)0.0动压 q = ½ρv² (Pa)0.00阻力 (kgf) ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 20 | `tools/aerospace/lift-equation.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00升力 L (N)0.0动压 q = ½ρv² (Pa)0.00升力 (kgf) ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 21 | `tools/aerospace/lift-force.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00升力 L (kN)0.0升力 (kgf) ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 22 | `tools/aerospace/thrust-required.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.000所需推力 (kN)0.0动压 q = ½ρv² (Pa)0.00等效推力 (kgf) ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 23 | `tools/agriculture/agri-calculator.html` | 2.6 | empty_bogus | 空输入点「计算配比」→ 结果区 氮 (N)0.00kg磷 (P₂O₅)0.00kg钾 (K₂O)0.00kg配方比例：0-0-0施肥面积：0 亩每亩用量：0 kg/亩肥料总量：0.0 kg ⏐ 📋 … |
-| 24 | `tools/ai/ai-11.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 损失差距：0.0000 准确率差距：0.00 %过拟合风险：低 建议：继续训练或早停 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 25 | `tools/ai/ai-12.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 理论扩充量：0 张有效等效量：0 张避免过拟合建议：建议继续收集真实数据 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 26 | `tools/ai/ai-13.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 早停等待时间：0.0 分钟最小训练时间：0.0 分钟最大建议 epoch：0 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 27 | `tools/ai/ai-14.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 点积：0.0000 查询模：0.0000 文档模：0.0000 余弦相似度：0.0000 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 28 | `tools/ai/ai-4.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 欧氏距离：0.0000 曼哈顿距离：0.0000 余弦相似度：0.0000 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 29 | `tools/ai/ai-6.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 全连接参数：0 个卷积核参数：0 个显存估算 MB：0.0000 MB ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 30 | `tools/ai/attention-flops.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 单层 FLOPs：0 全模型 GFLOPs：0.0 GFLOP ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 31 | `tools/ai/augmentation-multiplier.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 增强后总量：0 样本 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 32 | `tools/ai/flops.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 卷积 FLOPs：0 全连接 FLOPs：0 总 FLOPs：0 MACs（约）：0 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 33 | `tools/ai/lr-decay.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 当前 LR：0.000000 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 34 | `tools/ai/lr-warmup.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 预热步数：0 步预热末 LR：0.000000 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 35 | `tools/ai/multi-agent-overhead.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 消息总数：0 条总流量 KB：0 KB ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 36 | `tools/ai/relu-leakyrelu.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 ReLU：0.00 LeakyReLU：0.00 ELU：0.00 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 37 | `tools/ai/token-2.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 输入费用：0.0000 USD输出费用：0.0000 USD总费用：0.0000 USD人民币约：0.0000 CNY ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 38 | `tools/ai/token-usage.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 估算 tokens：0 token ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 39 | `tools/ai/transformer-params.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 Transformer主体(亿)：0.00 亿嵌入参数(亿)：0.00 亿 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 40 | `tools/ai/vram-estimate.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 权重显存：0.0 GB总显存估算：0.0 GB ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 41 | `tools/astronomy/kepler-equation.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.000偏近点角 E (°)0.00000E (rad) ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 42 | `tools/astronomy/light-travel-time.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.000传播时间 t (min)0.0t (s)0.0000距离 (天文单位 AU)0.0000传播时间 (h)0.000e+0距离 (光年) ⏐ 📋 复制结果⬇️ 导… |
-| 43 | `tools/baking/recipe-scaler.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 缩放后配方（×0） ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 44 | `tools/banking/amortization-first-interest.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00首月利息 I₁0.00首月还本金0.000年利率 (%)0.0000首月利息占本金比 (%) ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 45 | `tools/banking/continuous-compounding.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00连续复利终值 A0.00利息总额0.0000年实际收益率 (%)0.0000较年复利增益 (%) ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 46 | `tools/banking/effective-annual-rate.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.000有效年利率 EAR (%)0.00000EAR (小数)0.0000EAR 高于名义利率 (百分点)0.0000与连续复利之差 (百分点) ⏐ 📋 复制结果⬇️… |
-| 47 | `tools/banking/net-worth.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0净资产 NW (元)0.00负债率 (%)0.000资产覆盖倍数0.00净资产占资产 (%) ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 48 | `tools/banking/tax-equivalent-yield.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.000税后等效收益率 TEY (%)0.000应税需高出的百分点0.0边际税率 (%)0.0000免税溢价系数减一 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 49 | `tools/chemistry/gibbs-free-energy.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.000ΔG (kJ/mol)平衡反应方向 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 50 | `tools/chemistry/kp-kc.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.000e+0压力平衡常数 Kp0.0RT (L·atm/(mol·K)) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 4 | `tools/accounting/cash-conversion-cycle.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00现金转换周期 CCC (天)0.00营业周期（存货 + 应收）(天)0.00应付占营业周期比 (%) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 5 | `tools/accounting/ebit.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00EBIT (万元)0.00毛利 (万元)0.00营业利润率 (%) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 6 | `tools/accounting/ebitda.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00EBITDA (万元)0.00EBIT 占 EBITDA (%)0.00折旧摊销占比 (%)0.00折旧与摊销 (万元) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 7 | `tools/accounting/free-cash-flow.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00自由现金流 FCF (万元)0.00资本支出占经营现金流 (%)0.000经营现金流覆盖资本支出倍数0.00经营活动现金流净额 (万元) ⏐ 📋 复制结果⬇️ 导… |
+| 8 | `tools/accounting/gross-profit.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00毛利 (万元)0.00毛利率 (%)0.000收入成本倍数0.0000成本毛利比 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 9 | `tools/accounting/operating-cash-flow.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00经营现金流 OCF (万元)0.0000现金流/净利 比0.000折旧占经营现金流比 (%) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 10 | `tools/accounting/roe-dupont.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00净资产收益率 ROE (%)0.000净利率 NM (%)0.0000资产收益率 ROA (%) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 11 | `tools/accounting/working-capital.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00营运资金 WC (万元)0.000流动比率0.00营运资金占流动资产 (%)0.00流动资产负债合计 (万元) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 12 | `tools/advertising/assessor-52.html` | 2.6 | empty_bogus | 空输入点「评估活动方案」→ 结果区 0.0%活动 ROI¥0净收益/亏损¥0单客获取成本 CPA¥0.00千次曝光成本 CPM ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 13 | `tools/advertising/assessor-54.html` | 2.6 | empty_bogus | 空输入点「计算投放效果」→ 结果区 0OTS 接触机会0.0%到达率 Reach0.0平均频次 Frequency0.0GRP 总收视点 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 14 | `tools/advertising/assessor-55.html` | 2.6 | empty_bogus | 空输入点「评估投放效果」→ 结果区 0.0GRP 总收视点0.0%到达率 Reach0.0平均频次¥0CPP 每收视点成本 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 15 | `tools/advertising/convert-26.html` | 2.6 | empty_bogus | 空输入点「换算」→ 结果区 物理尺寸 = NaN mm DPI 与 PPI 同义，均指每英寸像素数 常用 DPI 参考：屏幕 96，高清 150–220，印刷 300，精细宣传册 600 300 dp… |
+| 16 | `tools/advertising/reach-frequency.html` | 2.6 | empty_bogus | 空输入点「🧮 计算指标」→ 结果区 0.0%到达率0.00平均频次0GRP 总收视点 ⏐ ¥0.00CPM 千次曝光¥0.00CPR 单人到达¥0.00CP/GRP ⏐ 📋 复制结果⬇️ 导出 T… |
+| 17 | `tools/aerospace/descent-rate.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.0下降率 (m/min)0.00下降率 (m/s)0.00水平速度 (m/s)0.000下降梯度 (%) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 18 | `tools/aerospace/drag-force.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00阻力 D (N)0.0动压 q = ½ρv² (Pa)0.00阻力 (kgf) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 19 | `tools/aerospace/lift-equation.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00升力 L (N)0.0动压 q = ½ρv² (Pa)0.00升力 (kgf) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 20 | `tools/aerospace/lift-force.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00升力 L (kN)0.0升力 (kgf) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 21 | `tools/aerospace/thrust-required.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.000所需推力 (kN)0.0动压 q = ½ρv² (Pa)0.00等效推力 (kgf) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 22 | `tools/agriculture/agri-calculator.html` | 2.6 | empty_bogus | 空输入点「计算配比」→ 结果区 氮 (N)0.00kg磷 (P₂O₅)0.00kg钾 (K₂O)0.00kg配方比例：0-0-0施肥面积：0 亩每亩用量：0 kg/亩肥料总量：0.0 kg ⏐ 📋 … |
+| 23 | `tools/ai/ai-11.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 损失差距：0.0000 准确率差距：0.00 %过拟合风险：低 建议：继续训练或早停 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 24 | `tools/ai/ai-12.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 理论扩充量：0 张有效等效量：0 张避免过拟合建议：建议继续收集真实数据 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 25 | `tools/ai/ai-13.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 早停等待时间：0.0 分钟最小训练时间：0.0 分钟最大建议 epoch：0 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 26 | `tools/ai/ai-14.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 点积：0.0000 查询模：0.0000 文档模：0.0000 余弦相似度：0.0000 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 27 | `tools/ai/ai-4.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 欧氏距离：0.0000 曼哈顿距离：0.0000 余弦相似度：0.0000 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 28 | `tools/ai/ai-6.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 全连接参数：0 个卷积核参数：0 个显存估算 MB：0.0000 MB ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 29 | `tools/ai/attention-flops.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 单层 FLOPs：0 全模型 GFLOPs：0.0 GFLOP ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 30 | `tools/ai/augmentation-multiplier.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 增强后总量：0 样本 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 31 | `tools/ai/flops.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 卷积 FLOPs：0 全连接 FLOPs：0 总 FLOPs：0 MACs（约）：0 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 32 | `tools/ai/lr-decay.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 当前 LR：0.000000 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 33 | `tools/ai/lr-warmup.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 预热步数：0 步预热末 LR：0.000000 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 34 | `tools/ai/multi-agent-overhead.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 消息总数：0 条总流量 KB：0 KB ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 35 | `tools/ai/relu-leakyrelu.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 ReLU：0.00 LeakyReLU：0.00 ELU：0.00 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 36 | `tools/ai/token-2.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 输入费用：0.0000 USD输出费用：0.0000 USD总费用：0.0000 USD人民币约：0.0000 CNY ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 37 | `tools/ai/token-usage.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 估算 tokens：0 token ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 38 | `tools/ai/transformer-params.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 Transformer主体(亿)：0.00 亿嵌入参数(亿)：0.00 亿 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 39 | `tools/ai/vram-estimate.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 权重显存：0.0 GB总显存估算：0.0 GB ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 40 | `tools/astronomy/kepler-equation.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.000偏近点角 E (°)0.00000E (rad) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 41 | `tools/astronomy/light-travel-time.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.000传播时间 t (min)0.0t (s)0.0000距离 (天文单位 AU)0.0000传播时间 (h)0.000e+0距离 (光年) ⏐ 📋 复制结果⬇️ 导… |
+| 42 | `tools/baking/recipe-scaler.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 缩放后配方（×0） ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 43 | `tools/banking/amortization-first-interest.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00首月利息 I₁0.00首月还本金0.000年利率 (%)0.0000首月利息占本金比 (%) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 44 | `tools/banking/continuous-compounding.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00连续复利终值 A0.00利息总额0.0000年实际收益率 (%)0.0000较年复利增益 (%) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 45 | `tools/banking/effective-annual-rate.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.000有效年利率 EAR (%)0.00000EAR (小数)0.0000EAR 高于名义利率 (百分点)0.0000与连续复利之差 (百分点) ⏐ 📋 复制结果⬇️… |
+| 46 | `tools/banking/net-worth.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0净资产 NW (元)0.00负债率 (%)0.000资产覆盖倍数0.00净资产占资产 (%) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 47 | `tools/banking/tax-equivalent-yield.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.000税后等效收益率 TEY (%)0.000应税需高出的百分点0.0边际税率 (%)0.0000免税溢价系数减一 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 48 | `tools/chemistry/gibbs-free-energy.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.000ΔG (kJ/mol)平衡反应方向 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 49 | `tools/chemistry/kp-kc.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.000e+0压力平衡常数 Kp0.0RT (L·atm/(mol·K)) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 50 | `tools/chemistry/mole-fraction.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.0000总物质的量 (mol) ⏐ 📋 复制结果⬇️ 导出 TXT |
 
 ## 一、按钮有效性（点了没反应 / 点了报错）
 
@@ -103,12 +103,11 @@
 
 ## 二、空态（没填也敢给结论）
 
-### 空输入直接给出 NaN/Infinity/undefined/null/0（297 页）
+### 空输入直接给出 NaN/Infinity/undefined/null/0（296 页）
 
 - `tools/astronomy/hubble-redshift-distance.html` — 空输入点「计算」→ 结果区 0.00距离 d (Mpc)0.00d (百万光年)0.00退行速度 v = cz (km/s)0.0000d (十亿光年) ⏐ 📋 复制结果⬇️ 导出 TXT
 - `tools/it/matrix-multiplier.html` — 空输入点「计算乘法」→ 结果区 结果 C = A × B （0×0）：计算步骤： ⏐ 📋 复制结果⬇️ 导出 TXT
 - `tools/pr/risk-assessment.html` — 空输入点「📋 评估」→ 结果区 0风险总数0低风险0中风险0高/极高 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/structural/von-mises-2d.html` — 空输入点「计算」→ 结果区 0.00等效应力 σ_vm (MPa)0.00忽略剪应力时等效应力 (MPa)0.00最大剪应力 τ_max (MPa) ⏐ 📋 复制结果⬇️ 导出 TXT
 - `tools/accounting/cash-conversion-cycle.html` — 空输入点「计算」→ 结果区 0.00现金转换周期 CCC (天)0.00营业周期（存货 + 应收）(天)0.00应付占营业周期比 (%) ⏐ 📋 复制结果⬇️ 导出 TXT
 - `tools/accounting/ebit.html` — 空输入点「计算」→ 结果区 0.00EBIT (万元)0.00毛利 (万元)0.00营业利润率 (%) ⏐ 📋 复制结果⬇️ 导出 TXT
 - `tools/accounting/ebitda.html` — 空输入点「计算」→ 结果区 0.00EBITDA (万元)0.00EBIT 占 EBITDA (%)0.00折旧摊销占比 (%)0.00折旧与摊销 (万元) ⏐ 📋 复制结果⬇️ 导出 TXT
@@ -355,7 +354,8 @@
 - `tools/sports/calc-angle-slope.html` — 空输入点「🗺️ 计算」→ 结果区 0% of 0 = 0.00 ⏐ 📋 复制结果⬇️ 导出 TXT
 - `tools/sports/convert-29.html` — 空输入点「换算」→ 结果区 柔韧指数 = NaN 踢腿点距头顶 = 0.0 cm 测量规范：支撑腿伸直，量地面至踢腿最高点的垂直距离 双腿差异超过 10% 提示不对称，需针对性平衡训练 本指数与坐位体前屈、纵跳共同构成下肢柔韧评…
 - `tools/startup/calc-1.html` — 空输入点「🧮 估算」→ 结果区 建议启动资金：0.00 元其中一次性投入 0.00 元，运营资金 0.00 元，应急储备 0.00 元月运营成本：0.00 元，按此标准资金可支撑约 0.0 个月 ⏐ 0.00建议启动资金（元）0.0…
-- …… 其余 47 页见 JSON
+- `tools/statistics/iqr.html` — 空输入点「计算」→ 结果区 IQR：0.0000 异常值下限：0.0000 异常值上限：0.0000 中位数：0.0000 ⏐ 📋 复制结果⬇️ 导出 TXT
+- …… 其余 46 页见 JSON
 
 ### 空输入直接给出结论（优秀/正常/合格…）（56 页）
 
@@ -418,58 +418,53 @@
 
 ## 三、死控件与辅助按钮
 
-### 改了输入再点主按钮，输出快照不变（低置信度线索，需人工复验）（53 页）
+### 改了输入再点主按钮，输出快照不变（低置信度线索，需人工复验）（48 页）
 
-- `tools/pr/risk-assessment.html` — 按钮「📋 评估」｜构造值 riskProb [number] "3" → "5"｜改前 0风险总数0低风险0中风险0高/极高 ⏐ 📋 复制结果⬇️ 导出 TXT → 点击后 0风险总数0低风险0中风险0高/极高 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/structural/von-mises-2d.html` — 按钮「计算」｜构造值 sx [number] "0" → "7"｜改前 0.00等效应力 σ_vm (MPa)0.00忽略剪应力时等效应力 (MPa)0.00最大剪应力 τ_max (MPa)… → 点击后 0.00等效应力 σ_vm (MPa)0.00忽略剪应力时等效应力 (MPa)0.00最大剪应力 τ_max (MPa)…
+- `tools/pr/risk-assessment.html` — 按钮「📋 评估」｜构造值 riskProb [number] "3" → "2.4000000000000004"｜改前 0风险总数0低风险0中风险0高/极高 ⏐ 📋 复制结果⬇️ 导出 TXT → 点击后 0风险总数0低风险0中风险0高/极高 ⏐ 📋 复制结果⬇️ 导出 TXT
 - `tools/agriculture/countdown-4.html` — 按钮「开始孵化」｜构造值 batchName [text] "abc 123" → "abc 123x"｜改前 📖 查看「鸡蛋孵化倒计时（21天）使用指南」 📅 鸡蛋孵化倒计时（21天） ⚠️ 专业工具免责声明 本工具结果为本页… → 点击后 📖 查看「鸡蛋孵化倒计时（21天）使用指南」 📅 鸡蛋孵化倒计时（21天） ⚠️ 专业工具免责声明 本工具结果为本页…
-- `tools/cardiology/calc-1.html` — 按钮「评估分级」｜构造值 sbp [number] "175" → "300"｜改前 血压分级：2级高血压 收缩压 ≥160 或 舒张压 ≥100 mmHg 心血管风险分层：中危 2级高血压且无其他危险因素… → 点击后 血压分级：2级高血压 收缩压 ≥160 或 舒张压 ≥100 mmHg 心血管风险分层：中危 2级高血压且无其他危险因素…
+- `tools/cardiology/calc-1.html` — 按钮「评估分级」｜构造值 sbp [number] "175" → "140"｜改前 血压分级：2级高血压 收缩压 ≥160 或 舒张压 ≥100 mmHg 心血管风险分层：中危 2级高血压且无其他危险因素… → 点击后 血压分级：2级高血压 收缩压 ≥160 或 舒张压 ≥100 mmHg 心血管风险分层：中危 2级高血压且无其他危险因素…
 - `tools/data/pivot-table.html` — 按钮「📊 生成」｜构造值 inputData [textarea] "abc 123" → "probe-a\nprobe-b\nprob"｜改前 🔄 透视表 (sum) 地区 \ 产品 AB 合计 华北 210150 360 华东 200340 540 华南 12… → 点击后 🔄 透视表 (sum) 地区 \ 产品 AB 合计 华北 210150 360 华东 200340 540 华南 12…
 - `tools/dermatology/leprosy-grading.html` — 按钮「生成分级报告」｜构造值 leprosyType [select] "TT" → "BT"｜改前 G0D0级残疾无感觉丧失和可见畸形 ⏐ 📋 复制结果⬇️ 导出 TXT → 点击后 G0D0级残疾无感觉丧失和可见畸形 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/design/flexbox-generator.html` — 按钮「计算」｜构造值 gap [number] "12" → "31"｜改前 生成的 CSS ⏐ 实时预览（3 个项目） ⏐ 📋 复制结果⬇️ 导出 TXT → 点击后 生成的 CSS ⏐ 实时预览（3 个项目） ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/design/flexbox-generator.html` — 按钮「计算」｜构造值 gap [number] "12" → "9.600000000000001"｜改前 生成的 CSS ⏐ 实时预览（3 个项目） ⏐ 📋 复制结果⬇️ 导出 TXT → 点击后 生成的 CSS ⏐ 实时预览（3 个项目） ⏐ 📋 复制结果⬇️ 导出 TXT
 - `tools/design/mesh-gradient.html` — 按钮「生成」｜构造值 overlay [text] "abc 123" → "abc 123x"｜改前 background-color: #000000; background-image: radial-gradient… → 点击后 background-color: #000000; background-image: radial-gradient…
-- `tools/electromagnetism/free-space-impedance.html` — 按钮「计算」｜构造值 x [number] "0" → "7"｜改前 376.73波阻抗 Z₀ (Ω)2.997925真空光速 (×10⁸ m/s)1.256637真空磁导率 μ₀ (μH/… → 点击后 376.73波阻抗 Z₀ (Ω)2.997925真空光速 (×10⁸ m/s)1.256637真空磁导率 μ₀ (μH/…
-- `tools/endocrinology/pcos-diagnosis.html` — 按钮「诊断评估」｜构造值 cycle [number] "45" → "97"｜改前 满足① 排卵障碍满足② 高雄激素满足③ 多囊形态 ⏐ 📋 复制结果⬇️ 导出 TXT → 点击后 满足① 排卵障碍满足② 高雄激素满足③ 多囊形态 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/food-processing/fermentation-brix.html` — 按钮「计算」｜构造值 vol [number] "100" → "207"｜改前 0g糖消耗量0.00%酒精度 ABV0g酒精生成量0gCO₂生成量 ⏐ 📋 复制结果⬇️ 导出 TXT → 点击后 0g糖消耗量0.00%酒精度 ABV0g酒精生成量0gCO₂生成量 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/food-processing/ph-adjustment.html` — 按钮「计算」｜构造值 vol [number] "0.001" → "7.002"｜改前 0.00mL需加溶液量0.000g纯物质量0.0000mol物质的量pH 无变化调节方向 ⏐ 📋 复制结果⬇️ 导出 … → 点击后 0.00mL需加溶液量0.000g纯物质量0.0000mol物质的量pH 无变化调节方向 ⏐ 📋 复制结果⬇️ 导出 …
+- `tools/electromagnetism/free-space-impedance.html` — 按钮「计算」｜构造值 x [number] "0" → "1"｜改前 376.73波阻抗 Z₀ (Ω)2.997925真空光速 (×10⁸ m/s)1.256637真空磁导率 μ₀ (μH/… → 点击后 376.73波阻抗 Z₀ (Ω)2.997925真空光速 (×10⁸ m/s)1.256637真空磁导率 μ₀ (μH/…
+- `tools/endocrinology/pcos-diagnosis.html` — 按钮「诊断评估」｜构造值 cycle [number] "45" → "36"｜改前 满足① 排卵障碍满足② 高雄激素满足③ 多囊形态 ⏐ 📋 复制结果⬇️ 导出 TXT → 点击后 满足① 排卵障碍满足② 高雄激素满足③ 多囊形态 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/food-processing/fermentation-brix.html` — 按钮「计算」｜构造值 vol [number] "100" → "80"｜改前 0g糖消耗量0.00%酒精度 ABV0g酒精生成量0gCO₂生成量 ⏐ 📋 复制结果⬇️ 导出 TXT → 点击后 0g糖消耗量0.00%酒精度 ABV0g酒精生成量0gCO₂生成量 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/food-processing/ph-adjustment.html` — 按钮「计算」｜构造值 vol [number] "0.001" → "0.001"｜改前 0.00mL需加溶液量0.000g纯物质量0.0000mol物质的量pH 无变化调节方向 ⏐ 📋 复制结果⬇️ 导出 … → 点击后 0.00mL需加溶液量0.000g纯物质量0.0000mol物质的量pH 无变化调节方向 ⏐ 📋 复制结果⬇️ 导出 …
 - `tools/forensic-medicine/electrocution-injury.html` — 按钮「分析电击伤」｜构造值 currentType [select] "ac" → "dc"｜改前 0阳性特征数0%特征符合度 ⏐ 📋 复制结果⬇️ 导出 TXT → 点击后 0阳性特征数0%特征符合度 ⏐ 📋 复制结果⬇️ 导出 TXT
 - `tools/forensic-medicine/rigor-mortis.html` — 按钮「评估死后时间」｜构造值 envTemp [select] "low" → "normal"｜改前 2.0平均僵硬度2.0上部关节2.0下部关节 ⏐ 📋 复制结果⬇️ 导出 TXT → 点击后 2.0平均僵硬度2.0上部关节2.0下部关节 ⏐ 📋 复制结果⬇️ 导出 TXT
 - `tools/funeral/memorial-date.html` — 按钮「计算」｜构造值 memTitle [text] "abc 123" → "abc 123x"｜改前 • 头七：逝后第 7 天 • 三七 / 五七：逝后第 21 / 35 天 • 百日：逝后第 100 天 • 周年：逝后满… → 点击后 • 头七：逝后第 7 天 • 三七 / 五七：逝后第 21 / 35 天 • 百日：逝后第 100 天 • 周年：逝后满…
 - `tools/gardening/plant-calendar.html` — 按钮「📅 月份视图」｜构造值 search [text] "abc 123" → "abc 123x"｜改前 📖 查看「蔬菜种植时间历使用指南」 📅 蔬菜种植日历 按月份/季节/类别查看蔬菜种植时间，含播种、移栽、收获、生长期… → 点击后 📖 查看「蔬菜种植时间历使用指南」 📅 蔬菜种植日历 按月份/季节/类别查看蔬菜种植时间，含播种、移栽、收获、生长期…
-- `tools/healthcare/healthcare-4.html` — 按钮「计算」｜构造值 dyspnea [number] "1" → "2"｜改前 NYHA 分级：4 级解释：IV 静息症状 ⏐ 📋 复制结果⬇️ 导出 TXT → 点击后 NYHA 分级：4 级解释：IV 静息症状 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/hematology/hlh-diagnosis.html` — 按钮「诊断评估」｜构造值 c4_tg [number] "3.5" → "14"｜改前 3/8达标项目数否基因突变疑似HLH（3项达标，需密切监测）诊断结论 ⏐ 📋 复制结果⬇️ 导出 TXT → 点击后 3/8达标项目数否基因突变疑似HLH（3项达标，需密切监测）诊断结论 ⏐ 📋 复制结果⬇️ 导出 TXT
 - `tools/hematology/itp-risk-score.html` — 按钮「评分」｜构造值 drug [select] "heparin" → "quinine"｜改前 9总分 (满分8)确定 (Definite)因果关系等级 ⏐ 📋 复制结果⬇️ 导出 TXT ⏐ 参考区间标尺不太可能… → 点击后 9总分 (满分8)确定 (Definite)因果关系等级 ⏐ 📋 复制结果⬇️ 导出 TXT ⏐ 参考区间标尺不太可能…
-- `tools/hematology/mm-staging.html` — 按钮「分期」｜构造值 albumin [number] "35" → "77"｜改前 R-ISS III分期ISS 3ISS分期43个月中位OS ⏐ 📋 复制结果⬇️ 导出 TXT → 点击后 R-ISS III分期ISS 3ISS分期43个月中位OS ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/hematology/mm-staging.html` — 按钮「分期」｜构造值 albumin [number] "35" → "28"｜改前 R-ISS III分期ISS 3ISS分期43个月中位OS ⏐ 📋 复制结果⬇️ 导出 TXT → 点击后 R-ISS III分期ISS 3ISS分期43个月中位OS ⏐ 📋 复制结果⬇️ 导出 TXT
 - `tools/image/image-compress.html` — 按钮「压缩质量80·输出格式webp·最大尺寸（等比缩放）1920」｜构造值 fmt [select] "webp" → "jpeg"｜改前 ⚡ 效率工具栏 ✓ 本地处理 1 个文件入口 ⏐ 📋 复制结果⬇️ 导出 TXT → 点击后 ⚡ 效率工具栏 ✓ 本地处理 1 个文件入口 ⏐ 📋 复制结果⬇️ 导出 TXT
 - `tools/image/wechat-cover-maker.html` — 按钮「生成」｜构造值 title [text] "abc 123" → "abc 123x"｜改前 ✨ 公众号封面生成器 纯前端生成 900×383 封面图：标题 + 副标题 + 背景渐变 + 下载。 标题 副标题 背景… → 点击后 ✨ 公众号封面生成器 纯前端生成 900×383 封面图：标题 + 副标题 + 背景渐变 + 下载。 标题 副标题 背景…
 - `tools/it/ast-viewer.html` — 按钮「解析 AST」｜构造值 codeInput [textarea] "abc 123" → "probe-a\nprobe-b\nprob"｜改前 ⬇️ 导出统计 CSV ⏐ 0 ⏐ 0 ⏐ 0 ⏐ 0 → 点击后 ⬇️ 导出统计 CSV ⏐ 0 ⏐ 0 ⏐ 0 ⏐ 0
 - `tools/it/docker-run-converter.html` — 按钮「计算」｜构造值 cmd [textarea] "abc 123" → "probe-a\nprobe-b\nprob"｜改前 docker-compose.yml ⏐ 📋 复制结果⬇️ 导出 TXT → 点击后 docker-compose.yml ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/it/dockerfile-generator.html` — 按钮「计算」｜构造值 port [number] "3000" → "6007"｜改前 Dockerfile ⏐ 📋 复制结果⬇️ 导出 TXT → 点击后 Dockerfile ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/it/dockerfile-generator.html` — 按钮「计算」｜构造值 port [number] "3000" → "2400"｜改前 Dockerfile ⏐ 📋 复制结果⬇️ 导出 TXT → 点击后 Dockerfile ⏐ 📋 复制结果⬇️ 导出 TXT
 - `tools/it/hill-cipher.html` — 按钮「加密 ↑」｜构造值 key [text] "abc 123" → "abc 123x"｜改前 密钥矩阵3325行列式9 mod 26行列式逆元3逆矩阵1517209 ⏐ 📋 复制结果⬇️ 导出 TXT → 点击后 密钥矩阵3325行列式9 mod 26行列式逆元3逆矩阵1517209 ⏐ 📋 复制结果⬇️ 导出 TXT
 - `tools/it/html-nesting-checker.html` — 按钮「检查」｜构造值 html [textarea] "<div><p>hi</p></div>" → "<div><span>x</span…｜改前 ✅ HTML 嵌套结构合法（无未闭合/错误嵌套标签） ⏐ 📋 复制结果⬇️ 导出 TXT ⏐ 📊 结果解读 结果含义… → 点击后 ✅ HTML 嵌套结构合法（无未闭合/错误嵌套标签） ⏐ 📋 复制结果⬇️ 导出 TXT ⏐ 📊 结果解读 结果含义…
 - `tools/it/json-to-tsv.html` — 按钮「转换 →」｜构造值 jsonInput [textarea] "{\"a\":1}" → "{\"a\":2}"｜改前 行数：2 列数：3 字符数：31 ⏐ name age city 张三 30 上海 李四 25 北京 → 点击后 行数：2 列数：3 字符数：31 ⏐ name age city 张三 30 上海 李四 25 北京
-- `tools/it/password-generator.html` — 按钮「🎲 生成」｜构造值 length [number] "66" → "128"｜改前 16+ 推荐长度 4种 字符类型 90天 更换周期 2FA 双重验证 ⏐ ⚡ 效率工具栏 ✓ 本地处理 13 个参数 C… → 点击后 16+ 推荐长度 4种 字符类型 90天 更换周期 2FA 双重验证 ⏐ ⚡ 效率工具栏 ✓ 本地处理 13 个参数 C…
+- `tools/it/password-generator.html` — 按钮「🎲 生成」｜构造值 length [number] "66" → "52.800000000000004"｜改前 16+ 推荐长度 4种 字符类型 90天 更换周期 2FA 双重验证 ⏐ ⚡ 效率工具栏 ✓ 本地处理 13 个参数 C… → 点击后 16+ 推荐长度 4种 字符类型 90天 更换周期 2FA 双重验证 ⏐ ⚡ 效率工具栏 ✓ 本地处理 13 个参数 C…
 - `tools/it/protobuf-parser.html` — 按钮「解析」｜构造值 input [textarea] "abc 123" → "probe-a\nprobe-b\nprob"｜改前 { "syntax": "", "package": "", "imports": [], "options": [],… → 点击后 { "syntax": "", "package": "", "imports": [], "options": [],…
 - `tools/it/sitemap-generator.html` — 按钮「计算」｜构造值 urls [textarea] "https://example.com/" → "https://example.co…｜改前 sitemap.xml ⏐ 📋 复制结果⬇️ 导出 TXT → 点击后 sitemap.xml ⏐ 📋 复制结果⬇️ 导出 TXT
 - `tools/it/toml-formatter.html` — 按钮「格式化」｜构造值 input [textarea] "abc 123" → "probe-a\nprobe-b\nprob"｜改前 title = "toolbox" port = 8080 replicas = 3 ⏐ 📋 复制结果⬇️ 导出 TX… → 点击后 title = "toolbox" port = 8080 replicas = 3 ⏐ 📋 复制结果⬇️ 导出 TX…
 - `tools/it/uuid-v5-generator.html` — 按钮「生成」｜构造值 ns [text] "abc 123" → "abc 123x"｜改前 example.com → cfbff0d1-9375-5685-968c-48ce8b15ae17example.or… → 点击后 example.com → cfbff0d1-9375-5685-968c-48ce8b15ae17example.or…
-- `tools/life/age-calculator.html` — 按钮「Calculate」｜构造值 by [number] "2000" → "2100"｜改前 距离 27 岁生日（2027 年 6 月 16 日）还有 224 天 ⏐ • 输入你的出生日期和时间，即可计算精确年龄 … → 点击后 距离 27 岁生日（2027 年 6 月 16 日）还有 224 天 ⏐ • 输入你的出生日期和时间，即可计算精确年龄 …
 - `tools/life/chinese-number.html` — 按钮「转换」｜构造值 inputVal [text] "abc 123" → "abc 123x"｜改前 无法识别输入 ⏐ 简体：〇 一 二 三 四 五 六 七 八 九 十 百 千 万 亿 大写：零 壹 贰 叁 肆 伍 陆 柒… → 点击后 无法识别输入 ⏐ 简体：〇 一 二 三 四 五 六 七 八 九 十 百 千 万 亿 大写：零 壹 贰 叁 肆 伍 陆 柒…
-- `tools/life/unit-converter.html` — 按钮「▶ 运行」｜构造值 fromValue [number] "1" → "9"｜改前 • 选择分类后，在左侧输入数值即可实时换算到右侧单位 • 点击中间 ⇅ 按钮可交换两个单位 • 常用换算速查可一键填入常… → 点击后 • 选择分类后，在左侧输入数值即可实时换算到右侧单位 • 点击中间 ⇅ 按钮可交换两个单位 • 常用换算速查可一键填入常…
-- `tools/metallurgy/alloy-ratio.html` — 按钮「计算加入量」｜构造值 steelW [number] "0.01" → "7.02"｜改前 总原料加入量 0.000 t ⏐ 📋 复制结果⬇️ 导出 TXT → 点击后 总原料加入量 0.000 t ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/meteorology/wind-direction.html` — 按钮「计算」｜构造值 deg [number] "180" → "360"｜改前 N16 方位（0°）0.0000方位角 (rad)S相反风向 ⏐ 📋 复制结果⬇️ 导出 TXT → 点击后 N16 方位（0°）0.0000方位角 (rad)S相反风向 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/life/unit-converter.html` — 按钮「▶ 运行」｜构造值 fromValue [number] "1" → "0.8"｜改前 • 选择分类后，在左侧输入数值即可实时换算到右侧单位 • 点击中间 ⇅ 按钮可交换两个单位 • 常用换算速查可一键填入常… → 点击后 • 选择分类后，在左侧输入数值即可实时换算到右侧单位 • 点击中间 ⇅ 按钮可交换两个单位 • 常用换算速查可一键填入常…
+- `tools/metallurgy/alloy-ratio.html` — 按钮「计算加入量」｜构造值 steelW [number] "0.01" → "0.01"｜改前 总原料加入量 0.000 t ⏐ 📋 复制结果⬇️ 导出 TXT → 点击后 总原料加入量 0.000 t ⏐ 📋 复制结果⬇️ 导出 TXT
 - `tools/music/chord-notes.html` — 按钮「🔍 分析和弦」｜构造值 chordInput [text] "abc 123" → "abc 123x"｜改前 和弦类型标记示例音程（半音）结构 大三和弦C0, 4, 7根-大三-纯五 小三和弦Am0, 3, 7根-小三-纯五 增三… → 点击后 和弦类型标记示例音程（半音）结构 大三和弦C0, 4, 7根-大三-纯五 小三和弦Am0, 3, 7根-小三-纯五 增三…
-- `tools/music/music-analysis.html` — 按钮「🎤 开始分析」｜构造值 sample-rate [number] "12" → "31"｜改前 码率: 1411 kbps 每秒: 172.27 KB/s 60秒总大小: 10.09 MB 每小时: 605.62 M… → 点击后 码率: 1411 kbps 每秒: 172.27 KB/s 60秒总大小: 10.09 MB 每小时: 605.62 M…
-- `tools/nuclear/pair-annihilation.html` — 按钮「计算」｜构造值 dummy [number] "1" → "9"｜改前 511.0每个光子能量 (keV)1022.0总能量 (keV)0.5110每个光子能量 (MeV)1.0220总能量 … → 点击后 511.0每个光子能量 (keV)1022.0总能量 (keV)0.5110每个光子能量 (MeV)1.0220总能量 …
-- `tools/pet/fish-tank-volume.html` — 按钮「计算水量」｜构造值 length [number] "2" → "11"｜改前 • 过滤器：流量建议为水量的3-5倍/小时 • 加热棒：每升水约需1-2W加热功率 • 增氧泵：小型缸2-5W，大型缸5… → 点击后 • 过滤器：流量建议为水量的3-5倍/小时 • 加热棒：每升水约需1-2W加热功率 • 增氧泵：小型缸2-5W，大型缸5…
-- `tools/rental/cycle-11.html` — 按钮「计算结算」｜构造值 number [number] "260" → "527"｜改前 ⏱️ 水电（读数/周期）结算 记录电表、水表、燃气表读数，自动计算用量与费用，支持阶梯电价，生成结算报告。 📐 工作原… → 点击后 ⏱️ 水电（读数/周期）结算 记录电表、水表、燃气表读数，自动计算用量与费用，支持阶梯电价，生成结算报告。 📐 工作原…
-- `tools/rheumatology/sapho-syndrome.html` — 按钮「评估诊断」｜构造值 duration [number] "3" → "13"｜改前 高度提示SAPHO综合征诊断评估中等活动疾病活动度7诊断评分 ⏐ 📋 复制结果⬇️ 导出 TXT → 点击后 高度提示SAPHO综合征诊断评估中等活动疾病活动度7诊断评分 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/music/music-analysis.html` — 按钮「🎤 开始分析」｜构造值 sample-rate [number] "12" → "9.600000000000001"｜改前 码率: 1411 kbps 每秒: 172.27 KB/s 60秒总大小: 10.09 MB 每小时: 605.62 M… → 点击后 码率: 1411 kbps 每秒: 172.27 KB/s 60秒总大小: 10.09 MB 每小时: 605.62 M…
+- `tools/nuclear/pair-annihilation.html` — 按钮「计算」｜构造值 dummy [number] "1" → "0.8"｜改前 511.0每个光子能量 (keV)1022.0总能量 (keV)0.5110每个光子能量 (MeV)1.0220总能量 … → 点击后 511.0每个光子能量 (keV)1022.0总能量 (keV)0.5110每个光子能量 (MeV)1.0220总能量 …
+- `tools/pet/fish-tank-volume.html` — 按钮「计算水量」｜构造值 length [number] "2" → "1.6"｜改前 • 过滤器：流量建议为水量的3-5倍/小时 • 加热棒：每升水约需1-2W加热功率 • 增氧泵：小型缸2-5W，大型缸5… → 点击后 • 过滤器：流量建议为水量的3-5倍/小时 • 加热棒：每升水约需1-2W加热功率 • 增氧泵：小型缸2-5W，大型缸5…
+- `tools/rental/cycle-11.html` — 按钮「计算结算」｜构造值 number [number] "260" → "208"｜改前 ⏱️ 水电（读数/周期）结算 记录电表、水表、燃气表读数，自动计算用量与费用，支持阶梯电价，生成结算报告。 📐 工作原… → 点击后 ⏱️ 水电（读数/周期）结算 记录电表、水表、燃气表读数，自动计算用量与费用，支持阶梯电价，生成结算报告。 📐 工作原…
+- `tools/rheumatology/sapho-syndrome.html` — 按钮「评估诊断」｜构造值 duration [number] "3" → "2.4000000000000004"｜改前 高度提示SAPHO综合征诊断评估中等活动疾病活动度7诊断评分 ⏐ 📋 复制结果⬇️ 导出 TXT → 点击后 高度提示SAPHO综合征诊断评估中等活动疾病活动度7诊断评分 ⏐ 📋 复制结果⬇️ 导出 TXT
 - `tools/safety/haxijisuan.html` — 按钮「🔐 计算」｜构造值 input [textarea] "abc 123" → "probe-a\nprobe-b\nprob"｜改前 ❌ Failed to execute 'digest' on 'SubtleCrypto': Algorithm: U… → 点击后 ❌ Failed to execute 'digest' on 'SubtleCrypto': Algorithm: U…
-- `tools/sales/moving-average.html` — 按钮「🔮 预测」｜构造值 window [number] "11" → "20"｜改前 📋 复制结果⬇️ 导出 TXT ⏐ 期数实际值移动平均/预测第3期128128第4期142135第5期150140第6… → 点击后 📋 复制结果⬇️ 导出 TXT ⏐ 期数实际值移动平均/预测第3期128128第4期142135第5期150140第6…
+- `tools/sales/moving-average.html` — 按钮「🔮 预测」｜构造值 window [number] "11" → "8.8"｜改前 📋 复制结果⬇️ 导出 TXT ⏐ 期数实际值移动平均/预测第3期128128第4期142135第5期150140第6… → 点击后 📋 复制结果⬇️ 导出 TXT ⏐ 期数实际值移动平均/预测第3期128128第4期142135第5期150140第6…
 - `tools/science/periodic-table.html` — 按钮「搜索 Fe」｜构造值 search [text] "Fe" → "Fex"｜改前 H氢 Hydrogen原子序数 1 · 第1周期 · 第1族 · 非金属原子量1.008电子排布1s¹密度0.0899 … → 点击后 H氢 Hydrogen原子序数 1 · 第1周期 · 第1族 · 非金属原子量1.008电子排布1s¹密度0.0899 …
-- `tools/sports/sports-stats.html` — 按钮「跑步周」｜构造值 aMinutes [number] "2" → "11"｜改前 2总记录数 ⏐ 720总消耗 kcal ⏐ 70总时长 分钟 ⏐ 12.0总距离 km ⏐ 日期类型时长(min)距离(… → 点击后 2总记录数 ⏐ 720总消耗 kcal ⏐ 70总时长 分钟 ⏐ 12.0总距离 km ⏐ 日期类型时长(min)距离(…
-- `tools/stats/regression-analysis.html` — 按钮「🧮 计算」｜构造值 pred-x [number] "11" → "29"｜改前 样本数 n10斜率 b1.9867截距 a0.0733相关系数 r0.9994决定系数 R²0.9989剩余标准差 s0… → 点击后 样本数 n10斜率 b1.9867截距 a0.0733相关系数 r0.9994决定系数 R²0.9989剩余标准差 s0…
-- `tools/stats/statistical-tests.html` — 按钮「🧮 检验」｜构造值 one-mu [number] "20" → "47"｜改前 样本数 n10样本均值 x̄25.5000样本标准差 s8.6699标准误 SE2.7417假设均值 μ₀20t 统计量… → 点击后 样本数 n10样本均值 x̄25.5000样本标准差 s8.6699标准误 SE2.7417假设均值 μ₀20t 统计量…
+- `tools/sports/sports-stats.html` — 按钮「跑步周」｜构造值 aMinutes [number] "2" → "1.6"｜改前 2总记录数 ⏐ 720总消耗 kcal ⏐ 70总时长 分钟 ⏐ 12.0总距离 km ⏐ 日期类型时长(min)距离(… → 点击后 2总记录数 ⏐ 720总消耗 kcal ⏐ 70总时长 分钟 ⏐ 12.0总距离 km ⏐ 日期类型时长(min)距离(…
+- `tools/stats/regression-analysis.html` — 按钮「🧮 计算」｜构造值 pred-x [number] "11" → "8.8"｜改前 样本数 n10斜率 b1.9867截距 a0.0733相关系数 r0.9994决定系数 R²0.9989剩余标准差 s0… → 点击后 样本数 n10斜率 b1.9867截距 a0.0733相关系数 r0.9994决定系数 R²0.9989剩余标准差 s0…
+- `tools/stats/statistical-tests.html` — 按钮「🧮 检验」｜构造值 one-mu [number] "20" → "16"｜改前 样本数 n10样本均值 x̄25.5000样本标准差 s8.6699标准误 SE2.7417假设均值 μ₀20t 统计量… → 点击后 样本数 n10样本均值 x̄25.5000样本标准差 s8.6699标准误 SE2.7417假设均值 μ₀20t 统计量…
 - `tools/tcm-chemistry/fingerprint-similarity.html` — 按钮「📋 计算相似度」｜构造值 refData [textarea] "abc 123" → "probe-a\nprobe-b\nprob"｜改前 0.9981平均相关系数0.9995平均夹角余弦0.9985最大相关系数0.9974最小相关系数 ⏐ 📋 复制结果⬇️… → 点击后 0.9981平均相关系数0.9995平均夹角余弦0.9985最大相关系数0.9974最小相关系数 ⏐ 📋 复制结果⬇️…
 - `tools/tcm-chemistry/structure-identification.html` — 按钮「📊 解析IR数据」｜构造值 irInput [text] "abc 123" → "abc 123x"｜改前 IR数据解析结果输入1个吸收峰，识别出0个特征基团📊 特征峰归属结构特征推断：未识别到明显特征基团解析提示：IR主要用… → 点击后 IR数据解析结果输入1个吸收峰，识别出0个特征基团📊 特征峰归属结构特征推断：未识别到明显特征基团解析提示：IR主要用…
 - `tools/text/text-to-ascii-art.html` — 按钮「计算」｜构造值 src [text] "abc 123" → "abc 123x"｜改前 ASCII 艺术字 ⏐ 📋 复制结果⬇️ 导出 TXT → 点击后 ASCII 艺术字 ⏐ 📋 复制结果⬇️ 导出 TXT
@@ -742,7 +737,3 @@ node scripts/runtime_scan.js --interact --files /tmp/pages.txt --timeout 10000
 > 定向复扫会强制重扫命中页，其余记录原样保留，并在结束时自动重算本报告与 JSON；不要与 `--resume` 混用。
 > 全量原始数据：`scripts/out/interaction-invalid.jsonl`（逐行、4916 条）与 `scripts/out/interaction-invalid.json`（8 MB），均被 `.gitignore` 忽略，只留本地。
 > 精简摘要（401 个高/中置信页）：`plan/interaction-invalid-top100.json`。
-
-## 本轮修复根因记录（16 页）
-
-- `__charDistUpdate is not defined`（horizon-distance / length-pipeline / speed-distance）：三页内联的同一段 IIFE 定义了函数，但内联 `oninput` 只能访问全局；已收口为 `js/tools/char-distance-ref.js` 一份实现并挂 `window.__charDistUpdate`，三页改为外部引用。

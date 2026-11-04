@@ -531,9 +531,22 @@ function MUTATE_ONE_FN(idx, variant) {
       const max = el.max !== '' ? parseFloat(el.max) : null;
       const minOk = min !== null && isFinite(min);
       const maxOk = max !== null && isFinite(max);
+      const step = el.step && el.step !== 'any' ? parseFloat(el.step) : NaN;
       const curOk = isFinite(cur) && from !== '';
-      // 复验用更激进的取值（5 倍 + 37），确保跨过分档阈值，避免「原值和复验值都落在同一档」的假缺陷
-      to = String(curOk ? (V ? (cur === 0 ? 49 : cur * 5 + 37) : cur * 2 + 7) : (V ? 77 : 37));
+      // 默认 0 / 空时的兜底：min 1.5× → min+step → max/2 → step → 1（都保证落在控件语义内）
+      const zeroFallback = () => {
+        if (minOk && min > 0) return min * 1.5;
+        if (minOk && isFinite(step) && step > 0) return min + step;
+        if (maxOk && max > 0) return max / 2;
+        if (isFinite(step) && step > 0) return step;
+        return 1;
+      };
+      const nFrom = curOk ? cur : 0;
+      // 主探针改为「相对量级变异」0.8× 默认值：避免把 sx=100e6（Pa）改成 7 这类量级差 7 个数量级的失真
+      // V=1 仍为跨档复验（5 倍 + 37）；V=2 为放大探针（5× 或零值兜底），用于判定「精度/阈值掩蔽」
+      if (V === 2) to = String(nFrom === 0 ? zeroFallback() : nFrom * 5);
+      else if (V === 1) to = String(nFrom === 0 ? (curOk ? 49 : 77) : nFrom * 5 + 37);
+      else to = String(nFrom === 0 ? zeroFallback() : nFrom * 0.8);
       // isFinite(null) 为 true：必须判 null，否则这里会把合法值改写成 'null'
       if (maxOk && parseFloat(to) > max) to = String(max);
       if (minOk && parseFloat(to) < min) to = String(min);
@@ -844,7 +857,13 @@ async function scanInteract(page, rel) {
     if (rec.errors.length > errBefore2) issue('click_error');
     else if (PROMPT_RE.test(sClick2.txt) || ERRSTATE_RE.test(sClick2.txt) || NOEFFECT_PROBE_RE.test(sClick2.txt)) rec.valid.probeInvalid = true;
     else if (!movedBySecondProbe) issue(rec.valid.suspect);
-    else rec.valid.confirmed = false;
+    // 0.8× 相对变异不动、5× 放大后却动了 ⇒ 小变异被结果区精度（toFixed(2)/整数）或分档阈值掩蔽，
+    // 归入 probe_masked（不计缺陷），避免 von-mises-2d 这类「Pa 输入、MPa 两位小数输出」的假阳性
+    else if (rec.valid.suspect === 'no_effect' && rec.valid.numeric) {
+      rec.valid.suspect = 'probe_masked';
+      rec.valid.maskedBy = '主探针 0.8× 无变化，放大 5× 后结果变化：判定为显示精度/阈值掩蔽';
+      rec.valid.decimals = maxDecimals(sClick.txt);
+    } else rec.valid.confirmed = false;
   }
 
   // ---- 清空/改值阶段抛异常：即使按钮没点到，也是真实缺陷（如 gcd(0,0) 无限递归） ----
@@ -1367,6 +1386,13 @@ function toolbarOnly(t) {
   return stripped.length < 8;
 }
 
+// 结果区数字的最大小数位：用于辅助判断「小变异是否被显示精度抹平」
+function maxDecimals(t) {
+  let m = 0;
+  for (const x of String(t || '').matchAll(/(?:^|[^0-9])\d+\.(\d+)/g)) m = Math.max(m, x[1].length);
+  return m;
+}
+
 // 结构化零值结果：结果区里所有数字都是 0（「首月还款：0.00 元 / 总收益：0.00」）
 // 注意排除中文说明句里的「为 0 / 大于 0 / 小于 0」——那是校验文案，不是计算结果
 function allZero(t) {
@@ -1408,6 +1434,7 @@ function aggregateInteract() {
     }
   }
   const deadPages = recs.filter((r) => (r.deadControls || []).length);
+  const maskedPages = recs.filter((r) => ((r.valid || {}).suspect || '') === 'probe_masked');
   const noBtnPages = recs.filter((r) => (r.note || '') === 'no-primary-button');
   const exportSuspect = recs.filter((r) => (r.buttons && r.buttons.export && r.buttons.export.suspect));
   // 行业分布：便于按分类分派修复（tools/<industry>/）
@@ -1464,6 +1491,7 @@ function aggregateInteract() {
     pagesWithoutPrimaryButton: noBtnPages.length,
     exportNotObserved: exportSuspect.length,
     flaggedPages: flagged.length,
+    probeMaskedPages: maskedPages.map((r) => ({ file: r.file, mutation: (r.valid || {}).mutation || '', recheck: (r.valid || {}).recheck || null, decimals: (r.valid || {}).decimals })),
     counts,
     top: scored.slice(0, 100),
     groups,
@@ -1497,7 +1525,18 @@ function aggregateInteract() {
   L.push('');
   if (counts.no_effect) {
     const hi = flagged.filter((r) => (r.issues || []).some((k) => k !== 'no_effect')).length;
-    L.push(`> **置信度分层**：高/中置信度缺陷页 **${hi}** 页（点击抛异常、空态坏值/结论、死按钮、死控件）；\`no_effect\` **${counts.no_effect}** 页为**低置信度线索**——探针值可能不符合页面格式（URL 列表 / Dockerfile 字段 / 专有格式），抽样用合法输入复验发现部分页面其实可正常计算；该类别不计入高置信度统计与 Top 50 主排序，需人工复验。`);
+    L.push(`> **置信度分层**：高/中置信度缺陷页 **${hi}** 页（点击抛异常、空态坏值/结论、死按钮、死控件）；\`no_effect\` **${counts.no_effect}** 页已改用「0.8× 相对量级变异」主探针，并在无变化时追加「5× 放大探针」——放大后仍无变化才保留本类，放大后才变化的 **${maskedPages.length}** 页归入 \`probe_masked\`（显示精度/分档阈值掩蔽，不计缺陷）。剩余 \`no_effect\` 页的逐页三档结论（真无效 / 阈值掩蔽 / 探针失真）见 \`plan/no-effect-recheck.md\`。`);
+    L.push('');
+  }
+  if (maskedPages.length) {
+    L.push('### 精度/阈值掩蔽：探针被结果区小数位抹平（' + maskedPages.length + ' 页，不计缺陷）');
+    L.push('');
+    L.push('> 判定：主探针 0.8× 默认值后结果区无变化，但同一控件放大到 5× 后结果变化。说明页面计算链路正常，只是 20% 量级差在 `toFixed(2)`/整数输出下不可见。');
+    L.push('');
+    for (const r of maskedPages.slice(0, 250)) {
+      const v = r.valid || {};
+      L.push(`- \`${r.file}\` — 主探针 ${clip(v.mutation, 70)}｜结果最大小数位 ${v.decimals != null ? v.decimals : '?'}｜放大探针 ${clip((v.recheck || {}).mutation, 70)}`);
+    }
     L.push('');
   }
 
