@@ -124,7 +124,7 @@ s.parentNode.insertBefore(el, s);
 
     <div class="card formula-box">
   <h3>📐 计算公式</h3>
-  <div class="formula-eq">男 体脂% = 86.010×log₁₀(腰围−颈围) − 70.041×log₁₀(身高) + 36.76；女 体脂% = 163.205×log₁₀(腰围+臀围−颈围) − 97.684×log₁₀(身高) − 78.387</div>
+  <div class="formula-eq">公制（cm）版：男 体脂% = 86.010×log₁₀(腰围−颈围) − 70.041×log₁₀(身高) + 30.30；女 体脂% = 163.205×log₁₀(腰围+臀围−颈围) − 97.684×log₁₀(身高) − 104.91</div>
   <p class="formula-desc">美国海军围度法（US Navy），单位 cm。男性仅需颈围与腰围，女性需增加臀围项。结果截断在 2%–60% 区间后，按性别分档给出「必需脂肪 / 健康 / 可接受 / 偏高 / 肥胖」评级。</p>
 </div>
 <div class="input-row">
@@ -389,11 +389,21 @@ const gender = document.getElementById('gender').value;
     return;
   }
 
+  // 先判围度差是否为正值，避免 log10(≤0) 得到 NaN/-Infinity
+  const diff = gender === 'male' ? (waist - neck) : (waist + hip - neck);
+  if (diff <= 0) {
+    const msg = gender === 'male'
+      ? '腰围必须大于颈围，当前围度差 ≤ 0，无法计算体脂率，请核对测量部位。'
+      : '腰围 + 臀围必须大于颈围，当前围度差 ≤ 0，无法计算体脂率，请核对测量部位。';
+    ToolBox.setResult('result', '<p style="color:var(--danger)">⚠ ' + msg + '</p>');
+    return;
+  }
+
   let bodyFat;
   if (gender === 'male') {
-    bodyFat = 86.010 * Math.log10(waist - neck) - 70.041 * Math.log10(height) + 36.76;
+    bodyFat = 86.010 * Math.log10(diff) - 70.041 * Math.log10(height) + 30.30;
   } else {
-    bodyFat = 163.205 * Math.log10(waist + hip - neck) - 97.684 * Math.log10(height) - 78.387;
+    bodyFat = 163.205 * Math.log10(diff) - 97.684 * Math.log10(height) - 104.91;
   }
 
   bodyFat = Math.max(2, Math.min(60, bodyFat));
@@ -574,9 +584,9 @@ else document.addEventListener('DOMContentLoaded', __calc_3Boot);
 </ul>
 <div class="dd-example"><div class="dd-ex-title">可复现算例：美国海军公式（公制）</div><div class="dd-ex-body">男性：身高 175 cm、颈围 38 cm、腰围 85 cm。
 waist−neck=47；log10(47)=1.6721，log10(175)=2.2430。
-bf=86.010×1.6721−70.041×2.2430+36.76=143.81−157.08+36.76=23.49%。
-按男性分级：&lt;14 健康、&lt;18 可接受、&lt;25 偏高 → 23.5% 属「偏高」。
-女性：bf=163.205×log10(腰+臀−颈)−97.684×log10(身高)−78.387，需同时输入臀围；公式对围度口径极敏感，务必严格按工具标注部位测量（单位 cm），若结果异常偏高先核对腰/臀/颈测量位置与松紧。</div></div>
+bf=86.010×1.6721−70.041×2.2430+30.30=143.81−157.08+30.30=17.03%。
+按男性分级：&lt;14 健康、&lt;18 可接受、&lt;25 偏高 → 17.0% 属「可接受」。
+女性：bf=163.205×log10(腰+臀−颈)−97.684×log10(身高)−104.91，需同时输入臀围；公式对围度口径极敏感，务必严格按工具标注部位测量（单位 cm），若结果异常偏高先核对腰/臀/颈测量位置与松紧。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>Navy 法和皮褶法差在哪？</dt><dd>Navy 法只需围度（男腰+颈，女腰+臀+颈），皮褶法需卡尺多点；均属估算（误差±3–4%），Navy 法对<a class="term-link" href="/tools/health/waist-hip-ratio.html">腰臀比</a>与测量口径更敏感，适合无卡尺时自测。</dd>
