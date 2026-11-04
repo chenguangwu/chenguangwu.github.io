@@ -280,7 +280,7 @@ const SPECIES_NAMES = {
 };
 
 let lastResult = '';
-function num(id){ return +document.getElementById(id).value || 0; }
+function num(id){ const raw=document.getElementById(id).value.trim(); return raw===''?NaN:+raw; }
 
 function onAutoToggle(){
   const auto = document.getElementById('autoRate').checked;
@@ -316,8 +316,11 @@ function calc(){
   const temp = num('temp');
   const days = num('days');
   const price = num('feedPrice');
-  if (weight <= 0) { ToolBox.showToast(i18nText('toast.msg825'), 'error'); return; }
-  if (temp < 0 || temp > 40) { ToolBox.showToast(i18nText('toast.msg471'), 'error'); return; }
+  if ([weight,temp,days,price].some(isNaN) || weight <= 0 || temp < 0 || temp > 40 || days <= 0 || price < 0) {
+    lastResult = '';
+    document.getElementById('result').innerHTML = '<div class="tip-box tip-error">请检查输入：鱼体总重量须 &gt;0，水温 0–40℃，养殖天数须 &gt;0，饲料单价须 ≥0。</div>';
+    return;
+  }
 
   const auto = document.getElementById('autoRate').checked;
   let rate;
@@ -326,6 +329,11 @@ function calc(){
     document.getElementById('rate').value = rate.toFixed(2);
   } else {
     rate = num('rate');
+    if (isNaN(rate) || rate < 0 || rate > 20) {
+      lastResult = '';
+      document.getElementById('result').innerHTML = '<div class="tip-box tip-error">手动投喂率须为 0–20% 的数值。</div>';
+      return;
+    }
   }
 
   const dailyFeed = weight * rate / 100;

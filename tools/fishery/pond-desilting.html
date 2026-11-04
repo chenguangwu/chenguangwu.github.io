@@ -117,7 +117,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="按淤泥沉积速率与允许厚度，计算清淤周期、清淤量与费用估算">Compute the desilting cycle of a pond from organic matter accumulation.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">池塘清淤周期（本页代码口径）：剩余可沉积=允许淤泥厚度−当前淤泥厚度（cm）；清淤周期=剩余可沉积÷沉积速率（年，剩余 ≤0 时按 0）；联动量：清淤量=面积×666.67×(当前+剩余)÷100（m³，按清至 0 厚度计）、清淤费用=清淤量×单价（元）。校验：五项任一非数字、或面积与沉积速率 ≤0 即报错中止。判据：周期 ≤1 年需尽快清淤、≤3 近年需清淤、否则暂不需清淤；剩余 ≤0 时追加提示已超允许淤泥厚度建议立即清淤。</div>
+      <div class="formula-eq">池塘清淤周期（本页代码口径）：剩余可沉积=允许淤泥厚度−当前淤泥厚度（cm）；清淤周期=剩余可沉积÷沉积速率（年，剩余 ≤0 时按 0 并判超限）；清淤量=面积×666.67×(目标厚度−保留肥泥层厚度)÷100（m³，目标厚度：未超限时取允许厚度、已超限时取当前厚度）；清淤费用=清淤量×单价。校验：面积、沉积速率、允许厚度、当前厚度、单价、保留厚度均须为有效数值；面积与沉积速率 &gt;0，允许厚度/当前厚度/单价/保留厚度 ≥0，且保留厚度须小于允许厚度，否则清空结果并提示。判据：周期 ≤1 年需尽快清淤、≤3 近年需清淤、否则暂不需清淤；当前厚度 &gt; 允许厚度时直接判超限、建议立即清淤。</div>
       <p class="formula-desc">按淤泥沉积速率与允许厚度，计算清淤周期、清淤量与费用估算</p>
     </div>
 
@@ -128,6 +128,7 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="input-row">
       <div><label>当前淤泥厚度 (cm)</label><input type="number" id="cur" value="8" step="1" oninput="calc()" placeholder="如 8"></div>
+      <div><label>保留肥泥层厚度 (cm)</label><input type="number" id="keep" value="5" step="1" oninput="calc()" placeholder="如 5"></div>
       <div><label>清淤单价 (元/m³)</label><input type="number" id="price" value="15" step="1" oninput="calc()" placeholder="如 15"></div>
     </div>
 
@@ -139,7 +140,7 @@ s.parentNode.insertBefore(el, s);
     <div class="result-box" id="result"></div> <div id="pond_desiltingTable"></div> <div id="pond_desiltingDiff"></div> <div id="pond_desiltingChart"></div> <div id="pond_desiltingHist"></div>
 
     <div class="tip-box tip-info">
-      <strong>计算依据：</strong>剩余可沉积厚度=允许厚度-当前厚度；清淤周期=剩余厚度÷年沉积速率。清淤量=面积×666.67×(当前淤泥厚度+周期内新增)/100 转为 m³。淤泥过厚会败坏水质、滋生病原，建议周期前清淤。
+      <strong>计算依据：</strong>剩余可沉积厚度=允许厚度-当前厚度；清淤周期=剩余厚度÷年沉积速率（已超限时周期按 0 并判超限）。清淤量=面积×666.67×(目标厚度-保留肥泥层厚度)/100 转为 m³：未超限时目标厚度为允许厚度，已超限时目标厚度为当前厚度；保留肥泥层常规取 5~10 cm，按页面输入值扣减。淤泥过厚会败坏水质、滋生病原，建议周期前清淤。
     </div>
   </div>
 
@@ -169,7 +170,7 @@ s.parentNode.insertBefore(el, s);
 <li>按淤泥沉积速率推算下次清淤时间</li>
 <li>清淤工程量与费用估算</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">常规精养塘清淤测算</div><div class="dd-ex-body">当前淤泥 8 cm、允许上限 20 cm、沉积速率 3 cm/年：剩余 12 cm，约 4.0 年后需清淤；届时清淤量约 667 m³，费用约 1.0 万元。</div></div>
+<div class="dd-example"><div class="dd-ex-title">常规精养塘清淤测算</div><div class="dd-ex-body">当前淤泥 8 cm、允许上限 20 cm、沉积速率 3 cm/年、保留 5 cm 肥泥层：剩余 12 cm，约 4.0 年后需清淤；届时需清除 15 cm，清淤量约 500 m³，费用约 7500 元。若当前已 22 cm 超限，则立即清淤，需清除 17 cm，清淤量约 567 m³、费用约 8500 元。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>淤泥有什么危害？</dt><dd>淤泥过厚会持续释放氨氮、硫化氢等有毒物质，耗氧并滋生病原，暴雨返底易致泛塘，须控制厚度并定期清淤。</dd>
@@ -211,46 +212,58 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 let lastResult='';
+function readNum(id){
+  const raw=document.getElementById(id).value.trim();
+  return raw===''?NaN:+raw;
+}
 function calc(){
-  const area=+document.getElementById('area').value;
-  const rate=+document.getElementById('rate').value;
-  const allow=+document.getElementById('allow').value;
-  const cur=+document.getElementById('cur').value;
-  const price=+document.getElementById('price').value;
-  if([area,rate,allow,cur,price].some(isNaN)||area<=0||rate<=0){ToolBox.showToast(i18nText('toast.msg721'),'error');return;}
+  const area=readNum('area');
+  const rate=readNum('rate');
+  const allow=readNum('allow');
+  const cur=readNum('cur');
+  const keep=readNum('keep');
+  const price=readNum('price');
+  if([area,rate,allow,cur,keep,price].some(isNaN)||area<=0||rate<=0||allow<0||cur<0||price<0||keep<0||keep>=allow){
+    lastResult='';
+    document.getElementById('result').innerHTML='<div class="tip-box tip-error">请检查输入：面积与沉积速率须 &gt;0；允许厚度、当前厚度、单价、保留肥泥层厚度须 ≥0；保留厚度须小于允许厚度。</div>';
+    return;
+  }
+  const over=cur>allow;
   const remain=allow-cur;
-  const cycle=remain>0?remain/rate:0;
+  const cycle=over?0:remain/rate;
   const areaM2=area*666.67;
-  // 清淤量：清到 0 厚度，体积 = 面积 × (当前+周期内新增) cm /100
-  const totalDepth=cur+remain; // 即 allow
-  const volume=areaM2*totalDepth/100; // m³
+  // 目标厚度：未超限时清到允许厚度，已超限时清到当前厚度；两种情况都保留肥泥层
+  const targetDepth=over?cur:allow;
+  const removeDepth=Math.max(0,targetDepth-keep); // cm
+  const volume=areaM2*removeDepth/100; // m³
   const cost=volume*price;
-  let cls=cycle<=1?'error':cycle<=3?'warn':'success';
-  let txt=cycle<=1?'🔴 需尽快清淤':cycle<=3?'🟡 近年需清淤':'🟢 暂不需清淤';
+  let cls=over||cycle<=1?'error':cycle<=3?'warn':'success';
+  let txt=over?'🔴 已超允许厚度，建议立即清淤':cycle<=1?'🔴 需尽快清淤':cycle<=3?'🟡 近年需清淤':'🟢 暂不需清淤';
+  const headline=over?'立即清淤':cycle.toFixed(1)+' 年';
   lastResult=`池底清淤周期计算
 ====================
 面积：${area} 亩  沉积速率：${rate} cm/年
 当前淤泥：${cur} cm  允许厚度：${allow} cm
-剩余可沉积：${remain.toFixed(1)} cm
-清淤周期：${cycle.toFixed(1)} 年
+保留肥泥层：${keep} cm（需清除 ${removeDepth.toFixed(1)} cm）
+${over?'当前已超允许厚度，建议立即清淤':`剩余可沉积：${remain.toFixed(1)} cm，清淤周期：${cycle.toFixed(1)} 年`}
 预计清淤量：${volume.toFixed(0)} m³
 清淤费用：${cost.toFixed(0)} 元
 ${txt}`;
   const __g1=`
     <div class="tip-box tip-${cls}" style="text-align:center;">
-      <div style="font-size:28px;font-weight:700;">${cycle.toFixed(1)} 年</div>
-      <div>距下次清淤 · ${txt}</div>
+      <div style="font-size:28px;font-weight:700;">${headline}</div>
+      <div>${over?'需立即处理 · '+txt:'距下次清淤 · '+txt}</div>
     </div>
     <div class="stat-grid">
-      <div class="stat-card"><div class="val">${remain.toFixed(1)}</div><div class="lbl">剩余厚度(cm)</div></div>
+      <div class="stat-card"><div class="val">${over?'超限':remain.toFixed(1)}</div><div class="lbl">${over?'当前状态':'剩余厚度(cm)'}</div></div>
       <div class="stat-card"><div class="val">${volume.toFixed(0)}</div><div class="lbl">清淤量(m³)</div></div>
       <div class="stat-card"><div class="val">${cost.toFixed(0)}</div><div class="lbl">费用(元)</div></div>
       <div class="stat-card"><div class="val">${cur}</div><div class="lbl">当前淤泥(cm)</div></div>
     </div>
-    <div class="step-line">当前淤泥 ${cur}cm，允许 ${allow}cm，剩余 ${remain.toFixed(1)}cm</div>
-    <div class="step-line">按 ${rate}cm/年沉积，约 <strong>${cycle.toFixed(1)} 年</strong>后需清淤</div>
-    <div class="step-line">届时清淤量 ${volume.toFixed(0)} m³，费用约 ${cost.toFixed(0)} 元</div>
-    ${remain<=0?'<div class="tip-box tip-error">已超过允许淤泥厚度，建议立即清淤！</div>':''}`;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+    <div class="step-line">当前淤泥 ${cur}cm，允许 ${allow}cm，保留肥泥层 ${keep}cm，需清除 ${removeDepth.toFixed(1)}cm</div>
+    <div class="step-line">${over?'当前已超过允许厚度，建议立即安排清淤':`按 ${rate}cm/年沉积，约 <strong>${cycle.toFixed(1)} 年</strong>后需清淤`}</div>
+    <div class="step-line">清淤量 ${volume.toFixed(0)} m³（按保留 ${keep}cm 肥泥层计），费用约 ${cost.toFixed(0)} 元</div>
+    ${over?'<div class="tip-box tip-error">已超过允许淤泥厚度，建议立即清淤！</div>':''}`;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 function copyResult(){if(!lastResult){ToolBox.showToast(i18nText(),'warning');return;}ToolBox.copyText(lastResult);}
 calc();

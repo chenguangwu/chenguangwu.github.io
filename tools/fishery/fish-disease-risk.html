@@ -226,6 +226,10 @@ s.parentNode.insertBefore(el, s);
 <script>
 let lastResult='';
 function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+function readNum(id){
+  const raw=document.getElementById(id).value.trim();
+  return raw===''?NaN:+raw;
+}
 function scoreDo(v){return clamp(100-v*12,0,100);} // 越低越危险
 function scoreTan(v){return clamp(v*60,0,100);}
 function scoreNo2(v){return clamp(v*250,0,100);}
@@ -236,16 +240,20 @@ function scoreDensity(v){return clamp((v-1)*80,0,100);}
 function scoreExch(v){return clamp((3-v)*25,0,100);}
 function scoreDTemp(v){return clamp(v*12,0,100);}
 function calc(){
-  const T=+document.getElementById('temp').value;
-  const doV=+document.getElementById('do').value;
-  const tan=+document.getElementById('tan').value;
-  const no2=+document.getElementById('no2').value;
-  const ph=+document.getElementById('ph').value;
-  const trans=+document.getElementById('trans').value;
-  const dens=+document.getElementById('density').value;
-  const exch=+document.getElementById('exch').value;
-  const dtemp=+document.getElementById('dtemp').value;
-  if([T,doV,tan,no2,ph,trans,dens,exch,dtemp].some(isNaN)){ToolBox.showToast(i18nText('toast.msg716'),'error');return;}
+  const T=readNum('temp');
+  const doV=readNum('do');
+  const tan=readNum('tan');
+  const no2=readNum('no2');
+  const ph=readNum('ph');
+  const trans=readNum('trans');
+  const dens=readNum('density');
+  const exch=readNum('exch');
+  const dtemp=readNum('dtemp');
+  if([T,doV,tan,no2,ph,trans,dens,exch,dtemp].some(isNaN)||T<0||T>40||doV<0||doV>25||tan<0||tan>10||no2<0||no2>5||ph<4||ph>10||trans<0||trans>200||dens<=0||dens>10||exch<0||exch>14||dtemp<0||dtemp>40){
+    lastResult='';
+    document.getElementById('result').innerHTML='<div class="tip-box tip-error">请检查输入：水温 0–40℃、溶氧 0–25 mg/L、氨氮 0–10 mg/L、亚硝酸盐 0–5 mg/L、pH 4–10、透明度 0–200 cm、密度 0.1–10 倍、换水 0–14 次/周、温差 0–40℃。</div>';
+    return;
+  }
   const factors=[
     ['溶氧',scoreDo(doV),0.2],
     ['氨氮',scoreTan(tan),0.15],

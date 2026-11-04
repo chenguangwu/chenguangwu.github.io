@@ -230,6 +230,10 @@ function satDO(tempC, sal, pressKPa){
   return do0;
 }
 let lastResult='';
+function readNum(id){
+  const raw=document.getElementById(id).value.trim();
+  return raw===''?NaN:+raw;
+}
 function getState(v){
   if(v<2) return 'danger';
   if(v<4) return 'low';
@@ -239,16 +243,22 @@ function stateText(s){
   return s==='danger'?'🔴 危险：极易浮头泛塘，立即增氧':s==='low'?'🟡 偏低：建议提前开启增氧机':'🟢 安全：溶氧处于适宜区间';
 }
 function calc(){
-  const T=+document.getElementById('temp').value;
-  const P=+document.getElementById('press').value;
-  const S=+document.getElementById('sal').value;
-  const cur=+document.getElementById('curDo').value;
-  const h=+document.getElementById('hours').value;
-  const r=+document.getElementById('rate').value;
-  if([T,P,S,cur,h,r].some(isNaN)){ToolBox.showToast(i18nText('toast.msg716'),'error');return;}
+  const T=readNum('temp');
+  const P=readNum('press');
+  const S=readNum('sal');
+  const cur=readNum('curDo');
+  const h=readNum('hours');
+  const r=readNum('rate');
+  if([T,P,S,cur,h,r].some(isNaN)||T<0||T>40||P<80||P>110||S<0||S>40||cur<0||cur>25||h<0||h>24||r<0){
+    lastResult='';
+    document.getElementById('result').innerHTML='<div class="tip-box tip-error">请检查输入：水温 0–40℃、气压 80–110 kPa、盐度 0–40‰、当前溶氧 0–25 mg/L、距黎明 0–24 h、耗氧率 ≥0。</div>';
+    return;
+  }
   const sat=satDO(T,S,P);
   const satRate=sat>0?cur/sat*100:0;
-  const dawn=cur-r*h;
+  const dawnRaw=cur-r*h;
+  const dawn=Math.max(0,dawnRaw);
+  const depleted=dawnRaw<0;
   const st=getState(dawn);
   lastResult=`鱼塘溶氧量预测
 ====================
@@ -256,7 +266,7 @@ function calc(){
 饱和溶氧：${sat.toFixed(2)} mg/L
 当前溶氧：${cur.toFixed(2)} mg/L  饱和度：${satRate.toFixed(1)}%
 夜间耗氧率：${r} mg/L·h  距黎明：${h} h
-预测黎明溶氧：${dawn.toFixed(2)} mg/L
+预测黎明溶氧：${dawn.toFixed(2)} mg/L${depleted?'（线性外推为负，实际会在黎明前提前耗尽）':''}
 状态：${stateText(st)}`;
   const __g1=`
     <div class="warn-box warn-${st}">
@@ -271,7 +281,8 @@ function calc(){
     </div>
     <div class="step-line">当前溶氧 ${cur.toFixed(2)} mg/L，饱和度 ${satRate.toFixed(1)}%</div>
     <div class="step-line">夜间 ${h} 小时按 ${r} mg/L·h 耗氧，共消耗 ${(r*h).toFixed(2)} mg/L</div>
-    <div class="step-line">黎明前预测溶氧 <strong>${dawn.toFixed(2)} mg/L</strong>，${stateText(st)}</div>`;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+    <div class="step-line">黎明前预测溶氧 <strong>${dawn.toFixed(2)} mg/L</strong>，${stateText(st)}</div>
+    ${depleted?'<div class="tip-box tip-error">按线性耗氧估算，溶氧会在黎明前提前耗尽（实际最低为 0 mg/L）；请提前开机增氧或换水。</div>':''}`;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 function copyResult(){if(!lastResult){ToolBox.showToast(i18nText(),'warning');return;}ToolBox.copyText(lastResult);}
 calc();

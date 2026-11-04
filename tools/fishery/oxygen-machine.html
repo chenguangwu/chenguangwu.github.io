@@ -314,7 +314,7 @@ const MACHINES = {
 const WATER_O2_RATE = 0.6; // mg/L/h, 水体(浮游生物+底质)耗氧率
 
 let lastResult = '';
-function num(id){ return +document.getElementById(id).value || 0; }
+function num(id){ const raw=document.getElementById(id).value.trim(); return raw===''?NaN:+raw; }
 
 function calc(){
   const volume = num('volume');
@@ -323,8 +323,11 @@ function calc(){
   const sp = document.getElementById('species').value;
   const modelKey = document.getElementById('model').value;
 
-  if (volume <= 0) { ToolBox.showToast(i18nText('toast.msg833'), 'error'); return; }
-  if (temp < 0 || temp > 40) { ToolBox.showToast(i18nText('toast.msg471'), 'error'); return; }
+  if ([volume,biomass,temp].some(isNaN) || volume <= 0 || biomass < 0 || temp < 0 || temp > 40) {
+    lastResult = '';
+    document.getElementById('result').innerHTML = '<div class="tip-box tip-error">请检查输入：水体体积须 &gt;0；鱼载量须 ≥0；水温须在 0–40℃ 之间。</div>';
+    return;
+  }
 
   const spData = SPECIES_O2[sp];
   const machine = MACHINES[modelKey];

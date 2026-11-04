@@ -306,7 +306,7 @@ const SIZE_RANGES = {
 };
 
 let lastResult = '';
-function num(id){ return +document.getElementById(id).value || 0; }
+function num(id){ const raw=document.getElementById(id).value.trim(); return raw===''?NaN:+raw; }
 
 function onSpeciesChange(){ calc(); renderTable(); }
 
@@ -337,8 +337,11 @@ function calc(){
   const temp = num('temp');
   const weight = num('weight');
 
-  if (temp < 0 || temp > 40) { ToolBox.showToast(i18nText('toast.msg471'), 'error'); return; }
-  if (weight < 0) { ToolBox.showToast(i18nText('toast.msg355'), 'error'); return; }
+  if ([temp,weight].some(isNaN) || temp < 0 || temp > 40 || weight <= 0) {
+    lastResult = '';
+    document.getElementById('result').innerHTML = '<div class="tip-box tip-error">请检查输入：水温须在 0–40℃ 之间，总重量须 &gt;0。</div>';
+    return;
+  }
 
   const rate = getRate(sp, sc, temp);
   const dailyFeed = weight * rate / 100;
