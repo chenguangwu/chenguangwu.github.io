@@ -2458,6 +2458,34 @@ const CASES = [
     expect: ["生成数量需为 1–50 的整数。"],
     ref: "生成数量填 0 后旧实现 parseInt('0')||1 静默只生成 1 个、超过 50 也会被静默夹到 50；"
        + "现显式要求 1–50 的整数。默认 5 ⇒ 不命中。",
+  },
+  {
+    slug: "life/color-name-finder",
+    clicks: [
+      "document.getElementById('search-results').innerHTML='DE76='+Math.round(colorDistance('#FF0000','#000000'))+'/WLUM='+(Math.round(luminance('#FF0000')*1000)/1000);",
+    ],
+    expect: ["DE76=117", "WLUM=0.213"],
+    ref: "色差改为 CIE 1976 L*a*b* ΔE*ab（纯红 vs 纯黑：ΔE=117.3 ⇒ 117；旧 RGB 欧氏距离为 255）⇒ 与引据表「感知度量、非通道差」一致；"
+       + "文字色改按 WCAG 相对亮度，纯红 L=0.2126（取 0.213，旧 YIQ 0.299）⇒ 与白对比 4.0:1、与黑 5.25:1，应选黑字。"
+       + "默认查询态输出不含 DE76/WLUM 串。",
+  },
+  {
+    slug: "life/world-clock",
+    clicks: [
+      "var bad=ALL_CITIES.filter(function(c){try{new Intl.DateTimeFormat('en-US',{timeZone:c.id});return false;}catch(e){return true;}});document.getElementById('clockGrid').innerHTML='BADCOUNT='+bad.length;",
+    ],
+    expect: ["BADCOUNT=0"],
+    ref: "IANA 时区 ID 必须被 Intl 接受。修复前 America/Miami、America/Seattle、America/Boston、America/Honolulu、"
+       + "America/Rio_de_Janeiro、Asia/Doha 共 6 个非法 ID ⇒ Intl 抛 RangeError、对应时钟恒为「--:--:--」；"
+       + "现 73 个 ID 全部合法、无重复 ⇒ 计数 0。默认时钟网格不含 BADCOUNT 串。",
+  },
+  {
+    slug: "life/zodiac-calculator",
+    inputs: { birthDate: "2000-02-29" },
+    expect: ["2000年2月29日"],
+    ref: "出生日期按本地年月日构造（new Date(2000,1,29)）而非 new Date('2000-02-29') 的 UTC 解析："
+       + "后者在 UTC 负时区会回退到 2 月 28 日。2000 年为闰年、2 月 29 日存在 ⇒ 回显必须与输入一致。"
+       + "默认值为 25 年前的日期（1999-06-15），不命中。",
   }
 
 ];

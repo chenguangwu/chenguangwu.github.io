@@ -272,7 +272,7 @@ s.parentNode.insertBefore(el, s);
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="近似匹配">Nearest match</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="取色差最小的色名，色差按感知度量计算而非通道差">pick the smallest perceptual colour difference, not channel distance</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="CIE 142-2001 (CIEDE2000)">CIE 142-2001 (CIEDE2000)</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="CIE 1976 L*a*b*（ΔE*ab）">CIE 1976 L*a*b* (ΔE*ab)</td>
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="同名多值">Name collisions</td>
@@ -402,9 +402,24 @@ function rgbToHex(r,g,b) {
   return '#'+[r,g,b].map(x=>Math.max(0,Math.min(255,x)).toString(16).padStart(2,'0')).join('').toUpperCase();
 }
 
+function _lin(v) {
+  v /= 255;
+  return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+}
+
+function _rgbToLab(c) {
+  const r = _lin(c.r), g = _lin(c.g), b = _lin(c.b);
+  const x = (r * 0.4124 + g * 0.3576 + b * 0.1913) / 0.95047;
+  const y = (r * 0.2126 + g * 0.7152 + b * 0.0722);
+  const z = (r * 0.0193 + g * 0.1192 + b * 0.9505) / 1.08883;
+  const f = t => t > 0.008856 ? Math.cbrt(t) : (7.787 * t + 16 / 116);
+  const fx = f(x), fy = f(y), fz = f(z);
+  return { L: 116 * fy - 16, a: 500 * (fx - fy), b: 200 * (fy - fz) };
+}
+
 function colorDistance(c1,c2) {
-  const r1=hexToRgb(c1),r2=hexToRgb(c2);
-  return Math.sqrt((r1.r-r2.r)**2+(r1.g-r2.g)**2+(r1.b-r2.b)**2);
+  const a = _rgbToLab(hexToRgb(c1)), b = _rgbToLab(hexToRgb(c2));
+  return Math.sqrt((a.L-b.L)**2 + (a.a-b.a)**2 + (a.b-b.b)**2);
 }
 
 function parseColor(input) {
@@ -445,7 +460,7 @@ function searchColor() {
   if(hex){
     preview.style.display='flex';
     preview.style.background=hex;
-    preview.style.color=luminance(hex)<0.5?'#fff':'#000';
+    preview.style.color=luminance(hex)<0.179?'#fff':'#000';
     preview.textContent=hex;
     
     const matches=allColors.map(c=>({...c,dist:colorDistance(hex,c.hex)}))
@@ -459,7 +474,7 @@ function searchColor() {
       <p style="margin-top:8px;"><strong>最接近的颜色名称：</strong></p>`;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){info.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}info.innerHTML=__h1;
     
     const __h2=matches.map((m,i)=>{
-      const textColor=luminance(m.hex)<0.5?'#fff':'#000';
+      const textColor=luminance(m.hex)<0.179?'#fff':'#000';
       return `<div class="matched-color" onclick="pickColor('${m.hex}')">
         <div class="swatch" style="background:${m.hex};"></div>
         <div class="info"><div class="name">${m.name}</div><div class="hex">${m.hex}</div></div>
@@ -481,14 +496,14 @@ function searchColor() {
 
 function luminance(hex) {
   const {r,g,b}=hexToRgb(hex);
-  return (0.299*r+0.587*g+0.114*b)/255;
+  return 0.2126*_lin(r)+0.7152*_lin(g)+0.0722*_lin(b);
 }
 
 function renderPalette() {
   const cat=document.getElementById('palette-cat').value;
   const colors=cat==='all'?chineseColors:chineseColors.filter(c=>c.cat===cat);
   const __h5=colors.map(c=>{
-    const txt=luminance(c.hex)<0.5?'#fff':'#000';
+    const txt=luminance(c.hex)<0.179?'#fff':'#000';
     return `<div class="color-swatch" style="background:${c.hex};color:${txt};" onclick="ToolBox.copyText('${c.hex}');ToolBox.showToast(i18nText('toast.msg199'),'success');">
       <div class="cn">${c.name}</div><div class="hex">${c.hex}</div>
     </div>`;
@@ -499,7 +514,7 @@ function renderWebColors() {
   const q=document.getElementById('web-search').value.toLowerCase();
   const colors=q?webColors.filter(c=>c.name.toLowerCase().includes(q)):webColors;
   const __h6=colors.map(c=>{
-    const txt=luminance(c.hex)<0.5?'#fff':'#000';
+    const txt=luminance(c.hex)<0.179?'#fff':'#000';
     return `<div class="color-swatch" style="background:${c.hex};color:${txt};" onclick="ToolBox.copyText('${c.hex}');ToolBox.showToast(i18nText('toast.msg198'),'success');">
       <div class="cn" style="font-size:10px;">${c.name}</div><div class="hex">${c.hex}</div>
     </div>`;
