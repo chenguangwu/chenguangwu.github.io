@@ -304,12 +304,12 @@
 
 注：同源混合锚的修法统一为「把恒定值/默认值移出 `expect`，只留注入后才出现的变化值」；`expect≥3` 的三条（pressure-drop / daohongxi / qudao）需优先拆条。
 
-## 7. 新增门禁登记（deepdive source sync 待接入 / verify input ids 已接入）
+## 7. 新增门禁登记（两条均已接入：verify input ids #228 / deepdive source sync #229）
 
 | 项 | 状态 | 条目原文 | 脚本 / 语义 | 造红方式 | CI 耗时 | 当前是否预期红 |
 |---|---|---|---|---|---|---|
 | `verify input ids` | **已接入（#228）** | `("verify input ids", ("node", "scripts/audit_verify_input_ids.js"))` | `scripts/audit_verify_input_ids.js`：扫描 207 个 verify 文件 / 8963 条用例 / 28180 个注入键，比对注入键在对应页面 HTML 是否存在；**僵尸 id 即 exit 1**（动态生成/模板拼接判为存疑不算违规） | 修好某条僵尸 id 用例前天然红；绿路径已用 `verify_sports_calc.js` 单文件验证 exit 0 | **1.3s**（纯 node 标准库，无 node_modules/浏览器） | **是，41 条僵尸 id**（22 条 `detector-*` 优先），由用例修复线收口，禁止调口径改绿 |
-| `deepdive source sync` | **待接入（预计 #229）** | `("deepdive source sync", ("python3", "scripts/audit_deepdive_source_sync.py", "--check"))` | 页面 deep-dive 段与 `content_deepdive.json` 逐字不一致即 exit 1（`--report` 只列不判红） | 临时改某页 deep-dive 段一个字 → `--check` 必须 exit 1 | 待脚本就绪后测 | 设计生活线脚本未交付 |
+| `deepdive source sync` | **已接入（#229）** | `("deepdive source sync", ("python3", "scripts/audit_deepdive_source_sync.py", "--check"))` | 页面 deep-dive 段与 `content_deepdive.json` 逐字不一致即 exit 1（`--report` 只列不判红） | 临时改某页 deep-dive 段一个字 → `--check` 必须 exit 1 | **0.9s**（扫描 4573 页，纯 python3 标准库） | 接入时已绿：土建线 `a9c57d5a2f` 已同步 `civil/rc-beam-rebar` scenarios，`--check` 0 不一致 |
 
 ### 7.1 验收时发现并修复的脚本缺陷（verify input ids）
 
@@ -317,9 +317,9 @@
 
 ### 7.2 条目数口径
 
-- 现状：**228**（227 + `verify input ids`）；
-- `deepdive source sync` 接入后：**229**；
-- 每次变更必须同批更新 `scripts/gates_manifest.txt`，否则清单棘轮在启动时判红（已验证「多一条未登记」方向）。
+- 当前：**229**（227 + `verify input ids` #228 + `deepdive source sync` #229）；
+- `--skip-build` 后实际执行 **228**（摘除 `build`，首项仍为 `expect anti-pattern`）；
+- 每次变更必须同批更新 `scripts/gates_manifest.txt`，否则清单棘轮在启动时判红（已验证「少一条 / 多一条 / 乱序」三个方向均 `SystemExit`）。
 
 背景：设计生活线普查 4726 条 deep-dive（一致 4569 / 无对应页面 153 / **有差异 4**）。那 4 条（`dic-scoring`、`ipss-r`、`cml-monitoring`、`mpn-scoring`）页面已由临床线修正，但 `content_deepdive.json` 仍是 2026-09-09 旧值；`_build.py` 在页面找不到 deep-dive 段时会用 JSON **重建整段**，因此跑一次构建就会把修复回退。门禁用于拦截「页面已改、JSON 未同批改（indent=1）」的状态。
 
@@ -329,4 +329,22 @@
 2. 插入位置按运行时线惯例放 `GATES` 末尾（不影响「首项 expect anti-pattern」与「--skip-build 摘除恰为 {build}」两条断言）；
 3. 插后重跑 `--skip-build` 造红（首项改名 / build 改名），并在干净 worktree 口径验证脚本无依赖（纯 python3 标准库）；
 4. 造红：临时把某页 deep-dive 段改一个字 → `--check` 必须 exit 1 并报「页面与 source 不一致」。
+
+### 7.3 【硬条款】全量门禁只在 detached worktree 跑，主工作区只允许 `--skip-build`
+
+> **2026-11-05 事故定论**：`run_gates.py` 第 2 项 `build`（`_build.py`）**不是只读门禁，是对共享工作区的写操作** —— 它会重写 `json/*.json`、`sitemap.xml`、`zh-tw/`，并在页面里找不到 `_dd_html` 时**用 `i18n/tools/content_deepdive.json` 整段重建 deep-dive**。实测 05:08:43/44 把 `hematology/cml-monitoring`、`hematology/mpn-scoring` 两页 clinical 线刚修好的 deep-dive 按旧 JSON 回写；**回写后全量门禁仍全绿**，因为它验证的就是回写后的状态。在 11 条线并行改同一仓库的前提下，任何一次主工作区全量都可能静默回退他线在途修复。
+
+**硬性规矩（无例外）**：
+
+1. **全量（含 `_build.py`）只在 detached worktree 里跑**：
+   ```bash
+   git worktree add --detach /tmp/gate-run HEAD
+   cd /tmp/gate-run && python3 scripts/run_gates.py            # 完整 229 项
+   cd /tmp/gate-run && python3 scripts/run_gates.py --skip-build  # 快速反馈
+   ```
+   跑完 `git worktree remove --force /tmp/gate-run`。worktree 里 `_build.py` 的写入全部落在 `/tmp/gate-run`，**主工作区字节不动**。
+2. **主工作区只允许 `--skip-build`**：它摘除 `build`（按命令首项 `python3 _build.py` 识别，`prune_build_gate` 断言摘除集合恰为 `{build}`），不产生任何构建写入。
+3. **每次全量跑完必须报 `git status --short` 的条数**（worktree 内跑则报主工作区的条数，作为「这次跑动了什么」的证据；条数较上次异常增减即需逐条解释）。
+4. **发现他线页面/JSON 被回退，只报告清单，不得自行 revert**：涉及别线在途内容，由统一维护者处置；本线只提供证据（文件路径 + 差异字段 + 回写时间）。
+5. **本线自己改页面的批次**：仍按项目原流程在**主工作区**手改 + 收尾构建 + 提交（构建是提交前的最后一步）；**门禁全量验证**改用 worktree 对同一 HEAD 复跑，避免二次构建写主工作区。
 

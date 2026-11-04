@@ -136,7 +136,8 @@ def item_text(item):
 def diff_items(field, page_val, json_val):
     """返回 (页面侧片段, JSON 侧片段) 列表，最多 3 组；按下标配对，便于看出改前/改后。"""
     if field == "title":
-        return [("title", clip(page_val), clip(json_val))]
+        # 调用方按 (页面侧, JSON 侧) 二元组格式化；字段名已在 issues 头部打印。
+        return [(clip(page_val), clip(json_val))]
     page_list = page_val if isinstance(page_val, list) else []
     json_list = json_val if isinstance(json_val, list) else []
     rows = []

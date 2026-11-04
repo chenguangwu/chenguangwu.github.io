@@ -337,6 +337,13 @@ GATES = (
     # selfcheck_false_pass 与 discriminate_check 对此零覆盖（hydraulic 三条 0 判别力即此根因）。
     # 当前预期红：41 条僵尸 id（22 条 detector-* 优先），由用例修复线收口，不得调口径改绿。
     ("verify input ids", ("node", "scripts/audit_verify_input_ids.js")),
+    # 源头一致（临床线/土建线）：`_build.py` 在页面找不到 `_dd_html` 时，会用
+    # i18n/tools/content_deepdive.json **整段重建** deep-dive；因此「页面已手修、JSON 未同步」
+    # 的状态会在任何一次全量构建中被静默回写抹掉（且回写后被回写的门禁仍全绿）。
+    # 本项只读比对页面 deep-dive 段与 JSON 是否逐字一致，不一致即 exit 1，逼两侧同批收口。
+    # 注意：本项**在 build 之后**执行，验证的是构建后产物，故必须在 worktree 里全量跑
+    # （主工作区只允许 --skip-build，见 plan/gate-false-green-audit.md §7.3 硬条款）。
+    ("deepdive source sync", ("python3", "scripts/audit_deepdive_source_sync.py", "--check")),
 )
 
 
