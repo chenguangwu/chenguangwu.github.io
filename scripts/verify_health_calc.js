@@ -367,19 +367,16 @@ const CASES = [
       "chest": "42",
       "abdominal": "42",
       "thigh": "42",
-      "tricepM": "42",
-      "subscapM": "42",
-      "suprailiacM": "42",
       "tricepF": "42",
-      "subscapF": "42",
       "suprailiacF": "42",
       "biaBf": "42",
       "weight3": "42"
     },
     "expect": [
-      "康减脂是长期过程\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42"
+      "健康减脂是长期过程\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"height\":\"42\",\"weight\":\"42\",\"waist\":\"42\",\"neck\":\"42\",\"hip\":\"42\",\"height2\":\"42\",\"weight2\":\"42\",\"age2\":\"42\",\"chest\":\"42\",\"abdominal\":\"42\",\"thigh\":\"42\",\"tricepM\":\"42\",\"subscapM\":\"42\",\"suprailiacM\":\"42\",\"tricepF\":\"42\",\"subscapF\":\"42\",\"suprailiacF\":\"42\",\"biaBf\":\"42\",\"weight3\":\"42\"}，输出区含「康减脂是长期过程\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n4…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"height\":\"42\",\"weight\":\"42\",\"waist\":\"42\",\"neck\":\"42\",\"hip\":\"42\",\"height2\":\"42\",\"weight2\":\"42\",\"age2\":\"42\",\"chest\":\"42\",\"abdominal\":\"42\",\"thigh\":\"42\",\"tricepF\":\"42\",\"suprailiacF\":\"42\",\"biaBf\":\"42\",\"weight3\":\"42\"}，输出区含「康减脂是长期过程\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n4…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+       + "【注入键校准 2026-11-05】原注入的 tricepM/subscapM/suprailiacM/subscapF 在页面均无对应 input（僵尸 id ⇒ 桩造游离元素、注入落空）。页面皮褶法为 Jackson-Pollock 3 点法：男性 chest+abdominal+thigh，女性 tricepF+suprailiacF+thigh（calcSkinfoldMethod 第 445–461 行按 gender 分支读取），标准 JP3 女性用肱三头肌/髂脊/大腿，本页不需要肩胛下（subscapular）点，故删去四个不存在键，属用例错而非页面缺陷。"
   },
   {
     "slug": "health/body-surface-area",
