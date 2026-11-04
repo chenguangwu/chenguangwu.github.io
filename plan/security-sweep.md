@@ -8,9 +8,13 @@
   - 动态执行：`eval` / `new Function` / `setTimeout("字符串")` / `new Worker` / `srcdoc` / `allow-same-origin`
   - 敏感持久化：`localStorage.setItem` 键名含 password/secret/token/apikey/credential
   - 站外外传：`fetch` / `XMLHttpRequest` / `sendBeacon` / `WebSocket` / `EventSource` 出现站外绝对 URL
-- 命中统计：**高危 10 条 / 9 页**（9 条已修、1 条转交）；**中危 71 条**（系统性属性注入 66 条/53 页已随根因修复 + 其它 5 条）；另有 1795 处启发式候选（1114 页）待复核，不计入中危确认数
+- 命中统计：**高危 13 条 / 12 页**（12 条已修、1 条转交；含候选复核新增的 jwt-parser 与审计线新增 2 页）；**中危 71 条**（系统性属性注入 66 条/53 页已随根因修复 + 其它 5 条已处理/确认无需修）；1795 处启发式候选已完成三档复核（见 2.4）
 
 > 说明：本文件随修复批次持续更新状态；修复提交不 push、不跑 `_build.py`，只 add 具体路径。
+>
+> 校正：`tools/edu/exam-gpa-calculator.html` **不存在 `eval(` / `new Function`**，此前「eval」为模板字符串插值的误报；该页真实风险是 `c.name` 未转义拼 `innerHTML`，已由运行时扫描线修复。
+>
+> 回归护栏：`scripts/verify_esc_html.js`（锁定 `escHtml` 五类字符编码、禁止回退 `textContent→innerHTML`、抽查 3 个真实调用页），运行 `node scripts/verify_esc_html.js` 通过；**需集成线将该脚本注册进 `run_gates.py` / CI 门禁**（本批只提供脚本与说明）。
 
 ---
 
@@ -27,7 +31,10 @@
 | 7 | `tools/math/calculus-tools.html` | 357 | 动态执行：`new Function('x','return '+replaced)` 用户函数 | **已修**（同上，按表达式缓存编译结果） |
 | 8 | `tools/science/calculator.html` | 409 | 动态执行：`new Function('_d2r','return '+expr)` 用户表达式 | **已修**（同上，保留角度/弧度三角函数与 `log`/`ln` 语义） |
 | 9 | `tools/clinical-lab/tumor-marker-doubling.html` | 291 | DOM XSS：非法输入的 `daysRaw` 原文拼进错误提示 `innerHTML` | **已修**（`ToolBox.escHtml(daysRaw)`） |
-| 10 | `tools/edu/exam-gpa-calculator.html` | 389–394（`${c.name}` 在 392） | DOM XSS：课程名未转义拼课程列表 `innerHTML` | 转交另一条线（该页 `.scale-btn` 崩溃修复中，按约定避让） |
+| 10 | `tools/edu/exam-gpa-calculator.html` | 389–394（`${c.name}` 在 392） | DOM XSS：课程名未转义拼课程列表 `innerHTML` | 转交另一条线（该页 `.scale-btn` 崩溃修复中，按约定避让；无 `eval`/`new Function`） |
+| 11 | `tools/it/jwt-parser.html` | 390、393 | DOM XSS：`headerEl.textContent`（含 JWT payload 原文）二次拼回 `innerHTML` | **已修**（改 DOM：`createElement` + `textContent` + `createTextNode`） |
+| 12 | `tools/automotive/driver-license-validator.html` | 265 | DOM XSS：用户输入 `raw` 直拼结果 `innerHTML`（反射型） | **已修**（`ToolBox.escHtml(raw)`，校验逻辑与匹配结果不变） |
+| 13 | `tools/science/chemistry-calculator.html` | 588、596、822 | DOM XSS：分子式与历史记录（`h.type` / `resStr` / `h.time`）未转义拼 `innerHTML` | **已修**（三处均 `ToolBox.escHtml`；由安全线接手，集成线已跳过该页） |
 
 补充（同页 / 同因但未单列）：
 
@@ -66,12 +73,32 @@
 
 | 页面 | 行号 | 风险类型 | 是否已修 |
 |---|---|---|---|
-| `tools/it/js-formatter.html` | 465 | `new Function(src)`：仅编译不执行（无即时 RCE，但语法校验依赖动态编译） | 待修（建议改静态语法校验或加标识符/字符限制） |
+| `tools/it/js-formatter.html` | 465 | `new Function(src)`：仅编译不执行（无即时 RCE，但语法校验依赖动态编译） | **已修**（移除动态编译，改为括号配对/关键字静态检查，页内说明局限） |
 | `tools/aerospace/weight-balance.html` | 274–276、297 | escHtml 用于 `value="..."`（同 2.1 根因；当前仅静态默认值回填，暂未构成可达利用） | **已修（随 2.1 根因）** |
 | `tools/it/regex.html` | 约 520 | `new Worker(blobURL)`，worker 源码为页面内静态字符串，不含用户输入 | 无需修（已确认非可控） |
 | `tools/ophthalmology/astigmatism-chart.html` | 约 715 | `document.write` 弹窗，参数已 `esc()` | 无需修（已转义） |
 | `tools/ophthalmology/amsler-grid.html` | 约 706 | 同上 | 无需修（已转义） |
-| `tools/legal/will-template-generator.html` | 313 | `insertAdjacentHTML`，用户值经 `escapeAttr`（引号已转义，`&` 未转义） | 低风险（可加 `&` 转义） |
+| `tools/legal/will-template-generator.html` | 313 | `insertAdjacentHTML`，用户值经 `escapeAttr`（引号已转义，`&` 未转义） | **已修**（`escapeAttr` 补 `&` 转义；真机校验 `a&b"c<d>` → `a&amp;b&quot;c&lt;d&gt;`） |
+
+### 2.3 iframe 沙箱 / outerHTML / document.domain（全站 grep）
+
+- `allow-same-origin`：**0 处遗留**。唯一沙箱 iframe（`tools/it/code-runner.html:494`）为 `sandbox="allow-scripts allow-modals"`，未给 `allow-same-origin`，与「同时给 allow-scripts + allow-same-origin 必须去除后者」的规则一致。
+- `outerHTML =`：仅 `tools/edu/exam-gpa-calculator.html` 1 处，已由运行时扫描线在本轮修复。
+- `document.domain`：0 处。
+
+### 2.4 1795 处启发式候选三档复核
+
+复跑「表达式/变量拼 sink」启发式并对字符串字面量做剥离（避免把 HTML 里的 `class="value"` 误当用户输入）：
+
+- 全站 sink 命中 21549 处（行级/表达式级，含同一语句多模式重复计数）；历史记录的 1795 为去重后的行级候选，两者统计粒度不同。
+- **A 档（确认高危）**：4 处命中，逐条人工复核后确认 **1 页 2 行真高危**：
+  - `tools/it/jwt-parser.html:390/393` —— 先把 JWT payload 写入 `textContent`，再把 `headerEl.textContent` 拼回 `innerHTML`；payload 内的 `<img onerror>` 会被二次解析执行。**已修**：改为 `createElement('span')` + `textContent` + `createTextNode`，真机注入 JWT（payload 含 `<img src=x onerror=…>`）0 弹窗/0 pageerror/0 注入元素。
+  - 其余 2 处为误报：`science/physics-calculator.html:781`（静态常量表 `c.value`）、`sports/climbing-grade-converter.html:346`（静态选项数组 `o.value`），均无用户输入来源。
+- **B 档（需上下文判断）**：8 处 / 5 页，均已确认不构成可达注入：
+  - `it/code-runner.html`（`postMessage(..., "*")` ×2 + `srcdoc` ×2）：iframe 为不透明源沙箱，跨源消息只含 console 输出，属工具设计；`srcdoc` 内容即用户主动运行的代码。
+  - `it/regex.html`（`postMessage` ×2）：消息只在页面与其自建 Blob Worker 之间传递，无跨源窗口。
+  - `ophthalmology/astigmatism-chart.html`、`amsler-grid-test.html`（`document.write` ×2）：打印弹窗参数经 `esc()` 转义，快照 URL 来自 canvas。
+- **C 档（误报）**：其余约 21537 处，统一理由为：静态模板/常量表、已 `escHtml`/`escape`/`encodeURIComponent` 转义、`parseFloat`/`toFixed`/`Math` 数值化、或 `textContent` 赋值（非 HTML sink）。
 
 ---
 
@@ -95,11 +122,11 @@
 ## 四、动态执行与站外外传（全站结论）
 
 - `eval`：可控执行已全部移除（json-path、equation-solver 各 1 处已修；math-evaluator 121 行为文档文本；其余为示例代码/正则匹配误报）
-- `new Function`：可控执行已移除 4 处（math-evaluator 白名单化；science/calculator、calculus-tools、function-plotter 改受限解析）；`js-formatter` 1 处仅编译不执行，仍待后续处理
+- `new Function`：可控执行已移除 5 处（math-evaluator 白名单化；science/calculator、calculus-tools、function-plotter 改受限解析；js-formatter 改静态检查）
 - `setTimeout/setInterval("字符串")`：0 处
 - `new Worker`：1 处（regex.html，静态源码）
 - `srcdoc`：2 处（code-runner.html，已由另一条线移除 `allow-same-origin`，沙箱隔离）
-- `allow-same-origin`：1 处，为 code-runner.html 的说明注释，非实际属性（已修）
+- `allow-same-origin`：0 处（code-runner.html 已由运行时扫描线移除该属性）
 - **明文存敏感信息**：`localStorage.setItem` 键名命中 password/secret/token/apikey/credential：**0 处**
 - **站外数据外传**：`fetch`/`XHR`/`sendBeacon`/`WebSocket`/`EventSource` 指向站外域名：**0 处**
   - 另有 11 处 `<script src="https://...">` 第三方 CDN 依赖（如 TypeScript 编译器），属静态资源加载，非用户数据外传，单列为低风险
