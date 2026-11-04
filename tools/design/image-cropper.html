@@ -158,7 +158,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="在浏览器内框选区域裁剪图片，支持自由与固定比例并实时预览，纯前端处理图片不上传，适合头像、证件照与配图裁减。">Crop an image by dragging a free or fixed-ratio selection with live preview, ideal for avatars, ID photos and thumbnails.</p>
 
     <label>上传图片</label>
-    <input type="file" id="fileInput" accept="image/*">
+    <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp,image/gif">
     <div class="input-row">
       <div><label>X 偏移</label><input type="number" id="cx" value="0" min="0" placeholder="如 0"></div>
       <div><label>Y 偏移</label><input type="number" id="cy" value="0" min="0" placeholder="如 0"></div>
@@ -269,9 +269,19 @@ function updateDownload(name){
   if(n) n.textContent = name;
 }
 window.addEventListener('pagehide', revokeCropURL);
+function __svgFileBlocked(file){
+  if(!file) return false;
+  var t=String(file.type||'').toLowerCase(), n=String(file.name||'').toLowerCase();
+  if(t.indexOf('image/svg')===0||/\.svg$/i.test(n)){
+    var m='仅支持位图（PNG/JPG/WebP），不支持 SVG';
+    try{ if(typeof showToast==='function') showToast(m,'error'); else if(window.ToolBox&&ToolBox.showToast) ToolBox.showToast(m,'error'); }catch(e){}
+    return true;
+  }
+  return false;
+}
 document.getElementById('fileInput').addEventListener('change', (e) => {
   const file = e.target.files[0];
-  if(!file) return;
+  if(!file || __svgFileBlocked(file)) return;
   const reader = new FileReader();
   reader.onload = (ev) => {
     const img = new Image();

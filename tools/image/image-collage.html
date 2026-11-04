@@ -168,7 +168,7 @@ s.parentNode.insertBefore(el, s);
 
     <!-- 上传区 -->
     <div class="upload-area" id="uploadArea" role="button" tabindex="0" aria-label="点击或拖拽上传图片">
-      <input type="file" id="fileInput" accept="image/*" multiple style="display:none">
+      <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp,image/gif" multiple style="display:none">
       <div class="upload-icon">📁</div>
       <div class="upload-text">点击选择图片或拖拽到此处</div>
       <div class="upload-hint">支持 PNG / JPG / WEBP / GIF，可多选</div>
@@ -415,8 +415,22 @@ function orderLoaded(entries){
   return out;
 }
 
+function __svgFileBlocked(file){
+  var t = String(file.type || '').toLowerCase(), n = String(file.name || '').toLowerCase();
+  if (t.indexOf('image/svg') === 0 || /\.svg$/i.test(n)) {
+    ToolBox.showToast('仅支持位图（PNG/JPG/WebP），不支持 SVG', 'error');
+    return true;
+  }
+  return false;
+}
+window.__svgFileBlocked=__svgFileBlocked;
 function handleFiles(files){
-  var arr = Array.prototype.filter.call(files, function(f){ return f.type && f.type.indexOf('image/')===0; });
+  var arr = [];
+  Array.prototype.forEach.call(files, function(f){
+    if (!f.type || f.type.indexOf('image/') !== 0) { return; }
+    if (__svgFileBlocked(f)) { return; }
+    arr.push(f);
+  });
   if(!arr.length){ ToolBox.showToast(i18nText('toast.msg933'), 'error'); return; }
   var pending = arr.length;
   var entries = [];   // {index, item}，item 为 null 表示该文件加载失败

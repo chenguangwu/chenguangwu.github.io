@@ -2336,6 +2336,49 @@ const CASES = [
        + "按 5 取整 = round(13.33)×5=65；旧实现直接 round(66.67)=67。默认 BPM 区不含 SNAP 串。",
   }
 
+,
+{
+  "slug": "design/color-palette-generator",
+  "clicks": ["var g=(typeof window!=='undefined'?window.__svgFileBlocked:null)||(typeof __svgFileBlocked==='function'?__svgFileBlocked:null);document.getElementById('__svg_probe').textContent='SVG:'+(g&&g({name:'evil.svg',type:'image/svg+xml'})?'BLOCK':'PASS')+'|PNG:'+(g&&g({name:'ok.png',type:'image/png'})?'BLOCK':'PASS');"],
+  "expect": ["SVG:BLOCK|PNG:PASS"],
+  "ref": "C1 上传口径（canvas 污染源根除）：SVG（可含 foreignObject/外链）必须被拒收，位图必须放行。由真机负向自证（21/21）配套覆盖。"
+},
+{
+  "slug": "design/image-cropper",
+  "clicks": ["var g=(typeof window!=='undefined'?window.__svgFileBlocked:null)||(typeof __svgFileBlocked==='function'?__svgFileBlocked:null);document.getElementById('__svg_probe').textContent='SVG:'+(g&&g({name:'evil.svg',type:'image/svg+xml'})?'BLOCK':'PASS')+'|PNG:'+(g&&g({name:'ok.png',type:'image/png'})?'BLOCK':'PASS');"],
+  "expect": ["SVG:BLOCK|PNG:PASS"],
+  "ref": "C1 上传口径（canvas 污染源根除）：SVG（可含 foreignObject/外链）必须被拒收，位图必须放行。由真机负向自证（21/21）配套覆盖。"
+},
+{
+  "slug": "design/image-flipper",
+  "clicks": ["var g=(typeof window!=='undefined'?window.__svgFileBlocked:null)||(typeof __svgFileBlocked==='function'?__svgFileBlocked:null);document.getElementById('__svg_probe').textContent='SVG:'+(g&&g({name:'evil.svg',type:'image/svg+xml'})?'BLOCK':'PASS')+'|PNG:'+(g&&g({name:'ok.png',type:'image/png'})?'BLOCK':'PASS');"],
+  "expect": ["SVG:BLOCK|PNG:PASS"],
+  "ref": "C1 上传口径（canvas 污染源根除）：SVG（可含 foreignObject/外链）必须被拒收，位图必须放行。由真机负向自证（21/21）配套覆盖。"
+},
+{
+  "slug": "design/image-format-converter",
+  "clicks": ["var g=(typeof window!=='undefined'?window.__svgFileBlocked:null)||(typeof __svgFileBlocked==='function'?__svgFileBlocked:null);document.getElementById('__svg_probe').textContent='SVG:'+(g&&g({name:'evil.svg',type:'image/svg+xml'})?'BLOCK':'PASS')+'|PNG:'+(g&&g({name:'ok.png',type:'image/png'})?'BLOCK':'PASS');"],
+  "expect": ["SVG:BLOCK|PNG:PASS"],
+  "ref": "C1 上传口径（canvas 污染源根除）：SVG（可含 foreignObject/外链）必须被拒收，位图必须放行。由真机负向自证（21/21）配套覆盖。"
+},
+{
+  "slug": "design/image-resizer",
+  "clicks": ["var g=(typeof window!=='undefined'?window.__svgFileBlocked:null)||(typeof __svgFileBlocked==='function'?__svgFileBlocked:null);document.getElementById('__svg_probe').textContent='SVG:'+(g&&g({name:'evil.svg',type:'image/svg+xml'})?'BLOCK':'PASS')+'|PNG:'+(g&&g({name:'ok.png',type:'image/png'})?'BLOCK':'PASS');"],
+  "expect": ["SVG:BLOCK|PNG:PASS"],
+  "ref": "C1 上传口径（canvas 污染源根除）：SVG（可含 foreignObject/外链）必须被拒收，位图必须放行。由真机负向自证（21/21）配套覆盖。"
+},
+{
+  "slug": "design/image-rotator",
+  "clicks": ["var g=(typeof window!=='undefined'?window.__svgFileBlocked:null)||(typeof __svgFileBlocked==='function'?__svgFileBlocked:null);document.getElementById('__svg_probe').textContent='SVG:'+(g&&g({name:'evil.svg',type:'image/svg+xml'})?'BLOCK':'PASS')+'|PNG:'+(g&&g({name:'ok.png',type:'image/png'})?'BLOCK':'PASS');"],
+  "expect": ["SVG:BLOCK|PNG:PASS"],
+  "ref": "C1 上传口径（canvas 污染源根除）：SVG（可含 foreignObject/外链）必须被拒收，位图必须放行。由真机负向自证（21/21）配套覆盖。"
+},
+{
+  "slug": "design/image-rounded-corners",
+  "clicks": ["var g=(typeof window!=='undefined'?window.__svgFileBlocked:null)||(typeof __svgFileBlocked==='function'?__svgFileBlocked:null);document.getElementById('__svg_probe').textContent='SVG:'+(g&&g({name:'evil.svg',type:'image/svg+xml'})?'BLOCK':'PASS')+'|PNG:'+(g&&g({name:'ok.png',type:'image/png'})?'BLOCK':'PASS');"],
+  "expect": ["SVG:BLOCK|PNG:PASS"],
+  "ref": "C1 上传口径（canvas 污染源根除）：SVG（可含 foreignObject/外链）必须被拒收，位图必须放行。由真机负向自证（21/21）配套覆盖。"
+}
 ];
 
 // ---------------------------------------------------------------- main

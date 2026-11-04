@@ -160,7 +160,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="按像素或百分比调整图片尺寸，可选保持宽高比并设定输出质量，纯前端压缩处理不上传，适合适配上传限制与缩小配图。">Resize an image by pixels or percentage, optionally keeping the aspect ratio, and set the output quality before download.</p>
 
     <label>上传图片</label>
-    <input type="file" id="fileInput" accept="image/*">
+    <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp,image/gif">
     <div class="input-row">
       <div><label>目标宽度 (px)</label><input type="number" id="width" value="400" min="1" placeholder="如 400"></div>
       <div><label>目标高度 (px)</label><input type="number" id="height" value="300" min="1" placeholder="如 300"></div>
@@ -257,9 +257,19 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 let lastURL = '', origImg = null;
+function __svgFileBlocked(file){
+  if(!file) return false;
+  var t=String(file.type||'').toLowerCase(), n=String(file.name||'').toLowerCase();
+  if(t.indexOf('image/svg')===0||/\.svg$/i.test(n)){
+    var m='仅支持位图（PNG/JPG/WebP），不支持 SVG';
+    try{ if(typeof showToast==='function') showToast(m,'error'); else if(window.ToolBox&&ToolBox.showToast) ToolBox.showToast(m,'error'); }catch(e){}
+    return true;
+  }
+  return false;
+}
 document.getElementById('fileInput').addEventListener('change', (e) => {
   const file = e.target.files[0];
-  if(!file) return;
+  if(!file || __svgFileBlocked(file)) return;
   const reader = new FileReader();
   reader.onload = (ev) => {
     const img = new Image();

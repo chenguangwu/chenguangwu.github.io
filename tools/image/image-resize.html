@@ -259,7 +259,7 @@ s.parentNode.insertBefore(el, s);
       <span class="dz-icon">🖼️</span>
       <div style="font-size:15px;font-weight:600;color:var(--text-primary);">点击或拖拽图片到这里</div>
       <div class="dz-hint">支持 PNG / JPEG / WebP / GIF / BMP，图片仅在本地处理</div>
-      <input type="file" id="fileInput" accept="image/*" style="display:none;" onchange="handleFile(this.files[0])">
+      <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp,image/gif" style="display:none;" onchange="handleFile(this.files[0])">
     </div>
 
     <!-- 源图格式提示（GIF 首帧 / SVG 栅格化） -->
@@ -578,8 +578,19 @@ function clearResult(){
   resultFmt = '';
 }
 
+function __svgFileBlocked(file){
+  var t = String(file.type || '').toLowerCase(), n = String(file.name || '').toLowerCase();
+  if (t.indexOf('image/svg') === 0 || /\.svg$/i.test(n)) {
+    ToolBox.showToast('仅支持位图（PNG/JPG/WebP），不支持 SVG', 'error');
+    return true;
+  }
+  return false;
+}
+window.__svgFileBlocked=__svgFileBlocked;
 function handleFile(file){
-  if(!file || !file.type.startsWith('image/')){
+  if(!file){ ToolBox.showToast(i18nText('toast.msg942'), 'error'); return; }
+  if(__svgFileBlocked(file)){ return; }
+  if(!file.type.startsWith('image/')){
     ToolBox.showToast(i18nText('toast.msg942'), 'error');
     return;
   }

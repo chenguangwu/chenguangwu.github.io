@@ -157,7 +157,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="将图片按任意角度或 90° 步进旋转并校正构图，纯前端处理不上传，支持导出旋转后图片，适合修正拍摄角度与排版需要。">Rotate an image by any angle or in 90-degree steps to correct framing, then export the rotated result locally.</p>
 
     <label>上传图片</label>
-    <input type="file" id="fileInput" accept="image/*">
+    <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp,image/gif">
     <label>旋转角度</label>
     <div class="input-row">
       <input type="number" id="angle" value="90" min="-360" max="360" placeholder="如 90（-360–360）">
@@ -257,9 +257,19 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 let origImg = null, lastURL = '';
+function __svgFileBlocked(file){
+  if(!file) return false;
+  var t=String(file.type||'').toLowerCase(), n=String(file.name||'').toLowerCase();
+  if(t.indexOf('image/svg')===0||/\.svg$/i.test(n)){
+    var m='仅支持位图（PNG/JPG/WebP），不支持 SVG';
+    try{ if(typeof showToast==='function') showToast(m,'error'); else if(window.ToolBox&&ToolBox.showToast) ToolBox.showToast(m,'error'); }catch(e){}
+    return true;
+  }
+  return false;
+}
 document.getElementById('fileInput').addEventListener('change', (e) => {
   const file = e.target.files[0];
-  if(!file) return;
+  if(!file || __svgFileBlocked(file)) return;
   const reader = new FileReader();
   reader.onload = (ev) => {
     const img = new Image();

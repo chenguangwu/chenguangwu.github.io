@@ -696,6 +696,11 @@
 
   function loadImageFromFile(file) {
     if (!file) { return; }
+    var __t = String(file.type || '').toLowerCase(), __n = String(file.name || '').toLowerCase();
+    if (__t.indexOf('image/svg') === 0 || /\.svg$/i.test(__n)) {
+      toast(B('仅支持位图（PNG/JPG/WebP），不支持 SVG', 'Only bitmap images (PNG/JPG/WebP) are supported — SVG is not allowed'));
+      return;
+    }
     var reader = new FileReader();
     reader.onload = function (ev) {
       var im = new Image();

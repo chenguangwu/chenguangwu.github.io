@@ -243,7 +243,7 @@ s.parentNode.insertBefore(el, s);
       <span class="drop-icon">🖼️</span>
       <span>点击或拖拽图片到此处</span>
       <br><small>支持 PNG / JPG / WEBP / GIF / BMP 等浏览器可解码格式</small>
-      <input type="file" id="imgFileInput" accept="image/*" onchange="handleImgSelect(event)">
+      <input type="file" id="imgFileInput" accept="image/png,image/jpeg,image/webp,image/gif" onchange="handleImgSelect(event)">
     </div>
 
     <div class="file-info" id="fileInfo">
@@ -318,7 +318,7 @@ s.parentNode.insertBefore(el, s);
           <div class="sub-title">🖼️ 水印图片</div>
           <div class="wm-upload" id="wmUpload" onclick="document.getElementById('wmFileInput').click()">
             <span>点击上传水印图片（建议 PNG 透明底）</span>
-            <input type="file" id="wmFileInput" accept="image/*" onchange="handleWmSelect(event)">
+            <input type="file" id="wmFileInput" accept="image/png,image/jpeg,image/webp,image/gif" onchange="handleWmSelect(event)">
             <img class="wm-thumb" id="wmThumb" alt="水印预览">
           </div>
           <div class="range-row" style="margin-top:12px;">
@@ -681,7 +681,17 @@ function handleWmSelect(e) {
   e.target.value = '';
 }
 
+function __svgFileBlocked(file) {
+  var t = String(file.type || '').toLowerCase(), n = String(file.name || '').toLowerCase();
+  if (t.indexOf('image/svg') === 0 || /\.svg$/i.test(n)) {
+    ToolBox.showToast('仅支持位图（PNG/JPG/WebP），不支持 SVG', 'error');
+    return true;
+  }
+  return false;
+}
+window.__svgFileBlocked=__svgFileBlocked;
 function loadSourceImage(file) {
+  if (__svgFileBlocked(file)) { return; }
   sourceName = file.name;
   sourceType = file.type || 'image/png';
   sourceFile = file.size;
@@ -704,6 +714,7 @@ function loadSourceImage(file) {
 }
 
 function loadWmImage(file) {
+  if (__svgFileBlocked(file)) { return; }
   var reader = new FileReader();
   reader.onload = function(e) {
     var img = new Image();

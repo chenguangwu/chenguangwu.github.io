@@ -273,7 +273,7 @@ s.parentNode.insertBefore(el, s);
         <span>JPEG</span><span>PNG</span><span>WebP</span><span>GIF</span><span>BMP</span>
       </div>
       <div data-tb="preset" data-tb-presets='[{"label":"压缩质量80·输出格式webp·最大尺寸（等比缩放）1920","labelEn":"quality=80 · fmt=webp · max-size=1920","values":{"quality":"80","fmt":"webp","max-size":"1920"}}]'></div>
-<input type="file" id="file-input" accept="image/*" multiple style="display:none;">
+<input type="file" id="file-input" accept="image/png,image/jpeg,image/webp,image/gif" multiple style="display:none;">
     </div>
 
     <div class="settings-grid">
@@ -530,8 +530,17 @@ function compressImage(img,s){
 }
 
 /* ===== 文件处理 ===== */
+function __svgFileBlocked(file){
+  var t = String(file.type || '').toLowerCase(), n = String(file.name || '').toLowerCase();
+  if (t.indexOf('image/svg') === 0 || /\.svg$/i.test(n)) {
+    ToolBox.showToast('仅支持位图（PNG/JPG/WebP），不支持 SVG', 'error');
+    return true;
+  }
+  return false;
+}
+window.__svgFileBlocked=__svgFileBlocked;
 function addFiles(fileList){
-  var files = Array.from(fileList).filter(function(f){ return f.type.startsWith('image/'); });
+  var files = Array.from(fileList).filter(function(f){ return f.type.startsWith('image/') && !__svgFileBlocked(f); });
   if(!files.length){ ToolBox.showToast(i18nText('toast.msg942'),'warning'); return; }
   ToolBox.showToast('已添加 '+files.length+' 张图片','success');
   files.forEach(function(file){

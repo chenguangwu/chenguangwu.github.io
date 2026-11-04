@@ -247,7 +247,7 @@ s.parentNode.insertBefore(el, s);
         <div style="font-size:14px;color:var(--text-light);">点击或拖拽图片到此处</div>
         <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">支持 JPG、PNG、GIF 等格式</div>
       </div>
-      <input type="file" id="imageInput" accept="image/*" style="display:none;" onchange="handleImageUpload(event)">
+      <input type="file" id="imageInput" accept="image/png,image/jpeg,image/webp,image/gif" style="display:none;" onchange="handleImageUpload(event)">
       <img id="imagePreview" class="image-preview" alt="预览">
       <div id="extractedColors" class="extracted-colors"></div>
     </div>
@@ -700,6 +700,16 @@ function switchTab(tab){
   document.getElementById(tab + 'Tab').classList.add('active');
 }
 
+function __svgFileBlocked(file){
+  if(!file) return false;
+  var t=String(file.type||'').toLowerCase(), n=String(file.name||'').toLowerCase();
+  if(t.indexOf('image/svg')===0||/\.svg$/i.test(n)){
+    var m='仅支持位图（PNG/JPG/WebP），不支持 SVG';
+    try{ if(typeof showToast==='function') showToast(m,'error'); else if(window.ToolBox&&ToolBox.showToast) ToolBox.showToast(m,'error'); }catch(e){}
+    return true;
+  }
+  return false;
+}
 const uploadArea = document.getElementById('uploadArea');
 uploadArea.addEventListener('dragover', (e) => {
   e.preventDefault();
@@ -712,14 +722,14 @@ uploadArea.addEventListener('drop', (e) => {
   e.preventDefault();
   uploadArea.classList.remove('dragover');
   const file = e.dataTransfer.files[0];
-  if(file && file.type.startsWith('image/')){
+  if(file && file.type.startsWith('image/') && !__svgFileBlocked(file)){
     processImage(file);
   }
 });
 
 function handleImageUpload(e){
   const file = e.target.files[0];
-  if(file) processImage(file);
+  if(file && !__svgFileBlocked(file)) processImage(file);
 }
 
 function processImage(file){
