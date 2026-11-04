@@ -5,8 +5,7 @@
  * 假通过自检: node scripts/selfcheck_false_pass.js scripts/verify_quantum_calc.js
  *   —— 目标：默认态 0 命中。
  *
- * 说明：pair-production-threshold 仅有 dummy 输入、输出恒为 2·m_e·c²（≈1.022 MeV），
- *   无法用输入区分，与 nuclear/pair-annihilation 同类，故不入 CASES，仅在此注明。
+ * 说明：pair-production-threshold 现按轻子种类 + 靶核反冲质量数计算，已纳入 CASES。
  *
  * 跑法:
  *   node scripts/verify_quantum_calc.js                # 全部
@@ -281,12 +280,13 @@ const CASES = [
   {
     "slug": "quantum/pair-production-threshold",
     "inputs": {
-      "dummy": "42"
+      "lepton": "mu",
+      "targetA": "27"
     },
     "expect": [
-      "阈值能量 (eV)\n42"
+      "212.2177"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"dummy\":\"42\"}，输出区含「阈值能量 (eV)\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "注入 μ 子对 + 铝靶 A=27（默认 e/A=0）：E=2·m_μ·c²·(1+m_μ/M)，M=27×1.66053906660e-27=4.48345e-26 kg，m_μ/M=0.004201 ⇒ E=3.400e-11 J=212.2177 MeV；默认态 1.0220 MeV 不命中。"
   },
   {
     "slug": "quantum/photoelectric-threshold",
