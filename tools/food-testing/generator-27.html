@@ -113,15 +113,36 @@ s.parentNode.insertBefore(el, s);
   <button type="button" class="tbk-tab" data-pane="his">历史</button>
 </div>
 <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
-    <h2 data-zh="✨ 菌落总数（平板计数）报告生成">Generator 27</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="平板计数">Generator 27</p>
+    <h2 data-zh="✨ 菌落总数（平板计数）报告生成">✨ Aerobic Plate Count Report</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按 GB 4789.2 由两皿菌落数与稀释倍数计算菌落总数">Compute the aerobic plate count from two plate counts, dilution factor and sample volume per GB 4789.2.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div>
-      <div class="formula-eq">菌落总数按 GB 4789.2 平板计数法：选取菌落数在 30 至 300 之间的平板，菌落总数 = 平板菌落数 × 稀释倍数 ÷ 取样体积；两个相邻稀释度平板均在计数范围内时按加权公式合并计算，结果以 CFU/g 或 CFU/mL 报告并保留两位有效数字。</div>
-  
+  <div class="formula-title">📐 计算公式（GB 4789.2 平板计数法）</div>
+  <div class="formula-eq">菌落总数 N = 平均菌落数 × 稀释倍数 ÷ 取样体积；两皿均落在 30–300 CFU 时取两皿平均值，仅一皿在范围内时取该皿计数，两皿均超 300 视为不可计并提示提高稀释度，结果保留两位有效数字。</div>
 </div>
 
-<div class="input-row"><div><label>生成数量</label><input type="number" id="cnt" value="5" min="1" max="50" oninput="gen()" placeholder="如 5（1–50）"></div></div>
+<div class="input-row">
+  <div><label>样品类型</label>
+    <select id="sample">
+      <option value="牛奶" selected>牛奶</option>
+      <option value="熟肉制品">熟肉制品</option>
+      <option value="饮用水">饮用水</option>
+      <option value="即食沙拉">即食沙拉</option>
+      <option value="豆制品">豆制品</option>
+    </select>
+  </div>
+  <div><label>稀释倍数（1:N）</label><input type="number" id="dil" value="100" min="1" step="1" oninput="gen()" placeholder="如 100"></div>
+  <div><label>取样体积 (mL)</label><input type="number" id="vol" value="1" min="0.1" step="0.1" oninput="gen()" placeholder="如 1"></div>
+</div>
+<div class="input-row">
+  <div><label>平皿 1 菌落数 (CFU)</label><input type="number" id="c1" value="32" min="0" step="1" oninput="gen()" placeholder="如 32"></div>
+  <div><label>平皿 2 菌落数 (CFU)</label><input type="number" id="c2" value="28" min="0" step="1" oninput="gen()" placeholder="如 28"></div>
+  <div><label>报告单位</label>
+    <select id="unit">
+      <option value="CFU/mL" selected>CFU/mL</option>
+      <option value="CFU/g">CFU/g</option>
+    </select>
+  </div>
+</div>
 <div class="toolbar"><div id="generator_27Presets"></div><button type="button" class="btn primary" onclick="gen()">生成</button><button class="btn" type="button" onclick="__generator_27Export()">导出明细 CSV</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
 <div class="result-box" id="res"></div> <div id="generator_27Table"></div> <div id="generator_27Diff"></div> <div id="generator_27Chart"></div> <div id="generator_27Hist"></div>
   </div>
@@ -145,7 +166,7 @@ s.parentNode.insertBefore(el, s);
 </style>
 <section class="deep-dive" data-deep-dive="1">
 <div class="card">
-<h2>📚 深度解析：菌落总数计数报告生成</h2>
+<h2>📚 深度解析：菌落总数（平板计数）报告生成</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
 <li>微生物检验记录上报</li>
@@ -204,24 +225,59 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
+var SUP = { '0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹','-':'⁻' };
+function supNum(n) { return String(n).split('').map(function (c) { return SUP[c] || c; }).join(''); }
+function sci2(v) {
+  if (!isFinite(v) || v <= 0) return '0';
+  var e = Math.floor(Math.log10(v));
+  var m = v / Math.pow(10, e);
+  var s = m.toFixed(1);
+  if (Number(s) >= 10) { s = '1.0'; e += 1; }
+  return s + '×10' + supNum(e);
+}
 function gen() {
-  const n = Math.min(+document.getElementById("cnt").value || 5, 50);
-  const samples = ['饮用水', '牛奶', '面包', '熟肉制品', '即食沙拉', '果汁', '酱油', '冷冻虾仁', '豆制品'];
-  let h = '<p style="margin-bottom:8px;">菌落总数平板计数报告：</p>';
-  for (let i = 1; i <= n; i++) {
-    const sample = samples[Math.floor(Math.random() * samples.length)];
-    const dilution = [10, 100, 1000, 10000][Math.floor(Math.random() * 4)];
-    const c1 = Math.floor(Math.random() * 150) + 10;
-    const c2 = Math.floor(Math.random() * 150) + 10;
-    const avg = Math.round((c1 + c2) / 2);
-    const result = (avg * dilution).toLocaleString();
-    h += `<div style="padding:6px 0;border-bottom:1px dashed var(--border-color);">
-      <p><strong>#${i} ${sample}</strong>，稀释倍数 1:${dilution}</p>
-      <p>平皿1：${c1} CFU；平皿2：${c2} CFU；平均值：${avg} CFU</p>
-      <p>报告结果：${result} CFU/g（mL）</p>
-    </div>`;
+  var res = document.getElementById('res');
+  var sample = document.getElementById('sample').value;
+  var dil = parseFloat(document.getElementById('dil').value);
+  var vol = parseFloat(document.getElementById('vol').value);
+  var c1 = parseFloat(document.getElementById('c1').value);
+  var c2 = parseFloat(document.getElementById('c2').value);
+  var unit = document.getElementById('unit').value;
+  if (!isFinite(dil) || !isFinite(vol) || !isFinite(c1) || !isFinite(c2)) {
+    res.innerHTML = '<p>请输入稀释倍数、取样体积与两个平皿的菌落数。</p>';
+    return;
   }
-  const __h0=h;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById("res").innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById("res").innerHTML=__h0;
+  if (dil <= 0 || vol <= 0 || c1 < 0 || c2 < 0) {
+    res.innerHTML = '<p>稀释倍数与取样体积需大于 0，菌落数不能为负。</p>';
+    return;
+  }
+  var inRange1 = c1 >= 30 && c1 <= 300;
+  var inRange2 = c2 >= 30 && c2 <= 300;
+  var mean = (c1 + c2) / 2;
+  var base = mean, status, usable = true;
+  if (inRange1 && inRange2) {
+    status = '两皿均在 30–300 CFU 范围内，取两皿平均值计数';
+  } else if (inRange1 || inRange2) {
+    base = inRange1 ? c1 : c2;
+    status = '仅平皿 ' + (inRange1 ? '1' : '2') + ' 在 30–300 CFU 范围内，按该皿计数';
+  } else if (c1 > 300 && c2 > 300) {
+    usable = false;
+    status = '两皿均超过 300 CFU，结果不可计，请提高稀释度后重做';
+  } else if (c1 < 30 && c2 < 30) {
+    status = '两皿均低于 30 CFU，属低计数估算（结果仅供参考）';
+  } else {
+    status = '计数状态异常，请核对平皿数据';
+  }
+  var n = base * dil / vol;
+  var h = '<p style="margin-bottom:8px;"><strong>菌落总数平板计数报告</strong></p>';
+  h += '<p><strong>样品：</strong>' + sample + '　<strong>稀释倍数：</strong>1:' + dil + '　<strong>取样体积：</strong>' + vol + ' mL</p>';
+  h += '<p><strong>平皿计数：</strong>' + c1 + ' CFU、' + c2 + ' CFU　<strong>平均：</strong>' + mean.toFixed(1) + ' CFU</p>';
+  h += '<p><strong>计数判定：</strong>' + status + '</p>';
+  h += '<p><strong>报告结果：</strong>' + (usable ? sci2(n) + ' ' + unit + '（原始值 ' + Math.round(n) + '）' : '不可计（>' + sci2(300 * dil / vol) + ' ' + unit + '）') + '</p>';
+  var lo = Math.min(c1, c2) * dil / vol, hi = Math.max(c1, c2) * dil / vol;
+  h += '<p><strong>两皿折算区间：</strong>' + sci2(lo) + ' ~ ' + sci2(hi) + ' ' + unit + '</p>';
+  h += '<p style="font-size:12px;color:var(--text-muted);">依据 GB 4789.2：结果保留两位有效数字；低计数与超上限情形会明确标注，不输出“看似正常”的数值。</p>';
+  res.innerHTML = h;
 }
 gen();
 function copyRes() { ToolBox.copyText(document.getElementById("res").innerText); }
@@ -392,10 +448,10 @@ function __generator_27Export(){
 }
 function __generator_27Presets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#generator_27Presets',[{label:'默认参数',labelEn:'Default',values:{'cnt':'5'}},
-  {"label":"生成 3 组样品编号","labelEn":"3 sample IDs","values":{"cnt":3}},
-  {"label":"生成 5 组样品编号","labelEn":"5 sample IDs","values":{"cnt":5}},
-  {"label":"生成 12 组样品编号","labelEn":"12 sample IDs","values":{"cnt":12}}],function(){ gen(); });
+    TBKit.preset.bar('#generator_27Presets',[{label:'默认参数',labelEn:'Default',values:{'sample':'牛奶','dil':'100','vol':'1','c1':'32','c2':'28','unit':'CFU/mL'}},
+  {"label":"熟肉 1:1000","labelEn":"Meat 1:1000","values":{"sample":"熟肉制品","dil":"1000","vol":"1","c1":"156","c2":"144","unit":"CFU/g"}},
+  {"label":"饮用水 1:1","labelEn":"Water 1:1","values":{"sample":"饮用水","dil":"1","vol":"1","c1":"45","c2":"51","unit":"CFU/mL"}},
+  {"label":"超限重做","labelEn":"Over limit","values":{"sample":"即食沙拉","dil":"100","vol":"1","c1":"320","c2":"280","unit":"CFU/g"}}],function(){ gen(); });
 }
 var __generator_27_f0=(typeof gen==='function')?gen:null;
 if(__generator_27_f0){

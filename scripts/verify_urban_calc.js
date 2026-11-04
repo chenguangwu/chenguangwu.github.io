@@ -5,7 +5,9 @@ const CASES = [
 {
   "slug": "urban/building-height",
   "inputs": {
-    "inD": "30",
+    "inD": "40",
+    "inLat": "25",
+    "inCoeff": "auto",
     "inFloorH": "3",
     "inH0": "50",
     "inL": "3000",
@@ -13,14 +15,12 @@ const CASES = [
     "inLimit": "60",
     "inFloorH2": "3",
     "inDiff": "0.6",
-    "inParapet": "1.2",
-    "inLat": "40"
+    "inParapet": "1.2"
   },
   "expect": [
-    "40"
+    "取 13 层（39.0 m）"
   ],
-    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
-  "ref": "auto-restore"
+  "ref": "确定性算例：D=40 m、纬度 25°N → 自动间距系数 1.0，H=40.0 m，40/3=13.3 → 取 13 层（39.0 m）；默认 D=30/35°N 得 7 层，注入态不含该串 ⇒ 锁定层数与高度派生值，可区分随机/回显。"
 },
 {
   "slug": "urban/calc-spacing",

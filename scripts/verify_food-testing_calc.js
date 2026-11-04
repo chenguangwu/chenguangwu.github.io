@@ -163,12 +163,17 @@ const CASES = [
 {
   "slug": "food-testing/generator-27",
   "inputs": {
-    "cnt": "8"
+    "sample": "熟肉制品",
+    "dil": "1000",
+    "vol": "1",
+    "c1": "156",
+    "c2": "144",
+    "unit": "CFU/g"
   },
   "expect": [
-    "#8"
+    "1.5×10⁵ CFU/g"
   ],
-  "ref": "auto-restore-structural（原断言为静态标题，注入失败仍命中 → 逃生项；改为断言条数/第8条）"
+  "ref": "确定性算例：两皿均落 30–300，平均 150 × 稀释 1000 ÷ 1 mL = 1.5×10⁵ CFU/g（两位有效数字）；默认 32/28×100 为 3.0×10³，注入态不含该串 ⇒ 区分真计算与随机样本。"
 },
 {
   "slug": "food-testing/heavy-metal-migration",
