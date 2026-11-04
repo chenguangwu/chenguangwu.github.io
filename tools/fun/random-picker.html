@@ -157,7 +157,7 @@ s.parentNode.insertBefore(el, s);
 <div class="card tool-card-accent" style="--tool-accent:#EC4899;">
     <h2 data-zh="🎲 随机选择器">🎲 Random Picker</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">选项按换行分割并去首尾空白、滤空行；不放回模式维护候选池，抽中即从池中移除；15 轮 × 80ms 快速滚动后定格输出；历史记录保留最近 20 条</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">选项按换行分割并去首尾空白、滤空行；不放回模式维护候选池，抽中即从池中移除；15 轮 × 80ms 快速滚动后定格输出；抽取由随机种子驱动，同种子 + 同列表可复算同一结果；历史记录保留最近 20 条</div>
   <p class="formula-desc" data-zh="本工具为纯前端在线工具，数据在浏览器本地处理、不上传服务器，依据对应领域标准与规范进行计算或处理，结果仅供参考。 工具名称：随机选择器 - 娱乐游戏领域的在线工具。">Pick one item at random from your options, with multiple draws and a no-repeat mode — for deciding where to eat or who speaks first.</p>
 </div>
 
@@ -171,6 +171,10 @@ s.parentNode.insertBefore(el, s);
 吃沙拉
 不吃</textarea>
     <label style="margin-top:8px;"><input type="checkbox" id="unique" style="width:auto;display:inline-block;vertical-align:middle;"> 不重复抽取</label>
+    <div class="input-row" style="max-width:260px;margin-top:6px;">
+      <label>随机种子（可选）：</label>
+      <input type="text" id="seed" placeholder="留空自动生成；填同一种子可复算">
+    </div>
     <div class="result-big" id="result">—</div>
     <div id="random_pickerTable"></div>
     <div id="random_pickerDiff"></div>
@@ -216,7 +220,7 @@ s.parentNode.insertBefore(el, s);
 <div class="dd-example"><div class="dd-ex-title">算例（演示）</div><div class="dd-ex-body">选项 [火锅, 炒菜, 日料, 外卖] 抽 1 → 如「日料」；抽 3 不放回 → 3 个不同项（剩 1 项）。每次抽取时剩余项等概率；抽 3 个时任一选项的入选概率为 3/N，不是 1/N。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>和 raffle-picker 区别？</dt><dd>本工具是轻量「选项级」抽取；raffle 支持名单文件、权重与滚动动画，适合正式活动。</dd>
+<dt>和 raffle-picker 区别？</dt><dd>本工具是轻量「选项级」抽取；raffle 支持名单输入、滚动动画与可复算种子，适合正式活动。</dd>
 <dt>不放回抽完会怎样？</dt><dd>抽完所有选项后提示已空，可重置重新抽。</dd>
 </dl>
 </div>
@@ -246,7 +250,7 @@ s.parentNode.insertBefore(el, s);
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="可复现性">Reproducibility</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="公开种子与算法即可让第三方复算同一结果">a published seed and algorithm let others recompute the draw</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="工具提供随机种子输入框：同种子 + 同列表即可让第三方复算同一结果">the tool exposes a seed field: same seed and list let others recompute the same pick</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Fair draw practice">Fair draw practice</td>
         </tr>
       </tbody>
@@ -266,9 +270,28 @@ s.parentNode.insertBefore(el, s);
 <script>
 let pool,history,poolSig;
 
+function hashSeed(s){
+  let h=2166136261>>>0;
+  for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}
+  return h>>>0;
+}
+function makeRng(seedStr){
+  let s=hashSeed(String(seedStr))||1;
+  return function(){
+    s^=s<<13;s>>>=0;s^=s>>17;s^=s<<5;s>>>=0;
+    return (s>>>0)/4294967296;
+  };
+}
+// 纯函数：给定候选列表与种子，返回抽中项；同种子 + 同列表结果一致。
+function randomPickOne(list,seed){
+  const rng=makeRng(seed);
+  return list[Math.floor(rng()*list.length)];
+}
 function start(){
   const list=document.getElementById('items').value.split('\n').map(s=>s.trim()).filter(Boolean);
   if(list.length<1){alert('请至少输入 1 个选项');return;}
+  const seedEl=document.getElementById('seed');
+  const seed=(seedEl&&seedEl.value.trim())?seedEl.value.trim():Math.random().toString(36).slice(2,10);
   const unique=document.getElementById('unique').checked;
   if(unique){
     // 仅在首次抽取或选项列表变更时重建池；抽空后不再静默重置，
@@ -291,7 +314,7 @@ function start(){
     cycles++;
     if(cycles>=15){
       clearInterval(interval);
-      const picked=pool[Math.floor(Math.random()*pool.length)];
+      const picked=randomPickOne(pool,seed);
       r.textContent=picked;
       if(unique){
         pool=pool.filter(x=>x!==picked);
@@ -307,6 +330,11 @@ function start(){
       st.textContent=picked;
       p1.appendChild(st);
       outEl.appendChild(p1);
+      var ps=document.createElement('p');
+      ps.style.fontSize='12px';
+      ps.style.color='var(--text-muted)';
+      ps.textContent='随机种子：'+seed+'（同列表 + 同种子可复算同一结果）';
+      outEl.appendChild(ps);
       if(unique){
         var p2=document.createElement('p');
         p2.appendChild(document.createTextNode('剩余：'+pool.length+' 项'));

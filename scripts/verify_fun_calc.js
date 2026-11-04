@@ -173,6 +173,36 @@ const CASES = [
     ref: "独立复算：CPS = 点击数 ÷ 时长 ⇒ 40÷5 = 8.00、12÷30 = 0.40。",
   },
 
+  // ── 抽取类：随机种子可复算 + 同名不重复中签 + 人数上界钳制 ─────
+  {
+    slug: "fun/raffle-picker",
+    inputs: {},
+    clicks: ["document.getElementById('output').textContent='S='+rafflePickIndexes(['A','B','C','D'],2,'seed-1').join(',')+'|'+rafflePickIndexes(['A','B','A','C','B','D'],2,'seed-1').join(',')+'|'+rafflePickIndexes(['A','B'],5,'seed-1').join(',')"],
+    expect: ["S=C,B|C,B|B,A"],
+    ref: "FNV-1a(xorshift32) 复算：seed-1、A/B/C/D 抽 2 依次取 C、B；含重复行的名单先去重（保留首次出现顺序 A/B/C/D），同种子仍取 C、B ⇒ 同名不会重复中签；"
+       + "名单仅 2 人却填 5 人时 k=min(2,5)=2，取 B、A（人数上界钳制，不越界抽取）。"
+       + "默认态名单为 8 人、无种子（自动生成），三条锚均不出现。",
+  },
+  {
+    slug: "fun/random-picker",
+    inputs: {},
+    clicks: ["document.getElementById('output').textContent='S='+randomPickOne(['A','B','C','D'],'seed-1')+'|'+randomPickOne(['A','B','C','D'],'seed-1')+'|'+randomPickOne(['A','B','C','D','E'],'seed-1')"],
+    expect: ["S=C|C|D"],
+    ref: "FNV-1a(xorshift32) 复算：seed-1 时 4 项列表两次调用均取 C（同种子可复算），5 项列表取 D；"
+       + "默认态列表为 8 项中文餐食、无种子，锚串不出现。",
+  },
+
+  // ── 抛硬币连胜：同面（正/反）计数与百分比 ──────────────────
+  {
+    slug: "fun/coin-toss-streak",
+    inputs: {},
+    clicks: ["var __mr=Math.random;Math.random=function(){return 0.9};reset();flip10();var a=document.getElementById('maxStreak').textContent+'/'+document.getElementById('headsPct').textContent;Math.random=function(){return 0.1};reset();flip10();document.getElementById('output').textContent='M='+a+'|'+document.getElementById('maxStreak').textContent+'/'+document.getElementById('headsPct').textContent;Math.random=__mr;"],
+    expect: ["M=10/100%|10/0%"],
+    ref: "把 Math.random 钉为 0.9（>0.5 ⇒ 全部正面）后 flip10()：最长连胜 = 10、正面率 100%；"
+       + "再钉为 0.1（全部反面）重置后 flip10()：最长连胜仍 10（页面按「连续同面」计，不分正反）、正面率 0%。"
+       + "默认态 total=0、maxStreak=0、headsPct=—，不命中。",
+  },
+
 ];
 async function main() {
   const only = process.argv.slice(2);
