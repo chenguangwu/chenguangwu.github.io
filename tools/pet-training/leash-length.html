@@ -281,10 +281,13 @@ s.parentNode.insertBefore(el, s);
 var SCENE_MOD={urban:0.6,park:1.0,crowd:0.4,trail:0.7};
 var REACT_MOD={fast:0.8,normal:1.0,slow:1.4};
 
-function fmtNum(n,d){
+// 此名不得与 common.js 全局 fmtNum 同名（保真模式会重绑，见 be1ead4b9b）
+function fmtLocal(n,d){
   d=d==null?1:d;
   if(!isFinite(n))return '--';
-  return parseFloat(n.toFixed(d)).toString();
+  // 十进制 half-up：2.75×0.6 在双精度下是 1.6499999999999999，直接 toFixed 会截成 1.6；
+  // 页面深度解析写的是「安全距离 1.65m」，1 位小数常规四舍五入应为 1.7。
+  return parseFloat((n + 1e-9).toFixed(d)).toString();
 }
 
 function calc(){
@@ -308,13 +311,13 @@ function calc(){
   var controlDist=safeDist-brakeDist;
   if(controlDist<0)controlDist=0;
   var riskLevel=getRisk(leashLen,scene);
-  var mainVal=fmtNum(safeDist,1)+' m';
-  var mainSub='最大触及范围 '+fmtNum(maxReach,1)+'m · '+riskLevel.text;
+  var mainVal=fmtLocal(safeDist,1)+' m';
+  var mainSub='最大触及范围 '+fmtLocal(maxReach,1)+'m · '+riskLevel.text;
   const __g4='<div class="safe-val">'+mainVal+'</div><div class="safe-sub">'+mainSub+'</div>';document.getElementById('result').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
-  const __g5='<div class="dist-card"><div class="v">'+fmtNum(maxReach,1)+'</div><div class="l">最大触及范围 (m)</div></div>'+
-    '<div class="dist-card"><div class="v">'+fmtNum(brakeDist,1)+'</div><div class="l">制动距离 (m)</div></div>'+
-    '<div class="dist-card"><div class="v" style="color:var(--success);">'+fmtNum(controlDist,1)+'</div><div class="l">安全控制距离 (m)</div></div>'+
-    '<div class="dist-card"><div class="v">'+fmtNum(brakeTime,1)+'</div><div class="l">反应时间 (秒)</div></div>';document.getElementById('distGrid').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
+  const __g5='<div class="dist-card"><div class="v">'+fmtLocal(maxReach,1)+'</div><div class="l">最大触及范围 (m)</div></div>'+
+    '<div class="dist-card"><div class="v">'+fmtLocal(brakeDist,1)+'</div><div class="l">制动距离 (m)</div></div>'+
+    '<div class="dist-card"><div class="v" style="color:var(--success);">'+fmtLocal(controlDist,1)+'</div><div class="l">安全控制距离 (m)</div></div>'+
+    '<div class="dist-card"><div class="v">'+fmtLocal(brakeTime,1)+'</div><div class="l">反应时间 (秒)</div></div>';document.getElementById('distGrid').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
   document.getElementById('result').querySelector('.safe-sub').style.color=riskLevel.color;
   renderViz(leashLen,dogLength,safeDist,riskLevel);
   var advice=getAdvice(leashLen,scene,reactMod);
@@ -359,8 +362,8 @@ function renderViz(leashLen,dogLen,safeDist,risk){
   html+='<line x1="0" y1="'+ownerY+'" x2="'+w+'" y2="'+ownerY+'" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,4"/>';
   html+='<line x1="'+ownerX+'" y1="'+ownerY+'" x2="'+dogX+'" y2="'+ownerY+'" stroke="var(--primary)" stroke-width="2" stroke-dasharray="3,3"/>';
   html+='<line x1="'+ownerX+'" y1="'+(ownerY-30)+'" x2="'+(ownerX+safePx)+'" y2="'+(ownerY-30)+'" stroke="'+risk.color+'" stroke-width="2"/>';
-  html+='<text x="'+ownerX+'" y="'+(ownerY-36)+'" font-size="11" fill="'+risk.color+'">安全距离 '+fmtNum(safeDist,1)+'m</text>';
-  html+='<text x="'+ownerX+'" y="'+(ownerY+18)+'" font-size="11" fill="var(--text-muted)">绳长 '+fmtNum(leashLen,1)+'m</text>';
+  html+='<text x="'+ownerX+'" y="'+(ownerY-36)+'" font-size="11" fill="'+risk.color+'">安全距离 '+fmtLocal(safeDist,1)+'m</text>';
+  html+='<text x="'+ownerX+'" y="'+(ownerY+18)+'" font-size="11" fill="var(--text-muted)">绳长 '+fmtLocal(leashLen,1)+'m</text>';
   html+='<circle cx="'+ownerX+'" cy="'+ownerY+'" r="12" fill="rgba(124,58,237,0.2)" stroke="var(--secondary)" stroke-width="1.5"/>';
   html+='<text x="'+ownerX+'" y="'+(ownerY+4)+'" font-size="12" text-anchor="middle">👤</text>';
   html+='<circle cx="'+dogX+'" cy="'+ownerY+'" r="14" fill="rgba(255,107,53,0.2)" stroke="var(--primary)" stroke-width="1.5"/>';
