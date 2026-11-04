@@ -2232,6 +2232,41 @@ const CASES = [
     inputs: { w: "" },
     expect: ["Enter valid width and height (both positive)."],
     ref: "宽度清空后旧实现 +''||1 静默按 1px 计算比例；现显式要求正数。默认 1920×1080 ⇒ 不命中。",
+  },
+  {
+    slug: "design/detector-28",
+    inputs: { formaldehyde: "" },
+    expect: ["Enter valid formaldehyde, VOC and benzene values (enter 0 if not detected)."],
+    ref: "甲醛清空后旧实现 +''||0 静默按 0 计 ⇒ 直接判「E0 级（优等）」；现显式要求填写（未检出请填 0）。"
+       + "默认 0.08 ⇒ 不命中。",
+  },
+  {
+    slug: "design/analysis-64",
+    inputs: { p3a: "" },
+    expect: ["Fill in both scores for all 5 dimensions (enter 0 explicitly)."],
+    ref: "某一维我方得分清空后旧实现 +''||0 静默记 0 分 ⇒ 总分差被放大、结论可能翻转；"
+       + "现要求 5 维双方得分齐全（0 分显式填 0）。默认 p3a=9 ⇒ 不命中。",
+  },
+  {
+    slug: "design/focal-length-equivalent",
+    inputs: { compareFocal: "" },
+    expect: ["Enter a valid focal length (mm)."],
+    ref: "对比焦距清空后旧实现 +''||50 静默按 50mm 参与对比 ⇒ 对比表结论变化；现显式要求正数。"
+       + "默认 50 ⇒ 不命中。",
+  },
+  {
+    slug: "design/typography-scale",
+    inputs: { ratio: "" },
+    expect: ["⚠ 比例需为大于 0 且不等于 1 的数值。"],
+    ref: "比例清空后旧实现 parseFloat('')||1.2 静默按 1.2 生成整组字阶；现显式提示并清空输出。"
+       + "默认 1.25 ⇒ 不命中。",
+  },
+  {
+    slug: "design/spacing-scale",
+    inputs: { ratio: "" },
+    expect: ["⚠ 请输入有效的基准间距（>0）、比例（>0 且 ≠1）与档位数（正整数）。"],
+    ref: "比例清空后旧实现 parseFloat('')||1.25 静默按 1.25 生成整组间距；现三处（基准/比例/档位数）"
+       + "统一显式校验。默认 4/1.25/10 ⇒ 不命中。",
   }
 
 ];

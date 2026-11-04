@@ -11,6 +11,39 @@
 - **已自带归一化实现、应优先替换为公共函数的 4 页**：`analysis-cost-10`、`percentage-calculator`、`timestamp`、`px-to-rem`（写法各不相同，见下表 A）。
 - 统一后建议函数：`ToolBox.parseNumber(raw, {stripUnits, allowComma, fullWidth})`，返回 `{value, error}`；解析失败要把原文回显，禁止静默变 0。
 
+## 进展（2026-11-04，生活/设计线）
+
+累计 **17 页**已把**静默回退**改为**显式校验**：空值/非数不再被 `+value||1`、`parseFloat||0` 静默替换为 0 或默认值，改为提示并保留原输入。这些页面**仍属本地 `parseFloat` 直读**（未抽公共函数），后续统一收编时仍需替换成 `ToolBox.parseNumber`。
+
+### 第一批（10 页）
+
+| 页面 | 已处理的静默回退 | 现状 |
+|---|---|---|
+| `tools/life/temperature-converter.html` | `parseFloat(...)||0/32/273.15/491.67`（5 个入口） | 已显式校验，仍本地 `parseFloat` |
+| `tools/life/assessor-target.html` | `+value||0`（6 项评分输入） | 已显式校验，仍本地 `parseFloat` |
+| `tools/life/parking-fee.html` | `parseFloat||0`（时长/费率/免费/封顶） | 已显式校验，仍本地 `parseFloat` |
+| `tools/life/report-profit.html` | `parseFloat||0`（7 项金额） | 已显式校验，仍本地 `parseFloat` |
+| `tools/life/drinking-water-plan.html` | `parseFloat||0`（体重/气温） | 已显式校验，仍本地 `parseFloat` |
+| `tools/life/date-add-subtract.html` | `parseFloat||0`（年/月/日/时/分/秒） | 已显式校验 + 整数校验，仍本地 `parseFloat` |
+| `tools/life/candle-burn-time.html` | 烛芯数/环境未校验导致 NaN 继续输出 | 已显式校验，仍本地 `parseInt/parseFloat` |
+| `tools/design/shutter-speed-calculator.html` | `+value||50/1/0` | 已显式校验，仍本地一元 `+` |
+| `tools/design/image-dpi-converter.html` | `+value||0/||72`（三组入口） | 已显式校验，仍本地一元 `+` |
+| `tools/design/photo-aspect-ratio-calculator.html` | `+value||1`（宽/高） | 已显式校验，仍本地一元 `+` |
+
+> 口径提醒：`+''` 等于 `0` 而非 `NaN`，一元 `+` 直读的页面不能只靠 `isFinite` 判定，必须同时校验 `> 0`（或业务下限）。
+
+### 第二批（7 页，优先「静默回退会直接改变结论」）
+
+| 页面 | 已处理的静默回退 | 现状 |
+|---|---|---|
+| `tools/design/detector-28.html` | `+value||0`（甲醛/VOC/苯系物）——空值曾被判 E0 优等 | 已显式校验（未检出须显式填 0），仍本地一元 `+` |
+| `tools/design/analysis-64.html` | `+value||0`（满分 + 5 维双方得分）——空值曾静默记 0 分、可翻转领先结论 | 已显式校验，仍本地一元 `+` |
+| `tools/design/focal-length-equivalent.html` | `+value||50`（对比焦距）——空值曾按 50mm 参与对比 | 已显式校验，仍本地一元 `+` |
+| `tools/design/typography-scale.html` | `parseFloat||1.2`（字阶比例） | 已显式校验，仍本地 `parseFloat` |
+| `tools/design/spacing-scale.html` | `parseFloat||4 / ||1.25`、`parseInt||10`（基准/比例/档数） | 已显式校验，仍本地 `parseFloat/parseInt` |
+| `tools/life/bill-splitter.html` | `parseFloat||0`（逐项分摊金额）——金额空行曾被静默跳过致合计漏项 | 已显式校验（行号定位，停止计算），仍本地 `parseFloat` |
+| `tools/life/date-difference-calculator.html` | `parseInt||0`（年/月/周/日加减量）+ 基准日期有效性 | 已显式校验 + 本地日期格式化替代 `toISOString`，仍本地 `parseInt` |
+
 ## A 组：已有归一化实现（4 页，抽公共函数的首批替换点）
 
 | 页面 | 现有写法 | 说明 |
@@ -49,5 +82,5 @@
 
 ## 备注
 
-- 上表页面均未改动，仅登记；后续统一抽函数时按 A→B→C 顺序替换，并在各分类 verify 用例中补「全角/千分位/单位后缀」注入断言。
+- A/B/C 组清单仍以「初始盘点」为准；动手收编的 17 页见「进展」（只做了显式校验，未抽公共函数）。后续统一抽函数时按 A→B→C 顺序替换，并在各分类 verify 用例中补「全角/千分位/单位后缀」注入断言。
 - 有 16 页使用一元 `+`（design 11 / life 2 / fun 3），替换时注意 `+'' === 0` 的静默零值陷阱，公共函数应返回显式错误。

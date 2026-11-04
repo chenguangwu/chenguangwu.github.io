@@ -2409,6 +2409,25 @@ const CASES = [
     inputs: { wicks: "" },
     expect: ["请选择有效的烛芯数量与燃烧环境"],
     ref: "烛芯数清空后 parseInt('') 为 NaN，旧实现继续输出 NaN/—；现显式提示。默认 1 芯 ⇒ 不命中。",
+  },
+  {
+    slug: "life/date-difference-calculator",
+    inputs: { baseDate: "2026-01-05", addYears: "abc" },
+    expect: ["加减量需为有效整数"],
+    ref: "加减量填非整数后旧实现 parseInt||0 静默按 0 处理 ⇒ 结果退回基准日期、用户误以为生效；"
+       + "现显式提示。默认 addYears=0 ⇒ 不命中（默认无基准日期走「请选择基准日期」，亦不命中）。",
+  },
+  {
+    slug: "life/bill-splitter",
+    inputs: {},
+    // 静态 DOM 里的 .item-row 未进 harness 桩登记表 ⇒ clicks 内临时替换 querySelectorAll，
+    // 返回一行「名称=餐费、金额为空、首位参与人勾选」的哑行，等价用户清空默认行金额后重算。
+    clicks: [
+      "var rq=document.querySelectorAll;var row={querySelectorAll:function(s){if(s==='input')return [{value:'餐费'},{value:''}];if(/checkbox/.test(s))return [{checked:true},{checked:false},{checked:false},{checked:false}];return [];}};document.querySelectorAll=function(s){if(s==='#items-list .item-row')return [row];return rq.call(document,s);};calcAdvanced();",
+    ],
+    expect: ["⚠ 第 1 行金额需为有效正数，已停止计算。"],
+    ref: "逐项分摊：行内有名称/参与人但金额清空时，旧实现 parseFloat('')||0 静默跳过该行 ⇒ 合计漏项；"
+       + "现显式停止并指出行号。默认行金额 0（显式填写）仍按空行跳过，默认态输出不变 ⇒ 该用例可判别。",
   }
 
 ];

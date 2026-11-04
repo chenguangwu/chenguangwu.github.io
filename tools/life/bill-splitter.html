@@ -533,16 +533,28 @@ function calcAdvanced() {
   }
   const items = [];
   let total = 0;
+  let invalidRow = 0;
   
-  document.querySelectorAll('#items-list .item-row').forEach(row=>{
+  document.querySelectorAll('#items-list .item-row').forEach((row, idx)=>{
     const inputs = row.querySelectorAll('input');
     const name = inputs[0].value || '项目';
-    const amount = parseFloat(inputs[1].value) || 0;
+    const rawAmt = String(inputs[1].value == null ? '' : inputs[1].value).trim();
+    const amount = rawAmt === '' ? 0 : Number(rawAmt);
     const checks = row.querySelectorAll('input[type="checkbox"]');
     const involved = [];
     checks.forEach((c,i)=>{if(c.checked&&advPersons[i])involved.push(advPersons[i]);});
+    const hasContent = String(inputs[0].value).trim() !== '' || involved.length > 0;
+    if(hasContent && (rawAmt === '' || !isFinite(amount) || amount < 0)){
+      if(invalidRow === 0) invalidRow = idx + 1;
+      return;
+    }
     if(amount>0&&involved.length>0){items.push({name,amount,involved});total+=amount;}
   });
+  
+  if(invalidRow > 0){
+    outEl.innerHTML = `<p style="color:var(--danger)">⚠ 第 ${invalidRow} 行金额需为有效正数，已停止计算。</p>`;
+    return;
+  }
   
   const totalWithTip = total * (1 + tip/100);
   const tipMultiplier = total>0 ? totalWithTip/total : 1;

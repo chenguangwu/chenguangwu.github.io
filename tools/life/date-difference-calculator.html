@@ -480,18 +480,34 @@ function calcDiff(){
 function calcAddSub(){
   const baseStr = document.getElementById('baseDate').value;
   const op = document.getElementById('addsubOp').value;
-  const years = parseInt(document.getElementById('addYears').value) || 0;
-  const months = parseInt(document.getElementById('addMonths').value) || 0;
-  const weeks = parseInt(document.getElementById('addWeeks').value) || 0;
-  const days = parseInt(document.getElementById('addDays').value) || 0;
+  function intVal(id){
+    const raw = String(document.getElementById(id).value).trim();
+    if(raw === '') return 0;
+    const v = parseInt(raw, 10);
+    return isFinite(v) ? v : NaN;
+  }
+  const years = intVal('addYears');
+  const months = intVal('addMonths');
+  const weeks = intVal('addWeeks');
+  const days = intVal('addDays');
   
   if(!baseStr){
     document.getElementById('addsubResult').textContent = '请选择基准日期';
     document.getElementById('addsubSub').textContent = '';
     return;
   }
+  if(!isFinite(years) || !isFinite(months) || !isFinite(weeks) || !isFinite(days)){
+    document.getElementById('addsubResult').textContent = '加减量需为有效整数';
+    document.getElementById('addsubSub').textContent = '';
+    return;
+  }
   
   const base = new Date(baseStr);
+  if(!isFinite(base.getTime())){
+    document.getElementById('addsubResult').textContent = '基准日期无效';
+    document.getElementById('addsubSub').textContent = '';
+    return;
+  }
   const result = new Date(base);
   
   const factor = op === 'add' ? 1 : -1;
@@ -501,7 +517,8 @@ function calcAddSub(){
   result.setDate(result.getDate() + weeks * 7 * factor);
   result.setDate(result.getDate() + days * factor);
   
-  const resultStr = result.toISOString().split('T')[0];
+  const pad = n => String(n).padStart(2, '0');
+  const resultStr = result.getFullYear() + '-' + pad(result.getMonth() + 1) + '-' + pad(result.getDate());
   const weekday = ['周日','周一','周二','周三','周四','周五','周六'][result.getDay()];
   const totalDays = Math.abs(getDaysDiff(base, result));
   
