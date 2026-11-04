@@ -129,6 +129,16 @@ const CASES = [
     expect: ["-3.9123", "吸能反应"],
     ref: "Q=(m_i−m_f)·u·c²=(−0.0042 u)→−3.9123 MeV<0，故为吸能反应" },
 
+  { slug: "nuclear/q-value",
+    inputs: { mi: "0", mf: "0" },
+    expect: ["请填写大于 0 的「初态总质量 m_i (u)」"],
+    ref: "质量 0 u 不合法：必须提示补填，不得输出 Q=0 的「吸能反应」结论" },
+
+  { slug: "nuclear/q-value",
+    inputs: { mi: "2", mf: "2" },
+    expect: ["0.0000", "吸能反应"],
+    ref: "m_i=m_f=2 u 均为合法正质量，Q=0 为阈能边界，仍保留吸能判定" },
+
   { slug: "nuclear/radioactive-decay",
     inputs: { n0: "5000", lam: "0.0015", t: "400" },
     expect: ["2744.06", "54.88"],

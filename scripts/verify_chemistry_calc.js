@@ -48,6 +48,26 @@ const CASES = [
     inputs: { Kc: "0.5", T: "400", dn: "2" },
     expect: ["5.387e+2", "32.8"],
     ref: "2026-10-25 R 改 0.08206 atm 基准后：Kp=0.5*(0.08206*400)^2=5.387e2；RT=32.8（默认 0.5/298/1 → 17.8/24.5 避开）" },
+
+  { slug: "chemistry/gibbs-free-energy",
+    inputs: { dH: "0", dS: "0", T: "0" },
+    expect: ["请填写大于 0 的「温度 T (K)」"],
+    ref: "0 K 不可达：T=0 必须提示补填，不得输出 ΔG=0 的「平衡」结论" },
+
+  { slug: "chemistry/gibbs-free-energy",
+    inputs: { dH: "0", dS: "0", T: "298" },
+    expect: ["0.000", "平衡"],
+    ref: "ΔH=ΔS=0 属合法零，T=298→ΔG=0，仍保留「平衡」结论" },
+
+  { slug: "chemistry/kp-kc",
+    inputs: { Kc: "0", T: "298", dn: "1" },
+    expect: ["请填写大于 0 的「浓度平衡常数 K_c」"],
+    ref: "K_c=0 无物理意义，必须提示补填" },
+
+  { slug: "chemistry/kp-kc",
+    inputs: { Kc: "1", T: "298", dn: "1" },
+    expect: ["2.445e+1"],
+    ref: "K_c=1,T=298,Δn=1：Kp=1×24.457=2.445e1；合法非零仍正常（RT 24.5 与默认同，不可作 expect）" },
 { slug: "chemistry/limiting-reagent",
     inputs: { mA: "10", MA: "40", a: "1", mB: "15", MB: "60", b: "2", MP: "18", c: "1" },
     expect: ["0.2500", "0.2500", "0.1250", "2.250"],

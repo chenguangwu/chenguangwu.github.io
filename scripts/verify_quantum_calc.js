@@ -27,6 +27,16 @@ const CASES = [
     inputs: { n: "3" },
     expect: ["4.7626", "0.4763"],
     ref: "r_n=a₀·n²=5.2918e-11×9=4.7626 Å" },
+
+  { slug: "quantum/bohr-orbit-radius",
+    inputs: { n: "0" },
+    expect: ["请填写不小于 1 的「主量子数 n」"],
+    ref: "n=0 无轨道，必须提示补填" },
+
+  { slug: "quantum/bohr-orbit-radius",
+    inputs: { n: "2" },
+    expect: ["2.1167", "0.2117"],
+    ref: "n=2 合法，r=a₀·n²=5.2918e-11×4=2.1167 Å" },
   { slug: "quantum/boltzmann-population",
     inputs: { dE: "0.5", T: "400" },
     expect: ["5.015e-7"],

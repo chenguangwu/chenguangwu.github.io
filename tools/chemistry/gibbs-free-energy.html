@@ -291,11 +291,25 @@ function __tbInputGuard(_ids,_labels){
   }
   return '';
 }
+function __tbPositiveGuard(_ids,_labels,_min,_op){
+  for(var _i=0;_i<_ids.length;_i++){
+    var _e=document.getElementById(_ids[_i]);if(!_e)continue;
+    var _v=parseFloat(_e.value);
+    var _bad=isNaN(_v)||(_op==='<=' ? (_v<=_min) : (_v<_min));
+    if(_bad){
+      if(_e.classList)_e.classList.add('input-error');
+      var _lbl=(_labels&&_labels[_i])||_ids[_i];
+      return '请填写'+(_op==='<='?'大于 ':'不小于 ')+_min+' 的「'+_lbl+'」后再计算。';
+    }
+    if(_e.classList)_e.classList.remove('input-error');
+  }
+  return '';
+}
 function __tbClear(ids){for(var i=0;i<ids.length;i++){var e=document.getElementById(ids[i]);if(e)e.innerHTML='';}}
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-            var __ig=__tbInputGuard(['dH','dS','T'],['焓变 ΔH (kJ/mol)','熵变 ΔS (kJ/(mol·K))','温度 T (K)']);if(__ig){__tbClear(['gibbs_free_energyTable','gfgChart']);const __g0='<p style="color:var(--danger)">⚠ '+__ig+'</p>';ToolBox.setResult('result',(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—')));return;}
+            var __ig=__tbInputGuard(['dH','dS','T'],['焓变 ΔH (kJ/mol)','熵变 ΔS (kJ/(mol·K))','温度 T (K)'])||__tbPositiveGuard(['T'],['温度 T (K)'],0,'<=');if(__ig){__tbClear(['gibbs_free_energyTable','gfgChart']);const __g0='<p style="color:var(--danger)">⚠ '+__ig+'</p>';ToolBox.setResult('result',(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—')));return;}
             const dH=num('dH'),dS=num('dS'),T=num('T');
             const dG=dH - T*dS;
             const spon = dG<0 ? '自发 (ΔG<0)' : (dG>0 ? '非自发 (ΔG>0)' : '平衡');
