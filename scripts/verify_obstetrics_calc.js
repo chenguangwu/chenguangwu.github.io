@@ -518,7 +518,12 @@ const CASES = [
   { slug: "obstetrics/afi-normal",
     inputs: { ruq: "", luq: "", rlq: "", llq: "" },
     expect: ["请填写四个象限羊水暗区（cm）后再判读。"],
-    ref: "空态守卫：四象限全清空时不再按 0 计算（旧实现 → AFI 0.0cm 直接判「羊水过少」），改为只输出填写提示，不给临床分级。默认态 4.5/5.0/3.8/4.2 有值 ⇒ 提示串不出现。" }
+    ref: "空态守卫：四象限全清空时不再按 0 计算（旧实现 → AFI 0.0cm 直接判「羊水过少」），改为只输出填写提示，不给临床分级。默认态 4.5/5.0/3.8/4.2 有值 ⇒ 提示串不出现。" },
+  { slug: "obstetrics/pcos-rotterdam",
+    clicks: ["crits={1:true,2:true,3:false};calc()"],
+    expect: ["2/3", "PCOS(多囊卵巢综合征)", "B型(经典无多囊卵巢)"],
+    ref: "鹿特丹标准三项中满足 2 项（稀发排卵 + 高雄激素，未选多囊卵巢超声）⇒ 诊断 PCOS、满足条件数 2/3、表型 B 型（经典无多囊卵巢：稀发排卵+高雄）。默认态 crits 全 false ⇒ 0/3「不符合PCOS诊断」，三锚均不命中（判别时清空 clicks 即回默认态）。"
+  }
 ];
 
 async function main() {
