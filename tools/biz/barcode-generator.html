@@ -306,17 +306,32 @@ s.parentNode.insertBefore(el, s);
   function el(id) { return document.getElementById(id); }
   function lib() { return window.ToolBoxBarcode; }
 
-  function message(html) { var m = el('bcMessage'); if (m) m.innerHTML = html || ''; }
+  function message(text) {
+    var m = el('bcMessage');
+    if (!m) return;
+    m.textContent = '';
+    if (!text) return;
+    var d = document.createElement('div');
+    d.className = 'bc-err';
+    d.textContent = text;
+    m.appendChild(d);
+  }
 
   function meta(rows) {
     var box = el('bcMeta');
     if (!box) return;
-    if (!rows || !rows.length) { box.innerHTML = ''; return; }
-    var h = '';
+    box.textContent = '';
+    if (!rows || !rows.length) return;
     for (var i = 0; i < rows.length; i++) {
-      h += '<div><span>' + rows[i][0] + '</span><b>' + rows[i][1] + '</b></div>';
+      var row = document.createElement('div');
+      var label = document.createElement('span');
+      label.textContent = String(rows[i][0]);
+      var value = document.createElement('b');
+      value.textContent = String(rows[i][1]);
+      row.appendChild(label);
+      row.appendChild(value);
+      box.appendChild(row);
     }
-    box.innerHTML = h;
   }
 
   function readOptions(res) {
@@ -385,17 +400,17 @@ s.parentNode.insertBefore(el, s);
 
   window.generate = function () {
     var B = lib();
-    if (!B) { message('<div class="bc-err">编码库尚未加载完成，请稍候重试。</div>'); return; }
+    if (!B) { message('编码库尚未加载完成，请稍候重试。'); return; }
     var text = (el('content').value || '').trim();
     if (!text) {
       LAST = null;
-      message('<div class="bc-err">请输入条码内容。</div>');
+      message('请输入条码内容。');
       meta([]); blank('请输入条码内容'); return;
     }
     var res = B.encode(CURRENT, text);
     if (!res.ok) {
       LAST = null;
-      message('<div class="bc-err">⚠️ ' + res.error + '</div>');
+      message('⚠️ ' + res.error);
       meta([]); blank('无法生成条码'); return;
     }
     LAST = res;
