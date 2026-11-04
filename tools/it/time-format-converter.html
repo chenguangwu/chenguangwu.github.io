@@ -123,6 +123,7 @@ s.parentNode.insertBefore(el, s);
     <li><b>ISO 8601</b>：<code>YYYY-MM-DDTHH:mm:ssZ</code>，末尾 Z 表示 UTC 零时区。</li>
     <li><b>令牌</b>：YYYY 年、MM 月、DD 日、HH 时、mm 分、ss 秒、SSS 毫秒。</li>
     <li><b>时区</b>：本工具按浏览器本地时区解析与展示；同一时刻在不同时区显示不同。</li>
+    <li><b>夏令时缺口</b>：不带偏移的本地时间若落在春季跳变的空档（如纽约 2024-03-10 02:30），浏览器会按规范顺延到 03:30；带偏移（如 <code>-05:00</code>）的 ISO 8601 则按该偏移精确换算，不受缺口影响。</li>
   </ul>
 </div>
 
@@ -232,14 +233,19 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 function parseInput(v) {
-  if (/^\d+$/.test(v)) {
-    const n = Number(v);
-    if (v.length === 10) return new Date(n * 1000);        // 秒
+  // 单位判定与 timestamp-converter 的「智能粘贴识别」完全一致：按绝对值的位数分档。
+  // 负号表示 1970 之前的时刻（如 -86400 秒 = 1969-12-31）。
+  // 位数落不进任何档位时必须直接报错，不能回落给 Date：new Date('-86400') 会被当成 ISO 年份 -86400。
+  const tm = v.match(/^([+-]?)(\d+)$/);
+  if (tm) {
+    const digits = tm[2].length;
+    const big = BigInt(tm[1] + tm[2]);
+    if (digits <= 10) return new Date(Number(big * 1000n));                       // 秒
     // 11–13 位均按毫秒：2001-09-09 之前的毫秒戳不足 13 位（如 12 位），旧逻辑漏判后交给 Date 解析导致误报
-    if (v.length >= 11 && v.length <= 13) return new Date(n);
-    if (v.length === 16) return new Date(n / 1000);         // 微秒
-    if (v.length === 19) return new Date(n / 1e6);          // 纳秒
-    if (v.length > 13) return null;                         // 14/15/17/18 位：不支持，明确报错
+    if (digits <= 13) return new Date(Number(big));
+    if (digits <= 16) return new Date(Number(big / 1000n));                       // 微秒
+    if (digits <= 19) return new Date(Number(big / 1000000n));                    // 纳秒
+    return null;                                                                  // 20 位以上：超出可表示范围
   }
   const dm = v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (dm) return new Date(Number(dm[1]), Number(dm[2]) - 1, Number(dm[3])); // 纯日期按本地零点解析
@@ -256,7 +262,7 @@ function convertTime() {
   const v = (document.getElementById('inTime').value || '').trim();
   const d = parseInput(v);
   if (!d) {
-    const __h0='<p>无法解析时间，请输入合法值：支持 10 位秒 / 13 位毫秒 / 16 位微秒 / 19 位纳秒时间戳，以及 ISO 8601 或 YYYY-MM-DD 日期。</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('out').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('out').innerHTML=__h0;
+    const __h0='<p>无法解析时间，请输入合法值：纯数字按位数判定单位（≤10 位秒 / 11–13 位毫秒 / 14–16 位微秒 / 17–19 位纳秒，可带负号表示 1970 年前，20 位以上不支持），或输入 ISO 8601、YYYY-MM-DD 日期。</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('out').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('out').innerHTML=__h0;
     return;
   }
 

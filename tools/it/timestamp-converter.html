@@ -583,10 +583,11 @@ function renderTimezones(date) {
 }
 
 function getDayOfYear(date) {
-  const start = new Date(date.getFullYear(), 0, 0);
-  const diff = date - start;
-  const oneDay = 1000 * 60 * 60 * 24;
-  return Math.floor(diff / oneDay);
+  // 用 UTC 归一后的年月日相减：直接拿毫秒差整除会在夏令时切换后少算一天
+  // （America/New_York 2024-03-11 00:00 本地实际只经过 1655 小时，floor 得 69，而当天应为第 70 天）。
+  const start = Date.UTC(date.getFullYear(), 0, 1);
+  const cur = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+  return Math.round((cur - start) / 86400000) + 1;
 }
 
 function smartConvert() {
@@ -594,15 +595,21 @@ function smartConvert() {
   const hint = document.getElementById('smartHint');
   if (!raw) { hint.innerHTML = ''; return; }
 
-  if (/^\d+$/.test(raw)) {
-    const digits = raw.length;
-    const n = Number(raw);
-    // 按位数判定单位（不能只用 n >= 1e12：2001-09-09 之前的毫秒戳只有 12 位，会被误判为秒）
+  const tm = raw.match(/^([+-]?)(\d+)$/);
+  if (tm) {
+    const digits = tm[2].length;
+    // 按位数判定单位（不能只用 n >= 1e12：2001-09-09 之前的毫秒戳只有 12 位，会被误判为秒）。
+    // 用 BigInt 分档换算，避免 15–19 位数字先被 Number 截断再切分。
+    const big = BigInt(tm[1] + tm[2]);
     let unit, ms;
-    if (digits <= 10) { unit = '秒'; ms = n * 1000; }
-    else if (digits <= 13) { unit = '毫秒'; ms = n; }
-    else if (digits <= 16) { unit = '微秒'; ms = Number(raw.slice(0, digits - 3)); }
-    else { unit = '纳秒'; ms = Number(raw.slice(0, digits - 6)); }
+    if (digits <= 10) { unit = '秒'; ms = Number(big * 1000n); }
+    else if (digits <= 13) { unit = '毫秒'; ms = Number(big); }
+    else if (digits <= 16) { unit = '微秒'; ms = Number(big / 1000n); }
+    else if (digits <= 19) { unit = '纳秒'; ms = Number(big / 1000000n); }
+    else {
+      hint.innerHTML = '<span style="color:var(--danger);">❌ 位数过多（' + digits + ' 位）：最多支持 19 位纳秒时间戳</span>';
+      return;
+    }
     const date = new Date(ms);
     if (isNaN(date.getTime())) {
       hint.innerHTML = '<span style="color:var(--danger);">❌ 数值超出可表示的时间范围</span>';

@@ -4533,9 +4533,9 @@ const CASES = [
       "txt": "1\n2\n3"
     },
     "expect": [
-      "1 2 3\n未检测到明显乱码特征。 修复输出： 1 2 3"
+      "未检测到明显乱码特征。 修复输出： 1 2 3"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"txt\":\"1\\n2\\n3\"}，输出区含「1 2 3\n未检测到明显乱码特征。 修复输出： 1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"txt\":\"1\\n2\\n3\"}，输出区含「未检测到明显乱码特征。 修复输出： 1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。// 2026-11-04：harness 保真度修复后 textarea 默认文本会同时进 .textContent，快照字符串顺序改变，故去掉跨元素的换行拼接断言，只锚输出域自身内容（仍含注入值 1 2 3）。"
   },
   {
     "slug": "it/chinese-name-generator",
@@ -7795,8 +7795,47 @@ const CASES = [
     clicks: ["esc()"],
     expect: ["\\Z"],
     ref: "MySQL 转义集完整性：mysql_real_escape_string 要求转义 Ctrl-Z（0x1A）为 \\Z；页面已覆盖 NUL/\\n/\\r/\\Z/引号/反斜杠六类必需字符。默认 O'Brien 样例不含 Ctrl-Z。",
-  }
+  },
 
+  // —— 时间族 / 进制族 / 字符集族：独立标准实现交叉验证（2026-11-04 批次）——
+  {
+    slug: "it/time-format-converter",
+    inputs: { inTime: "-86400" },
+    clicks: ["convertTime()"],
+    expect: ["1969-12-31T00:00:00.000Z"],
+    ref: "负时间戳（1970 前）：-86400 秒 = 1969-12-31T00:00:00Z。旧实现用 /^\\d+$/ 判定，负号串漏进 new Date('-86400')，被当成 ISO 年份 -86400（输出 +086400-01-01）。默认 1700000000 不命中。",
+  },
+  {
+    slug: "it/time-format-converter",
+    inputs: { inTime: "17000000000000000000" },
+    clicks: ["convertTime()"],
+    expect: ["无法解析时间"],
+    ref: "位数越界：20 位超出纳秒档（≤19 位），必须明确报错；旧实现对 >13 位一律按「纳秒」截断前 13 位，会把越界值静默算成 2023 年。",
+  },
+  {
+    slug: "it/number-base-converter",
+    inputs: { inputValue: "0x10", inputBase: "10" },
+    expect: ["无效"],
+    ref: "十进制分支必须只认 0-9：BigInt('0x10') 会按 JS 字面量规则算成 16，导致十进制模式悄悄接受十六进制前缀，而十六进制模式又把 '0x10' 判为非法（两条路径自相矛盾）。默认空输入显示 '-'，不命中「无效」。",
+  },
+  {
+    slug: "it/integer-base-converter",
+    inputs: { num: "-255", fromBase: "10", toBase: "16" },
+    expect: ["-ff"],
+    ref: "负号支持：-255(10) = -ff(16)，与 number-base-converter 的口径对齐；旧实现按位扫描时 '-' 被判为非法数字位直接抛错，且 fromBigInt 对负数返回空串。默认 255 输出 ff，不命中。",
+  },
+  {
+    slug: "it/charset-detector",
+    inputs: { txt: "C4 E3 BA C3" },
+    expect: ["共 4 字节", "无法仅凭字节区分"],
+    ref: "字节模式：0xC4 0xE3 0xBA 0xC3 在 GB18030 下解出「你好」，Big5 下解出「斕疑」，两者均可严格解码且可读性并列 ⇒ 页面必须明确输出并列结论而非硬猜（Node TextDecoder 实测：utf-8 报非法序列、gb18030=你好、big5=斕疑）。",
+  },
+  {
+    slug: "it/charset-detector",
+    inputs: { txt: "EF BB BF E4 BD A0" },
+    expect: ["识别到 UTF-8 BOM", "最可能为"],
+    ref: "BOM 识别：EF BB BF 为 UTF-8 BOM，剥除后 3 字节 E4 BD A0 严格解码为「你」；GB18030 在剩余 0xA0 处非法、Big5 亦失败 ⇒ UTF-8 唯一可解，给唯一结论。默认示例非字节串，不命中。",
+  }
 ];
 
 // ---------------------------------------------------------------- DOM stub

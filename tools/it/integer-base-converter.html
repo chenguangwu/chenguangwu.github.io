@@ -112,13 +112,13 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="🔄 任意进制转换器">🔄 Integer Base Converter</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="支持 2-36 进制任意互转与超大整数（BigInt）：输入数字与源进制，实时得到目标进制结果，附二进制/八进制/十进制/十六进制一览。">Switch integers across bases (2–36) in your browser for programming, debugging and bitwise work.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">进制范围 2–36，越界自动钳制；BigInt 按源进制解析后同时输出 2 / 8 / 10 / 16 / 32 / 36 进制结果；解析失败时主输出置 ❌ 并显示错误原因</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">进制范围 2–36，越界自动钳制；BigInt 按源进制解析后同时输出 2 / 8 / 10 / 16 / 32 / 36 进制结果；支持正负号（如 -255）；不接受 0x/0b/0o 前缀；解析失败时主输出置 ❌ 并显示错误原因</div>
   <div class="formula-desc">在 2–36 进制之间转换整数。</div>
   <ul class="formula-list">
-    <li><b>字母表</b>：0–9 之后用 A–Z 表示 10–35，故最高支持 36 进制。</li>
+    <li><b>字母表</b>：0–9 之后用 a–z 表示 10–35，故最高支持 36 进制；输出统一小写，输入大小写不敏感。</li>
     <li><b>算法</b>：任意进制按权展开求和转十进制，再用除基取余转目标进制。</li>
-    <li><b>边界</b>：负数单独处理符号；小数用乘基取整，存在精度限制。</li>
-    <li><b>大数</b>：超出安全整数范围时应使用 BigInt，避免精度丢失。</li>
+    <li><b>边界</b>：正负号先行剥离再解析（-255 十进制等价于 -ff 十六进制）；本页只做整数，小数请用浮点转换工具。</li>
+    <li><b>大数</b>：全程 BigInt，超出 2⁵³−1 的整数逐位精确，不经过 Number。</li>
   </ul>
 </div>
 
@@ -272,20 +272,30 @@ s.parentNode.insertBefore(el, s);
 <script>
 var DIGITS='0123456789abcdefghijklmnopqrstuvwxyz';
 function toBigInt(str,base){
-  var s=String(str).trim().toLowerCase().replace(/^0+/, '')||'0';
+  var raw=String(str).trim().toLowerCase();
+  // 负号/正号先剥离再解析，否则 '-' 会被当成非法数字位（旧实现直接丢掉 1970 前的负值场景）。
+  var neg=false;
+  if(raw[0]==='+'||raw[0]==='-'){ neg=(raw[0]==='-'); raw=raw.slice(1); }
+  if(!raw)throw new Error('请输入数字');
+  if(base===16&&/^0x/.test(raw))throw new Error('16 进制输入请去掉 0x 前缀，直接填 ff');
+  if(base===2&&/^0b/.test(raw))throw new Error('2 进制输入请去掉 0b 前缀，直接填 101');
+  if(base===8&&/^0o/.test(raw))throw new Error('8 进制输入请去掉 0o 前缀，直接填 17');
+  var s=raw.replace(/^0+/, '')||'0';
+  var off=raw.length-s.length;
   var v=0n;
   for(var i=0;i<s.length;i++){
     var d=DIGITS.indexOf(s[i]);
-    if(d<0||d>=base)throw new Error('第 '+(i+1)+' 位 "'+s[i]+'" 不是 '+base+' 进制的有效数字');
+    if(d<0||d>=base)throw new Error('第 '+(i+1+off)+' 位 "'+s[i]+'" 不是 '+base+' 进制的有效数字');
     v=v*BigInt(base)+BigInt(d);
   }
-  return v;
+  return neg?-v:v;
 }
 function fromBigInt(v,base){
   if(v===0n)return '0';
   var s='',n=v;
+  if(n<0n)n=-n;
   while(n>0n){s=DIGITS[Number(n%BigInt(base))]+s;n=n/BigInt(base);}
-  return s;
+  return (v<0n?'-':'')+s;
 }
 function convert(){
   var str=document.getElementById('num').value.trim();
