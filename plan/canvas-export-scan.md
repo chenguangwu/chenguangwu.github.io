@@ -205,3 +205,7 @@ B 档 37 页按 10/10/7 三批修完，每批独立提交（`64a7a01844` B 前 9
 
 - **条码族首屏空态判定（7 页）**：`barcode-codabar` / `barcode-code128` 已有默认输入且加载即自动生成（首屏可见结果卡与条码）；其余 5 页（`barcode-code39` / `barcode-ean` / `barcode-itf` / `barcode-msi` / `barcode-upc`）虽有默认示例输入，但 `#output` 为空且命中 `.result-box:empty{display:none}` ⇒ **真缺提示 5 页**。修法：只在 `#output` 加一句静态文案 `点击生成按钮`（沿用 `design/aztec-code` 等页的既有空态写法，英文态经 `BODY_PHRASE_MAP` 自动译为 `Click the Generate button`），首次生成时被结果覆盖；**未加自动生成**，避免给用户展示一个他没有主动要求的条码。
 - **局部失败只降级该部分，不中断整体**（以 `tools/image/gif-split.html` 为口径）：缩略图 `toDataURL` 失败只降级该缩略图并提示，帧渲染与整批导出继续；不得让 1% 的局部失败放大成 100% 的不可用。反面：把局部异常冒泡到外层批处理，导致一个缩略图失败 = 整批导出失败。
+
+## 十二、空态文案 i18n 规范（2026-11-05）
+
+> **能复用现有短语层（`BODY_PHRASE_MAP` / `<ind>-phrases.json` / `_common.json`）的空态文案，不得新增独立字典键。** 每新增一个键都是后续 i18n 死键债的入口（当前全站仍有约 8292 个待清死键）。本次 5 个条码页空态即复用既有短语 `点击生成按钮`（英文态由 `BODY_PHRASE_MAP` 自动译为 `Click the Generate button`），未新增任何键。
