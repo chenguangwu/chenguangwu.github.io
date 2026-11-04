@@ -2456,10 +2456,44 @@ const CASES = [
     ref: "失败注入：把桩内 canvas.toDataURL 改成必抛 Error 并把 ToolBox.showToast 换成录音器，再走真实导出入口 ⇒ 结果区必须出现「TOAST:导出失败：Error」。"
       + "修复前异常裸冒成 pageerror、页面无提示；默认态无 TOAST: 串 ⇒ 判别明确。" + c.ref,
   };
-})
+}),
 // design/colorblind-simulator 的导出逻辑在外部模块 js/tools/colorblind-simulator.js（IIFE）里，
 // 门禁 harness 不加载 /js/tools/*.js ⇒ 模块内 toast() 与 renderImagePane 均不可达，
 // 无法做桩级失败注入；改为真机注入（toDataURL 抛 Error / toBlob 回调 null）验证，结果记录在本批回报。
+// ── D1 批：B 类余页导出失败可见（新建 canvas 的页面）──
+...[
+  { slug: "design/favicon-from-text", entry: "generate()", ref: "generate() 的 lastURL 赋值裸调 toDataURL。" },
+  { slug: "design/identicon-generator", entry: "generate()", ref: "generate() 的 lastURL 赋值裸调 toDataURL。" },
+  { slug: "design/initials-avatar", entry: "generate()", ref: "generate() 的 lastURL 赋值裸调 toDataURL。" },
+
+  { slug: "design/pixel-art", entry: "exportPNG()", ref: "exportPNG() 的 tmp.toDataURL 裸调。" },
+  { slug: "design/signature-pad", entry: "strokes.push({});exportPNG();", ref: "exportPNG() 的 tmp.toDataURL 裸调；先塞一条空笔画绕过「请先签名」前置判断。" },
+].map(function (c) {
+  return {
+    slug: c.slug,
+    inputs: {},
+    clicks: [
+      "ToolBox.showToast=function(m){document.getElementById('__svg_probe').textContent='TOAST:'+m;};"
+      + "var _ce=document.createElement.bind(document);"
+      + "document.createElement=function(t){var e=_ce(t);if(t==='canvas'){e.toDataURL=function(){throw new Error('boom')};}return e;};"
+      + c.entry,
+    ],
+    expect: ["TOAST:导出失败：Error"],
+    ref: "失败注入：canvas.toDataURL 必抛 Error + 录制 ToolBox.showToast ⇒ 必须出现「TOAST:导出失败：Error」。默认态无 TOAST: 串 ⇒ 判别明确。" + c.ref,
+  };
+}),
+{
+  "slug": "design/spectrum-visualizer",
+  "clicks": ["ToolBox.showToast=function(m){document.getElementById('__svg_probe').textContent='TOAST:'+m;};var cv=document.getElementById('canvas');cv.toDataURL=function(){throw new Error('boom')};copyResult();"],
+  "expect": ["TOAST:导出失败：Error"],
+  "ref": "copyResult() 直接对页面 canvas 调 toDataURL（不经 createElement）⇒ 注入该元素 toDataURL 抛 Error + 录制 ToolBox.showToast，必须出现「TOAST:导出失败：Error」；且不得再走 clipboard。",
+},
+{
+  "slug": "design/waveform-visualizer",
+  "clicks": ["ToolBox.showToast=function(m){document.getElementById('__svg_probe').textContent='TOAST:'+m;};var cv=document.getElementById('canvas');cv.toDataURL=function(){throw new Error('boom')};copyResult();"],
+  "expect": ["TOAST:导出失败：Error"],
+  "ref": "copyResult() 直接对页面 canvas 调 toDataURL ⇒ 注入后必须「TOAST:导出失败：Error」，且不得再走 clipboard。",
+}
 ];
 
 // ---------------------------------------------------------------- main

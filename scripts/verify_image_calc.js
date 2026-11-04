@@ -339,6 +339,13 @@ const CASES = [
   "expect": ["TOAST:导出失败："],
   "ref": "B 类失败注入：桩内 canvas.toBlob 恒回调 null（等价画布被污染时浏览器返回 null）。原本 downloadOne 里 `if (!blob) return;` 静默跳过，"
     + "现必须走 __ngcExportFail → toast「导出失败：浏览器未能生成 PNG（画布可能被污染）」。默认态无 TOAST: 串 ⇒ 判别明确。"
+},
+{
+  "slug": "image/wechat-cover-maker",
+  "clicks": ["ToolBox.showToast=function(m){document.getElementById('__svg_probe').textContent='TOAST:'+m;};var cv=document.getElementById('cover');cv.toBlob=function(cb){cb(null)};download();"],
+  "expect": ["TOAST:导出失败：浏览器未能生成 PNG"],
+  "ref": "B 类失败注入：download() 原为 `if (!blob) return;` 静默跳过。注入 #cover.toBlob 恒回调 null + 录制 ToolBox.showToast ⇒ 必须出现「TOAST:导出失败：浏览器未能生成 PNG」。"
+    + "默认态无 TOAST: 串 ⇒ 判别明确。"
 }
 ];
 async function main() {

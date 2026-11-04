@@ -270,25 +270,34 @@ function generate(){
   const preview = document.getElementById('preview');
   const __h0='';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){preview.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}preview.innerHTML=__h0;
   try{
-    if(typeof QRCode === 'undefined'){
+    if(typeof qrcode === 'undefined'){
       preview.textContent = 'qrcode.js 未加载，请检查文件路径';
       return;
     }
+    if (qrcode.stringToBytesFuncs && qrcode.stringToBytesFuncs['UTF-8']) {
+      qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8'];
+    }
+    const qr = qrcode(0, ec);
+    qr.addData(text);
+    qr.make();
+    const n = qr.getModuleCount();
+    const margin = 2;
+    const cell = size / (n + margin * 2);
     const canvas = document.createElement('canvas');
     canvas.width = size; canvas.height = size;
-    QRCode.toCanvas(canvas, text, {
-      width: size,
-      margin: 2,
-      color: { dark: fg, light: bg },
-      errorCorrectionLevel: ec
-    }, (err) => {
-      if(err){
-        preview.textContent = '生成失败: ' + err.message;
-        return;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, size, size);
+    ctx.fillStyle = fg;
+    for (let r = 0; r < n; r++) {
+      for (let c = 0; c < n; c++) {
+        if (qr.isDark(r, c)) {
+          ctx.fillRect(Math.floor((c + margin) * cell), Math.floor((r + margin) * cell), Math.ceil(cell), Math.ceil(cell));
+        }
       }
-      lastURL = canvas.toDataURL('image/png');
-      preview.appendChild(canvas);
-    });
+    }
+    try { lastURL = canvas.toDataURL('image/png'); }
+    catch (e) { lastURL=''; preview.textContent = '导出失败：' + ((e && (e.name || e.message)) || '未知错误'); ToolBox.showToast('导出失败：' + ((e && (e.name || e.message)) || '未知错误'), 'error'); return; }
+    preview.appendChild(canvas);
   }catch(e){
     preview.textContent = '错误: ' + e.message;
   }
