@@ -12,8 +12,8 @@ const CASES = [
     "houseHeight": "3",
     "nh3Gen": "0"
   },
-  "expect": ["38\n15\n30\n10\n3\n0.6\n0\n38.0 ppm 当前浓度 15.0 ppm 目标浓度 超标 当前等级 900 m³ 舍内体积 通风参数 数值 所需通风量 1394 m³/h 每分钟通风量 23.2 m³/min 每秒通风量 0.39 m³/s 换气次数 1.5 次/h 稀释通风量 1394 m³/h 当前氨气浓度 38.0 ppm （超标），需在1小时内降至 15.0 ppm，建议通风量 1394 m³/h （约 1.5 次/h换气）。"],
-  "ref": "auto-restore"
+  "expect": ["1394 m³/h", "23.2 m³/min", "换气次数 1.5 次/h"],
+  "ref": "独立复算：舍体积 30×10×3=900 m³；Q=900×ln(38/15)/(1×0.6)=900×0.92921/0.6=1393.9 ⇒ 1394 m³/h；每分钟 1394/60=23.2；换气 1394/900=1.549 ⇒ toFixed(1)=1.5 次/h。默认态（25/15/0.6）为 900×0.5108/0.6=766 m³/h，三条均不命中。"
 },
 {
   "slug": "livestock/analysis-18",
@@ -34,7 +34,7 @@ const CASES = [
 {
   "slug": "livestock/animal-welfare-score",
   "inputs": {
-    "s1": "12",
+    "s1": "10",
     "s2": "8",
     "s3": "7",
     "s4": "7",
@@ -45,9 +45,9 @@ const CASES = [
     "s9": "7"
   },
   "expect": [
-    "100.0"
+    "74.6"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：9 项权重 1/1/1/1/1/1.2/1/1/1，总权重 9.2；加权总分 = 10×1+8+7+7+6+8×1.2+8+6+7 = 68.6；finalScore = 68.6÷9.2×10 = 74.5652 ⇒ 74.6。原 expect「100.0」是 s1=12 被 range max=10 截断后的逃生态（全部 10 分）；「良好」等级标签不能作锚（默认态 72.4 同样是「良好」，注入失败时仍 PASS ⇒ 逃生物），故只留 74.6。默认态（8/8/7/7/6/8/8/6/7）为 72.4，不命中。"
 },
 {
   "slug": "livestock/calc-58",
@@ -68,11 +68,11 @@ const CASES = [
   "slug": "livestock/calving-interval",
   "inputs": {
     "daysToFirstBreed": "113",
-    "breedTimes": "2",
+    "breedTimes": "3",
     "gestation": "283"
   },
-  "expect": [ "113 天" ],
-  "ref": "auto-restore"
+  "expect": [ "33% 受胎率(估)" ],
+  "ref": "独立复算：受胎率 = 1 ÷ 配种次数 3 × 100% = 33.33% ⇒ 页面 toFixed(0) 取 33%。产犊间隔/空怀天数不可作锚——上次产犊日期留空时脚本固定取「今天−365 天」，间隔恒 365、空怀恒 365−283=82，与默认态完全相同（注入失败仍 PASS 即逃生物）；daysToFirstBreed=113 只是「产后首次配种」回显。默认配种 2 次 ⇒ 50%，与本条 33% 不同，具判别力。"
 },
 {
   "slug": "livestock/castration-timing",
@@ -82,8 +82,7 @@ const CASES = [
   "expect": [
     "cattle"
   ],
-    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
-  "ref": "auto-restore"
+    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。"
 },
 {
   "slug": "livestock/detector-12",
@@ -96,7 +95,7 @@ const CASES = [
   "expect": [
     "75%"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：猪默认限量 AFB1 20 μg/kg、ZEA 250、DON 1000、OTA 100；注入 15/100/1000/50 ⇒ 占比 75%/40%/100%/50%，最大项为 AFB1 15÷20×100 = 75%。"
 },
 {
   "slug": "livestock/disinfectant-dilution",
@@ -108,7 +107,7 @@ const CASES = [
   "expect": [
     "9875ml"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：母液体积 = 目标 0.1% × 总液量 10 L ÷ 原液 8% = 0.125 L；加水量 = 10 − 0.125 = 9.875 L = 9875 ml，与页面输出单位 ml 一致（1 L = 1000 ml）。"
 },
 {
   "slug": "livestock/dongtishouroulv-beibiaohouceding",
@@ -116,8 +115,8 @@ const CASES = [
     "bf": "27",
     "lw": "100"
   },
-  "expect": ["pig\n27\n100\nfemale\n48.65% 估算瘦肉率 75% 屠宰率 75.0 胴体重 (kg) 36.5 瘦肉重 (kg) 较差 瘦肉率评级 猪 偏肥 背膘评价 27mm\n畜种 优秀 良好 较差 屠宰率参考 猪（当前） ≥ 60% 55~60% 75% 牛 ≥ 68% 62~68% 55% 羊 ≥ 56% 50~56% 50%\n暂无计算记录"],
-  "ref": "auto-restore"
+  "expect": ["48.65%","36.5 瘦肉重 (kg)"],
+  "ref": "独立复算：瘦肉率 = 62 − 0.55×背膘 27 − 0.025×(100 − 活重 100) + 母猪校正 1.5 = 62 − 14.85 + 0 + 1.5 = 48.65%；胴体重 = 活重 100 × 屠宰率 75% = 75.0 kg；瘦肉重 = 75.0 × 48.65% = 36.4875 ⇒ 36.5 kg。「75.0 胴体重」不作锚——默认活重同为 100 kg ⇒ 胴体重默认态也是 75.0，注入失败仍 PASS（逃生物）。默认背膘 18 ⇒ 瘦肉率 53.60%、瘦肉重 40.2，与两条锚均不命中。"
 },
 {
   "slug": "livestock/estimate-yield",
@@ -129,7 +128,7 @@ const CASES = [
   "expect": [
     "126.00"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：默认畜种为猪（产气率 0.42 m³/kg TS）；干物质量 = 存栏 1500 × 含固率 20% = 300 kg；日产沼气 = 300 × 0.42 = 126.00 m³。默认态 qty=1000 ⇒ 200×0.42 = 84.00，与 126.00 不同，具判别力。"
 },
 {
   "slug": "livestock/fattening-pig-timeline",
@@ -143,7 +142,7 @@ const CASES = [
   "expect": [
     "预计饲养天数 38"
   ],
-  "ref": "auto-restore；页面「预计出栏日期」用 new Date() 相对今天推算，绝对日期随真实日期漂移（写用例时的「今天」已过期 1 天），故改断言由输入确定、与今天无关的「预计饲养天数 38」（(120-90)/0.8=37.5→ceil 38），规避日期型门禁偶挂"
+  "ref": "独立复算：(120 − 90) ÷ 0.8 kg/天 = 37.5 ⇒ 向上取整 38 天；「预计出栏日期」用 new Date() 相对今天推算、绝对日期漂移，故只锚与今天无关的饲养天数。"
 },
 {
   "slug": "livestock/feed-conversion-ratio",
@@ -160,7 +159,7 @@ const CASES = [
   "expect": [
     "3.273"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：增重 = 100 − 45 = 55 kg；料肉比 = 总耗料 180 ÷ 55 = 3.2727 ⇒ 3.273（页面三位小数）。输入里的 days / feedPrice / salePrice 卡片另算，本条只锚 FCR。"
 },
 {
   "slug": "livestock/heat-stress-index",
@@ -172,7 +171,7 @@ const CASES = [
   "expect": [
     "103.92"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：THI = (1.8×45 + 32) − (0.55 − 0.0055×70)×(1.8×45 − 26) = 113 − 0.165×55 = 103.925；JS toFixed(2) 因二进制表示得 103.92（浮点舍入边界），与页面一致。风速修正后的调整值另计，本条只锚原始 THI。"
 },
 {
   "slug": "livestock/inbreeding-coefficient",
@@ -185,9 +184,11 @@ const CASES = [
     "numAncestors": "1"
   },
   "expect": [
-    "1/(2×75)"
+    "3.29%",
+    "0.667%",
+    "96.71%"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：ΔF = 1 ÷ (2×Ne 75) = 0.006667 ⇒ 0.667%/代；5 代累积 F = 1 − (1 − 0.006667)^5 = 1 − 0.96711 = 0.03289 ⇒ 3.29%；遗传多样性保留 = 0.96711 ⇒ 96.71%。原 expect「1/(2×75)」只是公式文本回显。"
 },
 {
   "slug": "livestock/manure-amount",
@@ -199,9 +200,11 @@ const CASES = [
     "collectRate": "90"
   },
   "expect": [
-    "150头奶牛在365天内产生约"
+    "2315.9",
+    "347.39",
+    "2387.6"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：泌乳牛日产粪 47 kg × 150 头 × 365 天 = 2,573,250 kg；收集率 90% ⇒ 2,315,925 kg = 2315.9 t；干物质 = 2,315,925 × (1 − 85%) = 347,388.75 kg = 347.39 t；堆肥体积按密度 1000 − (100−85)×2 = 970 kg/m³ ⇒ 2387.6 m³。原 expect 只是「150头奶牛在365天内产生约」的输入回显。"
 },
 {
   "slug": "livestock/manure-pit-capacity",
@@ -216,7 +219,7 @@ const CASES = [
   "expect": [
     "13500.0"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：日产粪量 = 存栏 300 × 单头 45 kg/天 = 13500.0 kg/天，与页面「日产粪量」卡单位 kg 一致；清粪周期 7 天与池深 2.5 m 只影响池容积卡，本条锚日产粪量。"
 },
 {
   "slug": "livestock/milk-yield-scc",
@@ -236,7 +239,7 @@ const CASES = [
   "expect": [
     "230.0%"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：默认毒素为黄曲霉毒素 B1、默认畜种育肥猪，限量 10 μg/kg；实测 23 ÷ 10 × 100 = 230.0%。若改毒素/畜种可命中其它限量行，本条锚默认组合。"
 },
 {
   "slug": "livestock/poultry-light-program",
@@ -246,7 +249,7 @@ const CASES = [
   "expect": [
     "22小时"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：4 日龄落在「4~7 日龄」光照程序行，该行照时 22 h；默认 1 日龄落在「1~3 日龄」行（23 h）。本断言是表驱动查表结果，非页面计算结果存档。"
 },
 {
   "slug": "livestock/silage-density-ph",
@@ -263,7 +266,7 @@ const CASES = [
   "expect": [
     "150.00"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：窖体积 = 长 15 × 宽 4 × 高 2.5 = 150.00 m³；鲜重密度 = 80 t × 1000 ÷ 150 = 533.3 kg/m³；干物质密度 = 533.3 × 33% = 176。默认（长 10）体积 100.0 m³，与 150.00 不冲突。"
 },
 {
   "slug": "livestock/stats-7",
@@ -287,7 +290,7 @@ const CASES = [
   "expect": [
     "禽流感H5+H7灭活苗"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：免疫程序表按 animalType 取行，layer（蛋鸡）程序首条为「禽流感H5+H7灭活苗」，表驱动查表结果；默认 cow 程序首条为口蹄疫疫苗，注入后必命中蛋鸡行。"
 },
 {
   "slug": "livestock/vaccine-schedule",
@@ -309,8 +312,8 @@ const CASES = [
     "feedIntake": "2.5",
     "temp": "22"
   },
-  "expect": [ "12.00 L/头·天" ],
-  "ref": "auto-restore"
+  "expect": [ "4.80 : 1", "12.00 L/头·天" ],
+  "ref": "独立复算：饮水 12 L ÷ 采食 2.5 kg = 4.8 ⇒ 页面保留两位「4.80 : 1」；12.00 L/头·天 为饮水输入回显，仅作单位一致性锚（L/头·天 与输入标签一致）。默认态（10/2/22）比值为 5.00。"
 },
 {
   "slug": "livestock/weaning-weight-survival",
@@ -325,7 +328,7 @@ const CASES = [
   "expect": [
     "61.1%"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：断奶成活率 = 断奶存活 11 ÷ 产活仔 18 × 100 = 61.111 ⇒ 61.1%。默认态（20/17）为 85.0%，与 61.1% 不同，具判别力。"
 },
 {
   "slug": "livestock/withdrawal-period",
@@ -336,7 +339,7 @@ const CASES = [
   "expect": [
     "休药期 28 天"
   ],
-  "ref": "auto-restore；页面「休药期结束日期」用 new Date() 相对今天推算，绝对日期随真实日期漂移（写用例时的「今天」已过期 1 天），故改断言由药品表确定、与今天无关的「休药期 28 天」（土霉素 oxytetracycline 对应休药期），规避日期型门禁偶挂"
+  "ref": "独立复算：药品表 oxytetracycline（土霉素）休药期 28 天，表驱动查表；“结束日期”用 new Date() 相对今天，故只锚与今天无关的表值。"
 },
 {
   "slug": "livestock/yufeirizengzhong-liaoroubiquxian",
@@ -350,7 +353,7 @@ const CASES = [
   "expect": [
     "117.33"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：增重 = 480 − 450 = 30 kg；料肉比 = 耗料 1100 ÷ 30 = 36.6667；每公斤增重成本 = 36.6667 × 3.2 元/kg = 117.333 ⇒ 117.33 元。默认态（w0 400 / w1 450）为 70.00 元，不命中。"
 }
 ,
 {
