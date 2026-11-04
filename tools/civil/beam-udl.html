@@ -113,7 +113,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="计算受均布荷载简支梁的最大弯矩、剪力、跨中挠度与跨中弯曲应力。">Beam Udl - online utility on ToolBox.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">简支梁均布荷载：最大弯矩 M = qL² ÷ 8（kN·m）、最大剪力 V = qL ÷ 2（kN）、跨中挠度 δ = 5qL⁴ ÷ 384EI（q 先由 kN/m 化 N/m，E 按 GPa×1e9 化 Pa、I 按 cm⁴×1e−8 化 m⁴，结果 ×1000 折 mm）；截面模量 W = bh² ÷ 6（mm³），弯曲应力 σ = M×1e6 ÷ W（MPa，M 由 kN·m 化 N·mm）。校验：L、E、I、b、h 须 &gt;0 且 q ≥0，否则提示「请输入有效的梁参数」。</div>
+      <div class="formula-eq">简支梁均布荷载：最大弯矩 M = qL² ÷ 8（kN·m）、最大剪力 V = qL ÷ 2（kN）、跨中挠度 δ = 5qL⁴ ÷ 384EI（q 先由 kN/m 化 N/m，E 按 GPa×1e9 化 Pa；I 由 b×h 自动取 I = bh³ ÷ 12，cm⁴ 经 ×1e−8 化 m⁴，结果 ×1000 折 mm）；截面模量 W = bh² ÷ 6（mm³），弯曲应力 σ = M×1e6 ÷ W（MPa，M 由 kN·m 化 N·mm）。校验：L、E、b、h 须 &gt;0 且 q ≥0，否则提示「请输入有效的梁参数」。说明：I 只读，与应力所用同一截面，避免两套截面口径矛盾。</div>
       <p class="formula-desc">计算受均布荷载简支梁的最大弯矩、剪力、跨中挠度与跨中弯曲应力。</p>
     </div>
 
@@ -133,8 +133,8 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="input-row">
       <div>
-        <label for="I">截面惯性矩 I (cm⁴)</label>
-        <input type="number" id="I" value="8000" step="100" min="1" placeholder="如 8000">
+        <label for="I">截面惯性矩 I (cm⁴，按 b×h 自动计算)</label>
+        <input type="number" id="I" value="106667" step="100" min="1" readonly title="I = b·h³/12，由截面宽高自动计算">
       </div>
       <div>
         <label for="b">截面宽 b (mm)</label>
@@ -223,8 +223,11 @@ s.parentNode.insertBefore(el, s);
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-            const L=num('L'), q=num('q'), E=num('E')*1e9, I=num('I')*1e-8, b=num('b'), h=num('h');
-            if(L<=0||q<0||E<=0||I<=0||b<=0||h<=0){ToolBox.setResult('result','<p class="tip-error">请输入有效的梁参数。</p>');return;}
+            const L=parseFloat(document.getElementById('L').value), q=parseFloat(document.getElementById('q').value), E=parseFloat(document.getElementById('E').value)*1e9, b=parseFloat(document.getElementById('b').value), h=parseFloat(document.getElementById('h').value);
+            if(!isFinite(L)||!isFinite(q)||!isFinite(E)||!isFinite(b)||!isFinite(h)||L<=0||q<0||E<=0||b<=0||h<=0){ToolBox.setResult('result','<p class="tip-error">请输入有效的梁参数。</p>');return;}
+            const Icm4 = b*Math.pow(h,3)/120000; // I = bh³/12（mm⁴→cm⁴）
+            document.getElementById('I').value = Math.round(Icm4);
+            const I=Icm4*1e-8;
             const Mmax = q*L*L/8;               // kN·m
             const Vmax = q*L/2;                 // kN
             const delta = 5*q*1000*Math.pow(L,4)/(384*E*I)*1000; // m -> mm (q 转 N/m)
@@ -241,7 +244,7 @@ function calcTool(){
 function resetForm(){document.getElementById('L').value = '6';
       document.getElementById('q').value = '20';
       document.getElementById('E').value = '30';
-      document.getElementById('I').value = '8000';
+      document.getElementById('I').value = '106667';
       document.getElementById('b').value = '200';
       document.getElementById('h').value = '400';
       calcTool();}
@@ -251,7 +254,10 @@ function __beam_udlNum(id){var e=document.getElementById(id);var v=e?parseFloat(
 function __beam_udlExtras(){
     function __beam_udlRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
-    var L=num('L'), q=num('q'), E=num('E')*1e9, I=num('I')*1e-8, b=num('b'), h=num('h');
+    var L=num('L'), q=num('q'), E=num('E')*1e9, b=num('b'), h=num('h');
+    var Icm4 = b*Math.pow(h,3)/120000;
+    var I=Icm4*1e-8;
+    if(!isFinite(b)||!isFinite(h)||b<=0||h<=0||!isFinite(L)||!isFinite(q)||L<=0||q<0) return;
     var Mmax = q*L*L/8;               // kN·m
     var Vmax = q*L/2;                 // kN
     var delta = 5*q*1000*Math.pow(L,4)/(384*E*I)*1000; // m -> mm (q 转 N/m)
@@ -280,9 +286,9 @@ function __beam_udlExport(){
 function __beam_udlPresets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#beam_udlPresets',[
-        {label:'默认',labelEn:'Default',values:{L:'6', q:'20', E:'30', I:'8000', b:'200', h:'400'}},
-        {label:'示例 2×',labelEn:'Example 2×',values:{L:'12', q:'40', E:'60', I:'16000', b:'400', h:'800'}},
-        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{L:'3', q:'10', E:'15', I:'4000', b:'100', h:'200'}},
+        {label:'默认',labelEn:'Default',values:{L:'6', q:'20', E:'30', b:'200', h:'400'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{L:'12', q:'40', E:'60', b:'400', h:'800'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{L:'3', q:'10', E:'15', b:'100', h:'200'}},
     ],function(){ calcTool(); });
 }
 var __tb_fn0 = calcTool;
@@ -333,8 +339,9 @@ else document.addEventListener('DOMContentLoaded', __beam_udlBoot);
 </section>
 <script>
 function __budSweep(){
-  var q=num('q'), E=num('E'), I=num('I');
-  if(!isFinite(q)||!isFinite(E)||!isFinite(I)||q<0||E<=0||I<=0)return null;
+  var q=num('q'), E=num('E'), b=num('b'), h=num('h');
+  var I=b*Math.pow(h,3)/120000;
+  if(!isFinite(q)||!isFinite(E)||!isFinite(I)||q<0||E<=0||I<=0||b<=0||h<=0)return null;
   var labels=[], dM=[], dD=[];
   var Ls=[2,3,4,5,6,8,10,12];
   for(var k=0;k<Ls.length;k++){

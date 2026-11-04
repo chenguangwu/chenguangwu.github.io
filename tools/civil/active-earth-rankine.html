@@ -113,7 +113,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="按朗金土压力理论计算无黏性/黏性填土作用于竖直墙背的主动土压力合力与临界深度。">Active Earth Rankine</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">主动土压力系数 K_a = tan²(45° − φ÷2)；临界深度 z₀ = 2c ÷ (γ·√K_a)；总主动土压力 E_a = ½γH²K_a − 2cH√K_a（结果为负取 0；黏性土 z₀ ≥ H 时开裂区以外 E_a = 0）；墙底土压力 = γHK_a − 2c√K_a（负值按 0 展示）。校验：重度、墙高、内摩擦角均须大于 0。判据：黏聚力 c = 0 时退化为无黏性土公式 E_a = ½γH²K_a。</div>
+      <div class="formula-eq">主动土压力系数 K_a = tan²(45° − φ÷2)；临界深度 z₀ = 2c ÷ (γ·√K_a)；总主动土压力 E_a = ½γH²K_a − 2cH√K_a + 2c²÷γ（自临界深度 z₀ 起算的积分值；黏性土 z₀ ≥ H 时全高开裂，E_a = 0）；墙底土压力 = γHK_a − 2c√K_a（负值按 0 展示）。校验：重度、墙高须大于 0，内摩擦角 φ 须在 0–45° 之间，黏聚力 c 须 ≥0。判据：黏聚力 c = 0 时退化为无黏性土公式 E_a = ½γH²K_a。</div>
       <p class="formula-desc">按朗金土压力理论计算无黏性/黏性填土作用于竖直墙背的主动土压力合力与临界深度。</p>
     </div>
 
@@ -173,7 +173,7 @@ s.parentNode.insertBefore(el, s);
       <ul>
         <li>K_a = tan²(45° − φ/2)</li>
         <li>黏性土临界深度 z₀ = 2c/(γ√K_a)</li>
-        <li>主动土压力合力 E_a = ½γH²K_a − 2cH√K_a（当为正时）</li>
+        <li>主动土压力合力 E_a = ½γH²K_a − 2cH√K_a + 2c²/γ（自临界深度起算；z₀ ≥ H 时取 0）</li>
         <li>本工具按水平填土、无超载的朗金理论估算</li>
       </ul>
     </div>
@@ -215,14 +215,15 @@ s.parentNode.insertBefore(el, s);
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-            const g=num('gamma'), H=num('H'), phi=num('phi')*Math.PI/180, c=num('c');
-            if(g<=0||H<=0||phi<=0){ToolBox.setResult('result','<p class="tip-error">请输入有效的土体参数。</p>');return;}
+            const g=parseFloat(document.getElementById('gamma').value), H=parseFloat(document.getElementById('H').value), phiDeg=parseFloat(document.getElementById('phi').value), c=parseFloat(document.getElementById('c').value);
+            if(!isFinite(g)||!isFinite(H)||!isFinite(phiDeg)||!isFinite(c)||g<=0||H<=0||phiDeg<=0||phiDeg>45||c<0){ToolBox.setResult('result','<p class="tip-error">请输入有效的土体参数：γ、H &gt; 0，φ 在 0–45° 之间，c ≥ 0。</p>');return;}
+            const phi=phiDeg*Math.PI/180;
             const Ka = Math.pow(Math.tan(Math.PI/4 - phi/2),2);
             let z0 = 0;
             if(c>0) z0 = 2*c/Math.sqrt(Ka)/g;
             let Ea;
             if(c>0 && z0>=H){ Ea=0; }
-            else { Ea = 0.5*g*H*H*Ka - 2*c*H*Math.sqrt(Ka); if(Ea<0) Ea=0; }
+            else { Ea = 0.5*g*H*H*Ka - 2*c*H*Math.sqrt(Ka) + 2*c*c/g; if(Ea<0) Ea=0; }
             const pa_bottom = g*H*Ka - 2*c*Math.sqrt(Ka);
             const html = dataGrid([
                 [Ka.toFixed(3),'主动土压力系数 K_a'],
@@ -249,9 +250,10 @@ function __active_earth_rankineExtras(){
     if(c>0) z0 = 2*c/Math.sqrt(Ka)/g;
     var Ea;
     if(c>0 && z0>=H){ Ea=0; }
-    else { Ea = 0.5*g*H*H*Ka - 2*c*H*Math.sqrt(Ka); if(Ea<0) Ea=0; }
+    else { Ea = 0.5*g*H*H*Ka - 2*c*H*Math.sqrt(Ka) + 2*c*c/g; if(Ea<0) Ea=0; }
     var pa_bottom = g*H*Ka - 2*c*Math.sqrt(Ka);
-    if (!isFinite(__active_earth_rankineNum('gamma')) || !isFinite(__active_earth_rankineNum('H')) || !isFinite(__active_earth_rankineNum('phi')) || !isFinite(__active_earth_rankineNum('c'))) return;
+    var phiDeg=__active_earth_rankineNum('phi');
+    if (!isFinite(__active_earth_rankineNum('gamma')) || !isFinite(__active_earth_rankineNum('H')) || !isFinite(phiDeg) || !isFinite(__active_earth_rankineNum('c')) || __active_earth_rankineNum('gamma')<=0 || __active_earth_rankineNum('H')<=0 || phiDeg<=0 || phiDeg>45 || __active_earth_rankineNum('c')<0) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#active_earth_rankineTable',{
         head: en?['Item','Value']:['项目','数值'],
@@ -275,8 +277,8 @@ function __active_earth_rankinePresets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#active_earth_rankinePresets',[
         {label:'默认',labelEn:'Default',values:{gamma:'18', H:'5', phi:'30', c:'0'}},
-        {label:'示例 2×',labelEn:'Example 2×',values:{gamma:'36', H:'10', phi:'60', c:'0'}},
-        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{gamma:'9', H:'2.5', phi:'15', c:'0'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{gamma:'36', H:'10', phi:'30', c:'0'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{gamma:'9', H:'2.5', phi:'30', c:'0'}},
     ],function(){ calcTool(); });
 }
 var __tb_fn0 = calcTool;
@@ -328,14 +330,14 @@ else document.addEventListener('DOMContentLoaded', __active_earth_rankineBoot);
 <script>
 function __aerSweep(){
   var g=num('gamma'), phi=num('phi'), c=num('c');
-  if(!isFinite(g)||!isFinite(phi)||!isFinite(c)||g<=0||phi<=0)return null;
+  if(!isFinite(g)||!isFinite(phi)||!isFinite(c)||g<=0||phi<=0||phi>45||c<0)return null;
   var pr=phi*Math.PI/180, Ka=Math.pow(Math.tan(Math.PI/4-pr/2),2);
   var labels=[], dE=[], dK=[];
   var Hs=[1,2,3,4,5,6,8,10];
   for(var k=0;k<Hs.length;k++){
     var hv=Hs[k];
     var z0=c>0?2*c/Math.sqrt(Ka)/g:0;
-    var Ea=(c>0&&z0>=hv)?0:(0.5*g*hv*hv*Ka-2*c*hv*Math.sqrt(Ka));
+    var Ea=(c>0&&z0>=hv)?0:(0.5*g*hv*hv*Ka-2*c*hv*Math.sqrt(Ka)+2*c*c/g);
     labels.push(hv.toFixed(0));
     dE.push(Math.round(Math.max(0,Ea)*100)/100);
     dK.push(Math.round(Ka*10000)/10000);

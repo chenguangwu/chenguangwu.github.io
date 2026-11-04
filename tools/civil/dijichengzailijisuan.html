@@ -117,7 +117,7 @@ s.parentNode.insertBefore(el, s);
 <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="基于太沙基公式计算条形基础地基极限承载力与特征值（安全系数取2）">Compute soil bearing capacity by Terzaghi's ultimate bearing theory.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">qu = c·Nc + γ·Df·Nq + 0.5·γ·B·Ng，fa = qu/K（Nq = e^(π·tanφ)·tan²(45°+φ/2)）</div>
+      <div class="formula-eq">qu = c·Nc + γ·Df·Nq + 0.5·γ·B·Ng，fa = qu/K（Nq = e^(π·tanφ)·tan²(45°+φ/2)）。校验：c ≥ 0、φ 在 0–45°、γ/B/K &gt; 0、Df ≥ 0，任一不满足即中止并清空旧结果。</div>
       <p class="formula-desc">基于太沙基公式计算条形基础地基极限承载力与特征值（安全系数取2）</p>
     </div>
 <div class="input-row">
@@ -131,7 +131,7 @@ s.parentNode.insertBefore(el, s);
   <div style="flex:1;"><label>基础埋深 Df (m)</label><input type="number" id="Df" value="1.5" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="基础埋深" placeholder="如 1.5"></div>
   <div style="flex:1;"><label>安全系数 K</label><input type="number" id="K" value="2" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="安全系数" placeholder="如 2"></div>
 </div>
-<div class="toolbar"><button class="btn primary" type="button" onclick="calc();saveHistory()">🧮 计算</button><button class="btn" type="button" onclick="copyRes()">📋 复制结果</button><button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button></div>
+<div class="toolbar"><button class="btn primary" type="button" onclick="if(calc())saveHistory()">🧮 计算</button><button class="btn" type="button" onclick="copyRes()">📋 复制结果</button><button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button></div>
 <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__dijichengzailijisuanExport()">导出明细 CSV</button></div><div class="result-box" id="res"></div> <div id="dijichengzailijisuanTable"></div> <div id="dijichengzailijisuanDiff"></div> <div id="dijichengzailijisuanChart"></div> <div id="dijichengzailijisuanHist"></div>
 <div class="info-box">💡 太沙基条形基础：qu = c·Nc + γ·Df·Nq + 0.5·γ·B·Nγ；承载力特征值 fa = qu / K。承载力系数由 φ 推导。</div>
 <!-- Formula & Standard References -->
@@ -166,11 +166,17 @@ function calc(){
   var K=parseFloat(document.getElementById('K').value);
   function setInv(el,inv){if(inv){el.classList.add('input-error');el.setAttribute('aria-invalid','true');}else{el.classList.remove('input-error');el.removeAttribute('aria-invalid');}}
   setInv(document.getElementById('c'),isNaN(c)||c<0);
-  setInv(document.getElementById('phi'),isNaN(phi)||phi<0);
+  setInv(document.getElementById('phi'),isNaN(phi)||phi<0||phi>45);
   setInv(document.getElementById('gamma'),isNaN(gamma)||gamma<=0);
   setInv(document.getElementById('B'),isNaN(B)||B<=0);
+  setInv(document.getElementById('Df'),isNaN(Df)||Df<0);
   setInv(document.getElementById('K'),isNaN(K)||K<=0);
-  if(isNaN(c)||isNaN(phi)||isNaN(gamma)||isNaN(B)||isNaN(Df)||isNaN(K)||gamma<=0||B<=0||K<=0){document.getElementById('res').innerHTML='<div class="info-box" style="color:#EF4444;">请输入有效参数（重度、宽度、安全系数&gt;0）</div>';return;}
+  if(isNaN(c)||isNaN(phi)||isNaN(gamma)||isNaN(B)||isNaN(Df)||isNaN(K)||c<0||phi<0||phi>45||gamma<=0||B<=0||Df<0||K<=0){
+    lastResult='';
+    var t=document.getElementById('dijichengzailijisuanTable');if(t)t.innerHTML='';
+    document.getElementById('res').innerHTML='<div class="info-box" style="color:#EF4444;">请输入有效参数：c≥0，φ 在 0–45° 之间，γ、B、K&gt;0，Df≥0</div>';
+    return false;
+  }
   var phiRad=phi*Math.PI/180;
   var Nq=Math.exp(Math.PI*Math.tan(phiRad))*Math.pow(Math.tan(Math.PI/4+phiRad/2),2);
   var Nc=phi>0?(Nq-1)/Math.tan(phiRad):5.14;
@@ -191,6 +197,7 @@ function calc(){
     '</div>';
   lastResult='地基承载力计算（太沙基公式）\n粘聚力 c = '+c+' kPa\n内摩擦角 φ = '+phi+'°\n重度 γ = '+gamma+' kN/m³\n基础宽度 B = '+B+' m\n基础埋深 Df = '+Df+' m\n安全系数 K = '+K+'\n承载力系数 Nc = '+Nc.toFixed(2)+'\n承载力系数 Nq = '+Nq.toFixed(2)+'\n承载力系数 Nγ = '+Ng.toFixed(2)+'\n极限承载力 qu = '+qu.toFixed(2)+' kPa\n承载力特征值 fa = '+fa.toFixed(2)+' kPa';
   const __g2=html;document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+  return true;
 }
 function copyRes(){if(!lastResult){ToolBox.showToast(i18nText(),'warning');return;}ToolBox.copyText(lastResult);}
 function resetAll(){document.getElementById('c').value=15;document.getElementById('phi').value=20;document.getElementById('gamma').value=18;document.getElementById('B').value=2;document.getElementById('Df').value=1.5;document.getElementById('K').value=2;calc();ToolBox.showToast(i18nText(),'info');}
