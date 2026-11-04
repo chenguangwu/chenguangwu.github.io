@@ -426,6 +426,24 @@ function applyPreset(name){
   ToolBox.showToast(i18nText());
 }
 
+function __utmAppend(baseUrl, params){
+  // 去掉原 URL 中已有的 utm_* 参数（大小写不敏感），避免同一参数出现两次或旧值残留
+  var u = String(baseUrl||'').trim();
+  var hashIdx = u.indexOf('#');
+  var base = hashIdx >= 0 ? u.slice(0, hashIdx) : u;
+  var hash = hashIdx >= 0 ? u.slice(hashIdx) : '';
+  var qi = base.indexOf('?');
+  if(qi >= 0){
+    var pathPart = base.slice(0, qi);
+    var kept = new URLSearchParams();
+    new URLSearchParams(base.slice(qi+1)).forEach(function(v,k){ if(!/^utm_/i.test(k)) kept.append(k,v); });
+    var qs = kept.toString();
+    base = pathPart + (qs ? '?' + qs : '');
+  }
+  var qs2 = params.toString();
+  return qs2 ? base + (base.includes('?') ? '&' : '?') + qs2 + hash : u;
+}
+
 function generate(){
   const url = document.getElementById('url').value.trim();
   if(!url){ document.getElementById('resultUrl').textContent = '请输入目标URL'; return; }
@@ -437,19 +455,15 @@ function generate(){
   const term = document.getElementById('term').value.trim();
   const content = document.getElementById('content').value.trim();
   
-  if(source) params.set('utm_source', source);
+  if(!source){ document.getElementById('resultUrl').textContent = '请填写必填项 utm_source'; return; }
+  params.set('utm_source', source);
   if(medium) params.set('utm_medium', medium);
   if(campaign) params.set('utm_campaign', campaign);
   if(term) params.set('utm_term', term);
   if(content) params.set('utm_content', content);
   
-  // UTM 参数必须位于 fragment 之前：URL 含 # 时先拆出 hash，再拼查询串
-  const hashIdx = url.indexOf('#');
-  const base = hashIdx >= 0 ? url.slice(0, hashIdx) : url;
-  const hash = hashIdx >= 0 ? url.slice(hashIdx) : '';
-  const sep = base.includes('?') ? '&' : '?';
-  const result = params.toString() ? base + sep + params.toString() + hash : url;
-  document.getElementById('resultUrl').textContent = result;
+  // UTM 参数必须位于 fragment 之前，并清理已有 utm_* 旧参数
+  document.getElementById('resultUrl').textContent = __utmAppend(url, params);
 }
 
 function copyUrl(){
@@ -510,16 +524,16 @@ function generateBatch(){
   let html = '';
   batchItems.forEach((item,i)=>{
     const params = new URLSearchParams();
+    const missing = !item.source;
     if(item.source) params.set('utm_source', item.source);
     if(item.medium) params.set('utm_medium', item.medium);
     if(item.campaign) params.set('utm_campaign', item.campaign);
-    const sep = baseUrl.includes('?') ? '&' : '?';
-    const url = params.toString() ? baseUrl + sep + params.toString() : baseUrl;
+    const url = missing ? '（缺少 utm_source，未生成）' : __utmAppend(baseUrl, params);
     html += `
       <div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);">
         <span style="font-size:12px;color:var(--text-muted);width:24px;">${i+1}</span>
-        <span style="flex:1;word-break:break-all;font-family:monospace;font-size:12px;">${ToolBox.escHtml(url)}</span>
-        <button type="button" class="btn" style="padding:4px 8px;font-size:11px;flex-shrink:0;" onclick="ToolBox.copyText('${url.replace(/'/g,"\\'")}', i18nText())">复制</button>
+        <span style="flex:1;word-break:break-all;font-family:monospace;font-size:12px;${missing?'color:var(--danger);':''}">${ToolBox.escHtml(url)}</span>
+        ${missing ? '' : `<button type="button" class="btn" style="padding:4px 8px;font-size:11px;flex-shrink:0;" onclick="ToolBox.copyText('${url.replace(/'/g,"\\'")}', i18nText())">复制</button>`}
       </div>
     `;
   });
@@ -531,12 +545,11 @@ function copyBatchResult(){
   let result = '';
   batchItems.forEach(item=>{
     const params = new URLSearchParams();
-    if(item.source) params.set('utm_source', item.source);
+    if(!item.source) return;
+    params.set('utm_source', item.source);
     if(item.medium) params.set('utm_medium', item.medium);
     if(item.campaign) params.set('utm_campaign', item.campaign);
-    const sep = baseUrl.includes('?') ? '&' : '?';
-    const url = params.toString() ? baseUrl + sep + params.toString() : baseUrl;
-    result += url + '\n';
+    result += __utmAppend(baseUrl, params) + '\n';
   });
   ToolBox.copyText(result.trim(), i18nText());
 }
@@ -544,14 +557,14 @@ function copyBatchResult(){
 function exportBatch(){
   const baseUrl = document.getElementById('batchBaseUrl').value.trim();
   let csv = 'source,medium,campaign,url\n';
+  const cell = v => '"' + String(v==null?'':v).replace(/"/g,'""').replace(/\r?\n/g,' ') + '"';
   batchItems.forEach(item=>{
     const params = new URLSearchParams();
     if(item.source) params.set('utm_source', item.source);
     if(item.medium) params.set('utm_medium', item.medium);
     if(item.campaign) params.set('utm_campaign', item.campaign);
-    const sep = baseUrl.includes('?') ? '&' : '?';
-    const url = params.toString() ? baseUrl + sep + params.toString() : baseUrl;
-    csv += `${item.source},${item.medium},${item.campaign},${url}\n`;
+    const url = item.source ? __utmAppend(baseUrl, params) : '';
+    csv += [cell(item.source), cell(item.medium), cell(item.campaign), cell(url)].join(',') + '\n';
   });
   ToolBox.downloadText('utm_links.csv', csv, 'text/csv');
 }

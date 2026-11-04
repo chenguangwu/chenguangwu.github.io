@@ -134,7 +134,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="批量统计出勤率、应扣款、加班费与全勤奖">Batch attendance rate, deductions, overtime pay and full-attendance bonus</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">出勤率 = 实际出勤天数 ÷ 应出勤天数 × 100%，实际出勤 = max(应出勤 − 旷工 − 请假, 0)（负值截 0，加班不参与计算）；应扣 = 迟到次数×迟到单价 + 早退次数×早退单价 + 旷工天数×旷工单价；加班费 = 加班小时 × 加班单价；全勤奖：无迟到/早退/旷工/请假才发放。校验：应出勤天数缺省按 1、各项扣款与单价缺省按 0 兜底，负数输入按 0 处理。判据：出勤率 ≥95 优秀、≥85 良好、≥75 合格、其余异常，按员工逐行评级并汇总迟到/早退/旷工/请假/加班/扣款/全勤奖/加班费。</div>
+      <div class="formula-eq">出勤率 = 实际出勤天数 ÷ 应出勤天数 × 100%，实际出勤 = max(应出勤 − 旷工 − 请假, 0)（负值截 0，加班不参与计算）；应扣 = 迟到次数×迟到单价 + 早退次数×早退单价 + 旷工天数×旷工单价；加班费 = 加班小时 × 加班单价；全勤奖：无迟到/早退/旷工/请假才发放。校验：应出勤天数缺省按 1、各项扣款与单价缺省按 0 兜底，负数输入按 0 处理。判据：出勤率 ≥95 优秀、≥85 良好、≥75 合格、其余异常；有迟到/早退/旷工/请假任一记录者不得评「优秀」（封顶良好），按员工逐行评级并汇总迟到/早退/旷工/请假/加班/扣款/全勤奖/加班费。</div>
       <p class="formula-desc">按员工批量统计出勤率、应扣款、加班费与全勤奖，并汇总迟到/早退/旷工/请假与费用合计。</p>
     </div>
 
@@ -191,7 +191,7 @@ s.parentNode.insertBefore(el, s);
 <li>按全勤规则核算全勤奖，并按加班单价核算<a class="term-link" href="/tools/legal/overtime-pay.html">加班费</a>。</li>
 <li>导出明细 CSV，交给主管跟进异常考勤。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">单人明细：迟到 2 次 + 请假 1 天 + 加班 8 小时</div><div class="dd-ex-body">应出勤 22 天 → 实际出勤 21 天、出勤率 95.5%（优秀）；应扣 2×20=40 元；加班费 8×30=240 元；因请假 1 天不满足全勤条件，全勤奖为 0。</div></div>
+<div class="dd-example"><div class="dd-ex-title">单人明细：迟到 2 次 + 请假 1 天 + 加班 8 小时</div><div class="dd-ex-body">应出勤 22 天 → 实际出勤 21 天、出勤率 95.5%；但存在迟到与请假，评级封顶「良好」（不评优秀）；应扣 2×20=40 元；加班费 8×30=240 元；因请假 1 天不满足全勤条件，全勤奖为 0。</div></div>
 <div class="dd-example"><div class="dd-ex-title">全周期汇总：扣款 360 元、加班费 540 元</div><div class="dd-ex-body">默认 4 人：迟到共 5 次、早退 3 次、旷工 1 天、请假 3 天、加班 18 小时 → 扣款 5×20+3×20+1×200=360 元、加班费 18×30=540 元；仅赵六全勤，全勤奖合计 200 元。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
@@ -278,6 +278,11 @@ function calc(){
 
   var rows = [], totalLate=0, totalEarly=0, totalAbsent=0, totalLeave=0, totalFine=0, totalOt=0, totalOtPay=0, fullCount=0, totalBonus=0;
   emps.forEach(function(e){
+    // 负数输入按 0 处理，避免旷工/请假为负时出勤率超 100%、扣款反向增加
+    e.late=Math.max(parseFloat(e.late)||0,0);
+    e.early=Math.max(parseFloat(e.early)||0,0);
+    e.absent=Math.max(parseFloat(e.absent)||0,0);
+    e.leave=Math.max(parseFloat(e.leave)||0,0);
     var actualDays = workDays - e.absent - e.leave;
     if(actualDays<0) actualDays=0;
     var rate = workDays>0?(actualDays/workDays*100):0;
@@ -288,6 +293,8 @@ function calc(){
     var bonus = isFull?fullBonus:0;
     var grade = rate>=95?'grade-excellent':(rate>=85?'grade-good':(rate>=75?'grade-pass':'grade-fail'));
     var gradeText = rate>=95?'优秀':(rate>=85?'良好':(rate>=75?'合格':'异常'));
+    // 有迟到/早退/旷工/请假任一记录者不得评为「优秀」，最多「良好」
+    if(!isFull && gradeText==='优秀'){ grade='grade-good'; gradeText='良好'; }
     rows.push([
       e.name||'未命名',
       e.late, e.early, e.absent, e.leave, ot,

@@ -540,7 +540,8 @@ const CASES = [
     ref: "注入非默认(默认 500/450/50/45/8.5/85)：到场率 = 510/600 = 85.0%；预算执行率 = 52/60 = 86.7%；满意度 7.2/10；目标达成率 72% ⇒ 加权综合 78.2 分，落『优秀』（默认 87.3 分『卓越』）。默认态90.0%/90.0%/87.3/卓越，四条均不命中。",
   },
   {"slug": "marketing/email-subject-line-tester", "inputs": {"subject": "Your order #A4821 has shipped — track it in 3 clicks", "previewText": "Track your package"}, "expect": ["52 11 ✓ 完整 52字", "100 优秀 👍 标题质量良好，继续保持！", "✅ 标题长度适中（52字符） 🔢 包含数字，有助于吸引注意力 ✅ 未检测到明显垃圾邮件关键词"], "ref": "独立复算：标题 52 字符（Python len 验证）、按空白切分 11 词；10 ≤ 52 ≤ 70 ⇒ 不扣长度分（不奖不罚）、11 词 ≤ 15 不扣词数分、含数字只加分不扣、无中文垃圾词、无【】括号 ⇒ 四项均不扣分，总分 = 100 ⇒ 标签「优秀」。默认态标题「【限时优惠】夏季新品上市，全场5折起，错过等一年！」= 25 字符、含【】扣 2 分、含垃圾词（限时/优惠类）扣分 ⇒ 总分远低于 100，且「52字符」「11」「52字」三锚均不命中。预览文案由 desktopPreview/mobilePreview 双处回显，同串出现两次，注入值本身不作锚。"},
-  {"slug": "marketing/email-subject-line-tester", "inputs": {"subject": "限时秒杀", "previewText": "仅今日"}, "expect": ["4 1 ✓ 完整 4字", "87 优秀 👍 标题质量良好，继续保持！", "💡 标题较短，建议提供更多信息吸引读者 ⚠️ 包含垃圾词「限时」，可能影响送达率 🚫 包含垃圾词「秒杀」，可能影响送达率"], "ref": "独立复算：标题「限时秒杀」4 字符（< 10 ⇒ 扣 5 分，并输出「标题较短」建议）、1 词；命中垃圾词表两项「限时」「秒杀」，各扣 4 分（warn 级 ⚠️ / 强拦截级 🚫 两档）；4 字无数字加分、无括号 ⇒ 总分 100 − 5 − 4 − 4 = 87。默认态 25 字符、含【】与「限时优惠」类词，总分与建议串均不同；「4 1」「4字」两锚不命中。与上一例互为对照：一条满分无扣分、一条 13 分扣分，同时覆盖「过短」与「适中」两个长度分支及两档垃圾词。"},
+  {"slug": "marketing/email-subject-line-tester", "inputs": {"subject": "限时秒杀", "previewText": "仅今日"}, "expect": ["4 1 ✓ 完整 4字", "87 优秀 👍 标题质量良好，继续保持！", "💡 标题较短，建议提供更多信息吸引读者 ⚠️ 标题包含垃圾词「限时」，可能影响送达率 🚫 标题包含垃圾词「秒杀」，可能影响送达率"], "ref": "独立复算：标题「限时秒杀」4 字符（< 10 ⇒ 扣 5 分，并输出「标题较短」建议）、1 词；命中垃圾词表两项「限时」「秒杀」，各扣 4 分（warn 级 ⚠️ / 强拦截级 🚫 两档）；4 字无数字加分、无括号 ⇒ 总分 100 − 5 − 4 − 4 = 87。默认态 25 字符、含【】与「限时优惠」类词，总分与建议串均不同；「4 1」「4字」两锚不命中。与上一例互为对照：一条满分无扣分、一条 13 分扣分，同时覆盖「过短」与「适中」两个长度分支及两档垃圾词。"},
+  {"slug": "marketing/email-subject-line-tester", "inputs": {"subject": "本周行业简报", "previewText": "限时福利"}, "expect": ["6 1 ✓ 完整 6字", "94 优秀 👍 标题质量良好，继续保持！", "💡 标题较短，建议提供更多信息吸引读者 ⚠️ 预览正文包含垃圾词「限时」，可能影响送达率"], "ref": "独立复算：标题 6 字符（<10 ⇒ 扣 5 分）、1 词、无数字无括号；垃圾词扫描覆盖标题 + 预览正文，预览「限时福利」命中垃圾词「限时」扣 4 分（标题内未命中 ⇒ 提示标注「预览正文」），同时「福利」命中积极词加 3 分 ⇒ 100 − 5 − 4 + 3 = 94。该例专测预览正文参与扫描的分支：若只看标题则总分为 98 且不出现「预览正文包含垃圾词」提示。"},
   {"slug": "marketing/social-media-image-sizes", "inputs": {"searchInput": "竖版封面视频"}, "clicks": ["filterSizes();"], "expect": ["未找到匹配的尺寸"], "ref": "独立判定：关键词「竖版封面视频」在页面 12 个平台 × 各类尺寸的名称/平台名/宽高/比例数据中均无任何子串命中 ⇒ 过滤后集合为空，filterSizes() 走空分支渲染「未找到匹配的尺寸」。默认态（空关键词）全量渲染 12 个平台的全部尺寸卡，blob 无该提示串；兜底无参 filterSizes() 读空 searchInput 同样渲染全量、不会复现空提示 ⇒ 非兜底产物。过滤命中的串（如搜「头像」得 11 条头像卡连排）**不可作锚**：默认态本就全量含这些串，判别器回退 searchInput 后照样命中。搜索词在输入框 value 中回显，不作锚。"}
 ,
 {
@@ -670,6 +671,12 @@ const CASES = [
     "inputs": { "url": "https://shop.example.org/p", "source": "zhihu", "medium": "referral", "campaign": "tb_verify_2026", "term": "k1 k2", "content": "c1" },
     "expect": ["https://shop.example.org/p?utm_source=zhihu&utm_medium=referral&utm_campaign=tb_verify_2026&utm_term=k1+k2&utm_content=c1"],
     "ref": "注入 5 参数齐备的非默认组合（默认 baidu/cpc/summer_sale_2024）。独立复算：本页与 marketing/utm-builder 的差别是 term 的空格编码 —— 用 URLSearchParams/encodeURIComponent 把 `k1 k2` 编为 `k1+k2`（加号）⇒ 完整链接 https://shop.example.org/p?utm_source=zhihu&utm_medium=referral&utm_campaign=tb_verify_2026&utm_term=k1+k2&utm_content=c1。默认态 term/content 为空只输出 3 参数链接，不命中。⚠ term 用含空格值是刻意：能验证编码分支（默认空串走不到 encode）。"
+  },
+  {
+    "slug": "marketing/utm-builder",
+    "inputs": { "url": "https://shop.example.org/p?UTM_Source=old&color=red#top", "source": "weibo", "medium": "social", "campaign": "v_dedupe", "term": "", "content": "" },
+    "expect": ["https://shop.example.org/p?color=red&utm_source=weibo&utm_medium=social&utm_campaign=v_dedupe#top"],
+    "ref": "回归用例（旧 utm_* 去重 + fragment 顺序）：输入已带 `UTM_Source=old` 与 `color=red` 并含 `#top`。页面须大小写不敏感地剔除原 utm_* 参数、保留非 utm 参数、把新参数拼在 fragment 之前 ⇒ https://shop.example.org/p?color=red&utm_source=weibo&utm_medium=social&utm_campaign=v_dedupe#top。旧版不去重会得到 `?UTM_Source=old&color=red&utm_source=weibo…`，且 fragment 位置错误，本串即不命中（0 逃生）。"
   },
   {
     "slug": "marketing/marketing-chinese-hashtag-generator",
