@@ -1,10 +1,11 @@
 # 交互有效性扫描（第二轮：点了到底有没有用）
 
-- 扫描时间：2026/11/5 03:45:54
+- 扫描时间：2026/11/5 04:05:27
 - 覆盖工具页：**4807**
 - 有输入控件的页：**4403**
 - 无输入控件（纯展示/参考卡，跳过）：**404**
 - 有输入但无主按钮（实时计算/表单提交，不计缺陷）：**587**
+- 空态三档（本版已按新口径重扫 **17** 页）：真空态 `text_empty_no_select` **0**｜select 默认态 `text_empty_sel_default` **15**｜控件回读失真 `true_distortion` **2**；其余 **4386** 页仍是旧口径记录，待全量重扫后归位
 - 命中至少一类问题：**254**
 
 > 口径：① 有效性＝先填值→记录快照→**改一个输入为明显不同的合法值**→再点主按钮→比较前后快照（排除「加载时已自动算过一次」的假阴性）；② 空态＝清空所有输入后点主按钮，结果区给出 NaN/Infinity/undefined/null/0/空串或结论即为缺陷；③ 死控件＝控件 id 在全部 `<script>` 中从未出现（且页面无 `querySelectorAll('input')` / `FormData` 这类泛化读取，内联 oninput 绑定的不计）。快照优先取 `#result/#output/.result*` 等结果容器，无则回退整页正文（剔除控件内的当前值）。
@@ -52,55 +53,55 @@
 | # | 页面 | 得分 | 类型 | 证据 |
 |---|---|---|---|---|
 | 1 | `tools/it/matrix-multiplier.html` | 3 | click_error | 按钮「计算乘法」｜click: Cannot read properties of null (reading 'value') @ getM (/tools/it/matrix-multiplier… |
-| 2 | `tools/agriculture/agri-calculator.html` | 2.6 | empty_bogus | 空输入点「计算配比」→ 结果区 氮 (N)0.00kg磷 (P₂O₅)0.00kg钾 (K₂O)0.00kg配方比例：0-0-0施肥面积：0 亩每亩用量：0 kg/亩肥料总量：0.0 kg ⏐ 📋 … |
-| 3 | `tools/astronomy/hubble-redshift-distance.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00距离 d (Mpc)0.00d (百万光年)0.00退行速度 v = cz (km/s)0.0000d (十亿光年) ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 4 | `tools/astronomy/kepler-equation.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.000偏近点角 E (°)0.00000E (rad) ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 5 | `tools/astronomy/light-travel-time.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.000传播时间 t (min)0.0t (s)0.0000距离 (天文单位 AU)0.0000传播时间 (h)0.000e+0距离 (光年) ⏐ 📋 复制结果⬇️ 导… |
-| 6 | `tools/baking/recipe-scaler.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 缩放后配方（×0） ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 7 | `tools/banking/amortization-first-interest.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00首月利息 I₁0.00首月还本金0.000年利率 (%)0.0000首月利息占本金比 (%) ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 8 | `tools/banking/continuous-compounding.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00连续复利终值 A0.00利息总额0.0000年实际收益率 (%)0.0000较年复利增益 (%) ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 9 | `tools/banking/effective-annual-rate.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.000有效年利率 EAR (%)0.00000EAR (小数)0.0000EAR 高于名义利率 (百分点)0.0000与连续复利之差 (百分点) ⏐ 📋 复制结果⬇️… |
-| 10 | `tools/banking/net-worth.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0净资产 NW (元)0.00负债率 (%)0.000资产覆盖倍数0.00净资产占资产 (%) ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 11 | `tools/banking/tax-equivalent-yield.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.000税后等效收益率 TEY (%)0.000应税需高出的百分点0.0边际税率 (%)0.0000免税溢价系数减一 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 12 | `tools/chemistry/gibbs-free-energy.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.000ΔG (kJ/mol)平衡反应方向 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 13 | `tools/chemistry/kp-kc.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.000e+0压力平衡常数 Kp0.0RT (L·atm/(mol·K)) ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 14 | `tools/chemistry/mole-fraction.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.0000总物质的量 (mol) ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 15 | `tools/chemistry/partial-pressure.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00分压 Pᵢ (kPa)0.00其余组分分压 (kPa)0.000摩尔分数 (%)0.000其余组分占比 (%) ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 16 | `tools/chinese-cook/estimate-16.html` | 2.6 | empty_bogus | 空输入点「🧮 计算」→ 结果区 0% of 0 = 0.00 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 17 | `tools/design/px-to-rem.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 转换结果 ⏐ 0px = 0.0000rem ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 18 | `tools/dynamics/angular-momentum.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.000角动量 L (kg·m²/s)0.000两倍角动量0.0000由 L 反推角速度0.000转动动能 (J) ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 19 | `tools/dynamics/impulse.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00冲量 J (N·s)0.0冲量 (N·ms 牛毫秒)0.0000冲量 (kgf·s 千克力秒)0.0000力与作用时间之比 (N/s) ⏐ 📋 复制结果⬇️ 导出… |
-| 20 | `tools/dynamics/inclined-plane-accel.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.000加速度 a (m/s²)静止/需外力状态 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 21 | `tools/dynamics/kinetic-friction.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00动摩擦力 F_k (N)0.0000正压力与摩擦系数之比0.0000摩擦力 (kgf 千克力)0.0000摩擦系数平方 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 22 | `tools/dynamics/momentum.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.0动量 p (kg·m/s)0.0动能 Ek (J)0.0动量乘速度 (kg·m²/s²)0.0000质量与速度之比 (kg·s/m) ⏐ 📋 复制结果⬇️ 导出 T… |
-| 23 | `tools/dynamics/power-force.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.0功率 P (W)0.00P (kW)0.000功率 (公制马力 PS)0.000功率 (英制马力 hp)0.000每小时做功 (kJ/h) ⏐ 📋 复制结果⬇️ 导… |
-| 24 | `tools/dynamics/power-rotational.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00旋转功率 P (W)0.0000旋转功率 (hp)0.0000旋转功率 (kW)0.0000旋转功率 (PS) ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 25 | `tools/dynamics/rotational-kinetic-energy.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.000转动动能 E (J)0.000两倍转动动能（I 乘 ω²）0.0000角动量 L0.0000转速 (转/秒) ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 26 | `tools/dynamics/spring-potential.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.000弹性势能 U (J)0.000对应弹力 F (N)0.0000劲度与位移平方之积 (J)0.0000弹性势能 (mJ 毫焦) ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 27 | `tools/dynamics/torque-force.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00力矩 τ (N·m)0.0000有效力臂 (m)0.000径向分量 (N) ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 28 | `tools/dynamics/weight-force.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00重力 W (N)0.00W (kgf)0.00月球表面重力 (N)0.00火星表面重力 (N)0.000重力 W (kgf 标准重力) ⏐ 📋 复制结果⬇️ 导出… |
-| 29 | `tools/dynamics/work-energy-theorem.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00合外力功 W (J)0.00末动能 (J)0.00初动能 (J) ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 30 | `tools/eco/battery-storage.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 可用电量：0.00 kWh总能量：0.00 kWh ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 31 | `tools/eco/convert-air-aqi.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0等级 优 ｜ 输入浓度 0 µg/m³ ｜ 建议 可正常户外活动 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 32 | `tools/eco/eco-10.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 年发电量：0.00 MWh（千 kWh）年减排量：0.00 吨 CO₂等效植树：0 棵 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 33 | `tools/eco/eco-11.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 单次额外燃油：0.00 L年额外燃油：0.00 L年额外碳排：0.00 吨 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 34 | `tools/eco/eco-16.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 年发电量：0.00 MWh（千 kWh）年减排量：0.00 吨 CO₂等效减少汽车：0 辆 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 35 | `tools/eco/eco-4.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 日产生量：0.00 吨/天年产生量：0.00 吨/年累计吨天数：0 kg·天 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 36 | `tools/eco/eco-7.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 总标准煤：0.00 kgce总 kWh：0.00 kWh总 MJ：0.00 MJ ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 37 | `tools/eco/eco-8.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 总株数：0 株年碳汇量：0.00 吨/年累计碳汇：0.00 吨 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 38 | `tools/eco/eco.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 电力碳排：0.00 kg燃煤碳排：0.00 kg天然气碳排：0.00 kg汽油碳排：0.00 kg总碳排：0.00 kg ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 39 | `tools/eco/ecological-footprint.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 生态足迹：0.000 gha ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 40 | `tools/eco/electricity-carbon.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 CO₂ 排放：0.00 kg等效树木吸收天数：0.0 天 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 41 | `tools/eco/env-impact-score.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 综合评分：0.0 分最高项：0 分 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 42 | `tools/eco/landfill-methane.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 CH₄ 产量：0.0 kg/年CO₂ 当量：0.0 kgCO₂e ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 43 | `tools/eco/rainwater-harvest.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 收集量：0 L折合吨：0.00 吨 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 44 | `tools/eco/solar-output.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 发电量：0.0 kWh等效减排：0.00 kgCO₂ ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 45 | `tools/eco/water-footprint.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 总耗水：0 L折合 m³：0.00 m³ ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 46 | `tools/eco/water-saving.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 节约水量：0.0 L折合吨：0.00 吨 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 47 | `tools/eco/wind-power.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 功率：0.00 kW ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 48 | `tools/economics/balance-of-trade.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0贸易差额 BoT0.00差额占出口比 (%)0.000出口进口比0进出口总额 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 49 | `tools/economics/compound-amount.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00复利终值 F0.00利息总额 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 50 | `tools/economics/fv-annuity.html` | 2.6 | empty_bogus | 空输入点「计算」→ 结果区 0.00年金终值 FV0.00利息总额 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 2 | `tools/agriculture/agri-calculator.html` | 2.6 | empty_bogus | 空输入点「计算配比」（）→ 结果区 氮 (N)0.00kg磷 (P₂O₅)0.00kg钾 (K₂O)0.00kg配方比例：0-0-0施肥面积：0 亩每亩用量：0 kg/亩肥料总量：0.0 kg ⏐ �… |
+| 3 | `tools/astronomy/hubble-redshift-distance.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 0.00距离 d (Mpc)0.00d (百万光年)0.00退行速度 v = cz (km/s)0.0000d (十亿光年) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 4 | `tools/astronomy/kepler-equation.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 0.000偏近点角 E (°)0.00000E (rad) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 5 | `tools/astronomy/light-travel-time.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 0.000传播时间 t (min)0.0t (s)0.0000距离 (天文单位 AU)0.0000传播时间 (h)0.000e+0距离 (光年) ⏐ 📋 复制结果⬇️… |
+| 6 | `tools/baking/recipe-scaler.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 缩放后配方（×0） ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 7 | `tools/banking/amortization-first-interest.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 0.00首月利息 I₁0.00首月还本金0.000年利率 (%)0.0000首月利息占本金比 (%) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 8 | `tools/banking/continuous-compounding.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 0.00连续复利终值 A0.00利息总额0.0000年实际收益率 (%)0.0000较年复利增益 (%) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 9 | `tools/banking/effective-annual-rate.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 0.000有效年利率 EAR (%)0.00000EAR (小数)0.0000EAR 高于名义利率 (百分点)0.0000与连续复利之差 (百分点) ⏐ 📋 复制结果… |
+| 10 | `tools/banking/net-worth.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 0净资产 NW (元)0.00负债率 (%)0.000资产覆盖倍数0.00净资产占资产 (%) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 11 | `tools/banking/tax-equivalent-yield.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 0.000税后等效收益率 TEY (%)0.000应税需高出的百分点0.0边际税率 (%)0.0000免税溢价系数减一 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 12 | `tools/chemistry/gibbs-free-energy.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 0.000ΔG (kJ/mol)平衡反应方向 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 13 | `tools/chemistry/kp-kc.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 0.000e+0压力平衡常数 Kp0.0RT (L·atm/(mol·K)) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 14 | `tools/chemistry/mole-fraction.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 0.0000总物质的量 (mol) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 15 | `tools/chemistry/partial-pressure.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 0.00分压 Pᵢ (kPa)0.00其余组分分压 (kPa)0.000摩尔分数 (%)0.000其余组分占比 (%) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 16 | `tools/chinese-cook/estimate-16.html` | 2.6 | empty_bogus | 空输入点「🧮 计算」（）→ 结果区 0% of 0 = 0.00 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 17 | `tools/design/px-to-rem.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 转换结果 ⏐ 0px = 0.0000rem ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 18 | `tools/dynamics/angular-momentum.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 0.000角动量 L (kg·m²/s)0.000两倍角动量0.0000由 L 反推角速度0.000转动动能 (J) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 19 | `tools/dynamics/impulse.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 0.00冲量 J (N·s)0.0冲量 (N·ms 牛毫秒)0.0000冲量 (kgf·s 千克力秒)0.0000力与作用时间之比 (N/s) ⏐ 📋 复制结果⬇️ … |
+| 20 | `tools/dynamics/inclined-plane-accel.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 0.000加速度 a (m/s²)静止/需外力状态 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 21 | `tools/dynamics/kinetic-friction.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 0.00动摩擦力 F_k (N)0.0000正压力与摩擦系数之比0.0000摩擦力 (kgf 千克力)0.0000摩擦系数平方 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 22 | `tools/dynamics/momentum.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 0.0动量 p (kg·m/s)0.0动能 Ek (J)0.0动量乘速度 (kg·m²/s²)0.0000质量与速度之比 (kg·s/m) ⏐ 📋 复制结果⬇️ 导出… |
+| 23 | `tools/dynamics/power-force.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 0.0功率 P (W)0.00P (kW)0.000功率 (公制马力 PS)0.000功率 (英制马力 hp)0.000每小时做功 (kJ/h) ⏐ 📋 复制结果⬇️… |
+| 24 | `tools/dynamics/power-rotational.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 0.00旋转功率 P (W)0.0000旋转功率 (hp)0.0000旋转功率 (kW)0.0000旋转功率 (PS) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 25 | `tools/dynamics/rotational-kinetic-energy.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 0.000转动动能 E (J)0.000两倍转动动能（I 乘 ω²）0.0000角动量 L0.0000转速 (转/秒) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 26 | `tools/dynamics/spring-potential.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 0.000弹性势能 U (J)0.000对应弹力 F (N)0.0000劲度与位移平方之积 (J)0.0000弹性势能 (mJ 毫焦) ⏐ 📋 复制结果⬇️ 导出 T… |
+| 27 | `tools/dynamics/torque-force.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 0.00力矩 τ (N·m)0.0000有效力臂 (m)0.000径向分量 (N) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 28 | `tools/dynamics/weight-force.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 0.00重力 W (N)0.00W (kgf)0.00月球表面重力 (N)0.00火星表面重力 (N)0.000重力 W (kgf 标准重力) ⏐ 📋 复制结果⬇️ … |
+| 29 | `tools/dynamics/work-energy-theorem.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 0.00合外力功 W (J)0.00末动能 (J)0.00初动能 (J) ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 30 | `tools/eco/battery-storage.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 可用电量：0.00 kWh总能量：0.00 kWh ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 31 | `tools/eco/convert-air-aqi.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 0等级 优 ｜ 输入浓度 0 µg/m³ ｜ 建议 可正常户外活动 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 32 | `tools/eco/eco-10.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 年发电量：0.00 MWh（千 kWh）年减排量：0.00 吨 CO₂等效植树：0 棵 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 33 | `tools/eco/eco-11.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 单次额外燃油：0.00 L年额外燃油：0.00 L年额外碳排：0.00 吨 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 34 | `tools/eco/eco-16.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 年发电量：0.00 MWh（千 kWh）年减排量：0.00 吨 CO₂等效减少汽车：0 辆 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 35 | `tools/eco/eco-4.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 日产生量：0.00 吨/天年产生量：0.00 吨/年累计吨天数：0 kg·天 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 36 | `tools/eco/eco-7.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 总标准煤：0.00 kgce总 kWh：0.00 kWh总 MJ：0.00 MJ ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 37 | `tools/eco/eco-8.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 总株数：0 株年碳汇量：0.00 吨/年累计碳汇：0.00 吨 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 38 | `tools/eco/eco.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 电力碳排：0.00 kg燃煤碳排：0.00 kg天然气碳排：0.00 kg汽油碳排：0.00 kg总碳排：0.00 kg ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 39 | `tools/eco/ecological-footprint.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 生态足迹：0.000 gha ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 40 | `tools/eco/electricity-carbon.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 CO₂ 排放：0.00 kg等效树木吸收天数：0.0 天 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 41 | `tools/eco/env-impact-score.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 综合评分：0.0 分最高项：0 分 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 42 | `tools/eco/landfill-methane.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 CH₄ 产量：0.0 kg/年CO₂ 当量：0.0 kgCO₂e ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 43 | `tools/eco/rainwater-harvest.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 收集量：0 L折合吨：0.00 吨 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 44 | `tools/eco/solar-output.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 发电量：0.0 kWh等效减排：0.00 kgCO₂ ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 45 | `tools/eco/water-footprint.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 总耗水：0 L折合 m³：0.00 m³ ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 46 | `tools/eco/water-saving.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 节约水量：0.0 L折合吨：0.00 吨 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 47 | `tools/eco/wind-power.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 功率：0.00 kW ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 48 | `tools/economics/balance-of-trade.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 0贸易差额 BoT0.00差额占出口比 (%)0.000出口进口比0进出口总额 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 49 | `tools/economics/compound-amount.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 0.00复利终值 F0.00利息总额 ⏐ 📋 复制结果⬇️ 导出 TXT |
+| 50 | `tools/economics/fv-annuity.html` | 2.6 | empty_bogus | 空输入点「计算」（）→ 结果区 0.00年金终值 FV0.00利息总额 ⏐ 📋 复制结果⬇️ 导出 TXT |
 
 ## 一、按钮有效性（点了没反应 / 点了报错）
 
@@ -112,180 +113,180 @@
 
 ### 空输入直接给出 NaN/Infinity/undefined/null/0（137 页）
 
-- `tools/agriculture/agri-calculator.html` — 空输入点「计算配比」→ 结果区 氮 (N)0.00kg磷 (P₂O₅)0.00kg钾 (K₂O)0.00kg配方比例：0-0-0施肥面积：0 亩每亩用量：0 kg/亩肥料总量：0.0 kg ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/astronomy/hubble-redshift-distance.html` — 空输入点「计算」→ 结果区 0.00距离 d (Mpc)0.00d (百万光年)0.00退行速度 v = cz (km/s)0.0000d (十亿光年) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/astronomy/kepler-equation.html` — 空输入点「计算」→ 结果区 0.000偏近点角 E (°)0.00000E (rad) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/astronomy/light-travel-time.html` — 空输入点「计算」→ 结果区 0.000传播时间 t (min)0.0t (s)0.0000距离 (天文单位 AU)0.0000传播时间 (h)0.000e+0距离 (光年) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/baking/recipe-scaler.html` — 空输入点「计算」→ 结果区 缩放后配方（×0） ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/banking/amortization-first-interest.html` — 空输入点「计算」→ 结果区 0.00首月利息 I₁0.00首月还本金0.000年利率 (%)0.0000首月利息占本金比 (%) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/banking/continuous-compounding.html` — 空输入点「计算」→ 结果区 0.00连续复利终值 A0.00利息总额0.0000年实际收益率 (%)0.0000较年复利增益 (%) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/banking/effective-annual-rate.html` — 空输入点「计算」→ 结果区 0.000有效年利率 EAR (%)0.00000EAR (小数)0.0000EAR 高于名义利率 (百分点)0.0000与连续复利之差 (百分点) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/banking/net-worth.html` — 空输入点「计算」→ 结果区 0净资产 NW (元)0.00负债率 (%)0.000资产覆盖倍数0.00净资产占资产 (%) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/banking/tax-equivalent-yield.html` — 空输入点「计算」→ 结果区 0.000税后等效收益率 TEY (%)0.000应税需高出的百分点0.0边际税率 (%)0.0000免税溢价系数减一 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/chemistry/gibbs-free-energy.html` — 空输入点「计算」→ 结果区 0.000ΔG (kJ/mol)平衡反应方向 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/chemistry/kp-kc.html` — 空输入点「计算」→ 结果区 0.000e+0压力平衡常数 Kp0.0RT (L·atm/(mol·K)) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/chemistry/mole-fraction.html` — 空输入点「计算」→ 结果区 0.0000总物质的量 (mol) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/chemistry/partial-pressure.html` — 空输入点「计算」→ 结果区 0.00分压 Pᵢ (kPa)0.00其余组分分压 (kPa)0.000摩尔分数 (%)0.000其余组分占比 (%) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/chinese-cook/estimate-16.html` — 空输入点「🧮 计算」→ 结果区 0% of 0 = 0.00 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/design/px-to-rem.html` — 空输入点「计算」→ 结果区 转换结果 ⏐ 0px = 0.0000rem ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/dynamics/angular-momentum.html` — 空输入点「计算」→ 结果区 0.000角动量 L (kg·m²/s)0.000两倍角动量0.0000由 L 反推角速度0.000转动动能 (J) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/dynamics/impulse.html` — 空输入点「计算」→ 结果区 0.00冲量 J (N·s)0.0冲量 (N·ms 牛毫秒)0.0000冲量 (kgf·s 千克力秒)0.0000力与作用时间之比 (N/s) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/dynamics/inclined-plane-accel.html` — 空输入点「计算」→ 结果区 0.000加速度 a (m/s²)静止/需外力状态 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/dynamics/kinetic-friction.html` — 空输入点「计算」→ 结果区 0.00动摩擦力 F_k (N)0.0000正压力与摩擦系数之比0.0000摩擦力 (kgf 千克力)0.0000摩擦系数平方 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/dynamics/momentum.html` — 空输入点「计算」→ 结果区 0.0动量 p (kg·m/s)0.0动能 Ek (J)0.0动量乘速度 (kg·m²/s²)0.0000质量与速度之比 (kg·s/m) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/dynamics/power-force.html` — 空输入点「计算」→ 结果区 0.0功率 P (W)0.00P (kW)0.000功率 (公制马力 PS)0.000功率 (英制马力 hp)0.000每小时做功 (kJ/h) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/dynamics/power-rotational.html` — 空输入点「计算」→ 结果区 0.00旋转功率 P (W)0.0000旋转功率 (hp)0.0000旋转功率 (kW)0.0000旋转功率 (PS) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/dynamics/rotational-kinetic-energy.html` — 空输入点「计算」→ 结果区 0.000转动动能 E (J)0.000两倍转动动能（I 乘 ω²）0.0000角动量 L0.0000转速 (转/秒) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/dynamics/spring-potential.html` — 空输入点「计算」→ 结果区 0.000弹性势能 U (J)0.000对应弹力 F (N)0.0000劲度与位移平方之积 (J)0.0000弹性势能 (mJ 毫焦) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/dynamics/torque-force.html` — 空输入点「计算」→ 结果区 0.00力矩 τ (N·m)0.0000有效力臂 (m)0.000径向分量 (N) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/dynamics/weight-force.html` — 空输入点「计算」→ 结果区 0.00重力 W (N)0.00W (kgf)0.00月球表面重力 (N)0.00火星表面重力 (N)0.000重力 W (kgf 标准重力) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/dynamics/work-energy-theorem.html` — 空输入点「计算」→ 结果区 0.00合外力功 W (J)0.00末动能 (J)0.00初动能 (J) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/eco/battery-storage.html` — 空输入点「计算」→ 结果区 可用电量：0.00 kWh总能量：0.00 kWh ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/eco/convert-air-aqi.html` — 空输入点「计算」→ 结果区 0等级 优 ｜ 输入浓度 0 µg/m³ ｜ 建议 可正常户外活动 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/eco/eco-10.html` — 空输入点「计算」→ 结果区 年发电量：0.00 MWh（千 kWh）年减排量：0.00 吨 CO₂等效植树：0 棵 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/eco/eco-11.html` — 空输入点「计算」→ 结果区 单次额外燃油：0.00 L年额外燃油：0.00 L年额外碳排：0.00 吨 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/eco/eco-16.html` — 空输入点「计算」→ 结果区 年发电量：0.00 MWh（千 kWh）年减排量：0.00 吨 CO₂等效减少汽车：0 辆 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/eco/eco-4.html` — 空输入点「计算」→ 结果区 日产生量：0.00 吨/天年产生量：0.00 吨/年累计吨天数：0 kg·天 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/eco/eco-7.html` — 空输入点「计算」→ 结果区 总标准煤：0.00 kgce总 kWh：0.00 kWh总 MJ：0.00 MJ ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/eco/eco-8.html` — 空输入点「计算」→ 结果区 总株数：0 株年碳汇量：0.00 吨/年累计碳汇：0.00 吨 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/eco/eco.html` — 空输入点「计算」→ 结果区 电力碳排：0.00 kg燃煤碳排：0.00 kg天然气碳排：0.00 kg汽油碳排：0.00 kg总碳排：0.00 kg ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/eco/ecological-footprint.html` — 空输入点「计算」→ 结果区 生态足迹：0.000 gha ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/eco/electricity-carbon.html` — 空输入点「计算」→ 结果区 CO₂ 排放：0.00 kg等效树木吸收天数：0.0 天 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/eco/env-impact-score.html` — 空输入点「计算」→ 结果区 综合评分：0.0 分最高项：0 分 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/eco/landfill-methane.html` — 空输入点「计算」→ 结果区 CH₄ 产量：0.0 kg/年CO₂ 当量：0.0 kgCO₂e ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/eco/rainwater-harvest.html` — 空输入点「计算」→ 结果区 收集量：0 L折合吨：0.00 吨 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/eco/solar-output.html` — 空输入点「计算」→ 结果区 发电量：0.0 kWh等效减排：0.00 kgCO₂ ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/eco/water-footprint.html` — 空输入点「计算」→ 结果区 总耗水：0 L折合 m³：0.00 m³ ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/eco/water-saving.html` — 空输入点「计算」→ 结果区 节约水量：0.0 L折合吨：0.00 吨 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/eco/wind-power.html` — 空输入点「计算」→ 结果区 功率：0.00 kW ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/economics/balance-of-trade.html` — 空输入点「计算」→ 结果区 0贸易差额 BoT0.00差额占出口比 (%)0.000出口进口比0进出口总额 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/economics/compound-amount.html` — 空输入点「计算」→ 结果区 0.00复利终值 F0.00利息总额 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/economics/fv-annuity.html` — 空输入点「计算」→ 结果区 0.00年金终值 FV0.00利息总额 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/economics/labor-force.html` — 空输入点「计算」→ 结果区 0劳动力 LF0.00失业率 (%)0.00就业率 (%)0.0000就业与失业人数比 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/economics/okuns-law.html` — 空输入点「计算」→ 结果区 0.00失业率变化 Δu (百分点)0.00增长缺口0.00失业率变化幅值 (百分点)0.000相对增长缺口 (%) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/economics/pv-annuity.html` — 空输入点「计算」→ 结果区 0.00年金现值 PV0.00贴现总额 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/economics/real-gdp.html` — 空输入点「计算」→ 结果区 0.00实际 GDP0.00价格扭曲部分0.00实际占名义比重 (%)0.00价格扭曲占比 (%) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/electromagnetism/coil-torque.html` — 空输入点「计算」→ 结果区 0.0000磁力矩 τ (N·m) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/electromagnetism/energy-capacitor.html` — 空输入点「计算」→ 结果区 0.000储能 E (µJ)0.000e+0储能 E (J)0.000电荷量 (mC)0.0000e+0电荷量 Q = CV (C) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/electromagnetism/magnetic-flux.html` — 空输入点「计算」→ 结果区 0.000e+0磁通 Φ (Wb)0.00Φ (µWb)0.0000磁通 (mWb)0.0000磁感应强度复算 (T) ⏐ 📋 复制结果⬇️ 导出 TXT ⏐ 📊 结果解读 结果含义磁通量 Φ=B…
-- `tools/electromagnetism/solenoid-field.html` — 空输入点「计算」→ 结果区 0.000e+0磁感应强度 B (T)0.000B (mT)0.0000e+0单位电流磁场 (T/A)0.000磁感应强度 B (Gauss) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/encode/base32.html` — 空输入点「计算」→ 结果区 编码长度：0 字符无填充长度：0 字符 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/encode/encode-2.html` — 空输入点「计算」→ 结果区 估算差异比特数：0 位采样差异：0 位汉明距离：0 位 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/encode/shannon-entropy.html` — 空输入点「计算」→ 结果区 信息熵 H：0.0000 bit/符号 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/encode/url-encoded-length.html` — 空输入点「计算」→ 结果区 编码后长度：0 字符膨胀率：0.0 % ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/energy/carbon-footprint.html` — 空输入点「♻️ 计算」→ 结果区 年度总排放 ⏐ 0 kg CO₂e ⏐ 约合 ⏐ 0.00 吨 ⏐ 对比中国人均 ⏐ 0% ⏐ 对比全球人均 ⏐ 0% ⏐ 🌳 抵消需种树 ⏐ 0 棵 / 年 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/energy/energy-calculator.html` — 空输入点「计算碳排放」→ 结果区 0.0月用电碳排放 kg ⏐ 0.0月用气碳排放 kg ⏐ 0.0月驾车碳排放 kg ⏐ 0年总碳排放 kg CO₂ ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/energy/power-consumption.html` — 空输入点「🧮 计算」→ 结果区 总耗电 ⏐ 0.0 kWh ⏐ 总电费 ⏐ ¥ 0.00 ⏐ 日均电费 ⏐ ¥ 0.00 ⏐ 日均耗电 ⏐ 0.0 kWh ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/ent/caloric-test.html` — 空输入点「计算分析」→ 结果区 0%单侧减弱 UW0%方向优势 DP0.0右耳总和(°/s)0.0左耳总和(°/s) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/film/convert-time-1.html` — 空输入点「计算」→ 结果区 帧率需>0 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/fire/calc-water-pressure-hydrant.html` — 空输入点「🧮 计算所需压力」→ 结果区 满足压力校核0.000 MPa所需入口压力0.000 MPa可用入口压力+0.000 MPa安全余量高程折算 0.000 MPa = 栓口 0.000 MPa + 管损 0.000 MPa。 ⏐ 📋…
-- `tools/fishery/calc-39.html` — 空输入点「🧮 计算」→ 结果区 0% of 0 = 0.00 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/fishery/salinity-calculator.html` — 空输入点「🐟 计算」→ 结果区 ⚠️ 四项均需填写有效数值：现有水量须 >0，三个盐度须 ≥0。未测盐度请勿留空（淡水请明确输入 0） ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/fluid/bernoulli-pressure.html` — 空输入点「计算」→ 结果区 0.0压力 P₂ (Pa)0.00压差 (kPa) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/fluid/buoyancy-force.html` — 空输入点「计算」→ 结果区 0.00浮力 F_b (N)0.0000排开液体质量 (kg)0.00排开液体质量 (g) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/fluid/stagnation-pressure.html` — 空输入点「计算」→ 结果区 0.0驻点压力 p₀ (Pa)0.0动压 q (Pa)0.0000驻点压比 p0/p ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/food-processing/material-balance.html` — 空输入点「核算」→ 结果区 0.00总投入0.00总产出0.00损耗0.0%得率 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/food-processing/recipe-cost-calculator.html` — 空输入点「核算成本」→ 结果区 ¥0.00总成本0g配方总用量0g实际耗用-每kg成本 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/food/calc-concentration.html` — 空输入点「🐟 计算」→ 结果区 0% of 0 = 0.00 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/general/wurenjixuantingwuchajisuan.html` — 空输入点「🧮 计算」→ 结果区 0.00水平误差 (m)0.00垂直误差 (m)0.00三维综合误差 (m)0.00开环飘移量 (m)高精度悬停悬停精度评定 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/geometry/arc-length.html` — 空输入点「计算」→ 结果区 0.0000弧长 L (m)0.0000圆心角 (rad)0.000占整圆比例 (%)0.0000对应扇形面积 (m²) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/geometry/chord-length.html` — 空输入点「计算」→ 结果区 0.0000弦长 c (m)0.0000半弦长 (m)0.0000对应弧长 (m)0.0000矢高 (m) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/geometry/circle-area.html` — 空输入点「计算」→ 结果区 0.0000圆面积 A (m²)0.0000圆周长 (m)0.0000球体积 (m³)0.0000直径 (m)0.0000半圆面积 (m²) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/geometry/circle-circumference.html` — 空输入点「计算」→ 结果区 0.0000圆周长 C (m)0.0000直径 (m)0.0000圆面积 (m²)0.0000球体积 (m³)0.0000内接正方形面积 (m²) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/geometry/distance-3d.html` — 空输入点「计算」→ 结果区 0.000三维距离 d ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/geometry/ellipse-area.html` — 空输入点「计算」→ 结果区 0.000椭圆面积 A (m²)0.000000长短半轴之比0.000椭圆周长近似 (m)0.000等面积圆面积 π√(ab)（半径=√(ab)） ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/geometry/midpoint-2d.html` — 空输入点「计算」→ 结果区 0.000中点 x_M0.000中点 y_M ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/geometry/sector-area.html` — 空输入点「计算」→ 结果区 0.0000扇形面积 A (m²)0.000占整圆比例 (%)0.0000弧长 L = r·θ (m) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/geometry/sphere-volume.html` — 空输入点「计算」→ 结果区 0.000球体体积 V (m³)0.000球表面积 (m²)0.000大圆周长 (m)0.000球体积 (L 升)0.000球体积 (cm³) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/geometry/torus-volume.html` — 空输入点「计算」→ 结果区 0.000环体体积 V (m³)0.000环体表面积 (m²)0.000中心圆周长 (m)0.0000体积与环半径之比 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/geometry/triangle-heron.html` — 空输入点「计算」→ 结果区 这三条边不能构成三角形：需满足任意两边之和大于第三边（当前 0、0、0）。 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/healthcare/apgar.html` — 空输入点「计算」→ 结果区 Apgar 总分：0 分临床意义：重度窒息 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/healthcare/chads-vasc.html` — 空输入点「计算」→ 结果区 评分：0 分风险分层：低危 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/healthcare/healthcare-5.html` — 空输入点「计算」→ 结果区 维持需求：0.0 g目标需求：0.0 g每餐建议：0.0 g ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/healthcare/morse.html` — 空输入点「计算」→ 结果区 总分：0 分风险等级：低风险 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/healthcare/wells.html` — 空输入点「计算」→ 结果区 评分：0 分临床概率：低度 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/hematology/detector-5.html` — 空输入点「解读检测结果」→ 结果区 0.0%PNH总克隆（粒细胞）未检测到 PNH 克隆诊断评估无显著溶血风险溶血风险0 U/LLDH 水平 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/home/lighting-calculator.html` — 空输入点「💡 计算」→ 结果区 0 所需总光通量 (lm)
-- `tools/home/room-calculator.html` — 空输入点「🧮 计算」→ 结果区 0.00 面积 (m²)
-- `tools/hr/overtime-pay-calc.html` — 空输入点「计算加班费」→ 结果区 工作日加班费：0.00 元休息日加班费：0.00 元法定节假日加班费：0.00 元总加班费：0.00 元 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/insurance/complete-life-expectancy.html` — 空输入点「计算」→ 结果区 0.000完全期望寿命 e_x0生命表项数 N0.0000平均预期余命 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/insurance/ibnr-estimate.html` — 空输入点「计算」→ 结果区 0.00IBNR 准备金 (元)0.00已付赔款比例 (%)0.00已付赔款 (元)0.00最终赔款 (元) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/insurance/ibnr-reserve.html` — 空输入点「计算」→ 结果区 0.00IBNR 准备金 (元)0.00最终赔款估计 (元) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/insurance/life-cover-need.html` — 空输入点「计算」→ 结果区 0.00建议保额 (元)0.00收入替代部分 (元)0.00保额下限 (元) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/investment/bond-price.html` — 空输入点「计算」→ 结果区 0.00债券价格 P折价状态 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/investment/discounted-payback.html` — 空输入点「计算」→ 结果区 0.00 年折现回收期 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/investment/npv-calc.html` — 空输入点「计算」→ 结果区 0.00净现值 NPV ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/investment/payback-period.html` — 空输入点「计算」→ 结果区 0.00 年静态回收期 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/investment/yield-spread.html` — 空输入点「计算」→ 结果区 0利差 Spread (bps)0.0000利差 (%)0.000基准收益率 (%)0.000对比收益率 (%) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/kinematics/angular-displacement.html` — 空输入点「计算」→ 结果区 0.000角位移 θ (rad)0.000末角速度 (rad/s)0.000平均角速度 (rad/s) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/kinematics/angular-final-velocity.html` — 空输入点「计算」→ 结果区 0.000末角速度 ω (rad/s)0.000角位移 (rad)0.000平均角速度 (rad/s) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/kinematics/final-velocity-accel.html` — 空输入点「计算」→ 结果区 0.000末速度 v (m/s)0.000v (km/h)0.000位移 s (m)0.000速度增量 (m/s) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/kinematics/projectile-velocity-components.html` — 空输入点「计算」→ 结果区 0.000水平分量 vₓ (m/s)0.000竖直分量 vᵧ (m/s)0.00合矢量方向 (°)0.0000水平/竖直分量比 vx/vy ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/kinematics/relativistic-velocity-add.html` — 空输入点「计算」→ 结果区 0.000000合成速度 u (c)0.000e+0u (m/s) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/kinematics/rpm-to-radps.html` — 空输入点「计算」→ 结果区 0.000角速度 ω (rad/s)0.0000转速 (转/秒)0.000角速度 (rad/min)0.0000频率 f (Hz)0.0000角速度平方 (rad²/s²) ⏐ 📋 复制结果⬇️ 导…
-- `tools/kinematics/tangential-velocity.html` — 空输入点「计算」→ 结果区 0.000切向速度 v (m/s)0.000切向速度 (km/h)0.0000转速 (转/秒)0.0000角速度复核 (rad/s) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/kinematics/velocity-squared.html` — 空输入点「计算」→ 结果区 0.000末速度 v (m/s)0.000速度平方增量 v²−v₀²0.000速度增量 Δv (m/s) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/language/language-toolkit.html` — 空输入点「🔢 字符统计」→ 结果区 0总字符数 0汉字数 0英文字母 0数字数 0标点符号 0空格数 0英文单词数 0句子数
-- `tools/language/stats-2.html` — 空输入点「统计字符」→ 结果区 总字符数（含空格）：0不含空格字符数：0汉字数：0英文字母数：0英文单词数：0数字字符数：0标点数：0（中文 0 / 西文 0）空白符：0行数：0 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/life/countdown.html` — 空输入点「开始倒计时」→ 结果区 ⚡ 效率工具栏 ✓ 本地处理 0 字符 · 0 行 Ctrl/⌘ + Enter 快速运行 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/robotics/forward-kinematics-2r.html` — 空输入点「计算」→ 结果区 0.0000末端 x (m)0.0000末端 y (m) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/securities/enterprise-value.html` — 空输入点「计算」→ 结果区 0.00企业价值 EV (万元)0.00净市值（市值 − 现金）0.0000债务/市值 比 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/securities/market-cap.html` — 空输入点「计算」→ 结果区 0.00总市值 (亿元)0总市值 (元)0总市值 (万元)0.0000股数 (亿股)0.000000总市值 (万亿元) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/securities/market-risk-premium.html` — 空输入点「计算」→ 结果区 0.00市场风险溢价 (%)0.00市场收益率 (%)0.00无风险利率 (%)0.00溢价与无风险利率之比 (%) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/securities/option-breakeven-put.html` — 空输入点「计算」→ 结果区 0.00盈亏平衡价 BE (元)0.0000执行价与盈亏平衡价之比0.000权利金占执行价 (%)0.00执行价与权利金之和 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/tax/ad-valorem-duty.html` — 空输入点「计算」→ 结果区 0.00从价税 T (元)0.00完税价格合计 (元)0.00从价税率 (%)0.00货值与税额之差 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/tax/break-even-taxable.html` — 空输入点「计算」→ 结果区 0.00所需应税所得0.00应纳税额 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/tax/capital-gains-tax.html` — 空输入点「计算」→ 结果区 0.00资本利得0.00资本利得税0.00税后到手 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/tax/customs-duty.html` — 空输入点「计算」→ 结果区 0.00进口关税0.00含税成本0.00关税税率 (%)0.000税额占含税成本比 (%) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/tax/excise-tax.html` — 空输入点「计算」→ 结果区 0.00消费税 T (元)0.000计税金额 (元)0.000综合税率 (%) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/tax/foreign-tax-credit.html` — 空输入点「计算」→ 结果区 0.00可抵扣额 (元)0.00抵免限额 (元)0.00境外已纳税额 (元)0.00超出限额部分 (元) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/tax/gift-tax.html` — 空输入点「计算」→ 结果区 0.00赠与税 T (元)0.00应税金额 (元)0.000有效税率 (%) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/tax/interest-income-tax.html` — 空输入点「计算」→ 结果区 0.00利息所得税0.00税后利息0.00利息税率 (%)0.0000利息/税额 倍数 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/tax/payroll-tax.html` — 空输入点「计算」→ 结果区 0.00工薪税 T (元)0.0000合计税率0.00税后实得 (元) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/tax/property-tax.html` — 空输入点「计算」→ 结果区 0.00年房产税额0.00月均房产税 (元)0.000000税率小数形式0.00五年累计税额 (元)0.000000房产原值 (百万元) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/tax/sales-tax-addon.html` — 空输入点「计算」→ 结果区 0.00消费税额0.00含税价0.00税率 (%)0.000税额占含税价比 (%) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/tax/social-security-tax.html` — 空输入点「计算」→ 结果区 0.00社保费 T (元)0.00用工总成本 (元)0.00社保费率 (%)0.00基数与社保费之差 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/tax/specific-duty.html` — 空输入点「计算」→ 结果区 0.00从量税 T (元)0.000000税额 (万元)0.00月均税额 (元)0.00年化税额 (元)0.000000单位税额与数量之比 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/tax/tax-on-discount.html` — 空输入点「计算」→ 结果区 0.00折后价0.00税额0.00优惠金额0.00含税总价 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/tax/vat-from-exclusive.html` — 空输入点「计算」→ 结果区 0.00增值税额0.00含税金额0.00税率 (%)0.000税额占不含税价比 (%) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/tax/withholding-tax.html` — 空输入点「计算」→ 结果区 0.00预提税额0.00实际支付净额0.00预提税率 (%)0.0000支付额/税额 倍数 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/agriculture/agri-calculator.html` — 空输入点「计算配比」（）→ 结果区 氮 (N)0.00kg磷 (P₂O₅)0.00kg钾 (K₂O)0.00kg配方比例：0-0-0施肥面积：0 亩每亩用量：0 kg/亩肥料总量：0.0 kg ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/astronomy/hubble-redshift-distance.html` — 空输入点「计算」（）→ 结果区 0.00距离 d (Mpc)0.00d (百万光年)0.00退行速度 v = cz (km/s)0.0000d (十亿光年) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/astronomy/kepler-equation.html` — 空输入点「计算」（）→ 结果区 0.000偏近点角 E (°)0.00000E (rad) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/astronomy/light-travel-time.html` — 空输入点「计算」（）→ 结果区 0.000传播时间 t (min)0.0t (s)0.0000距离 (天文单位 AU)0.0000传播时间 (h)0.000e+0距离 (光年) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/baking/recipe-scaler.html` — 空输入点「计算」（）→ 结果区 缩放后配方（×0） ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/banking/amortization-first-interest.html` — 空输入点「计算」（）→ 结果区 0.00首月利息 I₁0.00首月还本金0.000年利率 (%)0.0000首月利息占本金比 (%) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/banking/continuous-compounding.html` — 空输入点「计算」（）→ 结果区 0.00连续复利终值 A0.00利息总额0.0000年实际收益率 (%)0.0000较年复利增益 (%) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/banking/effective-annual-rate.html` — 空输入点「计算」（）→ 结果区 0.000有效年利率 EAR (%)0.00000EAR (小数)0.0000EAR 高于名义利率 (百分点)0.0000与连续复利之差 (百分点) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/banking/net-worth.html` — 空输入点「计算」（）→ 结果区 0净资产 NW (元)0.00负债率 (%)0.000资产覆盖倍数0.00净资产占资产 (%) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/banking/tax-equivalent-yield.html` — 空输入点「计算」（）→ 结果区 0.000税后等效收益率 TEY (%)0.000应税需高出的百分点0.0边际税率 (%)0.0000免税溢价系数减一 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/chemistry/gibbs-free-energy.html` — 空输入点「计算」（）→ 结果区 0.000ΔG (kJ/mol)平衡反应方向 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/chemistry/kp-kc.html` — 空输入点「计算」（）→ 结果区 0.000e+0压力平衡常数 Kp0.0RT (L·atm/(mol·K)) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/chemistry/mole-fraction.html` — 空输入点「计算」（）→ 结果区 0.0000总物质的量 (mol) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/chemistry/partial-pressure.html` — 空输入点「计算」（）→ 结果区 0.00分压 Pᵢ (kPa)0.00其余组分分压 (kPa)0.000摩尔分数 (%)0.000其余组分占比 (%) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/chinese-cook/estimate-16.html` — 空输入点「🧮 计算」（）→ 结果区 0% of 0 = 0.00 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/design/px-to-rem.html` — 空输入点「计算」（）→ 结果区 转换结果 ⏐ 0px = 0.0000rem ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/dynamics/angular-momentum.html` — 空输入点「计算」（）→ 结果区 0.000角动量 L (kg·m²/s)0.000两倍角动量0.0000由 L 反推角速度0.000转动动能 (J) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/dynamics/impulse.html` — 空输入点「计算」（）→ 结果区 0.00冲量 J (N·s)0.0冲量 (N·ms 牛毫秒)0.0000冲量 (kgf·s 千克力秒)0.0000力与作用时间之比 (N/s) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/dynamics/inclined-plane-accel.html` — 空输入点「计算」（）→ 结果区 0.000加速度 a (m/s²)静止/需外力状态 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/dynamics/kinetic-friction.html` — 空输入点「计算」（）→ 结果区 0.00动摩擦力 F_k (N)0.0000正压力与摩擦系数之比0.0000摩擦力 (kgf 千克力)0.0000摩擦系数平方 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/dynamics/momentum.html` — 空输入点「计算」（）→ 结果区 0.0动量 p (kg·m/s)0.0动能 Ek (J)0.0动量乘速度 (kg·m²/s²)0.0000质量与速度之比 (kg·s/m) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/dynamics/power-force.html` — 空输入点「计算」（）→ 结果区 0.0功率 P (W)0.00P (kW)0.000功率 (公制马力 PS)0.000功率 (英制马力 hp)0.000每小时做功 (kJ/h) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/dynamics/power-rotational.html` — 空输入点「计算」（）→ 结果区 0.00旋转功率 P (W)0.0000旋转功率 (hp)0.0000旋转功率 (kW)0.0000旋转功率 (PS) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/dynamics/rotational-kinetic-energy.html` — 空输入点「计算」（）→ 结果区 0.000转动动能 E (J)0.000两倍转动动能（I 乘 ω²）0.0000角动量 L0.0000转速 (转/秒) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/dynamics/spring-potential.html` — 空输入点「计算」（）→ 结果区 0.000弹性势能 U (J)0.000对应弹力 F (N)0.0000劲度与位移平方之积 (J)0.0000弹性势能 (mJ 毫焦) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/dynamics/torque-force.html` — 空输入点「计算」（）→ 结果区 0.00力矩 τ (N·m)0.0000有效力臂 (m)0.000径向分量 (N) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/dynamics/weight-force.html` — 空输入点「计算」（）→ 结果区 0.00重力 W (N)0.00W (kgf)0.00月球表面重力 (N)0.00火星表面重力 (N)0.000重力 W (kgf 标准重力) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/dynamics/work-energy-theorem.html` — 空输入点「计算」（）→ 结果区 0.00合外力功 W (J)0.00末动能 (J)0.00初动能 (J) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/eco/battery-storage.html` — 空输入点「计算」（）→ 结果区 可用电量：0.00 kWh总能量：0.00 kWh ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/eco/convert-air-aqi.html` — 空输入点「计算」（）→ 结果区 0等级 优 ｜ 输入浓度 0 µg/m³ ｜ 建议 可正常户外活动 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/eco/eco-10.html` — 空输入点「计算」（）→ 结果区 年发电量：0.00 MWh（千 kWh）年减排量：0.00 吨 CO₂等效植树：0 棵 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/eco/eco-11.html` — 空输入点「计算」（）→ 结果区 单次额外燃油：0.00 L年额外燃油：0.00 L年额外碳排：0.00 吨 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/eco/eco-16.html` — 空输入点「计算」（）→ 结果区 年发电量：0.00 MWh（千 kWh）年减排量：0.00 吨 CO₂等效减少汽车：0 辆 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/eco/eco-4.html` — 空输入点「计算」（）→ 结果区 日产生量：0.00 吨/天年产生量：0.00 吨/年累计吨天数：0 kg·天 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/eco/eco-7.html` — 空输入点「计算」（）→ 结果区 总标准煤：0.00 kgce总 kWh：0.00 kWh总 MJ：0.00 MJ ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/eco/eco-8.html` — 空输入点「计算」（）→ 结果区 总株数：0 株年碳汇量：0.00 吨/年累计碳汇：0.00 吨 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/eco/eco.html` — 空输入点「计算」（）→ 结果区 电力碳排：0.00 kg燃煤碳排：0.00 kg天然气碳排：0.00 kg汽油碳排：0.00 kg总碳排：0.00 kg ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/eco/ecological-footprint.html` — 空输入点「计算」（）→ 结果区 生态足迹：0.000 gha ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/eco/electricity-carbon.html` — 空输入点「计算」（）→ 结果区 CO₂ 排放：0.00 kg等效树木吸收天数：0.0 天 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/eco/env-impact-score.html` — 空输入点「计算」（）→ 结果区 综合评分：0.0 分最高项：0 分 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/eco/landfill-methane.html` — 空输入点「计算」（）→ 结果区 CH₄ 产量：0.0 kg/年CO₂ 当量：0.0 kgCO₂e ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/eco/rainwater-harvest.html` — 空输入点「计算」（）→ 结果区 收集量：0 L折合吨：0.00 吨 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/eco/solar-output.html` — 空输入点「计算」（）→ 结果区 发电量：0.0 kWh等效减排：0.00 kgCO₂ ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/eco/water-footprint.html` — 空输入点「计算」（）→ 结果区 总耗水：0 L折合 m³：0.00 m³ ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/eco/water-saving.html` — 空输入点「计算」（）→ 结果区 节约水量：0.0 L折合吨：0.00 吨 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/eco/wind-power.html` — 空输入点「计算」（）→ 结果区 功率：0.00 kW ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/economics/balance-of-trade.html` — 空输入点「计算」（）→ 结果区 0贸易差额 BoT0.00差额占出口比 (%)0.000出口进口比0进出口总额 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/economics/compound-amount.html` — 空输入点「计算」（）→ 结果区 0.00复利终值 F0.00利息总额 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/economics/fv-annuity.html` — 空输入点「计算」（）→ 结果区 0.00年金终值 FV0.00利息总额 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/economics/labor-force.html` — 空输入点「计算」（）→ 结果区 0劳动力 LF0.00失业率 (%)0.00就业率 (%)0.0000就业与失业人数比 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/economics/okuns-law.html` — 空输入点「计算」（）→ 结果区 0.00失业率变化 Δu (百分点)0.00增长缺口0.00失业率变化幅值 (百分点)0.000相对增长缺口 (%) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/economics/pv-annuity.html` — 空输入点「计算」（）→ 结果区 0.00年金现值 PV0.00贴现总额 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/economics/real-gdp.html` — 空输入点「计算」（）→ 结果区 0.00实际 GDP0.00价格扭曲部分0.00实际占名义比重 (%)0.00价格扭曲占比 (%) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/electromagnetism/coil-torque.html` — 空输入点「计算」（）→ 结果区 0.0000磁力矩 τ (N·m) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/electromagnetism/energy-capacitor.html` — 空输入点「计算」（）→ 结果区 0.000储能 E (µJ)0.000e+0储能 E (J)0.000电荷量 (mC)0.0000e+0电荷量 Q = CV (C) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/electromagnetism/magnetic-flux.html` — 空输入点「计算」（）→ 结果区 0.000e+0磁通 Φ (Wb)0.00Φ (µWb)0.0000磁通 (mWb)0.0000磁感应强度复算 (T) ⏐ 📋 复制结果⬇️ 导出 TXT ⏐ 📊 结果解读 结果含义磁通量 Φ=B…
+- `tools/electromagnetism/solenoid-field.html` — 空输入点「计算」（）→ 结果区 0.000e+0磁感应强度 B (T)0.000B (mT)0.0000e+0单位电流磁场 (T/A)0.000磁感应强度 B (Gauss) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/encode/base32.html` — 空输入点「计算」（）→ 结果区 编码长度：0 字符无填充长度：0 字符 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/encode/encode-2.html` — 空输入点「计算」（）→ 结果区 估算差异比特数：0 位采样差异：0 位汉明距离：0 位 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/encode/shannon-entropy.html` — 空输入点「计算」（）→ 结果区 信息熵 H：0.0000 bit/符号 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/encode/url-encoded-length.html` — 空输入点「计算」（）→ 结果区 编码后长度：0 字符膨胀率：0.0 % ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/energy/carbon-footprint.html` — 空输入点「♻️ 计算」（）→ 结果区 年度总排放 ⏐ 0 kg CO₂e ⏐ 约合 ⏐ 0.00 吨 ⏐ 对比中国人均 ⏐ 0% ⏐ 对比全球人均 ⏐ 0% ⏐ 🌳 抵消需种树 ⏐ 0 棵 / 年 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/energy/energy-calculator.html` — 空输入点「计算碳排放」（）→ 结果区 0.0月用电碳排放 kg ⏐ 0.0月用气碳排放 kg ⏐ 0.0月驾车碳排放 kg ⏐ 0年总碳排放 kg CO₂ ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/energy/power-consumption.html` — 空输入点「🧮 计算」（）→ 结果区 总耗电 ⏐ 0.0 kWh ⏐ 总电费 ⏐ ¥ 0.00 ⏐ 日均电费 ⏐ ¥ 0.00 ⏐ 日均耗电 ⏐ 0.0 kWh ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/ent/caloric-test.html` — 空输入点「计算分析」（）→ 结果区 0%单侧减弱 UW0%方向优势 DP0.0右耳总和(°/s)0.0左耳总和(°/s) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/film/convert-time-1.html` — 空输入点「计算」（）→ 结果区 帧率需>0 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/fire/calc-water-pressure-hydrant.html` — 空输入点「🧮 计算所需压力」（）→ 结果区 满足压力校核0.000 MPa所需入口压力0.000 MPa可用入口压力+0.000 MPa安全余量高程折算 0.000 MPa = 栓口 0.000 MPa + 管损 0.000 MPa。 ⏐ 📋…
+- `tools/fishery/calc-39.html` — 空输入点「🧮 计算」（）→ 结果区 0% of 0 = 0.00 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/fishery/salinity-calculator.html` — 空输入点「🐟 计算」（）→ 结果区 ⚠️ 四项均需填写有效数值：现有水量须 >0，三个盐度须 ≥0。未测盐度请勿留空（淡水请明确输入 0） ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/fluid/bernoulli-pressure.html` — 空输入点「计算」（）→ 结果区 0.0压力 P₂ (Pa)0.00压差 (kPa) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/fluid/buoyancy-force.html` — 空输入点「计算」（）→ 结果区 0.00浮力 F_b (N)0.0000排开液体质量 (kg)0.00排开液体质量 (g) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/fluid/stagnation-pressure.html` — 空输入点「计算」（）→ 结果区 0.0驻点压力 p₀ (Pa)0.0动压 q (Pa)0.0000驻点压比 p0/p ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/food-processing/material-balance.html` — 空输入点「核算」（）→ 结果区 0.00总投入0.00总产出0.00损耗0.0%得率 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/food-processing/recipe-cost-calculator.html` — 空输入点「核算成本」（）→ 结果区 ¥0.00总成本0g配方总用量0g实际耗用-每kg成本 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/food/calc-concentration.html` — 空输入点「🐟 计算」（）→ 结果区 0% of 0 = 0.00 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/general/wurenjixuantingwuchajisuan.html` — 空输入点「🧮 计算」（）→ 结果区 0.00水平误差 (m)0.00垂直误差 (m)0.00三维综合误差 (m)0.00开环飘移量 (m)高精度悬停悬停精度评定 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/geometry/arc-length.html` — 空输入点「计算」（）→ 结果区 0.0000弧长 L (m)0.0000圆心角 (rad)0.000占整圆比例 (%)0.0000对应扇形面积 (m²) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/geometry/chord-length.html` — 空输入点「计算」（）→ 结果区 0.0000弦长 c (m)0.0000半弦长 (m)0.0000对应弧长 (m)0.0000矢高 (m) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/geometry/circle-area.html` — 空输入点「计算」（）→ 结果区 0.0000圆面积 A (m²)0.0000圆周长 (m)0.0000球体积 (m³)0.0000直径 (m)0.0000半圆面积 (m²) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/geometry/circle-circumference.html` — 空输入点「计算」（）→ 结果区 0.0000圆周长 C (m)0.0000直径 (m)0.0000圆面积 (m²)0.0000球体积 (m³)0.0000内接正方形面积 (m²) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/geometry/distance-3d.html` — 空输入点「计算」（）→ 结果区 0.000三维距离 d ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/geometry/ellipse-area.html` — 空输入点「计算」（）→ 结果区 0.000椭圆面积 A (m²)0.000000长短半轴之比0.000椭圆周长近似 (m)0.000等面积圆面积 π√(ab)（半径=√(ab)） ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/geometry/midpoint-2d.html` — 空输入点「计算」（）→ 结果区 0.000中点 x_M0.000中点 y_M ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/geometry/sector-area.html` — 空输入点「计算」（）→ 结果区 0.0000扇形面积 A (m²)0.000占整圆比例 (%)0.0000弧长 L = r·θ (m) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/geometry/sphere-volume.html` — 空输入点「计算」（）→ 结果区 0.000球体体积 V (m³)0.000球表面积 (m²)0.000大圆周长 (m)0.000球体积 (L 升)0.000球体积 (cm³) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/geometry/torus-volume.html` — 空输入点「计算」（）→ 结果区 0.000环体体积 V (m³)0.000环体表面积 (m²)0.000中心圆周长 (m)0.0000体积与环半径之比 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/geometry/triangle-heron.html` — 空输入点「计算」（）→ 结果区 这三条边不能构成三角形：需满足任意两边之和大于第三边（当前 0、0、0）。 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/healthcare/apgar.html` — 空输入点「计算」（）→ 结果区 Apgar 总分：0 分临床意义：重度窒息 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/healthcare/chads-vasc.html` — 空输入点「计算」（）→ 结果区 评分：0 分风险分层：低危 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/healthcare/healthcare-5.html` — 空输入点「计算」（）→ 结果区 维持需求：0.0 g目标需求：0.0 g每餐建议：0.0 g ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/healthcare/morse.html` — 空输入点「计算」（）→ 结果区 总分：0 分风险等级：低风险 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/healthcare/wells.html` — 空输入点「计算」（）→ 结果区 评分：0 分临床概率：低度 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/hematology/detector-5.html` — 空输入点「解读检测结果」（）→ 结果区 0.0%PNH总克隆（粒细胞）未检测到 PNH 克隆诊断评估无显著溶血风险溶血风险0 U/LLDH 水平 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/home/lighting-calculator.html` — 空输入点「💡 计算」（）→ 结果区 0 所需总光通量 (lm)
+- `tools/home/room-calculator.html` — 空输入点「🧮 计算」（）→ 结果区 0.00 面积 (m²)
+- `tools/hr/overtime-pay-calc.html` — 空输入点「计算加班费」（）→ 结果区 工作日加班费：0.00 元休息日加班费：0.00 元法定节假日加班费：0.00 元总加班费：0.00 元 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/insurance/complete-life-expectancy.html` — 空输入点「计算」（）→ 结果区 0.000完全期望寿命 e_x0生命表项数 N0.0000平均预期余命 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/insurance/ibnr-estimate.html` — 空输入点「计算」（）→ 结果区 0.00IBNR 准备金 (元)0.00已付赔款比例 (%)0.00已付赔款 (元)0.00最终赔款 (元) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/insurance/ibnr-reserve.html` — 空输入点「计算」（）→ 结果区 0.00IBNR 准备金 (元)0.00最终赔款估计 (元) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/insurance/life-cover-need.html` — 空输入点「计算」（）→ 结果区 0.00建议保额 (元)0.00收入替代部分 (元)0.00保额下限 (元) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/investment/bond-price.html` — 空输入点「计算」（）→ 结果区 0.00债券价格 P折价状态 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/investment/discounted-payback.html` — 空输入点「计算」（）→ 结果区 0.00 年折现回收期 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/investment/npv-calc.html` — 空输入点「计算」（）→ 结果区 0.00净现值 NPV ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/investment/payback-period.html` — 空输入点「计算」（）→ 结果区 0.00 年静态回收期 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/investment/yield-spread.html` — 空输入点「计算」（）→ 结果区 0利差 Spread (bps)0.0000利差 (%)0.000基准收益率 (%)0.000对比收益率 (%) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/kinematics/angular-displacement.html` — 空输入点「计算」（）→ 结果区 0.000角位移 θ (rad)0.000末角速度 (rad/s)0.000平均角速度 (rad/s) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/kinematics/angular-final-velocity.html` — 空输入点「计算」（）→ 结果区 0.000末角速度 ω (rad/s)0.000角位移 (rad)0.000平均角速度 (rad/s) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/kinematics/final-velocity-accel.html` — 空输入点「计算」（）→ 结果区 0.000末速度 v (m/s)0.000v (km/h)0.000位移 s (m)0.000速度增量 (m/s) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/kinematics/projectile-velocity-components.html` — 空输入点「计算」（）→ 结果区 0.000水平分量 vₓ (m/s)0.000竖直分量 vᵧ (m/s)0.00合矢量方向 (°)0.0000水平/竖直分量比 vx/vy ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/kinematics/relativistic-velocity-add.html` — 空输入点「计算」（）→ 结果区 0.000000合成速度 u (c)0.000e+0u (m/s) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/kinematics/rpm-to-radps.html` — 空输入点「计算」（）→ 结果区 0.000角速度 ω (rad/s)0.0000转速 (转/秒)0.000角速度 (rad/min)0.0000频率 f (Hz)0.0000角速度平方 (rad²/s²) ⏐ 📋 复制结果⬇️ 导…
+- `tools/kinematics/tangential-velocity.html` — 空输入点「计算」（）→ 结果区 0.000切向速度 v (m/s)0.000切向速度 (km/h)0.0000转速 (转/秒)0.0000角速度复核 (rad/s) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/kinematics/velocity-squared.html` — 空输入点「计算」（）→ 结果区 0.000末速度 v (m/s)0.000速度平方增量 v²−v₀²0.000速度增量 Δv (m/s) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/language/language-toolkit.html` — 空输入点「🔢 字符统计」（）→ 结果区 0总字符数 0汉字数 0英文字母 0数字数 0标点符号 0空格数 0英文单词数 0句子数
+- `tools/language/stats-2.html` — 空输入点「统计字符」（）→ 结果区 总字符数（含空格）：0不含空格字符数：0汉字数：0英文字母数：0英文单词数：0数字字符数：0标点数：0（中文 0 / 西文 0）空白符：0行数：0 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/life/countdown.html` — 空输入点「开始倒计时」（）→ 结果区 ⚡ 效率工具栏 ✓ 本地处理 0 字符 · 0 行 Ctrl/⌘ + Enter 快速运行 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/robotics/forward-kinematics-2r.html` — 空输入点「计算」（）→ 结果区 0.0000末端 x (m)0.0000末端 y (m) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/securities/enterprise-value.html` — 空输入点「计算」（）→ 结果区 0.00企业价值 EV (万元)0.00净市值（市值 − 现金）0.0000债务/市值 比 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/securities/market-cap.html` — 空输入点「计算」（）→ 结果区 0.00总市值 (亿元)0总市值 (元)0总市值 (万元)0.0000股数 (亿股)0.000000总市值 (万亿元) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/securities/market-risk-premium.html` — 空输入点「计算」（）→ 结果区 0.00市场风险溢价 (%)0.00市场收益率 (%)0.00无风险利率 (%)0.00溢价与无风险利率之比 (%) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/securities/option-breakeven-put.html` — 空输入点「计算」（）→ 结果区 0.00盈亏平衡价 BE (元)0.0000执行价与盈亏平衡价之比0.000权利金占执行价 (%)0.00执行价与权利金之和 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/tax/ad-valorem-duty.html` — 空输入点「计算」（）→ 结果区 0.00从价税 T (元)0.00完税价格合计 (元)0.00从价税率 (%)0.00货值与税额之差 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/tax/break-even-taxable.html` — 空输入点「计算」（）→ 结果区 0.00所需应税所得0.00应纳税额 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/tax/capital-gains-tax.html` — 空输入点「计算」（）→ 结果区 0.00资本利得0.00资本利得税0.00税后到手 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/tax/customs-duty.html` — 空输入点「计算」（）→ 结果区 0.00进口关税0.00含税成本0.00关税税率 (%)0.000税额占含税成本比 (%) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/tax/excise-tax.html` — 空输入点「计算」（）→ 结果区 0.00消费税 T (元)0.000计税金额 (元)0.000综合税率 (%) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/tax/foreign-tax-credit.html` — 空输入点「计算」（）→ 结果区 0.00可抵扣额 (元)0.00抵免限额 (元)0.00境外已纳税额 (元)0.00超出限额部分 (元) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/tax/gift-tax.html` — 空输入点「计算」（）→ 结果区 0.00赠与税 T (元)0.00应税金额 (元)0.000有效税率 (%) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/tax/interest-income-tax.html` — 空输入点「计算」（）→ 结果区 0.00利息所得税0.00税后利息0.00利息税率 (%)0.0000利息/税额 倍数 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/tax/payroll-tax.html` — 空输入点「计算」（）→ 结果区 0.00工薪税 T (元)0.0000合计税率0.00税后实得 (元) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/tax/property-tax.html` — 空输入点「计算」（）→ 结果区 0.00年房产税额0.00月均房产税 (元)0.000000税率小数形式0.00五年累计税额 (元)0.000000房产原值 (百万元) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/tax/sales-tax-addon.html` — 空输入点「计算」（）→ 结果区 0.00消费税额0.00含税价0.00税率 (%)0.000税额占含税价比 (%) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/tax/social-security-tax.html` — 空输入点「计算」（）→ 结果区 0.00社保费 T (元)0.00用工总成本 (元)0.00社保费率 (%)0.00基数与社保费之差 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/tax/specific-duty.html` — 空输入点「计算」（）→ 结果区 0.00从量税 T (元)0.000000税额 (万元)0.00月均税额 (元)0.00年化税额 (元)0.000000单位税额与数量之比 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/tax/tax-on-discount.html` — 空输入点「计算」（）→ 结果区 0.00折后价0.00税额0.00优惠金额0.00含税总价 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/tax/vat-from-exclusive.html` — 空输入点「计算」（）→ 结果区 0.00增值税额0.00含税金额0.00税率 (%)0.000税额占不含税价比 (%) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/tax/withholding-tax.html` — 空输入点「计算」（）→ 结果区 0.00预提税额0.00实际支付净额0.00预提税率 (%)0.0000支付额/税额 倍数 ⏐ 📋 复制结果⬇️ 导出 TXT
 
 ### 空输入直接给出结论（优秀/正常/合格…）（34 页）
 
-- `tools/aerospace/weight-balance.html` — 空输入点「计算重心」→ 结果区 载荷项重量 (kg)力臂 (m)力矩 (kg·m)使用空机00.000未命名00.000未命名00.000未命名00.000未命名00.000未命名00.000 0 总重量 (kg) 0 总力矩 (k…
-- `tools/agriculture/detector-nutrition.html` — 空输入点「判读品质」→ 结果区 综合等级：不合格 优质 2 / 合格 2 / 共 6 项发酵度评价：发酵不足（乳酸 0%）指标实测判读蛋白质0%偏低脂肪0%偏低还原糖0%偏低水分0%优质灰分0%优质乳酸(发酵度)0%偏低品质解读：多…
-- `tools/agriculture/irrigation-uniformity.html` — 空输入点「计算」→ 结果区 0.0%克里斯琴森系数CU0.0%分布均匀度DU0.00平均灌水量(mm)0.0%变异系数CV均匀度评价：均匀性差CU参考标准：>90%优秀 \| 80-90%良好 \| 70-80%一般 \| <70%差…
-- `tools/automotive/voltage-1.html` — 空输入点「🧮 计算」→ 结果区 38.0用电总电流 (A)38.0含充电总电流 (A)0负载率 (%)-38.0剩余电流 (A)0.55用电功率 (kW)0.00发电机功率 (kW)负载充足平衡评估负载率: 0.0%（安全线 80%…
-- `tools/beauty/recommender-face-shape.html` — 空输入点「生成」→ 结果区 生成结果： 1. 心形脸 推荐发型：下巴长度波波头、空气刘海、微卷发尾 妆容建议：眉尾略收，唇妆突出，平衡宽额头 注意：避免过厚刘海和顶部过高 2. 长形脸 推荐发型：法式刘海、齐肩发、横向蓬松卷发 …
-- `tools/biz/checker-8.html` — 空输入点「质量评估」→ 结果区 8服务质量总分服务质量不合格质量等级评估维度权重得分明细状态人员标准25%0持证0%/培训0%/着装0%/出勤0%差服务流程30%25巡逻0%/门禁0%/响应0分钟/记录0%差装备设施20%0监控0%…
-- `tools/biz/presentation-timer.html` — 空输入点「开始演讲」→ 结果区 进度正常
-- `tools/clinical-lab/thyroid-function-model.html` — 空输入点「分析」→ 结果区 结果分析参考区间定位TSH 2 mIU/L → 落在 正常（0.27–4.2 mIU/L 正常）FT3 5 pmol/L → 落在 正常（3.1–6.8 pmol/L 正常）FT4 16 pmol/L…
-- `tools/decor/detector-18.html` — 空输入点「检测判定」→ 结果区 室内空气质量检测结果（GB/T 18883-2022）污染物实测值限值判定甲醛0 mg/m³≤0.08✓ 达标 (0%)TVOC0 mg/m³≤0.6✓ 达标 (0%)苯0 mg/m³≤0.03✓ 达…
-- `tools/eco/aqi.html` — 空输入点「计算」→ 结果区 健康等级：1 级建议活动时长：0.0 小时PM2.5 估算：0.0 µg/m³ ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/eco/noise-superposition.html` — 空输入点「计算叠加」→ 结果区 叠加后总声压级3.0 dB安静声源数量2最大声源0.0 dB能量平均0.0 dB较最大声源增加+3.0 dB距离衰减参考（点声源，距最大声源）：1m0.0 dB5m-14.0 dB10m-20.0 d…
-- `tools/edu/assessor-27.html` — 空输入点「知识评估」→ 结果区 知识管理成熟度评估知识捕获：0/10 ✗知识共享：0/10 ✗知识应用：0/10 ✗知识创新：0/10 ✗知识存储：0/10 ✗知识安全：0/10 ✗综合评分：0.00/10成熟度等级：1级-初始级知…
-- `tools/electronics/bandwidth.html` — 空输入点「🧮 计算」→ 结果区 0.00e+0所需 GBP (Hz)0.00e+0建议 GBP (Hz)0.00e+0-3dB带宽 (Hz)推荐运放：LM358 / NE5532 (1~10MHz)。建议选型裕量≥2倍，高频应用还需…
-- `tools/electronics/capacitance.html` — 空输入点「🧮 计算」→ 结果区 0.00匹配电容 (pF)8推荐标准值 (pF)0.0晶振CL (pF)0.0杂散电容 (pF)C1=C2=C=2×(CL−Cs)。推荐就近选取标准容值8pF，C1与C2各接一个。 ⏐ 匹配电容26.…
-- `tools/encode/encode-7.html` — 空输入点「计算」→ 结果区 空间大小：1 近似碰撞概率：0.000000 %安全阈值 n：1 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/endocrinology/detector-metabolism.html` — 空输入点「分析判读」→ 结果区 儿茶酚胺及代谢产物检测结果项目实测参考范围判定24h尿VMA0 mg/24h1-7↓ 偏低24h尿HVA0 mg/24h1-4↓ 偏低血去甲肾上腺素0 pg/mL80-520↓ 偏低血肾上腺素0 pg…
-- `tools/energy/air-purifier-area.html` — 空输入点「计算」→ 结果区 0最小面积 m²0推荐面积 m²0最大面积 m²0.0换气次数/小时 ⏐ 📋 复制结果⬇️ 导出 TXT ⏐ 📊 结果解读 估算口径适用面积常按 CADR（洁净空气量）× 系数估算：卧室约 CAD…
-- `tools/energy/water-tds-evaluator.html` — 空输入点「评估」→ 结果区 直饮水级🎯 适用场景直饮无需处理高端饮用纯净水实验室超纯水稀释💡 健康提示水质极优，口感清冽。TDS极低可能意味着缺乏有益矿物质，长期饮用纯净水建议适当补充矿物质。🌍 WHO标准对比完全符合WH…
-- `tools/ent/ahi-severity.html` — 空输入点「计算评估」→ 结果区 0AHI(次/h)0AI暂停指数0HI低通气指数0ODI氧减指数0微觉醒指数100%正常 ⏐ 📋 复制结果⬇️ 导出 TXT ⏐ 参考区间标尺正常00.20.40.60.810
-- `tools/ent/hearing-loss-classification.html` — 空输入点「计算分析」→ 结果区 0PTA气导(dB)0PTA骨导(dB)0气骨导差(dB)0高频平均(dB) ⏐ 📋 复制结果⬇️ 导出 TXT ⏐ 参考区间标尺正常00.20.40.60.810
-- `tools/ent/laryngeal-nerve.html` — 空输入点「分析评估」→ 结果区 F0 基频0 Hz异常 ⏐ Jitter 微扰0%正常 ⏐ Shimmer 振幅微扰0%正常 ⏐ NHR 噪谐比0正常 ⏐ HNR 谐噪比0 dB异常 ⏐ MPT 最长发声0 秒异常 ⏐ 📋 复制结…
-- `tools/fitness/ratio-19.html` — 空输入点「🧮 计算」→ 结果区 100.0综合对称评分优秀对称等级0差异>10%部位数部位左 (cm)右 (cm)差异差异%对称分上臂0.00.00.0 cm 0.00%100.0大腿0.00.00.0 cm 0.00%100.0小…
-- `tools/fitness/weight-capacity-training.html` — 空输入点「🧮 计算」→ 结果区 0.0 kg训练总容量0.0 kg估算 1RM0.0%强度百分比0总次数强度区间：低强度 （推荐次数 25+）极低强度，适合热身与康复。相对 1RM 强度 0.0%（相对容量系数 -）1RM 百分比建…
-- `tools/gardening/recommender.html` — 空输入点「生成」→ 结果区 浇水频次推荐：1. 兰花 \| 春季·阴雨·保水性强 → 建议每10-14天1次，忌积水，植料偏干后再浇2. 吊兰 \| 夏季·晴天·排水快 → 建议每2-3天1次，保持土壤微润，避免积水3. 薄荷 \| …
-- `tools/general/recommender-24.html` — 空输入点「生成」→ 结果区 替代产品/方案推荐：1. VS Code → 替代：VSCodium、Fleet、Sublime Text2. Premiere Pro → 替代：DaVinci Resolve、Shotcut、Kd…
-- `tools/healthcare/checker-manager.html` — 空输入点「执行GSP检查」→ 结果区 📋 GSP质量管理检查报告检查维度评分判定说明质量管理体系与文件0/10需整改质量管理制度、操作规程、记录文件、内审人员与培训管理0/10需整改执业药师配备、岗前培训、年度继续教育设施与设备管理0/…
-- `tools/healthcare/water-intake.html` — 空输入点「计算」→ 结果区 推荐饮水量：0 mL折合杯数(250mL)：0.0 杯 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/hr/assessor-training-hr.html` — 空输入点「评估培训效果」→ 结果区 培训效果评估（柯氏前两层）培训主题：参训：0人 \| 时长：0小时能力提升：0→0（+0.0，提升0.0%）L1反应层（满意度）：0/100L2学习层-知识（测试通过率）：0/100L2学习层-技能（能…
-- `tools/hr/attendance-stats.html` — 空输入点「📊 统计」→ 结果区 4员工数0 次迟到合计0 次早退合计0 天旷工合计0 天请假合计0 小时加班合计0 元扣款合计4 人全勤人数0 元全勤奖合计0 元加班费合计 ⏐ 📋 复制结果⬇️ 导出 TXT ⏐ 姓名迟到早退旷工…
-- `tools/hydraulic/dam-stability.html` — 空输入点「🧮 计算」→ 结果区 坝体自重 W：21189.60 kN水平水压力 P：11301.12 kN（作用点 h/3=16.00 m）扬压力 U：4237.92 kN（折减系数 α=0.5）抗滑稳定安全系数 Ks：0.975 …
-- `tools/insurance/pure-premium.html` — 空输入点「计算」→ 结果区 0.00纯保费 (元/单位)0.00含10%安全边际 (元) ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/leather/temp-9.html` — 空输入点「🧮 计算」→ 结果区 0.00%收缩率0.0收缩温度 (℃)优秀热稳定性评估：收缩率＜3%，热稳定性优异。收缩温度偏低，需加强鞣制。 ⏐ 收缩率10.00% → 较差 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/leather/time-34.html` — 空输入点「🧮 计算」→ 结果区 0推荐软化时间 (min)0基准时间 (min)2.92温度系数1.00活力系数操作建议：温度偏低，酶活性不足，建议升温至37~40℃。软化过度会损伤皮纤维，须密切监控。 ⏐ 软化时间31min ⏐ …
-- `tools/leather/yield-rate-1.html` — 空输入点「🧮 计算」→ 结果区 0.00%铬回收率0.000回收铬量 (kg)较差处理效果回收率 = (废液浓度−回收后浓度) ÷ 废液浓度 × 100%。回收铬量 = 浓度差 × 处理量 ÷ 10⁶ (kg)。 ⏐ 回收率85.0…
+- `tools/aerospace/weight-balance.html` — 空输入点「计算重心」（）→ 结果区 载荷项重量 (kg)力臂 (m)力矩 (kg·m)使用空机00.000未命名00.000未命名00.000未命名00.000未命名00.000未命名00.000 0 总重量 (kg) 0 总力矩 (k…
+- `tools/agriculture/detector-nutrition.html` — 空输入点「判读品质」（）→ 结果区 综合等级：不合格 优质 2 / 合格 2 / 共 6 项发酵度评价：发酵不足（乳酸 0%）指标实测判读蛋白质0%偏低脂肪0%偏低还原糖0%偏低水分0%优质灰分0%优质乳酸(发酵度)0%偏低品质解读：多…
+- `tools/agriculture/irrigation-uniformity.html` — 空输入点「计算」（）→ 结果区 0.0%克里斯琴森系数CU0.0%分布均匀度DU0.00平均灌水量(mm)0.0%变异系数CV均匀度评价：均匀性差CU参考标准：>90%优秀 \| 80-90%良好 \| 70-80%一般 \| <70%差…
+- `tools/automotive/voltage-1.html` — 空输入点「🧮 计算」（）→ 结果区 38.0用电总电流 (A)38.0含充电总电流 (A)0负载率 (%)-38.0剩余电流 (A)0.55用电功率 (kW)0.00发电机功率 (kW)负载充足平衡评估负载率: 0.0%（安全线 80%…
+- `tools/beauty/recommender-face-shape.html` — 空输入点「生成」（）→ 结果区 生成结果： 1. 心形脸 推荐发型：下巴长度波波头、空气刘海、微卷发尾 妆容建议：眉尾略收，唇妆突出，平衡宽额头 注意：避免过厚刘海和顶部过高 2. 长形脸 推荐发型：法式刘海、齐肩发、横向蓬松卷发 …
+- `tools/biz/checker-8.html` — 空输入点「质量评估」（）→ 结果区 8服务质量总分服务质量不合格质量等级评估维度权重得分明细状态人员标准25%0持证0%/培训0%/着装0%/出勤0%差服务流程30%25巡逻0%/门禁0%/响应0分钟/记录0%差装备设施20%0监控0%…
+- `tools/biz/presentation-timer.html` — 空输入点「开始演讲」（）→ 结果区 进度正常
+- `tools/clinical-lab/thyroid-function-model.html` — 空输入点「分析」（）→ 结果区 结果分析参考区间定位TSH 2 mIU/L → 落在 正常（0.27–4.2 mIU/L 正常）FT3 5 pmol/L → 落在 正常（3.1–6.8 pmol/L 正常）FT4 16 pmol/L…
+- `tools/decor/detector-18.html` — 空输入点「检测判定」（）→ 结果区 室内空气质量检测结果（GB/T 18883-2022）污染物实测值限值判定甲醛0 mg/m³≤0.08✓ 达标 (0%)TVOC0 mg/m³≤0.6✓ 达标 (0%)苯0 mg/m³≤0.03✓ 达…
+- `tools/eco/aqi.html` — 空输入点「计算」（）→ 结果区 健康等级：1 级建议活动时长：0.0 小时PM2.5 估算：0.0 µg/m³ ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/eco/noise-superposition.html` — 空输入点「计算叠加」（）→ 结果区 叠加后总声压级3.0 dB安静声源数量2最大声源0.0 dB能量平均0.0 dB较最大声源增加+3.0 dB距离衰减参考（点声源，距最大声源）：1m0.0 dB5m-14.0 dB10m-20.0 d…
+- `tools/edu/assessor-27.html` — 空输入点「知识评估」（）→ 结果区 知识管理成熟度评估知识捕获：0/10 ✗知识共享：0/10 ✗知识应用：0/10 ✗知识创新：0/10 ✗知识存储：0/10 ✗知识安全：0/10 ✗综合评分：0.00/10成熟度等级：1级-初始级知…
+- `tools/electronics/bandwidth.html` — 空输入点「🧮 计算」（）→ 结果区 0.00e+0所需 GBP (Hz)0.00e+0建议 GBP (Hz)0.00e+0-3dB带宽 (Hz)推荐运放：LM358 / NE5532 (1~10MHz)。建议选型裕量≥2倍，高频应用还需…
+- `tools/electronics/capacitance.html` — 空输入点「🧮 计算」（）→ 结果区 0.00匹配电容 (pF)8推荐标准值 (pF)0.0晶振CL (pF)0.0杂散电容 (pF)C1=C2=C=2×(CL−Cs)。推荐就近选取标准容值8pF，C1与C2各接一个。 ⏐ 匹配电容26.…
+- `tools/encode/encode-7.html` — 空输入点「计算」（）→ 结果区 空间大小：1 近似碰撞概率：0.000000 %安全阈值 n：1 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/endocrinology/detector-metabolism.html` — 空输入点「分析判读」（）→ 结果区 儿茶酚胺及代谢产物检测结果项目实测参考范围判定24h尿VMA0 mg/24h1-7↓ 偏低24h尿HVA0 mg/24h1-4↓ 偏低血去甲肾上腺素0 pg/mL80-520↓ 偏低血肾上腺素0 pg…
+- `tools/energy/air-purifier-area.html` — 空输入点「计算」（）→ 结果区 0最小面积 m²0推荐面积 m²0最大面积 m²0.0换气次数/小时 ⏐ 📋 复制结果⬇️ 导出 TXT ⏐ 📊 结果解读 估算口径适用面积常按 CADR（洁净空气量）× 系数估算：卧室约 CAD…
+- `tools/energy/water-tds-evaluator.html` — 空输入点「评估」（）→ 结果区 直饮水级🎯 适用场景直饮无需处理高端饮用纯净水实验室超纯水稀释💡 健康提示水质极优，口感清冽。TDS极低可能意味着缺乏有益矿物质，长期饮用纯净水建议适当补充矿物质。🌍 WHO标准对比完全符合WH…
+- `tools/ent/ahi-severity.html` — 空输入点「计算评估」（）→ 结果区 0AHI(次/h)0AI暂停指数0HI低通气指数0ODI氧减指数0微觉醒指数100%正常 ⏐ 📋 复制结果⬇️ 导出 TXT ⏐ 参考区间标尺正常00.20.40.60.810
+- `tools/ent/hearing-loss-classification.html` — 空输入点「计算分析」（）→ 结果区 0PTA气导(dB)0PTA骨导(dB)0气骨导差(dB)0高频平均(dB) ⏐ 📋 复制结果⬇️ 导出 TXT ⏐ 参考区间标尺正常00.20.40.60.810
+- `tools/ent/laryngeal-nerve.html` — 空输入点「分析评估」（）→ 结果区 F0 基频0 Hz异常 ⏐ Jitter 微扰0%正常 ⏐ Shimmer 振幅微扰0%正常 ⏐ NHR 噪谐比0正常 ⏐ HNR 谐噪比0 dB异常 ⏐ MPT 最长发声0 秒异常 ⏐ 📋 复制结…
+- `tools/fitness/ratio-19.html` — 空输入点「🧮 计算」（）→ 结果区 100.0综合对称评分优秀对称等级0差异>10%部位数部位左 (cm)右 (cm)差异差异%对称分上臂0.00.00.0 cm 0.00%100.0大腿0.00.00.0 cm 0.00%100.0小…
+- `tools/fitness/weight-capacity-training.html` — 空输入点「🧮 计算」（）→ 结果区 0.0 kg训练总容量0.0 kg估算 1RM0.0%强度百分比0总次数强度区间：低强度 （推荐次数 25+）极低强度，适合热身与康复。相对 1RM 强度 0.0%（相对容量系数 -）1RM 百分比建…
+- `tools/gardening/recommender.html` — 空输入点「生成」（）→ 结果区 浇水频次推荐：1. 兰花 \| 春季·阴雨·保水性强 → 建议每10-14天1次，忌积水，植料偏干后再浇2. 吊兰 \| 夏季·晴天·排水快 → 建议每2-3天1次，保持土壤微润，避免积水3. 薄荷 \| …
+- `tools/general/recommender-24.html` — 空输入点「生成」（）→ 结果区 替代产品/方案推荐：1. VS Code → 替代：VSCodium、Fleet、Sublime Text2. Premiere Pro → 替代：DaVinci Resolve、Shotcut、Kd…
+- `tools/healthcare/checker-manager.html` — 空输入点「执行GSP检查」（）→ 结果区 📋 GSP质量管理检查报告检查维度评分判定说明质量管理体系与文件0/10需整改质量管理制度、操作规程、记录文件、内审人员与培训管理0/10需整改执业药师配备、岗前培训、年度继续教育设施与设备管理0/…
+- `tools/healthcare/water-intake.html` — 空输入点「计算」（）→ 结果区 推荐饮水量：0 mL折合杯数(250mL)：0.0 杯 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/hr/assessor-training-hr.html` — 空输入点「评估培训效果」（）→ 结果区 培训效果评估（柯氏前两层）培训主题：参训：0人 \| 时长：0小时能力提升：0→0（+0.0，提升0.0%）L1反应层（满意度）：0/100L2学习层-知识（测试通过率）：0/100L2学习层-技能（能…
+- `tools/hr/attendance-stats.html` — 空输入点「📊 统计」（）→ 结果区 4员工数0 次迟到合计0 次早退合计0 天旷工合计0 天请假合计0 小时加班合计0 元扣款合计4 人全勤人数0 元全勤奖合计0 元加班费合计 ⏐ 📋 复制结果⬇️ 导出 TXT ⏐ 姓名迟到早退旷工…
+- `tools/hydraulic/dam-stability.html` — 空输入点「🧮 计算」（）→ 结果区 坝体自重 W：21189.60 kN水平水压力 P：11301.12 kN（作用点 h/3=16.00 m）扬压力 U：4237.92 kN（折减系数 α=0.5）抗滑稳定安全系数 Ks：0.975 …
+- `tools/insurance/pure-premium.html` — 空输入点「计算」（）→ 结果区 0.00纯保费 (元/单位)0.00含10%安全边际 (元) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/leather/temp-9.html` — 空输入点「🧮 计算」（）→ 结果区 0.00%收缩率0.0收缩温度 (℃)优秀热稳定性评估：收缩率＜3%，热稳定性优异。收缩温度偏低，需加强鞣制。 ⏐ 收缩率10.00% → 较差 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/leather/time-34.html` — 空输入点「🧮 计算」（）→ 结果区 0推荐软化时间 (min)0基准时间 (min)2.92温度系数1.00活力系数操作建议：温度偏低，酶活性不足，建议升温至37~40℃。软化过度会损伤皮纤维，须密切监控。 ⏐ 软化时间31min ⏐ …
+- `tools/leather/yield-rate-1.html` — 空输入点「🧮 计算」（）→ 结果区 0.00%铬回收率0.000回收铬量 (kg)较差处理效果回收率 = (废液浓度−回收后浓度) ÷ 废液浓度 × 100%。回收铬量 = 浓度差 × 处理量 ÷ 10⁶ (kg)。 ⏐ 回收率85.0…
 
 ## 三、死控件与辅助按钮
 

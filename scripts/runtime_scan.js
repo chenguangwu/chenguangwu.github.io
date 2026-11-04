@@ -730,7 +730,7 @@ function EXPORT_TEST_FN() {
 async function scanInteract(page, rel) {
   const rec = { file: rel, status: 'ok', kind: 'ok', issues: [], inputs: 0, errors: [], empty: null, valid: null, buttons: {}, deadControls: [] };
   const issue = (t) => { if (!rec.issues.includes(t)) rec.issues.push(t); };
-  const PRIORITY = ['click_error', 'no_effect', 'empty_bogus', 'empty_conclusion', 'copy_dead', 'export_dead', 'reset_dead', 'no-primary-button'];
+  const PRIORITY = ['click_error', 'no_effect', 'empty_bogus', 'empty_conclusion', 'sel_default_zero', 'copy_dead', 'export_dead', 'reset_dead', 'no-primary-button'];
   const t0 = Date.now();
   const onPageError = (err) => {
     const m = normText(err && err.message || err);
@@ -781,19 +781,38 @@ async function scanInteract(page, rel) {
   const clickedEmpty = await page.evaluate(CLICK_PRIMARY_FN).catch(() => ({ found: false }));
   await sleep(320);
   const sEmpty = await snap();
-  // 若点完按钮控件又被填上了（点了示例/预设/历史快照），就不再是「空态」，不能据此判定
-  const stillEmpty = await page.evaluate(GET_INPUTS_FN).then((xs) => xs.every((x) => x.value === '')).catch(() => true);
-  rec.empty = { clicked: !!clickedEmpty.found, btn: clickedEmpty.label || '', zone: sEmpty.key, text: sEmpty.txt.slice(0, 320), stillEmpty };
-  if (clickedEmpty.found && stillEmpty) {
+  // 空态判定拆两维（2026-11-05 口径修正）：
+  //   ① 文本/数值控件必须为空才算「空态」；
+  //   ② <select> 不要求为空 —— 探针只能置第 0 项，其默认项非空属正常，
+  //      旧口径把 select 值并入 stillEmpty，导致所有含 select 的页被误判为「失真」而跳过。
+  // 三档：text_empty_no_select（真空态）/ text_empty_sel_default（select 默认态）/ true_distortion（控件回读失败）。
+  const post = await page.evaluate(GET_INPUTS_FN).catch(() => []);
+  // 不可清空的控件（select / checkbox / radio / range / color）不参与「文本是否为空」判定，
+  // 否则其 value（如 checkbox 的 "+80"、select 第 0 项）会被误当成「输入没清掉」。
+  const NON_TEXT = ['checkbox', 'radio', 'range', 'color', 'file'];
+  const isNonText = (x) => x.tag === 'select' || NON_TEXT.includes(String(x.type || '').toLowerCase());
+  const textCtls = post.filter((x) => !isNonText(x));
+  const selCtls = post.filter(isNonText);
+  const textEmpty = textCtls.every((x) => x.value === '');
+  const selDefault = selCtls.map((x) => (x.id || x.name || x.type || '?') + '=' + x.value);
+  const emptyMode = !textEmpty ? 'true_distortion'
+    : (selCtls.length ? 'text_empty_sel_default' : 'text_empty_no_select');
+  rec.empty = {
+    clicked: !!clickedEmpty.found, btn: clickedEmpty.label || '', zone: sEmpty.key,
+    text: sEmpty.txt.slice(0, 320), textEmpty, selDefault, mode: emptyMode,
+  };
+  if (clickedEmpty.found && emptyMode !== 'true_distortion') {
     const matched = sEmpty.key !== 'fallback';
     const txt = sEmpty.txt;
     if (matched && !PROMPT_RE.test(txt)) {
-      // 页面已给出「请输入/请填写」类提示 = 正确空态，不再判缺陷
-      if (BOGUS_RE.test(txt)) issue('empty_bogus');
+      if (emptyMode === 'text_empty_sel_default') {
+        // select 默认态不是真空态：只有「输出全 0 且无任何提示」才可疑，单列一档交人工复核
+        if (allZero(txt)) issue('sel_default_zero');
+      } else if (BOGUS_RE.test(txt)) issue('empty_bogus');
       else if (txt.trim() === '') issue('empty_bogus');
       else if (allZero(txt)) issue('empty_bogus'); // 结构化零值（首月还款 0.00 / 总收益 0.00…）
       else if (CONCLUSION_RE.test(txt)) issue('empty_conclusion');
-    } else if (!matched && /\b(NaN|Infinity|undefined|null)\b/.test(txt)) {
+    } else if (emptyMode === 'text_empty_no_select' && !matched && /\b(NaN|Infinity|undefined|null)\b/.test(txt)) {
       issue('empty_bogus'); // 回退快照含整页文案，只认独立词，避免正文里出现 "null" 字样误报
     }
   }
@@ -1365,6 +1384,7 @@ const KIND_META = {
   'scan-crash': { label: '扫描器自身异常（非页面缺陷，需人工复核）', group: 'C', weight: 0.2 },
   empty_bogus: { label: '空输入直接给出 NaN/Infinity/undefined/null/0', group: 'B', weight: 2.6 },
   empty_conclusion: { label: '空输入直接给出结论（优秀/正常/合格…）', group: 'B', weight: 2.2 },
+  sel_default_zero: { label: 'select 默认态输出全 0 且无提示（非真空态，可疑需人工复核）', group: 'C', weight: 1.0 },
   no_effect: { label: '改了输入再点主按钮，输出快照不变（低置信度线索，需人工复验）', group: 'C', weight: 0.8 },
   export_dead: { label: '导出/下载按钮 onclick 目标函数不存在（必死）', group: 'C', weight: 1.6 },
   copy_dead: { label: '复制按钮未写入剪贴板、文案未变、无 toast', group: 'C', weight: 1.0 },
@@ -1436,6 +1456,12 @@ function aggregateInteract() {
   const deadPages = recs.filter((r) => (r.deadControls || []).length);
   const maskedPages = recs.filter((r) => ((r.valid || {}).suspect || '') === 'probe_masked');
   const noBtnPages = recs.filter((r) => (r.note || '') === 'no-primary-button');
+  // 空态三档（2026-11-05 口径修正）
+  const probeModes = {};
+  for (const r of withInputs) {
+    const m = (r.empty || {}).mode || 'unknown';
+    probeModes[m] = (probeModes[m] || 0) + 1;
+  }
   const exportSuspect = recs.filter((r) => (r.buttons && r.buttons.export && r.buttons.export.suspect));
   // 行业分布：便于按分类分派修复（tools/<industry>/）
   const dirOf = (f) => (f.split('/')[1] || '?');
@@ -1457,8 +1483,9 @@ function aggregateInteract() {
     if (k === 'interact_error') {
       return `清空/改值阶段｜${clip((r.errors || []).join(' | '), 130)}`;
     }
-    if (k === 'empty_bogus' || k === 'empty_conclusion') {
-      return `空输入点「${(r.empty || {}).btn || '?'}」→ 结果区 ${clip((r.empty || {}).text, 100)}`;
+    if (k === 'empty_bogus' || k === 'empty_conclusion' || k === 'sel_default_zero') {
+      const m = (r.empty || {}).mode || '';
+      return `空输入点「${(r.empty || {}).btn || '?'}」（${m}${m === 'text_empty_sel_default' ? '｜select 默认 ' + ((r.empty || {}).selDefault || []).join(',') : ''}）→ 结果区 ${clip((r.empty || {}).text, 100)}`;
     }
     if (k === 'copy_dead') {
       const b = (r.buttons || {}).copy || {};
@@ -1489,6 +1516,7 @@ function aggregateInteract() {
     pagesWithInputs: withInputs.length,
     pagesNoInputs: recs.length - withInputs.length,
     pagesWithoutPrimaryButton: noBtnPages.length,
+    probeModes,
     exportNotObserved: exportSuspect.length,
     flaggedPages: flagged.length,
     probeMaskedPages: maskedPages.map((r) => ({ file: r.file, mutation: (r.valid || {}).mutation || '', recheck: (r.valid || {}).recheck || null, decimals: (r.valid || {}).decimals })),
@@ -1508,6 +1536,8 @@ function aggregateInteract() {
   L.push('- 有输入控件的页：**' + withInputs.length + '**');
   L.push('- 无输入控件（纯展示/参考卡，跳过）：**' + (recs.length - withInputs.length) + '**');
   L.push('- 有输入但无主按钮（实时计算/表单提交，不计缺陷）：**' + noBtnPages.length + '**');
+  const rescanned = Object.entries(probeModes).filter(([k]) => k !== 'unknown').reduce((a, [, v]) => a + v, 0);
+  L.push('- 空态三档（本版已按新口径重扫 **' + rescanned + '** 页）：真空态 `text_empty_no_select` **' + (probeModes.text_empty_no_select || 0) + '**｜select 默认态 `text_empty_sel_default` **' + (probeModes.text_empty_sel_default || 0) + '**｜控件回读失真 `true_distortion` **' + (probeModes.true_distortion || 0) + '**；其余 **' + (probeModes.unknown || 0) + '** 页仍是旧口径记录，待全量重扫后归位');
   L.push('- 命中至少一类问题：**' + flagged.length + '**');
   L.push('');
   L.push('> 口径：① 有效性＝先填值→记录快照→**改一个输入为明显不同的合法值**→再点主按钮→比较前后快照（排除「加载时已自动算过一次」的假阴性）；② 空态＝清空所有输入后点主按钮，结果区给出 NaN/Infinity/undefined/null/0/空串或结论即为缺陷；③ 死控件＝控件 id 在全部 `<script>` 中从未出现（且页面无 `querySelectorAll(\'input\')` / `FormData` 这类泛化读取，内联 oninput 绑定的不计）。快照优先取 `#result/#output/.result*` 等结果容器，无则回退整页正文（剔除控件内的当前值）。');
@@ -1627,7 +1657,7 @@ function aggregateInteract() {
   L.push('> 精简摘要（401 个高/中置信页）：`plan/interaction-invalid-top100.json`。');
 
   fs.writeFileSync(IMD, L.join('\n') + '\n');
-  console.error(`交互聚合完成：${recs.length} 页，有输入 ${withInputs.length}，无主按钮 ${noBtnPages.length}，命中问题 ${flagged.length} → ${IMD}`);
+  console.error(`交互聚合完成：${recs.length} 页，有输入 ${withInputs.length}，无主按钮 ${noBtnPages.length}，空态三档 真空=${probeModes.text_empty_no_select || 0}/select默认=${probeModes.text_empty_sel_default || 0}/失真=${probeModes.true_distortion || 0}，命中问题 ${flagged.length} → ${IMD}`);
 }
 
 // ---------- 默认态脏输出聚合 ----------
