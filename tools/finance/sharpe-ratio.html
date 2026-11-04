@@ -117,7 +117,7 @@ s.parentNode.insertBefore(el, s);
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
       <div class="formula-eq">Sharpe = (R<sub>p</sub> − R<sub>f</sub>) ÷ σ<sub>p</sub>　　年化 Sharpe = Sharpe × √N</div>
-      <p class="formula-desc">R<sub>p</sub> 为组合收益率、R<sub>f</sub> 为无风险利率、σ<sub>p</sub> 为收益率标准差。收益序列模式下 R<sub>p</sub> 取序列算术平均，σ<sub>p</sub> 取<b>总体标准差</b>（各期离差平方和 ÷ 期数 n，不再减 1），与「样本标准差」口径不同，期数越少差异越明显；直接输入模式下 σ<sub>p</sub> 由你给定。年化系数 N 取 12（月→年）/ 52（周→年）/ 252（交易日→年），按 √N 等比缩放，只改变量级不改变排序。不足 2 个数据点或标准差为 0 时不出结果。超额收益 ≤ 0 时夏普为负，意味着组合没有跑赢无风险资产。</p>
+      <p class="formula-desc">R<sub>p</sub> 为组合收益率、R<sub>f</sub> 为无风险利率、σ<sub>p</sub> 为收益率标准差。收益序列模式下 R<sub>p</sub> 取序列算术平均，σ<sub>p</sub> 取<b>总体标准差</b>（各期离差平方和 ÷ 期数 n，不再减 1），与「样本标准差」口径不同，期数越少差异越明显；直接输入模式下 σ<sub>p</sub> 由你给定。年化系数 N 取 12（月→年）/ 52（周→年）/ 252（交易日→年），按 √N 等比缩放，只改变量级不改变排序；无风险利率按年化填写，计算前先折算到每期（R<sub>f</sub> ÷ N），避免月/年口径混算。评级只按年化夏普给出（不年化时按每期夏普），另一个数值仅作参考、不重复评级。不足 2 个数据点或标准差为 0 时不出结果。超额收益 ≤ 0 时夏普为负，意味着组合没有跑赢无风险资产。</p>
     </div>
 
     <div class="tabs">
@@ -332,9 +332,16 @@ function calc(){
     }
   }
 
-  var excessReturn = portReturn - riskFree;
+  if(!isFinite(riskFree) || riskFree < 0){
+    document.getElementById('statGrid').innerHTML='';
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);">无风险利率须为非负数</p>';
+    return;
+  }
+  var rfPeriod = annFactor > 1 ? riskFree / annFactor : riskFree;
+  var excessReturn = portReturn - rfPeriod;
   var sharpe = portStd > 0 ? excessReturn / portStd : 0;
   var annSharpe = sharpe * Math.sqrt(annFactor);
+  var primary = annFactor > 1 ? annSharpe : sharpe;
 
   function grade(s){
     if(s > 2) return '<span class="grade-tag grade-excellent">优秀</span>';
@@ -346,30 +353,33 @@ function calc(){
 
   var annLabel = annFactor === 1 ? '原始' : (annFactor === 12 ? '月→年化' : (annFactor === 52 ? '周→年化' : '日→年化'));
 
-  var statHtml = '<div class="stat-card"><div class="val">' + sharpe.toFixed(3) + '</div><div class="lbl">夏普比率</div></div>'
-    + '<div class="stat-card"><div class="val">' + annSharpe.toFixed(3) + '</div><div class="lbl">' + annLabel + '</div></div>'
+  var statHtml = '<div class="stat-card"><div class="val">' + sharpe.toFixed(3) + '</div><div class="lbl">每期夏普比率</div></div>'
+    + '<div class="stat-card"><div class="val">' + annSharpe.toFixed(3) + '</div><div class="lbl">' + annLabel + '夏普</div></div>'
     + '<div class="stat-card"><div class="val">' + excessReturn.toFixed(2) + '%</div><div class="lbl">超额收益</div></div>'
     + '<div class="stat-card"><div class="val">' + portStd.toFixed(2) + '%</div><div class="lbl">标准差(风险)</div></div>';
   const __g5=statHtml;document.getElementById('statGrid').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
 
   var html = '<h3 style="margin-bottom:10px;font-size:15px;">📋 计算明细</h3>';
   html += '<p>组合平均收益率 R<sub>p</sub> = <strong>' + portReturn.toFixed(3) + '%</strong></p>';
-  html += '<p>无风险利率 R<sub>f</sub> = <strong>' + riskFree.toFixed(2) + '%</strong></p>';
-  html += '<p>超额收益 = ' + portReturn.toFixed(3) + ' - ' + riskFree.toFixed(2) + ' = <strong>' + excessReturn.toFixed(3) + '%</strong></p>';
+  html += '<p>无风险利率 R<sub>f</sub> = <strong>' + riskFree.toFixed(2) + '%</strong>（年化）</p>';
+  if(annFactor > 1){
+    html += '<p>每期无风险利率 = ' + riskFree.toFixed(2) + '% ÷ ' + annFactor + ' = <strong>' + rfPeriod.toFixed(3) + '%</strong></p>';
+  }
+  html += '<p>超额收益 = ' + portReturn.toFixed(3) + ' - ' + rfPeriod.toFixed(3) + ' = <strong>' + excessReturn.toFixed(3) + '%</strong></p>';
   html += '<p>收益率标准差 σ<sub>p</sub> = <strong>' + portStd.toFixed(3) + '%</strong></p>';
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
-  html += '<p style="font-size:18px;font-weight:700;color:var(--primary);">夏普比率 = ' + excessReturn.toFixed(3) + ' ÷ ' + portStd.toFixed(3) + ' = ' + sharpe.toFixed(4) + '</p>';
-  html += '<p>评级：' + grade(sharpe) + '</p>';
+  html += '<p style="font-size:18px;font-weight:700;color:var(--primary);">每期夏普比率 = ' + excessReturn.toFixed(3) + ' ÷ ' + portStd.toFixed(3) + ' = ' + sharpe.toFixed(4) + '</p>';
   if(annFactor > 1){
-    html += '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
     html += '<p style="font-weight:600;">年化夏普比率：</p>';
     html += '<p>年化夏普 = ' + sharpe.toFixed(4) + ' × √' + annFactor + ' = <strong style="color:var(--secondary);">' + annSharpe.toFixed(4) + '</strong></p>';
-    html += '<p>评级：' + grade(annSharpe) + '</p>';
+    html += '<p>评级（按年化夏普）：' + grade(primary) + '</p>';
+  } else {
+    html += '<p>评级：' + grade(primary) + '</p>';
   }
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
   if(excessReturn <= 0){
     html += '<div class="tip-box tip-error">超额收益为负，组合表现不如无风险投资，夏普比率为负。</div>';
-  } else if(sharpe < 1){
+  } else if(primary < 1){
     html += '<div class="tip-box tip-warn">夏普比率低于1，风险补偿不足，承担的风险较高。</div>';
   } else {
     html += '<div class="tip-box tip-success">夏普比率良好，承担单位风险获得了合理超额收益。</div>';

@@ -1020,8 +1020,15 @@ const CASES = [
     slug: "finance/sharpe-ratio",
     inputs: { portReturn: "14", portStd: "20", riskFree: "2" },
     clicks: ["currentTab='inputs'; calc()"],
-    expect: ["夏普比率 = 12.000 ÷ 20.000 = 0.6000", "超额收益 = 14.000 - 2.00 = 12.000%"],
-    ref: "夏普比率（组合收益率 14%、标准差 20%、无风险利率 2%）：超额收益 = 14.000 − 2.00 = **12.000%**；夏普比率 = 12.000 ÷ 20.000 = **0.6000**。页面把两个中间式都印在明细区 ⇒ 两条 expect 各自都是一步相除/相减。注意该页 `calc()` 依赖 `currentTab`：harness 内 `oninput` 触发的 `switchTab` 会抛 `charAt` of undefined ⇒ 必须在 clicks 里先 `currentTab='inputs'` 再调 `calc()`，否则结果区停在默认态。默认组（8 / 12 / 3 ⇒ 0.4167）不命中。",
+    expect: ["每期无风险利率 = 2.00% ÷ 12 = 0.167%", "每期夏普比率 = 13.833 ÷ 20.000 = 0.6917", "年化夏普 = 0.6917 × √12 = 2.3960"],
+    ref: "夏普比率（组合收益率 14%、标准差 20%、无风险利率 2%、年化系数 12）：无风险利率为年化口径，须先折算到每期 = 2%/12 = **0.167%**；超额收益 = 14.000 − 0.167 = **13.833%**；每期夏普 = 13.833 ÷ 20.000 = **0.6917**，年化 = 0.6917 × √12 = **2.3960**（旧实现直接 14 − 2 得 0.6000，属月/年口径混算）。默认组（8 / 12 / 3）为 0.4167，不命中。注意该页 `calc()` 依赖 `currentTab`：harness 内 `oninput` 触发的 `switchTab` 会抛 `charAt` of undefined ⇒ 必须在 clicks 里先 `currentTab='inputs'` 再调 `calc()`。",
+  },
+  {
+    slug: "finance/sharpe-ratio",
+    inputs: { portReturn: "14", portStd: "20", riskFree: "-5" },
+    clicks: ["currentTab='inputs'; calc()"],
+    expect: ["无风险利率须为非负数"],
+    ref: "负无风险利率原实现照算并产出正/负夏普；现拦截。默认输入 3% 不出现该提示。",
   },
   {
     slug: "finance/irr-calculator",
@@ -1617,17 +1624,10 @@ const CASES = [
   },
   {
     "slug": "finance/discount-calculator",
-    "inputs": {
-      "price": "42",
-      "finalPrice": "42",
-      "discountRate": "42",
-      "amount": "42",
-      "taxRate": "42"
-    },
-    "expect": [
-      " -- 节省金额\n42\n42\n42\n42\n42"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"price\":\"42\",\"finalPrice\":\"42\",\"discountRate\":\"42\",\"amount\":\"42\",\"taxRate\":\"42\"}，输出区含「 -- 节省金额\n42\n42\n42\n42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "inputs": { "price": "250" },
+    "clicks": ["updateDiscount(0,'8');calc()"],
+    "expect": ["¥ 200.00"],
+    "ref": "0–10 折单位修正：折扣链输入 8（即 8 折）⇒ 250×0.8 = ¥200.00、节省 ¥50.00；旧实现把输入 8 当 0.8 折 ⇒ 250×0.08 = ¥20.00（与 8 折差 10 倍）。默认价 100 下回退注入得 ¥80.00，不命中。"
   },
   {
     "slug": "finance/dns-record-info",
@@ -2395,9 +2395,12 @@ const CASES = [
       "annualize": "12"
     },
     "expect": [
-      "准差 σ p = 0.816% 夏普比率 = -40.000 ÷ 0.816 = -48.9898 评级： 差 年化夏普比率： 年化夏普 = -48.9898 × √12 = -169.7056 评级： 差 超额收益为负，组合表现不如无风险"
+      "每期无风险利率 = 42.00% ÷ 12 = 3.500%",
+      "每期夏普比率 = -1.500 ÷ 0.816 = -1.8371",
+      "年化夏普 = -1.8371 × √12 = -6.3640",
+      "评级（按年化夏普）： 差"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"portReturn\":\"42\",\"portStd\":\"42\",\"riskFree\":\"42\",\"returns\":\"1\\n2\\n3\",\"annualize\":\"12\"}，输出区含「准差 σ p = 0.816% 夏普比率 = -40.000 ÷ 0.816 =…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"portReturn\":\"42\",\"portStd\":\"42\",\"riskFree\":\"42\",\"returns\":\"1\\n2\\n3\",\"annualize\":\"12\"}，序列均值 2、总体标准差 0.816；年化无风险利率 42% 折算到每期 3.500%，超额收益 = 2 − 3.5 = −1.500%，每期夏普 = −1.8371、年化 = −6.3640，只给一个评级「差」。默认态（输入回退）不含这些串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "finance/sin-validator",
@@ -2481,9 +2484,9 @@ const CASES = [
       "minCommission": "42"
     },
     "expect": [
-      "42\n42\n42\n42\n42\n42\n42\n3245.76\n-458.64\n-3704.40\n-114.13%\n-88.200\n3704.40\n1,764.00\n740.88\n740.88\n3,245.76\n1,764.00\n740.88\n7"
+      "佣金、印花税与过户费合计不能达到 100%。"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"buyPrice\":\"42\",\"buyQty\":\"42\",\"sellPrice\":\"42\",\"commissionRate\":\"42\",\"stampRate\":\"42\",\"transferRate\":\"42\",\"minCommission\":\"42\"}，输出区含「42\n42\n42\n42\n42\n42\n42\n3245.76\n-458.64\n-37…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例，已按费率上限修正）：全量注入 42 使佣金 42% + 印花税 42% + 过户费 42% = 126%（≥100%）⇒ 卖出净额会变负，现拦截提示；默认 0.03%/0.05%/0.001% 不含该提示 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "finance/tax-bracket",
@@ -2842,6 +2845,13 @@ const CASES = [
   },
   {
     slug: "finance/profit-margin-calculator",
+    inputs: { revRev: "1000", targetMargin1: "120" },
+    clicks: ["calcReverse()"],
+    expect: ["目标利润率与期间费用占比须在 0–100% 之间"],
+    ref: "F-N56 收入侧同源缺陷：目标毛利率 120% ⇒ 旧实现 targetCost = 1000×(1−1.2) 得 −200.00（负成本）；现拦截。默认目标毛利率 30% ⇒ 不命中。",
+  },
+  {
+    slug: "finance/profit-margin-calculator",
     inputs: { costCost: "60", targetMargin2: "120" },
     clicks: ["calcReverse()"],
     expect: ["目标利润率须在 0%–100% 之间（不含 100%）。"],
@@ -2959,6 +2969,13 @@ const CASES = [
     clicks: ["calc()"],
     expect: ["买入数量须为正整数。"],
     ref: "F-N57：数量清空 ⇒ 旧实现只按最低佣金 5 元计成本、盈亏 −5.00/−100.00%；修复后拒绝非正数量并禁用复制/导出。默认 1,000 股 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/stock-profit-calculator",
+    inputs: { buyPrice: "10", buyQty: "1000", sellPrice: "11", commissionRate: "-5" },
+    clicks: ["calc()"],
+    expect: ["费率须在 0–100% 之间，最低佣金不能为负。"],
+    ref: "负佣金率原实现把手续费算成负数 ⇒ 盈亏被抬高、复制/导出带出与直觉相反的数值；现拦截。默认 0.03% ⇒ 不命中。",
   },
 
   {

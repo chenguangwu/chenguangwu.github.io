@@ -501,10 +501,16 @@ function calcReverse(){
   var mtype1 = document.getElementById('marginType1').value;
   var target1 = +document.getElementById('targetMargin1').value || 0;
   var expRatio1 = +document.getElementById('expRatio1').value || 0;
+  var tax1 = +document.getElementById('taxRate').value || 25;
   
   var res1 = '';
   var targetCost = 0;
-  if(revRev > 0){
+  var bad1 = target1 < 0 || target1 >= 100 || expRatio1 < 0 || expRatio1 >= 100 || tax1 <= 0 || tax1 >= 100;
+  var preTarget1 = mtype1 === 'net' ? target1 / (1 - tax1 / 100) : target1;
+  if(mtype1 !== 'gross' && preTarget1 + expRatio1 >= 100) bad1 = true;
+  if(revRev > 0 && bad1){
+    res1 = '<p style="color:var(--danger);">目标利润率与期间费用占比须在 0–100% 之间，且「利润率＋费用占比」不得超过 100%</p>';
+  } else if(revRev > 0){
     if(mtype1 === 'gross'){
       targetCost = revRev * (1 - target1 / 100);
       res1 += '<p>目标毛利率：<strong>' + target1 + '%</strong></p>';
@@ -520,7 +526,7 @@ function calcReverse(){
       res1 += '<p style="font-size:16px;">目标营业成本：<strong style="color:var(--primary);">' + formatMoney(targetCost) + '</strong> 元</p>';
       res1 += '<p>对应毛利率：<strong>' + (revRev > 0 ? (revRev - targetCost) / revRev * 100 : 0).toFixed(2) + '%</strong></p>';
     } else if(mtype1 === 'net'){
-      var pretax = target1 / (1 - (+document.getElementById('taxRate').value || 25) / 100);
+      var pretax = preTarget1;
       var netProfit = revRev * target1 / 100;
       var expAmt2 = revRev * expRatio1 / 100;
       targetCost = revRev - revRev * pretax / 100 - expAmt2;
