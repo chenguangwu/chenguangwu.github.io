@@ -222,15 +222,17 @@ var straightTable=[
 ];
 function findIndex(breaks,val){
   for(var i=0;i<breaks.length;i++){if(val<=breaks[i])return i;}
-  return breaks.length-1;
+  return -1; // 超出表范围
 }
 function lookupRound(D,grade){
   var idx=findIndex(D_breaks,D);
+  if(idx<0)return null;
   if(grade<0)grade=0;if(grade>12)grade=12;
   return roundTable[grade][idx];
 }
 function lookupStraight(L,grade){
   var idx=findIndex(L_breaks,L);
+  if(idx<0)return null;
   if(grade<1)grade=1;if(grade>12)grade=12;
   return straightTable[grade-1][idx];
 }
@@ -273,9 +275,15 @@ function calc(){
   else if(type==='parallel'){tUm=lookupStraight(D,g)*1.25;}  // 方向公差参照
   else if(type==='position'){tUm=lookupRound(D,g-1<0?0:g-1)*2;} // 位置度取直径φ值
   else if(type==='runout'){tUm=lookupRound(D,g-1<0?0:g-1)*1.4;}
+  if(tUm==null){
+    document.getElementById('res').innerHTML='<p style="color:var(--danger);">超出 GB/T 1184 表范围：直径须 ≤500 mm、长度须 ≤10000 mm，请分段或查专用标准。</p>';
+    lastResult='';return;
+  }
   var tMm=tUm/1000;
   var diaSym=type==='position'?'φ':'';
-  var rangeLabel=isDiameter?D_breaks[findIndex(D_breaks,D)]:L_breaks[findIndex(L_breaks,D)];
+  var breaks=isDiameter?D_breaks:L_breaks;
+  var ri=findIndex(breaks,D);
+  var rangeLabel=breaks[ri];
   var gradeDesc='';
   if(g<=3)gradeDesc='高精度（量仪/精密机械）';
   else if(g<=5)gradeDesc='精密级（精密机床主轴）';
