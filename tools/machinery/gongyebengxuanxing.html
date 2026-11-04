@@ -230,7 +230,7 @@ function calc(){
     pumpMaterial='高铬合金 Cr26 / 橡胶衬里';
     note='浆料含固体颗粒，需选耐磨材质和较大流道';
   }
-  var npsh = H>60?'注意汽蚀余量，建议灌柱安装':'吸入条件良好';
+  var npsh = '需按吸入侧 NPSHa 与泵 NPSHr 核算';
   var speed = Q<20?'1450 rpm':(Q<500?'1450/2900 rpm':'980/1450 rpm');
   const __g2='<div class="data-grid">'+
     '<div class="data-card"><div class="num">'+shaftPower.toFixed(2)+'</div><div class="label">轴功率 (kW)</div></div>'+
@@ -242,17 +242,17 @@ function calc(){
     '<div class="data-card"><div class="num" style="font-size:14px;">'+pumpType+'</div><div class="label">推荐泵型</div></div>'+
     '<div class="data-card"><div class="num" style="font-size:13px;">'+pumpMaterial+'</div><div class="label">推荐材质</div></div>'+
     '<div class="data-card"><div class="num" style="font-size:14px;">'+speed+'</div><div class="label">推荐转速</div></div>'+
-    '<div class="data-card"><div class="num" style="font-size:13px;">'+npsh+'</div><div class="label">汽蚀评估</div></div>'+
+    '<div class="data-card"><div class="num" style="font-size:13px;">'+npsh+'</div><div class="label">汽蚀校核</div></div>'+
     '</div>'+
     '<div class="info-box" style="margin-top:8px;">📝 '+note+'</div>';document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
-  lastResult='工业泵选型\nQ='+Q+'m³/h, H='+H+'m, 介质='+medium+'\n轴功率: '+shaftPower.toFixed(2)+'kW\n电机功率: '+motorPower.toFixed(2)+'kW\n选型电机: '+selMotor+'kW\n推荐泵型: '+pumpType+'\n推荐材质: '+pumpMaterial+'\n推荐转速: '+speed+'\n说明: '+note;
+  lastResult='工业泵选型\nQ='+Q+'m³/h, H='+H+'m, η='+eta+', 介质='+medium+'\n轴功率: '+shaftPower.toFixed(2)+'kW\n电机功率: '+motorPower.toFixed(2)+'kW\n选型电机: '+selMotor+'kW\n推荐泵型: '+pumpType+'\n推荐材质: '+pumpMaterial+'\n推荐转速: '+speed+'\n说明: '+note;
 }
 function copyRes(){if(!lastResult){ToolBox.showToast(i18nText(),'warning');return;}ToolBox.copyText(lastResult);}
 function resetAll(){document.getElementById('vQ').value=50;document.getElementById('vH').value=30;document.getElementById('vMedium').value='water';document.getElementById('vRho').value=1000;document.getElementById('vEta').value=0.75;['vQ','vH','vRho','vEta'].forEach(function(id){setInvalid(document.getElementById(id),false);});calc();ToolBox.showToast(i18nText(),'info');}
 function historyKey(){try{return 'tb_history_'+location.pathname;}catch(e){return 'tb_history_pump_sel';}}
-function saveHistory(){try{var k=historyKey();var l=JSON.parse(localStorage.getItem(k)||'[]');var n=new Date();l.unshift({Q:num('vQ'),H:num('vH'),medium:document.getElementById('vMedium').value,rho:num('vRho'),time:n.toLocaleString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})});if(l.length>8)l=l.slice(0,8);localStorage.setItem(k,JSON.stringify(l));renderHistory();}catch(e){}}
+function saveHistory(){try{var k=historyKey();var l=JSON.parse(localStorage.getItem(k)||'[]');var n=new Date();l.unshift({Q:num('vQ'),H:num('vH'),medium:document.getElementById('vMedium').value,rho:num('vRho'),eta:num('vEta'),time:n.toLocaleString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})});if(l.length>8)l=l.slice(0,8);localStorage.setItem(k,JSON.stringify(l));renderHistory();}catch(e){}}
 function renderHistory(){var b=document.getElementById('historyBox');if(!b)return;try{var l=JSON.parse(localStorage.getItem(historyKey())||'[]');if(!l.length){b.innerHTML='<div class="history-empty">暂无计算记录</div>';return;}var h='';l.forEach(function(it,i){h+='<div class="history-item" onclick="restoreHistory('+i+')"><div><div class="time">'+ToolBox.escHtml(it.time)+'</div><div class="summary">Q='+it.Q+'m³/h, H='+it.H+'m, '+it.medium+'</div></div><span style="font-size:12px;color:var(--primary);">恢复</span></div>';});const __g4=h;b.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));}catch(e){b.innerHTML='<div class="history-empty">读取记录失败</div>';}}
-function restoreHistory(i){try{var l=JSON.parse(localStorage.getItem(historyKey())||'[]');var h=l[i];if(!h)return;document.getElementById('vQ').value=h.Q;document.getElementById('vH').value=h.H;document.getElementById('vMedium').value=h.medium;document.getElementById('vRho').value=h.rho;calc();ToolBox.showToast(i18nText(),'info');}catch(e){}}
+function restoreHistory(i){try{var l=JSON.parse(localStorage.getItem(historyKey())||'[]');var h=l[i];if(!h)return;document.getElementById('vQ').value=h.Q;document.getElementById('vH').value=h.H;document.getElementById('vMedium').value=h.medium;document.getElementById('vRho').value=h.rho;if(h.eta!=null)document.getElementById('vEta').value=h.eta;calc();ToolBox.showToast(i18nText(),'info');}catch(e){}}
 function clearHistory(){try{localStorage.removeItem(historyKey());renderHistory();ToolBox.showToast(i18nText(),'info');}catch(e){}}
 document.addEventListener('DOMContentLoaded',function(){renderHistory();});
 calc();
@@ -400,7 +400,7 @@ else document.addEventListener('DOMContentLoaded', __gongyebengxuanxingBoot);
 <ul class="dd-list">
 <li>工业输运选型：输入流量、扬程、介质密度与效率，算轴功率并据介质选泵型</li>
 <li>材质选型：腐蚀/含固介质选耐腐耐磨结构</li>
-<li>安装校核：高扬程注意汽蚀余量 NPSH</li>
+<li>安装校核：吸入侧 NPSHa 须大于泵 NPSHr（建议留 ≥0.5 m 裕量），与排出扬程无关</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">算法：轴功率 P = ρgQH/(3600×1000×η)（kW，g=9.8）；配电机 = 轴功率×1.1，向上取标准序列（0.75/1.1/1.5/2.2/…/315kW）；按介质（水/油/酸/浆）定泵型与材质。</div></div>
 <div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例：清水 Q=50m³/h、H=30m、ρ=1000、η=0.75 → 轴功率 5.44kW、配电机 5.99→取 7.5kW 标准电机；H&lt;60m 吸入条件良好，选单级离心泵/管道泵（铸铁或不锈钢）。若油类介质须选容积式并考虑粘度。</div></div>
@@ -447,7 +447,7 @@ else document.addEventListener('DOMContentLoaded', __gongyebengxuanxingBoot);
     <h4><span class="h4-icon">📝</span>工具简介</h4>
     <p>工业泵选型计算器根据流量、扬程和介质类型，计算泵的轴功率和电机功率，并从标准电机序列中推荐选型，同时根据介质特性推荐泵型、材质和转速。</p>
     <h4><span class="h4-icon">✨</span>功能特点</h4>
-    <ul class="intro-features"><li>支持清水、油类、酸碱、浆料四种介质</li><li>按介质自动推荐泵型与耐腐蚀材质</li><li>电机功率自动匹配标准序列</li><li>汽蚀余量评估与转速推荐</li></ul>
+    <ul class="intro-features"><li>支持清水、油类、酸碱、浆料四种介质</li><li>按介质自动推荐泵型与耐腐蚀材质</li><li>电机功率自动匹配标准序列</li><li>转速推荐；汽蚀需按吸入侧另行校核</li></ul>
     <h4><span class="h4-icon">🎯</span>使用场景</h4>
     <ul class="intro-scenes"><li>供水、排水系统水泵选型</li><li>化工流程泵配置</li><li>油品输送泵选型</li><li>矿山渣浆泵配置</li></ul>
     </div>
