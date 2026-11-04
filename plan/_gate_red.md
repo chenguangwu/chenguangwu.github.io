@@ -35,3 +35,16 @@
 - 按新流程，全量门禁改在 `git worktree add --detach` 的干净副本上跑，只验证 commit 内容，不验证他人未提交改动。
 - 脏树上 `discriminate_check` 的 1 个逃生项来自土建线正在进行中的页面改动，HEAD 上不存在（干净 worktree 为 0 逃生）。
 
+## 2026-11-04 · 门禁总数 219 → 220
+
+新增 `escHtml regression`（`node scripts/verify_esc_html.js`，安全线 `b44a53da52`），注册于分类计算门禁之后、anti-regression 组之前。
+
+断言范围：
+- `escHtml` 必须对 `"` `'` `<` `>` `&` 全编码；
+- 禁止回退成 `textContent → innerHTML` 实现；
+- 属性载荷整串保留（不被截断/二次解码）；
+- 抽查 3 个调用页（`it/api-sign-generator`、`advertising/storyboard-timeline`、`metalwork/analysis-35`）确含 `escHtml(` 调用。
+
+门禁位置：分类计算门禁之后、`anti-regression: no fake gates` 之前，编号 `[219/220]`；总数由 219 增至 **220**。
+
+

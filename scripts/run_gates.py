@@ -294,6 +294,9 @@ GATES = (
     ("woodwork calc correctness", ("node", "scripts/verify_woodwork_calc.js")),
     ("woodworking calc correctness", ("node", "scripts/verify_woodworking_calc.js")),
     ("yi calc correctness", ("node", "scripts/verify_yi_calc.js")),
+    # 安全回归（安全线 b44a53da52）：escHtml 必须对 " ' < > & 全编码、禁止回退成
+    # textContent→innerHTML、属性载荷整串保留，并抽查 3 个调用页的输出转义。
+    ("escHtml regression", ("node", "scripts/verify_esc_html.js")),
     # 反回归（P0-2 / DEV-PLAN §7.1）：禁止任何 verify 脚本残留 _selfcheck 假门禁标记
     # 或「空输入」假用例。真用例都带真实 inputs，本门禁零误伤；一旦存在假门禁即判红，
     # 强制还原为真实 inputs+expect。置于最后，不阻塞其余门禁先跑完。
