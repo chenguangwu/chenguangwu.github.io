@@ -241,3 +241,58 @@
 - `scripts/verify_automotive_calc.js` 新增存储型用例：`clicks` 覆写 `localStorage.getItem` 返回恶意记录后调 `renderGarage()`，`expect` 命中 `&lt;svg/onload=alert(1)&gt;`。
 - `scripts/verify_metalwork_calc.js` 为两页各新增一条恶意名称用例（`expect` 同上）。
 - `verify_automotive_calc.js` 73/73、`verify_metalwork_calc.js` 71/71 全过；`discriminate_check.js` 两脚本合计 144 例、逃生项 0；`selfcheck_false_pass.js` 两脚本 risk 0；`_test_static.py` 0 失败。
+
+---
+
+## 九、第五批：SRI 收敛 / 全局名审计 / 上传抽检 / 外传核查（2026-11-04）
+
+### 9.1 浮动版本 CDN 收敛（7/7）
+
+- 7 处浮动版本全部固定到同 major 的确切版本，并补 `integrity` + `crossorigin="anonymous"`；哈希按实际下载字节计算并二次拉取核对一致：
+  - `office/flowchart.html`：mermaid `@10` → `10.9.8`
+  - `office/mindmap.html`：d3 `@7` → `7.9.2`；markmap-view（无版本）→ `0.17.2`；markmap-lib `@0.17` → `0.17.2`
+  - `it/yaml-validator.html`：js-yaml `@4` → `4.1.0`
+  - `it/less-compiler.html`：less `@4` → `4.9.1`
+  - `it/ast-viewer.html`：acorn `@8` → `8.19.0`
+- **保留浮动版本清单：0 处**。这 7 处均能确定确切版本并稳定取到哈希，无需保留浮动。仍无法固定/SRI 的只有动态下发类（见 9.4 与第十节）。
+- 真机复验：5 页 HTTP 200、库全局可用（`mermaid.render` / `d3` + `window.markmap.Markmap/Transformer` / `jsyaml.loadAll` / `less.render` / `window.acorn.parse`）、0 pageerror、0 CDN 请求失败。
+
+### 9.2 库全局名审计
+
+- 逐页真机检查第三方库实际暴露的全局名与页面调用名是否一致：pdf-lib（`PDFLib`）、pdf.js（`pdfjsLib`）、bcryptjs（`dcodeIO.bcrypt`）、sql.js（`initSqlJs`）、TypeScript（`ts`）、mermaid、d3、markmap、jsyaml、less、acorn，共 11 页。
+- **本批新命中 0 处**；上一批已修的 `it/bcrypt.html`（裸 `bcrypt` vs `dcodeIO.bcrypt`）是唯一实际缺陷。11 页真机功能调用全部通过、0 pageerror。
+
+### 9.3 上传回显抽检（10/55）
+
+- 从剩余 51 个上传页抽取 10 页：`speech-to-text`、`audio-volume`、`image-to-ascii`、`png-to-svg`、`image-to-base64`、`base64-converter`、`code-line-counter`、`csv-to-html-table`、`rich-text-editor`、`safety/manager`。
+- 真机注入文件名 `x"><img src=x onerror=alert(1)>.png`：**10/10 全部 0 弹窗、0 pageerror、0 属性和值含 `alert(1)` 的注入元素**，`textContent` / 已转义判断成立，无新反例。
+
+### 9.4 第三方脚本外传核查
+
+- 全站注入脚本：TTZZ（字节 push.js）、51.la、微软 Clarity、百度统计、AdSense、淘宝客与社交分享。
+- 核查结论：**0 处把用户输入/文件内容写入 URL query、`sendBeacon` 或 `fetch` 请求体**；统计仅上报页面路径/工具标识与常规浏览器指标。唯一待处置项是 Clarity 会话回放可能采集文本输入（见第十节）。
+
+### 9.5 门禁
+
+- `verify_office_calc.js` 3/3、`verify_it_calc.js` 866/866。
+- `discriminate_check.js` office 检 2 跳 1、it 检 865 跳 1，**逃生项均为 0**。
+- `selfcheck_false_pass.js` office risk 0（all_default=1 为既有基线）、it risk 0。
+- `python3 _test_static.py` 0 失败。
+
+---
+
+## 十、剩余风险（按严重度）
+
+| # | 风险项 | 严重度 | 状态 | 说明 |
+|---|--------|--------|------|------|
+| 1 | 微软 Clarity 会话回放可能采集文本输入 | 高 | **待处置** | 静态代码无法确认其 masking 配置；若采集输入框内容，用户在本站输入的口令/文本可能进入第三方回放。需在 Clarity 后台开启 input masking 或下线该脚本。 |
+| 2 | GitHub Pages 无 CSP / X-Frame-Options / COOP 等安全响应头 | 中 | **待处置** | 平台不允许自定义响应头；可评估 `<meta http-equiv="Content-Security-Policy">`，但全站大量内联脚本与第三方统计，收紧需逐页回归，暂未实施。 |
+| 3 | TTZZ / 51.la / 百度 / Clarity / AdSense 动态下发脚本无法 SRI | 中 | 接受风险 | URL 带服务端 token、内容随请求变化，无法固定哈希；来源为各厂商官方 CDN。被投毒时与同源脚本同等失效，已通过「不上传用户数据」降低影响面。 |
+| 4 | transformers 运行时拼版本 + 远端模型分片 | 中 | 接受风险 | 模型文件体积大、按运行时版本动态分片，无法 SRI；仅在浏览器本地推理，输入不出本机。 |
+| 5 | localStorage 弱加密（XOR 密钥流）用于口令保险库 | 中 | 接受风险 | `safety/manager.html` 等页仅作本地演示，页内有显著警示；升级为 WebCrypto 派生需另立工具并迁移既有数据，暂不处理。 |
+| 6 | pdf.js worker 运行时动态加载 | 低 | 接受风险 | worker 与主库版本一致、同 CDN 同源，无 SRI；主库已固定 3.11.174 + SRI，worker 仅执行 PDF 解析。 |
+| 7 | Google Fonts CSS 动态下发（`design/font-pairing.html`） | 低 | **已确认安全** | 仅按 UA 下发样式表，不含用户数据；请求携带常规 UA 属浏览器行为，无 PII。 |
+| 8 | sql.js wasm 运行时加载 | 低 | **已确认安全** | 库固定 1.8.0 + SRI，wasm 路径由该版本决定；SQL 全程本地执行，不上传数据库内容。 |
+| 9 | 淘宝客 / AdSense / 社交分享外链 | 低 | **已确认安全** | 推广链接与分享参数均为静态值，不拼接用户输入；分享仅使用页面标题/URL。 |
+
+**合计 9 条**：已确认安全 3 条、接受风险 4 条、待处置 2 条。
