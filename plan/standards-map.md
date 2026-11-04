@@ -469,3 +469,54 @@
 - `node scripts/discriminate_check.js verify_civil_calc.js` = **69/69 正确变红、0 逃生项**（首轮曾因「多 expect 任一命中」出现 2 条逃生项，已按上法收紧）。
 - `node scripts/_en_i18n_probe.mjs --check civil/beam-udl` = **0 残留**（新增输入/选项/结果标签/θ 说明/表格行全部补英文键；两处 notes 与 formula-eq 的键已随源文本同步）。
 - 构建保留判断：改动仅工具页内联脚本/表单、英文词典与台账；未跑 `_build.py`、未 push。
+
+## 第 20 批：3 个 structural 挠度页并列「弹性解 vs 长期刚度」+ `rebar-anchorage` 的 ζ_a 分档 + `two-way-slab` 定位（2026-11-05）
+
+### 1. 三个 structural 挠度页（弹性解保留 + 独立 RC 对照区）
+
+- 定位：这三页原本是弹性钢/圆截面力学页（`PL³/48EI`、`wL⁴/8EI`、`PL³/(3EI)` 教学解），与 RC 矩形截面不是同一截面。**未替换弹性解**，而是在其下新增独立 RC 区块「钢筋混凝土长期刚度对照（GB 50010-2010）」，明确标注「与上方弹性解不是同一截面」，两组结果并列。
+- RC 区块统一口径：C25–C40 联动 `f_tk`/`E_c`；`B_s = E_sA_sh₀²/[1.15ψ+0.2+6α_Eρ]`（7.2.3-1）；`θ = 2.0−0.4·min(1,ρ′/ρ)`（7.2.5-1）；`B = B_s/θ`（7.2.2-2，准永久组合）；`δ = c·M_qL²/B`；限值按表 3.4.3（悬臂 `l₀=2L`）。
+- 默认态两组数字：
+
+| 页面 | 弹性解 δ_el (mm) | 长期刚度 δ_lt (mm) | M_q (kN·m) | σ_s (MPa) | ψ | B_s (kN·m²) | B (kN·m²) | θ | 限值 (mm) |
+|---|---|---|---|---|---|---|---|---|---|
+| `deflection-cantilever-point` | 0.2716 | 0.71 | 20.00 | 26.2 | 0.200 | 75560 | 37780 | 2.000 | 20.00 |
+| `deflection-cantilever-udl` | 2.037 | 0.05 | 2.00 | 2.6 | 0.200 | 75560 | 37780 | 2.000 | 20.00 |
+| `ss-point-deflection` | 8.333 | 0.04 | 5.00 | 6.6 | 0.200 | 75560 | 37780 | 2.000 | 10.00 |
+
+- 用例注入值（单锚默认态绝不存在的结果串）：cant-point `rcQ=50 → 5.67 mm`；cant-udl `rcQ=5000 → 0.26 mm`；ss-point `rcQ=50 → 0.22 mm`。
+- 英文：三页词典新增 RC 区块标题/说明/7 个输入标签/下拉选项/10 个结果标签/错误提示；`--check structural/<slug>` 三页均 **0 残留**。
+
+### 2. `rebar-anchorage`：ζ_a 由自由输入改为 8.3.2 分档自动值
+
+**条号纠正**：用户原写「表 9.7.3 / 9.7.4」，查原文后实为 **GB 50010-2010 第 8.3.2 条**（8.3.1 为 `l_ab` 与 `l_a≥200mm`）。本批按 8.3.2 落地，页面参考表直接标注 8.3.1 / 8.3.2。
+
+- 自动计算档位（可连乘，下限 0.6）：
+  1. 带肋钢筋公称直径 `d>25mm` → **1.10**（大直径钢筋粘结应力沿锚固长度分布更长，需加长锚固）；
+  2. 环氧树脂涂层带肋钢筋 → **1.25**（涂层削弱化学胶着力与摩阻力）；
+  3. 施工过程中易受扰动 → **1.10**（扰动使新浇混凝土与钢筋界面产生微裂缝）；
+  4. 保护层厚度：`c=3d` → **0.80**、`c≥5d` → **0.70**，中间线性内插（`c<3d` 按 0.80 偏安全）；保护层越厚劈裂约束越强、锚固效率越高；
+  5. 「实配面积大于计算面积」按设计/实配面积比**手改**（抗震作用组合与直接承受动力荷载时不考虑），页面不自动判断。
+- 页面实现：新增 `cover`（保护层，0=不计）、`epoxy`、`disturb` 三个输入；`ζ_a` 仍可手改，自动值随 `d/cover/epoxy/disturb` 回填；差值 >0.01 时输出「采用值 / 自动值（手改）」行；新增「ζ_a 自动值（按 8.3.2）」与「ζ_a 自动值取值档位」两行。
+- **顺带修 bug**：`__rebar_anchorageExtras()` 的 `la = za*lab` 漏 200mm 下限，与 `calcTool()` 的 `max(200, za*lab)` 不一致 → 统一为 `Math.max(200, za*lab)`。
+- 新用例 3 条（单锚、默认态不存在）：
+  - `d=32, za=1.100 → l_a=1241 mm`（8.3.2①，默认 705）；
+  - `cover=100(=5d), za=0.700 → l_a=493 mm`（8.3.2④，默认 705）；
+  - `cover=80(=4d) → 档位行「保护层4.00d→0.750」`（线性内插 0.80→0.70 的中点，默认无该行）。
+- 既有用例 `fy=ft=d=42` 原同时锚 `l_ab` 与 `l_a`，因 `d=42>25` 触发自动回填 1.10 导致 `l_a` 变化 → 改为**只锚 `l_ab`**（6 mm），避免混合锚/受自动回填影响。
+- 英文：`i18n/tools/en/civil/rebar-anchorage.json` 同步 formula-eq 全文（含 8.3.2 四款）、参考表 3 行、notes 5 条、4 个输入标签/勾选项、4 个 placeholder；删除 5 个改写前失效旧键；`--check civil/rebar-anchorage` = **0 残留**。
+
+### 3. `two-way-slab`：定位结论 = 只做弯矩系数查算，不加挠度
+
+- 核查结论：页面 `calcTool()` 只输出 `M_x = α_x·q·l_x²`、`M_y = α_y·q·l_x²` 与配筋估算，**确无挠度/裂缝计算**（deep-dive 中「厚度与挠度」仅为定性说明）。
+- 处置：**不硬加挠度验算**，在「计算说明」首条明写定位——「本页定位：仅做弹性薄板弯矩系数查算，不含挠度验算与裂缝宽度验算；需要 SLS 验算请另按 GB 50010-2010 第 3.4.3 条（准永久组合 + 长期刚度）与第 7.1 节（裂缝宽度）执行」，避免「页面宣称 vs 实际能力」错位。
+- 因定位说明是默认态即存在的静态文本，**不新增 verify 用例**（任何锚它都会退化成逃生项）。
+- 英文：新增 3 个文本片段键，`--check civil/two-way-slab` = **0 残留**。
+
+### 4. 校验
+
+- `node scripts/verify_structural_calc.js` = **50/50**；`node scripts/discriminate_check.js verify_structural_calc.js` = **50/50 变红、0 逃生**。
+- `node scripts/verify_civil_calc.js` = **72/72**（69 + 本批 3 条）；`node scripts/discriminate_check.js verify_civil_calc.js` = **72/72 变红、0 逃生**。
+- 英文探针：`structural/deflection-cantilever-point` / `-udl` / `ss-point-deflection` / `civil/rebar-anchorage` / `civil/two-way-slab` 全部 **0 残留**。
+- 资产门禁：`python3 _audit_assets.py --check` = 0 死链 / 0 lang 缺失 / 0 重复 id；`python3 _audit_links.py --check` = 0 死链；`node scripts/audit_inline_marker_placement.js` = 0 违规。
+- 构建保留判断：改动仅工具页内联脚本/表单/正文、英文词典与台账；按本批纪律**未跑 `_build.py`、未 push**，英文词典子树版本戳留待维护者构建时更新。

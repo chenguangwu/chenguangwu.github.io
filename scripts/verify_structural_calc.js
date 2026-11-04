@@ -318,6 +318,12 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"sx\":\"42\",\"sy\":\"42\",\"t\":\"42\"}，输出区含「应力 (MPa) 0.00」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   }
 
+,
+  // —— 第 20 批：弹性解 + RC 长期刚度对照（GB 50010-2010 3.4.3 / 7.2.2-2 / 7.2.3-1 / 表 3.4.3）——
+  { slug: "structural/deflection-cantilever-point", inputs: {"rcQ":"50"}, expect: ["5.67 RC 长期挠度 δ_lt (mm)"], ref: "悬臂端集中力：弹性解 δ_el=F·L³/(3EI)（默认 F=10kN、L=2m、E=200GPa、d=0.1m ⇒ 0.2716mm）保留；RC 独立截面默认 b=250、h=500、a_s=35、A_s=1884、C30、ρ′=0 ⇒ θ=2.000，q_q=50kN 时 M_q=50×2=100kN·m、σ_s=131.2MPa、ψ=0.770、B_s=47003kN·m²、B=23502kN·m²，δ_lt=(1/3)·M_q·L²/B=5.67mm（按 2L=4m 档限值 20.00mm 满足）。默认 rcQ=10 为 0.71mm ⇒ 不命中。" },
+  { slug: "structural/deflection-cantilever-udl", inputs: {"rcQ":"5000"}, expect: ["0.26 RC 长期挠度 δ_lt (mm)"], ref: "悬臂均布：弹性解 δ_el=w·L⁴/(8EI)（默认 w=1000N/m、L=2m、d=0.1m ⇒ 2.037mm）保留；RC 默认截面 C30、ρ′=0 ⇒ θ=2.000，q_q=5000N/m ⇒ M_q=(5000/1000)×2²/2=10kN·m、σ_s=13.1MPa、ψ=0.200、B_s=75560kN·m²、B=37780kN·m²，δ_lt=(1/4)·M_q·L²/B=0.26mm。默认 rcQ=1000 为 0.05mm ⇒ 不命中。" },
+  { slug: "structural/ss-point-deflection", inputs: {"rcQ":"50"}, expect: ["0.22 RC 长期挠度 δ_lt (mm)"], ref: "简支跨中集中力：弹性解 δ_el=P·L³/(48EI)（默认 P=10kN、L=2m、E=200GPa、I=1e-6m⁴ ⇒ 8.333mm）保留；RC 默认截面 C30、ρ′=0 ⇒ θ=2.000，q_q=50kN ⇒ M_q=50×2/4=25kN·m、σ_s=33.0MPa、ψ=0.200、B_s=75560kN·m²、B=37780kN·m²，δ_lt=(1/12)·M_q·L²/B=0.22mm（限值 L=2m → 10.00mm）。默认 rcQ=10 为 0.04mm ⇒ 不命中。" }
+
 ];
 
 async function main() {

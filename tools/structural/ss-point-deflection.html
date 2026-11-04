@@ -143,10 +143,53 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div id="ss_point_deflectionPresets"></div>
+    <div class="formula-title" style="margin-top:14px;">🧮 钢筋混凝土长期刚度对照（GB 50010-2010）</div>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px;">本区为独立的 RC 矩形截面（与上方弹性解不是同一截面）：保留上方弹性解作教学对照，并按准永久组合 + 长期刚度 B 另行验算，两组结果并列显示。</p>
+    <div class="input-row">
+      <div>
+        <label for="rcGrade">混凝土强度等级（联动 f_tk / E_c）</label>
+        <select id="rcGrade" onchange="__rcGrade()">
+          <option value="C25">C25</option>
+          <option value="C30" selected>C30</option>
+          <option value="C35">C35</option>
+          <option value="C40">C40</option>
+        </select>
+      </div>
+      <div>
+        <label for="rcB">截面宽 b (mm)</label>
+        <input type="number" id="rcB" value="250" step="10" min="1" oninput="__rcCalc()">
+      </div>
+      <div>
+        <label for="rcH">截面高 h (mm)</label>
+        <input type="number" id="rcH" value="500" step="10" min="1" oninput="__rcCalc()">
+      </div>
+    </div>
+    <div class="input-row">
+      <div>
+        <label for="rcAs">受拉钢筋面积 A_s (mm²)</label>
+        <input type="number" id="rcAs" value="1884" step="1" min="1" oninput="__rcCalc()">
+      </div>
+      <div>
+        <label for="rcAsDist">a_s 受拉钢筋合力点距离 (mm)</label>
+        <input type="number" id="rcAsDist" value="35" step="5" min="0" oninput="__rcCalc()">
+      </div>
+      <div>
+        <label for="rcRhoP">受压钢筋配筋率 ρ′ (%)</label>
+        <input type="number" id="rcRhoP" value="0" step="0.01" min="0" oninput="__rcCalc()">
+      </div>
+    </div>
+    <div class="input-row">
+      <div>
+        <label for="rcQ">P_q 集中力 (kN，准永久值)</label>
+        <input type="number" id="rcQ" value="10" step="1" min="0" oninput="__rcCalc()">
+      </div>
+    </div>
+    <div class="result-box" id="rcResult"></div>
+
 
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
-      <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="resetForm();__rcReset()">重置</button>
       <button class="btn" onclick="__ss_point_deflectionExport()">导出明细 CSV</button>
     </div>
 
@@ -322,6 +365,25 @@ calcTool = function(){ __tb_fn0(); try{ __ss_point_deflectionExtras(); }catch(e)
 function __ss_point_deflectionBoot(){ try{ __ss_point_deflectionPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __ss_point_deflectionBoot();
 else document.addEventListener('DOMContentLoaded', __ss_point_deflectionBoot);
+
+var __rcGrades={C25:{ftk:1.78,ec:28.0},C30:{ftk:2.01,ec:30.0},C35:{ftk:2.20,ec:31.5},C40:{ftk:2.39,ec:32.5}};
+function __rcCfg(){return {qLabel:'P_q 集中力 (kN，准永久值)',qDef:10,
+  Mq:function(q,L){return q*L/4;},
+  coeff:1/12,
+  l0:function(L){return L;},
+  elastic:function(){var P=num('P'),L=num('L'),E=num('E'),I=num('I');return P*1000*Math.pow(L,3)/(48*E*I);}};}
+function __rcNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __rcGrade(){__rcCalc();}
+function __rcReset(){
+  document.getElementById('rcGrade').value='C30';
+  document.getElementById('rcB').value='250';
+  document.getElementById('rcH').value='500';
+  document.getElementById('rcAs').value='1884';
+  document.getElementById('rcAsDist').value='35';
+  document.getElementById('rcRhoP').value='0';
+  document.getElementById('rcQ').value=String(__rcCfg().qDef);
+  __rcCalc();
+}
 </script>
 <div class="spd-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
 <button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
@@ -401,6 +463,36 @@ function __spdTabInit(){
 }
 var __spdFn=calcTool;calcTool=function(){try{__spdFn();}catch(e){}try{__spdChart();}catch(e){}};
 document.addEventListener('toolbox:langchange',function(){try{__spdChart();}catch(e){}});try{__spdTabInit();}catch(e){}
+function __rcCalc(){
+  var c=__rcCfg();
+  var q=__rcNum('rcQ'),L=__rcNum('L'),b=__rcNum('rcB'),h=__rcNum('rcH'),as_=__rcNum('rcAsDist'),As=__rcNum('rcAs'),rhoP=__rcNum('rcRhoP');
+  var ge=document.getElementById('rcGrade'), t=__rcGrades[ge?ge.value:'C30']||__rcGrades.C30;
+  var out=document.getElementById('rcResult'); if(!out) return;
+  if(!(q>0&&L>0&&b>0&&h>0&&As>0&&rhoP>=0&&as_>=0&&(h-as_)>0)){ToolBox.setResult('rcResult','<p class="tip-error">请输入有效的 RC 截面与准永久荷载参数。</p>');return;}
+  var h0=h-as_, Mq=c.Mq(q,L), Ate=0.5*b*h, rhoTe=Math.max(As/Ate,0.01), rho=As/(b*h0), alphaE=2e5/(t.ec*1000);
+  var sigma=Mq*1e6/(0.87*h0*As);
+  var psi=Math.min(1,Math.max(0.2,1.1-0.65*t.ftk/(rhoTe*sigma)));   // 式 7.1.4 / 7.2.3
+  var Bs=2e5*As*h0*h0/(1.15*psi+0.2+6*alphaE*rho);                 // 式 7.2.3-1（准永久组合）
+  var th=2.0-0.4*Math.min(1,Math.max(0,(rhoP/100)/rho));            // 7.2.5-1：ρ′=0→2.0、ρ′=ρ→1.6
+  var B=Bs/th;                                                      // 式 7.2.2-2
+  var delta=c.coeff*Mq*1e6*Math.pow(L*1000,2)/B;                    // mm，结构力学 + 准永久 M_q
+  var l0=c.l0(L), limit=(l0<7?l0/200:(l0<=9?l0/250:l0/300))*1000;    // 表 3.4.3
+  var el=c.elastic();
+  ToolBox.setResult('rcResult',dataGrid([
+    [Mq.toFixed(2),'RC 准永久组合 M_q (kN·m)'],
+    [sigma.toFixed(1),'RC 钢筋应力 σ_s (MPa)'],
+    [psi.toFixed(3),'RC 应变不均匀系数 ψ'],
+    [(Bs/1e9).toFixed(0),'RC 短期刚度 B_s (kN·m²)'],
+    [(B/1e9).toFixed(0),'RC 长期刚度 B = B_s/θ (kN·m²)'],
+    [th.toFixed(3),'RC θ（按 7.2.5-1）'],
+    [(el*1000).toFixed(3),'弹性解 δ_el (mm，上方同式复算)'],
+    [delta.toFixed(2),'RC 长期挠度 δ_lt (mm)'],
+    [limit.toFixed(2),'RC 挠度限值 (mm，表 3.4.3)'],
+    [delta<=limit?'满足':'不满足','RC 挠度验算结论']
+  ]));
+}
+
+__rcCalc();
 </script>
 </body>
 </html>

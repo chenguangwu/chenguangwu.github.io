@@ -113,7 +113,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="按基本锚固长度公式由钢筋与混凝土强度计算锚固长度。">Rebar Anchorage</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">基本锚固长度 l_ab = α × (f_y ÷ f_t) × d（mm，α=0.14 为带肋钢筋外形系数）；受拉锚固长度 l_a = max(ζ_a × l_ab, 200 mm)（GB 50010-2010 8.3.1）；米口径 = l_a ÷ 1000（m）。校验：f_y、f_t、d、ζ_a 任一 ≤0 报「请输入有效参数。」。判据：无固定分级；锚固长度随钢筋强度提高、混凝土抗拉强度降低而增大。</div>
+      <div class="formula-eq">基本锚固长度 l_ab = α × (f_y ÷ f_t) × d（mm，α=0.14 为带肋钢筋外形系数）；受拉锚固长度 l_a = max(ζ_a × l_ab, 200 mm)（GB 50010-2010 8.3.1）。ζ_a 按 8.3.2 分档取值：① 带肋钢筋公称直径 d&gt;25mm 取 1.10；② 环氧树脂涂层带肋钢筋取 1.25；③ 施工过程中易受扰动的钢筋取 1.10；④ 保护层厚度为 3d 时取 0.80、为 5d 时取 0.70，中间按线性内插（c&lt;3d 取 0.80）；上述各项可连乘，且不宜小于 0.6。第 4 款「实配面积大于计算面积」需按设计/实配面积比手改，本页不自动判断。米口径 = l_a ÷ 1000（m）。校验：f_y、f_t、d、ζ_a 任一 ≤0 报「请输入有效参数。」。</div>
       <p class="formula-desc">按基本锚固长度公式由钢筋与混凝土强度计算锚固长度。</p>
     </div>
 
@@ -128,13 +128,25 @@ s.parentNode.insertBefore(el, s);
       </div>
       <div>
         <label for="d">钢筋直径 d (mm)</label>
-        <input type="number" id="d" value="20" step="1" min="1" placeholder="如 20">
+        <input type="number" id="d" value="20" step="1" min="1" placeholder="如 20" oninput="__rebarZetaAuto()">
       </div>
     </div>
     <div class="input-row">
       <div>
-        <label for="za">锚固长度修正系数 ζ_a</label>
-        <input type="number" id="za" value="1.0" step="0.05" min="0.5" max="2" placeholder="如 1.0（0.5–2）">
+        <label for="za">锚固长度修正系数 ζ_a（按 8.3.2 自动计算，可手改）</label>
+        <input type="number" id="za" value="1.000" step="0.01" min="0.6" max="2" placeholder="如 1.000" oninput="calcTool()">
+      </div>
+      <div>
+        <label for="cover">保护层厚度 c (mm，0=不计该项；c=3d→0.80、c≥5d→0.70 内插)</label>
+        <input type="number" id="cover" value="0" step="5" min="0" placeholder="如 0（不计）" oninput="__rebarZetaAuto()">
+      </div>
+      <div>
+        <label for="epoxy"><input type="checkbox" id="epoxy" onchange="__rebarZetaAuto()"> 环氧树脂涂层带肋钢筋（×1.25）</label>
+      </div>
+    </div>
+    <div class="input-row">
+      <div>
+        <label for="disturb"><input type="checkbox" id="disturb" onchange="__rebarZetaAuto()"> 施工过程中易受扰动（×1.10）</label>
       </div>
     </div>
 
@@ -162,7 +174,9 @@ s.parentNode.insertBefore(el, s);
         <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="要点">Key Point</th>
       </tr></thead>
       <tbody>
-        <tr><td data-zh="锚固长度">Anchorage length</td><td>GB 50010 (Code for design of concrete structures), anchorage clauses</td><td data-zh="la 由基本锚固长度 lab 乘修正系数;按钢筋/混凝土等级取值">la from lab times correction factors by bar and concrete grade</td></tr>
+        <tr><td data-zh="基本锚固长度">Basic anchorage length</td><td>GB 50010-2010 第 8.3.1 条 式(8.3.1)</td><td data-zh="l_ab = α·(f_y/f_t)·d，α=0.14（带肋钢筋外形系数）">l_ab = α·(f_y/f_t)·d, α=0.14 for ribbed bars</td></tr>
+        <tr><td data-zh="锚固长度修正系数">Anchorage modification factor ζ_a</td><td>GB 50010-2010 第 8.3.2 条</td><td data-zh="d>25mm→1.10；环氧涂层→1.25；易扰动→1.10；保护层 3d→0.80、5d→0.70（线性内插）；可连乘且不宜小于 0.6">d&gt;25mm→1.10; epoxy coated→1.25; disturbed→1.10; cover 3d→0.80, 5d→0.70 (linear interpolation); factors multiply and should not be less than 0.6</td></tr>
+        <tr><td data-zh="受拉锚固长度">Tension anchorage length</td><td>GB 50010-2010 第 8.3.1 条</td><td data-zh="l_a = ζ_a·l_ab，且不应小于 200mm">l_a = ζ_a·l_ab, and not less than 200 mm</td></tr>
       </tbody>
     </table>
   </div>
@@ -171,9 +185,11 @@ s.parentNode.insertBefore(el, s);
 <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
       <ul>
-        <li>l_ab = α·(f_y/f_t)·d，α=0.14（带肋钢筋外形系数）</li>
-        <li>d>25mm 时 ζ_a 取 1.1，环氧涂层钢筋取 1.25 等</li>
-        <li>受拉锚固长度 l_a = ζ·l_ab，按锚固区保护层等修正</li>
+        <li>l_ab = α·(f_y/f_t)·d，α=0.14 为带肋钢筋外形系数（GB 50010-2010 式 8.3.1）。</li>
+        <li>ζ_a 按 GB 50010-2010 第 8.3.2 条分档，本页对可自动判断的四款给具体值：带肋钢筋公称直径 d&gt;25mm 取 <b>1.10</b>（大直径钢筋的粘结应力沿锚固长度分布更长，需加长锚固）；环氧树脂涂层带肋钢筋取 <b>1.25</b>（涂层削弱钢筋与混凝土的化学胶着力与摩阻力）；施工过程中易受扰动的钢筋取 <b>1.10</b>（扰动使新浇混凝土与钢筋界面产生微裂缝）；保护层厚度为 3d 时取 <b>0.80</b>、为 5d 时取 <b>0.70</b>，中间按线性内插（保护层越厚，混凝土对钢筋的劈裂约束越强、锚固效率越高；c&lt;3d 时按 0.80 取值偏安全）。</li>
+        <li>上述各项可连乘，且不宜小于 <b>0.6</b>（8.3.2 条文说明）。第 4 款「实配面积大于计算面积」需按设计面积/实配面积之比手改 ζ_a；对地震作用组合及直接承受动力荷载的结构构件，不考虑该款修正。</li>
+        <li>受拉锚固长度 l_a = max(ζ_a·l_ab, 200 mm)，200mm 为构造下限（8.3.1）。</li>
+        <li>ζ_a 默认随直径/保护层/涂层/扰动自动计算并回填；手改后会显示「采用值 / 自动值」对照，便于核对。</li>
       </ul>
     </div>
   </div>
@@ -218,16 +234,47 @@ function calcTool(){
             if(fy<=0||ft<=0||d<=0||za<=0){ToolBox.setResult('result','<p class="tip-error">请输入有效参数。</p>');return;}
             const lab = 0.14*(fy/ft)*d; // mm 基本锚固长度（GB 50010-2010 式 8.3.1）
             const la = Math.max(200, za*lab); // mm 受拉锚固长度 la = ζa·lab，且不小于 200mm（GB 50010-2010 8.3.1）
-            const __g1=dataGrid([
+            const auto = __rebarZetaAutoCalc();
+            const rows = [
                 [lab.toFixed(0),'基本锚固长度 l_ab (mm)'],
+                [za.toFixed(3),'ζ_a 采用值'],
+                [auto.z.toFixed(3),'ζ_a 自动值（按 8.3.2）'],
                 [la.toFixed(0),'受拉锚固长度 l_a (mm)'],
                 [(la/1000).toFixed(2),'l_a (m)']
-            ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
+            ];
+            if(Math.abs(za-auto.z)>0.01) rows.push([za.toFixed(3)+' / '+auto.z.toFixed(3),'ζ_a 采用值 / 自动值（手改）']);
+            if(auto.parts.length) rows.push([auto.parts.join('；'),'ζ_a 自动值取值档位']);
+            const __g1=dataGrid(rows);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
+        }
+function __rebarZetaAutoCalc(){
+            var d=num('d'), c=num('cover'), z=1.0, parts=[];
+            if(d>25){z*=1.10; parts.push('d='+d+'mm>25mm →1.10');}
+            var ep=document.getElementById('epoxy'), di=document.getElementById('disturb');
+            if(ep&&ep.checked){z*=1.25; parts.push('环氧涂层→1.25');}
+            if(di&&di.checked){z*=1.10; parts.push('易受扰动→1.10');}
+            if(c>0&&d>0){
+                var r=c/d, k;
+                if(r<=3) k=0.80;
+                else if(r>=5) k=0.70;
+                else k=0.80-(r-3)/2*0.10; // 3d→0.80、5d→0.70 线性内插
+                z*=k; parts.push('保护层'+r.toFixed(2)+'d→'+k.toFixed(3));
+            }
+            if(z<0.6){z=0.6; parts.push('连乘下限→0.60');}
+            return {z:z, parts:parts};
+        }
+function __rebarZetaAuto(){
+            var a=__rebarZetaAutoCalc();
+            var t=document.getElementById('za');
+            if(t) t.value=a.z.toFixed(3);
+            calcTool();
         }
 function resetForm(){document.getElementById('fy').value = '360';
       document.getElementById('ft').value = '1.43';
       document.getElementById('d').value = '20';
-      document.getElementById('za').value = '1.0';
+      document.getElementById('za').value = '1.000';
+      document.getElementById('cover').value = '0';
+      document.getElementById('epoxy').checked = false;
+      document.getElementById('disturb').checked = false;
       calcTool();}
 calcTool();
 
@@ -237,18 +284,19 @@ function __rebar_anchorageExtras(){
     if (typeof TBKit === 'undefined') return;
     var fy=num('fy'), ft=num('ft'), d=num('d'), za=num('za');
     var lab = 0.14*(fy/ft)*d; // mm 基本锚固长度
-    var la = za*lab; // mm 受拉锚固长度
+    var la = Math.max(200, za*lab); // mm 受拉锚固长度（与 calcTool 口径一致：不小于 200mm）
     if (!isFinite(__rebar_anchorageNum('fy')) || !isFinite(__rebar_anchorageNum('ft')) || !isFinite(__rebar_anchorageNum('d')) || !isFinite(__rebar_anchorageNum('za'))) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#rebar_anchorageTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
             ['基本锚固长度 l_ab (mm)', lab.toFixed(0)],
+            ['ζ_a 采用值', za.toFixed(3)],
             ['受拉锚固长度 l_a (mm)', la.toFixed(0)],
             ['l_a (m)', (la/1000).toFixed(2)],
         ]
     });
-    TBKit.history.record({fy:__rebar_anchorageRaw('fy'), ft:__rebar_anchorageRaw('ft'), d:__rebar_anchorageRaw('d'), za:__rebar_anchorageRaw('za'), lab:lab, la:la});
+    TBKit.history.record({fy:__rebar_anchorageRaw('fy'), ft:__rebar_anchorageRaw('ft'), d:__rebar_anchorageRaw('d'), za:__rebar_anchorageRaw('za'), cover:__rebar_anchorageRaw('cover'), lab:lab, la:la});
     function __rebar_anchorageRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#rebar_anchorageHist',function(rec){ __rebar_anchorageRestore(rec); calcTool(); });
     TBKit.util.diffBox('#rebar_anchorageDiff',['la']);
@@ -260,9 +308,10 @@ function __rebar_anchorageExport(){
 function __rebar_anchoragePresets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#rebar_anchoragePresets',[
-        {label:'默认',labelEn:'Default',values:{fy:'360', ft:'1.43', d:'20', za:'1.0'}},
-        {label:'示例 2×',labelEn:'Example 2×',values:{fy:'720', ft:'2.86', d:'40', za:'2'}},
-        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{fy:'180', ft:'0.715', d:'10', za:'0.5'}},
+        {label:'默认',labelEn:'Default',values:{fy:'360', ft:'1.43', d:'20', cover:'0', za:'1.000'}},
+        {label:'d>25（ζ_a=1.10）',labelEn:'d>25 (ζ_a=1.10)',values:{fy:'360', ft:'1.43', d:'32', cover:'0', za:'1.100'}},
+        {label:'环氧涂层（ζ_a=1.25）',labelEn:'Epoxy coated (ζ_a=1.25)',values:{fy:'360', ft:'1.43', d:'20', cover:'0', za:'1.250'}},
+        {label:'保护层 5d（ζ_a=0.70）',labelEn:'Cover 5d (ζ_a=0.70)',values:{fy:'360', ft:'1.43', d:'20', cover:'100', za:'0.700'}},
     ],function(){ calcTool(); });
 }
 var __tb_fn0 = calcTool;
