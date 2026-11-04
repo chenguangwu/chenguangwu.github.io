@@ -158,12 +158,30 @@ s.parentNode.insertBefore(el, s);
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="🏛️ 首都测验">🏛️ Capital Cities Quiz</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">答对时得分 +1；正确率 = round(得分 ÷ 抽题总数 × 100)%，结果按「得分 / 总题数（百分比）」呈现；题库以队列方式出题；重置时题号归 0、得分归 0、国家位显示占位符并清空选项区</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">答对时得分 +1；正确率 = round(得分 ÷ 抽题总数 × 100)%，结果按「得分 / 总题数（百分比）」呈现；题量可选；限时模式下每题倒计时，超时按答错计；重置时题号归 0、得分归 0、国家位显示占位符并清空选项区</div>
   <p class="formula-desc" data-zh="本工具为纯前端在线工具，数据在浏览器本地处理、不上传服务器，依据对应领域标准与规范进行计算或处理，结果仅供参考。 工具名称：首都测验 - 教育学习领域的在线工具。">Test your knowledge of world capital cities through a randomized multiple-choice quiz.</p>
 </div>
 
+    <div class="toolbar" style="justify-content:flex-start;gap:10px;flex-wrap:wrap;">
+      <label style="font-size:13px;">题量
+        <select id="qCount" onchange="reset()">
+          <option value="10" selected>10 题</option>
+          <option value="15">15 题</option>
+          <option value="24">24 题（全部）</option>
+        </select>
+      </label>
+      <label style="font-size:13px;">限时
+        <select id="qTimeLimit" onchange="reset()">
+          <option value="0" selected>不限时</option>
+          <option value="10">每题 10 秒</option>
+          <option value="15">每题 15 秒</option>
+          <option value="20">每题 20 秒</option>
+        </select>
+      </label>
+    </div>
+
     <div class="stats">
-      <div>题号：<strong id="qNo">0</strong>/10</div>
+      <div>题号：<strong id="qNo">0</strong>/<span id="qTotal">10</span></div>
       <div>得分：<strong id="score">0</strong></div>
     </div>
     <div class="q-text">下列国家的首都是？</div>
@@ -201,8 +219,8 @@ s.parentNode.insertBefore(el, s);
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
 <li>随机抽题：每次生成国家考首都。</li>
-<li>即时反馈：答后显示正误与正确答案。</li>
-<li>错题库：记录易错强化复习。</li>
+<li>即时反馈：答错时高亮正确答案，并计入正确率统计。</li>
+<li>限时挑战：可选每题 10/15/20 秒<a class="term-link" href="/guides/countdown-timer-guide.html">倒计时</a>，超时按答错处理。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">示例</div><div class="dd-ex-body">示例：出题「法国首都是？」，作答「巴黎」判对并计入正确率。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
@@ -264,22 +282,33 @@ const data=[
   {c:'瑞士',cap:'伯尔尼'},{c:'瑞典',cap:'斯德哥尔摩'},{c:'挪威',cap:'奥斯陆'},
   {c:'希腊',cap:'雅典'},{c:'土耳其',cap:'安卡拉'},{c:'泰国',cap:'曼谷'}
 ];
-let queue,qNo,score,cur;
+let queue,qNo,score,cur,timerId,locked;
+
+function getCount(){var el=document.getElementById('qCount');return (el&&+el.value)||10;}
+function getSeconds(){var el=document.getElementById('qTimeLimit');return el?+el.value:0;}
 
 function start(){
   reset();
-  queue=[...data].sort(()=>Math.random()-0.5).slice(0,10);
+  queue=[...data].sort(()=>Math.random()-0.5).slice(0,getCount());
   qNo=0;score=0;
   next();
 }
 function reset(){
+  clearInterval(timerId);
+  locked=false;
   document.getElementById('qNo').textContent='0';
   document.getElementById('score').textContent='0';
+  document.getElementById('qTotal').textContent=getCount();
   document.getElementById('country').textContent='—';
-  const __h0='';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('options').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('options').innerHTML=__h0;
+  document.getElementById('options').innerHTML='';
   document.getElementById('output').textContent='选择正确的首都';
 }
+function showStatus(remain){
+  document.getElementById('output').textContent='选择一个答案'+(remain!==undefined?('（⏱ 剩余 '+remain+' 秒）'):'');
+}
 function next(){
+  clearInterval(timerId);
+  locked=false;
   if(qNo>=queue.length){
     finish();
     return;
@@ -287,6 +316,7 @@ function next(){
   cur=queue[qNo];
   qNo++;
   document.getElementById('qNo').textContent=qNo;
+  document.getElementById('qTotal').textContent=getCount();
   document.getElementById('country').textContent=cur.c;
   const opts=[cur];
   while(opts.length<4){
@@ -295,7 +325,7 @@ function next(){
   }
   opts.sort(()=>Math.random()-0.5);
   const opEl=document.getElementById('options');
-  const __h1='';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){opEl.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}opEl.innerHTML=__h1;
+  opEl.innerHTML='';
   opts.forEach(o=>{
     const b=document.createElement('button');
     b.className='opt';
@@ -303,9 +333,32 @@ function next(){
     b.onclick=()=>choose(o,b);
     opEl.appendChild(b);
   });
-  document.getElementById('output').textContent='选择一个答案';
+  const sec=getSeconds();
+  if(sec>0){
+    let remain=sec;
+    showStatus(remain);
+    timerId=setInterval(function(){
+      remain--;
+      if(remain<=0){clearInterval(timerId);timeout();}
+      else showStatus(remain);
+    },1000);
+  }else{
+    showStatus();
+  }
+}
+function timeout(){
+  if(locked) return;
+  locked=true;
+  const opts=document.querySelectorAll('.opt');
+  opts.forEach(b=>b.onclick=null);
+  opts.forEach(b=>{if(b.textContent===cur.cap)b.classList.add('correct');});
+  document.getElementById('output').textContent='⏱ 超时，正确答案是 '+cur.cap;
+  setTimeout(next,900);
 }
 function choose(o,el){
+  if(locked) return;
+  locked=true;
+  clearInterval(timerId);
   const opts=document.querySelectorAll('.opt');
   opts.forEach(b=>b.onclick=null);
   if(o.cap===cur.cap){
@@ -319,9 +372,10 @@ function choose(o,el){
   setTimeout(next,900);
 }
 function finish(){
+  clearInterval(timerId);
   document.getElementById('country').textContent='🏁 完成！';
-  const __h2='';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('options').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('options').innerHTML=__h2;
-  const __h3=`<p>得分：${score}/${queue.length}（${Math.round(score/queue.length*100)}%）</p>`;if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h3;
+  document.getElementById('options').innerHTML='';
+  document.getElementById('output').innerHTML=`<p>得分：${score}/${queue.length}（${Math.round(score/queue.length*100)}%）</p>`;
 }
 function toggleToolTheme(){
   const cur=document.documentElement.getAttribute('data-theme');

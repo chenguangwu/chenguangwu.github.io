@@ -149,18 +149,18 @@ s.parentNode.insertBefore(el, s);
 </style>
 <section class="deep-dive" data-deep-dive="1">
 <div class="card">
-<h2>📚 深度解析：复盘数据的描述统计</h2>
+<h2>📚 深度解析：多期经营指标复盘</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>把一组复盘所需的日/周指标直接粘进来，先看<a class="term-link" href="/tools/stats/sample-size.html">样本量</a>与总和确认没有漏录，再看均值与<a class="term-link" href="/tools/science/median-calculator.html">中位数</a>判断集中趋势。</li>
-<li>用极差与<a class="term-link" href="/tools/it/standard-deviation.html">标准差</a>判断复盘所需的日/周指标的离散程度，标准差大说明口径不一致或存在异常点。</li>
-<li>两批数据各跑一次，对比均值与标准差做初步差异判断。</li>
+<li>按时间顺序粘贴多期数据（期次,GMV,订单数,退款率%,获客成本），逐期看 GMV 环比增长，判断增长是否持续。</li>
+<li>对比退款率与获客成本的逐期变化，退款率上升或获客成本上升超过 0.3（0.3 个百分点 / 0.3 元）即被标记为风险期次。</li>
+<li>用末期与首期的 GMV、退款率、获客成本做整体判定：三项都不恶化才输出「改善」，否则输出「需关注」。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">复盘所需的日/周指标示例</div><div class="dd-ex-body">输入 复盘所需的日/周指标：128,142,135,160,151,129,147。样本量 7、总和 992、均值 141.71、中位数 142、极差 32、标准差 11.71。均值 141.7 与中位数 142 几乎一致，说明这批<a class="term-link" href="/guides/data-distribution-guide.html">数据分布</a>均匀；第 4 天 160 为峰值，应回看当天做了什么动作。</div></div>
+<div class="dd-example"><div class="dd-ex-title">默认三期数据的复盘结果</div><div class="dd-ex-body">第 1 期 GMV 120,000、退款率 3.5%、获客成本 28；第 2 期 138,000、3.1%、26；第 3 期 152,000、2.8%、25。GMV 环比依次为 +15.0%、+10.1%；退款率逐期变化 −0.4、−0.3 个百分点，获客成本 −2、−1，均未触发上升预警。末期 GMV 高于首期，且退款率、获客成本都低于首期 ⇒ 整体结论「改善」；平均退款率 3.13%、平均获客成本 26.33。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>能自动生成复盘结论或改进项吗？</dt><dd>不能。工具只做数值的描述性统计，不含归因分析、漏斗拆解或改进建议生成。输出可作为复盘会上的输入。</dd>
-<dt>输入支持什么格式？</dt><dd>逗号、空格或换行分隔的数值均可，非数字内容会被自动忽略。建议按时间顺序一行一个，便于对照日期回看。</dd>
+<dt>能自动生成归因分析或改进项吗？</dt><dd>不能。工具只做环比计算、阈值标记和「改善 / 需关注」的机械判定，不含归因拆解、<a class="term-link" href="/tools/marketing/funnel-calculator.html">漏斗分析</a>或改进建议生成。结论可作为复盘会的输入，具体原因仍需人工排查。</dd>
+<dt>输入支持什么格式？</dt><dd>一行一期、共 5 列，用逗号或制表符分隔：期次,GMV,订单数,退款率%,获客成本。退款率按 0–100 的百分数填写（如 3.5 表示 3.5%），超出范围会按边界值处理并提示核对。</dd>
 </dl>
 </div>
 </section>
@@ -205,6 +205,7 @@ s.parentNode.insertBefore(el, s);
 function calc(){
   var raw=document.getElementById('data').value.split(String.fromCharCode(10)).map(function(s){return s.replace(String.fromCharCode(13),'');}).map(function(s){return s.trim();}).filter(Boolean);
   var rows=[];
+  var refOutOfRange=false;
   raw.forEach(function(line){
     var p=line.split(/[,，\t]/).map(function(x){return x.trim();});
     if(p.length>=5){
@@ -212,6 +213,7 @@ function calc(){
       var ord=parseFloat(p[2].replace(/[^0-9.\-]/g,''));
       var ref=parseFloat(p[3].replace(/[^0-9.\-]/g,''));
       var cac=parseFloat(p[4].replace(/[^0-9.\-]/g,''));
+      if(ref<0||ref>100){refOutOfRange=true;ref=Math.min(100,Math.max(0,ref));}
       if(![gmv,ord,ref,cac].some(isNaN)) rows.push({name:p[0]||('第'+(rows.length+1)+'期'),gmv:gmv,ord:ord,ref:ref,cac:cac});
     }
   });
@@ -232,7 +234,8 @@ function calc(){
   var last=rows[rows.length-1],first=rows[0];
   var health=(last.gmv>=first.gmv&&last.ref<=first.ref&&last.cac<=first.cac)?'改善':'需关注';
   var riskHtml=risks.length?('<p>风险预警：</p><ul style="margin:4px 0 0 18px;font-size:13px;line-height:1.8;color:var(--text-muted">'+risks.map(function(x){return '<li>'+ToolBox.escHtml(x)+'</li>';}).join('')+'</ul>'):'<p>风险预警：本期各项指标未见明显异常。</p>';
-  const __g2='<p>复盘期数：<strong>'+rows.length+'</strong>　整体结论：<strong style="color:var(--primary)">'+health+'</strong></p><div style="overflow-x:auto"><table><thead><tr><th>期次</th><th>期名</th><th>GMV</th><th>GMV 环比</th><th>退款率</th><th>获客成本</th></tr></thead><tbody>'+h+'</tbody></table></div><p>平均退款率：<strong>'+avgRef.toFixed(2)+'%</strong>　平均获客成本：<strong>'+avgCac.toFixed(2)+'</strong></p>'+riskHtml;res.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+  var refWarnHtml=refOutOfRange?'<p style="color:var(--danger,#dc2626)">⚠️ 退款率应在 0–100% 之间，已按边界值处理，请核对原始数据。</p>':'';
+  const __g2='<p>复盘期数：<strong>'+rows.length+'</strong>　整体结论：<strong style="color:var(--primary)">'+health+'</strong></p><div style="overflow-x:auto"><table><thead><tr><th>期次</th><th>期名</th><th>GMV</th><th>GMV 环比</th><th>退款率</th><th>获客成本</th></tr></thead><tbody>'+h+'</tbody></table></div><p>平均退款率：<strong>'+avgRef.toFixed(2)+'%</strong>　平均获客成本：<strong>'+avgCac.toFixed(2)+'</strong></p>'+refWarnHtml+riskHtml;res.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 function fmtMoney(n){return '¥'+n.toLocaleString('zh-CN');}
 function copyRes(){ToolBox.copyText(document.getElementById('res').innerText);}

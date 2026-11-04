@@ -4368,14 +4368,12 @@ const CASES = [
   {
     "slug": "it/caesar-cipher",
     "inputs": {
-      "shift": "42",
-      "input": "1\n2\n3",
-      "output": "1\n2\n3"
+      "input": "xyz"
     },
     "expect": [
-      "Z\n暂无历史记录\nH I J\nK L M\n明文\n密文"
+      "{|}"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"shift\":\"42\",\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\"}，输出区含「Z\n暂无历史记录\nH I J\nK L M\n明文\n密文」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "关闭「仅字母移位」时作用于可打印 ASCII 共 95 个字符：xyz 位移 +3 ⇒ x→{、y→|、z→}。修复前模数固定 26，会错误地回绕成字母；默认输入不是 xyz，注入失败即不命中。"
   },
   {
     "slug": "it/calc-3",

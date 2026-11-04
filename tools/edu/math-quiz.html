@@ -157,12 +157,37 @@ s.parentNode.insertBefore(el, s);
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="➗ 数学测验">➗ Math Quiz</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">答对时正确数 +1；准确率 = round(正确数 ÷ 总题数 × 100)%；共 10 道题；重置时题号归 0、得分归 0、准确率显示占位符并清空选项区</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">答对时正确数 +1；准确率 = round(正确数 ÷ 总题数 × 100)%；题量与难度可选；限时模式下每题倒计时，超时按答错计；重置时题号归 0、得分归 0、准确率显示占位符并清空选项区</div>
   <p class="formula-desc" data-zh="本工具为纯前端在线工具，数据在浏览器本地处理、不上传服务器，依据对应领域标准与规范进行计算或处理，结果仅供参考。 工具名称：数学测验 - 教育学习领域的在线工具。">Drill arithmetic and mental math through randomized problems.</p>
 </div>
 
+    <div class="toolbar" style="justify-content:flex-start;gap:10px;flex-wrap:wrap;">
+      <label style="font-size:13px;">难度
+        <select id="qDifficulty" onchange="reset()">
+          <option value="easy">简单（20 以内）</option>
+          <option value="mid" selected>中等（两位数以内）</option>
+          <option value="hard">困难（两位数运算）</option>
+        </select>
+      </label>
+      <label style="font-size:13px;">题量
+        <select id="qCount" onchange="reset()">
+          <option value="10" selected>10 题</option>
+          <option value="20">20 题</option>
+          <option value="30">30 题</option>
+        </select>
+      </label>
+      <label style="font-size:13px;">限时
+        <select id="qTimeLimit" onchange="reset()">
+          <option value="0" selected>不限时</option>
+          <option value="10">每题 10 秒</option>
+          <option value="15">每题 15 秒</option>
+          <option value="20">每题 20 秒</option>
+        </select>
+      </label>
+    </div>
+
     <div class="stats">
-      <div>题号：<strong id="qNo">0</strong>/10</div>
+      <div>题号：<strong id="qNo">0</strong>/<span id="qTotal">10</span></div>
       <div>得分：<strong id="score">0</strong></div>
       <div>正确率：<strong id="acc">—</strong></div>
     </div>
@@ -253,19 +278,37 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
-let qNo,score,correct,total,cur,ans;
+let qNo,score,correct,total,cur,ans,timerId,locked;
+
+function getCount(){var el=document.getElementById('qCount');return (el&&+el.value)||10;}
+function getSeconds(){var el=document.getElementById('qTimeLimit');return el?+el.value:0;}
+function getLevel(){var el=document.getElementById('qDifficulty');return el?el.value:'mid';}
 
 function gen(){
   const ops=['+','-','×','÷'];
   const op=ops[Math.floor(Math.random()*ops.length)];
+  const lv=getLevel();
   let a,b;
-  if(op==='+'){a=Math.floor(Math.random()*50)+1;b=Math.floor(Math.random()*50)+1;ans=a+b;}
-  else if(op==='-'){a=Math.floor(Math.random()*50)+10;b=Math.floor(Math.random()*a)+1;ans=a-b;}
-  else if(op==='×'){a=Math.floor(Math.random()*12)+1;b=Math.floor(Math.random()*12)+1;ans=a*b;}
-  else{b=Math.floor(Math.random()*11)+1;ans=Math.floor(Math.random()*12)+1;a=b*ans;}
+  if(lv==='easy'){
+    if(op==='+'){a=Math.floor(Math.random()*20)+1;b=Math.floor(Math.random()*20)+1;ans=a+b;}
+    else if(op==='-'){a=Math.floor(Math.random()*20)+1;b=Math.floor(Math.random()*a)+1;ans=a-b;}
+    else if(op==='×'){a=Math.floor(Math.random()*9)+1;b=Math.floor(Math.random()*9)+1;ans=a*b;}
+    else{b=Math.floor(Math.random()*9)+1;ans=Math.floor(Math.random()*9)+1;a=b*ans;}
+  }else if(lv==='hard'){
+    if(op==='+'){a=Math.floor(Math.random()*90)+10;b=Math.floor(Math.random()*90)+10;ans=a+b;}
+    else if(op==='-'){a=Math.floor(Math.random()*90)+10;b=Math.floor(Math.random()*a)+1;ans=a-b;}
+    else if(op==='×'){a=Math.floor(Math.random()*18)+2;b=Math.floor(Math.random()*18)+2;ans=a*b;}
+    else{b=Math.floor(Math.random()*18)+2;ans=Math.floor(Math.random()*15)+2;a=b*ans;}
+  }else{
+    if(op==='+'){a=Math.floor(Math.random()*50)+1;b=Math.floor(Math.random()*50)+1;ans=a+b;}
+    else if(op==='-'){a=Math.floor(Math.random()*50)+10;b=Math.floor(Math.random()*a)+1;ans=a-b;}
+    else if(op==='×'){a=Math.floor(Math.random()*12)+1;b=Math.floor(Math.random()*12)+1;ans=a*b;}
+    else{b=Math.floor(Math.random()*11)+1;ans=Math.floor(Math.random()*12)+1;a=b*ans;}
+  }
   cur=`${a} ${op} ${b}`;
   const opts=new Set([ans]);
-  while(opts.size<4){
+  let guard=0;
+  while(opts.size<4&&guard++<200){
     const off=(Math.random()<0.5?-1:1)*(Math.floor(Math.random()*10)+1);
     if(off!==0)opts.add(ans+off);
   }
@@ -277,25 +320,35 @@ function start(){
   next();
 }
 function reset(){
+  clearInterval(timerId);
+  locked=false;
   document.getElementById('qNo').textContent='0';
   document.getElementById('score').textContent='0';
   document.getElementById('acc').textContent='—';
+  document.getElementById('qTotal').textContent=getCount();
   document.getElementById('question').textContent='点击"开始"开始';
-  const __h0='';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('options').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('options').innerHTML=__h0;
-  document.getElementById('output').textContent='完成 10 道数学题，挑战满分';
+  document.getElementById('options').innerHTML='';
+  document.getElementById('output').textContent='完成 '+getCount()+' 道数学题，挑战满分';
+}
+function showStatus(remain){
+  var msg='第 '+qNo+' 题'+(remain!==undefined?('　⏱ 剩余 '+remain+' 秒'):'');
+  document.getElementById('output').innerHTML='<p>'+msg+'</p>';
 }
 function next(){
-  if(qNo>=10){
+  clearInterval(timerId);
+  locked=false;
+  if(qNo>=getCount()){
     finish();
     return;
   }
   qNo++;
   total++;
   document.getElementById('qNo').textContent=qNo;
+  document.getElementById('qTotal').textContent=getCount();
   const opts=gen();
   document.getElementById('question').textContent=cur+' = ?';
   const opEl=document.getElementById('options');
-  const __h1='';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){opEl.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}opEl.innerHTML=__h1;
+  opEl.innerHTML='';
   opts.forEach(o=>{
     const b=document.createElement('button');
     b.className='opt';
@@ -303,9 +356,33 @@ function next(){
     b.onclick=()=>choose(o,b);
     opEl.appendChild(b);
   });
-  const __h2=`<p>第 ${qNo} 题</p>`;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h2;
+  const sec=getSeconds();
+  if(sec>0){
+    let remain=sec;
+    showStatus(remain);
+    timerId=setInterval(function(){
+      remain--;
+      if(remain<=0){clearInterval(timerId);timeout();}
+      else showStatus(remain);
+    },1000);
+  }else{
+    showStatus();
+  }
+}
+function timeout(){
+  if(locked) return;
+  locked=true;
+  const opts=document.querySelectorAll('.opt');
+  opts.forEach(o=>o.onclick=null);
+  opts.forEach(b=>{if(parseInt(b.textContent)===ans)b.classList.add('correct');});
+  document.getElementById('acc').textContent=Math.round(correct/total*100)+'%';
+  document.getElementById('output').innerHTML='<p>⏱ 超时，正确答案是 <strong>'+ans+'</strong></p>';
+  setTimeout(next,900);
 }
 function choose(o,el){
+  if(locked) return;
+  locked=true;
+  clearInterval(timerId);
   const opts=document.querySelectorAll('.opt');
   opts.forEach(o=>o.onclick=null);
   if(o===ans){
@@ -321,10 +398,11 @@ function choose(o,el){
   setTimeout(next,900);
 }
 function finish(){
+  clearInterval(timerId);
   document.getElementById('question').textContent='🏁 完成！';
-  const __h3='';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('options').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('options').innerHTML=__h3;
-  const acc=Math.round(correct/total*100);
-  const __h4=`<p>得分：${score} / 正确：${correct}/${total} / 正确率：${acc}%</p>`;if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h4;
+  document.getElementById('options').innerHTML='';
+  const acc=total?Math.round(correct/total*100):0;
+  document.getElementById('output').innerHTML=`<p>得分：${score} / 正确：${correct}/${total} / 正确率：${acc}%</p>`;
 }
 function toggleToolTheme(){
   const cur=document.documentElement.getAttribute('data-theme');
