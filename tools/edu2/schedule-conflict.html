@@ -222,7 +222,7 @@ A 与 C 时间重叠且同教室101 → 教室冲突 1 起、教师不同无教�
 </div>
 
 <script>
-var SAMPLE = '高等数学,张老师,A101,1,1,2\n大学英语,李老师,B202,1,1,2\n线性代数,张老师,C303,1,3,4\n物理,王老师,A101,1,3,4\n体育,赵老师,操场,2,7,8\n化学,张老师,实验室,2,1,2\n历史,李老师,B202,3,5,6\n地理,王老师,A101,3,5,6';
+var SAMPLE = '高等数学,张老师,A101,1,1,2\n大学英语,张老师,B202,1,1,2\n线性代数,张老师,C303,1,3,4\n物理,王老师,A101,1,3,4\n体育,赵老师,操场,2,7,8\n化学,张老师,实验室,2,1,2\n历史,李老师,B202,3,5,6\n地理,王老师,A101,3,5,6';
 
 function loadSample(){
   document.getElementById('courseInput').value = SAMPLE;
@@ -296,13 +296,50 @@ function detect(){
   var totalConflicts = teacherConflicts.length + roomConflicts.length;
   var days = ['','周一','周二','周三','周四','周五','周六','周日'];
 
+  // 周 × 节次网格：标记每个时间片是否有冲突
+  var maxPeriod = 8;
+  list.forEach(function(c){ if(c.end > maxPeriod) maxPeriod = c.end; });
+  var conflictCells = {};
+  for(var d=1; d<=7; d++){
+    for(var p=1; p<=maxPeriod; p++){
+      var here = list.filter(function(c){ return c.day===d && c.start<=p && c.end>=p; });
+      var tSet = {}, rSet = {}, dup = false;
+      here.forEach(function(c){
+        if(tSet[c.teacher]) dup = true; else tSet[c.teacher] = true;
+        if(rSet[c.room]) dup = true; else rSet[c.room] = true;
+      });
+      if(dup) conflictCells[d+'-'+p] = true;
+    }
+  }
+  var totalSlots = 7 * maxPeriod;
+  var conflictSlotCount = Object.keys(conflictCells).length;
+  var scheduleRate = totalSlots ? ((totalSlots - conflictSlotCount) / totalSlots * 100) : 100;
+
   var html = '';
   html += '<div class="stat-grid">';
   html += '<div class="stat-card"><div class="val">'+list.length+'</div><div class="lbl">课程总数</div></div>';
   html += '<div class="stat-card"><div class="val">'+teacherConflicts.length+'</div><div class="lbl">教师冲突</div></div>';
   html += '<div class="stat-card"><div class="val">'+roomConflicts.length+'</div><div class="lbl">教室冲突</div></div>';
-  html += '<div class="stat-card"><div class="val">'+(totalConflicts===0?'无':'有')+'</div><div class="lbl">冲突状态</div></div>';
+  html += '<div class="stat-card"><div class="val">'+scheduleRate.toFixed(1)+'%</div><div class="lbl">无冲突排课率</div></div>';
   html += '</div>';
+
+  // 可视化课表（周 × 节次）
+  html += '<h3 style="margin-top:16px;">可视化课表</h3>';
+  html += '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:12px;min-width:640px;"><thead><tr><th style="padding:6px;border:1px solid var(--border);background:var(--bg-secondary);">节次</th>';
+  for(var dd=1; dd<=7; dd++){ html += '<th style="padding:6px;border:1px solid var(--border);background:var(--bg-secondary);">'+days[dd]+'</th>'; }
+  html += '</tr></thead><tbody>';
+  for(var pp=1; pp<=maxPeriod; pp++){
+    html += '<tr><td style="padding:6px;border:1px solid var(--border);text-align:center;font-weight:600;">P'+pp+'</td>';
+    for(var d2=1; d2<=7; d2++){
+      var cell = list.filter(function(c){ return c.day===d2 && c.start<=pp && c.end>=pp; });
+      var isConf = conflictCells[d2+'-'+pp];
+      var bg = isConf ? 'background:#FEE2E2;color:#B91C1C;' : (cell.length ? 'background:var(--bg-secondary);' : '');
+      var txt = cell.map(function(c){ return ToolBox.escHtml(c.name)+'<br><span style="font-size:11px;color:var(--text-muted);">'+ToolBox.escHtml(c.teacher)+' · '+ToolBox.escHtml(c.room)+'</span>'; }).join('<br>');
+      html += '<td style="padding:6px;border:1px solid var(--border);vertical-align:top;'+bg+'">'+(txt||'')+'</td>';
+    }
+    html += '</tr>';
+  }
+  html += '</tbody></table></div>';
 
   if(teacherConflicts.length > 0){
     html += '<h3 style="margin-top:8px;">教师冲突</h3>';

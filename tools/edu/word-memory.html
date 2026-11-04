@@ -227,6 +227,7 @@ s.parentNode.insertBefore(el, s);
       <div class="toolbar">
         <button type="button" class="btn" onclick="prevWord()">← 上一个</button>
         <button type="button" class="btn primary" onclick="nextWord()">下一个 →</button>
+        <button type="button" class="btn" onclick="startDueReview()">📅 复习到期</button>
         <button type="button" class="btn" onclick="shuffleWords()">🔀 乱序</button>
       </div>
     </div>
@@ -468,7 +469,7 @@ function getBookData(bookKey){
 function loadCurrentBook(){
   const book = wordBooks[currentBook];
   const data = getBookData(currentBook);
-  shuffledIndices = book.words.map((_,i)=>i);
+  shuffledIndices = book.words.map((_,i)=>i).filter(i=>(data[i]?.level||0)<3);
   currentIndex = 0;
   updateCard();
   updateStats();
@@ -513,11 +514,14 @@ function selectBook(key){
 function updateCard(){
   const book = wordBooks[currentBook];
   const data = getBookData(currentBook);
-  if(book.words.length===0){
-    document.getElementById('cardWord').textContent = '暂无单词';
-    document.getElementById('cardPhonetic').textContent = '请添加单词';
+  if(book.words.length===0 || shuffledIndices.length===0){
+    document.getElementById('cardWord').textContent = book.words.length===0 ? '暂无单词' : '🎉 本词库已全部掌握';
+    document.getElementById('cardPhonetic').textContent = book.words.length===0 ? '请添加单词' : '可切换到其他词库';
     document.getElementById('cardMeaning').textContent = '-';
     document.getElementById('cardExample').textContent = '';
+    document.getElementById('progressText').textContent = '0 / 0';
+    document.getElementById('progressPct').textContent = '0%';
+    document.getElementById('progressFill').style.width = '0%';
     return;
   }
   const idx = shuffledIndices[currentIndex % shuffledIndices.length];
@@ -568,6 +572,7 @@ function shuffleWords(){
 function markWord(level){
   const book = wordBooks[currentBook];
   const data = getBookData(currentBook);
+  if(!shuffledIndices.length) return;
   const idx = shuffledIndices[currentIndex % shuffledIndices.length];
   if(!data[idx]) data[idx] = {level:0, reviewCount:0, lastReview:0};
   data[idx].level = level;
@@ -576,7 +581,28 @@ function markWord(level){
   saveData();
   const msgs = ['标记为不认识','标记为模糊','标记为认识','已掌握！太棒了！'];
   ToolBox.showToast(msgs[level], level===3?'success':'info');
-  nextWord();
+  if(level===3){
+    const at = shuffledIndices.indexOf(idx);
+    if(at>=0) shuffledIndices.splice(at,1);
+    if(currentIndex>=shuffledIndices.length) currentIndex = 0;
+    updateCard();
+  } else {
+    nextWord();
+  }
+}
+
+function startDueReview(){
+  const data = getBookData(currentBook);
+  const DAY = 86400000, now = Date.now();
+  const due = wordBooks[currentBook].words.map((w,i)=>({i,d:data[i]||{}}))
+    .filter(o=>o.d.level<3 && o.d.lastReview>0 && now-o.d.lastReview>=DAY)
+    .map(o=>o.i);
+  if(!due.length){ ToolBox.showToast('今天没有到期的复习单词'); return; }
+  shuffledIndices = due;
+  currentIndex = 0;
+  updateCard();
+  switchTab('study');
+  ToolBox.showToast('已进入待复习：' + due.length + ' 个');
 }
 
 function filterWords(){

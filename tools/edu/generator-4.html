@@ -117,10 +117,11 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="基于句子权重">Summarize a passage by scoring sentence weights and extracting the key sentences.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-      <div class="formula-eq">摘要按句子权重抽取：句子得分 = Σ 该句实词词频（可除以词总数归一）+ 位置加权（首段 ×1.5、含标题词 ×1.2）− 长度惩罚；按得分降序取前 k 句（k 由摘要长度或句数设定），再按原文顺序重排输出；压缩率 = 摘要字数 ÷ 原文字数 × 100%。</div>
+      <div class="formula-eq">摘要按句子权重抽取：句子得分 = 该句实词平均词频（各实词在全篇出现次数之和 ÷ 实词数）+ 位置加权（首句 ×1.5）− 长度惩罚（字数 ÷ 200）；按得分降序取前 k 句，再按原文顺序重排输出；压缩率 = 摘要字数 ÷ 原文字数 × 100%。</div>
   
 </div>
 
+<div class="input-row"><div><label>原文（按句号/问号/叹号分句）</label><textarea id="srcText" rows="6" style="width:100%;font-size:15px;padding:8px;border:1px solid var(--border);border-radius:8px;background:var(--card-bg);color:var(--text);" placeholder="粘贴要摘要的文本，如一段文章或会议记录">人工智能正在深刻改变我们的生活。从智能手机中的语音助手到自动驾驶汽车，机器学习技术已经渗透到各个领域。在医疗领域，AI可以帮助医生更准确地诊断疾病，提高治疗效果。在教育领域，个性化学习系统能够根据学生的特点调整教学内容。在金融行业，智能风控系统可以识别欺诈交易。然而，人工智能的发展也带来了隐私保护和就业结构变化的挑战。我们需要在享受技术便利的同时，建立完善的法律法规。未来，人机协作将成为主流趋势，人类应该发挥创造力，让AI处理重复性工作。</textarea></div></div>
 <div class="input-row"><div><label>生成数量</label><input type="number" id="cnt" value="5" min="1" max="50" oninput="gen()" placeholder="如 5（1–50）"></div></div>
 <div class="toolbar"><div id="generator_4Presets"></div><button type="button" class="btn primary" onclick="gen()">生成</button><button class="btn" type="button" onclick="__generator_4Export()">导出明细 CSV</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
 <div class="result-box" id="res"></div> <div id="generator_4Table"></div> <div id="generator_4Diff"></div> <div id="generator_4Chart"></div> <div id="generator_4Hist"></div>
@@ -202,8 +203,7 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
-const sampleText = `人工智能正在深刻改变我们的生活。从智能手机中的语音助手到自动驾驶汽车，机器学习技术已经渗透到各个领域。在医疗领域，AI可以帮助医生更准确地诊断疾病，提高治疗效果。在教育领域，个性化学习系统能够根据学生的特点调整教学内容。在金融行业，智能风控系统可以识别欺诈交易。然而，人工智能的发展也带来了隐私保护和就业结构变化的挑战。我们需要在享受技术便利的同时，建立完善的法律法规。未来，人机协作将成为主流趋势，人类应该发挥创造力，让AI处理重复性工作。`;
-function tokenizeSentences(text) {
+const sampleText = `人工智能正在深刻改变我们的生活。从智能手机中的语音助手到自动驾驶汽车，机器学习技术已经渗透到各个领域。在医疗领域，AI可以帮助医生更准确地诊断疾病，提高治疗效果。在教育领域，个性化学习系统能够根据学生的特点调整教学内容。在金融行业，智能风控系统可以识别欺诈交易。然而，人工智能的发展也带来了隐私保护和就业结构变化的挑战。我们需要在享受技术便利的同时，建立完善的法律法规。未来，人机协作将成为主流趋势，人类应该发挥创造力，让AI处理重复性工作。`;function tokenizeSentences(text) {
   return text.split(/(?<=[。！？.!?])\s*/).filter(s => s.trim().length > 0);
 }
 function extractKeywords(sentence) {
@@ -211,7 +211,12 @@ function extractKeywords(sentence) {
 }
 function gen() {
   const n = Math.min(Math.max(parseInt(document.getElementById('cnt').value) || 5, 1), 50);
-  const sentences = tokenizeSentences(sampleText);
+  const text = (document.getElementById('srcText').value || '').trim();
+  const sentences = tokenizeSentences(text);
+  if (sentences.length === 0) {
+    document.getElementById('res').innerHTML = '<p>请先输入要摘要的原文。</p>';
+    return;
+  }
   const wordCount = {};
   sentences.forEach(s => {
     extractKeywords(s).forEach(w => {
@@ -220,7 +225,8 @@ function gen() {
   });
   const scored = sentences.map((s, idx) => {
     const words = extractKeywords(s);
-    const score = words.reduce((sum, w) => sum + (wordCount[w] || 0), 0) / Math.max(words.length, 1);
+    const base = words.reduce((sum, w) => sum + (wordCount[w] || 0), 0) / Math.max(words.length, 1);
+    const score = base * (idx === 0 ? 1.5 : 1) - s.length / 200;
     return { sentence: s, idx, score };
   });
   scored.sort((a, b) => b.score - a.score);
@@ -232,6 +238,9 @@ function gen() {
     selected.forEach((item, i) => {
       html += `<p style="padding:6px 0;border-bottom:1px dashed var(--border-color);"><strong>${i+1}.</strong> ${item.sentence} <span style="color:var(--text-muted);font-size:12px;">[权重 ${item.score.toFixed(2)}]</span></p>`;
     });
+    const summaryLen = selected.reduce((sum, it) => sum + it.sentence.replace(/\s/g, '').length, 0);
+    const origLen = text.replace(/\s/g, '').length || 1;
+    html += `<p style="margin-top:8px;color:var(--text-muted);">压缩率：${(summaryLen / origLen * 100).toFixed(1)}%（摘要 ${summaryLen} 字 / 原文 ${origLen} 字）</p>`;
   }
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('res').innerHTML=__h0;
 }

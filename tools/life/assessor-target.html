@@ -125,8 +125,8 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="📋 选址（评估/竞争/目标）模型">📋 Site Selection &amp; Target Model</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入选址区域人流量、竞争密度等参数，评估便利店选址可行性">Score a candidate location by foot traffic, nearby competitors, resident population, rent, area and visibility to produce a weighted site score and selection advice.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">选址评分 = 人流 × 0.3 + 竞争 × 0.2 + 人口 × 0.2 + 租金 × 0.15 + 可见性 × 0.15；人流 = min(100, 人流量 ÷ 100)，竞争 = max(0, 100 − 竞对 × 15)，租金按 ≤100/150/200/300 元分档计 100/80/60/40 分</div>
-  <p class="formula-desc">按人流量、竞争密度、常住人口、租金、可见性五维加权评分输出综合分与选址等级（A/B/C）；模型量化选址要素，结果为网点布局决策参考，最终盈利还看选品与运营。</p>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">选址评分 = 人流 × 0.28 + 竞争 × 0.18 + 人口 × 0.18 + 租金 × 0.13 + 可见性 × 0.13 + 面积 × 0.10；人流 = min(100, 人流量 ÷ 100)，竞争 = max(0, 100 − 竞对 × 15)，租金按 ≤100/150/200/300 元分档计 100/80/60/40 分，面积在 40–120㎡ 记 100 分、偏小按每㎡扣 1.5 分、偏大按每㎡扣 0.5 分</div>
+  <p class="formula-desc">按人流量、竞争密度、常住人口、租金、可见性、店铺面积六维加权评分输出综合分与选址等级（优秀/良好/一般/不佳）；模型量化选址要素，结果为网点布局决策参考，最终盈利还看选品与运营。</p>
 </div>
 
     <div class="input-row"><div><label>日均人流量 (人/天)</label><input type="number" id="traffic" value="8000" step="500" style="font-size:16px;" oninput="calc()" placeholder="如 8000"></div></div>
@@ -229,15 +229,17 @@ function calc(){
   var popScore=Math.min(100,po/50);
   var rentScore=rt<=100?100:rt<=150?80:rt<=200?60:rt<=300?40:20;
   var visScore=vs*10;
-  var total=trafficScore*0.3+compScore*0.2+popScore*0.2+rentScore*0.15+visScore*0.15;
+  var areaScore=sa>=40&&sa<=120?100:sa<40?Math.max(0,100-(40-sa)*1.5):Math.max(0,100-(sa-120)*0.5);
+  var total=trafficScore*0.28+compScore*0.18+popScore*0.18+rentScore*0.13+visScore*0.13+areaScore*0.10;
   var grade=total>=75?'优秀（强烈推荐）':total>=60?'良好（推荐）':total>=45?'一般（需谨慎）':'不佳（不建议）';
   var color=total>=60?'var(--success)':total>=45?'var(--warning)':'var(--danger)';
   var h='<p style="font-weight:600;">便利店选址评估</p>';
-  h+='<p>人流评分：'+trafficScore.toFixed(0)+'(30%)</p>';
-  h+='<p>竞争评分：'+compScore.toFixed(0)+'(20%)</p>';
-  h+='<p>人口评分：'+popScore.toFixed(0)+'(20%)</p>';
-  h+='<p>租金评分：'+rentScore.toFixed(0)+'(15%)</p>';
-  h+='<p>可见性评分：'+visScore.toFixed(0)+'(15%)</p>';
+  h+='<p>人流评分：'+trafficScore.toFixed(0)+'(28%)</p>';
+  h+='<p>竞争评分：'+compScore.toFixed(0)+'(18%)</p>';
+  h+='<p>人口评分：'+popScore.toFixed(0)+'(18%)</p>';
+  h+='<p>租金评分：'+rentScore.toFixed(0)+'(13%)</p>';
+  h+='<p>可见性评分：'+visScore.toFixed(0)+'(13%)</p>';
+  h+='<p>面积适配评分：'+areaScore.toFixed(0)+'(10%)（40–120㎡ 为便利店合理区间）</p>';
   h+='<p>综合评分：<strong style="font-size:22px;color:'+color+';">'+total.toFixed(1)+'/100</strong></p>';
   h+='<p>选址评级：<strong style="color:'+color+';">'+grade+'</strong></p>';
   h+='<div class="tip-box '+(total>=60?'tip-success':total>=45?'tip-warn':'tip-error')+'" style="margin-top:8px;">'+(total>=60?'选址条件良好。':total>=45?'部分条件一般，需综合评估。':'选址条件不佳，建议另选位置。')+'</div>';
@@ -424,7 +426,7 @@ if (document.readyState && document.readyState !== 'loading') __assessor_targetB
 else document.addEventListener('DOMContentLoaded', __assessor_targetBoot);
 </script>
 
-<section class="opt-guide"><h2>如何使用选址（评估/竞争/目标）模型</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>日均人流量 (人/天)</li><li>500m内竞争店数</li><li>周边常住人口</li><li>月租金 (元/m²)</li><li>店铺面积 (m²)</li><li>可见性评分(1-10)</li></ul><h2>适用场景</h2><p>便利店新开网点选址打分、多候选点位横向对比、租金与客流匹配度敏感性分析。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>选址（评估/竞争/目标）模型是做什么的？</dt><dd>便利店选址评估器，输入人流量、竞争密度等参数评估选址可行性，辅助网点布局决策。</dd><dt>如何使用选址（评估/竞争/目标）模型？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>选址（评估/竞争/目标）模型适合哪些场景？</dt><dd>便利店选址评估、商铺投资研判、零售网点规划等需要量化打分的场景。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>
+<section class="opt-guide"><h2>怎么用这个选址评估模型</h2><ol><li>填写日均人流量、500m 内竞争店数、周边常住人口、月租金（元/㎡）、店铺面积（㎡），并把可见性按 1–10 分主观打分。</li><li>点击「计算」得到六项分项得分与加权综合分。</li><li>对照评级（优秀 ≥75、良好 ≥60、一般 ≥45、不佳 &lt;45）横向比较多个候选铺位，可一键复制报告。</li></ol><h2>参数口径</h2><ul class="param-list"><li>日均人流量：10000 人/天 ≈ 人流项满分</li><li>竞争店数：500m 内同类门店，每多 1 家约扣 15 分</li><li>常住人口：5000 人 ≈ 人口项满分</li><li>月租金：按 100/150/200/300 元/㎡ 分档给 100/80/60/40 分</li><li>店铺面积：40–120㎡ 记满分，过小或过大按差额扣分</li><li>可见性评分：1–10 分，直接乘以 10 计入</li></ul><h2>适用场景</h2><p>便利店新开网点选址打分、多候选点位横向对比、租金与客流匹配度敏感性分析。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>这个选址模型怎么算的？</dt><dd>把人流量、竞争密度、常住人口、租金、可见性与面积六项分别折算成 0–100 分，再按 28/18/18/13/13/10 的权重加权求和，得到综合分与评级。</dd><dt>面积为什么也参与评分？</dt><dd>便利店常用面积为 40–120㎡：过小难以陈列与周转，过大则租金压力上升，因此落在该区间记满分，偏小按每㎡扣 1.5 分、偏大按每㎡扣 0.5 分。</dd><dt>计算结果准确吗？</dt><dd>本工具在本地浏览器实时计算，不依赖服务器；权重与阈值属经验模型，结果仅供参考，最终仍需结合实地踏勘与租约条件判断。</dd><dt>选址（评估/竞争/目标）模型适合哪些场景？</dt><dd>便利店选址评估、商铺投资研判、零售网点规划等需要量化打分的场景。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>
 
 
 <script>/*TBKIT-INJECT-START*/
