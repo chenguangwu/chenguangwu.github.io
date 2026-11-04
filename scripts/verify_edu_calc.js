@@ -301,6 +301,13 @@ const CASES = [
     expect: ["没有找到匹配的单词"],
     ref: "按掌握度过滤：单词表初始 level 全为 0，选「掌握」(3) 后列表落空态。⚠ 零参 `filterWords()` 走 select 默认项 `all` ⇒ 渲染全量、不复现空态，故该空态安全（与 material-color 同型，取用前先验兜底链）；`statTotal`/`levelDistribution` 因 getBookData 报错两态同值，不可锚。",
   },
+  {
+    slug: "edu/word-memory",
+    inputs: { filterLevel: "all" },
+    clicks: ["document.getElementById('wordSearch').value='';markWord(1);prevWord();markWord(1);filterWords();"],
+    expect: ["下次复习：3 天后（已复习 2 次）"],
+    ref: "艾宾浩斯排程：同一单词连续两次标记「模糊」后 reviewCount=2 ⇒ 间隔 3 天，单词本行渲染「下次复习：3 天后（已复习 2 次）」。默认态全部单词 lastReview=0，行内显示「未复习」，不含「3 天后」⇒ 强判别（旧实现固定 1 天且不渲染间隔）。",
+  },
 
 {
     "slug": "edu/24-point-solver",
@@ -692,9 +699,9 @@ const CASES = [
       "filterLevel": "0"
     },
     "expect": [
-      "0个 100%\nabc123测试\n0\n没有找到匹配的单词"
+      "0个 100%\n今日到期 0 个 · 间隔 1/3/7/15/30 天\nabc123测试\n0\n没有找到匹配的单词"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"wordSearch\":\"abc123测试\",\"filterLevel\":\"0\"}，输出区含「0个 100%\nabc123测试\n0\n没有找到匹配的单词」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"wordSearch\":\"abc123测试\",\"filterLevel\":\"0\"}，输出区含「0个 100%\n今日到期 0 个 · 间隔 1/3/7/15/30 天\nabc123测试\n0\n没有找到匹配的单词」（2026-11-04 在进度条与单词表之间新增「今日到期」排程行，已同步该跨节点串）；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "edu/pinyin-typing-practice",

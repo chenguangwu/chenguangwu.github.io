@@ -179,6 +179,7 @@ s.parentNode.insertBefore(el, s);
 <h3>润色结果</h3>
 <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__text_polisherExport()">导出明细 CSV</button></div>
     <div class="result-pre" id="output"></div>
+    <div class="result-box" id="synBox" style="display:none;margin-top:8px;"></div>
     <div class="info-box" id="polish-info" aria-live="polite" style="margin-top:8px;"></div>
     <div id="text_polisherTable"></div>
     <div id="text_polisherDiff"></div>
@@ -186,7 +187,7 @@ s.parentNode.insertBefore(el, s);
     <div id="text_polisherHist"></div>
 
 <div class="info-box" style="margin-top:12px;">
- 💡 同义词替换:选中输出文本中的中文词语,系统会从本地词库推荐替换词。
+ 💡 同义词替换:选中输出文本中的中文词语,系统会从本地词库推荐替换词;点击推荐词即替换输出中首次出现的该词（仅改输出，不回写原文，不做整篇改写或降重）。
 </div>
 </div>
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -211,15 +212,15 @@ s.parentNode.insertBefore(el, s);
 <h2>📚 深度解析：文本润色工具</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>公文/邮件润色：把口语化、啰嗦的草稿调整为正式、简洁的书面表达，保留原意，避免歧义。</li>
-<li>论文/报告改写：做降重与语句通顺处理，规避生硬机翻腔，提升专业可读性。</li>
-<li>社媒文案打磨：在保持既定语气的前提下提升流畅度与吸引力，使表达更自然。</li>
+<li>公文/邮件润色：删除口语填充词（我觉得/我认为/其实/就是说/那个/怎么说呢），把「然后」改为「随后」，并规范标点与空格；不做整句改写。</li>
+<li>论文/报告改写：清理口水词、合并连续重复词组、拆分超长句；不提供降重，同义词仅作建议由你手动确认。</li>
+<li>社媒文案打磨：规范全半角/标点/空格并拆分长句，保持原语气；不做风格化改写。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">邮件润色示例</div><div class="dd-ex-body">原文“那个事情你尽快看看弄一下” → 润色“烦请尽快跟进并处理该事项”。说明：去口语、补主语、明确动作，语气更正式且不失礼貌。</div></div>
+<div class="dd-example"><div class="dd-ex-title">口语清理示例</div><div class="dd-ex-body">原文「我觉得那个事情然后你尽快看看弄一下」→ 输出「事情随后你尽快看看弄一下」：删除「我觉得」「那个」填充词、「然后」改为「随后」；后半句属原文措辞，本工具不改写句意。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>润色会改变原意吗？</dt><dd>默认只调整表达方式、不改变原意；遇到歧义句会保留原句并给出提示，由你最终确认。</dd>
-<dt>支持哪些风格？</dt><dd>常见有正式、简洁、通顺、去口语等，可按场景选择；输出会附带主要修改要点，方便你逐条核对。</dd>
+<dt>润色会改变原意吗？</dt><dd>只做填充词删除、连续重复合并、长句拆分与格式规范，不改写句意；同义词替换需你在输出中选中词语后手动点击确认，原文保留在输入框。</dd>
+<dt>支持哪些风格？</dt><dd>不提供风格切换（无正式/简洁等档位）。本工具只做规则化清理，选中输出中的词语可查看同义词建议并点击替换。</dd>
 </dl>
 </div>
 </section>
@@ -233,18 +234,18 @@ s.parentNode.insertBefore(el, s);
       <tbody>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="润色维度">Polishing dimensions</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="用词/句式/连贯性 三方面">Wording, syntax and coherence</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">text polishing</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="填充词删除、连续重复合并、长句拆分、标点/空格规范">Filler removal, duplicate merge, long-sentence split, punctuation and spacing</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Built-in rule table (no model rewrite)</td>
         </tr>
         <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="句长变化">Sentence length variation</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="按句长标准差评估">Assessed by the standard deviation of sentence length</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">sentence variety</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="长句拆分">Long-sentence split</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="单句超过 40 字且含逗号时按逗号切分">Split at commas when a sentence exceeds 40 characters</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Built-in rule (maxLen=40)</td>
         </tr>
         <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="冗余率">Redundancy rate</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="可删减字数/总字数 ×100%">Removable characters/total ×100%</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">redundancy metric</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="修改计数">Change count</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="填充词 + 重复合并 + 长句拆分 + 格式调整 的处数合计">Sum of filler, duplicate-merge, sentence-split and formatting changes</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Inline counters</td>
         </tr>
       </tbody>
     </table>
@@ -425,14 +426,38 @@ function polish(){
  ToolBox.showToast((en ? 'Optimized ' + total + ' changes' : '已优化 ' + total + ' 处'), 'success');
 }
 
-// 选中输出文本时推荐同义词
+// 选中输出文本时推荐同义词（点击按钮替换输出中首次出现的该词）
 document.getElementById('output').addEventListener('mouseup', () => {
  const sel = window.getSelection().toString().trim();
+ const box = document.getElementById('synBox');
+ if(!box) return;
  if(sel && SYNONYMS[sel]){
-  const prefix = isEnMode() ? 'Replace with: ' : '可替换为：';
-  ToolBox.showToast(prefix + SYNONYMS[sel].join(' / '), 'success');
+  const en = isEnMode();
+  box.dataset.word = sel;
+  box.innerHTML = '<span>' + (en ? 'Replace "' + sel + '" with: ' : '「' + sel + '」可替换为：') + '</span>'
+    + SYNONYMS[sel].map((w,i) => '<button type="button" class="btn" style="padding:2px 8px;margin-left:6px;" onclick="applySynonym('+i+')">'+w+'</button>').join('')
+    + '<span style="margin-left:8px;font-size:12px;color:var(--text-muted);">' + (en ? '(click to replace the first occurrence)' : '（点击替换首次出现，仅改输出）') + '</span>';
+  box.style.display = 'block';
+ } else {
+  box.style.display = 'none';
+  box.innerHTML = '';
  }
 });
+
+function applySynonym(i){
+ const box = document.getElementById('synBox');
+ if(!box) return;
+ const word = box.dataset.word || '';
+ const rep = (SYNONYMS[word] || [])[i];
+ if(!rep) return;
+ const out = document.getElementById('output');
+ const text = out.innerText || '';
+ const at = text.indexOf(word);
+ if(at < 0){ box.style.display = 'none'; return; }
+ out.innerText = text.slice(0, at) + rep + text.slice(at + word.length);
+ ToolBox.showToast((isEnMode() ? 'Replaced: ' : '已替换：') + word + ' → ' + rep, 'success');
+ box.style.display = 'none';
+}
 
 polish();
 </script><script>

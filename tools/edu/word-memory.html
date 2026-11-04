@@ -196,6 +196,7 @@ s.parentNode.insertBefore(el, s);
     <div id="tab-study" class="tab-content active">
       <div class="progress-info">
         <span id="progressText">第 0 / 0 个</span>
+        <span id="dueInfo">今日到期 0 个 · 间隔 1/3/7/15/30 天</span>
         <span id="progressPct">0%</span>
       </div>
       <div class="progress-bar" style="margin-bottom:16px;">
@@ -283,7 +284,7 @@ s.parentNode.insertBefore(el, s);
   <div class="card">
     <h3>📖 艾宾浩斯记忆法</h3>
     <div class="step-line"><strong>遗忘曲线：</strong>学习后的第1天遗忘最快，之后逐渐减缓</div>
-    <div class="step-line"><strong>复习周期：</strong>建议在学习后 1天、3天、7天、15天、30天 各复习一次</div>
+    <div class="step-line"><strong>复习周期：</strong>按复习次数自动排程——第 1/2/3/4/5 次复习后分别间隔 1/3/7/15/30 天，之后固定 30 天；顶部「今日到期」显示当前词库待复习数量</div>
     <div class="step-line"><strong>分级记忆：</strong>将单词分为「不认识→模糊→认识→掌握」四个等级，逐步推进</div>
     <div class="step-line"><strong>每日目标：</strong>建议每天学习15-30个新单词，同时复习旧单词</div>
   </div>
@@ -307,18 +308,18 @@ s.parentNode.insertBefore(el, s);
 </style>
 <section class="deep-dive" data-deep-dive="1">
 <div class="card">
-<h2>📚 深度解析：内置英语单词卡（音标+释义）进行翻卡与自测，支持认识/不认识标记循环复习。</h2>
+<h2>📚 深度解析：内置英语单词卡（音标+释义）进行翻卡与自测，按 1/3/7/15/30 天间隔自动排程复习。</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>翻卡识记：正面词反面音义。</li>
-<li>标记：认识/不认识分流。</li>
-<li>循环：错词反复练。</li>
+<li>翻卡识记：正面单词、反面音标与释义。</li>
+<li>标记：不认识/模糊/认识/掌握四级分流，未掌握的单词留在队列中反复出现。</li>
+<li>复习排程：按复习次数自动计算下次到期日（1/3/7/15/30 天），顶部显示今日到期数量，到期词优先复习。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">示例</div><div class="dd-ex-body">示例：卡面「apple」，翻面 /ˈæp.əl/ 苹果。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>数据？</dt><dd>内置基础词表，本地处理。</dd>
-<dt>标记？</dt><dd>不认识词优先复现。</dd>
+<dt>数据？</dt><dd>内置基础词表，学习进度仅保存在本机 localStorage。</dd>
+<dt>标记？</dt><dd>点击标记会记录复习次数与时间，并按 1/3/7/15/30 天间隔生成下一次到期日；不认识/模糊的词排在复习队列前面。</dd>
 <dt>用途？</dt><dd>词汇积累与自测。</dd>
 </dl>
 </div>
@@ -460,10 +461,39 @@ function saveData(){
 }
 
 function getBookData(bookKey){
+  bookKey = bookKey || currentBook;
+  if(!bookKey || !wordBooks[bookKey]) return [];
   if(!userData[bookKey]){
     userData[bookKey] = wordBooks[bookKey].words.map(()=>({level:0, reviewCount:0, lastReview:0}));
   }
   return userData[bookKey];
+}
+
+// 艾宾浩斯复习间隔（天）：第 1/2/3/4/5 次复习分别间隔 1/3/7/15/30 天，之后固定 30 天
+var REVIEW_INTERVALS = [1,3,7,15,30];
+function reviewIntervalDays(d){
+  var rc = Math.max(1, (d && d.reviewCount) || 1);
+  return REVIEW_INTERVALS[Math.min(rc, REVIEW_INTERVALS.length) - 1];
+}
+function nextDueAt(d){
+  if(!d || !d.lastReview) return 0;
+  return d.lastReview + reviewIntervalDays(d) * 86400000;
+}
+function dueIndices(){
+  var data = getBookData(currentBook), now = Date.now();
+  var list = [];
+  wordBooks[currentBook].words.forEach(function(w,i){
+    var d = data[i] || {};
+    if((d.level||0) < 3 && (d.lastReview||0) > 0 && now >= nextDueAt(d)) list.push(i);
+  });
+  // 错词优先：掌握度低（0 不认识 → 1 模糊 → 2 认识）排在前面
+  list.sort(function(a,b){ return ((data[a]||{}).level||0) - ((data[b]||{}).level||0); });
+  return list;
+}
+function updateDueInfo(){
+  var el = document.getElementById('dueInfo');
+  if(!el) return;
+  el.textContent = '今日到期 ' + dueIndices().length + ' 个 · 间隔 1/3/7/15/30 天';
 }
 
 function loadCurrentBook(){
@@ -473,6 +503,7 @@ function loadCurrentBook(){
   currentIndex = 0;
   updateCard();
   updateStats();
+  updateDueInfo();
   renderBooks();
   filterWords();
 }
@@ -504,6 +535,7 @@ function renderBooks(){
 }
 
 function selectBook(key){
+  if(!key || !wordBooks[key]) return;
   currentBook = key;
   saveData();
   loadCurrentBook();
@@ -514,7 +546,8 @@ function selectBook(key){
 function updateCard(){
   const book = wordBooks[currentBook];
   const data = getBookData(currentBook);
-  if(book.words.length===0 || shuffledIndices.length===0){
+  if(!book || !book.words.length || shuffledIndices.length===0){
+    if(!book) return;
     document.getElementById('cardWord').textContent = book.words.length===0 ? '暂无单词' : '🎉 本词库已全部掌握';
     document.getElementById('cardPhonetic').textContent = book.words.length===0 ? '请添加单词' : '可切换到其他词库';
     document.getElementById('cardMeaning').textContent = '-';
@@ -547,14 +580,14 @@ function flipCard(){
 
 function nextWord(){
   const book = wordBooks[currentBook];
-  if(book.words.length===0) return;
+  if(book.words.length===0 || shuffledIndices.length===0){ updateCard(); return; }
   currentIndex = (currentIndex + 1) % shuffledIndices.length;
   updateCard();
 }
 
 function prevWord(){
   const book = wordBooks[currentBook];
-  if(book.words.length===0) return;
+  if(book.words.length===0 || shuffledIndices.length===0){ updateCard(); return; }
   currentIndex = (currentIndex - 1 + shuffledIndices.length) % shuffledIndices.length;
   updateCard();
 }
@@ -579,6 +612,7 @@ function markWord(level){
   data[idx].reviewCount = (data[idx].reviewCount||0) + 1;
   data[idx].lastReview = Date.now();
   saveData();
+  updateDueInfo();
   const msgs = ['标记为不认识','标记为模糊','标记为认识','已掌握！太棒了！'];
   ToolBox.showToast(msgs[level], level===3?'success':'info');
   if(level===3){
@@ -592,17 +626,13 @@ function markWord(level){
 }
 
 function startDueReview(){
-  const data = getBookData(currentBook);
-  const DAY = 86400000, now = Date.now();
-  const due = wordBooks[currentBook].words.map((w,i)=>({i,d:data[i]||{}}))
-    .filter(o=>o.d.level<3 && o.d.lastReview>0 && now-o.d.lastReview>=DAY)
-    .map(o=>o.i);
-  if(!due.length){ ToolBox.showToast('今天没有到期的复习单词'); return; }
+  const due = dueIndices();
+  if(!due.length){ ToolBox.showToast('今天没有到期的复习单词（复习间隔 1/3/7/15/30 天）'); return; }
   shuffledIndices = due;
   currentIndex = 0;
   updateCard();
   switchTab('study');
-  ToolBox.showToast('已进入待复习：' + due.length + ' 个');
+  ToolBox.showToast('已进入待复习：' + due.length + ' 个（错词优先）');
 }
 
 function filterWords(){
@@ -622,11 +652,14 @@ function filterWords(){
     
     const levelClass = wl===0?'level-new':wl===1?'level-learning':'level-mastered';
     const levelText = wl===0?'不认识':wl===1?'模糊':wl===2?'认识':'掌握';
+    const d = data[i] || {};
+    const dueText = d.lastReview ? ('下次复习：'+reviewIntervalDays(d)+' 天后（已复习 '+(d.reviewCount||0)+' 次）') : '未复习';
     html += `
       <div class="word-list-item">
         <div class="word-main">
           <div class="word-text">${w.word} <span style="font-size:12px;color:var(--text-muted);font-weight:normal;">${w.phonetic||''}</span></div>
           <div class="word-meaning">${w.meaning}</div>
+          <div class="word-meaning" style="font-size:12px;color:var(--text-muted);">${dueText}</div>
         </div>
         <span class="word-level ${levelClass}">${levelText}</span>
       </div>

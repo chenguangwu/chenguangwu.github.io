@@ -16,6 +16,20 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "nephrology/aki-kdigo",
+  "inputs": {
+    "baselineScr": "120",
+    "currentScr": "180",
+    "urine": "0",
+    "duration": "13",
+    "elapsed": "24"
+  },
+  "expect": [
+    "无尿≥12h"
+  ],
+  "ref": "KDIGO 2012 尿量 3 期独立判据：尿量 0 且持续 13h ⇒ 无尿≥12h 判 3 期（肌酐侧仅 1 期）。默认态尿量 0.3、持续 8h 走 1 期「6-12h」分支，不含「无尿≥12h」⇒ 强判别。"
+},
+{
   "slug": "nephrology/ca-p-product",
   "inputs": {
     "calcium": "5.2",
