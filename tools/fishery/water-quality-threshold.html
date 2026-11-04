@@ -117,7 +117,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="依据水温、pH、氯离子计算有毒非离子氨(NH₃)占比与安全阈值，并评估亚硝酸盐风险">Look up safe thresholds for ammonia nitrogen and nitrite in aquaculture water.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">水质安全阈值推算（本页代码口径，公式计算而非查表）：NH₄⁺ 解离 pKa=9.25−0.031×(水温−25)（温度修正）；非离子氨占比=1÷(1+10^(pKa−pH))；实测 NH₃=总氨氮 TAN×占比；TAN 安全限=0.02÷占比（NH₃ 阈值取 0.02 mg/L 反推）；亚硝酸盐安全限=氯离子×0.0132（按 Cl⁻÷NO₂⁻-N 摩尔比≥30 估算）。校验：五项须为有效数值，否则提示并中止。判据：NH₃&lt;0.02 安全、&lt;0.05 接近阈值、≥0.05 超标有毒；NO₂⁻-N&lt;安全限 安全、&lt;1.5×安全限 接近、否则超标。</div>
+      <div class="formula-eq">水质安全阈值推算（本页代码口径，公式计算而非查表）：NH₄⁺ 解离 pKa=9.25−0.031×(水温−25)（温度修正）；非离子氨占比=1÷(1+10^(pKa−pH))；实测 NH₃=总氨氮 TAN×占比；TAN 安全限=0.02÷占比（NH₃ 阈值取 0.02 mg/L 反推）；亚硝酸盐安全限=min(0.1, 氯离子×0.0132)（按 Cl⁻÷NO₂⁻-N 摩尔比≥30 估算，并以 0.1 mg/L 为绝对上限）。校验：水温 0–40℃、pH 0–14，其余三项为 ≥0 的有效数值，留空或为负即提示并中止（清空上次结果）。判据：NH₃&lt;0.02 安全、≥0.02 即超标（≥0.05 为严重超标）；NO₂⁻-N≤安全限 安全、&gt;安全限 即超标。</div>
       <p class="formula-desc">依据水温、pH、氯离子计算有毒非离子氨(NH₃)占比与安全阈值，并评估亚硝酸盐风险</p>
     </div>
 
@@ -139,7 +139,7 @@ s.parentNode.insertBefore(el, s);
     <div class="result-box" id="result"></div> <div id="water_quality_thresholdTable"></div> <div id="water_quality_thresholdDiff"></div> <div id="water_quality_thresholdChart"></div> <div id="water_quality_thresholdHist"></div>
 
     <div class="tip-box tip-info">
-      <strong>计算依据：</strong>NH₄⁺ pKa=9.25-0.031×(T-25)；非离子氨占比=1/(1+10^(pKa-pH))；NH₃ 安全阈值取 0.02 mg/L，反推 TAN 安全限。亚硝酸盐安全限按 Cl⁻/NO₂⁻-N 摩尔比≥30 估算：NO₂⁻-N≤Cl⁻×0.0132。
+      <strong>计算依据：</strong>NH₄⁺ pKa=9.25-0.031×(T-25)；非离子氨占比=1/(1+10^(pKa-pH))；NH₃ 安全阈值取 0.02 mg/L，反推 TAN 安全限，实测 NH₃ ≥0.02 mg/L 即判超标。亚硝酸盐安全限按 Cl⁻/NO₂⁻-N 摩尔比≥30 估算：NO₂⁻-N≤min(0.1, Cl⁻×0.0132)，并保留 0.1 mg/L 绝对上限。
     </div>
   </div>
 
@@ -217,24 +217,27 @@ s.parentNode.insertBefore(el, s);
 <script>
 let lastResult='';
 function calc(){
-  const T=+document.getElementById('temp').value;
-  const ph=+document.getElementById('ph').value;
-  const cl=+document.getElementById('cl').value;
-  const tan=+document.getElementById('tan').value;
-  const no2=+document.getElementById('no2').value;
-  if([T,ph,cl,tan,no2].some(isNaN)){ToolBox.showToast(i18nText('toast.msg716'),'error');return;}
+  function fld(id){var raw=document.getElementById(id).value.trim();if(raw==='')return null;var v=+raw;return isFinite(v)?v:null;}
+  const T=fld('temp'),ph=fld('ph'),cl=fld('cl'),tan=fld('tan'),no2=fld('no2');
+  const ok=T!==null&&T>=0&&T<=40&&ph!==null&&ph>=0&&ph<=14&&cl!==null&&cl>=0&&tan!==null&&tan>=0&&no2!==null&&no2>=0;
+  if(!ok){
+    lastResult='';
+    document.getElementById('result').innerHTML='<p style="color:var(--danger,#EF4444);">请检查输入：水温需 0–40℃、pH 需 0–14，氯离子/总氨氮/亚硝酸盐需为 ≥0 的数值；留空或为负值时不计算。</p>';
+    ToolBox.showToast(i18nText('toast.msg716'),'error');
+    return;
+  }
   const pKa=9.25-0.031*(T-25);
   const frac=1/(1+Math.pow(10,pKa-ph)); // 非离子氨占比
   const nh3=tan*frac;
   const safeNh3=0.02; // mg/L
   const safeTan=safeNh3/frac;
-  const safeNo2=cl*0.0132; // mg/L
+  const safeNo2=Math.min(0.1, cl*0.0132); // mg/L，氯离子保护 + 0.1 绝对上限
   const tanPct=safeTan>0?tan/safeTan*100:0;
-  const no2Pct=safeNo2>0?no2/safeNo2*100:0;
-  let nh3State=nh3<0.02?'success':nh3<0.05?'warn':'error';
-  let nh3Txt=nh3<0.02?'🟢 安全':nh3<0.05?'🟡 接近阈值':'🔴 超标有毒';
-  let no2State=no2<safeNo2?'success':no2<safeNo2*1.5?'warn':'error';
-  let no2Txt=no2<safeNo2?'🟢 安全':no2<safeNo2*1.5?'🟡 接近阈值':'🔴 超标';
+  const no2Pct=safeNo2>0?no2/safeNo2*100:(no2>0?999:0);
+  let nh3State=nh3<safeNh3?'success':'error';
+  let nh3Txt=nh3<safeNh3?'🟢 安全':(nh3<0.05?'🔴 超标有毒（需立即处理）':'🔴 严重超标有毒');
+  let no2State=no2<=safeNo2?'success':'error';
+  let no2Txt=no2<=safeNo2?'🟢 安全':'🔴 超标';
   lastResult=`水质安全阈值查询
 ====================
 水温：${T}℃  pH：${ph}  Cl⁻：${cl} mg/L
@@ -243,17 +246,17 @@ NH₄⁺ pKa：${pKa.toFixed(3)}
 实测 TAN：${tan} mg/L → 非离子氨 NH₃：${nh3.toFixed(4)} mg/L (${nh3Txt})
 TAN 安全阈值：${safeTan.toFixed(2)} mg/L
 亚硝酸盐 NO₂⁻-N：${no2} mg/L (${no2Txt})
-NO₂⁻-N 安全阈值：${safeNo2.toFixed(2)} mg/L`;
+NO₂⁻-N 安全阈值：${safeNo2.toFixed(3)} mg/L`;
   const __g1=`
     <div class="stat-grid">
       <div class="stat-card"><div class="val">${(frac*100).toFixed(2)}%</div><div class="lbl">非离子氨占比</div></div>
       <div class="stat-card"><div class="val">${nh3.toFixed(4)}</div><div class="lbl">实测NH₃(mg/L)</div></div>
       <div class="stat-card"><div class="val">${safeTan.toFixed(2)}</div><div class="lbl">TAN安全限(mg/L)</div></div>
-      <div class="stat-card"><div class="val">${safeNo2.toFixed(2)}</div><div class="lbl">NO₂安全限(mg/L)</div></div>
+      <div class="stat-card"><div class="val">${safeNo2.toFixed(3)}</div><div class="lbl">NO₂安全限(mg/L)</div></div>
     </div>
     <div class="step-line">水温 ${T}℃、pH ${ph} 时 NH₄⁺ pKa=${pKa.toFixed(3)}，非离子氨占比 ${(frac*100).toFixed(2)}%</div>
     <div class="step-line">实测 TAN ${tan} mg/L → 有毒 NH₃ ${nh3.toFixed(4)} mg/L，安全限 ${safeTan.toFixed(2)} mg/L，当前占比 ${tanPct.toFixed(0)}%</div>
-    <div class="step-line">实测 NO₂⁻-N ${no2} mg/L，安全限 ${safeNo2.toFixed(2)} mg/L，当前占比 ${no2Pct.toFixed(0)}%</div>
+    <div class="step-line">实测 NO₂⁻-N ${no2} mg/L，安全限 ${safeNo2.toFixed(3)} mg/L（= min(0.1, Cl⁻ ${cl}×0.0132)），当前占比 ${no2Pct.toFixed(0)}%</div>
     <div class="tip-box tip-${nh3State}">非离子氨：${nh3Txt}</div>
     <div class="tip-box tip-${no2State}">亚硝酸盐：${no2Txt}</div>`;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }

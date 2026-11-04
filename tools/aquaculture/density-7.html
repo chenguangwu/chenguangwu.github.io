@@ -122,8 +122,8 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="🚚 运输（密度/增氧）存活率">Density 7</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="根据运输时间、水温、装载密度与鱼体均重，估算活鱼运输存活率、风险等级与建议密度。">Density 7 - online utility on ToolBox.</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">风险指数 = 运输时长 × 温度系数 × 密度系数 × 体重系数；预估存活率 = 100 − 风险指数 × 0.5；建议密度 = 1000 ÷ (时长 × 温度系数 × 体重系数) (kg/m³)</div>
-      <p class="formula-desc" data-zh="核心计算公式（按输入变量）：min(max(iv.weight÷100,0.5),2.0)；max(iv.density÷100,0.3)">Key formulas: min(max(iv.weight÷100,0.5),2.0); max(iv.density÷100,0.3)</p>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">风险指数 = 运输时长 × 温度系数 × 密度系数 × 体重系数（密度系数 = max(密度÷100, 0.3)，有下限）；预估存活率 = 100 − 风险指数 × 0.5（限幅 0–99.5%）；建议密度按完整模型反解：令风险指数 = 10（对应 95% 存活率），则所需密度系数 = 10 ÷ (时长 × 温度系数 × 体重系数)，建议密度 = 100 × 该系数，仅当结果 ≥30 kg/m³（密度系数未触底 0.3）时 95% 可达；否则即使密度降到最低档，模型存活率仍低于 95%，页面会明确提示「仅降密度无效」。</div>
+      <p class="formula-desc" data-zh="核心计算公式（按输入变量）：温度系数分段查值；密度系数 max(密度÷100,0.3)；体重系数 min(max(均重÷100,0.5),2.0)；反解建议密度需校验密度系数下限">Key formulas: temperature coefficient by band; density coefficient max(density÷100,0.3); weight coefficient min(max(weight÷100,0.5),2.0); inverse suggestion checks the 0.3 lower bound.</p>
     </div>
     <div class="input-row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;align-items:end;">
       <div><label>运输时间（小时）</label><input type="number" id="hours" value="6" min="0" step="any" enterkeyhint="done" aria-label="运输时间（小时）" placeholder="如 6"></div>
@@ -138,7 +138,7 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="result-box" id="res"></div>
 <div id="resRefBar" style="margin-top:12px"></div> <div id="density_7Table"></div> <div id="density_7Diff"></div> <div id="density_7Chart"></div> <div id="density_7Hist"></div>
-    <div class="info-box">💡 公式：风险指数 = 运输时间 × 水温系数 × 密度系数 × 体型系数；存活率 = 100 − 风险指数 × 修正值(0.5)；建议密度 = 1000 ÷ (时间 × 水温系数 × 体型系数)（对应 95% 存活率）。</div>
+    <div class="info-box">💡 公式：风险指数 = 运输时间 × 水温系数 × 密度系数 × 体型系数；存活率 = 100 − 风险指数 × 0.5（最高 99.5%）。建议密度按完整模型反解：先算「所需密度系数 = 10 ÷ (时间 × 水温系数 × 体型系数)」再乘 100；若该系数小于模型下限 0.3，则 95% 不可达，需缩短时间或降温，页面会明示。</div>
     <div class="tool-notes" style="--tool-accent:#0288D1;">
 <div class="card" id="constRefBox">
   <h3 data-zh="📐 公式与标准引据">Formula &amp; Standard References</h3>
@@ -173,8 +173,8 @@ s.parentNode.insertBefore(el, s);
       <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
       <ul>
         <li>水温系数：&lt;10°C 0.6、10–15°C 0.8、15–20°C 1.0、20–25°C 1.2、25–30°C 1.5、&gt;30°C 2.0。</li>
-        <li>密度系数 = 密度 ÷ 100；体型系数 = 鱼体均重 ÷ 100（限 0.5–2.0）。</li>
-        <li>存活率经限幅处理，理论最高 99.5%、最低 0%。</li>
+        <li>密度系数 = max(密度 ÷ 100, 0.3)；体型系数 = 鱼体均重 ÷ 100（限 0.5–2.0）。密度系数有 0.3 下限，因此密度很低时模型也不会继续变好。</li>
+        <li>存活率经限幅处理，理论最高 99.5%、最低 0%。这是经验模型的上限，不代表实际运输一定能达到该存活率。</li>
         <li>结果仅供参考，实际运输还需结合增氧、水质、鱼体健康等。纯前端运行，数据不上传。</li>
       </ul>
     </div>
@@ -229,21 +229,32 @@ function calc(){
   var survival=100-risk*fix;
   if(survival>99.5)survival=99.5;
   if(survival<0)survival=0;
-  var suggest=1000/(iv.hours*wt*ws);
-  if(!isFinite(suggest)||suggest<=0)suggest=0;
+  var hoursCoef=iv.hours*wt*ws; // 反解用：risk = hoursCoef × 密度系数
+  var targetWd=10/hoursCoef; // 95% 存活率对应风险指数 10
+  var suggest, suggestNote;
+  if(targetWd>=0.3){
+    suggest=targetWd*100;
+    suggestNote='按完整模型反解，该密度下预估存活率约 95%。';
+  }else{
+    suggest=NaN;
+    var bestSurvival=Math.min(99.5,Math.max(0,100-0.5*0.3*hoursCoef));
+    suggestNote='按当前时长/水温/均重，即使密度降到模型最低档（密度系数 0.3），预估存活率仍仅约 '+bestSurvival.toFixed(1)+'%，仅靠降密度无法达到 95%。';
+  }
   // 风险等级
   var level,color,advice;
   if(survival>=95){level='低风险';color='#10B981';advice='运输条件良好，注意常规增氧与监测即可。';}
   else if(survival>=90){level='中等风险';color='#3B82F6';advice='建议加强增氧，适当降低密度或缩短运输时间。';}
   else if(survival>=80){level='较高风险';color='#F59E0B';advice='建议降低装载密度、降温并持续增氧，中途观察鱼况。';}
   else{level='高风险';color='#EF4444';advice='存活率偏低，建议大幅降密度、分车运输或暂停运输。';}
+  if(!isFinite(suggest)){advice='当前时长/水温/均重组合下，模型已触及密度系数下限，单靠降密度无法把存活率拉到 95%；请优先缩短运输时间、降低水温或选用更小规格的鱼，并全程增氧。';}
   const __g2='<div class="data-grid">'+
     '<div class="data-card"><div class="num" style="color:'+color+';">'+survival.toFixed(1)+'%</div><div class="label">预估存活率</div></div>'+
     '<div class="data-card"><div class="num">'+risk.toFixed(2)+'</div><div class="label">风险指数</div></div>'+
-    '<div class="data-card"><div class="num">'+suggest.toFixed(0)+'</div><div class="label">建议密度（kg/m³）</div></div>'+
+    '<div class="data-card"><div class="num">'+(isFinite(suggest)?suggest.toFixed(0)+'<span style="font-size:12px;"> kg/m³</span>':'不可达 95%')+'</div><div class="label">建议密度</div></div>'+
     '<div class="data-card"><div class="num" style="color:'+color+';">'+level+'</div><div class="label">风险等级</div></div>'+
     '</div>'+
-    '<p style="margin-top:10px;font-size:13px;color:var(--text-muted);">建议：'+advice+'</p>';try{ if(typeof survival==='number'&&isFinite(survival)&&typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){ TBKit.chart.refBar('#resRefBar',{value:survival,unit:'%',bands:[{"lo":95,"hi":null,"label":{"zh":"低风险","en":"Low risk"},"color":"#10B981"},{"lo":90,"hi":95,"label":{"zh":"中等风险","en":"Moderate risk"},"color":"#F59E0B"},{"lo":null,"hi":90,"label":{"zh":"较高风险","en":"High risk"},"color":"#EF4444"}],title:((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Reference range':'参考区间标尺')}); } }catch(e){}
+    '<p style="margin-top:10px;font-size:13px;color:var(--text-muted);">建议：'+advice+'</p>'+
+    '<p style="margin-top:6px;font-size:12px;color:var(--text-muted);">'+suggestNote+'（模型假设：风险指数 = 时长 × 温度系数 × 密度系数 × 体重系数，存活率 = 100 − 0.5 × 风险指数；为经验估算，不等于实际存活率。）</p>';try{ if(typeof survival==='number'&&isFinite(survival)&&typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){ TBKit.chart.refBar('#resRefBar',{value:survival,unit:'%',bands:[{"lo":95,"hi":null,"label":{"zh":"低风险","en":"Low risk"},"color":"#10B981"},{"lo":90,"hi":95,"label":{"zh":"中等风险","en":"Moderate risk"},"color":"#F59E0B"},{"lo":null,"hi":90,"label":{"zh":"较高风险","en":"High risk"},"color":"#EF4444"}],title:((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Reference range':'参考区间标尺')}); } }catch(e){}
   document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
   saveHistory();
 }
@@ -497,7 +508,7 @@ else document.addEventListener('DOMContentLoaded', __density_7Boot);
     <ul class="intro-features">
       <li>多因素风险指数：时间、水温、密度、体型</li>
       <li>输出存活率、风险等级与处置建议</li>
-      <li>反推 95% 存活率下的建议装载密度</li>
+      <li>反推 95% 存活率下的建议装载密度，并校验模型下限（不可达时明确提示）</li>
       <li>结果可复制、历史可回溯，本地保存</li>
     </ul>
     <h4><span class="h4-icon">🎯</span>使用场景</h4>

@@ -165,7 +165,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="从放苗到上市的时间估算，含阶段注意事项">Plan the breeding cycle and grow-out schedule for aquaculture.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">日增长率 = 品种日增重系数% ÷ 100 × 水温系数（偏低 0.5/适宜 1.0/偏高 0.85）；预计总天数 = ln(目标规格 ÷ 初始规格) ÷ ln(1 + 日增长率)（指数增长模型）；四阶段 = 放苗期（天数按品种查表：草鱼 14、鲤鱼 14、鲫鱼 12、罗非鱼 10、鲈鱼 14、南美白对虾 5 天）+ 培育期(总天数×0.25) + 养成期(×0.55) + 收获期(×0.20)。校验：放苗日期必填、初始规格 ≥0、目标规格 &gt; 初始规格，任一不满足逐项报错。判据：各阶段起止日期与中间规格(初始×(1+日增长率)^累计天数)联动输出，并附溶氧、饲料蛋白等管理提示。</div>
+      <div class="formula-eq">日增长率 = 品种日增重系数% ÷ 100 × 水温系数（偏低 0.5/适宜 1.0/偏高 0.85）；预计总天数 = ln(目标规格 ÷ 初始规格) ÷ ln(1 + 日增长率)（指数增长模型，指从放苗到上市的总周期）。四阶段是总周期内的划分、不额外叠加：放苗期取品种固定天数（草鱼 14、鲤鱼 14、鲫鱼 12、罗非鱼 10、鲈鱼 14、南美白对虾 5 天；总周期更短时取总周期），剩余天数按培育期 25%、养成期 55%、收获期 20% 分配；各阶段结束日 = 放苗日 + 累计天数，末阶段结束日即上市日。校验：放苗日期必填、初始规格 &gt;0、目标规格 &gt; 初始规格，任一不满足逐项报错并清空旧结果。判据：各阶段起止日期与中间规格(初始×(1+日增长率)^累计天数)联动输出，并附溶氧、饲料蛋白等管理提示。</div>
       <p class="formula-desc">从放苗到上市的时间估算，含阶段注意事项</p>
     </div>
 
@@ -372,6 +372,12 @@ function fmtDate(d){
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
+// 本地时区解析 YYYY-MM-DD，避免 new Date('YYYY-MM-DD') 按 UTC 解析导致日期偏移
+function parseLocalDate(s){
+  const p = String(s).split('-');
+  return new Date(+p[0], +p[1]-1, +p[2]);
+}
+
 function addDays(date, days){
   const d = new Date(date);
   d.setDate(d.getDate() + Math.round(days));
@@ -387,27 +393,29 @@ const sp = document.getElementById('species').value;
   const targetSize = num('targetSize');
   const tempRange = document.getElementById('tempRange').value;
 
-  if (!dateStr) { ToolBox.showToast(i18nText('toast.msg939'), 'error'); return; }
-  if (initSize < 0) { ToolBox.showToast(i18nText('toast.msg084'), 'error'); return; }
-  if (targetSize <= initSize) { ToolBox.showToast(i18nText('toast.msg522'), 'error'); return; }
+  if (!dateStr) { ToolBox.showToast(i18nText('toast.msg939'), 'error'); lastResult=''; return; }
+  if (!(initSize > 0)) { ToolBox.showToast(i18nText('toast.msg084'), 'error'); lastResult=''; return; }
+  if (!(targetSize > 0) || targetSize <= initSize) { ToolBox.showToast(i18nText('toast.msg522'), 'error'); lastResult=''; return; }
 
-  const stockDate = new Date(dateStr);
+  const stockDate = parseLocalDate(dateStr);
   const factor = TEMP_FACTOR[tempRange];
   // 日增长率 (% 体重的指数增长)
   const dailyRate = d.growth / 100 * factor;
-  // 计算 t: targetSize = initSize * (1+dailyRate)^t
+  // 计算 t: targetSize = initSize * (1+dailyRate)^t（放苗到上市的总周期）
   const totalDays = Math.log(targetSize / initSize) / Math.log(1 + dailyRate);
 
-  // 阶段划分
-  const fryDays = d.fryDays; // 放苗期
-  const nurseryDays = totalDays * 0.25; // 培育期
-  const growoutDays = totalDays * 0.55; // 养成期
-  const harvestDays = totalDays * 0.20; // 收获期
+  // 阶段划分：放苗期是总周期的一部分，不额外叠加
+  const fryDays = Math.min(d.fryDays, totalDays); // 总周期短于品种放苗期时，按总周期计
+  const restDays = Math.max(0, totalDays - fryDays);
+  const nurseryDays = restDays * 0.25; // 培育期
+  const growoutDays = restDays * 0.55; // 养成期
+  const harvestDays = restDays * 0.20; // 收获期
 
+  // 统一用「放苗日 + 累计天数」推进，避免逐段取整造成日期漂移
   const fryEnd = addDays(stockDate, fryDays);
-  const nurseryEnd = addDays(fryEnd, nurseryDays);
-  const growoutEnd = addDays(nurseryEnd, growoutDays);
-  const harvestEnd = addDays(growoutEnd, harvestDays);
+  const nurseryEnd = addDays(stockDate, fryDays + nurseryDays);
+  const growoutEnd = addDays(stockDate, fryDays + nurseryDays + growoutDays);
+  const harvestEnd = addDays(stockDate, totalDays);
 
   // 中间规格估算
   const nurserySize = initSize * Math.pow(1 + dailyRate, fryDays + nurseryDays);
@@ -517,8 +525,9 @@ function clearHistory(){
   ToolBox.showToast(i18nText());
 }
 
-// 初始化日期为今天
-document.getElementById('stockDate').value = new Date().toISOString().split('T')[0];
+// 初始化日期为今天（本地时区，避免 toISOString 的 UTC 偏移）
+const __today = new Date();
+document.getElementById('stockDate').value = __today.getFullYear() + '-' + String(__today.getMonth()+1).padStart(2,'0') + '-' + String(__today.getDate()).padStart(2,'0');
 calc();
 renderHistory();
 ToolBox.initToolTheme();

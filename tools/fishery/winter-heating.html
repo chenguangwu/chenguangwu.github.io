@@ -235,7 +235,18 @@ function calc(){
   const cover=document.getElementById('cover').value;
   const wind=+document.getElementById('wind').value;
   const margin=+document.getElementById('margin').value;
-  if([area,tw,ta,wind,margin].some(isNaN)||area<=0){ToolBox.showToast(i18nText('toast.msg721'),'error');return;}
+  if([area,tw,ta,wind,margin].some(isNaN)||area<=0||wind<0||margin<0||margin>100){
+    lastResult='';
+    document.getElementById('result').innerHTML='<p style="color:var(--danger,#EF4444);">请检查输入：面积需 &gt;0，风速与余量需 ≥0（余量 ≤100%）。</p>';
+    ToolBox.showToast(i18nText('toast.msg721'),'error');
+    return;
+  }
+  if(tw<=ta){
+    lastResult='';
+    document.getElementById('result').innerHTML='<p style="color:var(--danger,#EF4444);">目标水温（'+tw+'℃）不高于气温（'+ta+'℃），无需加热；若确需保温，请检查水温/气温是否填反。</p>';
+    ToolBox.showToast(i18nText('toast.msg721'),'warning');
+    return;
+  }
   const dt=tw-ta;
   const u=U[cover];
   const heatLoss=area*u*dt*wind; // W
@@ -264,7 +275,7 @@ ${txt}`;
       <div class="stat-card"><div class="val">${u}</div><div class="lbl">U系数</div></div>
     </div>
     <div class="step-line">${COVER_NAME[cover]}，U=${u}，温差 ${dt.toFixed(1)}℃，热损失 ${heatLoss.toFixed(0)} W</div>
-    <div class="step-line">含 ${margin}% 余量，需加热功率 <strong>${power.toFixed(2)} kW</strong>，日耗电 ${dailyKwh.toFixed(1)} kWh</div>
+    <div class="step-line">含 ${margin}% 余量，需加热功率 <strong>${power.toFixed(2)} kW</strong>，日耗电 ${dailyKwh.toFixed(1)} kWh（按 24 小时满功率运行估算，实际随温控间歇运行会更低）</div>
     ${power>=50?'<div class="tip-box tip-warn">能耗偏高，建议改用双层薄膜或保温板，并减小散热面积。</div>':''}`;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 function copyResult(){if(!lastResult){ToolBox.showToast(i18nText(),'warning');return;}ToolBox.copyText(lastResult);}
