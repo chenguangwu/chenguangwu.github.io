@@ -547,6 +547,12 @@ const CASES = [
     ref: "边框宽度随文本长度变化：hi=2字⇒顶部 6 格、HELLO=5 字⇒9 格，注入 hi 后形态与默认 HELLO 完全不同，双态强判别（默认态输出含 ##HELLO## 必不命中）；color/mode 一并注入只为绕开默认配色分支，不参与判定。",
   },
   {
+    slug: "biz/text-to-banner",
+    inputs: { input: "横幅", style: "hash", paddingX: "1", paddingY: "0" },
+    expect: ["╔══════╗ ║#横幅#║ ╚══════╝"],
+    ref: "全角列宽改造：中文「横幅」按 2 列计 ⇒ 文本列宽 4，左右内边距 1 ⇒ 内容宽 6 ⇒ 上边 6 个 ═；旧实现按码点数 2 ⇒ 内容宽 4，得到 ╔════╗，与注入期望不符。默认态 HELLO/padding 2/1 不含该串。",
+  },
+  {
     slug: "biz/zalgo-text",
     inputs: {
       input: "ab",

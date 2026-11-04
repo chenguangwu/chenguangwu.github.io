@@ -6888,12 +6888,13 @@ const CASES = [
   {
     "slug": "it/url-qr",
     "inputs": {
-      "url": "abc123测试"
+      "url": "https://chenguangwu.github.io/tools/it/url-qr.html",
+      "ecl": "H"
     },
     "expect": [
-      "abc123测试\nhttps://abc123测试"
+      "内容 50 字节 · 纠错等级 H · 最小版本 V6（41×41 模块）"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"url\":\"abc123测试\"}，输出区含「abc123测试\nhttps://abc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "真编码器改造：url 50 个 ASCII 字节、纠错 H（容量表 H 的 V5=44、V6=58）⇒ qrPlan 选最小版本 V6，模块 17+4×6=41 ⇒ 结果区输出该串。默认态是 github.com + M（22 字节 ⇒ V2、25×25），不含 50/V6/41，且 'H' 不是默认选项值。"
   },
   {
     "slug": "it/url-parser",

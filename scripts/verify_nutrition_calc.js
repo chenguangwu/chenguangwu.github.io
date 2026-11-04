@@ -205,12 +205,21 @@ const CASES = [
 {
   "slug": "nutrition/generator-nutrition-label",
   "inputs": {
-    "cnt": "8"
+    "pname": "测试食品",
+    "protein": "10",
+    "fat": "20",
+    "carbs": "55",
+    "fiber": "2",
+    "sodium": "300",
+    "serving": "50"
   },
   "expect": [
-    "8. "
+    "1861.0 kJ / 444.9 kcal",
+    "930.5 kJ / 222.4 kcal",
+    "22.2%",
+    "16.7%"
   ],
-  "ref": "auto-restore — 随机营养标签生成器，改测结构标签"
+  "ref": "Atwater 改造：10×17+20×37+55×17+2×8=1861 kJ ⇒ /4.184=444.9 kcal；每份 50g = 一半（930.5 kJ / 222.4 kcal）；能量 NRV% = 1861/8400=22.2%，蛋白质 10/60=16.7%。默认态（3.0/3.2/12.0/0/60/100）能量 273.4 kJ、7.7%，不含上述数值。"
 }
 ];
 async function main() {

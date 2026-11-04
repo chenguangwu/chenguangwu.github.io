@@ -2151,6 +2151,13 @@ const CASES = [
     ref: "N4-D 预览动画：keyframes 必须真正进入预览样式节点（旧页面从未注入，预览只读到内联 animation 而无"
        + "对应 @keyframes ⇒ 全静止）。前缀 PREVIEWSTYLE 确保区分于 cssOutput 导出文本；默认 generate() 同样"
        + "执行但旧实现该前缀后为空，故可强判别修复前后。"
+  },
+  {
+    slug: "design/mesh-gradient",
+    inputs: { overlay: "#000000" },
+    expect: ["最低对比度 3.30:1（与 #764ba2）· AA 大文本"],
+    ref: "WCAG 改造：默认三色 #667eea/#764ba2/#f093fb，叠加文字注入 #000000 ⇒ 与最暗色 #764ba2 对比度 = (0.1187+0.05)/(0.0353+0.05)=3.30"
+       + "（独立复算 sRGB 线性化），等级按 <4.5 判「AA 大文本」。默认态 overlay=#ffffff 输出「最低对比度 2.04:1（与 #f093fb）」，不含该串。"
   }
 
 ];

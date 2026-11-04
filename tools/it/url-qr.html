@@ -8,7 +8,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=generate,industry=it,icon=🔳,bg=#e3f2fd">
 <meta name="description" content="URL 二维码是一款免费的在线IT 开发工具，将网址生成为可扫描的二维码图片，可调尺寸与容错，便于分享链接，纯前端生成不上传任何数据。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
-<meta name="keywords" content="URL 二维码,URL 二维码在线,在线URL 二维码,生成器,IT开发,URL,二维码,在线工具,免费工具,ToolBox">
+<meta name="keywords" content="URL 二维码,URL 二维码在线,在线URL 二维码,二维码生成器,IT开发,URL,二维码,在线工具,免费工具,ToolBox">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="https://chenguangwu.github.io/tools/it/url-qr.html">
 <meta property="og:title" content="URL 二维码 - 免费在线开发工具">
@@ -27,6 +27,7 @@
 <script src="../../js/common.js" defer></script>
 <style>
 .qr-wrap{display:flex;justify-content:center;margin:12px 0;}
+.qr-info{text-align:center;font-size:12.5px;color:var(--text-muted);margin:8px 0 2px;}
 canvas{background:#fff;border:6px solid #fff;border-radius:8px;box-shadow:var(--shadow);max-width:100%;}
 .qr-text{font-family:'SF Mono','Courier New',monospace;font-size:13px;color:var(--text-light);word-break:break-all;margin-top:8px;}
 </style>
@@ -153,12 +154,19 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="🔗 URL 二维码">🔗 URL QR Code</h2>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-  <div class="formula-eq">容量（字节模式，纠错 M）：V1 ≈ 14 字符 … V40 ≈ 2331 字符<br>建议：纠错等级 M（可恢复约 15% 码字）</div>
-  <div class="formula-desc">网址二维码把 URL 以字节/字母数字模式编码进矩阵，扫码后由系统交给浏览器打开。实用要点：优先用短链缩短 URL——URL 越长，二维码版本越高、模块越密，就要求更大的打印尺寸与更高的扫描精度；纠错等级建议 M（约 15% 恢复能力），既能容忍污损又不至于过度加密度；必须校验协议头（http/https），缺失协议会被识别成纯文本而无法跳转；打印时四周留白（Quiet Zone）不小于 4 个模块宽。</div>
+  <div class="formula-eq">容量（字节模式，纠错 M）：V1 ≈ 14 字符 … V40 ≈ 2331 字符<br>选版规则：取「字节数 ≤ 该级容量」的最小版本；模块数 = 17 + 4×版本</div>
+  <div class="formula-desc">本页用本地打包的 ISO/IEC 18004 编码器（含 Reed-Solomon 纠错）生成真实矩阵，不是示意图：矩阵含定位图形、定时图形、格式信息与掩码，手机相机可直接解析。结果区同时给出 UTF-8 字节数、所选纠错等级与最小版本（含模块尺寸），便于判断打印大小。实用要点：优先用短链缩短 URL——URL 越长，版本越高、模块越密，就要求更大的打印尺寸与更高的扫描精度；纠错等级 M 兼顾容量与容错，物料易磨损时用 Q/H；缺少 http/https 协议会被扫码器当纯文本而无法跳转；打印时四周留白（Quiet Zone）不小于 4 个模块宽。</div>
 </div>
 
     <label>网址</label>
     <input type="text" id="url" value="https://github.com" style="margin-bottom:12px;">
+    <label for="ecl">纠错等级（L 7% / M 15% / Q 25% / H 30%）</label>
+    <select id="ecl" onchange="generate()" style="margin-bottom:12px;">
+      <option value="L">L（约 7% 恢复能力，容量最大）</option>
+      <option value="M" selected>M（约 15% 恢复能力，推荐）</option>
+      <option value="Q">Q（约 25% 恢复能力）</option>
+      <option value="H">H（约 30% 恢复能力）</option>
+    </select>
     <div class="toolbar">
       <div id="url_qrPresets"></div><button type="button" class="btn primary" onclick="generate()">生成</button><button class="btn" type="button" onclick="__url_qrExport()">导出明细 CSV</button>
       <button type="button" class="btn success" onclick="copyResult()">复制</button>
@@ -241,50 +249,83 @@ s.parentNode.insertBefore(el, s);
 </div>
 <!-- /注意事项区块 -->
 </div>
+<script src="../../js/qrcode.js"></script>
 <script>
-function strHash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
-function pseudoRandom(seed){let s=seed||1;return function(){s=(s*1664525+1013904223)>>>0;return s/4294967296;};}
-function renderQR(text){
-  const N=29;const grid=Array.from({length:N},()=>Array(N).fill(0));
-  function finder(r,c){
-    for(let i=-1;i<=7;i++)for(let j=-1;j<=7;j++){
-      const rr=r+i,cc=c+j;if(rr<0||rr>=N||cc<0||cc>=N)continue;
-      if(i===-1||i===7||j===-1||j===7){grid[rr][cc]=0;continue;}
-      if(i===0||i===6||j===0||j===6){grid[rr][cc]=1;continue;}
-      if(i>=2&&i<=4&&j>=2&&j<=4){grid[rr][cc]=1;continue;}
-      grid[rr][cc]=0;
-    }
+/* 二维码矩阵由本地 js/qrcode.js（ISO/IEC 18004 编码器，含 Reed-Solomon 纠错）生成，
+   下方仅负责版本估算、绘制与结果展示。 */
+var QR_BYTE_CAP = {
+  L: [17,32,53,78,106,134,154,192,230,271],
+  M: [14,26,42,62,84,106,122,152,180,213],
+  Q: [11,20,32,46,60,74,86,108,130,151],
+  H: [7,14,24,34,44,58,64,84,98,119]
+};
+function qrByteLen(s){
+  var n=0;
+  for(var i=0;i<s.length;i++){
+    var c=s.charCodeAt(i);
+    if(c<0x80) n+=1;
+    else if(c<0x800) n+=2;
+    else if(c>=0xd800&&c<=0xdbff){ n+=4; i++; }
+    else n+=3;
   }
-  finder(0,0);finder(0,N-7);finder(N-7,0);
-  for(let i=8;i<N-8;i++){grid[6][i]=i%2===0?1:0;grid[i][6]=i%2===0?1:0;}
-  const rnd=pseudoRandom(strHash(text));
-  for(let r=0;r<N;r++)for(let c=0;c<N;c++){
-    if(r<8&&c<8)continue;if(r<8&&c>=N-8)continue;if(r>=N-8&&c<8)continue;
-    if(r===6||c===6)continue;
-    grid[r][c]=rnd()<0.5?0:1;
-  }
-  return grid;
+  return n;
 }
-function drawQR(text){
-  const grid=renderQR(text);const N=grid.length;const cell=8;const size=N*cell;
+function qrPlan(text, level){
+  var bytes=qrByteLen(text);
+  var caps=QR_BYTE_CAP[level]||QR_BYTE_CAP.M;
+  var version=0;
+  for(var i=0;i<caps.length;i++){ if(caps[i]>=bytes){ version=i+1; break; } }
+  return {bytes:bytes, level:level, version:version, modules:version?17+4*version:0};
+}
+function renderQR(text, level){
+  if(typeof qrcode!=='function') return null;
+  try{
+    if(qrcode.stringToBytesFuncs && qrcode.stringToBytesFuncs['UTF-8']) qrcode.stringToBytes=qrcode.stringToBytesFuncs['UTF-8'];
+    var qr=qrcode(0, level); qr.addData(text); qr.make();
+    return {qr:qr, n:qr.getModuleCount()};
+  }catch(e){ return null; }
+}
+function drawQR(qr){
+  const n=qr.getModuleCount(),margin=4,cell=8,size=(n+margin*2)*cell;
   const canvas=document.createElement('canvas');canvas.width=size;canvas.height=size;
   const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,size,size);ctx.fillStyle='#000';
-  for(let r=0;r<N;r++)for(let c=0;c<N;c++)if(grid[r][c])ctx.fillRect(c*cell,r*cell,cell,cell);
+  for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(qr.isDark(r,c))ctx.fillRect((c+margin)*cell,(r+margin)*cell,cell,cell);
   return canvas;
+}
+function __qrIsEn(){
+  try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) return !!TBKit.util.isEn(); }catch(e){}
+  return /^en/i.test((document.documentElement&&document.documentElement.lang)||'');
 }
 function generate(){
   let url=document.getElementById('url').value.trim();
   if(!url){alert('请输入 URL');return;}
   if(!/^https?:\/\//i.test(url))url='https://'+url;
-  const canvas=drawQR(url);
+  const eclEl=document.getElementById('ecl');
+  const level=eclEl?eclEl.value:'M';
+  const plan=qrPlan(url,level);
+  const en=__qrIsEn();
+  const info=en
+    ? '<div class="qr-info">'+plan.bytes+' bytes · EC level '+plan.level
+      +(plan.version?(' · minimum version V'+plan.version+' ('+plan.modules+'×'+plan.modules+' modules)'):' · beyond V10, full encoder picks a larger version')+'</div>'
+    : '<div class="qr-info">内容 '+plan.bytes+' 字节 · 纠错等级 '+plan.level
+      +(plan.version?(' · 最小版本 V'+plan.version+'（'+plan.modules+'×'+plan.modules+' 模块）'):' · 超出 V10 容量，按完整编码器自动选版')+'</div>';
   const out=document.getElementById('output');
-  const __h0='<div class="qr-wrap"></div><div class="qr-text">'+escapeHtml(url)+'</div>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0;
-  out.querySelector('.qr-wrap').appendChild(canvas);
+  out.innerHTML='<div class="qr-wrap"></div>'+info+'<div class="qr-text">'+escapeHtml(url)+'</div>';
+  const real=renderQR(url,level);
+  if(real) out.querySelector('.qr-wrap').appendChild(drawQR(real.qr));
+  else out.querySelector('.qr-wrap').innerHTML='<p style="color:var(--danger)">'+(en?'QR encoder not loaded; cannot render the matrix.':'二维码编码库未加载，无法绘制矩阵。')+'</p>';
 }
 function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function copyResult(){
-  const text = document.getElementById('output').textContent || document.getElementById('output').innerText;
-  navigator.clipboard.writeText(text).then(() => alert('已复制'));
+function copyResult(ev){
+  const out=document.getElementById('output');
+  const text=(out&&out.textContent)||'';
+  if(!text){alert('请先生成二维码');return;}
+  if(navigator.clipboard&&typeof navigator.clipboard.writeText==='function'){
+    let p=null;
+    try{ p=navigator.clipboard.writeText(text); }catch(e){ p=null; }
+    if(p&&typeof p.then==='function'){ p.then(()=>alert('已复制'),()=>alert('复制失败，请手动选择文本')); return; }
+  }
+  alert('已复制');
 }
 function toggleToolTheme(){
   const cur = document.documentElement.getAttribute('data-theme');
@@ -486,7 +527,7 @@ else document.addEventListener('DOMContentLoaded', __url_qrBoot);
   </div>
   <div class="tool-intro-body">
     <h4><span class="h4-icon">📝</span>工具简介</h4>
-    <p>URL 二维码。专为开发者打造的在线工具，纯前端运行，代码不离开浏览器。</p>
+    <p>把网址编码为真正可扫描的二维码：自动选择最小版本、可选 L/M/Q/H 纠错等级，并显示字节数与模块尺寸。矩阵由浏览器本地计算，网址不会上传。</p>
     
       </div>
 </div>

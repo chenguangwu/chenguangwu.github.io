@@ -117,15 +117,29 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row">
       <div>
         <label for="dir">阳台朝向</label>
-        <select id="dir" style="width:100%;"></select>
+        <select id="dir" style="width:100%;">
+          <option value="south" selected>南向（朝南）</option>
+          <option value="east">东向（朝东）</option>
+          <option value="west">西向（朝西）</option>
+          <option value="north">北向（朝北）</option>
+        </select>
       </div>
       <div>
         <label for="floor">楼层</label>
-        <select id="floor" style="width:100%;"></select>
+        <select id="floor" style="width:100%;">
+          <option value="low">低层（1-3 楼，遮挡多）</option>
+          <option value="mid" selected>中层（4-9 楼）</option>
+          <option value="high">高层（10 楼以上）</option>
+        </select>
       </div>
       <div>
         <label for="season">季节</label>
-        <select id="season" style="width:100%;"></select>
+        <select id="season" style="width:100%;">
+          <option value="spring" selected>春季</option>
+          <option value="summer">夏季</option>
+          <option value="autumn">秋季</option>
+          <option value="winter">冬季</option>
+        </select>
       </div>
     </div>
 
@@ -174,10 +188,12 @@ s.parentNode.insertBefore(el, s);
 <li>高层/低层遮挡影响判断</li>
 <li>按季节规划可养植物</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">按朝向（南/东/西/北）、楼层（低层易受遮挡、高层更通透）与季节，估算每日直射光照时长：南向高层夏季约 6-8h、冬季 4-5h；北向全天散射无直射。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">南向 6 楼、夏季：估算每日直射约 7h → 适合月季、茉莉、番茄等喜阳植物；同条件冬季约 4.5h，需改养长寿花、多肉等短日照花卉；北向则只能养蕨类、玉簪等耐阴植物。</div></div>
+<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">按朝向（南/东/西/北）、楼层（低层易受遮挡、高层更通透）与季节查经验基准表，再加楼层修正：南向中层夏季约 8h、冬季约 4h；北向以散射光为主，直射不足 2h。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">南向 6 楼、夏季：估算每日直射约 8h → 适合月季、茉莉、番茄等喜阳植物；同条件冬季约 4h，需改养长寿花、多肉等短日照花卉；北向则只能养蕨类、玉簪等耐阴植物。西向低层夏季：基准 6h − 低层遮挡 1h = 5h，归入半日照。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
+<dt>北向冬季为什么是 0 小时？</dt><dd>北半球朝北的阳台冬季几乎全天处于建筑阴影，只有散射光，模型按 0 小时直射计；若楼栋间距大或有侧向反射，可再上调 0.5-1 小时。</dd>
+<dt>结果能精确到小时吗？</dt><dd>不能。基准表是经验值，楼层只按低/中/高做 ±1 小时修正，未考虑楼间距、窗外树木、雨棚与城市纬度差异；结果用于选花方向判断，精确光照请用照度计实测。</dd>
 <dt>西晒阳台怎么处理？</dt><dd>西向夏季午后强光高温，宜选耐晒品种（太阳花、仙人掌）或加遮阳网，避免娇嫩叶菜灼伤。</dd>
 <dt>光照不足如何补？</dt><dd>可补植物补光灯（全光谱 LED，每日 12-16h），或改用耐阴品种，减少开花类比例。</dd>
 </dl>
@@ -257,15 +273,16 @@ s.parentNode.insertBefore(el, s);
 <script>
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function escH(s){var d=document.createElement('div');const __g1=s==null?'':String(s);d.textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
-function fmtMoney(n){return n.toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2});}
-function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function dataGrid(rows){rows=Array.isArray(rows)?rows:[];let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function fmtMoney(n){n=Number(n);return isFinite(n)?n.toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2}):'—';}
 function calcTool(){const dir=document.getElementById('dir').value||'south', floor=document.getElementById('floor').value||'mid', season=document.getElementById('season').value||'spring';
    // 基准直射光照（小时/天）按朝向×季节（含兜底）
-   const sunTab={south:{spring:6,summer:8,autumn:6,winter:4},east:{spring:4,summer:5,autumn:3.5,winter:3},west:{spring:4,summer:6,autumn:4,winter:2.5},north:{spring:1.5,summer:2,autumn:1,winter:0.5}};
-   const sun=(sunTab[dir]||sunTab.south)[season]||4;
+   const sunTab={south:{spring:6,summer:8,autumn:6,winter:4},east:{spring:4,summer:5,autumn:3.5,winter:3},west:{spring:4,summer:6,autumn:4,winter:2.5},north:{spring:1,summer:1.5,autumn:0.5,winter:0}};
+   const sunMap=sunTab[dir]||sunTab.south;
+   const sun=Number.isFinite(sunMap[season])?sunMap[season]:4;
    // 楼层修正：低层遮挡 -1h，高层 +0.5h
    const floorAdj={low:-1,mid:0,high:0.5}[floor]||0;
-   const hours=Math.max(0.5,sun+floorAdj);
+   const hours=Math.max(0,sun+floorAdj);
    const dirName={south:'南向',east:'东向',west:'西向',north:'北向'}[dir]||'南向';
    const seasonName={spring:'春',summer:'夏',autumn:'秋',winter:'冬'}[season]||'春';
    // 植物推荐
@@ -304,10 +321,11 @@ function __balcony_sunlightExtras(){
     function __balcony_sunlightRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var dir=document.getElementById('dir').value||'south', floor=document.getElementById('floor').value||'mid', season=document.getElementById('season').value||'spring'; // 基准直射光照（小时/天）按朝向×季节（含兜底）
-    var sunTab={south:{spring:6,summer:8,autumn:6,winter:4},east:{spring:4,summer:5,autumn:3.5,winter:3},west:{spring:4,summer:6,autumn:4,winter:2.5},north:{spring:1.5,summer:2,autumn:1,winter:0.5}};
-    var sun=(sunTab[dir]||sunTab.south)[season]||4; // 楼层修正：低层遮挡 -1h，高层 +0.5h
+    var sunTab={south:{spring:6,summer:8,autumn:6,winter:4},east:{spring:4,summer:5,autumn:3.5,winter:3},west:{spring:4,summer:6,autumn:4,winter:2.5},north:{spring:1,summer:1.5,autumn:0.5,winter:0}};
+    var sunMap=sunTab[dir]||sunTab.south;
+    var sun=Number.isFinite(sunMap[season])?sunMap[season]:4; // 楼层修正：低层遮挡 -1h，高层 +0.5h
     var floorAdj={low:-1,mid:0,high:0.5}[floor]||0;
-    var hours=Math.max(0.5,sun+floorAdj);
+    var hours=Math.max(0,sun+floorAdj);
     var dirName={south:'南向',east:'东向',west:'西向',north:'北向'}[dir]||'南向';
     var seasonName={spring:'春',summer:'夏',autumn:'秋',winter:'冬'}[season]||'春'; // 植物推荐
     var rec='', type='';
@@ -352,7 +370,7 @@ else document.addEventListener('DOMContentLoaded', __balcony_sunlightBoot);
 function __bslChart(){
   if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
   var dir=document.getElementById('dir').value||'south';
-  var sunTab={south:{spring:6,summer:8,autumn:6,winter:4},east:{spring:4,summer:5,autumn:3.5,winter:3},west:{spring:4,summer:6,autumn:4,winter:2.5},north:{spring:1.5,summer:2,autumn:1,winter:0.5}};
+  var sunTab={south:{spring:6,summer:8,autumn:6,winter:4},east:{spring:4,summer:5,autumn:3.5,winter:3},west:{spring:4,summer:6,autumn:4,winter:2.5},north:{spring:1,summer:1.5,autumn:0.5,winter:0}};
   var seasons=[['spring','春'],['summer','夏'],['autumn','秋'],['winter','冬']];
   var labels=[],data=[];
   for(var i=0;i<seasons.length;i++){ labels.push(seasons[i][1]); data.push((sunTab[dir]||sunTab.south)[seasons[i][0]]||0); }

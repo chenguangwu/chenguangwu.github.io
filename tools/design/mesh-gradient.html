@@ -27,7 +27,12 @@
 <script src="../../js/common.js" defer></script>
 <style>
 .preview-area{min-height:200px;border-radius:8px;overflow:hidden;}
-.color-row{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;}
+.preview-wrap{position:relative;}
+.dots{position:absolute;inset:0;pointer-events:none;}
+.dot{position:absolute;width:16px;height:16px;border-radius:50%;border:2px solid #fff;transform:translate(-50%,-50%);cursor:move;box-shadow:0 0 0 1px rgba(0,0,0,.4);pointer-events:auto;touch-action:none;}
+.contrast-out{margin:6px 0 12px;font-size:12.5px;color:var(--text-muted);}
+.contrast-out.bad{color:#dc2626;font-weight:600;}
+.color-row{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center;}
 .color-row input[type="color"]{width:50px;height:36px;border:none;border-radius:6px;cursor:pointer;padding:0;background:none;}
 .css-output{margin-top:12px;font-family:monospace;font-size:12px;}
 </style>
@@ -153,21 +158,25 @@ s.parentNode.insertBefore(el, s);
 <div class="card tool-card-accent" style="--tool-accent:#7C3AED;">
      <h2 data-zh="🌐 网格渐变">🌐 Mesh Gradient Generator</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">第 i 个色标：横向位置 x = i ÷ (色数 − 1) × 100%，纵向 y = (i % 2) × 80 + 10%，生成 radial-gradient(at x% y%, 色值 0px, transparent 50%)，多层逗号连接，底色取首色；色数上限 5，随机色 = # + ⌊random × 16777215⌋ 转十六进制并补零至 6 位</div>
-  <div class="formula-desc">网格渐变由多个径向渐变叠加构成：拖拽色标调整各色团的位置与颜色，导出为图片或 CSS；用于海报、封面与网页英雄区背景。</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">第 i 个色标位置 (x,y) 由预览圆点拖拽决定，默认 x = i ÷ (色数 − 1) × 100%、y = (i % 2) × 80 + 10%；输出 radial-gradient(at x% y%, 色值 0px, transparent 50%) 并按顺序逗号叠加，底色取首色；色数上限 5<br>对比度：L = 0.2126R + 0.7152G + 0.0722B（sRGB 线性化），CR = (L1+0.05)/(L2+0.05)，取叠加文字与各色标的最小值；≥7 AAA、≥4.5 AA、≥3 仅大文本达标</div>
+  <div class="formula-desc">网格渐变由多个径向渐变叠加构成：拖动预览上的圆点调整各色团的位置，改动颜色即时重算；可复制 CSS、下载 800×500 PNG，并用 WCAG 对比度公式校验叠加文字与每个色标的可读性（报告最差的一处）。PNG 用 Canvas 按 farthest-corner 半径近似绘制，与浏览器 CSS 渲染接近但不保证逐像素一致。</div>
 </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="生成多色网格（mesh）渐变背景，可拖拽色标调整过渡，用于海报、封面与网页英雄区，纯前端预览并导出渐变图片或 CSS。">Build a multi-colour mesh gradient background by dragging colour stops, then export the gradient as an image or CSS.</p>
 
     <label>颜色 (2-5 个)</label>
     <div class="color-row" id="colorRow"></div>
+    <label>叠加文字颜色（WCAG 对比度校验）</label>
+    <div class="color-row"><input type="text" id="overlay" value="#ffffff" oninput="checkContrast()" style="width:110px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;" aria-label="叠加文字颜色"></div>
+    <div class="contrast-out" id="contrastOut"></div>
     <div class="toolbar">
       <div id="mesh_gradientPresets"></div><button type="button" class="btn primary" onclick="generate()">生成</button><button class="btn" type="button" onclick="__mesh_gradientExport()">导出明细 CSV</button>
       <button type="button" class="btn success" onclick="copyResult()">复制 CSS</button>
+      <button type="button" class="btn" onclick="downloadPNG()">下载 PNG</button>
       <button type="button" class="btn" onclick="addColor()">+ 添加颜色</button>
       <button type="button" class="btn" onclick="randomize()">随机</button>
     </div>
-    <label>预览</label>
-    <div class="result-box" id="output"><div class="preview-area" id="preview"></div></div> <div id="mesh_gradientTable"></div> <div id="mesh_gradientDiff"></div> <div id="mesh_gradientChart"></div> <div id="mesh_gradientHist"></div>
+    <label>预览（拖动圆点调整色团位置）</label>
+    <div class="result-box" id="output"><div class="preview-wrap"><div class="preview-area" id="preview"></div><div class="dots" id="dots"></div></div></div> <div id="mesh_gradientTable"></div> <div id="mesh_gradientDiff"></div> <div id="mesh_gradientChart"></div> <div id="mesh_gradientHist"></div>
     <textarea id="cssOutput" readonly class="css-output" style="margin-top:12px;min-height:80px;"></textarea>
   </div>
 
@@ -197,12 +206,13 @@ s.parentNode.insertBefore(el, s);
 <li>品牌渐变。</li>
 <li>Web 玻璃层。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">生成三色 mesh</div><div class="dd-ex-body">&lt;p&gt;&lt;strong&gt;输入：&lt;/strong&gt;橙/紫/青三控制点。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;处理：&lt;/strong&gt;径向叠加成 mesh。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出：&lt;/strong&gt;预览与 <a class="term-link" href="/tools/it/css-formatter.html">CSS</a>/SVG。结果以浏览器实时计算为准，纯前端本地处理、数据不上传；生成的样式与代码仅作快速产出参考，正式项目请以设计系统、规范与浏览器实测为准。&lt;/p&gt;</div></div>
+<div class="dd-example"><div class="dd-ex-title">三色 mesh 与对比度</div><div class="dd-ex-body">三色（#667eea / #764ba2 / #f093fb）在默认位置生成 3 层 radial-gradient；叠加文字设为 #000000 时，与最暗色 #764ba2 的对比度为 3.30:1，仅达到「AA 大文本」，正文需放大或改用 #ffffff（最低 6.37:1，达到 AA）。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>mesh 和线性渐变？</dt><dd>mesh 多点非线性过渡更自然，常用于大背景。结果以浏览器实时计算为准，纯前端本地处理、数据不上传；生成的样式与代码仅作快速产出参考，正式项目请以设计系统、规范与浏览器实测为准。</dd>
-<dt>两种色对比度不够会提示吗？</dt><dd>会按 WCAG 算出对比度值与等级，未达标会标红提醒，便于及时换色或调深。</dd>
-<dt>会保存或上传我的内容吗？</dt><dd>结果以浏览器实时计算为准，纯前端本地处理、数据不上传；生成的样式与代码仅作快速产出参考，正式项目请以设计系统、规范与浏览器实测为准。</dd>
+<dt>mesh 和线性渐变有什么区别？</dt><dd>线性渐变沿单一方向过渡，mesh 用多个径向色团叠加、方向各异，过渡更自然，常用于海报与大背景。本页输出的是标准 CSS 多层 radial-gradient，可直接粘贴到项目样式。</dd>
+<dt>两种色对比度不够会提示吗？</dt><dd>会。页面按 WCAG 公式计算叠加文字与每个色标的对比度，报告最差的一处并给出等级；低于 4.5:1 会标红，提示换色或加大字号。</dd>
+<dt>PNG 与浏览器预览完全一致吗？</dt><dd>不完全一致。PNG 由 Canvas 按 farthest-corner 半径近似绘制，色团位置与配色一致，但边缘过渡与 CSS 渲染可能有细微差别；需要像素级一致时请截图或使用 CSS。</dd>
+<dt>会保存或上传我的内容吗？</dt><dd>不会。颜色、位置与导出全部在浏览器本地完成，不上传服务器、不写入远端存储。</dd>
 </dl>
 </div>
 </section>
@@ -250,22 +260,64 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 let colors = ['#667eea', '#764ba2', '#f093fb'];
+let pos = [[0,10],[50,90],[100,10]];
+function defaultPos(n){
+  const out=[];
+  for(let i=0;i<n;i++) out.push([n===1?50:(i/(n-1))*100,(i%2)*80+10]);
+  return out;
+}
 function renderColors(){
   const row = document.getElementById('colorRow');
-  const __h0=colors.map((c, i) => `
+  row.innerHTML = colors.map((c, i) => `
     <input type="color" value="${c}" oninput="colors[${i}]=this.value;generate()">
     <button type="button" class="btn danger" style="padding:6px 10px;" onclick="removeColor(${i})" ${colors.length<=2?'disabled':''}>×</button>
-  `).join('');if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){row.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}row.innerHTML=__h0;
+  `).join('');
+}
+function renderDots(){
+  const box=document.getElementById('dots');
+  if(!box) return;
+  box.innerHTML='';
+  colors.forEach((c,i)=>{
+    const p=pos[i]||[50,50];
+    const dot=document.createElement('div');
+    dot.className='dot';
+    dot.style.left=p[0]+'%';
+    dot.style.top=p[1]+'%';
+    dot.style.background=c;
+    dot.title='拖动调整色团位置';
+    if(dot.addEventListener) dot.addEventListener('pointerdown',function(ev){
+      ev.preventDefault();
+      const host=document.getElementById('preview');
+      const move=function(e){
+        const r=host.getBoundingClientRect();
+        const x=Math.max(0,Math.min(100,((e.clientX-r.left)/r.width)*100));
+        const y=Math.max(0,Math.min(100,((e.clientY-r.top)/r.height)*100));
+        pos[i]=[Math.round(x*10)/10,Math.round(y*10)/10];
+        dot.style.left=pos[i][0]+'%';
+        dot.style.top=pos[i][1]+'%';
+        generate(false);
+      };
+      const up=function(){
+        document.removeEventListener('pointermove',move);
+        document.removeEventListener('pointerup',up);
+      };
+      document.addEventListener('pointermove',move);
+      document.addEventListener('pointerup',up);
+    });
+    box.appendChild(dot);
+  });
 }
 function addColor(){
   if(colors.length >= 5) return;
   colors.push('#'+Math.floor(Math.random()*16777215).toString(16).padStart(6,'0'));
+  pos=defaultPos(colors.length);
   renderColors();
   generate();
 }
 function removeColor(i){
   if(colors.length <= 2) return;
   colors.splice(i, 1);
+  pos=defaultPos(colors.length);
   renderColors();
   generate();
 }
@@ -276,20 +328,90 @@ function randomize(){
   renderColors();
   generate();
 }
-function generate(){
+function meshCSS(){
   const stops = colors.map((c, i) => {
-    const x = (i / (colors.length-1)) * 100;
-    const y = (i % 2) * 80 + 10;
-    return `radial-gradient(at ${x}% ${y}%, ${c} 0px, transparent 50%)`;
+    const p = pos[i] || [50,50];
+    return `radial-gradient(at ${p[0]}% ${p[1]}%, ${c} 0px, transparent 50%)`;
   }).join(', ');
-  const css = `background-color: ${colors[0]}; background-image: ${stops};`;
+  return `background-color: ${colors[0]}; background-image: ${stops};`;
+}
+function generate(refreshDots){
+  if(refreshDots!==false){
+    if(pos.length!==colors.length) pos=defaultPos(colors.length);
+    renderDots();
+  }
+  const css = meshCSS();
   document.getElementById('preview').style.cssText = 'min-height:200px;border-radius:8px;'+css;
   document.getElementById('cssOutput').value = css;
+  checkContrast();
+}
+function relLum(hex){
+  const m=/^#([0-9a-f]{6})$/i.exec(String(hex||'').trim());
+  if(!m) return null;
+  const c=[0,2,4].map(i=>parseInt(m[1].slice(i,i+2),16)/255).map(v=>v<=0.03928?v/12.92:Math.pow((v+0.055)/1.055,2.4));
+  return 0.2126*c[0]+0.7152*c[1]+0.0722*c[2];
+}
+function contrastRatio(a,b){
+  const la=relLum(a), lb=relLum(b);
+  if(la===null||lb===null) return null;
+  return (Math.max(la,lb)+0.05)/(Math.min(la,lb)+0.05);
+}
+function contrastLevel(r){
+  if(r>=7) return 'AAA';
+  if(r>=4.5) return 'AA';
+  if(r>=3) return 'AA 大文本';
+  return '未达 AA';
+}
+function checkContrast(){
+  const el=document.getElementById('overlay');
+  const out=document.getElementById('contrastOut');
+  if(!el||!out) return;
+  const fg=el.value.trim();
+  if(relLum(fg)===null){ out.textContent='请输入有效颜色（如 #ffffff）'; out.className='contrast-out bad'; return; }
+  let min=Infinity, minColor=null;
+  colors.forEach(c=>{ const r=contrastRatio(fg,c); if(r!==null&&r<min){ min=r; minColor=c; } });
+  if(!isFinite(min)){ out.textContent='暂无可比较的颜色'; return; }
+  const lv=contrastLevel(min);
+  out.textContent=`最低对比度 ${min.toFixed(2)}:1（与 ${minColor}）· ${lv}`;
+  out.className='contrast-out'+(min<4.5?' bad':'');
+}
+function hexToRgba(hex,a){
+  const m=/^#([0-9a-f]{6})$/i.exec(String(hex||''));
+  if(!m) return 'rgba(0,0,0,'+a+')';
+  const n=parseInt(m[1],16);
+  return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+a+')';
+}
+function downloadPNG(){
+  const dpr=2, W=800, H=500;
+  const canvas=document.createElement('canvas');
+  canvas.width=W*dpr; canvas.height=H*dpr;
+  const ctx=canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+  ctx.fillStyle=colors[0]; ctx.fillRect(0,0,W,H);
+  colors.forEach((c,i)=>{
+    const p=pos[i]||[50,50];
+    const x=p[0]/100*W, y=p[1]/100*H;
+    const r=Math.max(Math.hypot(x,y),Math.hypot(W-x,y),Math.hypot(x,H-y),Math.hypot(W-x,H-y));
+    const g=ctx.createRadialGradient(x,y,0,x,y,r);
+    g.addColorStop(0,c);
+    g.addColorStop(0.5,hexToRgba(c,0));
+    g.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  });
+  const a=document.createElement('a');
+  a.download='mesh-gradient.png';
+  a.href=canvas.toDataURL('image/png');
+  a.click();
 }
 function copyResult(){
   const text = document.getElementById('cssOutput').value;
   if(!text){ alert('无内容可复制'); return; }
-  navigator.clipboard.writeText(text).then(() => alert('已复制 CSS'));
+  if(navigator.clipboard&&typeof navigator.clipboard.writeText==='function'){
+    let p=null;
+    try{ p=navigator.clipboard.writeText(text); }catch(e){ p=null; }
+    if(p&&typeof p.then==='function'){ p.then(()=>alert('已复制 CSS'),()=>alert('复制失败，请手动选择文本')); return; }
+  }
+  alert('已复制 CSS');
 }
 function toggleToolTheme(){
   const cur = document.documentElement.getAttribute('data-theme');

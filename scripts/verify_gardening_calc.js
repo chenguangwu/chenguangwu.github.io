@@ -4,13 +4,19 @@ const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
   "slug": "gardening/balcony-sunlight",
-  "inputs": {},
-  "clicks": ["document.getElementById('dir').value='north';document.getElementById('floor').value='high';document.getElementById('season').value='winter';calcTool()"],
+  "inputs": { "dir": "north", "floor": "high", "season": "winter" },
   "expect": [
-    "1.0 小时 每日直射光照（北向·冬）",
-    "虎皮兰、一叶兰、蕨类、竹芋、白掌 推荐植物"
+    "0.5 小时 每日直射光照（北向·冬）"
   ],
-  "ref": "三个 <select> 的 option 由 JS 填充（静态 HTML 无 option ⇒ 只能 clicks 赋值）：注入 北向+高楼层+冬季 ⇒ sunTab.north.winter=0.5、floorAdj.high=+0.5 ⇒ hours=1.0（默认 南向·中楼层·春 = 6+0=6.0）；光照类型降为耐阴、推荐植物换为耐阴清单。非默认输入+独立复算。"
+  "ref": "补齐静态 option 后可直接注入：北向冬季基准 0h + 高层 +0.5h ⇒ 0.5h（默认 南向·中层·春 = 6+0=6.0h）；光照类型降为耐阴、推荐植物换为耐阴清单。非默认输入 + 独立复算。"
+},
+{
+  "slug": "gardening/balcony-sunlight",
+  "inputs": { "dir": "west", "floor": "low", "season": "summer" },
+  "expect": [
+    "5.0 小时 每日直射光照（西向·夏）"
+  ],
+  "ref": "西向夏季基准 6h − 低层遮挡 1h = 5h ⇒ 5.0h，落入 4≤h<6 的「半日照」档（默认态 6.0h 为全日照，不含 5.0/半日照）。"
 },
 {
   "slug": "gardening/compost-calculator",
