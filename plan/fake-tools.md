@@ -281,3 +281,15 @@
 | 生活消费 | `tools/sports/baofali-zongtiao-lidingtiaoyuan.html` | C（+A） | `:398-405` 仅「初速度→跳高」换算；meta 承诺的体重/远度/功率/爆发力指数均无输入输出 | `plan/categories/05-生活消费/sports-fitness.md` SF-N45 | 承诺未实现 |
 | 长尾行业 | `tools/gardening/balcony-sunlight.html` | B（半假） | `:120/:124/:128` 三个下拉无 `option`；`:262/:306/:339-343` 查表恒按南向·春 6.0h | `plan/categories/12-长尾行业/_others.md` 12-N206 | 核心三维度输入不可选，结果恒定 |
 | 商业运营 | `tools/biz/text-to-banner.html` | C | `:10/:153` 宣称画布横幅/字体/配色/PNG；`:160-169` 仅 8 种边框、`:315-345` 仅字符串拼框 | `plan/categories/06-商业运营/biz-startup.md` BS-N65 | 实际只剩 ASCII 方框 |
+
+## W 批新增假工具候选（2026-11-04）
+
+> 本轮 10 个只读子 agent 的增量产出，均已读当前源码、可由静态证据复现；**不计入上表 61 页统计**，待修复线复核后并入主表。
+
+| 分类 | 页面 | 类型 | 证据（当前行号） | 来源条目 | 说明 |
+|---|---|---|---|---|---|
+| IT开发 | `tools/it/url-qr.html` | A | `:247-267` 只画三个定位图形与时序图案，其余由 `pseudoRandom(strHash(text))` 随机填充（核心 `:260`）；无数据位/格式信息/掩码/纠错码，尺寸恒 29×29 | `plan/categories/01-IT开发/it.md` IT-N456 | 产出不可扫码，属装饰图 |
+| 长尾行业 | `tools/nutrition/generator-nutrition-label.html` | A | `:120` 唯一输入是「生成数量」；`:203-209` 能量/蛋白/脂肪/碳水/钠全部 `Math.random()` 独立生成，能量与宏量营养素不符（Atwater 核算应 28.5–403.5 kcal，页面只 80–379 kcal） | `plan/categories/12-长尾行业/_others.md` 12-N215 | 宣称「适合预包装食品合规」 |
+| 生活消费 | `tools/sports/analysis-19.html` | C | `:120-121` 仅一个「回合,攻/防,成/败」文本框；`:210-245` 只做计数与百分比，无视频上传/播放/时间轴/标注 | `plan/categories/05-生活消费/sports-fitness.md` SF-N65 | 标题称「视频分析」 |
+| 工程制造 | `tools/machinery/detector-159.html` | C | `:136-138`、`:221` 三项自定义阈值（刚度≥100 N/mm、载荷≥50 kN、疲劳≥1×10⁶）被标为 GB/T 1448 / GB/T 307 要求；`:240` 称「可用于质量验收」 | `plan/categories/08-工程制造/machinery-metalwork.md` MM-H56 | 冒用国标验收口径 |
+| 文娱爱好 | `tools/fun/tongue-twister.html` | C | `:275` `function start(){next();}`；全页无计时状态/停止按钮/用时显示，`:199-204` 算例与 FAQ 却称 performance 计时 | `plan/categories/11-文娱爱好/fun-entertainment.md` FE-N59 | 「跟读计时」完全未实现 |
