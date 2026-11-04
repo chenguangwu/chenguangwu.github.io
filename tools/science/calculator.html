@@ -188,7 +188,7 @@ s.parentNode.insertBefore(el, s);
   <div class="card tool-card-accent" style="--tool-accent:#06B6D4;">
      <h2 data-zh="🔬 科学计算器">🔬 Scientific Calculator</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">表达式求值前先做符号归一：× 换为 *、÷ 换为 /、全角减号换为 -、^ 换为 **；三角函数在角度模式下改写为 Math.sin/cos/tan(角度 × π ÷ 180)，弧度模式下直接调用；log 换为 Math.log10、ln 换为 Math.log、sqrt 换为 Math.sqrt，PI 与 E 换为 Math.PI / Math.E，最后以 new Function 求值。结果非数值或非有限值时判为表达式错误；历史最多保留 50 条，超出后丢弃最早一条</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">表达式求值前先做符号归一：× 换为 *、÷ 换为 /、全角减号换为 -，^ 按幂运算解析；三角函数在角度模式下按 sin/cos/tan(角度 × π ÷ 180) 计算，弧度模式下直接调用；log 按 log10、ln 按自然对数、sqrt 按开方计算，PI 与 E 为常量。求值由受限递归下降解析器完成，仅放行四则运算、括号、幂、百分号与白名单函数/常量，不支持变量、赋值、属性访问（如 Math.sin）或任意函数名，此类写法会提示表达式错误。结果非数值或非有限值时判为表达式错误；历史最多保留 50 条，超出后丢弃最早一条</div>
   <div class="formula-desc">本计算器基于标准数学运算与单位换算约定，输入按数字格式解析，结果实时输出；纯前端本地计算，数据不上传服务器。 工具名称：科学计算器 - 科学研究领域的在线工具。</div>
 </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="提供四则、幂、对数、三角函数等科学运算，支持括号与历史，适合学习作业与工程速算，纯前端运行无需安装。">A browser scientific calculator with the four operations, powers, logarithms, trigonometry, brackets and history, all offline.</p>
@@ -389,25 +389,89 @@ function setMode(m){
   document.querySelectorAll('.calc-modes button').forEach(b => b.classList.toggle('active', b.dataset.mode === m));
 }
 
-function tokenizeAndEval(expr){
-  // 替换符号
-  expr = expr.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-');
-  // 幂运算 ^ → **
-  expr = expr.replace(/\^/g,'**');
-  // 三角函数/对数 转换
-  if(mode === 'deg'){
-    expr = expr.replace(/sin\(/g, 'Math.sin(_d2r(')
-               .replace(/cos\(/g, 'Math.cos(_d2r(')
-               .replace(/tan\(/g, 'Math.tan(_d2r(');
-  } else {
-    expr = expr.replace(/sin\(/g,'Math.sin(').replace(/cos\(/g,'Math.cos(').replace(/tan\(/g,'Math.tan(');
+// 受限表达式解析：仅放行运算符、括号、白名单函数与常量，禁止任意标识符 / 成员访问 / 动态执行
+function compileMathExpr(src, deg){
+  var s = String(src == null ? '' : src)
+    .replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-').replace(/\*\*/g,'^');
+  var pos = 0;
+  function d2r(v){ return deg ? v * Math.PI / 180 : v; }
+  var FNS = {
+    sin: function(v){ return Math.sin(d2r(v)); },
+    cos: function(v){ return Math.cos(d2r(v)); },
+    tan: function(v){ return Math.tan(d2r(v)); },
+    sqrt: Math.sqrt, cbrt: Math.cbrt, abs: Math.abs, exp: Math.exp,
+    log: Math.log10, ln: Math.log, log2: Math.log2, log10: Math.log10,
+    floor: Math.floor, ceil: Math.ceil, round: Math.round
+  };
+  function ws(){ while(pos < s.length && /\s/.test(s.charAt(pos))) pos++; }
+  function fail(){ throw new Error('表达式不合法'); }
+  function parseExpr(){
+    var node = parseTerm();
+    while(true){ ws(); var c = s.charAt(pos);
+      if(c === '+' || c === '-'){ pos++; node = {t:'bin', op:c, a:node, b:parseTerm()}; }
+      else break; }
+    return node;
   }
-  expr = expr.replace(/log\(/g,'Math.log10(').replace(/ln\(/g,'Math.log(').replace(/sqrt\(/g,'Math.sqrt(');
-  expr = expr.replace(/\bPI\b/g,'Math.PI').replace(/\bE\b/g,'Math.E');
+  function parseTerm(){
+    var node = parseUnary();
+    while(true){ ws(); var c = s.charAt(pos);
+      if(c === '*' || c === '/' || c === '%'){ pos++; node = {t:'bin', op:c, a:node, b:parseUnary()}; }
+      else if(c === '(' || /[A-Za-z]/.test(c)){ node = {t:'bin', op:'*', a:node, b:parseUnary()}; }
+      else break; }
+    return node;
+  }
+  function parseUnary(){
+    ws(); var c = s.charAt(pos);
+    if(c === '-'){ pos++; return {t:'neg', a:parseUnary()}; }
+    if(c === '+'){ pos++; return parseUnary(); }
+    return parsePow();
+  }
+  function parsePow(){
+    var base = parseAtom(); ws();
+    if(s.charAt(pos) === '^'){ pos++; return {t:'bin', op:'^', a:base, b:parseUnary()}; }
+    return base;
+  }
+  function parseAtom(){
+    ws(); var c = s.charAt(pos);
+    if(c === '('){ pos++; var e = parseExpr(); ws(); if(s.charAt(pos) !== ')') fail(); pos++; return e; }
+    var num = /^(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?/.exec(s.slice(pos));
+    if(num){ pos += num[0].length; return {t:'num', v:Number(num[0])}; }
+    var id = /^[A-Za-z_][A-Za-z0-9_]*/.exec(s.slice(pos));
+    if(!id) fail();
+    var name = id[0]; pos += name.length; var lower = name.toLowerCase();
+    ws();
+    if(s.charAt(pos) === '('){
+      if(!FNS.hasOwnProperty(lower)) fail();
+      pos++; var args = []; ws();
+      if(s.charAt(pos) !== ')'){
+        args.push(parseExpr());
+        while(true){ ws(); if(s.charAt(pos) === ','){ pos++; args.push(parseExpr()); } else break; }
+      }
+      ws(); if(s.charAt(pos) !== ')') fail(); pos++;
+      return {t:'fn', name:lower, args:args};
+    }
+    if(lower === 'pi') return {t:'num', v:Math.PI};
+    if(lower === 'e') return {t:'num', v:Math.E};
+    fail();
+  }
+  function evalNode(n){
+    if(n.t === 'num') return n.v;
+    if(n.t === 'neg') return -evalNode(n.a);
+    if(n.t === 'fn'){ var a = n.args.map(function(x){ return evalNode(x); }); return FNS[n.name].apply(null, a); }
+    var l = evalNode(n.a), r = evalNode(n.b);
+    if(n.op === '+') return l + r;
+    if(n.op === '-') return l - r;
+    if(n.op === '*') return l * r;
+    if(n.op === '/') return l / r;
+    if(n.op === '%') return l % r;
+    return Math.pow(l, r);
+  }
+  var ast = (function(){ var a = parseExpr(); ws(); if(pos < s.length) fail(); return a; })();
+  return function(){ return evalNode(ast); };
+}
 
-  const _d2r = (d) => d * Math.PI / 180;
-  const fn = new Function('_d2r', 'return ' + expr);
-  return fn(_d2r);
+function tokenizeAndEval(expr){
+  return compileMathExpr(expr, mode === 'deg')();
 }
 
 function calculate(){
