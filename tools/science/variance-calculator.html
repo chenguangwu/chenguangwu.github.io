@@ -238,7 +238,7 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
-function fmt(x){ if(!isFinite(x)) return '未定义'; if(Math.abs(x)<1e-12) return '0'; return (Math.round(x*1e10)/1e10).toLocaleString(); }
+function fmt(x){ if(!isFinite(x)) return '未定义'; if(x!==0&&Math.abs(x)<1e-6) return x.toExponential(4); return (Math.round(x*1e10)/1e10).toLocaleString(); }
 function parseData(str){ return str.split(/[,\s\n;]+/).map(s=>s.trim()).filter(s=>s).map(s=>parseFloat(s)).filter(n=>!isNaN(n)); }
 function calculate(){
   const data=parseData(document.getElementById('data').value);
@@ -269,10 +269,10 @@ function calculate(){
   // 替代公式
   const sumSq=data.reduce((s,x)=>s+x*x,0);
   const v2=type==='sample'?(sumSq-sum*sum/n)/(n-1):(sumSq/n-mean*mean);
-  html+='<div class="step-line" style="margin-top:8px;color:var(--text-muted);">替代公式：σ² = E(X²) − [E(X)]²</div>';
+  html+='<div class="step-line" style="margin-top:8px;color:var(--text-muted);">替代公式：'+(type==='sample'?'总体口径 σ² = E(X²) − [E(X)]²，再乘 n/(n−1) 得样本方差 s²':'σ² = E(X²) − [E(X)]²')+'</div>';
   html+='<div class="step-line">Σx² = '+data.map(x=>fmt(x)+'²').join(' + ')+' = '+fmt(sumSq)+'</div>';
   html+='<div class="step-line">E(X²) = '+fmt(sumSq/n)+'，[E(X)]² = '+fmt(mean*mean)+'</div>';
-  html+='<div class="step-line">方差 ≈ '+fmt(sumSq/n-mean*mean)+'（验证一致）</div>';
+  html+='<div class="step-line">'+(type==='sample'?'总体口径 '+fmt(sumSq/n-mean*mean)+' × '+n+'/'+(n-1)+' = s² '+fmt(v2):'σ² ≈ '+fmt(v2))+'（与上方一致）</div>';
   const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h2;
 }
 function toggleToolTheme(){

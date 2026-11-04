@@ -228,17 +228,17 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
-function fmt(x){ if(!isFinite(x)) return '未定义'; if(Math.abs(x)<1e-12) return '0'; return (Math.round(x*1e10)/1e10).toLocaleString(); }
+function fmt(x){ if(!isFinite(x)) return '未定义'; if(x!==0&&Math.abs(x)<1e-6) return x.toExponential(4); return (Math.round(x*1e10)/1e10).toLocaleString(); }
 function parseData(str){ return str.split(/[,\s\n;]+/).map(s=>s.trim()).filter(s=>s).map(s=>parseFloat(s)).filter(n=>!isNaN(n)); }
 function calculate(){
   const data=parseData(document.getElementById('data').value);
   if(data.length<1){ const __h0='<p style="color:var(--danger);">请输入数据</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h0; return; }
   const n=data.length;
   const counts={};
-  for(const x of data){ const k=fmt(x); counts[k]=(counts[k]||0)+1; }
+  for(const x of data){ const k=String(x); counts[k]=(counts[k]||0)+1; }
   let maxCount=0;
   for(const k in counts) if(counts[k]>maxCount) maxCount=counts[k];
-  const modes=Object.keys(counts).filter(k=>counts[k]===maxCount);
+  const modes=Object.keys(counts).filter(k=>counts[k]===maxCount).map(Number).sort((a,b)=>a-b).map(fmt);
   const sortedKeys=Object.keys(counts).map(Number).sort((a,b)=>a-b);
   let html='<p><strong>数据（n='+n+'）：</strong>'+data.map(fmt).join(', ')+'</p>';
   if(maxCount<=1){
@@ -250,7 +250,7 @@ function calculate(){
   html+='<div class="freq-table"><table><tr><th>值</th><th>频数</th><th>频率</th></tr>';
   for(const v of sortedKeys){
     const k=fmt(v);
-    const c=counts[k];
+    const c=counts[String(v)];
     const isMode = maxCount>1 && c===maxCount;
     html+='<tr'+(isMode?' class="mode"':'')+'><td'+(isMode?' class="mode"':'')+'>'+k+'</td><td'+(isMode?' class="mode"':'')+'>'+c+'</td><td'+(isMode?' class="mode"':'')+'>'+(c/n*100).toFixed(2)+'%</td></tr>';
   }

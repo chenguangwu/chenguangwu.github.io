@@ -248,17 +248,26 @@ s.parentNode.insertBefore(el, s);
 <script>
 function fmt(x){
   if(!isFinite(x)) return '未定义';
-  if(Math.abs(x)<1e-12) return '0';
-  if(Math.abs(x)>1e15||Math.abs(x)<1e-6) return x.toExponential(8);
+  if(Math.abs(x)>1e15||(x!==0&&Math.abs(x)<1e-6)) return x.toExponential(8);
   return (Math.round(x*1e10)/1e10).toLocaleString();
 }
-function parseData(str){
-  return str.split(/[,\s\n;]+/).map(s=>s.trim()).filter(s=>s).map(s=>parseFloat(s)).filter(n=>!isNaN(n));
+function parseStrict(str){
+  const toks=str.split(/[,\s\n;]+/).map(s=>s.trim()).filter(s=>s);
+  const vals=[];
+  for(let i=0;i<toks.length;i++){
+    const v=Number(toks[i]);
+    if(!isFinite(v)) return {error:'第 '+(i+1)+' 项「'+toks[i]+'」不是有效数值'};
+    vals.push(v);
+  }
+  return {vals:vals};
 }
 function calculate(){
   const out=document.getElementById('output');
-  const xs=parseData(document.getElementById('xData').value);
-  const ys=parseData(document.getElementById('yData').value);
+  const px=parseStrict(document.getElementById('xData').value);
+  const py=parseStrict(document.getElementById('yData').value);
+  let err=px.error?'X 数据：'+px.error:py.error?'Y 数据：'+py.error:'';
+  if(err){out.innerHTML='<p style="color:var(--danger)">⚠ '+err+'，请修正后重算。</p>';return;}
+  const xs=px.vals, ys=py.vals;
   if(xs.length<2||ys.length<2){const __h0='<p style="color:var(--danger)" data-zh="至少需要 2 个数据点">At least 2 data points required.</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0;return;}
   if(xs.length!==ys.length){const __h1='<p style="color:var(--danger)">X 和 Y 数据个数必须相等</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;return;}
   const n=xs.length;
@@ -269,6 +278,7 @@ function calculate(){
     const dx=xs[i]-xMean, dy=ys[i]-yMean;
     sxy+=dx*dy; sxx+=dx*dx; syy+=dy*dy;
   }
+  if(sxx===0||syy===0){out.innerHTML='<p style="color:var(--danger)">⚠ '+(sxx===0?'X':'Y')+' 的方差为 0（全部取值相同），Pearson 相关系数无定义。</p>';return;}
   const r=sxy/Math.sqrt(sxx*syy);
   let html=`<div class="big-result">r = ${fmt(r)}</div>`;
   let strength='', color='';

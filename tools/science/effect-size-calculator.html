@@ -280,11 +280,11 @@ function setMode(m){
 }
 function fmt(x){
   if(!isFinite(x)) return '未定义';
-  if(Math.abs(x)<1e-12) return '0';
-  if(Math.abs(x)>1e15||Math.abs(x)<1e-6) return x.toExponential(8);
+  if(Math.abs(x)>1e15||(x!==0&&Math.abs(x)<1e-6)) return x.toExponential(8);
   return (Math.round(x*1e10)/1e10).toLocaleString();
 }
 function interp(d){
+  if(!isFinite(d)) return '未定义';
   const a=Math.abs(d);
   if(a<0.2) return '极小（可忽略）';
   if(a<0.5) return '小效应';
@@ -340,10 +340,11 @@ function calculate(){
     const sd2=parseFloat(document.getElementById('sd2b').value);
     const n2=parseInt(document.getElementById('n2b').value);
     if([m1,sd1,n1,m2,sd2,n2].some(isNaN)){const __h2='<p style="color:var(--danger)">请输入有效数据</p>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h2;return;}
-    if(sd1<=0||sd2<=0||n1<1||n2<1){const __h3='<p style="color:var(--danger)">SD 必须&gt;0，n 必须≥1</p>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h3;return;}
+    if(sd1<=0||sd2<=0||n1<2||n2<2){const __h3='<p style="color:var(--danger)">SD 必须&gt;0，每组样本量 n 必须≥2（否则合并方差与自由度无定义）</p>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h3;return;}
     // 池化标准差
     const sdPooled=Math.sqrt(((n1-1)*sd1*sd1+(n2-1)*sd2*sd2)/(n1+n2-2));
     d=(m1-m2)/sdPooled;
+    if(!isFinite(d)){out.innerHTML='<p style="color:var(--danger)">⚠ 合并标准差无定义或为 0，无法计算 Cohen\'s d。</p>';return;}
     interpText=interp(d);
     const r2=r2FromD(d,n1,n2);
     let html=`<div class="big-result">Cohen's d = ${fmt(d)}</div>`;
