@@ -375,6 +375,14 @@ const CASES = [
     "expect": ["导出失败：Error"],
     "ref": "失败注入：createElement('canvas') 的 toDataURL 必抛 Error，并把页面 toast 读取的 #asToast 重定向到 #__svg_probe ⇒ 必须出现「导出失败：Error」。"
        + "修复前异常裸冒成 pageerror、无任何可见提示且不弹「已导出 PNG」；默认态无该串 ⇒ 判别明确。"
+  },
+  {
+    "slug": "ophthalmology/eye-chart-toolkit",
+    "clicks": ["window.canvasExportError=window.canvasExportError||function(){return null;};document.getElementById('ecCanvas').toBlob=function(){throw new Error('boom')};document.getElementById('ecPng').fire('click');"],
+    "expect": ["导出失败：Error"],
+    "ref": "失败注入：ecCanvas.toBlob 必抛 Error ⇒ 导出入口必须 toast「导出失败：Error」并终止。"
+       + "桩内未加载 canvasExportError（真机由共享脚本注入）⇒ 用例前先给恒返回 null 的替身，确保走到 toBlob。"
+       + "修复前异常裸冒成 pageerror、无任何可见提示；默认态无该串 ⇒ 判别明确。"
   }
 
 ];

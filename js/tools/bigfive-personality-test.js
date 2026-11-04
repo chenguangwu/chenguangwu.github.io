@@ -893,12 +893,17 @@
   $('b5Png').addEventListener('click', function () {
     if (!LAST) { return; }
     var cv = $('b5Card');
-    if (cv.toBlob) {
-      cv.toBlob(function (b) { if (b) { download(b, 'bigfive-result-card.png', 'image/png'); } }, 'image/png');
-    } else {
-      var a = document.createElement('a');
-      a.href = cv.toDataURL('image/png'); a.download = 'bigfive-result-card.png'; a.click();
-    }
+    try {
+      if (cv.toBlob) {
+        cv.toBlob(function (b) {
+          if (b) { download(b, 'bigfive-result-card.png', 'image/png'); }
+          else { toast(B('导出失败：浏览器未能生成 PNG', 'Export failed: the browser could not generate a PNG')); }
+        }, 'image/png');
+      } else {
+        var a = document.createElement('a');
+        a.href = cv.toDataURL('image/png'); a.download = 'bigfive-result-card.png'; a.click();
+      }
+    } catch (e) { toast(B('导出失败：', 'Export failed: ') + ((e && (e.name || e.message)) || B('未知错误', 'unknown error'))); }
   });
 
   $('b5Copy').addEventListener('click', function () {

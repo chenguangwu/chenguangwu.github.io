@@ -165,6 +165,18 @@ const CASES = [
     "【情商（EQ）自评 · Goleman 五要素】 结果：EQ 总分 80/100（80%）→ 分级：高情商；五维度得分 自我认知:16/优秀、自我管理:16/优秀、自我激励:16/优秀、同理心:16/优秀、社交技能:16/优秀"
   ],
   "ref": "EQ 20 题分 5 维度（每维度 4 题、0–4 分 ⇒ 维度满分 20、总分 100）；全选 3（计分 v=选项+1=4）⇒ 每维度 16 分、总分 80 ≥80 ⇒「高情商」；维度分 ≥16 判定「优秀」，5 个维度全部优秀。默认态 EQ_ANS 全 null ⇒ 只输出未作答提示，零交集。"
+},
+{
+  "slug": "psychology/bubble-tea-personality-quiz",
+  "clicks": ["document.getElementById('btCard').toBlob=function(){throw new Error('boom')};document.getElementById('btPngBtn').fire('click');"],
+  "expect": ["导出失败：Error"],
+  "ref": "失败注入：结果卡 toBlob 必抛 Error ⇒ 导出入口必须 toast「导出失败：Error」并终止。修复前异常裸冒成 pageerror、且成功提示「已导出 PNG」仍会执行（给出错误事实）；默认态无该串 ⇒ 判别明确。"
+},
+{
+  "slug": "psychology/enneagram-test",
+  "clicks": ["document.getElementById('enCardCanvas').toBlob=function(){throw new Error('boom')};document.getElementById('enPngBtn').fire('click');"],
+  "expect": ["导出失败：Error"],
+  "ref": "失败注入：结果卡 toBlob 必抛 Error ⇒ 导出入口必须 toast「导出失败：Error」并终止。修复前异常裸冒成 pageerror、且成功提示「已导出结果卡 PNG」仍会执行；默认态无该串 ⇒ 判别明确。"
 }
 ];
 async function main() {

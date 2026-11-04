@@ -2493,6 +2493,20 @@ const CASES = [
   "clicks": ["ToolBox.showToast=function(m){document.getElementById('__svg_probe').textContent='TOAST:'+m;};var cv=document.getElementById('canvas');cv.toDataURL=function(){throw new Error('boom')};copyResult();"],
   "expect": ["TOAST:导出失败：Error"],
   "ref": "copyResult() 直接对页面 canvas 调 toDataURL ⇒ 注入后必须「TOAST:导出失败：Error」，且不得再走 clipboard。",
+},
+{
+  "slug": "design/favicon-generator",
+  "clicks": ["var __ce=document.createElement.bind(document);document.createElement=function(t){var e=__ce(t);if(t==='canvas'){e.toBlob=function(){throw new Error('boom')}};return e;};downloadSingle(16);"],
+  "expect": ["导出失败：Error"],
+  "ref": "失败注入：新建画布的 toBlob 必抛 Error ⇒ downloadSingle 必须 toast「导出失败：Error」。"
+     + "修复前异常裸冒成 pageerror、且紧随其后仍弹「已下载 favicon-16x16.png」（失败被成功消息盖掉）；默认态无该串 ⇒ 判别明确。",
+},
+{
+  "slug": "design/favicon-generator",
+  "clicks": ["var __ce=document.createElement.bind(document);document.createElement=function(t){var e=__ce(t);if(t==='canvas'){e.toDataURL=function(){throw new Error('boom')}};return e;};copyDataURL();"],
+  "expect": ["复制失败：Error"],
+  "ref": "失败注入：新建画布的 toDataURL 必抛 Error ⇒ copyDataURL 必须 toast「复制失败：Error」并终止。"
+     + "修复前异常裸冒成 pageerror、剪贴板复制提示不执行；默认态无该串 ⇒ 判别明确。",
 }
 ];
 

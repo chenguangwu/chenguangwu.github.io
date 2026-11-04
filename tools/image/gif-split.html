@@ -913,7 +913,8 @@ function makeThumb(canvas, maxW){
   var c = document.createElement('canvas');
   c.width = w; c.height = h;
   c.getContext('2d').drawImage(canvas, 0, 0, w, h);
-  return c.toDataURL('image/png');
+  try { return c.toDataURL('image/png'); }
+  catch (e) { ToolBox.showToast(__gsT('缩略图生成失败：', 'Thumbnail failed: ') + ((e && (e.name || e.message)) || __gsT('未知错误', 'unknown error')), 'error'); return ''; }
 }
 
 function formatDelay(cs){
@@ -936,8 +937,10 @@ function formatSize(b){
 /* ----- 下载 ----- */
 
 function canvasToBlob(canvas){
-  return new Promise(function(resolve){
-    canvas.toBlob(function(b){ resolve(b); }, 'image/png');
+  return new Promise(function(resolve, reject){
+    try {
+      canvas.toBlob(function(b){ if (b) { resolve(b); } else { reject(new Error('blob is null')); } }, 'image/png');
+    } catch (e) { reject(e); }
   });
 }
 
@@ -954,6 +957,8 @@ function downloadFrame(i){
     a.click();
     setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 0);
     ToolBox.showToast(__gsT('已下载第 ' + (i+1) + ' 帧', 'Frame ' + (i+1) + ' downloaded'), 'success');
+  }).catch(function(err){
+    ToolBox.showToast(__gsT('导出失败：' + (err && err.message ? err.message : '未知错误'), 'Export failed: ' + (err && err.message ? err.message : 'unknown error')), 'error');
   });
 }
 

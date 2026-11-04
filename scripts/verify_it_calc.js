@@ -8456,6 +8456,18 @@ const CASES = [
         + "修复前异常裸冒成 pageerror、且紧随其后仍弹「PNG 已下载」（给出错误事实）；默认态无 TOAST: 串 ⇒ 判别明确。",
     };
   }),
+  // ── D3 批：captcha-generator 导出失败可见（exportImage 的 toDataURL 裸调）──
+  {
+    slug: "it/captcha-generator",
+    clicks: [
+      "ToolBox.showToast=function(m){document.getElementById('__svg_probe').textContent='TOAST:'+m;};"
+      + "document.getElementById('captchaCanvas').toDataURL=function(){throw new Error('boom')};"
+      + "exportImage();",
+    ],
+    expect: ["TOAST:导出失败：Error"],
+    ref: "失败注入：captchaCanvas.toDataURL 必抛 Error + 录制 ToolBox.showToast ⇒ 必须出现「TOAST:导出失败：Error」。"
+      + "修复前异常裸冒成 pageerror、且下载失败后仍弹「已导出」；默认态无 TOAST: 串 ⇒ 判别明确。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub

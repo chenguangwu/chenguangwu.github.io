@@ -346,6 +346,13 @@ const CASES = [
   "expect": ["TOAST:导出失败：浏览器未能生成 PNG"],
   "ref": "B 类失败注入：download() 原为 `if (!blob) return;` 静默跳过。注入 #cover.toBlob 恒回调 null + 录制 ToolBox.showToast ⇒ 必须出现「TOAST:导出失败：浏览器未能生成 PNG」。"
     + "默认态无 TOAST: 串 ⇒ 判别明确。"
+},
+{
+  "slug": "image/gif-split",
+  "clicks": ["ToolBox.showToast=function(m){document.getElementById('__svg_probe').textContent='TOAST:'+m;};var __ce=document.createElement.bind(document);document.createElement=function(t){var e=__ce(t);if(t==='canvas'){e.toDataURL=function(){throw new Error('boom')}};return e;};makeThumb(document.createElement('canvas'),200);"],
+  "expect": ["TOAST:缩略图生成失败：Error"],
+  "ref": "失败注入：新建画布的 toDataURL 必抛 Error ⇒ makeThumb 必须 toast「缩略图生成失败：Error」并返回空串，不得让异常打断 renderFrameGrid 整帧渲染。"
+    + "修复前异常裸冒成 pageerror、整帧网格渲染中断；默认态无 TOAST: 串 ⇒ 判别明确。"
 }
 ];
 async function main() {
