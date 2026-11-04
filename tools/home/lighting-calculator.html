@@ -179,9 +179,10 @@ s.parentNode.insertBefore(el, s);
 </div>
 
 <div class="result-card">
- <div class="v" id="total-lumens">0</div>
+ <div class="v" id="total-lumens">—</div>
  <div class="l">所需总光通量 (lm)</div>
 </div>
+<p id="empty-hint" role="status" style="display:none;margin:10px 0;font-weight:600;color:var(--danger,#c0392b);"></p>
 
 <h3>💡 不同灯具建议数量</h3>
 <div class="bulb-grid" id="bulb-grid"></div>
@@ -320,12 +321,35 @@ function applyLightPreset(kind){
   calc();
 }
 
+function lightMissing(){
+ const REQUIRED={length:'长度',width:'宽度',lumens:'单只光通量',cu:'利用系数',mf:'维护系数'};
+ return Object.keys(REQUIRED).filter(function(id){
+  const el=document.getElementById(id);
+  return !el||String(el.value).trim()==='';
+ }).map(function(id){return REQUIRED[id];});
+}
+function emptyHint(names){
+ names=names||[];
+ const el=document.getElementById('empty-hint'); if(!el) return;
+ const en=/^en/i.test(document.documentElement.lang||'');
+ el.style.display=names.length?'block':'none';
+ el.textContent=names.length?((en?'Please fill in ':'请填写 ')+names.join(en?', ':'、')+(en?' before calculating.':' 后再计算')):'';
+}
+
 function calc(){
- const length = +document.getElementById('length').value || 0;
- const width = +document.getElementById('width').value || 0;
- const lumens = +document.getElementById('lumens').value || 800;
- const cu = +document.getElementById('cu').value || 0.6;
- const mf = +document.getElementById('mf').value || 0.8;
+ const miss=lightMissing();
+ if(miss.length){
+  emptyHint(miss);
+  document.getElementById('total-lumens').textContent='—';
+  const bg=document.getElementById('bulb-grid'); if(bg) bg.innerHTML='';
+  return;
+ }
+ emptyHint([]);
+ const length = +document.getElementById('length').value;
+ const width = +document.getElementById('width').value;
+ const lumens = +document.getElementById('lumens').value;
+ const cu = +document.getElementById('cu').value;
+ const mf = +document.getElementById('mf').value;
  const area = length * width;
  const lux = ROOM_LUX[activeRoom];
  const totalLumens = area * lux / (cu * mf);

@@ -98,6 +98,13 @@ const CASES = [
        + "（「20-40 桌」等容纳参考表为与输入无关的常量块，已回避。）",
   },
 
+  {
+    slug: "wedding/wedding-budget-planner",
+    inputs: { totalBudget: "", spent: "" },
+    expect: ["请填写 总预算、已花费 后再计算"],
+    ref: "空态守卫：总预算与已花费留空 ⇒ 提示，不再按 0 兜底给出「已超支/剩余」结论。"
+       + "默认态总预算有初值并渲染预算结论，不含该提示 ⇒ 可判别。",
+  },
 ];
 async function main() {
   const only = process.argv.slice(2);

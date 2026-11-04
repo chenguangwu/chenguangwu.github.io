@@ -4,14 +4,16 @@ const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
   "slug": "service/complaint-analysis",
-  "inputs": {
-    "keywords": "物流:配送,快递,发货,慢,延迟,到货;质量:质量,坏了,破损,缺陷,次品;服务:态度,客服,不理, rude,敷衍;价格:贵,涨价,价格,收费,乱收费;售后:退款,退货,售后,维修,保修_X",
-    "complaintText": ""
-  },
-  "expect": [
-    "保修_X"
+  "clicks": [
+    "document.getElementById('complaintText').value='配送太慢了，等了三天才到\\n商品质量有问题，收到就坏了';calc();"
   ],
-  "ref": "auto-restore"
+  "expect": [
+    "2 投诉总数",
+    "物流 1 (50.0%)"
+  ],
+  "ref": "两条投诉分别命中物流（配送/慢）与质量（质量/坏了）⇒ 总数 2、物流 1 条占 50.0%。"
+     + "原用例 expect「保修_X」直接抄自 keywords 输入框自身文本（collectStrings 收录该输入框的 value），与计算无关 ⇒ 逃生项，已重写。"
+     + "不用「100% 分类覆盖率」：页面 fallback 会调 loadDemo()，10 条示例同样 0 未分类 ⇒ 该锚在注入失败时仍命中（逃生）；「2 投诉总数」「物流 1 (50.0%)」在示例态（10 条 / 物流 3）均不出现。"
 },
 {
   "slug": "service/csat-score",

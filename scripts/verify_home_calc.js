@@ -88,6 +88,22 @@ const CASES = [
     "90"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "home/lighting-calculator",
+  "inputs": {
+    "length": "",
+    "width": "",
+    "height": "",
+    "lumens": "",
+    "cu": "",
+    "mf": ""
+  },
+  "expect": [
+    "请填写 长度、宽度、单只光通量、利用系数、维护系数 后再计算"
+  ],
+  "ref": "空态守卫：必填项留空 ⇒ 提示并保留总光通量为「—」，不再按 0/默认值静默算出结论。"
+     + "默认态 5/4/2.8/800/0.6/0.8 输出 4167 与「7 只」等结论，不含该提示 ⇒ 可判别。"
 }
 ];
 async function main() {

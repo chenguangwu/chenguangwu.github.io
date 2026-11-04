@@ -228,6 +228,33 @@ const CASES = [
   },
   "expect": ["150.00"],
   "ref": "12-J1 边界：顺丰 0.5%、声明 30000 > 上限 20000 ⇒ 保价费=30000×0.5%=150.00、理赔上限=20,000.00（旧实现为 30,000.00）。"
+},
+{
+  "slug": "logistics/express-freight-calc",
+  "inputs": {
+    "firstWeight": "",
+    "firstFee": "",
+    "stepFee": "",
+    "actualWeight": "",
+    "volumeWeight": ""
+  },
+  "expect": [
+    "请填写 首重(kg)、首重费用、续重单价、实际重量、体积重量 后再计算"
+  ],
+  "ref": "空态守卫：五项留空 ⇒ 提示，不再按 0 兜底算出「0.00」运费。默认态各字段有初值，结果区不含该提示 ⇒ 可判别。"
+},
+{
+  "slug": "logistics/package-volume-calc",
+  "inputs": {
+    "l": "",
+    "w": "",
+    "h": "",
+    "factor": ""
+  },
+  "expect": [
+    "请填写 长(cm)、宽(cm)、高(cm)、材积系数 后再计算"
+  ],
+  "ref": "空态守卫：尺寸与材积系数留空 ⇒ 提示，不再按 0/默认值兜底算出体积与计费重。默认态有初值 ⇒ 可判别。"
 }
 ];
 async function main() {

@@ -178,6 +178,7 @@ s.parentNode.insertBefore(el, s);
  <div class="stat-card"><div class="val" id="perimeter-val">0.00</div><div class="lbl">周长 (m)</div></div>
  <div class="stat-card"><div class="val" id="diagonal-val">0.00</div><div class="lbl">对角线/直径 (m)</div></div>
 </div>
+<p id="empty-hint" role="status" style="display:none;margin:10px 0;font-weight:600;color:var(--danger,#c0392b);"></p>
 
 <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
   <button type="button" class="btn" onclick="__roomExport()">⬇️ 导出房间测算 CSV</button>
@@ -296,7 +297,32 @@ function renderInput(){
  const __g1=html;document.getElementById('shape-input').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 
+function __roomMissing(){
+ return (SHAPES[activeShape]||[]).filter(function(f){
+  const el=document.getElementById(f);
+  return !el||String(el.value).trim()==='';
+ });
+}
+function __roomEmptyHint(keys){
+ keys=keys||[];
+ const el=document.getElementById('empty-hint'); if(!el) return;
+ const en=__roomIsEn();
+ const names=keys.map(function(k){return (en?ROOM_LABELS_EN[k]:ROOM_LABELS[k])||k;});
+ el.style.display=keys.length?'block':'none';
+ el.textContent=keys.length?((en?'Please fill in ':'请填写 ')+names.join(en?', ':'、')+(en?' before calculating.':' 后再计算')):'';
+}
+
 function calc(){
+ const miss=__roomMissing();
+ if(miss.length){
+  __roomEmptyHint(miss);
+  ['area-val','perimeter-val','diagonal-val'].forEach(function(id){
+    const e=document.getElementById(id); if(e) e.textContent='—';
+  });
+  const tb2=document.getElementById('roomTable'); if(tb2) tb2.style.display='none';
+  return null;
+ }
+ __roomEmptyHint([]);
  const v = id => +document.getElementById(id)?.value || 0;
  let area = 0, perimeter = 0, diag = 0;
  switch(activeShape){
@@ -430,6 +456,7 @@ function __roomExtras(){
 }
 function saveResult(){
  const r = calc();
+ if(!r){ return; }
  const list = getHistory();
  list.unshift({shape:activeShape, ...r, at:new Date().toLocaleString('zh-CN')});
  setHistory(list);
