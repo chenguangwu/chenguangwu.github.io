@@ -333,3 +333,106 @@
 - `tools/statistics/relative-risk.html`：1 条（SMS-33 中）。`RR=e1/e0`、Katz 95%CI、ARR/NNT 正确（默认 → 2.00、1.2630–3.1671、NNT=5）；问题为负值与零分母校验。
 
 - 声明：本轮仅逐页读源码并用 node 在 `/tmp` 复刻各页 `calc()` 实算（未开浏览器、未跑 `_build.py`/`_test_static`/`run_gates`、未做线上与英文态验证），未修改任何工具页、构建产物或仓库文件。新增 11 条：高 2（SMS-23、SMS-31），中 9（SMS-24～SMS-30、SMS-32、SMS-33）；中位数、四分位两页未发现计算类缺陷。
+
+## V 批 · 物理/工程计算（2026-11-04）
+
+### SMS-34 分数页「除以 0 分子」直接抛 TypeError 并沿用旧结果（高，确认缺陷）
+- 问题：`calc()` 仅在开头校验两个分母 `d1`/`d2` 非 0，未校验除法分支的分母 `rd=d1×n2`。当右侧分数分子 `n2=0` 时 `rd=0`，`reduce(n,0)` 返回 `null`，随后步骤文案里 `r.n`/`r.d` 取值抛 `Cannot read properties of null (reading 'n')`，`finalEl`/`dispEl` 都在异常之后才赋值，页面既不报错也不清空，继续显示上一次的结果。
+- 证据：`tools/science/fraction-calculator.html:334`（`reduce` 遇 `d===0` 返回 `null`）、`:369`（守卫只查 `d1===0||d2===0`）、`:391`（`rn=n1*d2; rd=d1*n2`）、`:396-399`（`r=reduce(rn,rd)` 后直接 `r.n`/`r.d`）、`:404-405`（结果渲染同样在异常之后）。
+- 复现（node 复刻）：`n1=1,d1=2,n2=0,d2=3,op=/` → 实际抛出 TypeError，结果区仍保留上一次的「= 5/6」；期望输出「除数为 0（0/3 = 0），该除法无意义」并清空结果条与步骤。
+- 影响：`tools/science/fraction-calculator.html`；最常见的「÷ 0」输入得到静默陈旧结果，用户会误读为本次计算结果。
+- 方案：算出 `rd` 后先判 `rd===0`（或 `n2===0`）并 `return` 加提示；结果渲染只在 `r` 非 null 时执行。
+- 假工具：否。
+
+### SMS-35 分数页用 `parseInt` 取分子分母，小数被静默截断后照常约分（中，确认缺陷）
+- 问题：四个 `type="number"` 输入均未设 `step`，浏览器允许键入 `1.5`（仅标红不阻断），而 `calc()`/`currentExpr()` 用 `parseInt` 取值，`1.5` 变 `1`、`1e3` 变 `1`，页面不提示按整数处理，直接按截断后的分数给出步骤与结果。
+- 证据：`tools/science/fraction-calculator.html:190`/`:192`/`:201`/`:203`（无 `step`）、`:354-357`（`parseInt`）、`:363-368`（只判 `isNaN`）、`:437-440`（历史记录同口径）。
+- 复现（node 复刻）：`n1=1.5,d1=2,n2=1,d2=3,op=+` → 实际按 `1/2+1/3` 输出 `5/6`（步骤写「通分：1/2 …」）；期望输出 `13/12` 或提示「分子/分母须为整数」。
+- 影响：`tools/science/fraction-calculator.html`；输入 `1.5/2` 与 `1/2` 得到同一答案，数学作业校对场景易误判。
+- 方案：改用 `Number(...)` 并在 `Number.isInteger` 校验失败时提示；或给输入加 `step="1"` 且在 `calc()` 内显式拒绝非整数。
+- 假工具：否。
+
+### SMS-36 分压页「求 R1/R2」时目标电压 > Vin 仍输出该电压，分压比超过 100% 且与电流/功耗自相矛盾（高，确认缺陷）
+- 问题：`求R1`/`求R2` 分支只在 `desiredV>0 && desiredV<Vin` 时才逆推电阻，但 `Vout=desiredV` 写在 `if` 之外无条件执行。目标电压高于输入电压（无源分压不可能达到）时，页面照常显示该「输出」，`分压比 = Vout/Vin×100` 得 120%，而电流/功耗仍按**未改动**的 R1/R2 计算，四张卡片互不一致，全程无任何提示。
+- 证据：`tools/science/voltage-divider-calculator.html:388-389`（逆推被 `if` 包裹、`Vout=desiredV` 在外）、`:392-393`（求 R2 同构）、`:399-402`（`I=Vin/(R1+R2)`、`ratio=Vout/Vin*100`）。
+- 复现（node 复刻）：`Vin=5,R1=10000,R2=10000,期望Vout=6,模式=求R1` → 实际「Vout 6.000 V、分压比 120.0%、回路电流 0.25 mA（对应 5V/20kΩ）、总功耗 1.25 mW」，且 R1 仍为 10000；期望提示「目标电压须小于 Vin，无源分压无法升压」并清空四张卡片。
+- 影响：`tools/science/voltage-divider-calculator.html`；升压请求得到自相矛盾但看似合理的数值结果。
+- 方案：把 `Vout=desiredV` 移入校验通过的 `if` 内；`desiredV>=Vin` 时给出错误提示并 `return`。
+- 假工具：否。
+
+### SMS-37 分压页期望电压输入 0 被 `||5` 静默替换为 5 V（中，确认缺陷）
+- 问题：三个逆推分支都用 `parseFloat(...) || 5` 取目标电压，输入 `0`（或留空）时布尔短路直接变成 5，页面按 5 V 逆推电阻并显示 5.000 V，用户输入的 0 被吞掉且无提示。
+- 证据：`tools/science/voltage-divider-calculator.html:387`、`:391`、`:395`（三处 `||5`）；`:193`（`voutDesired` 输入无 `min`）。
+- 复现（node 复刻）：`Vin=12,R1=10000,R2=10000,期望Vout=0,模式=求R1` → 实际按 5 V 计算得 R1=14000、显示「Vout 5.000 V、分压比 41.7%」；期望拒绝 0 或给出「目标电压必须大于 0」。
+- 影响：`tools/science/voltage-divider-calculator.html`；输入被静默改写，结果与用户意图不符。
+- 方案：用 `isFinite` 判定替代 `||`，空值/0/负数统一走错误提示。
+- 假工具：否。
+
+### SMS-38 电池续航页对 0 与负电流无校验：0 时不刷新（沿用旧值），负数给出负续航与负功耗（中，确认缺陷）
+- 问题：`calc()` 开头 `if(!cap||!curr||!volt) return`，任一量为 0 就直接返回，四张结果卡与明细表**保持上一次的值**且无提示；负数不触发该早退（`!(-100)` 为 false），`hours=cap/curr*eff` 得负值，`fmtTime` 的 `h<1/60` 分支把 `-25.5 h` 格式化成「-91800 秒」，功耗也显示负瓦数。输入虽写了 `min`，但浏览器不阻断键入。
+- 证据：`tools/science/battery-life-calculator.html:431`（早退不清理）、`:432-435`（直接算）、`:419-423`（`fmtTime` 无负值分支）、`:188`/`:198`（`min` 仅声明）、`:209`（电压无 `min`）。
+- 复现（node 复刻）：`cap=3000mAh,curr=0,volt=3.7,eff=85%` → 实际结果保持默认「1天 1小时 30分钟 / 0.37 W」不变；期望提示电流须 >0 并清空。`curr=-100` → 实际「-91800 秒、-0.37 W、有效容量 2550 mAh」；期望拒绝负电流。
+- 影响：`tools/science/battery-life-calculator.html`；改参数后看到的是上一次的续航，负值输入还会得到负时长。
+- 方案：前置校验 `cap>0 && curr>0 && volt>0`，不通过时清空四卡与明细表并提示；`fmtTime` 对 `h<0` 返回「—」。
+- 假工具：否。
+
+### SMS-39 PCB 页「1 oz 走线电流参考表」数值比本页公式窄 23%–41%，与计算器同参数给出两个答案（中，确认缺陷）
+- 问题：参考表标注「温升 10°C、1 oz」，但按同页 IPC-2221 公式（`k=0.048/0.024, b=0.44, c=0.725, 1 oz=1.378 mil`）复算，表值系统性偏窄；用户若照表取宽度，实际温升会高于标称 10°C。表与计算器对同一组参数给出两个答案。
+- 证据：`tools/science/pcb-trace-width.html:273-280`（表格数据）、`:410-414`（本页公式与常数）。
+- 复现（node 复刻）：`2 A / 10°C / 1 oz` 外层 → 表 0.60 mm、公式 0.781 mm；内层 → 表 1.20 mm、公式 2.033 mm；`20 A` 外层 → 表 11.00 mm、公式 18.715 mm（表值约为公式的 59%）。
+- 影响：`tools/science/pcb-trace-width.html`；按参考表选线宽会低估所需铜宽（安全裕量方向错误）。
+- 方案：用本页公式重算表格（或明确标注表来自 IPC-2152/不同温升口径），保持表与计算器同源。
+- 假工具：否。
+
+### SMS-40 PCB 页电流/温升为 0 时静默早退，四张结果卡保留上次数值（中，确认缺陷）
+- 问题：`calc()` 以 `if(!I||!oz||!dT) return` 开头，`I=0` 或 `dT=0` 直接返回，`resMm/resMils/resArea/resRec` 与明细表都不更新，页面仍显示上一组参数的宽度，无任何错误提示（`temp` 的 `min=5` 不阻断键入 0）。
+- 证据：`tools/science/pcb-trace-width.html:409`（早退）、`:418-431`（全部渲染在早退之后）、`:183`/`:194`（`min` 仅声明）。
+- 复现（node 复刻）：先默认 `2 A/10°C/1 oz` 得 0.781 mm，再把电流改为 0 → 实际仍显示 0.781 mm / 30.8 mils 且无提示；期望提示「电流须 >0」并清空四卡。
+- 影响：`tools/science/pcb-trace-width.html`；误读为「0 A 也需要 0.78 mm 线宽」。
+- 方案：早退前清空结果与明细，并给出明确提示。
+- 假工具：否。
+
+### SMS-41 斜抛页不校验抛射角范围，θ>90° 或负角得到负射程（中，确认缺陷）
+- 问题：`theta` 写了 `min=0 max=90`，但浏览器不阻断键入；`calc()` 只做「必填 + 数值」守卫，`R=v²sin(2θ)/g` 在 θ∈(90°,180°) 或负角时 `sin(2θ)<0`，直接输出负的水平射程，而「最大高度」仍为正，无任何提示。
+- 证据：`tools/science/projectile-range.html:127`（`min/max` 仅声明）、`:272`（守卫仅判数值）、`:274`（`R=v*v*Math.sin(2*th)/g`）。
+- 复现（node 复刻）：`v=20,θ=100°,g=9.81` → 实际「R = -13.95 m、H = 19.77 m」；`θ=-30°` → 「R = -35.31 m、H = 5.10 m」；期望提示抛射角须在 0–90° 并中止（负射程在水平面上没有物理意义）。
+- 影响：`tools/science/projectile-range.html`；超出物理定义域的输入给出看似正常的负数结果。
+- 方案：主算前校验 `0<=θ<=90`，越界时提示并清空；或对 θ 做镜像归一化后明确标注。
+- 假工具：否。
+
+### SMS-42 库仑页带符号计算，异号电荷时「静电力大小」显示为负值，与本页 |q₁q₂| 公式自相矛盾（中，确认缺陷）
+- 问题：页面标题/简介均写「静电力大小」，引据表写 `F = k·|q1·q2| / r²`，但代码 `F = k*q1*q2/(r*r)` 未取绝对值；任一电荷为负时输出负的力，且未说明负号代表吸引。
+- 证据：`tools/science/coulomb-force.html:267-269`（未取绝对值、标签「静电力 F」）、`:162`（引据表写 `|q1·q2|`）、`:10`（标题「静电力大小」）。
+- 复现（node 复刻）：`q₁=1µC,q₂=-1µC,r=0.1m` → 实际「静电力 F = -0.8988 N、场强 E = 898800.0000 N/C、电势能 U = -0.0899 J」；期望力大小 `0.8988 N`（吸引另行标注），即 `|q1q2|` 口径。
+- 影响：`tools/science/coulomb-force.html`；标题承诺「大小」却给出负值，与同页引据公式不一致。
+- 方案：F 与 E 用 `Math.abs(q*...)`，另加「同号相斥/异号相吸」文字；或把标签改为「带符号静电力」并在页内定义正负。
+- 假工具：否。
+
+### SMS-43 逻辑门页 xor_and 预设的提示文案「终值 0」与实际链结果 1 不符（中，确认缺陷）
+- 问题：预设 `xor_and` 注释与 toast 都写「A=1,B=0：异或后再与，终值 0」，但链式求解在双输入门之后把 `valB` 重置为 `inputA`（=1），于是 `XOR(1,0)=1 → AND(1,1)=1`，最终输出 1；提示与结果面板同时出现互相矛盾的结论。
+- 证据：`tools/science/logic-gate-simulator.html:1177`（预设 note「终值 0」）、`:1124-1129`（`valA=out; valB=inputA`）、`:1201`（toast 使用该 note）。
+- 复现（node 复刻）：按 `__lgApply('xor_and')` 的 A=1/B=0 逐级复算 → `XOR(1,0)=1 → AND(1,1)=1`，最终 1；其余 4 条预设（and_or_xor=0、nand_not=0、nor_nor=0、buffer2=1）与文案一致。
+- 影响：`tools/science/logic-gate-simulator.html`；选该预设后提示「终值 0」，面板却显示「最终输出 = 1」。
+- 方案：改 note 为「终值 1」，或让第二级输入沿用原始 `inputB` 并同步修正其余预设。
+- 假工具：否。
+
+### SMS-44 逻辑门页预设/刷新恢复只改内部 A/B，开关 UI 不刷新，出现「显示 0 而按 1 计算」的错位（中，确认缺陷）
+- 问题：`__lgApply()` 与 `__lgRestore()` 直接赋值 `inputA/inputB`，随后只调 `updateCombo()`，既没更新 `switch-track` 的 `.on` 与 `#valA/#valB` 文本（静态初值恒为 0），也没重算单门输出；`init()` 之后 `selectGate('AND')` 只按内部值重绘 LED/表达式，因此页面出现「开关显示 A=0/B=0、表达式却是 1 AND 1 = 1」。
+- 证据：`tools/science/logic-gate-simulator.html:441-446`（开关与 `valA` 静态初值 `0`）、`:1197-1200`（`__lgApply` 仅 `updateCombo`）、`:1189-1192`（`__lgRestore` 仅 `updateCombo`）、`:896-909`（只有 `toggleInput` 同步 UI）、`:1221-1224`（先 restore 后 init）。
+- 复现（源码推演，node 复刻链式部分）：点击「xor_and」预设（A=1,B=0）→ 实际组合链显示 `XOR(1,0)=1`、最终 1，但左侧开关仍显示 A=0/B=0；刷新页面恢复上次 A=1/B=1 → 单门区 LED 与表达式按 1/1 计算，开关仍显示 0/0。期望恢复/应用预设后开关位置、`#valA/#valB`、单门输出与内部状态一致。
+- 影响：`tools/science/logic-gate-simulator.html`；输入显示与计算结果矛盾，教学场景会误判「开关没生效」。
+- 方案：抽一个 `syncSwitchUI()`（设 `.on`、写 `valA/valB`）并在 `__lgApply`/`__lgRestore` 后调用，同时 `updateOutput()`。
+- 假工具：否。
+
+### 覆盖清单（V 批 物理/工程 · 8 页）
+
+- `tools/science/coulomb-force.html`：1 条（SMS-42 中）。`F=kq₁q₂/r²`、`E=kq₁/r²`、`U=kq₁q₂/r` 的量纲与数值正确（默认 1/1/0.1 → 0.8988 N、898800 N/C、0.0899 J）；`r=0` 由守卫拦截，异号电荷负号问题除外。
+- `tools/science/fraction-calculator.html`：2 条（SMS-34 高、SMS-35 中）。正常整数四则与约分正确（`1/2+1/3=5/6`、`4/8→1/2`、`1/2÷1/3=3/2`）；带分数 `-5/3 → -1 2/3` 正确。
+- `tools/science/battery-life-calculator.html`：1 条（SMS-38 中）。单位换算正确（mAh/mA=h、Ah→mAh ×1000、`E=cap·V/1000`、`P=V·I/1000`）：默认 3000 mAh/100 mA/85% → 25.5 h、0.37 W、11.10 Wh、2550 mAh，`3 Ah/1 A` 同样得 2 小时 33 分；问题为零/负值校验。电池图形 `fill.style.width` 恒 100%（`pct` 算而未用）属展示层，不单列。
+- `tools/science/logic-gate-simulator.html`：2 条（SMS-43 中、SMS-44 中）。8 个门的真值表与 `fn` 全部正确（AND/OR/NOT/NAND/NOR/XOR/XNOR/BUFFER）；真值表高亮按 `data-row` 匹配正确；问题在组合链预设文案与开关 UI 同步。
+- `tools/science/pcb-trace-width.html`：2 条（SMS-39 中、SMS-40 中）。公式、单位（`oz→1.378 mil`、`mil→0.0254 mm`、`oz→0.035 mm`）与截面积一致（默认 2 A/10°C/1 oz 外层 → 30.76 mil / 0.781 mm / 0.0273 mm²）；问题为参考表数值与零值早退。
+- `tools/science/hookes-law.html`：0 条。`F=kx`、`U=0.5kx²`、`kx²=2U` 正确（100 N/m · 0.2 m → 20.0 N、2.0000 J、4.0000 J）；`k=0` 时「劲度系数倒数」显示 1e9 m/N 系公式框自述的 `1÷max(k,10⁻⁹)` 口径，空值按 0 兜底亦已在公式框声明，故不计缺陷。
+- `tools/science/voltage-divider-calculator.html`：2 条（SMS-36 高、SMS-37 中）。正推正确（12 V/10k/10k → 6.000 V、50.0%、0.60 mA、7.20 mW）；问题在逆推分支的目标电压校验与 `||5` 兜底。
+- `tools/science/projectile-range.html`：1 条（SMS-41 中）。`R=v²sin2θ/g`、`H=v²sin²θ/(2g)` 与角度→弧度换算正确（20 m/s/45° → 40.77 m、10.19 m；θ=0 → 0/0）；`g=0` 由守卫拦截，问题为角度定义域。
+
+- 声明：本轮仅逐页读源码并用 node 在 `/tmp` 复刻各页主算（含组合链语义与单位换算），未开浏览器、未跑 `_build.py`/`_test_static`/`run_gates`、未做线上与英文态验证，未修改任何工具页、构建产物或仓库文件。新增 11 条：高 2（SMS-34、SMS-36），中 9（SMS-35、SMS-37～SMS-44）；8 页中胡克定律页未发现计算类缺陷。

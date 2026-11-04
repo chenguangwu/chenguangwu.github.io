@@ -564,3 +564,241 @@
 
 - **本批合计 23 条：高 4（BS-N42、BS-N43、BS-N44、BS-N45）/ 中 19。未发现假工具（10 页均有真实转换逻辑并可运行）。**
 - 说明：本轮为**只读**审计，结论来自逐行阅读源码 + `node` 在 `/tmp` 复刻核心函数实算（脚本 `/tmp/u_biz_audit.js`、`/tmp/u_biz_audit2.js`、`/tmp/u_biz_audit3.js`）；**未开浏览器**、**未运行 `_build.py` / `run_gates.py`**、**未做线上验证**，未修改任何工具页或构建产物。
+
+## V 批 · 商业文本 A（2026-11-04）
+
+只读审计 8 页商业文本工具（`text-to-banner` / `motto-generator` / `text-box-drawing` / `barcode-generator` / `markdown-quote` / `text-reverse-lines` / `superscript-text` / `fullwidth-halfwidth`），逐行读源码 + `node` 在 `/tmp` 复刻关键函数复算（含 Unicode 码位、UTF-16 代理对、条码校验位与标准码表）。**未修改工具页/代码/构建产物，未跑 `_build.py` / `run_gates.py`，未做 git 写操作。**
+
+### BS-N65 文字转横幅：宣称画布横幅/字体/配色/PNG 导出，实际只剩 ASCII 方框（高，确认缺陷）
+- 页面：`tools/biz/text-to-banner.html`
+- 问题：页面描述、公式说明英文段、深度解析与「公式与标准引据」均承诺「可调整配色与字体并导出图片」「canvas 绘制并导出 PNG」「内置 standard/banner/small 等 figlet 字体」；实际 DOM 只有样式下拉、左右/上下内边距、复制与 CSV 导出，无 canvas、无颜色/字体控件、无图片导出，也不生成 figlet 大字。
+- 证据：`tools/biz/text-to-banner.html:10`（description）、`:153`（英文 formula-desc）、`:160-169`（仅 8 个边框样式）、`:184-185`（仅 CSV/复制按钮）、`:232-236`（figlet 字体与「由字符拼成的大写 HI」示例）、`:254-260`（画布绘制/PNG 引据）、`:315-345`（`generate()` 仅字符串拼框）。
+- 复现：输入 `HELLO`、选「井号填充」、左右内边距 2 → 输出 `╔═════════╗` / `║  HELLO  ║` / `╚═════════╝`，仍是普通 `HELLO`；全页搜索无 `canvas` / `toDataURL` / `font` / `color` 控件。
+- 影响：用户按宣传寻找字体、配色与 PNG 导出全部落空；该页与 `text-box-drawing.html` 功能重复，属名不符实。
+- 是否假工具：**是**（核心的图片横幅能力未实现，仅剩文本方框）
+- 方案：二选一——① 真做 canvas 横幅（字体族/字号/前景背景色/PNG 下载）；② 若保留 ASCII 方框，则同步改写 title、description、深度解析与引据表，并去掉「字体/配色/导出图片」承诺。
+
+### BS-N66 文字转横幅：键盘录入负内边距触发 `RangeError`，整页不再刷新（高，确认缺陷）
+- 页面：`tools/biz/text-to-banner.html`
+- 问题：`paddingX` 只有 `min="0"` 约束，不阻止键盘输入负号；`parseInt(...) || 0` 保留负数，随后 `s.fill.repeat(padX)` / `s.h.repeat(innerWidth)` 对负 count 抛 `RangeError: Invalid count value`。
+- 证据：`tools/biz/text-to-banner.html:174`（`min="0"`）、`:322-323`（`parseInt` 直接取值）、`:330`（`s.h.repeat(innerWidth)`）、`:336`（`s.fill.repeat(padX)`）。
+- 复现：左右内边距填 `-1`、输入 `HELLO` → `generate()` 抛出 `RangeError`（node 验证 `'#'.repeat(-1)` 必抛），结果区停在旧内容，后续输入全部失效。
+- 影响：一次误输入负号即让工具“卡死”到刷新页面，已输入文本丢失。
+- 是否假工具：否
+- 方案：入口钳制 `const padX = Math.max(0, parseInt(...) || 0)`、`padY` 同理；或在 `generate()` 开头校验 `<0` 并给出提示。
+
+### BS-N67 文字转横幅：边框按码点计数、文本不拆行、「等号」竖线双字符，三类错位必然出现（中，确认缺陷）
+- 页面：`tools/biz/text-to-banner.html`
+- 问题：① `[...text].length` 把 CJK/全角字符按 1 列计，实际终端占 2 列，顶底边比文本行短；② `textarea` 允许换行，但 `text` 原样塞进单行模板，`\n` 后第二行没有左边框；③ `equals` 样式把竖线写成 `'||'`（2 字符），上下横线按 1 字符计，左右各多 1 列。
+- 证据：`tools/biz/text-to-banner.html:325-326`（码点计宽）、`:336`（`text` 直接插入模板）、`:307`（`v:'||'`）。
+- 复现：输入 `中文`、内边距 2 → 顶边 8 列，文本行 10 列；输入 `A\nB`、内边距 1 → 第二行变成 `B #`（缺左边框）；选「等号横线」输入 `HI` → 顶边 6 字符、文本行 8 字符（均为 node 按源码复算）。
+- 影响：中文、多行、等号样式三种常见用法输出边框断裂/参差，复制到等宽环境明显错位。
+- 是否假工具：否
+- 方案：按显示宽度计列（CJK/全角 2 列）、`text.split(/\r?\n/)` 逐行包框并补齐到统一内宽；`equals` 的 `v` 改为单字符 `|`。
+
+### BS-N68 文本框绘制：负水平内边距触发 `RangeError`，绘制中断（高，确认缺陷）
+- 页面：`tools/biz/text-box-drawing.html`
+- 问题：`padX` 仅 `min="0"`，`parseInt` 后负数直接进入 `' '.repeat(padX)`；`repeat(-1)` 必抛异常，`draw()` 不再输出。
+- 证据：`tools/biz/text-box-drawing.html:176`（`min="0"`）、`:353-354`（`parseInt`）、`:372`（`s.h.repeat(innerWidth)`）、`:381`（`' '.repeat(padX)`）。
+- 复现：水平内边距填 `-1`，保持默认多行文本 → `draw()` 先算得 `innerWidth = maxVisual - 2`，在 `' '.repeat(-1)` 处抛 `RangeError`，结果区保持旧值（node 验证负 count 必抛）。
+- 影响：与 banner 同类的“输入负号即卡死”，需刷新恢复。
+- 是否假工具：否
+- 方案：`Math.max(0, parseInt(...) || 0)` 钳制，或 `<0` 时提示并不重绘。
+
+### BS-N69 文本框绘制：标题长度超过内容宽时，顶边被标题撑长，框体错位（中，确认缺陷）
+- 页面：`tools/biz/text-box-drawing.html`
+- 问题：标题固定 `' ToolBox '`（视觉宽 9），但 `before` / `after` 被 `Math.max(0, …)` 截断，未把 `innerWidth` 扩到标题宽；短文本时顶边总宽恒为 11，而内容行仍按原 `innerWidth` 绘制。
+- 证据：`tools/biz/text-box-drawing.html:366-370`（标题居中与 `Math.max(0, before/after)`）、`:372`（无标题分支才用 `innerWidth` 画顶边）、`:381`（内容行宽度）。
+- 复现：输入 `a`、水平内边距 1、勾选「添加标题」→ 顶边 `┌ ToolBox ┐`（11 列），内容 `│ a │`（5 列），底边 5 列；期望顶边与内容同宽（或标题被截断）。（node 复算）
+- 影响：所有短文本 + 标题预设都会输出参差框；公式说明却写「不改变总宽」。
+- 是否假工具：否
+- 方案：`const inner = Math.max(innerWidth, visualLen(title))`，并用该值补齐内容行；或标题超宽时截断/换行。
+
+### BS-N70 条码生成：内容 `.trim()` 吞掉首尾空格，条码数据与输入不一致（中，确认缺陷）
+- 页面：`tools/biz/barcode-generator.html`
+- 问题：生成前 `(el('content').value || '').trim()` 去掉首尾空白；Code 128 / Code 39 都把空格当合法数据字符，编码结果因此与用户输入不同，扫描回读会少空格。
+- 证据：`tools/biz/barcode-generator.html:389`（`var text = (el('content').value || '').trim()`）、`:353`（`buildMeta` 以 `res.text` 回显“条码内容”）。
+- 复现：Code 128 输入 `" ABC "` → 编码符号对应 `ABC`，元信息显示 `ABC`；期望保留前后空格或明确拒绝。Code 39 输入 `"A B "` 同样丢掉尾随空格（`toUpperCase()` 后仍保留中间空格）。
+- 影响：仓储/资产标签含首尾空格时，生成的码与源数据不一致，扫码入库对不上。
+- 是否假工具：否
+- 方案：仅用 `trim()` 做空值判断，编码时传原值；若业务不允许首尾空格，应报错而不是静默改写。
+
+### BS-N71 条码生成：内容行未经转义写入 `innerHTML`，Code 128 可注入 HTML 并执行事件（高，安全）
+- 页面：`tools/biz/barcode-generator.html`
+- 问题：`meta()` 用字符串拼 `<b>` + `rows[i][1]` 后写 `box.innerHTML`；`buildMeta()` 第一行就是 `['条码内容', res.text]`，而 Code 128 接受全部可打印 ASCII（含 `<`、`>`、`"`），用户输入会作为 HTML 解析。
+- 证据：`tools/biz/barcode-generator.html:311-319`（`h += '<div><span>' + rows[i][0] + '</span><b>' + rows[i][1] + '</b></div>'; box.innerHTML = h`）、`:353`（内容行）、`:389`（未转义原文）。
+- 复现：Code 128 输入 `<img src=x onerror="window.__xss=1">` → 编码成功；jsdom 复算 `meta()` 后 `#bcMeta` 内出现 1 个真实 `<img>` 元素，页面加载即触发 `onerror`。属自 XSS（需本人粘贴），但可被“示例文本”诱导。
+- 影响：与项目结果区统一 `textContent`/`escapeHtml` 的约定不符，任何未来把输入带入 URL/分享的场景会升级为可传播 XSS。
+- 是否假工具：否
+- 方案：`meta()` 改用 `textContent` 逐节点构建，或对 `rows[i][0]/[1]` 统一 `escapeHtml`；SVG 的 `o.text` 已有转义，可复用同一函数。
+
+### BS-N72 条码生成：宽度缩放 0.5 被静默抬到 1，控件标称范围失效（中，确认缺陷）
+- 页面：`tools/biz/barcode-generator.html`
+- 问题：页面允许 `min="0.5" step="0.5"`，但渲染层 `normalizeOptions()` 用 `Math.max(1, Math.min(10, ...))`，0.5 永远变成 1；用户选最小档与选 1 输出像素完全相同。
+- 证据：`tools/biz/barcode-generator.html:184`（`min="0.5"`）、`js/barcode-lib.js:332`（`scale: Math.max(1, Math.min(10, parseFloat(o.scale) || 2))`）。
+- 复现：同一内容分别设缩放 `0.5` 与 `1` → canvas 宽度、模块宽度一致（node 按 `normalizeOptions` 复算）；期望 0.5 档真正减半或 UI 最小改 1。
+- 影响：小尺寸标签场景以为能缩到一半，实际仍按 1 倍输出，打印排版偏差。
+- 是否假工具：否
+- 方案：允许 `>=0.5`（配合 `dpr` 取整），或把输入 `min` 改为 1 并删除 0.5 档文案。
+
+### BS-N73 座右铭生成器：宣称「关键词/风格偏好」，实际只有 5 个类别下拉，FAQ 指向不存在的入口（中，确认缺陷）
+- 页面：`tools/biz/motto-generator.html`
+- 问题：description / og / formula-desc 均写「根据关键词或风格偏好随机生成」；UI 只有 `#cat`（中国古典/西方哲思/现代励志/人生感悟/求学修身）与数量滑块，无关键词、无风格/语气输入；深度解析还给出不存在的「专注」主题，FAQ 让用户在「主题/风格里标注严肃/活泼/古风」。
+- 证据：`tools/biz/motto-generator.html:10`、`:15`、`:164`（关键词/风格承诺）、`:168-174`（仅类别下拉）、`:213`（「主题选专注」示例）、`:217`（FAQ 指向主题/风格标注）。
+- 复现：页面无任何关键词/风格输入控件；`#cat` 选项无「专注」；输入不存在的风格词也无处可填。生成、去重、数量上限（min(设定, 库容量)）本身正常。
+- 影响：用户按宣传无法“按关键词生成”，FAQ 给出无法执行的步骤；属承诺未实现。
+- 是否假工具：否（随机抽取主逻辑真实）
+- 方案：新增关键词/风格输入并参与筛选（或给每条名言打标签），否则删除相关宣传与 FAQ 表述，并把「专注」示例改为实际类别。
+
+### BS-N74 Markdown 引用转换：有序列表按原行号编号，空行造成跳号（中，确认缺陷）
+- 页面：`tools/biz/markdown-quote.html`
+- 问题：`olist` 分支用 `lines.map((l, i) => l ? (i+1) + '. ' + l : '')`，编号取原始下标；空行不输出却仍占用编号，后续条目跳号。
+- 证据：`tools/biz/markdown-quote.html:306`（`input.split('\n')`）、`:343-344`（`case 'olist'` 的 `i+1`）。
+- 复现：输入 `a\n\nb` 选「有序列表 1.」→ `1. a`、空行、`3. b`；期望 `1. a`、空行、`2. b`（node 复算）。
+- 影响：粘贴到 Markdown 后列表编号不连续，渲染器可能重排或保留跳号，清单核对易错位。
+- 是否假工具：否
+- 方案：维护独立计数器，仅非空行递增（`let n=0; ... l ? (++n)+'. '+l : ''`）。
+
+### BS-N75 行顺序反转：字符反转用 `split('')`，代理对与 CRLF 被拆坏（中，确认缺陷）
+- 页面：`tools/biz/text-reverse-lines.html`
+- 问题：`reverseChars()` 用 `str.split('')` 按 UTF-16 码元切分，非 BMP 字符（emoji、部分 CJK 扩展）被拆成两个孤立代理，反转后拼成非法序列；同时行内 `\r` 被一起反转，CRLF 文本会把回车移到行首。
+- 证据：`tools/biz/text-reverse-lines.html:273`（`return str.split('').reverse().join('')`）、`:284`（`split('\n')` 保留 `\r`）、`:324`（按行调用 `reverseChars`）。
+- 复现：输入 `😀a` 勾选「同时反转每行字符」→ `a\ude00\ud83d`（显示为乱码/替换符），期望 `a😀`；输入 `abc\r` → `\rcba`，回车跑到行首。均 node 复算。
+- 影响：含 emoji 的清单、Windows 复制文本反转后出现坏字符或整行被回车覆盖。
+- 是否假工具：否
+- 方案：`[...str].reverse().join('')`，入口先 `replace(/\r\n?/g,'\n')`。
+
+### BS-N76 行顺序反转：仅一行且同时勾「保留首行/末行」，结果重复两遍（中，确认缺陷）
+- 页面：`tools/biz/text-reverse-lines.html`
+- 问题：`firstLine` 与 `lastLine` 在 `lines.length === 1` 时指向同一行；`toReverse = lines.slice(1, 0)` 为空，末尾先把该行 push 为首行、再 push 为末行，输出两份。
+- 证据：`tools/biz/text-reverse-lines.html:287-293`（首末行取值与切片）、`:320-327`（两次 push）。
+- 复现：输入单行 `only`，同时勾选「保留首行」「保留末行」→ `only\nonly`；期望 `only` 或提示两开关互斥（node 复算）。
+- 影响：单行清单/标题被复制成两条，自动化脚本按行数处理时多出一行。
+- 是否假工具：否
+- 方案：`if (lines.length === 1) { firstLine = lines[0]; lastLine = null; }`，或在 UI 上把两开关设为互斥。
+
+### BS-N77 上标文字：非 BMP 的 `𐞥` 使 UTF-16 索引整体错位，s–z 全错、q/r 产生孤立代理（高，确认缺陷）
+- 页面：`tools/biz/superscript-text.html`
+- 问题：`superAlpha` 含非 BMP 字符 `𐞥`（U+107A5，UTF-16 占 2 个码元），但建表循环按 `superAlpha[i]`（码元索引）取 26 个字母；从 `q` 起整体错位：`q`→高代理、`r`→低代理、`s`→`ʳ`、…、`z`→`ʸ`，真正的 `ᶻ` 永远取不到。
+- 证据：`tools/biz/superscript-text.html:280`（`superAlpha` 定义）、`:287`（`for(var i=0;i<26;i++) superMap[...] = superAlpha[i]`）。
+- 复现（node）：`'q'`→`\ud801`（孤立高代理）、`'r'`→`\udfa5`（孤立低代理）、`'stuvwxyz'`→`ʳˢᵗᵘᵛʷˣʸ`（期望 `ˢᵗᵘᵛʷˣʸᶻ`）、`'z'`→`ʸ`；`'qr'` 因两个代理相邻才偶然拼成 `𐞥`。
+- 影响：核心的字母转上标对 8 个字母错误、2 个字母输出非法字符，化学式/幂次/脚注场景直接得到坏文本。
+- 是否假工具：否
+- 方案：改用码点数组 `const arr=[...superAlpha]` 建表，或直接显式写 `superMap.q='𐞥'; superMap.r='ʳ'; …`；补一条 q–z 全字母校验用例。
+
+### BS-N78 上标文字：`super-all` / `sub-all` 与 `auto-all` 分支完全相同，单向模式仍输出上下两段（中，确认缺陷）
+- 页面：`tools/biz/superscript-text.html`
+- 问题：公式说明写「super-all / sub-all 仅单向全量」，但三个分支都执行 `lastSuper = toSuperscript(input); lastSub = toSubscript(input)`，并输出「上标:…\n\n下标:…」；选「全文上标」照样显示下标段。
+- 证据：`tools/biz/superscript-text.html:155`（五种模式说明）、`:189-190`（选项文案）、`:334-345`（三个分支同体）。
+- 复现：选「全文上标」输入 `abc` → 同时得到 `ᵃᵇᶜ` 与 `ₐ`（b/c 无下标码位则原样），两段并列；期望只输出上标段。选「全文下标」同理。
+- 影响：模式选择器形同虚设，复制整段会带上不需要的另一种格式，用户需手工删段。
+- 是否假工具：否（转换逻辑真实，模式分流是假的）
+- 方案：`super-all` 只拼 `上标:` 段，`sub-all` 只拼 `下标:` 段；`auto-all` 保留双段，`sub-digits` 也只输出下标段。
+
+### BS-N79 上标文字：宣称生成 HTML `<sup>` 代码，实际只给 Unicode 字符（中，确认缺陷）
+- 页面：`tools/biz/superscript-text.html`
+- 问题：description、og、formula-desc 均写「生成可复制的 Unicode 或 HTML 上标代码」，但脚本只有 `toSuperscript()` 查 Unicode 映射表，全页无 `<sup>` 输出分支或 HTML 模式。
+- 证据：`tools/biz/superscript-text.html:10`、`:15`、`:156`（HTML 承诺）、`:231`（FAQ 提「借助富文本/HTML <sup>」）、`:301-319`（仅 Unicode 映射）。
+- 复现：输入 `x2` 任何模式 → 只有 `x²`；找不到 `<sup>2</sup>` 形式的结果或开关。
+- 影响：需要 HTML 上下标的网页/邮件用户按宣传找不到输出，只能拿 Unicode 自行包裹。
+- 是否假工具：否
+- 方案：增加「HTML 上标 / 下标」输出（如 `x<sup>2</sup>`、`H<sub>2</sub>O`）与复制按钮，或删除 HTML 承诺及 FAQ 相关句。
+
+### BS-N80 全角半角互转：可见「假名（仅日文）」复选框从未被读取，勾选无任何效果（中，确认缺陷）
+- 页面：`tools/biz/fullwidth-halfwidth.html`
+- 问题：页面提供 `#kana`「假名（仅日文）」复选框，但 `convert()` 只读 `#ascii` 与 `#space`，全页再无 `kana` 引用，也无半角/全角假名映射表（U+FF61–FF9F ↔ 平假名/片假名）。
+- 证据：`tools/biz/fullwidth-halfwidth.html:168`（唯一出现 `kana` 的复选框）、`:299-330`（转换循环仅 ascii/space 分支）。
+- 复现：勾选「假名」，输入半角片假名 `ｱｲｳ` 转全角 → 原样不变（期望 `アイウ`）；输入全角 `アイウ` 转半角 → 原样不变（期望 `ｱｲｳ`）。
+- 影响：日文混排用户以为能一并转换假名，实际只转了 ASCII/空格，需另找工具。
+- 是否假工具：否（ASCII/空格双向转换主体正常）
+- 方案：实现半角片假名（U+FF61–FF9F）与全角片假名/平假名映射并接入 `kana` 开关；不做就删除该复选框。
+
+### V 批覆盖清单（8 页）
+- `tools/biz/text-to-banner.html`：3 条（BS-N65、BS-N66 高；BS-N67 中）。生成/复制/CSV 可运行，但页面身份与宣传严重不符。
+- `tools/biz/motto-generator.html`：1 条（BS-N73 中）。随机抽取、去重、条数上限与 CSV 正常；未发现 XSS（结果走 `textContent`）。
+- `tools/biz/text-box-drawing.html`：2 条（BS-N68 高；BS-N69 中）。视觉宽度、八种边框、对齐、预设均真实；结果走 `textContent`。
+- `tools/biz/barcode-generator.html`：3 条（BS-N71 高；BS-N70、BS-N72 中）。EAN-13/UPC-A 随机 30 组与参考库逐位一致，Code 39 码表/校验、Code 128 校验和均正确；问题集中在元信息注入、trim 与缩放钳制。
+- `tools/biz/markdown-quote.html`：1 条（BS-N74 中）。13 种模式均可运行，结果 `textContent` 输出，未见注入。
+- `tools/biz/text-reverse-lines.html`：2 条（BS-N75、BS-N76 中）。行级倒序、跳空行、首末行保留的主体逻辑正确。
+- `tools/biz/superscript-text.html`：3 条（BS-N77 高；BS-N78、BS-N79 中）。数字/符号映射正确，字母 q–z 与模式分流有问题。
+- `tools/biz/fullwidth-halfwidth.html`：1 条（BS-N80 中）。U+FF01–FF5E / U+3000 双向转换与开关组合实算正常，结果 `textContent` 输出。
+
+- **本批合计 16 条：高 5（BS-N65、BS-N66、BS-N68、BS-N71、BS-N77）/ 中 11。假工具 1 个（`text-to-banner`，核心图片横幅承诺未实现）。**
+- 说明：本轮为**只读**审计，结论来自逐行阅读源码 + `node` 在 `/tmp` 复刻核心函数实算（脚本 `/tmp/v_biz_text.js`、`/tmp/c39cmp2.js`、`/tmp/bccmp.js`）；条码另用 `/tmp/pylibs` 的 `python-barcode` 参考实现比对 EAN/UPC/Code39 码表；**未开浏览器**、**未运行 `_build.py` / `run_gates.py`**、**未做线上验证**，除本文件外未修改任何文件。
+
+## V 批 · 商业文本 B（2026-11-04）
+
+### BS-N81 Unicode 规范化：清空后复制按钮仍复制旧值，历史回填也不重算（中，确认缺陷）
+- 页面：`tools/biz/unicode-normalize.html`
+- 问题：`normalize()` 遇空输入提前 `return`，未重置 `results`；`clearAll()` 只清 textarea，四个「复制」按钮仍按上次结果复制。历史回填只写 `input`，末尾调用的是无参 `copyResult()`，既不重算也不复制当前输入。
+- 证据：`tools/biz/unicode-normalize.html:300-311`（空输入提前返回）、`:313-316`（results 赋值）、`:330-333`（复制读 results）、`:339-342`（clearAll 不清 results）、`:394-408`（回填循环，`:405` 无参调用 `copyResult()`）。
+- 复现：默认 `café` 之外先输入 `abc` → 点「清空」（四张卡片显示 `-`）→ 点「复制 NFC」→ 剪贴板仍为 `abc`，并提示「已复制 NFC」。
+- 影响：复制内容与页面所见不一致；历史回填后结果区停留在旧值。假工具：否。
+- 方案：空输入分支同时把 `results` 四键置空；`clearAll()` 与历史回填末尾改为调用 `normalize()`。
+
+### BS-N82 Unicode 规范化：「导出明细 CSV」首次点击无任何反应（中，确认缺陷）
+- 页面：`tools/biz/unicode-normalize.html`
+- 问题：导出读 `#unicode_normalizeTable`，该表仅由 `__unicode_normalizeRender` 在历史记录后填充，而历史只在 `copyResult` 之后记录；页面初次打开表为空，`exportTable` 遇到 0 行直接 `return false`，按钮无任何提示。
+- 证据：`:166`（导出按钮）、`:448-451`（导出仅调 exportTable）、`:392`（表格由 render 填充）、`:455-458`（extras 仅挂在 copyResult）、`:217`（空表容器）；`js/tool-kit.js:221-236`（无 `tr` 即返回 false）。
+- 复现：打开页面 → 不复制、不清空，直接点「导出明细 CSV」→ 无下载、无 Toast；先点一次「复制 NFC」再导出才有内容。
+- 影响：导出在默认交互路径下是不可用状态。假工具：否（局部功能失效）。
+- 方案：导出直接输出当前 4 种范式结果（文本 + 长度），不依赖历史表；或在无数据时提示「请先复制/记录一次」。
+
+### BS-N83 按行过滤：正则非法时静默返回 0 行（中，确认缺陷）
+- 页面：`tools/biz/text-filter-lines.html`
+- 问题：`new RegExp(kw,...)` 抛异常被 `catch` 吞掉并置 `matched=false`，无错误提示；勾选「反选结果」后同一非法正则会变成全量输出。用户无法区分「确实无匹配」与「正则写错」。
+- 证据：`tools/biz/text-filter-lines.html:347-349`（catch 内 `matched=false`）、`:353`（`invert` 反转）、`:209`（结果区默认文案）。
+- 复现（node 复刻）：3 行文本、关键词 `[`、模式「正则匹配」→ 结果 0 行；勾选「反选结果」→ 3 行全出；期望提示「正则表达式无效」并保留上次结果。
+- 影响：批量日志清洗会误判为「没有匹配行」。假工具：否。
+- 方案：catch 中把错误写入结果区/统计条并中止本次过滤；反选只在匹配成功时应用。
+
+### BS-N84 按行过滤：「原始 N 行」在 trim/去空之后统计（中，确认缺陷）
+- 页面：`tools/biz/text-filter-lines.html`
+- 问题：`origCount = lines.length` 取自已执行 trim 与 removeEmpty 的数组，标签仍写「原始」；默认「跳过空行」勾选时普遍少计，页内「保留 + 排除 = 总行数」的互补口径也随之不成立。
+- 证据：`:328-331`（trim/去空后才算 origCount）、`:194-197`（「原始: N 行」）、`:273-275`（互补口径声明）。
+- 复现（node 复刻）：输入 `a\n\nb\n\n\nc`（6 行、3 空行）→ 统计显示「原始: 3 行」，实为 6 行。
+- 影响：对账/行数核对基准错误。假工具：否。
+- 方案：`origCount` 在 trim/去空前用 `text.split('\n').length` 取；或将标签改为「参与过滤: N 行」。
+
+### BS-N85 随机分组：FAQ 承诺「记住种子即可复现」，页面无种子功能（中，承诺未实现）
+- 页面：`tools/biz/team-roster-generator.html`
+- 问题：FAQ 写「如需可复现，记住种子或导出结果即可」，但页面无种子输入/输出，洗牌直接 `Math.random()`；同页公式说明又自述「未设种子，因此同一名单每次结果不同且不可复现」，同页自相矛盾。
+- 证据：`:256`（FAQ 承诺）、`:170`（公式说明自述不可复现）、`:286-293`（Math.random 洗牌）、`:195`/`:201`（仅组数/每组人数两个输入）。
+- 复现：同一名单连点两次「随机分组」→ 结果不同；界面任何位置都没有 seed 可记录。
+- 影响：抽签留痕场景无法按宣传方式复现。假工具：否。
+- 方案：增加 seed 输入/展示（如 mulberry32），或删除 FAQ 中「记住种子」，改为「需留痕请先导出结果」。
+
+### BS-N86 随机分组：导出 CSV / 数据表 / 历史在默认状态为空（中，确认缺陷）
+- 页面：`tools/biz/team-roster-generator.html`
+- 问题：历史与表格仅由 `__team_roster_generatorExtras` 生成，而该函数只挂在 `switchTab` 上，`generate()` 未被包装；页面加载即自动分组，用户直接点「导出明细 CSV」时表格无行，`exportTable` 静默 `return false`。
+- 证据：`:162`（导出按钮）、`:213`（表格容器）、`:481-484`（导出读表）、`:492-495`（extras 只挂在 switchTab）、`:299-353`（generate 未挂钩）、`:386-387`（加载即 generate）；`js/tool-kit.js:221-236`。
+- 复现：打开页面（已自动出 10 人 3 组）→ 直接点导出 → 无文件、无提示；先点任一标签页再导出才有内容。
+- 影响：导出在默认路径下不可用。假工具：否。
+- 方案：extras 同步挂到 `generate`（或 boot 调用一次），导出改为直接导出当前分组文本。
+
+### BS-N87 文本大小写转换：分词不处理标点，snake/camel/pascal 产出含标点的非法标识符（中，确认缺陷）
+- 页面：`tools/biz/text-case.html`
+- 问题：`getWords` 只按大小写边界与 `[\s_-]` 切分，逗号/句号/感叹号会粘在词上并原样进入结果；`title` 又把下划线视为词内字符。
+- 证据：`:347-349`（getWords）、`:319-331`（camel/pascal/snake/kebab/constant）、`:317`（title 用 `\w\S*` 整段处理）。
+- 复现（node 复刻）：`getWords('Hello, World!')` → `['Hello,','World!']`；snake 输出 `hello,_world!`、camel 输出 `hello,World!`；期望 `hello_world` / `helloWorld`。`title('hello_world foo-bar')` → `Hello_world Foo-bar`。
+- 影响：直接粘贴自然语言句会得到不能用作变量名的结果。假工具：否。
+- 方案：分词改为按 `/[^A-Za-z0-9]+/` 切分（先按大小写边界插空格），并剥掉词首尾非字母数字字符。
+
+### BS-N88 字符频率分析：百分比分母取「前 N 个」之和，截断时频率系统性虚高（高，确认缺陷）
+- 页面：`tools/biz/char-frequency.html`
+- 问题：`total` 由已 `slice(0, topN)` 的 `sorted` 求和，再算 `count/total*100`；只要不同字符数超过「显示前 N 个」，百分比就按可见子集计算，整列仍凑满 100%，与提示同时展示的「共统计 map.size 种」口径不一致。
+- 证据：`tools/biz/char-frequency.html:332`（先 slice）、`:336`（total 只累加 sorted）、`:341`（`count/total*100`）、`:337`（提示「共统计 map.size 种、显示前 sorted.length 个」）。
+- 复现（node 复刻：40 种字符各 2 次、空格分隔、topN 默认 30）：首行显示 `a 2 (3.33%)`，全文 80 字符时真实应为 `2.50%`；30 行百分比之和 ≈100%，真实占比合计仅 75%。
+- 影响：按字频判断熵、压缩潜力或做密码频率分析时结论偏高最多约 33%。假工具：否。
+- 方案：分母改用 `[...map.values()]` 的全文字符总数，并在提示中同步标出「共 N 字符」。
+
+### V 批覆盖清单（6 页）
+- `tools/biz/unicode-normalize.html`：2 条（BS-N81、BS-N82 中）。`String.prototype.normalize` 四范式往返实算正确（NFC/NFD 幂等、NFKC 兼容折叠），问题在结果区同步与导出。
+- `tools/biz/text-filter-lines.html`：2 条（BS-N83、BS-N84 中）。8 种模式匹配、trim/去空/反选主体逻辑正确，结果走 `textContent`。
+- `tools/biz/small-caps.html`：0 条。映射表 26 码位（U+1D00…U+1D22，x 保留 U+0078）与 a–z 下标一一对应，`Hello World!` → `Hᴇʟʟᴏ Wᴏʀʟᴅ!` 正确；仅「交替」示例文案与实际首字母大写不符（低，不计）。
+- `tools/biz/team-roster-generator.html`：2 条（BS-N85、BS-N86 中）。Fisher–Yates 洗牌、余数平摊（22 人 4 组 = 6/6/5/5）与组数/人数校验均正确。
+- `tools/biz/text-case.html`：1 条（BS-N87 中）。12 种转换主体可运行，`upper/lower/sentence/invert/trim` 实算正确；`alternate` 实为首字母大写（示例文字不符，低，不计）。
+- `tools/biz/char-frequency.html`：1 条（BS-N88 高）。计数按码位、忽略大小写与中文/英文/数字/标点筛选均正确，`abracadabra` 用例（5/2/2/1/1）逐项一致。
+
+- **本批合计 8 条：高 1（BS-N88）/ 中 7。假工具 0 个。**
+- 说明：本轮为**只读**审计，逐行读源码 + `node` 在 `/tmp` 复刻核心函数实算（脚本 `/tmp/v_biz_textb.js`、`/tmp/v_biz_case.js`、`/tmp/v_biz_lines.js`、`/tmp/v_biz_freq.js`）；**未开浏览器**、**未运行 `_build.py` / `run_gates.py`**、**未做线上验证**，除本文件外未修改任何仓库文件。

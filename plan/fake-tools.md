@@ -270,3 +270,14 @@
 | 生活消费 | `tools/sports/pingpangqiu-xiangchi-faqiu-defen.html` | C | 仅两个通用数值输入，按模板算比值；页面承诺的得分率/关键分统计未实现 | `plan/categories/05-生活消费/sports-fitness.md` SF-N43 | 通用两参模板套体育标题 |
 | 文娱爱好 | `tools/fun/anagram-game.html` | A | `:15-24` 5 套固定字母题 + 每条硬编码 `valid` 词表，判定 `cur.valid.includes(v)`，无字母多重集校验、无词典、不可换题 | `plan/categories/11-文娱爱好/fun-entertainment.md` FE-N27 | 合法词 SILT 判错、不可拼的 ICE 判对 |
 | 文娱爱好 | `tools/fun/sequence-puzzle.html` | C | 仅 6 类数字序列；承诺的质数/阶乘/图形序列与「做错有解析」均无实现 | `plan/categories/11-文娱爱好/fun-entertainment.md` FE-N30 | 教学价值落空 |
+
+## V 批新增假工具候选（2026-11-04）
+
+> 本轮 10 个只读子 agent 的增量产出，均已读当前源码、可由静态证据复现；**不计入上表 61 页统计**，待修复线复核后并入主表。
+
+| 分类 | 页面 | 类型 | 证据（当前行号） | 来源条目 | 说明 |
+|---|---|---|---|---|---|
+| IT开发 | `tools/it/morse-decode-advanced.html` | C | `:3669-3677` 「增强版/自动推断时间单位/容错」无实现，无分隔电码一律解成 `?` | `plan/categories/01-IT开发/it.md` IT-N440 | 名不副实 |
+| 生活消费 | `tools/sports/baofali-zongtiao-lidingtiaoyuan.html` | C（+A） | `:398-405` 仅「初速度→跳高」换算；meta 承诺的体重/远度/功率/爆发力指数均无输入输出 | `plan/categories/05-生活消费/sports-fitness.md` SF-N45 | 承诺未实现 |
+| 长尾行业 | `tools/gardening/balcony-sunlight.html` | B（半假） | `:120/:124/:128` 三个下拉无 `option`；`:262/:306/:339-343` 查表恒按南向·春 6.0h | `plan/categories/12-长尾行业/_others.md` 12-N206 | 核心三维度输入不可选，结果恒定 |
+| 商业运营 | `tools/biz/text-to-banner.html` | C | `:10/:153` 宣称画布横幅/字体/配色/PNG；`:160-169` 仅 8 种边框、`:315-345` 仅字符串拼框 | `plan/categories/06-商业运营/biz-startup.md` BS-N65 | 实际只剩 ASCII 方框 |
