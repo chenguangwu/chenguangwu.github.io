@@ -304,11 +304,22 @@
 
 注：同源混合锚的修法统一为「把恒定值/默认值移出 `expect`，只留注入后才出现的变化值」；`expect≥3` 的三条（pressure-drop / daohongxi / qudao）需优先拆条。
 
-## 7. 待接入门禁（预留，脚本未就绪）
+## 7. 新增门禁登记（deepdive source sync 待接入 / verify input ids 已接入）
 
-| 项 | 状态 | 条目原文（暂定） | 语义 |
-|---|---|---|---|
-| `deepdive source sync` | **待设计生活线交脚本路径与自证** | `("deepdive source sync", ("python3", "scripts/audit_deepdive_source_sync.py", "--check"))` | 页面 deep-dive 段与 `content_deepdive.json` 逐字不一致即 exit 1（`--report` 只列不判红） |
+| 项 | 状态 | 条目原文 | 脚本 / 语义 | 造红方式 | CI 耗时 | 当前是否预期红 |
+|---|---|---|---|---|---|---|
+| `verify input ids` | **已接入（#228）** | `("verify input ids", ("node", "scripts/audit_verify_input_ids.js"))` | `scripts/audit_verify_input_ids.js`：扫描 207 个 verify 文件 / 8963 条用例 / 28180 个注入键，比对注入键在对应页面 HTML 是否存在；**僵尸 id 即 exit 1**（动态生成/模板拼接判为存疑不算违规） | 修好某条僵尸 id 用例前天然红；绿路径已用 `verify_sports_calc.js` 单文件验证 exit 0 | **1.3s**（纯 node 标准库，无 node_modules/浏览器） | **是，41 条僵尸 id**（22 条 `detector-*` 优先），由用例修复线收口，禁止调口径改绿 |
+| `deepdive source sync` | **待接入（预计 #229）** | `("deepdive source sync", ("python3", "scripts/audit_deepdive_source_sync.py", "--check"))` | 页面 deep-dive 段与 `content_deepdive.json` 逐字不一致即 exit 1（`--report` 只列不判红） | 临时改某页 deep-dive 段一个字 → `--check` 必须 exit 1 | 待脚本就绪后测 | 设计生活线脚本未交付 |
+
+### 7.1 验收时发现并修复的脚本缺陷（verify input ids）
+
+`audit_verify_input_ids.js` 通过 `require(verify_it_calc.js)` 复用 `extractCases`，而 harness 的 `beforeExit` 兜底会在「0 用例执行」时打印 `❌ 0 个用例实际执行…` 并**覆盖 `process.exitCode = 1`** —— 即使 41 条僵尸 id 全部修完，该门禁也**永远无法转绿**。已加 1 行 `process.env.TB_DISCRIM_PARENT = "1"`（harness 已有的父进程逃生口）抑制兜底；已验证：全量 exit 1（41 条僵尸）、`verify_sports_calc.js` 单文件 exit 0，且不再出现该误导行。
+
+### 7.2 条目数口径
+
+- 现状：**228**（227 + `verify input ids`）；
+- `deepdive source sync` 接入后：**229**；
+- 每次变更必须同批更新 `scripts/gates_manifest.txt`，否则清单棘轮在启动时判红（已验证「多一条未登记」方向）。
 
 背景：设计生活线普查 4726 条 deep-dive（一致 4569 / 无对应页面 153 / **有差异 4**）。那 4 条（`dic-scoring`、`ipss-r`、`cml-monitoring`、`mpn-scoring`）页面已由临床线修正，但 `content_deepdive.json` 仍是 2026-09-09 旧值；`_build.py` 在页面找不到 deep-dive 段时会用 JSON **重建整段**，因此跑一次构建就会把修复回退。门禁用于拦截「页面已改、JSON 未同批改（indent=1）」的状态。
 

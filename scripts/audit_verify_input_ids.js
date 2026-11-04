@@ -22,6 +22,11 @@
 const fs = require("fs");
 const path = require("path");
 
+// 本脚本 require verify_it_calc.js 只为复用 extractCases；harness 的 beforeExit 兜底会把
+// 「0 个用例实际执行」判红并覆盖 process.exitCode=1 ⇒ 本门禁将永远无法转绿。
+// 该环境变量是 harness 已有的父进程逃生口（见 verify_it_calc.js beforeExit），此处只抑制兜底。
+process.env.TB_DISCRIM_PARENT = "1";
+
 const ROOT = path.join(__dirname, "..");
 const TOOLS = path.join(ROOT, "tools");
 const { extractCases } = require(path.join(__dirname, "verify_it_calc.js"));

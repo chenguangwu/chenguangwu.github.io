@@ -332,6 +332,11 @@ GATES = (
     # 置于 GATES 末尾：不阻塞其余门禁先跑完，且不改变「首项 expect anti-pattern」与
     # 「--skip-build 摘除集合恰为 {build}」两条结构断言。
     ("stub fidelity", ("node", "scripts/verify_stub_fidelity.js")),
+    # 注入键存在性（用例修复线）：verify 用例的 inputs/checkIds 键若在对应页面 HTML 里
+    # 根本不存在，getEl 会造游离桩元素 ⇒ 注入落空、断言退化为复述默认值，用例仍绿。
+    # selfcheck_false_pass 与 discriminate_check 对此零覆盖（hydraulic 三条 0 判别力即此根因）。
+    # 当前预期红：41 条僵尸 id（22 条 detector-* 优先），由用例修复线收口，不得调口径改绿。
+    ("verify input ids", ("node", "scripts/audit_verify_input_ids.js")),
 )
 
 
