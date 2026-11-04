@@ -624,6 +624,13 @@ function updateDescription(parts) {
   let timeDesc = '';
   if (min === '*' && hour === '*') timeDesc = '每分钟';
   else if (min === '0' && hour === '*') timeDesc = '每小时整点';
+  else if (hour === '*') {
+    if (min.startsWith('*/')) timeDesc = `每${min.slice(2)}分钟`;
+    else if (min.includes('/')) { const s = min.split('/'); timeDesc = `每小时从第${s[0]}分起每${s[1]}分钟`; }
+    else if (min.includes(',')) timeDesc = `每小时第${min.split(',').join('、')}分`;
+    else if (min.includes('-')) timeDesc = `每小时第${min.replace('-', '到')}分`;
+    else if (!isNaN(parseInt(min))) timeDesc = `每小时第${min}分`;
+  }
   else if (min === '*' && hour !== '*') timeDesc = `${hour}点内每分钟`;
   else if (hour !== '*') {
     if (hour.includes('-')) timeDesc = `${hour}点`;
@@ -886,11 +893,18 @@ function updateNextTimes() {
 }
 
 function matchesCron(date, min, hour, day, month, week) {
+  const dayAny = day === '*' || day === '?' || !day;
+  const weekAny = week === '*' || week === '?' || !week;
+  let dateOk;
+  if (dayAny && weekAny) dateOk = true;
+  else if (dayAny) dateOk = matchField(date.getDay(), week, 0, 6);
+  else if (weekAny) dateOk = matchField(date.getDate(), day, 1, 31, date);
+  // Vixie cron：日与周同时指定时为 OR 关系
+  else dateOk = matchField(date.getDate(), day, 1, 31, date) || matchField(date.getDay(), week, 0, 6);
   return matchField(date.getMinutes(), min, 0, 59) &&
          matchField(date.getHours(), hour, 0, 23) &&
-         matchField(date.getDate(), day, 1, 31, date) &&
-         matchField(date.getMonth()+1, month, 1, 12) &&
-         matchField(date.getDay(), week, 0, 6);
+         dateOk &&
+         matchField(date.getMonth()+1, month, 1, 12);
 }
 
 function matchField(value, field, min, max, dateObj) {

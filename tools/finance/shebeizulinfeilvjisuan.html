@@ -143,7 +143,7 @@ s.parentNode.insertBefore(el, s);
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__shebeizulinfeilvjisuanExport()">导出明细 CSV</button></div><div class="result-box" id="res"></div> <div id="shebeizulinfeilvjisuanTable"></div> <div id="shebeizulinfeilvjisuanDiff"></div> <div id="shebeizulinfeilvjisuanChart"></div> <div id="shebeizulinfeilvjisuanHist"></div>
-    <div class="info-box">💡 公式：月折旧额 D = P×(1−s) / (Y×12)；月维护费 = P×r/(12×100)；月租金 R = D + 维护费 + P×m/(12×100)；投资回报率 ROI = (R×T − P×s) / (P×s) × 100%（残值作为期末回收）。</div>
+    <div class="info-box">💡 公式：月折旧额 D = P×(1−s) / (Y×12)；月维护费 = P×r/(12×100)；月租金 R = D + 维护费 + P×m/(12×100)；投资回报率 ROI = (R×T + P×s/100 − P) / P × 100%（残值为期末回收，租期短于折旧年限时可为负）。</div>
     <div class="tool-notes" style="--tool-accent:#3B82F6;">
 <!-- Formula & Standard References -->
 <div class="card" id="constRefBox">
@@ -187,13 +187,25 @@ function setInvalid(el,invalid){if(!el)return;if(invalid){el.classList.add('inpu
 function readInputs(){
   var ids=['price','months','depYears','maintRate','profitRate','salvageRate'];
   var o={},valid=true;
-  ids.forEach(function(id){var v=parseFloat(document.getElementById(id).value);var bad=isNaN(v);setInvalid(document.getElementById(id),bad);if(bad)valid=false;o[id]=bad?0:v;});
+  ids.forEach(function(id){
+    var v=parseFloat(document.getElementById(id).value);
+    var bad=isNaN(v);
+    if(!bad&&id==='salvageRate'&&(v<0||v>100))bad=true;
+    if(!bad&&(id==='maintRate'||id==='profitRate')&&v<0)bad=true;
+    setInvalid(document.getElementById(id),bad);
+    if(bad)valid=false;
+    o[id]=bad?0:v;
+  });
   o.valid=valid;
   return o;
 }
 function calc(){
   var iv=readInputs();
   var P=iv.price,T=iv.months,Y=iv.depYears,r=iv.maintRate,m=iv.profitRate,s=iv.salvageRate;
+  if(!iv.valid){
+    document.getElementById('res').innerHTML='<p style="color:var(--danger);">请输入有效数字：残值率须在 0–100% 之间，维护费率与利润率不得为负。</p>';
+    return;
+  }
   if(P<=0||T<=0||Y<=0){
     document.getElementById('res').innerHTML='<p style="color:var(--danger);">请输入大于 0 的设备原值、租期与折旧年限。</p>';
     return;

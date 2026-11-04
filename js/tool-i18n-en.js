@@ -10420,7 +10420,7 @@ window.__TI18N_EN = {
   '也是加速但更平缓。会计折旧方法一经确定不得随意变更，税务折旧另有规定，具体以《':'Also accelerated but gentler. Once chosen, the method must not be changed at will; tax depreciation differs — see the ',
   '法》及本单位财务制度为准，工具仅做计算演示。':'Act and the entity’s financial policy; the tool is for calculation demonstration only.',
   '法，前两年折旧更高、后期递减。':'method takes higher depreciation in the first two years, decreasing later.',
-  '折旧计算以"年"为单位，购入当年按完整年度计算':'Depreciation is in "years"; the purchase year counts as a full year',
+  '折旧按已满完整年度计提；购入未满一年时累计折旧为 0，满一年后按第 1 年末数':'Depreciation is charged for completed full years; if held less than a year, accumulated depreciation is 0; from the first full year use the year-1 book value.',
   '残值可以为 0 吗？':'Can residual value be 0?',
   '可以。若预计报废无残值，残值填 0，则年折旧 = 原值 / 使用年限。残值率过低或过高都会影响每期费用，建议参考同类资产历史处置价合理估计。':'Yes. If no residual value at scrap, enter 0; then annual depreciation = original value / useful life. Too low or high residual rate distorts periodic expense; estimate from comparable assets’ disposal prices.',
   '新购笔记本、打印机等入账时，填入原值、残值、使用年限与':'When registering a new laptop, printer etc., enter original value, residual value, useful life and',

@@ -117,11 +117,12 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="各期">Generator Pressure - generate results in-browser quickly and keep all data local.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-      <div class="formula-eq">压力性损伤按 NPIAP/EPUAP 分期判读：1 期 = 指压不变白的红斑；2 期 = 部分皮层缺失或浆液性水疱；3 期 = 全层皮肤缺失可见脂肪但未及筋膜；4 期 = 全层组织缺失伴筋膜肌肉或骨外露；不可分期 = 创面被焦痂覆盖需清创后判定；深部组织损伤 = 持续不褪色的紫红或栗色区域。</div>
+      <div class="formula-eq">压力性损伤按 NPIAP/EPUAP 分期判读：1 期 = 指压不变白的红斑；2 期 = 部分皮层缺失或浆液性水疱；3 期 = 全层皮肤缺失可见脂肪但未及筋膜；4 期 = 全层组织缺失伴筋膜肌肉或骨外露；不可分期 = 创面被焦痂覆盖需清创后判定；深部组织损伤 = 持续不褪色的紫红或栗色区域。生成条数 n = min(max(输入值, 1), 6)，从 6 个分期中随机取 n 条；n=6 时覆盖全部六期。</div>
   
 </div>
 
-<div class="input-row"><div><label>生成数量</label><input type="number" id="cnt" value="5" min="1" max="50" oninput="gen()" placeholder="如 5（1–50）"></div></div>
+<div class="input-row"><div><label>生成数量（1–6）</label><input type="number" id="cnt" value="5" min="1" max="6" step="1" oninput="gen()" placeholder="如 5（1–6）"></div></div>
+<div style="font-size:12.5px;color:var(--text-muted);margin:-6px 0 8px;">每次最多生成 6 条，对应 6 个分期各一条，顺序随机；填 6 时覆盖全部六期。</div>
 <div class="toolbar"><div id="generator_pressurePresets"></div><button type="button" class="btn primary" onclick="gen()">生成</button><button class="btn" type="button" onclick="__generator_pressureExport()">导出明细 CSV</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
 <div class="result-box" id="res"></div> <div id="generator_pressureTable"></div> <div id="generator_pressureDiff"></div> <div id="generator_pressureChart"></div> <div id="generator_pressureHist"></div>
   </div>
@@ -152,7 +153,7 @@ s.parentNode.insertBefore(el, s);
 <li>3–4 期按组织丢失深度与坏死范围生成结构化描述。</li>
 <li>可疑深部组织损伤与不可分期按覆盖物特征标注。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">复核一例骶尾 2 期描述</div><div class="dd-ex-body">输入分期=2 期、部位=骶尾，工具生成部分皮层缺损、粉色肉芽床描述，与评估表一致。</div></div>
+<div class="dd-example"><div class="dd-ex-title">复核一例骶尾 2 期描述</div><div class="dd-ex-body">生成数量填 6，工具从 1 期、2 期、3 期、4 期、不可分期、深部组织损伤六个分期中各生成 1 条（顺序随机），每条含表现与护理要点，可一次覆盖同一次记录中的各期描述；数量超过 6 时按 6 条封顶。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>本工具能替代医师诊断吗？</dt><dd>不能，仅作描述模板，分期以创面专科评估为准。</dd>
@@ -212,11 +213,13 @@ const STAGES=[
   {stage:'不可分期',desc:'全层组织缺损，创面被黄色、棕色、灰色、绿色或棕褐色腐肉或黑色焦痂完全覆盖，无法判断实际深度。',care:'清创去除覆盖物后再分期，根据渗液量选择敷料。'},
   {stage:'深部组织损伤',desc:'皮肤完整或破损，局部呈持续性深红色、栗色、紫色，或表皮分离显露深色创面或充血水疱。',care:'严禁按摩，减压处理，密切观察是否快速恶化，避免局部受压。'}
 ];
-function pick(arr,n){const a=[...arr].sort(()=>Math.random()-0.5);return a.slice(0,Math.min(n,a.length));}
+function pick(arr,n){const a=(arr||[]).slice().sort(()=>Math.random()-0.5);return a.slice(0,Math.min(n,a.length));}
 function gen(){
-  const n=Math.min(Math.max(parseInt(document.getElementById('cnt').value)||5,1),50);
+  const raw=parseInt(document.getElementById('cnt').value,10);
+  const n=Math.min(Math.max(isFinite(raw)?raw:5,1),6);
   const items=pick(STAGES,n);
-  let h='<p style="margin-bottom:8px;">生成结果：</p>';
+  window.__genPressCount=items.length;
+  let h='<p style="margin-bottom:8px;">生成结果：共 '+items.length+' 条</p>';
   items.forEach((it,i)=>{
     h+=`<div style="padding:8px 0;border-bottom:1px dashed var(--border-color);">
       <p>${i+1}. <strong>${it.stage}</strong></p>
@@ -261,7 +264,7 @@ function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText
 /* 门诊记录：仅抓稳定计数（生成要点条数），不抓 Math.random 随机内容 */
 function __genPressEmr(){
   var en=__emrEn();
-  var cEl=document.getElementById('cnt'); var n=Math.min(Math.max(parseInt(cEl?cEl.value:'5')||5,1),50);
+  var cEl=document.getElementById('cnt'); var n=(typeof window.__genPressCount==='number')?window.__genPressCount:Math.min(Math.max(parseInt(cEl?cEl.value:'5')||5,1),6);
   __emrNote({
     boxId:'res',
     name:'压力性损伤预防要点',
@@ -439,7 +442,7 @@ function __generator_pressureExport(){
 }
 function __generator_pressurePresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#generator_pressurePresets',[{label:'默认参数',labelEn:'Default',values:{'cnt':'5'}},{"label":"少量生成（3 例）","labelEn":"Small batch (3 cases)","values":{"cnt":"3"}},{"label":"常规生成（10 例）","labelEn":"Standard batch (10 cases)","values":{"cnt":"10"}},{"label":"批量生成（20 例）","labelEn":"Large batch (20 cases)","values":{"cnt":"20"}}],function(){ gen(); });
+    TBKit.preset.bar('#generator_pressurePresets',[{label:'默认参数',labelEn:'Default',values:{'cnt':'5'}},{"label":"少量生成（1 例）","labelEn":"Single example (1 case)","values":{"cnt":"1"}},{"label":"常规生成（3 例）","labelEn":"Standard batch (3 cases)","values":{"cnt":"3"}},{"label":"全部六期（6 例）","labelEn":"All six stages (6 cases)","values":{"cnt":"6"}}],function(){ gen(); });
 }
 var __generator_pressure_f0=(typeof gen==='function')?gen:null;
 if(__generator_pressure_f0){

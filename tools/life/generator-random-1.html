@@ -126,6 +126,10 @@ s.parentNode.insertBefore(el, s);
   <div><label>最大值</label><input type="number" id="max" value="100" oninput="gen()" placeholder="如 100"></div>
   <div><label>生成数量</label><input type="number" id="cnt" value="5" min="1" max="50" oninput="gen()" placeholder="如 5（1–50）"></div>
 </div>
+<div class="input-row" style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:10px;">
+  <div><label>数值类型</label><select id="numType" onchange="gen()"><option value="int">整数</option><option value="decimal">小数</option></select></div>
+  <div><label>是否允许重复</label><select id="allowDup" onchange="gen()"><option value="1">允许重复</option><option value="0">不重复</option></select></div>
+</div>
 <div class="toolbar"><div id="generator_random_1Presets"></div><button type="button" class="btn primary" onclick="gen()">生成</button><button class="btn" type="button" onclick="__generator_random_1Export()">导出明细 CSV</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
 <div class="result-box" id="res"></div> <div id="generator_random_1Table"></div> <div id="generator_random_1Diff"></div> <div id="generator_random_1Chart"></div> <div id="generator_random_1Hist"></div>
   </div>
@@ -206,15 +210,53 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 function randInt(min,max){return Math.floor(Math.random()*(max-min+1))+min;}
+function randDec(min,max){return Math.round((min+Math.random()*(max-min))*100)/100;}
+function sampleUniqueInt(min,max,n){
+  var size=max-min+1;
+  if(size<n)return null;
+  var picked={},out=[];
+  for(var j=size-n;j<size;j++){
+    var t=Math.floor(Math.random()*(j+1));
+    if(picked[t])t=j;
+    picked[t]=1;
+    out.push(min+t);
+  }
+  for(var si=out.length-1;si>0;si--){
+    var sj=Math.floor(Math.random()*(si+1));
+    var tmp=out[si];out[si]=out[sj];out[sj]=tmp;
+  }
+  return out;
+}
 function gen(){
-  let min=parseInt(document.getElementById("min").value,10)||0;
-  let max=parseInt(document.getElementById("max").value,10)||0;
-  if(min>max){[min,max]=[max,min];}
+  var type=(document.getElementById('numType')||{}).value||'int';
+  var allowDup=((document.getElementById('allowDup')||{}).value)!=='0';
+  let min=parseFloat(document.getElementById("min").value);
+  let max=parseFloat(document.getElementById("max").value);
   let n=Math.min(Math.max(parseInt(document.getElementById("cnt").value,10)||1,1),50);
+  var isInt=type!=='decimal';
+  if(!isFinite(min)||!isFinite(max)){document.getElementById("res").innerHTML='<p style="color:var(--danger)">无法生成：请检查取值范围与数量（不重复模式下取值范围需足够大）。</p>';return;}
+  if(min>max){var tmp=min;min=max;max=tmp;}
+  if(isInt){min=Math.ceil(min);max=Math.floor(max);}
+  if(isInt&&min>max){document.getElementById("res").innerHTML='<p style="color:var(--danger)">无法生成：请检查取值范围与数量（不重复模式下取值范围需足够大）。</p>';return;}
   let arr=[];
-  for(let i=0;i<n;i++){arr.push(randInt(min,max));}
+  if(!allowDup){
+    if(isInt){
+      arr=sampleUniqueInt(min,max,n);
+      if(!arr){document.getElementById("res").innerHTML='<p style="color:var(--danger)">无法生成：请检查取值范围与数量（不重复模式下取值范围需足够大）。</p>';return;}
+    }else{
+      var seen={},guard=0;
+      while(arr.length<n&&guard<n*1000){
+        var v=randDec(min,max),k=v.toFixed(2);
+        if(!seen[k]){seen[k]=1;arr.push(v);}
+        guard++;
+      }
+      if(arr.length<n){document.getElementById("res").innerHTML='<p style="color:var(--danger)">无法生成：请检查取值范围与数量（不重复模式下取值范围需足够大）。</p>';return;}
+    }
+  }else{
+    for(let i=0;i<n;i++){arr.push(isInt?randInt(min,max):randDec(min,max));}
+  }
   let h='<p style="margin-bottom:8px;">生成结果（范围 '+min+' ~ '+max+'）：</p>';
-  arr.forEach((it,i)=>{h+=`<p style="padding:4px 0;">${i+1}. <strong>${it}</strong></p>`;});
+  arr.forEach((it,i)=>{h+=`<p style="padding:4px 0;">${i+1}. <strong>${isInt?it:Number(it).toFixed(2)}</strong></p>`;});
   var _mn=Math.min.apply(null,arr), _mx=Math.max.apply(null,arr), _av=arr.reduce(function(x,y){return x+y;},0)/arr.length;
   h+='<p style="margin-top:8px;padding-top:8px;border-top:1px dashed #ccc;">最小值 '+_mn+'，最大值 '+_mx+'，极差 '+(_mx-_mn)+'，平均值 '+_av.toFixed(3)+'，中位数 '+arr.slice().sort(function(x,y){return x-y;})[Math.floor((arr.length-1)/2)]+'。</p>';
   const __h0=h;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById("res").innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById("res").innerHTML=__h0;

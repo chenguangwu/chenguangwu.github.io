@@ -121,7 +121,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="评估静息呼吸频率是否落在正常范围。">Enter an observed breathing rate with the patient's age band to judge whether it is normal, bradypnoeic or tachypnoeic, with the reference ranges shown per age.</p>
     <div class="input-row"><label>呼吸频率 次/分</label><input type="number" id="rr" value="16" step="any" oninput="calc()" placeholder="如 16"></div>
     <div class="input-row"><label>年龄</label><input type="number" id="age" value="30" step="any" oninput="calc()" placeholder="如 30"></div>
-    <div class="input-row"><label>状态 1静息/2运动</label><input type="number" id="state" value="1" step="1" oninput="calc()" placeholder="如 1"></div>
+    <div class="input-row"><label>状态（1=静息，2=运动）</label><input type="number" id="state" value="1" step="1" min="1" max="2" oninput="calc()" placeholder="如 1"></div>
     <div class="toolbar">
       <div id="resp_ratePresets"></div>
       <button class="btn primary" onclick="calc()">计算</button>
@@ -136,7 +136,7 @@ s.parentNode.insertBefore(el, s);
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
-    <div class="formula-eq">呼吸频率判读（本页代码口径）：静息 rr 在 12–20 次/分内记等级 1，出界（&lt;12 或 &gt;20）记等级 3；偏离量=|rr−16|（次）；运动上限参考按状态输入取值——1 静息取 20 次/分、2 运动取 40 次/分。校验：无强校验，空值按 0 兜底（年龄输入不参与计算）。判据：成人正常静息呼吸 12–20 次/分，出界提示呼吸过缓/过速需关注。</div>
+    <div class="formula-eq">按年龄选择静息参考范围：&lt;1 岁 30–60、1–&lt;3 岁 24–40、3–&lt;6 岁 22–34、6–&lt;12 岁 18–30、12–&lt;18 岁 12–20、18–&lt;65 岁 12–20、≥65 岁 12–20 次/分。静息 rr 低于下限记呼吸过缓（2 级）、高于上限记呼吸过速（3 级）、范围内记正常（1 级）；偏离量=|rr−范围中值|。运动状态不按静息范围分级，仅给出运动上限参考 40 次/分。校验：呼吸频率必须 &gt;0，年龄与状态必须填写，否则清空结果并提示。</div>
     <p style="font-size:13px;color:var(--text-muted);margin-top:12px;">异常呼吸请及时就医评估。</p>
   </div>
 </div>
@@ -233,17 +233,47 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 function calc(){
-  const rr = +document.getElementById('rr').value || 0;
-  const age = +document.getElementById('age').value || 0;
-  const state = +document.getElementById('state').value || 0;
-  let html = '';
-  const __v0 = ((()=>{if(rr<12||rr>20)return 3;return 1;})());
-  html += `<p>状态：<strong style="font-size:18px;color:var(--primary);">${__v0.toFixed(0)}</strong> 等级</p>`;
-  const __v1 = (Math.abs(rr-16));
-  html += `<p>偏离正常：<strong style="font-size:18px;color:var(--primary);">${__v1.toFixed(0)}</strong> 次</p>`;
-  const __v2 = ((()=>{return state===2?40:20;})());
-  html += `<p>运动上限参考：<strong style="font-size:18px;color:var(--primary);">${__v2.toFixed(0)}</strong> 次/分</p>`;
-  const __g1=html;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+  var result = document.getElementById('result');
+  var rrRaw = document.getElementById('rr').value.trim();
+  var ageRaw = document.getElementById('age').value.trim();
+  var stateRaw = document.getElementById('state').value.trim();
+  var rr = +rrRaw, age = +ageRaw, state = +stateRaw;
+  if(rrRaw === '' || !isFinite(rr) || rr <= 0){
+    result.innerHTML = '<p style="color:var(--danger)">⚠ 请输入有效的呼吸频率（&gt;0 次/分）</p>';
+    return;
+  }
+  if(ageRaw === '' || !isFinite(age) || age < 0 || age > 120){
+    result.innerHTML = '<p style="color:var(--danger)">⚠ 请输入有效年龄（0–120 岁）</p>';
+    return;
+  }
+  if(state !== 1 && state !== 2){
+    result.innerHTML = '<p style="color:var(--danger)">⚠ 状态只能填 1（静息）或 2（运动）</p>';
+    return;
+  }
+  var band;
+  if(age < 1) band = { name:'婴儿（&lt;1 岁）', min:30, max:60 };
+  else if(age < 3) band = { name:'幼儿（1–&lt;3 岁）', min:24, max:40 };
+  else if(age < 6) band = { name:'学龄前（3–&lt;6 岁）', min:22, max:34 };
+  else if(age < 12) band = { name:'学龄（6–&lt;12 岁）', min:18, max:30 };
+  else if(age < 18) band = { name:'青少年（12–&lt;18 岁）', min:12, max:20 };
+  else if(age < 65) band = { name:'成人（18–&lt;65 岁）', min:12, max:20 };
+  else band = { name:'老年（≥65 岁）', min:12, max:20 };
+
+  var html = '';
+  html += `<p>参考范围（${band.name}）：<strong style="font-size:18px;color:var(--primary);">${band.min}–${band.max}</strong> 次/分</p>`;
+  if(state === 2){
+    html += `<p>状态：<strong style="font-size:18px;color:var(--primary);">运动后（不按静息分级）</strong></p>`;
+    html += `<p>运动上限参考：<strong style="font-size:18px;color:var(--primary);">40</strong> 次/分</p>`;
+  } else {
+    var grade, label;
+    if(rr < band.min){ grade = 2; label = '呼吸过缓'; }
+    else if(rr > band.max){ grade = 3; label = '呼吸过速'; }
+    else { grade = 1; label = '正常'; }
+    html += `<p>状态：<strong style="font-size:18px;color:var(--primary);">${label}</strong>（${grade} 级）</p>`;
+    html += `<p>偏离范围中值：<strong style="font-size:18px;color:var(--primary);">${Math.abs(rr - (band.min + band.max) / 2).toFixed(0)}</strong> 次</p>`;
+    html += `<p>运动上限参考：<strong style="font-size:18px;color:var(--primary);">20</strong> 次/分</p>`;
+  }
+  const __g1=html;result.innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 function copyResult() {
   const txt = document.getElementById('result').innerText;
@@ -392,8 +422,8 @@ else document.addEventListener('DOMContentLoaded', __resp_rateBoot);
 <li>异常识别：过慢/过快提示病情</li>
 <li>运动参考：按状态给运动上限</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">算法：状态 = 呼吸频率&lt;12 或 &gt;20 判 3 级(异常)、否则 1 级(正常)；偏离正常 = |RR−16|；运动上限 = 运动状态选 40 次/分、否则 20 次/分参考。要求 RR&gt;0。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例1（RR 16）：状态正常(1 级)，偏离 0 次。例2（RR 24）：异常(3 级)，偏离 8 次。例3（RR 10、运动状态）：异常(3 级)，运动上限 40 次/分。</div></div>
+<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">按年龄选择静息参考范围：&lt;1 岁 30–60、1–&lt;3 岁 24–40、3–&lt;6 岁 22–34、6–&lt;12 岁 18–30、12–&lt;18 岁 12–20、18–&lt;65 岁 12–20、≥65 岁 12–20 次/分。静息 RR 低于下限判呼吸过缓（2 级）、高于上限判呼吸过速（3 级）、范围内判正常（1 级）；偏离量 = |RR−范围中值|。运动状态不按静息范围分级，仅给运动上限参考 40 次/分。要求 RR&gt;0、年龄与状态必填。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例1（30 岁、静息、RR 16）：正常（1 级），偏离范围中值 0 次。例2（30 岁、静息、RR 24）：呼吸过速（3 级），偏离 8 次。例3（8 岁、静息、RR 22）：学龄参考 18–30，正常（1 级），偏离范围中值 2 次。例4（30 岁、运动、RR 10）：不按静息分级，仅提示运动上限 40 次/分。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>正常呼吸频率是多少？</dt><dd>成人静息约 12–20 次/分；&gt;20 为呼吸过快（如发热、心衰、焦虑），&lt;12 为过缓（如镇静、颅压高），持续异常就医。</dd>

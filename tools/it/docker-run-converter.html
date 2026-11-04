@@ -213,29 +213,85 @@ function num(id){const v=parseFloat(document.getElementById(id).value);return is
 function escH(s){var d=document.createElement('div');const __g1=s==null?'':String(s);d.textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){var src=document.getElementById('cmd').value;
+function shellTokens(s){
+  var out=[],cur='',q=null,started=false;
+  for(var i=0;i<s.length;i++){
+    var ch=s.charAt(i);
+    if(q){
+      if(ch==='\\'&&q==='"'&&i+1<s.length){cur+=s.charAt(i+1);i++;}
+      else if(ch===q){q=null;}
+      else cur+=ch;
+      continue;
+    }
+    if(ch==='"'||ch==="'"){q=ch;started=true;continue;}
+    if(ch==='\\'&&i+1<s.length){cur+=s.charAt(i+1);i++;started=true;continue;}
+    if(/\s/.test(ch)){if(started){out.push(cur);cur='';started=false;}continue;}
+    cur+=ch;started=true;
+  }
+  if(q) throw new Error('unclosed');
+  if(started)out.push(cur);
+  return out;
+}
 function parse(cmd){
   var m=cmd.match(/docker\s+run\s+(.*)/s); if(!m) return null;
-  var args=m[1]; var image=null, name='app', ports=[], vols=[], envs=[], restart='no', det=false;
-  var toks=args.split(/\s+/).filter(Boolean);
+  var toks;
+  try{ toks=shellTokens(m[1]); }catch(e){ return {image:null,errors:['unclosed']}; }
+  var image=null, name='app', ports=[], vols=[], envs=[], restart='no', det=false, command=[], errors=[];
   var i=0;
+  function nextVal(opt){
+    if(i+1>=toks.length){errors.push(opt);return null;}
+    i++;return toks[i];
+  }
+  function take(kind,val){
+    if(val===null) return;
+    if(kind==='name')name=val;
+    else if(kind==='port')ports.push(val);
+    else if(kind==='vol')vols.push(val);
+    else if(kind==='env')envs.push(val);
+    else if(kind==='restart')restart=val;
+  }
   while(i<toks.length){
     var t=toks[i];
+    if(image!==null){command.push(t);i++;continue;}   // 镜像名之后全部是容器 CMD，不再解析选项
     if(t==='-d'||t==='--detach'){det=true;i++;continue;}
-    if(t==='--name'){name=toks[i+1];i+=2;continue;}
-    if(t==='-p'||t==='--publish'){ports.push(toks[i+1]);i+=2;continue;}
-    if(t==='-v'||t==='--volume'){vols.push(toks[i+1]);i+=2;continue;}
-    if(t==='-e'||t==='--env'){envs.push(toks[i+1]);i+=2;continue;}
-    if(t==='--restart'){restart=toks[i+1];i+=2;continue;}
+    var lm=t.match(/^(--[a-z-]+)=([\s\S]*)$/);
+    if(lm){
+      var lk=lm[1],lv=lm[2];
+      if(lk==='--name')take('name',lv);
+      else if(lk==='--publish')take('port',lv);
+      else if(lk==='--volume')take('vol',lv);
+      else if(lk==='--env')take('env',lv);
+      else if(lk==='--restart')take('restart',lv);
+      i++;continue;
+    }
+    var sm=t.match(/^-([pve])([\s\S]+)$/);
+    if(sm){
+      take(sm[1]==='p'?'port':(sm[1]==='v'?'vol':'env'),sm[2]);
+      i++;continue;
+    }
+    if(t==='--name'){take('name',nextVal('--name'));i++;continue;}
+    if(t==='-p'||t==='--publish'){take('port',nextVal(t));i++;continue;}
+    if(t==='-v'||t==='--volume'){take('vol',nextVal(t));i++;continue;}
+    if(t==='-e'||t==='--env'){take('env',nextVal(t));i++;continue;}
+    if(t==='--restart'){take('restart',nextVal('--restart'));i++;continue;}
     if(t.charAt(0)==='-'){i++;continue;}
-    if(!image){image=t;}
-    i++;   // 必须无条件前进：image 已赋值时（镜像名后的 CMD/ENTRYPOINT 尾参）旧写法不递增 i ⇒ 死循环
+    image=t;i++;
   }
-  return {image:image,name:name,ports:ports,vols:vols,envs:envs,restart:restart,det:det};
+  return {image:image,name:name,ports:ports,vols:vols,envs:envs,restart:restart,det:det,command:command,errors:errors};
 }
 var d=parse(src);
 var html='<div class="result-title">docker-compose.yml</div>';
+if(d&&d.errors&&d.errors.length){
+  html+='<div style="color:#dc2626;font-size:13px;margin-bottom:8px;">';
+  d.errors.forEach(function(e){
+    if(e==='unclosed') html+='<p style="margin:2px 0;">⚠ <span data-zh="命令中的引号未闭合">Unclosed quote in command</span></p>';
+    else html+='<p style="margin:2px 0;">⚠ <span data-zh="选项缺少取值">Option is missing a value</span> <code>'+escH(e)+'</code></p>';
+  });
+  html+='</div>';
+}
 if(!d||!d.image){html+='<p style="color:#dc2626;">⚠️ 未识别到 docker run 命令或镜像名，请检查输入。</p>';const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));return;}
 var y='services:\n  '+d.name+':\n    image: '+d.image+'\n';
+if(d.command&&d.command.length)y+='    command: '+JSON.stringify(d.command)+'\n';
 if(d.det)y+='    # 原为 -d 后台运行，compose 默认即后台\n';
 if(d.ports.length)y+='    ports:\n'+d.ports.map(function(p){return '      - "'+p+'"';}).join('\n')+'\n';
 if(d.vols.length)y+='    volumes:\n'+d.vols.map(function(p){return '      - '+p;}).join('\n')+'\n';

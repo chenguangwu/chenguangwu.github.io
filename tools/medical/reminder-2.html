@@ -179,9 +179,10 @@ s.parentNode.insertBefore(el, s);
     <div class="tabs">
       <button class="tab-btn active" onclick="switchFilter('all',this)">全部</button>
       <button class="tab-btn" onclick="switchFilter('expired',this)">已过期</button>
-      <button class="tab-btn" onclick="switchFilter('critical',this)">1个月内</button>
-      <button class="tab-btn" onclick="switchFilter('warning',this)">3个月内</button>
-      <button class="tab-btn" onclick="switchFilter('safe',this)">6个月以上</button>
+      <button class="tab-btn" onclick="switchFilter('critical',this)">紧急（1月内）</button>
+      <button class="tab-btn" onclick="switchFilter('warning',this)">注意（31–90天）</button>
+      <button class="tab-btn" onclick="switchFilter('soon',this)">关注（91–180天）</button>
+      <button class="tab-btn" onclick="switchFilter('safe',this)">安全（6个月以上）</button>
     </div>
     <div id="medList"></div>
   </div>
@@ -190,8 +191,10 @@ s.parentNode.insertBefore(el, s);
     <strong>预警等级说明：</strong>
     <span class="status-badge st-red">已过期</span> 效期已过，禁止使用 ｜
     <span class="status-badge st-orange">紧急</span> 1个月内到期，优先使用 ｜
-    <span class="status-badge st-yellow">注意</span> 3个月内到期，计划使用 ｜
-    <span class="status-badge st-green">安全</span> 6个月以上，正常存储
+    <span class="status-badge st-yellow">注意</span> 31–90天到期，计划使用 ｜
+    <span class="status-badge st-yellow">关注</span> 91–180天到期，纳入先用计划 ｜
+    <span class="status-badge st-green">安全</span> 6个月以上，正常存储 ｜
+    <span class="status-badge st-red">效期无效</span> 有效期缺失或格式错误，请重新录入
   </div>
 </div>
 
@@ -265,7 +268,7 @@ s.parentNode.insertBefore(el, s);
 <li>定期导出清单核对实物，清理已过期药品并补充常用药。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">分级口径</div><div class="dd-ex-body">剩余天数 = floor((有效期 − 今天) ÷ 86400000)，两端均按当日 0 点归零后相减，避免出现半天误差。分级：&lt;0 天已过期（红）；≤30 天紧急（橙）；≤90 天注意（黄）；≤180 天关注（黄）；&gt;180 天安全（绿）。列表按剩余天数升序排列，最近的排在最前，并可按状态筛选、统计各状态数量。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">以 2026-09-10 为基准：某药品有效期 2026-10-01，剩余 21 天 → 判「紧急」，应优先使用或尽快更换；另一批有效期 2026-12-31，剩余 112 天 → 判「注意」，可正常周转但需纳入下季度的先用计划；有效期在 2026-09-10 之前者一律显示「已过期」，须立即停用并按规定回收，不可继续服用。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">以 2026-09-10 为基准：某药品有效期 2026-10-01，剩余 21 天 → 判「紧急」，应优先使用或尽快更换；另一批有效期 2026-12-31，剩余 112 天 → 判「关注」，可正常周转但需纳入下季度的先用计划；有效期在 2026-09-10 之前者一律显示「已过期」，须立即停用并按规定回收，不可继续服用。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>过了有效期一天的药还能吃吗？</dt><dd>不建议。有效期是生产企业在规定贮存条件下对含量与安全性负责的截止日，过期后有效成分可能降解、杂质增加，尤其胰岛素、硝酸甘油、肾上腺素、抗生素等对效价敏感的药品，失效可能直接导致治疗失败。外观无变化不代表效价达标，过期药应按规定回收而非继续服用。</dd>
@@ -391,14 +394,18 @@ function switchFilter(f, btn){
 }
 
 function getDaysLeft(expiry){
+  if(!expiry) return NaN;
   var now = new Date();
   now.setHours(0,0,0,0);
   var exp = new Date(expiry);
+  if(isNaN(exp.getTime())) return NaN;
   exp.setHours(0,0,0,0);
-  return Math.floor((exp - now) / (1000 * 60 * 60 * 24));
+  var days = Math.floor((exp - now) / (1000 * 60 * 60 * 24));
+  return isFinite(days) ? days : NaN;
 }
 
 function getStatus(daysLeft){
+  if(!isFinite(daysLeft)) return { level:'invalid', label:'效期无效', cls:'st-red', color:'#EF4444' };
   if(daysLeft < 0) return { level:'expired', label:'已过期', cls:'st-red', color:'#EF4444' };
   if(daysLeft <= 30) return { level:'critical', label:'紧急', cls:'st-orange', color:'#FF6B35' };
   if(daysLeft <= 90) return { level:'warning', label:'注意', cls:'st-yellow', color:'#F59E0B' };
@@ -413,8 +420,9 @@ function filterMeds(){
     if(currentFilter === 'all') return true;
     if(currentFilter === 'expired') return st.level === 'expired';
     if(currentFilter === 'critical') return st.level === 'critical';
-    if(currentFilter === 'warning') return st.level === 'warning' || st.level === 'critical' || st.level === 'expired';
-    if(currentFilter === 'safe') return st.level === 'safe' || st.level === 'soon';
+    if(currentFilter === 'warning') return st.level === 'warning';
+    if(currentFilter === 'soon') return st.level === 'soon';
+    if(currentFilter === 'safe') return st.level === 'safe';
     return true;
   });
 }
@@ -427,7 +435,8 @@ function renderList(){
   }
 
   var sorted = meds.slice().sort(function(a,b){
-    return getDaysLeft(a.expiry) - getDaysLeft(b.expiry);
+    var da = getDaysLeft(a.expiry), db = getDaysLeft(b.expiry);
+    return (isFinite(da) ? da : 999999) - (isFinite(db) ? db : 999999);
   });
 
   var filtered = sorted.filter(function(m){
@@ -436,8 +445,9 @@ function renderList(){
     var st = getStatus(days);
     if(currentFilter === 'expired') return st.level === 'expired';
     if(currentFilter === 'critical') return st.level === 'critical';
-    if(currentFilter === 'warning') return st.level === 'warning' || st.level === 'critical' || st.level === 'expired';
-    if(currentFilter === 'safe') return st.level === 'safe' || st.level === 'soon';
+    if(currentFilter === 'warning') return st.level === 'warning';
+    if(currentFilter === 'soon') return st.level === 'soon';
+    if(currentFilter === 'safe') return st.level === 'safe';
     return true;
   });
 
@@ -450,7 +460,7 @@ function renderList(){
   filtered.forEach(function(m){
     var days = getDaysLeft(m.expiry);
     var st = getStatus(days);
-    var daysText = days < 0 ? '已过期'+Math.abs(days)+'天' : '剩'+days+'天';
+    var daysText = !isFinite(days) ? '效期无效' : (days < 0 ? '已过期'+Math.abs(days)+'天' : '剩'+days+'天');
 
     html += '<div class="med-row">';
     html += '<div class="status-dot" style="background:'+st.color+';"></div>';
@@ -481,32 +491,38 @@ function renderStats(){
   if(meds.length === 0){ const __h3='';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){grid.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}grid.innerHTML=__h3; return; }
 
   var total = meds.length;
-  var expired = 0, critical = 0, warning = 0, safe = 0;
+  var expired = 0, critical = 0, warning = 0, soon = 0, safe = 0, invalid = 0;
   meds.forEach(function(m){
     var st = getStatus(getDaysLeft(m.expiry));
     if(st.level === 'expired') expired++;
     else if(st.level === 'critical') critical++;
-    else if(st.level === 'warning' || st.level === 'soon') warning++;
-    else safe++;
+    else if(st.level === 'warning') warning++;
+    else if(st.level === 'soon') soon++;
+    else if(st.level === 'safe') safe++;
+    else invalid++;
   });
 
-  const __h4='<div class="stat-card"><div class="val">'+total+'</div><div class="lbl">药品总数</div></div>' +
-    '<div class="stat-card"><div class="val" style="color:#10B981;">'+safe+'</div><div class="lbl">安全（6月+）</div></div>' +
-    '<div class="stat-card"><div class="val" style="color:#F59E0B;">'+warning+'</div><div class="lbl">注意（3月内）</div></div>' +
+  var __h4='<div class="stat-card"><div class="val">'+total+'</div><div class="lbl">药品总数</div></div>' +
+    '<div class="stat-card"><div class="val" style="color:#10B981;">'+safe+'</div><div class="lbl">安全（6个月以上）</div></div>' +
+    '<div class="stat-card"><div class="val" style="color:#F59E0B;">'+soon+'</div><div class="lbl">关注（91–180天）</div></div>' +
+    '<div class="stat-card"><div class="val" style="color:#F59E0B;">'+warning+'</div><div class="lbl">注意（31–90天）</div></div>' +
     '<div class="stat-card"><div class="val" style="color:#FF6B35;">'+critical+'</div><div class="lbl">紧急（1月内）</div></div>' +
-    '<div class="stat-card"><div class="val" style="color:#EF4444;">'+expired+'</div><div class="lbl">已过期</div></div>';if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){grid.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}grid.innerHTML=__h4;
+    '<div class="stat-card"><div class="val" style="color:#EF4444;">'+expired+'</div><div class="lbl">已过期</div></div>';
+  if(invalid > 0){
+    __h4 += '<div class="stat-card"><div class="val" style="color:#EF4444;">'+invalid+'</div><div class="lbl">效期无效</div></div>';
+  }if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){grid.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}grid.innerHTML=__h4;
 }
 
 function __medChart(){
   if(typeof TBKit==='undefined'||!TBKit.chart) return;
   var host=document.getElementById('medChart'); if(!host) return;
   var en=TBKit.util.isEn();
-  if(meds && meds.length){
-    var sorted=meds.slice().sort(function(a,b){ return getDaysLeft(a.expiry)-getDaysLeft(b.expiry); });
+  var validMeds = (meds||[]).filter(function(m){ return isFinite(getDaysLeft(m.expiry)); });
+  if(validMeds.length){
+    var sorted=validMeds.slice().sort(function(a,b){ return getDaysLeft(a.expiry)-getDaysLeft(b.expiry); });
     var labels=[],data=[];
     sorted.forEach(function(m,i){
       var d=getDaysLeft(m.expiry);
-      if(!isFinite(d)) d=0;
       labels.push(en?('Med '+(i+1)):(m.name||'药品'));
       data.push(d);
     });
@@ -538,10 +554,13 @@ function renderAll(){
 function exportData(){
   if(meds.length === 0){ ToolBox.showToast(i18nText(),'warning'); return; }
   var lines = ['药品名称,批号,规格,有效期至,剩余天数,预警等级,存放位置'];
-  meds.slice().sort(function(a,b){ return getDaysLeft(a.expiry) - getDaysLeft(b.expiry); }).forEach(function(m){
+  meds.slice().sort(function(a,b){
+    var da = getDaysLeft(a.expiry), db = getDaysLeft(b.expiry);
+    return (isFinite(da) ? da : 999999) - (isFinite(db) ? db : 999999);
+  }).forEach(function(m){
     var days = getDaysLeft(m.expiry);
     var st = getStatus(days);
-    var daysText = days < 0 ? '已过期'+Math.abs(days)+'天' : '剩'+days+'天';
+    var daysText = !isFinite(days) ? '效期无效' : (days < 0 ? '已过期'+Math.abs(days)+'天' : '剩'+days+'天');
     lines.push([m.name,m.batch,m.spec,m.expiry,daysText,st.label,m.location].map(function(v){return '"'+String(v||'').replace(/"/g,'""')+'"';}).join(','));
   });
   var today = new Date().toISOString().slice(0,10);

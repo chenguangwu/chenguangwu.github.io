@@ -328,16 +328,41 @@ function toggleMode(){
   calc();
 }
 
+function setFieldInvalid(id, bad){
+  var el = document.getElementById(id);
+  if(!el) return;
+  if(bad){ el.classList.add('input-error'); el.setAttribute('aria-invalid','true'); }
+  else{ el.classList.remove('input-error'); el.removeAttribute('aria-invalid'); }
+}
+function fieldNum(id){
+  var el = document.getElementById(id);
+  var raw = String(el && el.value != null ? el.value : '').trim();
+  if(raw === '') return null;
+  var v = parseFloat(raw);
+  return isFinite(v) ? v : null;
+}
+function showFieldError(msg){
+  ToolBox.setResult('result', '<p style="color:var(--danger,#EF4444);">请检查输入：' + msg + '。</p>');
+}
 function calc(){
   var mode = document.getElementById('calcMode').value;
   var fmt = function(n, d){ return ToolBox.formatNumber(n, d != null ? d : 2); };
 
   if(mode === 'sf'){
-    var volume = parseFloat(document.getElementById('volume').value) || 0;
-    var weight = parseFloat(document.getElementById('weight').value) || 0;
-    var sf = weight > 0 ? volume / weight : 0; // m³/t
+    var volume = fieldNum('volume');
+    var weight = fieldNum('weight');
+    var vOk = volume !== null && volume > 0;
+    var wOk = weight !== null && weight > 0;
+    setFieldInvalid('volume', !vOk);
+    setFieldInvalid('weight', !wOk);
+    window.__stowage_factor_invalid = !vOk || !wOk;
+    if(!vOk || !wOk){
+      showFieldError('货物体积与货物重量均需为 >0 的数值');
+      return;
+    }
+    var sf = volume / weight; // m³/t
     var sfImperial = sf * 35.88; // ft³/LT
-    var density = volume > 0 ? weight / volume : 0; // t/m³
+    var density = weight / volume; // t/m³
 
     var cargoClass, classColor;
     if(sf < 0.6){ cargoClass = '重货（载重受限）'; classColor = 'var(--danger)'; }
@@ -374,17 +399,30 @@ function calc(){
     `;
     const __g1=html;ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
   } else {
-    var sf = parseFloat(document.getElementById('sfInput').value) || 0;
-    var totalWgt = parseFloat(document.getElementById('totalWeight').value) || 0;
-    var holdCap = parseFloat(document.getElementById('holdCapacity').value) || 0;
-    var dwt = parseFloat(document.getElementById('dwt').value) || 0;
+    var sf = fieldNum('sfInput');
+    var totalWgt = fieldNum('totalWeight');
+    var holdCap = fieldNum('holdCapacity');
+    var dwt = fieldNum('dwt');
+    var sfOk = sf !== null && sf > 0;
+    var twOk = totalWgt !== null && totalWgt >= 0;
+    var hcOk = holdCap !== null && holdCap > 0;
+    var dwtOk = dwt !== null && dwt > 0;
+    setFieldInvalid('sfInput', !sfOk);
+    setFieldInvalid('totalWeight', !twOk);
+    setFieldInvalid('holdCapacity', !hcOk);
+    setFieldInvalid('dwt', !dwtOk);
+    window.__stowage_factor_invalid = !(sfOk && twOk && hcOk && dwtOk);
+    if(!(sfOk && twOk && hcOk && dwtOk)){
+      showFieldError('积载因数、船舶舱容与载重吨需为 >0 的数值，总货量需为 ≥0 的数值');
+      return;
+    }
 
     var requiredCap = totalWgt * sf; // 所需舱容
     var capUtilization = holdCap > 0 ? requiredCap / holdCap * 100 : 0; // 舱容利用率
     var weightUtilization = dwt > 0 ? totalWgt / dwt * 100 : 0; // 载重利用率
 
     // 最大装载量
-    var maxByCapacity = sf > 0 ? holdCap / sf : 0; // 舱容限制
+    var maxByCapacity = holdCap / sf; // 舱容限制
     var maxByWeight = dwt; // 载重限制
     var maxLoad = Math.min(maxByCapacity, maxByWeight);
 
@@ -575,6 +613,7 @@ function __stowage_factorRender(keys,rk,en){
 function __stowage_factorExtras(){
     if (typeof TBKit === 'undefined') return;
     if (__stowage_factor_skip) return;
+    if (window.__stowage_factor_invalid) return;
     var snap=__stowage_factorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;

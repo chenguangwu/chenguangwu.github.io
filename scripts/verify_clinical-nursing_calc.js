@@ -245,9 +245,9 @@ const CASES = [
     "cnt": "10"
   },
   "expect": [
-    "生成 10 条压力性损伤预防要点"
+    "生成结果：共 6 条"
   ],
-  "ref": "双态零交集：expect 仅锚定稳定计数（生成条数随 cnt 变），不抓 Math.random 随机内容。判别器清空 inputs（默认 cnt=5）→ 期望 5 条 ≠ 10 条 ⇒ 非逃生项。"
+  "ref": "上限封顶：cnt=10 只允许 6 个分期各 1 条，输出「共 6 条」；默认 cnt=5 输出「共 5 条」，判别器清空 inputs 亦为 5 条 ⇒ 非逃生项，且不抓 Math.random 随机内容。"
 },
 {
   "slug": "clinical-nursing/iv-drip-rate",

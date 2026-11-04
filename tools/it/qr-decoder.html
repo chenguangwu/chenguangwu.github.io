@@ -247,17 +247,31 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function safeDecodeURI(s){
+  try{return {value:decodeURIComponent(s),ok:true};}catch(e){return {value:s,ok:false};}
+}
+function parseWifiFields(body){
+  const fields={};let key='',val='',inValue=false;
+  for(let i=0;i<body.length;i++){
+    const ch=body.charAt(i);
+    if(ch==='\\'&&i+1<body.length){val+=body.charAt(i+1);i++;continue;}
+    if(ch===';'){if(key)fields[key]=val;key='';val='';inValue=false;continue;}
+    if(ch===':'&&!inValue){key=val;val='';inValue=true;continue;}
+    val+=ch;
+  }
+  if(key)fields[key]=val;
+  return fields;
+}
+function wifiValue(v){return /%[0-9A-Fa-f]{2}|%u[0-9A-Fa-f]{4}/.test(v)?unescape(v):v;}
 function decode(text){
   text=text.trim();
   if(!text)return '请输入内容';
   const types=[];
   // WiFi
   if(/^WIFI:/i.test(text)){
-    const m={};
-    const re=/([TSPH]):([^;]*)/g;let r;
-    while((r=re.exec(text))){m[r[1]]=r[2];}
+    const m=parseWifiFields(text.replace(/^WIFI:/i,''));
     types.push({type:'WiFi 网络',fields:{
-      '加密方式':m.T||'','网络名称':unescape(m.S||''),'密码':unescape(m.P||''),'隐藏':m.H||'false'
+      '加密方式':m.T||'','网络名称':wifiValue(m.S||''),'密码':wifiValue(m.P||''),'隐藏':m.H||'false'
     }});
   }
   // mailto
@@ -276,7 +290,17 @@ function decode(text){
   if(/^geo:/i.test(text)){
     const rest=text.slice(4);const parts=rest.split('?');
     const coords=parts[0].split(',');
-    types.push({type:'位置',fields:{'纬度':coords[0]||'','经度':coords[1]||'','查询':parts[1]?decodeURIComponent(parts[1].replace(/^q=/,'')):''}});
+    const fields={'纬度':coords[0]||'','经度':coords[1]||''};
+    if(parts[1]!==undefined){
+      if(/^q=/.test(parts[1])){
+        const d=safeDecodeURI(parts[1].slice(2));
+        fields['查询']=d.value;
+        if(!d.ok) fields['查询提示']='百分号编码非法，已按原文显示';
+      }else{
+        fields['查询']=parts[1];
+      }
+    }
+    types.push({type:'位置',fields:fields});
   }
   // URL
   if(/^https?:\/\//i.test(text)){types.push({type:'网址',fields:{'URL':text}});}
@@ -313,7 +337,12 @@ function decode(text){
 }
 function generate(){
   const input=document.getElementById('input').value;
-  const __h1=decode(input);if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h1;
+  const out=document.getElementById('output');
+  try{
+    const __h1=decode(input);if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;
+  }catch(e){
+    out.innerHTML='<p style="color:var(--danger)">⚠ <span data-zh="解析失败，内容格式异常">Failed to parse: malformed content</span>：'+escapeHtml((e&&e.message)||e)+'</p>';
+  }
 }
 function copyResult(){
   const text = document.getElementById('output').textContent || document.getElementById('output').innerText;

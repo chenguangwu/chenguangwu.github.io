@@ -355,7 +355,20 @@ function toggleVisibility(){
     btn.textContent='显示';
   }
 }
+// 密码学安全随机整数（拒绝采样消除模偏差）
+function secureRandomInt(max){
+  if(max<=0)return 0;
+  var limit=Math.floor(4294967296/max)*max;
+  var buf=new Uint32Array(1);
+  do{crypto.getRandomValues(buf);}while(buf[0]>=limit);
+  return buf[0]%max;
+}
+function randomChar(str){return str.charAt(secureRandomInt(str.length));}
 function generatePassword(){
+  if(!(window.crypto&&typeof crypto.getRandomValues==='function')){
+    ToolBox.showToast('当前浏览器不支持安全随机数，无法生成密码，请更换浏览器。','warning');
+    return;
+  }
   var lower='abcdefghijklmnopqrstuvwxyz';
   var upper='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   var digits='0123456789';
@@ -363,15 +376,20 @@ function generatePassword(){
   var all=lower+upper+digits+symbols;
   var pwd='';
   // 确保每种至少一个
-  pwd+=lower[Math.floor(Math.random()*lower.length)];
-  pwd+=upper[Math.floor(Math.random()*upper.length)];
-  pwd+=digits[Math.floor(Math.random()*digits.length)];
-  pwd+=symbols[Math.floor(Math.random()*symbols.length)];
+  pwd+=randomChar(lower);
+  pwd+=randomChar(upper);
+  pwd+=randomChar(digits);
+  pwd+=randomChar(symbols);
   for(var i=0;i<12;i++){
-    pwd+=all[Math.floor(Math.random()*all.length)];
+    pwd+=randomChar(all);
   }
-  // 打乱
-  pwd=pwd.split('').sort(function(){return Math.random()-0.5;}).join('');
+  // Fisher-Yates 洗牌（无偏）
+  var chars=pwd.split('');
+  for(var si=chars.length-1;si>0;si--){
+    var sj=secureRandomInt(si+1);
+    var tmp=chars[si];chars[si]=chars[sj];chars[sj]=tmp;
+  }
+  pwd=chars.join('');
   document.getElementById('pwdInput').value=pwd;
   document.getElementById('pwdInput').type='text';
   document.getElementById('visBtn').textContent='隐藏';

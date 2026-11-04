@@ -123,7 +123,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入当前总碱度、目标总碱度与水体体积，计算需要添加的碳酸氢钠或石灰用量。">Hardness Water Quality</p>
     <div class="formula-box">
       <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">养殖水体总碱度调节计算<br>调节量（CaCO₃ 计）= (目标 − 当前) × 水体体积 ÷ 1000（kg）<br>碳酸氢钠用量 = 调节量 × 1.68（kg；当量比 84/50）<br>石灰(CaO) 用量 = 调节量 × 0.56（kg）<br>提升时二选一：小苏打见效快温和；石灰兼补钙硬度<br>建议分 2~3 次泼洒，施用后复测<br>需降低时不建议药剂直降：换水/减投/少量多次<br>输入校验：总碱度 ≥0、水体体积 &gt;0<br>目标 = 当前时仅需维持监测</div>
-      <p class="formula-desc" data-zh="核心计算公式（按输入变量）：diff×iv.vol÷1000；adjust×0.84；adjust×0.56">Key formulas: diff×iv.vol÷1000; adjust×0.84; adjust×0.56</p>
+      <p class="formula-desc" data-zh="核心计算公式（按输入变量）：diff×iv.vol÷1000；adjust×1.68；adjust×0.56">Key formulas: diff×iv.vol÷1000; adjust×1.68; adjust×0.56</p>
     </div>
     <div class="input-row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;align-items:end;">
       <div><label>当前总碱度（mg/L CaCO₃）</label><input type="number" id="cur" value="30" min="0" step="any" enterkeyhint="done" aria-label="当前总碱度" placeholder="如 30"></div>
@@ -190,18 +190,21 @@ function setInvalid(el,invalid){
   if(invalid){el.classList.add('input-error');el.setAttribute('aria-invalid','true');}
   else{el.classList.remove('input-error');el.removeAttribute('aria-invalid');}
 }
+function fieldVal(id){var raw=document.getElementById(id).value.trim();if(raw==='')return null;var v=parseFloat(raw);return isFinite(v)?v:null;}
 function readInputs(){
-  var cur=getNum('cur'),target=getNum('target'),vol=getNum('vol');
-  setInvalid(document.getElementById('cur'),!(cur>=0));
-  setInvalid(document.getElementById('target'),!(target>=0));
-  setInvalid(document.getElementById('vol'),!(vol>0));
-  var valid=cur>=0&&target>=0&&vol>0;
-  return {cur:cur,target:target,vol:vol,valid:valid};
+  var cur=fieldVal('cur'),target=fieldVal('target'),vol=fieldVal('vol');
+  var curOk=cur!==null&&cur>=0, targetOk=target!==null&&target>=0, volOk=vol!==null&&vol>0;
+  setInvalid(document.getElementById('cur'),!curOk);
+  setInvalid(document.getElementById('target'),!targetOk);
+  setInvalid(document.getElementById('vol'),!volOk);
+  var valid=curOk&&targetOk&&volOk;
+  return {cur:cur,target:target,vol:vol,valid:valid,curOk:curOk,targetOk:targetOk,volOk:volOk};
 }
 function calc(){
   var iv=readInputs();
+  window.__hardness_water_quality_invalid=!iv.valid;
   if(!iv.valid){
-    document.getElementById('res').innerHTML='<p style="color:var(--danger,#EF4444);">请检查输入：总碱度需 ≥0，水体体积需 >0。</p>';
+    document.getElementById('res').innerHTML='<p style="color:var(--danger,#EF4444);">请检查输入：当前/目标总碱度需为 ≥0 的数值，水体体积需为 >0 的数值。</p>';
     return;
   }
   var diff=iv.target-iv.cur;
@@ -360,6 +363,7 @@ function __hardness_water_qualityRender(keys,rk,en){
 function __hardness_water_qualityExtras(){
     if (typeof TBKit === 'undefined') return;
     if (__hardness_water_quality_skip) return;
+    if (window.__hardness_water_quality_invalid) return;
     var snap=__hardness_water_qualitySnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -477,7 +481,7 @@ else document.addEventListener('DOMContentLoaded', __hardness_water_qualityBoot)
     <h4><span class="h4-icon">✨</span>功能特点</h4>
     <ul class="intro-features">
       <li>按 (目标−当前)×体积 计算调节量</li>
-      <li>同步给出碳酸氢钠(×0.84)与石灰(×0.56)两种方案</li>
+      <li>同步给出碳酸氢钠(×1.68)与石灰(×0.56)两种方案</li>
       <li>识别需降低情形并给出换水建议</li>
       <li>结果可复制、历史可回溯，本地保存</li>
     </ul>

@@ -157,7 +157,7 @@ s.parentNode.insertBefore(el, s);
   <div class="formula-desc">EAN-13 用 13 位数字表示商品，前 2–3 位为国家/地区前缀（中国 690–695），随后是厂商代码、商品代码，末位为校验位。编码结构上分左右两半各 6 位：左侧每位从 A 或 B 两套编码中选一套，选法由首位数字决定（这也是首位不单独画条空的原因）；右侧统一用 C 编码。中间以 01010 分隔，两端为 101 护线，总宽 95 个模块。校验位用 mod 10 加权：前 12 位按 1、3 交替加权求和，取补到 10 的余数。</div>
 </div>
 
-    <label>数字（12 或 13 位，不足自动补校验位）</label>
+    <label>数字（12 或 13 位；12 位自动补校验位）</label>
     <input type="text" id="data" value="690123456789" maxlength="13" style="margin-bottom:12px;">
     <div class="toolbar">
       <div id="barcode_eanPresets"></div><button type="button" class="btn primary" onclick="generate()">生成</button><button class="btn" type="button" onclick="downloadBarcodePNG()">下载 PNG</button><button class="btn" type="button" onclick="__barcode_eanExport()">导出明细 CSV</button>
@@ -191,7 +191,7 @@ s.parentNode.insertBefore(el, s);
 <li>商品零售编码：EAN-13 是全球超市结算的主流条码，前 2–3 位为国家/地区前缀（中国 690–695），上架前需向编码组织申请厂商代码。</li>
 <li>校验位复核：录入或生成 13 位编码后，用 mod 10 加权（1、3 交替）复算末位校验位，可立即发现手抄或导入时的一位数字错误。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">生成</div><div class="dd-ex-body">输入数字串（如 `123456789`）→ 渲染 EAN 条码图形；请按规范长度与校验位填写。</div></div>
+<div class="dd-example"><div class="dd-ex-title">生成</div><div class="dd-ex-body">输入 12 或 13 位数字（如 `690123456789`，12 位自动补校验位）→ 渲染 EAN 条码图形；13 位输入会校验末位校验位。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>EAN-13 的校验位怎么算？</dt><dd>取前 12 位，从左到右按 1、3、1、3… 交替加权求和，用 10 减去「和除以 10 的余数」再对 10 取余，即得到第 13 位。例如和除以 10 余 3，则校验位为 7；余 0 时校验位为 0。</dd>
@@ -253,10 +253,19 @@ function eanCheck(d12){
   return (10-sum%10)%10;
 }
 function buildEAN(input){
-  let d=input.replace(/\D/g,'');
-  if(d.length<12)d=d.padEnd(12,'0').slice(0,12);
-  if(d.length===12)d+=eanCheck(d);
-  if(d.length>=13)d=d.slice(0,13);
+  const raw=String(input==null?'':input).trim();
+  if(!raw) return {error:'empty'};
+  const bad=raw.replace(/[0-9\s]/g,'');
+  if(bad) return {error:'nonDigit'};
+  let d=raw.replace(/\s+/g,'');
+  if(d.length<12) return {error:'short'};
+  if(d.length>13) return {error:'long'};
+  if(d.length===12){
+    d=d+eanCheck(d);
+  }else{
+    const expect=eanCheck(d.slice(0,12));
+    if(parseInt(d.charAt(12),10)!==expect) return {error:'check',expect:expect};
+  }
   const first=parseInt(d[0]);
   const parity=PARITY[first];
   let bits='101';
@@ -293,11 +302,24 @@ function downloadBarcodePNG(){
   a.click();
   if(window.ToolBox&&ToolBox.showToast)ToolBox.showToast('PNG 已下载','success');
 }
+var EAN_ERR={
+  empty:['请输入 12 或 13 位数字（EAN-13）','Enter a 12- or 13-digit number (EAN-13)'],
+  nonDigit:['输入含非数字字符，请只填写数字','Input contains non-digit characters; enter digits only'],
+  short:['位数不足：EAN-13 需要 12 或 13 位数字','Too short: EAN-13 needs 12 or 13 digits'],
+  long:['位数超长：EAN-13 最多 13 位数字','Too long: EAN-13 accepts at most 13 digits'],
+  check:['校验位错误：正确的第 13 位应为','Check digit mismatch: the correct 13th digit is']
+};
 function generate(){
   const input=document.getElementById('data').value;
-  const {d,bits}=buildEAN(input);
-  const canvas=drawBarcode(bits,d);
+  const r=buildEAN(input);
   const out=document.getElementById('output');
+  if(r.error){
+    const m=EAN_ERR[r.error]||EAN_ERR.empty;
+    out.innerHTML='<p style="color:var(--danger)">⚠ <span data-zh="'+m[0]+'">'+m[1]+'</span>'+(r.expect!=null?' <code>'+r.expect+'</code>':'')+'</p>';
+    return;
+  }
+  const {d,bits}=r;
+  const canvas=drawBarcode(bits,d);
   const __h0='<div class="bar-wrap"></div><div class="bar-text">'+d+'</div>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0;
   out.querySelector('.bar-wrap').appendChild(canvas);
 }
@@ -436,7 +458,7 @@ function __barcode_eanExport(){
 function __barcode_eanPresets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#barcode_eanPresets',[{label:'默认参数',labelEn:'Default',values:{'data':'690123456789'}},
-  {'label':'示例一','labelEn':'Sample 1','values':{'data':'6901234567890'}},
+  {'label':'示例一','labelEn':'Sample 1','values':{'data':'6901234567892'}},
   {'label':'示例二','labelEn':'Sample 2','values':{'data':'1234567890128'}},
   {'label':'示例三','labelEn':'Sample 3','values':{'data':'5901234123457'}}],function(){ generate(); });
 }

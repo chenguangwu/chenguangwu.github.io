@@ -334,10 +334,27 @@ function switchTab(name){
   if(name==='history')renderHistory();
 }
 
+function readInputs(){
+  const totalRaw=document.getElementById('total').value.trim();
+  const correctRaw=document.getElementById('correct').value.trim();
+  const ptsRaw=document.getElementById('points').value.trim();
+  const total=Number(totalRaw), correct=Number(correctRaw), pts=Number(ptsRaw);
+  if(!totalRaw||!Number.isInteger(total)||total<1) return {err:'总题数须为 ≥1 的整数'};
+  if(!correctRaw||!Number.isInteger(correct)||correct<0) return {err:'答对题数须为 ≥0 的整数'};
+  if(correct>total) return {err:'答对题数不能超过总题数'};
+  if(!ptsRaw||!Number.isFinite(pts)||pts<=0) return {err:'每题分值须大于 0'};
+  return {correct,total,pts};
+}
+
 function calc(){
-  const correct=parseInt(document.getElementById('correct').value)||0;
-  const total=parseInt(document.getElementById('total').value)||1;
-  const pts=parseFloat(document.getElementById('points').value)||1;
+  const v=readInputs();
+  if(v.err){
+    document.getElementById('questions').innerHTML='';
+    const rb=document.getElementById('resultRefBar'); if(rb) rb.innerHTML='';
+    document.getElementById('result').innerHTML=`<div style="padding:16px;text-align:center;color:var(--danger);font-weight:600;">⚠️ <span>${v.err}</span></div>`;
+    return;
+  }
+  const {correct,total,pts}=v;
   const wrong=Math.max(0,total-correct);
   const pct=total>0?(correct/total*100):0;
   const score=correct*pts;
@@ -384,9 +401,9 @@ function calc(){
 }
 
 function saveToHistory(){
-  const correct=parseInt(document.getElementById('correct').value)||0;
-  const total=parseInt(document.getElementById('total').value)||1;
-  const pts=parseFloat(document.getElementById('points').value)||1;
+  const v=readInputs();
+  if(v.err){ ToolBox.showToast(v.err,'error'); return; }
+  const {correct,total,pts}=v;
   const quizName=document.getElementById('quizName').value.trim();
   const pct=total>0?(correct/total*100):0;
   const score=correct*pts;

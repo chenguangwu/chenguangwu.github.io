@@ -541,7 +541,7 @@ s.parentNode.insertBefore(el, s);
     var text = document.getElementById('input').value.trim();
     if(!text) return ToolBox.showToast(i18nText('toast.msg906'), 'warning');
     try{
-      var decoded = text.replace(/\+/g, '%20');
+      var decoded = document.getElementById('plusSpace').checked ? text.replace(/\+/g, '%20') : text;
       decoded = decodeURIComponent(decoded);
       document.getElementById('output').value = decoded;
       onInputChange();
@@ -622,29 +622,38 @@ s.parentNode.insertBefore(el, s);
   }
 
   function updateParam(idx, val, field){
+    if(!params[idx]) return;
     params[idx][field] = val;
     buildUrl();
   }
 
   function buildUrl(){
     var base = document.getElementById('baseUrl').value.trim();
-    var result = base || '';
+    var hash = '';
+    var hashIdx = base.indexOf('#');
+    if(hashIdx !== -1){
+      hash = base.slice(hashIdx);
+      base = base.slice(0, hashIdx);
+    }
     var queryParts = [];
     params.forEach(function(p){
       if(p.key.trim()){
         queryParts.push(encodeURIComponent(p.key) + '=' + encodeURIComponent(p.value));
       }
     });
+    var result = base;
     if(queryParts.length > 0){
-      if(result && result.indexOf('?') === -1){
-        result += '?' + queryParts.join('&');
-      } else if(result && result.indexOf('?') !== -1){
-        result += '&' + queryParts.join('&');
+      var qs = queryParts.join('&');
+      var trimmed = base.replace(/[?&]+$/, '');
+      if(!trimmed){
+        result = '?' + qs;
+      } else if(trimmed.indexOf('?') === -1){
+        result = trimmed + '?' + qs;
       } else {
-        result = '?' + queryParts.join('&');
+        result = trimmed + '&' + qs;
       }
     }
-    document.getElementById('builtUrl').value = result;
+    document.getElementById('builtUrl').value = result + hash;
   }
 
   function copyBuiltUrl(){

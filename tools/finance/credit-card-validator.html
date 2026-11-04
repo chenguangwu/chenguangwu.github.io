@@ -383,11 +383,13 @@ function validate(){
   // 长度判断
   let lengthInfo = '';
   let lengthOk = false;
+  let genericLengthOk = digits.length >= 13 && digits.length <= 19;
   if(brand.lengths.length > 0){
     lengthOk = brand.lengths.includes(digits.length);
     lengthInfo = `当前 ${digits.length} 位，期望 ${brand.lengths.join('/')} 位`;
   } else {
-    lengthInfo = `当前 ${digits.length} 位（卡组织通常 13-19 位）`;
+    lengthOk = genericLengthOk;
+    lengthInfo = `当前 ${digits.length} 位（卡组织未知，按通用 13-19 位判定）`;
   }
 
   let html = '';
@@ -397,8 +399,12 @@ function validate(){
   html += `<p><strong>长度校验：</strong> ${lengthOk ? '✅' : '⚠️'} ${lengthInfo}</p>`;
   html += `<p><strong>Luhn 校验：</strong> ${luhnValid ? '✅ 通过' : '❌ 未通过'}</p>`;
 
-  if(digits.length >= brand.lengths[0] && luhnValid && lengthOk){
-    html += `<p style="color:var(--success);font-weight:600;">✅ 卡号有效</p>`;
+  if(luhnValid && lengthOk){
+    if(brand.lengths.length > 0){
+      html += `<p style="color:var(--success);font-weight:600;">✅ 卡号有效</p>`;
+    } else {
+      html += `<p style="color:var(--success);font-weight:600;">✅ Luhn 校验通过（卡组织未知，按 13–19 位通用长度判定）</p>`;
+    }
   } else if(!luhnValid && digits.length >= 12){
     html += `<p style="color:var(--danger);font-weight:600;">❌ Luhn 校验失败，卡号无效</p>`;
   } else {

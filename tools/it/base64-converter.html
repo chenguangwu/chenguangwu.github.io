@@ -464,13 +464,13 @@ s.parentNode.insertBefore(el, s);
   }
 
   function base32Decode(str){
-    str = str.toUpperCase().replace(/=+$/,'');
+    str = str.toUpperCase().replace(/\s+/g,'').replace(/=+$/,'');
     var bytes = [];
     var buffer = 0;
     var bits = 0;
     for(var i=0;i<str.length;i++){
       var idx = BASE32_CHARS.indexOf(str[i]);
-      if(idx === -1) continue;
+      if(idx === -1) throw new Error(__b64L('Invalid character "'+str[i]+'" at position '+(i+1)+' in Base32 input','Base32 输入第 '+(i+1)+' 位含非法字符「'+str[i]+'」'));
       buffer = (buffer << 5) | idx;
       bits += 5;
       if(bits >= 8){
@@ -478,6 +478,8 @@ s.parentNode.insertBefore(el, s);
         bytes.push((buffer >> bits) & 0xFF);
       }
     }
+    if(bits >= 5) throw new Error(__b64L('Invalid Base32 length (truncated final group)','Base32 长度无效（末组不完整）'));
+    if(bits > 0 && (buffer & ((1 << bits) - 1)) !== 0) throw new Error(__b64L('Non-zero Base32 padding bits (truncated input)','Base32 填充位非零，输入可能被截断'));
     return new Uint8Array(bytes);
   }
 
@@ -512,28 +514,32 @@ s.parentNode.insertBefore(el, s);
 
   function base85Decode(str){
     str = str.replace(/^<~|~>$/g,'').replace(/\s/g,'');
+    if(str.indexOf('~>') !== -1) throw new Error(__b64L('Unexpected "~>" inside Base85 data','Base85 数据内部出现多余的「~>」'));
     var bytes = [];
     var value = 0;
     var count = 0;
     for(var i=0;i<str.length;i++){
       var c = str[i];
       if(c === 'z'){
-        if(count !== 0) throw new Error('Invalid z position');
+        if(count !== 0) throw new Error(__b64L('Invalid "z" position in Base85 input','Base85 输入中「z」位置无效（须位于 5 字符组开头）'));
         bytes.push(0,0,0,0);
         continue;
       }
       var idx = BASE85_CHARS.indexOf(c);
-      if(idx === -1) continue;
+      if(idx === -1) throw new Error(__b64L('Invalid character "'+c+'" at position '+(i+1)+' in Base85 input','Base85 输入第 '+(i+1)+' 位含非法字符「'+c+'」'));
       value = value * 85 + idx;
       count++;
       if(count === 5){
+        if(value > 0xFFFFFFFF) throw new Error(__b64L('Base85 group exceeds 32-bit range','Base85 字符组超出 32 位范围'));
         bytes.push((value >> 24) & 0xFF, (value >> 16) & 0xFF, (value >> 8) & 0xFF, value & 0xFF);
         value = 0;
         count = 0;
       }
     }
     if(count > 0){
+      if(count === 1) throw new Error(__b64L('Truncated Base85 group','Base85 末组不完整（仅 1 个字符）'));
       for(var j=count;j<5;j++) value = value * 85 + 84;
+      if(value > 0xFFFFFFFF) throw new Error(__b64L('Base85 group exceeds 32-bit range','Base85 字符组超出 32 位范围'));
       for(var k=0;k<count-1;k++){
         bytes.push((value >> (24 - k*8)) & 0xFF);
       }
@@ -682,7 +688,7 @@ s.parentNode.insertBefore(el, s);
       onInputChange();
       addHistory(input, result, 'decode');
     }catch(e){
-      ToolBox.showToast('解码失败：请输入有效的 ' + currentAlgo.toUpperCase() + ' 字符串', 'error');
+      ToolBox.showToast(__b64L('Decode failed: ','解码失败：') + ((e && e.message) || ('请输入有效的 ' + currentAlgo.toUpperCase() + ' 字符串')), 'error');
     }
   }
 
@@ -817,7 +823,7 @@ s.parentNode.insertBefore(el, s);
       try{
         results.push({src: line, dst: decode(line.trim(), urlSafe), ok: true});
       }catch(e){
-        results.push({src: line, dst: '解码失败', ok: false});
+        results.push({src: line, dst: ((e && e.message) || __b64L('Decode failed','解码失败')), ok: false});
       }
     });
     renderBatchResult(results);

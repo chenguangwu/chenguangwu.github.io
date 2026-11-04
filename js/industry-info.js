@@ -121,7 +121,7 @@ window.INDUSTRY_INFO = {
   'gas'                  : { name: '燃气工程', icon: '🔥', hot: 126466 },
   'safety'               : { name: '安全生产', icon: '🦺', hot: 125029 },
   'gardening'            : { name: '园艺种植', icon: '🌿', hot: 124285 },
-  'language'             : { name: '语言翻译', icon: '🌍', hot: 123740 },
+  'language'             : { name: '语言翻译', icon: '🌍', hot: 123741 },
   'leather'              : { name: '皮革加工', icon: '👜', hot: 122016 },
   'decor'                : { name: '室内装修', icon: '🛋️', hot: 119665 },
   'restaurant'           : { name: '餐饮经营', icon: '🍽️', hot: 114959 },

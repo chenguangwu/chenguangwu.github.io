@@ -277,9 +277,9 @@ s.parentNode.insertBefore(el, s);
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);">request limit</td>
         </tr>
         <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="语种检测">Language detection</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="按输入文本自动判定">Determined automatically from the input text</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">language detection</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="词表规模">Dictionary size</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="按当前源/目标语言对读取本地词表，实际条数显示在输入框下方">Reads the local word list for the selected source/target pair; the actual entry count is shown below the input</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">local dictionary</td>
         </tr>
       </tbody>
     </table>
@@ -614,9 +614,21 @@ function joinSegments(tokens, tgt) {
   return out.trim();
 }
 
+function refreshPairInfo() {
+  const src = document.getElementById('src-lang').value;
+  const tgt = document.getElementById('tgt-lang').value;
+  const dict = DICT[`${src}-${tgt}`];
+  const count = dict ? Object.keys(dict).length : 0;
+  const enUi = (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn());
+  document.getElementById('trans-info').textContent = enUi
+    ? (dict ? `Source: ${src} → Target: ${tgt} · ${count} local entries` : `${src} → ${tgt}: not supported yet`)
+    : (dict ? `源语言: ${src} → 目标语言: ${tgt} · 本地词表 ${count} 条` : `暂不支持 ${src}→${tgt} 翻译`);
+}
+
 function trans() {
   const src = document.getElementById('src-lang').value;
   const tgt = document.getElementById('tgt-lang').value;
+  refreshPairInfo();
   const text = document.getElementById('src-text').value.trim();
   if (!text) {
     document.getElementById('tgt-text').value = '';
@@ -638,12 +650,13 @@ function trans() {
     result = joinSegments(segmentText(text, dict, src), tgt);
   }
   document.getElementById('tgt-text').value = result || `[词典中未找到"${text}",尝试中英互译]`;
-  const enUi = (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn());
-  document.getElementById('trans-info').textContent = enUi ? `Source: ${src} → Target: ${tgt}` : `源语言: ${src} → 目标语言: ${tgt}`;
 }
 
 renderPresets();
 renderQuick();
+document.getElementById('src-lang').addEventListener('change', refreshPairInfo);
+document.getElementById('tgt-lang').addEventListener('change', refreshPairInfo);
+refreshPairInfo();
 </script><script>
 (function(){
   function EN(){ try{ return (typeof TBKit!=='undefined' && TBKit.util.isEn()); }catch(e){ return false; } }

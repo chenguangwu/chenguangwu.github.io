@@ -232,7 +232,7 @@ s.parentNode.insertBefore(el, s);
 <li>奖分核算：满贯（小满贯成 6 / 大满贯成 7）、局况奖、超墩奖与加倍/再加倍附加奖分别计列。</li>
 <li>宕墩罚分：未成定约时按加倍状态与有无局况算罚分，局况下方罚更重。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">4♠ 加倍成约超 1 墩（有局况）演练</div><div class="dd-ex-body">输入定约 4♠、加倍、超 1 墩、有局况，工具输出定约基础分 120、加倍后 240、超墩 60、局况奖 500、加倍奖 50，合计约 850 分并提示未成则罚分规则。</div></div>
+<div class="dd-example"><div class="dd-ex-title">4♠ 加倍成约超 1 墩（有局况）演练</div><div class="dd-ex-body">输入定约 4♠、加倍、超 1 墩、有局况，工具输出定约基础分 120、加倍后 240、超墩 200、局况奖 500、加倍奖 50，合计 990 分；超额墩按有局加倍 200 分/墩计。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>高低阶花色基础分怎么算？</dt><dd>♠/♥ 高阶花色 30 分/墩，♦/♣ 低阶花色 20 分/墩，无将首墩 40 分、其后每墩 30 分；加倍后基础分翻倍。</dd>
@@ -288,9 +288,24 @@ function selectSuit(btn){
   curSuit=btn.dataset.suit;
   calc();
 }
+function setFieldInvalid(el, bad){
+  if(!el)return;
+  if(bad){el.classList.add('input-error');el.setAttribute('aria-invalid','true');}
+  else{el.classList.remove('input-error');el.removeAttribute('aria-invalid');}
+}
 function calc(){
-  var level=parseInt($('level').value)||1;
-  var tricks=parseInt($('tricks').value)||0;
+  var levelRaw=$('level').value.trim(), tricksRaw=$('tricks').value.trim();
+  var level=parseInt(levelRaw,10), tricks=parseInt(tricksRaw,10);
+  var levelOk=/^\d+$/.test(levelRaw)&&level>=1&&level<=7;
+  var tricksOk=/^\d+$/.test(tricksRaw)&&tricks>=0&&tricks<=13;
+  setFieldInvalid($('level'),!levelOk);
+  setFieldInvalid($('tricks'),!tricksOk);
+  window.__bridge_scoring_invalid=!levelOk||!tricksOk;
+  if(!levelOk||!tricksOk){
+    $('dataGrid').innerHTML='';
+    $('result').innerHTML='<p style="color:var(--danger,#EF4444);">请检查输入：定约级别需为 1–7 的整数，完成墩数需为 0–13 的整数。</p>';
+    return;
+  }
   var doubled=parseInt($('doubled').value);
   var vul=parseInt($('vulnerable').value);
   var needed=level+6;
@@ -520,6 +535,7 @@ function __bridge_scoringRender(keys,rk,en){
 function __bridge_scoringExtras(){
     if (typeof TBKit === 'undefined') return;
     if (__bridge_scoring_skip) return;
+    if (window.__bridge_scoring_invalid) return;
     var snap=__bridge_scoringSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -552,7 +568,7 @@ function __bridge_scoringExport(){
 }
 function __bridge_scoringPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#bridge_scoringPresets',[{label:'默认参数',labelEn:'Default',values:{'level':'3', 'tricks':'9', 'doubled':'0', 'vulnerable':'0'}},{"label":"小规模","labelEn":"Small scale","values":{"level":"1.5"}},{"label":"大规模","labelEn":"Large scale","values":{"level":"4.5"}},{"label":"极端工况","labelEn":"Extreme case","values":{"level":"6"}}],function(){ calc(); });
+    TBKit.preset.bar('#bridge_scoringPresets',[{label:'默认参数',labelEn:'Default',values:{'level':'3', 'tricks':'9', 'doubled':'0', 'vulnerable':'0'}},{"label":"小规模","labelEn":"Small scale","values":{"level":"1"}},{"label":"大规模","labelEn":"Large scale","values":{"level":"4"}},{"label":"极端工况","labelEn":"Extreme case","values":{"level":"6"}}],function(){ calc(); });
 }
 var __bridge_scoring_f0=(typeof calc==='function')?calc:null;
 if(__bridge_scoring_f0){

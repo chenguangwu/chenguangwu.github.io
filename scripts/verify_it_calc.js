@@ -3261,8 +3261,8 @@ const CASES = [
     inputs: { "input": "%E4%B8%AD%E6%96%87+x%3Fy" },
     clicks: ["decodeUrl();"],
     dumpIds: ["output"],
-    expect: ["中文 x?y"],
-    ref: "既有用例只测编码方向，本例测 decodeUrl：先 text.replace(/\+/g,'%20') 再 decodeURIComponent ⇒ %E4%B8%AD%E6%96%87 还原为「中文」、%3F 还原为 ?、+ 还原为空格。顺序是关键：若先解码再换 +，%20 会一路还原成空格、+ 保持字面，结果会不同。python 复算：unquote('%E4%B8%AD%E6%96%87+x%3Fy'.replace('+','%20')) = 中文 x?y。",
+    expect: ["中文+x?y"],
+    ref: "decodeUrl：%E4%B8%AD%E6%96%87 还原为「中文」、%3F 还原为 ?；仅在勾选「空格编码为 +」时才把 + 当空格，默认未勾选 ⇒ + 原样保留，输出 中文+x?y（python unquote 同口径）。",
   },
   {
     slug: "it/url-encode",
@@ -4012,12 +4012,12 @@ const CASES = [
   {
     "slug": "it/barcode-ean",
     "inputs": {
-      "data": "abc123测试"
+      "data": "12345"
     },
     "expect": [
-      "abc123测试\n1230000000000"
+      "Too short: EAN-13 needs 12 or 13 digits"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"data\":\"abc123测试\"}，输出区含「abc123测试\n1230000000000」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "位数校验：5 位输入不再补零，输出位数不足错误（英文态为 Too short）；默认样例 590123412345 合法，不出现该提示 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/barcode-msi",
