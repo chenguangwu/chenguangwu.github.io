@@ -399,7 +399,8 @@ s.parentNode.insertBefore(el, s);
 }
 
 
-function fmtNum(n,d){d=d==null?2:d;if(!isFinite(n))return '--';return parseFloat(n.toFixed(d)).toString();}
+// 此名不得与 common.js 全局 fmtNum 同名（保真模式会重绑，见 be1ead4b9b）
+function fmtLocal(n,d){d=d==null?2:d;if(!isFinite(n))return '--';return parseFloat(n.toFixed(d)).toString();}
 function val(id){return parseFloat(document.getElementById(id).value);}
 function str(id){return document.getElementById(id).value;}
 function toMin(s){
@@ -436,16 +437,16 @@ var R=document.getElementById('result'),G=document.getElementById('distGrid'),
 
   const __g2='<div class="result-grid">'
     +'<div class="result-item"><div class="result-label">下一班到达</div><div class="result-value">'+fmtT(arr)+'</div></div>'
-    +'<div class="result-item"><div class="result-label">已等待</div><div class="result-value">'+fmtNum(wait,0)+' 分钟</div></div>'
-    +'<div class="result-item"><div class="result-label">还需等待</div><div class="result-value">'+fmtNum(togo,0)+' 分钟</div></div>'
+    +'<div class="result-item"><div class="result-label">已等待</div><div class="result-value">'+fmtLocal(wait,0)+' 分钟</div></div>'
+    +'<div class="result-item"><div class="result-label">还需等待</div><div class="result-value">'+fmtLocal(togo,0)+' 分钟</div></div>'
     +'<div class="result-item"><div class="result-label">到达窗口</div><div class="result-value">'+fmtT(wLo)+' ~ '+fmtT(wHi)+'</div></div>'
     +'</div>';R.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 
   const __g3='<div class="dist-grid">'
-    +'<div class="dist-card"><h4>本线路（'+lineN+' 路）</h4><p>间隔 '+fmtNum(iv,0)+' 分钟</p><p>到达 '+fmtT(arr)+'（约 '+fmtNum(togo,0)+' 分钟后）</p></div>'
-    +'<div class="dist-card"><h4>对比线路</h4><p>间隔 '+fmtNum(iv2,0)+' 分钟</p><p>到达 '+(arr2?fmtT(arr2):'—')+'（'+(arr2?('约 '+fmtNum(arr2-now,0)+' 分钟后'):'—')+'）</p></div>'
-    +'<div class="dist-card"><h4>建议出发</h4><p>'+who+'</p><p>提前 '+fmtNum(Math.max(0,err+1),0)+' 分钟到站</p></div>'
-    +'<div class="dist-card"><h4>线路平均间隔</h4><p>'+fmtNum((iv+iv2)/2,1)+' 分钟</p><p>综合平均等待约 '+fmtNum((iv+iv2)/4,1)+' 分钟</p></div>'
+    +'<div class="dist-card"><h4>本线路（'+lineN+' 路）</h4><p>间隔 '+fmtLocal(iv,0)+' 分钟</p><p>到达 '+fmtT(arr)+'（约 '+fmtLocal(togo,0)+' 分钟后）</p></div>'
+    +'<div class="dist-card"><h4>对比线路</h4><p>间隔 '+fmtLocal(iv2,0)+' 分钟</p><p>到达 '+(arr2?fmtT(arr2):'—')+'（'+(arr2?('约 '+fmtLocal(arr2-now,0)+' 分钟后'):'—')+'）</p></div>'
+    +'<div class="dist-card"><h4>建议出发</h4><p>'+who+'</p><p>提前 '+fmtLocal(Math.max(0,err+1),0)+' 分钟到站</p></div>'
+    +'<div class="dist-card"><h4>线路平均间隔</h4><p>'+fmtLocal((iv+iv2)/2,1)+' 分钟</p><p>综合平均等待约 '+fmtLocal((iv+iv2)/4,1)+' 分钟</p></div>'
     +'</div>';G.innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 
   var rows='';
@@ -453,7 +454,7 @@ var R=document.getElementById('result'),G=document.getElementById('distGrid'),
     var tag=(i===0)?'下一班':'第 '+(i+1)+' 班';
     rows+='<tr><td style="padding:5px 8px;">'+tag+'</td>'
       +'<td style="padding:5px 8px;">'+fmtT(arr+i*iv)+'</td>'
-      +'<td style="padding:5px 8px;">'+fmtNum(arr+i*iv-now,0)+'</td>'
+      +'<td style="padding:5px 8px;">'+fmtLocal(arr+i*iv-now,0)+'</td>'
       +'<td style="padding:5px 8px;">'+fmtT(arr+i*iv-err)+' ~ '+fmtT(arr+i*iv+err)+'</td></tr>';
   }
   const __g4='<div class="formula-title">📐 估算口径</div> <div class="formula-eq">预计到达区间 = 预报到达时刻 ± 预报误差；已等待时长 = 当前时刻 − 最近更新时刻；剩余等待 = 到达时刻 − 当前时刻</div>'
@@ -468,8 +469,8 @@ var R=document.getElementById('result'),G=document.getElementById('distGrid'),
     +rows+'</table>';F.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
 
   var ad='';
-  ad+='<div class="tip-info">🚌 本线路下一班约 '+fmtT(arr)+' 到达，已等待 '+fmtNum(wait,0)+' 分钟，还需约 '+fmtNum(togo,0)+' 分钟；建议预留 '+fmtT(wLo)+'~'+fmtT(wHi)+' 的到达窗口。</div>';
-  if(arr2&&arr2<arr) ad+='<div class="tip-warn">⚠️ 对比线路预计 '+fmtT(arr2)+' 到达，比本线路早 '+fmtNum(arr-arr2,0)+' 分钟，赶时间可考虑改乘。</div>';
+  ad+='<div class="tip-info">🚌 本线路下一班约 '+fmtT(arr)+' 到达，已等待 '+fmtLocal(wait,0)+' 分钟，还需约 '+fmtLocal(togo,0)+' 分钟；建议预留 '+fmtT(wLo)+'~'+fmtT(wHi)+' 的到达窗口。</div>';
+  if(arr2&&arr2<arr) ad+='<div class="tip-warn">⚠️ 对比线路预计 '+fmtT(arr2)+' 到达，比本线路早 '+fmtLocal(arr-arr2,0)+' 分钟，赶时间可考虑改乘。</div>';
   if(togo<=err) ad+='<div class="tip-warn">⚠️ 剩余等待已小于平均误差，建议立即到站等候，避免错过班次。</div>';
   const __g5=ad;A.innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
 }

@@ -365,7 +365,8 @@ s.parentNode.insertBefore(el, s);
   </div>
 </div>
 <script>
-function fmtNum(n,d){d=d==null?2:d;if(!isFinite(n))return '--';return parseFloat(n.toFixed(d)).toString();}
+// 此名不得与 common.js 全局 fmtNum 同名（保真模式会重绑，见 be1ead4b9b）
+function fmtLocal(n,d){d=d==null?2:d;if(!isFinite(n))return '--';return parseFloat(n.toFixed(d)).toString();}
 function val(id){return parseFloat(document.getElementById(id).value);}
 function str(id){return document.getElementById(id).value;}
 // 数据源：公安部令第 163 号《道路交通安全违法行为记分管理办法》（2022-04-01 施行）
@@ -410,17 +411,17 @@ function calc(){
   var needCut=Math.max(0, total-11);   // 想压到 11 分需再减的分数
 
   const __g1='<div class="result-grid">'
-    +'<div class="result-item"><div class="result-label">本次记分</div><div class="result-value">'+fmtNum(t.p,0)+' 分</div></div>'
-    +'<div class="result-item"><div class="result-label">累计记分</div><div class="result-value">'+fmtNum(total,0)+' / 12 分</div></div>'
+    +'<div class="result-item"><div class="result-label">本次记分</div><div class="result-value">'+fmtLocal(t.p,0)+' 分</div></div>'
+    +'<div class="result-item"><div class="result-label">累计记分</div><div class="result-value">'+fmtLocal(total,0)+' / 12 分</div></div>'
     +'<div class="result-item"><div class="result-label">罚款幅度</div><div class="result-value">'+t.f+'</div></div>'
     +'<div class="result-item"><div class="result-label">是否达满分</div><div class="result-value">'+(over?'已达 12 分':'未达 12 分')+'</div></div>'
     +'</div>';R.innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 
   const __g2='<div class="dist-grid">'
     +'<div class="dist-card"><h4>违纪类型</h4><p style="font-size:12px;">'+t.n+'</p><p>'+(t.e?t.e:'无附加处罚')+'</p></div>'
-    +'<div class="dist-card"><h4>学法减分额度</h4><p>剩余 '+fmtNum(cutLeft,0)+' 分</p><p>本周期上限 6 分</p></div>'
+    +'<div class="dist-card"><h4>学法减分额度</h4><p>剩余 '+fmtLocal(cutLeft,0)+' 分</p><p>本周期上限 6 分</p></div>'
     +'<div class="dist-card"><h4>清零条件</h4><p>'+(paid?'罚款已缴清':'罚款未缴清')+'</p><p>'+(paid?'周期结束可清除':'逾期未缴记分转入下周期')+'</p></div>'
-    +'<div class="dist-card"><h4>满分处理</h4><p>'+(over?'扣留驾驶证':'无需满分学习')+'</p><p>'+(over?'学习 '+fmtNum(lic,0)+' 天并考试':'继续保持')+'</p></div>'
+    +'<div class="dist-card"><h4>满分处理</h4><p>'+(over?'扣留驾驶证':'无需满分学习')+'</p><p>'+(over?'学习 '+fmtLocal(lic,0)+' 天并考试':'继续保持')+'</p></div>'
     +'</div>';G.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 
   var rows='';
@@ -429,8 +430,8 @@ function calc(){
     var q=seq[i];
     var after=q*t.p;
     rows+='<tr><td style="padding:5px 8px;">'+q+' 次</td>'
-      +'<td style="padding:5px 8px;">'+fmtNum(after,0)+'</td>'
-      +'<td style="padding:5px 8px;">'+fmtNum(Math.max(0,eff+after-cut),0)+'</td>'
+      +'<td style="padding:5px 8px;">'+fmtLocal(after,0)+'</td>'
+      +'<td style="padding:5px 8px;">'+fmtLocal(Math.max(0,eff+after-cut),0)+'</td>'
       +'<td style="padding:5px 8px;color:'+((eff+after-cut)>=12?'#dc2626':'#059669')+';">'+((eff+after-cut)>=12?'需满分学习':'正常')+'</td></tr>';
   }
   const __g3='<div class="formula-title">📐 计算口径</div> <div class="formula-eq">现有记分 = max(0, 已有记分 − 已减免分)；本次后累计 = 现有记分 + 本次扣分值；本周期剩余可减额度 = max(0, 6 − 已减分)</div>'
@@ -446,9 +447,9 @@ function calc(){
     +rows+'</table>';F.innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 
   var ad='';
-  if(over) ad+='<div class="tip-bad">⛔ 累计记分 '+fmtNum(total,0)+' 分已达满分线，驾驶证将被扣留，须参加为期 '+fmtNum(lic,0)+' 天的满分学习并考试合格、缴清罚款后方可清除记分。'+(total>=24?'累计 '+fmtNum(total,0)+' 分，属二次以上满分，须加考道路驾驶技能。':'')+'</div>';
-  else if(total>=9) ad+='<div class="tip-warn">⚠️ 累计记分 '+fmtNum(total,0)+' 分，距满分仅剩 '+fmtNum(12-total,0)+' 分，建议谨慎驾驶；符合条件的可通过学法减分最多再减 '+fmtNum(Math.min(cutLeft,needCut),0)+' 分。</div>';
-  else ad+='<div class="tip-info">✅ 累计记分 '+fmtNum(total,0)+' 分，未接近满分线。'+(cutLeft>0?'本周期还有 '+fmtNum(cutLeft,0)+' 分学法减分额度可用。':'')+'</div>';
+  if(over) ad+='<div class="tip-bad">⛔ 累计记分 '+fmtLocal(total,0)+' 分已达满分线，驾驶证将被扣留，须参加为期 '+fmtLocal(lic,0)+' 天的满分学习并考试合格、缴清罚款后方可清除记分。'+(total>=24?'累计 '+fmtLocal(total,0)+' 分，属二次以上满分，须加考道路驾驶技能。':'')+'</div>';
+  else if(total>=9) ad+='<div class="tip-warn">⚠️ 累计记分 '+fmtLocal(total,0)+' 分，距满分仅剩 '+fmtLocal(12-total,0)+' 分，建议谨慎驾驶；符合条件的可通过学法减分最多再减 '+fmtLocal(Math.min(cutLeft,needCut),0)+' 分。</div>';
+  else ad+='<div class="tip-info">✅ 累计记分 '+fmtLocal(total,0)+' 分，未接近满分线。'+(cutLeft>0?'本周期还有 '+fmtLocal(cutLeft,0)+' 分学法减分额度可用。':'')+'</div>';
   if(!paid) ad+='<div class="tip-warn">💰 罚款尚未缴清。未缴罚款对应的记分将转入下一记分周期，不会随周期结束清除。</div>';
   else if(over) ad+='<div class="tip-info">💰 罚款已缴清，但本周期累计已达满分，须完成满分学习、考试合格后记分方可清除。</div>';
   else ad+='<div class="tip-info">💰 罚款已缴清且未满 12 分，本记分周期结束后该记分予以清除。</div>';
