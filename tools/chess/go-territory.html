@@ -147,7 +147,7 @@ s.parentNode.insertBefore(el, s);
       </div>
       <div>
         <label>计算方式</label>
-        <select id="method" onchange="calc()">
+        <select id="method" onchange="toggleMethod();calc()">
           <option value="japanese">日本规则（数目法）</option>
           <option value="chinese">中国规则（数子法）</option>
         </select>
@@ -164,6 +164,9 @@ s.parentNode.insertBefore(el, s);
         <div class="input-row">
           <div><label>提子数</label><input type="number" id="blackCaptures" value="3" min="0" oninput="calc()" placeholder="如 3"></div>
         </div>
+        <div class="input-row stone-row" style="display:none;">
+          <div><label>盘面活子数（数子法）</label><input type="number" id="blackStones" value="0" min="0" oninput="calc()" placeholder="如 90"></div>
+        </div>
       </div>
       <div class="player-box white">
         <div class="stone-icon white"></div>
@@ -173,6 +176,9 @@ s.parentNode.insertBefore(el, s);
         </div>
         <div class="input-row">
           <div><label>提子数</label><input type="number" id="whiteCaptures" value="5" min="0" oninput="calc()" placeholder="如 5"></div>
+        </div>
+        <div class="input-row stone-row" style="display:none;">
+          <div><label>盘面活子数（数子法）</label><input type="number" id="whiteStones" value="0" min="0" oninput="calc()" placeholder="如 85"></div>
         </div>
       </div>
     </div>
@@ -276,6 +282,11 @@ s.parentNode.insertBefore(el, s);
 
 <script>
 function $(id){return document.getElementById(id);}
+function toggleMethod(){
+  var chinese=$('method').value==='chinese';
+  var rows=document.querySelectorAll('.stone-row');
+  for(var i=0;i<rows.length;i++)rows[i].style.display=chinese?'':'none';
+}
 function calc(){
   var komi=parseFloat($('komi').value)||0;
   var method=$('method').value;
@@ -283,13 +294,22 @@ function calc(){
   var wT=parseInt($('whiteTerritory').value)||0;
   var bC=parseInt($('blackCaptures').value)||0;
   var wC=parseInt($('whiteCaptures').value)||0;
+  var bStones=parseInt($('blackStones').value)||0;
+  var wStones=parseInt($('whiteStones').value)||0;
   var blackScore,whiteScore;
   if(method==='japanese'){
+    // 数目法：围空 + 提子（提子作为已获目数）
     blackScore=bT+bC;
     whiteScore=wT+wC+komi;
   }else{
-    blackScore=bT+bC;
-    whiteScore=wT+wC+komi;
+    // 数子法：盘面活子 + 围空，提子不重复计入
+    if(bStones+wStones===0){
+      $('result').innerHTML='<p style="color:var(--danger);">⚠ 中国规则（数子法）需填写双方盘面活子数，否则无法按「活子+围空」计算。若只掌握围空与提子，请切换到日本规则（数目法）。</p>';
+      $('dataGrid').innerHTML='';
+      return;
+    }
+    blackScore=bT+bStones;
+    whiteScore=wT+wStones+komi;
   }
   var diff=blackScore-whiteScore;
   var winner=diff>0?'black':diff<0?'white':'tie';
@@ -303,8 +323,12 @@ function calc(){
     '<span class="winner-badge" style="'+winnerStyle+'">'+winnerName+'</span></div>'+
     '<p>计算方式：<strong>'+(method==='japanese'?'日本规则（数目法）':'中国规则（数子法）')+'</strong></p>'+
     '<p>贴目：<strong>'+komi+' 目</strong>（白方）</p>'+
-    '<p>黑方：围空 <strong>'+bT+'目</strong> + 提子 <strong>'+bC+'目</strong> = <strong>'+blackScore.toFixed(1)+'目</strong></p>'+
-    '<p>白方：围空 <strong>'+wT+'目</strong> + 提子 <strong>'+wC+'目</strong> + 贴目 <strong>'+komi+'目</strong> = <strong>'+whiteScore.toFixed(1)+'目</strong></p>'+
+    (method==='japanese'
+      ? '<p>黑方：围空 <strong>'+bT+'目</strong> + 提子 <strong>'+bC+'目</strong> = <strong>'+blackScore.toFixed(1)+'目</strong></p>'+
+        '<p>白方：围空 <strong>'+wT+'目</strong> + 提子 <strong>'+wC+'目</strong> + 贴目 <strong>'+komi+'目</strong> = <strong>'+whiteScore.toFixed(1)+'目</strong></p>'
+      : '<p>黑方：活子 <strong>'+bStones+'子</strong> + 围空 <strong>'+bT+'目</strong> = <strong>'+blackScore.toFixed(1)+'目</strong>（提子不重复计入）</p>'+
+        '<p>白方：活子 <strong>'+wStones+'子</strong> + 围空 <strong>'+wT+'目</strong> + 贴目 <strong>'+komi+'目</strong> = <strong>'+whiteScore.toFixed(1)+'目</strong></p>'+
+        '<p>数子阈值：黑方须超过 <strong>'+(180.5+komi/2).toFixed(1)+' 目</strong>（361 点半数 + 贴目折半）方胜。</p>')+
     '<p>目差：<strong style="color:'+(diff>0?'#1a1a1a':diff<0?'#666':'#F59E0B')+';">'+(diff>0?'+':'')+diff.toFixed(1)+'目</strong></p>';
   if(winner==='black'){html+='<div class="tip-box tip-success"><strong>⚫ 黑方胜</strong>：领先 '+Math.abs(diff).toFixed(1)+' 目</div>';}
   else if(winner==='white'){html+='<div class="tip-box tip-success"><strong>⚪ 白方胜</strong>：领先 '+Math.abs(diff).toFixed(1)+' 目</div>';}
@@ -314,6 +338,7 @@ function calc(){
 function copyResult(){
   ToolBox.copyText($('result').innerText, i18nText('msg349'));
 }
+toggleMethod();
 calc();
 </script>
 <script>
