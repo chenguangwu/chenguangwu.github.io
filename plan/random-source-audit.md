@@ -120,14 +120,14 @@
 |---|---|
 | `node scripts/verify_data_calc.js` | **27/27**（`data/random-3`、`random-4` 已改为格式/长度/字符集断言） |
 | `scripts/discriminate_check.js verify_data_calc.js`（fidelity=1） | 已检 27 / 逃生 **0** |
-| `verify_life_calc.js` | 315/315 |
+| `verify_life_calc.js` | 提交版 315/315；工作树（含别线新增温度边界用例）322/322 |
 | `verify_safety_calc.js` | 14/14 |
 | `verify_security_calc.js` | 14/14 |
 | `verify_fun_calc.js` | 19/19 |
-| `verify_it_calc.js` | 984/987；3 条失败（`it/morse`、`it/rc4`、`it/xxtea`）由**别线未提交的 `DESTRUCTIVE` 正则改动**引起（HEAD 版 harness 跑同页仅 1 条预期内失败），与本批修改无关，未纳入本次提交 |
+| `verify_it_calc.js` | **提交版 985/985 全绿**；工作树另有别线未提交的 `DESTRUCTIVE` 正则改动，导致 `it/morse`、`it/rc4`、`it/xxtea` 3 条瞬时失败（HEAD 版 harness 跑同页全绿），与本批无关，未纳入提交 |
 | `python3 _test_static.py` | 4705 通过 / 0 失败 / 0 告警 |
-| 本批涉及 suite 的 scoped fidelity | **0 逃生** |
-| 全局 fidelity | 4 条既有逃生，全部在 `ecommerce`（conversion-4、pingjia-chaping-tuihuo-lv、wuliu-lanshou-qianshou-shixiao、response-2），页面与 suite 工作树未改，属 HEAD 既有基线，与本批无关 |
+| 本批涉及 suite 的 scoped fidelity | **0 逃生**（data 27/27、life 322/322、safety/security/fun 全绿） |
+| 全局 fidelity（`TB_STUB_FIDELITY=1`） | **8872 已检 / 0 逃生**（`verify_office_calc.js` 子进程静默退出，属既有隔离项，未计入） |
 | `selfcheck_false_pass.js` | all_default 4 / baseline 4（无新增） |
 
 ## 交付与后续
