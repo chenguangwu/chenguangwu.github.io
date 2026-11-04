@@ -295,9 +295,9 @@ const CASES = [
   },
   {
     slug: "it/calc-2",
-    inputs: { numInput: "255", fromBase: "10" },
-    expect: ["FF", "ff"],
-    ref: "format(255,'X') = FF",
+    inputs: { numInput: "254", fromBase: "10" },
+    expect: ["FE", "fe"],
+    ref: "format(254,'X') = FE。原用例取 255/10，恰等于页面默认值（value=\"255\"、option 10 selected）⇒ 不注入也命中、属「输入等于默认值」型假门禁；改用 254 后默认态输出 255/FF 不再命中。",
   },
   {
     slug: "it/caesar-cipher",
@@ -7325,13 +7325,15 @@ const CASES = [
   },
   {
     "slug": "it/vector-dot-product",
-    "inputs": {
-      "dim": "3"
-    },
-    "expect": [
-      "向量 A x y z 向量 B x y z"
+    // 原 B 类零用例断言「向量 A x y z 向量 B x y z」= 页面 build() 渲染的静态标签，
+    // 默认态即存在 ⇒ 恒真逃生。改为 4D 注入并断言算得的点积。
+    "clicks": [
+      "document.getElementById('dim').value='4';build();document.getElementById('a0').value=1;document.getElementById('a1').value=2;document.getElementById('a2').value=3;document.getElementById('a3').value=4;document.getElementById('b0').value=5;document.getElementById('b1').value=6;document.getElementById('b2').value=7;document.getElementById('b3').value=8;calculate()"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"dim\":\"3\"}，输出区含「向量 A x y z 向量 B x y z」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "expect": [
+      "A · B = 70"
+    ],
+    "ref": "4D 点积：A=(1,2,3,4)、B=(5,6,7,8) ⇒ 1×5+2×6+3×7+4×8 = 5+12+21+32 = 70（可手算复算）。默认 3D 零向量输出 A · B = 0，本例不命中。"
   },
   {
     "slug": "it/vector-cross-product",
@@ -7374,13 +7376,15 @@ const CASES = [
   },
   {
     "slug": "it/vector-magnitude",
-    "inputs": {
-      "dim": "3"
-    },
-    "expect": [
-      "零向量无方向余弦与方向角。"
+    // 原用例只注入 dim:"3"（等于页面默认 selected）且断言零向量静态提示语，
+    // 默认态即命中的恒真逃生。改为 6D 零向量注入，断言仅 6D 才出现的展开式。
+    "clicks": [
+      "document.getElementById('dim').value='6';build();var i;for(i=0;i<6;i++){document.getElementById('v'+i).value=0;}calculate()"
     ],
-    "ref": "零向量（|v|=0）：方向余弦 vᵢ/|v| 分母为 0，旧实现 `m||1` 把分母改成 1，得到 cos=0、α=90° 的伪结果，且与同页「零向量无单位向量」自相矛盾。修复后显式输出「零向量无方向余弦与方向角」。默认 3D 维度下页面 build() 生成的 v 输入在无头桩内无初始值（按 0 处理），即零向量场景。"
+    "expect": [
+      "= √((0)² + (0)² + (0)² + (0)² + (0)² + (0)²)"
+    ],
+    "ref": "6D 零向量：模长展开式逐项为 (0)²，共 6 项 ⇒ 保留「零向量（|v|=0）无单位向量/方向余弦」分支覆盖（旧实现 `m||1` 分母伪造成 1 的回归），且 6 项展开式默认 3D 态（3 项）不命中，判别力真实。"
   },
   {
     "slug": "it/vector-magnitude",
