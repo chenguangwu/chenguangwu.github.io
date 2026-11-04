@@ -14,3 +14,24 @@
 - 本次 CI 失败在「Run ToolBox quality gates」，部署被跳过（未部署）。
 - 本地在干净 HEAD 工作树复现为 1/219 红，红项即上表两个逃生项。
 - 农业线本地已同步修正主用例；集成线补齐自动补强块并复核：`agriculture calc 131/131`、判别力 0 逃生。
+
+## 2026-11-04 · 推送批（HEAD `e1395c893a`）
+
+**干净 worktree 全量门禁 219/219 通过（2:11.27），无红项，无需记录失败条目。**
+
+### 本轮已修但未入本批的红项
+
+| 门禁 | 页面 slug | 错误摘要 | 归属线 | 状态 |
+| --- | --- | --- | --- | --- |
+| general calc correctness | `agriculture/analysis-21` | 用例仍注入 DN 值 1200/800、42/42，页面已收紧 0–1 反射率校验 ⇒ 未匹配期望值 | 集成线 | 已修（改为 0.8/0.4 与 0.6/0.1，锚定实算 0.3333 / 0.7143，提交 `153b5c5a8b`） |
+
+### 主工作区（脏树）发现、未纳入本批的红项
+
+| 门禁 | 页面 slug | 错误摘要 | 归属线 | 状态 |
+| --- | --- | --- | --- | --- |
+| anti-regression: case discrimination | `fire-rescue/fire-resistance-rating` | 逃生项 1 > 基线 0（via=input event）；`expect "2.00h"` 默认态同样命中 | 土建线（`scripts/verify_fire-rescue_calc.js` / 页面有未提交改动） | 待土建线回批时修；集成线未动其未提交文件 |
+
+### 说明
+- 按新流程，全量门禁改在 `git worktree add --detach` 的干净副本上跑，只验证 commit 内容，不验证他人未提交改动。
+- 脏树上 `discriminate_check` 的 1 个逃生项来自土建线正在进行中的页面改动，HEAD 上不存在（干净 worktree 为 0 逃生）。
+
