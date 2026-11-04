@@ -163,11 +163,16 @@ s.parentNode.insertBefore(el, s);
 
     <h3 style="margin-top:14px;">提取选项</h3>
     <div class="checkbox-row">
-      <label><input type="checkbox" id="fullTag" checked> 完整标签</label>
-      <label><input type="checkbox" id="onlyName"> 仅标签名</label>
-      <label><input type="checkbox" id="includeAttr"> 含属性</label>
-      <label><input type="checkbox" id="dedup" checked> 标签名去重</label>
+      <label><input type="checkbox" id="includeAttr"> 保留属性（输出完整标签）</label>
+      <label><input type="checkbox" id="dedup" checked> 结果去重</label>
       <label><input type="checkbox" id="selfClosing"> 仅自闭合标签</label>
+      <label><input type="checkbox" id="stripScript"> 排除 script/style/注释</label>
+    </div>
+    <div class="input-row">
+      <div>
+        <label>仅提取指定标签（逗号分隔，留空=全部）</label>
+        <input type="text" id="tagFilter" placeholder="如 a, img, div" oninput="extract()">
+      </div>
     </div>
     <div class="toolbar">
       <div id="text_extract_html_tagsPresets"></div>
@@ -221,15 +226,15 @@ s.parentNode.insertBefore(el, s);
 <h2>📚 深度解析：提取 HTML 标签</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>分析页面结构：列出文档中所有标签名及出现次数，快速了解骨架。</li>
-<li>抽取特定标签：如把所有 &lt;a href&gt;、&lt;img src&gt; 摘出做资源盘点。</li>
-<li>模板审查：检查是否有未闭合或滥用标签。</li>
+<li>分析页面结构：列出文档中所有标签与不同标签数，快速了解骨架。</li>
+<li>抽取特定标签：在“指定标签”填 a,img 等，勾选保留属性，筛出对应标签做资源盘点。</li>
+<li>模板审查：导出开/闭标签清单后人工比对，发现缺失的闭合标签。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">统计 div 与 a</div><div class="dd-ex-body">粘贴一段 HTML，工具列出「div×12、a×5、img×3」并导出所有 &lt;a&gt; 的 href 列表，便于检查死链或外链。</div></div>
+<div class="dd-example"><div class="dd-ex-title">抽取并核对 a 标签</div><div class="dd-ex-body">粘贴一段 HTML，在“指定标签”填 a 并勾选“保留属性”，结果逐条列出全部 &lt;a ...&gt; 开标签，可检查 href 是否为空或指向站外；取消保留属性则只输出 &lt;a&gt; 形式，便于计数。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>会处理嵌套吗？</dt><dd>按文档顺序列出标签，嵌套关系需结合缩进/层级视图；本工具偏「标签清单」，结构性分析建议配合 DOM 工具。</dd>
-<dt>脚本里的标签也算吗？</dt><dd>默认统计所有 &lt;...&gt; 形态；如需排除 &lt;script&gt;/&lt;style&gt; 内示例，可开启「仅正文标签」过滤。</dd>
+<dt>脚本里的标签也算吗？</dt><dd>默认统计所有 &lt;...&gt; 形态；勾选“排除 script/style/注释”后，会先剔除 &lt;script&gt;、&lt;style&gt; 与 &lt;!-- --&gt; 注释块，再统计正文标签。</dd>
 </dl>
 </div>
 </section>
@@ -304,42 +309,65 @@ function escapeHtml(s){
 function extract(){
   const text = document.getElementById('input').value;
   const result = document.getElementById('result');
-  if(!text){ result.textContent = '请输入 HTML...'; document.getElementById('count').textContent = 0; return; }
-
-  // 匹配所有标签
-  const tagRe = /<\/?[a-zA-Z][a-zA-Z0-9]*\b[^>]*?\/?>/g;
-  let matches = text.match(tagRe) || [];
-
-  const onlyName = document.getElementById('onlyName').checked;
-  const includeAttr = document.getElementById('includeAttr').checked;
-  const selfClosing = document.getElementById('selfClosing').checked;
-
-  if(selfClosing){
-    matches = matches.filter(t => /\/>$/.test(t) || /^(<br|<img alt="" |<input|<hr|<meta|<link|<area|<base|<col|<embed|<source|<track|<wbr)\b/i.test(t));
-  }
-
-  if(onlyName){
-    matches = matches.map(t => {
-      const m = t.match(/^<\/?([a-zA-Z][a-zA-Z0-9]*)/);
-      return m ? m[1].toLowerCase() : t;
-    });
-  }else if(!includeAttr){
-    matches = matches.map(t => {
-      const m = t.match(/^(<\/?[a-zA-Z][a-zA-Z0-9]*)\b/);
-      const end = /\/>$/.test(t) ? '/>' : (/^<\//.test(t) ? '>' : '>');
-      return m ? m[1] + end : t;
-    });
-  }
-
-  document.getElementById('count').textContent = matches.length;
-  const unique = new Set(matches.map(m => onlyName ? m : m.replace(/[<\/>]/g,'').split(' ')[0].replace('/','')));
-  document.getElementById('uniqueCount').textContent = unique.size;
-  result.textContent = matches.join('\n');
-
-  // 标签列表
+  const countEl = document.getElementById('count');
+  const uniqueEl = document.getElementById('uniqueCount');
   const tagList = document.getElementById('tagList');
-  const __h0='<p style="font-size:13px;color:var(--text-light);margin-bottom:6px;">标签列表：</p>' +
-    Array.from(unique).map(t => `<span class="tag-item">${escapeHtml(t)}</span>`).join('');if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){tagList.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}tagList.innerHTML=__h0;
+  if(!text.trim()){
+    result.textContent = '请输入 HTML...';
+    countEl.textContent = 0;
+    uniqueEl.textContent = 0;
+    tagList.innerHTML = '';
+    return;
+  }
+
+  const includeAttr = document.getElementById('includeAttr').checked;
+  const dedup = document.getElementById('dedup').checked;
+  const selfClosing = document.getElementById('selfClosing').checked;
+  const stripScript = document.getElementById('stripScript').checked;
+  const filterRaw = document.getElementById('tagFilter').value;
+
+  let src = text;
+  if(stripScript){
+    src = src.replace(/<!--[\s\S]*?-->/g, '')
+             .replace(/<script\b[\s\S]*?<\/script>/gi, '')
+             .replace(/<style\b[\s\S]*?<\/style>/gi, '');
+  }
+
+  const tagRe = /<\/?[a-zA-Z][a-zA-Z0-9-]*\b[^>]*?\/?>/g;
+  const rawMatches = src.match(tagRe) || [];
+  const names = rawMatches.map(t => {
+    const m = t.match(/^<\/?([a-zA-Z][a-zA-Z0-9-]*)/);
+    return m ? m[1].toLowerCase() : '';
+  });
+
+  const wanted = filterRaw.split(',').map(s => s.trim().toLowerCase().replace(/[<>/]/g, '')).filter(Boolean);
+  let pairs = rawMatches.map((t, i) => ({ tag: t, name: names[i] }));
+  if(wanted.length) pairs = pairs.filter(p => wanted.indexOf(p.name) !== -1);
+
+  const VOID = ['area','base','br','col','embed','hr','img','input','link','meta','source','track','wbr'];
+  if(selfClosing){
+    pairs = pairs.filter(p => /\/>\s*$/.test(p.tag) || VOID.indexOf(p.name) !== -1);
+  }
+
+  let out = pairs.map(p => {
+    if(includeAttr) return p.tag;
+    let end = '>';
+    if(/\/>\s*$/.test(p.tag)) end = '/>';
+    else if(/^<\/ /.test(p.tag) || p.tag.indexOf('</') === 0) end = '>';
+    return '<' + (p.tag.indexOf('</') === 0 ? '/' : '') + p.name + end;
+  });
+  if(dedup) out = out.filter((v, i) => out.indexOf(v) === i);
+
+  const uniqueNames = Array.from(new Set(pairs.map(p => p.name)));
+
+  countEl.textContent = out.length;
+  uniqueEl.textContent = uniqueNames.length;
+  result.textContent = out.length ? out.join('\n') : '未检测到标签：请检查输入，或放宽“指定标签/仅自闭合”筛选条件。';
+
+  tagList.innerHTML = uniqueNames.length
+    ? '<p style="font-size:13px;color:var(--text-light);margin-bottom:6px;">标签列表：</p>' +
+      uniqueNames.map(t => `<span class="tag-item">${escapeHtml(t)}</span>`).join('')
+    : '';
 }
 
 function copyResult(){

@@ -100,20 +100,20 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="☎️ 电话号码解析与格式化">☎️ Phone Number Parser &amp; Formatter</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="把用户粘贴的“138-0013-8000”这类乱序号码整理成标准格式。选择国家后得到带国家码的 E.164（+86...）与分组显示。">Phone Number Parser &amp; Formatter - Enter any phone number and get E.164 and grouped national/international formats by country. Free, browser-only.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">电话号码解析与格式化<br>清洗：剔除非数字字符（空格、连字符、括号）<br>E.164 国际格式 = + 国家/地区代码 + 清洗后数字<br>国内分组：从右向左每 4 位分组（余数居首），便于人工识读<br>国家码按所选地区预设（如中国 +86、美国 +1）</div>
-  <div class="formula-desc">解析电话号码并按要求格式化。</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">清洗：剔除非数字字符（空格、连字符、括号）<br>国家码：优先用输入中的“+”前缀识别；否则用所选地区；若纯数字开头已含所选国家码且余下长度合理，则自动剥离<br>国内首位 0：英国/日本/印度/中国台湾/澳大利亚等按规则去掉（trunk prefix）<br>E.164 = + 国家码 + 国内号码，总长 ≤15 位<br>校验：仅校验国内号码长度范围（按所选国家预设），不校验运营商号段</div>
+  <div class="formula-desc">把粘贴进来的各种写法整理成 E.164，并按常见 3-4-4 / 4-4-4 规则分组显示；同时给出长度校验结果，长度不符时明确标红提示。</div>
   <ul class="formula-list">
     <li><b>E.164</b>：国际标准格式，<code>+</code> 加国家码与号码，总长不超过 15 位。</li>
-    <li><b>解析</b>：识别国家码、区号与本地号码，再按目标格式重新分组排版。</li>
-    <li><b>显示</b>：国内号码常按 3-4-4 分组，国际格式按国家分组规则展示。</li>
-    <li><b>校验</b>：需依据各国号段规则判断长度与前缀是否合法。</li>
+    <li><b>解析范围</b>：识别并剥离国家码、去掉国内首位 0；不解析区号归属地，也不判断运营商。</li>
+    <li><b>显示</b>：中国 11 位手机按 3-4-4 分组，其余按 4 位一组从右分组。</li>
+    <li><b>校验</b>：只校验长度范围；号段/前缀是否真实存在需另用权威号码库。</li>
   </ul>
 </div>
 
     <div class="input-row">
       <div>
         <label for="phone">输入电话号码</label>
-        <input type="number" id="phone" value="13800138000" step="1" placeholder="如 13800138000">
+        <input type="text" id="phone" value="13800138000" inputmode="tel" placeholder="如 138-0013-8000 或 +86 138 0013 8000">
       </div>
       <div>
         <label for="cc">国家/地区</label>
@@ -121,7 +121,7 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
     <div class="toolbar">
-      <div id="phone_parserPresets"></div><button class="btn primary" onclick="calcTool()">计算</button><button class="btn" type="button" onclick="__phone_parserExport()">导出明细 CSV</button>
+      <div id="phone_parserPresets"></div><button class="btn primary" onclick="calcTool()">解析</button><button class="btn" type="button" onclick="copyE164()">复制 E.164</button><button class="btn" type="button" onclick="__phone_parserExport()">导出明细 CSV</button>
       <button class="btn" onclick="resetForm()">重置</button>
     </div>
     <div class="result-box" id="result"></div> <div id="phone_parserTable"></div> <div id="phone_parserDiff"></div> <div id="phone_parserChart"></div> <div id="phone_parserHist"></div>
@@ -162,7 +162,7 @@ s.parentNode.insertBefore(el, s);
   <ul>
         <li>E.164 是国际电信标准格式：+ 国家码 + 国内号码（不含分隔符与首位 0）。</li>
         <li>本工具为轻量格式化（按位分组），不校验号段有效性；严格校验请用 libphonenumber 等服务。</li>
-        <li>若原号码已含国家码，请选择对应国家再粘贴纯数字。</li>
+        <li>号码可直接粘贴“+86 138 0013 8000”，工具会按“+”前缀识别国家码；不带“+”时以所选地区为准，并自动剥离重复的国家码与国内首位 0。</li>
   </ul>
 </div>
 
@@ -214,19 +214,87 @@ s.parentNode.insertBefore(el, s);
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function escH(s){var d=document.createElement('div');const __g1=s==null?'':String(s);d.textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
-function calcTool(){var phone=document.getElementById('phone').value||'';
-var cc=document.getElementById('cc').value;
-var digits=phone.replace(/[^0-9]/g,'');
-if(!digits){ document.getElementById('result').innerHTML='<p class="muted">请输入数字电话号码</p>'; return; }
-var e164='+'+cc+digits;
-// 国内分组：从右按 3-4-4 简化
-function grp(s){ var a=[]; while(s.length>4){ a.unshift(s.slice(-4)); s=s.slice(0,-4); } if(s) a.unshift(s); return a.join(' '); }
-var national=grp(digits);
-var html='<div class="result-title">解析结果</div>';
-html+='<div class="big-result">E.164 <b>'+e164+'</b></div>';
-html+='<p class="muted">国内格式（按位分组）：'+national+'</p>';
-html+='<p class="muted">国家/地区代码：+'+cc+'</p>';
-const __g3=html;document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));}
+var CC_RULES={'86':{trunk:'',min:10,max:11},'1':{trunk:'',min:10,max:10},'44':{trunk:'0',min:10,max:10},'81':{trunk:'0',min:9,max:10},'91':{trunk:'0',min:10,max:10},'852':{trunk:'',min:8,max:8},'886':{trunk:'0',min:9,max:9},'65':{trunk:'',min:8,max:8},'61':{trunk:'0',min:9,max:9}};
+var __lastE164='';
+function calcTool(){
+  var phone=document.getElementById('phone').value||'';
+  var raw=phone.trim();
+  var digits=raw.replace(/[^0-9]/g,'');
+  var result=document.getElementById('result');
+  __lastE164='';
+  if(!digits){result.innerHTML='<p class="muted">请输入电话号码（可含空格、连字符或 +86 前缀）。</p>';return;}
+
+  var ccSel=document.getElementById('cc');
+  var cc=ccSel.value;
+  var notes=[];
+
+  // 输入以“+”开头：从已支持的国家码中挑选匹配项
+  if(raw.charAt(0)==='+'){
+    var found=null;
+    Object.keys(CC_RULES).sort(function(a,b){return b.length-a.length;}).forEach(function(k){
+      if(!found && digits.indexOf(k)===0) found=k;
+    });
+    if(found){
+      cc=found;
+      digits=digits.slice(found.length);
+      if(ccSel.value!==found) ccSel.value=found;
+      notes.push('已按“+”前缀识别国家码 +'+found+' 并从号码中剥离。');
+    }
+  }else{
+    var r0=CC_RULES[cc];
+    // 纯数字输入已含所选国家码时自动剥离
+    if(r0 && digits.indexOf(cc)===0){
+      var rest=digits.slice(cc.length);
+      if(rest.length>=r0.min && rest.length<=r0.max && digits.length>r0.max){
+        digits=rest;
+        notes.push('输入已含国家码 +'+cc+'，已自动剥离。');
+      }
+    }
+  }
+
+  var rule=CC_RULES[cc]||{trunk:'',min:6,max:15};
+  if(rule.trunk && digits.charAt(0)==='0'){
+    var stripped=digits.replace(/^0+/,'');
+    if(stripped.length>=rule.min && stripped.length<=rule.max){
+      digits=stripped;
+      notes.push('已去掉国内首位 0（trunk prefix）。');
+    }
+  }
+
+  var valid=digits.length>=rule.min && digits.length<=rule.max;
+  var e164='+'+cc+digits;
+  var totalLen=cc.length+digits.length;
+  if(valid && totalLen<=15) __lastE164=e164;
+
+  function grp(s){ var a=[]; while(s.length>4){ a.unshift(s.slice(-4)); s=s.slice(0,-4); } if(s) a.unshift(s); return a.join(' '); }
+  var national=(cc==='86'&&digits.length===11)
+    ? digits.slice(0,3)+' '+digits.slice(3,7)+' '+digits.slice(7)
+    : grp(digits);
+
+  var html='<div class="result-title">解析结果</div>';
+  html+='<div class="big-result">E.164 <b>'+e164+'</b></div>';
+  html+='<p class="muted">国内格式：'+national+'</p>';
+  html+='<p class="muted">国家/地区代码：+'+cc+' · 国内号码位数：'+digits.length+'</p>';
+  if(valid && totalLen<=15){
+    html+='<p class="muted">✅ 长度校验通过（'+cc+' 预设 '+rule.min+'–'+rule.max+' 位，E.164 共 '+totalLen+' 位）。</p>';
+  }else{
+    var why=[];
+    if(!valid) why.push('国内号码应为 '+rule.min+'–'+rule.max+' 位，当前 '+digits.length+' 位');
+    if(totalLen>15) why.push('E.164 超过 15 位上限');
+    html+='<p style="color:var(--danger,#dc2626);">⚠️ '+why.join('；')+'。结果仅供整理参考，暂不可复制。</p>';
+  }
+  if(notes.length) html+='<p class="muted">'+notes.join(' ')+'</p>';
+  const __g3=html;document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+}
+function copyE164(ev){
+  if(!__lastE164){alert('请先输入电话号码并通过长度校验');return;}
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(__lastE164).then(function(){
+      var btn=ev&&ev.target?ev.target:document.querySelector('button[onclick^="copyE164"]');
+      if(btn){var old=btn.textContent;btn.textContent='✅ 已复制';setTimeout(function(){btn.textContent=old;},1500);}
+    });
+  }else{alert(__lastE164);}
+}
 function resetForm(){document.getElementById('phone').value='13800138000';
       document.getElementById('cc').selectedIndex=0;
       calcTool();}
@@ -372,7 +440,7 @@ else document.addEventListener('DOMContentLoaded', __phone_parserBoot);
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>E.164 是什么？</dt><dd>国际电信标准 +国家码+号码，无空格。</dd>
-<dt>为什么有的号码解析失败？</dt><dd>常见原因：号码缺少国家码（无法判断归属）、包含了分隔符与分机号，或是虚拟运营商与新号段尚未收录。中国手机号是 11 位、以 1 开头，若输入的是固话需带区号。解析失败时应保留原始输入并提示用户补充国家码，而不是直接丢弃。</dd>
+<dt>为什么有的号码解析失败？</dt><dd>本工具只做格式整理与长度校验：选中国家后，国内号码位数不在预设范围（如中国 10–11 位）或 E.164 超过 15 位时会提示失败。它不判断号码是否真实在用，也不拆分区号；固话请带区号一起粘贴。</dd>
 </dl>
 </div>
 </section>
@@ -385,9 +453,9 @@ else document.addEventListener('DOMContentLoaded', __phone_parserBoot);
 <section class="opt-result-interpret"><div class="ir-card">
 <h2>📊 结果解读</h2>
 <h3>结果含义</h3><p>电话号码解析为标准 E.164 格式（<code>+国家码 号码</code>，不含空格与括号）。</p>
-<h3>用途</h3><p>结果拆分展示国家码、区号与用户号，便于国际呼叫、存储与校验；建议始终带国家区号以确保跨区可用。</p>
+<h3>用途</h3><p>结果展示国家码与国内号码（不拆分区号），便于国际呼叫、统一存储与长度校验；建议始终带国家区号以确保跨区可用。</p>
 </div></section>
 
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "支持哪些国家 / 地区？", "acceptedAnswer": {"@type": "Answer", "text": "内置常用国家码（中国 +86、美国/加拿大 +1、英国 +44、日本 +81、印度 +91、香港 +852、台湾 +886、新加坡 +65 等），可从下拉切换。"}}, {"@type": "Question", "name": "能判断号码是否有效吗？", "acceptedAnswer": {"@type": "Answer", "text": "工具主要做格式解析与标准化；是否\"真实在用\"的号码有效性属于运营商数据范畴，本工具不做归属地或实名校验。"}}, {"@type": "Question", "name": "为什么有的号码分组和我本地习惯不同？", "acceptedAnswer": {"@type": "Answer", "text": "分组方式遵循对应国家/地区的拨号习惯（如美国 3-3-4、中国 3-4-4），切换国家码即可看到对应格式。"}}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "支持哪些国家 / 地区？", "acceptedAnswer": {"@type": "Answer", "text": "内置常用国家码（中国 +86、美国/加拿大 +1、英国 +44、日本 +81、印度 +91、香港 +852、台湾 +886、新加坡 +65 等），可从下拉切换。"}}, {"@type": "Question", "name": "能判断号码是否有效吗？", "acceptedAnswer": {"@type": "Answer", "text": "工具主要做格式解析与标准化；是否\"真实在用\"的号码有效性属于运营商数据范畴，本工具不做归属地或实名校验。"}}, {"@type": "Question", "name": "为什么有的号码分组和我本地习惯不同？", "acceptedAnswer": {"@type": "Answer", "text": "本工具只实现简化分组：中国 11 位手机按 3-4-4，其余号码从右每 4 位一组；不做逐国拨号习惯的完整分组规则。"}}]}</script>
 </body>
 </html>

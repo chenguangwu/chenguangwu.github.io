@@ -116,16 +116,23 @@ s.parentNode.insertBefore(el, s);
 </div>
 <div class="card tool-card-accent" style="--tool-accent:#E11D48;--tool-accent-dark:#E11D48;">
     <h2 data-zh="⚽ 乒乓球（相持/发球）得分">Table Tennis Score Calculator (Rally / Serve)</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按相持与发球得分计算乒乓球单局总分与平均得分，用于技术结构分析。">A table-tennis rally/serve scoring tool: log rally and serve-round points to compute scoring rate and key-point performance for technique-tactics analysis.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按相持与发球的得分/失分计算各环节得分率、得分占比与关键分得分率，用于技术结构分析。">A table-tennis rally/serve scoring tool: enter points won and lost in each phase to compute scoring rates, share of points and key-point performance.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">乒乓球相持/发球得分统计（本页代码口径，生效为后段简化版）：总分=相持得分 A+发球得分 B；联动量：平均分=(A+B)÷2、分差=|A−B|。校验：两输入经输入守卫必填且须为有限数值，否则提示请输入两个有效数值后再计算。判据：无固定分级，分差越大两项技术贡献越失衡，平均分即两项均值。</div>
-      <p class="formula-desc">乒乓球得分由相持与发球等环节构成：总分=相持+发球，平均=总分÷2，差距=|相持−发球|。据此分析得分结构，优化技战术侧重与训练安排。</p>
+      <div class="formula-eq">相持得分率 = 相持得分 ÷ (相持得分+相持失分)；发球得分率 = 发球得分 ÷ (发球得分+发球失分)；总得分率 = (相持得分+发球得分) ÷ 全部得失分之和；关键分得分率 = 关键分得分 ÷ 关键分总数（总数为 0 时显示“—”）。校验：四项环节得分/失分须为非负整数，且对应环节总球数 >0，否则提示补全。判据：不给“优秀/差”的固定阈值，只给出各环节得分率与得分来源占比，由使用者结合自身水平对比。</div>
+      <p class="formula-desc">分环节统计乒乓球得失分：相持得分率、发球得分率、总得分率、关键分得分率与得分来源占比。用于对比同一选手多场比赛或训练前后的技术结构变化。</p>
     </div>
     <div class="input-row">
-      <div><label>相持得分</label><input type="number" id="v0" value="8" step="any" oninput="calc()" enterkeyhint="done" aria-label="相持" placeholder="如 8"></div>
-      <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label>发球得分</label><input type="number" id="v1" value="5" step="any" oninput="calc()" enterkeyhint="done" aria-label="发球" placeholder="如 5"></div>
+      <div><label>相持得分</label><input type="number" id="v0" value="8" min="0" step="1" oninput="calc()" enterkeyhint="done" aria-label="相持得分" placeholder="如 8"></div>
+      <div><label>相持失分</label><input type="number" id="v1" value="7" min="0" step="1" oninput="calc()" enterkeyhint="done" aria-label="相持失分" placeholder="如 7"></div>
+    </div>
+    <div class="input-row">
+      <div><label>发球得分</label><input type="number" id="v2" value="5" min="0" step="1" oninput="calc()" enterkeyhint="done" aria-label="发球得分" placeholder="如 5"></div>
+      <div><label>发球失分</label><input type="number" id="v3" value="4" min="0" step="1" oninput="calc()" enterkeyhint="done" aria-label="发球失分" placeholder="如 4"></div>
+    </div>
+    <div class="input-row">
+      <div><label>关键分得分（可选）</label><input type="number" id="v4" value="2" min="0" step="1" oninput="calc()" enterkeyhint="done" aria-label="关键分得分" placeholder="如 2"></div>
+      <div><label>关键分总数（可选）</label><input type="number" id="v5" value="5" min="0" step="1" oninput="calc()" enterkeyhint="done" aria-label="关键分总数" placeholder="如 5"></div>
     </div>
     <div class="toolbar">
       <div id="pingpangqiu_xiangchi_faqiu_defenPresets"></div>
@@ -139,7 +146,7 @@ s.parentNode.insertBefore(el, s);
     <div id="pingpangqiu_xiangchi_faqiu_defenDiff"></div>
     <div id="pingpangqiu_xiangchi_faqiu_defenChart"></div>
     <div id="pingpangqiu_xiangchi_faqiu_defenHist"></div>
-    <div class="info-box">💡 总分 = 相持 + 发球；平均分 = 总分 ÷ 2。</div>
+    <div class="info-box">💡 得分率 = 得分 ÷（得分+失分）。分环节统计能区分“发球抢攻强但相持弱”这类结构问题；本工具不给出“优秀/差”的固定阈值。</div>
 <div class="tool-notes" style="--tool-accent:#E11D48;">
 <!-- Formula & Standard References -->
 <div class="card" id="constRefBox">
@@ -557,24 +564,50 @@ calc();
 <script>
 /* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
 function calc(){
-  var e0=document.getElementById('v0'),e1=document.getElementById('v1');
-  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
+  var vals={},bad=false;
+  ['v0','v1','v2','v3','v4','v5'].forEach(function(id){
+    var el=document.getElementById(id);
+    var v=el?parseFloat(el.value):NaN;
+    var invalid=!isFinite(v)||v<0||v>200;
+    if(el){el.classList.toggle('input-error',invalid);if(invalid)el.setAttribute('aria-invalid','true');else el.removeAttribute('aria-invalid');}
+    if(invalid)bad=true;
+    vals[id]=isFinite(v)?v:0;
+  });
   var box=document.getElementById('res');
   if(!box)return;
-  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
-  var items=[];
-  items.push([(A+B).toFixed(1), "总分"]);
-  items.push([((A+B)/2).toFixed(1), "平均分"]);
-  items.push([(Math.abs(A-B)).toFixed(1), "分差"]);
+  if(bad){box.innerHTML='<div class="info-box">请填写 0–200 的非负得分/失分数值；分数请按回合数换算成整数。</div>';return;}
 
+  var A=vals.v0,B=vals.v1,C=vals.v2,D=vals.v3,E=vals.v4,F=vals.v5;
+  var rallyTotal=A+B,serveTotal=C+D,won=A+C,lost=B+D,total=won+lost;
+  if(total<=0){box.innerHTML='<div class="info-box">相持与发球的得失分之和为 0，请至少填写一个得分或失分。</div>';return;}
+  function rate(x,y){return y>0?(x/y*100).toFixed(1)+'%':'—';}
+
+  var items=[
+    [rate(won,total),'总得分率'],
+    [rate(A,rallyTotal),'相持得分率'],
+    [rate(C,serveTotal),'发球得分率'],
+    [rate(E,F),'关键分得分率'],
+    [won>0?(A/won*100).toFixed(1)+'%':'—','相持得分占比'],
+    [won>0?(C/won*100).toFixed(1)+'%':'—','发球得分占比']
+  ];
   var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
-  html+='💡 总分 = 相持 + 发球；平均分 = 总分 ÷ 2。';
+  html+='<p style="font-size:13px;color:var(--text-muted);margin-top:10px;">相持 '+A+' 得 / '+B+' 失，发球 '+C+' 得 / '+D+' 失，关键分 '+E+' / '+F+'；全部得失分合计 '+total+' 分。</p>';
+
+  var rt=rallyTotal>0?A/rallyTotal:NaN,st=serveTotal>0?C/serveTotal:NaN;
+  if(isFinite(rt)&&isFinite(st)){
+    var gap=Math.abs(rt-st);
+    var tip=gap<0.05?'相持与发球得分率接近，技术结构较均衡。'
+      :(rt>st?'相持得分率高于发球，得分更依赖相持回合；可加强发球变化与第三板衔接。'
+            :'发球得分率高于相持，发球抢攻效果更好；可针对性补强相持稳定性。');
+    html+='<div class="info-box" style="margin-top:10px;">'+tip+'</div>';
+  }
   const __g6=html;box.innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
   if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
 }
 function resetAll(){
-  var a=document.getElementById('v0'),b=document.getElementById('v1');
-  if(a)a.value='8';if(b)b.value='5';calc();
+  var d={v0:'8',v1:'7',v2:'5',v3:'4',v4:'2',v5:'5'};
+  for(var k in d){var el=document.getElementById(k);if(el)el.value=d[k];}
+  calc();
 }
 try{calc();}catch(e){}
 
@@ -676,10 +709,10 @@ function __pingpangqiu_xiangchi_faqiu_defenExport(){
 }
 function __pingpangqiu_xiangchi_faqiu_defenPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#pingpangqiu_xiangchi_faqiu_defenPresets',[{label:'默认参数',labelEn:'Default',values:{'v0':'8', 'v1':'5'}},
-  {"label":"弧圈相持型打法","labelEn":"Loop rally style","values":{"v0":14,"v1":4}},
-  {"label":"发球抢攻型打法","labelEn":"Serve-and-attack style","values":{"v0":6,"v1":11}},
-  {"label":"均衡型打法","labelEn":"Balanced style","values":{"v0":9,"v1":8}}],function(){ calc(); });
+    TBKit.preset.bar('#pingpangqiu_xiangchi_faqiu_defenPresets',[{label:'默认参数',labelEn:'Default',values:{'v0':'8','v1':'7','v2':'5','v3':'4','v4':'2','v5':'5'}},
+  {"label":"弧圈相持型打法","labelEn":"Loop rally style","values":{"v0":12,"v1":8,"v2":3,"v3":3,"v4":1,"v5":4}},
+  {"label":"发球抢攻型打法","labelEn":"Serve-and-attack style","values":{"v0":5,"v1":9,"v2":10,"v3":4,"v4":3,"v5":5}},
+  {"label":"均衡型打法","labelEn":"Balanced style","values":{"v0":8,"v1":7,"v2":7,"v3":6,"v4":2,"v5":5}}],function(){ calc(); });
 }
 var __pingpangqiu_xiangchi_faqiu_defen_f0=(typeof calc==='function')?calc:null;
 if(__pingpangqiu_xiangchi_faqiu_defen_f0){
@@ -719,8 +752,8 @@ else document.addEventListener('DOMContentLoaded', __pingpangqiu_xiangchi_faqiu_
 <h2>📚 深度解析：乒乓球（相持/发球）得分</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>11 分制得分统计。</li>
-<li>对抗训练统计发球直接得分率与相持回合胜率，定位发球抢攻与相持短板。</li>
+<li>按相持/发球两环节记录得分与失分。</li>
+<li>对抗训练统计发球得分率、相持得分率与关键分得分率，定位发球抢攻与相持短板。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">统计</div><div class="dd-ex-body">发球得分率=发球直接得分/发球总数；相持得分率=相持赢球/相持总数。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
