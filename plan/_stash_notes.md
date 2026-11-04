@@ -28,4 +28,13 @@
 - 改动摘要：仅把 `</div><h3>❓ 常见问题（FAQ）</h3>` 拆成两行，纯空白/换行变化，无任何文案或逻辑改动（diff 1 增 1 删）。
 - mtime 19:22，非活跃写入。
 - 处置：**存档后丢弃**（`git checkout --`）。土建线可正常接手该页。
+- 21:26 该页再次出现同类拆行改动（mtime 21:26，非秒级活跃），语义不变 ⇒ **收编提交** `2f0dc614fa`（message：收编遗留改动：tools/manufacturing/quality-control.html）。
+
+## 2026-11-04 追加：IT 6 文件复核（IT 线报的 ast-viewer / charset-detector / index / less-compiler / whitespace / yaml-validator）
+
+- 实际脏路径仅 3 个（其余 3 个已由安全线/假工具线提交，工作区干净）：
+  - **收编**：`tools/it/index.html` —— MD5 卡片标题「MD5加密工具」→「MD5 哈希计算器」，与假工具线 `af986271e5` 的页面标题口径一致，1 行、语义完整。
+  - **丢弃**：`tools/it/charset-detector.html` —— 新文案宣称「识别 GBK/Big5/UTF-8 编码」并给 `C4E3BAC3` 十六进制字节示例，但页面实现只做「已解码字符串的乱码还原」，原 FAQ 明确「不做 GBK/Big5 猜测」；改动属**与实现相反**的虚构功能描述。
+  - **丢弃**：`tools/it/whitespace.html` —— 示例/FAQ 把选项名写成「压缩所有连续空白」「删除行首尾空白」，页面实际 label 是「合并连续空格为单个」「去除每行首尾空白」，**口径与 UI 不一致**；示例也删掉了勾选项与输出对应关系。
+- 处置仅针对上述明确路径，未批量回退。
 
