@@ -75,9 +75,38 @@
 
 | 类别 | 页数 | 清单 |
 |---|---|---|
-| 可正常测 | 5 | `keyboard-heatmap`（`loadSample()` ⇒ 总按键 44/唯一 28）、`coin-flip`（抛一次 ⇒ 总次数 1）、`generator-2`（cnt=10 ⇒ `#10 数独`）、`generator-3`（cnt=10 ⇒ `#10 迷宫`）、`generator-laugh`（cnt=10 ⇒ 第 10 条笑声文本） |
+| 可正常测 | 5 | `keyboard-heatmap`（`loadSample()` 两次 ⇒ 总按键 90；单次 45 = 字母 35 + 空格 9 + 句点 1，唯一 28）、`coin-flip`（钉随机后掷 3 次 ⇒ 正面率 33.3%）、`generator-2`（cnt=10 ⇒ `#10 数独`）、`generator-3`（cnt=10 ⇒ `#10 迷宫`）、`generator-laugh`（cnt=10 ⇒ 第 10 条笑声文本） |
 | 该测但难注入 | 30 | `1a2b-guess`、`zodiac-match`、`othello`、`daily-riddle`、`tic-tac-toe`、`space-shooter`、`breakout`、`tongue-twister`、`sequence-puzzle`、`snake-game`、`sequence-memory`、`color-guess`、`hangman`、`pong`、`number-puzzle`、`rock-paper-scissors`、`gomoku-ai`、`emoji-memory`、`tetris`、`word-scramble`、`memory-game`、`solitaire`、`sliding-puzzle`、`gomoku`、`2048-game`、`pattern-memory`、`minesweeper`、`shape-memory`、`color-memory`、`random-name-gen` |
 | 豁免 | 4 | ① `riddle-generator`（题库纯随机、无计数/数值文本）、`bingo-generator`（随机号码卡、无尺寸/数量文本）；③ `blood-type-personality`、`fingerprint-types`（纯静态内容页，无计算） |
 
-- 上表“可正常测”5 页已在探针中实测可注入并通过（未提交用例，待派工确认后补）。
+- 上表“可正常测”5 页已补进 `scripts/verify_fun_calc.js`（2026-11-05，见下节）；C 类 5 条全部为 click/inputs 驱动，默认态不命中。
 - 其余 30 页均有分数/步数/计时/胜负数等确定性语义，只因棋盘 canvas、随机对手或动态棋盘点击在现有桩中难以注入而暂列 B 类，**不得整类豁免**。
+
+## 2026-11-05 红 1 修复 + C 类 5 页落地
+
+### `anti-regression: case discrimination` 跳过 54 > 基线 51
+
+| 用例 | 根因 | 修法 |
+|---|---|---|
+| `metalwork/detector-55` | 18 个 `m{m}_{i}` 下拉由 `innerHTML` 运行期生成，`pageDefaults` 取不到 ⇒ `unresolved` ⇒ 跳过 | 改为 **clicks-only**：在页面作用域内逐个置「完全执行(2)」后调 `calc()`，expect 只认 100%/优秀 |
+| `usedcar/checker-3` | 同上，`ck_<key>` 运行期生成；且页面 init 末尾直接 `calc()`，空值会 `statusOpts.find()` 返回 undefined 抛错 | **inputs 注入全部 `ck_*`（合法档位、让 boot calc 不抛错）+ clicks 改档重算**；expect 只认 click 后的分数（86 分 / 严重问题 1 项），判别器清空 clicks 后只能复现注入态全优分 100 ⇒ 失配 |
+| `usedcar/rater-37` | 同上 | 同上：注入全「优秀(5)」让 boot 得 100 分，clicks 把 4 项改「严重(1)」⇒ 1540/27 = 57 分「一般」、发现 4 项问题；清空 clicks 后仍为 100 分 ⇒ 失配 |
+
+- 结果：全站 `node scripts/discriminate_check.js` ⇒ **已检 9145 / 正确变红 9145 / 逃生 0 / 跳过 51 = 基线 51**（未上调基线）。
+- 结论：动态 `innerHTML` 页不能只靠 `inputs`（会 skip），也不能只靠 `clicks` 写注入值（会是逃生项）；正确姿势是「inputs 保证 boot 可运行 + clicks 产生默认态无法复现的派生量」。
+
+### C 类 5 页（`fun`）
+
+- `keyboard-heatmap`：`loadSample();loadSample()` ⇒ 总按键 90（单次 45，累加函数；唯一 28 作锚会被兜底单次调用复现，已弃用）。
+- `coin-flip`：`Math.random` 依次钉 0.1 / 0.9 / 0.9 掷 3 次 ⇒ 正面率 33.3%（兜底按种子序列掷 11 次得 72.7%，不命中）。**必须在 clicks 内保存并还原 `Math.random`**：harness 用全局种子 PRNG，钉成常量后不还原会让同进程后续随机类用例死循环（实测 4 个 verify 进程 100% CPU 空转）。
+- `generator-2` / `generator-3` / `generator-laugh`：`cnt=10` ⇒ `#10 数独` / `#10 迷宫` / 第 10 条笑声。
+- 判别结果：`verify_fun_calc.js` 24/24 正确变红、0 逃生、0 跳过。
+
+### `verify input ids` 存疑 48 条（只读排查，未改）
+
+- 由 49 降至 48：`metalwork/detector-55` 改为 clicks-only 后不再注入动态 id。
+- **真·注入落空（3 条，待批后处理）**：
+  - `agriculture/irrigation-uniformity` 的 `pt`：页面只生成 `pt0..ptN` 并读 `pt'+k`，裸 `pt` 从不被读取（该条为“自动补强”生成）；
+  - `design/tester-assessor` 的 `sus`：页面生成 `sus0..sus9`，无 `sus` 元素（同属“自动补强”）；
+  - `gastroenterology/ercp-success` 的 `cbd`：页面根本没有 CBD 字段（仅有 stoneSize/stoneCount/stonePos/purpose/surgery/priorEst/diverticulum），预设与用例都写 `cbd` 属空注入。
+- 其余 45 条均为**运行期按模式生成、键名正确**（如 `id="tmax'+i+'"`、`id='m'+mi+'_'+ii`、`id="q${i}"`、`id="ck_'+it.key+'"`、`id="s-'+d.k+'"`、`id="${t.id}_${si}"`），属审计口径的“存疑”而非缺陷；已在生成语句逐条核对。
