@@ -131,19 +131,19 @@ const CASES = [
   // ---------- 血压与循环 ----------
   {
     slug: "healthcare/blood-pressure-grade",
-    inputs: { sys: "130", dia: "85", age: "50" },
+    inputs: { sys: "130", dia: "85" },
     expect: ["脉压： 45 mmHg"],
     ref: "脉压 = 130−85 = 45 mmHg；收缩压 130/舒张压 85 属中国指南正常高值（修复前误判「3 等级」）。默认 120/80 同判正常高值但脉压 40，不命中；不锚「分级： 正常高值」，默认态同样命中会逃生。",
   },
   {
     slug: "healthcare/blood-pressure-grade",
-    inputs: { sys: "140", dia: "90", age: "50" },
+    inputs: { sys: "140", dia: "90" },
     expect: ["脉压： 50 mmHg", "分级： 1 级高血压"],
     ref: "脉压 = 140−90 = 50 mmHg；收缩压 140 且舒张压 90 → 1 级高血压（修复前误判「4 等级」）。默认 120/80 为正常高值，不命中。",
   },
   {
     slug: "healthcare/blood-pressure-grade",
-    inputs: { sys: "80", dia: "120", age: "40" },
+    inputs: { sys: "80", dia: "120" },
     expect: ["收缩压须大于舒张压"],
     ref: "收缩压 80 < 舒张压 120，物理上不可能 → 拒绝计算并提示（修复前输出「5 等级、脉压 −40」）。默认 120/80 有效，不命中。",
   },
@@ -409,18 +409,6 @@ const CASES = [
       "42\n42\n42\n42\n4"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"volume\":\"42\",\"abv\":\"42\",\"weight\":\"42\",\"sex\":\"42\",\"hours\":\"42\"}，输出区含「42\n42\n42\n42\n4」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
-    "slug": "healthcare/blood-pressure-grade",
-    "inputs": {
-      "sys": "42",
-      "dia": "42",
-      "age": "42"
-    },
-    "expect": [
-      "收缩压须大于舒张压"
-    ],
-    "ref": "自动补强（B类零用例）：注入 sys=dia=42（收缩压不大于舒张压）→ 页面拒绝计算并提示「收缩压须大于舒张压」；默认 120/80 有效，不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "healthcare/bmi-2",

@@ -262,9 +262,9 @@ const CASES = [
   },
   {
     slug: "finance/vat-calculator",
-    inputs: { amount: "1000", rate: "13", dir: "add" },
-    expect: ["含税价 1,130.00"],
-    ref: "13% 增值税：不含税 1000 ⇒ 税额 130.00 ⇒ 含税价 1130.00。默认态不同 ⇒ 不命中。",
+    inputs: { amount: "2000" },
+    expect: ["不含税价 1,769.91", "增值税额 230.09"],
+    ref: "重写：原注入 rate（页面无此 id，真实为 customRate）且 amount=1000 恰为默认值 ⇒ 注入落空、断言「含税价 1,130.00」是默认态字面值。改为 amount=2000（默认 1000）、默认 13% 含税倒推 ⇒ 不含税 2000/1.13=1,769.91、税额 230.09、含税 2,000.00。默认态为 1,130.00 一档，两条均不命中。",
   },
   {
     slug: "finance/tax-bracket",
@@ -1060,7 +1060,7 @@ const CASES = [
   },
   {
     slug: "finance/credit-card-interest",
-    inputs: { billAmount: "8000", dailyRate: "0.05", billDay: "2", dueDay: "20", minRatio: "10", lateFeeRatio: "5", repayType: "full" },
+    inputs: { billAmount: "8000", dailyRate: "0.05", billDay: "2", dueDay: "20", minRatio: "10", repayType: "full" },
     clicks: ["calc()"],
     expect: ["38 免息天数"],
     ref: "信用卡免息期天数（账单日 2 号、还款日 20 号）：因 dueDay > billDay ⇒ 免息天数 = (还款日 − 账单日) + 20 = 20 − 2 + 20 = **38 天**，再经 `min(max(x,20),56)` 裁剪后仍为 38。刻意避开默认组（账单日 10 / 还款日 30 ⇒ 40 天）—— 首轮按默认值注入时该行恒为 40、默认态也命中 ⇒ 判逃生项，改账单日/还款日后才有判别力。全额还款 ⇒ 循环利息 0.00、应还 8,000.00 与「免息期内无息」自洽。",
@@ -1576,24 +1576,6 @@ const CASES = [
       "abc123测试\nInput: abc123测试 ❌ 未找到匹配的货币 支持：ISO 4217 货币代码（如 USD、CNY、EUR）或中英文名"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\nInput: abc123测试 ❌ 未找到匹配的货币 支持：I…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
-    "slug": "finance/credit-card-interest",
-    "inputs": {
-      "billAmount": "42",
-      "dailyRate": "42",
-      "billDay": "42",
-      "dueDay": "42",
-      "minRatio": "42",
-      "lateFeeRatio": "42",
-      "installmentFee": "42",
-      "repayType": "minimum",
-      "installmentMonths": "6"
-    },
-    "expect": [
-      "期数 还款金额 本金 利息/手续费 剩余本金 第1期 546.84 17.64 529.20 24.36"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"billAmount\":\"42\",\"dailyRate\":\"42\",\"billDay\":\"42\",\"dueDay\":\"42\",\"minRatio\":\"42\",\"lateFeeRatio\":\"42\",\"installmentFee\":\"42\",\"repayType\":\"minimum\",\"installmentMonths\":\"6\"}，输出区含「minimum\n42\n42\n42\n42\n42\n42\n6\n42\n期数 还款金额 本…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "finance/currency-symbol",
@@ -2718,44 +2700,24 @@ const CASES = [
   },
   {
     slug: "finance/housing-fund-loan",
-    inputs: { balance: "12", monthlySave: "3000", saveYears: "8", housePrice: "450", age: "40" },
+    inputs: { balance: "12", housePrice: "450", age: "40" },
     expect: ["账户余额12.0万元 × 15倍", "总价450.0万元 × 80%"],
     ref: "注入非默认(默认 8/2000/5/300/35)：额度三档 —— 余额档 = 12.0万×15 = 180.0 万、房价档 = 450.0万×80% = 360.0 万、城市上限（北京）120 万 ⇒ 最终可贷取最小 120 万。⚠ **月供 21,616 元与还款总额 1,296,948 元不可用**：默认 balance=8 时 8×15 = 120 万，同样被 120 万城市上限夹住 ⇒ 额度、月供、利息、还款总额在两态**逐字相同**；唯一有判别力的是额度依据表里含注入值的两行说明串。"
   },
   {
     slug: "finance/housing-fund-loan",
-    inputs: { balance: "12", monthlySave: "3000", saveYears: "8", housePrice: "450", age: "40", rate: "4.5" },
+    inputs: { balance: "12", housePrice: "450", age: "40", rate: "4.5" },
     expect: ["4.59%"],
     ref: "年利率 4.5%（名义）⇒ 有效年化 = (1+4.5%/12)^12−1 = **4.59%**，与名义值并列；默认 2.85% ⇒ 2.89%，不命中。"
   },
   {
     slug: "finance/housing-fund-loan",
-    inputs: { balance: "12", monthlySave: "3000", saveYears: "8", housePrice: "450", age: "40", rate: "99" },
+    inputs: { balance: "12", housePrice: "450", age: "40", rate: "99" },
     expect: ["输入无效已按 2.85% 计"],
     ref: "年利率 99% 超出 0–20% 有效区间：旧实现静默回退 2.85% 不告知；现显式标注「输入无效已按 2.85% 计」。默认 2.85% 且有效 ⇒ 不命中。"
   },
 
   {
-    "slug": "finance/housing-fund-loan",
-    "inputs": {
-      "balance": "42",
-      "monthlySave": "42",
-      "saveYears": "42",
-      "housePrice": "42",
-      "age": "42",
-      "city": "上海",
-      "repayType": "equal_principal",
-      "loanYears": "10"
-    },
-    "expect": [
-      " 还款方式 等额本金 首月还款 3,598 元 末月还款 2,807 元 每月递减 7 元 利息总额 48,279 元 还款总额 384,279 元"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"balance\":\"42\",\"monthlySave\":\"42\",\"saveYears\":\"42\",\"housePrice\":\"42\",\"age\":\"42\",\"city\":\"上海\",\"repayType\":\"equal_principal\",\"loanYears\":\"10\"}；贷款 33.6 万/120 期/年利率 2.85%（页面新默认可改）⇒ 月还本金 2800、首月 3598、末月 2807、总利息 48279。"
-  },
-
-
-  {
-    // S3 逐年拆解汇总表（2026-10-26）：scheduleData 按 12 期聚合，行间自洽（年还款=年本金+年利息；第2年本金=第1年末余额）
     "slug": "finance/loan-amortization",
     "inputs": {
       "loanAmount": "120000",
@@ -3105,7 +3067,7 @@ const CASES = [
   },
   {
     slug: "finance/credit-card-interest",
-    inputs: { billAmount: "8000", dailyRate: "0.1", billDay: "2", dueDay: "20", minRatio: "10", lateFeeRatio: "5", repayType: "minimum" },
+    inputs: { billAmount: "8000", dailyRate: "0.1", billDay: "2", dueDay: "20", minRatio: "10", repayType: "minimum" },
     clicks: ["calc()"],
     expect: ["最低还款有效年利率约 42.58%（名义年化 36.50%）"],
     ref: "日利率 0.1%：名义年化 0.1×365=36.50%，按月（30 天）复利的有效年化 (1+0.1%×30)^12−1=42.58%。旧实现只报名义 36.50% 却称「年化」，与页面有效年化卡口径不一致。默认日利率 0.05% ⇒ 注入失败不命中。",

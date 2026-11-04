@@ -994,14 +994,14 @@ const CASES = [
   },
   {
     slug: "clinical-lab/flow-cytometry-ratio",
-    inputs: { wbc: "6", lpct: "30", cd4: "25", cd8: "20", cd3: "60", cd19: "10", nk: "10", treg: "5" },
+    inputs: { wbc: "6", lymphPct: "30", cd4: "25", cd8: "20", cd3: "60", cd19: "10", nk: "10", treg: "5" },
     clicks: ["calc();document.getElementById('result').innerHTML+=' 含免疫抑制='+(document.getElementById('result').innerHTML.indexOf('免疫抑制')>=0);"],
     expect: ["CD4绝对值 450/μL → 落在 参考下限内(414–500)", "含免疫抑制=false"],
     ref: "L-N30 阈值：wbc 6×10⁹/L、淋巴 30% ⇒ 淋巴细胞 1800/μL，CD4 25% ⇒ 450/μL，落在参考区间 414–1611 内；修复前另设 <500 即判「免疫抑制」，与参考表冲突。哨兵同时断言不出现「免疫抑制」。默认输入下 CD4 绝对值 0 ⇒ 该行不渲染。"
   },
   {
     slug: "clinical-lab/flow-cytometry-ratio",
-    inputs: { wbc: "6", lpct: "30", cd4: "60", cd8: "20", cd3: "70", cd19: "8", nk: "12", treg: "4" },
+    inputs: { wbc: "6", lymphPct: "30", cd4: "60", cd8: "20", cd3: "70", cd19: "8", nk: "12", treg: "4" },
     clicks: ["calc()"],
     expect: ["CD4 比例高于参考(>51%)"],
     ref: "L-N30 百分比上限：CD4 60%>51% 应提示高于参考；修复前只查绝对计数、不查百分比上限 ⇒ 漏报。默认 CD4 30% 不命中。"

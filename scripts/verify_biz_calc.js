@@ -430,10 +430,9 @@ const CASES = [
   },
   {
     slug: "biz/text-pad",
-    inputs: { "input": "7", "padChar": "0", "padLength": "5", "align": "left" },
+    inputs: { "input": "7", "char": "0", "length": "5", "direction": "left" },
     expect: ["00007"],
-    ref: "补位工具：左补到 padLength=5 位、补位符 '0' ⇒ 7 ⇒ 00007。默认态是对预置数值序列补到 10 位"
-       + "（'0000000001 0000000012 …'），与本例位宽不同 ⇒ 强判别。",
+    ref: "补位工具（页面真实 id 为 input/char/length/direction）：左补到 length=5 位、补位符 '0' ⇒ 7 ⇒ 00007。原键 padChar/padLength/align 在页面不存在 ⇒ 注入落空、断言只是默认态复述，已按键名对齐。默认态是对预置数值序列补到 10 位（'0000000001 0000000012 …'），与本例位宽不同 ⇒ 强判别。",
   },
   {
     slug: "biz/markdown-quote",
@@ -547,11 +546,9 @@ const CASES = [
     slug: "biz/text-to-banner",
     inputs: {
       input: "hi",
-      mode: "solid",
-      color: "#f43f5e",
     },
     expect: ["╔══════╗ ║######║ ║##hi##║ ║######║ ╚══════╝"],
-    ref: "边框宽度随文本长度变化：hi=2字⇒顶部 6 格、HELLO=5 字⇒9 格，注入 hi 后形态与默认 HELLO 完全不同，双态强判别（默认态输出含 ##HELLO## 必不命中）；color/mode 一并注入只为绕开默认配色分支，不参与判定。",
+    ref: "边框宽度随文本长度变化：hi=2字⇒顶部 6 格、HELLO=5 字⇒9 格，注入 hi 后形态与默认 HELLO 完全不同，双态强判别（默认态输出含 ##HELLO## 必不命中）。原注入 mode/color 在页面不存在（真实 id 为 style/paddingX/paddingY）⇒ 属僵尸键，已删除；判定只依赖 input。",
   },
   {
     slug: "biz/text-to-banner",

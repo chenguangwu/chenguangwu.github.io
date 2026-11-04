@@ -6,8 +6,7 @@ const CASES = [
   "slug": "stats/data-distribution",
   "inputs": {
     "bins": "6",
-    "data": "5,8,12,15,18,21,24,27,30,33,36,39,42,45,48,51",
-    "alpha": "0.05"
+    "data": "5,8,12,15,18,21,24,27,30,33,36,39,42,45,48,51"
   },
   "clicks": ["calc()"],
   "expect": [
