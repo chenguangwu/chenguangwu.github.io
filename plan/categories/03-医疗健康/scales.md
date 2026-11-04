@@ -311,3 +311,109 @@
 - 新查 8 页：`tools/psychiatry/gad7-anxiety.html`、`tools/psychiatry/isi-insomnia.html`、`tools/psychiatry/eat26-eating.html`、`tools/psychiatry/ybocs-ocd.html`、`tools/psychiatry/cssrs-suicide.html`、`tools/psychology/sas-assessment.html`、`tools/neurology/dhi.html`、`tools/rehabilitation/berg-balance-scale.html`。
 - 新增 17 条（M-N9–M-N25），其中高优 4 条（M-N9、M-N11、M-N13、M-N17）；与 M-N1–M-N8 页面无重复。
 - 证据口径：逐页读源码 + `node -e` 按原数组/原表达式内存复算；未做真实浏览器交互、`?lang=en-US` 实机、移动端、线上或门禁验证，也未核验各量表标准阈值与授权译本。
+
+## 2026-11-04 T 批 psychiatry（rater/CD-RISC/CAGE/LSAS/PHQ-9/C-SSRS/PANSS）
+
+### M-N26 rater-24 25 题默认全选「2-有时」，未作答即出分级（高，确认源码缺陷）
+- 问题：`buildList()` 给每一题的 `<option value="2" selected>2-有时</option>` 预选，25 个下拉全部默认 2；`calc()` 直接对全部 select 求和，没有未答状态或完成度校验；页面尾部 `buildList();calc();` 立即执行，因此首次打开就得到 50 分并写入分级/门诊记录。
+- 证据：`tools/psychiatry/rater-24.html:200`（默认 `selected`）、`:246-252`（无条件累加、`max=items.length*4`）、`:255-257`（≥50 判「中等」）、`:312`（首屏 `calc()`）。
+- 复现：不做任何选择打开页面 → 总分 50/100、等级「中等心理韧性」（`node -e` 复算 25×2=50，命中 ≥50 分支）；只把第 1 题改为 0 → 48/100「低心理韧性」。期望：未答时显示「已作答 0/25」，不给出等级、标尺和门诊记录。
+- 影响：`tools/psychiatry/rater-24.html`；默认值被当作受试者作答，只答 1 题也能得到一份完整的 48 分报告，结果系统性偏向中档。
+- 方案：默认 `value=""` 或内部 `-1`，`calc()` 首行判 `done<25` 只输出进度提示；门诊记录/导出同样加完成度守卫。
+
+### M-N27 rater-23 恐惧/回避 48 个下拉默认全为「2」，首屏即「显著社交焦虑」（高，确认源码缺陷）
+- 问题：每个情境的恐惧与回避两个 select 都写了 `value="2" selected`（24 情境 ×2=48 个控件）；`calc()` 无完成度校验，尾部 `buildList();calc();` 直接计算，打开页面即 96 分「显著社交焦虑」。
+- 证据：`tools/psychiatry/rater-23.html:210-211`（两处 `selected`）、`:216-229`（无条件累加，`maxTotal=lsasItems.length*3*2`）、`:232-236`（96<105 判「显著」）、`:322`（首屏 `calc()`）。
+- 复现：打开页面 → 恐惧 48 + 回避 48 = 96/144 → 「显著社交焦虑」（`node -e` 复算 24×2×2=96）；只把第 1 情境两项改 0 → 92 仍「显著」。期望：未开始时为 0/48 并提示继续作答。
+- 影响：`tools/psychiatry/rater-23.html`；未评估即产出高等级结论与门诊记录，且部分作答永远无法低于默认基线。
+- 方案：默认空值 + `done<48` 守卫；结果区、CSV、门诊记录三个入口统一拦截。
+
+### M-N28 cdrisc-resilience 实为 CD-RISC-10（0–40），解析与引据仍写 25 条/0–100（高，确认源码缺陷）
+- 问题：页面实现 10 个条目、满分 40（`/40`、分级 ≤19/20–29/≥30），但深度解析、FAQ 与引据表沿用 25 条版本，写「25 题、0–100」，并给出 60、82 这类在 0–40 量程内不可能出现的分数。
+- 证据：`tools/psychiatry/cdrisc-resilience.html:126`（公式：10 条/满分 40）、`:13`、`:16`（meta 亦为 CD-RISC-10/0–40）、`:156`（30-40 较高）、`:187-188`（示例「总分 60/100」「高韧性 82」）、`:191`（FAQ「0–100」）、`:215`（引据表「总分范围 0–100」）、`:383`（门诊记录写 10 条目）。
+- 复现：10 题全选 4 → 40/40（100%），等级「较高」；页面示例 60、82 无法通过任何作答组合得到（`node -e`：60>40、82>40 均为 false，超出量程）。期望：示例落在 0–40（如 24/40、34/40），引据/FAQ 统一为 10 条、≤19 较低 / 20–29 中等 / ≥30 较高。
+- 影响：`tools/psychiatry/cdrisc-resilience.html`；用户按示例核对会得到矛盾结果，FAQ 与引据把简版误作 25 条原版。
+- 方案：以 `:126` 为唯一口径改写 `:187-191`、`:209-221`；示例数字用 node 实算后填（如 6/10/8 分组合 = 24）。
+
+### M-N29 lsas-social 参考标尺 ≥91 段误标「无/轻度」绿色（高，确认源码缺陷）
+- 问题：结果标尺最后一段为 `{"lo":91,"hi":null,"label":"无/轻度","color":"#10B981"}`，而同一页的结果分级 ≥91 是「极重度」（红色）。
+- 证据：`tools/psychiatry/lsas-social.html:301`（refBar 末段 label/颜色）、`:304`（`__lsasSev`：>90 → 极重度）。
+- 复现：24 个情境恐惧、回避全选 3 → 总分 144（`node -e` 24×3×2=144）→ 结果区「极重度…功能严重受损」，标尺最右端区间却显示「无/轻度」并着绿色。期望：末段 label「极重度」、颜色 `#EF4444`。
+- 影响：`tools/psychiatry/lsas-social.html`；最重的一档在标尺上被显示为正常，视觉结论与文字结论相反。
+- 方案：改正末段 label/color；补一条 91 分边界的渲染断言。
+
+### M-N30 lsas-social 公式框「恐惧=11项、回避=11项」与实际 24 项冲突（高，确认源码缺陷）
+- 问题：公式框称恐惧、回避各 11 项（对应每维满分 33），实际每个情境同时录入恐惧与回避，共 24 项、每维 0–72、总分 0–144。
+- 证据：`tools/psychiatry/lsas-social.html:129`（公式原文）、`:216-229`（逐情境累加两列，`maxTotal=lsasItems.length*3*2`）。
+- 复现：全部选 3 → 恐惧 72 + 回避 72 = 144（`node -e` 24×3=72），页面/导出均按 144 计算；若按公式 11 项，每维上限只有 33。期望：公式写「恐惧=24项、回避=24项，各 0–72，总分 0–144」。
+- 影响：`tools/psychiatry/lsas-social.html`；临床人员按公式手算会与工具结果相差一倍以上。
+- 方案：改公式文案；把 24/72/144 抽成页面常量，公式、标尺、导出统一引用。
+
+### M-N31 self-assess-4 未作答默认「从不」，打开即判「筛查阴性」（高，确认源码缺陷）
+- 问题：6 个 select 没有占位/未选态，浏览器默认选中首项 `value="0"`「从不」；`calc()` 把 0 当作真实作答，尾部 `buildList();calc();` 使首屏就输出 0 阳性、总分 0/24 与「筛查阴性」。
+- 证据：`tools/psychiatry/self-assess-4.html:181-187`（选项从 0 开始、无 placeholder）、`:191`（select 无默认空值）、`:206-222`（0 分走 `else` 分支「筛查阴性」）、`:330`（首屏 `buildList();calc();`）。
+- 复现：打开页面不点任何选项 → 阳性 0/6、原始总分 0/24、结论「筛查阴性…注意力功能在正常范围」（`node -e` 复算 6×0=0，positiveCount=0<4）。期望：未答时显示「已作答 0/6」，不出结论/分型/导出。
+- 影响：`tools/psychiatry/self-assess-4.html`；未筛查的人可得到「正常」结论，是最典型的缺答判阴性。
+- 方案：插入 `<option value="-1">请选择</option>` 并默认选中，`calc()` 先判 6 项是否全部 ≥0。
+
+### M-N32 self-assess-4 ★ 阳性标记写死在选项上，与各题 positiveFrom 不一致（高，确认源码缺陷）
+- 问题：选项标签把「有时 ★ / 经常 ★ / 非常频繁 ★」写死，`buildList()` 里算出的 `isPositive` 变量从未使用；但第 4–6 题 `positiveFrom:3`，选「有时」(2 分) 并不计阳性，界面却仍显示 ★。页面说明又写明「带 ★ 标记的选项为阳性项」。
+- 证据：`tools/psychiatry/self-assess-4.html:173-179`（题 4–6 `positiveFrom:3`）、`:184-186`（★ 固定写在 value 2/3/4）、`:192-194`（`isPositive` 计算后未参与模板）。
+- 复现：第 4 题选「有时」→ 明细表该行「阳性」列为「否」、阳性计数 0/6 不增加，但选项本身显示「有时 ★」；期望 ★ 只出现在 `v>=item.positiveFrom` 的选项上（题 4–6 应从「经常」起标 ★）。
+- 影响：`tools/psychiatry/self-assess-4.html`；用户会把非阳性作答当成阳性项，误判自己达到筛查阈值。
+- 方案：按 `item.positiveFrom` 生成标签（`v>=item.positiveFrom` 才追加 ★），并删除未使用的 `isPositive`。
+
+### M-N33 calc-1 PHQ-9 未答默认 0，打开即「无或极轻微抑郁」（高，确认源码缺陷）
+- 问题：9 个计分项的 select 从 `0 没有` 开始且无未答态，`DOMContentLoaded` 直接 `renderItems();loadState();calc();`，未作答即按 0 分给出完整分级与建议。
+- 证据：`tools/psychiatry/calc-1.html:255-258`（选项 0–3、无 placeholder）、`:324`（首屏 `calc()`）、`:281-288`（`score<=4` → 无/极轻）。
+- 复现：打开页面不选任何项 → 总分 0 → 「无或极轻微抑郁」+ 建议；`node -e` 复算 9×0=0 命中 `<=4`。期望：显示「已作答 0/9」并不出分级/导出。
+- 影响：`tools/psychiatry/calc-1.html`；空表单被当成「无抑郁」证据，且可复制门诊记录。
+- 方案：默认 `-1`/占位选项，`calc()` 首行完成度守卫；`loadState()` 恢复后同样校验。
+
+### M-N34 calc-1 深度解析「总分 15（中度）」与本页分级表 15–19 中重度矛盾（中，内容与分级表冲突）
+- 问题：示例给 9 项 `2,2,2,1,2,2,2,1,1`，合计 15，标题与正文都写「中度抑郁」；同页分级表和代码均为 15–19「中重度」。
+- 证据：`tools/psychiatry/calc-1.html:169`（分级说明 15–19 中重度）、`:288-289`（`score<=14` 中度、`<=19` 中重度）、`:517`（示例「总分 15（中度）」）。
+- 复现：输入上述 9 项 → 总分 15（`node -e` 求和=15）→ 结果区「中重度抑郁」，而示例文案称「中度抑郁」。期望：示例标「中重度」，或改分值组合使 ≤14。
+- 影响：`tools/psychiatry/calc-1.html`；用户照示例核对会认为工具分级错误。
+- 方案：改示例标题/正文为「中重度」；补 14/15 边界用例。
+
+### M-N35 assessor-risk-5 未评估默认全「否」，首屏即「极低风险/无自杀意念」（高，确认源码缺陷）
+- 问题：5 个意念项 + 3 个行为项的 select 只有「否/是」，默认「否」；`calc()` 无完成度守卫，页面尾部 `buildList(...);calc();` 直接执行，未勾选任何一项就输出「极低风险」「当前无自杀意念和行为」，并写入门诊记录数据。
+- 证据：`tools/psychiatry/assessor-risk-5.html:252-256`（`<option value="0">否</option>` 默认）、`:323-328`（累加后 `maxIdeation` 初值 -1）、`:356-357`（else 分支「极低风险/当前无自杀意念和行为」）、`:406-408`（首屏 `calc()`）。
+- 复现：打开页面不做任何评估 → 风险等级「极低风险」、意念 0 级、自杀行为「无」、非自杀性自伤「无」（`node -e`：8 项全 0 → maxIdeation=-1 → 走 else 分支）。期望：未完成时显示「未完成评估，不可判定」，不生成等级与门诊记录。
+- 影响：`tools/psychiatry/assessor-risk-5.html`；自杀风险工具出现假阴性，最严重可被当作「已筛查无风险」写入病历。
+- 方案：默认空值 + 8 项全部作答才计算；未完成时禁用复制/导出，结果区显示「不可判定」。
+
+### M-N36 panss-schizophrenia 公式框把一般精神病理写成 7 项（实为 16 项）（高，确认源码缺陷）
+- 问题：公式写「一般精神病理分(7项)」，按此 7+7+7=21 项、满分只有 147；实际 QS 为 30 条、G 为 16 条（i≥14），结果卡也标「一般G(16-112)」、总分 /210，meta 同样写 G(16)。
+- 证据：`tools/psychiatry/panss-schizophrenia.html:127`（公式「7项」）、`:13`、`:16`、`:215`（meta/说明均 G(16)，共 30 条）、`:243-276`（QS 30 条，`i<7` P、`i<14` N、其余 G）、`:291`（标签「一般G(16-112)」）。
+- 复现：30 项各评 1 → 总分 30/210（`node -e` 30×7=210）；若按公式 21 项，满分应为 147（21×7），与结果卡的 /210 冲突。期望：公式写「阳性(7项) + 阴性(7项) + 一般精神病理(16项) = 30 项，30–210」。
+- 影响：`tools/psychiatry/panss-schizophrenia.html`；临床人员按公式手算 G 分与工具结果相差 9 项，量程也差 63 分。
+- 方案：改公式文案；由 QS 派生子量表长度，避免再出现硬编码 7/16。
+
+### M-N37 phq9-depression 预设「中度（一半天数）」实得 18 分判中重度（高，阈值与标签矛盾）
+- 问题：按钮「🟠 中度（一半天数）」调用 `applyQuizPreset(2)`，把 9 项全部置 2；9×2=18，按页面分级为「中重度抑郁」，与按钮标签「中度」不一致。
+- 证据：`tools/psychiatry/phq9-depression.html:144`（按钮文案与 `applyQuizPreset(2)`）、`:307-310`（`A=A.map(function(){return j;})` 全项同值）、`:283-284`（≤14 中度、≤19 中重度）。
+- 复现：点击该预设 → 9 项均为「一半以上天数」→ 总分 18（`node -e` 9×2=18）→ 结果「中重度抑郁」；期望按钮标「中重度（一半天数）」，或预设改为 1/2 混合使总分落在 10–14。
+- 影响：`tools/psychiatry/phq9-depression.html`；预设名称与产出等级不符，演示/教学时会被当成分级错误。
+- 方案：改按钮文案为「中重度」，或给 10–14 单独设计一组混合分值；预设与分级表共用同一常量。
+
+### M-N38 phq9-depression 恢复历史后只重绘不重算，结果仍是上一份答卷（高，确认源码缺陷）
+- 问题：`__quizMountHist()` 的恢复回调把 `A` 换成历史答案后只调 `render()`；`render()` 仅更新选项高亮和进度，不触发 `calc()`，因此 `#result`（含门诊记录）保留恢复前的分数与结论。
+- 证据：`tools/psychiatry/phq9-depression.html:330-333`（恢复回调仅 `render()`）、`:255-263`（`render()` 不清算结果）、`:269`（只有 `pick()` 才 `calc()`）。
+- 复现：9 项全选 3 → 27/27「重度」；再全部改 0 → 0/27「无抑郁」；点击历史记录 → 界面 9 项恢复为 3 分高亮，结果区仍写「无抑郁」。期望：恢复后立即重算并显示 27/27「重度」。
+- 影响：`tools/psychiatry/phq9-depression.html`；旧结论会被误当作所恢复记录的结果，与 M-N3 同类但属新页面。
+- 方案：回调末尾调用 `calc()`；恢复时先清空旧结果与门诊记录，避免生成重复历史。
+
+### M-N39 cage-substance 恢复历史后只重绘不重算，结果仍是上一份答卷（高，确认源码缺陷）
+- 问题：`__cageMountHist()` 恢复时只 `render()`，不调用 `calc()`，4 个选项高亮切到历史答案，结果区仍显示恢复前的阳性计数/结论。
+- 证据：`tools/psychiatry/cage-substance.html:328-332`（恢复回调仅 `render()`）、`:243-251`（`render()` 只重绘）、`:253-257`（`pick()` 才 `calc()`）、`:386`（首屏 `render();calc();`）。
+- 复现：4 项全「是」→ 4/4 阳性；再全改「否」→ 0/4 阴性；点击历史记录 → 4 个「是」恢复高亮，结果仍「0/4 阴性」（`node -e` 按 0 为是的计分复算为 4）。期望：恢复后重算并显示 4/4 阳性。
+- 影响：`tools/psychiatry/cage-substance.html`；CAGE 阳性/阴性与界面答案相反，可导致漏判。
+- 方案：恢复回调补 `calc()`；同时清理旧门诊记录与导出状态。
+
+## T 批 psychiatry 覆盖（2026-11-04）
+- 本轮审计 12 页：`tools/psychiatry/rater-24.html`、`tools/psychiatry/cdrisc-resilience.html`、`tools/psychiatry/cage-substance.html`、`tools/psychiatry/lsas-social.html`、`tools/psychiatry/phq9-depression.html`、`tools/psychiatry/rater-23.html`、`tools/psychiatry/les-stress.html`、`tools/psychiatry/self-assess-4.html`、`tools/psychiatry/assessor-risk-5.html`、`tools/psychiatry/mmpi2-personality.html`、`tools/psychiatry/calc-1.html`、`tools/psychiatry/panss-schizophrenia.html`。
+- 新增 14 条（高 13 / 中 1），编号 M-N26–M-N39；假工具候选 0 页（12 页均有真实计分实现；`rater-24`/`rater-23` 属默认预选导致「无输入即出结论」，已按高优缺陷记录，不计为假工具）。
+- `les-stress`、`mmpi2-personality` 无高优缺陷，整页跳过（前者 0 事件即「低风险」符合核对表语义，后者默认 T=50 为明示的总体均值；二者仅有文案/钳位类低优问题）。
+- 未做浏览器/门禁/线上验证：证据均为源码行号 + `node -e` 按页面原表达式/原数组内存复算，未开浏览器、未跑 `_build.py`/门禁、未核各量表标准阈值与授权译本。

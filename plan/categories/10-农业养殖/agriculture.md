@@ -140,3 +140,100 @@
 - 本批覆盖 8 页：`pesticide-dose.html`、`seed-germination-rate.html`、`crop-water-requirement.html`、`irrigation-uniformity.html`、`fertigation-ratio.html`、`straw-return.html`、`soil-organic-matter.html`、`fertilizer-efficiency.html`。
 - 已在前批审计的 `calculator-calc-concentration.html`、`gdd-calculator.html`、`crop-yield.html` 未重复计入；`fertilizer-calculator.html` 属既有修复批次，本批未复查。
 - 其余农业养殖页面（肥效/温室/收获/机械等）未逐页覆盖；所有结论为源码推导 + node 复算，未在浏览器、英文态、移动端或门禁中验证。
+
+## T 批 农业覆盖（2026-11-04）
+
+### 10-15 收获损失率「减产(kg/百亩)」公式量纲错 50 倍（高，确认缺陷）
+- 问题：结果卡用 `(theory-actual)*100/theory*10` 计算「减产(kg/百亩)」，该式实际等于「损失率×10」，不是每百亩减产量；正确应为 `(theory-actual)*100`（kg/亩 × 100 亩）。
+- 证据：`tools/agriculture/harvest-loss-rate.html:277`（减产卡片表达式）、`:250-253`（totalLoss/lossRate 定义）。
+- 复现：理论 500 kg/亩、实际 465 kg/亩 → 总损失 35 kg/亩；页面「减产(kg/百亩)」= 70，正确值 3500，差 50 倍。
+- 影响：同页；减产强度被低估 50 倍，直接误导损失评估与减损决策。
+- 方案：改为 `(theory-actual)*100`，或删除该卡、只保留总损失量与损失率。
+
+### 10-16 收获损失率未校验 actual≤theory，复制路径无任何校验（中，确认缺陷）
+- 问题：calc 只校验 `theory<=0`，未校验实际产量不得高于理论产量；actual>theory 时 lossRate 为负，落入「≤3%」分支被判「损失极低」。copyResult 自行重算 lossRate 且无校验，theory=0 时会复制出 Infinity/NaN。
+- 证据：`tools/agriculture/harvest-loss-rate.html:248`（仅 theory 校验）、`:262-263`（负值分级）、`:300-304`（copy 无校验）。
+- 复现：理论 500、实际 520 → 总损失 -20 kg/亩、损失率 -4.00%、评级「损失极低」；理论 0、实际 465 时页面先提示错误，但点「复制结果」仍输出「损失率：-Infinity%」。
+- 影响：同页；异常输入产生反向结论与非法复制文本。
+- 方案：calc 增加 `actual>theory` 提示；copy 复用 calc 校验或结果对象，非法时中止并 toast。
+
+### 10-17 灌溉页「作物需水系数」为死输入，Kc/需水量从未参与计算（中，确认缺陷）
+- 问题：作物类型选择只把「计划湿润层深度」预填为该作物默认值，`CROPS` 中的 `water`（需水量）与 `kc`（作物系数）从未进入 calc；页面简介承诺的「作物需水系数…调整」未实现。
+- 证据：`tools/agriculture/irrigation-calculator.html:144`、`:150`（承诺）、`:273`（water/kc 定义）、`:277`（applyCrop 仅写 depth）、`:278-286`（calc 只用 area/method/soil/depth/moisture/price/cycle）。
+- 复现：壤土、60%、滴灌、30 cm 时选「葡萄」→ 净水量 28.0 m³/亩；把 depth 改回 30 再选「水稻」，结果仍 28.0 m³/亩，与作物无关（仅 depth 预填值不同）。
+- 影响：同页；用户以为已按作物需水修正，实际灌水量不含 Kc/需水量。
+- 方案：把 kc/water 纳入定额（如按 ETc 调整上限），或在 UI 明确「作物仅用于预填湿润层深度」。
+
+### 10-18 灌溉页历史记录点击不恢复任何参数（中，确认缺陷）
+- 问题：saveHistory 存了 method/area/crop，但 loadHistory 忽略记录内容，只切回计算页、按当前输入重算并提示「已加载」。
+- 证据：`tools/agriculture/irrigation-calculator.html:312`（保存字段）、`:315`（loadHistory 未使用 r）。
+- 复现：面积 10 → 改 50 → 保存 → 再改 5 → 点击该历史记录，结果仍按 5 亩计算，但 toast 提示已加载。
+- 影响：同页；历史功能形同虚设，用户误以为旧参数已恢复。
+- 方案：按记录回填 method/area/crop（作物名反查索引）后再 calc；无对应项时提示。
+
+### 10-19 DLI 补光建议把「需增加的 PPFD」写成「增加至」（中，确认缺陷）
+- 问题：无补光时提示「增加自然PPFD至 needPPFD」，但 `needPPFD = 缺口/(hours×3600)` 只是还需增加的 PPFD 增量，不是目标总 PPFD；正确目标应再加当前 PPFD（或直接用 `crop.min` 反算）。
+- 证据：`tools/agriculture/dli-calculator.html:264-266`（needPPFD 定义）、`:272`（「至」文案）。
+- 复现：PPFD 200、8 h、强光作物 min=20 → 自然 DLI 5.76、缺口 14.24；页面提示「增加自然PPFD至 494 μmol/m²/s」，实际需 694（20×1e6/(8×3600)）；按 494 只能到 14.2 mol/m²/d，仍不达标。
+- 影响：同页；补光建议少算当前本底 200 μmol，用户照做仍不足。
+- 方案：改为 `crop.min*1e6/(hours*3600)` 或 `ppfd + deficit*1e6/(hours*3600)`，文案同步改「提高至」。
+
+### 10-20 温室通风把「换气所需风口面积」按自然通风 15% 地面积评级，导致恒判不足（高，确认缺陷）
+- 问题：ventArea 是按换气次数/风速求得的风口面积，ventRatio=ventArea/地面积；页面却用自然通风「15%~25% 地面积」作为达标线。两个口径不同，合理参数下 ventRatio 恒在 1%~4%，四个预设全部「通风不足」。
+- 证据：`tools/agriculture/greenhouse-ventilation.html:256-263`（ventArea/ventRatio）、`:283-284`（15/10% 分级）、`:287-291`（建议文案）、`:512-515`（四个预设）。
+- 复现（node，Asia/Shanghai 无关）：默认预设 50×10×4、15ACH、风速 2、效率 85% → 需风口 4.90 m²、占地 0.98% → 不足；春秋 25ACH → 1.63%；夏季 60×12×4.5、40ACH、风速 3 → 1.96%；冬季 40×8×3.5、15ACH、风速 0.5 → 3.43%。四组预设均判「通风不足」。
+- 影响：同页；评价与建议恒错，持续输出「增大通风口/增加风机」的错误结论。
+- 方案：把「按 15%~25% 地面积的推荐开启面积」与「按换气量算出的满足面积」分开显示；分级改为 ventArea 对推荐面积之比，或直接改用换气次数达标判定。
+
+### 10-21 干物质标准含水折算的方向提示与事实相反（中，确认缺陷）
+- 问题：`diff>=0` 分支写「实际含水率高于标准，折算后重量增加」，但 diff>0 只在「实际含水率低于标准」时成立；两分支文案全部反向。
+- 证据：`tools/agriculture/dry-matter-conversion.html:306-307`（stdWeight/diff）、`:316`（三元文案）。
+- 复现：1000 kg、实际 20%、标准 14% → 标准重 930.23（减少 69.77），页面提示「实际含水率低于标准，折算后重量减少」；1000 kg、10%→14% → 1046.51（增加 46.51），提示「实际含水率高于标准，折算后重量增加」。数值正确，结论方向全反。
+- 影响：同页；用户据提示判断含水高低与增减方向会反向。
+- 方案：按 `am>sm` 判断：高于标准 →「折干后重量减少」，低于标准 →「折干后重量增加」。
+
+### 10-22 农药安全间隔倒计时在 UTC+8 系统性多算 1 天（高，确认缺陷）
+- 问题：`new Date('YYYY-MM-DD')` 按 UTC 解析，本地 +08:00 得到当日 08:00；safeDate 保留 08:00，而 now 被 `setHours(0,0,0,0)` 归零到本地 00:00，差值含 8 小时余量，`Math.ceil` 后多算 1 天。
+- 证据：`tools/agriculture/pesticide-interval.html:271-277`（new Date / setDate / now 归零 / ceil）。
+- 复现（TZ=Asia/Shanghai）：施药 2026-11-04、PHI 7 → 最早采收日显示 11-11，但倒计时「还剩 8 天」；施药 10-28、PHI 7，到 11-04 当天 →「还剩 1 天」而非「今日可达」；施药 10-27 + 7 → 显示「已过 0 天」而非 1 天。
+- 影响：同页；中国时区用户倒计时系统性 +1 天，可能推迟安全采收。
+- 方案：用本地日期构造 `new Date(y, m-1, d)`，或把 safeDate 也归零到本地 0 点后按整数天差计算；默认施药日期避免 `toISOString().slice(0,10)`（凌晨会取到前一天）。
+
+### 10-23 农药页「-- 请选择 --」被当成第 0 种农药展示与复制（中，确认缺陷）
+- 问题：「请选择」value=""，`+''` 得 0，`idx>=0 && PESTICIDES[0]` 成立；未选药时结果卡与复制文本都显示「吡虫啉(10%WP)、间隔 7 天」。
+- 证据：`tools/agriculture/pesticide-interval.html:258-261`（onPesticideChange 同样 +value）、`:265`、`:279`（sel 判定）、`:305-311`（详情卡）。
+- 复现：页面加载或选择「-- 请选择 --」→ 结果下方出现吡虫啉详情；点「复制结果」输出「农药：吡虫啉(10%WP)」。
+- 影响：同页；未选药却按第一种药展示 PHI，易被误当作真实标签值。
+- 方案：用 `value===''` 判空或 `Number.isInteger(idx)&&PESTICIDES[idx]`；空选择时只显示自定义 PHI。
+
+### 10-24 连作指数「复制结果」不含 OCI 与等级（中，确认缺陷）
+- 问题：copyResult 只复制作物、年限、病原菌密度、安全年限，完全不包含计算出的 OCI 指数、等级，也不含敏感性/有机质/pH/管理措施。
+- 证据：`tools/agriculture/continuous-cropping-index.html:308-311`（oci/gradeText 计算）、`:360-365`（copy 内容）。
+- 复现：默认黄瓜 3 年、病原 3 级、有机质 2%、pH 6.5、有抗性、无消毒 → 页面 OCI 64.75「中度障碍」，复制文本无该数值。
+- 影响：同页；复制/存档丢失核心结论。
+- 方案：copy 复用结果对象，至少输出 OCI、等级与各因子分值。
+
+### 10-25 农机对比「复制结果」漏算人工费，亩成本偏低约 30%（中，确认缺陷）
+- 问题：copyResult 重算亩成本时只算燃油费，漏掉 calc 中的人工费 `laborCost*timeNeeded`。
+- 证据：`tools/agriculture/machinery-efficiency.html:271-275`（calc 含 laborTotal）、`:332-336`（copy 仅 fuel*time*fp）。
+- 复现：大型拖拉机 3 m、6 km/h、85%、15 L/h、8 元/L、人工 50 元/h、200 亩 → 页面亩成本 7.41 元，复制输出 5.23 元。
+- 影响：同页；复制/汇报的成本偏低约 29%，影响选型比价。
+- 方案：copy 复用 calc 的结果数组，或补上 `laborCost*timeNeeded`。
+
+### 10-26 添加/删除农机时整体重绘，已填参数被重置为默认值（中，确认缺陷）
+- 问题：renderMachines 每次都按 DEFAULTS 重建全部输入行，addMachine/removeMachine 调用它后，用户已修改的幅宽/速度/利用率/油耗/单价全部被重置。
+- 证据：`tools/agriculture/machinery-efficiency.html:233-248`（renderMachines 用 DEFAULTS[i]）、`:249-250`（add/remove 调 renderMachines）。
+- 复现：把农机 1 油耗改为 20 → 点「+ 添加农机」→ 农机 1 油耗回到 15，随后 calc 按 15 计算。
+- 影响：同页；自定义参数静默丢失，对比结果失真。
+- 方案：重建前快照现有 DOM 值回填，或只追加新行/删除末行，不整体重绘。
+
+### T 批覆盖清单（8 页）
+- `harvest-loss-rate.html`：发现 2 条（10-15 高、10-16 中）；减产卡片量纲错 50 倍为核心缺陷。
+- `irrigation-calculator.html`：发现 2 条（10-17、10-18，均中）；Kc/需水量未参与、历史不恢复。
+- `dli-calculator.html`：发现 1 条（10-19 中）；DLI 主公式正确，仅补光建议「至」少算本底。
+- `greenhouse-ventilation.html`：发现 1 条（10-20 高）；风口面积与 15% 地面积口径混用，所有预设恒判不足。
+- `dry-matter-conversion.html`：发现 1 条（10-21 中）；三组折算数值正确，仅标准含水方向提示反向。
+- `pesticide-interval.html`：发现 2 条（10-22 高、10-23 中）；UTC+8 倒计时 +1 天为核心缺陷。
+- `continuous-cropping-index.html`：发现 1 条（10-24 中）；指数方向与分级一致，仅复制结果缺 OCI。
+- `machinery-efficiency.html`：发现 2 条（10-25、10-26，均中）；效率公式正确，复制漏人工费、增删机重置输入。
+- 声明：本批仅做源码通读 + node 在 /tmp 复算，未开浏览器、未跑门禁、未做英文态/移动端/线上验证；未修改任何工具页、构建产物或 git 状态。

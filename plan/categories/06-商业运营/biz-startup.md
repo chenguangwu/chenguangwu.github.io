@@ -233,3 +233,108 @@
 ### 续查覆盖（K 批）
 - 本轮实读 8 页：`tools/biz/analysis-47.html`、`tools/biz/analysis-manager.html`、`tools/biz/stats-time-response.html`、`tools/biz/assessor-49.html`、`tools/biz/assessor-risk-8.html`、`tools/project/analysis-28.html`、`tools/project/assessor-risk-9.html`、`tools/project/checker-training-hr-1.html`；新增 16 条（高 2 / 中 9 / 低 5）。
 - 未覆盖：`tools/biz` 其余文本/命名类页面、`tools/startup/index.html` 分类页；另顺带阅读 `tools/project/checker-12.html`（仅「合格/一般」命名与深度解析薄弱项映射等低优文案不一致，未单列）。
+
+## T 批 商业文本工具覆盖（2026-11-04）
+
+### BS-N29 文本分割：字符/单词数为负数时死循环，标签页直接冻结（高，确认缺陷）
+- 问题：`size` 只做 `parseInt(...) || 1`，负数（-1、-3）为真值直接入循环；`for(let i=0;i<text.length;i+=size)` 中 `i` 单调递减，永不满足终止条件。
+- 证据：`tools/biz/text-split.html:173`（`type=number min=1` 仅约束步进箭头，不阻止键盘录入负号）、`:327-329`（字符数循环）、`:331-333`（单词数循环为同一写法）。
+- 复现：把「字符/单词数」改成 `-3`，任选「按字符数」→ 页面立即无响应（node 模拟 20 步后 `i=-60` 仍小于 `text.length`，真实循环无步数上限）。`0` 因 `||1` 被兜成 1，不受影响。
+- 影响：输入框一旦回车留下负号，整页卡死，只能强杀标签页，已输入文本未落盘即丢失。
+- 方案：`const size = Math.max(1, parseInt(...) || 1)`；或校验 `<1` 时提示并不执行分割；两处循环共用同一个已钳制的 `size`。
+
+### BS-N30 高级替换：「默认参数」预设的正则丢了反斜杠，点了永远「未找到匹配」（中，确认缺陷）
+- 问题：预设里写的是 `(d{3})-(d{4})-(d{4})`，正确应为 `(\d{3})-(\d{4})-(\d{4})`；该式实际只匹配字面 `ddd-dddd-dddd`。
+- 证据：`tools/biz/text-replace-advanced.html:485`（预设 values）对照 `:161`（输入框默认值写的是 `(\\d{3})-(\\d{4})-(\\d{4})`）。
+- 复现：页面默认文本 `Hello World! My phone is 138-1234-5678…`，点「默认参数」→ 匹配数 0、结果区原样回显（node：`match(new RegExp('(d{3})-(d{4})-(d{4})','gi'))` → `null`）。
+- 影响：用户点「默认参数」本意是恢复可用示例，却得到一个 0 匹配的空转状态，误以为工具坏了或文本不合规。
+- 方案：预设值改为 `\\d` 版本（写入 `values.find` 时用 `'(\\d{3})-(\\d{4})-(\\d{4})'`）；并在预设应用后调用一次 `replace()` 校验命中数。
+
+### BS-N31 提取 HTML 标签：「完整标签」「标签名去重」两个开关全程未被读取（中，确认缺陷）
+- 问题：`extract()` 只读 `onlyName` / `includeAttr` / `selfClosing`，`#fullTag` 与 `#dedup` 从未参与分支；默认勾选「完整标签」时，输出仍走 `else if(!includeAttr)` 把属性剥成 `<div>`。
+- 证据：`tools/biz/text-extract-html-tags.html:166-170`（五个开关，其中两个 checked 默认）、`:313-315`（仅取三个）、`:326-332`（未勾「含属性」即无条件剥属性）、`:334-342`（结果始终按出现次序全量拼接，去重只体现在旁边的 `uniqueCount`）。
+- 复现：默认态粘贴 `<p class="x">hi</p>` → 结果两行 `<p>`、`</p>`（属性丢失，与「完整标签」字面相反）；再勾/取消「标签名去重」，结果文本一个字节都不变（`append`/`dedup` 均无分支）。
+- 影响：两个可见开关是死输入；用户以为勾着「完整标签」拿到的是原文标签，实际被静默改写，后续拿去核对模板会漏掉 class/id。
+- 方案：`fullTag` 作为 `else` 兜底（保留原匹配串），`onlyName`/`includeAttr` 优先级明确写在 UI 上；若「去重」意为结果去重，则对 `matches` 做 `Set` 保序，或把该文案改成「统计不同标签数（见下方）」并取消勾选框。
+
+### BS-N32 提取 HTML 标签：标签正则遇属性内 `>` 提前截断，含属性输出残缺（中，确认缺陷）
+- 问题：`/<[a-zA-Z][a-zA-Z0-9]*\b[^>]*?\/?>/g` 用 `[^>]*?` 找结束符，不认引号；属性值里出现 `>` 就在引号中间截断。同时 `uniqueCount` 用 `split(' ')` 取首个 token，属性前是换行/制表符时被判成另一个标签。
+- 证据：`tools/biz/text-extract-html-tags.html:310`（正则）、`:335`（`replace(/[<\/>]/g,'').split(' ')[0]`）。
+- 复现：粘贴 `<div data-x="a>b" id="k">hello</div>` 并勾「含属性」→ 抽取结果 `<div data-x="a>`（引号未闭合、属性后半段 `b" id="k"` 丢失）；`<div\n  class="a">` 与 `<div>` 在 `uniqueCount` 里被算成 2 种（node 复算 size=3 含制表符变体）。
+- 影响：带 HTML 实体或比较符号的属性（`title="1>0"`、富文本导出的 `data-*`）会让「含属性」输出坏标签，「不同标签种数」虚高。
+- 方案：改用 `/<[a-zA-Z][\w:-]*\b(?:"[^"]*"|'[^']*'|[^>"'])*\/?>/g`（跳过引号块）或直接用 `DOMParser` 遍历；`uniqueCount` 改用正则取标签名 `/^<\/?([a-zA-Z][\w:-]*)/`，不按空格切。
+
+### BS-N33 行去重：用 `{}` 当计数表，`__proto__` / `toString` / `constructor` 整行静默消失（中，确认缺陷）
+- 问题：`counts`/`firstOcc`/`lastOcc` 都是普通对象；`if(!counts[key])` 对继承属性判真，跳过初始化，`counts[key]++` 得到 `NaN`，该 key 也不会进 `firstOrder`，最终整行不输出。
+- 证据：`tools/biz/text-remove-duplicates-lines.html:323-339`（`var counts = {}` + 原型链判空）。
+- 复现：输入 `toString\nalpha\nalpha` → 结果只有 `alpha`（`toString` 行丢失，`counts.toString` 为 `NaN`）；输入含 `__proto__` 行同理（node 复算 `keys=["apple","b"]`，`toString` 未入列）。
+- 影响：日志/对象 dump 里以这些标识符开头的行会被无声吞掉，用户无法从结果察觉少了一行。
+- 方案：改用 `Object.create(null)` 或 `Map`；`firstOrder` 用 `Set` 保序，计数用 `Map.get(k)||0`。
+
+### BS-N34 行去重：原始行数把末尾空元素算进去，重复数/节省率在多模式下失真（中，确认缺陷）
+- 问题：`origCount = input.split('\n').length`，末尾换行会多出一个空元素；`dupCount = origCount - resultCount` 一律成立，但「仅重复行 / 仅唯一行 / 带出现次数」下 `resultCount` 是筛选后的行数，被算成"重复"。
+- 证据：`tools/biz/text-remove-duplicates-lines.html:310-311`、`:385-392`。
+- 复现：输入 `a\nb\na\n`（肉眼 3 行）→ 界面「原始 4 行」；切到「仅重复行」→ 结果 1 行、重复 3 行、节省 75%（期望 原始 3 / 重复 1 / 节省 33%）。勾「去除空行」时，被删的空行也被计入"重复"。
+- 影响：去重前后体积对比是这类工具的核心产出，数字虚高会让人误判文本重复程度。
+- 方案：`origCount` 用「去掉末尾单个空元素」或 `text.replace(/\n$/,'').split('\n')`；`dupCount` 改为 `Σ(count-1)` 按模式区分，筛选类模式单独说明「重复行数 = 出现>1 的行数」。
+
+### BS-N35 高级排序：数字升序把"没有数字的行"当 0，直接排到最前（中，确认缺陷）
+- 问题：`extractNum` 无匹配返回 `0`，与真实数值 0 无法区分；排序只看行内第一个数字。
+- 证据：`tools/biz/text-sort-advanced.html:348-353`（`extractNum(a)-extractNum(b)`）、`:370-373`（`return m ? parseFloat(m[0]) : 0`）。
+- 复现：输入 `苹果 3 个 / 香蕉 / 梨 5 个 / 第2项 10`，选「数字升序」→ `香蕉, 第2项 10, 苹果 3 个, 梨 5 个`（node 复算）；期望无数字行留在末尾或单独提示，且「第2项 10」应按 10 参与比较。降序时 `香蕉` 被排到最后，同样位置错误。
+- 影响：混合编号/无编号清单（如章节清单、账单明细）排序结果看似完成，实际把无数字行当成最小值，插在最前打乱结构。
+- 方案：无数字行分离出来（`{hasNum, val}` 分组），有数字组排序后拼接无数字组并注明；或让用户选择"取首个/末个/全部数字"。
+
+### BS-N36 高级排序：去重在「忽略大小写」之前执行，勾选后仍保留大小写重复（中，确认缺陷）
+- 问题：`removeDup` 用 `Set` 对原串精确判重，随后才计算 `ci`，两步不同源。
+- 证据：`tools/biz/text-sort-advanced.html:327-330`（Set 精确去重）、`:332-333`（`ci` 在去重之后才读取）。
+- 复现：勾「忽略大小写」+「去重」，输入 `Apple / apple / APPLE` → 结果三行全保留（node 复算）；期望一行。
+- 影响：与同页「忽略大小写」的承诺相反，导出后仍有重复项，用户会以为去重按钮失效。
+- 方案：先去重键 = `ci ? line.toLowerCase() : line`，`Set` 用该键，输出保留首次出现的原串。
+
+### BS-N37 文本分割：按字符数用 UTF-16 长度与 `substr`，emoji 被劈成孤立代理项（中，确认缺陷）
+- 问题：`text.length` / `substr` 按码元计数，补充平面字符（emoji、生僻字、部分符号）占 2 个码元，切点落在代理对中间。
+- 证据：`tools/biz/text-split.html:326-329`。
+- 复现：选「按字符数」、长度填 1，输入 `😀😀ab` → 6 段，前两段分别为 `\uD83D`、`\uDE00`（node 复算），粘贴/导出显示为 `�`；期望 4 段（😀/😀/a/b）。
+- 影响：社媒文案、含 emoji 的 CSV 被切坏后不可逆（复制出去即乱码），且段数与「共 N 段」全部偏大。
+- 方案：用 `Array.from(text)` 或 `Intl.Segmenter('und',{granularity:'grapheme'})` 按码点/字素切分，长度也按码点计。
+
+### BS-N38 文本分割：复制结果取 `innerText`，序号粘在内容前且段间无分隔（中，确认缺陷）
+- 问题：结果区是 `<div class="result-block"><span class="idx">N</span>内容</div>`，`copyResult()` 复制 `result.innerText`，序号与内容同属一行文本。
+- 证据：`tools/biz/text-split.html:341-343`（模板含 `.idx`）、`:350-351`（`document.getElementById('result').innerText`）。
+- 复现：默认示例按分隔符分割 → 复制落到剪贴板的是 `1apple` / `2banana` / …（node 复算形态 `[1]apple`），期望 `apple\nbanana…` 纯内容。
+- 影响：复制结果粘回输入框或其它系统时序号污染数据；用户还需手工删序号，定长切分场景尤其致命。
+- 方案：维护一份 `lastParts` 数组，复制时 `join('\n')`；或在 `.idx` 上加 `user-select:none` 并额外用 `CSS.escape` 拆分文本节点，最稳是直接用数组。
+
+### BS-N39 文本统计：英文句号不计入句子数，平均句长与阅读难度整段失真（中，确认缺陷）
+- 问题：句子只认 `。！？!?`，英文 `.` 缺失；无中文标点时 `|| 1` 兜底成 1 句，于是「平均句长 = 全部词数」，难度阈值直接被击穿。
+- 证据：`tools/biz/text-stats.html:303`（`/[。！？!?]+/g` 与 `|| (text.trim()?1:0)`）、`:332-336`（平均句长与 25/15 阈值）、`:157`（公式框同样只写这四类标点）。
+- 复现：100 个英文单词、3 句（句号分隔）→ 输出「句子数 1、平均句长 100.0 词/句、阅读难度 困难」（node 复算）；期望 3 句、约 33 词/句、中等。
+- 影响：英文/中英混排文本的「平均句长」「阅读难度」恒为困难档，是页面主打的易读性指标，结论方向性错误。
+- 方案：句子切分改为 `/[。！？!?]+|[.!?]+(?=\s|$)/g`（并排除 `...`/小数点的误判），或直接按 `Intl.Segmenter('en',{granularity:'sentence'})`；公式框同步补英文句号口径。
+
+### BS-N40 文本统计：「总行数」把末尾换行多算一行（中，确认缺陷）
+- 问题：`text.split('\n').length` 在末尾有换行时返回多一个空串；`非空行` 有过滤，`总行数` 没有。
+- 证据：`tools/biz/text-stats.html:300`（`text.split('\n').length`）、`:301`（同一 split 后再过滤，口径不一致）、`:333`（平均行长用该 `lines`）。
+- 复现：输入 `a\nb` → 总行数 2；在编辑器末尾回车一次（`a\nb\n`）→ 总行数 3、平均行长被摊薄（node 复算 `parts=["a","b",""]`）。
+- 影响：写作类用户常见的"末尾留空行"会让行数与平均行长漂移，与「非空行」并列展示时自相矛盾。
+- 方案：`lines = text.replace(/\n$/,'').split('\n')`（或仅当末元素为空时 `pop()`）；`平均行长` 改用同一 `lines` 口径并注明是否含空行。
+
+### BS-N41 注释生成器：HTML/CSS 单行注释不闭合、横幅边框不是注释、YAML 块注释非法（中，确认缺陷）
+- 问题：① `line` 配置对 html 是 `<!--`、css 是 `/*`，单行模式只拼 `前缀 + 内容`，永不补 `-->` / `*/`；② banner 顶/底边线是裸 `=` 串；③ 非 html/python/ruby 的块注释统一加 `' * '`，YAML 的注释符是 `#`，混入 ` * ` 行即非法。
+- 证据：`tools/biz/comment-generator.html:324-325`（html/css 的 `line`）、`:358-359`（line 分支不闭合）、`:376-385`（banner 的 `sep = '='.repeat(...)`）、`:329` + `:365-367`（YAML `#` 却走 ` * ` 分支）。
+- 复现：HTML 选「单行注释」输入「说明」→ 生成 `<!-- 说明`（无 `-->`）；CSS 同理 `/* 说明`（无 `*/`），粘进样式表会吞掉后续规则；JS 选「横幅注释」→ `===================\n//  说明  //\n===================`（node 复算），首尾行是裸 `====` 语法错误；YAML 选「块注释」→ `#\n * 说明\n#`，中间行不构成注释。
+- 影响：生成结果直接复制即破坏目标文件（CSS 整段失效、JS 语法报错、YAML 解析失败），属于"生成器输出不可用"。
+- 方案：单行模式按语言给出成对包裹（`<!-- … -->`、`/* … */`）；banner 边线改用 `(cfg.line+' ').repeat(n)` 或行内 `//`/`#` 包裹；块注释分支按语言白名单（html/python/ruby/bash/yaml 各自单独处理），YAML 统一走 `#` 行注释。
+
+### T 批覆盖清单（8 页）
+- `tools/biz/text-replace-advanced.html`：1 条（BS-N30，中）。**未发现 XSS**：替换结果走 `textContent`，匹配列表的 `match/groups` 已 `escapeHtml`。另记（未单列，低）：非正则模式下替换串仍按 `$&`/`$$` 解释，替换"原文含 `$&`"会变成插入整个匹配；复制按钮回调引用全局 `event`，Firefox 下无「已复制」反馈。
+- `tools/biz/text-extract-html-tags.html`：2 条（BS-N31、BS-N32，均中）。另记（未单列，低）：清空输入时只重置 `count`，`uniqueCount` 保留上一次数字；FAQ 所称「仅正文标签」过滤与简介所称「指定标签」入口均不存在。
+- `tools/biz/text-remove-duplicates-lines.html`：2 条（BS-N33、BS-N34，均中）。`trimLine`/`removeEmpty`/`sortResult` 与六种模式均真实生效，未发现 XSS（结果走 `textContent`）。
+- `tools/biz/text-sort-advanced.html`：2 条（BS-N35、BS-N36，均中）。`random`/`reverse`/`natural` 与长度模式实算正常；`lex-zh` 不响应「忽略大小写」（低，未单列）。
+- `tools/biz/text-merge.html`：**未发现中/高**。骨架正确：`\n` 分隔符特判、`custom` 空值回退、`skipEmpty` 为显式选项。仅记低优：`prefix`/`suffix` 输入框没有 `oninput`，改后需手动点「合并」才刷新，与同页其它输入不一致；`var currentMode` 是死变量。
+- `tools/biz/text-split.html`：3 条（BS-N29 高；BS-N37、BS-N38 中）。`result.innerHTML` 对每段做 `escapeHtml`，未见注入；正则分隔符编译失败已 try/catch 提示。
+- `tools/biz/text-stats.html`：2 条（BS-N39、BS-N40，均中）。统计卡片由数字与静态标签拼成，无用户文本注入；`bytes` 用 `Blob` 取 UTF-8 字节，正确。
+- `tools/biz/comment-generator.html`：1 条（BS-N41，中）。12 种语言 × 5 种样式均按配置表生成；`result.textContent` 输出，无 XSS。
+
+- 说明：本轮为**只读**审计，结论来自逐行阅读源码 + `node` 在 `/tmp` 复刻关键函数实算（脚本 `/tmp/tb_repro.js`、`/tmp/tb_repro2.js`）；**未开浏览器**、**未运行 `_build.py` / `run_gates.py`**、**未做线上验证**，未修改任何工具页或构建产物。新增 13 条（高 1 / 中 12）。

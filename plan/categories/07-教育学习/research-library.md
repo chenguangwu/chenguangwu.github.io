@@ -357,3 +357,279 @@
 - 本轮实读 8 页：`tools/library/archive-label.html`、`tools/library/generator-label.html`、`tools/library/stats-report.html`、`tools/cognition/digit-span-test.html`、`tools/cognition/schulte-table.html`、`tools/cognition/stroop-test.html`、`tools/museum/lighting-lux.html`、`tools/museum/era-comparator.html`；新增 21 条（高 3 / 中 11 / 低 7）。
 - 与既有条目无重号、无重复页面：首轮已覆盖 `analysis-49`、`calc-97`、`overdue-fine`、`citation-format`，H 批已覆盖 `analysis-50/51/52/54`、`assessor-50`、`tester-17`、`clc-classifier`、`shelf-capacity`；本批 8 页均为首次阅读。
 - 未覆盖：`tools/library/index.html`、`tools/cognition/index.html`、`tools/museum/index.html`、`tools/research/index.html`（分类索引页）；`tools/cognition/cognitive-assessment.html`、`corsi-block-test.html`、`human-benchmark.html`、`nback-training.html`、`time-perception.html`；`tools/museum/audio-guide-timer.html`、`exhibit-spacing.html`、`historical-calendar.html`、`showcase-monitor.html`、`timeline-viewer.html`、`visitor-route.html`；`tools/library/stats-report.html` 的导出/历史面板未单独审查。
+
+## 2026-11-04 续查（并行批 M）
+
+> 范围：本轮阅读 8 页（`tools/cognition/cognitive-assessment.html`、`tools/cognition/corsi-block-test.html`、`tools/cognition/nback-training.html`、`tools/cognition/time-perception.html`、`tools/museum/audio-guide-timer.html`、`tools/museum/exhibit-spacing.html`、`tools/museum/historical-calendar.html`、`tools/museum/showcase-monitor.html`）。仅源码 + node 复算，未开浏览器/未做 EN/移动端/门禁验证。
+> 编号说明：文件实际最大编号为 K 批末尾 RL-K21（非提示中的 K16），为避免重号，本轮从 **RL-K22** 起续编。
+
+### RL-K22 综合认知评估：深度解析称「百分制/非标准常模」，实现却是年龄常模标准分（中，确认）
+- 描述：深度解析与 FAQ 两处写「各域 82/74/88/79 为相对百分制」「分数仅站内自评、非标准化常模换算」，但同页公式框与代码使用四层年龄常模、`SS=100+15Z`、`PR=Φ(Z)`，报告直接输出标准分（可低于 40 或高于 160），并非 0–100 百分制。
+- 证据：`tools/cognition/cognitive-assessment.html:179-180`（公式）、`:299`、`:302`（文案）；`js/tools/cognitive-assessment.js:831`（综合分取各指标 SS 均值）。
+- 复现：选 30–49 岁、仅测简单反应时，原始 300 ms → 页面显示 SS≈94.5、PR≈35.6；若原始 250 ms → SS≈114（期望文案按 SS 常模解释，而不是「百分制 94 分」）。
+- 影响：同一分数被两种口径解释；用户会把 SS 94 当作「94 分及格」，与 PR 35.6 的实际常模位置相差一倍。
+- 方案：全页统一为「标准分 SS（M=100，SD=15，基于年龄常模）+ 百分位 PR」；删除「百分制/非标准化常模」表述，示例改列 SS 与 PR 双值。
+
+### RL-K23 综合认知评估：仅测单项时仍称「综合标准分」，强弱项重复同一项（低，确认）
+- 描述：`comp` 对全部已测指标 SS 取均值；仅测 1 项时仍输出「综合标准分/综合百分位」，强弱项用 `slice(0,2)` 与 `slice(-2)` 在同一项上重复展示。
+- 证据：`js/tools/cognitive-assessment.js:831`、`:891-897`；`tools/cognition/cognitive-assessment.html:202-211`（仅测选项）。
+- 复现：仅测「简单反应时」得 SS 94.5 → 报告「综合标准分 94」，同时「强项：简单反应时」「相对弱项：简单反应时」（期望单项模式显示「单项标准分」且不展示强弱项）。
+- 影响：单项结果被包装成综合能力，强弱项自相矛盾。
+- 方案：单项模式改标题为「单项标准分」并隐藏强弱项；强弱项先去重，且指标数 <3 时不展示。
+
+### RL-K24 Corsi 积木测试：通过首个长度后不启动下一试次，测试永久停摆（高，确认）
+- 描述：`evaluate()` 在「本长度至少 1/2 正确」时调用 `advanceLength()` 后直接 `return`；`advanceLength()` 只做 `G.length++`、清零计数和 `setStat()`，**没有调用 `startTrial()`**，也无任何 `setTimeout` 续接。
+- 证据：`tools/cognition/corsi-block-test.html:413-418`、`:432-438`；对照失败分支 `:425-427` 有 `setTimeout(startTrial, 650)`。
+- 复现：长度 2 两次点击均正确 → toast「本试次正确 ✓」→ 进度显示长度 3，但不再闪现新序列，点击积木无响应（`phase='idle'`），只能点「结束并记录」，span=2.0（期望自动进入长度 3 的新试次）。
+- 影响：测试永远测不到 >2.5 的广度，页面自称成人常模约 5.5，实测结果必然被判为重度缺陷。
+- 方案：`advanceLength()` 末尾加 `setTimeout(startTrial, 650)`，并确保清屏后 `G.phase='show'` 再开始序列。
+
+### RL-K25 Corsi 积木测试：0.5 加分方向写反，2/2 全对反而低于 1/2（中，确认）
+- 描述：`span = lastPassed + (lastPassedOneOfTwo ? 0.5 : 0)`，而 `lastPassedOneOfTwo = (correctInLen === 1)`；即「仅 1/2 正确」加 0.5，「2/2 全对」不加分。
+- 证据：`tools/cognition/corsi-block-test.html:415-416`、`:445`、`:154`（「仅 1/2 次答对再加 0.5」）。
+- 复现：长度 2 两次全对 → span 2.0；第一次对、第二次错 → span 2.5（期望 2/2 不低于 1/2，或两者均按通过长度记 2）。
+- 影响：表现更好得到更低广度，与「2 中 1 加 0.5」的文字规则方向相反。
+- 方案：改为 2/2 记 L（或 L+0.5）、1/2 记 L；若沿用 0.5 规则则改为 `correctInLen===2 ? 0.5 : 0`。
+
+### RL-K26 N-back 训练：未按的非靶试次被判错，整体正确率恒为 0（高，确认）
+- 描述：未响应时 `posResp` 保持 `null`，整体正确判定写成 `t.posResp === (t.isPosMatch ? 1 : 0)`；非靶试次「不按」本应记 0，但 `null !== 0` 被记为错误。代码注释恰好明说「未响应对噪声判正确拒绝」。
+- 证据：`tools/cognition/nback-training.html:379`、`:470`、`:489-495`、`:507-515`、`:584`。
+- 复现：标准 2-back 共 22 试次、20 个计分试次（约 6–7 靶、13–14 非靶）；全程不按键 → 正确率 0%（期望约 70%）；只对全部靶按键、非靶不按 → 约 30%（期望 100%）。
+- 影响：正确率系统性低估；每个正确拒绝还累加 `streakBad`，触发自适应降 N，训练难度反向调节。
+- 方案：先归一化 `var pr = t.posResp===null ? 0 : t.posResp;`（aud 同理）再比较；补「全静默」「只打靶」两个极端用例。
+
+### RL-K27 N-back 训练：深度解析算例与 log-linear 校正实现不一致（低，确认）
+- 描述：算例给「命中率 0.90、虚报率 0.067、d′≈2.78」，但工具实际用 log-linear 校正：`HR′=(27+0.5)/(30+1)=0.887`、`FA′=(4+0.5)/(60+1)=0.0738`，`d′≈2.66`；页面结果表展示的是校正后的 HR′/FA′。
+- 证据：`tools/cognition/nback-training.html:856`（算例）、`:166`（公式说明）、`:314-319`（实现）。
+- 复现：30 靶命中 27、60 非靶虚报 4 → 工具 d′=2.66（算例 2.78）。
+- 影响：用户拿算例核对工具会误以为实现算错。
+- 方案：算例改用校正后的 HR′/FA′ 与 2.66，或明确标注「此处为未校正近似」。
+
+### RL-K28 时间感知：零点击也判 P98 并写入最佳成绩（高，确认）
+- 描述：`finish()` 在 20 拍计时结束后无条件执行，不检查 `taps.length`；`mean([])=0`、`std([])=0`，`percentile('beat',0)`（norm μ=45、σ=22，低优）≈98，并写入 `results`/localStorage。
+- 证据：`tools/cognition/time-perception.html:440-456`、`:255-276`。
+- 复现：点「开始 20 拍」后一次不点，等待约 13.9 s → 卡片「平均偏差 +0 ms / σ 0 ms / 提前0·滞后0 / P98」，历史最佳被记为 P98（期望提示「样本不足，本次不计分」）。
+- 影响：零参与即巅峰成绩，历史曲线与最佳值被污染。
+- 方案：`finish` 增加 `if (taps.length < Math.ceil(total*0.6)) { toast('有效点击不足，本次不计分'); return; }`，且不写 results。
+
+### RL-K29 时间感知：同一节拍可被重复点击计入多次，20 连点即「完成」（中，确认）
+- 描述：注释称「找最近未匹配的节拍」，实际只取全局最近 `beatTimes[i]`，未排除已匹配索引，也没有「一拍一次」约束；`matched++` 直接累加，达到 20 即提前结束。
+- 证据：`tools/cognition/time-perception.html:423-436`。
+- 复现：开始后对准第 1 拍连点 20 次 → `matched=20` 立即 `finish()`，误差全部相对同一拍、σ 很小 → P95 以上（期望每拍只接受一次，多余点击忽略或计误触）。
+- 影响：可轻易刷出满分，节拍同步指标失去区分度。
+- 方案：维护 `used[]`，仅在未使用的节拍中找最近拍；同一拍再次点击直接忽略并提示「本拍已记录」。
+
+### RL-K30 语音导览计时：超时「缩短单件时长」公式量纲错误，建议值放大 50 倍（高，确认）
+- 描述：建议公式写成 `floor((per*avail - move - intro)/count)`，`per`（秒）与 `avail`（秒）相乘得到秒²，结果远大于当前单件时长；FAQ 同错。
+- 证据：`tools/museum/audio-guide-timer.html:306-307`、`:215`。
+- 复现：展品 100、单件 90 s、移动 30 s、开场 60 s、可用 90 min → 总时长 12030 s、超时 6630 s；页面建议「缩短单件讲解至 4829 秒」（期望 `(5400-2970-60)/100≈23` 秒）。
+- 影响：核心超时调控建议不可用，给出的值比原值大 50 倍。
+- 方案：改为 `floor((avail - moveTotal - intro)/count)`；`cutPer<10` 时改提示「需减展品或延长时间」。
+
+### RL-K31 语音导览计时：可用时间为 0 时给出「-1 件」「0 秒」的非法建议（中，确认）
+- 描述：`available` 可手输 0/负值，`cutPer` 与「减少讲解展品数」均无下界保护；`floor((avail-intro)/(per+move))` 会输出负数件数。
+- 证据：`tools/museum/audio-guide-timer.html:306-307`、`:284`。
+- 复现：可用 0 分钟、展品 30、单件 90、移动 30、开场 60 → 建议「缩短至 0 秒」「减少讲解展品数至 -1 件」（期望提示「可用时间为 0，无法排程」）。
+- 影响：给出物理上不可能执行的排程建议。
+- 方案：`avail<=0` 直接显示错误提示；减少件数加 `Math.max(0, ...)`，并校验 `intro<=avail`。
+
+### RL-K32 展品间距：默认参数下「每米布展数」显示 0 幅/m（中，确认）
+- 描述：`perMeter = floor(100/recSpacing)` 对结果取整；默认 `recSpacing=176 cm` → 0.568，直接被截成 0。
+- 证据：`tools/museum/exhibit-spacing.html:281-287`、`:293`。
+- 复现：默认（80×100 cm、2 人、肩宽 60 cm）→「每米布展数 0 幅/m」（期望 0.57 幅/m 或「单件占 1.76 m」）。
+- 影响：默认输出即为 0，用户会误以为该墙面无法布展。
+- 方案：改用 `100/recSpacing` 保留两位小数，或改文案为「单件占 X m，约 0.57 件/m」。
+
+### RL-K33 展品间距：最佳观看距离可小于最小观看距离，两条核心建议互相矛盾（中，确认）
+- 描述：`bestDist=max(distH,distV)` 与 `minDist=0.6×对角线` 独立计算，未取 max 或校验，允许最佳距离低于最小距离。
+- 证据：`tools/museum/exhibit-spacing.html:274-276`、`:290-293`。
+- 复现：80×100、中心高 150、眼高 155、水平半角 60°、垂直半角 45°（均在输入允许范围）→ 最佳 55.0 cm、最小 76.8 cm（期望最佳 ≥ 最小，或提示「视角上限过宽/画幅过小」）。
+- 影响：同一结果框内两条建议打架，布展人员无法执行。
+- 方案：`bestDist = Math.max(distH, distV, minDist)`，并在原始 best<min 时给出参数矛盾提示。
+
+### RL-K34 展品间距：公式框粘贴 JS 表达式并把绘图缩放当公式（低，确认）
+- 描述：公式说明直接暴露 `Math.tan`、`recSpacing`，并把 SVG 的 `scale=min(360÷(recSpacing×2+40),1)` 当作计算项；缺少真正的输出量（推荐间距、每米件数）。
+- 证据：`tools/museum/exhibit-spacing.html:137-138`；缩放实现 `:298`。
+- 复现：阅读公式框 → 出现「min(360 ÷ (recSpacing×2 + 40), 1)」，按此无法算出 176 cm 间距（期望给出 distH/distV/best/min/recSpacing 的可读公式）。
+- 影响：公式区与结果不对应，属内容质量缺陷。
+- 方案：改写为「distH=(w/2)/tan(ha)；distV=(|ch-eye|+h/2)/tan(va)；best=max；min=0.6√(w²+h²)」，删除 scale 项。
+
+### RL-K35 历史日历：节气用固定月-日表，2024 冬至等年份错位/漏标（中，确认）
+- 描述：`TERM_DATES` 是固定「月-日」表（如冬至 12-22），不随年份变化；节气实际每年漂移 1–2 天。
+- 证据：`tools/museum/historical-calendar.html:300`、`:379-393`。
+- 复现：选 2024-12-21（2024 年冬至，北京时间 12-21）→ 节气行缺失（期望「冬至」）；选 2024-12-22 → 显示「冬至」（错误）。另 2024 处暑为 08-22，表给 08-23。
+- 影响：节气标注在多数年份错位或漏标，历史日期解读失真。
+- 方案：内置 1900–2100 逐年节气表，或用太阳黄经近似公式按年份计算。
+
+### RL-K36 历史日历：1899/2101 年日期使 `solarToLunar` 返回 null，随后抛异常并保留旧结果（中，确认）
+- 描述：`solarToLunar` 对 `y<1900 || y>2100` 返回 null，`update()` 未判空即读 `lunar.y`；日期输入也未设 min/max。
+- 证据：`tools/museum/historical-calendar.html:344`、`:472-473`、`:175`。
+- 复现：选择 1899-12-31 → `getGanZhi(lunar.y)` 抛 TypeError，详细信息与历史事件停留在上一次结果（期望提示「仅支持 1900–2100」）。
+- 影响：页面静默失败，陈旧结果被误认为新日期结果。
+- 方案：`update()` 开头判 `if (!lunar) { 显示范围提示; return; }`；给日期输入加 `min="1900-01-31" max="2100-12-31"`。
+
+### RL-K37 历史日历：默认日期取 UTC，东八区凌晨显示「昨天」（中，确认）
+- 描述：初始化用 `today.toISOString().slice(0,10)`，取 UTC 日期而非本地日期。
+- 证据：`tools/museum/historical-calendar.html:499`。
+- 复现：2026-11-04 06:00（Asia/Shanghai）打开 → 默认日期 2026-11-03（期望 11-04）。
+- 影响：每天 00:00–07:59 打开都默认到前一天，农历/节气/历史事件随错日。
+- 方案：改用本地字段拼接 `getFullYear()`、`getMonth()+1`、`getDate()`（各补零）。
+
+### RL-K38 展柜环境监测：陶瓷/玻璃超标时建议为空，只显示「调整建议：。」（中，确认）
+- 描述：超标建议只覆盖 `Array.isArray(m.temp)` 与 `m.rh` 对象/`rhMax`；陶瓷/玻璃使用 `tempR`/`rhR`，`!tempOK` 或 `!rhOK` 时没有任何分支，`advice.join` 为空串。
+- 证据：`tools/museum/showcase-monitor.html:243`（数据）、`:324-332`。
+- 复现：选「陶瓷/玻璃」，温度 40℃、湿度 50% → 判定「环境超标 ✕」，建议框「环境超标！调整建议：。」（期望「温度偏高，建议降至 35℃ 以下」）。
+- 影响：超标时页面主功能（处置建议）落空。
+- 方案：补 `else if(!tempOK && m.tempR)`、`else if(!rhOK && m.rhR)` 分支；末尾用 `advice.length ? advice.join('；') : '请检查输入'` 兜底。
+
+### RL-K39 展柜环境监测：日波动允差仅回显，不参与任何判定（低，确认）
+- 描述：`tempSwing`/`rhSwing` 只写入表格「≤X」列，从未与实测波动比较，也不影响 `allOK`；深度解析却称「对照材质允差判断」。
+- 证据：`tools/museum/showcase-monitor.html:277-278`、`:318-319`、`:334`、`:190`。
+- 复现：把温度日波动允差改为 0.1℃、温度 20/湿度 55 → 仍判「环境达标 ✓」，建议「持续监测日波动不超过允差」；工具无法知道实际波动是否超标（期望提供实测波动输入，或明确标注「仅记录，不判定」）。
+- 影响：用户误以为工具校验了日波动，实际只看瞬时温湿度。
+- 方案：增加「实测日波动」输入并纳入判定；或删除允差输入，仅作参考展示。
+
+- 本轮实读 8 页：`tools/cognition/cognitive-assessment.html`、`tools/cognition/corsi-block-test.html`、`tools/cognition/nback-training.html`、`tools/cognition/time-perception.html`、`tools/museum/audio-guide-timer.html`、`tools/museum/exhibit-spacing.html`、`tools/museum/historical-calendar.html`、`tools/museum/showcase-monitor.html`；新增 18 条（高 4 / 中 10 / 低 4）。
+- 与既有条目无重复页面：research 非索引页（`analysis-49/50/51/52/54`、`assessor-50`、`calc-97`、`tester-17`）与 library 非索引页（`archive-label`、`citation-format`、`clc-classifier`、`generator-label`、`overdue-fine`、`shelf-capacity`、`stats-report`）已由前序批次全覆盖，本轮无剩余可读页，故转向 cognition/museum 未覆盖页。
+- 未覆盖：`tools/research/index.html`、`tools/library/index.html`、`tools/cognition/index.html`、`tools/museum/index.html`（分类索引页，无工具逻辑）；`tools/cognition/human-benchmark.html`；`tools/museum/timeline-viewer.html`、`tools/museum/visitor-route.html`。
+
+## 2026-11-04 续查（并行批 N）
+
+> 范围：本轮阅读 7 页（`tools/cognition/human-benchmark.html`、`tools/museum/visitor-route.html`、`tools/museum/timeline-viewer.html`、`tools/research/index.html`、`tools/library/index.html`、`tools/cognition/index.html`、`tools/museum/index.html`）。**说明：四目录仅剩这 7 个未覆盖页（3 个工具页 + 4 个索引页），不足以凑满 8 页；未跨目录外扩，以免与 edu-language 批重复。** 仅源码 + node 复算，未开浏览器/未做 EN/移动端/门禁验证。
+
+### RL-K40 Human Benchmark：Chimp 测试数字标注与判定序列错位，几乎必然首击即错（高，确认）
+- 描述：数字按 `positions`（洗牌后顺序）标为 1..n，判定却用 `order`（按格位升序排序）的排位；两者通常不同，导致点击「1」被判成别的数字。仅当 `positions` 恰好升序（3 格时约 1/6 概率）才能过第 1 关。
+- 证据：`tools/cognition/human-benchmark.html:648-654`、`:676-678`。
+- 复现：进入 Chimp，若 `positions=[2,0,1]` → 格 2 显示「1」、格 0 显示「2」、格 1 显示「3」；点显示「1」的格 2，代码算 `order.indexOf(2)=2 → num=3` → 立即「点错啦！到达等级 1」（期望 num=1，进入下一数字）。
+- 影响：该项核心玩法失效，所有人的 Chimp 原始分恒为 1 级、P 极低，且写入本地成绩/综合指数。
+- 方案：统一口径——标注与判定都用 `order`（或在标注时用 `order.indexOf(pos)+1`），不要两套排序。
+
+### RL-K41 参观流线：负权通道使前驱成环，回溯 `while(cur!=null)` 无限循环卡死页面（高，确认）
+- 描述：`parseFloat(e[2])||0` 未拒绝负数；Dijkstra 松弛未跳过已访问 `v`，负权可把 `prev[入口]` 改回已访问节点，形成「入口↔青铜馆」前驱环，回溯无终止条件。
+- 证据：`tools/museum/visitor-route.html:329-332`、`:356`、`:339`；输入仅 `min="0"`（`:277`），键盘仍可键入 `-100`。
+- 复现：默认图中把「入口—青铜馆」距离改为 `-100` → 点「规划最短流线」→ 标签页无响应（node 复算同版本 Dijkstra 亦挂死）；期望拒绝负权并提示，或至少回溯加 visited 终止。
+- 影响：单次输入即可冻结主线程，移动端易被判崩溃。
+- 方案：`if(!(w>=0))` 跳过/标红并中止计算；`while(cur!=null && !seen[cur])` 加访问集合兜底。
+
+### RL-K42 Human Benchmark：序列记忆失败时把「尝试等级」当「完成等级」，原始分恒 +1（中，确认）
+- 描述：`nextLevel()` 先 `level++` 再播放；首关点错即 `finish(level)`，报告「最长 1 级」，但用户实际连 1 级都没复述成功。
+- 证据：`tools/cognition/human-benchmark.html:507-513`、`:525-530`、`:312`。
+- 复现：第 1 关点错 → 结果「最长 1 级」；连过 9 级、第 10 级点错 → 报 10 级（P88），期望 9 级（P79）。
+- 影响：该项原始分与百分位系统性高估一级，污染记忆/执行维度与综合指数。
+- 方案：失败时 `onResult(level-1)`（达到 20 级封顶时仍报 20）；或将 `level` 语义改为「已完成级数」。
+
+### RL-K43 Human Benchmark：只做 1 项也生成完整报告，未测维度按 P0 计入综合指数（中，确认）
+- 描述：`computeAbilities()` 对未测能力返回 0；报告照常显示四维 P 值与「0–100 综合脑力指数」，`computeIndex()` 仍按 0.30/0.25/0.25/0.20 全权重求和，未测项被当作「0 百分位」。
+- 证据：`tools/cognition/human-benchmark.html:854-880`、`:936-953`、`:330`。
+- 复现：只完成反应速度 250ms（P69）→ 报告「记忆 P0 / 注意 P0 / 加工速度 P69 / 执行 P0」，指数 17、「击败了约 17% 的人」（期望隐藏未测维度，或按已测权重归一化，指数应≈69）。
+- 影响：单项用户得到严重低估且自相矛盾的报告。
+- 方案：报告中未测维度显示「未测」并排除出雷达；综合指数按已测能力权重重新归一；仅 8 项齐全时提示完整指数。
+
+### RL-K44 Human Benchmark：打字测试允许粘贴，样本 84 字可在首帧内粘贴得 63000 WPM/P99（中，确认）
+- 描述：`textarea` 无 `paste`/`beforeinput` 拦截，`update()` 在下一帧发现 `typed.length>=total` 即 `finish`，用时约 16ms。
+- 证据：`tools/cognition/human-benchmark.html:758`、`:780`、`:782-790`。
+- 复现：粘贴 84 字样本 → 正确字符 84，sec≈0.016 → WPM≈63000（页面写死 P99）。期望禁止粘贴或把粘贴标记为无效。
+- 影响：成绩可被瞬间刷满，历史最佳与综合指数失真。
+- 方案：`area.addEventListener('paste', e=>e.preventDefault())`；或检测单帧字符增量异常并判无效。
+
+### RL-K45 Human Benchmark：Chimp/视觉记忆答错后未锁定，仍可继续答题并覆盖已记录成绩（中，确认）
+- 描述：`wrong()`/`fail()` 只调用 `onResult`，不设结束标志；Chimp 的 `pickNext` 保持原值，视觉记忆的剩余 `hot` 格仍可点击，用户可继续完成更高等级并再次 `onResult`。
+- 证据：`tools/cognition/human-benchmark.html:686-690`、`:673-684`；`:739-743`、`:727-737`。
+- 复现：视觉记忆完成 4 格后在 400ms 间隔内误点空格 → 记录 4；随后继续点完 5 格再错 → 记录 5，最终成绩被抬高。Chimp 点错后继续按顺序点对 → `level++` 继续。
+- 影响：一次测试可多次写入成绩，失败不再终止，结果不可信。
+- 方案：`done` 标志在 `wrong/fail` 置位，所有点击与延时回调先判 `done` 直接返回。
+
+### RL-K46 参观流线：重复通道时「分段距离」取最后一条边，分段和与总距离不一致（中，确认）
+- 描述：Dijkstra 对平行边取最小权，但渲染分段时 `edges.forEach` 命中同端点就覆盖 `w`，最终显示最后一条（可能最大）权值。
+- 证据：`tools/museum/visitor-route.html:380-383`、`:329-331`。
+- 复现：默认图点「＋添加通道」（新增 入口—青铜馆 20m），再把新增这条改为 100m → 总距离 115m（Dijkstra 用原 30m），分段显示 100+40+45=185m。期望分段取实际使用的最小边，且分段和等于总距离。
+- 影响：主结果区数字自相矛盾，用户无法核对路线。
+- 方案：Dijkstra 返回每段所用边权（或按 `dist` 差值计算），不要二次全表扫描覆盖。
+
+### RL-K47 参观流线：改名展厅后通道下拉无匹配项，显示错位且计算静默丢弃通道（中，确认）
+- 描述：`renderEdges()` 仅对 `e[0]===n` 加 `selected`；旧端点不存在时浏览器默认选第一项，但 `edges` 数据仍保留旧名；`compute()` 对不在 `nodes` 的端点直接跳过，无提示。
+- 证据：`tools/museum/visitor-route.html:274-275`、`:354-360`、`:245-255`。
+- 复现：把展厅列表的「出口」改为「东门」→ 原来「玉器馆—出口」行第二个下拉显示「入口」，但内部仍是「出口」；规划显示「没有可达路径」。期望自动同步/标红失效通道并提示。
+- 影响：界面显示与实际图数据不一致，用户误删或漏连通道。
+- 方案：节点变更时按索引/映射迁移端点，映射不到的边标红并要求确认删除；不要依赖 `<select>` 默认项。
+
+### RL-K48 历史时间轴：无任何筛选/搜索控件，深度解析却称「支持中西对照筛选」且算例事件不在数据中（中，确认）
+- 描述：页面只有 4 个主题按钮，无 `input/select`；`renderTimeline()` 仅按主题整表渲染。深度解析称可按「公元前 3 世纪 / 15 世纪 / 19 世纪」筛选，并称有 1405 郑和、1861 洋务、1894 甲午，但数据中均不存在。
+- 证据：`tools/museum/timeline-viewer.html:206-207`、`:362-376`、`:344-360`；数据仅到 `:273`（1840）与 `:287`（1453），无 1405/1861/1894。
+- 复现：找筛选入口 → 无；选「中国历史」→ 看不到 1405/1861/1894。期望实现世纪/关键词筛选，或删掉「筛选」表述并改写算例。
+- 影响：深度解析示例无法复现，工具核心「查找」承诺落空。
+- 方案：增加年份区间/关键词输入并过滤 `TIMELINES[currentTheme]`；补齐或改写示例事件。
+
+### RL-K49 历史时间轴：固定 24px 间距与「比例 = 像素宽度 ÷ 总跨度」公式不符（中，确认）
+- 描述：每条 `.tl-item` 固定 `margin-bottom:24px`，圆点绝对定位 `left:75px`，与年份数值无关；公式表却声称时间轴按像素/跨度比例缩放。
+- 证据：`tools/museum/timeline-viewer.html:34-36`、`:230-231`、`:163`；渲染见 `:362-376`。
+- 复现：同类目下前 221 与前 202 的垂直间距，与 1840 与 1911 完全相同（均 24px）；期望按年份差缩放，或删掉比例公式。
+- 影响：时间轴视觉误导「等距即等时」，与公式自相矛盾。
+- 方案：按 `(y-minY)/(maxY-minY)` 计算位置/高度；若坚持列表式，删除比例行并注明「等距排列」。
+
+### RL-K50 历史时间轴：遗留中医模板「辨证记录历史」与 `tcm-history.csv`（中，确认）
+- 描述：历史记录面板文案、英文 `Diagnosis Records`、localStorage 键 `__tbm_tcm_timeline`、导出文件名均沿用中医模板。
+- 证据：`tools/museum/timeline-viewer.html:467-469`、`:481-487`。
+- 复现：切换两次主题 → 页面出现「辨证记录历史 / 序号 / 条目 / 查看次数」，点导出得到 `tcm-history.csv`。期望「浏览记录 / 主题 / 浏览次数 / timeline-history.csv」。
+- 影响：明显串味，削弱专业可信度；英文态同样错误。
+- 方案：替换 `T` 字典、KEY 与文件名（含新 KEY 迁移或直接重置）。
+
+### RL-K51 科研索引页：三张卡片承诺未实现的功能（KMO/Bartlett、三角验证、主持人提纲）（中，确认）
+- 描述：索引卡与工具页 title/meta 均超出实现——analysis-49 只算 Cronbach α，无 KMO/Bartlett 输出；analysis-54 FAQ 明确「不能三角验证」；analysis-52 FAQ 明确「不能质性编码/主题提炼」，卡片却写「主持人提纲与编码归类」。
+- 证据：`tools/research/index.html:88-89`、`:93`；`tools/research/analysis-49.html:217-252`（仅 α）；`tools/research/analysis-54.html:152`；`tools/research/analysis-52.html:166`。
+- 复现：从索引点 analysis-49，输入任意矩阵 → 结果只有被试数/条目数/α/判读，无 KMO、Bartlett χ²、p（期望卡片承诺的四项）；analysis-54/52 同理无三角验证/提纲。
+- 影响：搜索摘要与首屏承诺落空，用户按缺失功能评估工具。
+- 方案：补实现 KMO/Bartlett（相关矩阵求逆+行列式）；或把卡片与 title/meta 改为「Cronbach α 信度分析」等真实能力。
+
+### RL-K52 Human Benchmark：反应时用算术均值，深度解析却称「去掉极端后中位值」（低，确认）
+- 描述：`finish()` 对 5 次全部取平均；深度解析称「取多次中位值」「去掉极端后中位约 251ms」。
+- 证据：`tools/cognition/human-benchmark.html:392-398`、`:1152`、`:1156`。
+- 复现：5 次 268/251/243/259/247 → 页面「平均 254 ms」；深度解析示例写 251ms（期望同一统计口径，或页面改用中位值）。
+- 影响：说明与实现不一致，用户对成绩口径产生疑问。
+- 方案：二选一——改代码为中位值（并说明不去极值），或把深度解析改为「5 次算术平均 254ms」。
+
+### RL-K53 参观流线：历史快照只存有 id 的控件，通道距离/端点无法回放（低，确认）
+- 描述：`__visitor_routeSnap()` 只采集带 `id` 的 `input/select/textarea`；通道行只有 `data-i/data-k` 没有 `id`，因此历史记录不含任何边数据；回放只恢复展厅、起终点。
+- 证据：`tools/museum/visitor-route.html:508`、`:543-554`；边控件 `:276-279`。
+- 复现：把某通道改为 100m 并规划（记录）；再改为 20m 后点历史记录回放 → 展厅/起终点恢复，但通道仍是 20m，总距离与当初记录不同。期望快照包含通道端点与权值并整体恢复。
+- 影响：历史「回放/对比」失真，记录无法复现。
+- 方案：给边控件加 `id`（如 `edge-<i>-0/1/2`），或快照序列化 `edges` 数组并在回放时重建。
+
+### RL-K54 参观流线：公式框的「通行时间/拥挤度」与「必看节点」均未实现（低，确认）
+- 描述：公式表列出 `T = L/v + Σ停留` 与拥挤度 `人数/通行能力`，页面只算距离；深度解析称「设定起终点与必看节点」，实际无必经节点输入。
+- 证据：`tools/museum/visitor-route.html:208`、`:212-213`、`:183`、`:189`。
+- 复现：页面仅有距离输入与起终点下拉，无速度/停留/人数/容量/必经节点控件（期望按公式给出时长与拥挤度，或删除公式行）。
+- 影响：公式与标准引据区展示未实现能力，误导专业用户。
+- 方案：删除未实现公式，或补「步行速度+停留时间」输入输出 T；必经节点可后续实现多点分段。
+
+### RL-K55 参观流线：SEO 介绍区残留「商业办公/批量操作/团队协作」模板（低，确认）
+- 描述：工具简介写「免费在线博物馆工具。。商业办公工具」，功能写「支持批量操作」，场景写「日常办公文档处理/会议与项目管理/团队协作」，与本工具无关。
+- 证据：`tools/museum/visitor-route.html:475`、`:478-489`。
+- 复现：展开「关于参观流线规划」→ 可见上述文案（期望展馆导览、限流、动线优化场景）。
+- 影响：首屏下方内容明显跑题，影响 E-E-A-T。
+- 方案：改写为博物馆动线场景，删除「批量操作」等模板项与重复句号。
+
+### RL-K56 历史时间轴：面包屑与 meta 将类目写成「历史人文」，与「文博展陈」不一致（低，确认）
+- 描述：面包屑第二级文字为「🏛️ 历史人文」，同页 description/og 亦称「历史人文领域」，但实际类目与 JSON-LD 是「文博展陈」。
+- 证据：`tools/museum/timeline-viewer.html:149`、`:10`、`:15`；类目见 `:95`。
+- 复现：打开页面 → 面包屑显示「历史人文」，点进去是 museum/index.html「文博展陈」。期望统一为「文博展陈」。
+- 影响：类目归属混乱，内链锚文本与落地页不一致。
+- 方案：改面包屑文字与 meta 描述为「文博展陈」。
+
+### RL-K57 四个分类索引页：meta 均称覆盖「单位转换」，目录内并无换算类工具（低，确认）
+- 描述：research/library/cognition/museum 四个 `index.html` 的 description/og/twitter 使用同一套模板句「常见计算、换算、单位转换与查询需求」，但四目录工具均为统计、档案、测评、展陈类，无单位换算器。
+- 证据：`tools/research/index.html:6`、`tools/library/index.html:6`、`tools/cognition/index.html:6`、`tools/museum/index.html:6`（`:11`/`:21` 同样）。
+- 复现：浏览四页工具卡 → 无任何单位转换工具（期望删去「单位转换」或按类目定制摘要）。
+- 影响：搜索摘要与页面内容不符，易致高跳出；四页摘要高度同质。
+- 方案：构建模板按行业生成差异化描述，移除未覆盖的能力词。
+
+### RL-K58 文博索引页：时代对比/历史日历/时间轴三张卡片共用同一段「查询历史文化知识」套话（低，确认）
+- 描述：三张卡描述几乎逐字相同，未说明各自独有能力（朝代重叠/节气农历/主题时间轴），与同页其他卡（照度、导览、间距）的信息密度明显不一致。
+- 证据：`tools/museum/index.html:88`、`:90`、`:93`。
+- 复现：对比三卡文案 → 除工具名外一致，均无具体功能与输入输出说明（期望分别写明「朝代区间重叠/人口对比」「农历节气/干支」「按主题浏览/按年份排序/CSV 导出」）。
+- 影响：类目页无法帮助用户选择工具，SEO 内容重复。
+- 方案：按各工具实际能力重写三张卡描述。
+
+- 本轮实读 7 页：`tools/cognition/human-benchmark.html`、`tools/museum/visitor-route.html`、`tools/museum/timeline-viewer.html`、`tools/research/index.html`、`tools/library/index.html`、`tools/cognition/index.html`、`tools/museum/index.html`；新增 19 条（高 2 / 中 10 / 低 7）。
+- 重复说明：本批无重读页面；RL-K51 是索引页文案问题（analysis-49/52/54 页面本身由前序批次覆盖，但该三处「卡片承诺未实现」此前未记录），RL-K57 为四个索引页共有模板问题。
+- 四目录 35 个 HTML（31 个工具页 + 4 个索引页）至此全部覆盖；未覆盖：无。**本批范围内只剩上述 7 个未覆盖页，无法凑满 8 页，特此说明。**
