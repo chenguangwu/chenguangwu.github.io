@@ -275,7 +275,17 @@ function delComp(i){ if(comps.length<=2){ToolBox.showToast(i18nText('toast.msg56
 function calc(){
   var metric = document.getElementById('metric').value;
   var total = comps.reduce(function(s,c){return s+(+c.value||0);},0);
-  if(total<=0){ return; }
+  // 份额合计必须为正、且不允许负值（负份额会让占比与饼图反转）
+  var hasNeg = comps.some(function(c){ return (+c.value || 0) < 0; });
+  if(total<=0 || hasNeg){
+    var msg = hasNeg ? '份额不能为负数：请检查各企业的'+metric+'输入（当前合计 '+total+' 万元）。'
+                     : '各企业'+metric+'合计须大于 0，当前合计 '+total+' 万元。';
+    document.getElementById('tipBox').innerHTML='<p style="color:var(--danger);">'+msg+'</p>';
+    document.getElementById('hhiBox').innerHTML='';
+    document.getElementById('shareBars').innerHTML='';
+    document.getElementById('resultTable').innerHTML='';
+    return;
+  }
   var sorted = comps.slice().sort(function(a,b){return b.value-a.value;});
   var shares = sorted.map(function(c){return {name:c.name||'—', value:c.value, pct:c.value/total*100};});
   // HHI（份额用百分比平方求和，标准 HHI 用 0-1 比例平方×10000）

@@ -645,6 +645,12 @@ const CASES = [
     "ref": "CPC = 2500 ÷ 500 = ¥5.00。页面输出 '平均每次点击费用 ¥5.00'。默认态其他输入不产生 ¥5.00。"
   },
   {
+    "slug": "marketing/marketing-cpc-calculator",
+    "inputs": { "spend": "2500", "clicks": "500.5", "impressions": "10000" },
+    "expect": ["点击量与曝光量须为正整数（不支持小数次）"],
+    "ref": "点击量 500.5：旧实现直接按小数除，得到 ¥4.995 并四舍五入展示，等于承认「半次点击」；现直接拒绝并提示。默认 500 次 ⇒ 不命中。"
+  },
+  {
     "slug": "marketing/marketing-cpm-calculator",
     "inputs": {
       "spend": "3000",
@@ -797,6 +803,12 @@ const CASES = [
     "inputs": { "metric": "销量" },
     "expect": ["销量（万元）", "排名 企业 销量(万元)"],
     "ref": "注入 metric=销量（默认 select 首选项『销售额』）。页面把所选口径名拼进输入表头与排名表头 ⇒ 注入态为『销量（万元）』（全角括号，输入区）与『排名 企业 销量(万元)』（半角括号，排名区）；默认态两处均为『销售额』⇒ 两串都不出现。⚠ 数值列（4,000/40.00%/HHI 3,000）与口径无关、默认态同样出现 ⇒ 不可作锚；该页 HHI/CR4 结论也不随口径变，只能锚口径名。"
+  },
+  {
+    "slug": "marketing/market-share",
+    "clicks": ["comps[0].value=-1000;calc();"],
+    "expect": ["份额不能为负数"],
+    "ref": "把第一家企业销售额改为 −1000：负份额会让占比为负、饼图反转，旧实现照算；现拦截并清空 HHI/占比条/排名表。默认全为正 ⇒ 不命中。"
   },
   {
     "slug": "marketing/marketing-qr-campaign-tracker",
