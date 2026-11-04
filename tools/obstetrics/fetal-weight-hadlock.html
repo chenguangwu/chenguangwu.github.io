@@ -131,8 +131,8 @@ s.parentNode.insertBefore(el, s);
       <p style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">输入B超测量值(任选参数，参数越多越准)</p>
       <div class="card formula-box">
   <h3>📐 计算公式</h3>
-  <div class="formula-eq">Hadlock 四参数 EFW(g) = 10^(1.3596 − 0.00386·AC·FL + 0.0064·HC + 0.00061·BPD·AC + 0.0424·AC + 0.174·FL)</div>
-  <p class="formula-desc">双顶径/腹围简化法 EFW ≈ 双顶径×腹围×0.9 − 12；Johnson 法 EFW = (腹围 − 12) × 155；B 超测量参数估算胎儿体重，Hadlock 四参数法最常用；估计体重 ≥ 4000 g 为巨大儿。</p>
+  <div class="formula-eq">Hadlock 四参数 EFW(g) = 10^(1.3596 − 0.00386·AC·FL + 0.0064·HC + 0.00061·BPD·AC + 0.0424·AC + 0.174·FL)；仅 AC+FL 时用 Hadlock 两参数 10^(1.304 + 0.05281·AC + 0.1938·FL − 0.004·AC·FL)；仅 BPD+AC（缺 HC/FL）时退化为 Shepard 两参数修正 10^(−1.7492 + 0.166·BPD + 0.046·AC − 2.646·AC·BPD/1000) × 1000 g（该式原单位为 kg）；宫高腹围页签用 宫高×腹围×0.3 与 Johnson 法 (宫高 − 12) × 155。</div>
+  <p class="formula-desc">B 超参数越全越准：四参数（BPD+HC+AC+FL）优先，缺 HC 时退化为 Shepard 两参数（BPD+AC），仅 AC+FL 时用 Hadlock 两参数；单参数只能粗估。临床宫高腹围页签给出 宫高×腹围×0.3 与 Johnson 法 (宫高 − 12) × 155 两种估算。估计体重 ≥ 4000 g 为巨大儿。</p>
 </div>
 <div class="input-row">
         <div><label>双顶径 BPD (cm)</label><input type="number" id="bpd" value="8.8" step="0.1" oninput="calcHadlock()" placeholder="如 8.8"></div>
@@ -163,8 +163,10 @@ s.parentNode.insertBefore(el, s);
     <div class="ref-card">
       <h4>BPD + HC + AC + FL (四参数，最准确)</h4>
       <p style="font-size:12px;font-family:monospace;">log₁₀(EFW) = 1.3596 - 0.00386×AC×FL + 0.0064×HC + 0.00061×BPD×AC + 0.0424×AC + 0.174×FL</p>
-      <h4 style="margin-top:10px;">BPD + AC + FL (三参数)</h4>
-      <p style="font-size:12px;font-family:monospace;">log₁₀(EFW) = 1.4789 - 0.0033×AC×BPD + 0.0017×HC... (简化版)</p>
+      <h4 style="margin-top:10px;">BPD + AC (Shepard 两参数修正，缺 HC/FL 时使用)</h4>
+      <p style="font-size:12px;font-family:monospace;">log₁₀(EFW/kg) = -1.7492 + 0.166×BPD + 0.046×AC - 2.646×(AC×BPD)/1000；结果再 ×1000 换算为 g</p>
+      <h4 style="margin-top:10px;">AC + FL (Hadlock 两参数)</h4>
+      <p style="font-size:12px;font-family:monospace;">log₁₀(EFW) = 1.304 + 0.05281×AC + 0.1938×FL - 0.004×AC×FL</p>
     </div>
 
     <h3 style="font-size:14px;margin:16px 0 8px;">📊 不同孕周胎儿体重参考(P50)</h3>
@@ -244,7 +246,7 @@ s.parentNode.insertBefore(el, s);
       <tbody>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Hadlock 公式">Hadlock formula</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="log10(EFW) = 1.326 &minus; 0.00326×AC×FL + 0.0107×HC + 0.0438×AC + 0.158×FL（AC/FL/HC 均为 cm）。">log10(EFW) = 1.326 &minus; 0.00326×AC×FL + 0.0107×HC + 0.0438×AC + 0.158×FL, with AC, FL and HC in centimetres.</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="log10(EFW) = 1.3596 &minus; 0.00386×AC×FL + 0.0064×HC + 0.00061×BPD×AC + 0.0424×AC + 0.174×FL（AC/FL/HC/BPD 均为 cm）。">log10(EFW) = 1.3596 &minus; 0.00386×AC×FL + 0.0064×HC + 0.00061×BPD×AC + 0.0424×AC + 0.174×FL, with AC, FL, HC and BPD in centimetres.</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Hadlock FP et al. 1985, Radiology - estimation of fetal weight</td>
         </tr>
         <tr>
@@ -295,11 +297,10 @@ function calcHadlock(){
     efw=Math.pow(10,log10w);
     method='Hadlock四参数(BPD+HC+AC+FL)';
   }else if(hasBpd&&hasAc&&hasFl){
-    // Hadlock 3参数 BPD+AC+FL
-    var log10w3=1.4789-0.0033*ac*bpd+0.0017*hc+0.0046*ac+0.0061*fl+0.0128*bpd-0.0144;
-    // 用简化 Shepard公式 BPD+AC: log10(EFW)=1.7492+0.166*BPD+0.046*AC-2.646*(AC*BPD)/1000
-    log10w3=1.7492+0.166*bpd+0.046*ac-2.646*(ac*bpd)/1000;
-    efw=Math.pow(10,log10w3);
+    // 缺 HC 时退化用 Shepard 两参数（BPD+AC）：公式给出体重(kg)
+    // log10(EFW/kg) = -1.7492 + 0.166*BPD + 0.046*AC - 2.646*(AC*BPD)/1000
+    var log10w3=-1.7492+0.166*bpd+0.046*ac-2.646*(ac*bpd)/1000;
+    efw=Math.pow(10,log10w3)*1000;
     method='Shepard两参数(BPD+AC)修正';
   }else if(hasAc&&hasFl){
     // AC+FL

@@ -218,6 +218,18 @@ const CASES = [
   ],
     ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
+},
+{
+  "slug": "acupuncture/acupoint-combination",
+  "afterLoad": true,
+  "inputs": {
+    "diseaseCat": "内科",
+    "diseaseKw": "失眠"
+  },
+  "expect": ["心肾不交加太溪+心俞"],
+  "ref": "分类切到「内科」并按关键词「失眠」过滤 ⇒ 只剩失眠卡：神门+内关+三阴交+安眠；心肾不交加太溪+心俞（DISEASE_CATS['内科'] 首条）。"
+       + "页面 initDiseaseCats() 用 innerHTML 填 <select> 后 renderDisease() 立刻读 .value，桩默认不会自动选中首项（读到空串 ⇒ DISEASE_CATS[''].filter 抛错）；"
+       + "afterLoad 开启浏览器保真初始化（空 select 自动选首项）后可用。默认态分类为「头面五官」，不含该串 ⇒ 强判别、零逃生。"
 }
 ];
 async function main() {

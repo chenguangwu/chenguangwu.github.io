@@ -63,6 +63,19 @@ function loadToolboxStubSrc() {
   }
   return _toolboxStubSrc;
 }
+// 共享层 /js/common.js 源缓存：TB_STUB_FIDELITY=1 时按线上真实顺序注入（defer → 页面内联之后）。
+// 目的：复现「页面顶层同名函数被共享层全局赋值覆盖」这类静默遮蔽（如 fmtNum），
+// 避免 harness 因为没加载 common.js 而把生产缺陷跑成绿。
+let _commonSrc = null;
+function loadCommonSrc() {
+  if (_commonSrc === null) {
+    try {
+      const p = path.join(ROOT, "js", "common.js");
+      _commonSrc = fs.existsSync(p) ? fs.readFileSync(p, "utf8") : "";
+    } catch (e) { _commonSrc = ""; }
+  }
+  return _commonSrc;
+}
 const TOOLS_DIR = path.join(ROOT, "tools");
 
 // ---------------------------------------------------------------- 固定基准日（根治日期漂移）
@@ -4012,10 +4025,16 @@ const CASES = [
     ref: "独立复算 SE=√(0.3×0.7/500)=0.02；z*(0.99)=2.576；E=2.576×0.02=0.0515≈±0.053；CI=[0.3−0.053,0.3+0.053]=[0.247,0.353]。默认态 95%/n=1000 输出不同，本例两锚均不命中。"
   },
   {
+    // 原写法 inputs:{a0,a1,b0,b1} 直接注入 —— 但 a*/b* 输入框由 build() 运行期渲染，
+    // 静态 HTML 只有 <select id="dim">，discriminate_check 解析不到这些 id 的默认值，
+    // 该用例整条被判 skip(unresolved)，形成 988 vs 987 的 1 条门禁缺口；且页面生产默认
+    // 是 3D（<option value="3" selected>），原 ref 里「默认 2D」的描述与实际相反。
+    // 改为 clicks：先切 2D 再 build() 重建输入框、然后注入并计算，判别力由 2D 分支提供。
     slug: "it/vector-dot-product",
-    inputs: { a0: "3", a1: "4", b0: "5", b1: "6" },
-    expect: ["39"],
-    ref: "注入非默认(默认 2D a=(1,0)/b=(0,1)点积 0)：A·B=3×5+4×6=15+24=39。默认态输出 0，本例不命中。"
+    inputs: {},
+    clicks: ["document.getElementById('dim').value='2';build();document.getElementById('a0').value=3;document.getElementById('a1').value=4;document.getElementById('b0').value=5;document.getElementById('b1').value=6;calculate()"],
+    expect: ["A · B = 39"],
+    ref: "2D 分支：dim 生产默认 3D，故须 clicks 内先切 2D + build() 重建输入框；A=(3,4)、B=(5,6) ⇒ 3×5+4×6=15+24=39（逐项可手算复算）。默认态 A=(0,0,0)、B=(0,0,0) ⇒ A · B = 0，不命中。"
   },
   {
     slug: "it/affine-cipher",
@@ -8458,6 +8477,12 @@ function mkOpt(value, text, attrStr) {
   return o;
 }
 
+// 可选「浏览器保真初始化」开关（用例字段 afterLoad:true 时开启，默认关闭）：
+// 很多页面在脚本末尾同步 init，并用 innerHTML 批量生成按钮/卡片后立刻读
+// `children[i].classList`；动态填 <select> 的 option 后依赖浏览器自动选中首项。
+// 这两点桩默认不建模（无条件生效曾误伤其它页，故按用例 opt-in）。
+let __browserInit = false;
+
 function makeEl(val, opts) {
   const handlers = {};
   // 懒创建的父节点桩：页面常写 `cell.parentElement.classList.add('x')`（如
@@ -8600,7 +8625,24 @@ function makeEl(val, opts) {
               set(i) { _selIdx = Number(i); const o = el.options[Number(i)]; if (o) el.value = o.value; },
             });
           }
+          // 浏览器语义（仅 afterLoad 用例生效）：向空 <select> 写入 option 后，
+          // 首个选项（或带 selected 的选项）自动成为选中项，页面随后读取 .value
+          // 才能拿到合法分类（acupuncture/acupoint-combination 的 renderDisease 依赖它）。
+          if (__browserInit && el.value === "") {
+            const hit = opts.find((o) => /\bselected\b/i.test((o && o._attrs) || "")) || opts[0];
+            el.value = hit && hit.value != null ? String(hit.value) : "";
+          }
         }
+      }
+      // 浏览器语义（仅 afterLoad 用例生效）：innerHTML 写入的子元素即成为 children 节点。
+      // 页面常见「innerHTML 批量生成按钮 → 立刻 children[def].classList.add('active')」
+      // （ophthalmology/pupil-reflex 即因此初始化抛错），桩默认 children 恒空。
+      if (__browserInit) {
+        el.children = [..._h.matchAll(/<([a-zA-Z][\w-]*)([^>]*)>([\s\S]*?)<\/\1>/g)].map((m2) => {
+          const child = makeEl("");
+          child.textContent = m2[3].replace(/<[^>]+>/g, "").trim();
+          return child;
+        });
       }
     },
     get() { return _h; },
@@ -8816,6 +8858,7 @@ async function runCase(c) {
     if (!r.skipped) __executedCases++;
     return r;
   } finally {
+    __browserInit = false; // 开关只对本用例生效，绝不泄漏到后续用例
     for (const k of Object.keys(globalThis)) {
       if (!before.has(k)) { try { delete globalThis[k]; } catch (e) { /* 只读属性跳过 */ } }
     }
@@ -8826,6 +8869,9 @@ async function runCase(c) {
 
 async function runCaseInner(c) {
   _rngReset(); // 每个用例前重置随机种子，确保随机页输出与顺序/环境无关
+  // afterLoad（opt-in）：开启浏览器保真初始化（innerHTML→children、空 select 自动选首项），
+  // 并在 DOMContentLoaded 回调执行后让出一帧。默认 false ⇒ 既有用例路径逐字节不变。
+  __browserInit = !!c.afterLoad;
   // 动态 DOM 登记默认关闭：只有声明 clicks（模拟点击）或 dynDom 的用例才启用 ⇒
   // 既有用例的行为逐字节不变（§7.1 的历史教训：全站无差别生效会误伤其它页）。
   dynReset();
@@ -9155,6 +9201,9 @@ async function runCaseInner(c) {
   };
 
   const names = [...script.matchAll(/^\s*(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(/gm)].map((m) => m[1]);
+  // 顶层 var/let/const 赋值（如 `var fmtNum = function(...){}`）：线上同样是 window 属性，
+  // 同样会被后执行的 common.js 覆盖。仅在保真模式下纳入导出，避免默认路径多导名字到 globalThis。
+  const varNames = [...script.matchAll(/^\s*(?:var|let|const)\s+([A-Za-z_$][\w$]*)\s*=/gm)].map((m) => m[1]);
   const PRIO = ["calcTool", "calc", "calculate", "compute", "convert", "run", "update", "render"];
   const ordered = [
     ...PRIO.filter((p) => names.includes(p)),
@@ -9165,12 +9214,15 @@ async function runCaseInner(c) {
   ];
 
   // 定时器桩（safeTimer）已前移至桩注入之前定义，供 ToolBox 早期桩的 debounce 复用，此处不再重复定义。
-  const expose = ordered.map((n) => `try{__f[${JSON.stringify(n)}]=typeof ${n}==='function'?${n}:null;}catch(e){}`).join("\n");
+  const exposeNames = process.env.TB_STUB_FIDELITY === "1"
+    ? [...ordered, ...varNames.filter((n) => !ordered.includes(n))]
+    : ordered;
+  const expose = exposeNames.map((n) => `try{__f[${JSON.stringify(n)}]=typeof ${n}==='function'?${n}:null;}catch(e){}`).join("\n");
   let fns;
   try {
     const compiled = new Function(
       "document", "window", "console", "navigator", "localStorage", "sessionStorage", "ToolBox", "alert", "setTimeout", "requestAnimationFrame", "setInterval", "requestIdleCallback", "Date",
-      `var __f={};\n${script}\n${expose}\n__f["__pageEval"]=function(c){return eval(String(c));};\nreturn __f;`
+      `var __f={};\n${script}\n${expose}\n__f["__pageEval"]=function(c){return eval(String(c));};\n__f["__rebindGlobal"]=function(n){try{eval(n+' = window.'+n);}catch(e){}};\nreturn __f;`
     );
     fns = compiled(document, win, { log() {}, warn() {}, error() {} }, navigator, localStorage, sessionStorage, ToolBox, () => {}, safeTimer, safeTimer, safeTimer, safeTimer, FrozenDate);
   } catch (e) {
@@ -9181,6 +9233,55 @@ async function runCaseInner(c) {
   // 而 new Function 编译出的顶层函数只存在于函数作用域，必须先导出到 globalThis。
   for (const [n, f] of Object.entries(fns)) {
     if (typeof f === "function") { try { globalThis[n] = f; } catch (e) { /* 只读全局跳过 */ } }
+  }
+
+  // TB_STUB_FIDELITY=1：按线上真实顺序执行共享层 /js/common.js（defer → 页面内联之后、DOMContentLoaded 之前）。
+  // 线上页面顶层 `function fmtNum(){}` 是 window 属性，common.js 末尾 `global.fmtNum = ...` 会把它覆盖；
+  // harness 里页面声明只是 new Function 的局部绑定，因此注入后再把同名局部绑定显式重指到全局实现，
+  // 才能复现「桩里绿、线上错」的遮蔽。未设置该环境变量时完全不执行，既有用例逐字节不变。
+  if (process.env.TB_STUB_FIDELITY === "1") {
+    const _commonSrc = loadCommonSrc();
+    if (_commonSrc) {
+      try {
+        // 补齐 common.js 顶层会用到的浏览器构造器，避免 ReferenceError 在到达 `global.fmtNum=...` 前中断。
+        const _pre = 'var Element=function(){};Element.prototype={};' +
+          'var Event=function(t){this.type=t;};' +
+          'var URL=function(u){this.href=String(u);this.pathname="/";this.search="";this.hash="";};' +
+          'URL.createObjectURL=function(){return "blob:x";};URL.revokeObjectURL=function(){};' +
+          'var Blob=function(){this.size=0;this.type="";};' +
+          'var IntersectionObserver=function(cb){this._cb=cb;};' +
+          'IntersectionObserver.prototype={observe:function(){},unobserve:function(){},disconnect:function(){},takeRecords:function(){return [];}};' +
+          'var matchMedia=function(){return {matches:false,media:"",addEventListener:function(){},removeEventListener:function(){},addListener:function(){},removeListener:function(){}};};';
+        if (!document.execCommand) document.execCommand = () => true;
+        new Function(
+          "window", "document", "navigator", "localStorage", "sessionStorage", "location", "history",
+          "alert", "confirm", "prompt", "setTimeout", "setInterval", "requestAnimationFrame",
+          "MutationObserver", "Option", "URLSearchParams", "Storage", "fetch", "XMLHttpRequest", "Image",
+          _pre + _commonSrc
+        )(
+          win, document, navigator, localStorage, sessionStorage, win.location, { pushState() {}, replaceState() {} },
+          () => {}, () => true, () => "", safeTimer, safeTimer, safeTimer,
+          globalThis.MutationObserver, win.Option, globalThis.URLSearchParams || function () {}, globalThis.Storage,
+          () => Promise.resolve({ ok: true, json: () => Promise.resolve({}) }), function () {}, function () {}
+        );
+      } catch (e) {
+        win.__tbFidelityError = e && e.message;
+      }
+      if (process.env.TB_FIDELITY_DEBUG) {
+        process.stderr.write("[fidelity] err=" + win.__tbFidelityError + " fmtNum=" + (typeof win.fmtNum) + " ToolBox=" + (typeof win.ToolBox) + "\n");
+      }
+      // 页面顶层声明与共享层重名时，以共享层实现为准（等价线上的后执行覆盖）。
+      for (const [n, f] of Object.entries(fns)) {
+        if (typeof f === "function" && typeof win[n] === "function" && win[n] !== f && typeof fns.__rebindGlobal === "function") {
+          fns.__rebindGlobal(n);
+        }
+      }
+      // 共享层新增的全局（页面未声明同名）也要能被页面代码/点击代码按裸标识符调用。
+      for (const n of ["ToolBox", "fmtNum", "copyText", "copyToClipboard", "showToast", "toggleToolTheme",
+        "resolveCanvasColor", "canvasColorWithAlpha", "i18nText", "canvasExportError", "Chain"]) {
+        if (typeof win[n] !== "undefined") { try { globalThis[n] = win[n]; } catch (e) { /* 只读跳过 */ } }
+      }
+    }
   }
 
   const errs = [];
@@ -9249,6 +9350,9 @@ async function runCaseInner(c) {
     try { const r = cb(); if (r && typeof r.then === "function") pending.push(r); }
     catch (e) { errs.push("ready: " + e.message.slice(0, 50)); }
   }
+  // afterLoad（opt-in）：DOMContentLoaded 回调已按浏览器顺序执行完，再让出一帧，
+  // 覆盖加载事件中追加的同步初始化，之后才进行用例注入。默认路径不等 ⇒ 零变化。
+  if (c.afterLoad) await new Promise((r) => setTimeout(r, 0));
   // 1.5) snapshotOnly 快照模式（G06-S1 首屏扫描用）：只取「页面初始化后、harness 注入/兜底
   // 调用前」的真实默认态。兜底函数循环会以无参方式调用页面函数（如 selectDate()、
   // dijkstra()），部分页面会因此把结果区改写成垃圾值甚至死循环，掩盖真实首屏状态。

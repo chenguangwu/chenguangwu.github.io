@@ -166,7 +166,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="🫘 eGFR 肾功能计算器">🫘 eGFR Kidney Function Calculator</h2>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">MDRD：186 × 肌酐^(−1.154) × 年龄^(−0.203) × (女 0.742) × (非裔 1.212)<br>CKD-EPI：142 × min(Scr/κ,1)^α × max(Scr/κ,1)^(−1.2) × 0.9938^年龄 × (女 1.012)；Cockcroft-Gault：(140−年龄) × 体重 × (女 0.85) ÷ (72 × 肌酐)；体重口径：一般用实际体重，肥胖（BMI ≥30）建议改用理想体重或校正体重，否则 CrCl 会被高估。</div>
+      <div class="formula-eq">MDRD：186 × 肌酐^(−1.154) × 年龄^(−0.203) × (女 0.742) × (非裔 1.212)<br>CKD-EPI：142 × min(Scr/κ,1)^α × max(Scr/κ,1)^(−1.2) × 0.9938^年龄 × (女 1.012)；Cockcroft-Gault：(140−年龄) × 体重 × (女 0.85) ÷ (72 × 肌酐)；体重口径可选：实际体重 TBW（默认）｜理想体重 IBW = 50/45.5 + 0.91×(身高cm − 152.4)｜校正体重 ABW = IBW + 0.4×(TBW − IBW)；肥胖（BMI ≥30）用 TBW 时提示改用 IBW/ABW，否则 CrCl 会被高估。</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="估算肾小球滤过率，评估肾功能（CKD-EPI 2021公式）">Estimate glomerular filtration rate with MDRD, CKD-EPI or Cockcroft-Gault from serum creatinine, age, sex and body size, and stage the result by CKD category.</p>
     
@@ -201,6 +201,16 @@ s.parentNode.insertBefore(el, s);
       <div><label>体重 (kg)</label><input type="number" id="weight" value="65" oninput="calc()" placeholder="如 65"></div>
       <div><label>身高 (cm)</label><input type="number" id="height" value="170" oninput="calc()" placeholder="如 170"></div>
     </div>
+
+    <div class="input-row">
+      <div><label>体重口径（Cockcroft-Gault 用；肥胖者建议 IBW/ABW）</label>
+        <select id="wtBasis" onchange="calc()">
+          <option value="tbw" selected>实际体重 TBW（默认）</option>
+          <option value="ibw">理想体重 IBW（Devine）</option>
+          <option value="abw">校正体重 ABW = IBW + 0.4(TBW − IBW)</option>
+        </select>
+      </div>
+    </div>
     
     <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__gfr_calculatorExport()">导出明细 CSV</button></div>
     <div class="result-box">
@@ -226,6 +236,7 @@ s.parentNode.insertBefore(el, s);
       </div>
       
       <div class="stat-grid" style="margin-top:16px;" id="statsGrid"></div>
+      <div id="wtInfo" style="margin-top:10px;font-size:12px;color:var(--text-muted);"></div>
     </div>
     <div id="gfr_calculatorTable"></div>
     <div id="gfr_calculatorDiff"></div>
@@ -459,7 +470,15 @@ function calc() {
   const formula = document.getElementById('formula').value;
   const weight = parseFloat(document.getElementById('weight').value);
   const height = parseFloat(document.getElementById('height').value);
+  const wtBasis = (document.getElementById('wtBasis') || {value:'tbw'}).value;
   const isFemale = gender === 'female';
+  // 体重口径：TBW 实际体重；IBW Devine；ABW = IBW + 0.4×(TBW − IBW)
+  const ibw = height > 0 ? (isFemale ? 45.5 + 0.91 * (height - 152.4) : 50 + 0.91 * (height - 152.4)) : NaN;
+  const abw = isFinite(ibw) && weight > ibw ? ibw + 0.4 * (weight - ibw) : ibw;
+  let useW = weight;
+  if (wtBasis === 'ibw' && isFinite(ibw)) useW = ibw;
+  else if (wtBasis === 'abw' && isFinite(ibw)) useW = abw;
+  const wtBasisName = { tbw: '实际体重 TBW', ibw: '理想体重 IBW（Devine）', abw: '校正体重 ABW' }[wtBasis] || '实际体重 TBW';
   
   if(!age || !cr || age <= 0 || cr <= 0) return;
   
@@ -471,8 +490,8 @@ function calc() {
       gfrLabel = 'MDRD公式';
       break;
     case 'cockcroft':
-      if(!weight) return;
-      gfr = calcCockcroft(age, cr, weight, isFemale);
+      if(!useW) return;
+      gfr = calcCockcroft(age, cr, useW, isFemale);
       gfrLabel = 'Cockcroft-Gault (mL/min)';
       break;
     default:
@@ -497,6 +516,17 @@ function calc() {
   const __g3='<div class="stat-card"><div class="val" style="color:' + stage.color + '">' + Math.round(ckdepi) + '</div><div class="lbl">CKD-EPI</div></div>' +
     '<div class="stat-card"><div class="val">' + Math.round(mdrd) + '</div><div class="lbl">MDRD</div></div>' +
     '<div class="stat-card"><div class="val">' + stage.desc + '</div><div class="lbl">评估</div></div>';document.getElementById('statsGrid').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+
+  const wtInfoEl = document.getElementById('wtInfo');
+  if (wtInfoEl) {
+    let info = '';
+    if (formula === 'cockcroft' && isFinite(useW)) {
+      info = '计算体重：<b>' + useW.toFixed(1) + ' kg</b>（' + wtBasisName + '；IBW ' + (isFinite(ibw) ? ibw.toFixed(1) : '—') + ' kg，ABW ' + (isFinite(abw) ? abw.toFixed(1) : '—') + ' kg）';
+      const bmi = height > 0 ? weight / Math.pow(height / 100, 2) : NaN;
+      if (bmi >= 30 && wtBasis === 'tbw') info += '<br>⚠ BMI ' + bmi.toFixed(1) + ' ≥ 30：按实际体重估算 CrCl 会被高估，建议切换为 IBW 或 ABW 口径。';
+    }
+    wtInfoEl.innerHTML = info;
+  }
 }
 
 function switchTab(name) {

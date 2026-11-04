@@ -161,6 +161,20 @@ const CASES = [
     ref: "Cockcroft-Gault（男）：(140−50) × 65 ÷ (72 × 1.0) = 5850 ÷ 72 = 81.25 → 显示 81 mL/min",
   },
   {
+    slug: "health/gfr-calculator",
+    inputs: { age: "60", cr: "1.0", weight: "100", height: "170", formula: "cockcroft", wtBasis: "abw" },
+    expect: ["79.6 kg （校正体重 ABW", "88"],
+    ref: "肥胖口径对照（ABW）：IBW = 50 + 0.91×(170−152.4) = 66.016 kg；ABW = 66.016 + 0.4×(100−66.016) = 79.6096 kg；"
+       + "CrCl = (140−60)×79.6096 ÷ (72×1.0) = 88.455 → 88 mL/min。默认态（ckdepi / 65 kg / tbw）既不显示口径行也不出 88。",
+  },
+  {
+    slug: "health/gfr-calculator",
+    inputs: { age: "60", cr: "1.0", weight: "100", height: "170", formula: "cockcroft", wtBasis: "tbw" },
+    expect: ["111", "⚠ BMI 34.6 ≥ 30"],
+    ref: "同一输入改用实际体重（TBW）：(140−60)×100 ÷ (72×1.0) = 111.11 → 111 mL/min，与 ABW 口径的 88 明显不同；"
+       + "BMI = 100 ÷ 1.7² = 34.60 ≥ 30 ⇒ 输出「⚠ BMI 34.6 ≥ 30」提示改用 IBW/ABW。默认态 BMI 22.5 且非 cockcroft，不命中。",
+  },
+  {
     slug: "health/insulin-dose",
     inputs: { currentBg: "11", targetBg: "6", icr: "12", isf: "3", carbs: "75" },
     expect: ["6.3U", "1.7U", "8.0"],
@@ -548,9 +562,11 @@ const CASES = [
       "formula": "mdrd"
     },
     "expect": [
-      "42\n42\n1.159\nmdrd\n42\n42\n1\nG5 肾衰竭\n1 CKD-EPI 1 MDRD 立即就医！ 评估"
+      "G5 肾衰竭"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"age\":\"42\",\"cr\":\"42\",\"weight\":\"42\",\"height\":\"42\",\"race\":\"1.159\",\"formula\":\"mdrd\"}，输出区含「42\n42\n1.159\nmdrd\n42\n42\n1\nG5 肾衰竭\n1 CKD-EP…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入 age/cr=42 + MDRD，MDRD = 186 × 42^(−1.154) × 42^(−0.203) × 1.212 ≈ 1.1 → 分期 G5 肾衰竭；"
+       + "默认态（age 50 / cr 1.0 / CKD-EPI）为 G1 肾功能正常或升高 ⇒ 不命中。原先跨元素拼接断言含输入回显（age/cr/race/formula），"
+       + "新增体重口径 select 后顺序变化即失配，故只锚分期结论串。"
   },
   {
     "slug": "health/ibw-calculator",

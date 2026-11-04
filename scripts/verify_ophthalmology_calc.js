@@ -352,6 +352,15 @@ const CASES = [
       "right\n10\ndark\nabc123测试"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"amNote\":\"abc123测试\",\"amEye\":\"right\",\"amGrid\":\"10\",\"amBg\":\"dark\"}，输出区含「right\n10\ndark\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "ophthalmology/pupil-reflex",
+    "afterLoad": true,
+    "clicks": ["sel.od=1;sel.os=2;sel.rapd=2;calc()"],
+    "expect": ["双眼直接反射均减弱，警惕动眼神经(传出)障碍", "瞳孔反射异常，建议进一步评估"],
+    "ref": "OD 直接反射 1（迟钝）+ OS 2（减弱）+ RAPD 2+ ⇒ 输出「双眼直接反射均减弱，警惕动眼神经(传出)障碍或广泛病变，建议排查。」与综合「瞳孔反射异常，建议进一步评估」。"
+       + "页面用 innerHTML 批量生成分级按钮后立刻读 children[def].classList，桩默认 children 为空 ⇒ 初始化即抛错；afterLoad 开启浏览器保真初始化后可用。"
+       + "默认态（3/3/0）为「瞳孔反射未见明显异常」⇒ 两条断言均不命中。"
   }
 
 ];

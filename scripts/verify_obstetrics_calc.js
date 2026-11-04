@@ -28,6 +28,24 @@ const CASES = [
     expect: ["2562", "2.56", "正常体重"],
     ref: "Hadlock四参数 log10w=1.3596-0.00386·30·7+0.0064·32+0.00061·9·30+0.0424·30+0.174·7=3.4085→EFW=10^3.4085=2562g=2.56kg（默认空→请至少输入一个参数，避开）" },
 
+  { slug: "obstetrics/fetal-weight-hadlock",
+    inputs: { bpd: "9.2", hc: "", ac: "33", fl: "7.2" },
+    expect: ["Shepard两参数(BPD+AC)修正", "3109"],
+    ref: "缺 HC、保留 BPD+AC+FL ⇒ 退化 Shepard 两参数（该式原单位为 kg）：log10=-1.7492+0.166·9.2+0.046·33-2.646·(9.2·33)/1000=0.492674→10^=3.1094kg→×1000=3109g。"
+       + "默认态（8.8/32/30.5/6.6 四参数）走 Hadlock 四参数、不含该串 ⇒ 强判别。此前该分支误用 +1.7492 且未换算 g（显示约 9.8kg），已修正。" },
+
+  { slug: "obstetrics/fetal-weight-hadlock",
+    inputs: { bpd: "", hc: "", ac: "33", fl: "7.2" },
+    expect: ["Hadlock两参数(AC+FL)", "3102"],
+    ref: "仅 AC+FL ⇒ Hadlock 两参数：log10=1.304+0.05281·33+0.1938·7.2-0.004·33·7.2=3.49169→EFW=10^3.49169=3102g。"
+       + "默认态走四参数，不含该串；单参数分支也不会命中 3102 ⇒ 强判别。" },
+
+  { slug: "obstetrics/fetal-weight-hadlock",
+    inputs: { sfh: "30", ac2: "90" },
+    expect: ["810", "2790"],
+    ref: "宫高腹围页签：宫高×腹围×0.3=30·90·0.3=810g；Johnson 法 (30−12)·155=2790g。"
+       + "默认态（32/95）为 912g / 3100g，与本例两值均不同 ⇒ 强判别。" },
+
   { slug: "obstetrics/postpartum-hemorrhage",
     inputs: { wetWeight: "2000", dryWeight: "1000", preWeight: "60", hr: "100", sbp: "100" },
     expect: ["952", "1.00"],
