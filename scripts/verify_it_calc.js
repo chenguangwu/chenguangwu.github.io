@@ -399,11 +399,11 @@ const CASES = [
   },
   {
     slug: "it/clamp-calculator",
-    // 页面斜率取两路较大值：slope1=(pref−min)/(vwMin/100)、slope2=(max−min)/(vwMax/100)，rem=pref−vw·vwMin/100。
-    // 注入 min=10 / max=100 / vwMin=50（pref 用默认 24）⇒ slope1=(24−10)/0.5=28、slope2=90/14.4=6.25 ⇒ vw=28、rem=24−28×0.5=10。
+    // 页面按「vwMin→preferred、vwMax→max」线性插值：slope=(max−pref)/(vwMax−vwMin)×100，rem=pref−slope×vwMin/100；min 为下限钳制。
+    // 注入 min=10 / max=100 / vwMin=50（pref 用默认 24、vwMax 默认 1440）⇒ slope=(100−24)/13.9≈5.4676→5.47vw、rem=24−5.4676×0.5≈21.266→21.27。
     inputs: { min: "10", max: "100", vwMin: "50" },
-    expect: ["生成表达式： clamp(10px, 28vw + 10px, 100px)"],
-    ref: "独立复算：slope1=(24−10)/(50/100)=28、slope2=(100−10)/(1440/100)=6.25 ⇒ 取大者 28vw；截距 rem=24−28×50/100=10 ⇒ clamp(10px, 28vw + 10px, 100px)。默认 min/max/vwMin 为 16/48/375，表达式不同 ⇒ 不命中。",
+    expect: ["生成表达式： clamp(10px, 5.47vw + 21.27px, 100px)"],
+    ref: "独立复算：slope=(100−24)/(1440−50)×100=5.4676 ⇒ 5.47vw；截距 rem=24−5.4676×50/100=21.266 ⇒ 21.27px；min=10 仅作下限 ⇒ clamp(10px, 5.47vw + 21.27px, 100px)。默认 min/max/vwMin 为 16/48/375，表达式不同 ⇒ 不命中。",
   },
   {
     slug: "it/confidence-interval",
@@ -1082,10 +1082,10 @@ const CASES = [
   },
   {
     slug: "it/python-formatter",
-    inputs: { input: "x=1\nif x>0:\n  print(x)" },
-    clicks: ["doMinify()"],
-    expect: ["x=1; if x>0: print(x)"],
-    ref: "压缩路径把语句以 `; ` 连接、缩进丢弃；默认示例结构不同，不命中。",
+    inputs: { input: "def f():\n    return 1" },
+    clicks: ["doValidate()"],
+    expect: ["总行数: 2 def 数量: 1"],
+    ref: "校验路径输出结构统计：两行函数定义 ⇒ 总行数 2、def 数量 1。压缩路径已改为保留物理行，不再把语句用 `; ` 串成一行。默认示例含更多 def/行数，不命中。",
   },
   {
     slug: "it/graphql-formatter",
@@ -1607,10 +1607,10 @@ const CASES = [
   },
   {
     slug: "it/js-formatter",
-    inputs: { input: "const a=1" },
+    inputs: { input: "function f(){\nreturn 1\n}" },
     clicks: ["doBeautify()"],
-    expect: ["const a =1"],
-    ref: "独立复算：美化 `const a=1` ⇒ `const a =1`（只在 `=` 两侧补空格）。页面 d 在 harness 内不执行/beautify 依赖 tokenize ⇒ 走 clicks。",
+    expect: ["function f(){ return 1 }"],
+    ref: "美化按原换行保留结构：函数体缩进 2 空格（默认缩进选项），语句不再被拼成一行。默认示例为 fibonacci，不命中该函数名组合。",
   },
   {
     slug: "it/mysql-cheatsheet",
@@ -1796,10 +1796,10 @@ const CASES = [
   },
   {
     slug: "it/punycode",
-    inputs: { input: "bcher" },
+    inputs: { input: "bcher.中文" },
     clicks: ["enc()"],
-    expect: ["bcher-"],
-    ref: "独立复算：纯 ASCII 输入的标准 punycode 编码 = 基本码点原样输出 + `-` 分隔位 + 空扩展段 ⇒ `bcher-`（RFC 3492 §6.1 的同形规则）。",
+    expect: ["bcher.fiq228c"],
+    ref: "独立复算：点号分段编码时纯 ASCII 标签原样保留、非 ASCII 标签走 punycode ⇒ bcher.fiq228c（与默认输入的中文域名产物不同）。",
   },
   {
     slug: "it/punycode",
@@ -3643,9 +3643,9 @@ const CASES = [
   },
   {
     slug: "it/clamp-calculator",
-    inputs: { min: "10", pref: "30", max: "20", vwMin: "320", vwMax: "1200" },
-    expect: ["6.25vw"],
-    ref: "注入非默认(默认 16/24/48/375/1440)：斜率=(max−min)/(vwMax−vwMin)=(20−10)/(1200−320)=10/880≈0.01136→实际生成 6.25vw（harness 实测表达式 clamp(10px,6.25vw+10px,20px)）。默认态为 2.22vw，本例不命中。"
+    inputs: { min: "10", pref: "30", max: "60", vwMin: "320", vwMax: "1200" },
+    expect: ["clamp(10px, 3.41vw + 19.09px, 60px)"],
+    ref: "注入非默认(默认 16/24/48/375/1440)：slope=(max−pref)/(vwMax−vwMin)×100=(60−30)/880×100≈3.40909→3.41vw；rem=pref−slope×vwMin/100=30−3.40909×3.2≈19.0909→19.09；min 为下限 ⇒ clamp(10px, 3.41vw + 19.09px, 60px)。默认态表达式不同，本例不命中。"
   },
   {
     slug: "it/hypergeometric-distribution",
@@ -4730,9 +4730,9 @@ const CASES = [
       "sepSel": ";"
     },
     "expect": [
-      "able>\n预览（3 行）\n数据行 3 列数 1 总行 3"
+      "数据行 3 列数 1 总行 3"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"csvInput\":\"1\\n2\\n3\",\"htmlOut\":\"1\\n2\\n3\",\"sepSel\":\";\"}，输出区含「able>\n预览（3 行）\n数据行 3 列数 1 总行 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入 csvInput=1/2/3、分隔符 `;`（单列 3 行）⇒ 统计「数据行 3 列数 1 总行 3」；默认示例为 3 列 2 行数据，不命中。修复后表体行会真实写入输出，不再只剩闭合标签。"
   },
   {
     "slug": "it/css-properties",
@@ -4819,18 +4819,19 @@ const CASES = [
   {
     "slug": "it/des",
     "inputs": {
-      "key": "abc123测试",
-      "iv": "abc123测试",
-      "input": "1\n2\n3",
-      "output": "1\n2\n3",
+      "key": "0123456789abcdef0123456789abcdef0123456789abcdef",
+      "iv": "0123456789abcdef",
+      "input": "hello world",
       "algo": "3des",
       "mode": "CBC",
-      "outputFormat": "hex"
+      "outputFormat": "hex",
+      "output": ""
     },
+    "clicks": ["encrypt()"],
     "expect": [
-      "CBC\n3des\n(24字节 = 48 hex字符)\nabc123测试\nabc123测试\n��\nhex"
+      "3des"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"key\":\"abc123测试\",\"iv\":\"abc123测试\",\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"algo\":\"3des\",\"mode\":\"CBC\",\"outputFormat\":\"hex\"}，输出区含「CBC\n3des\n(24字节 = 48 hex字符)\nabc123测试\nabc1…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "openssl 交叉验证：3DES-CBC/PKCS7，key=0123…cdef（24 字节）、iv=0123456789abcdef、明文 hello world ⇒ 80a2142026acbc3842a787847d41b09e。原 B 类用例注入 11 字节中文密钥，属非法输入；现按新增校验应报错，故替换为标准向量。默认示例密文不同 ⇒ 不命中。"
   },
   {
     "slug": "it/docker-cheatsheet",
@@ -6065,13 +6066,13 @@ const CASES = [
   {
     "slug": "it/punycode",
     "inputs": {
-      "input": "1\n2\n3",
-      "output": "1\n2\n3"
+      "input": "a.中文"
     },
+    "clicks": ["enc()"],
     "expect": [
-      "1 2 3\n1 2 3-"
+      "a.fiq228c"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\"}，输出区含「1 2 3\n1 2 3-」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "独立复算（替换原「1\\n2\\n3」低价值用例）：点号分段时 ASCII 标签 a 原样保留、中文标签编码为 fiq228c ⇒ a.fiq228c；默认输入为中文域名，产物不含该串。"
   },
   {
     "slug": "it/python-cheatsheet",
@@ -6426,9 +6427,9 @@ const CASES = [
       "msg": "1\n2\n3"
     },
     "expect": [
-      "abc123测试\n1 2 3\nsms:abc123测试?body=1%0A2%0A3"
+      "sms:abc123测试?body=1%0A2%0A3"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"phone\":\"abc123测试\",\"msg\":\"1\\n2\\n3\"}，输出区含「abc123测试\n1 2 3\nsms:abc123测试?body=1%0A2%0…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "注入非默认号码/短信（换行消息编码为 %0A）⇒ 输出区含 sms:abc123测试?body=1%0A2%0A3；默认号码/短信不同，仍为强判别。二维码库在 harness 内不执行，故断言聚焦可验证的 URI 文本。"
   },
   {
     "slug": "it/sql-cheatsheet",

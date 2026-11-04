@@ -294,8 +294,8 @@ function encode(str){
   }
   const b = basic.length;
   let out = basic.join('');
-  // 只有存在需要编码的非 ASCII 码点时，才用 '-' 分隔基本段与增量段
-  if(b > 0 && extendedCps.length > 0) out += '-';
+  // RFC 3492：存在基本码点时输出分隔符；纯 ASCII 的用户输入由 enc() 原样返回
+  if(b > 0) out += '-';
   let n = INITIAL_N, delta = 0, bias = INITIAL_BIAS;
   const total = cps.length;
   let handled = b;
@@ -382,7 +382,9 @@ function enc(){
       return (ace ? 'xn--' : '') + encode(label);
     }).join('.');
   } else {
-    result = (ace && /[^\x00-\x7f]/.test(text) ? 'xn--' : '') + encode(text);
+    // 纯 ASCII 直接原样返回，避免低层编码器补出的尾随 '-' 改变标签名
+    if(/^[\x00-\x7f]*$/.test(text)) result = text;
+    else result = (ace ? 'xn--' : '') + encode(text);
   }
   document.getElementById('output').value = result;
 }
