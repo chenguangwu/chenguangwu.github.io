@@ -170,8 +170,8 @@ s.parentNode.insertBefore(el, s);
     <div id="tab-calc" class="tab-content active">
       <div class="input-row">
         <div><label>总距离 (公里)</label><input type="number" id="distance" value="500" min="0" oninput="calc()" placeholder="如 500"></div>
-        <div><label>百公里油耗 (L/100km)</label><input type="number" id="consumption" value="8" min="0" step="0.1" oninput="calc()" placeholder="如 8"></div>
-        <div><label>油价 (元/L)</label><input type="number" id="price" value="7.5" min="0" step="0.01" oninput="calc()" placeholder="如 7.5"></div>
+        <div><label id="consLabel">百公里油耗 (L/100km)</label><input type="number" id="consumption" value="8" min="0" step="0.1" oninput="calc()" placeholder="如 8"></div>
+        <div><label id="priceLabel">油价 (元/L)</label><input type="number" id="price" value="7.5" min="0" step="0.01" oninput="calc()" placeholder="如 7.5"></div>
       </div>
       <div class="input-row">
         <div><label>高速通行费 (元)</label><input type="number" id="tolls" value="200" min="0" oninput="calc()" placeholder="如 200"></div>
@@ -197,8 +197,8 @@ s.parentNode.insertBefore(el, s);
       <div class="result-hero"><div class="cost" id="totalCost">¥0</div><div style="opacity:0.9;margin-top:4px;">全程总费用</div></div>
       
       <div class="stat-grid">
-        <div class="stat-card"><div class="val" id="fuelAmount">0L</div><div class="lbl">所需油量</div></div>
-        <div class="stat-card"><div class="val" id="fuelCost">¥0</div><div class="lbl">油费</div></div>
+        <div class="stat-card"><div class="val" id="fuelAmount">0L</div><div class="lbl" id="fuelAmountLbl">所需油量</div></div>
+        <div class="stat-card"><div class="val" id="fuelCost">¥0</div><div class="lbl" id="fuelCostLbl">油费</div></div>
         <div class="stat-card"><div class="val" id="tollCost">¥0</div><div class="lbl">通行费</div></div>
         <div class="stat-card"><div class="val" id="perPerson">¥0</div><div class="lbl">人均费用</div></div>
         <div class="stat-card"><div class="val" id="perKm">¥0</div><div class="lbl">每公里成本</div></div>
@@ -301,7 +301,7 @@ s.parentNode.insertBefore(el, s);
 <div class="dd-example"><div class="dd-ex-title">多车型对比</div><div class="dd-ex-body">SUV 油耗 10 同程油费 800＋300=1100；切到对比标签加多个方案，取 minTotal 最省者。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>电动车怎么算？</dt><dd>选 EV 预设用电耗折算，或自定义把「油耗」填度电耗、油价填电价。</dd>
+<dt>电动车怎么算？</dt><dd>选「纯电动车」预设会自动切换为百公里电耗（默认 15 kWh/100km）与电价（默认 1.2 元/kWh），并同步把结果单位改为 kWh 与电费；也可手动修改电耗和电价。</dd>
 <dt>过路费必填吗？</dt><dd>可不填（默认 0），仅油费＋过路费计入合计。</dd>
 </dl>
 </div>
@@ -364,8 +364,12 @@ function switchTab(tab, btn) {
   if (tab === 'reference') renderPriceChart();
 }
 
+function isEV() {
+  return document.getElementById('carType').value === 'ev';
+}
 function applyPreset() {
   const type = document.getElementById('carType').value;
+  const priceEl = document.getElementById('price');
   const presets = {
     compact: { consumption: 6.5 },
     sedan: { consumption: 7.5 },
@@ -374,10 +378,27 @@ function applyPreset() {
     mpv: { consumption: 10.0 },
     ev: { consumption: 15.0 }
   };
+  if (type === 'ev') {
+    // 纯电预设：记住原油价并切换为电价，避免把 7.5 元/L 当电价算出天价电费
+    if (!priceEl.dataset.fuelPrice) priceEl.dataset.fuelPrice = priceEl.value || '7.5';
+    priceEl.value = '1.2';
+  } else if (priceEl.dataset.fuelPrice) {
+    priceEl.value = priceEl.dataset.fuelPrice;
+    delete priceEl.dataset.fuelPrice;
+  }
   if (presets[type]) {
     document.getElementById('consumption').value = presets[type].consumption;
-    calc();
   }
+  syncUnitLabels();
+  calc();
+}
+
+function syncUnitLabels() {
+  const ev = isEV();
+  document.getElementById('consLabel').textContent = ev ? '百公里电耗 (kWh/100km)' : '百公里油耗 (L/100km)';
+  document.getElementById('priceLabel').textContent = ev ? '电价 (元/kWh)' : '油价 (元/L)';
+  document.getElementById('fuelAmountLbl').textContent = ev ? '所需电量' : '所需油量';
+  document.getElementById('fuelCostLbl').textContent = ev ? '电费' : '油费';
 }
 
 function calc() {
@@ -386,6 +407,7 @@ function calc() {
   const p = +document.getElementById('price').value || 0;
   const t = +document.getElementById('tolls').value || 0;
   const people = +document.getElementById('people').value || 1;
+  const ev = isEV();
   
   const fuel = d * c / 100;
   const fuelCost = fuel * p;
@@ -395,7 +417,7 @@ function calc() {
   const perPersonKm = d > 0 ? perPerson / d : 0;
 
   const __g0='¥' + Math.round(total).toLocaleString();document.getElementById('totalCost').textContent=(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—'));
-  const __g1=fuel.toFixed(1) + 'L';document.getElementById('fuelAmount').textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+  const __g1=fuel.toFixed(1) + (ev ? ' kWh' : ' L');document.getElementById('fuelAmount').textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
   const __g2='¥' + Math.round(fuelCost);document.getElementById('fuelCost').textContent=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
   const __g3='¥' + Math.round(t);document.getElementById('tollCost').textContent=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
   const __g4='¥' + Math.round(perPerson);document.getElementById('perPerson').textContent=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
@@ -415,13 +437,13 @@ function __rtExport(){
     var en=TBKit.util.isEn();
     var rows=[
       [en?'Total distance (km)':'总距离 (公里)', d],
-      [en?'Fuel consumption (L/100km)':'百公里油耗 (L/100km)', c],
-      [en?'Fuel price (CNY/L)':'油价 (元/L)', p],
+      [en?(carType==='ev'?'Energy consumption (kWh/100km)':'Fuel consumption (L/100km)'):(carType==='ev'?'百公里电耗 (kWh/100km)':'百公里油耗 (L/100km)'), c],
+      [en?(carType==='ev'?'Electricity price (CNY/kWh)':'Fuel price (CNY/L)'):(carType==='ev'?'电价 (元/kWh)':'油价 (元/L)'), p],
       [en?'Toll fee (CNY)':'高速通行费 (元)', t],
       [en?'Passengers':'乘车人数', people],
       [en?'Vehicle type':'车辆类型', carType],
-      [en?'Fuel needed (L)':'所需油量 (L)', fuel.toFixed(1)],
-      [en?'Fuel cost (CNY)':'油费 (元)', Math.round(fuelCost)],
+      [en?(carType==='ev'?'Energy needed (kWh)':'Fuel needed (L)'):(carType==='ev'?'所需电量 (kWh)':'所需油量 (L)'), fuel.toFixed(1)],
+      [en?(carType==='ev'?'Electricity cost (CNY)':'Fuel cost (CNY)'):(carType==='ev'?'电费 (元)':'油费 (元)'), Math.round(fuelCost)],
       [en?'Total cost (CNY)':'全程总费用 (元)', Math.round(total)],
       [en?'Cost per person (CNY)':'人均费用 (元)', Math.round(perPerson)],
       [en?'Cost per km (CNY)':'每公里成本 (元)', perKm.toFixed(2)],
@@ -481,7 +503,7 @@ function renderHistory() {
         <div class="history-item" onclick="loadHistory(${idx})">
           <div class="time">${timeStr} · ${typeNames[item.carType] || '自定义'}</div>
           <div class="summary">${item.distance}公里 · 总费用 ¥${item.total} · ${item.people}人</div>
-          <div class="detail">油耗${item.consumption}L/100km · 油价¥${item.price}/L · 过路费¥${item.tolls}</div>
+          <div class="detail">${item.carType==='ev'?`电耗${item.consumption}kWh/100km · 电价¥${item.price}/kWh`:`油耗${item.consumption}L/100km · 油价¥${item.price}/L`} · 过路费¥${item.tolls}</div>
         </div>
       `;
     }).join('');const __g8=history.map((item, idx) => {
@@ -492,7 +514,7 @@ function renderHistory() {
         <div class="history-item" onclick="loadHistory(${idx})">
           <div class="time">${timeStr} · ${typeNames[item.carType] || '自定义'}</div>
           <div class="summary">${item.distance}公里 · 总费用 ¥${item.total} · ${item.people}人</div>
-          <div class="detail">油耗${item.consumption}L/100km · 油价¥${item.price}/L · 过路费¥${item.tolls}</div>
+          <div class="detail">${item.carType==='ev'?`电耗${item.consumption}kWh/100km · 电价¥${item.price}/kWh`:`油耗${item.consumption}L/100km · 油价¥${item.price}/L`} · 过路费¥${item.tolls}</div>
         </div>
       `;
     }).join('');list.innerHTML=(typeof __g8==='number'?(isFinite(__g8)?__g8:'—'):String(__g8).replace(/Infinity|NaN/g,'—'));
@@ -640,6 +662,7 @@ function renderPriceChart() {
   const __g16=html;document.getElementById('priceChart').innerHTML=(typeof __g16==='number'?(isFinite(__g16)?__g16:'—'):String(__g16).replace(/Infinity|NaN/g,'—'));
 }
 
+syncUnitLabels();
 calc();
 </script><script>
 // tool-intro折叠交互
