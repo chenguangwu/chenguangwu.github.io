@@ -425,8 +425,8 @@ const CASES = [
   {
     slug: "agriculture/gdd-calculator",
     inputs: { method: "simple", tbase: "10", tupper: "30", targetGDD: "300", tmax0: "35", tmin0: "15" },
-    expect: ["285", "133", "5.0%"],
-    ref: "注入非默认(默认 10/30/1500/各 20/10)：第1天 GDD = (35+15)/2−10 = 15.0；累积 15.0、日均 2.1、剩余 285、预计还需 ⌈285/2.1⌉ = 133 天、进度 15/300 = 5.0%。默认态为 10.0/1.4/1485/1071/0.7%，五条均不命中。"
+    expect: ["285", "19", "5.0%"],
+    ref: "注入非默认(默认 10/30/1500/各 20/10)：第1天 GDD = (35+15)/2−10 = 15.0；累积 15.0、日均 15.0（仅统计已填写行、留空行不再按 0 计入）、剩余 285、预计还需 ⌈285/15⌉ = 19 天、进度 15/300 = 5.0%。默认态为 10.0/1.4/1485/1071/0.7%，五条均不命中。"
   },
   // ── 种子发芽率 / 发芽势 / 发芽指数 GI ────
   {
@@ -1446,6 +1446,86 @@ const CASES = [
       "储粮水分偏高叠加温湿度风险"
     ],
     "ref": "自动补强（B类零用例）改用合法非默认输入（38℃/35%RH/28% 水分/小麦；旧 42 组因页面新增 0~40% 含水率校验被拦截）：综合评分 61 ⇒ 水分超安全值把等级升为中风险；并输出仅高水分叠加温湿度才有的建议「储粮水分偏高叠加温湿度风险」。默认态（28/75/13.5/稻谷）为高风险且无该句，两条均不命中。"
+  },
+  // ── 种子发芽：发芽数超过供试种子数应拦截（不再给「优质种」）────
+  {
+    "slug": "agriculture/seed-germination-rate",
+    "inputs": { "totalSeeds": "10", "seedlingLen": "12", "energyDay": "4", "day1": "12" },
+    "expect": ["发芽数合计超过供试种子数，请核对逐日记录"],
+    "ref": "供试 10 粒、第 1 天即记录 12 粒 ⇒ 累计 12 > 10，页面必须拦截并提示；旧实现按 120.0% 判「优质种」。默认态 100 粒/逐日 14… 不触发该提示。"
+  },
+  // ── 种子发芽：增删记录日保留已录入值（只追加末行）──────────────
+  {
+    "slug": "agriculture/seed-germination-rate",
+    "inputs": { "totalSeeds": "100", "seedlingLen": "12", "energyDay": "4" },
+    "clicks": ["['5','7','1','2','3','4','5'].forEach(function(v,i){document.getElementById('day'+(i+1)).value=v;});addDay();calc();"],
+    "expect": ["28.0%", "15.0%"],
+    "ref": "7 天依次改为 5/7/1/2/3/4/5 后点「+ 添加记录日」：若保留已录入值，累计 = 5+7+1+2+3+4+5 + 新行默认 1 = 28 ⇒ 28.0%，发芽势(前4天)=5+7+1+2=15 ⇒ 15.0%；旧实现整表重建回默认值，累计 76 ⇒ 76.0%/66.0%，两条均不命中。"
+  },
+  // ── 灌溉均匀度：n=5 时 DU 取样按 25% 向上取整（ceil(5/4)=2）───
+  {
+    "slug": "agriculture/irrigation-uniformity",
+    "inputs": {},
+    "clicks": ["pointCount=5;renderPoints();['40','38','36','34','12'].forEach(function(v,i){document.getElementById('pt'+i).value=v;});calc();"],
+    "expect": ["75.0%", "71.9%", "31.9%"],
+    "ref": "5 点 [40,38,36,34,12]：均值 32；CU = 1 − 40/(5×32) = 75.0%；四分位取样 q1=ceil(5/4)=2 ⇒ (12+34)/2=23 ⇒ DU = 23/32 = 71.9%；CV = sqrt(104)/32 = 31.9%。旧实现 floor(5/4)=1 ⇒ DU=12/32=37.5%，71.9% 不命中；默认 12 点亦不含这三条。"
+  },
+  // ── 秸秆还田：氮含量 0 时不再显示 999:1 / Infinity，直接拦截 ────
+  {
+    "slug": "agriculture/straw-return",
+    "inputs": { "strawType": "wheat", "carbon": "45", "nitrogen": "0", "strawAmount": "400", "targetCN": "20", "fertType": "urea" },
+    "expect": ["请输入有效的秸秆参数（秸秆量、碳含量、氮含量与目标C/N均须大于0）"],
+    "ref": "氮含量 0 ⇒ C/N 无定义，页面必须拦截；旧实现显示 999.0:1、复制出 Infinity:1，并照常给补氮量。默认氮 0.5 走正常计算，不出现该提示。"
+  },
+  // ── 化肥利用率：差减法 >100% 应判「数据异常」而非「高效利用」───
+  {
+    "slug": "agriculture/fertilizer-efficiency",
+    "inputs": { "fertUptake": "20", "fertInput": "10", "ckUptake": "5", "nutrientType": "N" },
+    "expect": ["150.0%", "数据异常", "利用率超过100%，数据异常"],
+    "ref": "利用率 = (20−5)÷10×100 = 150.0%，超过物理上限 ⇒ 判「数据异常」并提示复核；默认 12.5/15/7 ⇒ 36.7%，不命中。旧实现给「高效利用」。"
+  },
+  // ── 土壤有机质：换算系数 0 时应拦截（避免有机质结果恒为 0/无效）──
+  {
+    "slug": "agriculture/soil-organic-matter",
+    "inputs": { "beforeWeight": "10", "afterWeight": "9.6", "temp": "550", "factor": "0" },
+    "expect": ["换算系数必须大于0"],
+    "ref": "换算系数 0 ⇒ 有机质 = 有机碳 × 0 恒为 0，页面必须拦截；默认 1.724 正常计算，不出现该提示。"
+  },
+  // ── 作物需水：降雨「时段合计」口径先折算日均，跨日雨量不被逐日全扣 ──
+  {
+    "slug": "agriculture/crop-water-requirement",
+    "inputs": { "kc": "1.0", "et0": "6", "rain": "40", "rainMode": "total", "days": "10", "area": "15", "irrEff": "70" },
+    "expect": ["2.00", "285.9", "33.3%"],
+    "ref": "ETc = 6.00；10 天合计雨 40 mm ⇒ 日均 4.00 mm，日净 = 2.00 mm；总净 20 mm，毛水 28.57 mm，15 亩 ⇒ 285.9 m³；净/蒸散 = 33.3%。若按日均口径误把 40 当 mm/天，日净为 0、总灌水 0，三条均不命中；默认态（雨 1 mm/天）亦不命中。"
+  },
+  // ── 作物测产：穗数/粒数/千粒重留空或为 0 时应拦截，不再判「低产」──
+  {
+    "slug": "agriculture/crop-yield",
+    "inputs": { "method": "spike", "area": "10", "moisture": "13", "spikes": "0", "grains": "35", "weight": "45" },
+    "expect": ["请填写测产所需的面积与产量参数（均须大于0）"],
+    "ref": "穗数 0 ⇒ 单产 0，页面必须拦截；旧实现按 0 kg/亩 输出并判「低产」。默认 40 万穗/35 粒/45 g 不触发该提示。"
+  },
+  // ── 积温：目标积温 0 时进度分母为 0，应拦截 ─────────────────────
+  {
+    "slug": "agriculture/gdd-calculator",
+    "inputs": { "method": "single", "tbase": "10", "tupper": "30", "targetGDD": "0" },
+    "expect": ["目标积温必须大于0"],
+    "ref": "目标积温 0 ⇒ 进度 = 总积温/0；旧实现输出 Infinity 占位「—」。默认 1500 不触发。"
+  },
+  // ── 饲料配比：原料名/营养成分未经转义直接拼 innerHTML ⇒ DOM XSS ───────────
+  {
+    "slug": "agriculture/calculator-calc-ratio-1",
+    "inputs": {
+      "nutrient": "<img src=x onerror=alert(1)>",
+      "total": "100",
+      "nameA": "<img src=x onerror=alert(1)>",
+      "valA": "43",
+      "nameB": "<img src=x onerror=alert(1)>",
+      "valB": "8",
+      "target": "18"
+    },
+    "expect": ["&lt;img src=x onerror=alert(1)&gt;"],
+    "ref": "注入 <img src=x onerror=alert(1)> 到营养成分/原料 A/原料 B 名称框：旧实现原样拼进 res.innerHTML ⇒ 生成真实 img 元素；修复后经 ToolBox.escHtml 转义，输出只含实体 &lt;img…&gt;（harness 剥标签不会吞掉实体串）。默认原料名「豆粕/玉米」不含实体，注入态才命中；输入框 value 原文不含 &lt; 前缀，故不能靠回显通过。"
   }
 
 ];

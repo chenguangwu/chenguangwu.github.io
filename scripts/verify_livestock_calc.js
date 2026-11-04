@@ -367,7 +367,63 @@ const CASES = [
   "dumpIds": ["result"],
   "expect": ["7937 维持通风量", "需维持至少 7937 m³/h", "约 8.8 次/h"],
   "ref": "独立复算：当前 10 ppm ≤ 目标 15 ppm，但持续产氨 50 g/h ⇒ 维持通风量 = 50×1000 ÷ (15×0.7) ÷ 0.6 = 7936.5079 ⇒ 7937 m³/h；换气 = 7937 ÷ 900 = 8.8 次/h。旧实现此分支只提示「正常通风即可」、不输出维持风量，三条均不命中；默认态（25/15/0 g/h）浓度高于目标、走稀释分支，亦不命中。"
-}
+},
+  // ── 热应激：湿度留空必须拦截，不能静默按 0% 降级 ────────────────
+  {
+    "slug": "livestock/heat-stress-index",
+    "inputs": { "temp": "30", "humidity": "", "windSpeed": "0.5", "animalType": "dairy" },
+    "expect": ["请输入有效温度（-20~50℃）和相对湿度（0~100%）"],
+    "ref": "湿度留空 ⇒ 旧实现 num() 转 0%、THI 70.6 判「轻微」；修复后必须拦截提示。30℃/70% 的 THI 为 81.4，默认态（30℃/70%）不出现该提示。"
+  },
+  // ── 热应激：湿度 >100% 属不可能值，必须拦截 ────────────────────
+  {
+    "slug": "livestock/heat-stress-index",
+    "inputs": { "temp": "30", "humidity": "150", "windSpeed": "0.5", "animalType": "dairy" },
+    "expect": ["请输入有效温度（-20~50℃）和相对湿度（0~100%）"],
+    "ref": "RH 150% 超出物理上限 ⇒ 必须拦截；旧实现算出 THI 93.7 判「危险」。默认 70% 不触发。"
+  },
+  // ── 霉菌毒素：ZEN 150 μg/kg（仔猪料限量 250）应判「合格/60%」──
+  {
+    "slug": "livestock/mycotoxin-limit",
+    "inputs": { "toxinType": "zearalenone", "feedCategory": "piglet", "measuredValue": "150" },
+    "expect": ["60.0%", "合格"],
+    "ref": "ZEA 仔猪料限量 250 μg/kg ⇒ 占比 150/250 = 60.0%，判「合格」；默认毒素/实测值不命中这两条。旧正文算例称 150 应超标，现正文已与本表口径对齐并注明以现行标准/当地法规为准。"
+  },
+  // ── 水料比：温度留空不能按 0℃ 收窄正常区间后误判 ────────────────
+  {
+    "slug": "livestock/water-feed-ratio",
+    "inputs": { "waterIntake": "12", "feedIntake": "2.5", "temp": "", "animalType": "pig" },
+    "expect": ["请输入有效温度（-20~50℃）"],
+    "ref": "温度留空 ⇒ 旧实现按 0℃ 修正（正常区间收窄约 40%），把 4.8 的水料比误判为偏高；修复后必须拦截。默认 22℃ 不出现该提示。"
+  },
+  // ── 储粪池：含水率留空不能按 0% 导致密度 800、体积按 0 安全系数归零 ──
+  {
+    "slug": "livestock/manure-pit-capacity",
+    "inputs": { "count": "300", "dailyManure": "45", "moisture": "150", "cleanCycle": "7", "pitDepth": "2.5", "storageDays": "90", "safetyFactor": "1.2" },
+    "expect": ["请输入有效含水率（0~100%）和安全系数（>0）"],
+    "ref": "含水率 150% 超出物理上限 ⇒ 旧实现算密度 900 kg/m³ 并照常给池容；安全系数若留空/为 0 还会使储存体积归零。修复后必须拦截。默认含水率 82% 不触发。"
+  },
+  // ── 去势时机：非法日期不能再输出 NaN 年月日 ─────────────────────
+  {
+    "slug": "livestock/castration-timing",
+    "inputs": { "birthDate": "not-a-date", "animalType": "cattle" },
+    "expect": ["请输入有效的出生日期"],
+    "ref": "出生日期非法 ⇒ new Date('not-a-date') 为 Invalid Date，旧实现输出 NaN年NaN月NaN日；修复后必须拦截。默认当天日期不触发。"
+  },
+  // ── 粪量估算：含水率/收集率越界不能静默产出负干物质或 0 收集量 ──
+  {
+    "slug": "livestock/manure-amount",
+    "inputs": { "count": "150", "days": "365", "moisture": "120", "customManure": "0", "collectRate": "90", "animalType": "pig" },
+    "expect": ["请输入有效含水率（0~100%）和收集率（0~100]"],
+    "ref": "含水率 120% 超出物理上限 ⇒ 旧实现算干物质为负、密度 960；修复后必须拦截。默认 85% 不触发。"
+  },
+  // ── 断奶成绩：断奶头数不能大于出生头数（成活率 >100%）──────────
+  {
+    "slug": "livestock/weaning-weight-survival",
+    "inputs": { "bornAlive": "18", "weanedAlive": "20", "weanDay": "28", "avgWeight": "7.5", "standardWeight": "6.0", "belowStandard": "2" },
+    "expect": ["断奶头数不应大于出生头数，低于标准头数应在0~断奶头数之间"],
+    "ref": "断奶 20 > 出生 18 ⇒ 成活率 111.1%，旧实现照常判「优秀」；修复后必须拦截。默认 18/11 不触发。"
+  }
 ];
 async function main() {
   const only = process.argv.slice(2);

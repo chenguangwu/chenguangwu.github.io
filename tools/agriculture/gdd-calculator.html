@@ -293,6 +293,28 @@ function calc(){
   var tbase = +document.getElementById('tbase').value || 0;
   var tupper = +document.getElementById('tupper').value || 30;
   var targetGDD = +document.getElementById('targetGDD').value || 0;
+  if(!(targetGDD>0)){
+    document.getElementById('result').innerHTML='<div class="tip-box tip-error">目标积温必须大于0</div>';
+    return;
+  }
+
+  var partial = false, validDays = 0;
+  for(var i=0;i<dayCount;i++){
+    var tm=document.getElementById('tmax'+i), tn=document.getElementById('tmin'+i);
+    if(!tm||!tn) continue;
+    var maxEmpty = tm.value.trim()==='', minEmpty = tn.value.trim()==='';
+    if(maxEmpty && minEmpty) continue; // 整行未填写视为未使用，不按 0℃ 计入
+    if(maxEmpty || minEmpty){ partial = true; break; }
+    validDays++;
+  }
+  if(partial){
+    document.getElementById('result').innerHTML='<div class="tip-box tip-error">请补全已填写日期的最高/最低气温</div>';
+    return;
+  }
+  if(validDays===0){
+    document.getElementById('result').innerHTML='<div class="tip-box tip-error">请至少完整填写一天的最高/最低气温</div>';
+    return;
+  }
 
   var totalGDD = 0;
   var dailyGDDs = [];
@@ -300,6 +322,7 @@ function calc(){
     var tmaxEl = document.getElementById('tmax'+i);
     var tminEl = document.getElementById('tmin'+i);
     if(!tmaxEl||!tminEl) continue;
+    if(tmaxEl.value.trim()===''||tminEl.value.trim()==='') continue; // 整行留空不计入
     var tmax = +tmaxEl.value || 0;
     var tmin = +tminEl.value || 0;
     var gdd = calcGDD(tmax, tmin, tbase, tupper, method);
@@ -309,7 +332,7 @@ function calc(){
 
   var progress = targetGDD>0 ? (totalGDD / targetGDD) * 100 : 0;
   var remainGDD = Math.max(0, targetGDD - totalGDD);
-  var avgGDD = dayCount>0 ? totalGDD / dayCount : 0;
+  var avgGDD = dailyGDDs.length>0 ? totalGDD / dailyGDDs.length : 0;
   var estDays = avgGDD>0 ? Math.ceil(remainGDD / avgGDD) : 0;
 
   var grade = progress>=100?'grade-excellent':progress>=75?'grade-good':progress>=50?'grade-pass':'grade-fail';

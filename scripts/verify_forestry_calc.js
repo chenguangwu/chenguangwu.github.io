@@ -221,6 +221,13 @@ const CASES = [
     "inputs": {"dbh": "30", "height": "20", "growthPerYear": "1.5", "seedlingAge": "3"},
     "expect": ["1.50 年均生长", "18-32 区间", "23 估算树龄"],
     "ref": "注入非默认（默认 dbh=20/h=12/g=0.8/seedlingAge=2）：年均生长=1.5 ⇒ 1.50 年均生长；估算树龄=23、区间 18-32（默认 0.8/27/21-38）。三锚均不命中。"
+  },
+  // ── 造林密度：造林面积留空/为 0 时需苗量恒为 0，应拦截 ──────────
+  {
+    "slug": "forestry/planting-density",
+    "inputs": { "spacing": "5", "rowSpacing": "5", "area": "0", "site": "poor" },
+    "expect": ["请输入有效的株距、行距和造林面积"],
+    "ref": "面积 0 ⇒ 需苗量 = 密度×0 = 0 株，旧实现照常给结论；修复后必须拦截。默认 100 亩不触发。"
   }
 ];
 async function main() {

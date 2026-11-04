@@ -290,11 +290,19 @@ function updatePoint(i,v,xy){if(xy)pts[i].x=parseFloat(v)||0;else pts[i].y=parse
 function calc(){
 var S=0;
 var slope=parseFloat($('slope').value)||0;var cosS=Math.cos(slope*Math.PI/180);
+var reqLen=[];
+if(curShape===0||curShape===1) reqLen=['len1','len2'];
+else if(curShape===2) reqLen=['len1','len2','len3'];
+else if(curShape===3) reqLen=['len1'];
+var lenBlank=false;
+for(var ri=0;ri<reqLen.length;ri++){var rel=$(reqLen[ri]);if(!rel||rel.value.trim()===''){lenBlank=true;break;}}
+if(lenBlank){$('result').innerHTML='<div class="tip-box tip-error">请填写完整的边长/半径</div>';return;}
 if(curShape===0){var a=parseFloat($('len1').value)||0,b=parseFloat($('len2').value)||0;S=a*b;}
 else if(curShape===1){var a=parseFloat($('len1').value)||0,h=parseFloat($('len2').value)||0;S=a*h/2;}
 else if(curShape===2){var a=parseFloat($('len1').value)||0,b=parseFloat($('len2').value)||0,h=parseFloat($('len3').value)||0;S=(a+b)*h/2;}
 else if(curShape===3){var r=parseFloat($('len1').value)||0;S=Math.PI*r*r;}
 else if(curShape===4){var n=pts.length;if(n>=3){var s1=0,s2=0;for(var i=0;i<n;i++){var j=(i+1)%n;s1+=pts[i].x*pts[j].y;s2+=pts[j].x*pts[i].y;}S=Math.abs(s1-s2)/2;}}
+if(!(S>0)){$('result').innerHTML='<div class="tip-box tip-error">请输入有效的边长/半径；多边形需至少3个不重合顶点</div>';return;}
 var Sflat=S*cosS;var mu=Sflat/666.67;var ha=Sflat/10000;var km2=Sflat/1000000;
 var slopeClass=slope<5?'平坡':slope<15?'缓坡':slope<25?'斜坡':slope<35?'陡坡':'急坡';
 const __g4='<h3 style="text-align:center;margin-bottom:12px;">📐 面积计算结果</h3>'+
@@ -315,10 +323,10 @@ const __g4='<h3 style="text-align:center;margin-bottom:12px;">📐 面积计算�
 '</table></div>'+
 '<div class="tip-box tip-success" style="margin-top:12px;">💡 按每亩167株计算，可造林约 <strong>'+Math.round(mu*167)+'</strong> 株</div>';$('result').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
 }
-function saveHistory(){var r={time:new Date().toLocaleString('zh-CN'),shape:SHAPES[curShape].name};var h=getHistory();h.unshift(r);if(h.length>20)h=h.slice(0,20);localStorage.setItem(HK,JSON.stringify(h));}
+function saveHistory(){var r={time:new Date().toLocaleString('zh-CN'),shape:curShape,shapeName:SHAPES[curShape].name,slope:$('slope').value,len1:$('len1')?$('len1').value:'',len2:$('len2')?$('len2').value:'',len3:$('len3')?$('len3').value:'',pointCount:curShape===4?$('pointCount').value:'',pts:curShape===4?JSON.stringify(pts):''};var h=getHistory();h.unshift(r);if(h.length>20)h=h.slice(0,20);localStorage.setItem(HK,JSON.stringify(h));}
 function getHistory(){try{return JSON.parse(localStorage.getItem(HK)||'[]');}catch(e){return[];}}
-function renderHistory(){var h=getHistory();if(!h.length){$('historyList').innerHTML='<div class="history-empty">暂无历史</div>';return;}const __g6=h.map(function(r,i){return '<div class="history-item" onclick="loadHistory('+i+')"><div class="time">'+r.time+'</div><div class="summary">'+r.shape+'</div></div>';}).join('');$('historyList').innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));}
-function loadHistory(i){switchTab('calc');calc();}
+function renderHistory(){var h=getHistory();if(!h.length){$('historyList').innerHTML='<div class="history-empty">暂无历史</div>';return;}const __g6=h.map(function(r,i){return '<div class="history-item" onclick="loadHistory('+i+')"><div class="time">'+r.time+'</div><div class="summary">'+(r.shapeName||r.shape)+'</div></div>';}).join('');$('historyList').innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));}
+function loadHistory(i){var h=getHistory();var r=h[i];if(!r)return;curShape=r.shape;switchTab('calc');renderShapes();if($('slope'))$('slope').value=r.slope||0;if(curShape===4&&r.pts){try{pts=JSON.parse(r.pts);}catch(e){}if($('pointCount'))$('pointCount').value=r.pointCount||pts.length;renderPoints();}else{if($('len1')&&r.len1!=='')$('len1').value=r.len1;if($('len2')&&r.len2!=='')$('len2').value=r.len2;if($('len3')&&r.len3!=='')$('len3').value=r.len3;calc();}}
 function clearHistory(){if(confirm('清空?')){localStorage.removeItem(HK);renderHistory();}}
 function resetForm(){curShape=0;pts=[{x:0,y:0},{x:100,y:0},{x:100,y:80},{x:0,y:80}];renderShapes();$('slope').value=0;$('aspect').value='flat';}
 renderShapes();

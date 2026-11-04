@@ -195,6 +195,13 @@ s.parentNode.insertBefore(el, s);
 <script>
 function getNum(id){var v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function getText(id){return document.getElementById(id).value.trim()||id.replace(/name|val|nutrient|total/,'');}
+function escUser(s){
+  s=String(s==null?'':s);
+  var out=(window.ToolBox&&typeof ToolBox.escHtml==='function')?ToolBox.escHtml(s):s;
+  // 公共库被恒等桩替换（或未加载）时 out 与原文相同，改用本地转义兜底，确保标签一律失效
+  if(out!==s){return out;}
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
 function setInvalid(el,invalid){
   if(!el)return;
   if(invalid){el.classList.add('input-error');el.setAttribute('aria-invalid','true');}
@@ -218,8 +225,9 @@ function calc(){
   var weightA=rateA*total;
   var weightB=rateB*total;
   var check=(weightA*a+weightB*b)/total;
-  var nameA=document.getElementById('nameA').value.trim()||'原料A';
-  var nameB=document.getElementById('nameB').value.trim()||'原料B';
+  var nameA=escUser(document.getElementById('nameA').value.trim()||'原料A');
+  var nameB=escUser(document.getElementById('nameB').value.trim()||'原料B');
+  var nutrientName=escUser(getText('nutrient'));
   const __g2='<div class="data-grid">'+
     '<div class="data-card"><div class="num">'+(rateA*100).toFixed(2)+'%</div><div class="label">'+nameA+' 占比</div></div>'+
     '<div class="data-card"><div class="num">'+(rateB*100).toFixed(2)+'%</div><div class="label">'+nameB+' 占比</div></div>'+
@@ -227,7 +235,7 @@ function calc(){
     '<div class="data-card"><div class="num">'+weightB.toFixed(2)+'</div><div class="label">'+nameB+' 重量 (kg)</div></div>'+
     '</div>'+
     '<div style="margin-top:12px;padding:12px;background:rgba(101,163,13,0.08);border-radius:12px;">'+
-    '<strong>配比验证：</strong> 混合后 '+getText('nutrient')+' 含量约为 '+check.toFixed(2)+'%'+
+    '<strong>配比验证：</strong> 混合后 '+nutrientName+' 含量约为 '+check.toFixed(2)+'%'+
     '</div>';document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 function copyRes(){
