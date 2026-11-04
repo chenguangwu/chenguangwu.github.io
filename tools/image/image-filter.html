@@ -261,6 +261,7 @@ s.parentNode.insertBefore(el, s);
 
 <script>
 let originalImg = null;
+let originalUrl = '';
 let currentFilter = 'none';
 
 const PRESETS = [
@@ -292,14 +293,17 @@ function handleFile(file) {
     return;
   }
   originalImg = new Image();
+  const prevUrl = originalUrl;
+  originalUrl = URL.createObjectURL(file);
   originalImg.onload = () => {
+    if (prevUrl) URL.revokeObjectURL(prevUrl);
     const img = document.getElementById('preview-img');
     img.src = originalImg.src;
     document.getElementById('controls').style.display = '';
     renderPresets();
     applyFilter();
   };
-  originalImg.src = URL.createObjectURL(file);
+  originalImg.src = originalUrl;
 }
 
 function renderPresets() {
@@ -358,10 +362,16 @@ function downloadFiltered() {
   ctx.filter = currentFilter;
   ctx.drawImage(originalImg, 0, 0, w, h);
   canvas.toBlob(blob => {
+    if (!blob) {
+      ToolBox.showToast('导出失败：画布可能超出浏览器上限，请换一张更小的图片。', 'error');
+      return;
+    }
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
+    const url = URL.createObjectURL(blob);
+    a.href = url;
     a.download = `filtered-${Date.now()}.png`;
     a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
     ToolBox.showToast(i18nText('toast.msg141'), 'success');
   }, 'image/png');
 }

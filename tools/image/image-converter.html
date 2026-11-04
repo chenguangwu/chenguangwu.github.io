@@ -259,6 +259,8 @@ s.parentNode.insertBefore(el, s);
 <script>
 let originalImg = null;
 let originalFile = null;
+let originalUrl = '';
+let cardUrls = [];
 
 function handleFile(file) {
   if (!file || !file.type.startsWith('image/')) {
@@ -267,7 +269,10 @@ function handleFile(file) {
   }
   originalFile = file;
   originalImg = new Image();
+  const prevUrl = originalUrl;
+  originalUrl = URL.createObjectURL(file);
   originalImg.onload = () => {
+    if (prevUrl) URL.revokeObjectURL(prevUrl);
     document.getElementById('result').style.display = '';
     const __h0=`
       <p>文件名: <strong>${ToolBox.escHtml(file.name)}</strong></p>
@@ -277,12 +282,16 @@ function handleFile(file) {
     `;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('info').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('info').innerHTML=__h0;
     convertAll();
   };
-  originalImg.src = URL.createObjectURL(file);
+  originalImg.src = originalUrl;
 }
 
 function convertAll() {
   const w = originalImg.naturalWidth;
   const h = originalImg.naturalHeight;
+
+  // 每次重转前释放上一批预览/下载用的 blob URL，避免反复转换累积内存
+  cardUrls.forEach(u => URL.revokeObjectURL(u));
+  cardUrls = [];
 
   const formats = [
     { type: 'image/jpeg', ext: 'jpg', label: 'JPEG', lossy: true },
@@ -309,6 +318,7 @@ function convertAll() {
         return;
       }
       const url = URL.createObjectURL(blob);
+      cardUrls.push(url);
       // 浏览器不支持所选格式时会静默回落为 PNG（如老版 Safari 的 WebP）：
       // 扩展名与展示一律跟随 blob 实际 MIME，避免 .webp 文件里装的是 PNG。
       const actualType = blob.type || f.type;
