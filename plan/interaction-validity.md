@@ -4,7 +4,7 @@
 - 覆盖工具页：**4807**
 - 有输入控件的页：**4401**
 - 无输入控件（纯展示/参考卡，跳过）：**406**
-- 有输入但无主按钮（实时计算/表单提交，不计缺陷）：**653**
+- 有输入但无主按钮（实时计算/表单提交，不计缺陷）：**653** → **2026-11-05 重算后作废**：A 真需点击 23 / B 已可改值 449 / C 误判 113（纯select 97+文件 10+画布 6）/ D 无文本输入 68（D-a 67+D-b 1）。逐页清单见 `/private/tmp/notclicked-653-classified.json`，旧 not-clicked 清单不得再作为派工依据。
 - 空态三档（本版已按新口径重扫 **4401** 页）：真空态 `text_empty_no_select` **2422**｜select 默认态 `text_empty_sel_default` **1717**｜控件回读失真 `true_distortion` **262**；其余 **0** 页仍是旧口径记录，待全量重扫后归位
 - 命中至少一类问题：**216**
 
@@ -701,3 +701,20 @@ node scripts/runtime_scan.js --interact --files /tmp/pages.txt --timeout 10000
 > 定向复扫会强制重扫命中页，其余记录原样保留，并在结束时自动重算本报告与 JSON；不要与 `--resume` 混用。
 > 全量原始数据：`scripts/out/interaction-invalid.jsonl`（逐行、4916 条）与 `scripts/out/interaction-invalid.json`（8 MB），均被 `.gitignore` 忽略，只留本地。
 > 精简摘要（401 个高/中置信页）：`plan/interaction-invalid-top100.json`。
+
+## 2026-11-05 口径重定义与 5 页处置
+
+### 判据（旧 653 清单作废，逐页结果见 `/private/tmp/notclicked-653-classified.json`）
+- **A 真需点击**（新入桶，三条同时成立）：① 页面无主按钮；② 逐字段改值（不是只改第一个输入）结果签名不变；③ 有文本/数字输入。
+- **B 已可改值**；**C 误判**（纯 select 97 / 文件输入 10 / 画布 6）；**D 无文本输入**（D-a 需预设·示例·表格切换 67，D-b 无任何可驱动 1）。
+- 653 = A 23 / B 449 / C 113 / D 68。旧 322 条 `changedByInput=true` 中 288 仍为 B、26 实为纯 select、3 含文件输入、5 实为 D-a——旧探针把 select 改动也算作「改值即变」。
+
+### 探针修正
+- 注入前按 `type/min/max/step/pattern` 规整值（hex/cmyk/time/date/url/csv 各自合法化）；`file` 输入整页排除；结果签名追加 canvas `toDataURL` 尾段与 svg outerHTML 哈希（图形页不取 textContent）；结果区 fallback 只取非 `header/nav/footer` 的 `.container`，并排除 `.tb-*` 等全局组件。
+- 已知盲区（D-a 中 6 页非缺陷）：`fun/keyboard-heatmap`（单次 keyup 不累积）、`science/wire-gauge-converter`（越界注入）、`funeral/ceremony-timeline`（空列表）、`fitness/training-volume`、`rehabilitation/assistive-device-fitting`（需先添加实体）、`edu/english-vocabulary`（需先开始测试）。
+
+### 5 页真问题处置
+- `neurology/ncs-emg`：9 项检查加「未选择」默认项；`unselected>0` 时只输出「待检查：还有 N 项未选择」，**不渲染诊断/建议/门诊记录**。
+- `usedcar/detector-19`：14 项加「未检查（请选择）」默认项；`unchecked>0` 时只输出「待检测：还有 N 项未检查」，**不输出风险指数/结论/购买建议**；CSV 导出同步标注未检查项、结论改为「待检测」。
+- `fluid/buoyancy-force` 与 `process` 13 页同型：数字输入补 `oninput`，保留「计算」按钮。
+- `pet-training/clicker-timing`：**不改，审计结论作废**。`duration` 已有 `oninput="updateSettings()"`，且 `scheduleNext()` 每回合实时读取 `duration`；训练型工具，改设置本就不应改写已完成回合的统计，属正确设计。

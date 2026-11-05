@@ -230,6 +230,7 @@ var checks=[
   ]}
 ];
 var opts=[
+  {v:'',label:'未检查（请选择）',placeholder:true},
   {v:0,label:'正常（未发现）',color:'var(--success)'},
   {v:1,label:'可疑（需进一步确认）',color:'var(--warning)'},
   {v:2,label:'确认（存在泡水痕迹）',color:'var(--danger)'}
@@ -246,7 +247,7 @@ function buildList(){
       html+='</div>';
       html+='<select id="ck_'+it.key+'" style="font-size:16px;width:100%;" onchange="calc()">';
       opts.forEach(function(o,j){
-        html+='<option value="'+o.v+'"'+(j===0?' selected':'')+'>'+o.label+'</option>';
+        html+='<option value="'+o.v+'"'+(o.placeholder?' disabled':'')+(j===0?' selected':'')+'>'+o.label+'</option>';
       });
       html+='</select></div>';
     });
@@ -258,28 +259,44 @@ function __floodExport(){
   if(typeof checks==='undefined'||typeof opts==='undefined') return;
   try{
     var en=TBKit.util.isEn();
-    var totalWeight=0, totalScore=0, confirmed=[], suspicious=[];
+    var totalWeight=0, totalScore=0, confirmed=[], suspicious=[], unchecked=[];
     var rows=[];
+    checks.forEach(function(g){
+      g.list.forEach(function(it){
+        var sel=document.getElementById('ck_'+it.key);
+        if(sel && String(sel.value)==='') unchecked.push(it.name);
+      });
+    });
     checks.forEach(function(g){
       var gScore=0, gWeight=0, gConfirmed=0, gSuspicious=0;
       g.list.forEach(function(it){
         var sel=document.getElementById('ck_'+it.key);
-        var v=sel?parseInt(sel.value):0;
+        var raw=sel?String(sel.value):'';
+        gWeight+=it.weight*2;
+        if(raw===''){
+          rows.push([g.group, it.name, en?('Weight x'+it.weight):('权重×'+it.weight), (en?'Unchecked':'未检查'), '']);
+          return;
+        }
+        var v=parseInt(raw);
         if(!isFinite(v))v=0;
         var lbl='';
-        opts.forEach(function(o){if(o.v===v)lbl=o.label;});
+        opts.forEach(function(o){if(String(o.v)===String(v))lbl=o.label;});
         var score=v*it.weight;
-        gScore+=score; gWeight+=it.weight*2; totalScore+=score; totalWeight+=it.weight*2;
+        gScore+=score; totalScore+=score; totalWeight+=it.weight*2;
         if(v===2){gConfirmed++;confirmed.push({name:it.name,group:g.group});}
         if(v===1){gSuspicious++;suspicious.push({name:it.name,group:g.group});}
         rows.push([g.group, it.name, en?('Weight x'+it.weight):('权重×'+it.weight), lbl, score]);
       });
-      var gRisk=Math.round(gScore/gWeight*100);
-      rows.push([g.group, en?'Zone subtotal':'区域汇总', (en?'Confirmed ':'确认 ')+gConfirmed+(en?' item(s)':' 项'), (en?'Suspicious ':'可疑 ')+gSuspicious+(en?' item(s)':' 项'), gRisk+'%']);
+      var gRisk=gWeight?Math.round(gScore/gWeight*100):0;
+      rows.push([g.group, en?'Zone subtotal':'区域汇总', (en?'Confirmed ':'确认 ')+gConfirmed+(en?' item(s)':' 项'), (en?'Suspicious ':'可疑 ')+gSuspicious+(en?' item(s)':' 项'), unchecked.length?'—':gRisk+'%']);
     });
-    var riskPct=Math.round(totalScore/totalWeight*100);
+    var riskPct=totalWeight?Math.round(totalScore/totalWeight*100):0;
     var level,interp,advice;
-    if(confirmed.length===0&&suspicious.length===0){
+    if(unchecked.length>0){
+      level=en?('Pending: '+unchecked.length+' item(s) unchecked'):('待检测：还有 '+unchecked.length+' 项未检查');
+      interp=en?'Complete all checklist items before interpreting flood risk.':'请完成全部检查项后再解读泡水风险。';
+      advice=[en?'Unchecked is not the same as normal; do not rely on this report when trading':'未检查≠正常，未完成检查前不建议据此交易'];
+    }else if(confirmed.length===0&&suspicious.length===0){
       level=en?'No flood traces found':'未发现泡水痕迹';
       interp=en?'No flood indications found in any check; flood risk is extremely low. Basic checks are still recommended':'所有检测项均未发现泡水迹象，泡水风险极低。建议仍做基本检查确认。';
       advice=['1. '+(en?'Extremely low flood risk; transaction can proceed normally':'泡水风险极低，可正常交易'),'2. '+(en?'Check maintenance and service records for confirmation':'建议检查维修保养记录确认'),'3. '+(en?'Note the no-flood guarantee in the purchase contract':'签署购车合同注明无泡水保证')];
@@ -300,9 +317,13 @@ function __floodExport(){
       interp=(en?('Found '+confirmed.length+' confirmed flood traces; can be judged a flooded vehicle. Flooded vehicles pose serious safety hazards; strongly advise against purchase'):('发现'+confirmed.length+'项确认泡水痕迹，可以判定为泡水车。泡水车存在严重安全隐患，强烈建议不要购买。'));
       advice=['1. '+(en?'Confirmed flooded vehicle; strongly advise against purchase':'确认为泡水车，强烈建议不要购买'),'2. '+(en?'Flooded vehicles pose serious safety/health hazards':'泡水车存在严重安全/健康隐患'),'3. '+(en?'Electronic system corrosion will continue to worsen':'电子系统腐蚀会持续恶化'),'4. '+(en?'Even repairs cannot fully eliminate the hazards':'即使维修也无法完全消除隐患')];
     }
-    rows.push([en?'Flood risk index':'泡水风险指数', riskPct+'%','','','']);
-    rows.push([en?'Confirmed items':'确认项数', confirmed.length,'','','']);
-    rows.push([en?'Suspicious items':'可疑项数', suspicious.length,'','','']);
+    if(unchecked.length===0){
+      rows.push([en?'Flood risk index':'泡水风险指数', riskPct+'%','','','']);
+      rows.push([en?'Confirmed items':'确认项数', confirmed.length,'','','']);
+      rows.push([en?'Suspicious items':'可疑项数', suspicious.length,'','','']);
+    }else{
+      rows.push([en?'Unchecked items':'未检查项数', unchecked.length,'','','']);
+    }
     rows.push([en?'Conclusion':'检测结论', level,'','','']);
     rows.push([en?'Risk interpretation':'风险解读', interp,'','','']);
     rows.push([en?'Purchase advice':'购买建议', advice.join(' '),'','','']);
@@ -315,15 +336,17 @@ function __floodExport(){
   }catch(e){}
 }
 function calc(){
-  var totalWeight=0, totalScore=0, confirmed=[], suspicious=[];
+  var totalWeight=0, totalScore=0, confirmed=[], suspicious=[], unchecked=[];
   var groupResults=[];
   checks.forEach(function(g){
     var gScore=0, gWeight=0, gConfirmed=0, gSuspicious=0;
     g.list.forEach(function(it){
-      var v=+document.getElementById('ck_'+it.key).value;
+      var raw=document.getElementById('ck_'+it.key).value;
+      gWeight+=it.weight*2;
+      if(raw===''){ unchecked.push(it.name); return; }
+      var v=+raw;
       var score=v*it.weight;
       gScore+=score;
-      gWeight+=it.weight*2;
       totalScore+=score;
       totalWeight+=it.weight*2;
       if(v===2){gConfirmed++;confirmed.push({name:it.name,weight:it.weight,group:g.group});}
@@ -331,9 +354,20 @@ function calc(){
     });
     groupResults.push({group:g.group,risk:Math.round(gScore/gWeight*100),confirmed:gConfirmed,suspicious:gSuspicious});
   });
+  var level,color,interp;
+  if(unchecked.length>0){
+    var pending='<h3 style="margin-bottom:10px;">泡水车检测报告</h3>';
+    pending+='<div class="stat-grid">';
+    pending+='<div class="stat-card"><div class="val" style="font-size:36px;color:var(--text-muted);">'+unchecked.length+'</div><div class="lbl">未检查项</div></div>';
+    pending+='<div class="stat-card"><div class="val" style="font-size:16px;color:var(--text-muted);">待检测</div><div class="lbl">检测状态</div></div>';
+    pending+='</div>';
+    pending+='<div class="info-box" style="margin-top:12px;"><strong>待检测：还有 '+unchecked.length+' 项未检查</strong><br><br>请逐项选择「正常 / 可疑 / 确认」后重新检测。未完成全部检查前，不输出风险指数、检测结论与购买建议。</div>';
+    document.getElementById('res').innerHTML=pending;
+    return;
+  }
+
   var riskPct=Math.round(totalScore/totalWeight*100);
 
-  var level,color,interp;
   if(confirmed.length===0&&suspicious.length===0){
     level='未发现泡水痕迹';color='var(--success)';
     interp='所有检测项均未发现泡水迹象，泡水风险极低。建议仍做基本检查确认。';
