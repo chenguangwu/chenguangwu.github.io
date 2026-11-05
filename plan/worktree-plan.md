@@ -48,6 +48,35 @@
 ```
 长清单落 `/tmp/<线名>-<批号>.txt` 或 plan 文件，不进回复正文。
 
-## 5. 当前活着的 worktree 台账
+## 5. 当前 worktree 台账（2026-11-05 11:55 快照）
 
-见每轮集成报告「worktree 台账」一节（路径 / commit / 归属 / 已合并 / 可回收）。
+| 路径 | HEAD | 归属线 | 已合并 | 可回收 |
+|---|---|---|---|---|
+| `/private/tmp/wt-i18n` | `840020995e` | i18n 盘点（machinery/automotive） | 否（同线产出实际在 `wt-i18n-ma`） | 待该线确认 |
+| `/private/tmp/wt-i18n-ma` | `d9053ee4a8` | 同一字典线（`3a51c3e953` 来源） | 是（`f5d53cbada`） | 可 |
+| `/private/tmp/wt-i18n2` | `29c04d8392` | realestate / hydraulic / finance 字典 | 否 | 使用中 |
+| `/private/tmp/wt-i18n3` | `29c04d8392` | 备用字典线 | 否 | 空闲 |
+| `/private/tmp/wt-i18n4` | `29c04d8392` | agriculture / marketing 字典 | 否 | 使用中 |
+| `/private/tmp/wt-clinical` | `6696e2261b` | 临床与教育线 | 是（`e0d0efbf7e`） | 可 |
+| `/private/tmp/wt-zero` | `a3e50d8588` | 零覆盖线 | 是（`3aace3ca0e`） | 可 |
+| `/private/tmp/wt-safety` | `ccda8b6ec0` | 安全线 | 是（`737df494b4`+`031a64d40e`） | 可 |
+| `/private/tmp/wt-interact` | `7b062b7d3a` | 交互缺陷线 | 否 | 使用中（有进程） |
+| `/private/tmp/wt-fake` | `840020995e` | 假工具线 | 否 | 空闲 |
+| `/tmp/wt_b1` | `3b18edad61` | 假工具线 | 是（`edd7874f4c`） | 可 |
+| `/private/tmp/dd-base` | `290c6d8e88` | 机械/detector 指南线 | 历史提交已在 master | 可（status=0、无进程） |
+
+> 回收动作由集成线执行；使用中的 worktree 不动。`dd-base` 无未纳入内容，确认后 `git worktree remove --force`。
+
+## 6. 本轮合并记录（2026-11-05）
+
+| commit | 来源 | 内容 | 主库落地 |
+|---|---|---|---|
+| `737df494b4` | wt-safety | 4 页用户输入 XSS 源头转义 | 同 hash |
+| `031a64d40e` | wt-safety | image-to-base64 属性逃逸 | 同 hash |
+| `e0d0efbf7e` | wt-clinical | NCS/EMG、泡水检测未检查态 + process 13 页 oninput | 同 hash |
+| `3aace3ca0e` | wt-zero | 5 页零覆盖用例 | 同 hash |
+| `edd7874f4c` | wt_b1 | 频谱/HTTP Cookie/铸件缺陷三页宣称对齐 | 同 hash |
+| `f5d53cbada` | wt-i18n-ma | machinery/automotive 125 个字典文件 | 同 hash |
+
+- 六个来源 commit 均**无构建产物**，与主库脏文件 0 重叠；`i18n/tools/design.json`、`it.json` 两侧改的是不同 key，`cherry-pick -n` 三方合并 0 冲突，已逐键校验共存。
+- 合并后同一次构建窗口重跑 `_build.py`，使 `i18n/tools/en/**` 变更进入 SW 版本戳。
