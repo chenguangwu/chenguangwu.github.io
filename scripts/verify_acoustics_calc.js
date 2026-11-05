@@ -33,7 +33,7 @@ const CASES = [
 
   { slug: "acoustics/critical-distance",
     inputs: { V: "400", rt: "2.0", Q: "2" },
-    expect: ["1.14"],
+    expect: ["1.14 临界距离"],
     ref: "2026-10-25 系数修正后 r_c=0.057·√(2×400/2)=0.057×20=1.14（原 0.141 系数误配 V/RT 口径偏大 2.49 倍；默认 200/1.0/1→0.81，避开）" },
 
   { slug: "acoustics/decibel-power-ratio",
@@ -48,7 +48,7 @@ const CASES = [
 
   { slug: "acoustics/decibel-voltage-ratio",
     inputs: { v1: "3", v2: "30" },
-    expect: ["20.00", "10.000"],
+    expect: ["20.00 电压比", "10.000 线性比"],
     ref: "L=20·log₁₀(30/3)=20.00；线性比=10.000（默认 1/3.16→9.99，避开）" },
 
   { slug: "acoustics/decibel-voltage",
@@ -73,12 +73,12 @@ const CASES = [
 
   { slug: "acoustics/intensity-level",
     inputs: { I: "1e-4" },
-    expect: ["80.00"],
+    expect: ["80.00 声强级"],
     ref: "L_I=10·log₁₀(1e-4/1e-12)=10·log₁₀(1e8)=80.00（默认 1e-6→60.00，避开）" },
 
   { slug: "acoustics/mass-law-tl",
     inputs: { f: "1000", m: "20" },
-    expect: ["38.02"],
+    expect: ["38.02 隔声量"],
     ref: "TL=20·log₁₀(1000×20)−48=20·log₁₀(20000)−48=86.02−48=38.02（默认 500/10→25.98，避开）" },
 
   { slug: "acoustics/pipe-closed",
@@ -108,7 +108,7 @@ const CASES = [
 
   { slug: "acoustics/sound-intensity-level",
     inputs: { I: "1e-5" },
-    expect: ["70.00"],
+    expect: ["70.00 声强级"],
     ref: "L=10·log₁₀(1e-5/1e-12)=10·log₁₀(1e7)=70.00（默认 1e-6→60.00，避开）" },
 
   { slug: "acoustics/sound-intensity-spherical",

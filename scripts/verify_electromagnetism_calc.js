@@ -17,7 +17,7 @@ const CASES = [
 
   { slug: "electromagnetism/capacitance-parallel-plate",
     inputs: { A: "0.02", d: "0.002", er: "2" },
-    expect: ["177.084"],
+    expect: ["177.084 电容"],
     ref: "C=ε₀εr·A/d=8.854e-12·2·0.02/0.002=1.7708e-10 F=177.084 pF" },
 
   { slug: "electromagnetism/capacitive-reactance",
@@ -52,7 +52,7 @@ const CASES = [
 
   { slug: "electromagnetism/electric-potential-point",
     inputs: { q: "2e-6", r: "4" },
-    expect: ["4493.776"],
+    expect: ["4493.776 电势"],
     ref: "V=k·q/r=8.98755e9·2e-6/4=4493.776 V" },
 
   { slug: "electromagnetism/electric-power",

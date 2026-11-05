@@ -65,7 +65,7 @@ const CASES = [
 
   { slug: "dynamics/momentum-conservation",
     inputs: { m1: "2000", v1: "15", m2: "1000", v2: "10" },
-    expect: ["13.333"],
+    expect: ["13.333 末速度"],
     ref: "v′=(m1v1+m2v2)/(m1+m2)=(2000·15+1000·10)/3000=13.333 m/s" },
 
   { slug: "dynamics/momentum",

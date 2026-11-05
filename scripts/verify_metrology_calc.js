@@ -128,7 +128,7 @@ const CASES = [
 
   { slug: "metrology/grr-percent",
     inputs: { GRR: "1.8", Tol: "12" },
-    expect: ["15.0"],
+    expect: ["15.0 %GRR"],
     ref: "%GRR=1.8/12×100%=15.0%（落在 10%~30% 临界区）" },
 
   { slug: "metrology/grr-study",
@@ -138,7 +138,7 @@ const CASES = [
 
   { slug: "metrology/measurement-cg",
     inputs: { USL: "8", LSL: "2", s: "0.25" },
-    expect: ["4.000"],
+    expect: ["4.000 测量能力指数"],
     ref: "Cg=(8−2)/(6×0.25)=4.000（≥1.33 合格）" },
 
   { slug: "metrology/measurement-cgk",
