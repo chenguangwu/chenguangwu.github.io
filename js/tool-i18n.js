@@ -820,13 +820,42 @@
   };
   var PUNCT_HAS_RE = /[\u3002\uFF0C\u3001\uFF1B\uFF1A\uFF01\uFF1F\u300C\u300D\uFF08\uFF09]/;
   var HAS_CJK_RE = /[\u4e00-\u9fff]/;
-  function convertPunct(s) {
+  // 数据内容容器（JSON / CSV / 代码块 / 隐藏双语层）：其文本里的全角标点属于用户数据，
+  // 一律不得转换（如 JSON 字符串值里的「，」、代码示例里的「（）。」）。
+  var DATA_TAG = { PRE: 1, CODE: 1, TEXTAREA: 1, SCRIPT: 1, STYLE: 1, NOSCRIPT: 1 };
+  var DATA_CLS_RE = /(^|\s)(t-zh|output-pre|code-block|code-output-body|code-output-wrap|json-view|raw-output)(\s|$)/;
+  function isDataCtx(el) {
+    var c = el;
+    while (c && c.nodeType === 1) {
+      if (DATA_TAG[(c.nodeName || '').toUpperCase()]) return true;
+      var cls = (c.getAttribute && c.getAttribute('class')) || '';
+      if (cls && DATA_CLS_RE.test(cls)) return true;
+      c = c.parentNode;
+    }
+    return false;
+  }
+  var NUM_CHAR_RE = /[0-9+\-.]/;
+  function isNumericSep(s, i) {
+    var j = i - 1;
+    while (j >= 0 && /\s/.test(s.charAt(j))) j--;
+    var k = i + 1;
+    while (k < s.length && /\s/.test(s.charAt(k))) k++;
+    return NUM_CHAR_RE.test(s.charAt(j)) && NUM_CHAR_RE.test(s.charAt(k));
+  }
+  function convertPunct(s, el) {
     // 含中文标点、且不含任何汉字 ⇒ 视为「标点载体节点」（可能夹带数字/代码，如 “=65、”“=97）。”“：”）。
     // 含汉字的节点一律不碰，由 per-tool 字典按整句翻译。
+    // 2026-11-05：旧判据漏掉「全角标点 + 拉丁/数字混排」（“（MB）”“Sample text （16px）”），
+    // 现对「无汉字」节点一律按字符映射转换；数据容器由 isDataCtx 排除，避免把用户数据的全角逗号转掉。
     if (!PUNCT_HAS_RE.test(s) || HAS_CJK_RE.test(s)) return null;
+    if (el && isDataCtx(el)) return null;
     var out = '';
     for (var i = 0; i < s.length; i++) {
       var c = s.charAt(i);
+      // 数据分隔符保护（2026-11-05）：全角「，」「；」「、」左右（跳过空白）都是数字/正负号/小数点时，
+      // 它是列表分隔符而非文案标点（与 common.js::isListInput 的列表分隔符口径同源），必须保留全角。
+      // 逐字符判定 ⇒ 覆盖复合数据行（「key 1，2，3 · input …」），也不误伤「=65、=97」这类文案枚举。
+      if ((c === '\uFF0C' || c === '\uFF1B' || c === '\u3001') && isNumericSep(s, i)) { out += c; continue; }
       out += PUNCT_CHAR[c] || c;
     }
     return out === s ? null : out;
@@ -878,11 +907,15 @@
           if (pf) { matchedKey = pf; en = EN_PREFIX[pf]; }
         }
       }
-      if (!en) en = convertPunct(k);
+      if (!en) en = convertPunct(k, parent);
       if (!en || en === k) continue;
       var idx = raw.indexOf(matchedKey);
       EN_ORIG.push({ node: n, orig: raw });
-      n.nodeValue = raw.slice(0, idx) + en + raw.slice(idx + matchedKey.length);
+      // 前缀/子串替换后仍可能残留「英文 + 全角标点」（如 EN_PREFIX "示例文字"→"Sample text "
+      // 之后尾巴还挂着「（16px）」）。对最终值再做一次无汉字标点转换，数据容器由 isDataCtx 排除。
+      var nv = raw.slice(0, idx) + en + raw.slice(idx + matchedKey.length);
+      var cv = convertPunct(nv, parent);
+      n.nodeValue = cv || nv;
     }
 
     // (c) 元素属性翻译（placeholder / title / aria-label / alt）：属性不是文本节点，
@@ -932,6 +965,38 @@
   var ATTR_KEYS_DYN = ['placeholder', 'title', 'aria-label', 'alt'];
   var dynObs = null;
   var dynApplying = false;
+  // 抑制窗口内到达的记录先入队，解锁后再处理。此前是「直接丢弃」：一次异步入链里
+  // （如页面先渲染历史表、再在 Promise 回调里 innerHTML 写结果表）后到的批量插入会被
+  // 静默跳过且永不重来 —— 英文态下结果区整块残留中文（calc-10 的「算法/哈希值」即此因）。
+  var dynPending = [];
+
+  function processDynRecords(records) {
+    if (dynApplying) {
+      for (var i = 0; i < records.length; i++) dynPending.push(records[i]);
+      return;
+    }
+    dynApplying = true;
+    try {
+      for (var j = 0; j < records.length; j++) {
+        var rec = records[j];
+        var added = rec.addedNodes;
+        if (added && added.length) {
+          for (var k = 0; k < added.length; k++) dynTranslateSubtree(added[k]);
+        }
+        if (rec.type === 'attributes' && rec.target) dynTranslateNode(rec.target);
+      }
+    } catch (e) { /* 单个节点异常不影响整页翻译 */ }
+    // MutationObserver 回调是微任务，这里放到下一个宏任务再解锁。
+    // 注意：解锁必须把抑制窗口内积压的记录补跑一遍，不能丢。
+    setTimeout(function () {
+      dynApplying = false;
+      if (dynPending.length) {
+        var q = dynPending;
+        dynPending = [];
+        processDynRecords(q);
+      }
+    }, 0);
+  }
 
   function dynTranslateNode(node) {
     if (!node) return;
@@ -956,11 +1021,24 @@
           if (pf) { matchedKey = pf; out = EN_PREFIX[pf]; }
         }
       }
-      if (!out) out = convertPunct(key);
+      if (!out) out = convertPunct(key, parent);
+      if (!out) {
+        // GEN_UI_MAP 只被 translateGenericUI 全量扫描时使用，动态新增节点（如复制按钮改成
+        // 「✅ 已复制」）不在扫描范围 ⇒ 英文态永久残留。这里对 UI 控件父元素补一次同源查表，
+        // 仅限 BUTTON/LABEL/OPTION，避免误译结果数据单元格里的同名短词。
+        var ptag = (parent.nodeName || '').toUpperCase();
+        if (ptag === 'BUTTON' || ptag === 'LABEL' || ptag === 'OPTION') {
+          var gsp = stripEmojiPrefix(key);
+          var gtr = GEN_UI_MAP[key] || GEN_UI_MAP[gsp.core] || GEN_UI_MAP[gsp.core.replace(/\s+/g, '')];
+          if (gtr) out = gsp.prefix ? (gsp.prefix + ' ' + gtr) : gtr;
+        }
+      }
       if (!out || out === key) return;
       var at = raw.indexOf(matchedKey);
       EN_ORIG.push({ node: node, orig: raw });
-      node.nodeValue = raw.slice(0, at) + out + raw.slice(at + matchedKey.length);
+      var nv2 = raw.slice(0, at) + out + raw.slice(at + matchedKey.length);
+      var cv2 = convertPunct(nv2, parent);
+      node.nodeValue = cv2 || nv2;
       return;
     }
     if (node.nodeType !== 1) return;
@@ -1002,21 +1080,8 @@
     var root = document.body || document.documentElement;
     if (!root) return;
     dynObs = new MutationObserver(function (records) {
-      if (dynApplying || !isEnglish()) return;
-      dynApplying = true;
-      try {
-        for (var i = 0; i < records.length; i++) {
-          var rec = records[i];
-          var added = rec.addedNodes;
-          if (added && added.length) {
-            for (var j = 0; j < added.length; j++) dynTranslateSubtree(added[j]);
-          }
-          if (rec.type === 'attributes' && rec.target) dynTranslateNode(rec.target);
-        }
-      } catch (e) { /* 单个节点异常不影响整页翻译 */ }
-      // MutationObserver 回调是微任务，这里放到下一个宏任务再解锁，
-      // 确保「我们自己的写入」所产生的记录在同一抑制窗口内被跳过。
-      setTimeout(function () { dynApplying = false; }, 0);
+      if (!isEnglish()) return;
+      processDynRecords(records);
     });
     dynObs.observe(root, {
       childList: true,
@@ -1031,6 +1096,7 @@
     dynObs.disconnect();
     dynObs = null;
     dynApplying = false;
+    dynPending = [];
   }
 
   if (document.readyState === 'loading') {
