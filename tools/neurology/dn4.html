@@ -125,6 +125,7 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="calc()">计算评分</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" onclick="resetAll()" title="恢复为未评估状态">重置评分</button>
     </div>
 
     <div class="result-box" id="result"></div>
@@ -263,8 +264,8 @@ function buildForm(){
     }
     formHtml += '<div class="dn4-q">';
     formHtml += '<div class="q-text">'+item.q+'</div>';
-    formHtml += '<label><input type="radio" name="q'+i+'" value="0" checked onchange="calc()"> 否(0)</label>';
-    formHtml += '<label><input type="radio" name="q'+i+'" value="1" onchange="calc()"> 是(1)</label>';
+    formHtml += '<label><input type="radio" name="q'+i+'" value="0" checked onchange="__markScaleDirty()"> 否(0)</label>';
+    formHtml += '<label><input type="radio" name="q'+i+'" value="1" onchange="__markScaleDirty()"> 是(1)</label>';
     formHtml += '</div>';
   });
   var wrapper = document.createElement('div');
@@ -293,6 +294,14 @@ function calc(){
   });
 
   var isNeuro, color, advice;
+  if(!__scaleDirty){
+    var __sh = '<div class="stat-grid"><div class="stat-card"><div class="val" style="color:#10B981;">'+total+'</div><div class="lbl">DN4 总分</div></div></div>';
+    __sh += '<div class="info-box"><strong>当前为默认评分（全部选「否」= 0 分），请按实际问诊与查体修改后查看解读。</strong></div>';
+    document.getElementById('result').innerHTML = __sh;
+    var __emrBox = document.getElementById('emrBox');
+    if(__emrBox && __emrBox.parentNode) __emrBox.parentNode.removeChild(__emrBox);
+    return;
+  }
   if(total >= 4){
     isNeuro = '神经病理性疼痛';
     color = '#EF4444';
@@ -334,6 +343,7 @@ function copyResult(){
       if(radios[j].checked){ total += parseInt(radios[j].value); break; }
     }
   });
+  if(!__scaleDirty){ ToolBox.copyText('DN4评分：'+total+'分（默认评分，尚未按实际问诊与查体修改）', i18nText()); return; }
   ToolBox.copyText('DN4评分：'+total+'分', i18nText());
 }
 
@@ -377,6 +387,23 @@ function __dn4Export(){
 }
 
 buildForm();
+var __defVals = {};
+questions.forEach(function(item, i){
+  var rs = document.getElementsByName('q'+i);
+  __defVals[i] = '0';
+  for(var j=0;j<rs.length;j++){ if(rs[j].checked){ __defVals[i] = rs[j].value; break; } }
+});
+var __scaleDirty = false;
+questions.forEach(function(item, i){ if(__defVals[i] !== '0') __scaleDirty = true; });
+function __markScaleDirty(){ __scaleDirty = true; calc(); }
+function resetAll(){
+  questions.forEach(function(item, i){
+    var rs = document.getElementsByName('q'+i);
+    for(var j=0;j<rs.length;j++){ rs[j].checked = (rs[j].value === __defVals[i]); }
+  });
+  __scaleDirty = false;
+  calc();
+}
 calc();
 
 /* —— 门诊记录（EMR note）：把量表结果整理成可直接粘进门诊病历的文本（中英双语） —— */
@@ -439,8 +466,7 @@ function __emrData(){
 }
 
 var __emrW0=(typeof calc==='function')?calc:null;
-if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
-try{ __emrData(); }catch(e){}
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); if(__scaleDirty){ try{__emrData();}catch(e){} } return __er; }; }
 </script>
 
 <!-- SEO 介绍区块 -->

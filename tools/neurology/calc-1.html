@@ -125,7 +125,7 @@ s.parentNode.insertBefore(el, s);
 
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算总分</button>
-      <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="resetForm()" title="恢复为未评估状态">重置评分</button>
       <button type="button" class="btn" onclick="__nihssExport()">⬇️ 导出NIHSS结果 CSV</button>
     </div>
 
@@ -263,7 +263,7 @@ function renderItems(){
   const __g1=items.map(it => `
     <div class="nihss-item">
       <label for="${it.id}">${it.label}</label>
-      <select id="${it.id}" onchange="calc()">
+      <select id="${it.id}" onchange="__markScaleDirty()">
         ${it.opts.map(o => `<option value="${o.v}">${o.t}</option>`).join('')}
       </select>
     </div>
@@ -275,7 +275,10 @@ function loadState(){
     const s = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
     items.forEach(it => {
       const el = document.getElementById(it.id);
-      if(el && s[it.id] != null) el.value = s[it.id];
+      if(el && s[it.id] != null){
+        el.value = s[it.id];
+        if(String(s[it.id]) !== '0') __scaleDirty = true;
+      }
     });
   } catch(e){}
 }
@@ -296,12 +299,24 @@ function classify(score){
   return {level:'重度卒中', cls:'grade-fail'};
 }
 
+var __scaleDirty = false;
+function __markScaleDirty(){ __scaleDirty = true; calc(); }
+
 function calc(){
   let score = 0;
   items.forEach(it => {
     const v = parseInt(document.getElementById(it.id).value, 10);
     score += isNaN(v) ? 0 : v;
   });
+  if(!__scaleDirty){
+    __EMR_S={sc:score};
+    saveState();
+    document.getElementById('result').innerHTML =
+      '<p>NIHSS 总分：<strong style="font-size:20px;">'+score+'</strong> 分（0-42 分）</p>'+
+      '<div class="tip-box tip-info" style="margin-top:12px;"><strong>当前为默认评分（各项均为 0 分），请按实际查体修改后查看解读。</strong></div>';
+    var __emrBox=document.getElementById('emrBox'); if(__emrBox&&__emrBox.parentNode) __emrBox.parentNode.removeChild(__emrBox);
+    return;
+  }
   const c = classify(score);
   __EMR_S={sc:score, lv:c.level};
   saveState();
@@ -316,8 +331,8 @@ function calc(){
 
 function resetForm(){
   items.forEach(it => { document.getElementById(it.id).value = '0'; });
-  document.getElementById('result').innerHTML='';
-  saveState();
+  __scaleDirty = false;
+  calc();
 }
 
 document.addEventListener('DOMContentLoaded', () => { renderItems(); loadState(); calc(); });
@@ -369,7 +384,7 @@ function applyNihssPreset(kind){
     if(!els[i].id) continue;
     els[i].value = v;
   }
-  if(typeof calc==='function') calc();
+  if(typeof calc==='function'){ __scaleDirty=true; calc(); }
 }
 </script>
 
@@ -517,8 +532,7 @@ var __emrData=function(){
     extraEn:'Grading: 0 no stroke symptoms, 1-4 minor, 5-15 moderate, 16-20 moderate to severe, 21 or more severe; 15 items, maximum 42 (1a consciousness 0-3, 1b/1c 0-2 each, 2 gaze 0-2, 3 visual fields 0-3, 4 facial palsy 0-3, 5a/5b/6a/6b 0-4 each, 7 ataxia 0-2, 8 sensory 0-2, 9 language 0-3, 10 dysarthria 0-2, 11 neglect 0-2).'});
 };
 var __emrW0=(typeof calc==='function')?calc:null;
-if(__emrW0){ calc=function(){ try{ return __emrW0.apply(null,arguments); } finally { try{__emrData();}catch(e){} } }; }
-try{ __emrData(); }catch(e){}
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); if(__scaleDirty){ try{__emrData();}catch(e){} } return __er; }; }
 /*TBKIT-INJECT-END*/</script>
 </body>
 </html>

@@ -136,6 +136,7 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="calc()">计算评分</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" onclick="resetAll()" title="恢复为未评估状态">重置评分</button>
     </div>
 
     <div class="result-box" id="result"></div>
@@ -267,11 +268,11 @@ function buildForm(){
     }
     formHtml += '<div class="rls-q">';
     formHtml += '<div class="q-text">'+item.q+'</div>';
-    formHtml += '<label><input type="radio" name="q'+i+'" value="0" checked onchange="calc()"> 无(0)</label>';
-    formHtml += '<label><input type="radio" name="q'+i+'" value="1" onchange="calc()"> 轻度(1)</label>';
-    formHtml += '<label><input type="radio" name="q'+i+'" value="2" onchange="calc()"> 中度(2)</label>';
-    formHtml += '<label><input type="radio" name="q'+i+'" value="3" onchange="calc()"> 重度(3)</label>';
-    formHtml += '<label><input type="radio" name="q'+i+'" value="4" onchange="calc()"> 极重度(4)</label>';
+    formHtml += '<label><input type="radio" name="q'+i+'" value="0" checked onchange="__markScaleDirty()"> 无(0)</label>';
+    formHtml += '<label><input type="radio" name="q'+i+'" value="1" onchange="__markScaleDirty()"> 轻度(1)</label>';
+    formHtml += '<label><input type="radio" name="q'+i+'" value="2" onchange="__markScaleDirty()"> 中度(2)</label>';
+    formHtml += '<label><input type="radio" name="q'+i+'" value="3" onchange="__markScaleDirty()"> 重度(3)</label>';
+    formHtml += '<label><input type="radio" name="q'+i+'" value="4" onchange="__markScaleDirty()"> 极重度(4)</label>';
     formHtml += '</div>';
   });
   var wrapper = document.createElement('div');
@@ -289,6 +290,7 @@ function applyRlsPreset(kind){
       radios[j].checked=(radios[j].value===String(V));
     }
   }
+  __scaleDirty = true;
   calc();
 }
 
@@ -311,6 +313,14 @@ function calc(){
   });
 
   var sev, color, advice;
+  if(!__scaleDirty){
+    var __sh = '<div class="stat-grid"><div class="stat-card"><div class="val" style="color:#10B981;">'+total+'</div><div class="lbl">IRLS 总分</div></div></div>';
+    __sh += '<div class="info-box"><strong>当前为默认评分（全部选「无」= 0 分），请按实际症状修改后查看解读。</strong></div>';
+    document.getElementById('result').innerHTML = __sh;
+    var __emrBox = document.getElementById('emrBox');
+    if(__emrBox && __emrBox.parentNode) __emrBox.parentNode.removeChild(__emrBox);
+    return;
+  }
   if(total === 0){ sev='无症状'; color='#10B981'; advice='无不宁腿症状。'; }
   else if(total <= 10){ sev='轻度'; color='#8BC34A'; advice='轻度RLS。建议非药物治疗（规律运动、睡眠卫生、避免咖啡因/酒精）。查血清铁蛋白，若＜75μg/L口服补铁。'; }
   else if(total <= 20){ sev='中度'; color='#FFC107'; advice='中度RLS。建议药物治疗：多巴胺受体激动剂（普拉克索起始0.125mg）或α2δ配体（加巴喷丁/普瑞巴林）。补铁治疗。'; }
@@ -389,10 +399,28 @@ function copyResult(){
       if(radios[j].checked){ total += parseInt(radios[j].value); break; }
     }
   });
+  if(!__scaleDirty){ ToolBox.copyText('IRLS评分：'+total+'分（默认评分，尚未按实际症状修改）', i18nText()); return; }
   ToolBox.copyText('IRLS评分：'+total+'分', i18nText());
 }
 
 buildForm();
+var __defVals = {};
+questions.forEach(function(item, i){
+  var rs = document.getElementsByName('q'+i);
+  __defVals[i] = '0';
+  for(var j=0;j<rs.length;j++){ if(rs[j].checked){ __defVals[i] = rs[j].value; break; } }
+});
+var __scaleDirty = false;
+questions.forEach(function(item, i){ if(__defVals[i] !== '0') __scaleDirty = true; });
+function __markScaleDirty(){ __scaleDirty = true; calc(); }
+function resetAll(){
+  questions.forEach(function(item, i){
+    var rs = document.getElementsByName('q'+i);
+    for(var j=0;j<rs.length;j++){ rs[j].checked = (rs[j].value === __defVals[i]); }
+  });
+  __scaleDirty = false;
+  calc();
+}
 calc();
 
 /* —— 门诊记录（EMR note）：把量表结果整理成可直接粘进门诊病历的文本（中英双语） —— */
@@ -455,8 +483,7 @@ function __emrData(){
 }
 
 var __emrW0=(typeof calc==='function')?calc:null;
-if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
-try{ __emrData(); }catch(e){}
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); if(__scaleDirty){ try{__emrData();}catch(e){} } return __er; }; }
 </script>
 
 <!-- SEO 介绍区块 -->

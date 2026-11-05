@@ -36,7 +36,7 @@ const CASES = [
 },
 {
   "slug": "neurology/calc-1",
-  "clicks": ["var __v={loc:3,locq:2,locc:2,gaze:2,visual:3,facial:3,armL:4,armR:0,legL:0,legR:0,ataxia:0,sensory:1,language:2,dysarthria:1,neglect:0};Object.keys(__v).forEach(function(k){document.getElementById(k).value=String(__v[k]);});calc()"],
+  "clicks": ["var __v={loc:3,locq:2,locc:2,gaze:2,visual:3,facial:3,armL:4,armR:0,legL:0,legR:0,ataxia:0,sensory:1,language:2,dysarthria:1,neglect:0};Object.keys(__v).forEach(function(k){document.getElementById(k).value=String(__v[k]);});__markScaleDirty()"],
   "expect": [
     "NIHSS 总分 23/42 → 重度卒中"
   ],
@@ -153,7 +153,7 @@ const CASES = [
 {
   "slug": "neurology/rater-22",
   "clicks": [
-    "for(var i=0;i<8;i++){var e=document.getElementById('si'+i);if(e)e.value='2';}calc()"
+    "for(var i=0;i<8;i++){var e=document.getElementById('si'+i);if(e)e.value='2';}__markScaleDirty()"
   ],
   "expect": [
     "【共济失调评定量表（8 项 · 40 分制）】 结果：总分 16/40，分级：重度",
@@ -575,6 +575,136 @@ const CASES = [
           "__ADAS_COG_RST_OK__"
       ],
       "ref": "重置态：新增「重置评分」按钮 → resetAll() 先复位 dirty 再复算，决策文案消失。"
+  }
+  ,{
+      "slug": "neurology/dn4",
+      "clicks": ["var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/DN4 总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__DN4_DEF_OK__':'__DN4_DEF_FAIL__ '+__b;"],
+      "expect": ["__DN4_DEF_OK__"],
+      "ref": "默认态（10 题全选「否」=0 分）：只出分数 + 提示，结果区不含 分级/建议/诊断/治疗/风险。"
+  }
+  ,{
+      "slug": "neurology/dn4",
+      "radios": {"q0":"1","q1":"1","q2":"1","q3":"1"},
+      "clicks": ["__markScaleDirty()"],
+      "expect": ["神经病理性疼痛"],
+      "ref": "改动态：前 4 题选「是」⇒ 总分 4 达阳性阈值，出现「神经病理性疼痛」结论；确认 dirty 置位后决策文案才出现。"
+  }
+  ,{
+      "slug": "neurology/dn4",
+      "clicks": ["resetAll();var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/DN4 总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__DN4_RST_OK__':'__DN4_RST_FAIL__ '+__b;"],
+      "expect": ["__DN4_RST_OK__"],
+      "ref": "重置态：新增「重置评分」按钮 → resetAll() 先复位 dirty 再复算，决策文案消失。"
+  }
+  ,{
+      "slug": "neurology/rls-severity",
+      "clicks": ["var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/IRLS 总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__IRLS_DEF_OK__':'__IRLS_DEF_FAIL__ '+__b;"],
+      "expect": ["__IRLS_DEF_OK__"],
+      "ref": "默认态（10 题全选「无」=0 分）：只出分数 + 提示，结果区不含 分级/建议/诊断/治疗/风险。"
+  }
+  ,{
+      "slug": "neurology/rls-severity",
+      "radios": {"q0":"4","q1":"4","q2":"4","q3":"4","q4":"4","q5":"4","q6":"4","q7":"4","q8":"4","q9":"4"},
+      "clicks": ["__markScaleDirty()"],
+      "expect": ["极重度"],
+      "ref": "改动态：10 题全选「极重度(4)」⇒ 总分 40 落「极重度」；确认 dirty 置位后分级文案才出现。"
+  }
+  ,{
+      "slug": "neurology/rls-severity",
+      "clicks": ["resetAll();var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/IRLS 总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__IRLS_RST_OK__':'__IRLS_RST_FAIL__ '+__b;"],
+      "expect": ["__IRLS_RST_OK__"],
+      "ref": "重置态：新增「重置评分」按钮 → resetAll() 先复位 dirty 再复算，决策文案消失。"
+  }
+  ,{
+      "slug": "neurology/dhi",
+      "clicks": ["var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/DHI 总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__DHI_DEF_OK__':'__DHI_DEF_FAIL__ '+__b;"],
+      "expect": ["__DHI_DEF_OK__"],
+      "ref": "默认态（25 题全选「否」=0 分）：只出分数 + 提示，结果区不含 分级/建议/诊断/治疗/风险。"
+  }
+  ,{
+      "slug": "neurology/dhi",
+      "radios": {"q0":"4","q1":"4","q2":"4","q3":"4","q4":"4","q5":"4","q6":"4","q7":"4","q8":"4","q9":"4","q10":"4","q11":"4","q12":"4","q13":"4","q14":"4","q15":"4","q16":"4","q17":"4","q18":"4","q19":"4","q20":"4","q21":"4","q22":"4","q23":"4","q24":"4"},
+      "clicks": ["__markScaleDirty()"],
+      "expect": ["重度障碍"],
+      "ref": "改动态：25 题全选「是(4)」⇒ 总分 100 落「重度障碍」；确认 dirty 置位后分级文案才出现。"
+  }
+  ,{
+      "slug": "neurology/dhi",
+      "clicks": ["resetAll();var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/DHI 总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__DHI_RST_OK__':'__DHI_RST_FAIL__ '+__b;"],
+      "expect": ["__DHI_RST_OK__"],
+      "ref": "重置态：新增「重置评分」按钮 → resetAll() 先复位 dirty 再复算，决策文案消失。"
+  }
+  ,{
+      "slug": "neurology/phq9-stroke",
+      "clicks": ["var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/PHQ-9 总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__PHQ9_DEF_OK__':'__PHQ9_DEF_FAIL__ '+__b;"],
+      "expect": ["__PHQ9_DEF_OK__"],
+      "ref": "默认态（9 题全选「完全不会」=0 分）：只出分数 + 提示，结果区不含 分级/建议/诊断/治疗/风险。"
+  }
+  ,{
+      "slug": "neurology/phq9-stroke",
+      "radios": {"q0":"3","q1":"3","q2":"3","q3":"3","q4":"3","q5":"3","q6":"3","q7":"3","q8":"3"},
+      "clicks": ["__markScaleDirty()"],
+      "expect": ["重度抑郁"],
+      "ref": "改动态：9 题全选「几乎每天(3)」⇒ 总分 27 落「重度抑郁」；确认 dirty 置位后分级文案才出现。"
+  }
+  ,{
+      "slug": "neurology/phq9-stroke",
+      "clicks": ["resetAll();var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/PHQ-9 总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__PHQ9_RST_OK__':'__PHQ9_RST_FAIL__ '+__b;"],
+      "expect": ["__PHQ9_RST_OK__"],
+      "ref": "重置态：新增「重置评分」按钮 → resetAll() 先复位 dirty 再复算，决策文案消失。"
+  }
+  ,{
+      "slug": "neurology/abcd2",
+      "clicks": ["var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/ABCD2 总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__ABCD2_DEF_OK__':'__ABCD2_DEF_FAIL__ '+__b;"],
+      "expect": ["__ABCD2_DEF_OK__"],
+      "ref": "默认态（4 个 select 全为最低档、糖尿病未勾 =0 分）：只出分数 + 提示，结果区不含 分级/建议/诊断/治疗/风险。"
+  }
+  ,{
+      "slug": "neurology/abcd2",
+      "clicks": ["document.getElementById('age').value='1';__markScaleDirty();var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/低风险/.test(__b)&&/处置建议/.test(__b);document.getElementById('result').innerHTML=__ok?'__ABCD2_MOD_OK__':'__ABCD2_MOD_FAIL__ '+__b;"],
+      "expect": ["__ABCD2_MOD_OK__"],
+      "ref": "改动态：年龄≥60 使总分 1 ⇒ 落「低风险」并给出处置建议；确认 dirty 置位后风险分级文案才出现。"
+  }
+  ,{
+      "slug": "neurology/abcd2",
+      "clicks": ["resetAll();var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/ABCD2 总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__ABCD2_RST_OK__':'__ABCD2_RST_FAIL__ '+__b;"],
+      "expect": ["__ABCD2_RST_OK__"],
+      "ref": "重置态：新增「重置评分」按钮 → resetAll() 先复位 dirty 再复算，决策文案消失。"
+  }
+  ,{
+      "slug": "neurology/rater-22",
+      "clicks": ["var __b=document.getElementById('res').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/评分：/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('res').innerHTML=__ok?'__SARA22_DEF_OK__':'__SARA22_DEF_FAIL__ '+__b;"],
+      "expect": ["__SARA22_DEF_OK__"],
+      "ref": "默认态（8 项全为 0 分）：只出分数 + 提示，结果区不含 分级/建议/诊断/治疗/风险。"
+  }
+  ,{
+      "slug": "neurology/rater-22",
+      "clicks": ["for(var i=0;i<8;i++){var e=document.getElementById('si'+i);if(e)e.value='2';}__markScaleDirty();var __b=document.getElementById('res').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/重度/.test(__b)&&/临床解读/.test(__b);document.getElementById('res').innerHTML=__ok?'__SARA22_MOD_OK__':'__SARA22_MOD_FAIL__ '+__b;"],
+      "expect": ["__SARA22_MOD_OK__"],
+      "ref": "改动态：8 项各 2 分 ⇒ 总分 16 落「重度」并给出临床解读；确认 dirty 置位后分级文案才出现。"
+  }
+  ,{
+      "slug": "neurology/rater-22",
+      "clicks": ["resetAll();var __b=document.getElementById('res').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/评分：/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('res').innerHTML=__ok?'__SARA22_RST_OK__':'__SARA22_RST_FAIL__ '+__b;"],
+      "expect": ["__SARA22_RST_OK__"],
+      "ref": "重置态：新增「重置评分」按钮 → resetAll() 先复位 dirty 再复算，决策文案消失。"
+  }
+  ,{
+      "slug": "neurology/calc-1",
+      "clicks": ["var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/NIHSS 总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__CALC1_DEF_OK__':'__CALC1_DEF_FAIL__ '+__b;"],
+      "expect": ["__CALC1_DEF_OK__"],
+      "ref": "默认态（15 项全 0 分）：只出分数 + 提示，结果区不含 分级/建议/诊断/治疗/风险。"
+  }
+  ,{
+      "slug": "neurology/calc-1",
+      "clicks": ["document.getElementById('loc').value='1';__markScaleDirty();var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/轻度卒中/.test(__b);document.getElementById('result').innerHTML=__ok?'__CALC1_MOD_OK__':'__CALC1_MOD_FAIL__ '+__b;"],
+      "expect": ["__CALC1_MOD_OK__"],
+      "ref": "改动态：意识项 1 分 ⇒ 总分 1 落「轻度卒中」；确认 dirty 置位后分级文案才出现。"
+  }
+  ,{
+      "slug": "neurology/calc-1",
+      "clicks": ["resetForm();var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/NIHSS 总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__CALC1_RST_OK__':'__CALC1_RST_FAIL__ '+__b;"],
+      "expect": ["__CALC1_RST_OK__"],
+      "ref": "重置态：复用既有「重置评分」按钮 → resetForm() 先复位 dirty 再复算，决策文案消失。"
   }
 ];
 async function main() {
