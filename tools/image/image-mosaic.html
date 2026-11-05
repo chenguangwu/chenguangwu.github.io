@@ -766,18 +766,21 @@ document.addEventListener('DOMContentLoaded', function(){
 </style>
 <section class="deep-dive" data-deep-dive="1">
 <div class="card">
-<h2>📚 深度解析：图片马赛克（局部打码）</h2>
-<h3>💡 常见使用场景</h3>
+<h2>📚 深度解析：马赛克的分块与采样</h2>
+<h3>🧮 原理与公式</h3>
 <ul class="dd-list">
-<li>截图里遮挡手机号、身份证、人脸等隐私区域。</li>
-<li>做艺术像素化效果，不暴露细节。</li>
+<li><strong>采样方式</strong>：每块取「块中心像素」的颜色填充整块，不是块内平均色；中心坐标 cx = min(bx + ⌊size/2⌋, rw−1)，cy 同理，块宽 = min(size, rw−bx)。</li>
+<li><strong>块数</strong>：ceil(区域宽 ÷ size) × ceil(区域高 ÷ size)，最后一行/列不足一块也按一块计。</li>
+<li><strong>预览与导出</strong>：预览缩放 dispScale = min(760÷原宽, 540÷原高, 1)，预览块 = max(1, round(size×dispScale))；导出按原图 1:1、块大小按原图像素。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">块大小 10px 打码</div><div class="dd-ex-body">选人脸区域，块大小 10px，区域内每 10×10 像素取平均色填充，远处看已无法辨识五官。</div></div>
-<div class="dd-example"><div class="dd-ex-title">块大小 20px 强打码</div><div class="dd-ex-body">敏感文字区块大小 20px，模糊更强，连笔画都难还原，适合强隐私场景。</div></div>
-<h3>❓ 常见问题（FAQ）</h3>
+<div class="dd-example"><div class="dd-ex-title">算例一：800×600 区域换块大小</div><div class="dd-ex-body">块 10px → 80×60 = 4,800 块；块 20px → 40×30 = 1,200 块；块 4px → 200×150 = 30,000 块。块越小，采样点越多、细节保留越多。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例二：3000×2000 原图的预览换算</div><div class="dd-ex-body">dispScale = min(760÷3000, 540÷2000, 1) = 0.253333，预览 760×507；块 10px 在预览显示 round(2.533) = 3px，导出仍是 10px。显示坐标宽 200 的选区按 kx = 3000÷760 = 3.9474 换算回原图约 789px。</div></div>
+<h3>⚠️ 边界与常见误用</h3>
 <dl class="dd-faq">
-<dt>块越大越安全吗？</dt><dd>是的。块大小越大单格覆盖像素越多，原信息越难还原；10px 已能遮脸，20px 适合文字。</dd>
-<dt>马赛克能还原吗？</dt><dd>单向像素平均不可逆，导出后原细节丢失，发布前确认打码范围足够。</dd>
+<dt>块大小最小能到多少？</dt><dd>滑块范围 2–50px；小于 2 时绘制函数直接返回，等于不打码。想彻底遮挡文字，建议 20px 以上。</dt>
+<dt>框选没反应？</dt><dd>拖拽宽或高不超过 4px 会被当成误触，不生成选区；区域小于 1px 也不绘制。重新拖一次即可。</dt>
+<dt>为什么预览的格子看起来比导出小？</dt><dd>预览块按 dispScale 取整，大图可能只剩 1–3px，看起来偏弱；导出始终按原图像素打码，以导出结果为准。</dt>
+<dt>大图导不出？</dt><dd>超过浏览器画布上限时会直接提示拒绝导出，需先缩小原图再处理；这不是打码失败，而是画布容量限制。</dd>
 </dl>
 </div>
 </section>

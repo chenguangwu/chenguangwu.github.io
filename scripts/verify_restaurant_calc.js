@@ -138,6 +138,13 @@ const CASES = [
        + "豆制品 2400×0.15=360；主食 4×80=320；汤底 4×250=1000 ml",
   },
 {
+  "slug": "restaurant/taste-preference",
+  "inputs": {},
+  "clicks": ["var a=[];for(var i=0;i<50;i++)a.push({taste:'sweet',time:'2026-11-05'});for(var i=0;i<40;i++)a.push({taste:'salty',time:'2026-11-05'});for(var i=0;i<30;i++)a.push({taste:'spicy',time:'2026-11-05'});localStorage.getItem=function(k){return k==='taste_preference_records'?JSON.stringify(a):null;};renderGrid();renderStats();"],
+  "expect": ["41.7%", "33.3%", "25.0%", "42%"],
+  "ref": "深度解析算例复算：甜 50 / 咸 40 / 辣 30，总 120 ⇒ 50÷120=41.7%、40÷120=33.3%、30÷120=25.0%；最高占比 41.67% 取整 42%。默认空态只有提示、无百分比 ⇒ 不命中。"
+},
+{
   "slug": "restaurant/menu-pricing",
   "inputs": {"material": "", "labor": "", "fixed": "", "margin": ""},
   "clicks": ["calc()"],

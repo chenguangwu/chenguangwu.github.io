@@ -219,26 +219,21 @@ s.parentNode.insertBefore(el, s);
 </style>
 <section class="deep-dive" data-deep-dive="1">
 <div class="card">
-<h2>📚 深度解析：思维导图编辑器</h2>
-<h3>💡 常见使用场景</h3>
+<h2>📚 深度解析：Markdown 大纲如何变成思维导图</h2>
+<h3>🧮 原理与公式</h3>
 <ul class="dd-list">
-<li>做读书笔记或头脑风暴时，用 # 标题与 - 列表的缩进直接表达层级，右侧自动生成思维导图，比手动画节点更快。</li>
-<li>整理会议议题时，把中心主题放在一级、讨论点放在子级，缩进越深层级越深，结构一目了然。</li>
-<li>准备汇报大纲时，先把要点写成 Markdown 大纲再导出图片，配合缩放、拖拽、节点折叠展开做演示。</li>
+<li><strong>层级来源</strong>：`#` 为一级主题、`##` 为二级分支、`-` / `*` 列表为叶子节点；`-` 归属于它上方最近的标题。</li>
+<li><strong>结构计数</strong>：单根树节点数 N = 1 + 分支数 B + 叶子数 L；边数 E = N − 1；层深 D = 3（主题→分支→叶子）。</li>
+<li><strong>布局</strong>：按树做横向/径向排布，折叠节点只改变显示，不改动 Markdown 原文。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">示例：用缩进语法写一张思维导图</div><div class="dd-ex-body"># 产品规划
-## 用户增长
-- 渠道投放
-- 活动裂变
-## 体验优化
-- 性能
-- 交互
-
-左侧按缩进书写，右侧实时生成导图；滚轮缩放、拖拽平移、单击圆点可折叠/展开子节点。导出 PNG 前先点「适应屏幕」让内容完整显示。</div></div>
-<h3>❓ 常见问题（FAQ）</h3>
+<div class="dd-example"><div class="dd-ex-title">算例一：页面示例（7 行）</div><div class="dd-ex-body">1 个 `#` + 2 个 `##` + 4 个 `-` → N = 1+2+4 = 7，边数 E = 7−1 = 6，层深 3；两个分支各挂 2 个叶子。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例二：占位示例（4 行）</div><div class="dd-ex-body">`# 主题` / `## 分支一` / `- 子节点` / `## 分支二` → N = 1+2+1 = 4，E = 3，层深 3；分支一 1 个叶子，分支二 0 个叶子（空分支也会画出节点）。</div></div>
+<h3>⚠️ 边界与常见误用</h3>
 <dl class="dd-faq">
-<dt>如何调整节点层级？</dt><dd>用 # 表示标题层级、用 - 列表表示子节点，缩进越多层级越深；Tab 键可快速缩进调整从属关系。</dd>
-<dt>怎么导出完整思维导图？</dt><dd>支持导出 SVG 与 PNG；导出 PNG 前建议先点「适应屏幕」，确保所有内容落在画布内不被裁切，草稿保存在 localStorage。</dd>
+<dt>标题层级写错会怎样？</dt><dd>同级标题必须同为 `#` 或同为 `##`；把 `##` 误写成 `#` 会让该分支变成并列的一级主题，整棵树结构改变。</dd>
+<dt>叶子挂到哪个分支？</dt><dd>挂到它上方最近的标题。把 `-` 写在两个 `##` 之间会归到前一个分支；想换分支必须先写新的 `##`。</dd>
+<dt>缩进混用有问题吗？</dt><dd>Tab 与空格混用会改变从属层级，建议统一用一种缩进；导出 PNG 前先点「适应屏幕」，否则会按当前视口裁切。</dd>
+<dt>草稿存在哪？</dt><dd>只存当前浏览器的 localStorage，清站点数据或换设备即丢失；重要内容请先复制 Markdown 或导出 SVG/PNG。</dd>
 </dl>
 </div>
 </section>
@@ -431,6 +426,18 @@ s.parentNode.insertBefore(el, s);
       return null;
     }
   }
+
+  /* 仅测试钩子：供 verify 用例调用，不参与任何运行时分支 */
+  window.__mmTreeStats = function(md){
+    var root = transformMd(md);
+    if(!root) return null;
+    var n = 0, e = 0, d = 0;
+    (function walk(node, depth){
+      n++; if(depth > d) d = depth;
+      (node.children || []).forEach(function(c){ e++; walk(c, depth + 1); });
+    })(root, 1);
+    return { n: n, e: e, d: d };
+  };
 
   function syncDark(){
     var dark = document.body.classList.contains("dark") ||

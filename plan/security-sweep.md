@@ -912,3 +912,12 @@ RESULT 11/11
 ### 25 正文过薄普查（只读，2026-11-05）
 
 - 对 4705 个工具页按「body 可见纯文本（CJK 1 字 + ASCII 词 1 个，剔除 nav/header/footer/script/style/sr-only/aria-hidden/.t-en/.related-tools）」做只读普查：P1 过薄 <1200 = **4406**、P2 偏薄 1200–2000 = **297**、合格 ≥2000 = **2**，中位 753 字；其中 P1 有 4314 页含 `TBKit.matrix/chart` 运行时表格/图表（静态散文薄 ≠ 页面空），无运行时渲染的「真薄候选」92 页。清单见 `/tmp/thin-body-scan.md`；30 页无头复核显示偏差 24/30 页、平均 +234 字，方向为浏览器**多于**静态（运行时渲染），静态口径未把隐藏内容算进去。
+
+### 25.1 92 页真薄候选三分类口径（2026-11-05）
+
+- **R（合理不改，11 页）**：**页面主体本身即为条目表 / 标准表，正文与表自洽** —— 信息密度已在表格里（如 HTML 标签表、KeyCode 表、化妆色号表、药品信息表、汇率速查表、量表分级表），补散文只会稀释表格、不增加事实，故不改。
+  - 11 页：`it/html-tags`、`it/css-properties`、`it/keycode-info`、`it/html-entity-encoder`、`beauty/makeup-shade`、`medical/drug-info`、`travel/currency-cheat-sheet`、`rehabilitation/flacc-scale`、`clinical-nursing/pain-nrs`、`ophthalmology/ishihara-test`、`security/data-erase-simulator`。
+- **S（内容过薄，7 页）**：只有标题 + 输入/演示 + 一句说明，既无实质公式/阈值，也无真实条目；需补「原理/公式 + 2 个 node 实跑算例 + 边界或误用」。
+  - 7 页：`image/wechat-cover-maker`、`image/gif-split`、`office/mindmap`、`pet/training-planner`、`restaurant/taste-preference`、`music/web-tuner`、`image/image-mosaic`。
+- **M（中等，74 页）**：已有公式/规则，但算例模板化或数字不可复算；只补真实算例与取值依据，不硬加段落。
+- 补充口径：R 的判据只用于「有真实表格内容」的页面；表格若是空壳/占位则归 S 或 M，不适用本条。
