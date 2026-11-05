@@ -55,7 +55,7 @@ const CASES = [
   {
     slug: "ai/sigmoid",
     inputs: { z: "1.5", threshold: "0.5" },
-    expect: ["0.817574"],
+    expect: ["0.817574 分类结果："],
     ref: "σ(1.5)=1/(1+e^-1.5)=0.817574（原 z=2 与页面默认 2.0 相同；且“正类/2.0000”不依赖注入 → 均为逃生项）",
   },
 
@@ -296,7 +296,7 @@ const CASES = [
   {
     slug: "ai/token-usage",
     inputs: { cn: "240", enWords: "150", code: "40" },
-    expect: ["400"],
+    expect: ["400 token"],
     ref: "tokens=240/1.5+150/0.75+40=160+200+40=400",
   },
 

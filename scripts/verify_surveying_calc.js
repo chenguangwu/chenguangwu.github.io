@@ -76,7 +76,7 @@ const CASES = [
   {
     slug: "surveying/earthwork-pyramid-volume",
     inputs: { A: "150", h: "6" },
-    expect: ["300.00"],
+    expect: ["300.00 锥体体积 V"],
     ref: "V=A·h/3=150×6/3=300.00 m³（默认 100/3 避开）",
   },
   {
