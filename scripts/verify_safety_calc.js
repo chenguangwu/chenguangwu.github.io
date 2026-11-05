@@ -160,7 +160,14 @@ const CASES = [
       "DETECTOR-PWD-FMT-OK-16"
     ],
     "ref": "genPassword() 先强制各取 1 位小写/大写/数字/符号，再补 12 位随机并 Fisher-Yates 打乱 ⇒ 串长恒为 16、每位必在 88 字符表内。默认 pw 为空，不自动生成 ⇒ 不命中。生成与打乱均已改用 secureInt（crypto.getRandomValues + 拒绝采样），不再用 sort(()=>Math.random()-0.5)。"
-  }
+  },
+{
+  "slug": "safety/self-test",
+  "clicks": ["startQuiz();for(var k=0;k<10;k++){selectAnswer(currentQuiz[currentIdx].a);nextQ();}"],
+  "expect": ["答对 10 / 10 题"],
+  "ref": "10 题逐题选正确答案 currentQuiz[currentIdx].a 后 nextQ() ⇒ 得分 10/10，renderResult 输出「答对 10 / 10 题　评级：优秀」。"
+       + "题目池随机抽 10 题，但「正确答案」按每题的 a 索引动态取，结果确定。默认态加载后停在「第 1 / 10 题」，无「答对 10 / 10 题」字样，零交集。"
+}
 
 ];
 async function main() {

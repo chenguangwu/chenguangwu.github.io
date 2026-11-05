@@ -771,6 +771,14 @@ const CASES = [
   "clicks": ["selectLevel(1)"],
   "expect": ["可正常饮用的液体", "用吸管可轻松吸入"],
   "ref": "IDDSI 1 级（稀液体）详情专属描述；默认 L4 详情为纯泥状食物，概览表不含 desc/test 文案，零交集。"
+},
+{
+  "slug": "health/symptom-checker",
+  "inputs": { "categorySelect": "digestive" },
+  "clicks": ["startCheck()", "chooseOption(0)", "chooseOption(0)"],
+  "expect": ["消化内科/全科", "注意补液防脱水，清淡饮食，一般3-5天恢复。"],
+  "ref": "categorySelect=digestive（消化系统）+ 固定路径 chooseOption(0)→chooseOption(0) ⇒ 决策树 d1 选「水样便，次数多」直达结果卡：科室「消化内科/全科」、建议「注意补液防脱水，清淡饮食，一般3-5天恢复。」。"
+       + "注意：疾病名「急性肠胃炎」在页面静态科普列表里也出现（消化道：急性肠胃炎、食物中毒、胃炎），故不作锚；锚只取脚本内数据、静态正文零出现的科室与建议串。默认态未选分类、结果区隐藏，零交集。"
 }
 ];
 

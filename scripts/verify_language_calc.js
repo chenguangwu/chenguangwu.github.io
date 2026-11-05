@@ -266,7 +266,19 @@ const CASES = [
     "inputs": { "text": "" },
     "expect": ["请输入待统计文本后再统计。"],
     "ref": "空态回归：textarea 清空时旧实现按空串统计并输出「总字符数 0 … 行数 0」九项伪结果；现要求提示且不输出统计值。默认示例文本非空（16/15 等数值），不含该提示 ⇒ 强判别。"
-  }
+  },
+{
+  "slug": "language/ipa-practice",
+  "clicks": ["showDetail('θ')"],
+  "expect": ["清齿间摩擦音。舌尖放在上下齿之间", "θɪŋk"],
+  "ref": "showDetail('θ') 渲染 /θ/ 详情：发音方法「清齿间摩擦音。舌尖放在上下齿之间，气流摩擦而出。」+ 例词 think /θɪŋk/。默认详情区为空（只渲染音标卡片网格），零交集。"
+},
+{
+  "slug": "language/riyuwushiyintulianxi-dianjifayin",
+  "clicks": ["onKana(11)"],
+  "expect": ["し 假名 shi 罗马字"],
+  "ref": "onKana(11) ⇒ 平假名第 12 格「し / shi」：详情卡渲染两行数据卡「し · 假名」「shi · 罗马字」。默认未点选、详情区为空，零交集；网格内虽有「し」「shi」拼接文本，但不含「し 假名 shi 罗马字」这一带标签分隔的序列。"
+}
 
 ];
 async function main() {
