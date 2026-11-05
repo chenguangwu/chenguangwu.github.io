@@ -764,8 +764,14 @@ const CASES = [
       "\ude79 愈合时间预估 6~12 预计天数 2 约周数 头皮 身体部位 切割"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"bodyPart\":\"scalp\",\"woundType\":\"cut\",\"woundSize\":\"medium\",\"ageGroup\":\"young\"}，输出区含「\ude79 愈合时间预估 6~12 预计天数 2 约周数 头皮 身体部位 切割」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  }
+  },
 
+{
+  "slug": "health/dysphagia-food-guide",
+  "clicks": ["selectLevel(1)"],
+  "expect": ["可正常饮用的液体", "用吸管可轻松吸入"],
+  "ref": "IDDSI 1 级（稀液体）详情专属描述；默认 L4 详情为纯泥状食物，概览表不含 desc/test 文案，零交集。"
+}
 ];
 
 async function main() {

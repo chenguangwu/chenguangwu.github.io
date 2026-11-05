@@ -177,6 +177,17 @@ const CASES = [
   "clicks": ["document.getElementById('enCardCanvas').toBlob=function(){throw new Error('boom')};document.getElementById('enPngBtn').fire('click');"],
   "expect": ["导出失败：Error"],
   "ref": "失败注入：结果卡 toBlob 必抛 Error ⇒ 导出入口必须 toast「导出失败：Error」并终止。修复前异常裸冒成 pageerror、且成功提示「已导出结果卡 PNG」仍会执行；默认态无该串 ⇒ 判别明确。"
+},
+{
+  "slug": "psychology/tester-3",
+  "clicks": [
+    "pJump(0)", "pPick(0)", "pJump(1)", "pPick(0)", "pJump(2)", "pPick(0)",
+    "pJump(3)", "pPick(0)", "pJump(4)", "pPick(0)", "pJump(5)", "pPick(0)",
+    "pJump(6)", "pPick(0)", "pJump(7)", "pPick(0)", "pJump(8)", "pPick(0)",
+    "pJump(9)", "pPick(0)", "pJump(10)", "pPick(0)", "pJump(11)", "pPick(0)"
+  ],
+  "expect": ["你的主导学习风格：V", "12 / 12（100%）"],
+  "ref": "VARK 12 题全选第 1 项（视觉）⇒ V=12、总分 12/12=100%，主导 V。默认仅未答提示（0/12），零交集。"
 }
 ];
 async function main() {
