@@ -130,7 +130,7 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row"><div><label>1. 感知（对压力相关不适的感觉能力）</label><select id="b1" onchange="calc()" style="font-size:16px;"><option value="1">完全受限 (1分)</option><option value="2">非常受限 (2分)</option><option value="3" selected>轻度受限 (3分)</option><option value="4">未受损 (4分)</option></select></div><div><label>2. 潮湿（皮肤暴露程度）</label><select id="b2" onchange="calc()" style="font-size:16px;"><option value="4">极少潮湿 (4分)</option><option value="3">偶尔潮湿 (3分)</option><option value="2">经常潮湿 (2分)</option><option value="1">持续潮湿 (1分)</option></select></div></div>
 <div class="input-row"><div><label>3. 活动（身体活动程度）</label><select id="b3" onchange="calc()" style="font-size:16px;"><option value="4">经常步行 (4分)</option><option value="3">偶可步行 (3分)</option><option value="2">局限于椅 (2分)</option><option value="1">卧床不起 (1分)</option></select></div><div><label>4. 移动（改变体位能力）</label><select id="b4" onchange="calc()" style="font-size:16px;"><option value="4">不受限 (4分)</option><option value="3">轻度受限 (3分)</option><option value="2">严重受限 (2分)</option><option value="1">完全不能 (1分)</option></select></div></div>
 <div class="input-row"><div><label>5. 营养（日常摄入）</label><select id="b5" onchange="calc()" style="font-size:16px;"><option value="4">摄入良好 (4分)</option><option value="3">摄入适当 (3分)</option><option value="2">摄入不足 (2分)</option><option value="1">严重不足 (1分)</option></select></div><div><label>6. 摩擦/剪切</label><select id="b6" onchange="calc()" style="font-size:16px;"><option value="3">无问题 (3分)</option><option value="2" selected>潜在问题 (2分)</option><option value="1">有问题 (1分)</option></select></div></div>
-<div class="toolbar"><div id="calc_rater_riskPresets"></div><button type="button" class="btn primary" onclick="calc()">计算评分</button><button class="btn" type="button" onclick="__calc_rater_riskExport()">导出明细 CSV</button><button type="button" class="btn" onclick="ToolBox.copyFromElement('res','tool.copy_ok')">复制结果</button></div>
+<div class="toolbar"><div id="calc_rater_riskPresets"></div><button type="button" class="btn primary" onclick="calc()">计算评分</button><button class="btn" type="button" onclick="__calc_rater_riskExport()">导出明细 CSV</button><button type="button" class="btn" onclick="ToolBox.copyFromElement('res','tool.copy_ok')">复制结果</button><button type="button" class="btn" onclick="resetAll()">重置评分</button></div>
 <div class="result-box" id="res"></div>
 <div id="resRefBar" style="margin-top:12px"></div> <div id="calc_rater_riskTable"></div> <div id="calc_rater_riskDiff"></div> <div id="calc_rater_riskChart"></div> <div id="calc_rater_riskHist"></div>
   </div>
@@ -213,9 +213,30 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
+var __bradenIds=['b1','b2','b3','b4','b5','b6'];
+var __defVals={};
+__bradenIds.forEach(function(id){ __defVals[id]=document.getElementById(id)?document.getElementById(id).value:''; });
+var __scaleDirty=false;
+function __markScaleDirty(){ __scaleDirty=true; calc(); }
+__bradenIds.forEach(function(id){
+  var __el=document.getElementById(id);
+  if(__el&&__el.addEventListener){
+    __el.addEventListener('change',__markScaleDirty);
+    __el.addEventListener('input',__markScaleDirty);
+  }
+});
+
 function calc(){
   var total=0;var items=['感觉','潮湿','活动','移动','营养','摩擦/剪切'];
   for(var i=1;i<=6;i++){total+=+document.getElementById('b'+i).value;}
+  if(!__scaleDirty){
+    var __sh='<p>Braden总分：<strong style="font-size:28px;color:var(--success);">'+total+'</strong> / 23</p>';
+    __sh+='<div class="info-box"><strong>当前为默认评分，请按实际评估修改后查看解读。</strong></div>';
+    document.getElementById('res').innerHTML=__sh;
+    var __emrBox=document.getElementById('emrBox');
+    if(__emrBox&&__emrBox.parentNode) __emrBox.parentNode.removeChild(__emrBox);
+    return;
+  }
   var status,color,tip,advice;
   if(total<=9){status='极高风险';color='var(--danger)';tip='error';advice='压疮极高风险（≤9分），须每1-2小时翻身一次、使用气垫床、骨突处贴水胶体敷料、保持皮肤清洁干燥、加强营养支持。';}
   else if(total<=12){status='高风险';color='var(--danger)';tip='error';advice='压疮高风险（10-12分），每2小时翻身、使用减压床垫、保护骨突部位、评估营养状况。';}
@@ -265,6 +286,7 @@ function __emrNote(cfg){
 function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
 function __emrData(){
   var el=document.getElementById('res'); if(!el) return;
+  if(!__scaleDirty){ var __eb=document.getElementById('emrBox'); if(__eb&&__eb.parentNode) __eb.parentNode.removeChild(__eb); return; }
   var s=window.__EMR_SUM; if(!s) return;
   var en=__emrEn();
   var lv={'极高风险':'very high risk','高风险':'high risk','中度风险':'moderate risk','低度风险':'low risk','无风险':'no risk'};
@@ -288,8 +310,13 @@ function __emrData(){
 }
 
 var __emrW0=(typeof calc==='function')?calc:null;
-if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
-try{ __emrData(); }catch(e){}
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); if(__scaleDirty){ try{__emrData();}catch(e){} } return __er; }; }
+
+function resetAll(){
+  __bradenIds.forEach(function(id){ document.getElementById(id).value=__defVals[id]; });
+  __scaleDirty=false;
+  calc();
+}
 </script>
 
 <!-- SEO 介绍区块 -->

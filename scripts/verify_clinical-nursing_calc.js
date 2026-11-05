@@ -533,6 +533,24 @@ const CASES = [
     ],
     "ref": "门诊记录：10 项全取最低档 0 分 ⇒ 总分 0 <25 落「完全依赖」；满分 100 = 10+5+5+10+10+10+10+15+15+10。默认态为各维度最高档（满分 100）⇒「总分 100/100，分级：完全自理」「得分率 100%」，零交集。"
   }
+  ,{
+    "slug": "clinical-nursing/calc-rater-risk",
+    "clicks": ["var __b=document.getElementById('res').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/Braden/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('res').innerHTML=__ok?'__BRADEN_DEF_OK__':'__BRADEN_DEF_FAIL__ '+__b;"],
+    "expect": ["__BRADEN_DEF_OK__"],
+    "ref": "默认态（原页面预设 3/4/4/4/4/2=21 分）：只渲染分数 + 提示，结果区不含 分级/建议/诊断/治疗/风险 任一词。"
+  }
+  ,{
+    "slug": "clinical-nursing/calc-rater-risk",
+    "clicks": ["var __e=document.getElementById('b1');__e.value='1';__e.fire('change');var __f=document.getElementById('b2');__f.value='1';__f.fire('change');var __b=document.getElementById('res').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/低度风险/.test(__b)&&/风险/.test(__b);document.getElementById('res').innerHTML=__ok?'__BRADEN_MOD_OK__':'__BRADEN_MOD_FAIL__ '+__b;"],
+    "expect": ["__BRADEN_MOD_OK__"],
+    "ref": "改动态：感觉 3→1、潮湿 4→1 ⇒ 总分 16 落「低度风险(15-18)」，恢复分级 + 护理建议文案。"
+  }
+  ,{
+    "slug": "clinical-nursing/calc-rater-risk",
+    "clicks": ["resetAll();var __b=document.getElementById('res').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/Braden/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('res').innerHTML=__ok?'__BRADEN_RST_OK__':'__BRADEN_RST_FAIL__ '+__b;"],
+    "expect": ["__BRADEN_RST_OK__"],
+    "ref": "重置态：新增「重置评分」按钮调 resetAll() ⇒ 6 维回页面默认档（21/23）、dirty 复位，决策文案消失。"
+  }
 ];
 async function main() {
   const only = process.argv.slice(2);
