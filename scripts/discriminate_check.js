@@ -10,9 +10,16 @@
  *   注意：仅做「新 expect ∩ 默认输出 = ∅」的零交集断言**不足以**发现它
  *   （实测 68 例改造中，6 例通过了零交集断言却在注入失败时仍 PASS）。
  *
- * 做法：
- *   对用例的 inputs 逐键换回页面 HTML 里的默认值（模拟注入失败），
- *   然后跑 runCase —— 用例必须 FAIL。仍 PASS 的即含逃生项，需收紧 expect。
+ * 做法（2026-11-05 第二次修正，第 ⑧ 种假绿形态）：
+ *   模拟「注入失败」= **纯默认态快照**：只执行页面脚本与 DOMContentLoaded，不注入
+ *   inputs / checkIds / radios / checks、不执行 clicks、不跑无参兜底，**不派发任何
+ *   input/change/keyup 事件**，然后逐锚检查 expect 是否已命中；命中即含逃生项。
+ *
+ *   为什么不能用「把 inputs 换回默认值再跑 runCase」：那仍会派发 input/change 事件，
+ *   页面 calc() 重渲染会把**加载期扫描表 / 枚举表**冲掉（acoustics/critical-distance
+ *   的 Q 表、thermodynamics/heat-conduction 的扫描表、quantum 的能级表），于是
+ *   「全锚默认即命中」的用例被误判成「正确变红」，报出虚假的 0 逃生。真实注入失败
+ *   时页面从未收到事件、扫描表仍在，锚照样命中 ⇒ 该用例本就没有判别力。
  *
  * 产出完整性（2026-11-05 新增，堵「静默退出 = exit 0 = CI 通过」）：
  *   - 全站模式改为**逐文件子进程**跑：任何单个页面的用例把进程静默干掉，
@@ -51,14 +58,6 @@ const REAL_PROCESS = process;             // 同上：运行期写 REAL_PROCESS.
 const REAL_LOG = console.log.bind(console);
 const ROOT = path.resolve(__dirname, "..");
 const { runCase } = require(path.join(ROOT, "scripts", "verify_it_calc.js"));
-const stub = require(path.join(ROOT, "scripts", "lib_stub.js"));
-// 动态 id 默认值：页面 JS 运行期拼 innerHTML 生成的控件（id="pt'+i+'" 等），
-// 静态解析取不到 ⇒ 此前一律 unresolved 跳过。解析器只读、纯内存桩。
-const { dynamicDefaults } = require(path.join(ROOT, "scripts", "lib_dynamic_defaults.js"));
-const DYN_DEFAULTS_CACHE = new Map();   // slug -> { [id]: default }
-// 逃生开关（仅排障用）：TB_DYN_DEFAULTS=0 关闭动态默认值解析，回到「动态 id ⇒ unresolved」旧口径，
-// 用于复核「改前基线」或定位「解析后 skip→PASS」的归属。
-const DYN_DISABLED = process.env.TB_DYN_DEFAULTS === "0";
 
 const FILES_ONLY = ARGV.filter((a) => !a.startsWith("--"));
 const SELFTEST = ARGV.includes("--selftest");
@@ -100,52 +99,6 @@ function integrityProblems(agg, opts) {
   return p;
 }
 
-/** 从页面 HTML 提取 input/select 的 id → 默认值（截断 deep-dive，避免抓到示例） */
-function pageDefaults(slug, wanted) {
-  const fp = path.join(ROOT, "tools", slug + ".html");
-  if (!fs.existsSync(fp)) return null;
-  const raw = fs.readFileSync(fp, "utf8");
-  const cut = raw.indexOf("<!-- TOOLBOX-DEEP-DIVE -->");
-  let body = cut > 0 ? raw.slice(0, cut) : raw;
-  // 回退（2026-09-24）：全站 72 个页面的表单控件位于 deep-dive 标记**之后**
-  // （如 engineering/heat-transfer 的 input 在第 235 行、deep-dive 在第 178 行），
-  // 截断后取不到任何控件 ⇒ 所有键都「无法换回默认」⇒ 整例静默判「跳过」而漏检，
-  // 而这些用例其实是有真实注入的有效用例。此处：截断后无控件、全文有控件时改用全文。
-  // 安全性：本函数只提取 input/select/textarea 的 id→value，deep-dive 区块内不含表单控件。
-  const CTRL = /<(?:input|select|textarea)\b/i;
-  if (cut > 0 && !CTRL.test(body) && CTRL.test(raw)) body = raw;
-  const out = {};
-  // 默认走 legacy（TB_STUB_FIDELITY=1 才启用保真解析；TB_STUB_LEGACY=1 永久逃生）。
-  if (!stub.stubFidelity()) {
-    Object.assign(out, stub.legacyPageDefaults(body));
-  } else {
-    // 1) <input> 的 value 默认（共用 lib_stub：属性顺序/引号无关；跳过 checkbox/radio）
-    Object.assign(out, stub.parseInputDefaults(body, { skipTypes: /^(checkbox|radio|button|submit|reset|file|image)$/ }));
-    // 2) <textarea> 初始文本（首次出现优先，input 同名时不覆盖）
-    for (const [id, v] of Object.entries(stub.parseTextareaDefaults(body))) {
-      if (out[id] === undefined) out[id] = v;
-    }
-    // 3) <select> 默认选中项（共用 lib_stub：尊重 selected，两种写法皆可，无则回退首个）
-    for (const [id, opts] of Object.entries(stub.parseSelects(body))) {
-      if (out[id] === undefined) out[id] = stub.selectDefault(opts);
-    }
-  }
-  // 4) 静态解析不到的键 → 执行页面渲染函数，读动态生成控件的默认值。
-  //    只补缺失键（wanted 由用例 inputs 提供），无缺失时不跑，避免全站无谓开销。
-  if (!DYN_DISABLED && Array.isArray(wanted) && wanted.length) {
-    const missing = wanted.filter((k) => out[k] === undefined);
-    if (missing.length) {
-      let dyn = DYN_DEFAULTS_CACHE.get(slug);
-      if (dyn === undefined) {
-        try { dyn = dynamicDefaults(raw); } catch (e) { dyn = {}; }
-        DYN_DEFAULTS_CACHE.set(slug, dyn);
-      }
-      for (const k of missing) if (dyn[k] !== undefined) out[k] = dyn[k];
-    }
-  }
-  return out;
-}
-
 function listFiles() {
   return fs.readdirSync(path.join(ROOT, "scripts"))
     .filter((f) => /^verify_.*_calc\.js$/.test(f))
@@ -155,6 +108,16 @@ function listFiles() {
 /** 文件解析：支持 scripts/ 下的裸文件名，也支持自检用的绝对路径（/tmp 假 harness） */
 function resolveFile(f) {
   return path.isAbsolute(f) ? f : path.join(ROOT, "scripts", f);
+}
+
+/** expect 匹配口径：原文命中，或原文的 HTML 转义形态命中（与 verify_it_calc 的 blobHasWant 一致） */
+function htmlEscaped(s) {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 function reportRec(obj) {
@@ -183,96 +146,86 @@ async function sweepFile(f) {
   let CASES;
   try { CASES = eval(m[1]); } catch (e) { REAL_LOG("SKIP(解析失败)", f, e.message); return { stats, bad }; }
 
-  for (const c of CASES) {
-    // checkIds（复选框选中态）/ radios（单选组取值）/ clicks（click 驱动页的模拟点击序列）
-    // 是 2026-09-24 起 harness 支持的注入字段，与 inputs 等价地构成「被测输入」。
-    // 模拟注入失败 = 一并清空这三者。
-    const hasInj =
-      (Array.isArray(c.checkIds) && c.checkIds.length > 0) ||
-      (c.radios && Object.keys(c.radios).length > 0) ||
-      (Array.isArray(c.clicks) && c.clicks.length > 0);
-    const clearInject = { checkIds: [], radios: {}, checks: [], clicks: [] };
-    // checks（声明「已选中项」的 value）同样构成真实注入，但它可能只作 inputs 的修饰项，
-    // 故仅在「无 inputs」分支并入适用性判定（与 selfcheck_false_pass.weakKind 口径一致）：
-    // 否则纯 checks 驱动的量表页会被计入 skipped 而漏检。
-    const hasChecks = Array.isArray(c.checks) && c.checks.length > 0;
-    const base = { file: f, slug: c.slug, ref: c.ref || "", expect: c.expect || [] };
-
-    if (!c.inputs || Object.keys(c.inputs).length === 0) {
-      if (!hasInj && !hasChecks) {
-        stats.skipped++;
-        reportRec(Object.assign({}, base, { kind: "skip", why: "no-inject", inputs: {} }));
-        continue;   // 真正无任何注入的用例不适用
-      }
-      // 清空复选框/单选注入 → 页面回到「全未勾选」态，expect 必须失配，否则即逃生项。
-      stats.total++;
-      let r0;
-      try { r0 = await runCaseGuarded(Object.assign({}, c, clearInject)); }
-      catch (e) {
-        if (e && e.message === "CASE_TIMEOUT") {
-          REAL_LOG(`⏱ ${c.slug} 用例超时 ${CASE_TIMEOUT}ms（无参兜底函数返回永不 settle 的 Promise），按注入失败态计 FAIL`);
-        }
-        stats.fail++; continue;
-      }
-      if (r0.ok) {
-        stats.stillPass++;
-        bad.push(`${c.slug} (via=${r0.via})`);
-        reportRec(Object.assign({}, base, {
-          kind: "escape", via: r0.via, why: "clear-inject-still-pass",
-          inputs: c.inputs || {}, checkIds: c.checkIds || [], radios: c.radios || {}, clicks: c.clicks || [],
-        }));
-      } else stats.fail++;
-      continue;
-    }
-    const defs = pageDefaults(c.slug, Object.keys(c.inputs));
-    if (!defs) {
-      stats.skipped++;
-      reportRec(Object.assign({}, base, { kind: "skip", why: "no-page", inputs: c.inputs }));
-      continue;
-    }
-    const injected = {};
-    let usable = hasInj;   // 有复选框/单选注入时，即便 inputs 全为默认值也可模拟失败
-    const sameAsDefault = [];
-    const unresolved = [];
-    for (const k of Object.keys(c.inputs)) {
-      if (defs[k] !== undefined && String(defs[k]) !== String(c.inputs[k])) {
-        injected[k] = String(defs[k]);   // 换回默认值 = 模拟注入失败
-        usable = true;
-      } else {
-        injected[k] = String(c.inputs[k]);
-        if (defs[k] !== undefined) sameAsDefault.push({ id: k, def: String(defs[k]), injected: String(c.inputs[k]) });
-        else unresolved.push(k);
-      }
-    }
-    if (!usable && !hasInj) {
-      stats.skipped++;
-      // 区分两类跳过（口径必须分开，否则工单会把「控件解析不到」误当成 all_default 弱用例）：
-      //   all-default  —— 所有键都能解析到默认值，且注入值恰好等于默认值（真弱用例）
-      //   unresolved   —— 至少一个键在页面 HTML 里找不到默认值（桩/页面解析缺口，需人工）
-      reportRec(Object.assign({}, base, {
-        kind: "skip",
-        why: unresolved.length ? "unresolved" : "all-default",
-        inputs: c.inputs, sameAsDefault, unresolved,
-        defaults: defs,
-      }));
-      continue;  // 注入值本就等于默认值，无法模拟
-    }
-    stats.total++;
+  // 纯默认态快照缓存：同一页面（slug + 浏览器保真开关）只跑一次，避免重复加载页面脚本。
+  // afterLoad / dynDom / dynInputs 只影响桩的保真度，不构成注入，故按用例原样带上。
+  const snapCache = new Map();
+  const snapshotOf = async (c) => {
+    const key = JSON.stringify([c.slug, !!c.afterLoad, !!c.dynDom, !!c.dynInputs]);
+    if (snapCache.has(key)) return snapCache.get(key);
     let r;
-    try { r = await runCaseGuarded(Object.assign({}, c, { inputs: injected }, clearInject)); }
-    catch (e) {
-      if (e && e.message === "CASE_TIMEOUT") {
-        REAL_LOG(`⏱ ${c.slug} 用例超时 ${CASE_TIMEOUT}ms（无参兜底函数返回永不 settle 的 Promise），按注入失败态计 FAIL`);
-      }
-      stats.fail++; continue;
+    try {
+      // 关键：只传 slug 与保真开关 + snapshotOnly。绝不传 inputs / checkIds / radios /
+      // checks / clicks ⇒ harness 不注入控件值、不派发 input/change/keyup、不跑兜底。
+      r = await runCaseGuarded({
+        slug: c.slug,
+        afterLoad: !!c.afterLoad,
+        dynDom: !!c.dynDom,
+        dynInputs: !!c.dynInputs,
+        snapshotOnly: true,
+      });
+    } catch (e) {
+      r = { ok: false, timeout: !!(e && e.message === "CASE_TIMEOUT"), why: "snapshot-error: " + ((e && e.message) || e) };
     }
-    if (r.ok) {
+    snapCache.set(key, r);
+    return r;
+  };
+
+  for (const c of CASES) {
+    const expects = Array.isArray(c.expect) ? c.expect.filter((x) => typeof x === "string") : [];
+    // 适用性：用例必须声明过某种注入（inputs / checkIds / radios / checks / clicks），
+    // 否则「注入失败」无从谈起 —— 真·无注入用例不参与判别。
+    const hasInputs = !!(c.inputs && Object.keys(c.inputs).length > 0);
+    const hasInj = hasInputs
+      || (Array.isArray(c.checkIds) && c.checkIds.length > 0)
+      || (c.radios && Object.keys(c.radios).length > 0)
+      || (Array.isArray(c.checks) && c.checks.length > 0)
+      || (Array.isArray(c.clicks) && c.clicks.length > 0);
+    const base = { file: f, slug: c.slug, ref: c.ref || "", expect: c.expect || [] };
+    if (!hasInj) {
+      stats.skipped++;
+      reportRec(Object.assign({}, base, { kind: "skip", why: "no-inject", inputs: {} }));
+      continue;
+    }
+    if (!expects.length) {
+      stats.skipped++;
+      reportRec(Object.assign({}, base, { kind: "skip", why: "no-expect", inputs: c.inputs || {} }));
+      continue;
+    }
+
+    const snap = await snapshotOf(c);
+    if (snap.skipped) {          // TOOLBOX-REDIRECT 存根：页面本身不参与验证
+      stats.skipped++;
+      reportRec(Object.assign({}, base, { kind: "skip", why: "redirect-stub" }));
+      continue;
+    }
+    if (snap.why === "文件不存在") {
+      stats.skipped++;
+      reportRec(Object.assign({}, base, { kind: "skip", why: "no-page", inputs: c.inputs || {} }));
+      continue;
+    }
+    if (snap.timeout) {
+      // 快照取不到 ⇒ 默认态是否命中无从判定。既不能算「正确变红」（无证据），也不
+      // 算逃生项；显式计跳过并打印，由基线棘轮拦住静默增长。
+      stats.skipped++;
+      REAL_LOG(`⏱ ${c.slug} 默认态快照超时 ${CASE_TIMEOUT}ms（页面无参函数返回永不 settle 的 Promise），未参与判别`);
+      reportRec(Object.assign({}, base, { kind: "skip", why: "snapshot-timeout", inputs: c.inputs || {} }));
+      continue;
+    }
+    if (snap.fullBlob == null) {
+      stats.skipped++;
+      REAL_LOG(`⏱ ${c.slug} 默认态快照缺失（${snap.why || "unknown"}），未参与判别`);
+      reportRec(Object.assign({}, base, { kind: "skip", why: "no-snapshot", detail: snap.why || "" }));
+      continue;
+    }
+
+    stats.total++;
+    const hits = expects.filter((w) => snap.fullBlob.includes(w) || snap.fullBlob.includes(htmlEscaped(w)));
+    if (hits.length) {
       stats.stillPass++;
-      bad.push(`${c.slug} (via=${r.via})`);
+      bad.push(`${c.slug} (默认态命中 ${hits.length}/${expects.length})`);
       reportRec(Object.assign({}, base, {
-        kind: "escape", via: r.via, why: "revert-to-default-still-pass",
+        kind: "escape", why: "default-snapshot-still-pass", hits,
         inputs: c.inputs || {}, checkIds: c.checkIds || [], radios: c.radios || {}, clicks: c.clicks || [],
-        reverted: injected,
       }));
     } else stats.fail++;
   }
