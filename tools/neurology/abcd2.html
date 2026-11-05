@@ -125,14 +125,14 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row">
       <div>
         <label>A — 年龄</label>
-        <select id="age" onchange="calc()">
+        <select id="age" onchange="__markScaleDirty()">
           <option value="0">＜60岁 (0分)</option>
           <option value="1">≥60岁 (1分)</option>
         </select>
       </div>
       <div>
         <label>B — 血压</label>
-        <select id="bp" onchange="calc()">
+        <select id="bp" onchange="__markScaleDirty()">
           <option value="0">收缩压＜140 且 舒张压＜90 (0分)</option>
           <option value="1">收缩压≥140 或 舒张压≥90 (1分)</option>
         </select>
@@ -140,26 +140,27 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <h3 style="margin:16px 0 8px;">C — 临床特征</h3>
-    <select id="clinical" onchange="calc()" style="margin-bottom:12px;">
+    <select id="clinical" onchange="__markScaleDirty()" style="margin-bottom:12px;">
       <option value="0">其他症状（如单纯感觉障碍、视觉症状等）(0分)</option>
       <option value="1">言语障碍但不伴肢体无力 (1分)</option>
       <option value="2">单侧肢体无力 (2分)</option>
     </select>
 
     <h3 style="margin:16px 0 8px;">D — 症状持续时间</h3>
-    <select id="duration" onchange="calc()" style="margin-bottom:12px;">
+    <select id="duration" onchange="__markScaleDirty()" style="margin-bottom:12px;">
       <option value="0">＜10分钟 (0分)</option>
       <option value="1">10-59分钟 (1分)</option>
       <option value="2">≥60分钟 (2分)</option>
     </select>
 
     <div class="checkbox-row">
-      <label><input type="checkbox" id="dm" onchange="calc()"> D — 糖尿病 (1分)</label>
+      <label><input type="checkbox" id="dm" onchange="__markScaleDirty()"> D — 糖尿病 (1分)</label>
     </div>
 
     <div class="toolbar">
       <div id="abcd2Presets"></div><button type="button" class="btn primary" onclick="calc()">评估风险</button><button class="btn" type="button" onclick="__abcd2Export()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" onclick="resetAll()" title="恢复为未评估状态">重置评分</button>
     </div>
 
     <div class="result-box" id="result"></div>
@@ -291,6 +292,14 @@ function calc(){
   if(dm) details.push('糖尿病 → +1');
 
   var sev, color, risk2d, risk7d, risk90d, advice;
+  if(!__scaleDirty){
+    var __sh = '<div class="stat-grid"><div class="stat-card"><div class="val" style="color:#10B981;">'+total+'</div><div class="lbl">ABCD2 总分</div></div></div>';
+    __sh += '<div class="info-box"><strong>当前为默认评分（各项均为最低档 = 0 分），请按实际临床资料修改后查看解读。</strong></div>';
+    document.getElementById('result').innerHTML = __sh;
+    var __emrBox = document.getElementById('emrBox');
+    if(__emrBox && __emrBox.parentNode) __emrBox.parentNode.removeChild(__emrBox);
+    return;
+  }
   if(total <= 3){
     sev = '低风险'; color = '#10B981'; risk2d = '1.0%'; risk7d = '1.2%'; risk90d = '3.1%';
     advice = '短期卒中风险较低。可门诊随访评估，建议完善脑血管检查，控制危险因素。';
@@ -326,9 +335,22 @@ function copyResult(){
   var total = 0;
   ['age','bp','clinical','duration'].forEach(function(id){ total += parseInt(document.getElementById(id).value); });
   if(document.getElementById('dm').checked) total += 1;
+  if(!__scaleDirty){ ToolBox.copyText('ABCD2评分：'+total+'分（默认评分，尚未按实际临床资料修改）', i18nText()); return; }
   ToolBox.copyText('ABCD2评分：'+total+'分', i18nText());
 }
 
+var __scaleDirty = false;
+function __markScaleDirty(){ __scaleDirty = true; calc(); }
+function resetAll(){
+  document.getElementById('age').value = '0';
+  document.getElementById('bp').value = '0';
+  document.getElementById('clinical').value = '0';
+  document.getElementById('duration').value = '0';
+  var __dm = document.getElementById('dm');
+  if(__dm) __dm.checked = false;
+  __scaleDirty = false;
+  calc();
+}
 calc();
 
 /* —— 门诊记录（EMR note）：把量表结果整理成可直接粘进门诊病历的文本（中英双语） —— */
@@ -389,8 +411,7 @@ function __emrData(){
 }
 
 var __emrW0=(typeof calc==='function')?calc:null;
-if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
-try{ __emrData(); }catch(e){}
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); if(__scaleDirty){ try{__emrData();}catch(e){} } return __er; }; }
 </script>
 
 <!-- SEO 介绍区块 -->
@@ -564,7 +585,7 @@ function __abcd2Export(){
 }
 function __abcd2Presets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#abcd2Presets',[{label:'默认参数',labelEn:'Default',values:{'age':'0', 'bp':'0', 'clinical':'0', 'duration':'0'}},{"label":"低危 TIA","labelEn":"Low-risk TIA","values":{"age":"1","bp":"0","clinical":"0","duration":"0","dm":false}},{"label":"中危 TIA","labelEn":"Moderate-risk TIA","values":{"age":"1","bp":"0","clinical":"1","duration":"1","dm":true}},{"label":"高危 TIA","labelEn":"High-risk TIA","values":{"age":"1","bp":"1","clinical":"2","duration":"2","dm":true}}],function(){ calc(); });
+    TBKit.preset.bar('#abcd2Presets',[{label:'默认参数',labelEn:'Default',values:{'age':'0', 'bp':'0', 'clinical':'0', 'duration':'0'}},{"label":"低危 TIA","labelEn":"Low-risk TIA","values":{"age":"1","bp":"0","clinical":"0","duration":"0","dm":false}},{"label":"中危 TIA","labelEn":"Moderate-risk TIA","values":{"age":"1","bp":"0","clinical":"1","duration":"1","dm":true}},{"label":"高危 TIA","labelEn":"High-risk TIA","values":{"age":"1","bp":"1","clinical":"2","duration":"2","dm":true}}],function(){ __scaleDirty = true; calc(); });
 }
 var __abcd2_f0=(typeof calc==='function')?calc:null;
 if(__abcd2_f0){

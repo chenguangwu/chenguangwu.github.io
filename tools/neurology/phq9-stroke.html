@@ -127,6 +127,7 @@ s.parentNode.insertBefore(el, s);
 <div class="toolbar">
       <button type="button" class="btn primary" onclick="calc()">计算评分</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" onclick="resetAll()" title="恢复为未评估状态">重置评分</button>
       <span style="font-size:13px;color:var(--text-muted);">📌 示例答卷：</span><button type="button" class="btn" onclick="applyPhqPreset('mild')">轻度（7 分）</button><button type="button" class="btn" onclick="applyPhqPreset('moderate')">中度（14 分）</button><button type="button" class="btn" onclick="applyPhqPreset('severe')">重度警示（22 分）</button>
     </div>
 
@@ -261,6 +262,7 @@ function applyPhqPreset(kind){
       if(parseInt(radios[j].value) === v){ radios[j].checked = true; break; }
     }
   });
+  __scaleDirty = true;
   calc();
 }
 
@@ -270,10 +272,10 @@ function buildForm(){
   questions.forEach(function(q, i){
     formHtml += '<div class="phq-q">';
     formHtml += '<div class="q-text">'+q+'</div>';
-    formHtml += '<label><input type="radio" name="q'+i+'" value="0" checked onchange="calc()"> 完全不会(0)</label>';
-    formHtml += '<label><input type="radio" name="q'+i+'" value="1" onchange="calc()"> 好几天(1)</label>';
-    formHtml += '<label><input type="radio" name="q'+i+'" value="2" onchange="calc()"> 一半以上(2)</label>';
-    formHtml += '<label><input type="radio" name="q'+i+'" value="3" onchange="calc()"> 几乎每天(3)</label>';
+    formHtml += '<label><input type="radio" name="q'+i+'" value="0" checked onchange="__markScaleDirty()"> 完全不会(0)</label>';
+    formHtml += '<label><input type="radio" name="q'+i+'" value="1" onchange="__markScaleDirty()"> 好几天(1)</label>';
+    formHtml += '<label><input type="radio" name="q'+i+'" value="2" onchange="__markScaleDirty()"> 一半以上(2)</label>';
+    formHtml += '<label><input type="radio" name="q'+i+'" value="3" onchange="__markScaleDirty()"> 几乎每天(3)</label>';
     formHtml += '</div>';
   });
   var wrapper = document.createElement('div');
@@ -297,6 +299,14 @@ function calc(){
   });
 
   var sev, color, advice;
+  if(!__scaleDirty){
+    var __sh = '<div class="stat-grid"><div class="stat-card"><div class="val" style="color:#10B981;">'+total+'</div><div class="lbl">PHQ-9 总分</div></div></div>';
+    __sh += '<div class="info-box"><strong>当前为默认评分（全部选「完全不会」= 0 分），请按近 2 周实际情况修改后查看解读。</strong></div>';
+    document.getElementById('result').innerHTML = __sh;
+    var __emrBox = document.getElementById('emrBox');
+    if(__emrBox && __emrBox.parentNode) __emrBox.parentNode.removeChild(__emrBox);
+    return;
+  }
   if(total <= 4){ sev='无抑郁'; color='#10B981'; advice='无明显抑郁症状。定期随访筛查即可。'; }
   else if(total <= 9){ sev='轻度抑郁'; color='#8BC34A'; advice='轻度抑郁症状。建议心理支持/认知行为治疗，4-6周后复评。关注症状变化。'; }
   else if(total <= 14){ sev='中度抑郁'; color='#FFC107'; advice='中度抑郁。建议抗抑郁药物治疗（舍曲林/艾司西酞普兰，起始小量缓慢加量）或规范心理治疗。'; }
@@ -349,6 +359,7 @@ function copyResult(){
       if(radios[j].checked){ total += parseInt(radios[j].value); break; }
     }
   });
+  if(!__scaleDirty){ ToolBox.copyText('PHQ-9评分：'+total+'分（默认评分，尚未按近 2 周实际情况修改）', i18nText()); return; }
   ToolBox.copyText('PHQ-9评分：'+total+'分', i18nText());
 }
 
@@ -393,6 +404,23 @@ function __phq9Export(){
 }
 
 buildForm();
+var __defVals = {};
+questions.forEach(function(item, i){
+  var rs = document.getElementsByName('q'+i);
+  __defVals[i] = '0';
+  for(var j=0;j<rs.length;j++){ if(rs[j].checked){ __defVals[i] = rs[j].value; break; } }
+});
+var __scaleDirty = false;
+questions.forEach(function(item, i){ if(__defVals[i] !== '0') __scaleDirty = true; });
+function __markScaleDirty(){ __scaleDirty = true; calc(); }
+function resetAll(){
+  questions.forEach(function(item, i){
+    var rs = document.getElementsByName('q'+i);
+    for(var j=0;j<rs.length;j++){ rs[j].checked = (rs[j].value === __defVals[i]); }
+  });
+  __scaleDirty = false;
+  calc();
+}
 calc();
 
 /* —— 门诊记录（EMR note）：把量表结果整理成可直接粘进门诊病历的文本（中英双语） —— */
@@ -458,8 +486,7 @@ function __emrData(){
 }
 
 var __emrW0=(typeof calc==='function')?calc:null;
-if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
-try{ __emrData(); }catch(e){}
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); if(__scaleDirty){ try{__emrData();}catch(e){} } return __er; }; }
 </script>
 
 <!-- SEO 介绍区块 -->

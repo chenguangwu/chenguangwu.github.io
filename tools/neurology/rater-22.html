@@ -117,6 +117,7 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="calc()">计算评分</button>
       <button type="button" class="btn" onclick="copyResult()">复制报告</button>
+      <button type="button" class="btn" onclick="resetAll()" title="恢复为未评估状态">重置评分</button>
     </div>
     <div class="result-box" id="res"></div>
 <div id="resRefBar" style="margin-top:12px"></div>
@@ -170,7 +171,10 @@ s.parentNode.insertBefore(el, s);
 <script>
 var items=[{'n': '1.步态（0–8分）', 'o': ['0-正常', '1-轻微异常，可独立行走', '2-明显异常，可独立行走', '3-需1根手杖/拐', '4-需2根手杖/助行架', '5-需1人扶持', '6-需2人扶持', '7-不能行走', '8-不能站立']}, {'n': '2.站立（0–6分）', 'o': ['0-正常>60s', '1-轻微不稳>60s', '2-双脚并拢>10s', '3-并拢<10s', '4-双脚分开>10s', '5-分开<10s', '6-不能站立']}, {'n': '3.坐位（0–4分）', 'o': ['0-正常>60s', '1-轻微不稳>60s', '2-可坐>10s', '3-可坐<10s', '4-不能无支撑坐']}, {'n': '4.言语障碍（0–6分）', 'o': ['0-正常', '1-轻微构音障碍', '2-中度，可理解', '3-明显，部分可理解', '4-多数不可理解', '5-仅个别词', '6-无言语']}, {'n': '5.指鼻追踪（0–4分）', 'o': ['0-正常', '1-轻微辨距不良', '2-中度辨距不良', '3-重度辨距不良', '4-不能完成']}, {'n': '6.鼻指试验（0–4分）', 'o': ['0-正常', '1-轻微辨距不良', '2-中度辨距不良', '3-重度辨距不良', '4-不能完成']}, {'n': '7.快速交替动作（0–4分）', 'o': ['0-正常', '1-轻度不规则', '2-中度不规则', '3-重度不规则', '4-不能完成']}, {'n': '8.跟膝胫试验（0–4分）', 'o': ['0-正常', '1-轻微辨距不良', '2-中度辨距不良', '3-重度辨距不良', '4-不能完成']}];
 var c=document.getElementById('items');
-items.forEach(function(it,i){var h='<div class="input-row"><div><label>'+it.n+'</label><select id="si'+i+'" style="font-size:16px;" onchange="calc()">';it.o.forEach(function(o,j){h+='<option value="'+j+'">'+o+'</option>';});h+='</select></div></div>';c.insertAdjacentHTML('beforeend',h);});
+items.forEach(function(it,i){var h='<div class="input-row"><div><label>'+it.n+'</label><select id="si'+i+'" style="font-size:16px;" onchange="__markScaleDirty()">';it.o.forEach(function(o,j){h+='<option value="'+j+'">'+o+'</option>';});h+='</select></div></div>';c.insertAdjacentHTML('beforeend',h);});
+var __scaleDirty=false;
+function __markScaleDirty(){__scaleDirty=true;calc();}
+function resetAll(){for(var i=0;i<items.length;i++){var s=document.getElementById('si'+i);if(s)s.value='0';}__scaleDirty=false;calc();}
 function __saraExport(){
   if(typeof TBKit==='undefined') return;
   if(typeof items==='undefined') return;
@@ -204,6 +208,16 @@ function __saraExport(){
 }
 function calc(){var t=0,s=[];items.forEach(function(it,i){var v=+document.getElementById('si'+i).value;s.push({n:it.n,v:v,o:it.o[v]});t+=v;});
 var mx=40;
+if(!__scaleDirty){
+  var __h0='<p>评分：<strong style="font-size:26px;color:var(--success);">'+t+'</strong> / '+mx+'</p>';
+  __h0+='<div class="info-box"><strong>当前为默认评分（各项均为 0 分），请按实际查体修改后查看解读。</strong></div>';
+  var __el=document.getElementById('res');
+  __el.innerHTML=__h0;
+  __el.dataset.copyValue='SARA：'+t+'/'+mx;
+  var __rb=document.getElementById('resRefBar'); if(__rb) __rb.innerHTML='';
+  var __emrBox=document.getElementById('emrBox'); if(__emrBox&&__emrBox.parentNode) __emrBox.parentNode.removeChild(__emrBox);
+  return;
+}
 var g,c,it;
 if(t<=3){g='轻度';c='var(--success)';it='症状轻微，日常活动基本不受限，定期随访。';}
 else if(t<=8){g='轻-中度';c='var(--info)';it='行走和精细动作开始受影响，建议康复训练。';}
@@ -286,8 +300,7 @@ function __emrData(){
 }
 
 var __emrW0=(typeof calc==='function')?calc:null;
-if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
-try{ __emrData(); }catch(e){}
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); if(__scaleDirty){ try{__emrData();}catch(e){} } return __er; }; }
 </script>
 
 </div>
