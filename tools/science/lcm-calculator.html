@@ -150,7 +150,7 @@ s.parentNode.insertBefore(el, s);
      <h2 data-zh="🔢 最小公倍数（LCM）">🔢 Least Common Multiple (LCM) Calculator</h2>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">最小公倍数 LCM(a, b) = a × b ÷ GCD(a, b)；多个数依次两两求解</div>
-  <div class="formula-desc">本计算基于标准数学定义与运算规则，结果按计算精度实时输出。 工具名称：最小公倍数 - 科学研究领域的在线工具。</div>
+  <div class="formula-desc">最小公倍数 lcm(a,b) 是能同时被 a、b 整除的最小正整数；本页按 lcm(a,b)=|a·b|/gcd(a,b) 两两递推，多值输入依次合并，并按 parseInt 取整、拒绝 0。</div>
 </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="利用 LCM(a,b)=|a·b|/GCD(a,b)，输入若干正整数计算它们的最小公倍数，适用于通分、周期对齐等数学计算场景。">Compute the least common multiple of several positive integers with LCM(a,b) = |a·b| / GCD(a,b), for common denominators and period alignment.</p>
 
@@ -183,16 +183,37 @@ s.parentNode.insertBefore(el, s);
 <section class="deep-dive" data-deep-dive="1">
 <div class="card">
 <h2>📚 深度解析：最小公倍数（LCM）</h2>
-<h3>💡 常见使用场景</h3>
+<h3>📖 定义与公式</h3>
+<div style="margin:8px 0;line-height:1.85;">最小公倍数 lcm(a,b) 是同时能被 a 和 b 整除的最小正整数。计算口径：lcm(a,b)=|a·b| / gcd(a,b)；三个及以上数值用递推 lcm(a,b,c)=lcm(lcm(a,b),c)。等价做法是质因数分解后取每个质因数的最高次幂。本页按递推式逐步展示，并对输入做 parseInt 取整、拒绝 0。</div>
+<h3>🧮 算例（按本页代码口径实跑）</h3>
+<div class="dd-example"><div class="dd-ex-title">lcm(12, 18, 24)</div><div class="dd-ex-body">页面先算 lcm(12,18)：gcd=6 ⇒ (12×18)/6=36；再算 lcm(36,24)：gcd=12 ⇒ (36×24)/12=72。质因数口径：12=2²×3、18=2×3²、24=2³×3 ⇒ 取最高次幂 2³×3²=72。</div></div>
+<div class="dd-example"><div class="dd-ex-title">lcm(8, 9, 15)</div><div class="dd-ex-body">8=2³、9=3²、15=3×5 ⇒ 2³×3²×5=360。页面递推：lcm(8,9)=72（互质，gcd=1）⇒ lcm(72,15)=(72×15)/3=360。</div></div>
+<div class="dd-example"><div class="dd-ex-title">两个数的快速核对</div><div class="dd-ex-body">lcm(4,6)=12（gcd=2，24/2=12）；lcm(7,9)=63（互质）；lcm(21,6)=42（gcd=3，126/3=42）。</div></div>
+<h3>⚠️ 适用条件与常见误用</h3>
 <ul class="dd-list">
-<li>通分、周期同步。</li>
-<li>齿轮啮合周期同步或分数通分时求最小公倍数。</li>
+<li>0 没有最小公倍数（任何正整数都不是 0 的倍数意义上的最小正公倍数），页面直接拒绝含 0 的输入。</li>
+<li>负数按绝对值处理；小数会被 parseInt 截断（1.5 变 1），应输入整数。</li>
+<li>误用一：直接把 a×b 当 lcm——只有两数互质（gcd=1）时才成立，否则结果偏大。</li>
+<li>误用二：把 lcm 与 gcd 弄反：lcm 求「同时被整除的最小正数」，gcd 求「同时整除它们的最大数」。</li>
+<li>数值很大时乘积可能超出安全整数范围，页面按 JS number 显示，工程上应改用 BigInt。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">计算</div><div class="dd-ex-body">lcm(4,6)=12；lcm(4,6,8)=24。</div></div>
+<h3>📊 多组输入对照（实跑）</h3>
+<ul class="dd-list">
+<li>4, 6：gcd = 2 ⇒ lcm = (4×6)/2 = 12，步骤行完整可复算。</li>
+<li>8, 9：互质（gcd = 1）⇒ lcm = 72 = 8×9，验证「互质时乘积即 lcm」。</li>
+<li>8, 9, 15：先 lcm(8,9) = 72，再 lcm(72,15) = (1,080)/3 = 360；质因数口径 2³×3²×5 同为 360。</li>
+<li>12, 18, 24：先 lcm(12,18) = 216/6 = 36，再 lcm(36,24) = 864/12 = 72；质因数 2³×3² 同为 72。</li>
+<li>21, 6：gcd = 3 ⇒ lcm = 126/3 = 42，用来说明「乘积不等于 lcm」。</li>
+<li>0, 5：页面直接拒绝「不能包含 0」——0 没有正的最小公倍数。</li>
+</ul>
+<h3>🧭 使用场景与取值建议</h3>
+<div style="margin:8px 0;line-height:1.85;">lcm 的典型用法是「让若干周期第一次重新对齐」：分数 1/4 与 1/6 通分，分母取 lcm(4,6) = 12；两个齿轮 24 齿与 36 齿啮合，转过 lcm(24,36) = 72 齿后回到初始啮合位置；A 每 8 天、B 每 9 天、C 每 15 天巡检一次，三者同日巡检要等 360 天。取多值输入时直接逗号分隔即可，页面对顺序不敏感，因为递推式满足结合律。</div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>与 GCD 关系？</dt><dd>lcm(a,b)=a·b/gcd(a,b)。</dd>
-<dt>多个数怎么求？</dt><dd>两两求 lcm 再与下一个数继续求即可。</dd>
+<dt>lcm 与 gcd 有什么恒等关系？</dt><dd>对正整数 a、b：lcm(a,b)·gcd(a,b)=a·b，因此已知 gcd 时可反解 lcm。</dd>
+<dt>多值输入怎么算？</dt><dd>两两递推即可：先求 lcm(a,b)，再用结果与 c 求 lcm，顺序不影响最终结果。</dd>
+<dt>为什么多值输入的顺序不影响结果？</dt><dd>lcm 满足结合律：lcm(a,b,c) = lcm(lcm(a,b),c) = lcm(a,lcm(b,c))，页面按从左到右递推，换成别的分组顺序结果相同。</dd>
+<dt>输入一个数会怎样？</dt><dd>单值时没有「公倍数」的比较对象，页面直接返回该数本身（与 gcd 的单值处理一致），可用于批量校验输入是否被正确解析。</dd>
 </dl>
 </div>
 </section>

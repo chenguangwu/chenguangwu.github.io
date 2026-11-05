@@ -1922,6 +1922,60 @@ const CASES = [
     "ref": "元素详情独立核对：原子序数 26 即 Fe（铁，Iron）——第 4 周期第 8 族，原子量 55.845、电子排布 [Ar]3d6 4s2（数据取自页内 ELEMENTS 元素表）。"
        + "boot 默认调 showDetail(1) ⇒ 详情区为「氢 / 原子序数 1」；clicks 改为 showDetail(26) 后详情区出现「原子序数 26」。"
        + "判别器清空 clicks 后兜底调 showDetail()（无参 ⇒ ELEMENTS.find 返回 undefined ⇒ 直接 return），详情仍是氢，不命中。"
+  },
+
+  // ---- 2026-11-05：8 页 science 工具「深度解析算例」与页面输出对齐（算例数字均 node 实跑取回）----
+  {
+    "slug": "science/power-calculator",
+    "inputs": { "base": "2", "exp": "-10" },
+    "expect": ["2^-10 = 0.001", "1 / 1,024"],
+    "ref": "负指数：2^-10 = 1/2^10 = 1/1,024 = 0.0009765625，fmt 后显示 0.001；步骤行给出「1 / 2^10 = 1 / 1,024」。默认 2^10 = 1,024 ⇒ 两条锚均不命中。"
+  },
+  {
+    "slug": "science/log-calculator",
+    "inputs": { "x": "1024", "base": "2" },
+    "clicks": ["calculate()"],
+    "expect": ["log 2 (1,024) = 10", "验证：2^10 = 1,024"],
+    "ref": "换底：log₂1,024 = ln1,024/ln2 = 6.931/0.693 = 10，验证行 2^10 = 1,024。默认 x=100、base=2 ⇒ log₂100=6.644，不命中。"
+  },
+  {
+    "slug": "science/lcm-calculator",
+    "inputs": { "nums": "8,9,15" },
+    "clicks": ["calculate()"],
+    "expect": ["LCM = 360", "LCM = (1,080) / 3 = 360"],
+    "ref": "递推：lcm(8,9)=72（gcd=1），lcm(72,15)=1,080/3=360；质因数 2³×3²×5=360。默认 12,18,24 ⇒ 72，不命中。"
+  },
+  {
+    "slug": "science/gcd-calculator",
+    "inputs": { "nums": "1071,462" },
+    "clicks": ["calculate()"],
+    "expect": ["GCD = 21", "147 = 7 × 21 + 0"],
+    "ref": "欧几里得：1,071=2×462+147 → 462=3×147+21 → 147=7×21+0 ⇒ gcd=21；质因数公共部分 3×7=21。默认 48,36,24 ⇒ 12，不命中。"
+  },
+  {
+    "slug": "science/quartile-calculator",
+    "inputs": { "data": "1, 2, 3, 4, 100" },
+    "clicks": ["calculate()"],
+    "expect": ["Q1 = 2，Q2 = 3，Q3 = 4", "检测到 1 个异常值：100"],
+    "ref": "n=5 时 pos=(n−1)p 为 1/2/3 ⇒ Q1=2、Q2=3、Q3=4；IQR=2，上界 4+1.5×2=7 ⇒ 100 判离群。默认 10 个数据 ⇒ 5.25/8/14.25，不命中。"
+  },
+  {
+    "slug": "science/root-calculator",
+    "inputs": { "x": "72" },
+    "expect": ["√72 = 6√2 ≈ 8.485", "验证：8.485 × 8.485 = 72 ≈ 72"],
+    "ref": "根式化简：72=36×2=6²×2 ⇒ √72=6√2≈8.485，自验行 8.485²≈72。默认 x=16 ⇒ √16=4，不命中。"
+  },
+  {
+    "slug": "science/permutation-calculator",
+    "inputs": { "n": "10", "r": "3" },
+    "expect": ["P(10, 3) = 720", "= 10 × 9 × 8 = 720"],
+    "ref": "排列：P(10,3)=10×9×8=720，约分行 10!/7! 同值。默认 n=5、r=3 ⇒ P(5,3)=60，不命中。"
+  },
+  {
+    "slug": "science/mode-calculator",
+    "inputs": { "data": "1, 1, 2, 2, 3" },
+    "expect": ["众数 = 1, 2（出现 2 次）", "双峰分布（bimodal）"],
+    "ref": "频数：1 与 2 各 2 次、3 一次 ⇒ 双众数 1、2（各 40.00%），页面判双峰。默认单峰众数=3 ⇒ 不命中。"
   }
 
 ];
