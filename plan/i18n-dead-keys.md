@@ -6657,7 +6657,7 @@
 
 ## 词典存在但无对应页面的 slug（非死键，单独列出）
 
-- admin/register-depreciation (json=register-depreciation.json)
+- （已清理 2026-11-05）admin/register-depreciation：页面已归位 finance，admin 版死字典已删除
 - design/color-contrast-check (json=color-contrast-check.json)
 - fun/word-search (json=word-search.json)
 - general/vcard-qr (json=vcard-qr.json)
