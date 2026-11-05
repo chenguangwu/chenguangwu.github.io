@@ -729,5 +729,13 @@ RESULT 11/11
 - **实例**：`tools/decor/scheduler.html` 先修了 3 处名称回显（甘特条文字、条 `title` 属性、关键路径 `map(...).join()`），复测**仍 `xss=1`、注入 6 个 `<img>`**；第 4 处 `__decTable()` 把 `labels` 裸拼进 `<td>` 才归零。
 - **纪律**：每修一处立即复测，直到 `window.__xss === undefined && injectedImg === 0` 才算收口；禁止「改一处就收」。
 - **探针常驻项**：`prompt/confirm/alert` 桩必须写进探针（`tools/fitness/cycle-5.html` 的 `add*` 调 `prompt()` 会让无头浏览器阻塞并 TIMEOUT；加桩后复测 `xss=undefined`，页面本身已 `escHtml`，无漏洞）。
-- **localStorage 回灌密度**：前两批 40 页命中 2 页（5%）、本批 40 页 + 12 页补充命中 0；属性上下文 4 目录 384 页命中 0。据此定为「回灌优先、属性托底」。 
+- **localStorage 回灌密度**：前两批 40 页命中 2 页（5%）、本批 40 页 + 12 页补充命中 0；属性上下文 4 目录 384 页命中 0。据此定为「回灌优先、属性托底」。
+
+### 19.3 URL 参数反射面：密度低，探针已加正控
+
+- 静态：全站 `URLSearchParams` 56 页、`location.search` 276 页、`location.hash` 1 页；真正「读 `?param`/`#hash` 的值」的页极少，绝大多数是 `?lang=en-US` 的 `/lang=/` 测试或「生成分享链接」的写入端。
+- 交叉筛（值来自 URL 参数且进 `innerHTML`/属性/`document.write`）得 36 条，逐条核对后**全部为 i18n 变量（`lang/__EN/EN`）误报**；唯一读 hash 的 `tools/it/regex.html` 只写入 `input.value`（不解析 HTML）。
+- 实测：`it/data/text/encode` 优先采样 30 页，对每页同时跑「query 全参注入」「`#<payload>`」「`#q=…&regex=…`」三态 → **0/30 命中**（`xss=undefined && injectedImg=0`）。
+- 正控（防假阴）：合成页 `?q=<img onerror>` → `xss=1 img=1`；合成页 `#<payload>` → `xss=1 img=1`。探针对 query/hash 两路反射均能报红，0/30 可信。
+- 结论：**URL 参数反射面密度低**，暂不再扩大样本；后续维持 1 目录/批属性托底（本批 `eco` 40 页，0 交叉）。 
 
