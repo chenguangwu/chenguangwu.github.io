@@ -822,6 +822,12 @@ const CASES = [
     "ref": "注入非默认三元组（默认 url=https://example.com/landing-page、source=wechat、campaign=summer_promo）。独立复算 UTM 拼接规范（Google Analytics 5 参数、query 顺序 source→medium→campaign→term→content、空值省略）：https://a.example/p?utm_source=weibo&utm_medium=social&utm_campaign=verifyQ。term/content 为空 ⇒ 不出现在链接中（这条本身就是口径验证：若页面错误地输出空值参数，会多出 &utm_term= 尾巴）。默认态生成 example.com/landing-page?…summer_promo，不命中。"
   },
   {
+    "slug": "marketing/marketing-utm-builder",
+    "inputs": { "url": "", "source": "weibo", "medium": "social", "campaign": "verifyBatch", "term": "", "content": "", "batchUrls": "https://a.example/p1\nhttps://b.example/p2" },
+    "expect": ["https://b.example/p2?utm_source=weibo&utm_medium=social&utm_campaign=verifyBatch"],
+    "ref": "批量模式：batchUrls 注入两行网址，逐行套用同一组参数。独立复算第二行为 https://b.example/p2?utm_source=weibo&utm_medium=social&utm_campaign=verifyBatch。默认态（batchUrls 为空）只生成单条 example.com 链接，不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
     "slug": "marketing/utm-builder",
     "inputs": { "url": "https://shop.example.org/p", "source": "zhihu", "medium": "referral", "campaign": "tb_verify_2026", "term": "k1 k2", "content": "c1" },
     "expect": ["https://shop.example.org/p?utm_source=zhihu&utm_medium=referral&utm_campaign=tb_verify_2026&utm_term=k1+k2&utm_content=c1"],
