@@ -358,3 +358,39 @@
 
 即：当「页面修复」与 `content_deepdive.json` 源头**同批同步**之后，`_build.py` 的 deep-dive 回写从**破坏性覆盖**变成**幂等重放**（写入但产出与 HEAD 相同，不产生 diff）。这是 §7.3 与 `deepdive source sync` 门禁有效的正面证据，不只是「又加了一条门禁」。
 
+## 8. 第 ⑧ 种假绿形态：判别器「模拟注入失败」仍派发事件（2026-11-05，本线）
+
+**编号**：⑧。前七种为：① 汇总行在检查前打印（检查结果不进汇总/退出码）　② `except: pass` 吞异常　③ 未完成即 `return 0`　④ 阈值吞失败　⑤ 子进程红、父进程报通过　⑥ 脚本没挂进 `run_gates.py`　⑦ 同名函数遮蔽（后定义覆盖前定义）。本形态与它们同级：**检查确实跑了，但「失败态」本身构造错了**，因此结果反向。
+
+**现象**：`scripts/discriminate_check.js` 全站报「仍 PASS(逃生项): 0」，同一时刻按「纯默认态」普查 `expect`，却有 76 条用例的锚在默认态即命中（见 §6）。两份结果直接矛盾。
+
+**根因（代码级）**：旧 `sweepFile()` 的「模拟注入失败」= 把 `inputs` 逐键换回页面 HTML 默认值 + 清空 `checkIds/radios/checks/clicks`，然后**仍然走 `runCase` 正常流程**。`runCase` 在注入阶段对每个控件派发 `input/change/keyup`（见 `verify_it_calc.js` 的 `if (c.inputs)` 段），页面 `calc()` 随即重渲染，把**加载期扫描表 / 枚举表**冲掉：
+
+- `acoustics/critical-distance`：纯默认快照含 `1.14 临界距离 r_c (m)`（Q=2 那一行来自加载期扫描表），回退路径却判成「正确变红」；
+- `thermodynamics/heat-conduction`：`600000.0 热流密度` 同理（扫描表被事件重绘覆盖）；
+- `quantum/hydrogen-energy-level`：能级表同理。
+
+**真实注入失败 = 纯默认态、不触发任何事件**：页面从未收到事件，加载期表格仍在，锚照样命中 ⇒ 该用例本来就没有判别力。
+
+**判据（硬性，混合锚必须按此口径）**：
+
+1. 用 `snapshotOnly: true` 取快照（只执行页面脚本与 `DOMContentLoaded`，只还原浏览器默认态：select 首项、HTML 已勾选的 checkbox/radio）；
+2. 只传 `slug` + 保真开关 `afterLoad / dynDom / dynInputs`，**不传** `inputs / checkIds / radios / checks / clicks`；
+3. 不跑无参兜底函数、不派发任何 `input/change/keyup`；
+4. `expect` 任一锚在快照 blob 中命中即「逃生项」；匹配口径与 harness 的 OR 语义、`blobHasWant` 的「原文 / HTML 转义」双路一致。
+
+**口径切换实测（旧 → 新）**：
+
+| 项 | 旧口径（回退值 + 事件） | 新口径（纯默认快照） |
+|---|---|---|
+| 已检 | 9196 | 9177 |
+| 正确变红 | 9196 | 9123 |
+| **逃生项** | **0（假绿）** | **54** |
+| 跳过 | 21 | 40 |
+
+基线 `scripts/discriminate_baseline.json` 同批改为 `54 / 9177 / 40`；随后本批换锚 25 个（23 条用例，11 文件）后逃生 **54 → 31**。
+
+**推论（校准其他线的口径）**：「0 逃生」在未按本口径复跑前**不可信**，尤其依赖加载期扫描表 / 枚举表的页面。凡线报「逃生 0」，应要求同时给出「纯默认快照 vs `expect`」的命中清单，而不是只看判别器汇总行。
+
+**提交**：`c0d5626448`（判别器口径 + 基线）、`69535cbdd0`（本批锚清理）。
+
