@@ -153,7 +153,7 @@ s.parentNode.insertBefore(el, s);
         <option value="other">其他</option>
       </select>
       <input type="number" id="newAmt" placeholder="金额（元）" min="0" step="100">
-      <div id="funeral_budget_plannerPresets"></div><button type="button" class="btn primary" onclick="addItem()">添加</button><button class="btn" type="button" onclick="__funeral_budget_plannerExport()">导出明细 CSV</button>
+      <div id="funeral_budget_plannerPresets"></div><input type="hidden" id="budgetScene" value=""><button type="button" class="btn primary" onclick="addItem()">添加</button><button class="btn" type="button" onclick="__funeral_budget_plannerExport()">导出明细 CSV</button>
     </div>
 
     <div class="toolbar">
@@ -264,6 +264,19 @@ s.parentNode.insertBefore(el, s);
 <script>
 var STORAGE_KEY = 'funeral_budget_items';
 var items = [];
+
+function __budgetLoadScene(){
+  var s=(document.getElementById('budgetScene')||{}).value||'basic';
+  var sets={
+    basic:[['遗体接运','basic',800],['遗体存放（冷藏3天）','basic',600],['火化费','basic',1000],['骨灰盒（中档）','basic',2000],['寿衣寿被','ritual',1500],['灵堂布置','ritual',2000]],
+    ritual:[['告别厅租赁','ritual',3000],['司仪与哀乐','ritual',1200],['花圈花篮','ritual',1800],['追思视频制作','service',1500],['来宾答谢宴','service',6000],['摄影记录','service',900]],
+    cemetery:[['墓地安葬','cemetery',28000],['墓碑刻字','cemetery',3600],['安葬礼仪','ritual',2200],['接运与火化','basic',1800],['骨灰盒','basic',3000],['周年祭扫预留','other',1200]]
+  };
+  var list=sets[s]||sets.basic;
+  items=list.map(function(x,i){return {id:i+1,name:x[0],cat:x[1],amt:x[2]};});
+  try{ saveStorage(); }catch(e){}
+  try{ render(); }catch(e){}
+}
 
 var CATS = {
   basic:{name:'基本殡葬',color:'#3B82F6',bg:'rgba(59,130,246,0.1)'},
@@ -555,7 +568,10 @@ function __funeral_budget_plannerExport(){
 }
 function __funeral_budget_plannerPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#funeral_budget_plannerPresets',[{label:'默认参数',labelEn:'Default',values:{'newCat':'basic'}}],function(){ addItem(); });
+    TBKit.preset.bar('#funeral_budget_plannerPresets',[{label:'默认参数',labelEn:'Default',values:{'newCat':'basic'}},
+  {"label":"基础殡葬 · 六项预算","labelEn":"Basic Funeral · Six Budget Items","values":{"budgetScene":"basic"}},
+  {"label":"仪式与服务 · 六项预算","labelEn":"Ceremony and Services · Six Items","values":{"budgetScene":"ritual"}},
+  {"label":"含墓地安葬 · 六项预算","labelEn":"Including Burial Plot · Six Items","values":{"budgetScene":"cemetery"}}],function(){ __budgetLoadScene(); });
 }
 var __funeral_budget_planner_f0=(typeof addItem==='function')?addItem:null;
 if(__funeral_budget_planner_f0){

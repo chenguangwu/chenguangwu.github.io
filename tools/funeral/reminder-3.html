@@ -144,7 +144,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按公历或农历添加祭扫纪念日，自动换算并显示距下次祭扫的倒计时，含24节气查询。">Reminder 3</p>
 
     <div class="tabs" id="addTabs">
-      <div id="reminder_3Presets"></div><button class="tab-btn active" data-mode="solar" onclick="switchAdd('solar')">按公历添加</button><button class="btn" type="button" onclick="__reminder_3Export()">导出明细 CSV</button>
+      <div id="reminder_3Presets"></div><input type="hidden" id="reminderScene" value=""><button class="tab-btn active" data-mode="solar" onclick="switchAdd('solar')">按公历添加</button><button class="btn" type="button" onclick="__reminder_3Export()">导出明细 CSV</button>
       <button class="tab-btn" data-mode="lunar" onclick="switchAdd('lunar')">按农历添加</button>
     </div>
 
@@ -429,6 +429,31 @@ function clearAll(){
     items=[];save();render();ToolBox.showToast(i18nText());
   }
 }
+function __reminder3LoadScene(){
+  var s=(document.getElementById('reminderScene')||{}).value||'solar';
+  var sets={
+    solar:[
+      {id:1,type:'solar',name:'清明祭扫',date:'2024-04-04',yearly:true},
+      {id:2,type:'solar',name:'先考忌日',date:'2024-10-18',yearly:true},
+      {id:3,type:'solar',name:'冬至祭祖',date:'2024-12-21',yearly:true}
+    ],
+    lunar:[
+      {id:1,type:'lunar',name:'先妣农历忌日',lYear:1960,lMonth:8,lDay:15,lLeap:false,yearly:true},
+      {id:2,type:'lunar',name:'中元节祭祖',lYear:1960,lMonth:7,lDay:15,lLeap:false,yearly:true},
+      {id:3,type:'lunar',name:'春节祭先',lYear:1960,lMonth:1,lDay:1,lLeap:false,yearly:true}
+    ],
+    mixed:[
+      {id:1,type:'solar',name:'清明祭扫',date:'2024-04-04',yearly:true},
+      {id:2,type:'lunar',name:'先祖农历忌日',lYear:1955,lMonth:3,lDay:9,lLeap:false,yearly:true},
+      {id:3,type:'solar',name:'周年追思',date:'2024-06-01',yearly:false}
+    ]
+  };
+  items=(sets[s]||sets.solar).map(function(x){return Object.assign({},x);});
+  try{ save(); }catch(e){}
+  try{ switchAdd(s==='lunar'?'lunar':'solar'); }catch(e){}
+  try{ render(); }catch(e){}
+}
+
 function render(){
   // 计算下次日期
   var arr=items.map(function(it){
@@ -756,7 +781,10 @@ function __reminder_3Export(){
 }
 function __reminder_3Presets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#reminder_3Presets',[{label:'默认参数',labelEn:'Default',values:{'lMonth':'1'}}],function(){ switchAdd(); });
+    TBKit.preset.bar('#reminder_3Presets',[{label:'默认参数',labelEn:'Default',values:{'lMonth':'1'}},
+  {"label":"公历三节祭扫","labelEn":"Three Solar-Calendar Memorials","values":{"reminderScene":"solar"}},
+  {"label":"农历三节祭祖","labelEn":"Three Lunar-Calendar Memorials","values":{"reminderScene":"lunar"}},
+  {"label":"公农历混合提醒","labelEn":"Mixed Solar and Lunar Reminders","values":{"reminderScene":"mixed"}}],function(){ __reminder3LoadScene(); });
 }
 var __reminder_3_f0=(typeof switchAdd==='function')?switchAdd:null;
 if(__reminder_3_f0){
