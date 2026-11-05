@@ -2,7 +2,7 @@
  * 历史区字段守卫回归：确保 null/undefined/NaN 不会以文本形式渲染进 TBKit.history 区域。
  *
  * 背景：`__sxExtras()` 曾把 `conf: null` 写入历史，`tool-kit.js` 原样拼接后显示 `conf null`。
- * 用例：① 公共组件跳过缺失/非有限值；② 合法的 0 仍保留；③ sentiment-analysis 缺省时省略 conf 键。
+ * 用例：① 公共组件跳过缺失/非有限值；② 合法的 0 仍保留。
  */
 "use strict";
 const fs = require("fs");
@@ -56,15 +56,6 @@ CASES.push({
     const host = win.document.getElementById("hist");
     win.TBKit.history.mount("#hist");
     return { ok: host.textContent.includes("conf 0"), got: host.textContent.trim() };
-  },
-});
-
-CASES.push({
-  name: "sentiment-analysis 缺省时省略 conf 键",
-  run() {
-    const src = fs.readFileSync(path.join(ROOT, "tools/ai/sentiment-analysis.html"), "utf8");
-    const ok = src.includes("if(conf!=null) rec.conf=conf;") && !/history\.record\s*\(\s*\{[^}]*conf\s*:\s*conf/.test(src);
-    return { ok, got: ok ? "rec.conf 仅在有值时写入" : "仍可能写入 conf:null" };
   },
 });
 

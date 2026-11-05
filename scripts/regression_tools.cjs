@@ -53,10 +53,7 @@ const TOOLS = [
   'tools/science/calculator.html', 'tools/math/equation-solver.html',
   'tools/eco/rainwater-harvest.html',
 ];
-const AI_TOOLS = [
-  'tools/ai/ocr.html', 'tools/ai/speech-to-text.html', 'tools/ai/image-classification.html',
-  'tools/ai/sentiment-analysis.html', 'tools/ai/text-summarization.html',
-];
+const AI_TOOLS = [];
 
 // 针对交互特殊（需要特定输入/文件上传/按钮序列）的工具，提供精确驱动
 const PLAY = {

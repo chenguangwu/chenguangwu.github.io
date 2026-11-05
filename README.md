@@ -17,7 +17,7 @@
 <!-- TOOLBOX_STATS_START -->
 | 指标 | 实时值 |
 |---|---:|
-| 工具总数 | 4705 |
+| 工具总数 | 4700 |
 | 行业总数 | 207 |
 | A 级占比 | 100.0% |
 | B 级占比 | 0.0% |
@@ -205,7 +205,6 @@ chenguangwu.github.io/
 │   ├── tool-search.js      # 全站统一实时下拉搜索
 │   ├── analytics.js        # 统一统计入口（百度 / Clarity / 51.la）
 │   ├── freemium.js         # Freemium：AI 工具每日限额
-│   ├── ai-core.js          # Transformers.js 纯前端 AI 共享加载器
 │   ├── chart.js            # 零依赖 Canvas 图表库
 │   └── qrcode.js           # 二维码库（第三方，MIT）
 ├── json/

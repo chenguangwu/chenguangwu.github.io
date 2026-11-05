@@ -298,6 +298,16 @@ def vendor_ledger() -> list[dict]:
             "source": "Google Fonts（本地 woff2/ttf 副本）",
             "note": "index.html / 404.html 使用；版本取自 TTF name 表 ID5",
         })
+    pairing_fonts = ROOT / "vendor" / "fonts" / "font-pairing"
+    if pairing_fonts.is_dir():
+        entries.append({
+            "component": "Font pairing preview fonts",
+            "version": "Google Fonts Latin subsets",
+            "local": "vendor/fonts/font-pairing/",
+            "files": sorted(x.name for x in pairing_fonts.iterdir() if x.is_file()),
+            "source": "https://github.com/google/fonts",
+            "note": "35 个 OFL 字体族；各族许可证随资源分发，字体文件名带内容哈希",
+        })
     sqljs = ROOT / "vendor" / "sql.js"
     if sqljs.is_dir():
         for d in sorted(sqljs.iterdir()):
@@ -310,6 +320,24 @@ def vendor_ledger() -> list[dict]:
                     "source": "https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/",
                     "note": "自托管；wasm 启动前 SHA-256 校验（失败拒绝启动）",
                 })
+    for component, version, source, note in (
+        ("acorn", "8.19.0", "https://cdn.jsdelivr.net/npm/acorn@8.19.0/dist/acorn.min.js", "MIT；浏览器包无运行时外部依赖"),
+        ("bcryptjs", "2.4.3", "https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js", "MIT；浏览器包无运行时外部依赖"),
+        ("js-yaml", "4.1.0", "https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js", "MIT；argparse 为命令行依赖，不在浏览器包中"),
+        ("less", "4.9.1", "https://cdn.jsdelivr.net/npm/less@4.9.1/dist/less.min.js", "Apache-2.0；包含 copy-anything、is-what、parse-node-version，支持用户指定的 @import"),
+        ("pdf-lib", "1.17.1", "https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js", "MIT；包含 standard-fonts、upng、pako、tslib"),
+        ("typescript", "5.3.3", "https://cdnjs.cloudflare.com/ajax/libs/typescript/5.3.3/typescript.min.js", "Apache-2.0；附上游第三方声明，单文件转译无需运行时下载"),
+    ):
+        d = ROOT / "vendor" / component / version
+        if d.is_dir():
+            entries.append({
+                "component": component,
+                "version": version,
+                "local": f"vendor/{component}/{version}/",
+                "files": sorted(x.name for x in d.iterdir() if x.is_file()),
+                "source": source,
+                "note": note,
+            })
     return entries
 
 
