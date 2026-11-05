@@ -79,7 +79,7 @@ window.INDUSTRY_INFO = {
   'food-processing'      : { name: '食品加工', icon: '🏭', hot: 226754 },
   'rehabilitation'       : { name: '康复医学', icon: '🦾', hot: 224081 },
   'tcm-chemistry'        : { name: '中药化学', icon: '🌿', hot: 220735 },
-  'hr'                   : { name: '人力资源', icon: '👥', hot: 207058 },
+  'hr'                   : { name: '人力资源', icon: '👥', hot: 207060 },
   'obstetrics'           : { name: '产科医学', icon: '🤱', hot: 201147 },
   'forestry'             : { name: '林业资源', icon: '🌲', hot: 200038 },
   'pulmonology'          : { name: '呼吸内科', icon: '🫁', hot: 200038 },
