@@ -559,3 +559,32 @@
 - `node scripts/discriminate_check.js verify_civil_calc.js` = **73/73 变红、0 逃生**。
 - 英文探针 `scripts/_en_i18n_probe.mjs --check`：`structural/deflection-cantilever-point` / `-udl` / `ss-point-deflection` / `civil/beam-udl` / `civil/rc-beam-rebar` = 5 页 **0 残留**（rc-beam-rebar 同批补齐长公式、表单元格、8 个 placeholder 等 12 条历史残留）。
 - 构建保留判断：本批只改工具页内联脚本/正文、英文词典与台账；按约定**未跑 `_build.py`、未 push**，英文词典子树版本戳留待维护者构建时更新。
+
+## 第 22 批：挠度页弹性解与长期刚度并列 + 双向板系数口径 + 锚固 200mm 下限（2026-11-05）
+
+### 1. 三个 structural 挠度页：弹性解与 RC 长期刚度并列
+
+- 口径：两套结果**并列输出、互不替代**。弹性解保留 `δ_el = F·L³/(3·E·I)`（悬臂集中力）、`δ_el = w·L⁴/(8·E·I)`（悬臂均布）、`δ_el = P·L³/(48·E·I)`（简支跨中集中力）；RC 长期刚度按 GB 50010-2010 7.1.1（`M_cr = f_tk·W_0`）判未开裂/开裂，未开裂 `B_s = E_c·I_0`、开裂走 `ψ → B_s → B = B_s/θ`（7.2.3-1 / 7.2.5-1 / 7.2.2-2），再按各页弯矩图形系数给 `δ_lt`（悬臂集中力 `(1/3)M_qL²/B`、悬臂均布 `(1/4)M_qL²/B`、简支跨中 `(1/12)M_qL²/B`）。
+- `formula-eq` 同步写明两套公式、`M_cr` 判定、ψ 夹取 0.2~1.0、θ 与 `B`，以及各页 `δ_lt` 系数；弹性解在前作对照，RC 长期刚度随后并列。
+- 默认实测：`deflection-cantilever-point` δ_el=0.272 mm / δ_lt=3.56 mm（未开裂，M_q=0.20≤M_cr=0.23）；`deflection-cantilever-udl` 2.037 / 102.77 mm（已开裂，M_q=2.00>M_cr=0.23）；`ss-point-deflection` 8.333 / 597.95 mm（已开裂，M_q=5.00>M_cr=0.10）。
+
+### 2. `civil/two-way-slab`：系数口径与 `calc()` 对齐
+
+- 原口径：公式框只写 `M_x = α_x·q·l_x²，M_y = α_y·q·l_x²（系数按 l_y/l_x 查表插值）`，未说明表值、插值方式与封顶；deep-dive 示例误写「3m×3m 四边固定、α≈0.036、3.24 kN·m/m」，FAQ 还把「简支/固定、塑性铰线」混在一起。
+- 新口径（逐条对照 `__twsMoments()`）：四边简支、ν=0.2 跨中；`l_s=min(l_x,l_y)`、`l_l=max(...)`、`r=l_l/l_s`，`r>2.0` 按 2.0 封顶；表节点 `(1.0,0.0479,0.0479)`、`(1.2,0.0614,0.0384)`、`(1.4,0.0706,0.0328)`、`(1.6,0.0770,0.0286)`、`(1.8,0.0812,0.0256)`、`(2.0,0.0836,0.0234)`；相邻档按 `r` 线性内插；`M_x=α_x·q·l_s²`、`M_y=α_y·q·l_s²`，比值 `α_x/α_y`。示例改为「3m×3m 四边简支、α=0.0479、M_x=M_y=4.31 kN·m/m」，FAQ 明确本页不覆盖固定边/连续板。
+- 算例（node 实跑，含 `toFixed(2)`）：默认 `(10,4,5)` → 10.19 / 5.92 / 1.72；`(10,4,4)` r=1 → 7.66 / 7.66 / 1.00；`(10,3,7)` r=2.333 封顶 → 7.52 / 2.11 / 3.57；`(10,4,4.8)` r=1.2 → 9.82 / 6.14 / 1.60。
+- `content_deepdive.json` 的 scenarios / examples / faqs / summary 同批逐字同步（`indent=1`、EOF 无换行，diff 7/7 仅该条目）。
+
+### 3. `civil/rebar-anchorage`：锚固公式与 200mm 下限
+
+- 公式框已按 GB 50010-2010 式 8.3.1 / 8.3.2 校准：`l_ab = 0.14·(f_y/f_t)·d`、`l_a = max(ζ_a·l_ab, 200 mm)`；ζ_a 四款可自动判断项（d>25→1.10、环氧→1.25、扰动→1.10、保护层 3d→0.80/5d→0.70 线性内插、连乘下限 0.6）与代码 `__rebarZetaAutoCalc()` 一致。
+- 本批补充 **200mm 构造下限临界**用例：`d=5.6` ⇒ `l_ab=197 mm`、`l_a=200 mm`（默认 705/705，注入后必不同）。
+
+### 4. 校验与门禁
+
+- `node scripts/verify_civil_calc.js` = **77/77**（新增 two-way-slab 3 条：方形 7.66、r 封顶 7.52/2.11、节点 1.2 的 9.82；新增 rebar-anchorage 200mm 下限 1 条）。
+- `node scripts/verify_structural_calc.js` = **53/53**（第 21 批 6 条分支用例继续通过）。
+- `node scripts/discriminate_check.js` = **9177 变红、0 逃生**，跳过 34（基线 35，需维护者同步下调）。
+- 英文第三层词典同批更新：`i18n/tools/en/civil/two-way-slab.json`（新 formula-eq / formula-desc / 3 条 scenarios / 示例 / FAQ 答案）、`i18n/tools/en/structural/*.json`（三页新 formula-eq），`_en_override.json` 5 个 slug 的 `ed` 由占位串改为真实英文简介。
+- 新增指南页：`guides/two-way-slab-guide.html`、`guides/rebar-anchorage-guide.html`（只建 html，未改 `json/guides.json`）。
+- 构建保留判断：按本批纪律**未跑 `_build.py`、未 push**；英文词典子树版本戳与指南索引留待维护者构建时更新。
