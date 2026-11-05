@@ -13,6 +13,17 @@ const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
 
+  // ── 绕口令随机抽题 ──────────────────────────────────────────
+  {
+    slug: "fun/tongue-twister",
+    clicks: ["var __r=Math.random;Math.random=function(){return 0;};next();Math.random=__r;"],
+    expect: ["第 1 条 / 难度：简单"],
+    ref: "题库 20 条，clicks 把 Math.random 钉为 0（用完即恢复，避免污染同进程后续用例）⇒ "
+       + "idx=floor(0×20)=0 ⇒ 第 1 条「四是四…」、难度「简单」。默认态输出为「挑战快速念出声」、"
+       + "文本为「点击\"开始\"获取一条绕口令」⇒ 不含「第 1 条 / 难度：简单」，与本用例零交集。"
+       + "本页只做随机展示与难度标注，不录音、不计时、不评分。",
+  },
+
 
   // ── 冥想计时器 ──────────────────────────────────────────────
   {
