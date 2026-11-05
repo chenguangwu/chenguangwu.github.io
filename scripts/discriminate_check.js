@@ -39,6 +39,7 @@
  *   TB_STUB_FIDELITY=1     启用桩保真解析（默认 legacy）
  *   TB_STUB_LEGACY=1       强制回 legacy（逃生开关，优先级最高）
  *   TB_DISCRIM_MIN=N       已检下限（默认 8000）
+ *   TB_DISCRIM_JOBS=N      文件并发数（1–4，默认最多 2，受可用 CPU 限制）
  *   TB_DISCRIM_REPORT=1    额外输出 `REPORT <json>` 行（逐条用例明细，供工单/取证）
  *   TB_DISCRIM_CHILD_TIMEOUT=ms  单文件子进程超时（默认 120000）
  *
@@ -46,7 +47,8 @@
  */
 const fs = require("fs");
 const path = require("path");
-const { spawnSync } = require("child_process");
+const { spawn, spawnSync } = require("child_process");
+const os = require("os");
 
 // 全站模式：用例全部在逐文件子进程里执行，父进程自身 __executedCases 恒 0。
 // 告知 verify_it_calc 的「0 用例守卫」不要按父进程判红（子进程 argv 含文件名，不受影响）。
@@ -170,7 +172,7 @@ async function sweepFile(f) {
     return r;
   };
 
-  for (const c of CASES) {
+  for (const [caseIndex, c] of CASES.entries()) {
     // 锚的归一必须与 harness 完全一致：verify_it_calc 直接 `blob.includes(want)`，
     // 因此嵌套数组（expect: [["60.00"]]）会被 Array.toString 强转成 "60.00" 参与匹配。
     // 早期版本只收 typeof === "string"，把这类**有效用例**误判 no-expect 静默跳过
@@ -184,7 +186,7 @@ async function sweepFile(f) {
       || (c.radios && Object.keys(c.radios).length > 0)
       || (Array.isArray(c.checks) && c.checks.length > 0)
       || (Array.isArray(c.clicks) && c.clicks.length > 0);
-    const base = { file: f, slug: c.slug, ref: c.ref || "", expect: c.expect || [] };
+    const base = { file: f, caseIndex, slug: c.slug, ref: c.ref || "", expect: c.expect || [] };
     if (!hasInj) {
       stats.skipped++;
       reportRec(Object.assign({}, base, { kind: "skip", why: "no-inject", inputs: {} }));
@@ -233,7 +235,10 @@ async function sweepFile(f) {
         kind: "escape", why: "default-snapshot-still-pass", hits,
         inputs: c.inputs || {}, checkIds: c.checkIds || [], radios: c.radios || {}, clicks: c.clicks || [],
       }));
-    } else stats.fail++;
+    } else {
+      stats.fail++;
+      reportRec(Object.assign({}, base, { kind: "fail", why: "default-snapshot-no-hit" }));
+    }
   }
   return { stats, bad };
 }
@@ -259,8 +264,70 @@ function runIsolated(f) {
   return { ok: true, totals, bad };
 }
 
+// 文件间并发，文件内仍保持隔离与串行；结果按输入顺序汇总。
+function runIsolatedAsync(f, timeout = CHILD_TIMEOUT) {
+  return new Promise((resolve) => {
+    let out = "", stderr = "", ended = false, reason = "";
+    const child = spawn(REAL_PROCESS.execPath, [__filename, f], {
+      cwd: ROOT, env: REAL_PROCESS.env, stdio: ["ignore", "pipe", "pipe"],
+    });
+    const limit = 16 * 1024 * 1024;
+    const timer = setTimeout(() => { reason = `超时 ${timeout}ms`; child.kill("SIGKILL"); }, timeout);
+    const collect = (stream, isErr) => {
+      stream.setEncoding("utf8");
+      stream.on("data", (chunk) => {
+        if (out.length + stderr.length + chunk.length > limit) {
+          if (!reason) { reason = "子进程输出超出上限"; child.kill("SIGKILL"); }
+          return;
+        }
+        if (isErr) stderr += chunk; else out += chunk;
+      });
+    };
+    collect(child.stdout, false);
+    collect(child.stderr, true);
+    child.on("error", (err) => { reason = `启动失败: ${err.message}`; });
+    child.on("close", (code, signal) => {
+      if (ended) return;
+      ended = true;
+      clearTimeout(timer);
+      const text = out + stderr;
+      const matches = [...text.matchAll(new RegExp(STATS_RE.source, "g"))];
+      if (reason || signal || matches.length !== 1) {
+        resolve({ ok: false, why: reason || (signal ? `被信号终止 ${signal}` : `统计行数量 ${matches.length}（exit ${code}）`), out: text });
+        return;
+      }
+      const m = matches[0];
+      const totals = { total: +m[1], fail: +m[2], stillPass: +m[3], skipped: +m[4] };
+      const bad = text.split("\n").map((l) => l.trim()).filter((l) => l.startsWith("- ")).map((l) => l.slice(2));
+      if (totals.total !== totals.fail + totals.stillPass || bad.length !== totals.stillPass || code !== (totals.stillPass || !totals.total ? 1 : 0)) {
+        resolve({ ok: false, why: `统计或退出码不一致（exit ${code}）`, out: text });
+        return;
+      }
+      const reports = REPORT ? out.split("\n").filter((line) => line.startsWith("REPORT ")) : [];
+      if (REPORT && reports.length !== totals.total + totals.skipped) {
+        resolve({ ok: false, why: `逐例记录数 ${reports.length} 与统计不一致`, out: text });
+        return;
+      }
+      resolve({ ok: true, totals, bad, reports });
+    });
+  });
+}
+
+async function runPool(files, jobs) {
+  const results = new Array(files.length);
+  let next = 0;
+  async function worker() {
+    while (next < files.length) {
+      const i = next++;
+      results[i] = await runIsolatedAsync(files[i]);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(jobs, files.length) }, worker));
+  return results;
+}
+
 // ---------------------------------------------------------------- 自检（证明防线有效）
-function selftest() {
+async function selftest() {
   let failed = 0;
   const say = (ok, msg) => { REAL_LOG((ok ? "  ✅ " : "  ❌ ") + msg); if (!ok) failed++; };
 
@@ -307,6 +374,26 @@ function selftest() {
     `默认严格：1 个隔离文件 → ${isoProblems.length ? "判 FAIL：" + isoProblems[0] : "被放过"}`,
   );
 
+  // 非法并发配置必须立即失败，不能悄悄改成串行或进入全站扫描。
+  const invalidJobs = spawnSync(REAL_PROCESS.execPath, [__filename], {
+    cwd: ROOT, encoding: "utf8", timeout: 3000,
+    env: Object.assign({}, REAL_PROCESS.env, { TB_DISCRIM_JOBS: "0" }),
+  });
+  say(invalidJobs.status === 1 && (invalidJobs.stdout + invalidJobs.stderr).includes("TB_DISCRIM_JOBS"),
+    "非法并发数必须立即失败并说明原因");
+
+  const pool = await runPool(["verify_chess_calc.js", "verify_woodworking_calc.js"], 2);
+  say(pool.length === 2 && pool[0].ok && pool[1].ok && pool[0].totals.skipped === 1,
+    "并发结果按文件输入顺序汇总");
+  const missing = await runIsolatedAsync("__missing_verify_file__.js");
+  say(!missing.ok, "不存在的 verify 文件必须判失败");
+  const timed = await runIsolatedAsync("verify_chess_calc.js", 1);
+  say(!timed.ok && timed.why.includes("超时"), "子进程超时必须判失败");
+  REAL_PROCESS.env.TB_DISCRIM_SELFTEST_SILENT = "1";
+  const asyncSilent = await runIsolatedAsync("verify_chess_calc.js");
+  delete REAL_PROCESS.env.TB_DISCRIM_SELFTEST_SILENT;
+  say(!asyncSilent.ok, "并发子进程静默退出必须判失败");
+
   REAL_LOG(failed ? `\n❌ 自检失败 ${failed} 项` : "\n✅ 自检通过：静默退出/截断跑/低总量均会变红");
   statsPrinted = true;   // 自检本身已完整输出，勿触发「产出不完整」钩子
   REAL_PROCESS.exitCode = failed ? 1 : 0;
@@ -320,6 +407,16 @@ if (process.env.TB_DISCRIM_SELFTEST_SILENT === "1") {
 
 (async () => {
   if (SELFTEST) return selftest();
+
+  const available = typeof os.availableParallelism === "function" ? os.availableParallelism() : os.cpus().length;
+  const jobsText = REAL_PROCESS.env.TB_DISCRIM_JOBS;
+  if (jobsText !== undefined && (!/^[1-9]\d*$/.test(jobsText) || !Number.isSafeInteger(Number(jobsText)) || Number(jobsText) > 4)) {
+    REAL_LOG("❌ TB_DISCRIM_JOBS 必须为 1 到 4 的整数");
+    statsPrinted = true;
+    REAL_PROCESS.exitCode = 1;
+    return;
+  }
+  const jobs = Math.min(Number(jobsText || 2), Math.max(1, available || 1));
 
   // ---------- 单文件严格模式（argv 指定脚本）：行为与历史版本一致
   if (FILES_ONLY.length) {
@@ -355,12 +452,18 @@ if (process.env.TB_DISCRIM_SELFTEST_SILENT === "1") {
   const agg = { total: 0, fail: 0, stillPass: 0, skipped: 0 };
   const bad = [];
   const isolated = [];
-  for (const f of files) {
-    const r = runIsolated(f);
-    if (!r.ok) { isolated.push({ file: f, why: r.why }); continue; }
+  const results = await runPool(files, jobs);
+  for (const [i, f] of files.entries()) {
+    const r = results[i];
+    if (!r.ok) {
+      isolated.push({ file: f, why: r.why });
+      if (r.out) REAL_LOG(`\n⚠️ ${f} 子进程输出（可能不完整）:\n${r.out}`);
+      continue;
+    }
     agg.total += r.totals.total; agg.fail += r.totals.fail;
     agg.stillPass += r.totals.stillPass; agg.skipped += r.totals.skipped;
     bad.push(...r.bad);
+    if (REPORT) r.reports.forEach((line) => REAL_PROCESS.stdout.write(line + "\n"));
   }
 
   REAL_LOG(`\n==== 判别力验证（模拟注入失败 → 用例应 FAIL）====`);
@@ -386,15 +489,14 @@ if (process.env.TB_DISCRIM_SELFTEST_SILENT === "1") {
   const BASE_FP = path.join(ROOT, "scripts", "discriminate_baseline.json");
   if (fs.existsSync(BASE_FP)) {
     const basey = JSON.parse(fs.readFileSync(BASE_FP, "utf8"));
+    let baselineMismatch = false;
     if (agg.stillPass > basey.escape) {
       REAL_LOG(`\n❌ 突破基线：逃生项 ${agg.stillPass} > 基线 ${basey.escape}（新增 ${agg.stillPass - basey.escape} 个）`);
-      REAL_PROCESS.exitCode = 1;   // 注意：verify_it_calc.js 会覆盖 process.exit，只能用 exitCode
-      return;
+      baselineMismatch = true;
     }
     if (agg.stillPass < basey.escape) {
       REAL_LOG(`\n⚠️ 逃生项已下降（${basey.escape} → ${agg.stillPass}），请将基线同步下调后提交。`);
-      REAL_PROCESS.exitCode = 1;   // 强制棘轮：下降时必须更新基线，防止悄悄回涨
-      return;
+      baselineMismatch = true;
     }
     // 跳过数棘轮：跳过 = 无任何可模拟注入的用例，其 expect 从未被判别。新增跳过必须
     // 显式改基线（逼提交者看一眼「这条用例为什么判别不了」），下降同样要求同步。
@@ -405,14 +507,13 @@ if (process.env.TB_DISCRIM_SELFTEST_SILENT === "1") {
     }
     if (agg.skipped > basey.skipped) {
       REAL_LOG(`\n❌ 跳过 ${agg.skipped} > 基线 ${basey.skipped}（新增 ${agg.skipped - basey.skipped} 条未参与判别，需补可解析默认值或显式改基线）`);
-      REAL_PROCESS.exitCode = 1;
-      return;
+      baselineMismatch = true;
     }
     if (agg.skipped < basey.skipped) {
       REAL_LOG(`\n⚠️ 跳过已下降（${basey.skipped} → ${agg.skipped}），请将基线同步下调后提交。`);
-      REAL_PROCESS.exitCode = 1;
-      return;
+      baselineMismatch = true;
     }
+    if (baselineMismatch) { REAL_PROCESS.exitCode = 1; return; }
     REAL_LOG(`\n✅ 逃生项 ${agg.stillPass} = 基线 ${basey.escape}，跳过 ${agg.skipped} = 基线 ${basey.skipped}（无新增）`);
     REAL_PROCESS.exitCode = 0;
     return;
