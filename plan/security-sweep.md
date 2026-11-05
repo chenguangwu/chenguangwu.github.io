@@ -712,3 +712,22 @@ RESULT 11/11
 - 为拿到全量门禁计数，本批按用户指令跑了一次 `run_gates.py`（内含 `_build.py`），`zh-tw/` 与 `json/*.json` 因此被重建；按路径级提交纪律，构建产物与并行线未提交改动**均未纳入本批提交**。未 push。工具页 HTML / `js/ai-core.js` 改动在下次构建时随 SW 版本戳统一生效。
 - 新增入库文件：`scripts/audit_external_deps.py`、`vendor/sql.js/1.8.0/sql-wasm.js`、`vendor/sql.js/1.8.0/sql-wasm.wasm`；本地无头验证脚本放 `/tmp`，未入库。
 
+## 19. 属性上下文 / localStorage 回灌 XSS 专项（2026-11-05）
+
+### 19.1 硬性坑：`escHtml` 对 `on*="…"` 内联 JS 字符串上下文无效
+
+- **现象**：`style="background:${c}" title="${c}" onclick="loadHistoryColor('${c}')"`，`c` 来自 localStorage 回灌，页面存得住、读回即炸。
+- **机制**：`ToolBox.escHtml` 把 `'` 转成 `&#39;`；但 **HTML 属性值在 DOM 解析阶段会把实体解码回 `'`**，再交给内联事件处理器编译。攻击串 `');window.__xss=1;('` 因此仍能逃出字符串字面量 —— 实体转义在文本节点上下文有效，在 `on*` 的 JS 字符串字面量上下文**无效**。
+- **正解（按优先级）**：
+  1. 改用 `data-*` 承载值 + 静态处理器 `onclick="loadHistoryColor(this.getAttribute('data-hex'))"`（或 `el.dataset.x`）；
+  2. 整类改用 `addEventListener` 事件委托，HTML 里不出现任何用户数据；
+  3. 必须内联时先 `encodeURIComponent`，再显式把 `'` 替换成 `%27`，并在处理器内 `decodeURIComponent`。
+- **实例**：`tools/design/color-picker.html`（commit `c6dd677805`）。
+
+### 19.2 命中一处不等于修完：必须整页复测到 0
+
+- **实例**：`tools/decor/scheduler.html` 先修了 3 处名称回显（甘特条文字、条 `title` 属性、关键路径 `map(...).join()`），复测**仍 `xss=1`、注入 6 个 `<img>`**；第 4 处 `__decTable()` 把 `labels` 裸拼进 `<td>` 才归零。
+- **纪律**：每修一处立即复测，直到 `window.__xss === undefined && injectedImg === 0` 才算收口；禁止「改一处就收」。
+- **探针常驻项**：`prompt/confirm/alert` 桩必须写进探针（`tools/fitness/cycle-5.html` 的 `add*` 调 `prompt()` 会让无头浏览器阻塞并 TIMEOUT；加桩后复测 `xss=undefined`，页面本身已 `escHtml`，无漏洞）。
+- **localStorage 回灌密度**：前两批 40 页命中 2 页（5%）、本批 40 页 + 12 页补充命中 0；属性上下文 4 目录 384 页命中 0。据此定为「回灌优先、属性托底」。 
+
