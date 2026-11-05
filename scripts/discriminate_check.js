@@ -171,7 +171,11 @@ async function sweepFile(f) {
   };
 
   for (const c of CASES) {
-    const expects = Array.isArray(c.expect) ? c.expect.filter((x) => typeof x === "string") : [];
+    // 锚的归一必须与 harness 完全一致：verify_it_calc 直接 `blob.includes(want)`，
+    // 因此嵌套数组（expect: [["60.00"]]）会被 Array.toString 强转成 "60.00" 参与匹配。
+    // 早期版本只收 typeof === "string"，把这类**有效用例**误判 no-expect 静默跳过
+    // （实测 17 条：surveying 6 个 slug 12 条 + biz/data/it/life 5 条）。
+    const expects = Array.isArray(c.expect) ? c.expect.map((x) => String(x)) : [];
     // 适用性：用例必须声明过某种注入（inputs / checkIds / radios / checks / clicks），
     // 否则「注入失败」无从谈起 —— 真·无注入用例不参与判别。
     const hasInputs = !!(c.inputs && Object.keys(c.inputs).length > 0);
