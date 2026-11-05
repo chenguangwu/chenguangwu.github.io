@@ -274,7 +274,7 @@ s.parentNode.insertBefore(el, s);
     <div class="ref-cite" style="font-size:12.5px;line-height:1.75;color:var(--text-muted);background:var(--bg-hover);border-left:3px solid var(--primary);border-radius:0 8px 8px 0;padding:8px 12px;margin:0 0 14px;" data-zh="📖 原始文献：Cedarbaum JM, Stambler N, Malta E, et al. The ALSFRS-R: a revised ALS functional rating scale that incorporates assessments of respiratory function. J Neurol Sci. 1999;169(1-2):13-21. ｜ 他评/自评 · 12 项 · 各 0–4 分 · 0–48 分 · 含 3 项呼吸功能 · 分数越低功能越差">📖 Source: Cedarbaum JM, Stambler N, Malta E, et al. The ALSFRS-R: a revised ALS functional rating scale that incorporates assessments of respiratory function. J Neurol Sci. 1999;169(1-2):13-21. | Clinician- or self-rated · 12 items · each 0–4 · 0–48 · 3 respiratory items · lower = worse</div>
 <div class="toolbar">
       <div id="alsfrs_rPresets"></div><button type="button" class="btn primary" onclick="calc()">计算评分</button><button class="btn" type="button" onclick="__alsfrs_rExport()">导出明细 CSV</button>
-      <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" onclick="copyResult()">复制结果</button><button type="button" class="btn" onclick="resetAll()" title="恢复为未评估状态">重置评分</button>
     </div>
 
     <div class="result-box" id="result"></div>
@@ -379,11 +379,33 @@ var arm = ['u1','u2','u3'];
 var trunk = ['t1'];
 var leg = ['l1','l2'];
 var resp = ['r1','r2','r3'];
+var __allItems = bulb.concat(arm, trunk, leg, resp);
+
+var __defVals = {};
+__allItems.forEach(function(id){ __defVals[id] = document.getElementById(id) ? document.getElementById(id).value : '0'; });
+var __scaleDirty = false;
+function __markScaleDirty(){ __scaleDirty = true; calc(); }
+__allItems.forEach(function(id){
+  var __el = document.getElementById(id);
+  if(__el && __el.addEventListener){
+    __el.addEventListener('change', __markScaleDirty);
+    __el.addEventListener('input', __markScaleDirty);
+  }
+});
 
 function calc(){
   var sum = function(arr){ return arr.reduce(function(s, id){ return s + (parseInt(document.getElementById(id).value) || 0); }, 0); };
   var bs = sum(bulb), as = sum(arm), ts = sum(trunk), ls = sum(leg), rs = sum(resp);
   var total = bs + as + ts + ls + rs;
+
+  if(!__scaleDirty){
+    var __sh = '<div class="stat-grid"><div class="stat-card"><div class="val" style="color:#10B981;">'+total+'</div><div class="lbl">ALSFRS-R 总分</div></div></div>';
+    __sh += '<div class="info-box"><strong>当前为默认评分（满分 48 分 = 功能正常），请按实际查体修改后查看解读。</strong></div>';
+    document.getElementById('result').innerHTML = __sh;
+    var __emrBox = document.getElementById('emrBox');
+    if(__emrBox && __emrBox.parentNode) __emrBox.parentNode.removeChild(__emrBox);
+    return;
+  }
 
   var sev, color, advice;
   if(total >= 40){ sev='轻度'; color='#10B981'; advice='功能基本保留。可独立生活。继续利鲁唑/依达拉奉治疗，定期监测FVC。'; }
@@ -432,8 +454,11 @@ function calc(){
 function copyResult(){
   var total = 0;
   bulb.concat(arm).concat(trunk).concat(leg).concat(resp).forEach(function(id){ total += parseInt(document.getElementById(id).value) || 0; });
+  if(!__scaleDirty){ ToolBox.copyText('ALSFRS-R评分：'+total+'分（默认评分，尚未按实际查体修改）', i18nText()); return; }
   ToolBox.copyText('ALSFRS-R评分：'+total+'分', i18nText());
 }
+
+function resetAll(){ __allItems.forEach(function(id){ var __el=document.getElementById(id); __el.value=(__defVals[id]!==undefined?__defVals[id]:'0'); }); __scaleDirty=false; calc(); }
 
 calc();
 
@@ -510,8 +535,7 @@ function __emrData(){
 }
 
 var __emrW0=(typeof calc==='function')?calc:null;
-if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
-try{ __emrData(); }catch(e){}
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); if(__scaleDirty){ try{__emrData();}catch(e){} } return __er; }; }
 </script>
 
 <!-- SEO 介绍区块 -->
@@ -686,7 +710,7 @@ function __alsfrs_rExport(){
 }
 function __alsfrs_rPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#alsfrs_rPresets',[{label:'默认参数',labelEn:'Default',values:{'b1':'4', 'b2':'4', 'b3':'4', 'u1':'4', 'u2':'4', 'u3':'4', 't1':'4', 't2':'4', 'l1':'4', 'l2':'4', 'r1':'4', 'r2':'4'}},{"label":"早期 ALS","labelEn":"Early ALS","values":{"b1":"4","b2":"4","b3":"4","u1":"4","u2":"4","u3":"4","t1":"4","t2":"4","l1":"4","l2":"4","r1":"4","r2":"4","r3":"3"}},{"label":"中期 ALS","labelEn":"Intermediate ALS","values":{"b1":"2","b2":"2","b3":"2","u1":"2","u2":"2","u3":"2","t1":"2","t2":"2","l1":"2","l2":"2","r1":"2","r2":"2","r3":"2"}},{"label":"晚期 ALS","labelEn":"Advanced ALS","values":{"b1":"1","b2":"1","b3":"1","u1":"1","u2":"1","u3":"1","t1":"1","t2":"1","l1":"1","l2":"1","r1":"1","r2":"1","r3":"1"}}],function(){ calc(); });
+    TBKit.preset.bar('#alsfrs_rPresets',[{label:'默认参数',labelEn:'Default',values:{'b1':'4', 'b2':'4', 'b3':'4', 'u1':'4', 'u2':'4', 'u3':'4', 't1':'4', 't2':'4', 'l1':'4', 'l2':'4', 'r1':'4', 'r2':'4'}},{"label":"早期 ALS","labelEn":"Early ALS","values":{"b1":"4","b2":"4","b3":"4","u1":"4","u2":"4","u3":"4","t1":"4","t2":"4","l1":"4","l2":"4","r1":"4","r2":"4","r3":"3"}},{"label":"中期 ALS","labelEn":"Intermediate ALS","values":{"b1":"2","b2":"2","b3":"2","u1":"2","u2":"2","u3":"2","t1":"2","t2":"2","l1":"2","l2":"2","r1":"2","r2":"2","r3":"2"}},{"label":"晚期 ALS","labelEn":"Advanced ALS","values":{"b1":"1","b2":"1","b3":"1","u1":"1","u2":"1","u3":"1","t1":"1","t2":"1","l1":"1","l2":"1","r1":"1","r2":"1","r3":"1"}}],function(){ __scaleDirty=true; calc(); });
 }
 var __alsfrs_r_f0=(typeof calc==='function')?calc:null;
 if(__alsfrs_r_f0){
