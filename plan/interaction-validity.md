@@ -798,3 +798,30 @@ node scripts/runtime_scan.js --interact --files /tmp/pages.txt --timeout 10000
 - `scripts/verify_it_calc.js`：999/999 通过。
 - `discriminate_check.js verify_it_calc.js`：已检 999 / 正确变红 999 / 逃生 0 / 跳过 0。
 
+## 2026-11-05 rust-escape 用例真机复核 + 逐字段交互探针
+
+### rust-escape 旧用例作废（用例层面假绿）
+- 旧用例 `inputs` 为 `{input:"1\n2\n3", output:"1\n2\n3", kind:"char"}`，期望 `1 2 3\nchar\n1 2 3`；桩 `fullBlob` 与期望逐字相同，实为 **input.value + kind.value + output.value 三个注入值的回显**。
+- 真机同输入：`char` 只接受单个 Unicode 标量，弹「char 字面量只能包含一个字符（当前 5 个）」，`#output` 保持为空。页面没有产出该期望串。
+- 新用例锚定真机：`kind=string`、`input=a"b` ⇒ 真机输出 `"a\"b"`；默认空输入不命中（强判别）。
+
+### 实时绑定连带缺陷（go / rust，本批修复）
+- `go-escape` 的 rune 校验、`rust-escape` 的 char / byte 校验位于实时路径上：逐键输入中途必然命中，原实现 `return alert(...)` ⇒ **每按一键弹一次**；按钮模式拦截时还会残留上一次结果。
+- 改为：命中即先清空 `#output`；`live` 态直接返回不弹窗，按钮态仍弹提示。
+- 真机复测：rust char `1\n2\n3` → 输出空、0 弹窗；char `é` → `'\u{e9}'`；string `a"b` → `"a\"b"`；go rune `ab` → 输出空、0 弹窗；rune `é` → `'é'`。
+
+### 新探针 `scripts/interaction_probe.js`（纯只读）
+- **逐字段**注入（每个文本/数字/日期/select 单独注入并恢复）+ 全量注入，不再只改第一个输入。
+- 识别三种绑定：inline `on*` 属性、`addEventListener(...)`、页面末尾直接调用渲染函数（`render()/init()/update()...`）。
+- 结果签名三类组合：主容器文本（含 readonly textarea 值）+ 全部 `canvas.toDataURL()` 哈希 + 全部 `svg` outerHTML 哈希。
+- 结构化输出 `{bindings, changedByField, changedAll, needsClick, emptyState, clickTargets}`，可并入 `plan/page-ledger.json`；支持 `--file` / `--dir` / `--limit` / `--out` / `--timeout` / `--port`。
+- 口径细节：排除站点 chrome（header/nav/footer/`.tb-*`/`.nav-menu`）与结果框、搜索框、语言选择；点击探测**保持全量注入态**（否则起卦/清洗类会被「请输入」守卫挡掉，得到 `needsClick=false` 假结论）；点击后轮询 2s 以覆盖起卦动画与 300ms 防抖。
+- 三页自检（与人工裁定一致）：
+  - `office/mindmap`：`changedAll=true`、`needsClick=false`、`listeners=input` + `autoRender=render` ⇒ 已实时。
+  - `yi/yi-divination`：`changedAll=false`、`needsClick=true`（🙏 起卦演示）⇒ 需按钮。
+  - `data/data-cleaner`：`changedAll=false`、`needsClick=true`（🔎 清洗）；chip「去首尾空白」点击亦变化 ⇒ 操作项实时、文本需按钮。
+
+### 门禁
+- `scripts/verify_it_calc.js`：999/999 通过。
+- `discriminate_check.js verify_it_calc.js`：已检 999 / 正确变红 999 / 逃生 0 / 跳过 0。
+

@@ -6806,15 +6806,13 @@ const CASES = [
   {
     "slug": "it/rust-escape",
     "inputs": {
-      "input": "1\n2\n3",
-      "output": "1\n2\n3",
-      "kind": "char"
+      "kind": "string",
+      "input": "a\"b"
     },
     "expect": [
-      "1 2 3\nchar\n1 2 3",
-      "1 2 3\n1 2 3\nchar"
+      "\"a\\\"b\""
     ],
-    "ref": "自动补强（B类零用例）——旧期望仅一种字段序（1 2 3\\n1 2 3\\nchar），2026-11-05 给 rust-escape 加 __escLive 后 fallback 调用函数序改变，blob 变为 1 2 3\\nchar\\n1 2 3；两种字段序均纳入。注意：本页 harness 不派发 input 事件，实时绑定只能在真机验证。"
+    "ref": "真机锚定（Chrome headless 实测）：kind=string、input=a\"b ⇒ 输出框 `\"a\\\"b\"`（转义后的 Rust 字符串字面量）。旧用例 kind=char + 三字符输入，真机只会弹「char 字面量只能包含一个字符（当前 5 个）」且 output 为空；旧期望「1 2 3\\nchar\\n1 2 3」实为 input/kind/output 三个注入值的回显（桩 fullBlob 逐字相同），属假绿，已作废。默认输入为空 ⇒ 不命中，强判别。"
   },
   
   {
