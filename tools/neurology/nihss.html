@@ -384,6 +384,18 @@ s.parentNode.insertBefore(el, s);
 var items = ['q1a','q1b','q1c','q2','q3','q4','q5l','q5r','q6l','q6r','q7','q8','q9','q10','q11'];
 var labels = ['1a.意识水平','1b.意识水平提问','1c.意识水平指令','2.凝视','3.视野','4.面瘫','5.上肢运动（左）','5.上肢运动（右）','6.下肢运动（左）','6.下肢运动（右）','7.共济失调','8.感觉','9.语言','10.构音障碍','11.忽视'];
 
+var __defVals = {};
+items.forEach(function(id){ __defVals[id] = document.getElementById(id) ? document.getElementById(id).value : '0'; });
+var __scaleDirty = false;
+function __markScaleDirty(){ __scaleDirty = true; calc(); }
+items.forEach(function(id){
+  var __el = document.getElementById(id);
+  if(__el && __el.addEventListener){
+    __el.addEventListener('change', __markScaleDirty);
+    __el.addEventListener('input', __markScaleDirty);
+  }
+});
+
 function calc(){
   var total = 0;
   var details = [];
@@ -392,6 +404,15 @@ function calc(){
     total += v;
     if(v > 0) details.push(labels[i] + ' → ' + v + '分');
   });
+
+  if(!__scaleDirty){
+    var __sh = '<div class="stat-grid"><div class="stat-card"><div class="val" style="color:#10B981;">'+total+'</div><div class="lbl">NIHSS 总分</div></div></div>';
+    __sh += '<div class="info-box"><strong>当前为默认评分（0 分 = 正常），请按实际查体修改后查看解读。</strong></div>';
+    document.getElementById('result').innerHTML = __sh;
+    var __emrBox = document.getElementById('emrBox');
+    if(__emrBox && __emrBox.parentNode) __emrBox.parentNode.removeChild(__emrBox);
+    return;
+  }
 
   var sev, color, advice;
   if(total === 0){ sev='无卒中'; color='#10B981'; advice='无明显神经功能缺损。'; }
@@ -423,11 +444,13 @@ function calc(){
 function copyResult(){
   var total = 0;
   items.forEach(function(id){ total += parseInt(document.getElementById(id).value) || 0; });
+  if(!__scaleDirty){ ToolBox.copyText('NIHSS评分：'+total+'分（默认评分，尚未按实际查体修改）', i18nText()); return; }
   ToolBox.copyText('NIHSS评分：'+total+'分', i18nText());
 }
 
 function resetAll(){
   items.forEach(function(id){ document.getElementById(id).value = '0'; });
+  __scaleDirty = false;
   calc();
 }
 
@@ -465,6 +488,7 @@ function __emrNote(cfg){
 function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
 function __emrData(){
   if(typeof items==='undefined'||typeof labels==='undefined') return;
+  if(!__scaleDirty){ var __eb=document.getElementById('emrBox'); if(__eb&&__eb.parentNode) __eb.parentNode.removeChild(__eb); return; }
   var total=0,pos=[],i,sel,v,o,cons=0;
   for(i=0;i<items.length;i++){
     sel=document.getElementById(items[i]); if(!sel) continue;
@@ -491,8 +515,7 @@ function __emrData(){
 }
 
 var __emrW0=(typeof calc==='function')?calc:null;
-if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
-try{ __emrData(); }catch(e){}
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); if(__scaleDirty){ try{__emrData();}catch(e){} } return __er; }; }
 </script>
 
 <!-- SEO 介绍区块 -->

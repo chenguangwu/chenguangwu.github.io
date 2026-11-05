@@ -366,6 +366,42 @@ const CASES = [
     "expect": ["待检查：还有 8 项未选择"],
     "ref": "新契约（2026-11-05）：9 项检查默认「未选择」（value=''），未完成检查前不得输出诊断/建议/门诊记录。仅注入 amp=decreased、其余 8 项保持默认空值 ⇒ 结果区只显示「待检查：还有 8 项未选择」。默认态（9 项全空）显示「还有 9 项未选择」；9 项全部选为正常才输出「检查结果基本正常或非特异性改变」。判别器清空注入后 amp 回落空值 ⇒ 9 项未选，expect 失配。"
   }
+  ,{
+    "slug": "neurology/nihss",
+    "clicks": ["var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/NIHSS/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__NIHSS_DEF_OK__':'__NIHSS_DEF_FAIL__ '+__b;"],
+    "expect": ["__NIHSS_DEF_OK__"],
+    "ref": "默认态（量表项全 0=正常，控件默认值未改）：只渲染分数 + 「当前为默认评分…」提示，结果区不含 分级/建议/诊断/治疗/风险 任一词；sentinel 仅在断言通过时写入。"
+  }
+  ,{
+    "slug": "neurology/nihss",
+    "clicks": ["var __e=document.getElementById('q3');__e.value='2';__e.fire('change');var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/轻度卒中/.test(__b)&&/治疗建议/.test(__b);document.getElementById('result').innerHTML=__ok?'__NIHSS_MOD_OK__':'__NIHSS_MOD_FAIL__ '+__b;"],
+    "expect": ["__NIHSS_MOD_OK__"],
+    "ref": "改动态：视野项 q3=2 ⇒ 总分 2 落「轻度卒中」，门诊记录恢复分级 + 治疗建议；确认 dirty 置位后决策文案才出现。"
+  }
+  ,{
+    "slug": "neurology/nihss",
+    "clicks": ["resetAll();var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/NIHSS 总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__NIHSS_RST_OK__':'__NIHSS_RST_FAIL__ '+__b;"],
+    "expect": ["__NIHSS_RST_OK__"],
+    "ref": "重置态：resetAll() 把 15 项还原默认 0 ⇒ dirty 复位，结果区回到分数 + 提示，决策文案消失。"
+  }
+  ,{
+    "slug": "neurology/updrs",
+    "clicks": ["var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/UPDRS-III 总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__UPDRS_DEF_OK__':'__UPDRS_DEF_FAIL__ '+__b;"],
+    "expect": ["__UPDRS_DEF_OK__"],
+    "ref": "默认态：14 项全 0（=正常）只出分数 0/56 + 提示，结果区无 分级/建议/诊断/治疗/风险。"
+  }
+  ,{
+    "slug": "neurology/updrs",
+    "clicks": ["var __e=document.getElementById('q1');__e.value='1';__e.fire('change');var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/极轻度/.test(__b)&&/治疗建议/.test(__b);document.getElementById('result').innerHTML=__ok?'__UPDRS_MOD_OK__':'__UPDRS_MOD_FAIL__ '+__b;"],
+    "expect": ["__UPDRS_MOD_OK__"],
+    "ref": "改动态：q1=1 ⇒ 总分 1/56 落「极轻度」，恢复分级 + 治疗建议文案。"
+  }
+  ,{
+    "slug": "neurology/updrs",
+    "clicks": ["resetAll();var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/UPDRS-III 总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__UPDRS_RST_OK__':'__UPDRS_RST_FAIL__ '+__b;"],
+    "expect": ["__UPDRS_RST_OK__"],
+    "ref": "重置态：新增的「重置评分」按钮调 resetAll() ⇒ 14 项回默认 0、dirty 复位，决策文案消失。"
+  }
 ];
 async function main() {
   const only = process.argv.slice(2);
