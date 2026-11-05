@@ -148,6 +148,24 @@ const CASES = [
   "inputs": { "count": "mid" },
   "expect": ["菌落计数过低，多为标本污染"],
   "ref": "de-default: count mid+无勾选→污染分支（count high 恰为 select 真实默认，须改用 mid）"
+},
+{
+  "slug": "urology/ipss-score",
+  "clicks": ["var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/IPSS 总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__IPSS_DEF_OK__':'__IPSS_DEF_FAIL__ '+__b;"],
+  "expect": ["__IPSS_DEF_OK__"],
+  "ref": "批 3 默认态：只出 IPSS 总分与 QOL，结果区不含 分级/建议/诊断/治疗/风险。"
+},
+{
+  "slug": "urology/ipss-score",
+  "clicks": ["for(var i=0;i<7;i++){var e=document.getElementById('q'+i);if(e)e.value='5';}var q=document.getElementById('qol');q.value='6';__markScaleDirty();var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/重度/.test(__b)&&/处理建议/.test(__b);document.getElementById('result').innerHTML=__ok?'__IPSS_MOD_OK__':'__IPSS_MOD_FAIL__ '+__b;"],
+  "expect": ["__IPSS_MOD_OK__"],
+  "ref": "批 3 改动态：7 项各 5 分 + QOL 6 ⇒ 总分 35 落「重度」并给处理建议；确认 dirty 置位后分级文案才出现。"
+},
+{
+  "slug": "urology/ipss-score",
+  "clicks": ["__markScaleDirty();resetAll();var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/IPSS 总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__IPSS_RST_OK__':'__IPSS_RST_FAIL__ '+__b;"],
+  "expect": ["__IPSS_RST_OK__"],
+  "ref": "批 3 重置态：先置 dirty 制造决策，再 resetAll() 复位后决策文案消失。"
 }
 ];
 async function main() {

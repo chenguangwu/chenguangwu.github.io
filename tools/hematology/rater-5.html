@@ -132,20 +132,20 @@ s.parentNode.insertBefore(el, s);
 
     <h3 style="margin:16px 0 8px;">DIPSS 预后评分参数</h3>
     <div class="input-row">
-      <div><label>年龄</label><select id="age" style="font-size:16px;" onchange="calc()"><option value="0">≤ 65岁（0分）</option><option value="1">&gt; 65岁（1分）</option></select></div>
-      <div><label>体质症状（盗汗/体重减轻/发热）</label><select id="symptoms" style="font-size:16px;" onchange="calc()"><option value="0">无（0分）</option><option value="1">有（1分）</option></select></div>
+      <div><label>年龄</label><select id="age" style="font-size:16px;" onchange="__markScaleDirty()"><option value="0">≤ 65岁（0分）</option><option value="1">&gt; 65岁（1分）</option></select></div>
+      <div><label>体质症状（盗汗/体重减轻/发热）</label><select id="symptoms" style="font-size:16px;" onchange="__markScaleDirty()"><option value="0">无（0分）</option><option value="1">有（1分）</option></select></div>
     </div>
     <div class="input-row">
-      <div><label>血红蛋白（g/L）</label><input type="number" id="hb" value="105" style="font-size:16px;" oninput="calc()" placeholder="如 105"></div>
-      <div><label>外周血原始细胞（%）</label><input type="number" id="blasts" value="2" step="0.1" style="font-size:16px;" oninput="calc()" placeholder="如 2"></div>
+      <div><label>血红蛋白（g/L）</label><input type="number" id="hb" value="105" style="font-size:16px;" oninput="__markScaleDirty()" placeholder="如 105"></div>
+      <div><label>外周血原始细胞（%）</label><input type="number" id="blasts" value="2" step="0.1" style="font-size:16px;" oninput="__markScaleDirty()" placeholder="如 2"></div>
     </div>
     <div class="input-row">
-      <div><label>白细胞计数（×10⁹/L）</label><input type="number" id="wbc" value="15" step="0.1" style="font-size:16px;" oninput="calc()" placeholder="如 15"></div>
+      <div><label>白细胞计数（×10⁹/L）</label><input type="number" id="wbc" value="15" step="0.1" style="font-size:16px;" oninput="__markScaleDirty()" placeholder="如 15"></div>
     </div>
 
     <div class="toolbar">
       <div id="rater_5Presets"></div><button type="button" class="btn primary" onclick="calc()">综合评分</button><button class="btn" type="button" onclick="__rater_5Export()">导出明细 CSV</button>
-      <button type="button" class="btn" onclick="resetAll()">重置</button>
+      <button type="button" class="btn" onclick="resetAll()" title="恢复为未评估状态">重置评分</button>
     </div>
     <div class="result-box" id="res"></div> <div id="rater_5Table"></div> <div id="rater_5Diff"></div> <div id="rater_5Chart"></div> <div id="rater_5Hist"></div>
   </div>
@@ -208,12 +208,14 @@ var mpn10Questions=[
 function buildList(){
   var html='';
   mpn10Questions.forEach(function(q,i){
-    html+='<div class="input-row" style="align-items:center;"><div style="flex:1;"><label>'+(i+1)+'. '+q+'</label></div><select id="mpn'+i+'" style="font-size:16px;flex:0 0 70px;" onchange="calc()">';
+    html+='<div class="input-row" style="align-items:center;"><div style="flex:1;"><label>'+(i+1)+'. '+q+'</label></div><select id="mpn'+i+'" style="font-size:16px;flex:0 0 70px;" onchange="__markScaleDirty()">';
     for(var s=0;s<=10;s++){html+='<option value="'+s+'"'+(s===3?' selected':'')+'>'+s+'</option>';}
     html+='</select></div>';
   });
   const __g1=html;document.getElementById('mpn10Items').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
+var __scaleDirty=false;
+function __markScaleDirty(){__scaleDirty=true;calc();}
 function calc(){
   // MPN-10
   var mpn10Scores=mpn10Questions.map(function(q,i){return +document.getElementById('mpn'+i).value;});
@@ -234,6 +236,16 @@ function calc(){
   if(hb<100)dipssScore+=2;
   if(blasts>=1)dipssScore+=1;
   if(wbc>25)dipssScore+=1;
+
+  if(!__scaleDirty){
+    document.getElementById('res').innerHTML='<h3 style="margin-bottom:10px;">MPN 综合评分结果</h3>'+
+      '<div class="stat-grid">'+
+      '<div class="stat-card"><div class="val" style="color:var(--success);">'+mpn10Total+'/100</div><div class="lbl">MPN-10 症状总分</div></div>'+
+      '<div class="stat-card"><div class="val" style="color:var(--success);">'+dipssScore+'分</div><div class="lbl">DIPSS 评分</div></div>'+
+      '</div>'+
+      '<div class="info-box"><strong>当前为默认评分（MPN-10 各项暂为 3 分、DIPSS 参数为页面预设值），请按实际症状与检验结果修改后查看解读。</strong></div>';
+    return;
+  }
 
   var dipssRisk, dipssColor, dipssMedian;
   if(dipssScore===0){dipssRisk='低危';dipssColor='var(--success)';dipssMedian='中位生存期约 185 个月';}
@@ -293,7 +305,16 @@ function calc(){
     '<br><strong>MPN-10 监测建议：</strong>每3个月评估一次症状评分，≥20分需药物干预。'+
     '</div>';document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
-function resetAll(){buildList();calc();}
+function resetAll(){
+  document.getElementById('age').value='0';
+  document.getElementById('symptoms').value='0';
+  document.getElementById('hb').value='105';
+  document.getElementById('blasts').value='2';
+  document.getElementById('wbc').value='15';
+  buildList();
+  __scaleDirty=false;
+  calc();
+}
 buildList();calc();
 </script>
 
@@ -504,7 +525,7 @@ function __rater_5Presets(){
     TBKit.preset.bar('#rater_5Presets',[{label:'默认参数',labelEn:'Default',values:{'age':'0', 'symptoms':'0', 'hb':'105', 'blasts':'2', 'wbc':'15'}},
   {"label":"低危 MF 无症状","labelEn":"Low risk MF asymptomatic","values":{"age":"0","symptoms":"0","hb":115,"blasts":1,"wbc":9,"mpn0":"0","mpn1":"0","mpn2":"0","mpn3":"0","mpn4":"0","mpn5":"0","mpn6":"0","mpn7":"0","mpn8":"0","mpn9":"0"}},
   {"label":"中危 MF 中度症状","labelEn":"Intermediate MF moderate symptoms","values":{"age":"1","symptoms":"1","hb":105,"blasts":2,"wbc":15,"mpn0":"3","mpn1":"3","mpn2":"3","mpn3":"3","mpn4":"3","mpn5":"3","mpn6":"3","mpn7":"3","mpn8":"3","mpn9":"3"}},
-  {"label":"高危 MF 重度症状","labelEn":"High risk MF severe symptoms","values":{"age":"1","symptoms":"1","hb":78,"blasts":4,"wbc":32,"mpn0":"7","mpn1":"7","mpn2":"7","mpn3":"7","mpn4":"7","mpn5":"7","mpn6":"7","mpn7":"7","mpn8":"7","mpn9":"7"}}],function(){ calc(); });
+  {"label":"高危 MF 重度症状","labelEn":"High risk MF severe symptoms","values":{"age":"1","symptoms":"1","hb":78,"blasts":4,"wbc":32,"mpn0":"7","mpn1":"7","mpn2":"7","mpn3":"7","mpn4":"7","mpn5":"7","mpn6":"7","mpn7":"7","mpn8":"7","mpn9":"7"}}],function(){ __scaleDirty=true; calc(); });
 }
 var __rater_5_f0=(typeof calc==='function')?calc:null;
 if(__rater_5_f0){

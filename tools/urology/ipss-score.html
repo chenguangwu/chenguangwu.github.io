@@ -132,7 +132,7 @@ s.parentNode.insertBefore(el, s);
     <h3 style="margin-top:18px;">第二部分：生活质量指数（QOL，0-6分）</h3>
     <div class="input-row">
       <div><label>如果今后一直按目前排尿状况生活，你觉得如何？</label>
-        <select id="qol" onchange="calc()">
+        <select id="qol" onchange="__markScaleDirty()">
           <option value="0">0 - 高兴</option>
           <option value="1">1 - 满意</option>
           <option value="2">2 - 大致满意</option>
@@ -147,7 +147,7 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <div id="ipss_scorePresets"></div><button type="button" class="btn primary" onclick="calc()">计算评分</button><button class="btn" type="button" onclick="__ipss_scoreExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
-      <button type="button" class="btn" onclick="resetAll()">重置</button>
+      <button type="button" class="btn" onclick="resetAll()" title="恢复为未评估状态">重置评分</button>
     </div>
 
     <div class="result-box" id="result"></div>
@@ -259,16 +259,25 @@ var qs=[
 function buildQuestions(){
   var html='';
   qs.forEach(function(q,i){
-    html+='<div class="input-row"><div><label>'+q.t+'</label><select id="q'+i+'" onchange="calc()">';
+    html+='<div class="input-row"><div><label>'+q.t+'</label><select id="q'+i+'" onchange="__markScaleDirty()">';
     q.o.forEach(function(o,j){ html+='<option value="'+j+'"'+(j===q.d?' selected':'')+'>'+o+'</option>'; });
     html+='</select></div></div>';
   });
   const __g1=html;document.getElementById('questions').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
+var __scaleDirty=false;
+function __markScaleDirty(){__scaleDirty=true;calc();}
 function calc(){
   var total=0;
   qs.forEach(function(q,i){ total+=parseInt(document.getElementById('q'+i).value)||0; });
   var qol=parseInt(document.getElementById('qol').value)||0;
+  if(!__scaleDirty){
+    document.getElementById('result').innerHTML='<p style="text-align:center;">IPSS 总分：<strong style="font-size:30px;color:var(--success);">'+total+'</strong> / 35</p>'+
+      '<p style="text-align:center;">生活质量 QOL：<strong style="color:var(--secondary);">'+qol+' / 6</strong></p>'+
+      '<div class="info-box"><strong>当前为默认评分（7 项均为页面预设选项、QOL 默认 3 分），请按过去一个月实际情况修改后查看解读。</strong></div>';
+    var __rb=document.getElementById('resultRefBar'); if(__rb) __rb.innerHTML='';
+    return;
+  }
   var grade,color,advice;
   if(total<=7){ grade='轻度'; color='var(--success)'; advice='可观察等待，每6-12个月随访一次IPSS'; }
   else if(total<=19){ grade='中度'; color='var(--warning)'; advice='建议药物治疗，评估前列腺体积选择用药'; }
@@ -289,6 +298,7 @@ function copyResult(){
 function resetAll(){
   buildQuestions();
   document.getElementById('qol').value='3';
+  __scaleDirty=false;
   calc();
 }
 buildQuestions();
@@ -469,7 +479,7 @@ function __ipss_scorePresets(){
     TBKit.preset.bar('#ipss_scorePresets',[{label:'默认参数',labelEn:'Default',values:{'qol':'0'}},
   {"label":"轻度症状","labelEn":"Mild symptoms","values":{"q0":"0","q1":"0","q2":"1","q3":"0","q4":"0","q5":"1","q6":"0","qol":"1"}},
   {"label":"中度症状","labelEn":"Moderate symptoms","values":{"q0":"3","q1":"3","q2":"3","q3":"2","q4":"3","q5":"2","q6":"3","qol":"4"}},
-  {"label":"重度症状","labelEn":"Severe symptoms","values":{"q0":"5","q1":"5","q2":"4","q3":"5","q4":"5","q5":"4","q6":"5","qol":"6"}}],function(){ calc(); });
+  {"label":"重度症状","labelEn":"Severe symptoms","values":{"q0":"5","q1":"5","q2":"4","q3":"5","q4":"5","q5":"4","q6":"5","qol":"6"}}],function(){ __scaleDirty=true; calc(); });
 }
 var __ipss_score_f0=(typeof calc==='function')?calc:null;
 if(__ipss_score_f0){

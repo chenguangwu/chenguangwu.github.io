@@ -127,16 +127,16 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="input-row">
-      <div><label>年龄</label><input type="number" id="age" value="65" oninput="calc()" placeholder="如 65"></div>
-      <div><label>血红蛋白 (g/L)</label><input type="number" id="hgb" value="95" oninput="calc()" placeholder="如 95"></div>
-      <div><label>白细胞 WBC (×10⁹/L)</label><input type="number" id="wbc" value="15" step="0.1" oninput="calc()" placeholder="如 15"></div>
+      <div><label>年龄</label><input type="number" id="age" value="65" oninput="__markScaleDirty()" placeholder="如 65"></div>
+      <div><label>血红蛋白 (g/L)</label><input type="number" id="hgb" value="95" oninput="__markScaleDirty()" placeholder="如 95"></div>
+      <div><label>白细胞 WBC (×10⁹/L)</label><input type="number" id="wbc" value="15" step="0.1" oninput="__markScaleDirty()" placeholder="如 15"></div>
     </div>
 
     <div class="input-row">
-      <div><label>外周血原始细胞 (%)</label><input type="number" id="blasts" value="2" step="0.1" oninput="calc()" placeholder="如 2"></div>
+      <div><label>外周血原始细胞 (%)</label><input type="number" id="blasts" value="2" step="0.1" oninput="__markScaleDirty()" placeholder="如 2"></div>
       <div>
         <label>全身症状（盗汗/发热/体重下降）</label>
-        <select id="symptoms" onchange="calc()">
+        <select id="symptoms" onchange="__markScaleDirty()">
           <option value="no">无</option>
           <option value="yes">有</option>
         </select>
@@ -146,17 +146,18 @@ s.parentNode.insertBefore(el, s);
     <div id="dipssplusExtra" style="display:none;">
       <h3 style="margin-top:12px;">DIPSS-plus 附加指标</h3>
       <div class="input-row">
-        <div><label>输血依赖</label><select id="transfusion" onchange="calc()"><option value="no">否</option><option value="yes">是</option></select></div>
-        <div><label>血小板 (×10⁹/L)</label><input type="number" id="plt" value="100" oninput="calc()" placeholder="如 100"></div>
+        <div><label>输血依赖</label><select id="transfusion" onchange="__markScaleDirty()"><option value="no">否</option><option value="yes">是</option></select></div>
+        <div><label>血小板 (×10⁹/L)</label><input type="number" id="plt" value="100" oninput="__markScaleDirty()" placeholder="如 100"></div>
       </div>
       <div class="input-row">
-        <div><label>不良核型（+8、-7/7q-、i(17q)、-5/5q-等）</label><select id="karyotype" onchange="calc()"><option value="no">否</option><option value="yes">是</option></select></div>
+        <div><label>不良核型（+8、-7/7q-、i(17q)、-5/5q-等）</label><select id="karyotype" onchange="__markScaleDirty()"><option value="no">否</option><option value="yes">是</option></select></div>
       </div>
     </div>
 
     <div class="toolbar">
       <div id="mpn_scoringPresets"></div><button type="button" class="btn primary" onclick="calc()">评分</button><button class="btn" type="button" onclick="__mpn_scoringExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" onclick="resetAll()" title="恢复为未评估状态">重置评分</button>
     </div>
 
     <div class="result-box" id="result"></div> <div id="mpn_scoringTable"></div> <div id="mpn_scoringDiff"></div> <div id="mpn_scoringChart"></div> <div id="mpn_scoringHist"></div>
@@ -269,6 +270,9 @@ function switchSys(s,btn){
   calc();
 }
 
+var __scaleDirty=false;
+function __markScaleDirty(){__scaleDirty=true;calc();}
+
 function calc(){
   var age=parseInt(document.getElementById('age').value)||0;
   var hgb=parseFloat(document.getElementById('hgb').value)||0;
@@ -326,6 +330,12 @@ function calc(){
 }
 
 function renderResult(sysName,score,details,groups){
+  if(!__scaleDirty){
+    document.getElementById('result').innerHTML='<h3 style="margin-bottom:8px;">'+sysName+' 评分结果</h3>'+
+      '<div class="stat-grid"><div class="stat-card"><div class="val" style="color:var(--success);">'+score+'</div><div class="lbl">总评分</div></div></div>'+
+      '<div class="info-box"><strong>当前为默认评分（各参数为页面预设值），请按实际检验结果与症状修改后查看解读。</strong></div>';
+    return;
+  }
   var risk=groups.filter(function(g){return score>=g.min&&score<=g.max;})[0]||groups[groups.length-1];
 
   var html='<h3 style="margin-bottom:8px;">'+sysName+' 评分结果</h3>';
@@ -358,6 +368,23 @@ function renderResult(sysName,score,details,groups){
 
 function copyResult(){
   ToolBox.copyText(document.getElementById('result').innerText, i18nText('msg606'));
+}
+
+function resetAll(){
+  document.getElementById('age').value='65';
+  document.getElementById('hgb').value='95';
+  document.getElementById('wbc').value='15';
+  document.getElementById('blasts').value='2';
+  document.getElementById('symptoms').value='no';
+  document.getElementById('plt').value='100';
+  document.getElementById('transfusion').value='no';
+  document.getElementById('karyotype').value='no';
+  sys='ipss';
+  var __tb=document.querySelectorAll('.tab-btn');
+  for(var i=0;i<__tb.length;i++){ __tb[i].classList.toggle('active', i===0); }
+  document.getElementById('dipssplusExtra').style.display='none';
+  __scaleDirty=false;
+  calc();
 }
 
 calc();
@@ -538,7 +565,7 @@ function __mpn_scoringPresets(){
     TBKit.preset.bar('#mpn_scoringPresets',[{label:'默认参数',labelEn:'Default',values:{'age':'65', 'hgb':'95', 'wbc':'15', 'blasts':'2', 'symptoms':'no', 'transfusion':'no', 'plt':'100', 'karyotype':'no'}},
   {"label":"低危 无输血","labelEn":"Low risk no transfusion","values":{"age":55,"hgb":120,"wbc":9,"blasts":1,"symptoms":"no","transfusion":"no","plt":350,"karyotype":"no"}},
   {"label":"中危 有体质症状","labelEn":"Intermediate with symptoms","values":{"age":65,"hgb":95,"wbc":15,"blasts":2,"symptoms":"yes","transfusion":"no","plt":100,"karyotype":"no"}},
-  {"label":"高危 依赖输血","labelEn":"High risk transfusion dependent","values":{"age":72,"hgb":80,"wbc":30,"blasts":5,"symptoms":"yes","transfusion":"yes","plt":60,"karyotype":"yes"}}],function(){ calc(); });
+  {"label":"高危 依赖输血","labelEn":"High risk transfusion dependent","values":{"age":72,"hgb":80,"wbc":30,"blasts":5,"symptoms":"yes","transfusion":"yes","plt":60,"karyotype":"yes"}}],function(){ __scaleDirty=true; calc(); });
 }
 var __mpn_scoring_f0=(typeof calc==='function')?calc:null;
 if(__mpn_scoring_f0){

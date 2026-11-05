@@ -128,26 +128,27 @@ s.parentNode.insertBefore(el, s);
 
     <h3 style="margin:16px 0 8px;">ISTH DIC 评分参数</h3>
     <div class="input-row">
-      <div><label>血小板计数（×10⁹/L）</label><input type="number" id="plt" value="45" style="font-size:16px;" oninput="calc()" placeholder="如 45"></div>
-      <div><label>D-二聚体（mg/L FEU）</label><input type="number" id="ddimer" value="8.5" step="0.1" style="font-size:16px;" oninput="calc()" placeholder="如 8.5"></div>
+      <div><label>血小板计数（×10⁹/L）</label><input type="number" id="plt" value="45" style="font-size:16px;" oninput="__markScaleDirty()" placeholder="如 45"></div>
+      <div><label>D-二聚体（mg/L FEU）</label><input type="number" id="ddimer" value="8.5" step="0.1" style="font-size:16px;" oninput="__markScaleDirty()" placeholder="如 8.5"></div>
     </div>
     <div class="input-row">
-      <div><label>凝血酶原时间延长值（秒）</label><input type="number" id="pt" value="5" step="0.1" style="font-size:16px;" oninput="calc()" placeholder="如 5"></div>
-      <div><label>纤维蛋白原（g/L）</label><input type="number" id="fib" value="0.9" step="0.1" style="font-size:16px;" oninput="calc()" placeholder="如 0.9"></div>
+      <div><label>凝血酶原时间延长值（秒）</label><input type="number" id="pt" value="5" step="0.1" style="font-size:16px;" oninput="__markScaleDirty()" placeholder="如 5"></div>
+      <div><label>纤维蛋白原（g/L）</label><input type="number" id="fib" value="0.9" step="0.1" style="font-size:16px;" oninput="__markScaleDirty()" placeholder="如 0.9"></div>
     </div>
     <div class="input-row">
-      <div><label>FDP（mg/L）</label><input type="number" id="fdp" value="40" style="font-size:16px;" oninput="calc()" placeholder="如 40"></div>
-      <div><label>3P试验（鱼精蛋白副凝试验）</label><select id="p3" style="font-size:16px;" onchange="calc()"><option value="0">阴性</option><option value="1" selected>阳性</option></select></div>
+      <div><label>FDP（mg/L）</label><input type="number" id="fdp" value="40" style="font-size:16px;" oninput="__markScaleDirty()" placeholder="如 40"></div>
+      <div><label>3P试验（鱼精蛋白副凝试验）</label><select id="p3" style="font-size:16px;" onchange="__markScaleDirty()"><option value="0">阴性</option><option value="1" selected>阳性</option></select></div>
     </div>
 
     <h3 style="margin:16px 0 8px;">基础疾病</h3>
     <div class="input-row">
-      <div><label>是否存在已知 DIC 相关基础疾病？</label><select id="underlying" style="font-size:16px;" onchange="calc()"><option value="1" selected>是（败血症/创伤/产科急症/恶性肿瘤等）</option><option value="0">否</option></select></div>
+      <div><label>是否存在已知 DIC 相关基础疾病？</label><select id="underlying" style="font-size:16px;" onchange="__markScaleDirty()"><option value="1" selected>是（败血症/创伤/产科急症/恶性肿瘤等）</option><option value="0">否</option></select></div>
     </div>
 
     <div class="toolbar">
       <div id="rater_6Presets"></div><button type="button" class="btn primary" onclick="calc()">计算 DIC 评分</button><button class="btn" type="button" onclick="__rater_6Export()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" onclick="resetAll()" title="恢复为未评估状态">重置评分</button>
     </div>
     <div class="result-box" id="res"></div> <div id="rater_6Table"></div> <div id="rater_6Diff"></div> <div id="rater_6Chart"></div> <div id="rater_6Hist"></div>
   </div>
@@ -195,6 +196,8 @@ s.parentNode.insertBefore(el, s);
 </div>
 </div>
 <script>
+var __scaleDirty=false;
+function __markScaleDirty(){__scaleDirty=true;calc();}
 function calc(){
   var plt=+document.getElementById('plt').value||0;
   var ddimer=+document.getElementById('ddimer').value||0;
@@ -233,6 +236,13 @@ function calc(){
   var fibColor=fib>=1?'var(--success)':'var(--danger)';
 
   var isthScore=pltScore+dScore+ptScore+fibScore;
+
+  if(!__scaleDirty){
+    document.getElementById('res').innerHTML='<h3 style="margin-bottom:10px;">ISTH DIC 评分结果</h3>'+
+      '<div class="stat-grid"><div class="stat-card"><div class="val" style="color:var(--success);">'+isthScore+'分</div><div class="lbl">ISTH 总分</div></div></div>'+
+      '<div class="info-box"><strong>当前为默认评分（各检验值为页面预设值），请按实际检验结果修改后查看解读。</strong></div>';
+    return;
+  }
 
   // FDP 评估（补充）
   var fdpScore=fdp<10?0:fdp<40?2:3;
@@ -294,7 +304,19 @@ function calc(){
 }
 function copyResult(){
   var text=document.getElementById('res').innerText;
+  if(!__scaleDirty){ var __v=document.querySelector('#res .stat-card .val'); text='ISTH DIC 评分：'+(__v?__v.textContent:'')+'（默认评分，尚未按实际检验结果修改）'; }
   ToolBox.copyText(text, i18nText('msg032'));
+}
+function resetAll(){
+  document.getElementById('plt').value='45';
+  document.getElementById('ddimer').value='8.5';
+  document.getElementById('pt').value='5';
+  document.getElementById('fib').value='0.9';
+  document.getElementById('fdp').value='40';
+  document.getElementById('p3').value='1';
+  document.getElementById('underlying').value='1';
+  __scaleDirty=false;
+  calc();
 }
 calc();
 </script>
@@ -506,7 +528,7 @@ function __rater_6Presets(){
     TBKit.preset.bar('#rater_6Presets',[{label:'默认参数',labelEn:'Default',values:{'plt':'45', 'ddimer':'8.5', 'pt':'5', 'fib':'0.9', 'fdp':'40', 'p3':'1', 'underlying':'1'}},
   {"label":"显性 DIC","labelEn":"Overt DIC","values":{"plt":30,"ddimer":12,"pt":8,"fib":0.8,"fdp":60,"p3":"1","underlying":"1"}},
   {"label":"可疑 DIC","labelEn":"Suspected DIC","values":{"plt":80,"ddimer":3,"pt":4,"fib":1.2,"fdp":25,"p3":"0","underlying":"1"}},
-  {"label":"非 DIC 对照","labelEn":"Non-DIC control","values":{"plt":150,"ddimer":0.4,"pt":1,"fib":3,"fdp":6,"p3":"0","underlying":"0"}}],function(){ calc(); });
+  {"label":"非 DIC 对照","labelEn":"Non-DIC control","values":{"plt":150,"ddimer":0.4,"pt":1,"fib":3,"fdp":6,"p3":"0","underlying":"0"}}],function(){ __scaleDirty=true; calc(); });
 }
 var __rater_6_f0=(typeof calc==='function')?calc:null;
 if(__rater_6_f0){
