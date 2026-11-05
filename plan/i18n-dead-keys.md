@@ -6760,3 +6760,71 @@
 ### 同期独立修复：重复键
 
 `life/ring-size-converter`、`life/bra-size-converter` 的 `map` 各含 2 个重复键：`请输入数据计算`、`港码 = 周长 − 40（…）`；两处值完全相同，去重保留首处、语义不变。已单独提交，`--check life` 70 页残留与基线逐页一致。
+
+## 第三批：`data` + `electrical`（2026-11-05）
+
+> 白名单：仅 `i18n/tools/en/data/**`、`i18n/tools/en/electrical/**`；未跑 `_build.py`、未 push。
+
+### 口径与核实
+
+- **弃用纯静态判死**：源码缺失 ≠ 运行时不用（动态文本可由 JS 拼出）。本批对每个静态候选做**运行时标记法复核**——临时把候选键值改为 `@@MKn@@` 加载 `?lang=en-US`，读 `document.body.textContent` + `input/textarea` 的 `placeholder/value` + `title/aria-label/alt` + `data-zh/data-i18n` 属性；**标记未出现才判死**。
+- 候选 37 条（data 19 / electrical 18），其中 **3 条被运行时读取，保留**：`data/xml-html-css-geshihua-yiyou-kebuchong` 的 `如 2（1–8）`、`data/yaml-json` 的 `| 保留换行，> 折叠换行`、`electrical/generator-23` 的 1 条。
+- 本批未触碰 `i18n/tools/data-body.json` / `electrical-body.json`（无必要改动）。
+
+### 结果
+
+| 目录 | 词典页 | 键总数（改前） | 删死键 | 补/修半译键 | 键总数（改后） | 探针残留 | 真机剩余（动态） |
+|---|---|---|---|---|---|---|---|
+| `data` | 22 | 501 | 17 | 17 | 501 | **0 页** | 4 页 / 7 条 |
+| `electrical` | 36 | 1172 | 17 | 237 | 1392 | **0 页** | 32 页 / 50 条 |
+| 合计 | 58 | 1673 | **34** | **254** | 1893 | **0** | 36 页 / 57 条 |
+
+### 删死键明细（34 条）
+
+| 页面 | 条数 | 内容 |
+|---|---|---|
+| `data/csv-json` | 3 | 3 条旧 FAQ（页面已删正文，仅余 `<h3>❓ 常见问题（FAQ）</h3>`） |
+| `data/csv-to-markdown` | 3 | 同上 |
+| `data/generator-35` | 3 | 旧「组距/边界」说明段（已改写为新口径） |
+| `data/index` | 5 | 1 条旧介绍 + 4 条旧 FAQ（已改写为「分类下的工具需要下载或注册吗？」等新文案） |
+| `data/yaml-json` | 3 | 3 条旧 FAQ |
+| `electrical/calc-2` | 1 | `🧮 三相功率计算`（卡片名已改） |
+| `electrical/detector-resistance-1` `-aging` `detector-resistance` | 3 | `⚡ 检测…服务`（3 页各 1 条） |
+| `electrical/dianhuaxuedunhuakongzhi` | 2 | 旧标题 + 旧公式说明 |
+| `electrical/generator-23` | 4 | 旧 intro / deep-dive / 运算符说明 / 占位串 |
+| `electrical/index` | 4 | 4 条旧 FAQ（已改写） |
+| `electrical/power-factor-compensation` | 1 | `🔌 功率因数补偿` |
+| `electrical/voltage-divider` | 1 | `🔌 分压电路计算` |
+| `electrical/voltage` | 1 | `🛠️ 电子束焊接参数`（错配卡片名） |
+
+### 半译修复（254 条，键一律照抄运行时 `textContent.trim()`）
+
+- `electrical` 以**公式说明行**（`formula-eq`）+ `placeholder` + 结果区标签（如 `总电压 (V)`、`视在功率 S（kVA）`）为主；`data` 以直方图/统计标签与 `placeholder` 为主。
+- **动态数字型不硬拗**：含随输入变化的数值串（如 `总能量 10240 Wh`、`步骤1…`、`0时…` 除外——后者是 24 个固定轴标签，已程序化补键 `0时→0h`）一律不建键，计入「真机剩余」。
+- 特例 `electrical/transformer-sizing`：标准容量枚举 `30、50、63…` 是**固定串**，整串成键（译为半角逗号列表），兼顾 IT 线新加的「数字间全角分隔符保留」规则。
+
+### 改前 → 改后（实际渲染）
+
+| 页面 | 改前 | 改后 |
+|---|---|---|
+| `tools/data/generator-35.html` | `📊 统计摘要` / `如 12,15,16,18,20` | `📊 Summary Statistics` / `e.g. 12,15,16,18,20` |
+| `tools/electrical/voltage-divider.html` | `输入电压 Vin (V)` / `R1 (Ω, 上)` | `Input voltage Vin (V)` / `R1 (Ω, top)` |
+| `tools/electrical/wire-resistance.html` | `导体电阻 R = 电阻率 ρ × 长度 L ÷ 截面积 A。校验：…` | `Conductor resistance R = resistivity ρ × length L ÷ cross-section A. Validation: …` |
+
+### 剩余（真机 `?lang=en-US`，均为随输入变化的动态值，需页面/运行时改动，不在本批白名单）
+
+| 目录 | 页 | 条 | 样例 |
+|---|---|---|---|
+| `data` | 4 | 7 | `颜色越深值越大 · 7行 × 24列`、`标签数：10 个`、`Max nesting depth：3 层` |
+| `electrical` | 32 | 50 | `总能量 10240 Wh，续航 14.75 小时`、`＝ 51.20 V`、`步骤1` 序列 |
+
+> 另有 5 条键（`electrical/detector-175` 的 `Estimated shaft power:约`、`temp-26` 的 `🛡️ Flameproof type:` / `📦 Recommended device:`、`dianhuaxuedunhuakongzhi` 的 `Potential below passivation threshold，金属持续溶解` 等）在**直接 `?lang=en-US` 首屏**仍显示中文——根因是页面脚本在翻译之后重写同一节点（本批只补了键，切换语言路径已可用；首屏需页面侧或 `tool-i18n.js` 处理，另行立项）。
+
+### 待构建
+
+| 目录 | 文件数 | 说明 |
+|---|---|---|
+| `i18n/tools/en/data/` | 7 | `csv-json`、`csv-to-markdown`、`data-visualizer`、`generator-35`、`index`、`xml-html-css-geshihua-yiyou-kebuchong`、`yaml-json` |
+| `i18n/tools/en/electrical/` | 34 | 见本节「删死键明细」，含 `calc-1`、`calc-2`、`calc-power-voltage`、`current-divider`、`detector-173/175/aging/protection-2/resistance*`、`dianhuaxuedunhuakongzhi`、`generator-23`、`home-load-estimate`、`index`、`led-resistor`、`lizishujianshejisuan`、`load-curve`、`power-7`、`power-factor-compensation`、`power-voltage-1`、`rc-filter`、`rlc-resonance`、`speed-9`、`temp-26`、`transformer-sizing`、`voltage-8/9`、`voltage-divider`、`voltage-drop`、`voltage`、`wire-gauge-selector`、`wire-resistance` |
+| `js/tool-i18n.js` | 1 | 共享层（数据上下文标点保护 + 动态补译积压重放），已单独提交 `b1effabac1` |
+| **合计** | **42** | 均须 `_build.py` 刷新 SW 版本戳后生效 |
