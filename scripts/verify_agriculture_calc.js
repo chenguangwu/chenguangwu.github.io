@@ -1749,6 +1749,7 @@ const CASES = [
     ref: "基准日冻结 2024-06-15：入孵 2024-06-01 ⇒ dayNum = floor(14 天) + 1 = 15、hatchingDay = 06-22 ⇒ left = 7 ⇒ 卡片显示「第 15 天」「距离出壳约 7 天」。默认 state.startDate 为空 ⇒ render 直接隐藏 heroBox，两条锚均不命中（判别时清空 clicks 即回到该默认态）。"
   },
   {
+    afterLoad: true,
     slug: "agriculture/countdown-cycle",
     inputs: { cropSel: "0", plantDate: "2024-06-01" },
     clicks: ["addPlanting()"],

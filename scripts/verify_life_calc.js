@@ -128,6 +128,7 @@ const CASES = [
   },
   // ── 单位换算（因子归一：m → cm）──────────────────────────────
   {
+    afterLoad: true,
     slug: "life/unit-converter",
     inputs: { fromValue: "1", fromUnit: "meter", toUnit: "centimeter" },
     expect: ["100"],
@@ -135,6 +136,7 @@ const CASES = [
   },
   // ── 单位换算（油耗倒数单位：mpg 与 L/100km 成反比）──────────────
   {
+    afterLoad: true,
     slug: "life/unit-converter",
     // 首屏初始化仍按默认长度分类跑一次（页面 boot 会调 switchCategory），故先用长度单位
     // 供初始化通过，再在 clicks 里切到油耗分类并注入 8 L/100km。
@@ -147,6 +149,7 @@ const CASES = [
        + "（旧实现直接按比例因子 8×1÷235.215 = 0.0340108，注入失败即不命中）",
   },
   {
+    afterLoad: true,
     slug: "life/unit-converter",
     inputs: { fromValue: "1", fromUnit: "meter", toUnit: "centimeter" },
     clicks: [

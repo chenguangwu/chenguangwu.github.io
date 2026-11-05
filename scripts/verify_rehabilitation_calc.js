@@ -145,6 +145,7 @@ const CASES = [
   "ref": "门诊记录：全量注入 28 皮节×4 位点（sens_*_lt_l/pp_l/lt_r/pp_r）+ 10 组关键肌×双侧（motor_i_l/r）共 132 键，感觉 224/224、运动 100/100 全正常 ⇒ AIS E，门诊记录输出平面与总分（与 applyAsiaPreset('normal') 等价）。注意本页 select 由 renderSensory()/renderMotor() 运行期拼 innerHTML 生成、**不在静态源码里**，桩取不到默认值 ⇒ parseInt('')=NaN，默认态既非 E 也拿不到有效总分，零交集。旧 expect 锚在桩假象「NaN/112」上（分母 112 系量纲错，28×4×2=224），已修。"
 },
 {
+    afterLoad: true,
   "slug": "rehabilitation/adl-task-breakdown",
   "inputs": {
     "activitySelect": "进食",
@@ -379,6 +380,7 @@ const CASES = [
   "ref": "门诊记录：170 cm ⇒ 大转子 96.9、腋窝 130.9、套环 125.8；未填腕横纹 ⇒ 手柄取大转子 96.9，鞋底 3 cm 补 +1，楼梯再 -2 ⇒ 95.9 cm；肘屈 45° 超出 20–30° ⇒ 适配校验仅 1/2 通过（其余 4 项中 1 项失败）。默认态 height 为空 ⇒「请输入身高」早退、不渲染，零交集。"
 },
 {
+    afterLoad: true,
   "slug": "rehabilitation/rom-normal-value",
   "inputs": {
     "jointSelect": "肩关节",
