@@ -153,22 +153,13 @@ const PAGE_HELPERS = function () {
   const CHROME_SEL = "header, nav, footer, .tb-nav, .tb-footer, .site-header, .site-footer, .nav-menu, .tb-ad, .ad-slot, .promo";
   const inScope = (el) => el && !el.closest(CHROME_SEL);
   const root = document.querySelector(".container") || document.body;
-  const SKIP_TAGS = new Set(["script", "style", "nav", "footer", "header"]);
-  const SKIP_CLS = /^(tb-nav|tb-footer|tb-ad|ad-|promo|nav-|footer-)/;
+  // 用 innerText 而非递归 textContent：筛选/切换类页面靠 display:none 隐藏条目，
+  // 递归文本会把隐藏内容也计入，导致「过滤后签名不变」的假阴性。
   const textOf = (node) => {
-    const out = [];
-    const walk = (n) => {
-      if (n.nodeType === 3) { out.push(n.nodeValue); return; }
-      if (n.nodeType !== 1) return;
-      const tag = n.tagName.toLowerCase();
-      if (SKIP_TAGS.has(tag)) return;
-      if (n.classList && [...n.classList].some((c) => SKIP_CLS.test(c))) return;
-      for (const c of n.childNodes) walk(c);
-    };
-    walk(node);
+    const out = norm(node.innerText || node.textContent || "");
     // readonly textarea 是常见结果载体（escape/编码类页面），其 value 不在文本节点里。
     const ro = [...root.querySelectorAll("textarea[readonly]")].filter(inScope).map((t) => t.value).join(" | ");
-    return norm(out.join(" ")) + (ro ? " || " + norm(ro) : "");
+    return out + (ro ? " || " + norm(ro) : "");
   };
   const canvas = [...root.querySelectorAll("canvas")].filter(inScope).map((c) => { try { return c.toDataURL(); } catch (e) { return "ERR"; } });
   const svg = [...root.querySelectorAll("svg")].filter(inScope).map((s) => s.outerHTML);
@@ -186,9 +177,10 @@ const PAGE_HELPERS = function () {
 
 const FIELD_HELPERS = function () {
   const norm = (s) => String(s == null ? "" : s).replace(/\s+/g, " ").trim();
-  const OK = new Set(["text", "search", "url", "email", "tel", "number", "date", "datetime-local", "time", "month", "week", "password"]);
+  const OK = new Set(["text", "search", "url", "email", "tel", "number", "date", "datetime-local", "time", "month", "week", "password", "range", "color"]);
   const CHROME_SEL = "header, nav, footer, .tb-nav, .tb-footer, .site-header, .site-footer, .nav-menu";
-  const NOISE_ID = /search|lang|theme|locale|output|result/i;
+  // 只排除站点级噪控件；页面自身的 searchInput（筛选/搜索）是真实输入，必须纳入。
+  const NOISE_ID = /lang|theme|locale|output|result/i;
   const fields = [];
   for (const el of document.querySelectorAll("input, textarea, select")) {
     if (el.getClientRects().length === 0) continue;
@@ -216,6 +208,15 @@ function pickValue(f) {
   if (f.type === "select") {
     const other = (f.options || []).find((o) => o.value !== f.value);
     return other ? other.value : null;
+  }
+  if (f.type === "range") {
+    const min = f.min === null ? 0 : parseFloat(f.min);
+    const max = f.max === null ? 100 : parseFloat(f.max);
+    const mid = Number((((min + max) / 2) || 50).toFixed(2));
+    return String(mid === parseFloat(f.value) ? (mid === max ? min : max) : mid);
+  }
+  if (f.type === "color") {
+    return String(f.value).toLowerCase() === "#123456" ? "#abcdef" : "#123456";
   }
   if (f.type === "number") {
     const n = parseFloat(f.value);
@@ -265,8 +266,8 @@ async function probePage(page, url, rel, html, timeout) {
   const setField = async (idx, value, restore) => {
     return page.evaluate((i, v, back) => {
       const CHROME_SEL = "header, nav, footer, .tb-nav, .tb-footer, .site-header, .site-footer, .nav-menu";
-      const NOISE_ID = /search|lang|theme|locale|output|result/i;
-      const OK = new Set(["text", "search", "url", "email", "tel", "number", "date", "datetime-local", "time", "month", "week", "password"]);
+      const NOISE_ID = /lang|theme|locale|output|result/i;
+      const OK = new Set(["text", "search", "url", "email", "tel", "number", "date", "datetime-local", "time", "month", "week", "password", "range", "color"]);
       const list = [];
       for (const el of document.querySelectorAll("input, textarea, select")) {
         if (el.getClientRects().length === 0) continue;
@@ -374,18 +375,26 @@ async function probePage(page, url, rel, html, timeout) {
     const url = "http://127.0.0.1:" + port + "/" + rel;
     const html = fs.readFileSync(p, "utf8");
     const page = await browser.newPage();
+    // 页面在注入非法值时可能弹 alert（如单字符校验），不接住会让 evaluate 永久挂起。
+    page.on("dialog", (d) => { d.dismiss().catch(() => {}); });
+    const t0 = Date.now();
     let r;
     try {
-      r = await probePage(page, url, rel, html, args.timeout);
+      r = await Promise.race([
+        probePage(page, url, rel, html, args.timeout),
+        new Promise((resolve) => setTimeout(() => resolve({ path: rel, errors: ["page timeout"] }), 15000)),
+      ]);
     } catch (e) {
       r = { path: rel, errors: [String(e.message).slice(0, 120)] };
     } finally {
-      try { await page.close(); } catch (e) {}
+      // 挂起页面（动画/定时器/未响应）上 page.close() 也可能永久阻塞，加 3s 上限。
+      await Promise.race([page.close().catch(() => {}), new Promise((x) => setTimeout(x, 3000))]);
     }
     out.pages.push(r);
     console.error(
       (r.errors && r.errors.length ? "⚠ " : "• ") + rel +
-      " | fields=" + (r.changedByField || []).length +
+      " | " + (Date.now() - t0) + "ms" +
+      " fields=" + (r.changedByField || []).length +
       " changedAll=" + !!r.changedAll +
       " needsClick=" + !!r.needsClick +
       " listeners=" + ((r.bindings && r.bindings.listeners) || []).join("/") +
