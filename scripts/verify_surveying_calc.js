@@ -813,6 +813,27 @@ const CASES = [
       "0.00 闭合差 fh（mm）"
     ],
     "ref": "SV-5 新增：注入 4 测段高差 Σh=1.256+2.318-0.742+2.800=5.632 m，H0=100/Hn=105.632 ⇒ 理论差 5.632 m ⇒ 闭合差 fh=0 ⇒ 「0.00 闭合差 fh（mm）」；默认态 Σh=5.637 不出该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "surveying/calc-1",
+    "clicks": [
+      "clearSections();addSection();calcLeveling()"
+    ],
+    "expect": [
+      "请填写：测段 1 高差 h、测段 1 测站数/距离"
+    ],
+    "ref": "空态守卫（A 类）：新增 1 个测段后两项均留空，旧实现 parseFloat('')||0 按 0 参与平差（fh=0、容许闭合差 4√0=0 ⇒ 误判「合格」）；现逐字段点名缺失项且不输出任何判定。默认 4 测段完整 ⇒ 不命中。"
+  },
+  {
+    "slug": "surveying/calc-1",
+    "clicks": [
+      "clearSections();addSection();document.getElementById('dh-1').value='0';document.getElementById('fc-1').value='6';document.getElementById('bmStart').value='100';document.getElementById('bmEnd').value='100';calcLeveling()"
+    ],
+    "expect": [
+      "0.0000 Σh 观测（m）",
+      "闭合差判定： 合格"
+    ],
+    "ref": "显式 0 合法：单测段高差 0 m（水平测段）、测站数 6>0、起终点同为 100 m ⇒ Σh=0、fh=0、容许闭合差 4√6=9.8 mm ⇒ 判「合格」。证明判空只看空字符串、不把数值 0 当缺失。"
   }
 
 ];
