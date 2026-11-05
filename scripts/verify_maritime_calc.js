@@ -86,8 +86,8 @@ const CASES = [
       "abc123测试\n42\nabc123测试\n42\nabc123测试\n42\n42\n42\n42\n42\n本轮潮汐潮高不足，无法通航 通航状态 42.0"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"highTideTime\":\"abc123测试\",\"highTideHeight\":\"42\",\"lowTideTime\":\"abc123测试\",\"lowTideHeight\":\"42\",\"nextLowTideTime\":\"abc123测试\",\"nextLowTideHeight\":\"42\",\"chartDepth\":\"42\",\"draft\":\"42\",\"ukc\":\"42\",\"transitTime\":\"42\"}，输出区含「abc123测试\n42\nabc123测试\n42\nabc123测试\n42\n42\n4…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  }
-
+  },
+  { slug: "maritime/speed-distance", inputs: { calcTarget: "distance", speedValue: "", timeValue: "" }, expect: ["请填写航速与时间后再计算航程。"], ref: "空态守卫：目标=航程且航速/时间清空时不再输出 0.00 海里与 0 小时，只给填写提示（旧实现 ⇒ 0.00/0.000/0.0 三单位全 0）。默认态 12 kn × 15 h ⇒ 180.00 nm，提示串不出现。" }
 ];
 async function main() {
   const only = process.argv.slice(2);

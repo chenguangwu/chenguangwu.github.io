@@ -606,8 +606,9 @@ const CASES = [
       "42\n42\n42\n总热值： 1,764.0 MJ 火灾荷载密度： 42.0 MJ/m² 等效木材荷载： 2.3 kg/m² 火灾严重程度等级： 低"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"mass\":\"42\",\"hv\":\"42\",\"area\":\"42\"}，输出区含「42\n42\n42\n总热值： 1,764.0 MJ 火灾荷载密度： 42.0 MJ…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  }
-
+  },
+  { slug: "fire-rescue/fire-fighting-tactics", inputs: { fireArea: "" }, expect: ["请填写过火面积（m²）后再生成战术方案。"], ref: "空态守卫：清空过火面积后不再渲染 0 着火面积与整套战术方案，只给填写提示（旧实现 ⇒ 0 m² + 发展阶段 + 进攻模式 + 力量部署全套结论）。默认态 200 m² ⇒ 提示串不出现。" },
+  { slug: "fire-rescue/fire-fighting-tactics", inputs: { structure: "2", fireArea: "300", trapped: "1", force: "6", water: "1" }, expect: ["300 着火面积(m²)", "钢结构 建筑结构", "少数 被困人员", "推荐战术模式：进攻"], ref: "注入 300 m² + 钢结构 + 少数被困：输出 300 着火面积(m²)、钢结构 建筑结构、少数 被困人员、推荐战术模式：进攻（默认 200 m²/砖混/无被困 ⇒ 四条均不命中）。空态另有用例。" },
 ];
 async function main() {
   const only = process.argv.slice(2);

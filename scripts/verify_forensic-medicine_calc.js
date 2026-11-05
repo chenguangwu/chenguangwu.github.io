@@ -227,7 +227,9 @@ const CASES = [
   ],
     ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
-}
+},
+  { slug: "forensic-medicine/wound-description", inputs: { length: "", width: "" }, expect: ["请填写创口长度与宽度（cm）后再生成描述。"], ref: "空态守卫：清空长度/宽度后不再输出 0 cm × 0 cm 的完整损伤描述，只给填写提示（旧实现 ⇒ 0 cm × 0 cm + 钝器伤 + 致伤物推断全套结论）。默认态 5×2 cm ⇒ 提示串不出现。" },
+  { slug: "forensic-medicine/wound-description", inputs: { location: "头部", length: "4.5", width: "1.2" }, expect: ["创口大小 4.5 cm × 1.2 cm", "损伤类型： 钝器伤"], ref: "注入 4.5×1.2 cm + 头部 ⇒ 创口大小 4.5 cm × 1.2 cm、钝器伤（钝器为默认单选，harness 不支持 radio 注入）；默认 5×2 cm ⇒ 首条不命中。空态另有用例。" },
 ];
 async function main() {
   const only = process.argv.slice(2);
