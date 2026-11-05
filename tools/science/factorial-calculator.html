@@ -157,7 +157,7 @@ s.parentNode.insertBefore(el, s);
      <h2 data-zh="❗ 阶乘计算器">❗ Factorial Calculator</h2>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">大整数阶乘（本页代码口径）：n!=n×(n−1)×…×1，0!=1，按 BigInt 连乘精确计算；数量级 log₁₀≈log10(前 16 位)+15×(段数−1)；n&gt;10 时附斯特林近似 √(2πn)×(n÷e)ⁿ。校验：n 为负提示「请输入非负整数」；n&gt;10000 提示过大建议 ≤10000 并中止。判据：n≤25 展示完整乘积展开，更长时截取前 50 位与后 50 位显示。</div>
-  <div class="formula-desc">本计算基于标准数学定义与运算规则，结果按计算精度实时输出。 工具名称：阶乘计算器 - 科学研究领域的在线工具。</div>
+  <div class="formula-desc">n! = 1×2×…×n；0! = 1（空积约定）。本页用 BigInt 连乘，结果逐位精确，n 上限 10000。</div>
 </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="计算 n! = n × (n−1) × ... × 2 × 1（支持大整数，推荐 n ≤ 10000）">Compute n! = n × (n−1) × … × 2 × 1 with big-integer support, recommended up to n = 10,000.</p>
 
@@ -194,17 +194,34 @@ s.parentNode.insertBefore(el, s);
 </style>
 <section class="deep-dive" data-deep-dive="1">
 <div class="card">
-<h2>📚 深度解析：阶乘计算器（科学）</h2>
-<h3>💡 常见使用场景</h3>
+<h2>📚 深度解析：阶乘计算器</h2>
+<h3>📖 定义与精度</h3>
+<div style="margin:8px 0;line-height:1.85;">n! = 1×2×…×n（n 为正整数），并约定 0! = 1（空积）。本页用 BigInt 连乘，结果逐位精确；同时给出结果位数与数量级 log₁₀。n ≤ 25 时展开逐因子，n > 10 时附斯特林近似 n! ≈ √(2πn)·(n/e)^n。负整数直接报错，n > 10000 提示过大。</div>
+<h3>🧮 算例（按本页代码口径实跑）</h3>
 <ul class="dd-list">
-<li>n! 用于排列组合与概率。</li>
-<li>排列组合与概率问题中计算分母的阶乘。</li>
+<li>n=0：0! = 1，结果位数 1。</li>
+<li>n=5：5! = 5 × 4 × 3 × 2 × 1 = 120（3 位）。</li>
+<li>n=7：7! = 5,040，展开行 7 × 6 × 5 × 4 × 3 × 2 × 1 逐因子可手算。</li>
+<li>n=20：20! = 2,432,902,008,176,640,000（19 位），数量级 10^18；斯特林近似 2.422787e+18，与精确值相对误差约 0.42%。</li>
+<li>n=30：30! = 265,252,859,812,191,058,636,308,480,000,000（33 位），数量级 10^32。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">计算</div><div class="dd-ex-body">5!=120；0!=1（约定）。</div></div>
+<h3>⚠ 常见误用</h3>
+<ul class="dd-list">
+<li>用 Number 连乘：19! = 121,645,100,408,832,000 已超过 2^53≈9.007×10^15，之后每个结果都可能丢失低位；本页用 BigInt 避免该问题。</li>
+<li>把「数量级」当精确值：log₁₀ 只描述首位与位数，20! 的数量级是 18，实际值 2.43×10^18。</li>
+<li>负数阶乘：整数域内无定义，页面直接拒绝；非整数需用 Gamma 函数 Γ(n+1)=n! 推广。</li>
+</ul>
+<h3>📏 位数与近似对照</h3>
+<ul class="dd-list">
+<li>n=10：10! = 3,628,800（7 位），数量级 10^6；页面在 n≤10 时不显示斯特林近似，避免小 n 时近似误差干扰阅读。</li>
+<li>n=19：19! = 121,645,100,408,832,000（18 位），已超过 2^53≈9.007×10^15；这是「必须换 BigInt」的分界点，再往后的 Number 结果会丢低位。</li>
+<li>位数与数量级的关系：位数 = ⌊log₁₀(n!)⌋ + 1，所以 20! 是 19 位、数量级 18；两列数值必然相差 1，不是算错。</li>
+</ul>
 <h3>❓ 常见问题（FAQ）</h3>
+<!-- hc-aug-20261105 -->
 <dl class="dd-faq">
-<dt>大数阶乘溢出？</dt><dd>可用对数或 Stirling 近似。</dd>
-<dt>非整数阶乘怎么算？</dt><dd>用 Gamma 函数推广：Γ(n+1) = n!。</dd>
+<dt>为什么 0! 等于 1？</dt><dd>两条独立理由：① 空积约定——不乘任何数时结果为乘法单位元 1；② 递推自洽——1! = 1 × 0!，若 1!=1 则 0! 必须为 1，否则递推断裂。</dd>
+<dt>斯特林近似什么时候能用？</dt><dd>n 越大越准：n=20 时相对误差约 0.42%，n=100 时约 0.08%。它适合快速估数量级，不适合需要末几位精确值的场景，后者必须用 BigInt 连乘。</dd>
 </dl>
 </div>
 </section>
@@ -268,7 +285,7 @@ function calculate(){
   html+='<div class="stat-row">';
   html+='<div class="stat-item"><div class="v">'+(t1-t0).toFixed(2)+' ms</div><div class="l">计算耗时</div></div>';
   html+='<div class="stat-item"><div class="v">'+fStr.length.toLocaleString()+'</div><div class="l">结果位数</div></div>';
-  html+='<div class="stat-item"><div class="v">'+Math.floor(Math.log10(Number(fStr.slice(0,16)))+15*(Math.ceil(fStr.length/15)-1)).toLocaleString()+'</div><div class="l">数量级 (log₁₀)</div></div>';
+  html+='<div class="stat-item"><div class="v">'+(fStr.length-1).toLocaleString()+'</div><div class="l">数量级 (log₁₀)</div></div>';
   html+='</div>';
   html+='<p style="margin-top:12px;"><strong>定义：</strong></p>';
   html+='<div class="step-line">n! = n × (n−1) × (n−2) × ... × 2 × 1</div>';
