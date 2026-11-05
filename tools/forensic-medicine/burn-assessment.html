@@ -176,6 +176,7 @@ s.parentNode.insertBefore(el, s);
         <div>
           <label>烧伤深度</label>
           <select id="burnDepth" onchange="analyzeDepth()">
+            <option value="" selected>请选择烧伤深度</option>
             <option value="1">I度（红斑型）</option>
             <option value="2s">浅II度（水疱型）</option>
             <option value="2d">深II度</option>
@@ -370,12 +371,18 @@ function calcArea() {
   parts.forEach(function(p, i) {
     var el = document.getElementById('part_' + i);
     var v = el ? parseFloat(el.value) : 0;
+    if (!isFinite(v)) v = 0;
     var valEl = document.getElementById('partval_' + i);
     if (valEl) {const __g2=v;valEl.textContent=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));}
     total += v * p.percent / 100;
   });
   var palm = parseFloat(document.getElementById('palmArea').value) || 0;
   total += palm;
+
+  if (total === 0) {
+    ToolBox.setResult('areaResult','<div class="info-box"><strong>请输入各部位烧伤面积（拖动滑块）或手掌面积后再计算总面积。</strong></div>');
+    return;
+  }
 
   var html = '<div class="estimate-box" style="background:var(--result-bg);border:2px solid var(--primary);border-radius:12px;padding:16px;text-align:center;margin:12px 0;">';
   html += '<div style="font-size:13px;color:var(--text-muted);">烧伤总面积</div>';
@@ -403,6 +410,10 @@ function calcArea() {
 
 function analyzeDepth() {
   var depth = document.getElementById('burnDepth').value;
+  if (depth === '') {
+    ToolBox.setResult('depthResult','<div class="info-box"><strong>请选择烧伤深度后再判定分度。</strong></div>');
+    return;
+  }
   var s1 = document.getElementById('symptom1').checked;
   var s2 = document.getElementById('symptom2').checked;
   var s3 = document.getElementById('symptom3').checked;
@@ -448,6 +459,12 @@ function analyzeDepth() {
 }
 
 function calcSeverity() {
+  var totalRaw = document.getElementById('totalArea').value.trim();
+  var thirdRaw = document.getElementById('thirdArea').value.trim();
+  if (totalRaw === '' || thirdRaw === '') {
+    ToolBox.setResult('severityResult','<div class="info-box"><strong>请输入烧伤总面积与III度面积后再分级。</strong></div>');
+    return;
+  }
   var total = parseFloat(document.getElementById('totalArea').value) || 0;
   var third = parseFloat(document.getElementById('thirdArea').value) || 0;
   var special = document.getElementById('specialSite').checked;

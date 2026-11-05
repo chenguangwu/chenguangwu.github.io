@@ -190,7 +190,9 @@ const CASES = [
 {
   "slug": "dentistry/oral-cancer-screening",
   "inputs": {
-    "t": "1"
+    "t": "1",
+    "n": "0",
+    "m": "0"
   },
   "expect": [
     "5年生存率75-85%"
@@ -320,7 +322,20 @@ const CASES = [
   },
   "expect": [ "1100 抗弯强度" ],
   "ref": "auto-restore"
+},
+{
+  "slug": "dentistry/oral-cancer-screening",
+  "inputs": { "t": "", "n": "", "m": "" },
+  "expect": ["请输入原发肿瘤 T、淋巴结 N 与远处转移 M 后再分期。"],
+  "ref": "原生缺陷修复：T/N/M 三个下拉改为「请选择…」空值默认，首屏不再直接给出 III 期与治疗方案。"
+},
+{
+  "slug": "dentistry/oral-cancer-screening",
+  "inputs": { "t": "is", "n": "0", "m": "0" },
+  "expect": ["0期"],
+  "ref": "正例：选择 Tis/N0/M0 后照常出 0 期（恢复原结论，空值占位不改变计算）。"
 }
+
 ];
 async function main() {
   const only = process.argv.slice(2);
