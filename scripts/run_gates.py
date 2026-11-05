@@ -344,6 +344,11 @@ GATES = (
     # 注意：本项**在 build 之后**执行，验证的是构建后产物，故必须在 worktree 里全量跑
     # （主工作区只允许 --skip-build，见 plan/gate-false-green-audit.md §7.3 硬条款）。
     ("deepdive source sync", ("python3", "scripts/audit_deepdive_source_sync.py", "--check")),
+    # 英文元数据退化（2026-11-05）：`_en_override.json` 曾用「编号 slug title-case / 单通用词 /
+    # 固定套话」兜底，造成 674 页 title-en 退化为 `Generator 35`、`Finance` 等。本门禁按六类
+    # 成因扫描英文值，存量债由 scripts/en_meta_degenerate_baseline.json 锁定（只减不增），
+    # 合法短名（BMI/PDF/EBIT…）逐条登记在 scripts/en_meta_allowlist.json。
+    ("english meta degenerate", ("python3", "scripts/audit_en_meta_degenerate.py", "--check")),
 )
 
 
