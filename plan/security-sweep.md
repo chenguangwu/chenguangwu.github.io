@@ -814,5 +814,64 @@ RESULT 11/11
 - `code-runner` 接收逻辑：仅接受 `{type:'console'}`，`data` 经 `escapeConsoleHtml`（`textContent→innerHTML`）后放入 `<span>` 文本上下文（引号无逃逸风险）。
 - 实测（真机）：向 `code-runner` 投递 `{type:'console',method:'log',data:['<img src=x onerror="parent.__xss=1">']}` → **`escaped=yes`、`img=0`、`xss=undefined`**，控制台新增 1 行（`lines=3`），注入串以 `&lt;img` 文本呈现。
 - 正控：合成页接收端直接 `innerHTML = e.data.v` → **`xss=1 img=1`**，探针可报红。
-- 唯一缺陷：**未校验 `event.origin`**，任意页面可在用户打开 `code-runner` 时伪造控制台日志（文本欺骗），**不可执行脚本**，列低危、暂不改（改动会引入来源白名单维护成本）。 
+- 唯一缺陷：**未校验 `event.origin`**，任意页面可在用户打开 `code-runner` 时伪造控制台日志（文本欺骗），**不可执行脚本**，列低危、暂不改（改动会引入来源白名单维护成本）。
+
+## 22. 剪贴板 / SVG / Shadow DOM 三面专项（2026-11-05）
+
+### 22.1 剪贴板 / 拖拽 / 文件内容入 DOM：0 命中
+
+- 静态：`paste`/`drop` 监听共 **45 处**（去重后约 41 个页面）：
+  - `paste` 3 处：`it/rich-text-editor.html:632`（**唯一**把剪贴板 HTML 写进编辑区）、`it/json-formatter.html:726`（仅对 `textarea.value` 触发校验，不解析 HTML）、`cognition/human-benchmark.html:769`（**显式拦截**粘贴）。
+  - `drop` 其余：全部走 `e.dataTransfer.files[0]` → `handleFile(s)` → `FileReader` / `createObjectURL` → canvas/`<img>`，无文本入 `innerHTML`；`design/farnsworth-d15-test` 只取 `getData('text/plain')` 后 `parseInt`。
+- 实测（真机）：`it/rich-text-editor` 派发 `ClipboardEvent`（`text/html = <img src=x onerror="window.__xss=1">`）到 `#editor` → **`xss=undefined`、`img=0`、无 `onerror` 残留**；其 `sanitizeHtml()` 走 DOMParser 白名单，删除 `on*` / `srcdoc` / `formaction` / 非白名单 `href|src`，`style` 含 `expression(|javascript:|url(|@import` 时整条移除。
+- 正控：合成页 `paste` → `innerHTML = clipboardData.getData('text/html')`（无清洗）→ **`xss=1 img=1`**，证明探针能捕获粘贴注入。
+
+### 22.2 SVG 上传 / 渲染边界：0 命中
+
+- 静态：动态构造 `<svg>` 并写 DOM 的页面 **10 个**；其中真正接收**用户 SVG 文本**的只有 2 个：
+  - `design/svg-viewer.html:269-282`：`sanitizeSvg()` 字符串清洗后 `preview.innerHTML = safe.html`；
+  - `design/svg-to-png.html:343-393`：`__svgSanitize()` 去 `foreignObject` / 外链 `href|src` / `@import`，再以 `Blob → <img> → canvas` 解码导出（**不插入实时 DOM**）。
+  - 其余 8 个（`transport/calc-53`、`meteorology/calc-55`、`electronics/smt-stencil`、`math/geometry-calculator`、`data/data-visualizer` 等）`<svg>` 只拼计算出的数值坐标，无用户文本。
+- 实测（5 种向量，`svg-viewer`）：`<svg onload>`、`<script>`、`<foreignObject><img onerror>`、`<a xlink:href="javascript:">`（并派发 click）、`<image href="data:image/svg+xml,<svg onload=…>">` → **全部 `xss=undefined`，预览中 `on*` / `javascript:` / `foreignObject` / `<script>` 均为 no**。
+- 实测（`svg-to-png`，2 种向量）：`onload` SVG 与 `foreignObject+onerror` SVG → 均成功转出 PNG（`img=1`），**`xss=undefined`、预览无 `on*`**（`<img>` 解码上下文不执行脚本）。
+- 正控：合成页 `innerHTML = '<svg onload="window.__xss=1">'` → **`xss=1`**，证明「SVG 事件执行」判据可报红。
+
+### 22.3 Shadow DOM / Web Components：全站 0 触达
+
+- `attachShadow`：**0 处**；`customElements.define`：**0 处**（`tools/` + `js/` 全量 grep）。
+- 结论：不存在 shadow root 内 `innerHTML` 写入通路，本面无攻击面可测。
+
+## 23. 安全线收面总结（2026-11-05）
+
+### 23.1 扫过的面 × 样本 × 命中 × 修复
+
+| # | 注入面 | 页 / 点 | 命中 | 修复 | 正控 |
+|---|---|---|---|---|---|
+| 1 | 用户输入 → 文本回显 | 9 目录 124 页 + 抽检 | 4 | 4 | 通（注入串报红） |
+| 2 | 属性上下文（转义器 × 拼接） | 384 页 / 1118 点 | 3 | 3 | 通（`value=` 逃逸复红） |
+| 3 | localStorage 回灌 | 72 页 | 3 | 3 | 通（还原版复红） |
+| 4 | URL 参数反射 | 282 页静态 / 30 页实测 | 0 | 0 | 通（query+hash 双态） |
+| 5 | 跳转 / 资源赋值 | 14 页静态 / 30 页实测 | 0 | 0 | 通（`location.href` 复红） |
+| 6 | CSS 注入 | 3513 点 → 30 页实测 | 0 | 0 | 通（属性闭合复红） |
+| 7 | `srcdoc` / 动态 iframe | 4 处 / 2 页 | 0 | 0 | 通（无 sandbox vs 有 sandbox 双态） |
+| 8 | `postMessage` | 5 发 / 3 收 | 0 | 0 | 通（裸 `innerHTML` 复红） |
+| 9 | 剪贴板 / 拖拽 / 文件 | 45 点 / 41 页 | 0 | 0 | 通（粘贴复红） |
+| 10 | SVG 上传 / 渲染 | 10 页 / 2 个用户 SVG 入口 | 0 | 0 | 通（`<svg onload>` 复红） |
+| 11 | Shadow DOM / Web Components | 0 触达 | — | — | 不适用 |
+
+- **累计修复 10 页 / 5 个修复提交**（见 §20.2），误报 0；每页修后均复测到 `xss=undefined && injectedImg=0`，并做正常值逐字符回归。
+- 剩余低危留档 1 条：`it/code-runner` 的 `postMessage` 未校验 `origin`（仅文本伪造，不可执行）。
+
+### 23.2 明确未覆盖的面
+
+1. **第三方 CDN 供应链**：`ttzz` 等外链脚本无 SRI、无 `crossorigin`。**定位为供应链风险，不是本站「输入 → DOM」漏洞**；不通过加 SRI 修复（会让 CDN 版本更新失败）。
+2. **本地文件解析器**：pdf.js / sql.js / SheetJS 对恶意 PDF/DOCX/XLSX/SQLite 的行为未做 fuzz（属解析库安全问题，非本站代码注入）。
+3. **`eval` / `new Function` 本地执行页**：`it/code-runner`、`it/sqlite-runner` 属产品功能，输入不来自 URL/外部页面，未按漏洞处理。
+4. **剪贴板读取 API**：`navigator.clipboard.readText()` 的内容入 DOM 路径未单独统计（当前全站无该调用）。
+5. **DOM clobbering / CSP / 浏览器扩展**：未评估（本站无 CSP，纯静态站依赖 GitHub Pages 响应头）。
+6. **构建期产物**：`_build.py` 注入的 TTZZ/统计脚本未纳入本轮（属构建链，不做页面级修复）。
+
+### 23.3 一句话结论
+
+**「用户输入 → DOM」的可执行通路已全部扫过（11 个面、正控全覆盖），未发现剩余未扫的注入通路；残留风险只在第三方供应链与本地文件解析库，不在本站输入链。** 
 
