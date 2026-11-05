@@ -19,7 +19,7 @@ const { runCase } = require("./verify_it_calc.js");
 const CASES = [
   { slug: "nuclear/absorbed-dose",
     inputs: { E: "0.3", m: "4" },
-    expect: ["0.0750"],
+    expect: ["0.0750 吸收剂量 D"],
     ref: "D=E/m=0.3/4=0.0750 Gy" },
 
   { slug: "nuclear/activity",

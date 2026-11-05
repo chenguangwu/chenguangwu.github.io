@@ -201,6 +201,18 @@ const CASES = [
     "clamp:2026-2-28"
   ],
   "ref": "BS-N4 月末 clamp：1 月 31 日 + 1 个月应落在 2 月 28 日（2026 非闰年），旧 setMonth 会溢出到 3 月 3 日。直接调用页内 addMonthsClamped 验证。"
+},
+{
+  "slug": "startup/equity-calculator",
+  "inputs": {
+    "w_idea": "1", "w_money": "1", "w_time": "1", "w_res": "1",
+    "f1name": "甲", "f1idea": "9", "f1money": "0", "f1time": "0", "f1res": "0",
+    "f2name": "乙", "f2idea": "3", "f2money": "0", "f2time": "0", "f2res": "0",
+    "f3name": "丙", "f3idea": "3", "f3money": "0", "f3time": "0", "f3res": "0"
+  },
+  "clicks": ["calc()"],
+  "expect": ["甲 60.00%", "乙 20.00%", "丙 20.00%", "创始团队合计 100.00%"],
+  "ref": "页面原用 appendChild + innerHTML 生成无 id 的创始人行，桩不建动态行 ⇒ 零覆盖。已给行内输入加稳定 id（f{n}name/idea/money/time/res），readFounders 改为按 id 读取（删除行仍靠 getElementById 判空跳过），行为不变。实跑值：权重全 1，三位创始人创意分 9/3/3 ⇒ 总分 15，持股 9/15=60.00%、3/15=20.00%、20.00%，创始团队合计 100.00%（weighted 模式无期权池）；甲 60% 触发「相对控制权（≥51%）」。旧期望：无用例（零覆盖）。新期望：上列四条；默认态为 张三/李四/王五（权重 3/1/2/2，创意 8/5/3）⇒ 均为其他百分比，四条均不命中。"
 }
 
 ];

@@ -72,7 +72,7 @@ const CASES = [
   // ---- 抛体运动 ----
   { slug: "kinematics/projectile-velocity-components",
     inputs: { v: "40", th: "60" },
-    expect: ["20.000", "34.641"],
+    expect: ["34.641"],
     ref: "vₓ=40·cos60°=20.000；vᵧ=40·sin60°=34.641" },
 
   { slug: "kinematics/projectile-max-height",

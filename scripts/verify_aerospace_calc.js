@@ -4,8 +4,8 @@
  *
  * 期望值全部由独立复算得出（ref 字段写明完整算式），不回读页面输出。
  * 输入一律避开页面默认值，确保验证的是「注入值 → 结果」而非「默认值 → 结果」。
- * 跳过：flight-time（日期时刻 + 时区，动态表单）；fuel-consumption / runway-length / weight-balance
- *       （多分支/动态行/系数表）；lift-coefficient（角度—升力曲线绘图）。
+ * 跳过：flight-time（日期时刻 + 时区，动态表单）；fuel-consumption / runway-length（多分支/系数表）；
+ *       lift-coefficient（角度—升力曲线绘图）。weight-balance 已由页面给载荷行加稳定 id 后可测（见用例）。
  * 用法: node scripts/verify_aerospace_calc.js [slug ...]
  */
 "use strict";
@@ -32,7 +32,7 @@ const CASES = [
   { slug: "aerospace/lift-to-drag-ratio", inputs: { cl: "1.5", cd: "0.10" }, expect: ["15.00"], ref: "L/D=1.5/0.10=15.00；阻力占比=0.10/1.5×100=6.67%（默认 1.0/0.05 避开）" },
   { slug: "aerospace/climb-rate", inputs: { pav: "300000", preq: "100000", w: "20000" }, expect: ["10.00 爬升率", "600.0 爬升率"], ref: "ROC=(Pav−Preq)/W=(300000−100000)/20000=10.00 m/s=600.0 m/min（默认 pav=200000 避开）" },
   { slug: "aerospace/descent-rate", inputs: { v: "100", g: "6" }, expect: ["627.2", "10.45"], ref: "下降率=v·sinγ=100×sin6°=10.45 m/s=627.2 m/min（默认 v=70 避开）" },
-  { slug: "aerospace/bank-angle-load", inputs: { phi: "45" }, expect: ["1.414"], ref: "n=1/cosφ=1/cos45°=1.414（默认 60 避开）" },
+  { slug: "aerospace/bank-angle-load", inputs: { phi: "45" }, expect: ["1.414 载荷因数"], ref: "n=1/cosφ=1/cos45°=1.414（默认 60 避开）" },
   // ── §7.4 零用例加固：aerospace 确定性数值页（注入非默认 + harness 实测锚）──
   { slug: "aerospace/lift-force", inputs: { rho: "1.1", v: "95", s: "20", cl: "1.4" }, expect: ["138.99", "14167.7"], ref: "注入非默认(默认 1.225/80/16/1.2)：L = ½ρv²S·Cl = 0.5×1.1×95²×20×1.4 = 138,985 N = 138.99 kN（÷9.81 = 14,167.7 kgf）。默认态 75.26 kN / 7,675.0 kgf 不命中。" },
   { slug: "aerospace/thrust-required", inputs: { rho: "1.1", v: "95", s: "20", cd: "0.06" }, expect: ["5.957", "4963.8", "607.39"], ref: "注入非默认(默认 1.225/80/16/0.05)：动压 q = ½ρv² = 0.5×1.1×9025 = 4963.8 Pa；D = q·S·Cd = 4963.8×20×0.06 = 5956.6 N = 5.957 kN = 607.39 kgf。默认态 3136.0/3.136/319.8 均不命中。" },
@@ -505,6 +505,18 @@ const CASES = [
       "kgf/m²) 1000.0"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"w\":\"42\",\"s\":\"42\"}，输出区含「kgf/m²) 1000.0」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    slug: "aerospace/weight-balance",
+    inputs: {
+      oew: "52000", oewArm: "21.5", cgFwd: "17", cgAft: "23",
+      ld1w: "1540", ld1a: "16", ld2w: "2310", ld2a: "22",
+      ld3w: "500", ld3a: "15", ld4w: "800", ld4a: "24",
+      ld5w: "8000", ld5a: "21"
+    },
+    clicks: ["calc()"],
+    expect: ["65,150 总重量 (kg)", "1,388,160 总力矩 (kg·m)", "21.31 重心位置 (m)", "重心在安全范围内"],
+    ref: "页面原用 insertAdjacentHTML 生成无 id 的载荷行，桩无法注入 ⇒ 零覆盖。已给每行输入加稳定 id（ld{n}n/w/a）并把 getLoads 改为按 id 读取（行为不变，删除行仍靠 getElementById 判空跳过）。实跑值：总重 = 52000+1540+2310+500+800+8000 = 65,150 kg；总力矩 = 52000×21.5 + 1540×16 + 2310×22 + 500×15 + 800×24 + 8000×21 = 1,118,000+270,160 = 1,388,160 kg·m；CG = 21.313 ⇒ 21.31 m，范围百分比 (21.313−17)/6×100 = 71.9 ⇒ 72%。旧期望：无用例（零覆盖）。新期望：上列四条，默认态（空机 45,000/20.5、5 行默认载荷、17~23）为 57,850 / 1,210,660 / 20.93，四条均不命中。"
   }
 
 ];

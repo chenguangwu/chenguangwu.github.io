@@ -592,10 +592,8 @@ const CASES = [
       "target-rounds": "42",
       "priority": "med"
     },
-    "expect": [
-      "42:00\n1\n42\n休息时间\nabc123测试\n42\n⏸ 暂停\nmed"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"subject\":\"abc123测试\",\"content\":\"abc123测试\",\"minutes\":\"42\",\"focus-mins\":\"42\",\"break-mins\":\"42\",\"target-rounds\":\"42\",\"priority\":\"med\"}，输出区含「个开始学习吧 ✨\n42:00\n1\n42\n休息时间\nabc123测试\n42\n⏸ 暂…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "expect": ["请输入有效的时长和轮数。"],
+    "ref": "休息 42 分钟和 42 轮均超出控件上限，预览应显示校验提示；默认值合法，不出现该提示。"
   },
   {
     "slug": "edu/exam-timer",
@@ -826,6 +824,18 @@ const CASES = [
       "QSTRICT:0:wrong,1:correct|wrong=1"
     ],
     "ref": "EL-J5 回归：选项 0「容纳；适应」以「适应」结尾但并非答案，选它必须只标红 0、且仅把真正答案（索引 1）标绿 ⇒ 标记序列 0:wrong,1:correct。旧实现用 endsWith 找正确项，会把 0、1 同时标绿 ⇒ 0:wrong,0:correct,1:correct。"
+  },
+  {
+    slug: "edu/convert-2",
+    inputs: { val: "", from: "hex", to: "rgb" },
+    expect: ["请输入颜色值后再转换"],
+    ref: "空态守卫（2026-11-05）：清空颜色值后 hexToRgb('') 会把空串经 parseInt 得 NaN 再按位回绕成 rgb(255, 107, 53)，凭空给出一个确定颜色；改为前置空串守卫给提示。默认 val=#FF6B35 ⇒ 提示串不出现；注入 #FF0000 用例断「rgb(255, 0, 0)」⇒ 两态互斥。",
+  },
+  {
+    "slug": "edu/exam-study-planner",
+    "inputs": { "break-mins": "10" },
+    "expect": ["休息 10 分钟"],
+    "ref": "单字段注入（2026-11-05 补 oninput）：番茄钟计划行默认「休息 5 分钟」，仅改休息时长 10 分即实时刷新；默认态不含该串 ⇒ 强判别。任务的 subject/content/minutes 属「添加记录」表单，仍由「添加任务」按钮驱动，不做实时预览。"
   },
 
 {

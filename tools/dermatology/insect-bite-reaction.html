@@ -136,7 +136,7 @@ s.parentNode.insertBefore(el, s);
 
     <div class="score-item">
       <label>红斑范围（Erythema）</label>
-      <select id="s1" onchange="calc()">
+      <select id="s1" onchange="__markScaleDirty()">
         <option value="0">0 - 无</option>
         <option value="1">1 - <5cm</option>
         <option value="2">2 - 5-10cm</option>
@@ -145,7 +145,7 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="score-item">
       <label>肿胀程度（Edema）</label>
-      <select id="s2" onchange="calc()">
+      <select id="s2" onchange="__markScaleDirty()">
         <option value="0">0 - 无</option>
         <option value="1">1 - 轻微</option>
         <option value="2">2 - 明显</option>
@@ -154,7 +154,7 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="score-item">
       <label>瘙痒程度（Pruritus）</label>
-      <select id="s3" onchange="calc()">
+      <select id="s3" onchange="__markScaleDirty()">
         <option value="0">0 - 无</option>
         <option value="1">1 - 偶发</option>
         <option value="2">2 - 持续可忍</option>
@@ -163,7 +163,7 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="score-item">
       <label>疼痛/触痛（Pain）</label>
-      <select id="s4" onchange="calc()">
+      <select id="s4" onchange="__markScaleDirty()">
         <option value="0">0 - 无</option>
         <option value="1">1 - 轻触痛</option>
         <option value="2">2 - 自发痛</option>
@@ -172,7 +172,7 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="score-item">
       <label>皮损数量（Lesions）</label>
-      <select id="s5" onchange="calc()">
+      <select id="s5" onchange="__markScaleDirty()">
         <option value="0">0 - 无</option>
         <option value="1">1 - 1-5个</option>
         <option value="2">2 - 6-15个</option>
@@ -181,7 +181,7 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="score-item">
       <label>水疱/糜烂（Vesicle）</label>
-      <select id="s6" onchange="calc()">
+      <select id="s6" onchange="__markScaleDirty()">
         <option value="0">0 - 无</option>
         <option value="1">1 - 小水疱</option>
         <option value="2">2 - 大疱</option>
@@ -191,13 +191,13 @@ s.parentNode.insertBefore(el, s);
 
     <h3 style="font-size:14px;margin:12px 0 8px;">全身症状（有则加2分）</h3>
     <div class="checkbox-row">
-      <label><input type="checkbox" id="sys1" onchange="calc()"> 发热</label>
-      <label><input type="checkbox" id="sys2" onchange="calc()"> 淋巴结肿大</label>
-      <label><input type="checkbox" id="sys3" onchange="calc()"> 全身皮疹</label>
+      <label><input type="checkbox" id="sys1" onchange="__markScaleDirty()"> 发热</label>
+      <label><input type="checkbox" id="sys2" onchange="__markScaleDirty()"> 淋巴结肿大</label>
+      <label><input type="checkbox" id="sys3" onchange="__markScaleDirty()"> 全身皮疹</label>
     </div>
 
     <h3 style="font-size:14px;margin:12px 0 8px;">虫类（影响处理方式）</h3>
-    <select id="insectType" onchange="calc()" style="margin-bottom:12px;">
+    <select id="insectType" onchange="__markScaleDirty()" style="margin-bottom:12px;">
       <option value="mosquito">蚊虫叮咬</option>
       <option value="bee">蜂类蜇伤</option>
       <option value="tick">蜱虫叮咬</option>
@@ -210,7 +210,7 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <div id="insect_bite_reactionPresets"></div><button type="button" class="btn primary" onclick="calc()">评估反应</button><button class="btn" type="button" onclick="__insect_bite_reactionExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
-      <button type="button" class="btn" onclick="resetForm()">重置</button>
+      <button type="button" class="btn" onclick="resetForm()" title="恢复为未评估状态">重置评分</button>
     </div>
 
     <div class="result-box" id="result"></div>
@@ -303,6 +303,8 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
+var __scaleDirty=false;
+function __markScaleDirty(){__scaleDirty=true;calc();}
 function calc(){
   var s1 = +document.getElementById('s1').value;
   var s2 = +document.getElementById('s2').value;
@@ -319,6 +321,16 @@ function calc(){
   var localScore = s1 + s2 + s3 + s4 + s5 + s6;
   var total = localScore + sysScore;
   var maxScore = 24;
+
+  if(!__scaleDirty){
+    document.getElementById('result').innerHTML='<div class="result-summary"><div class="summary-card" style="background:#10B98114;border:1px solid #10B98155;">' +
+      '<div class="val" style="color:#10B981;">'+total+'</div>' +
+      '<div class="lbl">总分 / '+maxScore+'</div>' +
+      '</div></div>' +
+      '<div class="info-box"><strong>当前为默认评分（各局部体征为 0 分、未勾选全身症状），请按实际皮损与全身情况修改后查看解读。</strong></div>';
+    var __rb=document.getElementById('resultRefBar'); if(__rb) __rb.innerHTML='';
+    return;
+  }
 
   var severity, color, advice;
   if(total <= 5){
@@ -369,6 +381,7 @@ function calc(){
 
 function copyResult(){
   var total = calcTotal();
+  if(!__scaleDirty){ ToolBox.copyText('虫咬皮炎反应评分：'+total+'分/24（默认评分，尚未按实际皮损与全身情况修改）', i18nText()); return; }
   ToolBox.copyText('虫咬皮炎反应评分：'+total+'分', i18nText());
 }
 
@@ -389,6 +402,7 @@ function resetForm(){
   document.getElementById('sys2').checked=false;
   document.getElementById('sys3').checked=false;
   document.getElementById('insectType').value='mosquito';
+  __scaleDirty=false;
   calc();
 }
 
@@ -518,7 +532,7 @@ function __insect_bite_reactionRender(keys,rk,en){
                     if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
                     else{e.value=rec[k];}
                 }
-                calc();
+                __scaleDirty=true; calc();
             }catch(e2){}
             __insect_bite_reaction_skip=false;
         });
@@ -567,7 +581,7 @@ function __insect_bite_reactionExport(){
 }
 function __insect_bite_reactionPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#insect_bite_reactionPresets',[{label:'默认参数',labelEn:'Default',values:{'s1':'0', 's2':'0', 's3':'0', 's4':'0', 's5':'0', 's6':'0', 'insectType':'mosquito'}},{"label":"蚊虫局部反应","labelEn":"Local mosquito reaction","values":{"s1":"1","s2":"1","s3":"0","s4":"0","s5":"0","s6":"0","sys1":false,"sys2":false,"sys3":false,"insectType":"mosquito"}},{"label":"蜂蜇中度反应","labelEn":"Moderate bee sting","values":{"s1":"2","s2":"2","s3":"2","s4":"1","s5":"0","s6":"0","sys1":true,"sys2":false,"sys3":false,"insectType":"bee"}},{"label":"蜱咬全身反应","labelEn":"Systemic tick bite","values":{"s1":"2","s2":"2","s3":"1","s4":"1","s5":"1","s6":"1","sys1":true,"sys2":true,"sys3":false,"insectType":"tick"}}],function(){ calc(); });
+    TBKit.preset.bar('#insect_bite_reactionPresets',[{label:'默认参数',labelEn:'Default',values:{'s1':'0', 's2':'0', 's3':'0', 's4':'0', 's5':'0', 's6':'0', 'insectType':'mosquito'}},{"label":"蚊虫局部反应","labelEn":"Local mosquito reaction","values":{"s1":"1","s2":"1","s3":"0","s4":"0","s5":"0","s6":"0","sys1":false,"sys2":false,"sys3":false,"insectType":"mosquito"}},{"label":"蜂蜇中度反应","labelEn":"Moderate bee sting","values":{"s1":"2","s2":"2","s3":"2","s4":"1","s5":"0","s6":"0","sys1":true,"sys2":false,"sys3":false,"insectType":"bee"}},{"label":"蜱咬全身反应","labelEn":"Systemic tick bite","values":{"s1":"2","s2":"2","s3":"1","s4":"1","s5":"1","s6":"1","sys1":true,"sys2":true,"sys3":false,"insectType":"tick"}}],function(){ __scaleDirty=true; calc(); });
 }
 var __insect_bite_reaction_f0=(typeof calc==='function')?calc:null;
 if(__insect_bite_reaction_f0){

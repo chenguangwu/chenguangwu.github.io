@@ -176,9 +176,14 @@ s.parentNode.insertBefore(el, s);
     <div class="ref-card">
       <ul>
         <li><strong>FIT阳性 + FC正常</strong>：提示消化道出血但无明显炎症，优先排查肿瘤/息肉</li>
-        <li><strong>FIT阴性 + FC升高</strong>：提示肠道炎症，优先排查IBD</li>
-        <li><strong>FIT阳性 + FC升高</strong>：炎症性肠病伴出血或肿瘤伴炎症，需肠镜明确</li>
+        <li><strong>FIT阳性 + FC轻度升高</strong>：出血阳性伴轻度炎症，按 FIT 阳性规范行结肠镜，并复查 FC</li>
+        <li><strong>FIT阳性 + FC明显升高</strong>：炎症性肠病伴出血或肿瘤伴炎症，需肠镜明确</li>
         <li><strong>FIT阴性 + FC正常</strong>：风险低，常规随访</li>
+        <li><strong>FIT阴性 + FC轻度升高</strong>：提示轻度肠道炎症，2-4 周复查 FC</li>
+        <li><strong>FIT阴性 + FC明显升高</strong>：提示肠道炎症，优先排查IBD</li>
+        <li><strong>FIT临界 + FC正常</strong>：单次结果不足以判定出血，2-4 周复查 FIT</li>
+        <li><strong>FIT临界 + FC轻度升高</strong>：双临界，2-4 周随访复查</li>
+        <li><strong>FIT临界 + FC明显升高</strong>：以肠道炎症为主，优先排查IBD</li>
       </ul>
     </div>
   </div>
@@ -262,6 +267,10 @@ s.parentNode.insertBefore(el, s);
 
 <script>
 function calc(){
+  var fitRaw=document.getElementById('fit').value.trim();
+  var ageRaw=document.getElementById('age').value.trim();
+  var fcRaw=document.getElementById('fc').value.trim();
+  if(fitRaw===''||ageRaw===''||fcRaw===''){document.getElementById('result').innerHTML='<div class="info-box"><strong>请填写 FIT、粪钙卫蛋白与年龄后再生成联合解读。</strong></div>';return;}
   var fit=parseFloat(document.getElementById('fit').value)||0;
   var age=parseFloat(document.getElementById('age').value)||0;
   var fc=parseFloat(document.getElementById('fc').value)||0;
@@ -281,25 +290,12 @@ function calc(){
   else if(fc<500){fcResult='中度升高';fcColor='#EF4444';}
   else{fcResult='显著升高';fcColor='#EF4444';}
 
-  // 联合解读
+  // 联合解读（完备 3×3 矩阵：FIT 阴性/临界/阳性 × FC 正常/轻度/明显升高）
   var combined,combinedColor,advice;
-  if(fit>=20 && fc<50){
-    combined='出血阳性，炎症阴性 → 优先排查肿瘤';
-    combinedColor='#EF4444';
-    advice='FIT阳性但钙卫蛋白正常，提示消化道出血无明显炎症。建议尽快行结肠镜检查排除结直肠肿瘤/息肉。年龄'+age+'岁，' +(age>=50?'属于结直肠癌筛查高危年龄段。':'建议结合家族史评估。');
-  }else if(fit<10 && fc>=200){
-    combined='出血阴性，炎症阳性 → 优先排查IBD';
-    combinedColor='#EF4444';
-    advice='钙卫蛋白升高但FIT阴性，提示肠道炎症。' +(status==='ibs'?'不支持IBS（IBS的FC通常正常），需排查IBD。':'建议行结肠镜+活检排除IBD。');
-  }else if(fit>=20 && fc>=200){
-    combined='出血+炎症双阳性 → 需肠镜明确';
-    combinedColor='#EF4444';
-    advice='FIT和钙卫蛋白均升高，可能为IBD伴出血或肿瘤伴炎症。建议尽快行全结肠镜+活检，必要时胶囊内镜评估小肠。';
-  }else if(fit>=10 && fit<20 && fc>=50 && fc<200){
-    combined='双临界值 → 建议随访复查';
-    combinedColor='#F59E0B';
-    advice='FIT和钙卫蛋白均在临界范围。建议2-4周后复查，如持续升高建议肠镜检查。注意排除NSAIDs药物、感染等影响因素。';
-  }else{
+  var fitTier = fit<10 ? 'N' : (fit<20 ? 'C' : 'P');   // N 阴性 / C 临界 / P 阳性（含强阳性）
+  var fcTier = fc<50 ? 'N' : (fc<200 ? 'M' : 'H');     // N 正常 / M 轻度升高 / H 明显升高（中度及以上）
+  var cell = fitTier + fcTier;
+  if(cell==='NN'){
     combined='双阴性 → 风险低';
     combinedColor='#10B981';
     if(status==='ibd'){
@@ -307,6 +303,38 @@ function calc(){
     }else{
       advice='FIT阴性+钙卫蛋白正常，结直肠肿瘤和肠道炎症风险均较低。' +(age>=50?'建议按常规每1-2年筛查FIT。':'无特殊，保持健康生活方式。');
     }
+  }else if(cell==='NM'){
+    combined='出血阴性，炎症轻度升高 → 建议复查';
+    combinedColor='#F59E0B';
+    advice='FIT阴性但钙卫蛋白轻度升高，提示轻度肠道炎症。' +(status==='ibs'?'IBS患者钙卫蛋白通常正常，轻度升高需先复查再判断是否支持IBS。':'建议2-4周后复查FC；如持续升高或伴消化道症状，行结肠镜+活检排除IBD。') +'注意排除NSAIDs、感染等影响因素。';
+  }else if(cell==='NH'){
+    combined='出血阴性，炎症阳性 → 优先排查IBD';
+    combinedColor='#EF4444';
+    advice='钙卫蛋白升高但FIT阴性，提示肠道炎症。' +(status==='ibs'?'不支持IBS（IBS的FC通常正常），需排查IBD。':'建议行结肠镜+活检排除IBD。');
+  }else if(cell==='CN'){
+    combined='出血临界，炎症阴性 → 建议复查FIT';
+    combinedColor='#F59E0B';
+    advice='FIT处于临界值而钙卫蛋白正常，单次结果不足以判定消化道出血。建议2-4周后复查FIT；持续阳性或升高则行结肠镜。';
+  }else if(cell==='CM'){
+    combined='双临界值 → 建议随访复查';
+    combinedColor='#F59E0B';
+    advice='FIT和钙卫蛋白均在临界范围。建议2-4周后复查，如持续升高建议肠镜检查。注意排除NSAIDs药物、感染等影响因素。';
+  }else if(cell==='CH'){
+    combined='出血临界，炎症阳性 → 优先排查IBD';
+    combinedColor='#EF4444';
+    advice='钙卫蛋白明显升高而FIT仅临界，提示以肠道炎症为主。' +(status==='ibs'?'不支持IBS（IBS的FC通常正常）。':'') +'建议行结肠镜+活检排除IBD。';
+  }else if(cell==='PN'){
+    combined='出血阳性，炎症阴性 → 优先排查肿瘤';
+    combinedColor='#EF4444';
+    advice='FIT'+fitResult+'但钙卫蛋白正常，提示消化道出血无明显炎症。建议尽快行结肠镜检查排除结直肠肿瘤/息肉。年龄'+age+'岁，' +(age>=50?'属于结直肠癌筛查高危年龄段。':'建议结合家族史评估。');
+  }else if(cell==='PM'){
+    combined='出血阳性，炎症轻度升高 → 建议结肠镜';
+    combinedColor='#EF4444';
+    advice='FIT'+fitResult+'（'+fit+' μg/g）伴钙卫蛋白轻度升高，出血已明确阳性，不能排除肿瘤合并轻度炎症。按FIT阳性规范建议结肠镜检查，不可仅随访；可同时复查FC评估炎症变化。';
+  }else{
+    combined='出血+炎症双阳性 → 需肠镜明确';
+    combinedColor='#EF4444';
+    advice='FIT和钙卫蛋白均升高，可能为IBD伴出血或肿瘤伴炎症。建议尽快行全结肠镜+活检，必要时胶囊内镜评估小肠。';
   }
 
   var details=[];

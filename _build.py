@@ -4475,6 +4475,10 @@ def generate_category_indexes(tools):
         parts.append('<meta http-equiv="X-Content-Type-Options" content="nosniff">\n')
         parts.append('<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">\n')
         parts.append('<!-- TOOLBOX-SECURITY -->\n')
+        # 分类落地页的 toolbox 元数据（industry + slug=index）：js/tool-i18n.js 靠它定位
+        # i18n/tools/en/<ind>/index.json（一页一字典）。缺这一行时 getIndustry() 为 null，
+        # 字典恒不加载 ⇒ 卡片/FAQ 的简体文本在英文态无对应译文（第三层词典失效）。
+        parts.append('<meta name="toolbox" content="cat=category,industry=%s,slug=index">\n' % ind)
         # 中文优先：初始 description/og:description 渲染中文（desc_meta_zh），
         # 英文描述存 desc-en 供前端 en-US 切换（见 js/i18n.js syncDesc）。
         parts.append('<meta name="description" content="%s">\n' % esc_html_py(desc_meta_zh))
@@ -4540,17 +4544,26 @@ def generate_category_indexes(tools):
         ind_i18n = json.load(open(i18n_path, encoding='utf-8')) if os.path.exists(i18n_path) else {}
 
         for t in ind_tools_sorted:
-            # 精简静态链接：仅内联 href + 中文名 + 中文描述（SEO 锚文本与可见描述，繁体页由 OpenCC 自动转繁体）；
-            # 图标/英文名/英文描述由 js/category-index.js 运行时 fetch json/industry-<ind>.json 增强，
-            # 避免每个行业把全部工具卡片（含英文描述长文本）内联进 HTML（原每卡 ~580B，现 ~200B，省约 65%）。
+            # 静态双语链接：href + 中文名/中文描述（SEO 锚文本与可见描述，繁体页由 OpenCC 自动转繁体）
+            # + 英文名/英文描述（英文态开箱即用，不依赖 js/category-index.js 的 fetch 增强）；
+            # 图标等装饰仍由 js/category-index.js 运行时 fetch json/industry-<ind>.json 补齐。
             _zh_name = TDS.slug_name(t)
             # 统一走权威描述源（与 tools.json 的 d、顶部导航卡片同源），
             # 保证分类页 / 搜索 / 首页 / 导航四处展示的描述完全一致
             _zh_desc = TDS.zh_desc(t, max_len=100)
             if _is_weak_desc(_zh_desc, _zh_name):         # 仍弱 → 回退中文名
                 _zh_desc = _zh_name
+            # 英文层同样构建期内联（不依赖 js/category-index.js 的 fetch 增强）：
+            # 名称取 t['en']，缺失英文名时回退权威英文描述；描述取 TDS.en_desc（与 tools.json 的 ed 同源）。
+            # 与 .t-zh/.t-zh-desc 一样由 css 的 html[lang] 规则切换显隐，双语不退化。
+            _en_name = (t.get('en') or '').strip()
+            if not _en_name or TDS.has_cjk(_en_name):
+                _en_name = TDS.en_desc(t, max_len=40)
+            _en_desc = TDS.en_desc(t, max_len=120)
+            _en_name = _en_name if not TDS.has_cjk(_en_name) else ''
+            _en_desc = _en_desc if not TDS.has_cjk(_en_desc) else ''
             tool_href = os.path.relpath(t['url'], index_ref_dir).replace(os.sep, '/')
-            parts.append('      <a href="%s" class="cat-tool"><span class="t-zh">%s</span><span class="t-zh-desc">%s</span></a>\n' % (tool_href, esc_html_py(_zh_name), esc_html_py(_zh_desc)))
+            parts.append('      <a href="%s" class="cat-tool"><span class="t-zh">%s</span><span class="t-en t-en-name">%s</span><span class="t-zh-desc">%s</span><span class="t-en t-en-desc">%s</span></a>\n' % (tool_href, esc_html_py(_zh_name), esc_html_py(_en_name), esc_html_py(_zh_desc), esc_html_py(_en_desc)))
         parts.append('    </div>\n  </div>\n')
         # 极小分类（工具数 <3）：分类页自身站内互链 <2，crosslink 不达标且页面单薄。
         # 补一组「相关工具」卡片（同 2 级分组下兄弟行业的热门工具）——是真实导航，不是凑数链接。

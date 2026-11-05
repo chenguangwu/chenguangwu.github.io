@@ -192,7 +192,9 @@ const CASES = [
     "第0天"
   ],
   "ref": "发病当天 day=0 是合法值：修复前 `day||1` 把 0 吞成 1，病程显示「第1天」、剩余隔离期 13 天；修复后显示「第0天」、剩余隔离期 14 天。默认 day=2 ⇒「第2天」；注入失败不命中。"
-}
+},
+  { slug: "pediatrics/hearing-screening", inputs: { age: "" }, expect: ["请填写筛查时的日龄/月龄后再评估。"], ref: "空态守卫：清空日龄/月龄后不再输出 0 日龄与筛查结论/随访建议，只给填写提示（旧实现 ⇒ 0 日龄 + 通过/未通过结论）。默认态 3 日龄 ⇒ 提示串不出现。" },
+  { slug: "pediatrics/hearing-screening", inputs: { method: "oae", ageUnit: "day", age: "3", leftResult: "refer", rightResult: "pass" }, expect: ["单侧未通过(转诊)", "左耳结果：未通过(转诊)"], ref: "注入 3 日龄 + 左耳未通过/右耳通过 ⇒ 单侧未通过(转诊)、3 日龄、左耳未通过(转诊)；默认态两耳均通过（双侧通过）⇒ 两条均不命中。" },
 ];
 async function main() {
   const only = process.argv.slice(2);

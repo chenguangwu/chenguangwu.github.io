@@ -35,7 +35,7 @@ const CASES = [
     "calcium": "5.2",
     "phosphorus": "1.8",
     "albumin": "35",
-    "pth": "300"
+    "pth": "300", "ckdStage": "g4"
   },
   "expect": [
     "5.30",
@@ -119,7 +119,7 @@ const CASES = [
   "slug": "nephrology/edema-grading",
   "inputs": {
     "depth": "7",
-    "recovery": "30"
+    "recovery": "30", "location": "ankle", "bilateral": "yes"
   },
   "expect": [
     "4+"
@@ -147,7 +147,7 @@ const CASES = [
     "weight": "70",
     "uo6": "",
     "uo12": "",
-    "uo24": ""
+    "uo24": "", "rrt": "no"
   },
   "expect": [
     "1.5-1.9"
@@ -168,7 +168,7 @@ const CASES = [
 {
   "slug": "nephrology/microalbuminuria",
   "inputs": {
-    "uacrVal": "68",
+    "uacrVal": "68", "disease": "dm",
     "uacrMmol": "5.1",
     "concVal": "30",
     "h24Val": "40"
@@ -179,7 +179,7 @@ const CASES = [
 {
   "slug": "nephrology/nephrotic-syndrome",
   "inputs": {
-    "age": "young"
+    "age": "young", "onset": "insidious", "lm": "normal", "if": "negative", "em": "foot_fusion"
   },
   "expect": [
     "但成人起效慢(需8-16周)"
@@ -261,7 +261,7 @@ const CASES = [
     "vol": "1500",
     "height": "170",
     "weight": "65",
-    "age": "40"
+    "age": "40", "sex": "m"
   },
   "expect": [
     "76.4"
@@ -328,9 +328,10 @@ const CASES = [
 },
 {
   "slug": "nephrology/microalbuminuria",
-  "inputs": { "uacrVal": "" },
-  "expect": ["留空不判读"],
-  "ref": "空值不得按 0 判为正常：默认 UACR 非空，注入空串后应显示「留空不判读」；回退默认值即不再命中。"
+  "inputs": { "uacrVal": "68", "disease": "dm" },
+  "clicks": ["document.getElementById('uacrVal').value='';calc();document.getElementById('result').textContent='PARTIAL:'+document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ').trim();"],
+  "expect": ["PARTIAL:请选择基础疾病，并按所选单位填写有效的白蛋白尿数值"],
+  "ref": "已选择基础疾病但清空 UACR 时应显示必填提示，不得按 0 判为正常。"
 }
 ];
 async function main() {

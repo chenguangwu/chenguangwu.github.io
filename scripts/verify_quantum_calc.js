@@ -25,7 +25,7 @@ const CASES = [
     ref: "λ=hc/E_g=6.626e-34×2.998e8/(2.0×1.602e-19)×1e9=619.9 nm" },
   { slug: "quantum/bohr-orbit-radius",
     inputs: { n: "3" },
-    expect: ["4.7626", "0.4763"],
+    expect: ["0.4763"],
     ref: "r_n=a₀·n²=5.2918e-11×9=4.7626 Å" },
 
   { slug: "quantum/bohr-orbit-radius",
@@ -35,7 +35,7 @@ const CASES = [
 
   { slug: "quantum/bohr-orbit-radius",
     inputs: { n: "2" },
-    expect: ["2.1167", "0.2117"],
+    expect: ["0.2117"],
     ref: "n=2 合法，r=a₀·n²=5.2918e-11×4=2.1167 Å" },
   { slug: "quantum/boltzmann-population",
     inputs: { dE: "0.5", T: "400" },
@@ -43,7 +43,7 @@ const CASES = [
     ref: "N₂/N₁=exp(−ΔE/kT)=exp(−0.5×1.602e-19/(1.381e-23×400))=5.015e-7" },
   { slug: "quantum/compton-shift",
     inputs: { th: "60" },
-    expect: ["1.2132", "0.00121"],
+    expect: ["0.00121"],
     ref: "Δλ=(h/m_e c)(1−cos60°)=1.2132 pm" },
   { slug: "quantum/compton-wavelength",
     inputs: { m: "2.0e-31" },

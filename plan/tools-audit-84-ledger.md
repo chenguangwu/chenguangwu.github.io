@@ -47,24 +47,24 @@
 | tools/finance/generator-report-1.html | B | 整页回退 | title-en/desc-en 退化为「Finance」占位；英文元数据退化，归英文元数据线处理 | `d8d05b94ec` |
 | tools/fire-rescue/smoke-management.html | B | 整页回退 | 实现 V 含 1.2 安全系数：m=35.38 kg/s、V=47.3 m³/s、170368 m³/h、12 口；改写删 1.2 得 39.4/141972 | `d8d05b94ec` |
 | tools/fire-rescue/sprinkler-design.html | B | 整页回退 | 1040 L/min=17.3 L/s → 水池 62.4 m³(1h)/124.8 m³(2h)；改写写 1040–2080 L（差 1000 倍） | `d8d05b94ec` |
-| tools/fishery/drug-withdrawal-fish.html | 待 | 待处置 | — | — |
-| tools/fishery/pond-desilting.html | 待 | 待处置 | — | — |
-| tools/fishery/stocking-density.html | 待 | 待处置 | — | — |
-| tools/fun/coin-toss-streak.html | 待 | 待处置 | — | — |
-| tools/fun/color-guess.html | 待 | 待处置 | — | — |
-| tools/fun/daily-riddle.html | 待 | 待处置 | — | — |
-| tools/gardening/balcony-sunlight.html | 待 | 待处置 | — | — |
-| tools/healthcare/antipyretic-dose.html | 待 | 待处置 | — | — |
-| tools/hr/analysis-29.html | 待 | 待处置 | — | — |
-| tools/hr/assessor-training-hr.html | 待 | 待处置 | — | — |
-| tools/hr/attendance-stats.html | 待 | 待处置 | — | — |
-| tools/hr/calc-81.html | 待 | 待处置 | — | — |
-| tools/it/whitespace.html | 待 | 待处置 | — | — |
-| tools/it/xml-validator.html | 待 | 待处置 | — | — |
-| tools/leather/xueyunhoudukongzhi.html | 待 | 待处置 | — | — |
-| tools/life/generator-price.html | 待 | 待处置 | — | — |
+| tools/fishery/drug-withdrawal-fish.html | B | 修正权威源，待构建复核 | 实际采用 ceil；示例向上取整为 9/47 天，明确模型不能保证残留达标，应遵守说明书及法规 | 未提交 |
+| tools/fishery/pond-desilting.html | B | 修正权威源，待构建复核 | 默认 5 亩、保留 5 cm：5×666.67×15/100≈500 m³，费用 7500 元；存档漏扣保留层写 667 m³ | 未提交 |
+| tools/fishery/stocking-density.html | B | 修正权威源，待构建复核 | 半精养 360÷(15/1000)÷0.75=32000 尾/亩、总 160000 尾；存档错将克除以 100。半精养并非页面默认精养，已澄清 | 未提交 |
+| tools/fun/coin-toss-streak.html | B | 修正权威源，待构建复核 | 实现统计正反同面；18 次序列最长连正 5，存档误写 20 次及 6 连；区分固定序列与多次试验概率 | 未提交 |
+| tools/fun/color-guess.html | B | 修正权威源，待构建复核 | 实际四选一且色值严格相等、10 轮；存档误称输入色名及容差判分 | 未提交 |
+| tools/fun/daily-riddle.html | B | 修正权威源，待构建复核 | 评分基础 180、提示每级扣 20、连击加分非倍数；示例 1 级提示/3 连击得 190 | 未提交 |
+| tools/gardening/balcony-sunlight.html | B | 修正权威源，待构建复核 | 南向中层夏 8/冬 4 小时，西向低层夏 5 小时，高层加 0.5 小时 | 未提交 |
+| tools/healthcare/antipyretic-dose.html | B | 修正标题生成数据，待构建复核 | 存档及当前构建标题截断 60 mg/kg 为 60 mg；调整介绍避免错误剂量出现在标题 | 未提交 |
+| tools/hr/analysis-29.html | B | 修正权威源，待构建复核 | 平均在职人数 (220+200)/2，离职率 18/210=8.57% | 未提交 |
+| tools/hr/assessor-training-hr.html | B | 修正权威源，待构建复核 | 实际仅评柯氏前两层，90/92/66.7 平均 82.9，非存档虚构加权 ROI | 未提交 |
+| tools/hr/attendance-stats.html | B | 修正权威源，待构建复核 | 95.5% 存在迟到请假时评级封顶良好，而非优秀 | 未提交 |
+| tools/hr/calc-81.html | B | 修正权威源，待构建复核 | 两岗位 5500 元、ROI 1354.55%；不自动统计过保人数，消除虚构自动分档 | 未提交 |
+| tools/it/whitespace.html | B | 修正权威源，待构建复核 | 合并连续空格会压缩缩进；压成一行是独立选项 | 未提交 |
+| tools/it/xml-validator.html | B | 保留主线 | 存档仅调整 deep-dive 标记位置和空行，无独有功能 | — |
+| tools/leather/xueyunhoudukongzhi.html | B | 修正权威源与介绍，待构建复核 | 实际按刀痕间距分档、切除量独立计算，不预测厚度偏差或保证合格 | 未提交 |
+| tools/life/generator-price.html | B | 修正权威源，待构建复核 | 金额按输入计算，数量不在 1–50 直接报错，非静默截断 | 未提交 |
 | tools/marketing/email-subject-line-tester.html | 待 | 待处置 | — | — |
-| tools/marketing/marketing-discount-rate.html | 待 | 待处置 | — | — |
+| tools/marketing/marketing-discount-rate.html | B | 修正权威源，待构建复核 | 页面只算单次折扣，不含优惠券 | 未提交 |
 | tools/pediatrics/ddst-screening.html | 待 | 待处置 | — | — |
 | tools/psychiatry/cdrisc-resilience.html | 待 | 待处置 | — | — |
 | tools/realestate/generator-assessor.html | 待 | 待处置 | — | — |
@@ -74,4 +74,4 @@
 | tools/tcm-pharmacy/tcm-dosage.html | 待 | 待处置 | — | — |
 | tools/urban/building-height.html | 待 | 待处置 | — | — |
 
-进度：已处置 38 / 64（A 4 页、B 34 页），剩余 26 页。
+进度：已处置 38 / 64（A 4 页、B 34 页）；另 2 页已修正权威源，待构建复核；其余 24 页待处置。

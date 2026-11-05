@@ -327,11 +327,11 @@ function addFounder(name, idea, money, time, res){
   row.className = 'founder-row';
   row.dataset.id = id;
   const __g1=`
-    <div><label>姓名</label><input type="text" class="f-name" value="${esc(name||'')}" placeholder="创始人"></div>
-    <div><label>创意(0-10)</label><input type="number" class="f-idea" value="${idea!=null?idea:5}" step="any" oninput="calc()" placeholder="如 ${idea!=null?idea:5}"></div>
-    <div><label>资金(万元)</label><input type="number" class="f-money" value="${money!=null?money:0}" step="any" oninput="calc()" placeholder="如 ${money!=null?money:0}"></div>
-    <div><label>时间(月)</label><input type="number" class="f-time" value="${time!=null?time:12}" step="any" oninput="calc()" placeholder="如 ${time!=null?time:12}"></div>
-    <div><label>资源(0-10)</label><input type="number" class="f-res" value="${res!=null?res:3}" step="any" oninput="calc()" placeholder="如 ${res!=null?res:3}"></div>
+    <div><label>姓名</label><input type="text" id="f${id}name" class="f-name" value="${esc(name||'')}" placeholder="创始人"></div>
+    <div><label>创意(0-10)</label><input type="number" id="f${id}idea" class="f-idea" value="${idea!=null?idea:5}" step="any" oninput="calc()" placeholder="如 ${idea!=null?idea:5}"></div>
+    <div><label>资金(万元)</label><input type="number" id="f${id}money" class="f-money" value="${money!=null?money:0}" step="any" oninput="calc()" placeholder="如 ${money!=null?money:0}"></div>
+    <div><label>时间(月)</label><input type="number" id="f${id}time" class="f-time" value="${time!=null?time:12}" step="any" oninput="calc()" placeholder="如 ${time!=null?time:12}"></div>
+    <div><label>资源(0-10)</label><input type="number" id="f${id}res" class="f-res" value="${res!=null?res:3}" step="any" oninput="calc()" placeholder="如 ${res!=null?res:3}"></div>
     <button type="button" class="btn danger del" onclick="removeRow(this,'founder')">✕</button>
   `;row.innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
   document.getElementById('founders').appendChild(row);
@@ -368,27 +368,32 @@ function onModeChange(){
 }
 
 function readFounders(){
-  const rows = document.querySelectorAll('#founders .founder-row');
   const wIdea = parseFloat(document.getElementById('w_idea').value) || 0;
   const wMoney = parseFloat(document.getElementById('w_money').value) || 0;
   const wTime = parseFloat(document.getElementById('w_time').value) || 0;
   const wRes = parseFloat(document.getElementById('w_res').value) || 0;
   const mode = document.getElementById('mode').value;
   const list = [];
-  rows.forEach(r => {
-    const name = r.querySelector('.f-name').value || '未命名';
-    const idea = parseFloat(r.querySelector('.f-idea').value) || 0;
-    const money = parseFloat(r.querySelector('.f-money').value) || 0;
-    const time = parseFloat(r.querySelector('.f-time').value) || 0;
-    const res = parseFloat(r.querySelector('.f-res').value) || 0;
+  for(let i = 1; i <= founderSeq; i++){
+    const ideaEl = document.getElementById('f' + i + 'idea');
+    if(!ideaEl) continue; // 该行已被删除
+    const nameEl = document.getElementById('f' + i + 'name');
+    const moneyEl = document.getElementById('f' + i + 'money');
+    const timeEl = document.getElementById('f' + i + 'time');
+    const resEl = document.getElementById('f' + i + 'res');
+    const name = (nameEl && nameEl.value) || '未命名';
+    const idea = parseFloat(ideaEl.value) || 0;
+    const money = parseFloat(moneyEl && moneyEl.value) || 0;
+    const time = parseFloat(timeEl && timeEl.value) || 0;
+    const res = parseFloat(resEl && resEl.value) || 0;
     let score;
     if(mode === 'simple'){
-      score = parseFloat(r.querySelector('.f-idea').value) || 0; // 简单模式用创意字段当比例输入
+      score = idea; // 简单模式用创意字段当比例输入
     } else {
       score = idea * wIdea + money * wMoney + time * wTime + res * wRes;
     }
     list.push({name, idea, money, time, res, score});
-  });
+  }
   return {list, mode};
 }
 

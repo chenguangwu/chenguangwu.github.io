@@ -180,12 +180,13 @@ const CASES = [
 },
 {
   "slug": "office/mindmap",
+  "markmapStub": true,
   "inputs": {},
   "clicks": [
     "var s=window.__mmTreeStats(['# 主题','## 分支一','- 子节点A','- 子节点B','## 分支二','- 子节点C'].join('\\n'));document.getElementById('mmRefTitle').textContent=s?('N:'+s.n+'|E:'+s.e+'|D:'+s.d):'NULL';"
   ],
-  "expect": ["N:7|E:6|D:3"],
-  "ref": "深度解析算例复算：1 个 # + 2 个 ## + 3 个 - → 节点数 7、边数 6、层深 3。默认态 mmRefTitle 为静态标题、不含该串 ⇒ 判别力来自本次点击。"
+  "expect": ["N:6|E:5|D:3"],
+  "ref": "结构验证：1 个 # + 2 个 ## + 3 个列表项 → 节点数 6、边数 5、层深 3；使用按标题和列表层级构树的测试桩。"
 }
 ];
 // 单例超时：office 两个 PDF 页的「注入失败态」会等待 pdfjsReady 轮询，该 Promise 在

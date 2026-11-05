@@ -178,7 +178,7 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <label>输入</label>
-    <textarea id="input" placeholder="输入要转义/反转义的 Rust 字符串..."></textarea>
+    <textarea id="input" oninput="__escLive()" placeholder="输入要转义/反转义的 Rust 字符串..."></textarea>
 
     <label style="margin-top:16px;">输出结果</label>
     <textarea id="output" placeholder="结果将显示在这里..." readonly></textarea> <div id="rust_escapeTable"></div> <div id="rust_escapeDiff"></div> <div id="rust_escapeChart"></div> <div id="rust_escapeHist"></div>
@@ -262,9 +262,12 @@ b` → 输出 `&quot;a\nb&quot;`。</div></div>
 </div>
 
 <script>
-function esc(){
+var __escLiveMode=false;
+function __escLive(){ __escLiveMode=true; esc(true); __escLiveMode=false; }
+
+function esc(live){
   const text = document.getElementById('input').value;
-  if(!text) return alert('请输入要转义的文本');
+  if(!text){ if(live){document.getElementById('output').value='';return;} return alert('请输入要转义的文本'); }
   const kind = document.getElementById('kind').value;
   if(kind === 'raw'){
     let hashes = '';
@@ -276,12 +279,17 @@ function esc(){
   }
   if(kind === 'char' && [...text].length !== 1){
     // Rust char 字面量必须恰好是一个 Unicode 标量；'ab'、'\u{e9}\u{fc}' 均无法编译。
+    // 实时键入中途必然多字符，此时只清空输出、不弹窗（否则每按一键弹一次）。
+    document.getElementById('output').value = '';
+    if(live) return;
     return alert('char 字面量只能包含一个字符（当前 ' + [...text].length + ' 个）');
   }
   if(kind === 'byte'){
     // Rust 字节字符串 b"..." 只允许 ASCII 与转义；直接写入非 ASCII 字符（或 b"\u{...}"）无法编译。
     for(const ch of text){
       if(ch.codePointAt(0) > 0x7F){
+        document.getElementById('output').value = '';
+        if(live) return;
         return alert('字节字符串 b"..." 只能包含 ASCII 字符；含非 ASCII 字符时请改用字符串模式');
       }
     }
@@ -461,6 +469,7 @@ function __rust_escapeRender(keys,rk,en){
     }catch(e3){}
 }
 function __rust_escapeExtras(){
+    if (__escLiveMode) return;
     if (typeof TBKit === 'undefined') return;
     if (__rust_escape_skip) return;
     var snap=__rust_escapeSnap();

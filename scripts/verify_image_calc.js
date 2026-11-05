@@ -261,9 +261,9 @@ const CASES = [
 },
 {
   "slug": "image/wechat-cover-maker",
-  "clicks": ["document.getElementById('c1').value='#ffffff';document.getElementById('c2').value='#ffffff';render();var g=document.getElementById('cover').getContext('2d');var a=g.getImageData(10,222,1,1).data;var b=g.getImageData(10,223,1,1).data;document.getElementById('wcSizeTbl').textContent='P:'+a[0]+','+a[1]+','+a[2]+'|B:'+b[0]+','+b[1]+','+b[2];"],
-  "expect": ["P:255,255,255|B:166,166,166"],
-  "ref": "深度解析算例复算：画布 900×383、底部压暗条起点 y=383−160=223；白色渐变在 y=222 仍是 255，进入 y=223 被 rgba(0,0,0,0.35) 压到 round(255×0.65)=166。默认配色在 y=222 不是纯白 ⇒ 不命中。"
+  "clicks": ["var cv=document.getElementById('cover');cv.width=900;cv.height=383;var ops=[];var ctx={createLinearGradient:function(){return {addColorStop:function(){}}},fillRect:function(x,y,w,h){ops.push([this.fillStyle,x,y,w,h].join(','))},fillText:function(){},measureText:function(s){return {width:s.length*10}}};cv.getContext=function(){return ctx};render();document.getElementById('wcSizeTbl').textContent=ops.join('|');"],
+  "expect": ["rgba(0,0,0,0.35),0,223,900,170"],
+  "ref": "绘图指令验证：900×383 画布的底部遮罩从 y=383−160=223 起，宽 900、高 170，透明度 0.35；记录实际 fillRect 指令，不声称测试了像素。"
 },
 {
   "slug": "design/image-flipper",

@@ -120,6 +120,7 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="calc()">计算Wells评分</button>
       <button type="button" class="btn" onclick="copyResult()">复制报告</button>
+      <button type="button" class="btn" onclick="resetAll()" title="恢复为未评估状态">重置评分</button>
     </div>
 
     <div class="toolbar" style="margin-top:8px;">
@@ -189,7 +190,7 @@ var wellsItems=[
 function buildList(){
   var html='';
   wellsItems.forEach(function(item,i){
-    html+='<div class="input-row" style="align-items:center;margin-bottom:10px;"><div style="flex:1;"><label style="font-size:13px;">'+item.q+'</label><br><span style="font-size:11px;color:var(--text-muted);">该项阳性：'+item.score+'分</span></div><select id="q'+i+'" style="font-size:16px;flex:0 0 80px;" onchange="calc()"><option value="0">否</option><option value="1">是</option></select></div>';
+    html+='<div class="input-row" style="align-items:center;margin-bottom:10px;"><div style="flex:1;"><label style="font-size:13px;">'+item.q+'</label><br><span style="font-size:11px;color:var(--text-muted);">该项阳性：'+item.score+'分</span></div><select id="q'+i+'" style="font-size:16px;flex:0 0 80px;" onchange="__markScaleDirty()"><option value="0">否</option><option value="1">是</option></select></div>';
   });
   const __g1=html;document.getElementById('wellsItems').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
@@ -230,12 +231,21 @@ function __wellsExport(){
     TBKit.util.exportTable('#wellsTable','wells-pe-score.csv');
   }catch(e){}
 }
+var __scaleDirty=false;
+function __markScaleDirty(){__scaleDirty=true;calc();}
+function resetAll(){ buildList(); __scaleDirty=false; calc(); }
 function calc(){
   var total=0, positiveItems=[];
   wellsItems.forEach(function(item,i){
     var v=+document.getElementById('q'+i).value;
     if(v===1){total+=item.score;positiveItems.push({q:item.q,score:item.score});}
   });
+
+  if(!__scaleDirty){
+    document.getElementById('res').innerHTML='<h3 style="margin-bottom:10px;">Wells 评分结果</h3><div class="stat-grid"><div class="stat-card"><div class="val" style="font-size:36px;color:var(--success);">'+total+'</div><div class="lbl">Wells总分</div></div></div><div class="info-box"><strong>当前为默认评分（各项目均选「否」），请按实际临床资料修改后查看解读。</strong></div>';
+    var __rb=document.getElementById('resRefBar'); if(__rb) __rb.innerHTML='';
+    return;
+  }
 
   // Three-tier
   var tier3Level, tier3Color, tier3Prob;
@@ -304,6 +314,7 @@ function calc(){
 }
 function copyResult(){
   var text=document.getElementById('res').innerText;
+  if(!__scaleDirty){ var t=0; wellsItems.forEach(function(it,i){ if(+document.getElementById('q'+i).value===1) t+=it.score; }); text='Wells 评分：'+t+'分（默认评分，尚未按实际临床资料修改）'; }
   ToolBox.copyText(text, i18nText('msg115'));
 }
 buildList();calc();

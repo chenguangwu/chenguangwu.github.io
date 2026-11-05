@@ -753,3 +753,108 @@ node scripts/runtime_scan.js --interact --files /tmp/pages.txt --timeout 10000
 
 ### 结论
 653 页分桶**不销账**：桶位错分 8.3%（CI 上限 18.1%），且 B 桶依赖的单字段 `changedByInput` 在多输入/搜索/select 页系统性失真。先按上列 7 条修探针，重扫 653 后再抽 60 页复核；本批 60/60 页均**不是**「not-clicked 真缺陷」，但 5 页桶位与 5 页子类仍需修正。
+## 2026-11-05 A 桶 9 页收口 + 两个异常数值核实
+
+### A 桶 9 页（补实时绑定，保留原按钮）
+| 页面 | 处理 |
+|---|---|
+| `fluid/chezy-velocity`、`capillary-rise`、`capillary-pressure`、`cavitation-number` | 全部 `type="number"` 补 `oninput="calcTool()"` |
+| `printing/estimate-ink` | 单色/CMYK 全部数字输入补 `oninput="__inkLive(...)"`，勾选补 `onchange`；**250ms 防抖 + 实时态不写历史**（`calcSingle/calcCmyk` 增 `live` 参数），避免逐键刷屏历史记录 |
+| `biz/text-compare` | 两个 `textarea` 补 `oninput`、三个选项补 `onchange`；**250ms 防抖**——`compare()` 是 O(m×n) LCS，长文本逐键直跑会卡顿 |
+| `clinical-nursing/reminder-time-1` | 三个时长补 `oninput`；新增 `#planPreview` 方案预览行（冷敷/休息/检查间隔），运行中（`state.running`）不覆盖计时器状态 |
+| `edu/exam-study-planner` | 番茄钟 3 项配置补 `oninput` + 新增 `#pomo-plan` 计划行；**任务表单（subject/content/minutes）保持按钮驱动**——那是「添加记录」CRUD，不可预览 |
+| `tcm-diagnosis/ten-questions` | 表单区事件委托（`input`/`change`）→ **300ms 防抖**调用 `generate(true)` 静默生成（不弹 toast），姓名/年龄/性别/10 问全部实时出记录 |
+
+> 以上九页默认态均为「未输入/默认参数」，键入后结果区即变；按钮仍保留且点击结果与键入一致。
+
+### 两个异常数值核实
+- **`process/rolled-throughput-yield` 764.46% 不是公式错**：RTY=ΠFPY 累乘正确。探针把三工序良率按「默认值×2+1」注成 197/195/199（本身已 >100%，物理不可能），1.97×1.95×1.99=7.6446。**真缺陷是缺上限校验 + 旧预置/旧用例把越界值当正常**：
+  - 新增 `>100%` 拦截（只提示「工序良率不能超过 100%」并清空结果表，图表同步不画）；
+  - 预置「示例 2×/0.5×」换成「高良率 99.5/99/98.5」「低良率 92/90/95」；
+  - 旧 verify 用例 `y1=147 → 期待 141.16%` 已改成 `y1=97 → 93.15%`，另补单字段（y1=95 → 91.23%）与越界（y1=120 → 提示）两例。
+- **`process/cpk-with-shift` −0.307 是真实结果，非符号错**：Cpk=min[(USL−μ)/3σ,(μ−LSL)/3σ]，当位移后 μ 超出规格上限时下侧分量为负，Cpk 本就可为负（表示过程中心已在规格外）。该数值来自探针把 `shift` 注成 1.04（远超 0.2 的规格宽度、μ=22.04 > USL=21.1）。默认位移 0.02 时 Cpk 为正值，页面无需改动。
+
+### 用例与判别
+- 新增/修正条数：biz 148→149、clinical-nursing 44→45、edu 88→89（含修正 1 条旧自动用例的连续序列期待）、fluid 46→50、printing 9→10、tcm-diagnosis 20→21、process 14→16。
+- 判别四项（`discriminate_check.js`，逐文件）：已检=正确变红，逃生项 0，跳过 0（biz 149 / nursing 45 / edu 89 / fluid 50 / printing 10 / tcm 21 / process 16）。
+
+## 2026-11-05 it/*-escape 家族 10 页实时绑定 + 5 页裁定 + 6 页探针盲区
+
+### 10 页统一改法（保留原「转义 ↑」按钮）
+- `<textarea id="input">` 加 `oninput="__escLive()"`；勾选项（`unicode` / `quoteSingle` 等）加 `onchange="__escLive()"`。
+- `esc()` 增加 `live` 参数：空值时实时态只清空输出、不弹 `alert`；按钮态保持原提示。
+- 新增 `__escLiveMode` 标志，`__<slug>Extras()` 首行 `if (__escLiveMode) return;` —— 逐键实时只刷新输出，历史记录仍由按钮写入。
+
+真机三态（注入 `a"b\c`，再点「转义 ↑」）：
+
+| 页面 | 默认输出 | 键入后 | 点击后 |
+|---|---|---|---|
+| `it/c-string-escape` | `"Hello \"World\""` | `"a\"b\\c"` | 同键入 |
+| `it/css-escape` | `my\.class` | `a\"b\\c` | 同键入 |
+| `it/go-escape` | `"Hello \"World\""` | `"a\"b\\c"` | 同键入 |
+| `it/java-escape` | `"Hello \"World\""` | `"a\"b\\c"` | 同键入 |
+| `it/js-escape` | `"Hello \"World\""` | `"a\"b\\c"` | 同键入 |
+| `it/php-escape` | `'Hello "World"'` | `'a"b\\c'` | 同键入 |
+| `it/python-escape` | `"Hello \"World\""` | `"a\"b\\c"` | 同键入 |
+| `it/regex-escape` | `Hello \(World\)\? \[a-z\]\+ \$19\.99` | `a"b\\c` | 同键入 |
+| `it/rust-escape` | `""` | `"a\"b\\c"` | 同键入 |
+| `it/sql-escape` | `Hello \"World\"` | `a\"b\\c` | 同键入 |
+
+10/10 `changedByInput=true`、`clickSameAsType=true`（`regex-escape` 曾误点到「等号转义」，按精确文本 `转义 ↑` 复测后同键入）。
+
+### 旧期望 → 新期望（因修页面而失效）
+| 用例 | 旧期望 | 新期望 | 原因 |
+|---|---|---|---|
+| `it/rust-escape`（自动补强 B 类零用例） | `1 2 3\n1 2 3\nchar` | `1 2 3\nchar\n1 2 3`（旧序保留为备选） | 加 `__escLive` 后 harness fallback 调函数序改变 |
+
+本批未发现「用例固化错误行为」的条目：escape 家族旧用例均为按钮驱动，期望值是真实转义结果。
+
+### 5 页裁定（均不改页面）
+| 页面 | 结论 | 依据 |
+|---|---|---|
+| `office/mindmap` | 已有实时绑定，不改 | `editor.addEventListener('input', __mmPaint)` + 300ms `renderDebounced()`；探针 `boundInline` 只认 inline `oninput` 属性，故漏检 |
+| `yi/yi-divination` | 显式动作合理，不改 | 起卦是一次性随机仪式，实时随输入重算会破坏「起卦」语义 |
+| `security/emergency-contacts` | 显式动作合理，不改 | 三字段 + 「添加联系人」是 CRUD 写入列表，逐键建条目会污染列表/导出 |
+| `ophthalmology/astigmatism-chart` | 已有实时绑定，不改 | 4 个 `select` 的 `change` 与 `asNote` 的 `input` 均已绑定（`render()` 重绘 canvas）；文本快照抓不到 |
+| `data/data-cleaner` | 显式动作合理，不改 | 操作项 `toggleOp()` 已即调 `clean()`；文本输入保留「清洗」按钮——含「随机打乱」，实时重算会致输出抖动、导出不稳定 |
+
+### 6 页「已有实时绑定」探针盲区（不改页面，实测注入均变）
+| 页面 | 盲区原因 | 实测 |
+|---|---|---|
+| `rehabilitation/assistive-device-fitting` | 结果需多字段齐备，单字段注入停留在缺项提示「请输入身高、体重和臀宽」 | 5 字段齐派发 → 输出成立 |
+| `science/wire-gauge-converter` | 三种模式输入互斥，非当前模式 `display:none`，需先切 radio | `awg` 24→18 → 输出变化 |
+| `geology/mineral-hardness` | 输出取「最近标准矿物」，注入相邻值可能仍映射同一档 | 默认 6、注入 6.5 仍正长石 6（文本不变）；注入 8 → 黄玉 8 |
+| `design/css-border-radius` | 变更落在 `.shape-preview` 的 `style.borderRadius`（无文本节点），文本比对抓不到 | 20px → 60px |
+| `biz/text-case-advanced` | `oninput="updatePreview()"` 是空实现；转换类型须由按钮指定（20+ 种），实时无法唯一确定 → 属「一次性前置」 | 注入后 preview 仍为「点击下方按钮进行转换...」 |
+| `design/shutter-speed-calculator` | 输出快门按标准档位取整，相邻焦距落在同一档 | 50→200mm：`1/15` → `1/60` |
+
+### 门禁
+- `scripts/verify_it_calc.js`：999/999 通过。
+- `discriminate_check.js verify_it_calc.js`：已检 999 / 正确变红 999 / 逃生 0 / 跳过 0。
+
+## 2026-11-05 rust-escape 用例真机复核 + 逐字段交互探针
+
+### rust-escape 旧用例作废（用例层面假绿）
+- 旧用例 `inputs` 为 `{input:"1\n2\n3", output:"1\n2\n3", kind:"char"}`，期望 `1 2 3\nchar\n1 2 3`；桩 `fullBlob` 与期望逐字相同，实为 **input.value + kind.value + output.value 三个注入值的回显**。
+- 真机同输入：`char` 只接受单个 Unicode 标量，弹「char 字面量只能包含一个字符（当前 5 个）」，`#output` 保持为空。页面没有产出该期望串。
+- 新用例锚定真机：`kind=string`、`input=a"b` ⇒ 真机输出 `"a\"b"`；默认空输入不命中（强判别）。
+
+### 实时绑定连带缺陷（go / rust，本批修复）
+- `go-escape` 的 rune 校验、`rust-escape` 的 char / byte 校验位于实时路径上：逐键输入中途必然命中，原实现 `return alert(...)` ⇒ **每按一键弹一次**；按钮模式拦截时还会残留上一次结果。
+- 改为：命中即先清空 `#output`；`live` 态直接返回不弹窗，按钮态仍弹提示。
+- 真机复测：rust char `1\n2\n3` → 输出空、0 弹窗；char `é` → `'\u{e9}'`；string `a"b` → `"a\"b"`；go rune `ab` → 输出空、0 弹窗；rune `é` → `'é'`。
+
+### 新探针 `scripts/interaction_probe.js`（纯只读）
+- **逐字段**注入（每个文本/数字/日期/select 单独注入并恢复）+ 全量注入，不再只改第一个输入。
+- 识别三种绑定：inline `on*` 属性、`addEventListener(...)`、页面末尾直接调用渲染函数（`render()/init()/update()...`）。
+- 结果签名三类组合：主容器文本（含 readonly textarea 值）+ 全部 `canvas.toDataURL()` 哈希 + 全部 `svg` outerHTML 哈希。
+- 结构化输出 `{bindings, changedByField, changedAll, needsClick, emptyState, clickTargets}`，可并入 `plan/page-ledger.json`；支持 `--file` / `--dir` / `--limit` / `--out` / `--timeout` / `--port`。
+- 口径细节：排除站点 chrome（header/nav/footer/`.tb-*`/`.nav-menu`）与结果框、搜索框、语言选择；点击探测**保持全量注入态**（否则起卦/清洗类会被「请输入」守卫挡掉，得到 `needsClick=false` 假结论）；点击后轮询 2s 以覆盖起卦动画与 300ms 防抖。
+- 三页自检（与人工裁定一致）：
+  - `office/mindmap`：`changedAll=true`、`needsClick=false`、`listeners=input` + `autoRender=render` ⇒ 已实时。
+  - `yi/yi-divination`：`changedAll=false`、`needsClick=true`（🙏 起卦演示）⇒ 需按钮。
+  - `data/data-cleaner`：`changedAll=false`、`needsClick=true`（🔎 清洗）；chip「去首尾空白」点击亦变化 ⇒ 操作项实时、文本需按钮。
+
+### 门禁
+- `scripts/verify_it_calc.js`：999/999 通过。
+- `discriminate_check.js verify_it_calc.js`：已检 999 / 正确变红 999 / 逃生 0 / 跳过 0。

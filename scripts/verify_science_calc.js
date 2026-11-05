@@ -154,9 +154,9 @@ const CASES = [
   // ── 物理单位换算（默认同量纲）───────────────────────────────
   {
     slug: "science/convert-power",
-    inputs: { val: "1", from: "N", to: "lbf" },
-    expect: ["0.224809"],
-    ref: "1 N = 0.2248089 lbf（1 lbf = 4.448222 N）。原默认 from=牛顿（力）/ to=公制马力（功率）量纲不同 ⇒ 打开即显示「请选择同量纲单位」，已把默认改为同类。注：harness 的 select 桩取首个 option，故默认态需显式注入 to 才能验证",
+    inputs: { val: "2", from: "N", to: "lbf" },
+    expect: ["0.449618"],
+    ref: "2 N = 0.449618 lbf（1 lbf = 4.448222 N）；区别于默认 1 N。",
   },
 
   // ── 极昼极夜（跨年区间 / 白夜口径）──────────────────────────
@@ -2006,9 +2006,15 @@ const CASES = [
   },
   {
     "slug": "science/nato-phonetic",
-    "inputs": { "input": "HELLO WORLD" },
-    "expect": ["H Hotel E Echo L Lima", "W Whiskey O Oscar R Romeo"],
-    "ref": "逐字符映射：HELLO → Hotel/Echo/Lima/Lima/Oscar，WORLD → Whiskey/Oscar/Romeo/Lima/Delta。默认输入 SOS 123 ⇒ 不命中。"
+    "inputs": { "input": "HELLO NASA" },
+    "expect": ["N November A Alfa S Sierra A Alfa"],
+    "ref": "逐字符映射 NASA → November/Alfa/Sierra/Alfa；默认 HELLO WORLD 不含该串。"
+  },
+  {
+    slug: "science/convert-power",
+    inputs: { val: "", from: "N", to: "lbf" },
+    expect: ["请输入要转换的数值"],
+    ref: "空态守卫（2026-11-05）：清空数值后 `+''` 得 0（不是 NaN）⇒ 旧输出「0 N = 0 lbf」凭空给零值结论；改为先判原始空串再判 NaN。⚠ 数值 0 本身合法（0 N = 0 lbf 照常计算），只判空串。默认 val=1 ⇒ 提示串不出现；注入 1 N 用例断「0.224809」⇒ 两态互斥。",
   }
 
 ];

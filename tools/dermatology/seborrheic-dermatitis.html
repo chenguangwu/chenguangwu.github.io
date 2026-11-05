@@ -129,37 +129,37 @@ s.parentNode.insertBefore(el, s);
 <div class="formula-eq">脂溢性皮炎评分 = 6 个部位/表现项（每项 0 至 3）之和；不超过4 轻度、不超过10 中度、大于10 重度。</div></div>
 
     <div class="score-grid">
-      <div><label>头皮屑/脱屑量</label><select id="d1" onchange="calc()">
+      <div><label>头皮屑/脱屑量</label><select id="d1" onchange="__markScaleDirty()">
         <option value="0">0 无</option>
         <option value="1" selected>1 少量细小</option>
         <option value="2">2 中量片状</option>
         <option value="3">3 大量油性厚屑</option>
       </select></div>
-      <div><label>红斑 Erythema</label><select id="d2" onchange="calc()">
+      <div><label>红斑 Erythema</label><select id="d2" onchange="__markScaleDirty()">
         <option value="0">0 无</option>
         <option value="1" selected>1 轻度淡红</option>
         <option value="2">2 中度明显红斑</option>
         <option value="3">3 重度深红/浸润</option>
       </select></div>
-      <div><label>瘙痒 Pruritus</label><select id="d3" onchange="calc()">
+      <div><label>瘙痒 Pruritus</label><select id="d3" onchange="__markScaleDirty()">
         <option value="0">0 无</option>
         <option value="1">1 偶发轻微</option>
         <option value="2" selected>2 频繁可耐受</option>
         <option value="3">3 顽固影响生活/睡眠</option>
       </select></div>
-      <div><label>鳞屑黏附度</label><select id="d4" onchange="calc()">
+      <div><label>鳞屑黏附度</label><select id="d4" onchange="__markScaleDirty()">
         <option value="0">0 无鳞屑</option>
         <option value="1">1 易剥脱</option>
         <option value="2" selected>2 较黏附</option>
         <option value="3">3 厚痂紧附</option>
       </select></div>
-      <div><label>受累范围</label><select id="d5" onchange="calc()">
+      <div><label>受累范围</label><select id="d5" onchange="__markScaleDirty()">
         <option value="0">0 无</option>
         <option value="1">1 局限头皮</option>
         <option value="2" selected>2 头皮广泛±发际</option>
         <option value="3">3 头皮+面部/胸背等</option>
       </select></div>
-      <div><label>脱发/毛发受累</label><select id="d6" onchange="calc()">
+      <div><label>脱发/毛发受累</label><select id="d6" onchange="__markScaleDirty()">
         <option value="0">0 无</option>
         <option value="1">1 轻度暂时性脱发</option>
       </select></div>
@@ -168,6 +168,7 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <div id="seborrheic_dermatitisPresets"></div><button type="button" class="btn primary" onclick="calc()">评估严重度</button><button class="btn" type="button" onclick="__seborrheic_dermatitisExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" onclick="resetAll()" title="恢复为未评估状态">重置评分</button>
     </div>
 
     <div class="result-box" id="result"></div>
@@ -259,9 +260,26 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 function v(id){return +document.getElementById(id).value;}
+var __scaleDirty=false;
+function __markScaleDirty(){__scaleDirty=true;calc();}
+function resetAll(){
+  var __dv={d1:'1',d2:'1',d3:'2',d4:'2',d5:'2',d6:'0'};
+  for(var k in __dv){ document.getElementById(k).value=__dv[k]; }
+  __scaleDirty=false;
+  calc();
+}
 function calc(){
   var total=v('d1')+v('d2')+v('d3')+v('d4')+v('d5')+v('d6');
   var sev,color,advice;
+  if(!__scaleDirty){
+    document.getElementById('result').innerHTML='<div class="big-score" style="background:#10B98114;border:1px solid #10B98155;">'+
+      '<div class="num" style="color:#10B981;">'+total+' 分</div>'+
+      '<div style="font-size:15px;color:var(--text-light);margin-top:4px;">脂溢性皮炎评分 / 18</div>'+
+    '</div>'+
+    '<div class="info-box"><strong>当前为默认评分（各体征为页面默认档位），请按实际皮损与症状修改后查看解读。</strong></div>';
+    var __rb=document.getElementById('resultRefBar'); if(__rb) __rb.innerHTML='';
+    return;
+  }
   if(total<=4){sev='轻度';color='#10B981';advice='使用含2%酮康唑、二硫化硒或吡硫鎓锌的药用洗发剂，每周2-3次，配合日常温和洗发。';}
   else if(total<=10){sev='中度';color='#F59E0B';advice='抗真菌洗发剂联合外用弱效糖皮质激素（如氢化可的松）或钙调磷酸酶抑制剂，控制炎症后以抗真菌维持。';}
   else{sev='重度';color='#EF4444';advice='联合外用治疗，顽固或泛发者可口服伊曲康唑短程，伴明显炎症可短期系统用糖皮质激素，皮肤科就诊。';}
@@ -274,6 +292,7 @@ function calc(){
 }
 function copyResult(){
   var total=v('d1')+v('d2')+v('d3')+v('d4')+v('d5')+v('d6');
+  if(!__scaleDirty){ ToolBox.copyText('脂溢性皮炎评分：'+total+'分（默认评分，尚未按实际皮损与症状修改）', i18nText()); return; }
   ToolBox.copyText('脂溢性皮炎评分：'+total+'分', i18nText());
 }
 calc();
@@ -401,7 +420,7 @@ function __seborrheic_dermatitisRender(keys,rk,en){
                     if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
                     else{e.value=rec[k];}
                 }
-                calc();
+                __scaleDirty=true; calc();
             }catch(e2){}
             __seborrheic_dermatitis_skip=false;
         });

@@ -382,7 +382,7 @@ const CASES = [
   "inputs": {
     "anaTiter": "1:320",
     "anaPattern": "homogeneous",
-    "dsdna": "pos"
+    "dsdna": "pos", "ccp": "neg"
   },
   "expect": [
     "系统性红斑狼疮(SLE)",
@@ -1310,7 +1310,7 @@ const CASES = [
   },
   {
     "slug": "clinical-lab/autoantibody-interpretation",
-    "inputs": { anaTiter: "1:320", dsdna: "pos" },
+    "inputs": { anaTiter: "1:320", anaPattern: "none", dsdna: "pos", ccp: "neg" },
     "clicks": [
       "document.getElementById('result').innerHTML+=' 含抗Sm='+(document.getElementById('result').innerHTML.indexOf('抗Sm')>=0);"
     ],
@@ -1323,7 +1323,7 @@ const CASES = [
   },
   {
     "slug": "clinical-lab/autoantibody-interpretation",
-    "inputs": { anaTiter: "1:160" },
+    "inputs": { anaTiter: "1:160", anaPattern: "none", dsdna: "neg", ccp: "neg" },
     "clicks": [
       "document.getElementById('ena_pm-scl').value='pos';document.getElementById('ena_ma2').value='pos';updateRow('pm-scl');var r=document.getElementById('result');r.innerHTML+=' 含PM-Scl='+(r.innerHTML.indexOf('硬化症-肌炎重叠综合征')>=0)+' 含Ma2='+(r.innerHTML.indexOf('副肿瘤神经综合征相关')>=0);"
     ],

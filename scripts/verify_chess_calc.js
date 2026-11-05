@@ -79,7 +79,19 @@ const CASES = [
     "成杀条件：双炮同线且前炮能借后炮作架"
   ],
   "ref": "结构性不可注入（沿用 tcm-diagnosis/etiology-tree 口径）：页面无任何 input/select，内容由常量对象 `ENDGAMES` 经 renderEndgames() 一次性渲染进三个 tab 容器（`$('tab-one/two/classic').innerHTML`），交互只有 switchTab() 的 classList.toggle 与 toggleCard() 的 classList.toggle —— **两者都不写入任何被采集的字符串**，15 个杀法卡片的标题、成杀条件与要点在初始渲染时已同时落盘 ⇒ 无论怎么点，可用文本集合完全相同、无任何随交互变化的输出。维持 no_inputs，断言首卡「重炮」的成杀条件（旧版伪着法「黑将5平6」已随页面重写删除）。"
-}
+},
+  {
+    "slug": "chess/go-territory",
+    "inputs": { "komi": "0.5", "blackTerritory": "", "blackCaptures": "5", "whiteTerritory": "", "whiteCaptures": "2" },
+    "expect": ["请填写双方围空目数（数子法还需填写盘面活子数）后再计算。"],
+    "ref": "空态守卫（2026-11-05）：双方围空为空时旧实现按 0 目算出「平局 + 目差 0.0」结论；现只给填写提示。⚠ 判空只认空串——围空 0 目、提子 0 目、贴目 0 目都合法，照常计算。",
+  },
+  {
+    "slug": "chess/go-territory",
+    "inputs": { "komi": "0.5", "blackTerritory": "0", "blackCaptures": "5", "whiteTerritory": "40", "whiteCaptures": "2" },
+    "expect": ["5.0 黑方总目"],
+    "ref": "0 合法字段回归：显式输入 blackTerritory=0 ⇒ 黑方总目 = 0+5 = 5.0（不当作未填写，仍出结果）；与空态提示互斥。",
+  }
 ];
 async function main() {
   const only = process.argv.slice(2);

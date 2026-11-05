@@ -6809,14 +6809,13 @@ const CASES = [
   {
     "slug": "it/rust-escape",
     "inputs": {
-      "input": "1\n2\n3",
-      "output": "1\n2\n3",
-      "kind": "char"
+      "kind": "string",
+      "input": "a\"b"
     },
     "expect": [
-      "1 2 3\n1 2 3\nchar"
+      "\"a\\\"b\""
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"kind\":\"char\"}，输出区含「1 2 3\n1 2 3\nchar」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "真机锚定：kind=string、input=a\"b 输出 Rust 字符串字面量 \"a\\\"b\"；旧用例注入 output 且将输入回显作为期望，属于假绿。"
   },
   
   {
@@ -8796,6 +8795,21 @@ function makeEl(val, opts) {
       }
       return null;
     },
+    checkValidity() {
+      const value = String(this.value == null ? "" : this.value);
+      if (!value) return this.getAttribute("required") === null;
+      if (this.getAttribute("type") !== "number") return true;
+      const n = Number(value);
+      if (!Number.isFinite(n)) return false;
+      const min = this.getAttribute("min"), max = this.getAttribute("max"), step = this.getAttribute("step");
+      if (min !== null && n < Number(min) || max !== null && n > Number(max)) return false;
+      if (step !== "any") {
+        const size = step === null ? 1 : Number(step);
+        const base = min === null ? 0 : Number(min);
+        if (size > 0 && Math.abs((n - base) / size - Math.round((n - base) / size)) > 1e-9) return false;
+      }
+      return true;
+    },
     focus() {},
     // 元素滚动定位：查表/详情类页（science/periodic-table 点击元素后滚动到详情卡）
     // 会调用，缺此 API 整页初始化即抛 "scrollIntoView is not a function" ⇒ 恒不可验证。
@@ -9167,6 +9181,11 @@ async function runCaseInner(c) {
   if (html.includes("TOOLBOX-REDIRECT")) return { ok: true, skipped: true, why: "redirect stub" };
 
   const defaults = {};
+  const inputAttrs = {};
+  for (const m of html.matchAll(/<input\b([^>]*)>/gi)) {
+    const id = (m[1].match(/\bid\s*=\s*["']([^"']+)["']/i) || [])[1];
+    if (id) inputAttrs[id] = m[1];
+  }
   for (const m of html.matchAll(/<input[^>]*id="([^"]+)"[^>]*value="([^"]*)"/g)) defaults[m[1]] = m[2];
   for (const m of html.matchAll(/<textarea[^>]*id="([^"]+)"[^>]*>([\s\S]*?)<\/textarea>/g))
     defaults[m[1]] = m[2].replace(/&#10;/g, "\n").replace(/&quot;/g, '"').replace(/&amp;/g, "&");
@@ -9331,6 +9350,13 @@ async function runCaseInner(c) {
           ? ((optList.find((o) => /\bselected\b/i.test(o.attrs || "")) || optList[0]).value)
           : "";
       elements[id] = makeEl(v, optList || undefined);
+      if (inputAttrs[id]) {
+        elements[id].tagName = "INPUT";
+        elements[id].type = ((inputAttrs[id].match(/\btype\s*=\s*["']([^"']+)["']/i) || [])[1] || "text").toLowerCase();
+        for (const m of inputAttrs[id].matchAll(/\b(type|min|max|step)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/gi))
+          elements[id].setAttribute(m[1], m[2] ?? m[3] ?? m[4]);
+        if (/\brequired\b/i.test(inputAttrs[id])) elements[id].setAttribute("required", "");
+      }
       elements[id].id = id;   // 动态 DOM 登记按容器 id 分桶（同容器重渲染时覆盖，避免计数翻倍）
       // readonly 输出域标记（G06-S1 快照判据用）：真机中该属性只读不改，
       // 页面脚本不会写它 ⇒ 不会干扰任何既有用例的取值路径。
@@ -9402,6 +9428,8 @@ async function runCaseInner(c) {
         }
         const nmM = sel.match(/\[\s*name\s*=\s*["']?([^"'\]]+)/);
         if (nmM) {
+          if (c.radios && Object.prototype.hasOwnProperty.call(c.radios, nmM[1]))
+            return { value: String(c.radios[nmM[1]]), checked: true, parentElement: { textContent: "" } };
           const vs = checkedByName[nmM[1]];
           if (vs && vs.length)
             return { value: vs[0], checked: true, parentElement: { textContent: "" } };
@@ -9545,6 +9573,30 @@ async function runCaseInner(c) {
   win.navigator = navigator;
   win.document = document;
   win.ToolBox = ToolBox;
+  if (c.markmapStub) {
+    win.markmap = {
+      Transformer: class {
+        transform(md) {
+          const stack = [];
+          let root = null;
+          let headingDepth = 0;
+          for (const line of String(md).split('\n')) {
+            const match = line.match(/^(#{1,6})\s+(.+)$|^(\s*)[-*]\s+(.+)$/);
+            if (!match) continue;
+            if (match[1]) headingDepth = match[1].length;
+            const depth = match[1] ? headingDepth : headingDepth + 1 + Math.floor(match[3].length / 2);
+            const node = { content: match[2] || match[4], children: [] };
+            while (stack.length && stack[stack.length - 1].depth >= depth) stack.pop();
+            if (stack.length) stack[stack.length - 1].node.children.push(node);
+            else if (!root) root = node;
+            stack.push({ depth, node });
+          }
+          return { root };
+        }
+      },
+      Markmap: { create(el) { el.textContent = 'MARKMAP-STUB-OK'; return { setData() {}, fit() {} }; } },
+    };
+  }
   // 图表页会读 CSS 变量取色（如 healthcare/tdee-calculator 的 resolveCanvasColor），
   // 没有 getComputedStyle 会在 calc() 首行抛 "getComputedStyle is not defined"。
   win.getComputedStyle = () => ({ getPropertyValue: () => "" });

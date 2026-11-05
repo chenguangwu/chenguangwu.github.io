@@ -2422,6 +2422,10 @@ function getToolIndustry(){
 }
 function renderRelatedTools(){
   if(document.querySelector('.related-tools')) return;
+  // 分类落地页（tools/<ind>/index.html）自身已列出本行业全部工具，不需要再注入「相关工具」块。
+  // 该页现在也带 meta[name="toolbox"]（供 js/tool-i18n.js 加载一页一字典），
+  // 若不按 URL 排除，会被 getToolIndustry() 命中而在页尾重复注入 8 个同行业卡片。
+  if(/\/index(?:\.html)?$/i.test(location.pathname || '') || /\/$/.test(location.pathname || '')) return;
   var ind = getToolIndustry();
   if(!ind) return;
   var relatedTitle = i18nText('tool.related', '🔗 相关工具');

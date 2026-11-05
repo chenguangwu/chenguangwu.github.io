@@ -255,7 +255,15 @@ const CASES = [
   "clicks": ["calc()"],
   "expect": ["请填写两项数值后再计算。"],
   "ref": "空态：两项清空后不再把空串当 0 输出「0% of 0」，改为提示；默认态 150/20 ⇒ 计算报告，不命中。"
+},
+{
+  "slug": "nutrition/calc-2",
+  "inputs": { "manualCarb": "30", "manualProtein": "20", "manualFat": "10" },
+  "clicks": ["document.getElementById('manualCarb').value='';document.getElementById('manualProtein').value='';document.getElementById('manualFat').value='';calculate();document.getElementById('result').textContent='EMPTY:'+document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ').trim();"],
+  "expect": ["EMPTY:请输入手动营养素，或先添加食物后再计算热量。"],
+  "ref": "空态守卫（2026-11-05）：无食物条目且手动碳水/蛋白/脂肪均空（或全 0）时，不再输出「总热量 0 kcal」等全 0 结果，只给提示。⚠ 单项 0 合法（如纯脂餐碳水 0）照常计算。"
 }
+
 ];
 async function main() {
   const only = process.argv.slice(2);

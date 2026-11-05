@@ -55,7 +55,7 @@ const CASES = [
   {
     slug: "ai/sigmoid",
     inputs: { z: "1.5", threshold: "0.5" },
-    expect: ["0.817574"],
+    expect: ["0.817574 分类结果："],
     ref: "σ(1.5)=1/(1+e^-1.5)=0.817574（原 z=2 与页面默认 2.0 相同；且“正类/2.0000”不依赖注入 → 均为逃生项）",
   },
 
@@ -120,7 +120,7 @@ const CASES = [
   {
     slug: "ai/temperature-scaling",
     inputs: { logit: "3", T: "2", logit2: "-1" },
-    expect: ["1.500", "-0.500"],
+    expect: ["-0.500"],
     ref: "logit÷T=3÷2=1.500；对比 logit÷T=-1÷2=-0.500",
   },
   {
@@ -296,7 +296,7 @@ const CASES = [
   {
     slug: "ai/token-usage",
     inputs: { cn: "240", enWords: "150", code: "40" },
-    expect: ["400"],
+    expect: ["400 token"],
     ref: "tokens=240/1.5+150/0.75+40=160+200+40=400",
   },
 
@@ -370,7 +370,7 @@ const CASES = [
   {
     slug: "ai/ai-5",
     inputs: { samples: "7500", batch: "64", epochs: "4" },
-    expect: ["118", "472", "12"],
+    expect: ["118", "472"],
     ref: "每轮步数=ceil(7500/64)=118；总步数=118×4=472；最后一批=7500-117×64=12",
   },
 

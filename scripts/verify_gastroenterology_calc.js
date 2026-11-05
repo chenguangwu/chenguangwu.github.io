@@ -6,7 +6,8 @@ const CASES = [
   "slug": "gastroenterology/bilirubin-ratio",
   "inputs": {
     "tbil": "128",
-    "dbil": "55"
+    "dbil": "55",
+    "ref": "21"
   },
   "expect": [
     "直接胆红素比值35-60%"
@@ -18,7 +19,9 @@ const CASES = [
   "inputs": {
     "bili": "51.3",
     "alb": "26",
-    "inr": "2.5"
+    "inr": "2.5",
+    "ascites": "1",
+    "enceph": "1"
   },
   "expect": [
     "Child-Pugh 评分： 10 分（5-15 分） 分级： C级"
@@ -59,7 +62,9 @@ const CASES = [
     "bilirubin": "53",
     "albumin": "30",
     "pt": "4",
-    "inr": "1.7"
+    "inr": "1.7",
+    "ascites": "1",
+    "encephalopathy": "1"
   },
   "expect": ["9 总分 B级", "总胆红素 53 μmol/L (＞51) → 3分"],
   "ref": "Child-Pugh：胆红素 53 μmol/L（>51）→3 分、白蛋白 30 g/L（28–35）→2 分、PT 延长 4 s→2 分，腹水/肝性脑病默认「无」各 1 分 ⇒ 合计 9 分 → B 级（7–9 分），1 年生存率≈80%、2 年≈60%。默认胆红素 35（34–51→2 分）合计 8 分，两条锚均不命中。原期望把输入回显拼进断言，且按旧默认（腹水 2 分、肝性脑病 2 分）写成 11 分 C 级，已按现行默认与评分规则复算更正。"
@@ -67,7 +72,7 @@ const CASES = [
 {
   "slug": "gastroenterology/colonoscopy-polyp",
   "inputs": {
-    "size": "12"
+    "size": "12", "paris": "Is", "kudo": "IIIL", "nice": "2"
   },
   "expect": [ "12 直径" ],
   "ref": "auto-restore"
@@ -75,7 +80,7 @@ const CASES = [
 {
   "slug": "gastroenterology/detector-7",
   "inputs": {
-    "prior": "7"
+    "prior": "7", "ab1": "0", "ab2": "0", "ab3": "0", "ab4": "0", "ab5": "0", "ab6": "0"
   },
   "expect": [
     "既往治疗7次失败"
@@ -85,7 +90,8 @@ const CASES = [
 {
   "slug": "gastroenterology/ercp-success",
   "inputs": {
-    "stoneSize": "18"
+    "stoneSize": "18", "stoneCount": "1", "stonePos": "1",
+    "purpose": "stone", "surgery": "0", "priorEst": "0", "diverticulum": "0"
   },
   "expect": ["5 难度评分"],
   "ref": "重写：页面无 CBD 字段（仅 stoneSize/stoneCount/stonePos/purpose/surgery/priorEst/diverticulum），原注入键 cbd 属僵尸 id（getEl 造游离桩、页面从不读取），已删除。难度分由页面真实分支累加：注入 stoneSize=18 ⇒ ＞15mm +3，其余保持默认（stoneCount=1 即 2-3 枚 +1、stonePos=1 即胆总管中段 +1）= 5 分；默认 stoneSize=12 ⇒ 10-15mm +2，其余同 = 4 分，故「5 难度评分」在默认态不命中。"
@@ -93,7 +99,7 @@ const CASES = [
 {
   "slug": "gastroenterology/esophageal-varices",
   "inputs": {
-    "size": "3"
+    "size": "3", "rc": "0", "child": "1", "bleed": "0"
   },
   "expect": [
     "曲张静脉大小：重度(D3)"
@@ -106,7 +112,7 @@ const CASES = [
     "r2": "98",
     "r4": "30",
     "r0": "100",
-    "halfTime": "90"
+    "halfTime": "90", "method": "scintigraphy", "meal": "solid"
   },
   "expect": [
     "排空率2.0%"
@@ -116,7 +122,7 @@ const CASES = [
 {
   "slug": "gastroenterology/gastrin-level",
   "inputs": {
-    "gastrin": "225"
+    "gastrin": "225", "ph": "low"
   },
   "expect": [ "225 胃泌素" ],
   "ref": "auto-restore"
@@ -174,7 +180,7 @@ const CASES = [
 {
   "slug": "gastroenterology/hp-resistance",
   "inputs": {
-    "clarithro": "resistant"
+    "clarithro": "resistant", "metronidazole": "resistant", "levo": "unknown", "history": "none"
   },
   "expect": ["克拉霉素：耐药", "已剔除含耐药/禁用药物（克拉霉素、甲硝唑）"],
   "ref": "克拉霉素注入耐药、甲硝唑默认耐药、铋剂不可用 ⇒ 方案库剔除含克拉霉素/甲硝唑的方案，落到大剂量二联（艾司奥美拉唑 40mg qid + 阿莫西林 1g tid，14 天）。默认克拉霉素为敏感，首条锚不命中。原期望「bid/tid，14天（避开克拉霉素）」属旧方案文案，已随页面方案库重写更正。"
@@ -193,7 +199,7 @@ const CASES = [
 {
   "slug": "gastroenterology/intestinal-metaplasia",
   "inputs": {
-    "antrumIM": "1"
+    "antrumIM": "1", "corpusIM": "3", "antrumAtrophy": "2", "corpusAtrophy": "3"
   },
   "expect": ["1\n3\n2\n3\nⅡ期 OLGIM分期 Ⅲ期 OLGA分期 中度风险 胃癌风险 评估明细 胃窦肠化生：轻度 胃体肠化生：重度 胃窦萎缩：中度 胃体萎缩：重度 随访建议： 每1-2年随访胃镜 中度肠化生范围，胃癌风险升高。建议根除Hp后定期随访，增强筛查意识。"],
   "ref": "auto-restore"
@@ -214,7 +220,7 @@ const CASES = [
     "lsm": "14.5",
     "cap": "310",
     "ast": "45",
-    "plt": "180"
+    "plt": "180", "validity": "valid", "probe": "M"
   },
   "expect": [
     "2)每6-12个月复查FibroScan监测进展"
@@ -240,11 +246,11 @@ const CASES = [
     "fc": "120"
   },
   "expect": [ "75 FIT" ],
-  "ref": "auto-restore"
+  "ref": "auto-restore；并补矩阵断言（阳性×轻度：FIT 75 / FC 120）——原代码该组合误报「双阴性 → 风险低」。"
 },
 {
   "slug": "gastroenterology/colonoscopy-polyp",
-  "inputs": { "size": "" },
+  "inputs": { "size": "", "paris": "Is", "kudo": "IIIL", "nice": "2" },
   "expect": ["留空不判读"],
   "ref": "息肉直径空值不得按 0 判为「微小息肉/低风险」：默认 8mm，注入空串后应显示「留空不判读」；回退默认 8 即不再命中。"
 },
@@ -253,7 +259,7 @@ const CASES = [
   "inputs": {
     "clarithro": "unknown",
     "metronidazole": "unknown",
-    "levo": "unknown"
+    "levo": "unknown", "history": "none"
   },
   "expect": [
     "克拉霉素：未检测",
@@ -261,7 +267,99 @@ const CASES = [
     "未检测药物：克拉霉素、甲硝唑、左氧氟沙星"
   ],
   "ref": "三药全部未检测（默认 clar 敏感 / metro 耐药 / levo 未检测）：页面不再写「未检测按可能敏感」，改为列出未检测药物并降级方案可信度为「中」。原锚「中（存在未检测药物）」在默认态（仅 levo 未检测）同样出现 ⇒ 逃生；且 harness 的 expect 是「任一命中即 PASS」，`左氧氟沙星：未检测` 在默认态（levo=unknown）即出现 ⇒ 整条用例仍 PASS 残留逃生。删去该锚，只保留两条明细（clar/metro 默认分别为敏感/耐药，必不命中）与三药汇总句（默认仅 levo 未检测，汇总句为「未检测药物：左氧氟沙星」）。"
+},
+{
+  "slug": "gastroenterology/hp-dob",
+  "inputs": { "dob": "" },
+  "expect": ["请填写 DOB 检测值后再判读。"],
+  "ref": "空态守卫（2026-11-05）：清空 DOB 值后不再输出「0 DOB值」+「阴性」+「DOB值＜4.0‰…继续保持良好卫生习惯」整套结论，只给填写提示。⚠ 判空只认空串——DOB 0 ‰ 是合法检测值（阴性），照常判读。"
+},
+{
+  "slug": "gastroenterology/stool-occult-quant",
+  "inputs": { "fit": "", "age": "55", "fc": "120" },
+  "expect": ["请填写 FIT、粪钙卫蛋白与年龄后再生成联合解读。"],
+  "ref": "空态守卫（2026-11-05）：清空 FIT 后不再输出「FIT 0 μg/g → 阴性」+「双阴性 → 风险低」结论，只给填写提示。⚠ 判空只认空串——FIT 0 μg/g、FC 0 μg/g、0 岁均为合法值，照常解读。"
+},
+{
+  "slug": "gastroenterology/stool-occult-quant",
+  "inputs": { "fit": "5", "age": "55", "fc": "30" },
+  "expect": ["双阴性 → 风险低"],
+  "ref": "联合矩阵·阴性×正常（FIT<10 / FC<50）→ 双阴性、风险低。"
+},
+{
+  "slug": "gastroenterology/stool-occult-quant",
+  "inputs": { "fit": "9", "age": "55", "fc": "150" },
+  "expect": ["出血阴性，炎症轻度升高 → 建议复查"],
+  "ref": "联合矩阵·阴性×轻度（FIT<10 / 50≤FC<200）→ 原代码落入 else 误报「双阴性 → 风险低」，现为出血阴性+炎症轻度升高、复查 FC。"
+},
+{
+  "slug": "gastroenterology/stool-occult-quant",
+  "inputs": { "fit": "5", "age": "55", "fc": "200" },
+  "expect": ["出血阴性，炎症阳性 → 优先排查IBD"],
+  "ref": "联合矩阵·阴性×明显（FIT<10 / FC≥200，FC=200 为上边界）→ 优先排查 IBD。"
+},
+{
+  "slug": "gastroenterology/stool-occult-quant",
+  "inputs": { "fit": "10", "age": "55", "fc": "49" },
+  "expect": ["出血临界，炎症阴性 → 建议复查FIT"],
+  "ref": "联合矩阵·临界×正常（FIT=10 为临界下边界 / FC=49 为正常上边界）→ 原代码落入 else 误报双阴性，现为复查 FIT。"
+},
+{
+  "slug": "gastroenterology/stool-occult-quant",
+  "inputs": { "fit": "19", "age": "55", "fc": "50" },
+  "expect": ["双临界值 → 建议随访复查"],
+  "ref": "联合矩阵·临界×轻度（FIT=19 为临界上边界 / FC=50 为轻度下边界）→ 双临界随访复查。"
+},
+{
+  "slug": "gastroenterology/stool-occult-quant",
+  "inputs": { "fit": "15", "age": "55", "fc": "200" },
+  "expect": ["出血临界，炎症阳性 → 优先排查IBD"],
+  "ref": "联合矩阵·临界×明显（10≤FIT<20 / FC≥200）→ 原代码落入 else 误报双阴性，现为以肠道炎症为主、优先排查 IBD。"
+},
+{
+  "slug": "gastroenterology/stool-occult-quant",
+  "inputs": { "fit": "20", "age": "55", "fc": "30" },
+  "expect": ["出血阳性，炎症阴性 → 优先排查肿瘤"],
+  "ref": "联合矩阵·阳性×正常（FIT=20 为阳性下边界 / FC<50）→ 优先排查肿瘤。"
+},
+{
+  "slug": "gastroenterology/stool-occult-quant",
+  "inputs": { "fit": "100", "age": "55", "fc": "120" },
+  "expect": ["FIT (μg/g) - 强阳性"],
+  "ref": "联合矩阵·强阳性×轻度（FIT=100 为强阳性起点，联合矩阵仍按阳性格）→ 分级仍应显示强阳性、结论同阳性×轻度。"
+},
+{
+  "slug": "gastroenterology/stool-occult-quant",
+  "inputs": { "fit": "99", "age": "55", "fc": "30" },
+  "expect": ["出血阳性，炎症阴性 → 优先排查肿瘤"],
+  "ref": "FIT=99 为阳性上边界（<100 才是阳性，100 起为强阳性），联合矩阵走阳性×正常。"
+},
+{
+  "slug": "gastroenterology/stool-occult-quant",
+  "inputs": { "fit": "5", "age": "55", "fc": "199" },
+  "expect": ["出血阴性，炎症轻度升高 → 建议复查"],
+  "ref": "FC=199 为轻度升高上边界（<200 归轻度），阴性×轻度 → 复查 FC。"
+},
+{
+  "slug": "gastroenterology/stool-occult-quant",
+  "inputs": { "fit": "50", "age": "55", "fc": "200" },
+  "expect": ["出血+炎症双阳性 → 需肠镜明确"],
+  "ref": "FC=200 为明显升高下边界（≥200 归明显），阳性×明显 → 双阳性。"
+},
+{
+  "slug": "gastroenterology/stool-occult-quant",
+  "inputs": { "fit": "150", "age": "55", "fc": "300" },
+  "expect": ["出血+炎症双阳性 → 需肠镜明确"],
+  "ref": "联合矩阵·阳性×明显（FIT≥20 / FC≥200）→ 双阳性，需肠镜明确。"
+},
+{
+  "slug": "gastroenterology/hepatic-encephalopathy",
+  "inputs": { "consciousness": "1", "behavior": "1", "cognition": "1", "asterixis": "1" },
+  "clicks": ["document.getElementById('asterixis').value='';calc();document.getElementById('result').textContent='PARTIAL:'+document.getElementById('result').innerHTML.replace(/<[^>]*>/g,'').trim();"],
+  "expect": ["PARTIAL:请输入意识状态、行为变化、认知与扑翼样震颤分级后再评估。"],
+  "ref": "原生缺陷修复：四项 West Haven 分级下拉全部改为「请选择」空值默认，首屏不再直接给 I 级分级与治疗/住院建议。"
 }
+
 ];
 async function main() {
   const only = process.argv.slice(2);

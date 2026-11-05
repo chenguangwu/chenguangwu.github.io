@@ -9,7 +9,7 @@ const CASES = [
     "aldo": "7.5",
     "renin": "2.4",
     "k": "3.0",
-    "bp": "140"
+    "bp": "140", "posture": "upright"
   },
   "expect": [
     "3.1 ng/dL : ",
@@ -175,7 +175,7 @@ const CASES = [
     "dbp": "95",
     "fpg": "7.2",
     "tg": "3.2",
-    "hdl": "0.8"
+    "hdl": "0.8", "gender": "male", "meds": "0"
   },
   "expect": [
     "腰围 99cm",
@@ -192,7 +192,7 @@ const CASES = [
     "dbp": "95",
     "fpg": "7.2",
     "tg": "3.2",
-    "hdl": "0.8",
+    "hdl": "0.8", "gender": "male", "meds": "0",
     "checkDate": "2024-01-15"
   },
   "expect": [
@@ -235,7 +235,7 @@ const CASES = [
 {
   "slug": "endocrinology/pituitary-tumor",
   "inputs": {
-    "diameter": "12"
+    "diameter": "12", "invasive": "0"
   },
   "expect": [
     "之后每6-12月"
@@ -285,7 +285,7 @@ const CASES = [
   "slug": "endocrinology/thyroid-cancer-risk",
   "inputs": {
     "tumorSize": "5.5",
-    "tg": "9.9"
+    "tg": "9.9", "pathology": "papillary", "tgAb": "0", "imaging": "negative", "dscan": "negative"
   },
   "checkIds": [
     "distant",
