@@ -833,6 +833,20 @@ const CASES = [
   "clicks": ["nextCard()", "nextCard()", "nextCard()"],
   "expect": ["sì", "数字四；第四"],
   "ref": "卡片顺序固定：一→二→三→四；第三次翻卡显示 四/sì/数字四；第四。默认首卡一，零交集。"
+},
+{
+  "slug": "edu/capital-quiz",
+  "clicks": ["start();for(var k=0;k<10;k++){choose({cap:cur.cap},{classList:{add:function(){}}});}"],
+  "expect": ["得分：10/10（100%）"],
+  "ref": "start() 随机抽 10 题后，逐题以「cap 与 cur.cap 相同的选项对象」调用 choose()（等价于点中正确项）⇒ score=10 ⇒ finish 输出「得分：10/10（100%）」。题序随机但满分结果确定。"
+       + "选项按钮由 next() 用 createElement 生成，桩内 querySelectorAll('.opt') 看不到运行时节点，故直接传入等价的选项对象（仅含比较字段 cap 与最小 classList 桩）；choose 的计分/推进/收尾逻辑照常执行。默认未开始时输出「选择正确的首都 / 得分：0」，零交集。"
+},
+{
+  "slug": "edu/country-quiz",
+  "clicks": ["start();for(var k=0;k<10;k++){choose({name:cur.name},{classList:{add:function(){}}});}"],
+  "expect": ["得分：10/10（100%）"],
+  "ref": "同 capital-quiz：country-quiz 的 choose(o,el) 比较 o.name === cur.name，逐题传等价选项对象 ⇒ score=10 ⇒ finish 输出「得分：10/10（100%）」。"
+       + "默认未开始时输出「根据国旗选择对应的国家 / 得分：0」，零交集。"
 }
 ];
 
