@@ -1902,6 +1902,14 @@ const CASES = [
     "clicks": ["expression='(2+3)*4^2';calculate()"],
     "expect": ["80", "(2+3)*4^2 ="],
     "ref": "表达式求值独立复算：(2+3)×4² = 5×16 = 80；点击后 display 显示 80、历史行显示「(2+3)*4^2 =」。默认 expression 为空 ⇒ calculate() 直接 return，display 停在 0、历史为空，两锚均不命中（判别时清空 clicks 即回默认态）。"
+  },
+  {
+    "slug": "science/periodic-table",
+    "clicks": ["showDetail(26)"],
+    "expect": ["原子序数 26"],
+    "ref": "元素详情独立核对：原子序数 26 即 Fe（铁，Iron）——第 4 周期第 8 族，原子量 55.845、电子排布 [Ar]3d6 4s2（数据取自页内 ELEMENTS 元素表）。"
+       + "boot 默认调 showDetail(1) ⇒ 详情区为「氢 / 原子序数 1」；clicks 改为 showDetail(26) 后详情区出现「原子序数 26」。"
+       + "判别器清空 clicks 后兜底调 showDetail()（无参 ⇒ ELEMENTS.find 返回 undefined ⇒ 直接 return），详情仍是氢，不命中。"
   }
 
 ];
