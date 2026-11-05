@@ -718,3 +718,38 @@ node scripts/runtime_scan.js --interact --files /tmp/pages.txt --timeout 10000
 - `usedcar/detector-19`：14 项加「未检查（请选择）」默认项；`unchecked>0` 时只输出「待检测：还有 N 项未检查」，**不输出风险指数/结论/购买建议**；CSV 导出同步标注未检查项、结论改为「待检测」。
 - `fluid/buoyancy-force` 与 `process` 13 页同型：数字输入补 `oninput`，保留「计算」按钮。
 - `pet-training/clicker-timing`：**不改，审计结论作废**。`duration` 已有 `oninput="updateSettings()"`，且 `scheduleNext()` 每回合实时读取 `duration`；训练型工具，改设置本就不应改写已完成回合的统计，属正确设计。
+
+## 2026-11-05 分桶抽样复核（60 页）：不销账
+
+### 抽样口径
+- 分层按桶比例抽 60 页（占 653 的 9.2%，覆盖 42 个行业）：A 5/23、B 30/449、C 15/113（13 纯 select + 1 文件 + 1 画布）、D 10/68（9 D-a + 唯一 D-b）。
+- 抽样种子：`sha1(页面路径)` + 按行业轮转，排除人工挑选；清单落 `/tmp/probe_bucket_sample.md`，逐页证据与判定落 `/tmp/probe_bucket_verdict.md`。
+- 方法：① 官方探针 `runtime_scan.js --interact` 对 60 页当天跑 2 次（`changedByInput` / 点击按钮两次结果 60/60 一致，探针本身可复现）；② 独立真机 puppeteer 采证，同页全量可见文本对比（排除控件值、计入只读输出），逐字段改值 + 填不同值后逐按钮点击；③ 按 §8「批跑口径 vs 隔离口径」，本批为隔离复跑，结论可作验收依据。
+
+### 结果：桶位错分 5/60 = 8.3%（Wilson 95% CI 3.6%–18.1%）→ ≥5%，不销账
+| 页面 | 原桶 | 实测 | 错因 |
+|---|---|---|---|
+| `library/clc-classifier` | C（纯 select） | **B**（`search` 输入即过滤，搜索结果条数变化） | 搜索框未计入文本驱动，且探针结果区未覆盖列表区 |
+| `metalwork/thread-spec` | C（纯 select） | **B**（`search` 输入即过滤表格） | 同上 |
+| `rehabilitation/assistive-device-fitting` | D-a（需预设） | **B**（5 个数值全填后，任一改动即刷新适配结果；judge 5/5） | 只改一个字段、其余留空 → 判「改值不变」 |
+| `design/shutter-speed-calculator` | D-a（需预设） | **B**（`focal` `oninput=calc()`，实测 50→103 使结果 1/15→1/30） | 固定 0.8× 改值撞上标准快门档位四舍五入，判「不变」 |
+| `kids/multiplication-practice` | D-a（需预设） | **C**（`modeSel`/`timeSel` 切换即换题） | select 驱动未计，D 判据「无文本输入」与事实不符 |
+
+另 5 页**桶位正确、子类标签错**（不计入 8.3%，但文案需修）：`cleaning/appliance-cycle`、`life/holiday-calendar`（实为按钮）、`textile/colorfastness`（`type=color`）、`music/piano-keyboard`（复选/按钮）——均被写成「纯 select/无文本」；`medical/reminder-2` 记 D-b「无任何可驱动交互」，但填表后「➕ 添加药品」成功新增 1 行（药品总数 1），应为 D-a。
+
+### 探针盲区（本次全部复现，需改判定再重扫）
+1. **只改一个字段**：多输入页需全填才出结果（`assistive-device-fitting`），单字段改值必判「不变」。修法：先全字段填合法值，再逐字段改值并合并判定（即 `changedAll`，不能再用单字段 `changedByInput`）。
+2. **结果区漏列表/过滤区**：`search` 类页（`clc-classifier`、`thread-spec`、`tailwind-colors`、`64-gua`）改值确实过滤列表，但探针只比结果区签名。修法：签名改为全量可见文本（排除控件值），并对 `type=search` 单独判定。
+3. **固定倍率改值**：0.8× 可能落在同一档位（`shutter-speed-calculator`）。修法：每个字段至少注入 2 个差异较大的合法值，任一变化即判「变」。
+4. **select 驱动未纳入**：`multiplication-practice` 等纯 select 交互页仍被塞进 D。修法：D 判据改为「无 select/文件/画布可改变结果」，select 驱动归 C。
+5. **D-b 未走「填表→点添加」流程**：`reminder-2` 被误判为无交互。修法：D-b 前必须试跑一次新增实体全流程。
+6. **判据文案与数据自相矛盾**：A 判据写「页面无主按钮」，但 A 23 页 `primaryButton` 全部非空（18 页为「计算」）；D 判据写「无文本输入」，但 D 68 页 `textInputs` 为 1–6。实际规则是「A=改值不变+有主按钮」「D=改值不变+其他按钮可驱动」，文案需按此改写，否则后续按错误口径复核。
+7. **同名字段口径不同**：分桶 JSON 的 `changedByInput` 与官方探针字段在 14/60 页取值不一致（而官方探针两次自跑 60/60 一致）——分桶不是官方探针的产物，字段不可混用；B=449 中可能混入搜索/多字段页，需按新口径重扫。
+
+### 已知盲区专项确认
+- `prompt/confirm/alert` 桩：样本 13 页含对话框调用，全部位于删除/清空/校验分支，常规改值路径不触发，**未造成分桶误判**；`cycle-honey` 的 `prompt` 需先有蜂箱，属 D-a 而非对话框问题。
+- `addEventListener` 漏检：探针仍漏（搜索类页），但本批独立采证用真实事件驱动可正常捕获，说明漏检在探针的「结果区选取」，不在事件注入。
+- 重渲染冲掉输入：**真实存在 2 例**（不计入分桶，独立缺陷）：`medical2/surgery-duration` 选术式后 `select` 被重渲染清空、`clinical-nursing/reminder-time-1` 的 `noteInput` 输入后被清空。
+
+### 结论
+653 页分桶**不销账**：桶位错分 8.3%（CI 上限 18.1%），且 B 桶依赖的单字段 `changedByInput` 在多输入/搜索/select 页系统性失真。先按上列 7 条修探针，重扫 653 后再抽 60 页复核；本批 60/60 页均**不是**「not-clicked 真缺陷」，但 5 页桶位与 5 页子类仍需修正。
