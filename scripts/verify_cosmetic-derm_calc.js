@@ -19,7 +19,7 @@ const { runCase } = require("./verify_it_calc.js");
 const CASES = [
   { slug: "cosmetic-derm/area-12",
     inputs: { area: "全脸", pct: "22", diam: "0.35" },
-    expect: [ "0.35 血管直径μm" ],
+    expect: ["0.35 血管直径μm" ],
     ref: "红斑面积占比 22% → 15≤22<30 属重度（III 级）；占比显示=22.0%、血管直径=0.35 μm（默认 面颊/10/0.2→10.0/0.20 避开）" },
 
   { slug: "cosmetic-derm/chemical-peel",
@@ -135,17 +135,17 @@ const CASES = [
 
   { slug: "cosmetic-derm/skin-ph",
     inputs: { phValue: "6.0", site: "cheek", postClean: "2", skincare: "1" },
-    expect: [ "6.00 偏碱" ],
+    expect: ["6.00 偏碱" ],
     ref: "pH 6.0 ∈(5.5,6.5] → 偏碱（偏高）；屏障健康分=100−|6.0−5.0|×30=70（默认 5.0→理想范围 避开）" },
 
   { slug: "cosmetic-derm/pifuphceding",
     inputs: { ph: "4.2", area: "面颊" },
-    expect: [ "4.2 皮肤" ],
+    expect: ["4.2 皮肤" ],
     ref: "pH 4.2 ∈[4.0,4.5) → 偏酸；屏障健康度=100−|4.2−5.0|×25=80（默认 5.0→正常 避开）" },
 
   { slug: "cosmetic-derm/maokongcudafenji",
     inputs: { dia: "500", area: "鼻头", type: "aging" },
-    expect: [ "500 毛孔直径" ],
+    expect: ["500 毛孔直径" ],
     ref: "毛孔直径 500 μm ∈[400,800) → 2 级「中度粗大」（默认 350→轻度粗大 避开）" },
 
   { slug: "cosmetic-derm/eyebag-assessment",
@@ -205,8 +205,10 @@ const CASES = [
 
   { slug: "cosmetic-derm/cosmetic-injection",
     checkIds: ["b_glabella", "b_frontalis", "b_crowfeet"],
-    expect: ["50 总剂量(U)", "川字纹 20", "17 总注射点"],
-    ref: "勾选三个部位（默认全未勾选 ⇒ 输出『请勾选需要治疗的部位』，无表格无合计）。页面按部位剂量表累加：川字纹 20U/5点（每点 4.0）、抬头纹 14U/6点（每点 2.3）、鱼尾纹(双侧) 16U/6点（每点 2.7）⇒ 总剂量 20+14+16 = 50 U、总注射点 5+6+6 = 17。checkIds 是 harness 注入字段，判别器清空后回到空勾选态 ⇒ 三条均不出现。" },
+    inputs: { muscleStrength: "1.2" },
+    expect: ["川字纹 30", "76 总剂量(U)"],
+    ref: "页面默认肌力系数 1.0，加载即以默认勾选的三部位渲染 25/18/20、合计 63U；改为肌力系数 1.2 后按 strength 加权：川字纹 25×1.2=30、抬头纹 18×1.2≈21.6→22、鱼尾纹 20×1.2=24，合计 76U、总注射点仍 17。"
+       + "原锚 50U/川字纹 20 是旧版剂量表的值，页面改版后已不存在（该用例此前一直失败）；且默认态已渲染 63U 表格，「17 总注射点」等默认就命中，无判别力。改锚后只取默认态零出现的「川字纹 30」「76 总剂量(U)」。" },
   {
     "slug": "cosmetic-derm/assessor-67",
     "inputs": {

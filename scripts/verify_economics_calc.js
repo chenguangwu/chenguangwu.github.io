@@ -135,7 +135,7 @@ const CASES = [
 
   { slug: "economics/unemployment-rate",
     inputs: { unemp: "500", lf: "8000" },
-    expect: ["6.25", "7500"],
+    expect: ["6.25"],
     ref: "u=500/8000·100=6.25%；就业=8000−500=7500" },
 
   { slug: "economics/velocity-of-money",

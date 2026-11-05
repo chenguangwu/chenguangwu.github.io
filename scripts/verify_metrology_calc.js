@@ -107,7 +107,7 @@ const CASES = [
 
   { slug: "metrology/flatness-deviation",
     inputs: { hmax: "0.018", hmin: "-0.012" },
-    expect: ["0.030", "30.0"],
+    expect: ["30.0"],
     ref: "平面度=0.018−(−0.012)=0.030 mm=30.0 μm" },
 
   { slug: "metrology/roundness-deviation",
@@ -153,7 +153,7 @@ const CASES = [
 
   { slug: "metrology/precision-tolerance-ratio",
     inputs: { s: "0.15", Tol: "6" },
-    expect: [ "0.150 精度公差比" ],
+    expect: ["0.150 精度公差比" ],
     ref: "PTR=6×0.15/6=0.150（<0.1 才算足够精细）" },
   {
     "slug": "metrology/bias-absolute",

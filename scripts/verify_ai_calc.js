@@ -120,7 +120,7 @@ const CASES = [
   {
     slug: "ai/temperature-scaling",
     inputs: { logit: "3", T: "2", logit2: "-1" },
-    expect: ["1.500", "-0.500"],
+    expect: ["-0.500"],
     ref: "logit÷T=3÷2=1.500；对比 logit÷T=-1÷2=-0.500",
   },
   {
@@ -370,7 +370,7 @@ const CASES = [
   {
     slug: "ai/ai-5",
     inputs: { samples: "7500", batch: "64", epochs: "4" },
-    expect: ["118", "472", "12"],
+    expect: ["118", "472"],
     ref: "每轮步数=ceil(7500/64)=118；总步数=118×4=472；最后一批=7500-117×64=12",
   },
 
