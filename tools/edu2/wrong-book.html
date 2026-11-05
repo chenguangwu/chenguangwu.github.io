@@ -682,9 +682,40 @@ function __wrong_bookExport(){
     if (typeof TBKit === 'undefined') return;
     try { TBKit.util.exportTable('#wrong_bookTable','wrong-book.csv'); } catch(e){}
 }
+function __wrong_bookLoadScene(){
+  try{
+    var st=(document.getElementById('filterStatus')||{}).value||'pending';
+    var cfg={pending:[8,6,1,1],reviewing:[10,2,6,2],mastered:[12,1,2,9]}[st]||[8,6,1,1];
+    var isEn=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+    var groups=['pending','reviewing','mastered'];
+    var subs=isEn?['Math','Physics','Chemistry','English','Chinese']:['数学','物理','化学','英语','语文'];
+    var reasons=isEn?['Concept gap','Calculation slip','Misread question']:['概念不清','计算失误','审题不仔细'];
+    var arr=[],k=0;
+    for(var g=0;g<3;g++){
+      for(var i=0;i<cfg[g+1];i++){
+        k++;
+        arr.push({id:'demo_'+k,subject:subs[k%subs.length],
+          type:isEn?('Chapter '+(k%3+1)+' exercises'):('第'+(k%3+1)+'章练习'),
+          question:isEn
+            ? ('Sample mistake '+k+': '+subs[k%subs.length]+' applied problem ('+groups[g]+')')
+            : ('示例错题 '+k+'：'+subs[k%subs.length]+'综合应用题（'+groups[g]+'）'),
+          reason:reasons[k%3],
+          answer:isEn
+            ? ('Solution '+k+': list the givens, then apply the matching formula step by step.')
+            : ('参考解析 '+k+'：先列出已知条件，再套用对应公式逐步求解。'),
+          status:groups[g],reviewDate:'2030-12-31',created:'2026-01-01'});
+      }
+    }
+    data=arr;
+    try{render();}catch(e){}
+  }catch(e){}
+}
 function __wrong_bookPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#wrong_bookPresets',[{label:'默认参数',labelEn:'Default',values:{'fReason':'概念不清', 'fStatus':'pending', 'fReviewDays':'3'}}],function(){ openAdd(); });
+    TBKit.preset.bar('#wrong_bookPresets',[{label:'默认参数',labelEn:'Default',values:{'fReason':'概念不清', 'fStatus':'pending', 'fReviewDays':'3'}},
+  {"label":"待重练错题集","labelEn":"Questions to Re-Practice","values":{"filterStatus":"pending"}},
+  {"label":"复习中错题集","labelEn":"Questions Under Review","values":{"filterStatus":"reviewing"}},
+  {"label":"已掌握错题集","labelEn":"Mastered Questions","values":{"filterStatus":"mastered"}}],function(){ __wrong_bookLoadScene(); });
 }
 var __wrong_book_f0=(typeof openAdd==='function')?openAdd:null;
 if(__wrong_book_f0){
