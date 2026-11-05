@@ -868,10 +868,45 @@ RESULT 11/11
 2. **本地文件解析器**：pdf.js / sql.js / SheetJS 对恶意 PDF/DOCX/XLSX/SQLite 的行为未做 fuzz（属解析库安全问题，非本站代码注入）。
 3. **`eval` / `new Function` 本地执行页**：`it/code-runner`、`it/sqlite-runner` 属产品功能，输入不来自 URL/外部页面，未按漏洞处理。
 4. **剪贴板读取 API**：`navigator.clipboard.readText()` 的内容入 DOM 路径未单独统计（当前全站无该调用）。
-5. **DOM clobbering / CSP / 浏览器扩展**：未评估（本站无 CSP，纯静态站依赖 GitHub Pages 响应头）。
-6. **构建期产物**：`_build.py` 注入的 TTZZ/统计脚本未纳入本轮（属构建链，不做页面级修复）。
+5. **DOM clobbering / CSP / 浏览器扩展**：已在 §24 补扫（clobbering 0 可利用、全站 0 处 CSP、构建期注入全静态）；浏览器扩展仍不在本站代码范围。
+6. **构建期产物**：已在 §24.3 确认 `_build.py` 注入的 TTZZ / ToolBox 桩均为静态常量，无用户可控拼接。
 
 ### 23.3 一句话结论
 
 **「用户输入 → DOM」的可执行通路已全部扫过（11 个面、正控全覆盖），未发现剩余未扫的注入通路；残留风险只在第三方供应链与本地文件解析库，不在本站输入链。** 
+
+## 24. 三个窄面补扫（DOM clobbering / CSP / 构建期注入，2026-11-05）
+
+> 本节只做定位与台账，**未改动任何页面代码**；补齐 §23.2 未覆盖清单第 5、6 条后，安全线正式封账。
+
+### 24.1 DOM clobbering：20 页采样，0 可利用
+
+- 采样口径：`tools/it` 输入框最多的 10 页 + `tools/admin` 输入框最多的 5 页 + 全站输入框最多的 5 页（去重）= **20 页**。
+- 静态命中：页面元素 `id`/`name` 与脚本同名全局（`function X` / `var X` / `window.X=`）撞名 **8/20 页、20 个名字**：
+  - `it/hash.html`（batchResults / hmacKey / hmacMode / textResults / verifyHash）
+  - `admin/travel-subsidy.html`（mealStd / transStd）、`admin/detector-time.html`（rows）、`admin/supplies-forecast.html`（itemName）、`admin/version-control.html`（author）
+  - `library/citation-format.html`（seq / title）、`math/equation-solver.html`（a / c / d）、`tcm-diagnosis/tcm-medical-record.html`（advice / analysis / chief / past / present）
+- 真机（同源 iframe 读 `typeof window[name]`）：撞名名字全部解析为 `object`（对应 `INPUT`/`DIV`/`TEXTAREA` 元素），即「命名元素暴露」确实成立；唯一例外是 `it/hash.html` 的 `verifyHash` = `function`（顶层 `function verifyHash` 为 own property，命名元素不生效）。
+- 反向核查（真正会读全局的写法）：全站 `window.<name>` 读法精筛，要求 `name` 同时是该页元素 `id`/`name` → **仅 2 页**：
+  - `it/hash.html` → `window.verifyHash`，有 `function verifyHash` own 声明，元素不生效；
+  - `sales/conversion-funnel.html` → `window.stages`，有 `var stages` own 声明，元素不生效。
+- 结论：**撞名普遍、可利用点为 0**。本站不存在「依赖全局值为非元素对象」的读法，clobbering 的后果上限是功能性遮蔽（若元素覆盖未声明全局），不构成脚本执行通路；两处真实全局读法均被 own property 覆盖。
+
+### 24.2 CSP：全站 0 处 meta，属既有设计
+
+- `http-equiv="Content-Security-Policy"` 全站 grep **0 处**（`tools/` + 根目录 + `guides/`）。
+- 仅 2 页在教学文案里提到该词（不是策略声明）：`it/http-response-headers.html`、`it/nginx-cheatsheet.html`。
+- 结论：本站为纯静态 GitHub Pages 站点，无自定义响应头能力，**无 CSP 属既有设计**；若要引入 CSP，需先完成全站 inline 脚本 / inline `style` 改造（本轮只定位、不改）。
+
+### 24.3 构建期注入脚本：全静态常量，无拼接
+
+- `_build.py:2884-2904` 的 `TTZZ_BLOCK` 是纯字面量字符串拼接：固定 CDN URL、固定 `el.id="ttzz"`、固定 `try/catch` 包裹，**无 `%` / `.format()` / f-string / 任何变量插值**。
+- `inject_ttzz_snippet()`（`_build.py:2916`）只做两种动作：命中 `TTZZ_BLOCK_RE` 则**整块替换**，未命中则注入 `<head>`；不读取、不拼接页面内容。
+- 同链路的 `_TOOLBOX_STUB_JS`（L809-816）与 `TOOLBOX_API_STUB` / `TOOLBOX_API_STUB_EXT`（L817-818）同为静态常量，构建期落盘为 `/js/toolbox-stub.js`；`SECMETA.inject` 亦为静态安全 meta 兜底。
+- 结论：**构建期注入块无用户可控内容拼入**，不存在「构建产物带入注入串」的通路。
+
+### 24.4 封账声明
+
+三个窄面补齐后，§23.2 的「DOM clobbering / CSP / 构建期产物」三项全部关闭。安全线累计：**11 个注入面 + 3 个窄面，正控全覆盖，10 页真漏洞修复、5 个修复提交、误报 0**，本线正式封账。后续如需继续，只剩 §23.2 的供应链与解析库两类外部风险（不属本站代码层）。
+
 
