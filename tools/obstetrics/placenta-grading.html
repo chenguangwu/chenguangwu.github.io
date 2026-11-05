@@ -124,13 +124,14 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row">
       <div><label>选择Grannum分级</label>
         <select id="grade" onchange="calc()">
+          <option value="">请选择…</option>
           <option value="0">0级 (未成熟)</option>
           <option value="1">I级 (开始成熟)</option>
-          <option value="2" selected>II级 (成熟)</option>
+          <option value="2">II级 (成熟)</option>
           <option value="3">III级 (老化)</option>
         </select>
       </div>
-      <div><label>当前孕周</label><input type="number" id="gw" value="36" step="1" oninput="calc()" placeholder="如 36"></div>
+      <div><label>当前孕周</label><input type="number" id="gw" step="1" oninput="calc()" placeholder="如 36"></div>
     </div>
     <div class="toolbar">
       <div id="placenta_gradingPresets"></div><button type="button" class="btn primary" onclick="calc()">评估</button><button class="btn" type="button" onclick="__placenta_gradingExport()">导出明细 CSV</button>
@@ -255,7 +256,12 @@ function selectGrade(g){
 }
 function calc(){
   var g=document.getElementById('grade').value;
-  var gw=parseInt(document.getElementById('gw').value)||0;
+  var gwRaw=document.getElementById('gw').value;
+  var gw=gwRaw===''?0:parseInt(gwRaw,10);
+  if(g===''){
+    document.getElementById('result').innerHTML='<div class="tip-box tip-info tb-guard">请先选择 Grannum 级别。</div>';
+    return;
+  }
   var data={
     '0':{name:'0级(未成熟)',color:'#8bc34a',week:'≤29周',feature:'绒毛板光滑平直，实质均匀细密点状回声，基底板无回声。胎盘功能良好。'},
     '1':{name:'I级(开始成熟)',color:'#3B82F6',week:'28–32周',feature:'绒毛板轻微波浪状，实质散在强回声点，基底板无改变。胎盘开始成熟。'},
@@ -265,27 +271,29 @@ function calc(){
   var d=data[g];
   var advice='';
   var abnormal=false;
-  if(g==='0'&&gw>32){advice='孕'+gw+'周仍为0级，需核实孕周及胎盘发育。';}
-  else if(g==='1'&&gw>36){advice='孕'+gw+'周仍为I级，可能胎盘成熟延迟，关注胎儿生长。';}
-  else if(g==='3'&&gw<36){abnormal=true;advice='孕'+gw+'周出现III级，提示胎盘过早老化。需加强胎动监测、NST、AFI，评估胎盘功能，警惕胎儿生长受限。';}
-  else if(g==='3'){advice='足月后III级属正常成熟表现，胎盘功能需结合其他指标评估。';}
-  else{advice='胎盘成熟度与孕周基本相符。';}
+  if(gw>0&&g==='0'&&gw>32){advice='孕'+gw+'周仍为0级，需核实孕周及胎盘发育。';}
+  else if(gw>0&&g==='1'&&gw>36){advice='孕'+gw+'周仍为I级，可能胎盘成熟延迟，关注胎儿生长。';}
+  else if(gw>0&&g==='3'&&gw<36){abnormal=true;advice='孕'+gw+'周出现III级，提示胎盘过早老化。需加强胎动监测、NST、AFI，评估胎盘功能，警惕胎儿生长受限。';}
+  else if(gw>0&&g==='3'){advice='足月后III级属正常成熟表现，胎盘功能需结合其他指标评估。';}
+  else if(gw>0){advice='胎盘成熟度与孕周基本相符。';}
 
   var html='<div class="stat-grid">';
   html+='<div class="stat-card"><div class="val" style="color:'+d.color+';font-size:20px;">'+d.name+'</div><div class="lbl">Grannum分级</div></div>';
-  html+='<div class="stat-card"><div class="val">'+gw+'周</div><div class="lbl">当前孕周</div></div>';
+  html+='<div class="stat-card"><div class="val">'+(gw>0?gw+'周':'未填')+'</div><div class="lbl">当前孕周</div></div>';
   html+='<div class="stat-card"><div class="val" style="font-size:14px;">'+d.week+'</div><div class="lbl">常见孕周</div></div>';
   html+='</div>';
   html+='<div class="ref-card"><h4>影像特征</h4><p>'+d.feature+'</p></div>';
   if(abnormal){
     html+='<div class="tip-box tip-error"><strong>注意</strong><br>'+advice+'</div>';
-  }else{
+  }else if(advice){
     html+='<div class="tip-box tip-success">'+advice+'</div>';
   }
   const __g1=html;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 function copyResult(){
-  ToolBox.copyText(document.getElementById('result').innerText, i18nText('msg575'));
+  var __r=document.getElementById('result');
+  if(__r&&__r.querySelector('.tb-guard')) return;
+  ToolBox.copyText(__r.innerText, i18nText('msg575'));
 }
 calc();
 </script>
