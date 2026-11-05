@@ -351,7 +351,14 @@ const CASES = [
   "inputs": { "fit": "150", "age": "55", "fc": "300" },
   "expect": ["出血+炎症双阳性 → 需肠镜明确"],
   "ref": "联合矩阵·阳性×明显（FIT≥20 / FC≥200）→ 双阳性，需肠镜明确。"
+},
+{
+  "slug": "gastroenterology/hepatic-encephalopathy",
+  "inputs": { "consciousness": "", "behavior": "", "cognition": "", "asterixis": "" },
+  "expect": ["请输入意识状态、行为变化、认知与扑翼样震颤分级后再评估。"],
+  "ref": "原生缺陷修复：四项 West Haven 分级下拉全部改为「请选择」空值默认，首屏不再直接给 I 级分级与治疗/住院建议。"
 }
+
 ];
 async function main() {
   const only = process.argv.slice(2);
