@@ -59,6 +59,11 @@ const CASES = [
     expect: ["56.38", "52.50"],
     ref: "d=3×20=60.00；df=3×(20−2.5)=52.50；db=60×cos20°=56.38（默认 m2/z24→d48.00/df43.00/db45.11，避开）" },
 
+  { slug: "metalwork/calc-gear-2",
+    inputs: { module: "3", teeth: "20", helix: "20", method: "hob", vc: "60", feed: "1", material: "carbon" },
+    expect: ["65.64", "52.95", "55.95"],
+    ref: "斜齿 β=20°：mn=3×cos20°=2.819，da=60+2×2.819=65.64，df=60−2.5×2.819=52.95，αt=atan(tan20°/cos20°)=21.173°，db=60×cos21.173°=55.95；默认直齿 β=0 得 da=66.00/df=52.50/db=56.38，不含这三个串" },
+
   { slug: "metalwork/calc-pressure-mold",
     inputs: { thickness: "3", material: "custom", shear: "480", perimeter: "120" },
     expect: ["172.8", "224.6"],
