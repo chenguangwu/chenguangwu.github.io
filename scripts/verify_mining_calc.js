@@ -236,7 +236,13 @@ const CASES = [
   ],
     ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
-}
+},
+  {
+    "slug": "mining/reserve-estimate",
+    "inputs": { "areaInput": "", "thickInput": "6.0", "densityInput": "2.5", "gradeInput": "2.0", "recoveryInput": "90" },
+    "expect": ["请填写块段面积、矿体厚度、体重、平均品位与回采率后再估算储量。"],
+    "ref": "空态守卫（2026-11-05）：清空块段面积后旧实现输出 0 m³ / 0 吨 / 0 吨 / 0.00 吨 并给出「储量规模：矿点」结论；现只给填写提示。⚠ 判空只认空串——品位 0（表外矿）、回采率 0（暂不可采）合法。注入 80000/6.0/2.5/2.0/90 用例断「480,000 矿石体积 (m³)」⇒ 两态互斥。",
+  }
 ];
 async function main() {
   const only = process.argv.slice(2);
