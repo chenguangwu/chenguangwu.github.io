@@ -6828,3 +6828,17 @@
 | `i18n/tools/en/electrical/` | 34 | 见本节「删死键明细」，含 `calc-1`、`calc-2`、`calc-power-voltage`、`current-divider`、`detector-173/175/aging/protection-2/resistance*`、`dianhuaxuedunhuakongzhi`、`generator-23`、`home-load-estimate`、`index`、`led-resistor`、`lizishujianshejisuan`、`load-curve`、`power-7`、`power-factor-compensation`、`power-voltage-1`、`rc-filter`、`rlc-resonance`、`speed-9`、`temp-26`、`transformer-sizing`、`voltage-8/9`、`voltage-divider`、`voltage-drop`、`voltage`、`wire-gauge-selector`、`wire-resistance` |
 | `js/tool-i18n.js` | 1 | 共享层（数据上下文标点保护 + 动态补译积压重放），已单独提交 `b1effabac1` |
 | **合计** | **42** | 均须 `_build.py` 刷新 SW 版本戳后生效 |
+
+## 今日新增经验（2026-11-05）
+
+### 一、半译键必须先 `--keysrc` 还原源文键
+
+`--check` 输出的是**运行时改写后的残留串**，其中「标签：」片段可能已被全局层（`BODY_PHRASE_MAP` / `replaceColonLabelsAll`）先替换成英文；直接照抄该串建键，键在 `applyEnDict` 执行时已不存在，永远打不中。
+
+- 实例：`usedcar/rater-37` 的 `Rating:≥85 优秀…` 源文实为 `评级：≥85 优秀…`；`usedcar/tester-12` 的 `Charge voltage：…` 源文为 `充电电压：…`；`usedcar/wear` 的 `Deviation <0 时…` 源文为 `偏差 <0 时…`；`finance/points-redemption-value` 的 `（Reference:现金抵扣…` 源文为 `（参考：现金抵扣…`。
+- 做法：先跑 `node scripts/_en_i18n_probe.mjs --keysrc <ind>/<slug>`，把输出里 `≠ EN … / ZH: …` 的 ZH 串作为 `map` 键。
+- 同类历史坑：`🟢 状态良好：剩余里程充足`、`generic` 占位。
+
+### 二、复查期新出现的正文要按当前 DOM 补译，被他人持有的页标记「待重译」
+
+批量收口期间页面可能被其他线改写（新增深度解析段、FAQ 等），复查时会冒出 `--check` 首轮从未出现的条目。此时按**当前 DOM**补译即可；若该页仍在被别的线改造（如 `tools/finance/salary-after-tax.html` 正被假工具重写线处理），**不要硬译**，登记「待重译」，等对方提交后再补键，避免白译与键漂移。
