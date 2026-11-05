@@ -199,11 +199,13 @@ async function sweepFile(f) {
     const snap = await snapshotOf(c);
     if (snap.skipped) {          // TOOLBOX-REDIRECT 存根：页面本身不参与验证
       stats.skipped++;
+      REAL_LOG(`⏭ ${c.slug} 是 TOOLBOX-REDIRECT 存根（不参与判别）`);
       reportRec(Object.assign({}, base, { kind: "skip", why: "redirect-stub" }));
       continue;
     }
     if (snap.why === "文件不存在") {
       stats.skipped++;
+      REAL_LOG(`⏭ ${c.slug} 页面文件不存在（不参与判别）`);
       reportRec(Object.assign({}, base, { kind: "skip", why: "no-page", inputs: c.inputs || {} }));
       continue;
     }

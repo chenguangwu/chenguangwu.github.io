@@ -189,6 +189,7 @@ const CASES = [
       "ck_wheelwell": "4",
       "ck_bushing": "4"
     },
+    "dynDom": true,
     "clicks": [
       "document.getElementById('ck_frame').value='1';calc()"
     ],
@@ -213,6 +214,7 @@ const CASES = [
       "ck_temp": "5",
       "ck_cel": "5"
     },
+    "dynDom": true,
     "clicks": [
       "(function(){['start','oilleak','sound','cel'].forEach(function(k){document.getElementById('ck_'+k).value='1';});calc();})()"
     ],
