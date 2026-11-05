@@ -826,8 +826,14 @@ const CASES = [
       "QSTRICT:0:wrong,1:correct|wrong=1"
     ],
     "ref": "EL-J5 回归：选项 0「容纳；适应」以「适应」结尾但并非答案，选它必须只标红 0、且仅把真正答案（索引 1）标绿 ⇒ 标记序列 0:wrong,1:correct。旧实现用 endsWith 找正确项，会把 0、1 同时标绿 ⇒ 0:wrong,0:correct,1:correct。"
-  }
+  },
 
+{
+  "slug": "edu/flashcards",
+  "clicks": ["nextCard()", "nextCard()", "nextCard()"],
+  "expect": ["sì", "数字四；第四"],
+  "ref": "卡片顺序固定：一→二→三→四；第三次翻卡显示 四/sì/数字四；第四。默认首卡一，零交集。"
+}
 ];
 
 async function main() {

@@ -356,8 +356,16 @@ const CASES = [
   "clicks": ["malts=[{type:0,weight:8}];calc()"],
   "expect": ["1.093", "0.931", "21.3%", "24.0°P"],
   "ref": "麦芽投料 8 kg 淡色麦芽（PPG 37）→ GU = 37×8×2.20462 = 652.57；水量 20 L = 5.28344 gal、效率 75% ⇒ 重力单位 = 652.57×0.75/5.28344 = 92.63 ⇒ OG = 1.093；衰减 75% ⇒ FG = 1 − 0.09263×0.75 = 0.931；ABV = (1.093−0.931)×131.25 = 21.3%；Plato = 0.09263×259 = 24.0°P。默认投料（4 kg 淡色 + 0.5 kg 水晶）⇒ OG 1.052/ABV 11.9%，四锚均不命中（判别时清空 clicks 即回默认投料）。"
-}
+},
 
+{
+  "slug": "food/cooking-converter",
+  "afterLoad": true,
+  "inputs": { "volFromValue": "2", "volFromUnit": "cup_us", "volToUnit": "ml" },
+  "clicks": ["convertVolume('from')"],
+  "expect": ["473.2 ml", "1.97 杯 (CN)"],
+  "ref": "2 美制杯 = 473.176 ml（1 cup_us=236.588 ml）→ 毫升 473.2 ml；换算为中国杯 = 473.176/240 = 1.9716 → 1.97 杯 (CN)。默认 1 ml → 中国杯 0.004、0.067 汤匙，零交集。"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);
