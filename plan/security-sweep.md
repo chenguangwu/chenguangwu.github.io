@@ -737,5 +737,53 @@ RESULT 11/11
 - 交叉筛（值来自 URL 参数且进 `innerHTML`/属性/`document.write`）得 36 条，逐条核对后**全部为 i18n 变量（`lang/__EN/EN`）误报**；唯一读 hash 的 `tools/it/regex.html` 只写入 `input.value`（不解析 HTML）。
 - 实测：`it/data/text/encode` 优先采样 30 页，对每页同时跑「query 全参注入」「`#<payload>`」「`#q=…&regex=…`」三态 → **0/30 命中**（`xss=undefined && injectedImg=0`）。
 - 正控（防假阴）：合成页 `?q=<img onerror>` → `xss=1 img=1`；合成页 `#<payload>` → `xss=1 img=1`。探针对 query/hash 两路反射均能报红，0/30 可信。
-- 结论：**URL 参数反射面密度低**，暂不再扩大样本；后续维持 1 目录/批属性托底（本批 `eco` 40 页，0 交叉）。 
+- 结论：**URL 参数反射面密度低**，暂不再扩大样本；后续维持 1 目录/批属性托底（本批 `eco` 40 页，0 交叉）。
+
+### 19.4 跳转 / 资源赋值面：0 命中，探针已有正控
+
+- 静态口径：把用户输入（表单值 / `localStorage` / URL 参数 / `prompt`）赋给 `location.href` / `location.assign` / `location.replace` / `window.open` / `a.href` / `img.src` / `iframe.src` / `form.action`，且**无 `http(s)` 白名单**的交叉项。
+- 结果：**14 页**命中静态交叉，逐页核对**全部安全**：
+  - `security/emergency-contacts.html:435`：`location.href='tel:'+num.replace(/-/g,'')`，前缀固定 `tel:`，`javascript:` 无法构造；
+  - `design/mesh-gradient`、`identicon-generator`、`biz/text-to-banner`、`it/svg-placeholder-generator`、`it/lorem`、`math/function-plotter`、`image/image-crop`、`encode/image-to-base64`：`a.href = canvas.toDataURL(...)`（服务端不可控的 data URL 下载）；
+  - `design/image-to-ascii`、`it/base64-converter`、`image/image-watermark`、`design/palette-extractor`、`audio/audio-speed`：`img.src` 来自 `FileReader` 的 `data:` 或 `/^data:image\//` 前置校验；
+  - 全站 `window.open` 动态调用 0 处。
+- 实测：14 页静态命中页 + 16 页 `it/marketing/office/data` 有文本输入且含导航语法的页 = **30 页**；对每页「填 `javascript:window.__xss=1` → 调用 `go/open/jump/visit/redirect/nav/download/link/preview/run/create/save/add` 等全局动作函数 → 点击 `a[href^="javascript:"]`」→ **0/30 命中**（`xss=undefined && img=0 && nav=no && jsHref=0`）。
+- 正控（防假阴）：合成页 `location.href = input.value`（加载即执行）→ `xss=1`；同一探针在真实页为 0，结论可信。
+- 协议相对跳转 `//evil.example`：全站无「用户输入 → `location`/`window.open`」的赋值点，无从触达，记为不适用。
+
+## 20. 安全清扫总览（2026-11-05 收面）
+
+### 20.1 已扫面与产出
+
+| 注入面 | 样本 | 命中页 | 漏洞类型 |
+|---|---|---|---|
+| 用户输入 → `innerHTML` 文本回显 | 第一批 9 目录 124 页 + 后续抽检 | 4 | DOM XSS（文本节点未转义） |
+| 属性上下文（转义器 × 属性拼接） | 310 个转义器 / 1118 处拼接 / 8 目录 384 页 | 3 | 属性逃逸（`"`/`'` 未转义；含 `src=` data-URL 预览） |
+| localStorage 回灌（对象数组 + `map/join`） | 20 + 20 + 40 + 12 = 72 页 | 3 | 存得住、读回炸（`menu-margin`/`scheduler`/`color-picker`） |
+| URL 参数反射（`?q` / `#hash`） | 282 页静态 + 30 页实测 | 0 | —（交叉项全为 i18n 误报） |
+| 跳转 / 资源赋值（`javascript:` / 外域） | 14 页静态 + 30 页实测 | 0 | —（全部前缀限定或 data: 校验） |
+
+### 20.2 累计修复（10 页 / 5 个修复提交）
+
+| 提交 | 页面 | 类型 |
+|---|---|---|
+| `ba7e2b98b8` | `admin/detector-time`、`energy/stats-energy`、`general/convert-22`、`life/clothing-size-converter` | 文本回显未转义 |
+| `ccda8b6ec0` | `encode/image-to-base64` | `esc()` 只转 `&<>` → `src="…"` 属性逃逸 |
+| `6e4ae6d78e` | `food-processing/material-balance`、`recipe-cost-calculator` | `value="…"` 属性逃逸 |
+| `1673b215b4` | `restaurant/menu-margin` | localStorage 回灌 → `map(...).join()` 裸拼 |
+| `c6dd677805` | `decor/scheduler`、`design/color-picker` | 回灌 + `on*` 内联 JS 字符串逃逸 |
+
+误报 0（所有修复均有修前 `xss=1` / 修后 `xss=undefined` 的真实浏览器证据，且做过还原版正控）。
+
+### 20.3 尚未覆盖的面（供下一轮决策）
+
+- **CSS 注入**：`style="${userInput}"` / CSS 变量值的 `url()`、`expression`、`@import`（当前只挡了 HTML 属性逃逸，未评估 CSS 侧信道）。
+- **`srcdoc` / 动态 `<iframe>` 内容**：全站静态 0 处动态 `srcdoc`，未做真机验证。
+- **`postMessage` 来源校验**：仅 `it/code-runner` 1 处接收端，数据已转义，但**未校验 `event.origin`**（低危）。
+- **第三方 CDN 脚本完整性**：`ttzz` 等外链无 SRI / 无 `crossorigin`，供应链风险未纳入本轮。
+- **文件内容解析器**：PDF/DOCX/XLSX/SQLite 解析库（pdf.js、sql.js、SheetJS）对恶意文件的行为未做 fuzz。
+- **SVG 上传/渲染**：`image/*` 与 SVG 字符串进入 `img.src`/canvas 的边界未系统测（SVG 内联脚本在 `img` 下不执行，但 `srcdoc`/`innerHTML` 路径需复核）。
+- **`eval` / `new Function` / 字符串定时器**：`it/code-runner`、`it/sqlite-runner` 等「本地代码执行」页属产品功能，未按漏洞处理，但需确认不接收外部传入。
+- **剪贴板与拖拽**：`navigator.clipboard.readText()` 内容进入 DOM 的路径未扫。
+- **Web Components / Shadow DOM**：`innerHTML` 写入 shadow root 的路径未单独统计。 
 
