@@ -271,7 +271,21 @@ function bendDeduction(D, d, angleDeg) {
   return d90 + d2;
 }
 
+function missingFields(fields) {
+  var m = [];
+  for (var i = 0; i < fields.length; i++) {
+    var e = document.getElementById(fields[i][0]);
+    if (e && String(e.value).trim() === '') m.push(fields[i][1]);
+  }
+  return m;
+}
+
 function calcRebar() {
+  var miss = missingFields([['straight1','直段长度 L₁'],['diameter','钢筋直径 d'],['bendFactor','弯弧内径系数']]);
+  if (miss.length) {
+    ToolBox.setResult('result', '<p class="tip-error">请填写：' + miss.join('、') + '。</p>');
+    return;
+  }
   const L1 = parseFloat(document.getElementById('straight1').value) || 0;
   const L2 = parseFloat(document.getElementById('straight2').value) || 0;
   const d = parseFloat(document.getElementById('diameter').value) || 0;
@@ -293,6 +307,11 @@ function calcRebar() {
   const delta2 = bendDeduction(D, d, a2);
   const single = L1 + L2 - delta1 - delta2 + hookAdd;
   const total = single * num;
+
+  if (single < 0) {
+    ToolBox.setResult('result', '<p class="tip-error">参数不合理：扣减弯曲调整值后单根下料长度为负，请检查直段长度与弯折角度。</p>');
+    return;
+  }
 
   const html = `
     <div class="data-grid">
