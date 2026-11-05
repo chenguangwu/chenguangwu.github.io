@@ -6811,9 +6811,10 @@ const CASES = [
       "kind": "char"
     },
     "expect": [
+      "1 2 3\nchar\n1 2 3",
       "1 2 3\n1 2 3\nchar"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"kind\":\"char\"}，输出区含「1 2 3\n1 2 3\nchar」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）——旧期望仅一种字段序（1 2 3\\n1 2 3\\nchar），2026-11-05 给 rust-escape 加 __escLive 后 fallback 调用函数序改变，blob 变为 1 2 3\\nchar\\n1 2 3；两种字段序均纳入。注意：本页 harness 不派发 input 事件，实时绑定只能在真机验证。"
   },
   
   {
