@@ -58,3 +58,39 @@
 - 英文态：`_en_i18n_probe.mjs --check livestock/heat-stress-index` 仅 4 条既有残留（1 条公式说明、3 条 placeholder），非整页回退中文；残留属第三层词典缺口，与本次 head 无关。
 - 教训：① 批量文案/结构脚本**禁止整段替换 head**，必须逐块解析、写盘前后比对结构计数（即 `opt_faq_ld_sync.py` 的六项守卫）；② 源页修复后必须重建 `zh-tw`，否则构建产物仍带旧缺陷，集成线会直接判红。
 
+## 2026-11-05 只读扫描：英文元数据成批退化为占位串
+
+### 结论
+- **是成批污染，且是结构性的**，范围远超此前发现的 2 页；污染源不在 HTML，而在 `scripts/gen_en_override.py` 的英文名/描述生成链。
+- 全站 4705 个工具页（不含行业 index）分级结果：
+  - **P1（标题退化，丢失工具实义）674 页（14.3%）**；
+  - **P2（描述只剩「通用前缀 + 套话」）36 页（0.8%）**；
+  - **P3（中英长度严重不匹配 / 语义错译，如质量分数→`Quality Fraction`）47 页（1.0%）**；
+  - 另计**广义模板描述**：`desc-en` 命中 `「英文名 - online utility on ToolBox.」` 一类模板句者 **4386/4705（93.2%）**（含工具名，故不计入 P2 严格口径）。
+- 分层：`_en_override.en` 命中退化判据 **609 条**；页面 `title-en` 已退化 **674 页**；两者同时退化 **605 页**；页面已手修但源字典仍退化（重建即回退）**4 页**；源正常但页面陈旧 **68 页**。
+
+### 根因（逐条对应代码）
+1. `scripts/gen_en_override.py::translate_name()` 只译出中文名首个通用词，括号里的具体限定被丢弃（财务(分析/决策/预测)模型→`Finance`、质量(标准/检查/提升)体系→`Quality`、检测→`Detect`）→ P1 单通用词 111 页 + P2。
+2. 回退 `slug_to_name()` 把无意义编号 slug 直接 title-case（`generator-35`→`Generator 35`、`detector-173`→`Detector 173`、`analysis-28`→`Analysis 28`）→ P1 编号占位 **502 页**；`PLACEHOLDER_KEY` 只覆盖 `calc-N` 与少量拼音 slug，未覆盖 `generator-N / detector-N / analysis-N / rater-N` 等编号族。
+3. `slug_to_intro()` 按 slug 关键词固定拼 14 条套话（`- produce results instantly in your browser.` / `- online utility on ToolBox.` / `- compute values online with accurate results.` 等）→ 广义模板 4386 页。
+4. 机翻重复词/模板碎片：`AST AST View Device`、`Reference Reference Format Convert`、`Quality - ( Check / Evaluate / Improvement ) Mechanism`。
+
+### 回归风险（关键）
+- 2026-11-05 的 `2c81d57a36`（“补全占位英文标题并修正退化元描述”）只在 **HTML 侧手工修了 5 页**；其中 **4 页的源字典仍是退化值**：`data/generator-35`、`finance/generator-report-1`、`fitness/generator`、`realestate/generator-assessor`。
+- `_build.py` 第 4.0 段以 `EN_OVERRIDE[slug]` 的 `en`/`ed` **无条件覆写** `<meta name="title-en">` / `<meta name="desc-en">`（见 [_build.py](file:///Users/cgw/project/cgw/chenguangwu.github.io/_build.py#L3840-L3935)）⇒ **下一次构建会把手工修复整批回退**。只改 HTML 不修源字典 = 白做。
+
+### 真机复核（Chrome headless，`?lang=en-US`，20 页抽样）
+- **18/20 页 `document.title` 确为退化串**（P1 抽样 18 页全部命中）；2 页为已手工修复的对照页（`fitness/generator`、`hematology/generator-analysis`），当前正确但源字典仍退化。
+- 其中 **5/20 页可见 h1 也退化**；其余页 h1 由运行时第三层词典补成正确英文名。
+- **结论：退化主要伤 SEO/社交元数据（title / meta description），不一定伤首屏可见 h1**——搜索引擎抓 `title-en`/`desc-en`，“页面看得见正常”不代表“收录正常”。
+- 误报 0：抽样前已将「编号 slug」「单通用词」「词序错乱」与同行业正常页（`it/json-diff`、`accounting/asset-turnover`、`it/ipv4-range-expander`、`it/ksuid-generator`）做基线对照，短标题未被误抓。
+
+### 行业排行（P1 前 10）
+`general` 35 / `sports` 29 / `machinery` 28 / `realestate` 25 / `automotive` 13 / `electrical` 13 / `metalwork` 13 / `agriculture` 12 / `eco` 12 / `life` 12 / `materials` 12 / `hydraulic` 11（共 131 个行业目录有 P1，其余多为个位数）。
+
+### 处理建议（未执行，待批准）
+1. **先修源**：`translate_name()` 保留中文括号限定；`slug_to_name()` 对 `通用词+编号` 返回 `None` 并扩 `PLACEHOLDER_KEY`（或直接从中文标题直译）；`slug_to_intro()` 去模板套话。
+2. **再重生成 + 重建**：`python3 scripts/gen_en_override.py` → `python3 _build.py`（否则 4 页手工修复必被回退）。
+3. **加门禁**：静态断言 `title-en` 不得为单通用词/`[A-Za-z]+ \d+`/词序错乱三元组；`desc-en` 不得只剩套话；把 `_en_override.json` 与 `slug-en.json` 的差异也纳入校验（两者英文值已出现分叉）。
+4. 完整清单（P1 674 行、P2 36 行、P3 47 行 + 20 页真机结果）见本轮只读产物 `/tmp/en-meta-degenerate.md`，可按需复制到本台账附录。
+
