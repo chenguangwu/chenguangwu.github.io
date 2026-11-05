@@ -2602,6 +2602,29 @@ const CASES = [
     "ref": "日历翻月独立复算：门禁把 new Date() 冻结在 2024-06-15（本地 Asia/Shanghai ⇒ 2024 年 6 月），boot 月标签为「2024年6月」；"
        + "nextMonth() 每次 currentMonth+1 并重渲染，连点两次 ⇒「2024年8月」（8 月 31 天、无跨年）。"
        + "判别器清空 clicks 后兜底只各调一次 prevMonth()/nextMonth()（净回 6 月）或由 goToday() 复位 ⇒ 月标签仍为 2024年6月，不命中。"
+  },
+
+  // ---- 2026-11-05：phone-lookup 推断口径对齐（输出均为页面实跑）----
+  {
+    "slug": "life/phone-lookup",
+    "inputs": { "input": "+86 13800138000" },
+    "clicks": ["validate()"],
+    "expect": ["国家代码： +86 - 中国", "数字位数： 13"],
+    "ref": "国际格式：国家码 86（2 位）+ 手机号 11 位 ⇒ 数字位数 13，运营商按 138 号段推断「移动」。默认输入为空 ⇒ 不命中。"
+  },
+  {
+    "slug": "life/phone-lookup",
+    "inputs": { "input": "010-12345678" },
+    "clicks": ["validate()"],
+    "expect": ["区号： 010 - 北京", "推断国家： 中国（固话）"],
+    "ref": "本地固话：010 按 2 位区号切分 ⇒ 北京，归一化 01012345678（11 位）；与 +86 用例国家码路径互为判别。"
+  },
+  {
+    "slug": "life/phone-lookup",
+    "inputs": { "input": "12345abc" },
+    "clicks": ["validate()"],
+    "expect": ["仅允许数字"],
+    "ref": "非法字符：含字母直接拒绝并提示「仅允许数字及 +、空格、连字符」，不做部分解析。"
   }
 
 ];

@@ -1976,6 +1976,33 @@ const CASES = [
     "inputs": { "data": "1, 1, 2, 2, 3" },
     "expect": ["众数 = 1, 2（出现 2 次）", "双峰分布（bimodal）"],
     "ref": "频数：1 与 2 各 2 次、3 一次 ⇒ 双众数 1、2（各 40.00%），页面判双峰。默认单峰众数=3 ⇒ 不命中。"
+  },
+
+  // ---- 2026-11-05 第二批：fibonacci / factorial / median / nato 算例对齐 ----
+  {
+    "slug": "science/fibonacci",
+    "inputs": { "n": "10" },
+    "expect": ["55 F(10)", "2 末项位数"],
+    "ref": "数列模式：F(1)…F(10) = 1,1,2,3,5,8,13,21,34,55，末项 F(10)=55、2 位。默认 n=20 ⇒ 6,765，不命中。"
+  },
+  {
+    "slug": "science/factorial-calculator",
+    "inputs": { "n": "20" },
+    "expect": ["2,432,902,008,176,640,000", "18 数量级"],
+    "ref": "BigInt 连乘：20! = 2,432,902,008,176,640,000（19 位），数量级 = 位数−1 = 18。默认 n=10 ⇒ 3,628,800，不命中。"
+  },
+  {
+    "slug": "science/median-calculator",
+    "inputs": { "data": "1, 2, 3, 4" },
+    "clicks": ["calculate()"],
+    "expect": ["中位数 = 2.5", "= 5 / 2 = 2.5"],
+    "ref": "偶数个取中间两数均值：(2+3)/2 = 5/2 = 2.5。默认 10 个数据 ⇒ 中位数非 2.5，不命中。"
+  },
+  {
+    "slug": "science/nato-phonetic",
+    "inputs": { "input": "HELLO WORLD" },
+    "expect": ["H Hotel E Echo L Lima", "W Whiskey O Oscar R Romeo"],
+    "ref": "逐字符映射：HELLO → Hotel/Echo/Lima/Lima/Oscar，WORLD → Whiskey/Oscar/Romeo/Lima/Delta。默认输入 SOS 123 ⇒ 不命中。"
   }
 
 ];
