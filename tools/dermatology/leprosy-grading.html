@@ -138,7 +138,7 @@ s.parentNode.insertBefore(el, s);
 
     <div class="grade-section">
       <h4>手和足（取最高级别）</h4>
-      <div class="grade-option active" onclick="selectGrade(this,'hand',0)">
+      <div class="grade-option" onclick="selectGrade(this,'hand',0)">
         <div class="go-icon">✅</div>
         <div class="go-text">
           <div class="go-title">0级 - 无感觉丧失，无可见畸形</div>
@@ -163,7 +163,7 @@ s.parentNode.insertBefore(el, s);
 
     <div class="grade-section">
       <h4>眼（取最高级别）</h4>
-      <div class="grade-option active" onclick="selectGrade(this,'eye',0)">
+      <div class="grade-option" onclick="selectGrade(this,'eye',0)">
         <div class="go-icon">✅</div>
         <div class="go-text">
           <div class="go-title">0级 - 无麻风所致眼病</div>
@@ -188,6 +188,7 @@ s.parentNode.insertBefore(el, s);
 
     <h3 style="font-size:14px;margin:12px 0 8px;">临床分型（Ridley-Jopling）</h3>
     <select id="leprosyType" onchange="calc()" style="margin-bottom:12px;">
+      <option value="">请选择…</option>
       <option value="TT">TT - 结核样型（Tuberculoid）</option>
       <option value="BT">BT - 界限类偏结核样型</option>
       <option value="BB">BB - 中间界限类</option>
@@ -328,8 +329,8 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
-var handGrade = 0;
-var eyeGrade = 0;
+var handGrade = -1;
+var eyeGrade = -1;
 
 function selectGrade(el, type, grade){
   var section = el.parentNode;
@@ -341,6 +342,10 @@ function selectGrade(el, type, grade){
 }
 
 function calc(){
+  if(handGrade < 0 || eyeGrade < 0 || document.getElementById('leprosyType').value === ''){
+    document.getElementById('result').innerHTML = '<div class="tip-box tip-info tb-guard">请选择手/足与眼的残疾级别，并选择临床分型。</div>';
+    return;
+  }
   var overallGrade = Math.max(handGrade, eyeGrade);
 
   var gradeInfo = {
@@ -402,6 +407,7 @@ function calc(){
 }
 
 function copyResult(){
+  if(handGrade < 0 || eyeGrade < 0 || document.getElementById('result').querySelector('.tb-guard')) return;
   var overallGrade = Math.max(handGrade, eyeGrade);
   var typeCode = document.getElementById('leprosyType').value;
   var typeName = {TT:'TT',BT:'BT',BB:'BB',BL:'BL',LL:'LL',PN:'PN'}[typeCode];
@@ -409,13 +415,13 @@ function copyResult(){
 }
 
 function resetForm(){
-  handGrade = 0;
-  eyeGrade = 0;
+  handGrade = -1;
+  eyeGrade = -1;
   var sections = document.querySelectorAll('.grade-section');
   sections.forEach(function(sec){
-    sec.querySelectorAll('.grade-option').forEach(function(o,i){o.classList.toggle('active',i===0);});
+    sec.querySelectorAll('.grade-option').forEach(function(o){o.classList.remove('active');});
   });
-  document.getElementById('leprosyType').value = 'TT';
+  document.getElementById('leprosyType').value = '';
   for(var i=1;i<=6;i++) document.getElementById('n'+i).checked=false;
   calc();
 }
@@ -593,9 +599,19 @@ function __leprosy_gradingExport(){
     if (typeof TBKit === 'undefined') return;
     try { TBKit.util.exportTable('#leprosy_gradingTable','leprosy-grading.csv'); } catch(e){}
 }
+function __presetFillGrades(){
+  if(handGrade < 0 || eyeGrade < 0){
+    handGrade = 0;
+    eyeGrade = 0;
+    document.querySelectorAll('.grade-section').forEach(function(sec){
+      var first = sec.querySelector('.grade-option');
+      if(first) first.classList.add('active');
+    });
+  }
+}
 function __leprosy_gradingPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#leprosy_gradingPresets',[{label:'默认参数',labelEn:'Default',values:{'leprosyType':'TT'}},{"label":"TT 少菌型（单神经受累）","labelEn":"TT paucibacillary, single nerve","values":{"leprosyType":"TT","n1":true,"n2":false,"n3":false,"n4":false,"n5":false,"n6":false}},{"label":"BB 中间型","labelEn":"BB borderline","values":{"leprosyType":"BB","n1":false,"n2":true,"n3":false,"n4":false,"n5":false,"n6":false}},{"label":"LL 多菌型","labelEn":"LL multibacillary","values":{"leprosyType":"LL","n1":true,"n2":true,"n3":true,"n4":false,"n5":false,"n6":false}}],function(){ calc(); });
+    TBKit.preset.bar('#leprosy_gradingPresets',[{label:'默认参数',labelEn:'Default',values:{'leprosyType':'TT'}},{"label":"TT 少菌型（单神经受累）","labelEn":"TT paucibacillary, single nerve","values":{"leprosyType":"TT","n1":true,"n2":false,"n3":false,"n4":false,"n5":false,"n6":false}},{"label":"BB 中间型","labelEn":"BB borderline","values":{"leprosyType":"BB","n1":false,"n2":true,"n3":false,"n4":false,"n5":false,"n6":false}},{"label":"LL 多菌型","labelEn":"LL multibacillary","values":{"leprosyType":"LL","n1":true,"n2":true,"n3":true,"n4":false,"n5":false,"n6":false}}],function(){ __presetFillGrades(); calc(); });
 }
 var __leprosy_grading_f0=(typeof calc==='function')?calc:null;
 if(__leprosy_grading_f0){
