@@ -588,3 +588,26 @@
 - 英文第三层词典同批更新：`i18n/tools/en/civil/two-way-slab.json`（新 formula-eq / formula-desc / 3 条 scenarios / 示例 / FAQ 答案）、`i18n/tools/en/structural/*.json`（三页新 formula-eq），`_en_override.json` 5 个 slug 的 `ed` 由占位串改为真实英文简介。
 - 新增指南页：`guides/two-way-slab-guide.html`、`guides/rebar-anchorage-guide.html`（只建 html，未改 `json/guides.json`）。
 - 构建保留判断：按本批纪律**未跑 `_build.py`、未 push**；英文词典子树版本戳与指南索引留待维护者构建时更新。
+
+## 第 23 批：structural 公式框 ↔ calc() 一致性普查 + 前 10 页修正（2026-11-05）
+
+### 1. 普查（27 页，四档）
+
+- **A 档（公式/校验口径与代码不一致）6 页**：`beam-shear-center`、`bearing-pressure`、`moment-of-inertia-circle`、`polar-moment-circle`、`ss-udl-moment`、`von-mises-2d`。
+- **B 档（≥2 个 number 输入却无 formula-box）0 页**：26 个工具页均有公式框。
+- **C 档（公式正确但符号/单位/校验写法不严谨）4 页**：`cantilever-end-moment`、`slenderness-ratio`、`euler-buckling`、`section-modulus-circle`。
+- **D 档（一致）17 页**：allowable-stress、angle-of-twist、axial-strain、beam-shear-stress、deflection-cantilever-point/udl、hoop-stress、longitudinal-stress、moment-of-inertia-rect、radius-of-gyration、section-modulus-rect、ss-point-deflection、stress-concentration、thermal-strain、torsion-polar-j、torsional-shear-shaft（另 index 不计）。
+
+### 2. 前 10 页修正要点
+
+- **A 档**：把「无强校验/按 0 兜底」「A=0 按 1 兜底」等与 `__tbInputGuard` 实况不符的表述，改为真实提示：缺项「请填写「X」后再计算。」、分母为 0「⚠「X」是本计算的分母，不能为 0。」；无守卫页保持「请输入必要参数后再计算。」。
+- **C 档**：`euler-buckling` 补单位、守卫、算例与 K=1 适用条件；`section-modulus-circle` 明确 `S÷A` 的 mm 口径与 `max(A,10⁻⁹)` 兜底；`cantilever-end-moment` 明确 L=0 由分母守卫先拦截、公式内 1 兜底不可达；`slenderness-ratio` 补 λ 符号、r=0 守卫与 100 分级判据。
+- 10 页默认态/注入态均不同（见 verify 用例 54/54）。
+- 英文第三层词典 10 个文件同批补齐公式长键与 placeholder 译文；英文探针 10 页均 0 残留。
+
+### 3. 校验
+
+- `node scripts/verify_structural_calc.js` = **54/54**（新增 `bearing-pressure` A=0 分母守卫用例）。
+- `node scripts/discriminate_check.js verify_structural_calc.js` = **54 变红、0 逃生、0 跳过**。
+- `_test_static.py` = 4705/4705，0 失败 0 告警；inline marker 0 违规。
+- 未跑 `_build.py`、未 push。
