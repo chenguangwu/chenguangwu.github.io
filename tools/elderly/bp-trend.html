@@ -716,9 +716,29 @@ function __bp_trendExport(){
     if (typeof TBKit === 'undefined') return;
     try { TBKit.util.exportTable('#bp_trendTable','bp-trend.csv'); } catch(e){}
 }
+function __bp_trendPresetView(){
+    // 预设切换后重绘图表与历史；无 canvas 环境下 drawChart 可能不可用，逐一容错
+    try{ drawChart(); }catch(e){}
+    try{ renderHistory(); }catch(e){}
+    if(logs.length > 0) return;   // 有真实记录时统计卡由 drawChart 给出，不覆盖
+    try{
+        var isEn = (typeof TBKit!=='undefined'&&TBKit.util.isEn());
+        var metric = document.getElementById('chartMetric').value;
+        var range = parseInt(document.getElementById('chartRange').value, 10);
+        var mName = (isEn ? {bp:'Blood Pressure',glu:'Blood Glucose',hr:'Heart Rate'} : {bp:'血压（收缩压/舒张压）',glu:'血糖',hr:'心率'})[metric] || metric;
+        var rName = isEn ? (range > 0 ? ('Last ' + range + ' records') : 'All records') : (range > 0 ? ('最近 ' + range + ' 条') : '全部记录');
+        var tip = isEn ? 'No records yet' : '暂无记录';
+        var box = document.getElementById('chartStats');
+        if(!box) return;
+        box.innerHTML = '<div class="stat-card"><div class="val">0</div><div class="lbl">' + mName + ' · ' + rName + ' · ' + tip + '</div></div>';
+    }catch(e){}
+}
 function __bp_trendPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#bp_trendPresets',[{label:'默认参数',labelEn:'Default',values:{'logPeriod':'晨起', 'logGluType':'空腹', 'chartMetric':'bp', 'chartRange':'14'}}],function(){ switchTab(); });
+    TBKit.preset.bar('#bp_trendPresets',[{label:'默认参数',labelEn:'Default',values:{'logPeriod':'晨起', 'logGluType':'空腹', 'chartMetric':'bp', 'chartRange':'14'}},
+  {"label":"血压趋势·近30条晨起","labelEn":"BP Trend · Last 30 Morning","values":{"logPeriod":"晨起","logSys":"138","logDia":"86","logHr":"72","logGlu":"5.8","logGluType":"空腹","chartMetric":"bp","chartRange":"30"}},
+  {"label":"血糖趋势·全部餐后记录","labelEn":"Glucose Trend · All Post-meal","values":{"logPeriod":"下午","logSys":"128","logDia":"80","logHr":"76","logGlu":"9.4","logGluType":"餐后","chartMetric":"glu","chartRange":"0"}},
+  {"label":"心率趋势·近14条晚间","labelEn":"Heart Rate · Last 14 Evening","values":{"logPeriod":"晚间","logSys":"118","logDia":"74","logHr":"62","logGlu":"6.3","logGluType":"随机","chartMetric":"hr","chartRange":"14"}}],function(){ __bp_trendPresetView(); });
 }
 var __bp_trend_f0=(typeof switchTab==='function')?switchTab:null;
 if(__bp_trend_f0){
