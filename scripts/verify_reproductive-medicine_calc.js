@@ -447,7 +447,13 @@ const CASES = [
   { slug: "reproductive-medicine/baifenbijisuanqi",
     inputs: { v1: "", v2: "" },
     expect: ["请填写两个数值后再计算。"],
-    ref: "空态守卫：两个数值都清空时不再按 0 计算（旧实现 →「0% of 0 = 0.00」），改为只输出填写提示。默认态 100/20 有值 ⇒ 提示串不出现；百分比模式分母 0、变化率模式原值 0 另有独立提示。" }
+    ref: "空态守卫：两个数值都清空时不再按 0 计算（旧实现 →「0% of 0 = 0.00」），改为只输出填写提示。默认态 100/20 有值 ⇒ 提示串不出现；百分比模式分母 0、变化率模式原值 0 另有独立提示。" },
+  { slug: "reproductive-medicine/assessor-15",
+    inputs: { leftvas: "0", leftampulla: "2", leftseminal: "2", leftejaculatory: "2", lefturethra: "2",
+             rightvas: "2", rightampulla: "2", rightseminal: "2", rightejaculatory: "2", righturethra: "2" },
+    clicks: ["calc()"],
+    expect: ["单侧梗阻 总体评估", "9/10 通畅段数", "左侧存在完全梗阻（输精管段）"],
+    ref: "页面 10 个分段下拉由 buildList() 用 innerHTML 生成（id 固定为 left|right + seg.key），桩不建动态行但其 id 可注入，故补齐 10 项即可测。实跑值：左侧输精管段=完全梗阻(0)、其余 9 段通畅(2) ⇒ 左侧梗阻 / 右侧通畅、通畅段数 9/10、提示「左侧存在完全梗阻（输精管段）」。旧期望：无用例（零覆盖）。新期望：上列三条；默认态 10 个下拉全为首项「通畅」⇒ 双侧通畅 / 10/10，三条均不命中。" }
 ];
 
 "use strict";
