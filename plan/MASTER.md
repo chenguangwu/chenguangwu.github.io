@@ -25,6 +25,8 @@
 | G10-输入失效后的结果状态一致性.md | 跨行业输入无效后旧结果与导出状态残留 | 🟡 已核实 7 页源码路径；其余页面与真实浏览器行为待查，按分类去重 |
 
 > **i18n 结构性缺口量化（2026-11-04，只读）**：新增 [i18n-dead-keys.md](file:///Users/cgw/project/cgw/chenguangwu.github.io/plan/i18n-dead-keys.md)（4819 页 / 169688 键，死键 11737，高优先 5164）与 [i18n-placeholder-todo.md](file:///Users/cgw/project/cgw/chenguangwu.github.io/plan/i18n-placeholder-todo.md)（`placeholder` 含中文 12796 处 / 3940 页，其中 11505 处无词典键；`title` 含中文 153 处）。两文件仅供各线按目录认领，未改页面 / `i18n.js` / 构建产物。
+>
+> **i18n 键粒度台账（2026-11-05 新增）**：[i18n-key-granularity.md](file:///Users/cgw/project/cgw/chenguangwu.github.io/plan/i18n-key-granularity.md) —— 第三层 `map` 键必须照抄真实原文、同句重复中文串须整句成键（「半译 = 键粒度错」）；含 `TBKit` 外部全局盘点结论（已盘点、不做门禁）与「待构建提交」登记（`timestamp-converter.json` + `json-formatter.html`，等 `_build.py` 窗口）。
 
 ## 全站审计覆盖进度（目标：所有工具审计一遍）
 
