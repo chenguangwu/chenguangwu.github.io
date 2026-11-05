@@ -39,14 +39,14 @@
 | tools/clinical-lab/convert-39.html | B | 整页回退 | 实现为 INR=(PT/对照)^ISI（18/12,1.1→1.56）；改写换成胆固醇换算 | `c1c2f4d76c` |
 | tools/clinical-lab/vaginal-discharge-grading.html | B | 整页回退 | 实现为清洁度 Ⅰ–Ⅳ（杆菌/球菌/上皮/WBC）；改写换成 Nugent 评分 | `c1c2f4d76c` |
 | tools/clinical-nursing/assessor-rater-risk.html | B | 整页回退 | Morse 25+15+20+10=70；改写写 55 | `c1c2f4d76c` |
-| tools/construction/calc-1.html | 待 | 待处置 | — | — |
-| tools/data/generator-35.html | 待 | 待处置 | — | — |
-| tools/design/mesh-gradient.html | 待 | 待处置 | — | — |
-| tools/design/pixel-art-generator.html | 待 | 待处置 | — | — |
-| tools/ecommerce/report.html | 待 | 待处置 | — | — |
-| tools/finance/generator-report-1.html | 待 | 待处置 | — | — |
-| tools/fire-rescue/smoke-management.html | 待 | 待处置 | — | — |
-| tools/fire-rescue/sprinkler-design.html | 待 | 待处置 | — | — |
+| tools/construction/calc-1.html | B | 整页回退 | 实现 φ 表实跑 λ≈195.6、φ≈0.196、Nrd≈17.0 kN；改写写 30–40 kN 无算式来源 | `d8d05b94ec` |
+| tools/data/generator-35.html | A | 修正保留 | 保留「组数留空时按 Sturges ceil」标题口径（与 formula-eq 一致）；恢复真实 title-en/desc-en | `d8d05b94ec` |
+| tools/design/mesh-gradient.html | B | 整页回退 | 改写把算例换成转义 HTML 垃圾与虚假 SVG/滤镜说法，无实质提升 | `d8d05b94ec` |
+| tools/design/pixel-art-generator.html | A | 修正保留 | 保留真实 desc-en（4–24 网格/6 色/字符画与 box-shadow）；回退「照片像素化/32 色」错误深解与 FAQ | `d8d05b94ec` |
+| tools/ecommerce/report.html | B | 整页回退 | 实现为「指标,本期,上期」环比看板；改写虚构筛选/汇总 BI 图表 | `d8d05b94ec` |
+| tools/finance/generator-report-1.html | B | 整页回退 | title-en/desc-en 退化为「Finance」占位；英文元数据退化，归英文元数据线处理 | `d8d05b94ec` |
+| tools/fire-rescue/smoke-management.html | B | 整页回退 | 实现 V 含 1.2 安全系数：m=35.38 kg/s、V=47.3 m³/s、170368 m³/h、12 口；改写删 1.2 得 39.4/141972 | `d8d05b94ec` |
+| tools/fire-rescue/sprinkler-design.html | B | 整页回退 | 1040 L/min=17.3 L/s → 水池 62.4 m³(1h)/124.8 m³(2h)；改写写 1040–2080 L（差 1000 倍） | `d8d05b94ec` |
 | tools/fishery/drug-withdrawal-fish.html | 待 | 待处置 | — | — |
 | tools/fishery/pond-desilting.html | 待 | 待处置 | — | — |
 | tools/fishery/stocking-density.html | 待 | 待处置 | — | — |
@@ -74,4 +74,4 @@
 | tools/tcm-pharmacy/tcm-dosage.html | 待 | 待处置 | — | — |
 | tools/urban/building-height.html | 待 | 待处置 | — | — |
 
-进度：已处置 30 / 64（A 2 页、B 28 页），剩余 34 页。
+进度：已处置 38 / 64（A 4 页、B 34 页），剩余 26 页。
