@@ -124,37 +124,37 @@ s.parentNode.insertBefore(el, s);
 
     <h3>1. 用药与血小板减少的时间关系</h3>
     <div class="checkbox-row">
-      <label><input type="radio" name="c1" value="2" id="c1v2" checked onchange="calc()"> 用药后1-14天出现PLT下降（+2分）</label>
-      <label><input type="radio" name="c1" value="1" id="c1v1" onchange="calc()"> 用药后14-30天（+1分）</label>
-      <label><input type="radio" name="c1" value="0" id="c1v0" onchange="calc()"> 用药前或>30天（0分）</label>
+      <label><input type="radio" name="c1" value="2" id="c1v2" checked onchange="__markScaleDirty()"> 用药后1-14天出现PLT下降（+2分）</label>
+      <label><input type="radio" name="c1" value="1" id="c1v1" onchange="__markScaleDirty()"> 用药后14-30天（+1分）</label>
+      <label><input type="radio" name="c1" value="0" id="c1v0" onchange="__markScaleDirty()"> 用药前或>30天（0分）</label>
     </div>
 
     <h3>2. 停药后血小板恢复</h3>
     <div class="checkbox-row">
-      <label><input type="radio" name="c2" value="2" id="c2v2" checked onchange="calc()"> 停药1-7天PLT恢复正常（+2分）</label>
-      <label><input type="radio" name="c2" value="1" id="c2v1" onchange="calc()"> 停药7-14天恢复（+1分）</label>
-      <label><input type="radio" name="c2" value="0" id="c2v0" onchange="calc()"> >14天或未恢复（0分）</label>
+      <label><input type="radio" name="c2" value="2" id="c2v2" checked onchange="__markScaleDirty()"> 停药1-7天PLT恢复正常（+2分）</label>
+      <label><input type="radio" name="c2" value="1" id="c2v1" onchange="__markScaleDirty()"> 停药7-14天恢复（+1分）</label>
+      <label><input type="radio" name="c2" value="0" id="c2v0" onchange="__markScaleDirty()"> >14天或未恢复（0分）</label>
     </div>
 
     <h3>3. 排除其他原因</h3>
     <div class="checkbox-row">
-      <label><input type="radio" name="c3" value="2" id="c3v2" checked onchange="calc()"> 已充分排除其他原因（+2分）</label>
-      <label><input type="radio" name="c3" value="1" id="c3v1" onchange="calc()"> 部分排除（+1分）</label>
-      <label><input type="radio" name="c3" value="0" id="c3v0" onchange="calc()"> 存在其他可能原因（0分）</label>
+      <label><input type="radio" name="c3" value="2" id="c3v2" checked onchange="__markScaleDirty()"> 已充分排除其他原因（+2分）</label>
+      <label><input type="radio" name="c3" value="1" id="c3v1" onchange="__markScaleDirty()"> 部分排除（+1分）</label>
+      <label><input type="radio" name="c3" value="0" id="c3v0" onchange="__markScaleDirty()"> 存在其他可能原因（0分）</label>
     </div>
 
     <h3>4. 药物再激发</h3>
     <div class="checkbox-row">
-      <label><input type="radio" name="c4" value="2" id="c4v2" checked onchange="calc()"> 再用药后PLT再次下降（+2分）</label>
-      <label><input type="radio" name="c4" value="0" id="c4v0" onchange="calc()"> 再用药后PLT未下降（0分）</label>
-      <label><input type="radio" name="c4" value="1" id="c4v1" onchange="calc()"> 未再用药（+1分，确定性降低）</label>
+      <label><input type="radio" name="c4" value="2" id="c4v2" checked onchange="__markScaleDirty()"> 再用药后PLT再次下降（+2分）</label>
+      <label><input type="radio" name="c4" value="0" id="c4v0" onchange="__markScaleDirty()"> 再用药后PLT未下降（0分）</label>
+      <label><input type="radio" name="c4" value="1" id="c4v1" onchange="__markScaleDirty()"> 未再用药（+1分，确定性降低）</label>
     </div>
 
     <h3>5. 疑似药物种类</h3>
     <div class="input-row">
       <div>
         <label>选择疑似药物</label>
-        <select id="drug" onchange="calc()">
+        <select id="drug" onchange="__markScaleDirty()">
           <option value="heparin">肝素/低分子肝素 (HIT)</option>
           <option value="quinine">奎宁/奎尼丁</option>
           <option value="antibiotic">抗生素（万古霉素/磺胺等）</option>
@@ -170,6 +170,7 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <div id="itp_risk_scorePresets"></div><button type="button" class="btn primary" onclick="calc()">评分</button><button class="btn" type="button" onclick="__itp_risk_scoreExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" onclick="resetAll()" title="恢复为未评估状态">重置评分</button>
     </div>
 
     <div class="result-box" id="result"></div>
@@ -285,6 +286,19 @@ s.parentNode.insertBefore(el, s);
 </div>
 
 <script>
+var __scaleDirty=false;
+function __markScaleDirty(){__scaleDirty=true;calc();}
+var __defRadio={c1:'2',c2:'2',c3:'2',c4:'2'};
+['c1','c2','c3','c4'].forEach(function(n){
+  var rs=document.getElementsByName(n);
+  for(var i=0;i<rs.length;i++){ if(rs[i].checked && rs[i].value!==__defRadio[n]) __scaleDirty=true; }
+});
+function resetAll(){
+  ['c1v2','c2v2','c3v2','c4v2'].forEach(function(id){ document.getElementById(id).checked=true; });
+  document.getElementById('drug').value='heparin';
+  __scaleDirty=false;
+  calc();
+}
 function calc(){
   var c1=parseInt(document.querySelector('input[name=c1]:checked').value);
   var c2=parseInt(document.querySelector('input[name=c2]:checked').value);
@@ -293,6 +307,12 @@ function calc(){
   var drug=document.getElementById('drug').value;
 
   var score=c1+c2+c3+c4;
+  if(!__scaleDirty){
+    document.getElementById('result').innerHTML='<div class="stat-grid"><div class="stat-card"><div class="val" style="color:var(--success);">'+score+'</div><div class="lbl">总分 (满分8)</div></div></div>'+
+      '<div class="info-box"><strong>当前为默认评分（4 项均为默认选项、药物默认为肝素），请按实际用药史修改后查看解读。</strong></div>';
+    var __rb=document.getElementById('resultRefBar'); if(__rb) __rb.innerHTML='';
+    return;
+  }
   var grade,color,interp;
 
   if(score>=8){grade='确定 (Definite)';color='#EF4444';interp='极可能为该药物所致血小板减少，应永久停用该药物并记录药物过敏史。';}
@@ -518,7 +538,7 @@ function __itp_risk_scorePresets(){
     TBKit.preset.bar('#itp_risk_scorePresets',[{label:'默认参数',labelEn:'Default',values:{'drug':'heparin'}},
   {"label":"肝素 HIT 确定","labelEn":"Heparin HIT definite","values":{"c1v2":true,"c2v2":true,"c3v2":true,"c4v2":true,"drug":"heparin"}},
   {"label":"抗生素 很可能","labelEn":"Antibiotic probable","values":{"c1v1":true,"c2v2":true,"c3v1":true,"c4v1":true,"drug":"antibiotic"}},
-  {"label":"NSAIDs 不太可能","labelEn":"NSAIDs doubtful","values":{"c1v0":true,"c2v0":true,"c3v1":true,"c4v0":true,"drug":"nsaid"}}],function(){ calc(); });
+  {"label":"NSAIDs 不太可能","labelEn":"NSAIDs doubtful","values":{"c1v0":true,"c2v0":true,"c3v1":true,"c4v0":true,"drug":"nsaid"}}],function(){ __scaleDirty=true; calc(); });
 }
 var __itp_risk_score_f0=(typeof calc==='function')?calc:null;
 if(__itp_risk_score_f0){

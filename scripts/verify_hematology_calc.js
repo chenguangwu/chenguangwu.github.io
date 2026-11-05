@@ -442,6 +442,96 @@ const CASES = [
     inputs: { age: "65", hgb: "120", wbc: "9", blasts: "1", plt: "100" },
     expect: ["1 总评分", "中危-1组"],
     ref: "IPSS-MF：年龄 65 不外(+0)、HGB 120(+0)、WBC 9(+0)、原始 1%(+1) ⇒ 1 分「中危-1」。旧实现 >1% 才计分 ⇒ 0 分「低危」，总分与明细双向判别。若注入失败回退默认（HGB 95 +1、原始 2% +1 ⇒ 2 分），「1 总评分」不出现 ⇒ 无逃生。"
+  },
+  {
+    slug: "hematology/rater-5",
+    clicks: ["var __b=document.getElementById('res').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/MPN-10 症状总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('res').innerHTML=__ok?'__R5_DEF_OK__':'__R5_DEF_FAIL__ '+__b;"],
+    expect: ["__R5_DEF_OK__"],
+    ref: "批 3 默认态：只出 MPN-10 总分与 DIPSS 评分，结果区不含 分级/建议/诊断/治疗/风险。"
+  },
+  {
+    slug: "hematology/rater-5",
+    inputs: { age: "1", symptoms: "1", hb: "90", blasts: "2", wbc: "30" },
+    expect: ["高危", "中位生存期"],
+    ref: "批 3 改动态：DIPSS 6 ⇒ 高危并给出中位生存期；确认 dirty 置位后决策文案才出现。"
+  },
+  {
+    slug: "hematology/rater-5",
+    clicks: ["resetAll();var __b=document.getElementById('res').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/MPN-10 症状总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('res').innerHTML=__ok?'__R5_RST_OK__':'__R5_RST_FAIL__ '+__b;"],
+    expect: ["__R5_RST_OK__"],
+    ref: "批 3 重置态：resetAll() 先复位 dirty 再复算，决策文案消失。"
+  },
+  {
+    slug: "hematology/mpn-scoring",
+    clicks: ["var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/总评分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__MPN_DEF_OK__':'__MPN_DEF_FAIL__ '+__b;"],
+    expect: ["__MPN_DEF_OK__"],
+    ref: "批 3 默认态：只出总评分，结果区不含 分级/建议/诊断/治疗/风险。"
+  },
+  {
+    slug: "hematology/mpn-scoring",
+    inputs: { age: "80", hgb: "60", wbc: "40", blasts: "20", plt: "50", symptoms: "yes", transfusion: "yes", karyotype: "yes" },
+    expect: ["高危"],
+    ref: "批 3 改动态：各项均达高危区间 ⇒ 出现「高危」分级；确认 dirty 置位后决策文案才出现。"
+  },
+  {
+    slug: "hematology/mpn-scoring",
+    clicks: ["resetAll();var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/总评分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__MPN_RST_OK__':'__MPN_RST_FAIL__ '+__b;"],
+    expect: ["__MPN_RST_OK__"],
+    ref: "批 3 重置态：resetAll() 复位标签页与参数后先清 dirty 再复算，决策文案消失。"
+  },
+  {
+    slug: "hematology/rater-6",
+    clicks: ["var __b=document.getElementById('res').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/ISTH 总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('res').innerHTML=__ok?'__R6_DEF_OK__':'__R6_DEF_FAIL__ '+__b;"],
+    expect: ["__R6_DEF_OK__"],
+    ref: "批 3 默认态：只出 ISTH 总分，结果区不含 分级/建议/诊断/治疗/风险。"
+  },
+  {
+    slug: "hematology/rater-6",
+    inputs: { plt: "10", ddimer: "8.5", pt: "5", fib: "0.9" },
+    expect: ["显性 DIC"],
+    ref: "批 3 改动态：PLT 10 使 ISTH 达显性 DIC 阈值；确认 dirty 置位后诊断文案才出现。"
+  },
+  {
+    slug: "hematology/rater-6",
+    clicks: ["resetAll();var __b=document.getElementById('res').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/ISTH 总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('res').innerHTML=__ok?'__R6_RST_OK__':'__R6_RST_FAIL__ '+__b;"],
+    expect: ["__R6_RST_OK__"],
+    ref: "批 3 重置态：resetAll() 恢复检验值后先清 dirty 再复算，决策文案消失。"
+  },
+  {
+    slug: "hematology/rater-risk-1",
+    clicks: ["var __b=document.getElementById('res').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/综合评分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('res').innerHTML=__ok?'__RR1_DEF_OK__':'__RR1_DEF_FAIL__ '+__b;"],
+    expect: ["__RR1_DEF_OK__"],
+    ref: "批 3 默认态：只出综合评分，结果区不含 分级/建议/诊断/治疗/风险。"
+  },
+  {
+    slug: "hematology/rater-risk-1",
+    inputs: { pltBefore: "270", pltNadir: "200", onsetDays: "20", recoveryDays: "20", drugClass: "low" },
+    expect: ["风险评估结果", "不太可能"],
+    ref: "批 3 改动态：低降幅/超出时间窗 ⇒ 占比 <30% 落「不太可能」且出现「风险评估结果」标题；默认态标题为「DITP 评分结果」，双向判别。"
+  },
+  {
+    slug: "hematology/rater-risk-1",
+    clicks: ["resetAll();var __b=document.getElementById('res').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/综合评分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('res').innerHTML=__ok?'__RR1_RST_OK__':'__RR1_RST_FAIL__ '+__b;"],
+    expect: ["__RR1_RST_OK__"],
+    ref: "批 3 重置态：resetAll() 恢复特征与检验值后先清 dirty 再复算，决策文案消失。"
+  },
+  {
+    slug: "hematology/itp-risk-score",
+    clicks: ["var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/总分 \\(满分8\\)/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__ITP_DEF_OK__':'__ITP_DEF_FAIL__ '+__b;"],
+    expect: ["__ITP_DEF_OK__"],
+    ref: "批 3 默认态：只出总分，结果区不含 分级/建议/诊断/治疗/风险（全勾默认 8 分也不出「确定」）。"
+  },
+  {
+    slug: "hematology/itp-risk-score",
+    clicks: ["__markScaleDirty();var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/确定 \\(Definite\\)/.test(__b)&&/处理建议/.test(__b);document.getElementById('result').innerHTML=__ok?'__ITP_MOD_OK__':'__ITP_MOD_FAIL__ '+__b;"],
+    expect: ["__ITP_MOD_OK__"],
+    ref: "批 3 改动态：默认 4 项各 2 分 ⇒ 8 分「确定 (Definite)」；确认 dirty 置位后因果等级文案才出现。"
+  },
+  {
+    slug: "hematology/itp-risk-score",
+    clicks: ["__markScaleDirty();resetAll();var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/总分 \\(满分8\\)/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__ITP_RST_OK__':'__ITP_RST_FAIL__ '+__b;"],
+    expect: ["__ITP_RST_OK__"],
+    ref: "批 3 重置态：先置 dirty 制造决策，再 resetAll() 复位后决策文案消失。"
   }
 ];
 async function main() {
