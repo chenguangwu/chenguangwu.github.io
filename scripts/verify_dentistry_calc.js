@@ -87,21 +87,10 @@ const CASES = [
   ],
   "ref": "DMFT = D+M+F = 5+3+4 = 12 > 10 ⇒ classify 返回「龋病风险较高」（默认 d/m/f 为空 ⇒ 显示空态提示）。结论串随输入连续变化，且非静态文案（原 expect「DMFT」相关单值零判别力）。"
 },
-{
- "slug": "dentistry/calc-1",
- "inputs": {
-   "d": "0",
-   "m": "0",
-   "f": "0"
- },
- "clicks": [
-   "document.getElementById('d').value='';document.getElementById('m').value='';document.getElementById('f').value='';calc(1);"
- ],
- "expect": [
-   "请填写龋坏（D）、缺失（M）、充填（F）牙数"
- ],
- "ref": "空态守卫：d/m/f 全空（trim 后为 ''）→ 输出 tip-error「请填写…」并 return，不再以 0 分下「风险较低」结论。用 inputs=0/0/0 + click 清空触发（inputs 非页面默认空串，因此静态 all_default 判定不命中）；若守卫缺失，清空后旧逻辑输出「DMFT 指数：0 / 龋病风险较低」，不含该提示串。"
-},
+// 已移除 dentistry/calc-1 的空态守卫用例（inputs 0/0/0 + click 清空，expect「请填写龋坏（D）…」）。
+// 原因：该页 DOMContentLoaded 启动即执行 `calc(1)`（explicit=1），而三个输入默认 value 均为空 ⇒
+// 默认加载态**本来**就渲染同一条 tip-error「请填写…」，清空再点计算与默认态逐字节相同 ⇒ 判别力 0。
+// 该 slug 另保留「5/3/4 ⇒ D+M+F = 12」与「0/0/0 ⇒ D+M+F = 0」两条可判别用例，故按纪律删除本条。
 {
  "slug": "dentistry/calc-1",
  "inputs": {
@@ -296,12 +285,13 @@ const CASES = [
 {
   "slug": "dentistry/tongue-oral-health",
   "inputs": {
-    "color": "normal"
+    "color": "red"
   },
   "expect": [
-    "保持均衡饮食与口腔卫生"
+    "主要体质 阴虚内热",
+    "调护建议 滋阴清热"
   ],
-  "ref": "auto-restore"
+  "ref": "color=red（红舌）⇒ 主要体质「阴虚内热」（符合度 100%）、调护建议「滋阴清热：忌辛辣煎炸…」。⚠ 原注入 color=normal 恰为页面 select 默认选中项 ⇒ 默认态输出同样命中「保持均衡饮食与口腔卫生」（真逃生），故改注入非默认舌色。默认态为「正常/平和」，不含阴虚内热/滋阴清热。"
 },
 {
   "slug": "dentistry/tooth-preparation",
@@ -318,10 +308,10 @@ const CASES = [
 {
   "slug": "dentistry/wisdom-tooth",
   "inputs": {
-    "winter": "mesioangular"
+    "winter": "distoangular"
   },
-  "expect": [ "1 方向评分" ],
-  "ref": "auto-restore"
+  "expect": [ "4 方向评分", "远中阻生去骨量大" ],
+  "ref": "winter=distoangular（远中阻生）⇒ Winter 方向评分 4（默认 mesioangular 为 1）、附加因素「远中阻生去骨量大」、总难度分 8（默认 5）。⚠ 原注入 mesioangular 恰为页面 select 默认选中项 ⇒ 默认态即输出「1 方向评分」（真逃生），故改注入非默认方向。"
 },
 {
   "slug": "dentistry/zirconia-aesthetics",

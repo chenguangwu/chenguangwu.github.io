@@ -54,14 +54,10 @@ const CASES = [
   ],
   "ref": "四诊素取 里/热/实/阳 ⇒ 综合证名「里热实证」，synthesize 命中 li+re+shi 分支。默认态 sel 四项全空 ⇒ deduce 早退（原 expect「正虚与邪实并见」是虚实夹杂卡片的 desc，默认恒在）。"
 },
-{
-  "slug": "tcm-diagnosis/etiology-tree",
-  "inputs": {},
-  "expect": [
-    "医生诊治失误致病情加重或变生他病"
-  ],
-  "ref": "结构性不可注入：页面仅 treeContainer 一个容器，节点由 buildNode() 渲染，交互只有 classList.toggle('expanded')（不进 blob），copyTree() 写剪贴板（桩无实现）⇒ 无任何随输入变化的输出。维持 no_inputs，断言初始化渲染串。"
-},
+// 已移除 tcm-diagnosis/etiology-tree（inputs:{}，expect ["医生诊治失误致病情加重或变生他病"]）。
+// 原因：页面仅 treeContainer 一个容器，节点由 buildNode() 一次性渲染；唯一交互 classList.toggle('expanded')
+// 不进文本 blob，copyTree() 走剪贴板（桩无实现）⇒ 无任何随输入变化的输出，无法改出注入态专属锚
+// ⇒ 按纪律删除而非保留 skip。
 {
   "slug": "tcm-diagnosis/formula-matching",
   "clicks": [

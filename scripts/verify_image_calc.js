@@ -197,14 +197,10 @@ const CASES = [
   ],
   "ref": "水印透明回归：透明 PNG/WebP 导出不得铺白底（旧实现 format!=='png' 一律铺白，WebP 丢 alpha）；仅 JPEG 铺 #FFFFFF。默认态 resultBox 为空 ⇒ 不命中。"
 },
-{
-  "slug": "image/nine-grid-cutter",
-  "inputs": {},
-  "expect": [
-    "请先上传图片"
-  ],
-  "ref": "结构性不可注入（2026-10-10 复核，原 ref 为 auto-restore(default) 未评估项）：splitAndRender() 依赖 FileReader 读取 #file 图片后 canvas 切片；harness 无文件输入/FileReader/canvas 度量 ⇒ 注入态与默认态均落到「请先上传图片」空文件提示（memory 已知缺口：File API/canvas 图片类不可收敛）。无任何随输入变化的输出。维持 no_inputs。"
-},
+// 已移除 image/nine-grid-cutter 的空文件态用例（inputs:{}，expect ["请先上传图片"]）。
+// 原因：splitAndRender() 依赖 FileReader 读 #file 后 canvas 切片，harness 无文件输入/FileReader/canvas 度量，
+// 注入态与默认态都落到同一条「请先上传图片」提示 ⇒ 判别力 0。该 slug 已有「行数越界回退」「多文件下载」
+// 「SVG 拒收」「toBlob 失败提示」四条可判别用例覆盖，故按纪律删除该条而非保留 skip。
 {
   "slug": "image/nine-grid-cutter",
   "clicks": [

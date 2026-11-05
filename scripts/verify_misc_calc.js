@@ -39,14 +39,10 @@ const CASES = [
   ],
   "ref": "auto-restore"
 },
-{
-  "slug": "science/physics-constants",
-  "inputs": {},
-  "expect": [
-    "原子物理"
-  ],
-  "ref": "auto-restore(default)；**2026-09-26 复核判死（勿重复评估）**：setCat(k) 走 initTabs()+renderList()，前者只给按钮切 active class（CATS 名称文本全部常驻），后者对 CONSTANTS 做 `filter(curCat==='all'||c.cat===curCat)` 后 map 渲染 —— 过滤是**顺序保持型**（命中行的顺序与原表一致）⇒ 注入态输出恒为「默认全量」的顺序子序列，任何常数名/数值都已被默认态包含（§10.5 B 组判据）。搜索框同理。`emptyHint` 只切 style.display（collectStrings 不采 style）。"
-},
+// 已移除 science/physics-constants（inputs:{}，expect ["原子物理"]）。
+// 原因：该页为纯常量清单，默认态已渲染全部常数与全部分类标签；setCat() 只做「顺序保持型」过滤、
+// 搜索框同理，emptyHint 只切 style.display ⇒ 任何注入态输出恒为默认全量的子序列，无任何可判别增量，
+// 无法改出注入态专属锚 ⇒ 按纪律删除而非保留 skip。
 ];
 async function main() {
   const only = process.argv.slice(2);

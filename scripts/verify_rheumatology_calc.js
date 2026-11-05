@@ -202,12 +202,12 @@ const CASES = [
 {
   "slug": "rheumatology/anca-classification",
   "inputs": {
-    "iif": "canca"
+    "iif": "panca"
   },
   "expect": [
-    "疑似PR3"
+    "疑似MPO"
   ],
-  "ref": "auto-restore"
+  "ref": "iif=pANCA(核周型) ⇒ 靶抗原「疑似MPO」、IIF 模式「pANCA(核周型)」。⚠ 原注入 canca 恰为页面 select 默认选中项 ⇒ 默认态即输出「疑似PR3」（真逃生），故改注入非默认 IIF 模式。默认态为 cANCA/疑似PR3，不含疑似MPO。"
 },
 {
   "slug": "rheumatology/assessor-10",
@@ -244,13 +244,12 @@ const CASES = [
 {
   "slug": "rheumatology/behcet-hla",
   "inputs": {
-    "age": "middle"
+    "age": "young"
   },
   "expect": [
-    "middle"
+    "早发(＜25岁)(+1)"
   ],
-    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
-  "ref": "auto-restore"
+  "ref": "age=young(<25岁早发型) ⇒ calc() 严重程度 +1，severityFactors 渲染「早发(＜25岁)(+1)」、严重程度评分 = 1。⚠ 原注入 middle 恰为页面 select 默认选中项、原 expect「middle」只是 select 值回显 ⇒ 默认态同样命中（真逃生），故改注入非默认年龄段并锚结果区派生串。默认态「无高危因素 严重程度评分 = 0」，不含早发因子。"
 },
 {
   "slug": "rheumatology/bvas",
@@ -389,12 +388,12 @@ const CASES = [
 {
   "slug": "rheumatology/ssa-ssb",
   "inputs": {
-    "ssa": "ro60"
+    "ssa": "ro52"
   },
   "expect": [
-    "补体C3/C4"
+    "抗SSA/Ro：Ro52+"
   ],
-  "ref": "auto-restore"
+  "ref": "ssa=抗Ro52阳性 ⇒ 抗体模式解读渲染「抗SSA/Ro：Ro52+」与「抗Ro52阳性：与间质性肺病和新生儿狼疮(心脏传导阻滞)关联更强」。⚠ 原注入 ro60 恰为页面 select 默认选中项，原锚「补体C3/C4」是该模式的静态说明（默认态同样出现，真逃生），故改注入非默认抗体并锚抗体模式派生串。默认态为「抗SSA/Ro：Ro60+」，不含 Ro52+。"
 },
 {
   // 原为 no_inputs 弱用例（inputs 空），expect「(0-100)」是维度标签静态串（逃生项）。

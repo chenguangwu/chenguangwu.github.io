@@ -82,9 +82,9 @@ const CASES = [
   },
   {
     slug: "edu/convert-area-volume",
-    inputs: { val: "100", cat: "length", from: "cm", to: "m" },
-    expect: ["结果 = 1.0000"],
-    ref: "去默认化：100 cm = 1 m ⇒ 100×0.01/1 = 1.0000。默认态不命中。"
+    inputs: { val: "250", cat: "length", from: "cm", to: "m" },
+    expect: ["结果 = 2.5000"],
+    ref: "去默认化：250 cm = 2.5 m ⇒ 250×0.01/1 = 2.5000。⚠ 原注入 val=100/from=cm/to=m 与页面默认（fillSel 使 from=m、to=m、val=1）恰好同得 1.0000，注入态与默认态逐字节相同（真逃生），故改注入非默认数值。默认态为「结果 = 1.0000」不命中。"
   },
   {
     slug: "edu/convert-area-volume",

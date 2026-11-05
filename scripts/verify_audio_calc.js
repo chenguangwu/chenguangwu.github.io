@@ -14,18 +14,9 @@ const CASES = [
   ],
   "ref": "Δf=8000/1024=7.8125 Hz，目标 bin10 对应频率=10×7.8125=78.125 Hz（独立计算）"
 },
-{
-  "slug": "audio/audio-cut",
-  "inputs": {
-    "startInput": "0",
-    "endInput": "0"
-  },
-  "expect": [
-    "00.000"
-  ],
-  "ref": "结构性不可改造（保留 all_default，勿重复评估）：结果区（selDurTxt / resultBox）由音频文件解码后的 "
-     + "duration 驱动，harness 无文件输入 ⇒ 注入 startInput / endInput 后输出逐字不变（2026-09-25 实测）。"
-},
+// 已移除 audio/audio-cut（inputs startInput=0/endInput=0，expect ["00.000"]）。
+// 原因：结果区由音频文件解码后的 duration 驱动，harness 无文件输入/Web Audio 解码 ⇒ 注入 start/end
+// 后输出逐字不变（默认态即命中），无任何可判别增量 ⇒ 按纪律删除而非保留 skip。
 {
   "slug": "audio/audio-waveform",
   "inputs": {
@@ -37,6 +28,18 @@ const CASES = [
   ],
     ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
+},
+{
+  "slug": "audio/analysis-1",
+  "inputs": {
+    "fs": "48000",
+    "N": "8192",
+    "bin": "1000"
+  },
+  "expect": [
+    "5859.375"
+  ],
+  "ref": "Δf=48000/8192=5.859375 Hz，目标 bin1000 对应频率=1000×5.859375=5859.375 Hz（独立计算）；默认态 44100/4096/bin200 输出 2153.32 ⇒ 强判别"
 },
 {
   "slug": "audio/analysis-1",

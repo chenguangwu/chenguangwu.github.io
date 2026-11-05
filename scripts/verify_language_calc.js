@@ -52,17 +52,11 @@ const CASES = [
   ],
   "ref": "真实短语输入：英文按单词取首字母（API）→ 输出「1. Application Programming Interface → 缩写 ： API」；中文按内置词表最大正向匹配分词为「区块/链/技术」，取各词组首字 ⇒ 区链技（不再隔字取字成区链术）→「2. 区块链技术 → 缩写 ： 区链技」。默认 textarea 为「Natural Language Processing / Machine Learning」⇒ 默认输出 NLP、ML，两条断言均失配；页面静态深度解析虽有 API 字样，但不含带序号与「→ 缩写 ：」的完整行。"
 },
-{
-  "slug": "language/idiom-solitaire",
-  "inputs": {
-    "timeLimit": "20"
-  },
-  "expect": [
-    "20"
-  ],
-    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
-  "ref": "auto-restore"
-},
+// 已移除 language/idiom-solitaire（原 inputs timeLimit=20，expect ["20"]）。
+// 原因：① 原注入 20 恰为页面 select 默认选中项，expect「20」只是 select 值回显 ⇒ 默认态即命中；
+// ② 计时只走 setInterval 写进度条样式、不产文本；③ 尝试改锚 clicks startGame() ⇒「游戏结束！共接 0 个成语」
+// 仍被 harness 兜底阶段的无参函数 endGame() 复现（discriminate via=endGame）⇒ 依旧零判别力。
+// 无安全的注入态专属文本通道 ⇒ 按纪律删除而非保留 skip。
 {
   // 原为 no_inputs 弱用例（inputs 空），expect「请输入韩文内容」是空态占位文案（逃生项）。
   // 注入 한글 后逐字拆初/中/终声并给罗马字转写。

@@ -151,13 +151,12 @@ const CASES = [
 {
   "slug": "pet/training-planner",
   "inputs": {
-    "age": "junior"
+    "age": "senior"
   },
   "expect": [
-    "junior"
+    "狗狗 · 老年期"
   ],
-    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
-  "ref": "auto-restore"
+    ref: "age=senior（老年期 7 岁+）⇒ 计划概要渲染「狗狗 · 老年期 · 每日20分钟 · 1个训练目标」。⚠ 原注入 junior 恰为页面 select 默认选中项、原 expect「junior」只是 select 值回显 ⇒ 默认态同样命中（真逃生），故改注入非默认年龄段并锚结果区派生串。默认态为「狗狗 · 青少年」，不含老年期。",
 },
 {
   "slug": "pet/fish-tank-volume",

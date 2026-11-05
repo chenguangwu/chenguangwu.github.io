@@ -48,14 +48,15 @@ const CASES = [
 {
   "slug": "kids/stroke-order",
   "inputs": {
-    "charInput": "永",
-    "speedSel": "900"
+    "charInput": "我"
   },
-  "expect": [
-    "900"
+  "clicks": [
+    "loadChar('我')"
   ],
-    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
-  "ref": "auto-restore"
+  "expect": [
+    "1 撇 2 横 3 竖钩 4 提 5 斜钩 6 撇 7 点"
+  ],
+  "ref": "charInput=我（7 画）⇒ loadChar('我') 后 render() 把 #totalNo 置 7 并重建 #strokeChips 为「1 撇 2 横 3 竖钩 4 提 5 斜钩 6 撇 7 点」。⚠ 原注入 charInput=永/speedSel=900 恰为页面默认（input value=永、select selected 900），原 expect「900」只是 select 值回显 ⇒ 默认态同样命中（真逃生）；且该页 oninput 在桩内不触发，必须用 clicks 调 loadChar。默认态（永=5 画）为「1 点 2 横折钩 3 横撇 4 撇 5 捺」，与新锚零交集。"
 }
 ];
 async function main() {

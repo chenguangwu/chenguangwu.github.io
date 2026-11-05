@@ -32,14 +32,13 @@ const CASES = [
 {
   "slug": "text/convert-6",
   "inputs": {
-    "val": "Hello World",
-    "to": "lower"
+    "val": "Hello World 2024",
+    "to": "upper"
   },
   "expect": [
-    "lower"
+    "HELLO WORLD 2024 字符数 16"
   ],
-    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
-  "ref": "auto-restore"
+    ref: "注入「Hello World 2024」+ 全大写 ⇒ 结果区首位渲染 HELLO WORLD 2024 与字符数 16。⚠ 原输入恰为 textarea 默认文本「Hello World」、to=lower 恰为 select 默认选中项，且原 expect「lower」只是 select 值回显 ⇒ 默认态同样命中（真逃生），故改注入非默认文本。判据三态：默认（Hello World/lower）→ hello world 字符数 11；legacy 回退（Hello World/upper）→ HELLO WORLD 字符数 11；两者均不含「HELLO WORLD 2024 字符数 16」。",
 },
 {
   "slug": "text/convert-7",

@@ -49,10 +49,10 @@ const CASES = [
   { slug: "aerospace/delta-v-rocket", inputs: { isp: "450", m0: "800000", mf: "120000" }, expect: ["8.37", "8375"], ref: "注入非默认(默认 isp=300/m0=500000/mf=100000)：齐奥尔科夫斯基 Δv = Isp·g₀·ln(m0/mf) = 450×9.81×ln(800000/120000) = 4414.5×1.897120 = 8375.1 m/s = 8.37 km/s。Python 独立复算 8375.06 一致。默认态 4.74 km/s / 4737 m/s，两条均不命中。" },
   {
     slug: "aerospace/flight-time",
-    inputs: {"depDate":"2026-01-01","depTime":"08:30","arrDate":"2026-01-01","arrTime":"11:45","flightHours":"13","flightMinutes":"15","calcMode":"duration","depTz":"8","arrTz":"-5"},
+    inputs: {"depDate":"2026-01-01","depTime":"08:30","arrDate":"2026-01-01","arrTime":"11:45","flightHours":"13","flightMinutes":"15","calcMode":"duration","depTz":"8","arrTz":"0"},
     clicks: ["calc()"],
-    expect: ["16 小时 15 分钟 实际飞行时长", "-13.0 时差 (小时)"],
-    ref: "注入 depTime=08:30(UTC+8) arrTime=11:45(UTC-5) depTz=8 arrTz=-5：UTC 差 16h15m=实际飞行时长、时差 -13.0h（基于时间+时区确定性，不依赖 now）。默认态 depDate 空→不计算→不命中。"
+    expect: ["11 小时 15 分钟 实际飞行时长", "-8.0 时差 (小时)"],
+    ref: "注入 arrTz=0（伦敦）：出发 08:30(UTC+8)=UTC 00:30、到达 11:45(UTC+0)=UTC 11:45 ⇒ UTC 差 11h15m、时差 -8.0h。⚠ 原锚 arrTz=-5 恰为页面 select 首个默认项，且页面加载即把 depDate/arrDate 填今天并调 calc() ⇒ 默认态同样输出 16h15m/-13.0（真逃生），故改注入非默认时区。默认态 16 小时 15 分钟/-13.0 不命中。"
   }
 ,
   {
