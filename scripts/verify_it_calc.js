@@ -17,6 +17,9 @@
  */
 const fs = require("fs");
 const path = require("path");
+// 运行期生成 id 判定（与 audit_verify_input_ids.js 共用同一套模板解析，避免两处正则漂移）。
+// 仅用于注入参数合法性校验：动态 id 无法静态判存在，必须放行，否则会误伤 JS 拼控件的页。
+const { isDynamicId } = require(path.join(__dirname, "lib_dynamic_defaults.js"));
 
 // §7.4 harness 缺口补丁：浏览器标准 API `btoa`/`atob` 二进制串语义（btoa 入参为 latin1 二进制串、
 // atob 出参亦为 latin1 二进制串），与页面惯用法 `btoa(unescape(encodeURIComponent(s)))`
@@ -8518,6 +8521,24 @@ function dynRecord(el, html) {
     node.inBody = inRanges(m.index, bodyRanges);
     node.inHead = inRanges(m.index, headRanges);
     node.el.__dynNode = true;
+    // 动态 <select> 的选项登记（2026-11-05）：usedcar/checker-3 的 buildList() 把
+    // `<select id="ck_*"><option value="4" selected>…</option></select>` 拼进 #checkItems
+    // 的 innerHTML，随后 boot 的 calc() 用 document.getElementById('ck_*').value 取档位。
+    // 旧桩只登记标签本身、不给选项 ⇒ .value 恒 "" ⇒ statusOpts.find(o => o.v === 0)
+    // 不命中 ⇒ opt.score 抛 "Cannot read properties of undefined (reading 'score')"。
+    // 此处截取该 <select> 到 </select> 之间的内容，登记 value/text/selected（浏览器语义：
+    // 无 value 属性 ⇒ option.value = 选项文本）。
+    if (node.tag === "select") {
+      const cs = src.indexOf("</select>", m.index + m[0].length);
+      if (cs > -1) {
+        node.opts = [...src.slice(m.index + m[0].length, cs).matchAll(/<option([^>]*?)>([\s\S]*?)<\/option>/gi)]
+          .map((o) => {
+            const tx = o[2].replace(/<[^>]+>/g, "").trim();
+            const vm = (o[1] || "").match(/\bvalue\s*=\s*["']([^"']*)["']/i);
+            return { value: vm ? vm[1] : tx, text: tx, attrs: o[1] || "" };
+          });
+      }
+    }
     // 关键保真（2026-11-05）：把标签与整段属性落到桩元素上 —— 页面初始化常读
     // `tr.dataset.row` / `card.dataset.gate` / `getAttribute('data-…')`，缺 dataset
     // 直接抛 "Cannot read properties of undefined (reading 'split')"，整页初始化中止。
@@ -8555,6 +8576,18 @@ function dynQuery(sel) {
     }
   }
   return out;
+}
+
+// 运行期 innerHTML 生成的 <select>（容器渲染，非 select.innerHTML）按 id 取选项。
+// 供 getElementById 回落：真机 boot 时这类 select 已有首项选中，.value 即首项值。
+function dynSelectOf(id) {
+  if (!DYN.on || !id) return null;
+  for (const k of DYN.order) {
+    for (const n of DYN.map.get(k) || []) {
+      if (n.tag === "select" && n.id === id && n.opts && n.opts.length) return n.opts;
+    }
+  }
+  return null;
 }
 
 // 构造 <option> 桩：除 value/text/label 外，还要带 dataset（data-* 属性）与 getAttribute。
@@ -8829,7 +8862,13 @@ function makeEl(val, opts) {
       // <option> 时解析，对非 select 元素无副作用。
       if (/<option/i.test(_h)) {
         const opts = [..._h.matchAll(/<option([^>]*?)>([\s\S]*?)<\/option>/gi)]
-          .map((m) => mkOpt((m[1] || "").match(/value\s*=\s*["']([^"']*)["']/)?.[1] ?? "", m[2].replace(/<[^>]+>/g, "").trim(), m[1]));
+          .map((m) => {
+            const tx = m[2].replace(/<[^>]+>/g, "").trim();
+            const vm = (m[1] || "").match(/value\s*=\s*["']([^"']*)["']/);
+            // 浏览器语义：无 value 属性 ⇒ option.value = 选项文本（旧桩给 "" 会让
+            // 依赖文本取值的页读到空串，例如 design/music-scale-reference 的 #root）
+            return mkOpt(vm ? vm[1] : tx, tx, m[1]);
+          });
         if (opts.length) {
           el.options = opts;
           if (!("selectedIndex" in el)) {
@@ -9155,11 +9194,15 @@ async function runCaseInner(c) {
     // 页面常从选中项的 data-* 上取业务数值（forex 的 data-pip、allergen-cross-risk 的
     // data-score），只解析 value/text 会让这些页读不到数而恒输出占位符（「—」）。
     sel[m[1]] = [...block.matchAll(/<option([^>]*)>([\s\S]*?)<\/option>/g)]
-      .map((x) => ({
-        value: ((x[1] || "").match(/value\s*=\s*["']([^"']*)["']/i) || [, ""])[1],
-        text: x[2].replace(/<[^>]+>/g, "").trim(),
-        attrs: x[1] || "",
-      }));
+      .map((x) => {
+        const tx = x[2].replace(/<[^>]+>/g, "").trim();
+        // 浏览器语义（2026-11-05）：<option> 无 value 属性时，其 .value 等于选项文本
+        // （music-scale-reference 的 #root 12 个音名选项即此形态；旧桩恒给 "" ⇒
+        // notes.indexOf("") = -1 ⇒ note undefined ⇒ render() 抛
+        // "Cannot read properties of undefined (reading 'includes')"）。
+        const vm = (x[1] || "").match(/value\s*=\s*["']([^"']*)["']/i);
+        return { value: vm ? vm[1] : tx, text: tx, attrs: x[1] || "" };
+      });
   }
 
   // 预解析 radio / checkbox 的 HTML 默认选中态（2026-09-24）：
@@ -9206,15 +9249,77 @@ async function runCaseInner(c) {
     const opts = [...m[0].matchAll(/<option([^>]*)>([\s\S]*?)<\/option>/g)];
     if (!opts.length) continue;
     const hit = opts.find((o) => /\bselected\b/i.test(o[1])) || opts[0];
-    const vl = (hit[1].match(/\bvalue\s*=\s*["']([^"']*)["']/i) || [, ""])[1];
+    const htx = hit[2].replace(/<[^>]+>/g, "").trim();
+    const hvm = hit[1].match(/\bvalue\s*=\s*["']([^"']*)["']/i);
+    // 同 static sel：无 value 属性 ⇒ value 取选项文本（浏览器语义）
+    const vl = hvm ? hvm[1] : htx;
     (checkedByName[key] = checkedByName[key] || []).push(vl);
     selectedText[key] = stripTags(hit[2]);
+  }
+
+  // 注入参数合法性（2026-11-05 显式报错）：以下形态过去被**静默忽略** —— 空 clicks 直接跳过
+  // 点击阶段、非数组/非字符串的 checkIds / checks / radios 取值被丢弃，用例照样「变红」，
+  // 等于给判别力造假证据。这里一律返回失败并点名「哪个用例的哪个字段」。
+  const badFields = [];
+  const isPlainObj = (v) => v && typeof v === "object" && !Array.isArray(v);
+  if (c.clicks !== undefined) {
+    if (!Array.isArray(c.clicks)) badFields.push("clicks 必须是字符串数组");
+    else if (!c.clicks.length) badFields.push("clicks 为空数组（点击阶段会被静默跳过）");
+    else c.clicks.forEach((code, i) => {
+      if (typeof code !== "string" || !code.trim()) badFields.push(`clicks[${i}] 必须是非空字符串: ${JSON.stringify(code)}`);
+    });
+  }
+  for (const fld of ["checkIds", "checks"]) {
+    const v = c[fld];
+    if (v === undefined) continue;
+    if (!Array.isArray(v)) { badFields.push(`${fld} 必须是数组`); continue; }
+    if (!v.length) { badFields.push(`${fld} 为空数组（注入阶段会被静默跳过）`); continue; }
+    v.forEach((x, i) => {
+      if (typeof x !== "string" || !x) badFields.push(`${fld}[${i}] 必须是非空字符串: ${JSON.stringify(x)}`);
+    });
+  }
+  if (c.radios !== undefined) {
+    if (!isPlainObj(c.radios)) badFields.push("radios 必须是 name → value 的对象");
+    else for (const [nm, v] of Object.entries(c.radios)) {
+      if (typeof nm !== "string" || !nm) badFields.push(`radios 含空 name: ${JSON.stringify(nm)}`);
+      if (!(typeof v === "string" || typeof v === "number")) badFields.push(`radios.${nm} 取值必须是字符串/数字: ${JSON.stringify(v)}`);
+    }
+  }
+  // 存在性：非运行期生成的 id / name 若在页面里找不到，getEl / getElementsByName 会造游离桩
+  // ⇒ 注入落空但无任何报错。运行期生成（`id="'+i+'"` / `name="q'+i+'"`）无法静态判定，放行。
+  const escRe = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const dynNamePrefixes = [];
+  for (const m of script.matchAll(/\bname\s*=\s*(["'`])([\s\S]*?)\1/g)) {
+    const inner = m[2];
+    if (!/\$\{/.test(inner) && !/\s*\+\s*/.test(inner)) continue;
+    dynNamePrefixes.push((inner.match(/^([A-Za-z_][A-Za-z0-9_-]*)/) || ["", ""])[1]);
+  }
+  const isDynName = (nm) => dynNamePrefixes.some((p) => p === "" || (nm.startsWith(p) && nm.length > p.length));
+  if (Array.isArray(c.checkIds)) {
+    for (const id of c.checkIds) {
+      if (typeof id !== "string" || !id) continue;
+      if (!new RegExp(`id\\s*=\\s*["']${escRe(id)}["']`).test(html) && !isDynamicId(html, id)) {
+        badFields.push(`checkIds 指向页面不存在的 id: ${id}`);
+      }
+    }
+  }
+  if (isPlainObj(c.radios)) {
+    for (const nm of Object.keys(c.radios)) {
+      if (!new RegExp(`name\\s*=\\s*["']${escRe(nm)}["']`).test(html) && !isDynName(nm) && !isDynamicId(html, nm)) {
+        badFields.push(`radios 的 name 在页面不存在: ${nm}`);
+      }
+    }
+  }
+  if (badFields.length) {
+    return { ok: false, why: `注入参数非法（${c.slug}）: ` + badFields.join("; ") };
   }
 
   const inline = inlineHandlers(html);
   const elements = {};
   const getEl = (id) => {
     if (!(id in elements)) {
+      // 选项来源：静态 <select>（sel）优先，其次运行期容器 innerHTML 生成的 <select>（dynSelectOf）。
+      const optList = sel[id] && sel[id].length ? sel[id] : dynSelectOf(id);
       const v =
         __dynInputs && __dynInputReg.has(id)
           ? __dynInputReg.get(id)
@@ -9222,10 +9327,10 @@ async function runCaseInner(c) {
           ? c.inputs[id]
           : defaults[id] !== undefined
           ? defaults[id]
-          : sel[id] && sel[id].length
-          ? ((sel[id].find((o) => /\bselected\b/i.test(o.attrs || "")) || sel[id][0]).value)
+          : optList && optList.length
+          ? ((optList.find((o) => /\bselected\b/i.test(o.attrs || "")) || optList[0]).value)
           : "";
-      elements[id] = makeEl(v, sel[id]);
+      elements[id] = makeEl(v, optList || undefined);
       elements[id].id = id;   // 动态 DOM 登记按容器 id 分桶（同容器重渲染时覆盖，避免计数翻倍）
       // readonly 输出域标记（G06-S1 快照判据用）：真机中该属性只读不改，
       // 页面脚本不会写它 ⇒ 不会干扰任何既有用例的取值路径。
