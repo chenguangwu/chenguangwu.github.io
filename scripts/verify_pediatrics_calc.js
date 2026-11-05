@@ -42,10 +42,10 @@ const CASES = [
     "var d=domains[0];getAgeGroups(18).forEach(function(g){var it=d.items[g]||[];it.forEach(function(x,idx){testResults[d.key+'_'+g+'_'+idx]='fail';});});calc()"
   ],
   "expect": [
-    "【DDST 丹佛发育筛查（4 能区）】 结果：年龄 18 月龄 → 4 个能区筛查：个人-社会异常(0/18)",
-    "总体结果：异常 异常能区 1 个、可疑能区 0 个"
+    "总体结果：异常",
+    "个人-社会：通过0/18，未通过18，延迟项14 → "
   ],
-  "ref": "门诊记录：把「个人-社会」能区 18 月龄及以前的条目全部标记 fail（clicks 直接写 testResults），其余能区未测 ⇒ 1 个能区异常、0 个可疑 ⇒ 总体「异常」。默认态 testResults 为空 ⇒ 4 能区全「未测」、总体「正常」，与本用例零交集。"
+  "ref": "门诊记录：把「个人-社会」能区 18 月龄及以前的条目全部标记 fail（clicks 直接写 testResults），其余能区未测 ⇒ 该能区延迟 14 项 ⇒ 异常，0 可疑、3 个资料不完整 ⇒ 总体「异常」。判定看年龄线及以下的延迟项数量，不看通过率。默认态 testResults 为空 ⇒ 4 能区全「资料不完整」、总体「资料不完整」，与本用例零交集。"
 },
 {"slug":"pediatrics/dehydration-assessment","inputs":{"weight":"8","prevWeight":"8.8"},"checkIds":["s3","s4","s8"],"expect":["结果：分度：中度脱水（估计体液丢失 5-10%）· Gorelick 评分 3/10","体重丢失法算得 9.1%"],"ref":"门诊记录：勾选 s3 黏膜干燥 + s4 眼窝凹陷 + s8 尿量减少 ⇒ Gorelick 3/10 落 3–6 段「中度脱水」（5-10%）；病前 8.8 kg → 现 8 kg，体重丢失 (0.8/8.8)=9.1% ⇒ 累计丢失量按体重丢失法算得约 727 mL。默认态 10 kg、未勾选、无病前体重 ⇒「轻度脱水」「Gorelick 0/10」，零交集。"},
 {"slug":"pediatrics/diarrhea-dehydration","inputs":{"age":"18","weight":"10","stoolFreq":"8","duration":"3","stoolType":"watery"},"checkIds":["s1","s4","s5","s8"],"expect":["结果：分度：中度脱水（体液丢失 8%）· 腹泻 8 次/日 · 病程 3 天 · 大便性状 水样便","重度体征 0 项、中度体征 4 项、轻度体征 0 项（共 4 项）"],"ref":"门诊记录：勾选 s1 眼窝凹陷 + s4 皮肤弹性差 + s5 尿量减少 + s8 前囟凹陷，全属中度体征 4 项 ⇒ 中度脱水（7.5%→显示 8%）；水样便。默认态 12 月/10 kg/6 次/日、未勾选 ⇒「无脱水（体液丢失 0%）」，零交集。"},
