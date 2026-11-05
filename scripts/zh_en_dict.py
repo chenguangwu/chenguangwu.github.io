@@ -329,6 +329,29 @@ def _has_chinese(s):
     """结果是否仍含中文（即规则翻译未覆盖，属乱码风险）。"""
     return bool(_ZH_RUN.search(s or ''))
 
+# ===== 括号限定 / 高频功能词术语表（2026-11-05）=====
+# 背景：旧 translate_name 把「主名（A/B/C）尾缀」整体当副标题，括号内译不出就整段丢弃，
+# 导致「财务（分析/决策/预测）模型」退化为单通用词 Finance、「质量（标准/检查/提升）体系」
+# 退化为 Quality。这里补齐括号内并列项的名词形 + 高频功能词，保证限定信息不被丢弃。
+PAREN_TERMS = {
+    '分析': 'Analysis', '决策': 'Decision', '预测': 'Prediction',
+    '评估': 'Assessment', '检查': 'Check', '提升': 'Improvement',
+    '标准': 'Standard', '管理': 'Management', '优化': 'Optimization',
+    '控制': 'Control', '监测': 'Monitoring', '设计': 'Design',
+    '计算': 'Calculation', '校验': 'Validation', '对比': 'Comparison',
+    '一览': 'Overview', '速查': 'Quick Reference', '对照': 'Comparison',
+    '统计': 'Statistics', '检测': 'Detection', '检验': 'Inspection',
+    '化验': 'Assay', '维护': 'Maintenance', '选型': 'Selection',
+    '配置': 'Configuration', '参数': 'Parameters', '流程': 'Process',
+}
+DOMAIN.update({
+    # 高频功能词（主名/尾缀）
+    '对照表': 'Comparison Table', '检查表': 'Checklist', '一览表': 'Overview Table',
+    '一览': 'Overview', '化验': 'Assay', '提升': 'Improvement', '决策': 'Decision',
+    # 语义纠偏（质量=quality；质量分数/浓度才是 mass）
+    '质量分数': 'Mass Fraction', '质量浓度': 'Mass Concentration',
+})
+
 # 安全单字例外：仅函数词允许单字翻译（避免「按字替换」的机械翻译）
 SAFE_SINGLE = {'的', '和', '与', '转'}
 
@@ -452,11 +475,47 @@ def translate_text(text):
         return (text or '').strip()
     return s
 
-def translate_name(name):
-    """工具名翻译：去掉 - 副标题/括号说明，主名翻译后拼回。
+_PAREN_RE = re.compile(r'[（(]([^（）()]*)[）)]')
 
-    营销模板后缀（含“免费/在线工具/领域”等）直接丢弃，不翻译。
-    安全回退：只要结果仍含中文，一律返回干净原文中文，绝不输出乱码。
+def _translate_paren(inner):
+    """括号内并列限定：逐项翻译，优先名词形术语表；任一项译不出则返回 None。"""
+    parts = [p.strip() for p in re.split(r'[/、，,]', inner) if p.strip()]
+    out = []
+    for p in parts:
+        if p in PAREN_TERMS:
+            out.append(PAREN_TERMS[p])
+            continue
+        tr = translate_text(p)
+        if not tr or _has_chinese(tr):
+            return None
+        out.append(tr)
+    return ' / '.join(out) if out else None
+
+def _translate_with_parens(text):
+    """整段翻译并保留括号限定：main（A/B/C）tail -> Main (A / B / C) Tail。"""
+    m = _PAREN_RE.search(text)
+    if not m:
+        tr = translate_text(text)
+        return None if (not tr or _has_chinese(tr)) else tr
+    head = text[:m.start()].strip()
+    tail = text[m.end():].strip()
+    h = '' if not head else translate_text(head)
+    t = '' if not tail else translate_text(tail)
+    p = _translate_paren(m.group(1))
+    if p is None or _has_chinese(h) or _has_chinese(t):
+        return None
+    res = (h + ' (' + p + ')' + (' ' + t if t else '')).strip()
+    return re.sub(r'\s+', ' ', res)
+
+def _collapse_dup(text):
+    """合并机翻产生的相邻重复词：Reference Reference Format -> Reference Format。"""
+    return re.sub(r'\b([A-Za-z]{2,})(\s+\1\b)+', r'\1', text, flags=re.IGNORECASE)
+
+def translate_name(name):
+    """工具名翻译：整段翻译，**保留括号限定**；仅营销模板副标题可丢弃。
+
+    - 括号（全角/半角）内的并列限定必须保留，译不出时整条回退原文，绝不只留主名通用词；
+    - 安全回退：只要结果仍含中文，一律返回干净原文中文，交给调用方标记 needs_review。
     """
     if not name:
         return ''
@@ -464,22 +523,19 @@ def translate_name(name):
     suffix = ''
     if ' - ' in name:
         main, suffix = name.split(' - ', 1)
-    elif '（' in name:
-        idx = name.index('（')
-        main, suffix = name[:idx], name[idx:]
-    en = translate_text(main)
-    if not en or _has_chinese(en):
+    en = _translate_with_parens(main)
+    if not en:
         return name
     if suffix:
         # 营销模板后缀（免费XX工具 / XX领域的在线工具）丢弃
         if re.search(r'免费|在线工具|领域', suffix):
-            return en.strip()
-        suf = translate_text(suffix)
-        if not suf or _has_chinese(suf):
-            # 副标题含未翻译中文：保留已干净的英文主名，丢弃副标题（不整条回退乱码）
-            return en.strip()
-        return (en + ' - ' + suf).strip()
-    return en.strip()
+            return _collapse_dup(en.strip())
+        suf = _translate_with_parens(suffix)
+        if not suf:
+            # 副标题译不出：保留已干净的英文主名（不整条回退乱码）
+            return _collapse_dup(en.strip())
+        return _collapse_dup((en + ' - ' + suf).strip())
+    return _collapse_dup(en.strip())
 
 if __name__ == '__main__':
     tests = [

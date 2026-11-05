@@ -20,11 +20,36 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, 'scripts'))
-from zh_en_dict import translate_name, _ZH_RUN  # noqa: E402
+from zh_en_dict import translate_name, translate_text, _ZH_RUN  # noqa: E402
 
 TOP_INDUSTRIES = None  # None = 全站；或设为 {'it','general',...} 限定头部行业
 SI_PATH = os.path.join(ROOT, 'json', 'tools.json')
 OUT_PATH = os.path.join(ROOT, 'i18n', 'tools', '_en_override.json')
+REVIEW_PATH = os.path.join(ROOT, 'i18n', 'tools', '_en_needs_review.json')
+
+# 纯通用功能词：不含任何领域限定，不可单独作为工具英文名（2026-11-05）
+GENERIC_NAME_WORDS = {
+    'generator', 'calculator', 'converter', 'convert', 'checker', 'detector',
+    'analyzer', 'analyser', 'estimator', 'assessor', 'rater', 'evaluator',
+    'planner', 'tracker', 'tool', 'maker', 'parser', 'formatter', 'builder',
+    'finder', 'editor', 'viewer', 'reader', 'printer', 'sorter', 'splitter',
+    'filter', 'simulator', 'renderer', 'mapper', 'scanner', 'cleaner', 'counter',
+    'timer', 'comparator', 'provider', 'recommender', 'analysis', 'assess',
+    'random', 'temp', 'util', 'app', 'template', 'report', 'process',
+    # 纯动作词（中文名只译出动词时同样不可作为标题）
+    'detect', 'evaluate', 'measure', 'compare', 'compute', 'calculate',
+    'generate', 'analyze', 'check', 'format', 'view', 'preview', 'pick',
+    'select', 'track', 'estimate', 'convert',
+}
+
+# 合法单词型工具名白名单（确实以缩写/专名作为完整名称）
+ALLOW_SINGLE = {
+    'bmi', 'pdf', 'ocr', 'ip', 'uuid', 'json', 'yaml', 'csv', 'qr', 'sha', 'md5',
+    'aes', 'rsa', 'jwt', 'base64', 'regex', 'cron', 'utm', 'emi', 'sip', 'roi',
+    'npv', 'irr', 'gpa', 'psqi', 'gcs', 'apgar', 'inr', 'egfr', 'tds', 'ppi',
+    'dpi', 'px', 'bpm', 'hrv', 'ldl', 'hdl', 'hba1c', 'ast', 'alt', 'bun', 'crp',
+    'esr', 'ph', 'db', 'hz', 'khz', 'mhz', 'xml', 'html', 'css', 'url', 'uri',
+}
 
 ACRONYMS = {
     'http': 'HTTP', 'json': 'JSON', 'md5': 'MD5', 'sha': 'SHA', 'uuid': 'UUID',
@@ -469,14 +494,27 @@ def _halfwidth(s):
     return ''.join(out)
 
 def slug_to_name(slug):
-    """英文 slug -> 自然英文标题；占位符/拼音/非英文 slug 返回 None。"""
+    """英文 slug -> 自然英文标题；占位符/编号/纯通用词/拼音/非英文 slug 返回 None。
+
+    2026-11-05：禁止把「编号 slug」直接 title-case（generator-35 -> Generator 35、
+    detector-173 -> Detector 173、analysis-28 -> Analysis 28 一律不产出），
+    宁可返回 None 交给主流程记入 needs_review 待办，也不制造退化串。
+    """
     if not re.match(r'^[a-z0-9][a-z0-9\-]*$', slug):
         return None
-    if re.match(r'^(calc|tool|t|gen|util|app|tmp|test)-\d+$', slug):
+    parts = slug.split('-')
+    # 编号 slug：任何位置出现纯数字 token 都不造名
+    if any(re.fullmatch(r'\d+', p) for p in parts):
+        return None
+    # 纯通用词 slug（generator / checker / detector / analysis ...）：无领域限定，不造名
+    if all(p in GENERIC_NAME_WORDS for p in parts):
+        return None
+    # 以「角色/设备通用词」开头且 ≥2 段（assessor-water-quality / detector-recorder-fuel /
+    # rater-usable-layout）：语序错乱的词堆砌，不造名
+    if len(parts) >= 2 and parts[0] in GENERIC_NAME_WORDS:
         return None
     if is_pinyin_slug(slug):
         return None
-    parts = slug.split('-')
     words = []
     for p in parts:
         if p in ACRONYMS:
@@ -490,10 +528,41 @@ def slug_to_name(slug):
             words[i] = low
     return ' '.join(words)
 
-def slug_to_intro(en_name, slug):
-    """按标题/动作词生成简洁英文简介（避开 desc_en_ph 判定短语：
-    'generate results online' / 'is available directly in your browser' /
-    'free online tool' / 'free tool'）。"""
+# slug 动作词 -> 具体动作短语（用于「中文简介不可译」时的第二档描述）
+_ACTION_PHRASES = [
+    (('convert', 'converter'), 'converts between the supported input and output formats'),
+    (('encode', 'encoder', 'decode', 'decoder', 'codec'), 'encodes or decodes the input locally'),
+    (('encrypt', 'encryptor', 'decrypt', 'decryptor'), 'encrypts or decrypts the input in your browser'),
+    (('generate', 'generator'), 'generates the result from the values you enter'),
+    (('calc', 'calculator', 'compute'), 'computes the result from the values you enter'),
+    (('estimate', 'estimator'), 'estimates the result from the values you enter'),
+    (('analyze', 'analyzer', 'analysis'), 'analyzes the input and reports the result'),
+    (('check', 'checker', 'validate', 'validator', 'verify'), 'checks the input and reports the result'),
+    (('format', 'formatter'), 'formats the input into a consistent output'),
+    (('compare', 'comparator', 'diff'), 'compares the inputs and highlights the differences'),
+    (('view', 'viewer', 'preview'), 'renders a preview of the input'),
+    (('pick', 'picker', 'select', 'selector'), 'lets you pick an option and shows the result'),
+    (('track', 'tracker'), 'tracks the values you enter and shows the result'),
+]
+
+def _specific_intro(en_name, slug):
+    for keys, phrase in _ACTION_PHRASES:
+        if any(k in slug for k in keys):
+            return '%s - %s.' % (en_name, phrase)
+    return '%s - runs the calculation locally in your browser.' % en_name
+
+def slug_to_intro(en_name, slug, zh_desc=''):
+    """生成英文简介：① 中文简介整句英译（最具体）；② 工具名 + 具体动作短语；
+    ③ 仅当以上都不可用时才退回旧模板句（明确标记为最后兜底）。"""
+    # ① 中文简介整句翻译：完整、无中文残留、长度足够才采用
+    if zh_desc:
+        tr = re.sub(r'\s+', ' ', _halfwidth(translate_text(zh_desc))).strip()
+        if tr and not _ZH_RUN.search(tr) and len(tr) >= 20:
+            return tr if tr.endswith(('.', '!', '?')) else tr + '.'
+    # ② 具体动作短语（必须含工具名，不许只有套话）
+    if en_name and not any(w.lower() in GENERIC_NAME_WORDS for w in en_name.split()):
+        return _specific_intro(en_name, slug)
+    # ③ 最后兜底：旧模板句
     s = slug
     if re.search(r'(\w+)-to-(\w+)$', s) or 'converter' in s or 'convert' in s:
         return en_name + ' - convert values online with instant results.'
@@ -519,9 +588,43 @@ def slug_to_intro(en_name, slug):
         return en_name + ' - pick and choose options online.'
     return en_name + ' - online utility on ToolBox.'
 
+def _is_generic_english(name):
+    """英文名退化判据：单个英文词且不在专名白名单（BMI/PDF/SHA…）即视为通用词。"""
+    words = re.findall(r'[A-Za-z]+', name or '')
+    return len(words) == 1 and words[0].lower() not in ALLOW_SINGLE
+
+# 已有 en 是否可保留（人工修复/正常名）
+def _is_clean_manual_name(name, slug):
+    """已有 en 是否可保留（人工修复/正常名）：无中文、非单通用词、非编号 slug title-case。"""
+    if not name or _ZH_RUN.search(name):
+        return False
+    if _is_generic_english(name):
+        return False
+    # 与 slug 完全同形且该 slug 已被判定「编号/纯通用词/词堆砌」→ 属退化串，不保留
+    if re.sub(r'[^a-z0-9]+', '', name.lower()) == re.sub(r'[^a-z0-9]+', '', slug.lower()) \
+            and slug_to_name(slug) is None:
+        return False
+    return True
+
+def _record_review(review, ov, prev, key, base, name, reason, candidate):
+    """记入 needs_review；若已有干净的人工英文，则保留并标注 manual_override。"""
+    keep = key in prev and _is_clean_manual_name(prev[key].get('en', ''), base)
+    review.append({'key': key, 'slug': base, 'name_zh': name, 'reason': reason,
+                   'candidate': candidate, 'manual_override': bool(keep)})
+    if keep:
+        ov[key] = prev[key]
+
 def main():
+    report_only = '--needs-review-only' in sys.argv
     si = json.load(open(SI_PATH, encoding='utf-8'))
+    prev = {}
+    if os.path.exists(OUT_PATH):
+        try:
+            prev = json.load(open(OUT_PATH, encoding='utf-8'))
+        except Exception:
+            prev = {}
     ov = {}
+    review = []
     for t in si:
         ind = t.get('industry') or t.get('i') or ''
         if TOP_INDUSTRIES is not None and ind not in TOP_INDUSTRIES:
@@ -529,6 +632,7 @@ def main():
         name = t.get('name') or t.get('n') or ''
         if not name:
             continue
+        zh_desc = t.get('d') or t.get('desc') or ''
         url = t.get('u') or t.get('url') or ''
         base = url.split('/')[-1].replace('.html', '')
         if not base:
@@ -538,26 +642,38 @@ def main():
         # 占位符优先：人工逐条翻译强制覆盖规则引擎产物（即使规则引擎已翻出英文）
         ph = PLACEHOLDER_KEY.get((ind, base))
         if isinstance(ph, dict):
-            ov[key] = {'en': ph.get('en'), 'ed': ph.get('ed') or slug_to_intro(ph.get('en'), base), 'ind': ind}
+            ov[key] = {'en': ph.get('en'), 'ed': ph.get('ed') or slug_to_intro(ph.get('en'), base, zh_desc), 'ind': ind}
             continue
         if isinstance(ph, str):
-            ov[key] = {'en': ph, 'ed': slug_to_intro(ph, base), 'ind': ind}
+            ov[key] = {'en': ph, 'ed': slug_to_intro(ph, base, zh_desc), 'ind': ind}
             continue
         rn = _halfwidth(translate_name(name))
         if not _ZH_RUN.search(rn):
-            # 规则引擎已翻出英文 en：统一写入英文 ed（slug_to_intro 模板），
-            # 消除工具页中文 desc 经 translate_text 残留的中文简介。
-            # 注意：不能依赖 search-index 旧 ed 判断，否则 _build 每轮重建会令中文 ed 回流。
-            ov[key] = {'en': rn, 'ed': slug_to_intro(rn, base), 'ind': ind}
+            # 单通用词/纯动作词（Detect / Finance / Quality）不写入，记 needs_review
+            if _is_generic_english(rn):
+                _record_review(review, ov, prev, key, base, name, 'single_generic_word', rn)
+                continue
+            # 规则引擎已翻出英文 en：英文 ed 优先中文简介整句翻译，其次具体动作短语
+            ov[key] = {'en': rn, 'ed': slug_to_intro(rn, base, zh_desc), 'ind': ind}
             continue
         en = slug_to_name(base)
         if not en:
+            # 编号 slug / 纯通用词 slug：禁止 title-case 造名，记 needs_review
+            _record_review(review, ov, prev, key, base, name, 'numbered_or_generic_slug', '')
             continue
-        ov[key] = {'en': en, 'ed': slug_to_intro(en, base), 'ind': ind}
-    os.makedirs(os.path.dirname(OUT_PATH), exist_ok=True)
-    json.dump(ov, open(OUT_PATH, 'w', encoding='utf-8'),
-              ensure_ascii=False, indent=0, separators=(',', ':'))
-    print('[gen_en_override] tools=%d -> %s' % (len(ov), OUT_PATH))
+        ov[key] = {'en': en, 'ed': slug_to_intro(en, base, zh_desc), 'ind': ind}
+    if not report_only:
+        os.makedirs(os.path.dirname(OUT_PATH), exist_ok=True)
+        json.dump(ov, open(OUT_PATH, 'w', encoding='utf-8'),
+                  ensure_ascii=False, indent=0, separators=(',', ':'))
+    os.makedirs(os.path.dirname(REVIEW_PATH), exist_ok=True)
+    json.dump(sorted(review, key=lambda x: x['key']), open(REVIEW_PATH, 'w', encoding='utf-8'),
+              ensure_ascii=False, indent=1)
+    if report_only:
+        print('[gen_en_override] needs-review=%d -> %s（未改写 _en_override.json）' % (len(review), REVIEW_PATH))
+    else:
+        print('[gen_en_override] tools=%d -> %s' % (len(ov), OUT_PATH))
+        print('[gen_en_override] needs-review=%d -> %s' % (len(review), REVIEW_PATH))
 
 if __name__ == '__main__':
     main()
