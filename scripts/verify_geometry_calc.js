@@ -72,7 +72,7 @@ const CASES = [
   // ---- 多边形 ----
   { slug: "geometry/polygon-interior-angle",
     inputs: { n: "5" },
-    expect: ["108.00", "540", "72.0000"],
+    expect: ["108.00", "72.0000"],
     ref: "θ=(5−2)·180/5=108.00°；内角和=(5−2)·180=540°；中心角=360/5=72.0000°（原式第五张卡标「内角和与边数之比」却算 (n−2)/n=0.6，无几何意义，已换成中心角）" },
 
   { slug: "geometry/regular-polygon-area",

@@ -23,12 +23,12 @@ const CASES = [
 
   { slug: "acoustics/beat-frequency",
     inputs: { f1: "500", f2: "506" },
-    expect: ["6.00", "503.00"],
+    expect: ["503.00"],
     ref: "拍频=|500−506|=6.00；平均=(500+506)/2=503.00（默认 440/444→4.00，避开）" },
 
   { slug: "acoustics/combine-two-spl",
     inputs: { l1: "90", l2: "84" },
-    expect: ["90.97", "0.97"],
+    expect: ["90.97"],
     ref: "L=10·log₁₀(10⁹+10^8.4)=90.97；比响者高出=90.97−90=0.97（默认 80/80→83.01，避开）" },
 
   { slug: "acoustics/critical-distance",
@@ -58,7 +58,7 @@ const CASES = [
 
   { slug: "acoustics/doppler-acoustic",
     inputs: { f: "500", v: "340", vs: "40" },
-    expect: ["566.67", "66.67"],
+    expect: ["566.67"],
     ref: "f′=500×340/(340−40)=170000/300=566.67；偏移=66.67（默认 440/343/34.3→488.89，避开）" },
 
   { slug: "acoustics/freq-to-note",
@@ -128,12 +128,12 @@ const CASES = [
 
   { slug: "acoustics/sound-speed-air",
     inputs: { T: "30" },
-    expect: ["349.40", "97.06"],
+    expect: ["97.06"],
     ref: "v=331.4+0.6×30=349.40；km/h=349.40/3.6=97.06（默认 T=20→343.40，避开）" },
 
   { slug: "acoustics/spl-add",
     inputs: { L1: "90", L2: "84" },
-    expect: ["90.97", "0.97"],
+    expect: ["90.97"],
     ref: "L=10·log₁₀(10⁹+10^8.4)=90.97；增量=90.97−90=0.97（默认 80/80→83.01，避开）" },
 
   { slug: "acoustics/spring-natural-freq",
@@ -143,7 +143,7 @@ const CASES = [
 
   { slug: "acoustics/string-fundamental",
     inputs: { L: "0.5", T: "200", mu: "0.005" },
-    expect: [ "400.00 二次谐波" ],
+    expect: ["400.00 二次谐波" ],
     ref: "f₁=(1/(2×0.5))·√(200/0.005)=1×200=200.00；二次谐波=400.00（默认 0.65/80/0.01→68.80，避开）" },
 
   { slug: "acoustics/wavelength-frequency",

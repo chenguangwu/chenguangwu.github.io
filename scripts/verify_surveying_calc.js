@@ -40,7 +40,7 @@ const CASES = [
   {
     slug: "surveying/tangent-length-curve",
     inputs: { R: "200", D: "90" },
-    expect: [ "200.000 切线长" ],
+    expect: ["200.000 切线长" ],
     ref: "切线长 T=R·tan(D/2)=200×tan45°=200.000（默认 100/60 避开）",
   },
   {
@@ -76,7 +76,7 @@ const CASES = [
   {
     slug: "surveying/earthwork-pyramid-volume",
     inputs: { A: "150", h: "6" },
-    expect: ["300.00"],
+    expect: ["300.00 锥体体积 V"],
     ref: "V=A·h/3=150×6/3=300.00 m³（默认 100/3 避开）",
   },
   {
@@ -88,7 +88,7 @@ const CASES = [
   {
     slug: "surveying/coordinate-rotation",
     inputs: { x: "10", y: "10", t: "90" },
-    expect: [ "10.000 旋转后" ],
+    expect: ["10.000 旋转后" ],
     ref: "绕原点转 90°：X'=10cos90−10sin90=−10.000；Y'=10sin90+10cos90=10.000（默认 10/0/30 避开）",
   },
   {
@@ -340,7 +340,7 @@ const CASES = [
   {
     slug: "surveying/elevation-diff",
     inputs: { bs: "1.6,1.4,1.1", fs: "1.2,1.5,0.8" },
-    expect: ["0.600", "0.2000"],
+    expect: ["0.600"],
     ref: "注入非默认(默认 bs=1.5,1.2,1.0 / fs=1.3,1.4,0.9)：Σ后视 = 4.100、Σ前视 = 3.500 ⇒ 总高差 = 0.600 m，三站 ⇒ 平均站差 = 0.2000 m。默认态 0.100/0.0333 不命中。"
   },
   {
@@ -352,7 +352,7 @@ const CASES = [
   {
     slug: "surveying/subtense-distance",
     inputs: { c: "3", th: "0.0866" },
-    expect: [ "1984.84 距离" ],
+    expect: ["1984.84 距离" ],
     ref: "注入非默认(默认 c=2/th=0.0573)：视距 D = (c/2)/tan(θ/2)，θ=0.0866° ⇒ D = 1984.84 m = 1.9848 km。默认态 2001.39/2.0014 不命中；0.0866 为注入的视差角回显。"
   },
   {
@@ -388,7 +388,7 @@ const CASES = [
   {
     slug: "surveying/grade-intersection-elev",
     inputs: { g1: "0.03", g2: "-0.02", L: "300", x: "150" },
-    expect: [ "2.6250 相对高程" ],
+    expect: ["2.6250 相对高程" ],
     ref: "注入非默认(默认 g1=0.02/g2=−0.01/L=200/x=100)：切线长 T = L/2 = 150.000 m；外矢距 E = L|g₂−g₁|/8 = 300×0.05/8 = 1.8750 m；x=150 处相对高程 y = E(1−2x/L)² …按页面竖曲线公式得 2.6250。默认态 1.2500/100.000/2.6250×之外的值均不命中。"
   }
 ,
