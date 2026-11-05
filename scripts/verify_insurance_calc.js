@@ -102,6 +102,16 @@ const CASES = [
     expect: ["1,200,000.00"],
     ref: "建议保额 = 收入×年数+负债−资产 = 50000×20+300000−100000 = 1,200,000.00（默认空→0 避开）" },
 
+  { slug: "insurance/life-cover-need",
+    inputs: { income: "", years: "10", debt: "1000000", asset: "500000" },
+    expect: ["请填写：年收入"],
+    ref: "空态守卫（A 类）：年收入留空时旧实现 num('')=0 → 输出「建议保额 0.00 元」这类无意义结论；现前置判空并点名缺失字段。默认 income=300000 ⇒ 不命中。" },
+
+  { slug: "insurance/life-cover-need",
+    inputs: { income: "0", years: "10", debt: "1000000", asset: "500000" },
+    expect: ["0.00 收入替代部分"],
+    ref: "显式 0 合法：年收入 0（无收入）仍按 0×10+1000000−500000 计算，收入替代部分=0.00；证明判空只看空字符串、不把数值 0 当缺失。默认 income=300000 得 3,000,000.00 ⇒ 不命中。" },
+
   { slug: "insurance/loss-ratio",
     inputs: { claims: "333", premium: "1000" },
     expect: ["33.30"],

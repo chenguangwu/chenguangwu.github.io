@@ -256,6 +256,21 @@ const CASES = [
     "_X"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "electrical/home-load-estimate",
+  "inputs": {
+    "fridge": "0",
+    "ac": "0",
+    "washer": "0",
+    "waterheater": "0",
+    "kitchen": "0",
+    "light": "0"
+  },
+  "expect": [
+    "无需给出进线与总开关建议"
+  ],
+  "ref": "B 类（0 被贴错标签）：装机总功率 0 W 是合法输入（空房/未勾选家电），旧实现落入 current<=25 分支仍给出「2.5 mm² 进线 / 32 A 总开关」；现 0 负荷不再给进线建议，改为说明无负荷。默认 1/2/1/1/3000/500 ⇒ 不命中。"
 }
 ];
 async function main() {

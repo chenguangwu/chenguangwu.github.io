@@ -293,13 +293,19 @@ function calcLeveling() {
   const rows = document.querySelectorAll('#sections .input-row');
 
   const sections = [];
+  const __miss = [];
   let sumObs = 0;
   let sumFactor = 0;
+
+  if (String(document.getElementById('bmStart').value).trim() === '') __miss.push(__EN?'start elevation':'起点高程');
+  if (String(document.getElementById('bmEnd').value).trim() === '') __miss.push(__EN?'end elevation':'终点高程');
 
   // 优先按 id 直读（addSection 模板为每个测段生成 dh-<n>/fc-<n>；已删除测段的 getElementById 返 null 即跳过）
   for (let si = 1; si <= sectionCount; si++) {
     const de = document.getElementById('dh-' + si), fe = document.getElementById('fc-' + si);
     if (de && fe) {
+      if (String(de.value).trim() === '') __miss.push((__EN?'section ':'测段 ') + si + (__EN?' diff h':' 高差 h'));
+      if (String(fe.value).trim() === '') __miss.push((__EN?'section ':'测段 ') + si + (__EN?' setups/distance':' 测站数/距离'));
       const dh = parseFloat(de.value) || 0, f = parseFloat(fe.value) || 0;
       sections.push({ dh, f });
       sumObs += dh;
@@ -307,9 +313,12 @@ function calcLeveling() {
     }
   }
   if (!sections.length) {
-    rows.forEach(row => {
-      const dh = parseFloat(row.querySelector('.dh').value) || 0;
-      const f = parseFloat(row.querySelector('.factor').value) || 0;
+    rows.forEach((row, idx) => {
+      const dhEl = row.querySelector('.dh'), fEl = row.querySelector('.factor');
+      if (String(dhEl.value).trim() === '') __miss.push((__EN?'section ':'测段 ') + (idx + 1) + (__EN?' diff h':' 高差 h'));
+      if (String(fEl.value).trim() === '') __miss.push((__EN?'section ':'测段 ') + (idx + 1) + (__EN?' setups/distance':' 测站数/距离'));
+      const dh = parseFloat(dhEl.value) || 0;
+      const f = parseFloat(fEl.value) || 0;
       sections.push({ dh, f });
       sumObs += dh;
       sumFactor += f;
@@ -318,6 +327,17 @@ function calcLeveling() {
 
   if (sections.length === 0) {
     ToolBox.setResult('result', __EN?'<p class="tip-error">Add at least one section.</p>':'<p class="tip-error">请至少添加一个测段。</p>');
+    return;
+  }
+
+  // 空值不能按 0 参与平差：dt/fc 留空时若静默取 0 会得到 fh=0、容许闭合差=0 而误判「合格」
+  if (__miss.length) {
+    ToolBox.setResult('result', __EN?'<p class="tip-error">Please fill in: '+__miss.join(', ')+'.</p>':'<p class="tip-error">请填写：'+__miss.join('、')+'。</p>');
+    return;
+  }
+  // 测站数/距离合计为 0 时容许闭合差恒为 0（任何闭合差都判超限，0 闭合差则误判合格），属非法输入
+  if (!(sumFactor > 0)) {
+    ToolBox.setResult('result', __EN?'<p class="tip-error">Setups / distance must be greater than 0.</p>':'<p class="tip-error">测站数/距离须大于 0，请检查各测段。</p>');
     return;
   }
 
