@@ -71,14 +71,6 @@ const CASES = [
   "ref": "静态控件数为 0（12 个评分 select 由 MDULES 遍历运行期拼 innerHTML 生成，id 形如 m0_0…m2_3），故用 clicks 在页面作用域内把全部 select 置为已落实（2 分）后调 calc()。三个模块各 4 项 × 2 分 = 24 满分 ⇒ 全 2 分后 totalScore=24、rate=100% ⇒ 走 gaps 为空的分支渲染「全部项目已落实」，模块表每行得分列为 8/8。默认态全 0 分 ⇒ rate=0%、渲染「需整改项（12）」、模块列 0/8（两串均不含，原 expect「0/8」即默认渲染串、零判别力，已废弃）。"
 },
 {
-  "slug": "admin/detector-time",
-  "inputs": {},
-  "expect": [
-    "请添加会议日程并填写时间"
-  ],
-  "ref": "结构性不可注入（沿用 tcm-diagnosis/etiology-tree 的处理口径）：日程行由 addRow() 用 document.createElement + #rows.appendChild 建立，detect() 靠 document.querySelectorAll('#rows .input-row') 遍历取值。桩环境的 dynRecord 只登记 innerHTML 解析出的标签（不含容器 div 自身），故该选择器恒返回空 ⇒ addRow 后在桩里永远得到「共 0 个有效日程」。实测 clicks=[addRow(...)×2] 仍无法产出冲突结果（且 FAIL 时的 blob 会被兜底阶段的无参 render() 覆盖回默认，容易误判「clicks 未生效」）。维持 no_inputs，断言初始化渲染串。"
-},
-{
   "slug": "admin/meeting-conflict",
   "clicks": [
     "events=[{name:'甲',start:'08:00',end:'09:30'},{name:'乙',start:'09:00',end:'11:00'},{name:'丙',start:'13:00',end:'14:00'}];renderList();render()"

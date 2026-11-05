@@ -5,14 +5,14 @@ const CASES = [
 {
   "slug": "ophthalmology/amblyopia-stereopsis",
   "inputs": {
-    "age": "5",
-    "stereoLevel": "60"
+    "age": "7",
+    "stereoLevel": "100"
   },
   "expect": [
-    "60"
+    "评估： 轻度异常",
+    "年龄评估： 低于该年龄段正常值"
   ],
-    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
-  "ref": "auto-restore"
+  "ref": "原注入 age=5/stereoLevel=60 与页面默认值完全相同（age 默认 5、stereo 默认 selected 60），且原锚「60」是下拉回显 ⇒ 零判别力。改为 7 岁 + 100″：stereo=100 ⇒ 分级走 stereo<=100 分支得「轻度异常」，年龄 7 岁（>6）且 100>60 ⇒ 「年龄评估：低于该年龄段正常值」。默认 5 岁/60″ 为「正常立体视 / 符合年龄段正常范围」，两锚均不命中。"
 },
 // 注：ophthalmology/analysis-12 已于 2026-09-19 改为 TOOLBOX-REDIRECT 存根（重定向到同义真工具），不再是工具页，用例移除。
 {

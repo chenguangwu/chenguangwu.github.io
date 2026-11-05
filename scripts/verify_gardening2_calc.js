@@ -27,14 +27,6 @@ const CASES = [
   "ref": "去默认化（原 expect「推荐2.5cm」＝默认春季态，注入失败仍命中 → 逃生项）：harness 将元素 click() 桩成空操作，故改直接置顶层全局 currentSeason='winter' 后调 renderGrass()/renderHeight()，heightDisplay 渲染冬季草种留茬「2 cm 狗牙根（百慕大） · 冬季 · 暖季型（休眠期）」；默认春季显示「2.5 cm ... · 春季」，注入失败即不命中。（getTip 在暖季型冬季分支报错但被 clicks 的 try/catch 吞掉，不影响 heightDisplay 已写入。）"
 },
 {
-  "slug": "gardening2/pest-control",
-  "inputs": {},
-  "expect": [
-    "10-14天"
-  ],
-  "ref": "结构性不可注入（2026-09-26 复核，原 ref 为 auto-restore(default) 未评估项）：页面仅一个 `PESTS` 常量数组（12 条）与顶层 `render()`，render 内 forEach 恒全量拼 HTML 覆写 `#pestGrid`，**既无筛选函数、也无任何 input/select/按钮**；除 render() 外无第二个函数 ⇒ 无随交互变化的输出。唯一「活路」是整体替换顶层 `PESTS` 后重渲，但那属于伪造页面数据源、不测页面逻辑，仍非真注入 ⇒ 维持 no_inputs，断言初始化渲染串。"
-},
-{
   "slug": "gardening2/pruning-time",
   "inputs": {},
   "clicks": [

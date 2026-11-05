@@ -69,9 +69,9 @@ const CASES = [
   // ── 诉讼费（财产案件阶梯费率）──────────────────────────────────────
   {
     slug: "legal/court-fee",
-    inputs: { amount: "100000", caseType: "property", hasPropertySplit: "false", simplified: "false" },
-    expect: ["2,300"],
-    ref: "财产案件10万：100000×2.5%−200=2300（分段：≤1万50；1-10万2.5%−200）",
+    inputs: { amount: "250000", caseType: "property", hasPropertySplit: "false", simplified: "false" },
+    expect: ["5,050.00"],
+    ref: "财产案件25万：20万-50万档 = 250000×1.5%+1300 = 3750+1300 = 5,050.00 元（原注入 100000 与页面默认值相同 ⇒ 默认态即得 2,300，属零判别力；改注入非默认 250000 后才走 20-50 万档）",
   },
   // ── 知识产权保护期（著作权自然人：死亡后50年）─────────────────────
   {

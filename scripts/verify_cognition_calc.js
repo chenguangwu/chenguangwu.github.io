@@ -77,17 +77,6 @@ const CASES = [
 },
 {
   "slug": "cognition/human-benchmark",
-  "inputs": {
-    "tArea": ""
-  },
-  "expect": [
-    "9×9"
-  ],
-  "ref": "结构性不可改造（保留 all_default，勿重复评估）：8 个子测验全部由点击 / 倒计时 / 随机序列驱动，"
-     + "成绩存 localStorage 历史；无表单输入路径可注入，注入 tArea 不触发任何渲染（2026-09-25 实测）。"
-},
-{
-  "slug": "cognition/human-benchmark",
   "clicks": [
     "var P=[6,1,4,8];document.getElementById('cLog').textContent='CHIMP-MAP:'+window.chimpNumAt(P,6)+window.chimpNumAt(P,1)+window.chimpNumAt(P,4)+window.chimpNumAt(P,8);"
   ],

@@ -142,14 +142,6 @@ const CASES = [
     "17.19%"
   ],
   "ref": "v0=750,v1=80 → 撕裂指数=750/80=9.375 mN·m²/g、每 100 g/m² 归一化 937.5 mN、相对 8.0 基准 (9.375-8)/8×100=17.19%（默认 500/60 → 8.333/833.3/4.17%；swap 0.120/12.0/-98.50%，均不重合）"
-},
-{
-  "slug": "paper/paper-grade",
-  "inputs": {},
-  "expect": [
-    "12.0"
-  ],
-  "ref": "结构性不可注入（2026-09-26 复核，原 ref 为 auto-restore(default) 未评估项）：同 film/color-grading 口径 —— 有 `#searchInput` 与顶层 `filterTable()`，但函数体内唯一副作用是 `tr.style.display = '' | 'none'`，collectStrings 不采 style、隐藏行的 textContent 仍被采集 ⇒ 过滤态与默认态输出恒等。"
 }
 ];
 async function main() {

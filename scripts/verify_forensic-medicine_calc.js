@@ -109,13 +109,18 @@ const CASES = [
 {
   "slug": "forensic-medicine/drowning-diatom",
   "inputs": {
-    "waterDiatom": "medium"
+    "organ_0": "0",
+    "organ_1": "0",
+    "organ_2": "0",
+    "organ_3": "0",
+    "organ_4": "0",
+    "waterDiatom": "low"
   },
   "expect": [
-    "medium"
+    "不支持溺死（或水体硅藻过少，溺死仍有可能）",
+    "水体硅藻浓度低（如自来水/清洁水体），即使溺死也可能不检出硅藻"
   ],
-    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
-  "ref": "auto-restore"
+  "ref": "五器官硅藻计数全置 0（organ_0..organ_4，默认值来自 organs 数组的阳性计数）+ 水体浓度 low：lung=0 且 totalPositive=0 走 `waterDiatom==='low'` 分支 ⇒ 诊断「不支持溺死（或水体硅藻过少，溺死仍有可能）」+ 低浓度提示。原注入 waterDiatom=medium 与默认 selected 相同、且 expect 只是下拉回显「medium」⇒ 零判别力。"
 },
 {
   "slug": "forensic-medicine/electrocution-injury",

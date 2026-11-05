@@ -38,12 +38,12 @@ const CASES = [
 {
   "slug": "travel/luggage-size",
   "inputs": {
-    "size": "20"
+    "size": "24"
   },
   "expect": [
-    "国际标准随身尺寸约55×40×20cm"
+    "三边总和： 127 cm"
   ],
-  "ref": "auto-restore"
+  "ref": "尺寸结果卡按 SIZE_DATA[size] 渲染：24 寸 = 60×41×26 cm，三边和 60+41+26 = 127 cm，携带方式「需托运」（超过随身 115 cm 限制）。原注入 size=20 与页面默认 selected 相同 ⇒ 默认即 108 cm，零判别力；且原锚「国际标准随身尺寸约55×40×20cm」是页面 FAQ 静态文案，与输入无关。"
 },
 {
   "slug": "daily-goods/shoe-size",

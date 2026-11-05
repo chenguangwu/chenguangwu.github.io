@@ -93,10 +93,12 @@ const CASES = [
 {
   "slug": "beauty/calc-2",
   "inputs": {
-    "tone": "light"
+    "tone": "deep"
   },
-  "expect": ["light\nneutral\nneutral\nneutral\nN15-N20 中性二白 肤色深浅： 白皙 · 肤色调： 中性调（Neutral） 选色建议：选择中性底色（N/Neutral），兼容度最高。"],
-  "ref": "auto-restore"
+  "expect": [
+    "N30-N40 中性深肤"
+  ],
+  "ref": "选色结果卡 = SHADES[tone][vein]：tone=deep、vein 保持默认 neutral ⇒ 色号 N30-N40、描述「中性深肤」。原注入 tone=\"light\" 与页面默认 selected 相同 ⇒ 默认态即 N15-N20 中性二白，且原 expect 整段含 4 行输入回显（light/neutral×3）⇒ 零判别力。默认态全文无「N30-N40」。"
 },
 {
   "slug": "beauty/checker-14",
@@ -239,12 +241,12 @@ const CASES = [
 {
   "slug": "beauty/skincare-routine",
   "inputs": {
-    "ageGroup": "25"
+    "ageGroup": "40"
   },
   "expect": [
-    "25-30岁"
+    "年龄段： 40岁以上"
   ],
-  "ref": "auto-restore"
+  "ref": "护理流程卡按 ROUTINES[ageGroup] 渲染：注入 40 ⇒ 年龄档「40岁以上」、主打紧致抗皱。原注入 ageGroup=\"25\" 与页面默认 selected 相同，且原锚「25-30岁」既是下拉选项文本、又是默认渲染值 ⇒ 默认态即命中，零判别力。"
 }
 ];
 async function main() {

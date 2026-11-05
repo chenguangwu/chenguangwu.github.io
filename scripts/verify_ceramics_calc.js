@@ -35,11 +35,13 @@ const CASES = [
 },
 {
   "slug": "ceramics/glaze-temp",
-  "inputs": {},
+  "inputs": {
+    "coneTargetTemp": "1150"
+  },
   "expect": [
-    "1060°C"
+    "最接近测温锥：4 · 1142°C · 中温"
   ],
-  "ref": "结构性不可注入（2026-10-10 复核，原 ref 为 auto-restore(default) 未评估项）：页面唯一输入为 #search（oninput=renderTable），renderTable 按锥号/温度子串过滤 CONES 表；过滤结果恒为默认全量表的子集，且无「未找到匹配」提示、无结果计数 ⇒ 不存在「注入态有而默认态无」的正串可锚（判据：关键词过滤+空关键词输出全量型页，只能反向锚空结果提示，本页无该提示）。维持 no_inputs，断言默认全量表常量串「1060°C」（CATS 低温釉 range 与锥 01 行均含，常量）。"
+  "ref": "改用页面真实计算输入：#coneTargetTemp（默认 1200，oninput=__coneLookup）。注入 1150 ⇒ 与 CONES 最近的锥 4（1142°C，中温），差值 +8°C（「高于锥号 4（1142°C）8°C」）、华氏 ≈2102.0 °F，判定在 ±30°C 容差内。原断言「1060°C」是默认全量表 CONES 的常量行（锥 01），与输入无关 ⇒ 零判别力，且该页本就有可注入的计算器，无需以 no_inputs 兜底。"
 },
 {
   "slug": "ceramics/kiln-firing",

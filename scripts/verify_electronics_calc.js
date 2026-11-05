@@ -238,13 +238,13 @@ const CASES = [
 {
   "slug": "electronics/resistor-calculator",
   "inputs": {
-    "list": "100, 200, 400",
+    "list": "100, 550, 300",
     "vin": "18",
     "r1": "1000",
     "r2": "2000"
   },
-  "expect": [ "最大值 400.00" ],
-  "ref": "auto-restore"
+  "expect": [ "最大值 550.00" ],
+  "ref": "串联结果卡 = 总/最小/最大值三格：三只电阻 100、550、300 Ω 串联合计 950.00 Ω，最小 100.00、最大 550.00。原注入 '100, 200, 400' 与页面默认 value 完全相同（默认最大值即 400.00）⇒ 零判别力，改为默认没有的 550 Ω。"
 },
 {
   "slug": "electronics/smt-stencil",

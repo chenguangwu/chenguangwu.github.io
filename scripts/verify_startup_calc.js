@@ -51,22 +51,6 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "startup/equity-calculator",
-  "inputs": {
-    "w_idea": "3",
-    "w_money": "1",
-    "w_time": "2",
-    "w_res": "2",
-    "pool": "15",
-    "mode": "weighted"
-  },
-  "expect": [
-    "weighted"
-  ],
-    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
-  "ref": "auto-restore"
-},
-{
   "slug": "startup/pitch-deck",
   "inputs": {
     "company": "示例科技有限公司_X",

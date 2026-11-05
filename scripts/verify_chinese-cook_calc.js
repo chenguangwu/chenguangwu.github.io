@@ -56,12 +56,12 @@ const CASES = [
 {
   "slug": "chinese-cook/wok-heat",
   "inputs": {
-    "heat": "zhong"
+    "heat": "wang"
   },
   "expect": [
-    "均匀受热便于上色"
+    "爆炒腰花、清炒时蔬"
   ],
-  "ref": "auto-restore"
+  "ref": "火候详情卡按 HEATS[heat] 渲染：注入 wang（旺火）⇒ 代表菜品「爆炒腰花、清炒时蔬」、火焰「高出锅底，色白亮」、温度「高温」。原注入 zhong 与页面默认 selected 相同 ⇒ 零判别力；且原锚「均匀受热便于上色」正是中火条目，属于复述默认态。改锚旺火专属菜品（默认态全文无「腰花」）。"
 }
 ,
 {
