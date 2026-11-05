@@ -396,6 +396,186 @@ const CASES = [
     "expect": ["__UPDRS_RST_OK__"],
     "ref": "重置态：新增的「重置评分」按钮调 resetAll() ⇒ 14 项回默认 0、dirty 复位，决策文案消失。"
   }
+  ,{
+      "slug": "neurology/twstrs",
+      "clicks": [
+          "var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/TWSTRS 总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__TWSTRS_DEF_OK__':'__TWSTRS_DEF_FAIL__ '+__b;"
+      ],
+      "expect": [
+          "__TWSTRS_DEF_OK__"
+      ],
+      "ref": "默认态（量表项全为 0=正常）：只出分数 + 提示，结果区不含 分级/建议/诊断/治疗/风险。"
+  }
+  ,{
+      "slug": "neurology/twstrs",
+      "clicks": [
+          "var __e=document.getElementById('m1');__e.fire('change');var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/治疗建议/.test(__b)&&/TWSTRS 总分/.test(__b);document.getElementById('result').innerHTML=__ok?'__TWSTRS_MOD_OK__':'__TWSTRS_MOD_FAIL__ '+__b;"
+      ],
+      "expect": [
+          "__TWSTRS_MOD_OK__"
+      ],
+      "ref": "改动态：任一量表项触发 change ⇒ dirty 置位，分级/建议文案出现。"
+  }
+  ,{
+      "slug": "neurology/twstrs",
+      "clicks": [
+          "resetAll();var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/TWSTRS 总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__TWSTRS_RST_OK__':'__TWSTRS_RST_FAIL__ '+__b;"
+      ],
+      "expect": [
+          "__TWSTRS_RST_OK__"
+      ],
+      "ref": "重置态：新增「重置评分」按钮 → resetAll() 先复位 dirty 再复算，决策文案消失。"
+  }
+  ,{
+      "slug": "neurology/sara",
+      "clicks": [
+          "var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/SARA 总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__SARA_DEF_OK__':'__SARA_DEF_FAIL__ '+__b;"
+      ],
+      "expect": [
+          "__SARA_DEF_OK__"
+      ],
+      "ref": "默认态（量表项全为 0=正常）：只出分数 + 提示，结果区不含 分级/建议/诊断/治疗/风险。"
+  }
+  ,{
+      "slug": "neurology/sara",
+      "clicks": [
+          "var __e=document.getElementById('q1');__e.fire('change');var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/治疗建议/.test(__b)&&/SARA 总分/.test(__b);document.getElementById('result').innerHTML=__ok?'__SARA_MOD_OK__':'__SARA_MOD_FAIL__ '+__b;"
+      ],
+      "expect": [
+          "__SARA_MOD_OK__"
+      ],
+      "ref": "改动态：任一量表项触发 change ⇒ dirty 置位，分级/建议文案出现。"
+  }
+  ,{
+      "slug": "neurology/sara",
+      "clicks": [
+          "resetAll();var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/SARA 总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__SARA_RST_OK__':'__SARA_RST_FAIL__ '+__b;"
+      ],
+      "expect": [
+          "__SARA_RST_OK__"
+      ],
+      "ref": "重置态：新增「重置评分」按钮 → resetAll() 先复位 dirty 再复算，决策文案消失。"
+  }
+  ,{
+      "slug": "neurology/alsfrs-r",
+      "clicks": [
+          "var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/ALSFRS-R 总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__ALSFRS_R_DEF_OK__':'__ALSFRS_R_DEF_FAIL__ '+__b;"
+      ],
+      "expect": [
+          "__ALSFRS_R_DEF_OK__"
+      ],
+      "ref": "默认态（量表项全为 0=正常）：只出分数 + 提示，结果区不含 分级/建议/诊断/治疗/风险。"
+  }
+  ,{
+      "slug": "neurology/alsfrs-r",
+      "clicks": [
+          "var __e=document.getElementById('b1');__e.fire('change');var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/治疗建议/.test(__b)&&/ALSFRS-R 总分/.test(__b);document.getElementById('result').innerHTML=__ok?'__ALSFRS_R_MOD_OK__':'__ALSFRS_R_MOD_FAIL__ '+__b;"
+      ],
+      "expect": [
+          "__ALSFRS_R_MOD_OK__"
+      ],
+      "ref": "改动态：任一量表项触发 change ⇒ dirty 置位，分级/建议文案出现。"
+  }
+  ,{
+      "slug": "neurology/alsfrs-r",
+      "clicks": [
+          "resetAll();var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/ALSFRS-R 总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__ALSFRS_R_RST_OK__':'__ALSFRS_R_RST_FAIL__ '+__b;"
+      ],
+      "expect": [
+          "__ALSFRS_R_RST_OK__"
+      ],
+      "ref": "重置态：新增「重置评分」按钮 → resetAll() 先复位 dirty 再复算，决策文案消失。"
+  }
+  ,{
+      "slug": "neurology/qmg",
+      "clicks": [
+          "var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/QMG 总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__QMG_DEF_OK__':'__QMG_DEF_FAIL__ '+__b;"
+      ],
+      "expect": [
+          "__QMG_DEF_OK__"
+      ],
+      "ref": "默认态（量表项全为 0=正常）：只出分数 + 提示，结果区不含 分级/建议/诊断/治疗/风险。"
+  }
+  ,{
+      "slug": "neurology/qmg",
+      "clicks": [
+          "var __e=document.getElementById('q1');__e.fire('change');var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/治疗建议/.test(__b)&&/QMG 总分/.test(__b);document.getElementById('result').innerHTML=__ok?'__QMG_MOD_OK__':'__QMG_MOD_FAIL__ '+__b;"
+      ],
+      "expect": [
+          "__QMG_MOD_OK__"
+      ],
+      "ref": "改动态：任一量表项触发 change ⇒ dirty 置位，分级/建议文案出现。"
+  }
+  ,{
+      "slug": "neurology/qmg",
+      "clicks": [
+          "resetAll();var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/QMG 总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__QMG_RST_OK__':'__QMG_RST_FAIL__ '+__b;"
+      ],
+      "expect": [
+          "__QMG_RST_OK__"
+      ],
+      "ref": "重置态：新增「重置评分」按钮 → resetAll() 先复位 dirty 再复算，决策文案消失。"
+  }
+  ,{
+      "slug": "neurology/moca",
+      "clicks": [
+          "var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/MoCA 总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__MOCA_DEF_OK__':'__MOCA_DEF_FAIL__ '+__b;"
+      ],
+      "expect": [
+          "__MOCA_DEF_OK__"
+      ],
+      "ref": "默认态（量表项全为 0=正常）：只出分数 + 提示，结果区不含 分级/建议/诊断/治疗/风险。"
+  }
+  ,{
+      "slug": "neurology/moca",
+      "clicks": [
+          "var __e=document.getElementById('v1');__e.fire('change');var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/建议/.test(__b)&&/MoCA 总分/.test(__b);document.getElementById('result').innerHTML=__ok?'__MOCA_MOD_OK__':'__MOCA_MOD_FAIL__ '+__b;"
+      ],
+      "expect": [
+          "__MOCA_MOD_OK__"
+      ],
+      "ref": "改动态：任一量表项触发 change ⇒ dirty 置位，分级/建议文案出现。"
+  }
+  ,{
+      "slug": "neurology/moca",
+      "clicks": [
+          "resetAll();var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/MoCA 总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__MOCA_RST_OK__':'__MOCA_RST_FAIL__ '+__b;"
+      ],
+      "expect": [
+          "__MOCA_RST_OK__"
+      ],
+      "ref": "重置态：新增「重置评分」按钮 → resetAll() 先复位 dirty 再复算，决策文案消失。"
+  }
+  ,{
+      "slug": "neurology/adas-cog",
+      "clicks": [
+          "var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/ADAS-Cog 总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__ADAS_COG_DEF_OK__':'__ADAS_COG_DEF_FAIL__ '+__b;"
+      ],
+      "expect": [
+          "__ADAS_COG_DEF_OK__"
+      ],
+      "ref": "默认态（量表项全为 0=正常）：只出分数 + 提示，结果区不含 分级/建议/诊断/治疗/风险。"
+  }
+  ,{
+      "slug": "neurology/adas-cog",
+      "clicks": [
+          "var __e=document.getElementById('q1');__e.fire('change');var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/评估说明/.test(__b)&&/ADAS-Cog 总分/.test(__b);document.getElementById('result').innerHTML=__ok?'__ADAS_COG_MOD_OK__':'__ADAS_COG_MOD_FAIL__ '+__b;"
+      ],
+      "expect": [
+          "__ADAS_COG_MOD_OK__"
+      ],
+      "ref": "改动态：任一量表项触发 change ⇒ dirty 置位，分级/建议文案出现。"
+  }
+  ,{
+      "slug": "neurology/adas-cog",
+      "clicks": [
+          "resetAll();var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/ADAS-Cog 总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__ADAS_COG_RST_OK__':'__ADAS_COG_RST_FAIL__ '+__b;"
+      ],
+      "expect": [
+          "__ADAS_COG_RST_OK__"
+      ],
+      "ref": "重置态：新增「重置评分」按钮 → resetAll() 先复位 dirty 再复算，决策文案消失。"
+  }
 ];
 async function main() {
   const only = process.argv.slice(2);

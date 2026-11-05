@@ -272,7 +272,7 @@ s.parentNode.insertBefore(el, s);
 
     <div class="toolbar">
       <div id="adas_cogPresets"></div><button type="button" class="btn primary" onclick="calc()">计算评分</button><button class="btn" type="button" onclick="__adas_cogExport()">导出明细 CSV</button>
-      <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" onclick="copyResult()">复制结果</button><button type="button" class="btn" onclick="resetAll()" title="恢复为未评估状态">重置评分</button>
     </div>
 
     <div class="result-box" id="result"></div>
@@ -376,11 +376,32 @@ s.parentNode.insertBefore(el, s);
 var items = ['q1','q2','q3','q4','q5','q6','q7','q8','q9','q10','q11'];
 var labels = ['1.单词回忆','2.命名','3.命令','4.结构性练习','5.意象性练习','6.定向力','7.单词辨认','8.回忆指令','9.口语能力','10.找词困难','11.语言理解'];
 
+var __defVals = {};
+items.forEach(function(id){ __defVals[id] = document.getElementById(id) ? document.getElementById(id).value : '0'; });
+var __scaleDirty = false;
+function __markScaleDirty(){ __scaleDirty = true; calc(); }
+items.forEach(function(id){
+  var __el = document.getElementById(id);
+  if(__el && __el.addEventListener){
+    __el.addEventListener('change', __markScaleDirty);
+    __el.addEventListener('input', __markScaleDirty);
+  }
+});
+
 function calc(){
   var total = 0;
   items.forEach(function(id, i){
     total += parseInt(document.getElementById(id).value) || 0;
   });
+
+  if(!__scaleDirty){
+    var __sh = '<div class="stat-grid"><div class="stat-card"><div class="val" style="color:#10B981;">'+total+'</div><div class="lbl">ADAS-Cog 总分</div></div></div>';
+    __sh += '<div class="info-box"><strong>当前为默认评分（0 分 = 正常），请按实际查体修改后查看解读。</strong></div>';
+    document.getElementById('result').innerHTML = __sh;
+    var __emrBox = document.getElementById('emrBox');
+    if(__emrBox && __emrBox.parentNode) __emrBox.parentNode.removeChild(__emrBox);
+    return;
+  }
 
   var sev, color, advice;
   if(total <= 4){ sev='正常/极轻'; color='#10B981'; advice='认知功能正常或极轻微损害。'; }
@@ -414,8 +435,11 @@ function calc(){
 function copyResult(){
   var total = 0;
   items.forEach(function(id){ total += parseInt(document.getElementById(id).value) || 0; });
+  if(!__scaleDirty){ ToolBox.copyText('ADAS-Cog评分：'+total+'分（默认评分，尚未按实际查体修改）', i18nText()); return; }
   ToolBox.copyText('ADAS-Cog评分：'+total+'分', i18nText());
 }
+
+function resetAll(){ items.forEach(function(id){ var __el=document.getElementById(id); __el.value=(__defVals[id]!==undefined?__defVals[id]:'0'); }); __scaleDirty=false; calc(); }
 
 calc();
 
@@ -451,6 +475,7 @@ function __emrNote(cfg){
 function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
 function __emrData(){
   if(typeof items==='undefined'||typeof labels==='undefined') return;
+  if(!__scaleDirty){ var __eb=document.getElementById('emrBox'); if(__eb&&__eb.parentNode) __eb.parentNode.removeChild(__eb); return; }
   var total=0,pos=[],i,sel,v,mx=0,mxT='',o;
   for(i=0;i<items.length;i++){
     sel=document.getElementById(items[i]); v=sel?(parseInt(sel.value)||0):0; total+=v;
@@ -476,8 +501,7 @@ function __emrData(){
 }
 
 var __emrW0=(typeof calc==='function')?calc:null;
-if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
-try{ __emrData(); }catch(e){}
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); if(__scaleDirty){ try{__emrData();}catch(e){} } return __er; }; }
 </script>
 
 <!-- SEO 介绍区块 -->
@@ -651,7 +675,7 @@ function __adas_cogExport(){
 }
 function __adas_cogPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#adas_cogPresets',[{label:'默认参数',labelEn:'Default',values:{'q1':'0', 'q2':'0', 'q3':'0', 'q4':'0', 'q5':'0', 'q6':'0', 'q7':'0', 'q8':'0', 'q9':'0', 'q10':'0', 'q11':'0'}},{"label":"轻度认知障碍","labelEn":"Mild cognitive impairment","values":{"q1":"1","q2":"1","q3":"1","q4":"1","q5":"1","q6":"1","q8":"1","q9":"1","q10":"1","q11":"1","q7":"2"}},{"label":"中度阿尔茨海默病","labelEn":"Moderate Alzheimer disease","values":{"q1":"3","q2":"3","q3":"3","q4":"3","q5":"3","q6":"3","q8":"3","q9":"3","q10":"3","q11":"3","q7":"6"}},{"label":"重度阿尔茨海默病","labelEn":"Severe Alzheimer disease","values":{"q1":"5","q2":"5","q3":"5","q4":"5","q5":"5","q6":"5","q8":"5","q9":"5","q10":"5","q11":"5","q7":"10"}}],function(){ calc(); });
+    TBKit.preset.bar('#adas_cogPresets',[{label:'默认参数',labelEn:'Default',values:{'q1':'0', 'q2':'0', 'q3':'0', 'q4':'0', 'q5':'0', 'q6':'0', 'q7':'0', 'q8':'0', 'q9':'0', 'q10':'0', 'q11':'0'}},{"label":"轻度认知障碍","labelEn":"Mild cognitive impairment","values":{"q1":"1","q2":"1","q3":"1","q4":"1","q5":"1","q6":"1","q8":"1","q9":"1","q10":"1","q11":"1","q7":"2"}},{"label":"中度阿尔茨海默病","labelEn":"Moderate Alzheimer disease","values":{"q1":"3","q2":"3","q3":"3","q4":"3","q5":"3","q6":"3","q8":"3","q9":"3","q10":"3","q11":"3","q7":"6"}},{"label":"重度阿尔茨海默病","labelEn":"Severe Alzheimer disease","values":{"q1":"5","q2":"5","q3":"5","q4":"5","q5":"5","q6":"5","q8":"5","q9":"5","q10":"5","q11":"5","q7":"10"}}],function(){ __scaleDirty=true; calc(); });
 }
 var __adas_cog_f0=(typeof calc==='function')?calc:null;
 if(__adas_cog_f0){

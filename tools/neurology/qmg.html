@@ -259,7 +259,7 @@ s.parentNode.insertBefore(el, s);
 
     <div class="toolbar">
       <div id="qmgPresets"></div><button type="button" class="btn primary" onclick="calc()">计算评分</button><button class="btn" type="button" onclick="__qmgExport()">导出明细 CSV</button>
-      <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" onclick="copyResult()">复制结果</button><button type="button" class="btn" onclick="resetAll()" title="恢复为未评估状态">重置评分</button>
     </div>
 
     <div class="result-box" id="result"></div>
@@ -362,11 +362,32 @@ s.parentNode.insertBefore(el, s);
 var items = ['q1','q2','q3','q4','q5','q6','q7','q8','q9','q10','q11','q12','q13'];
 var labels = ['1.复视','2.睑下垂','3.面肌无力','4.吞咽','5.发音','6.右上肢','7.左上肢','8.右握力','9.左握力','10.肺活量','11.右下肢','12.左下肢','13.颈屈'];
 
+var __defVals = {};
+items.forEach(function(id){ __defVals[id] = document.getElementById(id) ? document.getElementById(id).value : '0'; });
+var __scaleDirty = false;
+function __markScaleDirty(){ __scaleDirty = true; calc(); }
+items.forEach(function(id){
+  var __el = document.getElementById(id);
+  if(__el && __el.addEventListener){
+    __el.addEventListener('change', __markScaleDirty);
+    __el.addEventListener('input', __markScaleDirty);
+  }
+});
+
 function calc(){
   var total = 0;
   items.forEach(function(id, i){
     total += parseInt(document.getElementById(id).value) || 0;
   });
+
+  if(!__scaleDirty){
+    var __sh = '<div class="stat-grid"><div class="stat-card"><div class="val" style="color:#10B981;">'+total+'</div><div class="lbl">QMG 总分</div></div></div>';
+    __sh += '<div class="info-box"><strong>当前为默认评分（0 分 = 正常），请按实际查体修改后查看解读。</strong></div>';
+    document.getElementById('result').innerHTML = __sh;
+    var __emrBox = document.getElementById('emrBox');
+    if(__emrBox && __emrBox.parentNode) __emrBox.parentNode.removeChild(__emrBox);
+    return;
+  }
 
   var sev, color, advice;
   if(total <= 4){ sev='极轻微'; color='#10B981'; advice='肌无力症状极轻微。可考虑胆碱酯酶抑制剂治疗，定期随访。'; }
@@ -405,8 +426,11 @@ function calc(){
 function copyResult(){
   var total = 0;
   items.forEach(function(id){ total += parseInt(document.getElementById(id).value) || 0; });
+  if(!__scaleDirty){ ToolBox.copyText('QMG评分：'+total+'分（默认评分，尚未按实际查体修改）', i18nText()); return; }
   ToolBox.copyText('QMG评分：'+total+'分', i18nText());
 }
+
+function resetAll(){ items.forEach(function(id){ var __el=document.getElementById(id); __el.value=(__defVals[id]!==undefined?__defVals[id]:'0'); }); __scaleDirty=false; calc(); }
 
 calc();
 
@@ -450,6 +474,7 @@ function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText
 
 function __emrData(){
   if(typeof items==='undefined'||typeof labels==='undefined') return;
+  if(!__scaleDirty){ var __eb=document.getElementById('emrBox'); if(__eb&&__eb.parentNode) __eb.parentNode.removeChild(__eb); return; }
   var el=document.getElementById('result'); if(!el) return;
   var total=0,maxTot=0,pos=[],i,j,sel,v,o,mv;
   for(i=0;i<items.length;i++){
@@ -475,8 +500,7 @@ function __emrData(){
 }
 
 var __emrW0=(typeof calc==='function')?calc:null;
-if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
-try{ __emrData(); }catch(e){}
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); if(__scaleDirty){ try{__emrData();}catch(e){} } return __er; }; }
 </script>
 
 <!-- SEO 介绍区块 -->
@@ -650,7 +674,7 @@ function __qmgExport(){
 }
 function __qmgPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#qmgPresets',[{label:'默认参数',labelEn:'Default',values:{'q1':'0', 'q2':'0', 'q3':'0', 'q4':'0', 'q5':'0', 'q6':'0', 'q7':'0', 'q8':'0', 'q9':'0', 'q10':'0', 'q11':'0', 'q12':'0'}},{"label":"轻度肌无力","labelEn":"Mild myasthenia","values":{"q1":"1","q2":"1","q3":"1","q4":"1","q5":"1","q6":"1","q7":"1","q8":"1","q9":"1","q10":"1","q11":"1","q12":"1"}},{"label":"中度肌无力","labelEn":"Moderate myasthenia","values":{"q1":"2","q2":"2","q3":"2","q4":"2","q5":"2","q6":"2","q7":"2","q8":"2","q9":"2","q10":"2","q11":"2","q12":"2"}},{"label":"重度肌无力","labelEn":"Severe myasthenia","values":{"q1":"3","q2":"3","q3":"3","q4":"3","q5":"3","q6":"3","q7":"3","q8":"3","q9":"3","q10":"3","q11":"3","q12":"3"}}],function(){ calc(); });
+    TBKit.preset.bar('#qmgPresets',[{label:'默认参数',labelEn:'Default',values:{'q1':'0', 'q2':'0', 'q3':'0', 'q4':'0', 'q5':'0', 'q6':'0', 'q7':'0', 'q8':'0', 'q9':'0', 'q10':'0', 'q11':'0', 'q12':'0'}},{"label":"轻度肌无力","labelEn":"Mild myasthenia","values":{"q1":"1","q2":"1","q3":"1","q4":"1","q5":"1","q6":"1","q7":"1","q8":"1","q9":"1","q10":"1","q11":"1","q12":"1"}},{"label":"中度肌无力","labelEn":"Moderate myasthenia","values":{"q1":"2","q2":"2","q3":"2","q4":"2","q5":"2","q6":"2","q7":"2","q8":"2","q9":"2","q10":"2","q11":"2","q12":"2"}},{"label":"重度肌无力","labelEn":"Severe myasthenia","values":{"q1":"3","q2":"3","q3":"3","q4":"3","q5":"3","q6":"3","q7":"3","q8":"3","q9":"3","q10":"3","q11":"3","q12":"3"}}],function(){ __scaleDirty=true; calc(); });
 }
 var __qmg_f0=(typeof calc==='function')?calc:null;
 if(__qmg_f0){

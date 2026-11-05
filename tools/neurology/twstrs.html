@@ -336,7 +336,7 @@ s.parentNode.insertBefore(el, s);
 
     <div class="toolbar">
       <div id="twstrsPresets"></div><button type="button" class="btn primary" onclick="calc()">计算评分</button><button class="btn" type="button" onclick="__twstrsExport()">导出明细 CSV</button>
-      <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" onclick="copyResult()">复制结果</button><button type="button" class="btn" onclick="resetAll()" title="恢复为未评估状态">重置评分</button>
     </div>
 
     <div class="result-box" id="result"></div>
@@ -438,6 +438,7 @@ s.parentNode.insertBefore(el, s);
 var motorItems = ['m1','m2','m3','m4','m5','m6','m7','m8','m9','m10'];
 var disabilityItems = ['d1','d2','d3','d4','d5','d6'];
 var painItems = ['p1','p2','p3'];
+var __allItems = motorItems.concat(disabilityItems, painItems);
 
 function motorScore(){
   var t = 0;
@@ -447,6 +448,18 @@ function motorScore(){
   return t;
 }
 
+var __defVals = {};
+__allItems.forEach(function(id){ __defVals[id] = document.getElementById(id) ? document.getElementById(id).value : '0'; });
+var __scaleDirty = false;
+function __markScaleDirty(){ __scaleDirty = true; calc(); }
+__allItems.forEach(function(id){
+  var __el = document.getElementById(id);
+  if(__el && __el.addEventListener){
+    __el.addEventListener('change', __markScaleDirty);
+    __el.addEventListener('input', __markScaleDirty);
+  }
+});
+
 function calc(){
   var motor = 0, disability = 0, pain = 0;
   motor = motorScore();
@@ -454,6 +467,15 @@ function calc(){
   painItems.forEach(function(id){ pain += parseInt(document.getElementById(id).value) || 0; });
 
   var total = motor + disability + pain;
+
+  if(!__scaleDirty){
+    var __sh = '<div class="stat-grid"><div class="stat-card"><div class="val" style="color:#10B981;">'+total+'</div><div class="lbl">TWSTRS 总分</div></div></div>';
+    __sh += '<div class="info-box"><strong>当前为默认评分（0 分 = 正常），请按实际查体修改后查看解读。</strong></div>';
+    document.getElementById('result').innerHTML = __sh;
+    var __emrBox = document.getElementById('emrBox');
+    if(__emrBox && __emrBox.parentNode) __emrBox.parentNode.removeChild(__emrBox);
+    return;
+  }
 
   var sev, color, advice;
   if(total <= 20){ sev='轻度'; color='#10B981'; advice='轻度颈部肌张力障碍。首选A型肉毒素注射治疗，可辅以口服药物（抗胆碱能/巴氯芬）。'; }
@@ -490,8 +512,11 @@ function calc(){
 function copyResult(){
   var total = motorScore();
   disabilityItems.concat(painItems).forEach(function(id){ total += parseInt(document.getElementById(id).value) || 0; });
+  if(!__scaleDirty){ ToolBox.copyText('TWSTRS评分：'+total+'分（默认评分，尚未按实际查体修改）', i18nText()); return; }
   ToolBox.copyText('TWSTRS评分：'+total+'分', i18nText());
 }
+
+function resetAll(){ __allItems.forEach(function(id){ var __el=document.getElementById(id); __el.value=(__defVals[id]!==undefined?__defVals[id]:'0'); }); __scaleDirty=false; calc(); }
 
 calc();
 
@@ -543,8 +568,7 @@ function __emrData(){
 }
 
 var __emrW0=(typeof calc==='function')?calc:null;
-if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
-try{ __emrData(); }catch(e){}
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); if(__scaleDirty){ try{__emrData();}catch(e){} } return __er; }; }
 </script>
 
 <!-- SEO 介绍区块 -->
@@ -723,7 +747,7 @@ function __twstrsPresets(){
       {label:'轻度肌张力障碍',labelEn:'Mild dystonia',values:{'m1':'1','m2':'1','m3':'1','m4':'0','m5':'0','m6':'1','m7':'0','m8':'1','m9':'1','m10':'1','d1':'1','d2':'1','d3':'1','d4':'1','d5':'1','d6':'1','p1':'2','p2':'1','p3':'1'}},
       {label:'中度肌张力障碍',labelEn:'Moderate dystonia',values:{'m1':'2','m2':'2','m3':'2','m4':'1','m5':'1','m6':'3','m7':'1','m8':'2','m9':'2','m10':'2','d1':'2','d2':'2','d3':'2','d4':'2','d5':'2','d6':'2','p1':'5','p2':'3','p3':'3'}},
       {label:'重度肌张力障碍',labelEn:'Severe dystonia',values:{'m1':'4','m2':'3','m3':'3','m4':'1','m5':'1','m6':'5','m7':'2','m8':'3','m9':'4','m10':'4','d1':'4','d2':'4','d3':'4','d4':'4','d5':'4','d6':'4','p1':'8','p2':'5','p3':'5'}}
-    ],function(){ calc(); });
+    ],function(){ __scaleDirty=true; calc(); });
 }
 var __twstrs_f0=(typeof calc==='function')?calc:null;
 if(__twstrs_f0){
