@@ -2594,6 +2594,14 @@ const CASES = [
     expect: ["2023-02-28"],
     ref: "月末夹取（平年）：2023-01-31 +1 月 → 2023-02-28（旧 setMonth 溢出到 3/3）；"
        + "与闰年用例（2024-02-29）互为判别，证明按目标月天数夹取而非固定 28。",
+  },
+  {
+    "slug": "life/holiday-calendar",
+    "clicks": ["nextMonth();nextMonth()"],
+    "expect": ["2024年8月"],
+    "ref": "日历翻月独立复算：门禁把 new Date() 冻结在 2024-06-15（本地 Asia/Shanghai ⇒ 2024 年 6 月），boot 月标签为「2024年6月」；"
+       + "nextMonth() 每次 currentMonth+1 并重渲染，连点两次 ⇒「2024年8月」（8 月 31 天、无跨年）。"
+       + "判别器清空 clicks 后兜底只各调一次 prevMonth()/nextMonth()（净回 6 月）或由 goToday() 复位 ⇒ 月标签仍为 2024年6月，不命中。"
   }
 
 ];
