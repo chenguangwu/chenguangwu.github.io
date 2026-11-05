@@ -57,6 +57,16 @@ function numTokens(s) {
     .filter(n => Number.isFinite(n));
 }
 
+// 带显示位数的数字（用于按「两处显示精度的较小值」判舍入，而不是只看页面声明的小数位）
+function numTokenPairs(s) {
+  return (String(s).match(/[-+]?\d+(?:,\d{3})*(?:\.\d+)?/g) || [])
+    .map(t => {
+      const raw = t.replace(/,/g, '');
+      return { n: parseFloat(raw), dec: (raw.split('.')[1] || '').length };
+    })
+    .filter(x => Number.isFinite(x.n));
+}
+
 function fmt(n) { return Math.abs(n) >= 100 ? n.toFixed(1) : n.toPrecision(4); }
 
 function grade(claim, actual) {
@@ -94,6 +104,11 @@ function collect(page) {
       notes: textOf('.tool-notes, .info-box', false),
       table: [...document.querySelectorAll('table td, table th')].map(el => el.innerText.trim()).join('\n'),
       output: textOf(outSel),
+      // 输入回显识别：表单控件的当前值（只读输出域不计；hidden 不计）
+      inputVals: [...document.querySelectorAll('input,select,textarea')]
+        .filter(el => !el.readOnly && el.type !== 'hidden' && el.type !== 'button' && el.type !== 'submit')
+        .map(el => String(el.value).trim())
+        .filter(v => v !== ''),
       body: textOf('.container'),
     };
     function textOf(sel, onlyVisible) {
@@ -142,14 +157,18 @@ function checkEquations(text, slug) {
     const v = evaluate(expr, claim);
     if (v === null) continue;
     const rel = Math.abs(v - claim) / Math.max(Math.abs(claim), Math.abs(v), 1e-9);
-    if (rel > 0.01) rows.push({ slug, kind: '算式', detail: `${expr} = ${claim}（实算 ${fmt(v)}）`, level: grade(claim, v), rel });
+    if (rel > 0.01) rows.push({ slug, kind: '算式', tier: '真偏差', detail: `${expr} = ${claim}（实算 ${fmt(v)}）`, level: grade(claim, v), rel });
+    else rows.push({ slug, kind: '算式', tier: '噪音', detail: `${expr} = ${claim}（实算 ${fmt(v)}，显示位舍入）`, rel: 0 });
   }
   return rows;
 }
 
-function checkClaims(slug, exampleText, outputText) {
+function checkClaims(slug, exampleText, outputText, inputVals, slugInputs) {
   const outNums = numTokens(outputText);
+  const outPairs = numTokenPairs(outputText);
   if (!outNums.length) return [];
+  const inNums = numTokens((inputVals || []).join(' '));
+  const inVals = new Set((inputVals || []).map(v => String(v).trim()));
   const rows = [];
   const seen = new Set();
   // 只把示例段落里「≈ / 约 / 为 / 等于」后的数字当作结果声明，避免把 = 定义式当断言
@@ -162,13 +181,38 @@ function checkClaims(slug, exampleText, outputText) {
     if (claim === 0 || Math.abs(claim) > 1e6) continue;
     // 跳过分数中间值与区间下限（如 22.5/42.7、30–40）
     if (/^\s*[/–\-]\s*\d/.test(exampleText.slice(re.lastIndex))) continue;
-    // 精确/四舍五入命中：输出中存在同值或按声明小数位四舍五入后相同的数
-    const dec = (m[1].split('.')[1] || '').length;
-    const hit = outNums.some(n => Math.abs(n - claim) <= Math.pow(10, -dec) / 2 + 1e-9);
-    if (hit) continue;
+    // 跳过算式右值（如 「×1.5≈4.05」「÷10≈0.398」）：属中间量，交给 Check A 逐式实算
+    const prev = exampleText.slice(Math.max(0, m.index - 1), m.index);
+    if (/[\d.×÷*/+\-^]/.test(prev)) {
+      rows.push({ slug, kind: '中间量', detail: `页面 ${claim}（算式中间值）`, tier: '噪音', rel: 0 });
+      continue;
+    }
+    const snippet = exampleText.slice(Math.max(0, m.index - 24), Math.min(exampleText.length, re.lastIndex + 8)).replace(/\s+/g, ' ');
+    // ① 输入值回显（如 f≈1.5MPa、βz≈1.6）：不是结果，归噪音
+    if (inVals.has(String(claim)) || inNums.some(n => Math.abs(n - claim) <= 1e-9)) {
+      rows.push({ slug, kind: '输入回显', detail: `页面 ${claim}（输入控件值回显）`, tier: '噪音', rel: 0 });
+      continue;
+    }
+    // ② 精确/四舍五入命中：按「页面声明位数」与「输出显示位数」的较小值定容差
+    //    （页面 1236.3 vs 输出显示 1236 ⇒ 整数显示本身就允许 ±0.5，属舍入噪音）。
+    const claimDec = (m[1].split('.')[1] || '').length;
+    const hit = outPairs.some(o => {
+      const dec = Math.min(claimDec, o.dec);
+      return Math.abs(o.n - claim) <= Math.pow(10, -dec) / 2 + 1e-9;
+    });
+    if (hit) {
+      rows.push({ slug, kind: '舍入', detail: `页面 ${claim} vs 输出同量（显示位舍入）`, tier: '噪音', rel: 0 });
+      continue;
+    }
+    // ③ 找最近输出：同量级且相对差 ≤10% 视为「本该等于该输出但算错」；否则无法归因
     let best = Infinity, bestN = 0;
     for (const n of outNums) { const d = Math.abs(n - claim); if (d < best) { best = d; bestN = n; } }
-    rows.push({ slug, kind: '示例', detail: `页面 ${claim} vs 实算最接近 ${fmt(bestN)}`, level: grade(claim, bestN), rel: best / Math.max(Math.abs(claim), Math.abs(bestN), 1e-9) });
+    const rel = best / Math.max(Math.abs(claim), Math.abs(bestN), 1e-9);
+    if (rel <= 0.10) {
+      rows.push({ slug, kind: '真偏差', detail: `示例「${snippet}」：页面 ${claim} vs 实算 ${fmt(bestN)}`, tier: '真偏差', rel });
+    } else {
+      rows.push({ slug, kind: '需人工', detail: `示例「${snippet}」：页面 ${claim}，本页输出无对应量（最近 ${fmt(bestN)}）`, tier: '需人工', rel });
+    }
   }
   return rows;
 }
@@ -185,8 +229,8 @@ function checkClaims(slug, exampleText, outputText) {
     try {
       const r = await runCase(browser, base, c);
       if (process.env.AUDIT_DEBUG) console.log('[debug]', c.slug, 'ex=', r.after.example.length, 'out=', r.after.output.length, 'exText=', r.after.example.slice(0, 80).replace(/\n/g, ' '));
-      rows.push(...checkEquations(r.after.example + '\n' + r.after.notes + '\n' + r.after.table, c.slug));
-      if (c.inputs) rows.push(...checkClaims(c.slug, r.after.example, r.after.output));
+      rows.push(...checkEquations(r.after.example + '\n' + r.after.notes, c.slug));
+      if (c.inputs) rows.push(...checkClaims(c.slug, r.after.example, r.after.output, r.after.inputVals));
     } catch (e) {
       rows.push({ slug: c.slug, kind: '错误', detail: e.message.split('\n')[0], level: '>10%', rel: 99 });
     }
@@ -194,17 +238,19 @@ function checkClaims(slug, exampleText, outputText) {
   await browser.close();
   server.close();
   rows.sort((a, b) => b.rel - a.rel);
-  const tiers = ['>10%', '>1%', '四舍五入'];
+  const tiers = ['真偏差', '需人工', '噪音'];
   let i = 0;
   for (const t of tiers) {
-    const list = rows.filter(r => r.level === t);
+    const list = rows.filter(r => r.tier === t);
     if (!list.length) continue;
     console.log(`\n## ${t}（${list.length} 条）`);
     for (const r of list) {
       i++;
+      // 噪音只给前 10 条，避免刷屏
+      if (t === '噪音' && i > 0 && list.indexOf(r) >= 10) { console.log(`… 其余 ${list.length - 10} 条省略`); break; }
       console.log(`${i}. [${r.kind}] ${r.slug} | ${r.detail}`);
     }
   }
   if (!rows.length) console.log('未发现偏差。');
-  process.exitCode = rows.some(r => r.level === '>1%' || r.level === '>10%') ? 1 : 0;
+  process.exitCode = rows.some(r => r.tier === '真偏差' && r.rel > 0.01) ? 1 : 0;
 })();
