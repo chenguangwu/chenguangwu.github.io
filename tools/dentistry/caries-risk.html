@@ -138,7 +138,7 @@ s.parentNode.insertBefore(el, s);
 
     <div class="factor-row">
       <label>1. 龋病经历</label>
-      <select id="f1" onchange="calc()">
+      <select id="f1" onchange="__markScaleDirty()">
         <option value="0">无新龋/无充填</option>
         <option value="1">偶有新龋或充填</option>
         <option value="2">每年1-2个新龋</option>
@@ -147,7 +147,7 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="factor-row">
       <label>2. 全身疾病</label>
-      <select id="f2" onchange="calc()">
+      <select id="f2" onchange="__markScaleDirty()">
         <option value="0">无相关疾病</option>
         <option value="1">轻度相关</option>
         <option value="2">中度相关</option>
@@ -156,7 +156,7 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="factor-row">
       <label>3. 饮食内容</label>
-      <select id="f3" onchange="calc()">
+      <select id="f3" onchange="__markScaleDirty()">
         <option value="0">低糖均衡饮食</option>
         <option value="1">偶尔高糖</option>
         <option value="2">经常高糖</option>
@@ -165,7 +165,7 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="factor-row">
       <label>4. 饮食频率</label>
-      <select id="f4" onchange="calc()">
+      <select id="f4" onchange="__markScaleDirty()">
         <option value="0">≤3次/天</option>
         <option value="1">4-5次/天</option>
         <option value="2">6-7次/天</option>
@@ -174,7 +174,7 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="factor-row">
       <label>5. 菌斑量</label>
-      <select id="f5" onchange="calc()">
+      <select id="f5" onchange="__markScaleDirty()">
         <option value="0">菌斑很少（PI&lt;10%）</option>
         <option value="1">少量菌斑（PI 10-30%）</option>
         <option value="2">较多菌斑（PI 30-60%）</option>
@@ -183,7 +183,7 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="factor-row">
       <label>6. 变链菌水平</label>
-      <select id="f6" onchange="calc()">
+      <select id="f6" onchange="__markScaleDirty()">
         <option value="0">&lt;10⁴ CFU</option>
         <option value="1">10⁴-10⁵ CFU</option>
         <option value="2">10⁵-10⁶ CFU</option>
@@ -192,7 +192,7 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="factor-row">
       <label>7. 氟化物暴露</label>
-      <select id="f7" onchange="calc()">
+      <select id="f7" onchange="__markScaleDirty()">
         <option value="0">充分用氟（含氟水+牙膏）</option>
         <option value="1">规律用含氟牙膏</option>
         <option value="2">偶尔用氟</option>
@@ -201,7 +201,7 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="factor-row">
       <label>8. 唾液分泌量</label>
-      <select id="f8" onchange="calc()">
+      <select id="f8" onchange="__markScaleDirty()">
         <option value="0">&gt;1.0 mL/min（正常）</option>
         <option value="1">0.7-1.0 mL/min</option>
         <option value="2">0.3-0.7 mL/min</option>
@@ -210,7 +210,7 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="factor-row">
       <label>9. 唾液缓冲力</label>
-      <select id="f9" onchange="calc()">
+      <select id="f9" onchange="__markScaleDirty()">
         <option value="0">缓冲力高（pH终值&gt;6）</option>
         <option value="1">缓冲力中（pH 5-6）</option>
         <option value="2">缓冲力低（pH 4.5-5）</option>
@@ -221,7 +221,7 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <div id="caries_riskPresets"></div><button type="button" class="btn primary" onclick="calc()">评估风险</button><button class="btn" type="button" onclick="__caries_riskExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
-      <button type="button" class="btn" onclick="resetAll()">重置</button>
+      <button type="button" class="btn" onclick="resetAll()" title="恢复为未评估状态">重置评分</button>
     </div>
 
     <div class="result-box" id="result"></div> <div id="caries_riskTable"></div> <div id="caries_riskDiff"></div> <div id="caries_riskChart"></div> <div id="caries_riskHist"></div>
@@ -309,6 +309,8 @@ s.parentNode.insertBefore(el, s);
 // 权重参考Cariogram各因素相对贡献
 const WEIGHTS = { f1: 0.18, f2: 0.06, f3: 0.10, f4: 0.14, f5: 0.10, f6: 0.14, f7: 0.10, f8: 0.09, f9: 0.09 };
 
+var __scaleDirty=false;
+function __markScaleDirty(){__scaleDirty=true;calc();}
 function calc() {
   const vals = {};
   let total = 0;
@@ -319,6 +321,11 @@ function calc() {
   // total 范围 0~3，risk分数 0~100
   const riskScore = Math.round((total / 3) * 100);
   const chance = 100 - riskScore;
+  if(!__scaleDirty){
+    document.getElementById('result').innerHTML='<div style="text-align:center;padding:8px 0;"><div style="font-size:44px;font-weight:700;color:var(--success);">'+riskScore+'<span style="font-size:18px;color:var(--text-muted);">/100</span></div><div style="font-size:12px;color:var(--text-muted);margin-top:2px;">龋病风险分数</div><div style="font-size:13px;color:var(--text-secondary);margin-top:4px;">避免新发龋机会：<strong>'+chance+'%</strong></div></div><div class="info-box"><strong>当前为默认评分（九项因素均为 0 分），请按实际口腔检查与病史修改后查看解读。</strong></div>';
+    var __rb=document.getElementById('resultRefBar'); if(__rb) __rb.innerHTML='';
+    return;
+  }
   let level, color, advice;
   if (riskScore < 25) { level = '低风险'; color = '#4caf50'; advice = '维持现状，定期复查（每6-12个月），保持口腔清洁与用氟。'; }
   else if (riskScore < 50) { level = '中风险'; color = '#ffc107'; advice = '加强预防：减少摄糖频率、强化菌斑控制、含氟牙膏/漱口水，每3-6个月复查。'; }
@@ -353,12 +360,14 @@ function calc() {
 
 function resetAll() {
   for (const k of Object.keys(WEIGHTS)) document.getElementById(k).value = '0';
+  __scaleDirty = false;
   calc();
   ToolBox.showToast(i18nText());
 }
 
 function copyResult() {
   const riskScore = Math.round((Object.keys(WEIGHTS).reduce((s, k) => s + parseInt(document.getElementById(k).value) * WEIGHTS[k], 0) / 3) * 100);
+  if(!__scaleDirty){ ToolBox.copyText(`龋病风险分数=${riskScore}/100（默认评分，尚未按实际口腔检查与病史修改）`, i18nText()); return; }
   ToolBox.copyText(`龋病风险分数=${riskScore}/100，避免新龋机会=${100 - riskScore}%`, i18nText());
 }
 
@@ -485,7 +494,7 @@ function __caries_riskRender(keys,rk,en){
                     if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
                     else{e.value=rec[k];}
                 }
-                calc();
+                __scaleDirty=true; calc();
             }catch(e2){}
             __caries_risk_skip=false;
         });
@@ -537,7 +546,7 @@ function __caries_riskPresets(){
     TBKit.preset.bar('#caries_riskPresets',[{label:'默认参数',labelEn:'Default',values:{'f1':'0', 'f2':'0', 'f3':'0', 'f4':'0', 'f5':'0', 'f6':'0', 'f7':'0', 'f8':'0', 'f9':'0'}},
   {"label":"低风险(CAMBRA)","labelEn":"Low risk","values":{"f1":"0","f2":"0","f3":"0","f4":"0","f5":"0","f6":"0","f7":"0","f8":"0","f9":"0"}},
   {"label":"中风险(CAMBRA)","labelEn":"Moderate risk","values":{"f1":"1","f2":"1","f3":"1","f4":"1","f5":"1","f6":"1","f7":"1","f8":"1","f9":"1"}},
-  {"label":"高风险(CAMBRA)","labelEn":"High risk","values":{"f1":"3","f2":"2","f3":"3","f4":"3","f5":"3","f6":"3","f7":"3","f8":"3","f9":"3"}}],function(){ calc(); });
+  {"label":"高风险(CAMBRA)","labelEn":"High risk","values":{"f1":"3","f2":"2","f3":"3","f4":"3","f5":"3","f6":"3","f7":"3","f8":"3","f9":"3"}}],function(){ __scaleDirty=true; calc(); });
 }
 var __caries_risk_f0=(typeof calc==='function')?calc:null;
 if(__caries_risk_f0){

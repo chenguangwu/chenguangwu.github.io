@@ -125,7 +125,7 @@ s.parentNode.insertBefore(el, s);
 
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="calc()">评估风险</button>
-      <button type="button" class="btn" onclick="resetForm()">重置</button>
+      <button type="button" class="btn" onclick="resetForm()" title="恢复为未评估状态">重置评分</button>
     </div>
     <div class="result-box" id="res"></div>
 <div id="resRefBar" style="margin-top:12px"></div>
@@ -181,10 +181,12 @@ var DIMS=[
   var html='';
   DIMS.forEach(function(d){
     var opts=d.opts.map(function(o,i){return '<option value="'+i+'">'+o+'</option>';}).join('');
-    html+='<div class="input-row"><div><label>'+d.name+'</label><select id="d_'+d.key+'" onchange="calc()">'+opts+'</select></div></div>';
+    html+='<div class="input-row"><div><label>'+d.name+'</label><select id="d_'+d.key+'" onchange="__markScaleDirty()">'+opts+'</select></div></div>';
   });
   const __g1=html;document.getElementById('items').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 })();
+var __scaleDirty=false;
+function __markScaleDirty(){__scaleDirty=true;calc();}
 function calc(){
   var total=0, high=[];
   DIMS.forEach(function(d){
@@ -192,6 +194,11 @@ function calc(){
     total+=v;
     if(v===2) high.push(d.name.split('（')[0]);
   });
+  if(!__scaleDirty){
+    document.getElementById('res').innerHTML='<p>风险总分：<strong style="font-size:28px;color:var(--success);">'+total+'</strong> / 14 分</p>'+'<div class="info-box"><strong>当前为默认评分（七项因素均为 0 分），请按实际口腔检查与病史修改后查看解读。</strong></div>';
+    var __rb=document.getElementById('resRefBar'); if(__rb) __rb.innerHTML='';
+    return;
+  }
   var level,color,advice,chance;
   if(total<=3){ level='低风险'; color='var(--success)'; chance='约 80% 以上'; advice='龋病风险较低，建议保持良好口腔卫生与含氟牙膏使用，定期（每年）复查。'; }
   else if(total<=8){ level='中风险'; color='var(--warning)'; chance='约 40%-60%'; advice='中等风险，建议加强菌斑控制、控制糖摄入频率、使用含氟制剂，每 6 个月复查并专业洁治。'; }
@@ -205,6 +212,7 @@ function calc(){
 }
 function resetForm(){
   DIMS.forEach(function(d){ document.getElementById('d_'+d.key).value='0'; });
+  __scaleDirty=false;
   calc();
 }
 calc();

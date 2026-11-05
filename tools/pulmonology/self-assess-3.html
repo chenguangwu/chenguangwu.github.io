@@ -120,6 +120,7 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="calc()">评估依赖程度</button>
       <button type="button" class="btn" onclick="copyResult()">复制报告</button>
+      <button type="button" class="btn" onclick="resetAll()" title="恢复为未评估状态">重置评分</button>
     </div>
     <div class="result-box" id="res"></div>
 <div id="resRefBar" style="margin-top:12px"></div>
@@ -206,7 +207,7 @@ function buildList(){
   ftndItems.forEach(function(item,i){
     html+='<div style="border:1px solid var(--border-color);border-radius:8px;padding:8px;margin-bottom:8px;">';
     html+='<div style="font-size:14px;font-weight:500;margin-bottom:6px;">'+item.q+'</div>';
-    html+='<select id="q'+i+'" style="font-size:16px;width:100%;" onchange="calc()">';
+    html+='<select id="q'+i+'" style="font-size:16px;width:100%;" onchange="__markScaleDirty()">';
     item.options.forEach(function(opt,j){
       html+='<option value="'+opt.v+'"'+(j===0?' selected':'')+'>'+opt.label+'（'+opt.v+'分）</option>';
     });
@@ -267,6 +268,9 @@ function __ftndExport(){
     TBKit.util.exportTable('#ftndTable','ftnd-assessment.csv');
   }catch(e){}
 }
+var __scaleDirty=false;
+function __markScaleDirty(){__scaleDirty=true;calc();}
+function resetAll(){ buildList(); __scaleDirty=false; calc(); }
 function calc(){
   var total=0, results=[];
   ftndItems.forEach(function(item,i){
@@ -276,6 +280,11 @@ function calc(){
     results.push({q:item.q,v:v,label:selectedLabel,maxV:Math.max.apply(null,item.options.map(function(o){return o.v;}))});
   });
 
+  if(!__scaleDirty){
+    document.getElementById('res').innerHTML='<h3 style="margin-bottom:10px;">FTND 尼古丁依赖评估结果</h3><div class="stat-grid"><div class="stat-card"><div class="val" style="font-size:36px;color:var(--success);">'+total+'</div><div class="lbl">FTND总分（0-10）</div></div></div><div class="info-box"><strong>当前为默认评分（6 题均为默认选项），请按实际吸烟情况修改后查看解读。</strong></div>';
+    var __rb=document.getElementById('resRefBar'); if(__rb) __rb.innerHTML='';
+    return;
+  }
   var level, color, interpretation, quitAdvice;
   if(total<=2){
     level='极低依赖';color='var(--success)';
@@ -344,6 +353,7 @@ function calc(){
 }
 function copyResult(){
   var text=document.getElementById('res').innerText;
+  if(!__scaleDirty){ var t=0; ftndItems.forEach(function(it,i){ t+=+document.getElementById('q'+i).value; }); text='FTND 尼古丁依赖评分：'+t+'/10（默认评分，尚未按实际吸烟情况修改）'; }
   ToolBox.copyText(text, i18nText('msg041'));
 }
 buildList();calc();

@@ -379,6 +379,82 @@ const CASES = [
     "6 分 PHN 中风险"
   ],
   "ref": "PHN 风险分 = 2+2+2+0+0+0+0+0 = 6 → 落中风险分支（≤7）并渲染「6 分 PHN 中风险」。回退默认（八项全 0）→ 「0 分 PHN 低风险」、72 小时抗病毒建议，不命中。"
+},
+{
+  "slug": "dermatology/gags-acne",
+  "clicks": ["var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/GAGS 总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__GAGS_DEF_OK__':'__GAGS_DEF_FAIL__ '+__b;"],
+  "expect": ["__GAGS_DEF_OK__"],
+  "ref": "批 4 默认态：只出 GAGS 总分，结果区不含 分级/建议/诊断/治疗/风险。"
+},
+{
+  "slug": "dermatology/gags-acne",
+  "inputs": {"loc0":"2","loc1":"2","loc2":"2","loc3":"2","loc4":"2","loc5":"2"},
+  "expect": ["中度"],
+  "ref": "批 4 改动态：六部位均取 2 分 ⇒ 总分 24 落「中度」；确认 dirty 置位后分级文案才出现。"
+},
+{
+  "slug": "dermatology/gags-acne",
+  "inputs": {"loc0":"2","loc1":"2","loc2":"2","loc3":"2","loc4":"2","loc5":"2"},
+  "clicks": ["resetAll();var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/GAGS 总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__GAGS_RST_OK__':'__GAGS_RST_FAIL__ '+__b;"],
+  "expect": ["__GAGS_RST_OK__"],
+  "ref": "批 4 重置态：先置 dirty 制造决策，再 resetAll() 恢复默认档位，决策文案消失。"
+},
+{
+  "slug": "dermatology/actinic-keratosis",
+  "clicks": ["var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/总评分 \\/ 26/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__AK_DEF_OK__':'__AK_DEF_FAIL__ '+__b;"],
+  "expect": ["__AK_DEF_OK__"],
+  "ref": "批 4 默认态：只出总评分，结果区不含 分级/建议/诊断/治疗/风险。"
+},
+{
+  "slug": "dermatology/actinic-keratosis",
+  "inputs": {"f1":"3","f2":"3","f3":"3","f4":"0","f5":"0","f6":"0"},
+  "expect": ["2级（中度）"],
+  "ref": "批 4 改动态：基础分 9 ⇒ 落「2级（中度）」；确认 dirty 置位后分级文案才出现。"
+},
+{
+  "slug": "dermatology/actinic-keratosis",
+  "inputs": {"f1":"3","f2":"3","f3":"3","f4":"0","f5":"0","f6":"0"},
+  "clicks": ["resetForm();var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/总评分 \\/ 26/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__AK_RST_OK__':'__AK_RST_FAIL__ '+__b;"],
+  "expect": ["__AK_RST_OK__"],
+  "ref": "批 4 重置态：复用既有「重置评分」→ resetForm() 清 dirty 后复算，决策文案消失。"
+},
+{
+  "slug": "dermatology/insect-bite-reaction",
+  "clicks": ["var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/总分 \\/ 24/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__IB_DEF_OK__':'__IB_DEF_FAIL__ '+__b;"],
+  "expect": ["__IB_DEF_OK__"],
+  "ref": "批 4 默认态：只出总分，结果区不含 分级/建议/诊断/治疗/风险。"
+},
+{
+  "slug": "dermatology/insect-bite-reaction",
+  "inputs": {"s1":"2","s2":"2","s3":"2","s4":"2","s5":"2","s6":"2"},
+  "expect": ["中度反应"],
+  "ref": "批 4 改动态：六项局部体征各 2 分 ⇒ 总分 12 落「中度反应」；确认 dirty 置位后分级文案才出现。"
+},
+{
+  "slug": "dermatology/insect-bite-reaction",
+  "inputs": {"s1":"2","s2":"2","s3":"2","s4":"2","s5":"2","s6":"2"},
+  "clicks": ["resetForm();var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/总分 \\/ 24/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__IB_RST_OK__':'__IB_RST_FAIL__ '+__b;"],
+  "expect": ["__IB_RST_OK__"],
+  "ref": "批 4 重置态：复用既有「重置评分」→ resetForm() 清 dirty 后复算，决策文案消失。"
+},
+{
+  "slug": "dermatology/seborrheic-dermatitis",
+  "clicks": ["var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/脂溢性皮炎评分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__SD_DEF_OK__':'__SD_DEF_FAIL__ '+__b;"],
+  "expect": ["__SD_DEF_OK__"],
+  "ref": "批 4 默认态：只出评分，结果区不含 分级/建议/诊断/治疗/风险。"
+},
+{
+  "slug": "dermatology/seborrheic-dermatitis",
+  "inputs": {"d1":"3","d2":"3","d3":"3","d4":"3","d5":"3","d6":"2"},
+  "expect": ["重度"],
+  "ref": "批 4 改动态：总分 17 ⇒ 落「重度」；确认 dirty 置位后分级文案才出现。"
+},
+{
+  "slug": "dermatology/seborrheic-dermatitis",
+  "inputs": {"d1":"3","d2":"3","d3":"3","d4":"3","d5":"3","d6":"2"},
+  "clicks": ["resetAll();var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/脂溢性皮炎评分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__SD_RST_OK__':'__SD_RST_FAIL__ '+__b;"],
+  "expect": ["__SD_RST_OK__"],
+  "ref": "批 4 重置态：resetAll() 恢复默认档位并清 dirty，决策文案消失。"
 }
 ];
 async function main() {

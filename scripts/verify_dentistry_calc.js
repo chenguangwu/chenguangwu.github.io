@@ -334,6 +334,44 @@ const CASES = [
   "inputs": { "t": "is", "n": "0", "m": "0" },
   "expect": ["0期"],
   "ref": "正例：选择 Tis/N0/M0 后照常出 0 期（恢复原结论，空值占位不改变计算）。"
+},
+{
+  "slug": "dentistry/caries-risk",
+  "clicks": ["var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/龋病风险分数/.test(__b)&&/当前为默认评分/.test(__b)&&!/风险等级|风险分级|建议|诊断|治疗/.test(__b);document.getElementById('result').innerHTML=__ok?'__CR_DEF_OK__':'__CR_DEF_FAIL__ '+__b;"],
+  "expect": ["__CR_DEF_OK__"],
+  "ref": "批 4 默认态：只出龋病风险分数 0/100 与避免新龋机会，结果区不含风险等级/建议/诊断/治疗。"
+},
+{
+  "slug": "dentistry/caries-risk",
+  "inputs": {"f1":"3","f2":"3","f3":"3","f4":"3","f5":"3","f6":"3","f7":"3","f8":"3","f9":"3"},
+  "expect": ["极高风险"],
+  "ref": "批 4 改动态：九项因素均取 3 分 ⇒ 加权总分 3 ⇒ 风险分 100 落「极高风险」；确认 dirty 置位后分级文案才出现。"
+},
+{
+  "slug": "dentistry/caries-risk",
+  "inputs": {"f1":"3","f2":"3","f3":"3","f4":"3","f5":"3","f6":"3","f7":"3","f8":"3","f9":"3"},
+  "clicks": ["resetAll();var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/龋病风险分数/.test(__b)&&/当前为默认评分/.test(__b)&&!/风险等级|风险分级|建议|诊断|治疗/.test(__b);document.getElementById('result').innerHTML=__ok?'__CR_RST_OK__':'__CR_RST_FAIL__ '+__b;"],
+  "expect": ["__CR_RST_OK__"],
+  "ref": "批 4 重置态：resetAll() 九项归 0 并清 dirty，风险等级与建议消失。"
+},
+{
+  "slug": "dentistry/rater-risk-2",
+  "clicks": ["var __b=document.getElementById('res').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/风险总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/风险等级|风险分级|建议|诊断|治疗/.test(__b);document.getElementById('res').innerHTML=__ok?'__DIMS_DEF_OK__':'__DIMS_DEF_FAIL__ '+__b;"],
+  "expect": ["__DIMS_DEF_OK__"],
+  "ref": "批 4 默认态：只出风险总分 0/14，结果区不含风险分级/建议。"
+},
+{
+  "slug": "dentistry/rater-risk-2",
+  "inputs": {"d_exp":"2","d_ms":"2","d_diet":"2","d_plaque":"2","d_fluoride":"2","d_flow":"2","d_buffer":"2"},
+  "expect": ["高风险"],
+  "ref": "批 4 改动态：七项因素均取 2 分 ⇒ 总分 14 落「高风险」；确认 dirty 置位后分级文案才出现。"
+},
+{
+  "slug": "dentistry/rater-risk-2",
+  "inputs": {"d_exp":"2","d_ms":"2","d_diet":"2","d_plaque":"2","d_fluoride":"2","d_flow":"2","d_buffer":"2"},
+  "clicks": ["resetForm();var __b=document.getElementById('res').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/风险总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/风险等级|风险分级|建议|诊断|治疗/.test(__b);document.getElementById('res').innerHTML=__ok?'__DIMS_RST_OK__':'__DIMS_RST_FAIL__ '+__b;"],
+  "expect": ["__DIMS_RST_OK__"],
+  "ref": "批 4 重置态：resetForm() 七项归 0 并清 dirty，风险分级与防龋建议消失。"
 }
 
 ];
