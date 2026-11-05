@@ -785,5 +785,34 @@ RESULT 11/11
 - **SVG 上传/渲染**：`image/*` 与 SVG 字符串进入 `img.src`/canvas 的边界未系统测（SVG 内联脚本在 `img` 下不执行，但 `srcdoc`/`innerHTML` 路径需复核）。
 - **`eval` / `new Function` / 字符串定时器**：`it/code-runner`、`it/sqlite-runner` 等「本地代码执行」页属产品功能，未按漏洞处理，但需确认不接收外部传入。
 - **剪贴板与拖拽**：`navigator.clipboard.readText()` 内容进入 DOM 的路径未扫。
-- **Web Components / Shadow DOM**：`innerHTML` 写入 shadow root 的路径未单独统计。 
+- **Web Components / Shadow DOM**：`innerHTML` 写入 shadow root 的路径未单独统计。
+
+## 21. 样式 / 嵌入 / 消息三面专项（2026-11-05）
+
+### 21.1 CSS 注入面：30 页 0 命中
+
+- 静态：`style="…"` 字符串拼接全站 **3513** 处（绝大多数拼的是数值/常量色，不是用户输入）；按「变量来自 `.value` + 同行出现在 `style` 拼接」精筛后取**颜色类候选 17 页**，补 13 页高密度 `style` 拼接页，共 **30 页**。
+- 判据（按本轮要求）：只认「能越出 `style` 属性、改 DOM 结构或执行脚本」；仅改颜色/尺寸不算漏洞。`url(javascript:)` 在现代浏览器不执行，`expression()` 仅 IE，均不计。
+- 实测：填入 `red" onmouseover="window.__xss=1` → 触发 `calc/render/update/apply/generate/draw/refresh/convert/build/preview/run` → 遍历所有元素的 `on*` 属性找 `__xss` 并派发 `mouseover`。
+- 结果：**0/30 命中**（`xss=undefined && injAttr=0`）。
+- 正控：合成页 `style="color:'+input+'"` → **`xss=1 injAttr=1`**，探针对属性闭合逃逸可报红。
+
+### 21.2 `srcdoc` / 动态 iframe：0 可利用
+
+- 静态：`srcdoc` 仅 4 处文本命中 —— `it/code-runner.html:726/759/892`（**产品功能**：本地代码运行器，iframe 为 `sandbox="allow-scripts allow-modals"`，**无 `allow-same-origin`**）与 `it/rich-text-editor.html:364`（**清洗器**，显式移除 `srcdoc`/`on*`/`formaction`）。
+- `iframe.contentDocument.write` / `createElement('iframe')` 后写内容：**0 处**。
+- 结论：`code-runner` 的 srcdoc 内容是用户自己输入的代码，页面无 URL 参数可注入，且 sandbox 已阻断父页访问；`rich-text-editor` 主动剥离危险属性。
+- 正控（双态）：
+  - 无 `sandbox` 的 `srcdoc`（`parent.__xss=…`）→ **`xss=srcdoc-unsandboxed`**（逃逸成功，证明该判据有效）；
+  - 加 `sandbox="allow-scripts"` 的同段代码 → 脚本仍执行（`GOOD_RAN`），但 **`parent.__xss` 未被置位**（跨源不透明 origin 阻断）；
+  - `code-runner` 的 sandbox 配置与「安全态」一致 ⇒ 0 可利用。
+
+### 21.3 `postMessage`：1 处接收端，转义安全、缺 origin 校验（低危）
+
+- 发送端 5 处：`it/regex.html:521`（Worker）、`it/text-replace.html:1009`（Worker）、`it/code-runner.html:746/753`（预览 iframe → 父页控制台）、`it/text-replace.html:1066/1068`（Worker 回传）。
+- 接收端 3 处：`it/regex.html:519`、`it/text-replace.html:1007`（均为**同源 Worker**，不可被外部页面触达）、`it/code-runner.html:763`（`window` 级监听，任意窗口可投递）。
+- `code-runner` 接收逻辑：仅接受 `{type:'console'}`，`data` 经 `escapeConsoleHtml`（`textContent→innerHTML`）后放入 `<span>` 文本上下文（引号无逃逸风险）。
+- 实测（真机）：向 `code-runner` 投递 `{type:'console',method:'log',data:['<img src=x onerror="parent.__xss=1">']}` → **`escaped=yes`、`img=0`、`xss=undefined`**，控制台新增 1 行（`lines=3`），注入串以 `&lt;img` 文本呈现。
+- 正控：合成页接收端直接 `innerHTML = e.data.v` → **`xss=1 img=1`**，探针可报红。
+- 唯一缺陷：**未校验 `event.origin`**，任意页面可在用户打开 `code-runner` 时伪造控制台日志（文本欺骗），**不可执行脚本**，列低危、暂不改（改动会引入来源白名单维护成本）。 
 
