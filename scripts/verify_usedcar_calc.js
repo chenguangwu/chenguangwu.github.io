@@ -221,9 +221,15 @@ const CASES = [
        + "注入全部「优秀(5)」⇒ boot calc = 27×100/27 = 100 分、优秀。clicks 把启动性能/机油渗漏/异响/故障灯改为"
        + "「严重(1)」（score10×weight3）后重算：totalScore=2700−4×300+4×30=1540 ⇒ 1540/27=57.04 ⇒ 57 分「一般」；"
        + "问题项 4 个 ⇒ 报告出现「发现 4 项问题」。默认态（无 clicks）仍为 100 分、0 问题项，两锚均不命中。"
+  },
+  {
+    "slug": "usedcar/detector-19",
+    "clicks": ["document.getElementById('ck_smell').value='0';calc()"],
+    "expect": ["待检测：还有 13 项未检查"],
+    "ref": "新契约（2026-11-05）：14 项检测默认「未检查（请选择）」（value=''），未检查项不计入正常、不输出风险指数/结论/购买建议。仅把 ck_smell 设为正常(0) 后 calc ⇒ 结果区显示「待检测：还有 13 项未检查」。默认态 14 项全未检查；全部设为正常(0) 才输出「未发现泡水痕迹 · 0%」；ck_smell=2 ⇒「疑似泡水车 · 8%」。判别器清空 clicks 后 calc 回落到全未检查（14 项），expect 失配。"
   }
-
 ];
+
 async function main() {
   const only = process.argv.slice(2);
   const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
