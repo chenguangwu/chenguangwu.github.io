@@ -11,12 +11,19 @@
 4. **拆树前先保命**：HEAD 不是 master 祖先的，先打轻量标签 `keep/<树名>-<短hash>` 并确认 `git tag -l 'keep/*'` 可见，才允许 `remove`。
 5. **临时构建树用完即删**，不留 `/tmp/tb-*`、`/tmp/ci-sim` 等长期驻留副本。
 
-快照时间：2026-11-05（收敛为单棵 + 1 棵待裁决）　｜　主库 HEAD：`b423c1273b`
+**当前实物核对（2026-11-05 晚；下方三张表均为当日中午快照，仅作审计留存）**
+
+- 本地分支仅 `master`；`git worktree list` 只剩主库 1 棵；`git tag -l` 为 **0 个**，`keep/*` 标签实物已不存在（对应提交对象多数可达，且已在 master 历史中）。
+- `/private/tmp/tb-psqi`、`/private/tmp/wt-audit84`、`/private/tmp/ci-sim`、`/tmp/ci-sim` 等临时树目录均已不存在；`/private/tmp/tb-psqi` 原有的 80 个未提交源码文件未回流，判为随目录一起丢弃，不再「待裁决」。
+- `wip/tools-audit-84` 本地分支与 `do-not-merge/tools-audit-84` 标签均已不存在；但其 HEAD `12c22fba9f` 已被集成 merge `72e4990707` 并入 master 历史（对象可达且为 HEAD 祖先）。该 merge 曾把 27 页 B 档错值覆盖回 master，已由 `4f6b06e4d2`（27 页整页回退 + deep-dive 源同步）与 `db8786ea78`（5 页 meta 源头补齐、build 幂等）修复。**禁止再把整批 revert / cherry-pick 到该存档。**
+- 下方「存档分支保护」「keep 标签」两表保留历史记录，不再作为待办；「回收记录」表保留审计价值。
+
+快照时间：2026-11-05 晚（收敛为单棵主库）　｜　主库 HEAD：`e80d0fd8e3`
 
 | 路径 | HEAD | 归属线 | 状态 | 可否回收 |
 |---|---|---|---|---|
-| `/Users/cgw/project/cgw/chenguangwu.github.io` | `b423c1273b` [master] | 集成线（唯一构建/push 方） | 使用中 | — |
-| `/private/tmp/tb-psqi` | `d715f3fbc7` | psqi 字典线（临时构建树，HEAD 已在 master） | **80 个源码文件 + `i18n/tools/_en_override.json` 未提交**（含 `edu/calc-4`、`dermatology/vasi-vitiligo`、`fishery/feed-protein-fat` 等已确认错值页），非纯产物 | 否（待裁决，不代提交） |
+| `/Users/cgw/project/cgw/chenguangwu.github.io` | `e80d0fd8e3` [master] | 集成线（唯一构建/push 方） | 使用中 | — |
+| `/private/tmp/tb-psqi` | `d715f3fbc7` | psqi 字典线（临时构建树，HEAD 已在 master） | **目录已不存在**（原 80 个源码文件未提交、未回流，判为随目录丢弃） | 已消失，见上方核对 |
 
 ## 存档分支保护（禁止合并）
 

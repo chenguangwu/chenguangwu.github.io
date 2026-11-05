@@ -74,4 +74,8 @@
 | tools/tcm-pharmacy/tcm-dosage.html | 待 | 待处置 | — | — |
 | tools/urban/building-height.html | 待 | 待处置 | — | — |
 
-进度：已处置 38 / 64（A 4 页、B 34 页）；另 2 页已修正权威源，待构建复核；其余 24 页待处置。
+**进度（2026-11-05 晚复核）**：表内 64 页状态分布 = B 整页回退 34 / A 修正保留 4 / B 修正权威源待复核 15 / 待处置 9 / 保留主线 1 / 修正标题生成数据 1。
+
+- 集成 merge `72e4990707` 曾把 27 页 B 档错值覆盖回 master；已由 `4f6b06e4d2`（27 页整页回退 + `content_deepdive.json` 等 12 个源同步）与 `db8786ea78`（3 个 `zh-CN.intro` + 1 个 `_en_override.ed` 补齐，重跑 `_build.py` 幂等）修复，两次均 `All 229 quality gates passed.`。
+- 抽验回退结果在 HEAD 仍有效：`dermatology/vasi-vitiligo` = 16.75、`obstetrics/fetal-weight-hadlock` = 2892 g、`edu/calc-4` = 95.0。
+- **仍未收口**：15 条「修正权威源，待构建复核」需逐页确认是否已落盘并随 build 生效；9 条「待处置」需逐页判档。禁止据此宣布 84 页专项完成。
