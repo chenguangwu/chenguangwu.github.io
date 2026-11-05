@@ -23,7 +23,7 @@ const CASES = [
     "k": "400"
   },
   "expect": [
-    "0.0094"
+    "0.0094 毕渥数"
   ],
   "ref": "auto-restore"
 },
@@ -128,7 +128,7 @@ const CASES = [
     "W": "400"
   },
   "expect": [
-    "1100.0"
+    "1100.0 内能变化"
   ],
   "ref": "auto-restore"
 },
@@ -152,7 +152,7 @@ const CASES = [
     "T2": "400"
   },
   "expect": [
-    "200.000"
+    "200.000 末压强"
   ],
   "ref": "auto-restore"
 },
@@ -179,7 +179,7 @@ const CASES = [
     "L": "0.1"
   },
   "expect": [
-    "600000.0"
+    "600000.0 热流密度"
   ],
   "ref": "auto-restore"
 },
@@ -300,7 +300,7 @@ const CASES = [
     "T2": "30"
   },
   "expect": [
-    "167440.0"
+    "167440.0 热量"
   ],
   "ref": "auto-restore"
 },

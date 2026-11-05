@@ -26,7 +26,7 @@ const CASES = [
 
   { slug: "optics/brewster-angle",
     inputs: { n1: "1.0", n2: "1.6" },
-    expect: ["57.995"],
+    expect: ["57.995 布儒斯特角"],
     ref: "θ_B=arctan(n₂/n₁)=arctan(1.6)=57.995°" },
 
   { slug: "optics/combined-lens-focal",

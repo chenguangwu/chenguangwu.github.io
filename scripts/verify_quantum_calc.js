@@ -71,7 +71,7 @@ const CASES = [
     ref: "Δp=ħ/(2Δx)=1.0546e-34/(2×5e-10)=1.055e-25 kg·m/s" },
   { slug: "quantum/hydrogen-energy-level",
     inputs: { n: "3" },
-    expect: ["-1.5111"],
+    expect: ["-1.5111 能级"],
     ref: "E_n=−13.6/n²=−13.6/9=−1.5111 eV" },
   { slug: "quantum/infinite-well-energy",
     inputs: { n: "2", m: "9.11e-31", L: "3e-9" },

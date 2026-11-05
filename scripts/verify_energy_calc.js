@@ -81,7 +81,7 @@ const CASES = [
   {
     slug: "energy/carnot-efficiency",
     inputs: { Tc: "300", Th: "900" },
-    expect: ["66.67"],
+    expect: ["66.67 卡诺效率"],
     ref: "η = 1 − 300/900 = 0.666667 → 66.67%",
   },
 
