@@ -403,6 +403,20 @@ const CASES = [
     clicks: ["calculate()"],
     expect: ["拍号 3/4 | 小节时长 1.80s"],
     ref: '100BPM/3/4 小节时长1.80s'
+  },
+  {
+    slug: "music/web-tuner",
+    inputs: { refFreq: "432" },
+    clicks: ["window.__wtSetRefA4(+document.getElementById('refFreq').value);var n=window.__wtFreqToNote(440);document.getElementById('centsText').textContent='C:'+n.cents.toFixed(2)+'|N:'+n.full;"],
+    expect: ["C:31.77|N:A4"],
+    ref: '深度解析算例复算：A4=432 时 440 Hz → midiFloat=69+12·log2(440/432)=69.3177，音分 +31.77，仍判 A4。默认基准 440 下同一频率为 0.00 ⇒ 不命中。'
+  },
+  {
+    slug: "music/web-tuner",
+    inputs: { refFreq: "440" },
+    clicks: ["window.__wtSetRefA4(+document.getElementById('refFreq').value);var n=window.__wtFreqToNote(446);document.getElementById('centsText').textContent='C:'+n.cents.toFixed(2)+'|N:'+n.full;"],
+    expect: ["C:23.45|N:A4"],
+    ref: '深度解析算例一复算：A4=440 时 446 Hz → midiFloat=69.2345，音分 +23.45，仍判 A4。默认态 centsText 为空、不含该串 ⇒ 不命中。'
   }
 ];
 async function main() {

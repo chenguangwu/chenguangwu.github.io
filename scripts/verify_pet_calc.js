@@ -177,6 +177,21 @@ const CASES = [
 },
 
 {
+  "slug": "pet/training-planner",
+  "inputs": { "age": "junior", "dailyTime": "20" },
+  "clicks": ["toggleGoal('house');var v=[].map.call(document.querySelectorAll('.overview-card .v'),function(e){return e.textContent.trim();}).join(',');document.getElementById('planOverview').textContent='V:'+v+'|T:'+document.querySelectorAll('#weeklyPlan .task-item').length;"],
+  "expect": ["V:7,20,3,9|T:28"],
+  "ref": "深度解析算例复算：基础服从 5 项 + 如厕训练 4 项 = 9 项，20 分钟时段数 3，每日 min(3+1,9)=4 条，一周 7×4=28 条。默认只选基础服从 ⇒ 末位为 5 ⇒ 不命中。"
+},
+{
+  "slug": "pet/training-planner",
+  "inputs": { "age": "junior", "dailyTime": "45" },
+  "clicks": ["var v=[].map.call(document.querySelectorAll('.overview-card .v'),function(e){return e.textContent.trim();}).join(',');document.getElementById('planOverview').textContent='V:'+v+'|T:'+document.querySelectorAll('#weeklyPlan .task-item').length;"],
+  "expect": ["V:7,45,4,5|T:35"],
+  "ref": "深度解析算例二复算：只选基础服从 5 项、45 分钟时段数 4，每日 min(4+1,5)=5 条，一周 35 条。默认 20 分钟 ⇒ V:7,20,3,5|T:28 ⇒ 不命中。"
+},
+
+{
   "slug": "pet/pet-age",
   "inputs": {
     "petAge": "6"

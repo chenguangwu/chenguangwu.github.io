@@ -107,6 +107,13 @@ const CASES = [
   "ref": "IM-D1 回归：块大小统一以原图坐标定义并按画布缩放换算（15px @0.25 → 4、@0.5 → 8、1:1 → 15）；全图模式预览必须实际打码（mosaic=1 且 region 为空）。旧实现全图预览直接画原图（mosaic=0），且把显示坐标下的数值直接当块大小（预览高估强度）。默认块大小 10 会得到 PLAN:3:1:F|AREA:5:R|RAW:10 ⇒ 注入失败必失配。"
 },
 {
+  "slug": "image/image-mosaic",
+  "inputs": { "block-size": "7" },
+  "clicks": ["var g=window.__mosaicGeom;var n=+document.getElementById('block-size').value;document.getElementById('block-val').textContent='S:'+g.mapBlockToCanvas(n,0.253333)+'|B:'+g.mapBlockToCanvas(50,0.253333)+'|Z:'+(g.planPreview('area',null,n,0.5).mosaic?1:0);"],
+  "expect": ["S:2|B:13|Z:0"],
+  "ref": "深度解析算例复算：3000×2000 大图 dispScale=0.253333，块 7px 预览 round(1.773)=2、上限 50px round(12.666)=13；区域模式无选区时 mosaic=0（不画马赛克）。默认块 10 会得到 S:3 ⇒ 注入 7 才命中。"
+},
+{
   "slug": "image/image-crop",
   "clicks": [
     "var g=window.__cropGeom;var b=g.fitCropBox(98,98,12,12,100,100,12,1);var o=g.clampCropOutput({x:88.4,y:88.4,w:12.6,h:12.6},100,100);document.getElementById('ci-w').textContent='BOX:'+[b.x,b.y,b.w,b.h].join(',')+'|OUT:'+[o.x,o.y,o.w,o.h].join(',');"
@@ -232,6 +239,12 @@ const CASES = [
   "ref": "IM-N6 回归：本地最小 ZIP（STORE）写入实现 __gsMakeZip 必须返回 application/zip Blob（不再依赖外部 JSZip CDN）；默认态 zipStatus 为空 ⇒ 不命中。"
 },
 {
+  "slug": "image/gif-split",
+  "clicks": ["document.getElementById('zipStatus').textContent='D:'+formatDelay(8)+'|'+formatDelay(5)+'|'+formatDelay(0);"],
+  "expect": ["D:80ms|50ms|0ms"],
+  "ref": "深度解析算例复算：GIF 帧延时单位 1/100 秒，8→80ms、5→50ms、0→0ms（formatDelay 原样返回 0ms，不兜底 100ms）。默认态 zipStatus 为空 ⇒ 不命中。"
+},
+{
   "slug": "image/wechat-cover-maker",
   "inputs": {
     "title": "工具名示例_X",
@@ -245,6 +258,12 @@ const CASES = [
   ],
     ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
+},
+{
+  "slug": "image/wechat-cover-maker",
+  "clicks": ["document.getElementById('c1').value='#ffffff';document.getElementById('c2').value='#ffffff';render();var g=document.getElementById('cover').getContext('2d');var a=g.getImageData(10,222,1,1).data;var b=g.getImageData(10,223,1,1).data;document.getElementById('wcSizeTbl').textContent='P:'+a[0]+','+a[1]+','+a[2]+'|B:'+b[0]+','+b[1]+','+b[2];"],
+  "expect": ["P:255,255,255|B:166,166,166"],
+  "ref": "深度解析算例复算：画布 900×383、底部压暗条起点 y=383−160=223；白色渐变在 y=222 仍是 255，进入 y=223 被 rgba(0,0,0,0.35) 压到 round(255×0.65)=166。默认配色在 y=222 不是纯白 ⇒ 不命中。"
 },
 {
   "slug": "design/image-flipper",
