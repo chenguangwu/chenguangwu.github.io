@@ -22,8 +22,9 @@
 const fs = require('fs');
 const path = require('path');
 
-const ROOT = path.resolve(__dirname, '..');
-const OUT_DIR = path.join(ROOT, 'scripts', 'out');
+const ROOT = process.env.TB_ROOT || path.resolve(__dirname, '..');
+// TB_OUT / TB_MD_OUT 用于隔离复跑：把某批页面的结果与台账落到临时目录，避免覆盖全量记录
+const OUT_DIR = process.env.TB_OUT || path.join(ROOT, 'scripts', 'out');
 const JSONL = path.join(OUT_DIR, 'runtime-errors.jsonl');
 const JSON_OUT = path.join(OUT_DIR, 'runtime-errors.json');
 const MD_OUT = path.join(ROOT, 'plan', 'runtime-errors.md');
@@ -50,7 +51,7 @@ const TIMEOUT = parseInt(arg('timeout', String(TIMEOUT_DEFAULT)), 10) || TIMEOUT
 const INTERACT = args.includes('--interact'); // 交互有效性模式：空态 + 改值后点击 + 复制/重置/导出
 const IJSONL = path.join(OUT_DIR, 'interaction-invalid.jsonl');
 const IJSON = path.join(OUT_DIR, 'interaction-invalid.json');
-const IMD = path.join(ROOT, 'plan', 'interaction-validity.md');
+const IMD = process.env.TB_MD_OUT || path.join(ROOT, 'plan', 'interaction-validity.md');
 // 默认态脏输出模式：只加载页面、不做任何输入操作，抓可见文本里的占位符残留
 const DIRTY = args.includes('--dirty');
 const DJSONL = path.join(OUT_DIR, 'default-dirty.jsonl');
@@ -241,7 +242,8 @@ async function scanOne(page, rel) {
       };
       for (const el of document.querySelectorAll('input, select, textarea')) {
         if (!visible(el)) continue;
-        if (el.closest('nav, header, footer, .tab-bar, .tb-nav, .tb-topbar, .tb-share-embed, .tb-mobile-drawer')) continue; // 只填正文工具区
+        if (el.closest('nav, header, footer, .tab-bar, .tb-nav, .tb-topbar, .tb-share-embed, .tb-mobile-drawer, .nav-search')) continue; // 只填正文工具区（站内搜索框排除）
+        if (el.classList && el.classList.contains('tbk-matrix-search')) continue; // TBKit 注入组件，非工具参数
         const type = (el.type || '').toLowerCase();
         if (['button', 'submit', 'reset', 'checkbox', 'radio', 'file', 'range', 'color', 'hidden', 'image'].includes(type)) continue;
         if (el.tagName === 'SELECT') {
@@ -412,14 +414,95 @@ function SNAP_FN() {
   return { key: 'fallback', txt: out.replace(/\s+/g, ' ').trim().slice(0, 900), sig: sig(out.replace(/\s+/g, ' ').trim()) };
 }
 
+// 全量可见文本快照（交互有效性专用；空态仍用 SNAP_FN，避免改动空态判据）
+// 要点：① 覆盖列表/过滤区与「搜索结果：N 条」计数（不再只看结果容器）；② 归一化后上限 6000 字；
+// ③ 控件内当前值一律不计（避免「输入变了=输出变了」）；只读结果框的 value 计入。
+function SNAP_FULL_FN() {
+  const SKIP = 'nav, header, footer, script, style, noscript, .tb-nav, .tb-topbar, .tb-share-embed, .tb-ad, .tb-toast, .nav-search';
+  const root = document.querySelector('main, .main-content, .container, #app') || document.body;
+  const parts = [];
+  if (root) {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    let n;
+    while ((n = walker.nextNode())) {
+      const p = n.parentElement;
+      if (!p) continue;
+      if (p.closest(SKIP)) continue;
+      if (p.closest('input, textarea, select, option')) continue;
+      if (!p.getClientRects().length) continue;
+      const v = n.nodeValue;
+      if (v) parts.push(v);
+    }
+  }
+  for (const el of document.querySelectorAll('textarea, input')) {
+    const t = (el.type || '').toLowerCase();
+    if (t === 'checkbox' || t === 'radio' || t === 'file') continue;
+    if (!(el.readOnly || el.disabled)) continue;
+    if (!el.getClientRects().length) continue;
+    if (el.closest(SKIP)) continue;
+    const v = String(el.value || '').trim();
+    if (v) parts.push(v);
+  }
+  const full = parts.join(' ').replace(/[\u00a0\u2000-\u200f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 6000);
+  // 结果区文本：仅用于证据展示（比较一律用 full 的哈希签名）
+  const sels = ['#result', '#resultArea', '#output', '#calcResult', '.result-box', '.result', '.results', '.output-box', '.calc-result', '.tool-result', '#out', '#answer', '#outputBox'];
+  let zone = '';
+  for (const s of sels) {
+    const el = document.querySelector(s);
+    if (!el || !el.getClientRects().length) continue;
+    const t = (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT') ? String(el.value || '') : String(el.textContent || '');
+    const v = t.replace(/\s+/g, ' ').trim();
+    if (v) { zone = v.slice(0, 320); break; }
+  }
+  const count = (full.match(/搜索结果\s*[:：]?\s*\d+\s*条?|共\s*\d+\s*(条|项|个)/) || [''])[0];
+  let hash = 0;
+  for (let i = 0; i < full.length; i++) hash = (hash * 31 + full.charCodeAt(i)) >>> 0;
+  const cvs = (() => {
+    const out = [];
+    for (const cv of document.querySelectorAll('canvas')) {
+      if (!cv.getClientRects().length) continue;
+      if (cv.closest(SKIP)) continue;
+      try {
+        const w = cv.width, h = cv.height;
+        if (!w || !h) continue;
+        const t2 = document.createElement('canvas');
+        t2.width = 16; t2.height = 16;
+        const g = t2.getContext('2d', { willReadFrequently: true });
+        if (!g) continue;
+        g.drawImage(cv, 0, 0, 16, 16);
+        const d = g.getImageData(0, 0, 16, 16).data;
+        let hh = 0;
+        for (let i = 0; i < d.length; i += 4) hh = (hh * 31 + d[i] + d[i + 1] * 3 + d[i + 2] * 7 + d[i + 3] * 11) >>> 0;
+        out.push(w + 'x' + h + ':' + hh);
+      } catch (e) { /* 画布不可读时跳过 */ }
+    }
+    return out.join(',');
+  })();
+  return { key: 'fulltext', txt: zone || full.slice(0, 320), full, len: full.length, count, sig: 'h:' + hash.toString(36) + '|n:' + full.length + '|cv:' + cvs };
+}
+
 function GET_INPUTS_FN() {
   const out = [];
+  const TEXTY = ['text', 'number', 'date', 'time', 'datetime-local', 'month', 'week', 'email', 'url', 'tel', 'search', 'password'];
   Array.from(document.querySelectorAll('input, select, textarea')).forEach((el, i) => {
     const type = (el.type || '').toLowerCase();
-    if (['button', 'submit', 'reset', 'file', 'hidden', 'image'].includes(type)) return;
+    // file 纳入清单（C 桶判据需要「无 file 可改变结果」）；button 类仍排除
+    if (['button', 'submit', 'reset', 'hidden', 'image'].includes(type)) return;
     if (!el.getClientRects().length || el.disabled) return;
-    if (el.closest('nav, header, footer, .tab-bar, .tb-nav, .tb-topbar, .tb-share-embed')) return;
-    out.push({ i, tag: el.tagName.toLowerCase(), type, id: el.id || '', name: el.name || '', value: String(el.value || '').slice(0, 60) });
+    if (el.closest('nav, header, footer, .tab-bar, .tb-nav, .tb-topbar, .tb-share-embed, .nav-search')) return;
+    // 站内搜索框 / TBKit 注入的矩阵搜索组件不属于工具参数（输入会打开下拉），必须排除，否则误判 B
+    if (type === 'search' && (el.name === 'q' || /^searchInput/i.test(el.id || '') || el.classList.contains('tbk-matrix-search'))) return;
+    // 稳定索引：页面重渲染会丢，调用方每次改值前重新取一遍
+    el.setAttribute('data-tbprobe', String(i));
+    // select 的 el.type 是 select-one / select-multiple，统一归一成 select，否则「select 驱动」判据全部失效
+    const norm = el.tagName === 'SELECT' ? 'select' : (el.tagName === 'TEXTAREA' ? 'textarea' : type);
+    out.push({
+      i, tag: el.tagName.toLowerCase(), type: norm,
+      id: el.id || '', name: el.name || '', cls: el.className || '', value: String(el.value || '').slice(0, 60),
+      readOnly: !!(el.readOnly || el.disabled), optionsN: el.tagName === 'SELECT' ? el.options.length : 0,
+      isText: el.tagName === 'TEXTAREA' || TEXTY.includes(type),
+      isSearch: type === 'search', isFile: type === 'file',
+    });
   });
   return out;
 }
@@ -432,7 +515,8 @@ function SET_INPUTS_FN(mode) {
     const type = (el.type || '').toLowerCase();
     if (['button', 'submit', 'reset', 'file', 'hidden', 'image', 'checkbox', 'radio'].includes(type)) continue;
     if (!el.getClientRects().length || el.disabled || el.readOnly) continue;
-    if (el.closest('nav, header, footer, .tab-bar, .tb-nav, .tb-topbar, .tb-share-embed')) continue;
+    if (el.closest('nav, header, footer, .tab-bar, .tb-nav, .tb-topbar, .tb-share-embed, .nav-search')) continue;
+    if (el.classList && el.classList.contains('tbk-matrix-search')) continue;
     const hasBtn = el.parentElement && el.parentElement.querySelector('button');
     if (mode === 'empty') {
       if (el.tagName === 'SELECT') { el.selectedIndex = 0; fire(el); n++; continue; }
@@ -506,7 +590,7 @@ function MUTATE_ONE_FN(idx, variant) {
     // search 多为列表筛选框，不是计算输入，改它不产生结果变化属于正常
     if (['button', 'submit', 'reset', 'file', 'hidden', 'image', 'checkbox', 'radio', 'range', 'color', 'search'].includes(type)) return;
     if (!el.getClientRects().length || el.disabled || el.readOnly) return;
-    if (el.closest('nav, header, footer, .tab-bar, .tb-nav, .tb-topbar, .tb-share-embed')) return;
+    if (el.closest('nav, header, footer, .tab-bar, .tb-nav, .tb-topbar, .tb-share-embed, .nav-search')) return;
     cands.push({ el, type: el.tagName === 'SELECT' ? 'select' : (el.type || 'text').toLowerCase() });
   });
   // 优先改「主数据输入」：number → 文本类 → 日期 → select 最后。
@@ -592,6 +676,172 @@ function MUTATE_ONE_FN(idx, variant) {
   return { ok: true, id: targets[0].el.id || '', label: labels.join('; '), type: targets[0].type, numeric: targets[0].type === 'number', count: labels.length };
 }
 
+// 按稳定索引改单个字段：variant 0/1 取「差异大的两个合法值」，避开 0/负/越界
+function MUTATE_FIELD_FN(i, variant) {
+  const el = document.querySelector('[data-tbprobe="' + i + '"]');
+  if (!el) return { ok: false, reason: 'detached' };
+  const type = (el.type || '').toLowerCase();
+  const from = String(el.value || '');
+  const fire = (x) => { try { x.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {} try { x.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) {} };
+  const sig = ((el.id || '') + ' ' + (el.name || '') + ' ' + (el.placeholder || '') + ' ' + (el.getAttribute('pattern') || '')).toLowerCase();
+  let to = '';
+  if (el.tagName === 'SELECT') {
+    const others = Array.from(el.options).filter((o) => o.index !== el.selectedIndex);
+    if (!others.length) return { ok: false, reason: 'no-other-option' };
+    const pick = others[Math.min(variant, others.length - 1)];
+    if (pick.index === el.selectedIndex) return { ok: false };
+    el.selectedIndex = pick.index;
+    to = String(el.value);
+  } else if (type === 'checkbox' || type === 'radio') {
+    if (variant !== 0) return { ok: false };
+    el.checked = !el.checked;
+    to = el.checked ? 'checked' : 'unchecked';
+  } else if (type === 'file') {
+    if (variant !== 0) return { ok: false };
+    try {
+      const dt = new DataTransfer();
+      dt.items.add(new File(['probe payload 0123456789'], 'probe.txt', { type: 'text/plain' }));
+      el.files = dt.files;
+      to = 'probe.txt';
+    } catch (e) { return { ok: false, reason: 'file-inject-failed' }; }
+  } else if (type === 'range') {
+    const min = el.min !== '' ? parseFloat(el.min) : 0;
+    const max = el.max !== '' ? parseFloat(el.max) : 100;
+    const lo = isFinite(min) ? min : 0, hi = isFinite(max) ? max : 100;
+    to = String(lo + (hi - lo) * (variant ? 0.75 : 0.35));
+    el.value = to;
+  } else if (type === 'color') {
+    to = variant ? '#0033ff' : '#ff3300';
+    el.value = to;
+  } else if (type === 'number') {
+    const min = el.min !== '' ? parseFloat(el.min) : null;
+    const max = el.max !== '' ? parseFloat(el.max) : null;
+    const step = el.step && el.step !== 'any' ? parseFloat(el.step) : NaN;
+    const minOk = min !== null && isFinite(min);
+    const maxOk = max !== null && isFinite(max);
+    let lo, hi;
+    if (minOk && maxOk && max > min) { lo = min + (max - min) * 0.3; hi = min + (max - min) * 0.8; }
+    else if (minOk) { lo = min + Math.max(Math.abs(min), 1) * 0.5; hi = min + Math.max(Math.abs(min), 1) * 2; }
+    else if (maxOk && max > 0) { lo = max * 0.4; hi = max * 0.9; }
+    else { lo = 17; hi = 89; }
+    if (isFinite(step) && step > 0) { lo = Math.round(lo / step) * step; hi = Math.round(hi / step) * step; }
+    if (minOk) { lo = Math.max(min, lo); hi = Math.max(min, hi); }
+    if (maxOk) { lo = Math.min(max, lo); hi = Math.min(max, hi); }
+    let v = variant ? hi : lo;
+    if (!isFinite(v) || String(v) === from) v = variant ? lo : hi;
+    if (String(v) === from) return { ok: false, reason: 'same-value' };
+    to = String(v); el.value = to;
+  } else if (type === 'date') {
+    to = variant ? '2027-03-15' : '2025-01-15'; el.value = to;
+  } else if (type === 'time') {
+    to = variant ? '18:45' : '09:30'; el.value = to;
+  } else if (el.tagName === 'TEXTAREA') {
+    if (/json/.test(sig)) to = variant ? '{"k":[3,4,5]}' : '{"k":[1,2]}';
+    else if (/xml/.test(sig)) to = variant ? '<root><item>9</item></root>' : '<root><item>5</item></root>';
+    else to = variant ? 'probe-zulu-9\nprobe-zulu-8\nprobe-zulu-7' : 'probe-alpha-1\nprobe-alpha-2';
+    el.value = to;
+  } else if (type === 'search') {
+    // 搜索框要「大差异」：variant0 用极短常匹配词，variant1 用几乎不可能命中的串
+    to = variant ? 'zzz-no-match-9' : 'a'; el.value = to;
+  } else {
+    if (/url|link|域名|网址/.test(sig) || /^https?:\/\//.test(from)) to = variant ? 'https://example.net/probe2' : 'https://example.com/probe2';
+    else if (/email|邮箱/.test(sig) || /@/.test(from)) to = variant ? 'probe2@example.net' : 'probe2@example.org';
+    else if (/json/.test(sig)) to = variant ? '{"k":[3,4,5]}' : '{"k":[1,2]}';
+    else if (/hex|十六/.test(sig)) to = variant ? 'deadbeef21' : 'deadbeef';
+    else if (type === 'tel') to = variant ? '13900001111' : '01088886666';
+    else if (/amount|price|rate|num|qty|count|value|year|age|weight|height|salary|金额|价格|数量|利率|年限|年龄|体重|身高|数值|数字/.test(sig)) to = variant ? '987' : '321';
+    else to = variant ? 'probe-zulu-9' : 'probe-alpha-7';
+    el.value = to;
+  }
+  if (String(el.value) === from) return { ok: false, reason: 'same-value' };
+  fire(el);
+  return { ok: true, from, to: String(to), type: el.tagName === 'SELECT' ? 'select' : type, id: el.id || el.name || '' };
+}
+
+function RESTORE_FIELD_FN(i, value) {
+  const el = document.querySelector('[data-tbprobe="' + i + '"]');
+  if (!el) return { ok: false, reason: 'detached' };
+  const fire = (x) => { try { x.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {} try { x.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) {} };
+  const type = (el.type || '').toLowerCase();
+  if (el.tagName === 'SELECT') {
+    const idx = Array.from(el.options).findIndex((o) => String(o.value) === String(value));
+    if (idx >= 0) el.selectedIndex = idx;
+  } else if (type === 'checkbox' || type === 'radio') {
+    el.checked = value === 'checked';
+  } else if (type === 'file') {
+    try { el.files = null; } catch (e) {}
+  } else {
+    el.value = value;
+  }
+  fire(el);
+  return { ok: true };
+}
+
+// D-b 前置：填表后点「添加/新增」类按钮，看列表行数是否增长（reminder-2 型漏判）
+function ENTITY_ADD_FN() {
+  // 站内通用脚本会给 date 等控件动态加 readonly，主填值阶段会跳过它们 → 这里先把空的必填项补成合法值
+  const fire = (x) => { try { x.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {} try { x.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) {} };
+  for (const el of document.querySelectorAll('input, textarea')) {
+    const t = (el.type || '').toLowerCase();
+    if (['button', 'submit', 'reset', 'hidden', 'image', 'file', 'checkbox', 'radio'].includes(t)) continue;
+    if (!el.getClientRects().length || el.disabled || String(el.value || '') !== '') continue;
+    if (t === 'date') el.value = '2026-11-04';
+    else if (t === 'time') el.value = '12:00';
+    else if (t === 'number') el.value = '12';
+    else el.value = 'probe-value';
+    fire(el);
+  }
+  const RE = /添加|新增|加入|插入|add\b|append|create/i;
+  const EX = /删除|移除|清空|重置|取消|复制|导出|下载|分享/;
+  const els = Array.from(document.querySelectorAll('button, [role="button"], .btn'));
+  const el = els.find((e) => {
+    const label = (e.innerText || e.value || '').trim();
+    if (!label || EX.test(label) || !RE.test(label)) return false;
+    if (!e.getClientRects().length) return false;
+    if (e.closest('nav, header, footer, .tb-nav, .tb-topbar')) return false;
+    return true;
+  });
+  // 列表签名＝行数 + 列表容器文本（innerHTML 整块重渲染时行数可能不变，文本一定变）
+  const snapList = () => {
+    const rows = document.querySelectorAll('table tbody tr, .item-row, .list-item, [role="listitem"], .row-item, [id*="list" i] > *').length;
+    let txt = '';
+    for (const box of document.querySelectorAll('[id*="list" i]')) txt += '|' + String(box.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 200);
+    return { rows, sig: rows + '#' + txt };
+  };
+  if (!el) return { found: false, before: snapList() };
+  const before = snapList();
+  const label = (el.innerText || el.value || '').trim().slice(0, 24);
+  try { el.click(); } catch (e) { return { found: true, label, before, clickError: String(e && e.message || e) }; }
+  return { found: true, label, before };
+}
+
+function COUNT_ROWS_FN() {
+  const rows = document.querySelectorAll('table tbody tr, .item-row, .list-item, [role="listitem"], .row-item, [id*="list" i] > *').length;
+  let txt = '';
+  for (const box of document.querySelectorAll('[id*="list" i]')) txt += '|' + String(box.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 200);
+  return { rows, sig: rows + '#' + txt };
+}
+
+// 点第 k 个「非破坏性」按钮（空态/预设/示例/切换类），用于 D-a/D-b 区分
+function OTHER_BTN_FN(k) {
+  const EX = /删除|移除|清空|重置|复制|导出|下载|分享|打印|返回|停止|取消|主题|语言|hex|rgb|复制/;
+  const els = Array.from(document.querySelectorAll('button, [role="button"], .btn, input[type="button"]'))
+    .filter((e) => {
+      const label = (e.innerText || e.value || '').trim();
+      if (!label || EX.test(label)) return false;
+      if (e.getAttribute('role') === 'tab' || e.hasAttribute('data-pane')) return false;
+      if (!e.getClientRects().length || e.disabled) return false;
+      if (e.closest('nav, header, footer, .tb-nav, .tb-topbar')) return false;
+      if (e.getAttribute('href')) return false;
+      return true;
+    });
+  const el = els[k];
+  if (!el) return { ok: false, total: els.length };
+  const label = (el.innerText || el.value || '').trim().slice(0, 24);
+  try { el.click(); } catch (e) { return { ok: false, label, err: String(e && e.message || e) }; }
+  return { ok: true, label, total: els.length };
+}
+
 function VISIBLE_BTN_FN() {
   return Array.from(document.querySelectorAll('button, [role="button"], .btn, input[type="button"], input[type="submit"]'))
     .filter((e) => e.getClientRects().length && !e.closest('nav, header, footer, .tb-nav, .tb-topbar'))
@@ -601,7 +851,7 @@ function VISIBLE_BTN_FN() {
 }
 
 function CLICK_PRIMARY_FN() {
-  const KW = ['计算', '生成', '转换', '运行', '分析', '开始', '统计', '评估', '测试', '求解', '换算', '加密', '解密', '编码', '解码', '压缩', '解压', '格式化', '解析', '校验', '验证', '检测', '比较', '排序', '筛选', '提取', '合并', '分割', '替换', '查找', '查询', '搜索', '转译', '翻译', '朗读', '试算', '识别', '渲染', '预览', '执行', '提交', '确定', '估算', '估值', '评测', '判读', '诊断', '绘制'];
+  const KW = ['计算', '生成', '转换', '运行', '分析', '开始', '统计', '评估', '测试', '求解', '换算', '加密', '解密', '编码', '解码', '压缩', '解压', '格式化', '解析', '校验', '验证', '检测', '比较', '对比', '比对', '判断', '评分', '打分', '匹配', '排序', '筛选', '提取', '合并', '分割', '替换', '查找', '查询', '搜索', '转译', '翻译', '朗读', '试算', '识别', '渲染', '预览', '执行', '提交', '确定', '估算', '估值', '评测', '判读', '诊断', '绘制'];
   const EX = ['打印', '复制', '重置', '清空', '下载', '导出', '分享', '返回', '停止', '取消', '删除', '刷新', '添加', '新增'];
   // 辅助按钮：生成盐/IV/随机数、示例/预设/测试卡、历史记录、主题 —— 一律不算主计算按钮
   const AUX = /(salt|_iv|iv\(|iv_|random|sample|preset|demo|example|hist|theme|copy|download|export|reset|clear|share|恢复)/i;
@@ -817,30 +1067,91 @@ async function scanInteract(page, rel) {
     }
   }
 
-  // ---- 有效性：填值 → 记录 → 改一个输入 → 记录 → 点主按钮 → 记录 ----
+  // ---- 有效性：全填基线 → 逐字段两值改值（并集 changedAll）→ 恢复确认 → 点主按钮 ----
+  // 修盲区①③：① 先全填再逐字段改（不是只改第一个输入，也不要求单字段路径能出结果）；
+  //             ③ 每个字段至少两个差异大的合法值，且做「改值→恢复」双向确认。
   rec._phase = 'fill';
   await page.evaluate(SET_INPUTS_FN, 'fill').catch(() => 0);
   await sleep(220);
-  const sFill = await snap();
-  const mut = await page.evaluate(MUTATE_ONE_FN, 0, 0).catch(() => ({ ok: false }));
-  await sleep(180);
-  const sMut = await snap();
+  const snapFull = () => page.evaluate(SNAP_FULL_FN).catch(() => ({ key: 'fulltext', txt: '', full: '', len: 0, count: '', sig: '' }));
+  let sFill = await snapFull();
+  let fieldList = await page.evaluate(GET_INPUTS_FN).catch(() => []);
+  const textN = fieldList.filter((f) => f.isText && !f.isSearch).length;
+  const searchN = fieldList.filter((f) => f.isSearch).length;
+  const selectN = fieldList.filter((f) => f.type === 'select').length;
+  const fileN = fieldList.filter((f) => f.isFile).length;
+  const fieldResults = [];
+  let changedText = false, changedSearch = false, changedNonText = false;
+  let changedSelect = false, changedRangeColor = false, changedFile = false;
+  let mutatedAny = false, wipeDetected = false;
+  for (let k = 0; k < fieldList.length; k++) {
+    const fresh = await page.evaluate(GET_INPUTS_FN).catch(() => []);
+    const f = fresh[k];
+    if (!f) break;
+    if (f.readOnly && f.tag !== 'select') { fieldResults.push({ i: f.i, id: f.id, type: f.type, skipped: 'readonly' }); continue; }
+    const variants = f.type === 'select' && f.optionsN > 1 ? [0, 1]
+      : ['checkbox', 'radio', 'file'].includes(f.type) ? [0] : [0, 1];
+    for (const v of variants) {
+      const m = await page.evaluate(MUTATE_FIELD_FN, f.i, v).catch(() => ({ ok: false }));
+      if (!m.ok) break;
+      mutatedAny = true;
+      // 防抖页（如电话查询、搜索过滤）结果晚于 130ms 才刷新：首拍无变化时再等 220ms 复拍一次，保证两次运行同口径
+      await sleep(140);
+      let s = await snapFull();
+      if (!s.sig || s.sig === sFill.sig) { await sleep(220); s = await snapFull(); }
+      const changed = !!s.sig && s.sig !== sFill.sig;
+      await page.evaluate(RESTORE_FIELD_FN, f.i, m.from).catch(() => ({ ok: false }));
+      await sleep(120);
+      let sBack = await snapFull();
+      if (!sBack.sig || sBack.sig !== sFill.sig) { await sleep(220); sBack = await snapFull(); }
+      const restored = !!sBack.sig && sBack.sig === sFill.sig;
+      if (!restored && sBack.sig) { wipeDetected = true; sFill = sBack; } // 页面重渲染：基线漂移，以当前态为准
+      fieldResults.push({ i: f.i, id: f.id, name: f.name || '', cls: f.cls || '', type: f.type, v, from: m.from, to: m.to, changed, restored, after: s.txt.slice(0, 100) });
+      if (changed) {
+        if (f.isSearch) changedSearch = true;
+        else if (f.isText) changedText = true;
+        else {
+          changedNonText = true;
+          if (f.type === 'select') changedSelect = true;
+          else if (f.type === 'range' || f.type === 'color' || f.type === 'checkbox' || f.type === 'radio') changedRangeColor = true;
+          else if (f.isFile) changedFile = true;
+        }
+        break; // 该字段已确认驱动，第二个值不必再测
+      }
+    }
+  }
+
+  const sPre = await snapFull();
   const errBefore = rec.errors.length;
   rec._phase = 'click';
   const clicked = await page.evaluate(CLICK_PRIMARY_FN).catch(() => ({ found: false }));
   await sleep(360);
-  const sClick = await snap();
+  const sClick = await snapFull();
+  const liveChange = changedText || changedSearch || changedNonText;
   rec.valid = {
     clicked: !!clicked.found,
     btn: clicked.label || '',
-    zone: sMut.key,
-    changedByInput: sFill.sig !== sMut.sig,
-    changedByClick: sMut.sig !== sClick.sig,
-    mutation: mut.ok ? mut.label : '',
-    mutationId: mut.ok ? (mut.id || '') : '',
-    numeric: !!mut.numeric,
+    zone: sClick.key,
+    changedAll: liveChange,
+    changedByInput: liveChange, // 兼容旧字段名：已改为「全填后逐字段改值并集」，不再代表单字段路径
+    changedByInputText: changedText,
+    changedBySearch: changedSearch,
+    changedByNonText: changedNonText,
+    changedBySelect: changedSelect,
+    changedByRangeColor: changedRangeColor,
+    changedByFile: changedFile,
+    changedByClick: !!sPre.sig && sPre.sig !== sClick.sig,
+    fields: fieldResults.slice(0, 40),
+    fieldCount: fieldList.length,
+    textInputs: textN,
+    searchInputs: searchN,
+    selectInputs: selectN,
+    fileInputs: fileN,
+    wipeDetected,
+    mutation: fieldResults.filter((f) => f.changed).slice(0, 3).map((f) => `${f.type}#${f.id || '?'} ${JSON.stringify(String(f.from).slice(0, 16))}→${JSON.stringify(String(f.to).slice(0, 16))}`).join('; '),
+    numeric: fieldResults.some((f) => f.changed && f.type === 'number'),
     before: sFill.txt.slice(0, 120),
-    afterInput: sMut.txt.slice(0, 120),
+    afterInput: (fieldResults.find((f) => f.changed) || {}).after || sFill.txt.slice(0, 120),
     afterClick: sClick.txt.slice(0, 120),
   };
   if (rec.errors.length > errBefore) {
@@ -848,16 +1159,15 @@ async function scanInteract(page, rel) {
   } else if (!clicked.found) {
     rec.note = 'no-primary-button'; // 无按钮（实时计算/纯展示），不算缺陷
     rec.noteButtons = await page.evaluate(VISIBLE_BTN_FN).catch(() => []);
-  } else if (sClick.sig === sMut.sig && sFill.sig === sMut.sig) {
-    if (!mut.ok) rec.valid.noMutation = true; // 没有可改的输入（只有 checkbox/文件等），不满足「先改值」前提，不能判缺陷
-    // 结果区仍在提示「请输入/请填写/无效」或校验警告（如「发芽数合计超过供试种子数」）：说明探针值本身没被页面接受，不能据此判按钮无效
-    else if (PROMPT_RE.test(sClick.txt) || ERRSTATE_RE.test(sClick.txt) || NOEFFECT_PROBE_RE.test(sClick.txt)) rec.valid.probeInvalid = true;
-    else if (toolbarOnly(sClick.txt)) rec.valid.zoneThin = true; // 只抓到「复制/导出」工具条，没有可测的结果区
-    else rec.valid.suspect = 'no_effect';
-  } else if (sClick.sig === sMut.sig && sFill.sig !== sMut.sig) {
-    // 改输入时结果已经实时更新（页面 oninput 自动计算），按钮点击不再产生变化 → 冗余按钮，但不是缺陷
-    if (PROMPT_RE.test(sClick.txt)) rec.valid.probeInvalid = true;
-    else rec.valid.liveCalc = true;
+    // 修盲区⑥：说明文案由实测字段派生，不再写死「无文本输入」这类与数据矛盾的描述
+    rec.noteReason = `无主按钮；文本输入 ${textN}（search ${searchN}）、select ${selectN}、file ${fileN}；逐字段改值驱动=${changedText || changedSearch ? '是' : '否'}，select/其它控件驱动=${changedNonText ? '是' : '否'}`;
+  } else if (!mutatedAny) {
+    rec.valid.noMutation = true; // 没有可改的输入，不满足「先改值」前提，不能判缺陷
+  } else if (sClick.sig === sPre.sig) {
+    // 结果区仍在提示「请输入/请填写/无效」或校验警告：说明探针值本身没被页面接受，不能据此判按钮无效
+    if (PROMPT_RE.test(sClick.txt) || ERRSTATE_RE.test(sClick.txt) || NOEFFECT_PROBE_RE.test(sClick.txt)) rec.valid.probeInvalid = true;
+    else if (!liveChange) rec.valid.suspect = 'no_effect';   // 只有「改值无变化且点击无变化」才可疑
+    else rec.valid.liveCalc = true;                          // 改值已实时生效、按钮冗余，不是缺陷
   }
 
   // 对「输出完全没变」的疑似缺陷做一次复验：把所有可改输入都改成明显不同的值再点。
@@ -866,11 +1176,11 @@ async function scanInteract(page, rel) {
     rec._phase = 'recheck';
     const mut2 = await page.evaluate(MUTATE_ONE_FN, -1, 1).catch(() => ({ ok: false }));
     await sleep(200);
-    const sRe = await snap();
+    const sRe = await snapFull();
     const errBefore2 = rec.errors.length;
     const clicked2 = await page.evaluate(CLICK_PRIMARY_FN).catch(() => ({ found: false }));
     await sleep(360);
-    const sClick2 = await snap();
+    const sClick2 = await snapFull();
     rec.valid.recheck = { mutation: mut2.ok ? mut2.label : '', clicked: !!clicked2.found, before: sRe.txt.slice(0, 100), after: sClick2.txt.slice(0, 100) };
     const movedBySecondProbe = sRe.sig !== sClick.sig || sClick2.sig !== sRe.sig;
     if (rec.errors.length > errBefore2) issue('click_error');
@@ -883,6 +1193,38 @@ async function scanInteract(page, rel) {
       rec.valid.maskedBy = '主探针 0.8× 无变化，放大 5× 后结果变化：判定为显示精度/阈值掩蔽';
       rec.valid.decimals = maxDecimals(sClick.txt);
     } else rec.valid.confirmed = false;
+  }
+
+  // ---- 修盲区⑤：D-b 判定前必须试跑一次「填表 → 点添加 → 看行数/列表变化」 ----
+  rec._phase = 'entity';
+  const entity = await page.evaluate(ENTITY_ADD_FN).catch(() => ({ found: false }));
+  if (entity.found) {
+    await sleep(280);
+    const after = await page.evaluate(COUNT_ROWS_FN).catch(() => entity.before || { rows: 0, sig: '' });
+    const before = entity.before || { rows: 0, sig: '' };
+    const grew = (after.rows || 0) > (before.rows || 0) || (!!after.sig && after.sig !== before.sig);
+    rec.valid.entityAdd = { found: true, label: entity.label || '', beforeRows: before.rows || 0, afterRows: after.rows || 0, grew };
+  } else {
+    rec.valid.entityAdd = { found: false, beforeRows: (entity.before || {}).rows || 0 };
+  }
+
+  // ---- 修盲区④：D 判据收紧——无 select/file/canvas/其它按钮可改变结果时才落 D ----
+  if (!rec.valid.changedAll && !rec.valid.changedByClick && !rec.valid.entityAdd.grew) {
+    rec._phase = 'otherbtn';
+    const url0 = page.url();
+    const sBase2 = await snapFull();
+    const otherBtns = [];
+    for (let k = 0; k < 6; k++) {
+      const b = await page.evaluate(OTHER_BTN_FN, k).catch(() => ({ ok: false }));
+      if (!b.ok) break;
+      await sleep(240);
+      if (page.url() !== url0) { rec.valid.otherButtonNav = true; break; }
+      const s2 = await snapFull();
+      const changed = !!s2.sig && s2.sig !== sBase2.sig;
+      otherBtns.push({ label: b.label, changed });
+      if (changed) { rec.valid.changedByOtherButton = b.label; break; }
+    }
+    rec.valid.otherButtons = otherBtns;
   }
 
   // ---- 清空/改值阶段抛异常：即使按钮没点到，也是真实缺陷（如 gcd(0,0) 无限递归） ----
