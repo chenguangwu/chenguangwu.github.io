@@ -20,35 +20,6 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "library/citation-format",
-  "inputs": {
-    "title": "数字图书馆建设与发展研究",
-    "seq": "1",
-    "edition": "第5版",
-    "place": "北京",
-    "publisher": "中国标准出版社",
-    "year": "2023-06-15",
-    "pages": "45-52",
-    "journal": "中国图书馆学报",
-    "volissue": "2023,49(3)",
-    "degree": "博士",
-    "school": "北京大学",
-    "conf": "全国图书馆学学术研讨会",
-    "stdno": "GB/T 7714-2015",
-    "patno": "ZL202310000000.1",
-    "paper": "人民日报",
-    "date": "2023-08-01",
-    "url": "https://www.example.com/article/123",
-    "cited": "2024-01-10",
-    "docType": "journal"
-  },
-  "expect": [
-    "journal"
-  ],
-    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
-  "ref": "auto-restore"
-},
-{
   "slug": "library/clc-classifier",
   "inputs": {
     "search": "zzzqx"
@@ -188,6 +159,18 @@ const CASES = [
   "inputs": { "layers": "0" },
   "expect": ["每架层数需为不小于 1 的整数。"],
   "ref": "层数填 0 后旧实现 parseInt('0')||1 ⇒ 静默按 1 层计算；现显式拒绝。默认 6 ⇒ 不命中。"
+},
+{
+  "slug": "library/citation-format",
+  "clicks": ["document.getElementById('docType').value='book';onTypeChange();document.getElementById('title').value='图书馆学概论';document.getElementById('seq').value='5';document.getElementById('edition').value='2';document.getElementById('place').value='北京';document.getElementById('publisher').value='科学出版社';document.getElementById('year').value='2023';document.getElementById('pages').value='35-42';render()"],
+  "expect": ["[5]", "[M]. 2版. 北京: 科学出版社, 2023.35-42."],
+  "ref": "GB/T 7714-2015 专著著录：`[序号] 作者. 题名[M]. 版本. 出版地: 出版社, 出版年: 页码.`（页面页码前用 `.` 而非 `:`）。注入 docType=book、title=图书馆学概论、seq=5、edition=2、place=北京、publisher=科学出版社、year=2023、pages=35-42 ⇒ `[5] … 图书馆学概论[M]. 2版. 北京: 科学出版社, 2023.35-42.`。默认 docType=journal ⇒ `[1] … 数字图书馆建设与发展研究[J]. 中国图书馆学报, 2023,49(3): …`，不含 `[M]`/`2版`/`35-42`，两态不同。判别器清空 clicks 后 docType 回落到 select 默认 journal，仍走 [J] 分支，expect 失配。（作者段由桩内 appendChild 拼串生成、与真机不同，故断言不从作者段起算，只锚类型标识起算的著录体。）"
+},
+{
+  "slug": "library/citation-format",
+  "clicks": ["document.getElementById('docType').value='web';onTypeChange();document.getElementById('title').value='数字图书馆标准规范';document.getElementById('seq').value='7';document.getElementById('date').value='2023-08-01';document.getElementById('cited').value='2024-01-10';document.getElementById('url').value='https://example.com/lib-standard';render()"],
+  "expect": ["[7]", "[EB/OL]. (2023-08-01)[2024-01-10]. https://example.com/lib-standard."],
+  "ref": "GB/T 7714-2015 电子资源著录：`[序号] 作者. 题名[EB/OL]. (更新日期)[引用日期]. URL.`。注入 docType=web、title=数字图书馆标准规范、seq=7、date=2023-08-01、cited=2024-01-10、url=https://example.com/lib-standard ⇒ `[7] … 数字图书馆标准规范[EB/OL]. (2023-08-01)[2024-01-10]. https://example.com/lib-standard.`。默认 journal 分支不含 `[EB/OL]`、`[引用日期]` 与示例 URL，两态不同；判别器清空 clicks 后回 journal，expect 失配。"
 }
 ];
 async function main() {
