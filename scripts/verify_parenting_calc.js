@@ -70,6 +70,31 @@ const CASES = [
     "480"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "parenting/diaper-usage",
+  "inputs": {
+    "month": "",
+    "price": "1.2",
+    "days": "30"
+  },
+  "expect": [
+    "请填写：宝宝月龄"
+  ],
+  "ref": "空态守卫（A 类）：月龄留空时旧实现 Math.floor(num(''))=0 落入 month<=1 分支 → 按新生儿输出每日 11 片与 NB 码；现前置判空并点名缺失字段。默认 month=6 ⇒ 不命中。"
+},
+{
+  "slug": "parenting/diaper-usage",
+  "inputs": {
+    "month": "0",
+    "price": "1.2",
+    "days": "30"
+  },
+  "expect": [
+    "11.0 片 每日用量",
+    "NB 码 建议尺码"
+  ],
+  "ref": "显式 0 合法：0 月龄即出生当月，按新生儿每日 11 片、30 天 330 片、NB 码照常计算；证明判空只看空字符串、不把月龄 0 当缺失。默认 month=6 得 7.0 片/M 码 ⇒ 不命中。"
 }
 ];
 async function main() {
