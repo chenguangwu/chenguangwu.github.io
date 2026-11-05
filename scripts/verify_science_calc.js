@@ -617,9 +617,21 @@ const CASES = [
   // 本批弃页：`tide-height-estimator`（注入 lat 后默认态仍命中 ⇒ 逃生，且注入态本身也不过）、
   // `gcd-calculator` / `lcm-calculator`（**两页共用 `nums` 单输入框 + 递归实现**，喂 2 个数也会死循环吃光 4 GB
   // 内存，且报错里**不带页面名** ⇒ 与 BATCH251 的 OOM 是同一形态，直接弃）、`passphrase-generator`
-  // （`wordCount` 注入不生效，熵值与词数行恒为默认值 ⇒ 锚不上）、`text-extract-phones` / `logic-gate-simulator`
-  // / `calculator`（运行时建 DOM，harness 内产物为空）、`resistor-color-code`（`formatResistance` 在桩内抛错 ⇒
+  // （`wordCount` 注入不生效，熵值与词数行恒为默认值 ⇒ 锚不上）、`text-extract-phones` /
+  // `calculator`（运行时建 DOM，harness 内产物为空）、`resistor-color-code`（`formatResistance` 在桩内抛错 ⇒
   // 反向模式产物不可达）、`barcode-pharmacode`（编码库未加载）、`pcb-trace-width`（IPC 线宽公式无法手算复算）。
+  // 注：`logic-gate-simulator` 已于 2026-11-05 解锁（共享桩补齐 dataset 与 tbody 段作用域后立例，见下条）。
+  {
+    // 2026-11-05：共享桩补 dataset / tbody 段作用域后本页解锁（原判「运行时建 DOM，产物为空」）。
+    // 页面末尾直接 init() → selectGate('AND')；真值表行由 innerHTML 生成，高亮时读 tr.dataset.row。
+    slug: "science/logic-gate-simulator",
+    // 默认态：AND，inputA/inputB 均为 0。clicks 改为 XOR 并把 A 置 1（B 保持 0）。
+    clicks: ["selectGate('XOR');toggleInput('A');"],
+    expect: ["1 XOR 0 =", "XOR（异或门）：输入不同输出1"],
+    ref: "默认态 AND(0,0) ⇒ 输出 0、表达式 0 AND 0 = 0、提示 AND（与门）：两输入全1输出1；注入"
+      + "selectGate('XOR') + toggleInput('A') ⇒ inputA=1/inputB=0，XOR(1,0) = 1 ⇒ 输出 1、表达式 1 XOR 0 = 1、"
+      + "提示改为 XOR（异或门）：输入不同输出1。两态输出 0 vs 1、提示文本互斥 ⇒ 判别明确、非逃生。",
+  },
   {
     slug: "science/latlon-utm-converter",
     inputs: { lat: "31", lon: "121" },
