@@ -827,6 +827,12 @@ const CASES = [
     ],
     "ref": "EL-J5 回归：选项 0「容纳；适应」以「适应」结尾但并非答案，选它必须只标红 0、且仅把真正答案（索引 1）标绿 ⇒ 标记序列 0:wrong,1:correct。旧实现用 endsWith 找正确项，会把 0、1 同时标绿 ⇒ 0:wrong,0:correct,1:correct。"
   },
+  {
+    slug: "edu/convert-2",
+    inputs: { val: "", from: "hex", to: "rgb" },
+    expect: ["请输入颜色值后再转换"],
+    ref: "空态守卫（2026-11-05）：清空颜色值后 hexToRgb('') 会把空串经 parseInt 得 NaN 再按位回绕成 rgb(255, 107, 53)，凭空给出一个确定颜色；改为前置空串守卫给提示。默认 val=#FF6B35 ⇒ 提示串不出现；注入 #FF0000 用例断「rgb(255, 0, 0)」⇒ 两态互斥。",
+  },
 
 {
   "slug": "edu/flashcards",

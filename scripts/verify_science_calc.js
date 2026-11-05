@@ -2009,6 +2009,12 @@ const CASES = [
     "inputs": { "input": "HELLO WORLD" },
     "expect": ["H Hotel E Echo L Lima", "W Whiskey O Oscar R Romeo"],
     "ref": "逐字符映射：HELLO → Hotel/Echo/Lima/Lima/Oscar，WORLD → Whiskey/Oscar/Romeo/Lima/Delta。默认输入 SOS 123 ⇒ 不命中。"
+  },
+  {
+    slug: "science/convert-power",
+    inputs: { val: "", from: "N", to: "lbf" },
+    expect: ["请输入要转换的数值"],
+    ref: "空态守卫（2026-11-05）：清空数值后 `+''` 得 0（不是 NaN）⇒ 旧输出「0 N = 0 lbf」凭空给零值结论；改为先判原始空串再判 NaN。⚠ 数值 0 本身合法（0 N = 0 lbf 照常计算），只判空串。默认 val=1 ⇒ 提示串不出现；注入 1 N 用例断「0.224809」⇒ 两态互斥。",
   }
 
 ];

@@ -227,7 +227,34 @@ const CASES = [
   ],
     ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
+},
+  { slug: "forensic-medicine/wound-description", inputs: { length: "", width: "" }, expect: ["请填写创口长度与宽度（cm）后再生成描述。"], ref: "空态守卫：清空长度/宽度后不再输出 0 cm × 0 cm 的完整损伤描述，只给填写提示（旧实现 ⇒ 0 cm × 0 cm + 钝器伤 + 致伤物推断全套结论）。默认态 5×2 cm ⇒ 提示串不出现。" },
+  { slug: "forensic-medicine/wound-description", inputs: { location: "头部", length: "4.5", width: "1.2" }, expect: ["创口大小 4.5 cm × 1.2 cm", "损伤类型： 钝器伤"], ref: "注入 4.5×1.2 cm + 头部 ⇒ 创口大小 4.5 cm × 1.2 cm、钝器伤（钝器为默认单选，harness 不支持 radio 注入）；默认 5×2 cm ⇒ 首条不命中。空态另有用例。" },
+{
+  "slug": "forensic-medicine/burn-assessment",
+  "inputs": { "palmArea": "", "burnDepth": "2s", "totalArea": "30", "thirdArea": "10" },
+  "expect": ["请输入各部位烧伤面积（拖动滑块）或手掌面积后再计算总面积。"],
+  "ref": "空态守卫（2026-11-05）：各部位滑块全 0 且手掌面积留空时，不再输出「0.0% 总面积 + 小面积烧伤」结论，只给填写提示。"
+},
+{
+  "slug": "forensic-medicine/burn-assessment",
+  "inputs": { "palmArea": "10", "burnDepth": "2s", "totalArea": "30", "thirdArea": "10" },
+  "expect": ["10.0%"],
+  "ref": "正例：手掌面积 10% 时照常出总面积 10.0%（0 滑块不被当成「未填写」拦死）。"
+},
+{
+  "slug": "forensic-medicine/burn-assessment",
+  "inputs": { "palmArea": "10", "burnDepth": "", "totalArea": "30", "thirdArea": "10" },
+  "expect": ["请选择烧伤深度后再判定分度。"],
+  "ref": "原生缺陷修复：烧伤深度下拉改为「请选择烧伤深度」空值默认，未选择时不再出 I 度分度与符合度结论。"
+},
+{
+  "slug": "forensic-medicine/burn-assessment",
+  "inputs": { "palmArea": "10", "burnDepth": "2s", "totalArea": "", "thirdArea": "10" },
+  "expect": ["请输入烧伤总面积与III度面积后再分级。"],
+  "ref": "空态守卫：总面积留空时不再按 0% 出「轻度烧伤」分级；显式填 0 仍照常分级。"
 }
+
 ];
 async function main() {
   const only = process.argv.slice(2);

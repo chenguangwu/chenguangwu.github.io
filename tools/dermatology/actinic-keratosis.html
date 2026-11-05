@@ -131,7 +131,7 @@ s.parentNode.insertBefore(el, s);
 
     <div class="feature-item">
       <label>1. 红斑/炎症（Erythema）</label>
-      <select id="f1" onchange="calc()">
+      <select id="f1" onchange="__markScaleDirty()">
         <option value="0">0 - 无</option>
         <option value="1">1 - 轻度粉红</option>
         <option value="2">2 - 明显红色</option>
@@ -140,7 +140,7 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="feature-item">
       <label>2. 鳞屑/角化（Scale）</label>
-      <select id="f2" onchange="calc()">
+      <select id="f2" onchange="__markScaleDirty()">
         <option value="0">0 - 无</option>
         <option value="1">1 - 细薄鳞屑</option>
         <option value="2">2 - 中等鳞屑</option>
@@ -149,7 +149,7 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="feature-item">
       <label>3. 边界清晰度（Border）</label>
-      <select id="f3" onchange="calc()">
+      <select id="f3" onchange="__markScaleDirty()">
         <option value="0">0 - 边界模糊</option>
         <option value="1">1 - 部分清晰</option>
         <option value="2">2 - 边界清楚</option>
@@ -158,7 +158,7 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="feature-item">
       <label>4. 皮损大小（Size）</label>
-      <select id="f4" onchange="calc()">
+      <select id="f4" onchange="__markScaleDirty()">
         <option value="0">0 - <5mm</option>
         <option value="1">1 - 5-10mm</option>
         <option value="2">2 - 10-15mm</option>
@@ -167,7 +167,7 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="feature-item">
       <label>5. 触诊质地（Texture）</label>
-      <select id="f5" onchange="calc()">
+      <select id="f5" onchange="__markScaleDirty()">
         <option value="0">0 - 平滑</option>
         <option value="1">1 - 轻度粗糙</option>
         <option value="2">2 - 砂纸样粗糙</option>
@@ -176,7 +176,7 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="feature-item">
       <label>6. 皮损数量（Count）</label>
-      <select id="f6" onchange="calc()">
+      <select id="f6" onchange="__markScaleDirty()">
         <option value="0">0 - 单发(1个)</option>
         <option value="1">1 - 少量(2-5个)</option>
         <option value="2">2 - 多发(6-15个)</option>
@@ -186,14 +186,14 @@ s.parentNode.insertBefore(el, s);
 
     <h3 style="font-size:14px;margin:12px 0 8px;">高危特征（每项选中+2分）</h3>
     <div class="checkbox-row">
-      <label><input type="checkbox" id="r1" onchange="calc()"> 快速增大</label>
-      <label><input type="checkbox" id="r2" onchange="calc()"> 出血/溃疡</label>
-      <label><input type="checkbox" id="r3" onchange="calc()"> 触痛/疼痛</label>
-      <label><input type="checkbox" id="r4" onchange="calc()"> 免疫抑制状态</label>
+      <label><input type="checkbox" id="r1" onchange="__markScaleDirty()"> 快速增大</label>
+      <label><input type="checkbox" id="r2" onchange="__markScaleDirty()"> 出血/溃疡</label>
+      <label><input type="checkbox" id="r3" onchange="__markScaleDirty()"> 触痛/疼痛</label>
+      <label><input type="checkbox" id="r4" onchange="__markScaleDirty()"> 免疫抑制状态</label>
     </div>
 
     <h3 style="font-size:14px;margin:12px 0 8px;">好发部位</h3>
-    <select id="location" onchange="calc()" style="margin-bottom:12px;">
+    <select id="location" onchange="__markScaleDirty()" style="margin-bottom:12px;">
       <option value="face">面部</option>
       <option value="scalp">头皮（秃发区）</option>
       <option value="ear">耳部</option>
@@ -207,7 +207,7 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <div id="actinic_keratosisPresets"></div><button type="button" class="btn primary" onclick="calc()">生成评估</button><button class="btn" type="button" onclick="__actinic_keratosisExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
-      <button type="button" class="btn" onclick="resetForm()">重置</button>
+      <button type="button" class="btn" onclick="resetForm()" title="恢复为未评估状态">重置评分</button>
     </div>
 
     <div class="result-box" id="result"></div>
@@ -300,6 +300,8 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
+var __scaleDirty=false;
+function __markScaleDirty(){__scaleDirty=true;calc();}
 function calc(){
   var f1=+document.getElementById('f1').value, f2=+document.getElementById('f2').value;
   var f3=+document.getElementById('f3').value, f4=+document.getElementById('f4').value;
@@ -315,6 +317,17 @@ function calc(){
 
   var total = baseScore + highRisk;
   var maxScore = 18 + 8; // 6项*3 + 4项*2
+
+  if(!__scaleDirty){
+    document.getElementById('result').innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:12px;">' +
+      '<div style="padding:16px;border-radius:12px;text-align:center;background:#10B98114;border:1px solid #10B98155;">' +
+        '<div style="font-size:32px;font-weight:700;color:#10B981;">'+total+'</div>' +
+        '<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">总评分 / '+maxScore+'</div>' +
+      '</div></div>' +
+      '<div class="info-box"><strong>当前为默认评分（各评估项均为 0 分、未勾选高危特征），请按实际皮损与病史修改后查看解读。</strong></div>';
+    var __rb=document.getElementById('resultRefBar'); if(__rb) __rb.innerHTML='';
+    return;
+  }
 
   var loc = document.getElementById('location').value;
   var locName = {face:'面部',scalp:'头皮',ear:'耳部',lip:'下唇',hand:'手背',arm:'前臂',neck:'颈部',other:'其他'}[loc];
@@ -379,6 +392,7 @@ function copyResult(){
   if(document.getElementById('r3').checked) hr+=2;
   if(document.getElementById('r4').checked) hr+=2;
   var total=f1+f2+f3+f4+f5+f6+hr;
+  if(!__scaleDirty){ ToolBox.copyText('日光性角化病评分：'+total+'分/26（默认评分，尚未按实际皮损与病史修改）', i18nText()); return; }
   ToolBox.copyText('日光性角化病评分：'+total+'分', i18nText());
 }
 
@@ -386,6 +400,7 @@ function resetForm(){
   for(var i=1;i<=6;i++){ document.getElementById('f'+i).value='0'; }
   for(var j=1;j<=4;j++){ document.getElementById('r'+j).checked=false; }
   document.getElementById('location').value='face';
+  __scaleDirty=false;
   calc();
 }
 
@@ -515,7 +530,7 @@ function __actinic_keratosisRender(keys,rk,en){
                     if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
                     else{e.value=rec[k];}
                 }
-                calc();
+                __scaleDirty=true; calc();
             }catch(e2){}
             __actinic_keratosis_skip=false;
         });
@@ -564,7 +579,7 @@ function __actinic_keratosisExport(){
 }
 function __actinic_keratosisPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#actinic_keratosisPresets',[{label:'默认参数',labelEn:'Default',values:{'f1':'0', 'f2':'0', 'f3':'0', 'f4':'0', 'f5':'0', 'f6':'0', 'location':'face'}},{"label":"面颊轻度 AK","labelEn":"Mild facial AK","values":{"f1":"1","f2":"1","f3":"1","f4":"0","f5":"0","f6":"0","r1":false,"r2":false,"r3":false,"r4":false,"location":"face"}},{"label":"耳廓中度 AK","labelEn":"Moderate auricular AK","values":{"f1":"2","f2":"2","f3":"1","f4":"1","f5":"1","f6":"0","r1":false,"r2":false,"r3":false,"r4":false,"location":"ear"}},{"label":"手背重度 AK","labelEn":"Severe dorsal hand AK","values":{"f1":"3","f2":"3","f3":"2","f4":"2","f5":"2","f6":"1","r1":true,"r2":false,"r3":false,"r4":false,"location":"hand"}}],function(){ calc(); });
+    TBKit.preset.bar('#actinic_keratosisPresets',[{label:'默认参数',labelEn:'Default',values:{'f1':'0', 'f2':'0', 'f3':'0', 'f4':'0', 'f5':'0', 'f6':'0', 'location':'face'}},{"label":"面颊轻度 AK","labelEn":"Mild facial AK","values":{"f1":"1","f2":"1","f3":"1","f4":"0","f5":"0","f6":"0","r1":false,"r2":false,"r3":false,"r4":false,"location":"face"}},{"label":"耳廓中度 AK","labelEn":"Moderate auricular AK","values":{"f1":"2","f2":"2","f3":"1","f4":"1","f5":"1","f6":"0","r1":false,"r2":false,"r3":false,"r4":false,"location":"ear"}},{"label":"手背重度 AK","labelEn":"Severe dorsal hand AK","values":{"f1":"3","f2":"3","f3":"2","f4":"2","f5":"2","f6":"1","r1":true,"r2":false,"r3":false,"r4":false,"location":"hand"}}],function(){ __scaleDirty=true; calc(); });
 }
 var __actinic_keratosis_f0=(typeof calc==='function')?calc:null;
 if(__actinic_keratosis_f0){

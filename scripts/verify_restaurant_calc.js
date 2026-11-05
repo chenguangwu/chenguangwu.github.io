@@ -150,8 +150,13 @@ const CASES = [
   "clicks": ["calc()"],
   "expect": ["请填写原料成本、人工费率、固定成本与目标毛利率后再计算。"],
   "ref": "空态：四项全清后不再按 0/默认 60 计算，改为提示；默认 12/350/8/60 ⇒ 成本与售价报告，不命中。"
-}
-
+},
+  {
+    slug: "restaurant/safety-stock",
+    inputs: { avgDaily: "", maxDaily: "8", avgLead: "3", maxLead: "7", orderCost: "50", holdCost: "12", currentStock: "20" },
+    expect: ["请填写平均日消耗量、最大日消耗量、平均/最大到货天数、单次订货成本、单位持有成本与当前库存后再计算。"],
+    ref: "空态守卫（2026-11-05）：清空平均日消耗量后不再渲染「0.0 安全库存 / 0.0 再订货点 / 0.0 经济订货量 / 0 预计可用天数」与「⚠️ 低于安全库存！」风险结论，只给填写提示。⚠ 判空用原始空串——currentStock=0（库存用光）、orderCost=0、holdCost=0 均为合法值，不在拦截范围。注入 8/8/3/7/50/12/20 用例断「每次订156.0kg」⇒ 两态互斥。",
+  }
 ];
 async function main() {
   const only = process.argv.slice(2);
