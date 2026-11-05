@@ -3,22 +3,24 @@
 > 一树一线；回收前必须核对「提交已并入 master + 该线回报本批完成 + 无进程占用」三项全部成立。
 > 拿不准的一律不删，报集成线裁决。本表由集成线维护，各线开工/收口后回报状态。
 
-快照时间：2026-11-05 12:20　｜　主库 HEAD：`e6a98a2540`
+快照时间：2026-11-05 13:48　｜　主库 HEAD：`f432836a4e`（+ 本次 sw 重建提交）
 
 | 路径 | HEAD | 归属线 | 状态 | 可否回收 |
 |---|---|---|---|---|
-| `/Users/cgw/project/cgw/chenguangwu.github.io` | `e6a98a2540` [master] | 集成线（唯一构建/push 方） | 使用中 | — |
-| `/private/tmp/wt-clinical` | `6696e2261b` | 临床与教育线 | 使用中（17 条在途） | 否 |
-| `/private/tmp/wt-safety` | `1673b215b4` | 安全线 | 已并入 master，无进程 | 待该线回报本批完成 |
-| `/private/tmp/wt-safety2` | `1673b215b4` | 安全线（重建） | 使用中（1 条在途） | 否 |
-| `/private/tmp/wt-zero` | `ed67923290` | 用例/零覆盖线 | 已并入 master，无进程 | 待该线回报本批完成 |
-| `/private/tmp/wt-interact` | `7b062b7d3a` | 交互缺陷线 | 使用中 | 否 |
-| `/private/tmp/wtb2` | `e56f59f0c8` | 假工具线 | 已并入 master，无进程 | 待该线回报本批完成 |
+| `/Users/cgw/project/cgw/chenguangwu.github.io` | `f432836a4e` [master] | 集成线（唯一构建/push 方） | 使用中 | — |
+| `/private/tmp/ci-sim` | `f432836a4e` (detached) | 集成线（干净构建树） | 使用中 | 否（仅集成线可删） |
+| `/private/tmp/wt-audit84` | `c6695142a2` | 66 页重写线 | 使用中（已产出新提交，待并入） | 否 |
+| `/private/tmp/wt-clinical` | `4524ebbe60` | 临床与教育线 | 使用中（有进程） | 否 |
+| `/private/tmp/wt-safety` | `1673b215b4` | 安全线 | 有进程（3） | 否 |
+| `/private/tmp/wt-safety2` | `9e9d55fc2e` | 安全线（文档面） | 文档已 pick（`0359ffc095`/`83f58cfb10`/`f1cec2edc5`） | 待该线回报本批完成 |
+| `/private/tmp/wt-zero` | `e6d31f2903` | 用例/零覆盖线 | 文档 `910b1ae67b` 已 pick（`0c404db71c`） | 待该线回报本批完成 |
+| `/private/tmp/wtb2` | `134d12b619` | 假工具线 | 有进程（2） | 否 |
+| `/private/tmp/wt-interact` | `7b062b7d3a` | 交互缺陷线 | 有进程（2） | 否 |
 | `/private/tmp/wt-fake` | `840020995e` | 假工具线（旧树） | 空闲，已被 `wtb2` 取代 | 待该线确认后回收 |
 | `/private/tmp/wt-i18n` | `840020995e` | i18n 盘点线 | 空闲 | 待该线确认 |
-| `/private/tmp/wt-i18n2` | `29c04d8392` | realestate / hydraulic / finance 字典线 | 使用中 | 否 |
+| `/private/tmp/wt-i18n2` | `29c04d8392` | realestate / hydraulic / finance 字典线 | 已冻结（提交已落 master） | 否 |
 | `/private/tmp/wt-i18n3` | `29c04d8392` | 备用字典线 | 空闲 | 否（保留待派） |
-| `/private/tmp/wt-i18n4` | `29c04d8392` | agriculture / marketing 字典线 | 使用中 | 否 |
+| `/private/tmp/wt-i18n4` | `29c04d8392` | agriculture / marketing 字典线 | 已冻结（提交已落 master） | 否 |
 
 ## 回收记录
 
