@@ -9,18 +9,22 @@
 |---|---|---|---|---|
 | `/Users/cgw/project/cgw/chenguangwu.github.io` | `f432836a4e` [master] | 集成线（唯一构建/push 方） | 使用中 | — |
 | `/private/tmp/ci-sim` | `f432836a4e` (detached) | 集成线（干净构建树） | 使用中 | 否（仅集成线可删） |
-| `/private/tmp/wt-audit84` | `c6695142a2` | 66 页重写线 | 使用中（已产出新提交，待并入） | 否 |
+| `/private/tmp/wt-audit84` | `51af32defb` | 66 页重写线 | 使用中（22/64 页已回退并提交，逐批并入） | 否 |
 | `/private/tmp/wt-clinical` | `4524ebbe60` | 临床与教育线 | 使用中（有进程） | 否 |
 | `/private/tmp/wt-safety` | `1673b215b4` | 安全线 | 有进程（3） | 否 |
 | `/private/tmp/wt-safety2` | `9e9d55fc2e` | 安全线（文档面） | 文档已 pick（`0359ffc095`/`83f58cfb10`/`f1cec2edc5`） | 待该线回报本批完成 |
 | `/private/tmp/wt-zero` | `e6d31f2903` | 用例/零覆盖线 | 文档 `910b1ae67b` 已 pick（`0c404db71c`） | 待该线回报本批完成 |
 | `/private/tmp/wtb2` | `134d12b619` | 假工具线 | 有进程（2） | 否 |
 | `/private/tmp/wt-interact` | `7b062b7d3a` | 交互缺陷线 | 有进程（2） | 否 |
-| `/private/tmp/wt-fake` | `840020995e` | 假工具线（旧树） | 空闲，已被 `wtb2` 取代 | 待该线确认后回收 |
-| `/private/tmp/wt-i18n` | `840020995e` | i18n 盘点线 | 空闲 | 待该线确认 |
 | `/private/tmp/wt-i18n2` | `29c04d8392` | realestate / hydraulic / finance 字典线 | 已冻结（提交已落 master） | 否 |
 | `/private/tmp/wt-i18n3` | `29c04d8392` | 备用字典线 | 空闲 | 否（保留待派） |
 | `/private/tmp/wt-i18n4` | `29c04d8392` | agriculture / marketing 字典线 | 已冻结（提交已落 master） | 否 |
+
+## 存档分支保护（禁止合并）
+
+| 分支 | commit / tag | 性质 | 禁止合并 | 处置条件 | 登记日期 |
+|---|---|---|---|---|---|
+| `wip/tools-audit-84`（本地，**未推 origin**） | `12c22fba9f` / tag `do-not-merge/tools-audit-84` | 66 页批量改写存档（65 文件 +229/−222），含已确认错值，只能当存档 | 是：禁止整体 merge / cherry-pick / 推送 | 等 64 页全部修正且已并入 master 后，该存档分支与 tag 才可删除 | 2026-11-05 |
 
 ## 回收记录
 
