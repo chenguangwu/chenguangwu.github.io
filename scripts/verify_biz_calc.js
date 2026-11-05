@@ -1454,6 +1454,12 @@ const CASES = [
     "inputs": { "input": "__proto__ constructor __proto__" },
     "expect": ["proto constructor"],
     "ref": "原型键回归：提取英文单词并去重，去重表改 Object.create(null) 后 '__proto__' 提取出的 proto 与 constructor 都保留、重复的 proto 合并为一次；输出 'proto constructor'。默认样例（Hello This is text…）不含该串 ⇒ 强判别。"
+  },
+  {
+    "slug": "biz/text-compare",
+    "inputs": { "left": "ToolBox 文本工具" },
+    "expect": ["17%"],
+    "ref": "单字段注入（2026-11-05 补 oninput）：左侧仅保留与右侧第 4 行相同的 1 行，其余 5 行判为右侧独有 ⇒ 相似度 1/(1+5)=17%；默认双侧 5/6 行文本为 38%，缺 oninput 时注入不触发 compare()、仍显示 38% ⇒ 强判别。"
   }
 
 ];
