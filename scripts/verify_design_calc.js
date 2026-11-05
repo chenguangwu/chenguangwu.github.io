@@ -2512,6 +2512,24 @@ const CASES = [
   "expect": ["复制失败：Error"],
   "ref": "失败注入：新建画布的 toDataURL 必抛 Error ⇒ copyDataURL 必须 toast「复制失败：Error」并终止。"
      + "修复前异常裸冒成 pageerror、剪贴板复制提示不执行；默认态无该串 ⇒ 判别明确。",
+},
+// ── 零覆盖攻坚：font-pairing（成品 CSS 由 FONT_PAIRS 数据驱动，确定性可复算）──
+{
+  "slug": "design/font-pairing",
+  "inputs": {},
+  "clicks": ["selectPair(2);"],
+  "expect": ["font-family: 'Manrope', sans-serif;", "family=Manrope:wght@700&family=Inter:wght@400"],
+  "ref": "selectPair(i) 取 FONT_PAIRS[currentCategory='modern'][2] = {title:'Manrope', body:'Inter', titleWeight:700, bodyWeight:400}，"
+     + "把 @import 与 h1..h6/body 两组规则整体写进 #cssOutput.value。故可锚 `family=Manrope:wght@700&family=Inter:wght@400` 与 "
+     + "`font-family: 'Manrope', sans-serif;`（标题字体取自数据 title 字段）。默认态未调用 selectPair ⇒ cssOutput 为空，两条均失配。"
+},
+{
+  "slug": "design/font-pairing",
+  "inputs": {},
+  "clicks": ["setCategory('classic');selectPair(3);"],
+  "expect": ["font-family: 'Cormorant Garamond', sans-serif;", "font-weight: 500;"],
+  "ref": "setCategory('classic') 切分类后 selectPair(3) 取 FONT_PAIRS.classic[3] = {title:'Cormorant Garamond', body:'Inter', titleWeight:500}，"
+     + "标题规则字体名与字重（500，非默认 400/600/700）同时落进 cssOutput。默认态（modern、未选）cssOutput 为空 ⇒ 零交集。"
 }
 ];
 

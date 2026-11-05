@@ -152,6 +152,19 @@ const CASES = [
     "NIST 800-63B：长度 ≥8 位即可"
   ],
   "ref": "E3 引据联动：主密码输入触发 updateStrength（masterPwd addEventListener input）⇒ #strengthLabel 追加 NIST SP 800-63B 长度建议行（动态串过 TBKit 双语 helper）。默认态密码为空 ⇒ strengthBox display:none、无该串，强判别。"
+},
+// ── 零覆盖攻坚：passphrase-generator（随机口令无锚，改锚确定性熵值行）──
+{
+  "slug": "security/passphrase-generator",
+  "inputs": {
+    "wc": "8"
+  },
+  "clicks": ["generate();"],
+  "expect": ["约 59.2 位熵（基于 169 词库 / 8 词）"],
+  "ref": "口令短语本身由 crypto.getRandomValues 逐词随机（无种子、无锚，不可断言）；但同一次渲染里的熵值行 "
+     + "`熵 = log₂(WORDS.length) × wc` 是确定性派生量：WORDS 实测 169 词（页面 FORMULA 写的 170 为陈旧说明，以数组长度为准），"
+     + "log₂(169) = 7.40088 ⇒ 8 × 7.40088 = 59.207 → toFixed(1) = 59.2，文本为「约 59.2 位熵（基于 169 词库 / 8 词）」。"
+     + "默认 wc=5 且页面加载不自动生成 ⇒ 输出区为空；判别态清空 clicks ⇒ generate() 不执行，同样为空 ⇒ 零逃生。"
 }
 ];
 async function main() {

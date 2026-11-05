@@ -9234,6 +9234,11 @@ async function runCaseInner(c) {
     },
     documentElement: { setAttribute() {}, getAttribute() { return null; }, style: {}, classList: { add() {}, remove() {}, toggle() {} } },
     body: makeEl(""),
+    // <head> 元素桩：design/font-pairing 顶层 loadFonts() 用 `document.head.appendChild(link)`
+    // 注入 Google Fonts <link>，缺此属性整页初始化即抛 "Cannot read properties of undefined
+    // (reading 'appendChild')" ⇒ 恒不可验证。与 body 同构（appendChild 收集子节点即可，
+    // 无渲染语义），对其它页面无影响（仅 font-pairing 读取 document.head）。
+    head: makeEl(""),
   };
   // 真实存储语义：setItem 写入 Map、getItem 回读已写值。页面改成「写后回读才宣告成功」后，
   // 空桩（getItem 恒 null）会让回读永远失败、页面走进失败分支，用例只拿到中间态。
