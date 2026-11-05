@@ -834,13 +834,22 @@
     }
     return false;
   }
-  var NUM_CHAR_RE = /[0-9+\-.]/;
+  // 2026-11-05：判据由「相邻字符是数字/正负号/小数点」改为「左右完整 token 均为纯数字」。
+  // 旧判据过宽：`0.06、300rpm` 右邻字符是 `3` 也会保留全角，导致 15 页回归。
+  // 新判据：token = 以空白或全角分隔符为界的连续片段；两侧都必须是纯数字（可带正负号/小数）才判为数据。
+  var NUM_TOKEN_RE = /^[+-]?(\d+(\.\d+)?|\.\d+)$/;
   function isNumericSep(s, i) {
     var j = i - 1;
     while (j >= 0 && /\s/.test(s.charAt(j))) j--;
+    var start = j;
+    while (start >= 0 && !/[\s，；、]/.test(s.charAt(start))) start--;
+    var left = s.slice(start + 1, j + 1);
     var k = i + 1;
     while (k < s.length && /\s/.test(s.charAt(k))) k++;
-    return NUM_CHAR_RE.test(s.charAt(j)) && NUM_CHAR_RE.test(s.charAt(k));
+    var end = k;
+    while (end < s.length && !/[\s，；、]/.test(s.charAt(end))) end++;
+    var right = s.slice(k, end);
+    return NUM_TOKEN_RE.test(left) && NUM_TOKEN_RE.test(right);
   }
   function convertPunct(s, el) {
     // 含中文标点、且不含任何汉字 ⇒ 视为「标点载体节点」（可能夹带数字/代码，如 “=65、”“=97）。”“：”）。

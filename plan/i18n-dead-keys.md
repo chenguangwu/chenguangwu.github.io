@@ -6826,7 +6826,7 @@
 |---|---|---|
 | `i18n/tools/en/data/` | 7 | `csv-json`、`csv-to-markdown`、`data-visualizer`、`generator-35`、`index`、`xml-html-css-geshihua-yiyou-kebuchong`、`yaml-json` |
 | `i18n/tools/en/electrical/` | 34 | 见本节「删死键明细」，含 `calc-1`、`calc-2`、`calc-power-voltage`、`current-divider`、`detector-173/175/aging/protection-2/resistance*`、`dianhuaxuedunhuakongzhi`、`generator-23`、`home-load-estimate`、`index`、`led-resistor`、`lizishujianshejisuan`、`load-curve`、`power-7`、`power-factor-compensation`、`power-voltage-1`、`rc-filter`、`rlc-resonance`、`speed-9`、`temp-26`、`transformer-sizing`、`voltage-8/9`、`voltage-divider`、`voltage-drop`、`voltage`、`wire-gauge-selector`、`wire-resistance` |
-| `js/tool-i18n.js` | 1 | 共享层（数据上下文标点保护 + 动态补译积压重放），已单独提交 `b1effabac1` |
+| `js/tool-i18n.js` | 1 | 共享层（数据上下文标点保护 + 动态补译积压重放），已单独提交 `b1effabac1`；2026-11-05 追加 `isNumericSep` token 化（见下节），随本批提交、同样待构建 |
 | **合计** | **42** | 均须 `_build.py` 刷新 SW 版本戳后生效 |
 
 ## 今日新增经验（2026-11-05）
@@ -6842,3 +6842,32 @@
 ### 二、复查期新出现的正文要按当前 DOM 补译，被他人持有的页标记「待重译」
 
 批量收口期间页面可能被其他线改写（新增深度解析段、FAQ 等），复查时会冒出 `--check` 首轮从未出现的条目。此时按**当前 DOM**补译即可；若该页仍在被别的线改造（如 `tools/finance/salary-after-tax.html` 正被假工具重写线处理），**不要硬译**，登记「待重译」，等对方提交后再补键，避免白译与键漂移。
+
+## 第四批：`js/tool-i18n.js` 的 `isNumericSep` 改为 token 级（2026-11-05）
+
+> 承接 `b1effabac1` 引入的「数据分隔符保护」；该判据原按**相邻字符**判断（`[0-9+\-.]`），判据过宽，把 `0.06、300rpm`、`20→10、2s`、`1.96（95% 置信）；…` 这类文案分隔符也当成数据保留全角，造成多页英文态残留回归。
+
+### 判据
+
+- token = 以空白或全角分隔符（`，；、`）为界的连续片段；`，；、` **左右跳过空白后的完整 token 都必须是纯数字**（`^[+-]?(\d+(\.\d+)?|\.\d+)$`）才判数据、保留全角。
+- 任一侧 token 含字母 / 单位 / 运算符 / 中文 ⇒ 判文案、转半角。
+- 该判据是旧判据的**真子集**（token 纯数字 ⇒ 其首/尾字符必属 `[0-9+\-.]`），故只会多转、不会新留。
+
+### 结果
+
+| 口径 | 旧判据 | 新判据 |
+|---|---|---|
+| 全站静态文本节点「含全角标点且无汉字」残留（4912 个 HTML，Python 模拟同一算法） | 17 | **3** |
+| 上述修复节点 / 涉及页 | — | 14 节点 / 12 页 |
+| 反向新增（新留旧转） | — | **0** |
+| 14 页回归清单 `--check`（同进程、复跑 2/2 稳定） | 31 条 / 9 页 | **21 条 / 8 页** |
+| 同上，对照 `57c062bc91`（`isNumericSep` 引入前） | — | 19 条 / 8 页 |
+
+- 新判据结果与「引入前」逐条一致，差额仅 2 条 = `accessibility/braille-translator` 的 `1、2、3` / `4、5、6`（盲文点序，判数据保留）。
+- 新判据仍保留的 3 个节点：`electrical/transformer-sizing` 标准容量枚举 `30、50、63…`（固定数据串）+ 上述盲文 2 条。
+- 密码学 4 页（`it/atbash-cipher`、`caesar-cipher`、`vigenere-visualizer`、`text-similarity`）注入 `1，2，3` 仍 4/4 保留全角；反向保护 3 页（`statistics/z`、`paper/basis-weight`、`statistics/stddev-list`）仍 0 条。
+- `scripts/verify_it_calc.js` 999/999；`scripts/discriminate_check.js verify_it_calc.js` 999 / 999 / 逃生 0 / 弱用例 0。
+
+### 批处理探针噪声（重要，后续复验勿踩）
+
+全站一次性 `--check`（4705 页同进程）存在**字典加载竞态**：同一页批量跑报 7 条残留、隔离单页跑为 0（实测 `marketing/assessor-51`）；且两次全站批跑（旧判据 2834 页 / 新判据 2987 页）出现**违反单调性**的反向变化（新判据只会多转、不可能多留），同样证明是竞态而非真实差异。**结论口径：`--check` 复验按「单页或 ≤14 页小批」执行，禁止用一次全站批跑的差值下结论。**
