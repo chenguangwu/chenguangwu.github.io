@@ -7,6 +7,7 @@ tools.json 中的真实工具列表，自动生成独一无二的栏目简介、
 每个行业的正文主体是该行业真实的工具名清单，因此页面之间天然差异化。
 """
 import json
+import re
 
 
 def _esc(s):
@@ -49,7 +50,9 @@ def _make_desc_zh(ind_name, count, tool_names):
 
 def build_content(ind, ind_name, en_name, count, tool_names, tool_names_en=None):
     rep = _pick_repr(tool_names, 18)
-    rep_en = _pick_repr(tool_names_en or tool_names, 18)
+    # 英文侧剔除仍是中文名的条目（个别工具没有英文名，t['en'] 会回退成中文原名），
+    # 否则英文 FAQ 会出现「including 密码短语生成器, …」这类中英混杂。
+    rep_en = _pick_repr([n for n in (tool_names_en or tool_names) if not re.search(r'[一-鿿]', n or '')], 18)
     title_zh = '%s在线工具集合 - 免费实用的%s工具箱' % (ind_name, ind_name)
     if len(title_zh) > 60:
         title_zh = '%s工具集合(%d) - ToolBox 免费在线工具' % (ind_name, count)

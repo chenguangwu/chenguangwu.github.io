@@ -1836,4 +1836,6 @@ DESC_OVERRIDE = {
     '攀岩挂片间距与受力分析': ('', 'Climbing bolt spacing and load'),
     '催化剂用量与反应时间': ('', 'Catalyst amount and reaction time'),
     '精馏收率与物料平衡': ('', 'Distillation yield and mass balance'),
+    # ---- 安全 ----（该工具 en 字段此前回退成中文名，英文态卡片无英文名/英文描述）
+    '密码短语生成器': ('生成高熵随机密码短语', 'Passphrase generator'),
 }
