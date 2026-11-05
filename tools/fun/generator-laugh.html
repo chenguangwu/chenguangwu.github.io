@@ -129,8 +129,12 @@ s.parentNode.insertBefore(el, s);
 </div>
 
 <div class="input-row"><div><label>生成数量</label><input type="number" id="cnt" value="5" min="1" max="50" oninput="gen()" placeholder="如 5（1–50）"></div></div>
+<div class="input-row">
+  <div><label>基频 (Hz)</label><select id="f0sel" onchange="gen()"><option value="220">220</option><option value="330" selected>330</option><option value="440">440</option><option value="550">550</option></select></div>
+  <div><label>单次时长</label><select id="dursel" onchange="gen()"><option value="0.8">0.8 s</option><option value="1.2" selected>1.2 s</option><option value="1.6">1.6 s</option></select></div>
+</div>
 <div class="toolbar"><div id="generator_laughPresets"></div>
-      <button type="button" class="btn primary" onclick="gen()">生成</button>
+      <button type="button" class="btn primary" onclick="gen()">生成</button><button type="button" class="btn" onclick="playLaugh()">🔊 播放</button><button type="button" class="btn" onclick="downloadWav()">⬇️ 下载 WAV</button>
       <button class="btn" type="button" onclick="__generator_laughExport()">导出明细 CSV</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
 <div class="result-box" id="res"></div>
     <div id="generator_laughTable"></div>
@@ -239,6 +243,72 @@ function gen() {
   const __h0=h;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById("res").innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById("res").innerHTML=__h0;
 }
 gen();
+function _laughParams(){
+  var f0=+(document.getElementById('f0sel')||{}).value||330;
+  var dur=+(document.getElementById('dursel')||{}).value||1.2;
+  return {f0:f0,dur:dur};
+}
+function _synthLaugh(f0,dur){
+  var OAC=window.OfflineAudioContext||window.webkitOfflineAudioContext;
+  if(!OAC) return Promise.reject(new Error('no OfflineAudioContext'));
+  var sr=44100,n=Math.max(1,Math.round(sr*dur));
+  var ctx=new OAC(1,n,sr);
+  var master=ctx.createGain();master.gain.value=0.9;master.connect(ctx.destination);
+  var syl=Math.max(2,Math.round(dur/0.28));
+  for(var i=0;i<syl;i++){
+    var t0=i*0.28,sd=Math.min(0.24,dur-t0);
+    if(sd<=0.04) break;
+    var osc=ctx.createOscillator();osc.type='sawtooth';
+    var base=f0*(1+0.05*Math.sin(i*1.7));
+    osc.frequency.setValueAtTime(base,t0);
+    osc.frequency.linearRampToValueAtTime(base*1.15,t0+sd);
+    var vib=ctx.createOscillator();vib.frequency.value=11;
+    var vg=ctx.createGain();vg.gain.value=base*0.07;
+    vib.connect(vg);vg.connect(osc.frequency);
+    var env=ctx.createGain();
+    env.gain.setValueAtTime(0.0001,t0);
+    env.gain.linearRampToValueAtTime(1,t0+0.035);
+    env.gain.exponentialRampToValueAtTime(0.001,t0+sd);
+    env.connect(master);
+    [[700,1],[1200,0.75],[2600,0.45]].forEach(function(fj){
+      var bp=ctx.createBiquadFilter();bp.type='bandpass';bp.frequency.value=fj[0];bp.Q.value=7;
+      var g=ctx.createGain();g.gain.value=fj[1];
+      osc.connect(bp);bp.connect(g);g.connect(env);
+    });
+    osc.start(t0);osc.stop(t0+sd+0.01);vib.start(t0);vib.stop(t0+sd+0.01);
+  }
+  return ctx.startRendering();
+}
+function playLaugh(){
+  var p=_laughParams();
+  _synthLaugh(p.f0,p.dur).then(function(buf){
+    var AC=window.AudioContext||window.webkitAudioContext;
+    if(!AC){alert('当前浏览器不支持 Web Audio');return;}
+    var ac=new AC();
+    var src=ac.createBufferSource();src.buffer=buf;src.connect(ac.destination);src.start();
+  }).catch(function(){alert('当前浏览器不支持 Web Audio 合成');});
+}
+function _wavBlob(buf){
+  var len=buf.length,sr=buf.sampleRate,data=buf.getChannelData(0);
+  var ab=new ArrayBuffer(44+len*2),dv=new DataView(ab);
+  function ws(o,str){for(var i=0;i<str.length;i++)dv.setUint8(o+i,str.charCodeAt(i));}
+  ws(0,'RIFF');dv.setUint32(4,36+len*2,true);ws(8,'WAVE');ws(12,'fmt ');
+  dv.setUint32(16,16,true);dv.setUint16(20,1,true);dv.setUint16(22,1,true);
+  dv.setUint32(24,sr,true);dv.setUint32(28,sr*2,true);dv.setUint16(32,2,true);dv.setUint16(34,16,true);
+  ws(36,'data');dv.setUint32(40,len*2,true);
+  var o=44;
+  for(var i=0;i<len;i++){var x=Math.max(-1,Math.min(1,data[i]));dv.setInt16(o,x<0?x*0x8000:x*0x7FFF,true);o+=2;}
+  return new Blob([dv],{type:'audio/wav'});
+}
+function downloadWav(){
+  var p=_laughParams();
+  _synthLaugh(p.f0,p.dur).then(function(buf){
+    var blob=_wavBlob(buf);
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);a.download='laugh-'+p.f0+'hz.wav';a.click();
+    setTimeout(function(){URL.revokeObjectURL(a.href);},1000);
+  }).catch(function(){alert('当前浏览器不支持 OfflineAudioContext');});
+}
 function copyRes() { ToolBox.copyText(document.getElementById("res").innerText); }
 </script>
 
