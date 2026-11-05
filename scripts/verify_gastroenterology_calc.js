@@ -239,8 +239,8 @@ const CASES = [
     "age": "55",
     "fc": "120"
   },
-  "expect": [ "75 FIT" ],
-  "ref": "auto-restore"
+  "expect": [ "75 FIT", "出血阳性，炎症轻度升高 → 建议结肠镜" ],
+  "ref": "auto-restore；并补矩阵断言（阳性×轻度：FIT 75 / FC 120）——原代码该组合误报「双阴性 → 风险低」。"
 },
 {
   "slug": "gastroenterology/colonoscopy-polyp",
@@ -273,6 +273,84 @@ const CASES = [
   "inputs": { "fit": "", "age": "55", "fc": "120" },
   "expect": ["请填写 FIT、粪钙卫蛋白与年龄后再生成联合解读。"],
   "ref": "空态守卫（2026-11-05）：清空 FIT 后不再输出「FIT 0 μg/g → 阴性」+「双阴性 → 风险低」结论，只给填写提示。⚠ 判空只认空串——FIT 0 μg/g、FC 0 μg/g、0 岁均为合法值，照常解读。"
+},
+{
+  "slug": "gastroenterology/stool-occult-quant",
+  "inputs": { "fit": "5", "age": "55", "fc": "30" },
+  "expect": ["双阴性 → 风险低"],
+  "ref": "联合矩阵·阴性×正常（FIT<10 / FC<50）→ 双阴性、风险低。"
+},
+{
+  "slug": "gastroenterology/stool-occult-quant",
+  "inputs": { "fit": "9", "age": "55", "fc": "150" },
+  "expect": ["出血阴性，炎症轻度升高 → 建议复查"],
+  "ref": "联合矩阵·阴性×轻度（FIT<10 / 50≤FC<200）→ 原代码落入 else 误报「双阴性 → 风险低」，现为出血阴性+炎症轻度升高、复查 FC。"
+},
+{
+  "slug": "gastroenterology/stool-occult-quant",
+  "inputs": { "fit": "5", "age": "55", "fc": "200" },
+  "expect": ["出血阴性，炎症阳性 → 优先排查IBD"],
+  "ref": "联合矩阵·阴性×明显（FIT<10 / FC≥200，FC=200 为上边界）→ 优先排查 IBD。"
+},
+{
+  "slug": "gastroenterology/stool-occult-quant",
+  "inputs": { "fit": "10", "age": "55", "fc": "49" },
+  "expect": ["出血临界，炎症阴性 → 建议复查FIT"],
+  "ref": "联合矩阵·临界×正常（FIT=10 为临界下边界 / FC=49 为正常上边界）→ 原代码落入 else 误报双阴性，现为复查 FIT。"
+},
+{
+  "slug": "gastroenterology/stool-occult-quant",
+  "inputs": { "fit": "19", "age": "55", "fc": "50" },
+  "expect": ["双临界值 → 建议随访复查"],
+  "ref": "联合矩阵·临界×轻度（FIT=19 为临界上边界 / FC=50 为轻度下边界）→ 双临界随访复查。"
+},
+{
+  "slug": "gastroenterology/stool-occult-quant",
+  "inputs": { "fit": "15", "age": "55", "fc": "200" },
+  "expect": ["出血临界，炎症阳性 → 优先排查IBD"],
+  "ref": "联合矩阵·临界×明显（10≤FIT<20 / FC≥200）→ 原代码落入 else 误报双阴性，现为以肠道炎症为主、优先排查 IBD。"
+},
+{
+  "slug": "gastroenterology/stool-occult-quant",
+  "inputs": { "fit": "20", "age": "55", "fc": "30" },
+  "expect": ["出血阳性，炎症阴性 → 优先排查肿瘤"],
+  "ref": "联合矩阵·阳性×正常（FIT=20 为阳性下边界 / FC<50）→ 优先排查肿瘤。"
+},
+{
+  "slug": "gastroenterology/stool-occult-quant",
+  "inputs": { "fit": "50", "age": "55", "fc": "120" },
+  "expect": ["出血阳性，炎症轻度升高 → 建议结肠镜"],
+  "ref": "联合矩阵·阳性×轻度（20≤FIT<100 / 50≤FC<200）：即页面默认参数组合，原代码误报「双阴性 → 风险低」，现为出血阳性伴轻度炎症、按 FIT 阳性规范行结肠镜。"
+},
+{
+  "slug": "gastroenterology/stool-occult-quant",
+  "inputs": { "fit": "100", "age": "55", "fc": "120" },
+  "expect": ["FIT (μg/g) - 强阳性", "出血阳性，炎症轻度升高 → 建议结肠镜"],
+  "ref": "联合矩阵·强阳性×轻度（FIT=100 为强阳性起点，联合矩阵仍按阳性格）→ 分级仍应显示强阳性、结论同阳性×轻度。"
+},
+{
+  "slug": "gastroenterology/stool-occult-quant",
+  "inputs": { "fit": "99", "age": "55", "fc": "30" },
+  "expect": ["FIT (μg/g) - 阳性", "出血阳性，炎症阴性 → 优先排查肿瘤"],
+  "ref": "FIT=99 为阳性上边界（<100 才是阳性，100 起为强阳性），联合矩阵走阳性×正常。"
+},
+{
+  "slug": "gastroenterology/stool-occult-quant",
+  "inputs": { "fit": "5", "age": "55", "fc": "199" },
+  "expect": ["出血阴性，炎症轻度升高 → 建议复查"],
+  "ref": "FC=199 为轻度升高上边界（<200 归轻度），阴性×轻度 → 复查 FC。"
+},
+{
+  "slug": "gastroenterology/stool-occult-quant",
+  "inputs": { "fit": "50", "age": "55", "fc": "200" },
+  "expect": ["出血+炎症双阳性 → 需肠镜明确"],
+  "ref": "FC=200 为明显升高下边界（≥200 归明显），阳性×明显 → 双阳性。"
+},
+{
+  "slug": "gastroenterology/stool-occult-quant",
+  "inputs": { "fit": "150", "age": "55", "fc": "300" },
+  "expect": ["出血+炎症双阳性 → 需肠镜明确"],
+  "ref": "联合矩阵·阳性×明显（FIT≥20 / FC≥200）→ 双阳性，需肠镜明确。"
 }
 ];
 async function main() {
