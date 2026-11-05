@@ -392,5 +392,35 @@
 
 **推论（校准其他线的口径）**：「0 逃生」在未按本口径复跑前**不可信**，尤其依赖加载期扫描表 / 枚举表的页面。凡线报「逃生 0」，应要求同时给出「纯默认快照 vs `expect`」的命中清单，而不是只看判别器汇总行。
 
-**提交**：`c0d5626448`（判别器口径 + 基线）、`69535cbdd0`（本批锚清理）。
+**提交**：`c0d5626448`（判别器口径 + 基线）、`69535cbdd0`（批 2 锚清理）、`0068a3ec59`（批 3 锚清理）。
+
+### 8.1 影响面（2026-11-05 实测，供其他线按图复跑）
+
+**结论**：凡以「批跑 / 带事件快照」报出的「0 逃生」一律不可信，必须按**纯默认态快照**（§8 判据）复跑。实测纯默认快照命中 **86 个锚 / 76 条用例 / 39 个 verify 文件**——这 39 个文件此前任何「0 逃生」的结论都应视为未验证。
+
+| 行业验证文件 | 默认即命中用例 | 锚 |
+|---|---|---|
+| acoustics | 10 | 11 |
+| aerospace | 5 | 6 |
+| thermodynamics | 5 | 5 |
+| electromagnetism | 5 | 5 |
+| ai | 4 | 4 |
+| quantum | 3 | 4 |
+| economics | 3 | 3 |
+| metrology | 3 | 3 |
+| statistics | 3 | 3 |
+| design | 2 | 3 |
+| optics | 2 | 3 |
+| life | 2 | 2 |
+| surveying | 2 | 2 |
+| dermatology | 1 | 2 |
+| general | 1 | 2 |
+| reproductive-medicine | 1 | 2 |
+| rheumatology | 1 | 2 |
+| welding | 1 | 3 |
+| accounting / biz / chemistry / chess / chinese-cook / civil / construction / cosmetic-derm / dynamics / energy / geometry / hematology / investment / kinematics / legal / nuclear / obstetrics / pulmonology / science / securities / urban（21 个） | 1 | 1 |
+
+**优先复跑序**：acoustics、thermodynamics、quantum（加载期扫描表/能级表）、aerospace、electromagnetism、metrology、statistics（枚举/表格类），其余按上表。
+
+本线进度：批 1 `bfc76248c9`（21 锚 / 13 文件，旧口径下识别）、批 2 `69535cbdd0`（25 锚 / 23 用例 / 11 文件，新口径）、批 3 `0068a3ec59`（6 锚 / 5 文件）；逃生 54 → 25，剩余 **19 条全锚命中 + 6 条部分命中**。
 
