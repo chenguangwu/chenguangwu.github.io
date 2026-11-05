@@ -718,3 +718,29 @@ node scripts/runtime_scan.js --interact --files /tmp/pages.txt --timeout 10000
 - `usedcar/detector-19`：14 项加「未检查（请选择）」默认项；`unchecked>0` 时只输出「待检测：还有 N 项未检查」，**不输出风险指数/结论/购买建议**；CSV 导出同步标注未检查项、结论改为「待检测」。
 - `fluid/buoyancy-force` 与 `process` 13 页同型：数字输入补 `oninput`，保留「计算」按钮。
 - `pet-training/clicker-timing`：**不改，审计结论作废**。`duration` 已有 `oninput="updateSettings()"`，且 `scheduleNext()` 每回合实时读取 `duration`；训练型工具，改设置本就不应改写已完成回合的统计，属正确设计。
+
+## 2026-11-05 A 桶 9 页收口 + 两个异常数值核实
+
+### A 桶 9 页（补实时绑定，保留原按钮）
+| 页面 | 处理 |
+|---|---|
+| `fluid/chezy-velocity`、`capillary-rise`、`capillary-pressure`、`cavitation-number` | 全部 `type="number"` 补 `oninput="calcTool()"` |
+| `printing/estimate-ink` | 单色/CMYK 全部数字输入补 `oninput="__inkLive(...)"`，勾选补 `onchange`；**250ms 防抖 + 实时态不写历史**（`calcSingle/calcCmyk` 增 `live` 参数），避免逐键刷屏历史记录 |
+| `biz/text-compare` | 两个 `textarea` 补 `oninput`、三个选项补 `onchange`；**250ms 防抖**——`compare()` 是 O(m×n) LCS，长文本逐键直跑会卡顿 |
+| `clinical-nursing/reminder-time-1` | 三个时长补 `oninput`；新增 `#planPreview` 方案预览行（冷敷/休息/检查间隔），运行中（`state.running`）不覆盖计时器状态 |
+| `edu/exam-study-planner` | 番茄钟 3 项配置补 `oninput` + 新增 `#pomo-plan` 计划行；**任务表单（subject/content/minutes）保持按钮驱动**——那是「添加记录」CRUD，不可预览 |
+| `tcm-diagnosis/ten-questions` | 表单区事件委托（`input`/`change`）→ **300ms 防抖**调用 `generate(true)` 静默生成（不弹 toast），姓名/年龄/性别/10 问全部实时出记录 |
+
+> 以上九页默认态均为「未输入/默认参数」，键入后结果区即变；按钮仍保留且点击结果与键入一致。
+
+### 两个异常数值核实
+- **`process/rolled-throughput-yield` 764.46% 不是公式错**：RTY=ΠFPY 累乘正确。探针把三工序良率按「默认值×2+1」注成 197/195/199（本身已 >100%，物理不可能），1.97×1.95×1.99=7.6446。**真缺陷是缺上限校验 + 旧预置/旧用例把越界值当正常**：
+  - 新增 `>100%` 拦截（只提示「工序良率不能超过 100%」并清空结果表，图表同步不画）；
+  - 预置「示例 2×/0.5×」换成「高良率 99.5/99/98.5」「低良率 92/90/95」；
+  - 旧 verify 用例 `y1=147 → 期待 141.16%` 已改成 `y1=97 → 93.15%`，另补单字段（y1=95 → 91.23%）与越界（y1=120 → 提示）两例。
+- **`process/cpk-with-shift` −0.307 是真实结果，非符号错**：Cpk=min[(USL−μ)/3σ,(μ−LSL)/3σ]，当位移后 μ 超出规格上限时下侧分量为负，Cpk 本就可为负（表示过程中心已在规格外）。该数值来自探针把 `shift` 注成 1.04（远超 0.2 的规格宽度、μ=22.04 > USL=21.1）。默认位移 0.02 时 Cpk 为正值，页面无需改动。
+
+### 用例与判别
+- 新增/修正条数：biz 148→149、clinical-nursing 44→45、edu 88→89（含修正 1 条旧自动用例的连续序列期待）、fluid 46→50、printing 9→10、tcm-diagnosis 20→21、process 14→16。
+- 判别四项（`discriminate_check.js`，逐文件）：已检=正确变红，逃生项 0，跳过 0（biz 149 / nursing 45 / edu 89 / fluid 50 / printing 10 / tcm 21 / process 16）。
+

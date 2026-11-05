@@ -114,14 +114,26 @@ const CASES = [
 {
   "slug": "process/rolled-throughput-yield",
   "inputs": {
-    "y1": "147",
+    "y1": "97",
     "y2": "97",
     "y3": "99"
   },
   "expect": [
-    "141.16"
+    "93.15"
   ],
-  "ref": "auto-restore"
+  "ref": "修正（2026-11-05）：旧用例注入 y1=147%（不可能的良率）并期待 141.16%——把越界输入当成了正确输出。良率上限 100%，现改为 y1=97% ⇒ RTY=0.97×0.97×0.99=93.15%。"
+},
+{
+  "slug": "process/rolled-throughput-yield",
+  "inputs": { "y1": "95" },
+  "expect": ["91.23"],
+  "ref": "单字段注入：仅改工序1良率 95%（y2=97、y3=99 取默认）⇒ RTY=91.23%，默认 94.11% ⇒ 强判别。"
+},
+{
+  "slug": "process/rolled-throughput-yield",
+  "inputs": { "y1": "120" },
+  "expect": ["工序良率不能超过 100%"],
+  "ref": "越界防护（2026-11-05）：良率 >100% 时不再输出 764.46% 这类伪结果，只提示并清空结果表；默认 98/97/99 不出现该提示。"
 },
 {
   "slug": "process/sigma-level",

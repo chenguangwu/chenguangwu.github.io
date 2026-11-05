@@ -593,7 +593,7 @@ const CASES = [
       "priority": "med"
     },
     "expect": [
-      "42:00\n1\n42\n休息时间\nabc123测试\n42\n⏸ 暂停\nmed"
+      "42:00\n1\n42\n休息时间\nabc123测试\n42\n计划：42 轮 ×（专注 42 分钟 + 休息 42 分钟）\n⏸ 暂停\nmed"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"subject\":\"abc123测试\",\"content\":\"abc123测试\",\"minutes\":\"42\",\"focus-mins\":\"42\",\"break-mins\":\"42\",\"target-rounds\":\"42\",\"priority\":\"med\"}，输出区含「个开始学习吧 ✨\n42:00\n1\n42\n休息时间\nabc123测试\n42\n⏸ 暂…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -826,6 +826,12 @@ const CASES = [
       "QSTRICT:0:wrong,1:correct|wrong=1"
     ],
     "ref": "EL-J5 回归：选项 0「容纳；适应」以「适应」结尾但并非答案，选它必须只标红 0、且仅把真正答案（索引 1）标绿 ⇒ 标记序列 0:wrong,1:correct。旧实现用 endsWith 找正确项，会把 0、1 同时标绿 ⇒ 0:wrong,0:correct,1:correct。"
+  },
+  {
+    "slug": "edu/exam-study-planner",
+    "inputs": { "break-mins": "10" },
+    "expect": ["休息 10 分钟"],
+    "ref": "单字段注入（2026-11-05 补 oninput）：番茄钟计划行默认「休息 5 分钟」，仅改休息时长 10 分即实时刷新；默认态不含该串 ⇒ 强判别。任务的 subject/content/minutes 属「添加记录」表单，仍由「添加任务」按钮驱动，不做实时预览。"
   }
 
 ];
