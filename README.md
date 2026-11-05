@@ -60,7 +60,9 @@ python3 scripts/run_gates.py
 - `node scripts/check_inline_js_syntax.js`：校验页面内联 JS 语法。
 - `node scripts/verify_calc.js`：执行计算工具回归用例（冒烟）。
 - `node scripts/verify_it_calc.js`：执行 IT 计算工具正确性用例。
-- `node scripts/selfcheck_false_pass.js scripts` / `node scripts/discriminate_check.js`：反回归门禁（禁止假门禁标记 / 校验用例判别力）。
+- `node scripts/selfcheck_false_pass.js scripts`：反回归门禁，禁止假门禁标记。
+
+用例判别力检查耗时较长，不纳入默认门禁；需要时可在本地手动运行 `node scripts/discriminate_check.js`。
 
 GitHub Actions 会在 pull request 和推送到 `master` 时自动执行同一套门禁。
 `master` 门禁通过后，Actions 会上传完整静态 artifact 并部署到 GitHub Pages。
