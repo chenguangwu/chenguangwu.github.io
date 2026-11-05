@@ -1922,6 +1922,12 @@ const CASES = [
     "ref": "元素详情独立核对：原子序数 26 即 Fe（铁，Iron）——第 4 周期第 8 族，原子量 55.845、电子排布 [Ar]3d6 4s2（数据取自页内 ELEMENTS 元素表）。"
        + "boot 默认调 showDetail(1) ⇒ 详情区为「氢 / 原子序数 1」；clicks 改为 showDetail(26) 后详情区出现「原子序数 26」。"
        + "判别器清空 clicks 后兜底调 showDetail()（无参 ⇒ ELEMENTS.find 返回 undefined ⇒ 直接 return），详情仍是氢，不命中。"
+  },
+  {
+    slug: "science/convert-power",
+    inputs: { val: "", from: "N", to: "lbf" },
+    expect: ["请输入要转换的数值"],
+    ref: "空态守卫（2026-11-05）：清空数值后 `+''` 得 0（不是 NaN）⇒ 旧输出「0 N = 0 lbf」凭空给零值结论；改为先判原始空串再判 NaN。⚠ 数值 0 本身合法（0 N = 0 lbf 照常计算），只判空串。默认 val=1 ⇒ 提示串不出现；注入 1 N 用例断「0.224809」⇒ 两态互斥。",
   }
 
 ];
