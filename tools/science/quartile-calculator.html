@@ -150,7 +150,7 @@ s.parentNode.insertBefore(el, s);
      <h2 data-zh="📊 四分位数计算器">📊 Quartile Calculator</h2>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">四分位距 IQR = Q₃ − Q₁；下限须 = Q₁ − 1.5 × IQR；上限须 = Q₃ + 1.5 × IQR（超出即为离群值）</div>
-  <div class="formula-desc">本计算基于标准数学定义与运算规则，结果按计算精度实时输出。 工具名称：四分位数计算器 - 免费数学计算工具，在线四分位数计算器，免费使用。</div>
+  <div class="formula-desc">四分位数把升序数据按 25%/50%/75% 切开；本页用线性插值 pos=(n−1)×p（等价 Excel QUARTILE.INC / R type 7），并据 IQR=Q₃−Q₁ 与 1.5×IQR 界判定离群值。</div>
   <div class="formula-desc">四分位数按 1e-10 精度显示；绝对值小于 1e-12 的浮点残差按 0 显示（该残差属数值噪声，不代表真实小量）。</div>
 </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入一组数值，计算第一、第二（中位数）、第三四分位数及四分位距 IQR，用于数据分布描述、箱线图绘制与异常值筛查。">Compute the first, second and third quartiles and the interquartile range for distribution description and box-plot work.</p>
@@ -184,16 +184,35 @@ s.parentNode.insertBefore(el, s);
 <section class="deep-dive" data-deep-dive="1">
 <div class="card">
 <h2>📚 深度解析：四分位数计算器</h2>
-<h3>💡 常见使用场景</h3>
+<h3>📖 定义与公式</h3>
+<div style="margin:8px 0;line-height:1.85;">把数据升序排列后，Q₁、Q₂、Q₃ 分别位于 25%、50%、75% 位置；Q₂ 即中位数。本页采用线性插值：位置 pos=(n−1)×p，若 pos 非整数，则取相邻两值的加权平均。四分位距 IQR=Q₃−Q₁；Tukey 箱线图以 [Q₁−1.5×IQR, Q₃+1.5×IQR] 为正常范围，越界即判为离群值。不同软件的分位法（Tukey hinges、Excel QUARTILE.EXC）结果会略有差异，本页统一用上述线性插值口径。</div>
+<h3>🧮 算例（按本页代码口径实跑）</h3>
+<div class="dd-example"><div class="dd-ex-title">默认数据（n=10）</div><div class="dd-ex-body">[1, 2, 5, 6, 7, 9, 12, 15, 18, 21]：Q₁ 位置 = 9×0.25 = 2.25 ⇒ 5+0.25×(6−5)=5.25；Q₂ 位置 = 4.5 ⇒ (7+9)/2=8；Q₃ 位置 = 6.75 ⇒ 12+0.75×(15−12)=14.25。IQR=9，界为 −8.25 与 27.75，无离群值。</div></div>
+<div class="dd-example"><div class="dd-ex-title">n=5（位置恰为整数）</div><div class="dd-ex-body">[1, 2, 3, 4, 5]：pos 分别为 1、2、3 ⇒ Q₁=2、Q₂=3、Q₃=4；IQR=2，界为 −1 与 7。</div></div>
+<div class="dd-example"><div class="dd-ex-title">含离群值</div><div class="dd-ex-body">[1, 2, 3, 4, 100]：Q₁=2、Q₂=3、Q₃=4（前四值不受 100 影响）；IQR=2，上界=4+1.5×2=7，100 &gt; 7 被判为离群值。</div></div>
+<h3>⚠️ 适用条件与常见误用</h3>
 <ul class="dd-list">
-<li>Q1/Q2/Q3 划分数据。</li>
-<li>绘制箱线图或分析<a class="term-link" href="/guides/data-distribution-guide.html">数据分布</a>形态。</li>
+<li>至少 3 个有效数据（页面强制）；少于 3 个无法合理刻画 Q₁/Q₃。</li>
+<li>输入顺序无关，页面会自动排序；非数值项被过滤，不计入 n。</li>
+<li>误用一：把位置写成 (n+1)×p——这是另一种分位法，会得到不同结果，不能与本页混用。</li>
+<li>误用二：把 1.5×IQR 界当作正态分布的 3σ 判据；两者阈值与假设不同。</li>
+<li>离群值不等于错误值，是否剔除要看业务含义，页面只做标注。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">计算</div><div class="dd-ex-body">[1..100] 共 100 数：Q1≈25.75、Q2=50.5、Q3≈75.25（线性插值法）。</div></div>
+<h3>📊 多组输入对照（实跑）</h3>
+<ul class="dd-list">
+<li>1, 2, 3, 4, 5（n=5）：位置 1、2、3 恰为整数 ⇒ Q1 = 2、Q2 = 3、Q3 = 4，IQR = 2，界为 -1 与 7，结论「无异常值」。</li>
+<li>1, 2, 3, 4, 100：前四值不变，Q1 = 2、Q2 = 3、Q3 = 4，上界 = 4 + 3 = 7 ⇒ 100 被判离群，说明单个极端值不会拉动 Q1/Q3。</li>
+<li>默认 [1,2,5,6,7,9,12,15,18,21]：Q1 位置 2.25 ⇒ 5.25、Q2 位置 4.5 ⇒ 8、Q3 位置 6.75 ⇒ 14.25，IQR = 9。</li>
+<li>1, 2（n=2）：页面提示「至少需要 3 个数据」，不输出分位数。</li>
+</ul>
+<h3>🧭 使用场景与取值建议</h3>
+<div style="margin:8px 0;line-height:1.85;">四分位数最适合「带极端值的分布描述」：收入、房价、响应时间这类长尾数据，均值容易被少数极大值拉高，而 Q1–Q3 覆盖中间 50%，更接近多数人的真实体验。做箱线图时直接取本页的 Q1/Q2/Q3 画箱体，须线延伸到 1.5×IQR 界内的最远数据点，界外点单独标出。判离群值前先确认数据是否同一总体：把男女身高混在一起，Q3 界会把正常的高个子误判为异常。</div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>算法有几种？</dt><dd>有包含/排除<a class="term-link" href="/tools/science/median-calculator.html">中位数</a>等不同约定，结果略异。</dd>
-<dt>四分位距有什么用？</dt><dd>IQR=Q3−Q1，常以超出 1.5×IQR 作为离群值判据。</dd>
+<dt>为什么不同软件算出的 Q₁ 不一样？</dt><dd>分位位置定义不同：本页 pos=(n−1)p（type 7/INC），Tukey hinges 取中位数两半的中位数，EXC 用 (n+1)p。</dd>
+<dt>IQR 能说明什么？</dt><dd>IQR 覆盖中间 50% 的数据，越大说明中间段越分散；它不像极差那样被单个极端值放大。</dd>
+<dt>数据里有重复值会影响分位数吗？</dt><dd>不会。位置由 n 与百分位决定，插值取的是排序后的相邻值，重复值只是让相邻位置上的数相同，结果仍然自洽。</dt>
+<dt>为什么 n=3 也能算？</dt><dd>n=3 时位置为 0.5、1、1.5，Q1 与 Q3 通过插值得到，仍能刻画中间 50%；但样本越小分位数越不稳定，页面只保证公式口径正确。</dd>
 </dl>
 </div>
 </section>
