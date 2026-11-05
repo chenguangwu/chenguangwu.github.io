@@ -70,7 +70,7 @@ const CASES = [
 
   { slug: "economics/labor-force",
     inputs: { E: "200", U: "20" },
-    expect: ["220"],
+    expect: ["220 劳动力"],
     ref: "LF=E+U=200+20=220" },
 
   { slug: "economics/labor-force-participation",
