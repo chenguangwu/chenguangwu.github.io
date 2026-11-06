@@ -180,10 +180,10 @@
 - `tools/it/json-to-csv.html` 的工作原理同时写「嵌套对象或数组序列化为 JSON 字符串，不展开为多列」和「数组经索引展开」，但 `cell()` 对嵌套数组直接序列化，不会展开索引列。应明确区分顶层数组与嵌套数组的处理方式。
 - 修复：删除矛盾的「数组经索引展开。」一句，工作原理区统一为「嵌套数组同样序列化为 JSON 字符串填入单元格（不按索引展开为多列）」（`tools/it/json-to-csv.html:123`，formula-box 区直接改 HTML 有效；deep-dive FAQ 正确文本此前已落到构建源 `i18n/tools/content_deepdive.json`，`96da825eb1`）。
 
-### IT-N8 自定义进制小数被静默截断（中，确认缺陷）
+### IT-N8 自定义进制小数被静默截断（中，确认缺陷，已修复）
 - `tools/it/number-base-converter.html:433-439` 先用 `parseInt` 解析自定义基数，再检查整数；输入 `2.5` 被当作 2 进制，而非提示必须输入 2–36 的整数。Node 执行原函数已复现。
 - 影响：使用与输入不符的进制产生错误结果。
-- 方案：对原始输入进行整数和范围校验，再执行转换。
+- 修复：`getInputBase()` 的 custom 分支先 `String(customBase.value || '').trim()` 再 `^\d+$` 校验，非纯整数（如 `2.5`/空/非数字）直接返回 null ⇒ `convertFromInput` 提示「⚠ 进制必须为 2–36 的整数。」；`String()` 包裹避免桩环境数值型 value 调用 `.trim()` 抛错。verify 新增 N8 回归用例（customBase='2.5' → 断言该提示），6/6 通过。
 
 ### 续查覆盖
 - 新抽查 `tools/it/env-generator.html`、`tools/it/json-to-csv.html`、`tools/it/number-base-converter.html`、`tools/it/text-replace.html`、`tools/it/nginx-config-generator.html` 共 5 页，新增 7 条问题（历史计数）；未做浏览器、部署或门禁验证。历史回填的实际交互需真机复核。
