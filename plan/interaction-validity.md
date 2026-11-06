@@ -46,6 +46,7 @@
 - 静态续审第三十三批：阅读 `optical/{blue-light-filter,coating-design,convergence-near-point,edge-bevel,frame-pupillary,frame-tilt,lens-refractive-index,peripheral-defocus}` 8 页，记录空值兜底、正负镜边厚、集合和离焦结论冲突及静态图层状态等问题；专业结论须复核。至清单第 490 页，静态续审累计 210 页；仅源码分析，未运行浏览器，不计双跑。
 - 静态续审第三十四批：阅读 `optical/{photochromic-lens,polarized-axis,polarized-stress,prism-decentration,progressive-corridor,tinted-lens}` 6 页，记录空值、色序表错位、未使用轴位、模式语义和方案替换等问题；专业结论须复核。至清单第 496 页，静态续审累计 216 页；仅源码分析，未运行浏览器，不计双跑。
 - 静态续审第三十五批：阅读 `paper/{basis-weight,paper-grade,roll-length}`、`pediatrics/vaccine-schedule`、`pet-training/{clicker-timing,command-repetition,elimination-predict,leash-length}` 8 页，记录疫苗时间状态、纸张复制换算、宠物排便算式及计时状态等问题。至清单第 504 页，静态续审累计 224 页；仅源码及 Node 算式复算，专业建议须复核，未运行浏览器，不计双跑。
+- 静态续审第三十六批：阅读 `pet-training/treat-calories`、`pet/reminder-vaccine-deworming`、`petrochem/{api-gravity,catalyst-calc}`、`photo/{equivalent-focal,ev,exposure-value,field-of-view}` 8 页，更新旧宠物零食条目源码状态，记录时间校验、模式初始化与摄影物理输入问题。至清单第 512 页，静态续审累计 232 页；仅源码分析，未运行浏览器，不计双跑。
 
 
 - 扫描时间：2026/11/5 05:04:33
