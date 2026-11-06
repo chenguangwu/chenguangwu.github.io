@@ -689,7 +689,7 @@
 |---|---|---|---|
 | `tools/science/matrix-calculator` | 自写 det（Laplace）、mul、inverse（高斯-若当）、rank、矩阵快速幂 | 可验证 | A=[[4,7],[2,6]] det=10、A·A⁻¹≈I、A⁻²≈inv(A)² 均正确；2026-11-06 复核 SMS-107 的 0 输入已修，小数截断仍在；SMS-108/109 仍在 |
 | `tools/math/determinant-2x2` | 自写闭式 det=ad−bc | 可验证 | 默认 −2 正确；显示精度与奇异判定自相矛盾 |
-| `tools/science/vector-calculator` | 自写 dot/cross/mag/proj/angle/scale | 可验证 | 主算正确；k=0 被吞、零向量夹角 NaN |
+| `tools/science/vector-calculator` | 自写 dot/cross/mag/proj/angle/scale | 可验证 | 2026-11-06 复核：k=0 和零向量夹角的原例已修；极小非零向量会被绝对阈值误认为零向量 |
 | `tools/design/data-matrix` | 伪实现：32 位哈希→LCG 随机格 + 外观边框，无 ECC200 编码/纠错（`:258-294`） | 不可验证（自述不可扫码） | 装饰图案，非 Data Matrix |
 
 ### 独立实现 vs 共享实现
@@ -701,7 +701,7 @@
 
 - **matrix-calculator**：默认 3×3、add、A=B=I → 2I 正确（boot `:736` 自动计算）；`:430` rank 用绝对 1e-12 阈值，[[1e-13,0],[0,1e-13]] 可逆却 rank=0（SMS-167）；2026-11-06 复核：SMS-107 的 0 输入已修，小数幂被截断仍在；SMS-108（绝对 1e-12 误杀 2e-7I）、SMS-109（`check` 死代码）源码仍在。
 - **determinant-2x2**：默认 1,2,3,4 → det −2.00、tr 5.000、非奇异正确；[[0.1,0.3],[0.3,0.9]] 数学奇异（node 复算 1.38e-17）却显示「0.00」+「非奇异」（SMS-163）。
-- **vector-calculator**：默认 A=(1,0,0)、B=(0,1,0)、add → (1,1,0) 正确（无自动计算）；点积/叉积/投影/模长与手算一致；k=0 变 1（SMS-164）、零向量夹角 NaN（SMS-166）。
+- **vector-calculator**：默认 A=(1,0,0)、B=(0,1,0)、add → (1,1,0) 正确（无自动计算）；2026-11-06 执行页面计算函数，k=0 输出零向量，B=0 给出无夹角提示。SMS-164 清理；SMS-166 保留极小非零向量误判的残留。
 - **data-matrix**：默认 text=Data Matrix、size=14，输出确定性伪随机格 + 左/下实线、上/右交替边框（`:276-281`），与「装饰图案」自述一致；无 ECC200 编码。
 
 ### 问题清单（新增）
@@ -709,15 +709,13 @@
 | 编号 | 页面:行 | 级别 | 问题与期望值 |
 |---|---|---|---|
 | SMS-163 | `tools/math/determinant-2x2.html:241,243,264-266` | 高 | 展示用 `det.toFixed(2)`、判定用 `det===0`：[[0.1,0.3],[0.3,0.9]]（ad=bc，数学奇异）node 复算 det=1.38e-17 → 页面「行列式 0.00」+「非奇异（可逆）」自相矛盾。期望以 `Math.abs(det)<eps`（如 1e-12）判定并与显示精度统一 |
-| SMS-164 | `tools/science/vector-calculator.html:377,500` | 高 | `parseFloat(scalar)||1`：k=0 变 1，数乘 k·A 输出 A 本身（期望零向量）；`:500` 向量图同一缺陷（与 SMS-107 同模式，不同页） |
-| SMS-165 | `tools/science/matrix-calculator.html:323,325,721` | 中 | `fmt` 以 `Math.abs(x)<1e-10` 归零并 `toLocaleString()` 加千分位：1e-11 显示 0、1234.5 显示 1,234.5；`:721` exportTable 读单元格文本 → CSV 逗号错列。期望导出用原始数值、零判定改相对阈值 |
-| SMS-166 | `tools/science/vector-calculator.html:356` | 中 | 夹角分支 `dp/(mA*mB)` 无零向量守卫，B=(0,0,0) 时 0/0→`acos(NaN)` 显示「NaN°」。期望提示「零向量无夹角」 |
+| SMS-166 | `tools/science/vector-calculator.html:352-365` | 中 | 2026-11-06 复核：零向量夹角已提示「零向量无法计算夹角」，Node 执行实际 `calculate()` 确认原例已修。残留：判断采用绝对阈值 `mA<1e-12 &#124;&#124; mB<1e-12`，A=(1e-13,0)、B=(1,0) 等非零向量仍被误判为零，投影分支对 B 同样适用该阈值。 |
 | SMS-167 | `tools/science/matrix-calculator.html:430` | 中 | rank 主元阈值同为绝对 1e-12：[[1e-13,0],[0,1e-13]] 可逆却 rank=0（应 2）；与既有 SMS-108 同根，修复时并入该条 |
 | SMS-168 | `tools/design/data-matrix.html:164,235` | 中 | 尺寸输入 8–24 与引据表「模块数自 10×10 起、四档」矛盾；D-N138 的「4px 示例、formula-desc 称 RS」已删除，仅此子项仍成立 |
 
 ### 统计
 
 - 页数 **4**；独立实现 **4** / 共享实现 **0**。
-- 新增 **6** 条（高 **2** / 中 **4** / 假 **0** / 安全 **0**）；编号 SMS-163–SMS-168。
+- 原审新增 **6** 条（高 **2** / 中 **4** / 假 **0** / 安全 **0**）；编号 SMS-163–SMS-168。2026-11-06 复核清理 SMS-164/165：向量数乘与绘图均保留 0；矩阵极小数采用科学计数，公共 CSV 导出对含逗号单元格加引号。SMS-166 原例已修，绝对阈值残留见上表。
 - 复核既有：SMS-107 部分修复、小数幂截断仍在；SMS-108/109 仍成立（矩阵页）；D-N137（data-matrix 无 ECC200）核心仍成立，但「定位边方向与 ISO 相反」已失效（当前 :277-280 符合标准），建议降级为文案承诺问题。
 - 复算方式：`/tmp` node 复刻页面函数（det/mul/inverse/rank/向量算子）；未开浏览器、未跑 `_build.py`/门禁、未改仓库文件。
