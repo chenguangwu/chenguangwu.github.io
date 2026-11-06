@@ -2,8 +2,6 @@
 
 ## 2026-11-06 已修条目独立复核（O-1/O-2/P-06）
 
-- **IT-N86 / O-1：仍待处理。** `tools/it/aes-encryptor.html:432-448` 的正逆行移位已改正，但抽取页面实际 AES 函数在 Node 执行 FIPS-197 标准向量：128 位密钥 `000102030405060708090a0b0c0d0e0f`、明文 `00112233445566778899aabbccddeeff` 得 `5be0c198ac32ec44e15331c1b1cbc154`，标准密文为 `69c4e0d86a7b0430d8cdb78070b4c55a`，再解密得到 `6563a8bd8b3590ed48e7d72f5add275f`。192/256 位向量也不匹配且无法往返。`mixColumns`（`:454-462`）单列输入 `db135345` 实得 `73f87854`，FIPS 标准结果为 `8e4da1bc`；因此行移位修正不足以修复原问题，不应销账。测试直接运行页面函数，并以 Node crypto 交叉校验标准密文；未在浏览器验证。
-- **IT-N93 / O-2：原问题已修复。** 抽取 `tools/it/rsa.html:389-520` 实际函数，以 Node WebCrypto 和 DOM 桩运行 2048 位密钥生成、OAEP 加解密、PSS 签名验签，均成功；原不兼容 usages 不再出现。仅覆盖 SHA-256 / PSS 路径，未验证浏览器及其他原有问题。
 - **IT-N143 / P-06：原列置换问题已修复。** 抽取 `tools/it/adfgvx-cipher.html:253-342` 实际函数，用 `CIPHER`、`FRANCE`、`LEMON` 三个密钥对 `ATTACKATDAWN` 加解密均还原原文。`order.indexOf(i)` 修正列回填；测试为 DOM 桩，未运行浏览器。补位问题 IT-N144 不在本条修复范围，仍保留。
 
 ## 2026-11-06 文本差异工具静态续审（清单 634）
@@ -178,8 +176,6 @@
 - 影响：Unicode 输入中，未匹配字符丢失或保留错误，复制/下载会传播损坏的内容；非全局分支亦用同样的索引方式，需一并验证。
 - 方案：匹配位置必须对应原文，增加大小写映射长度变化、连续命中及非全局回归；尚未做浏览器验证。
 
-- 2026-11-06 复核已修复项：IT-N6 的 `toCSV()` 经 Node 执行有效输入后输入 `[NaN]`，输出和安全导出串均清空并提示解析失败；IT-N7 的嵌套数组说明已统一；IT-N8 的 `getInputBase()` 拒绝 `2.5`、空值和 37，接受 2 和 36。仅源码与函数级验证，未做浏览器验证。
-
 ### 续查覆盖
 - 新抽查 `tools/it/env-generator.html`、`tools/it/json-to-csv.html`、`tools/it/number-base-converter.html`、`tools/it/text-replace.html`、`tools/it/nginx-config-generator.html` 共 5 页，新增 7 条问题（历史计数）；未做浏览器、部署或门禁验证。历史回填的实际交互需真机复核。
 
@@ -206,17 +202,11 @@
 - 但 `__text_cleanerSnap()` 不保存未勾选的复选框，历史回调只遍历记录中存在的字段，故不能清除当前已勾选、而历史当时未勾选的选项。Node 执行实际回填回调：历史记录无 `opt-trim`，当前 `opt-trim` 已勾选，回填后仍为 `true`，再执行清理时可能产生与历史不一致的结果。未做浏览器验证。
 - 方案：恢复历史前统一重置选项，或保存和恢复完整的勾选状态；兼顾既有历史记录格式。
 
-- 2026-11-06 复核已修复项：IT-N25 的 `doBeautify()` 经 Node 执行 `["a","b"]`，得到 `0 = a` 和 `1 = b`，未再误判为 INI 节。未做浏览器验证。
-
 ### IT-N26 两个下拉框没有任何选项，代码面板与压缩模式不可用（中，确认源码缺陷）
 - 描述：`#showcode`、`#compact` 两个 `<select>` 在源码中为空，代码却按值 `'1'`/`'compact'` 判断；`resetForm` 的 `selectedIndex=0` 也无实际效果。压缩结果 `outHtml` 只在“显示 HTML 代码”分支被使用。
 - 证据：`tools/it/markdown-to-html.html:136,140`（空 select）、`330-337`（取值判断与 `outHtml` 用法）、`342-343`。jsdom 复算：`#showcode` 与 `#compact` 的 `options.length` 均为 0；再按 330-337 逻辑模拟“显示代码关闭 + 压缩开启”：可见区 `<p>a</p>\n<ul><li>b</li></ul>` 不变，仅 `code` 变量被压缩。
 - 影响：`tools/it/markdown-to-html.html`；两个标注功能实际不可选，HTML 代码面板永不出现；“压缩”即使可选项生效也只影响代码面板，不影响预览。
 - 方案：补上 `option`（`0/1`、`pretty/compact`），并让压缩模式同时作用于预览与代码输出。
-
-- 2026-11-06 复核已修复项：IT-N27 的 `calcTool()` 经 Node 执行 `![alt](https://x/y.png)` 输出含正确 `src`、`alt` 的 `<img>`，不再输出 `!` 加链接；未做浏览器验证。
-
-- 2026-11-06 复核已修复项：IT-N28 的 `charDiffLine('😀😀😀','😀😀')` 经 Node 执行只生成一个包含完整 emoji 的删除高亮，未拆开代理对。未做浏览器验证。
 
 ### IT-N29 逐行对照预览按索引配对，删行后错位；FAQ 承诺的“全压成一行”未实现（中，确认源码缺陷）
 - 描述：`top_blank` 本身按 `trim()===''` 判空行（行为正确），但预览直接拿 `rawLines[pi]` 与 `lines[pi]` 并列；一旦删除过空行（默认预设即会删），两列的第 N 行就不再对应同一段文本。另 FAQ 称“可选保留段落或全压成一行”，页面只有 4 个勾选项，没有折叠换行能力。
@@ -385,14 +375,6 @@
 - 2026-11-06 独立复核：Node 执行页面实际 `parseBrowser()`、`parseOS()`，`Windows Phone 10.0 … Chrome/52.0 … Edge/15.15254` 正确识别为 Microsoft Edge 15.15254 / Windows Phone，原例已修。
 - 但 `parseOS()` 的 Windows NT 版本判断先于 Windows Phone：输入同时含 `Windows Phone 10.0; Windows NT 10.0` 的 UA 时仍输出 Windows 10/11，未识别 Windows Phone。应优先检查 Windows Phone；未做浏览器验证。
 
-### IT-N68 多算法哈希器异步 SHA 可能覆盖新输入结果（高，已修复）
-- 2026-11-06 复核：`tools/it/hash-multi.html:322-371` 已以 `lastHashPairs` 复制摘要，原「只复制算法名」问题已修；但异步回调写入共享数组和当前 DOM 时未核对计算代次，旧请求后完成会覆盖新输入的 SHA。
-- Node 模拟实际 `calc()`，先算 `old` 再算 `new`，让 `new` 的 SHA-1 先完成、`old` 后完成；`copyAll()` 得到新输入的 MD5 `22af645d1859cb5ca6da0c484f1f37ea` 与旧输入 SHA-1 `c00dbbc9dadfbe1e232e93a729dd4752fade0abf`，而 `new` 的正确 SHA-1 为 `c2a6b03f190dfb2b4aa91f8af8d477a9bc3401dc`。未做浏览器验证。
-- 尚未完成的 SHA 以 `—` 存入复制数组，完成前复制也可能得到占位符。方案：每次计算设置代次、只接受当前请求的回调，并在摘要完成前禁用或明确标注复制状态。
-- 修复（2026-11-06）：按方案加计算代次——`var __hmGen=0;`，`calc()` 入口 `var __myGen=++__hmGen;`，`Promise.all(...).then(...)` 首行 `if(__myGen!==__hmGen) return;`，一次性挡住「历史数组回写」与「DOM `[data-hash-label]` 回写」两条覆盖路径。Node 模拟两代计时器（旧请求 80ms 后完成、新请求 10ms 完成）：旧结果 `discard stale`、最终 `lastHashPairs` 保留新摘要，符合预期。未完成前的 `—` 占位仍在，属于正常进行态。
-
-- 2026-11-06 复核：原 IT-N64 输入校验已修，实际 `ip2int` 对空段、科学计数、十六进制和前导零返回 NaN；原 IT-N66/67 已修，实际 MD5 对 `中`、`😀` 与 Node crypto 一致，CRC32 分别为 `d5d15a8b`、`054db544`，`aa` 为 `078a19d7`；原 IT-N70 各复选框均已绑定 `onchange="calc()"`（源码复核）。原 N68 只复制算法名的问题已修，但异步竞态仍须处理，见上。未做浏览器验证。
-
 ### IT-N69 HTTP 缓存速查：搜索与分类只过滤列表，图表/明细表仍统计全量数据（低，确认源码缺陷）
 - 描述：`renderCommands()` 按 `currentCategory` 与 `searchQuery` 过滤 `COMMANDS`，但 `hcAgg()` 固定遍历 `COMMANDS` 全量；`hcChart()`/`hcTable()` 直接使用该聚合结果，既不读搜索词也不读当前分类。搜索 `max-age` 时列表只剩 1 项，图表与「明细表」仍显示所有分类和全部分类计数。
 - 证据：`tools/it/http-cache.html:562-571`（列表过滤）、`tools/it/http-cache.html:706-710`（`hcAgg` 全量聚合）、`tools/it/http-cache.html:711-728`（图表/明细取 `hcAgg`）
@@ -413,12 +395,6 @@
 - 方案：按四段十进制整数严格校验（含范围与前导零规则），失败时清空旧表并提示。
 
 - 2026-11-06 复核：原 IT-N72/82 的行内空格和属性空格问题已修，Node 执行 `collapseHtmlWhitespace()` 复核原例均保留；原 IT-N73/84 的 EAN 长度、字符和校验位已修，实际 `buildEAN()` 对空、短、字母、超长、错误校验位返回错误，12 位和正确 13 位均生成 `5901234123457`；原 IT-N74/75 的示例选项、引号和镜像后命令均经 `parse()` 实测通过。仅函数级验证，未做浏览器验证。
-
-- 2026-11-06 独立复核已修复项 IT-N77：Node 执行页面实际 `updateDescription()`，小时为 `*` 时分钟 `*/5`、`1,15`、`15` 分别输出「每天 每5分钟执行」「每天 每小时第1、15分执行」「每天 每小时第15分执行」。未做浏览器验证。
-
-- 2026-11-06 独立复核已修复项 IT-N78：Node 执行页面实际 `generate()`，输入 `geo:39.9,116.4?q=%E0%A4%A` 后保留原始查询并提示百分号编码非法，未抛异常。未做浏览器验证。
-
-- 2026-11-06 独立复核已修复项 IT-N79：Node 执行页面实际 `generate()`，输入 `WIFI:S:my\;net;T:WPA;P:p\;q;;` 后输出完整 SSID `my;net` 和密码 `p;q`。未做浏览器验证。
 
 ### IT-N81 URL 编解码：解码无条件把 `+` 当空格，破坏普通 URL 中的字面加号（中，确认源码缺陷）
 - 描述：`decodeUrl()` 在调用 `decodeURIComponent` 前固定执行 `text.replace(/\+/g,'%20')`，不区分当前是 `encodeURIComponent` 还是 `encodeURI` 模式，也不区分路径与查询。普通 URL 路径/查询里的字面 `+` 被改成空格。
@@ -441,29 +417,6 @@
 
 范围：本分区「01 IT：非文本类剩余」8 页（`ipv6-ula` / `ssl-info` / `http-status` / `http-headers` / `mime-type` / `aes-encryptor` / `rsa` / `base32-encode`），编号接续 IT-N85，从 IT-N86 起。
 
-### IT-N86 AES 加密/解密：ShiftRows 排列写错，全模式输出与标准 AES 不符、本页自身加解密也不可逆（高，已修复）
-- **根因（实测复核，2026-11-06）**：实际并非 `shiftRows` 写错，而是手写 AES 轮函数有三处实现错误：① `mixColumns`（原 454-463）系数写错——标准 `s0'=2·s0⊕3·s1⊕s2⊕s3` 被写成 `xtime(s0)^s0 ^ s1 ^ s2 ^ s3`（即 `3·s0⊕s1⊕s2⊕s3`，漏 3·s1、错把 2·s0 写成 3·s0）；② `invShiftRows`（原 441-448）第 3 行旋转方向反了（左移 3 的逆向应是左移 1，原代码写成右旋）；③ `invMixColumns`（原 465-477）用的 `transform+mixColumns` 取巧写法结果并非 `InvMixColumns`。`shiftRows` 本身正确，`aesBlock` 经 `mixColumns` 修正后 ECB 路径已可输出标准 AES。
-- **验证（从文件抽取真实函数跑 FIPS-197 / NIST SP800-38A 向量，全 PASS）**：AES-128/192/256 ECB 加密向量 `69c4e0d8…`/`dda97ca4…`/`8ea2b7ca…`；AES-128 ECB 解密向量回明文；NIST CBC 单块 `7649abac8119b246cee98e9b12e9197d` 收发一致；CFB/OFB/CTR/ECB 多组 16/20 字节往返一致；PKCS7 补齐/去补齐正确。
-- 证据：修复位 `tools/it/aes-encryptor.html` `mixColumns`/`gmul`/`invMixColumns`（新增 `gmul` 伽罗瓦乘法）、`invShiftRows`。
-- **无门禁回归用例（说明）**：本页不可加 verify 用例——① crypto 轮函数虽为顶层声明，但页面只把 `encrypt/decrypt/copyResult/generateSalt…` 这些内联 onclick 用到的函数挂到 window，`keyExpansion/aesBlock/hexToBytes` 在 harness 的 pageEval 作用域内 `typeof === 'undefined'`（实测：`K=undefined A=undefined H=undefined B=undefined E=function`）；② `encrypt()` 是 async，harness 点击阶段只 `await` 输入事件产生的 Promise，不 await 点击返回值，采集时 `#output` 仍是旧值。故 N86 以「从源文件抽取真实函数跑官方向量」为证据（见上一条验证记录），与 N60 CSS url 引号用例同类处置。
-- 影响（修复前）：页面密文非标准 AES，外部库无法解密；同页加解密往返也还原不出明文。现已全部对齐 FIPS-197。
-
-### IT-N87 AES 加密/解密：关闭 PKCS7 后分组模式静默截断，5 字节明文得到 5 字节全零密文（中，已修复）
-- **修复（2026-11-06）**：在 `encrypt()` 补齐分支后新增校验——`ECB/CBC` 且 `usePadding=false` 且 `plaintext.length % 16 !== 0` 时，直接 `toast` 报错「分组模式（ECB/CBC）关闭 PKCS7 填充时，明文长度必须是 16 字节的整数倍」并 return，杜绝静默零填充/截断。流模式（CFB/OFB/CTR）无需整块，不受影响。
-- 证据：`tools/it/aes-encryptor.html` `encrypt()` 内 `needsPadding && !usePadding && (plaintext.length % 16 !== 0)` 分支。
-
-### IT-N88 AES 加密/解密：ECB 模式勾选"输出包含 Salt/IV"后无法解密（中，已修复）
-- 问题：加密在 ECB 下仍会拼接 `salt:cipher`（`iv` 为 null 只留 salt），但解密仅在 `mode !== 'ECB'` 时拆分冒号元数据；ECB 把整串 `saltHex:cipherHex` 交给 `hexToBytes()`，冒号与错位导致字节错乱（Base64 分支则因 `:` 让 `atob` 抛错）。
-- 证据：`tools/it/aes-encryptor.html:850-857`（ECB 也拼 meta）、`tools/it/aes-encryptor.html:890-907`（`if(mode !== 'ECB')` 才拆）、`tools/it/aes-encryptor.html:913`（整串 `hexToBytes`）
-- 复现：ECB + 密码模式（自动生成 Salt）+ 勾选"输出包含 Salt/IV"，加密得 `a1b2c3d4:<64位hex>`；点解密 → 实际把整串按 hex 解析，`hexToBytes('aabb:ccdd')` 复算为 `[10,171,11,204,221]`（含 `:` 的位置产生错字节），解出乱码（期望剥离 salt 后解出原文）。
-- 影响：自带元数据的密文只能在本页"碰巧"解密（非 ECB），ECB 下完全不可用；用户会误判密钥/密文错误。
-- 方案：ECB 不拼 IV、Salt 元数据单独字段或在解密时统一先剥离 `元数据前缀`；`hexToBytes` 增加非法字符校验（遇到 `:` 直接报错）。
-- 修复（2026-11-06）：
-  - 加密侧 hex 分支改为 `metaParts.join(':')` 统一拼装，消除 ECB 无 IV 时 `salt::cipher` 的双冒号（原 `meta += salt+':'` 又追加一次 `:`）。
-  - 解密侧新增 `else`（ECB）分支：`useSalt && !saltHex && parts.length>=2` 时取 `parts[0]` 作 salt、`parts.slice(1).join(':')` 作密文。
-  - `hexToBytes()` 改为 `/[\s:]+/g` 剥离冒号与空白，并对残留非法字符 `throw new Error('十六进制数据含非法字符')`，不再静默产出 NaN 字节。
-  - Node 复算（从源文件抽取真实函数）：ECB meta 串 `01020304:<32位hex>` 单冒号、密文可还原为原文、`hexToBytes('aa:bb:cc')=aabbcc`、`hexToBytes('zz')` 抛错，全部 PASS。
-
 ### IT-N89 AES 加密/解密：文件按钮把文件转成 Base64 再加密，等于二次编码且无法还原文件（中，确认源码缺陷）
 - 问题：`handleFile()` 读文件后写入 `#input` 的是 `bytesToBase64(bytes)` 文本，随后加密对这段 Base64 文本做 UTF-8 编码；解密只把明文回填到文本框，页面没有任何"另存为原文件"的下载入口，`currentFile` 仅用于显示文件名。
 - 证据：`tools/it/aes-encryptor.html:988-1006`（1002 写入 Base64）、`tools/it/aes-encryptor.html:831-832`（`TextEncoder` 再编码）、页面无 `downloadText`
@@ -471,66 +424,6 @@
 - 影响："文件加密/解密"名实不符，密文体积翻倍且丢失二进制语义；用户无法完成文件级往返。
 - 方案：文件模式直接把 `Uint8Array` 作为明文/密文（跳过 TextEncoder），解密后提供"下载原文件"按钮并按原文件名保存；或在 UI 明示"文件仅转为 Base64 文本，不支持还原"。
 - 状态（2026-11-06）：本批未处理——彻底修复需新增"下载原文件"按钮与文件名字还原链路，涉及新增 UI 标签（须同步 `js/tool-i18n-en.js` GEN_UI_MAP），单列下批处理；本页 N86/N87/N88/N91/N92 已在同批修复。
-
-### IT-N90 AES 加密/解密：历史、图表、导出全部失效（读取 textarea 的 textContent 恒为空）（中，已修复）
-- 问题：`__aes_encryptorResText()` 取 `#output` 的 `textContent`，但结果是用 `.value` 写进 `<textarea>` 的，`textContent` 始终是空字符串；`__aes_encryptorExtras()` 拿到 `''` 直接 return，因此 `TBKit.history.record` 从不执行，"导出明细 CSV"导出的是永远空的历史表（`exportTable` 对空表返回 false 且无提示）。
-- 证据：`tools/it/aes-encryptor.html:252`（`<textarea id="output" …></textarea>` 无初始文本）、`tools/it/aes-encryptor.html:1050-1053`（`r.textContent`）、`tools/it/aes-encryptor.html:1100`、`tools/it/aes-encryptor.html:1129-1131`
-- 复现：加密任意文本成功、输出框有密文 → 切"历史"页签：无记录；点"导出明细 CSV"：无文件、无 toast（`exportTable` 空表直接 `return false`）。
-- 影响：三块留存功能（历史、结果趋势图、导出）实际全部为空壳。
-- 方案：改读 `document.getElementById('output').value`；补一条"加密→记录→历史可见→导出含一行"的回归用例。
-- 复核（2026-11-06）：当前源码 `__aes_encryptorResText()`（`:1069-1077`）已是 `isField?r.value:r.textContent` 表单感知写法，`#output` 为 TEXTAREA 故读 `.value`；`__aes_encryptorExtras()` 已挂到 `encrypt()`（`:1166`，Promise `.then` 回调）与 `copyResult()`（`:1162`）两个入口。审计证据为旧快照，本项已修复，无需改码。
-
-### IT-N91 AES 加密/解密：预设回调调用 `copyResult()` 而非 `encrypt()`，点预设不会按新参数重新计算（中，已修复）
-- 问题：`TBKit.preset.bar(...)` 的 `after` 回调写成 `function(){ copyResult(); }`，而预设的作用是写入 password/keySize/mode/outputFormat；写入后既不加密也不更新结果，只把上一次的输出复制到剪贴板。
-- 证据：`tools/it/aes-encryptor.html:1133-1138`（1138 行回调）
-- 复现：先加密一次得到密文 A；点"AES-128·Base64"预设（会改密码与密钥长度）→ 输出框仍是 A，剪贴板却收到 A（期望按新参数重算出 B）。
-- 影响：预设看起来"生效"（参数变了），但结果与参数不对应，用户会拿旧密文当新配置的产物。
-- 方案：回调改为先 `encrypt()`（异步）再按需 toast；历史回填同理应重算而非复制（见 `1086` 行同类写法）。
-- 修复（2026-11-06）：回调改为 `function(){ encrypt(); }`。已核对 `js/tool-kit.js::preset.bar`（`:1049-1053`）确为「先 `setValue` 应用全部预设值、再调用 `after()`」，故 `encrypt()` 读到的已是新参数，重算结果正确。
-
-### IT-N92 AES 加密/解密：信息栏把字符数直接标成字节数（低，已修复）
-- 问题：`updateInfo()` 把 `String.length`（UTF-16 码元数）直接拼上单位 `B`；加密传 `inputText.length/output.length`，解密传 `inputText.length`（密文字符数）与 `output.length`；`handleFile()` 更是把 `file.size`（字节）与 `base64.length`（字符）混作两栏。
-- 证据：`tools/it/aes-encryptor.html:736-742`、`tools/it/aes-encryptor.html:870`、`tools/it/aes-encryptor.html:963`、`tools/it/aes-encryptor.html:1006`
-- 复现：输入"中文"（UTF-8 6 字节）→ 信息栏显示"输入长度 2 B"（期望 6 B）；加载一个 1KB 文件 → "输入长度 1024 B / 输出长度 1368 B"，其中输出是 Base64 字符数而非字节数（实际同量级但口径不一）。
-- 影响：以字节数评估密文长度/填充时会得到错误结论（CJK 文本差 3 倍，Base64/hex 串差 1.3–2 倍）。
-- 方案：统一用 `new TextEncoder().encode(text).length` 计算，或对 hex/base64 输入先解码再计字节，并把标签明确为"字符 / 字节"。
-- 修复（2026-11-06）：三处改为真实字节数——加密 `updateInfo(plaintext.length, ciphertext.length)`（填充后明文字节 / 密文字节）；解密 `updateInfo(ciphertext.length, plaintext.length)`（密文字节 / 解出明文字节）；`handleFile` 的 `updateInfo(file.size, bytes.length)`（原 `base64.length`）。
-
-- 留存建议（aes-encryptor）：①历史点击应"回填参数并重算"（当前只复制）；②增加密文/明文文件下载与"原文件名还原"；③内置 FIPS-197 官方向量一键自检，作为可信度卖点（修好 IT-N86 后才有意义）。
-
-### IT-N93 RSA 加解密/签名：生成密钥的 WebCrypto usages 非法，按钮必然失败（高，已修复）
-- 问题：`generateKey({name:'RSA-OAEP', …}, true, ['encrypt','decrypt','sign','verify'])`。W3C WebCrypto 规定 RSA-OAEP 密钥只允许 `encrypt/decrypt/wrapKey/unwrapKey`，携带 `sign/verify` 直接抛 `SyntaxError`，因此"生成密钥"永远走 catch。
-- 证据：`tools/it/rsa.html:422-429`（428 行 usages）、`tools/it/rsa.html:442-444`（catch 里只 toast）
-- 复现（Node 18 WebCrypto，同规范）：同参数同 usages → `SyntaxError: Unsupported key usage for a RSA key`；去掉 `sign/verify` 后 `OK`。页面表现为点"生成密钥"始终弹"生成失败: …"，`lastKeys` 永为 null。
-- 影响：核心入口（生成密钥对）不可用，后续"下载密钥/加密/签名"都拿不到密钥，整页演示链条断裂。
-- 方案：RSA-OAEP 只保留 `['encrypt','decrypt']`；若需签名，另生成一把 `RSASSA-PKCS1-v1_5`/`RSA-PSS` 密钥（usages `['sign','verify']`），或签名时改用导入的通用 RSA 私钥（本页已用 PKCS8 导入，可行）。
-- 复核（2026-11-06）：源码 `generateKeys()` 已改为分别生成 `RSA-OAEP`（`['encrypt','decrypt']`）与 `RSA-PSS`（`['sign','verify']`）两对密钥，各导出 spki/pkcs8 填到 6 个输入框。审计证据为旧快照，本项已修复，无需改码。
-
-### IT-N94 RSA 加解密/签名：加密算法下拉是死选项，选 SHA-512 仍按 SHA-256 执行（中，已修复）
-- 问题：`doEncrypt()` 读取 `const algo = document.getElementById('encAlgo').value` 后从未使用；`importKey`/`encrypt` 固定 `{name:'RSA-OAEP', hash:'SHA-256'}`。`doDecrypt()` 同样不读该下拉。
-- 证据：`tools/it/rsa.html:450`（声明 `algo`）、`tools/it/rsa.html:455`（固定 SHA-256）、`tools/it/rsa.html:463-471`（解密固定 SHA-256）、`tools/it/rsa.html:237-240`（下拉含 `RSA-OAEP-SHA512`）
-- 复现：选择 "RSA-OAEP (SHA-512)" 加密 `Hello` → 实际用 SHA-256 OAEP；把密文交给 `openssl pkeyutl -decrypt -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha512` 会失败，而用 `sha256` 成功。
-- 影响：与外部系统约定 SHA-512 OAEP 时互通失败，且用户无法从结果判断实际用了哪种摘要。
-- 方案：按 `algo` 映射 `{hash: algo === 'RSA-OAEP-SHA512' ? 'SHA-512' : 'SHA-256'}`，解密也读同一选项（或提供独立的解密算法下拉）。
-- 修复（2026-11-06）：`doEncrypt()`/`doDecrypt()` 均改为 `const hash = encAlgo === 'RSA-OAEP-SHA512' ? 'SHA-512' : 'SHA-256'` 并传入 `importKey`。Node 实测：同一私钥以 SHA-512 语义导入后解 SHA-256 OAEP 密文 → `OperationError`；以 SHA-256 导入 → 还原 `hello`，证明映射真正生效。默认仍 SHA-256，既有 verify 用例不受影响。
-
-### IT-N95 RSA 加解密/签名：点预设/历史会意外下载 `public.pem` 与 `private.pem`（中，已修复）
-- 问题：预设回调与历史回填都调用 `downloadKeys()`，而 `downloadKeys()` 只要 `lastKeys` 存在就连续下载两个 PEM 文件（间隔 200ms）。
-- 证据：`tools/it/rsa.html:533-536`（下载逻辑）、`tools/it/rsa.html:645-650`（650 行预设回调）、`tools/it/rsa.html:587-601`（598 行历史回调）
-- 复现：先点"生成密钥"，再点任一预设（如"4096 PSS Base64"）→ 浏览器立即下载 `public.pem`、`private.pem` 两个文件（期望仅写入参数，不产生下载）。
-- 影响：误触发文件下载、把私钥落盘到默认下载目录，存在隐私/安全风险；用户也会困惑"点预设为何弹下载"。
-- 方案：预设/历史回调改为调用对应的计算函数（`doEncrypt`/`doSign`）或仅回填；下载动作只保留在显式"下载密钥"按钮。
-- 修复（2026-11-06）：预设回调改为空回调（`preset.bar` 已先把 values 写回控件，参数即时生效）；历史回填块删除 `downloadKeys()` 调用。下载现仅由「💾 下载密钥」按钮触发。注：`downloadKeys()` 当前导出 OAEP/PSS 四份 PEM（`*-oaep.pem`/`*-pss.pem`），审计旧文案的文件名已过时。
-
-### IT-N96 RSA 加解密/签名：历史总是抓取第一个 `.result-box`，签名页结果从不入库（低，已修复）
-- 问题：`__rsaResText()` 用 `document.querySelector('.result-box')`，命中的是加密页的 `#encResult`；签名页的 `#signResult` 永远不被读取，且加密页占位文案"结果将显示在这里..."能通过过滤（不含提示词），会被当结果记录。
-- 证据：`tools/it/rsa.html:562-568`、`tools/it/rsa.html:257`（`#encResult`）、`tools/it/rsa.html:301`（`#signResult`）
-- 复现：切到"签名/验证"完成签名 → 历史/趋势里记录的是加密页占位文本（或上一次加密结果），签名值缺失。
-- 影响：历史与趋势图无法反映签名操作，导出内容误导。
-- 方案：按当前激活页签选择结果容器（`#tab-enc`→`#encResult`、`#tab-sign`→`#signResult`），并把"结果将显示在这里..."加入空态过滤。
-- 修复（2026-11-06）：`__rsaResText()` 改为按 `#tab-sign` 是否带 `active` 类选择 `#signResult` / `#encResult`，空态过滤正则加入 `结果将显示在这里`。门禁回归用例（`verify_it_calc.js` it/rsa 新增一条）：激活签名页签后把两容器写成不同值，断言 `__rsaResText()` 取到签名框内容（rsa 4/4 通过）。
-
-- 留存建议（rsa）：①修好后提供"生成密钥 → 一键跑通加密/解密/签名/验签"的演示流程；②显示密钥指纹与位数，支持粘贴 PEM 自动识别 PKCS#1/PKCS#8；③提供与 OpenSSL 命令互操作的说明与示例。
 
 ### IT-N97 SSL/TLS 知识速查：中文说"浏览器无法读取远程证书"，英文却说"从主机读取证书详情"（中，确认源码缺陷）
 - 问题：同一 `<p>` 的中文 `data-zh` 明确写"纯前端静态工具…浏览器无法直接读取远程证书…请用锁图标或 openssl s_client"，而英文正文承诺 "Decode and inspect SSL/TLS certificate details (issuer, validity, SAN) from a host in your browser."；页面实际没有任何主机输入与证书读取能力。
@@ -4430,7 +4323,6 @@
 - `json-formatter.html`：JSON 解析与格式化真实，`sortKeys` 递归按键排序且数组元素同步排序，`renderTree` 对键/值一律 `escapeHtml`，无注入面。但「转义」按钮（`:612-623`）对合法 JSON 走 `JSON.parse`→`JSON.stringify(obj)`，与「压缩」（`:561-571`）输出完全相同，只有输入不是 JSON 时才 `JSON.stringify(string)`；「反转义」期望的是 JSON 字符串字面量，因此「转义→反转义」对合法 JSON 只相当于压缩再美化，按钮语义不成立。「提取」（`:640-678`）用贪婪 `{[\s\S]*}` 从首个 `{` 取到全文最后一个 `}` 后自尾截断，日志中多个 JSON 片段只能拿到第一个，与「从日志/代码片段自动提取」的说明不符。默认态 `loadSample()`（`:727`）即渲染 2 空格美化树、类型统计与柱状图，结果正确。
 - `yaml-validator.html`：核心是 js-yaml 4.1.0 `loadAll`（`:479,698`），多文档、锚点、合并键、多行块、Tab/重复键报错（含行列与上下文）均与库行为一致，2 MB 上限（`:511`）有保护，循环引用被 `stringify` 的 catch 兜住（`:574-581`）。缺陷集中在「YAML→JSON 保真」：js-yaml 会把 `2024-01-01` 解析为 `Date`，作为 mapping 键时经 JS 键强制转换成本地时区 `Date.toString()` 串（实测 `Mon Jan 01 2024 08:00:00 GMT+0800 (中国标准时间)`），换时区/语言环境键名就变；`!!binary` 为 `Uint8Array`，`JSON.stringify` 得 `{"0":104,…}` 索引对象而非 base64；正文称「遵循 YAML 1.1/1.2 规范」（`:191`），实际 js-yaml 4 为 1.2 语义（`yes/on` 输出字符串，实测），1.1 用户预期落空。备注：js-yaml 走 CDN，弱网/离线时 `ReferenceError` 被 catch 后显示成「YAML 语法验证失败：jsyaml is not defined」，与既有 G09/IT-N2 外部依赖问题同型，不另编号。
 - `xml-validator.html`：直接把输入交给原生 `DOMParser`（`:266`），只以 `getElementsByTagName('parsererror')` 数量判成败（`:267-271`），再取 `documentElement.tagName` 与元素总数（`:273-275`），不输出 DOM/文本，故无往返保真问题，也不会丢数据。CDATA/转义/200 层嵌套/重复属性/未闭合标签/未声明前缀/中文标签均判定正确；`DOCTYPE SYSTEM` 的外部实体不解析（报 undefined entity），XXE 面安全。唯一实质缺陷是 `<parsererror>` 判定按限定名跨命名空间匹配：合法文档根就叫 `<parsererror>` 时会被当成解析失败（jsdom 复算为 ❌、detail 输出正文 `valid`），Chrome/Firefox 同一 DOM 接口同样命中（浏览器未实测）。默认样例（`:119`）结构正常，`calcTool()`（`:281`）加载即输出 ✅ 根 `note`、4 元素。
-- `json-to-csv.html`：`toCSV`（`:271-308`）先并集收集所有键作表头，`cell` 一律加双引号并把内部 `"` 翻倍（`:286-290`），对象/数组用 `JSON.stringify`；实测含逗号、双引号、换行、嵌套对象的 3 行数据经 Python `csv.reader` 回读 4×4 完全一致，列数稳定。缺陷：`cell` 不处理 `=`/`+`/`-`/`@` 开头值，但导出安全路径 `cellExport`（`:292-297`）已对首字符为 `=/+/-/@/Tab/CR` 的值加单引号转义（IT-D26 已缓解，见 verify 公式注入回归用例）；`!Array.isArray` 分支（`:281`）已清空 `#output`/`__jsonToCsvExportSafe`；**catch 解析错误分支（`:308`）原提前 return 且未清空两处、`[NaN]`/`[Infinity]` 等解析错误残留旧 CSV（IT-N6，已修复：return 前清空并改写错误提示）**；对象字段 `JSON.stringify` 未展开、文案原与实现矛盾（IT-N7，已修复：工作原理区统一为「嵌套数组序列化为 JSON 字符串不展开多列」）；历史回填仍直接调 `downloadCSV()`（`:356`）。默认态 Boot 调 `toCSV()`（`:424`），预填 2 行×3 列结果正确。
 - `text-diff.html`：LCS DP 与回溯实现真实，行级差异再合并 remove+add 为 modify，字符级用码点切分（emoji 不拆半），全部输出走 `ToolBox.escHtml`，统计口径（modify 计 1 增 1 删、总数去重）正确；默认无自动对比。致命点是 `backtrack` 为纯递归（`:441-457`），且未做规模限制或 try/catch：实测 4000 行全不同文本、单行 5000 字符均 `RangeError`，同时 `lcsLength` 的 `m×n` 二维数组在 4000×4000 时内存压力也很大；用户对两个较大文件点「开始对比」会无结果/脚本中断。历史记录只存前 1000 字符（`:698-704`）且提供清除按钮，按既有口径不另计安全项。
 - `markdown-lint.html`：实现是逐行正则（`:213-241`），仅覆盖标题跳级、标题重复（跨层级同文本也报，偏严）、`^\s*[-*]\S` 列表缺空格、空链接四类。正文 `:108` 宣称的「列表缩进是否一致」「行尾多余空格」「代码块是否标注语言」三项均无对应代码，`:151` 的公式表还标了 MD007 嵌套列表对齐。实测误报：`---` YAML 前置元数据与行首 `*斜体*` 都被判「列表符号后缺空格」；漏报：`#标题`（无空格，不渲染为标题）零提示，行尾空格、未闭合代码块、嵌套缩进全不检查——既漏又误，是名实不符的风格辅助器。另 `:120` 有一处畸形 `</div`（缺 `>`），jsdom 解析后 `.toolbar` 元素数为 0，按钮失去工具栏包裹（布局退化，非功能中断），属标记缺陷、未计入三类问题。
 
@@ -4553,6 +4445,4 @@
 - 新增 **11** 条（高 **3** / 中 **7** / 假 **1** / 安全 **0**）；编号 IT-D31–IT-D41。
 - 复核既有 6 条（`it.md:2582`、`:2588`、`:2593`、`:140`、`:141`、IT-N65）均仍成立；IT-N24（重复节丢键）原记录标注已修，待独立复核。
 - 复算方式：按页面函数逐行复刻 node 桩（properties/ini/curl/UA）；PDF 用同版本 pdf-lib 真调用；未开浏览器、未跑 `_build.py`/门禁、未改仓库文件。
-
-
 
