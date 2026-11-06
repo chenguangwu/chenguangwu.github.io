@@ -49,6 +49,7 @@
 - 静态续审第三十六批：阅读 `pet-training/treat-calories`、`pet/reminder-vaccine-deworming`、`petrochem/{api-gravity,catalyst-calc}`、`photo/{equivalent-focal,ev,exposure-value,field-of-view}` 8 页，更新旧宠物零食条目源码状态，记录时间校验、模式初始化与摄影物理输入问题。至清单第 512 页，静态续审累计 232 页；仅源码分析，未运行浏览器，不计双跑。
 - 静态续审第三十七批：阅读 `photo/{flash-gn,golden-hour,hyperfocal,macro-magnification,mired,nd-filter,photo-10,photo-11}` 8 页主要输入及计算路径；复核既有问题并更正微距守卫描述，记录黄金时刻空态、总 EV 口径与负输入等问题。至清单第 520 页，静态续审累计 240 页；仅源码分析，未运行浏览器，不计双跑。
 - 静态续审第三十八批：阅读 `photo/photo-{2,3,4,5,6,7,8,9}` 8 页输入、守卫和计算路径；记录画幅比较方向、星空曝光模型、反算边界和页面文案口径问题。至清单第 528 页，静态续审累计 248 页；仅源码分析，摄影模型须专业复核，未运行浏览器，不计双跑。
+- 静态续审第三十九批：阅读 `photo/{photo,print-size,raw-size,safe-shutter}` 与 `photo2/{exposure-triangle,focal-length,video-storage,white-balance}` 8 页，更新历史守卫状态，记录曝光表拼接、系数和空态问题。至清单第 536 页，静态续审累计 256 页；仅源码及 Node 表达式复算，未运行浏览器，不计双跑。
 
 
 - 扫描时间：2026/11/5 05:04:33
