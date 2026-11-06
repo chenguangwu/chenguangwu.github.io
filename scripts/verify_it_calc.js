@@ -7892,6 +7892,22 @@ const CASES = [
     ref: "N62 残留（美化方向）：loadH 须按历史 op='beautify' 走美化分支，输出 `#n62y {`（选择器与大括号间插空格并换行缩进）。expect 取「#n62y {」，输入回显为紧凑形态「#n62y{--zq:1}」不含该串，旧实现输出 OLDOUT 不含该串。",
   },
   {
+    slug: "it/http-cache",
+    // IT-N69 回归：搜索后「明细表」须按过滤结果统计（原 hcAgg 恒遍历 COMMANDS 全量）
+    inputs: { searchInput: "Vary" },
+    dumpIds: ["hcTbody"],
+    expect: ["1 缓存键 1 Vary"],
+    ref: "N69：搜索 `Vary` 后列表仅 1 项（分类=缓存键），明细表首行应为「1 / 缓存键 / 1」。原 hcAgg 遍历全量 33 条 ⇒ 首行是「1 请求/响应 6」、缓存键排第 7 行（文本为「7 缓存键 1 Vary」），故该拼接串在修复前不存在。默认无搜索词时为全量统计，不命中。",
+  },
+  {
+    slug: "it/http-cache",
+    // IT-N69 回归：筛选零命中时图表/明细表须同步清空并给出提示（原仍显示全量数据）
+    inputs: { searchInput: "zzzz-no-such-directive" },
+    dumpIds: ["hcTbody"],
+    expect: ["当前筛选无匹配缓存指令，明细表已同步清空。"],
+    ref: "N69：搜索一个必零命中的串后，明细表应为空并提示「当前筛选无匹配缓存指令，明细表已同步清空。」；修复前表格仍列出全部 11 个分类行、页面无任何「无匹配」提示。",
+  },
+  {
     slug: "it/date-duration",
     inputs: { d1: "2026-02-30", d2: "2026-03-02", inc: "excl" },
     clicks: ["calcTool()"],

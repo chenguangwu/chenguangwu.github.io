@@ -559,9 +559,10 @@ function renderCategories(){
     });
   });
 }
-function renderCommands(){
+// N69：筛选逻辑抽成共用函数，列表 / 图表 / 明细表统一走同一份过滤结果
+function getFilteredCommands(){
   const q = searchQuery.toLowerCase().trim();
-  const filtered = COMMANDS.filter(c => {
+  return COMMANDS.filter(c => {
     if(currentCategory !== '全部' && c.cat !== currentCategory) return false;
     if(q){
       const text = `${c.cmd} ${c.desc} ${c.cat} ${c.params||''} ${c.example||''} ${c.syntax||''}`.toLowerCase();
@@ -569,6 +570,9 @@ function renderCommands(){
     }
     return true;
   });
+}
+function renderCommands(){
+  const filtered = getFilteredCommands();
   document.getElementById('stats').textContent = `共 ${filtered.length} 项`;
   const __h1=filtered.map(c => {
     const ex = c.example ? `<div class="cmd-example">${escapeHtml(c.example)}<button type="button" class="copy-btn" onclick="copyCode(this)">复制</button></div>` : '';
@@ -583,6 +587,8 @@ function renderCommands(){
       ${syntax}${params}${ex}
     </div>`;
   }).join('');if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('cmdList').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('cmdList').innerHTML=__h1;
+  // N69：列表筛选变化后同步刷新图表与明细表（原实现两者恒统计全量）
+  if(typeof window.__hcRefreshHook === 'function') window.__hcRefreshHook();
 }
 function copyCode(btn){
   const code = btn.parentElement.cloneNode(true);
@@ -705,30 +711,48 @@ document.addEventListener('DOMContentLoaded',function(){
   function hcCat(c,en){return en?(HCCAT_EN[c]||c):c;}
   function hcAgg(){
     var map={},order=[];
-    COMMANDS.forEach(function(c){ if(!map[c.cat]){map[c.cat]=0;order.push(c.cat);} map[c.cat]++; });
-    return {cats:order,counts:order.map(function(k){return map[k];})};
+    var list=(typeof getFilteredCommands==='function')?getFilteredCommands():COMMANDS;
+    list.forEach(function(c){ if(!map[c.cat]){map[c.cat]=0;order.push(c.cat);} map[c.cat]++; });
+    return {cats:order,counts:order.map(function(k){return map[k];}),list:list};
+  }
+  function hcEn(){
+    try{ if(typeof TBKit!=='undefined'&&TBKit.util&&typeof TBKit.util.isEn==='function') return !!TBKit.util.isEn(); }catch(e){}
+    // TBKit 未就绪（如脚本加载失败 / 独立打开页面）时的兜底：按 URL 与 html[lang] 判定，避免英文态漏出中文
+    try{
+      if(/[?&]lang=en([-_]|&|$)/i.test(location.search)) return true;
+      var hl=(document.documentElement.getAttribute('lang')||'').toLowerCase();
+      if(hl.indexOf('en')===0) return true;
+    }catch(e){}
+    return false;
   }
   function hcChart(){
+    var el=document.getElementById('hcChart'); if(!el) return;
+    var en=hcEn(); var a=hcAgg();
+    // N69：零命中时先清空并给出提示（不再保留上一次的全量图表）；有数据时才交给图表库绘制
+    if(!a.cats.length){ el.innerHTML='<p style="color:var(--text-light);font-size:13px;padding:12px 0;">'+(en?'No directives match the current filter.':'当前筛选无匹配缓存指令，图表已同步清空。')+'</p>'; return; }
     if(typeof TBKit==='undefined'||!TBKit.chart) return;
-    if(!document.getElementById('hcChart')) return;
-    var en=TBKit.util.isEn(); var a=hcAgg();
     TBKit.chart.bar('#hcChart',{labels:a.cats.map(function(c){return hcCat(c,en);}),series:[{name:en?'Commands':'命令数',data:a.counts}],height:300,title:en?'Cache Directives by Category':'缓存指令分类统计'});
   }
   function hcTable(){
-    if(typeof TBKit==='undefined') return;
     var t=document.getElementById('hcTbody'); if(!t) return;
-    var en=TBKit.util.isEn(); var a=hcAgg();
-    t.innerHTML=a.cats.map(function(c,i){
-      var reps=COMMANDS.filter(function(x){return x.cat===c;}).slice(0,2).map(function(x){return x.cmd;}).join(' / ');
-      return '<tr><td>'+(i+1)+'</td><td>'+hcCat(c,en)+'</td><td>'+a.counts[i]+'</td><td>'+(reps||'-')+'</td></tr>';
-    }).join('');
+    var en=hcEn(); var a=hcAgg();
+    if(!a.cats.length){
+      t.innerHTML='<tr><td colspan="4" style="color:var(--text-light)">'+(en?'No directives match the current filter.':'当前筛选无匹配缓存指令，明细表已同步清空。')+'</td></tr>';
+    } else {
+      t.innerHTML=a.cats.map(function(c,i){
+        var reps=a.list.filter(function(x){return x.cat===c;}).slice(0,2).map(function(x){return x.cmd;}).join(' / ');
+        return '<tr><td>'+(i+1)+'</td><td>'+hcCat(c,en)+'</td><td>'+a.counts[i]+'</td><td>'+(reps||'-')+'</td></tr>';
+      }).join('');
+    }
     var tt=document.getElementById('hcTableTitle'); if(tt) tt.textContent=en?'HTTP Cache Directives':'HTTP 缓存指令分类明细';
     var hs=[['hcTh0','#'],['hcTh1',en?'Category':'分类'],['hcTh2',en?'Commands':'命令数'],['hcTh3',en?'Examples':'代表命令']];
     hs.forEach(function(p){var el=document.getElementById(p[0]); if(el) el.textContent=p[1];});
   }
-  function hcFillTabs(){ var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn()); var b=document.querySelectorAll('#hcTabs .tab-btn'); if(b[0])b[0].textContent=en?'Chart':'图表'; if(b[1])b[1].textContent=en?'Table':'明细表'; }
+  function hcFillTabs(){ var en=hcEn(); var b=document.querySelectorAll('#hcTabs .tab-btn'); if(b[0])b[0].textContent=en?'Chart':'图表'; if(b[1])b[1].textContent=en?'Table':'明细表'; }
   function hcBindTabs(){ var tabs=document.querySelectorAll('#hcTabs .tab-btn'); tabs.forEach(function(btn){ btn.addEventListener('click',function(){ tabs.forEach(function(b){b.classList.remove('active');}); btn.classList.add('active'); var v=btn.getAttribute('data-v'); var c=document.getElementById('hcChart'); var card=document.getElementById('hcTableCard'); if(c)c.style.display=v==='chart'?'':'none'; if(card)card.style.display=v==='table'?'block':'none'; }); }); }
   function hcAll(){try{hcChart();}catch(e){}try{hcTable();}catch(e){}hcFillTabs();}
+  // N69：供列表筛选（搜索 / 分类）回调，保证图表与明细表跟随当前筛选结果
+  window.__hcRefreshHook=function(){try{hcChart();}catch(e){}try{hcTable();}catch(e){}};
   document.addEventListener('DOMContentLoaded',function(){hcBindTabs();hcAll();});
   document.addEventListener('toolbox:langchange',function(){hcAll();});
 })();
