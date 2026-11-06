@@ -62,6 +62,7 @@
 - 静态续审第四十九批：阅读 `science/{physics-constants,quadratic-equation,science-flow-rate,science-pressure-converter,torque-converter,voltage-divider-calculator,wavelength-to-rgb,wire-gauge-converter}` 8 页，更新旧判别式与分压条目的源码状态，复核电阻量级及历史、空态问题。至清单第 613 页，静态续审累计 333 页；仅源码分析，电气风险须专业复核，未运行浏览器，不计双跑。
 - 静态续审第五十批：阅读 `security/{anti-fraud-cards,emergency-contacts,flood-level,typhoon-scale,virtual-safe}`、`service/{csat-score,response-time,ticket-priority}` 8 页，记录风级标签、加密备份、统计空值及 HTML 注入路径。至清单第 621 页，静态续审累计 341 页；仅源码分析，安全与气象建议须专业复核，未运行浏览器或注入，不计双跑。
 - 静态续审第五十一批：阅读 `stage/light-position`、`tax/rfc-validator`、`tcm-chemistry/{chromatography-gradient,metabolite-prediction}`、`tcm-diagnosis/{disease-tracking,formula-matching,ten-questions,treatment-principle}` 8 页，记录输入边界、注入路径、方剂字段与旧结论变化。至清单第 629 页，静态续审累计 349 页；仅源码分析，实验和医疗内容须专业复核，未运行浏览器或注入，不计双跑。
+- 静态续审第五十二批：阅读 `tcm-pharmacy/{formula-song,four-qi-nature,herb-quality,tcm-pharmacoeconomics}`、`text/calc-1`、`textile/{colorfastness,shrinkage}`、`travel/international-tip-calculator` 8 页，记录中药评分及注入路径、文本守卫、纺织计算、币种交互与旧条目状态。至清单第 637 页，静态续审累计 357 页；仅源码分析，医疗及专业标准须复核，未运行浏览器或注入，不计双跑。
 
 
 - 扫描时间：2026/11/5 05:04:33

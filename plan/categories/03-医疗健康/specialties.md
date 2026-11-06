@@ -1,5 +1,12 @@
 # 医疗 · 专科计算类（ent/dermatology/obstetrics/pediatrics/ophthalmology/urology 等 ~120 页）
 
+## 2026-11-06 中药工具静态续审（清单 630–633）
+
+- `tools/tcm-pharmacy/formula-song.html:330-345,378-393`：自动方歌的药材输入 `herbs.join('、')` 未转义即插入 `innerHTML`，存在 HTML 注入路径；缺必填项时只 toast、保留上次生成结果。未运行注入。
+- `tools/tcm-pharmacy/four-qi-nature.html:358-372,383-425,440-443`：畏寒对应 `qi:'热'`，计分只处理寒、温两种，单选畏寒时总分为 0，算法误判“寒热不显”且评分百分比为 NaN。症状到药性推荐和代表药须临床专业复核。
+- `tools/tcm-pharmacy/herb-quality.html:127-142,363-384,415-443`：切换药材时将标准区内联 display 设为 block、评分区设为 none，但切标签只切 class，内联 display 未解除，评分区仍隐藏、标准区仍显示；滑块变化也不清理已生成评分。评分阈值与“符合药典标准、可入药使用”须专业复核。
+- `tools/tcm-pharmacy/tcm-pharmacoeconomics.html:308-323,354-366,396-418`：按最低日费用给出“最经济方案”和“性价比”，没有疗效或等效性数据，且不同疗程时最低日费未必对应最低总费用；CSV 导出将用户药品名称未经转义拼到隐藏表 `innerHTML`，存在注入路径。费用/药物比较须临床专业复核，未运行页面或注入。
+
 ## 2026-11-06 中医问诊工具静态续审（清单 626–629）
 
 - `tools/tcm-diagnosis/disease-tracking.html:357-385,408-416,442-460,491-523`：未填写症状也可保存总分 0 并标「无症状」；不同记录填写的症状集合不同时仍直接比较总分给出好转/加重判断（`:533-546`）。用户症状名称未经转义拼入时间线、趋势和导出 HTML，存在注入路径；未运行注入。
