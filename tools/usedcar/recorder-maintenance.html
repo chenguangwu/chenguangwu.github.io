@@ -299,6 +299,8 @@ const EXPECTED=[
 let profile={name:'我的车辆',curKm:80000,carValue:80000};
 let records=[];
 
+function EN(){ try{ return (typeof TBKit!=='undefined' && TBKit.util.isEn()); }catch(e){ return false; } }
+function T(zh,en){ return EN()?en:zh; }
 function load(){
   try{
     const d=JSON.parse(localStorage.getItem(KEY)||'{}');
@@ -310,7 +312,7 @@ function save(){localStorage.setItem(KEY,JSON.stringify({profile,records}));}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 
 function syncProfile(){
-  profile.name=document.getElementById('vName').value.trim()||'我的车辆';
+  profile.name=document.getElementById('vName').value.trim()||T('我的车辆','My Vehicle');
   profile.curKm=Math.max(0,+document.getElementById('curKm').value||0);
   profile.carValue=Math.max(0,+document.getElementById('carValue').value||0);
   save();
@@ -395,7 +397,7 @@ function render(){
   const circumference=2*Math.PI*55;
   const dashOffset=circumference*(1-c.score/100);
 
-  let scoreHtml=`<div class="card"><h2>📊 ${ToolBox.escHtml(profile.name)} 保养完整度评估</h2>`;
+  let scoreHtml=`<div class="card"><h2>📊 ${ToolBox.escHtml(profile.name)} ${T('保养完整度评估','Maintenance Completeness Assessment')}</h2>`;
   scoreHtml+=`<div class="score-ring">
     <svg width="130" height="130">
       <circle class="score-bg" cx="65" cy="65" r="55"></circle>
@@ -403,47 +405,47 @@ function render(){
     </svg>
     <div class="score-text">
       <div style="font-size:32px;font-weight:700;color:${ringColor};">${c.score}</div>
-      <div style="font-size:12px;color:var(--text-muted);">完整度分</div>
+      <div style="font-size:12px;color:var(--text-muted);">${T('完整度分','Completeness score')}</div>
     </div>
   </div>`;
-  scoreHtml+=`<div style="text-align:center;margin:12px 0;"><span class="grade-tag grade-${c.grade}" style="font-size:14px;">${c.gradeText}</span></div>`;
+  scoreHtml+=`<div style="text-align:center;margin:12px 0;"><span class="grade-tag grade-${c.grade}" style="font-size:14px;">${EN()?({excellent:'Excellent',good:'Good',pass:'Fair',fail:'Poor'}[c.grade]||c.gradeText):c.gradeText}</span></div>`;
   scoreHtml+=`<div class="stat-grid">
-    <div class="stat-card"><div class="val">${ToolBox.formatNumber(c.expectedCount)}</div><div class="lbl">应保养项目数</div></div>
-    <div class="stat-card"><div class="val" style="color:var(--success)">${c.covered.length}</div><div class="lbl">已记录项目</div></div>
-    <div class="stat-card"><div class="val" style="color:var(--danger)">${c.missing.length}</div><div class="lbl">缺失项目</div></div>
-    <div class="stat-card"><div class="val">${ToolBox.formatNumber(records.length)}</div><div class="lbl">总记录条数</div></div>
+    <div class="stat-card"><div class="val">${ToolBox.formatNumber(c.expectedCount)}</div><div class="lbl">${T('应保养项目数','Expected items')}</div></div>
+    <div class="stat-card"><div class="val" style="color:var(--success)">${c.covered.length}</div><div class="lbl">${T('已记录项目','Recorded')}</div></div>
+    <div class="stat-card"><div class="val" style="color:var(--danger)">${c.missing.length}</div><div class="lbl">${T('缺失项目','Missing')}</div></div>
+    <div class="stat-card"><div class="val">${ToolBox.formatNumber(records.length)}</div><div class="lbl">${T('总记录条数','Total records')}</div></div>
   </div>`;
   scoreHtml+=`<div class="tip-box tip-${c.grade==='excellent'?'success':c.grade==='good'?'info':c.grade==='pass'?'warn':'error'}">
-    <strong>保值影响估算：</strong>当前估值 ¥${ToolBox.formatNumber(profile.carValue)}，按保养完整度 ${c.score}%（${c.gradeText}），${valueImpact>=0?'预计可增值':'预计可能贬值'} <strong style="color:${valueImpact>=0?'var(--success)':'var(--danger)'};">¥${ToolBox.formatNumber(Math.abs(valueImpact))}</strong>，估算交易价 <strong>¥${ToolBox.formatNumber(newValue)}</strong>。
+    <strong>${T('保值影响估算：','Value retention estimate:')}</strong>${T('当前估值','Current valuation')} ¥${ToolBox.formatNumber(profile.carValue)}，${T('按保养完整度','maintenance completeness')} ${c.score}%（${EN()?({excellent:'Excellent',good:'Good',pass:'Fair',fail:'Poor'}[c.grade]||c.gradeText):c.gradeText}），${valueImpact>=0?T('预计可增值','estimated appreciation'):T('预计可能贬值','estimated depreciation')} <strong style="color:${valueImpact>=0?'var(--success)':'var(--danger)'};">¥${ToolBox.formatNumber(Math.abs(valueImpact))}</strong>，${T('估算交易价','estimated transaction price')} <strong>¥${ToolBox.formatNumber(newValue)}</strong>。
   </div>`;
   if(c.missing.length){
     scoreHtml+=`<div class="tip-box tip-warn" style="margin-top:8px;">
-      ⚠️ 缺失保养项目：${c.missing.join('、')}。补充这些记录可提升完整度评分与残值。
+      ⚠️ ${T('缺失保养项目：','Missing maintenance items:')}${c.missing.join('、')}。${T('补充这些记录可提升完整度评分与残值。','Adding these records improves the completeness score and residual value.')}
     </div>`;
   }
   scoreHtml+=`</div>`;
   const __h0=scoreHtml;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('scoreArea').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('scoreArea').innerHTML=__h0;
 
   // records list
-  let listHtml='<div class="card"><h2>📋 保养记录列表</h2>';
+  let listHtml='<div class="card"><h2>📋 '+T('保养记录列表','Maintenance Record List')+'</h2>';
   if(!records.length){
-    listHtml+='<div class="empty-state">暂无保养记录，请在上方添加</div>';
+    listHtml+='<div class="empty-state">'+T('暂无保养记录，请在上方添加','No maintenance records yet. Please add above.')+'</div>';
   }else{
     const totalCost=records.reduce((s,r)=>s+(r.cost||0),0);
     const cnt4s=records.filter(r=>r.shop==='4s').length;
     const cntIndie=records.length-cnt4s;
     listHtml+=`<div class="stat-grid">
-      <div class="stat-card"><div class="val">¥${ToolBox.formatNumber(totalCost)}</div><div class="lbl">保养总花费</div></div>
-      <div class="stat-card"><div class="val">${cnt4s}</div><div class="lbl">4S店记录</div></div>
-      <div class="stat-card"><div class="val">${cntIndie}</div><div class="lbl">汽修厂记录</div></div>
+      <div class="stat-card"><div class="val">¥${ToolBox.formatNumber(totalCost)}</div><div class="lbl">${T('保养总花费','Total cost')}</div></div>
+      <div class="stat-card"><div class="val">${cnt4s}</div><div class="lbl">${T('4S店记录','4S dealership')}</div></div>
+      <div class="stat-card"><div class="val">${cntIndie}</div><div class="lbl">${T('汽修厂记录','Independent shop')}</div></div>
     </div>`;
     const sorted=[...records].sort((a,b)=>b.km-a.km);
     listHtml+=sorted.map(r=>`<div class="rec-list-item">
       <div class="ri-main">
-        <div class="ri-item">🔧 ${ToolBox.escHtml(r.item)} <span class="shop-tag ${r.shop==='4s'?'shop-4s':'shop-indie'}">${r.shop==='4s'?'4S店':'汽修厂'}</span></div>
+        <div class="ri-item">🔧 ${ToolBox.escHtml(r.item)} <span class="shop-tag ${r.shop==='4s'?'shop-4s':'shop-indie'}">${r.shop==='4s'?T('4S店','4S'):T('汽修厂','Independent')}</span></div>
         <div class="ri-meta">📅 ${r.date} · 🛣️ ${ToolBox.formatNumber(r.km)}km${r.cost?' · 💰 ¥'+ToolBox.formatNumber(r.cost):''}</div>
       </div>
-      <button class="btn danger" style="font-size:11px;padding:5px 10px;" onclick="delRecord('${r.id}')">删除</button>
+      <button class="btn danger" style="font-size:11px;padding:5px 10px;" onclick="delRecord('${r.id}')">${T('删除','Delete')}</button>
     </div>`).join('');
   }
   listHtml+='</div>';
@@ -459,21 +461,21 @@ function exportReport(){
   else if(c.score>=50)valuePct=0.025;
   else valuePct=-0.05;
   const valueImpact=Math.round(profile.carValue*valuePct);
-  let txt='车辆保养记录完整度报告\n';
-  txt+=`车辆：${profile.name}\n当前里程：${ToolBox.formatNumber(profile.curKm)}km\n车辆估值：¥${ToolBox.formatNumber(profile.carValue)}\n生成时间：${new Date().toLocaleString()}\n\n`;
-  txt+=`=== 完整度评估 ===\n`;
-  txt+=`完整度评分：${c.score} 分（${c.gradeText}）\n`;
-  txt+=`应保养项目：${c.expectedCount} 项\n已记录项目：${c.covered.length} 项\n缺失项目：${c.missing.length} 项\n`;
-  if(c.missing.length)txt+=`缺失明细：${c.missing.join('、')}\n`;
-  txt+=`\n保值影响：${valueImpact>=0?'增值':'贬值'} ¥${ToolBox.formatNumber(Math.abs(valueImpact))}（${(valuePct*100).toFixed(1)}%）\n`;
-  txt+=`估算交易价：¥${ToolBox.formatNumber(profile.carValue+valueImpact)}\n\n`;
-  txt+=`=== 保养记录明细（共 ${records.length} 条）===\n`;
+  let txt=T('车辆保养记录完整度报告','Vehicle Maintenance Completeness Report')+'\n';
+  txt+=`${T('车辆','Vehicle')}：${profile.name}\n${T('当前里程','Current mileage')}：${ToolBox.formatNumber(profile.curKm)}km\n${T('车辆估值','Vehicle valuation')}：¥${ToolBox.formatNumber(profile.carValue)}\n${T('生成时间','Generated')}：${new Date().toLocaleString()}\n\n`;
+  txt+=`=== ${T('完整度评估','Completeness Assessment')} ===\n`;
+  txt+=`${T('完整度评分','Completeness score')}：${c.score} ${T('分','pts')}（${EN()?({excellent:'Excellent',good:'Good',pass:'Fair',fail:'Poor'}[c.grade]||c.gradeText):c.gradeText}）\n`;
+  txt+=`${T('应保养项目','Expected items')}：${c.expectedCount} ${T('项','items')}\n${T('已记录项目','Recorded')}：${c.covered.length} ${T('项','items')}\n${T('缺失项目','Missing')}：${c.missing.length} ${T('项','items')}\n`;
+  if(c.missing.length)txt+=`${T('缺失明细','Missing details')}：${c.missing.join('、')}\n`;
+  txt+=`\n${T('保值影响','Value impact')}：${valueImpact>=0?T('增值','appreciation'):T('贬值','depreciation')} ¥${ToolBox.formatNumber(Math.abs(valueImpact))}（${((valuePct*100).toFixed(1))}%）\n`;
+  txt+=`${T('估算交易价','Estimated transaction price')}：¥${ToolBox.formatNumber(profile.carValue+valueImpact)}\n\n`;
+  txt+=`=== ${T('保养记录明细','Maintenance Record Details')}（${T('共','total')} ${records.length} ${T('条','records')}）===\n`;
   if(records.length){
     [...records].sort((a,b)=>a.km-b.km).forEach(r=>{
-      txt+=`${r.date} | ${ToolBox.formatNumber(r.km)}km | ${r.item} | ${r.shop==='4s'?'4S店':'汽修厂'} | ¥${ToolBox.formatNumber(r.cost||0)}\n`;
+      txt+=`${r.date} | ${ToolBox.formatNumber(r.km)}km | ${r.item} | ${r.shop==='4s'?T('4S店','4S'):T('汽修厂','Independent')} | ¥${ToolBox.formatNumber(r.cost||0)}\n`;
     });
   }else{
-    txt+='（暂无记录）\n';
+    txt+='（'+T('暂无记录','No records')+'）\n';
   }
   ToolBox.downloadText('保养记录完整度报告.txt',txt);
   ToolBox.showToast(i18nText() );
@@ -487,7 +489,7 @@ function exportReport(){
 
 load();
 // 同步输入框
-document.getElementById('vName').value=profile.name||'我的车辆';
+document.getElementById('vName').value=profile.name||T('我的车辆','My Vehicle');
 document.getElementById('curKm').value=profile.curKm||0;
 document.getElementById('carValue').value=profile.carValue||0;
 document.getElementById('rDate').value=new Date().toISOString().slice(0,10);
