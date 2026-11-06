@@ -7,11 +7,6 @@
 
 | 条目 ID | 页面 | 修复类型 | 验证用例 |
 |---|---|---|---|
-| IT-N13 | tools/it/csv-validator.html | 引号内换行/CRLF 正确切记录，行号取物理行 | verify_it_calc.js ×3（引号内 LF、CRLF+转义、未闭合行号） |
-| IT-N15 | tools/it/text-truncate.html | 按码点截断、省略符计入上限、limit 正整数校验 | verify_it_calc.js ×4（emoji 码点、省略符预算、字节模式、limit=0） |
-| IT-N16 | tools/it/slugify.html | 剥离符号先于 Unicode 转义、下划线预览按实际分隔符 | verify_it_calc.js ×2（Unicode %、separator='.' 预览） |
-| IT-N21 | tools/it/line-ending-converter.html | 清空后可视化区回等待态 | verify_it_calc.js ×1（clearLe 后「（等待输入）」） |
-| IT-N33 | tools/it/html-entities.html | 编解码按码点、解码仅替换已知实体 | verify_it_calc.js ×3（emoji、扩展 B 汉字、裸 `<` 原样） |
 | IT-N37 | tools/text/reading-time-estimator.html | 空文本/0 速度校验，Math.round→Math.ceil | verify_text_calc.js ×3（空文本、0 速度、110 字进位） |
 | D-N28 | tools/healthcare/ibw.html | 身高 100–250 cm 范围守卫（修负 IBW） | verify_healthcare_calc.js ×1（height=42 拒绝并提示） |
 | D-N34 | tools/healthcare/map.html | 血压 >0 / 范围 / 舒张压≤收缩压 守卫 | 页面守卫 + 深解方法同步（无独立用例） |

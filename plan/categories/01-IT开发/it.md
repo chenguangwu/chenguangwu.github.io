@@ -222,29 +222,15 @@
 - 影响：`tools/it/url-parser.html`；解析含 HTML 的链接时页面可被注入（自输入/历史持久化），参数表只显示最后一个同名参数，复制按钮可能失效。浏览器实际执行未验证。
 - 方案：所有输出统一走文本转义或 `textContent`/`createElement` 构建；重复参数保留数组并按 `getAll` 逐行展示；`onclick` 改为事件委托，不把数据拼进属性。
 
-### IT-N13 CSV 校验不识别引号内换行（中，确认源码缺陷）
-- 问题：校验按 `\n` 切行后逐行解析，RFC 4180 允许双引号字段跨行，跨行字段会被误报为“引号未闭合”，后续行也被连带误报。
-- 证据：`tools/it/csv-validator.html:233-243`。Node 复算（提取 `parseLine` 后按原循环执行）：输入 `id,note\n1,"line1\nline2"\n` → `lines:3, expect:2, issues:["第 2 行：引号未闭合","第 3 行：引号未闭合"]`；同一逻辑对 `"x,y",z` 单行引号逗号判定正常。
-- 影响：`tools/it/csv-validator.html`；合法的多行字段（备注、地址）一律判错，用户会去“修”本来正确的数据。
-- 方案：改为按字符流状态机解析整份 CSV（引号内换行不切行），记录逻辑行号；补充多行字段、转义双引号、CRLF 用例。
-
 ### IT-N14 curl 转代码漏判 POST 与方法/选项值误认作 URL（高，已修复 2026-11-06 核验：curl-parser.html:242-288 CURL_VALUE_OPTS 值成对消费映射表、esc() 转义）
 - 问题：未处理“带 `-d` 时 curl 默认改 POST”，输出固定 GET；除 `-X/-H/-d/--data/--data-raw` 外的选项（如 `-F`、`--data-binary`、`-u`、`-o`）的值不以 `-` 开头，会被当成 URL；头部值原样进 `innerHTML`。
 - 证据：`tools/it/curl-parser.html:243,250-265,267-272`。Node 桩执行 `parse()`：`curl -d '{"a":1}' https://api.example.com/x` → `方法：GET`（curl 实际以 POST 发送）；`curl -F 'file=@a.txt' --data-binary @b.json https://x.com` → `URL：file=@a.txt`（真实 URL 丢失）；`-H 'X-Test: <img src=x onerror=alert(1)>'` 原样输出 `<p>X-Test: <img src=x onerror=alert(1)></p>`。
 - 影响：`tools/it/curl-parser.html`；复制出的请求方法/URL/表单体与真实 curl 行为不符，常见上传命令直接解析错。
 - 方案：建立“选项是否带值”的映射表，成对消费参数；无 `-X` 而有 `-d/--data*/--form` 时默认 POST；未知选项跳过其值并提示；输出统一转义，必要时以结构化 JSON 展示。
 
-### IT-N15 文本截断按 UTF-16 码元切割并忽略省略号预算（中，确认源码缺陷）
-- 问题：`chars` 模式用 `length/substring` 按码元截断，emoji 等代理对会被切成半个字符；省略号直接追加、不占长度预算；`bytes` 模式仅把 CJK/全角计 2 字节，emoji 仍按 1 个码元计；非法 limit 被 `||0` 吞成 0 后只输出省略号。
-- 证据：`tools/it/text-truncate.html:314,323-335,348-363`。Node 桩执行 `truncate()`：输入 `😀😀😀`、chars、limit=3 → `"😀\ud83d…"`（残留孤立代理项 U+D83D）；`abcdef`、limit=3、省略号 `...` → `"abc..."` 长 6；limit 非法/0 → `"…"`；`😀😀`、bytes、limit=4 → 两个 emoji 全保留（实际 8 字节）。页面公式表（255-268）自称“按码点截断、省略号计入上限”，实现与之相反。
-- 影响：`tools/it/text-truncate.html`；复制结果可能含非法字符，长度上限不可用于严格字段校验。
-- 方案：用 `Array.from`/`Intl.Segmenter` 按码点或字素簇截断，省略号从 limit 中扣除；bytes 模式按 UTF-8 实际编码长度累计；limit 非正整数时明确报错而非静默 0。
-
-### IT-N16 slugify 的 Unicode 模式在默认选项下被剥掉百分号（中，确认源码缺陷）
-- 问题：`unicode` 模式先 `encodeURIComponent` 生成 `%HH`，默认勾选的“移除特殊符号”正则 `[^\w\s\u4e00-\u9fa5-]` 会把 `%` 换成空格，随后小写化并按分隔符切分，转义三元组被拆成普通十六进制片段。
-- 证据：`tools/it/slugify.html:350-357,196-200`。Node 复算：`slugify("中文", {mode:"unicode",separator:"-",lowercase:true,stripSymbols:true,stripStopWords:false})` → `e4-b8-ad-e6-96-87`；关闭剥离符号才得到 `%e4%b8%ad%e6%96%87`。另：分隔符选点号时“下划线”预览（379）仍只把 `-` 换成 `_`，显示 `hello.world` 却标为下划线。
-- 影响：`tools/it/slugify.html`；默认配置下“Unicode 转义”输出不是可解码的百分号编码，预览标签也会误导。
-- 方案：剥离符号发生在编码之后时跳过 `%` 与十六进制字符，或先剥离再编码；预览按实际分隔符替换；补中文/emoji 的转义往返用例。
+### IT-N15 省略符超出截断上限（中，确认源码缺陷）
+- `tools/it/text-truncate.html:338-345,360-383` 将预算钳到 0 后仍原样追加完整省略符。当输入 `abcdef`、上限为 1、省略符为 `...` 时，字符及字节模式均输出 3 个字符，超过上限。Node 桩已执行原函数；未做浏览器验证。
+- 影响：截断结果不能满足严格长度或字节上限。应在省略符本身超限时截短或明确提示，并覆盖两种截断方向。
 
 ### 留存优化
 - `properties-parser.html:280` 的 `unescapeVal` 不解码 `\uXXXX`：`greet=\u4f60\u597d` 原样保留（Node 已复算），与页面 FAQ 对转义的说明不一致，可随 IT-N10 一并修。
@@ -271,12 +257,6 @@
 - 证据：`tools/it/text-cleaner.html:756-763`（textarea 取 textContent）、`846-849`（仅包装 applyPreset）、`839-845`（预设条回调为 `executeClean`）、`781-793`（回填 `applyPreset()`）、`491-505`（`presets[undefined]` → `[]` → `deselectAll()`）、`472-474`。jsdom 复算：`#output-text` 初始与 `value='清理结果内容'` 之后 `textContent` 均为 `""`，ResText 等价结果为 `""`；`{…}[undefined]` → `undefined`，`list=[]` 会走 `deselectAll()`。
 - 影响：`tools/it/text-cleaner.html`；数据表/图表/历史三个页签永远为空；若将来有历史记录，恢复后默认勾选被清空，输出与记录不符。
 - 方案：改读 `output-text.value`；包装 `executeClean` 记录历史；回填时逐字段恢复后直接 `executeClean()`，不要用无参 `applyPreset`。
-
-### IT-N21 空输入回退示例文本，复制结果与输入无关（中，确认源码缺陷）
-- 描述：`calcTool` 在输入为空时把局部变量 `raw` 替换成三行示例，但输入框仍为空；输出框、统计与“复制结果”都显示/复制示例。
-- 证据：`tools/it/line-ending-converter.html:320-327`（`if(!raw){raw='line1\nline2\nline3';}`）、`340-343`（`copyLe` 复制 `leOutput`）。Node 复算 `raw=''`、目标 `' \n'` → `"line1 \nline2 \nline3"`。
-- 影响：`tools/it/line-ending-converter.html`；清空后点“转换/复制结果”得到与当前输入无关的文本，易被误当作自己的数据。
-- 方案：空输入时清空输出与统计并提示；示例仅由显式的“示例”按钮注入（页面当前无该按钮）。
 
 ### IT-N22 历史只保存前 1000 字符，恢复后静默截断（中，确认源码缺陷）
 - 描述：`addToHistory` 对两份文本各做 `substring(0,1000)`；`loadHistory` 直接回填并重新 `doDiff()`，无任何截断提示。
@@ -364,13 +344,6 @@
 - 复现：用 jsdom 加载页面原有函数执行。默认 `SAMPLE` 经 `formatXml(SAMPLE,true)` → 输出以 `<to from="Alice">Bob</to>` 开头、`<raw/>`，根 `<note>` 与 `<![CDATA[<unparsed>text</unparsed>]]>` 全部消失；`<root><a>1</a><b>2</b></root>` → `<a>1</a>\n<b>2</b>`（期望保留 `<root>`）；`<a>line1\nline2</a>` 压缩 → `<a>line1line2</a>`（期望保留文本换行）。
 - 影响：页面 Boot 直接 `doBeautify()`，首屏示例即为多根、非法 XML；用户复制格式化/压缩结果会解析失败或丢失整段 CDATA 内容。
 - 方案：在 `formatXml` 中单独输出根元素本身；按 `nodeType` 分发并保留 CDATA、注释、处理指令与 XML 声明；压缩只删除元素之间的缩进换行，文本与 CDATA 原样保留；补根元素、CDATA、mixed content 往返用例。
-
-### IT-N33 HTML 实体全字符编码按 UTF-16 码元取码，代理对被截断（中，确认源码缺陷）
-- 描述：`encodeAll` 用 `for...of` 按码点迭代，却只取 `ch.charCodeAt(0)`（UTF-16 高位），非 BMP 字符只生成高位代理项的数字实体，低位代理被丢弃；`decodeText` 用 `innerHTML` 解析输入，裸 `<` 后接字母会被当成标签吞掉。
-- 证据：`tools/it/html-entities.html:573-587`（`576-577` 编码、`585-586` 解码）
-- 复现：`encodeAll('😀')` → `&#55357;`（期望 `&#128512;`）；`encodeAll('𠮷')` → `&#55362;`（期望 `&#134071;`）；`decodeText('a<b')` → `a`（期望 `a<b`）；`decodeText('<div>Hello</div>')` → `Hello`（期望保留标签文本）。
-- 影响：emoji、生僻字经“全字符编码”后变成孤立代理项实体，复制出去无法还原；解码含未转义尖括号的文本会静默丢内容。
-- 方案：编码改用 `codePointAt(0)` 生成 `&#十进制;`；解码避免 `innerHTML`，改用 `textarea` 的 `textContent` 往返或只替换已知实体；补 emoji、扩展汉字、裸 `<` 用例。
 
 ### IT-N34 敏感词高亮与计数使用两套文本源，清空后复制仍取旧结果（中，确认源码缺陷）
 - 描述：`count`/`clean` 在原始文本上做替换，而 `marked` 在转义后的 HTML 上再跑同一正则：词表含 `lt`/`amp` 会命中 `&lt;`/`&amp;` 实体名并破坏实体，词表含 `<` 时 clean 能命中却因原文已被转成 `&lt;` 而无法高亮。另 `!raw || words.length===0` 分支只更新 `preview.innerHTML`，不更新 `preview.dataset.clean`，复制按钮继续读上一次的清洗结果；词表为空时该分支还把未转义原文直接写入 `innerHTML`。
