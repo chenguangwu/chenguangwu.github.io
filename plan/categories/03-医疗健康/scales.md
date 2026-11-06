@@ -1,5 +1,9 @@
 # 医疗 · 量表评分类（psychiatry/psychology/clinical-nursing/rehabilitation/neurology 等 ~150 页）
 
+## 2026-11-06 静态复核（未运行页面）
+- `tools/psychology/attachment-style-test.html:501-508,699-706,743-786`：结果展示后修改答案仅更新进度，原结果仍显示；复制和导出则按修改后的答案重新计算，可能与画面不一致。应修改答案时隐藏旧结果或重算。
+- `tools/psychology/holland-career-test.html:692-699,943-957,963-1005`：同样修改答案后旧画面不刷新，而复制/导出按当前状态重算；分数并列时 `:728-731` 按固定类型顺序排序，仍把前三名表述为主导型，需标明并列与不确定性。心理测验解释和阈值需专业复核。
+
 ## 已知问题
 ### M1. 条目结构重建项（G01-B 系列，需裁断后开发）
 - gags-acne 7→6 分区、rater-21 TWSTRS 题量、psqi 成分 5 缺 2 项。

@@ -55,6 +55,7 @@
 - 静态续审第四十二批：阅读 `printing/{analysis-7,box-area,carton-design,convert-gsm,estimate-ink,ink-coverage,sheet-calc}` 7 页，记录测点丢弃、反算状态、油墨毫克换算与输入校验问题，更新历史问题源码状态。至清单第 559 页，静态续审累计 279 页；仅源码分析，未运行浏览器，不计双跑。
 - 静态续审第四十三批：阅读 `process/{cp-index,cpk-index,cpk-with-shift,defect-probability,dpmo-calc,first-pass-yield,measurement-uncertainty}` 7 页；记录概率、良率和不确定度输入问题，更新 Cpk 旧条目的源码状态并复核既有范围问题。至清单第 566 页，静态续审累计 286 页；仅源码分析，未运行浏览器，不计双跑。
 - 静态续审第四十四批：阅读 `process/{pp-index,ppk-index,rolled-throughput-yield,sigma-level,tolerance-rss,tolerance-worst-case}` 和 `procurement/{eoq,supplier-score}` 8 页；记录过程能力、良率与供应商评分输入问题，纠正公差旧条目的空态状态。至清单第 574 页，静态续审累计 294 页；仅源码分析，未运行浏览器，不计双跑。
+- 静态续审第四十五批：阅读 `property/{cycle-10,cycle-elevator}`、`psychology/{attachment-style-test,holland-career-test}`、`pulmonology/bronchoscopy-grading` 和 `quality/{ppm-calculator,process-capability,six-sigma}` 8 页；记录巡检状态与注入点、测验旧结果和质量指标校验，复核历史医疗分级。至清单第 582 页，静态续审累计 302 页；仅源码分析，医疗/心理结论需专业复核，未运行浏览器，不计双跑。
 
 
 - 扫描时间：2026/11/5 05:04:33
