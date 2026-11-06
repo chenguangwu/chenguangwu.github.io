@@ -2465,7 +2465,8 @@
 - 方案：接入纯前端 Python 解析器做真实语法检查，或至少检测"冒号行后必须增加缩进""return 必须在块内"等结构规则并标明能力边界。
 **留存建议（tools/it/python-formatter.html）**：`:368-402` 与 JS 页 `:449-475` 同属"假校验"，建议统一换真实解析。
 
-### IT-N303 CSV 输出被覆盖成只剩 `</tbody></table>`，HTML 代码与预览全部失效（高，确认缺陷）
+### IT-N303 CSV 输出被覆盖成只剩 `</tbody></table>`，HTML 代码与预览全部失效（历史记录，2026-11-06 当前基线复核不再复现）
+- 基线 `0781ef7e61`：当前第 315 行为 `h += '  </tbody>\n</table>'`；独立 Chrome 实测生成完整 table、表头和单元格。原问题为历史发现，当前版本不可再作为未修复缺陷派发。
 - 问题：`calcTool` 拼好完整表格字符串后，`:314` 又执行 `var h= header?'  </tbody>\n</table>':'  </tbody>\n</table>';`（两个分支完全相同），把 `h` 覆盖为闭合片段，`:315` 写入输出、`:316` 写入预览。
 - 证据：`tools/it/csv-to-html-table.html:305-313`（拼表头/表体）、`:314`（覆盖）、`:315-316`（写 `htmlOut`/`previewBox`）、`:327`（复制只查 `indexOf('table')`，仍能通过）。
 - 复现（node 实跑默认 CSV `name,age,city\nAlice,28,Shanghai`）：`htmlOut` = `"  </tbody>\n</table>"`；预览为 `…预览（2 行）</div>  </tbody>\n</table>`（浏览器的孤立闭合标签被丢弃 → 空白）；期望完整 `<table><thead>…<tbody>…</table>`。
@@ -2474,6 +2475,8 @@
 **留存建议（tools/it/csv-to-html-table.html）**：`:314` 是本页核心事故点，一行修复 + 一条回归即可。
 
 ### IT-N304 单元格文本中的 "NaN"/"Infinity" 被替换成 "—"（低，确认缺陷）
+- 2026-11-06 基线 `0781ef7e61` 独立 Chrome 复核：CSV `name,value` 换行 `NaN,Infinity Labs` 产出 `<td>—</td><td>— Labs</td>`，预览同样被改写；问题仍存在，不重复编号。
+- 当前基线另复现空输入：清空 CSV 输入后仍生成 Alice/Bob 示例表格并可复制/下载。`calcTool()` 第 300–301 行对空值强制回退样例；输入区初始示例还包含 Carol。用户可能误将虚构示例当成当前结果，建议空态清除输出并提示，示例通过显式按钮载入。
 - 问题：`escH` 在转义前做 `String(s).replace(/Infinity|NaN/g,'—')`，把合法数据值改写为破折号；该替换本意是数值 NaN 兜底，却作用于所有文本单元格。
 - 证据：`tools/it/csv-to-html-table.html:297`。
 - 复现：CSV `v\nNaN` → 单元格输出 `—`（期望 `NaN`）；`NaNValue` → `—Value`。

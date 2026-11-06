@@ -1,5 +1,15 @@
 # 交互有效性扫描（第二轮：点了到底有没有用）
 
+## 2026-11-06 653 页续审检查点（160/653 双跑有效，未销账）
+
+- 基线 `0781ef7e61`，独立工作树 `audit/interaction-review`，历史清单 `/tmp/all653.txt`、旧桶 `/tmp/notclicked-653-classified.json`。截至本次检查点按路径排序前 160 页两次均有效、0 个缺桶、两次桶位逐页一致：B 124、C 30、D-a 4、D-b 1、A 1；还剩 493 页双跑。
+- 旧→新仅反映探针迁移、不能代替真值：A→B 2；B→B 116、B→C 5；C→B 6、C→C 20、C→D-a 1、C→D-b 1；D→A 1、D→C 5、D→D-a 3。首次批跑中的会话错误经单页隔离分别补足两次，详情见临时 JSON `/tmp/toolbox-audit-653-batch01-{a,b}.json`、`/tmp/toolbox-audit-batch01-isolated.json`、`/tmp/toolbox-audit-run-batch01-isolated-b.json`、`/tmp/toolbox-audit-run-batch0{3,4}-*.json`；这些临时文件不是永久交付物。
+- 探针盲区确认：隐藏 file input 被可见性过滤漏计，`audio/audio-cut` D-b 因而不能判为无交互；未加载音频，不判实际文件驱动桶位。初始隐藏标签控件也会漏采，`health/rehab-timer` 的 `month` 控件即使打开，探针通用文本值被浏览器拒绝。`grew` 包含列表文字变化而非仅行数增长，`agriculture/cycle-honey` 输出“列表 5→5”不表示行数增长；Chrome 输入名称、位置、周期 10 天、日期 2026-11-06 后点击添加，列表及本地存储确实出现蜂箱。
+- 针对性错分复核：`design/contrast-checker` 文本色值 `#1F2937`→`#000000` 时对比度 14.68→21.00，无需点击，应 B 而非探针 C；同理 `color-palette`、`colorblind-simulator`、`css-box-shadow-generator`、`glassmorphism-generator`、`neomorphism-generator` 输入合法 `#1199cc` 后，色卡/模拟色或 CSS 立即改变，均应 B 而非 C。源因为通用文本值非合法色值。这是针对性而非随机样本，不能外推错分率。
+- 其他补证：`advertising/generator-time` 数量 5→2→7，分镜数同步 5→2→7，支持 B；`data/data-cleaner` 文本改值不更新，点击清洗才变，支持 A。上述 Chrome DOM 操作及独立浏览器测试不能表述为全部 60 页人工裁决。
+- 尚需完成剩余双跑、校验完整路径集合与迁移矩阵，并抽取不与历史样本重叠的 60 页逐页独立复核。资源依赖页可跳过资源验证并排除有效准确率分母；在这些条件及错分率门槛满足前 653 页继续不销账。业务缺陷写入 `plan/categories/` 对应分类，音频仅代码核对。
+
+
 - 扫描时间：2026/11/5 05:04:33
 - 覆盖工具页：**4807**
 - 有输入控件的页：**4401**
@@ -753,6 +763,12 @@ node scripts/runtime_scan.js --interact --files /tmp/pages.txt --timeout 10000
 
 ### 结论
 653 页分桶**不销账**：桶位错分 8.3%（CI 上限 18.1%），且 B 桶依赖的单字段 `changedByInput` 在多输入/搜索/select 页系统性失真。先按上列 7 条修探针，重扫 653 后再抽 60 页复核；本批 60/60 页均**不是**「not-clicked 真缺陷」，但 5 页桶位与 5 页子类仍需修正。
+
+### 独立工作树续审检查点（基线 0781ef7e61）
+- 探针七项修正已合入 `master`（提交 `5a140de940`）；历史 653 页新口径重扫曾中断，未找到完整新分桶及旧→新迁移矩阵。历史独立 60 页虽有采证，但缺可逐页复核的最终裁决，不能按其口头结果销账。
+- 在 `audit/interaction-review` 工作树对原 60 页样本连续运行现有探针两次：均有效 60 页、错误 0；两次桶位分布均为 B 41、C 12、D-a 7，逐页桶位一致 60/60。结果见 `/tmp/toolbox-audit-sample60-a.json` 和 `/tmp/toolbox-audit-sample60-b.json`。本结果只证明桶位可复现，**不证明人工真机判定准确**；历史部分页面在当前基线已有变更，不能直接用旧人工裁决计算现状错分率。
+- 历史五个错分案例本次探针分别为：`library/clc-classifier` B、`metalwork/thread-spec` B、`rehabilitation/assistive-device-fitting` B、`design/shutter-speed-calculator` B、`kids/multiplication-practice` C，与历史人工桶位相同；当前基线尚未做独立人工真机复核。
+- 待办：固定工作树 commit 与 653 页原始名单，分批重扫并补齐错误页；严格校验两次运行页集合与错误数，再生成迁移矩阵；从新桶位中抽取与旧样本不重叠的 60 页，逐页记录独立真机裁决后再决定是否销账。
 ## 2026-11-05 A 桶 9 页收口 + 两个异常数值核实
 
 ### A 桶 9 页（补实时绑定，保留原按钮）
