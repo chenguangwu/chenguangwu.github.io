@@ -3854,17 +3854,6 @@
 
 | 页面 | 问题（含 tools/it/<slug>.html:NN） | 编号 |
 |---|---|---|
-| `tools/it/ascii-tree-generator.html` | 先出现 `src`（按末段规则被标成文件）再出现 `src/index.js` 时，子路径被静默丢弃：`:273` 仅在节点不存在时写入 `_file`，`:285` 对 `_file=true` 的节点不渲染子级。node 复刻输入 `src` + `src/index.js` 仅输出 `src`，`index.js` 消失。 | IT-N505 |
-| `tools/it/ascii-tree-generator.html` | 公式框 `:116` 承诺「支持缩进文本或路径列表…自动推断层级」，实际 `:268` 只按 `/` 切分；粘贴带缩进的树状文本会得到一串扁平根节点，缩进层级被忽略。 | IT-N506 |
-| `tools/it/barcode-code39.html` | 编码表 `:246-262` 每字符 15 个宽窄元素（页面自述 `:156`/`:217` 应为 9 元素=5 条 4 空）、宽元素 4–7 个（规范应恰为 3）；`:263-294` 按 15 元素交替生成，单字符 `0` 已产出 82 模块，非合法 Code 39，扫描器无法识别。 | IT-N507 |
-| `tools/it/barcode-code39.html` | 承诺「可选 Mod 43 校验位」（`:221`、`:192`、`:517` 英文简介），但页面只有 `:161` 一个文本框，`:318-325` 从未计算或追加校验位，属承诺未实现。 | IT-N508 |
-| `tools/it/barcode-code39.html` | `:267-268` 对不在 `CODE39` 表中的字符直接 `continue` 静默丢弃，而 `:304`/`:323` 仍绘制/显示完整原文：输入 `A_中文` 时条码只编码 `A`，下方文字却显示 `A_中文`，条码内容与显示不一致。 | IT-N509 |
-| `tools/it/barcode-msi.html` | `:156`/`:157`/`:192` 承诺 Mod 10 / Mod 11 / Mod 1010 校验位可选，但页面仅 `:161` 一个数字输入框，`:247-258` 的 `buildMSI` 不生成任何校验位，属承诺未实现。 | IT-N510 |
-| `tools/it/barcode-msi.html` | `:248` 与 `:284` 用 `replace(/\D/g,'')` 静默剥离非数字：输入 `12A3` 时条码只编码 `123`，但 `:286` 的 HTML 文本显示原始 `12A3`（画布内文字为 `123`），显示与编码不一致。 | IT-N511 |
-| `tools/it/barcode-msi.html` | 公式框 `:156` 称「每位数字 = 8 个单元（0→窄空宽条，1→宽条窄空）」，实际 `:253` 为 `1→'1110'`（3 模块宽条+窄空）、`0→'10'`（窄条+窄空），每位 8–12 单元不等，且代码中不存在「窄空宽条」形态，说明与实现不符。 | IT-N512 |
-| `tools/it/camera-recorder.html` | meta 描述 `:8`/`:11`/`:17` 承诺「支持分辨率选择」，但页面无任何分辨率控件（仅 `:121-123` 三个按钮），`:258` `getUserMedia({video:true,audio:true})` 也未设任何约束；同时公式框 `:107` 写 `{video:true}` 与代码不符。 | IT-N513 |
-| `tools/it/camera-recorder.html` | 录制中点「关闭摄像头」（`:123`）经 `:296-298` `stopStream→stopRec`，会触发 `:266-273` 的 `onstop` 无条件自动下载文件；按钮语义仅为关闭摄像头，却产生下载行为。 | IT-N514 |
-| `tools/it/csharp-cheatsheet.html` | 示例含 6 处 C# 非法注释：`:293`（`-- 元组`）、`:357`（`-- 仅 init 时可写`、`-- 计算属性`）、`:389`、`:453`（两处）。C# 中 `--` 是自减运算符而非注释（应为 `//`），原样复制编译报语法错误。 | IT-N515 |
 | `tools/it/docker-cheatsheet.html` | `:285`/`:293`/`:317` 命令尾 `-- 注解` 会被当作参数或容器名：如 `docker stop $(docker ps -q) -- 停所有` 报 `No such container: 停`，`docker rm -f $(docker ps -aq) -- 删所有` 同理；复制即执行失败。 | IT-N516 |
 | `tools/it/docker-cheatsheet.html` | `:427` 语法字段写成 `docker build [options] -t name:path`，把镜像 tag 与构建上下文混为一谈且漏掉必需上下文参数；按此语法照抄构建会失败。 | IT-N517 |
 | `tools/it/emacs-cheatsheet.html` | `:280` 的 `emacs -nw file.txt  -- 终端模式` 与 `emacsclient -t file.txt  -- 连接守护进程` 是真实 shell 命令，`--` 后的中文会被当作文件名分别打开（emacs 缓冲/emacsclient 文件），复制执行多开文件。 | IT-N518 |
@@ -4001,8 +3990,6 @@
 | `tools/it/barcode-code128.html` | 是（107 符号+Start A/B/C+13 模块 Stop） | 否 | 是（加权 mod 103） | 无（一维码规范无纠错） | 是（静区偏窄） | 唯一直接复用 `js/barcode-lib.js:22-98` 的 1D 页；静区单位错位（IT-D08） |
 | `tools/it/barcode-ean.html` | 部分（95 模块、保护线/奇偶表齐全） | 否 | 是（mod 10，`:250-253`） | 无 | 否（首位≠0） | `:246` G 表由 L 表反转，实为标准 G 的反码；`:273` 用于左侧 → 默认码奇偶校验失败（IT-D01 高） |
 | `tools/it/barcode-upc.html` | 是（95 模块 L/R、保护线） | 否 | 是（mod 10；12 位输入不校验，IT-N128） | 无 | 是（静区仅 3.3 模块） | `:252-262` 编码结构正确；补零/截断（IT-N127）、首位未印左静区（IT-N129）仍在 |
-| `tools/it/barcode-code39.html` | 否（字符表每项 15 元素，标准 9 元素） | 是（形态像 Code39，内容非 Code39） | 无（承诺 Mod 43 未实现，IT-N508） | 无 | 否 | `:246-262` 表错、`:263-294` 按 15 元素生成（IT-N507）；静默丢字符（IT-N509） |
-| `tools/it/barcode-msi.html` | 部分（有 4 bit 映射，位宽/元素数不符标准） | 否 | 无（承诺 Mod 10/11/1010 未实现，IT-N510） | 无 | 否 | `:247-258` 每 bit 固定「条+空」、`1` 为 3 模块宽条，与 `:156` 公式不符（IT-N512）；显示与编码不一致（IT-N511） |
 
 **核心差异**：QR 族 5 页里**只有 `qrcode.html` 一页做了真实现**——`email-qr`/`location-qr`/`text-qr` 三页全是「定位符 + 伪随机点阵」，`qr-decoder` 只是文本前缀解析器。一维族 5 页里**只有 `code128` 直接复用共享库**；`upc` 手写但结构正确，`ean` 手写且 G 表反相（默认不可扫），`code39`/`msi` 手写且不符合规范。
 **重写线**：`email-qr`、`location-qr`、`text-qr` 改用 `js/qrcode.js`（按 byte/UTF-8 写入并保留 4 模块静区）。
@@ -4018,8 +4005,6 @@
 - `barcode-code128.html`：编码表/校验/Stop 均正确，是 1D 族唯一可直接信任的页；问题是静区按像素计（IT-D08）与既有的空输入回退空格（IT-N125）。
 - `barcode-ean.html`：长度与校验位校验已补齐（IT-N73/N84 的旧证据已失效，勿按旧结论返工），但 G 表反相使默认 `6901234567892` 与所有首位 1–9 的码不可扫（IT-D01）。共享库 `js/barcode-lib.js:103-104` 的 EAN_G 是正确的，本页却未加载该库。
 - `barcode-upc.html`：L/R 与保护线正确，默认 `03600029145` 自动补校验位 `2`，结构合法；12 位输入不比对第 12 位（IT-N128）、空/短输入补零（IT-N127）、首位未单印左静区（IT-N129）仍在。
-- `barcode-code39.html`：`:246-262` 每字符 15 个宽窄元素、宽元素 4–7 个（规范 9 元素、恰 3 个宽元素），生成图非 Code 39（IT-N507）；无 Mod 43（IT-N508）、静默丢字符（IT-N509）。
-- `barcode-msi.html`：位宽映射与自身公式不符（IT-N512），无任何校验位（IT-N510），非数字静默剥离且显示原文（IT-N511）。
 
 ### 三角度抽查
 

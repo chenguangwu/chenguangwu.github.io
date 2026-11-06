@@ -215,6 +215,31 @@ const CASES = [
     ref: "IT-N504：count=3 生成三条后，__nicknameCopyText() 必须是 3 行且含换行符。修复前 copyResult 取 output.textContent，10 个 div 的 textContent 不带分隔符 ⇒ 1 行、sep=false。行数由注入的 count 决定（默认 10 不会是 3），故有判别力。",
   },
   {
+    // IT-N514 回归：「关闭摄像头」不得触发文件下载（原 stopStream→stopRec→onstop 无条件 a.click()）
+    slug: "it/camera-recorder",
+    inputs: {},
+    clicks: ["stopStream();document.getElementById('result').textContent='N514 autosave='+__camAutoSave;"],
+    dumpIds: ["result"],
+    expect: ["N514 autosave=false"],
+    ref: "IT-N514：stopStream() 只结束采集，必须把 __camAutoSave 置 false，否则 MediaRecorder.onstop 会创建 <a download> 自动下载并谎报「录制完成，已下载」。修复前无该开关（输出 autosave=undefined）且 onstop 必下载；修复后为 false。默认态不含该串。",
+  },
+  {
+    // IT-N505 回归：同一节点先作为文件、后又出现子路径时，必须改判目录并保留子树
+    slug: "it/ascii-tree-generator",
+    inputs: { paths: "src\nsrc/index.js" },
+    clicks: ["build()"],
+    expect: ["src/ └── index.js"],
+    ref: "IT-N505：输入 `src` + `src/index.js`，旧实现首次把 src 标成 _file=true，后续子路径虽写入 _children 但 render 对文件节点不递归 ⇒ 输出只有 `src`，index.js 静默消失。修复后统一后处理把含子节点的项改判目录，输出 `src/ └── index.js`（blob 把换行/缩进压成单空格）。默认示例不含该串。",
+  },
+  {
+    // IT-N506 回归：缩进文本必须推断层级（旧实现 trim 掉前导空白再按 / 切分，得到一串扁平根节点）
+    slug: "it/ascii-tree-generator",
+    inputs: { paths: "root\n  child\n    grand" },
+    clicks: ["build()"],
+    expect: ["root/ └── child/ └── grand"],
+    ref: "IT-N506：三行以 2/4 空格缩进，最小非零缩进 2 为一级 ⇒ root → child → grand 三级嵌套。旧实现先 trim 再 split('/')，三个名字都成根节点，输出扁平三行且无连接符；新实现按缩进栈构建并输出 `root/ └── child/ └── grand`。默认示例为路径列表，不含该串。",
+  },
+  {
     slug: "it/md5",
     inputs: { textInput: "hello" },
     expect: ["5d41402abc4b2a76b9719d911017c592"],
@@ -4663,9 +4688,19 @@ const CASES = [
       "data": "abc测试"
     },
     "expect": [
-      "⚠ 请输入至少一位数字；MSI 仅支持 0–9。"
+      "⚠ 输入含非数字字符：MSI 仅支持 0–9，请删除后重试，本工具不会静默丢弃字符。"
     ],
-    "ref": "MSI 重写后先剥离非数字：注入 data=abc测试（不含任何数字）⇒ 剥离后为空，输出「⚠ 请输入至少一位数字；MSI 仅支持 0–9。」。该串不含注入值，默认样例为数字串也不出现 ⇒ 强判别、零逃生。"
+    "ref": "IT-N511 同批更新：注入 data=abc测试（非数字）⇒ buildMSI 返回 error='nondigit'，输出「输入含非数字字符…不会静默丢弃字符」。旧版先 replace(/\\D/g,'') 剥离为空再报「请输入至少一位数字」，本批改为「有非数字就直接报错、不静默剥离」，故断言同步改写。默认样例为纯数字，不命中。"
+  },
+  {
+    "slug": "it/barcode-msi",
+    "inputs": {
+      "data": "12A3"
+    },
+    "expect": [
+      "⚠ 输入含非数字字符：MSI 仅支持 0–9，请删除后重试，本工具不会静默丢弃字符。"
+    ],
+    "ref": "IT-N511 回归：混合输入 12A3 必须被拒绝。修复前 replace(/\\D/g,'') 静默剥离 A ⇒ 条码编码 123、页面文字显示 12A3（显示与编码不一致）且零提示；修复后统一报非数字错误。默认样例为纯数字不命中，注入的 A 是触发该分支的关键。"
   },
   {
     "slug": "it/barcode-itf",

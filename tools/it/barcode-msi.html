@@ -153,8 +153,8 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="📊 MSI 条形码">📊 MSI Barcode</h2>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-  <div class="formula-eq">每位数字 = 8 个「条+空」单元（0→窄条+宽空，1→宽条+窄空，其余按二进制位展开）<br>校验：Mod 10 / Mod 11 可选</div>
-  <div class="formula-desc">MSI（Modified Plessey）是脉冲调制型条码，每位数字按 4 位二进制展开为 8 个「条+空」单元：位 0 为「窄条 + 宽空」，位 1 为「宽条 + 窄空」，宽窄比 2:1。它只含数字、无字母，密度中等，主要用在零售货架标签与仓库库位标识。MSI 本身不校验，实践中常追加 Mod 10（Luhn 类算法）、Mod 11 校验位，以防止扫描误读。</div>
+  <div class="formula-eq">每位数字 = 4 位二进制 → 12 个模块（位 1 → 110：2 模块条 + 1 模块空；位 0 → 100：1 模块条 + 2 模块空）<br>起始 110、结束 1001；校验：Mod 10 / Mod 11 可选</div>
+  <div class="formula-desc">MSI（Modified Plessey）是脉冲宽度调制型条码，每位数字按 4 位二进制展开：位 1 编码为 110（2 模块条 + 1 模块空），位 0 编码为 100（1 模块条 + 2 模块空），即每位 12 个模块；起始为 110、结束为 1001。它只含数字、无字母，密度中等，主要用在零售货架标签与仓库库位标识。MSI 本身不校验，实践中常追加 Mod 10（Luhn 类算法）、Mod 11 校验位，以防止扫描误读。</div>
 </div>
 
     <label>数字</label>
@@ -269,9 +269,13 @@ function msiMod11(d){
   let c=(11-sum%11)%11;
   return String(c===10?0:c);
 }
+function __msiEn(){ return (typeof TBKit!=='undefined'&&TBKit.util&&typeof TBKit.util.isEn==='function')?!!TBKit.util.isEn():false; }
 function buildMSI(text,mode){
-  text=text.replace(/\D/g,'');
-  if(!text) return {error:'empty'};
+  // N511：非数字字符不再静默剥离（原 replace(/\D/g,'') 会把 12A3 悄悄编码成 123）
+  var raw=String(text==null?'':text).trim();
+  if(!raw) return {error:'empty'};
+  if(/\D/.test(raw)) return {error:'nondigit'};
+  text=raw;
   if(mode==='mod10') text+=msiMod10(text);
   else if(mode==='mod11') text+=msiMod11(text);
   let bits='110'; // start guard: 2-module bar + 1-module space
@@ -311,7 +315,11 @@ function generate(){
   const built=buildMSI(text,mode);
   const out=document.getElementById('output');
   if(built.error){
-    out.innerHTML='<p style="color:var(--danger)">⚠ 请输入至少一位数字；MSI 仅支持 0–9。</p>';
+    var en=__msiEn();
+    var msg=built.error==='nondigit'
+      ? (en?'Invalid input: MSI encodes digits 0-9 only. Remove non-digit characters - this tool will not silently drop them.':'输入含非数字字符：MSI 仅支持 0–9，请删除后重试，本工具不会静默丢弃字符。')
+      : (en?'Please enter at least one digit (0-9).':'请输入至少一位数字；MSI 仅支持 0–9。');
+    out.innerHTML='<p style="color:var(--danger)">⚠ '+msg+'</p>';
     return;
   }
   const canvas=drawBarcode(built.bits,built.text);
