@@ -496,19 +496,18 @@
 
 ## Z 批 · 自然科学·数学/地学/热学（2026-11-04）
 
-- `tools/science/factorial-calculator.html`：2 条（SMS-92 高、SMS-93 中）。BigInt 主算精确（20!=2,432,902,008,176,640,000、52! 68 位、100! 158 位、0!/1!=1），但 n≥171 的合法输入被斯特林近似溢出整块判成「无效值」，数量级 log₁₀ 公式亦写错。
+- `tools/science/factorial-calculator.html`：SMS-92 仍待修，斯特林近似溢出导致 n=200 的精确结果被整体判为无效；旧 SMS-93 数量级错误已修，2026-11-06 提取实际函数在 Node DOM 桩复核 20!/52!/100! 的数量级分别为 18/67/157，与位数一致。
 - `tools/science/gcd-calculator.html`：3 条（SMS-94、SMS-95 高、SMS-106）。默认 48,36,24 → GCD 12、辗转相除步骤与质因数分解正确；问题在 `parseInt` 解析小数/科学计数/超 2⁵³ 与 √n 枚举无上限，另共用 SMS-106 的附加历史模板。
 - `tools/science/lcm-calculator.html`：1 条（SMS-96 中）。默认 12,18,24 → LCM 72，gcd 链路正确；问题为 `a·b` 双精度溢出（另与 SMS-95 同源的 factorize 同样可卡死）。
 - `tools/science/geo-distance-calculator.html`：1 条（SMS-97 中）。Haversine、初始方位角与英里/海里换算正确（北京 39.9042,116.4074 → 上海 31.2304,121.4737 = 1067.310 km）；问题为同组两输入共用错误容器，提示会被后一个合法输入抹掉（另共用 SMS-106）。
 - `tools/science/heat-transfer-calculator.html`：3 条（SMS-98、SMS-99 中，SMS-100 承诺未实现）。默认铜 401 W/m·K / 10 cm² / 10 mm / ΔT 75 → 3007.50 W、热流密度 3,007,500.00 W/m² 正确；问题为守卫早退且负面积放行、历史点击不回填、热辐射只有公式没有计算。
 - `tools/science/latlon-utm-converter.html`：1 条（SMS-101 中）。北京 39.9042,116.4074 → 50N 449345.061E 4417292.495N（收敛角 −0.2916°、比例因子 0.999632），正反算往返准确；问题为 lon=180 得 61 带以及反算无 E/N 范围校验。
 - `tools/science/led-resistor-calculator.html`：3 条（SMS-102、SMS-103 高，SMS-104 中）。串联 5 V/20 mA/2.2 V → R 140 Ω、P 56.0 mW 正确，标准电阻与实际电流亦正确；问题为并联功率少乘 n、精度下拉死输入、取最近值导致实际电流超额定。
-- `tools/science/log-calculator.html`：1 条（SMS-105 中）。x=100 → log₁₀ 2、ln 4.605170、log₂ 6.643856，换底与验证行正确；问题为 `fmt` 把 |v|<1e-12 归零。
+- `tools/science/log-calculator.html`：1 条（SMS-105 中）。旧极小值示例已用科学计数显示，但普通分支的格式化仍可能把非零值显示为 0，详见下表复核。
 
 | 页面 | 问题（含 tools/science/&lt;slug&gt;.html:NN） | 编号 |
 |---|---|---|
 | tools/science/factorial-calculator.html | `stirling=Math.sqrt(2πn)·(n/e)^n` 在 n≥171 溢出为 `Infinity`，`:298` 的 `/Infinity/` 兜底把整块结果（BigInt 精确的 375 位）替换成「⚠ 计算结果含无效值，请检查输入是否为有效正数。」；允许域 0–10000 中 171–10000 全废（n=200 实测，node 复刻）。:292、:295、:298 | SMS-92 |
-| tools/science/factorial-calculator.html | 数量级用 `Math.floor(log10(前16位)+15×(ceil(位数/15)−1))`，正确应为 `+(位数−16)`：20! 显示 30（实际 18.4）、52! 显示 75 而同屏「结果位数」为 68（10^75 应有 76 位），自相矛盾；n=100 显示 165（实际 157.97）。:271 | SMS-93 |
 | tools/science/gcd-calculator.html | 解析用裸 `parseInt`：`1.5,3`→[1,3] 得 GCD 1、`1e3,500`→[1,500] 得 1、`0.5,1.5`→[0,1] 误报「不能包含 0」；`9007199254740993,3` 被截为 …992，输出 GCD 1 而真值 3（node 复刻）。:249、:254 | SMS-94 |
 | tools/science/gcd-calculator.html | `factorize` 按 `for(let i=2;i*i<=x;i++)` 穷举到 √n，无上限、无 BigInt：20 位输入（parseInt→1.2e19，√≈3.5×10⁹ 次取模）使标签页冻结数分钟；lcm:238-241 同源代码。:280-289 | SMS-95 |
 | tools/science/lcm-calculator.html | `lcm2 = abs(a·b)/gcd` 全用双精度：lcm(1000000007,1000000009) 显示 1,000,000,016,000,000,000，真值 …0063（差 63）；步骤行打印的同一乘积同样失真。:234、:249 | SMS-96 |
@@ -520,11 +519,11 @@
 | tools/science/led-resistor-calculator.html | 并联功率少乘 n：R=(Vs−Vf)/(If·n) 正确，但 `P=If²·R·n` 应为 `(n·If)²·R`，`:578` 的 actualP 同错。12 V/20 mA/2.2 V/2 只显示 196.0 mW（真值 400.2 mW）、建议 1/2W（应 1W）；n=4 仍显示 196.0 mW（真值 800.3 mW）。:546-547、:578、:566-575 | SMS-102 |
 | tools/science/led-resistor-calculator.html | 「电阻精度」死输入：`nearestStdR(v,tol)` 的 `tol` 在函数体内从未使用，始终只查 E24 表，±1%(E96)/±10%(E12)/±20%(E6) 四个选项对结果零影响，明细却打印「(±xx%)」造成有效假象。:480-492、:245-250、:590 | SMS-103 |
 | tools/science/led-resistor-calculator.html | `nearestStdR` 取绝对差最近值而非「不小于」：R=140 Ω（5 V/20 mA/2.2 V）选 130 Ω，实际电流 21.54 mA 超设定 20 mA（+7.7%）；取 150 Ω 则为 20.53 mA。:482-492、:565、:577 | SMS-104 |
-| tools/science/log-calculator.html | `fmt` 对绝对值 <1e-12 直接返回 `'0'`：真数 x=1e-13 回显「x = 0」而 log₁₀(x) 正确显示 −13；底数填 1e-13（通过 >0 且 ≠1 校验）输出「log₀(1) = 0」，把合法底数显示成非法 0。:234-237、:244、:256 | SMS-105 |
+| tools/science/log-calculator.html | 2026-11-06 复核：`fmt` 对非零绝对值小于 1e-6 的数已改为科学计数，提取页面实际函数在 Node 执行 `fmt(1e-13)` 得 `1.000000e-13`，旧示例已修。残留：普通分支 `toLocaleString()` 不指定精度，Node 中 `fmt(1e-5)` 仍显示 `0`，可把合法真数或底数误写为 0；需在浏览器确认实际格式。:245-249 | SMS-105 |
 | tools/science/gcd-calculator.html | 附加历史模板把 `.result-box` 文本截 80 字存入「结果」列，趋势图再 `parseFloat` 该文本：gcd/lcm 以「输入：」开头、log 以「x = 」开头、geo 以「📊 计算详情」开头 → 恒 NaN，图永不绘制且结果列显示输入串；factorial「10! = …」得 10，图表画的是输入 n 而非 n!。:326-332、:368（同模板 lcm:307/349、log:308/350、geo:1027/1069、factorial:343/385） | SMS-106 |
 
 - 声明：本轮仅逐页通读 8 页源码（HTML + 内联 JS），用 node 在 `/tmp` 复刻主算与边界（BigInt 阶乘位数、斯特林溢出、parseInt 精度、√n 枚举、双精度乘积、UTM 正反算、LED 并联功率/标准电阻、对数 fmt），未开浏览器、未跑 `_build.py`/`run_gates`、未做线上与英文态验证，未修改任何工具页、构建产物或仓库文件。
-- 统计：8 页 / 15 条（高 4 / 中 11，其中承诺未实现 1 条 SMS-100）/ 安全 0 条（无 eval、无第三方外传、无明文存密）/ 假工具 0 个 / 编号区间 SMS-92～SMS-106。
+- 原审统计（历史快照）：8 页 / 15 条（高 4 / 中 11，其中承诺未实现 1 条 SMS-100）/ 安全 0 条 / 假工具 0 个 / 编号区间 SMS-92～SMS-106；SMS-93 已于 2026-11-06 复核清理，SMS-105 以现有残留说明为准。
 
 ## Z 批 · 自然科学·矩阵/统计/电学（2026-11-04）
 
