@@ -12,6 +12,8 @@
 
 ## 汇总统计
 
+以下为 2026-11-04 的历史快照；后续逐条复核状态见下表，统计未随之重算。
+
 | 指标 | 数值 |
 |---|---|
 | 清单原始去重页数 | **71** |
@@ -73,7 +75,7 @@
 | 医疗健康 | `tools/healthcare/healthcare.html` | C | `:121` 英文简介已改为「按体重折算 + 上限倍数」，不再提 Clark/Young/BSA；`:163-165` 引据表仅列体表面积法作参考，`:464` FAQ 也只作局限说明 | `plan/categories/03-医疗健康/drug-dosing.md:81` | 已否定 | —（原记录已过期） |
 | 医疗健康 | `tools/nephrology/edema-grading.html` | A | 2026-11-06 Node 执行 `calc()`：2 mm / 10 秒为 1+，同深度 / 120 秒为 4+；4 mm / 30 秒描述为回弹 16–30 秒。未做浏览器验证，阈值需专业复核 | `plan/categories/12-长尾行业/_others.md` 的 12-N112 | 已否定 | —（已修复） |
 | 医疗健康 | `tools/cardiology/coronary-calcium.html` | C | `:262-267` 原始 Agatston 分段（0/<100/<400/<1000/≥1000）已实现；`:271-285` MESA 简化百分位（<50/50–75/≥75）已实现 | `plan/categories/03-医疗健康/specialties.md:417` | 已否定 | —（已修复） |
-| 金融财务 | `tools/finance/housing-fund-loan.html` | A | `:292` `var RATE = 0.031` 写死；`:205,233,366` 正文与结果均按 3.1% 输出，且标注「2024 年参考」；无利率可调输入 | `plan/categories/02-金融财务/finance.md:729` | 已确认（真） | 中高（利率口径过期） |
+| 金融财务 | `tools/finance/housing-fund-loan.html` | A | 2026-11-06 Node 执行实际 `calc()`：贷款 75 万、30 年，输入 2.85% / 3.1% 时月供分别为 3101.68 / 3202.62 元；利率已可调整。未做浏览器验证，现行当地政策未核验 | `plan/categories/02-金融财务/finance.md` 的 F-N96 | 已否定 | —（利率写死问题已修；其他问题未复核） |
 | 金融财务 | `tools/finance/salary-after-tax.html` | A | `:261` 读入 `months` 后仅用于 `:262` 合法性守卫，税费计算全程未用；`:266` brackets 有 7 档，`:294-298` 展示表只列 5 档（45%/35% 两档缺失） | `plan/categories/02-金融财务/finance.md:269` | 已确认（真） | 中（死输入 + 税率表不全） |
 | 商业运营 | `tools/marketing/marketing-ltv-calculator.html` | A | `:457` 计算 `payback = cac/(ltv/(lifespanYears 或 3)/12)` 后**从未渲染**；`:461` 只展示 LTV:CAC 比率；简单模式无 lifespanYears 时回退 3 年 | `plan/categories/06-商业运营/marketing-sales.md:361` | 已确认（真） | 中（回本周期结果被丢弃） |
 | 商业运营 | `tools/hr/bandwidth-1.html` | C | `:304-352` calc 为通用模板：按标题正则匹配后算 `(a+b)/2` 或 `a*b`，输入 v0/v1 被当作任意 A/B；meta `:10-11` 承诺的「分位值/内部公平性」无对应实现 | `plan/categories/06-商业运营/hr-legal.md:483` | 已确认（真） | 中低（整页模板化） |
