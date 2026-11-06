@@ -29,6 +29,7 @@
 - 静态续审第十六批：阅读 `it/{mysql-cheatsheet,nginx-cheatsheet,number-base-converter,password-strength,php-cheatsheet,php-escape}` 6 页主要路径；记录 PHP 不完整 Unicode 转义的索引死循环和模式刷新缺口，进制转换旧实现已变化待回归。Node 仅复算索引与解析值，未运行循环或浏览器，不计双跑。
 - 静态续审第十七批：阅读 `it/{pomodoro,postgresql-cheatsheet,python-cheatsheet,python-escape,redis-cheatsheet,regex-cheatsheet}` 6 页主要路径；记录 Python 反转义前缀、码点错误和选项不刷新，番茄钟既有关键路径仍在。未运行浏览器，不计双跑。
 - 静态续审第十八批：阅读 `it/{regex-escape,rest-api-cheatsheet,robots-txt-generator,ruby-cheatsheet,rust-cheatsheet,rust-escape}` 6 页主要交互路径；记录 robots 重建注入点与文本误触守卫、Rust 反转义潜在死循环及模式刷新，更新部分历史源码状态。仅静态分析，未运行浏览器或死循环，不计双跑。
+- 静态续审第十九批：阅读 `it/{sql-cheatsheet,sql-escape,sqlite-cheatsheet,string-obfuscator,text-statistics,tmux-cheatsheet}` 6 页主要路径；记录 SQL 方言刷新和反转义空白、词频原型属性及总词数口径问题。仅静态分析，未运行浏览器，不计双跑。
 
 
 - 扫描时间：2026/11/5 05:04:33
