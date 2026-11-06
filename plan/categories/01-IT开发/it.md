@@ -33,6 +33,10 @@
 ### CSS 转义的模式和非法反转义（中，代码确认）
 - `tools/it/css-escape.html:162-168,264-280,311-336`：模式下拉没有 change 事件，改变模式不刷新已有结果；标识符模式将 `-1a` 原样输出，未处理第二个字符为数字的 CSS 标识符边界。反转义 `\110000` 调用 `String.fromCodePoint(0x110000)` 会抛 RangeError，未提示错误。应绑定模式更新、规范处理标识符与非法码点。
 
+### 邮箱规范化误判 Gmail 域名及结果状态（中，代码确认）
+- `tools/it/email-normalizer.html:268-290` 以 `/gmail\.com$/` 匹配服务商，`user.name+tag@notgmail.com` 被误判为 Gmail 并改成 `username@notgmail.com`。应仅匹配确切的 `gmail.com` / `googlemail.com` 域名；其他域名的点号和标签不能擅自删除。
+- `:122-123,267-282,333-345,394-398`：Gmail 选项未绑定变化事件，取消后结果仍旧直到重新计算；历史恢复写回输入后调用 `copyAfter()` 而非 `normalize()`，既不更新结果，还会尝试复制之前的结果；无效邮箱时复制按钮也会复制「❌ 无效邮箱」文本。应按当前参数重新计算、阻止无效复制。
+
 ### 历史结论状态
 - IT-N46 现有 RGB/alpha clamp；IT-N47 当前已合成前景 alpha、非法输入清除比值，历史原问题需运行回归后销账；背景 alpha 仍需单独确认。IT-N423、N308、N309 的数据范围问题仍在。
 - IT-N17 的 `toTitleCase` 现按空白切词并只大写词首，原 `don't` / `myVar` 缺陷的实现已不在当前源码中；未运行回归，先标记待销账。IT-N170–N173、IT-N49 的关键路径仍在。
