@@ -195,11 +195,10 @@
 
 ## 2026-11-03 续查（并行批 J）
 
-### IT-N20 历史/数据表/图表恒空，历史回填会清空全部选项（中，已修复）
-- 描述：原 `__text_cleanerExtras()`（记录历史 + 渲染数据表/图表/历史三页签）此前**只被 `applyPreset` 包裹**，点「执行清理」/预设条回调 `executeClean()` 都不会记录，故三个页签恒空；且历史回填回调调用无参 `applyPreset()` → 其内部 `deselectAll()` 把刚恢复的勾选清空。
-- 复核结论：审计引用的 `textContent` 子问题在当前源码已不存在——`__text_cleanerResText()` 已对 `TEXTAREA` 走 `r.value`（`:759`），非根因。真根因为 extras 未接 `executeClean` + 回填误调 `applyPreset()`。
-- 修复（`tools/it/text-cleaner.html`）：① 新增 `executeClean` 包裹，使其在清理完成后触发 `__text_cleanerExtras()`（回填期间 `__text_cleaner_skip` 已置位，extras 直接返回不重复记录）；② 历史回填回调由 `applyPreset()` 改为 `executeClean()`，恢复字段后直接重跑清理、复现结果，不再清空勾选。
-- 验证：`verify_it_calc.js` 新增 N20 回归用例（`executeClean()` 后断言 `text_cleanerTable` 含结果「hello world foo bar」），text-cleaner 9/9 通过。
+### IT-N20 历史回填不清除原本未勾选的选项（中，部分修复）
+- 2026-11-06 复核：`tools/it/text-cleaner.html:743-855` 已给 `executeClean()` 接入历史记录，并在回填时重新执行清理，不再调用会清空选项的 `applyPreset()`；原记录中的这两处问题已修。
+- 但 `__text_cleanerSnap()` 不保存未勾选的复选框，历史回调只遍历记录中存在的字段，故不能清除当前已勾选、而历史当时未勾选的选项。Node 执行实际回填回调：历史记录无 `opt-trim`，当前 `opt-trim` 已勾选，回填后仍为 `true`，再执行清理时可能产生与历史不一致的结果。未做浏览器验证。
+- 方案：恢复历史前统一重置选项，或保存和恢复完整的勾选状态；兼顾既有历史记录格式。
 
 - 2026-11-06 复核已修复项：IT-N25 的 `doBeautify()` 经 Node 执行 `["a","b"]`，得到 `0 = a` 和 `1 = b`，未再误判为 INI 节。未做浏览器验证。
 
