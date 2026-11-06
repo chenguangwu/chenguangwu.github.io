@@ -2,7 +2,6 @@
 
 | # | 页面 | 得分 | 类型 | 证据 |
 |---|---|---|---|---|
-| 1 | `tools/data/data-visualizer.html` | 3 | click_error（已修复 2026-11-06 核验：bins 非整数/负数致 Array(k) 抛 Invalid array length；data-visualizer.html:289 改为 Math.floor 后 clamp 到 [1,1000]，NaN/负数/0 回退 8） | 按钮「📈 渲染」｜click: Invalid array length @ drawHistogram (/tools/data/data-visualizer.html:299:18) |
 | 2 | `tools/agriculture/agri-calculator.html` | 2.6 | empty_bogus | 空输入点「计算配比」（text_empty_no_select）→ 结果区 氮 (N)0.00kg磷 (P₂O₅)0.00kg钾 (K₂O)0.00kg配方比例：0-0-0施肥面积：0 亩每亩用量：0… |
 | 3 | `tools/design/px-to-rem.html` | 2.6 | empty_bogus | 空输入点「计算」（text_empty_no_select）→ 结果区 转换结果 ⏐ 0px = 0.0000rem ⏐ 📋 复制结果⬇️ 导出 TXT |
 | 4 | `tools/eco/battery-storage.html` | 2.6 | empty_bogus | 空输入点「计算」（text_empty_no_select）→ 结果区 可用电量：0.00 kWh总能量：0.00 kWh ⏐ 📋 复制结果⬇️ 导出 TXT |
@@ -35,13 +34,11 @@
 | 31 | `tools/investment/payback-period.html` | 2.6 | empty_bogus | 空输入点「计算」（text_empty_no_select）→ 结果区 0.00 年静态回收期 ⏐ 📋 复制结果⬇️ 导出 TXT |
 | 32 | `tools/life/countdown.html` | 2.6 | empty_bogus | 空输入点「开始倒计时」（text_empty_no_select）→ 结果区 ⚡ 效率工具栏 ✓ 本地处理 0 字符 · 0 行 Ctrl/⌘ + Enter 快速运行 ⏐ 📋 复制结果⬇️ 导出 … |
 | 33 | `tools/agriculture/detector-nutrition.html` | 2.2 | empty_conclusion（已修复 2026-11-06 核验：calc 加全空守卫，非空路径不变） | 空输入点「判读品质」（text_empty_no_select）→ 结果区 综合等级：不合格 优质 2 / 合格 2 / 共 6 项发酵度评价：发酵不足（乳酸 0%）指标实测判读蛋白质0%偏低脂肪0%… |
-| 34 | `tools/agriculture/irrigation-uniformity.html` | 2.2 | empty_conclusion（已修复 2026-11-06 核验：calc 加全空守卫，非空路径不变） | 空输入点「计算」（text_empty_no_select）→ 结果区 0.0%克里斯琴森系数CU0.0%分布均匀度DU0.00平均灌水量(mm)0.0%变异系数CV均匀度评价：均匀性差CU参考标准：… |
 | 35 | `tools/automotive/voltage-1.html` | 2.2 | empty_conclusion | 空输入点「🧮 计算」（text_empty_no_select）→ 结果区 38.0用电总电流 (A)38.0含充电总电流 (A)0负载率 (%)-38.0剩余电流 (A)0.55用电功率 (kW)… |
 | 36 | `tools/beauty/recommender-face-shape.html` | 2.2 | empty_conclusion | 空输入点「生成」（text_empty_no_select）→ 结果区 生成结果： 1. 椭圆形脸 推荐发型：中长发、波浪卷、空气刘海 妆容建议：标准脸，眉形自然，唇妆可随心尝试 注意：公认理想脸型，… |
 | 37 | `tools/biz/checker-8.html` | 2.2 | empty_conclusion（已修复 2026-11-06 核验：calc 加全空守卫，非空路径不变） | 空输入点「质量评估」（text_empty_no_select）→ 结果区 8服务质量总分服务质量不合格质量等级评估维度权重得分明细状态人员标准25%0持证0%/培训0%/着装0%/出勤0%差服务流程… |
 | 38 | `tools/biz/presentation-timer.html` | 2.2 | empty_conclusion | 空输入点「开始演讲」（text_empty_no_select）→ 结果区 进度正常 |
 | 39 | `tools/decor/detector-18.html` | 2.2 | empty_conclusion（已修复 2026-11-06 核验：calc 加全空守卫，非空路径不变） | 空输入点「检测判定」（text_empty_no_select）→ 结果区 室内空气质量检测结果（GB/T 18883-2022）污染物实测值限值判定甲醛0 mg/m³≤0.08✓ 达标 (0%)TV… |
-| 40 | `tools/eco/aqi.html` | 2.2 | empty_conclusion（已修复 2026-11-06 核验：calc 加全空守卫，非空路径不变） | 空输入点「计算」（text_empty_no_select）→ 结果区 健康等级：1 级建议活动时长：0.0 小时PM2.5 估算：0.0 µg/m³ ⏐ 📋 复制结果⬇️ 导出 TXT |
 | 41 | `tools/eco/noise-superposition.html` | 2.2 | empty_conclusion | 空输入点「计算叠加」（text_empty_no_select）→ 结果区 叠加后总声压级3.0 dB安静声源数量2最大声源0.0 dB能量平均0.0 dB较最大声源增加+3.0 dB距离衰减参考（点… |
 | 42 | `tools/edu/assessor-27.html` | 2.2 | empty_conclusion | 空输入点「知识评估」（text_empty_no_select）→ 结果区 知识管理成熟度评估知识捕获：0/10 ✗知识共享：0/10 ✗知识应用：0/10 ✗知识创新：0/10 ✗知识存储：0/10… |
 | 43 | `tools/electronics/bandwidth.html` | 2.2 | empty_conclusion | 空输入点「🧮 计算」（text_empty_no_select）→ 结果区 0.00e+0所需 GBP (Hz)0.00e+0建议 GBP (Hz)0.00e+0-3dB带宽 (Hz)推荐运放：LM… |
@@ -49,15 +46,9 @@
 | 45 | `tools/encode/encode-7.html` | 2.2 | empty_conclusion | 空输入点「计算」（text_empty_no_select）→ 结果区 空间大小：1 近似碰撞概率：0.000000 %安全阈值 n：1 ⏐ 📋 复制结果⬇️ 导出 TXT |
 | 46 | `tools/endocrinology/detector-metabolism.html` | 2.2 | empty_conclusion（已修复 2026-11-06 核验：calc 加全空守卫，非空路径不变） | 空输入点「分析判读」（text_empty_no_select）→ 结果区 儿茶酚胺及代谢产物检测结果项目实测参考范围判定24h尿VMA0 mg/24h1-7↓ 偏低24h尿HVA0 mg/24h1-… |
 | 47 | `tools/energy/air-purifier-area.html` | 2.2 | empty_conclusion | 空输入点「计算」（text_empty_no_select）→ 结果区 0最小面积 m²0推荐面积 m²0最大面积 m²0.0换气次数/小时 ⏐ 📋 复制结果⬇️ 导出 TXT ⏐ 📊 结果解读 … |
-| 48 | `tools/energy/water-tds-evaluator.html` | 2.2 | empty_conclusion（已修复 2026-11-06 核验：calc 加全空守卫，非空路径不变） | 空输入点「评估」（text_empty_no_select）→ 结果区 直饮水级🎯 适用场景直饮无需处理高端饮用纯净水实验室超纯水稀释💡 健康提示水质极优，口感清冽。TDS极低可能意味着缺乏有益矿… |
+| 48 | `tools/energy/water-tds-evaluator.html` | 2.2 | empty_conclusion | 清空 TDS 后虽提示填写，但顶部水质等级和 TDS 进度条仍显示上次评估结果。 |
 | 49 | `tools/ent/ahi-severity.html` | 2.2 | empty_conclusion（已修复 2026-11-06 核验：calc 加全空守卫，非空路径不变） | 空输入点「计算评估」（text_empty_no_select）→ 结果区 0AHI(次/h)0AI暂停指数0HI低通气指数0ODI氧减指数0微觉醒指数100%正常 ⏐ 📋 复制结果⬇️ 导出 TX… |
 | 50 | `tools/ent/hearing-loss-classification.html` | 2.2 | empty_conclusion（已修复 2026-11-06 核验：calc 加全空守卫，非空路径不变） | 空输入点「计算分析」（text_empty_no_select）→ 结果区 0PTA气导(dB)0PTA骨导(dB)0气骨导差(dB)0高频平均(dB) ⏐ 📋 复制结果⬇️ 导出 TXT ⏐ 参考… |
-
-## 一、按钮有效性（点了没反应 / 点了报错）
-
-### 点击主按钮抛异常（含 console 报错）（1 页）
-
-- `tools/data/data-visualizer.html` — 按钮「📈 渲染」｜click: Invalid array length @ drawHistogram (/tools/data/data-visualizer.html:299:18)（**已修复 2026-11-06 核验**：bins 取值 `Array(k)` 遇非整数/负数抛错；`data-visualizer.html:289` 改为 `Math.floor` 后 clamp 到 [1,1000]，空/NaN/负数回退 8）
 
 ## 二、空态（没填也敢给结论）
 
@@ -95,16 +86,14 @@
 - `tools/investment/payback-period.html` — 空输入点「计算」（text_empty_no_select）→ 结果区 0.00 年静态回收期 ⏐ 📋 复制结果⬇️ 导出 TXT
 - `tools/life/countdown.html` — 空输入点「开始倒计时」（text_empty_no_select）→ 结果区 ⚡ 效率工具栏 ✓ 本地处理 0 字符 · 0 行 Ctrl/⌘ + Enter 快速运行 ⏐ 📋 复制结果⬇️ 导出 TXT
 
-### 空输入直接给出结论（优秀/正常/合格…）（30 页）
+### 空输入直接给出结论（优秀/正常/合格…）（28 页）
 
 - `tools/agriculture/detector-nutrition.html` — 空输入点「判读品质」（text_empty_no_select）→ 结果区 综合等级：不合格 **（已修复 2026-11-06 核验：calc 开头加全空守卫，空输入显示"请先填写各营养成分含量"提示，非空路径不变）** 优质 2 / 合格 2 / 共 6 项发酵度评价：发酵不足（乳酸 0%）指标实测判读蛋白质0%偏低脂肪0%偏低还原糖0%偏低水分0%优质灰分0%优质乳酸(发酵度)0%偏低品质解读：多…
-- `tools/agriculture/irrigation-uniformity.html` — 空输入点「计算」（text_empty_no_select）→ 结果区 0.0%克里斯琴森系数CU0.0%分布均匀度DU0.00平均灌水量(mm)0.0%变异系数CV均匀度评价：均匀性差CU参考标准：>90%优秀**（已修复 2026-11-06 核验：calc 开头加全空守卫，空输入显示填写提示，非空路径不变）** \| 80-90%良好 \| 70-80%一般 \| <70%差…
 - `tools/automotive/voltage-1.html` — 空输入点「🧮 计算」（text_empty_no_select）→ 结果区 38.0用电总电流 (A)38.0含充电总电流 (A)0负载率 (%)-38.0剩余电流 (A)0.55用电功率 (kW)0.00发电机功率 (kW)负载充足平衡评估负载率: 0.0%（安全线 80%…
 - `tools/beauty/recommender-face-shape.html` — 空输入点「生成」（text_empty_no_select）→ 结果区 生成结果： 1. 椭圆形脸 推荐发型：中长发、波浪卷、空气刘海 妆容建议：标准脸，眉形自然，唇妆可随心尝试 注意：公认理想脸型，多数发型都适合 2. 菱形脸 推荐发型：八字刘海、锁骨发、两侧蓬松 妆容…
 - `tools/biz/checker-8.html` — 空输入点「质量评估」（text_empty_no_select）→ 结果区 8服务质量总分服务质量不合格 **（已修复 2026-11-06 核验：calc 开头加全空守卫，空输入显示填写提示，非空路径不变）**质量等级评估维度权重得分明细状态人员标准25%0持证0%/培训0%/着装0%/出勤0%差服务流程30%25巡逻0%/门禁0%/响应0分钟/记录0%差装备设施20%0监控0%…
 - `tools/biz/presentation-timer.html` — 空输入点「开始演讲」（text_empty_no_select）→ 结果区 进度正常
 - `tools/decor/detector-18.html` — 空输入点「检测判定」（text_empty_no_select）→ 结果区 室内空气质量检测结果（GB/T 18883-2022）污染物实测值限值判定甲醛0 **（已修复 2026-11-06 核验：calc 开头加全空守卫，空输入显示填写提示，非空路径不变）** mg/m³≤0.08✓ 达标 (0%)TVOC0 mg/m³≤0.6✓ 达标 (0%)苯0 mg/m³≤0.03✓ 达…
-- `tools/eco/aqi.html` — 空输入点「计算」（text_empty_no_select）→ 结果区 健康等级：1 级 **（已修复 2026-11-06 核验：calc 开头加全空守卫，空输入显示填写提示，非空路径不变）**建议活动时长：0.0 小时PM2.5 估算：0.0 µg/m³ ⏐ 📋 复制结果⬇️ 导出 TXT
 - `tools/eco/noise-superposition.html` — 空输入点「计算叠加」（text_empty_no_select）→ 结果区 叠加后总声压级3.0 dB安静声源数量2最大声源0.0 dB能量平均0.0 dB较最大声源增加+3.0 dB距离衰减参考（点声源，距最大声源）：1m0.0 dB5m-14.0 dB10m-20.0 d…
 - `tools/edu/assessor-27.html` — 空输入点「知识评估」（text_empty_no_select）→ 结果区 知识管理成熟度评估知识捕获：0/10 ✗知识共享：0/10 ✗知识应用：0/10 ✗知识创新：0/10 ✗知识存储：0/10 ✗知识安全：0/10 ✗综合评分：0.00/10成熟度等级：1级-初始级知…
 - `tools/electronics/bandwidth.html` — 空输入点「🧮 计算」（text_empty_no_select）→ 结果区 0.00e+0所需 GBP (Hz)0.00e+0建议 GBP (Hz)0.00e+0-3dB带宽 (Hz)推荐运放：LM358 / NE5532 (1~10MHz)。建议选型裕量≥2倍，高频应用还需…
@@ -112,7 +101,7 @@
 - `tools/encode/encode-7.html` — 空输入点「计算」（text_empty_no_select）→ 结果区 空间大小：1 近似碰撞概率：0.000000 %安全阈值 n：1 ⏐ 📋 复制结果⬇️ 导出 TXT
 - `tools/endocrinology/detector-metabolism.html` — 空输入点「分析判读」（text_empty_no_select）→ 结果区 儿茶酚胺及代谢产物检测结果项目实测参考范围判定24h尿VMA0 **（已修复 2026-11-06 核验：calc 开头加全空守卫，空输入显示填写提示，非空路径不变）** mg/24h1-7↓ 偏低24h尿HVA0 mg/24h1-4↓ 偏低血去甲肾上腺素0 pg/mL80-520↓ 偏低血肾上腺素0 pg…
 - `tools/energy/air-purifier-area.html` — 空输入点「计算」（text_empty_no_select）→ 结果区 0最小面积 m²0推荐面积 m²0最大面积 m²0.0换气次数/小时 ⏐ 📋 复制结果⬇️ 导出 TXT ⏐ 📊 结果解读 估算口径适用面积常按 CADR（洁净空气量）× 系数估算：卧室约 CAD…
-- `tools/energy/water-tds-evaluator.html` — 空输入点「评估」（text_empty_no_select）→ 结果区 直饮水级 **（已修复 2026-11-06 核验：evaluate 开头加全空守卫，空输入显示填写提示，非空路径不变）**🎯 适用场景直饮无需处理高端饮用纯净水实验室超纯水稀释💡 健康提示水质极优，口感清冽。TDS极低可能意味着缺乏有益矿物质，长期饮用纯净水建议适当补充矿物质。🌍 WHO标准对比完全符合WH…
+- `tools/energy/water-tds-evaluator.html` — 清空 TDS 后 `evaluate()` 只替换结果区并提前返回，未清除 `vizGrade` 与 `tdsBar` 上次评估的水质等级和数值，空态仍显示旧结论。
 - `tools/ent/ahi-severity.html` — 空输入点「计算评估」（text_empty_no_select）→ 结果区 0AHI **（已修复 2026-11-06 核验：calc 开头加全空守卫，空输入显示填写提示，非空路径不变）**(次/h)0AI暂停指数0HI低通气指数0ODI氧减指数0微觉醒指数100%正常 ⏐ 📋 复制结果⬇️ 导出 TXT ⏐ 参考区间标尺正常00.20.40.60.810
 - `tools/ent/hearing-loss-classification.html` — 空输入点「计算分析」（text_empty_no_select）→ 结果区 0PTA气导 **（已修复 2026-11-06 核验：calc 开头加全空守卫，空输入显示填写提示，非空路径不变）**(dB)0PTA骨导(dB)0气骨导差(dB)0高频平均(dB) ⏐ 📋 复制结果⬇️ 导出 TXT ⏐ 参考区间标尺正常00.20.40.60.810
 - `tools/ent/laryngeal-nerve.html` — 空输入点「分析评估」（text_empty_no_select）→ 结果区 F0 基频0 Hz异常 ⏐ Jitter 微扰0%正常 ⏐ Shimmer 振幅微扰0%正常 ⏐ NHR 噪谐比0正常 ⏐ HNR 谐噪比0 dB异常 ⏐ MPT 最长发声0 秒异常 ⏐ 📋 复制结…
