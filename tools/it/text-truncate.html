@@ -359,13 +359,6 @@ function truncate(){
       }
     }else if(mode === 'bytes'){
       const cps = graphemes(s);
-      // N15 修复：省略符自身已超出字节上限时，按字节截断省略符，保证结果不超过 limit
-      if(ellipsisBytes > limit){
-        const parts = graphemes(ellipsis);
-        let acc = 0; const out = [];
-        for(const g of parts){ const b = utf8Len(g); if(acc + b > limit) break; acc += b; out.push(g); }
-        return out.join('');
-      }
       const budget = Math.max(0, limit - ellipsisBytes);
       let total = 0, cut = 0;
       while(cut < cps.length){
@@ -374,6 +367,13 @@ function truncate(){
         total += b; cut++;
       }
       if(cut >= cps.length) return s;
+      // N15 修复：仅在确需截断、且省略符自身已超出字节上限时，按字节截断省略符保证结果不超 limit
+      if(ellipsisBytes > limit){
+        const parts = graphemes(ellipsis);
+        let acc = 0; const out = [];
+        for(const g of parts){ const b = utf8Len(g); if(acc + b > limit) break; acc += b; out.push(g); }
+        return out.join('');
+      }
       if(fromEnd){
         let acc = 0, start = cps.length;
         while(start > 0){

@@ -172,12 +172,13 @@
 - 影响：Unicode 输入中，未匹配字符丢失或保留错误，复制/下载会传播损坏的内容；非全局分支亦用同样的索引方式，需一并验证。
 - 方案：匹配位置必须对应原文，增加大小写映射长度变化、连续命中及非全局回归；尚未做浏览器验证。
 
-### IT-N6 特定 JSON 解析错误仍保留旧 CSV（高）
-- `tools/it/json-to-csv.html` 的异常分支在清空结果前先检查错误信息；如先转换有效 JSON，再输入 `NaN` 或 `Infinity`，若解析错误消息包含这些词，提前返回导致 `output.value` 和 `__jsonToCsvExportSafe` 仍为旧结果，复制或下载可能导出旧数据。
-- 应在所有错误返回前清空预览与导出缓存，并覆盖有效 → 异常输入 → 有效的切换。
+### IT-N6 特定 JSON 解析错误仍保留旧 CSV（高，已修复）
+- `tools/it/json-to-csv.html:308` 的 catch 分支先检查错误信息再决定显示：`JSON.parse('[NaN]')` 抛 `SyntaxError: Unexpected token 'N', "[NaN]" is not valid JSON`，其中 `[NaN]` 子串命中 `/(^|[^A-Za-z])NaN([^A-Za-z]|$)/` 防御正则 ⇒ 走「通用告警提前 return」分支，该分支**未清空** `output.value`/`__jsonToCsvExportSafe` ⇒ 旧 CSV 残留，复制/下载会误读旧数据。Node 已复现（旧实现 cleared=false）。
+- 修复：`toCSV()` catch 的 NaN/Infinity 防御分支在 return 前先 `output.value=''`、`__jsonToCsvExportSafe=''` 并改写结果区为真实解析错误（不再提前 return 且不清空）；回归用例（verify_it_calc.js json-to-csv 第 5 例）注入有效 JSON→`[NaN]`→断言「解析失败」出现（旧实现该分支只显示通用告警、不含「解析失败」），属强判别。
 
-### IT-N7 JSON 数组处理说明存在歧义（中）
+### IT-N7 JSON 数组处理说明存在歧义（中，已修复）
 - `tools/it/json-to-csv.html` 的工作原理同时写「嵌套对象或数组序列化为 JSON 字符串，不展开为多列」和「数组经索引展开」，但 `cell()` 对嵌套数组直接序列化，不会展开索引列。应明确区分顶层数组与嵌套数组的处理方式。
+- 修复：删除矛盾的「数组经索引展开。」一句，工作原理区统一为「嵌套数组同样序列化为 JSON 字符串填入单元格（不按索引展开为多列）」（`tools/it/json-to-csv.html:123`，formula-box 区直接改 HTML 有效；deep-dive FAQ 正确文本此前已落到构建源 `i18n/tools/content_deepdive.json`，`96da825eb1`）。
 
 ### IT-N8 自定义进制小数被静默截断（中，确认缺陷）
 - `tools/it/number-base-converter.html:433-439` 先用 `parseInt` 解析自定义基数，再检查整数；输入 `2.5` 被当作 2 进制，而非提示必须输入 2–36 的整数。Node 执行原函数已复现。
@@ -193,9 +194,9 @@
 - `tools/it/properties-parser.html:329-337` 仍重复定义 `setOut/setErr/clearAll/loadSample`；后定义的 `setErr` 覆盖成功态判断，成功和错误提示均为 `err`，空消息反而带 `ok`，`loadSample` 也改为调用 `doBeautify()`。Node 执行页面原函数确认成功提示的 class 为 `err`。
 - 删除重复定义并保留正确的成功态判断，确认示例行为符合预期。
 
-### IT-N15 字节模式对未超限文本错误截断（中）
+### IT-N15 字节模式对未超限文本错误截断（中，已修复）
 - `tools/it/text-truncate.html` 字节模式先判断省略符是否超过上限，再判断输入是否需要截断。例如输入 `a`、上限 1 字节、省略符 `...` 时输出 `.` 而非原文 `a`。
-- 应先判断输入是否超过上限，仅在确需截断时处理超长省略符。
+- 修复：将 bytes 分支的 `if(ellipsisBytes > limit)` 超长省略符处理移到 `if(cut >= cps.length) return s;`（输入无需截断即原样返回）之后，仅在确需截断时处理；verify 8/8 全过（`49d2b346b9` 提交 N15 省略符超上限截断 + 本次位置修正）。
 
 ### 留存优化
 - `properties-parser.html:298` 的 `unescapeVal` 不解码 `\uXXXX`：`greet=\u4f60\u597d` 原样保留（Node 已复算），与页面 FAQ 对转义的说明不一致。

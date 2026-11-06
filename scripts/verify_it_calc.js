@@ -1672,6 +1672,15 @@ const CASES = [
     ref: "独立复算：输入 []（非空字符串、但 parsed 数组 length=0）⇒ 走 !data.length 分支，结果区提示且 output.value/__jsonToCsvExportSafe 必须被清空（修复前此分支不清空，旧 CSV 残留在 output 与导出串，复制/下载会误读旧数据）。默认样例是有效 JSON，不命中。",
   },
   {
+    slug: "it/json-to-csv",
+    // IT-N6 强回归：先生成有效 CSV，再注入非法 JSON（解析错误消息含 NaN/Infinity 字样），
+    // 必须清空旧 CSV（output.value/__jsonToCsvExportSafe）且结果区改写「解析失败」，不得残留上一次的有效 CSV。
+    inputs: { input: '[{"a":1,"b":2}]' },
+    clicks: ["toCSV()", "document.getElementById('input').value='[NaN]'; toCSV()"],
+    expect: ["解析失败"],
+    ref: "独立复算：① 有效 JSON ⇒ output.value 写入 CSV、__jsonToCsvExportSafe 同步；② 注入非法 `[NaN]` ⇒ JSON.parse 抛 SyntaxError，其 message 含 `[NaN]` 子串命中 NaN 防御分支，修复前该分支提前 return 且不清空 output.value/__jsonToCsvExportSafe ⇒ 旧 CSV 残留（复制/下载会误读旧数据）；修复后该分支在 return 前清空两处并改写结果区为「解析失败：…」。expect 取「解析失败」——仅在修复态出现（旧实现该分支显示通用告警、不含「解析失败」），属强判别。",
+  },
+  {
     slug: "it/json-to-yaml",
     inputs: { input: '{"a":1}' },
     clicks: ["doYaml()"],
