@@ -63,7 +63,7 @@
 | 商业运营 | `tools/ecommerce/analysis-cost-8.html` | C | `:10` 称分项成本/费用效益比；`:125-129` 仅固定成本/单位变动成本/单价；`:210-225` 只算 CVP 保本 | `plan/categories/06-商业运营/ecommerce-logistics.md:394` | 已确认（真） | 中（名实不符） |
 | 商业运营 | `tools/ecommerce/analysis-70.html` | A | `:126` 每行含「订单数」；`:205` 起 calc 全程未引用该列 | `plan/categories/06-商业运营/ecommerce-logistics.md:373` | 已确认（真） | 中（死输入） |
 | 商业运营 | `tools/hr/hris-zizhuyuaiduibijisuanqi.html` | C | `:130,132` 仅 HRIS/AI 两个成熟度分；`:304` 起只比较两分 | `plan/categories/06-商业运营/hr-legal.md:441` | 已确认（真） | 中（宣称对比成本与效率） |
-| 医疗健康 | `tools/clinical-nursing/suction-pressure.html` | A | `:148` 压力输入；`:276-279` 区间已改为 80-120/80-100/60-80/40-60，**原「成人硬编码 150-200」已不成立**；残留默认值 `value="150"` 越界，首屏即提示「过高」 | `plan/categories/03-医疗健康/drug-dosing.md:333` | 已否定 | —（仅建议把默认值改为 100） |
+| 医疗健康 | `tools/clinical-nursing/suction-pressure.html` | A | 2026-11-06 Node 执行 `checkPressure()`：成人 150 提示过高，100 显示 80–120 区间内；未做浏览器验证，临床范围需专业复核 | `plan/categories/03-医疗健康/drug-dosing.md` 的 D-N37 | 已否定 | —（成人错误区间已修；其他原记录未复核） |
 | 医疗健康 | `tools/pulmonology/lung-rads.html` | A | 2026-11-06 Node 执行实际 `calc()`：部分实性总径 30 mm、实性成分 5/6/8 mm 分别输出 3/4A/4B，空值拦截；未做浏览器验证，阈值需专业复核 | `plan/categories/03-医疗健康/drug-dosing.md` 的 D-N107 | 已否定 | —（已修复） |
 | 医疗健康 | `tools/clinical-lab/flow-cytometry-ratio.html` | A | `:154` Treg 输入、`:260` 读入后**全文未再使用**；`:302` 仅显示 NK 绝对值，`:316-330` 异常 flags 无 NK 低值判定，NK 偏低仍落「各项指标在参考范围内」 | `plan/categories/03-医疗健康/lab-diagnosis.md:291` | 已确认（真） | 中高（正向误判） |
 | 医疗健康 | `tools/clinical-lab/semen-analysis.html` | A | `:148` IM 输入、`:261` 读入；`:262` 必填校验**不含 im**；`:267` 总活力只算 PR+NP；`:274` `setInterp('im',true,'')` 恒显 ✓ 正常 | `plan/categories/03-医疗健康/lab-diagnosis.md:398` | 已确认（真） | 中（IM 死输入 + 假正常） |

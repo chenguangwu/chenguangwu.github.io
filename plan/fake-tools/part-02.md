@@ -4,7 +4,7 @@
 
 | 页面 | 结论 | 证据行号（当前源码） | 判定说明 |
 |---|---|---|---|
-| `tools/clinical-nursing/suction-pressure.html` | 假 | `:148,276-279` | 压力输入→分级正常；四档区间已改为 80-120/80-100/60-80/40-60，原「成人 150-200 冲突」已修复。残留：默认值 150 越界，首屏即红（建议改 100）。 |
+| `tools/clinical-nursing/suction-pressure.html` | 假 | `:275-279,294-333` | 2026-11-06 Node 执行实际 `checkPressure()`：成人 150 提示过高，100 显示 80–120 区间内；未做浏览器验证，临床范围需专业复核。其他原记录见 D-N37。 |
 | `tools/pulmonology/lung-rads.html` | 假 | `:141-142,270-280` | 2026-11-06 Node 执行实际 `calc()`：部分实性总径 30 mm、实性成分 5/6/8 mm 分别输出 3/4A/4B，空值拦截；未做浏览器验证，阈值需专业复核。 |
 | `tools/clinical-lab/flow-cytometry-ratio.html` | 真 | `:154,260,302,316-330` | Treg 读入后全文未用（死输入）；NK 仅显示绝对值，异常 flags 无 NK 低值，NK 偏低仍报「各项指标在参考范围内」。 |
 | `tools/clinical-lab/semen-analysis.html` | 真 | `:148,261-267,274` | IM 不在必填校验、不参与总活力；`setInterp('im',true,'')` 恒显 ✓ 正常。 |
