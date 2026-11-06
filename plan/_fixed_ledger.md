@@ -3,17 +3,6 @@
 > 用途：记录每批已修的中优条目，避免下批重复排查。ID 与页面均对应 `plan/categories/**` 审计条目。
 > 维护规则：主流程每批收口后追加；审计线只写分类文件，本台账只由修复线写。
 
-## 批次 1 · commit a53fae2e16（12 页）
-
-| 条目 ID | 页面 | 修复类型 | 验证用例 |
-|---|---|---|---|
-| IT-N37 | tools/text/reading-time-estimator.html | 空文本/0 速度校验，Math.round→Math.ceil | verify_text_calc.js ×3（空文本、0 速度、110 字进位） |
-| D-N28 | tools/healthcare/ibw.html | 身高 100–250 cm 范围守卫（修负 IBW） | verify_healthcare_calc.js ×1（height=42 拒绝并提示） |
-| D-N34 | tools/healthcare/map.html | 血压 >0 / 范围 / 舒张压≤收缩压 守卫 | 页面守卫 + 深解方法同步（无独立用例） |
-| （D-N13/D-N14 邻域） | tools/healthcare/weight-dosage.html | 体重与剂量率 >0 守卫、超范围核对提示 | 页面守卫 + 深解方法同步（无独立用例） |
-
-数据源：`i18n/tools/content_deepdive.json` 5 处（reading-time 算例与 FAQ、text-truncate 示例、ibw/map/weight-dosage 方法）。
-
 ## 批次 2 · commit afe1c858fd（40 页）
 
 | 分区 | 条目 ID | 页面 | 修复类型 | 验证用例 |
