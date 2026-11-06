@@ -1,5 +1,9 @@
 # 医疗 · 专科计算类（ent/dermatology/obstetrics/pediatrics/ophthalmology/urology 等 ~120 页）
 
+## 2026-11-06 结石成分静态续审（清单 649）
+
+- `tools/urology/stone-composition.html:243-252,286-320`：成分筛选、搜索及选择卡片均有代码路径；Brushite 条目列“酸性尿”成因和“碱化尿液”预防，与磷酸钙结石管理可能冲突，须泌尿科专业人员依据现行指南核验，不据此自行改变尿液 pH 或用药。未运行页面，其他药物和阈值未做专业核验。
+
 ## 2026-11-06 中药工具静态续审（清单 630–633）
 
 - `tools/tcm-pharmacy/formula-song.html:330-345,378-393`：自动方歌的药材输入 `herbs.join('、')` 未转义即插入 `innerHTML`，存在 HTML 注入路径；缺必填项时只 toast、保留上次生成结果。未运行注入。
