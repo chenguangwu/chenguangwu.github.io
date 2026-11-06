@@ -3877,14 +3877,6 @@
 
 | 页面 | 问题（含 tools/it/<slug>.html:NN） | 编号 |
 | --- | --- | --- |
-| `tools/it/kubernetes-yaml-generator.html` | 231 行 `Math.floor(num('port'))||80` 只兜底 0/NaN：负数与超 65535（如 -1、70000）原样写入 `containerPort`/Service `port`；229 行名称仅 `trim()`，未按 DNS-1123 校验，含大写、空格或 `: ` 时 233 行生成非法 YAML，`kubectl apply` 必拒；镜像同理由 230 行原样拼接 | IT-N528 |
-| `tools/it/nato-alphabet.html` | 反查 287 行先 `replace(/[^a-z]/g,'')` 再查 288 行 `REV`：`X-ray` 变成 `xray`，而 261 行 `REV` 的键是 `x-ray`，于是 290 行返回 `?`；`X` 唯一带连字符的码词无法反解（错误结果） | IT-N529 |
-| `tools/it/nato-alphabet.html` | 283 行 `raw.replace(/\s/g,'').length` 把标点、数字、汉字都算作「字母」：`Hello, World!` 显示 12 个字母（实际 10 个）；反查 293 行也把未能解析的 `?` 计入音标词数（算错） | IT-N530 |
-| `tools/it/nato-alphabet.html` | 公式 111 行称命中输出「字母=音标词」，115 行列出数字专用读法（3→Tree、9→Niner），但 272-281 行构造的 `parts`/`all` 从未渲染，283 行结果区只显示计数；278 行数字原样保留、282 行标点/CJK 原样透传，均未按承诺转换（承诺未实现） | IT-N531 |
-| `tools/it/emoji-cheatsheet.html` | `EMOJIS` 表存在重复条目：🤩 315/330、😎 328/354、🥳 331/353、🤓 327/355、🍺 526/532、❌ 800/826、☔ 862/864、❇️ 836/838；`ec_groups()`（1025-1031）按条目累加、913 行「共 N 个」也按条目，柱状图与总数对同一 emoji 重复计数（算错） | IT-N532 |
-| `tools/it/java-cheatsheet.html` | Java 没有 `--` 行注释：示例 341 行 `-- 增强 for`、405 行 `-- 方法引用`、445 行两处 `-- "Alice"`/`-- true`、509 行 `-- 10`，复制后 `--` 被解析为递减运算符，直接编译失败（错误结果） | IT-N533 |
-| `tools/it/nginx-cheatsheet.html` | nginx 注释符是 `#` 不是 `--`：445 行 `client_max_body_size 20m;  -- 上传大文件`、469 行 `access_log off;  -- 关闭` 会被当作未知指令，541 行 `nginx -s reopen  -- 重开日志` 参数非法；复制进配置后 `nginx -t` 失败（错误结果） | IT-N534 |
-| `tools/it/nginx-cheatsheet.html` | 509 行示例 `if ($https = off)` 永不成立——nginx 的 `$https` 只有 `on` 或空值，不会取 `off`，HTTP→HTTPS 跳转永远不触发（应判 `$scheme = http` 或 `$https != on`）；示例与 408-413 行 `ssl_redirect` 条目自相矛盾（错误结果） | IT-N535 |
 
 **统计**
 - 页数：8（`emoji-cheatsheet`、`java-cheatsheet`、`kubernetes-yaml-generator`、`location-qr`、`lorem`、`markdown-lint`、`nato-alphabet`、`nginx-cheatsheet`）。

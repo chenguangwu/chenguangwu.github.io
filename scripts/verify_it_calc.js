@@ -1363,6 +1363,70 @@ const CASES = [
     ref: "字母逐个翻译为 NATO  Phonetic 单词（A→Alpha、B→Bravo），非原文回显；默认示例字母不同。",
   },
   {
+    slug: "it/nato-alphabet",
+    inputs: { input: "X-ray" },
+    checks: ["from"],
+    clicks: ["convert()"],
+    expect: ["X-ray → X"],
+    ref: "IT-N529：反向查表需兼容 X-ray（去连字符后为 xray）。修复前 REV 只有 x-ray 键，X-ray 得 ?；结果区新增「原词 → 字母」明细，该串只在反查成功时出现。默认态为正向 Hello World，不命中。",
+  },
+  {
+    slug: "it/nato-alphabet",
+    inputs: { input: "Hi! 123" },
+    clicks: ["convert()"],
+    expect: ["✅ 已转换 2 个字母"],
+    ref: "IT-N530：正向计数只算 A–Z 字母。Hi! 123 只有 H、i 两个字母，修复前按去空白字符数得 6；默认 Hello World 为 10 个字母，不命中 2 个字母。",
+  },
+  {
+    slug: "it/nato-alphabet",
+    inputs: { input: "Alpha Zzz" },
+    checks: ["from"],
+    clicks: ["convert()"],
+    expect: ["✅ 已还原 1 个音标词"],
+    ref: "IT-N530：反向计数只算成功还原项。Alpha→A、Zzz→?，成功 1 个；修复前 letters.length=2 会把 ? 计入。默认态正向不显示「已还原」。",
+  },
+  {
+    slug: "it/nato-alphabet",
+    inputs: { input: "S3" },
+    clicks: ["convert()"],
+    expect: ["S=Sierra 3=Tree"],
+    ref: "IT-N531：公式承诺的「字母=音标词」明细已在结果区渲染，且 3 按北约读法作 Tree。修复前 parts/all 从未渲染；默认 Hello World 明细为 H=Hotel…，不含该串。",
+  },
+  {
+    slug: "it/nato-alphabet",
+    inputs: { input: "S3" },
+    clicks: ["convert()"],
+    expect: ["Sierra Tree"],
+    ref: "IT-N531：复制框的数字按专用读法转换（3→Tree），修复前数字原样保留为 Sierra 3。默认 Hello World 不含 Sierra Tree ⇒ 强判别。",
+  },
+  {
+    slug: "it/kubernetes-yaml-generator",
+    inputs: { name: "Bad_Name", image: "nginx:latest", port: "80", replicas: "2" },
+    clicks: ["calcTool()"],
+    expect: ["⚠ 名称须符合 DNS-1123"],
+    ref: "IT-N528：名称含大写/下划线违反 DNS-1123，须拒绝生成清单；修复前原样拼进 metadata.name，kubectl apply 必拒。默认 web 合法不出现该提示。",
+  },
+  {
+    slug: "it/kubernetes-yaml-generator",
+    inputs: { name: "web", image: "nginx", port: "70000", replicas: "2" },
+    clicks: ["calcTool()"],
+    expect: ["⚠ 端口须为 1 ~ 65535 的整数"],
+    ref: "IT-N528：端口 70000 超范围须拒绝；修复前 Math.floor(num)||80 只兜底 0/NaN，70000 原样写入 containerPort。默认 80 合法不出现该提示。",
+  },
+  {
+    slug: "it/kubernetes-yaml-generator",
+    inputs: { name: "web", image: "my image:1", port: "80", replicas: "2" },
+    clicks: ["calcTool()"],
+    expect: ["⚠ 镜像名不能包含空白"],
+    ref: "IT-N528：镜像引用含空白会破坏 YAML，须拒绝；修复前原样拼接。默认 nginx:latest 不含空白，不出现该提示。",
+  },
+  {
+    slug: "it/emoji-cheatsheet",
+    inputs: { search: "🍺" },
+    expect: ["共 1 个 emoji"],
+    ref: "IT-N532：EMOJIS 表原有 8 组重复条目，🍺 重复两次；删除重复后搜索 🍺 只命中 1 条。修复前显示「共 2 个 emoji」，默认（空搜索）为 543 个，均不命中「共 1 个」。",
+  },
+  {
     slug: "it/uuencode",
     inputs: { input: "ABC" },
     clicks: ["enc()"],
@@ -6458,9 +6522,9 @@ const CASES = [
       "output": "1\n2\n3"
     },
     "expect": [
-      "1 2 3\n✅ 已转换 3 个字母\n1 2 3"
+      "One Two Tree"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\"}，输出区含「1 2 3\n✅ 已转换 3 个字母\n1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "IT-N531 同批改写（铁律①）：数字按北约专用读法转换（1→One、2→Two、3→Tree），复制框为 One Two Tree；修复前数字原样透传为 1 2 3。默认输入 Hello World 得到 Hotel Echo…，不含该串 ⇒ 强判别、零逃生。原自动补强锚「1 2 3 / ✅ 已转换 3 个字母」随功能改动一并作废。"
   },
   {
     "slug": "it/nginx-cheatsheet",
