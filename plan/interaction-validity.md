@@ -7,6 +7,7 @@
 - 探针盲区确认：隐藏 file input 被可见性过滤漏计，`audio/audio-cut` D-b 因而不能判为无交互；未加载音频，不判实际文件驱动桶位。初始隐藏标签控件也会漏采，`health/rehab-timer` 的 `month` 控件即使打开，探针通用文本值被浏览器拒绝。`grew` 包含列表文字变化而非仅行数增长，`agriculture/cycle-honey` 输出“列表 5→5”不表示行数增长；Chrome 输入名称、位置、周期 10 天、日期 2026-11-06 后点击添加，列表及本地存储确实出现蜂箱。
 - 针对性错分复核：`design/contrast-checker` 文本色值 `#1F2937`→`#000000` 时对比度 14.68→21.00，无需点击，应 B 而非探针 C；同理 `color-palette`、`colorblind-simulator`、`css-box-shadow-generator`、`glassmorphism-generator`、`neomorphism-generator` 输入合法 `#1199cc` 后，色卡/模拟色或 CSS 立即改变，均应 B 而非 C。源因为通用文本值非合法色值。这是针对性而非随机样本，不能外推错分率。
 - 其他补证：`advertising/generator-time` 数量 5→2→7，分镜数同步 5→2→7，支持 B；`data/data-cleaner` 文本改值不更新，点击清洗才变，支持 A。上述 Chrome DOM 操作及独立浏览器测试不能表述为全部 60 页人工裁决。
+- 第 5 批（按路径排序第 161–200 页）已完成两次探针：各 40 页、错误 0、逐页桶位一致；B 27、C 10、D-a 2、A 1。累计前 200 页双跑有效：B 151、C 40、D-a 6、D-b 1、A 2；剩余 453 页等待双跑。结果分别在 `/tmp/toolbox-audit-run-batch05-{a,b}.json`，仅作为本地中间证据。
 - 尚需完成剩余双跑、校验完整路径集合与迁移矩阵，并抽取不与历史样本重叠的 60 页逐页独立复核。资源依赖页可跳过资源验证并排除有效准确率分母；在这些条件及错分率门槛满足前 653 页继续不销账。业务缺陷写入 `plan/categories/` 对应分类，音频仅代码核对。
 
 

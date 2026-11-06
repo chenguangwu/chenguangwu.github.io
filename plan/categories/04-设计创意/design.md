@@ -195,18 +195,24 @@
 - 方案：用 `Number.isNaN` 显式判空而非 `||`；块大小限定正整数并在越界时回写/提示；换图、改块大小或阈值时清空 `lastSVG`、清空代码框并禁用复制，直至重新生成。
 
 ### D-N20 SVG 转 PNG 恒定铺白底，与页面「导出支持透明」的 FAQ 相反（中，确认源码缺陷）
+
+> 2026-11-06 基线 `0781ef7e61` 复核：原问题已不适用于当前源码；`generate()` 默认透明，仅 `bgMode === 'white'` 时填充白色。本次为代码核对，未做像素实测。
 - 问题：无论 SVG 是否透明，画布都先 `fillStyle='#fff'` 整幅填充再绘制，导出 PNG 的透明区域全部变成白色；页面 FAQ 两处均声称「导出 PNG 支持透明，如需白底可自行垫底」。
 - 证据：`tools/design/svg-to-png.html:268-270`（白底 + `drawImage`）、`:272`（`toDataURL('image/png')`）、FAQ `:204-205`。复现路径：输入带透明背景的 `<svg>`（仅一个居中圆形），点「转换」→ 画布先被白 `fillRect` 覆盖，圆形以外的透明区域导出为 `#ffffff`。
 - 影响：`tools/design/svg-to-png.html`；透明图标/贴纸导出后无法叠加到深色底，且与页面承诺矛盾，用户按 FAQ 预期使用会拿到错误交付物。
 - 方案：默认不清屏以保留 alpha，另提供「透明 / 白底 / 自定义底色」选项；同步修正 FAQ 与公式说明。
 
 ### D-N21 SVG 转 PNG 转换失败或改参数后仍可下载旧 PNG（中，确认源码缺陷）
+
+> 2026-11-06 基线 `0781ef7e61` 复核：问题仍部分存在。空代码、非正宽高在清除 `lastDataURL` 前提前返回，改参数也未使旧结果失效；但 SVG 净化失败、加载失败和绘制异常现在已清除旧结果。仅源码核对，尚未重新做下载实测。
 - 问题：`lastDataURL` 只在 `img.onload` 成功分支写入；空 SVG 提前 return、`img.onerror`、修改宽高或替换 SVG 文本都不会使其失效；下载仅判断非空。
 - 证据：`tools/design/svg-to-png.html:259`（空输入提前返回）、`:272`（成功才写）、`:275`（失败仅改预览文案）、`:279-285`（`downloadPNG` 只判 `lastDataURL`）。复现路径：先转换有效 SVG → 清空文本框再点「转换」（预览显示「请输入 SVG 代码」）→ 直接点「下载 PNG」仍导出上一张；把宽高从 400 改为 800 但不重新转换，下载的仍是 400×400 图。
 - 影响：`tools/design/svg-to-png.html`；与 `qr-code-styled`/`image-rotator` 同类的旧结果复用，误交付尺寸或内容不符的 PNG。
 - 方案：输入、宽高变化及任一失败分支统一清空 `lastDataURL` 并禁用下载；状态栏显示「结果已过期，请重新转换」。
 
 ### D-N22 图片翻转换图后仍可下载上一次翻转结果（高，确认源码缺陷）
+
+> 2026-11-06 基线 `0781ef7e61` 复核：原问题已不适用于当前源码；上传新位图时立即调用 `clearResult()`，解码成功和失败均再次清空旧结果。仅源码核对，尚未重新做下载实测。
 - 问题：上传回调只替换 `origImg`/`currentImg` 与预览，未清空 `lastURL`；下载与复制只判断 `lastURL` 非空。
 - 证据：`tools/design/image-flipper.html:250-263`（change 处理无 `lastURL=''`）、`:279`（仅 `flip()` 写 `lastURL`）、`:285-289`（`downloadImg` 直接取 `lastURL`）、`:290-293`（`copyResult` 同理）。复现路径：上传 A 并翻转后下载 → 再上传 B、不点「翻转」直接点「下载」→ 导出 A 的翻转 PNG，而预览显示 B。
 - 影响：`tools/design/image-flipper.html`；本分类第三个同类页面（另有 `image-resizer`、`image-rotator`），换图后误交付旧图风险高。
