@@ -213,12 +213,16 @@
 - 方案：保存上一次输入值，按 `val` 与旧值的差异逐字处理（或对所有新增字符循环比对）；屏蔽粘贴（`paste` 事件提示逐字输入），并明确说明不支持整段粘贴。
 
 ### EL-J4 英语单词测试题量输入负数得到 95 题（中，确认缺陷）
+
+> 2026-11-06 基线 `0781ef7e61` 静态复核：旧负数路径已修复；`readQuizCount()` 明确要求 1–100 的整数，负数回退 20 并提示。空输入仍回退 20，不属于此前的负数切片问题；未作浏览器验证。
 - 问题：题量只做了 `Math.min(parseInt(...)||20, vocab.length)`，没有下限与整数校验；输入负数时 `slice(0, 负数)` 表示「去掉末尾 N 条」，反而生成接近全量的题目。
 - 证据：`tools/edu/english-vocabulary.html:193`（`min="5" max="100"` 仅是 HTML 属性，手输不受约束）、`:451-453`（`const count = Math.min(parseInt(...)||20, vocab.length); questions = shuffle(vocab).slice(0, count)`）。Node 复算 cet4（100 词）输入 `-5` → `count=-5` → `slice(0,-5).length=95`；输入 `0`/空 → 20；输入 `200` → 静默截为当前词库长度（cet4 为 100）。
 - 影响：同页；用户输入 `-5` 后界面显示「95 题」且无提示，与「5–100 题」预期不符，也拉长测试时长。
 - 方案：入口校验 `Number.isInteger(n) && n>=5 && n<=vocab.length`，非法时提示并回填默认值；把题目数量显示在开始面板。
 
 ### EL-J5 选项判对用 endsWith，多个选项被同时标绿（中，确认缺陷）
+
+> 2026-11-06 基线 `0781ef7e61` 静态复核：`endsWith` 多项标绿路径已改为 `answerIndex` 精确索引；但干扰项按单词而非释义排除，释义重复时仍可能生成文本相同的选项。尚未进行浏览器验证。
 - 问题：答错后通过 `button.textContent.endsWith(q.answer)` 反查正确选项；选项文本形如「A. 容纳；适应」，只要某个错误选项的释义以正确答案结尾，就会与正确项一起被标绿。题库还存在同一测试内两条同释义词条，形成两个完全相同的选项。
 - 证据：`tools/edu/english-vocabulary.html:503`（`buttons.forEach(b => { if (b.textContent.endsWith(q.answer)) … })`）；toefl 块 `:414`（`accommodate` → `容纳；适应`）与 `:420`（`adapt` → `适应`）同处一词库，Node 复算 `'B. 容纳；适应'.endsWith('适应') === true`，抽到 `adapt` 时 A、B 两项同时判对。另 cet6 块 `:398` 与 `:404` 均为 `{m:'极度痛苦'}`（agony / anguish），同一题可出现两个文本相同的选项。
 - 影响：`tools/edu/english-vocabulary.html`；错题反馈会同时点亮两个「正确答案」，学习者无法判断哪个才对；同释义题本身也是歧义题。
