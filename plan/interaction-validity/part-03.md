@@ -33,22 +33,22 @@
 | 30 | `tools/investment/npv-calc.html` | 2.6 | empty_bogus | 空输入点「计算」（text_empty_no_select）→ 结果区 0.00净现值 NPV ⏐ 📋 复制结果⬇️ 导出 TXT |
 | 31 | `tools/investment/payback-period.html` | 2.6 | empty_bogus | 空输入点「计算」（text_empty_no_select）→ 结果区 0.00 年静态回收期 ⏐ 📋 复制结果⬇️ 导出 TXT |
 | 32 | `tools/life/countdown.html` | 2.6 | empty_bogus | 空输入点「开始倒计时」（text_empty_no_select）→ 结果区 ⚡ 效率工具栏 ✓ 本地处理 0 字符 · 0 行 Ctrl/⌘ + Enter 快速运行 ⏐ 📋 复制结果⬇️ 导出 … |
-| 33 | `tools/agriculture/detector-nutrition.html` | 2.2 | empty_conclusion（已修复 2026-11-06 核验：calc 加全空守卫，非空路径不变） | 空输入点「判读品质」（text_empty_no_select）→ 结果区 综合等级：不合格 优质 2 / 合格 2 / 共 6 项发酵度评价：发酵不足（乳酸 0%）指标实测判读蛋白质0%偏低脂肪0%… |
+| 33 | `tools/agriculture/detector-nutrition.html` | 2.2 | empty_conclusion | 部分指标留空时按 0 参与品质判定，仍给出综合等级。 |
 | 35 | `tools/automotive/voltage-1.html` | 2.2 | empty_conclusion | 空输入点「🧮 计算」（text_empty_no_select）→ 结果区 38.0用电总电流 (A)38.0含充电总电流 (A)0负载率 (%)-38.0剩余电流 (A)0.55用电功率 (kW)… |
 | 36 | `tools/beauty/recommender-face-shape.html` | 2.2 | empty_conclusion | 空输入点「生成」（text_empty_no_select）→ 结果区 生成结果： 1. 椭圆形脸 推荐发型：中长发、波浪卷、空气刘海 妆容建议：标准脸，眉形自然，唇妆可随心尝试 注意：公认理想脸型，… |
-| 37 | `tools/biz/checker-8.html` | 2.2 | empty_conclusion（已修复 2026-11-06 核验：calc 加全空守卫，非空路径不变） | 空输入点「质量评估」（text_empty_no_select）→ 结果区 8服务质量总分服务质量不合格质量等级评估维度权重得分明细状态人员标准25%0持证0%/培训0%/着装0%/出勤0%差服务流程… |
+| 37 | `tools/biz/checker-8.html` | 2.2 | empty_conclusion | 部分质量指标留空时按 0 计入评分并给出质量等级。 |
 | 38 | `tools/biz/presentation-timer.html` | 2.2 | empty_conclusion | 空输入点「开始演讲」（text_empty_no_select）→ 结果区 进度正常 |
-| 39 | `tools/decor/detector-18.html` | 2.2 | empty_conclusion（已修复 2026-11-06 核验：calc 加全空守卫，非空路径不变） | 空输入点「检测判定」（text_empty_no_select）→ 结果区 室内空气质量检测结果（GB/T 18883-2022）污染物实测值限值判定甲醛0 mg/m³≤0.08✓ 达标 (0%)TV… |
+| 39 | `tools/decor/detector-18.html` | 2.2 | empty_conclusion | 部分污染物浓度留空时按 0 判定达标。 |
 | 41 | `tools/eco/noise-superposition.html` | 2.2 | empty_conclusion | 空输入点「计算叠加」（text_empty_no_select）→ 结果区 叠加后总声压级3.0 dB安静声源数量2最大声源0.0 dB能量平均0.0 dB较最大声源增加+3.0 dB距离衰减参考（点… |
 | 42 | `tools/edu/assessor-27.html` | 2.2 | empty_conclusion | 空输入点「知识评估」（text_empty_no_select）→ 结果区 知识管理成熟度评估知识捕获：0/10 ✗知识共享：0/10 ✗知识应用：0/10 ✗知识创新：0/10 ✗知识存储：0/10… |
 | 43 | `tools/electronics/bandwidth.html` | 2.2 | empty_conclusion | 空输入点「🧮 计算」（text_empty_no_select）→ 结果区 0.00e+0所需 GBP (Hz)0.00e+0建议 GBP (Hz)0.00e+0-3dB带宽 (Hz)推荐运放：LM… |
 | 44 | `tools/electronics/capacitance.html` | 2.2 | empty_conclusion | 空输入点「🧮 计算」（text_empty_no_select）→ 结果区 0.00匹配电容 (pF)8推荐标准值 (pF)0.0晶振CL (pF)0.0杂散电容 (pF)C1=C2=C=2×(CL… |
 | 45 | `tools/encode/encode-7.html` | 2.2 | empty_conclusion | 空输入点「计算」（text_empty_no_select）→ 结果区 空间大小：1 近似碰撞概率：0.000000 %安全阈值 n：1 ⏐ 📋 复制结果⬇️ 导出 TXT |
-| 46 | `tools/endocrinology/detector-metabolism.html` | 2.2 | empty_conclusion（已修复 2026-11-06 核验：calc 加全空守卫，非空路径不变） | 空输入点「分析判读」（text_empty_no_select）→ 结果区 儿茶酚胺及代谢产物检测结果项目实测参考范围判定24h尿VMA0 mg/24h1-7↓ 偏低24h尿HVA0 mg/24h1-… |
+| 46 | `tools/endocrinology/detector-metabolism.html` | 2.2 | empty_conclusion | 部分指标留空时按 0 判读；年龄空值或 0 被替换为 1 岁。 |
 | 47 | `tools/energy/air-purifier-area.html` | 2.2 | empty_conclusion | 空输入点「计算」（text_empty_no_select）→ 结果区 0最小面积 m²0推荐面积 m²0最大面积 m²0.0换气次数/小时 ⏐ 📋 复制结果⬇️ 导出 TXT ⏐ 📊 结果解读 … |
 | 48 | `tools/energy/water-tds-evaluator.html` | 2.2 | empty_conclusion | 清空 TDS 后虽提示填写，但顶部水质等级和 TDS 进度条仍显示上次评估结果。 |
-| 49 | `tools/ent/ahi-severity.html` | 2.2 | empty_conclusion（已修复 2026-11-06 核验：calc 加全空守卫，非空路径不变） | 空输入点「计算评估」（text_empty_no_select）→ 结果区 0AHI(次/h)0AI暂停指数0HI低通气指数0ODI氧减指数0微觉醒指数100%正常 ⏐ 📋 复制结果⬇️ 导出 TX… |
-| 50 | `tools/ent/hearing-loss-classification.html` | 2.2 | empty_conclusion（已修复 2026-11-06 核验：calc 加全空守卫，非空路径不变） | 空输入点「计算分析」（text_empty_no_select）→ 结果区 0PTA气导(dB)0PTA骨导(dB)0气骨导差(dB)0高频平均(dB) ⏐ 📋 复制结果⬇️ 导出 TXT ⏐ 参考… |
+| 49 | `tools/ent/ahi-severity.html` | 2.2 | empty_conclusion | 仅部分输入时仍出结论，缺失睡眠时长按 1 小时、血氧为 0 时按 100% 计算。 |
+| 50 | `tools/ent/hearing-loss-classification.html` | 2.2 | empty_conclusion | 部分听阈留空按 0 参与分类；全空时复制仍生成 0 dB 结果。 |
 
 ## 二、空态（没填也敢给结论）
 
@@ -88,22 +88,22 @@
 
 ### 空输入直接给出结论（优秀/正常/合格…）（28 页）
 
-- `tools/agriculture/detector-nutrition.html` — 空输入点「判读品质」（text_empty_no_select）→ 结果区 综合等级：不合格 **（已修复 2026-11-06 核验：calc 开头加全空守卫，空输入显示"请先填写各营养成分含量"提示，非空路径不变）** 优质 2 / 合格 2 / 共 6 项发酵度评价：发酵不足（乳酸 0%）指标实测判读蛋白质0%偏低脂肪0%偏低还原糖0%偏低水分0%优质灰分0%优质乳酸(发酵度)0%偏低品质解读：多…
+- `tools/agriculture/detector-nutrition.html` — 全空守卫未覆盖部分缺失：仅填蛋白质时，其余空值通过一元 `+` 转为 0，进入各指标和综合等级判定。
 - `tools/automotive/voltage-1.html` — 空输入点「🧮 计算」（text_empty_no_select）→ 结果区 38.0用电总电流 (A)38.0含充电总电流 (A)0负载率 (%)-38.0剩余电流 (A)0.55用电功率 (kW)0.00发电机功率 (kW)负载充足平衡评估负载率: 0.0%（安全线 80%…
 - `tools/beauty/recommender-face-shape.html` — 空输入点「生成」（text_empty_no_select）→ 结果区 生成结果： 1. 椭圆形脸 推荐发型：中长发、波浪卷、空气刘海 妆容建议：标准脸，眉形自然，唇妆可随心尝试 注意：公认理想脸型，多数发型都适合 2. 菱形脸 推荐发型：八字刘海、锁骨发、两侧蓬松 妆容…
-- `tools/biz/checker-8.html` — 空输入点「质量评估」（text_empty_no_select）→ 结果区 8服务质量总分服务质量不合格 **（已修复 2026-11-06 核验：calc 开头加全空守卫，空输入显示填写提示，非空路径不变）**质量等级评估维度权重得分明细状态人员标准25%0持证0%/培训0%/着装0%/出勤0%差服务流程30%25巡逻0%/门禁0%/响应0分钟/记录0%差装备设施20%0监控0%…
+- `tools/biz/checker-8.html` — 全空守卫未覆盖部分缺失：部分质量指标留空时通过 `parseFloat(...) || 0` 计入评分并产生质量等级。
 - `tools/biz/presentation-timer.html` — 空输入点「开始演讲」（text_empty_no_select）→ 结果区 进度正常
-- `tools/decor/detector-18.html` — 空输入点「检测判定」（text_empty_no_select）→ 结果区 室内空气质量检测结果（GB/T 18883-2022）污染物实测值限值判定甲醛0 **（已修复 2026-11-06 核验：calc 开头加全空守卫，空输入显示填写提示，非空路径不变）** mg/m³≤0.08✓ 达标 (0%)TVOC0 mg/m³≤0.6✓ 达标 (0%)苯0 mg/m³≤0.03✓ 达…
+- `tools/decor/detector-18.html` — 全空守卫未覆盖部分缺失：仅填写一项污染物时，其余空值被当作 0 并判定达标。
 - `tools/eco/noise-superposition.html` — 空输入点「计算叠加」（text_empty_no_select）→ 结果区 叠加后总声压级3.0 dB安静声源数量2最大声源0.0 dB能量平均0.0 dB较最大声源增加+3.0 dB距离衰减参考（点声源，距最大声源）：1m0.0 dB5m-14.0 dB10m-20.0 d…
 - `tools/edu/assessor-27.html` — 空输入点「知识评估」（text_empty_no_select）→ 结果区 知识管理成熟度评估知识捕获：0/10 ✗知识共享：0/10 ✗知识应用：0/10 ✗知识创新：0/10 ✗知识存储：0/10 ✗知识安全：0/10 ✗综合评分：0.00/10成熟度等级：1级-初始级知…
 - `tools/electronics/bandwidth.html` — 空输入点「🧮 计算」（text_empty_no_select）→ 结果区 0.00e+0所需 GBP (Hz)0.00e+0建议 GBP (Hz)0.00e+0-3dB带宽 (Hz)推荐运放：LM358 / NE5532 (1~10MHz)。建议选型裕量≥2倍，高频应用还需…
 - `tools/electronics/capacitance.html` — 空输入点「🧮 计算」（text_empty_no_select）→ 结果区 0.00匹配电容 (pF)8推荐标准值 (pF)0.0晶振CL (pF)0.0杂散电容 (pF)C1=C2=C=2×(CL−Cs)。推荐就近选取标准容值8pF，C1与C2各接一个。 ⏐ 匹配电容26.…
 - `tools/encode/encode-7.html` — 空输入点「计算」（text_empty_no_select）→ 结果区 空间大小：1 近似碰撞概率：0.000000 %安全阈值 n：1 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/endocrinology/detector-metabolism.html` — 空输入点「分析判读」（text_empty_no_select）→ 结果区 儿茶酚胺及代谢产物检测结果项目实测参考范围判定24h尿VMA0 **（已修复 2026-11-06 核验：calc 开头加全空守卫，空输入显示填写提示，非空路径不变）** mg/24h1-7↓ 偏低24h尿HVA0 mg/24h1-4↓ 偏低血去甲肾上腺素0 pg/mL80-520↓ 偏低血肾上腺素0 pg…
+- `tools/endocrinology/detector-metabolism.html` — 全空守卫未覆盖部分缺失：只填年龄即可把全部空白检测值当作 0 并给出判读；年龄空值或 0 被 `|| 1` 变成 1 岁。医学阈值须由专业人员另行确认。
 - `tools/energy/air-purifier-area.html` — 空输入点「计算」（text_empty_no_select）→ 结果区 0最小面积 m²0推荐面积 m²0最大面积 m²0.0换气次数/小时 ⏐ 📋 复制结果⬇️ 导出 TXT ⏐ 📊 结果解读 估算口径适用面积常按 CADR（洁净空气量）× 系数估算：卧室约 CAD…
 - `tools/energy/water-tds-evaluator.html` — 清空 TDS 后 `evaluate()` 只替换结果区并提前返回，未清除 `vizGrade` 与 `tdsBar` 上次评估的水质等级和数值，空态仍显示旧结论。
-- `tools/ent/ahi-severity.html` — 空输入点「计算评估」（text_empty_no_select）→ 结果区 0AHI **（已修复 2026-11-06 核验：calc 开头加全空守卫，空输入显示填写提示，非空路径不变）**(次/h)0AI暂停指数0HI低通气指数0ODI氧减指数0微觉醒指数100%正常 ⏐ 📋 复制结果⬇️ 导出 TXT ⏐ 参考区间标尺正常00.20.40.60.810
-- `tools/ent/hearing-loss-classification.html` — 空输入点「计算分析」（text_empty_no_select）→ 结果区 0PTA气导 **（已修复 2026-11-06 核验：calc 开头加全空守卫，空输入显示填写提示，非空路径不变）**(dB)0PTA骨导(dB)0气骨导差(dB)0高频平均(dB) ⏐ 📋 复制结果⬇️ 导出 TXT ⏐ 参考区间标尺正常00.20.40.60.810
+- `tools/ent/ahi-severity.html` — 全空守卫未覆盖部分缺失：睡眠时长空值或 0 按 1 小时计算，最低血氧 0 按 100% 计算，仍输出 AHI 与分级。
+- `tools/ent/hearing-loss-classification.html` — 部分听阈空值被当作 0 参与 PTA 和听力分类；即使全部清空，`copyResult()` 也绕过守卫，复制 PTA 气导、骨导及气骨导差均为 0 dB 的结果。
 - `tools/ent/laryngeal-nerve.html` — 空输入点「分析评估」（text_empty_no_select）→ 结果区 F0 基频0 Hz异常 ⏐ Jitter 微扰0%正常 ⏐ Shimmer 振幅微扰0%正常 ⏐ NHR 噪谐比0正常 ⏐ HNR 谐噪比0 dB异常 ⏐ MPT 最长发声0 秒异常 ⏐ 📋 复制结…
 - `tools/fitness/weight-capacity-training.html` — 空输入点「🧮 计算」（text_empty_no_select）→ 结果区 0.0 kg训练总容量0.0 kg估算 1RM0.0%强度百分比0总次数强度区间：低强度 （推荐次数 25+）极低强度，适合热身与康复。相对 1RM 强度 0.0%（相对容量系数 -）1RM 百分比建…
 - `tools/gardening/recommender.html` — 空输入点「生成」（text_empty_no_select）→ 结果区 浇水频次推荐：1. 发财树 \| 春季·阴雨·疏松透气 → 建议每10-14天1次，见干见湿，浇则浇透2. 兰花 \| 春季·多云·保水性强 → 建议每7-10天1次，忌积水，植料偏干后再浇3. 多肉植物…
