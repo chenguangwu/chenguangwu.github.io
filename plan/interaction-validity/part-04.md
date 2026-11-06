@@ -1,0 +1,71 @@
+### select 默认态输出全 0 且无提示（非真空态，可疑需人工复核）（67 页）
+
+- `tools/dermatology/leprosy-grading.html` — 空输入点「生成分级报告」（text_empty_sel_default｜select 默认 leprosyType=TT,n1=on,n2=on,n3=on,n4=on,n5=on,n6=on）→ 结果区 G0D0级残疾无感觉丧失和可见畸形 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/forensic-medicine/electrocution-injury.html` — 空输入点「分析电击伤」（text_empty_sel_default｜select 默认 f1=on,f2=on,f3=on,f4=on,f5=on,f6=on,f7=on,f8=on,f9=on,f10=on,currentType=ac,voltage=low,contactSite=hand）→ 结果区 0阳性特征数0%特征符合度 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/accessibility/braille-translator.html` — 空输入点「转译」（text_empty_sel_default｜select 默认 caseSel=keep）→ 结果区 原文：（空）字母 0 个 · 数字 0 个 · 盲文符号 0 格 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/advertising/copy-duration.html` — 空输入点「⚡ 计算时长」（text_empty_sel_default｜select 默认 speedType=slow,lang=zh）→ 结果区 0秒朗读时长0中文字数0等效字数 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/biz/text-remove-duplicates-lines.html` — 空输入点「去重」（text_empty_sel_default｜select 默认 trimLine=on,removeEmpty=on,sortResult=on）→ 结果区 （无内容） ⏐ on ⏐ 📋 复制结果⬇️ 导出 TXT ⏐ 0
+- `tools/chemical/convert-capacity-tank.html` — 空输入点「换算」（text_empty_sel_default｜select 默认 type=vcyl）→ 结果区 容积 V = 0.000 m³ 总表面积 ≈ 0.00 m²（筒体加两封头，防腐涂装参考） ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/chess/go-territory.html` — 空输入点「♟️ 计算目数」（text_empty_sel_default｜select 默认 method=japanese）→ 结果区 平局计算方式：日本规则（数目法）贴目：0 目（白方）黑方：围空 0目 + 提子 0目 = 0.0目白方：围空 0目 + 提子 0目 + 贴目 0目 = 0.0目目差：0.0目🤝 平局：双方目数相同 …
+- `tools/clinical-lab/electrophoresis-analysis.html` — 空输入点「分析」（text_empty_sel_default｜select 默认 hasMspike=on,hasBspike=on）→ 结果区 白蛋白降低白蛋白0%(0.0g/L)，低于参考下限。见于肝病(合成减少)、肾病综合征(丢失)、慢性炎症、营养不良。 ⏐ γ球蛋白降低γ球蛋白0%降低，见于免疫缺陷病、低丙种球蛋白血症、化疗后免疫抑制。…
+- `tools/cosmetic-derm/wrinkle-dynamic-static.html` — 空输入点「评估」（text_empty_sel_default｜select 默认 crow_d=0,crow_s=0,glab_d=0,glab_s=0,fore_d=0,fore_s=0,nas_d=0,nas_s=0,nl_d=0,nl_s=0）→ 结果区 无明显皱纹0肉毒素总量(U)0.0填充总量(ml)0动态总分0静态总分无明显皱纹：当前状态良好。做好防晒、保湿、抗氧化护理即可预防皱纹产生。⚠️ 以上剂量为参考范围，实际用量需医师根据肌肉力量、面部解…
+- `tools/dentistry/oral-cancer-screening.html` — 空输入点「分期」（text_empty_sel_default｜select 默认 t=is,n=0,m=0）→ 结果区 0期(原位癌)临床分期 Tis原发肿瘤 T N0淋巴结 N M0远处转移 M ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/edu/convert-2.html` — 空输入点「转换」（text_empty_sel_default｜select 默认 from=hex,to=hex）→ 结果区 #000000 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/edu/convert-area-volume.html` — 空输入点「换算」（text_empty_sel_default｜select 默认 cat=length,from=m,to=m）→ 结果区 结果 = 0.0000 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/edu/pinyin-converter.html` — 空输入点「🔄 转换」（text_empty_sel_default｜select 默认 withSpace=on,firstUpper=on,ignorePoly=on）→ 结果区 拼音结果 ⏐ 总字符：0 汉字：0 已转换：0 覆盖率：0% ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/elderly/eldercare-level.html` — 空输入点「生成建议」（text_empty_sel_default｜select 默认 a0=0,a0=1,a0=2,a1=0,a1=1,a1=2,a2=0,a2=1,a2=2,a3=0,a3=1,a3=2,a4=0,a4=1,a4=2,a5=0,a5=1,a5=2,a6=0,a6=1,a6=2）→ 结果区 总分：0建议等级：一级（轻度）照护建议：日常自理能力基本完整，建议日常巡检。提醒：该结果不替代医生或国家评估标准，仅用于家庭自查。 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/energy/fridge-power-estimator.html` — 空输入点「计算」（text_empty_sel_default｜select 默认 efficiency=1）→ 结果区 0.00日耗电 kWh0年耗电 kWh¥0年电费¥0月均电费 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/energy/standby-power-calculator.html` — 空输入点「计算」（text_empty_sel_default｜select 默认 chk-tv=on,chk-ac=on,chk-stb=on,chk-pc=on,chk-router=on,chk-washer=on,chk-microwave=on,chk-waterheater=on,chk-speaker=on,chk-console=on,chk-monitor=on,chk-printer=on,chk-charger=on,chk-fan=on,chk-oven=on）→ 结果区 0.0总待机功率 W0.000日耗电 kWh0.0年耗电 kWh¥0.0年电费 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/finance/irr-calculator.html` — 空输入点「重新计算」（text_empty_sel_default｜select 默认 periodUnit=year）→ 结果区 -- IRR 内部收益率 ⏐ 0.00 NPV 净现值 ⏐ 0.00 总投入 ⏐ 0.00 总回报
+- `tools/finance/word-counter.html` — 空输入点「分析」（text_empty_sel_default｜select 默认 showDensity=on）→ 结果区 ⚡ 效率工具栏 ✓ 本地处理 0 字符 · 0 行
+- `tools/fire-rescue/fire-fighting-tactics.html` — 空输入点「推荐战术」（text_empty_sel_default｜select 默认 stage=1,structure=1,trapped=0,force=1,water=1）→ 结果区 初起阶段火灾阶段0着火面积(m²)砖混/框架结构建筑结构无被困人员 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/fire-rescue/fire-investigation.html` — 空输入点「分析」（text_empty_sel_default｜select 默认 t1=on,t2=on,t3=on,t4=on,t5=on,t6=on,c1=on,c2=on,c3=on,c4=on,c5=on,c6=on,btype=residence）→ 结果区 0痕迹线索0原因线索0过火面积(m²)住宅建筑类型 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/forensic-medicine/burn-assessment.html` — 空输入点「计算总面积」（text_empty_sel_default｜select 默认 ageGroup=adult,ageGroup=child,part_0=0,part_1=0,part_2=0,part_3=0,part_4=0,part_5=0,part_6=0,part_7=0,part_8=0,part_9=0,part_10=0,part_11=0,part_12=0）→ 结果区 0.0%总面积0%手掌法补充 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/forensic-medicine/fall-injury.html` — 空输入点「综合分析」（text_empty_sel_default｜select 默认 landingPosture=head,surface=concrete,f1=on,f2=on,f3=on,f4=on,f5=on,f6=on,f7=on,f8=on,f9=on,f10=on,f11=on,f12=on,f13=on,f14=on）→ 结果区 0.0冲击速度 (m/s)0.0动能 (kJ)0损伤项数低度严重程度 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/forensic-medicine/wound-description.html` — 空输入点「生成描述」（text_empty_sel_default｜select 默认 wt_blunt=blunt,wt_sharp=sharp,wt_firearm=firearm,bluntShape=stellate,bluntEdge=abraded,bluntWeapon=flat）→ 结果区 标准化损伤描述报告损伤类型：钝器伤损伤部位未指定创口大小0 cm × 0 cm创口形态星芒状创缘特征创缘有挫伤带/擦伤带推断致伤物平面致伤物（砖块/木板等）法医学意义钝器伤特点为创缘不整、有组织间桥、…
+- `tools/gastroenterology/gastrin-level.html` — 空输入点「评估分析」（text_empty_sel_default｜select 默认 ph=low,onPPI=on,hypocalcemia=on）→ 结果区 0胃泌素 (pg/mL)正常范围评估结果 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/gastroenterology/hepatic-encephalopathy.html` — 空输入点「评估分级」（text_empty_sel_default｜select 默认 consciousness=0,behavior=0,cognition=0,asterixis=0,mheTest=na,hasPrecipitant=on）→ 结果区 0级（无临床HE）HE分级 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/gastroenterology/hp-dob.html` — 空输入点「解读结果」（text_empty_sel_default｜select 默认 testType=13c,onPPI=on,onAntibiotic=on,onBismuth=on）→ 结果区 0DOB值 (‰)结果不可靠（可能假阴性）检测结果 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/gastroenterology/stool-occult-quant.html` — 空输入点「评估分析」（text_empty_sel_default｜select 默认 status=screening）→ 结果区 0FIT (μg/g) - 阴性0钙卫蛋白 (μg/g) - 正常 ⏐ screening ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/general/convert-22.html` — 空输入点「换算」（text_empty_sel_default｜select 默认 from=1,to=1）→ 结果区 00 无 (基准) = 0 无 (基准) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/hematology/m-protein.html` — 空输入点「分析」（text_empty_sel_default｜select 默认 mzone=gamma,igg=on,iga=on,igm=on,igd=on,kappa=on,lambda=on）→ 结果区 0M蛋白 (g/L)未鉴定M蛋白类型-κ/λ比值 - ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/hr/recruitment-funnel.html` — 空输入点「👥 分析」（text_empty_sel_default｜select 默认 preset=custom）→ 结果区 📋 复制结果⬇️ 导出 TXT ⏐ 阶段人数环节通过率环节流失率—0———0———0———0———0———0———0———0——
+- `tools/insurance/annuity-present.html` — 空输入点「计算」（text_empty_sel_default｜select 默认 type=ordinary）→ 结果区 📋 计算明细年金类型：普通年金每期金额：¥0.00每期利率：0.00%期数：0计算公式：i=0 时，PV = FV = PMT × n年金现值 PV = ¥0.00年金终值 FV = ¥0.00 ⏐…
+- `tools/insurance/claim-reserve.html` — 空输入点「计算」（text_empty_sel_default｜select 默认 period=0.85）→ 结果区 📋 准备金明细当期已赚保费：¥0 万预期最终赔付率：0%损失率法：预期最终赔款 = 0 × 0% = ¥0 万IBNR = 0 - 0 - 0 = ¥0 万未决赔款准备金 = RBNS + IBNR…
+- `tools/it/code-runner.html` — 空输入点「▶ 运行」（text_empty_sel_default｜select 默认 sampleSelect=,autoRun=on,showConsole=on）→ 结果区 ⚡ 效率工具栏 ✓ 本地处理 0 字符 · 0 行 Ctrl/⌘ + Enter 快速运行
+- `tools/it/graphql-formatter.html` — 空输入点「校验」（text_empty_sel_default｜select 默认 indent=2）→ 结果区 ✅ GraphQL 语法正确 Tokens: 0 括号平衡 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/it/js-obfuscator.html` — 空输入点「🛡 执行混淆」（text_empty_sel_default｜select 默认 optVarRename=on,optStringEncrypt=on,optRemoveComments=on,optRemoveWhitespace=on,optNumberHex=on,optStringArray=on）→ 结果区 0 ⏐ 0 ⏐ -
+- `tools/it/json-formatter.html` — 空输入点「✨ 美化」（text_empty_sel_default｜select 默认 indent=2）→ 结果区 ⚡ 效率工具栏 ✓ 本地处理 0 字符 · 0 行 Ctrl/⌘ + Enter 快速运行 ⏐ 📋 复制结果⬇️ 导出 TXT ⏐ 等待输入...
+- `tools/it/jwt-parser.html` — 空输入点「Decode」（text_empty_sel_default｜select 默认 genAlg=HS256,genExp=3600）→ 结果区 ⚡ 效率工具栏 ✓ 本地处理 0 字符 · 0 行 Ctrl/⌘ + Enter 快速运行 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/it/qrcode.html` — 空输入点「生 成」（text_empty_sel_default｜select 默认 contentTemplate=,errorLevel=L,size=320,fgColor=#000000,bgColor=#000000）→ 结果区 ⚡ 效率工具栏 ✓ 本地处理 0 个参数
+- `tools/it/text-cleaner.html` — 空输入点「执行清理」（text_empty_sel_default｜select 默认 opt-trim=trim,opt-empty-lines=empty-lines,opt-merge-spaces=merge-spaces,opt-merge-newlines=merge-newlines,opt-remove-inline-space=remove-inline-space,opt-remove-newlines=remove-newlines,opt-full2half=full2half,opt-half2full=half2full,opt-strip-html=strip-html,opt-decode-entities=decode-entities,opt-remove-invisible=remove-invisible,opt-unify-newlines=unify-newlines,opt-tab2space=tab2space,opt-space2tab=space2tab）→ 结果区 0 ⏐ 0 ⏐ 0 ⏐ 0 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/it/text-dedupe-sort.html` — 空输入点「↑
+升序排序」（text_empty_sel_default｜select 默认 caseSensitive=on,ignoreWhitespace=on,separator=\n）→ 结果区 0 ⏐ 0 ⏐ 0 ⏐ 📋 复制结果⬇️ 导出 TXT ⏐ 处理结果将显示在此处…点击上方操作按钮开始处理
+- `tools/it/tiny-url.html` — 空输入点「生成短链接」（text_empty_sel_default｜select 默认 len=8,alias=on）→ 结果区 https://tinyurl.com/j0ezCg原始 URL: https://example.com/very/long/url/that/needs/shortening ⏐ 📋 复制结果⬇…
+- `tools/it/xml-formatter.html` — 空输入点「校验」（text_empty_sel_default｜select 默认 indent=2）→ 结果区 ⚡ 效率工具栏 ✓ 本地处理 0 字符 · 0 行 Ctrl/⌘ + Enter 快速运行 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/machinery/detector-194.html` — 空输入点「生成维修方案」（text_empty_sel_default｜select 默认 v1=1,v2=1,v4=1）→ 结果区 设备：泵类 \| 故障：异响振动使用年限：0年 \| 运行模式：连续运行建议方案：维修修复维修/更换检查清单：检查轴承磨损，测量游隙是否超标检查联轴器对中，校正偏差检查地脚螺栓紧固情况动平衡校验 ⏐ 📋…
+- `tools/maritime/compass-correction.html` — 空输入点「计算」（text_empty_sel_default｜select 默认 convertDir=c2t）→ 结果区 000.0° 罗航向 CH 000.0° 磁航向 MH 000.0° 真航向 TH 0.0°E 罗经差 磁差 Var：0.0°E 自差 Dev：0.0°E 罗经差（Dev + Var）：0.0°E 换…
+- `tools/maritime/speed-distance.html` — 空输入点「换算」（text_empty_sel_default｜select 默认 calcTarget=distance,speedUnit=knot,timeUnit=hour）→ 结果区 0.00 航速 (节) 0.00 时间 (小时) 0.00 航程 (海里) 计算目标：航程 航速多单位 0.000 节 = 0.000 km/h = 0.000 m/s 航程多单位 0.00 海里 =…
+- `tools/mining/ore-grade.html` — 空输入点「计算」（text_empty_sel_default｜select 默认 metalType=gold）→ 结果区 0.00 品位 (g/t) 0.0000% 品位 (%) 0.00 金属含量 (kg) 0.0000 金属含量 (吨) 矿石量：0 吨 金属含量：0.00 千克（0.0000 吨） 品位评价：低于边界…
+- `tools/mining/reserve-estimate.html` — 空输入点「估算储量」（text_empty_sel_default｜select 默认 gradeUnit=gt）→ 结果区 0 矿石体积 (m³) 0 地质储量 (吨) 0 可采储量 (吨) 0.00 金属量 (吨) 块段体积：0 立方米（0 m² × 0 m） 地质储量：0 吨（体重 0 t/m³） 平均品位：0.00 …
+- `tools/neurology/ncs-emg.html` — 空输入点「分析定位」（text_empty_sel_default｜select 默认 amp=normal,cv=normal,dlat=normal,fwave=normal,block=none,samp=normal,emg_spont=none,emg_mup=normal,emg_recruit=normal）→ 结果区 检查结果基本正常或非特异性改变电生理特征解读电生理特征各参数均在正常范围或仅有轻微非特异性改变鉴别诊断无明显周围神经病变电生理证据建议结合临床评估，必要时复查建议未见明确周围神经或肌肉病变的电生理证据…
+- `tools/nutrition/calc-2.html` — 空输入点「计算热量」（text_empty_sel_default｜select 默认 foodSelect=0\|0\|0）→ 结果区 0总热量 kcal 0.0g碳水化合物 0.0g蛋白质 0.0g脂肪 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/pediatrics/hearing-screening.html` — 空输入点「生成解读报告」（text_empty_sel_default｜select 默认 method=oae,ageUnit=day,leftResult=pass,rightResult=pass,riskFactor=on）→ 结果区 通过左耳通过右耳0日龄无高危因素 ⏐ pass ⏐ pass ⏐ 通过筛查方法：OAE耳声发射 \| 随访：常规随访 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/pet/convert-25.html` — 空输入点「换算」（text_empty_sel_default｜select 默认 species=dog）→ 结果区 人类年龄 ≈ 0.0 岁 说明：猫的换算系数与犬略有差异，本工具采用通用模型，仅供粗估 阶段提示：青少年期：相当于人类青少年，仍在发育，注意疫苗与驱虫完善 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/pulmonology/gina-asthma.html` — 空输入点「GINA评估」（text_empty_sel_default｜select 默认 g1=0,g2=0,g3=0,g4=0）→ 结果区 0阳性项数良好控制GINA控制水平 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/realestate/assessor-38.html` — 空输入点「计算评估」（text_empty_sel_default｜select 默认 ltv=70,rate=3.10,type=0）→ 结果区 0.00可贷额度(万元)0.0000月供(万元)0.00总利息(万元)0.00担保费(万元) ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/realestate/assessor-42.html` — 空输入点「计算评估」（text_empty_sel_default｜select 默认 landComp=6,resettle=4）→ 结果区 0补偿总额(元)0土地补偿费0安置补助费0附着物+青苗 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/realestate/assessor-43.html` — 空输入点「计算评估」（text_empty_sel_default｜select 默认 equity=100）→ 结果区 0.00企业整体价值(万元)0.00股权价值(万元)0.00净资产(万元)0.0%资产负债率 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/realestate/assessor-second-hand.html` — 空输入点「计算评估」（text_empty_sel_default｜select 默认 loc=0,floor=0,decor=0,orient=0,age=0）→ 结果区 0.0000评估单价(万/平米)0.00评估总价(万元)0.0000案例均价0%总调整幅度 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/realestate/calc-assessor.html` — 空输入点「计算评估」（text_empty_sel_default｜select 默认 type=0,method=0,bonus=0）→ 结果区 0补偿总额(元)0房屋补偿费0临时安置费0奖励金 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/rental/calc-commission-1.html` — 空输入点「🧮 计算」（text_empty_sel_default｜select 默认 type=sale,split=buyer）→ 结果区 买方承担 0 元，卖方承担 0 元。综合费率 = 总费用 ÷ 成交金额，供横向比较不同中介方案。 ⏐ 0中介费合计（元）0佣金（元）0服务费（元）-%综合费率 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/reproductive-medicine/pgt-indication.html` — 空输入点「评估指征」（text_empty_sel_default｜select 默认 age=on,rpl=on,rif=on,male=on,monogenic=on,translocation=on,prevAneuploid=on,family=on）→ 结果区 无推荐类型0符合指征数未达常规 PGT 指征指征评估 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/restaurant/safety-stock.html` — 空输入点「🏬 计算库存」（text_empty_sel_default｜select 默认 unit=kg）→ 结果区 库存状态：⚠️ 低于安全库存！ 当前库存：0 kg 距再订货点：0.0 kg （已达到/低于） ⏐ 0.0安全库存（kg） 0.0再订货点（kg） 0.0经济订货量（kg） 0预计可用天数 ⏐ 📋 …
+- `tools/rheumatology/ssa-ssb.html` — 空输入点「评估临床意义」（text_empty_sel_default｜select 默认 ssa=neg,ssb=neg,ana=neg,rf=neg,comp=normal,pregnancy=no,dryeye=on,salivary=on,arthralgia=on,raynaud=on,rash=on,fatigue=on）→ 结果区 SSA-抗SSA/RoSSB-抗SSB/La0SS可能性评分 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/sales/commission-calc.html` — 空输入点「💵 计算提成」（text_empty_sel_default｜select 默认 unit=元,method=progressive）→ 结果区 📋 复制结果⬇️ 导出 TXT ⏐ ¥ 0 佣金 0 元 · 含底薪合计 0 元 · 税后约 0 元
+- `tools/sales/conversion-funnel.html` — 空输入点「🎯 分析」（text_empty_sel_default｜select 默认 preset=custom）→ 结果区 📋 复制结果⬇️ 导出 TXT ⏐ 阶段人数环节转化率环节流失率—0———0———0———0——
+- `tools/science/convert-power.html` — 空输入点「转换」（text_empty_sel_default｜select 默认 from=N,to=N）→ 结果区 00 N = 0 N ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/sports/rater-motion.html` — 空输入点「计算评估」（text_empty_sel_default｜select 默认 unit=0）→ 结果区 0.00%变异系数(CV)0.000m平均成绩0.000标准差(SD)极稳定稳定性等级 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/sports/tester-8.html` — 空输入点「计算评估」（text_empty_sel_default｜select 默认 exercise=0）→ 结果区 0.0MAOD(ml/kg)0.0累积氧亏(L)较弱无氧能力0.0min运动时长 ⏐ 📋 复制结果⬇️ 导出 TXT
+- `tools/usedcar/detector-19.html` — 空输入点「检测泡水风险」（text_empty_sel_default｜select 默认 ck_smell=0,ck_carpet=0,ck_seatbelt=0,ck_seatrail=0,ck_ceiling=0,ck_dashboard=0,ck_electrics=0,ck_harness=0,ck_engbay=0,ck_silt=0,ck_fluid=0,ck_sparetire=0,ck_headlight=0,ck_waterline=0）→ 结果区 0%泡水风险指数未发现泡水痕迹检测结论0确认项数0可疑项数 ⏐ 📋 复制结果⬇️ 导出 TXT
+

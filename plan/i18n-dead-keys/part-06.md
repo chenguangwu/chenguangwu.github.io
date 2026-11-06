@@ -1,0 +1,967 @@
+### it（dead 1050 / dynamic 2621 / fragment 116 / harmless 18）
+
+- `tools/it/ascii-tree-generator.html` : `关于「ASCII 目录树生成器」` : dead
+- `tools/it/barcode-ean.html` : `输入数字串（如 '123456789'）→ 渲染 EAN 条码图形；请按规范长度与校验位填写。` : dead
+- `tools/it/barcode-msi.html` : `MSI（Modified Plessey）是脉冲调制型条码，每位数字用 8 个单元表示：0 编码为「窄空宽条」，1 编码为「宽条窄空」，其余数字按二进制位展开为 8 个宽窄交替的单元。它只含数字、无字母，密度中等，主要用在零售货架标签与仓库库位标识。MSI 本身不校验，实践中常追加 Mod 10（即 Luhn 算法）、…(+32字)` : dead
+- `tools/it/barcode-msi.html` : `校验：Mod 10（Luhn）/ Mod 11 / Mod 1010 可选` : dead
+- `tools/it/barcode-msi.html` : `每位数字 = 8 个单元（0→窄空宽条，1→宽条窄空，其余按二进制展开）` : dead
+- `tools/it/charset-detector.html` : `不能。粘贴框里拿到的是已经解码后的字符串，原始字节与 BOM 已不可见，因此本页不做 GBK/Big5 猜测。若需按 GBK 读取文件，请在导入 CSV/文本时直接指定正确编码。` : dead
+- `tools/it/charset-detector.html` : `为什么有时无法修复？` : dead
+- `tools/it/charset-detector.html` : `判断一段文本是否已经发生不可逆的解码失败（出现 U+FFFD 替换符）。` : dead
+- `tools/it/charset-detector.html` : `双重编码还原要求整串字符都能折算回 cp1252 字节，且按 UTF-8 严格解码合法。含 U+FFFD、超出 cp1252 的字符（如已正确显示的中文）或非法续字节时解码会失败，此时工具不会强行替换，而是原样输出并提示不可还原。` : dead
+- `tools/it/charset-detector.html` : `复制来的引号、省略号显示成「â€™」「â€¦」时，按字节还原为「’」「…」。` : dead
+- `tools/it/charset-detector.html` : `粘贴「Ã©」→ 折算字节 C3 A9 → 按 UTF-8 解码得「é」；粘贴「â€™」→ 折算字节 E2 80 99 → 得「’」。若文本里已经是「�」（U+FFFD），说明原始字节在解码时已被丢弃，无法从文本还原。` : dead
+- `tools/it/charset-detector.html` : `网页或接口返回的中文变成「Ã¤Â¸Â­Ã¦Â–Â‡」这类西文乱码时，还原真实文本。` : dead
+- `tools/it/charset-detector.html` : `能识别 GBK、Big5 或 BOM 吗？` : dead
+- `tools/it/charset-detector.html` : `还原双重编码乱码` : dead
+- `tools/it/confidence-interval.html` : `CI = x̄ ± t α/2,n-1  × (s / √n)  (t 分布)` : dead
+- `tools/it/confidence-interval.html` : `当 σ 未知且 n<30 时,使用 t 分布(自由度 df=n-1)。` : dead
+- `tools/it/confidence-interval.html` : `自动(n≥30 用 z,n<30 用 t)` : dead
+- `tools/it/cpp-cheatsheet.html` : `auto x = 1;       -- int ⏎ auto& r = v[0];    -- 引用 ⏎ const auto& cr = v[0]; ⏎ decltype(x) y = 2;` : dead
+- `tools/it/cpp-cheatsheet.html` : `int add(int a, int b = 0) { return a + b; } ⏎ int add(int a) { return a + 1; }  -- 重载 ⏎ add(1, 2); add(1);` : dead
+- `tools/it/cpp-cheatsheet.html` : `int x = 1; ⏎ int* p = &x; ⏎ *p = 2; ⏎ int* arr = new int[10]; ⏎ delete[] arr;  -- 必须释放` : dead
+- `tools/it/cpp-cheatsheet.html` : `namespace app { ⏎   void run() {} ⏎ } ⏎ app::run(); ⏎ using namespace std;  -- 不推荐头文件中使用 ⏎ using std::string;` : dead
+- `tools/it/cpp-cheatsheet.html` : `std::array<int, 3> a;  -- 固定数组 ⏎ std::deque<int> dq;       -- 双端队列 ⏎ std::list<int> l;         -- 链表 ⏎ std::stack<int> s;        -- 栈 ⏎ std::queue<int> q;      …(+38字)` : dead
+- `tools/it/cpp-cheatsheet.html` : `std::vector<int> v = {1,2,3}; ⏎ for (int x : v) std::cout << x; ⏎ for (const auto& x : v) {}  -- 只读引用` : dead
+- `tools/it/cpp-cheatsheet.html` : `template<typename T> ⏎ T add(T a, T b) { return a + b; } ⏎ add<int>(1, 2); ⏎ add(1.5, 2.5);  -- 推断 ⏎  ⏎ template<typename T> ⏎ class Stack { std::vector<T> v; }…(+1字)` : dead
+- `tools/it/cpp-cheatsheet.html` : `共 24 项` : dead
+- `tools/it/cron.html` : `每周执行` : dead
+- `tools/it/cron.html` : `每天 每10分钟执行` : dead
+- `tools/it/cron.html` : `每天 每15分钟执行` : dead
+- `tools/it/cron.html` : `每天 每30分钟执行` : dead
+- `tools/it/cron.html` : `每天 每5分钟执行` : dead
+- `tools/it/cron.html` : `每天 每分钟执行` : dead
+- `tools/it/cron.html` : `每天 每小时第15分执行` : dead
+- `tools/it/cron.html` : `每天执行` : dead
+- `tools/it/cron.html` : `每小时执行` : dead
+- `tools/it/cron.html` : `每月执行` : dead
+- `tools/it/crontab-generator.html` : `⚠️ 分钟 字段超出范围或格式无效（允许 0-59；支持 *、*/n、a-b、a,b）` : dead
+- `tools/it/crontab-generator.html` : `⚠️ 小时 字段超出范围或格式无效（允许 0-23；支持 *、*/n、a-b、a,b）` : dead
+- `tools/it/crontab-generator.html` : `⚠️ 日期 字段超出范围或格式无效（允许 1-31；支持 *、*/n、a-b、a,b）` : dead
+- `tools/it/crontab-generator.html` : `⚠️ 星期 字段超出范围或格式无效（允许 0-7；支持 *、*/n、a-b、a,b）` : dead
+- `tools/it/crontab-generator.html` : `⚠️ 月份 字段超出范围或格式无效（允许 1-12；支持 *、*/n、a-b、a,b）` : dead
+- `tools/it/css-properties.html` : `共 133 个属性` : dead
+- `tools/it/csv-to-html-table.html` : `粘贴 CSV 数据，自动解析（支持引号转义与换行），生成可直接使用的 HTML <table> 代码，右侧实时预览渲染效果。` : dead
+- `tools/it/cuid-generator.html` : `c + base36(时间戳) + 计数器 + 指纹 + 随机数` : dead
+- `tools/it/device-info.html` : `+8 (东8区)` : dead
+- `tools/it/device-info.html` : `<span class="status-badge ok">在线</span>` : dead
+- `tools/it/docker-cheatsheet.html` : `docker ps ⏎ docker ps -a ⏎ docker ps -q  -- 仅 ID` : dead
+- `tools/it/docker-cheatsheet.html` : `docker rm web ⏎ docker rm -f $(docker ps -aq)  -- 删所有` : dead
+- `tools/it/docker-cheatsheet.html` : `docker stop web ⏎ docker stop $(docker ps -q)  -- 停所有` : dead
+- `tools/it/docker-cheatsheet.html` : `exec 形式 ["cmd","arg"]` : dead
+- `tools/it/docker-cheatsheet.html` : `共 59 项` : dead
+- `tools/it/emacs-cheatsheet.html` : `;; init.el 示例 ⏎ (setq make-backup-files nil) ⏎ (global-linum-mode 1) ⏎ (setq tab-width 4)` : dead
+- `tools/it/emacs-cheatsheet.html` : `C-SPC  -- 设标记 ⏎ 移动光标选区 ⏎ M-w  -- 复制选区 ⏎ C-w  -- 剪切选区` : dead
+- `tools/it/emacs-cheatsheet.html` : `C-a  行首 ⏎ C-e  行末` : dead
+- `tools/it/emacs-cheatsheet.html` : `C-f  前进 ⏎ C-b  后退` : dead
+- `tools/it/emacs-cheatsheet.html` : `C-k  -- 删除光标到行末 ⏎ 连续按删除多行` : dead
+- `tools/it/emacs-cheatsheet.html` : `C-l  光标行居中 ⏎ C-u 0 C-l  行到顶部 ⏎ C-u - C-l  行到底部` : dead
+- `tools/it/emacs-cheatsheet.html` : `C-n  下一行 ⏎ C-p  上一行` : dead
+- `tools/it/emacs-cheatsheet.html` : `C-s word  向下搜 ⏎ C-r word  向上搜 ⏎ 多次 C-s 下一个` : dead
+- `tools/it/emacs-cheatsheet.html` : `C-v  下一页 ⏎ M-v  上一页` : dead
+- `tools/it/emacs-cheatsheet.html` : `C-w  剪切选区 ⏎ M-w  复制选区 ⏎ C-y  粘贴` : dead
+- `tools/it/emacs-cheatsheet.html` : `C-x 0  关闭当前窗口 ⏎ C-x 1  只保留当前 ⏎ C-x 2  水平分割 ⏎ C-x 3  垂直分割` : dead
+- `tools/it/emacs-cheatsheet.html` : `C-x 5 2  新 frame ⏎ C-x 5 0  关闭 frame` : dead
+- `tools/it/emacs-cheatsheet.html` : `C-x b  -- 切换缓冲 ⏎ C-x b *scratch*  -- 切到 scratch` : dead
+- `tools/it/emacs-cheatsheet.html` : `C-x u  -- 撤销 ⏎ C-/  -- 撤销 ⏎ C-g C-/  -- 重做` : dead
+- `tools/it/emacs-cheatsheet.html` : `C-y  -- 粘贴 ⏎ M-y  -- 替换为更早的剪贴内容` : dead
+- `tools/it/emacs-cheatsheet.html` : `M-% foo RET bar ⏎ y 替换 ⏎ n 跳过 ⏎ ! 全部替换` : dead
+- `tools/it/emacs-cheatsheet.html` : `M-<  文件首 ⏎ M->  文件末` : dead
+- `tools/it/emacs-cheatsheet.html` : `M-a  句首 ⏎ M-e  句末` : dead
+- `tools/it/emacs-cheatsheet.html` : `M-d  删下个单词 ⏎ M-Backspace  删上个单词` : dead
+- `tools/it/emacs-cheatsheet.html` : `M-f  下个单词 ⏎ M-b  上个单词` : dead
+- `tools/it/emacs-cheatsheet.html` : `M-x 指令名  -- 执行指令 ⏎ M-x compile  -- 编译 ⏎ M-x shell  -- 打开 shell` : dead
+- `tools/it/emacs-cheatsheet.html` : `emacs file.txt ⏎ emacs -nw file.txt  -- 终端模式 ⏎ emacsclient -t file.txt  -- 连接守护进程` : dead
+- `tools/it/emoji-cheatsheet.html` : `一指 (index)` : dead
+- `tools/it/emoji-cheatsheet.html` : `三明治 (sandwich)` : dead
+- `tools/it/emoji-cheatsheet.html` : `不屑 (unamused)` : dead
+- `tools/it/emoji-cheatsheet.html` : `不爽 (angry)` : dead
+- `tools/it/emoji-cheatsheet.html` : `东京塔 (tower)` : dead
+- `tools/it/emoji-cheatsheet.html` : `举手 (raise hands)` : dead
+- `tools/it/emoji-cheatsheet.html` : `举手 (stop)` : dead
+- `tools/it/emoji-cheatsheet.html` : `举重 (weight)` : dead
+- `tools/it/emoji-cheatsheet.html` : `乒乓球 (ping pong)` : dead
+- `tools/it/emoji-cheatsheet.html` : `乘 (multiply)` : dead
+- `tools/it/emoji-cheatsheet.html` : `书呆子 (nerd)` : dead
+- `tools/it/emoji-cheatsheet.html` : `云 (cloud)` : dead
+- `tools/it/emoji-cheatsheet.html` : `云太阳 (cloud sun)` : dead
+- `tools/it/emoji-cheatsheet.html` : `五指 (fingers)` : dead
+- `tools/it/emoji-cheatsheet.html` : `交替 (alternation)` : dead
+- `tools/it/emoji-cheatsheet.html` : `亲吻 (kissing)` : dead
+- `tools/it/emoji-cheatsheet.html` : `仓鼠 (hamster)` : dead
+- `tools/it/emoji-cheatsheet.html` : `企鹅 (penguin)` : dead
+- `tools/it/emoji-cheatsheet.html` : `伞 (umbrella)` : dead
+- `tools/it/emoji-cheatsheet.html` : `传真 (fax)` : dead
+- `tools/it/emoji-cheatsheet.html` : `伪装 (disguise)` : dead
+- `tools/it/emoji-cheatsheet.html` : `体育场 (stadium)` : dead
+- `tools/it/emoji-cheatsheet.html` : `便利店 (store)` : dead
+- `tools/it/emoji-cheatsheet.html` : `便当 (bento)` : dead
+- `tools/it/emoji-cheatsheet.html` : `保龄球 (bowling)` : dead
+- `tools/it/emoji-cheatsheet.html` : `信用卡 (card)` : dead
+- `tools/it/emoji-cheatsheet.html` : `倒脸 (upside down)` : dead
+- `tools/it/emoji-cheatsheet.html` : `停止 (stop)` : dead
+- `tools/it/emoji-cheatsheet.html` : `傻眼 (zany)` : dead
+- `tools/it/emoji-cheatsheet.html` : `光盘 (disc)` : dead
+- `tools/it/emoji-cheatsheet.html` : `克尔白 (kaaba)` : dead
+- `tools/it/emoji-cheatsheet.html` : `兑换 (exchange)` : dead
+- `tools/it/emoji-cheatsheet.html` : `兔子 (rabbit)` : dead
+- `tools/it/emoji-cheatsheet.html` : `八角 (eight pointed)` : dead
+- `tools/it/emoji-cheatsheet.html` : `八角星 (eight star)` : dead
+- `tools/it/emoji-cheatsheet.html` : `公交车 (bus)` : dead
+- `tools/it/emoji-cheatsheet.html` : `公交车前 (bus)` : dead
+- `tools/it/emoji-cheatsheet.html` : `六芒星 (six pointed)` : dead
+- `tools/it/emoji-cheatsheet.html` : `共 551 个 emoji` : dead
+- `tools/it/emoji-cheatsheet.html` : `关机 (phone off)` : dead
+- `tools/it/emoji-cheatsheet.html` : `写字 (write)` : dead
+- `tools/it/emoji-cheatsheet.html` : `冥想 (meditation)` : dead
+- `tools/it/emoji-cheatsheet.html` : `冰壶 (curling)` : dead
+- `tools/it/emoji-cheatsheet.html` : `冰淇淋 (ice cream)` : dead
+- `tools/it/emoji-cheatsheet.html` : `冰球 (hockey)` : dead
+- `tools/it/emoji-cheatsheet.html` : `冲浪 (surf)` : dead
+- `tools/it/emoji-cheatsheet.html` : `冷脸 (cold)` : dead
+- `tools/it/emoji-cheatsheet.html` : `减 (minus)` : dead
+- `tools/it/emoji-cheatsheet.html` : `出租车 (taxi)` : dead
+- `tools/it/emoji-cheatsheet.html` : `出租车前 (taxi)` : dead
+- `tools/it/emoji-cheatsheet.html` : `击剑 (fencing)` : dead
+- `tools/it/emoji-cheatsheet.html` : `划船 (row)` : dead
+- `tools/it/emoji-cheatsheet.html` : `割 (discount)` : dead
+- `tools/it/emoji-cheatsheet.html` : `办公楼 (office)` : dead
+- `tools/it/emoji-cheatsheet.html` : `加 (plus)` : dead
+- `tools/it/emoji-cheatsheet.html` : `加油 (fuel)` : dead
+- `tools/it/emoji-cheatsheet.html` : `勾 (check mark)` : dead
+- `tools/it/emoji-cheatsheet.html` : `勾选 (check)` : dead
+- `tools/it/emoji-cheatsheet.html` : `勾选框 (checkbox)` : dead
+- `tools/it/emoji-cheatsheet.html` : `医院 (hospital)` : dead
+- `tools/it/emoji-cheatsheet.html` : `十字架 (cross)` : dead
+- `tools/it/emoji-cheatsheet.html` : `半挂车 (lorry)` : dead
+- `tools/it/emoji-cheatsheet.html` : `华夫饼 (waffle)` : dead
+- `tools/it/emoji-cheatsheet.html` : `单板滑雪 (snowboard)` : dead
+- `tools/it/emoji-cheatsheet.html` : `单片眼镜 (monocle)` : dead
+- `tools/it/emoji-cheatsheet.html` : `单眼吐舌 (wink tongue)` : dead
+- `tools/it/emoji-cheatsheet.html` : `单轨列车 (monorail)` : dead
+- `tools/it/emoji-cheatsheet.html` : `卡车 (truck)` : dead
+- `tools/it/emoji-cheatsheet.html` : `卫星天线 (satellite)` : dead
+- `tools/it/emoji-cheatsheet.html` : `印度庙 (temple)` : dead
+- `tools/it/emoji-cheatsheet.html` : `卷饼 (burrito)` : dead
+- `tools/it/emoji-cheatsheet.html` : `原子 (atom)` : dead
+- `tools/it/emoji-cheatsheet.html` : `叉 (cross mark)` : dead
+- `tools/it/emoji-cheatsheet.html` : `叉 (cross)` : dead
+- `tools/it/emoji-cheatsheet.html` : `叉框 (cross mark box)` : dead
+- `tools/it/emoji-cheatsheet.html` : `双叹 (bang bang)` : dead
+- `tools/it/emoji-cheatsheet.html` : `双子 (gemini)` : dead
+- `tools/it/emoji-cheatsheet.html` : `双峰驼 (camel2)` : dead
+- `tools/it/emoji-cheatsheet.html` : `双心 (two hearts)` : dead
+- `tools/it/emoji-cheatsheet.html` : `双鱼 (pisces)` : dead
+- `tools/it/emoji-cheatsheet.html` : `反派 (villain)` : dead
+- `tools/it/emoji-cheatsheet.html` : `变心 (growing)` : dead
+- `tools/it/emoji-cheatsheet.html` : `口罩 (mask)` : dead
+- `tools/it/emoji-cheatsheet.html` : `古典建筑 (classical)` : dead
+- `tools/it/emoji-cheatsheet.html` : `台式机 (desktop)` : dead
+- `tools/it/emoji-cheatsheet.html` : `台球 (pool)` : dead
+- `tools/it/emoji-cheatsheet.html` : `右拳 (right fist)` : dead
+- `tools/it/emoji-cheatsheet.html` : `叹问 (interrobang)` : dead
+- `tools/it/emoji-cheatsheet.html` : `合十 (pray)` : dead
+- `tools/it/emoji-cheatsheet.html` : `名牌 (badge)` : dead
+- `tools/it/emoji-cheatsheet.html` : `吐舌 (tongue)` : dead
+- `tools/it/emoji-cheatsheet.html` : `吐舌眨眼 (tongue wink)` : dead
+- `tools/it/emoji-cheatsheet.html` : `吓到尖叫 (scream)` : dead
+- `tools/it/emoji-cheatsheet.html` : `吸管杯 (cup)` : dead
+- `tools/it/emoji-cheatsheet.html` : `呕吐 (vomit)` : dead
+- `tools/it/emoji-cheatsheet.html` : `和平 (peace)` : dead
+- `tools/it/emoji-cheatsheet.html` : `咖啡 (coffee)` : dead
+- `tools/it/emoji-cheatsheet.html` : `咖喱饭 (curry)` : dead
+- `tools/it/emoji-cheatsheet.html` : `哈密瓜 (melon)` : dead
+- `tools/it/emoji-cheatsheet.html` : `哭 (cry)` : dead
+- `tools/it/emoji-cheatsheet.html` : `啤酒 (beer)` : dead
+- `tools/it/emoji-cheatsheet.html` : `喷泉 (fountain)` : dead
+- `tools/it/emoji-cheatsheet.html` : `困 (sleepy)` : dead
+- `tools/it/emoji-cheatsheet.html` : `圆圈 (circle)` : dead
+- `tools/it/emoji-cheatsheet.html` : `土豆 (potato)` : dead
+- `tools/it/emoji-cheatsheet.html` : `地图 (map)` : dead
+- `tools/it/emoji-cheatsheet.html` : `垒球 (softball)` : dead
+- `tools/it/emoji-cheatsheet.html` : `培根 (bacon)` : dead
+- `tools/it/emoji-cheatsheet.html` : `墨镜 (cool)` : dead
+- `tools/it/emoji-cheatsheet.html` : `处女 (virgo)` : dead
+- `tools/it/emoji-cheatsheet.html` : `大卫星 (star of david)` : dead
+- `tools/it/emoji-cheatsheet.html` : `大哭 (sob)` : dead
+- `tools/it/emoji-cheatsheet.html` : `大猩猩 (gorilla)` : dead
+- `tools/it/emoji-cheatsheet.html` : `大笑 (smiley)` : dead
+- `tools/it/emoji-cheatsheet.html` : `大蒜 (garlic)` : dead
+- `tools/it/emoji-cheatsheet.html` : `大象 (elephant)` : dead
+- `tools/it/emoji-cheatsheet.html` : `天使 (innocent)` : dead
+- `tools/it/emoji-cheatsheet.html` : `天秤 (libra)` : dead
+- `tools/it/emoji-cheatsheet.html` : `天蝎 (scorpio)` : dead
+- `tools/it/emoji-cheatsheet.html` : `太阳 (sun)` : dead
+- `tools/it/emoji-cheatsheet.html` : `太阳云 (sun cloud)` : dead
+- `tools/it/emoji-cheatsheet.html` : `失望 (disappointed)` : dead
+- `tools/it/emoji-cheatsheet.html` : `夹子 (clamp)` : dead
+- `tools/it/emoji-cheatsheet.html` : `奥姆 (om)` : dead
+- `tools/it/emoji-cheatsheet.html` : `奶茶 (milk tea)` : dead
+- `tools/it/emoji-cheatsheet.html` : `奶酪 (cheese)` : dead
+- `tools/it/emoji-cheatsheet.html` : `好崇拜 (star struck)` : dead
+- `tools/it/emoji-cheatsheet.html` : `威士忌 (whisky)` : dead
+- `tools/it/emoji-cheatsheet.html` : `婚礼 (wedding)` : dead
+- `tools/it/emoji-cheatsheet.html` : `学校 (school)` : dead
+- `tools/it/emoji-cheatsheet.html` : `学霸 (nerd)` : dead
+- `tools/it/emoji-cheatsheet.html` : `安心 (relieved)` : dead
+- `tools/it/emoji-cheatsheet.html` : `定时器 (timer)` : dead
+- `tools/it/emoji-cheatsheet.html` : `客轮 (ferry)` : dead
+- `tools/it/emoji-cheatsheet.html` : `害怕 (fearful)` : dead
+- `tools/it/emoji-cheatsheet.html` : `害羞 (blush)` : dead
+- `tools/it/emoji-cheatsheet.html` : `富士山 (fuji)` : dead
+- `tools/it/emoji-cheatsheet.html` : `对拳 (fist bump)` : dead
+- `tools/it/emoji-cheatsheet.html` : `寻呼机 (pager)` : dead
+- `tools/it/emoji-cheatsheet.html` : `寿司 (sushi)` : dead
+- `tools/it/emoji-cheatsheet.html` : `射手 (sagittarius)` : dead
+- `tools/it/emoji-cheatsheet.html` : `小型飞机 (small plane)` : dead
+- `tools/it/emoji-cheatsheet.html` : `尴尬 (grimace)` : dead
+- `tools/it/emoji-cheatsheet.html` : `山 (mountain)` : dead
+- `tools/it/emoji-cheatsheet.html` : `山地缆车 (mountain)` : dead
+- `tools/it/emoji-cheatsheet.html` : `山地车 (mountain bike)` : dead
+- `tools/it/emoji-cheatsheet.html` : `山地铁路 (railway)` : dead
+- `tools/it/emoji-cheatsheet.html` : `工厂 (factory)` : dead
+- `tools/it/emoji-cheatsheet.html` : `左拳 (left fist)` : dead
+- `tools/it/emoji-cheatsheet.html` : `巧克力 (chocolate)` : dead
+- `tools/it/emoji-cheatsheet.html` : `巨蟹 (cancer)` : dead
+- `tools/it/emoji-cheatsheet.html` : `帆船 (sailboat)` : dead
+- `tools/it/emoji-cheatsheet.html` : `帐篷 (tent)` : dead
+- `tools/it/emoji-cheatsheet.html` : `带花园的房子 (garden)` : dead
+- `tools/it/emoji-cheatsheet.html` : `庆祝 (party)` : dead
+- `tools/it/emoji-cheatsheet.html` : `废弃房子 (abandoned)` : dead
+- `tools/it/emoji-cheatsheet.html` : `座机 (phone)` : dead
+- `tools/it/emoji-cheatsheet.html` : `座钟 (clock)` : dead
+- `tools/it/emoji-cheatsheet.html` : `开心 (smile)` : dead
+- `tools/it/emoji-cheatsheet.html` : `弓箭 (bow)` : dead
+- `tools/it/emoji-cheatsheet.html` : `张开手 (hand)` : dead
+- `tools/it/emoji-cheatsheet.html` : `录像带 (vhs)` : dead
+- `tools/it/emoji-cheatsheet.html` : `录音棚 (studio)` : dead
+- `tools/it/emoji-cheatsheet.html` : `彗星 (comet)` : dead
+- `tools/it/emoji-cheatsheet.html` : `彩虹 (rainbow)` : dead
+- `tools/it/emoji-cheatsheet.html` : `得意 (smirk)` : dead
+- `tools/it/emoji-cheatsheet.html` : `微笑 (slight smile)` : dead
+- `tools/it/emoji-cheatsheet.html` : `心叹 (heart exclamation)` : dead
+- `tools/it/emoji-cheatsheet.html` : `心形 (heart)` : dead
+- `tools/it/emoji-cheatsheet.html` : `心碎 (broken heart)` : dead
+- `tools/it/emoji-cheatsheet.html` : `心跳 (beating)` : dead
+- `tools/it/emoji-cheatsheet.html` : `快艇 (speedboat)` : dead
+- `tools/it/emoji-cheatsheet.html` : `怒 (anger)` : dead
+- `tools/it/emoji-cheatsheet.html` : `恳求 (pleading)` : dead
+- `tools/it/emoji-cheatsheet.html` : `恶心 (nauseated)` : dead
+- `tools/it/emoji-cheatsheet.html` : `悬挂式列车 (suspension)` : dead
+- `tools/it/emoji-cheatsheet.html` : `情人酒店 (love hotel)` : dead
+- `tools/it/emoji-cheatsheet.html` : `意面 (spaghetti)` : dead
+- `tools/it/emoji-cheatsheet.html` : `感叹 (exclamation)` : dead
+- `tools/it/emoji-cheatsheet.html` : `愤怒 (angry)` : dead
+- `tools/it/emoji-cheatsheet.html` : `房子 (house)` : dead
+- `tools/it/emoji-cheatsheet.html` : `房屋群 (houses)` : dead
+- `tools/it/emoji-cheatsheet.html` : `手机 (phone)` : dead
+- `tools/it/emoji-cheatsheet.html` : `手机响 (phone)` : dead
+- `tools/it/emoji-cheatsheet.html` : `手球 (handball)` : dead
+- `tools/it/emoji-cheatsheet.html` : `手电筒 (flashlight)` : dead
+- `tools/it/emoji-cheatsheet.html` : `手背 (raised back)` : dead
+- `tools/it/emoji-cheatsheet.html` : `手表 (watch)` : dead
+- `tools/it/emoji-cheatsheet.html` : `打印机 (printer)` : dead
+- `tools/it/emoji-cheatsheet.html` : `打电话 (call)` : dead
+- `tools/it/emoji-cheatsheet.html` : `投影仪 (projector)` : dead
+- `tools/it/emoji-cheatsheet.html` : `披萨 (pizza)` : dead
+- `tools/it/emoji-cheatsheet.html` : `拖拉机 (tractor)` : dead
+- `tools/it/emoji-cheatsheet.html` : `拳击 (boxing)` : dead
+- `tools/it/emoji-cheatsheet.html` : `拳头 (fist)` : dead
+- `tools/it/emoji-cheatsheet.html` : `指上 (point up)` : dead
+- `tools/it/emoji-cheatsheet.html` : `指下 (point down)` : dead
+- `tools/it/emoji-cheatsheet.html` : `指南针 (compass)` : dead
+- `tools/it/emoji-cheatsheet.html` : `指右 (point right)` : dead
+- `tools/it/emoji-cheatsheet.html` : `指左 (point left)` : dead
+- `tools/it/emoji-cheatsheet.html` : `挑眉 (raised eyebrow)` : dead
+- `tools/it/emoji-cheatsheet.html` : `挥手 (wave)` : dead
+- `tools/it/emoji-cheatsheet.html` : `排球 (volleyball)` : dead
+- `tools/it/emoji-cheatsheet.html` : `插头 (plug)` : dead
+- `tools/it/emoji-cheatsheet.html` : `握手 (handshake)` : dead
+- `tools/it/emoji-cheatsheet.html` : `握拳 (fist)` : dead
+- `tools/it/emoji-cheatsheet.html` : `摄像机 (video)` : dead
+- `tools/it/emoji-cheatsheet.html` : `摇杆 (joystick)` : dead
+- `tools/it/emoji-cheatsheet.html` : `摇滚 (rock)` : dead
+- `tools/it/emoji-cheatsheet.html` : `摔跤 (wrestle)` : dead
+- `tools/it/emoji-cheatsheet.html` : `摩天轮 (ferris)` : dead
+- `tools/it/emoji-cheatsheet.html` : `摩托 (scooter)` : dead
+- `tools/it/emoji-cheatsheet.html` : `摩托车 (motorcycle)` : dead
+- `tools/it/emoji-cheatsheet.html` : `摩羯 (capricorn)` : dead
+- `tools/it/emoji-cheatsheet.html` : `攀岩 (climb)` : dead
+- `tools/it/emoji-cheatsheet.html` : `收音机 (radio)` : dead
+- `tools/it/emoji-cheatsheet.html` : `救护车 (ambulance)` : dead
+- `tools/it/emoji-cheatsheet.html` : `教堂 (church)` : dead
+- `tools/it/emoji-cheatsheet.html` : `斑马 (zebra)` : dead
+- `tools/it/emoji-cheatsheet.html` : `斜眼笑 (laughing)` : dead
+- `tools/it/emoji-cheatsheet.html` : `施工 (construction)` : dead
+- `tools/it/emoji-cheatsheet.html` : `旋转心 (revolving)` : dead
+- `tools/it/emoji-cheatsheet.html` : `旋转木马 (carousel)` : dead
+- `tools/it/emoji-cheatsheet.html` : `旋钮 (knob)` : dead
+- `tools/it/emoji-cheatsheet.html` : `无 (free)` : dead
+- `tools/it/emoji-cheatsheet.html` : `无穷 (infinity)` : dead
+- `tools/it/emoji-cheatsheet.html` : `日元 (yen)` : dead
+- `tools/it/emoji-cheatsheet.html` : `日文可 (accept)` : dead
+- `tools/it/emoji-cheatsheet.html` : `日本城堡 (castle)` : dead
+- `tools/it/emoji-cheatsheet.html` : `日本邮局 (post)` : dead
+- `tools/it/emoji-cheatsheet.html` : `星 (star)` : dead
+- `tools/it/emoji-cheatsheet.html` : `星月 (star and crescent)` : dead
+- `tools/it/emoji-cheatsheet.html` : `晕 (dizzy)` : dead
+- `tools/it/emoji-cheatsheet.html` : `曲棍球 (field hockey)` : dead
+- `tools/it/emoji-cheatsheet.html` : `有 (not free)` : dead
+- `tools/it/emoji-cheatsheet.html` : `有轨电车 (tram)` : dead
+- `tools/it/emoji-cheatsheet.html` : `未成年禁 (minor)` : dead
+- `tools/it/emoji-cheatsheet.html` : `松口气 (sigh)` : dead
+- `tools/it/emoji-cheatsheet.html` : `松饼 (pancake)` : dead
+- `tools/it/emoji-cheatsheet.html` : `板球 (cricket)` : dead
+- `tools/it/emoji-cheatsheet.html` : `柠檬 (lemon)` : dead
+- `tools/it/emoji-cheatsheet.html` : `桃子 (peach)` : dead
+- `tools/it/emoji-cheatsheet.html` : `梨 (pear)` : dead
+- `tools/it/emoji-cheatsheet.html` : `棒球 (baseball)` : dead
+- `tools/it/emoji-cheatsheet.html` : `棕心 (brown heart)` : dead
+- `tools/it/emoji-cheatsheet.html` : `椒盐卷饼 (pretzel)` : dead
+- `tools/it/emoji-cheatsheet.html` : `椰子 (coconut)` : dead
+- `tools/it/emoji-cheatsheet.html` : `横向红绿灯 (traffic)` : dead
+- `tools/it/emoji-cheatsheet.html` : `樱桃 (cherries)` : dead
+- `tools/it/emoji-cheatsheet.html` : `橄榄球 (football)` : dead
+- `tools/it/emoji-cheatsheet.html` : `橘子 (orange)` : dead
+- `tools/it/emoji-cheatsheet.html` : `橙心 (orange heart)` : dead
+- `tools/it/emoji-cheatsheet.html` : `欧元 (euro)` : dead
+- `tools/it/emoji-cheatsheet.html` : `欧洲城堡 (castle)` : dead
+- `tools/it/emoji-cheatsheet.html` : `武术 (martial arts)` : dead
+- `tools/it/emoji-cheatsheet.html` : `水滴 (droplet)` : dead
+- `tools/it/emoji-cheatsheet.html` : `水球 (water polo)` : dead
+- `tools/it/emoji-cheatsheet.html` : `水瓶 (aquarius)` : dead
+- `tools/it/emoji-cheatsheet.html` : `汉堡 (burger)` : dead
+- `tools/it/emoji-cheatsheet.html` : `汗 (sweat)` : dead
+- `tools/it/emoji-cheatsheet.html` : `汽车 (car)` : dead
+- `tools/it/emoji-cheatsheet.html` : `汽车前 (car)` : dead
+- `tools/it/emoji-cheatsheet.html` : `沉思 (pensive)` : dead
+- `tools/it/emoji-cheatsheet.html` : `沙漏完 (hourglass)` : dead
+- `tools/it/emoji-cheatsheet.html` : `沙漏流 (hourglass)` : dead
+- `tools/it/emoji-cheatsheet.html` : `沙漠 (desert)` : dead
+- `tools/it/emoji-cheatsheet.html` : `河豚 (blowfish)` : dead
+- `tools/it/emoji-cheatsheet.html` : `河马 (hippo)` : dead
+- `tools/it/emoji-cheatsheet.html` : `油桶 (oil)` : dead
+- `tools/it/emoji-cheatsheet.html` : `油灯 (lamp)` : dead
+- `tools/it/emoji-cheatsheet.html` : `法棍 (baguette)` : dead
+- `tools/it/emoji-cheatsheet.html` : `法轮 (wheel)` : dead
+- `tools/it/emoji-cheatsheet.html` : `洋葱 (onion)` : dead
+- `tools/it/emoji-cheatsheet.html` : `派对 (party)` : dead
+- `tools/it/emoji-cheatsheet.html` : `流口水 (drool)` : dead
+- `tools/it/emoji-cheatsheet.html` : `海滩 (beach)` : dead
+- `tools/it/emoji-cheatsheet.html` : `海豚 (dolphin)` : dead
+- `tools/it/emoji-cheatsheet.html` : `消防车 (fire engine)` : dead
+- `tools/it/emoji-cheatsheet.html` : `清真寺 (mosque)` : dead
+- `tools/it/emoji-cheatsheet.html` : `渡轮 (ferry)` : dead
+- `tools/it/emoji-cheatsheet.html` : `温度计 (thermometer)` : dead
+- `tools/it/emoji-cheatsheet.html` : `温泉 (hotspring)` : dead
+- `tools/it/emoji-cheatsheet.html` : `游泳 (swim)` : dead
+- `tools/it/emoji-cheatsheet.html` : `游艇 (yacht)` : dead
+- `tools/it/emoji-cheatsheet.html` : `滑冰 (skate)` : dead
+- `tools/it/emoji-cheatsheet.html` : `滑板车 (scooter)` : dead
+- `tools/it/emoji-cheatsheet.html` : `滑雪 (ski)` : dead
+- `tools/it/emoji-cheatsheet.html` : `滑雪者 (skier)` : dead
+- `tools/it/emoji-cheatsheet.html` : `火 (fire)` : dead
+- `tools/it/emoji-cheatsheet.html` : `火山 (volcano)` : dead
+- `tools/it/emoji-cheatsheet.html` : `火心 (heart fire)` : dead
+- `tools/it/emoji-cheatsheet.html` : `火箭 (rocket)` : dead
+- `tools/it/emoji-cheatsheet.html` : `火车 (train)` : dead
+- `tools/it/emoji-cheatsheet.html` : `火车站 (station)` : dead
+- `tools/it/emoji-cheatsheet.html` : `灭火器 (extinguisher)` : dead
+- `tools/it/emoji-cheatsheet.html` : `灯泡 (bulb)` : dead
+- `tools/it/emoji-cheatsheet.html` : `烤红薯 (sweet potato)` : dead
+- `tools/it/emoji-cheatsheet.html` : `热带鱼 (fish)` : dead
+- `tools/it/emoji-cheatsheet.html` : `热狗 (hotdog)` : dead
+- `tools/it/emoji-cheatsheet.html` : `热脸 (hot)` : dead
+- `tools/it/emoji-cheatsheet.html` : `焦虑 (anxious)` : dead
+- `tools/it/emoji-cheatsheet.html` : `煎蛋 (egg)` : dead
+- `tools/it/emoji-cheatsheet.html` : `熊 (bear)` : dead
+- `tools/it/emoji-cheatsheet.html` : `熊猫 (panda)` : dead
+- `tools/it/emoji-cheatsheet.html` : `爆炸 (boom)` : dead
+- `tools/it/emoji-cheatsheet.html` : `爆炸头 (mind blown)` : dead
+- `tools/it/emoji-cheatsheet.html` : `爆粗口 (swear)` : dead
+- `tools/it/emoji-cheatsheet.html` : `爱你 (love you)` : dead
+- `tools/it/emoji-cheatsheet.html` : `爱心眼 (smiling hearts)` : dead
+- `tools/it/emoji-cheatsheet.html` : `牛 (cow)` : dead
+- `tools/it/emoji-cheatsheet.html` : `牛仔 (cowboy)` : dead
+- `tools/it/emoji-cheatsheet.html` : `牛奶 (milk)` : dead
+- `tools/it/emoji-cheatsheet.html` : `牛排 (steak)` : dead
+- `tools/it/emoji-cheatsheet.html` : `牛油果 (avocado)` : dead
+- `tools/it/emoji-cheatsheet.html` : `牛角包 (croissant)` : dead
+- `tools/it/emoji-cheatsheet.html` : `犀牛 (rhino)` : dead
+- `tools/it/emoji-cheatsheet.html` : `犹太教堂 (synagogue)` : dead
+- `tools/it/emoji-cheatsheet.html` : `狐狸 (fox)` : dead
+- `tools/it/emoji-cheatsheet.html` : `狗 (dog)` : dead
+- `tools/it/emoji-cheatsheet.html` : `独角兽 (unicorn)` : dead
+- `tools/it/emoji-cheatsheet.html` : `狮子 (leo)` : dead
+- `tools/it/emoji-cheatsheet.html` : `狮子 (lion)` : dead
+- `tools/it/emoji-cheatsheet.html` : `狼 (wolf)` : dead
+- `tools/it/emoji-cheatsheet.html` : `猕猴桃 (kiwi)` : dead
+- `tools/it/emoji-cheatsheet.html` : `猪 (pig)` : dead
+- `tools/it/emoji-cheatsheet.html` : `猫 (cat)` : dead
+- `tools/it/emoji-cheatsheet.html` : `猫头鹰 (owl)` : dead
+- `tools/it/emoji-cheatsheet.html` : `猴子 (monkey)` : dead
+- `tools/it/emoji-cheatsheet.html` : `玉米 (corn)` : dead
+- `tools/it/emoji-cheatsheet.html` : `玉米卷 (taco)` : dead
+- `tools/it/emoji-cheatsheet.html` : `球门 (goal)` : dead
+- `tools/it/emoji-cheatsheet.html` : `瓢虫 (ladybug)` : dead
+- `tools/it/emoji-cheatsheet.html` : `甜甜圈 (donut)` : dead
+- `tools/it/emoji-cheatsheet.html` : `生化 (biohazard)` : dead
+- `tools/it/emoji-cheatsheet.html` : `生日蛋糕 (birthday)` : dead
+- `tools/it/emoji-cheatsheet.html` : `申 (apply)` : dead
+- `tools/it/emoji-cheatsheet.html` : `电影机 (movie)` : dead
+- `tools/it/emoji-cheatsheet.html` : `电池 (battery)` : dead
+- `tools/it/emoji-cheatsheet.html` : `电脑 (computer)` : dead
+- `tools/it/emoji-cheatsheet.html` : `电视 (tv)` : dead
+- `tools/it/emoji-cheatsheet.html` : `电话 (phone)` : dead
+- `tools/it/emoji-cheatsheet.html` : `电车 (tram)` : dead
+- `tools/it/emoji-cheatsheet.html` : `电车 (trolley)` : dead
+- `tools/it/emoji-cheatsheet.html` : `番茄 (tomato)` : dead
+- `tools/it/emoji-cheatsheet.html` : `白叹 (white exclamation)` : dead
+- `tools/it/emoji-cheatsheet.html` : `白心 (white heart)` : dead
+- `tools/it/emoji-cheatsheet.html` : `白羊 (aries)` : dead
+- `tools/it/emoji-cheatsheet.html` : `白问 (white question)` : dead
+- `tools/it/emoji-cheatsheet.html` : `百货公司 (mall)` : dead
+- `tools/it/emoji-cheatsheet.html` : `直升机 (helicopter)` : dead
+- `tools/it/emoji-cheatsheet.html` : `相机 (camera)` : dead
+- `tools/it/emoji-cheatsheet.html` : `眨眼 (wink)` : dead
+- `tools/it/emoji-cheatsheet.html` : `睁眼亲 (kissing smiling)` : dead
+- `tools/it/emoji-cheatsheet.html` : `睡觉 (sleep)` : dead
+- `tools/it/emoji-cheatsheet.html` : `碰杯 (beers)` : dead
+- `tools/it/emoji-cheatsheet.html` : `碰杯 (clink)` : dead
+- `tools/it/emoji-cheatsheet.html` : `礼心 (ribbon)` : dead
+- `tools/it/emoji-cheatsheet.html` : `祈愿 (fingers crossed)` : dead
+- `tools/it/emoji-cheatsheet.html` : `禁手机 (no phone)` : dead
+- `tools/it/emoji-cheatsheet.html` : `禁止 (forbidden)` : dead
+- `tools/it/emoji-cheatsheet.html` : `禁止 (no entry)` : dead
+- `tools/it/emoji-cheatsheet.html` : `禁止乱扔 (no litter)` : dead
+- `tools/it/emoji-cheatsheet.html` : `禁止行人 (no pedestrian)` : dead
+- `tools/it/emoji-cheatsheet.html` : `禁烟 (no smoking)` : dead
+- `tools/it/emoji-cheatsheet.html` : `禁自行车 (no bike)` : dead
+- `tools/it/emoji-cheatsheet.html` : `禁饮水 (non potable)` : dead
+- `tools/it/emoji-cheatsheet.html` : `秒表 (stopwatch)` : dead
+- `tools/it/emoji-cheatsheet.html` : `章鱼 (octopus)` : dead
+- `tools/it/emoji-cheatsheet.html` : `笑哭 (rofl)` : dead
+- `tools/it/emoji-cheatsheet.html` : `笑哭了 (joy)` : dead
+- `tools/it/emoji-cheatsheet.html` : `笑脸 (grinning)` : dead
+- `tools/it/emoji-cheatsheet.html` : `等号 (equal)` : dead
+- `tools/it/emoji-cheatsheet.html` : `箭心 (arrow)` : dead
+- `tools/it/emoji-cheatsheet.html` : `篮球 (basketball)` : dead
+- `tools/it/emoji-cheatsheet.html` : `米饭 (rice)` : dead
+- `tools/it/emoji-cheatsheet.html` : `紫心 (purple heart)` : dead
+- `tools/it/emoji-cheatsheet.html` : `红心 (heart)` : dead
+- `tools/it/emoji-cheatsheet.html` : `红毛猩猩 (orangutan)` : dead
+- `tools/it/emoji-cheatsheet.html` : `红绿灯 (traffic)` : dead
+- `tools/it/emoji-cheatsheet.html` : `红苹果 (apple)` : dead
+- `tools/it/emoji-cheatsheet.html` : `红酒 (wine)` : dead
+- `tools/it/emoji-cheatsheet.html` : `绷带 (bandage)` : dead
+- `tools/it/emoji-cheatsheet.html` : `绷带心 (heart bandage)` : dead
+- `tools/it/emoji-cheatsheet.html` : `绿心 (green heart)` : dead
+- `tools/it/emoji-cheatsheet.html` : `缆车 (aerial)` : dead
+- `tools/it/emoji-cheatsheet.html` : `网球 (tennis)` : dead
+- `tools/it/emoji-cheatsheet.html` : `美元 (dollar)` : dead
+- `tools/it/emoji-cheatsheet.html` : `美元符 (dollar)` : dead
+- `tools/it/emoji-cheatsheet.html` : `羽毛球 (badminton)` : dead
+- `tools/it/emoji-cheatsheet.html` : `翻白眼 (roll eyes)` : dead
+- `tools/it/emoji-cheatsheet.html` : `翻筋斗 (cartwheel)` : dead
+- `tools/it/emoji-cheatsheet.html` : `老虎 (tiger)` : dead
+- `tools/it/emoji-cheatsheet.html` : `老虎机 (slot)` : dead
+- `tools/it/emoji-cheatsheet.html` : `老鼠 (mouse)` : dead
+- `tools/it/emoji-cheatsheet.html` : `考拉 (koala)` : dead
+- `tools/it/emoji-cheatsheet.html` : `肉骨 (meat)` : dead
+- `tools/it/emoji-cheatsheet.html` : `肌肉 (muscle)` : dead
+- `tools/it/emoji-cheatsheet.html` : `胜利 (victory)` : dead
+- `tools/it/emoji-cheatsheet.html` : `胡萝卜 (carrot)` : dead
+- `tools/it/emoji-cheatsheet.html` : `胶片 (film)` : dead
+- `tools/it/emoji-cheatsheet.html` : `自由女神 (statue)` : dead
+- `tools/it/emoji-cheatsheet.html` : `自行车 (bike)` : dead
+- `tools/it/emoji-cheatsheet.html` : `芒果 (mango)` : dead
+- `tools/it/emoji-cheatsheet.html` : `花痴 (heart eyes)` : dead
+- `tools/it/emoji-cheatsheet.html` : `苦笑 (sweat smile)` : dead
+- `tools/it/emoji-cheatsheet.html` : `英式橄榄 (rugby)` : dead
+- `tools/it/emoji-cheatsheet.html` : `英镑 (pound)` : dead
+- `tools/it/emoji-cheatsheet.html` : `茄子 (eggplant)` : dead
+- `tools/it/emoji-cheatsheet.html` : `茶 (tea)` : dead
+- `tools/it/emoji-cheatsheet.html` : `草莓 (strawberry)` : dead
+- `tools/it/emoji-cheatsheet.html` : `荒岛 (island)` : dead
+- `tools/it/emoji-cheatsheet.html` : `菠萝 (pineapple)` : dead
+- `tools/it/emoji-cheatsheet.html` : `营 (business)` : dead
+- `tools/it/emoji-cheatsheet.html` : `葡萄 (grapes)` : dead
+- `tools/it/emoji-cheatsheet.html` : `蒸汽火车 (locomotive)` : dead
+- `tools/it/emoji-cheatsheet.html` : `蓝心 (blue heart)` : dead
+- `tools/it/emoji-cheatsheet.html` : `薯条 (fries)` : dead
+- `tools/it/emoji-cheatsheet.html` : `虎 (tiger)` : dead
+- `tools/it/emoji-cheatsheet.html` : `虫子 (bug)` : dead
+- `tools/it/emoji-cheatsheet.html` : `虾 (shrimp)` : dead
+- `tools/it/emoji-cheatsheet.html` : `蚂蚁 (ant)` : dead
+- `tools/it/emoji-cheatsheet.html` : `蛋糕 (cake)` : dead
+- `tools/it/emoji-cheatsheet.html` : `蜗牛 (snail)` : dead
+- `tools/it/emoji-cheatsheet.html` : `蜘蛛 (spider)` : dead
+- `tools/it/emoji-cheatsheet.html` : `蜜蜂 (bee)` : dead
+- `tools/it/emoji-cheatsheet.html` : `蜡烛 (candle)` : dead
+- `tools/it/emoji-cheatsheet.html` : `蝙蝠 (bat)` : dead
+- `tools/it/emoji-cheatsheet.html` : `蝴蝶 (butterfly)` : dead
+- `tools/it/emoji-cheatsheet.html` : `螃蟹 (crab)` : dead
+- `tools/it/emoji-cheatsheet.html` : `蟋蟀 (cricket)` : dead
+- `tools/it/emoji-cheatsheet.html` : `袋鼠 (kangaroo)` : dead
+- `tools/it/emoji-cheatsheet.html` : `西兰花 (broccoli)` : dead
+- `tools/it/emoji-cheatsheet.html` : `西瓜 (watermelon)` : dead
+- `tools/it/emoji-cheatsheet.html` : `警灯 (light)` : dead
+- `tools/it/emoji-cheatsheet.html` : `警车 (police)` : dead
+- `tools/it/emoji-cheatsheet.html` : `警车前 (police)` : dead
+- `tools/it/emoji-cheatsheet.html` : `说谎 (liar)` : dead
+- `tools/it/emoji-cheatsheet.html` : `调音台 (level)` : dead
+- `tools/it/emoji-cheatsheet.html` : `豹 (leopard)` : dead
+- `tools/it/emoji-cheatsheet.html` : `赛车 (race car)` : dead
+- `tools/it/emoji-cheatsheet.html` : `赛马 (horse)` : dead
+- `tools/it/emoji-cheatsheet.html` : `赞 (thumbs up)` : dead
+- `tools/it/emoji-cheatsheet.html` : `起飞 (takeoff)` : dead
+- `tools/it/emoji-cheatsheet.html` : `足球 (soccer)` : dead
+- `tools/it/emoji-cheatsheet.html` : `跑步 (running)` : dead
+- `tools/it/emoji-cheatsheet.html` : `踩 (thumbs down)` : dead
+- `tools/it/emoji-cheatsheet.html` : `车厢 (car)` : dead
+- `tools/it/emoji-cheatsheet.html` : `轨迹球 (trackball)` : dead
+- `tools/it/emoji-cheatsheet.html` : `轮船 (ship)` : dead
+- `tools/it/emoji-cheatsheet.html` : `软盘 (floppy)` : dead
+- `tools/it/emoji-cheatsheet.html` : `轻轨 (light rail)` : dead
+- `tools/it/emoji-cheatsheet.html` : `辐射 (radioactive)` : dead
+- `tools/it/emoji-cheatsheet.html` : `辣椒 (pepper)` : dead
+- `tools/it/emoji-cheatsheet.html` : `过山车 (coaster)` : dead
+- `tools/it/emoji-cheatsheet.html` : `运球 (ball)` : dead
+- `tools/it/emoji-cheatsheet.html` : `迷妹 (star)` : dead
+- `tools/it/emoji-cheatsheet.html` : `邮局 (post)` : dead
+- `tools/it/emoji-cheatsheet.html` : `酒店 (hotel)` : dead
+- `tools/it/emoji-cheatsheet.html` : `酷 (cool)` : dead
+- `tools/it/emoji-cheatsheet.html` : `野猪 (boar)` : dead
+- `tools/it/emoji-cheatsheet.html` : `金牛 (taurus)` : dead
+- `tools/it/emoji-cheatsheet.html` : `钓鱼 (fishing)` : dead
+- `tools/it/emoji-cheatsheet.html` : `钱袋 (bag)` : dead
+- `tools/it/emoji-cheatsheet.html` : `钱飞 (money)` : dead
+- `tools/it/emoji-cheatsheet.html` : `钻石 (gem)` : dead
+- `tools/it/emoji-cheatsheet.html` : `银行 (bank)` : dead
+- `tools/it/emoji-cheatsheet.html` : `锚 (anchor)` : dead
+- `tools/it/emoji-cheatsheet.html` : `键盘 (keyboard)` : dead
+- `tools/it/emoji-cheatsheet.html` : `长曲棍球 (lacrosse)` : dead
+- `tools/it/emoji-cheatsheet.html` : `长颈鹿 (giraffe)` : dead
+- `tools/it/emoji-cheatsheet.html` : `闪 (sparkles)` : dead
+- `tools/it/emoji-cheatsheet.html` : `闪光 (sparkle)` : dead
+- `tools/it/emoji-cheatsheet.html` : `闪光相机 (flash)` : dead
+- `tools/it/emoji-cheatsheet.html` : `闪心 (sparkling)` : dead
+- `tools/it/emoji-cheatsheet.html` : `闪星 (glowing star)` : dead
+- `tools/it/emoji-cheatsheet.html` : `闪烁 (sparkle)` : dead
+- `tools/it/emoji-cheatsheet.html` : `闪电 (zap)` : dead
+- `tools/it/emoji-cheatsheet.html` : `闪电雨 (lightning)` : dead
+- `tools/it/emoji-cheatsheet.html` : `闭眼亲 (kissing closed)` : dead
+- `tools/it/emoji-cheatsheet.html` : `问号 (question)` : dead
+- `tools/it/emoji-cheatsheet.html` : `闹钟 (alarm)` : dead
+- `tools/it/emoji-cheatsheet.html` : `降落 (landing)` : dead
+- `tools/it/emoji-cheatsheet.html` : `降落伞 (parachute)` : dead
+- `tools/it/emoji-cheatsheet.html` : `除 (divide)` : dead
+- `tools/it/emoji-cheatsheet.html` : `雕像 (statue)` : dead
+- `tools/it/emoji-cheatsheet.html` : `雨 (rain)` : dead
+- `tools/it/emoji-cheatsheet.html` : `雨伞 (umbrella rain)` : dead
+- `tools/it/emoji-cheatsheet.html` : `雨太阳 (rain sun)` : dead
+- `tools/it/emoji-cheatsheet.html` : `雪 (snow)` : dead
+- `tools/it/emoji-cheatsheet.html` : `雪山 (snow mountain)` : dead
+- `tools/it/emoji-cheatsheet.html` : `雪橇 (sled)` : dead
+- `tools/it/emoji-cheatsheet.html` : `雪花 (snowflake)` : dead
+- `tools/it/emoji-cheatsheet.html` : `雷雨 (storm)` : dead
+- `tools/it/emoji-cheatsheet.html` : `震动 (vibration)` : dead
+- `tools/it/emoji-cheatsheet.html` : `露营 (camp)` : dead
+- `tools/it/emoji-cheatsheet.html` : `露齿笑 (grin)` : dead
+- `tools/it/emoji-cheatsheet.html` : `青椒 (bell pepper)` : dead
+- `tools/it/emoji-cheatsheet.html` : `青苹果 (green apple)` : dead
+- `tools/it/emoji-cheatsheet.html` : `青菜 (greens)` : dead
+- `tools/it/emoji-cheatsheet.html` : `青蛙 (frog)` : dead
+- `tools/it/emoji-cheatsheet.html` : `面包 (bread)` : dead
+- `tools/it/emoji-cheatsheet.html` : `面包车 (van)` : dead
+- `tools/it/emoji-cheatsheet.html` : `面条 (noodle)` : dead
+- `tools/it/emoji-cheatsheet.html` : `风 (wind)` : dead
+- `tools/it/emoji-cheatsheet.html` : `飞吻 (kiss)` : dead
+- `tools/it/emoji-cheatsheet.html` : `飞机 (airplane)` : dead
+- `tools/it/emoji-cheatsheet.html` : `飞盘 (frisbee)` : dead
+- `tools/it/emoji-cheatsheet.html` : `飞镖 (dart)` : dead
+- `tools/it/emoji-cheatsheet.html` : `饭团 (rice ball)` : dead
+- `tools/it/emoji-cheatsheet.html` : `饼干 (cookie)` : dead
+- `tools/it/emoji-cheatsheet.html` : `馋 (yum)` : dead
+- `tools/it/emoji-cheatsheet.html` : `香蕉 (banana)` : dead
+- `tools/it/emoji-cheatsheet.html` : `马 (horse)` : dead
+- `tools/it/emoji-cheatsheet.html` : `骆驼 (camel)` : dead
+- `tools/it/emoji-cheatsheet.html` : `骑车 (bike)` : dead
+- `tools/it/emoji-cheatsheet.html` : `骰子 (dice)` : dead
+- `tools/it/emoji-cheatsheet.html` : `高尔夫 (golf)` : dead
+- `tools/it/emoji-cheatsheet.html` : `高尔夫球手 (golfer)` : dead
+- `tools/it/emoji-cheatsheet.html` : `高速列车 (bullet)` : dead
+- `tools/it/emoji-cheatsheet.html` : `高铁 (train)` : dead
+- `tools/it/emoji-cheatsheet.html` : `鱼 (fish)` : dead
+- `tools/it/emoji-cheatsheet.html` : `鱿鱼 (squid)` : dead
+- `tools/it/emoji-cheatsheet.html` : `鲨鱼 (shark)` : dead
+- `tools/it/emoji-cheatsheet.html` : `鲸鱼 (whale)` : dead
+- `tools/it/emoji-cheatsheet.html` : `鲸鱼2 (whale2)` : dead
+- `tools/it/emoji-cheatsheet.html` : `鳄鱼 (crocodile)` : dead
+- `tools/it/emoji-cheatsheet.html` : `鸟 (bird)` : dead
+- `tools/it/emoji-cheatsheet.html` : `鸟居 (torii)` : dead
+- `tools/it/emoji-cheatsheet.html` : `鸡 (chicken)` : dead
+- `tools/it/emoji-cheatsheet.html` : `鸡尾酒 (cocktail)` : dead
+- `tools/it/emoji-cheatsheet.html` : `鸡腿 (chicken)` : dead
+- `tools/it/emoji-cheatsheet.html` : `鸡蛋 (egg)` : dead
+- `tools/it/emoji-cheatsheet.html` : `鸭子 (duck)` : dead
+- `tools/it/emoji-cheatsheet.html` : `鹰 (eagle)` : dead
+- `tools/it/emoji-cheatsheet.html` : `黄心 (yellow heart)` : dead
+- `tools/it/emoji-cheatsheet.html` : `黄瓜 (cucumber)` : dead
+- `tools/it/emoji-cheatsheet.html` : `黑心 (black heart)` : dead
+- `tools/it/emoji-cheatsheet.html` : `鼓掌 (clap)` : dead
+- `tools/it/emoji-cheatsheet.html` : `鼠标 (mouse)` : dead
+- `tools/it/emoji-cheatsheet.html` : `龙虾 (lobster)` : dead
+- `tools/it/emoji-meaning.html` : `共 444 个 Emoji` : dead
+- `tools/it/emoji-meaning.html` : `🇨🇳 旗帜` : dead
+- `tools/it/git-commands.html` : `# 丢弃单个文件 ⏎  git checkout -- file.txt ⏎  ⏎ # 丢弃所有修改 ⏎  git checkout -- .` : dead
+- `tools/it/git-commands.html` : `# 从其他分支取单个提交 ⏎  git cherry-pick abc1234 ⏎  ⏎ # 取多个提交 ⏎  git cherry-pick abc1234 def5678` : dead
+- `tools/it/git-commands.html` : `# 修改提交信息 ⏎  git commit --amend -m "新的消息" ⏎  ⏎ # 追加文件到上次提交 ⏎  git add new-file.txt ⏎  git commit --amend --no-edit ⏎  ⏎ # 修改作者 ⏎  git commit --amend --author="张三…(+18字)` : dead
+- `tools/it/git-commands.html` : `# 克隆仓库 ⏎  git clone https://github.com/user/repo.git ⏎  ⏎ # 克隆指定分支 ⏎  git clone -b main https://github.com/user/repo.git ⏎  ⏎ # 浅克隆（最近1次提交） ⏎  git clone --depth…(+35字)` : dead
+- `tools/it/git-commands.html` : `# 切换分支 ⏎  git checkout main ⏎  ⏎ # 创建并切换分支 ⏎  git checkout -b feature ⏎  ⏎ # 强制创建分支 ⏎  git checkout -B feature origin/feature ⏎  ⏎ # 切换到上一个分支 ⏎  git checkout -` : dead
+- `tools/it/git-commands.html` : `# 切换分支 ⏎  git switch main ⏎  ⏎ # 创建并切换 ⏎  git switch -c feature ⏎  ⏎ # 切换到远程分支 ⏎  git switch origin/feature` : dead
+- `tools/it/git-commands.html` : `# 列出所有暂存 ⏎  git stash list` : dead
+- `tools/it/git-commands.html` : `# 列出本地分支 ⏎  git branch ⏎  ⏎ # 列出所有分支（含远程） ⏎  git branch -a ⏎  ⏎ # 创建分支 ⏎  git branch feature ⏎  ⏎ # 删除分支 ⏎  git branch -d feature ⏎  ⏎ # 强制删除 ⏎  git branch -D f…(+88字)` : dead
+- `tools/it/git-commands.html` : `# 列出标签 ⏎  git tag ⏎  git tag -l 'v1.*' ⏎  ⏎ # 创建轻量标签 ⏎  git tag v1.0.0 ⏎  ⏎ # 创建附注标签 ⏎  git tag -a v1.0.0 -m "发布 1.0.0" ⏎  ⏎ # 在指定提交打标签 ⏎  git tag -a v1.0.0 abc…(+136字)` : dead
+- `tools/it/git-commands.html` : `# 列出远程 ⏎  git remote -v ⏎  ⏎ # 添加远程 ⏎  git remote add origin https://github.com/user/repo.git ⏎  ⏎ # 修改远程 URL ⏎  git remote set-url origin git@github.com:user/r…(+97字)` : dead
+- `tools/it/git-commands.html` : `# 创建附注标签 ⏎  git tag -a v1.0.0 -m "Release 1.0.0" ⏎  ⏎ # 在指定提交创建 ⏎  git tag -a v1.0.0 abc1234 -m "Release 1.0.0"` : dead
+- `tools/it/git-commands.html` : `# 初始化 Git Flow ⏎  git flow init` : dead
+- `tools/it/git-commands.html` : `# 删除文件 ⏎  git rm file.txt ⏎  ⏎ # 从暂存区移除但保留本地 ⏎  git rm --cached file.txt ⏎  ⏎ # 递归删除目录 ⏎  git rm -r dist/` : dead
+- `tools/it/git-commands.html` : `# 删除远程分支 ⏎  git push origin --delete feature` : dead
+- `tools/it/git-commands.html` : `# 单行历史 ⏎  git log --oneline ⏎  ⏎ # 图形化所有分支 ⏎  git log --oneline --graph --all ⏎  ⏎ # 查看指定文件历史 ⏎  git log --oneline -- file.txt` : dead
+- `tools/it/git-commands.html` : `# 变基到 main ⏎  git rebase main ⏎  ⏎ # 交互式变基（压缩/重排提交） ⏎  git rebase -i HEAD~3 ⏎  ⏎ # 变基到指定提交 ⏎  git rebase --onto main feature ⏎  ⏎ # 中止变基 ⏎  git rebase --abort ⏎…(+38字)` : dead
+- `tools/it/git-commands.html` : `# 合并 feature 到当前分支 ⏎  git merge feature ⏎  ⏎ # 不使用快进（保留分支历史） ⏎  git merge --no-ff feature ⏎  ⏎ # Squash 合并（压缩为一次提交） ⏎  git merge --squash feature ⏎  git commit …(+48字)` : dead
+- `tools/it/git-commands.html` : `# 合并保留分支历史 ⏎  git merge --no-ff feature ⏎  ⏎ # 配置默认不快进 ⏎  git config --global merge.ff false` : dead
+- `tools/it/git-commands.html` : `# 在当前目录初始化 ⏎  git init ⏎  ⏎ # 指定初始分支名 ⏎  git init --initial-branch=main ⏎  ⏎ # 创建裸仓库（用于服务器） ⏎  git init --bare` : dead
+- `tools/it/git-commands.html` : `# 在所有子模块拉取 ⏎  git submodule foreach git pull` : dead
+- `tools/it/git-commands.html` : `# 垃圾回收 ⏎  git gc ⏎  ⏎ # 深度清理 ⏎  git gc --aggressive --prune=now` : dead
+- `tools/it/git-commands.html` : `# 应用单个提交 ⏎  git cherry-pick abc1234 ⏎  ⏎ # 应用多个提交 ⏎  git cherry-pick abc1234 def5678 ⏎  ⏎ # 应用但不自动提交 ⏎  git cherry-pick --no-commit abc1234` : dead
+- `tools/it/git-commands.html` : `# 开始二分 ⏎  git bisect start ⏎  ⏎ # 标记坏提交 ⏎  git bisect bad HEAD ⏎  ⏎ # 标记好提交 ⏎  git bisect good v1.0.0 ⏎  ⏎ # 自动测试 ⏎  git bisect run npm test ⏎  ⏎ # 结束二分 ⏎  git …(+12字)` : dead
+- `tools/it/git-commands.html` : `# 开始发布 ⏎  git flow release start 1.0.0 ⏎  ⏎ # 完成发布 ⏎  git flow release finish 1.0.0` : dead
+- `tools/it/git-commands.html` : `# 开始新功能 ⏎  git flow feature start my-feature ⏎  ⏎ # 完成功能 ⏎  git flow feature finish my-feature ⏎  ⏎ # 发布功能分支 ⏎  git flow feature publish my-feature ⏎  ⏎ # 切换到功能…(+42字)` : dead
+- `tools/it/git-commands.html` : `# 开始热修复 ⏎  git flow hotfix start hotfix-1.0.1 ⏎  ⏎ # 完成热修复 ⏎  git flow hotfix finish hotfix-1.0.1` : dead
+- `tools/it/git-commands.html` : `# 归档为 zip ⏎  git archive --format=zip --output=repo.zip HEAD ⏎  ⏎ # 归档为 tar.gz ⏎  git archive --format=tar.gz --output=repo.tar.gz HEAD` : dead
+- `tools/it/git-commands.html` : `# 恢复最近的暂存 ⏎  git stash pop ⏎  ⏎ # 恢复指定暂存 ⏎  git stash pop stash@{2}` : dead
+- `tools/it/git-commands.html` : `# 拉取并变基 ⏎  git pull --rebase origin main ⏎  ⏎ # 设置默认拉取为变基 ⏎  git config --global pull.rebase true` : dead
+- `tools/it/git-commands.html` : `# 拉取并合并 ⏎  git pull origin main ⏎  ⏎ # 拉取并变基 ⏎  git pull --rebase origin main` : dead
+- `tools/it/git-commands.html` : `# 拉取所有远程 ⏎  git fetch --all ⏎  ⏎ # 拉取指定远程 ⏎  git fetch origin ⏎  ⏎ # 拉取指定分支 ⏎  git fetch origin main` : dead
+- `tools/it/git-commands.html` : `# 按作者统计提交数 ⏎  git shortlog -sn` : dead
+- `tools/it/git-commands.html` : `# 推送当前分支 ⏎  git push ⏎  ⏎ # 推送并设置上游 ⏎  git push -u origin feature ⏎  ⏎ # 强制推送（危险！） ⏎  git push -f ⏎  git push --force-with-lease ⏎  ⏎ # 推送标签 ⏎  git push --tags …(+31字)` : dead
+- `tools/it/git-commands.html` : `# 描述最近的标签 ⏎  git describe ⏎  ⏎ # 使用轻量标签 ⏎  git describe --tags` : dead
+- `tools/it/git-commands.html` : `# 提交并写消息 ⏎  git commit -m "feat: 添加登录功能" ⏎  ⏎ # 跳过 add 直接提交已跟踪文件 ⏎  git commit -am "fix: 修复 bug" ⏎  ⏎ # 修改上一次提交（追加修改） ⏎  git add new-file.txt ⏎  git commit --am…(+59字)` : dead
+- `tools/it/git-commands.html` : `# 撤销工作区修改 ⏎  git restore file.txt ⏎  ⏎ # 取消暂存（保留修改） ⏎  git restore --staged file.txt ⏎  ⏎ # 从指定提交恢复 ⏎  git restore --source=HEAD~1 file.txt` : dead
+- `tools/it/git-commands.html` : `# 撤销最新提交 ⏎  git revert HEAD ⏎  ⏎ # 撤销指定提交 ⏎  git revert abc1234 ⏎  ⏎ # 撤销但不自动提交 ⏎  git revert --no-commit abc1234` : dead
+- `tools/it/git-commands.html` : `# 暂存当前修改 ⏎  git stash ⏎  git stash save "work in progress" ⏎  ⏎ # 查看暂存列表 ⏎  git stash list ⏎  ⏎ # 恢复最近的暂存（并删除） ⏎  git stash pop ⏎  ⏎ # 恢复但不删除 ⏎  git stash apply…(+83字)` : dead
+- `tools/it/git-commands.html` : `# 查看历史 ⏎  git log ⏎  ⏎ # 单行显示 ⏎  git log --oneline ⏎  ⏎ # 图形化显示分支 ⏎  git log --oneline --graph --all ⏎  ⏎ # 查看指定作者的提交 ⏎  git log --author="张三" ⏎  ⏎ # 查看最近 10 条 …(+98字)` : dead
+- `tools/it/git-commands.html` : `# 查看工作区与暂存区差异 ⏎  git diff ⏎  ⏎ # 查看暂存区与最新提交差异 ⏎  git diff --staged ⏎  git diff --cached ⏎  ⏎ # 比较两个提交 ⏎  git diff abc1234 def5678 ⏎  ⏎ # 比较分支 ⏎  git diff main f…(+43字)` : dead
+- `tools/it/git-commands.html` : `# 查看帮助 ⏎  git help ⏎  git help commit ⏎  git help push` : dead
+- `tools/it/git-commands.html` : `# 查看引用日志 ⏎  git reflog ⏎  ⏎ # 恢复到 5 步前 ⏎  git reset --hard HEAD@{5}` : dead
+- `tools/it/git-commands.html` : `# 查看引用日志 ⏎  git reflog ⏎  ⏎ # 查看所有引用 ⏎  git reflog --all ⏎  ⏎ # 找回丢失的提交 ⏎  git reset --hard HEAD@{5}` : dead
+- `tools/it/git-commands.html` : `# 查看文件每行的修改者 ⏎  git blame file.txt ⏎  ⏎ # 查看指定行范围 ⏎  git blame -L 10,20 file.txt` : dead
+- `tools/it/git-commands.html` : `# 查看最新提交 ⏎  git show ⏎  ⏎ # 查看指定提交 ⏎  git show abc1234 ⏎  ⏎ # 查看某文件的某次提交 ⏎  git show abc1234:file.txt` : dead
+- `tools/it/git-commands.html` : `# 查看详细状态 ⏎  git status ⏎  ⏎ # 简短输出 ⏎  git status -s` : dead
+- `tools/it/git-commands.html` : `# 检查 ⏎  git fsck` : dead
+- `tools/it/git-commands.html` : `# 添加子模块 ⏎  git submodule add https://github.com/user/lib.git libs/lib ⏎  ⏎ # 初始化子模块 ⏎  git submodule init ⏎  git submodule update ⏎  ⏎ # 一次性初始化和更新 ⏎  git submod…(+94字)` : dead
+- `tools/it/git-commands.html` : `# 添加工作树 ⏎  git worktree add ../repo-feature feature ⏎  ⏎ # 列出工作树 ⏎  git worktree list ⏎  ⏎ # 删除工作树 ⏎  git worktree remove ../repo-feature` : dead
+- `tools/it/git-commands.html` : `# 添加所有变更 ⏎  git add . ⏎  git add -A ⏎  ⏎ # 添加修改和删除（不含新文件） ⏎  git add -u ⏎  ⏎ # 添加指定文件 ⏎  git add file1.txt file2.txt ⏎  ⏎ # 交互式添加 ⏎  git add -p` : dead
+- `tools/it/git-commands.html` : `# 编辑最近 3 次提交 ⏎  git rebase -i HEAD~3 ⏎ # 在编辑器中可： ⏎ # pick   - 保留 ⏎ # reword - 修改信息 ⏎ # squash - 合并到上一条 ⏎ # drop   - 删除 ⏎ # edit   - 暂停修改` : dead
+- `tools/it/git-commands.html` : `# 设置全局用户名 ⏎  git config --global user.name "张三" ⏎  ⏎ # 设置全局邮箱 ⏎  git config --global user.email "zs@example.com" ⏎  ⏎ # 设置默认编辑器 ⏎  git config --global core.edit…(+41字)` : dead
+- `tools/it/git-commands.html` : `# 设置别名 ⏎  git config --global alias.co checkout ⏎  git config --global alias.br branch ⏎  git config --global alias.ci commit ⏎  git config --global alias.st st…(+31字)` : dead
+- `tools/it/git-commands.html` : `# 设置默认分支为 main ⏎  git config --global init.defaultBranch main` : dead
+- `tools/it/git-commands.html` : `# 软重置（保留修改） ⏎  git reset --soft HEAD~1 ⏎  ⏎ # 默认重置（取消暂存，保留修改） ⏎  git reset HEAD~1 ⏎  ⏎ # 硬重置（丢弃修改，危险！） ⏎  git reset --hard HEAD~1 ⏎  ⏎ # 重置到指定提交 ⏎  git reset --…(+12字)` : dead
+- `tools/it/git-commands.html` : `# 重命名文件 ⏎  git mv old.txt new.txt ⏎  ⏎ # 移动文件到目录 ⏎  git mv file.txt src/` : dead
+- `tools/it/git-commands.html` : `# 预览将删除的文件 ⏎  git clean -n ⏎  ⏎ # 删除未跟踪文件 ⏎  git clean -f ⏎  ⏎ # 删除未跟踪目录 ⏎  git clean -fd ⏎  ⏎ # 删除所有未跟踪（含忽略） ⏎  git clean -fdx` : dead
+- `tools/it/git-commands.html` : `共 58 个命令` : dead
+- `tools/it/go-cheatsheet.html` : `f, _ := os.Open("f") ⏎ defer f.Close() ⏎  ⏎ // LIFO 顺序 ⏎ defer fmt.Println("1") ⏎ defer fmt.Println("2")  -- 先输出` : dead
+- `tools/it/go-cheatsheet.html` : `for i := 0; i < 5; i++ { fmt.Println(i) } ⏎ for _, v := range slice { fmt.Println(v) } ⏎ for cond { /* while */ } ⏎ for { /* 死循环 */ break }` : dead
+- `tools/it/go-cheatsheet.html` : `func print(v any) { fmt.Println(v) } ⏎ var i any = 1 ⏎ v, ok := i.(int)  -- 类型断言 ⏎ switch v := i.(type) { ⏎   case int: ... ⏎ }` : dead
+- `tools/it/go-cheatsheet.html` : `switch day { ⏎ case "Sat", "Sun": fmt.Println("weekend") ⏎ default: fmt.Println("workday") ⏎ } ⏎  ⏎ switch {  -- 无表达式 ⏎   case x < 0: ... ⏎ }` : dead
+- `tools/it/go-escape.html` : `支持字符串与 rune 转义，含 \a \b \f \n \r \t \v \\ \' \" \xXX \uXXXX \UXXXXXXXX。` : dead
+- `tools/it/hash-multi.html` : `,具备确定性、雪崩效应(改 1 bit 约半数输出变)、单向不可逆。` : dead
+- `tools/it/hash-multi.html` : `哈希函数把任意长度输入映射为` : dead
+- `tools/it/hash-multi.html` : `定长摘要` : dead
+- `tools/it/html-entities.html` : `" - 双引号` : dead
+- `tools/it/html-entities.html` : `& - 与号` : dead
+- `tools/it/html-entities.html` : `&baht; - 泰铢` : dead
+- `tools/it/html-entities.html` : `&dong; - 盾` : dead
+- `tools/it/html-entities.html` : `&hrivn; - 格里夫纳` : dead
+- `tools/it/html-entities.html` : `&lira; - 里拉` : dead
+- `tools/it/html-entities.html` : `&peso; - 比索` : dead
+- `tools/it/html-entities.html` : `&ruble; - 卢布` : dead
+- `tools/it/html-entities.html` : `&rupee; - 卢比` : dead
+- `tools/it/html-entities.html` : `&wron; - 韩元` : dead
+- `tools/it/html-entities.html` : `' - 单引号` : dead
+- `tools/it/html-entities.html` : `+ - 加号` : dead
+- `tools/it/html-entities.html` : `¡ - 倒感叹号` : dead
+- `tools/it/html-entities.html` : `¢ - 美分` : dead
+- `tools/it/html-entities.html` : `¦ - 断竖线` : dead
+- `tools/it/html-entities.html` : `§ - 章节符` : dead
+- `tools/it/html-entities.html` : `¨ - 分音符` : dead
+- `tools/it/html-entities.html` : `© - 版权` : dead
+- `tools/it/html-entities.html` : `ª - 阴性序数` : dead
+- `tools/it/html-entities.html` : `« - 左双尖引号` : dead
+- `tools/it/html-entities.html` : `¬ - 非` : dead
+- `tools/it/html-entities.html` : `® - 注册商标` : dead
+- `tools/it/html-entities.html` : `¯ - 长音符号` : dead
+- `tools/it/html-entities.html` : `° - 度` : dead
+- `tools/it/html-entities.html` : `± - 正负号` : dead
+- `tools/it/html-entities.html` : `² - 上标 2` : dead
+- `tools/it/html-entities.html` : `³ - 上标 3` : dead
+- `tools/it/html-entities.html` : `´ - 锐音符` : dead
+- `tools/it/html-entities.html` : `µ - 微` : dead
+- `tools/it/html-entities.html` : `¶ - 段落符` : dead
+- `tools/it/html-entities.html` : `· - 中点` : dead
+- `tools/it/html-entities.html` : `¸ - 下尾符` : dead
+- `tools/it/html-entities.html` : `¹ - 上标 1` : dead
+- `tools/it/html-entities.html` : `º - 阳性序数` : dead
+- `tools/it/html-entities.html` : `» - 右双尖引号` : dead
+- `tools/it/html-entities.html` : `¼ - 四分之一` : dead
+- `tools/it/html-entities.html` : `½ - 二分之一` : dead
+- `tools/it/html-entities.html` : `¾ - 四分之三` : dead
+- `tools/it/html-entities.html` : `¿ - 倒问号` : dead
+- `tools/it/html-entities.html` : `À - A 抑音符` : dead
+- `tools/it/html-entities.html` : `Á - A 锐音符` : dead
+- `tools/it/html-entities.html` : `Â - A 扬抑符` : dead
+- `tools/it/html-entities.html` : `Ã - A 鼻化符` : dead
+- `tools/it/html-entities.html` : `Ä - A 分音符` : dead
+- `tools/it/html-entities.html` : `Å - A 上圆圈` : dead
+- `tools/it/html-entities.html` : `Æ - AE 连字` : dead
+- `tools/it/html-entities.html` : `Ç - C 下尾符` : dead
+- `tools/it/html-entities.html` : `È - E 抑音符` : dead
+- `tools/it/html-entities.html` : `É - E 锐音符` : dead
+- `tools/it/html-entities.html` : `Ê - E 扬抑符` : dead
+- `tools/it/html-entities.html` : `Ë - E 分音符` : dead
+- `tools/it/html-entities.html` : `Ì - I 抑音符` : dead
+- `tools/it/html-entities.html` : `Í - I 锐音符` : dead
+- `tools/it/html-entities.html` : `Î - I 扬抑符` : dead
+- `tools/it/html-entities.html` : `Ï - I 分音符` : dead
+- `tools/it/html-entities.html` : `Ñ - N 鼻化符` : dead
+- `tools/it/html-entities.html` : `Ò - O 抑音符` : dead
+- `tools/it/html-entities.html` : `Ó - O 锐音符` : dead
+- `tools/it/html-entities.html` : `Ô - O 扬抑符` : dead
+- `tools/it/html-entities.html` : `Õ - O 鼻化符` : dead
+- `tools/it/html-entities.html` : `Ö - O 分音符` : dead
+- `tools/it/html-entities.html` : `× - 乘号` : dead
+- `tools/it/html-entities.html` : `Ø - O 斜线` : dead
+- `tools/it/html-entities.html` : `Ù - U 抑音符` : dead
+- `tools/it/html-entities.html` : `Ú - U 锐音符` : dead
+- `tools/it/html-entities.html` : `Û - U 扬抑符` : dead
+- `tools/it/html-entities.html` : `Ü - U 分音符` : dead
+- `tools/it/html-entities.html` : `Ý - Y 锐音符` : dead
+- `tools/it/html-entities.html` : `à - a 抑音符` : dead
+- `tools/it/html-entities.html` : `á - a 锐音符` : dead
+- `tools/it/html-entities.html` : `â - a 扬抑符` : dead
+- `tools/it/html-entities.html` : `ã - a 鼻化符` : dead
+- `tools/it/html-entities.html` : `ä - a 分音符` : dead
+- `tools/it/html-entities.html` : `å - a 上圆圈` : dead
+- `tools/it/html-entities.html` : `æ - ae 连字` : dead
+- `tools/it/html-entities.html` : `ç - c 下尾符` : dead
+- `tools/it/html-entities.html` : `è - e 抑音符` : dead
+- `tools/it/html-entities.html` : `é - e 锐音符` : dead
+- `tools/it/html-entities.html` : `ê - e 扬抑符` : dead
+- `tools/it/html-entities.html` : `ë - e 分音符` : dead
+- `tools/it/html-entities.html` : `ì - i 抑音符` : dead
+- `tools/it/html-entities.html` : `í - i 锐音符` : dead
+- `tools/it/html-entities.html` : `î - i 扬抑符` : dead
+- `tools/it/html-entities.html` : `ï - i 分音符` : dead
+- `tools/it/html-entities.html` : `ñ - n 鼻化符` : dead
+- `tools/it/html-entities.html` : `ò - o 抑音符` : dead
+- `tools/it/html-entities.html` : `ó - o 锐音符` : dead
+- `tools/it/html-entities.html` : `ô - o 扬抑符` : dead
+- `tools/it/html-entities.html` : `õ - o 鼻化符` : dead
+- `tools/it/html-entities.html` : `ö - o 分音符` : dead
+- `tools/it/html-entities.html` : `÷ - 除号` : dead
+- `tools/it/html-entities.html` : `ø - o 斜线` : dead
+- `tools/it/html-entities.html` : `ù - u 抑音符` : dead
+- `tools/it/html-entities.html` : `ú - u 锐音符` : dead
+- `tools/it/html-entities.html` : `û - u 扬抑符` : dead
+- `tools/it/html-entities.html` : `ü - u 分音符` : dead
+- `tools/it/html-entities.html` : `ý - y 锐音符` : dead
+- `tools/it/html-entities.html` : `ÿ - y 分音符` : dead
+- `tools/it/html-entities.html` : `π - 圆周率` : dead
+- `tools/it/html-entities.html` : `– - 短破折号` : dead
+- `tools/it/html-entities.html` : `— - 长破折号` : dead
+- `tools/it/html-entities.html` : `‘ - 左单引号` : dead
+- `tools/it/html-entities.html` : `’ - 右单引号` : dead
+- `tools/it/html-entities.html` : `“ - 左双引号` : dead
+- `tools/it/html-entities.html` : `” - 右双引号` : dead
+- `tools/it/html-entities.html` : `• - 黑色圆点` : dead
+- `tools/it/html-entities.html` : `… - 省略号` : dead
+- `tools/it/html-entities.html` : `‰ - 千分号` : dead
+- `tools/it/html-entities.html` : `′ - 撇` : dead
+- `tools/it/html-entities.html` : `″ - 双撇` : dead
+- `tools/it/html-entities.html` : `‹ - 单左尖引号` : dead
+- `tools/it/html-entities.html` : `› - 单右尖引号` : dead
+- `tools/it/html-entities.html` : `™ - 商标` : dead
+- `tools/it/html-entities.html` : `⅓ - 三分之一` : dead
+- `tools/it/html-entities.html` : `← - 左箭头` : dead
+- `tools/it/html-entities.html` : `↑ - 上箭头` : dead
+- `tools/it/html-entities.html` : `→ - 右箭头` : dead
+- `tools/it/html-entities.html` : `↓ - 下箭头` : dead
+- `tools/it/html-entities.html` : `↔ - 左右箭头` : dead
+- `tools/it/html-entities.html` : `↕ - 上下箭头` : dead
+- `tools/it/html-entities.html` : `↖ - 左上箭头` : dead
+- `tools/it/html-entities.html` : `↗ - 右上箭头` : dead
+- `tools/it/html-entities.html` : `↘ - 右下箭头` : dead
+- `tools/it/html-entities.html` : `↙ - 左下箭头` : dead
+- `tools/it/html-entities.html` : `↵ - 回车箭头` : dead
+- `tools/it/html-entities.html` : `⇐ - 双线左箭头` : dead
+- `tools/it/html-entities.html` : `⇑ - 双线上箭头` : dead
+- `tools/it/html-entities.html` : `⇒ - 双线右箭头` : dead
+- `tools/it/html-entities.html` : `⇓ - 双线下箭头` : dead
+- `tools/it/html-entities.html` : `⇔ - 双线左右箭头` : dead
+- `tools/it/html-entities.html` : `∀ - 任意` : dead
+- `tools/it/html-entities.html` : `∂ - 偏导数` : dead
+- `tools/it/html-entities.html` : `∃ - 存在` : dead
+- `tools/it/html-entities.html` : `∅ - 空集` : dead
+- `tools/it/html-entities.html` : `∇ - 梯度` : dead
+- `tools/it/html-entities.html` : `∈ - 属于` : dead
+- `tools/it/html-entities.html` : `∉ - 不属于` : dead
+- `tools/it/html-entities.html` : `∏ - 求积` : dead
+- `tools/it/html-entities.html` : `∑ - 求和` : dead
+- `tools/it/html-entities.html` : `√ - 平方根` : dead
+- `tools/it/html-entities.html` : `∞ - 无穷` : dead
+- `tools/it/html-entities.html` : `∠ - 角` : dead
+- `tools/it/html-entities.html` : `∥ - 平行` : dead
+- `tools/it/html-entities.html` : `∩ - 交集` : dead
+- `tools/it/html-entities.html` : `∪ - 并集` : dead
+- `tools/it/html-entities.html` : `∫ - 积分` : dead
+- `tools/it/html-entities.html` : `≠ - 不等于` : dead
+- `tools/it/html-entities.html` : `≡ - 恒等于` : dead
+- `tools/it/html-entities.html` : `⊂ - 真子集` : dead
+- `tools/it/html-entities.html` : `⊃ - 真超集` : dead
+- `tools/it/html-entities.html` : `⊆ - 子集` : dead
+- `tools/it/html-entities.html` : `⊇ - 超集` : dead
+- `tools/it/html-entities.html` : `⊥ - 垂直` : dead
+- `tools/it/html-entities.html` : `⋄ - 白色菱形` : dead
+- `tools/it/html-entities.html` : `⋄ - 黑色菱形` : dead
+- `tools/it/html-entities.html` : `□ - 小黑色方块` : dead
+- `tools/it/html-entities.html` : `□ - 白色方块` : dead
+- `tools/it/html-entities.html` : `▪ - 黑色方块` : dead
+- `tools/it/html-entities.html` : `▴ - 黑色三角` : dead
+- `tools/it/html-entities.html` : `▵ - 白色三角` : dead
+- `tools/it/html-entities.html` : `▾ - 黑色倒三角` : dead
+- `tools/it/html-entities.html` : `▿ - 白色倒三角` : dead
+- `tools/it/html-entities.html` : `○ - 小白色方块` : dead
+- `tools/it/html-entities.html` : `共 181 个实体` : dead
+- `tools/it/html-escape.html` : `HTML命名 · 转义 · 09/30 00:44` : dead
+- `tools/it/html-minifier.html` : `<div class="card"> ⏎   <h2>月度报表</h2> ⏎   <p>共 128 条记录，新增 12 条。</p> ⏎   <ul> ⏎     <li>项目 1</li> ⏎     <li>项目 2</li> ⏎   </ul> ⏎ </div>` : dead
+- `tools/it/html-tags.html` : `<address> ⏎   作者：张三<br> ⏎   邮箱：a@b.com ⏎ </address>` : dead
+- `tools/it/html-tags.html` : `<article> ⏎   <h2>文章标题</h2> ⏎   <p>文章内容</p> ⏎ </article>` : dead
+- `tools/it/html-tags.html` : `<aside> ⏎   <h3>相关链接</h3> ⏎   <ul>...</ul> ⏎ </aside>` : dead
+- `tools/it/html-tags.html` : `<blockquote cite="https://example.com"> ⏎   这是引用内容。 ⏎ </blockquote>` : dead
+- `tools/it/html-tags.html` : `<body> ⏎   <h2>欢迎</h2> ⏎   <p>正文内容</p> ⏎ </body>` : dead
+- `tools/it/html-tags.html` : `<datalist id="cities"> ⏎   <option value="北京"> ⏎ </datalist>` : dead
+- `tools/it/html-tags.html` : `<details> ⏎   <summary>点击展开</summary> ⏎   <p>详细内容</p> ⏎ </details>` : dead
+- `tools/it/html-tags.html` : `<dialog open> ⏎   <p>对话框内容</p> ⏎ </dialog>` : dead
+- `tools/it/html-tags.html` : `<dl> ⏎   <dt>HTML</dt> ⏎   <dd>超文本标记语言</dd> ⏎ </dl>` : dead
+- `tools/it/html-tags.html` : `<fieldset> ⏎   <legend>用户信息</legend> ⏎   <input type="text"> ⏎ </fieldset>` : dead
+- `tools/it/html-tags.html` : `<figure> ⏎   <img alt=""  src="https://placehold.co/300x200"> ⏎   <figcaption>图片说明</figcaption> ⏎ </figure>` : dead
+- `tools/it/html-tags.html` : `<footer> ⏎   <p>版权 © 2024</p> ⏎ </footer>` : dead
+- `tools/it/html-tags.html` : `<head>\n  <meta charset="UTF-8">\n  &lt;title&gt;标题&lt;/title&gt;\n</head>` : dead
+- `tools/it/html-tags.html` : `<header> ⏎   <h2>网站标题</h2> ⏎   <nav>...</nav> ⏎ </header>` : dead
+- `tools/it/html-tags.html` : `<label for="user">用户名</label> ⏎ <input id="user" type="text">` : dead
+- `tools/it/html-tags.html` : `<main> ⏎   <h2>主标题</h2> ⏎ </main>` : dead
+- `tools/it/html-tags.html` : `<menu> ⏎   <li>菜单项</li> ⏎ </menu>` : dead
+- `tools/it/html-tags.html` : `<nav> ⏎   <a href="https://example.com/">首页</a> ⏎   <a href="https://example.com/about">关于</a> ⏎ </nav>` : dead
+- `tools/it/html-tags.html` : `<noscript> ⏎   <p>请启用 JavaScript</p> ⏎ </noscript>` : dead
+- `tools/it/html-tags.html` : `<ol> ⏎   <li>第一项</li> ⏎   <li>第二项</li> ⏎ </ol>` : dead
+- `tools/it/html-tags.html` : `<optgroup label="亚洲"> ⏎   <option>中国</option> ⏎ </optgroup>` : dead
+- `tools/it/html-tags.html` : `<pre> ⏎   保留空格 ⏎   和换行 ⏎ </pre>` : dead
+- `tools/it/html-tags.html` : `<script src="app.js"></script> ⏎ <script> ⏎   console.log("内联"); ⏎ </script>` : dead
+- `tools/it/html-tags.html` : `<section> ⏎   <h2>章节标题</h2> ⏎   <p>内容</p> ⏎ </section>` : dead
+- `tools/it/html-tags.html` : `<select name="city"> ⏎   <option value="bj">北京</option> ⏎ </select>` : dead
+- `tools/it/html-tags.html` : `<table> ⏎   <tr><td>单元格</td></tr> ⏎ </table>` : dead
+- `tools/it/html-tags.html` : `<tbody> ⏎   <tr><td>内容</td></tr> ⏎ </tbody>` : dead
+- `tools/it/html-tags.html` : `<template id="t"> ⏎   <div>模板</div> ⏎ </template>` : dead
+- `tools/it/html-tags.html` : `<tfoot> ⏎   <tr><td>合计</td></tr> ⏎ </tfoot>` : dead
+- `tools/it/html-tags.html` : `<thead> ⏎   <tr><th>标题</th></tr> ⏎ </thead>` : dead
+- `tools/it/html-tags.html` : `<tr> ⏎   <td>单元格</td> ⏎ </tr>` : dead
+- `tools/it/html-tags.html` : `<ul> ⏎   <li>项目1</li> ⏎   <li>项目2</li> ⏎ </ul>` : dead
+- `tools/it/html-tags.html` : `共 121 个标签` : dead
+- `tools/it/http-cookies.html` : `共 26 项` : dead
+- `tools/it/http-headers.html` : `共 91 项` : dead
+- `tools/it/http-response-headers.html` : `共 65 项` : dead
+- `tools/it/js-formatter.html` : `⚠ 含 import/export 模块语法，浏览器脚本编译器无法校验，仅做括号配对检查` : dead
+- `tools/it/js-minify.html` : `// 计算总价 ⏎ function total(items) { ⏎   /* 遍历累加 */ ⏎   var s = 0; ⏎   for (var i = 0; i < items.length; i++) { ⏎     s += items[i]; ⏎   } ⏎   return s; ⏎ }` : dead
+- `tools/it/json-diff.html` : `"city": "上海",` : dead
+- `tools/it/json-diff.html` : `"city": "北京",` : dead
+- `tools/it/json-formatter.html` : `点击复制值` : dead
+- `tools/it/json-formatter.html` : `点击复制对象` : dead
+- `tools/it/json-formatter.html` : `点击复制数组` : dead
+- `tools/it/json-formatter.html` : `点击复制键` : dead
+- `tools/it/json-path.html` : `$.store.book[?(@.price<10)] 过滤` : dead
+- `tools/it/kubernetes-cheatsheet.html` : `kubectl label pod web-xxx env=prod ⏎ kubectl label pod web-xxx env-  -- 删除标签` : dead
+- `tools/it/latex.html` : `共 183 条（点击命令复制）` : dead
+- `tools/it/linux-cheatsheet.html` : `export PATH=$PATH:$HOME/.local/bin ⏎ # 写入 ~/.bashrc 永久生效` : dead
+- `tools/it/linux-cheatsheet.html` : `history ⏎  !!  -- 上一条 ⏎  !42  -- 第 42 条` : dead
+- `tools/it/linux-cheatsheet.html` : `sleep 100 & ⏎ echo $!  -- 进程 PID` : dead
+- `tools/it/linux-cheatsheet.html` : `共 114 项` : dead
+- `tools/it/matrix-transpose.html` : `矩阵 A (2×3)` : dead
+- `tools/it/md5.html` : `MD5加密工具` : dead
+- `tools/it/md5.html` : `免费在线MD5加密工具，生成字符串的MD5哈希值，支持批量生成，MD5碰撞检测参考。纯前端本地处理。。专为开发者打造的在线工具，纯前端运行，代码不离开浏览器。` : dead
+- `tools/it/md5.html` : `关于「MD5加密工具」` : dead
+- `tools/it/md5.html` : `勾选「每行分别哈希」后，输入框按换行拆分成行，每行单独计算 MD5。例如两行 a、b → 0cc175b9c0f1b6a831c399e269772661 与 92eb5ffee6ae2fec3ad71c777531578f，结果表同时列出原文与摘要，便于逐条核对。` : dead
+- `tools/it/md5.html` : `逐行批量哈希` : dead
+- `tools/it/mongodb-cheatsheet.html` : `db.users.find({name: {$regex: "^张", $options: "i"}})` : dead
+- `tools/it/mongodb-cheatsheet.html` : `共 53 项` : dead
+- `tools/it/nginx-cheatsheet.html` : `access_log /var/log/nginx/access.log main; ⏎ error_log /var/log/nginx/error.log warn; ⏎ access_log off;  -- 关闭` : dead
+- `tools/it/nginx-cheatsheet.html` : `nginx -s reload ⏎ nginx -s stop ⏎ nginx -s reopen  -- 重开日志` : dead
+- `tools/it/nginx-cheatsheet.html` : `共 34 项` : dead
+- `tools/it/nginx-config-generator.html` : `新站点上线前生成配置：填域名、端口与后端地址得到可用的 server 块，再按需要补 HTTPS 与安全头。` : dead
+- `tools/it/nginx-config-generator.html` : `至少三件事：一是 HTTPS（证书路径、HTTP/2，以及 80 端口跳转）；二是安全头（HSTS、X-Content-Type-Options，CSP 视情况）；三是上传大小与超时（client_max_body_size、proxy_read_timeout），默认值常不适合实际业务。上线前务必 nginx -t …(+3字)` : dead
+- `tools/it/nickname-generator.html` : `组合 = 形容词词库 × 名词词库 × 可选数字后缀` : dead
+- `tools/it/phone-parser.html` : `常见原因：号码缺少国家码（无法判断归属）、包含了分隔符与分机号，或是虚拟运营商与新号段尚未收录。中国手机号是 11 位、以 1 开头，若输入的是固话需带区号。解析失败时应保留原始输入并提示用户补充国家码，而不是直接丢弃。` : dead
+- `tools/it/phone-parser.html` : `显示：中国 11 位手机按 3-4-4 分组，其余按 4 位一组从右分组。` : dead
+- `tools/it/phone-parser.html` : `校验：只校验长度范围；号段/前缀是否真实存在需另用权威号码库。` : dead
+- `tools/it/phone-parser.html` : `清洗：剔除非数字字符（空格、连字符、括号） ⏎ 国家码：优先用输入中的“+”前缀识别；否则用所选地区；若纯数字开头已含所选国家码且余下长度合理，则自动剥离 ⏎ 国内首位 0：英国/日本/印度/中国台湾/澳大利亚等按规则去掉（trunk prefix） ⏎ E.164 = + 国家码 + 国内号码，总长 ≤15 位 ⏎ …(+32字)` : dead
+- `tools/it/phone-parser.html` : `清洗：剔除非数字字符（空格、连字符、括号）国家码：优先用输入中的“+”前缀识别；否则用所选地区；若纯数字开头已含所选国家码且余下长度合理，则自动剥离国内首位 0：英国/日本/印度/中国台湾/澳大利亚等按规则去掉（trunk prefix）E.164 = + 国家码 + 国内号码，总长 ≤15 位校验：仅校验国内号码长度…(+20字)` : dead
+- `tools/it/phone-parser.html` : `结果拆分展示国家码、区号与用户号，便于国际呼叫、存储与校验；建议始终带国家区号以确保跨区可用。` : dead
+- `tools/it/phone-parser.html` : `若原号码已含国家码，请选择对应国家再粘贴纯数字。` : dead
+- `tools/it/phone-parser.html` : `解析电话号码并按要求格式化。` : dead
+- `tools/it/phone-parser.html` : `解析范围：识别并剥离国家码、去掉国内首位 0；不解析区号归属地，也不判断运营商。` : dead
+- `tools/it/phone-parser.html` : `：国内号码常按 3-4-4 分组，国际格式按国家分组规则展示。` : dead
+- `tools/it/phone-parser.html` : `：识别国家码、区号与本地号码，再按目标格式重新分组排版。` : dead
+- `tools/it/phone-parser.html` : `：需依据各国号段规则判断长度与前缀是否合法。` : dead
+- `tools/it/php-cheatsheet.html` : `$s = "hello"; ⏎ strlen($s);  -- 字节 ⏎ mb_strlen($s);  -- 字符 ⏎ $s . "!"; ⏎ sprintf("Hi %s", $name); ⏎ str_replace("a", "b", $s); ⏎ explode(",", "a,b"); ⏎ implode(…(+16字)` : dead
+- `tools/it/php-cheatsheet.html` : `$s = json_encode($data);  -- 数组/对象 ⏎ $obj = json_decode($s);  -- 对象 ⏎ $arr = json_decode($s, true);  -- 关联数组` : dead
+- `tools/it/php-cheatsheet.html` : `<?php ⏎ echo "hi"; ⏎ ?> ⏎ <?= $var ?>  -- 等同 echo` : dead
+- `tools/it/php-cheatsheet.html` : `function add(int $a, int $b = 0): int { ⏎   return $a + $b; ⏎ } ⏎ function inc(&$x) { $x++; } ⏎ $fn = fn($x) => $x * 2;  -- 箭头函数` : dead
+- `tools/it/php-cheatsheet.html` : `共 23 项` : dead
+- `tools/it/postgresql-cheatsheet.html` : `-- 会话 A ⏎ LISTEN user_events; ⏎ -- 会话 B ⏎ NOTIFY user_events, '{"id":1}';` : dead
+- `tools/it/postgresql-cheatsheet.html` : `VACUUM ANALYZE users; ⏎ VACUUM FULL;  -- 锁表，回收空间` : dead
+- `tools/it/python-cheatsheet.html` : `class Dog: ⏎     species = "Canis"  -- 类属性 ⏎     def __init__(self, name): ⏎         self.name = name ⏎     def bark(self): return f"{self.name}!" ⏎  ⏎ d = Dog(…(+17字)` : dead
+- `tools/it/python-cheatsheet.html` : `import os ⏎ from datetime import datetime, timedelta ⏎ import numpy as np ⏎ from . import helper  -- 相对导入` : dead
+- `tools/it/python-cheatsheet.html` : `name = "Alice" ⏎ f"Hello {name}" ⏎ f"{1+1=}"  -- "1+1=2" ⏎ f"{3.14159:.2f}"  -- "3.14" ⏎ f"{'center':^10}"  -- 居中` : dead
+- `tools/it/python-cheatsheet.html` : `raise ValueError("invalid") ⏎ raise  -- 重抛` : dead
+- `tools/it/python-cheatsheet.html` : `s = {1, 2, 3} ⏎ s.add(4) ⏎ 1 in s  -- True ⏎ s & {2,3,4}  -- 交 ⏎ s | {5}  -- 并` : dead
+- `tools/it/python-cheatsheet.html` : `t = (1, "a") ⏎ a, b = t  -- 解包` : dead
+- `tools/it/python-cheatsheet.html` : `x = 1 ⏎ name: str = "Alice" ⏎ x, y = 1, 2  -- 多重赋值 ⏎ x, *rest = [1,2,3]  -- rest=[2,3]` : dead
+- `tools/it/python-cheatsheet.html` : `xs = [1,2,3] ⏎ xs.append(4)  -- [1,2,3,4] ⏎ xs.pop()  -- 4 ⏎ xs[0] = 9 ⏎ xs[1:3]  -- 切片 ⏎ [x*2 for x in xs if x > 1]  -- 推导式` : dead
+- `tools/it/qr-decoder.html` : `查询提示:` : dead
+- `tools/it/random.html` : `结果: <strong id="singleResult"></strong>` : dead
+- `tools/it/redis-cheatsheet.html` : `PING  -- 返回 PONG ⏎ PING hello  -- 返回 hello` : dead
+- `tools/it/redis-cheatsheet.html` : `WATCH counter ⏎ MULTI ⏎ INCR counter ⏎ EXEC  -- 若 counter 被改则 nil` : dead
+- `tools/it/redis-cheatsheet.html` : `共 83 项` : dead
+- `tools/it/regex-cheatsheet.html` : `/(<\w+>).*<\/\1>/ 匹配 <b>x</b>` : dead
+- `tools/it/regex-cheatsheet.html` : `/(?<!\$)\d+/ 匹配非"$"后的数字` : dead
+- `tools/it/regex-cheatsheet.html` : `/(?<=\$)\d+/ 匹配 "$100" 中的 100` : dead
+- `tools/it/regex-cheatsheet.html` : `/(?<year>\d{4})-(?<month>\d{2})/ ⏎ 替换：${year}` : dead
+- `tools/it/regex-cheatsheet.html` : `/(ab)+/ 匹配 abab ⏎ 替换：$1 表示第 1 组` : dead
+- `tools/it/regex-cheatsheet.html` : `/\Bcat/ 匹配 category 中的 cat` : dead
+- `tools/it/regex-cheatsheet.html` : `/\bcat\b/ 匹配 cat 不匹配 category` : dead
+- `tools/it/regex-cheatsheet.html` : `/\d+(?!元)/ 匹配非"元"前的数字` : dead
+- `tools/it/regex-cheatsheet.html` : `/\d+(?=元)/ 匹配 "100元" 中的 100` : dead
+- `tools/it/regex-cheatsheet.html` : `/\d+/ 匹配 123 ⏎ /\D+/ 匹配 abc` : dead
+- `tools/it/regex-cheatsheet.html` : `/\d+/g 匹配所有` : dead
+- `tools/it/regex-cheatsheet.html` : `/\d{2,4}/ 匹配 2-4 位` : dead
+- `tools/it/regex-cheatsheet.html` : `/\d{2,}/ 匹配至少 2 位` : dead
+- `tools/it/regex-cheatsheet.html` : `/\d{4}/ 匹配 4 位数字` : dead
+- `tools/it/regex-cheatsheet.html` : `/\n/ 匹配换行` : dead
+- `tools/it/regex-cheatsheet.html` : `/\p{Letter}/u  字母 ⏎ /\p{Number}/u  数字 ⏎ /\p{Script=Han}/u  汉字` : dead
+- `tools/it/regex-cheatsheet.html` : `/\s+/ 匹配空格\t制表` : dead
+- `tools/it/regex-cheatsheet.html` : `/\u4e2d/ 匹配 中` : dead
+- `tools/it/regex-cheatsheet.html` : `/\w+/ 匹配 hello_123` : dead
+- `tools/it/regex-cheatsheet.html` : `/\x41/ 匹配 A` : dead
+- `tools/it/regex-cheatsheet.html` : `/^\uD83D/u ⏎ /^\p{L}+/u 匹配所有字母` : dead
+- `tools/it/regex-cheatsheet.html` : `/a*/ 匹配 "" "a" "aaa"` : dead

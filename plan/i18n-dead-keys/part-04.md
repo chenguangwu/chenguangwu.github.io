@@ -1,0 +1,840 @@
+### finance（dead 638 / dynamic 549 / fragment 74 / harmless 1）
+
+- `tools/finance/amount-in-words.html` : `按中文大写金额规则：数字分组（万/亿）+ 单位（元/角/分）+ 零位特殊处理` : dead
+- `tools/finance/analysis-5.html` : `(流动资产 500000.00 − 存货 180000.00 − 预付费用 20000.00) ÷ 流动负债 300000.00` : dead
+- `tools/finance/analysis-5.html` : `元，所有者权益 = 资产 1200000.00 − 负债 700000.00 =` : dead
+- `tools/finance/analysis-5.html` : `勾稽校验：权益乘数 = 1 ÷ (1 − 资产负债率) = 1 ÷ (1 − 0.5833) = 2.40` : dead
+- `tools/finance/analysis-5.html` : `流动资产 500000.00 ÷ 流动负债 300000.00` : dead
+- `tools/finance/analysis-5.html` : `现金 80000.00 ÷ 流动负债 300000.00` : dead
+- `tools/finance/analysis-5.html` : `营运资金 = 流动资产 500000.00 − 流动负债 300000.00 =` : dead
+- `tools/finance/analysis-5.html` : `负债总额 700000.00 ÷ 所有者权益 500000.00` : dead
+- `tools/finance/analysis-5.html` : `负债总额 700000.00 ÷ 资产总额 1200000.00` : dead
+- `tools/finance/analysis-5.html` : `资产总额 1200000.00 ÷ 所有者权益 500000.00` : dead
+- `tools/finance/analysis-risk.html` : `EBIT = 贡献边际 400000.00 − 固定成本 200000.00 =` : dead
+- `tools/finance/analysis-risk.html` : `元；EPS = 112500.00 ÷ 100000 =` : dead
+- `tools/finance/analysis-risk.html` : `净利润 = (200000.00 − 50000.00) × (1 − 25.00%) =` : dead
+- `tools/finance/analysis-risk.html` : `利息保障倍数 4.00，经营利润对利息的覆盖较为充足。` : dead
+- `tools/finance/analysis-risk.html` : `利息保障倍数 = 200000.00 ÷ 50000.00 =` : dead
+- `tools/finance/analysis-risk.html` : `贡献边际 = 1000000.00 − 600000.00 =` : dead
+- `tools/finance/analysis-risk.html` : `：EBIT 每变动 1%，EPS 变动约 1.33%` : dead
+- `tools/finance/analysis-risk.html` : `：营业收入每变动 1%，EBIT 变动约 2.00%` : dead
+- `tools/finance/analysis-risk.html` : `：营业收入每变动 1%，EPS 变动约 2.67%` : dead
+- `tools/finance/assessor-manager.html` : `信用评分 = Σ(各指标分档得分 × 权重)；授信额度按评分档位核定` : dead
+- `tools/finance/bond-yield-calculator.html` : `* YTM为年化收益率，假设利息按YTM再投资` : dead
+- `tools/finance/break-even-calculator.html` : `变动成本总额：240,000.00 元` : dead
+- `tools/finance/break-even-calculator.html` : `固定成本总额：100,000.00 元` : dead
+- `tools/finance/break-even-calculator.html` : `总成本：340,000.00 元` : dead
+- `tools/finance/break-even-calculator.html` : `所得税（25%）：15,000.00 元` : dead
+- `tools/finance/break-even-calculator.html` : `（销量每增1%，利润增2.67%）` : dead
+- `tools/finance/cagr.html` : `CAGR ≈ 10.41%。 几何平均而非算术平均。` : dead
+- `tools/finance/calc-4.html` : `第 10 期` : dead
+- `tools/finance/calc-4.html` : `第 11 期` : dead
+- `tools/finance/calc-4.html` : `第 12 期` : dead
+- `tools/finance/calc-4.html` : `第 360 期` : dead
+- `tools/finance/calc-4.html` : `第 6 期` : dead
+- `tools/finance/calc-4.html` : `第 7 期` : dead
+- `tools/finance/calc-4.html` : `第 8 期` : dead
+- `tools/finance/calc-4.html` : `第 9 期` : dead
+- `tools/finance/cnpj-validator.html` : `CNPJ 两位校验位按 mod-11：权重循环 2..9，Σ(权重 × 数字) mod 11，余数 < 2 取 0，否则取 11 − 余数` : dead
+- `tools/finance/credit-card-grace-period.html` : `下下期 25 日` : dead
+- `tools/finance/credit-card-grace-period.html` : `大额消费安排在账单日次日最划算；取现与分期无免息期。若将 ¥10,000.00 延后 44 天还款并按 2% 年化理财，可多赚约 ¥24.11（需确保还款日按时还清，否则利息远超收益）。` : dead
+- `tools/finance/credit-card-grace-period.html` : `最长免息期资金收益（2%年化）` : dead
+- `tools/finance/credit-card-interest.html` : `⚠️ 最低还款利息成本很高，年化利率约 18.25%` : dead
+- `tools/finance/credit-card-interest.html` : `信用卡常见日利率约万分之五（0.05%），名义年化 ≈ 0.05%×365 = 18.25%，按月结算的有效年化 ≈ 19.56%。未全额还款则从消费日起` : dead
+- `tools/finance/credit-card-interest.html` : `信用卡循环利息 ≈ 消费金额 × 日利率(0.05%) × 计息天数；按月计收复利。` : dead
+- `tools/finance/credit-card-interest.html` : `日息万五叠加「未全额即失去免息、从入账日计息」的规则，名义年化约 18%，按月复利的有效年化约 19.56%，远高于普通贷款，故信用卡宜全额按时还。` : dead
+- `tools/finance/credit-card-interest.html` : `最低还款年化利率约 18.25%，远高于普通贷款，仅适合短期周转。` : dead
+- `tools/finance/credit-card-interest.html` : `滞纳金` : dead
+- `tools/finance/credit-card-interest.html` : `滞纳金总额` : dead
+- `tools/finance/credit-card-interest.html` : `错过还款日会产生滞纳金并影响征信，建议设置自动还款。` : dead
+- `tools/finance/currency-converter.html` : `目标金额 = 原金额 × 汇率(目标币/原币)` : dead
+- `tools/finance/currency-symbol.html` : `170+ 种货币符号、代码、国家/地区快速查询` : dead
+- `tools/finance/currency-symbol.html` : `AED · 阿联酋迪拉姆` : dead
+- `tools/finance/currency-symbol.html` : `AFN · 阿富汗尼` : dead
+- `tools/finance/currency-symbol.html` : `AMD · 亚美尼亚德拉姆` : dead
+- `tools/finance/currency-symbol.html` : `ANG · 荷属安的列斯盾` : dead
+- `tools/finance/currency-symbol.html` : `AOA · 安哥拉宽扎` : dead
+- `tools/finance/currency-symbol.html` : `ARS · 阿根廷比索` : dead
+- `tools/finance/currency-symbol.html` : `AUD · 澳元` : dead
+- `tools/finance/currency-symbol.html` : `AUD · 澳大利亚元` : dead
+- `tools/finance/currency-symbol.html` : `AWG · 阿鲁巴弗罗林` : dead
+- `tools/finance/currency-symbol.html` : `AZN · 阿塞拜疆马纳特` : dead
+- `tools/finance/currency-symbol.html` : `BBD · 巴巴多斯元` : dead
+- `tools/finance/currency-symbol.html` : `BDT · 孟加拉国塔卡` : dead
+- `tools/finance/currency-symbol.html` : `BGN · 保加利亚列弗` : dead
+- `tools/finance/currency-symbol.html` : `BHD · 巴林第纳尔` : dead
+- `tools/finance/currency-symbol.html` : `BIF · 布隆迪法郎` : dead
+- `tools/finance/currency-symbol.html` : `BND · 文莱元` : dead
+- `tools/finance/currency-symbol.html` : `BOB · 玻利维亚诺` : dead
+- `tools/finance/currency-symbol.html` : `BRL · 巴西雷亚尔` : dead
+- `tools/finance/currency-symbol.html` : `BSD · 巴哈马元` : dead
+- `tools/finance/currency-symbol.html` : `BTN · 不丹努扎姆` : dead
+- `tools/finance/currency-symbol.html` : `BWP · 博茨瓦纳普拉` : dead
+- `tools/finance/currency-symbol.html` : `BZD · 伯利兹元` : dead
+- `tools/finance/currency-symbol.html` : `CAD · 加元` : dead
+- `tools/finance/currency-symbol.html` : `CDF · 刚果法郎` : dead
+- `tools/finance/currency-symbol.html` : `CHF · 瑞士法郎` : dead
+- `tools/finance/currency-symbol.html` : `CLF · 智利发展单位` : dead
+- `tools/finance/currency-symbol.html` : `CLP · 智利比索` : dead
+- `tools/finance/currency-symbol.html` : `CNH · 离岸人民币` : dead
+- `tools/finance/currency-symbol.html` : `CNY · 人民币` : dead
+- `tools/finance/currency-symbol.html` : `COP · 哥伦比亚比索` : dead
+- `tools/finance/currency-symbol.html` : `CRC · 哥斯达黎加科朗` : dead
+- `tools/finance/currency-symbol.html` : `CUP · 古巴比索` : dead
+- `tools/finance/currency-symbol.html` : `CZK · 捷克克朗` : dead
+- `tools/finance/currency-symbol.html` : `DJF · 吉布提法郎` : dead
+- `tools/finance/currency-symbol.html` : `DKK · 丹麦克朗` : dead
+- `tools/finance/currency-symbol.html` : `DOP · 多米尼加比索` : dead
+- `tools/finance/currency-symbol.html` : `DZD · 阿尔及利亚第纳尔` : dead
+- `tools/finance/currency-symbol.html` : `EGP · 埃及镑` : dead
+- `tools/finance/currency-symbol.html` : `ERN · 厄立特里亚纳克法` : dead
+- `tools/finance/currency-symbol.html` : `ETB · 埃塞俄比亚比尔` : dead
+- `tools/finance/currency-symbol.html` : `ETH · 以太坊` : dead
+- `tools/finance/currency-symbol.html` : `EUR · 欧元` : dead
+- `tools/finance/currency-symbol.html` : `FJD · 斐济元` : dead
+- `tools/finance/currency-symbol.html` : `FKP · 福克兰群岛镑` : dead
+- `tools/finance/currency-symbol.html` : `GBP · 英镑` : dead
+- `tools/finance/currency-symbol.html` : `GBX · 便士` : dead
+- `tools/finance/currency-symbol.html` : `GEL · 格鲁吉亚拉里` : dead
+- `tools/finance/currency-symbol.html` : `GGP · 根西岛镑` : dead
+- `tools/finance/currency-symbol.html` : `GHS · 加纳塞地` : dead
+- `tools/finance/currency-symbol.html` : `GIP · 直布罗陀镑` : dead
+- `tools/finance/currency-symbol.html` : `GMD · 冈比亚达拉西` : dead
+- `tools/finance/currency-symbol.html` : `GTQ · 危地马拉格查尔` : dead
+- `tools/finance/currency-symbol.html` : `GYD · 圭亚那元` : dead
+- `tools/finance/currency-symbol.html` : `HKD · 港币` : dead
+- `tools/finance/currency-symbol.html` : `HNL · 洪都拉斯伦皮拉` : dead
+- `tools/finance/currency-symbol.html` : `HRK · 克罗地亚库纳` : dead
+- `tools/finance/currency-symbol.html` : `HTG · 海地古德` : dead
+- `tools/finance/currency-symbol.html` : `HUF · 匈牙利福林` : dead
+- `tools/finance/currency-symbol.html` : `IDR · 印尼盾` : dead
+- `tools/finance/currency-symbol.html` : `ILS · 以色列新谢克尔` : dead
+- `tools/finance/currency-symbol.html` : `IMP · 马恩岛镑` : dead
+- `tools/finance/currency-symbol.html` : `INR · 印度卢比` : dead
+- `tools/finance/currency-symbol.html` : `IQD · 伊拉克第纳尔` : dead
+- `tools/finance/currency-symbol.html` : `ISK · 冰岛克朗` : dead
+- `tools/finance/currency-symbol.html` : `JEP · 泽西岛镑` : dead
+- `tools/finance/currency-symbol.html` : `JMD · 牙买加元` : dead
+- `tools/finance/currency-symbol.html` : `JOD · 约旦第纳尔` : dead
+- `tools/finance/currency-symbol.html` : `JPY · 日元` : dead
+- `tools/finance/currency-symbol.html` : `KES · 肯尼亚先令` : dead
+- `tools/finance/currency-symbol.html` : `KGS · 吉尔吉斯斯坦索姆` : dead
+- `tools/finance/currency-symbol.html` : `KHR · 柬埔寨瑞尔` : dead
+- `tools/finance/currency-symbol.html` : `KID · 基里巴斯元` : dead
+- `tools/finance/currency-symbol.html` : `KMF · 科摩罗法郎` : dead
+- `tools/finance/currency-symbol.html` : `KPW · 朝鲜圆` : dead
+- `tools/finance/currency-symbol.html` : `KRW · 韩元` : dead
+- `tools/finance/currency-symbol.html` : `KWD · 科威特第纳尔` : dead
+- `tools/finance/currency-symbol.html` : `KZT · 哈萨克斯坦坚戈` : dead
+- `tools/finance/currency-symbol.html` : `LAK · 老挝基普` : dead
+- `tools/finance/currency-symbol.html` : `LBP · 黎巴嫩镑` : dead
+- `tools/finance/currency-symbol.html` : `LKR · 斯里兰卡卢比` : dead
+- `tools/finance/currency-symbol.html` : `LRD · 利比里亚元` : dead
+- `tools/finance/currency-symbol.html` : `LSL · 莱索托洛蒂` : dead
+- `tools/finance/currency-symbol.html` : `LYD · 利比亚第纳尔` : dead
+- `tools/finance/currency-symbol.html` : `MAD · 摩洛哥迪拉姆` : dead
+- `tools/finance/currency-symbol.html` : `MGA · 马达加斯加阿里亚里` : dead
+- `tools/finance/currency-symbol.html` : `MMK · 缅甸缅元` : dead
+- `tools/finance/currency-symbol.html` : `MNT · 蒙古图格里克` : dead
+- `tools/finance/currency-symbol.html` : `MOP · 澳门元` : dead
+- `tools/finance/currency-symbol.html` : `MUR · 毛里求斯卢比` : dead
+- `tools/finance/currency-symbol.html` : `MVR · 马尔代夫拉菲亚` : dead
+- `tools/finance/currency-symbol.html` : `MXN · 墨西哥比索` : dead
+- `tools/finance/currency-symbol.html` : `MYR · 马来西亚林吉特` : dead
+- `tools/finance/currency-symbol.html` : `MZN · 莫桑比克梅蒂卡尔` : dead
+- `tools/finance/currency-symbol.html` : `NAD · 纳米比亚元` : dead
+- `tools/finance/currency-symbol.html` : `NGN · 尼日利亚奈拉` : dead
+- `tools/finance/currency-symbol.html` : `NIO · 尼加拉瓜科多巴` : dead
+- `tools/finance/currency-symbol.html` : `NOK · 挪威克朗` : dead
+- `tools/finance/currency-symbol.html` : `NPR · 尼泊尔卢比` : dead
+- `tools/finance/currency-symbol.html` : `NZD · 新西兰元` : dead
+- `tools/finance/currency-symbol.html` : `OMR · 阿曼里亚尔` : dead
+- `tools/finance/currency-symbol.html` : `PAB · 巴拿马巴波亚` : dead
+- `tools/finance/currency-symbol.html` : `PEN · 秘鲁索尔` : dead
+- `tools/finance/currency-symbol.html` : `PGK · 巴布亚新几内亚基那` : dead
+- `tools/finance/currency-symbol.html` : `PHP · 菲律宾比索` : dead
+- `tools/finance/currency-symbol.html` : `PKR · 巴基斯坦卢比` : dead
+- `tools/finance/currency-symbol.html` : `PLN · 波兰兹罗提` : dead
+- `tools/finance/currency-symbol.html` : `PYG · 巴拉圭瓜拉尼` : dead
+- `tools/finance/currency-symbol.html` : `QAR · 卡塔尔里亚尔` : dead
+- `tools/finance/currency-symbol.html` : `RON · 罗马尼亚列伊` : dead
+- `tools/finance/currency-symbol.html` : `RUB · 俄罗斯卢布` : dead
+- `tools/finance/currency-symbol.html` : `RWF · 卢旺达法郎` : dead
+- `tools/finance/currency-symbol.html` : `SAR · 沙特里亚尔` : dead
+- `tools/finance/currency-symbol.html` : `SBD · 所罗门群岛元` : dead
+- `tools/finance/currency-symbol.html` : `SCR · 塞舌尔卢比` : dead
+- `tools/finance/currency-symbol.html` : `SDG · 苏丹镑` : dead
+- `tools/finance/currency-symbol.html` : `SEK · 瑞典克朗` : dead
+- `tools/finance/currency-symbol.html` : `SGD · 新加坡元` : dead
+- `tools/finance/currency-symbol.html` : `SHP · 圣赫勒拿镑` : dead
+- `tools/finance/currency-symbol.html` : `SLL · 塞拉利昂利昂` : dead
+- `tools/finance/currency-symbol.html` : `SOS · 索马里先令` : dead
+- `tools/finance/currency-symbol.html` : `SRD · 苏里南元` : dead
+- `tools/finance/currency-symbol.html` : `SSP · 南苏丹镑` : dead
+- `tools/finance/currency-symbol.html` : `SVC · 萨尔瓦多科朗` : dead
+- `tools/finance/currency-symbol.html` : `SYP · 叙利亚镑` : dead
+- `tools/finance/currency-symbol.html` : `SZL · 斯威士兰里兰吉尼` : dead
+- `tools/finance/currency-symbol.html` : `THB · 泰铢` : dead
+- `tools/finance/currency-symbol.html` : `TJS · 塔吉克斯坦索莫尼` : dead
+- `tools/finance/currency-symbol.html` : `TMT · 土库曼斯坦马纳特` : dead
+- `tools/finance/currency-symbol.html` : `TND · 突尼斯第纳尔` : dead
+- `tools/finance/currency-symbol.html` : `TOP · 汤加潘加` : dead
+- `tools/finance/currency-symbol.html` : `TRY · 土耳其里拉` : dead
+- `tools/finance/currency-symbol.html` : `TTD · 特立尼达和多巴哥元` : dead
+- `tools/finance/currency-symbol.html` : `TVD · 图瓦卢元` : dead
+- `tools/finance/currency-symbol.html` : `TWD · 新台币` : dead
+- `tools/finance/currency-symbol.html` : `TZS · 坦桑尼亚先令` : dead
+- `tools/finance/currency-symbol.html` : `UGX · 乌干达先令` : dead
+- `tools/finance/currency-symbol.html` : `USD · 美元` : dead
+- `tools/finance/currency-symbol.html` : `UYU · 乌拉圭比索` : dead
+- `tools/finance/currency-symbol.html` : `UZS · 乌兹别克斯坦苏姆` : dead
+- `tools/finance/currency-symbol.html` : `VEF · 委内瑞拉玻利瓦尔` : dead
+- `tools/finance/currency-symbol.html` : `VND · 越南盾` : dead
+- `tools/finance/currency-symbol.html` : `VUV · 瓦努阿图瓦图` : dead
+- `tools/finance/currency-symbol.html` : `WST · 萨摩亚塔拉` : dead
+- `tools/finance/currency-symbol.html` : `XAF · 中非法郎` : dead
+- `tools/finance/currency-symbol.html` : `XBT · 比特币` : dead
+- `tools/finance/currency-symbol.html` : `XCD · 东加勒比元` : dead
+- `tools/finance/currency-symbol.html` : `XOF · 西非法郎` : dead
+- `tools/finance/currency-symbol.html` : `XPF · 太平洋法郎` : dead
+- `tools/finance/currency-symbol.html` : `YER · 也门里亚尔` : dead
+- `tools/finance/currency-symbol.html` : `ZAR · 南非兰特` : dead
+- `tools/finance/currency-symbol.html` : `共找到 153 种货币` : dead
+- `tools/finance/dca-calculator.html` : `年（共120期），预期年化` : dead
+- `tools/finance/dca-calculator.html` : `（高于定投 44.63%）` : dead
+- `tools/finance/dca-calculator.html` : `💡 对比：若一次性投入 ¥120,000，期末资产约` : dead
+- `tools/finance/discount-calculator.html` : `节省 ¥ 20.00（20.0% OFF）` : dead
+- `tools/finance/esn-validator.html` : `格式 ^[0-9A-Fa-f]{8}$（8 位十六进制）` : dead
+- `tools/finance/futures-pnl-calculator.html` : `IF 点` : dead
+- `tools/finance/generator-report-1.html` : `#1 模拟报表（单位：万元）` : dead
+- `tools/finance/generator-report-1.html` : `#2 模拟报表（单位：万元）` : dead
+- `tools/finance/generator-report-1.html` : `#3 模拟报表（单位：万元）` : dead
+- `tools/finance/generator-report-1.html` : `#4 模拟报表（单位：万元）` : dead
+- `tools/finance/generator-report-1.html` : `#5 模拟报表（单位：万元）` : dead
+- `tools/finance/generator-report-1.html` : `利润表：营业收入 279.98，营业成本 146.56，净利润 133.42` : dead
+- `tools/finance/generator-report-1.html` : `利润表：营业收入 435.85，营业成本 246.31，净利润 189.54` : dead
+- `tools/finance/generator-report-1.html` : `利润表：营业收入 522.36，营业成本 268.92，净利润 253.44` : dead
+- `tools/finance/generator-report-1.html` : `利润表：营业收入 535.60，营业成本 373.93，净利润 161.67` : dead
+- `tools/finance/generator-report-1.html` : `利润表：营业收入 593.90，营业成本 396.08，净利润 197.82` : dead
+- `tools/finance/generator-report-1.html` : `现金流量表：经营 121.92，投资 -39.92，筹资 -20.17` : dead
+- `tools/finance/generator-report-1.html` : `现金流量表：经营 141.46，投资 -59.02，筹资 -20.27` : dead
+- `tools/finance/generator-report-1.html` : `现金流量表：经营 161.37，投资 -45.17，筹资 -44.20` : dead
+- `tools/finance/generator-report-1.html` : `现金流量表：经营 165.11，投资 -41.19，筹资 -43.44` : dead
+- `tools/finance/generator-report-1.html` : `现金流量表：经营 217.14，投资 -95.91，筹资 -52.44` : dead
+- `tools/finance/generator-report-1.html` : `资产负债表：资产 1058.20，负债 378.16，所有者权益 680.04` : dead
+- `tools/finance/generator-report-1.html` : `资产负债表：资产 437.65，负债 194.27，所有者权益 243.38` : dead
+- `tools/finance/generator-report-1.html` : `资产负债表：资产 627.27，负债 435.96，所有者权益 191.31` : dead
+- `tools/finance/generator-report-1.html` : `资产负债表：资产 755.58，负债 507.51，所有者权益 248.07` : dead
+- `tools/finance/generator-report-1.html` : `资产负债表：资产 845.60，负债 575.79，所有者权益 269.81` : dead
+- `tools/finance/gold-price-calculator.html` : `金额 = 克重 × 纯度 × 单价；单位换算：1 盎司 ≈ 31.1035 克` : dead
+- `tools/finance/housing-fund-loan.html` : `⚠️ 贷款利率按首套公积金贷款利率3.1%估算（2024年参考）。` : dead
+- `tools/finance/housing-fund-loan.html` : `公积金贷款 = f(余额, 缴存)` : dead
+- `tools/finance/housing-fund-loan.html` : `如：2000` : dead
+- `tools/finance/housing-fund-loan.html` : `如：5` : dead
+- `tools/finance/housing-fund-loan.html` : `月缴存额（元）` : dead
+- `tools/finance/housing-fund-loan.html` : `首套公积金贷款利率约 3.1%，据此估算月供与总利息。` : dead
+- `tools/finance/inflation-calculator.html` : `第11年` : dead
+- `tools/finance/inflation-calculator.html` : `第12年` : dead
+- `tools/finance/inflation-calculator.html` : `第13年` : dead
+- `tools/finance/inflation-calculator.html` : `第14年` : dead
+- `tools/finance/inflation-calculator.html` : `第15年` : dead
+- `tools/finance/inflation-calculator.html` : `第16年` : dead
+- `tools/finance/inflation-calculator.html` : `第17年` : dead
+- `tools/finance/inflation-calculator.html` : `第18年` : dead
+- `tools/finance/inflation-calculator.html` : `第19年` : dead
+- `tools/finance/inflation-calculator.html` : `第20年` : dead
+- `tools/finance/investment-calculator.html` : `年化收益率 CAGR = (期末价值 / 总投入)^(1 / 年数) − 1` : dead
+- `tools/finance/investment-calculator.html` : `累计回报率 = (期末价值 − 总投入) / 总投入` : dead
+- `tools/finance/invoice-generator.html` : `不含税金额 = 价税合计 / (1 + 税率)；税额 = 不含税金额 × 税率` : dead
+- `tools/finance/irr-calculator.html` : `• IRR < 折现率：项目不可行，不建议投资` : dead
+- `tools/finance/irr-calculator.html` : `• NPV < 0：投资收益低于预期，不可行` : dead
+- `tools/finance/isbn-validator.html` : `ISBN 验证与转换。ISBN-10（mod-11）：前 9 位分别乘以权重 10,9,8,…,2，求和后加校验位，总和能被 11 整除则通过。校验位为 10 时用 X 表示。 ⏎       ISBN-13（mod-10）：12 位数字交替乘以 1 和 3，求和后` : dead
+- `tools/finance/lease-payment-calculator.html` : `· 期末还款` : dead
+- `tools/finance/lease-payment-calculator.html` : `导出明细 CSV` : dead
+- `tools/finance/lease-payment-calculator.html` : `期（3.0年）` : dead
+- `tools/finance/lease-payment-calculator.html` : `每月还款：¥3,042.19` : dead
+- `tools/finance/lease-payment-calculator.html` : `每期租金 = V·i·(1+i)ⁿ / ((1+i)ⁿ − 1)（V 租赁物价值，i 期利率，n 期数）` : dead
+- `tools/finance/loan-amortization.html` : `第100期` : dead
+- `tools/finance/loan-amortization.html` : `第101期` : dead
+- `tools/finance/loan-amortization.html` : `第102期` : dead
+- `tools/finance/loan-amortization.html` : `第103期` : dead
+- `tools/finance/loan-amortization.html` : `第104期` : dead
+- `tools/finance/loan-amortization.html` : `第105期` : dead
+- `tools/finance/loan-amortization.html` : `第106期` : dead
+- `tools/finance/loan-amortization.html` : `第107期` : dead
+- `tools/finance/loan-amortization.html` : `第108期` : dead
+- `tools/finance/loan-amortization.html` : `第109期` : dead
+- `tools/finance/loan-amortization.html` : `第110期` : dead
+- `tools/finance/loan-amortization.html` : `第111期` : dead
+- `tools/finance/loan-amortization.html` : `第112期` : dead
+- `tools/finance/loan-amortization.html` : `第113期` : dead
+- `tools/finance/loan-amortization.html` : `第114期` : dead
+- `tools/finance/loan-amortization.html` : `第115期` : dead
+- `tools/finance/loan-amortization.html` : `第116期` : dead
+- `tools/finance/loan-amortization.html` : `第117期` : dead
+- `tools/finance/loan-amortization.html` : `第118期` : dead
+- `tools/finance/loan-amortization.html` : `第119期` : dead
+- `tools/finance/loan-amortization.html` : `第120期` : dead
+- `tools/finance/loan-amortization.html` : `第121期` : dead
+- `tools/finance/loan-amortization.html` : `第122期` : dead
+- `tools/finance/loan-amortization.html` : `第123期` : dead
+- `tools/finance/loan-amortization.html` : `第124期` : dead
+- `tools/finance/loan-amortization.html` : `第125期` : dead
+- `tools/finance/loan-amortization.html` : `第126期` : dead
+- `tools/finance/loan-amortization.html` : `第127期` : dead
+- `tools/finance/loan-amortization.html` : `第128期` : dead
+- `tools/finance/loan-amortization.html` : `第129期` : dead
+- `tools/finance/loan-amortization.html` : `第130期` : dead
+- `tools/finance/loan-amortization.html` : `第131期` : dead
+- `tools/finance/loan-amortization.html` : `第132期` : dead
+- `tools/finance/loan-amortization.html` : `第133期` : dead
+- `tools/finance/loan-amortization.html` : `第134期` : dead
+- `tools/finance/loan-amortization.html` : `第135期` : dead
+- `tools/finance/loan-amortization.html` : `第136期` : dead
+- `tools/finance/loan-amortization.html` : `第137期` : dead
+- `tools/finance/loan-amortization.html` : `第138期` : dead
+- `tools/finance/loan-amortization.html` : `第139期` : dead
+- `tools/finance/loan-amortization.html` : `第140期` : dead
+- `tools/finance/loan-amortization.html` : `第141期` : dead
+- `tools/finance/loan-amortization.html` : `第142期` : dead
+- `tools/finance/loan-amortization.html` : `第143期` : dead
+- `tools/finance/loan-amortization.html` : `第144期` : dead
+- `tools/finance/loan-amortization.html` : `第145期` : dead
+- `tools/finance/loan-amortization.html` : `第146期` : dead
+- `tools/finance/loan-amortization.html` : `第147期` : dead
+- `tools/finance/loan-amortization.html` : `第148期` : dead
+- `tools/finance/loan-amortization.html` : `第149期` : dead
+- `tools/finance/loan-amortization.html` : `第150期` : dead
+- `tools/finance/loan-amortization.html` : `第151期` : dead
+- `tools/finance/loan-amortization.html` : `第152期` : dead
+- `tools/finance/loan-amortization.html` : `第153期` : dead
+- `tools/finance/loan-amortization.html` : `第154期` : dead
+- `tools/finance/loan-amortization.html` : `第155期` : dead
+- `tools/finance/loan-amortization.html` : `第156期` : dead
+- `tools/finance/loan-amortization.html` : `第157期` : dead
+- `tools/finance/loan-amortization.html` : `第158期` : dead
+- `tools/finance/loan-amortization.html` : `第159期` : dead
+- `tools/finance/loan-amortization.html` : `第160期` : dead
+- `tools/finance/loan-amortization.html` : `第161期` : dead
+- `tools/finance/loan-amortization.html` : `第162期` : dead
+- `tools/finance/loan-amortization.html` : `第163期` : dead
+- `tools/finance/loan-amortization.html` : `第164期` : dead
+- `tools/finance/loan-amortization.html` : `第165期` : dead
+- `tools/finance/loan-amortization.html` : `第166期` : dead
+- `tools/finance/loan-amortization.html` : `第167期` : dead
+- `tools/finance/loan-amortization.html` : `第168期` : dead
+- `tools/finance/loan-amortization.html` : `第169期` : dead
+- `tools/finance/loan-amortization.html` : `第170期` : dead
+- `tools/finance/loan-amortization.html` : `第171期` : dead
+- `tools/finance/loan-amortization.html` : `第172期` : dead
+- `tools/finance/loan-amortization.html` : `第173期` : dead
+- `tools/finance/loan-amortization.html` : `第174期` : dead
+- `tools/finance/loan-amortization.html` : `第175期` : dead
+- `tools/finance/loan-amortization.html` : `第176期` : dead
+- `tools/finance/loan-amortization.html` : `第177期` : dead
+- `tools/finance/loan-amortization.html` : `第178期` : dead
+- `tools/finance/loan-amortization.html` : `第179期` : dead
+- `tools/finance/loan-amortization.html` : `第180期` : dead
+- `tools/finance/loan-amortization.html` : `第181期` : dead
+- `tools/finance/loan-amortization.html` : `第182期` : dead
+- `tools/finance/loan-amortization.html` : `第183期` : dead
+- `tools/finance/loan-amortization.html` : `第184期` : dead
+- `tools/finance/loan-amortization.html` : `第185期` : dead
+- `tools/finance/loan-amortization.html` : `第186期` : dead
+- `tools/finance/loan-amortization.html` : `第187期` : dead
+- `tools/finance/loan-amortization.html` : `第188期` : dead
+- `tools/finance/loan-amortization.html` : `第189期` : dead
+- `tools/finance/loan-amortization.html` : `第190期` : dead
+- `tools/finance/loan-amortization.html` : `第191期` : dead
+- `tools/finance/loan-amortization.html` : `第192期` : dead
+- `tools/finance/loan-amortization.html` : `第193期` : dead
+- `tools/finance/loan-amortization.html` : `第194期` : dead
+- `tools/finance/loan-amortization.html` : `第195期` : dead
+- `tools/finance/loan-amortization.html` : `第196期` : dead
+- `tools/finance/loan-amortization.html` : `第197期` : dead
+- `tools/finance/loan-amortization.html` : `第198期` : dead
+- `tools/finance/loan-amortization.html` : `第199期` : dead
+- `tools/finance/loan-amortization.html` : `第200期` : dead
+- `tools/finance/loan-amortization.html` : `第201期` : dead
+- `tools/finance/loan-amortization.html` : `第202期` : dead
+- `tools/finance/loan-amortization.html` : `第203期` : dead
+- `tools/finance/loan-amortization.html` : `第204期` : dead
+- `tools/finance/loan-amortization.html` : `第205期` : dead
+- `tools/finance/loan-amortization.html` : `第206期` : dead
+- `tools/finance/loan-amortization.html` : `第207期` : dead
+- `tools/finance/loan-amortization.html` : `第208期` : dead
+- `tools/finance/loan-amortization.html` : `第209期` : dead
+- `tools/finance/loan-amortization.html` : `第210期` : dead
+- `tools/finance/loan-amortization.html` : `第211期` : dead
+- `tools/finance/loan-amortization.html` : `第212期` : dead
+- `tools/finance/loan-amortization.html` : `第213期` : dead
+- `tools/finance/loan-amortization.html` : `第214期` : dead
+- `tools/finance/loan-amortization.html` : `第215期` : dead
+- `tools/finance/loan-amortization.html` : `第216期` : dead
+- `tools/finance/loan-amortization.html` : `第217期` : dead
+- `tools/finance/loan-amortization.html` : `第218期` : dead
+- `tools/finance/loan-amortization.html` : `第219期` : dead
+- `tools/finance/loan-amortization.html` : `第220期` : dead
+- `tools/finance/loan-amortization.html` : `第221期` : dead
+- `tools/finance/loan-amortization.html` : `第222期` : dead
+- `tools/finance/loan-amortization.html` : `第223期` : dead
+- `tools/finance/loan-amortization.html` : `第224期` : dead
+- `tools/finance/loan-amortization.html` : `第225期` : dead
+- `tools/finance/loan-amortization.html` : `第226期` : dead
+- `tools/finance/loan-amortization.html` : `第227期` : dead
+- `tools/finance/loan-amortization.html` : `第228期` : dead
+- `tools/finance/loan-amortization.html` : `第229期` : dead
+- `tools/finance/loan-amortization.html` : `第230期` : dead
+- `tools/finance/loan-amortization.html` : `第231期` : dead
+- `tools/finance/loan-amortization.html` : `第232期` : dead
+- `tools/finance/loan-amortization.html` : `第233期` : dead
+- `tools/finance/loan-amortization.html` : `第234期` : dead
+- `tools/finance/loan-amortization.html` : `第235期` : dead
+- `tools/finance/loan-amortization.html` : `第236期` : dead
+- `tools/finance/loan-amortization.html` : `第237期` : dead
+- `tools/finance/loan-amortization.html` : `第238期` : dead
+- `tools/finance/loan-amortization.html` : `第239期` : dead
+- `tools/finance/loan-amortization.html` : `第240期` : dead
+- `tools/finance/loan-amortization.html` : `第241期` : dead
+- `tools/finance/loan-amortization.html` : `第242期` : dead
+- `tools/finance/loan-amortization.html` : `第243期` : dead
+- `tools/finance/loan-amortization.html` : `第244期` : dead
+- `tools/finance/loan-amortization.html` : `第245期` : dead
+- `tools/finance/loan-amortization.html` : `第246期` : dead
+- `tools/finance/loan-amortization.html` : `第247期` : dead
+- `tools/finance/loan-amortization.html` : `第248期` : dead
+- `tools/finance/loan-amortization.html` : `第249期` : dead
+- `tools/finance/loan-amortization.html` : `第250期` : dead
+- `tools/finance/loan-amortization.html` : `第251期` : dead
+- `tools/finance/loan-amortization.html` : `第252期` : dead
+- `tools/finance/loan-amortization.html` : `第253期` : dead
+- `tools/finance/loan-amortization.html` : `第254期` : dead
+- `tools/finance/loan-amortization.html` : `第255期` : dead
+- `tools/finance/loan-amortization.html` : `第256期` : dead
+- `tools/finance/loan-amortization.html` : `第257期` : dead
+- `tools/finance/loan-amortization.html` : `第258期` : dead
+- `tools/finance/loan-amortization.html` : `第259期` : dead
+- `tools/finance/loan-amortization.html` : `第260期` : dead
+- `tools/finance/loan-amortization.html` : `第261期` : dead
+- `tools/finance/loan-amortization.html` : `第262期` : dead
+- `tools/finance/loan-amortization.html` : `第263期` : dead
+- `tools/finance/loan-amortization.html` : `第264期` : dead
+- `tools/finance/loan-amortization.html` : `第265期` : dead
+- `tools/finance/loan-amortization.html` : `第266期` : dead
+- `tools/finance/loan-amortization.html` : `第267期` : dead
+- `tools/finance/loan-amortization.html` : `第268期` : dead
+- `tools/finance/loan-amortization.html` : `第269期` : dead
+- `tools/finance/loan-amortization.html` : `第270期` : dead
+- `tools/finance/loan-amortization.html` : `第271期` : dead
+- `tools/finance/loan-amortization.html` : `第272期` : dead
+- `tools/finance/loan-amortization.html` : `第273期` : dead
+- `tools/finance/loan-amortization.html` : `第274期` : dead
+- `tools/finance/loan-amortization.html` : `第275期` : dead
+- `tools/finance/loan-amortization.html` : `第276期` : dead
+- `tools/finance/loan-amortization.html` : `第277期` : dead
+- `tools/finance/loan-amortization.html` : `第278期` : dead
+- `tools/finance/loan-amortization.html` : `第279期` : dead
+- `tools/finance/loan-amortization.html` : `第280期` : dead
+- `tools/finance/loan-amortization.html` : `第281期` : dead
+- `tools/finance/loan-amortization.html` : `第282期` : dead
+- `tools/finance/loan-amortization.html` : `第283期` : dead
+- `tools/finance/loan-amortization.html` : `第284期` : dead
+- `tools/finance/loan-amortization.html` : `第285期` : dead
+- `tools/finance/loan-amortization.html` : `第286期` : dead
+- `tools/finance/loan-amortization.html` : `第287期` : dead
+- `tools/finance/loan-amortization.html` : `第288期` : dead
+- `tools/finance/loan-amortization.html` : `第289期` : dead
+- `tools/finance/loan-amortization.html` : `第290期` : dead
+- `tools/finance/loan-amortization.html` : `第291期` : dead
+- `tools/finance/loan-amortization.html` : `第292期` : dead
+- `tools/finance/loan-amortization.html` : `第293期` : dead
+- `tools/finance/loan-amortization.html` : `第294期` : dead
+- `tools/finance/loan-amortization.html` : `第295期` : dead
+- `tools/finance/loan-amortization.html` : `第296期` : dead
+- `tools/finance/loan-amortization.html` : `第297期` : dead
+- `tools/finance/loan-amortization.html` : `第298期` : dead
+- `tools/finance/loan-amortization.html` : `第299期` : dead
+- `tools/finance/loan-amortization.html` : `第300期` : dead
+- `tools/finance/loan-amortization.html` : `第301期` : dead
+- `tools/finance/loan-amortization.html` : `第302期` : dead
+- `tools/finance/loan-amortization.html` : `第303期` : dead
+- `tools/finance/loan-amortization.html` : `第304期` : dead
+- `tools/finance/loan-amortization.html` : `第305期` : dead
+- `tools/finance/loan-amortization.html` : `第306期` : dead
+- `tools/finance/loan-amortization.html` : `第307期` : dead
+- `tools/finance/loan-amortization.html` : `第308期` : dead
+- `tools/finance/loan-amortization.html` : `第309期` : dead
+- `tools/finance/loan-amortization.html` : `第310期` : dead
+- `tools/finance/loan-amortization.html` : `第311期` : dead
+- `tools/finance/loan-amortization.html` : `第312期` : dead
+- `tools/finance/loan-amortization.html` : `第313期` : dead
+- `tools/finance/loan-amortization.html` : `第314期` : dead
+- `tools/finance/loan-amortization.html` : `第315期` : dead
+- `tools/finance/loan-amortization.html` : `第316期` : dead
+- `tools/finance/loan-amortization.html` : `第317期` : dead
+- `tools/finance/loan-amortization.html` : `第318期` : dead
+- `tools/finance/loan-amortization.html` : `第319期` : dead
+- `tools/finance/loan-amortization.html` : `第320期` : dead
+- `tools/finance/loan-amortization.html` : `第321期` : dead
+- `tools/finance/loan-amortization.html` : `第322期` : dead
+- `tools/finance/loan-amortization.html` : `第323期` : dead
+- `tools/finance/loan-amortization.html` : `第324期` : dead
+- `tools/finance/loan-amortization.html` : `第325期` : dead
+- `tools/finance/loan-amortization.html` : `第326期` : dead
+- `tools/finance/loan-amortization.html` : `第327期` : dead
+- `tools/finance/loan-amortization.html` : `第328期` : dead
+- `tools/finance/loan-amortization.html` : `第329期` : dead
+- `tools/finance/loan-amortization.html` : `第330期` : dead
+- `tools/finance/loan-amortization.html` : `第331期` : dead
+- `tools/finance/loan-amortization.html` : `第332期` : dead
+- `tools/finance/loan-amortization.html` : `第333期` : dead
+- `tools/finance/loan-amortization.html` : `第334期` : dead
+- `tools/finance/loan-amortization.html` : `第335期` : dead
+- `tools/finance/loan-amortization.html` : `第336期` : dead
+- `tools/finance/loan-amortization.html` : `第337期` : dead
+- `tools/finance/loan-amortization.html` : `第338期` : dead
+- `tools/finance/loan-amortization.html` : `第339期` : dead
+- `tools/finance/loan-amortization.html` : `第340期` : dead
+- `tools/finance/loan-amortization.html` : `第341期` : dead
+- `tools/finance/loan-amortization.html` : `第342期` : dead
+- `tools/finance/loan-amortization.html` : `第343期` : dead
+- `tools/finance/loan-amortization.html` : `第344期` : dead
+- `tools/finance/loan-amortization.html` : `第345期` : dead
+- `tools/finance/loan-amortization.html` : `第346期` : dead
+- `tools/finance/loan-amortization.html` : `第347期` : dead
+- `tools/finance/loan-amortization.html` : `第348期` : dead
+- `tools/finance/loan-amortization.html` : `第349期` : dead
+- `tools/finance/loan-amortization.html` : `第350期` : dead
+- `tools/finance/loan-amortization.html` : `第351期` : dead
+- `tools/finance/loan-amortization.html` : `第352期` : dead
+- `tools/finance/loan-amortization.html` : `第353期` : dead
+- `tools/finance/loan-amortization.html` : `第354期` : dead
+- `tools/finance/loan-amortization.html` : `第355期` : dead
+- `tools/finance/loan-amortization.html` : `第356期` : dead
+- `tools/finance/loan-amortization.html` : `第357期` : dead
+- `tools/finance/loan-amortization.html` : `第358期` : dead
+- `tools/finance/loan-amortization.html` : `第359期` : dead
+- `tools/finance/loan-amortization.html` : `第360期` : dead
+- `tools/finance/loan-amortization.html` : `第56期` : dead
+- `tools/finance/loan-amortization.html` : `第57期` : dead
+- `tools/finance/loan-amortization.html` : `第58期` : dead
+- `tools/finance/loan-amortization.html` : `第59期` : dead
+- `tools/finance/loan-amortization.html` : `第60期` : dead
+- `tools/finance/loan-amortization.html` : `第61期` : dead
+- `tools/finance/loan-amortization.html` : `第62期` : dead
+- `tools/finance/loan-amortization.html` : `第63期` : dead
+- `tools/finance/loan-amortization.html` : `第64期` : dead
+- `tools/finance/loan-amortization.html` : `第65期` : dead
+- `tools/finance/loan-amortization.html` : `第66期` : dead
+- `tools/finance/loan-amortization.html` : `第67期` : dead
+- `tools/finance/loan-amortization.html` : `第68期` : dead
+- `tools/finance/loan-amortization.html` : `第69期` : dead
+- `tools/finance/loan-amortization.html` : `第70期` : dead
+- `tools/finance/loan-amortization.html` : `第71期` : dead
+- `tools/finance/loan-amortization.html` : `第72期` : dead
+- `tools/finance/loan-amortization.html` : `第73期` : dead
+- `tools/finance/loan-amortization.html` : `第74期` : dead
+- `tools/finance/loan-amortization.html` : `第75期` : dead
+- `tools/finance/loan-amortization.html` : `第76期` : dead
+- `tools/finance/loan-amortization.html` : `第77期` : dead
+- `tools/finance/loan-amortization.html` : `第78期` : dead
+- `tools/finance/loan-amortization.html` : `第79期` : dead
+- `tools/finance/loan-amortization.html` : `第80期` : dead
+- `tools/finance/loan-amortization.html` : `第81期` : dead
+- `tools/finance/loan-amortization.html` : `第82期` : dead
+- `tools/finance/loan-amortization.html` : `第83期` : dead
+- `tools/finance/loan-amortization.html` : `第84期` : dead
+- `tools/finance/loan-amortization.html` : `第85期` : dead
+- `tools/finance/loan-amortization.html` : `第86期` : dead
+- `tools/finance/loan-amortization.html` : `第87期` : dead
+- `tools/finance/loan-amortization.html` : `第88期` : dead
+- `tools/finance/loan-amortization.html` : `第89期` : dead
+- `tools/finance/loan-amortization.html` : `第90期` : dead
+- `tools/finance/loan-amortization.html` : `第91期` : dead
+- `tools/finance/loan-amortization.html` : `第92期` : dead
+- `tools/finance/loan-amortization.html` : `第93期` : dead
+- `tools/finance/loan-amortization.html` : `第94期` : dead
+- `tools/finance/loan-amortization.html` : `第95期` : dead
+- `tools/finance/loan-amortization.html` : `第96期` : dead
+- `tools/finance/loan-amortization.html` : `第97期` : dead
+- `tools/finance/loan-amortization.html` : `第98期` : dead
+- `tools/finance/loan-amortization.html` : `第99期` : dead
+- `tools/finance/loan-comparison.html` : `A 方案` : dead
+- `tools/finance/mortgage-calculator.html` : `贷款金额（万元）` : dead
+- `tools/finance/mortgage-prepayment.html` : `原方案（不提前还，以输入的每月还款为基准）` : dead
+- `tools/finance/msisdn-validator.html` : `格式 ^\+?[1-9]\d{6,14}$（含国家码，总长 7~15 位）` : dead
+- `tools/finance/mutual-fund-calculator.html` : `年化收益率（IRR）：` : dead
+- `tools/finance/mutual-fund-calculator.html` : `期末总资产：¥165,902.94` : dead
+- `tools/finance/npv-calculator.html` : `IRR < 折现率：` : dead
+- `tools/finance/npv-calculator.html` : `NPV > 0：项目可行；NPV < 0：项目不可行` : dead
+- `tools/finance/npv-calculator.html` : `PI > 1：可行；PI < 1：不可行` : dead
+- `tools/finance/number-to-words-chinese.html` : `按中文读数规则：万/亿分组，逐级读“数字 + 单位”，并对零位做特殊处理` : dead
+- `tools/finance/option-profit-calculator.html` : `总盈亏：+¥496.00` : dead
+- `tools/finance/option-profit-calculator.html` : `看涨期权买方` : dead
+- `tools/finance/password-generator-advanced.html` : `一般建议 12 位以上并混合大小写、数字与符号；高价值账户建议 16 位以上或使用口令短语。` : dead
+- `tools/finance/password-generator-advanced.html` : `生成便于记忆的口令短语（passphrase）` : dead
+- `tools/finance/password-generator-advanced.html` : `高级密码生成器。自定义长度、字符集与排除规则生成高强度密码，支持口令短语模式，纯前端生成不存储，适合账号安全与密钥管理。` : dead
+- `tools/finance/payroll-calculator.html` : `住房公积金比例不能为负数。` : dead
+- `tools/finance/payroll-calculator.html` : `养老保险比例不能为负数。` : dead
+- `tools/finance/payroll-calculator.html` : `医疗保险比例不能为负数。` : dead
+- `tools/finance/payroll-calculator.html` : `失业保险比例不能为负数。` : dead
+- `tools/finance/payroll-calculator.html` : `年税后总收入：¥135,270.00` : dead
+- `tools/finance/payroll-calculator.html` : `第10月` : dead
+- `tools/finance/payroll-calculator.html` : `第11月` : dead
+- `tools/finance/payroll-calculator.html` : `第12月` : dead
+- `tools/finance/payroll-calculator.html` : `第1月` : dead
+- `tools/finance/payroll-calculator.html` : `第2月` : dead
+- `tools/finance/payroll-calculator.html` : `第3月` : dead
+- `tools/finance/payroll-calculator.html` : `第4月` : dead
+- `tools/finance/payroll-calculator.html` : `第5月` : dead
+- `tools/finance/payroll-calculator.html` : `第6月` : dead
+- `tools/finance/payroll-calculator.html` : `第7月` : dead
+- `tools/finance/payroll-calculator.html` : `第8月` : dead
+- `tools/finance/payroll-calculator.html` : `第9月` : dead
+- `tools/finance/points-redemption-value.html` : `每万分价值 = 商品现金价值 / 兑换所需积分 × 10000` : dead
+- `tools/finance/profit-margin-calculator.html` : `EBITDA 17.00万` : dead
+- `tools/finance/profit-margin-calculator.html` : `⚠ 所得税税率须在 0%–100% 之间（不含 100%）。` : dead
+- `tools/finance/profit-margin-calculator.html` : `⚠ 目标净利率过高：扣除所得税与 25% 假设期间费用率后售价无解，请降低目标净利率。` : dead
+- `tools/finance/profit-margin-calculator.html` : `⚠ 目标利润率须在 0%–100% 之间（不含 100%）。` : dead
+- `tools/finance/profit-margin-calculator.html` : `⚠ 目标营业利润率须小于 75%（扣除 25% 假设期间费用率后仍须为正）。` : dead
+- `tools/finance/profit-margin-calculator.html` : `元（EBITDA利润率 17.00%）` : dead
+- `tools/finance/profit-margin-calculator.html` : `元（净利率 6.75%）` : dead
+- `tools/finance/profit-margin-calculator.html` : `元（营业利润率 11.00%）` : dead
+- `tools/finance/profit-margin-calculator.html` : `净利润 6.75万` : dead
+- `tools/finance/profit-margin-calculator.html` : `利润总额：9.00万 元` : dead
+- `tools/finance/profit-margin-calculator.html` : `所得税（25%）：2.25万 元` : dead
+- `tools/finance/profit-margin-calculator.html` : `折旧摊销：6.00万 元（占收入 6.00%）` : dead
+- `tools/finance/profit-margin-calculator.html` : `毛利润 40.00万` : dead
+- `tools/finance/profit-margin-calculator.html` : `研发费用：5.00万 元（占收入 5.00%）` : dead
+- `tools/finance/profit-margin-calculator.html` : `管理费用：10.00万 元（占收入 10.00%）` : dead
+- `tools/finance/profit-margin-calculator.html` : `营业利润 11.00万` : dead
+- `tools/finance/profit-margin-calculator.html` : `财务费用：2.00万 元（占收入 2.00%）` : dead
+- `tools/finance/profit-margin-calculator.html` : `销售费用：8.00万 元（占收入 8.00%）` : dead
+- `tools/finance/provident-fund.html` : `个人缴存（12%）：` : dead
+- `tools/finance/provident-fund.html` : `元　（受当地最高额度 50 万元封顶）` : dead
+- `tools/finance/provident-fund.html` : `元（余额 × 20）` : dead
+- `tools/finance/provident-fund.html` : `单位缴存（12%）：` : dead
+- `tools/finance/provident-fund.html` : `按 50 万元 30 年、利率 3.1% 测算（等额本息）：` : dead
+- `tools/finance/provident-fund.html` : `累计缴存 60 月，账户余额（估算）：` : dead
+- `tools/finance/report-1.html` : `元；少数股东损益 = 150,000.00 × 20% =` : dead
+- `tools/finance/report-1.html` : `合并价差 = 长期股权投资 800,000.00 − 母公司享有 560,000.00 =` : dead
+- `tools/finance/report-1.html` : `合并价差（商誉）` : dead
+- `tools/finance/report-1.html` : `子公司净资产 = 实收资本 500,000.00 + 未分配利润 200,000.00 + 评估增值 0.00 =` : dead
+- `tools/finance/report-1.html` : `少数股东权益 = 700,000.00 × 20% =` : dead
+- `tools/finance/report-1.html` : `少数股东权益（20%）` : dead
+- `tools/finance/report-1.html` : `归属于母公司股东的净利润 = 150,000.00 × 80% =` : dead
+- `tools/finance/report-1.html` : `母公司享有份额 = 700,000.00 × 80% =` : dead
+- `tools/finance/report-1.html` : `母公司享有份额（80%）` : dead
+- `tools/finance/report-1.html` : `长期股权投资高于母公司享有的净资产份额，差额 240,000.00 元确认为` : dead
+- `tools/finance/sort-code-validator-validator.html` : `格式 ^\d{2}-?\d{2}-?\d{2}$（6 位数字，可含连字符）` : dead
+- `tools/finance/text-reverse-words.html` : `将句子按空白切分为单词后整体逆序输出，可选保留标点位置` : dead
+- `tools/finance/tfn-validator.html` : `9 位（8 位前补 0）按权重 1、4、3、7、5、8、6、9、10 加权，总和须被 11 整除。` : dead
+- `tools/finance/uan-validator.html` : `格式 ^\d{12}$（12 位数字）` : dead
+- `tools/finance/word-search.html` : `可以。输入自定义单词后会随机排布进网格，支持设定网格大小与方向。` : dead
+- `tools/finance/word-search.html` : `可以。页面提供可打印视图，适合课堂或线下活动使用。` : dead
+- `tools/finance/word-search.html` : `在字母矩阵中隐藏并寻找目标单词，支持自定义词表与网格大小，适合词汇记忆与休闲游戏，纯前端生成可打印或在线玩。` : dead
+- `tools/finance/word-search.html` : `打印或在线进行词汇记忆练习` : dead
+- `tools/finance/word-search.html` : `找词游戏是一款金融财务领域的在线工具。在字母矩阵中隐藏并寻找目标单词，支持自定义词表与网格大小，适合词汇记忆与休闲游戏，纯前端生成可打印或在线玩。` : dead
+- `tools/finance/word-search.html` : `自定义词表与网格大小生成题目` : dead
+- `tools/finance/word-search.html` : `输入词表（如 apple, book, cat），页面把单词按横竖斜方向随机排入字母矩阵，支持打印。` : dead
+- `tools/finance/zip-code-validator.html` : `格式 ^\d{5}(-\d{4})?$；前 3 位可映射至州/地区分区` : dead
+
+  其它成因样例（共 624 条，仅列前 5）：
+  - `tools/finance/amount-in-words.html` : `金额超出支持范围（最多 16 位整数）` : dynamic
+  - `tools/finance/analysis-44.html` : `80000.00 元` : dynamic
+  - `tools/finance/analysis-5.html` : `1.5~2.5 常见 / > 3 高杠杆` : dynamic
+  - `tools/finance/analysis-5.html` : `40%~60% 适中 / > 70% 警戒 / < 30% 偏低` : dynamic
+  - `tools/finance/analysis-5.html` : `< 1 稳健 / 1~2 一般 / > 2 高杠杆` : dynamic
+
+### fire（dead 4 / dynamic 0 / fragment 0 / harmless 0）
+
+- `tools/fire/analysis-cost-price-8.html` : `毛利 = 售价 - 单位成本；毛利率 = 毛利 / 售价` : dead
+- `tools/fire/evacuation-time.html` : `t = N/(b·D·f) + 行走时间` : dead
+- `tools/fire/extinguisher-calc.html` : `灭火器最大保护距离/配置基准（GB 50140）` : dead
+- `tools/fire/hydrant-pressure.html` : `栓口动压 = 几何高差 + 沿程 + 局部` : dead
+
+### fire-rescue（dead 17 / dynamic 6 / fragment 2 / harmless 1）
+
+- `tools/fire-rescue/calc-4.html` : `GB 50140-2005 §6.1 规定一个计算单元内配置的灭火器数量不得少于 2 具，且每个设置点不宜多于 5 具；这样一具失效、压力不足或被火势封锁时仍有备用，同时避免单点堆放过密。` : dead
+- `tools/fire-rescue/calc-4.html` : `为什么每个计算单元最少要配 2 具？` : dead
+- `tools/fire-rescue/calc-4.html` : `按默认参数（A 类火灾、轻危险级、保护面积 300 m²）：U=100 m²/A，Q=K·S/U=3A；按 4kg ABC 干粉单具 2A 折算，⌈3/2⌉=2 具（且每计算单元不少于 2 具），按每处 2 具布置约需 1 个设置点。每个设置点不宜多于 5 具，且任一点到最近设置点的步行距离应满足表 5.2.1（A 类…(+21字)` : dead
+- `tools/fire-rescue/detector-20.html` : `≥90% 合格，75-89% 基本合格，60-74% 需整改，<60% 不合格` : dead
+- `tools/fire-rescue/fire-extinguisher-selection.html` : `GB 50140-2005 §6.1 规定一个计算单元内配置的灭火器数量不得少于 2 具、每个设置点不宜多于 5 具；这样一处失效、压力不足或被火势封锁时仍有备用，同时避免单点堆放过密。` : dead
+- `tools/fire-rescue/fire-extinguisher-selection.html` : `按默认参数（A 类火灾、中危险级、保护面积 100 m²）：推荐 ABC 干粉 4 kg（通用性强、适用 A 类固体火灾）为主，水基/泡沫型为辅；配置数量 2 具（Q=⌈100 ÷ 75⌉=2A，按单具 2A 折算 1 具、且每个计算单元不少于 2 具），最低灭火级别 2A（GB 50140-2005 表 6.2.1：…(+47字)` : dead
+- `tools/fire-rescue/fire-resistance-rating.html` : `高层仓库（>24m）耐火等级不应低于二级；高架仓库应为一级（GB 50016-2014 第 3.2.5 条）。` : dead
+- `tools/fire-rescue/fire-resistance-rating.html` : `高层厂房（>24m）耐火等级不应低于二级（GB 50016-2014 第 3.2.2 条）。` : dead
+- `tools/fire-rescue/high-rise-fire.html` : `GB 50084 相关水力计算` : dead
+- `tools/fire-rescue/high-rise-fire.html` : `GB/T 26770 登高平台消防车等整车标准` : dead
+- `tools/fire-rescue/high-rise-fire.html` : `作业高度 ≈ 云梯额定长度 × 0.8 − 建筑高度修正` : dead
+- `tools/fire-rescue/hydrant-flow.html` : `室内消火栓充实水柱要求：高层建筑、厂房、库房及室内净高超过 8m 的民用建筑 ≥13 m，其他建筑 ≥10 m。18.7 m 已满足高层要求；但若要达到单栓 5 L/s 基准，需提高栓口压力或缩短水带长度。` : dead
+- `tools/fire-rescue/smoke-management.html` : `47.3 m³/s，排烟量 170368 m³/h（已含 1.2 安全系数）；烟层底部 5.0 m ≥ 清晰高度 3.0 m，烟层控制满足要求。设计建议排烟口 12 个、单口 14197 m³/h；当前若不足应增至 12 个。` : dead
+- `tools/fire-rescue/smoke-management.html` : `请输入有效的热释放速率（>0）、烟层底部高度（>0）、清晰高度（>0）；火焰高度限制须 ≥0（0 表示不设限）。` : dead
+- `tools/fire-rescue/sprinkler-design.html` : `中危险级 I 级 6 L/min·m²、II 级 8（作用面积 160 m²）` : dead
+- `tools/fire-rescue/sprinkler-design.html` : `按默认参数（中危Ⅰ级、标准作用面积 160 m²、标准喷水强度 6 L/(min·m²)）：作用面积内约 13 个喷头（间距约 3.6 m），单喷头流量 80 L/min；系统设计流量 = 1040 L/min = 17.3 L/s，实际喷水强度 6.5 L/(min·m²) ≥ 标准 6，满足设计要求。建议消防水池储…(+32字)` : dead
+- `tools/fire-rescue/sprinkler-design.html` : `来自 GB 50084 按火灾危险等级的规定：中危Ⅰ级为 6、中危Ⅱ级为 8、严重危险级更高；设计喷水强度不得低于对应等级下限，否则无法有效控制火情。GB 55036-2022 实施后，与通用规范不一致的强制性条文以其为准。` : dead
+
+  其它成因样例（共 9 条，仅列前 5）：
+  - `tools/fire-rescue/calc-4.html` : `GB 50140-2005 表 6.2.1` : dynamic
+  - `tools/fire-rescue/fire-resistance-rating.html` : `可燃` : fragment
+  - `tools/fire-rescue/fire-resistance-rating.html` : `多层厂房耐火等级不应低于三级（GB 50016-2014 第 3.2.3 条；甲、乙类厂房应为二级）。` : dynamic
+  - `tools/fire-rescue/fire-resistance-rating.html` : `仓库耐火等级不应低于二级（本页未区分储存物品类别，按偏严取值；单层乙、丙类及多层丁、戊类仓库可为三级，见 GB 50016-2014 第 3.2.5 条）。` : dynamic
+  - `tools/fire-rescue/high-rise-fire.html` : `GB 50084-2019` : harmless
+
+### fishery（dead 58 / dynamic 15 / fragment 10 / harmless 0）
+
+- `tools/fishery/aerator-duration.html` : `增氧机时长 = 溶氧缺口/(功率×效率)` : dead
+- `tools/fishery/aerator-duration.html` : `水体体积=面积×666.67×水深(m³)；增氧机增氧速率(mg/L·h)=功率×SAE×1000÷体积；净增氧=增氧速率-耗氧率；所需时长=(目标溶氧-当前溶氧)÷净增氧。叶轮式增氧机 SAE 一般 1.2-2.0。曝气无法超过饱和溶氧，本页按暖水（约 30℃）饱和 7.6 mg/L 取 7.5 mg/L 为保守上限…(+1字)` : dead
+- `tools/fishery/aerator-duration.html` : `请检查输入：面积、水深、目标溶氧、功率、增氧效率须 >0；当前溶氧、耗氧率须 ≥0。` : dead
+- `tools/fishery/assessor-risk-4.html` : `溶氧<3mg/L时鱼类浮头，<1mg/L可致泛塘死亡` : dead
+- `tools/fishery/assessor-risk-4.html` : `鱼病风险 = f(水温, 密度, 水质)` : dead
+- `tools/fishery/breeding-cycle.html` : `以草鱼为例（默认参数）：总周期约 138 天（从放苗到上市，放苗期已计入，不再额外加 14 天），日增长率约 2.50%；其中放苗期 14 天、培育期约 31 天（规格至约 152 g）、养成期约 68 天（至约 813 g）、收获期约 25 天（至上市规格约 1500 g）；若放苗日 2026-09-08，则预计上市…(+36字)` : dead
+- `tools/fishery/breeding-cycle.html` : `养殖周期 = 培育+养成+收获` : dead
+- `tools/fishery/calc-power.html` : `水体积 V (m³)` : dead
+- `tools/fishery/cycle-6.html` : `清淤周期 = f(淤积速率)` : dead
+- `tools/fishery/density-1.html` : `密度 = 尾数 / 面积` : dead
+- `tools/fishery/dissolved-oxygen.html` : `溶氧预测 = f(温度, 气压)` : dead
+- `tools/fishery/drug-withdrawal-fish.html` : `不可以。内置值只是常见说明书的示例，不同药品与地区可能采用更高的度日口径（如恩诺沙星 500 度日）；页面结果仅供估算，上市前必须以药品说明书、当地法规和残留检测为准。` : dead
+- `tools/fishery/drug-withdrawal-fish.html` : `休药期 = 基准×(温度校正)` : dead
+- `tools/fishery/drug-withdrawal-fish.html` : `内置的标准休药期可以直接用吗？` : dead
+- `tools/fishery/drug-withdrawal-fish.html` : `实际水温必须高于温度下限，否则工具直接拒绝计算并提示参数不合理；现实中低于下限时代谢极慢，不可套用公式，应大幅延长休药期并送样检测残留。` : dead
+- `tools/fishery/drug-withdrawal-fish.html` : `请检查输入：标准休药期须 >0；温度下限须 ≥0 且低于参考水温；实际水温须高于温度下限且不超过 40℃。` : dead
+- `tools/fishery/drug-withdrawal-fish.html` : `默认参数（标准休药期 14 天 @ 参考温度 15℃、温度下限 5℃、实际水温 22℃）：度日需求 K = 14×(15−5) = 140 ℃·天；有效温度 = 22−5 = 17℃；校正休药期 = 140 / 17 ≈ 8.2 天，按安全口径向上取整为 9 天，约为标准的 0.59 倍，水温较高可缩短；但若当地执行更…(+75字)` : dead
+- `tools/fishery/feed-calculator.html` : `请检查输入：鱼体总重量须 >0，水温 0–40℃，养殖天数须 >0，饲料单价须 ≥0。` : dead
+- `tools/fishery/feed-calculator.html` : `饲料量 = 体重×投喂率` : dead
+- `tools/fishery/feed-protein-fat.html` : `蛋白脂肪配比 = 营养需求` : dead
+- `tools/fishery/feed-rate-calculator.html` : `投喂率 = 体重×率%` : dead
+- `tools/fishery/feed-rate-calculator.html` : `请检查输入：存塘量、均重须 >0，水温须在 0–40℃，且不能留空或为负。` : dead
+- `tools/fishery/feeding-rate.html` : `投喂率 = 体重×日率` : dead
+- `tools/fishery/feeding-rate.html` : `请检查输入：水温须在 0–40℃ 之间，总重量须 >0。` : dead
+- `tools/fishery/fish-disease-risk.html` : `鱼病风险 = 综合评分` : dead
+- `tools/fishery/fish-growth-curve.html` : `生长曲线 = 特定生长率拟合` : dead
+- `tools/fishery/fish-weight.html` : `鱼体重 = a·体长^b` : dead
+- `tools/fishery/fry-transport-survival.html` : `纯氧系数 0.5、空气 1.0、无增氧 2.0，系数越小越安全（风险率越低）；提高增氧能显著延长安全运输时长。` : dead
+- `tools/fishery/fry-transport-survival.html` : `请检查输入：密度与时长须 >0，目标成活率须在 50–99%（不含 100%），水温须在模型适用区间 5–30℃。` : dead
+- `tools/fishery/fry-transport-survival.html` : `运输成活率 = f(密度, 温度, 时间)` : dead
+- `tools/fishery/fry-transport-survival.html` : `风险率=0.02×(密度/100)×(时长/6)×exp((水温-15)/12)×增氧系数；成活率=100×exp(-风险率)。纯氧系数0.5，空气1.0，无增氧2.0。建议密度按目标成活率反推。` : dead
+- `tools/fishery/harvest-size-price.html` : `规格价格 = 均重×单价` : dead
+- `tools/fishery/mesh-size-guide.html` : `网目尺寸 = 最小可捕规格` : dead
+- `tools/fishery/oxygen-machine.html` : `增氧机配置 = 需氧量/单机功率` : dead
+- `tools/fishery/oxygen-machine.html` : `请检查输入：水体体积须 >0；鱼载量须 ≥0；水温须在 0–40℃ 之间。` : dead
+- `tools/fishery/parasite-lifecycle.html` : `寄生虫周期 = 温度依赖模拟` : dead
+- `tools/fishery/plankton-biomass.html` : `浮游生物量 = 计数×体积` : dead
+- `tools/fishery/pond-capacity.html` : `承鱼量 = f(面积, 溶氧, 换水)` : dead
+- `tools/fishery/pond-desilting.html` : `当前淤泥 8 cm、允许上限 20 cm、沉积速率 3 cm/年、保留 5 cm 肥泥层：剩余 12 cm，约 4.0 年后需清淤；届时需清除 15 cm，清淤量约 500 m³，费用约 7500 元。若当前已 22 cm 超限，则立即清淤，需清除 17 cm，清淤量约 567 m³、费用约 8500 元。` : dead
+- `tools/fishery/pond-desilting.html` : `清淤周期 = 淤积/清除速率` : dead
+- `tools/fishery/pond-desilting.html` : `请检查输入：面积与沉积速率须 >0；允许厚度、当前厚度、单价、保留肥泥层厚度须 ≥0；保留厚度须小于允许厚度。` : dead
+- `tools/fishery/profit-calculator.html` : `利润 = 收入 − 成本` : dead
+- `tools/fishery/ratio-hormone.html` : `最简比 = a/g : b/g（g 为最大公约数）` : dead
+- `tools/fishery/salinity-calculator.html` : `四项均需填写有效数值：现有水量须 >0，三个盐度须 ≥0。未测盐度请勿留空（淡水请明确输入 0）` : dead
+- `tools/fishery/salinity-calculator.html` : `盐度 = 盐质量/水体积` : dead
+- `tools/fishery/seafood-cold-storage.html` : `冷藏温度 = 保质期对应` : dead
+- `tools/fishery/spawning-hormone.html` : `催产剂量 = 体重×系数` : dead
+- `tools/fishery/stocking-density.html` : `两者任一成为瓶颈都会限制产量，取小值保证不突破任一约束，是保守安全的设计。注意：功率为 0（如粗养水库）时功率约束不启用，只按水体承载估算，页面会把来源标为「水体承载（未配增氧）」。` : dead
+- `tools/fishery/stocking-density.html` : `放养密度 = 优化承载` : dead
+- `tools/fishery/stocking-density.html` : `默认参数：功率载鱼量 = (4/5)×450 = 360 kg/亩；水体载鱼量 = 3×(5×1.2×666.67)/5 = 2400 kg/亩；取较小值 360 kg/亩；放养密度 = 360/(15/100)/0.75 ≈ 32000 尾/亩，总放苗量 ≈ 160000 尾，预计产量 1800 kg；增氧 0.8 …(+10字)` : dead
+- `tools/fishery/wastewater-cod.html` : `COD 估算 = 投饵×排放系数` : dead
+- `tools/fishery/water-exchange-rate.html` : `换水率 = 流量/池体积` : dead
+- `tools/fishery/water-exchange-rate.html` : `请检查输入：池体积需 >0，日换水量/产生率/进水浓度需 ≥0，目标浓度需 >0。` : dead
+- `tools/fishery/water-oxygen.html` : `先按水温定位温度区间、按盐度定位盐度区间，做双线性插值得到该条件下的理论饱和溶氧；饱和度 = 实测 ÷ 饱和 × 100%。分级：<2 危险(浮头)，<4 偏低(开增氧机)，≤8 正常，>8 过饱和(防气泡病)。` : dead
+- `tools/fishery/water-quality-threshold.html` : `氨氮/亚盐安全阈值 = 查表` : dead
+- `tools/fishery/water-quality-threshold.html` : `水温 26℃、pH 8 时 NH₄⁺ pKa≈9.219，非离子氨占比约 5.70%；实测 TAN 0.8 mg/L → 有毒 NH₃ 0.0456 mg/L（超过 0.02 mg/L 安全限，约 228%，判超标）；Cl⁻ 20 mg/L 时亚硝酸盐安全限 = min(0.1, 20×0.0132)=0.1 mg/L…(+40字)` : dead
+- `tools/fishery/winter-heating.html` : `加热功率 = V·ρ·c·ΔT/t` : dead
+- `tools/fishery/winter-heating.html` : `请检查输入：面积需 >0，风速与余量需 ≥0（余量 ≤100%）。` : dead
+
+  其它成因样例（共 25 条，仅列前 5）：
+  - `tools/fishery/aerator-duration.html` : `目标溶氧 ` : fragment
+  - `tools/fishery/aerator-duration.html` : ` 超过曝气可达的饱和上限（本页按暖水 7.5 mg/L 保守估算）。曝气只能接近饱和值，无法超过；需换水、降温或使用化学增氧。若要按具体水温核算饱和值，请先查该水温下的溶解氧饱和表。` : dynamic
+  - `tools/fishery/calc-power.html` : `平均加热功率 P = Q÷t` : dynamic
+  - `tools/fishery/calc-power.html` : `所需热量 Q` : fragment
+  - `tools/fishery/calc-power.html` : `建议配置功率（1.2×）` : dynamic
+
+### fitness（dead 15 / dynamic 2 / fragment 1 / harmless 2）
+
+- `tools/fitness/analysis-retention.html` : `Mass（评估/优化/提升）机制` : dead
+- `tools/fitness/assessor-64.html` : `师资力量 = 认证系数×0.6 + min(从业年限/10, 1)×4（上限 10）；课程内容 = 三项评分均值；教学环境 = 室温×0.3 + 湿度×0.2 + 班级人数×0.25 + 人均面积×0.25（达标记 10、不达标记 5–6）；学员效果 = (满意度×0.3 + 留存×0.3 + 续费×0.2 + 进度×…(+73字)` : dead
+- `tools/fitness/assessor-64.html` : `数据分析（会员/课程/留存）` : dead
+- `tools/fitness/calc-3.html` : `男 体脂% = 86.010×log₁₀(腰围−颈围) − 70.041×log₁₀(身高) + 36.76；女 体脂% = 163.205×log₁₀(腰围+臀围−颈围) − 97.684×log₁₀(身高) − 78.387` : dead
+- `tools/fitness/calc-3.html` : `男性：身高 175 cm、颈围 38 cm、腰围 85 cm。 ⏎ waist−neck=47；log10(47)=1.6721，log10(175)=2.2430。 ⏎ bf=86.010×1.6721−70.041×2.2430+36.76=143.81−157.08+36.76=23.49%。 ⏎ 按男性分级：<…(+152字)` : dead
+- `tools/fitness/estimate-2.html` : `基于代谢当量（MET）法：MET = 1 约等于静息代谢（3.5 ml O₂/kg/min）。MET 越高强度越大（<3 低强度、<6 中等、<9 高强度，≥9 极高强度）。米饭当量按每碗约 230 kcal 折算，便于直观理解消耗量。` : dead
+- `tools/fitness/index.html` : `健身运动工具集合收录了 34 个免费在线工具，覆盖健身运动场景下的常见计算、换算与查询需求。无论你是相关领域的从业者、学生还是普通用户，都能在这里找到即用即走的实用小工具。所有工具纯前端运行，数据不上传服务器，保护隐私安全。` : dead
+- `tools/fitness/pace-calculator.html` : `Distance +时间→配速` : dead
+- `tools/fitness/pace-calculator.html` : `Distance +配速→时间` : dead
+- `tools/fitness/pace-calculator.html` : `Input: 距离 5 km、完赛时间 30:00。 ⏎ 平均配速 = 30:00 ÷ 5 = 6:00 /km。 ⏎ 延展：若维持 6:00/km，10 km 需 60:00、半马 21.1 km 需约 2:06:36、全马 42.2 km 需约 4:13:12。 ⏎ 结论：想 5 km 跑进 25 分，需把配速提到…(+26字)` : dead
+- `tools/fitness/pace-calculator.html` : `Velocity(km/h) = 3600 ÷ 每公里秒数（英制按 1 英里 = 1.60934 km 换算）` : dead
+- `tools/fitness/rater-time.html` : `推荐时长 = 60 s（压痛 0–2）/ 90 s（3–5）/ 120 s（6–7）/ 60 s（≥8）；判定：实际 < 0.6×推荐 偏短，0.6–1.5×推荐 适中，> 1.5×推荐 偏长` : dead
+- `tools/fitness/step-stride.html` : `如何使用步幅与速度换算？` : dead
+- `tools/fitness/step-stride.html` : `步幅与速度换算是做什么的？` : dead
+- `tools/fitness/step-stride.html` : `步幅与速度换算适合哪些场景？` : dead
+
+  其它成因样例（共 5 条，仅列前 5）：
+  - `tools/fitness/calc-3.html` : `腰围必须大于颈围，当前围度差 ≤ 0，无法计算体脂率，请核对测量部位。` : dynamic
+  - `tools/fitness/calc-3.html` : `腰围 + 臀围必须大于颈围，当前围度差 ≤ 0，无法计算体脂率，请核对测量部位。` : dynamic
+  - `tools/fitness/calc-heart-rate.html` : `目标心率 = (最大心率 − 静息心率) × 强度% + 静息心率` : fragment
+  - `tools/fitness/step-stride.html` : `📖 查看「步幅与速度换算使用指南」` : harmless
+  - `tools/fitness/step-stride.html` : `📚 深度解析：步幅与速度换算` : harmless
+
+### fluid（dead 11 / dynamic 0 / fragment 1 / harmless 0）
+
+- `tools/fluid/buoyancy-force.html` : `F_b = ρ_f g V。 浮力等于排开液重。` : dead
+- `tools/fluid/capillary-pressure.html` : `ΔP = 4γ/D（完全润湿圆管）。 水,D=1mm → 288 Pa。` : dead
+- `tools/fluid/capillary-rise.html` : `h = 2γcosθ/(ρgr)。 水在细玻管中明显上升。` : dead
+- `tools/fluid/cavitation-number.html` : `σ 越小越易空化（σ<1 危险）。` : dead
+- `tools/fluid/froude-number.html` : `Fr>1 为急流，Fr<1 为缓流。` : dead
+- `tools/fluid/hydrostatic-pressure.html` : `P = ρgh。 10 m 水柱 ≈ 98 kPa。` : dead
+- `tools/fluid/kinematic-viscosity.html` : `ν = μ/ρ。 水 20°C → 1.0×10⁻⁶ m²/s。` : dead
+- `tools/fluid/manning-velocity.html` : `v = (1/n)R^(2/3)S^(1/2)。 混凝土渠 n≈0.013。` : dead
+- `tools/fluid/orifice-discharge.html` : `Q = C_d A√(2ΔP/ρ)。 重力出流时 ΔP=ρgh。` : dead
+- `tools/fluid/poiseuille-flow.html` : `Q = πΔP r⁴/(8μL)。 流量对半径极敏感（四次方）。` : dead
+- `tools/fluid/stokes-settling.html` : `v = 2r²(ρ_p−ρ_f)g/(9μ)。 适用低雷诺数小球。` : dead
+
+  其它成因样例（共 1 条，仅列前 5）：
+  - `tools/fluid/cavitation-number.html` : `v=10 → 约 1.98。` : fragment
+
+### food（dead 2 / dynamic 0 / fragment 0 / harmless 0）
+
+- `tools/food/analysis-menu.html` : `单品毛利率 = (售价 − 成本) ÷ 售价 × 100%` : dead
+- `tools/food/analysis-menu.html` : `综合毛利率 = Σ(售价×销量 − 成本×销量) ÷ Σ(售价×销量) × 100%` : dead
+
+### food-processing（dead 2 / dynamic 1 / fragment 5 / harmless 0）
+
+- `tools/food-processing/freeze-thaw-loss.html` : `解冻失水率(%) = (冷冻前重 − 解冻后重) ÷ 冷冻前重 × 100%` : dead
+- `tools/food-processing/sterilization-f-value.html` : `杀菌F值（D值/Z值）计算器。美食烹饪工具，帮助精确掌握食材配比与营养。` : dead
+
+  其它成因样例（共 6 条，仅列前 5）：
+  - `tools/food-processing/dough-absorption.html` : `面团最终水分含量 = 面团总水分 ÷ 面团总重 × 100%` : fragment
+  - `tools/food-processing/emulsion-stability.html` : `ESI = 乳液层高度 ÷ 总高度 × 100%` : fragment
+  - `tools/food-processing/fermentation-brix.html` : `酒精生成 = 糖消耗 × 0.511 × 发酵效率` : fragment
+  - `tools/food-processing/oil-absorption-rate.html` : `吸油率 = 吸油量 ÷ 油炸前重量 × 100%` : fragment
+  - `tools/food-processing/sterilization-f-value.html` : `当前参考温度不是 121.1℃，该 F 值只是此温度下的等效时间，不能与 F₀≥3 基准直接比较` : dynamic
+
+### food-testing（dead 6 / dynamic 0 / fragment 0 / harmless 0）
+
+- `tools/food-testing/detector-3.html` : `抑制率 ≥50% 为阳性（不合格），需用色谱法确证；35%-50% 为可疑需复测；<35% 为阴性（合格）` : dead
+- `tools/food-testing/detector-3.html` : `提示：ΔA 为反应前后吸光度变化值，通常由分光光度计/农残速测仪自动读取。若 ΔA0 < 0.3，说明酶活性不足需重新配制。` : dead
+- `tools/food-testing/heavy-metal-migration.html` : `= (浓度 × 模拟液体积) / 食品模拟液体积 × 1000` : dead
+- `tools/food-testing/heavy-metal-migration.html` : `以材料浓度 conc(mg/kg) 估算：迁移量(mg/dm²) = conc×模拟液体积 / 接触面积；迁移量(mg/kg) = conc×模拟液体积 / 食品量 ×1000。` : dead
+- `tools/food-testing/heavy-metal-migration.html` : `材料中铅 0.05 mg/kg、模拟液 100 mL、面积 2 dm²、食品量 1000 mL、SML 0.01 mg/kg：迁移 0.05×100/2=2.5 mg/dm²，0.05×100/1000×1000=5.0 mg/kg，远超 SML 0.01 → 不合格。` : dead
+- `tools/food-testing/heavy-metal-migration.html` : `核心计算公式（按输入变量）：(conc×volume)÷foodVol×1000；area÷foodVol×1000` : dead
+
+### forensic-medicine（dead 1 / dynamic 0 / fragment 0 / harmless 0）
+
+- `tools/forensic-medicine/dna-str-typing.html` : `PI > 1 支持亲权关系，PI < 1 不支持亲权关系。` : dead
+
+### forestry（dead 8 / dynamic 9 / fragment 3 / harmless 0）
+
+- `tools/forestry/carbon-sequestration.html` : `⚠ 输入无效：地上生物量与根茎比须为正数，请修正后重新计算。` : dead
+- `tools/forestry/carbon-sequestration.html` : `⚠ 输入无效：年均生长量须为正数，请修正后重新计算。` : dead
+- `tools/forestry/carbon-sequestration.html` : `⚠ 输入无效：蓄积量与林龄须为正数，请修正后重新计算。` : dead
+- `tools/forestry/carbon-sequestration.html` : `⚠ 输入无效：面积与碳价须为正数，请修正后重新计算。` : dead
+- `tools/forestry/carbon-sequestration.html` : `杉木（ρ=0.307,BEF=1.53,CF=0.52）蓄积 V=120 m³/ha、面积 10 ha、林龄 20 年、碳价 60 元/t：B=56.4、C=29.3 t/ha、CO₂=107.5 t/ha；总 CO₂≈1075 t、年均≈53.7 t、价值≈6.45 万元。` : dead
+- `tools/forestry/carbon-sequestration.html` : `森林碳汇计算<br>生物量(t/ha) = 材积 × 木材密度 × BEF（生物量扩展因子）；或 现存量 × (1 + 根茎比0.25)<br>面积估算法：年生物量增量 = 年均生长量 MAI × 木材密度 × BEF（按 1 年计）<br>碳储量 = 生物量 × 含碳率；CO₂ 当量 = 碳储量 × 3.667（44…(+88字)` : dead
+- `tools/forestry/carbon-sequestration.html` : `蓄积量扩展法：生物量 B=V×ρ×BEF（ρ 木材密度、BEF 生物量扩展因子），碳储量 C=B×CF（含碳率约 0.5），CO₂=C×3.667；总 CO₂=CO₂/ha×面积，年均=总 CO₂/林龄，价值=总 CO₂×碳价。` : dead
+- `tools/forestry/pest-1.html` : `等级标准：轻微 <5%，轻度 5~10%，中度 10~20%，重度 20~40%，严重 >40%` : dead
+
+  其它成因样例（共 12 条，仅列前 5）：
+  - `tools/forestry/calc-57.html` : `郁闭度 = 被树冠覆盖点数 ÷ 样点总数` : fragment
+  - `tools/forestry/carbon-sequestration.html` : `单位面积年固CO₂(t/ha·年)` : dynamic
+  - `tools/forestry/carbon-sequestration.html` : `年固CO₂总量(t/年)` : dynamic
+  - `tools/forestry/carbon-sequestration.html` : `总固碳量 = 单公顷CO₂ × 面积；年固碳量 = 总固碳量 / 林龄` : fragment
+  - `tools/forestry/carbon-sequestration.html` : `年均生长量(m³/ha·年)` : dynamic
+

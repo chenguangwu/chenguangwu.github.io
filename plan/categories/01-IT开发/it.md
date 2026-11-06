@@ -162,19 +162,19 @@
 
 ## 2026-11-03 续查：文本与配置工具
 
-### IT-N3 大小写不敏感替换损坏未匹配文本（高，确认源码缺陷）
+### IT-N3 大小写不敏感替换损坏未匹配文本（高，已修复 2026-11-06 核验：text-replace.html:650-663 已按原文大小写保留未命中片段）
 - 问题与证据：`tools/it/text-replace.html:629-632` 全局且不区分大小写时将整段文本转小写；`Hello WORLD hello` 将 `hello` 替换为 `X` 得 `X world X`，未匹配的 WORLD 也被改变。
 - 影响：`tools/it/text-replace.html`；复制或下载可能静默破坏原文。
 - 方案：在原文中查找匹配并仅替换命中段，增加混合大小写与 Unicode 用例；保留未匹配片段原样，展示替换次数和差异预览。
 
-### IT-N4 删除空行示例输出反斜杠字符（中，确认源码缺陷）
+### IT-N4 删除空行示例输出反斜杠字符（中，已修复 2026-11-06 核验：text-replace.html:836 blank 预设 rep.value='\n' 为真实换行符）
 - 证据：`tools/it/text-replace.html:619-626,797-801` 示例的替换值是两个字符 `\\n`，直接交给 `String.replace`，不是换行符；示例结果会出现字面量 `\\n`。
 - 影响：`tools/it/text-replace.html`；一键试用得到错误文本。
 - 方案：预设使用真实换行符，或明确支持转义语法并测试；说明正则与普通替换的差异。
 
-### IT-N5 配置导出忽略密钥编码及 Shell 引用不安全（历史记录；2026-11-06 源码已变，待回归销账）
+### IT-N5 配置导出忽略密钥编码及 Shell 引用不安全（高，已修复 2026-11-06 核验：env-generator.html:670-724 effectiveValue 统一先取编码值含 Base64、shellValue 单引号包裹并转义内部引号）
 
-> 续审更正：当前 `effectiveValue()` 供 `tomlValue()` 使用，Shell 采用单引号包裹并转义内部单引号（`tools/it/env-generator.html:671-676,690-693,715-723,775-782`），下述旧实现证据已过时。尚未做运行态回归，不据此销账。
+> 续审更正（审计侧）：当前 `effectiveValue()` 供 `tomlValue()` 使用，Shell 采用单引号包裹并转义内部单引号（`tools/it/env-generator.html:671-676,690-693,715-723,775-782`），下述旧实现证据已过时。审计侧尚未做运行态回归，待其复验后正式销账。
 - 证据：`tools/it/env-generator.html:671-679,739-746,759-772` TOML 分支调用 `formatValue` 后仍读取原始 `v.value`，勾选密钥 Base64 后 TOML 依然输出原值；Shell 分支直接拼接变量值，`hello world` 无引号会改变 shell 解析，双引号中的 `$` 等也会展开。
 - 影响：`tools/it/env-generator.html`；生成的配置与选项不符，复制执行的 Shell 值可能变化或触发展开。Base64 不是加密，不能将该选项描述为保密措施。
 - 方案：各格式共用转换后的值，分别按目标格式安全序列化和转义；覆盖特殊字符及复制下载一致性，明确 Base64 非加密。
@@ -189,12 +189,12 @@
 - 影响：`tools/it/json-to-csv.html`；用户预期列不存在，恢复历史可触发非预期下载。
 - 方案：实现并说明嵌套展开规则或改正说明；历史恢复后只重算，下载必须由用户主动触发；提供列预览与可复制 CSV。
 
-### IT-N8 负数和自定义进制未正确处理（中，确认源码缺陷）
+### IT-N8 负数和自定义进制未正确处理（中，已修复 2026-11-06 核验：number-base-converter.html:433-503 getInputBase 校验 2–36、parseNumber 处理负号、formatNumber 处理负数）
 - 证据：`tools/it/number-base-converter.html:433-445,448-497` 十进制 `-10` 经 `BigInt` 接受，但非十进制转换只在 `n>0` 时循环，返回空串；自定义进制未校验 2–36，37 仍参与计算；回填自定义进制直接把数值赋给不存在该选项的下拉框。
 - 影响：`tools/it/number-base-converter.html`；结果缺失或采用超范围基数，历史状态可能无法恢复。
 - 方案：明确支持带符号整数或拒绝负数；严格检查基数并正确恢复自定义选项，提供位宽可选的补码解释；浏览器核验历史回填。
 
-### IT-N9 Nginx 场景预设生成无效或误导性配置（高，确认源码缺陷）
+### IT-N9 Nginx 场景预设生成无效或误导性配置（高，已修复 2026-11-06 核验：nginx-config-generator.html:247-267 端口校验 1–65535、proxy 需 upstream、https 需 cert/certKey 并生成 ssl 配置）
 - 证据：`tools/it/nginx-config-generator.html:224-235,345-348` 反向代理预设的 root 为空，被回退成 `/var/www/html`，生成 `proxy_pass /var/www/html;`；「HTTPS 静态站」仅设置 `listen 443`，不包含 TLS 监听及证书；端口也未校验 1–65535。
 - 影响：`tools/it/nginx-config-generator.html`；配置可能无法加载或误让用户认为已启用 HTTPS。
 - 方案：按模式校验上游 URL 和路径；HTTPS 明确要求证书并生成 TLS 配置，端口严格限制范围；提供完整配置复制或下载，并区别历史 CSV 导出。
@@ -204,19 +204,19 @@
 
 ## 2026-11-03 续查（并行批 G）
 
-### IT-N10 .properties 含空格的赋值被整体当成键（高，确认源码缺陷）
+### IT-N10 .properties 含空格的赋值被整体当成键（高，已修复 2026-11-06 核验：properties-parser.html:270-292 已按 Java Properties 规范扫描键/分隔符/续行）
 - 问题：`parseProps` 扫描键时遇到普通空格就 `break` 退出，`sep` 保持 -1，随后把整行 trim 后当键、值置空；标准 `key = value` 写法全部失效。
 - 证据：`tools/it/properties-parser.html:268-275`。Node 内存执行原函数：`parseProps("app.name = toolbox")` → `{"app.name = toolbox":""}`；页面默认 `SAMPLE`（255）经 Boot（435）→`loadSample`（319）→`doBeautify`（293-300）→`toProps(parseProps())`，实际首行输出为 `app.name \= toolbox = `（键里还带被二次转义的 `=`）。无空格写法 `a=b`、`c:d` 正常。
 - 影响：`tools/it/properties-parser.html`；页面一打开示例就是错误结果，JSON 转换/美化/压缩三条路径同时失真。
 - 方案：按 Java Properties 规范实现键扫描——行首空白跳过、键在首个未转义的 `=`/`:` 或空白处结束、空白分隔后可选再吃一个 `=`/`:`，再做值 trim；补 `key = value`、`key: value`、制表符分隔与行首缩进用例。
 
-### IT-N11 properties-parser 重复定义覆盖后错误态样式反转（低，确认源码缺陷）
+### IT-N11 properties-parser 重复定义覆盖后错误态样式反转（低，已修复 2026-11-06 核验：properties-parser.html:329-331 仅一套 setOut/setErr/loadSample 定义，成功态按 ✅ 前缀判定）
 - 问题：同一段脚本里 `setOut/setErr/clearAll/loadSample` 各定义两次，后者覆盖前者；覆盖版 `setErr` 的条件写成 `'err'+(s?'':' ok')`，有消息时反而没有成功态、空消息时反而带 `ok`。
 - 证据：`tools/it/properties-parser.html:312-319`（对比 286-311）。`loadSample` 被 319 覆盖后不再只做解析，而是走 `doBeautify`，与 IT-N10 叠加；`clearAll` 的占位文案也由“等待解析...”变为“等待输入...”。
 - 影响：`tools/it/properties-parser.html`；解析成功提示按红色错误样式显示，状态反馈不可信。
 - 方案：删除重复定义只保留一套；错误/成功态用独立 class 或直接按 `s` 是否以 ✅ 开头判断，并让 `loadSample` 只调用 `propsToJson`。
 
-### IT-N12 URL 解析结果未转义直插 innerHTML，重复参数被覆盖（高，确认源码缺陷）
+### IT-N12 URL 解析结果未转义直插 innerHTML，重复参数被覆盖（高，已修复 2026-11-06 核验：url-parser.html:390-420 esc(k)/esc(v) 转义输出、重复参数存为数组）
 - 问题：`url.searchParams.forEach` 把重复键写入同一对象（后者覆盖前者）；随后字段值与参数值未经转义拼进 `innerHTML`，历史记录（localStorage）回显同样原样拼接。查询值经 `URLSearchParams` 已解码，`<img onerror>` 会作为标签生效；值内的单引号还会截断复制按钮的 `onclick` 属性。
 - 证据：`tools/it/url-parser.html:377-379,389-403,477`。Node `new URL("https://x.com/p?q=<img src=x onerror=alert(1)>&a=1&a=2&tag=%3Cb%3E")` → `searchParams` 得 `{"q":"<img src=x onerror=alert(1)>","a":"2","tag":"<b>"}`：重复 `a` 只剩 `2`，且值含可执行标签。路径侧 `<` 被 URL 序列化为 `%3C`，注入面主要是查询值与历史记录。
 - 影响：`tools/it/url-parser.html`；解析含 HTML 的链接时页面可被注入（自输入/历史持久化），参数表只显示最后一个同名参数，复制按钮可能失效。浏览器实际执行未验证。
@@ -228,7 +228,7 @@
 - 影响：`tools/it/csv-validator.html`；合法的多行字段（备注、地址）一律判错，用户会去“修”本来正确的数据。
 - 方案：改为按字符流状态机解析整份 CSV（引号内换行不切行），记录逻辑行号；补充多行字段、转义双引号、CRLF 用例。
 
-### IT-N14 curl 转代码漏判 POST 与方法/选项值误认作 URL（高，确认源码缺陷）
+### IT-N14 curl 转代码漏判 POST 与方法/选项值误认作 URL（高，已修复 2026-11-06 核验：curl-parser.html:242-288 CURL_VALUE_OPTS 值成对消费映射表、esc() 转义）
 - 问题：未处理“带 `-d` 时 curl 默认改 POST”，输出固定 GET；除 `-X/-H/-d/--data/--data-raw` 外的选项（如 `-F`、`--data-binary`、`-u`、`-o`）的值不以 `-` 开头，会被当成 URL；头部值原样进 `innerHTML`。
 - 证据：`tools/it/curl-parser.html:243,250-265,267-272`。Node 桩执行 `parse()`：`curl -d '{"a":1}' https://api.example.com/x` → `方法：GET`（curl 实际以 POST 发送）；`curl -F 'file=@a.txt' --data-binary @b.json https://x.com` → `URL：file=@a.txt`（真实 URL 丢失）；`-H 'X-Test: <img src=x onerror=alert(1)>'` 原样输出 `<p>X-Test: <img src=x onerror=alert(1)></p>`。
 - 影响：`tools/it/curl-parser.html`；复制出的请求方法/URL/表单体与真实 curl 行为不符，常见上传命令直接解析错。
@@ -246,7 +246,7 @@
 - 影响：`tools/it/slugify.html`；默认配置下“Unicode 转义”输出不是可解码的百分号编码，预览标签也会误导。
 - 方案：剥离符号发生在编码之后时跳过 `%` 与十六进制字符，或先剥离再编码；预览按实际分隔符替换；补中文/emoji 的转义往返用例。
 
-### IT-N17 Title Case 把撇号后的字母再大写并压平驼峰（中，确认源码缺陷）
+### IT-N17 Title Case 把撇号后的字母再大写并压平驼峰（中，已修复 2026-11-06 核验：case-converter.html:377-379 toTitleCase 用 /\S+/g 每词首字符大写、保留词内其余，驼峰不被压平）
 - 问题：`toTitleCase` 用 `\b\w` 大写、`\B\w` 小写，撇号是非单词字符，`'t` 被当作新词首字母大写；同样的 `\B\w` 会把驼峰内部大写压成小写。
 - 证据：`tools/it/case-converter.html:377-380`。Node 复算：`"don't stop now"` → `Don'T Stop Now`；`"myVar"` → `Myvar`。页面 FAQ（301）声称“只按空格切词、对每个词首字母大写”，与实际结果不符。
 - 影响：`tools/it/case-converter.html`；英文标题/人名带撇号时出现 `Don'T`，驼峰输入的首字母大写结果被意外压平。
@@ -266,13 +266,13 @@
 
 ## 2026-11-03 续查（并行批 J）
 
-### IT-N18 Markdown 链接目标未转义，可注入 HTML 属性（高，确认源码缺陷）
+### IT-N18 Markdown 链接目标未转义，可注入 HTML 属性（高，已修复 2026-11-06 核验：markdown-to-html.html:295-306 attrEsc 转义引号+safeUrl 白名单 http/https/mailto 并百分号编码阻断 javascript:）
 - 描述：`inline()` 只转义 `&<>`，不处理双引号；链接正则把 URL 原样塞进 `href`，最终经 `ToolBox.setResult` 以 `innerHTML` 写入预览区。
 - 证据：`tools/it/markdown-to-html.html:289-296`（294 为链接替换）；`js/common.js:2047-2050`（`setResult` 直接赋值 `innerHTML`）。Node 复算 `inline('[x](https://a/" onmouseover="alert(1))')` → `<a href="https://a/" onmouseover="alert(1" target="_blank" rel="noopener">x</a>`；`[x](javascript:alert(1))` 的 `href` 被 `[^)]+` 截成 `javascript:alert(1`。
 - 影响：`tools/it/markdown-to-html.html`；粘贴带引号的链接即可在预览区制造事件属性（自输入型 XSS），转载他人 Markdown 时同样成立。
 - 方案：URL 走白名单（http/https/mailto）并做属性转义，或改用 `createElement`/`setAttribute` 构建链接；预览与“HTML 代码”面板统一输出净化后的结果。
 
-### IT-N19 输入修改后仍处理旧快照（高，确认源码缺陷）
+### IT-N19 输入修改后仍处理旧快照（高，已修复 2026-11-06 核验：text-dedupe-sort.html:527-532 applyOp 前比对 inputText!==lastInputText 重建快照）
 - 描述：`applyOp` 只在 `!hasOriginal` 时快照输入，之后所有操作都基于 `currentLines`；用户再改输入框，按钮仍处理首轮快照。
 - 证据：`tools/it/text-dedupe-sort.html:515-525`（552-558 渲染、562-584 复制/下载同样读 `currentLines`）。Node 模拟：对 `a\na\nb` 执行去重 → `a\nb`；把输入改为 `y\nx` 再点升序 → 仍输出 `a\nb`。`380-385` 的“原始项数”却读当前输入 `parseInput()`，与结果不同源。
 - 影响：`tools/it/text-dedupe-sort.html`；首次操作后输出、复制、下载都与当前输入无关，统计数量也对不上。

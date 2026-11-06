@@ -1,0 +1,570 @@
+### 样例（前 8 条/目录，placeholder）
+
+- **accounting**
+  - `tools/accounting/amortization-intangible.html` : `如 600000`
+  - `tools/accounting/amortization-intangible.html` : `如 0`
+  - `tools/accounting/amortization-intangible.html` : `如 10`
+  - `tools/accounting/analysis-cost-5.html` : `如 12000`
+  - `tools/accounting/analysis-cost-5.html` : `如 40`
+  - `tools/accounting/analysis-cost-5.html` : `如 20`
+  - `tools/accounting/analysis-cost-5.html` : `如 10`
+  - `tools/accounting/analysis-cost-5.html` : `如 180000`
+- **acoustics**
+  - `tools/acoustics/absorption-coeff-sabine.html` : `如 100`
+  - `tools/acoustics/absorption-coeff-sabine.html` : `如 130`
+  - `tools/acoustics/absorption-coeff-sabine.html` : `如 0.8`
+  - `tools/acoustics/acoustic-impedance.html` : `如 1.2`
+  - `tools/acoustics/acoustic-impedance.html` : `如 343`
+  - `tools/acoustics/beat-frequency.html` : `如 440`
+  - `tools/acoustics/beat-frequency.html` : `如 444`
+  - `tools/acoustics/combine-two-spl.html` : `如 80`
+- **acupuncture**
+  - `tools/acupuncture/acupoint-combination.html` : `如 头痛、失眠`
+  - `tools/acupuncture/acupoint-injection.html` : `如 2（1–6）`
+  - `tools/acupuncture/acupoint-location.html` : `如 24`
+  - `tools/acupuncture/acupoint-location.html` : `如 1.5`
+  - `tools/acupuncture/acupoint-location.html` : `如 7.5`
+  - `tools/acupuncture/bloodletting-therapy.html` : `如 3（1–20）`
+  - `tools/acupuncture/cupping-pressure.html` : `如 10`
+  - `tools/acupuncture/ear-acupressure.html` : `如 失眠、胃痛`
+- **advertising**
+  - `tools/advertising/ad-size.html` : `如 1920`
+  - `tools/advertising/ad-size.html` : `如 1080`
+  - `tools/advertising/analysis-27.html` : `自家,18 竞品A,35 竞品B,28 竞品C,12 竞品D,7`
+  - `tools/advertising/analysis-55.html` : `自家,120000,3600,180,12 竞品A,200000,5000,150,20 竞品B,90000,2700,90,8 竞品C,60000,1500,60,5`
+  - `tools/advertising/assessor-52.html` : `如 50000`
+  - `tools/advertising/assessor-52.html` : `如 15000`
+  - `tools/advertising/assessor-52.html` : `如 20000`
+  - `tools/advertising/assessor-52.html` : `如 8000`
+- **aerospace**
+  - `tools/aerospace/aspect-ratio.html` : `如 10`
+  - `tools/aerospace/aspect-ratio.html` : `如 20`
+  - `tools/aerospace/assessor-capacity.html` : `如 50000`
+  - `tools/aerospace/assessor-capacity.html` : `如 12`
+  - `tools/aerospace/assessor-capacity.html` : `如 40`
+  - `tools/aerospace/assessor-capacity.html` : `如 20`
+  - `tools/aerospace/assessor-capacity.html` : `如 2500`
+  - `tools/aerospace/bank-angle-load.html` : `如 60`
+- **agriculture**
+  - `tools/agriculture/agri-calculator.html` : `如 15（0–100）`
+  - `tools/agriculture/agri-calculator.html` : `如 15（0–100）`
+  - `tools/agriculture/agri-calculator.html` : `如 15（0–100）`
+  - `tools/agriculture/agri-calculator.html` : `如 10`
+  - `tools/agriculture/agri-calculator.html` : `如 25`
+  - `tools/agriculture/agri-calculator.html` : `如 30`
+  - `tools/agriculture/agri-calculator.html` : `如 50`
+  - `tools/agriculture/agri-calculator.html` : `如 10`
+- **ai**
+  - `tools/ai/ai-10.html` : `如 224`
+  - `tools/ai/ai-10.html` : `如 3`
+  - `tools/ai/ai-10.html` : `如 1`
+  - `tools/ai/ai-10.html` : `如 1`
+  - `tools/ai/ai-10.html` : `如 1`
+  - `tools/ai/ai-11.html` : `如 0.2`
+  - `tools/ai/ai-11.html` : `如 0.6`
+  - `tools/ai/ai-11.html` : `如 95`
+- **aquaculture**
+  - `tools/aquaculture/area-power.html` : `如 10`
+  - `tools/aquaculture/area-power.html` : `如 1.5`
+  - `tools/aquaculture/area-power.html` : `如 3`
+  - `tools/aquaculture/area-power.html` : `如 3`
+  - `tools/aquaculture/area-power.html` : `如 4`
+  - `tools/aquaculture/density-7.html` : `如 6`
+  - `tools/aquaculture/density-7.html` : `如 20`
+  - `tools/aquaculture/density-7.html` : `如 150`
+- **archaeology**
+  - `tools/archaeology/artifact-measurement.html` : `如 12.0`
+  - `tools/archaeology/artifact-measurement.html` : `如 8.0`
+  - `tools/archaeology/artifact-measurement.html` : `如 3.0`
+  - `tools/archaeology/artifact-measurement.html` : `如 240`
+  - `tools/archaeology/artifact-measurement.html` : `如 9.0`
+  - `tools/archaeology/artifact-measurement.html` : `如 5.0`
+  - `tools/archaeology/dating-method.html` : `搜索方法 / 材料 / 原理...`
+  - `tools/archaeology/pottery-typology.html` : `搜索文化 / 陶质 / 纹饰 / 器形...`
+- **astronomy**
+  - `tools/astronomy/apparent-magnitude-distance.html` : `如 1`
+  - `tools/astronomy/apparent-magnitude-distance.html` : `如 1`
+  - `tools/astronomy/atmospheric-refraction.html` : `如 30`
+  - `tools/astronomy/convert-15.html` : `如 6`
+  - `tools/astronomy/convert-18.html` : `如 1013.25`
+  - `tools/astronomy/crater-estimator.html` : `如 100`
+  - `tools/astronomy/crater-estimator.html` : `如 3000`
+  - `tools/astronomy/crater-estimator.html` : `如 20`
+- **audit**
+  - `tools/audit/audit-sample.html` : `如 95`
+  - `tools/audit/audit-sample.html` : `如 5`
+  - `tools/audit/audit-sample.html` : `如 1`
+  - `tools/audit/audit-sample.html` : `如 5000`
+  - `tools/audit/audit-sample.html` : `如 50000`
+  - `tools/audit/audit-sample.html` : `如 10000`
+  - `tools/audit/audit-sample.html` : `如 150`
+  - `tools/audit/audit-sample.html` : `如 95`
+- **automotive**
+  - `tools/automotive/analysis-diagnosis.html` : `如 P0301`
+  - `tools/automotive/analysis-diagnosis.html` : `如 P0420`
+  - `tools/automotive/analysis-diagnosis.html` : `如 U0100`
+  - `tools/automotive/analysis-diagnosis.html` : `如 C0035`
+  - `tools/automotive/analysis-diagnosis.html` : `如 92`
+  - `tools/automotive/analysis-diagnosis.html` : `如 18`
+  - `tools/automotive/analysis-diagnosis.html` : `如 750`
+  - `tools/automotive/analysis-diagnosis.html` : `如 12`
+- **baking**
+  - `tools/baking/baker-percentage.html` : `如 500`
+  - `tools/baking/baker-percentage.html` : `配料名称（如蜂蜜）`
+  - `tools/baking/baker-percentage.html` : `百分比`
+  - `tools/baking/baker-percentage.html` : `如 800`
+  - `tools/baking/convert-28.html` : `如 500`
+  - `tools/baking/convert-28.html` : `如 60`
+  - `tools/baking/convert-temp.html` : `如 180`
+  - `tools/baking/convert-temp.html` : `如 17`
+- **banking**
+  - `tools/banking/amortization-first-interest.html` : `如 500000`
+  - `tools/banking/amortization-first-interest.html` : `如 4.9`
+  - `tools/banking/apy-calculator.html` : `如 0.05`
+  - `tools/banking/apy-calculator.html` : `如 12`
+  - `tools/banking/bond-current-yield.html` : `如 50`
+  - `tools/banking/bond-current-yield.html` : `如 980`
+  - `tools/banking/break-even-savings.html` : `如 2`
+  - `tools/banking/break-even-savings.html` : `如 5`
+- **beauty**
+  - `tools/beauty/aging-calculator.html` : `如 25（15–80）`
+  - `tools/beauty/analysis-cost-profit.html` : `如 300`
+  - `tools/beauty/analysis-cost-profit.html` : `如 260`
+  - `tools/beauty/analysis-cost-profit.html` : `如 45`
+  - `tools/beauty/analysis-cost-profit.html` : `如 22000`
+  - `tools/beauty/analysis-cost-profit.html` : `如 26000`
+  - `tools/beauty/analysis-detector-diagnosis.html` : `如 50（0–100）`
+  - `tools/beauty/analysis-detector-diagnosis.html` : `如 42（0–100）`
+- **biz**
+  - `tools/biz/analysis-47.html` : `如 7（0–10）`
+  - `tools/biz/analysis-47.html` : `如 8（0–10）`
+  - `tools/biz/analysis-47.html` : `如 6（0–10）`
+  - `tools/biz/analysis-47.html` : `如 5（0–10）`
+  - `tools/biz/analysis-47.html` : `如 6（0–10）`
+  - `tools/biz/analysis-47.html` : `如 7（0–10）`
+  - `tools/biz/analysis-47.html` : `如 6（0–10）`
+  - `tools/biz/analysis-47.html` : `如 5（0–10）`
+- **bonding**
+  - `tools/bonding/analysis-cost-4.html` : `如：环氧胶,3.5,4,0.5,98`
+  - `tools/bonding/analysis-resolution.html` : `如 25`
+  - `tools/bonding/analysis-resolution.html` : `如 30`
+  - `tools/bonding/assessor-cycle-lifespan.html` : `如 600`
+  - `tools/bonding/assessor-cycle-lifespan.html` : `如 200`
+  - `tools/bonding/assessor-cycle-lifespan.html` : `如 100`
+  - `tools/bonding/assessor-cycle-lifespan.html` : `如 2.0`
+  - `tools/bonding/assessor-cycle-lifespan.html` : `如 100`
+- **bridge**
+  - `tools/bridge/deflection-calc.html` : `如 20`
+  - `tools/bridge/deflection-calc.html` : `如 32.5`
+  - `tools/bridge/deflection-calc.html` : `如 0.15`
+  - `tools/bridge/deflection-calc.html` : `如 30`
+  - `tools/bridge/deflection-calc.html` : `如 200`
+  - `tools/bridge/foundation-calc.html` : `如 1.2`
+  - `tools/bridge/foundation-calc.html` : `如 25`
+  - `tools/bridge/foundation-calc.html` : `如 1200`
+- **cardiology**
+  - `tools/cardiology/ambulatory-bp.html` : `如 142`
+  - `tools/cardiology/ambulatory-bp.html` : `如 88`
+  - `tools/cardiology/ambulatory-bp.html` : `如 150`
+  - `tools/cardiology/ambulatory-bp.html` : `如 92`
+  - `tools/cardiology/ambulatory-bp.html` : `如 128`
+  - `tools/cardiology/ambulatory-bp.html` : `如 78`
+  - `tools/cardiology/ambulatory-bp.html` : `如 120`
+  - `tools/cardiology/ambulatory-bp.html` : `如 165`
+- **ceramics**
+  - `tools/ceramics/clay-shrinkage.html` : `如 120`
+  - `tools/ceramics/clay-shrinkage.html` : `如 112`
+  - `tools/ceramics/clay-shrinkage.html` : `如 100`
+  - `tools/ceramics/clay-shrinkage.html` : `如 100`
+  - `tools/ceramics/clay-shrinkage.html` : `如 14（0–50）`
+  - `tools/ceramics/glaze-ratio.html` : `如 1000`
+  - `tools/ceramics/glaze-temp.html` : `输入锥号或温度筛选`
+  - `tools/ceramics/glaze-temp.html` : `如 1200`
+- **chemical**
+  - `tools/chemical/analysis-cost-7.html` : `例如: 800,200,1200,300`
+  - `tools/chemical/analysis-cost-7.html` : `如 2500`
+  - `tools/chemical/analysis-cost-7.html` : `如 3`
+  - `tools/chemical/calc-pipeline-pressure-drop.html` : `如 200`
+  - `tools/chemical/calc-pipeline-pressure-drop.html` : `如 100`
+  - `tools/chemical/calc-pipeline-pressure-drop.html` : `如 1.5`
+  - `tools/chemical/calc-pipeline-pressure-drop.html` : `如 1000`
+  - `tools/chemical/calc-pipeline-pressure-drop.html` : `如 0.001`
+- **chemistry**
+  - `tools/chemistry/acid-base-titration.html` : `如 0.1`
+  - `tools/chemistry/acid-base-titration.html` : `如 25`
+  - `tools/chemistry/acid-base-titration.html` : `如 1`
+  - `tools/chemistry/acid-base-titration.html` : `如 0.1`
+  - `tools/chemistry/acid-base-titration.html` : `如 1`
+  - `tools/chemistry/arrhenius.html` : `如 1e13`
+  - `tools/chemistry/arrhenius.html` : `如 50000`
+  - `tools/chemistry/arrhenius.html` : `如 298`
+- **chess**
+  - `tools/chess/bridge-scoring.html` : `如 3（1–7）`
+  - `tools/chess/bridge-scoring.html` : `如 9（0–13）`
+  - `tools/chess/elo-rating.html` : `如 1500（100–3500）`
+  - `tools/chess/elo-rating.html` : `如 1600（100–3500）`
+  - `tools/chess/elo-rating.html` : `如 1（1–100）`
+  - `tools/chess/go-territory.html` : `如 6.5（0–13）`
+  - `tools/chess/go-territory.html` : `如 50`
+  - `tools/chess/go-territory.html` : `如 3`
+- **civil**
+  - `tools/civil/active-earth-rankine.html` : `如 18`
+  - `tools/civil/active-earth-rankine.html` : `如 5`
+  - `tools/civil/active-earth-rankine.html` : `如 30（0–45）`
+  - `tools/civil/active-earth-rankine.html` : `如 0`
+  - `tools/civil/beam-udl.html` : `如 6`
+  - `tools/civil/beam-udl.html` : `如 20`
+  - `tools/civil/beam-udl.html` : `如 30`
+  - `tools/civil/beam-udl.html` : `如 200`
+- **cleaning**
+  - `tools/cleaning/area-hours.html` : `如 100`
+  - `tools/cleaning/area-hours.html` : `如 2（1–20）`
+  - `tools/cleaning/cycle-20.html` : `如 客厅大地毯`
+  - `tools/cleaning/cycle-20.html` : `如 8`
+  - `tools/cleaning/cycle-20.html` : `如 处理了咖啡渍，吸尘3遍`
+  - `tools/cleaning/detector-corrosion.html` : `如 97`
+  - `tools/cleaning/detector-corrosion.html` : `如 0.005`
+  - `tools/cleaning/detector-corrosion.html` : `如 3`
+- **clinical-lab**
+  - `tools/clinical-lab/biochemistry-ratio.html` : `如 40`
+  - `tools/clinical-lab/biochemistry-ratio.html` : `如 30`
+  - `tools/clinical-lab/biochemistry-ratio.html` : `如 100`
+  - `tools/clinical-lab/biochemistry-ratio.html` : `如 30`
+  - `tools/clinical-lab/biochemistry-ratio.html` : `如 5.0`
+  - `tools/clinical-lab/biochemistry-ratio.html` : `如 80`
+  - `tools/clinical-lab/biochemistry-ratio.html` : `如 300`
+  - `tools/clinical-lab/biochemistry-ratio.html` : `如 40`
+- **clinical-nursing**
+  - `tools/clinical-nursing/assessor-pressure-risk.html` : `如 3（卧床/约束时长）`
+  - `tools/clinical-nursing/assessor-pressure-risk.html` : `如 22（14–40）`
+  - `tools/clinical-nursing/assessor-pressure-risk.html` : `如 55（18–100）`
+  - `tools/clinical-nursing/convert-flow-concentration.html` : `如 2`
+  - `tools/clinical-nursing/cvc-maintenance.html` : `如 1.5（导管标称容积）`
+  - `tools/clinical-nursing/cvc-maintenance.html` : `如 2（额外冲管量）`
+  - `tools/clinical-nursing/cycle-7.html` : `如：01床 张某`
+  - `tools/clinical-nursing/cycle-7.html` : `如：已活动肢体，更换约束部位...`
+- **construction**
+  - `tools/construction/ac-size-guide.html` : `如 20`
+  - `tools/construction/ac-size-guide.html` : `如 2.8（2–6）`
+  - `tools/construction/ac-size-guide.html` : `如 1（0–10）`
+  - `tools/construction/analysis-43.html` : `如 120000`
+  - `tools/construction/analysis-43.html` : `如 80`
+  - `tools/construction/analysis-43.html` : `如 600`
+  - `tools/construction/analysis-43.html` : `如 250`
+  - `tools/construction/area-calculator.html` : `如 5`
+- **cosmetic-derm**
+  - `tools/cosmetic-derm/area-12.html` : `如 10（0–100）`
+  - `tools/cosmetic-derm/area-12.html` : `如 0.2（0.01–5）`
+  - `tools/cosmetic-derm/assessor-67.html` : `如 5`
+  - `tools/cosmetic-derm/assessor-67.html` : `如 2`
+  - `tools/cosmetic-derm/assessor-67.html` : `如 0.5`
+  - `tools/cosmetic-derm/assessor-67.html` : `如 0.1`
+  - `tools/cosmetic-derm/assessor-67.html` : `如 100`
+  - `tools/cosmetic-derm/calc-51.html` : `如 96（0–99.9）`
+- **dance**
+  - `tools/dance/bpm-rhythm.html` : `如 120（40–240）`
+  - `tools/dance/bpm-rhythm.html` : `如 4（2–12）`
+  - `tools/dance/bpm-rhythm.html` : `如 1（0.25–8）`
+  - `tools/dance/bpm-rhythm.html` : `如 60`
+  - `tools/dance/choreography-timeline.html` : `如 120（40–240）`
+  - `tools/dance/choreography-timeline.html` : `如 6（2–16）`
+  - `tools/dance/choreography-timeline.html` : `如 4（1–16）`
+  - `tools/dance/choreography-timeline.html` : `如 0`
+- **data**
+  - `tools/data/csv-json.html` : `CSV 或 JSON 内容...`
+  - `tools/data/csv-to-markdown.html` : `粘贴 CSV 或 Markdown 表格...`
+  - `tools/data/csv-to-markdown.html` : `转换结果...`
+  - `tools/data/data-cleaner.html` : `每行一条数据`
+  - `tools/data/data-cleaner.html` : `如 0`
+  - `tools/data/data-cleaner.html` : `清洗后的数据`
+  - `tools/data/data-visualizer.html` : `如 8（3–20）`
+  - `tools/data/generator-14.html` : `如 5（1–50）`
+- **decor**
+  - `tools/decor/ceiling-panel-quantity.html` : `如 4.2`
+  - `tools/decor/ceiling-panel-quantity.html` : `如 3.6`
+  - `tools/decor/ceiling-panel-quantity.html` : `如 600`
+  - `tools/decor/ceiling-panel-quantity.html` : `如 600`
+  - `tools/decor/ceiling-panel-quantity.html` : `如 5`
+  - `tools/decor/curtain-fabric.html` : `如 2.5`
+  - `tools/decor/curtain-fabric.html` : `如 2.6`
+  - `tools/decor/curtain-fabric.html` : `如 0.05`
+- **dentistry**
+  - `tools/dentistry/alveolar-bone-loss.html` : `如 8`
+  - `tools/dentistry/alveolar-bone-loss.html` : `如 14`
+  - `tools/dentistry/assessor-5.html` : `如 0.5（0.2–1.5）`
+  - `tools/dentistry/bite-contact.html` : `如 25`
+  - `tools/dentistry/bite-contact.html` : `如 25`
+  - `tools/dentistry/bite-contact.html` : `如 30`
+  - `tools/dentistry/bite-contact.html` : `如 20`
+  - `tools/dentistry/bruxism-force.html` : `如 15`
+- **dermatology**
+  - `tools/dermatology/calc-1.html` : `如 30（0–120）`
+  - `tools/dermatology/calc-1.html` : `例如 60`
+  - `tools/dermatology/calc-1.html` : `如 9`
+  - `tools/dermatology/calc-1.html` : `如 9`
+  - `tools/dermatology/calc-1.html` : `如 9`
+  - `tools/dermatology/calc-1.html` : `如 18`
+  - `tools/dermatology/calc-1.html` : `如 18`
+  - `tools/dermatology/calc-1.html` : `如 18`
+- **design**
+  - `tools/design/analysis-64.html` : `如 7（0–100）`
+  - `tools/design/analysis-64.html` : `如 8（0–100）`
+  - `tools/design/analysis-64.html` : `如 8（0–100）`
+  - `tools/design/analysis-64.html` : `如 7（0–100）`
+  - `tools/design/analysis-64.html` : `如 9（0–100）`
+  - `tools/design/analysis-64.html` : `如 7.5（0–100）`
+  - `tools/design/analysis-64.html` : `如 6（0–100）`
+  - `tools/design/analysis-64.html` : `如 9（0–100）`
+- **dyeing**
+  - `tools/dyeing/assessor-color-diff.html` : `如 50`
+  - `tools/dyeing/assessor-color-diff.html` : `如 20`
+  - `tools/dyeing/assessor-color-diff.html` : `如 10`
+  - `tools/dyeing/assessor-color-diff.html` : `如 51`
+  - `tools/dyeing/assessor-color-diff.html` : `如 21.5`
+  - `tools/dyeing/assessor-color-diff.html` : `如 9`
+  - `tools/dyeing/assessor-color-diff.html` : `如 2`
+  - `tools/dyeing/assessor-color-diff.html` : `如 1`
+- **dynamics**
+  - `tools/dynamics/angular-momentum-conservation.html` : `如 2`
+  - `tools/dynamics/angular-momentum-conservation.html` : `如 10`
+  - `tools/dynamics/angular-momentum-conservation.html` : `如 1`
+  - `tools/dynamics/angular-momentum.html` : `如 0.5`
+  - `tools/dynamics/angular-momentum.html` : `如 10`
+  - `tools/dynamics/banked-curve.html` : `如 50`
+  - `tools/dynamics/banked-curve.html` : `如 30`
+  - `tools/dynamics/banked-curve.html` : `如 9.81`
+- **eco**
+  - `tools/eco/afforestation-cost.html` : `如 1000`
+  - `tools/eco/afforestation-cost.html` : `如 30`
+  - `tools/eco/afforestation-cost.html` : `如 20`
+  - `tools/eco/aqi-converter.html` : `如 75`
+  - `tools/eco/aqi.html` : `如 85`
+  - `tools/eco/aqi.html` : `如 30`
+  - `tools/eco/aqi.html` : `如 2`
+  - `tools/eco/battery-storage.html` : `如 100`
+- **ecommerce**
+  - `tools/ecommerce/analysis-25.html` : `A商品,89,99`
+  - `tools/ecommerce/analysis-70.html` : `第1期,120000,3400,3.5,28 第2期,138000,3900,3.1,26 第3期,152000,4200,2.8,25`
+  - `tools/ecommerce/analysis-71.html` : `竞品A,199,5200,4.8,2 竞品B,229,3100,4.6,3 竞品C,179,8800,4.9,1`
+  - `tools/ecommerce/analysis-conversion-funnel.html` : `例如: 曝光,10000`
+  - `tools/ecommerce/analysis-cost-8.html` : `如 60000`
+  - `tools/ecommerce/analysis-cost-8.html` : `如 30`
+  - `tools/ecommerce/analysis-cost-8.html` : `如 50`
+  - `tools/ecommerce/analysis-cost-8.html` : `如 5000`
+- **economics**
+  - `tools/economics/average-propensity-consume.html` : `如 800`
+  - `tools/economics/average-propensity-consume.html` : `如 1000`
+  - `tools/economics/balance-of-trade.html` : `如 200`
+  - `tools/economics/balance-of-trade.html` : `如 180`
+  - `tools/economics/cobb-douglas.html` : `如 1`
+  - `tools/economics/cobb-douglas.html` : `如 200`
+  - `tools/economics/cobb-douglas.html` : `如 0.3`
+  - `tools/economics/cobb-douglas.html` : `如 100`
+- **edu**
+  - `tools/edu/assessor-27.html` : `如 6（1–10）`
+  - `tools/edu/assessor-27.html` : `如 5（1–10）`
+  - `tools/edu/assessor-27.html` : `如 7（1–10）`
+  - `tools/edu/assessor-27.html` : `如 4（1–10）`
+  - `tools/edu/assessor-27.html` : `如 7（1–10）`
+  - `tools/edu/assessor-27.html` : `如 8（1–10）`
+  - `tools/edu/calc-2.html` : `如 85`
+  - `tools/edu/calc-2.html` : `如 75`
+- **edu2**
+  - `tools/edu2/exam-analysis.html` : `如 100`
+  - `tools/edu2/exam-analysis.html` : `如 60（0–100）`
+  - `tools/edu2/exam-analysis.html` : `如 85（0–100）`
+  - `tools/edu2/exam-analysis.html` : `姓名,分数 例如： 张三,92 李四,85 王五,78 或直接输入分数： 92 85 78`
+  - `tools/edu2/schedule-conflict.html` : `课程名,教师,教室,星期,起始节,结束节 例如： 高等数学,张老师,A101,1,1,2 线性代数,张老师,B202,1,1,2 英语,李老师,A101,1,3,4`
+  - `tools/edu2/study-progress.html` : `如 4`
+  - `tools/edu2/study-progress.html` : `科目,已完成,总数,每任务小时 例如： 数学,45,80,1.5 英语,30,60,1 专业课,20,100,2`
+  - `tools/edu2/wrong-book.html` : `如：数学`
+- **elderly**
+  - `tools/elderly/aid-height.html` : `如 165（120–210）`
+  - `tools/elderly/aid-height.html` : `如 2（0–10）`
+  - `tools/elderly/assessor-35.html` : `如 75`
+  - `tools/elderly/bp-trend.html` : `如 130`
+  - `tools/elderly/bp-trend.html` : `如 85`
+  - `tools/elderly/bp-trend.html` : `如 72`
+  - `tools/elderly/bp-trend.html` : `如 6.1`
+  - `tools/elderly/medication-schedule.html` : `如 3（1–30）`
+- **electrical**
+  - `tools/electrical/battery-bank.html` : `如 3.2`
+  - `tools/electrical/battery-bank.html` : `如 100`
+  - `tools/electrical/battery-bank.html` : `如 16`
+  - `tools/electrical/battery-bank.html` : `如 2`
+  - `tools/electrical/battery-bank.html` : `如 500`
+  - `tools/electrical/battery-bank.html` : `如 80（1–100）`
+  - `tools/electrical/battery-bank.html` : `如 90（1–100）`
+  - `tools/electrical/breaker-sizing.html` : `如 10`
+- **electromagnetism**
+  - `tools/electromagnetism/b-field-wire.html` : `如 10`
+  - `tools/electromagnetism/b-field-wire.html` : `如 0.01`
+  - `tools/electromagnetism/capacitance-parallel-plate.html` : `如 1`
+  - `tools/electromagnetism/capacitance-parallel-plate.html` : `如 0.01`
+  - `tools/electromagnetism/capacitance-parallel-plate.html` : `如 1e-3`
+  - `tools/electromagnetism/capacitive-reactance.html` : `如 60`
+  - `tools/electromagnetism/capacitive-reactance.html` : `如 1`
+  - `tools/electromagnetism/capacitors-parallel.html` : `如 10`
+- **electronics**
+  - `tools/electronics/analysis-22.html` : `如 3.7`
+  - `tools/electronics/analysis-22.html` : `如 25`
+  - `tools/electronics/analysis-22.html` : `如 0.05`
+  - `tools/electronics/analysis-22.html` : `如 5（0–100）`
+  - `tools/electronics/analysis-22.html` : `如 2000`
+  - `tools/electronics/bandwidth.html` : `如 10`
+  - `tools/electronics/bandwidth.html` : `如 100000`
+  - `tools/electronics/calc-63.html` : `如 2`
+- **encode**
+  - `tools/encode/ascii-readability.html` : `如 100`
+  - `tools/encode/ascii-readability.html` : `如 8`
+  - `tools/encode/ascii-readability.html` : `如 2`
+  - `tools/encode/base32.html` : `如 100`
+  - `tools/encode/base32.html` : `如 1`
+  - `tools/encode/base32.html` : `如 0`
+  - `tools/encode/base58.html` : `如 25`
+  - `tools/encode/base58.html` : `如 4`
+- **endocrinology**
+  - `tools/endocrinology/aldosterone-renin.html` : `如 22`
+  - `tools/endocrinology/aldosterone-renin.html` : `如 0.6`
+  - `tools/endocrinology/aldosterone-renin.html` : `如 3.2`
+  - `tools/endocrinology/aldosterone-renin.html` : `如 155`
+  - `tools/endocrinology/calcium-pth-axis.html` : `如 2.85`
+  - `tools/endocrinology/calcium-pth-axis.html` : `如 40`
+  - `tools/endocrinology/calcium-pth-axis.html` : `如 85`
+  - `tools/endocrinology/calcium-pth-axis.html` : `如 0.78`
+- **energy**
+  - `tools/energy/air-purifier-area.html` : `如 400`
+  - `tools/energy/air-purifier-area.html` : `如 0.10（0.05–0.15）`
+  - `tools/energy/assessor-water-quality.html` : `如 150`
+  - `tools/energy/assessor-water-quality.html` : `如 20`
+  - `tools/energy/battery-capacity-wh.html` : `如 50`
+  - `tools/energy/battery-capacity-wh.html` : `如 12`
+  - `tools/energy/battery-capacity-wh.html` : `如 100`
+  - `tools/energy/battery-life.html` : `如 4000`
+- **engineering**
+  - `tools/engineering/axial-stress.html` : `如 50`
+  - `tools/engineering/axial-stress.html` : `如 500`
+  - `tools/engineering/axial-stress.html` : `如 200`
+  - `tools/engineering/axial-stress.html` : `如 2`
+  - `tools/engineering/beam-calculator.html` : `如 5`
+  - `tools/engineering/beam-calculator.html` : `如 10`
+  - `tools/engineering/beam-calculator.html` : `如 200`
+  - `tools/engineering/beam-calculator.html` : `如 500`
+- **ent**
+  - `tools/ent/ahi-severity.html` : `如 30`
+  - `tools/ent/ahi-severity.html` : `如 50`
+  - `tools/ent/ahi-severity.html` : `如 6`
+  - `tools/ent/ahi-severity.html` : `如 82（0–100）`
+  - `tools/ent/ahi-severity.html` : `如 60`
+  - `tools/ent/ahi-severity.html` : `如 40`
+  - `tools/ent/allergy-skin-test.html` : `如 8`
+  - `tools/ent/allergy-skin-test.html` : `如 20`
+- **exhibition**
+  - `tools/exhibition/analysis-61.html` : `如 2000`
+  - `tools/exhibition/analysis-61.html` : `展位费,120000,120000`
+  - `tools/exhibition/analysis-pnl.html` : `如 400`
+  - `tools/exhibition/analysis-pnl.html` : `如 12（0–100）`
+  - `tools/exhibition/analysis-pnl.html` : `如 8500`
+  - `tools/exhibition/analysis-pnl.html` : `如 60（0–100）`
+  - `tools/exhibition/analysis-pnl.html` : `如 30000`
+  - `tools/exhibition/analysis-pnl.html` : `如 8000`
+- **film**
+  - `tools/film/aspect-ratio.html` : `如 1920`
+  - `tools/film/aspect-ratio.html` : `如 1080`
+  - `tools/film/aspect-ratio.html` : `如 1920`
+  - `tools/film/aspect-ratio.html` : `如 1080`
+  - `tools/film/color-grading.html` : `搜索LUT名称…`
+  - `tools/film/convert-time-1.html` : `如 0`
+  - `tools/film/convert-time-1.html` : `如 0`
+  - `tools/film/convert-time-1.html` : `如 10`
+- **finance**
+  - `tools/finance/aadhaar-validator.html` : `如：234123412346`
+  - `tools/finance/aba-validator.html` : `如：021000021`
+  - `tools/finance/abn-validator.html` : `如：51 824 753 556`
+  - `tools/finance/amount-in-words.html` : `如 1234.56`
+  - `tools/finance/analysis-44.html` : `如 1000000`
+  - `tools/finance/analysis-44.html` : `如 1080000`
+  - `tools/finance/analysis-44.html` : `例如: 主体工程,500000,530000`
+  - `tools/finance/analysis-5.html` : `如 500000`
+- **fire-rescue**
+  - `tools/fire-rescue/calc-3.html` : `探测+反应时间`
+  - `tools/fire-rescue/calc-pressure-1.html` : `如 20`
+  - `tools/fire-rescue/calc-pressure-1.html` : `如 6.5`
+  - `tools/fire-rescue/calc-time-response.html` : `如 50`
+  - `tools/fire-rescue/calc-time-response.html` : `如 300`
+  - `tools/fire-rescue/calc-time-response.html` : `如 2.0`
+  - `tools/fire-rescue/calc-time-response.html` : `如 20`
+  - `tools/fire-rescue/calc-time-response.html` : `如 68`
+- **fire**
+  - `tools/fire/analysis-cost-price-8.html` : `如 120`
+  - `tools/fire/analysis-cost-price-8.html` : `如 75`
+  - `tools/fire/analysis-cost-price-8.html` : `例如: 105,110,125,130`
+  - `tools/fire/calc-water-pressure-hydrant.html` : `如 0.55`
+  - `tools/fire/calc-water-pressure-hydrant.html` : `如 12`
+  - `tools/fire/calc-water-pressure-hydrant.html` : `如 0.35`
+  - `tools/fire/calc-water-pressure-hydrant.html` : `如 0.08`
+  - `tools/fire/detector-178.html` : `如 1`
+- **fishery**
+  - `tools/fishery/aerator-duration.html` : `如 5`
+  - `tools/fishery/aerator-duration.html` : `如 1.2`
+  - `tools/fishery/aerator-duration.html` : `如 3.0`
+  - `tools/fishery/aerator-duration.html` : `如 5.0`
+  - `tools/fishery/aerator-duration.html` : `如 3`
+  - `tools/fishery/aerator-duration.html` : `如 1.5`
+  - `tools/fishery/aerator-duration.html` : `如 0.3`
+  - `tools/fishery/assessor-risk-4.html` : `如 25`
+- **fitness**
+  - `tools/fitness/analysis-retention.html` : `如 1000`
+  - `tools/fitness/analysis-retention.html` : `如 620`
+  - `tools/fitness/analysis-retention.html` : `如 6`
+  - `tools/fitness/angle-motion.html` : `如 90（0–180）`
+  - `tools/fitness/angle-motion.html` : `如 35`
+  - `tools/fitness/angle-motion.html` : `如 10`
+  - `tools/fitness/assessor-18.html` : `如 60`
+  - `tools/fitness/assessor-18.html` : `如 40`
+- **floral**
+  - `tools/floral/golden-ratio.html` : `如 15`
+  - `tools/floral/golden-ratio.html` : `如 12`
+  - `tools/floral/preservative.html` : `如 500`
+  - `tools/floral/price.html` : `如 5000`
+  - `tools/floral/price.html` : `如 150`
+  - `tools/floral/price.html` : `如 300`
+  - `tools/floral/price.html` : `如 80`
+  - `tools/floral/price.html` : `如 200`
+- **fluid**
+  - `tools/fluid/bernoulli-pressure.html` : `如 101325`
+  - `tools/fluid/bernoulli-pressure.html` : `如 1`
+  - `tools/fluid/bernoulli-pressure.html` : `如 3`
+  - `tools/fluid/bernoulli-pressure.html` : `如 1000`
+  - `tools/fluid/buoyancy-force.html` : `如 1000`
+  - `tools/fluid/buoyancy-force.html` : `如 0.05`
+  - `tools/fluid/buoyancy-force.html` : `如 9.8`
+  - `tools/fluid/capillary-pressure.html` : `如 0.072`
+- **food-processing**
+  - `tools/food-processing/additive-limit-lookup.html` : `如：防腐剂、苯甲酸、饮料、抗氧化`
+  - `tools/food-processing/dough-absorption.html` : `如 1000`
+  - `tools/food-processing/dough-absorption.html` : `如 13.5（0–100）`
+  - `tools/food-processing/dough-absorption.html` : `如 620`
+  - `tools/food-processing/dough-absorption.html` : `如 0`
+  - `tools/food-processing/dough-absorption.html` : `如 20`
+  - `tools/food-processing/dough-absorption.html` : `如 2（0–100）`
+  - `tools/food-processing/emulsion-stability.html` : `如 50`
+- **food-testing**
+  - `tools/food-testing/acid-peroxide-titration.html` : `如 2.50`
+  - `tools/food-testing/acid-peroxide-titration.html` : `如 0.1000`
+  - `tools/food-testing/acid-peroxide-titration.html` : `如 3.00`
+  - `tools/food-testing/acid-peroxide-titration.html` : `如 3`
+  - `tools/food-testing/acid-peroxide-titration.html` : `如 12.50`
+  - `tools/food-testing/acid-peroxide-titration.html` : `如 0.20`
+  - `tools/food-testing/acid-peroxide-titration.html` : `如 0.0020`
+  - `tools/food-testing/acid-peroxide-titration.html` : `如 2.00`
+- **food**
+  - `tools/food/analysis-cost-6.html` : `如 58`
+  - `tools/food/analysis-cost-6.html` : `如 15`
+  - `tools/food/analysis-cost-6.html` : `如 5`
+  - `tools/food/analysis-cost-6.html` : `如 2`
+  - `tools/food/analysis-cost-6.html` : `如 4`
+  - `tools/food/analysis-cost-6.html` : `如 55（0–100）`
+  - `tools/food/analysis-menu.html` : `宫保鸡丁,12,32,180`
+  - `tools/food/beer-gravity-estimator.html` : `如 20`
+- **forensic-medicine**
