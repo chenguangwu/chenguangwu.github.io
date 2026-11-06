@@ -364,16 +364,7 @@
 - 影响：把结果贴进带 `u` 标志的 `RegExp`、ESLint `no-useless-escape` 或部分严格引擎会被判非法/告警。
 - 方案：`verbose` 只额外处理 `/` 与字符类内的 `-`，删除 `,;:<>@#&~=`；或在输出旁注明「本结果适用于非 `u` 模式」。
 
-### IT-N62 CSS 历史恢复后输出仍是旧值，旧记录静默截断（中，确认源码缺陷）
-- 2026-11-06 复核：`tools/it/css-minifier.html:492-510` 新历史保存完整输入并转义时间、操作和摘要；原新增记录截断及摘要注入问题已修。Node 执行页面实际函数确认新记录可完整回填，标签转为 `&lt;` 等实体；未做浏览器验证。
-- `loadH()` 仅回填输入、不重新计算或清除输出：Node 模拟先保留 `OLD OUTPUT` 再恢复另一条历史，输入更新但输出仍是旧值，用户可能复制错 CSS。原先只有摘要的旧 localStorage 记录仍直接回填截断内容，没有提示，无法凭空恢复完整数据。
-- 方案：按历史操作重新处理，或清空旧结果并提示重新计算；旧格式记录明确标为仅有截断摘要，不伪装为完整恢复。
-
 - 2026-11-06 复核：原 IT-N60 引号 URL 和 IT-N61 注释开关问题已修。Node 执行页面实际 `minify()`，单双引号 URL `a)b  c` 均保留双空格；取消勾选保留 `/*keep*/`、勾选则删除。未做浏览器验证。
-
-### IT-N65 User-Agent 解析器：Windows Phone 系统标记优先级仍可能误判（中，部分修复）
-- 2026-11-06 独立复核：Node 执行页面实际 `parseBrowser()`、`parseOS()`，`Windows Phone 10.0 … Chrome/52.0 … Edge/15.15254` 正确识别为 Microsoft Edge 15.15254 / Windows Phone，原例已修。
-- 但 `parseOS()` 的 Windows NT 版本判断先于 Windows Phone：输入同时含 `Windows Phone 10.0; Windows NT 10.0` 的 UA 时仍输出 Windows 10/11，未识别 Windows Phone。应优先检查 Windows Phone；未做浏览器验证。
 
 ### IT-N69 HTTP 缓存速查：搜索与分类只过滤列表，图表/明细表仍统计全量数据（低，确认源码缺陷）
 - 描述：`renderCommands()` 按 `currentCategory` 与 `searchQuery` 过滤 `COMMANDS`，但 `hcAgg()` 固定遍历 `COMMANDS` 全量；`hcChart()`/`hcTable()` 直接使用该聚合结果，既不读搜索词也不读当前分类。搜索 `max-age` 时列表只剩 1 项，图表与「明细表」仍显示所有分类和全部分类计数。
