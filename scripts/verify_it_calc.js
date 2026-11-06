@@ -2635,6 +2635,14 @@ const CASES = [
     ref: "N65 回归：legacy Edge/（非现代 Edg/）须先于 Chrome/ 判定，Windows Phone 须先于通用 Windows。旧实现误报 Google Chrome / Windows；修复后应为 Microsoft Edge 15.15254 且系统含 Windows Phone。",
   },
   {
+    slug: "it/user-agent-parser",
+    // IT-N65 残留：UA 同时含 Windows Phone 与 Windows NT 10.0 时，parseOS 必须先判 Windows Phone
+    inputs: { uaInput: "Mozilla/5.0 (Windows Phone 10.0; Android 6.0.1; Microsoft; Lumia 950) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/52.0.2749.62 Mobile Safari/537.36 Edge/15.15063 Windows NT 10.0" },
+    clicks: ["parse()"],
+    expect: ["系统：Windows Phone"],
+    ref: "N65 残留：部分 Windows 10 Mobile 浏览器 UA 同时带 `Windows Phone 10.0` 与 `Windows NT 10.0`；parseOS 原按 NT 10 优先匹配 ⇒ 误报 Windows 10/11（桌面系统）。修复后 Windows Phone 判定前置。expect 取识别结果区的「系统：Windows Phone」，旧实现该串不存在（为「系统：Windows 10/11」）；默认示例 UA 不含 Windows Phone，不命中。",
+  },
+  {
     slug: "it/regex-visualizer",
     inputs: { pattern: "a+" },
     clicks: ["render()"],
@@ -7864,6 +7872,24 @@ const CASES = [
     dumpIds: ["input"],
     expect: ["x;background:#fff;border:1px solid #ccc;}"],
     ref: "修复前 addToHistory 仅存 input.substring(0,60)，loadH 写回该摘要 ⇒ 第 60 字符后的内容（x;background:#fff;border:1px solid #ccc;}）被丢弃；修复后历史存完整 input，loadH 恢复全量。输入长 111 字符，尾部 token 仅在完整恢复时存在，旧实现被截断故不含该串。默认示例不命中。",
+  },
+  {
+    slug: "it/css-minifier",
+    // IT-N62 残留：loadH 只回填输入不重算，结果区残留上一次输出（用户会复制到错的 CSS）
+    inputs: { input: "a{color:red}" },
+    clicks: ["localStorage.setItem('css_minifier_history', JSON.stringify([{time:'2026-01-01 00:00:00',action:'压缩',op:'minify',summary:'#n62x',input:'#n62x { color : #aabbcc }'}]));document.getElementById('output').textContent='OLDOUT';loadH(0);"],
+    dumpIds: ["output"],
+    expect: ["n62x{color:#abc}"],
+    ref: "N62 残留：loadH 原实现只把历史 input 写回输入框、不触发重算 ⇒ 结果区仍是上一次的输出（此处预置 OLDOUT）。修复后按历史 op='minify' 重算。expect 取压缩后的拼接形态「n62x{color:#abc}」（空白已压除 + #aabbcc 缩短为 #abc），输入回显为带空格的「#n62x { color : #aabbcc }」不含该串，旧实现输出为 OLDOUT 不含该串。",
+  },
+  {
+    slug: "it/css-minifier",
+    // IT-N62 残留（美化方向）：历史 op='beautify' 恢复后须按美化重算
+    inputs: { input: "a{color:red}" },
+    clicks: ["localStorage.setItem('css_minifier_history', JSON.stringify([{time:'2026-01-01 00:00:00',action:'美化',op:'beautify',summary:'#n62y',input:'#n62y{--zq:1}'}]));document.getElementById('output').textContent='OLDOUT';loadH(0);"],
+    dumpIds: ["output"],
+    expect: ["#n62y {"],
+    ref: "N62 残留（美化方向）：loadH 须按历史 op='beautify' 走美化分支，输出 `#n62y {`（选择器与大括号间插空格并换行缩进）。expect 取「#n62y {」，输入回显为紧凑形态「#n62y{--zq:1}」不含该串，旧实现输出 OLDOUT 不含该串。",
   },
   {
     slug: "it/date-duration",

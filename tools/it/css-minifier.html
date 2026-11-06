@@ -407,7 +407,7 @@ function beautify() {
   
   document.getElementById('output').textContent = css.trim();
   showStats(input.length, css.length);
-  addToHistory('美化', input);
+  addToHistory('美化', input, 'beautify');
   ToolBox.showToast(i18nText('toast.msg553'), 'success');
 }
 
@@ -425,7 +425,7 @@ function minify() {
   
   document.getElementById('output').textContent = css;
   showStats(input.length, css.length);
-  addToHistory('压缩', input);
+  addToHistory('压缩', input, 'minify');
   ToolBox.showToast(i18nText('toast.msg095'), 'success');
 }
 
@@ -490,10 +490,10 @@ function clearAll() {
 }
 
 function escHtml(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-function addToHistory(action, input) {
+function addToHistory(action, input, op) {
   const h = (function(){try{return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]')}catch(e){try{localStorage.removeItem(HISTORY_KEY)}catch(_){}return []}})();
   // N62：保存完整输入（不再截断 60 字符），summary 仅作预览；loadH 优先恢复完整 input。
-  h.unshift({ time: new Date().toLocaleString(), action, summary: (input || '').slice(0, 80), input: input || '' });
+  h.unshift({ time: new Date().toLocaleString(), action, op: op || '', summary: (input || '').slice(0, 80), input: input || '' });
   localStorage.setItem(HISTORY_KEY, JSON.stringify(h.slice(0, 50)));
   renderHistory();
 }
@@ -507,7 +507,11 @@ function renderHistory() {
 
 function loadH(i) {
   const h = (function(){try{return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]')}catch(e){try{localStorage.removeItem(HISTORY_KEY)}catch(_){}return []}})();
-  if (h[i]) document.getElementById('input').value = h[i].input || h[i].summary;
+  if (!h[i]) return;
+  document.getElementById('input').value = h[i].input || h[i].summary;
+  // N62：恢复历史后必须按原操作重算，不能只回填输入、把上一次的输出留在结果区（用户会复制到错的 CSS）。
+  const op = h[i].op || (/美化/.test(String(h[i].action || '')) ? 'beautify' : 'minify');
+  if (op === 'beautify') beautify(); else minify();
 }
 
 function clearHistory() {
