@@ -3394,6 +3394,18 @@ const CASES = [
   },
   {
     slug: "it/ip-calculator",
+    inputs: { ipInput: "192.168..1/24" },
+    expect: ["无效的 IP 或前缀"],
+    ref: "IT-N71 空八位组：`192.168..1` 第 3 段为空，RFC 950 点分十进制不允许空段。修复前 `ip.split('.').map(Number)` 把 '' 当 0 ⇒ 静默算出 192.168.0.0/24 的结果卡片；修复后 isValidOctet 拒绝空段并落入「无效的 IP 或前缀」。默认输入 192.168.1.0/24 合法，不命中。",
+  },
+  {
+    slug: "it/ip-calculator",
+    inputs: { ipInput: "0x10.1.1.1/24" },
+    expect: ["无效的 IP 或前缀"],
+    ref: "IT-N71 非十进制八位组：`0x10` 在 RFC 点分十进制中非法（多数解析器按十六进制得 16，属经典 SSRF/ACL 绕过手法）。修复前 Number('0x10')=16 ⇒ 静默按 16.1.1.1/24 出结果；修复后仅接受 `^(0|[1-9]\\d{0,2})$`。默认输入合法，不命中。",
+  },
+  {
+    slug: "it/ip-calculator",
     inputs: { subnetBase: "10.10.0.0", subnetOldMask: "20", subnetNewMask: "23" },
     clicks: ["calcSubnets()"],
     expect: ["1 10.10.0.0/23 10.10.0.1 10.10.1.254 10.10.1.255", "8 10.10.14.0/23 10.10.14.1 10.10.15.254 10.10.15.255"],
@@ -7890,6 +7902,22 @@ const CASES = [
     dumpIds: ["output"],
     expect: ["#n62y {"],
     ref: "N62 残留（美化方向）：loadH 须按历史 op='beautify' 走美化分支，输出 `#n62y {`（选择器与大括号间插空格并换行缩进）。expect 取「#n62y {」，输入回显为紧凑形态「#n62y{--zq:1}」不含该串，旧实现输出 OLDOUT 不含该串。",
+  },
+  {
+    slug: "it/http-cache",
+    // IT-N69 回归：搜索后「明细表」须按过滤结果统计（原 hcAgg 恒遍历 COMMANDS 全量）
+    inputs: { searchInput: "Vary" },
+    dumpIds: ["hcTbody"],
+    expect: ["1 缓存键 1 Vary"],
+    ref: "N69：搜索 `Vary` 后列表仅 1 项（分类=缓存键），明细表首行应为「1 / 缓存键 / 1」。原 hcAgg 遍历全量 33 条 ⇒ 首行是「1 请求/响应 6」、缓存键排第 7 行（文本为「7 缓存键 1 Vary」），故该拼接串在修复前不存在。默认无搜索词时为全量统计，不命中。",
+  },
+  {
+    slug: "it/http-cache",
+    // IT-N69 回归：筛选零命中时图表/明细表须同步清空并给出提示（原仍显示全量数据）
+    inputs: { searchInput: "zzzz-no-such-directive" },
+    dumpIds: ["hcTbody"],
+    expect: ["当前筛选无匹配缓存指令，明细表已同步清空。"],
+    ref: "N69：搜索一个必零命中的串后，明细表应为空并提示「当前筛选无匹配缓存指令，明细表已同步清空。」；修复前表格仍列出全部 11 个分类行、页面无任何「无匹配」提示。",
   },
   {
     slug: "it/date-duration",

@@ -366,13 +366,6 @@
 
 - 2026-11-06 复核：原 IT-N60 引号 URL 和 IT-N61 注释开关问题已修。Node 执行页面实际 `minify()`，单双引号 URL `a)b  c` 均保留双空格；取消勾选保留 `/*keep*/`、勾选则删除。未做浏览器验证。
 
-### IT-N69 HTTP 缓存速查：搜索与分类只过滤列表，图表/明细表仍统计全量数据（低，确认源码缺陷）
-- 描述：`renderCommands()` 按 `currentCategory` 与 `searchQuery` 过滤 `COMMANDS`，但 `hcAgg()` 固定遍历 `COMMANDS` 全量；`hcChart()`/`hcTable()` 直接使用该聚合结果，既不读搜索词也不读当前分类。搜索 `max-age` 时列表只剩 1 项，图表与「明细表」仍显示所有分类和全部分类计数。
-- 证据：`tools/it/http-cache.html:562-571`（列表过滤）、`tools/it/http-cache.html:706-710`（`hcAgg` 全量聚合）、`tools/it/http-cache.html:711-728`（图表/明细取 `hcAgg`）
-- 复现：在搜索框输入 `max-age` → 列表「共 1 项」，但「图表」仍按全部分类出柱、「明细表」仍列出全部 10+ 个分类（期望图表/明细随当前过滤结果同步，或明确标注为全量统计）
-- 影响：用户以为图表反映当前筛选结果，实际看到的是全站数据，容易得出错误的分类占比结论。
-- 方案：让 `hcAgg` 接收过滤后的数组（把 `renderCommands` 的过滤逻辑抽成 `getFiltered()` 共用），或在图表/明细标题注明「全量统计，不受搜索影响」。
-
 - 备注：`tools/it/punycode.html:404-410`、`tools/it/regex-escape.html:321-328` 的 `copyResult` 依赖全局 `event`（与 IT-N31 同模式，Firefox 可能失效），不重复计数，未单列为新条目。
 - 本轮实读 8 页：`tools/it/punycode.html`、`tools/it/regex-escape.html`、`tools/it/css-minifier.html`、`tools/it/date-duration.html`、`tools/it/ipv4-range-expander.html`、`tools/it/user-agent-parser.html`、`tools/it/hash-multi.html`、`tools/it/http-cache.html`；新增 15 条（高 3 / 中 8 / 低 4）；未覆盖：`tools/it` 其余非文本页（如 `html-minifier`、`html-nesting-checker`、`c-string-escape`、`go-escape`、`java-escape`、`js-minifier`、`js-obfuscator`、`sql-formatter`、`shell-script-formatter`、`dockerfile-generator`、`gitignore-generator`、`robots-txt-generator`、`sitemap-generator`、`ssh/证书/密钥类` 等）与全部速查表页；未做浏览器、EN、移动端、门禁或部署验证。
 
@@ -380,26 +373,7 @@
 
 > 范围：本轮阅读 8 页（`tools/it/ip-calculator.html`、`tools/it/html-minifier.html`、`tools/it/barcode-ean.html`、`tools/it/docker-run-converter.html`、`tools/it/cron.html`、`tools/it/qr-decoder.html`、`tools/it/url-encode.html`、`tools/it/base64-converter.html`）。仅源码 + Node 复算，未开浏览器/未做 EN/移动端/门禁验证。
 
-### IT-N71 IP 计算器仍将空八位组静默转换为 0（中，确认函数缺陷）
-- 2026-11-06 复核：`tools/it/ip-calculator.html:756-820` 已统一用 BigInt 计算子网，合法 `0.0.0.0` 也不再被误判；Node 执行实际 `calcSubnets()`，`192.168.1.0/24→/26` 得 4 个子网，`0.0.0.0/0→/8` 得 256 个。原 IT-N71 和 IT-N85 症状已修。
-- `:462-465` 的 `ipToInt()` 仍用 `map(Number)` 而未校验每段字面格式；Node 输入基础 IP `192.168..1`、原前缀 24、新前缀 26，未报错并输出 `192.168.0.0/26` 等子网。空段被当 0，可能误导地址规划。未做浏览器验证。
-- 方案：按四段十进制整数严格校验（含范围与前导零规则），失败时清空旧表并提示。
-
 - 2026-11-06 复核：原 IT-N72/82 的行内空格和属性空格问题已修，Node 执行 `collapseHtmlWhitespace()` 复核原例均保留；原 IT-N73/84 的 EAN 长度、字符和校验位已修，实际 `buildEAN()` 对空、短、字母、超长、错误校验位返回错误，12 位和正确 13 位均生成 `5901234123457`；原 IT-N74/75 的示例选项、引号和镜像后命令均经 `parse()` 实测通过。仅函数级验证，未做浏览器验证。
-
-### IT-N81 URL 编解码：解码无条件把 `+` 当空格，破坏普通 URL 中的字面加号（中，确认源码缺陷）
-- 描述：`decodeUrl()` 在调用 `decodeURIComponent` 前固定执行 `text.replace(/\+/g,'%20')`，不区分当前是 `encodeURIComponent` 还是 `encodeURI` 模式，也不区分路径与查询。普通 URL 路径/查询里的字面 `+` 被改成空格。
-- 证据：`tools/it/url-encode.html:540-545`（544 无条件替换）
-- 复现：输入 `https://example.com/a+b` 点解码 → 实际 `https://example.com/a b`（期望保留 `https://example.com/a+b`，因为 `+` 在 URL 路径中不是空格）；输入 `?q=1+1` 同样变成 `q=1 1`。
-- 影响：解码普通链接会把数学表达式、C++ 等含 `+` 的路径/参数改坏；与页面自身的 `encodeURIComponent` 模式不一致。
-- 方案：仅当启用「表单/query 模式」时才把 `+` 转为空格，默认保留；或在输出旁提供两种结果。补路径 `+`、查询字面 `+`、真实表单 `a+b`（应空格）用例。
-
-### IT-N83 Base64/Base32/Base85 转换器：Base32/Base85 解码静默跳过非法字符，脏输入仍输出看似正常文本（中，确认源码缺陷）
-- 描述：`base32Decode()` 对不在 `A-Z2-7` 表的字符执行 `if(idx===-1) continue`，`base85Decode()` 对不在字符表的字符同样 `continue`；两者都不校验剩余位数/填充位。复制时混入数字 `0/1`、标点或被截断的串，会被当成合法输入并解出部分内容。
-- 证据：`tools/it/base64-converter.html:466-482`（473 跳过非法字符）、`tools/it/base64-converter.html:513-542`（525-526 跳过非法字符）
-- 复现（Node 复算原函数）：Base32 输入 `MZXW6YTB0I`（`0` 非法）→ 实际解出 `fooba`（期望报「非法字符 0」）；`MZXW6!!!` → `foo`；单字符 `A` → 空串且无报错。Base85 `<~!!!!v~>` 中的 `v` 被跳过，仍解出 4 个 NUL 字节。
-- 影响：损坏/截断的编码被静默还原为部分文本，用户无法发现数据缺失；用于配置或签名核对时可能误判。
-- 方案：遇到字符表外字符立即抛出并指明位置；解码结束校验剩余位数必须为 0（Base32 末字节低比特、Base85 尾组）；空结果或长度不足时提示；补非法字符、截断、单字符用例。
 
 - 备注：`tools/it/ip-calculator.html:453-456` 与 `tools/it/cron.html:462-466` 的 `switchTab` 依赖全局 `event`（与 IT-N31 同模式，Firefox 可能失效），不重复计数，未单列为新条目。
 - 本轮实读 8 页：`tools/it/ip-calculator.html`、`tools/it/html-minifier.html`、`tools/it/barcode-ean.html`、`tools/it/docker-run-converter.html`、`tools/it/cron.html`、`tools/it/qr-decoder.html`、`tools/it/url-encode.html`、`tools/it/base64-converter.html`；新增 15 条（高 2 / 中 12 / 低 1）；未覆盖：`tools/it` 其余非文本页（如 `base32-encode`、`base58-encode`、`base85-encode`、`http-headers`、`http-status`、`http-methods`、`mime-type`、`gitignore-generator`、`dockerfile-generator`、`shell-script-formatter`、`ipv6-ula`、`ssl-info`、`aes/des/rsa/ecdsa` 等）与全部速查表页；未做浏览器、EN、移动端、门禁或部署验证。
