@@ -44,6 +44,7 @@
 - 静态续审第三十一批：阅读 `ophthalmology/{amsler-grid-test,astigmatism-chart,axial-length,cd-ratio,eye-chart-toolkit,iol-power,iop-correction,oct-rnfl}` 8 页，记录视标尺寸量级、用户输入 HTML 注入、标记与眼别状态、校验及输出矛盾等问题，并更新 IOL 旧结论的源码状态。至清单第 475 页，静态续审累计 195 页；仅源码分析，未运行浏览器或医学专业核验，不计双跑。
 - 静态续审第三十二批：阅读 `ophthalmology/{refraction-error,strabismus-angle,tear-breakup-time,vision-screening-21,visual-field-analysis}` 与 `optical/{accommodation-amplitude,anti-fatigue-design}` 共 7 页，记录换算量级、历史恢复、空值与计算条件等问题；医学模型及阈值须专业复核。至清单第 482 页，静态续审累计 202 页；未运行浏览器，不计双跑。
 - 静态续审第三十三批：阅读 `optical/{blue-light-filter,coating-design,convergence-near-point,edge-bevel,frame-pupillary,frame-tilt,lens-refractive-index,peripheral-defocus}` 8 页，记录空值兜底、正负镜边厚、集合和离焦结论冲突及静态图层状态等问题；专业结论须复核。至清单第 490 页，静态续审累计 210 页；仅源码分析，未运行浏览器，不计双跑。
+- 静态续审第三十四批：阅读 `optical/{photochromic-lens,polarized-axis,polarized-stress,prism-decentration,progressive-corridor,tinted-lens}` 6 页，记录空值、色序表错位、未使用轴位、模式语义和方案替换等问题；专业结论须复核。至清单第 496 页，静态续审累计 216 页；仅源码分析，未运行浏览器，不计双跑。
 
 
 - 扫描时间：2026/11/5 05:04:33
