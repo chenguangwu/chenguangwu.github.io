@@ -53,6 +53,7 @@
 - 静态续审第四十批：阅读 `plastic/{blow-molding,extrusion-rate,injection-cycle,material-select,shrinkage-calc}` 和 `pr/{analysis-6,analysis-assessor,analysis-density-1}` 8 页，记录输入校验、旧阶段图、未转义名称与关键词统计问题，更新挤出产量历史问题源码状态。至清单第 544 页，静态续审累计 264 页；仅源码分析，未运行浏览器或注入，不计双跑。
 - 静态续审第四十一批：阅读 `pr/{assessor-56,assessor-57,assessor-58,assessor-59,assessor-manager-2,assessor-risk,media-invite,press-conference}` 8 页，记录 CPM 单位、分母与复制状态、流程编辑区覆盖及数据丢失风险。至清单第 552 页，静态续审累计 272 页；仅源码分析，未运行浏览器，不计双跑。
 - 静态续审第四十二批：阅读 `printing/{analysis-7,box-area,carton-design,convert-gsm,estimate-ink,ink-coverage,sheet-calc}` 7 页，记录测点丢弃、反算状态、油墨毫克换算与输入校验问题，更新历史问题源码状态。至清单第 559 页，静态续审累计 279 页；仅源码分析，未运行浏览器，不计双跑。
+- 静态续审第四十三批：阅读 `process/{cp-index,cpk-index,cpk-with-shift,defect-probability,dpmo-calc,first-pass-yield,measurement-uncertainty}` 7 页；记录概率、良率和不确定度输入问题，更新 Cpk 旧条目的源码状态并复核既有范围问题。至清单第 566 页，静态续审累计 286 页；仅源码分析，未运行浏览器，不计双跑。
 
 
 - 扫描时间：2026/11/5 05:04:33
