@@ -15,3 +15,9 @@
 |---|---|---|---|---|
 | 1 | 1923 | load | `FILL is not defined` | `tools/accessibility/accessible-restroom.html`<br>`tools/accessibility/braille-translator.html`<br>`tools/accessibility/index.html`<br>`tools/accessibility/ramp-slope.html`<br>`tools/accessibility/sign-language.html` |
 
+## 复核结论（2026-11-06 核验）
+
+- **#1 `FILL is not defined`（1923 页）根因不在网站页面，而在审计扫描脚本自身**：`scripts/runtime_scan.js:233` 的 `if (FILL) {` 引用了从未声明的开关变量 `FILL`（配置区 22–61 行的 LIMIT/FILTER/INTERACT 等均未定义 FILL），导致每页扫描 load 阶段执行到该行即抛 `ReferenceError: FILL is not defined`，被扫描器记为「页面运行时错误」，故 1923 页（近半站点）被误判；fill 阶段也因此从未执行（报告「填充输入后点击：0 页」同因）。
+- **修复**：在 `scripts/runtime_scan.js` 配置区补 `const FILL = process.env.FILL === '1';`（默认关闭，与既有报告一致；`FILL=1` 环境变量可启用真实使用路径填充扫描）。重跑扫描后该 1923 页误报应消失。
+- **结论**：此 1923 页「运行时错误」为**扫描脚本 bug 导致的假阳性**，非网站页面缺陷，无需改工具页源码。
+

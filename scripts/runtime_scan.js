@@ -58,6 +58,9 @@ const DJSONL = path.join(OUT_DIR, 'default-dirty.jsonl');
 const DJSON = path.join(OUT_DIR, 'default-dirty.json');
 const DMDSEC = path.join(OUT_DIR, 'default-dirty-section.md');
 const SAMPLE_N = parseInt(arg('sample', '0'), 10) || 0;
+// 填充空输入后再点一次（真实使用路径，最容易暴露「一用就崩」）阶段的开关；
+// 默认关闭（与既有报告一致：fill 阶段 0 页），设 FILL=1 环境变量可启用本阶段。
+const FILL = process.env.FILL === '1';
 
 // 空态判据词表
 const BOGUS_RE = /(^|\s)(NaN|Infinity|undefined|null)(\s|$)|NaN|Infinity|undefined|null/;
