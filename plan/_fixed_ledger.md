@@ -8,10 +8,6 @@
 | 分区 | 条目 ID | 页面 | 修复类型 | 验证用例 |
 |---|---|---|---|---|
 | IT | IT-N8 | tools/it/number-base-converter.html | 负数/自定进制 2–36 校验与回填 | verify_it_calc.js |
-| IT | IT-N23/N24 | tools/it/ini-parser.html | 重复节提示静态化、真压缩、去重复定义 | verify_it_calc.js |
-| IT | IT-N34 | tools/text/sensitive-word-filter.html | 高亮/计数/清洗统一匹配源、空态清 dataset | verify_it_calc.js |
-| IT | IT-N35 | tools/text/analysis-density.html | 整词边界计数、纯数字文本密度「不适用」 | verify_it_calc.js |
-| IT | IT-N36 | tools/text/text-extract-phones.html | 号码左右数字边界、国际号去重 | verify_it_calc.js ×2 |
 | IT | IT-N46/N47 | tools/it/color-converter.html | RGB/alpha 钳制、对比度计入 alpha、非法输入清理 | verify_it_calc.js ×4 |
 | IT | IT-N40/N41 | tools/it/time-format-converter.html | 10/13/16/19 位识别、纯日期本地零点 | verify_it_calc.js ×2 |
 | IT | IT-N54 | tools/it/crc-calculator.html | CRC-8/CCITT 参数校正（poly 0x07/init 0/xorout 0x55） | verify_it_calc.js |
