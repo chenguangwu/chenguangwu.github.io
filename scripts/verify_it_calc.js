@@ -7834,6 +7834,23 @@ const CASES = [
     ref: "IT-N60 字符串保护（美化方向）：content 字符串内的逗号必须原样保留；旧实现把 \",\" 改写为 \", \"（输出 content:\"a, b\"）。默认示例不含引号字符串，不命中。",
   },
   {
+    slug: "it/css-minifier",
+    // IT-N61 回归：minify 必须尊重「移除注释」开关（修复前恒删注释，无视勾选状态）
+    inputs: { input: "/*keep*/a{color:red}" },
+    clicks: ["document.getElementById('removeComments').checked=false;minify();"],
+    expect: ["/*keep*/"],
+    ref: "修复前 minify() 把 keepComments 写死为 false，无论是否勾选都删注释；现读取 removeComments 复选框 ⇒ 未勾选时保留 /*keep*/。expect 取 /*keep*/，旧实现压缩后仅 a{color:red} 不含该串。默认示例不命中。",
+  },
+  {
+    slug: "it/css-minifier",
+    // IT-N62 回归：历史保存完整输入，loadH 恢复后 input 不被 60 字符截断（修复前 input.substring(0,60) → 恢复后尾段丢失）
+    inputs: { input: ".box{color:red;width:100px;height:200px;margin:0 auto;padding:10px 20px;background:#fff;border:1px solid #ccc;}" },
+    clicks: ["beautify();loadH(0);"],
+    dumpIds: ["input"],
+    expect: ["x;background:#fff;border:1px solid #ccc;}"],
+    ref: "修复前 addToHistory 仅存 input.substring(0,60)，loadH 写回该摘要 ⇒ 第 60 字符后的内容（x;background:#fff;border:1px solid #ccc;}）被丢弃；修复后历史存完整 input，loadH 恢复全量。输入长 111 字符，尾部 token 仅在完整恢复时存在，旧实现被截断故不含该串。默认示例不命中。",
+  },
+  {
     slug: "it/date-duration",
     inputs: { d1: "2026-02-30", d2: "2026-03-02", inc: "excl" },
     clicks: ["calcTool()"],

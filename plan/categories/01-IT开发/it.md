@@ -399,9 +399,10 @@
 - 影响：把结果贴进带 `u` 标志的 `RegExp`、ESLint `no-useless-escape` 或部分严格引擎会被判非法/告警。
 - 方案：`verbose` 只额外处理 `/` 与字符类内的 `-`，删除 `,;:<>@#&~=`；或在输出旁注明「本结果适用于非 `u` 模式」。
 
-### IT-N60 CSS 的带引号 URL 含括号时内容被改写（中，确认缺陷）
-- `tools/it/css-minifier.html:350-359` 扫描 `url(...)` 时未区分内部引号，字符串里的右括号被误认为 URL 结束。Node 执行 `minify()`：`a{background:url("a)b  c");color:red}` 输出 `a{background:url("a)b c");color:red}`，URL 内连续空格被压缩。
-- 影响：压缩或美化后引用地址可能改变。应按引号和转义状态识别 URL 的实际结束位置。
+### IT-N60 CSS 的带引号 URL 含括号时内容被改写（中，已修复）
+- 根因：`cssSegments()` 扫描 `url(...)` 仅用 depth 计数、不区分引号内括号，字符串里的右括号被误认作 URL 结束。Node 复算 `minify()`：`a{background:url("a)b  c");color:red}` 旧实现输出 `a{background:url("a)b c");color:red}`（URL 内双空格被压成单空格）；修复后按引号状态识别 URL 实际结束位置，引号内括号不计 depth，整段原样保留。
+- 修复（`tools/it/css-minifier.html:350-369`）：url 扫描增加 `q` 引号状态追踪，引号内的 `(`) 不增减 depth。
+- 验证：因 harness 注入会把字面 `"`/`'` 经 innerHTML 编码（`&quot;`/`'` 绕过 escHtml）导致引号上下文丢失、无法判别，N60 不落 verify 用例，改以 node 直接复算 `cssSegments/cssRewrite` 双引号与单引号两条用例确认双空格保留（修复前为单空格），结论稳定。默认示例不含引号 URL，不命中。
 
 ### IT-N61 CSS 压缩：无论是否勾选「移除注释」都删除注释（中，确认源码缺陷）
 - 描述：`beautify()` 读取 `removeComments`，`minify()` 却无条件执行 `css.replace(/\/\*[\s\S]*?\*\//g,'')`；用户取消勾选后点「压缩」，注释仍被删除，且界面没有任何提示。

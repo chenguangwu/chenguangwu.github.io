@@ -348,10 +348,18 @@ function cssSegments(css) {
       continue;
     }
     if ((ch === 'u' || ch === 'U') && /^url\(/i.test(css.slice(i, i + 4)) && !/[a-zA-Z0-9_-]/.test(css[i - 1] || '')) {
-      let j = i + 4, depth = 1;
+      // N60：按引号状态识别 url() 的实际结束位置；引号内的括号不计 depth，避免 url("a)b") 被提前截断。
+      let j = i + 4, depth = 1, q = null;
       while (j < css.length && depth > 0) {
-        if (css[j] === '(') depth++;
-        else if (css[j] === ')') depth--;
+        const c = css[j];
+        if (q) {
+          if (c === '\\') { j += 2; continue; }
+          if (c === q) q = null;
+          j++; continue;
+        }
+        if (c === '"' || c === "'") { q = c; j++; continue; }
+        if (c === '(') depth++;
+        else if (c === ')') depth--;
         j++;
       }
       flush();
@@ -399,7 +407,7 @@ function beautify() {
   
   document.getElementById('output').textContent = css.trim();
   showStats(input.length, css.length);
-  addToHistory('美化', input.substring(0, 60));
+  addToHistory('美化', input);
   ToolBox.showToast(i18nText('toast.msg553'), 'success');
 }
 
@@ -407,7 +415,8 @@ function minify() {
   const input = document.getElementById('input').value;
   if (!input.trim()) { ToolBox.showToast(i18nText('toast.msg757'), 'warning'); return; }
   
-  let css = cssRewrite(input, false, s => s.replace(/\s+/g, ' ')
+  const removeComments = document.getElementById('removeComments').checked;
+  let css = cssRewrite(input, !removeComments, s => s.replace(/\s+/g, ' ')
            .replace(/\s*([{}:;,])\s*/g, '$1')
            .replace(/;}/g, '}')
            .replace(/:0(px|em|rem|%|pt)/g, ':0')
@@ -416,7 +425,7 @@ function minify() {
   
   document.getElementById('output').textContent = css;
   showStats(input.length, css.length);
-  addToHistory('压缩', input.substring(0, 60));
+  addToHistory('压缩', input);
   ToolBox.showToast(i18nText('toast.msg095'), 'success');
 }
 
@@ -480,9 +489,11 @@ function clearAll() {
   document.getElementById('stats').style.display = 'none';
 }
 
-function addToHistory(action, summary) {
+function escHtml(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function addToHistory(action, input) {
   const h = (function(){try{return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]')}catch(e){try{localStorage.removeItem(HISTORY_KEY)}catch(_){}return []}})();
-  h.unshift({ time: new Date().toLocaleString(), action, summary });
+  // N62：保存完整输入（不再截断 60 字符），summary 仅作预览；loadH 优先恢复完整 input。
+  h.unshift({ time: new Date().toLocaleString(), action, summary: (input || '').slice(0, 80), input: input || '' });
   localStorage.setItem(HISTORY_KEY, JSON.stringify(h.slice(0, 50)));
   renderHistory();
 }
@@ -491,12 +502,12 @@ function renderHistory() {
   const h = (function(){try{return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]')}catch(e){try{localStorage.removeItem(HISTORY_KEY)}catch(_){}return []}})();
   const el = document.getElementById('history-list');
   const __h0=h.length === 0 ? '<div class="history-empty">暂无历史</div>' :
-    h.map((x, i) => `<div class="history-item" onclick="loadH(${i})"><div class="time">${x.time} · ${x.action}</div><div class="summary">${x.summary}</div></div>`).join('');if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){el.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}el.innerHTML=__h0;
+    h.map((x, i) => `<div class="history-item" onclick="loadH(${i})"><div class="time">${escHtml(x.time)} · ${escHtml(x.action)}</div><div class="summary">${escHtml(x.summary)}</div></div>`).join('');if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){el.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}el.innerHTML=__h0;
 }
 
 function loadH(i) {
   const h = (function(){try{return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]')}catch(e){try{localStorage.removeItem(HISTORY_KEY)}catch(_){}return []}})();
-  if (h[i]) document.getElementById('input').value = h[i].summary;
+  if (h[i]) document.getElementById('input').value = h[i].input || h[i].summary;
 }
 
 function clearHistory() {
