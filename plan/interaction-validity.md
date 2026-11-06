@@ -25,6 +25,7 @@
 - 静态续审第十二批：阅读 `it/{emoji-meaning,env-generator,git-commands,go-cheatsheet,go-escape,html-tags}` 共 6 页主要路径，记录表情复制、HTML 标签 CSV 和环境变量预览问题；更正旧 env 与 Go 八进制条目的源码状态。仅代码分析及 Node 表达式复算，不计双跑。
 - 静态续审第十三批：阅读 `it/{http-cache,http-cookies,http-headers,http-methods,http-response-headers,http-status}` 共 6 页检索、分类、复制及图表/导出路径；记录状态码导出后的表格状态，既有缓存统计、错误响应头及 Cookie 示例问题的相关代码仍在。未运行浏览器，不计双跑。
 - 静态续审第十四批：阅读 `it/{java-cheatsheet,java-escape,js-escape,js-minifier,kubernetes-cheatsheet,language-code-lookup}` 6 页主要交互路径，记录原始输入 HTML 注入点、简化器字符串破坏与旧输出、转义错误处理；Node 抽取简化器原函数复算，未使用浏览器，不计双跑。
+- 静态续审第十五批：阅读 `it/{less-compiler,linux-cheatsheet,locale-lookup,markdown-editor,mongodb-cheatsheet,msisdn-lookup}` 6 页主要交互路径，记录 locale 输入 HTML 注入点、Markdown 文本误触数值守卫及 Less 异步竞态；旧 Markdown 属性注入代码已变，待安全回归。纯源码结论，未运行页面或竞态，不计双跑。
 
 
 - 扫描时间：2026/11/5 05:04:33
