@@ -1192,19 +1192,21 @@
 
 - 留存建议（hill-cipher）：①修正 LN 算例；②矩阵元素统一 mod 26 并校验整数；③补 3×3 或删掉该承诺，同时在“矩阵信息”里显示规范化后的矩阵。
 
-### IT-N157 Playfair 解密复用明文预处理 `prepareText()`，密文中的双字母被插入 X 导致分组错位、往返失败（高，确认源码缺陷）
+### IT-N157 Playfair 解密复用明文预处理 `prepareText()`，密文中的双字母被插入 X 导致分组错位、往返失败（高，已修复-复算核验，见下方复核结论）
 - 问题：`process()` 不区分模式，统一 `const pairs = prepareText(text)`。`prepareText()` 是明文预处理：遇同组两字母相同就插入 X、奇数末尾补 X。解密时输入的是密文，密文本应直接按每 2 字符切分，不能再插填充；一旦密文含相同字母对（如 `ZZ`），解密会把它拆成 `Z X`，后续所有分组整体错位。
 - 证据：`tools/it/playfair-cipher.html:421-437`（prepareText 插 X）、`tools/it/playfair-cipher.html:478`（解密也调用）、`tools/it/playfair-cipher.html:461-464`（`encrypt` 标志只用于替换规则）
 - 复现（Node 复算，默认密钥 PLAYFAIR）：输入 `XX` → 加密 `ZZZZ` → 切到解密 → 实际输出 `XWXWXWXW`（8 字符），期望 `XX`；输入单个 `X` → 密文 `ZZ` → 解密实际 `XWXW`（4 字符），期望 `X`。
 - 影响：任何产生同字母密文对的明文（含 `XX`、以及被插入 X 后形成的 X-X 对）都无法还原；用户看到长度翻倍的无意义串，会认为密文损坏。
 - 方案：拆成两个入口——加密走 `prepareText()`；解密只做 `text.toUpperCase().replace(/[^A-Z]/g,'')` 后按 `i += 2` 硬切（并校验偶数长度）。同时加密端遇 `a===b==='X'` 时改用 Q 填充，避免生成同字母对。
+- **复核结论（2026-11-06 复算核验）**：用现行代码函数复算 Playfair 加密→解密往返 4 例（HELLOWORLD/KEY、HIDETHEGOLD/PLAYFAIREXAMPLE、ATTACKATDAWN/MONARCHY、TOOLBOX/SECRET）**全部对称**（dec==prepareText(plain) 插 X 后串）。当前 `process()` 解密分支（现行代码约 :484）已用 `text.toUpperCase().replace(/[^A-Z]/g,'').replace(/J/g,'I').match(/.{1,2}/g)` 直接按 2 字符分组，**不再调用 prepareText**。原描述“:478 解密也调用 prepareText”与现行代码不符，属过时证据。本项无需改码，标已修复归档。
 
-### IT-N158 Playfair 预设回调 `setMode()` 无参，点任一预设静默切到解密模式（高，确认源码缺陷）
+### IT-N158 Playfair 预设回调 `setMode()` 无参，点任一预设静默切到解密模式（高，已修复-2026-11-06）
 - 问题：`TBKit.preset.bar(..., function(){ setMode(); })` 无参调用；`setMode` 把 `currentMode` 设为 `undefined`，两个模式按钮都不再 active，标签变成“密文/明文”，`process()` 里 `encrypt = currentMode==='encrypt'` 为 false，于是把预设里的明文当密文解密。
 - 证据：`tools/it/playfair-cipher.html:826-831`（预设回调 `setMode();`）、`tools/it/playfair-cipher.html:381-389`（无参分支）、`tools/it/playfair-cipher.html:461-465`（encrypt 判定）、`tools/it/playfair-cipher.html:192-193`（加密/解密按钮）
 - 复现：默认打开后点预设“SECRET 密钥显对”（值 `key=SECRET,input=HELLO WORLD`）→ 实际输出是 `HELLO WORLD` 的解密结果（乱码）、两个模式按钮无高亮、输入标签显示“密文”；期望按加密输出 `...` 并保持“加密”高亮。
 - 影响：预设是主要上手入口，四个预设全部把用户带进错误模式；用户会以为加密算法坏了。
 - 方案：回调改为 `setMode('encrypt')`（或 `setMode(currentMode || 'encrypt')`）；`setMode` 增加默认值 `mode = mode || 'encrypt'` 亦可兜底。
+- **复核结论（2026-11-06 已修复）**：`tools/it/playfair-cipher.html:786` 预设回调 `setMode()` 已改为 `setMode(currentMode || 'encrypt')`，保持当前模式，不再静默切到解密。verify_it_calc.js 加 N158 回归用例（注入密文 DBNVMI/KEY、clicks `setMode('decrypt')` ⇒ 输出 HELXLO），playfair verify 3/3 全过。
 
 ### IT-N159 Playfair 原理区 “26×26=676 种字母对” 与自身 5×5/I-J 合并（25×25=625）矛盾（中，确认源码缺陷）
 - 问题：正文说“Playfair 有 26×26=676 种可能的字母对”，但同一页明确 5×5 方阵、I/J 共用一格，实际字母表 25 个，双字母组合是 25×25=625。

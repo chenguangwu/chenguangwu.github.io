@@ -1567,6 +1567,14 @@ const CASES = [
     ref: "Playfair 加密：`HELLO` 成对切分为 HE/LL/OX 后在 5×5 矩阵（KEY 去重后填充）中按行/列规则替换 ⇒ DBNVMI。默认示例明文/密钥不同，产物不命中。",
   },
   {
+    slug: "it/playfair-cipher",
+    // IT-N158 回归：解密模式能正确还原明文，验证 setMode('decrypt') 显式调用不破坏解密路径
+    inputs: { input: "DBNVMI", key: "KEY" },
+    clicks: ["setMode('decrypt')"],
+    expect: ["HELXLO"],
+    ref: "独立复算：HELLO 经 KEY 方阵加密得 DBNVMI；切到解密模式后 process() 用密文 DBNVMI 还原为 HELXLO（HE LL OX 拼接，X 为填充）。验证 setMode 默认值改动后解密路径正常；默认态 input 为 ATTACKATDAWN 不命中。",
+  },
+  {
     slug: "it/vigenere-visualizer",
     inputs: { input: "ABC", key: "KEY" },
     expect: ["KFA"],
