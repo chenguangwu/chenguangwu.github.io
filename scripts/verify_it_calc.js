@@ -4577,9 +4577,9 @@ const CASES = [
       "data": "abc123测试"
     },
     "expect": [
-      "abc123测试\nABC123测试"
+      "第 7 位含非法字符「测」（仅支持 0-9 - $ : / . + 与起止符 A/B/C/D）"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"data\":\"abc123测试\"}，输出区含「abc123测试\nABC123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）·2026-11-06 随 IT-N492 同步更新：注入非默认输入{\"data\":\"abc123测试\"}，原实现静默丢弃表外字符并回显原文（旧杆「abc123测试\\nABC123测试」= 输入回显，零判别力）；现 buildCodabar 逐位校验并报「第 7 位含非法字符「测」」，位置与字符均由输入决定。默认 data=A12345B 合法，不命中。"
   },
   {
     "slug": "it/barcode-code128",
@@ -8630,6 +8630,27 @@ const CASES = [
     ref: "2×2 近奇异矩阵 [[1,1],[1,1+1e-13]]：det = 1×(1+1e-13) − 1×1 = 9.992e-14（补码可表示的 1e-13 级差值）。这是条件数信号，不是浮点噪声；原 fmt 先判 |x|<1e-12 → 0 把真实小行列式吞成 0，现改为仅 x===0 返回 0、小值走科学计数法。默认 3×3 单位阵 det=1，不命中。",
   },
   // ── D2 批：7 个条码页的 PNG 导出失败可见（downloadBarcodePNG 的 cv.toDataURL 裸调）──
+  {
+    // IT-N491 回归：整表按 AIM BC3-1995 / USD-4 重写（原表 20 个字符里 17 个结构非法）
+    slug: "it/barcode-codabar",
+    inputs: {},
+    clicks: ["var bad=[];for(var k in CODABAR){var t=CODABAR[k];var w=(t.match(/W/g)||[]).length;if(t.length!==7||w<2||w>3)bad.push(k+'='+t);}document.getElementById('output').textContent='BAD='+(bad.length?bad.join(','):'none');"],
+    expect: ["BAD=none"],
+    ref: "IT-N491 不变量：Codabar 每字符必须是 7 个单元、2–3 个宽单元（AIM BC3-1995 / USD-4）。原表 `$`=NWWWWWN（5 宽）、`:`/`/`/`.`/`C` 为 4 宽、`D` 只有 6 个单元 ⇒ 20 个字符里 17 个违规，本断言输出一串 BAD=… 条目；重写后全表 20 个字符全部合规 ⇒ BAD=none。",
+  },
+  {
+    slug: "it/barcode-codabar",
+    inputs: {},
+    clicks: ["document.getElementById('output').textContent='BITS='+buildCodabar('A0A').bits;"],
+    expect: ["BITS=NNWWNWNnNNNNNWWnNNWWNWN"],
+    ref: "IT-N491 逐字符码字：按 AIM BC3-1995，`A` = N N W W N W N、`0` = N N N N N W W，字符间插入窄空 `n` ⇒ `NNWWNWNnNNNNNWWnNNWWNWN`。原表 `A`=WWNNNNW、`0`=NNNNNWW 结构互不相同，故该串在修复前不存在（页面默认 data=A12345B 渲染的是 canvas，不含该串）。",
+  },
+  {
+    slug: "it/barcode-codabar",
+    inputs: { data: "12345" },
+    expect: ["首字符必须是起止符 A/B/C/D（如 A12345B）"],
+    ref: "IT-N492 起止符校验：Codabar 规定首尾必须是 A–D，`12345` 无起止符时读码器无法判读。修复前页面照样生成条形码（静默接受）；现 generate() 直接报错并说明补法。默认 data=A12345B 合法，不命中。",
+  },
   ...["barcode-codabar", "barcode-code128", "barcode-code39", "barcode-ean", "barcode-itf", "barcode-msi", "barcode-upc"].map(function (slug) {
     return {
       slug: "it/" + slug,

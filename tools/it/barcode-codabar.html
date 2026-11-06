@@ -158,7 +158,8 @@ s.parentNode.insertBefore(el, s);
 </div>
 
     <label>文本（0-9 - $ : / . + ABCD）</label>
-    <input type="text" id="data" value="A12345B" style="margin-bottom:12px;">
+    <input type="text" id="data" value="A12345B" style="margin-bottom:12px;" oninput="generate()">
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;" data-zh="首尾须为起止符 A/B/C/D；数据位支持 0-9 与 - $ : / . +">Start and stop characters must be A/B/C/D; data characters may be 0-9 and - $ : / . +.</div>
     <div class="toolbar">
       <div id="barcode_codabarPresets"></div><button type="button" class="btn primary" onclick="generate()">生成</button><button class="btn" type="button" onclick="downloadBarcodePNG()">下载 PNG</button><button class="btn" type="button" onclick="__barcode_codabarExport()">导出明细 CSV</button>
       <button type="button" class="btn success" onclick="copyResult()">复制</button>
@@ -275,21 +276,40 @@ s.parentNode.insertBefore(el, s);
 <script>
 // Codabar 编码：每字符 7 个单元（4 条 + 3 空），其中 2 或 3 个为宽单元
 const CODABAR={
-'0':'NNNNNWW','1':'NNNNWWN','2':'NNNWWNN','3':'WWNNNNN','4':'NNWWWNN',
-'5':'WWNNWNN','6':'NWNNNWW','7':'NWWNNNW','8':'NWWNWNN','9':'NWNNWWN',
-'-':'NNWWNNN','$':'NWWWWWN',':':'WNWWWNN','/':'WNWWNNW','.':'WWNNWNW',
-'+':'WNWNWNN','A':'WWNNNNW','B':'NNWNWNW','C':'NWNWWNW','D':'NNNWWW'
+'0':'NNNNNWW','1':'NNNNWWN','2':'NNNWNNW','3':'WWNNNNN','4':'NNWNNWN',
+'5':'WNNNNWN','6':'NWNNNNW','7':'NWNNWNN','8':'NWWNNNN','9':'WNNWNNN',
+'-':'NNNWWNN','$':'NNWWNNN',':':'WNNNWNW','/':'WNWNNNW','.':'WNWNWNN',
+'+':'NNWNWNW','A':'NNWWNWN','B':'NWNWNNW','C':'NNNWNWW','D':'NNNWWWN'
 };
+function __cbEn(){
+  try{ if(typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn) return !!TBKit.util.isEn(); }catch(e){}
+  // TBKit 未就绪时的兜底：按 URL 与 html[lang] 判定，避免英文态漏出中文报错
+  try{
+    if(/[?&]lang=en([-_]|&|$)/i.test(location.search)) return true;
+    var hl=(document.documentElement.getAttribute('lang')||'').toLowerCase();
+    if(hl.indexOf('en')===0) return true;
+  }catch(e){}
+  return false;
+}
 function buildCodabar(text){
-  text=text.toUpperCase();
+  // N492：表外字符不再静默 continue（原实现丢弃后仍按原串打标签，扫码值与标签不一致）
+  text=String(text||'').toUpperCase();
+  if(!text) return {error:__cbEn()?'Please enter Codabar content.':'请输入 Codabar 内容'};
+  for(let i=0;i<text.length;i++){
+    if(!CODABAR[text[i]]){
+      return {error:(__cbEn()?'Invalid character "':'第 '+(i+1)+' 位含非法字符「')+text[i]+(__cbEn()?'" at position '+(i+1)+' (allowed: 0-9 - $ : / . + and A/B/C/D)':'」（仅支持 0-9 - $ : / . + 与起止符 A/B/C/D）')};
+    }
+  }
+  // Codabar 规范要求首尾为起止符 A–D，缺失时读码器无法判读
+  if(!/^[A-D]$/.test(text[0])) return {error:__cbEn()?'The first character must be a start/stop code A, B, C or D (e.g. A12345B).':'首字符必须是起止符 A/B/C/D（如 A12345B）'};
+  if(!/^[A-D]$/.test(text[text.length-1])) return {error:__cbEn()?'The last character must be a start/stop code A, B, C or D (e.g. A12345B).':'末字符必须是起止符 A/B/C/D（如 A12345B）'};
+  if(text.length < 3) return {error:__cbEn()?'Need a start code, at least one data character and a stop code (e.g. A11B).':'至少需要一个数据字符，形如 A11B'};
   let bits='';
   for(let i=0;i<text.length;i++){
-    const p=CODABAR[text[i]];
-    if(!p){continue;}
-    bits+=p;      // 7 个单元：条 空 条 空 条 空 条
-    bits+='n';    // 字符间窄空分隔
+    bits+=CODABAR[text[i]];  // 7 个单元：条 空 条 空 条 空 条
+    bits+='n';               // 字符间窄空分隔
   }
-  return bits;
+  return {bits:bits, text:text};
 }
 
 // I3 统一 PNG 下载（canvas.toDataURL，纯前端零依赖）
@@ -306,8 +326,14 @@ function downloadBarcodePNG(){
 function generate(){
   const raw=(document.getElementById('data').value||'').trim().toUpperCase();
   if(!raw){const __h0='<p style="color:var(--danger)" data-zh="请输入 Codabar 内容">Please enter Codabar content.</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h0;return;}
-  const bits=buildCodabar(raw);
-  if(!bits){const __h1='<p style="color:var(--danger)">仅支持 0-9 - $ : / . + 与起止符 A/B/C/D</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h1;return;}
+  const built=buildCodabar(raw);
+  if(built.error){
+    const msg=String(built.error).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    document.getElementById('output').innerHTML='<p style="color:var(--danger)">'+msg+'</p>';
+    return;
+  }
+  const bits=built.bits;
+  const __label=built.text;
   const narrow=2,wide=6,h=100;
   let total=0;
   for(let i=0;i<bits.length;i++){total+=(bits[i]==='W'?wide:narrow);}
@@ -327,7 +353,7 @@ function generate(){
   out.appendChild(canvas);
   const label=document.createElement('div');
   label.className='bar-text';
-  label.textContent=raw;
+  label.textContent=__label;
   out.appendChild(label);
 }
 function copyResult(){
@@ -466,7 +492,7 @@ else document.addEventListener('DOMContentLoaded', __barcode_codabarBoot);
   </div>
   <div class="tool-intro-body">
     <h4><span class="h4-icon">📝</span>工具简介</h4>
-    <p data-zh="Codabar（又称 NW-7）是一种离散、自校验的一维条形码，常用于血库、图书馆、快递与门禁等编号固定的场景。本工具纯前端生成，输入字符与起止符即可实时绘制条形码并支持复制。">Generate Codabar barcodes with start/stop codes and an optional check digit.</p>
+    <p data-zh="Codabar（又称 NW-7）是一种离散、自校验的一维条形码，常用于血库、图书馆、快递与门禁等编号固定的场景。本工具纯前端生成，输入字符与起止符即可实时绘制条形码并支持复制。">Generate Codabar (NW-7) barcodes with A/B/C/D start and stop codes as you type, then export them as PNG.</p>
     <h4><span class="h4-icon">✨</span>功能特点</h4>
     <ul class="intro-features">
       <li>纯前端运行，数据不上传服务器</li>
