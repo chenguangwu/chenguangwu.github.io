@@ -218,11 +218,11 @@
 - 影响：`tools/it/text-cleaner.html`；数据表/图表/历史三个页签永远为空；若将来有历史记录，恢复后默认勾选被清空，输出与记录不符。
 - 方案：改读 `output-text.value`；包装 `executeClean` 记录历史；回填时逐字段恢复后直接 `executeClean()`，不要用无参 `applyPreset`。
 
-### IT-N25 美化把 JSON 数组当 INI 节名（中，确认源码缺陷）
+### IT-N25 美化把 JSON 数组当 INI 节名（中，已修复）
 - 描述：`doBeautify` 仅以 `startsWith('{')` 判定 JSON，`[...]` 走 INI 解析；`toIni` 对数组用 `for...in` 输出 `0 = a` 形式。
 - 证据：`tools/it/ini-parser.html:307-314`、`279-291`、`299-306`。Node 复算：`parseIni('["a","b"]')` → `{"\"a\",\"b\"":{}}`；`JSON→INI` 对 `["a","b"]` 产出 `0 = a` / `1 = b`。
 - 影响：`tools/it/ini-parser.html`；对合法 JSON 数组执行“美化”得到空节，用户难以判断是输入错误还是工具问题。
-- 方案：用 `JSON.parse` 试解析判型（含 `[`），数组显式支持（如 `[list]` 节）或明确报“INI 不支持数组”；`toIni` 对数组单独处理。
+- 修复：`doBeautify`/`doMinify` 改用 `JSON.parse` 试解析判型（`{` 或 `[` 均识别为 JSON），`toIni` 增加数组分支（索引键值 `0 = a`/`1 = b`）；verify 新增 N25 回归用例（`["a","b"]`→doBeautify→断言 `0 = a`），ini-parser 6/6 通过。
 
 ### IT-N26 两个下拉框没有任何选项，代码面板与压缩模式不可用（中，确认源码缺陷）
 - 描述：`#showcode`、`#compact` 两个 `<select>` 在源码中为空，代码却按值 `'1'`/`'compact'` 判断；`resetForm` 的 `selectedIndex=0` 也无实际效果。压缩结果 `outHtml` 只在“显示 HTML 代码”分支被使用。
@@ -236,11 +236,12 @@
 - 影响：`tools/it/markdown-to-html.html`；粘贴含图片的 Markdown 得到错误 HTML，与页面承诺不符。
 - 方案：增加图片规则（必须先于链接匹配），输出 `<img src alt>`，并对 `src`/`alt` 做属性转义与 URL 白名单。
 
-### IT-N28 字符级对比按 UTF-16 码元切分（低，确认源码缺陷）
+### IT-N28 字符级对比按 UTF-16 码元切分（低，已修复）
 - 描述：`charDiffLine` 用 `split('')` 与按码元的 LCS，emoji 等代理对被拆成两半分别着色。
 - 证据：`tools/it/text-diff.html:459-463`。Node 复算 `charDiffLine('😀😀😀','😀😀')` → oldHtml 含 `[-\ud83d-][-\ude00-]`（两个高亮块分别包住一对代理项的一半）。
 - 影响：`tools/it/text-diff.html`；emoji/扩展字符差异展示破碎，导出文本可能含孤立代理项。
 - 方案：改用 `Array.from` 或 `Intl.Segmenter` 按码点/字素簇切分后再做 LCS。
+- 复核（2026-11-06）：当前 `charDiffLine`（`:459-462`）已用 `Array.from(oldLine)`/`Array.from(newLine)` 按码点切分，全文无 `split('')`；N28 已修复，无需改代码。
 
 ### IT-N29 逐行对照预览按索引配对，删行后错位；FAQ 承诺的“全压成一行”未实现（中，确认源码缺陷）
 - 描述：`top_blank` 本身按 `trim()===''` 判空行（行为正确），但预览直接拿 `rawLines[pi]` 与 `lines[pi]` 并列；一旦删除过空行（默认预设即会删），两列的第 N 行就不再对应同一段文本。另 FAQ 称“可选保留段落或全压成一行”，页面只有 4 个勾选项，没有折叠换行能力。
