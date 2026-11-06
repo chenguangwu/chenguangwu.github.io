@@ -59,9 +59,16 @@ def build_content(ind, ind_name, en_name, count, tool_names, tool_names_en=None)
     desc_zh = _make_desc_zh(ind_name, count, tool_names)
     # 英文 description 的代表工具名同样取英文名（原先误用中文名，导致英文描述夹中文）
     rep6 = ', '.join(rep_en[:6])
-    desc_en = ('Free online %s tools collection with %d calculators and converters. '
-               'Includes %s and more. All run client-side in your browser, no data uploaded.'
-               % (en_name, count, rep6))
+    # 修正两处质量缺陷：① 无英文名代表工具时 rep6 为空 → 旧模板产出「Includes  and more.」破碎句；
+    # ② %d 与 calculators 单复数不联动（"with 1 calculators"）。改写后用「(N tool(s))」明确数量，
+    # 空 rep6 时省略 Includes 从句，避免中英混杂与语法错误。
+    _n = 'tool' if count == 1 else 'tools'
+    _core = 'Free online %s tools collection (%d %s)' % (en_name, count, _n)
+    if rep6:
+        desc_en = ('%s — including %s and more. '
+                   'All run client-side in your browser, no data uploaded.' % (_core, rep6))
+    else:
+        desc_en = '%s. All run client-side in your browser, no data uploaded.' % _core
     rep_txt = '、'.join(rep[:6]) if rep else ind_name
     rep_txt_en = ', '.join(rep_en[:6]) if rep_en else en_name
     faq = [
