@@ -69,3 +69,4 @@
 - headless 实测：初始 `卖出模式|mode-tag sell` → 切「浮动盈亏」后 `浮动盈亏|mode-tag float`
   且卖出价标签同步为「浮动盈亏基准价」→ 切回卖出后 `卖出模式|mode-tag sell`，
   `summaryArea` 文本与初始完全一致，**0 条 `Cannot read/set`、0 条 `is not defined`**。
+- 2026-11-06 独立复核：当前页面仍有 `modeTag`，`switchMode()` 的卖出/浮盈分支均可引用该元素并设置文本和 class；当前浮盈文案为「浮盈模式」，价格标签为「当前价格（元/股）」，与上面的历史测试文案不同。本次仅源码核对，未重跑浏览器。

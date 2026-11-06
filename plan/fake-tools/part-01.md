@@ -12,6 +12,8 @@
 
 ## 汇总统计
 
+以下为 2026-11-04 的历史快照；后续逐条复核状态见下表，统计未随之重算。
+
 | 指标 | 数值 |
 |---|---|
 | 清单原始去重页数 | **71** |
@@ -63,17 +65,17 @@
 | 商业运营 | `tools/ecommerce/analysis-cost-8.html` | C | `:10` 称分项成本/费用效益比；`:125-129` 仅固定成本/单位变动成本/单价；`:210-225` 只算 CVP 保本 | `plan/categories/06-商业运营/ecommerce-logistics.md:394` | 已确认（真） | 中（名实不符） |
 | 商业运营 | `tools/ecommerce/analysis-70.html` | A | `:126` 每行含「订单数」；`:205` 起 calc 全程未引用该列 | `plan/categories/06-商业运营/ecommerce-logistics.md:373` | 已确认（真） | 中（死输入） |
 | 商业运营 | `tools/hr/hris-zizhuyuaiduibijisuanqi.html` | C | `:130,132` 仅 HRIS/AI 两个成熟度分；`:304` 起只比较两分 | `plan/categories/06-商业运营/hr-legal.md:441` | 已确认（真） | 中（宣称对比成本与效率） |
-| 医疗健康 | `tools/clinical-nursing/suction-pressure.html` | A | `:148` 压力输入；`:276-279` 区间已改为 80-120/80-100/60-80/40-60，**原「成人硬编码 150-200」已不成立**；残留默认值 `value="150"` 越界，首屏即提示「过高」 | `plan/categories/03-医疗健康/drug-dosing.md:333` | 已否定 | —（仅建议把默认值改为 100） |
+| 医疗健康 | `tools/clinical-nursing/suction-pressure.html` | A | 2026-11-06 Node 执行 `checkPressure()`：成人 150 提示过高，100 显示 80–120 区间内；未做浏览器验证，临床范围需专业复核 | `plan/categories/03-医疗健康/drug-dosing.md` 的 D-N37 | 已否定 | —（成人错误区间已修；其他原记录未复核） |
 | 医疗健康 | `tools/pulmonology/lung-rads.html` | A | 2026-11-06 Node 执行实际 `calc()`：部分实性总径 30 mm、实性成分 5/6/8 mm 分别输出 3/4A/4B，空值拦截；未做浏览器验证，阈值需专业复核 | `plan/categories/03-医疗健康/drug-dosing.md` 的 D-N107 | 已否定 | —（已修复） |
 | 医疗健康 | `tools/clinical-lab/flow-cytometry-ratio.html` | A | `:154` Treg 输入、`:260` 读入后**全文未再使用**；`:302` 仅显示 NK 绝对值，`:316-330` 异常 flags 无 NK 低值判定，NK 偏低仍落「各项指标在参考范围内」 | `plan/categories/03-医疗健康/lab-diagnosis.md:291` | 已确认（真） | 中高（正向误判） |
 | 医疗健康 | `tools/clinical-lab/semen-analysis.html` | A | `:148` IM 输入、`:261` 读入；`:262` 必填校验**不含 im**；`:267` 总活力只算 PR+NP；`:274` `setInterp('im',true,'')` 恒显 ✓ 正常 | `plan/categories/03-医疗健康/lab-diagnosis.md:398` | 已确认（真） | 中（IM 死输入 + 假正常） |
 | 医疗健康 | `tools/clinical-nursing/bag-valve-mask.html` | A | `:153` 球囊下拉、`:323` 读入仅用于 `bagWarnText` 告警，不改变频率/潮气量；`:257` 写「高级气道后 8~10 次/分」，`:282-283` 婴儿 CPR 又写 20-30 次/分，页面口径冲突 | `plan/categories/03-医疗健康/drug-dosing.md:262` | 部分成立 | 中（告警已接线；频率口径需统一） |
 | 医疗健康 | `tools/clinical-nursing/ostomy-bag-timing.html` | C | 2026-11-06 Node 执行实际 `calc()`：7 天间隔的 70% 预警点为 11-06 05:36，预警前后提示正确，超期后重算颜色复位；未做浏览器验证 | `plan/categories/03-医疗健康/drug-dosing.md` 的 D-N46 | 已否定 | —（预警已修复；其余问题见 D-N46） |
-| 医疗健康 | `tools/healthcare/map.html` | A | `:242-257` 已有四重输入守卫（收缩压/舒张压非正、超范围、舒张压>收缩压均拦截并提示），原「无守卫仍判正常」不成立 | `plan/categories/03-医疗健康/drug-dosing.md:312` | 已否定 | —（已修复） |
+| 医疗健康 | `tools/healthcare/map.html` | A | 2026-11-06 Node 执行实际 `calc()`：收缩压或舒张压非正、超范围、舒张压高于收缩压均提示并拦截分级；120/80 输出 MAP 93.3。未做浏览器验证 | `plan/categories/03-医疗健康/drug-dosing.md`（其他问题未复核） | 已否定 | —（输入守卫已修复） |
 | 医疗健康 | `tools/healthcare/healthcare.html` | C | `:121` 英文简介已改为「按体重折算 + 上限倍数」，不再提 Clark/Young/BSA；`:163-165` 引据表仅列体表面积法作参考，`:464` FAQ 也只作局限说明 | `plan/categories/03-医疗健康/drug-dosing.md:81` | 已否定 | —（原记录已过期） |
 | 医疗健康 | `tools/nephrology/edema-grading.html` | A | 2026-11-06 Node 执行 `calc()`：2 mm / 10 秒为 1+，同深度 / 120 秒为 4+；4 mm / 30 秒描述为回弹 16–30 秒。未做浏览器验证，阈值需专业复核 | `plan/categories/12-长尾行业/_others.md` 的 12-N112 | 已否定 | —（已修复） |
 | 医疗健康 | `tools/cardiology/coronary-calcium.html` | C | `:262-267` 原始 Agatston 分段（0/<100/<400/<1000/≥1000）已实现；`:271-285` MESA 简化百分位（<50/50–75/≥75）已实现 | `plan/categories/03-医疗健康/specialties.md:417` | 已否定 | —（已修复） |
-| 金融财务 | `tools/finance/housing-fund-loan.html` | A | `:292` `var RATE = 0.031` 写死；`:205,233,366` 正文与结果均按 3.1% 输出，且标注「2024 年参考」；无利率可调输入 | `plan/categories/02-金融财务/finance.md:729` | 已确认（真） | 中高（利率口径过期） |
+| 金融财务 | `tools/finance/housing-fund-loan.html` | A | 2026-11-06 Node 执行实际 `calc()`：贷款 75 万、30 年，输入 2.85% / 3.1% 时月供分别为 3101.68 / 3202.62 元；利率已可调整。未做浏览器验证，现行当地政策未核验 | `plan/categories/02-金融财务/finance.md` 的 F-N96 | 已否定 | —（利率写死问题已修；其他问题未复核） |
 | 金融财务 | `tools/finance/salary-after-tax.html` | A | `:261` 读入 `months` 后仅用于 `:262` 合法性守卫，税费计算全程未用；`:266` brackets 有 7 档，`:294-298` 展示表只列 5 档（45%/35% 两档缺失） | `plan/categories/02-金融财务/finance.md:269` | 已确认（真） | 中（死输入 + 税率表不全） |
 | 商业运营 | `tools/marketing/marketing-ltv-calculator.html` | A | `:457` 计算 `payback = cac/(ltv/(lifespanYears 或 3)/12)` 后**从未渲染**；`:461` 只展示 LTV:CAC 比率；简单模式无 lifespanYears 时回退 3 年 | `plan/categories/06-商业运营/marketing-sales.md:361` | 已确认（真） | 中（回本周期结果被丢弃） |
 | 商业运营 | `tools/hr/bandwidth-1.html` | C | `:304-352` calc 为通用模板：按标题正则匹配后算 `(a+b)/2` 或 `a*b`，输入 v0/v1 被当作任意 A/B；meta `:10-11` 承诺的「分位值/内部公平性」无对应实现 | `plan/categories/06-商业运营/hr-legal.md:483` | 已确认（真） | 中低（整页模板化） |

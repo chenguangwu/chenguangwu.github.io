@@ -1,5 +1,10 @@
 # 营销/销售 · tools/{marketing,advertising,sales}（~70 页）
 
+## 2026-11-06 已修记录独立复核：UTM 锚点
+
+- **MS-N11 / 修复台账 O-3：原锚点错位已修。** Node 抽取 `utm-builder.html` 的 `__utmAppend()` 实跑：`https://shop.com/p#sku` 生成 `https://shop.com/p?utm_source=baidu#sku`；已有 `?x=1#sku` 生成 `?x=1&utm_source=baidu#sku`，旧 `UTM_Source` 也被替换。单条、批量、复制全部及原生批量 CSV 的源码均调用该函数。
+- `node scripts/verify_marketing_calc.js utm-builder` 为 2/2；此为 DOM 桩及函数级验证，未验证浏览器实际复制/下载；其他既有问题不在本项复核范围。
+
 ## 2026-11-06 公关评估和流程静态续审
 
 - `tools/pr/assessor-58.html:223-239,253-259`：合作费和曝光单位均为万，CPM 应为 `cost/expo*1000`，现乘 10000，高 10 倍；默认 5 万元/100 万次应 50 元，页面为 500 元并提示偏高。曝光为 0 时 CPM 和单粉成本都显示 0，后者虽有粉丝分母却错误依赖曝光；清空必填项只改结果文本，旧 `dataset.copyValue` 仍可被复制。

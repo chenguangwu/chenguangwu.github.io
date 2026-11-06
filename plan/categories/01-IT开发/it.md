@@ -1,5 +1,11 @@
 # IT 开发 · tools/it（340 页，全站第一大分类）
 
+## 2026-11-06 已修条目独立复核（O-1/O-2/P-06）
+
+- **IT-N86 / O-1：仍待处理。** `tools/it/aes-encryptor.html:432-448` 的正逆行移位已改正，但抽取页面实际 AES 函数在 Node 执行 FIPS-197 标准向量：128 位密钥 `000102030405060708090a0b0c0d0e0f`、明文 `00112233445566778899aabbccddeeff` 得 `5be0c198ac32ec44e15331c1b1cbc154`，标准密文为 `69c4e0d86a7b0430d8cdb78070b4c55a`，再解密得到 `6563a8bd8b3590ed48e7d72f5add275f`。192/256 位向量也不匹配且无法往返。`mixColumns`（`:454-462`）单列输入 `db135345` 实得 `73f87854`，FIPS 标准结果为 `8e4da1bc`；因此行移位修正不足以修复原问题，不应销账。测试直接运行页面函数，并以 Node crypto 交叉校验标准密文；未在浏览器验证。
+- **IT-N93 / O-2：原问题已修复。** 抽取 `tools/it/rsa.html:389-520` 实际函数，以 Node WebCrypto 和 DOM 桩运行 2048 位密钥生成、OAEP 加解密、PSS 签名验签，均成功；原不兼容 usages 不再出现。仅覆盖 SHA-256 / PSS 路径，未验证浏览器及其他原有问题。
+- **IT-N143 / P-06：原列置换问题已修复。** 抽取 `tools/it/adfgvx-cipher.html:253-342` 实际函数，用 `CIPHER`、`FRANCE`、`LEMON` 三个密钥对 `ATTACKATDAWN` 加解密均还原原文。`order.indexOf(i)` 修正列回填；测试为 DOM 桩，未运行浏览器。补位问题 IT-N144 不在本条修复范围，仍保留。
+
 ## 2026-11-06 文本差异工具静态续审（清单 634）
 
 - `tools/text/calc-1.html:218-225,245-287`：任一文本改动都同步建立行数乘积大小的 LCS 矩阵并完整重算，大文本可能占用大量内存或阻塞界面；拼出的正常差异文本只要包含独立 `NaN` 或 `Infinity` 字样，就被数值守卫替换成“计算结果含无效值”，无法比较这些普通文本。未运行浏览器或压力测试。
@@ -375,8 +381,9 @@
 
 - 2026-11-06 复核：原 IT-N60 引号 URL 和 IT-N61 注释开关问题已修。Node 执行页面实际 `minify()`，单双引号 URL `a)b  c` 均保留双空格；取消勾选保留 `/*keep*/`、勾选则删除。未做浏览器验证。
 
-### IT-N65 User-Agent 解析器仍将 Windows Phone Edge 误认 Chrome（中，已修复）
-- 复核结论（2026-11-06 复核查证 + 本次实改）：旧版 `Edge/` 与 Windows Phone 确未被识别。本次已修复：`parseBrowser()` 在 `Chrome/` 之前新增 `if(/Edge\//.test(ua))` 分支（legacy Edge 映射 Microsoft Edge）；`parseOS()` 在通用 `/Windows/` 之前新增 `if(/Windows Phone/.test(ua))` 分支。Node 复算：`Windows Phone 10.0 … Chrome/52.0 … Edge/15.15254` → browser `Microsoft Edge 15.15254`、os `Windows Phone`（原误判 Google Chrome / Windows）；回归校验现代 `Edg/120` 仍得 `Microsoft Edge`、Win10 Chrome 仍得 `Google Chrome / Windows 10/11`，无回归。
+### IT-N65 User-Agent 解析器：Windows Phone 系统标记优先级仍可能误判（中，部分修复）
+- 2026-11-06 独立复核：Node 执行页面实际 `parseBrowser()`、`parseOS()`，`Windows Phone 10.0 … Chrome/52.0 … Edge/15.15254` 正确识别为 Microsoft Edge 15.15254 / Windows Phone，原例已修。
+- 但 `parseOS()` 的 Windows NT 版本判断先于 Windows Phone：输入同时含 `Windows Phone 10.0; Windows NT 10.0` 的 UA 时仍输出 Windows 10/11，未识别 Windows Phone。应优先检查 Windows Phone；未做浏览器验证。
 
 ### IT-N68 多算法哈希器异步 SHA 可能覆盖新输入结果（高，确认函数竞态）
 - 2026-11-06 复核：`tools/it/hash-multi.html:322-371` 已以 `lastHashPairs` 复制摘要，原「只复制算法名」问题已修；但异步回调写入共享数组和当前 DOM 时未核对计算代次，旧请求后完成会覆盖新输入的 SHA。
@@ -406,14 +413,11 @@
 
 - 2026-11-06 复核：原 IT-N72/82 的行内空格和属性空格问题已修，Node 执行 `collapseHtmlWhitespace()` 复核原例均保留；原 IT-N73/84 的 EAN 长度、字符和校验位已修，实际 `buildEAN()` 对空、短、字母、超长、错误校验位返回错误，12 位和正确 13 位均生成 `5901234123457`；原 IT-N74/75 的示例选项、引号和镜像后命令均经 `parse()` 实测通过。仅函数级验证，未做浏览器验证。
 
-### IT-N77 Cron 表达式生成器：分钟为步进/枚举且小时为 `*` 时，中文说明缺失时间段（中，已修复）
-- 复核结论：审计证据描述的「只处理四种、缺 `hour==='*'` 分支」与当前源码不符——`tools/it/cron.html:627` 已有 `else if (hour === '*')` 块，内含 `min.startsWith('*/')` / `min.includes('/')` / `,` / `-` / 单值 五类分支。Node 复算 `updateDescription(['*/5','*','*','*','*'])` → `每天 每5分钟执行`、`updateDescription(['15','*','*','*','*'])` → `每天 每小时第15分执行`；`cron.html` 在 master 与 audit 分支逐字节一致。故 N77 已修复（审计证据为旧版快照），无需改码。
+- 2026-11-06 独立复核已修复项 IT-N77：Node 执行页面实际 `updateDescription()`，小时为 `*` 时分钟 `*/5`、`1,15`、`15` 分别输出「每天 每5分钟执行」「每天 每小时第1、15分执行」「每天 每小时第15分执行」。未做浏览器验证。
 
-### IT-N78 QR 内容解码器：geo 查询参数含非法百分号编码时抛未捕获 URIError，按钮无响应（中，已修复）
-- 复核结论：审计证据描述的裸 `decodeURIComponent` 在当前源码已不存在——`tools/it/qr-decoder.html:250` 已定义 `safeDecodeURI()`（try/catch 包裹 `decodeURIComponent`，失败时返回 `{value:s, ok:false}`），geo 分支 `:297` 改用 `safeDecodeURI(parts[1].slice(2))` 并在 `!ok` 时附 `查询提示：百分号编码非法，已按原文显示`。非法输入 `geo:39.9,116.4?q=%E0%A4%A` 不再抛异常，正常展示经纬度与原始查询。`qr-decoder.html` 在 master 与 audit 分支逐字节一致。故 N78 已修复（审计证据为旧版快照），无需改码。
+- 2026-11-06 独立复核已修复项 IT-N78：Node 执行页面实际 `generate()`，输入 `geo:39.9,116.4?q=%E0%A4%A` 后保留原始查询并提示百分号编码非法，未抛异常。未做浏览器验证。
 
-### IT-N79 QR 内容解码器：WiFi 字段不处理 `\;` 转义，SSID/密码被截断（中，已修复）
-- 复核结论：审计证据描述的 `/([TSPH]):([^;]*)/g` 正则在当前源码已不存在——`tools/it/qr-decoder.html:253` 的 `parseWifiFields()` 改为字符状态机，遇 `\\` 时把下一字符原样写入值（支持 `\; \, \: \\`），仅在未转义的 `;` 处切段；字段值经 `wifiValue()` 仅对 `%xx`/`%u` 做百分号解码。`WIFI:S:my\;net;T:WPA;P:p\;q;;` 现得 SSID `my;net`、密码 `p;q`。`qr-decoder.html` 在 master 与 audit 分支逐字节一致。故 N79 已修复（审计证据为旧版快照），无需改码。另：`:151` formula-box 旧文案仍写「`([TSPH]):([^;]*)`」与「`decodeURIComponent` 还原」，本次已同步更新为状态机/安全解码口径。
+- 2026-11-06 独立复核已修复项 IT-N79：Node 执行页面实际 `generate()`，输入 `WIFI:S:my\;net;T:WPA;P:p\;q;;` 后输出完整 SSID `my;net` 和密码 `p;q`。未做浏览器验证。
 
 ### IT-N81 URL 编解码：解码无条件把 `+` 当空格，破坏普通 URL 中的字面加号（中，确认源码缺陷）
 - 描述：`decodeUrl()` 在调用 `decodeURIComponent` 前固定执行 `text.replace(/\+/g,'%20')`，不区分当前是 `encodeURIComponent` 还是 `encodeURI` 模式，也不区分路径与查询。普通 URL 路径/查询里的字面 `+` 被改成空格。
