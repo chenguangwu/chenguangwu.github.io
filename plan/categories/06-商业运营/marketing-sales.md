@@ -933,6 +933,15 @@
 - **A/B 转化数缺少有效区间校验**：`marketing-ab-test-significance.html:293-314` 仅限制访客数为正，未拒绝负转化或转化数超过访客数；例如两组各 100 访客、150 转化时合并比例为 1.5、标准误为 NaN，结果替换成 `—` 仍给出“不显著”结论。应限制转化数介于 0 与访客数之间，并对标准误为零单独处理。
 - 本批共阅读 `funnel-calculator`、`marketing-ab-test-significance`、`marketing-ad-budget-allocator`、`marketing-break-even-roas`、`marketing-cac-calculator`、`marketing-chinese-hashtag-generator` 6 页；仅源码分析，未运行页面、注入或浏览器，未计入双跑。
 
+## 2026-11-06 静态续审：营销工具第 424–429 页
+
+- **历史结论状态更新**：MS-J4（期末超过期初加新增）、MS-J5（转化超过访问）、MS-J7（折后价或优惠超原价）、MS-M1（零折及越界）、MS-N3（点击超过展示）和 MS-J2（新增客户超过点击及毛利率越界）原述计算路径已分别加入校验；`marketing-coupon-discount.html:380-398` 区分空值与零值并由计算和保存共用校验。上述结论仅按源码更新，未做运行回归；优惠券按订单减一次仍是现行计算，公式框须另对照。
+- **保存历史绕过计算校验**：`marketing-churn-rate.html:393-401,475-487`、`marketing-conversion-rate-calculator.html:398-405,491-502`、`marketing-cpa-calculator.html:429-439,567-580`、`marketing-cpm-calculator.html:402-405,490-500`、`marketing-discount-rate.html:436-465,531-554` 的保存路径均缺少部分计算约束。例如期初 100、期末 150、新增 0 在流失页显示口径错误，但历史仍可存流失率 -50%；折后价高于原价也可存负折扣。应让保存与计算共用同一校验。
+- **折扣页清空数值被当成 0**：`marketing-discount-rate.html:429-431,442-444,455-457` 对折扣率、折后价、优惠额使用 `parseFloat(...) || 0`；清空折后价会直接得到 0 元和 100% 优惠，清空折扣率则得到无折扣结果。应区分空串与合法 0，在缺失时停止结果和历史保存。
+- **零转化历史 CPA 与当前结果不一致**：`marketing-conversion-rate-calculator.html:407-411,426-430,533-545` 对零转化显示 CPA 不可计算，但历史列表仍将花费除以零并把 `Infinity` 替换为 `—`，未附不可计算原因；且花费大于 0、收入为 0 时 ROI 卡被隐藏，不能呈现零收入对应的亏损。应区分输入缺失与真实零收入并统一结果与历史口径。
+- **零花费边界处理有缺口**：`marketing-cpm-calculator.html:398-400` 把 0 花费当无效，尽管展示量非零时 CPM 为 0；`marketing-cpa-calculator.html:449-450,464-485` 对 0 花费强制 ROI 为 0，并在客单和毛利均正时显示 `+0.0%`，而该 ROI 的分母为 0。应分别保留可算的零成本与标注不可计算的比率。
+- 本批共阅读 `marketing-churn-rate`、`marketing-conversion-rate-calculator`、`marketing-coupon-discount`、`marketing-cpa-calculator`、`marketing-cpm-calculator`、`marketing-discount-rate` 6 页；仅源码分析，未运行浏览器，不计双跑。
+
 ## T 批收口
 
 - 本轮审计 13 页：`market-share`、`estimate-sample-size-confidence`、`marketing-ab-test-significance`、`price-elasticity`、`tagline-generator`、`hashtag-generator`、`slogan-generator`、`social-media-image-sizes`、`marketing-chinese-hashtag-generator`、`calc-1`、`assessor-65`、`marketing-price-elasticity`、`marketing-engagement-rate`（均在 `tools/marketing/`）。
