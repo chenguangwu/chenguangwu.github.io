@@ -436,26 +436,28 @@
 
 范围：本分区「01 IT：非文本类剩余」8 页（`ipv6-ula` / `ssl-info` / `http-status` / `http-headers` / `mime-type` / `aes-encryptor` / `rsa` / `base32-encode`），编号接续 IT-N85，从 IT-N86 起。
 
-### IT-N86 AES 加密/解密：ShiftRows 排列写错，全模式输出与标准 AES 不符、本页自身加解密也不可逆（高，确认源码缺陷）
-- 问题：`shiftRows()` 第 1 行（`state[1,5,9,13]`）与第 3 行（`state[3,15,11,7]`）的旋转是对的，但随后第 437 行又把第 2 行四个位置整体转一格（正确应是 `2↔10`、`6↔14` 两次交换），第 438 行再把第 3 行整转一次，正好把第 436 行的正确结果转回原状。于是第 2 行被转成错误排列、第 3 行完全不位移；`invShiftRows()` 也不是它的逆。
-- 证据：`tools/it/aes-encryptor.html:432-439`（437/438 两行多余旋转）、`tools/it/aes-encryptor.html:441-445`（逆变换不互逆）、`tools/it/aes-encryptor.html:841`/`944`（ECB 路径直接调用）
-- 复现（Node 复算页内函数，FIPS-197 向量）：key=`000102030405060708090a0b0c0d0e0f`，明文=`00112233445566778899aabbccddeeff` → 实际密文 `f81f4bd483a531b35cce1d7781df548a`，期望 `69c4e0d86a7b0430d8cdb78070b4c55a`；再解密 → `2f22924707e907f8fe202e0cbf59b4bd`（期望回到明文）。对 16 字节输入做排列检查：`shiftRows(0..15)` 实际 `0,5,6,3,4,9,2,7,8,13,14,11,12,1,10,15`，标准应为 `0,5,10,15,4,9,14,3,8,13,2,7,12,1,6,11`；对结果再跑 `invShiftRows` 得到 `0,1,10,15,...` 而非恒等。CBC/CFB/OFB/CTR 与 Node `aes-128-*` 输出全部不一致（CBC 工具 `7eb6d701e15a3415…` vs Node `76d0627da1d29043…`）。
-- 影响：页面产出的密文不是标准 AES，任何外部库（OpenSSL/Java/Node）都无法解密；本页"加密→解密"同页往返也还原不出明文，工具的加密/解密功能实际不可用。
-- 方案：按 FIPS-197 重写 `shiftRows`（第 0 行不动、第 1 行左 1、第 2 行左 2 即 `2↔10`/`6↔14`、第 3 行左 3），`invShiftRows` 改为对应右移；补 FIPS-197 附录 B/C 官方向量（AES-128/192/256）自检并在发版前跑 Node 对照。
+### IT-N86 AES 加密/解密：ShiftRows 排列写错，全模式输出与标准 AES 不符、本页自身加解密也不可逆（高，已修复）
+- **根因（实测复核，2026-11-06）**：实际并非 `shiftRows` 写错，而是手写 AES 轮函数有三处实现错误：① `mixColumns`（原 454-463）系数写错——标准 `s0'=2·s0⊕3·s1⊕s2⊕s3` 被写成 `xtime(s0)^s0 ^ s1 ^ s2 ^ s3`（即 `3·s0⊕s1⊕s2⊕s3`，漏 3·s1、错把 2·s0 写成 3·s0）；② `invShiftRows`（原 441-448）第 3 行旋转方向反了（左移 3 的逆向应是左移 1，原代码写成右旋）；③ `invMixColumns`（原 465-477）用的 `transform+mixColumns` 取巧写法结果并非 `InvMixColumns`。`shiftRows` 本身正确，`aesBlock` 经 `mixColumns` 修正后 ECB 路径已可输出标准 AES。
+- **验证（从文件抽取真实函数跑 FIPS-197 / NIST SP800-38A 向量，全 PASS）**：AES-128/192/256 ECB 加密向量 `69c4e0d8…`/`dda97ca4…`/`8ea2b7ca…`；AES-128 ECB 解密向量回明文；NIST CBC 单块 `7649abac8119b246cee98e9b12e9197d` 收发一致；CFB/OFB/CTR/ECB 多组 16/20 字节往返一致；PKCS7 补齐/去补齐正确。
+- 证据：修复位 `tools/it/aes-encryptor.html` `mixColumns`/`gmul`/`invMixColumns`（新增 `gmul` 伽罗瓦乘法）、`invShiftRows`。
+- **无门禁回归用例（说明）**：本页不可加 verify 用例——① crypto 轮函数虽为顶层声明，但页面只把 `encrypt/decrypt/copyResult/generateSalt…` 这些内联 onclick 用到的函数挂到 window，`keyExpansion/aesBlock/hexToBytes` 在 harness 的 pageEval 作用域内 `typeof === 'undefined'`（实测：`K=undefined A=undefined H=undefined B=undefined E=function`）；② `encrypt()` 是 async，harness 点击阶段只 `await` 输入事件产生的 Promise，不 await 点击返回值，采集时 `#output` 仍是旧值。故 N86 以「从源文件抽取真实函数跑官方向量」为证据（见上一条验证记录），与 N60 CSS url 引号用例同类处置。
+- 影响（修复前）：页面密文非标准 AES，外部库无法解密；同页加解密往返也还原不出明文。现已全部对齐 FIPS-197。
 
-### IT-N87 AES 加密/解密：关闭 PKCS7 后分组模式静默截断，5 字节明文得到 5 字节全零密文（中，确认源码缺陷）
-- 问题：`needsPadding && usePadding` 才补齐，但 `encryptCBC/ECB` 按 `new Uint8Array(plaintext.length)` 分配并按 16 字节块写入，非整块输入写不进的部分被 TypedArray 静默丢弃；解密侧按 `floor(len/16)` 处理，同样丢尾块，且无任何报错。
-- 证据：`tools/it/aes-encryptor.html:834-837`（仅在勾选时补齐）、`tools/it/aes-encryptor.html:841-845`、`tools/it/aes-encryptor.html:943-948`
-- 复现：模式 CBC、取消勾选"PKCS7 填充"、输入 `Hello`（5 字节）→ 实际密文长度 5、hex `0000000000`；再解密 → 长度 5、hex `0000000000`（期望提示"输入长度须为 16 的倍数"或自动补零并标注）。
-- 影响：用户以为加密成功，实际得到全零/截断密文；解密端还会把残缺密文当合法输入，排查困难。
-- 方案：`usePadding=false` 时先校验 `plaintext.length % 16 === 0`（ECB/CBC）与密文整块长度，不满足直接 toast 报错；`encryptCBC` 输出分配 `numBlocks*16`，不要用明文长度分配。
+### IT-N87 AES 加密/解密：关闭 PKCS7 后分组模式静默截断，5 字节明文得到 5 字节全零密文（中，已修复）
+- **修复（2026-11-06）**：在 `encrypt()` 补齐分支后新增校验——`ECB/CBC` 且 `usePadding=false` 且 `plaintext.length % 16 !== 0` 时，直接 `toast` 报错「分组模式（ECB/CBC）关闭 PKCS7 填充时，明文长度必须是 16 字节的整数倍」并 return，杜绝静默零填充/截断。流模式（CFB/OFB/CTR）无需整块，不受影响。
+- 证据：`tools/it/aes-encryptor.html` `encrypt()` 内 `needsPadding && !usePadding && (plaintext.length % 16 !== 0)` 分支。
 
-### IT-N88 AES 加密/解密：ECB 模式勾选"输出包含 Salt/IV"后无法解密（中，确认源码缺陷）
+### IT-N88 AES 加密/解密：ECB 模式勾选"输出包含 Salt/IV"后无法解密（中，已修复）
 - 问题：加密在 ECB 下仍会拼接 `salt:cipher`（`iv` 为 null 只留 salt），但解密仅在 `mode !== 'ECB'` 时拆分冒号元数据；ECB 把整串 `saltHex:cipherHex` 交给 `hexToBytes()`，冒号与错位导致字节错乱（Base64 分支则因 `:` 让 `atob` 抛错）。
 - 证据：`tools/it/aes-encryptor.html:850-857`（ECB 也拼 meta）、`tools/it/aes-encryptor.html:890-907`（`if(mode !== 'ECB')` 才拆）、`tools/it/aes-encryptor.html:913`（整串 `hexToBytes`）
 - 复现：ECB + 密码模式（自动生成 Salt）+ 勾选"输出包含 Salt/IV"，加密得 `a1b2c3d4:<64位hex>`；点解密 → 实际把整串按 hex 解析，`hexToBytes('aabb:ccdd')` 复算为 `[10,171,11,204,221]`（含 `:` 的位置产生错字节），解出乱码（期望剥离 salt 后解出原文）。
 - 影响：自带元数据的密文只能在本页"碰巧"解密（非 ECB），ECB 下完全不可用；用户会误判密钥/密文错误。
 - 方案：ECB 不拼 IV、Salt 元数据单独字段或在解密时统一先剥离 `元数据前缀`；`hexToBytes` 增加非法字符校验（遇到 `:` 直接报错）。
+- 修复（2026-11-06）：
+  - 加密侧 hex 分支改为 `metaParts.join(':')` 统一拼装，消除 ECB 无 IV 时 `salt::cipher` 的双冒号（原 `meta += salt+':'` 又追加一次 `:`）。
+  - 解密侧新增 `else`（ECB）分支：`useSalt && !saltHex && parts.length>=2` 时取 `parts[0]` 作 salt、`parts.slice(1).join(':')` 作密文。
+  - `hexToBytes()` 改为 `/[\s:]+/g` 剥离冒号与空白，并对残留非法字符 `throw new Error('十六进制数据含非法字符')`，不再静默产出 NaN 字节。
+  - Node 复算（从源文件抽取真实函数）：ECB meta 串 `01020304:<32位hex>` 单冒号、密文可还原为原文、`hexToBytes('aa:bb:cc')=aabbcc`、`hexToBytes('zz')` 抛错，全部 PASS。
 
 ### IT-N89 AES 加密/解密：文件按钮把文件转成 Base64 再加密，等于二次编码且无法还原文件（中，确认源码缺陷）
 - 问题：`handleFile()` 读文件后写入 `#input` 的是 `bytesToBase64(bytes)` 文本，随后加密对这段 Base64 文本做 UTF-8 编码；解密只把明文回填到文本框，页面没有任何"另存为原文件"的下载入口，`currentFile` 仅用于显示文件名。
@@ -463,27 +465,31 @@
 - 复现：选一个 1KB 的 `a.bin` → 输入框变为 Base64 文本；加密→解密后得到的是同一段 Base64 文本（不是原文件字节）；若想得到原文件还需再手工 Base64 解码，且本页不提供该功能。
 - 影响："文件加密/解密"名实不符，密文体积翻倍且丢失二进制语义；用户无法完成文件级往返。
 - 方案：文件模式直接把 `Uint8Array` 作为明文/密文（跳过 TextEncoder），解密后提供"下载原文件"按钮并按原文件名保存；或在 UI 明示"文件仅转为 Base64 文本，不支持还原"。
+- 状态（2026-11-06）：本批未处理——彻底修复需新增"下载原文件"按钮与文件名字还原链路，涉及新增 UI 标签（须同步 `js/tool-i18n-en.js` GEN_UI_MAP），单列下批处理；本页 N86/N87/N88/N91/N92 已在同批修复。
 
-### IT-N90 AES 加密/解密：历史、图表、导出全部失效（读取 textarea 的 textContent 恒为空）（中，确认源码缺陷）
+### IT-N90 AES 加密/解密：历史、图表、导出全部失效（读取 textarea 的 textContent 恒为空）（中，已修复）
 - 问题：`__aes_encryptorResText()` 取 `#output` 的 `textContent`，但结果是用 `.value` 写进 `<textarea>` 的，`textContent` 始终是空字符串；`__aes_encryptorExtras()` 拿到 `''` 直接 return，因此 `TBKit.history.record` 从不执行，"导出明细 CSV"导出的是永远空的历史表（`exportTable` 对空表返回 false 且无提示）。
 - 证据：`tools/it/aes-encryptor.html:252`（`<textarea id="output" …></textarea>` 无初始文本）、`tools/it/aes-encryptor.html:1050-1053`（`r.textContent`）、`tools/it/aes-encryptor.html:1100`、`tools/it/aes-encryptor.html:1129-1131`
 - 复现：加密任意文本成功、输出框有密文 → 切"历史"页签：无记录；点"导出明细 CSV"：无文件、无 toast（`exportTable` 空表直接 `return false`）。
 - 影响：三块留存功能（历史、结果趋势图、导出）实际全部为空壳。
 - 方案：改读 `document.getElementById('output').value`；补一条"加密→记录→历史可见→导出含一行"的回归用例。
+- 复核（2026-11-06）：当前源码 `__aes_encryptorResText()`（`:1069-1077`）已是 `isField?r.value:r.textContent` 表单感知写法，`#output` 为 TEXTAREA 故读 `.value`；`__aes_encryptorExtras()` 已挂到 `encrypt()`（`:1166`，Promise `.then` 回调）与 `copyResult()`（`:1162`）两个入口。审计证据为旧快照，本项已修复，无需改码。
 
-### IT-N91 AES 加密/解密：预设回调调用 `copyResult()` 而非 `encrypt()`，点预设不会按新参数重新计算（中，确认源码缺陷）
+### IT-N91 AES 加密/解密：预设回调调用 `copyResult()` 而非 `encrypt()`，点预设不会按新参数重新计算（中，已修复）
 - 问题：`TBKit.preset.bar(...)` 的 `after` 回调写成 `function(){ copyResult(); }`，而预设的作用是写入 password/keySize/mode/outputFormat；写入后既不加密也不更新结果，只把上一次的输出复制到剪贴板。
 - 证据：`tools/it/aes-encryptor.html:1133-1138`（1138 行回调）
 - 复现：先加密一次得到密文 A；点"AES-128·Base64"预设（会改密码与密钥长度）→ 输出框仍是 A，剪贴板却收到 A（期望按新参数重算出 B）。
 - 影响：预设看起来"生效"（参数变了），但结果与参数不对应，用户会拿旧密文当新配置的产物。
 - 方案：回调改为先 `encrypt()`（异步）再按需 toast；历史回填同理应重算而非复制（见 `1086` 行同类写法）。
+- 修复（2026-11-06）：回调改为 `function(){ encrypt(); }`。已核对 `js/tool-kit.js::preset.bar`（`:1049-1053`）确为「先 `setValue` 应用全部预设值、再调用 `after()`」，故 `encrypt()` 读到的已是新参数，重算结果正确。
 
-### IT-N92 AES 加密/解密：信息栏把字符数直接标成字节数（低，确认源码缺陷）
+### IT-N92 AES 加密/解密：信息栏把字符数直接标成字节数（低，已修复）
 - 问题：`updateInfo()` 把 `String.length`（UTF-16 码元数）直接拼上单位 `B`；加密传 `inputText.length/output.length`，解密传 `inputText.length`（密文字符数）与 `output.length`；`handleFile()` 更是把 `file.size`（字节）与 `base64.length`（字符）混作两栏。
 - 证据：`tools/it/aes-encryptor.html:736-742`、`tools/it/aes-encryptor.html:870`、`tools/it/aes-encryptor.html:963`、`tools/it/aes-encryptor.html:1006`
 - 复现：输入"中文"（UTF-8 6 字节）→ 信息栏显示"输入长度 2 B"（期望 6 B）；加载一个 1KB 文件 → "输入长度 1024 B / 输出长度 1368 B"，其中输出是 Base64 字符数而非字节数（实际同量级但口径不一）。
 - 影响：以字节数评估密文长度/填充时会得到错误结论（CJK 文本差 3 倍，Base64/hex 串差 1.3–2 倍）。
 - 方案：统一用 `new TextEncoder().encode(text).length` 计算，或对 hex/base64 输入先解码再计字节，并把标签明确为"字符 / 字节"。
+- 修复（2026-11-06）：三处改为真实字节数——加密 `updateInfo(plaintext.length, ciphertext.length)`（填充后明文字节 / 密文字节）；解密 `updateInfo(ciphertext.length, plaintext.length)`（密文字节 / 解出明文字节）；`handleFile` 的 `updateInfo(file.size, bytes.length)`（原 `base64.length`）。
 
 - 留存建议（aes-encryptor）：①历史点击应"回填参数并重算"（当前只复制）；②增加密文/明文文件下载与"原文件名还原"；③内置 FIPS-197 官方向量一键自检，作为可信度卖点（修好 IT-N86 后才有意义）。
 

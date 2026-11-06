@@ -440,25 +440,37 @@ function shiftRows(state){
 
 function invShiftRows(state){
   var t;
-  // 逆变换：第 1 行右移 1 字节；第 2 行右移 2 字节（交换对）；第 3 行右移 3 字节
-  t = state[13]; state[13] = state[9]; state[9] = state[5]; state[5] = state[1]; state[1] = t;
+  // 逆变换：第 1 行右移 1 字节；第 2 行右移 2 字节（交换对）；第 3 行右移 3 字节（左移 1 字节）
+  t = state[1]; state[1] = state[13]; state[13] = state[9]; state[9] = state[5]; state[5] = t;
   t = state[2]; state[2] = state[10]; state[10] = t;
   t = state[6]; state[6] = state[14]; state[14] = t;
-  t = state[15]; state[15] = state[11]; state[11] = state[7]; state[7] = state[3]; state[3] = t;
+  t = state[3]; state[3] = state[7]; state[7] = state[11]; state[11] = state[15]; state[15] = t;
 }
 
 function xtime(x){
   return ((x << 1) ^ (((x >>> 7) & 1) * 0x1b)) & 0xff;
 }
 
+function gmul(a, b){
+  var p = 0;
+  for(var i = 0; i < 8; i++){
+    if(b & 1) p ^= a;
+    var hi = a & 0x80;
+    a = (a << 1) & 0xff;
+    if(hi) a ^= 0x1b;
+    b >>= 1;
+  }
+  return p;
+}
+
 function mixColumns(state){
   for(var c = 0; c < 4; c++){
     var i = c * 4;
     var s0 = state[i], s1 = state[i+1], s2 = state[i+2], s3 = state[i+3];
-    state[i]   = xtime(s0) ^ s1 ^ s2 ^ s3 ^ s0;
-    state[i+1] = s0 ^ xtime(s1) ^ s2 ^ s3 ^ s1;
-    state[i+2] = s0 ^ s1 ^ xtime(s2) ^ s3 ^ s2;
-    state[i+3] = s0 ^ s1 ^ s2 ^ xtime(s3) ^ s3;
+    state[i]   = xtime(s0) ^ (xtime(s1) ^ s1) ^ s2 ^ s3;
+    state[i+1] = s0 ^ xtime(s1) ^ (xtime(s2) ^ s2) ^ s3;
+    state[i+2] = s0 ^ s1 ^ xtime(s2) ^ (xtime(s3) ^ s3);
+    state[i+3] = (xtime(s0) ^ s0) ^ s1 ^ s2 ^ xtime(s3);
   }
 }
 
@@ -466,14 +478,11 @@ function invMixColumns(state){
   for(var c = 0; c < 4; c++){
     var i = c * 4;
     var s0 = state[i], s1 = state[i+1], s2 = state[i+2], s3 = state[i+3];
-    var t = xtime(xtime(s0 ^ s2));
-    var u = xtime(xtime(s1 ^ s3));
-    state[i]   = s0 ^ t;
-    state[i+1] = s1 ^ u;
-    state[i+2] = s2 ^ t;
-    state[i+3] = s3 ^ u;
+    state[i]   = gmul(s0, 14) ^ gmul(s1, 11) ^ gmul(s2, 13) ^ gmul(s3, 9);
+    state[i+1] = gmul(s0, 9)  ^ gmul(s1, 14) ^ gmul(s2, 11) ^ gmul(s3, 13);
+    state[i+2] = gmul(s0, 13) ^ gmul(s1, 9)  ^ gmul(s2, 14) ^ gmul(s3, 11);
+    state[i+3] = gmul(s0, 11) ^ gmul(s1, 13) ^ gmul(s2, 9)  ^ gmul(s3, 14);
   }
-  mixColumns(state);
 }
 
 function addRoundKey(state, roundKey, round){
@@ -701,7 +710,8 @@ function bytesToHex(bytes){
 }
 
 function hexToBytes(hex){
-  hex = hex.replace(/\s+/g, '').toLowerCase();
+  hex = String(hex).replace(/[\s:]+/g, '').toLowerCase();
+  if(!/^[0-9a-f]*$/.test(hex)) throw new Error('十六进制数据含非法字符');
   if(hex.length % 2 !== 0) hex = '0' + hex;
   var bytes = new Uint8Array(hex.length / 2);
   for(var i = 0; i < bytes.length; i++){
@@ -836,6 +846,8 @@ async function encrypt(){
     var needsPadding = (mode === 'ECB' || mode === 'CBC');
     if(needsPadding && usePadding){
       plaintext = pkcs7Pad(plaintext, 16);
+    } else if(needsPadding && !usePadding && (plaintext.length % 16 !== 0)){
+      return ToolBox.showToast('分组模式（ECB/CBC）关闭 PKCS7 填充时，明文长度必须是 16 字节的整数倍', 'error');
     }
 
     var ciphertext;
@@ -852,10 +864,11 @@ async function encrypt(){
     if(outputFormat === 'hex'){
       output = bytesToHex(ciphertext);
       if(includeMeta){
-        var meta = '';
-        if(salt.length > 0) meta += bytesToHex(salt) + ':';
-        if(iv) meta += bytesToHex(iv);
-        output = meta + (meta ? ':' : '') + output;
+        var metaParts = [];
+        if(salt.length > 0) metaParts.push(bytesToHex(salt));
+        if(iv) metaParts.push(bytesToHex(iv));
+        metaParts.push(output);
+        output = metaParts.join(':');
       }
     } else {
       output = bytesToBase64(ciphertext);
@@ -869,7 +882,7 @@ async function encrypt(){
     }
 
     document.getElementById('output').value = output;
-    updateInfo(inputText.length, output.length);
+    updateInfo(plaintext.length, ciphertext.length);
     ToolBox.showToast(i18nText('toast.msg087'));
   } catch(e){
     ToolBox.showToast('加密失败：' + e.message, 'error');
@@ -904,6 +917,12 @@ async function decrypt(){
           } else if(!ivHex){
             document.getElementById('iv').value = parts[0];
           }
+          ciphertextStr = parts.slice(1).join(':');
+        }
+      } else {
+        // ECB 无 IV：meta 格式为 salt:ciphertext
+        if(useSalt && !saltHex && parts.length >= 2){
+          document.getElementById('salt').value = parts[0];
           ciphertextStr = parts.slice(1).join(':');
         }
       }
@@ -962,7 +981,7 @@ async function decrypt(){
     var output = decoder.decode(plaintext);
 
     document.getElementById('output').value = output;
-    updateInfo(inputText.length, output.length);
+    updateInfo(ciphertext.length, plaintext.length);
     ToolBox.showToast(i18nText('toast.msg586'));
   } catch(e){
     ToolBox.showToast('解密失败：' + e.message, 'error');
@@ -1005,7 +1024,7 @@ function handleFile(event){
     document.getElementById('fileInfo').style.display = 'block';
     document.getElementById('fileInfoText').textContent =
       '已加载文件: ' + file.name + ' (' + formatFileSize(file.size) + ')，已转为 Base64';
-    updateInfo(file.size, base64.length);
+    updateInfo(file.size, bytes.length);
   };
   reader.readAsArrayBuffer(file);
 }
@@ -1138,7 +1157,7 @@ function __aes_encryptorPresets(){
     TBKit.preset.bar('#aes_encryptorPresets',[{label:'默认参数',labelEn:'Default',values:{'keySize':'256', 'mode':'CBC', 'outputFormat':'base64', 'password':'mypassword', 'keyType':'password'}},
   {'label':'AES-128·Base64','labelEn':'AES-128 B64','values':{'password':'mypassword1','keySize':'128','mode':'ECB','outputFormat':'base64','keyType':'password'}},
   {'label':'AES-256·Hex','labelEn':'AES-256 Hex','values':{'password':'secret123456','keySize':'256','mode':'ECB','outputFormat':'hex','keyType':'password'}},
-  {'label':'AES-192·Base64','labelEn':'AES-192 B64','values':{'password':'differentpw','keySize':'192','mode':'ECB','outputFormat':'base64','keyType':'password'}}],function(){ copyResult(); });
+  {'label':'AES-192·Base64','labelEn':'AES-192 B64','values':{'password':'differentpw','keySize':'192','mode':'ECB','outputFormat':'base64','keyType':'password'}}],function(){ encrypt(); });
 }
 var __aes_encryptor_f0=(typeof copyResult==='function')?copyResult:null;
 if(__aes_encryptor_f0){
