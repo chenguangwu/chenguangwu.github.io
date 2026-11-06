@@ -3394,6 +3394,18 @@ const CASES = [
   },
   {
     slug: "it/ip-calculator",
+    inputs: { ipInput: "192.168..1/24" },
+    expect: ["无效的 IP 或前缀"],
+    ref: "IT-N71 空八位组：`192.168..1` 第 3 段为空，RFC 950 点分十进制不允许空段。修复前 `ip.split('.').map(Number)` 把 '' 当 0 ⇒ 静默算出 192.168.0.0/24 的结果卡片；修复后 isValidOctet 拒绝空段并落入「无效的 IP 或前缀」。默认输入 192.168.1.0/24 合法，不命中。",
+  },
+  {
+    slug: "it/ip-calculator",
+    inputs: { ipInput: "0x10.1.1.1/24" },
+    expect: ["无效的 IP 或前缀"],
+    ref: "IT-N71 非十进制八位组：`0x10` 在 RFC 点分十进制中非法（多数解析器按十六进制得 16，属经典 SSRF/ACL 绕过手法）。修复前 Number('0x10')=16 ⇒ 静默按 16.1.1.1/24 出结果；修复后仅接受 `^(0|[1-9]\\d{0,2})$`。默认输入合法，不命中。",
+  },
+  {
+    slug: "it/ip-calculator",
     inputs: { subnetBase: "10.10.0.0", subnetOldMask: "20", subnetNewMask: "23" },
     clicks: ["calcSubnets()"],
     expect: ["1 10.10.0.0/23 10.10.0.1 10.10.1.254 10.10.1.255", "8 10.10.14.0/23 10.10.14.1 10.10.15.254 10.10.15.255"],

@@ -459,10 +459,17 @@ function switchTab(tab) {
   if (tab === 'history') renderHistory();
 }
 
+function isValidOctet(s){
+  // N71：严格十进制校验——空段（192.168..1）、前导零（010，部分解析器按八进制）、十六进制（0x10）、
+  // 科学计数（1e2）、正负号与空白一律判非法；原实现 map(Number) 会把它们静默当成数字。
+  return /^(0|[1-9]\d{0,2})$/.test(s) && Number(s) <= 255;
+}
 function ipToInt(ip){
-  const parts = ip.split('.').map(Number);
-  if(parts.length !== 4 || parts.some(p => isNaN(p) || p < 0 || p > 255)) return null;
-  return (parts[0] << 24) + (parts[1] << 16) + (parts[2] << 8) + parts[3];
+  const parts = String(ip).split('.');
+  if(parts.length !== 4) return null;
+  for(const p of parts){ if(!isValidOctet(p)) return null; }
+  const n = parts.map(Number);
+  return (n[0] << 24) + (n[1] << 16) + (n[2] << 8) + n[3];
 }
 
 function intToIp(num){
@@ -502,7 +509,9 @@ function isLinkLocal(ip){ return ip.startsWith('169.254.'); }
 function parseCidr(input) {
   if(input.includes('/')){
     const [ip, p] = input.split('/');
-    return { ip: ip.trim(), prefix: parseInt(p) };
+    // N71：前缀只认 1-2 位纯数字（parseInt('24abc') 会静默取 24，把非法输入当合法）
+    if(!/^\d{1,2}$/.test(String(p).trim())) return null;
+    return { ip: ip.trim(), prefix: parseInt(p, 10) };
   }
   return null;
 }

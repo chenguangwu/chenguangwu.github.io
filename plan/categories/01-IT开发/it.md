@@ -373,19 +373,7 @@
 
 > 范围：本轮阅读 8 页（`tools/it/ip-calculator.html`、`tools/it/html-minifier.html`、`tools/it/barcode-ean.html`、`tools/it/docker-run-converter.html`、`tools/it/cron.html`、`tools/it/qr-decoder.html`、`tools/it/url-encode.html`、`tools/it/base64-converter.html`）。仅源码 + Node 复算，未开浏览器/未做 EN/移动端/门禁验证。
 
-### IT-N71 IP 计算器仍将空八位组静默转换为 0（中，确认函数缺陷）
-- 2026-11-06 复核：`tools/it/ip-calculator.html:756-820` 已统一用 BigInt 计算子网，合法 `0.0.0.0` 也不再被误判；Node 执行实际 `calcSubnets()`，`192.168.1.0/24→/26` 得 4 个子网，`0.0.0.0/0→/8` 得 256 个。原 IT-N71 和 IT-N85 症状已修。
-- `:462-465` 的 `ipToInt()` 仍用 `map(Number)` 而未校验每段字面格式；Node 输入基础 IP `192.168..1`、原前缀 24、新前缀 26，未报错并输出 `192.168.0.0/26` 等子网。空段被当 0，可能误导地址规划。未做浏览器验证。
-- 方案：按四段十进制整数严格校验（含范围与前导零规则），失败时清空旧表并提示。
-
 - 2026-11-06 复核：原 IT-N72/82 的行内空格和属性空格问题已修，Node 执行 `collapseHtmlWhitespace()` 复核原例均保留；原 IT-N73/84 的 EAN 长度、字符和校验位已修，实际 `buildEAN()` 对空、短、字母、超长、错误校验位返回错误，12 位和正确 13 位均生成 `5901234123457`；原 IT-N74/75 的示例选项、引号和镜像后命令均经 `parse()` 实测通过。仅函数级验证，未做浏览器验证。
-
-### IT-N81 URL 编解码：解码无条件把 `+` 当空格，破坏普通 URL 中的字面加号（中，确认源码缺陷）
-- 描述：`decodeUrl()` 在调用 `decodeURIComponent` 前固定执行 `text.replace(/\+/g,'%20')`，不区分当前是 `encodeURIComponent` 还是 `encodeURI` 模式，也不区分路径与查询。普通 URL 路径/查询里的字面 `+` 被改成空格。
-- 证据：`tools/it/url-encode.html:540-545`（544 无条件替换）
-- 复现：输入 `https://example.com/a+b` 点解码 → 实际 `https://example.com/a b`（期望保留 `https://example.com/a+b`，因为 `+` 在 URL 路径中不是空格）；输入 `?q=1+1` 同样变成 `q=1 1`。
-- 影响：解码普通链接会把数学表达式、C++ 等含 `+` 的路径/参数改坏；与页面自身的 `encodeURIComponent` 模式不一致。
-- 方案：仅当启用「表单/query 模式」时才把 `+` 转为空格，默认保留；或在输出旁提供两种结果。补路径 `+`、查询字面 `+`、真实表单 `a+b`（应空格）用例。
 
 ### IT-N83 Base64/Base32/Base85 转换器：Base32/Base85 解码静默跳过非法字符，脏输入仍输出看似正常文本（中，确认源码缺陷）
 - 描述：`base32Decode()` 对不在 `A-Z2-7` 表的字符执行 `if(idx===-1) continue`，`base85Decode()` 对不在字符表的字符同样 `continue`；两者都不校验剩余位数/填充位。复制时混入数字 `0/1`、标点或被截断的串，会被当成合法输入并解出部分内容。
