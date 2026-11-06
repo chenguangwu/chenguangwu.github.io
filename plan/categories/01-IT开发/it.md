@@ -190,9 +190,9 @@
 
 ## 2026-11-03 续查（并行批 G）
 
-### IT-N11 properties-parser 重复定义覆盖后错误态样式反转（低）
+### IT-N11 properties-parser 重复定义覆盖后错误态样式反转（低，已修复）
 - `tools/it/properties-parser.html:329-337` 仍重复定义 `setOut/setErr/clearAll/loadSample`；后定义的 `setErr` 覆盖成功态判断，成功和错误提示均为 `err`，空消息反而带 `ok`，`loadSample` 也改为调用 `doBeautify()`。Node 执行页面原函数确认成功提示的 class 为 `err`。
-- 删除重复定义并保留正确的成功态判断，确认示例行为符合预期。
+- 修复：删除 334-337 行的重复定义（函数声明会后被覆盖），保留 329-332 的正确定义（`setErr` 成功态 `✅` 判 `ok`、`loadSample` 走 `propsToJson`）；verify 新增 N11 回归用例（loadSample → 断言输出含 JSON 键 `"app.name"`，区分 propsToJson 与 doBeautify 两种输出），3/3 通过。
 
 ### IT-N15 字节模式对未超限文本错误截断（中，已修复）
 - `tools/it/text-truncate.html` 字节模式先判断省略符是否超过上限，再判断输入是否需要截断。例如输入 `a`、上限 1 字节、省略符 `...` 时输出 `.` 而非原文 `a`。
