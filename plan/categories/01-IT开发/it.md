@@ -212,11 +212,11 @@
 
 ## 2026-11-03 续查（并行批 J）
 
-### IT-N20 历史/数据表/图表恒空，历史回填会清空全部选项（中，确认源码缺陷）
-- 描述：`__text_cleanerResText` 读取 `#output-text` 的 `textContent`，而它是 `textarea`——当前 `value` 不写入子节点，`textContent` 恒为空，extras 直接提前返回；且 extras 只包装了 `applyPreset`，点“执行清理”与预设条回调（`executeClean`）都不会记录。历史回填调用 `applyPreset()` 不带参数。
-- 证据：`tools/it/text-cleaner.html:756-763`（textarea 取 textContent）、`846-849`（仅包装 applyPreset）、`839-845`（预设条回调为 `executeClean`）、`781-793`（回填 `applyPreset()`）、`491-505`（`presets[undefined]` → `[]` → `deselectAll()`）、`472-474`。jsdom 复算：`#output-text` 初始与 `value='清理结果内容'` 之后 `textContent` 均为 `""`，ResText 等价结果为 `""`；`{…}[undefined]` → `undefined`，`list=[]` 会走 `deselectAll()`。
-- 影响：`tools/it/text-cleaner.html`；数据表/图表/历史三个页签永远为空；若将来有历史记录，恢复后默认勾选被清空，输出与记录不符。
-- 方案：改读 `output-text.value`；包装 `executeClean` 记录历史；回填时逐字段恢复后直接 `executeClean()`，不要用无参 `applyPreset`。
+### IT-N20 历史/数据表/图表恒空，历史回填会清空全部选项（中，已修复）
+- 描述：原 `__text_cleanerExtras()`（记录历史 + 渲染数据表/图表/历史三页签）此前**只被 `applyPreset` 包裹**，点「执行清理」/预设条回调 `executeClean()` 都不会记录，故三个页签恒空；且历史回填回调调用无参 `applyPreset()` → 其内部 `deselectAll()` 把刚恢复的勾选清空。
+- 复核结论：审计引用的 `textContent` 子问题在当前源码已不存在——`__text_cleanerResText()` 已对 `TEXTAREA` 走 `r.value`（`:759`），非根因。真根因为 extras 未接 `executeClean` + 回填误调 `applyPreset()`。
+- 修复（`tools/it/text-cleaner.html`）：① 新增 `executeClean` 包裹，使其在清理完成后触发 `__text_cleanerExtras()`（回填期间 `__text_cleaner_skip` 已置位，extras 直接返回不重复记录）；② 历史回填回调由 `applyPreset()` 改为 `executeClean()`，恢复字段后直接重跑清理、复现结果，不再清空勾选。
+- 验证：`verify_it_calc.js` 新增 N20 回归用例（`executeClean()` 后断言 `text_cleanerTable` 含结果「hello world foo bar」），text-cleaner 9/9 通过。
 
 ### IT-N25 美化把 JSON 数组当 INI 节名（中，已修复）
 - 描述：`doBeautify` 仅以 `startsWith('{')` 判定 JSON，`[...]` 走 INI 解析；`toIni` 对数组用 `for...in` 输出 `0 = a` 形式。

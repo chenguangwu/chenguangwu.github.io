@@ -3902,6 +3902,15 @@ const CASES = [
     ref: "删除所有换行 ⇒ 24 → 19 字符、行数降到 1（apshot 统计行数为结果串 split(换行).length）。python 复算：len('onetwothreefourfive') = 19。",
   },
   {
+    slug: "it/text-cleaner",
+    // IT-N20 回归：点「执行清理」须记录历史并填充数据表（修复前 executeClean 不触发 extras，table 恒空）
+    inputs: {"input-text": "  hello   world  \n\n\n  foo   bar  "},
+    clicks: ["document.getElementById('opt-trim').checked=true;document.getElementById('opt-merge-spaces').checked=true;document.getElementById('opt-empty-lines').checked=true;executeClean();"],
+    dumpIds: ["text_cleanerTable"],
+    expect: ["hello world foo bar"],
+    ref: "修复前 executeClean 不调用 __text_cleanerExtras，历史/数据表/图表三页签恒空（原仅 applyPreset 被包裹）。现包裹 executeClean：清理完成触发 extras → TBKit.history.record + matrix.table 渲染 → text_cleanerTable 含结果『hello world foo bar』（output 经 trim+合并空格+去空行得 hello world\\nfoo bar，__text_cleanerResText 折叠空白为 hello world foo bar）。默认样例不命中（不调 executeClean 即无记录）。",
+  },
+  {
     // 遮蔽回归：本页复制函数已改名 copyPlainText，避免被 js/common.js 的全局 copyText(text) 覆盖
     //（原内联 onclick="copyText()" 命中全局实现，实际复制的是 undefined）。
     slug: "it/rich-text-editor",
