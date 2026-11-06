@@ -60,6 +60,7 @@
 - 静态续审第四十七批：阅读 `rental/reminder-4`、`rubber/hardness-calc`、`safety/{manager,ppe-replacement,reminder-cycle-protection,self-test}`、`science/{battery-life-calculator,cycle}` 8 页，记录口令库弱加密与注入点、防护用品预览和负周期、硬度边界与电池导出，更新旧电池条目。至清单第 597 页，静态续审累计 317 页；仅源码分析，未运行浏览器或注入，不计双跑。
 - 静态续审第四十八批：阅读 `science/{equation-balancer,fraction-calculator,heat-transfer-calculator,led-resistor-calculator,molar-mass-calculator,nato-phonetic,ohms-law-calculator,pcb-trace-width}` 8 页，更新历史源码结论，记录括号匹配、热量单位、PCB 导出等问题。至清单第 605 页，静态续审累计 325 页；仅源码及算式复核，未运行浏览器，不计双跑。
 - 静态续审第四十九批：阅读 `science/{physics-constants,quadratic-equation,science-flow-rate,science-pressure-converter,torque-converter,voltage-divider-calculator,wavelength-to-rgb,wire-gauge-converter}` 8 页，更新旧判别式与分压条目的源码状态，复核电阻量级及历史、空态问题。至清单第 613 页，静态续审累计 333 页；仅源码分析，电气风险须专业复核，未运行浏览器，不计双跑。
+- 静态续审第五十批：阅读 `security/{anti-fraud-cards,emergency-contacts,flood-level,typhoon-scale,virtual-safe}`、`service/{csat-score,response-time,ticket-priority}` 8 页，记录风级标签、加密备份、统计空值及 HTML 注入路径。至清单第 621 页，静态续审累计 341 页；仅源码分析，安全与气象建议须专业复核，未运行浏览器或注入，不计双跑。
 
 
 - 扫描时间：2026/11/5 05:04:33
