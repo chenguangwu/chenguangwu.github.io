@@ -399,24 +399,12 @@
 - 影响：把结果贴进带 `u` 标志的 `RegExp`、ESLint `no-useless-escape` 或部分严格引擎会被判非法/告警。
 - 方案：`verbose` 只额外处理 `/` 与字符类内的 `-`，删除 `,;:<>@#&~=`；或在输出旁注明「本结果适用于非 `u` 模式」。
 
-### IT-N60 CSS 的带引号 URL 含括号时内容被改写（中，已修复）
-- 根因：`cssSegments()` 扫描 `url(...)` 仅用 depth 计数、不区分引号内括号，字符串里的右括号被误认作 URL 结束。Node 复算 `minify()`：`a{background:url("a)b  c");color:red}` 旧实现输出 `a{background:url("a)b c");color:red}`（URL 内双空格被压成单空格）；修复后按引号状态识别 URL 实际结束位置，引号内括号不计 depth，整段原样保留。
-- 修复（`tools/it/css-minifier.html:350-369`）：url 扫描增加 `q` 引号状态追踪，引号内的 `(`) 不增减 depth。
-- 验证：因 harness 注入会把字面 `"`/`'` 经 innerHTML 编码（`&quot;`/`'` 绕过 escHtml）导致引号上下文丢失、无法判别，N60 不落 verify 用例，改以 node 直接复算 `cssSegments/cssRewrite` 双引号与单引号两条用例确认双空格保留（修复前为单空格），结论稳定。默认示例不含引号 URL，不命中。
+### IT-N62 CSS 历史恢复后输出仍是旧值，旧记录静默截断（中，确认源码缺陷）
+- 2026-11-06 复核：`tools/it/css-minifier.html:492-510` 新历史保存完整输入并转义时间、操作和摘要；原新增记录截断及摘要注入问题已修。Node 执行页面实际函数确认新记录可完整回填，标签转为 `&lt;` 等实体；未做浏览器验证。
+- `loadH()` 仅回填输入、不重新计算或清除输出：Node 模拟先保留 `OLD OUTPUT` 再恢复另一条历史，输入更新但输出仍是旧值，用户可能复制错 CSS。原先只有摘要的旧 localStorage 记录仍直接回填截断内容，没有提示，无法凭空恢复完整数据。
+- 方案：按历史操作重新处理，或清空旧结果并提示重新计算；旧格式记录明确标为仅有截断摘要，不伪装为完整恢复。
 
-### IT-N61 CSS 压缩：无论是否勾选「移除注释」都删除注释（中，确认源码缺陷）
-- 描述：`beautify()` 读取 `removeComments`，`minify()` 却无条件执行 `css.replace(/\/\*[\s\S]*?\*\//g,'')`；用户取消勾选后点「压缩」，注释仍被删除，且界面没有任何提示。
-- 证据：`tools/it/css-minifier.html:326`（仅美化读取选项）、`tools/it/css-minifier.html:359`（压缩无条件删注释）
-- 复现：取消勾选「移除注释」，输入 `/*keep*/a{color:red}` 点「压缩」→ `a{color:red}`（期望保留 `/*keep*/`）；勾选状态切换不影响压缩结果。
-- 影响：需要保留 `/*! license */` 版权声明或 CSS hack 注释时会被静默删除，选项与行为不符。
-- 方案：把 `removeComments` 传入 `minify()` 并按其值决定是否删注释；保留 `/*!` 开头的重要注释；补勾选/取消两组用例。
-
-### IT-N62 CSS 压缩：历史记录只存前 60 字符，恢复后静默截断输入；摘要未转义直插 innerHTML（中，确认源码缺陷）
-- 描述：`addToHistory('美化', input.substring(0,60))` 只保存前 60 字符，`loadH()` 把该摘要直接写回输入框（不重新执行美化），历史恢复得到的 CSS 已被截断。`renderHistory()` 又把 `x.summary` 原样拼进 `innerHTML`，含 `<img onerror>` 的 CSS 会在渲染历史时作为标签执行。
-- 证据：`tools/it/css-minifier.html:350`（60 字符截断）、`tools/it/css-minifier.html:447-450`（回填摘要）、`tools/it/css-minifier.html:444`（`innerHTML` 拼接）
-- 复现：输入超过 60 字符的 CSS 并点「美化」，再点历史条目 → 输入框只剩前 60 字符（期望恢复完整输入并重算）；输入含 `<img src=x onerror=alert(1)>` 的 CSS 后刷新页面 → 历史列表渲染该标签（自输入型注入，localStorage 持久化）。
-- 影响：历史恢复不可用于真实长样式表；持久化历史可被注入脚本，影响同一来源下的页面。
-- 方案：历史保存完整输入（确需限长则明确提示不可恢复）；回填后调用 `beautify()` 重算；历史摘要用 `textContent`/`createElement` 或统一 `escapeHtml` 渲染。
+- 2026-11-06 复核：原 IT-N60 引号 URL 和 IT-N61 注释开关问题已修。Node 执行页面实际 `minify()`，单双引号 URL `a)b  c` 均保留双空格；取消勾选保留 `/*keep*/`、勾选则删除。未做浏览器验证。
 
 ### IT-N64 IPv4 范围展开器：八位组校验宽松，空段/科学计数/十六进制被当成合法 IP（中，确认源码缺陷）
 - 描述：`ip2int` 用一元 `+p[i]` 转数字，只检查 `0..255`，因此空串变 `0`、`1e2` 变 `100`、`0x1` 变 `1`、`+1` 变 `1`，`192.168..1` 被静默解析为 `192.168.0.1`；外层正则又只允许 `[0-9.]+/digits`，无法区分这些写法。
