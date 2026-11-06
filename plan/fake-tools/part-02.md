@@ -120,7 +120,7 @@
 |---|---|---|
 | `tools/healthcare/bsa-calculator.html` | `drug-dosing.md:269`「年龄完全不参与计算」 | **不成立**：`:305-311` 读取 `age`，`<18` 走 Haycock、`≥18` 走 DuBois |
 | `tools/chinese/chinese-character.html` | `edu-language.md:281`「字库仅 20 字，曦查不到」 | **不成立**：`:285` `charDB` 实际 45+ 字，含「曦」 |
-| `tools/museum/visitor-route.html` | `research-library.md:507`「负权通道导致无限循环」 | **已修复**：`:342` 已有 `seen[cur]` 与 `steps <= nodes.length` 双重护栏（本页另一条「必看节点未实现」仍为部分成立） |
+| `tools/museum/visitor-route.html` | `research-library.md` 的 RL-K41「负权通道导致无限循环」 | **已修复**：2026-11-06 Node 执行页面实际 `compute()`，默认图边距设为 -100 后正常输出路线并提示按绝对值计算；回溯另有访问集合与步数上限。未做浏览器验证（其他问题未在本次复核） |
 | `tools/finance/word-search.html` | `finance.md:1255`「宣称自定义词表/网格/可打印」 | **文案已对齐**：工作区 meta/正文/FAQ 已改为「固定 12×12、不支持自定义/打印」，仅剩功能受限，不再算虚假承诺 |
 | `tools/edu/country-quiz.html` | `edu-language.md:1167`「宣称限时作答」 | **文案已对齐**：工作区 meta 已改为「共 10 题、无计时模式」，不再算名不副实 |
 
