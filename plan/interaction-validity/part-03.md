@@ -2,7 +2,7 @@
 
 | # | 页面 | 得分 | 类型 | 证据 |
 |---|---|---|---|---|
-| 1 | `tools/data/data-visualizer.html` | 3 | click_error | 按钮「📈 渲染」｜click: Invalid array length @ drawHistogram (/tools/data/data-visualizer.html:299:18) |
+| 1 | `tools/data/data-visualizer.html` | 3 | click_error（已修复 2026-11-06 核验：bins 非整数/负数致 Array(k) 抛 Invalid array length；data-visualizer.html:289 改为 Math.floor 后 clamp 到 [1,1000]，NaN/负数/0 回退 8） | 按钮「📈 渲染」｜click: Invalid array length @ drawHistogram (/tools/data/data-visualizer.html:299:18) |
 | 2 | `tools/agriculture/agri-calculator.html` | 2.6 | empty_bogus | 空输入点「计算配比」（text_empty_no_select）→ 结果区 氮 (N)0.00kg磷 (P₂O₅)0.00kg钾 (K₂O)0.00kg配方比例：0-0-0施肥面积：0 亩每亩用量：0… |
 | 3 | `tools/design/px-to-rem.html` | 2.6 | empty_bogus | 空输入点「计算」（text_empty_no_select）→ 结果区 转换结果 ⏐ 0px = 0.0000rem ⏐ 📋 复制结果⬇️ 导出 TXT |
 | 4 | `tools/eco/battery-storage.html` | 2.6 | empty_bogus | 空输入点「计算」（text_empty_no_select）→ 结果区 可用电量：0.00 kWh总能量：0.00 kWh ⏐ 📋 复制结果⬇️ 导出 TXT |
@@ -57,7 +57,7 @@
 
 ### 点击主按钮抛异常（含 console 报错）（1 页）
 
-- `tools/data/data-visualizer.html` — 按钮「📈 渲染」｜click: Invalid array length @ drawHistogram (/tools/data/data-visualizer.html:299:18)
+- `tools/data/data-visualizer.html` — 按钮「📈 渲染」｜click: Invalid array length @ drawHistogram (/tools/data/data-visualizer.html:299:18)（**已修复 2026-11-06 核验**：bins 取值 `Array(k)` 遇非整数/负数抛错；`data-visualizer.html:289` 改为 `Math.floor` 后 clamp 到 [1,1000]，空/NaN/负数回退 8）
 
 ## 二、空态（没填也敢给结论）
 
