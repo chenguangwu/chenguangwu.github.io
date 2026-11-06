@@ -113,7 +113,7 @@
 - IT-N421、N422 的 locale 查表与正则仍在；IT-N415–N417、N427 的 MSISDN 校验与数据库路径仍在。MSISDN 原始输入在非数字时提前返回，不应仅因 `raw` 插入字符串就断言可注入。
 - 同批阅读 Linux、MongoDB 速查的搜索、分类与复制路径；无浏览器验证，不对完整正确性判通过。IT-N498–N500 的示例仍须按具体内容另行运行复核。
 - IT-N46 现有 RGB/alpha clamp；IT-N47 当前已合成前景 alpha、非法输入清除比值，历史原问题需运行回归后销账；背景 alpha 仍需单独确认。IT-N423、N308、N309 的数据范围问题仍在。
-- IT-N17 原 `don't` / `myVar` 问题于 2026-11-06 在基线 `06fd7b449c` 经 `verify_it_calc.js case-converter` 的 Node 桩回归确认修复，已从当前问题移除；未做浏览器验证。IT-N170–N173、IT-N49 的关键路径仍在。
+- IT-N170–N173、IT-N49 的关键路径仍在。
 - IT-N335、IT-N336 的原实现已不在当前源码中：`:289-302` 对非 ASCII 使用 `\u`/`\U`，`:324-331` 已先处理最多 3 位八进制；该两条历史缺陷需另做运行回归后销账。
 - IT-N418 至 IT-N420 的查询和判定路径仍在；IT-N469 的 MD5 仍按 UTF-16 码元打包，专业测试结论沿用历史基线，不冒称本次重跑。
 - 同批另阅读 `ascii-table`、`box-shadow-generator`、`calc-1`、`calc-10` 的主要交互路径；未对其完整正确性或浏览器行为作通过判定。
@@ -201,7 +201,6 @@
 
 ### 续查覆盖
 - 新抽查 `tools/it/env-generator.html`、`tools/it/json-to-csv.html`、`tools/it/number-base-converter.html`、`tools/it/text-replace.html`、`tools/it/nginx-config-generator.html` 共 5 页，新增 7 条问题（历史计数）；未做浏览器、部署或门禁验证。历史回填的实际交互需真机复核。
-- 2026-11-06 独立复核（基线 `06fd7b449c`）：IT-N4 的删除空行预设经 `node scripts/verify_it_calc.js text-replace` 桩回归通过，已从当前问题移除；IT-N3 原混合大小写反例修复，但 Unicode 偏移问题仍成立，见该条。
 
 ## 2026-11-03 续查（并行批 G）
 
@@ -223,29 +222,15 @@
 - 影响：`tools/it/url-parser.html`；解析含 HTML 的链接时页面可被注入（自输入/历史持久化），参数表只显示最后一个同名参数，复制按钮可能失效。浏览器实际执行未验证。
 - 方案：所有输出统一走文本转义或 `textContent`/`createElement` 构建；重复参数保留数组并按 `getAll` 逐行展示；`onclick` 改为事件委托，不把数据拼进属性。
 
-### IT-N13 CSV 校验不识别引号内换行（中，已修复（核验 2026-11-06：源码 `parseCSV` 已实现 RFC 4180 状态机——引号内换行/CRLF 不切记录、空行非记录；verify 含 IT-N13 回归用例 1706-1735 全过；本条证据中的 `parseLine` 逐行旧实现已不存在）
-- 问题：校验按 `\n` 切行后逐行解析，RFC 4180 允许双引号字段跨行，跨行字段会被误报为“引号未闭合”，后续行也被连带误报。
-- 证据：`tools/it/csv-validator.html:233-243`。Node 复算（提取 `parseLine` 后按原循环执行）：输入 `id,note\n1,"line1\nline2"\n` → `lines:3, expect:2, issues:["第 2 行：引号未闭合","第 3 行：引号未闭合"]`；同一逻辑对 `"x,y",z` 单行引号逗号判定正常。
-- 影响：`tools/it/csv-validator.html`；合法的多行字段（备注、地址）一律判错，用户会去“修”本来正确的数据。
-- 方案：改为按字符流状态机解析整份 CSV（引号内换行不切行），记录逻辑行号；补充多行字段、转义双引号、CRLF 用例。
-
 ### IT-N14 curl 转代码漏判 POST 与方法/选项值误认作 URL（高，已修复 2026-11-06 核验：curl-parser.html:242-288 CURL_VALUE_OPTS 值成对消费映射表、esc() 转义）
 - 问题：未处理“带 `-d` 时 curl 默认改 POST”，输出固定 GET；除 `-X/-H/-d/--data/--data-raw` 外的选项（如 `-F`、`--data-binary`、`-u`、`-o`）的值不以 `-` 开头，会被当成 URL；头部值原样进 `innerHTML`。
 - 证据：`tools/it/curl-parser.html:243,250-265,267-272`。Node 桩执行 `parse()`：`curl -d '{"a":1}' https://api.example.com/x` → `方法：GET`（curl 实际以 POST 发送）；`curl -F 'file=@a.txt' --data-binary @b.json https://x.com` → `URL：file=@a.txt`（真实 URL 丢失）；`-H 'X-Test: <img src=x onerror=alert(1)>'` 原样输出 `<p>X-Test: <img src=x onerror=alert(1)></p>`。
 - 影响：`tools/it/curl-parser.html`；复制出的请求方法/URL/表单体与真实 curl 行为不符，常见上传命令直接解析错。
 - 方案：建立“选项是否带值”的映射表，成对消费参数；无 `-X` 而有 `-d/--data*/--form` 时默认 POST；未知选项跳过其值并提示；输出统一转义，必要时以结构化 JSON 展示。
 
-### IT-N15 文本截断按 UTF-16 码元切割并忽略省略号预算（中，确认源码缺陷）
-- 问题：`chars` 模式用 `length/substring` 按码元截断，emoji 等代理对会被切成半个字符；省略号直接追加、不占长度预算；`bytes` 模式仅把 CJK/全角计 2 字节，emoji 仍按 1 个码元计；非法 limit 被 `||0` 吞成 0 后只输出省略号。
-- 证据：`tools/it/text-truncate.html:314,323-335,348-363`。Node 桩执行 `truncate()`：输入 `😀😀😀`、chars、limit=3 → `"😀\ud83d…"`（残留孤立代理项 U+D83D）；`abcdef`、limit=3、省略号 `...` → `"abc..."` 长 6；limit 非法/0 → `"…"`；`😀😀`、bytes、limit=4 → 两个 emoji 全保留（实际 8 字节）。页面公式表（255-268）自称“按码点截断、省略号计入上限”，实现与之相反。
-- 影响：`tools/it/text-truncate.html`；复制结果可能含非法字符，长度上限不可用于严格字段校验。
-- 方案：用 `Array.from`/`Intl.Segmenter` 按码点或字素簇截断，省略号从 limit 中扣除；bytes 模式按 UTF-8 实际编码长度累计；limit 非正整数时明确报错而非静默 0。
-
-### IT-N16 slugify 的 Unicode 模式在默认选项下被剥掉百分号（中，确认源码缺陷）
-- 问题：`unicode` 模式先 `encodeURIComponent` 生成 `%HH`，默认勾选的“移除特殊符号”正则 `[^\w\s\u4e00-\u9fa5-]` 会把 `%` 换成空格，随后小写化并按分隔符切分，转义三元组被拆成普通十六进制片段。
-- 证据：`tools/it/slugify.html:350-357,196-200`。Node 复算：`slugify("中文", {mode:"unicode",separator:"-",lowercase:true,stripSymbols:true,stripStopWords:false})` → `e4-b8-ad-e6-96-87`；关闭剥离符号才得到 `%e4%b8%ad%e6%96%87`。另：分隔符选点号时“下划线”预览（379）仍只把 `-` 换成 `_`，显示 `hello.world` 却标为下划线。
-- 影响：`tools/it/slugify.html`；默认配置下“Unicode 转义”输出不是可解码的百分号编码，预览标签也会误导。
-- 方案：剥离符号发生在编码之后时跳过 `%` 与十六进制字符，或先剥离再编码；预览按实际分隔符替换；补中文/emoji 的转义往返用例。
+### IT-N15 省略符超出截断上限（中，确认源码缺陷）
+- `tools/it/text-truncate.html:338-345,360-383` 将预算钳到 0 后仍原样追加完整省略符。当输入 `abcdef`、上限为 1、省略符为 `...` 时，字符及字节模式均输出 3 个字符，超过上限。Node 桩已执行原函数；未做浏览器验证。
+- 影响：截断结果不能满足严格长度或字节上限。应在省略符本身超限时截短或明确提示，并覆盖两种截断方向。
 
 ### 留存优化
 - `properties-parser.html:280` 的 `unescapeVal` 不解码 `\uXXXX`：`greet=\u4f60\u597d` 原样保留（Node 已复算），与页面 FAQ 对转义的说明不一致，可随 IT-N10 一并修。
@@ -273,29 +258,11 @@
 - 影响：`tools/it/text-cleaner.html`；数据表/图表/历史三个页签永远为空；若将来有历史记录，恢复后默认勾选被清空，输出与记录不符。
 - 方案：改读 `output-text.value`；包装 `executeClean` 记录历史；回填时逐字段恢复后直接 `executeClean()`，不要用无参 `applyPreset`。
 
-### IT-N21 空输入回退示例文本，复制结果与输入无关（中，确认源码缺陷）
-- 描述：`calcTool` 在输入为空时把局部变量 `raw` 替换成三行示例，但输入框仍为空；输出框、统计与“复制结果”都显示/复制示例。
-- 证据：`tools/it/line-ending-converter.html:320-327`（`if(!raw){raw='line1\nline2\nline3';}`）、`340-343`（`copyLe` 复制 `leOutput`）。Node 复算 `raw=''`、目标 `' \n'` → `"line1 \nline2 \nline3"`。
-- 影响：`tools/it/line-ending-converter.html`；清空后点“转换/复制结果”得到与当前输入无关的文本，易被误当作自己的数据。
-- 方案：空输入时清空输出与统计并提示；示例仅由显式的“示例”按钮注入（页面当前无该按钮）。
-
 ### IT-N22 历史只保存前 1000 字符，恢复后静默截断（中，确认源码缺陷）
 - 描述：`addToHistory` 对两份文本各做 `substring(0,1000)`；`loadHistory` 直接回填并重新 `doDiff()`，无任何截断提示。
 - 证据：`tools/it/text-diff.html:697-703`、`733-739`。Node 复算：1500 个 `A` + `TAIL` 经 `substring(0,1000)` 后长度为 1000 且不含 `TAIL`。
 - 影响：`tools/it/text-diff.html`；长文本从历史恢复后 diff 结果看似正常但内容已被砍掉。
 - 方案：保存完整文本；确需限长时存全文摘要并提示“已截断，不可恢复对比”，或对超限记录禁用回填。
-
-### IT-N23 重复节静默丢键，解析成功提示掩盖数据丢失（中，确认源码缺陷）
-- 描述：`parseIni` 遇到同名 `[section]` 直接 `result[section] = {}` 重建空对象，先前同名节里的键全部丢失；页面说明虽写了“新建该节的空对象”，但未提示会覆盖旧键，FAQ 也只说明重复键（后值覆盖），用户无从察觉。
-- 证据：`tools/it/ini-parser.html:259-278`（265-267 覆盖）、`160`（说明文案）、`208`（FAQ 只提重复键）、`292-297`（始终返回“✅ 解析成功”）。Node 复算：`parseIni('[a]\nx=1\n[a]\ny=2')` → `{"a":{"y":"2"}}`（`x` 丢失）。
-- 影响：`tools/it/ini-parser.html`；含重复节（分片配置、拼接文件）的合法 INI 被静默截断，成功提示让用户以为解析完整。
-- 方案：同名节合并已有键（或重复键显式报错并列出冲突键），至少在被覆盖时给出警告；`:` 等常见分隔写法可作为兼容性增强另行评估（页面当前只声明 `=`）。
-
-### IT-N24 “压缩”等同“美化”，重复定义导致成功态变红（中，确认源码缺陷）
-- 描述：`doMinify` 直接调用 `doBeautify`；脚本后段重复定义 `setOut/setErr/clearAll/loadSample`，覆盖版 `setErr` 的条件写成 `'err'+(s?'':' ok')`——有消息反而只有 `err`，空消息反而带 `ok`；`loadSample` 也被改成走美化。
-- 证据：`tools/it/ini-parser.html:307-316`（316 `doMinify(){ doBeautify(); }`）、`317-325`（重复定义）。Node 复算覆盖版 `setErr('✅ 解析成功')` → className `err`；`setErr('')` → `err ok`。`441` 的 Boot 先 `loadSample()` 再 `iniToJson()`，示例按钮（325）则只做美化。
-- 影响：`tools/it/ini-parser.html`；“压缩”按钮无任何压缩效果，成功提示显示为红色错误样式，示例按钮输出语义也被改。
-- 方案：实现真正的 INI 压缩或移除该按钮；删除后一组重复定义，成功/失败用独立 class 判断。
 
 ### IT-N25 美化把 JSON 数组当 INI 节名（中，确认源码缺陷）
 - 描述：`doBeautify` 仅以 `startsWith('{')` 判定 JSON，`[...]` 走 INI 解析；`toIni` 对数组用 `for...in` 输出 `0 = a` 形式。
@@ -353,7 +320,6 @@
 
 ### 续查覆盖
 - 本轮人工查看 `tools/it/text-diff.html`、`whitespace.html`、`text-cleaner.html`、`text-dedupe-sort.html`、`line-ending-converter.html`、`list-converter.html`、`markdown-to-html.html`、`ini-parser.html` 共 8 页，新增 14 条（历史计数：高 2、中 10、低 2），编号续 IT-N18～N31，与既有 IT-N1～N17 无重复；其中 IT-N31 为待验证项。
-- 2026-11-06 在基线 `06fd7b449c` 运行 `node scripts/verify_it_calc.js text-dedupe-sort`，IT-N19 的去重后修改输入再排序反例通过，已从当前问题移除；未做浏览器验证。
 - 取证方式为源码静态阅读 + Node 内存提取原函数/最小逻辑复算（含 `markdown inline`、`parseIni`、`removeLineNum`、`leViz`、`list convert`、`calcTool` 等价实现），并用本地已装 jsdom 复核 `textarea.textContent` 与空 `<select>` 的 `options.length`；未开浏览器，未做英文态、移动端、门禁或部署验证。
 
 ## 2026-11-03 续查（并行批 K）
@@ -366,41 +332,6 @@
 - 复现：用 jsdom 加载页面原有函数执行。默认 `SAMPLE` 经 `formatXml(SAMPLE,true)` → 输出以 `<to from="Alice">Bob</to>` 开头、`<raw/>`，根 `<note>` 与 `<![CDATA[<unparsed>text</unparsed>]]>` 全部消失；`<root><a>1</a><b>2</b></root>` → `<a>1</a>\n<b>2</b>`（期望保留 `<root>`）；`<a>line1\nline2</a>` 压缩 → `<a>line1line2</a>`（期望保留文本换行）。
 - 影响：页面 Boot 直接 `doBeautify()`，首屏示例即为多根、非法 XML；用户复制格式化/压缩结果会解析失败或丢失整段 CDATA 内容。
 - 方案：在 `formatXml` 中单独输出根元素本身；按 `nodeType` 分发并保留 CDATA、注释、处理指令与 XML 声明；压缩只删除元素之间的缩进换行，文本与 CDATA 原样保留；补根元素、CDATA、mixed content 往返用例。
-
-### IT-N33 HTML 实体全字符编码按 UTF-16 码元取码，代理对被截断（中，确认源码缺陷）
-- 描述：`encodeAll` 用 `for...of` 按码点迭代，却只取 `ch.charCodeAt(0)`（UTF-16 高位），非 BMP 字符只生成高位代理项的数字实体，低位代理被丢弃；`decodeText` 用 `innerHTML` 解析输入，裸 `<` 后接字母会被当成标签吞掉。
-- 证据：`tools/it/html-entities.html:573-587`（`576-577` 编码、`585-586` 解码）
-- 复现：`encodeAll('😀')` → `&#55357;`（期望 `&#128512;`）；`encodeAll('𠮷')` → `&#55362;`（期望 `&#134071;`）；`decodeText('a<b')` → `a`（期望 `a<b`）；`decodeText('<div>Hello</div>')` → `Hello`（期望保留标签文本）。
-- 影响：emoji、生僻字经“全字符编码”后变成孤立代理项实体，复制出去无法还原；解码含未转义尖括号的文本会静默丢内容。
-- 方案：编码改用 `codePointAt(0)` 生成 `&#十进制;`；解码避免 `innerHTML`，改用 `textarea` 的 `textContent` 往返或只替换已知实体；补 emoji、扩展汉字、裸 `<` 用例。
-
-### IT-N34 敏感词高亮与计数使用两套文本源，清空后复制仍取旧结果（中，确认源码缺陷）
-- 描述：`count`/`clean` 在原始文本上做替换，而 `marked` 在转义后的 HTML 上再跑同一正则：词表含 `lt`/`amp` 会命中 `&lt;`/`&amp;` 实体名并破坏实体，词表含 `<` 时 clean 能命中却因原文已被转成 `&lt;` 而无法高亮。另 `!raw || words.length===0` 分支只更新 `preview.innerHTML`，不更新 `preview.dataset.clean`，复制按钮继续读上一次的清洗结果；词表为空时该分支还把未转义原文直接写入 `innerHTML`。
-- 证据：`tools/it/sensitive-word-filter.html:202-210,216-221,224-235,239-245`
-- 复现：输入 `a < b`、词表 `lt` → 计数 0，预览却输出 `a &<mark>lt</mark>; b`（实体被切断）；词表 `<` → 计数 1，预览 `a &lt; b` 无高亮；先清洗 `违法内容`（词表 `违法`）再清空内容 → `copyResult` 仍复制 `**内容`；清空词表后粘贴 `<img src=x onerror=...>` 会作为 HTML 写入预览（自输入型注入）。
-- 影响：高亮与命中数对不上，实体/标签类词条误报；清空后复制到旧数据，易被误当作当前清洗结果。
-- 方案：高亮改为在原文上按匹配区间插入标记后再统一转义（或分段构建 DOM）；清空/无词条时同时清空 `dataset.clean` 并禁用复制；空词表分支用 `textContent` 输出。
-
-### IT-N35 关键词按无边界子串计数，密度可超 100%，纯数字文本被判无内容（中，确认源码缺陷）
-- 描述：含字母的关键词用 `new RegExp(...,'gi')` 全文子串匹配，无词边界；中文分支用 `indexOf` 累加，同样按子串计数。分母却只算“汉字数 + 英文单词数”，因此关键词命中次数可大于总词数，密度超过 100%。此外纯数字/纯符号文本的 `total=0`，在关键词统计前直接返回“请输入文本”。
-- 证据：`tools/text/analysis-density.html:202-206,211-219`
-- 复现：文本 `banana`、关键词 `a` → 出现 3 次、总词数 1、密度 `300.00%`（期望按独立词 0 次或明确说明按子串）；文本 `the the`、关键词 `he` → 密度 `100.00%`（实际 `he` 作为独立词 0 次）；文本 `2026 11 03`、关键词 `2026` → 输出“请输入文本”（期望照常统计并提示密度不适用）。
-- 影响：英文短词/词根会把密度算成虚高，SEO 判断被误导；纯数字或编号文本无法分析。
-- 方案：英文关键词加非字母数字边界并按词计数，或明确标注“子串出现次数”；分母纳入数字组或单独给出“不适用”；纯数字文本不提前返回。
-
-### IT-N36 号码正则无边界，长数字串被截断并重复提取国际号（中，确认源码缺陷）
-- 描述：手机号 `/1[3-9]\d{9}/g` 与座机 `/0\d{2,3}[-\s]?\d{7,8}/g` 均无前后边界，会在更长数字串中截取前 11/12 位；国际号与手机号规则并行，`+8613812345678` 同时抽出带国家码与裸手机号两份，去重因字符串不同而无效。
-- 证据：`tools/text/text-extract-phones.html:281-284,286-298`
-- 复现：`138123456789` → `["13812345678"]`（期望不匹配或提示疑似非法长度）；`+8613812345678` → `["13812345678","+8613812345678"]`（同一号码重复）；`0101234567890` → `["010123456789"]`（截断）。
-- 影响：从日志/通讯录批量抽取时复制出被截断号码与重复号码，后续外呼或导入会失败/重号。
-- 方案：号码规则加 `(?!\d)`/前后非数字边界并校验总长度；国际号优先匹配并抑制其内部手机号；规范化后统一去重；补超长数字串与 `+86` 连续写法用例。
-
-### IT-N37 阅读速度清空/非法被当成 1，空文本恒报 1 分钟且取整与说明相反（中，确认源码缺陷）
-- 描述：`Math.max(1,num(id))` 把空值、0、负数统一抬成 1，清空“中文速度”后长文被算成数百分钟；空文本 `Math.max(1,Math.round(0))` 仍显示 1 分钟；公式说明写“结果向上取整至分钟”，实现却是 `Math.round`，1.4 分钟显示 1。
-- 证据：`tools/text/reading-time-estimator.html:106,214,218-224`
-- 复现：300 个汉字 + 中文速度留空 + 英文 200 → 300 分钟（期望提示速度无效/拒绝计算）；280 个汉字 + 速度 200 → 1 分钟（期望向上取整为 2）；空文本 → 1 分钟（期望 0 或提示无可估算内容）。
-- 影响：默认参数误删后结果相差两个数量级；空输入也给出“1 分钟”的伪结论。
-- 方案：速度校验为正整数，非法/空明确报错，不 clamp 为 1；空文本返回 0；按文档使用 `Math.ceil` 或修正说明。
 
 ### IT-N38 字数统计按 UTF-16 与 ASCII 正则计数，emoji/扩展汉字/连字符词与说明不符（低，确认源码缺陷）
 - 描述：总字符用 `t.length`（UTF-16 码元），emoji 与扩展区汉字计 2；中文字符正则仅 `4E00–9FFF`，`𠮷` 计 0；英文词正则不含连字符，`well-known` 计 2 词，但 FAQ 声称“连字符与缩写内的字母并入同一词”；行数只按 `\r?\n` 切分，裸 `\r` 不识别。

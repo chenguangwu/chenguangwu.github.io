@@ -3,33 +3,11 @@
 > 用途：记录每批已修的中优条目，避免下批重复排查。ID 与页面均对应 `plan/categories/**` 审计条目。
 > 维护规则：主流程每批收口后追加；审计线只写分类文件，本台账只由修复线写。
 
-## 批次 1 · commit a53fae2e16（12 页）
-
-| 条目 ID | 页面 | 修复类型 | 验证用例 |
-|---|---|---|---|
-| IT-N13 | tools/it/csv-validator.html | 引号内换行/CRLF 正确切记录，行号取物理行 | verify_it_calc.js ×3（引号内 LF、CRLF+转义、未闭合行号） |
-| IT-N15 | tools/it/text-truncate.html | 按码点截断、省略符计入上限、limit 正整数校验 | verify_it_calc.js ×4（emoji 码点、省略符预算、字节模式、limit=0） |
-| IT-N16 | tools/it/slugify.html | 剥离符号先于 Unicode 转义、下划线预览按实际分隔符 | verify_it_calc.js ×2（Unicode %、separator='.' 预览） |
-| IT-N17 | tools/it/case-converter.html | 标题式按空白分词、保留词内大小写（撇号不误大写） | verify_it_calc.js ×1（don't / O'Reilly / myVar / iPhone） |
-| IT-N21 | tools/it/line-ending-converter.html | 清空后可视化区回等待态 | verify_it_calc.js ×1（clearLe 后「（等待输入）」） |
-| IT-N33 | tools/it/html-entities.html | 编解码按码点、解码仅替换已知实体 | verify_it_calc.js ×3（emoji、扩展 B 汉字、裸 `<` 原样） |
-| IT-N37 | tools/text/reading-time-estimator.html | 空文本/0 速度校验，Math.round→Math.ceil | verify_text_calc.js ×3（空文本、0 速度、110 字进位） |
-| D-N28 | tools/healthcare/ibw.html | 身高 100–250 cm 范围守卫（修负 IBW） | verify_healthcare_calc.js ×1（height=42 拒绝并提示） |
-| D-N34 | tools/healthcare/map.html | 血压 >0 / 范围 / 舒张压≤收缩压 守卫 | 页面守卫 + 深解方法同步（无独立用例） |
-| （D-N13/D-N14 邻域） | tools/healthcare/weight-dosage.html | 体重与剂量率 >0 守卫、超范围核对提示 | 页面守卫 + 深解方法同步（无独立用例） |
-
-数据源：`i18n/tools/content_deepdive.json` 5 处（reading-time 算例与 FAQ、text-truncate 示例、ibw/map/weight-dosage 方法）。
-
 ## 批次 2 · commit afe1c858fd（40 页）
 
 | 分区 | 条目 ID | 页面 | 修复类型 | 验证用例 |
 |---|---|---|---|---|
-| IT | IT-N4 | tools/it/text-replace.html | 删除空行预设输出真实换行 | verify_it_calc.js |
 | IT | IT-N8 | tools/it/number-base-converter.html | 负数/自定进制 2–36 校验与回填 | verify_it_calc.js |
-| IT | IT-N23/N24 | tools/it/ini-parser.html | 重复节提示静态化、真压缩、去重复定义 | verify_it_calc.js |
-| IT | IT-N34 | tools/text/sensitive-word-filter.html | 高亮/计数/清洗统一匹配源、空态清 dataset | verify_it_calc.js |
-| IT | IT-N35 | tools/text/analysis-density.html | 整词边界计数、纯数字文本密度「不适用」 | verify_it_calc.js |
-| IT | IT-N36 | tools/text/text-extract-phones.html | 号码左右数字边界、国际号去重 | verify_it_calc.js ×2 |
 | IT | IT-N46/N47 | tools/it/color-converter.html | RGB/alpha 钳制、对比度计入 alpha、非法输入清理 | verify_it_calc.js ×4 |
 | IT | IT-N40/N41 | tools/it/time-format-converter.html | 10/13/16/19 位识别、纯日期本地零点 | verify_it_calc.js ×2 |
 | IT | IT-N54 | tools/it/crc-calculator.html | CRC-8/CCITT 参数校正（poly 0x07/init 0/xorout 0x55） | verify_it_calc.js |
