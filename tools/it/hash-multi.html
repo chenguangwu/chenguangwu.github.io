@@ -340,7 +340,7 @@ function calc(){
     lastHashPairs.push({label:String(label),value:String(hash)});
     items.push('<div style="background:var(--bg,#FFFAF7);border:1px solid var(--border,#E5E7EB);border-radius:12px;padding:12px 14px;">'+
       '<div style="font-size:12px;color:var(--muted,#6B7280);margin-bottom:4px;">'+label+'</div>'+
-      '<div data-hash-label="'+label+'" style="font-family:monospace;font-size:13.5px;word-break:break-all;">'+hash+' <button class="btn" style="padding:1px 10px;font-size:12px;float:right;margin-left:6px;" onclick="copyItem(this)">复制</button></div></div>');
+      '<div data-hash-label="'+label+'" style="font-family:monospace;font-size:13.5px;word-break:break-all;">'+hash+' <button class="btn" style="padding:1px 10px;font-size:12px;float:right;margin-left:6px;" onclick="copyItem(this)">'+(__hmEn()?'Copy':'复制')+'</button></div></div>');
   }
   var selected=0;
   if(document.getElementById('al_md5').checked){push('MD5',md5(text));selected++;}
@@ -372,8 +372,44 @@ function calc(){
   }
   const __h3='<p>✅ 已计算 <strong>'+selected+'</strong> 种算法（'+text.length+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" characters)</p>":" 字符）</p>");if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h3;
 }
-function copyItem(btn){var v=btn.parentNode.childNodes[0].nodeValue;ToolBox.copyText(btn.parentNode.textContent.replace('复制','').trim());if(ToolBox.showToast)ToolBox.showToast(i18nText());}
-function copyAll(){if(!lastHashPairs.length){if(ToolBox.showToast)ToolBox.showToast(i18nText());return;}var lines=lastHashPairs.map(function(it){return it.label+': '+it.value;});ToolBox.copyText(lines.join('\n'));if(ToolBox.showToast)ToolBox.showToast(i18nText('toast.msg201'));}
+// N68：SHA 系列走 crypto.subtle 异步计算，占位符「—」在结果就绪前已经渲染并可点复制。
+// 原实现照单全收，用户会把「—」当成摘要复制走（粘到校验字段里才发现在排查一个假的哈希）。
+function __hmEn(){
+  try{ if(typeof TBKit!=='undefined'&&TBKit.util&&typeof TBKit.util.isEn==='function') return !!TBKit.util.isEn(); }catch(e){}
+  try{
+    if(/[?&]lang=en([-_]|&|$)/i.test(location.search)) return true;
+    var hl=(document.documentElement.getAttribute('lang')||'').toLowerCase();
+    if(hl.indexOf('en')===0) return true;
+  }catch(e){}
+  return false;
+}
+function __hmPending(v){
+  var t=String(v==null?'':v).trim();
+  return !t || t==='—' || t==='--' || t==='-' ;
+}
+function copyItem(btn){
+  var v=String(btn.parentNode.childNodes[0].nodeValue||'').trim();
+  if(__hmPending(v)){
+    if(ToolBox.showToast) ToolBox.showToast(__hmEn()?'Hash is still being computed, please wait a moment':'摘要尚未计算完成，请稍候再复制','error');
+    return;
+  }
+  ToolBox.copyText(v);
+  if(ToolBox.showToast)ToolBox.showToast(i18nText());
+}
+function copyAll(){
+  if(!lastHashPairs.length){if(ToolBox.showToast)ToolBox.showToast(i18nText());return;}
+  var ready=lastHashPairs.filter(function(it){return !__hmPending(it.value);});
+  var pending=lastHashPairs.length-ready.length;
+  if(!ready.length){
+    if(ToolBox.showToast) ToolBox.showToast(__hmEn()?'No hash is ready yet, please wait a moment':'还没有计算完成的摘要，请稍候再复制','error');
+    return;
+  }
+  ToolBox.copyText(ready.map(function(it){return it.label+': '+it.value;}).join('\n'));
+  if(ToolBox.showToast){
+    if(pending) ToolBox.showToast(__hmEn()?(ready.length+' hash(es) copied; '+pending+' still computing'):('已复制 '+ready.length+' 条摘要，另有 '+pending+' 条仍在计算'),'info');
+    else ToolBox.showToast(i18nText('toast.msg201'));
+  }
+}
 calc();
 
 var __hash_multi_last=0,__hash_multi_skip=false;

@@ -1368,6 +1368,15 @@ const CASES = [
     ref: "EAN-12 补一位校验位（590123412345→7）⇒ 完整 13 位码；默认示例码不同。",
   },
   {
+    // IT-N68 复核失败点：SHA 未算完时 copyAll/copyItem 会把占位符「—」当摘要复制走
+    slug: "it/hash-multi",
+    inputs: {},
+    clicks: ["['al_md5','al_crc32','al_sha1','al_sha256'].forEach(function(k){document.getElementById(k).checked=true;});document.getElementById('input').value='n68probe';var __cap=null;var __o=ToolBox.copyText;ToolBox.copyText=function(t){__cap=t};calc();copyAll();ToolBox.copyText=__o;var __lines=String(__cap==null?'':__cap).split('\\n');var __dash=__lines.filter(function(l){return l.indexOf('—')!==-1}).length;var __total=lastHashPairs.length;document.getElementById('result').textContent='CAP lines='+__lines.length+' dash='+__dash+' total='+__total;"],
+    dumpIds: ["result"],
+    expect: ["CAP lines=2 dash=0 total=4"],
+    ref: "IT-N68：SHA-1/256/512 走 crypto.subtle 异步，calc() 先渲染占位符「—」。修复前 copyAll() 把占位符一并复制（4~5 行、含「—」）；修复后只复制已就绪的 MD5 与 CRC32（2 行、零「—」）。total 为 4（勾选 MD5/CRC32/SHA-1/SHA-256），其中 SHA 两条在无 crypto.subtle 的桩里恒为占位符 ⇒ 可复制 2 条、占位符 0 条；三数同时成立才命中，任一条被破坏都不匹配，默认示例（无注入时 lastHashPairs 为空，copyAll 直接 return）不产生该串。",
+  },
+  {
     slug: "it/hash-multi",
     inputs: {},
     clicks: ["document.getElementById('al_md5').checked=true;document.getElementById('input').value='abc';calc()"],
@@ -3391,6 +3400,18 @@ const CASES = [
     inputs: { batchInput: "10.0.0.0 255.255.0.0\n300.1.1.1/24\n192.168.1.5" },
     expect: ["共 3 条：有效 2，无效 1"],
     ref: "批量 CIDR 解析·混合容错：点分掩码 255.255.0.0 ⇒ /16（65,534 主机）；300.x 越界 ⇒ ❌ 无效；裸 IP ⇒ /32（网络=广播=自身、1 主机）。⚠ 主机数/掩码串撞掩码对照表不可作锚，统计串独占（对照表无「共 N 条」格式）。与上条统计串不同 ⇒ 互不命中、判别器可区分。",
+  },
+  {
+    slug: "it/ip-calculator",
+    inputs: { ipInput: "192.168.1.1/24abc" },
+    expect: ["无效的 IP 或前缀"],
+    ref: "IT-N71 复核失败点：前缀含尾随非法字符时，原实现 parseCidr 返回 null 后回退到 #ipOnly/#maskInput 的旧值 ⇒ 页面照旧渲染上一次的有效网络（默认 192.168.1.0/24 卡片）且零提示。修复后带斜杠的输入一律走 CIDR 单入口，解析失败即调用 showInvalidV4() 清空结果与二进制区。默认输入为合法 CIDR，不命中。",
+  },
+  {
+    slug: "it/ip-calculator",
+    inputs: { ipInput: "10.20.30.40/" },
+    expect: ["无效的 IP 或前缀"],
+    ref: "IT-N71 复核失败点（空前缀）：`10.20.30.40/` 斜杠后为空，parseInt('') 得 NaN 被旧代码的回退分支吃掉，页面显示上一条有效网络。修复后视为非法前缀直接报错。修复前该输入产出的是默认 192.168.1.0/24 的完整卡片，不含「无效」串。",
   },
   {
     slug: "it/ip-calculator",
@@ -5793,9 +5814,9 @@ const CASES = [
       "subnetNewMask": "42"
     },
     "expect": [
-      "abc123测试\n42\n无效的 IP 或前缀\n请输入 CIDR 格式\n不支持检测\nabc123测试\n42\n42\n请输入有效的参数（新前缀必须大于原前缀）"
+      "无效的 IP 或前缀"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"ipInput\":\"abc123测试\",\"ipOnly\":\"abc123测试\",\"maskInput\":\"42\",\"ipv6Input\":\"abc123测试\",\"subnetBase\":\"abc123测试\",\"subnetOldMask\":\"42\",\"subnetNewMask\":\"42\"}，输出区含「abc123测试\n42\n无效的 IP 或前缀\n请输入 CIDR 格式\n不支持检测…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）·2026-11-06 随 IT-N71 改造重写：原断言是把整段 blob（含输入回显 abc123测试/42）拼成一条超长串，页面任何合法改动都会失配，且回显段零判别力。现改为断言计算结论——ipInput 无斜杠 ⇒ 走 ipOnly+maskInput 分支，ipToInt('abc123测试') 失败 ⇒ showInvalidV4() 输出「无效的 IP 或前缀」。该串只在无效输入时由分支产生，默认态（192.168.1.0/24 合法）不出现。"
   },
   {
     "slug": "it/java-escape",

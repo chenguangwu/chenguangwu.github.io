@@ -733,6 +733,19 @@ function base64ToBytes(b64){
   return bytes;
 }
 
+// N88：盐字段的编码口径必须与输出格式一致——加密时 Base64 输出把盐写成 Base64，
+// 但 getKeyAndSalt 原来一律按 hex 解析，盐框有值时 PBKDF2 派生出错误的密钥 ⇒ 同页往返解出乱码。
+function parseSaltBytes(str){
+  var s = String(str == null ? '' : str).trim();
+  if(!s) return new Uint8Array(0);
+  if(/^[0-9a-fA-F]{32}$/.test(s)) return hexToBytes(s);      // 16 字节 hex（generateSalt 的默认形态）
+  try{
+    var b = base64ToBytes(s);
+    if(b.length === 16) return b;
+  }catch(e){}
+  return hexToBytes(s);                                       // 其他形态退回 hex（保留旧行为）
+}
+
 function randomBytes(n){
   return crypto.getRandomValues(new Uint8Array(n));
 }
@@ -767,7 +780,7 @@ async function getKeyAndSalt(){
     if(!password) throw new Error(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter password":"请输入密码"));
     if(useSalt){
       if(saltHex){
-        salt = hexToBytes(saltHex);
+        salt = parseSaltBytes(saltHex);
       } else {
         salt = randomBytes(16);
         document.getElementById('salt').value = bytesToHex(salt);
@@ -842,6 +855,9 @@ async function encrypt(){
 
     var encoder = new TextEncoder();
     var plaintext = encoder.encode(inputText);
+    // N92：输入字节数必须是「用户实际输入的字节数」。原实现传的是 PKCS7 填充后的长度，
+    // 输入「中文」（UTF-8 6 字节）在 ECB+PKCS7 下显示成 16 B，误导用户。
+    var inputBytes = plaintext.length;
 
     var needsPadding = (mode === 'ECB' || mode === 'CBC');
     if(needsPadding && usePadding){
@@ -882,7 +898,9 @@ async function encrypt(){
     }
 
     document.getElementById('output').value = output;
-    updateInfo(plaintext.length, ciphertext.length);
+    updateInfo(inputBytes, ciphertext.length);
+    // N90：趋势图改用「输出字节数」，密文本身不是数值，parseFloat 只会画出假趋势
+    __aes_encryptorLastBytes = ciphertext.length;
     ToolBox.showToast(i18nText('toast.msg087'));
   } catch(e){
     ToolBox.showToast('加密失败：' + e.message, 'error');
@@ -905,25 +923,29 @@ async function decrypt(){
     var ciphertextStr = inputText;
     if(inputText.indexOf(':') !== -1){
       var parts = inputText.split(':');
-      var useSalt = document.getElementById('useSalt').checked;
       if(mode !== 'ECB'){
-        if(parts.length >= 3 && useSalt){
-          if(!saltHex) document.getElementById('salt').value = parts[0];
-          if(!ivHex) document.getElementById('iv').value = parts[1];
-          ciphertextStr = parts.slice(2).join(':');
-        } else if(parts.length >= 2){
-          if(useSalt && !saltHex){
-            document.getElementById('salt').value = parts[0];
-          } else if(!ivHex){
-            document.getElementById('iv').value = parts[0];
+        // N88：meta 恒为 salt:iv:cipher（加密侧 salt/iv 都在时才 push），按段数判定，与盐框是否已有值无关；
+        // 原实现按 `!saltHex` 决定剥不剥，盐框有值时把盐当密文前缀，同页往返解出乱码。
+        if(parts.length >= 3){
+          var metaSalt = parseSaltBytes(parts[0]);
+          if(metaSalt.length === 16){
+            document.getElementById('salt').value = bytesToHex(metaSalt);
+            if(!ivHex) document.getElementById('iv').value = parts[1];
+            ciphertextStr = parts.slice(2).join(':');
           }
-          ciphertextStr = parts.slice(1).join(':');
+        } else if(parts.length === 2){
+          if(!ivHex) document.getElementById('iv').value = parts[0];
+          ciphertextStr = parts[1];
         }
       } else {
-        // ECB 无 IV：meta 格式为 salt:ciphertext
-        if(useSalt && !saltHex && parts.length >= 2){
-          document.getElementById('salt').value = parts[0];
-          ciphertextStr = parts.slice(1).join(':');
+        // N88：ECB 无 IV，meta 为 salt:cipher；盐必须是 16 字节（hex 32 位 / Base64 24 位）才认作元数据，
+        // 避免把用户用 ':' 分组的十六进制密文误当「盐+密文」切开。
+        if(parts.length >= 2){
+          var metaSalt2 = parseSaltBytes(parts[0]);
+          if(metaSalt2.length === 16){
+            document.getElementById('salt').value = bytesToHex(metaSalt2);
+            ciphertextStr = parts.slice(1).join(':');
+          }
         }
       }
     }
@@ -941,6 +963,14 @@ async function decrypt(){
       } catch(e){
         ciphertext = hexToBytes(ciphertextStr);
       }
+    }
+
+    // N87：分组模式（ECB/CBC）的密文长度必须恒为 16 字节整数倍——填充只影响明文，不影响密文。
+    // 原实现只校验了加密侧明文，解密侧对 5 字节这类非法密文静默输出 NUL 伪明文并提示成功。
+    if((mode === 'ECB' || mode === 'CBC') && ciphertext.length % 16 !== 0){
+      return ToolBox.showToast(((typeof TBKit!=='undefined'&&TBKit.util.isEn())
+        ? 'Invalid ciphertext: ECB/CBC requires a length that is a multiple of 16 bytes (got ' + ciphertext.length + ' bytes)'
+        : '密文长度无效：ECB/CBC 模式要求密文为 16 字节的整数倍（当前 ' + ciphertext.length + ' 字节）'), 'error');
     }
 
     var result = await getKeyAndSalt();
@@ -982,6 +1012,7 @@ async function decrypt(){
 
     document.getElementById('output').value = output;
     updateInfo(ciphertext.length, plaintext.length);
+    __aes_encryptorLastBytes = plaintext.length;
     ToolBox.showToast(i18nText('toast.msg586'));
   } catch(e){
     ToolBox.showToast('解密失败：' + e.message, 'error');
@@ -1055,7 +1086,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __aes_encryptor_last=0,__aes_encryptor_skip=false;
+var __aes_encryptor_last=0,__aes_encryptor_skip=false,__aes_encryptorLastBytes=0;
 function __aes_encryptorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -1064,6 +1095,9 @@ function __aes_encryptorSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        // N90：密码框既是口令也可能是原始密钥（hex/base64），一旦进历史就会被导出成 CSV 明文；
+        // 历史只保留「用了哪种密钥形态」等非敏感字段，密码本身不落盘、不导出。
+        if(e.id==='password'){ out[e.id]='••••'; continue; }
         if(v!==''&&v!=null) out[e.id]=v;
     }
     return out;
@@ -1109,13 +1143,15 @@ function __aes_encryptorRender(keys,rk,en){
             }catch(e2){}
             __aes_encryptor_skip=false;
         });
+        // N90：密文（Base64/Hex）本身不是数值，原来对结果列 parseFloat 只会把「1234ab…」读成 1234，
+        // 画出与安全无关的假趋势。改为画真实可比的指标：输出字节数（加解密后结果的字节长度）。
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
-            var v=parseFloat(arr[j].d[rk]);
-            if(isFinite(v)){nums.push(v);labels.push(__aes_encryptorTime(arr[j].t));}
+            var b=arr[j].d['__bytes'];
+            if(typeof b==='number'&&isFinite(b)&&b>0){nums.push(b);labels.push(__aes_encryptorTime(arr[j].t));}
         }
         if(nums.length>=2){
-            TBKit.chart.line('#aes_encryptorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+            TBKit.chart.line('#aes_encryptorChart',{labels:labels,series:[{name:en?'Output bytes':'输出字节数',data:nums}]});
         }
     }catch(e3){}
 }
@@ -1145,6 +1181,7 @@ function __aes_encryptorExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
+    if(typeof __aes_encryptorLastBytes==='number'&&__aes_encryptorLastBytes>0) rec['__bytes']=__aes_encryptorLastBytes;
     TBKit.history.record(rec);
     __aes_encryptorRender(keys,rk,en);
 }

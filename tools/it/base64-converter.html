@@ -464,7 +464,23 @@ s.parentNode.insertBefore(el, s);
   }
 
   function base32Decode(str){
-    str = str.toUpperCase().replace(/\s+/g,'').replace(/=+$/,'');
+    // N83：RFC 4648 §6 的填充是「按末组长度补足到 8 的倍数」，不是随便几个等号都行。
+    // 原实现 replace(/=+$/,'') 无条件剥掉全部尾部等号 ⇒ MY= / MY========= / MY====== 三种输入
+    // 解出同一个字节，无法发现传输中被截断或补错的串。
+    var raw = String(str).toUpperCase().replace(/\s+/g,'');
+    if(raw.indexOf('=') !== -1 && !/^[A-Z2-7]*=+$/.test(raw)){
+      throw new Error(__b64L('Base32 padding may only appear at the end','Base32 的等号只能出现在末尾'));
+    }
+    var padMatch = raw.match(/=+$/);
+    var pad = padMatch ? padMatch[0].length : 0;
+    if(pad > 6) throw new Error(__b64L('Invalid Base32 padding: at most 6 "=" characters','Base32 填充无效（最多 6 个等号）'));
+    str = pad ? raw.slice(0, raw.length - pad) : raw;
+    if(pad && str.length % 8 !== 0){
+      var expectPad = 8 - (str.length % 8);
+      if(pad !== expectPad){
+        throw new Error(__b64L('Invalid Base32 padding: expected '+expectPad+' "=" characters','Base32 填充数量无效（应为 '+expectPad+' 个等号）'));
+      }
+    }
     var bytes = [];
     var buffer = 0;
     var bits = 0;

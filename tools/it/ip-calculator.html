@@ -506,6 +506,26 @@ function isPrivate(ip){
 function isLoopback(ip){ return ip.startsWith('127.'); }
 function isLinkLocal(ip){ return ip.startsWith('169.254.'); }
 
+function __ipEn(){
+  try{ if(typeof TBKit!=='undefined'&&TBKit.util&&typeof TBKit.util.isEn==='function') return !!TBKit.util.isEn(); }catch(e){}
+  try{
+    if(/[?&]lang=en([-_]|&|$)/i.test(location.search)) return true;
+    var hl=(document.documentElement.getAttribute('lang')||'').toLowerCase();
+    if(hl.indexOf('en')===0) return true;
+  }catch(e){}
+  return false;
+}
+
+// N71：无效输入的统一出口——结果卡片与二进制区必须一起清掉，
+// 否则页面上会残留上一次「看似正常」的网络数据（复核实测：改成非法输入后仍显示旧网络）。
+function showInvalidV4(){
+  var msg=__ipEn()?'Invalid IP or prefix':'无效的 IP 或前缀';
+  var box=document.getElementById('v4Result');
+  if(box) box.innerHTML='<div class="result-card"><div class="value big">'+msg+'</div></div>';
+  var bb=document.getElementById('binaryBox');
+  if(bb) bb.innerHTML='<p style="color:var(--danger)">'+msg+'</p>';
+}
+
 function parseCidr(input) {
   if(input.includes('/')){
     const [ip, p] = input.split('/');
@@ -520,22 +540,27 @@ function calculateV4(){
   const input = document.getElementById('ipInput').value.trim();
   let ipStr, prefix;
   
-  const parsed = parseCidr(input);
-  if(parsed){
+  if(input.indexOf('/') !== -1){
+    // N71：带斜杠就走 CIDR 单一入口，解析失败必须报错。
+    // 原实现在 parseCidr 返回 null 时回退到 #ipOnly/#maskInput 里的「上一次有效值」，
+    // ⇒ 输入 192.168.1.1/24abc、/33、/ 等非法内容时页面照旧显示上一个网络的完整结果且零提示。
+    const parsed = parseCidr(input);
+    if(!parsed){ showInvalidV4(); return; }
     ipStr = parsed.ip;
     prefix = parsed.prefix;
     document.getElementById('ipOnly').value = ipStr;
     document.getElementById('maskInput').value = prefix;
   } else {
+    // 无斜杠：走「IP + 掩码」两栏输入，这是页面设计的第二种输入方式，不是回退
     ipStr = document.getElementById('ipOnly').value.trim();
-    prefix = parseInt(document.getElementById('maskInput').value);
+    prefix = parseInt(document.getElementById('maskInput').value, 10);
   }
   
   if(!ipStr){ return; }
   
   const ipInt = ipToInt(ipStr);
   if(ipInt === null || isNaN(prefix) || prefix < 0 || prefix > 32){
-    const __h0='<div class="result-card"><div class="value big">无效的 IP 或前缀</div></div>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('v4Result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('v4Result').innerHTML=__h0;
+    showInvalidV4();
     return;
   }
   
