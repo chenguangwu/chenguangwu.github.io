@@ -406,40 +406,17 @@
 
 - 2026-11-06 复核：原 IT-N60 引号 URL 和 IT-N61 注释开关问题已修。Node 执行页面实际 `minify()`，单双引号 URL `a)b  c` 均保留双空格；取消勾选保留 `/*keep*/`、勾选则删除。未做浏览器验证。
 
-### IT-N64 IPv4 范围展开器：八位组校验宽松，空段/科学计数/十六进制被当成合法 IP（中，确认源码缺陷）
-- 描述：`ip2int` 用一元 `+p[i]` 转数字，只检查 `0..255`，因此空串变 `0`、`1e2` 变 `100`、`0x1` 变 `1`、`+1` 变 `1`，`192.168..1` 被静默解析为 `192.168.0.1`；外层正则又只允许 `[0-9.]+/digits`，无法区分这些写法。
-- 证据：`tools/it/ipv4-range-expander.html:203`（`+p[i]`）、`tools/it/ipv4-range-expander.html:206`（外层正则）、`tools/it/ipv4-range-expander.html:210`（仅校验前缀与 `ip2int` 结果）
-- 复现：输入 `192.168..1/24` → 网络地址 `192.168.0.0`、可用主机 `254`（期望报「IP 段不能为空」）；`192.168.1e2.1/24` → `192.168.100.1` 被接受（期望报非法）；`192.168.0x1.1/24` → `192.168.1.1` 被接受（期望报非法）。
-- 影响：从表格/日志粘贴的脏 IP 会被「修正」成另一个网段，防火墙规则与地址清单可能指向错误范围。
-- 方案：每段用 `^(0|[1-9]\d{0,2})$` 校验（可选支持 1–3 位前导零但明确口径），拒绝 `+`、`0x`、`e` 与空段；错误时定位到具体第几段；补上述三类用例。
+### IT-N65 User-Agent 解析器仍将 Windows Phone Edge 误认 Chrome（中，确认源码缺陷）
+- 2026-11-06 复核：`tools/it/user-agent-parser.html:316-344` 已识别 iOS Chrome/Firefox/Edge 和三星浏览器；Node 执行实际解析函数，分别得到 Chrome 120、Firefox 121、Edge 120、Samsung Internet 23。
+- `:316-320,350-352,381-388` 仍未识别旧版 `Edge/` 和 Windows Phone。Node 输入含 `Windows Phone 10.0 … Chrome/52.0 … Edge/15.15254` 的 UA，得到 `Google Chrome 52.0` 和 `Windows`，而非 Edge / Windows Phone。未做浏览器验证。
+- 方案：在 Chrome 前识别 `Edge/`，Windows Phone 先于 Windows 判断，并补对应 UA 回归用例。
 
-### IT-N65 User-Agent 解析器：iOS 内壳、三星浏览器、Windows Phone 被错认或判为未知（中，确认源码缺陷）
-- 描述：`parseBrowser` 只匹配 `Edg/`、`OPR|Opera`、`Firefox/`、`Chrome/`、`Chromium/`、`Safari/+Version/`，没有 `CriOS/`、`FxiOS/`、`EdgiOS/`、`SamsungBrowser/`、`Windows Phone` 分支。iOS Chrome/Firefox 落到「未知浏览器」；iOS Edge 因含 `Version/` 与 `Safari/` 被判成 Safari；三星浏览器因含 `Chrome/` 被判成 Google Chrome（版本取 Chrome 内核号）；Windows Phone 的 UA 含 `Chrome/` 与 `Windows Phone 10.0`，被判成 Chrome + 操作系统「Windows」。
-- 证据：`tools/it/user-agent-parser.html:316-358`（浏览器分支）、`tools/it/user-agent-parser.html:330`（Chrome 分支）、`tools/it/user-agent-parser.html:338`（Safari 分支）、`tools/it/user-agent-parser.html:361-368`（OS 的 `Windows` 兜底）
-- 复现：`CriOS/120…` → 「未知浏览器」；`FxiOS/121…` → 「未知浏览器」（期望 Chrome/Firefox + iOS）；`EdgiOS/120… Version/17.0` → `Safari 17.0`（期望 Microsoft Edge）；`SamsungBrowser/23.0 … Chrome/115…` → `Google Chrome 115.0.0.0`（期望 Samsung Internet 23.0）；`Windows Phone 10.0 … Edge/15` → `Google Chrome 52…` + OS「Windows」（期望 Edge/Windows Phone）。
-- 影响：访问日志/兼容性统计中移动端浏览器分布被系统性低估或错配，按「Chrome 版本」决策会遗漏真实内壳差异。
-- 方案：在 Chrome/Safari 分支之前补 `EdgiOS/`、`CriOS/`、`FxiOS/`、`SamsungBrowser/`、`OPiOS/`、`DuckDuckGo/` 等规则；`Windows Phone` 先于 `Windows` 判定；补上述 UA 快照用例。
+### IT-N68 多算法哈希器异步 SHA 可能覆盖新输入结果（高，确认函数竞态）
+- 2026-11-06 复核：`tools/it/hash-multi.html:322-371` 已以 `lastHashPairs` 复制摘要，原「只复制算法名」问题已修；但异步回调写入共享数组和当前 DOM 时未核对计算代次，旧请求后完成会覆盖新输入的 SHA。
+- Node 模拟实际 `calc()`，先算 `old` 再算 `new`，让 `new` 的 SHA-1 先完成、`old` 后完成；`copyAll()` 得到新输入的 MD5 `22af645d1859cb5ca6da0c484f1f37ea` 与旧输入 SHA-1 `c00dbbc9dadfbe1e232e93a729dd4752fade0abf`，而 `new` 的正确 SHA-1 为 `c2a6b03f190dfb2b4aa91f8af8d477a9bc3401dc`。未做浏览器验证。
+- 尚未完成的 SHA 以 `—` 存入复制数组，完成前复制也可能得到占位符。方案：每次计算设置代次、只接受当前请求的回调，并在摘要完成前禁用或明确标注复制状态。
 
-### IT-N66 多算法哈希器：MD5/CRC32 按 UTF-16 码元取字节，非 ASCII 摘要与标准不符（高，确认源码缺陷）
-- 描述：`md5()` 与 `crc32()` 都用 `str.charCodeAt(i)` 逐字符当作字节，未先按 UTF-8 编码；非 ASCII 字符（`中`、emoji）会以 UTF-16 码元参与运算，结果与任何标准实现都对不上。页面公式表却明确写「统一按 UTF-8 编码后再计算」。
-- 证据：`tools/it/hash-multi.html:296`（MD5 取 `charCodeAt`）、`tools/it/hash-multi.html:286`（CRC32 取 `charCodeAt`）、`tools/it/hash-multi.html:212`（UTF-8 说明）
-- 复现：输入 `中` → MD5 `f2f4599f42c59653fbc6fceba89e9494`（期望 UTF-8 `aed1dfbc31703955e64806b799b67645`）；输入 `😀` → MD5 `2843eed96aa1750ead0763263455f324`（期望 `2a02eac39d716a70ecf37579185927b6`）；CRC32 `中` → `97ddb3f8`（期望 UTF-8 `d5d15a8b`）。纯 ASCII（`Hello ToolBox`、`abc`）两套实现一致。
-- 影响：中文文件名/备注、emoji 内容算出的摘要与 `md5sum`、服务端、其他在线工具全部不匹配，完整性校验会误判为篡改。
-- 方案：计算前统一 `new TextEncoder().encode(text)` 得到 UTF-8 字节，MD5/CRC32 改为按字节数组处理（MD5 分块时按 4 字节小端组装）；补中文、emoji、混合串与 Node `crypto` 对照用例。
-
-### IT-N67 多算法哈希器：CRC32 十六进制未补零，输出长度不固定（中，确认源码缺陷）
-- 描述：`crc32(text).toString(16)` 直接输出，CRC 值高位为 0 时十六进制串短于 8 位，与页面「CRC32 = 8 位十六进制」的速查表口径不一致，也不便于定长比对。
-- 证据：`tools/it/hash-multi.html:340`（`crc32(text).toString(16)`）
-- 复现：输入 `aa` → 输出 CRC32 `78a19d7`（7 位，期望 `078a19d7`）；输入 `😀` 时同样受 UTF-8 问题与补零问题叠加影响。
-- 影响：用户按固定 8 位长度做字符串比较/日志断言时会被判不等或截断失败。
-- 方案：改为 `crc32(text).toString(16).padStart(8,'0')`，大写模式再统一 `toUpperCase()`；补高位为 0 的用例（`aa`）。
-
-### IT-N68 多算法哈希器：「复制全部」只复制算法名，摘要值全部丢失（高，确认源码缺陷）
-- 描述：`copyAll()` 用 `box.querySelectorAll('div > div')` 遍历，随后 `label=d.childNodes[0].textContent`、`val=d.querySelector('div')`。外层结果卡（`div > div`）匹配后，`childNodes[0]` 是算法名子 div、`querySelector('div')` 也返回该子 div，于是记录成 `MD5: MD5`；真正含摘要的值 div没有嵌套 `div`，`val` 为 `null` 被跳过。最终复制内容只有「算法名: 算法名」若干行。
-- 证据：`tools/it/hash-multi.html:366`（`copyAll` 选择器与取值）
-- 复现：输入 `Hello ToolBox` 点「计算」后点「复制全部」→ 剪贴板为 `MD5: MD5\nSHA-1: SHA-1\nSHA-256: SHA-256`（期望每行 `算法: 摘要`，如 `MD5: a22e28aa02a822f478361a0f085b5b78`）；jsdom 按同样 DOM 结构复算得到 `["MD5: MD5","SHA-1: SHA-1"]`。
-- 影响：批量比对时复制到的全是标签，用户拿不到任何摘要；且 SHA 值是异步回填的，更不可能被这段逻辑读到。
-- 方案：直接遍历 `#outBox` 的一级结果卡（如 `outBox.children`），取卡内第 1 个子 div 的 `textContent` 作算法名、第 2 个子 div 的 `firstChild.nodeValue`（或去掉按钮后的 `textContent`）作摘要；补 jsdom/真机点击用例。
+- 2026-11-06 复核：原 IT-N64 输入校验已修，实际 `ip2int` 对空段、科学计数、十六进制和前导零返回 NaN；原 IT-N66/67 已修，实际 MD5 对 `中`、`😀` 与 Node crypto 一致，CRC32 分别为 `d5d15a8b`、`054db544`，`aa` 为 `078a19d7`。原 IT-N70 各复选框均已绑定 `onchange="calc()"`（源码复核）。未做浏览器验证。
 
 ### IT-N69 HTTP 缓存速查：搜索与分类只过滤列表，图表/明细表仍统计全量数据（低，确认源码缺陷）
 - 描述：`renderCommands()` 按 `currentCategory` 与 `searchQuery` 过滤 `COMMANDS`，但 `hcAgg()` 固定遍历 `COMMANDS` 全量；`hcChart()`/`hcTable()` 直接使用该聚合结果，既不读搜索词也不读当前分类。搜索 `max-age` 时列表只剩 1 项，图表与「明细表」仍显示所有分类和全部分类计数。
@@ -447,13 +424,6 @@
 - 复现：在搜索框输入 `max-age` → 列表「共 1 项」，但「图表」仍按全部分类出柱、「明细表」仍列出全部 10+ 个分类（期望图表/明细随当前过滤结果同步，或明确标注为全量统计）
 - 影响：用户以为图表反映当前筛选结果，实际看到的是全站数据，容易得出错误的分类占比结论。
 - 方案：让 `hcAgg` 接收过滤后的数组（把 `renderCommands` 的过滤逻辑抽成 `getFiltered()` 共用），或在图表/明细标题注明「全量统计，不受搜索影响」。
-
-### IT-N70 多算法哈希器：算法与「大写」勾选不触发重算，需再点计算（低，确认源码缺陷）
-- 描述：输入框用 `oninput="calc()"` 实时重算，但 129-134 行的 MD5/SHA/CRC32/大写复选框都没有 `onchange`；勾选或取消后结果区保持上一次的算法组合与大小写，直到用户手动点「计算」。
-- 证据：`tools/it/hash-multi.html:129-134`（复选框无 `onchange`）、`tools/it/hash-multi.html:367`（仅初始化调用 `calc()`）
-- 复现：输入 `abc` 后勾选「SHA-512」→ 结果区仍只有 MD5/SHA-1/SHA-256（期望立即出现 SHA-512）；勾选「大写」→ 摘要仍为小写（期望立即转大写）；此时点「复制全部」也复制不到新算法的行。
-- 影响：用户以为勾选已生效，实际复制/比对的是旧结果，且与页面「支持多算法同时输出与大小写切换」的描述不符。
-- 方案：为这些复选框绑定 `change` → `calc()`，或在「大写」切换时只对既有摘要做大小写转换；补勾选后不点按钮的交互用例。
 
 - 备注：`tools/it/punycode.html:404-410`、`tools/it/regex-escape.html:321-328` 的 `copyResult` 依赖全局 `event`（与 IT-N31 同模式，Firefox 可能失效），不重复计数，未单列为新条目。
 - 本轮实读 8 页：`tools/it/punycode.html`、`tools/it/regex-escape.html`、`tools/it/css-minifier.html`、`tools/it/date-duration.html`、`tools/it/ipv4-range-expander.html`、`tools/it/user-agent-parser.html`、`tools/it/hash-multi.html`、`tools/it/http-cache.html`；新增 15 条（高 3 / 中 8 / 低 4）；未覆盖：`tools/it` 其余非文本页（如 `html-minifier`、`html-nesting-checker`、`c-string-escape`、`go-escape`、`java-escape`、`js-minifier`、`js-obfuscator`、`sql-formatter`、`shell-script-formatter`、`dockerfile-generator`、`gitignore-generator`、`robots-txt-generator`、`sitemap-generator`、`ssh/证书/密钥类` 等）与全部速查表页；未做浏览器、EN、移动端、门禁或部署验证。
