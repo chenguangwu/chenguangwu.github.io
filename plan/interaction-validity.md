@@ -30,6 +30,7 @@
 - 静态续审第十七批：阅读 `it/{pomodoro,postgresql-cheatsheet,python-cheatsheet,python-escape,redis-cheatsheet,regex-cheatsheet}` 6 页主要路径；记录 Python 反转义前缀、码点错误和选项不刷新，番茄钟既有关键路径仍在。未运行浏览器，不计双跑。
 - 静态续审第十八批：阅读 `it/{regex-escape,rest-api-cheatsheet,robots-txt-generator,ruby-cheatsheet,rust-cheatsheet,rust-escape}` 6 页主要交互路径；记录 robots 重建注入点与文本误触守卫、Rust 反转义潜在死循环及模式刷新，更新部分历史源码状态。仅静态分析，未运行浏览器或死循环，不计双跑。
 - 静态续审第十九批：阅读 `it/{sql-cheatsheet,sql-escape,sqlite-cheatsheet,string-obfuscator,text-statistics,tmux-cheatsheet}` 6 页主要路径；记录 SQL 方言刷新和反转义空白、词频原型属性及总词数口径问题。仅静态分析，未运行浏览器，不计双跑。
+- 静态续审第二十批：阅读 `it/{typescript-cheatsheet,typescript-compiler,unicode-lookup,vim-cheatsheet}`、`jewelry/gem-hardness`、`kids/mirror-letter` 6 页主要路径；记录编译器缺库与旧输出、宝石复制筛选、儿童游戏可区分性及定时器问题。仅静态分析，视觉效果和运行结果待验证，不计双跑。
 
 
 - 扫描时间：2026/11/5 05:04:33
