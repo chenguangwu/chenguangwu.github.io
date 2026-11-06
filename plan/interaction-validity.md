@@ -33,6 +33,7 @@
 - 静态续审第二十批：阅读 `it/{typescript-cheatsheet,typescript-compiler,unicode-lookup,vim-cheatsheet}`、`jewelry/gem-hardness`、`kids/mirror-letter` 6 页主要路径；记录编译器缺库与旧输出、宝石复制筛选、儿童游戏可区分性及定时器问题。仅静态分析，视觉效果和运行结果待验证，不计双跑。
 - 静态续审第二十一批：阅读 `kids/multiplication-practice`、`language/{phrase-translator,text-polisher}`、`legal/{calendar,contract-templates}`、`library/clc-classifier` 6 页；记录计分定时器、旧润色结果和农历边界问题，更新历史源码状态。仅静态分析，未运行页面或专业核验，不计双跑。
 - 静态续审第二十二批：阅读 `life/{bill-splitter,color-name-finder,cycle-4,cycle-pruning-lawn,data-unit-converter,event-countdown}` 6 页主要输入及输出路径；记录单位输入 HTML 注入、逐项分摊遗漏和状态丢失，更新颜色及草坪历史结论的源码状态；数据单位历史恢复及用品预设覆盖的旧代码仍在。仅静态分析，未运行浏览器或注入，不计双跑。
+- 静态续审第二十三批：阅读 `life/{holiday-calendar,number-to-chinese,phone-lookup,reminder-cycle,roman-numeral}` 与 `marketing/email-subject-line-tester` 共 6 页；记录金额精度与大小写、罗马拆解空态及邮件空态示例表格问题，更新历史源码状态。仅静态分析，未运行浏览器，不计双跑。
 
 
 - 扫描时间：2026/11/5 05:04:33
