@@ -41,6 +41,7 @@
 - 静态续审第二十八批：阅读 `marketing/xiaohongshu-counter`、`martial/{routine-timer,strike-resistance}`、`math/{complex-number,formula-calculator}`、`medical/{clinical-tools,drug-info,reminder-2}` 8 页，记录旧结果、默认值、时区和医疗建议等代码风险，更新历史条目关键代码状态。至清单第 451 页，静态续审累计 171 页；仅源码分析，未运行浏览器或专业核验，不计双跑。
 - 静态续审第二十九批：阅读 `medical2/{drug-expiry,surgery-duration}`、`metalwork/{recorder-9,thread-spec}`、`meteorology/cloud-identify`、`museum/{era-comparator,historical-calendar,showcase-monitor}` 8 页，记录效期清理、空值、目标温度、历法及评估口径问题，核对旧条目关键代码。至清单第 459 页，静态续审累计 179 页；仅静态分析，未运行浏览器或专业核验，不计双跑。
 - 静态续审第三十批：阅读 `music/{music-player,music-theory,piano-keyboard,rhythm-trainer}`、`nutrition/food-calorie-lookup`、`obstetrics/cycle-8`、`office/{excel-formula-reference,mindmap}` 8 页，记录录音回放、训练停止、循环状态、历史导出、离线降级及跨周期最新记录问题，修正旧营养条目对历史表状态的表述。至清单第 467 页，静态续审累计 187 页；仅源码分析，未运行浏览器、音频或医学专业核验，不计双跑。
+- 静态续审第三十一批：阅读 `ophthalmology/{amsler-grid-test,astigmatism-chart,axial-length,cd-ratio,eye-chart-toolkit,iol-power,iop-correction,oct-rnfl}` 8 页，记录视标尺寸量级、用户输入 HTML 注入、标记与眼别状态、校验及输出矛盾等问题，并更新 IOL 旧结论的源码状态。至清单第 475 页，静态续审累计 195 页；仅源码分析，未运行浏览器或医学专业核验，不计双跑。
 
 
 - 扫描时间：2026/11/5 05:04:33
