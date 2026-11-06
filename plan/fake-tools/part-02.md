@@ -9,7 +9,7 @@
 | `tools/clinical-lab/flow-cytometry-ratio.html` | 真 | `:154,260,302,316-330` | Treg 读入后全文未用（死输入）；NK 仅显示绝对值，异常 flags 无 NK 低值，NK 偏低仍报「各项指标在参考范围内」。 |
 | `tools/clinical-lab/semen-analysis.html` | 真 | `:148,261-267,274` | IM 不在必填校验、不参与总活力；`setInterp('im',true,'')` 恒显 ✓ 正常。 |
 | `tools/clinical-nursing/bag-valve-mask.html` | 部分 | `:153,323,189,257,282-283` | 球囊容量已接入但只驱动告警、不改变主参数（「不参算」部分成立）；`257` 的 8-10 次/分 与 `282-283` 婴儿 20-30 次/分 页面内冲突。 |
-| `tools/clinical-nursing/ostomy-bag-timing.html` | 假 | `:379,382-396` | `warnAt=interval*0.7` 已实现，倒计时在 70% 处预警；原「0.7 未实现」不成立。 |
+| `tools/clinical-nursing/ostomy-bag-timing.html` | 假 | `:367-396` | 2026-11-06 Node 执行实际 `calc()`：7 天间隔在 70% 点前后分别显示预警时间与已进入预警期，超期后重算颜色复位；未做浏览器验证。其他问题见 D-N46。 |
 | `tools/healthcare/map.html` | 假 | `:242-257` | 已有非正、超范围、舒张压>收缩压三类守卫，均拦截并给出红色提示。 |
 | `tools/healthcare/healthcare.html` | 假 | `:121,163-165,464` | 英文简介已改为体重折算+上限倍数；Clark/BSA 仅出现在引据表与「局限」FAQ，不再宣称三法实现。 |
 | `tools/nephrology/edema-grading.html` | 假 | `:289-302` | 2026-11-06 Node 执行实际 `calc()`：同为 2 mm 时 10 秒为 1+、120 秒为 4+；4 mm / 30 秒描述为 16–30 秒。未做浏览器验证，医学阈值需专业复核。 |
