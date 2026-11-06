@@ -3115,6 +3115,43 @@ const CASES = [
     expect: ["权重合计为 0"],
     ref: "非空但非法：两项权重均为显式 0 时组合无有效权重，旧实现输出「⚠️ 偏差 -100.00%」这类结论；现提示至少给一项非零权重。默认 60/40 ⇒ 不命中。",
   },
+  // ---- F-N224–F-N233 金融贷款族修复批次 · 小批 A（5 例，强判别） ----
+  {
+    slug: "finance/loan-comparison",
+    inputs: {"a-principal":"100000","a-rate":"","a-months":"36","b-principal":"100000","b-rate":"4.8","b-months":"36","c-principal":"100000","c-rate":"4.6","c-months":"30"},
+    clicks: ["calc()"],
+    expect: ["方案 A ⚠ 无效方案：年利率须填写且不得为负，已排除比较 方案 B 月供： 2988.12 元"],
+    ref: "F-N229：方案 A 年利率留空，旧实现 `isFinite(NaN)?:0` 静默按 0%（月供 2777.78、有效年化 0.00%）参与排名；现判无效并排除，B 方案 100000/4.8%/36 期月供 2988.12 元照常展示。expect 把 A 的无效提示与 B 的独立复算月供绑成一条，默认态（A 4.8% 有效）不含该串 ⇒ 零逃生。",
+  },
+  {
+    slug: "finance/credit-card-interest",
+    inputs: { billAmount: "10000", dailyRate: "0.05", minRatio: "1", repayType: "minimum" },
+    clicks: ["calc()"],
+    expect: ["10,509.29 循环利息总额 17,515.49 120 期累计已付", "⚠️ 120 期内未还清，剩余本金 2,993.80 元未计入累计已付"],
+    ref: "F-N225：日息万五、最低还款 1%，逐月 `pay=min(余额×1%+余额×0.0005×30, 余额+息)` 模拟 120 期 ⇒ 累计利息 10,509.29 元、剩余本金 2,993.80 元、累计已付 =(10000−2993.80)+10509.29 = **17,515.49** 元。旧实现 `总支出=bill+利息` 报 20,509.29，把未付本金当已付。两条 expect 分别锁定数值与剔除口径；默认（10% 最低还款、55 期还清）不命中。",
+  },
+  {
+    slug: "finance/credit-card-interest",
+    inputs: { billAmount: "10000", dailyRate: "0.05", minRatio: "10", repayType: "installment", installmentFee: "0.75", installmentMonths: "12" },
+    clicks: ["calc()"],
+    expect: ["16.22% 实际年化（单利近似 ×12） 17.48% 有效年化（按月复利）"],
+    ref: "F-N230：分期 10000 元 /12 期 /0.75% 手续费，每期 908.33 元，IRR 月利率二分 80 次 ⇒ 单利近似 ×12 = 16.22%、按月复利 EAR = 17.48%。旧实现只把 EAR 标成「实际年化利率」，与 `installment-real-rate` 的双列命名冲突；现两列并列。默认态为 minimum 模式、不出现这两个标签 ⇒ 零逃生。",
+  },
+  {
+    slug: "finance/loan-amortization",
+    inputs: { loanAmount: "120000", annualRate: "6", loanYears: "10", balloonMonths: "", balloonRatio: "", prepayMonth: "", prepayAmount: "" },
+    clicks: ["calc()"],
+    expect: ["1,332.25 首月月供 39,869.52 总利息"],
+    ref: "F-N226：等额本息下清空「期末尾款比例 / 气球期数 / 提前还款期数 / 提前还款金额」四个隐藏字段，旧 `__tbInputGuard` 把 7 字段全列必填 ⇒ 直接报「请填写…后再计算」；现仅校验当前模式参与计算的字段，120000/6%/10 年正常输出月供 1,332.25、总利息 39,869.52（独立复算 M=P·i(1+i)^n/((1+i)^n−1)）。默认态 500000/4.9%/30 年不命中。",
+  },
+  {
+    slug: "finance/loan-amortization",
+    inputs: { loanAmount: "1000000", annualRate: "4.9", loanYears: "5", repayMethod: "balloon", balloonMonths: "120", balloonRatio: "50" },
+    clicks: ["calc()"],
+    expect: ["气球贷还款期数（120 月）不能超过贷款年限 × 12（60 月），请调整后再计算"],
+    ref: "F-N228：气球贷 `loanMonths=balloonMonths` 完全忽略 years，旧实现 5 年贷款配 120 期仍照常出表、年限与还款期数无关联提示；现校验 `balloonMonths > floor(years)*12` 即拒绝（120 > 60），并在合法路径结果区如实说明年限仅作期数上限。默认（30 年 /60 期）不命中。",
+  },
+
 ];
 
 // ---------------------------------------------------------------- main

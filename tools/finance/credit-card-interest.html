@@ -359,6 +359,10 @@ function simulateMinimum(bill, dailyRate, minRatio) {
 }
 
 function calc() {
+  var __ccEn=false;
+  try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) __ccEn=TBKit.util.isEn(); }catch(e){}
+  try{ if(!__ccEn && new URLSearchParams(location.search).get('lang')==='en-US') __ccEn=true; }catch(e){}
+  var __ccTx=function(zh,txt){ return __ccEn?txt:zh; };
   var type = document.getElementById('repayType').value;
   document.getElementById('installmentBox').style.display = type === 'installment' ? 'block' : 'none';
 
@@ -427,16 +431,17 @@ function calc() {
     var remaining = sim.balance;
     var cleared = sim.cleared;
 
-    var totalPaid = bill + totalInterest + totalLateFee;
+    // F-N225：120 期未还清时 bill 本金并未全部支付，剩余本金不能算进「已付」
+    var totalPaid = (bill - (cleared ? 0 : remaining)) + totalInterest + totalLateFee;
 
     html += '<div class="stat-grid">';
     html += '<div class="stat-card"><div class="val">' + fmt(minPay) + '</div><div class="lbl">首月最低还款</div></div>';
     html += '<div class="stat-card"><div class="val" style="color:var(--danger);">' + fmt(totalInterest) + '</div><div class="lbl">循环利息总额</div></div>';
-    html += '<div class="stat-card"><div class="val" style="color:var(--danger);">' + fmt(totalPaid) + '</div><div class="lbl">总支出</div></div>';
+    html += '<div class="stat-card"><div class="val" style="color:var(--danger);">' + fmt(totalPaid) + '</div><div class="lbl">' + __ccTx(cleared ? '总支出' : '120 期累计已付', cleared ? 'Total outlay' : 'Paid over 120 periods') + '</div></div>';
     html += '<div class="stat-card"><div class="val">' + (cleared ? months : '未还清') + '</div><div class="lbl">还清月数</div></div>';
     html += '</div>';
     if (!cleared) {
-      html += '<p style="color:var(--danger);">⚠️ 120 期内未还清，剩余本金 <strong>' + fmt(remaining) + '</strong> 元，以上总支出仅为 120 期累计</p>';
+      html += '<p style="color:var(--danger);">⚠️ ' + __ccTx('120 期内未还清，剩余本金 <strong>' + fmt(remaining) + '</strong> 元未计入累计已付，后续仍将产生利息', 'Not cleared within 120 periods; remaining principal <strong>' + fmt(remaining) + '</strong> is excluded from the paid total and will keep accruing interest') + '</p>';
     }
     if (sim.negative) {
       html += '<p style="color:var(--danger);">⚠️ 还款额低于当期利息，已发生负摊还，本金将持续增加</p>';
@@ -461,6 +466,7 @@ function calc() {
     }
     var irrMonthly = (lo + hi) / 2;
     var annualRate = ((Math.pow(1 + irrMonthly, 12) - 1) * 100).toFixed(2);
+    var nominalAnnual = (irrMonthly * 12 * 100).toFixed(2);
 
     for (var m = 1; m <= instMonths; m++) {
       var remainPrincipal = bill - principalPerMonth * m;
@@ -479,7 +485,8 @@ function calc() {
     html += '<div class="stat-card"><div class="val">' + fmt(monthlyPayment) + '</div><div class="lbl">每期还款</div></div>';
     html += '<div class="stat-card"><div class="val" style="color:var(--danger);">' + fmt(totalFee) + '</div><div class="lbl">手续费总额</div></div>';
     html += '<div class="stat-card"><div class="val">' + instMonths + '</div><div class="lbl">分期期数</div></div>';
-    html += '<div class="stat-card"><div class="val">' + annualRate + '%</div><div class="lbl">实际年化利率</div></div>';
+    html += '<div class="stat-card"><div class="val">' + nominalAnnual + '%</div><div class="lbl">' + __ccTx('实际年化（单利近似 ×12）', 'Nominal annual (simple ×12)') + '</div></div>';
+    html += '<div class="stat-card"><div class="val">' + annualRate + '%</div><div class="lbl">' + __ccTx('有效年化（按月复利）', 'Effective annual (monthly compounding)') + '</div></div>';
     html += '</div>';
     html += '<p>总支出：<strong style="color:var(--primary);font-size:18px;">' + fmt(totalPaid) + '</strong> 元</p>';
 

@@ -313,11 +313,22 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 
-<script>function __tbInputGuard(_ids,_labels){
+<script>
+function __laTx(zh,txt){
+  var e=false;
+  try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) e=TBKit.util.isEn(); }catch(x){}
+  try{ if(!e && new URLSearchParams(location.search).get('lang')==='en-US') e=true; }catch(x){}
+  return e?txt:zh;
+}
+function __tbInputGuard(_ids,_labels){
   var __TPL='请填写「%s」后再计算。';
   var __TPL2="<p style=\"color:var(--danger)\">⚠ 「%s」是本计算的分母，不能为 0。</p>";
   var _vals=[],_firstBad=-1;
-  var _REQ=['loanAmount', 'annualRate', 'loanYears', 'balloonMonths', 'balloonRatio', 'prepayMonth', 'prepayAmount'];
+  // F-N226：隐藏的尾款/提前还款字段不参与 calc()，不应强制非空
+  var _modeEl=document.getElementById('repayMethod');
+  var _mode=(_modeEl && _modeEl.value) ? _modeEl.value : 'equal';
+  var _REQ=['loanAmount', 'annualRate', 'loanYears'];
+  if(_mode==='balloon') _REQ=_REQ.concat(['balloonMonths','balloonRatio']);
   for(var _i=0;_i<_ids.length;_i++){
     var _e=document.getElementById(_ids[_i]);
     if(!_e) continue;
@@ -479,6 +490,12 @@ var amount = +loanAmountEl.value || 0;
       document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">气球贷还款期数须大于 0，期末尾款比例须为 0–100</p>';
       return;
     }
+    // F-N228：气球贷期数不能超出贷款年限对应的总月数，否则「年限」输入形同虚设
+    var bmMax = Math.floor(years) * 12;
+    if (balloonMonths > bmMax) {
+      document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">' + __laTx('气球贷还款期数（' + balloonMonths + ' 月）不能超过贷款年限 × 12（' + bmMax + ' 月），请调整后再计算', 'Balloon term (' + balloonMonths + ' months) cannot exceed loan years × 12 (' + bmMax + ' months)') + '</p>';
+      return;
+    }
   }
 
   var result = generateSchedule(amount, annualRate, years, method, balloonMonths, balloonRatio);
@@ -505,6 +522,9 @@ var amount = +loanAmountEl.value || 0;
   html += '<div class="stat-card"><div class="val">' + ((Math.pow(1 + annualRate / 100 / 12, 12) - 1) * 100).toFixed(2) + '%</div><div class="lbl">有效年化（按月复利）</div></div>';
   html += '</div>';
 
+  if (method === 'balloon') {
+    html += '<p style="font-size:13px;color:var(--text-muted);margin:8px 0;">' + __laTx('气球贷按「气球贷还款期数（' + balloonMonths + ' 月）」生成明细，贷款年限 ' + years + ' 年仅用于校验期数上限；期末尾款在最后一期一次归还。', 'The balloon schedule follows the balloon term (' + balloonMonths + ' months); the ' + years + '-year loan term only caps that term. The balloon balance is due in the final period.') + '</p>';
+  }
   html += '<div class="bar-row"><span class="bar-lbl">本金</span><div class="bar-bg"><div class="bar-fill" style="width:' + (amount / totalPayment * 100) + '%;background:var(--primary);">' + (amount / totalPayment * 100).toFixed(1) + '%</div></div></div>';
   html += '<div class="bar-row"><span class="bar-lbl">利息</span><div class="bar-bg"><div class="bar-fill" style="width:' + (result.totalInterest / totalPayment * 100) + '%;background:var(--danger);">' + (result.totalInterest / totalPayment * 100).toFixed(1) + '%</div></div></div>';
 

@@ -123,8 +123,8 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="比较不同本金/利率/期限下等额本息的月供、总利息和还款总额。">Compare two or more loan offers side by side on monthly payment, total interest and total cost.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-      <div class="formula-eq">按月供 M = P·i·(1+i)ⁿ/((1+i)ⁿ−1) 逐方案计算；总成本 = 月供 × 期数 + 各项费用</div>
-      <div class="formula-desc">对多个贷款方案分别按等额本息计算月供、总利息与总费用并横向对比，用于贷款方案选型与谈判参考。</div>
+      <div class="formula-eq">按月供 M = P·i·(1+i)ⁿ/((1+i)ⁿ−1) 逐方案计算；还款总额 = 月供 × 期数（本页无费用输入，不计各项费用）</div>
+      <div class="formula-desc">对多个贷款方案分别按等额本息计算月供、总利息与还款总额并横向对比；有效年化由名义年利率按月复利折算，不含费用与 IRR，用于贷款方案选型与谈判参考。</div>
   
 </div>
 
@@ -176,9 +176,9 @@ s.parentNode.insertBefore(el, s);
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);">total interest</td>
         </tr>
         <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="实际年化">Effective APR</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="含费用内部收益率">IRR including fees</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">effective annual rate</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="有效年化（按月复利）">Effective annual rate (monthly compounding)</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="EAR = (1 + 名义年利率/12)^12 − 1">EAR = (1 + nominal APR/12)^12 − 1</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">converted from nominal rate; no fees included</td>
         </tr>
       </tbody>
     </table>
@@ -261,22 +261,27 @@ function calcScheme(id) {
   const rateRaw = rEl ? parseFloat(rEl.value) : NaN;
   const monthsRaw = mEl ? parseInt(mEl.value, 10) : NaN;
   const principal = isFinite(principalRaw) ? principalRaw : 0;
-  const rate = isFinite(rateRaw) ? rateRaw : 0;
+  const rate = isFinite(rateRaw) ? rateRaw : NaN;
   const months = isFinite(monthsRaw) ? monthsRaw : 0;
-  const valid = principal > 0 && months > 0 && isFinite(rate);
+  // F-N229：利率留空/非法不得静默按 0% 参与排名
+  const rateOk = isFinite(rate) && rate >= 0;
+  const valid = principal > 0 && months > 0 && rateOk;
   const m = valid ? pmt(principal, rate, months) : 0;
   const total = m * months;
   const interest = total - principal;
   // 名义年利率按月计息 ⇒ 有效年化 = (1 + 名义/12)^12 − 1；同一页并列展示，避免把名义值当有效值
   const ear = rate > 0 ? (Math.pow(1 + rate / 100 / 12, 12) - 1) * 100 : 0;
-  return { id, principal, rate, months, m, total, interest, ear, valid };
+  return { id, principal, rate, months, m, total, interest, ear, rateOk, valid };
 }
 
 function calc() {
   const arr = [calcScheme('a'), calcScheme('b'), calcScheme('c')];
   const rows = arr.map(s => {
     if (!s.valid) {
-      return `<div class="scheme" style="border-color:var(--danger);opacity:.72;"><h4>方案 ${s.id.toUpperCase()}</h4><p style="color:var(--danger);margin:0;">⚠ 无效方案：贷款金额与月数须大于 0，已排除比较</p></div>`;
+      const reason = (s.principal > 0 && s.months > 0 && !s.rateOk)
+        ? '⚠ 无效方案：年利率须填写且不得为负，已排除比较'
+        : '⚠ 无效方案：贷款金额与月数须大于 0，已排除比较';
+      return `<div class="scheme" style="border-color:var(--danger);opacity:.72;"><h4>方案 ${s.id.toUpperCase()}</h4><p style="color:var(--danger);margin:0;">${reason}</p></div>`;
     }
     return `<div class="scheme"><h4>方案 ${s.id.toUpperCase()}</h4>
       <p>月供：<strong style="color:var(--primary);">${s.m.toFixed(2)} 元</strong></p>
