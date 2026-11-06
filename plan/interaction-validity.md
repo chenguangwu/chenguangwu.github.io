@@ -23,6 +23,7 @@
 - 静态续审第十批：阅读 `it/{color-converter,country-code-lookup,country-flag,cpp-cheatsheet,csharp-cheatsheet,css-escape}` 共 6 页主要路径，记录查询输入 HTML 注入点、颜色对比及 CSS 转义问题，更新旧结论源码状态；未运行页面或注入，不计双跑。
 - 静态续审第十一批：阅读 `it/{css-properties,csv-to-html-table,docker-cheatsheet,emacs-cheatsheet,email-normalizer,emoji-cheatsheet}` 共 6 页主要路径，记录邮箱域名误判与历史恢复；CSV 旧问题当前关键路径仍在。仅代码分析及 Node 正则复算，不计双跑。
 - 静态续审第十二批：阅读 `it/{emoji-meaning,env-generator,git-commands,go-cheatsheet,go-escape,html-tags}` 共 6 页主要路径，记录表情复制、HTML 标签 CSV 和环境变量预览问题；更正旧 env 与 Go 八进制条目的源码状态。仅代码分析及 Node 表达式复算，不计双跑。
+- 静态续审第十三批：阅读 `it/{http-cache,http-cookies,http-headers,http-methods,http-response-headers,http-status}` 共 6 页检索、分类、复制及图表/导出路径；记录状态码导出后的表格状态，既有缓存统计、错误响应头及 Cookie 示例问题的相关代码仍在。未运行浏览器，不计双跑。
 
 
 - 扫描时间：2026/11/5 05:04:33
