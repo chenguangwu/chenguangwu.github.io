@@ -74,7 +74,8 @@
 ### 2.3 同类风险（未逐页真机，按模式登记）
 
 - **默认日期 `setMonth` 溢出**：`agriculture/harvest-date-predictor.html:255`、`legal2/statute-deadline.html:406`、`date-difference-calculator.html:859` —— 仅在当天为 29–31 日时预填日期偏移 1–3 天（低）。
-- **`new Date(.value)` 直接解析**（UTC 风险）：`health/pregnancy-due-date.html`、`health/ovulation-calculator.html`、`fire/detector-44.html`、`legal/late-payment-interest.html`、`edu/ebbinghaus-curve.html`。这些页在 UTC+8 无可见偏差，负时区用户会差 1 天。
+- **`new Date(.value)` 直接解析**（UTC 风险，历史模式待逐页复核）：`fire/detector-44.html`、`legal/late-payment-interest.html`、`edu/ebbinghaus-curve.html`。
+- **2026-11-06 更正**：`health/pregnancy-due-date.html` 与 `health/ovulation-calculator.html` 现用 `parseLocalDate()` 按本地年月日构造，原指控 `new Date(.value)` 已不适用；默认 `valueAsDate = new Date()` 仍按 UTC 日期写入，时区临界时可能不是本地当天，应单独验证。
 
 ---
 
