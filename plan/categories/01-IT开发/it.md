@@ -4225,6 +4225,10 @@
 
 ### 逐页结论
 
+- 原记录待处理部分（未复核）：`json-to-csv.html` 历史回填仍直接调用 `downloadCSV()`。
+- 留存建议（aes-encryptor）：①历史点击应回填参数并重算（原记录称当前只复制）；②增加密文/明文文件下载与原文件名还原；③内置 FIPS-197 官方向量一键自检。
+- 留存建议（rsa）：①提供生成密钥后一键跑通加密/解密/签名/验签的演示流程；②显示密钥指纹与位数，支持粘贴 PEM 自动识别 PKCS#1/PKCS#8；③提供与 OpenSSL 命令互操作的说明与示例。
+
 - `json-formatter.html`：JSON 解析与格式化真实，`sortKeys` 递归按键排序且数组元素同步排序，`renderTree` 对键/值一律 `escapeHtml`，无注入面。但「转义」按钮（`:612-623`）对合法 JSON 走 `JSON.parse`→`JSON.stringify(obj)`，与「压缩」（`:561-571`）输出完全相同，只有输入不是 JSON 时才 `JSON.stringify(string)`；「反转义」期望的是 JSON 字符串字面量，因此「转义→反转义」对合法 JSON 只相当于压缩再美化，按钮语义不成立。「提取」（`:640-678`）用贪婪 `{[\s\S]*}` 从首个 `{` 取到全文最后一个 `}` 后自尾截断，日志中多个 JSON 片段只能拿到第一个，与「从日志/代码片段自动提取」的说明不符。默认态 `loadSample()`（`:727`）即渲染 2 空格美化树、类型统计与柱状图，结果正确。
 - `yaml-validator.html`：核心是 js-yaml 4.1.0 `loadAll`（`:479,698`），多文档、锚点、合并键、多行块、Tab/重复键报错（含行列与上下文）均与库行为一致，2 MB 上限（`:511`）有保护，循环引用被 `stringify` 的 catch 兜住（`:574-581`）。缺陷集中在「YAML→JSON 保真」：js-yaml 会把 `2024-01-01` 解析为 `Date`，作为 mapping 键时经 JS 键强制转换成本地时区 `Date.toString()` 串（实测 `Mon Jan 01 2024 08:00:00 GMT+0800 (中国标准时间)`），换时区/语言环境键名就变；`!!binary` 为 `Uint8Array`，`JSON.stringify` 得 `{"0":104,…}` 索引对象而非 base64；正文称「遵循 YAML 1.1/1.2 规范」（`:191`），实际 js-yaml 4 为 1.2 语义（`yes/on` 输出字符串，实测），1.1 用户预期落空。备注：js-yaml 走 CDN，弱网/离线时 `ReferenceError` 被 catch 后显示成「YAML 语法验证失败：jsyaml is not defined」，与既有 G09/IT-N2 外部依赖问题同型，不另编号。
 - `xml-validator.html`：直接把输入交给原生 `DOMParser`（`:266`），只以 `getElementsByTagName('parsererror')` 数量判成败（`:267-271`），再取 `documentElement.tagName` 与元素总数（`:273-275`），不输出 DOM/文本，故无往返保真问题，也不会丢数据。CDATA/转义/200 层嵌套/重复属性/未闭合标签/未声明前缀/中文标签均判定正确；`DOCTYPE SYSTEM` 的外部实体不解析（报 undefined entity），XXE 面安全。唯一实质缺陷是 `<parsererror>` 判定按限定名跨命名空间匹配：合法文档根就叫 `<parsererror>` 时会被当成解析失败（jsdom 复算为 ❌、detail 输出正文 `valid`），Chrome/Firefox 同一 DOM 接口同样命中（浏览器未实测）。默认样例（`:119`）结构正常，`calcTool()`（`:281`）加载即输出 ✅ 根 `note`、4 元素。
