@@ -7,9 +7,6 @@
 
 | 分区 | 条目 ID | 页面 | 修复类型 | 验证用例 |
 |---|---|---|---|---|
-| IT | IT-N54 | tools/it/crc-calculator.html | CRC-8/CCITT 参数校正（poly 0x07/init 0/xorout 0x55） | verify_it_calc.js |
-| IT | IT-N60 | tools/it/css-minifier.html | 字符串/url()/注释受保护分词 | verify_it_calc.js |
-| IT | IT-N63 | tools/it/date-duration.html | 严格日期校验、逆序报错、口径静态化 | verify_it_calc.js |
 | IT（已修补例） | IT-N53/N76/N80 | ipv6 / cron / url-encode | 前序提交已修，仅补回归用例 | verify_it_calc.js |
 | 医疗 | D-N6 | tools/healthcare/healthcare.html | 成人剂量>0 守卫、封顶语义澄清 | verify_healthcare_calc.js |
 | 医疗 | D-N16 | tools/healthcare/antipyretic-dose.html | 年龄支持小数年、<3 月龄拒算 | verify_healthcare_calc.js |
