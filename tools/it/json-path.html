@@ -372,11 +372,20 @@ function jsonPath(obj, expr) {
         if (Array.isArray(current)) {
           if (token.wildcard) {
             for (const item of current) next.push(item);
-          } else if (token.start !== undefined && token.end !== undefined) {
+          } else if (token.slice) {
+            // N489：负索引先折算成 length+idx；省略上界按当前数组长度收敛；步长支持正负且禁止 0
+            const len = current.length;
+            const norm = function (v, dflt) {
+              if (v === null || v === undefined) return dflt;
+              return v < 0 ? Math.max(len + v, 0) : Math.min(v, len);
+            };
             const step = token.step || 1;
-            for (let i = token.start; i < token.end; i += step) {
-              if (i >= 0 && i < current.length) next.push(current[i]);
-              else if (i < 0 && i + current.length >= 0) next.push(current[i + current.length]);
+            const s0 = norm(token.start, 0);
+            const e0 = norm(token.end, len);
+            if (step > 0) {
+              for (let i = s0; i < e0; i += step) next.push(current[i]);
+            } else {
+              for (let i = e0 - 1; i >= s0; i += step) next.push(current[i]);
             }
           } else if (token.index !== undefined) {
             let idx = token.index;
@@ -445,31 +454,31 @@ function parseTokens(expr) {
       } else if (expr[i] === '*') {
         i += 2;
         tokens.push({ type: 'index', wildcard: true });
-      } else if (expr[i] === ':') {
-        let start = 0, end = Infinity, step = 1;
-        i++;
-        let num = '';
-        while (i < expr.length && expr[i] !== ']' && expr[i] !== ':') num += expr[i++];
-        if (num) end = parseInt(num);
-        tokens.push({ type: 'index', start, end, step });
-        while (i < expr.length && expr[i] !== ']') i++;
-        i++;
       } else {
-        let num = '';
-        while (i < expr.length && expr[i] !== ']' && expr[i] !== ':') num += expr[i++];
-        if (expr[i] === ':') {
-          i++;
-          let endStr = '';
-          while (i < expr.length && expr[i] !== ']') endStr += expr[i++];
-          tokens.push({ 
-            type: 'index', 
-            start: parseInt(num), 
-            end: endStr ? parseInt(endStr) : Infinity 
-          });
+        // N489：切片先整体读到 ']' 再按 ':' 切段。原实现把 `[0:5:2]` 的 `5:2` 交给 parseInt（得 5）
+        // 并忽略 step；省略上界时写入 Infinity，执行阶段 `i < Infinity` 恒真 ⇒ 死循环卡死标签页。
+        let spec = '';
+        while (i < expr.length && expr[i] !== ']') spec += expr[i++];
+        i++; // 跳过 ']'
+        if (spec.indexOf(':') !== -1) {
+          const segs = spec.split(':');
+          const __jpEn = function () { return (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()); };
+          const numOrNull = function (t) {
+            t = String(t).trim();
+            if (t === '') return null;                    // 省略 ⇒ 交给运行时按数组长度收敛
+            if (!/^-?\d+$/.test(t)) throw new Error((__jpEn() ? 'Slice arguments must be integers: ' : '切片参数必须是整数：') + t);
+            return parseInt(t, 10);
+          };
+          const st = numOrNull(segs[0]);
+          const en = numOrNull(segs.length > 1 ? segs[1] : '');
+          const step = numOrNull(segs.length > 2 ? segs[2] : '');
+          if (step === 0) throw new Error(__jpEn() ? 'Slice step must not be 0' : '切片步长不能为 0');
+          tokens.push({ type: 'index', slice: true, start: st === null ? 0 : st, end: en, step: step === null ? 1 : step });
         } else {
-          tokens.push({ type: 'index', index: parseInt(num) });
+          const idx = parseInt(spec, 10);
+          if (isNaN(idx)) throw new Error((__jpEn() ? 'Invalid index: [' : '非法索引：[') + spec + ']');
+          tokens.push({ type: 'index', index: idx });
         }
-        i++;
       }
     } else {
       i++;

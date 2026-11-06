@@ -8213,6 +8213,27 @@ const CASES = [
     ref: "递归上限：5000 层对象在 collectRecursive 深度 65 处截断，收集到 65 个 x；旧实现无深度上限，递归回溯栈溢出导致点击执行抛错、无输出。",
   },
   {
+    slug: "it/json-path",
+    inputs: { input: '{"a":"<img src=x onerror=N490MARK>"}', path: "$.a" },
+    clicks: ["doQuery()"],
+    expect: ['"&lt;img src=x onerror=N490MARK&gt;"'],
+    ref: "IT-N490 DOM XSS：JSON 字符串里的 `<img …>` 必须先做 HTML 转义再着色 ⇒ 输出为文本 `&lt;img …&gt;`。修复前 highlightJSON 直接拼 innerHTML，标签被解析成真实 img 元素（渲染即触发 onerror）；blob 采集会剥掉 `<img …>` 标签，故修复前的输出里根本不含带 `&lt;` 的串。哨兵 N490MARK 由输入决定。",
+  },
+  {
+    slug: "it/json-path",
+    inputs: { input: '{"a":[11,22,33]}', path: "$.a[-1:]" },
+    clicks: ["doQuery()"],
+    expect: ["[ 33 ]"],
+    ref: "IT-N489 开区间切片：`[-1:]` 负起点折算为 length−1=2、省略上界按 length 收敛 ⇒ 只取末项 33，输出 `[ 33 ]`。修复前解析写入 `end=Infinity`，执行阶段 `i < Infinity` 恒真 ⇒ 死循环冻结页面（点击不返回、无输出）。输入为紧凑 JSON（含 `33` 但无 `[ 33 ]` 形态），默认示例不命中。",
+  },
+  {
+    slug: "it/json-path",
+    inputs: { input: '{"a":[11,22,33,44,55]}', path: "$.a[0:5:2]" },
+    clicks: ["doQuery()"],
+    expect: ["[ 11 , 33 , 55 ]"],
+    ref: "IT-N489 步长：`[0:5:2]` 应取下标 0/2/4 ⇒ `[ 11 , 33 , 55 ]`。修复前 `endStr='5:2'` 交给 parseInt 得 5、`step` 缺省为 1 ⇒ 输出 5 项 `[ 11 , 22 , 33 , 44 , 55 ]`，与本串不同。",
+  },
+  {
     slug: "it/xml-validator",
     inputs: {},
     clicks: ["document.getElementById('result').textContent='LOC='+xmlErrorLoc('error on line 3 at column 5: mismatched tag');"],
