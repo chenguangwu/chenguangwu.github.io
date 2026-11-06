@@ -12,6 +12,7 @@
 - `edu/english-vocabulary` 探针 A 桶仅代表改动题数不会实时答题：源码 `startQuiz()` 才创建题目，`answer()` 处理选择、计分并延时进入下一题。该工具本就需要先开始再选择，静态证据不能推断浏览器实际交互或作为独立真值抽样。
 - 用户要求加速并只分析代码，已停止浏览器、后台探针及本地服务。余下 373 页未双跑，653 页完整迁移矩阵、独立 60 页运行态抽样和错分率未完成，旧分桶仍不能销账；后续静态复核只能标代码结论或待验证，不冒称真实浏览器验证。业务缺陷继续写入 `plan/categories/` 对应分类。
 - 静态续审首批：人工复核 `health/{pregnancy-due-date,ovulation-calculator,gfr-calculator,blood-pressure-classifier}` 4 页的输入事件、计算和结果路径；记录胎重、单位与分期、日历未知日期、安全输入和旧结果等问题，详见 `categories/03-医疗健康/specialties.md`。另更正 `units-datetime-family.md` 中两页日期解析的过时记录。代码复算非浏览器实测，不能计入双跑或错分率。
+- 静态续审第二批：阅读 `gardening2/{fertilizer-ppm,watering-frequency}`、`geology/{mineral-hardness,richter-scale,rock-identify,stratum-correlation}`、`fun/{keyboard-heatmap,typing-rhythm}` 的主要交互及结果路径，共 8 页。记录浇水量默认值与打字 WPM 算式问题，复核并更正已过时的地震条目；不能将未发现其他问题等同运行通过。
 
 
 - 扫描时间：2026/11/5 05:04:33
