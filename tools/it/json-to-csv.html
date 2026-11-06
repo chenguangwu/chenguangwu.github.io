@@ -118,7 +118,7 @@ s.parentNode.insertBefore(el, s);
 <h3>📐 工作原理与说明</h3>
 <p>将 JSON 对象数组展平为二维表格的逻辑:</p>
 <ul>
-<li>递归下钻嵌套对象/数组,键名以"·"或"."合并为列名(如 <code>user.name</code>)。</li>
+<li>嵌套对象或数组会被序列化为 JSON 字符串填入对应单元格（例如 <code>{"a":1}</code> 显示为 <code>{"a":1}</code>），不展开为多列。</li>
 <li>每个数组元素输出一行;值转为字符串(布尔、数字、日期原样)。</li>
 <li><code>null</code> / 缺失字段留空;数组经索引展开。</li>
 </ul>
@@ -171,7 +171,7 @@ s.parentNode.insertBefore(el, s);
 <div class="dd-example"><div class="dd-ex-title">转换</div><div class="dd-ex-body">`[{&quot;a&quot;:1,&quot;b&quot;:2},{&quot;a&quot;:3,&quot;b&quot;:4}]` → 表头 a,b 两行数据。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>嵌套字段怎么处理？</dt><dd>通常展平或用点路径命名列。</dd>
+<dt>嵌套字段怎么处理？</dt><dd>嵌套对象或数组会被序列化为 JSON 字符串填入对应单元格（例如 <code>{"a":1}</code> 显示为 <code>{"a":1}</code>），不会展平成多列。</dd>
 <dt>为什么 Excel 打开是乱码？</dt><dd>因为编码不匹配：中文 CSV 存成 UTF-8 时，Excel 默认按本地编码（GBK）打开就会乱码。解决办法是导出时加 UTF-8 BOM，或在 Excel 里用「数据 → 自文本」手动指定编码。另外以 0 开头的编号与长数字串被自动转成数字，也需设为文本格式。</dd>
 </dl>
 </div>
@@ -278,7 +278,7 @@ function toCSV(){
   if(!raw){document.getElementById('output').value='';__jsonToCsvExportSafe='';out.innerHTML='<p class="muted">请输入非空 JSON 数组</p>';return;}
   try{
     var data=JSON.parse(raw);
-    if(!Array.isArray(data)||!data.length){const __h1='<p style="color:var(--danger)">请输入非空 JSON 数组</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;return;}
+    if(!Array.isArray(data)||!data.length){document.getElementById('output').value='';__jsonToCsvExportSafe='';const __h1='<p style="color:var(--danger)">请输入非空 JSON 数组</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;return;}
     var keys=[];
     data.forEach(function(o){
       if(o&&typeof o==='object')Object.keys(o).forEach(function(k){if(keys.indexOf(k)===-1)keys.push(k);});
@@ -367,7 +367,7 @@ function __json_to_csvRender(keys,rk,en){
                     if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
                     else{e.value=rec[k];}
                 }
-                downloadCSV();
+                toCSV();
             }catch(e2){}
             __json_to_csv_skip=false;
         });

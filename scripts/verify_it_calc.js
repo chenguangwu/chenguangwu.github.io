@@ -1641,6 +1641,14 @@ const CASES = [
     ref: "空态口径：输入为空 ⇒ 结果区提示；修复前空分支 `out.innerHTML=''`，既不报错也无提示，结果区只剩效率工具栏的「0 个参数」。默认示例已预填 JSON，不命中。",
   },
   {
+    slug: "it/json-to-csv",
+    // IT-N6 回归：非空但长度为 0 的数组 [] 不得保留上一次的有效 CSV。
+    inputs: { input: "[]" },
+    clicks: ["toCSV()"],
+    expect: ["请输入非空 JSON 数组"],
+    ref: "独立复算：输入 []（非空字符串、但 parsed 数组 length=0）⇒ 走 !data.length 分支，结果区提示且 output.value/__jsonToCsvExportSafe 必须被清空（修复前此分支不清空，旧 CSV 残留在 output 与导出串，复制/下载会误读旧数据）。默认样例是有效 JSON，不命中。",
+  },
+  {
     slug: "it/json-to-yaml",
     inputs: { input: '{"a":1}' },
     clicks: ["doYaml()"],
