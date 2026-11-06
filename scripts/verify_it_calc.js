@@ -2628,6 +2628,13 @@ const CASES = [
     ref: "真实三星浏览器 UA 同时含 `Chrome/` 与 `SamsungBrowser/`：旧实现先命中 Chrome 分支误报 Google Chrome。SamsungBrowser/ 须先于 Chrome 判定；默认示例 UA 不同。",
   },
   {
+    slug: "it/user-agent-parser",
+    inputs: { uaInput: "Mozilla/5.0 (Windows Phone 10.0; Android 4.2.1; Microsoft; Lumia 640) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/52.0.2749.62 Mobile Safari/537.36 Edge/15.15254" },
+    clicks: ["parse()"],
+    expect: ["Microsoft Edge 15.15254"],
+    ref: "N65 回归：legacy Edge/（非现代 Edg/）须先于 Chrome/ 判定，Windows Phone 须先于通用 Windows。旧实现误报 Google Chrome / Windows；修复后应为 Microsoft Edge 15.15254 且系统含 Windows Phone。",
+  },
+  {
     slug: "it/regex-visualizer",
     inputs: { pattern: "a+" },
     clicks: ["render()"],
