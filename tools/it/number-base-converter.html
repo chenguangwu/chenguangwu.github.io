@@ -432,9 +432,16 @@ document.getElementById('inputBase').addEventListener('change', function() {
 
 function getInputBase() {
   const sel = document.getElementById('inputBase').value;
-  const base = sel === 'custom'
-    ? parseInt(document.getElementById('customBase').value, 10)
-    : parseInt(sel, 10);
+  if (sel === 'custom') {
+    const raw = String(document.getElementById('customBase').value || '').trim();
+    // N8 修复：自定义进制必须是 2–36 的纯整数；parseInt('2.5')=2 会悄悄当成 2 进制，
+    // 故先用正则拒绝小数/空/非数字，再校验范围。
+    if (!/^\d+$/.test(raw)) return null;
+    const base = parseInt(raw, 10);
+    if (!Number.isInteger(base) || base < 2 || base > 36) return null;
+    return base;
+  }
+  const base = parseInt(sel, 10);
   if (!Number.isInteger(base) || base < 2 || base > 36) return null;
   return base;
 }

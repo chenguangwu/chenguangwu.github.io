@@ -336,6 +336,13 @@ const CASES = [
        + "1000 超出静态表范围，其转换结果仅在输入框真正注入时出现，回退默认(空)无 3E8 → 失配。",
   },
   {
+    slug: "it/number-base-converter",
+    // IT-N8 回归：自定义进制输入非整数（如 2.5）不得被 parseInt 当 2 进制悄悄转换，必须提示「进制必须为 2–36 的整数」。
+    inputs: { inputValue: "10", inputBase: "custom", customBase: "2.5" },
+    expect: ["进制必须为 2–36 的整数"],
+    ref: "独立复算：customBase='2.5' ⇒ getInputBase 先 /^\\d+$/ 校验失败 ⇒ 返回 null ⇒ convertFromInput 显示「⚠ 进制必须为 2–36 的整数。」；修复前 parseInt('2.5')=2 被当 base 2 静默转换。默认 preset 路径（inputBase=10）不受影响、不命中。",
+  },
+  {
     slug: "it/calc-2",
     inputs: { numInput: "254", fromBase: "10" },
     expect: ["FE", "fe"],
