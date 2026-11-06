@@ -168,7 +168,7 @@ s.parentNode.insertBefore(el, s);
       <div><label>背景色</label><input type="color" id="bg" value="#ffffff" onchange="generate()"></div>
     </div>
     <div class="toolbar">
-      <div id="text_qrPresets"></div><button type="button" class="btn primary" onclick="generate()">生成</button><button type="button" class="btn" onclick="downloadPNG()">⬇️ 下载 PNG</button><button class="btn" type="button" onclick="__text_qrExport()">导出明细 CSV</button>
+      <div id="text_qrPresets"></div><button type="button" class="btn primary" onclick="generate()">生成</button><button type="button" class="btn" onclick="downloadPNG()">⬇️ 下载 PNG</button><button type="button" class="btn" onclick="downloadSVG()">⬇️ 下载 SVG</button><button class="btn" type="button" onclick="__text_qrExport()">导出明细 CSV</button>
       <button type="button" class="btn success" onclick="copyResult()">复制</button>
     </div>
     <div class="result-box" id="output"></div> <div id="text_qrTable"></div> <div id="text_qrDiff"></div> <div id="text_qrChart"></div> <div id="text_qrHist"></div>
@@ -251,6 +251,8 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script src="../../js/qrcode.js"></script>
 <script>
+function tqEn(){return !!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());}
+function tqQ(zh,en){return tqEn()?en:zh;}
 function drawQR(text){
   if(qrcode.stringToBytesFuncs && qrcode.stringToBytesFuncs['UTF-8']) qrcode.stringToBytes=qrcode.stringToBytesFuncs['UTF-8'];
   const ec=(document.getElementById('ec')||{}).value||'M';
@@ -262,26 +264,47 @@ function drawQR(text){
   const canvas=document.createElement('canvas');canvas.width=size;canvas.height=size;
   const ctx=canvas.getContext('2d');ctx.fillStyle=bg;ctx.fillRect(0,0,size,size);ctx.fillStyle=fg;
   for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(qr.isDark(r,c))ctx.fillRect((c+margin)*cell,(r+margin)*cell,cell,cell);
+  // IT-N551：把真实编码矩阵留一份给 SVG 导出；PNG 走 canvas，SVG 需按模块重建矢量矩形。
+  try{
+    const dark=[];
+    for(let r=0;r<n;r++)for(let c=0;c<n;c++)dark.push(qr.isDark(r,c)?1:0);
+    canvas.__qrMeta={n:n,margin:margin,cell:cell,fg:fg,bg:bg,dark:dark};
+  }catch(e){ canvas.__qrMeta=null; }
   return canvas;
 }
 function downloadPNG(){
   const c=window.__qrCanvas;
-  if(!c){alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Generate the QR code first":"请先生成二维码"));return;}
+  if(!c){alert(tqQ('请先生成二维码','Generate the QR code first'));return;}
   const a=document.createElement('a');
   a.href=c.toDataURL('image/png');a.download='qrcode.png';a.click();
+}
+function downloadSVG(){
+  const m=window.__qrMeta;
+  if(!m){alert(tqQ('请先生成二维码','Generate the QR code first'));return;}
+  const size=(m.n+m.margin*2)*m.cell;
+  let rects='';
+  for(let r=0;r<m.n;r++)for(let c=0;c<m.n;c++){
+    if(m.dark[r*m.n+c])rects+='<rect x="'+((c+m.margin)*m.cell)+'" y="'+((r+m.margin)*m.cell)+'" width="'+m.cell+'" height="'+m.cell+'"/>';
+  }
+  const svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+size+'" height="'+size+'" viewBox="0 0 '+size+' '+size+'"><rect width="'+size+'" height="'+size+'" fill="'+m.bg+'"/><g fill="'+m.fg+'">'+rects+'</g></svg>';
+  const blob=new Blob([svg],{type:'image/svg+xml;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download='qrcode.svg';a.click();
+  if(URL.revokeObjectURL)setTimeout(function(){URL.revokeObjectURL(a.href);},0);
 }
 function generate(){
   const text=document.getElementById('text').value;
   const out=document.getElementById('output');
-  if(!text){out.innerHTML='<p style="color:#999;">请输入要编码的文本</p>';return;}
+  if(!text){out.innerHTML='<p style="color:#999;">'+tqQ('请输入要编码的文本','Enter the text to encode')+'</p>';return;}
   try{
     const canvas=drawQR(text);
     window.__qrCanvas=canvas;
+    window.__qrMeta=canvas.__qrMeta||null;
     const __h0='<div class="qr-wrap"></div><div class="qr-text">'+escapeHtml(text)+'</div>';
     out.innerHTML=__h0;
     out.querySelector('.qr-wrap').appendChild(canvas);
   }catch(e){
-    out.innerHTML='<p style="color:var(--danger)">⚠ 内容过长，无法生成二维码：'+escapeHtml(e.message)+'</p>';
+    out.innerHTML='<p style="color:var(--danger)">'+tqQ('⚠ 内容过长，无法生成二维码：','⚠ Content too long to encode: ')+escapeHtml(e.message)+'</p>';
   }
 }
 function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}

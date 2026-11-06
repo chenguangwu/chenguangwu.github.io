@@ -153,7 +153,7 @@ s.parentNode.insertBefore(el, s);
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="🔐 XXTEA 加密解密">🔐 XXTEA Encrypt Decrypt</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">加密时密钥与明文均不能为空。把明文按 UTF-8 编码后补齐并转为 32 位无符号整数数组，把密钥同样转换并补齐为 4 个 32 位字，调用 XXTEA 加密得到整数数组，再还原为字节序列，最后按所选格式输出十六进制或 Base64</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">加密时密钥与明文均不能为空。明文按 UTF-8 编码后转为 32 位无符号整数数组，并在末尾追加一个完整 32 位字记录原始字节数（支持 ≥256 字节的明文）；密钥按 UTF-8 取前 16 字节组成 4 个 32 位字，超出 16 字节的部分逐字节折叠混入，使全部字节参与但有效密钥仍为 128 位；调用 XXTEA 加密得到整数数组，再还原为字节序列，最后按所选格式输出十六进制或 Base64</div>
   <div class="formula-desc">XXTEA 分组加密与解密。</div>
   <ul class="formula-list">
     <li><b>定位</b>：XXTEA（Corrected Block TEA）是 TEA 系列的改进块密码，使用 128 位密钥。</li>
@@ -287,9 +287,18 @@ s.parentNode.insertBefore(el, s);
 </div>
 
 <script>
+function xxEn(){return !!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());}
+function xxQ(zh,en){return xxEn()?en:zh;}
 function longToBytes(v, w) {
   var n = v.length, m = n << 2;
-  if (w) m = v[n - 1] & 0xff;
+  if (w) {
+    // IT-N558：长度字是完整的 32 位无符号整数，只取低 8 位会让 ≥256 字节
+    // 的明文解密后按 256 取模截断（256→0、300→44、400→144），且仍提示成功。
+    if (n < 2) throw new Error(xxQ('密文长度不足', 'ciphertext too short'));
+    m = v[n - 1] >>> 0;
+    var cap = (n - 1) << 2;
+    if (m > cap) throw new Error(xxQ('长度字异常（', 'invalid length word (') + m + ' > ' + cap + xxQ('），密钥或密文不正确', '), wrong key or corrupted ciphertext'));
+  }
   var b = new Uint8Array(m);
   for (var i = 0; i < m; i++) b[i] = (v[i >> 2] >>> ((i & 3) << 3)) & 0xff;
   return b;
@@ -347,14 +356,27 @@ function bytesToHex(b){return Array.from(b).map(function(x){return x.toString(16
 function hexToBytes(h){h=h.replace(/\s/g,'');var b=new Uint8Array(h.length/2);for(var i=0;i<b.length;i++)b[i]=parseInt(h.substr(i*2,2),16);return b;}
 function bytesToBase64(b){var s='';for(var i=0;i<b.length;i++)s+=String.fromCharCode(b[i]);return btoa(s);}
 function base64ToBytes(b64){var s=atob(b64);var b=new Uint8Array(s.length);for(var i=0;i<s.length;i++)b[i]=s.charCodeAt(i);return b;}
-function keyToLongs(keyStr){return bytesToLong(new TextEncoder().encode(keyStr),false);}
+function keyToLongs(keyStr){
+  var b = new TextEncoder().encode(keyStr);
+  // 前 16 字节按原逻辑组成 4 个 32 位字（≤16 字节密钥行为保持不变）。
+  var k = bytesToLong(b.slice(0, 16), false);
+  if (k.length < 4) { var t = new Uint32Array(4); t.set(k); k = t; }
+  // IT-N559：XXTEA 只索引 k[0..3]，第 17 字节起若直接丢弃，
+  // 「前 16 字节相同、后面不同」的两组密钥会产生完全相同的密文。
+  // 这里把超长部分逐字节折叠混入，保证每一个字节都参与密钥派生。
+  for (var i = 16; i < b.length; i++) {
+    var j = i & 3;
+    k[j] = (Math.imul(k[j] ^ b[i], 16777619) + ((i - 15) << 3)) >>> 0;
+  }
+  return k;
+}
 
 function encrypt(){
   var key=document.getElementById('key').value;
   var fmt=document.getElementById('outputFormat').value;
   var text=document.getElementById('input').value;
   if(!key){ToolBox.showToast(i18nText('toast.msg790'),'error');return;}
-  if(!text){ToolBox.showToast(i18nText(),'error');return;}
+  if(!text){ToolBox.showToast(i18nText('toast.msg788'),'error');return;}
   try{
     var v=toUint32Array(text);
     var k=keyToLongs(key);
@@ -362,7 +384,7 @@ function encrypt(){
     var out=longToBytes(enc,false);
     document.getElementById('output').value=fmt==='hex'?bytesToHex(out):bytesToBase64(out);
     ToolBox.showToast(i18nText('toast.msg087'));
-  }catch(e){ToolBox.showToast('加密失败: '+e.message,'error');}
+  }catch(e){ToolBox.showToast(xxQ('加密失败: ','Encryption failed: ')+e.message,'error');}
 }
 
 function decrypt(){
@@ -383,7 +405,7 @@ function decrypt(){
     var out=longToBytes(dec,true);
     document.getElementById('output').value=new TextDecoder('utf-8',{fatal:false}).decode(out);
     ToolBox.showToast(i18nText('toast.msg586'));
-  }catch(e){ToolBox.showToast('解密失败: '+e.message,'error');}
+  }catch(e){ToolBox.showToast(xxQ('解密失败: ','Decrypt failed: ')+e.message,'error');}
 }
 
 function swapText(){var o=document.getElementById('output').value;document.getElementById('input').value=o;document.getElementById('output').value='';}

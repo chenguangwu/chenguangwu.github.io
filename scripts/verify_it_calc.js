@@ -1649,6 +1649,18 @@ const CASES = [
     ref: "XXTEA 加密后按 Base64 输出（固定密钥下结果确定）；默认示例明文/密钥不同，不命中。",
   },
   {
+    slug: "it/xxtea",
+    clicks: ["var __v=toUint32Array('X'.repeat(256)),__k=keyToLongs('myxxteakey'),__e=xxteaEncrypt(__v,__k),__d=xxteaDecrypt(bytesToLong(longToBytes(__e,false),false),__k),__o=document.getElementById('output');__o.value='N558_LEN='+longToBytes(__d,true).length;"],
+    expect: ["N558_LEN=256"],
+    ref: "IT-N558：长度字按完整 32 位读回，256 字节明文加密→解密往返后长度仍为 256。HEAD 版 longToBytes 只取低 8 位（256&255=0）⇒ N558_LEN=0，用例必红。",
+  },
+  {
+    slug: "it/xxtea",
+    clicks: ["var __a=xxteaEncrypt(toUint32Array('SAME PLAINTEXT'),keyToLongs('abcdefghijklmnopQRST')),__b=xxteaEncrypt(toUint32Array('SAME PLAINTEXT'),keyToLongs('abcdefghijklmnopXXXX')),__o=document.getElementById('output');__o.value='N559_DIFF='+(bytesToHex(longToBytes(__a,false))!==bytesToHex(longToBytes(__b,false)));"],
+    expect: ["N559_DIFF=true"],
+    ref: "IT-N559：前 16 字节相同、后 4 字节不同的两组 20 字节密钥必须产生不同密文（超长部分折叠进 128 位密钥）。HEAD 版第 17 字节起被静默丢弃 ⇒ N559_DIFF=false，用例必红。",
+  },
+  {
     slug: "it/mac-lookup",
     inputs: { macInput: "00:1A:2B:3C:4D:5E" },
     expect: ["点分： 001A.2B3C.4D5E"],
@@ -2149,6 +2161,41 @@ const CASES = [
     clicks: ["showDetail()"],
     expect: ["U+2605"],
     ref: "独立复算：U+2605 就是 `★`（BLACK STAR），查表页把字符与其码点并列渲染。`showDetail()` 在桩内会因「无选中项」抛 `Invalid code point NaN`，但网格（`grid`）已由搜索框的 input 事件更新 ⇒ 不依赖该异常路径。默认列表里没有该条目。",
+  },
+  {
+    slug: "it/unicode-lookup",
+    inputs: { search: "U+2603" },
+    clicks: ["render()"],
+    expect: ["U+2603 · SNOWMAN"],
+    ref: "IT-N554/N555：码点输入 U+2603 解析为 ☃ 一格并给出标准名称 SNOWMAN。HEAD 版拆成 U/+/2/6/0/3 六格、名称是 Code Point N ⇒ 不命中。",
+  },
+  {
+    slug: "it/unicode-lookup",
+    inputs: { search: "snowman" },
+    clicks: ["render()"],
+    expect: ["U+2603 · SNOWMAN"],
+    ref: "IT-N554：按字符名 snowman 检索命中 U+2603（内置标准名称表）。HEAD 版把 7 个字母拆成 7 格 ⇒ 不命中。",
+  },
+  {
+    slug: "it/username-generator",
+    inputs: { style: "fun", maxLen: "20" },
+    clicks: ["generate()"],
+    expect: ["风格：趣味｜词库：14 词｜上限：20 字符"],
+    ref: "IT-N557：风格下拉真的影响生成配置（趣味档 14 词词库 + 上限 20）。HEAD 版无 style 控件、无配置摘要 ⇒ 不命中。",
+  },
+  {
+    slug: "it/username-generator",
+    inputs: { style: "short", maxLen: "20" },
+    clicks: ["generate()"],
+    expect: ["风格：简短｜词库：16 词｜上限：10 字符"],
+    ref: "IT-N557：简短档把上限压到 min(20,10)=10 并切到 16 词短词库，证明风格不只是回显。默认态经典档不含该串。",
+  },
+  {
+    slug: "it/tmux-cheatsheet",
+    inputs: { searchInput: "kill-session" },
+    clicks: ["calcTool()"],
+    expect: ["共 1 项\ntmux kill-session 关闭会话 分类： 会话 语法： tmux kill-session -t name 参数： -a 关闭除 -t 指定会话外的全部会话"],
+    ref: "IT-N553：搜索 kill-session 后只剩 1 项，明细里的参数必须是带 -t 的新口径。⚠ 铁律⑤：默认态渲染全表也含 example 原文，单锚命令串会成为逃生项 ⇒ 用「共 1 项 + 条目明细」的组合串做 A/B 强判别；HEAD 版参数仍是「-a 除指定外全关」且不命中。",
   },
   {
     slug: "it/vim-cheatsheet",
@@ -7627,9 +7674,9 @@ const CASES = [
       "search": "abc123测试"
     },
     "expect": [
-      "3 U+0033 测 U+6D4B 试 U+8BD5\nabc123测试"
+      "3 U+0033 · DIGIT THREE 测 U+6D4B · CJK UNIFIED IDEOGRAPH-6D4B 试 U+8BD5 · CJK UNIFIED IDEOGRAPH-8BD5\nabc123测试"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"search\":\"abc123测试\"}，输出区含「3 U+0033 测 U+6D4B 试 U+8BD5\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"search\":\"abc123测试\"}，输出区含「3 U+0033 测 U+6D4B 试 U+8BD5\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。IT-N554/N555 搜索卡片新增真实 Unicode 名称，按铁律①同批同步 expect。"
   },
   {
     "slug": "it/uniform-distribution",
@@ -7719,9 +7766,9 @@ const CASES = [
       "maxLen": "42"
     },
     "expect": [
-      "abc123测试\n42\n42\nabc123测试 abc123测试 abc123测试 abc123测试 abc123测试 abc123测试 abc123测试 abc123测试 abc123测试 abc123测试 abc123测试 abc123"
+      "abc123测试\n42\n42\nclassic\nabc123测试 abc123测试 abc123测试 abc123测试 abc123测试 abc123测试 abc123测试 abc123测试 abc123测试 abc123测试 abc123测试 abc123"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"kw\":\"abc123测试\",\"count\":\"42\",\"maxLen\":\"42\"}，输出区含「abc123测试\n42\n42\nabc123测试 abc123测试 abc123测…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"kw\":\"abc123测试\",\"count\":\"42\",\"maxLen\":\"42\"}，输出区含「abc123测试\n42\n42\nabc123测试 abc123测试 abc123测…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。IT-N557 新增 style 控件后 blob 字段序在 42/42 后多出 classic，按铁律①同批同步 expect。"
   },
   {
     "slug": "it/uuencode",
@@ -7883,9 +7930,9 @@ const CASES = [
       "outputFormat": "hex"
     },
     "expect": [
-      "abc123测试\n����\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      "abc123测试\n10f886e5c502677a4385b14f\nhex"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"key\":\"abc123测试\",\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"outputFormat\":\"hex\"}，输出区含「abc123测试\n����\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"key\":\"abc123测试\",\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"outputFormat\":\"hex\"}，输出区含「abc123测试\n����\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。IT-N558/N559 顺带修 i18nText() 空参数后 encrypt 不再抛错，输出由乱码解密态变为 hex 密文态，按铁律①同批同步 expect。"
   },
   {
     "slug": "it/xxencode",

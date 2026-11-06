@@ -3921,16 +3921,6 @@
 
 | 页面 | 问题（tools/it/<slug>.html:NN） | 编号 |
 |---|---|---|
-| `tools/it/text-qr.html` | 伪二维码：`renderQR` `:247-267` 只按 `:249-257` 画 3 个定位图形、`:259` 画定时线，数据区 `:260-265` 用 `pseudoRandom(strHash(text))` 逐格 `rnd()<0.5` 填黑白，全程无模式分段/比特流/Reed-Solomon/格式信息/掩码；`text` 仅作随机种子，生成图形不含任何可扫描数据。`:248` 的 `N=29` 写死，版本不随内容增长（V3 容量约 32 字节）（高·伪生成） | IT-N550 |
-| `tools/it/text-qr.html` | meta `:10` 与 og `:15` 承诺「支持尺寸、容错与配色调节，一键下载 PNG/SVG」；实际 `:160-165` 只有文本框与「生成 / 导出明细 CSV / 复制」三个按钮，无尺寸/纠错等级/配色控件，无 `toDataURL`/`toBlob`/SVG 导出路径，CSV 导出的是历史表（承诺未实现） | IT-N551 |
-| `tools/it/tmux-cheatsheet.html` | 示例混入 `--` 行内注释（全页 29 行示例，可执行命令集中在 `:280`、`:304`、`:312`、`:520`、`:552`）：`tmux  -- 匿名会话`、`tmux kill-server  -- 关闭所有 tmux`、`tmux kill-session -a  -- 关闭除当前外所有`、`set -g mouse on  -- 在 .tmux.conf 中`；shell/tmux 无 `--` 注释语法，`--` 及其后中文被当作参数，粘贴后报 `unknown command`/`usage: kill-session`，`:606` 渲染、`:619-628` 实现的复制按钮原样输出（错误结果） | IT-N552 |
-| `tools/it/tmux-cheatsheet.html` | `:295` 把 `tmux a` 的 `-d` 写成「不接管」，实际 `attach -d` 是分离其它已连接客户端、由本客户端接管，语义相反；`:304`「关闭除当前外所有」示例写成 `tmux kill-session -a` 未带 `-t`，在 tmux 外执行因无当前会话直接报错（错误结果） | IT-N553 |
-| `tools/it/unicode-lookup.html` | 码点/名称检索未实现：`:172` 占位符写「输入字符、码点或字符名」，`:161` 公式与深度解析 `:221` 举例 `U+2603`→`☃`、`snowman` 可命中；实际 `render()` `:292-299` 对输入 `for (const ch of q)` 逐字符取码点，`U+2603` 被拆成 `U`/`+`/`2`/`6`/`0`/`3` 六格，`snowman` 拆成 7 个字母，码点与名称永远不会被解析（承诺未实现/死输入） | IT-N554 |
-| `tools/it/unicode-lookup.html` | 名称字段写死常量：`lookupName` `:346-355` 仅 11 条硬编码映射（`0x21`/`0x22`/`0x23`/`0x40`/`0x00A9`/`0x00AE`/`0x2122`/`0x2603`/`0x2605`/`0x2665`/`0x2660`），其余一律返回 `Code Point N`；meta `:10` 承诺「展示名称」，而区段中 99% 以上字符的名称是常量占位（写死常量） | IT-N555 |
-| `tools/it/unicode-lookup.html` | `escapeAttr` `:389` 仅把 `'` 转成 `\'`，未处理 `"` 与 `\`；`:341` 生成 `onclick="copy('${escapeAttr(ch)}')"`，详情为 U+0022（`"`）时双引号提前闭合属性、U+005C（`\`）时反斜杠吞掉收尾引号，onclick 语法错误、按钮点击无反应（错误结果） | IT-N556 |
-| `tools/it/username-generator.html` | 「风格」承诺未实现：meta `:10`「可设长度与风格」、公式 `:163`「可控制长度、风格（简短/专业/趣味）」；`:169-186` 的控件只有关键词、数量、最大长度与加数字/下划线/Leet/前缀四个开关，`generate` `:274-299` 也无风格分支，全页无风格下拉或权重（承诺未实现） | IT-N557 |
-| `tools/it/xxtea.html` | ≥256 字节明文解密被截断且仍提示成功：`longToBytes` `:290-296` 用 `:292` 的 `m = v[n-1] & 0xff` 取回长度，长度字只保留低 8 位；`:383` 解密走同一路径。node 复刻（同页算法）1/10/100/254/255 字节往返一致，**256 字节→0 字符、300 字节→44 字符、400 字节→144 字符**（按 256 取模），`:385` 仍 toast「解密成功」（高·错误结果） | IT-N558 |
-| `tools/it/xxtea.html` | 超长密钥静默丢弃：`:350` 的 `keyToLongs` 不归一化，`:304-311` 的 `fixKey` 只在不足 4 字时补零、不截断，而 `:324`/`:327` 仅索引 `k[(p & 3) ^ e]`（恒为 0–3），第 5 个及以后字永不参与；`:185` 占位符却写「任意长度」。node 验证前 16 字节相同的两组 20 字节密钥（`abcdefghijklmnopQRST` 与 `abcdefghijklmnopXXXX`）产生完全相同密文（密钥处理/错误结果） | IT-N559 |
 
 **统计**
 - 页数：5（`text-qr`、`tmux-cheatsheet`、`unicode-lookup`、`username-generator`、`xxtea`）。

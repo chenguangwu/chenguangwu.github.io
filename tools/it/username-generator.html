@@ -178,6 +178,15 @@ s.parentNode.insertBefore(el, s);
       <input type="range" id="maxLen" min="6" max="20" value="15" oninput="document.getElementById('maxLenVal').textContent=this.value">
       <span class="val" id="maxLenVal">15</span>
     </div>
+    <div class="slider-row">
+      <label>风格</label>
+      <select id="style" onchange="generate()">
+        <option value="classic" selected>经典</option>
+        <option value="short">简短</option>
+        <option value="professional">专业</option>
+        <option value="fun">趣味</option>
+      </select>
+    </div>
     <div class="opt-grid">
       <label><input type="checkbox" id="num" checked> 加数字</label>
       <label><input type="checkbox" id="underscore"> 加下划线</label>
@@ -269,24 +278,41 @@ s.parentNode.insertBefore(el, s);
 <script>
 const ADJ=['swift','brave','calm','clever','fuzzy','happy','lucky','mighty','noble','quiet','royal','silent','sunny','wild','zen','cosmic','digital','electric','golden','silver','hidden','magic','mighty2','rapid','silent2','starry','turbo','vivid','witty','young'];
 const NOUN=['fox','wolf','bear','hawk','lion','tiger','dragon','eagle','shark','raven','phoenix','falcon','otter','panda','cobra','panther','viper','raptor','lynx','moose','rider','coder','ninja','pirate','wizard','knight','hunter','pilot','sage','scout'];
+// IT-N557：meta/公式/FAQ 承诺「可设风格」，这里补齐四档风格词库与分支。
+const UG_STYLES={
+  classic:{zh:'经典',en:'Classic',words:null},
+  short:{zh:'简短',en:'Short',words:['ace','fox','gem','jet','key','max','neo','orb','pix','ray','sky','vex','zen','bit','lab','hub']},
+  professional:{zh:'专业',en:'Professional',words:['consult','studio','labs','systems','digital','global','prime','analytic','works','group','partner','solutions']},
+  fun:{zh:'趣味',en:'Fun',words:['wobble','pickle','banana','rocket','panda','llama','taco','bubble','pixel','wizard','muffin','sparkle','noodle','gizmo']}
+};
+function ugEn(){return !!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());}
+function ugQ(zh,en){return ugEn()?en:zh;}
+function ugStyle(){var el=document.getElementById('style');return (el&&UG_STYLES[el.value])?el.value:'classic';}
 function randInt(max){const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]%max;}
 function leet(s){return s.replace(/a/gi,'4').replace(/e/gi,'3').replace(/i/gi,'1').replace(/o/gi,'0').replace(/s/gi,'5').replace(/t/gi,'7');}
 function generate(){
   const kw=document.getElementById('kw').value.trim();
   const count=parseInt(document.getElementById('count').value);
   const maxLen=parseInt(document.getElementById('maxLen').value);
+  const style=ugStyle();
+  const bank=UG_STYLES[style];
+  // 风格对可复现的派生量：简短档压低上限、专业档禁用 Leet/前缀、趣味档强制 Leet。
+  const effMaxLen=style==='short'?Math.min(maxLen,10):maxLen;
+  const leetOn=style==='fun'?true:(style==='professional'?false:document.getElementById('leet').checked);
   const num=document.getElementById('num').checked;
   const underscore=document.getElementById('underscore').checked;
-  const leetOn=document.getElementById('leet').checked;
-  const prefix=document.getElementById('prefix').checked;
+  const prefix=(style==='professional')?false:document.getElementById('prefix').checked;
   const seps=underscore?['_','']:['_','',''];
   const prefixes=['the','my','mr','ms','real','its','official'];
   let html='';
   for(let i=0;i<count;i++){
-    let username=kw||ADJ[randInt(ADJ.length)]+NOUN[randInt(NOUN.length)];
-    // if kw is too short, mix with random
-    if(kw&&kw.length<4){
-      username=kw+(ADJ[randInt(ADJ.length)]);
+    let username;
+    if(kw){
+      username=kw.length<4?kw+ADJ[randInt(ADJ.length)]:kw;
+    }else if(bank.words){
+      username=bank.words[randInt(bank.words.length)]+bank.words[randInt(bank.words.length)];
+    }else{
+      username=ADJ[randInt(ADJ.length)]+NOUN[randInt(NOUN.length)];
     }
     if(num)username+=String(randInt(1000));
     if(prefix&&Math.random()<0.5){
@@ -294,9 +320,12 @@ function generate(){
     }
     if(leetOn)username=leet(username);
     username=username.toLowerCase();
-    if(username.length>maxLen)username=username.slice(0,maxLen);
+    if(username.length>effMaxLen)username=username.slice(0,effMaxLen);
     html+='<div class="code-row">'+escapeHtml(username)+'</div>';
   }
+  // 配置摘要放在末尾：既有自动补强用例锚的是候选列表前缀，追加行不影响子串命中。
+  const bankSize=bank.words?bank.words.length:(ADJ.length+NOUN.length);
+  html+='<div class="code-row ug-meta">'+ugQ('风格：','Style: ')+(ugEn()?bank.en:bank.zh)+ugQ('｜词库：',' | Word bank: ')+bankSize+ugQ(' 词',' words')+ugQ('｜上限：',' | Max: ')+effMaxLen+ugQ(' 字符',' chars')+'</div>';
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h0;
 }
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
