@@ -3900,15 +3900,6 @@
 
 | 页面 | 问题（含 tools/it/<slug>.html:NN） | 编号 |
 |---|---|---|
-| `tools/it/password-strength.html` | `:448-452` 以 `seconds=combos/(1e10*2)`（即 2×10¹⁰ 次/秒）为基准，却把三档标成 10 亿/秒、1000 亿/秒、1 万亿/秒并用 `/100`、`/100000` 换算，实际速率变成 2×10¹² 与 2×10¹⁵ 次/秒。node 复刻默认 `ToolBox@2026`（78 bit）：首行显示 479 千年（按 10 亿/秒应约 1000 万年）、第三档显示 4 年（按 1 万亿/秒应约 9584 年），分别约偏短 20/20/2000 倍（算错） | IT-N536 |
-| `tools/it/password-strength.html` | `:161` 公式框写「判读：<40 弱｜40~60 中｜60~120 强｜≥120 极强」，但 `:437-440` 只用 6 项清单得分映射等级，从未比较熵值；如 32 个 `a` 熵为 150（公式应判「极强」），实际得分 3 →「一般」（承诺未实现/说明与实现矛盾） | IT-N537 |
-| `tools/it/password-strength.html` | `:430` 的键盘序列正则以 `^` 锚定，只在密码开头匹配；`xxqwe123`、`Tq7!abc123` 等中段序列不会被 `:433` 的风险提示命中，`:349` 的同类检查亦同（错误结果） | IT-N538 |
-| `tools/it/python-cheatsheet.html` | 15 条示例共 32 处用 `--` 作为行内注释（`:277`、`:293`、`:301`、`:309`、`:325`、`:341`、`:357`、`:373`、`:413`、`:453`、`:469`、`:485`、`:517`、`:525`、`:533`）；Python 无 `--` 注释，`:571` 渲染「复制」按钮、`:584-593` 原样复制 textContent，粘贴即 `SyntaxError`；`:453` 的裸 `raise` 也缺少 `except` 上下文（错误结果） | IT-N539 |
-| `tools/it/python-cheatsheet.html` | `:435` 语法字段写成 `@dataclass class C:`，装饰器必须独立成行，照此书写会报语法错误；`:469` 示例 `from . import helper` 仅在包内有效，独立脚本复制后报 `ImportError`（错误结果） | IT-N540 |
-| `tools/it/rust-cheatsheet.html` | 5 条示例共 7 处用 `--` 作注释（`:280` 两处、`:312`、`:328` 两处、`:392`、`:448`）；Rust 没有 `--` 运算符（注释须用 `//`），`a + b  -- 末尾无分号即返回` 等原样复制无法编译（`:523-532` 的复制按钮原样输出）（错误结果） | IT-N541 |
-| `tools/it/rust-cheatsheet.html` | `:352`、`:368` 示例用 `...` 作代码占位，Rust 表达式位置无此语法；`:392` 的 `let n = parse("1")?;` 位于顶层且未导入 `ParseIntError`，`:392` 片段脱离 `fn -> Result` 上下文也不可用（错误结果） | IT-N542 |
-| `tools/it/redis-cheatsheet.html` | 4 条示例把 `-- 注解` 写进命令：`:309`（`PING  -- 返回 PONG`）、`:357`、`:885`、`:925`；redis-cli 不支持行内注释，`PING`/`TYPE`/`EXEC`/`OBJECT ENCODING` 会收到多余参数报 `wrong number of arguments`，`:971`/`:984` 的复制按钮原样输出（错误结果） | IT-N543 |
-| `tools/it/redis-cheatsheet.html` | `:736-741` 的 SINTER/SUNION/SDIFF 条目 params 写「STORE 可存结果」，但这三个命令不接受 `STORE`，需改用 `SINTERSTORE`/`SUNIONSTORE`/`SDIFFSTORE`；照 params 书写会报语法错误（错误结果） | IT-N544 |
 | `tools/it/screen-size.html` | `:130` 公式框声明「屏幕面积 = 物理宽 × 物理高」，但 `calc()`（`:178-209`）只输出分辨率、PPI、长宽比、物理宽高与点距，`:198-207` 无面积字段（承诺未实现） | IT-N545 |
 | `tools/it/summary-generator.html` | `:551-558` 用 `freq[w]/total > 0.05` 过滤关键词，公式 `:212` 只说明剔除停用词、未披露该阈值；node 复刻 60 句唯一文本得 0 个关键词、60 句权重全 0，`:636-641` 退化为按原序取前 N 句（错误结果） | IT-N546 |
 | `tools/it/summary-generator.html` | `:481-505` 的分句器除 `. ! ?` 外还按 `…`、`、` 与换行（当前段 ≥20 字）切分，且小数点后为数字时照切（如 `价格 3.14 元` 被切成 `价格 3.`）；公式 `:212` 只承诺「遇 . ! ? 切分」，句数与摘要片段均可能失真（错误结果） | IT-N547 |

@@ -710,8 +710,8 @@ const CASES = [
     // IT-N15 回归：省略符自身超过字符上限时按上限截断，结果不超过 limit
     inputs: { input: "abcdef", limit: "2", mode: "chars", ellipsis: "..." },
     clicks: ["truncate()"],
-    expect: [".."],
-    ref: "独立复算：limit=2、省略符 '...' 含 3 字素 > limit=2，N15 修复后按上限截断省略符取前 2 字素 ⇒ 输出 '..'（2 字，不超过 limit）；修复前 budget=Math.max(0,2-3)=0 ⇒ 输出完整 '...'(3 字) 超上限。注意 expect 用两点 '..' 而非单点 '.'，避免命中 selfcheck 占位正则的 \\. 分支。默认态 limit=20 不命中。",
+    expect: ["abcdef\n..\nchars\n2"],
+    ref: "独立复算：limit=2、省略符 '...' 含 3 字素 > limit=2，N15 修复后按上限截断省略符取前 2 字素 ⇒ 输出 '..'（2 字，不超过 limit）；修复前 budget=Math.max(0,2-3)=0 ⇒ 输出完整 '...'(3 字) 超上限。原 expect 只写 '..'，而默认态结果「请输入文本...」含 '..' ⇒ 判别器判为逃生项；现锚扩展为依赖注入的完整上下文「输入\\n结果\\n模式\\n上限」。默认态为长中文文本 + limit 20，不命中。",
   },
   {
     slug: "it/text-truncate",
@@ -1026,6 +1026,27 @@ const CASES = [
     ref: "独立复算：8 位、含大小写+数字+特殊符号、非键盘序列、非弱密码 ⇒ 评分 4/5 档「良好」（页面另给熵 52 bit 与破解耗时）。默认示例是更长的弱串，落另一档，不命中。",
   },
   {
+    slug: "it/password-strength",
+    inputs: { pwd: "abc123测试" },
+    clicks: ["check()"],
+    expect: ["在线破解（10亿次/秒）： 3 天"],
+    ref: "IT-N536：在线档按 10 亿次/秒计算，48 bit 口令约 3 天；修复前基准是 2×10¹⁰ 次/秒，仅 3 小时。标签与除数必须一致。默认 ToolBox@2026 的耗时不同，注入失败回退后不命中。",
+  },
+  {
+    slug: "it/password-strength",
+    inputs: { pwd: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+    clicks: ["check()"],
+    expect: ["熵判读（150 bits）： 极强"],
+    ref: "IT-N537：32 个 a 的熵为 150 bit，公式承诺的 ≥120 极强判读须在结果区单列；修复前只按 6 项清单给「一般」，无任何熵判读输出。默认态不含该串。",
+  },
+  {
+    slug: "it/password-strength",
+    inputs: { pwd: "xxqwe123" },
+    clicks: ["check()"],
+    expect: ["⚠️ 包含键盘连续序列（如123、abc、qwe）"],
+    ref: "IT-N538：中段 qwe 序列也要命中风险提示；修复前正则以 ^ 锚定只查开头，xxqwe123 被漏判。默认 ToolBox@2026 开头不在序列表，不含该提示 ⇒ 强判别。",
+  },
+  {
     slug: "it/whitespace",
     inputs: { source: "  a   b \n\n c \n" },
     clicks: [
@@ -1217,9 +1238,9 @@ const CASES = [
     slug: "it/properties-parser",
     // IT-N11 回归：删除重复定义后，loadSample 必须走 propsToJson（输出 JSON），
     // 而非被覆盖的 doBeautify（输出 properties 文本）；同时成功提示 class 应为 ok 而非 err。
-    clicks: ["loadSample()"],
-    expect: ['"app.name"'],
-    ref: "独立复算：SAMPLE 为 properties 文本，loadSample 现调 propsToJson ⇒ 输出含 JSON 键 \"app.name\"（带引号）；修复前重复定义使 loadSample 改为 doBeautify，输出保持 properties 文本（app.name = toolbox，无引号）⇒ 不命中。默认态 input 为空、无该 JSON 串。",
+    clicks: ["loadSample();var __o=document.getElementById('output').textContent;document.getElementById('output').textContent='N11='+(/^\\s*\\{/.test(__o)?'JSON':'PROPS')+':'+(document.getElementById('err').className.indexOf('ok')>=0?'ok':'err');"],
+    expect: ["N11=JSON:ok"],
+    ref: "IT-N11 回归：loadSample 必须调 propsToJson（输出 JSON 且成功提示 class=ok），修复前重复定义使 loadSample 改为 doBeautify（输出 properties 文本）。原 expect 只写 '\"app.name\"'：页面 boot 自身就会调 loadSample()，纯默认态快照与注入态逐字相同（A===B 真盲区），被判别器判为逃生项。现改为在 clicks 里把「输出形态 + 成功态类名」写成唯一哨兵 N11=…，默认态不含该哨兵 ⇒ 有判别力；loadSample 若退化成 doBeautify，哨兵变 N11=PROPS:ok ⇒ 用例转红。",
   },
   {
     slug: "it/json-schema-validator",
@@ -6628,7 +6649,7 @@ const CASES = [
       "pwd": "abc123测试"
     },
     "expect": [
-      "abc123测试\n✅ 长度>=8位 ⚠️ 建议至少12位 ❌ 应同时包含大小写字母 ✅ 包含数字 ✅ 包含特殊符号 ⚠️ 包含键盘连续序列（如123、abc、qwe） ❌ 包含常见弱密码片段\n一般\n在线破解（10亿次/秒）： 3 小时 离线"
+      "abc123测试\n✅ 长度>=8位 ⚠️ 建议至少12位 ❌ 应同时包含大小写字母 ✅ 包含数字 ✅ 包含特殊符号 ⚠️ 包含键盘连续序列（如123、abc、qwe） ❌ 包含常见弱密码片段\n一般"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"pwd\":\"abc123测试\"}，输出区含「abc123测试\n✅ 长度>=8位 ⚠️ 建议至少12位 ❌ 应同时包含大小写字…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
