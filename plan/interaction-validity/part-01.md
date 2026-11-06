@@ -51,6 +51,7 @@
 - 静态续审第三十八批：阅读 `photo/photo-{2,3,4,5,6,7,8,9}` 8 页输入、守卫和计算路径；记录画幅比较方向、星空曝光模型、反算边界和页面文案口径问题。至清单第 528 页，静态续审累计 248 页；仅源码分析，摄影模型须专业复核，未运行浏览器，不计双跑。
 - 静态续审第三十九批：阅读 `photo/{photo,print-size,raw-size,safe-shutter}` 与 `photo2/{exposure-triangle,focal-length,video-storage,white-balance}` 8 页，更新历史守卫状态，记录曝光表拼接、系数和空态问题。至清单第 536 页，静态续审累计 256 页；仅源码及 Node 表达式复算，未运行浏览器，不计双跑。
 - 静态续审第四十批：阅读 `plastic/{blow-molding,extrusion-rate,injection-cycle,material-select,shrinkage-calc}` 和 `pr/{analysis-6,analysis-assessor,analysis-density-1}` 8 页，记录输入校验、旧阶段图、未转义名称与关键词统计问题，更新挤出产量历史问题源码状态。至清单第 544 页，静态续审累计 264 页；仅源码分析，未运行浏览器或注入，不计双跑。
+- 静态续审第四十一批：阅读 `pr/{assessor-56,assessor-57,assessor-58,assessor-59,assessor-manager-2,assessor-risk,media-invite,press-conference}` 8 页，记录 CPM 单位、分母与复制状态、流程编辑区覆盖及数据丢失风险。至清单第 552 页，静态续审累计 272 页；仅源码分析，未运行浏览器，不计双跑。
 
 
 - 扫描时间：2026/11/5 05:04:33
