@@ -375,10 +375,8 @@
 
 - 2026-11-06 复核：原 IT-N60 引号 URL 和 IT-N61 注释开关问题已修。Node 执行页面实际 `minify()`，单双引号 URL `a)b  c` 均保留双空格；取消勾选保留 `/*keep*/`、勾选则删除。未做浏览器验证。
 
-### IT-N65 User-Agent 解析器仍将 Windows Phone Edge 误认 Chrome（中，确认源码缺陷）
-- 2026-11-06 复核：`tools/it/user-agent-parser.html:316-344` 已识别 iOS Chrome/Firefox/Edge 和三星浏览器；Node 执行实际解析函数，分别得到 Chrome 120、Firefox 121、Edge 120、Samsung Internet 23。
-- `:316-320,350-352,381-388` 仍未识别旧版 `Edge/` 和 Windows Phone。Node 输入含 `Windows Phone 10.0 … Chrome/52.0 … Edge/15.15254` 的 UA，得到 `Google Chrome 52.0` 和 `Windows`，而非 Edge / Windows Phone。未做浏览器验证。
-- 方案：在 Chrome 前识别 `Edge/`，Windows Phone 先于 Windows 判断，并补对应 UA 回归用例。
+### IT-N65 User-Agent 解析器仍将 Windows Phone Edge 误认 Chrome（中，已修复）
+- 复核结论（2026-11-06 复核查证 + 本次实改）：旧版 `Edge/` 与 Windows Phone 确未被识别。本次已修复：`parseBrowser()` 在 `Chrome/` 之前新增 `if(/Edge\//.test(ua))` 分支（legacy Edge 映射 Microsoft Edge）；`parseOS()` 在通用 `/Windows/` 之前新增 `if(/Windows Phone/.test(ua))` 分支。Node 复算：`Windows Phone 10.0 … Chrome/52.0 … Edge/15.15254` → browser `Microsoft Edge 15.15254`、os `Windows Phone`（原误判 Google Chrome / Windows）；回归校验现代 `Edg/120` 仍得 `Microsoft Edge`、Win10 Chrome 仍得 `Google Chrome / Windows 10/11`，无回归。
 
 ### IT-N68 多算法哈希器异步 SHA 可能覆盖新输入结果（高，确认函数竞态）
 - 2026-11-06 复核：`tools/it/hash-multi.html:322-371` 已以 `lastHashPairs` 复制摘要，原「只复制算法名」问题已修；但异步回调写入共享数组和当前 DOM 时未核对计算代次，旧请求后完成会覆盖新输入的 SHA。
@@ -408,26 +406,14 @@
 
 - 2026-11-06 复核：原 IT-N72/82 的行内空格和属性空格问题已修，Node 执行 `collapseHtmlWhitespace()` 复核原例均保留；原 IT-N73/84 的 EAN 长度、字符和校验位已修，实际 `buildEAN()` 对空、短、字母、超长、错误校验位返回错误，12 位和正确 13 位均生成 `5901234123457`；原 IT-N74/75 的示例选项、引号和镜像后命令均经 `parse()` 实测通过。仅函数级验证，未做浏览器验证。
 
-### IT-N77 Cron 表达式生成器：分钟为步进/枚举且小时为 `*` 时，中文说明缺失时间段（中，确认源码缺陷）
-- 描述：`updateDescription()` 的 `timeDesc` 分支只处理 `min==='*' && hour==='*'`、`min==='0' && hour==='*'`、`min==='*' && hour!=='*'`、`hour!=='*'` 四种；当 `hour==='*'` 且 `min` 是 `*/5` 或 `15` 时没有分支命中，`timeDesc` 保持空串，最终描述变成「每天 执行」。
-- 证据：`tools/it/cron.html:625-631`（分支缺口，665 拼接）
-- 复现：选预设「每5分钟」（表达式 `*/5 * * * *`）→ 实际说明「每天 执行」（期望「每5分钟执行」）；手动输入 `15 * * * *` → 同样「每天 执行」（期望「每小时第 15 分执行」）。
-- 影响：说明区无法表达最常见的分钟级计划，用户无法从文字核对表达式是否正确。
-- 方案：补充 `hour==='*'` 且 `min` 为步进/枚举的分支：`*/n` → `每 n 分钟`，`a,b` → `每小时第 a、b 分`，单值 → `每小时第 x 分`；遍历全部预设断言描述非空。
+### IT-N77 Cron 表达式生成器：分钟为步进/枚举且小时为 `*` 时，中文说明缺失时间段（中，已修复）
+- 复核结论：审计证据描述的「只处理四种、缺 `hour==='*'` 分支」与当前源码不符——`tools/it/cron.html:627` 已有 `else if (hour === '*')` 块，内含 `min.startsWith('*/')` / `min.includes('/')` / `,` / `-` / 单值 五类分支。Node 复算 `updateDescription(['*/5','*','*','*','*'])` → `每天 每5分钟执行`、`updateDescription(['15','*','*','*','*'])` → `每天 每小时第15分执行`；`cron.html` 在 master 与 audit 分支逐字节一致。故 N77 已修复（审计证据为旧版快照），无需改码。
 
-### IT-N78 QR 内容解码器：geo 查询参数含非法百分号编码时抛未捕获 URIError，按钮无响应（中，确认源码缺陷）
-- 描述：`decode()` 的 geo 分支直接 `decodeURIComponent(parts[1].replace(/^q=/,''))`，不校验 `%` 序列；`generate()` 也没有 try/catch，异常冒泡到内联 `onclick`，输出区保持旧内容。
-- 证据：`tools/it/qr-decoder.html:277-279`（279 `decodeURIComponent`）、`tools/it/qr-decoder.html:314-316`（无 try/catch）
-- 复现：输入 `geo:39.9,116.4?q=%E0%A4%A` 点生成 → 控制台抛 `URIError: URI malformed`，页面无新结果（期望提示「查询参数编码非法」并继续展示经纬度）；同类问题也会出现在任何含孤立 `%` 的扫码文本。
-- 影响：扫码内容稍有异常即整页功能失效，用户看不到经纬度，也无法判断是内容错误还是工具错误；旧结果残留还可能被误复制。
-- 方案：对 `decodeURIComponent` 包 try/catch（失败时保留原串或提示），并在识别前校验 `%[0-9A-Fa-f]{2}`；`generate()` 外层再兜底 catch，出错时清空旧输出并显示原因。
+### IT-N78 QR 内容解码器：geo 查询参数含非法百分号编码时抛未捕获 URIError，按钮无响应（中，已修复）
+- 复核结论：审计证据描述的裸 `decodeURIComponent` 在当前源码已不存在——`tools/it/qr-decoder.html:250` 已定义 `safeDecodeURI()`（try/catch 包裹 `decodeURIComponent`，失败时返回 `{value:s, ok:false}`），geo 分支 `:297` 改用 `safeDecodeURI(parts[1].slice(2))` 并在 `!ok` 时附 `查询提示：百分号编码非法，已按原文显示`。非法输入 `geo:39.9,116.4?q=%E0%A4%A` 不再抛异常，正常展示经纬度与原始查询。`qr-decoder.html` 在 master 与 audit 分支逐字节一致。故 N78 已修复（审计证据为旧版快照），无需改码。
 
-### IT-N79 QR 内容解码器：WiFi 字段不处理 `\;` 转义，SSID/密码被截断（中，确认源码缺陷）
-- 描述：WiFi 分支用 `/([TSPH]):([^;]*)/g` 逐段取值，未考虑 WiFi QR 规范中 `\;`、`\,`、`\:`、`\\` 的反斜杠转义；值里出现 `\;` 时正则在第一个 `;` 处截断，后半段被当成新的字段或直接丢弃。`unescape()` 只解 `%xx`/`%u`，也不会还原反斜杠转义。
-- 证据：`tools/it/qr-decoder.html:256-261`（257 正则、260 `unescape`）
-- 复现：输入 `WIFI:S:my\;net;T:WPA;P:p\;q;;` → 实际 SSID `my\`、密码 `p\`（期望 `my;net`、`p;q`）；含 `\,` 的 SSID 同样被截断。
-- 影响：展示的 WiFi 名称/密码与原二维码不一致，用户照抄后无法连接。
-- 方案：按字符状态机解析，遇到 `\` 时把下一个字符原样写入值（支持 `\; \, \: \\`），仅在未转义的 `;` 处分段；字段值不再调用 `unescape()`，或仅对百分号编码额外处理；补转义分号/逗号用例。
+### IT-N79 QR 内容解码器：WiFi 字段不处理 `\;` 转义，SSID/密码被截断（中，已修复）
+- 复核结论：审计证据描述的 `/([TSPH]):([^;]*)/g` 正则在当前源码已不存在——`tools/it/qr-decoder.html:253` 的 `parseWifiFields()` 改为字符状态机，遇 `\\` 时把下一字符原样写入值（支持 `\; \, \: \\`），仅在未转义的 `;` 处切段；字段值经 `wifiValue()` 仅对 `%xx`/`%u` 做百分号解码。`WIFI:S:my\;net;T:WPA;P:p\;q;;` 现得 SSID `my;net`、密码 `p;q`。`qr-decoder.html` 在 master 与 audit 分支逐字节一致。故 N79 已修复（审计证据为旧版快照），无需改码。另：`:151` formula-box 旧文案仍写「`([TSPH]):([^;]*)`」与「`decodeURIComponent` 还原」，本次已同步更新为状态机/安全解码口径。
 
 ### IT-N81 URL 编解码：解码无条件把 `+` 当空格，破坏普通 URL 中的字面加号（中，确认源码缺陷）
 - 描述：`decodeUrl()` 在调用 `decodeURIComponent` 前固定执行 `text.replace(/\+/g,'%20')`，不区分当前是 `encodeURIComponent` 还是 `encodeURI` 模式，也不区分路径与查询。普通 URL 路径/查询里的字面 `+` 被改成空格。
