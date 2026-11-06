@@ -373,7 +373,9 @@
 - 方案：用 `isFinite` 判定替代 `||`，空值/0/负数统一走错误提示。
 - 假工具：否。
 
-### SMS-38 电池续航页对 0 与负电流无校验：0 时不刷新（沿用旧值），负数给出负续航与负功耗（中，确认缺陷）
+### SMS-38 电池续航页对 0 与负电流无校验（历史记录；2026-11-06 当前源码已改变）
+
+> 2026-11-06 静态复核：当前 `calc()` 对容量、电流、电压非正数调用 `clearResults()` 并清空 `lastResult`（`:429-451`），`fmtTime()` 也拒绝负数（`:421-423`），原结论对应旧版本，不能再视为当前已确认缺陷。另 `__batteryExport()` 仅按真值校验（`:541-552`），负输入仍可独立导出负功率；Ah/A 先转换为 mAh/mA，却继续使用原 Ah/A 标签，例如 3 Ah、1 A 被导出为 3000 Ah、1000 A。未运行浏览器或导出。
 - 问题：`calc()` 开头 `if(!cap||!curr||!volt) return`，任一量为 0 就直接返回，四张结果卡与明细表**保持上一次的值**且无提示；负数不触发该早退（`!(-100)` 为 false），`hours=cap/curr*eff` 得负值，`fmtTime` 的 `h<1/60` 分支把 `-25.5 h` 格式化成「-91800 秒」，功耗也显示负瓦数。输入虽写了 `min`，但浏览器不阻断键入。
 - 证据：`tools/science/battery-life-calculator.html:431`（早退不清理）、`:432-435`（直接算）、`:419-423`（`fmtTime` 无负值分支）、`:188`/`:198`（`min` 仅声明）、`:209`（电压无 `min`）。
 - 复现（node 复刻）：`cap=3000mAh,curr=0,volt=3.7,eff=85%` → 实际结果保持默认「1天 1小时 30分钟 / 0.37 W」不变；期望提示电流须 >0 并清空。`curr=-100` → 实际「-91800 秒、-0.37 W、有效容量 2550 mAh」；期望拒绝负电流。
@@ -433,7 +435,7 @@
 
 - `tools/science/coulomb-force.html`：1 条（SMS-42 中）。`F=kq₁q₂/r²`、`E=kq₁/r²`、`U=kq₁q₂/r` 的量纲与数值正确（默认 1/1/0.1 → 0.8988 N、898800 N/C、0.0899 J）；`r=0` 由守卫拦截，异号电荷负号问题除外。
 - `tools/science/fraction-calculator.html`：2 条（SMS-34 高、SMS-35 中）。正常整数四则与约分正确（`1/2+1/3=5/6`、`4/8→1/2`、`1/2÷1/3=3/2`）；带分数 `-5/3 → -1 2/3` 正确。
-- `tools/science/battery-life-calculator.html`：1 条（SMS-38 中）。单位换算正确（mAh/mA=h、Ah→mAh ×1000、`E=cap·V/1000`、`P=V·I/1000`）：默认 3000 mAh/100 mA/85% → 25.5 h、0.37 W、11.10 Wh、2550 mAh，`3 Ah/1 A` 同样得 2 小时 33 分；问题为零/负值校验。电池图形 `fill.style.width` 恒 100%（`pct` 算而未用）属展示层，不单列。
+- `tools/science/battery-life-calculator.html`：历史覆盖结论（SMS-38）见上方 2026-11-06 更新；当前校验及电池图形代码已变化，图形宽度使用 `pct`（`:460-462`），旧描述不适用于当前源码。
 - `tools/science/logic-gate-simulator.html`：2 条（SMS-43 中、SMS-44 中）。8 个门的真值表与 `fn` 全部正确（AND/OR/NOT/NAND/NOR/XOR/XNOR/BUFFER）；真值表高亮按 `data-row` 匹配正确；问题在组合链预设文案与开关 UI 同步。
 - `tools/science/pcb-trace-width.html`：2 条（SMS-39 中、SMS-40 中）。公式、单位（`oz→1.378 mil`、`mil→0.0254 mm`、`oz→0.035 mm`）与截面积一致（默认 2 A/10°C/1 oz 外层 → 30.76 mil / 0.781 mm / 0.0273 mm²）；问题为参考表数值与零值早退。
 - `tools/science/hookes-law.html`：0 条。`F=kx`、`U=0.5kx²`、`kx²=2U` 正确（100 N/m · 0.2 m → 20.0 N、2.0000 J、4.0000 J）；`k=0` 时「劲度系数倒数」显示 1e9 m/N 系公式框自述的 `1÷max(k,10⁻⁹)` 口径，空值按 0 兜底亦已在公式框声明，故不计缺陷。
