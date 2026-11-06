@@ -335,6 +335,8 @@ function truncate(){
     if(mode === 'chars'){
       const cps = graphemes(s);
       if(cps.length <= limit) return s;
+      // N15 修复：省略符自身已超出字符上限时，按上限截断省略符，保证结果不超过 limit
+      if(ellipsisCp > limit) return graphemes(ellipsis).slice(0, limit).join('');
       const budget = Math.max(0, limit - ellipsisCp);
       let keep = budget;
       if(wordBoundary && !fromEnd){
@@ -357,6 +359,13 @@ function truncate(){
       }
     }else if(mode === 'bytes'){
       const cps = graphemes(s);
+      // N15 修复：省略符自身已超出字节上限时，按字节截断省略符，保证结果不超过 limit
+      if(ellipsisBytes > limit){
+        const parts = graphemes(ellipsis);
+        let acc = 0; const out = [];
+        for(const g of parts){ const b = utf8Len(g); if(acc + b > limit) break; acc += b; out.push(g); }
+        return out.join('');
+      }
       const budget = Math.max(0, limit - ellipsisBytes);
       let total = 0, cut = 0;
       while(cut < cps.length){

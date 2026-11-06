@@ -228,7 +228,7 @@
 - 影响：`tools/it/curl-parser.html`；复制出的请求方法/URL/表单体与真实 curl 行为不符，常见上传命令直接解析错。
 - 方案：建立“选项是否带值”的映射表，成对消费参数；无 `-X` 而有 `-d/--data*/--form` 时默认 POST；未知选项跳过其值并提示；输出统一转义，必要时以结构化 JSON 展示。
 
-### IT-N15 省略符超出截断上限（中，确认源码缺陷）
+### IT-N15 省略符超出截断上限（中，已修复 2026-11-06 核验：text-truncate.html:334-349/358-369 truncOne 仅 chars/bytes 模式内判断省略符超限并按上限截断；words/lines 模式 limit 为词/行计数，量纲不同不触发）
 - `tools/it/text-truncate.html:338-345,360-383` 将预算钳到 0 后仍原样追加完整省略符。当输入 `abcdef`、上限为 1、省略符为 `...` 时，字符及字节模式均输出 3 个字符，超过上限。Node 桩已执行原函数；未做浏览器验证。
 - 影响：截断结果不能满足严格长度或字节上限。应在省略符本身超限时截短或明确提示，并覆盖两种截断方向。
 
@@ -258,7 +258,7 @@
 - 影响：`tools/it/text-cleaner.html`；数据表/图表/历史三个页签永远为空；若将来有历史记录，恢复后默认勾选被清空，输出与记录不符。
 - 方案：改读 `output-text.value`；包装 `executeClean` 记录历史；回填时逐字段恢复后直接 `executeClean()`，不要用无参 `applyPreset`。
 
-### IT-N22 历史只保存前 1000 字符，恢复后静默截断（中，确认源码缺陷）
+### IT-N22 历史只保存前 1000 字符，恢复后静默截断（中，已修复 2026-11-06 核验：text-diff.html:699-700 addToHistory 去掉 substring(0,1000) 存全文，避免长文本恢复后静默截断）
 - 描述：`addToHistory` 对两份文本各做 `substring(0,1000)`；`loadHistory` 直接回填并重新 `doDiff()`，无任何截断提示。
 - 证据：`tools/it/text-diff.html:697-703`、`733-739`。Node 复算：1500 个 `A` + `TAIL` 经 `substring(0,1000)` 后长度为 1000 且不含 `TAIL`。
 - 影响：`tools/it/text-diff.html`；长文本从历史恢复后 diff 结果看似正常但内容已被砍掉。
