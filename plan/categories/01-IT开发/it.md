@@ -432,40 +432,12 @@
 
 > 范围：本轮阅读 8 页（`tools/it/ip-calculator.html`、`tools/it/html-minifier.html`、`tools/it/barcode-ean.html`、`tools/it/docker-run-converter.html`、`tools/it/cron.html`、`tools/it/qr-decoder.html`、`tools/it/url-encode.html`、`tools/it/base64-converter.html`）。仅源码 + Node 复算，未开浏览器/未做 EN/移动端/门禁验证。
 
-### IT-N71 IP 计算器：子网划分把 Number 与 BigInt 相加，点击即抛 TypeError（高，确认源码缺陷）
-- 描述：`calcSubnets()` 先用 `ipToInt()` 得到 Number 类型的 `networkInt`，随后在子网循环里写 `(networkInt + BigInt(i) * BigInt(subnetSize)) >>> 0`；JS 规定 Number 与 BigInt 不能直接相加，必然抛 `TypeError: Cannot mix BigInt and other types`。函数没有 try/catch，异常冒泡到内联 `onclick`，信息卡与表格均不会更新。
-- 证据：`tools/it/ip-calculator.html:787-788`（两处 `networkInt + BigInt(...)`）
-- 复现：基础 IP `192.168.1.0`、原前缀 `24`、新前缀 `26` 点「划分子网」→ 控制台抛 `Cannot mix BigInt and other types`，页面无任何子网结果（期望列出 4 个 /26 子网）；任意合法输入均如此。
-- 影响：「子网划分」整个功能不可用；已有旧结果时还会残留上一次的表格，用户可能误当本次结果。
-- 方案：进入循环前统一类型，如 `const networkBig = BigInt(networkInt)`，后续全部用 BigInt 计算、输出时再 `Number()`；或全部改 Number（`showCount ≤ 256`，`networkInt + i * subnetSize` 在 2^32 内仍安全）。补 `192.168.1.0/24→/26`、`0.0.0.0/0→/8` 用例。
+### IT-N71 IP 计算器仍将空八位组静默转换为 0（中，确认函数缺陷）
+- 2026-11-06 复核：`tools/it/ip-calculator.html:756-820` 已统一用 BigInt 计算子网，合法 `0.0.0.0` 也不再被误判；Node 执行实际 `calcSubnets()`，`192.168.1.0/24→/26` 得 4 个子网，`0.0.0.0/0→/8` 得 256 个。原 IT-N71 和 IT-N85 症状已修。
+- `:462-465` 的 `ipToInt()` 仍用 `map(Number)` 而未校验每段字面格式；Node 输入基础 IP `192.168..1`、原前缀 24、新前缀 26，未报错并输出 `192.168.0.0/26` 等子网。空段被当 0，可能误导地址规划。未做浏览器验证。
+- 方案：按四段十进制整数严格校验（含范围与前导零规则），失败时清空旧表并提示。
 
-### IT-N72 HTML 压缩：安全模式反而删除 inline 元素间空格，文本粘连（高，确认源码缺陷）
-- 描述：`collapseWhitespace` 分支先 `replace(/\s+/g,' ')`，safeMode 下再执行 `replace(/\s*(<\/?(a|span|b|strong|...)\b[^>]*>)\s*/gi,'$1')`。该正则把每个 inline 标签前后的空白全部吞掉（包括标签之间的那一个空格），与注释「保留 inline 元素之间的单个空格」相反；safeMode 默认勾选，默认压缩路径即受影响。
-- 证据：`tools/it/html-minifier.html:309-314`（314 为 inline 标签正则）、`tools/it/html-minifier.html:166`（safeMode 默认 `checked`）
-- 复现：默认选项压缩 `<p>hello <span>world</span> again</p>` → 实际 `<p>hello<span>world</span>again</p>`（期望 `hello <span>world</span> again`，词间保留一个空格）；`<em>a</em> <strong>b</strong>` → `<em>a</em><strong>b</strong>`。
-- 影响：压缩后可见文本变成 `helloworldagain`，页面语义与复制文本被改变；「安全模式」承诺失效，且这是默认开关。
-- 方案：不要删除 inline 标签两侧的空白；改为把连续空白折叠为单个空格并保留，只在块级标签边界删除。更稳妥的是按 DOM/字符状态机处理文本节点，标签与属性不参与空白折叠；补 `span/em/strong` 相邻文本回归用例。
-
-### IT-N73 EAN 条形码：短输入被静默补零、长输入被截断，空输入也生成全零条码（中，确认源码缺陷）
-- 描述：`buildEAN()` 先 `input.replace(/\D/g,'')` 去掉所有非数字，再对不足 12 位 `padEnd(12,'0')`，对 ≥13 位 `slice(0,13)`。页面不提示长度/字符问题，任何脏输入都会变成一条「合法」但与原输入无关的 EAN-13。
-- 证据：`tools/it/barcode-ean.html:255-259`（去非数字、补零、截断）
-- 复现：空输入 → 生成 `0000000000000`（期望提示「请输入 8/12/13 位数字」）；输入 `123` → `1230000000000`（期望报长度不足）；输入 `12A34` → `1234000000008`（期望报含非法字符）；输入 `590123412345678` → 截成 `5901234123456`（期望报超长）。
-- 影响：生成的条码与用户输入不一致，打印/贴标后扫描出另一个 GTIN；空输入还能“成功”生成，误导性强。
-- 方案：只接受纯数字；按长度分支校验（EAN-8 为 8 位、EAN-13 为 12/13 位、UPC-A 为 11/12 位），不合法时明确报错并停止绘制；禁止 `padEnd`/`slice` 静默修正。补空、短、含字母、超长四组用例。
-
-### IT-N74 docker run 转 Compose：只认空格分隔的选项，`--name=`/`-p8080:80`/`--restart=` 被静默忽略（中，确认源码缺陷）
-- 描述：`parse()` 用 `args.split(/\s+/)` 分词，选项只匹配 `--name`、`-p`、`-v`、`-e`、`--restart` 这种「选项 + 下一个 token」形式；`--name=web`、`-p8080:80`、`--restart=always` 都不匹配，随后被 `t.charAt(0)==='-'` 分支直接跳过。引号也不处理，`-e "MSG=hello world"` 会被拆成两个 token。
-- 证据：`tools/it/docker-run-converter.html:219-231`（分词与选项分支）
-- 复现：`docker run -d --name=web -p8080:80 --restart=always nginx:latest` → 实际 service 名 `app`、`ports: []`、`restart: no`（期望 `web`、`8080:80`、`always`）；`docker run -e "MSG=hello world" nginx` → image 被解析成 `world"`（期望 `nginx`）。
-- 影响：常见的 `=`/短选项粘连写法与带空格引号写法生成出的 compose 丢失端口、卷、环境变量或服务名，部署行为与源命令不同。
-- 方案：先做支持单/双引号与反斜杠转义的 shell 分词；识别 `--opt=value` 与 `-p8080:80`、`-eKEY=VAL` 等短选项粘连形式；选项缺值时明确报错。补上述命令的回归用例。
-
-### IT-N75 docker run 转 Compose：镜像后的 CMD 被丢弃或被误当发布端口（中，确认源码缺陷）
-- 描述：解析器不区分「镜像前的选项」与「镜像后的容器命令」；遇到镜像后第一个非选项 token 后仍继续按选项解析，普通参数被忽略，而像 `-p` 这样的 token 会被当成发布端口。生成的 compose 只有 `image`，没有 `command`。
-- 证据：`tools/it/docker-run-converter.html:229-231`（镜像后继续走同一循环）、`tools/it/docker-run-converter.html:238-243`（只输出 image/ports/volumes/env/restart）
-- 复现：`docker run nginx sh -c "echo hi"` → 实际只输出 `image: nginx`，无 `command`（期望 `command: ["sh","-c","echo hi"]` 或等价字符串）；`docker run nginx -p 8080:80` → 把 `-p 8080:80` 当成发布端口（实际 docker 会把其作为容器命令参数）。
-- 影响：转换后的 compose 运行默认命令或错误端口，用户难以察觉行为已变。
-- 方案：确认镜像后立即停止选项解析，把剩余 token 原样作为 `command`（正确 YAML 引号/数组），仅镜像前解析 `-p/-v/-e/--name/--restart`；补 CMD、ENTRYPOINT 参数与镜像后 `-p` 用例。
+- 2026-11-06 复核：原 IT-N72/82 的行内空格和属性空格问题已修，Node 执行 `collapseHtmlWhitespace()` 复核原例均保留；原 IT-N73/84 的 EAN 长度、字符和校验位已修，实际 `buildEAN()` 对空、短、字母、超长、错误校验位返回错误，12 位和正确 13 位均生成 `5901234123457`；原 IT-N74/75 的示例选项、引号和镜像后命令均经 `parse()` 实测通过。仅函数级验证，未做浏览器验证。
 
 ### IT-N77 Cron 表达式生成器：分钟为步进/枚举且小时为 `*` 时，中文说明缺失时间段（中，确认源码缺陷）
 - 描述：`updateDescription()` 的 `timeDesc` 分支只处理 `min==='*' && hour==='*'`、`min==='0' && hour==='*'`、`min==='*' && hour!=='*'`、`hour!=='*'` 四种；当 `hour==='*'` 且 `min` 是 `*/5` 或 `15` 时没有分支命中，`timeDesc` 保持空串，最终描述变成「每天 执行」。
@@ -495,33 +467,12 @@
 - 影响：解码普通链接会把数学表达式、C++ 等含 `+` 的路径/参数改坏；与页面自身的 `encodeURIComponent` 模式不一致。
 - 方案：仅当启用「表单/query 模式」时才把 `+` 转为空格，默认保留；或在输出旁提供两种结果。补路径 `+`、查询字面 `+`、真实表单 `a+b`（应空格）用例。
 
-### IT-N82 HTML 压缩：折叠空白改写了属性值中的连续空格（中，确认源码缺陷）
-- 描述：`collapseWhitespace` 对整段 HTML 执行 `replace(/\s+/g,' ')`，只保护了 `pre/textarea/script/style` 元素，没有保护标签属性。`title`、`alt`、`value`、`data-*`、`style` 等属性值中的连续空格会被压成一个，字符串语义改变。
-- 证据：`tools/it/html-minifier.html:306-317`（312/316 全局 `\s+` 折叠，仅 293 保护四类元素）
-- 复现：默认选项压缩 `<a title="a   b" href="x  y" data-note="p  q">z</a>` → 实际 `title="a b"`、`href="x y"`、`data-note="p q"`（期望属性值原样保留）；`<input value="hello  world">` 同样被改。
-- 影响：压缩后表单默认值、可访问名、`data-*` 配置、CSS 自定义属性值与源文件不一致，可能影响脚本读取与展示。
-- 方案：先按字符状态机保护标签内部（`<...>`，含引号内空白）与 `pre/textarea/script/style`，再只折叠文本节点空白；或统一占位符保护后再还原。补属性含连续空格、单双引号、`style` 用例。
-
 ### IT-N83 Base64/Base32/Base85 转换器：Base32/Base85 解码静默跳过非法字符，脏输入仍输出看似正常文本（中，确认源码缺陷）
 - 描述：`base32Decode()` 对不在 `A-Z2-7` 表的字符执行 `if(idx===-1) continue`，`base85Decode()` 对不在字符表的字符同样 `continue`；两者都不校验剩余位数/填充位。复制时混入数字 `0/1`、标点或被截断的串，会被当成合法输入并解出部分内容。
 - 证据：`tools/it/base64-converter.html:466-482`（473 跳过非法字符）、`tools/it/base64-converter.html:513-542`（525-526 跳过非法字符）
 - 复现（Node 复算原函数）：Base32 输入 `MZXW6YTB0I`（`0` 非法）→ 实际解出 `fooba`（期望报「非法字符 0」）；`MZXW6!!!` → `foo`；单字符 `A` → 空串且无报错。Base85 `<~!!!!v~>` 中的 `v` 被跳过，仍解出 4 个 NUL 字节。
 - 影响：损坏/截断的编码被静默还原为部分文本，用户无法发现数据缺失；用于配置或签名核对时可能误判。
 - 方案：遇到字符表外字符立即抛出并指明位置；解码结束校验剩余位数必须为 0（Base32 末字节低比特、Base85 尾组）；空结果或长度不足时提示；补非法字符、截断、单字符用例。
-
-### IT-N84 EAN 条形码：13 位输入不校验自带校验位，错误校验码仍照常绘制（中，确认源码缺陷）
-- 描述：`buildEAN()` 对 13 位输入直接 `slice(0,13)` 使用，不比较第 13 位与前 12 位按 `eanCheck()` 计算出的校验位；页面只在条码下方回显输入，没有任何「校验位错误」提示。
-- 证据：`tools/it/barcode-ean.html:250-254`（校验位算法）、`tools/it/barcode-ean.html:258-259`（仅 `slice`，无校验）
-- 复现：输入 `5901234123450`（前 12 位 `590123412345` 的正确校验位为 `7`）→ 实际原样生成 `5901234123450` 的条码（期望提示校验位应为 7，或自动修正并标注）；输入正确值 `5901234123457` 才应通过。
-- 影响：带有错误校验位的 GTIN 会被绘制成条码，扫码器按标准会拒读或读成另一个商品；用户以为已生成合法条码。
-- 方案：13 位输入时用 `eanCheck(d.slice(0,12))` 比对第 13 位，不一致则报错并显示正确值；12 位输入才自动补校验位；补正确/错误校验位两组用例。
-
-### IT-N85 IP 计算器：`0.0.0.0` 等合法地址因 falsy 判断被判无效（低，确认源码缺陷）
-- 描述：`calcSubnets()` 的合法性判断写成 `if (!baseInt || ...)`，而 `ipToInt('0.0.0.0')` 返回 `0`，`!0` 为真，于是合法的 `0.0.0.0` 网段被当成空/非法输入拒绝。
-- 证据：`tools/it/ip-calculator.html:760`（`!baseInt`）、`tools/it/ip-calculator.html:462-466`（`0.0.0.0` 返回 0）
-- 复现：基础 IP `0.0.0.0`、原前缀 `16`、新前缀 `24` 点「划分子网」→ 实际提示「请输入有效的参数（新前缀必须大于原前缀）」（期望正常列出 256 个 /24 子网）；`0.0.0.0/0` 同理。
-- 影响：以 0 开头的合法网段无法做子网划分，错误提示还会误导用户以为前缀关系有误。
-- 方案：改为 `if (baseInt === null || ...)`，把「解析失败」与「数值为 0」区分开；补 `0.0.0.0/16→/24`、`0.0.0.0/0→/8` 用例。
 
 - 备注：`tools/it/ip-calculator.html:453-456` 与 `tools/it/cron.html:462-466` 的 `switchTab` 依赖全局 `event`（与 IT-N31 同模式，Firefox 可能失效），不重复计数，未单列为新条目。
 - 本轮实读 8 页：`tools/it/ip-calculator.html`、`tools/it/html-minifier.html`、`tools/it/barcode-ean.html`、`tools/it/docker-run-converter.html`、`tools/it/cron.html`、`tools/it/qr-decoder.html`、`tools/it/url-encode.html`、`tools/it/base64-converter.html`；新增 15 条（高 2 / 中 12 / 低 1）；未覆盖：`tools/it` 其余非文本页（如 `base32-encode`、`base58-encode`、`base85-encode`、`http-headers`、`http-status`、`http-methods`、`mime-type`、`gitignore-generator`、`dockerfile-generator`、`shell-script-formatter`、`ipv6-ula`、`ssl-info`、`aes/des/rsa/ecdsa` 等）与全部速查表页；未做浏览器、EN、移动端、门禁或部署验证。
