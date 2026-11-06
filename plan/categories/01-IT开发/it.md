@@ -366,13 +366,6 @@
 
 - 2026-11-06 复核：原 IT-N60 引号 URL 和 IT-N61 注释开关问题已修。Node 执行页面实际 `minify()`，单双引号 URL `a)b  c` 均保留双空格；取消勾选保留 `/*keep*/`、勾选则删除。未做浏览器验证。
 
-### IT-N69 HTTP 缓存速查：搜索与分类只过滤列表，图表/明细表仍统计全量数据（低，确认源码缺陷）
-- 描述：`renderCommands()` 按 `currentCategory` 与 `searchQuery` 过滤 `COMMANDS`，但 `hcAgg()` 固定遍历 `COMMANDS` 全量；`hcChart()`/`hcTable()` 直接使用该聚合结果，既不读搜索词也不读当前分类。搜索 `max-age` 时列表只剩 1 项，图表与「明细表」仍显示所有分类和全部分类计数。
-- 证据：`tools/it/http-cache.html:562-571`（列表过滤）、`tools/it/http-cache.html:706-710`（`hcAgg` 全量聚合）、`tools/it/http-cache.html:711-728`（图表/明细取 `hcAgg`）
-- 复现：在搜索框输入 `max-age` → 列表「共 1 项」，但「图表」仍按全部分类出柱、「明细表」仍列出全部 10+ 个分类（期望图表/明细随当前过滤结果同步，或明确标注为全量统计）
-- 影响：用户以为图表反映当前筛选结果，实际看到的是全站数据，容易得出错误的分类占比结论。
-- 方案：让 `hcAgg` 接收过滤后的数组（把 `renderCommands` 的过滤逻辑抽成 `getFiltered()` 共用），或在图表/明细标题注明「全量统计，不受搜索影响」。
-
 - 备注：`tools/it/punycode.html:404-410`、`tools/it/regex-escape.html:321-328` 的 `copyResult` 依赖全局 `event`（与 IT-N31 同模式，Firefox 可能失效），不重复计数，未单列为新条目。
 - 本轮实读 8 页：`tools/it/punycode.html`、`tools/it/regex-escape.html`、`tools/it/css-minifier.html`、`tools/it/date-duration.html`、`tools/it/ipv4-range-expander.html`、`tools/it/user-agent-parser.html`、`tools/it/hash-multi.html`、`tools/it/http-cache.html`；新增 15 条（高 3 / 中 8 / 低 4）；未覆盖：`tools/it` 其余非文本页（如 `html-minifier`、`html-nesting-checker`、`c-string-escape`、`go-escape`、`java-escape`、`js-minifier`、`js-obfuscator`、`sql-formatter`、`shell-script-formatter`、`dockerfile-generator`、`gitignore-generator`、`robots-txt-generator`、`sitemap-generator`、`ssh/证书/密钥类` 等）与全部速查表页；未做浏览器、EN、移动端、门禁或部署验证。
 
