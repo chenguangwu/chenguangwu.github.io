@@ -785,8 +785,46 @@ const CASES = [
     // boot 挂在 DOMContentLoaded（晚于注入）且会调 loadExample() 重置 inputText ⇒ 文本注入无效，改用不被 boot 重置的句数参数。
     inputs: { sentenceCount: "8" },
     clicks: ["generateSummary()"],
-    expect: ["技术不断演进。 已选"],
-    ref: "按权重取前 8 句时第 2 句（权重 0.38）进入入选集合 ⇒ 权重图标记「已选」；默认 3 句（legacy）/ 5 句（fidelity）的入选集合不含第 2 句（标「跳过」）⇒ 该串不出现。",
+    expect: ["8\n10\n8\n469\n25%"],
+    ref: "IT-N547 功能改动同批换锚（铁律①/⑥）：分句器不再按顿号切分后，示例由 14 句变 10 句，原锚「技术不断演进。 已选」在纯默认态也命中 ⇒ 判别器判为逃生项。改用随注入句数变化的统计卡四联值：句数选择 8 / 原文 10 句 / 摘要 8 句 / 字符 469 / 压缩率 25%；默认态为 5 / 10 / 5 / 469 / 59% ⇒ 不命中。",
+  },
+  {
+    slug: "it/summary-generator",
+    clicks: ["var __ss=[];for(var i=0;i<60;i++){__ss.push({text:'q'+String.fromCharCode(97+(i%26))+String.fromCharCode(97+Math.floor(i/26))});}var __r=window.__sgDiag.computeWordFrequency(__ss);document.getElementById('summaryResult').textContent='N546_KW='+Object.keys(__r.freq).length;"],
+    expect: ["N546_KW=20"],
+    ref: "IT-N546：构造 60 句、每句一个互不相同且只出现 1 次的词，旧阈值「词频 ÷ 句数 > 5%」（1/60≈1.7%）会把全部词滤掉 ⇒ 关键词数 0、每句 kwW=0、句子权重全 0（摘要退化成按原序取前 N 句）。新口径过滤后为空时取词频最高的前 20 词兜底 ⇒ 20。经 window.__sgDiag 只读探针做单元级断言；默认态不含该哨兵。",
+  },
+  {
+    slug: "it/summary-generator",
+    clicks: ["var __s=window.__sgDiag.splitSentences('价格 3.14 元，涨幅明显。第二段内容也足够长用于验证。');document.getElementById('summaryResult').textContent='N547_N='+__s.length+':'+__s[0].text;"],
+    expect: ["N547_N=2:价格 3.14 元，涨幅明显。"],
+    ref: "IT-N547：旧分句器只把「句点后跟字母」当缩写，小数点后跟数字照切，`价格 3.14 元…` 被劈成「价格 3.」等 3 句；现句点后跟字母或数字都不切分，且换行/顿号不再作分句点 ⇒ 2 句、首句完整保留 3.14。回退后哨兵变 N547_N=3:价格 3. ⇒ 转红。默认态不含该哨兵。",
+  },
+  {
+    slug: "it/team-name-generator",
+    clicks: ["document.getElementById('seed').value='TB549';document.getElementById('style').value='passionate';document.getElementById('maxLen').value='40';document.getElementById('suffixMode').value='number';document.getElementById('count').value='6';generate();var __a=document.getElementById('output').innerHTML;generate();var __b=document.getElementById('output').innerHTML;document.getElementById('style').value='classical';generate();var __c=document.getElementById('output').innerHTML;var __rows=(__a.match(/class=\"code-row\"/g)||[]).length;var __names=__a.split('</div>').map(function(s){return s.replace(/<[^>]*>/g,'');}).filter(function(s){return s.length;});var __lenOK=__names.every(function(s){return s.length<=40;});var __numOK=__names.every(function(s){return /[0-9][0-9]$/.test(s);});document.getElementById('output').textContent='TN549='+(__a===__b?1:0)+(__a!==__c?1:0)+(__lenOK?1:0)+(__numOK?1:0)+':rows='+__rows;"],
+    expect: ["TN549=1111:rows=6"],
+    ref: "IT-N549：种子、风格、后缀类型三控件必须真的生效。四位分别验 ① 同种子两次 generate() 输出逐字相同（mulberry32 复现）；② 换风格后输出不同（风格词库生效）；③ 所有候选长度 ≤ 40；④ 数字后缀模式下每条都以两位数字结尾；再验条数=6。修复前全页无这些控件，__tnState/STYLES 不存在 ⇒ 哨兵不出现。默认态不含 TN549= 串。",
+  },
+  {
+    slug: "it/team-name-generator",
+    clicks: ["document.getElementById('seed').value='TB549B';document.getElementById('maxLen').value='10';document.getElementById('suffixMode').value='none';document.getElementById('count').value='8';generate();var __o=document.getElementById('output').innerHTML;var __names=__o.split('</div>').map(function(s){return s.replace(/<[^>]*>/g,'');}).filter(function(s){return s.length;});document.getElementById('output').textContent='TN549_LEN='+__names.length+'/'+(__names.every(function(s){return s.length<=10;})?1:0);"],
+    expect: ["TN549_LEN=8/1"],
+    ref: "IT-N549 最大长度：maxLen=10、无后缀、8 条，重试 16 次仍超长按上限截断 ⇒ 8 条全部 ≤10 字符。修复前无 maxLen 控件，候选常有 20+ 字符 ⇒ 该哨兵不出现。默认态不含该串。",
+  },
+  {
+    slug: "it/screen-size",
+    inputs: { width: "1920", height: "1080", diagonal: "24" },
+    clicks: ["calc()"],
+    expect: ["屏幕面积： 246.12 平方英寸", "1587.90 cm²"],
+    ref: "IT-N545：公式框承诺「屏幕面积 = 物理宽 × 物理高」但结果区原先从未输出该量。独立复算：√(1920²+1080²)=2202.91 px ÷ 24 in = 91.79 PPI；physW=20.918 in、physH=11.766 in ⇒ 面积 246.12 in²，×6.4516 = 1587.90 cm²。默认 1080×2400/6.7 的面积为 16.80 in² / 108.38 cm² ⇒ 不命中。",
+  },
+  {
+    slug: "it/screen-size",
+    inputs: { width: "2560", height: "1440", diagonal: "27" },
+    clicks: ["calc()"],
+    expect: ["屏幕面积： 311.50 平方英寸"],
+    ref: "IT-N545 第二组独立复算：√(2560²+1440²)=2937.66 px ÷ 27 = 108.80 PPI；physW=23.53 in、physH=13.24 in ⇒ 311.50 in²（2009.68 cm²）。与上例不同，防止结果被写成常量；默认态亦不命中。",
   },
   {
     slug: "it/text-replace",
@@ -7314,9 +7352,9 @@ const CASES = [
       "generateSummary()"
     ],
     "expect": [
-      "14\n14\n469\n0%"
+      "10\n10\n469\n0%"
     ],
-    "ref": "全部 14 句入选 ⇒ 统计卡为「原文句数 14 / 摘要句数 14 / 字符数 469 / 压缩率 0%」；默认 3 句（legacy）/ 5 句（fidelity）时摘要句数非 14、压缩率非 0% ⇒ 该串不出现。原 B 类用例的 expect 是示例文本自身在 5 句下的统计（boot 的 loadExample 会重置 inputText，注入文本永不生效）⇒ 默认态命中，已改。"
+    "ref": "IT-N547 功能改动同批同步（铁律①）：原分句器把顿号「、」当作 ≥20 字后的软分句点，示例文本被切成 14 句；本批改为只按 . ! ? 与 。！？… 分句 ⇒ 10 句。自定义 14 句时钳制到 10 句全部入选 ⇒ 统计卡「原文句数 10 / 摘要句数 10 / 字符数 469 / 压缩率 0%」。默认 5 句时压缩率非 0% ⇒ 该串不出现。旧 expect「14\\n14\\n469\\n0%」已随功能同步作废。"
   },
   {
     "slug": "it/svg-placeholder-generator",

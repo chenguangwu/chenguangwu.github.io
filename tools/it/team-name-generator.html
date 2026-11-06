@@ -155,8 +155,8 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="👥 团队名生成器">👥 Team Name Generator</h2>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-  <div class="formula-eq">团队名生成器（词库随机组合，无数值计算）：名字 = 风格词库前段随机取 1 词 + 后段随机取 1 词，并以 40% 概率追加一个后缀词；风格下拉决定所用词库，生成条数由数量输入决定，逐条转义后输出。校验：无强校验，数量由 parseInt 解析后直接作为循环次数。判据：组合空间 = 前段词数 × 后段词数（追加后缀时再乘后缀库数），各组合等可能出现。</div>
-  <div class="formula-desc">本工具按选定风格（热血、搞笑、专业、古风等）从对应词库做组合，生成候选队名，可选追加数字或符号后缀。纯词库组合无法保证独特性——同一份词库会生成大量重复结果，正式使用前建议到赛事平台或社交平台检索是否重名。若需要稳定的结果，可固定随机种子复现同一批候选。生成过程完全在本地浏览器完成，不上传任何内容。</div>
+  <div class="formula-eq">团队名生成器（词库随机组合，无数值计算）：每条候选 = 60% 概率的「风格前缀词」+ 领域词库前段随机 1 词 + 后段随机 1 词，再按后缀类型追加内容（词库后缀 40% 概率 / 两位数字 / 单个符号 / 不加）；领域与风格共同决定所用词库，数量滑块决定条数（1–30），最大长度钳制在 6–40，超出时最多重试 16 次、仍超则按上限截断。随机数：未填种子用 crypto.getRandomValues 拒绝采样（消除取模偏差），填种子用 FNV-1a 哈希 + mulberry32 可逐字复现。校验：数量与长度由 parseInt 解析后钳制。判据：组合空间 =（风格词数 + 1）× 前段词数 × 后段词数 × 后缀空间，同一输入下各组合等可能出现；逐条转义后输出。</div>
+  <div class="formula-desc">本工具按选定领域（科技/体育/电竞/创业/创意）与风格（热血/搞笑/专业/古风）从对应英文词库组合候选队名，可设最大长度、后缀类型（词库/数字/符号/无）与生成条数；填入随机种子可复现同一批结果。纯词库组合无法保证独特性——同一份词库会生成大量重复结果，正式使用前建议到赛事平台或社交平台检索是否重名。当前词库为英文，暂不提供中英文混排或语言风格切换。生成过程完全在本地浏览器完成，不上传任何内容。</div>
 </div>
 
     <label>领域</label>
@@ -167,6 +167,26 @@ s.parentNode.insertBefore(el, s);
       <option value="startup">创业</option>
       <option value="creative">创意</option>
     </select>
+    <label>风格</label>
+    <select id="style" style="margin-bottom:12px;">
+      <option value="passionate">热血</option>
+      <option value="humorous">搞笑</option>
+      <option value="professional">专业</option>
+      <option value="classical">古风</option>
+    </select>
+    <div class="slider-row">
+      <label>最大长度（字符）</label>
+      <input type="number" id="maxLen" min="6" max="40" value="24">
+    </div>
+    <label>后缀类型</label>
+    <select id="suffixMode" style="margin-bottom:12px;">
+      <option value="word">词库后缀</option>
+      <option value="number">数字</option>
+      <option value="symbol">符号</option>
+      <option value="none">不加后缀</option>
+    </select>
+    <label>随机种子（留空＝每次随机）</label>
+    <input type="text" id="seed" placeholder="留空则每次用浏览器随机源" style="margin-bottom:12px;">
     <div class="slider-row">
       <label>数量</label>
       <input type="range" id="count" min="1" max="30" value="10" oninput="document.getElementById('countVal').textContent=this.value">
@@ -202,12 +222,12 @@ s.parentNode.insertBefore(el, s);
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
 <li>给项目/战队起名。</li>
-<li>给新项目或比赛队伍起名字：按风格批量得到候选，再从中挑选易记、不易混淆的。</li>
+<li>给新项目或比赛队伍起名字：按领域与风格批量得到候选，再从中挑选易记、不易混淆的。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">生成</div><div class="dd-ex-body">示例 `量子企鹅`、`极光实验室`。</div></div>
+<div class="dd-example"><div class="dd-ex-title">生成</div><div class="dd-ex-body">示例 `Quantum Labs`、`Pixel Forge`。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>能中英文混吗？</dt><dd>可切换语言风格。</dd>
+<dt>能中英文混吗？</dt><dd>当前词库为英文，输出英文候选；暂不提供中英文混排或语言风格切换。</dd>
 <dt>为什么建议避开太通用的名字？</dt><dd>因为通用词组合在平台上几乎必然已被占用，且不利于检索与传播——用户搜你的队名会搜出一堆同名结果。加入项目特征、领域词或自造词能显著提升唯一性与识别度。确定前建议在主要平台与搜索引擎上检索一遍，并确认域名是否可用。</dd>
 </dl>
 </div>
@@ -262,18 +282,59 @@ const SETS={
   startup:{a:['Next','Bright','Quick','Swift','Bold','Fresh','Spark','Rise','Nova','Quantum','Stellar','Foundry','Helix'],b:['Lab','ify','ly','Hub','Base','Works','Forge','Studio','Wave','Boost','Sphere','Pulse','Mint'],suffix:['Inc','Co','Team','Ventures']},
   creative:{a:['Wild','Neon','Golden','Silver','Velvet','Crystal','Magic','Starry','Dream','Honey','Indigo','Rose','Lunar'],b:['Canvas','Brush','Palette','Studios','Collective','Atelier','House','Workshop','Society','Troupe','Project','Bureau','Circle'],suffix:['Team','Crew','Collective','Studio']}
 };
-function randInt(max){const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]%max;}
-function pick(arr){return arr[randInt(arr.length)];}
+// 风格词库：每条候选以 60% 概率加一个风格前缀词，故风格下拉确实改变所用词库。
+const STYLES={
+  passionate:['Blazing','Fearless','Thunder','Inferno','Raging','Valor','Furious'],
+  humorous:['Wobbly','Noodle','Silly','Bouncy','Goofy','Pickle','Muffin'],
+  professional:['Apex','Prime','Vertex','Meridian','Summit','Noble','Precise'],
+  classical:['Jade','Moon','Silk','Bamboo','Crane','Lotus','Ink']
+};
+var __tnState=null;
+function __tnHash(s){s=String(s==null?'':s);var h=2166136261;for(var i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return h|0;}
+function randInt(max){
+  if(!(max>0))return 0;
+  if(__tnState!==null){
+    // mulberry32：填了种子就可逐字复现同一批候选；未填种子时不用它。
+    __tnState=(__tnState+0x6D2B79F5)|0;
+    var t=__tnState;
+    t=Math.imul(t^(t>>>15),t|1);
+    t^=t+Math.imul(t^(t>>>7),t|61);
+    return ((t^(t>>>14))>>>0)%max;
+  }
+  // 拒绝采样消除 a[0] % max 的取模偏差，使各组合真正等可能。
+  const a=new Uint32Array(1);
+  const limit=Math.floor(4294967296/max)*max;
+  do{crypto.getRandomValues(a);}while(a[0]>=limit);
+  return a[0]%max;
+}
+function pick(arr){if(!arr||!arr.length)return '';return arr[randInt(arr.length)];}
 function generate(){
   const domain=document.getElementById('domain').value;
-  const count=parseInt(document.getElementById('count').value);
-  const set=SETS[domain];
+  const set=SETS[domain]||SETS.tech;
+  const count=Math.max(1,Math.min(30,parseInt(document.getElementById('count').value)||10));
+  const styleEl=document.getElementById('style');
+  const sb=STYLES[(styleEl?styleEl.value:'professional')]||STYLES.professional;
+  const maxLenEl=document.getElementById('maxLen');
+  const maxLen=Math.max(6,Math.min(40,parseInt(maxLenEl?maxLenEl.value:'24')||24));
+  const modeEl=document.getElementById('suffixMode');
+  const suffixMode=modeEl?modeEl.value:'word';
+  const seedEl=document.getElementById('seed');
+  const seed=seedEl?String(seedEl.value||'').trim():'';
+  __tnState=seed?__tnHash(seed):null;
   let html='';
   for(let i=0;i<count;i++){
-    let name=pick(set.a)+pick(set.b);
-    if(Math.random()<0.4)name+=' '+pick(set.suffix);
+    let name='';
+    for(let tries=0;tries<16;tries++){
+      name=(randInt(100)<60?pick(sb)+' ':'')+pick(set.a)+pick(set.b);
+      if(suffixMode==='word'){if(randInt(100)<40)name+=' '+pick(set.suffix);}
+      else if(suffixMode==='number'){name+=' '+String(randInt(90)+10);}
+      else if(suffixMode==='symbol'){name+=pick(['!','#','+','~','★']);}
+      if(name.length<=maxLen)break;
+    }
+    if(name.length>maxLen)name=name.slice(0,maxLen);
     html+='<div class="code-row">'+escapeHtml(name)+'</div>';
   }
+  __tnState=null;
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h0;
 }
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}

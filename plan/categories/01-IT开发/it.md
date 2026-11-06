@@ -3900,11 +3900,6 @@
 
 | 页面 | 问题（含 tools/it/<slug>.html:NN） | 编号 |
 |---|---|---|
-| `tools/it/screen-size.html` | `:130` 公式框声明「屏幕面积 = 物理宽 × 物理高」，但 `calc()`（`:178-209`）只输出分辨率、PPI、长宽比、物理宽高与点距，`:198-207` 无面积字段（承诺未实现） | IT-N545 |
-| `tools/it/summary-generator.html` | `:551-558` 用 `freq[w]/total > 0.05` 过滤关键词，公式 `:212` 只说明剔除停用词、未披露该阈值；node 复刻 60 句唯一文本得 0 个关键词、60 句权重全 0，`:636-641` 退化为按原序取前 N 句（错误结果） | IT-N546 |
-| `tools/it/summary-generator.html` | `:481-505` 的分句器除 `. ! ?` 外还按 `…`、`、` 与换行（当前段 ≥20 字）切分，且小数点后为数字时照切（如 `价格 3.14 元` 被切成 `价格 3.`）；公式 `:212` 只承诺「遇 . ! ? 切分」，句数与摘要片段均可能失真（错误结果） | IT-N547 |
-| `tools/it/svg-placeholder-generator.html` | 历史记录恢复回调 `:340-354` 在回填输入后调用 `:351` 的 `downloadSvg()` 而非 `render()`；`:405-408` 又把 `downloadSvg` 包成带历史写入的函数，点历史记录只下载旧 SVG，`:142` 的预览与 `:141` 的结果区都不重算（算了不渲染） | IT-N548 |
-| `tools/it/team-name-generator.html` | meta `:10` 承诺「可设风格与长度」，公式 `:158-159` 写「风格下拉」及「热血、搞笑、专业、古风」「可追加数字或符号后缀」，FAQ `:210` 称「可切换语言风格」，英文简介 `:470` 称含 optional numbers；实际 `:163-169` 只有「领域」下拉（科技/体育/电竞/创业/创意），`:274` 只追加词库后缀，全页无风格/长度/语言/数字后缀控件（承诺未实现） | IT-N549 |
 
 **统计**
 - 页数：8（`password-strength`、`python-cheatsheet`、`redis-cheatsheet`、`rust-cheatsheet`、`screen-size`、`summary-generator`、`svg-placeholder-generator`、`team-name-generator`）。
