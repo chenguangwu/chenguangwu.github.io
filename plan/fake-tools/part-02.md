@@ -12,7 +12,7 @@
 | `tools/clinical-nursing/ostomy-bag-timing.html` | 假 | `:379,382-396` | `warnAt=interval*0.7` 已实现，倒计时在 70% 处预警；原「0.7 未实现」不成立。 |
 | `tools/healthcare/map.html` | 假 | `:242-257` | 已有非正、超范围、舒张压>收缩压三类守卫，均拦截并给出红色提示。 |
 | `tools/healthcare/healthcare.html` | 假 | `:121,163-165,464` | 英文简介已改为体重折算+上限倍数；Clark/BSA 仅出现在引据表与「局限」FAQ，不再宣称三法实现。 |
-| `tools/nephrology/edema-grading.html` | 假 | `:288,299-300` | 回弹时间与凹陷深度分别分级后取 `Math.max`，恢复时间真实参与分级。 |
+| `tools/nephrology/edema-grading.html` | 假 | `:289-302` | 2026-11-06 Node 执行实际 `calc()`：同为 2 mm 时 10 秒为 1+、120 秒为 4+；4 mm / 30 秒描述为 16–30 秒。未做浏览器验证，医学阈值需专业复核。 |
 | `tools/cardiology/coronary-calcium.html` | 假 | `:262-267,271-285` | 原始 Agatston 分段与 MESA 简化百分位重分类均已实现。 |
 | `tools/finance/housing-fund-loan.html` | 真 | `:205,292,366` | 利率 `RATE=0.031` 写死，无利率输入；正文/结果都按 3.1%（2024 参考）输出。 |
 | `tools/finance/salary-after-tax.html` | 真 | `:261,266,294-298` | `months` 仅做守卫、不参算；brackets 7 档但展示表仅 5 档。 |

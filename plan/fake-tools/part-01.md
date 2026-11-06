@@ -71,7 +71,7 @@
 | 医疗健康 | `tools/clinical-nursing/ostomy-bag-timing.html` | C | `:379` 已实现 `warnAt = interval*0.7`，`:382-396` 倒计时按 70% 进入预警；原「0.7 未实现、按 100%」不成立 | `plan/categories/03-医疗健康/drug-dosing.md:412` | 已否定 | —（已修复） |
 | 医疗健康 | `tools/healthcare/map.html` | A | `:242-257` 已有四重输入守卫（收缩压/舒张压非正、超范围、舒张压>收缩压均拦截并提示），原「无守卫仍判正常」不成立 | `plan/categories/03-医疗健康/drug-dosing.md:312` | 已否定 | —（已修复） |
 | 医疗健康 | `tools/healthcare/healthcare.html` | C | `:121` 英文简介已改为「按体重折算 + 上限倍数」，不再提 Clark/Young/BSA；`:163-165` 引据表仅列体表面积法作参考，`:464` FAQ 也只作局限说明 | `plan/categories/03-医疗健康/drug-dosing.md:81` | 已否定 | —（原记录已过期） |
-| 医疗健康 | `tools/nephrology/edema-grading.html` | A | `:288` 读入 recovery，`:299-300` `recoveryGrade` 与 `depthGrade` 取 `Math.max` 参与最终分级，原「完全不参与」不成立 | `plan/categories/12-长尾行业/_others.md:1464` | 已否定 | —（已修复） |
+| 医疗健康 | `tools/nephrology/edema-grading.html` | A | 2026-11-06 Node 执行 `calc()`：2 mm / 10 秒为 1+，同深度 / 120 秒为 4+；4 mm / 30 秒描述为回弹 16–30 秒。未做浏览器验证，阈值需专业复核 | `plan/categories/12-长尾行业/_others.md` 的 12-N112 | 已否定 | —（已修复） |
 | 医疗健康 | `tools/cardiology/coronary-calcium.html` | C | `:262-267` 原始 Agatston 分段（0/<100/<400/<1000/≥1000）已实现；`:271-285` MESA 简化百分位（<50/50–75/≥75）已实现 | `plan/categories/03-医疗健康/specialties.md:417` | 已否定 | —（已修复） |
 | 金融财务 | `tools/finance/housing-fund-loan.html` | A | `:292` `var RATE = 0.031` 写死；`:205,233,366` 正文与结果均按 3.1% 输出，且标注「2024 年参考」；无利率可调输入 | `plan/categories/02-金融财务/finance.md:729` | 已确认（真） | 中高（利率口径过期） |
 | 金融财务 | `tools/finance/salary-after-tax.html` | A | `:261` 读入 `months` 后仅用于 `:262` 合法性守卫，税费计算全程未用；`:266` brackets 有 7 档，`:294-298` 展示表只列 5 档（45%/35% 两档缺失） | `plan/categories/02-金融财务/finance.md:269` | 已确认（真） | 中（死输入 + 税率表不全） |
