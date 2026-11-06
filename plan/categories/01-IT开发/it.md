@@ -113,7 +113,7 @@
 - IT-N421、N422 的 locale 查表与正则仍在；IT-N415–N417、N427 的 MSISDN 校验与数据库路径仍在。MSISDN 原始输入在非数字时提前返回，不应仅因 `raw` 插入字符串就断言可注入。
 - 同批阅读 Linux、MongoDB 速查的搜索、分类与复制路径；无浏览器验证，不对完整正确性判通过。IT-N498–N500 的示例仍须按具体内容另行运行复核。
 - IT-N46 现有 RGB/alpha clamp；IT-N47 当前已合成前景 alpha、非法输入清除比值，历史原问题需运行回归后销账；背景 alpha 仍需单独确认。IT-N423、N308、N309 的数据范围问题仍在。
-- IT-N17 原 `don't` / `myVar` 问题于 2026-11-06 在基线 `06fd7b449c` 经 `verify_it_calc.js case-converter` 的 Node 桩回归确认修复，已从当前问题移除；未做浏览器验证。IT-N170–N173、IT-N49 的关键路径仍在。
+- IT-N170–N173、IT-N49 的关键路径仍在。
 - IT-N335、IT-N336 的原实现已不在当前源码中：`:289-302` 对非 ASCII 使用 `\u`/`\U`，`:324-331` 已先处理最多 3 位八进制；该两条历史缺陷需另做运行回归后销账。
 - IT-N418 至 IT-N420 的查询和判定路径仍在；IT-N469 的 MD5 仍按 UTF-16 码元打包，专业测试结论沿用历史基线，不冒称本次重跑。
 - 同批另阅读 `ascii-table`、`box-shadow-generator`、`calc-1`、`calc-10` 的主要交互路径；未对其完整正确性或浏览器行为作通过判定。
@@ -201,7 +201,6 @@
 
 ### 续查覆盖
 - 新抽查 `tools/it/env-generator.html`、`tools/it/json-to-csv.html`、`tools/it/number-base-converter.html`、`tools/it/text-replace.html`、`tools/it/nginx-config-generator.html` 共 5 页，新增 7 条问题（历史计数）；未做浏览器、部署或门禁验证。历史回填的实际交互需真机复核。
-- 2026-11-06 独立复核（基线 `06fd7b449c`）：IT-N4 的删除空行预设经 `node scripts/verify_it_calc.js text-replace` 桩回归通过，已从当前问题移除；IT-N3 原混合大小写反例修复，但 Unicode 偏移问题仍成立，见该条。
 
 ## 2026-11-03 续查（并行批 G）
 
@@ -353,7 +352,6 @@
 
 ### 续查覆盖
 - 本轮人工查看 `tools/it/text-diff.html`、`whitespace.html`、`text-cleaner.html`、`text-dedupe-sort.html`、`line-ending-converter.html`、`list-converter.html`、`markdown-to-html.html`、`ini-parser.html` 共 8 页，新增 14 条（历史计数：高 2、中 10、低 2），编号续 IT-N18～N31，与既有 IT-N1～N17 无重复；其中 IT-N31 为待验证项。
-- 2026-11-06 在基线 `06fd7b449c` 运行 `node scripts/verify_it_calc.js text-dedupe-sort`，IT-N19 的去重后修改输入再排序反例通过，已从当前问题移除；未做浏览器验证。
 - 取证方式为源码静态阅读 + Node 内存提取原函数/最小逻辑复算（含 `markdown inline`、`parseIni`、`removeLineNum`、`leViz`、`list convert`、`calcTool` 等价实现），并用本地已装 jsdom 复核 `textarea.textContent` 与空 `<select>` 的 `options.length`；未开浏览器，未做英文态、移动端、门禁或部署验证。
 
 ## 2026-11-03 续查（并行批 K）

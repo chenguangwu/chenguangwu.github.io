@@ -10,7 +10,6 @@
 | IT-N13 | tools/it/csv-validator.html | 引号内换行/CRLF 正确切记录，行号取物理行 | verify_it_calc.js ×3（引号内 LF、CRLF+转义、未闭合行号） |
 | IT-N15 | tools/it/text-truncate.html | 按码点截断、省略符计入上限、limit 正整数校验 | verify_it_calc.js ×4（emoji 码点、省略符预算、字节模式、limit=0） |
 | IT-N16 | tools/it/slugify.html | 剥离符号先于 Unicode 转义、下划线预览按实际分隔符 | verify_it_calc.js ×2（Unicode %、separator='.' 预览） |
-| IT-N17 | tools/it/case-converter.html | 标题式按空白分词、保留词内大小写（撇号不误大写） | verify_it_calc.js ×1（don't / O'Reilly / myVar / iPhone） |
 | IT-N21 | tools/it/line-ending-converter.html | 清空后可视化区回等待态 | verify_it_calc.js ×1（clearLe 后「（等待输入）」） |
 | IT-N33 | tools/it/html-entities.html | 编解码按码点、解码仅替换已知实体 | verify_it_calc.js ×3（emoji、扩展 B 汉字、裸 `<` 原样） |
 | IT-N37 | tools/text/reading-time-estimator.html | 空文本/0 速度校验，Math.round→Math.ceil | verify_text_calc.js ×3（空文本、0 速度、110 字进位） |
@@ -24,7 +23,6 @@
 
 | 分区 | 条目 ID | 页面 | 修复类型 | 验证用例 |
 |---|---|---|---|---|
-| IT | IT-N4 | tools/it/text-replace.html | 删除空行预设输出真实换行 | verify_it_calc.js |
 | IT | IT-N8 | tools/it/number-base-converter.html | 负数/自定进制 2–36 校验与回填 | verify_it_calc.js |
 | IT | IT-N23/N24 | tools/it/ini-parser.html | 重复节提示静态化、真压缩、去重复定义 | verify_it_calc.js |
 | IT | IT-N34 | tools/text/sensitive-word-filter.html | 高亮/计数/清洗统一匹配源、空态清 dataset | verify_it_calc.js |
