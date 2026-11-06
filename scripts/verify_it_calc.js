@@ -849,6 +849,13 @@ const CASES = [
     ref: "独立复算：SQL IN 子句形态 ⇒ 单引号包裹、以 `, ` 连接、整体套圆括号。与 quote 模式同页同输入，靠 select 档位区分（判据⑧）。",
   },
   {
+    slug: "it/list-converter",
+    // IT-N30 回归：裸 CR（旧 Mac 换行）必须被切分，不能当成一整项。
+    inputs: { input: "a\rb\nc", mode: "comma" },
+    expect: ["a, b, c"],
+    ref: "独立复算：输入 a\\rb\\nc，旧实现 split(/\\r?\\n/) 只按 \\n 切、裸 \\r 不识别 ⇒ 'a\\rb' 成一项；修复后 /\\r\\n|\\r|\\n/ 把 \\r 也切分 ⇒ 三项 a/b/c 以 ', ' 连接。默认示例为多行 \\n，不命中。",
+  },
+  {
     slug: "it/char-encoder",
     inputs: { input: "Hi~" },
     expect: ["SGl+"],

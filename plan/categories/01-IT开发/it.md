@@ -249,11 +249,11 @@
 - 影响：`tools/it/whitespace.html`；预览把“被删的空白行”和“下一行内容”放在同一行展示，误导用户核对；文档承诺的“全压成一行”无法实际执行。
 - 方案：预览携带原始行号映射（被删行明确标注“已删除”），左右列不再假装同源同一行；删除该 FAQ 承诺或补“折叠为单行”选项。
 
-### IT-N30 裸 CR 不切分、强制 trim 静默丢空项与缩进（低，确认源码缺陷）
+### IT-N30 裸 CR 不切分、强制 trim 静默丢空项与缩进（低，部分修复）
 - 描述：输入只按 `/\r?\n/` 切分，旧 Mac 的单独 `\r` 不识别；随后统一 `trim()` 并 `filter(Boolean)`，缩进、空字段被静默去掉。
 - 证据：`tools/it/list-converter.html:272-290`（273 切分/清洗、280 quote、283 csv）。Node 复算：`a\rb`、comma 模式 → 单条 `a\rb`（未按 CR 切分）；`"  a  \n\nb "` → `["a","b"]`，结果 `a, b`。
 - 影响：`tools/it/list-converter.html`；混合换行文件被当成一项；需要空字段或缩进的列表无法原样转换。
-- 方案：改用 `/\r\n|\r|\n/`；提供“保留首尾空白/保留空项”开关，至少在结果中提示删除了多少项。
+- 修复（换行切分）：`convert()` 改用 `/\r\n|\r|\n/` 切分，裸 `\r` 现在被识别为多行；verify 新增 N30 回归用例（`a\rb\nc` → 断言 `a, b, c`），list-converter 全过。trim/filter 静默丢空项与缩进的部分保留为留存项（需“保留空项/缩进”开关，未实现）。
 
 ### IT-N31 视图切换依赖全局 `event`（中，待验证：Firefox）
 - 描述：`switchView` 通过 `event.target` 找当前页签，`event` 未作为参数传入；Chrome/Safari 有 `window.event`，Firefox 没有全局 `event`，内联 `onclick` 调用时会取不到。
