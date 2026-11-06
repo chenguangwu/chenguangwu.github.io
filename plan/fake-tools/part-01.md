@@ -101,7 +101,7 @@
 | 工程制造 | `tools/electronics/capacitor-calculator.html` | A | `:352-354` 注释「假设 5τ 内完成」后写死 `tau = 0.001`，`P = E/(5*tau)`；充电时间常数与 R/C 输入无关 | `plan/categories/08-工程制造/electrical-electronics.md:71` | 已确认（真） | 中 |
 | 长尾行业 | `tools/acupuncture/acupoint-location.html` | A | `:399` `revCun = realCm ? 0 : 0` 为死变量；`:400` 反算提示用 `targetCun.toFixed(1)`（目标寸数）而非 X，公式自相矛盾 | `plan/categories/12-长尾行业/_others.md:827` | 已确认（真） | 低 |
 | 自然科学 | `tools/quantum/pair-production-threshold.html` | A | `:128-129` 「（常量计算）」`dummy` 输入不参与任何输出；`:215-219` 结果为 2mₑc² 常量；`:221` 重置只把 dummy 置 1；预设为空 | `plan/categories/09-自然科学/physics-optics-quantum.md:94` | 已确认（真） | 低 |
-| 生活消费 | `tools/life/countdown-timer.html` | A | `:514-521` `addPreset(...,isLunar=true)` 走 `SPRING_FESTIVAL_DATES` 逐年取春节日期（2025-01-29/2026-02-17…），原「硬编码 1 月 29 日、isLunar 未使用」不成立 | `plan/categories/05-生活消费/life.md:596` | 已否定 | —（已修复） |
+| 生活消费 | `tools/life/countdown-timer.html` | A | 2026-11-06 Node 模拟 `addPreset(...,isLunar=true)`：2026 年春节前取 2026-02-17，春节后取 2027-02-06；2031 年表外提示手动选择。原固定 1 月 29 日问题已修；未做浏览器验证 | `plan/categories/05-生活消费/life.md` | 已否定 | —（已修复） |
 | 生活消费 | `tools/life/stats-13.html` | C | `:291-293` 简介承诺「转化漏斗/时段峰值/报名付款聚合」，`:218-251` 只算人数/份数/均值/最多最少/金额，无占比、分档、漏斗、峰值 | `plan/categories/05-生活消费/life.md:908` | 已确认（真） | 中低 |
 | 生活消费 | `tools/life/analysis-cost-9.html` | C | `:231-234` 仅合计/项均/最大项/占比表/极差；无固定-变动拆分、无单位成本、无盈亏平衡、无降本优先级排序（`:188/:193` 公式不可用） | `plan/categories/05-生活消费/life.md:750` | 已确认（真） | 低 |
 | 生活消费 | `tools/life/assessor-target.html` | D | `:427` `opt-guide` 仍是「填写参数→点击计算/生成→查看输出」通用套话；`shopArea` `:226` 读入后未参与 `:232` 加权 | `plan/categories/05-生活消费/life.md:955` | 已确认（真） | 低（模板套话 + 面积死输入） |
