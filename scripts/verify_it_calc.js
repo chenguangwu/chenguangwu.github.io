@@ -1114,6 +1114,14 @@ const CASES = [
     ref: "键名恰为 `__proto__`：普通 `{}` 上赋字符串会走原型 setter 且被忽略，JSON 输出 `{}`（丢键）；Object.create(null) 后成为自有键 ⇒ `\"__proto__\": \"x\"`。默认示例键名是 app.* / db.*。",
   },
   {
+    slug: "it/properties-parser",
+    // IT-N11 回归：删除重复定义后，loadSample 必须走 propsToJson（输出 JSON），
+    // 而非被覆盖的 doBeautify（输出 properties 文本）；同时成功提示 class 应为 ok 而非 err。
+    clicks: ["loadSample()"],
+    expect: ['"app.name"'],
+    ref: "独立复算：SAMPLE 为 properties 文本，loadSample 现调 propsToJson ⇒ 输出含 JSON 键 \"app.name\"（带引号）；修复前重复定义使 loadSample 改为 doBeautify，输出保持 properties 文本（app.name = toolbox，无引号）⇒ 不命中。默认态 input 为空、无该 JSON 串。",
+  },
+  {
     slug: "it/json-schema-validator",
     inputs: { data: '{"a":1}', schema: '{"type":"object","required":["b"]}' },
     clicks: ["validateJSON()"],
