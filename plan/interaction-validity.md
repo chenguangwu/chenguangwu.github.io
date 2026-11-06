@@ -1,5 +1,23 @@
 # 交互有效性扫描（第二轮：点了到底有没有用）
 
+## 2026-11-06 653 页续审检查点（280/653 双跑有效，未销账）
+
+- 基线 `0781ef7e61`，独立工作树 `audit/interaction-review`，历史清单 `/tmp/all653.txt`、旧桶 `/tmp/notclicked-653-classified.json`。截至本次检查点按路径排序前 160 页两次均有效、0 个缺桶、两次桶位逐页一致：B 124、C 30、D-a 4、D-b 1、A 1；还剩 493 页双跑。
+- 旧→新仅反映探针迁移、不能代替真值：A→B 2；B→B 116、B→C 5；C→B 6、C→C 20、C→D-a 1、C→D-b 1；D→A 1、D→C 5、D→D-a 3。首次批跑中的会话错误经单页隔离分别补足两次，详情见临时 JSON `/tmp/toolbox-audit-653-batch01-{a,b}.json`、`/tmp/toolbox-audit-batch01-isolated.json`、`/tmp/toolbox-audit-run-batch01-isolated-b.json`、`/tmp/toolbox-audit-run-batch0{3,4}-*.json`；这些临时文件不是永久交付物。
+- 探针盲区确认：隐藏 file input 被可见性过滤漏计，`audio/audio-cut` D-b 因而不能判为无交互；未加载音频，不判实际文件驱动桶位。初始隐藏标签控件也会漏采，`health/rehab-timer` 的 `month` 控件即使打开，探针通用文本值被浏览器拒绝。`grew` 包含列表文字变化而非仅行数增长，`agriculture/cycle-honey` 输出“列表 5→5”不表示行数增长；Chrome 输入名称、位置、周期 10 天、日期 2026-11-06 后点击添加，列表及本地存储确实出现蜂箱。
+- 针对性错分复核：`design/contrast-checker` 文本色值 `#1F2937`→`#000000` 时对比度 14.68→21.00，无需点击，应 B 而非探针 C；同理 `color-palette`、`colorblind-simulator`、`css-box-shadow-generator`、`glassmorphism-generator`、`neomorphism-generator` 输入合法 `#1199cc` 后，色卡/模拟色或 CSS 立即改变，均应 B 而非 C。源因为通用文本值非合法色值。这是针对性而非随机样本，不能外推错分率。
+- 其他补证：`advertising/generator-time` 数量 5→2→7，分镜数同步 5→2→7，支持 B；`data/data-cleaner` 文本改值不更新，点击清洗才变，支持 A。上述 Chrome DOM 操作及独立浏览器测试不能表述为全部 60 页人工裁决。
+- 第 5 批（按路径排序第 161–200 页）已完成两次探针：各 40 页、错误 0、逐页桶位一致；B 27、C 10、D-a 2、A 1。累计前 200 页双跑有效：B 151、C 40、D-a 6、D-b 1、A 2；剩余 453 页等待双跑。结果分别在 `/tmp/toolbox-audit-run-batch05-{a,b}.json`，仅作为本地中间证据。
+- 第 6、7 批（第 201–280 页）在停止浏览器前均已双跑完成，各次 40 页且 0 错，路径集合与桶位逐页一致：第 6 批 B 40；第 7 批 B 37、C 1、D-a 2。合计前 280 页：B 228、C 41、D-a 8、D-b 1、A 2。第 8 批第一遍 38 页有效、另 2 页隔离重试有效，第二遍中止，故该批不计双跑完成。
+- `edu/english-vocabulary` 探针 A 桶仅代表改动题数不会实时答题：源码 `startQuiz()` 才创建题目，`answer()` 处理选择、计分并延时进入下一题。该工具本就需要先开始再选择，静态证据不能推断浏览器实际交互或作为独立真值抽样。
+- 用户要求加速并只分析代码，已停止浏览器、后台探针及本地服务。余下 373 页未双跑，653 页完整迁移矩阵、独立 60 页运行态抽样和错分率未完成，旧分桶仍不能销账；后续静态复核只能标代码结论或待验证，不冒称真实浏览器验证。业务缺陷继续写入 `plan/categories/` 对应分类。
+- 静态续审首批：人工复核 `health/{pregnancy-due-date,ovulation-calculator,gfr-calculator,blood-pressure-classifier}` 4 页的输入事件、计算和结果路径；记录胎重、单位与分期、日历未知日期、安全输入和旧结果等问题，详见 `categories/03-医疗健康/specialties.md`。另更正 `units-datetime-family.md` 中两页日期解析的过时记录。代码复算非浏览器实测，不能计入双跑或错分率。
+- 静态续审第二批：阅读 `gardening2/{fertilizer-ppm,watering-frequency}`、`geology/{mineral-hardness,richter-scale,rock-identify,stratum-correlation}`、`fun/{keyboard-heatmap,typing-rhythm}` 的主要交互及结果路径，共 8 页。记录浇水量默认值与打字 WPM 算式问题，复核并更正已过时的地震条目；不能将未发现其他问题等同运行通过。
+- 静态续审第三批：阅读 `health/{child-bmi-calculator,child-height-predictor,body-surface-area,cholesterol-ratio,calorie-needs}` 5 页主要输入及计算结果路径，记录身高参考公式不连续、清空后子结果残留、单位切换和选填输入用途问题，详见医疗分类。医疗结论仅代码确认，专业性须复核。
+- 静态续审第四批：阅读 `health/{alcohol-units,blood-sugar-converter,caffeine-limit,fracture-healing,ibw-calculator,protein-needs}` 6 页主要路径，记录酒精浓度单位量级、饮品累计、默认值和陈旧结果等问题，详见医疗分类。未运行页面、未验证临床标准，不计双跑。
+- 静态续审第五批：阅读 `health/{insulin-dose,one-rep-max,sleep-cycle-calculator,smoking-cost-calculator,waist-hip-ratio,water-intake-calculator}` 6 页主要路径，复核既有胰岛素问题并记录训练重量、寿命换算、午夜与空态问题。仅源码及算式复算，详见医疗、运动分类，不计双跑。
+
+
 - 扫描时间：2026/11/5 05:04:33
 - 覆盖工具页：**4807**
 - 有输入控件的页：**4401**
@@ -753,6 +771,12 @@ node scripts/runtime_scan.js --interact --files /tmp/pages.txt --timeout 10000
 
 ### 结论
 653 页分桶**不销账**：桶位错分 8.3%（CI 上限 18.1%），且 B 桶依赖的单字段 `changedByInput` 在多输入/搜索/select 页系统性失真。先按上列 7 条修探针，重扫 653 后再抽 60 页复核；本批 60/60 页均**不是**「not-clicked 真缺陷」，但 5 页桶位与 5 页子类仍需修正。
+
+### 独立工作树续审检查点（基线 0781ef7e61）
+- 探针七项修正已合入 `master`（提交 `5a140de940`）；历史 653 页新口径重扫曾中断，未找到完整新分桶及旧→新迁移矩阵。历史独立 60 页虽有采证，但缺可逐页复核的最终裁决，不能按其口头结果销账。
+- 在 `audit/interaction-review` 工作树对原 60 页样本连续运行现有探针两次：均有效 60 页、错误 0；两次桶位分布均为 B 41、C 12、D-a 7，逐页桶位一致 60/60。结果见 `/tmp/toolbox-audit-sample60-a.json` 和 `/tmp/toolbox-audit-sample60-b.json`。本结果只证明桶位可复现，**不证明人工真机判定准确**；历史部分页面在当前基线已有变更，不能直接用旧人工裁决计算现状错分率。
+- 历史五个错分案例本次探针分别为：`library/clc-classifier` B、`metalwork/thread-spec` B、`rehabilitation/assistive-device-fitting` B、`design/shutter-speed-calculator` B、`kids/multiplication-practice` C，与历史人工桶位相同；当前基线尚未做独立人工真机复核。
+- 待办：固定工作树 commit 与 653 页原始名单，分批重扫并补齐错误页；严格校验两次运行页集合与错误数，再生成迁移矩阵；从新桶位中抽取与旧样本不重叠的 60 页，逐页记录独立真机裁决后再决定是否销账。
 ## 2026-11-05 A 桶 9 页收口 + 两个异常数值核实
 
 ### A 桶 9 页（补实时绑定，保留原按钮）
