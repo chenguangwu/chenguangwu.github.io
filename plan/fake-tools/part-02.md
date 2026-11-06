@@ -10,7 +10,7 @@
 | `tools/clinical-lab/semen-analysis.html` | 真 | `:148,261-267,274` | IM 不在必填校验、不参与总活力；`setInterp('im',true,'')` 恒显 ✓ 正常。 |
 | `tools/clinical-nursing/bag-valve-mask.html` | 部分 | `:153,323,189,257,282-283` | 球囊容量已接入但只驱动告警、不改变主参数（「不参算」部分成立）；`257` 的 8-10 次/分 与 `282-283` 婴儿 20-30 次/分 页面内冲突。 |
 | `tools/clinical-nursing/ostomy-bag-timing.html` | 假 | `:367-396` | 2026-11-06 Node 执行实际 `calc()`：7 天间隔在 70% 点前后分别显示预警时间与已进入预警期，超期后重算颜色复位；未做浏览器验证。其他问题见 D-N46。 |
-| `tools/healthcare/map.html` | 假 | `:242-257` | 已有非正、超范围、舒张压>收缩压三类守卫，均拦截并给出红色提示。 |
+| `tools/healthcare/map.html` | 假 | `:238-265` | 2026-11-06 Node 执行实际 `calc()`：两项非正、两项超范围及舒张压大于收缩压均拦截分级；120/80 得 93.3。未做浏览器验证或医学标准核验。 |
 | `tools/healthcare/healthcare.html` | 假 | `:121,163-165,464` | 英文简介已改为体重折算+上限倍数；Clark/BSA 仅出现在引据表与「局限」FAQ，不再宣称三法实现。 |
 | `tools/nephrology/edema-grading.html` | 假 | `:289-302` | 2026-11-06 Node 执行实际 `calc()`：同为 2 mm 时 10 秒为 1+、120 秒为 4+；4 mm / 30 秒描述为 16–30 秒。未做浏览器验证，医学阈值需专业复核。 |
 | `tools/cardiology/coronary-calcium.html` | 假 | `:262-267,271-285` | 原始 Agatston 分段与 MESA 简化百分位重分类均已实现。 |
