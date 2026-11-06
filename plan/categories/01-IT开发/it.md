@@ -172,18 +172,7 @@
 - 影响：Unicode 输入中，未匹配字符丢失或保留错误，复制/下载会传播损坏的内容；非全局分支亦用同样的索引方式，需一并验证。
 - 方案：匹配位置必须对应原文，增加大小写映射长度变化、连续命中及非全局回归；尚未做浏览器验证。
 
-### IT-N6 特定 JSON 解析错误仍保留旧 CSV（高，已修复）
-- `tools/it/json-to-csv.html:308` 的 catch 分支先检查错误信息再决定显示：`JSON.parse('[NaN]')` 抛 `SyntaxError: Unexpected token 'N', "[NaN]" is not valid JSON`，其中 `[NaN]` 子串命中 `/(^|[^A-Za-z])NaN([^A-Za-z]|$)/` 防御正则 ⇒ 走「通用告警提前 return」分支，该分支**未清空** `output.value`/`__jsonToCsvExportSafe` ⇒ 旧 CSV 残留，复制/下载会误读旧数据。Node 已复现（旧实现 cleared=false）。
-- 修复：`toCSV()` catch 的 NaN/Infinity 防御分支在 return 前先 `output.value=''`、`__jsonToCsvExportSafe=''` 并改写结果区为真实解析错误（不再提前 return 且不清空）；回归用例（verify_it_calc.js json-to-csv 第 5 例）注入有效 JSON→`[NaN]`→断言「解析失败」出现（旧实现该分支只显示通用告警、不含「解析失败」），属强判别。
-
-### IT-N7 JSON 数组处理说明存在歧义（中，已修复）
-- `tools/it/json-to-csv.html` 的工作原理同时写「嵌套对象或数组序列化为 JSON 字符串，不展开为多列」和「数组经索引展开」，但 `cell()` 对嵌套数组直接序列化，不会展开索引列。应明确区分顶层数组与嵌套数组的处理方式。
-- 修复：删除矛盾的「数组经索引展开。」一句，工作原理区统一为「嵌套数组同样序列化为 JSON 字符串填入单元格（不按索引展开为多列）」（`tools/it/json-to-csv.html:123`，formula-box 区直接改 HTML 有效；deep-dive FAQ 正确文本此前已落到构建源 `i18n/tools/content_deepdive.json`，`96da825eb1`）。
-
-### IT-N8 自定义进制小数被静默截断（中，确认缺陷，已修复）
-- `tools/it/number-base-converter.html:433-439` 先用 `parseInt` 解析自定义基数，再检查整数；输入 `2.5` 被当作 2 进制，而非提示必须输入 2–36 的整数。Node 执行原函数已复现。
-- 影响：使用与输入不符的进制产生错误结果。
-- 修复：`getInputBase()` 的 custom 分支先 `String(customBase.value || '').trim()` 再 `^\d+$` 校验，非纯整数（如 `2.5`/空/非数字）直接返回 null ⇒ `convertFromInput` 提示「⚠ 进制必须为 2–36 的整数。」；`String()` 包裹避免桩环境数值型 value 调用 `.trim()` 抛错。verify 新增 N8 回归用例（customBase='2.5' → 断言该提示），6/6 通过。
+- 2026-11-06 复核已修复项：IT-N6 的 `toCSV()` 经 Node 执行有效输入后输入 `[NaN]`，输出和安全导出串均清空并提示解析失败；IT-N7 的嵌套数组说明已统一；IT-N8 的 `getInputBase()` 拒绝 `2.5`、空值和 37，接受 2 和 36。仅源码与函数级验证，未做浏览器验证。
 
 ### 续查覆盖
 - 新抽查 `tools/it/env-generator.html`、`tools/it/json-to-csv.html`、`tools/it/number-base-converter.html`、`tools/it/text-replace.html`、`tools/it/nginx-config-generator.html` 共 5 页，新增 7 条问题（历史计数）；未做浏览器、部署或门禁验证。历史回填的实际交互需真机复核。
