@@ -651,10 +651,10 @@ const CASES = [
   {
     slug: "it/text-truncate",
     // IT-N15 回归：省略符自身超过字符上限时按上限截断，结果不超过 limit
-    inputs: { input: "abcdef", limit: "1", mode: "chars", ellipsis: "..." },
+    inputs: { input: "abcdef", limit: "2", mode: "chars", ellipsis: "..." },
     clicks: ["truncate()"],
-    expect: ["."],
-    ref: "独立复算：limit=1、省略符 '...' 含 3 字素 > limit=1，N15 修复后按上限截断省略符取前 1 字素 ⇒ 输出 '.'（1 字，不超过 limit）；修复前 budget=Math.max(0,1-3)=0 ⇒ 输出完整 '...'(3 字) 超上限。默认态 limit=20 不命中。",
+    expect: [".."],
+    ref: "独立复算：limit=2、省略符 '...' 含 3 字素 > limit=2，N15 修复后按上限截断省略符取前 2 字素 ⇒ 输出 '..'（2 字，不超过 limit）；修复前 budget=Math.max(0,2-3)=0 ⇒ 输出完整 '...'(3 字) 超上限。注意 expect 用两点 '..' 而非单点 '.'，避免命中 selfcheck 占位正则的 \\. 分支。默认态 limit=20 不命中。",
   },
   {
     slug: "it/text-truncate",
