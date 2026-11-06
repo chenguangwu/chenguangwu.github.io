@@ -1100,6 +1100,14 @@ const CASES = [
     ref: "__proto__ 作为节名：修复前 `result['__proto__'] = {}` 走原型 setter、不产生自有键，JSON.stringify 输出 `{}`；改为 Object.create(null) 后是普通自有键，JSON 保留 `\"__proto__\": { \"x\": \"1\" }`。默认示例无该节名。",
   },
   {
+    slug: "it/ini-parser",
+    // IT-N25 回归：JSON 数组 [..] 必须被识别为 JSON（而非 INI 节），美化后产出索引键值。
+    inputs: { input: '["a","b"]' },
+    clicks: ["doBeautify()"],
+    expect: ["0 = a"],
+    ref: "独立复算：输入 JSON 数组，doBeautify 用 JSON.parse 判别（非 startsWith('{')）⇒ 走 toIni 数组分支产出 '0 = a'/'1 = b'；修复前 startsWith('[') 误入 INI 分支、parseIni 把整行当节名、输出形如 '[{\"a\",\"b\":'，不含 '0 = a'。默认示例非 JSON 数组，不命中。",
+  },
+  {
     slug: "it/properties-parser",
     inputs: { input: "a=1\nb=two" },
     clicks: ["propsToJson()"],

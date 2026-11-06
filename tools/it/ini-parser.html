@@ -292,6 +292,11 @@ function iniMsg(zhPrefix, enPrefix){
 }
 function toIni(obj){
   const lines = [];
+  if(Array.isArray(obj)){
+    // N25 修复：JSON 数组显式支持为索引键（0 = a / 1 = b …），而非被当成 INI 节名
+    obj.forEach(function(v,i){ lines.push(i + ' = ' + (v && typeof v === 'object' ? JSON.stringify(v) : v)); });
+    return lines.join('\n').trim();
+  }
   for(const k in obj){
     if(obj[k] && typeof obj[k] === 'object' && !Array.isArray(obj[k])){
       lines.push('[' + k + ']');
@@ -322,8 +327,11 @@ function doBeautify(){
   setErr('');
   try{
     const text = document.getElementById('input').value;
-    if(text.trim().startsWith('{')){
-      setOut(toIni(JSON.parse(text)));
+    // N25 修复：用 JSON.parse 判别 JSON 对象与数组（startsWith('{') 会把 JSON 数组 [..] 误判为 INI）
+    let data = null;
+    try { data = JSON.parse(text.trim()); } catch(e){ data = null; }
+    if(data !== null && typeof data === 'object'){
+      setOut(toIni(data));
       setErr('✅ 美化成功');
     } else {
       setOut(toIni(parseIni(text)));
@@ -335,8 +343,10 @@ function doMinify(){
   setErr('');
   try{
     const text = document.getElementById('input').value;
-    if(text.trim().startsWith('{')){
-      setOut(JSON.stringify(JSON.parse(text)));
+    let data = null;
+    try { data = JSON.parse(text.trim()); } catch(e){ data = null; }
+    if(data !== null && typeof data === 'object'){
+      setOut(JSON.stringify(data));
       setErr('✅ 压缩成功');
     } else {
       const obj = parseIni(text);
