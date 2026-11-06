@@ -39,6 +39,7 @@
 - 静态续审第二十六批：阅读 `marketing/{marketing-engagement-rate,marketing-free-shipping-threshold,marketing-google-ads-budget,marketing-influencer-pricing,marketing-keyword-density,marketing-ltv-cac-ratio}` 6 页；记录空值和零分母误判，更新旧结论源码状态。仅静态分析，未运行浏览器，不计双跑。
 - 静态续审第二十七批：阅读 `marketing/{marketing-ltv-calculator,marketing-nps-calculator,marketing-price-elasticity,marketing-qr-campaign-tracker,marketing-roas-calculator,marketing-sales-funnel,marketing-utm-builder,social-media-image-sizes}` 8 页，记录空值、分母与链接片段问题，核对历史条目关键代码变化。至清单第 443 页，静态续审累计 163 页；仅源码分析，未运行浏览器，不计双跑。
 - 静态续审第二十八批：阅读 `marketing/xiaohongshu-counter`、`martial/{routine-timer,strike-resistance}`、`math/{complex-number,formula-calculator}`、`medical/{clinical-tools,drug-info,reminder-2}` 8 页，记录旧结果、默认值、时区和医疗建议等代码风险，更新历史条目关键代码状态。至清单第 451 页，静态续审累计 171 页；仅源码分析，未运行浏览器或专业核验，不计双跑。
+- 静态续审第二十九批：阅读 `medical2/{drug-expiry,surgery-duration}`、`metalwork/{recorder-9,thread-spec}`、`meteorology/cloud-identify`、`museum/{era-comparator,historical-calendar,showcase-monitor}` 8 页，记录效期清理、空值、目标温度、历法及评估口径问题，核对旧条目关键代码。至清单第 459 页，静态续审累计 179 页；仅静态分析，未运行浏览器或专业核验，不计双跑。
 
 
 - 扫描时间：2026/11/5 05:04:33

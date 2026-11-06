@@ -1,5 +1,10 @@
 # 机械/金属加工 · tools/{machinery,metalwork,welding,manufacturing}（~160 页）
 
+## 2026-11-06 金工工具静态续审
+
+- `tools/metalwork/recorder-9.html:396-411,417-435,448-453,488-497`：清空测温值经一元 `+` 转成 0 并写入记录；编辑目标温度只调用 `renderCurrent()`，未同步 `current.target`，继续按原目标显示和计算偏差，直到其他动作调用 `calcSoaking()`。旧渗碳深度缺输入仍在。
+- `tools/metalwork/thread-spec.html:250-283,453-460`：筛选和分类生成规格表，当前导出指向该规格表，历史导出历史表的关键代码已变；规格数据及实际导出未做专业或浏览器验证。
+
 ## 2026-11-06 气动维护排程静态续审
 
 ### 维护清单和备注未保存，周期缺少校验（高，代码确认）

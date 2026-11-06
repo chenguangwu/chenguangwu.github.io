@@ -1,5 +1,11 @@
 # 文化收藏 · tools/{chinese,fengshui,antiques,archaeology,museum,exhibition,library}（~40 页）
 
+## 2026-11-06 博物馆工具静态续审
+
+- `tools/museum/era-comparator.html:284-292,317-355`：人口解析现处理“万/亿”，历史量纲错位的关键代码已变；并存期仍仅检测左侧早于右侧，左右互换可能漏报。
+- `tools/museum/historical-calendar.html:343-349,464-474,537-545`：超出年份返回 null 后仍直接读取 `lunar.y`，历史越界问题仍在；历史事件导出每行仍以 `</tbody>` 而非 `</tr>` 结束。日期清空时 `update()` 直接返回，旧详情仍显示。未实测浏览器，历法与史实未核验。
+- `tools/museum/showcase-monitor.html:273-319`：波动值作为推荐限值显示“需记录”，不参加 `allOK`；环境达标结论只取温湿度，不包含波动，旧问题仍在。专业阈值未核验。
+
 ## 已知问题
 - lunar-calendar/星座页为「天然不需要图表」池成员（已甄别）。
 
