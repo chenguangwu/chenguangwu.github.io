@@ -37,6 +37,7 @@
 - 静态续审第二十四批：阅读 `marketing/{funnel-calculator,marketing-ab-test-significance,marketing-ad-budget-allocator,marketing-break-even-roas,marketing-cac-calculator,marketing-chinese-hashtag-generator}` 6 页；记录话题输入 HTML/脚本注入风险、零分母、历史保存校验不一致和 A/B 转化范围问题，更新历史结论源码状态。仅静态分析，未运行页面或注入，不计双跑。
 - 静态续审第二十五批：阅读 `marketing/{marketing-churn-rate,marketing-conversion-rate-calculator,marketing-coupon-discount,marketing-cpa-calculator,marketing-cpm-calculator,marketing-discount-rate}` 6 页；记录历史保存校验、空值和零成本边界问题，更新历史结论源码状态。仅静态分析，未运行浏览器，不计双跑。
 - 静态续审第二十六批：阅读 `marketing/{marketing-engagement-rate,marketing-free-shipping-threshold,marketing-google-ads-budget,marketing-influencer-pricing,marketing-keyword-density,marketing-ltv-cac-ratio}` 6 页；记录空值和零分母误判，更新旧结论源码状态。仅静态分析，未运行浏览器，不计双跑。
+- 静态续审第二十七批：阅读 `marketing/{marketing-ltv-calculator,marketing-nps-calculator,marketing-price-elasticity,marketing-qr-campaign-tracker,marketing-roas-calculator,marketing-sales-funnel,marketing-utm-builder,social-media-image-sizes}` 8 页，记录空值、分母与链接片段问题，核对历史条目关键代码变化。至清单第 443 页，静态续审累计 163 页；仅源码分析，未运行浏览器，不计双跑。
 
 
 - 扫描时间：2026/11/5 05:04:33
