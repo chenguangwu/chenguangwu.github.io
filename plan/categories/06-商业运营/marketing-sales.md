@@ -924,6 +924,15 @@
 - 影响：`tools/marketing/marketing-engagement-rate.html` 结果区；负互动率不可能存在，会直接误导复盘。
 - 方案：校验 `likes/comments/shares >= 0`，越界报错并清空结果。
 
+## 2026-11-06 静态续审：营销工具第 418–423 页
+
+- **历史结论状态更新**：MS-M5 所述负比例现已由 `marketing-ad-budget-allocator.html:254-257` 拒绝，非 100% 合计也在 `:259-262` 明示归一化；仍需运行回归，MS-M6 的手动比例而非智能分配逻辑仍在。MS-J3 所述回收期不展示已过时：`marketing-cac-calculator.html:463-465` 已展示回收期并声明 36 个月假设。MS-N38 的表格/图表/CSV 零分母不一致仍在，MS-N60 的 A 组零转化守卫仍在；MS-F7 目标利润率不可达时无说明仍在。
+- **中文话题输入进入 HTML 和内联脚本，存在注入及复制损坏风险**：`marketing-chinese-hashtag-generator.html:241-243,258-276` 将关键词和行业直接拼入 `innerHTML` 的标签文本、单标签 `onclick` 字符串和全部复制按钮模板字面量，无 HTML 或 JS 上下文转义。含单引号、反引号或 HTML 标记的用户输入可破坏对应结构；潜在脚本注入仅由源码推断，未执行攻击或验证可利用性。建议用文本节点渲染并通过事件监听器绑定复制值。
+- **零预算和零获客成本的除数未定义**：`marketing-ad-budget-allocator.html:250-267,272,281` 允许预算为 0，收入也为 0，整体 ROAS 的 `0/0` 最终被替换为 `—`；`marketing-cac-calculator.html:409-428,455-465,489-505` 允许营销和销售费用同时为 0，LTV 存在时比率及 ROI 除以零、替换为 `—` 却仍显示“健康”，LTV 留空时费用占比也是 `0/0`。应保留零成本的 CAC，明确相关比率不可计算并避免给出健康结论。
+- **CAC 保存校验与计算不一致**：`marketing-cac-calculator.html:413-420,508-525` 的计算会拒绝负费用和非正 LTV，但保存仅检查数值及客户数；因此无效费用或 LTV 仍可存历史，历史列表还会根据无效 CAC 分级。应共用校验逻辑。
+- **A/B 转化数缺少有效区间校验**：`marketing-ab-test-significance.html:293-314` 仅限制访客数为正，未拒绝负转化或转化数超过访客数；例如两组各 100 访客、150 转化时合并比例为 1.5、标准误为 NaN，结果替换成 `—` 仍给出“不显著”结论。应限制转化数介于 0 与访客数之间，并对标准误为零单独处理。
+- 本批共阅读 `funnel-calculator`、`marketing-ab-test-significance`、`marketing-ad-budget-allocator`、`marketing-break-even-roas`、`marketing-cac-calculator`、`marketing-chinese-hashtag-generator` 6 页；仅源码分析，未运行页面、注入或浏览器，未计入双跑。
+
 ## T 批收口
 
 - 本轮审计 13 页：`market-share`、`estimate-sample-size-confidence`、`marketing-ab-test-significance`、`price-elasticity`、`tagline-generator`、`hashtag-generator`、`slogan-generator`、`social-media-image-sizes`、`marketing-chinese-hashtag-generator`、`calc-1`、`assessor-65`、`marketing-price-elasticity`、`marketing-engagement-rate`（均在 `tools/marketing/`）。

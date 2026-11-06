@@ -34,6 +34,7 @@
 - 静态续审第二十一批：阅读 `kids/multiplication-practice`、`language/{phrase-translator,text-polisher}`、`legal/{calendar,contract-templates}`、`library/clc-classifier` 6 页；记录计分定时器、旧润色结果和农历边界问题，更新历史源码状态。仅静态分析，未运行页面或专业核验，不计双跑。
 - 静态续审第二十二批：阅读 `life/{bill-splitter,color-name-finder,cycle-4,cycle-pruning-lawn,data-unit-converter,event-countdown}` 6 页主要输入及输出路径；记录单位输入 HTML 注入、逐项分摊遗漏和状态丢失，更新颜色及草坪历史结论的源码状态；数据单位历史恢复及用品预设覆盖的旧代码仍在。仅静态分析，未运行浏览器或注入，不计双跑。
 - 静态续审第二十三批：阅读 `life/{holiday-calendar,number-to-chinese,phone-lookup,reminder-cycle,roman-numeral}` 与 `marketing/email-subject-line-tester` 共 6 页；记录金额精度与大小写、罗马拆解空态及邮件空态示例表格问题，更新历史源码状态。仅静态分析，未运行浏览器，不计双跑。
+- 静态续审第二十四批：阅读 `marketing/{funnel-calculator,marketing-ab-test-significance,marketing-ad-budget-allocator,marketing-break-even-roas,marketing-cac-calculator,marketing-chinese-hashtag-generator}` 6 页；记录话题输入 HTML/脚本注入风险、零分母、历史保存校验不一致和 A/B 转化范围问题，更新历史结论源码状态。仅静态分析，未运行页面或注入，不计双跑。
 
 
 - 扫描时间：2026/11/5 05:04:33
