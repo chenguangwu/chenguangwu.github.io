@@ -20,6 +20,7 @@
 - 静态续审第七批：阅读 `healthcare/heart-rate-zones`、`hematology/leukemia-classification`、`home/{furniture-layout,renovation-budget}`、`hotel/tip-calculator`、`hydraulic/cycle-19` 共 6 页的主要状态和交互路径，记录心率区间、预算一致性、复制金额及维护记录问题。白血病分型资料未做医学专业核验；均未做浏览器验证，不计双跑。
 - 静态续审第八批：阅读 `it/{area-code-lookup,ascii-table,box-shadow-generator,c-string-escape,calc-1,calc-10}` 共 6 页主要交互路径，记录原始输入 HTML 注入点、转义交互和异常，并注明历史 C 转义问题源码状态变化；未运行注入或浏览器，不计双跑。
 - 静态续审第九批：阅读 `it/{calc-3,calc-4,calc-5,calc-8,case-converter,chmod-calculator}` 共 6 页主要交互路径，记录随机颜色、CSS 基准、JWT 时间与历史存储、权限历史恢复问题；旧 Title Case 条目现源码已变更。未运行页面，不计双跑。
+- 静态续审第十批：阅读 `it/{color-converter,country-code-lookup,country-flag,cpp-cheatsheet,csharp-cheatsheet,css-escape}` 共 6 页主要路径，记录查询输入 HTML 注入点、颜色对比及 CSS 转义问题，更新旧结论源码状态；未运行页面或注入，不计双跑。
 
 
 - 扫描时间：2026/11/5 05:04:33
