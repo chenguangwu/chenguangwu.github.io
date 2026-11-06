@@ -16,6 +16,9 @@
 - 静态续审第三批：阅读 `health/{child-bmi-calculator,child-height-predictor,body-surface-area,cholesterol-ratio,calorie-needs}` 5 页主要输入及计算结果路径，记录身高参考公式不连续、清空后子结果残留、单位切换和选填输入用途问题，详见医疗分类。医疗结论仅代码确认，专业性须复核。
 - 静态续审第四批：阅读 `health/{alcohol-units,blood-sugar-converter,caffeine-limit,fracture-healing,ibw-calculator,protein-needs}` 6 页主要路径，记录酒精浓度单位量级、饮品累计、默认值和陈旧结果等问题，详见医疗分类。未运行页面、未验证临床标准，不计双跑。
 - 静态续审第五批：阅读 `health/{insulin-dose,one-rep-max,sleep-cycle-calculator,smoking-cost-calculator,waist-hip-ratio,water-intake-calculator}` 6 页主要路径，复核既有胰岛素问题并记录训练重量、寿命换算、午夜与空态问题。仅源码及算式复算，详见医疗、运动分类，不计双跑。
+- 静态续审第六批：阅读 `funeral/{ceremony-timeline,funeral-budget-planner,reminder-3}`、`gardening/reminder-cycle-succulent`、`health/{breath-timer,rehab-timer}` 共 6 页主要状态和交互路径，记录日期、排程与计时问题；未做浏览器验证，不计双跑。
+- 静态续审第七批：阅读 `healthcare/heart-rate-zones`、`hematology/leukemia-classification`、`home/{furniture-layout,renovation-budget}`、`hotel/tip-calculator`、`hydraulic/cycle-19` 共 6 页的主要状态和交互路径，记录心率区间、预算一致性、复制金额及维护记录问题。白血病分型资料未做医学专业核验；均未做浏览器验证，不计双跑。
+- 静态续审第八批：阅读 `it/{area-code-lookup,ascii-table,box-shadow-generator,c-string-escape,calc-1,calc-10}` 共 6 页主要交互路径，记录原始输入 HTML 注入点、转义交互和异常，并注明历史 C 转义问题源码状态变化；未运行注入或浏览器，不计双跑。
 
 
 - 扫描时间：2026/11/5 05:04:33

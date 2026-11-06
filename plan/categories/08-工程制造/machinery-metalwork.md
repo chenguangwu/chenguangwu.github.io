@@ -1,5 +1,11 @@
 # 机械/金属加工 · tools/{machinery,metalwork,welding,manufacturing}（~160 页）
 
+## 2026-11-06 气动维护排程静态续审
+
+### 维护清单和备注未保存，周期缺少校验（高，代码确认）
+- `tools/hydraulic/cycle-19.html:472-495`：检查清单渲染复选框及维护备注，但点击「本次维护完成」仅把 `last` 改为今天并保存元件，没有读取或保存勾选状态和备注；不勾选任何项目亦可完成。记录不能证明具体维护项目已经执行。
+- `:155-156,387-400,421-424`：周期空值或 0 静默变为 1 天，负数和小数未阻止，仍生成到期日。建议明确维护确认规则，保存可复核的勾选和备注，校验周期为正整数；未运行页面。
+
 ## 已知问题### M3. gongyeshebeigonglvpipei 死代码与误导注释
 - ✅ 死变量清理（2026-10-26）：torque/loadTorque 两行死变量与注释已删，grep 确认无引用；顺带修该页 #res EN 存量泄漏（calc 动态串 10 处全 __T 化 + location fallback，NO_MODULE 是容器名 #res 非默认所致，--container=res 后 OK_EN）。
 
