@@ -942,6 +942,14 @@
 - **零花费边界处理有缺口**：`marketing-cpm-calculator.html:398-400` 把 0 花费当无效，尽管展示量非零时 CPM 为 0；`marketing-cpa-calculator.html:449-450,464-485` 对 0 花费强制 ROI 为 0，并在客单和毛利均正时显示 `+0.0%`，而该 ROI 的分母为 0。应分别保留可算的零成本与标注不可计算的比率。
 - 本批共阅读 `marketing-churn-rate`、`marketing-conversion-rate-calculator`、`marketing-coupon-discount`、`marketing-cpa-calculator`、`marketing-cpm-calculator`、`marketing-discount-rate` 6 页；仅源码分析，未运行浏览器，不计双跑。
 
+## 2026-11-06 静态续审：营销工具第 430–435 页
+
+- **历史结论状态更新**：MS-N78 所述互动数负值现由 `marketing-engagement-rate.html:245-247` 拦截；MS-M3 的包邮毛利率缺失及越界现由 `marketing-free-shipping-threshold.html:244-255` 拦截；MS-F8 的 LTV 零值路径现被拒绝，回本周期已标明按 36 个月分摊（`marketing-ltv-cac-ratio.html:422-424,456`）。仅按源码确认，未做运行回归。Google 广告负数输入、达人报价参数缺校验、关键词混排口径的既有关键路径仍在。
+- **关键词正文只有标点时仍给密度结论**：`marketing-keyword-density.html:243-260` 仅判断内容非空，标点正文经清洗后 `totalWords=0`；例如正文 `!!!`、关键词 `a`，密度为 `0/0`，展示时替换成 `—`，但比较 NaN 均不成立，最终建议“密度过高”。应在分母为零时说明缺少可统计内容，不输出评价。
+- **互动数清空被当作零**：`marketing-engagement-rate.html:233-249` 的点赞、评论、分享通过 `parseFloat(...) || 0` 处理；清空这三个字段仍按零生成总互动及互动率。展示量标为可选，其他字段若为必填应区分空串与合法 0，避免缺失数据被解释为零互动。
+- **目标日点击为 0 时 ROAS 无定义**：`marketing-google-ads-budget.html:244-263` 允许日点击为 0，日预算与收入均为 0，`0/0` 被替换为 `—x` 而没有说明。应保留零预算及零收入，并明确 ROAS 不可计算；负值和转化率越界的既有问题见历史记录。
+- 本批共阅读 `marketing-engagement-rate`、`marketing-free-shipping-threshold`、`marketing-google-ads-budget`、`marketing-influencer-pricing`、`marketing-keyword-density`、`marketing-ltv-cac-ratio` 6 页；仅源码分析，未运行浏览器，不计双跑。
+
 ## T 批收口
 
 - 本轮审计 13 页：`market-share`、`estimate-sample-size-confidence`、`marketing-ab-test-significance`、`price-elasticity`、`tagline-generator`、`hashtag-generator`、`slogan-generator`、`social-media-image-sizes`、`marketing-chinese-hashtag-generator`、`calc-1`、`assessor-65`、`marketing-price-elasticity`、`marketing-engagement-rate`（均在 `tools/marketing/`）。

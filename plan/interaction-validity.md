@@ -36,6 +36,7 @@
 - 静态续审第二十三批：阅读 `life/{holiday-calendar,number-to-chinese,phone-lookup,reminder-cycle,roman-numeral}` 与 `marketing/email-subject-line-tester` 共 6 页；记录金额精度与大小写、罗马拆解空态及邮件空态示例表格问题，更新历史源码状态。仅静态分析，未运行浏览器，不计双跑。
 - 静态续审第二十四批：阅读 `marketing/{funnel-calculator,marketing-ab-test-significance,marketing-ad-budget-allocator,marketing-break-even-roas,marketing-cac-calculator,marketing-chinese-hashtag-generator}` 6 页；记录话题输入 HTML/脚本注入风险、零分母、历史保存校验不一致和 A/B 转化范围问题，更新历史结论源码状态。仅静态分析，未运行页面或注入，不计双跑。
 - 静态续审第二十五批：阅读 `marketing/{marketing-churn-rate,marketing-conversion-rate-calculator,marketing-coupon-discount,marketing-cpa-calculator,marketing-cpm-calculator,marketing-discount-rate}` 6 页；记录历史保存校验、空值和零成本边界问题，更新历史结论源码状态。仅静态分析，未运行浏览器，不计双跑。
+- 静态续审第二十六批：阅读 `marketing/{marketing-engagement-rate,marketing-free-shipping-threshold,marketing-google-ads-budget,marketing-influencer-pricing,marketing-keyword-density,marketing-ltv-cac-ratio}` 6 页；记录空值和零分母误判，更新旧结论源码状态。仅静态分析，未运行浏览器，不计双跑。
 
 
 - 扫描时间：2026/11/5 05:04:33
