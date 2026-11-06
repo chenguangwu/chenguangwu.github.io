@@ -37,6 +37,16 @@
 - `tools/it/email-normalizer.html:268-290` 以 `/gmail\.com$/` 匹配服务商，`user.name+tag@notgmail.com` 被误判为 Gmail 并改成 `username@notgmail.com`。应仅匹配确切的 `gmail.com` / `googlemail.com` 域名；其他域名的点号和标签不能擅自删除。
 - `:122-123,267-282,333-345,394-398`：Gmail 选项未绑定变化事件，取消后结果仍旧直到重新计算；历史恢复写回输入后调用 `copyAfter()` 而非 `normalize()`，既不更新结果，还会尝试复制之前的结果；无效邮箱时复制按钮也会复制「❌ 无效邮箱」文本。应按当前参数重新计算、阻止无效复制。
 
+### Emoji 明细编码显示及复制错误（中，代码确认）
+- `tools/it/emoji-meaning.html:818-821,835-845` 将 HTML 实体直接写入 `innerHTML`，因此显示及 `onclick` 属性中的实体会被 HTML 解析成 Emoji，而非字面 `&#x1f600;`；JS 转义插入事件处理器后被 JS 解析成字符，CSS 转义则被解析成旧式八进制。以 😀 为例，JS 表达式复算 `copyText("\u{1f600}")` 接收 😀，`copyText("\1f600")` 接收控制字符 U+0001 和 `f600`，均不是期望的字面编码。应使用文本节点显示并在事件中传递原始字符串；未在浏览器执行复制。
+
+### HTML 标签速查导出损坏示例（中，代码确认）
+- `tools/it/html-tags.html:338,408-427` 将 `t.example` 原样拼入临时表格的 `innerHTML`，`js/tool-kit.js:221-236` 随后取单元格 `textContent` 导出。超链接示例 `<a href="https://example.com" target="_blank">链接</a>` 因被当作真实元素解析，仅剩「链接」，标签及属性丢失。应创建单元格后以 `textContent` 写入原示例；未实际下载文件。
+
+### 环境变量预览错误保留旧复制值（中，代码确认）
+- `tools/it/env-generator.html:844-865,868-882` 在高亮后的整段 HTML 中匹配 `Infinity` 或独立 `NaN` 并提前 return，此时展示无效值提示，却不会更新或清空 `preview.dataset.raw`。此前存在有效预览时，添加文本值 `Infinity` 后复制/下载仍取旧配置。应只验证真正的数值结果，失败时同步清空缓存。
+- `tools/it/env-generator.html:753-758` JSON 数字类型用 `Number(val) || 0`，空值或无效数字会静默变为 0；应校验并报错而非改变用户数据。
+
 ### 历史结论状态
 - IT-N46 现有 RGB/alpha clamp；IT-N47 当前已合成前景 alpha、非法输入清除比值，历史原问题需运行回归后销账；背景 alpha 仍需单独确认。IT-N423、N308、N309 的数据范围问题仍在。
 - IT-N17 的 `toTitleCase` 现按空白切词并只大写词首，原 `don't` / `myVar` 缺陷的实现已不在当前源码中；未运行回归，先标记待销账。IT-N170–N173、IT-N49 的关键路径仍在。
@@ -102,7 +112,9 @@
 - 影响：`tools/it/text-replace.html`；一键试用得到错误文本。
 - 方案：预设使用真实换行符，或明确支持转义语法并测试；说明正则与普通替换的差异。
 
-### IT-N5 配置导出忽略密钥编码及 Shell 引用不安全（高，确认源码缺陷）
+### IT-N5 配置导出忽略密钥编码及 Shell 引用不安全（历史记录；2026-11-06 源码已变，待回归销账）
+
+> 续审更正：当前 `effectiveValue()` 供 `tomlValue()` 使用，Shell 采用单引号包裹并转义内部单引号（`tools/it/env-generator.html:671-676,690-693,715-723,775-782`），下述旧实现证据已过时。尚未做运行态回归，不据此销账。
 - 证据：`tools/it/env-generator.html:671-679,739-746,759-772` TOML 分支调用 `formatValue` 后仍读取原始 `v.value`，勾选密钥 Base64 后 TOML 依然输出原值；Shell 分支直接拼接变量值，`hello world` 无引号会改变 shell 解析，双引号中的 `$` 等也会展开。
 - 影响：`tools/it/env-generator.html`；生成的配置与选项不符，复制执行的 Shell 值可能变化或触发展开。Base64 不是加密，不能将该选项描述为保密措施。
 - 方案：各格式共用转换后的值，分别按目标格式安全序列化和转义；覆盖特殊字符及复制下载一致性，明确 Base64 非加密。
@@ -2788,7 +2800,9 @@
 - 影响：C 源码中合法的八进制转义全部解错，且无提示。
 - 方案：改 `case '0': … case '7':` 或前置 `if(/[0-7]/.test(n))`，按 C 规则最多读 3 位八进制。
 
-### IT-N337 Go/PHP/Python 三页同型八进制反转义失效（高，确认缺陷）
+### IT-N337 Go/PHP/Python 三页同型八进制反转义失效（历史记录；Go 源码已变，待分别回归）
+
+> 2026-11-06 续审：`tools/it/go-escape.html:349-354` 当前显式处理 `case '0'` 至 `case '7'`，旧版 `case /[0-7]/` 已不在 Go 页；PHP/Python 本批未复核，不能据此销账。
 - 问题：三页 `unescape/unesc` 均把八进制分支写成 `case /[0-7]/:`，正则与字符串严格比较恒 false，`\101` 落入 `default` 原样输出。
 - 证据：`tools/it/go-escape.html:339`、`tools/it/php-escape.html:345`、`tools/it/python-escape.html:363`
 - 复现：三页输入 `\101` → 实际均为 `101`，期望 `A`；PHP/Python 的 `\0` 也会被拆成字面 `0`。
