@@ -475,7 +475,7 @@
 - `tools/science/convert-power.html`：1 条（SMS-87 中）。力/能/功率各系数（kgf 9.80665、lbf 4.44822、dyn 1e-5、cal 4.184、kWh 3.6e6、eV 1.602e-19、BTU 1055.06、hp 745.7、PS 735.5）与量纲分组正确，默认 1 N→0.224804 lbf；问题为空输入被 `+''` 当 0。
 - `tools/science/density-physics.html`：1 条（SMS-88 中）。ρ=m/V 默认 2/0.001 → 2000 kg/m³、2.000 g/cm³、124.856 lb/ft³、比容 0.0005 正确，V=0 已守卫；问题为 ρ≥100 时主结果取整且丢失 kg/m³ 单位。
 - `tools/science/electric-field-point.html`：1 条（SMS-89 中）。默认 q=1 µC、r=0.1 m → E=898800.0 N/C、V=89880.0 V、kq=8.9880e+3、E·r=8.9880e+4 正确，r=0 已守卫；问题为历史只记 q/r/k、差异面板比较常量 k，结果 E 不入历史。
-- `tools/science/exp-calculator.html`：2 条（SMS-90 高、SMS-91 中）。默认 x=2 → e²=7.389056、e⁻²=0.135335、10²=100、2²=4、sinh 3.626860、cosh 3.762196、tanh 0.964028 正确；问题为 |x|≈710 以上 tanh 溢出成“-∞”，以及 |结果|<1e-12 的正数被 fmt 显示为 0。
+- `tools/science/exp-calculator.html`：2 条（SMS-90 高、SMS-91 中）。默认 x=2 的计算原审正确；|x|≈710 以上 tanh 溢出成“-∞”。2026-11-06 复核：旧的极小数直接归零已修，但非科学计数分支的本地化格式化仍会把部分非零值显示为 0，详见 SMS-91。
 
 | 页面 | 问题（含 tools/science/&lt;slug&gt;.html:NN） | 编号 |
 |---|---|---|
@@ -489,7 +489,7 @@
 | tools/science/density-physics.html | ρ≥100 时主结果用 `rho.toFixed(0)` 拼值且未再拼「kg/m³」：默认 2/0.001 的 2000 kg/m³ 在结果卡与数据表中均显示为无单位「2000」（单位只出现在 ρ<100 分支的字符串里）。:267、:289 | SMS-88 |
 | tools/science/electric-field-point.html | 历史只记录 q/r/k（不记 E），`diffBox` 又传入常量 `['k']`，`diffLast` 判等后恒无差异 →「与上次计算相比」永不出现，历史面板也不显示计算结果。:293、:296 | SMS-89 |
 | tools/science/exp-calculator.html | tanh 在 |x|≈710 以上：eˣ/e⁻ˣ 溢出为 ∞ → sinh=cosh=∞ → tanh=NaN，`fmt` 把 NaN 落入 `x>0?'∞':'-∞'` 的 else 分支恒输出“-∞”（x=1000 与 x=-1000 均为 -∞，正确应分别为 1/-1）；且 :264 的 Infinity/NaN 兜底因 fmt 已转成 ∞/— 永不触发。:233、:256-258、:264 | SMS-90 |
-| tools/science/exp-calculator.html | `fmt` 对 |x|<1e-12 一律返回 "0"：e⁻³⁰=9.358e-14（主结果即显示 0）、e⁻²⁸=6.914e-13、10⁻¹³ 均显示 0，e^(−x) 卡片与步骤行 `fmt(1/ex)` 同样为 0，与公式框「eˣ 恒正」矛盾。:234、:246、:253 | SMS-91 |
+| tools/science/exp-calculator.html | 2026-11-06 复核：`fmt` 已改为对非零且绝对值小于 1e-6 的值输出科学计数；提取实际函数到 Node 执行，e⁻³⁰ 显示 `9.357623e-14`、e⁻²⁸ 显示 `6.914400e-13`、10⁻¹³ 显示 `1.000000e-13`，旧例已修。残留：普通分支调用无精度选项的 `toLocaleString()`（:235-236），Node 默认最多三位小数；例如 e⁻¹³≈2.260329e-6 被显示为 `0`，仍与 eˣ 恒正矛盾。该环境相关格式化应在浏览器另行验证。 | SMS-91 |
 
 - 声明：本轮仅逐页读源码（HTML + 内联 JS）并用 node 在 `/tmp` 复刻各页 `calc()` 的主算与边界分支（样本方差/总体方差、BigInt 组合数、单位系数、密度/电场量纲、指数与双曲函数溢出），未开浏览器、未跑 `_build.py`/`run_gates`、未做线上与英文态验证，未修改任何工具页、构建产物或仓库文件。新增 11 条：高 3（SMS-81、SMS-82、SMS-90）、中 8（SMS-83～SMS-89、SMS-91）；安全 1 条（XSS，`tools/science/chemistry-calculator.html:588`、`:596`、`:822`）；假工具 0 个；8 页全覆盖（centripetal-force 0 条）。
 - 统计：8 页 / 11 条（高 3 / 中 8）/ 安全 1 条（tools/science/chemistry-calculator.html:588、:596、:822）/ 假工具 0 个 / 编号区间 SMS-81～SMS-91。
