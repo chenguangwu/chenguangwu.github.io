@@ -64,14 +64,14 @@
 | 商业运营 | `tools/ecommerce/analysis-70.html` | A | `:126` 每行含「订单数」；`:205` 起 calc 全程未引用该列 | `plan/categories/06-商业运营/ecommerce-logistics.md:373` | 已确认（真） | 中（死输入） |
 | 商业运营 | `tools/hr/hris-zizhuyuaiduibijisuanqi.html` | C | `:130,132` 仅 HRIS/AI 两个成熟度分；`:304` 起只比较两分 | `plan/categories/06-商业运营/hr-legal.md:441` | 已确认（真） | 中（宣称对比成本与效率） |
 | 医疗健康 | `tools/clinical-nursing/suction-pressure.html` | A | `:148` 压力输入；`:276-279` 区间已改为 80-120/80-100/60-80/40-60，**原「成人硬编码 150-200」已不成立**；残留默认值 `value="150"` 越界，首屏即提示「过高」 | `plan/categories/03-医疗健康/drug-dosing.md:333` | 已否定 | —（仅建议把默认值改为 100） |
-| 医疗健康 | `tools/pulmonology/lung-rads.html` | A | `:142` 已有「实性成分(mm)」输入，`:266-271` 读入 `solidSize`；实性成分 ≥8mm→4B 分支可达，原「≥15mm 恒判 4A/4B 不可达」不成立 | `plan/categories/03-医疗健康/drug-dosing.md:876` | 已否定 | —（已修复） |
+| 医疗健康 | `tools/pulmonology/lung-rads.html` | A | 2026-11-06 Node 执行实际 `calc()`：部分实性总径 30 mm、实性成分 5/6/8 mm 分别输出 3/4A/4B，空值拦截；未做浏览器验证，阈值需专业复核 | `plan/categories/03-医疗健康/drug-dosing.md` 的 D-N107 | 已否定 | —（已修复） |
 | 医疗健康 | `tools/clinical-lab/flow-cytometry-ratio.html` | A | `:154` Treg 输入、`:260` 读入后**全文未再使用**；`:302` 仅显示 NK 绝对值，`:316-330` 异常 flags 无 NK 低值判定，NK 偏低仍落「各项指标在参考范围内」 | `plan/categories/03-医疗健康/lab-diagnosis.md:291` | 已确认（真） | 中高（正向误判） |
 | 医疗健康 | `tools/clinical-lab/semen-analysis.html` | A | `:148` IM 输入、`:261` 读入；`:262` 必填校验**不含 im**；`:267` 总活力只算 PR+NP；`:274` `setInterp('im',true,'')` 恒显 ✓ 正常 | `plan/categories/03-医疗健康/lab-diagnosis.md:398` | 已确认（真） | 中（IM 死输入 + 假正常） |
 | 医疗健康 | `tools/clinical-nursing/bag-valve-mask.html` | A | `:153` 球囊下拉、`:323` 读入仅用于 `bagWarnText` 告警，不改变频率/潮气量；`:257` 写「高级气道后 8~10 次/分」，`:282-283` 婴儿 CPR 又写 20-30 次/分，页面口径冲突 | `plan/categories/03-医疗健康/drug-dosing.md:262` | 部分成立 | 中（告警已接线；频率口径需统一） |
-| 医疗健康 | `tools/clinical-nursing/ostomy-bag-timing.html` | C | `:379` 已实现 `warnAt = interval*0.7`，`:382-396` 倒计时按 70% 进入预警；原「0.7 未实现、按 100%」不成立 | `plan/categories/03-医疗健康/drug-dosing.md:412` | 已否定 | —（已修复） |
+| 医疗健康 | `tools/clinical-nursing/ostomy-bag-timing.html` | C | 2026-11-06 Node 执行实际 `calc()`：7 天间隔的 70% 预警点为 11-06 05:36，预警前后提示正确，超期后重算颜色复位；未做浏览器验证 | `plan/categories/03-医疗健康/drug-dosing.md` 的 D-N46 | 已否定 | —（预警已修复；其余问题见 D-N46） |
 | 医疗健康 | `tools/healthcare/map.html` | A | `:242-257` 已有四重输入守卫（收缩压/舒张压非正、超范围、舒张压>收缩压均拦截并提示），原「无守卫仍判正常」不成立 | `plan/categories/03-医疗健康/drug-dosing.md:312` | 已否定 | —（已修复） |
 | 医疗健康 | `tools/healthcare/healthcare.html` | C | `:121` 英文简介已改为「按体重折算 + 上限倍数」，不再提 Clark/Young/BSA；`:163-165` 引据表仅列体表面积法作参考，`:464` FAQ 也只作局限说明 | `plan/categories/03-医疗健康/drug-dosing.md:81` | 已否定 | —（原记录已过期） |
-| 医疗健康 | `tools/nephrology/edema-grading.html` | A | `:288` 读入 recovery，`:299-300` `recoveryGrade` 与 `depthGrade` 取 `Math.max` 参与最终分级，原「完全不参与」不成立 | `plan/categories/12-长尾行业/_others.md:1464` | 已否定 | —（已修复） |
+| 医疗健康 | `tools/nephrology/edema-grading.html` | A | 2026-11-06 Node 执行 `calc()`：2 mm / 10 秒为 1+，同深度 / 120 秒为 4+；4 mm / 30 秒描述为回弹 16–30 秒。未做浏览器验证，阈值需专业复核 | `plan/categories/12-长尾行业/_others.md` 的 12-N112 | 已否定 | —（已修复） |
 | 医疗健康 | `tools/cardiology/coronary-calcium.html` | C | `:262-267` 原始 Agatston 分段（0/<100/<400/<1000/≥1000）已实现；`:271-285` MESA 简化百分位（<50/50–75/≥75）已实现 | `plan/categories/03-医疗健康/specialties.md:417` | 已否定 | —（已修复） |
 | 金融财务 | `tools/finance/housing-fund-loan.html` | A | `:292` `var RATE = 0.031` 写死；`:205,233,366` 正文与结果均按 3.1% 输出，且标注「2024 年参考」；无利率可调输入 | `plan/categories/02-金融财务/finance.md:729` | 已确认（真） | 中高（利率口径过期） |
 | 金融财务 | `tools/finance/salary-after-tax.html` | A | `:261` 读入 `months` 后仅用于 `:262` 合法性守卫，税费计算全程未用；`:266` brackets 有 7 档，`:294-298` 展示表只列 5 档（45%/35% 两档缺失） | `plan/categories/02-金融财务/finance.md:269` | 已确认（真） | 中（死输入 + 税率表不全） |
@@ -92,7 +92,7 @@
 | 语言翻译 | `tools/language/translator.html` | C | `:185` 仅称「支持常用词与问候短句（本地词表）」；`:281` 明示「实际条数显示在输入框下方」；`:625` 运行时显示词表条数；全文无「100+」与语种自动检测承诺 | `plan/categories/07-教育学习/edu-language.md:394` | 已否定 | —（原记录与当前文案不符） |
 | 语言翻译 | `tools/language/grammar-checker.html` | C | `:264-275` RULES 为字面正则（i/teh/recieve 等）；`:335` 仅收集命中项，无「问题密度分级」、无最小编辑距离 | `plan/categories/07-教育学习/edu-language.md:269` | 已确认（真） | 中 |
 | IT开发 | `tools/it/http-cookies.html` | C | `:169` 英文简介称 `Parse and build ... headers`；实为 `:165` 分类聚合速查 + `:171` 搜索 + `:177-185` 图表/表格，无解析或构造入口 | `plan/categories/01-IT开发/it.md:1380` | 已确认（真） | 低（英文简介夸大） |
-| IT开发 | `tools/it/markdown-to-html.html` | C | `:313-316` 图片规则已实现且置于链接规则之前，`![alt](url)` 输出 `<img>`；原「输出字面 ! + 链接」不成立 | `plan/categories/01-IT开发/it.md:207` | 已否定 | —（已修复） |
+| IT开发 | `tools/it/markdown-to-html.html` | C | 2026-11-06 Node 执行 `calcTool()`：`![alt](https://x/y.png)` 输出带正确 `src` 和 `alt` 的 `<img>`，不再输出字面 `!` 加链接；未做浏览器验证 | `plan/categories/01-IT开发/it.md` | 已否定 | —（已修复） |
 | IT开发 | `tools/it/whitespace.html` | C | `:219-228` 仅去首尾/删空行/合并行内空格/末尾单换行；无「全压成一行」，但 `:407` FAQ 承诺「可选全压成一行」；`:250-256` 预览按同一索引比较 `rawLines[pi]` 与 `lines[pi]`，删空行后错位 | `plan/categories/01-IT开发/it.md:219` | 已确认（真） | 低 |
 | IT开发 | `tools/it/timestamp-converter.html` | C | `:416-426` 时区表为固定 offset（悉尼 +11、纽约 -5、洛杉矶 -8），无 DST 计算；夏令时期间纽约/悉尼显示偏差 1 小时 | `plan/categories/01-IT开发/it.md:347` | 已确认（真） | 中低 |
 | 设计创意 | `tools/design/gradient.html` | C | `:241` FAQ 称「按 WCAG 算对比度并标红」；全文无 WCAG/contrast 计算代码 | `plan/categories/04-设计创意/design.md:396` | 已确认（真） | 低 |
@@ -101,7 +101,7 @@
 | 工程制造 | `tools/electronics/capacitor-calculator.html` | A | `:352-354` 注释「假设 5τ 内完成」后写死 `tau = 0.001`，`P = E/(5*tau)`；充电时间常数与 R/C 输入无关 | `plan/categories/08-工程制造/electrical-electronics.md:71` | 已确认（真） | 中 |
 | 长尾行业 | `tools/acupuncture/acupoint-location.html` | A | `:399` `revCun = realCm ? 0 : 0` 为死变量；`:400` 反算提示用 `targetCun.toFixed(1)`（目标寸数）而非 X，公式自相矛盾 | `plan/categories/12-长尾行业/_others.md:827` | 已确认（真） | 低 |
 | 自然科学 | `tools/quantum/pair-production-threshold.html` | A | `:128-129` 「（常量计算）」`dummy` 输入不参与任何输出；`:215-219` 结果为 2mₑc² 常量；`:221` 重置只把 dummy 置 1；预设为空 | `plan/categories/09-自然科学/physics-optics-quantum.md:94` | 已确认（真） | 低 |
-| 生活消费 | `tools/life/countdown-timer.html` | A | `:514-521` `addPreset(...,isLunar=true)` 走 `SPRING_FESTIVAL_DATES` 逐年取春节日期（2025-01-29/2026-02-17…），原「硬编码 1 月 29 日、isLunar 未使用」不成立 | `plan/categories/05-生活消费/life.md:596` | 已否定 | —（已修复） |
+| 生活消费 | `tools/life/countdown-timer.html` | A | 2026-11-06 Node 模拟 `addPreset(...,isLunar=true)`：2026 年春节前取 2026-02-17，春节后取 2027-02-06；2031 年表外提示手动选择。原固定 1 月 29 日问题已修；未做浏览器验证 | `plan/categories/05-生活消费/life.md` | 已否定 | —（已修复） |
 | 生活消费 | `tools/life/stats-13.html` | C | `:291-293` 简介承诺「转化漏斗/时段峰值/报名付款聚合」，`:218-251` 只算人数/份数/均值/最多最少/金额，无占比、分档、漏斗、峰值 | `plan/categories/05-生活消费/life.md:908` | 已确认（真） | 中低 |
 | 生活消费 | `tools/life/analysis-cost-9.html` | C | `:231-234` 仅合计/项均/最大项/占比表/极差；无固定-变动拆分、无单位成本、无盈亏平衡、无降本优先级排序（`:188/:193` 公式不可用） | `plan/categories/05-生活消费/life.md:750` | 已确认（真） | 低 |
 | 生活消费 | `tools/life/assessor-target.html` | D | `:427` `opt-guide` 仍是「填写参数→点击计算/生成→查看输出」通用套话；`shopArea` `:226` 读入后未参与 `:232` 加权 | `plan/categories/05-生活消费/life.md:955` | 已确认（真） | 低（模板套话 + 面积死输入） |

@@ -5,14 +5,14 @@
 | 页面 | 结论 | 证据行号（当前源码） | 判定说明 |
 |---|---|---|---|
 | `tools/clinical-nursing/suction-pressure.html` | 假 | `:148,276-279` | 压力输入→分级正常；四档区间已改为 80-120/80-100/60-80/40-60，原「成人 150-200 冲突」已修复。残留：默认值 150 越界，首屏即红（建议改 100）。 |
-| `tools/pulmonology/lung-rads.html` | 假 | `:142,266-271` | 已有「实性成分」输入并读入；实性成分 ≥8mm→4B 分支可达，4A/4B 判定完整，「≥15mm 恒判 4A」不成立。 |
+| `tools/pulmonology/lung-rads.html` | 假 | `:141-142,270-280` | 2026-11-06 Node 执行实际 `calc()`：部分实性总径 30 mm、实性成分 5/6/8 mm 分别输出 3/4A/4B，空值拦截；未做浏览器验证，阈值需专业复核。 |
 | `tools/clinical-lab/flow-cytometry-ratio.html` | 真 | `:154,260,302,316-330` | Treg 读入后全文未用（死输入）；NK 仅显示绝对值，异常 flags 无 NK 低值，NK 偏低仍报「各项指标在参考范围内」。 |
 | `tools/clinical-lab/semen-analysis.html` | 真 | `:148,261-267,274` | IM 不在必填校验、不参与总活力；`setInterp('im',true,'')` 恒显 ✓ 正常。 |
 | `tools/clinical-nursing/bag-valve-mask.html` | 部分 | `:153,323,189,257,282-283` | 球囊容量已接入但只驱动告警、不改变主参数（「不参算」部分成立）；`257` 的 8-10 次/分 与 `282-283` 婴儿 20-30 次/分 页面内冲突。 |
-| `tools/clinical-nursing/ostomy-bag-timing.html` | 假 | `:379,382-396` | `warnAt=interval*0.7` 已实现，倒计时在 70% 处预警；原「0.7 未实现」不成立。 |
+| `tools/clinical-nursing/ostomy-bag-timing.html` | 假 | `:367-396` | 2026-11-06 Node 执行实际 `calc()`：7 天间隔在 70% 点前后分别显示预警时间与已进入预警期，超期后重算颜色复位；未做浏览器验证。其他问题见 D-N46。 |
 | `tools/healthcare/map.html` | 假 | `:242-257` | 已有非正、超范围、舒张压>收缩压三类守卫，均拦截并给出红色提示。 |
 | `tools/healthcare/healthcare.html` | 假 | `:121,163-165,464` | 英文简介已改为体重折算+上限倍数；Clark/BSA 仅出现在引据表与「局限」FAQ，不再宣称三法实现。 |
-| `tools/nephrology/edema-grading.html` | 假 | `:288,299-300` | 回弹时间与凹陷深度分别分级后取 `Math.max`，恢复时间真实参与分级。 |
+| `tools/nephrology/edema-grading.html` | 假 | `:289-302` | 2026-11-06 Node 执行实际 `calc()`：同为 2 mm 时 10 秒为 1+、120 秒为 4+；4 mm / 30 秒描述为 16–30 秒。未做浏览器验证，医学阈值需专业复核。 |
 | `tools/cardiology/coronary-calcium.html` | 假 | `:262-267,271-285` | 原始 Agatston 分段与 MESA 简化百分位重分类均已实现。 |
 | `tools/finance/housing-fund-loan.html` | 真 | `:205,292,366` | 利率 `RATE=0.031` 写死，无利率输入；正文/结果都按 3.1%（2024 参考）输出。 |
 | `tools/finance/salary-after-tax.html` | 真 | `:261,266,294-298` | `months` 仅做守卫、不参算；brackets 7 档但展示表仅 5 档。 |
@@ -120,7 +120,7 @@
 |---|---|---|
 | `tools/healthcare/bsa-calculator.html` | `drug-dosing.md:269`「年龄完全不参与计算」 | **不成立**：`:305-311` 读取 `age`，`<18` 走 Haycock、`≥18` 走 DuBois |
 | `tools/chinese/chinese-character.html` | `edu-language.md:281`「字库仅 20 字，曦查不到」 | **不成立**：`:285` `charDB` 实际 45+ 字，含「曦」 |
-| `tools/museum/visitor-route.html` | `research-library.md:507`「负权通道导致无限循环」 | **已修复**：`:342` 已有 `seen[cur]` 与 `steps <= nodes.length` 双重护栏（本页另一条「必看节点未实现」仍为部分成立） |
+| `tools/museum/visitor-route.html` | `research-library.md` 的 RL-K41「负权通道导致无限循环」 | **已修复**：2026-11-06 Node 执行页面实际 `compute()`，默认图边距设为 -100 后正常输出路线并提示按绝对值计算；回溯另有访问集合与步数上限。未做浏览器验证（其他问题未在本次复核） |
 | `tools/finance/word-search.html` | `finance.md:1255`「宣称自定义词表/网格/可打印」 | **文案已对齐**：工作区 meta/正文/FAQ 已改为「固定 12×12、不支持自定义/打印」，仅剩功能受限，不再算虚假承诺 |
 | `tools/edu/country-quiz.html` | `edu-language.md:1167`「宣称限时作答」 | **文案已对齐**：工作区 meta 已改为「共 10 题、无计时模式」，不再算名不副实 |
 

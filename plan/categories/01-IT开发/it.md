@@ -172,31 +172,14 @@
 - 影响：Unicode 输入中，未匹配字符丢失或保留错误，复制/下载会传播损坏的内容；非全局分支亦用同样的索引方式，需一并验证。
 - 方案：匹配位置必须对应原文，增加大小写映射长度变化、连续命中及非全局回归；尚未做浏览器验证。
 
-### IT-N6 特定 JSON 解析错误仍保留旧 CSV（高，已修复）
-- `tools/it/json-to-csv.html:308` 的 catch 分支先检查错误信息再决定显示：`JSON.parse('[NaN]')` 抛 `SyntaxError: Unexpected token 'N', "[NaN]" is not valid JSON`，其中 `[NaN]` 子串命中 `/(^|[^A-Za-z])NaN([^A-Za-z]|$)/` 防御正则 ⇒ 走「通用告警提前 return」分支，该分支**未清空** `output.value`/`__jsonToCsvExportSafe` ⇒ 旧 CSV 残留，复制/下载会误读旧数据。Node 已复现（旧实现 cleared=false）。
-- 修复：`toCSV()` catch 的 NaN/Infinity 防御分支在 return 前先 `output.value=''`、`__jsonToCsvExportSafe=''` 并改写结果区为真实解析错误（不再提前 return 且不清空）；回归用例（verify_it_calc.js json-to-csv 第 5 例）注入有效 JSON→`[NaN]`→断言「解析失败」出现（旧实现该分支只显示通用告警、不含「解析失败」），属强判别。
-
-### IT-N7 JSON 数组处理说明存在歧义（中，已修复）
-- `tools/it/json-to-csv.html` 的工作原理同时写「嵌套对象或数组序列化为 JSON 字符串，不展开为多列」和「数组经索引展开」，但 `cell()` 对嵌套数组直接序列化，不会展开索引列。应明确区分顶层数组与嵌套数组的处理方式。
-- 修复：删除矛盾的「数组经索引展开。」一句，工作原理区统一为「嵌套数组同样序列化为 JSON 字符串填入单元格（不按索引展开为多列）」（`tools/it/json-to-csv.html:123`，formula-box 区直接改 HTML 有效；deep-dive FAQ 正确文本此前已落到构建源 `i18n/tools/content_deepdive.json`，`96da825eb1`）。
-
-### IT-N8 自定义进制小数被静默截断（中，确认缺陷，已修复）
-- `tools/it/number-base-converter.html:433-439` 先用 `parseInt` 解析自定义基数，再检查整数；输入 `2.5` 被当作 2 进制，而非提示必须输入 2–36 的整数。Node 执行原函数已复现。
-- 影响：使用与输入不符的进制产生错误结果。
-- 修复：`getInputBase()` 的 custom 分支先 `String(customBase.value || '').trim()` 再 `^\d+$` 校验，非纯整数（如 `2.5`/空/非数字）直接返回 null ⇒ `convertFromInput` 提示「⚠ 进制必须为 2–36 的整数。」；`String()` 包裹避免桩环境数值型 value 调用 `.trim()` 抛错。verify 新增 N8 回归用例（customBase='2.5' → 断言该提示），6/6 通过。
+- 2026-11-06 复核已修复项：IT-N6 的 `toCSV()` 经 Node 执行有效输入后输入 `[NaN]`，输出和安全导出串均清空并提示解析失败；IT-N7 的嵌套数组说明已统一；IT-N8 的 `getInputBase()` 拒绝 `2.5`、空值和 37，接受 2 和 36。仅源码与函数级验证，未做浏览器验证。
 
 ### 续查覆盖
 - 新抽查 `tools/it/env-generator.html`、`tools/it/json-to-csv.html`、`tools/it/number-base-converter.html`、`tools/it/text-replace.html`、`tools/it/nginx-config-generator.html` 共 5 页，新增 7 条问题（历史计数）；未做浏览器、部署或门禁验证。历史回填的实际交互需真机复核。
 
 ## 2026-11-03 续查（并行批 G）
 
-### IT-N11 properties-parser 重复定义覆盖后错误态样式反转（低，已修复）
-- `tools/it/properties-parser.html:329-337` 仍重复定义 `setOut/setErr/clearAll/loadSample`；后定义的 `setErr` 覆盖成功态判断，成功和错误提示均为 `err`，空消息反而带 `ok`，`loadSample` 也改为调用 `doBeautify()`。Node 执行页面原函数确认成功提示的 class 为 `err`。
-- 修复：删除 334-337 行的重复定义（函数声明会后被覆盖），保留 329-332 的正确定义（`setErr` 成功态 `✅` 判 `ok`、`loadSample` 走 `propsToJson`）；verify 新增 N11 回归用例（loadSample → 断言输出含 JSON 键 `"app.name"`，区分 propsToJson 与 doBeautify 两种输出），3/3 通过。
-
-### IT-N15 字节模式对未超限文本错误截断（中，已修复）
-- `tools/it/text-truncate.html` 字节模式先判断省略符是否超过上限，再判断输入是否需要截断。例如输入 `a`、上限 1 字节、省略符 `...` 时输出 `.` 而非原文 `a`。
-- 修复：将 bytes 分支的 `if(ellipsisBytes > limit)` 超长省略符处理移到 `if(cut >= cps.length) return s;`（输入无需截断即原样返回）之后，仅在确需截断时处理；verify 8/8 全过（`49d2b346b9` 提交 N15 省略符超上限截断 + 本次位置修正）。
+- 2026-11-06 复核已修复项：IT-N11 的 `loadSample()` 输出含 `app.name` 的 JSON，成功提示为 `err ok`、错误提示为 `err`；IT-N15 的字节模式输入 `a`、上限 1、省略符 `...` 保留 `a`，输入 `ab` 才截断为 `.`。均以 Node 执行页面实际函数，未做浏览器验证。
 
 ### 留存优化
 - `properties-parser.html:298` 的 `unescapeVal` 不解码 `\uXXXX`：`greet=\u4f60\u597d` 原样保留（Node 已复算），与页面 FAQ 对转义的说明不一致。
@@ -212,17 +195,12 @@
 
 ## 2026-11-03 续查（并行批 J）
 
-### IT-N20 历史/数据表/图表恒空，历史回填会清空全部选项（中，已修复）
-- 描述：原 `__text_cleanerExtras()`（记录历史 + 渲染数据表/图表/历史三页签）此前**只被 `applyPreset` 包裹**，点「执行清理」/预设条回调 `executeClean()` 都不会记录，故三个页签恒空；且历史回填回调调用无参 `applyPreset()` → 其内部 `deselectAll()` 把刚恢复的勾选清空。
-- 复核结论：审计引用的 `textContent` 子问题在当前源码已不存在——`__text_cleanerResText()` 已对 `TEXTAREA` 走 `r.value`（`:759`），非根因。真根因为 extras 未接 `executeClean` + 回填误调 `applyPreset()`。
-- 修复（`tools/it/text-cleaner.html`）：① 新增 `executeClean` 包裹，使其在清理完成后触发 `__text_cleanerExtras()`（回填期间 `__text_cleaner_skip` 已置位，extras 直接返回不重复记录）；② 历史回填回调由 `applyPreset()` 改为 `executeClean()`，恢复字段后直接重跑清理、复现结果，不再清空勾选。
-- 验证：`verify_it_calc.js` 新增 N20 回归用例（`executeClean()` 后断言 `text_cleanerTable` 含结果「hello world foo bar」），text-cleaner 9/9 通过。
+### IT-N20 历史回填不清除原本未勾选的选项（中，部分修复）
+- 2026-11-06 复核：`tools/it/text-cleaner.html:743-855` 已给 `executeClean()` 接入历史记录，并在回填时重新执行清理，不再调用会清空选项的 `applyPreset()`；原记录中的这两处问题已修。
+- 但 `__text_cleanerSnap()` 不保存未勾选的复选框，历史回调只遍历记录中存在的字段，故不能清除当前已勾选、而历史当时未勾选的选项。Node 执行实际回填回调：历史记录无 `opt-trim`，当前 `opt-trim` 已勾选，回填后仍为 `true`，再执行清理时可能产生与历史不一致的结果。未做浏览器验证。
+- 方案：恢复历史前统一重置选项，或保存和恢复完整的勾选状态；兼顾既有历史记录格式。
 
-### IT-N25 美化把 JSON 数组当 INI 节名（中，已修复）
-- 描述：`doBeautify` 仅以 `startsWith('{')` 判定 JSON，`[...]` 走 INI 解析；`toIni` 对数组用 `for...in` 输出 `0 = a` 形式。
-- 证据：`tools/it/ini-parser.html:307-314`、`279-291`、`299-306`。Node 复算：`parseIni('["a","b"]')` → `{"\"a\",\"b\"":{}}`；`JSON→INI` 对 `["a","b"]` 产出 `0 = a` / `1 = b`。
-- 影响：`tools/it/ini-parser.html`；对合法 JSON 数组执行“美化”得到空节，用户难以判断是输入错误还是工具问题。
-- 修复：`doBeautify`/`doMinify` 改用 `JSON.parse` 试解析判型（`{` 或 `[` 均识别为 JSON），`toIni` 增加数组分支（索引键值 `0 = a`/`1 = b`）；verify 新增 N25 回归用例（`["a","b"]`→doBeautify→断言 `0 = a`），ini-parser 6/6 通过。
+- 2026-11-06 复核已修复项：IT-N25 的 `doBeautify()` 经 Node 执行 `["a","b"]`，得到 `0 = a` 和 `1 = b`，未再误判为 INI 节。未做浏览器验证。
 
 ### IT-N26 两个下拉框没有任何选项，代码面板与压缩模式不可用（中，确认源码缺陷）
 - 描述：`#showcode`、`#compact` 两个 `<select>` 在源码中为空，代码却按值 `'1'`/`'compact'` 判断；`resetForm` 的 `selectedIndex=0` 也无实际效果。压缩结果 `outHtml` 只在“显示 HTML 代码”分支被使用。
@@ -230,18 +208,9 @@
 - 影响：`tools/it/markdown-to-html.html`；两个标注功能实际不可选，HTML 代码面板永不出现；“压缩”即使可选项生效也只影响代码面板，不影响预览。
 - 方案：补上 `option`（`0/1`、`pretty/compact`），并让压缩模式同时作用于预览与代码输出。
 
-### IT-N27 图片语法未实现，`![alt](url)` 输出字面 `!` 加链接（中，确认源码缺陷）
-- 描述：行内规则只有标题/粗斜/链接/行内代码，没有图片规则；`![alt](url)` 中的 `[alt](url)` 被链接规则匹配，感叹号留在文本里。
-- 证据：`tools/it/markdown-to-html.html:289-296`、FAQ JSON-LD `347` 声称覆盖“图片”。Node 复算 `![alt](https://x/y.png)` → `!<a href="https://x/y.png" target="_blank" rel="noopener">alt</a>`。
-- 影响：`tools/it/markdown-to-html.html`；粘贴含图片的 Markdown 得到错误 HTML，与页面承诺不符。
-- 方案：增加图片规则（必须先于链接匹配），输出 `<img src alt>`，并对 `src`/`alt` 做属性转义与 URL 白名单。
+- 2026-11-06 复核已修复项：IT-N27 的 `calcTool()` 经 Node 执行 `![alt](https://x/y.png)` 输出含正确 `src`、`alt` 的 `<img>`，不再输出 `!` 加链接；未做浏览器验证。
 
-### IT-N28 字符级对比按 UTF-16 码元切分（低，已修复）
-- 描述：`charDiffLine` 用 `split('')` 与按码元的 LCS，emoji 等代理对被拆成两半分别着色。
-- 证据：`tools/it/text-diff.html:459-463`。Node 复算 `charDiffLine('😀😀😀','😀😀')` → oldHtml 含 `[-\ud83d-][-\ude00-]`（两个高亮块分别包住一对代理项的一半）。
-- 影响：`tools/it/text-diff.html`；emoji/扩展字符差异展示破碎，导出文本可能含孤立代理项。
-- 方案：改用 `Array.from` 或 `Intl.Segmenter` 按码点/字素簇切分后再做 LCS。
-- 复核（2026-11-06）：当前 `charDiffLine`（`:459-462`）已用 `Array.from(oldLine)`/`Array.from(newLine)` 按码点切分，全文无 `split('')`；N28 已修复，无需改代码。
+- 2026-11-06 复核已修复项：IT-N28 的 `charDiffLine('😀😀😀','😀😀')` 经 Node 执行只生成一个包含完整 emoji 的删除高亮，未拆开代理对。未做浏览器验证。
 
 ### IT-N29 逐行对照预览按索引配对，删行后错位；FAQ 承诺的“全压成一行”未实现（中，确认源码缺陷）
 - 描述：`top_blank` 本身按 `trim()===''` 判空行（行为正确），但预览直接拿 `rawLines[pi]` 与 `lines[pi]` 并列；一旦删除过空行（默认预设即会删），两列的第 N 行就不再对应同一段文本。另 FAQ 称“可选保留段落或全压成一行”，页面只有 4 个勾选项，没有折叠换行能力。
@@ -414,7 +383,7 @@
 - Node 模拟实际 `calc()`，先算 `old` 再算 `new`，让 `new` 的 SHA-1 先完成、`old` 后完成；`copyAll()` 得到新输入的 MD5 `22af645d1859cb5ca6da0c484f1f37ea` 与旧输入 SHA-1 `c00dbbc9dadfbe1e232e93a729dd4752fade0abf`，而 `new` 的正确 SHA-1 为 `c2a6b03f190dfb2b4aa91f8af8d477a9bc3401dc`。未做浏览器验证。
 - 尚未完成的 SHA 以 `—` 存入复制数组，完成前复制也可能得到占位符。方案：每次计算设置代次、只接受当前请求的回调，并在摘要完成前禁用或明确标注复制状态。
 
-- 2026-11-06 复核：原 IT-N64 输入校验已修，实际 `ip2int` 对空段、科学计数、十六进制和前导零返回 NaN；原 IT-N66/67 已修，实际 MD5 对 `中`、`😀` 与 Node crypto 一致，CRC32 分别为 `d5d15a8b`、`054db544`，`aa` 为 `078a19d7`。原 IT-N70 各复选框均已绑定 `onchange="calc()"`（源码复核）。未做浏览器验证。
+- 2026-11-06 复核：原 IT-N64 输入校验已修，实际 `ip2int` 对空段、科学计数、十六进制和前导零返回 NaN；原 IT-N66/67 已修，实际 MD5 对 `中`、`😀` 与 Node crypto 一致，CRC32 分别为 `d5d15a8b`、`054db544`，`aa` 为 `078a19d7`；原 IT-N70 各复选框均已绑定 `onchange="calc()"`（源码复核）。原 N68 只复制算法名的问题已修，但异步竞态仍须处理，见上。未做浏览器验证。
 
 ### IT-N69 HTTP 缓存速查：搜索与分类只过滤列表，图表/明细表仍统计全量数据（低，确认源码缺陷）
 - 描述：`renderCommands()` 按 `currentCategory` 与 `searchQuery` 过滤 `COMMANDS`，但 `hcAgg()` 固定遍历 `COMMANDS` 全量；`hcChart()`/`hcTable()` 直接使用该聚合结果，既不读搜索词也不读当前分类。搜索 `max-age` 时列表只剩 1 项，图表与「明细表」仍显示所有分类和全部分类计数。

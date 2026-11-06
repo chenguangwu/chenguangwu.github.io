@@ -95,7 +95,6 @@
 | misc2 | travel/luggage-size |
 | misc | science/physics-constants |
 | music | ear-trainer |
-| office | ~~mindmap~~ **已修复（2026-11-05）**：降级大纲 + 2 条判别用例，跳过 55→54 |
 | ophthalmology | amblyopia-stereopsis |
 | paper | paper-grade |
 | pet | training-planner |
@@ -120,7 +119,7 @@
 
 - **页面**：库缺失分支新增纯 JS 降级大纲（嵌套 `<ul>` + `data-zh` 双语提示 + 「大纲节点：N」计数），并绑定 `input` 实时刷新；保留原加载失败提示，**未改** PNG/SVG 导出路径。
 - **用例**：`office/mindmap` 由锚「库加载失败文案」（默认态必命中）重写为锚降级产物；另加 1 条反向用例（仅该条注入 `window.markmap` 桩，断言 `MARKMAP-STUB-OK` 只可能来自 markmap 分支）。
-- **判别**：office 单文件 `已检 9 / 正确变红 9 / 逃生 0 / 跳过 0`；跳过基线 55 → 54（已检 4920 → 4922）。
+- **判别**：office 单文件历史结果 `已检 9 / 正确变红 9 / 逃生 0 / 跳过 0`；跳过基线 55 → 54（已检 4920 → 4922）。2026-11-06 复核：`verify_office_calc.js mindmap` 3/3，纯默认快照判别器 office 单文件 `已检 10 / 正确变红 10 / 逃生 0 / 跳过 0`，含 mindmap 3 条；未重新做断网浏览器验证。
 - **断 CDN 真机**（Chrome headless，拦截 `cdn.jsdelivr.net` 3 个请求）：中/英两态均渲染 7 节点、层级 `1,2,3,3,2,3,4`，`pageerror = 0`。
 
 ### 6.9 待修 48 条的分派建议（按分类归属）
