@@ -92,9 +92,17 @@
 - `tools/tcm-diagnosis/tongue-diagnosis.html` — 「重置」｜点击后所有输入值未变化
 - `tools/transport/calc-4.html` — 「🗑️ 清空选择」｜点击后所有输入值未变化
 
-### 导出/下载按钮 onclick 目标函数不存在（必死）（1 页）
+### 导出/下载按钮 onclick 目标函数不存在（必死）（1 页 → 2026-11-06 复核：误报，销账）
 
-- `tools/it/typescript-compiler.html` — 「⬇ 下载 JS」｜onclick 调用 downloadJs() 但该函数不存在（typeof=false）
+> 2026-11-06 复核结论：审计 harness 仅扫描 inline `<script>` 检测 onclick 目标函数，漏掉了外置 JS 与示例代码字符串，导致多页误报。全仓复核结果：
+> - `tools/it/typescript-compiler.html` — `downloadJs()` 在 `typescript-compiler.html:718` **已正确定义为 `const downloadJs = () => {...}`**（同文件 `compile()/copyJs()` 同模式），审计 `typeof=false` 为 harness 检测误判。**非缺陷。**
+> - `tools/chinese/chinese-culture.html` — `switchTab/randomQuote/...` 等全部函数定义在**外置** `js/tools/chinese-culture.js`（113KB，函数齐全），仅因 harness 未加载外置 JS 而误报。**非缺陷。**
+> - `tools/it/code-highlighter.html` — `startTrial()` 位于 `const EXAMPLES` 示例**代码字符串**内（被高亮器展示、从不执行），非真实按钮。审计/harness 把示例文本当成了 onclick 调用。**非缺陷。**
+> - 其余 `onclick="if(...)"` 命中为条件语句，非函数调用。
+>
+> **综上：全仓「onclick 目标函数不存在」的必死缺陷 = 0，全部为扫描器误报，无需改动源码。**
+
+- ~~`tools/it/typescript-compiler.html` — 「⬇ 下载 JS」｜onclick 调用 downloadJs() 但该函数不存在（typeof=false）~~ **→ 已核验误报 2026-11-06：downloadJs 已定义**
 
 ### 死控件（静态检测，1 页）
 

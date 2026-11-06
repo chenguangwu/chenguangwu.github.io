@@ -8,7 +8,7 @@
 | 重置按钮未改变任何输入 | **31** | 低 |
 | 空输入直接给出结论（优秀/正常/合格…） | **30** | 中 |
 | 点击主按钮抛异常（含 console 报错） | **1** | 高 |
-| 导出/下载按钮 onclick 目标函数不存在（必死） | **1** | 中 |
+| 导出/下载按钮 onclick 目标函数不存在（必死） | **1** → 2026-11-06 复核误报，销账（见 part-05） | 中 |
 | 死控件（静态） | **1** 页 / 2 个控件 | 低-中 |
 
 > **置信度分层**：高/中置信度缺陷页 **161** 页（点击抛异常、空态坏值/结论、死按钮、死控件）；`no_effect` **57** 页已改用「0.8× 相对量级变异」主探针，并在无变化时追加「5× 放大探针」——放大后仍无变化才保留本类，放大后才变化的 **128** 页归入 `probe_masked`（显示精度/分档阈值掩蔽，不计缺陷）。剩余 `no_effect` 页的逐页三档结论（真无效 / 阈值掩蔽 / 探针失真）见 `plan/no-effect-recheck.md`。
@@ -156,5 +156,5 @@
 | 重置按钮未改变任何输入 | tools/rheumatology/ 4、tools/it/ 3、tools/rehabilitation/ 3、tools/elderly/ 2、tools/general/ 2、tools/hematology/ 2、tools/audio/ 1、tools/biz/ 1 |
 | 空输入直接给出结论（优秀/正常/合格…） | tools/ent/ 3、tools/leather/ 3、tools/agriculture/ 2、tools/biz/ 2、tools/eco/ 2、tools/electronics/ 2、tools/energy/ 2、tools/healthcare/ 2 |
 | 点击主按钮抛异常（含 console 报错） | tools/data/ 1 |
-| 导出/下载按钮 onclick 目标函数不存在（必死） | tools/it/ 1 |
+| 导出/下载按钮 onclick 目标函数不存在（必死） | tools/it/ 1 → 2026-11-06 复核误报，销账（见 part-05） |
 
