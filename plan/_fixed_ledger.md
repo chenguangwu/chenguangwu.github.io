@@ -7,7 +7,6 @@
 
 | 分区 | 条目 ID | 页面 | 修复类型 | 验证用例 |
 |---|---|---|---|---|
-| IT（已修补例） | IT-N53/N76/N80 | ipv6 / cron / url-encode | 前序提交已修，仅补回归用例 | verify_it_calc.js |
 | 医疗 | D-N6 | tools/healthcare/healthcare.html | 成人剂量>0 守卫、封顶语义澄清 | verify_healthcare_calc.js |
 | 医疗 | D-N16 | tools/healthcare/antipyretic-dose.html | 年龄支持小数年、<3 月龄拒算 | verify_healthcare_calc.js |
 | 医疗 | D-N22 | tools/healthcare/gfr-cockcroft.html | 身高参与 DuBois BSA 归一，删 170cm 硬编码 | verify_healthcare_calc.js |
