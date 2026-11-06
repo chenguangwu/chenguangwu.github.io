@@ -11,21 +11,13 @@
 
 | 判定 | 计数 | 说明 |
 |---|---|---|
-| 真缺陷（我的目录，已修） | 1 页 | `tools/life/date-difference-calculator.html`：日期控件 UTC 解析 + `toISOString` 默认值 |
-| 真缺陷（其它目录，待派工） | 153 条 / 76 页 | 见 §4，按目录分组；每行可直接派工 |
+| 真缺陷（其它目录，待复核） | 原始扫描 153 条 / 76 页 | 以下清单按目录分组，已确认修复的条目移除；计数为历史基线 |
 | 安全（纯 UTC 语义） | 约 30 页 | `timestamp`、`timezone-converter*`、`calendar-qr`(ICS)、`lunar-calendar`/节气 UTC 中间量等，保持 UTC；示例见 §5 |
 | 正常（克隆/排序/文件名时间戳） | 约 20 页 | `new Date(t)` 历史时间戳、排序比较、导出文件名与 `exportDate`；示例见 §5 |
 
 > 计数口径：§4 的「条」＝命中行（同一页面可能多条），已剔除纯文件名/导出元数据行；「页」＝去重文件数。
 
 > 说明：日期控件值 `new Date(v + 'T00:00:00')`（datetime-local / 补 `T00:00:00`）按本地解析，属安全，未计入清单；仅裸 `YYYY-MM-DD` 计入。
-
-## 3. 已修（`design/`、`life/`、`home/`）
-
-- `life/date-difference-calculator.html`：新增 `parseLocalDate(y,m-1,d)` 与 `fmtLocalDate()`；`calcDiff/calcAddSub/saveHistory` 全部改用本地解析；`setToday()` 与首屏默认 `startDate/endDate/baseDate` 改用本地格式化，月末（1/31 → 2 月末）按 `daysInMonth` 夹取。
-- `life/date-add-subtract.html`：默认 `baseTime` 由「偏移后 `toISOString().slice(0,16)`」改为本地字段拼接（原写法结果正确但属模板习惯，统一收口）。
-- `design/`、`home/`：无日期控件解析；`toISOString` 仅用于导出元数据/文件名，判安全，未改。
-- 同批 verify：`scripts/verify_life_calc.js` 新增闰日跨年用例（2024-02-29 → 2025-03-01 = 367 天、1年1月）。
 
 ### aerospace（1 条）
 
@@ -44,17 +36,6 @@
 | 页面 | 行 | 用法 | 后果 | 建议改法 |
 |---|---|---|---|---|
 | `archaeology/artifact-measurement.html` | 261 | `	var dt=document.getElementById('dt').value\|\|new Date().toISOString().slice(0,10);` | 展示/保存的日期取自 UTC，可能与本地日期差一天（需要 UTC 语义的时间戳除外）。 | 展示与按日分组改本地格式化；仅时间戳/ICS 明确保留 UTC。 |
-
-### automotive（6 条）
-
-| 页面 | 行 | 用法 | 后果 | 建议改法 |
-|---|---|---|---|---|
-| `automotive/auto-beauty-calc-1.html` | 288 | `const lastDate = new Date(last);` | 变量 last 作为日期串（控件值或今日串）；date-only 按 UTC 解析，负时区回退一天；配合本地 getMonth/getDate 时月末/闰日/跨年边界偏移。 | 改用 new Date(y, m-1, d) 按本地年月日构造；若为纯 UTC 语义则统一用 Date.UTC + getUTC*。 |
-| `automotive/countdown-engine-oil.html` | 331 | `	ts:new Date().toISOString().slice(0,10)` | 展示/保存的日期取自 UTC，可能与本地日期差一天（需要 UTC 语义的时间戳除外）。 | 展示与按日分组改本地格式化；仅时间戳/ICS 明确保留 UTC。 |
-| `automotive/cycle-13.html` | 335 | `	document.getElementById('wDate').value=new Date().toISOString().slice(0,10);` | 默认值/输入框「今天」取自 UTC 日期，负时区全天、UTC+8 的 0–8 点会差一天。 | 改用本地 getFullYear/getMonth/getDate 拼 YYYY-MM-DD（或 getTimezoneOffset 校正后再 toISOString）。 |
-| `automotive/cycle-13.html` | 359 | `	const date=document.getElementById('wDate').value\|\|new Date().toISOString().slice(0,10);` | 展示/保存的日期取自 UTC，可能与本地日期差一天（需要 UTC 语义的时间戳除外）。 | 展示与按日分组改本地格式化；仅时间戳/ICS 明确保留 UTC。 |
-| `automotive/cycle-belt.html` | 434 | `	const rec={id:uid(),...c,savedAt:new Date().toISOString().slice(0,10)};` | 展示/保存的日期取自 UTC，可能与本地日期差一天（需要 UTC 语义的时间戳除外）。 | 展示与按日分组改本地格式化；仅时间戳/ICS 明确保留 UTC。 |
-| `automotive/fuel-anomaly.html` | 264 | `	records.push({date:new Date().toISOString().split('T')[0],mileage:newMileage,liters:40,price:7.8});` | 展示/保存的日期取自 UTC，可能与本地日期差一天（需要 UTC 语义的时间戳除外）。 | 展示与按日分组改本地格式化；仅时间戳/ICS 明确保留 UTC。 |
 
 ### beauty（4 条）
 

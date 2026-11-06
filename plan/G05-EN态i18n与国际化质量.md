@@ -28,28 +28,14 @@
 
 ## 2026-11-03 审计补充（只读审计）
 
-### 确认缺陷 G05-A：预设按钮 `labelEn` 混入中文（高，5 条 / 3 页）
-- 问题：英文态下场景预设按钮直接使用 `labelEn`，其中 5 条含汉字，EN 态出现中英混排；属第三层词典之外的「页面内联文案」漏网。
-- 证据（逐条）：
-  - `tools/encode/convert-4.html:397` — `"labelEn":"Char 中 to code point"`
-  - `tools/optical/photochromic-lens.html:524` — `"labelEn":"Plateau UV fast变色"`
-  - `tools/property/fee-allocation.html:572` — `"8万 by area"`、`"3万 by household"`、`"12万 by area"`
-- 影响：3 页的英文态；不触发运行时词典（labelEn 是内联属性，不走第三层 map）。
-- 方案：改成纯英文（`Chinese char to code point` / `Plateau UV fast tinting` / `80,000 by area` 等）；同类问题应加入「预设 labelEn 禁止 CJK」的静态门禁（见 G08）。
-- 复核方式：`grep -n 'labelEn.*[一-龥]' tools/**/*.html` 应为 0（排除 `labelEn` 值为纯符号/数字）。
+### 待补门禁：预设按钮英文标签
+- 建议加入针对 `labelEn` 值包含汉字的静态门禁，防止英文态出现中英混排（见 G08）。
 
 ### 疑似待验证 G05-B：第三层词典对新预设页面的覆盖未量化
 - 问题：P1（第三层词典覆盖缺口）仍无量化清单；本轮只能确认页面模板级 i18n 引用齐全（`common.js` 缺 `i18n.js` = 0），无法证明 3845 个 preset 页的说明文案在 EN 态全部命中。
 - 证据：`js/tool-i18n.js:613` 动态加载 `/js/tool-i18n-en.js`（681KB）；`i18n/tools/en/**` 按工具一文件；本轮未运行 EN 态真机探针（项目规则要求 `scripts/_en_i18n_probe.mjs --check`，属可执行门禁，本轮只读未跑）。
 - 影响：全站英文态。
 - 方案：第二轮用 `scripts/_en_i18n_probe.mjs --check` 抽样 50 个新增 preset 页，产出 miss 清单后补第三层；禁止只改 HTML 内联（构建会还原场景外的数据源文案）。
-
-### 已修 G05-C：`opt_faq_ld_sync.py` 整段正则吞行（2026-11-04，commit 随脚本落地）
-- 症状：旧实现正则 `(<script …ld+json>\s*)(\{.*?"@type":"FAQPage".*?\})(</script>)` 的 `.*?` 含换行，会从**页面第一个** ld+json 块的 `{` 一路跨到 FAQPage 块的 `}`，把中间的 `WebApplication` LD、`TOOLBOX-SECURITY` meta、privacy/metrics/i18n/nav 脚本、hreflang 整段当成「old」替换掉。实测 `tools/livestock/heat-stress-index.html` 少 47 行（结构全丢）。
-- 复现页面：`tools/livestock/heat-stress-index.html`（多行 LD，第一个块是 WebApplication，FAQPage 在第三个块）。
-- 修法：改为逐块匹配 `<script type="application/ld+json">…</script>`，每块单独 `json.loads`，只替换 `@type=="FAQPage"` 且含套话的那块，其余块字节原样保留；默认 dry-run，写盘需 `--apply`。
-- 自检：落盘前后比对 `application/ld+json` / `<meta name="toolbox"` / `TOOLBOX-SECURITY` / `js/privacy.js` / `js/i18n.js` / `hreflang` 六项计数，任一变化即中止且不写盘；单行 LD 块额外校验文件行数不变。
-- 回归：取 `f723934c82^` 的 `heat-stress-index` / `feed-conversion-ratio` / `inbreeding-coefficient` 三页副本跑 `--apply`，行数 605/588/592 **零减少**，`diff` 仅 1 个 hunk、只替换 FAQ 那一行。
 
 ### 已修 G05-D：heat-stress-index head 结构丢失实为陈旧 zh-tw 产物（2026-11-04）
 - 现象：集成线报「`<head>` 被整块替换，丢 WebApplication/FAQPage LD、privacy/统计/i18n 脚本、hreflang、`TOOLBOX-SECURITY`」，且 `zh-tw` 对应页同样缺失。
