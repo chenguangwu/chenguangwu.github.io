@@ -320,7 +320,9 @@ function toHex(buf){
   return Array.from(new Uint8Array(buf)).map(function(b){return b.toString(16).padStart(2,'0');}).join('');
 }
 var lastHashPairs=[];
+var __hmGen=0;
 function calc(){
+  var __myGen=++__hmGen;
   var text=document.getElementById('input').value;
   var upper=document.getElementById('opt_upper').checked;
   var box=document.getElementById('outBox');
@@ -355,6 +357,9 @@ function calc(){
   if(jobs.length&&window.crypto&&crypto.subtle){
     var enc=new TextEncoder().encode(text);
     Promise.all(jobs.map(function(j){return crypto.subtle.digest(j[1],enc).then(function(buf){return [j[0],toHex(buf)];});})).then(function(res){
+      // 计算代次校验：期间用户又改了输入并触发新的 calc() 时，丢弃这批过期结果，
+      // 避免旧请求后完成覆盖新输入的摘要（历史与 DOM 双写都要防）。
+      if(__myGen!==__hmGen) return;
       res.forEach(function(r){
         var v=upper?r[1].toUpperCase():r[1];
         for(var p=0;p<lastHashPairs.length;p++){

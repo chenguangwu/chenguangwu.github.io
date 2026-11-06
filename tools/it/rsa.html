@@ -454,11 +454,12 @@ async function doEncrypt() {
   const pubPem = document.getElementById('encPubKey').value.trim();
   const text = document.getElementById('encInput').value;
   const algo = document.getElementById('encAlgo').value;
+  const hash = algo === 'RSA-OAEP-SHA512' ? 'SHA-512' : 'SHA-256';
   const fmt = document.getElementById('encOutput').value;
   if (!pubPem) { ToolBox.showToast(i18nText('toast.msg767'), 'error'); return; }
   if (!text) { ToolBox.showToast(i18nText('toast.msg808'), 'error'); return; }
   try {
-    const pubKey = await crypto.subtle.importKey('spki', pem2ab(pubPem), { name: 'RSA-OAEP', hash: 'SHA-256' }, false, ['encrypt']);
+    const pubKey = await crypto.subtle.importKey('spki', pem2ab(pubPem), { name: 'RSA-OAEP', hash }, false, ['encrypt']);
     const data = new TextEncoder().encode(text);
     const enc = await crypto.subtle.encrypt({ name: 'RSA-OAEP' }, pubKey, data);
     document.getElementById('encResult').textContent = fmt === 'hex' ? ab2hex(enc) : ab2b64(enc);
@@ -469,10 +470,11 @@ async function doEncrypt() {
 async function doDecrypt() {
   const privPem = document.getElementById('encPrivKey').value.trim();
   const ct = document.getElementById('encInput').value.trim();
+  const hash = document.getElementById('encAlgo').value === 'RSA-OAEP-SHA512' ? 'SHA-512' : 'SHA-256';
   if (!privPem) { ToolBox.showToast(i18nText('toast.msg893'), 'error'); return; }
   if (!ct) { ToolBox.showToast(i18nText('toast.msg788'), 'error'); return; }
   try {
-    const privKey = await crypto.subtle.importKey('pkcs8', pem2ab(privPem), { name: 'RSA-OAEP', hash: 'SHA-256' }, false, ['decrypt']);
+    const privKey = await crypto.subtle.importKey('pkcs8', pem2ab(privPem), { name: 'RSA-OAEP', hash }, false, ['decrypt']);
     const ctBuf = ct.replace(/\s/g, '').length % 2 === 0 && /^[0-9a-fA-F]+$/.test(ct.trim()) ? hex2ab(ct) : b642ab(ct);
     const pt = await crypto.subtle.decrypt({ name: 'RSA-OAEP' }, privKey, ctBuf);
     document.getElementById('encResult').textContent = new TextDecoder().decode(pt);
@@ -568,11 +570,13 @@ function __rsaSnap(){
     return out;
 }
 function __rsaResText(){
-    var r=document.querySelector('.result-box');
+    var signTab=document.getElementById('tab-sign');
+    var onSign=!!(signTab&&signTab.classList&&signTab.classList.contains('active'));
+    var r=document.getElementById(onSign?'signResult':'encResult');
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    if(/结果将显示在这里|请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
     return t.slice(0,80);
 }
 function __rsaTime(t){
@@ -603,7 +607,6 @@ function __rsaRender(keys,rk,en){
                     if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
                     else{e.value=rec[k];}
                 }
-                downloadKeys();
             }catch(e2){}
             __rsa_skip=false;
         });
@@ -655,7 +658,7 @@ function __rsaPresets(){
     TBKit.preset.bar('#rsaPresets',[{label:'默认参数',labelEn:'Default',values:{'keySize':'2048', 'keyFormat':'pkcs8', 'encAlgo':'RSA-OAEP', 'encOutput':'base64', 'signAlgo':'RSASSA-PKCS1-v1_5'}},
   {"label":"3072 OAEP-SHA512 Hex","labelEn":"3072 OAEP512 hex","values":{"keySize":"3072","encAlgo":"RSA-OAEP-SHA512","encOutput":"hex"}},
   {"label":"4096 PSS Base64","labelEn":"4096 PSS b64","values":{"keySize":"4096","signAlgo":"RSA-PSS","signOutput":"base64"}},
-  {"label":"2048 全默认外 Hex签名","labelEn":"2048 hex sign","values":{"keySize":"2048","encAlgo":"RSA-OAEP","encOutput":"base64","signAlgo":"RSASSA-PKCS1-v1_5","signOutput":"hex"}}],function(){ downloadKeys(); });
+  {"label":"2048 全默认外 Hex签名","labelEn":"2048 hex sign","values":{"keySize":"2048","encAlgo":"RSA-OAEP","encOutput":"base64","signAlgo":"RSASSA-PKCS1-v1_5","signOutput":"hex"}}],function(){ });
 }
 var __rsa_f0=(typeof downloadKeys==='function')?downloadKeys:null;
 if(__rsa_f0){

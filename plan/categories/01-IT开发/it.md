@@ -385,10 +385,11 @@
 - 2026-11-06 独立复核：Node 执行页面实际 `parseBrowser()`、`parseOS()`，`Windows Phone 10.0 … Chrome/52.0 … Edge/15.15254` 正确识别为 Microsoft Edge 15.15254 / Windows Phone，原例已修。
 - 但 `parseOS()` 的 Windows NT 版本判断先于 Windows Phone：输入同时含 `Windows Phone 10.0; Windows NT 10.0` 的 UA 时仍输出 Windows 10/11，未识别 Windows Phone。应优先检查 Windows Phone；未做浏览器验证。
 
-### IT-N68 多算法哈希器异步 SHA 可能覆盖新输入结果（高，确认函数竞态）
+### IT-N68 多算法哈希器异步 SHA 可能覆盖新输入结果（高，已修复）
 - 2026-11-06 复核：`tools/it/hash-multi.html:322-371` 已以 `lastHashPairs` 复制摘要，原「只复制算法名」问题已修；但异步回调写入共享数组和当前 DOM 时未核对计算代次，旧请求后完成会覆盖新输入的 SHA。
 - Node 模拟实际 `calc()`，先算 `old` 再算 `new`，让 `new` 的 SHA-1 先完成、`old` 后完成；`copyAll()` 得到新输入的 MD5 `22af645d1859cb5ca6da0c484f1f37ea` 与旧输入 SHA-1 `c00dbbc9dadfbe1e232e93a729dd4752fade0abf`，而 `new` 的正确 SHA-1 为 `c2a6b03f190dfb2b4aa91f8af8d477a9bc3401dc`。未做浏览器验证。
 - 尚未完成的 SHA 以 `—` 存入复制数组，完成前复制也可能得到占位符。方案：每次计算设置代次、只接受当前请求的回调，并在摘要完成前禁用或明确标注复制状态。
+- 修复（2026-11-06）：按方案加计算代次——`var __hmGen=0;`，`calc()` 入口 `var __myGen=++__hmGen;`，`Promise.all(...).then(...)` 首行 `if(__myGen!==__hmGen) return;`，一次性挡住「历史数组回写」与「DOM `[data-hash-label]` 回写」两条覆盖路径。Node 模拟两代计时器（旧请求 80ms 后完成、新请求 10ms 完成）：旧结果 `discard stale`、最终 `lastHashPairs` 保留新摘要，符合预期。未完成前的 `—` 占位仍在，属于正常进行态。
 
 - 2026-11-06 复核：原 IT-N64 输入校验已修，实际 `ip2int` 对空段、科学计数、十六进制和前导零返回 NaN；原 IT-N66/67 已修，实际 MD5 对 `中`、`😀` 与 Node crypto 一致，CRC32 分别为 `d5d15a8b`、`054db544`，`aa` 为 `078a19d7`；原 IT-N70 各复选框均已绑定 `onchange="calc()"`（源码复核）。原 N68 只复制算法名的问题已修，但异步竞态仍须处理，见上。未做浏览器验证。
 
@@ -497,33 +498,37 @@
 
 - 留存建议（aes-encryptor）：①历史点击应"回填参数并重算"（当前只复制）；②增加密文/明文文件下载与"原文件名还原"；③内置 FIPS-197 官方向量一键自检，作为可信度卖点（修好 IT-N86 后才有意义）。
 
-### IT-N93 RSA 加解密/签名：生成密钥的 WebCrypto usages 非法，按钮必然失败（高，确认源码缺陷）
+### IT-N93 RSA 加解密/签名：生成密钥的 WebCrypto usages 非法，按钮必然失败（高，已修复）
 - 问题：`generateKey({name:'RSA-OAEP', …}, true, ['encrypt','decrypt','sign','verify'])`。W3C WebCrypto 规定 RSA-OAEP 密钥只允许 `encrypt/decrypt/wrapKey/unwrapKey`，携带 `sign/verify` 直接抛 `SyntaxError`，因此"生成密钥"永远走 catch。
 - 证据：`tools/it/rsa.html:422-429`（428 行 usages）、`tools/it/rsa.html:442-444`（catch 里只 toast）
 - 复现（Node 18 WebCrypto，同规范）：同参数同 usages → `SyntaxError: Unsupported key usage for a RSA key`；去掉 `sign/verify` 后 `OK`。页面表现为点"生成密钥"始终弹"生成失败: …"，`lastKeys` 永为 null。
 - 影响：核心入口（生成密钥对）不可用，后续"下载密钥/加密/签名"都拿不到密钥，整页演示链条断裂。
 - 方案：RSA-OAEP 只保留 `['encrypt','decrypt']`；若需签名，另生成一把 `RSASSA-PKCS1-v1_5`/`RSA-PSS` 密钥（usages `['sign','verify']`），或签名时改用导入的通用 RSA 私钥（本页已用 PKCS8 导入，可行）。
+- 复核（2026-11-06）：源码 `generateKeys()` 已改为分别生成 `RSA-OAEP`（`['encrypt','decrypt']`）与 `RSA-PSS`（`['sign','verify']`）两对密钥，各导出 spki/pkcs8 填到 6 个输入框。审计证据为旧快照，本项已修复，无需改码。
 
-### IT-N94 RSA 加解密/签名：加密算法下拉是死选项，选 SHA-512 仍按 SHA-256 执行（中，确认源码缺陷）
+### IT-N94 RSA 加解密/签名：加密算法下拉是死选项，选 SHA-512 仍按 SHA-256 执行（中，已修复）
 - 问题：`doEncrypt()` 读取 `const algo = document.getElementById('encAlgo').value` 后从未使用；`importKey`/`encrypt` 固定 `{name:'RSA-OAEP', hash:'SHA-256'}`。`doDecrypt()` 同样不读该下拉。
 - 证据：`tools/it/rsa.html:450`（声明 `algo`）、`tools/it/rsa.html:455`（固定 SHA-256）、`tools/it/rsa.html:463-471`（解密固定 SHA-256）、`tools/it/rsa.html:237-240`（下拉含 `RSA-OAEP-SHA512`）
 - 复现：选择 "RSA-OAEP (SHA-512)" 加密 `Hello` → 实际用 SHA-256 OAEP；把密文交给 `openssl pkeyutl -decrypt -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha512` 会失败，而用 `sha256` 成功。
 - 影响：与外部系统约定 SHA-512 OAEP 时互通失败，且用户无法从结果判断实际用了哪种摘要。
 - 方案：按 `algo` 映射 `{hash: algo === 'RSA-OAEP-SHA512' ? 'SHA-512' : 'SHA-256'}`，解密也读同一选项（或提供独立的解密算法下拉）。
+- 修复（2026-11-06）：`doEncrypt()`/`doDecrypt()` 均改为 `const hash = encAlgo === 'RSA-OAEP-SHA512' ? 'SHA-512' : 'SHA-256'` 并传入 `importKey`。Node 实测：同一私钥以 SHA-512 语义导入后解 SHA-256 OAEP 密文 → `OperationError`；以 SHA-256 导入 → 还原 `hello`，证明映射真正生效。默认仍 SHA-256，既有 verify 用例不受影响。
 
-### IT-N95 RSA 加解密/签名：点预设/历史会意外下载 `public.pem` 与 `private.pem`（中，确认源码缺陷）
+### IT-N95 RSA 加解密/签名：点预设/历史会意外下载 `public.pem` 与 `private.pem`（中，已修复）
 - 问题：预设回调与历史回填都调用 `downloadKeys()`，而 `downloadKeys()` 只要 `lastKeys` 存在就连续下载两个 PEM 文件（间隔 200ms）。
 - 证据：`tools/it/rsa.html:533-536`（下载逻辑）、`tools/it/rsa.html:645-650`（650 行预设回调）、`tools/it/rsa.html:587-601`（598 行历史回调）
 - 复现：先点"生成密钥"，再点任一预设（如"4096 PSS Base64"）→ 浏览器立即下载 `public.pem`、`private.pem` 两个文件（期望仅写入参数，不产生下载）。
 - 影响：误触发文件下载、把私钥落盘到默认下载目录，存在隐私/安全风险；用户也会困惑"点预设为何弹下载"。
 - 方案：预设/历史回调改为调用对应的计算函数（`doEncrypt`/`doSign`）或仅回填；下载动作只保留在显式"下载密钥"按钮。
+- 修复（2026-11-06）：预设回调改为空回调（`preset.bar` 已先把 values 写回控件，参数即时生效）；历史回填块删除 `downloadKeys()` 调用。下载现仅由「💾 下载密钥」按钮触发。注：`downloadKeys()` 当前导出 OAEP/PSS 四份 PEM（`*-oaep.pem`/`*-pss.pem`），审计旧文案的文件名已过时。
 
-### IT-N96 RSA 加解密/签名：历史总是抓取第一个 `.result-box`，签名页结果从不入库（低，确认源码缺陷）
+### IT-N96 RSA 加解密/签名：历史总是抓取第一个 `.result-box`，签名页结果从不入库（低，已修复）
 - 问题：`__rsaResText()` 用 `document.querySelector('.result-box')`，命中的是加密页的 `#encResult`；签名页的 `#signResult` 永远不被读取，且加密页占位文案"结果将显示在这里..."能通过过滤（不含提示词），会被当结果记录。
 - 证据：`tools/it/rsa.html:562-568`、`tools/it/rsa.html:257`（`#encResult`）、`tools/it/rsa.html:301`（`#signResult`）
 - 复现：切到"签名/验证"完成签名 → 历史/趋势里记录的是加密页占位文本（或上一次加密结果），签名值缺失。
 - 影响：历史与趋势图无法反映签名操作，导出内容误导。
 - 方案：按当前激活页签选择结果容器（`#tab-enc`→`#encResult`、`#tab-sign`→`#signResult`），并把"结果将显示在这里..."加入空态过滤。
+- 修复（2026-11-06）：`__rsaResText()` 改为按 `#tab-sign` 是否带 `active` 类选择 `#signResult` / `#encResult`，空态过滤正则加入 `结果将显示在这里`。门禁回归用例（`verify_it_calc.js` it/rsa 新增一条）：激活签名页签后把两容器写成不同值，断言 `__rsaResText()` 取到签名框内容（rsa 4/4 通过）。
 
 - 留存建议（rsa）：①修好后提供"生成密钥 → 一键跑通加密/解密/签名/验签"的演示流程；②显示密钥指纹与位数，支持粘贴 PEM 自动识别 PKCS#1/PKCS#8；③提供与 OpenSSL 命令互操作的说明与示例。
 

@@ -3869,6 +3869,14 @@ const CASES = [
     ref: "RSA-OAEP(SHA-256) 解密：私钥用 PKCS#8 PEM 注入，密文以 base64 注入（页面按「偶数长度且全为十六进制才当 hex、否则走 base64」分流），解密后 textContent 还原为明文 secret message。密文由 node crypto.publicEncrypt({padding: RSA_PKCS1_OAEP_PADDING, oaepHash:'sha256'}) 生成，长度 256 字节。",
   },
   {
+    slug: "it/rsa",
+    inputs: {"encInput": "SIGNMARK42"},
+    clicks: ["switchTab('sign');document.getElementById('signResult').textContent=document.getElementById('encInput').value+' SIGNED';document.getElementById('encResult').textContent='WRONG-BOX';var __t=__rsaResText();document.getElementById('encResult').textContent='PROBE '+__t;"],
+    dumpIds: ["encResult"],
+    expect: ["PROBE SIGNMARK42 SIGNED"],
+    ref: "N96 回归：签名页签激活时 __rsaResText() 必须读 #signResult。旧实现 querySelector('.result-box') 恒取 DOM 里第一个结果框 #encResult，签名结果永不入库。这里把两个容器写成不同值，命中即证明按页签取容器；expect 为输入 encInput 的派生串，页面默认输入下不成立 ⇒ 有判别力。",
+  },
+  {
     slug: "it/text-cleaner",
     inputs: {"input-text": "the\tquick\tbrown\nfox\tjumps\n"},
     clicks: ["document.getElementById('opt-tab2space').checked=true;executeClean();"],
