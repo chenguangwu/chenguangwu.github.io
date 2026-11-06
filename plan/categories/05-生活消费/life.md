@@ -24,7 +24,10 @@
 
 ### 历史结论变化
 - `phone-lookup` 使用号段表推断运营商，号段表时效未核验，且携号转网后可能变化。
-- `reminder-cycle` 已改用本地日期构造（`:224-238`）。`holiday-calendar` 月工作日仍以总天数减周末和节日，重复扣除路径仍在（`:819-820,860-861`）；非已覆盖年份的数据完整性未运行验证。
+- `holiday-calendar` 月工作日仍以总天数减周末和节日，重复扣除路径仍在（`:819-820,860-861`）；非已覆盖年份的数据完整性未运行验证。
+
+### 清洁及草坪提醒跨夏令时时天数偏多（中，Node 复现）
+- `tools/life/reminder-cycle.html:236-238` 与 `tools/life/cycle-pruning-lawn.html:298-300` 以本地午夜的毫秒差除以 24 小时后向上取整。`TZ=America/Los_Angeles` 下，从 2026-10-31 到 2026-11-07 相隔 7 个日历日，但跨越夏令时回拨共 169 小时，页面计算为 8 天。两页的下次日期已用本地日历日期加天数；剩余问题是倒计时天数和紧急程度可能偏大。
 
 ## 2026-11-06 交互静态续审（清单 406–411）
 
@@ -547,15 +550,6 @@
 - 影响：`tools/life/countdown-2.html`；闰日生日/纪念日在平年被推后一天，且日期与用户记忆不符。
 - 方案：先判 `isLeapYear(year)`，平年取 2/28（或 3/1）并在副标题注明口径。
 
-### LF-N82 非法色值与 5 位十六进制不校验，5 位被静默截断成另一种颜色（历史结论；当前源码已变化，待运行回归）
-
-> 2026-11-06 静态复核：当前 `parseColor` 对 `#` 使用 3/6 位正则，非法值返回 `false`，`searchColor` 隐藏预览并显示格式错误（`tools/life/color-name-finder.html:425-429,454-457`）。以下为历史证据，不再直接判定当前版本仍有此缺陷；未运行回归。
-- 描述：`parseColor` 只要字符串以 `#` 开头就原样返回，`hexToRgb` 用 `substr` 硬切前 6 位：`#12345` 被截成 `#123405` 并算出一组看似正常的 RGB 与「最接近颜色」，全程无提示；`#zzz` 产出 NaN RGB，只靠注入式的「计算结果含无效值，请检查输入是否为有效正数」兜底，提示语与颜色场景不符，预览色块仍把 `#ZZZ` 当有效色值展示。
-- 证据：`tools/life/color-name-finder.html:410-415`（`parseColor` 仅 `startsWith('#')`）、`:395-398`（`hexToRgb` 的 `substr`）、`:433-447`（预览、信息区与 NaN 兜底）、`:449-456`（按错误色值计算「最佳匹配」）
-- 复现：输入 `#12345` → 实际「HEX #12345、RGB: rgb(18, 52, 5)」并按 `#123405` 给出 8 个「最接近的颜色」；期望提示「色值格式不正确」且不渲染。输入 `#zzz` → 实际预览显示 `#ZZZ`（背景着色无效），信息区为「⚠ 计算结果含无效值，请检查输入是否为有效正数」；期望「色值格式不正确」。
-- 影响：`tools/life/color-name-finder.html`；非法输入不报错反给出貌似合理的颜色，设计与取色用户会被误导，NaN 兜底文案也会让用户误以为要填数字。
-- 方案：用 `/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/` 严格校验（3 位展开、6 位直取），非法时提示并隐藏预览/结果；匹配前过滤 `!isFinite(dist)`，删除依赖文本含 NaN 的兜底。
-
 ### LF-N83 「橙色」在中文色表重复登记，调色板与按名搜索出现重复卡片（低，确认缺陷）
 - 描述：`chineseColors` 里 `{name:'橙色',hex:'#FA8C35'}` 出现两次（同一对象值），`renderPalette` 与按名搜索都直接遍历原数组，导致重复卡片与重复匹配项。
 - 证据：`tools/life/color-name-finder.html:304`、`:306`（两处同名同色值）、`:476-483`（调色板直接渲染）、`:458`（按名过滤）
@@ -576,26 +570,6 @@
 - 复现：先手动添加「洗洁精 3 瓶」「抽纸 6 提」→ 点「办公室」→ 实际原有两条消失，只剩洗手液/垃圾袋/消毒湿巾；期望提示「将覆盖当前列表，是否继续」或追加预设。
 - 影响：`tools/life/cycle-4.html`；误点一次即丢失全部手工库存，且日志列表继续显示已删用品的名称。
 - 方案：覆盖前 `confirm`，或改为「追加预设（同名跳过）」；删除用品时同步提供「仅删除用品/连日志一起删」选择。
-
-### LF-N86 上次清洁日期按 UTC 解析，西半球时区下次清洁日期提前一天（历史结论；当前源码已变化，待运行回归）
-
-> 2026-11-06 静态复核：当前 `getNextDate` 和 `getDaysUntil` 使用本地日期构造（`tools/life/reminder-cycle.html:224-238`）；旧 UTC 解析路径已变化，时区及夏令时未运行验证。
-- 描述：`new Date(appl.lastClean)` 对 `YYYY-MM-DD` 按 UTC 零点解析，随后 `setDate` 加周期；在 UTC 负偏移时区，本地显示日期比「上次清洁 + 周期」早一天，而同卡片的天数按另一路径计算，出现「14 天 + 日期 11-17」的自相矛盾。
-- 证据：`tools/life/reminder-cycle.html:226-229`（`new Date(appl.lastClean)` 与 `setDate`）、`:232-234`（`new Date(todayStr())` 同样按 UTC 解析）、`:321`（`fmtDate(item.next)` 展示）
-- 复现：TZ=America/Los_Angeles，上次清洁 `2026-11-04`（空调滤网周期 14 天）→ 实际「下次清洁 2026-11-17」，同卡片「14 天」（期望 11-18；11-04 + 14 天）。
-- 影响：`tools/life/reminder-cycle.html`；海外/跨时区用户看到的清洁日期与倒计时天数互相矛盾，排期易错一天。
-- 方案：统一用 `new Date(y, m-1, d)` 或 `new Date(dateStr + 'T00:00:00')` 本地解析，`todayStr()` 同样按本地构造；补 `TZ=America/Los_Angeles` 断言。
-
-### LF-N87 草坪开始/上次维护日期同样按 UTC 解析，下次养护日期提前一天（历史结论；当前源码已变化，待运行回归）
-
-> 2026-11-06 静态复核：`getNextDate` 和 `getDaysUntil` 当前均用本地年月日构造 `parseLocalDate`（`tools/life/cycle-pruning-lawn.html:269-271,289-300`），以下 UTC 解析路径已变化；未验证各时区及夏令时。
-- 描述：`getNextDate` 用 `new Date(last.date)` / `new Date(lawn.start)` 解析 `YYYY-MM-DD`（UTC 零点）再加 `freq`，`getDaysUntil` 又用 UTC 解析的「今天」，两处口径一致但展示日期在 UTC 负偏移时区比用户预期早一天。
-- 证据：`tools/life/cycle-pruning-lawn.html:286-292`（`:289` 的 `new Date(last.date)` / `new Date(lawn.start)`）、`:295-297`（`new Date(todayStr())`）、`:406`（`fmtDate(next)` 展示）
-- 复现：TZ=America/Los_Angeles，开始日期 `2026-11-04`、修剪周期 7 天 → 实际「下次 2026-11-10」（期望 11-11；11-04 + 7 天）。
-- 影响：`tools/life/cycle-pruning-lawn.html`；跨时区用户的养护排期整体提前一天，导出 CSV 的「下次」列同错。
-- 方案：与 LF-N86 同改：本地日期构造 + 统一的 `daysBetween`（按本地零点），导出路径复用同一函数。
-
-- 本轮实读 8 页：`tools/life/detector-checker-strength.html`、`countdown-timer.html`、`countdown-2.html`、`color-name-finder.html`、`generator-random-1.html`、`cycle-4.html`、`reminder-cycle.html`、`cycle-pruning-lawn.html`；新增 15 条（高 2 / 中 9 / 低 4）。未覆盖：`analysis-23/74/80`、`analysis-cost-9/10`、`angle-converter`、`assessor-target`、`countdown`、`density-converter`、`generator-price`、`magnet-converter`、`pressure-converter`、`radiation-converter`、`recommender-8`、`stats-13`。
 
 ## 2026-11-04 续查（并行批 O）
 
@@ -766,13 +740,6 @@
 - 保留 Pa 基准 + kPa/MPa/bar/psi/atm/mmHg 七单位一屏输出，psi 与 bar 复算闭合（1 psi=6.894757293 kPa、2.4 bar=34.8094 psi）。
 - 增加「表压/绝压」切换（轮胎 2.4 bar、血压 120 mmHg 都是表压），避免单位制混淆。
 - 页面已有血压/轮胎/水深/地心等参照，可升级为一键预设并补「复制结果」。
-
-### LF-N107 辐射换算页 mSv/uSv 作为源单位时基准被错标成 Gy（高，确认缺陷）
-- 问题：基准单位用字符串前缀判断 `from.startsWith('S') || from==='rem' ? 'Sv' : 'Gy'`，`mSv`、`uSv` 不以 S 开头即落入 Gy 分支，当量剂量被标成吸收剂量单位。
-- 证据：`tools/life/radiation-converter.html:309`（三元判断）；`:284-285`（mSv/uSv 因子）；`:290-291`（types 已正确标为「当量剂量」）。
-- 复现：输入 `1`、单位 mSv → 实际「基准：1 mSv (当量剂量) = 0.001 Gy 等效」；期望「0.001 Sv 等效」。输入 `1` uSv → 实际「0.000001 Gy」，期望「0.000001 Sv」。
-- 影响：`tools/life/radiation-converter.html`；医学/辐射防护场景下 mSv 与 Gy 是最常被混淆的两个量，错误单位会直接误导剂量解读。
-- 方案：按 `types[from]` 决定基准单位（当量剂量→Sv、吸收剂量→Gy），不要用字符串前缀；补 mSv/uSv/rem 三组断言。
 
 ### LF-N108 辐射换算页把「辐射权重因子」写成「组织权重因子」，且 Gy↔Sv 无条件并列（中，确认缺陷）
 - 问题：深度解析与结果解读多处把 Sv 的换算写成「乘组织权重」，实际应为辐射权重因子 w_R；组织权重 w_T 用于有效剂量。另 Gy 与 Sv 在同一因子表内 1:1 互换，结果表对任意源单位都同时给出另一类量，未限定射线类型。
@@ -1003,12 +970,6 @@
 
 范围：只读重读 `radiation-converter`、`density-converter`、`magnet-converter`、`pressure-converter`、`assessor-target`、`generator-price`、`countdown` 共 7 页当前工作树源码（含内联 JS、公式框、FAQ、引据表），关键数值用 `node -e` 复算。未开浏览器、未做英文态/移动端/门禁验证。
 
-### LF-V1 辐射 mSv/uSv 源单位基准被错标为 Gy（原 LF-N107，已变化·已修复）
-- 复核结论：成立前提已消失，当前实现按 `types[from]` 判定基准单位，mSv/uSv/rem 均输出 Sv。
-- 证据：`tools/life/radiation-converter.html:309`（`const baseUnit = types[from] === '当量剂量' ? 'Sv' : 'Gy'`）；修复提交 `87b6cceb`（2026-11-04 13:00，第 3 批高优缺陷修复）。
-- 复算：1 mSv → 0.001 Sv；1 uSv → 0.000001 Sv；1 Gy → 1 Gy、1 Sv → 1 Sv，基准行不再跨类。
-- 变化差异：旧版 `from.startsWith('S') || from==='rem'` 已删除；建议保留 `scripts/verify_life_calc.js` 中 mSv/uSv/rem 三组断言防回归（该脚本本批已同步改动）。
-
 ### LF-V2 辐射权重因子被写成组织权重因子，Gy↔Sv 仍无条件并列（原 LF-N108，仍成立）
 - 复核结论：未修复；概念错位与 1:1 并列仍在页面上。
 - 证据：`tools/life/radiation-converter.html:227`（「组织权重 1 时≈1 Sv」）、`:230-231`（「乘组织权重」）、`:541`（「Sv = Gy×组织权重因子」）、`:312-316`（任意源单位都并列 7 单位，含另一类量）。
@@ -1101,7 +1062,7 @@
 
 ### 复核覆盖
 - 7 页：`radiation-converter`、`density-converter`、`magnet-converter`、`pressure-converter`、`assessor-target`、`generator-price`、`countdown`。
-- 仍成立 12 条（LF-V2、3、5–14）/ 已变化 2 条（LF-V1 已修复、LF-V4 口径变化但缺陷仍在）/ 不成立 0 条。
+- 剩余问题与待核内容见上文各条；已确认消除的旧问题已从清单移除。
 - 未做：浏览器交互与截图、`?lang=en-US` 英文态、移动端、`run_gates.py` 门禁与线上抽样；LF-V13 仍为源码时序推断。最高优先：`assessor-target.html:224-232`（无夹取）、`radiation-converter.html:227`/`:541`（权重概念错位）、`generator-price.html:239`（固定循环）、`countdown.html:432-438`（承诺未实现）。
 
 ## 2026-11-04 回补复核（并行批 R）
