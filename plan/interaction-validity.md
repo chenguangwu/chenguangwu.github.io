@@ -43,6 +43,7 @@
 - 静态续审第三十批：阅读 `music/{music-player,music-theory,piano-keyboard,rhythm-trainer}`、`nutrition/food-calorie-lookup`、`obstetrics/cycle-8`、`office/{excel-formula-reference,mindmap}` 8 页，记录录音回放、训练停止、循环状态、历史导出、离线降级及跨周期最新记录问题，修正旧营养条目对历史表状态的表述。至清单第 467 页，静态续审累计 187 页；仅源码分析，未运行浏览器、音频或医学专业核验，不计双跑。
 - 静态续审第三十一批：阅读 `ophthalmology/{amsler-grid-test,astigmatism-chart,axial-length,cd-ratio,eye-chart-toolkit,iol-power,iop-correction,oct-rnfl}` 8 页，记录视标尺寸量级、用户输入 HTML 注入、标记与眼别状态、校验及输出矛盾等问题，并更新 IOL 旧结论的源码状态。至清单第 475 页，静态续审累计 195 页；仅源码分析，未运行浏览器或医学专业核验，不计双跑。
 - 静态续审第三十二批：阅读 `ophthalmology/{refraction-error,strabismus-angle,tear-breakup-time,vision-screening-21,visual-field-analysis}` 与 `optical/{accommodation-amplitude,anti-fatigue-design}` 共 7 页，记录换算量级、历史恢复、空值与计算条件等问题；医学模型及阈值须专业复核。至清单第 482 页，静态续审累计 202 页；未运行浏览器，不计双跑。
+- 静态续审第三十三批：阅读 `optical/{blue-light-filter,coating-design,convergence-near-point,edge-bevel,frame-pupillary,frame-tilt,lens-refractive-index,peripheral-defocus}` 8 页，记录空值兜底、正负镜边厚、集合和离焦结论冲突及静态图层状态等问题；专业结论须复核。至清单第 490 页，静态续审累计 210 页；仅源码分析，未运行浏览器，不计双跑。
 
 
 - 扫描时间：2026/11/5 05:04:33
