@@ -113,7 +113,7 @@
 - IT-N421、N422 的 locale 查表与正则仍在；IT-N415–N417、N427 的 MSISDN 校验与数据库路径仍在。MSISDN 原始输入在非数字时提前返回，不应仅因 `raw` 插入字符串就断言可注入。
 - 同批阅读 Linux、MongoDB 速查的搜索、分类与复制路径；无浏览器验证，不对完整正确性判通过。IT-N498–N500 的示例仍须按具体内容另行运行复核。
 - IT-N46 现有 RGB/alpha clamp；IT-N47 当前已合成前景 alpha、非法输入清除比值，历史原问题需运行回归后销账；背景 alpha 仍需单独确认。IT-N423、N308、N309 的数据范围问题仍在。
-- IT-N17 的 `toTitleCase` 现按空白切词并只大写词首，原 `don't` / `myVar` 缺陷的实现已不在当前源码中；未运行回归，先标记待销账。IT-N170–N173、IT-N49 的关键路径仍在。
+- IT-N17 原 `don't` / `myVar` 问题于 2026-11-06 在基线 `06fd7b449c` 经 `verify_it_calc.js case-converter` 的 Node 桩回归确认修复，已从当前问题移除；未做浏览器验证。IT-N170–N173、IT-N49 的关键路径仍在。
 - IT-N335、IT-N336 的原实现已不在当前源码中：`:289-302` 对非 ASCII 使用 `\u`/`\U`，`:324-331` 已先处理最多 3 位八进制；该两条历史缺陷需另做运行回归后销账。
 - IT-N418 至 IT-N420 的查询和判定路径仍在；IT-N469 的 MD5 仍按 UTF-16 码元打包，专业测试结论沿用历史基线，不冒称本次重跑。
 - 同批另阅读 `ascii-table`、`box-shadow-generator`、`calc-1`、`calc-10` 的主要交互路径；未对其完整正确性或浏览器行为作通过判定。
@@ -166,15 +166,11 @@
 
 ## 2026-11-03 续查：文本与配置工具
 
-### IT-N3 大小写不敏感替换损坏未匹配文本（高，已修复 2026-11-06 核验：text-replace.html:650-663 已按原文大小写保留未命中片段）
-- 问题与证据：`tools/it/text-replace.html:629-632` 全局且不区分大小写时将整段文本转小写；`Hello WORLD hello` 将 `hello` 替换为 `X` 得 `X world X`，未匹配的 WORLD 也被改变。
-- 影响：`tools/it/text-replace.html`；复制或下载可能静默破坏原文。
-- 方案：在原文中查找匹配并仅替换命中段，增加混合大小写与 Unicode 用例；保留未匹配片段原样，展示替换次数和差异预览。
-
-### IT-N4 删除空行示例输出反斜杠字符（中，已修复 2026-11-06 核验：text-replace.html:836 blank 预设 rep.value='\n' 为真实换行符）
-- 证据：`tools/it/text-replace.html:619-626,797-801` 示例的替换值是两个字符 `\\n`，直接交给 `String.replace`，不是换行符；示例结果会出现字面量 `\\n`。
-- 影响：`tools/it/text-replace.html`；一键试用得到错误文本。
-- 方案：预设使用真实换行符，或明确支持转义语法并测试；说明正则与普通替换的差异。
+### IT-N3 大小写不敏感替换的 Unicode 偏移损坏原文（高，部分修复，待处理）
+- 2026-11-06 复核基线 `06fd7b449c`：原 `Hello WORLD hello` → `X world X` 问题已修，Node 桩执行原反例得到 `X WORLD X`。
+- 新发现：`tools/it/text-replace.html:650-663` 对整个文本 `toLowerCase()` 后在小写串中查找，再用该位置切原文；`İ` 小写后变成两个码元，偏移不再一致。输入 `İ hello WORLD`，不区分大小写、全局替换 `hello` 为 `X`，原页面函数实际输出 `İ hXWORLD`，应为 `İ X WORLD`。
+- 影响：Unicode 输入中，未匹配字符丢失或保留错误，复制/下载会传播损坏的内容；非全局分支亦用同样的索引方式，需一并验证。
+- 方案：匹配位置必须对应原文，增加大小写映射长度变化、连续命中及非全局回归；尚未做浏览器验证。
 
 ### IT-N5 配置导出忽略密钥编码及 Shell 引用不安全（高，已修复 2026-11-06 核验：env-generator.html:670-724 effectiveValue 统一先取编码值含 Base64、shellValue 单引号包裹并转义内部引号）
 
@@ -204,7 +200,8 @@
 - 方案：按模式校验上游 URL 和路径；HTTPS 明确要求证书并生成 TLS 配置，端口严格限制范围；提供完整配置复制或下载，并区别历史 CSV 导出。
 
 ### 续查覆盖
-- 新抽查 `tools/it/env-generator.html`、`tools/it/json-to-csv.html`、`tools/it/number-base-converter.html`、`tools/it/text-replace.html`、`tools/it/nginx-config-generator.html` 共 5 页，新增 7 条问题；未做浏览器、部署或门禁验证。历史回填的实际交互需真机复核。
+- 新抽查 `tools/it/env-generator.html`、`tools/it/json-to-csv.html`、`tools/it/number-base-converter.html`、`tools/it/text-replace.html`、`tools/it/nginx-config-generator.html` 共 5 页，新增 7 条问题（历史计数）；未做浏览器、部署或门禁验证。历史回填的实际交互需真机复核。
+- 2026-11-06 独立复核（基线 `06fd7b449c`）：IT-N4 的删除空行预设经 `node scripts/verify_it_calc.js text-replace` 桩回归通过，已从当前问题移除；IT-N3 原混合大小写反例修复，但 Unicode 偏移问题仍成立，见该条。
 
 ## 2026-11-03 续查（并行批 G）
 
@@ -250,12 +247,6 @@
 - 影响：`tools/it/slugify.html`；默认配置下“Unicode 转义”输出不是可解码的百分号编码，预览标签也会误导。
 - 方案：剥离符号发生在编码之后时跳过 `%` 与十六进制字符，或先剥离再编码；预览按实际分隔符替换；补中文/emoji 的转义往返用例。
 
-### IT-N17 Title Case 把撇号后的字母再大写并压平驼峰（中，已修复 2026-11-06 核验：case-converter.html:377-379 toTitleCase 用 /\S+/g 每词首字符大写、保留词内其余，驼峰不被压平）
-- 问题：`toTitleCase` 用 `\b\w` 大写、`\B\w` 小写，撇号是非单词字符，`'t` 被当作新词首字母大写；同样的 `\B\w` 会把驼峰内部大写压成小写。
-- 证据：`tools/it/case-converter.html:377-380`。Node 复算：`"don't stop now"` → `Don'T Stop Now`；`"myVar"` → `Myvar`。页面 FAQ（301）声称“只按空格切词、对每个词首字母大写”，与实际结果不符。
-- 影响：`tools/it/case-converter.html`；英文标题/人名带撇号时出现 `Don'T`，驼峰输入的首字母大写结果被意外压平。
-- 方案：按空白分词后仅把每词首字符大写、保留词内其余字符，或使用带 Unicode 属性转义的正则并显式排除撇号；补 `don't`、`O'Reilly`、`myVar`、`iPhone` 用例。
-
 ### 留存优化
 - `properties-parser.html:280` 的 `unescapeVal` 不解码 `\uXXXX`：`greet=\u4f60\u597d` 原样保留（Node 已复算），与页面 FAQ 对转义的说明不一致，可随 IT-N10 一并修。
 - `properties-parser.html:265` 行尾 `\\`（字面反斜杠）也被当作续行：`path=C:\\` + 下一行 → `{"path":"C:\next=1"}`，需区分“单个反斜杠续行 / 双反斜杠字面量”。
@@ -275,12 +266,6 @@
 - 证据：`tools/it/markdown-to-html.html:289-296`（294 为链接替换）；`js/common.js:2047-2050`（`setResult` 直接赋值 `innerHTML`）。Node 复算 `inline('[x](https://a/" onmouseover="alert(1))')` → `<a href="https://a/" onmouseover="alert(1" target="_blank" rel="noopener">x</a>`；`[x](javascript:alert(1))` 的 `href` 被 `[^)]+` 截成 `javascript:alert(1`。
 - 影响：`tools/it/markdown-to-html.html`；粘贴带引号的链接即可在预览区制造事件属性（自输入型 XSS），转载他人 Markdown 时同样成立。
 - 方案：URL 走白名单（http/https/mailto）并做属性转义，或改用 `createElement`/`setAttribute` 构建链接；预览与“HTML 代码”面板统一输出净化后的结果。
-
-### IT-N19 输入修改后仍处理旧快照（高，已修复 2026-11-06 核验：text-dedupe-sort.html:527-532 applyOp 前比对 inputText!==lastInputText 重建快照）
-- 描述：`applyOp` 只在 `!hasOriginal` 时快照输入，之后所有操作都基于 `currentLines`；用户再改输入框，按钮仍处理首轮快照。
-- 证据：`tools/it/text-dedupe-sort.html:515-525`（552-558 渲染、562-584 复制/下载同样读 `currentLines`）。Node 模拟：对 `a\na\nb` 执行去重 → `a\nb`；把输入改为 `y\nx` 再点升序 → 仍输出 `a\nb`。`380-385` 的“原始项数”却读当前输入 `parseInput()`，与结果不同源。
-- 影响：`tools/it/text-dedupe-sort.html`；首次操作后输出、复制、下载都与当前输入无关，统计数量也对不上。
-- 方案：监听 `input` 或在每次 `applyOp` 前比对输入与快照，变化即重建快照；统计统一按同一数据源计算。
 
 ### IT-N20 历史/数据表/图表恒空，历史回填会清空全部选项（中，确认源码缺陷）
 - 描述：`__text_cleanerResText` 读取 `#output-text` 的 `textContent`，而它是 `textarea`——当前 `value` 不写入子节点，`textContent` 恒为空，extras 直接提前返回；且 extras 只包装了 `applyPreset`，点“执行清理”与预设条回调（`executeClean`）都不会记录。历史回填调用 `applyPreset()` 不带参数。
@@ -367,7 +352,8 @@
 - `tools/it/text-dedupe-sort.html:380-385`：无 `input` 监听，“原始项数”在编辑时不更新；`500-503` 行号补零宽度只按总行数位数，跨 9/10 行时前缀宽度变化。
 
 ### 续查覆盖
-- 本轮人工查看 `tools/it/text-diff.html`、`whitespace.html`、`text-cleaner.html`、`text-dedupe-sort.html`、`line-ending-converter.html`、`list-converter.html`、`markdown-to-html.html`、`ini-parser.html` 共 8 页，新增 14 条（高 2、中 10、低 2），编号续 IT-N18～N31，与既有 IT-N1～N17 无重复；其中 IT-N31 为待验证项。
+- 本轮人工查看 `tools/it/text-diff.html`、`whitespace.html`、`text-cleaner.html`、`text-dedupe-sort.html`、`line-ending-converter.html`、`list-converter.html`、`markdown-to-html.html`、`ini-parser.html` 共 8 页，新增 14 条（历史计数：高 2、中 10、低 2），编号续 IT-N18～N31，与既有 IT-N1～N17 无重复；其中 IT-N31 为待验证项。
+- 2026-11-06 在基线 `06fd7b449c` 运行 `node scripts/verify_it_calc.js text-dedupe-sort`，IT-N19 的去重后修改输入再排序反例通过，已从当前问题移除；未做浏览器验证。
 - 取证方式为源码静态阅读 + Node 内存提取原函数/最小逻辑复算（含 `markdown inline`、`parseIni`、`removeLineNum`、`leViz`、`list convert`、`calcTool` 等价实现），并用本地已装 jsdom 复核 `textarea.textContent` 与空 `<select>` 的 `options.length`；未开浏览器，未做英文态、移动端、门禁或部署验证。
 
 ## 2026-11-03 续查（并行批 K）
