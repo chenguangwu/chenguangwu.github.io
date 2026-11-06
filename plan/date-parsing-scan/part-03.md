@@ -1,14 +1,7 @@
-### travel（7 条）
+### travel 默认日期跨 DST 少一天（确认）
 
-| 页面 | 行 | 用法 | 后果 | 建议改法 |
-|---|---|---|---|---|
-| `travel/timezone-converter-advanced.html` | 320 | `	document.getElementById('fromTime').value = local.toISOString().slice(0, 16);` | 默认值/输入框「今天」取自 UTC 日期，负时区全天、UTC+8 的 0–8 点会差一天。 | 改用本地 getFullYear/getMonth/getDate 拼 YYYY-MM-DD（或 getTimezoneOffset 校正后再 toISOString）。 |
-| `travel/travel-days-counter.html` | 246 | `	function setStartToday(){const d=new Date().toISOString().slice(0,10);document.getElementById('start').value=` | 默认值/输入框「今天」取自 UTC 日期，负时区全天、UTC+8 的 0–8 点会差一天。 | 改用本地 getFullYear/getMonth/getDate 拼 YYYY-MM-DD（或 getTimezoneOffset 校正后再 toISOString）。 |
-| `travel/travel-days-counter.html` | 247 | `function setEndWeek(){const s=document.getElementById('start').value;if(s){const d=new Date(s);d.setDate(d.get` | 变量 s 作为日期串（控件值或今日串）；date-only 按 UTC 解析，负时区回退一天；配合本地 getMonth/getDate 时月末/闰日/跨年边界偏移。 | 改用 new Date(y, m-1, d) 按本地年月日构造；若为纯 UTC 语义则统一用 Date.UTC + getUTC*。 |
-| `travel/travel-days-counter.html` | 252 | `const start=new Date(s),end=new Date(e),now=new Date();` | 变量 s 作为日期串（控件值或今日串）；date-only 按 UTC 解析，负时区回退一天；配合本地 getMonth/getDate 时月末/闰日/跨年边界偏移。 | 改用 new Date(y, m-1, d) 按本地年月日构造；若为纯 UTC 语义则统一用 Date.UTC + getUTC*。 |
-| `travel/travel-days-counter.html` | 274 | `	document.getElementById('start').value=new Date(Date.now()+7*86400000).toISOString().slice(0,10);` | 默认值/输入框「今天」取自 UTC 日期，负时区全天、UTC+8 的 0–8 点会差一天。 | 改用本地 getFullYear/getMonth/getDate 拼 YYYY-MM-DD（或 getTimezoneOffset 校正后再 toISOString）。 |
-| `travel/travel-days-counter.html` | 275 | `	document.getElementById('end').value=new Date(Date.now()+14*86400000).toISOString().slice(0,10);` | 默认值/输入框「今天」取自 UTC 日期，负时区全天、UTC+8 的 0–8 点会差一天。 | 改用本地 getFullYear/getMonth/getDate 拼 YYYY-MM-DD（或 getTimezoneOffset 校正后再 toISOString）。 |
-| `travel/world-timezone-converter.html` | 357 | `	document.getElementById('localDate').value=now.toISOString().slice(0,10);` | 默认值/输入框「今天」取自 UTC 日期，负时区全天、UTC+8 的 0–8 点会差一天。 | 改用本地 getFullYear/getMonth/getDate 拼 YYYY-MM-DD（或 getTimezoneOffset 校正后再 toISOString）。 |
+- `travel/travel-days-counter.html` 的默认日期用 `Date.now() + N*86400000` 后格式化为本地日期。纽约时区 2026-11-01 00:30 加固定 7×24 小时得到 11-07 23:30，而按日历加七天应为 11-08；默认开始日期提前一天，14 天同理。
+- 方案：按本地日历用 `setDate(getDate() + N)` 加天数，并覆盖夏令时结束边界。
 
 ### urban（1 条）
 
@@ -49,11 +42,6 @@
 
 | 页面 | 行 | 处置 |
 |---|---|---|
-| `travel/travel-days-counter.html` | 246/247/252/274/275 | ✅ 已修：新增 `parseLocalDate`/`fmtDate`，默认值与 +7/+14 天改本地格式化；`calc()` 改本地解析 + `Date.UTC` 零点差，避开 DST 的 23/25 小时日。 |
-| `travel/world-timezone-converter.html` | 357 | ✅ 已修：默认日期改 `fmtLocalDate(now)`；同页删除死代码 `isDST()`，改 IANA `zoneOffset()` 实时偏移（卡片/图表/导出表统一），并修 `setHours` 原地改写导致的「所有城市恒 00:00」。 |
-| `travel/timezone-converter-advanced.html` | 320 | ☑️ 判安全，不改：`new Date(now.getTime() - getTimezoneOffset()*60000)` 偏移校正后 `toISOString()` 恰为本地墙上时间。 |
-| `life/date-difference-calculator.html` | 加减月 | ✅ 已修：`addMonthsClamped()` 月末夹取（本批补闰年/平年用例）。 |
-| `life/temperature-converter.html` | 单位换算 | ✅ 已修：新增绝对零度下界（−273.15℃ / 0K / −459.67℉），低于即拒绝并提示；K/°F/°R 输入同校验。 |
 | `life/workday-calculator.html`、`life/age-in-days.html`、`life/date-diff.html`、`life/countdown.html`、`life/reminder-cycle.html`、`life/cycle-pruning-lawn.html` | — | ☑️ 判安全：本地年月日构造 / Date 克隆 / epoch 毫秒 / datetime 本地解析。 |
 | `design/farnsworth-d15-test.html`、`design/palette-cvd-checker.html`、`design/signature-pad.html` | — | ☑️ 判安全：仅导出元数据时间戳 / 文件名时间戳，不参与日期计算。 |
 
