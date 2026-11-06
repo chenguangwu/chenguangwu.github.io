@@ -197,6 +197,24 @@ const CASES = [
     ref: "非法 base64 使 atob 抛异常：decodeText 只弹 toast、不改写输出区，预设输出 KEEP-THIS-VALUE-0123456789 原样保留（statOutLen 26，膨胀率 (26-16)/16 = +62.5%）",
   },
   {
+    // IT-N502 回归：四套词库均为 14×14 且不含去重脚本残留的数字后缀（奶2/喵2/泡2）
+    slug: "it/nickname-generator",
+    inputs: {},
+    clicks: ["var __bad=[];['cute','cool','poetic','chinese'].forEach(function(k){if(SETS[k].a.length!==14||SETS[k].b.length!==14)__bad.push(k+'=' + SETS[k].a.length + 'x' + SETS[k].b.length);SETS[k].a.concat(SETS[k].b).forEach(function(w){if(/[0-9]/.test(w))__bad.push(k+':'+w);});});document.getElementById('output').textContent='SETS bad='+(__bad.length?__bad.join(','):'none');"],
+    dumpIds: ["output"],
+    expect: ["SETS bad=none"],
+    ref: "IT-N502：公式说明承诺软萌/高冷/诗意/中文四套各 14×14，修复前 SETS.chinese.a 只有 8 项、cute 含「奶2/喵2/泡2」三个数字残留 ⇒ 输出一串 bad 条目；修复后四套均 14×14 且无数字词 ⇒ `SETS bad=none`。全表遍历，默认示例（页面渲染的昵称 div）不含该串。",
+  },
+  {
+    // IT-N504 回归：批量生成后复制文本必须按行分隔（原 textContent 把 N 个 div 连成一串）
+    slug: "it/nickname-generator",
+    inputs: { count: "3" },
+    clicks: ["generate();var __t=__nicknameCopyText();var __sep=String.fromCharCode(10);var __ls=__t.split(__sep);document.getElementById('output').textContent='N504 lines='+__ls.length+' sep='+(__t.indexOf(__sep)!==-1);"],
+    dumpIds: ["output"],
+    expect: ["N504 lines=3 sep=true"],
+    ref: "IT-N504：count=3 生成三条后，__nicknameCopyText() 必须是 3 行且含换行符。修复前 copyResult 取 output.textContent，10 个 div 的 textContent 不带分隔符 ⇒ 1 行、sep=false。行数由注入的 count 决定（默认 10 不会是 3），故有判别力。",
+  },
+  {
     slug: "it/md5",
     inputs: { textInput: "hello" },
     expect: ["5d41402abc4b2a76b9719d911017c592"],
@@ -480,6 +498,13 @@ const CASES = [
     inputs: { txt: "hello" },
     expect: ["未检测到明显乱码特征。 修复输出： hello"],
     ref: "普通 ASCII 文本无乱码特征 ⇒ 判为「未检测到明显乱码特征」并把原文原样回吐为修复结果。默认态正文（中文占位）走另一分支，不命中（双态核验：注入 PASS / 默认 FAIL）。",
+  },
+  {
+    // IT-N495 锁定：修复输出必须先转义再写 innerHTML（旧版直接拼模板串，输入 HTML 即执行）
+    slug: "it/charset-detector",
+    inputs: { txt: "<img src=x onerror=N495MARK>" },
+    expect: ["&lt;img src=x onerror=N495MARK&gt;"],
+    ref: "IT-N495：页面把原文回吐为「修复输出」时必须转义。修复前模板串直接拼 `${fixed}`，blob 采集会剥掉裸 `<img …>` 标签，带 `&lt;` 的串根本不存在；修复后 escOut 输出 `&lt;img src=x onerror=N495MARK&gt;`。哨兵 N495MARK 由输入决定，默认示例不含。",
   },
   {
     slug: "it/charset-detector",
