@@ -89,11 +89,9 @@
 - 影响：年龄选填使同一体重在 13/14 岁边界结论翻转；成人上限被体重缩小或被绝对上限掩盖，超限可能不报警。
 - 方案：年龄改必填或提供“成人/儿童”显式开关；上限取 `min(成人绝对上限, 体重×儿童上限)` 并并列展示两套口径；年龄空值不再默认按儿童处理；补 13/14 岁、空年龄、低体重成人回归用例，剂量上限由药师复核。
 
-### D-N6 儿童剂量换算：倍数上限在常规范围不生效、0 值输出 0 mg；英文简介宣称 Clark/Young/BSA 三法但未实现（中，确认缺陷）
-- 描述：受限剂量 = `min(按体重剂量, 成人剂量×max_factor)`。儿童体重≤成人参考时按体重剂量恒≤成人剂量，倍数≥1 时封顶永不触发；`max_factor=0` 时 min 直接得 0。另：英文简介称“Clark 规则、Young 规则与 BSA 法并列对比”，但页面只有体重比，无年龄输入、无 BSA 计算。
-- 证据：`tools/healthcare/healthcare.html:121`、`:122-125`、`:290`、`:294`、`:298-299`。复现：成人 500 mg、儿童 20 kg、成人参考 70 kg、max_factor=0 → 按体重 **142.86 mg**、受限 **0.00 mg**；max_factor=2 → 受限仍 **142.86 mg**（等于未封顶）；只有儿童体重>2×成人参考时才触发。
-- 影响：用户以为存在安全上限，实际常规儿科范围不设限；0 倍数产生“0 mg”不可执行结果；内容宣称与实现不符（SEO/信任风险）。
-- 方案：max_factor 下限设为 1，0 时拒绝计算并说明；上限语义改为“成人单次剂量”或“绝对上限 mg”，或仅在超过成人剂量时才提示；英文简介删除未实现的 Clark/Young/BSA 对比或补齐年龄/BSA 输入；公式框与 FAQ 同步。
+### D-N6 儿童剂量换算：FAQ 将任意倍数封顶称为安全上限（中，确认缺陷）
+- `tools/healthcare/healthcare.html:299-310,465` 允许用户设置不小于 1 的任意倍数，默认 2；FAQ 却称该上限「防止单剂超量」并作为「安全上限」。例如成人剂量 500 mg、倍数 2 时封顶为 1000 mg，并非依据药品的儿科剂量或极量确定。
+- 影响：用户可能将人为设置的数学截断误认为经过药品安全性核验的剂量上限。应明确该倍数不代表药品安全限量，具体剂量由医师或药师核定。
 
 ### D-N7 Parkland 烧伤补液：已输注时间按 24h 线性均摊，8 小时只给到应有量的一半（高，确认缺陷）
 - 描述：`当前应输 = 4×W×TBSA×hours/24`，忽略“前 8 小时输半量、后 16 小时输另半量”的分段规则。正确口径应为 hours≤8 时 `半量×hours/8`，hours>8 时 `半量+半量×(hours-8)/16`。
@@ -167,12 +165,9 @@
 - 影响：少数体重/浓度组合少报可给次数（方向偏安全，但与公式不符）；dose>75 时「0 次」是正常样式结果，用户可能忽略其超限含义。
 - 方案：直接 `Math.floor(75/dose)`；dose>75 或 dose<5 时拒绝并红字提示；把「0 次」改为显式「已超过 75 mg/kg/日上限，禁止使用」。
 
-### D-N16 儿童退热液量：年龄只能填整数年，页面自述「<3 月龄应就医」却无任何年龄分支（中，确认缺陷）
-- 描述：年龄输入 `min=0 max=18 step=1`，只能表达整岁；`calc()` 只用年龄算 WHO 中位体重偏差，不判断月龄/年龄禁忌。引据表却写「三个月以下婴儿发热应及时就医而非自行用药」。
-- 证据：`tools/healthcare/antipyretic-dose.html:123`（年龄 step=1）、`:308-316`（年龄仅用于 refWeightOf 偏差）、`:170-174`（3 月龄引据）。
-- 复现：年龄 **0**、体重 **3.3 kg**、剂量 15 mg/kg、浓度 32 → 单次 **1.5 mL**、日上限 **5 次**，结果区无任何「<3 月龄/婴儿」提示；且无法输入 2 月龄。
-- 影响：新生儿/小婴儿发热按普通儿童剂量照算，而工具自身引据已说明应就医；家长可能据此自行给药。
-- 方案：年龄改为「岁 + 月（0–23 月）」或提供月龄段 select；<3 月龄直接拒绝计算并提示就医；≤6 月龄加「需医师评估」黄字；补 0/2/3/6 月龄用例，儿科口径由医师复核。
+### D-N16 儿童退热液量：修改年龄不会触发剂量重算，年龄留空绕过婴儿警示（高，确认源码缺陷）
+- `tools/healthcare/antipyretic-dose.html:123,292-300,342-350` 的年龄输入事件只调用 `updateWeightHint()`，不会调用 `calc()`；而小于 3 月龄拒算依赖 `calc()` 内读取年龄。先以默认 4 岁计算，再仅将年龄改为 0.17 岁，结果区仍保留先前剂量，未出现就医警示。年龄选填，留空时也跳过该年龄分支并直接输出剂量。
+- 影响：小婴儿可能看到旧剂量或在年龄未知时得到剂量结果。应在年龄变化时同步重算或清空结果，并对未提供年龄的情况明确处理；儿科口径需医师复核。
 
 ### D-N17 输液滴速计算：英文简介承诺输出 mL/h 与「取整后的实用档位」，实际只有滴/分与秒/滴（低，确认缺陷）
 - 描述：英文简介写 `drops per minute and millilitres per hour ... with a rounded practical setting suggested`，但 `calc()` 只输出总滴数、滴/分、秒/滴，没有 mL/h，也没有取整建议；公式框也只列前者。
@@ -209,13 +204,6 @@
 - 影响：「预期升幅」易被读成整次治疗的总升幅（实际是每升增量），量纲歧义可导致补液计划算错；标题的「速度」与简介的 infusion rate 均未实现，属名不副实。低钠纠正过快有渗透性脱髓鞘风险。
 - 方案：标签改为「每输注 1 L 预期升幅」；新增「计划输注量 mL」并输出「预计总升幅」「预计达目标所需液量」，再按 mL/h 输出速度与 24h 上限对比；目标<当前时拒绝并提示；补 0.9%NaCl/3%NaCl 用例，临床阈值由医师复核。
 
-### D-N22 Cockcroft-Gault 肌酐清除率：「按体表面积调整」值把身高硬编码为 170 cm，无身高输入（中，确认缺陷）
-- 描述：第二个结果 `CrCl × 1.73 / BSA`，BSA 用 `0.007184×W^0.425×170^0.725` 计算，170 cm 是写死在表达式里的常量，页面没有身高输入；结果标签「调整后体表」也未说明已假设身高。公式框只列 CrCl，未提该归一化。
-- 证据：`tools/healthcare/gfr-cockcroft.html:311`（`Math.pow(170,0.725)` 硬编码）、`:122-125`（仅年龄/体重/肌酐/性别）、`:140`（公式框无 BSA 归一化）。
-- 复现：50 岁、70 kg、血肌酐 80 µmol/L、男 → CrCl **96.69**、调整值 **92.43**（隐含 170 cm，BSA 1.810）。若实际身高 155 cm（BSA 1.692）应为 **98.83**（+6.9%）；190 cm（BSA 1.962）应为 **85.27**（−7.7%）。
-- 影响：按体表面积归一后的清除率对矮/高患者偏差约 ±7%，若用于按 1.73 m² 的肾剂量调整会偏离；且用户无法得知身高假设。
-- 方案：新增身高输入并按其算 BSA；缺身高时不要输出归一化值，或明确标注「按 170 cm 假设」。建议同时支持理想/校正体重（肥胖），并注明 Cockcroft-Gault 与 eGFR 不可互换；临床剂量调整由药师复核。
-
 ### D-N23 医疗健康计算器（用药剂量）：服药频率 `parseInt` 截断小数，1.5 次/天被当成 1 次/天，每次剂量高报 50%（中，确认缺陷）
 - 描述：`var freq = parseInt(...)`，把合法的 q16h（1.5 次/天）截成 1；输入框虽 `step=1`，但浏览器不阻止键入小数，脚本也不校验。日总量不变，`每次=日总量/freq` 因此放大。
 - 证据：`tools/medical/medical-calculator.html:441`（parseInt）、`:447`（perDose = daily/freq）、`:192`（freq 输入）。
@@ -232,7 +220,7 @@
 
 - 本轮实读 8 页：`tools/healthcare/weight-dosage.html`、`tools/healthcare/antipyretic-dose.html`、`tools/healthcare/healthcare-2.html`、`tools/healthcare/healthcare-3.html`、`tools/healthcare/gfr-cockcroft.html`、`tools/clinical-nursing/convert-flow-concentration.html`、`tools/clinical-nursing/oxygen-concentration.html`、`tools/medical/medical-calculator.html`。
 - 新增 12 条（高 1、中 8、低 3）：D-N13~D-N24。最高优为 D-N19（鼻导管高流量静默封顶 44% 且无超范围提示）。
-- 未覆盖：`tools/healthcare` 的 `bsa-calculator` / `egfr-calculator` / `ibw` / `healthcare-4/5` 与 `tools/clinical-nursing` 其余管路/评分页未读；英文态、移动端、verify 与门禁未验证；D-N13/D-N16/D-N19/D-N21/D-N22/D-N23 的临床阈值需药师/医师复核。
+- 未覆盖：`tools/healthcare` 的 `bsa-calculator` / `egfr-calculator` / `ibw` / `healthcare-4/5` 与 `tools/clinical-nursing` 其余管路/评分页未读；英文态、移动端、verify 与门禁未验证；D-N13/D-N16/D-N19/D-N21/D-N23 的临床阈值需药师/医师复核。
 - 与既有条目关系：D-N1（结果过期）、D-N8/D-N9（输液滴速/浓度）主题相近但页面不同；D-N10（Infinity 无守卫）与 D-N18 同源模式、页面不同；D-N13/D-N14 与 03-48 的模板铺开记录不重复（该记录只写新增年龄提示，未记缺陷）。
 
 ## 2026-11-04 续查（并行批 L）
@@ -271,12 +259,9 @@
 - 影响：用成人球囊给婴儿送 100 mL 难以精确控制，易过度通气/胃胀气；频率上下限不一致会让抢救时参数核对失去唯一口径。
 - 方案：`bagSize` 参与匹配校验（婴儿/儿童必须选小号球囊，成人球囊用于 <1 岁红字）；统一频率表并注明来源（AHA/ERC）；增设体重输入按 6–7 mL/kg 理想体重算潮气量。临床阈值由医师复核。
 
-### D-N30 体表面积 BSA：年龄必填却完全不参与计算，且儿童/婴儿仍套成人 DuBois 公式（中，确认缺陷）
-- 描述：`age` 被列入必填守卫，留空会以「请填写年龄」阻断计算，但 `calc()` 只读体重与身高；年龄从 1 改到 80 结果不变。婴儿预设仍用成人 DuBois 式，页面也未提示儿童应改用 Haycock/Mosteller；英文简介却把它定位为化疗/儿科给药定尺工具。公式框自己写明「年龄读入但不参与计算」，等于把误导固化在页面上。
-- 证据：`tools/healthcare/bsa-calculator.html:124`（年龄输入）、`:239`/`:302`（age 列入必填守卫）、`:303-307`（calc 只用 weight/height）、`:121`（英文简介化疗/儿科用途）、`:139`（公式框注明年龄不参与）、`:463`（deep-dive 承认儿童需 Haycock）。
-- 复现：体重 65 kg、身高 170 cm，年龄 **1** → BSA **1.754 m²**；年龄改 **80** → 仍 **1.754 m²**（零变化）。年龄留空 → 结果被「请填写年龄」阻断，尽管该值不参与任何算式。婴儿预设 8 kg/70 cm → **0.378 m²**，无「婴幼儿公式偏差」提示。
-- 影响：用户以为已按年龄校正；儿科按成人 DuBois 体表面积换算化疗/给药剂量会产生系统性偏差。
-- 方案：移除年龄，或改为「公式选择：成人 DuBois / 儿童 Haycock / Mosteller」；<18 岁默认儿科室并提示公式差异；缺年龄不得阻断成人计算；结果注明「BSA 估算值，化疗剂量须按方案与药师核定」。临床口径由药师/医师复核。
+### D-N30 体表面积 BSA：0 岁被错误归入成人公式（中，确认缺陷）
+- `tools/healthcare/bsa-calculator.html:308-316` 的儿童分支要求 `age > 0 && age < 18`；输入年龄 0、体重 8 kg、身高 70 cm 时实际使用 DuBois 并标注「成人，≥18 岁」，与页面所述「＜18 岁用 Haycock」不一致。
+- 影响：出生当天年龄 0 属合法输入，却采用成人公式且缺失婴幼儿提示。应令 0 岁进入儿童分支，公式及临床适用性需医师或药师复核。
 
 ### D-N31 eGFR 计算器（MDRD）：标题宣称 CKD-EPI+分期、实际只有 MDRD 且无分期；结果单位漏写 /1.73m²（中，确认缺陷）
 - 描述：H2 写「CKD-EPI and MDRD」、英文简介写「read the matching kidney function stage」，实际 `calc()` 只有 MDRD 175 式且只输出一个 eGFR 数值，没有 CKD 分期。引据表出处又写「CKD-EPI 2021 creatinine equation」。结果单位写成 `mL/min`，而 MDRD 结果是按 1.73 m² 归一化的，直接当绝对清除率用于肾剂量换算会偏差。肌酐仅支持 mg/dL，与同站 µmol/L 版并存。
@@ -301,18 +286,11 @@
 - 本轮实读 8 页：`tools/healthcare/bsa-calculator.html`、`tools/healthcare/egfr-calculator.html`、`tools/healthcare/egfr.html`、`tools/healthcare/ibw.html`、`tools/clinical-nursing/cvc-maintenance.html`、`tools/clinical-nursing/bag-valve-mask.html`、`tools/clinical-nursing/gastric-tube-depth.html`、`tools/medical/convert-glucose.html`。
 - 新增 8 条（高 3、中 4、低 1）：D-N25~D-N32。最高优为 D-N25（race=0 → eGFR 0/CKD 5）、D-N26（胃管身高法 77 cm/34 cm）、D-N27（透析导管生理盐水封管、肝素 0）。
 - 未覆盖：`tools/healthcare` 的 `healthcare-4` / `healthcare-5` / `map` / `qtc` 与 `tools/clinical-nursing` 的 `suction-pressure` / `chest-compression-depth` / `cvc-maintenance` 之外的管路页未读；英文态、移动端、verify 与门禁未验证。
-- 与既有条目关系：D-N22 是 `gfr-cockcroft` 的 BSA 硬编码，与本轮 D-N25/D-N31 的 eGFR 公式/系数问题页面不同、成因不同；D-N1/D-N10/D-N11/D-N24 的「无效输入沿用旧值」与本轮 D-N28/D-N32 的无守卫同类但页面不同，未重号。
+- 与既有条目关系：D-N1/D-N10/D-N11/D-N24 的「无效输入沿用旧值」与本轮 D-N28/D-N32 的无守卫同类但页面不同，未重号。
 
 ## 2026-11-04 续查（并行批 M）
 
 > 范围：本轮人工阅读 8 个用药/剂量/给药/监护类页面（`tools/healthcare` 4 页、`tools/clinical-nursing` 3 页、`tools/medical` 1 页）：`tools/healthcare/qtc.html`、`tools/healthcare/map.html`、`tools/healthcare/ideal-weight.html`、`tools/healthcare/healthcare-5.html`、`tools/clinical-nursing/suction-pressure.html`、`tools/clinical-nursing/chest-compression-depth.html`、`tools/clinical-nursing/restraint-duration.html`、`tools/medical/clinical-tools.html`。仅源码逐行阅读 + node 内存复算（复刻页面表达式与 `toFixed`/`Math.round`/`parseInt` 口径），未开浏览器、未验证英文态/移动端/门禁。临床剂量与阈值条目均需药师/医师复核。
-
-### D-N33 QTc 校正：公式选择字段完全不生效，正常上限与其引据矛盾且无延长判定（中，确认缺陷）
-- 描述：`formula` 输入标注「1=Bazett 2=Fridericia」，但 `calc()` 恒同时输出 Bazett 与 Fridericia 两条结果，该值只用来决定「正常上限」= 440/450，并未选择公式。440 与同页引据「男 450 / 女 460 ms」矛盾，页面又没有性别输入；结果区只并列两个数值与一个上限，没有「延长/正常」判定。英文简介还宣称支持 Framingham、Hodges 并对每种方法给出阈值，实际均未实现。
-- 证据：`tools/healthcare/qtc.html:122-124`（三个输入）、`:307`（Bazett）、`:309`（Fridericia）、`:311`（`formula===1?440:450`）、`:167-169`（引据 450/460）、`:121`（简介宣称四公式与逐法阈值）、`:234-298`（守卫仅拦空值，`__D` 为空、`__N` 只含 hr）
-- 复现：QT 400 ms、HR 75、公式 1 → Bazett **447.2**、Fridericia **430.9**、正常上限 **440**；公式改 2 → 两个 QTc 数值不变、上限变 **450**；HR 填 0 → **QTc 0.0 ms**（`60/0` 使分母为 Infinity），仍显示上限 440。
-- 影响：公式下拉形同虚设；上限 440 比男性阈值低 10 ms、比女性低 20 ms，用户逐值比对时可能把正常值当延长；HR=0 的 0 ms 结果是一等输出且无提示。
-- 方案：`formula` 改为真正的单选（Bazett/Fridericia/Framingham/Hodges），或删除并把两式结果都标清；正常上限改按性别 450/460 并输出「延长/未延长」；HR 限 20–250；无效输入清空结果。阈值需医师复核。
 
 ### D-N34 MAP 显著偏高仍显示正常（中，确认缺陷）
 - `tools/healthcare/map.html:238-263` 将 MAP ≥70 一律标记「正常」；收缩压 180、舒张压 120 时 MAP 为 140 mmHg，仍显示正常。心率字段也未参与计算。
@@ -368,7 +346,7 @@
 - 方案：GCS 增加 15 分「清醒」档，13–14 才称轻度；两个年龄项改单选或勾选一项自动取消另一项；对「双勾」加回归用例。抗凝建议需医师复核。
 
 ### 留存优化
-- D-N33/D-N40 同属「实现与页内引据/简介不一致」：建议结果区固定输出「所用公式 + 版本 + 单位 + 是否已按指南限幅」，避免同一页自相矛盾。
+- D-N40 涉及「实现与页内引据/简介不一致」：建议结果区固定输出「所用公式 + 版本 + 单位 + 是否已按指南限幅」，避免同一页自相矛盾。
 - D-N34/D-N36/D-N37 同属「无输入守卫 + 0/越界值仍出一等结果」：与 D-N1/D-N10/D-N11/D-N24/D-N28 同源；建议抽公共 guard（范围 + 必填 + 越界红字 + 无效清空），一次性覆盖本类页面。
 - D-N39 与 D-N38 的排程/示意问题属「派生量未单一来源」：建议时间点只由公式派生、示意图只由最终数值派生，避免中间量二次叠加。
 - 本轮未核对指南数值本身的医学正确性（吸痰负压、按压深度、约束松解周期、MELD 阈值），D-N37/D-N38/D-N39/D-N40/D-N41 的具体阈值需药师/医师复核。

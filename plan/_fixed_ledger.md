@@ -9,9 +9,7 @@
 |---|---|---|---|---|
 | 医疗 | D-N6 | tools/healthcare/healthcare.html | 成人剂量>0 守卫、封顶语义澄清 | verify_healthcare_calc.js |
 | 医疗 | D-N16 | tools/healthcare/antipyretic-dose.html | 年龄支持小数年、<3 月龄拒算 | verify_healthcare_calc.js |
-| 医疗 | D-N22 | tools/healthcare/gfr-cockcroft.html | 身高参与 DuBois BSA 归一，删 170cm 硬编码 | verify_healthcare_calc.js |
 | 医疗 | D-N30 | tools/healthcare/bsa-calculator.html | 年龄参与：<18 Haycock、≥18 DuBois | verify_healthcare_calc.js |
-| 医疗 | D-N33 | tools/healthcare/qtc.html | 4 公式生效、450/460 上限、延长判定 | verify_healthcare_calc.js |
 | 医疗 | D-N10 | tools/medical/convert-time-infusion.html | 静态整句告警、独立校验 | verify_medical_calc.js |
 | 医疗 | D-N23 | tools/medical/medical-calculator.html | 频率 parseFloat、1–24 校验 | verify_medical_calc.js |
 | 医疗 | D-N29 | tools/clinical-nursing/bag-valve-mask.html | 球囊容量参与、频率表统一 | verify_clinical_nursing_calc.js |
