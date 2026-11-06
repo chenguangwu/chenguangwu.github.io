@@ -27,6 +27,7 @@
 - 静态续审第十四批：阅读 `it/{java-cheatsheet,java-escape,js-escape,js-minifier,kubernetes-cheatsheet,language-code-lookup}` 6 页主要交互路径，记录原始输入 HTML 注入点、简化器字符串破坏与旧输出、转义错误处理；Node 抽取简化器原函数复算，未使用浏览器，不计双跑。
 - 静态续审第十五批：阅读 `it/{less-compiler,linux-cheatsheet,locale-lookup,markdown-editor,mongodb-cheatsheet,msisdn-lookup}` 6 页主要交互路径，记录 locale 输入 HTML 注入点、Markdown 文本误触数值守卫及 Less 异步竞态；旧 Markdown 属性注入代码已变，待安全回归。纯源码结论，未运行页面或竞态，不计双跑。
 - 静态续审第十六批：阅读 `it/{mysql-cheatsheet,nginx-cheatsheet,number-base-converter,password-strength,php-cheatsheet,php-escape}` 6 页主要路径；记录 PHP 不完整 Unicode 转义的索引死循环和模式刷新缺口，进制转换旧实现已变化待回归。Node 仅复算索引与解析值，未运行循环或浏览器，不计双跑。
+- 静态续审第十七批：阅读 `it/{pomodoro,postgresql-cheatsheet,python-cheatsheet,python-escape,redis-cheatsheet,regex-cheatsheet}` 6 页主要路径；记录 Python 反转义前缀、码点错误和选项不刷新，番茄钟既有关键路径仍在。未运行浏览器，不计双跑。
 
 
 - 扫描时间：2026/11/5 05:04:33
