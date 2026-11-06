@@ -172,13 +172,6 @@
 - 影响：Unicode 输入中，未匹配字符丢失或保留错误，复制/下载会传播损坏的内容；非全局分支亦用同样的索引方式，需一并验证。
 - 方案：匹配位置必须对应原文，增加大小写映射长度变化、连续命中及非全局回归；尚未做浏览器验证。
 
-### IT-N5 配置导出忽略密钥编码及 Shell 引用不安全（高，已修复 2026-11-06 核验：env-generator.html:670-724 effectiveValue 统一先取编码值含 Base64、shellValue 单引号包裹并转义内部引号）
-
-> 续审更正（审计侧）：当前 `effectiveValue()` 供 `tomlValue()` 使用，Shell 采用单引号包裹并转义内部单引号（`tools/it/env-generator.html:671-676,690-693,715-723,775-782`），下述旧实现证据已过时。审计侧尚未做运行态回归，待其复验后正式销账。
-- 证据：`tools/it/env-generator.html:671-679,739-746,759-772` TOML 分支调用 `formatValue` 后仍读取原始 `v.value`，勾选密钥 Base64 后 TOML 依然输出原值；Shell 分支直接拼接变量值，`hello world` 无引号会改变 shell 解析，双引号中的 `$` 等也会展开。
-- 影响：`tools/it/env-generator.html`；生成的配置与选项不符，复制执行的 Shell 值可能变化或触发展开。Base64 不是加密，不能将该选项描述为保密措施。
-- 方案：各格式共用转换后的值，分别按目标格式安全序列化和转义；覆盖特殊字符及复制下载一致性，明确 Base64 非加密。
-
 ### IT-N6 特定 JSON 解析错误仍保留旧 CSV（高）
 - `tools/it/json-to-csv.html` 的异常分支在清空结果前先检查错误信息；如先转换有效 JSON，再输入 `NaN` 或 `Infinity`，若解析错误消息包含这些词，提前返回导致 `output.value` 和 `__jsonToCsvExportSafe` 仍为旧结果，复制或下载可能导出旧数据。
 - 应在所有错误返回前清空预览与导出缓存，并覆盖有效 → 异常输入 → 有效的切换。
@@ -191,46 +184,21 @@
 - 影响：使用与输入不符的进制产生错误结果。
 - 方案：对原始输入进行整数和范围校验，再执行转换。
 
-### IT-N9 Nginx 场景预设生成无效或误导性配置（高，已修复 2026-11-06 核验：nginx-config-generator.html:247-267 端口校验 1–65535、proxy 需 upstream、https 需 cert/certKey 并生成 ssl 配置）
-- 证据：`tools/it/nginx-config-generator.html:224-235,345-348` 反向代理预设的 root 为空，被回退成 `/var/www/html`，生成 `proxy_pass /var/www/html;`；「HTTPS 静态站」仅设置 `listen 443`，不包含 TLS 监听及证书；端口也未校验 1–65535。
-- 影响：`tools/it/nginx-config-generator.html`；配置可能无法加载或误让用户认为已启用 HTTPS。
-- 方案：按模式校验上游 URL 和路径；HTTPS 明确要求证书并生成 TLS 配置，端口严格限制范围；提供完整配置复制或下载，并区别历史 CSV 导出。
-
 ### 续查覆盖
 - 新抽查 `tools/it/env-generator.html`、`tools/it/json-to-csv.html`、`tools/it/number-base-converter.html`、`tools/it/text-replace.html`、`tools/it/nginx-config-generator.html` 共 5 页，新增 7 条问题（历史计数）；未做浏览器、部署或门禁验证。历史回填的实际交互需真机复核。
 
 ## 2026-11-03 续查（并行批 G）
 
-### IT-N10 .properties 含空格的赋值被整体当成键（高，已修复 2026-11-06 核验：properties-parser.html:270-292 已按 Java Properties 规范扫描键/分隔符/续行）
-- 问题：`parseProps` 扫描键时遇到普通空格就 `break` 退出，`sep` 保持 -1，随后把整行 trim 后当键、值置空；标准 `key = value` 写法全部失效。
-- 证据：`tools/it/properties-parser.html:268-275`。Node 内存执行原函数：`parseProps("app.name = toolbox")` → `{"app.name = toolbox":""}`；页面默认 `SAMPLE`（255）经 Boot（435）→`loadSample`（319）→`doBeautify`（293-300）→`toProps(parseProps())`，实际首行输出为 `app.name \= toolbox = `（键里还带被二次转义的 `=`）。无空格写法 `a=b`、`c:d` 正常。
-- 影响：`tools/it/properties-parser.html`；页面一打开示例就是错误结果，JSON 转换/美化/压缩三条路径同时失真。
-- 方案：按 Java Properties 规范实现键扫描——行首空白跳过、键在首个未转义的 `=`/`:` 或空白处结束、空白分隔后可选再吃一个 `=`/`:`，再做值 trim；补 `key = value`、`key: value`、制表符分隔与行首缩进用例。
-
-### IT-N11 properties-parser 重复定义覆盖后错误态样式反转（低，已修复 2026-11-06 核验：properties-parser.html:329-331 仅一套 setOut/setErr/loadSample 定义，成功态按 ✅ 前缀判定）
-- 问题：同一段脚本里 `setOut/setErr/clearAll/loadSample` 各定义两次，后者覆盖前者；覆盖版 `setErr` 的条件写成 `'err'+(s?'':' ok')`，有消息时反而没有成功态、空消息时反而带 `ok`。
-- 证据：`tools/it/properties-parser.html:312-319`（对比 286-311）。`loadSample` 被 319 覆盖后不再只做解析，而是走 `doBeautify`，与 IT-N10 叠加；`clearAll` 的占位文案也由“等待解析...”变为“等待输入...”。
-- 影响：`tools/it/properties-parser.html`；解析成功提示按红色错误样式显示，状态反馈不可信。
-- 方案：删除重复定义只保留一套；错误/成功态用独立 class 或直接按 `s` 是否以 ✅ 开头判断，并让 `loadSample` 只调用 `propsToJson`。
-
-### IT-N12 URL 解析结果未转义直插 innerHTML，重复参数被覆盖（高，已修复 2026-11-06 核验：url-parser.html:390-420 esc(k)/esc(v) 转义输出、重复参数存为数组）
-- 问题：`url.searchParams.forEach` 把重复键写入同一对象（后者覆盖前者）；随后字段值与参数值未经转义拼进 `innerHTML`，历史记录（localStorage）回显同样原样拼接。查询值经 `URLSearchParams` 已解码，`<img onerror>` 会作为标签生效；值内的单引号还会截断复制按钮的 `onclick` 属性。
-- 证据：`tools/it/url-parser.html:377-379,389-403,477`。Node `new URL("https://x.com/p?q=<img src=x onerror=alert(1)>&a=1&a=2&tag=%3Cb%3E")` → `searchParams` 得 `{"q":"<img src=x onerror=alert(1)>","a":"2","tag":"<b>"}`：重复 `a` 只剩 `2`，且值含可执行标签。路径侧 `<` 被 URL 序列化为 `%3C`，注入面主要是查询值与历史记录。
-- 影响：`tools/it/url-parser.html`；解析含 HTML 的链接时页面可被注入（自输入/历史持久化），参数表只显示最后一个同名参数，复制按钮可能失效。浏览器实际执行未验证。
-- 方案：所有输出统一走文本转义或 `textContent`/`createElement` 构建；重复参数保留数组并按 `getAll` 逐行展示；`onclick` 改为事件委托，不把数据拼进属性。
-
-### IT-N14 curl 转代码漏判 POST 与方法/选项值误认作 URL（高，已修复 2026-11-06 核验：curl-parser.html:242-288 CURL_VALUE_OPTS 值成对消费映射表、esc() 转义）
-- 问题：未处理“带 `-d` 时 curl 默认改 POST”，输出固定 GET；除 `-X/-H/-d/--data/--data-raw` 外的选项（如 `-F`、`--data-binary`、`-u`、`-o`）的值不以 `-` 开头，会被当成 URL；头部值原样进 `innerHTML`。
-- 证据：`tools/it/curl-parser.html:243,250-265,267-272`。Node 桩执行 `parse()`：`curl -d '{"a":1}' https://api.example.com/x` → `方法：GET`（curl 实际以 POST 发送）；`curl -F 'file=@a.txt' --data-binary @b.json https://x.com` → `URL：file=@a.txt`（真实 URL 丢失）；`-H 'X-Test: <img src=x onerror=alert(1)>'` 原样输出 `<p>X-Test: <img src=x onerror=alert(1)></p>`。
-- 影响：`tools/it/curl-parser.html`；复制出的请求方法/URL/表单体与真实 curl 行为不符，常见上传命令直接解析错。
-- 方案：建立“选项是否带值”的映射表，成对消费参数；无 `-X` 而有 `-d/--data*/--form` 时默认 POST；未知选项跳过其值并提示；输出统一转义，必要时以结构化 JSON 展示。
+### IT-N11 properties-parser 重复定义覆盖后错误态样式反转（低）
+- `tools/it/properties-parser.html:329-337` 仍重复定义 `setOut/setErr/clearAll/loadSample`；后定义的 `setErr` 覆盖成功态判断，成功和错误提示均为 `err`，空消息反而带 `ok`，`loadSample` 也改为调用 `doBeautify()`。Node 执行页面原函数确认成功提示的 class 为 `err`。
+- 删除重复定义并保留正确的成功态判断，确认示例行为符合预期。
 
 ### IT-N15 字节模式对未超限文本错误截断（中）
 - `tools/it/text-truncate.html` 字节模式先判断省略符是否超过上限，再判断输入是否需要截断。例如输入 `a`、上限 1 字节、省略符 `...` 时输出 `.` 而非原文 `a`。
 - 应先判断输入是否超过上限，仅在确需截断时处理超长省略符。
 
 ### 留存优化
-- `properties-parser.html:280` 的 `unescapeVal` 不解码 `\uXXXX`：`greet=\u4f60\u597d` 原样保留（Node 已复算），与页面 FAQ 对转义的说明不一致，可随 IT-N10 一并修。
+- `properties-parser.html:298` 的 `unescapeVal` 不解码 `\uXXXX`：`greet=\u4f60\u597d` 原样保留（Node 已复算），与页面 FAQ 对转义的说明不一致。
 - `properties-parser.html:265` 行尾 `\\`（字面反斜杠）也被当作续行：`path=C:\\` + 下一行 → `{"path":"C:\next=1"}`，需区分“单个反斜杠续行 / 双反斜杠字面量”。
 - `url-parser.html:442-459` 构造器不校验 host/port，host 为空会生成 `https:///path`，端口可写入任意非数字内容。
 - `slugify.html:315` 拼音表 `'音频':'yinpinyin'` 拼写有误；297 的 15 字长键因贪心上限 8（324）永远匹配不到，属冗余数据。
@@ -242,12 +210,6 @@
 - 取证方式仅为源码静态阅读 + Node 内存提取原函数/最小 DOM 桩执行复算；未做真实浏览器交互、英文态、移动端、门禁或部署验证。
 
 ## 2026-11-03 续查（并行批 J）
-
-### IT-N18 Markdown 链接目标未转义，可注入 HTML 属性（高，已修复 2026-11-06 核验：markdown-to-html.html:295-306 attrEsc 转义引号+safeUrl 白名单 http/https/mailto 并百分号编码阻断 javascript:）
-- 描述：`inline()` 只转义 `&<>`，不处理双引号；链接正则把 URL 原样塞进 `href`，最终经 `ToolBox.setResult` 以 `innerHTML` 写入预览区。
-- 证据：`tools/it/markdown-to-html.html:289-296`（294 为链接替换）；`js/common.js:2047-2050`（`setResult` 直接赋值 `innerHTML`）。Node 复算 `inline('[x](https://a/" onmouseover="alert(1))')` → `<a href="https://a/" onmouseover="alert(1" target="_blank" rel="noopener">x</a>`；`[x](javascript:alert(1))` 的 `href` 被 `[^)]+` 截成 `javascript:alert(1`。
-- 影响：`tools/it/markdown-to-html.html`；粘贴带引号的链接即可在预览区制造事件属性（自输入型 XSS），转载他人 Markdown 时同样成立。
-- 方案：URL 走白名单（http/https/mailto）并做属性转义，或改用 `createElement`/`setAttribute` 构建链接；预览与“HTML 代码”面板统一输出净化后的结果。
 
 ### IT-N20 历史/数据表/图表恒空，历史回填会清空全部选项（中，确认源码缺陷）
 - 描述：`__text_cleanerResText` 读取 `#output-text` 的 `textContent`，而它是 `textarea`——当前 `value` 不写入子节点，`textContent` 恒为空，extras 直接提前返回；且 extras 只包装了 `applyPreset`，点“执行清理”与预设条回调（`executeClean`）都不会记录。历史回填调用 `applyPreset()` 不带参数。
@@ -389,27 +351,6 @@
 - 复现：勾选全部 rwx → `chmod 777 <file>`；没有任何控件能得到 `4755`（期望提供 setuid/setgid/sticky 三个开关并输出 4 位）
 - 影响：需要 setuid/sticky 的场景无法使用，文档与功能不一致。
 - 方案：增加三个特殊位复选框（4/2/1 置千位），或在说明中注明"本工具仅支持 3 位权限"。
-
-### IT-N50 Crontab 生成器：校验函数忽略 min/max，越界值被当作合法表达式（高，已修复（核验 2026-11-06：当前 `valid(s,min,max)` 已对 range（`a<min||b>max`）与单值（`v<min||v>max`）校验边界，`*/0` 亦因 `>0` 被拒；Node 复算 `99`/`1-99`/`*/0` 均返回 false；verify 891/897 含 IT-N50 回归用例全过。本条「min/max 完全未使用」与现状不符，疑为更早版本证据；步长上界未额外限制以兼容真实 cron 对大步长的接受）
-- 描述：`valid(s,min,max)` 的三个参数中 min/max 完全未使用，正则只检查形状；`99` 分钟、`1-99` 小时、`*/0` 步长都能通过，生成的 crontab 会被 cron 拒绝或语义异常。
-- 证据：`tools/it/crontab-generator.html:283`（正则）、`296-302`（调用处传入范围）
-- 复现：分钟填 `99` → ✅ 表达式 `99 9 * * *`；分钟填 `*/0` → ✅；小时填 `1-99` → ✅（期望标红"分钟 0-59 / 小时 0-23"）
-- 影响：复制出的 crontab 无法加载（cron 报 bad minute/hour），或 `*/0` 行为不可预期。
-- 方案：解析每个枚举/区间/步长并逐项校验边界（步长 >0 且不超过范围），越界给出字段级提示。
-
-### IT-N51 Crontab 生成器：默认表达式的中文说明重复"每月"且语序不通（低，已修复 2026-11-06 核验：重写 zhTxt 生成——按 分/时/日/月/周 重组、去重量词，默认 `0 9 * * *` ⇒「每天 09:00 执行」；verify_it_calc.js +1 N51 回归用例（注入 `0 18 * * 1-5` ⇒「周 1-5 18:00 执行」）crontab 7/7 全过）
-- 描述：`f[2]==='*' && f[4]==='*'` 分支固定以"每月 "开头，再拼接本身已是"每月"的 `parts[3]`，造成重复量词与错误语序。
-- 证据：`tools/it/crontab-generator.html:313-317`、`284-290`
-- 复现：默认值 `0 9 * * *` → "中文说明：每月 每月 每天 小时 9 分钟 0"（期望"每天 9:00"）
-- 影响：默认打开的页面即展示病句，用户难以据此核对表达式。
-- 方案：按"分/时/日/月/周"重组自然语言并去重量词；补 `* * * * *`、`0 9 * * *`、`0 18 * * 1-5` 快照用例。
-
-### IT-N52 IPv6 转换：IPv4 映射预设必然报非法，`/前缀` 也不支持（高，已修复（核验 2026-11-06：当前 `expand()` 已通过 `ipv4ToHex` 转换末尾点分十进制段、`calcTool()` 已剥离并校验 `/len`（0–128）；Node 复算 `::ffff:192.0.2.1`→`...:ffff:c000:0201`、`2001:db8::1/64`→带 `/64`、`64:ff9b::192.0.2.1` 均正确。verify 含 IT-N52 回归用例 ipv6 6/6 全过；本条「必然报非法」为过时证据）
-- 描述：`expand` 对 8 段做 `^[0-9a-f]{1,4}$` 校验，点分十进制段必然失败；页面预设条提供 `::ffff:192.0.2.1`，FAQ 也专门介绍 IPv4 映射。含 `/64` 的地址同样被拒。
-- 证据：`tools/it/ipv6-converter.html:213-232`（230 正则）、`346`（IPv4 映射预设）、`385`（FAQ）、`151`（前缀说明）
-- 复现：点"IPv4 映射"或输入 `::ffff:192.0.2.1` → "⚠️ 不是合法的 IPv6 地址。"（期望 `0000:...:ffff:c000:0201`）；`2001:db8::1/64` → 同样报错（期望拆出前缀长度并校验 0–128）
-- 影响：工具自带的 4 个预设之一不可用；双栈/映射地址与带前缀地址都无法转换。
-- 方案：识别末尾 IPv4 段并转成两组十六进制；剥离 `/len` 单独展示与校验；补 `::ffff:192.0.2.1`、`64:ff9b::192.0.2.1`、`/64` 用例。
 
 ### IT-N54 CRC-8/ITU 的 CCITT 别名待核实（疑似待验证）
 - `tools/it/crc-calculator.html:330` 将模型标为 `CRC-8/ITU (CCITT)`；[CRC RevEng 参数目录](https://reveng.sourceforge.io/crc-catalogue/1-15.htm#crc.cat.crc-8-i-432-1) 列出该参数模型为 `CRC-8/I-432-1`，别名为 `CRC-8/ITU`，未列 CCITT。需核实 CCITT 别名的权威依据，避免与其他 CRC 模型混淆。
@@ -4638,7 +4579,6 @@
 
 - 页数：6（JSON 格式化 1 + YAML 1 + XML 1 + CSV↔JSON 1 + 文本 diff 1 + Markdown lint 1）；默认自动出结果 5 页，`text-diff` 无默认输出。
 - 新增问题：8 条——① 高优 3（IT-D19–IT-D21：递归崩溃 1、XML 误判 1、YAML 转换失真 1）/ ② 假工具增量 3（IT-D22–IT-D24）/ ③ 安全 2（IT-D25–IT-D26）；编号 IT-D19–IT-D26 连续、无重号，接续上批 IT-D18。
-- 复核既有：`json-to-csv` 的 IT-N6（空/非数组不清空旧输出，`:277`）与 IT-N7（嵌套不展开、历史回填触发下载，`:284,356`）仍成立，按页计不重复编号。
 - 伪实现排查：6 页中 4 页用原生解析或正式库（`JSON.parse` ×2、`DOMParser`、`js-yaml`），`text-diff` 为自写 LCS（真实但崩溃），`markdown-lint` 为正则伪解析且宣称项缺失；无回显式假工具。
 - 安全：无 `eval`/`new Function`/`allow-same-origin`；用户文本输出均走 `textContent` / `ToolBox.escHtml`。`xml-validator` 不解析外部实体（XXE 安全），`yaml-validator` 不落盘。模板级 `lf1-cdn-tos.bytegoofy.com/ttzz` 第三方脚本本批 6 页均存在（如 `json-formatter:182`、`markdown-lint:71`），属全站通用问题、已登记，不重复计数。
 - 方法：`/tmp` 用与页面同版本 `js-yaml@4.1.0` 复算多键/多文档/锚点/日期键/`!!binary`；jsdom `DOMParser` 复算 XML（CDATA/转义/200 层/`parsererror` 根/实体）；Node 原样提取 LCS+回溯与正则跑规模与误报用例；Python `csv.reader` 回读 CSV 校验引号内逗号/换行；未开浏览器、未跑 `_build.py`/门禁、未执行 git、未修改 `tools/**`、js/css/json 或构建产物。
@@ -4739,7 +4679,7 @@
 
 - 页数 **9**（PDF 4 + 解析 5）；独立实现 **6** / 共享实现 **3**。
 - 新增 **11** 条（高 **3** / 中 **7** / 假 **1** / 安全 **0**）；编号 IT-D31–IT-D41。
-- 复核既有 6 条（`it.md:2582`、`:2588`、`:2593`、`:140`、`:141`、IT-N65）均仍成立；确认 IT-N10（空格成键）、IT-N14（`-d` 漏判 POST/选项吞 URL/头部 XSS）、IT-N24（重复节丢键）已修。
+- 复核既有 6 条（`it.md:2582`、`:2588`、`:2593`、`:140`、`:141`、IT-N65）均仍成立；IT-N24（重复节丢键）原记录标注已修，待独立复核。
 - 复算方式：按页面函数逐行复刻 node 桩（properties/ini/curl/UA）；PDF 用同版本 pdf-lib 真调用；未开浏览器、未跑 `_build.py`/门禁、未改仓库文件。
 
 
