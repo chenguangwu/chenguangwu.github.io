@@ -47,38 +47,10 @@
 
 ## 2026-11-03 续查：浏览器本地推理
 
-### AI-N1 成功计算破坏明细和历史宿主（高，确认源码缺陷）
-- 证据：`tools/ai/image-classification.html:145-151,324,343-385`、`tools/ai/sentiment-analysis.html:131-135,307,322,349-364`、`tools/ai/text-summarization.html:141-145,311,338-353`、`tools/ai/speech-to-text.html:137-141,310,328-343` 均将表格、历史宿主放入 `result`，成功时用 `innerHTML` 替换全部子节点；随后增强逻辑继续访问已被移除的目标。图像和语音数据表切换还隐藏其父容器（`image-classification.html:470-488`）。
-- 影响：以上 4 页的明细、历史、对比或 CSV 目标不可用，图像页图表也受影响；同类已有显存页问题，按页面归并，不混计全站共性条目。
-- 方案：主结果、数据表、图表、历史改为独立稳定的同级容器；覆盖成功、失败、预设、标签切换及导出，真实浏览器核验。
-
-### AI-N2 情感与摘要 CSV 调用模块私有函数（中，确认源码缺陷）
-- 证据：`tools/ai/sentiment-analysis.html:126,283,349` 和 `tools/ai/text-summarization.html:135,286,338` 的内联按钮调用名称只声明在 `type=module` 中，未暴露到 window，因模块作用域不会作为内联事件的全局函数。
-- 影响：`tools/ai/sentiment-analysis.html`、`tools/ai/text-summarization.html`；即使恢复表格宿主，导出按钮仍无法按现状调用目标函数。
-- 方案：用事件监听器绑定并提示空表导出失败；覆盖两页点击导出并核对文件内容。
-
-### AI-N3 中文词库命中比例误称置信度，否定句误判（高，确认函数缺陷）
-- 证据：`tools/ai/sentiment-analysis.html:235-250,302-307` 以子串命中计数，正负相等选正面，将最大命中占比作为置信度；执行函数时「不好」因命中「好」得到正面 100%，「好差」得到正面 50%。
-- 影响：`tools/ai/sentiment-analysis.html`；将启发式比例误作模型概率，否定和平局可产生误导性结论。
-- 方案：标识词库规则与局限，将比例改称命中占比；处理否定和平局并展示命中依据，不能暗示概率经校准。
-
-### AI-N4 双声道语音只读取左声道（高，确认源码缺陷）
-- 证据：`js/ai-core.js:74-90` 的 `decodeAudioTo16k` 只调用 `getChannelData(0)`；`tools/ai/speech-to-text.html:295-308` 使用其结果转写。左声道全零、右声道有声的模拟输入会输出全零；真实音频识别效果尚未测试。
-- 影响：`tools/ai/speech-to-text.html`；右声道独有内容被遗漏。
-- 方案：提供声道选择或明确的混音处理，并提示相位抵消风险；用左右独立语音样本验证与展示源音频信息。
-
-### AI-N5 敏感输入历史本地留存且清除入口被移除（高，确认源码路径，浏览器待核验）
-- 证据：`tools/ai/sentiment-analysis.html:353-364`、`tools/ai/text-summarization.html:342-353` 将输入前 300 个 UTF-16 码元写入历史；`js/tool-kit.js:1066-1080,1088-1099,1146-1158` 使用 localStorage 并由历史面板提供清除。成功结果覆盖宿主后面板不可见（AI-N1）。这不是已证实的数据上传。
-- 影响：`tools/ai/sentiment-analysis.html`、`tools/ai/text-summarization.html`；共享设备上文本可能残留而用户找不到清除入口。
-- 方案：敏感文本默认不存历史或明确取得同意，提供独立可见的清除入口并说明本地保留范围；实际检查 localStorage 与清除行为。
-
-### AI-N6 摘要与语音页面说明不符（中，确认源码缺陷）
-- 证据：`tools/ai/text-summarization.html:117,124-129,309` 说明可调压缩率/抽取关键句且标「约 60/120/200 字」，实际是生成模型的 `max_new_tokens`；`tools/ai/speech-to-text.html:20,123-127,295-308,391-398` 宣称麦克风 Web Speech API 实时转写，实际提供音频文件输入和 Whisper。
-- 影响：`tools/ai/text-summarization.html`、`tools/ai/speech-to-text.html`；功能和输出预期不符。
-- 方案：按真实能力改写中英文介绍、FAQ 和示例，解释 token 与字数不等；需要实时录音或压缩比时另行实现。补充首次下载模型、缓存条件及长音频内存需求，具体离线效果待实测。
-
-### 续查覆盖
-- 新抽查 `tools/ai/image-classification.html`、`tools/ai/sentiment-analysis.html`、`tools/ai/text-summarization.html`、`tools/ai/speech-to-text.html` 4 页，新增 6 条（其中 4 条高优）；为源码/内存函数证据，未做真实浏览器、网络及线上验证。
+### AI-N5 已下架页面的敏感历史可能仍保留（高，待核验）
+- 旧情感分析和摘要页曾通过 `TBKit.history.record` 将输入前 300 个 UTF-16 码元写入 localStorage；`js/tool-kit.js` 以 `tbk_hist_` 加页面路径作为键。页面下架并不自动清除用户浏览器中的旧记录。
+- 影响：共享设备上的旧文本可能残留；这不是已证实的数据上传。
+- 方案：核实旧路径对应的记录及现有清除入口，验证旧用户能否清除残留。
 
 ## 2026-11-03 续查（并行批 H）
 
