@@ -375,13 +375,6 @@
 
 - 2026-11-06 复核：原 IT-N72/82 的行内空格和属性空格问题已修，Node 执行 `collapseHtmlWhitespace()` 复核原例均保留；原 IT-N73/84 的 EAN 长度、字符和校验位已修，实际 `buildEAN()` 对空、短、字母、超长、错误校验位返回错误，12 位和正确 13 位均生成 `5901234123457`；原 IT-N74/75 的示例选项、引号和镜像后命令均经 `parse()` 实测通过。仅函数级验证，未做浏览器验证。
 
-### IT-N83 Base64/Base32/Base85 转换器：Base32/Base85 解码静默跳过非法字符，脏输入仍输出看似正常文本（中，确认源码缺陷）
-- 描述：`base32Decode()` 对不在 `A-Z2-7` 表的字符执行 `if(idx===-1) continue`，`base85Decode()` 对不在字符表的字符同样 `continue`；两者都不校验剩余位数/填充位。复制时混入数字 `0/1`、标点或被截断的串，会被当成合法输入并解出部分内容。
-- 证据：`tools/it/base64-converter.html:466-482`（473 跳过非法字符）、`tools/it/base64-converter.html:513-542`（525-526 跳过非法字符）
-- 复现（Node 复算原函数）：Base32 输入 `MZXW6YTB0I`（`0` 非法）→ 实际解出 `fooba`（期望报「非法字符 0」）；`MZXW6!!!` → `foo`；单字符 `A` → 空串且无报错。Base85 `<~!!!!v~>` 中的 `v` 被跳过，仍解出 4 个 NUL 字节。
-- 影响：损坏/截断的编码被静默还原为部分文本，用户无法发现数据缺失；用于配置或签名核对时可能误判。
-- 方案：遇到字符表外字符立即抛出并指明位置；解码结束校验剩余位数必须为 0（Base32 末字节低比特、Base85 尾组）；空结果或长度不足时提示；补非法字符、截断、单字符用例。
-
 - 备注：`tools/it/ip-calculator.html:453-456` 与 `tools/it/cron.html:462-466` 的 `switchTab` 依赖全局 `event`（与 IT-N31 同模式，Firefox 可能失效），不重复计数，未单列为新条目。
 - 本轮实读 8 页：`tools/it/ip-calculator.html`、`tools/it/html-minifier.html`、`tools/it/barcode-ean.html`、`tools/it/docker-run-converter.html`、`tools/it/cron.html`、`tools/it/qr-decoder.html`、`tools/it/url-encode.html`、`tools/it/base64-converter.html`；新增 15 条（高 2 / 中 12 / 低 1）；未覆盖：`tools/it` 其余非文本页（如 `base32-encode`、`base58-encode`、`base85-encode`、`http-headers`、`http-status`、`http-methods`、`mime-type`、`gitignore-generator`、`dockerfile-generator`、`shell-script-formatter`、`ipv6-ula`、`ssl-info`、`aes/des/rsa/ecdsa` 等）与全部速查表页；未做浏览器、EN、移动端、门禁或部署验证。
 
