@@ -7,9 +7,6 @@
 
 | 分区 | 条目 ID | 页面 | 修复类型 | 验证用例 |
 |---|---|---|---|---|
-| IT | IT-N8 | tools/it/number-base-converter.html | 负数/自定进制 2–36 校验与回填 | verify_it_calc.js |
-| IT | IT-N46/N47 | tools/it/color-converter.html | RGB/alpha 钳制、对比度计入 alpha、非法输入清理 | verify_it_calc.js ×4 |
-| IT | IT-N40/N41 | tools/it/time-format-converter.html | 10/13/16/19 位识别、纯日期本地零点 | verify_it_calc.js ×2 |
 | IT | IT-N54 | tools/it/crc-calculator.html | CRC-8/CCITT 参数校正（poly 0x07/init 0/xorout 0x55） | verify_it_calc.js |
 | IT | IT-N60 | tools/it/css-minifier.html | 字符串/url()/注释受保护分词 | verify_it_calc.js |
 | IT | IT-N63 | tools/it/date-duration.html | 严格日期校验、逆序报错、口径静态化 | verify_it_calc.js |
