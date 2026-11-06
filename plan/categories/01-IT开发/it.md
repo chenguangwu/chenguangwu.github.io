@@ -179,13 +179,7 @@
 
 ## 2026-11-03 续查（并行批 G）
 
-### IT-N11 properties-parser 重复定义覆盖后错误态样式反转（低，已修复）
-- `tools/it/properties-parser.html:329-337` 仍重复定义 `setOut/setErr/clearAll/loadSample`；后定义的 `setErr` 覆盖成功态判断，成功和错误提示均为 `err`，空消息反而带 `ok`，`loadSample` 也改为调用 `doBeautify()`。Node 执行页面原函数确认成功提示的 class 为 `err`。
-- 修复：删除 334-337 行的重复定义（函数声明会后被覆盖），保留 329-332 的正确定义（`setErr` 成功态 `✅` 判 `ok`、`loadSample` 走 `propsToJson`）；verify 新增 N11 回归用例（loadSample → 断言输出含 JSON 键 `"app.name"`，区分 propsToJson 与 doBeautify 两种输出），3/3 通过。
-
-### IT-N15 字节模式对未超限文本错误截断（中，已修复）
-- `tools/it/text-truncate.html` 字节模式先判断省略符是否超过上限，再判断输入是否需要截断。例如输入 `a`、上限 1 字节、省略符 `...` 时输出 `.` 而非原文 `a`。
-- 修复：将 bytes 分支的 `if(ellipsisBytes > limit)` 超长省略符处理移到 `if(cut >= cps.length) return s;`（输入无需截断即原样返回）之后，仅在确需截断时处理；verify 8/8 全过（`49d2b346b9` 提交 N15 省略符超上限截断 + 本次位置修正）。
+- 2026-11-06 复核已修复项：IT-N11 的 `loadSample()` 输出含 `app.name` 的 JSON，成功提示为 `err ok`、错误提示为 `err`；IT-N15 的字节模式输入 `a`、上限 1、省略符 `...` 保留 `a`，输入 `ab` 才截断为 `.`。均以 Node 执行页面实际函数，未做浏览器验证。
 
 ### 留存优化
 - `properties-parser.html:298` 的 `unescapeVal` 不解码 `\uXXXX`：`greet=\u4f60\u597d` 原样保留（Node 已复算），与页面 FAQ 对转义的说明不一致。
@@ -207,11 +201,7 @@
 - 修复（`tools/it/text-cleaner.html`）：① 新增 `executeClean` 包裹，使其在清理完成后触发 `__text_cleanerExtras()`（回填期间 `__text_cleaner_skip` 已置位，extras 直接返回不重复记录）；② 历史回填回调由 `applyPreset()` 改为 `executeClean()`，恢复字段后直接重跑清理、复现结果，不再清空勾选。
 - 验证：`verify_it_calc.js` 新增 N20 回归用例（`executeClean()` 后断言 `text_cleanerTable` 含结果「hello world foo bar」），text-cleaner 9/9 通过。
 
-### IT-N25 美化把 JSON 数组当 INI 节名（中，已修复）
-- 描述：`doBeautify` 仅以 `startsWith('{')` 判定 JSON，`[...]` 走 INI 解析；`toIni` 对数组用 `for...in` 输出 `0 = a` 形式。
-- 证据：`tools/it/ini-parser.html:307-314`、`279-291`、`299-306`。Node 复算：`parseIni('["a","b"]')` → `{"\"a\",\"b\"":{}}`；`JSON→INI` 对 `["a","b"]` 产出 `0 = a` / `1 = b`。
-- 影响：`tools/it/ini-parser.html`；对合法 JSON 数组执行“美化”得到空节，用户难以判断是输入错误还是工具问题。
-- 修复：`doBeautify`/`doMinify` 改用 `JSON.parse` 试解析判型（`{` 或 `[` 均识别为 JSON），`toIni` 增加数组分支（索引键值 `0 = a`/`1 = b`）；verify 新增 N25 回归用例（`["a","b"]`→doBeautify→断言 `0 = a`），ini-parser 6/6 通过。
+- 2026-11-06 复核已修复项：IT-N25 的 `doBeautify()` 经 Node 执行 `["a","b"]`，得到 `0 = a` 和 `1 = b`，未再误判为 INI 节。未做浏览器验证。
 
 ### IT-N26 两个下拉框没有任何选项，代码面板与压缩模式不可用（中，确认源码缺陷）
 - 描述：`#showcode`、`#compact` 两个 `<select>` 在源码中为空，代码却按值 `'1'`/`'compact'` 判断；`resetForm` 的 `selectedIndex=0` 也无实际效果。压缩结果 `outHtml` 只在“显示 HTML 代码”分支被使用。
@@ -225,12 +215,7 @@
 - 影响：`tools/it/markdown-to-html.html`；粘贴含图片的 Markdown 得到错误 HTML，与页面承诺不符。
 - 方案：增加图片规则（必须先于链接匹配），输出 `<img src alt>`，并对 `src`/`alt` 做属性转义与 URL 白名单。
 
-### IT-N28 字符级对比按 UTF-16 码元切分（低，已修复）
-- 描述：`charDiffLine` 用 `split('')` 与按码元的 LCS，emoji 等代理对被拆成两半分别着色。
-- 证据：`tools/it/text-diff.html:459-463`。Node 复算 `charDiffLine('😀😀😀','😀😀')` → oldHtml 含 `[-\ud83d-][-\ude00-]`（两个高亮块分别包住一对代理项的一半）。
-- 影响：`tools/it/text-diff.html`；emoji/扩展字符差异展示破碎，导出文本可能含孤立代理项。
-- 方案：改用 `Array.from` 或 `Intl.Segmenter` 按码点/字素簇切分后再做 LCS。
-- 复核（2026-11-06）：当前 `charDiffLine`（`:459-462`）已用 `Array.from(oldLine)`/`Array.from(newLine)` 按码点切分，全文无 `split('')`；N28 已修复，无需改代码。
+- 2026-11-06 复核已修复项：IT-N28 的 `charDiffLine('😀😀😀','😀😀')` 经 Node 执行只生成一个包含完整 emoji 的删除高亮，未拆开代理对。未做浏览器验证。
 
 ### IT-N29 逐行对照预览按索引配对，删行后错位；FAQ 承诺的“全压成一行”未实现（中，确认源码缺陷）
 - 描述：`top_blank` 本身按 `trim()===''` 判空行（行为正确），但预览直接拿 `rawLines[pi]` 与 `lines[pi]` 并列；一旦删除过空行（默认预设即会删），两列的第 N 行就不再对应同一段文本。另 FAQ 称“可选保留段落或全压成一行”，页面只有 4 个勾选项，没有折叠换行能力。
