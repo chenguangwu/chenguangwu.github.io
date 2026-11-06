@@ -12,12 +12,6 @@
 | 医疗 | D-N30 | tools/healthcare/bsa-calculator.html | 年龄参与：<18 Haycock、≥18 DuBois | verify_healthcare_calc.js |
 | 医疗 | D-N10 | tools/medical/convert-time-infusion.html | 静态整句告警、独立校验 | verify_medical_calc.js |
 | 医疗 | D-N23 | tools/medical/medical-calculator.html | 频率 parseFloat、1–24 校验 | verify_medical_calc.js |
-| 医疗 | D-N29 | tools/clinical-nursing/bag-valve-mask.html | 球囊容量参与、频率表统一 | verify_clinical_nursing_calc.js |
-| 医疗（已修） | D-N11 | tools/medical/iv-drip-rate.html | HEAD 已修，未重复改动 | 既有 4 条用例 |
-| 金融 | F-N38 | tools/finance/provident-fund.html | 年限 1–30 整数、利率 0–10%、0 利率可算 | verify_finance_calc.js |
-| 金融 | F-N48 | tools/finance/discount-calculator.html | 反向模式折后价/折扣范围校验 | verify_finance_calc.js |
-| 金融 | F-N56 | tools/finance/profit-margin-calculator.html | 毛利<100%、营业<75%、净利可达性 | verify_finance_calc.js |
-| 金融 | F-N31 | tools/finance/npv-calculator.html | 折现率 ≤−100% 报错并清空明细/图表 | verify_finance_calc.js |
 | 金融 | F-N34 | tools/finance/investment-roi.html | 按年化回报判优、负追加报错 | verify_finance_calc.js |
 | 金融 | F-N44 | tools/finance/mutual-fund-calculator.html | 亏损金额补负号 | verify_finance_calc.js |
 | 金融 | F-N47 | tools/finance/futures-pnl-calculator.html | 手数/保证金/价格统一校验 | verify_finance_calc.js |
