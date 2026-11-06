@@ -179,15 +179,12 @@
 - 影响：`tools/it/env-generator.html`；生成的配置与选项不符，复制执行的 Shell 值可能变化或触发展开。Base64 不是加密，不能将该选项描述为保密措施。
 - 方案：各格式共用转换后的值，分别按目标格式安全序列化和转义；覆盖特殊字符及复制下载一致性，明确 Base64 非加密。
 
-### IT-N6 空或非数组 JSON 保留旧 CSV（高，已修复 2026-11-06 核验：json-to-csv.html:281 的 !data.length 分支补 `output.value=''`/`__jsonToCsvExportSafe=''` 清空；verify_it_calc.js +1 N6 回归用例全过）
-- 证据：`tools/it/json-to-csv.html:266-277,291-304` 先转换 `[{"a":1}]`，再转换 `[]`；错误分支未清空 `output`，复制、下载仍读取上一份 CSV。与 G10 为同类问题，修复按页面计，避免全站重复计数。
-- 影响：`tools/it/json-to-csv.html`；旧数据易被误作当前结果导出。
-- 方案：所有失败分支清空结果并禁用复制下载，展示当前输入状态；回归测试有效→无效→有效。
+### IT-N6 特定 JSON 解析错误仍保留旧 CSV（高）
+- `tools/it/json-to-csv.html` 的异常分支在清空结果前先检查错误信息；如先转换有效 JSON，再输入 `NaN` 或 `Infinity`，若解析错误消息包含这些词，提前返回导致 `output.value` 和 `__jsonToCsvExportSafe` 仍为旧结果，复制或下载可能导出旧数据。
+- 应在所有错误返回前清空预览与导出缓存，并覆盖有效 → 异常输入 → 有效的切换。
 
-### IT-N7 JSON 嵌套展开承诺与输出不符，历史回填触发下载（中，已修复 2026-11-06 核验：①历史回填回调 `downloadCSV()`→`toCSV()` 改为重算而非下载旧输出；②公式框/FAQ 嵌套说明改为「序列化为 JSON 字符串，不展开多列」以匹配 `cell()` 实际行为；json-to-csv verify 5/5 全过）
-- 证据：`tools/it/json-to-csv.html:121-123,278-285,345-356` 文案说嵌套对象展开，但实际仅收集顶层字段并将对象 JSON 字符串化；历史回填调用 `downloadCSV()` 而非转换，可能下载旧输出，浏览器交互待测。
-- 影响：`tools/it/json-to-csv.html`；用户预期列不存在，恢复历史可触发非预期下载。
-- 方案：实现并说明嵌套展开规则或改正说明；历史恢复后只重算，下载必须由用户主动触发；提供列预览与可复制 CSV。
+### IT-N7 JSON 数组处理说明存在歧义（中）
+- `tools/it/json-to-csv.html` 的工作原理同时写「嵌套对象或数组序列化为 JSON 字符串，不展开为多列」和「数组经索引展开」，但 `cell()` 对嵌套数组直接序列化，不会展开索引列。应明确区分顶层数组与嵌套数组的处理方式。
 
 ### IT-N8 自定义进制小数被静默截断（中，确认缺陷）
 - `tools/it/number-base-converter.html:433-439` 先用 `parseInt` 解析自定义基数，再检查整数；输入 `2.5` 被当作 2 进制，而非提示必须输入 2–36 的整数。Node 执行原函数已复现。
@@ -228,9 +225,9 @@
 - 影响：`tools/it/curl-parser.html`；复制出的请求方法/URL/表单体与真实 curl 行为不符，常见上传命令直接解析错。
 - 方案：建立“选项是否带值”的映射表，成对消费参数；无 `-X` 而有 `-d/--data*/--form` 时默认 POST；未知选项跳过其值并提示；输出统一转义，必要时以结构化 JSON 展示。
 
-### IT-N15 省略符超出截断上限（中，已修复 2026-11-06 核验：text-truncate.html:334-349/358-369 truncOne 仅 chars/bytes 模式内判断省略符超限并按上限截断；words/lines 模式 limit 为词/行计数，量纲不同不触发）
-- `tools/it/text-truncate.html:338-345,360-383` 将预算钳到 0 后仍原样追加完整省略符。当输入 `abcdef`、上限为 1、省略符为 `...` 时，字符及字节模式均输出 3 个字符，超过上限。Node 桩已执行原函数；未做浏览器验证。
-- 影响：截断结果不能满足严格长度或字节上限。应在省略符本身超限时截短或明确提示，并覆盖两种截断方向。
+### IT-N15 字节模式对未超限文本错误截断（中）
+- `tools/it/text-truncate.html` 字节模式先判断省略符是否超过上限，再判断输入是否需要截断。例如输入 `a`、上限 1 字节、省略符 `...` 时输出 `.` 而非原文 `a`。
+- 应先判断输入是否超过上限，仅在确需截断时处理超长省略符。
 
 ### 留存优化
 - `properties-parser.html:280` 的 `unescapeVal` 不解码 `\uXXXX`：`greet=\u4f60\u597d` 原样保留（Node 已复算），与页面 FAQ 对转义的说明不一致，可随 IT-N10 一并修。
@@ -257,12 +254,6 @@
 - 证据：`tools/it/text-cleaner.html:756-763`（textarea 取 textContent）、`846-849`（仅包装 applyPreset）、`839-845`（预设条回调为 `executeClean`）、`781-793`（回填 `applyPreset()`）、`491-505`（`presets[undefined]` → `[]` → `deselectAll()`）、`472-474`。jsdom 复算：`#output-text` 初始与 `value='清理结果内容'` 之后 `textContent` 均为 `""`，ResText 等价结果为 `""`；`{…}[undefined]` → `undefined`，`list=[]` 会走 `deselectAll()`。
 - 影响：`tools/it/text-cleaner.html`；数据表/图表/历史三个页签永远为空；若将来有历史记录，恢复后默认勾选被清空，输出与记录不符。
 - 方案：改读 `output-text.value`；包装 `executeClean` 记录历史；回填时逐字段恢复后直接 `executeClean()`，不要用无参 `applyPreset`。
-
-### IT-N22 历史只保存前 1000 字符，恢复后静默截断（中，已修复 2026-11-06 核验：text-diff.html:699-700 addToHistory 去掉 substring(0,1000) 存全文，避免长文本恢复后静默截断）
-- 描述：`addToHistory` 对两份文本各做 `substring(0,1000)`；`loadHistory` 直接回填并重新 `doDiff()`，无任何截断提示。
-- 证据：`tools/it/text-diff.html:697-703`、`733-739`。Node 复算：1500 个 `A` + `TAIL` 经 `substring(0,1000)` 后长度为 1000 且不含 `TAIL`。
-- 影响：`tools/it/text-diff.html`；长文本从历史恢复后 diff 结果看似正常但内容已被砍掉。
-- 方案：保存完整文本；确需限长时存全文摘要并提示“已截断，不可恢复对比”，或对超限记录禁用回填。
 
 ### IT-N25 美化把 JSON 数组当 INI 节名（中，确认源码缺陷）
 - 描述：`doBeautify` 仅以 `startsWith('{')` 判定 JSON，`[...]` 走 INI 解析；`toIni` 对数组用 `for...in` 输出 `0 = a` 形式。

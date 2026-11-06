@@ -16,7 +16,6 @@
 | 金融 | F-N44 | tools/finance/mutual-fund-calculator.html | 亏损金额补负号 | verify_finance_calc.js |
 | 金融 | F-N47 | tools/finance/futures-pnl-calculator.html | 手数/保证金/价格统一校验 | verify_finance_calc.js |
 | 金融 | F-N53 | tools/finance/depreciation-calculator.html | 新增各年工作量，按工作量法计算 | verify_finance_calc.js |
-| 金融 | F-N57 | tools/finance/stock-profit-calculator.html | 负价/非法输入清空结果并禁用导出 | verify_finance_calc.js |
 | 金融（已修补例） | F-N9/N10/N14/N21/N24/N28 | banking / 复利 / 分期 / APY / 贷款 等 | 既有实现已修，仅补判别用例 | verify_finance_calc.js |
 | 生活 | LF-N23 | tools/life/daily-calorie-needs.html | 年龄/身高/体重范围校验 | verify_life_calc.js |
 | 生活 | LF-N27/N28 | tools/life/candle-burn-time.html | 分钟进位、清空重量复位副行 | verify_life_calc.js |
