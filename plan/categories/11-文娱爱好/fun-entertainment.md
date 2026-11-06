@@ -1,5 +1,10 @@
 # 娱乐 · tools/{fun,music,film,media,dance,martial,chess,games 类}（~80 页）
 
+## 2026-11-06 武术工具静态续审
+
+- `tools/martial/routine-timer.html:293-309,334-343`：停止时直接取上一次 50ms 定时更新的 `elapsed`，没有以停止瞬间重新计算，记录可能少于实际经过时间；清空手动耗时会回退旧记录，容差输入 0 会变为 2。
+- `tools/martial/strike-resistance.html:283-315`：清空频率按 0 计算，且公式对固定部位和年限给出“可承受重击”等个体建议，没有用户受伤史或实际测试输入。此类建议不能从该模型证明安全；训练安全及模型专业性待复核。仅代码分析，未实测页面。
+
 ## 2026-11-06 音频代码复核（未提供音频资源）
 
 - `tools/audio/audio-cut.html`：FE-N119 的未实现淡变仍存在；FAQ 称自动淡入淡出，但 `exportSelection()` 直接将 buffer source 连接输出。深度解析第 323 行另称保留原采样精度，实际第 953–987 行固定写 16 位 PCM，高于 16 位的原音频无法保留原精度；第 374 行又正确称输出 16bit，文案互相冲突。
