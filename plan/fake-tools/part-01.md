@@ -92,7 +92,7 @@
 | 语言翻译 | `tools/language/translator.html` | C | `:185` 仅称「支持常用词与问候短句（本地词表）」；`:281` 明示「实际条数显示在输入框下方」；`:625` 运行时显示词表条数；全文无「100+」与语种自动检测承诺 | `plan/categories/07-教育学习/edu-language.md:394` | 已否定 | —（原记录与当前文案不符） |
 | 语言翻译 | `tools/language/grammar-checker.html` | C | `:264-275` RULES 为字面正则（i/teh/recieve 等）；`:335` 仅收集命中项，无「问题密度分级」、无最小编辑距离 | `plan/categories/07-教育学习/edu-language.md:269` | 已确认（真） | 中 |
 | IT开发 | `tools/it/http-cookies.html` | C | `:169` 英文简介称 `Parse and build ... headers`；实为 `:165` 分类聚合速查 + `:171` 搜索 + `:177-185` 图表/表格，无解析或构造入口 | `plan/categories/01-IT开发/it.md:1380` | 已确认（真） | 低（英文简介夸大） |
-| IT开发 | `tools/it/markdown-to-html.html` | C | `:313-316` 图片规则已实现且置于链接规则之前，`![alt](url)` 输出 `<img>`；原「输出字面 ! + 链接」不成立 | `plan/categories/01-IT开发/it.md:207` | 已否定 | —（已修复） |
+| IT开发 | `tools/it/markdown-to-html.html` | C | 2026-11-06 Node 执行 `calcTool()`：`![alt](https://x/y.png)` 输出带正确 `src` 和 `alt` 的 `<img>`，不再输出字面 `!` 加链接；未做浏览器验证 | `plan/categories/01-IT开发/it.md` | 已否定 | —（已修复） |
 | IT开发 | `tools/it/whitespace.html` | C | `:219-228` 仅去首尾/删空行/合并行内空格/末尾单换行；无「全压成一行」，但 `:407` FAQ 承诺「可选全压成一行」；`:250-256` 预览按同一索引比较 `rawLines[pi]` 与 `lines[pi]`，删空行后错位 | `plan/categories/01-IT开发/it.md:219` | 已确认（真） | 低 |
 | IT开发 | `tools/it/timestamp-converter.html` | C | `:416-426` 时区表为固定 offset（悉尼 +11、纽约 -5、洛杉矶 -8），无 DST 计算；夏令时期间纽约/悉尼显示偏差 1 小时 | `plan/categories/01-IT开发/it.md:347` | 已确认（真） | 中低 |
 | 设计创意 | `tools/design/gradient.html` | C | `:241` FAQ 称「按 WCAG 算对比度并标红」；全文无 WCAG/contrast 计算代码 | `plan/categories/04-设计创意/design.md:396` | 已确认（真） | 低 |

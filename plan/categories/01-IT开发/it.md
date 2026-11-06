@@ -208,11 +208,7 @@
 - 影响：`tools/it/markdown-to-html.html`；两个标注功能实际不可选，HTML 代码面板永不出现；“压缩”即使可选项生效也只影响代码面板，不影响预览。
 - 方案：补上 `option`（`0/1`、`pretty/compact`），并让压缩模式同时作用于预览与代码输出。
 
-### IT-N27 图片语法未实现，`![alt](url)` 输出字面 `!` 加链接（中，确认源码缺陷）
-- 描述：行内规则只有标题/粗斜/链接/行内代码，没有图片规则；`![alt](url)` 中的 `[alt](url)` 被链接规则匹配，感叹号留在文本里。
-- 证据：`tools/it/markdown-to-html.html:289-296`、FAQ JSON-LD `347` 声称覆盖“图片”。Node 复算 `![alt](https://x/y.png)` → `!<a href="https://x/y.png" target="_blank" rel="noopener">alt</a>`。
-- 影响：`tools/it/markdown-to-html.html`；粘贴含图片的 Markdown 得到错误 HTML，与页面承诺不符。
-- 方案：增加图片规则（必须先于链接匹配），输出 `<img src alt>`，并对 `src`/`alt` 做属性转义与 URL 白名单。
+- 2026-11-06 复核已修复项：IT-N27 的 `calcTool()` 经 Node 执行 `![alt](https://x/y.png)` 输出含正确 `src`、`alt` 的 `<img>`，不再输出 `!` 加链接；未做浏览器验证。
 
 - 2026-11-06 复核已修复项：IT-N28 的 `charDiffLine('😀😀😀','😀😀')` 经 Node 执行只生成一个包含完整 emoji 的删除高亮，未拆开代理对。未做浏览器验证。
 
