@@ -405,7 +405,7 @@
 - Node 模拟实际 `calc()`，先算 `old` 再算 `new`，让 `new` 的 SHA-1 先完成、`old` 后完成；`copyAll()` 得到新输入的 MD5 `22af645d1859cb5ca6da0c484f1f37ea` 与旧输入 SHA-1 `c00dbbc9dadfbe1e232e93a729dd4752fade0abf`，而 `new` 的正确 SHA-1 为 `c2a6b03f190dfb2b4aa91f8af8d477a9bc3401dc`。未做浏览器验证。
 - 尚未完成的 SHA 以 `—` 存入复制数组，完成前复制也可能得到占位符。方案：每次计算设置代次、只接受当前请求的回调，并在摘要完成前禁用或明确标注复制状态。
 
-- 2026-11-06 复核：原 IT-N64 输入校验已修，实际 `ip2int` 对空段、科学计数、十六进制和前导零返回 NaN；原 IT-N66/67 已修，实际 MD5 对 `中`、`😀` 与 Node crypto 一致，CRC32 分别为 `d5d15a8b`、`054db544`，`aa` 为 `078a19d7`。原 IT-N70 各复选框均已绑定 `onchange="calc()"`（源码复核）。未做浏览器验证。
+- 2026-11-06 复核：原 IT-N64 输入校验已修，实际 `ip2int` 对空段、科学计数、十六进制和前导零返回 NaN；原 IT-N66/67 已修，实际 MD5 对 `中`、`😀` 与 Node crypto 一致，CRC32 分别为 `d5d15a8b`、`054db544`，`aa` 为 `078a19d7`；原 IT-N70 各复选框均已绑定 `onchange="calc()"`（源码复核）。原 N68 只复制算法名的问题已修，但异步竞态仍须处理，见上。未做浏览器验证。
 
 ### IT-N69 HTTP 缓存速查：搜索与分类只过滤列表，图表/明细表仍统计全量数据（低，确认源码缺陷）
 - 描述：`renderCommands()` 按 `currentCategory` 与 `searchQuery` 过滤 `COMMANDS`，但 `hcAgg()` 固定遍历 `COMMANDS` 全量；`hcChart()`/`hcTable()` 直接使用该聚合结果，既不读搜索词也不读当前分类。搜索 `max-age` 时列表只剩 1 项，图表与「明细表」仍显示所有分类和全部分类计数。
