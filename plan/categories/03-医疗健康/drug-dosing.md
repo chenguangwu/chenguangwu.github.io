@@ -111,17 +111,9 @@
 - 影响：低流速高浓度场景可被误判安全，存在外周静脉损伤/血钾骤升风险；体重输入在该分支形同虚设。
 - 方案：增加浓度硬上限（外周 0.4 mEq/mL）与“高浓度需中心静脉/心电监护”提示；KCl 按体重给儿童限值（如 0.5 mEq/kg/h）并与成人 20 mEq/h 取较小值；临床阈值由药师复核。
 
-### D-N10 滴速与时间换算：时长为 0/空 时输出 Infinity，无输入守卫（中，确认缺陷）
-- 描述：`calc()` 直接 `vol*df/time`，仅 `time>0` 时才拼装明细，但主结果不受保护；时长清空即除以 0。标题称“滴速与时间换算”，实际只有“时间→滴速”单向。
-- 证据：`tools/medical/convert-time-infusion.html:123-125`、`:204-208`。复现：液体量 500 mL、滴系数 20、时长 `0`（或清空）→ 主结果 **“滴速 = Infinity 滴/分”**；时长负数 → 负滴速；滴系数 0 → 0 滴/分且无提示。正常输入 120 分 → 83.33 滴/分。
-- 影响：无效输入仍给出一个“结果”字符串，用户可能误读；与 D-N1 同类的结果过期/无守卫模式。
-- 方案：对 vol/df/time 逐项范围校验（time>0、df>0、vol>0），无效时清空主结果并显示原因；标题改为“按时间算滴速”或补反向计算（已知滴速求时间），与下方公式表一致。
-
-### D-N11 静脉输液滴速(微泵)换算器：清空时间后 EMR 记录沿用旧值；快慢阈值不随滴系数变化（中，确认缺陷）
-- 描述：`calc()` 在 `totalMinutes<=0` 时提前返回，但未清空 `window.__EMR_SUM`；外层包装在 calc 返回后仍调用 `__emrData()`，于是结果区显示“--”，护理记录却继续输出上一次的滴速。另：>60/<20 的“偏快/偏慢”提示使用固定滴/分阈值，不随滴系数换算成 mL/h。
-- 证据：`tools/clinical-nursing/iv-drip-rate.html:284-305`、`:354-364`、`:374-375`。复现：500 mL/4 h/滴系数 20 → EMR 记录“42 滴/分”；清空小时与分钟后 → 结果区 **--**，EMR 记录仍为 **42 滴/分**。500 mL/4 h/滴系数 60 → 125 滴/分被判“偏快”，而泵速 125 mL/h 属常规。
-- 影响：护理记录与实际输入不同步，存在文书错误风险；不同滴系数下快慢判断失真。
-- 方案：无效输入分支清空 `__EMR_SUM` 并生成“参数不完整”记录；快慢判断改为按 `pumpRate(mL/h)` 或按滴系数换算的 mL/h 阈值；滴系数 60 时阈值相应放大；补清空/切换滴系数用例。
+### D-N10 滴速与时间换算：宣称支持时间换算，实际只计算滴速（中，确认缺陷）
+- `tools/medical/convert-time-infusion.html:10,120-125,181,204-214` 的标题和说明涉及滴速与时间换算，元描述还称可计算预计结束时间，引据表列出「时间 = 容量 × 滴系数 ÷ 滴速」，但页面只有液体量、滴系数、输注时间三个输入，不能输入滴速反算时长，也无开始时间或结束时间结果。
+- 影响：用户无法完成页面宣称的时间换算或结束时间估算。应补齐相关计算，或统一收窄标题及描述。
 
 ### D-N12 药物速查：搜索不覆盖剂量/禁忌字段，占位示例“降压”查不到；预设受当前分类限制（低，确认缺陷）
 - 描述：搜索 blob 仅含 `name/en/goods/use/cat`，不含 `dose/adverse/contraind/note`；占位符示例“降压”在所有记录字段中都不存在（记录用“高血压”）。预设按钮只写搜索词、不重置 `currentCat`，在非“全部”分类下点击会得到 0 条。
@@ -130,7 +122,7 @@
 - 方案：blob 纳入 dose/contraind/note/adverse，或明确提示“仅按名称/用途/分类检索”；占位示例改为库内真实命中词（如“高血压/头痛”）；`applyDrugPreset` 先将 `currentCat` 重置为 all 并同步 tab 高亮。
 
 ### 留存优化
-- 统一“无效输入→清空结果/标记过期”的交互模式：D-N1、D-N10、D-N11 同源；建议抽公共 guard，避免逐页 patch。
+- 统一“无效输入→清空结果/标记过期”的交互模式：D-N1 等问题建议使用一致的输入检查。
 - `tools/medical/dosage-calculator.html:533-554` 的复制结果未包含肝/肾功能减量提示，复制进病历会丢失关键警示；建议复制全文或附警示行。
 - `tools/medical/calculator-calc-2.html:352-383` 历史记录只存 name/weight，回放不恢复 age/tier/freq，记录摘要与实际重算可能不一致；建议存全量参数。
 - `tools/medical/calculator-calc-infusion.html:368-373` 历史不存 conc/体重，回放结果可能与记录摘要不同；建议存 conc/w。
@@ -204,18 +196,15 @@
 - 影响：「预期升幅」易被读成整次治疗的总升幅（实际是每升增量），量纲歧义可导致补液计划算错；标题的「速度」与简介的 infusion rate 均未实现，属名不副实。低钠纠正过快有渗透性脱髓鞘风险。
 - 方案：标签改为「每输注 1 L 预期升幅」；新增「计划输注量 mL」并输出「预计总升幅」「预计达目标所需液量」，再按 mL/h 输出速度与 24h 上限对比；目标<当前时拒绝并提示；补 0.9%NaCl/3%NaCl 用例，临床阈值由医师复核。
 
-### D-N23 医疗健康计算器（用药剂量）：服药频率 `parseInt` 截断小数，1.5 次/天被当成 1 次/天，每次剂量高报 50%（中，确认缺陷）
-- 描述：`var freq = parseInt(...)`，把合法的 q16h（1.5 次/天）截成 1；输入框虽 `step=1`，但浏览器不阻止键入小数，脚本也不校验。日总量不变，`每次=日总量/freq` 因此放大。
-- 证据：`tools/medical/medical-calculator.html:441`（parseInt）、`:447`（perDose = daily/freq）、`:192`（freq 输入）。
-- 复现：体重 60 kg、推荐剂量 10 mg/kg/天、频率输入 **1.5** → 日剂量 **600.0 mg**、每次剂量 **600.0 mg**（按 1.5 次应为 **400.0 mg**，高报 50%）。
-- 影响：按「每次 600 mg」执行会单次超量；q16h/q8h 等非整数频次是常见医嘱写法。
-- 方案：改用 `parseFloat` 并校验 1–24（或改为频次下拉 q6h/q8h/q12h/q24h 并换算）；非整数频次明确显示对应间隔；补 1.5/2.5 用例，剂量口径由药师复核。
+### D-N23 医疗健康计算器（用药剂量）：低于页面声明下限的频率仍输出剂量（中，确认缺陷）
+- `tools/medical/medical-calculator.html:192,438-456` 的频率字段标注并提示 1–24 次/天，但计算只拒绝 ≤0 或 >24。体重 60 kg、推荐剂量 10 mg/kg/天、频率 0.5 次/天时，页面输出日剂量 600.0 mg、每次剂量 1200.0 mg，未提示低于声明范围。
+- 影响：结果与输入约束不一致，且单次量大于日均量易被误读。应统一频率范围与展示口径，并由药师复核低频给药的适用方式。
 
 ### D-N24 医疗健康计算器（血糖换算）：清空 mmol/L 或输入非法值时保留旧换算与旧分级（低，确认缺陷）
 - 描述：`convertGlucose('mmol')` 在 `isNaN||<0` 时直接 `return`，既不更新 mg/dL 输入框，也不调用 `showGlucoseResult()`；双向输入框互相回填，清空一侧后另一侧与结果框仍显示上一次的数值和「正常/糖尿病」结论。
 - 证据：`tools/medical/medical-calculator.html:493-506`（早退分支）、`:508-521`（showGlucoseResult 分级）、`:229-231`（默认 5.6/100.9）。
 - 复现：先输入 5.6 mmol/L → 结果「正常空腹血糖 5.60 mmol/L = 100.9 mg/dL」；清空 mmol/L → mg/dL 仍为 100.9，结果框仍显示「正常空腹血糖」，未清空或标记过期。
-- 影响：与 D-N1/D-N10/D-N11 同一类「无效输入沿用旧结果」模式，用户可能把旧分级当成当前值。
+- 影响：与 D-N1 同一类「无效输入沿用旧结果」模式，用户可能把旧分级当成当前值。
 - 方案：无效输入时清空对侧数值与结果框，并显示「请输入 ≥0 的数值」；或仅在两侧都有值时才渲染分级；补清空/负值用例。
 
 - 本轮实读 8 页：`tools/healthcare/weight-dosage.html`、`tools/healthcare/antipyretic-dose.html`、`tools/healthcare/healthcare-2.html`、`tools/healthcare/healthcare-3.html`、`tools/healthcare/gfr-cockcroft.html`、`tools/clinical-nursing/convert-flow-concentration.html`、`tools/clinical-nursing/oxygen-concentration.html`、`tools/medical/medical-calculator.html`。
@@ -252,13 +241,6 @@
 - `tools/healthcare/ibw.html:236-252` 允许身高 100–250 cm，但 Devine 公式在身高 100 cm 时仍得到男性约 2.3 kg、女性约 −2.2 kg；女性输入可产生负体重及负参考范围。
 - 影响：不合理体重可能被用于剂量或通气设定。应限制公式适用范围并拒绝无效结果，范围由临床专业人员核定。
 
-### D-N29 简易呼吸器设定器：球囊容量下拉完全不参与计算；婴儿频率在公式框与结果表自相矛盾（中，确认缺陷）
-- 描述：`calc()` 只读 `ageGroup` 与场景，`bagSize` 从头到尾未被读取，选成人型/儿童型/婴儿型结果一字不差；因此「婴儿 + 1500 mL 成人球囊」不会出现任何不匹配提示。另：公式框写婴儿 20–30 次/分、成人 CPR 固定 10 次/分，而 `scenarioConfig` 与信息框给婴儿 12–20、成人 8–10，同页两套口径。
-- 证据：`tools/clinical-nursing/bag-valve-mask.html:153-158`（bagSize 下拉，`onchange="calc()"` 但 calc 不读）、`:310-323`（calc 仅取 age/scenario）、`:131`（公式框 20–30、成人固定 10）、`:279-281`（infant CPR 12–20）、`:188-191`（信息框 12–20 / 成人 8–10）。
-- 复现：年龄=婴儿、球囊=成人型(1500 mL) → 潮气量仍 **100–150 mL**、频率 **12–20 次/分**，无「球囊过大」提示；按同页公式框婴儿应为 **20–30 次/分**。成人 CPR 结果给 **8–10 次/分**，公式框却写「固定 10 次/分」。
-- 影响：用成人球囊给婴儿送 100 mL 难以精确控制，易过度通气/胃胀气；频率上下限不一致会让抢救时参数核对失去唯一口径。
-- 方案：`bagSize` 参与匹配校验（婴儿/儿童必须选小号球囊，成人球囊用于 <1 岁红字）；统一频率表并注明来源（AHA/ERC）；增设体重输入按 6–7 mL/kg 理想体重算潮气量。临床阈值由医师复核。
-
 ### D-N30 体表面积 BSA：0 岁被错误归入成人公式（中，确认缺陷）
 - `tools/healthcare/bsa-calculator.html:308-316` 的儿童分支要求 `age > 0 && age < 18`；输入年龄 0、体重 8 kg、身高 70 cm 时实际使用 DuBois 并标注「成人，≥18 岁」，与页面所述「＜18 岁用 Haycock」不一致。
 - 影响：出生当天年龄 0 属合法输入，却采用成人公式且缺失婴幼儿提示。应令 0 岁进入儿童分支，公式及临床适用性需医师或药师复核。
@@ -279,14 +261,14 @@
 
 ### 留存优化
 - D-N25 与 D-N31 同属「公式版本/引据与实现不一致」：建议在结果区固定输出「所用公式 + 版本 + 单位」，避免同站多页各写一套出处。
-- D-N28/D-N30 同属「必填项不参与计算」或「无守卫」：建议统一输入守卫模式（范围 + 单位 + 越界红字），与 D-N1/D-N10/D-N11/D-N24 的「无效输入清空结果」一并抽公共逻辑。
+- D-N28/D-N30 同属「输入校验或公式适用范围」问题：建议统一输入守卫模式（范围 + 单位 + 越界红字），与 D-N1/D-N24 的「无效输入清空结果」一并抽公共逻辑。
 - D-N27 的 EMR 文案（`cvc-maintenance.html:381`）是硬编码的透析 1000 U/mL，与实际计算脱钩；建议 EMR 只引用计算结果对象，禁止再写静态浓度。
-- 本轮未核对药典/指南数值本身的医学正确性（如 BVM 频率、胃管公式、透析封管浓度），D-N26/D-N27/D-N29 的具体阈值需药师/医师复核。
+- 本轮未核对药典/指南数值本身的医学正确性（如 BVM 频率、胃管公式、透析封管浓度），D-N26/D-N27 的具体阈值需药师/医师复核。
 
 - 本轮实读 8 页：`tools/healthcare/bsa-calculator.html`、`tools/healthcare/egfr-calculator.html`、`tools/healthcare/egfr.html`、`tools/healthcare/ibw.html`、`tools/clinical-nursing/cvc-maintenance.html`、`tools/clinical-nursing/bag-valve-mask.html`、`tools/clinical-nursing/gastric-tube-depth.html`、`tools/medical/convert-glucose.html`。
 - 新增 8 条（高 3、中 4、低 1）：D-N25~D-N32。最高优为 D-N25（race=0 → eGFR 0/CKD 5）、D-N26（胃管身高法 77 cm/34 cm）、D-N27（透析导管生理盐水封管、肝素 0）。
 - 未覆盖：`tools/healthcare` 的 `healthcare-4` / `healthcare-5` / `map` / `qtc` 与 `tools/clinical-nursing` 的 `suction-pressure` / `chest-compression-depth` / `cvc-maintenance` 之外的管路页未读；英文态、移动端、verify 与门禁未验证。
-- 与既有条目关系：D-N1/D-N10/D-N11/D-N24 的「无效输入沿用旧值」与本轮 D-N28/D-N32 的无守卫同类但页面不同，未重号。
+- 与既有条目关系：D-N1/D-N24 的「无效输入沿用旧值」与本轮 D-N28/D-N32 的无守卫同类但页面不同，未重号。
 
 ## 2026-11-04 续查（并行批 M）
 
@@ -347,14 +329,14 @@
 
 ### 留存优化
 - D-N40 涉及「实现与页内引据/简介不一致」：建议结果区固定输出「所用公式 + 版本 + 单位 + 是否已按指南限幅」，避免同一页自相矛盾。
-- D-N34/D-N36/D-N37 同属「无输入守卫 + 0/越界值仍出一等结果」：与 D-N1/D-N10/D-N11/D-N24/D-N28 同源；建议抽公共 guard（范围 + 必填 + 越界红字 + 无效清空），一次性覆盖本类页面。
+- D-N34/D-N36/D-N37 同属「无输入守卫 + 0/越界值仍出一等结果」：与 D-N1/D-N24/D-N28 同源；建议抽公共 guard（范围 + 必填 + 越界红字 + 无效清空），一次性覆盖本类页面。
 - D-N39 与 D-N38 的排程/示意问题属「派生量未单一来源」：建议时间点只由公式派生、示意图只由最终数值派生，避免中间量二次叠加。
 - 本轮未核对指南数值本身的医学正确性（吸痰负压、按压深度、约束松解周期、MELD 阈值），D-N37/D-N38/D-N39/D-N40/D-N41 的具体阈值需药师/医师复核。
 
 - 本轮实读 8 页：`tools/healthcare/qtc.html`、`tools/healthcare/map.html`、`tools/healthcare/ideal-weight.html`、`tools/healthcare/healthcare-5.html`、`tools/clinical-nursing/suction-pressure.html`、`tools/clinical-nursing/chest-compression-depth.html`、`tools/clinical-nursing/restraint-duration.html`、`tools/medical/clinical-tools.html`。
 - 新增 9 条（高 2、中 7、低 0）：D-N33~D-N41。最高优为 D-N37（成人吸痰 150–200 与引据 80–120 矛盾、默认 150 判安全）、D-N40（MELD 系数错位 + 6 分下限 + MELD-Na 查表偏差）。
 - 未覆盖：`tools/healthcare` 的 `healthcare-4`（NYHA）、`chads-vasc`、`nrs2002`、`wells`、`resp-rate`、`water-intake`、`bac-calculator` 与 `tools/clinical-nursing` 的 `tracheostomy-dressing`、`ostomy-bag-timing`、`restraint-check`、`fall-emergency-flow`、`surgical-position-risk`、`assessor-*` 未读；英文态、移动端、verify 与门禁未验证。
-- 与既有条目关系：D-N28（`ibw.html`）与本轮 D-N35 同为理想体重/无守卫，页面不同、D-N35 另含性别回退与年龄死字段；D-N31（eGFR 公式/引据不一致）与本轮 D-N40 同源模式、页面不同；D-N1/D-N10/D-N11/D-N24/D-N28 的「无效输入仍出结果」与本轮 D-N34/D-N36 同类但页面不同。未与 D-N1~D-N32 重号。
+- 与既有条目关系：D-N28（`ibw.html`）与本轮 D-N35 同为理想体重/无守卫，页面不同、D-N35 另含性别回退与年龄死字段；D-N31（eGFR 公式/引据不一致）与本轮 D-N40 同源模式、页面不同；D-N1/D-N24/D-N28 的「无效输入仍出结果」与本轮 D-N34/D-N36 同类但页面不同。未与 D-N1~D-N32 重号。
 
 ## 2026-11-04 续查（并行批 N）
 
@@ -426,7 +408,7 @@
 
 ### 留存优化
 - D-N42/D-N48 同属「展示档位与代码分档不一致」：建议把档位名称、阈值、统计口径集中到单一配置，页面文案、图例、筛选与统计全部由该配置派生。
-- D-N44/D-N45/D-N47/D-N50 同属「无效或自相矛盾的输入仍输出一等结果」：与 D-N1/D-N10/D-N11/D-N24/D-N28/D-N34/D-N36 同源；建议抽公共 guard（必填 + 范围 + 互斥校验 + 无效清空），一次覆盖本类评估页。
+- D-N44/D-N45/D-N47/D-N50 同属「无效或自相矛盾的输入仍输出一等结果」：与 D-N1/D-N24/D-N28/D-N34/D-N36 同源；建议抽公共 guard（必填 + 范围 + 互斥校验 + 无效清空），一次覆盖本类评估页。
 - D-N43/D-N44 是同一页的量表语义与输入口径问题：若短期不改结构，至少先把三个营养条目改成 0–3 下拉并在 label 写明「分值」，可同时消除「相加」和「填实测值」两类误用。
 - D-N45/D-N46 同属「同一页多套时间/间隔表」：建议间隔、次数、预警点只保留一个数据源，公式框、信息框、深度解析与代码全部引用它，避免再次漂移。
 - 本轮未核对量表/指南数值本身的医学正确性（NRS2002 条目阈值、气切换药频次、造口更换周期、年龄分段呼吸频率、血压分级阈值、NYHA 定义），D-N43/D-N45/D-N46/D-N47/D-N48/D-N50 的具体阈值需药师/医师复核。
@@ -434,7 +416,7 @@
 - 本轮实读 8 页：`tools/medical/reminder-2.html`、`tools/healthcare/nrs2002.html`、`tools/clinical-nursing/tracheostomy-dressing.html`、`tools/clinical-nursing/ostomy-bag-timing.html`、`tools/healthcare/resp-rate.html`、`tools/healthcare/blood-pressure-grade.html`、`tools/clinical-nursing/generator-pressure.html`、`tools/healthcare/healthcare-4.html`。
 - 新增 9 条（高 2、中 7、低 0）：D-N42~D-N50。最高优为 D-N43（NRS2002 三项相加、满分 13 与量表 7 分不符）、D-N48（默认 120/80 判「3 等级」、五档与三级制整体错位）。
 - 未覆盖：`tools/healthcare` 的 `wells`、`chads-vasc`、`water-intake`、`bac-calculator` 等其余评分/生活页，`tools/clinical-nursing` 的 `restraint-check`、`fall-emergency-flow`、`surgical-position-risk`、`assessor-*`、`cold-compress-timer`、`reminder-time-1` 未读；英文态、移动端、verify 与门禁未验证。
-- 与既有条目关系：`convert-flow-concentration.html` 已在 D-N18 覆盖（反推无上限、装置宣称未实现），本轮不重复；D-N34（`map.html`）与本轮 D-N48 都出现「负脉压」，但页面不同、D-N48 另含五档编号与图例错位；D-N1/D-N10/D-N11/D-N24/D-N28/D-N34/D-N36 的「无效输入仍出结果」与本轮 D-N44/D-N47/D-N50 同类但页面不同。未与 D-N1~D-N41 重号。
+- 与既有条目关系：`convert-flow-concentration.html` 已在 D-N18 覆盖（反推无上限、装置宣称未实现），本轮不重复；D-N34（`map.html`）与本轮 D-N48 都出现「负脉压」，但页面不同、D-N48 另含五档编号与图例错位；D-N1/D-N24/D-N28/D-N34/D-N36 的「无效输入仍出结果」与本轮 D-N44/D-N47/D-N50 同类但页面不同。未与 D-N1~D-N41 重号。
 
 ## 2026-11-04 续查（并行批 O）
 
@@ -663,7 +645,7 @@
 - 本轮实读 8 页：`tools/clinical-nursing/fall-emergency-flow.html`、`restraint-check.html`、`surgical-position-risk.html`、`assessor-pressure-risk.html`、`cold-compress-timer.html`、`tools/medical/calc-34.html`、`estimate-metabolism.html`、`calculator-calc-due-date.html`。
 - 新增 30 条（高 5、中 15、低 10）：D-N51~D-N80。高优为 D-N54（约束带 EMR 未确认项错位）、D-N68（人体热量页嵌兽医引据）、D-N69（500 kcal 缺口上限未实现）、D-N72（kcal 差值当百分比）、D-N76（受孕/IVF 误用周期校正）。
 - 未覆盖：本批 8 页之外的 `tools/clinical-nursing` 其余流程页、`tools/medical` 其余计算页未读；英文态、移动端、verify 脚本与门禁均未验证；D-N60/D-N65/D-N80 分别标注「待验证/待临床复核」。
-- 与既有条目关系：D-N51/D-N52 属跌倒流程页，未与 D-N31~D-N50 的急诊/监护条目重号；D-N62 的「无守卫仍出结果」与 D-N1/D-N10/D-N11/D-N24/D-N28/D-N34/D-N36/D-N44 同源但页面不同；D-N68/D-N72/D-N76 为新增计算/日期类页面，未与 D-N25~D-N41 的公式/引据条目重复。
+- 与既有条目关系：D-N51/D-N52 属跌倒流程页，未与 D-N31~D-N50 的急诊/监护条目重号；D-N62 的「无守卫仍出结果」与 D-N1/D-N24/D-N28/D-N34/D-N36/D-N44 同源但页面不同；D-N68/D-N72/D-N76 为新增计算/日期类页面，未与 D-N25~D-N41 的公式/引据条目重复。
 
 ## 2026-11-04 续查（并行批 P）
 
