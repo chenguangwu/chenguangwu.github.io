@@ -152,7 +152,7 @@ s.parentNode.insertBefore(el, s);
 <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="📝 Lorem Ipsum 生成器">📝 Lorem Generator</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">按类型生成：words 逐词随机、sentences 逐句随机、paragraphs 逐段随机，数量 = count；勾选以 Lorem ipsum 开头时首项替换为固定拉丁文句式（词模式首两项固定为 lorem 与 ipsum，句 / 段模式前缀接固定句）；段落以两个换行连接，词与句以空格连接</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">按类型生成：words 逐词随机、sentences 逐句随机、paragraphs 逐段随机、chinese 逐句取中文占位句，数量严格等于 count（超出 1–100 时钳制并回写输入框）；句 / 段模式的句长由最小 / 最大词数区间决定；勾选以 Lorem ipsum 开头时首项替换为固定拉丁文句式（词模式首词固定 lorem，count≥2 时第二词固定 ipsum，句 / 段模式前缀接固定句）；段落以两个换行连接，中文句子以换行连接，词与句以空格连接</div>
   <div class="formula-desc">生成 Lorem ipsum 占位文本，用于设计与原型阶段填充版面。</div>
   <ul class="formula-list">
     <li><b>来源</b>：Lorem ipsum 是排版印刷业沿用的伪拉丁文，词序经过打乱，不具备可读语义。</li>
@@ -169,6 +169,7 @@ s.parentNode.insertBefore(el, s);
         <button class="type-btn active" data-type="paragraphs" onclick="setType(this)">段落</button>
         <button class="type-btn" data-type="sentences" onclick="setType(this)">句子</button>
         <button class="type-btn" data-type="words" onclick="setType(this)">单词</button>
+        <button class="type-btn" data-type="chinese" onclick="setType(this)">中文</button>
       </div>
     </div>
 
@@ -178,6 +179,14 @@ s.parentNode.insertBefore(el, s);
       <label style="margin:0;width:auto;">
         <input type="checkbox" id="startLorem" checked> 以 "Lorem ipsum" 开头
       </label>
+    </div>
+
+    <div class="input-row" style="align-items:center;">
+      <label style="margin:0;width:auto;">句长（词数）:</label>
+      <input type="number" id="minWords" value="8" min="1" max="200" style="max-width:80px;">
+      <span>–</span>
+      <input type="number" id="maxWords" value="19" min="1" max="200" style="max-width:80px;">
+      <span style="font-size:12px;color:var(--text-muted);">作用于句子 / 段落模式</span>
     </div>
 
     <div class="toolbar">
@@ -305,8 +314,20 @@ function randomWord(){
   return words[Math.floor(Math.random() * words.length)];
 }
 
+function sentenceRange(){
+  var a=document.getElementById('minWords'),b=document.getElementById('maxWords');
+  if(!a||!b) return [8,19];
+  var lo=parseInt(a.value,10),hi=parseInt(b.value,10);
+  if(!isFinite(lo)||lo<1) lo=8;
+  if(!isFinite(hi)||hi<1) hi=19;
+  if(hi<lo) hi=lo;
+  if(lo>200) lo=200;
+  if(hi>200) hi=200;
+  return [lo,hi];
+}
 function randomSentence(){
-  const len = 8 + Math.floor(Math.random() * 12);
+  var rg=sentenceRange();
+  const len = rg[0] + Math.floor(Math.random() * (rg[1]-rg[0]+1));
   let sentence = [];
   for(let i=0;i<len;i++) sentence.push(randomWord());
   let s = sentence.join(' ');
@@ -325,20 +346,25 @@ function randomChineseSentence(){
 }
 
 function generate(){
-  const count = parseInt(document.getElementById('count').value) || 1;
+  var raw = parseInt(document.getElementById('count').value,10);
+  if(!isFinite(raw)) raw = 1;
+  const count = Math.max(1, Math.min(100, raw));
+  document.getElementById('count').value = count;
   const startLorem = document.getElementById('startLorem').checked;
   let result = [];
   
   for(let i=0;i<count;i++){
     if(currentType === 'words'){
       if(i === 0 && startLorem){
-        let w = ['lorem','ipsum'];
-        for(let j=2;j<count;j++) w.push(randomWord());
-        result = w;
+        result.push('lorem');
+        if(count>=2) result.push('ipsum');
+        for(let j=result.length;j<count;j++) result.push(randomWord());
         break;
       } else {
         result.push(randomWord());
       }
+    } else if(currentType === 'chinese'){
+      result.push(randomChineseSentence());
     } else if(currentType === 'sentences'){
       let s = randomSentence();
       if(i === 0 && startLorem){
@@ -354,7 +380,7 @@ function generate(){
     }
   }
   
-  const output = currentType === 'paragraphs' ? result.join('\n\n') : result.join(' ');
+  const output = currentType === 'paragraphs' ? result.join('\n\n') : (currentType === 'chinese' ? result.join('\n') : result.join(' '));
   document.getElementById('output').value = output;
 }
 
@@ -441,7 +467,7 @@ function __loremRender(keys,rk,en){
                     if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
                     else{e.value=rec[k];}
                 }
-                downloadTxt();
+                generate();
             }catch(e2){}
             __lorem_skip=false;
         });
@@ -493,7 +519,7 @@ function __loremPresets(){
     TBKit.preset.bar('#loremPresets',[{label:'默认参数',labelEn:'Default',values:{'count':'3'}},
   {"label":"5 段 + Lorem","labelEn":"5 paras + Lorem","values":{"count":"5","startLorem":true}},
   {"label":"10 段","labelEn":"10 paras","values":{"count":"10","startLorem":false}},
-  {"label":"2 段 + Lorem","labelEn":"2 paras + Lorem","values":{"count":"2","startLorem":true}}],function(){ downloadTxt(); });
+  {"label":"2 段 + Lorem","labelEn":"2 paras + Lorem","values":{"count":"2","startLorem":true}}],function(){ generate(); });
 }
 var __lorem_f0=(typeof downloadTxt==='function')?downloadTxt:null;
 if(__lorem_f0){

@@ -3854,11 +3854,6 @@
 
 | 页面 | 问题（含 tools/it/<slug>.html:NN） | 编号 |
 |---|---|---|
-| `tools/it/docker-cheatsheet.html` | `:285`/`:293`/`:317` 命令尾 `-- 注解` 会被当作参数或容器名：如 `docker stop $(docker ps -q) -- 停所有` 报 `No such container: 停`，`docker rm -f $(docker ps -aq) -- 删所有` 同理；复制即执行失败。 | IT-N516 |
-| `tools/it/docker-cheatsheet.html` | `:427` 语法字段写成 `docker build [options] -t name:path`，把镜像 tag 与构建上下文混为一谈且漏掉必需上下文参数；按此语法照抄构建会失败。 | IT-N517 |
-| `tools/it/emacs-cheatsheet.html` | `:280` 的 `emacs -nw file.txt  -- 终端模式` 与 `emacsclient -t file.txt  -- 连接守护进程` 是真实 shell 命令，`--` 后的中文会被当作文件名分别打开（emacs 缓冲/emacsclient 文件），复制执行多开文件。 | IT-N518 |
-| `tools/it/emacs-cheatsheet.html` | `:415` 撤销条目 params 写「C-/ 重做」，但 `C-/` 实为撤销（同条 `:416` 示例自己也标「撤销」），重做需先 `C-g` 再 `C-/`；同一行说明自相矛盾，按 params 操作会撤销而非重做。 | IT-N519 |
-| `tools/it/email-qr.html` | `:262-282` 的 `renderQR` 只画三个定位符与时序线，其余 29×29 模块全部由 `:275-280` 的 FNV 种子伪随机填充；无数据编码、Reed-Solomon 纠错、格式/版本信息，图案不是 QR 码，扫码无法得到 `mailto:`（假工具，`:160`/`:200` 承诺扫码发邮件）。 | IT-N520 |
 
 **统计**
 - 页数：8（`ascii-tree-generator`、`barcode-code39`、`barcode-msi`、`camera-recorder`、`csharp-cheatsheet`、`docker-cheatsheet`、`emacs-cheatsheet`、`email-qr`）。
@@ -3882,13 +3877,6 @@
 
 | 页面 | 问题（含 tools/it/<slug>.html:NN） | 编号 |
 | --- | --- | --- |
-| `tools/it/location-qr.html` | `renderQR()`（264-283）不编码任何数据：固定 25×25 网格，仅 266-275 行画三个定位角、276 行画定时线，277-282 行用 `strHash(text)` + LCG 给其余模块填 0/1；没有数据位、格式信息、纠错码与掩码，扫码无法还原 262 行的 `geo:` 载荷。页面 10、161、203 行却承诺「扫码可在地图打开位置」——伪二维码（假功能） | IT-N521 |
-| `tools/it/location-qr.html` | `buildGeo()`（259-260）经纬度仅 `parseFloat(v)||0`，未校验范围：输入 `999` 会生成 `geo:999,999`，非数字则静默变 `geo:0,0`，均被系统地图拒识；`generate()`（292-293）照样渲染，无任何提示 | IT-N522 |
-| `tools/it/lorem.html` | words 分支（333-341）在 `startLorem` 时固定先塞 `['lorem','ipsum']`，`count=1` 实际输出 2 词（node 复刻确认），违反 155 行「数量 = count」；手输 `count=-5`（min=1 拦不住键入）时 332 行循环不执行，输出空串 | IT-N523 |
-| `tools/it/lorem.html` | 预设栏回调（495）与历史记录恢复回调（443）都接 `downloadTxt()` 而非 `generate()`：点预设只改输入并下载旧文本，点历史记录同样触发下载且结果区不重算——预设/历史「算了不渲染」 | IT-N524 |
-| `tools/it/lorem.html` | 199 行承诺「支持中文占位文本」、160 行承诺「可指定…句长范围」，但页面无中文/句长控件；`chineseTexts`（282-293）与 `randomChineseSentence`（323-325）无任何调用，为死代码（承诺未实现） | IT-N525 |
-| `tools/it/markdown-lint.html` | 108 行「检查项」声称含「行尾多余空格」「代码块是否标注语言」，但 `calcTool()`（213-231）只实现标题跳级、重复标题、列表符号缺空格、空链接；行尾空格、代码块语言、110 行提到的 MD013 行宽均未实现（承诺未实现） | IT-N526 |
-| `tools/it/markdown-lint.html` | 228 行 `/^\s*[-*]\S/` 把行首 `*斜体*`、`**加粗**` 当作「列表符号后缺空格」（node 复刻两处均误报）；同时循环不识别围栏代码块，代码块内 `# 注释` 会被计为标题并参与 219-226 行的层级/重复计数——误报 | IT-N527 |
 | `tools/it/kubernetes-yaml-generator.html` | 231 行 `Math.floor(num('port'))||80` 只兜底 0/NaN：负数与超 65535（如 -1、70000）原样写入 `containerPort`/Service `port`；229 行名称仅 `trim()`，未按 DNS-1123 校验，含大写、空格或 `: ` 时 233 行生成非法 YAML，`kubectl apply` 必拒；镜像同理由 230 行原样拼接 | IT-N528 |
 | `tools/it/nato-alphabet.html` | 反查 287 行先 `replace(/[^a-z]/g,'')` 再查 288 行 `REV`：`X-ray` 变成 `xray`，而 261 行 `REV` 的键是 `x-ray`，于是 290 行返回 `?`；`X` 唯一带连字符的码词无法反解（错误结果） | IT-N529 |
 | `tools/it/nato-alphabet.html` | 283 行 `raw.replace(/\s/g,'').length` 把标点、数字、汉字都算作「字母」：`Hello, World!` 显示 12 个字母（实际 10 个）；反查 293 行也把未能解析的 `?` 计入音标词数（算错） | IT-N530 |
@@ -3983,8 +3971,6 @@
 | 页面 | 真实编码 | 伪实现 | 校验位 | 纠错 | 可扫码 | 结论 / 编号 |
 |---|---|---|---|---|---|---|
 | `tools/it/qrcode.html` | 是（模式分段+RS+掩码+格式信息，复用 `js/qrcode.js`） | 否 | 是（格式信息 BCH + RS 码字） | 是（L/M/Q/H Reed-Solomon） | 是 | **唯一真 QR 编码页**；`:428-435` 调库；表 L 列 v9/v10 错（IT-D02）、默认 Byte 模式（IT-D03）、容量图超限仍标 10（IT-N260） |
-| `tools/it/email-qr.html` | 否 | 是 | 无 | 无 | 否 | `:262-282` 固定 29×29，仅 3 定位角+时序线，`:275-280` LCG 噪点；无数据/格式/掩码（IT-N520 高） |
-| `tools/it/location-qr.html` | 否 | 是 | 无 | 无 | 否 | `:264-283` 固定 25×25 同型噪点（IT-N521 高）；坐标范围不校验（IT-N522） |
 | `tools/it/text-qr.html` | 否 | 是 | 无 | 无 | 否 | `:247-267` 固定 29×29，`text` 只作随机种子（IT-N550 高） |
 | `tools/it/qr-decoder.html` | 不适用（不做图像解码） | 否 | 不适用 | 不适用 | 不适用 | `:266-345` 是按前缀解析文本的真实逻辑，不是二维码解码器；`:149`/`:152` 英文与公式误称「图像/摄像头解码」（IT-D06） |
 | `tools/it/barcode-code128.html` | 是（107 符号+Start A/B/C+13 模块 Stop） | 否 | 是（加权 mod 103） | 无（一维码规范无纠错） | 是（静区偏窄） | 唯一直接复用 `js/barcode-lib.js:22-98` 的 1D 页；静区单位错位（IT-D08） |
@@ -3998,8 +3984,6 @@
 ### 逐页结论
 
 - `qrcode.html`：真编码。除 IT-N260（超 V10 一律标 10）外，本批新增两处：数字容量表 L 列 v9/v10 取值错（IT-D02），以及未指定编码模式导致纯数字也走 Byte（IT-D03）。IT-N258 的 UTF-8 问题已由 `:430-432` 修复（`stringToBytes` 已切 UTF-8），可销案。
-- `email-qr.html`：假二维码，且无尺寸/容错/下载控件；扫码得不到 `mailto:`（IT-N520）。
-- `location-qr.html`：假二维码；`buildGeo` 仅 `parseFloat(v)||0`，非法/非数字坐标仍绘制（IT-N522）。meta `:10` 承诺「输入经纬度或地址」，实际只有经纬度两个框，地址文本会被归零。
 - `text-qr.html`：假二维码；版本固定 29，`text` 只影响噪点种子（IT-N550）。
 - `qr-decoder.html`：前缀解析逻辑真实（WIFI/mailto/tel/sms/geo/http/vCard/VEVENT），但不是图像解码器；WiFi 百分号解码用 `unescape`（IT-D04）、不识别 `SMSTO:`（IT-D05）、英文/公式误称图像解码（IT-D06）、NaN 守卫误吞结果（IT-D07）。
 - `barcode-code128.html`：编码表/校验/Stop 均正确，是 1D 族唯一可直接信任的页；问题是静区按像素计（IT-D08）与既有的空输入回退空格（IT-N125）。
