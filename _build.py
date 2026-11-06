@@ -195,19 +195,44 @@ def seo_tool_title(base, intro, desc, ind_label):
     return t
 
 
+# 英文描述退化套话（与 scripts/audit_en_meta_degenerate.py::BOILER 同源）：任何来源
+# (override.ed / i18n en-US.intro / 历史生成器产物) 只要残留这些尾串，构建期一律剥除，
+# 从源头杜绝「Name - convert values online with instant results.」式退化 desc-en 回流。
+_EN_DESC_BOILER = (
+    "produce results instantly in your browser",
+    "online utility on toolbox",
+    "online utility on ToolBox",
+    "compute values online with accurate results",
+    "convert values online with instant results",
+    "check and validate inputs online",
+    "compare values online with clear output",
+    "run and process online in your browser",
+    "format text online with instant output",
+    "view and preview content online",
+    "pick and choose options online",
+    "encode and decode securely in your browser",
+    "obfuscate and minify code online",
+    "generate results online for free and instantly",
+    "generate results online, free and instant",
+    "runs the calculation locally in your browser",
+    "Free online tool on ToolBox",
+    "Free online tool on toolbox",
+)
+
+
 def _clean_en_desc(s):
     """Strip the identical boilerplate suffix from English meta descriptions.
 
     Source data (industry-*.json `ed` / EN_OVERRIDE `ed`) may carry the identical
-    template "Free online tool on ToolBox — 100% client-side..." which hurts SEO
-    uniqueness; keep only each tool's unique English prefix. Also guards against
-    re-injecting the template on every build (it otherwise overwrites hand-trimmed
-    desc-en edits in tools/*.html).
+    template "X Generator - produce results instantly in your browser." etc., which
+    hurts SEO uniqueness and reads as degenerate; keep only each tool's unique English
+    prefix. Also guards against re-injecting the template on every build (it otherwise
+    overwrites hand-trimmed desc-en edits in tools/*.html).
     """
     if not s:
         return s
-    s = str(s)
-    for marker in ('Free online tool on ToolBox', 'Free online tool on toolbox'):
+    s = str(s).strip()
+    for marker in _EN_DESC_BOILER:
         idx = s.find(marker)
         if idx != -1:
             return s[:idx].strip().rstrip('.').strip()
@@ -3842,16 +3867,24 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         _seo_slug = _slug_of(t)
         _seo_override = EN_OVERRIDE.get(_seo_slug, {})
         _en_t = _seo_override.get('en')
+        # 优先覆盖字典 ed；无覆盖时回落权威英文描述 TDS.en_desc（内含套话剥离 + CJK 防护）。
+        # 关键修复：旧构建曾给「无覆盖页」注入退化 desc-en（如 "X - online utility on ToolBox."），
+        # 而空 _en_desc 不会触发下方清理，导致退化串永久残留。此处补回退，确保每页 desc-en 非退化。
         _en_desc = _clean_en_desc(_seo_override.get('ed') or '')
+        if not _en_desc:
+            _ed_fb = TDS.en_desc(t, max_len=160)
+            _en_desc = _ed_fb if _ed_fb and not TDS.has_cjk(_ed_fb) else ''
         _m_t = re.search(r'<title>([^<]*)</title>', content)
         _obsolete_meta_names = []
         if _en_t:
             _obsolete_meta_names.extend(('title-zh', 'title-en'))
-        if _en_desc:
-            _obsolete_meta_names.append('desc-en')
+        # 始终清理遗留 desc-en：空 _en_desc 时也要移除旧构建注入的退化串，避免残留
+        _obsolete_meta_names.append('desc-en')
         if _obsolete_meta_names:
+            # [^>]* 吃掉 content 之后可能追加的属性（如 data-page-node-id="..."）与自闭合 />，
+            # 确保任何形态的历史 desc-en/title-en/title-zh 残留标签都被移除，避免重建后新旧双标签并存。
             content = _sub_in_document_head(
-                r'[ \t]*<meta name="(?:%s)" content="[^"]*">[ \t]*\n?'
+                r'[ \t]*<meta name="(?:%s)"[^>]*>[ \t]*\n?'
                 % '|'.join(_obsolete_meta_names), '', content)
 
         # 标题块不再以 _en_t 为门控：非英文覆盖页同样需要中文 SEO 标题与社交标题

@@ -546,47 +546,30 @@ _ACTION_PHRASES = [
 ]
 
 def _specific_intro(en_name, slug):
-    for keys, phrase in _ACTION_PHRASES:
-        if any(k in slug for k in keys):
-            return '%s - %s.' % (en_name, phrase)
-    return '%s - runs the calculation locally in your browser.' % en_name
+    """已弃用：旧版产出「Name - <动作短语>」退化串（与 slug 同义反复、零信息量），
+    现统一由 slug_to_intro 在确有中文简介英译时才产出实质描述，否则返回空，禁止造名。
+    保留函数签名仅为兼容历史调用点。"""
+    return ''
+
 
 def slug_to_intro(en_name, slug, zh_desc=''):
-    """生成英文简介：① 中文简介整句英译（最具体）；② 工具名 + 具体动作短语；
-    ③ 仅当以上都不可用时才退回旧模板句（明确标记为最后兜底）。"""
+    """生成英文简介：仅当能从中文简介整句英译出有实质内容（≥20 字、无中文残留）时才产出；
+    否则返回干净英文名（绝不退回「Name - <动作/套话>」退化模板）。
+
+    退化模板「Name - convert values online with instant results. / produce results
+    instantly in your browser. / online utility on ToolBox.」等曾污染 en-US.intro 与
+    override.ed，并被构建链 _clean_en_desc 漏清（只认 Free online tool on ToolBox 标记），
+    导致英文态描述出现「Convert 27 - Convert…」式退化串。此处从源头杜绝：无可靠英文
+    实质内容时只回退干净英文名，交由构建期 TDS.en_desc 再回落词典翻译 / 人工精翻表。"""
     # ① 中文简介整句翻译：完整、无中文残留、长度足够才采用
     if zh_desc:
         tr = re.sub(r'\s+', ' ', _halfwidth(translate_text(zh_desc))).strip()
         if tr and not _ZH_RUN.search(tr) and len(tr) >= 20:
             return tr if tr.endswith(('.', '!', '?')) else tr + '.'
-    # ② 具体动作短语（必须含工具名，不许只有套话）
-    if en_name and not any(w.lower() in GENERIC_NAME_WORDS for w in en_name.split()):
-        return _specific_intro(en_name, slug)
-    # ③ 最后兜底：旧模板句
-    s = slug
-    if re.search(r'(\w+)-to-(\w+)$', s) or 'converter' in s or 'convert' in s:
-        return en_name + ' - convert values online with instant results.'
-    if 'generator' in s:
-        return en_name + ' - produce results instantly in your browser.'
-    if 'encoder' in s or 'decode' in s or 'encrypt' in s or 'decrypt' in s:
-        return en_name + ' - encode and decode securely in your browser.'
-    if 'calculator' in s or 'calc' in s:
-        return en_name + ' - compute values online with accurate results.'
-    if 'formatter' in s or 'format' in s:
-        return en_name + ' - format text online with instant output.'
-    if 'viewer' in s or 'preview' in s:
-        return en_name + ' - view and preview content online.'
-    if 'checker' in s or 'validator' in s or 'verify' in s:
-        return en_name + ' - check and validate inputs online.'
-    if 'runner' in s or 'debugger' in s or 'compiler' in s or 'parser' in s:
-        return en_name + ' - run and process online in your browser.'
-    if 'obfuscator' in s or 'minify' in s:
-        return en_name + ' - obfuscate and minify code online.'
-    if 'comparator' in s or 'compare' in s or 'diff' in s:
-        return en_name + ' - compare values online with clear output.'
-    if 'picker' in s or 'selector' in s:
-        return en_name + ' - pick and choose options online.'
-    return en_name + ' - online utility on ToolBox.'
+    # ② 无可靠英文实质内容：只回退干净英文名，禁止造「Name - <套话>」退化串
+    if isinstance(en_name, str) and en_name.strip() and not _ZH_RUN.search(en_name):
+        return en_name.strip()
+    return ''
 
 def _is_generic_english(name):
     """英文名退化判据：单个英文词且不在专名白名单（BMI/PDF/SHA…）即视为通用词。"""
