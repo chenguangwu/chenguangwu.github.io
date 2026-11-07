@@ -167,10 +167,10 @@ s.parentNode.insertBefore(el, s);
       <h3>🧗 攀岩难度等级转换</h3>
       <p class="section-desc">支持 V级（抱石）、YDS（绳索）和法式三大主流攀岩难度系统的互查对照。</p>
 
-          <div class="formula-box">
-      <div class="formula-title">📐 计算公式 / 原理</div> <div class="formula-eq">VO2max 估算：12 分钟跑（Cooper）VO2max = 35.97 × 距离(km) − 11.29；1.5 英里跑 VO2max = 483 ÷ 时间(min) + 3.5；1 英里走/跑 VO2max = 420 ÷ 时间(min) + 3.5；结果下限取 0。评级：&lt; 30 差、30–37 一般、37–44 好、44–52 很好、52–60 优秀、&gt; 60 卓越；进度条按 VO2max ÷ 70 × 100% 并钳制在 0–100</div>
-      <div class="formula-desc">一站式体育户外参考：攀岩难度(V/YDS/法式/英式)、睡袋温标(EN13537)、帐篷抗风(蒲福风级)、瑜伽体式、潜水安全(NDL)、体能评估标准 —— 汇总常用对照表便于快速查阅。</div>
-    </div>
+      <div class="formula-box">
+        <div class="formula-title">📐 对照口径</div>
+        <div class="formula-eq">V 级为抱石（bouldering）难度体系，YDS 与法式为绳索路线体系；同一行只表示「难度量级大致对应」，不等号。抱石线路因把全部难点压缩在少数动作内，同一条路线上的同难度段落通常比 V 级低 3–4 个等级。</div>
+      </div>
 <div class="input-row">
         <div>
           <label>选择系统</label>
@@ -334,6 +334,12 @@ s.parentNode.insertBefore(el, s);
     <div class="tab-panel" id="panel-vo2">
       <h3>🏃 最大摄氧量（VO2max）估算</h3>
       <p class="section-desc">通过田野测试估算 VO2max，选择测试方法并输入距离或时间即可计算。数值越大表明心肺功能越好。</p>
+
+      <div class="formula-box">
+        <div class="formula-title">📐 计算公式 / 原理</div>
+        <div class="formula-eq">VO2max 估算：12 分钟跑（Cooper）VO2max = 35.97 × 距离(英里) − 11.29，其中 距离(英里) = 输入米数 ÷ 1000 ÷ 1.609344（系数口径为英里，切勿直接代公里数）；1.5 英里跑 VO2max = 483 ÷ 时间(min) + 3.5；1 英里走/跑 VO2max = 420 ÷ 时间(min) + 3.5；结果下限取 0。评级：&lt; 30 差、30–37 一般、37–44 好、44–52 很好、52–60 优秀、&gt; 60 卓越；进度条按 VO2max ÷ 70 × 100% 并钳制在 0–100</div>
+        <div class="formula-desc">一站式体育户外参考：攀岩难度(V/YDS/法式/英式)、睡袋温标(EN13537)、帐篷抗风(蒲福风级)、瑜伽体式、潜水安全(NDL)、体能评估标准 —— 汇总常用对照表便于快速查阅。</div>
+      </div>
 
       <div class="input-row">
         <div>
@@ -618,9 +624,9 @@ function checkWindTent() {
   for (var i = beaufortData.length - 1; i >= 0; i--) {
     if (speed >= beaufortData[i].windKm) { bf = beaufortData[i]; break; }
   }
-  // 推荐帐篷
+  // 推荐帐篷：从最低档（抗风上限最小）升序取第一个能承受该风速的型号
   var rec = null;
-  for (var j = tentTypes.length - 1; j >= 0; j--) {
+  for (var j = 0; j < tentTypes.length; j++) {
     if (speed <= tentTypes[j].maxWind) { rec = tentTypes[j]; break; }
   }
 
@@ -817,11 +823,9 @@ function calcVo2() {
 
   var vo2 = 0;
   if (method === 'cooper') {
-    // Cooper公式: VO2max = (distance_m / 1000 - 0.383) / 0.0443 - 3.5 (不太对)
-    // 正确: VO2max = (d * 22.351 + 6.0) / 1000 (d in km, approx)
-    // 常用: VO2max = 35.97 * distance_km - 11.29 (distance in km from 12min run)
-    var distKm = val / 1000;
-    vo2 = 35.97 * distKm - 11.29;
+    // Cooper 12 分钟跑：VO2max = 35.97 × 距离(英里) − 11.29（系数口径为英里，输入为米需先换算）
+    var distMile = (val / 1000) / 1.609344;
+    vo2 = 35.97 * distMile - 11.29;
   } else if (method === '1.5mile') {
     // 1.5英里 = 2414米
     // VO2max = 483 / time_min + 3.5
