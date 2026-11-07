@@ -1696,17 +1696,26 @@ const CASES = [
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"strokes\":\"42\",\"time\":\"42\",\"stroke\":\"back\",\"pool\":\"50\"}，输出区含「 SWOLF = 42 + 42.0 = 84.0 ，折算 25m 等效 42.…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
+  // ── SF-N126 时长填充（W 批修复）──
   {
-    "slug": "sports/yoga-pose-generator",
-    "inputs": {
-      "difficulty": "intermediate",
-      "duration": "30",
-      "focus": "strength"
-    },
-    "expect": [
-      "手臂和肩部 保持 45 秒 6 船式 Navasana 中级 主体 强化核心肌群，提升腹部力量 保持 30 秒 7 八角式 Astavakrasana 高级 主体 高级手臂平衡，强化核心和上肢 保持 30 秒 8 侧角式 Utthita P"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"difficulty\":\"intermediate\",\"duration\":\"30\",\"focus\":\"strength\"}，输出区含「手臂和肩部 保持 45 秒 6 船式 Navasana 中级 主体 强化核心肌群…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    slug: "sports/yoga-pose-generator",
+    inputs: { difficulty: "intermediate", duration: "60", focus: "all" },
+    expect: ["60 min"],
+    ref: "SF-N126：原主体循环在 12 式池耗尽即停、保持时长不缩放，60 分钟只排 ~18 分钟。现主体按 targetSec 缩放填充，60 分钟 ⇒ 摘要「60 min」（默认 30 分钟 ⇒ 30 min，零逃生；旧实现 60 分钟仅 ~18 min 故该串不命中）。"
+  },
+  // ── SF-N127 混合难度徽章（W 批修复）──
+  {
+    slug: "sports/yoga-pose-generator",
+    inputs: { difficulty: "mixed", duration: "30", focus: "all" },
+    expect: ["混合"],
+    ref: "SF-N127：原 LEVEL_NAMES 无 mixed 键，混合难度徽章渲染「undefined」。现已补 mixed→混合，摘要难度显示「混合」（默认 intermediate ⇒ 中级，零逃生）。"
+  },
+  // ── SF-N128 池不足不跨级混入高级（W 批修复）──
+  {
+    slug: "sports/yoga-pose-generator",
+    inputs: { difficulty: "beginner", duration: "15", focus: "relax" },
+    expect: ["放松修复"],
+    ref: "SF-N128：原池<5 时 POSES.slice() 跨级混入高级体式仍标「初级」。现已改为同难度扩展（不跨级），beginner+relax 仅含初级体式、重点标「放松修复」（默认 all ⇒ 综合练习，零逃生）。「序列不含高级/中级体式」由 _verify_sports_batch_w.mjs 运行期断言（HEAD 回退会混入头倒立/蝎子式/手倒立等）。"
   },
   {
     "slug": "sports/yumaoqiushaqiuxiaolv",

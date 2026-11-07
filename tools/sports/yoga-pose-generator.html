@@ -317,7 +317,8 @@ var POSES = [
 var LEVEL_NAMES = {
   beginner: '初级',
   intermediate: '中级',
-  advanced: '高级'
+  advanced: '高级',
+  mixed: '混合'
 };
 
 var FOCUS_NAMES = {
@@ -340,14 +341,11 @@ function generate() {
     return levelOk && focusOk;
   });
 
-  // If pool too small, expand to include all levels for the focus
+  // 池不足时在同难度内放宽「练习重点」筛选（保持难度诚实，不跨级混入其他难度的体式）
   if (pool.length < 5) {
     pool = POSES.filter(function(p) {
-      return focus === 'all' || p.focus === focus;
+      return difficulty === 'mixed' || p.level === difficulty;
     });
-  }
-  if (pool.length < 5) {
-    pool = POSES.slice();
   }
 
   // Always include warmup and cooldown
@@ -358,55 +356,56 @@ function generate() {
   var sequence = [];
   var totalSec = 0;
   var targetSec = duration * 60;
-  var warmupSec = Math.round(targetSec * 0.15);
-  var mainSec = Math.round(targetSec * 0.65);
+  var warmFrac = 0.15, mainFrac = 0.65;
+  var warmupSec = Math.round(targetSec * warmFrac);
+  var mainSec = Math.round(targetSec * mainFrac);
   var cooldownSec = targetSec - warmupSec - mainSec;
+  function clampHold(h, lo, hi) { return Math.max(lo, Math.min(h, hi)); }
 
-  // Add warmup
+  // Add warmup (scaled by target share, capped)
+  var warmupActual = 0;
   warmup.forEach(function(p) {
-    var hold = Math.round(p.hold * (warmupSec / 90));
-    hold = Math.max(20, Math.min(hold, 60));
+    var hold = clampHold(Math.round(p.hold * (warmupSec / 90)), 20, 60);
     sequence.push(Object.assign({}, p, { actualHold: hold, phase: '热身' }));
-    totalSec += hold;
+    totalSec += hold; warmupActual += hold;
   });
 
-  // Add main poses (shuffle and pick)
+  // Cooldown plan (scaled by target share, capped) — computed first so main can fill remainder
+  var cooldownPlan = cooldown.map(function(p) {
+    var hold = clampHold(Math.round(p.hold * (cooldownSec / 180)), 30, 180);
+    if (p.name === '摊尸式') hold = Math.max(60, hold);
+    return Object.assign({}, p, { actualHold: hold });
+  });
+  var cooldownActual = cooldownPlan.reduce(function(s, p) { return s + p.actualHold; }, 0);
+
+  // Main: fill the remaining time (targetSec - warmup - cooldown) by cycling the pool,
+  // then scale each pose's hold proportionally so the section sums to the target.
+  var mainTarget = Math.max(60, targetSec - warmupActual - cooldownActual);
   var mainPool = shuffle(pool.filter(function(p) {
-    return sequence.indexOf(p) === -1 || true;
-  })).filter(function(p) {
     return p.name !== '摊尸式' && p.name !== '婴儿式' && p.name !== '猫牛式' && p.name !== '山式';
-  });
+  }));
+  if (!mainPool.length) mainPool = pool.slice();
 
-  var mainAdded = 0;
-  for (var i = 0; i < mainPool.length && totalSec < warmupSec + mainSec; i++) {
-    var pose = mainPool[i];
-    var hold = pose.hold;
-    // Adjust hold time based on duration
-    if (duration === 15) hold = Math.round(hold * 0.7);
-    if (duration === 60) hold = Math.round(hold * 1.3);
-    hold = Math.max(20, Math.min(hold, 90));
-    sequence.push(Object.assign({}, pose, { actualHold: hold, phase: '主体' }));
+  var mainList = [];
+  var estMain = 0, ci = 0;
+  while (estMain < mainTarget && mainList.length < 120) {
+    var mp = mainPool[ci % mainPool.length];
+    mainList.push(mp);
+    estMain += mp.hold;
+    ci++;
+  }
+  var baseSum = mainList.reduce(function(s, p) { return s + p.hold; }, 0) || 1;
+  var scale = mainTarget / baseSum;
+  mainList.forEach(function(p) {
+    var hold = clampHold(Math.round(p.hold * scale), 20, 120);
+    sequence.push(Object.assign({}, p, { actualHold: hold, phase: '主体' }));
     totalSec += hold;
-    mainAdded++;
-  }
-
-  // Ensure at least 4 main poses
-  if (mainAdded < 4) {
-    for (var i = mainAdded; i < 4 && i < mainPool.length; i++) {
-      var pose = mainPool[i];
-      var hold = Math.max(20, Math.round(pose.hold * (duration === 15 ? 0.7 : duration === 60 ? 1.3 : 1)));
-      sequence.push(Object.assign({}, pose, { actualHold: hold, phase: '主体' }));
-      totalSec += hold;
-    }
-  }
+  });
 
   // Add cooldown
-  cooldown.forEach(function(p) {
-    var hold = Math.round(p.hold * (cooldownSec / 180));
-    hold = Math.max(30, Math.min(hold, 180));
-    if (p.name === '摊尸式') hold = Math.max(60, Math.min(hold, 180));
-    sequence.push(Object.assign({}, p, { actualHold: hold, phase: '放松' }));
-    totalSec += hold;
+  cooldownPlan.forEach(function(p) {
+    sequence.push(Object.assign({}, p, { actualHold: p.actualHold, phase: '放松' }));
+    totalSec += p.actualHold;
   });
 
   // Build HTML
@@ -453,6 +452,7 @@ function generate() {
 }
 
 function shuffle(arr) {
+  arr = arr || [];
   var a = arr.slice();
   for (var i = a.length - 1; i > 0; i--) {
     var j = Math.floor(Math.random() * (i + 1));

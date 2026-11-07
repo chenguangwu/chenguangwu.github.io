@@ -1056,3 +1056,11 @@
 - **SF-N125（安静/亚极量阈值混用，中）**：原非峰值（安静+亚极量）共用 `6/4/2.5` 阈值，致安静态评级失真（安静 O2pulse 本就仅 2.5~4，旧实现几乎整段判「一般」）。本批把安静态独立为 `4/3/2.5`（优秀≥4、良好≥3、一般≥2.5），亚极量保持 `6/4/2.5` 不变，消除两者共用阈值。
 - **同批门禁维护（铁律①）**：原单用例仅查数值（17.50/0.269/2.80）不受影响，+2 新用例。SF-N124 为判别器盲区（默认样本 17.78 已落在改后优秀带 [16,20)，A/B 对「优秀」均命中）——expect 仅取数值 `18.00`（不在默认 17.78 中），阈值改动以源码 220-231 行直接断言 + 本例数值锁定，不塞逃生 expect；SF-N125 用安静态 O2pulse=3.50→「良好」（默认峰值 17.78→优秀，故「氧脉搏评级：良好」零逃生）。
 - **验证**：`node scripts/verify_sports_calc.js` **210/210**（+2 新用例）；`discriminate_check.js verify_sports_calc.js` **210 已检 / 210 变红 / 0 逃生**；`node scripts/_verify_sports_batch_v.mjs` **4/4**，`--head` 回退 **2/4 PASS**（HEAD 版实测 18→「良好」、3.50→「一般」——修复真实有效；亚极量 5.00 两态均「良好」符合未改动预期）；i18n 无需同步（评级/建议串为硬编码中文，描述「男16~20/女13~16 为优秀」与改后阈值一致，未进 map）。
+
+### AA 批第 1 波处置续（2026-11-07 W 批 · 瑜伽体式生成器时长/难度/池）
+
+- **SF-N126（高）时长定制失效**：`yoga-pose-generator.html` 原主体循环 `:381` 在 12 式池耗尽即停、保持时长不做缩放，30 分钟只排 ~15 分钟、60 分钟只排 ~18 分钟。本批重构主循环：先算热身/放松实际时长（带上限），再 `mainTarget = targetSec − warmup − cooldown`，按池循环补齐主体、`hold` 按 `mainTarget/ΣbaseHold` 比例缩放（夹 20–120s），使总时长≈所选时长（30/60 分钟均≈标签时长）。
+- **SF-N127（中）混合难度徽章 undefined**：原 `LEVEL_NAMES` 仅 beginner/intermediate/advanced，但下拉含 `value="mixed"`（`:159`），`:421` 取 `LEVEL_NAMES[difficulty]` 无兜底 ⇒ 显示字面「undefined」。本批补 `mixed: '混合'`。
+- **SF-N128（中）池不足跨级混入高级体式**：原 `:344-351` 两级 fallback 第二级 `POSES.slice()`（全 23 式），beginner+relax（仅 3 式）退化为全库，主体含头倒立/蝎子式/手倒立等高级体式却仍标「初级」。本批改为池不足时仅「同难度内放宽练习重点筛选」（保留 `level===difficulty`），绝不跨级；单难度体式均 ≥8，故不再触达全库。
+- **同批门禁维护（铁律①）**：原 B 类零用例（intermediate/30/strength 固定有序串）因主体序列变长、顺序由种子 RNG 决定而漂移，改写为 3 条判别用例——SF-N126 `duration=60` 锚「60 min」、SF-N127 `difficulty=mixed` 锚「混合」、SF-N128 `beginner+relax` 锚「放松修复」；运行期 `_verify_sports_batch_w.mjs` 额外断言 beginner+relax「不含任何中级/高级体式」（HEAD 回退会混入头倒立/蝎子式/手倒立等全表）。
+- **验证**：`node scripts/verify_sports_calc.js` **212/212**（+2 净增，旧 1 改写）；`discriminate_check.js verify_sports_calc.js` **212 已检 / 212 变红 / 0 逃生**；`node scripts/_verify_sports_batch_w.mjs` **4/4**，`--head` 回退 **1/4 PASS**（HEAD 版实测 60min→18min、mixed→undefined、beginner+relax 混入全表高级体式——修复真实有效）；i18n 无需同步（难度/重点名为 JS 硬编码中文，原初级/中级/高级亦同，EN 态行为不变）。
