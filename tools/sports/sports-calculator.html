@@ -306,7 +306,7 @@ s.parentNode.insertBefore(el, s);
         </div>
         <div>
           <label>坡度角度 (°)</label>
-          <input type="number" id="slope-deg" value="" placeholder="e.g. 21.8" min="0" max="90" step="0.1" oninput="slopeFromDeg()">
+          <input type="number" id="slope-deg" value="" placeholder="e.g. 21.8" min="0" max="89" step="0.1" oninput="slopeFromDeg()">
         </div>
       </div>
 
@@ -515,8 +515,12 @@ function calcHRR() {
   var age = parseInt(document.getElementById('hrr-age').value) || 0;
   var restHR = parseInt(document.getElementById('hrr-rest').value) || 0;
 
-  if (age < 1 || age > 120 || restHR < 30 || restHR >= age + 100) {
-    const __h2='<div class="result-box"><p style="color:var(--danger);">请输入有效的年龄和静息心率</p></div>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('hrr-result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('hrr-result').innerHTML=__h2;
+  // SF-N58：原校验 `restHR >= age + 100` 只在年龄 60 岁时等价于「静息 < 最大」：
+  // 年龄 <60 时过严（拒绝合法静息心率），>60 时过松，允许静息心率高于最大心率，
+  // 于是 hrr 为负、靶心率区间倒挂（80 岁/静息 170 会给出 155–152 bpm）。现直接比 maxHR。
+  var maxHRLimit = 220 - age;
+  if (age < 1 || age > 120 || restHR < 30 || restHR >= maxHRLimit) {
+    const __h2='<div class="result-box"><p style="color:var(--danger);">请输入有效的年龄和静息心率（静息心率须 ≥30 且低于最大心率 220−年龄）</p></div>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('hrr-result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('hrr-result').innerHTML=__h2;
     return;
   }
 
@@ -703,6 +707,12 @@ function slopeFromPct() {
 function slopeFromDeg() {
   var deg = parseFloat(document.getElementById('slope-deg').value);
   if (!isNaN(deg)) {
+    // SF-N59：tan(90°) 是奇点，原式直接输出 1.63e18%（黑道专家）。垂直坡面没有有限百分比，停算提示。
+    if (deg < 0 || deg >= 89.9) {
+      document.getElementById('slope-pct').value = '';
+      document.getElementById('slope-result').innerHTML = '<p style="color:var(--danger)">⚠ 角度接近或等于 90° 时坡度百分比趋于无穷（垂直坡面无有限百分比），请输入 0–89.9° 之间的角度。</p>';
+      return;
+    }
     var pct = Math.tan(deg * Math.PI / 180) * 100;
     document.getElementById('slope-pct').value = pct.toFixed(1);
     updateSlopeResult(pct, deg);
@@ -716,6 +726,7 @@ function calcSlope() {
 }
 
 function updateSlopeResult(pct, deg) {
+  if (!isFinite(pct) || !isFinite(deg)) return;
   var difficulty = '';
   var tagClass = '';
   if (pct < 25) { difficulty = '绿道（初级）'; tagClass = 'diff-green'; }

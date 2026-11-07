@@ -178,7 +178,9 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 function calc(){
-var hrs=[];for(var i=1;i<=5;i++){hrs.push(+document.getElementById('hr'+i).value||0);}
+// SF-N63：原用 `+value||0` 读取，空框变 0 参与增量计算；增量全相等时 atPoint 取首级仍判「AT 拐点」，
+// 且 atHr 有 `||hrs[0]` 回退到首点。现：① 5 级必须全部为有效正数，否则停算；② 增量全相等（无斜率突增）不给 AT。
+var hrs=[];for(var i=1;i<=5;i++){var _raw=String(document.getElementById('hr'+i).value).trim();var _v=parseFloat(_raw);if(!_raw||isNaN(_v)||_v<=0){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 请填写全部 5 级强度下的心率（均为正数，bpm），缺项或 0 无法定位拐点。</p>';return;}hrs.push(_v);}
 var age=+document.getElementById('age').value||30;
 var rhr=+document.getElementById('rhr').value||60;
 var maxHr=220-age;
@@ -186,7 +188,11 @@ var diffs=[];
 for(var i=1;i<5;i++){diffs.push(hrs[i]-hrs[i-1]);}
 var maxDiff=0,atPoint=0;
 for(var i=0;i<4;i++){if(diffs[i]>maxDiff){maxDiff=diffs[i];atPoint=i+1;}}
-var atHr=hrs[atPoint-1]||hrs[0];
+// 增量全相等 ⇒ 无「斜率突增」拐点，不能把首级当 AT（默认 100/120/140/160/180 即此情形）
+var _uniform=true;
+for(var i=1;i<4;i++){if(diffs[i]!==diffs[0]){_uniform=false;break;}}
+if(_uniform||atPoint===0||maxDiff<=0){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 各级心率增量相同（无斜率突增点），无法判定无氧阈。请按递增负荷测试重测，使某两级之间出现明显的心率跃升。</p>';return;}
+var atHr=hrs[atPoint-1];
 var atPctMax=Math.round(atHr/maxHr*100);
 var karvonenMax=maxHr-rhr;
 var atKarvonen=Math.round((atHr-rhr)/karvonenMax*100);
