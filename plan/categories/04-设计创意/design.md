@@ -2064,3 +2064,9 @@
 - **D-N2 / D-N3 不在本批范围**：ledger 第 9 行明示 D-N2「仍待处理，不能按已修关闭」（WCAG 选字色的语义/标注口径争议），D-N3 为产品定位决策（受约束随机 vs 标注），均留待各自批次，本批未改动 `color-palette-generator.html` 源码。
 - **同批门禁维护**：`verify_design_calc.js` 增 2 用例——`GGGGGG→颜色需为有效的 3 或 6 位 HEX 值`、`#fff→21.00`；全量 `node scripts/verify_design_calc.js` **264/264**（原 262 + 2）。`discriminate_check.js verify_design_calc.js` **264 已检 / 262 变红 / 2 逃生**（2 项 `photo-print-size`、`spacing-scale` 为既有的其他工具遗留逃生项，非本批引入，留待各批次处理）。
 - **验证**：`node scripts/_verify_design_batch_x.mjs` **1/1**，`--head` 回退 **1/1**（HEAD 版 `GGGGGG` 静默显示 `14.68 / AAA 优秀` 无报错——修复真实有效）；i18n 无需同步（提示串为页面硬编码中文，EN 态同一逻辑、不影响）。
+
+### AA 批第 1 波处置续（2026-11-07 Y 批 · 断点生成器注释 operator-precedence）
+
+- **D-N15（中，确认源码缺陷）**：`breakpoint-queries.html:274` 原 `let css='/* '+mode==='min'?'移动优先（Mobile First）':'桌面优先'+' */\n';` 因 `+` 先于 `?:` 求值，恒按 `('/* '+mode)==='min'` 判假，两模式都落入「桌面优先」分支，且 min 模式产出缺起始 `/*` 的孤立 `*/`，复制进项目会误导协作方或被工具链判为语法错误。本批改为 `let css='/* '+(mode==='min'?'移动优先（Mobile First）':'桌面优先')+' */\n';`（先求标签再拼接、统一闭合注释）。
+- **同批门禁维护（铁律①）**：`verify_design_calc.js` 增 1 用例 `mode='max' → /* 桌面优先 */`（265/265，原 264+1）。选 `mode='max'` 而非 `min` 是因为默认 mode 即 `min`，锚 `/* 桌面优先 */` 与默认态 `/* 移动优先（Mobile First） */` 不重合并零逃生。
+- **验证**：`node scripts/verify_design_calc.js` **265/265**；`discriminate_check.js verify_design_calc.js` **265 已检 / 263 变红 / 2 逃生**（2 项 `photo-print-size`、`spacing-scale` 为其他工具既有遗留逃生项，非本批引入）；`node scripts/_verify_design_batch_y.mjs` **1/1**，`--head` 回退 **1/1**（HEAD 版实测 `桌面优先 */` 孤立 `*/` 无 `/*` 开头——修复真实有效）；i18n 无需同步（注释串为页面硬编码中文）。

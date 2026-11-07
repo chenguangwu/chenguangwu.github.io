@@ -290,6 +290,12 @@ const CASES = [
        + "⚠ 第一项单独不足以证明 devs 生效（custom 与 basic 都渲染同类选择器），必须配第二项。",
   },
   {
+    slug: "design/breakpoint-queries",
+    inputs: { devs: "basic", mode: "max" },
+    expect: ["/* 桌面优先 */"],
+    ref: "D-N15 锁定：修复 operator-precedence 缺陷（`'/* '+mode==='min'?…` 因 `+` 优先恒成立 false，两模式都输出「桌面优先 */」且带孤立 `*/`）。修复后 mode='max' ⇒ CSS 首行注释为 `/* 桌面优先 */`（带正确 opener）；注入 mode='max' 与默认 mode='min' 区分，默认态输出 `/* 移动优先（Mobile First） */` 不含该串 ⇒ 零逃生。",
+  },
+  {
     slug: "design/badge-generator",
     inputs: { text: "TOOLBOX", fontSize: "20", radius: "14", textColor: "#ffffff", bgColor: "#2563eb" },
     expect: ["font-size:20px;font-weight:600;border-radius:14px"],
