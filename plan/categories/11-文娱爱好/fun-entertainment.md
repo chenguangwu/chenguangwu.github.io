@@ -357,13 +357,12 @@
 - 判别力：`scripts/_verify_fun_batch_fe_n32.mjs` JSDOM 两态锁——首屏连点「点击此处开始」区域两次；修复版首点 `start()`（state='go'）→ 再点 `clicks++`（#counter=1），PASS(exit 0)；HEAD 旧版两次点击均因 state=undefined 无响应（#counter=0），FAIL(exit 1)，确认 bug 真实且已修。
 - 移交文件：`plan/已修复/2026-11-07-FE-N32-点击速度首屏区域点击开始.md`
 
-### FE-N33 眨眼测试提前停止时 `elapsed` 回退为整段时长，速率被低估一个数量级（中，确认源码缺陷）
+### FE-N33 眨眼测试提前停止时 `elapsed` 回退为整段时长，速率被低估一个数量级（中，已修复 2026-11-07）
 - 页面：`tools/fun/blink-counter.html`
 - 问题：`finishTest()` 用 `total-remain` 推时长；若在第一个 1 秒 tick 之前停止（`remain` 仍等于 `total`），`elapsed<=0` 被兜底成 `total`，等于把不足 1 秒的测试按整段时长计算。
-- 证据：`:333-336`（`var elapsed=total-remain; if(elapsed<=0)elapsed=total;`）、`:311-316`（每 1000ms 才 `remain--`）、`:318-324`。
-- 复现：选 60 秒 → 开始 → 1 秒内点 3 次「眨眼」→ 点「停止」→ 实际显示「测试时长 60 秒、3 次、3.0 次/分」并判「眨眼偏少」；期望约 1 秒、180 次/分。Node 复算 `3/60*60=3.0`。
-- 影响：短测结果与评级完全失真，且错误值看起来合理。
-- 方案：`startTest` 记 `performance.now()`，`elapsed=(now-start)/1000`；仅自动结束时取 `total`。
+- 修复位点：新增 `startTime` 状态变量（声明 `var ...startTime=null;`，`startTest()` 内 `startTime=Date.now();`）；`finishTest()` 改为 `var elapsed=(Date.now()-startTime)/1000; if(!(elapsed>0))elapsed=0.001;`，按真实耗时计算，去掉「兜底成 total」逻辑。
+- 判别力：`scripts/_verify_fun_batch_fe_n33.mjs` JSDOM 两态锁——设 60 秒 → startTest → 点 3 次眨眼 → 等 0.5s（未到首个 tick）→ stopTest(false)；修复版真实耗时≈0.5s → 每分钟眨眼≈357.9 次/分，PASS(exit 0)；HEAD 旧版兜底 60s → 3.0 次/分，FAIL(exit 1)，确认 bug 真实且已修。
+- 移交文件：`plan/已修复/2026-11-07-FE-N33-眨眼测试真实耗时计算.md`
 
 ### FE-N34 测试进行中修改「时长」会改写 remain/total，最终速率算错（中，确认源码缺陷）
 - 页面：`tools/fun/blink-counter.html`
