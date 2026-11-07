@@ -114,11 +114,14 @@
   2. 预设（行 836）：`小规模/大规模/极端工况` 三个预设补 `bpmSlider` 值，与 `bpmInput` 一致，修正滑块拇指不随预设移动。
 - 实证：`scripts/verify_fun_calc.js` 新增 `music/bpm-converter` 用例（注入 `bpmInput=500` → 期望四分音符 `200.00ms`，即钳到 300 计算；默认 120 → 500.00ms 不命中 ⇒ 零逃生）；`discriminate_check` 全量 29/29 正确变红、0 逃生项。整份 verify_fun_calc 29/29 通过。
 
-### FE-N5 BPM 反向时长只更新结果，数据表/历史/图表/CSV 保持旧值（低，确认源码缺陷）
+### FE-N5 BPM 反向时长只更新结果，数据表/历史/图表/CSV 保持旧值（低，确认源码缺陷 → **2026-11-07 已修复**）
 - 描述：`calcReverse()` 只写 `#reverseResult`；历史扩展只在 `calcAll()` 外层包装里触发，改「时长/音符类型」不会记录，也不会刷新表格与图表。
 - 证据：`tools/music/bpm-converter.html:658-699`（`calcReverse` 无扩展调用）、`:801-829`（`__bpm_converterExtras`）、`:838-840`（只包装 `calcAll`）、`:340`（表格/历史/图表宿主与反推结果同卡）。
 - 影响：`tools/music/bpm-converter.html`；只用反推功能时历史为空、CSV 无内容、图表不更新。
-- 方案：`calcReverse` 也调用同一记录函数，或把「记录」抽成两处共用的 `record()`；导出前校验表非空并提示。
+- 方案：`calcReverse` 也调用同一记录函数，或把「记录」抽成两处共用的 `record()``；导出前校验表非空并提示。
+- 修复（2026-11-07）：`calcReverse` 有效分支末尾调用 `__bpm_converterExtras()`（行 706 后），用 `typeof __bpm_converterExtras === 'function'` 守卫，避免页面初始化（IIFE 内行 731 首次 `calcReverse()` 时第二段脚本 `__bpm_converterExtras` 尚未定义）误调用报错；`reverseResult` 即 `.result-box`，被 `__bpm_converterResText` 采集，故反向结果会写进 `#bpm_converterTable`、历史、图表与 CSV。
+- 验证说明（harness 盲区）：`scripts/verify_fun_calc.js` 的 harness **无法稳定验证本修复**——根因有二：① 页面 `calcReverse` 与 `__bpm_converterExtras` 分属两段 `<script>`，真实浏览器/JSDOM 下函数全局可见可调用；但 harness 把各段脚本隔离编译，跨段裸函数引用在 `calcReverse` 作用域内 `typeof` 为 `undefined`，守卫跳过 → 表格恒空；② 即便绕过，页面内部 1 秒节流 `now-__bpm_converter_last<1000` 与 harness 的 `FrozenDate`（`FIXED_NOW` 常量）叠加，注入后的第二次 `calcReverse` 必被节流。此属 harness 盲区，**非页面 bug**（JSDOM 真机已验证生效）。
+- 实证（运行期两态，权威回归锁）：`scripts/_verify_fun_batch_fe_n5.mjs`（JSDOM 真机，等同浏览器双段同全局）。修复后：注入 `reverseMs=1000`/`quarter` → `matrix.table` 被调用、`#bpm_converterTable` 含列头 `reverseMs` 与结果 `60.00 BPM`、history 记录 1 条 ⇒ 1/1 通过；`--head` 回退旧版：表格恒空、history 0 条 ⇒ 1/1 通过。
 
 ### FE-N6 和弦解析把 `Cmaj`/`Cmajor` 判成小三和弦（高，原报函数缺陷 → **2026-11-07 复核：历史快照误报，当前源码已正确**）
 - 原描述：后缀匹配在归一化之前用 `suffix.startsWith(s)`，`maj`/`major` 先命中单字符 `m`（小三），永远走不到 `maj→M` 的归一化分支；`Cmaj` 输出 C–D♯–G。
