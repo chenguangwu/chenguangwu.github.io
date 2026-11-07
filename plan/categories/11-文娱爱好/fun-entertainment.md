@@ -576,6 +576,7 @@
 - 复现：简单题三级提示后答对 → 100−60=40 分（`Math.max(20,40)`），而非「不扣分」；深解算例的 +10/+30 与实现的 100/180/300 基数也对不上。
 - 影响：计分口径与页面说明完全相反，用户按 FAQ 预期使用会被扣分；深解算例不可复算。
 - 方案：二选一——改实现（提示不扣分/改为倍数），或改 FAQ 与深解算例，并让算例按 `computeScore` 实跑取数。
+- **状态：已修复 2026-11-07。** 修复位点：`tools/fun/daily-riddle.html` `computeScore()` 去掉 `- hints*20`（与 FAQ「提示本身不减分」对齐，连击奖励保留）。判别力实测：`scripts/_verify_fun_batch_fe_n56.mjs` 从真实源码抽取 `baseScore`/`computeScore` 在隔离作用域实跑——`computeScore(true,3,1)` 修复版=100（PASS），HEAD=40（100−3×20，FAIL）。移交：`plan/已修复/2026-11-07-FE-N56-N62-N67-计分与模式与定时链.md`。
 
 ### FE-N57 「三级关键词提示」实为逐位揭示答案，提示 2 起常直接给出全答案（中，承诺未实现）
 - 页面：`tools/fun/daily-riddle.html`
@@ -623,6 +624,7 @@
 - 复现：序列回放中点「重置」→ 旧链继续闪数字；结束后点任意数字 → 因 `seq` 已清空，`seq[0]` 为 `undefined`，立即「❌ 游戏结束！达到第 1 关 / 正确序列：」（空）。
 - 影响：重置失效并产生假失败；回放中再点「开始」会出现两条回放链交错，数字顺序错乱不可解。
 - 方案：记录所有 timer id（或引入 `runId` 代次校验）并在 `reset`/`start` 中 `clearTimeout`，回调先判代次再执行。
+- **状态：已修复 2026-11-07。** 修复位点：`tools/fun/sequence-memory.html` 新增 `pendingTimers` 数组 + `scheduleTimer()`/`clearPendingTimers()`，`reset()` 与 `nextRound()` 开头 `clearPendingTimers()`，全部 `setTimeout` 改为 `scheduleTimer`。判别力实测：`scripts/_verify_fun_batch_fe_n62.mjs` 运行期两态锁——`start()` 后立刻 `reset()` 再等 1.6s，修复版 `accepting` 仍为 false（链已取消，PASS），HEAD 旧链跑完设 `accepting=true`（FAIL）。移交：`plan/已修复/2026-11-07-FE-N56-N62-N67-计分与模式与定时链.md`。
 
 ### FE-N63 「长度/速度可调」只存在于描述与深解，页面只有「开始/重置」（中，承诺未实现）
 - 页面：`tools/fun/sequence-memory.html`
@@ -661,6 +663,7 @@
 - 证据：`:171`（规则文案）、`:260`（`let mode13=true`）、`:274`（唯一读取 `const max=mode13?13:10;`）。
 - 影响：模式承诺落空；A/J/Q/K 始终参与（玩家若不熟悉对应关系，牌面理解成本高于 1~10 模式）。
 - 方案：加模式切换控件并在 `newGame()` 读取，或删除该规则句。
+- **状态：已修复 2026-11-07。** 修复位点：`tools/fun/number-puzzle.html` 新增「1~13 / 1~10 模式」切换按钮与 `setMode(v)`（设置 `mode13` 并 `newGame()` 重建牌面），初始化调用 `setMode(mode13)` 标记激活态。判别力实测：`scripts/_verify_fun_batch_fe_n67.mjs` 运行期两态锁——`setMode(false)` 后 `newGame()`，修复版 4 张数字全部 ≤10（PASS），HEAD 无 `setMode`（承诺未实现，FAIL）。移交：`plan/已修复/2026-11-07-FE-N56-N62-N67-计分与模式与定时链.md`。
 
 ### FE-N68 答对后 800ms 内重复提交会重复加分/加连胜（中，确认源码缺陷）
 - 页面：`tools/fun/word-scramble.html`

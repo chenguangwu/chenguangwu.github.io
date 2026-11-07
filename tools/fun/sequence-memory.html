@@ -250,6 +250,10 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 let seq,level,userIdx,accepting;
+// 跟踪所有 setTimeout，便于 reset/重开时整体取消，避免旧回放链残留误判（FE-N62）
+let pendingTimers=[];
+function scheduleTimer(fn,ms){ const id=setTimeout(()=>{ pendingTimers=pendingTimers.filter(x=>x!==id); fn(); },ms); pendingTimers.push(id); return id; }
+function clearPendingTimers(){ pendingTimers.forEach(id=>clearTimeout(id)); pendingTimers=[]; }
 
 function buildPad(){
   const p=document.getElementById('pad');
@@ -268,6 +272,7 @@ function start(){
   nextRound();
 }
 function reset(){
+  clearPendingTimers();
   seq=[];
   level=1;
   accepting=false;
@@ -277,6 +282,7 @@ function reset(){
   buildPad();
 }
 function nextRound(){
+  clearPendingTimers();
   accepting=false;
   userIdx=0;
   const len=level+1;
@@ -284,7 +290,7 @@ function nextRound(){
   for(let i=0;i<len;i++)seq.push(Math.floor(Math.random()*10));
   document.getElementById('status').textContent=`第 ${level} 关：记忆 ${len} 位数字`;
   const __h1=`<p>第 ${level} 关</p>`;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h1;
-  setTimeout(()=>showSeq(0),700);
+  scheduleTimer(()=>showSeq(0),700);
 }
 function showSeq(i){
   const d=document.getElementById('display');
@@ -297,9 +303,9 @@ function showSeq(i){
   }
   d.classList.remove('hidden');
   d.textContent=seq[i];
-  setTimeout(()=>{
+  scheduleTimer(()=>{
     d.textContent='';
-    setTimeout(()=>showSeq(i+1),200);
+    scheduleTimer(()=>showSeq(i+1),200);
   },Math.max(400,700-level*30));
 }
 function userClick(n){
@@ -307,14 +313,14 @@ function userClick(n){
   const keys=document.querySelectorAll('.key');
   if(n===seq[userIdx]){
     keys[n].classList.add('ok');
-    setTimeout(()=>keys[n].classList.remove('ok'),200);
+    scheduleTimer(()=>keys[n].classList.remove('ok'),200);
     document.getElementById('display').textContent=seq.slice(0,userIdx+1).join('');
     userIdx++;
     if(userIdx===seq.length){
       accepting=false;
       level++;
       const __h2=`<p style="color:var(--success);">✅ 通关第 ${level-1} 关</p>`;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h2;
-      setTimeout(()=>{document.getElementById('display').textContent='';nextRound();},1200);
+      scheduleTimer(()=>{document.getElementById('display').textContent='';nextRound();},1200);
     }
   }else{
     keys[n].classList.add('bad');
