@@ -474,6 +474,21 @@ s.parentNode.insertBefore(el, s);
   const NOTE_ALIASES = { 'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#' };
   const DEGREE_NAMES = ['根音', '九音', '二音', '小三', '大三', '纯四', '增四/减五', '纯五', '小六', '大六', '小七', '大七'];
 
+  /* 音程名：扩展音按原始半音数映射（>=12 半音为九/十一/十三音），避免 add9/9/m9 的 +2/+14 都误标成「二音」；
+     add9 的 +2 约定为「九音」，而挂二和弦(sus2)的 +2 仍标「二音」。 */
+  function degreeName(s, type) {
+    var base = ((s % 12) + 12) % 12;
+    var oct = Math.floor(s / 12);
+    if (oct >= 1) {
+      var EXT = { 1: '九音', 2: '九音', 5: '十一音', 9: '十三音' };
+      if (EXT[base]) return EXT[base];
+      return DEGREE_NAMES[base];
+    }
+    if (s === 2 && (type === 'add9' || type === '9' || type === 'm9')) return '九音';
+    return DEGREE_NAMES[base];
+  }
+
+
   /* 和弦类型定义：标记 -> { intervals, name } */
   const CHORD_TYPES = {
     '':         { intervals: [0, 4, 7],        name: '大三和弦' },
@@ -665,7 +680,7 @@ s.parentNode.insertBefore(el, s);
         return '<div class="note-badge" onclick="playSingleNote(' + i + ')" title="点击播放 ' + note.name + '">' +
           '<span class="note-name">' + note.name + '</span>' +
           '<span class="note-freq">' + note.freq.toFixed(2) + ' Hz</span>' +
-          '<span class="note-degree">' + DEGREE_NAMES[note.semitone % 12] + '</span>' +
+          '<span class="note-degree">' + degreeName(note.semitone, chord.type) + '</span>' +
           '</div>';
       }).join('');if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){notesEl.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}notesEl.innerHTML=__h2;
     } else {
@@ -677,7 +692,7 @@ s.parentNode.insertBefore(el, s);
     if (chord) {
       const __h4='<span style="font-size:12px;color:var(--text-muted);margin-right:4px;">音程：</span>' +
         chord.intervals.map(function(s) {
-          return '<span class="interval-tag">' + DEGREE_NAMES[s % 12] +
+          return '<span class="interval-tag">' + degreeName(s, chord.type) +
             ' <span class="semitones">(' + s + '半音)</span></span>';
         }).join('');if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){intervalEl.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}intervalEl.innerHTML=__h4;
     } else {

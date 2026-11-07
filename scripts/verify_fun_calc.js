@@ -38,6 +38,20 @@ const CASES = [
     ref: "FE-N6 对照：Cm 直接命中 CHORD_TYPES['m'] → 小三和弦，类型标签「Cm · 小三和弦」。与 Cmaj 的大三形成区分，确认归一化分支正确区分大小三和弦，且默认态「C · 大三和弦」不命中本锚。",
   },
 
+  // ── 扩展和弦九音标注（FE-N7 回归锁：9/m9 的 +14 与 add9 的 +2 应标「九音」而非「二音」）──
+  {
+    slug: "music/chord-notes",
+    inputs: { chordInput: "C9" },
+    expect: ["九音"],
+    ref: "FE-N7 回归锁：C9=属九和弦，最高扩展音 +14 半音（九音），degreeName 按原始半音数映射为『九音』（旧版 14%12=2 误标『二音』）。默认 chordInput=C（大三和弦，无九音）不命中『九音』⇒ 零逃生。",
+  },
+  {
+    slug: "music/chord-notes",
+    inputs: { chordInput: "Csus2" },
+    expect: ["二音"],
+    ref: "FE-N7 回归护栏：挂二和弦 sus2 的 +2 半音是『二音』（非九音），确认修复未误伤 sus2。默认 chordInput=C 不含『二音』⇒ 零逃生。",
+  },
+
   // ── BPM 越界钳制（FE-N4 回归锁：500→钳到 300，四分音符=200.00ms，非 120.00ms）──
   {
     slug: "music/bpm-converter",
