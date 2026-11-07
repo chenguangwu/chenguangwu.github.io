@@ -519,13 +519,15 @@
 - 影响：重置后统计自相矛盾（0 场次却有最高连胜）。
 - 方案：resetScore 内加 `maxStreak = 0`。
 
-### FE-N52 滑动拼图「自动还原」被记为胜利并写入 0 步最佳纪录（高，确认源码缺陷）
+### FE-N52 滑动拼图「自动还原」被记为胜利并写入 0 步最佳纪录（高，**2026-11-07 已修复**）
 - 页面：`tools/fun/sliding-puzzle.html`
-- 问题：`solveAnimation()` 反向回放结束后直接 `won=true; celebrateWin()`，而 `celebrateWin()` 无条件 `saveBest(moves, elapsed)`；自动还原不增加 moves、也不重置计时，于是以玩家此前的步数/用时（刚开局时为 0/0）记为新纪录，并计入完成局数。
-- 证据：`:873-904`（`:878-879` playing=false/stopTimer，`:887-888` 回放完成即 celebrateWin）、`:832-833`（celebrateWin→`saveBest(moves, elapsed)`）、`:687-695`（prev 为空即写入并返回「新纪录」）、`:936-941`（`__spRecord` 记完成局数）、`:990-991`（celebrateWin 包装后追加记录）。
-- 复现：重新开始后立刻点「自动还原」→ 完成后弹「🏆 新纪录」，最佳记录写成「0 步」，统计完成局数 +1；该尺寸/模式的最佳此后无法再被正常刷新（`:689` 以步数最小为优，0 步恒最优）。
+- 问题：`solveAnimation()` 反向回放结束后直接 `won=true; celebrateWin()`，而 `celebrateWin()` 经 `:1004-1005` 包裹会 `saveBest(moves, elapsed)` + `__spRecord()`；自动还原不增加 moves、也不重置计时，于是以玩家此前的步数/用时（刚开局时为 0/0）记为新纪录，并计入完成局数。
+- 证据：`:887`（`window.solveAnimation`）、`:900-904`（回放完成即 `won=true; celebrateWin()`）、`:846-862`（celebrateWin→`saveBest`+弹窗）、`:1004-1005`（包裹追加 `__spRecord`）、`:700-709`（`saveBest` prev 为空即写「新纪录」）。
+- 复现：重新开始后立刻点「自动还原」→ 完成后弹「🏆 新纪录」，最佳记录写成「0 步」，统计完成局数 +1；该尺寸/模式的最佳此后无法再被正常刷新（`:702` 以步数最小为优，0 步恒最优）。
 - 影响：假胜利 + 永久污染最佳纪录与完成局数统计。
-- 方案：自动还原走独立路径（只回放、`won=false` 或提示「已演示」），不调用 celebrateWin/`__spRecord`、不写最佳。
+- 修复位点：`solveAnimation` 完成分支改为独立路径——`won=true; playing=false; stopTimer();` + 提示「演示完成，不计入对局成绩」的 toast，**不调用 celebrateWin**，从而不写最佳、不计完成局数。`tools/fun/sliding-puzzle.html:900-905`。
+- 判别力：`scripts/_verify_fun_batch_fe_n52.mjs` JSDOM 两态锁——清 localStorage → `startGame()` → `solveAnimation()`，轮询 `puzzle_games_v1`：当前不写入（PASS），HEAD 写入 1 条完成记录（FAIL）。
+- 移交文件：`plan/已修复/2026-11-07-FE-N52-滑动拼图自动还原不计胜利.md`
 
 ### V 批覆盖清单（小游戏 8 页）
 - `tools/fun/tic-tac-toe.html`：1 条（FE-N42 高）。复核通过项：`checkWin`/`checkWinFor` 8 组三连对称、`board.every` 平局、困难 minimax 以 O 判胜优先、分数读写与撤销栈。
