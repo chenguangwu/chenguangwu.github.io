@@ -123,7 +123,8 @@ s.parentNode.insertBefore(el, s);
   <div class="formula-eq">CSAT 满意度(%) = 满意人数 ÷ (满意 + 一般 + 不满意) × 100；有效问卷数为 0 时该指标记 0 并显示「无有效问卷」。校验：三项计数无强校验，缺省按 0。判据：CSAT ≥85 优秀、≥70 良好、≥50 一般、&lt;50 较差。</div>
   <div class="formula-eq">NPS 净推荐值 = 推荐者数 ÷ NPS样本数 × 100 − 贬损者数 ÷ NPS样本数 × 100（即推荐者占比 − 贬损者占比，样本 = 推荐 + 中立 + 贬损）；NPS 样本数为 0 时记 0 并显示「无有效样本」。校验：三项计数无强校验，缺省按 0。判据：NPS ≥50 卓越、≥20 良好、≥0 一般、&lt;0 需改进。</div>
   <div class="formula-eq">综合效果分 = (组织执行 + 场馆设施 + 宣传推广 + 安全保障) ÷ 4（四项各按 10 分制评分）。校验：四项评分无强校验，缺省按 0。判据：效果分 ≥8 绿色（优秀）、≥6 黄色（一般）、否则红色（需改进）。</div>
-  <div class="formula-desc">采用 CSAT 满意度调查 + NPS 净推荐值 + 效果四维评分，综合评估赛事运营质量并给出改进建议。</div>
+  <div class="formula-eq">Kirkpatrick 四级评估：L1 反应 = CSAT 满意度（现场问卷）；L2 学习 = 知识/技能测评均分（0–100）；L3 行为 = 赛后行为改变率（0–100）；L4 结果 = 赛事效果四维评分 × 10。单级 ≥70 分记为达标，四级贯通 = 达标级数 ÷ 4（缺测不计入达标数，L2/L3 清空即视为缺测）。</div>
+  <div class="formula-desc">采用 CSAT 满意度调查 + NPS 净推荐值 + 效果四维评分，并按 Kirkpatrick 反应/学习/行为/结果四级逐层评估，综合给出赛事运营质量、四级贯通级数与改进建议。</div>
 </div>
 
 <div class="input-row"><div><label>总参与/观赛人数</label><input type="number" id="total" value="5000" step="100" style="font-size:16px;" oninput="calc()" placeholder="e.g. 5000"></div>
@@ -143,6 +144,9 @@ s.parentNode.insertBefore(el, s);
 
 <div class="input-row"><div><label>赛事宣传推广（1-10分）</label><input type="number" id="promo" value="7" min="1" max="10" step="0.5" style="font-size:16px;" oninput="calc()" placeholder="e.g. 7 (1–10)"></div>
 <div><label>安全保障措施（1-10分）</label><input type="number" id="safety" value="9" min="1" max="10" step="0.5" style="font-size:16px;" oninput="calc()" placeholder="e.g. 9 (1–10)"></div></div>
+
+<div class="input-row"><div><label>Kirkpatrick L2 学习层：知识/技能测评均分（0-100）</label><input type="number" id="learn" value="75" min="0" max="100" step="1" style="font-size:16px;" oninput="calc()" placeholder="e.g. 75 (0–100)"></div>
+<div><label>Kirkpatrick L3 行为层：赛后行为改变率（%，0-100）</label><input type="number" id="behavior" value="70" min="0" max="100" step="1" style="font-size:16px;" oninput="calc()" placeholder="e.g. 70 (0–100)"></div></div>
 
 <div class="toolbar"><div id="assessor_csatPresets"></div>
       <button type="button" class="btn primary" onclick="calc()">执行赛事评估</button>
@@ -366,6 +370,20 @@ function calc(){
   var detractorPct=hasNps?detractors/npsTotal*100:0;
   var nps=hasNps?promoterPct-detractorPct:0;
   var effectScore=(org+venue+promo+safety)/4;
+  // Kirkpatrick 四级评估：L1 反应=CSAT，L2 学习=知识/技能测评均分，L3 行为=行为改变率，L4 结果=四维效果分×10
+  var learnRaw=String(document.getElementById('learn').value).trim();
+  var behRaw=String(document.getElementById('behavior').value).trim();
+  var learnV=learnRaw===''?null:parseFloat(learnRaw);
+  var behV=behRaw===''?null:parseFloat(behRaw);
+  var learnOk=learnV!==null&&isFinite(learnV)&&learnV>=0&&learnV<=100;
+  var behOk=behV!==null&&isFinite(behV)&&behV>=0&&behV<=100;
+  var k1=hasCsat?csat:null, k2=learnOk?learnV:null, k3=behOk?behV:null, k4=effectScore*10;
+  var kLevels=[['L1 反应','CSAT 满意度（占比派生）',k1],['L2 学习','知识/技能测评均分',k2],['L3 行为','赛后行为改变率',k3],['L4 结果','赛事效果四维×10',k4]];
+  var kPass=0,kMiss=[];
+  kLevels.forEach(function(l){
+    if(l[2]===null){kMiss.push(l[0]+'（缺测）');return;}
+    if(l[2]>=70)kPass++;else kMiss.push(l[0]+'（'+l[2].toFixed(1)+' 分，低于 70）');
+  });
   var csatGrade,csatColor;
   if(!hasCsat){csatGrade='无有效问卷';csatColor='var(--text-muted)';}
   else if(csat>=85){csatGrade='优秀';csatColor='var(--success)';}
@@ -405,6 +423,18 @@ function calc(){
     if(promo<8)issues.push('宣传推广待加强');
     h+='<div class="tip-box tip-warn" style="margin-top:8px;"><strong>⚠ 存在待改进项：</strong> '+issues.join('、')+'。建议针对性优化并跟踪改进效果。</div>';
   }
+  h+='<p style="font-size:13px;font-weight:600;margin:16px 0 8px;">Kirkpatrick 四级评估</p>';
+  h+='<table style="width:100%;border-collapse:collapse;margin:8px 0;font-size:13px;">';
+  h+='<tr style="background:var(--result-bg);"><th style="border:1px solid var(--border);padding:8px;text-align:left;">层级</th><th style="border:1px solid var(--border);padding:8px;text-align:left;">口径</th><th style="border:1px solid var(--border);padding:8px;">得分</th><th style="border:1px solid var(--border);padding:8px;">判定</th></tr>';
+  kLevels.forEach(function(l){
+    var val=l[2]===null?'—':l[2].toFixed(1)+'/100';
+    var okk=l[2]!==null&&l[2]>=70;
+    var txt=l[2]===null?'缺测':(l[2]>=85?'优秀':okk?'达标':'未达标');
+    var col=l[2]===null?'var(--text-muted)':(l[2]>=85?'var(--success)':okk?'var(--info)':'var(--warning)');
+    h+='<tr><td style="border:1px solid var(--border);padding:8px;">'+l[0]+'</td><td style="border:1px solid var(--border);padding:8px;">'+l[1]+'</td><td style="border:1px solid var(--border);padding:8px;text-align:center;font-weight:600;color:'+col+';">'+val+'</td><td style="border:1px solid var(--border);padding:8px;text-align:center;color:'+col+';">'+txt+'</td></tr>';
+  });
+  h+='</table>';
+  h+='<p>四级贯通：<strong style="font-size:16px;">'+kPass+'/4 级达标</strong>（单级 ≥70 分记为达标；缺测不计入达标数）。'+(kMiss.length?'待改进：'+kMiss.join('、')+'。':'四级全部达标，可用于赛事培训效果归档。')+'</p>';
   h+='<div class="tip-box tip-info" style="margin-top:8px;">评估方法：CSAT满意度调查 + NPS净推荐值 + Kirkpatrick四级评估模型</div>';
   const __g1=h;document.getElementById('res').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
