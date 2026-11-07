@@ -153,6 +153,21 @@ const CASES = [
     ref: "净趸缴保费 = Σ 死亡现值 = 15730.63；占保额 = 15.7266%→19.66（避开页面示例默认值 100000/0.01/0.03/10）" },
 
   { slug: "insurance/premium-calc",
+    inputs: { sumInsured: "-500000", baseRate: "2.5" },
+    expect: ["「保险金额（元）」必须大于 0（当前 -500000）"],
+    ref: "R-N4：负保额原先直接算出 −1125.00 元应缴保费；现在必须拒绝。默认 500000/2.5 ⇒ 1125.00，不含负号文案。" },
+
+  { slug: "insurance/premium-calc",
+    inputs: { sumInsured: "500000", baseRate: "-2.5" },
+    expect: ["「基础费率（‰）」不能为负数（当前 -2.5）"],
+    ref: "R-N4：负费率原先得到负基础保费与负应缴保费；现在必须拒绝。默认态不含该文案。" },
+
+  { slug: "insurance/premium-calc",
+    inputs: { sumInsured: "0", baseRate: "2.5" },
+    expect: ["「保险金额（元）」必须大于 0（当前 0）"],
+    ref: "R-N4：保额为 0 原先输出 0.00 元应缴保费；现在明确拒绝。默认保额 500000 不出现该文案。" },
+
+  { slug: "insurance/premium-calc",
     inputs: { sumInsured: "100000", baseRate: "5", age: "3.5", job: "5.0", term: "0.85", payMode: "0.98" },
     expect: ["7,288.75"],
     ref: "基础=100000×5/1000=500；实际=500×3.5×5.0×0.85×0.98=7288.75（默认空→0 避开）" },

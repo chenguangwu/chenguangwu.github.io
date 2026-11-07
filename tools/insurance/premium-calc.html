@@ -124,7 +124,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="基础保费费率模型，按保额、费率及各风险系数估算保费">Compute premium as sum assured multiplied by the applicable rate.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">保费测算（本页代码口径）：基础保费=保额×基础费率(‰)÷1000；应缴保费=基础保费×年龄系数×职业系数×期限系数×缴费方式系数；综合系数=四系数连乘×100（%），结果明细逐步列出各系数取值。校验：无强校验，空值按 0 兜底，四个系数由下拉选项取值。判据：缴费方式系数为 0.98（趸交）时注明一次性缴纳全部保费，其余方式注明每期缴纳金额。</div>
+      <div class="formula-eq">保费测算（本页代码口径）：基础保费=保额×基础费率(‰)÷1000；应缴保费=基础保费×年龄系数×职业系数×期限系数×缴费方式系数；综合系数=四系数连乘×100（%），结果明细逐步列出各系数取值。校验：保额、费率都必须填写且为合法数值，留空不再按 0 兜底；保额须 &gt;0、基础费率须 ≥0（按 ‰ 输入，2.5 表示千分之 2.5），四个系数取自下拉且必须为正，不满足即提示并中止，错误态不生成保费、历史与导出。「默认参数」预设与页面初始 / 重置值完全一致（50 万 / 2.5‰ / 年龄 1.0 / 职业 1.0 / 期限 0.90 / 年缴 1.00 ⇒ 1125 元），点击「恢复默认」不会意外改变方案。判据：缴费方式系数为 0.98（趸交）时注明一次性缴纳全部保费，其余方式注明每期缴纳金额。</div>
       <p class="formula-desc">基础保费费率模型，按保额、费率及各风险系数估算保费</p>
     </div>
 
@@ -303,13 +303,42 @@ function getVal(id){
   return el ? (+el.value || 0) : 0;
 }
 
+var __pcLast=null;   // 最近一次有效计算的输入与结果，供导出使用（R-N4）
+function __pcNum(id){var e=document.getElementById(id);if(!e)return NaN;var s=String(e.value==null?'':e.value).trim();if(s==='')return NaN;var v=parseFloat(s);return isFinite(v)?v:NaN;}
+function __pcCheck(){
+    var ids=['sumInsured','baseRate'],labels=['保险金额（元）','基础费率（‰）'];
+    for(var i=0;i<ids.length;i++){
+        var e=document.getElementById(ids[i]);
+        var raw=e?String(e.value==null?'':e.value).trim():'';
+        if(raw==='') return {ok:false,html:'<p style="color:var(--danger)">⚠ 「'+labels[i]+'」不能为空：留空会被当成 0 参与计算，请补全后再计算。</p>'};
+        if(isNaN(__pcNum(ids[i]))) return {ok:false,html:'<p style="color:var(--danger)">⚠ 「'+labels[i]+'」不是有效数字（当前「'+raw+'」）。</p>'};
+    }
+    var s=__pcNum('sumInsured'),r=__pcNum('baseRate');
+    if(!(s>0)) return {ok:false,html:'<p style="color:var(--danger)">⚠ 「保险金额（元）」必须大于 0（当前 '+s+'）：保额为 0 或负数会算出 0 或负的应缴保费。</p>'};
+    if(!(r>=0)) return {ok:false,html:'<p style="color:var(--danger)">⚠ 「基础费率（‰）」不能为负数（当前 '+r+'）：负费率会得到负的基础保费，应缴保费方向相反。</p>'};
+    var fids=['age','job','term','payMode'],flbl=['年龄系数','职业系数','期限系数','缴费方式系数'],fv=[];
+    for(var j=0;j<fids.length;j++){
+        var fe=document.getElementById(fids[j]);
+        var v=fe?+fe.value:NaN;
+        if(!(v>0)||!isFinite(v)) return {ok:false,html:'<p style="color:var(--danger)">⚠ 「'+flbl[j]+'」无效（当前 '+v+'）：四个系数都取自下拉选项且必须为正，请重新选择。</p>'};
+        fv.push(v);
+    }
+    return {ok:true,s:s,r:r,age:fv[0],job:fv[1],term:fv[2],pay:fv[3]};
+}
 function calc(){
-  var sumInsured = getVal('sumInsured');
-  var baseRate = getVal('baseRate');
-  var ageFactor = +document.getElementById('age').value;
-  var jobFactor = +document.getElementById('job').value;
-  var termFactor = +document.getElementById('term').value;
-  var payFactor = +document.getElementById('payMode').value;
+  __pcLast=null;   // 本次输入非法时不得再用上一次结果导出
+  var S=__pcCheck();
+  if(!S.ok){
+    document.getElementById('statGrid').innerHTML='';
+    document.getElementById('result').innerHTML=S.html;
+    return;
+  }
+  var sumInsured = S.s;
+  var baseRate = S.r;
+  var ageFactor = S.age;
+  var jobFactor = S.job;
+  var termFactor = S.term;
+  var payFactor = S.pay;
 
   var basePremium = sumInsured * baseRate / 1000;
   var finalPremium = basePremium * ageFactor * jobFactor * termFactor * payFactor;
@@ -338,6 +367,8 @@ function calc(){
   } else {
     html += '<p style="font-size:13px;color:var(--text-light);">即每期（' + payLabel + '）缴纳金额</p>';
   }
+  __pcLast={s:sumInsured,r:baseRate,age:ageFactor,job:jobFactor,term:termFactor,pay:payFactor,
+      basePremium:basePremium,finalPremium:finalPremium,totalRatio:totalRatio,payLabel:payLabel};
   const __g1=html;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 
@@ -447,7 +478,7 @@ function __premium_calcResText(){
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    if(/请输入|请填写|无效|不正确|错误|Error|NaN|⚠|不能为|必须/.test(t)) return '';
     return t.slice(0,80);
 }
 function __premium_calcTime(t){
@@ -495,6 +526,7 @@ function __premium_calcRender(keys,rk,en){
 function __premium_calcExtras(){
     if (typeof TBKit === 'undefined') return;
     if (__premium_calc_skip) return;
+    if(!__pcLast) return;   // 非法输入（负保额/负费率/留空）不得写进历史（R-N4）
     var snap=__premium_calcSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -523,11 +555,28 @@ function __premium_calcExtras(){
 }
 function __premium_calcExport(){
     if (typeof TBKit === 'undefined') return;
-    try { TBKit.util.exportTable('#premium_calcTable','premium-calc.csv'); } catch(e){}
+    // 导出当前完整输入 + 保费分解，而非被截断的历史摘要；非法输入直接拦截（R-N4）
+    if(!__pcLast){
+        try{ ToolBox.showToast('请先完成一次有效计算，明细为空时不导出。','error'); }catch(e){}
+        return;
+    }
+    var L=__pcLast;
+    var rows=[['项目','数值'],
+        ['保险金额 (元)', L.s.toFixed(2)],
+        ['基础费率 (‰)', String(L.r)],
+        ['年龄系数', String(L.age)],
+        ['职业系数', String(L.job)],
+        ['期限系数', String(L.term)],
+        ['缴费方式系数', String(L.pay)],
+        ['缴费方式', L.payLabel],
+        ['基础保费 (元)', L.basePremium.toFixed(2)],
+        ['综合系数 (%)', L.totalRatio],
+        ['应缴保费 (元)', L.finalPremium.toFixed(2)]];
+    try { TBKit.util.exportCsv('premium-calc.csv', rows); } catch(e){}
 }
 function __premium_calcPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#premium_calcPresets',[{label:'默认参数',labelEn:'Default',values:{'sumInsured':'500000', 'baseRate':'2.5', 'age':'0.6', 'job':'1.0', 'term':'1.0', 'payMode':'1.00'}},{"label":"小规模","labelEn":"Small scale","values":{"sumInsured":"250000"}},{"label":"大规模","labelEn":"Large scale","values":{"sumInsured":"750000"}},{"label":"极端工况","labelEn":"Extreme case","values":{"sumInsured":"1000000"}}],function(){ calc(); });
+    TBKit.preset.bar('#premium_calcPresets',[{label:'默认参数',labelEn:'Default',values:{'sumInsured':'500000', 'baseRate':'2.5', 'age':'1.0', 'job':'1.0', 'term':'0.90', 'payMode':'1.00'}},{"label":"小规模","labelEn":"Small scale","values":{"sumInsured":"250000"}},{"label":"大规模","labelEn":"Large scale","values":{"sumInsured":"750000"}},{"label":"极端工况","labelEn":"Extreme case","values":{"sumInsured":"1000000"}}],function(){ calc(); });
 }
 var __premium_calc_f0=(typeof calc==='function')?calc:null;
 if(__premium_calc_f0){
