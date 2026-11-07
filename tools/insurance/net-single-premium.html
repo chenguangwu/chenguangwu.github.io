@@ -124,7 +124,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="在给定死亡率与利率下，死亡给付的现值即净趸缴保费。">One-time pure premium covering only the insurance benefit, no expenses.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">净趸缴保费（本页代码口径，逐年递推）：折现因子 v=1÷(1+年利率 i)；自生存概率 sp=1 起逐年 t=1…n 递推：当年死亡概率=sp×q，NSP 累加 保额 B×v^t×当年死亡概率，sp×=(1−q)；占保额比例=NSP÷B×100（%）。校验：四字段经输入守卫必填且须为合法数值，否则提示并中止；保障年数按上限 1000 截断。判据：无固定分级，利率越高 NSP 越低，死亡率越大 NSP 越高。</div>
+      <div class="formula-eq">净趸缴保费（本页代码口径，逐年递推）：折现因子 v=1÷(1+年利率 i)；自生存概率 sp=1 起逐年 t=1…n 递推：当年死亡概率=sp×q，NSP 累加 保额 B×v^t×当年死亡概率，sp×=(1−q)；占保额比例=NSP÷B×100（%）。校验：四字段经输入守卫必填且须为合法数值；另校验 保额 B>0、年死亡率 0≤q≤1（按小数输入：1% 填 0.01，越界会使「当年死亡概率」为负或大于 1）、年利率 i>−1（i=−1 时 v=1÷(1+i) 为无穷）、保障年数为正整数且 ≤1000（超出按 1000 年计并提示），不满足即中止。判据：无固定分级，利率越高 NSP 越低，死亡率越大 NSP 越高；结果区附逐年明细（期初生存概率、当年死亡概率、折现因子、折现赔付）与生存至期末概率，零利率、q=0、q=1 三种边界单独说明。</div>
       <p class="formula-desc">在给定死亡率与利率下，死亡给付的现值即净趸缴保费。</p>
     </div>
 
@@ -283,17 +283,44 @@ s.parentNode.insertBefore(el, s);
 
 
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
+// 区分「留空」与「显式 0」：留空返回 NaN（B/R 类校验用，R-N5）
+function __nspNum(id){var e=document.getElementById(id);if(!e)return NaN;var s=String(e.value==null?'':e.value).trim();if(s==='')return NaN;var v=parseFloat(s);return isFinite(v)?v:NaN;}
+var __nspLast=null;   // 最近一次有效计算的输入/结果/逐年明细，供导出与趋势使用（R-N5 / R-N6）
+function __nspFail(msg){ToolBox.setResult('result','<p class="tip-error">⚠ '+msg+'</p>');}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){  var __ig=__tbInputGuard(['B', 'q', 'i', 'n'],["保额 (元)", "年死亡率 q", "年利率 i", "保障年数 (年)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
+__nspLast=null;   // 本次输入非法时不得再用上一次的明细导出
 function fmt(v){const neg=v<0?'-':'';v=Math.abs(v);let s=v.toFixed(2);let p=s.split('.');p[0]=p[0].replace(/\B(?=(\d{3})+(?!\d))/g,',');return neg+p.join('.');}
-            const B=num('B'),q=num('q'),i=num('i'),n=Math.min(num('n'),1000);
+            const B=__nspNum('B'),q=__nspNum('q'),i=__nspNum('i'),nRaw=__nspNum('n');
+            if(!(B>0)){ __nspFail('「保额 (元)」必须大于 0（当前 '+B+'）：保额为 0 时净趸缴保费恒为 0，占保额比例也无从定义。'); return; }
+            if(!(q>=0&&q<=1)){ __nspFail('「年死亡率 q」必须在 0–1 之间（当前 '+q+'，按小数输入：1% 填 0.01）：超出区间时「当年死亡概率」会出现负数或超过 1，定价结果不成立。'); return; }
+            if(!(i>-1)){ __nspFail('「年利率 i」必须大于 −1（当前 '+i+'）：i=−1 时折现因子 v=1÷(1+i) 为无穷大，无法折现。'); return; }
+            if(!(nRaw>=1)){ __nspFail('「保障年数 (年)」必须大于等于 1（当前 '+nRaw+'）。'); return; }
+            if(nRaw!==Math.floor(nRaw)){ __nspFail('「保障年数 (年)」必须是正整数（当前 '+nRaw+'）：小数期数会只算到第 '+Math.floor(nRaw)+' 年而没有任何提示。'); return; }
+            let n=nRaw, __nClamped=false;
+            if(n>1000){ n=1000; __nClamped=true; }
             const v=1/(1+i);
             let nsp=0, sp=1;
-            for(let t=1;t<=n;t++){ const prob=sp*q; nsp += B*Math.pow(v,t)*prob; sp*=(1-q); }
+            const __rows=[];
+            for(let t=1;t<=n;t++){ const prob=sp*q; const df=Math.pow(v,t); const dcf=B*df*prob; nsp += dcf; __rows.push([String(t), sp.toFixed(6), prob.toFixed(6), df.toFixed(6), dcf.toFixed(2)]); sp*=(1-q); }
+            __nspLast={B:B,q:q,i:i,n:n,nsp:nsp,spEnd:sp,rows:__rows.map(function(x){return x.slice();})};
+            const __note=[];
+            if(i===0) __note.push('年利率为 0，折现因子 v 恒为 1，净趸缴保费等于各年死亡赔付的算术和。');
+            if(q===0) __note.push('年死亡率为 0，各年赔付概率均为 0，净趸缴保费为 0。');
+            if(q===1) __note.push('年死亡率为 100%，仅第 1 年发生赔付，生存概率在第 1 年后即为 0。');
+            if(__nClamped) __note.push('保障年数超过上限 1000 年，已按 1000 年计算。');
+            __note.push('生存至第 '+n+' 年末的概率为 '+sp.toFixed(6)+'，未发生赔付部分的保费不计入净趸缴。');
+            let __tbl='<div style="overflow-x:auto;margin-top:10px;"><table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr>';
+            ['年 t','期初生存概率','当年死亡概率','折现因子 v^t','折现赔付 (元)'].forEach(function(h){__tbl+='<th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);">'+h+'</th>';});
+            __tbl+='</tr></thead><tbody>';
+            __rows.forEach(function(rw){__tbl+='<tr>'+rw.map(function(c){return '<td style="padding:6px 8px;border-bottom:1px solid var(--border);">'+c+'</td>';}).join('')+'</tr>';});
+            __tbl+='</tbody></table></div>';
             const __g2=dataGrid([
                 [fmt(nsp),'净趸缴保费 (元)'],
-                [fmt(nsp/B*100),'占保额比例 (%)']
-            ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
+                [fmt(nsp/B*100),'占保额比例 (%)'],
+                [sp.toFixed(6),'生存至期末概率']
+            ])+'<p style="font-size:13px;color:var(--text-muted);margin-top:8px;">'+__note.join(' ')+'</p>'+__tbl;
+            ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('B').value = '1000000';
       document.getElementById('q').value = '0.01';
@@ -320,7 +347,7 @@ function __net_single_premiumResText(){
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    if(/请输入|请填写|无效|不正确|错误|Error|NaN|不能为 0|必须/.test(t)) return '';
     return t.slice(0,80);
 }
 function __net_single_premiumTime(t){
@@ -357,7 +384,11 @@ function __net_single_premiumRender(keys,rk,en){
         });
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
-            var v=parseFloat(arr[j].d[rk]);
+            // 结果列是带千分位的格式化文本（"81,763.70"），直接 parseFloat 只会取到 81；
+            // 优先用记录里的结构化数值 NSP数值（R-N6）
+            var raw=arr[j].d['NSP数值'];
+            var v=parseFloat(String(raw==null?'':raw).replace(/,/g,''));
+            if(!isFinite(v)) v=parseFloat(String(arr[j].d[rk]==null?'':arr[j].d[rk]).replace(/,/g,''));
             if(isFinite(v)){nums.push(v);labels.push(__net_single_premiumTime(arr[j].t));}
         }
         if(nums.length>=2){
@@ -372,6 +403,9 @@ function __net_single_premiumExtras(){
     var keys=Object.keys(snap);
     if(!keys.length) return;
     if(keys.length>12) keys=keys.slice(0,12);
+    // 结构化数值随记录一起落库，趋势与导出都用它而不是带千分位的结果文本（R-N6）
+    if(keys.indexOf('NSP数值')<0) keys.push('NSP数值');
+    snap['NSP数值']=(__nspLast&&isFinite(__nspLast.nsp))?__nspLast.nsp.toFixed(2):'';
     var res=__net_single_premiumResText();
     if(!res) return;
     var en=TBKit.util.isEn();
@@ -396,7 +430,24 @@ function __net_single_premiumExtras(){
 }
 function __net_single_premiumExport(){
     if (typeof TBKit === 'undefined') return;
-    try { TBKit.util.exportTable('#net_single_premiumTable','net-single-premium.csv'); } catch(e){}
+    // 导出当前完整输入 + 结果 + 逐年精算明细，而不是被截断的历史摘要（R-N5 / R-N6）
+    if(!__nspLast){
+        try{ ToolBox.showToast('请先完成一次有效计算，明细为空时不导出。','error'); }catch(e){}
+        return;
+    }
+    var L=__nspLast;
+    var rows=[['项目','数值'],
+        ['保额 (元)', L.B.toFixed(2)],
+        ['年死亡率 q（小数）', String(L.q)],
+        ['年利率 i（小数）', String(L.i)],
+        ['保障年数 (年)', String(L.n)],
+        ['净趸缴保费 (元)', L.nsp.toFixed(2)],
+        ['占保额比例 (%)', (L.nsp/L.B*100).toFixed(2)],
+        ['生存至期末概率', L.spEnd.toFixed(6)],
+        [],
+        ['年 t','期初生存概率','当年死亡概率','折现因子 v^t','折现赔付 (元)']];
+    for(var j=0;j<L.rows.length;j++) rows.push(L.rows[j]);
+    try { TBKit.util.exportCsv('net-single-premium.csv', rows); } catch(e){}
 }
 function __net_single_premiumPresets(){
     if (typeof TBKit === 'undefined') return;
@@ -435,7 +486,7 @@ else document.addEventListener('DOMContentLoaded', __net_single_premiumBoot);
 <li>把未来各年给付按预定利率折现求和，得趸缴净保费。</li>
 <li>对比不同预定利率下的净单保费。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">年给付 100 万、3%、10 年</div><div class="dd-ex-body">NSP = Σ 100万/(1.03)^t (t=1..10) = 100万×ä₁₀@3%(≈8.530) ≈ 853 万。即趸缴净保费约 853 万。</div></div>
+<div class="dd-example"><div class="dd-ex-title">保额 100 万、年死亡率 1%、预定利率 3%、10 年</div><div class="dd-ex-body">按本页死亡给付模型逐年递推：v=1÷1.03=0.970874；第 1 年死亡概率 1%，折现赔付 100万×0.970874×1% = 9,708.74 元；第 2 年生存 99%、死亡概率 0.99%，折现赔付 9,331.70 元；第 10 年生存 91.35%、死亡概率 0.9135%，折现赔付 6,797.43 元。十年累加得 NSP ≈ 81,763.70 元，占保额 8.18%，保障期满仍有 90.44% 的人存活（这部分不发生赔付，也不计入净趸缴）。对照：若每年确定给付 100 万，ä₁₀@3% ≈ 8.530，现值约 853 万 —— 那是不含死亡率的确定年金，与本页的死亡给付模型不是同一对象，两者不可互换。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>净单保费含费用吗？</dt><dd>不含。它是纯风险现值，毛保费还要乘 (1+附加费率) 并考虑缴费方式。</dd>
