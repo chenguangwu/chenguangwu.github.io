@@ -504,9 +504,12 @@
 - 影响：三个用户可见承诺均落空，且「领先 2 分胜」规则也未实现。
 - 方案：补目标分输入、难度档位与挡板速度叠加（或删除对应文案与表格行）。
 
-### FE-N51 石头剪刀布「重置比分」不清最高连胜（中，确认源码缺陷）
+### FE-N51 石头剪刀布「重置比分」不清最高连胜（中，已修复 2026-11-07）
 - 页面：`tools/fun/rock-paper-scissors.html`
 - 问题：`resetScore()` 重置 score/streak/history，却漏掉 `maxStreak`；只有「清空记录」才置 0。
+- 修复位点：`resetScore()` 内 `streak = 0;` 之后新增 `maxStreak = 0;`。
+- 判别力：`scripts/_verify_fun_batch_fe_n51.mjs` JSDOM 两态锁——monkeypatch Math.random→0 使 cpu 恒 rock、玩家 paper 必胜；连胜 3 次 maxStreak=3 → resetScore() → 再胜 1 次（maxStreak=max(旧值,1)）→ 修复版=1（#statsDetail「最高连胜 1」），PASS(exit 0)；HEAD 旧版=3（「最高连胜 3」），FAIL(exit 1)，确认 bug 真实且已修。
+- 移交文件：`plan/已修复/2026-11-07-FE-N51-石头剪刀布重置清零最高连胜.md`
 - 证据：`:442-453`（无 maxStreak 赋值）、`:496-499`（clearHistory 才 `maxStreak=0`）、`:470`（统计页直接展示 maxStreak）、`:508`（随分数一起持久化）。
 - 复现：打出 3 连胜 → 点「🔄 重置比分」→ 总场次/胜率归零，统计页「最高连胜」仍显示 3。
 - 影响：重置后统计自相矛盾（0 场次却有最高连胜）。
