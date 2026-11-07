@@ -170,8 +170,8 @@ s.parentNode.insertBefore(el, s);
     <div class="add-form">
       <strong style="font-size:13px;">+ 添加运动记录</strong>
           <div class="formula-box">
-      <div class="formula-title">📐 计算公式 / 原理</div> <div class="formula-eq">运动记录汇总统计<br>总次数 = 记录条数<br>总消耗 = Σ卡路里｜总时长 = Σ分钟｜总距离 = Σ公里<br>运动类型分布：按类型累计时长<br>条形长度 = 该类型时长 ÷ 最长类型时长 × 100%<br>按时长降序展示<br>最近记录取前 10 条渲染<br>距离为空时仅显示时长<br>空数据态显示引导添加入口</div>
-      <div class="formula-desc">运动数据统计：对跑步/骑行等的距禝、配速、心率做趋势图与移动平均，以周/月为窗观察进步；关键指标用滚动均值消除单日波动。</div>
+      <div class="formula-title">📐 计算公式 / 原理</div> <div class="formula-eq">运动记录汇总统计<br>总次数 = 记录条数<br>总消耗 = Σ卡路里｜总时长 = Σ分钟｜总距离 = Σ公里<br>运动类型分布：按类型累计时长<br>条形长度 = 该类型时长 ÷ 最长类型时长 × 100%<br>按时长降序展示<br>最近记录取前 10 条渲染<br>距离为空时仅显示时长<br>配速 = 时长(分钟) ÷ 距离(公里)（min/km，越小越快）<br>滚动均值 = 最近 N 条记录配速/心率的算术平均（N 可选 7/14/30，近似周/两周/月窗）<br>空数据态显示引导添加入口</div>
+      <div class="formula-desc">运动数据统计：对跑步/骑行等的距离、配速、心率做趋势图与移动平均，以周/月为窗观察进步；关键指标用滚动均值消除单日波动。</div>
     </div>
 <div class="input-row">
         <select id="aSport">
@@ -189,6 +189,7 @@ s.parentNode.insertBefore(el, s);
       <div class="input-row">
         <input type="number" id="aDistance" placeholder="Distance (km, optional)" min="0" step="0.1">
         <input type="number" id="aCal" placeholder="Calories (optional)" min="0">
+        <input type="number" id="aHr" placeholder="Avg HR bpm (optional)" min="30" max="230" step="1">
       </div>
       <input type="date" id="aDate">
       <button type="button" class="btn primary" style="width:100%;margin-top:8px;" onclick="addRecord()">添加</button>
@@ -213,6 +214,18 @@ s.parentNode.insertBefore(el, s);
 
     <h3 style="font-size:14px;margin:16px 0 8px;">最近 10 条记录</h3>
     <div id="records"></div>
+
+    <h3 style="font-size:14px;margin:16px 0 8px;">配速与心率趋势（含滚动均值）</h3>
+    <div class="input-row" style="max-width:260px;">
+      <select id="maWindow" onchange="render()">
+        <option value="7">滚动窗口：近 7 条（≈一周）</option>
+        <option value="14">滚动窗口：近 14 条（≈两周）</option>
+        <option value="30">滚动窗口：近 30 条（≈一月）</option>
+      </select>
+    </div>
+    <div id="speedTrend"></div>
+    <div id="paceTrendChart" style="margin-top:10px;"></div>
+    <div id="hrTrendChart" style="margin-top:6px;"></div>
 
     <h3 style="font-size:14px;margin:16px 0 8px;" data-zh="全部记录明细">All Records Detail</h3>
     <div class="toolbar" style="margin-bottom:8px;">
@@ -308,6 +321,9 @@ function addRecord() {
   const minutes = +document.getElementById('aMinutes').value || 0;
   const distance = +document.getElementById('aDistance').value || 0;
   const cal = +document.getElementById('aCal').value || 0;
+  /* SF-N110：心率（可选）此前无输入，页面却承诺「配速、心率做趋势图与移动平均」 */
+  const hrEl = document.getElementById('aHr');
+  const hr = (hrEl && hrEl.value !== '') ? +hrEl.value : 0;
   const date = document.getElementById('aDate').value || new Date().toISOString().slice(0, 10);
 
   if (minutes <= 0) {
@@ -315,11 +331,12 @@ function addRecord() {
     return;
   }
 
-  records.unshift({ id: Date.now(), sport, minutes, distance, cal, date });
+  records.unshift({ id: Date.now(), sport, minutes, distance, cal, hr, date });
   localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
   document.getElementById('aMinutes').value = '';
   document.getElementById('aDistance').value = '';
   document.getElementById('aCal').value = '';
+  if (hrEl) hrEl.value = '';
   ToolBox.showToast(i18nText());
   render();
 }
@@ -374,10 +391,62 @@ function render() {
     const __h2='<div class="empty-state">' + ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'No records yet':'暂无记录') + '</div>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h2;
   } else {
     const __h3=recent.map(r => `<div class="record-item">
-      <div class="sport">${r.sport}<div class="meta">${r.date} · ${r.minutes}min${r.distance ? ' · ' + r.distance + 'km' : ''}</div></div>
+      <div class="sport">${r.sport}<div class="meta">${r.date} · ${r.minutes}min${r.distance ? ' · ' + r.distance + 'km' : ''}${r.hr ? ' · ' + r.hr + 'bpm' : ''}</div></div>
       <div class="cal">${r.cal || '-'} kcal</div>
       <button type="button" class="btn" style="padding:2px 8px;font-size:11px;margin-left:6px;" onclick="deleteRecord(${r.id})">删</button>
     </div>`).join('');if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h3;
+  }
+
+  /* ── SF-N110：配速 / 心率趋势与滚动均值（页面此前只画「类型-时长」条形图）──
+     配速 = 时长(分钟) ÷ 距离(公里)（min/km，越小越快）；滚动均值按「最近 win 条记录」计算，
+     窗口可选 7 / 14 / 30 条，近似「周 / 两周 / 月」窗（记录并非每日一条，故按条数而非日历日）。 */
+  const trendBox = document.getElementById('speedTrend');
+  if (trendBox) {
+    const winEl = document.getElementById('maWindow');
+    const win = Math.max(2, parseInt((winEl && winEl.value) || '7', 10) || 7);
+    const asc = records.slice().reverse();
+    const pacePts = [], hrPts = [];
+    asc.forEach(r => {
+      const d = +r.distance || 0, m = +r.minutes || 0;
+      if (d > 0 && m > 0) pacePts.push({ date: r.date, v: m / d });
+      if ((+r.hr || 0) > 0) hrPts.push({ date: r.date, v: +r.hr });
+    });
+    const maAt = (arr, i) => {
+      const from = Math.max(0, i - win + 1);
+      const seg = arr.slice(from, i + 1);
+      return seg.reduce((t, p) => t + p.v, 0) / seg.length;
+    };
+    const avgOf = arr => arr.length ? arr.reduce((t, p) => t + p.v, 0) / arr.length : null;
+    const lastMA = arr => arr.length ? maAt(arr, arr.length - 1) : null;
+    const f2 = v => (v == null ? '—' : v.toFixed(2));
+    const f0 = v => (v == null ? '—' : Math.round(v));
+    const pAvg = avgOf(pacePts), pMA = lastMA(pacePts);
+    const hAvg = avgOf(hrPts), hMA = lastMA(hrPts);
+    let cmp = '';
+    if (pAvg != null && pMA != null && pacePts.length >= 2) {
+      cmp = pMA < pAvg - 0.005 ? '（近期快于整体均值）' : (pMA > pAvg + 0.005 ? '（近期慢于整体均值）' : '（与整体均值持平）');
+    }
+    let t = '';
+    t += '<p style="font-size:13px;">配速趋势：有距离记录 <strong>' + pacePts.length + '</strong> 条，平均配速 <strong>' + f2(pAvg)
+       + '</strong> 分/km，近 ' + win + ' 条滚动均值 <strong>' + f2(pMA) + '</strong> 分/km' + cmp + '。</p>';
+    t += '<p style="font-size:13px;">心率趋势：有心率记录 <strong>' + hrPts.length + '</strong> 条，平均心率 <strong>' + f0(hAvg)
+       + '</strong> bpm，近 ' + win + ' 条滚动均值 <strong>' + f0(hMA) + '</strong> bpm。</p>';
+    t += '<p style="font-size:12px;color:var(--text-muted);">配速 = 时长(分钟) ÷ 距离(公里)，数值越小越快；滚动均值取最近 ' + win + ' 条记录（按条数近似周/月窗，非日历日）。</p>';
+    trendBox.innerHTML = t;
+    try {
+      if (typeof TBKit !== 'undefined' && TBKit.chart && TBKit.chart.line) {
+        if (pacePts.length) {
+          TBKit.chart.line('#paceTrendChart', { labels: pacePts.map(p => p.date), series: [{ name: '配速 min/km', data: pacePts.map(p => +p.v.toFixed(2)) }] });
+        } else {
+          document.getElementById('paceTrendChart').innerHTML = '';
+        }
+        if (hrPts.length) {
+          TBKit.chart.line('#hrTrendChart', { labels: hrPts.map(p => p.date), series: [{ name: '平均心率 bpm', data: hrPts.map(p => Math.round(p.v)) }] });
+        } else {
+          document.getElementById('hrTrendChart').innerHTML = '';
+        }
+      }
+    } catch (e) {}
   }
 }
 
@@ -385,19 +454,19 @@ function applySportPreset(kind){
   var preset=null;
   if(kind==='run'){
     preset=[
-      {id:Date.now()+1,sport:'跑步',minutes:30,distance:5,cal:300,date:'2026-10-15'},
-      {id:Date.now()+2,sport:'跑步',minutes:40,distance:7,cal:420,date:'2026-10-16'}
+      {id:Date.now()+1,sport:'跑步',minutes:30,distance:5,cal:300,hr:152,date:'2026-10-15'},
+      {id:Date.now()+2,sport:'跑步',minutes:40,distance:7,cal:420,hr:148,date:'2026-10-16'}
     ];
   } else if(kind==='cycle'){
     preset=[
-      {id:Date.now()+1,sport:'骑行',minutes:60,distance:20,cal:500,date:'2026-10-15'},
-      {id:Date.now()+2,sport:'健身',minutes:45,distance:0,cal:350,date:'2026-10-17'}
+      {id:Date.now()+1,sport:'骑行',minutes:60,distance:20,cal:500,hr:136,date:'2026-10-15'},
+      {id:Date.now()+2,sport:'健身',minutes:45,distance:0,cal:350,hr:128,date:'2026-10-17'}
     ];
   } else if(kind==='mix'){
     preset=[
-      {id:Date.now()+1,sport:'游泳',minutes:30,distance:1.5,cal:280,date:'2026-10-15'},
-      {id:Date.now()+2,sport:'瑜伽',minutes:50,distance:0,cal:150,date:'2026-10-16'},
-      {id:Date.now()+3,sport:'跑步',minutes:35,distance:6,cal:360,date:'2026-10-18'}
+      {id:Date.now()+1,sport:'游泳',minutes:30,distance:1.5,cal:280,hr:142,date:'2026-10-15'},
+      {id:Date.now()+2,sport:'瑜伽',minutes:50,distance:0,cal:150,hr:98,date:'2026-10-16'},
+      {id:Date.now()+3,sport:'跑步',minutes:35,distance:6,cal:360,hr:150,date:'2026-10-18'}
     ];
   } else return;
   /* SF-N109：原实现 `records=[预设]` 直接覆盖内存且不落盘 —— 用户此前保存的历史在下次

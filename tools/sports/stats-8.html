@@ -113,7 +113,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="控球率/传球成功">A soccer match statistics tool: enter possession, pass-success rate and shots to summarize team technique-tactics metrics for post-match analysis.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-  <div class="formula-eq">足球比赛统计：控球率 = 本方控球时间 ÷ 比赛时长 × 100%；传球成功率 = 成功传球 ÷ 传球总次数 × 100%；每分钟传球数 = 传球次数 ÷ 比赛时长；据差值对比当场表现。</div>
+  <div class="formula-eq">足球比赛统计：控球率 = 本方控球时间 ÷ 比赛时长 × 100%；传球成功率 = 成功传球 ÷ 传球总次数 × 100%；每分钟传球数 = 传球次数 ÷ 比赛时长；射正率 = 射正 ÷ 射门 × 100%；射门转化率 = 进球 ÷ 射门 × 100%；射正转化率 = 进球 ÷ 射正 × 100%；进球 − xG 为相对期望进球的超额（正）或欠额（负），xG 由用户按其数据源口径填写，本页不做 xG 建模。</div>
   <p class="formula-desc" data-zh="按一场比赛的实际统计录入双方控球时间与传球数据，计算控球率、传球成功率、每分钟传球数等指标并用差值对比当场表现。控球率 = 本方控球时间 ÷ 比赛时长 × 100%，传球成功率 = 成功传球 ÷ 传球总次数 × 100%。数据仅在浏览器本地处理。"></p>
 </div>
 
@@ -123,6 +123,10 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row"><label>本方传球成功次数</label><input type="number" id="passOk" value="408" step="1" min="0" oninput="calc()" placeholder="e.g. 408"></div>
 <div class="input-row"><label>对手传球总次数</label><input type="number" id="oppTotal" value="320" step="1" min="0" oninput="calc()" placeholder="e.g. 320"></div>
 <div class="input-row"><label>对手传球成功次数</label><input type="number" id="oppOk" value="240" step="1" min="0" oninput="calc()" placeholder="e.g. 240"></div>
+<div class="input-row"><label>本方射门次数</label><input type="number" id="shots" value="12" step="1" min="0" oninput="calc()" placeholder="e.g. 12"></div>
+<div class="input-row"><label>本方射正次数</label><input type="number" id="shotsOn" value="5" step="1" min="0" oninput="calc()" placeholder="e.g. 5"></div>
+<div class="input-row"><label>本方进球数</label><input type="number" id="goals" value="2" step="1" min="0" oninput="calc()" placeholder="e.g. 2"></div>
+<div class="input-row"><label>本方 xG 期望进球（可留空）</label><input type="number" id="xg" value="1.85" step="0.01" min="0" oninput="calc()" placeholder="e.g. 1.85，留空则不比较"></div>
 <div class="toolbar"><div id="stats_8Presets"></div>
       <button type="button" class="btn primary" onclick="calc()">比赛统计</button>
       <button class="btn" type="button" onclick="__stats_8Export()">导出明细 CSV</button><button type="button" class="btn" onclick="copyResult()">复制结果</button></div>
@@ -192,7 +196,7 @@ s.parentNode.insertBefore(el, s);
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="期望进球">Expected goals</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="按射门位置与方式赋权估算进球概率，需模型说明口径">expected goals weights shots by location and type under a stated model</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="由用户按其数据源口径填写（如 StatsBomb / FBref），本页只算「进球 − xG」偏差，不做 xG 建模">expected goals weights shots by location and type under a stated model</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Football analytics literature">Football analytics literature</td>
         </tr>
       </tbody>
@@ -214,11 +218,17 @@ function fmt(n,d){d=d==null?2:d;return n.toLocaleString('zh-CN',{minimumFraction
 function val(id){const e=document.getElementById(id);return e?parseFloat(e.value):NaN;}
 function calc(){
   const mm=val('matchMin'),pm=val('possMin'),pt=val('passTotal'),po=val('passOk'),ot=val('oppTotal'),oo=val('oppOk');
-  const bad=[mm,pm,pt,po,ot,oo].some(v=>!isFinite(v));
+  const sh=val('shots'),so=val('shotsOn'),gl=val('goals');
+  const xgEl=document.getElementById('xg');
+  const xgRaw=xgEl?String(xgEl.value).trim():'';
+  const xg=xgRaw===''?NaN:parseFloat(xgRaw);
+  const bad=[mm,pm,pt,po,ot,oo,sh,so,gl].some(v=>!isFinite(v));
   if(bad||mm<=0){document.getElementById('res').innerHTML='<p>请完整填写比赛数据，时长需大于 0</p>';return;}
-  if(mm<0||pm<0||pt<0||po<0||ot<0||oo<0){document.getElementById('res').innerHTML='<p>比赛数据不能为负数（控球时间与传球次数均为非负计数）</p>';return;}
+  if(mm<0||pm<0||pt<0||po<0||ot<0||oo<0||sh<0||so<0||gl<0||(isFinite(xg)&&xg<0)){document.getElementById('res').innerHTML='<p>比赛数据不能为负数（控球时间与传球次数均为非负计数）</p>';return;}
   if(pm>mm){document.getElementById('res').innerHTML='<p>控球时间不能超过比赛时长</p>';return;}
   if(po>pt||oo>ot){document.getElementById('res').innerHTML='<p>传球成功次数不能多于传球总次数</p>';return;}
+  if(so>sh){document.getElementById('res').innerHTML='<p>射正次数不能多于射门次数</p>';return;}
+  if(gl>so){document.getElementById('res').innerHTML='<p>进球数不能多于射正次数（进球必为射正）</p>';return;}
   const myPoss=pm/mm*100, oppPoss=100-myPoss;
   const myRate=pt>0?po/pt*100:0, oppRate=ot>0?oo/ot*100:0;
   /* SF-N111：一方传球总数为 0 时该方成功率记 0，差值恒正 ⇒ 永远判「本方占优」。改为不可比较。 */
@@ -228,13 +238,25 @@ function calc(){
   const allTotal=pt+ot, allOk=po+oo, allRate=allTotal>0?allOk/allTotal*100:0;
   const leadWho=diff>0?'本方占优':(diff<0?'对手占优':'双方持平');
   const diffTxt=cmpOk?((diff>=0?'+':'')+fmt(diff)+'</strong> 个百分点（'+leadWho+'）'):'—</strong> 个百分点（'+(pt>0?'对手':'本方')+'传球总数为 0，无法比较）';
+  /* SF-N112：射门 / 射正 / 进球 / xG 四项此前无输入也无输出（标题与引据表却承诺）。
+     xG 由用户按其数据源口径填写，本页不做 xG 建模，只算「进球 − xG」偏差。 */
+  const onRateTxt=sh>0?fmt(so/sh*100)+'%':'—';
+  const convTxt=sh>0?fmt(gl/sh*100)+'%':'—';
+  const onConvTxt=so>0?fmt(gl/so*100)+'%':'—';
+  const xgTxt=isFinite(xg)
+    ? ((gl-xg)>=0?'+':'')+fmt(gl-xg)+'</strong> 球（'+((gl-xg)>0?'把握机会优于期望':((gl-xg)<0?'低于期望':'与期望持平'))+'；xG '+fmt(xg)+'）'
+    : '—</strong>（未填写 xG，不做期望进球比较）';
   const __g4='<p>本方控球率：<strong style="color:var(--primary);">'+fmt(myPoss)+'%</strong>（控球 '+fmt(pm,1)+' 分钟）</p>'+
     '<p>对手控球率：<strong>'+fmt(oppPoss)+'%</strong>（控球 '+fmt(mm-pm,1)+' 分钟）</p>'+
     '<p>本方传球成功率：<strong style="color:var(--primary);">'+fmt(myRate)+'%</strong>（'+fmt(po,0)+' / '+fmt(pt,0)+'）</p>'+
     '<p>对手传球成功率：<strong>'+fmt(oppRate)+'%</strong>（'+fmt(oo,0)+' / '+fmt(ot,0)+'）</p>'+
     '<p>传球成功率差值：<strong>'+diffTxt+'</p>'+
     '<p>本方每分钟传球：<strong>'+fmt(perMin)+'</strong> 次</p>'+
-    '<p>全场合计成功率：<strong>'+fmt(allRate)+'%</strong>（'+fmt(allOk,0)+' / '+fmt(allTotal,0)+'）</p>';document.getElementById('res').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+    '<p>全场合计成功率：<strong>'+fmt(allRate)+'%</strong>（'+fmt(allOk,0)+' / '+fmt(allTotal,0)+'）</p>'+
+    '<p>本方射正率：<strong>'+onRateTxt+'</strong>（'+fmt(so,0)+' / '+fmt(sh,0)+'）</p>'+
+    '<p>射门转化率（进球 ÷ 射门）：<strong>'+convTxt+'</strong>（'+fmt(gl,0)+' / '+fmt(sh,0)+'）</p>'+
+    '<p>射正转化率（进球 ÷ 射正）：<strong>'+onConvTxt+'</strong>（'+fmt(gl,0)+' / '+fmt(so,0)+'）</p>'+
+    '<p>进球 − xG：<strong>'+xgTxt+'</p>';document.getElementById('res').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
 }
 calc();function copyResult(){ToolBox.copyText(document.getElementById('res').innerText);}
 </script>
