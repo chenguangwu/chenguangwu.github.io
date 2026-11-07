@@ -167,11 +167,18 @@
 - **判别力实测**：`scripts/verify_fun_calc.js` 增缺段用例 `{fen:"rnbqkbnr/.../RNBQKBNR", expect:["FEN 字段缺失或非法"]}`（锚不含「白方/黑方/轮到」等默认态串，仅缺段输入下命中）；全量 `fun calc 33/33`；`discriminate_check` 已检 33 / 正确变红 33 / 仍 PASS(逃生项) 0。
 - 移交文件：`plan/已修复/2026-11-07-FE-N10-FEN缺段静默显示黑方已修复字段校验.md`
 
-### FE-N11 五子棋禁手判定顺序错误，三三/四四分支忽略连子数（高，确认源码缺陷）
-- 描述：`three_three`/`four_four` 分支只看 `liveCount`，完全不读 `stoneCount`，长连与五连被误判；`custom` 分支又要求 `stones===5 && live<2` 才判五连，导致「恰好五连同时含活三」被判禁手。
-- 证据：`tools/chess/gomoku-forbidden.html:287-296`（只判 `live>=2`）、`:304-309`（`stones===5&&live<2` 优先于 `live>=2`）、`:315-316`（只要 `badge` 含 ok 且 `stones===5` 就追加「五连胜利」提示）。Node 直接执行页面 `analyze()`：`three_three, stones=6, live=2` → 「三三禁手」（应为长连禁手）；`three_three, stones=5, live=1` → 结果栏「非禁手/合法」同时追加「✅ 五连胜利」提示（同一弹窗自相矛盾）；`four_four, stones=6, live=2` → 「四四禁手」；`custom, stones=5, live=2` → 「三三/四四禁手」（五连应优先判胜）。
-- 影响：`tools/chess/gomoku-forbidden.html`；黑棋长连、五连等核心规则判定错误，用户按结果对局会判错胜负。
-- 方案：按「长连（≥6）→ 五连（=5）胜利 → 三三/四四」统一顺序判定，三三/四四分支也读取连子数；补上述三组回归用例。
+### FE-N11 五子棋禁手判定顺序错误，三三/四四分支忽略连子数（高，**2026-11-07 复核：历史快照误报，当前源码已正确**）
+- 描述（原）：`three_three`/`four_four` 分支只看 `liveCount`，完全不读 `stoneCount`，长连与五连被误判；`custom` 分支又要求 `stones===5 && live<2` 才判五连，导致「恰好五连同时含活三」被判禁手。
+- 证据（原）：`tools/chess/gomoku-forbidden.html:287-296`、`:304-309`、`:315-316`。
+- **复核结论（2026-11-07）**：当前提交 HEAD 已无此缺陷，属历史快照误报。原 `three_three`/`four_four`/`stoneCount`/`liveCount`/`custom` 分支已不存在，整页 `analyzePoint`（`:377-411`）重构为 `runLen`/`hasFour`/`hasLiveThree`/`hasOpenFour` 实现，优先级为「五连胜利（`five>0`）→ 长连（`over>=6`）→ 四四（`fours>=2`）→ 三三（`threes>=2`）→ 合法」，且 `five`/`over` 直接读 `runLen` 实际连子数，不再忽略连子数。
+- **验证（`scripts/_verify_fun_batch_fe_n11.mjs` JSDOM 真机四态）**：
+  - 六连（点 (7,0) 接 (7,1-5)）→ 实得 **长连禁手**（长连优先于三三）；
+  - 恰好五连（点 (7,5) 接 (7,1-4)）→ 实得 **五连胜利**（五连优先于禁手）；
+  - 双四（(7,4-6)+(4-6,7) 接 (7,7)）→ 实得 **四四禁手**；
+  - 双活三（(7,5-6)+(5-6,7) 接 (7,7)）→ 实得 **三三禁手**。
+  - 4/4 通过，证明现行实现分类与优先级正确，原「五连/长连被误判」不成立。
+- 处置：仅复核，**未改源码**；以 `_verify_fun_batch_fe_n11.mjs` 作为回归锁（harness 对棋盘 2D 数组落子属盲区，JSDOM 真机更准确）。
+- 遗留可查（非本次范围）：无。
 
 ### FE-N12 五子棋禁手页宣称自动识别活三/冲四/连五，实际无棋盘与落子输入（中，确认功能缺失）
 - 描述：说明写「落子后自动识别活三、冲四与连五」，但页面只有「棋型类型」下拉和两个数字框，没有棋盘、没有落子坐标，判定完全依赖用户自报的活子数；预设还把 `liveCount` 设为 6，超过输入框 `max=4`。
