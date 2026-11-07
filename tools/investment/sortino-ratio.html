@@ -117,7 +117,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="仅用下行波动衡量风险调整收益。">Compute the Sortino ratio from portfolio return, risk-free rate and downside deviation — a downside-risk-only alternative to the Sharpe ratio.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">索提诺比率（本页代码口径，收益率与下行标准差均按 % 输入）：Sortino=(组合收益率 Rp−无风险利率 Rf)÷下行标准差 σd；联动量：超额收益=Rp−Rf、下行风险与超额收益之比=σd÷((Rp−Rf)||1)。校验：三字段经输入守卫必填且须为合法数值，否则提示并中止。判据：无固定分级，同额超额收益下 σd 越小比率越高，主结果保留 3 位小数。</div>
+      <div class="formula-eq">索提诺比率（本页代码口径，收益率与下行标准差均按 % 输入）：Sortino=(组合收益率 Rp−无风险利率 Rf)÷下行标准差 σd；联动量：超额收益=Rp−Rf、下行风险与超额收益之比=σd÷(Rp−Rf)（超额收益恰为 0 时该倍数无定义，显示「—」，不再按 1 兜底）；校验：三字段经输入守卫必填且须为合法数值，且下行标准差 σd 必须大于 0（σd 是本式的分母，取 0 或负数时索提诺比率无定义），不满足即提示并中止。判据：无固定分级，同额超额收益下 σd 越小比率越高，主结果保留 3 位小数；超额收益为负时比率为负，表示收益未跑赢无风险利率。</div>
       <p class="formula-desc">仅用下行波动衡量风险调整收益。</p>
     </div>
 
@@ -282,11 +282,18 @@ function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+=
 function calcTool(){
               var __ig=__tbInputGuard(['rp', 'rf', 'dd'],["组合收益率 (%)", "无风险利率 (%)", "下行标准差 (%)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const rp=num('rp'),rf=num('rf'),dd=num('dd');
+            if(!(dd>0)){
+                ToolBox.setResult('result','<p class="tip-error">⚠ 「下行标准差 (%)」必须大于 0（当前输入 '+dd+'）：σd 是索提诺比率的分母，取 0 或负数时比率无定义，请填写为正的下行波动。</p>');
+                return;
+            }
+            const __ex=rp-rf;
+            const __mult=(__ex===0)?null:(dd/__ex);
             const __g2=dataGrid([
                 [((rp-rf)/dd).toFixed(3),'索提诺比率'],
                 [(rp-rf).toFixed(4), '超额收益 (rp-rf)'],
-                [(dd/((rp-rf)||1)).toFixed(3), '下行风险/超额收益 倍数']
-            ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
+                [__mult===null?'—':__mult.toFixed(3), '下行风险/超额收益 倍数']
+            ])+(__ex===0?'<p style="font-size:13px;color:var(--text-muted);margin-top:8px;">超额收益 Rp−Rf 恰为 0，索提诺比率为 0；「下行风险/超额收益 倍数」以超额收益为分母，此时无定义，按「—」显示（不再按 1 兜底成一个虚假倍数）。</p>':'');
+            ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('rp').value = '15';
       document.getElementById('rf').value = '3';
@@ -299,14 +306,18 @@ function __sortino_ratioExtras(){
     function __sortino_ratioRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var rp=num('rp'),rf=num('rf'),dd=num('dd');
-    if (!isFinite(__sortino_ratioNum('rp')) || !isFinite(__sortino_ratioNum('rf')) || !isFinite(__sortino_ratioNum('dd'))) return;
     var en=TBKit.util.isEn();
+    if (!isFinite(__sortino_ratioNum('rp')) || !isFinite(__sortino_ratioNum('rf')) || !isFinite(__sortino_ratioNum('dd')) || !(dd>0)) {
+      try { TBKit.matrix.table('#sortino_ratioTable',{head: en?['Item','Value']:['项目','数值'],rows:[['—', en?'Fill in a valid portfolio return, risk-free rate and a downside deviation greater than 0 first.':'请先填写有效的组合收益率、无风险利率与大于 0 的下行标准差后再生成明细。']]}); } catch(e) {}
+      return;
+    }
+    var __sex=rp-rf, __smult=(__sex===0)?null:(dd/__sex);
     TBKit.matrix.table('#sortino_ratioTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
             ['索提诺比率', ((rp-rf)/dd).toFixed(3)],
             ['超额收益 (rp-rf)', (rp-rf).toFixed(4)],
-            ['下行风险/超额收益 倍数', (dd/((rp-rf)||1)).toFixed(3)],
+            ['下行风险/超额收益 倍数', __smult===null?'—（超额收益为 0，无定义）':__smult.toFixed(3)],
         ]
     });
     // 图表：索提诺比率随下行标准差变化
@@ -388,7 +399,7 @@ window.addEventListener('toolbox:langchange', function(){ try{ __sortino_ratioEx
 <script>
 function __srtnSweep(){
   var rp=num('rp'), rf=num('rf'), dd=num('dd');
-  if(!isFinite(rp)||!isFinite(rf)||!isFinite(dd)||Math.abs(dd)<1e-12)return null;
+  if(!isFinite(rp)||!isFinite(rf)||!isFinite(dd)||!(dd>0))return null;
   var labels=[], dS=[];
   var mult=[0.5,0.75,1.0,1.25,1.5];
   for(var k=0;k<mult.length;k++){
@@ -424,23 +435,15 @@ var __srtnFn=calcTool;calcTool=function(){try{__srtnFn();}catch(e){}try{__srtnCh
 document.addEventListener('toolbox:langchange',function(){try{__srtnChart();}catch(e){}});try{__srtnTabInit();}catch(e){}
 </script>
 <script>
+/* B-F10：原实现在每次计算后再往历史写一条只含「对比结果」的附属记录，纯为喂 diffBox，
+   结果历史面板按点击次数翻倍、一半槽位是无法复原输入的垃圾条目（上限 20 条 ⇒ 有效记录只剩 10 条）。
+   现改为直接对页面自身已记录的 result 字段做差，不再二次落库。 */
 var __sr=function(){
   if(typeof TBKit==='undefined')return;
-  var EN=false;try{EN=TBKit.util.isEn();}catch(e){}
-  var LBL=EN?'Compare':'对比结果';
-  var arr=[];try{arr=TBKit.history.list();}catch(e){}
-  var rec=null;
-  for(var i=0;i<arr.length;i++){var ks=Object.keys(arr[i].d||{});if(ks.length&&ks.indexOf(LBL)<0){rec=arr[i];break;}}
-  if(!rec||typeof rec.t!=='number'||Date.now()-rec.t>8000)return;
-  var kk=Object.keys(rec.d||{});
-  if(!kk.length)return;
-  var k=-1<0?kk[kk.length-1]:kk[-1];
-  if(!k)return;
-  var acc=parseFloat(String(rec.d[k]).replace(/[^0-9.\-]/g,''));
-  if(!isFinite(acc))return;
-  var r={};r[LBL]=acc;
-  if(TBKit.history&&TBKit.history.record)TBKit.history.record(r);
-  if(TBKit.util&&TBKit.util.diffBox)TBKit.util.diffBox('#__tbnDiff',[LBL]);
+  if(!TBKit.util||!TBKit.util.diffBox)return;
+  // 输入非法时本次并未产生新结果，不更新「与上次计算相比」，避免拿旧记录冒充对比
+  if(!(__sortino_ratioNum('dd')>0)||!isFinite(__sortino_ratioNum('rp'))||!isFinite(__sortino_ratioNum('rf')))return;
+  try{TBKit.util.diffBox('#__tbnDiff',['result']);}catch(e){}
 };
 var __f0=calcTool;calcTool=function(){var __r=__f0.apply(null,arguments);__sr();return __r;};
 </script>
