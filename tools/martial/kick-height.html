@@ -282,6 +282,7 @@ function calc(){
   var kh=parseFloat($('kickHeight').value)||0;
   var kt=$('kickType').value;
   var lvl=parseInt($('level').value);
+  var levelNames=['初学','中级','高级','专业'];
   if(ll<=0){ll=h*0.45;}
   var ratio=kh/h*100;
   var legRatio=kh/ll*100;
@@ -289,10 +290,11 @@ function calc(){
   var kickFactors={front:1.0,side:0.95,round:0.92,back:0.88,high:1.05};
   var adjustedRatio=ratio/kickFactors[kt];
   var grade,gradeCls,advice;
-  if(adjustedRatio>=100){grade='优秀';gradeCls='grade-excellent';advice='踢腿过头顶，柔韧与技术俱佳。';}
-  else if(adjustedRatio>=85){grade='良好';gradeCls='grade-good';advice='达到头部高度，技术成熟。';}
-  else if(adjustedRatio>=70){grade='及格';gradeCls='grade-pass';advice='肩部高度，基本达标，可继续提升。';}
-  else if(adjustedRatio>=50){grade='一般';gradeCls='grade-pass';advice='胸部高度，需加强柔韧与髋关节训练。';}
+  var lvlEase=[5,3,0,-3]; var ease=lvlEase[lvl]||0; // 训练水平对评级门槛的放宽量：初学放宽、专业更严（FE-N40 修复：lvl 原不参与任何计算）
+  if(adjustedRatio>=100-ease){grade='优秀';gradeCls='grade-excellent';advice='踢腿过头顶，柔韧与技术俱佳。';}
+  else if(adjustedRatio>=85-ease){grade='良好';gradeCls='grade-good';advice='达到头部高度，技术成熟。';}
+  else if(adjustedRatio>=70-ease){grade='及格';gradeCls='grade-pass';advice='肩部高度，基本达标，可继续提升。';}
+  else if(adjustedRatio>=50-ease){grade='一般';gradeCls='grade-pass';advice='胸部高度，需加强柔韧与髋关节训练。';}
   else{grade='较弱';gradeCls='grade-fail';advice='高度偏低，建议从压腿、开胯等基础训练开始。';}
   var kickNames={front:'前踢',side:'侧踢',round:'旋踢',back:'后踢',high:'高踢/朝天蹬'};
   var levelNames=['初学','中级','高级','专业'];
@@ -306,7 +308,7 @@ function calc(){
     '<p>高度比（腿长）：<strong>'+legRatio.toFixed(1)+'%</strong></p>'+
     '<p>估算踢腿角度：<strong>'+angle.toFixed(1)+'°</strong></p>'+
     '<div class="tip-box tip-info" style="margin-top:8px;">'+advice+'</div>';
-  if(ratio>=100){html+='<div class="tip-box tip-success"><strong>✓ 出色</strong>：踢腿高度已达头顶以上，柔韧性优秀。</div>';}
+  if(ratio>=100 && grade==='优秀'){html+='<div class="tip-box tip-success"><strong>✓ 出色</strong>：踢腿高度已达头顶以上，柔韧性优秀。</div>';} // 仅当评级确为优秀时显示，消除与「良好」并存的矛盾（FE-N41）
   html+='<p style="color:var(--text-muted);font-size:12px;margin-top:8px;">* 角度估算基于腿长与身高比例，实际踢腿角度受髋关节灵活度影响。切勿盲目追求高度以免拉伤。</p>';
   const __g2=html;$('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 try{ if(typeof adjustedRatio==='number'&&isFinite(adjustedRatio)&&typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){ TBKit.chart.refBar('#resultRefBar',{value:adjustedRatio,unit:'',bands:[{"lo":100,"hi":null,"label":{"zh":"优秀","en":"Excellent"},"color":"#10B981"},{"lo":85,"hi":100,"label":{"zh":"良好","en":"Good"},"color":"#84CC16"},{"lo":70,"hi":85,"label":{"zh":"及格","en":"Pass"},"color":"#F59E0B"},{"lo":50,"hi":70,"label":{"zh":"一般","en":"Fair"},"color":"#F97316"},{"lo":null,"hi":50,"label":{"zh":"较弱","en":"Weak"},"color":"#EF4444"}],title:((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Reference range':'参考区间标尺')}); } }catch(e){}
