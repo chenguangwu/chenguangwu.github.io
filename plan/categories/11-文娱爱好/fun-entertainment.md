@@ -764,6 +764,7 @@
 - 复现（源码推演）：开始 → 空格发射 → 空格暂停 → 空格继续，球速与挡板速度变为 2 倍；再暂停/继续一次变 4 倍，以此类推，关卡基本无法游玩。
 - 影响：核心玩法在任一暂停后失准，且越暂停越失控；假工具：否。
 - 方案：主循环只启动一次（`togglePause` 只翻转 `paused`，不调用 `gameLoop`），或在暂停时 `cancelAnimationFrame(state.animId)`、恢复时再重新起一条循环。
+- **状态：已修复 2026-11-07。** 修复位点：`tools/fun/breakout.html` `togglePause()`（删除恢复时重复的 `gameLoop()` 调用，仅翻转 `state.paused`；循环在整个 running 期间只启动一次）。判别力实测：`scripts/_verify_fun_batch_fe_n77.mjs` 运行期两态锁——统计 gameLoop 的 rAF 调度次数，修复版暂停/继续前后比 =1.00（单链，PASS），HEAD 比 =2.05（双链，FAIL）。移交：`plan/已修复/2026-11-07-FE-N77-N88-N89-小游戏暂停与棋盘重建.md`。
 
 ### FE-N78 位移按「每帧固定量」推进，与公式表「按时间差积分、帧率无关」相反（中，确认源码缺陷）
 - 页面：`tools/fun/breakout.html`
@@ -842,6 +843,7 @@
 - 证据：`tools/fun/memory-game.html:54`（`.win-overlay` 样式）、`:345`（`<div id="winOverlay" style="display:none;">` 无 class）、`:577`（`showWin` 仅改 display）。
 - 影响：通关提示不可见（需滚到页尾），用户误以为游戏卡死；假工具：否。
 - 方案：给容器补 `class="win-overlay"`（或 CSS 选择器改为 `#winOverlay`）。
+- **状态：已修复 2026-11-07。** 修复位点：`tools/fun/memory-game.html` winOverlay 容器补 `class="win-overlay"`（`<div id="winOverlay" class="win-overlay" style="display:none;">`）。判别力实测：`scripts/_verify_fun_batch_fe_n88.mjs` 静态结构断言——修复版命中 `id="winOverlay" class="win-overlay"`（PASS），HEAD 无 class（FAIL）。移交：`plan/已修复/2026-11-07-FE-N77-N88-N89-小游戏暂停与棋盘重建.md`。
 
 ### FE-N89 切换难度/主题不重建棋盘，配对总数与胜利判定改用新难度，导致盘面永远无法通关（中，确认源码缺陷）
 - 页面：`tools/fun/memory-game.html`
@@ -849,6 +851,7 @@
 - 证据：`tools/fun/memory-game.html:398-409`（切换仅改变量与最佳成绩）、`:411-429`（只有 `startGame` 重建棋盘）、`:491`（以 `currentDiff.pairs` 判胜）、`:526`（以 `currentDiff.pairs` 显示总数）。
 - 影响：难度按钮看起来即时生效，实际进入不可通关状态且统计错误；假工具：否。
 - 方案：难度/主题切换时自动 `startGame()`（或弹确认后重开），并在切换后同步刷新盘面与统计。
+- **状态：已修复 2026-11-07。** 修复位点：`tools/fun/memory-game.html` `setDifficulty()`/`setTheme()` 末尾调用 `startGame()` 重建棋盘并同步统计。判别力实测：`scripts/_verify_fun_batch_fe_n89.mjs` 运行期两态锁——初始 easy 12 牌，切 expert 后修复版重建为 36 牌（PASS），HEAD 仍 12 牌（FAIL）。移交：`plan/已修复/2026-11-07-FE-N77-N88-N89-小游戏暂停与棋盘重建.md`。
 
 ### X 批覆盖清单（测试/记忆/小游戏 8 页）
 - `tools/fun/zodiac-match.html`：0 条。复核通过项：同象 88±5（90/82）、同元素 86±5、火风/土水 84/82、土火 52、火水 46、风土/风水 54，分数区间与公式表「同象 80-90、互补 70-85、需磨合 40-60」基本一致；环半径按 `2πr` 实时重算；随机配对、四类相处建议与复制/导出/历史接线均正常。
