@@ -120,7 +120,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入多支箭的落点坐标(相对靶心，单位 cm)，计算平均弹着点、散布半径(CEP)、极端散布与径向标准差，评估射击精度与一致性。">Enter the landing coordinates of several arrows relative to the target center (cm) to compute the mean point of impact, group radius (CEP), extreme spread and radial standard deviation for shooting precision.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">射箭散布半径（本页代码口径，主指标 CEP 为各箭到质心距离的中位数而非 √(Σd²/n)）：质心=(Σx÷n, Σy÷n)；各箭到质心距离 d=√((x−质心x)²+(y−质心y)²)（cm）；CEP 散布半径=median(d)（即 R50）；径向标准差 σ=√(Σd²÷n)；R95=距离升序排序后第 ⌈0.95n⌉ 个；极端散布=任意两点最大距离；平均半径=Σd÷n。校验：每行须为 x,y 两个有效数且至少 3 支箭，否则提示并中止。判据（按 CEP，cm）：&lt;1 精度极高、&lt;3 精度优秀、&lt;6 精度良好、&lt;12 精度一般、≥12 精度待提升，各档附对应训练建议。</div>
+      <div class="formula-eq">射箭散布半径（本页代码口径，主指标 CEP 为各箭到质心距离的中位数而非 √(Σd²/n)）：质心=(Σx÷n, Σy÷n)；各箭到质心距离 d=√((x−质心x)²+(y−质心y)²)（cm）；CEP 散布半径=median(d)（即 R50）；径向标准差 σ=√(Σ(平均半径−d)²÷n)；R95=距离升序排序后第 ⌈0.95n⌉ 个；极端散布=任意两点最大距离；平均半径=Σd÷n。校验：每行须为 x,y 两个有效数且至少 3 支箭，否则提示并中止。判据（按 CEP，cm）：&lt;1 精度极高、&lt;3 精度优秀、&lt;6 精度良好、&lt;12 精度一般、≥12 精度待提升，各档附对应训练建议。</div>
       <p class="formula-desc">输入多支箭的落点坐标(相对靶心，单位 cm)，计算平均弹着点、散布半径(CEP)、极端散布与径向标准差，评估射击精度与一致性。</p>
     </div>
     <div class="input-row" style="display:block;">
@@ -145,7 +145,7 @@ s.parentNode.insertBefore(el, s);
     <div id="shejiansanbubanjingDiff"></div>
     <div id="shejiansanbubanjingChart"></div>
     <div id="shejiansanbubanjingHist"></div>
-    <div class="info-box">💡 平均弹着点=(x̄,ȳ)；各点到弹着点距离取中位数即 CEP(50%散布半径)；R95 为容纳95%落点的半径；极端散布为任意两点的最大距离；径向标准差 σ=√(Σr²/n)。</div>
+    <div class="info-box">💡 平均弹着点=(x̄,ȳ)；各点到弹着点距离取中位数即 CEP(50%散布半径)；R95 为容纳95%落点的半径；极端散布为任意两点的最大距离；径向标准差 σ=√(Σ(r−平均半径)²/n)。</div>
     <div class="tool-notes" style="--tool-accent:#DC2626;">
 <!-- Formula & Standard References -->
 <div class="card" id="constRefBox">
@@ -242,9 +242,11 @@ function calc(){
   var cep=median(dists);          // R50
   var r95=percentile(dists,0.95); // R95
   var maxDist=Math.max.apply(null,dists);
-  // 径向标准差
-  var sumSq=dists.reduce(function(a,r){return a+r*r;},0);
-  var sigma=Math.sqrt(sumSq/n);
+  // SF-N54：原用 √(Σd²/n)（各箭到质心的均方根半径 RMS）却命名为「径向标准差 σ」——
+  // 6 支箭均匀落在半径 6 cm 的圆周上会显示 σ=6.00，与「σ 越小一致性越高」直接矛盾（真实 σ=0）。
+  // 真正的径向标准差 = √(Σ(d−平均半径)²/n)。
+  var sumDevSq=dists.reduce(function(a,r){return a+(r-meanDist)*(r-meanDist);},0);
+  var sigma=Math.sqrt(sumDevSq/n);
   // 极端散布(最大两点距离)
   var extreme=0;
   for(var i=0;i<n;i++){
