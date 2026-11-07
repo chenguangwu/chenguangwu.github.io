@@ -64,6 +64,49 @@ const CASES = [
     want: '请输入答案后再提交',
     desc: '空答案提交 ⇒ 不再显示上一题的「✅ 正确 / ❌ 错误」',
   },
+  // ── 第 50 批（2026-11-08）：校验失败 return 但未清结果区 —「输入失效后旧结果残留」同类缺陷 ──
+  {
+    cat: 'energy', slug: 'battery-life',
+    probe: `(function(){document.getElementById('capacity').value='';calc();
+      return document.getElementById('result').innerHTML.length;})()`,
+    want: '0',
+    desc: '清空电池容量 ⇒ 容量/功耗≤0 分支 return 前清空主结果区（修复前残留旧续航）',
+  },
+  {
+    cat: 'fishery', slug: 'profit-calculator',
+    probe: `(function(){document.getElementById('yield').value='';calc();
+      return document.getElementById('result').innerHTML.length;})()`,
+    want: '0',
+    desc: '清空产量 ⇒ 产量≤0 分支 return 前清空主结果区（修复前残留旧利润核算）',
+  },
+  {
+    cat: 'endocrinology', slug: 'insulin-adjustment',
+    probe: `(function(){document.getElementById('weight').value='';calc();
+      return document.getElementById('result').innerHTML.length;})()`,
+    want: '0',
+    desc: '清空体重 ⇒ 体重≤0 分支 return 前清空主结果区（修复前残留旧胰岛素方案）',
+  },
+  {
+    cat: 'food-processing', slug: 'filling-volume',
+    probe: `(function(){document.getElementById('dia').value='';calc();
+      return document.getElementById('result').innerHTML.length;})()`,
+    want: '0',
+    desc: '清空内径 ⇒ 内径≤0 分支 return 前清空主结果区（修复前残留旧灌装量）',
+  },
+  {
+    cat: 'nutrition', slug: 'calc-3',
+    probe: `(function(){document.getElementById('calories').value='';calculate();
+      return document.getElementById('result').innerHTML.length;})()`,
+    want: '0',
+    desc: '清空卡路里 ⇒ 卡路里≤0 分支 return 前清空主结果区（修复前残留旧营养素）',
+  },
+  {
+    cat: 'tcm-chemistry', slug: 'content-assay',
+    probe: `(function(){document.getElementById('isConc').value='';calcFactor();
+      return document.getElementById('factorResult').innerHTML.length+'|'+document.getElementById('assayResult').innerHTML.length;})()`,
+    want: '0|0',
+    desc: '清空内标浓度 ⇒ 校正因子校验 return 前清空因子区与含量区（修复前两区残留旧结果）',
+  },
 ];
 
 const argv = process.argv.slice(2);

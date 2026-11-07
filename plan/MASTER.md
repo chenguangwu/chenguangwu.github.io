@@ -31,7 +31,7 @@
 | G07-性能与移动端.md | 首屏速度/移动端可用性/弱网 | 🟡 基线已修正（平均页 30.7KB / common.js 212KB）；未跑 Lighthouse |
 | G08-预设场景与首屏留存审计.md | 预设数据质量、覆盖缺口、留存优化项（2026-11-03 新增） | 🟡 三类确认缺陷（EN 泄漏 / 重复按钮 / 空值占位）已清零，2026-11-05 实扫口径见专题；G08-7/8/9 留存优化项未做 |
 | G09-站点结构与离线依赖审计.md | 结构门禁基线、外部 CDN、发布卫生（2026-11-03 新增） | 🟡 外部依赖待分辨用途；临时文件未跟踪有误提交风险；构建一致性待验证 |
-| G10-输入失效后的结果状态一致性.md | 跨行业输入无效后旧结果与导出状态残留 | 🟡 第 48 批修 6 页主结果/附加结果；第 49 批修 **823 页 guard 明细表 + 4 页 calc 早退**（全量审计 0 残留）；余 13 页 `_audit_stale_result` 候选待逐页核 |
+| G10-输入失效后的结果状态一致性.md | 跨行业输入无效后旧结果与导出状态残留 | 🟢 第 48 批修 6 页主结果/附加结果；第 49 批修 **823 页 guard 明细表 + 4 页 calc 早退**（全量审计 0 残留）；第 50 批从 13 候选核出 **6 页校验失败 `return` 未清结果区已修**（battery-life/fishery/insulin-adjustment/filling-volume/calc-3/content-assay，#231 扩至 12 用例，HEAD 负向 6 FAIL 证判别力）；余 7 页排除（encode-3/film 属缺空值校验，留独立专项） |
 
 > **i18n 结构性缺口量化（2026-11-04，只读）**：新增 [i18n-dead-keys.md](file:///Users/cgw/project/cgw/chenguangwu.github.io/plan/i18n-dead-keys.md)（4819 页 / 169688 键，死键 11737，高优先 5164）与 [i18n-placeholder-todo.md](file:///Users/cgw/project/cgw/chenguangwu.github.io/plan/i18n-placeholder-todo.md)（`placeholder` 含中文 12796 处 / 3940 页，其中 11505 处无词典键；`title` 含中文 153 处）。两文件仅供各线按目录认领，未改页面 / `i18n.js` / 构建产物。
 >
