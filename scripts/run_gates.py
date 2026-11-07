@@ -363,6 +363,11 @@ GATES = (
     # 本项对 12 页固定样本断言「清空必填项 ⇒ 明细表不再留有旧行（哨兵行判定）」，
     # 负向对照已实测：换回修复前版本 4/4 全红。
     ("guard clears detail table", ("node", "scripts/_verify_guard_clear_table.mjs")),
+    # 同一根因的第三类（2026-11-11）：空/无效必填输入不拦截，继续用默认值 / 内置数组算出结果，
+    # 并给出「优秀 / 负载充足 / 热稳定性优异」等正向结论（或把彩色等级条留在上一次评估）。
+    # 本项对第 51 批修复的 3 页各断言一条「清空必填项 ⇒ 误导结论区必须被清空或回占位」，
+    # 负向对照已实测：换回修复前版本 3/3 全红。
+    ("empty input conclusion guard", ("node", "scripts/_verify_empty_input_conclusion.mjs")),
 )
 
 
