@@ -121,8 +121,8 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="柔道比赛技术评分工具，从投技(立技)和寝技(地面技)两个维度评估柔道选手技术水平，结合一本、技有、有效等技术得分情况。">A judo technique rater scoring from two dimensions — standing throws (Tachi-waza) and ground techniques (Ne-waza) — combined with ippon, waza-ari and yuko scoring.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式 / 原理</div>
-      <div class="formula-eq">综合评分 ≈ 0.5·投技(立技)分 + 0.5·寝技(地面技)分（各按一本/技有/有效归一）</div>
-      <div class="formula-desc">柔道技术评分从立技(Tachi-waza)与寝技(Ne-waza)两维度评估，结合一本(ippon)、技有(waza-ari)、有效(yuko)等得分；综合分按两维度等权归一，越高水平越强。</div>
+      <div class="formula-eq">综合评分 = 0.4×技术均值 + 0.3×每场技术得分 + 0.3×胜率（上限 100）</div>
+      <div class="formula-desc">技术均值 =（投技×10 + 寝技×10 + 抓握×10）÷3，即投技/寝技/抓握三个维度等权（各占 1/3）；每场技术得分 = 技术得分 ÷ 总场次 × 100，其中技术得分 = 一本×1 + 技有×0.5 + 有效×0.2；胜率 = 获胜场次 ÷ 总场次。三者按 0.4/0.3/0.3 加权，越高水平越强。</div>
     </div>
 <div class="input-row"><div><label>一本(完美投技/固技)次数</label><input type="number" id="ippon" style="font-size:16px;" value="2" min="0" max="99" step="1" oninput="calc()" placeholder="e.g. 2 (0–99)"></div></div><div class="input-row"><div><label>技有(有效投技)次数</label><input type="number" id="wazari" style="font-size:16px;" value="3" min="0" max="99" step="1" oninput="calc()" placeholder="e.g. 3 (0–99)"></div></div><div class="input-row"><div><label>有效次数</label><input type="number" id="yuko" style="font-size:16px;" value="1" min="0" max="99" step="1" oninput="calc()" placeholder="e.g. 1 (0–99)"></div></div><div class="input-row"><div><label>总比赛场次</label><input type="number" id="match" style="font-size:16px;" value="5" min="0" max="99" step="1" oninput="calc()" placeholder="e.g. 5 (0–99)"></div></div><div class="input-row"><div><label>获胜场次</label><input type="number" id="win" style="font-size:16px;" value="3" min="0" max="99" step="1" oninput="calc()" placeholder="e.g. 3 (0–99)"></div></div><div class="input-row"><div><label>投技(立技)水平</label><select id="stand" style="font-size:16px;" onchange="calc()"><option value="5">5-投技精湛</option><option value="4">4-投技较好</option><option value="3">3-投技一般</option><option value="2">2-投技较弱</option><option value="1">1-投技差</option></select></div></div><div class="input-row"><div><label>寝技(地面技)水平</label><select id="ground" style="font-size:16px;" onchange="calc()"><option value="5">5-寝技精湛</option><option value="4">4-寝技较好</option><option value="3">3-寝技一般</option><option value="2">2-寝技较弱</option><option value="1">1-寝技差</option></select></div></div><div class="input-row"><div><label>抓握(组手)技术</label><select id="grip" style="font-size:16px;" onchange="calc()"><option value="5">5-抓握精准</option><option value="4">4-抓握较好</option><option value="3">3-抓握一般</option><option value="2">2-抓握较弱</option><option value="1">1-抓握差</option></select></div></div>
     <div class="toolbar">
@@ -184,17 +184,32 @@ function calc(){
 var ippon=+document.getElementById('ippon').value||0;
 var wazari=+document.getElementById('wazari').value||0;
 var yuko=+document.getElementById('yuko').value||0;
-var match=+document.getElementById('match').value||1;
+var match=+document.getElementById('match').value||0;
 var win=+document.getElementById('win').value||0;
 var stand=+document.getElementById('stand').value;
 var ground=+document.getElementById('ground').value;
 var grip=+document.getElementById('grip').value;
+var resEl35=document.getElementById('res');
+if(!(match>=1)){
+  resEl35.innerHTML='<div class="info-box" style="color:var(--danger)">⚠ 总比赛场次需 ≥1（当前「'+(document.getElementById('match').value||'空')+'」），无法计算胜率与一本率。</div>';
+  resEl35.dataset.copyValue='';
+  return;
+}
+var bad35=[];
+if(win>match)bad35.push('获胜场次 '+win+' > 总场次 '+match);
+if(ippon>match)bad35.push('一本次数 '+ippon+' > 总场次 '+match);
+if(bad35.length){
+  resEl35.innerHTML='<div class="info-box" style="color:var(--danger)">⚠ '+bad35.join('；')+'，单场最多 1 次一本，请核对录入后重算。</div>';
+  resEl35.dataset.copyValue='';
+  return;
+}
 var techScore=ippon*1+wazari*0.5+yuko*0.2;
 var winRate=Math.round(win/match*100);
-var ipponRate=match>0?Math.round(ippon/match*100):0;
+var ipponRate=Math.round(ippon/match*100);
 var standScore=stand*10+ground*10+grip*10;
 var techAvg=standScore/3;
-var overallScore=techAvg*0.4+techScore/match*100*0.3+winRate*0.3;
+var perMatchTech=Math.min(100,techScore/match*100);
+var overallScore=techAvg*0.4+perMatchTech*0.3+winRate*0.3;
 if(overallScore>100)overallScore=100;
 overallScore=Math.round(overallScore);
 var c;
@@ -221,7 +236,7 @@ h+='<table><thead><tr><th>技术维度</th><th>评分</th><th>水平</th></tr></
 var techs=[['投技(立技)',stand],['寝技(地面技)',ground],['抓握(组手)',grip]];
 techs.forEach(function(t){var lv=t[1]>=4?'优秀':t[1]===3?'良好':t[1]===2?'一般':'需提升';var lc=t[1]>=4?'var(--success)':t[1]===3?'var(--info)':t[1]===2?'var(--warning)':'var(--danger)';h+='<tr><td>'+t[0]+'</td><td>'+t[1]+' / 5</td><td style="color:'+lc+';">'+lv+'</td></tr>';});
 h+='</tbody></table>';
-h+='<div class="info-box"><strong>技术评估：</strong>综合评分'+overallScore+'分，技术水平'+g+'。一本率'+ipponRate+'%，胜率'+winRate+'%。</div>';
+h+='<div class="info-box"><strong>技术评估：</strong>综合评分'+overallScore+'分，技术水平'+g+'。一本率'+ipponRate+'%，胜率'+winRate+'%。加权构成：技术均值'+techAvg.toFixed(1)+'×0.4 + 每场技术得分'+perMatchTech.toFixed(1)+'×0.3 + 胜率'+winRate+'×0.3。</div>';
 if(stand<3){h+='<div class="info-box" style="background:rgba(245,158,11,0.08);border-color:rgba(245,158,11,0.25);color:var(--warning)"><strong>改进建议：</strong>投技(立技)水平较弱，建议加强大外刈、背负投等投技训练。</div>';}
 if(ground<3){h+='<div class="info-box" style="background:rgba(245,158,11,0.08);border-color:rgba(245,158,11,0.25);color:var(--warning)"><strong>改进建议：</strong>寝技水平较弱，建议加强固技、十字固等地面技术训练。</div>';}
 const __g1=h;document.getElementById('res').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));

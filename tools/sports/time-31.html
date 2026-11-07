@@ -111,8 +111,8 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="🤼 摔跤比赛时间分配">🤼 Wrestling Match Time Allocation</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入比赛总时间与回合数，计算各回合时长、间歇时间与逐回合配速策略，辅助比赛节奏与体能分配。">Enter total match time and number of rounds to compute each round duration, rest time and per-round pacing strategy for wrestling rhythm and energy allocation.</p>    <div class="formula-box">
       <div class="formula-title">📐 计算公式 / 原理</div>
-      <div class="formula-eq">回合时长 = (总时间 − 总间歇) / 回合数；间歇 = 总间歇 / (回合数−1)</div>
-      <div class="formula-desc">摔跤比赛按总时间与回合数分配：扣除回合间休整得每回合有效时长，再按目标强度规划逐回合配速与体能分配，避免后程崩盘。</div>
+      <div class="formula-eq">回合时长 = 总时间 ÷ 回合数；总间歇 = 回合间歇 × (回合数 − 1)；含间歇总时长 = 总时间 + 总间歇</div>
+      <div class="formula-desc">摔跤比赛按总时间与回合数平分为各回合有效时长，回合之间插入固定间歇；另单列「含间歇总时长」＝各回合时长合计 ＋ 全部回合间歇，便于估算整场实际占用时间与逐回合配速。</div>
     </div>
 
     <div class="input-row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;align-items:end;">
@@ -186,11 +186,14 @@ function getNum(id){return parseFloat(document.getElementById(id).value);}
 function setInvalid(el,invalid){if(!el)return;if(invalid){el.classList.add('input-error');el.setAttribute('aria-invalid','true');}else{el.classList.remove('input-error');el.removeAttribute('aria-invalid');}}
 function readInputs(){
   var tot=getNum('total'),r=getNum('rounds'),rest=getNum('rest');
-  var valid=!isNaN(tot)&&tot>0&&!isNaN(r)&&r>0&&!isNaN(rest)&&rest>=0;
-  setInvalid(document.getElementById('total'),isNaN(tot)||tot<=0);
-  setInvalid(document.getElementById('rounds'),isNaN(r)||r<=0);
-  setInvalid(document.getElementById('rest'),isNaN(rest)||rest<0);
-  return {tot:isNaN(tot)?0:tot,r:isNaN(r)?0:r,rest:isNaN(rest)?0:rest,valid:valid};
+  var okTot=!isNaN(tot)&&tot>0;
+  var okRounds=!isNaN(r)&&r>=1&&Math.abs(r-Math.round(r))<1e-9;
+  var okRest=!isNaN(rest)&&rest>=0;
+  setInvalid(document.getElementById('total'),!okTot);
+  setInvalid(document.getElementById('rounds'),!okRounds);
+  setInvalid(document.getElementById('rest'),!okRest);
+  return {tot:okTot?tot:0,r:okRounds?Math.round(r):0,rest:okRest?rest:0,
+          valid:okTot&&okRounds&&okRest,okTot:okTot,okRounds:okRounds,okRest:okRest};
 }
 function fmtMin(min){
   var m=Math.floor(min),s=Math.round((min-m)*60);
@@ -199,7 +202,11 @@ function fmtMin(min){
 function calc(){
   var iv=readInputs();
   if(!iv.valid){
-    document.getElementById('res').innerHTML='<div class="info-box" style="color:#EF4444;background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.25);">请填写有效数值（总时间与回合数需大于 0）</div>';
+    var msg='请填写有效数值（总时间与回合数需大于 0）';
+    if(!iv.okRounds)msg='⚠ 回合数需为 ≥1 的整数（当前「'+(String(document.getElementById('rounds').value).trim()||'空')+'」），小数回合无法分配时长。';
+    else if(!iv.okTot)msg='⚠ 比赛总时间需大于 0。';
+    else if(!iv.okRest)msg='⚠ 回合间歇不能为负数。';
+    document.getElementById('res').innerHTML='<div class="info-box" style="color:#EF4444;background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.25);">'+msg+'</div>';
     return;
   }
   var rounds=Math.round(iv.r);

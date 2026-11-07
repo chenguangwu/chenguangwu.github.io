@@ -172,19 +172,36 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 function calc(){
-var receive=+document.getElementById('receive').value||1;
+var receive=+document.getElementById('receive').value||0;
 var receiveOk=+document.getElementById('receiveOk').value||0;
-var spike=+document.getElementById('spike').value||1;
+var spike=+document.getElementById('spike').value||0;
 var spikeOk=+document.getElementById('spikeOk').value||0;
-var serve=+document.getElementById('serve').value||1;
+var serve=+document.getElementById('serve').value||0;
 var serveOk=+document.getElementById('serveOk').value||0;
-var block=+document.getElementById('block').value||1;
+var block=+document.getElementById('block').value||0;
 var blockOk=+document.getElementById('blockOk').value||0;
-var receiveRate=Math.round(receiveOk/receive*100);
-var spikeRate=Math.round(spikeOk/spike*100);
-var serveRate=Math.round(serveOk/serve*100);
-var blockRate=Math.round(blockOk/block*100);
-var overallScore=(receiveRate*0.3+spikeRate*0.3+serveRate*0.2+blockRate*0.2);
+var resEl=document.getElementById('res');
+var ROWS=[['一传到位',receive,receiveOk,0.3],['扣球',spike,spikeOk,0.3],['发球',serve,serveOk,0.2],['拦网',block,blockOk,0.2]];
+var badOk=ROWS.filter(function(r){return r[1]<0||r[2]<0||r[2]>r[1];});
+if(badOk.length){
+  resEl.innerHTML='<div class="info-box" style="color:var(--danger)">⚠ 成功次数不能大于总次数：'+badOk.map(function(r){return r[0]+' 成功 '+r[2]+' > 总次数 '+r[1];}).join('；')+'，请核对录入后重算。</div>';
+  resEl.dataset.copyValue='';
+  return;
+}
+var activeCnt=ROWS.filter(function(r){return r[1]>0;}).length;
+if(activeCnt===0){
+  resEl.innerHTML='<div class="info-box" style="color:var(--danger)">⚠ 四项总次数均为 0，无有效样本，无法给出技术评分。</div>';
+  resEl.dataset.copyValue='';
+  return;
+}
+var rateOf=function(t,o){return t>0?Math.round(o/t*100):null;};
+var receiveRate=rateOf(receive,receiveOk);
+var spikeRate=rateOf(spike,spikeOk);
+var serveRate=rateOf(serve,serveOk);
+var blockRate=rateOf(block,blockOk);
+var wSum=0,accSum=0;
+ROWS.forEach(function(r){var rt=rateOf(r[1],r[2]);if(rt===null)return;wSum+=r[3];accSum+=rt*r[3];});
+var overallScore=wSum>0?Math.min(100,accSum/wSum):0;
 var c;
 if(overallScore>=75)c='var(--success)';
 else if(overallScore>=55)c='var(--info)';
@@ -195,21 +212,21 @@ if(overallScore>=75)g='优秀';
 else if(overallScore>=55)g='良好';
 else if(overallScore>=35)g='一般';
 else g='需提升';
-var h='<div class="stat-grid"><div class="stat-card"><div class="val" style="color:'+c+';font-size:28px;">'+Math.round(overallScore)+'</div><div class="lbl">综合评分/100</div></div><div class="stat-card"><div class="val">'+receiveRate+'%</div><div class="lbl">一传到位率</div></div><div class="stat-card"><div class="val">'+spikeRate+'%</div><div class="lbl">扣球成功率</div></div><div class="stat-card"><div class="val">'+g+'</div><div class="lbl">技术水平</div></div></div>';
+var h='<div class="stat-grid"><div class="stat-card"><div class="val" style="color:'+c+';font-size:28px;">'+Math.round(overallScore)+'</div><div class="lbl">综合评分/100</div></div><div class="stat-card"><div class="val">'+(receiveRate===null?'—':receiveRate+'%')+'</div><div class="lbl">一传到位率</div></div><div class="stat-card"><div class="val">'+(spikeRate===null?'—':spikeRate+'%')+'</div><div class="lbl">扣球成功率</div></div><div class="stat-card"><div class="val">'+g+'</div><div class="lbl">技术水平</div></div></div>';
 h+='<table><thead><tr><th>技术环节</th><th>次数</th><th>成功</th><th>成功率</th><th>权重</th><th>加权分</th></tr></thead><tbody>';
 var items=[['一传到位',receive,receiveOk,receiveRate,0.3],['扣球',spike,spikeOk,spikeRate,0.3],['发球',serve,serveOk,serveRate,0.2],['拦网',block,blockOk,blockRate,0.2]];
-items.forEach(function(it){h+='<tr><td>'+it[0]+'</td><td>'+it[1]+'</td><td>'+it[2]+'</td><td style="font-weight:600">'+it[3]+'%</td><td>'+(it[4]*100)+'%</td><td>'+(it[3]*it[4]).toFixed(1)+'</td></tr>';});
-h+='<tr style="font-weight:600"><td colspan="4">综合评分</td><td>100%</td><td>'+Math.round(overallScore)+'</td></tr>';
+items.forEach(function(it){h+='<tr><td>'+it[0]+'</td><td>'+it[1]+'</td><td>'+it[2]+'</td><td style="font-weight:600">'+(it[3]===null?'—':it[3]+'%')+'</td><td>'+(it[4]*100)+'%</td><td>'+(it[3]===null?'—':(it[3]*it[4]).toFixed(1))+'</td></tr>';});
+h+='<tr style="font-weight:600"><td colspan="4">综合评分'+(activeCnt<4?'（按有效项权重归一）':'')+'</td><td>100%</td><td>'+Math.round(overallScore)+'</td></tr>';
 h+='</tbody></table>';
 var weak=[];
-if(receiveRate<50)weak.push('一传到位率偏低，需加强接发球训练');
-if(spikeRate<40)weak.push('扣球成功率不足，需提升扣球技术和战术配合');
-if(serveRate<20)weak.push('发球攻击性不足，需加强发球训练');
-if(blockRate<20)weak.push('拦网效率不足，需提升拦网判断和起跳时机');
+if(receiveRate!==null&&receiveRate<50)weak.push('一传到位率偏低，需加强接发球训练');
+if(spikeRate!==null&&spikeRate<40)weak.push('扣球成功率不足，需提升扣球技术和战术配合');
+if(serveRate!==null&&serveRate<20)weak.push('发球攻击性不足，需加强发球训练');
+if(blockRate!==null&&blockRate<20)weak.push('拦网效率不足，需提升拦网判断和起跳时机');
 h+='<div class="info-box"><strong>技术评估：</strong>综合评分'+Math.round(overallScore)+'分，技术水平'+g+'。</div>';
 if(weak.length>0){h+='<div class="info-box" style="background:rgba(245,158,11,0.08);border-color:rgba(245,158,11,0.25);color:var(--warning)"><strong>改进建议：</strong>'+weak.join('；')+'。</div>';}
 const __g1=h;document.getElementById('res').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
-document.getElementById('res').dataset.copyValue='排球技术评分\n综合评分：'+Math.round(overallScore)+'/100（'+g+'）\n一传到位率：'+receiveRate+'%\n扣球成功率：'+spikeRate+'%';}
+document.getElementById('res').dataset.copyValue='排球技术评分\n综合评分：'+Math.round(overallScore)+'/100（'+g+'）\n一传到位率：'+(receiveRate===null?'—':receiveRate+'%')+'\n扣球成功率：'+(spikeRate===null?'—':spikeRate+'%');}
 function copyResult(){var e=document.getElementById('res');ToolBox.copyText(e.dataset.copyValue||e.textContent, i18nText('msg405'));}calc();
 </script>
 
