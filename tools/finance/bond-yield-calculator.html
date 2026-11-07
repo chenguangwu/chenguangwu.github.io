@@ -509,6 +509,10 @@ s.parentNode.insertBefore(el, s);
 
 
 var currentTab = 'calc';
+function __bondEn(){
+  try{ return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?true:false; }
+  catch(e){ try{ return /[?&]lang=en-US/.test(location.search); }catch(e2){ return false; } }
+}
 var currentMethod = 'ytm';
 var HISTORY_KEY = 'bond_calc_history';
 var currentResult = null;
@@ -702,8 +706,10 @@ function calc(){
     var price = calcBondPrice(face, couponRate, years, marketRate, freq, type);
     var premium = price - face;
     var premiumRate = premium / face * 100;
-    var annualCoupon = face * couponRate / 100;
-    var currentYield = annualCoupon / price * 100;
+    var isZeroPrice = (type === 'zero');
+    // 零息债券不付息：票面利率输入不参与定价，也不应产出年利息 / 当期收益率（F-N4 残留）
+    var annualCoupon = isZeroPrice ? 0 : face * couponRate / 100;
+    var currentYield = isZeroPrice ? 0 : annualCoupon / price * 100;
     
     result.face = face;
     result.couponRate = couponRate;
@@ -795,8 +801,18 @@ function renderResult(r){
     html += '<p>债券理论价格：<strong style="color:var(--primary);font-size:18px;">¥' + ToolBox.formatNumber(r.price, 2) + '</strong></p>';
     html += '<p>升贴水：<strong style="color:' + (r.premium >= 0 ? 'var(--success)' : 'var(--danger)') + ';">' + (r.premium >= 0 ? '溢价' : '折价') + ' ¥' + ToolBox.formatNumber(Math.abs(r.premium), 2) + '（' + (r.premiumRate > 0 ? '+' : '') + r.premiumRate.toFixed(2) + '%）</strong></p>';
     html += '<p>当期收益率：<strong>' + r.currentYield.toFixed(2) + '%</strong></p>';
-    html += '<p>年利息：<strong>¥' + ToolBox.formatNumber(r.annualCoupon, 2) + '</strong></p>';
-    html += '<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">* ' + (r.premium >= 0 ? '溢价发行：票面利率 > 市场利率' : '折价发行：票面利率 < 市场利率') + '</p>';
+    html += '<p>年利息：<strong>¥' + ToolBox.formatNumber(r.annualCoupon, 2) + '</strong>' + (r.type === 'zero' ? (__bondEn() ? ' (zero-coupon bond: no coupon)' : '（零息债券：无票息）') : '') + '</p>';
+    var __bNote;
+    if(r.type === 'zero'){
+      __bNote = __bondEn()
+        ? 'Zero-coupon bonds pay no coupon; the price is the face value discounted at the market rate, and the coupon-rate input is ignored.'
+        : '零息债券不付息，价格由面值按市场利率折现得到，票面利率输入不参与计算';
+    } else {
+      __bNote = __bondEn()
+        ? (r.premium >= 0 ? 'Premium bond: coupon rate above market rate' : 'Discount bond: coupon rate below market rate')
+        : (r.premium >= 0 ? '溢价发行：票面利率 > 市场利率' : '折价发行：票面利率 < 市场利率');
+    }
+    html += '<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">* ' + __bNote + '</p>';
   }
   
   const __g3=html;document.getElementById('res').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
