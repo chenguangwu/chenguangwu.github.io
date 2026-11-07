@@ -117,7 +117,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入区间价格峰值与谷值，求最大回撤。">Compute the maximum drawdown from peak and trough prices.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">最大回撤（本页代码口径）：MD=(峰值−谷值)÷峰值×100（%）；联动量：回撤幅度（绝对）=峰值−谷值、恢复所需涨幅=(峰值÷(谷值||1)−1)×100（%，谷值为 0 时按 1 兜底）。校验：两字段经输入守卫必填且须为合法数值，否则提示并中止。判据：无固定分级，回撤越深恢复所需涨幅按谷值分母非线性放大（如回撤 50% 需上涨 100% 方可复原）。</div>
+      <div class="formula-eq">最大回撤（本页口径：回撤一律以正数表示跌幅）：MD=(峰值−谷值)÷峰值×100（%）；联动量：回撤幅度（绝对）=峰值−谷值、恢复所需涨幅=(峰值÷谷值−1)×100（%，谷值为 0 时价格已归零、无法用涨幅复原，显示「—」）。校验：峰值须 >0，谷值须 ≥0 且不高于峰值（价格未下跌不存在回撤）；不满足即提示并中止。判据：无固定分级，回撤越深恢复所需涨幅按谷值分母非线性放大（如回撤 50% 需上涨 100% 方可复原）。</div>
       <p class="formula-desc">输入区间价格峰值与谷值，求最大回撤。</p>
     </div>
 
@@ -276,11 +276,21 @@ function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+=
 function calcTool(){
               var __ig=__tbInputGuard(['peak', 'trough'],["峰值", "谷值"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const peak=num('peak'),trough=num('trough');
+            if(!(peak>0)){
+                ToolBox.setResult('result','<p class="tip-error">⚠ 峰值须大于 0（当前输入 '+peak+'）。</p>');return;
+            }
+            if(!(trough>=0)){
+                ToolBox.setResult('result','<p class="tip-error">⚠ 谷值不能为负数（当前输入 '+trough+'）。</p>');return;
+            }
+            if(trough>peak){
+                ToolBox.setResult('result','<p class="tip-error">⚠ 谷值不能高于峰值（当前 峰值 '+peak+' / 谷值 '+trough+'）：价格没有下跌就不存在回撤。</p>');return;
+            }
             const md=(peak-trough)/peak*100;
+            const recover=trough>0?((peak/trough-1)*100):null;
             const __g2=dataGrid([
                 [md.toFixed(2),'最大回撤 MD (%)'],
                 [(peak-trough).toFixed(2), '回撤幅度（绝对）'],
-                [((peak/(trough||1)-1)*100).toFixed(2), '恢复所需涨幅 (%)']
+                [recover===null?'—':recover.toFixed(2), recover===null?'恢复所需涨幅 (%) · 谷值为 0，价格归零后无法用涨幅复原':'恢复所需涨幅 (%)']
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('peak').value = '100';
@@ -293,15 +303,20 @@ function __max_drawdownExtras(){
     function __max_drawdownRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var peak=num('peak'),trough=num('trough');
+    if (!isFinite(__max_drawdownNum('peak')) || !isFinite(__max_drawdownNum('trough')) || !(peak>0) || !(trough>=0) || trough>peak) {
+        var __t=document.getElementById('max_drawdownTable');
+        if (__t) __t.innerHTML='<p style="color:var(--text-muted);font-size:13px;">— 请填写有效的峰值与谷值（峰值 >0，0 ≤ 谷值 ≤ 峰值）后再生成明细。</p>';
+        return;
+    }
     var md=(peak-trough)/peak*100;
-    if (!isFinite(__max_drawdownNum('peak')) || !isFinite(__max_drawdownNum('trough'))) return;
+    var recover=trough>0?((peak/trough-1)*100):null;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#max_drawdownTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
             ['最大回撤 MD (%)', md.toFixed(2)],
             ['回撤幅度（绝对）', (peak-trough).toFixed(2)],
-            ['恢复所需涨幅 (%)', ((peak/(trough||1)-1)*100).toFixed(2)],
+            ['恢复所需涨幅 (%)', recover===null?'—（谷值为 0，不可复原）':recover.toFixed(2)],
         ]
     });
     TBKit.history.record({peak:__max_drawdownRaw('peak'), trough:__max_drawdownRaw('trough'), md:md});
@@ -358,12 +373,12 @@ else document.addEventListener('DOMContentLoaded', __max_drawdownBoot);
 <li>风险管理核心指标（比波动率更直观反映&quot;最坏亏多少&quot;）。</li>
 <li>与 <a class="term-link" href="/tools/finance/cagr.html">CAGR</a> 联算 Calmar 比率。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">净值 100 → 70</div><div class="dd-ex-body"><a class="term-link" href="/tools/securities/calc-30.html">最大回撤</a> = (70−100)/100 = −30%。即从最高点最多亏 30%。</div></div>
-<div class="dd-example"><div class="dd-ex-title">多次回撤取最大</div><div class="dd-ex-body">序列 100→80→120→84：首次 −20%（100→80），二次 120→84 为 −30%，故最大回撤=−30%（取绝对值最大者）。</div></div>
+<div class="dd-example"><div class="dd-ex-title">净值 100 → 70</div><div class="dd-ex-body">按本页口径（回撤以正数表示跌幅）：<a class="term-link" href="/tools/securities/calc-30.html">最大回撤</a> = (100−70)/100 = 30%，即从最高点最多亏损 30%。</div></div>
+<div class="dd-example"><div class="dd-ex-title">多次回撤取最大</div><div class="dd-ex-body">序列 100→80→120→84：首次跌幅 20%（100→80），第二次跌幅 30%（120→84），故最大回撤 = 30%（取跌幅绝对值最大者）。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>回撤和波动率区别？</dt><dd>波动率是对称离散度；回撤只衡量下行、且是峰值到谷底的累计跌幅，更贴合&quot;实际体验的最坏亏损&quot;。</dd>
-<dt>最大回撤能为负吗？</dt><dd>回撤本身记为负值（−30%），表示亏损；&quot;最大&quot;指绝对值最大。</dd>
+<dt>最大回撤能为负吗？</dt><dd>本页统一以正数表示跌幅（如 30%），&quot;最大&quot;指跌幅绝对值最大。若与他处用负号表示亏损的口径混用，符号需自行换算，数值含义相同。</dd>
 </dl>
 </div>
 </section>
