@@ -331,11 +331,17 @@ const AREA_CODES = {
 };
 function validate(){
   const AE_EN = /(?:^|[?&])lang=en/i.test(location.search);
+  // IT-N1xx：raw 是用户原始输入，直接拼进 innerHTML 的文本与 data-zh 属性
+  // ⇒ 含引号/标签的输入可以改写 DOM（DOM 注入点）。统一走站点 escHtml 转义。
+  const esc=(typeof ToolBox!=='undefined'&&ToolBox.escHtml)?ToolBox.escHtml:function(s){
+    return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  };
   const raw = document.getElementById('input').value.trim();
   const digits = raw.replace(/\D/g,'');
   const out = document.getElementById('output');
   if(!raw){ const __h0=(AE_EN?'Waiting for input...':((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Waiting for input...":"等待输入..."));if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0; return; }
-  let html = `<p data-zh="输入：${raw}"><strong>Input:</strong>${raw}</p>`;
+  let html = `<p data-zh="输入：${esc(raw)}"><strong>Input:</strong>${esc(raw)}</p>`;
   if(digits.length < 3){
     html += `<p>${AE_EN?'⚠️ At least 3 digits (area code) required':'⚠️ 至少需要 3 位数字（区号）'}</p>`;
     const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;

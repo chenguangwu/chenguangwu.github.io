@@ -316,12 +316,20 @@ calcTool();
 
 function __milk_tea_caloriesNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
 function __milk_tea_caloriesExtras(){
-    function __milk_tea_caloriesRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
+    function __milk_tea_caloriesRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?'1':'0';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var cup=parseInt(document.getElementById('cup').value)||500;
     var tea=num('tea'), milk=num('milk'), sugarPct=parseFloat(document.getElementById('sugar').value)||0;
     var base=tea+milk;
     var sugarKcal=Math.round(cup/100* (sugarPct/100) * 10); // 近似：每100ml全糖≈10kcal，按糖度比例
+    // total 原为 calcTool() 内的 const，Extras 里取不到（ReferenceError 被 calcTool 的
+    // try/catch 静默吞掉 ⇒ 加料明细表恒空、历史永不记录）。此处按同一口径就地重算。
+    var topKcal=0;
+    ['boba','coconut','pudding','cheese','redbean'].forEach(function(id){
+        var el=document.getElementById('top_'+id);
+        if(el&&el.checked) topKcal+=parseInt(el.value)||0;
+    });
+    var total=base+sugarKcal+topKcal;
     if (!isFinite(__milk_tea_caloriesNum('tea')) || !isFinite(__milk_tea_caloriesNum('milk')) || !__milk_tea_caloriesRaw('cup') || !__milk_tea_caloriesRaw('sugar')) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#milk_tea_caloriesTable',{
@@ -331,8 +339,11 @@ function __milk_tea_caloriesExtras(){
             ['茶底 + 奶类', base+' kcal'],
         ]
     });
-    TBKit.history.record({tea:__milk_tea_caloriesRaw('tea'), milk:__milk_tea_caloriesRaw('milk'), cup:__milk_tea_caloriesRaw('cup'), sugar:__milk_tea_caloriesRaw('sugar'), base:base});
-    function __milk_tea_caloriesRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    var __rec={tea:__milk_tea_caloriesRaw('tea'), milk:__milk_tea_caloriesRaw('milk'), cup:__milk_tea_caloriesRaw('cup'), sugar:__milk_tea_caloriesRaw('sugar'), base:base};
+    var __cbs=document.querySelectorAll('input[type=checkbox],input[type=radio]');
+    for(var __ci=0;__ci<__cbs.length;__ci++){if(__cbs[__ci].id)__rec[__cbs[__ci].id]=__cbs[__ci].checked?'1':'0';}
+    TBKit.history.record(__rec);
+    function __milk_tea_caloriesRestore(rec){var __cbs=document.querySelectorAll('input[type=checkbox],input[type=radio]');for(var __ci=0;__ci<__cbs.length;__ci++){if(!Object.prototype.hasOwnProperty.call(rec,__cbs[__ci].id))__cbs[__ci].checked=false;}for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#milk_tea_caloriesHist',function(rec){ __milk_tea_caloriesRestore(rec); calcTool(); });
     TBKit.util.diffBox('#milk_tea_caloriesDiff',['base']);
 }

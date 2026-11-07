@@ -346,6 +346,11 @@ GATES = (
     # 成因扫描英文值，存量债由 scripts/en_meta_degenerate_baseline.json 锁定（只减不增），
     # 合法短名（BMI/PDF/EBIT…）逐条登记在 scripts/en_meta_allowlist.json。
     ("english meta degenerate", ("python3", "scripts/audit_en_meta_degenerate.py", "--check")),
+    # 复选框/单选的历史状态（2026-11-07）：快照只存「勾选中的项」⇒ ① 恢复时不清除当前
+    # 多勾的项；② 全部不勾时快照为空 ⇒ 该状态永不入库。全站两套模板（Snap / Raw+Restore）
+    # 同根因，共 352 页。本项对两套模板各取代表页做回归哨兵（内置样本见脚本 DEFAULT_SAMPLE），
+    # 断言：快照覆盖全部静态复选框且未勾记 '0'、稀疏记录恢复后只剩记录内项、全 0 记录恢复后全清。
+    ("checkbox history", ("node", "scripts/_verify_checkbox_history.mjs")),
 )
 
 
