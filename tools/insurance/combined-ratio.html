@@ -115,7 +115,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="综合成本率 = 赔付率 + 费用率。">Sum the loss ratio and expense ratio to gauge underwriting profitability.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">综合成本率：CR = (赔款支出 + 营运费用) ÷ 保费收入 × 100（%）；承保利润率 = 100 − CR（%）。校验：三项非空守卫（无分母报错项）。判据：CR &lt;100 承保盈利、≥100 承保亏损，数值越低承保质量越好。</div>
+      <div class="formula-eq">综合成本率：CR = (赔款支出 + 营运费用) ÷ 保费收入 × 100（%）；承保利润率 = 100 − CR（%）。校验：三项必填且须为合法数值；赔款支出、营运费用须 ≥0，保费收入须 >0（保费是分母），不满足即提示并中止，错误态不生成结果、明细、历史与导出。判据：CR &lt;100 承保盈利、≥100 承保亏损，数值越低承保质量越好；承保结论只在输入合法时展示 —— 负赔款曾使 CR 为负却仍被判「承保盈利」并给出超过 100% 的承保利润率。</div>
       <p class="formula-desc">综合成本率 = 赔付率 + 费用率。</p>
     </div>
 
@@ -274,16 +274,33 @@ s.parentNode.insertBefore(el, s);
 
 
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
+// 区分「留空」与「显式 0」：留空返回 NaN（R-H13）
+function __crNum(id){var e=document.getElementById(id);if(!e)return NaN;var s=String(e.value==null?'':e.value).trim();if(s==='')return NaN;var v=parseFloat(s);return isFinite(v)?v:NaN;}
+var __crLast=null;   // 最近一次有效计算的输入与结果，供导出使用（R-H13）
+// 主计算与附表共用同一份校验：负赔款/负费用不再被判成「承保盈利」
+function __crCheck(){
+    var __ig=__tbInputGuard(['claims','exp','premium'],['赔款支出 (元)','营运费用 (元)','保费收入 (元)']);
+    if(__ig) return {ok:false,html:__ig};
+    var c=__crNum('claims'),e=__crNum('exp'),p=__crNum('premium');
+    if(!(c>=0)) return {ok:false,html:'<p style="color:var(--danger)">⚠ 「赔款支出 (元)」不能为负数（当前 '+c+'）：负赔款会把综合成本率压成负值、承保利润率抬到 100% 以上，页面却仍按 CR&lt;100 判「承保盈利」，结论完全翻转。</p>'};
+    if(!(e>=0)) return {ok:false,html:'<p style="color:var(--danger)">⚠ 「营运费用 (元)」不能为负数（当前 '+e+'）：费用为负会低估综合成本率，把亏损项目判成盈利。</p>'};
+    if(!(p>0)) return {ok:false,html:'<p style="color:var(--danger)">⚠ 「保费收入 (元)」必须大于 0（当前 '+p+'）：保费是综合成本率的分母，0 或负数会使比率无定义或符号翻转。</p>'};
+    return {ok:true,c:c,e:e,p:p};
+}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-              var __ig=__tbInputGuard(['claims', 'exp', 'premium'],["赔款支出 (元)", "营运费用 (元)", "保费收入 (元)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const c=num('claims'),e=num('exp'),p=num('premium');
-            const cr=(c+e)/p*100;
-            const __g2=dataGrid([
+    __crLast=null;   // 本次输入非法时不得再用上一次结果导出
+    var S=__crCheck();
+    if(!S.ok){ ToolBox.setResult('result',S.html); return; }
+    const c=S.c,e=S.e,p=S.p;
+    const cr=(c+e)/p*100;
+    __crLast={c:c,e:e,p:p,cr:cr,verdict:(cr<100?'承保盈利':'承保亏损'),margin:100-cr};
+    const __g2=dataGrid([
                 [cr.toFixed(2),'综合成本率 (%)'],
                 [(cr<100?'承保盈利':'承保亏损'),'承保结论'],
                 [(100-cr).toFixed(2),'承保利润率 (%)']
-            ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
+            ]);
+    ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('claims').value = '6500000';
       document.getElementById('exp').value = '2500000';
@@ -295,10 +312,15 @@ function __combined_ratioNum(id){var e=document.getElementById(id);var v=e?parse
 function __combined_ratioExtras(){
     function __combined_ratioRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
-    var c=num('claims'),e=num('exp'),p=num('premium');
-    var cr=(c+e)/p*100;
-    if (!isFinite(__combined_ratioNum('claims')) || !isFinite(__combined_ratioNum('exp')) || !isFinite(__combined_ratioNum('premium'))) return;
+    var S=__crCheck();
     var en=TBKit.util.isEn();
+    if(!S.ok){
+        // 非法输入时清空旧表并给占位，且不再写入历史（R-H13）
+        try{ TBKit.matrix.table('#combined_ratioTable',{head:en?['Item','Value']:['项目','数值'],rows:[['—',en?'Fill in non-negative claims/expenses and a premium greater than 0 first.':'请先填写非负赔款与费用、大于 0 的保费收入后再生成明细。']]}); }catch(e2){}
+        return;
+    }
+    var c=S.c,e=S.e,p=S.p;
+    var cr=(c+e)/p*100;
     TBKit.matrix.table('#combined_ratioTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
@@ -314,14 +336,27 @@ function __combined_ratioExtras(){
 }
 function __combined_ratioExport(){
     if (typeof TBKit === 'undefined') return;
-    try { TBKit.util.exportTable('#combined_ratioTable','combined-ratio.csv'); } catch(e){}
+    // 导出当前完整输入 + 结果，而非被截断的历史摘要；非法输入直接拦截（R-H13）
+    if(!__crLast){
+        try{ ToolBox.showToast('请先完成一次有效计算，明细为空时不导出。','error'); }catch(e){}
+        return;
+    }
+    var L=__crLast;
+    var rows=[['项目','数值'],
+        ['赔款支出 (元)', L.c.toFixed(2)],
+        ['营运费用 (元)', L.e.toFixed(2)],
+        ['保费收入 (元)', L.p.toFixed(2)],
+        ['综合成本率 (%)', L.cr.toFixed(2)],
+        ['承保结论', L.verdict],
+        ['承保利润率 (%)', L.margin.toFixed(2)]];
+    try { TBKit.util.exportCsv('combined-ratio.csv', rows); } catch(e){}
 }
 function __combined_ratioPresets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#combined_ratioPresets',[
         {label:'默认',labelEn:'Default',values:{claims:'6500000', exp:'2500000', premium:'10000000'}},
-        {label:'示例 2×',labelEn:'Example 2×',values:{claims:'13000000', exp:'5000000', premium:'20000000'}},
-        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{claims:'3250000', exp:'1250000', premium:'5000000'}},
+        {label:'赔付恶化',labelEn:'Claims deteriorate',values:{claims:'8500000', exp:'2500000', premium:'10000000'}},
+        {label:'费用翻倍',labelEn:'Double expenses',values:{claims:'6500000', exp:'5000000', premium:'10000000'}},
     ],function(){ calcTool(); });
 }
 var __tb_fn0 = calcTool;

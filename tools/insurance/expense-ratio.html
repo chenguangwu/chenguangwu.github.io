@@ -117,7 +117,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="费用率 = 营运费用 ÷ 保费收入。">Divide operating expenses by earned premium to assess cost efficiency.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">保险费用率：费用率 = 营运费用 ÷ 保费收入 × 100（%）；联动量：保费费用比 = 保费 ÷ max(费用,10⁻⁹)、差额 = 保费收入 − 营运费用（元）、费用率小数 = 费用 ÷ max(保费,10⁻⁹)。校验：营运费用、保费收入两项必填守卫。判据：无固定分级，费用率越低保费收入用于赔付与运营的效率越高，除式分母按 10⁻⁹ 兜底防除零。</div>
+      <div class="formula-eq">保险费用率：费用率 = 营运费用 ÷ 保费收入 × 100（%）；联动量：保费费用比 = 保费 ÷ 营运费用（费用为 0 时无定义，显示「—」）、差额 = 保费收入 − 营运费用（元）、费用率小数 = 费用 ÷ 保费收入。校验：两项必填且须为合法数值；营运费用须 ≥0、保费收入须 >0（保费是本页所有除式的分母），不满足即提示并中止，错误态不生成明细、历史与导出。判据：无固定分级，费用率越低保费收入用于赔付与运营的效率越高；不再用 10⁻⁹ 兜底分母 —— 负费用曾因此得到 1e16 量级的「保费与费用比」，与负费用率方向相反。</div>
       <p class="formula-desc">费用率 = 营运费用 ÷ 保费收入。</p>
     </div>
 
@@ -272,16 +272,34 @@ s.parentNode.insertBefore(el, s);
 
 
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
+// 区分「留空」与「显式 0」：留空返回 NaN（R-H12）
+function __erNum(id){var e=document.getElementById(id);if(!e)return NaN;var s=String(e.value==null?'':e.value).trim();if(s==='')return NaN;var v=parseFloat(s);return isFinite(v)?v:NaN;}
+var __erLast=null;   // 最近一次有效计算的输入与结果，供导出使用（R-H12）
+// 主计算与附表共用同一份校验，保证错误态不会留下旧表或伪数值
+function __erCheck(){
+    var __ig=__tbInputGuard(['exp','premium'],['营运费用 (元)','保费收入 (元)']);
+    if(__ig) return {ok:false,html:__ig};
+    var e=__erNum('exp'),p=__erNum('premium');
+    if(!(e>=0)) return {ok:false,html:'<p style="color:var(--danger)">⚠ 「营运费用 (元)」不能为负数（当前 '+e+'）：负费用会得到负的费用率，旧实现还把「保费与费用比」的分母替换成 10⁻⁹，输出 1e16 量级的伪倍数，两个指标方向完全相反。</p>'};
+    if(!(p>0)) return {ok:false,html:'<p style="color:var(--danger)">⚠ 「保费收入 (元)」必须大于 0（当前 '+p+'）：保费是费用率的分母，0 或负数会使费用率无定义或符号翻转。</p>'};
+    return {ok:true,e:e,p:p};
+}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-              var __ig=__tbInputGuard(['exp', 'premium'],["营运费用 (元)", "保费收入 (元)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const e=num('exp'),p=num('premium');
-            const __g2=dataGrid([
+    __erLast=null;   // 本次输入非法时不得再用上一次结果导出
+    var S=__erCheck();
+    if(!S.ok){ ToolBox.setResult('result',S.html); return; }
+    const e=S.e,p=S.p;
+    const ratio=e>0?(p/e).toFixed(3):'—';
+    const __note=e===0?'营运费用为 0：保费与费用比无定义，显示「—」，不再用 10⁻⁹ 兜底得到 1e16 量级的伪倍数。':'';
+    __erLast={e:e,p:p,expRatio:e/p*100,ratio:ratio,diff:p-e,dec:e/p};
+    const __g2=dataGrid([
                 [(e/p*100).toFixed(2),'费用率 (%)'],
-                [(p/Math.max(e,1e-9)).toFixed(3), '保费与费用比'],
+                [ratio, '保费与费用比'],
                 [(p-e).toFixed(2), '保费与费用之差'],
-                [(e/Math.max(p,1e-9)).toFixed(4), '费用率小数']
-            ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
+                [(e/p).toFixed(4), '费用率小数']
+            ])+(__note?'<p style="font-size:13px;color:var(--text-muted);margin-top:8px;">'+__note+'</p>':'');
+    ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('exp').value = '2500000';
       document.getElementById('premium').value = '10000000';
@@ -292,16 +310,21 @@ function __expense_ratioNum(id){var e=document.getElementById(id);var v=e?parseF
 function __expense_ratioExtras(){
     function __expense_ratioRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
-    var e=num('exp'),p=num('premium');
-    if (!isFinite(__expense_ratioNum('exp')) || !isFinite(__expense_ratioNum('premium'))) return;
+    var S=__erCheck();
     var en=TBKit.util.isEn();
+    if(!S.ok){
+        // 非法输入时清空旧表并给占位，且不再写入历史（R-H12）
+        try{ TBKit.matrix.table('#expense_ratioTable',{head:en?['Item','Value']:['项目','数值'],rows:[['—',en?'Fill in non-negative expenses and a premium greater than 0 first.':'请先填写非负营运费用与大于 0 的保费收入后再生成明细。']]}); }catch(e2){}
+        return;
+    }
+    var e=S.e,p=S.p;
     TBKit.matrix.table('#expense_ratioTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
             ['费用率 (%)', (e/p*100).toFixed(2)],
-            ['保费与费用比', (p/Math.max(e,1e-9)).toFixed(3)],
+            ['保费与费用比', e>0?(p/e).toFixed(3):'—'],
             ['保费与费用之差', (p-e).toFixed(2)],
-            ['费用率小数', (e/Math.max(p,1e-9)).toFixed(4)],
+            ['费用率小数', (e/p).toFixed(4)],
         ]
     });
     TBKit.history.record({exp:__expense_ratioRaw('exp'), premium:__expense_ratioRaw('premium'), e:e});
@@ -311,14 +334,27 @@ function __expense_ratioExtras(){
 }
 function __expense_ratioExport(){
     if (typeof TBKit === 'undefined') return;
-    try { TBKit.util.exportTable('#expense_ratioTable','expense-ratio.csv'); } catch(e){}
+    // 导出当前完整输入 + 结果，而非被截断的历史摘要；非法输入直接拦截（R-H12）
+    if(!__erLast){
+        try{ ToolBox.showToast('请先完成一次有效计算，明细为空时不导出。','error'); }catch(e){}
+        return;
+    }
+    var L=__erLast;
+    var rows=[['项目','数值'],
+        ['营运费用 (元)', L.e.toFixed(2)],
+        ['保费收入 (元)', L.p.toFixed(2)],
+        ['费用率 (%)', L.expRatio.toFixed(2)],
+        ['保费与费用比', L.ratio],
+        ['保费与费用之差 (元)', L.diff.toFixed(2)],
+        ['费用率小数', L.dec.toFixed(4)]];
+    try { TBKit.util.exportCsv('expense-ratio.csv', rows); } catch(e){}
 }
 function __expense_ratioPresets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#expense_ratioPresets',[
         {label:'默认',labelEn:'Default',values:{exp:'2500000', premium:'10000000'}},
-        {label:'示例 2×',labelEn:'Example 2×',values:{exp:'5000000', premium:'20000000'}},
-        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{exp:'1250000', premium:'5000000'}},
+        {label:'费用率翻倍',labelEn:'Double expense ratio',values:{exp:'5000000', premium:'10000000'}},
+        {label:'费用率减半',labelEn:'Half expense ratio',values:{exp:'1250000', premium:'10000000'}},
     ],function(){ calcTool(); });
 }
 var __tb_fn0 = calcTool;
