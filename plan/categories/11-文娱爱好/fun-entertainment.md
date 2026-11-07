@@ -390,13 +390,12 @@
 - 方案：`updateDisplay` 中按 `targetFreq` 计算 `1200*log2(freq/targetFreq)` 并输出偏差；或删除按钮与 :362 说明。
 - 假工具：部分（该按钮为装饰）。
 
-### FE-N38 节拍器启动后不跟随 BPM 变更：间隔只算一次，且用 setInterval 累积漂移（中，确认源码缺陷）
+### FE-N38 节拍器启动后不跟随 BPM 变更：间隔只算一次，且用 setInterval 累积漂移（中，已修复 2026-11-07）
 - 页面：`tools/dance/bpm-rhythm.html`
 - 问题：`toggleMetronome()` 启动时算一次 `interval=60000/bpm` 后交给 `setInterval` 固定使用；回调里只重读 `beatsPerBar`，不重读 BPM，因此运行中改 BPM 时数据区已更新、实际响拍不变。
-- 证据：`:321-337`（`:324` 固定 interval、`:327-337` 回调只取 `bpb`）、`:141`（BPM 输入 `oninput="calc()"` 只重算数值）。
-- 复现：120 BPM 启动节拍器 → 把 BPM 改为 60：结果区显示「节拍间隔 1000.00 ms」，但节拍点仍每 500 ms 跳一次（与 60 BPM 应有的 1000 ms 不符）；期望跟随为 1000 ms。
-- 影响：排练中调速必须手动停止再启动，否则节拍器与显示值不一致；60 秒长跑还有 setInterval 累积漂移。
-- 方案：改为递归 `setTimeout`，每次 tick 重算 `60000/当前BPM`；或 BPM 变更时自动重启定时器。
+- 修复位点：将 `setInterval` 改为递归 `setTimeout`——新增 `metroTick()`，每次 tick 末尾用 `60000/当前BPM` 重算并续排 `setTimeout(metroTick, interval)`；`toggleMetronome()` 也改用 `setTimeout(metroTimer,...)` 启动、停止分支用 `clearTimeout`。
+- 判别力：`scripts/_verify_fun_batch_fe_n38.mjs` JSDOM 两态锁——桩替换 setTimeout/setInterval 仅捕获调度延迟；启动 120BPM 捕获 500ms → 改 BPM 为 240 并触发一次 tick → 修复版重算为 250ms，PASS(exit 0)；HEAD 旧版间隔恒 500ms，FAIL(exit 1)，确认 bug 真实且已修。
+- 移交文件：`plan/已修复/2026-11-07-FE-N38-节拍器跟随BPM变更.md`
 
 ### FE-N39 乐理参考表把小三度/小六度/小七度与 Cm、Cdim 写成等音的升号拼法（中，确认数据缺陷）
 - 页面：`tools/music/ear-trainer.html`
