@@ -117,7 +117,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="IBNR 常用已报案赔款乘以发展因子推算。">Calculate incurred-but-not-reported reserves for long-tail liabilities.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">IBNR 准备金（本页代码口径，链梯法）：IBNR=已报告赔款×(损失发展因子−1)（元）；最终赔款估计=已报告赔款×损失发展因子（元）。校验：无强校验，空值按 0 兜底。判据：无固定分级，因子 &gt;1 表示仍有未报告责任（此时该式与「已发生−已报告」等价），因子=1 表示已充分报告、IBNR 为 0，因子 &lt;1 表示高估已报告。</div>
+      <div class="formula-eq">IBNR 准备金（本页代码口径，链梯法）：IBNR=已报告赔款×(损失发展因子−1)（元）；最终赔款估计=已报告赔款×损失发展因子（元）。校验：两项都必须填写且为合法数值，留空不再按 0 兜底；已报案赔款须 ≥0、发展因子须 ≥1（因子 &lt;1 会得到负 IBNR，准备金为负在会计与监管口径上不成立，旧预设 0.625 曾算出 −750,000 元），不满足即提示并中止，错误态不生成明细、历史与导出。判据：无固定分级，因子 &gt;1 表示仍有未报告责任（此时该式与「已发生−已报告」等价），因子 =1 表示已充分报告、IBNR 为 0；预设三档均使用 ≥1 的发展因子。</div>
       <p class="formula-desc">IBNR 常用已报案赔款乘以发展因子推算。</p>
     </div>
 
@@ -219,14 +219,36 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
+var __ibrLast=null;   // 最近一次有效计算的输入与结果，供导出使用（R-H10）
+// 主计算与附表共用同一份校验：发展因子 <1 会产生负 IBNR，准备金为负在会计口径上不成立
+function __ibrCheck(){
+    var ids=['reported','factor'],labels=['已报案赔款 (元)','发展因子'],v=[];
+    for(var i=0;i<ids.length;i++){
+        var e=document.getElementById(ids[i]);
+        var raw=e?String(e.value==null?'':e.value).trim():'';
+        if(raw==='') return {ok:false,html:'<p style="color:var(--danger)">⚠ 「'+labels[i]+'」不能为空：留空会被当成 0 参与计算，请补全后再计算。</p>'};
+        var n=parseFloat(raw);
+        if(!isFinite(n)) return {ok:false,html:'<p style="color:var(--danger)">⚠ 「'+labels[i]+'」不是有效数字（当前「'+raw+'」）。</p>'};
+        v.push(n);
+    }
+    if(!(v[0]>=0)) return {ok:false,html:'<p style="color:var(--danger)">⚠ 「已报案赔款 (元)」不能为负数（当前 '+v[0]+'）：负的已报案额会得到负的最终赔款估计。</p>'};
+    if(!(v[1]>=1)) return {ok:false,html:'<p style="color:var(--danger)">⚠ 「发展因子」不能小于 1（当前 '+v[1]+'）：因子 &lt;1 表示已报告赔款被高估，按本页链梯式会得到负 IBNR（旧预设 0.625 曾算出 −750,000 元准备金）；准备金为负在会计与监管口径上不成立，请改用 ≥1 的发展因子。</p>'};
+    return {ok:true,r:v[0],f:v[1]};
+}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
-function calcTool(){function fmt(v){const neg=v<0?'-':'';v=Math.abs(v);let s=v.toFixed(2);let p=s.split('.');p[0]=p[0].replace(/\B(?=(\d{3})+(?!\d))/g,',');return neg+p.join('.');}
-            const r=num('reported'),f=num('factor');
+function calcTool(){__ibrLast=null;
+    function fmt(v){const neg=v<0?'-':'';v=Math.abs(v);let s=v.toFixed(2);let p=s.split('.');p[0]=p[0].replace(/\B(?=(\d{3})+(?!\d))/g,',');return neg+p.join('.');}
+            var S=__ibrCheck();
+            if(!S.ok){ ToolBox.setResult('result',S.html); return; }
+            const r=S.r,f=S.f;
             const ibnr=r*(f-1);
+            const __note=(f===1)?'发展因子恰为 1：已报案赔款已充分反映终极赔款，IBNR 为 0，无需额外计提。':'';
+            __ibrLast={r:r,f:f,ibnr:ibnr,ultimate:r*f};
             const __g1=dataGrid([
                 [fmt(ibnr),'IBNR 准备金 (元)'],
                 [fmt(r*f),'最终赔款估计 (元)']
-            ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
+            ])+(__note?'<p style="font-size:13px;color:var(--text-muted);margin-top:8px;">'+__note+'</p>':'');
+            ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('reported').value = '4000000';
       document.getElementById('factor').value = '1.25';
@@ -238,10 +260,14 @@ function __ibnr_reserveExtras(){
     function __ibnr_reserveRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     function fmt(v){var neg=v<0?'-':'';v=Math.abs(v);let s=v.toFixed(2);let p=s.split('.');p[0]=p[0].replace(/\B(?=(\d{3})+(?!\d))/g,',');return neg+p.join('.');}
-    var r=num('reported'),f=num('factor');
-    var ibnr=r*(f-1);
-    if (!isFinite(__ibnr_reserveNum('reported')) || !isFinite(__ibnr_reserveNum('factor'))) return;
+    var S=__ibrCheck();
     var en=TBKit.util.isEn();
+    if(!S.ok){
+        // 非法输入时清空旧表并给占位，且不再写入历史（R-H10）
+        try{ TBKit.matrix.table('#ibnr_reserveTable',{head:en?['Item','Value']:['项目','数值'],rows:[['—',en?'Fill in a non-negative reported amount and a development factor of at least 1 first.':'请先填写非负已报案赔款与不小于 1 的发展因子后再生成明细。']]}); }catch(e2){}
+        return;
+    }
+    var r=S.r,f=S.f,ibnr=r*(f-1);
     TBKit.matrix.table('#ibnr_reserveTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
@@ -256,14 +282,25 @@ function __ibnr_reserveExtras(){
 }
 function __ibnr_reserveExport(){
     if (typeof TBKit === 'undefined') return;
-    try { TBKit.util.exportTable('#ibnr_reserveTable','ibnr-reserve.csv'); } catch(e){}
+    // 导出当前完整输入 + 结果，而非被截断的历史摘要；非法输入直接拦截（R-H10）
+    if(!__ibrLast){
+        try{ ToolBox.showToast('请先完成一次有效计算，明细为空时不导出。','error'); }catch(e){}
+        return;
+    }
+    var L=__ibrLast;
+    var rows=[['项目','数值'],
+        ['已报案赔款 (元)', L.r.toFixed(2)],
+        ['发展因子', String(L.f)],
+        ['IBNR 准备金 (元)', L.ibnr.toFixed(2)],
+        ['最终赔款估计 (元)', L.ultimate.toFixed(2)]];
+    try { TBKit.util.exportCsv('ibnr-reserve.csv', rows); } catch(e){}
 }
 function __ibnr_reservePresets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#ibnr_reservePresets',[
         {label:'默认',labelEn:'Default',values:{reported:'4000000', factor:'1.25'}},
         {label:'示例 2×',labelEn:'Example 2×',values:{reported:'8000000', factor:'2.5'}},
-        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{reported:'2000000', factor:'0.625'}},
+        {label:'低发展',labelEn:'Low development',values:{reported:'4000000', factor:'1.10'}},
     ],function(){ calcTool(); });
 }
 var __tb_fn0 = calcTool;

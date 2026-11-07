@@ -127,7 +127,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="未决赔款准备金（RBNS + IBNR）估算，支持损失率法与链梯法对照">Estimate the ultimate claims and the reserve needed for outstanding claims.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">未决赔款准备金（损失率法为主、链梯法对照）：预期终极赔款 = 已赚保费 × 预期赔付率%；IBNR = 预期终极赔款 − 已付赔款 − RBNS（为负截 0）；损失率法准备金 = RBNS + IBNR。链梯法：终极赔款 = 已付赔款 ÷ (结案率÷100)（结案率 ≤0 时取已付赔款），准备金 = 终极 − 已付，再 × 进展因子。校验：无强校验，空值按 0 兜底。判据：另出实际已报赔付率 = (已付+RBNS) ÷ 已赚保费 × 100%，与预期赔付率对比显示差异。</div>
+      <div class="formula-eq">未决赔款准备金（损失率法为主、链梯法对照）：预期终极赔款 = 已赚保费 × 预期赔付率%；IBNR = max(0, 预期终极赔款 − 已付赔款 − RBNS)；损失率法准备金 = RBNS + IBNR。链梯法：终极赔款 = 已付赔款 ÷ (结案率÷100)（结案率为 0 时取已付赔款），准备金 = 终极 − 已付，再 × 进展因子。校验：六项都必须填写且为合法数值，留空不再按 0 兜底；已赚保费 &gt;0、预期赔付率与结案率均在 0–100（%）、已付赔款与 RBNS 均 ≥0、进展因子取自 0–1 下拉，不满足即提示并中止，错误态不生成结果、历史与导出。判据：另出实际已报赔付率 = (已付+RBNS) ÷ 已赚保费 × 100%，与预期赔付率对比显示差异。注：链梯法的「进展期因子」仅作页面既有的对照调整，其随年限递减的方向问题另列待裁断条目（R-H8），本批不改口径。</div>
       <p class="formula-desc">未决赔款准备金（RBNS + IBNR）估算，支持损失率法与链梯法对照</p>
     </div>
 
@@ -288,13 +288,41 @@ function getVal(id){
   return el ? (+el.value || 0) : 0;
 }
 
+var __crvLast=null;   // 最近一次有效计算的输入与结果，供导出使用（R-H9）
+function __crvCheck(){
+    var ids=['earnedPremium','expectLossRatio','paidLoss','rbns','closeRate','period'];
+    var labels=['已赚保费 (万)','预期赔付率 (%)','已付赔款 (万)','RBNS (万)','结案率 (%)','进展期因子'];
+    var v=[];
+    for(var i=0;i<ids.length;i++){
+        var e=document.getElementById(ids[i]);
+        var raw=e?String(e.value==null?'':e.value).trim():'';
+        if(raw==='') return {ok:false,html:'<p style="color:var(--danger)">⚠ 「'+labels[i]+'」不能为空：留空会被当成 0 参与计算，请补全后再计算。</p>'};
+        var n=parseFloat(raw);
+        if(!isFinite(n)) return {ok:false,html:'<p style="color:var(--danger)">⚠ 「'+labels[i]+'」不是有效数字（当前「'+raw+'」）。</p>'};
+        v.push(n);
+    }
+    if(!(v[0]>0)) return {ok:false,html:'<p style="color:var(--danger)">⚠ 「已赚保费 (万)」必须大于 0（当前 '+v[0]+'）：保费是实际赔付率与预期终极赔款的分母 / 基数，0 或负数会使准备金口径失效。</p>'};
+    if(!(v[1]>=0&&v[1]<=100)) return {ok:false,html:'<p style="color:var(--danger)">⚠ 「预期赔付率 (%)」必须在 0–100 之间（当前 '+v[1]+'）：超过 100% 会让预期终极赔款高于全部保费，负数会得到负的终极赔款。</p>'};
+    if(!(v[2]>=0)) return {ok:false,html:'<p style="color:var(--danger)">⚠ 「已付赔款 (万)」不能为负数（当前 '+v[2]+'）：负已付曾算 IBNR 8800、链梯最终赔款 −5000、调整后准备金 −975。</p>'};
+    if(!(v[3]>=0)) return {ok:false,html:'<p style="color:var(--danger)">⚠ 「RBNS (万)」不能为负数（当前 '+v[3]+'）：已报案未决准备金不能为负。</p>'};
+    if(!(v[4]>=0&&v[4]<=100)) return {ok:false,html:'<p style="color:var(--danger)">⚠ 「结案率 (%)」必须在 0–100 之间（当前 '+v[4]+'）：>100% 会使链梯最终赔款小于已付赔款、准备金为负；0 表示尚无结案，按已付赔款计。</p>'};
+    if(!(v[5]>0&&v[5]<=1)) return {ok:false,html:'<p style="color:var(--danger)">⚠ 「进展期因子」无效（当前 '+v[5]+'）：该值取自下拉选项，须在 0–1 之间。</p>'};
+    return {ok:true,v:v};
+}
 function calc(){
-  var earnedPremium = getVal('earnedPremium');
-  var expectLossRatio = getVal('expectLossRatio');
-  var paidLoss = getVal('paidLoss');
-  var rbns = getVal('rbns');
-  var closeRate = getVal('closeRate');
-  var devFactor = +document.getElementById('period').value;
+  __crvLast=null;   // 本次输入非法时不得再用上一次结果导出
+  var S=__crvCheck();
+  if(!S.ok){
+    document.getElementById('statGrid').innerHTML='';
+    document.getElementById('result').innerHTML=S.html;
+    return;
+  }
+  var earnedPremium = S.v[0];
+  var expectLossRatio = S.v[1];
+  var paidLoss = S.v[2];
+  var rbns = S.v[3];
+  var closeRate = S.v[4];
+  var devFactor = S.v[5];
 
   // 损失率法
   var expectedUltimate = earnedPremium * expectLossRatio / 100;
@@ -332,6 +360,8 @@ function calc(){
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
   html += '<p>当前已报赔付率（含RBNS）：<strong>' + actualLossRatio.toFixed(1) + '%</strong></p>';
   html += '<p>与预期赔付率差异：<strong>' + (actualLossRatio - expectLossRatio).toFixed(1) + '%</strong></p>';
+  __crvLast={earnedPremium:earnedPremium,expectLossRatio:expectLossRatio,paidLoss:paidLoss,rbns:rbns,closeRate:closeRate,devFactor:devFactor,
+      expectedUltimate:expectedUltimate,ibnr:ibnr,totalReserve:totalReserve,clUltimate:clUltimate,clAdjusted:clAdjusted,actualLossRatio:actualLossRatio};
   const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 
@@ -441,7 +471,7 @@ function __claim_reserveResText(){
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    if(/请输入|请填写|无效|不正确|错误|Error|NaN|⚠|不能为|必须/.test(t)) return '';
     return t.slice(0,80);
 }
 function __claim_reserveTime(t){
@@ -488,6 +518,7 @@ function __claim_reserveRender(keys,rk,en){
 }
 function __claim_reserveExtras(){
     if (typeof TBKit === 'undefined') return;
+    if(!__crvLast) return;   // 非法输入（负值/留空/越界）不得写进历史（R-H9）
     if (__claim_reserve_skip) return;
     var snap=__claim_reserveSnap();
     var keys=Object.keys(snap);
@@ -517,7 +548,26 @@ function __claim_reserveExtras(){
 }
 function __claim_reserveExport(){
     if (typeof TBKit === 'undefined') return;
-    try { TBKit.util.exportTable('#claim_reserveTable','claim-reserve.csv'); } catch(e){}
+    // 导出当前完整输入 + 损失率法/链梯法结果，而非被截断的历史摘要；非法输入直接拦截（R-H9）
+    if(!__crvLast){
+        try{ ToolBox.showToast('请先完成一次有效计算，明细为空时不导出。','error'); }catch(e){}
+        return;
+    }
+    var L=__crvLast;
+    var rows=[['项目','数值'],
+        ['已赚保费 (万)', L.earnedPremium.toFixed(2)],
+        ['预期赔付率 (%)', String(L.expectLossRatio)],
+        ['已付赔款 (万)', L.paidLoss.toFixed(2)],
+        ['RBNS (万)', L.rbns.toFixed(2)],
+        ['结案率 (%)', String(L.closeRate)],
+        ['进展期因子', String(L.devFactor)],
+        ['预期终极赔款 (万)', L.expectedUltimate.toFixed(2)],
+        ['IBNR 准备金 (万)', L.ibnr.toFixed(2)],
+        ['未决准备金 损失率法 (万)', L.totalReserve.toFixed(2)],
+        ['链梯法最终赔款 (万)', L.clUltimate.toFixed(2)],
+        ['链梯法准备金 (万)', L.clAdjusted.toFixed(2)],
+        ['实际已报赔付率 (%)', L.actualLossRatio.toFixed(2)]];
+    try { TBKit.util.exportCsv('claim-reserve.csv', rows); } catch(e){}
 }
 function __claim_reservePresets(){
     if (typeof TBKit === 'undefined') return;
