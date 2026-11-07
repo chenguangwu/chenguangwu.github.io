@@ -301,39 +301,41 @@ function calc(){
   var wC=parseInt($('whiteCaptures').value)||0;
   var bStones=parseInt($('blackStones').value)||0;
   var wStones=parseInt($('whiteStones').value)||0;
-  var blackScore,whiteScore;
+  var blackScore,whiteScore,komiZi=komi/2;
   if(method==='japanese'){
-    // 数目法：围空 + 提子（提子作为已获目数）
+    // 数目法：围空 + 提子（单位：目）
     blackScore=bT+bC;
     whiteScore=wT+wC+komi;
   }else{
-    // 数子法：盘面活子 + 围空，提子不重复计入
+    // 数子法：盘面活子 + 围空（单位：子）；贴目是「目」，1 子 = 2 目 ⇒ 贴子 = komi/2 子
     if(bStones+wStones===0){
       $('result').innerHTML='<p style="color:var(--danger);">⚠ 中国规则（数子法）需填写双方盘面活子数，否则无法按「活子+围空」计算。若只掌握围空与提子，请切换到日本规则（数目法）。</p>';
       $('dataGrid').innerHTML='';
       return;
     }
     blackScore=bT+bStones;
-    whiteScore=wT+wStones+komi;
+    whiteScore=wT+wStones+komiZi;
   }
-  var diff=blackScore-whiteScore;
+  var isChinese=method!=='japanese';
+  // 数目法：差即目差；数子法：差为子差，1 子 = 2 目 ⇒ 目差 = 子差 × 2
+  var diff=isChinese?(blackScore-whiteScore)*2:(blackScore-whiteScore);
   var winner=diff>0?'black':diff<0?'white':'tie';
   var winnerName=winner==='black'?'黑方胜':winner==='white'?'白方胜':'平局';
-  const __g1='<div class="data-card"><div class="num">'+blackScore.toFixed(1)+'</div><div class="label">黑方总目</div></div>'+
-    '<div class="data-card"><div class="num">'+whiteScore.toFixed(1)+'</div><div class="label">白方总目</div></div>'+
+  const __g1='<div class="data-card"><div class="num">'+blackScore.toFixed(1)+'</div><div class="label">'+(isChinese?'黑方子数':'黑方总目')+'</div></div>'+
+    '<div class="data-card"><div class="num">'+whiteScore.toFixed(1)+'</div><div class="label">'+(isChinese?'白方子数':'白方总目')+'</div></div>'+
     '<div class="data-card"><div class="num" style="color:'+(diff>0?'#1a1a1a':diff<0?'#999':'#F59E0B')+';">'+(diff>0?'+':'')+diff.toFixed(1)+'</div><div class="label">目差</div></div>'+
-    '<div class="data-card"><div class="num">'+komi+'</div><div class="label">贴目</div></div>';$('dataGrid').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+    '<div class="data-card"><div class="num">'+(isChinese?komiZi.toFixed(2):komi)+'</div><div class="label">'+(isChinese?'贴子':'贴目')+'</div></div>';$('dataGrid').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
   var winnerStyle=winner==='black'?'background:#1a1a1a;color:#fff;':winner==='white'?'background:#f5f5f5;color:#333;border:1px solid #ddd;':'background:#F59E0B;color:#fff;';
   var html='<div style="text-align:center;margin-bottom:12px;">'+
     '<span class="winner-badge" style="'+winnerStyle+'">'+winnerName+'</span></div>'+
     '<p>计算方式：<strong>'+(method==='japanese'?'日本规则（数目法）':'中国规则（数子法）')+'</strong></p>'+
-    '<p>贴目：<strong>'+komi+' 目</strong>（白方）</p>'+
+    '<p>'+(isChinese?'贴子':'贴目')+'：<strong>'+(isChinese?komiZi.toFixed(2)+' 子（= '+komi+' 目）':komi+' 目')+'</strong>（白方）</p>'+
     (method==='japanese'
       ? '<p>黑方：围空 <strong>'+bT+'目</strong> + 提子 <strong>'+bC+'目</strong> = <strong>'+blackScore.toFixed(1)+'目</strong></p>'+
         '<p>白方：围空 <strong>'+wT+'目</strong> + 提子 <strong>'+wC+'目</strong> + 贴目 <strong>'+komi+'目</strong> = <strong>'+whiteScore.toFixed(1)+'目</strong></p>'
-      : '<p>黑方：活子 <strong>'+bStones+'子</strong> + 围空 <strong>'+bT+'目</strong> = <strong>'+blackScore.toFixed(1)+'目</strong>（提子不重复计入）</p>'+
-        '<p>白方：活子 <strong>'+wStones+'子</strong> + 围空 <strong>'+wT+'目</strong> + 贴目 <strong>'+komi+'目</strong> = <strong>'+whiteScore.toFixed(1)+'目</strong></p>'+
-        '<p>数子阈值：黑方须超过 <strong>'+(180.5+komi/2).toFixed(1)+' 目</strong>（361 点半数 + 贴目折半）方胜。</p>')+
+      : '<p>黑方：活子 <strong>'+bStones+'子</strong> + 围空 <strong>'+bT+'目</strong> = <strong>'+blackScore.toFixed(1)+'子</strong>（提子不重复计入）</p>'+
+        '<p>白方：活子 <strong>'+wStones+'子</strong> + 围空 <strong>'+wT+'目</strong> + 贴子 <strong>'+komiZi.toFixed(2)+'子</strong> = <strong>'+whiteScore.toFixed(1)+'子</strong></p>'+
+        '<p>数子阈值：黑方须超过 <strong>'+(180.5+komiZi).toFixed(2)+' 子</strong>（361 点半数 + 贴子）方胜；目差按 1 子 = 2 目 折算。</p>')+
     '<p>目差：<strong style="color:'+(diff>0?'#1a1a1a':diff<0?'#666':'#F59E0B')+';">'+(diff>0?'+':'')+diff.toFixed(1)+'目</strong></p>';
   if(winner==='black'){html+='<div class="tip-box tip-success"><strong>⚫ 黑方胜</strong>：领先 '+Math.abs(diff).toFixed(1)+' 目</div>';}
   else if(winner==='white'){html+='<div class="tip-box tip-success"><strong>⚪ 白方胜</strong>：领先 '+Math.abs(diff).toFixed(1)+' 目</div>';}
