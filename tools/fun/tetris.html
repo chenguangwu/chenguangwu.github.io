@@ -593,12 +593,25 @@ s.parentNode.insertBefore(el, s);
   function rotate() {
     if (!currentPiece || gamePaused || gameOver) return;
     var rotated = rotateCells(currentPiece.cells);
-    // 尝试原位、左移1、右移1、左移2、右移2（wall kick）
-    var kicks = [0, -1, 1, -2, 2];
+    // 踢墙表：先原位/横向（保持原手感），再向上踢墙（贴底/贴顶旋转必需）
+    var kicks = [
+      [0, 0],   // 原位
+      [-1, 0],  // 左 1
+      [1, 0],   // 右 1
+      [-2, 0],  // 左 2
+      [2, 0],   // 右 2
+      [0, -1],  // 上踢 1
+      [0, -2],  // 上踢 2（I 块贴底横转竖必需）
+      [-1, -1], // 左上
+      [1, -1],  // 右上
+      [-1, -2], // 左上 2
+      [1, -2]   // 右上 2
+    ];
     for (var i = 0; i < kicks.length; i++) {
-      if (isValid(rotated, currentPiece.x + kicks[i], currentPiece.y)) {
+      if (isValid(rotated, currentPiece.x + kicks[i][0], currentPiece.y + kicks[i][1])) {
         currentPiece.cells = rotated;
-        currentPiece.x += kicks[i];
+        currentPiece.x += kicks[i][0];
+        currentPiece.y += kicks[i][1];
         draw();
         return;
       }
@@ -909,6 +922,27 @@ function endGame() {
       case "rotate": rotate(); break;
       case "drop": hardDrop(); break;
     }
+  };
+
+  // === 自动化回归测试钩子（仅供 verify 脚本使用，不影响正常游戏逻辑）===
+  window.__tbTetris = {
+    piece: function() {
+      if (!currentPiece) return null;
+      return {
+        name: currentPiece.name,
+        x: currentPiece.x,
+        y: currentPiece.y,
+        cells: currentPiece.cells.map(function(r) { return r.slice(); })
+      };
+    },
+    setPiece: function(name, x, y) {
+      currentPiece = createPiece(name);
+      currentPiece.x = x;
+      currentPiece.y = y;
+      draw();
+    },
+    rotate: function() { rotate(); },
+    isRunning: function() { return gameRunning && !gameOver && !gamePaused; }
   };
 
   // === 工具介绍折叠 ===
