@@ -351,6 +351,11 @@ GATES = (
     # 同根因，共 352 页。本项对两套模板各取代表页做回归哨兵（内置样本见脚本 DEFAULT_SAMPLE），
     # 断言：快照覆盖全部静态复选框且未勾记 '0'、稀疏记录恢复后只剩记录内项、全 0 记录恢复后全清。
     ("checkbox history", ("node", "scripts/_verify_checkbox_history.mjs")),
+    # 输入失效后旧结果残留（G10，2026-11-08）：多个工具对无效输入直接 return，主结果/明细表/
+    # 可复制数据仍停在上一次计算，用户会把旧值当成当前输入的结论（导出的 CSV 也是旧参数）。
+    # 本项对第 48 批修复的 6 页各断言一条「清空必填项 ⇒ 结果必须离开上一次展示」，
+    # 负向对照已实测：换回修复前版本 6/6 全红。
+    ("stale result invalidated", ("node", "scripts/_verify_stale_result.mjs")),
 )
 
 

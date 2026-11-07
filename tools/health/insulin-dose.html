@@ -398,6 +398,7 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
+var __insulin_dose_ok=true;   // G10：输入有效性。false 时主结果/明细/标尺/历史一律视为无效
 function calc() {
   const cur = parseFloat(document.getElementById('currentBg').value);
   const tgt = parseFloat(document.getElementById('targetBg').value);
@@ -407,7 +408,15 @@ function calc() {
   const active = parseFloat(document.getElementById('activeIns').value) || 0;
   const exercise = parseFloat(document.getElementById('exercise').value);
   
-  if(!cur || !tgt || !icr || !isf || !carbs) return;
+  if(!cur || !tgt || !icr || !isf || !carbs){
+    // G10：输入失效必须同步清空，否则用户会把上一次的剂量当成当前输入的结论。
+    __insulin_dose_ok=false;
+    document.getElementById('doseVal').textContent='--';
+    document.getElementById('breakdown').innerHTML='';
+    document.getElementById('doseMarker').style.left='0%';
+    return;
+  }
+  __insulin_dose_ok=true;
   
   const carbDose = carbs / icr;
   const corrDose = Math.max(0, (cur - tgt) / isf);
@@ -461,6 +470,9 @@ function __insulin_doseSnap(){
 function __insulin_doseResText(){
     var r=document.querySelector('.result-box');
     if(!r) return '';
+    // G10：输入无效时主结果已清空，但结果框里还有静态刻度标签 ⇒ 必须显式判无效，
+    // 否则会把「无结果」当成有效结果写进历史（并给 __tbScore=1）。
+    if(typeof __insulin_dose_ok!=='undefined'&&!__insulin_dose_ok) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';

@@ -215,14 +215,20 @@ function setInvalid(el,invalid){
   if(invalid){el.classList.add('input-error');el.setAttribute('aria-invalid','true');}
   else{el.classList.remove('input-error');el.removeAttribute('aria-invalid');}
 }
+// G10：输入无效时主结果已报错，但明细表还留着上一组参数的行 ⇒
+// 「导出明细 CSV」会把旧结果带走。所有无效分支统一走这里清表。
+function __calcInvalidClear(){
+  var t=document.getElementById('calculator_calc_concentrationTable'); if(t) t.innerHTML='';
+}
 function calc(){
-    var __ig=__tbInputGuard(['stock', 'target', 'volume', 'ratio'],["原药浓度 (%)", "目标浓度 (%)", "目标稀释体积 (L)", "稀释倍数 (备用)"]);if(__ig){const __g1=__ig;ToolBox.setResult("res",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
+    var __ig=__tbInputGuard(['stock', 'target', 'volume', 'ratio'],["原药浓度 (%)", "目标浓度 (%)", "目标稀释体积 (L)", "稀释倍数 (备用)"]);if(__ig){const __g1=__ig;ToolBox.setResult("res",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));__calcInvalidClear();return;}
 var stock=getNum('stock'),target=getNum('target'),volume=getNum('volume');
   setInvalid(document.getElementById('stock'),stock<=0);
   setInvalid(document.getElementById('target'),target<0||target>=stock);
   setInvalid(document.getElementById('volume'),volume<=0);
   if(stock<=0||target<0||target>=stock||volume<=0){
     document.getElementById('res').innerHTML='<p style="color:var(--error);">请输入有效数值，目标浓度应小于原药浓度</p>';
+    __calcInvalidClear();
     return;
   }
   var stockL=target/stock*volume;
@@ -242,6 +248,7 @@ function calcByRatio(){
   var stock=getNum('stock');
   if(ratio<=1||stock<=0){
     document.getElementById('res').innerHTML='<p style="color:var(--error);">稀释倍数需大于 1 且原药浓度有效；留空则按手工目标浓度计算</p>';
+    __calcInvalidClear();
     return;
   }
   var target=stock/ratio;

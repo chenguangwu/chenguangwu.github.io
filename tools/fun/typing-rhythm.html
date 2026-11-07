@@ -271,13 +271,28 @@ function onKeyDn(e){
   // ignore modifier keys
   var k=e.key;
   if(k==='Shift'||k==='Control'||k==='Alt'||k==='Meta'||k==='CapsLock'||k==='Tab')return;
-  if(k==='Backspace'){times.pop();drawChart();return;}
+  if(k==='Backspace'){
+    times.pop();
+    // G10：删到不足 3 次按键就不再有有效样本 ⇒ 旧评分必须作废，
+    // 否则用户删光重打时看到的还是删除前的成绩（保留已输入的文字，只清成绩）。
+    if(times.length<3){ resetScore(); return; }
+    drawChart(); return;
+  }
   times.push(performance.now());
   if(times.length>=3){analyze();}
 }
 function onInput(){
   var v=document.getElementById('typeInput').value;
   lastVal=v;
+  // G10：清空输入框 ⇒ 旧评分/旧结果一律作废
+  if(!v){ times=[]; resetScore(); }
+}
+// 只重置「成绩展示」，不动用户已输入的文字（区别于 newSample 用的 clearAll）
+function resetScore(){
+  document.getElementById('scoreV').textContent='-';
+  document.getElementById('sRing').style.strokeDashoffset=2*Math.PI*56;
+  document.getElementById('result').innerHTML='<p style="color:var(--text-muted);">开始打字后，这里会显示节奏分析结果。</p>';
+  drawChart();
 }
 function intervals(){
   var arr=[];
@@ -295,7 +310,7 @@ function calcRhythmScore(cv){return Math.max(0,Math.min(100,Math.round(100-cv*12
 function calcWpm(chars,ms){return Math.round(chars/(ms/1000)/5*60)||0;}
 function analyze(){
   var iv=intervals();
-  if(iv.length<2){return;}
+  if(iv.length<2){ resetScore(); return; }   // G10：样本不足 ⇒ 作废旧评分，不留上一次的成绩
   var m=mean(iv);
   var s=std(iv);
   var cv=m>0?s/m:1; // coefficient of variation
