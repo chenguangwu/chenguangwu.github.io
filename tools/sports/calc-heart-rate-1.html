@@ -263,7 +263,10 @@ function calc(){
   setInvalid(document.getElementById('restHr'),isNaN(rest)||rest<=0);
   if(isNaN(age)||age<=0||isNaN(rest)||rest<=0){document.getElementById('summary').innerHTML='';document.getElementById('zones').innerHTML='<p style="color:var(--danger)">请输入有效的年龄与静息心率</p>';return;}
   var mx=hrMax(age);
-  if(mx<=0){document.getElementById('summary').innerHTML='';return;}
+  // SF-N22：缺最大心率时同步清空区间区，避免残留上一轮区间（原仅清 summary）
+  if(mx<=0){document.getElementById('summary').innerHTML='';document.getElementById('zones').innerHTML='<p style="color:var(--danger)">请选择或输入有效的最大心率</p>';return;}
+  // SF-N21：静息心率必须低于最大心率，否则 HRR 为负、区间上下界倒挂
+  if(rest>=mx){document.getElementById('summary').innerHTML='';document.getElementById('zones').innerHTML='<p style="color:var(--danger)">静息心率必须低于最大心率（'+Math.round(mx)+' bpm）</p>';setInvalid(document.getElementById('restHr'),true);return;}
   var hrr=mx-rest;
   var zones=[
     {name:'热身/恢复',lo:0.50,hi:0.60,color:'#60A5FA',desc:'低强度，促进恢复、热身'},

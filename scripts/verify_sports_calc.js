@@ -35,6 +35,13 @@ const CASES = [
     expect: ["175 最大心率", "115 储备心率", "118–175"],
     ref: "去默认化：最大心率 = 220−45 = 175 bpm；储备心率 HRR = 175−60 = 115；Karvonen 区间 = 60+115×[0.5,1] = 118–175 bpm。默认 age 30 → 190 / 130 / 125–190。注意页面另有 maxHr 输入框（默认 190）在 fox 公式下不参与计算，其回显值不可作 expect",
   },
+  // ── SF-N21/N22 心率区间：静息≥最大 / 缺最大心率 拦截（C 批修复）──
+  { slug: "sports/calc-heart-rate-1", inputs: { age: "120", restHr: "120", formula: "fox" },
+    expect: ["静息心率必须低于最大心率（100 bpm）"],
+    ref: "SF-N21：Fox 220−120=100=最大心率，静息 120≥100 → HRR=−20、区间上下界倒挂（热身 110–108）。现 rest>=mx 拦截提示并 return。默认 age30/60 正常出区间 ⇒ 该串仅越界态出现、零逃生。" },
+  { slug: "sports/calc-heart-rate-1", inputs: { age: "30", restHr: "60", formula: "manual", maxHr: "" },
+    expect: ["请选择或输入有效的最大心率"],
+    ref: "SF-N22：手动模式清空 maxHr → hrMax 返回 0，原分支仅清 summary、旧区间残留。现同步清空 zones 并提示。默认田中/60 正常出区间 ⇒ 该串仅缺参态出现、零逃生。" },
 
   // ── 氧脉搏 ──────────────────────────────────────────────────
   {
@@ -68,6 +75,10 @@ const CASES = [
     expect: ["58.0", "1.56", "22.9", "35.71"],
     ref: "去默认化：**标准 SWOLF = 划次 + 时间 = 16 + 42 = 58.0**（BATCH54 已修掉原式「划次 + 时间/5」的量纲错）；DPS = 25/16 = 1.56 m；SR = 16/42×60 = 22.9 次/分；速度 = 25/42×60 = 35.71 m/min。默认 20/30 → 50.0 / 1.25 / 40.0 / 50.00",
   },
+  // ── SF-N29 50m 池按每 25m 折算（÷2）评级（C 批修复）──
+  { slug: "sports/swimming-stroke-efficiency", inputs: { "pool-length": "50", "stroke-count": "20", "swim-time": "30", "stroke-type": "freestyle" },
+    expect: ["效率指数 - 精英水平"],
+    ref: "SF-N29：50m 池 SWOLF=20+30=50，原固定 −12 → 38（优秀），按每 25m 折算 50/2=25 → 精英水平。默认 25m 20/30 → 效率指数 - 良好 ⇒ 该串仅 50m 折算态出现、零逃生。效率条位置（style.left）由 scripts/_verify_sports_batch_c.mjs 运行期断言（blob 不采集样式）。" },
 
   // ── 出汗率 ──────────────────────────────────────────────────
   {
@@ -227,7 +238,7 @@ const CASES = [
     slug: "sports/swimming-stroke-efficiency",
     inputs: { "pool-length": "50", "stroke-count": "36", "swim-time": "40", "stroke-type": "freestyle" },
     expect: ["76.0"],
-    ref: "SWOLF 标准定义 = 划次 + 用时(秒) = 36+40 = 76.0（50 m 池另减 12 参与评级）；"
+    ref: "SWOLF 标准定义 = 划次 + 用时(秒) = 36+40 = 76.0（显示原始值）；评级按每 25m 折算 76/2=38 → 优秀（SF-N29 起由原固定 −12 改为 ÷2）；"
        + "修复前的 /5 会算出 36+8=44.0，并把本例误判为精英",
   },
 
