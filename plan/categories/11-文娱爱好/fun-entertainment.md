@@ -250,19 +250,17 @@
 - 根因：页面仅「开始新局 / 悔1手」两按钮，AI 恒白后手、`aiMove` 无难度/深度入参（与 FE-N17 修复后的 lineScore 单层打分一致），无搜索深度与先手切换能力，属能力虚标。
 - 处置：按「不虚标、对齐真实能力」原则收敛文案（未新增伪难度功能，避免假功能）。
 
-### FE-N21 2048「最大方块」只增不减：新局不重置、悔棋不回退，终局统计沿用历史值（中，确认源码缺陷）
-- 问题：`maxTile` 仅在合并成功时刷新；`newGame()` 不重置它，`undoMove()` 不回退它，而顶部分数与终局弹窗都用它展示「最大方块」，导致新局/悔棋后显示上一局甚至已被撤销的值。
-- 证据：`tools/fun/2048-game.html:361`（初值 0）、`:379-392`（newGame 不动 `maxTile`）、`:456-460`（只有 `mergedVal > maxTile` 时更新）、`:509-516`（undo 只恢复 board/score）、`:518-520`、`:556-559`（`finalMax = maxTile`）、`:641-642`（先 `loadBest()` 再 `newGame()`）。
-- 复现：合并出 4 后点「撤销」→ 棋盘回到两个 2，「最大方块」仍显示 4；若存档 `maxTile` 为 1024，刷新后开新局 → 顶部仍显示 1024 而棋盘最大只有 2/4；终局弹窗同样显示该历史值。
-- 影响：`tools/fun/2048-game.html`；当前局面与终局统计的「最大方块」显示错误，最高块记录不可信。
-- 方案：每次渲染时从 `board` 重算 `maxTile`（或将「历史最高块」拆成独立 bestTile 并明确标注），`undo`/`newGame` 同步重算；补「撤销后最大方块跟随棋盘」用例。
+### FE-N21 2048「最大方块」只增不减：新局不重置、悔棋不回退，终局统计沿用历史值（中，**2026-11-07 已修复**）
+- 修复：新增 `computeMaxTile()` 扫描全盘取最大值；`updateScore()` 每帧 `maxTile = computeMaxTile()`（顶部分数、scores 标签页、终局弹窗 `finalMax` 全用此值）；`newGame()` 防御性 `maxTile=0`；`loadBest()` 不再用存档 `data.maxTile` 播种（仅读 `best` 分数）。修复后：含 4 棋盘→4、undo 回退→跟随棋盘、newGame→当前棋盘最大块、刷新后新局不再残留 1024。
+- 证据：`tools/fun/2048-game.html:361`（初值）、`:379-393`（newGame 重置）、`:518-528`（computeMaxTile + updateScore 每帧重算）、`:549-557`（loadBest 不读 maxTile）、`:556-560`（finalMax 用 maxTile）。
+- 判别力：`scripts/_verify_fun_batch_fe_n21.mjs` JSDOM 两态锁——设含 4 棋盘→#maxTile=4 / undo 回退→2 / newGame→随棋盘重算 / loadBest(1024)→newGame 非 1024；修复后 4/4 通过，HEAD 旧版 4/4 全 FAIL（maxTile 停在 0/1024），确认 bug 真实且已修。（页面无输入框、harness 无法驱动，故用 JSDOM 两态锁，同 FE-N18/N19）
+- 移交文件：`plan/已修复/2026-11-07-FE-N21-2048最大方块实时重算.md`
 
-### FE-N22 俄罗斯方块计分口径与深度解析算例矛盾：代码 800×等级，文档 800×(等级+1)（中，确认内容缺陷）
-- 问题：深度解析用「800×(等级+1)」举例，代码实际乘的是等级本身，等级 3 一次消 4 行少 800 分。
-- 证据：`tools/fun/tetris.html:267`（「800×(等级+1)…等级 3 时…3200 分」）、`:387`（`SCORE_TABLE = [0,100,300,500,800]`）、`:511-512`（`score += SCORE_TABLE[cleared] * level;`）。
-- 复现：等级 3、一次消 4 行 → 代码 `800×3=2400`；文档写 `800×(3+1)=3200`。等级 1 消 4 行文档应为 1600，代码为 800。
-- 影响：`tools/fun/tetris.html`；玩家按文档核对得分必然对不上，属可验证的计分口径错误。
-- 方案：统一为一套口径——沿用代码则文档改为「800×等级（等级从 1 起）」；改用 Guideline 的 (level+1) 则改代码。补「等级 3 消 4 行」算例断言。
+### FE-N22 俄罗斯方块计分口径与深度解析算例矛盾：代码 800×等级，文档 800×(等级+1)（中，**2026-11-07 已修复**）
+- 修复（真源层）：deep-dive 示例串由构建从 `i18n/tools/content_deepdive.json` 的 `fun/tetris` 注入（直接改 `tools/fun/tetris.html` 是错层、会被还原，同 FE-N14）。把示例「800×(等级+1)…等级 3 得 3200」收敛为「**800×等级…等级 3 得 2400**」，对齐代码 `score += SCORE_TABLE[cleared] * level`（level 从 1 起）。同步改英文翻译源 `i18n/tools/en/fun/tetris.json`。构建后 tetris.html 示例已为「800×等级 分；等级 3 时单消 4 行得 2400 分」。
+- 证据：`tools/fun/tetris.html:387`（`SCORE_TABLE=[0,100,300,500,800]`）、`:520`（`score += SCORE_TABLE[cleared]*level`）、`:414`（`level=1` 起）、行 300 计分参考表已写「multiplied by the current level」（与代码一致，无需改）。
+- 判别力：grep 复核 tetris.html 示例已无「等级+1 / 3200」，改为「800×等级 / 2400」；`verify_fun_calc.js` 该页无 calc 用例受影响（纯文案口径收敛，无计算逻辑改动）。
+- 移交文件：`plan/已修复/2026-11-07-FE-N22-俄罗斯方块计分口径对齐代码.md`
 
 ### FE-N23 宣传「七袋随机」「连续消除加成」，实现是独立随机 + 固定 1/2/3/4 行计分（中，确认内容缺陷）
 - 问题：参考表声称采用七袋随机会让每七块各出现一次、并称连续消除另有加成；代码用 `Math.random()` 独立抽块，计分只有 1/2/3/4 行固定表，无任何 combo 计数或加成分支。
