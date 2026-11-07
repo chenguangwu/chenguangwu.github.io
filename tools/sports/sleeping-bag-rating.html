@@ -318,21 +318,28 @@ function calc() {
   document.getElementById('temp-input').value = temp;
 
   // Adjust target temperature based on sleeper type
+  // SF-N37：普通型原取 targetTemp=temp（零余量），与页内「下限温度低于环境 3-5°C」自相矛盾，
+  // 且 5°C 环境会推荐「+10°C 夏季」（下限 5=环境温度）；改为预留 3°C 余量。
+  // 怕热型应按「舒适温度 ≤ 环境」匹配（原按 limit 比较，实际比舒适标准更暖），故按类型切换匹配字段。
   var targetTemp = temp;
-  var targetLabel = '下限温度';
+  var targetLabel = '下限温度 (含3°C余量)';
+  var matchKey = 'limit';
   if (sleeperType === 'warm') {
-    targetTemp = temp - 3; // Use comfort rating (3°C higher than limit)
-    targetLabel = '舒适温度';
+    targetTemp = temp; // 以舒适温度为标准，不再额外减 3
+    targetLabel = '舒适温度上限';
+    matchKey = 'comfort';
   } else if (sleeperType === 'cold') {
     targetTemp = temp - 5; // 5°C margin
     targetLabel = '下限温度 (含5°C余量)';
+  } else {
+    targetTemp = temp - 3; // 普通型：按页内建议预留 3°C 余量
   }
 
   // Find recommended bag
   var recommended = null;
   var recommendedIdx = -1;
   for (var i = 0; i < BAG_SERIES.length; i++) {
-    if (BAG_SERIES[i].limit <= targetTemp) {
+    if (BAG_SERIES[i][matchKey] <= targetTemp) {
       recommended = BAG_SERIES[i];
       recommendedIdx = i;
       break;
@@ -354,6 +361,9 @@ function calc() {
   html += '<div class="stat-card"><div class="val">' + temp + '°C</div><div class="lbl">环境温度</div></div>';
   html += '<div class="stat-card"><div class="val">' + targetTemp + '°C</div><div class="lbl">目标' + targetLabel + '</div></div>';
   html += '<div class="stat-card"><div class="val">' + recommended.name + '</div><div class="lbl">推荐睡袋</div></div>';
+  // SF-N37：明示实际保温余量，避免「零余量推荐」被当成有备而来
+  var marginVal = temp - recommended[matchKey];
+  html += '<div class="stat-card"><div class="val">' + (marginVal > 0 ? '+' : '') + marginVal + '°C</div><div class="lbl">保温余量（环境 − ' + (matchKey === 'comfort' ? '舒适温度' : '下限温度') + '）</div></div>';
   html += '</div>';
 
   // Temperature visualization
@@ -440,8 +450,9 @@ function copyResult() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+  // SF-N38：原在 calc() 之后固定调用 updateRefTable(1)，覆盖 calc() 按 recommendedIdx 设的高亮，
+  // 造成首屏「结果卡推荐 +10°C 夏季、参考表却高亮 +5°C 三季」。高亮统一由 calc() 负责。
   calc();
-  updateRefTable(1);
 });
 </script>
 

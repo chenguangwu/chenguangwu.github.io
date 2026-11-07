@@ -80,6 +80,11 @@ const CASES = [
     expect: ["效率指数 - 精英水平"],
     ref: "SF-N29：50m 池 SWOLF=20+30=50，原固定 −12 → 38（优秀），按每 25m 折算 50/2=25 → 精英水平。默认 25m 20/30 → 效率指数 - 良好 ⇒ 该串仅 50m 折算态出现、零逃生。效率条位置（style.left）由 scripts/_verify_sports_batch_c.mjs 运行期断言（blob 不采集样式）。" },
 
+  // ── SF-N37/N38 睡袋推荐余量与首屏高亮（E 批修复）──
+  { slug: "sports/sleeping-bag-rating", inputs: { "temp-slider": "-2", "temp-input": "-2", "sleeper-type": "normal" },
+    expect: ["-5°C 目标下限温度 (含3°C余量)", "+3°C 保温余量（环境 − 下限温度）"],
+    ref: "SF-N37：普通型原取 targetTemp=temp（零余量），与页内「下限温度低于环境 3-5°C」自相矛盾（5°C 环境推荐下限 5°C 的 +10°C 夏季）。现预留 3°C：环境 −2 ⇒ 目标 −5，推荐 0°C 三季加强（下限 −5 ≤ −5），余量 = −2−(−5) = +3°C。默认 5°C ⇒ 目标 2、推荐 +5°C 三季、余量 +5，两串均不命中 ⇒ 零逃生。首屏参考表高亮一致性（style 内联样式）blob 采不到，由 scripts/_verify_sports_batch_e.mjs 运行期断言。" },
+
   // ── SF-N31/N34/N35 硬校验拦截（D 批修复）──
   { slug: "sports/xuerusuanyuzhiceding", inputs: { data: "120,3.2\n150,3.6\n170,4.5" },
     expect: ["⚠ 检测到 OBLA 心率（159 bpm）不高于 LT 心率（163 bpm）"],
@@ -1138,9 +1143,10 @@ const CASES = [
       "sleeper-type": "normal"
     },
     "expect": [
-      "20\nnormal\n20\n20\n20°C 环境温度 20°C 目标下限温度 +10°C 夏"
+      "17°C 目标下限温度 (含3°C余量)",
+      "+15°C 保温余量（环境 − 下限温度）"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"temp-slider\":\"42\",\"temp-input\":\"42\",\"sleeper-type\":\"normal\"}，输出区含「20\nnormal\n20\n20\n20°C 环境温度 20°C 目标下限温度 +1…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "SF-N37 起普通型预留 3°C 余量：注入 temp=20（页面夹取到上限 20）、normal ⇒ 目标下限 = 20−3 = 17°C，推荐 +10°C 夏季（下限 5 ≤ 17），保温余量 = 20−5 = +15°C。原断言（目标下限 20°C + 自动补强 blob）已随 SF-N37 同批改写。默认 temp=5 ⇒ 目标 2°C、推荐 +5°C 三季、余量 +5°C，两串均不命中 ⇒ 零逃生。"
   },
   {
     "slug": "sports/simulator-18",
