@@ -589,14 +589,16 @@ function calcCycling() {
   // 简化: speed = ratio * wheel * cadence * 60 / 1000000 (km/h)
   var speedKmh = (ratio * wheel * cadence * 60) / 1000000;
 
-  var gearInch = ratio * (wheel / 25.4); // 齿比英寸
+  // SF-N56：齿轮英寸 = 齿比 × 车轮直径(inch)，而输入 wheel 是「轮周长(mm)」，
+  // 原式 ratio*(wheel/25.4) 把周长当直径，结果固定放大 π 倍（50/11、2096mm 会给出 375.1" 而非 119.4"）。
+  var gearInch = ratio * (wheel / Math.PI / 25.4); // 齿比 × 由轮周长换算的车轮直径(inch)
   var development = ratio * wheel / 1000; // 速度表上的"齿轮比"(m/转)
 
   var html = '<div class="result-grid">';
   html += '<div class="result-item"><div class="val">' + ratio.toFixed(2) + '</div><div class="lbl">齿比</div></div>';
   html += '<div class="result-item"><div class="val">' + distPerCrankM + ' m</div><div class="lbl">每踏一圈距离</div></div>';
   html += '<div class="result-item"><div class="val">' + speedKmh.toFixed(2) + '</div><div class="lbl">骑行速度 (km/h)</div></div>';
-  html += '<div class="result-item"><div class="val">' + gearInch.toFixed(1) + '"</div><div class="lbl">齿轮英寸</div></div>';
+  html += '<div class="result-item"><div class="val">' + gearInch.toFixed(1) + '"</div><div class="lbl">齿轮英寸（轮周长换算直径）</div></div>';
   html += '</div>';
 
   html += '<div class="formula-box" style="margin-top:12px;">';
@@ -626,10 +628,17 @@ function calcORM() {
     return;
   }
 
+  // SF-N57：Epley（建议 1–10 次）与 Brzycki（建议 1–10 次、上限 12 次）都有适用次数区间。
+  // 原 Brzycki 放行到 36 次，分母 37−reps 趋 1 ⇒ 80kg×36 次给出 2880kg；37 次时两条公式皆 null，
+  // 百分比表按 null 相乘全部输出 0.0 kg 且无报错。现超出适用区间直接停算提示，不生成负荷表。
+  if (reps > 12) {
+    document.getElementById('orm-result').innerHTML = '<p style="color:var(--danger)">⚠ 次数超出公式适用范围（1RM 估算建议 1–10 次，最多 12 次）。' + reps + ' 次的外推误差极大，请改用更低次数（如 3–6 次）的实测重量。</p>';
+    return;
+  }
   // Epley 公式: 1RM = w * (1 + r/30)
   var epley = reps <= 10 ? weight * (1 + reps / 30) : null;
   // Brzycki 公式: 1RM = w * 36 / (37 - r)
-  var brzycki = reps <= 36 ? weight * 36 / (37 - reps) : null;
+  var brzycki = reps <= 12 ? weight * 36 / (37 - reps) : null;
 
   var html = '<div class="result-grid">';
   if (epley !== null) {

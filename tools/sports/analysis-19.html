@@ -214,11 +214,15 @@ var arr=[];
 lines.forEach(function(ln){
 var p=ln.split(/[,，\t ]+/);
 if(p.length<3)return;
+// SF-N66：回合号须为数字，否则视为表头/说明行跳过（原实现把「回合,进攻,成功」表头行当成 1 个成功回合）
+if(!/^\d+(\.\d+)?$/.test(String(p[0]).trim()))return;
 var ty=p[1],rs=p[2];
 var isAtk=ty.indexOf("攻")>=0;
-var ok=rs.indexOf("成功")>=0||rs.indexOf("成")>=0;
 if(ty.indexOf("防")>=0)isAtk=false;
-if(rs.indexOf("失败")>=0||rs.indexOf("失")>=0)ok=false;
+// SF-N66：先判否定再判成功。原式 indexOf("成")>=0 会把「未成功/不成功/未成」判为成功，
+// 仅在含「失」时才纠正，导致成功率系统性高估。
+var neg=/(失败|失|未|不|否|错|×)/.test(rs);
+var ok=!neg&&(/成功/.test(rs)||rs.indexOf("成")>=0||/✓|√|赢|是/.test(rs));
 arr.push({no:p[0],atk:isAtk,ok:ok});
 });
 if(!arr.length){document.getElementById("res").innerHTML='<p>请输入至少一行「回合,进攻/防守,成功/失败」</p>';return;}

@@ -277,10 +277,17 @@ function setInvalid(el,inv){if(!el)return;if(inv){el.classList.add('input-error'
 function num(id){var v=parseInt(document.getElementById(id).value,10);return isNaN(v)?0:v;}
 function calc(){
   var ab=num('ab'),h=num('h'),b2=num('b2'),b3=num('b3'),hr=num('hr'),bb=num('bb'),hbp=num('hbp'),sf=num('sf');
-  var ip=parseIP(document.getElementById('ip').value);
+  // SF-N60：棒球局数小数位只能是 .1/.2（1/3、2/3 局），原 parseIP 只取小数首位，
+  // 7.3/7.9 会被静默当成 8/10 局。现先做格式校验，非法则标红并停算投手指标。
+  var ipRaw=String(document.getElementById('ip').value).trim();
+  var ipOk=/^\d+(\.(0|1|2))?$/.test(ipRaw);
+  var ip=ipOk?parseIP(ipRaw):0;
   var er=num('er'),pha=num('pha'),pbb=num('pbb');
   setInvalid(document.getElementById('ab'),ab<0);
-  setInvalid(document.getElementById('ip'),ip<=0);
+  setInvalid(document.getElementById('ip'),!ipOk||ip<=0);
+  // SF-N61：长打项之和不得超过安打数（单打会被归零，但 TB/SLG 仍会大于安打数，数据自相矛盾）
+  var batBad=(b2+b3+hr)>h;
+  setInvalid(document.getElementById('h'),batBad);
   var singles=h-b2-b3-hr;
   if(singles<0)singles=0;
   var avg=ab>0?h/ab:NaN;
@@ -290,32 +297,41 @@ function calc(){
   var ops=isNaN(obp)||isNaN(slg)?NaN:obp+slg;
   var iso=isNaN(slg)||isNaN(avg)?NaN:slg-avg;
   var tb=singles+2*b2+3*b3+4*hr;
-  var bHtml='<div class="data-card"><div class="num">'+pct3(avg)+'</div><div class="label">打击率 AVG '+cmp(avg,MLB.AVG,false)+'</div></div>'+
+  var bHtml=batBad
+    ? '<p style="color:var(--danger)">⚠ 二垒打+三垒打+本垒打合计 '+(b2+b3+hr)+' 已超过安打数 '+h+'，请核对录入（长打本身也是安打）。本次不输出打击指标。</p>'
+    : '<div class="data-card"><div class="num">'+pct3(avg)+'</div><div class="label">打击率 AVG '+cmp(avg,MLB.AVG,false)+'</div></div>'+
     '<div class="data-card"><div class="num">'+pct3(obp)+'</div><div class="label">上垒率 OBP '+cmp(obp,MLB.OBP,false)+'</div></div>'+
     '<div class="data-card"><div class="num">'+pct3(slg)+'</div><div class="label">长打率 SLG '+cmp(slg,MLB.SLG,false)+'</div></div>'+
     '<div class="data-card"><div class="num">'+pct3(ops)+'</div><div class="label">攻击指数 OPS '+cmp(ops,MLB.OPS,false)+'</div></div>'+
     '<div class="data-card"><div class="num">'+pct3(iso)+'</div><div class="label">纯长打 ISO '+cmp(iso,MLB.ISO,false)+'</div></div>'+
     '<div class="data-card"><div class="num">'+tb+'</div><div class="label">垒打数 TB</div></div>';
   const __g1=bHtml;document.getElementById('batting').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+  // SF-N60 附带：ip 是十进制局数（180.6667），直接 toFixed(1) 会显示「180.7」——
+  // 棒球记法应是「180.2」（180 局 2 出局）。按 3 出局=1 局换算回 x.y 记法展示。
+  var ipWhole=Math.floor(ip+1e-9), ipOuts=Math.round((ip-ipWhole)*3);
+  if(ipOuts>=3){ipWhole+=1;ipOuts=0;}
+  var ipDisp=ipWhole+'.'+ipOuts;
   var era=ip>0?(er/ip*9):NaN;
   var whip=ip>0?(pha+pbb)/ip:NaN;
   var k9=NaN; // no K input
-  var pHtml='<div class="data-card"><div class="num">'+(isNaN(era)?'–':era.toFixed(2))+'</div><div class="label">自责分率 ERA '+cmp(era,MLB.ERA,true)+'</div></div>'+
+  var pHtml=(!ipOk)
+    ? '<p style="color:var(--danger)">⚠ 投球局数格式无效（当前「'+ipRaw+'」）：小数位只能是 .0 / .1 / .2（分别代表 0、1/3、2/3 局），例如 180.2。本次不输出投手指标。</p>'
+    : '<div class="data-card"><div class="num">'+(isNaN(era)?'–':era.toFixed(2))+'</div><div class="label">自责分率 ERA '+cmp(era,MLB.ERA,true)+'</div></div>'+
     '<div class="data-card"><div class="num">'+(isNaN(whip)?'–':whip.toFixed(2))+'</div><div class="label">每局上垒率 WHIP '+cmp(whip,MLB.WHIP,true)+'</div></div>'+
-    '<div class="data-card"><div class="num">'+ip.toFixed(1)+'</div><div class="label">投球局数 IP</div></div>'+
+    '<div class="data-card"><div class="num">'+ipDisp+'</div><div class="label">投球局数 IP</div></div>'+
     '<div class="data-card"><div class="num">'+(ip>0?(er/ip).toFixed(2):'–')+'</div><div class="label">每局自责分</div></div>';
   const __g2=pHtml;document.getElementById('pitching').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
   var ch='<h3>数据解读</h3>';
-  ch+='<p>打击：安打 '+h+' / '+ab+' 打数，其中一垒打 '+singles+'、二垒打 '+b2+'、三垒打 '+b3+'、本垒打 '+hr+'。</p>';
-  if(!isNaN(avg)){
+  ch+=batBad?'':'<p>打击：安打 '+h+' / '+ab+' 打数，其中一垒打 '+singles+'、二垒打 '+b2+'、三垒打 '+b3+'、本垒打 '+hr+'。</p>';
+  if(!batBad&&!isNaN(avg)){
     var avgLvl=avg>=0.330?'顶级打击手':avg>=0.300?'优秀':avg>=0.270?'联盟平均以上':avg>=0.250?'接近平均':'偏低';
     ch+='<p>打击率 '+pct3(avg)+' → <strong style="color:var(--primary);">'+avgLvl+'</strong>'+cmp(avg,MLB.AVG,false)+'</p>';
   }
-  if(!isNaN(ops)){
+  if(!batBad&&!isNaN(ops)){
     var opsLvl=ops>=0.900?'MVP 级':ops>=0.800?'优秀':ops>=0.700?'合格':ops>=0.600?'一般':'偏弱';
     ch+='<p>OPS '+pct3(ops)+' → <strong style="color:var(--primary);">'+opsLvl+'</strong>'+cmp(ops,MLB.OPS,false)+'</p>';
   }
-  if(!isNaN(era)){
+  if(ipOk&&!isNaN(era)){
     var eraLvl=era<=2.50?'赛扬级':era<=3.00?'顶级':era<=3.75?'优秀':era<=4.50?'合格':era<=5.00?'一般':'偏弱';
     ch+='<p>ERA '+era.toFixed(2)+' → <strong style="color:var(--primary);">'+eraLvl+'</strong>'+cmp(era,MLB.ERA,true)+'</p>';
   }

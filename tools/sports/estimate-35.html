@@ -258,7 +258,17 @@ function calc(){
   intake=isNaN(intake)?0:intake;
   urine=isNaN(urine)?0:urine;
   var hr=dur/60;
-  var sweatKg=pre-post+intake/1000-urine/1000;
+  // SF-N62：运动后体重高于运动前（且扣除补液/排尿后仍为增重）时，原式给出负出汗量、
+  // 负补液建议（如「每小时约 −5000 ml」），且负脱水率永远落入「良好/注意」档，等于把增重误判成水合良好。
+  // 此时数据本身不可用于出汗率估算（多为补液/称重记录错误），直接停算提示。
+  var sweatKgRaw=pre-post+intake/1000-urine/1000;
+  if(sweatKgRaw<=0){
+    document.getElementById('summary').innerHTML='';
+    document.getElementById('detail').innerHTML='<p style="color:var(--danger)">⚠ 运动后体重（'+post+' kg）不低于运动前（'+pre+' kg），扣除补液与排尿后出汗量为 '+(sweatKgRaw*1000).toFixed(0)+' ml（≤0）。请核对补液量、排尿量与两次称重（应同一衣物、擦干身体）。本次不出出汗率与补液建议。</p>';
+    setInvalid(document.getElementById('post'),true);
+    return;
+  }
+  var sweatKg=sweatKgRaw;
   var sweatRate=sweatKg/hr;
   var netLoss=pre-post;
   var dehyPct=netLoss/pre*100;
