@@ -52,6 +52,14 @@ const CASES = [
     ref: "FE-N7 回归护栏：挂二和弦 sus2 的 +2 半音是『二音』（非九音），确认修复未误伤 sus2。默认 chordInput=C 不含『二音』⇒ 零逃生。",
   },
 
+  // ── 降号/升号根音与未知后缀（FE-N8 回归锁：Cb/Fb/E#/B# 应可解析，未知后缀不再静默降级大三）──
+  {
+    slug: "music/chord-notes",
+    inputs: { chordInput: "Cb" },
+    expect: ["Cb · 大三和弦"],
+    ref: "FE-N8 回归锁：Cb 经 NOTE_ALIASES 映射到 B（同音异名），应正常解析为『Cb · 大三和弦』（B-D#-F#）。旧版 NOTE_ALIASES 缺 Cb/Fb/E#/B# ⇒ NOTE_NAMES.indexOf('Cb')=-1 返回 null 无结果。默认 chordInput=C 渲染『C · 大三和弦』不命中本锚 ⇒ 零逃生。",
+  },
+
   // ── BPM 越界钳制（FE-N4 回归锁：500→钳到 300，四分音符=200.00ms，非 120.00ms）──
   {
     slug: "music/bpm-converter",

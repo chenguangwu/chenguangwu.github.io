@@ -138,11 +138,15 @@
 - 修复（2026-11-07）：新增 `degreeName(s, type)` 助手（行 477 后）；`renderResult` 的音符标签与音程标签改调 `degreeName`，按原始半音数映射扩展音——`oct>=1` 时 `base∈{1,2,5,9}` 归为「九/十一/十三音」，且 `s===2 && type∈{add9,'9','m9'}` 也标「九音」；`sus2`/`2` 的 +2 仍保留「二音」（不误伤挂二和弦）。
 - 实证：`scripts/verify_fun_calc.js` 新增 `music/chord-notes` 两例：`C9`→期望「九音」（9/m9 的 +14 半音）；`Csus2`→期望「二音」（回归护栏，确认 sus2 未被误改）。`discriminate_check` 全量 31/31 正确变红、0 逃生项；整份 verify_fun_calc 31/31 通过。
 
-### FE-N8 未识别后缀静默降级为大三和弦，常用降号根音被判无效（中，确认源码缺陷）
-- 描述：无法匹配的后缀直接回退 `[0,4,7]` 大三和弦，不报错；`Cb`/`Fb`/`E#`/`B#` 等合法根音因别名表缺失被 `indexOf` 判为 -1。
-- 证据：`tools/music/chord-notes.html:618-621`（默认大三）、`:474`（别名仅 Db/Eb/Gb/Ab/Bb）、`:577-590`（根音查找失败返回 null）。Node 复算：`Cfoo` → 大三 C–E–G；`Cxyz9` → 大三 C–E–G；`Cb` → `null`。
-- 影响：`tools/music/chord-notes.html`；拼错或未支持的和弦被当成大三和弦安静输出，降号调根音直接无结果。
-- 方案：未识别后缀返回 null 并提示支持列表；补齐 Cb/Fb/E#/B# 及重升重降根音。
+### FE-N8 未识别后缀静默降级为大三和弦，常用降号根音被判无效（中，**2026-11-07 已修复**）
+- 描述（原）：无法匹配的后缀直接回退 `[0,4,7]` 大三和弦，不报错；`Cb`/`Fb`/`E#`/`B#` 等合法根音因别名表缺失被 `indexOf` 判为 -1。
+- 证据（原）：`tools/music/chord-notes.html:618-621`（默认大三）、`:474`（别名仅 Db/Eb/Gb/Ab/Bb）、`:577-590`（根音查找失败返回 null）。Node 复算：`Cfoo` → 大三 C–E–G；`Cxyz9` → 大三 C–E–G；`Cb` → `null`。
+- **修复位点**：
+  1. `NOTE_ALIASES`（行 474）补 `Cb:'B', Fb:'E', E#:'F', B#:'C'`，合法降号/升号根音可正常解析；
+  2. 降级逻辑（行 633-641）改为仅当 `suffix===''`（如 `C`）才默认大三和弦，否则 `return null` 并提示「和弦类型无法识别」；`Cb` 经别名映射为 `B` 后正常走大三和弦。
+- **判别力实测**：`scripts/verify_fun_calc.js` 增 `Cb → ["Cb · 大三和弦"]` 锁定用例 → 全量 32/32、discriminate 全量 0 逃生项；
+  - 「未知后缀不再静默降级大三」子修复属 **harness 盲区**（效果为"不出现"大三和弦），改用 `scripts/_verify_fun_batch_fe_n8.mjs` JSDOM 两态脚本：注入 `Cfoo` → 修复后 `#chordTypeLabel` 清空（不含「大三和弦」）；`--head` 回退旧版 `#chordTypeLabel="<span class=\"chord-type-badge\">C · 大三和弦</span>"`（含「大三和弦」）。修复后 1/1、HEAD 1/1 通过。
+- 移交文件：`plan/已修复/2026-11-07-FE-N8-降号根音无效与未知后缀静默降级.md`
 
 ### FE-N9 FEN 历史回填调用无参 `loadPreset()`，输入框被写成字符串 `undefined`（高，确认源码缺陷）
 - 描述：历史「恢复」回调末尾调用 `loadPreset()` 而不传记录中的 FEN，`presets[undefined]` 为 `undefined`，被写进输入框并渲染为无效局面。
