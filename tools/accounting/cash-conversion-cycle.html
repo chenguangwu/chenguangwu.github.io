@@ -254,7 +254,7 @@ s.parentNode.insertBefore(el, s);
     }
   }
   // 负值受限项：__N 由真浏览器逐项置 -1 探测得出（质量/体积/年限/样本量等物理量）
-  var __N={};
+  var __N={"DSO":"应收天数 DSO","DIO":"存货天数 DIO","DPO":"应付天数 DPO"};
   for(var _n=0;_n<_ids.length;_n++){
     if(!(_ids[_n] in __N)) continue;
     var _ne=document.getElementById(_ids[_n]);
@@ -288,10 +288,13 @@ function calcTool(){
               var __ig=__tbInputGuard(['DSO', 'DIO', 'DPO'],["应收天数 DSO (天)", "存货天数 DIO (天)", "应付天数 DPO (天)"]);if(__ig){ToolBox.setResult("result",__ig);return;}
 const DSO=num('DSO'),DIO=num('DIO'),DPO=num('DPO');
             const CCC=DSO+DIO-DPO;
+            /* 营业周期为 0 时占比无定义：不得用 ||1 把分母抬成 1 制造 3000% 这类伪比例 */
+            const opCycle=DSO+DIO;
+            const payRatio=opCycle>0?(DPO/opCycle*100):null;
             const __g1=dataGrid([
                 [CCC.toFixed(2),'现金转换周期 CCC (天)'],
-                [(DSO+DIO).toFixed(2), '营业周期（存货 + 应收）(天)'],
-                [(DPO/ (DSO+DIO||1) *100).toFixed(2), '应付占营业周期比 (%)']
+                [opCycle.toFixed(2), '营业周期（存货 + 应收）(天)'],
+                [payRatio===null?'—':payRatio.toFixed(2), payRatio===null?'应付占营业周期比 (%) · 营业周期为 0，占比无定义':'应付占营业周期比 (%)']
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('DSO').value = '36.5';
@@ -344,14 +347,16 @@ function __cash_conversion_cycleExtras(){
     if (typeof TBKit === 'undefined') return;
     var DSO=num('DSO'),DIO=num('DIO'),DPO=num('DPO');
     var CCC=DSO+DIO-DPO;
+    var opCycle=DSO+DIO;
+    var payRatio=opCycle>0?(DPO/opCycle*100):null;
     if (!isFinite(__cash_conversion_cycleNum('DSO')) || !isFinite(__cash_conversion_cycleNum('DIO')) || !isFinite(__cash_conversion_cycleNum('DPO'))) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#cash_conversion_cycleTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
             ['现金转换周期 CCC (天)', CCC.toFixed(2)],
-            ['营业周期（存货 + 应收）(天)', (DSO+DIO).toFixed(2)],
-            ['应付占营业周期比 (%)', (DPO/ (DSO+DIO||1) *100).toFixed(2)],
+            ['营业周期（存货 + 应收）(天)', opCycle.toFixed(2)],
+            ['应付占营业周期比 (%)', payRatio===null?'—（营业周期为 0，占比无定义）':payRatio.toFixed(2)],
         ]
     });
     TBKit.history.record({DSO:__cash_conversion_cycleRaw('DSO'), DIO:__cash_conversion_cycleRaw('DIO'), DPO:__cash_conversion_cycleRaw('DPO'), CCC:CCC});

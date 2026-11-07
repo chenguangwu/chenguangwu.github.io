@@ -61,6 +61,8 @@
 - 证据：`tools/tax/foreign-tax-credit.html:224-232,247-254,310-311` 已纳税 1200、限额 1500 时输出超出部分 -300，而说明称无结转。
 - 影响：`tools/tax/foreign-tax-credit.html`；负超额与税务概念矛盾，负金额也能产生负抵免。
 - 方案：验证金额非负；超额为 `max(已纳税-限额,0)`，另列未使用限额并解释适用口径。
+- **已修复 2026-11-07**：`calcTool()` 引入 `over=Math.max(ft-lim,0)` / `unused=Math.max(lim-ft,0)`，结果卡片「超出限额部分」改用 `over` 并新增「未使用限额 (元)」行；`__foreign_tax_creditExtras()` 明细表两行同步（导出 CSV 随之为正确口径）；`formula-eq` 文案改为 `max(...,0)` 双口径并同步英文 map（`i18n/tools/en/tax/foreign-tax-credit.json`，文本级替换不重排）。另补金额非负守卫（`ft<0||lim<0` ⇒ 「⚠ 境外已纳税额与抵免限额都不能为负数」并拒绝计算）。
+  - 判别力（`scripts/_verify_tax_batch_tn3_tn5.mjs`）：1800/2500 超出限额 **0.00**（PASS）/ HEAD **−700.00**（FAIL）；未使用限额 **700.00**（PASS）/ HEAD 无此行（FAIL）；2000/1500 未使用限额 **0.00**（PASS）/ HEAD 无此行（FAIL）；ft=−100 拒绝计算（PASS）/ HEAD 输出「可抵扣额 −100.00」（FAIL）。可抵扣额与超限态 `500.00` 为守护断言两态同值。
 
 ### T-N4 折旧错误输入产生负折旧或错误历史（中，确认源码缺陷）
 - 证据：`tools/accounting/depreciation-declining.html:221-233,260-266,310-337` 第 3.5 年被向下取整为第 3 年却按 3.5 年标记；原值 100、残值 200、5 年、第 1 年计算为折旧 -100；年限 0 的错误文本未被关键词过滤，局部桩显示进入历史。
@@ -74,6 +76,8 @@
 - 证据：`tools/accounting/cash-conversion-cycle.html:221-227,281-287` 用 `(DSO+DIO||1)` 作分母；DSO=0、DIO=0、DPO=30 时现金周期 -30 天本身可计算，但显示无定义的应付占营业周期比 3000%。
 - 影响：`tools/accounting/cash-conversion-cycle.html`；伪造比例误导分析。
 - 方案：分母为零时标为不可计算；区分空值并校验非负天数，允许有业务意义的负现金周期。
+- **已修复 2026-11-07**：删掉 `(DSO+DIO||1)` 伪分母，改为 `opCycle=DSO+DIO`、`payRatio = opCycle>0 ? DPO/opCycle*100 : null`；`null` 时结果卡片显示 `—` + 标签「应付占营业周期比 (%) · 营业周期为 0，占比无定义」，明细表同步 `—（营业周期为 0，占比无定义）`；CCC 与营业周期本身照常输出（负现金周期保留）。另补非负天数校验（`__N` 填入 DSO/DIO/DPO ⇒ 「⚠ 「应收天数 DSO」不能为负值。」）；空值仍由 `__tbInputGuard` 首段区分。
+  - 判别力（`scripts/_verify_tax_batch_tn3_tn5.mjs`）：0/0/30 输出 **—（占比无定义）**（PASS）/ HEAD **3000.00%**（FAIL）；DSO=−5 拒绝计算（PASS）/ HEAD 输出 CCC 15.00（FAIL）；50/100/60 的 150.00 与 40.00 为守护断言两态同值。
 
 ### T-N6 净现值对无效折现率与期数仍给出结论（高，确认源码缺陷）
 - 2026-11-06 基线 `0781ef7e61` 独立 Chrome 复核：默认数据下折现率 -150% 输出 NPV -630,000、未来现金流现值 -530,000；-100% 显示 NPV `--` 但仍显示 ROI 60%；清空折现率则被当作 0%，输出 NPV 60,000。该补证不新增重复问题。
