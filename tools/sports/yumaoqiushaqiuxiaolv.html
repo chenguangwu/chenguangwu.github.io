@@ -119,13 +119,13 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="🏸 羽毛球杀球效率">🏸 Badminton Smash Efficiency Calculator</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入杀球平均速度、次数、直接得分与失误数，计算杀球得分率、失误率、有效率与攻击效率综合指数，评估进攻质量。">Enter smash average speed, count, direct points and errors to compute smash scoring rate, error rate, efficiency and an attack-efficiency composite for offensive quality.</p>    <div class="formula-box">
       <div class="formula-title">📐 计算公式 / 原理</div>
-      <div class="formula-eq">杀球得分率 = 直接得分 / 杀球次数；攻击效率 = (得分 − 失误) / 次数</div>
+      <div class="formula-eq">杀球得分率 = 直接得分 / 杀球次数；失误率 = 失误 / 杀球次数；攻击效率指数 = 0.40×得分率标准化 + 0.30×(1−失误率) + 0.30×速度标准化（得分率 40% 记满分、失误率 20% 记零分线性折算、速度 150→400 km/h 映射 0→100；样本量 &lt;5 次不评定等级）</div>
       <div class="formula-desc">羽毛球杀球效率：统计杀球平均速度、次数、直接得分与失误，计算得分率、失误率与有效率，综合为攻击效率指数，评估进攻质量与稳定性。</div>
     </div>
 
     <div class="input-row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;align-items:end;">
       <div><label>平均杀球速度 (km/h)</label><input type="number" id="speed" value="280" min="50" max="500" step="1" oninput="calc()" enterkeyhint="done" aria-label="杀球速度" placeholder="e.g. 280 (50–500)"></div>
-      <div><label>杀球总次数</label><input type="number" id="total" value="40" min="1" max="2000" step="1" oninput="calc()" enterkeyhint="done" aria-label="杀球总次数" placeholder="e.g. 40 (1–2000)"></div>
+      <div><label>杀球总次数</label><input type="number" id="total" value="40" min="5" max="2000" step="1" oninput="calc()" enterkeyhint="done" aria-label="杀球总次数" placeholder="e.g. 40 (≥5)"></div>
       <div><label>直接得分次数</label><input type="number" id="win" value="12" min="0" max="2000" step="1" oninput="calc()" enterkeyhint="done" aria-label="杀球得分次数" placeholder="e.g. 12 (0–2000)"></div>
       <div><label>失误次数(下网/出界)</label><input type="number" id="err" value="5" min="0" max="2000" step="1" oninput="calc()" enterkeyhint="done" aria-label="杀球失误次数" placeholder="e.g. 5 (0–2000)"></div>
     </div>
@@ -197,9 +197,9 @@ function getNum(id){return parseFloat(document.getElementById(id).value);}
 function setInvalid(el,invalid){if(!el)return;if(invalid){el.classList.add('input-error');el.setAttribute('aria-invalid','true');}else{el.classList.remove('input-error');el.removeAttribute('aria-invalid');}}
 function readInputs(){
   var sp=getNum('speed'),t=getNum('total'),w=getNum('win'),e=getNum('err');
-  var valid=!isNaN(sp)&&sp>0&&!isNaN(t)&&t>0&&!isNaN(w)&&w>=0&&!isNaN(e)&&e>=0&&w<=t&&e<=t&&(w+e)<=t;
+  var valid=!isNaN(sp)&&sp>0&&!isNaN(t)&&t>=5&&!isNaN(w)&&w>=0&&!isNaN(e)&&e>=0&&w<=t&&e<=t&&(w+e)<=t;
   setInvalid(document.getElementById('speed'),isNaN(sp)||sp<=0);
-  setInvalid(document.getElementById('total'),isNaN(t)||t<=0);
+  setInvalid(document.getElementById('total'),isNaN(t)||t<5);
   setInvalid(document.getElementById('win'),isNaN(w)||w<0||w>t);
   setInvalid(document.getElementById('err'),isNaN(e)||e<0||e>t||(w+e)>t);
   return {sp:sp,t:t,w:w,e:e,valid:valid};
@@ -207,7 +207,7 @@ function readInputs(){
 function calc(){
   var iv=readInputs();
   if(!iv.valid){
-    document.getElementById('res').innerHTML='<div class="info-box" style="color:#EF4444;background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.25);">请填写有效数据（得分、失误均不能超过总次数，且得分+失误≤总次数）</div>';
+    document.getElementById('res').innerHTML='<div class="info-box" style="color:#EF4444;background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.25);">请填写有效数据（得分、失误均不能超过总次数，且得分+失误≤总次数；杀球总次数需 ≥5 才有评定意义）</div>';
     return;
   }
   var winRate=iv.w/iv.t*100;
