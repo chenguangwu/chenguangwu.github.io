@@ -371,22 +371,15 @@
 - 判别力：`scripts/_verify_fun_batch_fe_n34.mjs` JSDOM 两态锁——设 60 秒 → startTest → 改 duration=30 并调 updateRing()（模拟中途改时长）；修复版 running 时 updateRing 直接 return，#tNum 保持 60，PASS(exit 0)；HEAD 旧版 remain 被改写为 30（#tNum=30），FAIL(exit 1)，确认 bug 真实且已修。
 - 移交文件：`plan/已修复/2026-11-07-FE-N34-眨眼测试进行中禁改时长.md`
 
-### FE-N35 调音器音名八度恒低一位：440 Hz 显示 A3（页面自己的算例写 A4）（高，确认源码缺陷）
+### FE-N35 复核误报：当前版本已用 MIDI 口径 `69+12·log2(f/refA4)`，音名八度正确（不改源码）
 - 页面：`tools/music/web-tuner.html`
-- 问题：`C0=16.3516` 对应 MIDI 12，`noteNumber=12·log2(f/C0)` 得到的是相对 C0 的 0 基索引（440 Hz → 57），代码再减 1 个八度（`floor(57/12)-1=3`），整体比标准音名低一个八度。
-- 证据：`:516`（`C0 = 16.35159783128741`）、`:573-577`（`noteNumber` 与 `octave = Math.floor(roundedNote/12)-1`）、`:463`（深度解析自己写「440 Hz → n=69 → A4」）、`:776-777`（`noteName`/`noteOctave` 直接展示）。
-- 复现：麦克风输入 440 Hz → 实际显示 `A` + `3`；用页面自带的 E2 = 82.41 Hz 参考弦发声 → 实际显示 `E` + `1`。Node 复算：`12*log2(440/16.3516)=57.000`，`floor(57/12)-1=3`；`82.41 Hz → 28.000 → E1`。期望 A4 / E2。
-- 影响：所有音名低一个八度，与同页参考弦表、算例直接冲突，调音时的音名判断被误导（音分仍正确）。
-- 方案：改用 MIDI 口径 `noteNumber = 69 + 12*log2(f/refA4)`，`octave = floor(noteNumber/12)-1`；或保留现式并去掉 `-1`。
+- 复核结论：台账快照为修复前状态。当前 `freqToNote()`（约 572–585 行）已用 `const midiFloat = 69 + 12*Math.log2(freq/refA4); octave = Math.floor(roundedNote/12)-1`，JSDOM 实测：440 Hz→A4(0¢)、82.41 Hz→E2(0.07¢)、261.63 Hz→C4，均与标准一致。原「低一个八度」算例已不存在。
+- 处置：仅标注台账，不动源码、不补锁定用例。
 
-### FE-N36 A4 参考频率 432/440/442 切换完全不参与计算，只改一行文字（高，确认源码缺陷）
+### FE-N36 复核误报：当前版本 `refA4` 已参与 `freqToNote` 计算，432/440/442 切换生效（不改源码）
 - 页面：`tools/music/web-tuner.html`
-- 问题：`refA4` 只用于 `refFreqDisplay` 文本；`:571` 算了 `semitones` 后从未使用（该式代入 442 得 -104.4 的无意义值），`:573` 的 `noteNumber` 固定以 440 标定的 C0 计算，音分与音名都不随参考频率变化。
-- 证据：`:523`（`let refA4 = 440`）、`:548-551`（change 仅改文本）、`:571`（dead `semitones`）、`:573`、`:363`/`:418`（承诺支持 432/440/442）。
-- 复现：选 432 Hz → 播放 432 Hz → 实际显示 `A3 −31.8 cents`（Node 复算 -31.77），期望 `A4 0 cent`；选 442 Hz → 播放 442 Hz → 实际 `+7.8 cents`（Node 7.85），期望 0。三种参考频率下同一频率输入的输出完全相同（除文本）。
-- 影响：所谓「参考频率」控件是装饰，用户按 432 Hz 调音会被指为偏低 32 音分。
-- 方案：`noteNumber = 69 + 12*log2(freq/refA4)`，`cents=(noteNumber-round(noteNumber))*100`；删除 :571 的 dead 计算。
-- 假工具：否（控件失效，非整页伪造）。
+- 复核结论：台账快照为修复前状态。当前 `freqToNote()` 以 `freq/refA4` 为基准，JSDOM 实测（经 `__wtSetRefA4` 钩子）：refA4=432 时 432 Hz→A4(0¢)、refA4=442 时 442 Hz→A4(0¢)、refA4=440 时 432 Hz→A4(−31.77¢，与 Node 复算一致)；参考频率切换确实改变音分输出。原「refA4 不参与计算」问题已不存在。
+- 处置：仅标注台账，不动源码、不补锁定用例。
 
 ### FE-N37 吉他六弦「目标音参考」按钮只高亮，`targetFreq` 全页无人读取（中，确认源码缺陷；承诺未实现）
 - 页面：`tools/music/web-tuner.html`
