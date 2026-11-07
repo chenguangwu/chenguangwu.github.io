@@ -384,22 +384,28 @@ document.addEventListener('DOMContentLoaded',function(){
 </script>
 
 <script>
-var __tbn=function(){
+var __tbn=function(tab,idx){
   if(typeof TBKit==='undefined')return;
-  var lab='';
-  try{var cs=document.querySelectorAll('.endgame-card.open');if(cs.length){var t=[];for(var i=0;i<cs.length;i++){var g=cs[i].querySelector('.eg-title');if(g)t.push(g.textContent.trim());}lab=t.join(' + ').slice(0,40);}}catch(e){}
-  if(!lab)return;
-  var item=lab.slice(0,40);
   var EN=false;try{EN=TBKit.util.isEn();}catch(e){}
-  var T=EN?{hist:'Review Records',no:'#',time:'Time',item:'Item',freq:'Views',exp:'Export CSV',file:'review-history.csv',hint:'View 2+ items to see the frequency chart.'}
-          :{hist:'查阅记录历史',no:'序号',time:'时间',item:'条目',freq:'查看次数',exp:'导出 CSV',file:'review-history.csv',hint:'查看 2 个以上条目后显示条目频次图。'};
   var KEY='__tbn_xiangqi_endgame';
   var hist=[];try{hist=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){hist=[];}
   if(!Array.isArray(hist))hist=[];
-  var last=hist[hist.length-1];
-  if(!last||last.l!==item){hist.push({t:Date.now(),l:item});}
-  if(hist.length>30)hist=hist.slice(-30);
-  try{localStorage.setItem(KEY,JSON.stringify(hist));}catch(e){}
+  // 仅记录刚被点开（展开）的单个残局标题，避免多卡拼接串（A + B）污染频次统计
+  if(tab!==undefined&&idx!==undefined){
+    var card=document.getElementById('eg_'+tab+'_'+idx);
+    if(card&&card.classList.contains('open')){
+      var g=card.querySelector('.eg-title');
+      var item=(g?g.textContent.trim():'').slice(0,40);
+      if(item){
+        var last=hist[hist.length-1];
+        if(!last||last.l!==item){hist.push({t:Date.now(),l:item});}
+        if(hist.length>30)hist=hist.slice(-30);
+        try{localStorage.setItem(KEY,JSON.stringify(hist));}catch(e){}
+      }
+    }
+  }
+  var T=EN?{hist:'Review Records',no:'#',time:'Time',item:'Item',freq:'Views',exp:'Export CSV',file:'review-history.csv',hint:'View 2+ items to see the frequency chart.'}
+          :{hist:'查阅记录历史',no:'序号',time:'时间',item:'条目',freq:'查看次数',exp:'导出 CSV',file:'review-history.csv',hint:'查看 2 个以上条目后显示条目频次图。'};
   var host=document.getElementById('__tbnExtras');
   if(!host)return;
   if(hist.length<2){host.innerHTML='<p style="color:var(--text-muted);font-size:13px;margin:8px 0">'+T.hint+'</p>';return;}
@@ -414,7 +420,7 @@ var __tbn=function(){
   btn.onclick=function(){if(TBKit.export&&TBKit.export.csv)TBKit.export.csv(T.file,rows);};
   host.appendChild(btn);
 };
-var __f0=toggleCard;toggleCard=function(){var __r=__f0.apply(null,arguments);__tbn();return __r;};
+var __f0=toggleCard;toggleCard=function(){var a=arguments;var __r=__f0.apply(null,a);__tbn(a[0],a[1]);return __r;};
 </script>
 </body>
 </html>
