@@ -119,8 +119,8 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="🎾 网球得分率分析">🎾 Tennis Serve Statistics Analysis</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入发球相关数据，计算 ACE 率、双误率、一发成功率、破发点挽救率与发球效率综合指数，评估发球表现与关键分能力。">Enter serve-related data to compute ace rate, double-fault rate, first-serve in-rate, break-point save rate and a composite serve-efficiency index for serve performance and key-point ability.</p>    <div class="formula-box">
       <div class="formula-title">📐 计算公式 / 原理</div>
-      <div class="formula-eq">网球发球效率（本页代码口径）：ACE 率=ACE÷总发球分×100、双误率=双误÷总发球分×100、破发点挽救率=面对数&gt;0 时 挽救÷面对×100（面对 0 记 100）；发球效率指数=0.40×一发成功率+0.30×挽救率+0.15×ACE 标准化+0.15×双误标准化（ACE 率 12% 记满分、双误率 8% 记零分线性折算）。校验：总发球分&gt;0、ACE/双误∈[0,总发球分]、一发成功率∈[0,100]、挽救≤面对，否则提示并中止。判据：指数≥75 优秀、≥60 良好、≥45 一般、其余待提升。</div>
-      <div class="formula-desc">网球发球统计：ACE 率、双误率、一发成功率、二发得分率与破发点挽救率综合为发球效率指数，用于评估发球表现与关键分能力。</div>
+      <div class="formula-eq">网球发球统计（本页代码口径）：ACE 率=ACE÷总发球分×100；双误率=双误÷总发球分×100；一发成功率=f；破发点挽救率=面对&gt;0 时 挽救÷面对×100，面对=0 时显示「—」并从综合指数中剔除该项、其余权重按比例归一（不再 0/0 记 100 白送 30 分）；一发得分率=一发得分÷(总发球分×f)；二发得分率=二发得分÷(总发球分×(1−f))；总得分率=本方全场得分÷全场总得分（两者留空则不算）。发球效率指数=0.40×一发成功率+0.30×破发点挽救率+0.15×ACE 标准化+0.15×双误标准化（ACE 率 12% 记满分、双误率 8% 记零分线性折算），破发点无样本时按 0.70 权重和归一。校验：总发球分&gt;0、ACE/双误∈[0,总发球分]、一发得分≤一发命中数、二发得分≤二发球数、一发得分+二发得分≤总发球分、挽救≤面对、本方全场得分≤全场总得分，不满足即标红并中止。判据：指数≥75 优秀、≥60 良好、≥45 一般、其余待提升。</div>
+      <div class="formula-desc">网球发球统计：ACE 率、双误率、一发成功率、一发/二发得分率、总得分率与破发点挽救率综合为发球效率指数，用于评估发球表现与关键分能力。ACE 计入一发得分、双误计入二发失分；破发点无样本时不参与指数计算。</div>
     </div>
 
     <div class="input-row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;align-items:end;">
@@ -128,6 +128,10 @@ s.parentNode.insertBefore(el, s);
       <div><label>ACE 数</label><input type="number" id="ace" value="8" min="0" max="500" step="1" oninput="calc()" enterkeyhint="done" aria-label="ACE数" placeholder="e.g. 8 (0–500)"></div>
       <div><label>双误数</label><input type="number" id="df" value="4" min="0" max="500" step="1" oninput="calc()" enterkeyhint="done" aria-label="双误数" placeholder="e.g. 4 (0–500)"></div>
       <div><label>一发成功率 (%)</label><input type="number" id="firstIn" value="65" min="0" max="100" step="1" oninput="calc()" enterkeyhint="done" aria-label="一发成功率" placeholder="e.g. 65 (0–100)"></div>
+      <div><label>一发得分（赢下的分）</label><input type="number" id="p1w" value="45" min="0" max="2000" step="1" oninput="calc()" enterkeyhint="done" aria-label="一发得分" placeholder="e.g. 45 (含 ACE)"></div>
+      <div><label>二发得分（赢下的分）</label><input type="number" id="p2w" value="18" min="0" max="2000" step="1" oninput="calc()" enterkeyhint="done" aria-label="二发得分" placeholder="e.g. 18"></div>
+      <div><label>全场总得分（双方合计，可留空）</label><input type="number" id="rt" value="140" min="1" max="5000" step="1" oninput="calc()" enterkeyhint="done" aria-label="全场总得分" placeholder="e.g. 140（留空则不算总得分率）"></div>
+      <div><label>本方全场得分（可留空）</label><input type="number" id="rw" value="63" min="0" max="5000" step="1" oninput="calc()" enterkeyhint="done" aria-label="本方全场得分" placeholder="e.g. 63"></div>
       <div><label>破发点面对数</label><input type="number" id="bpFace" value="6" min="0" max="200" step="1" oninput="calc()" enterkeyhint="done" aria-label="破发点面对数" placeholder="e.g. 6 (0–200)"></div>
       <div><label>破发点挽救数</label><input type="number" id="bpSave" value="4" min="0" max="200" step="1" oninput="calc()" enterkeyhint="done" aria-label="破发点挽救数" placeholder="e.g. 4 (0–200)"></div>
     </div>
@@ -198,29 +202,60 @@ function getNum(id){return parseFloat(document.getElementById(id).value);}
 function setInvalid(el,invalid){if(!el)return;if(invalid){el.classList.add('input-error');el.setAttribute('aria-invalid','true');}else{el.classList.remove('input-error');el.removeAttribute('aria-invalid');}}
 function readInputs(){
   var total=getNum('total'),ace=getNum('ace'),df=getNum('df'),fi=getNum('firstIn'),bf=getNum('bpFace'),bs=getNum('bpSave');
-  var valid=!isNaN(total)&&total>0&&!isNaN(ace)&&ace>=0&&!isNaN(df)&&df>=0&&!isNaN(fi)&&fi>=0&&fi<=100&&!isNaN(bf)&&bf>=0&&!isNaN(bs)&&bs>=0;
-  setInvalid(document.getElementById('total'),isNaN(total)||total<=0);
-  setInvalid(document.getElementById('ace'),isNaN(ace)||ace<0||ace>total);
-  setInvalid(document.getElementById('df'),isNaN(df)||df<0||df>total);
-  setInvalid(document.getElementById('firstIn'),isNaN(fi)||fi<0||fi>100);
-  setInvalid(document.getElementById('bpFace'),isNaN(bf)||bf<0);
-  setInvalid(document.getElementById('bpSave'),isNaN(bs)||bs<0||bs>bf);
-  return {total:total,ace:ace,df:df,fi:fi,bf:bf,bs:bs,valid:valid};
+  var p1w=getNum('p1w'),p2w=getNum('p2w'),rt=getNum('rt'),rw=getNum('rw');
+  var firstInCount=(!isNaN(fi)&&!isNaN(total))?fi/100*total:NaN;
+  var secondCount=(!isNaN(total)&&!isNaN(firstInCount))?total-firstInCount:NaN;
+  var errs=[];
+  if(!(!isNaN(total)&&total>0)) errs.push('总发球分需大于 0');
+  if(!(!isNaN(ace)&&ace>=0&&ace<=total)) errs.push('ACE 数需在 0–总发球分之间');
+  if(!(!isNaN(df)&&df>=0&&df<=total)) errs.push('双误数需在 0–总发球分之间');
+  if(!(!isNaN(fi)&&fi>=0&&fi<=100)) errs.push('一发成功率需在 0–100% 之间');
+  if(!(!isNaN(bf)&&bf>=0)) errs.push('面对破发点数需 ≥0');
+  if(!(!isNaN(bs)&&bs>=0&&bs<=bf)) errs.push('挽救破发点数需在 0–面对数之间');
+  // SF-N120：发球分区与全场得分率
+  if(!(!isNaN(p1w)&&p1w>=0)) errs.push('一发得分需 ≥0');
+  else if(!isNaN(firstInCount)&&p1w>firstInCount+1e-9) errs.push('一发得分不能超过一发命中数（'+firstInCount.toFixed(0)+'）');
+  if(!(!isNaN(p2w)&&p2w>=0)) errs.push('二发得分需 ≥0');
+  else if(!isNaN(secondCount)&&p2w>secondCount+1e-9) errs.push('二发得分不能超过二发球数（'+secondCount.toFixed(0)+'）');
+  if(!isNaN(p1w)&&!isNaN(p2w)&&!isNaN(total)&&p1w+p2w>total+1e-9) errs.push('一发得分 + 二发得分不能超过总发球分');
+  var hasRt=!isNaN(rt)&&rt>0, hasRw=!isNaN(rw)&&rw>=0;
+  if(!isNaN(rt)&&rt>0&&!isNaN(rw)&&rw>rt+1e-9) errs.push('本方全场得分不能超过全场总得分');
+  setInvalid(document.getElementById('total'),!(!isNaN(total)&&total>0));
+  setInvalid(document.getElementById('ace'),!(!isNaN(ace)&&ace>=0&&ace<=total));
+  setInvalid(document.getElementById('df'),!(!isNaN(df)&&df>=0&&df<=total));
+  setInvalid(document.getElementById('firstIn'),!(!isNaN(fi)&&fi>=0&&fi<=100));
+  setInvalid(document.getElementById('bpFace'),!(!isNaN(bf)&&bf>=0));
+  setInvalid(document.getElementById('bpSave'),!(!isNaN(bs)&&bs>=0&&bs<=bf));
+  setInvalid(document.getElementById('p1w'),!(!isNaN(p1w)&&p1w>=0&&(isNaN(firstInCount)||p1w<=firstInCount+1e-9)));
+  setInvalid(document.getElementById('p2w'),!(!isNaN(p2w)&&p2w>=0&&(isNaN(secondCount)||p2w<=secondCount+1e-9)));
+  setInvalid(document.getElementById('rt'),!isNaN(rt)&&rt<0);
+  setInvalid(document.getElementById('rw'),!isNaN(rw)&&(rw<0||(hasRt&&rw>rt+1e-9)));
+  return {total:total,ace:ace,df:df,fi:fi,bf:bf,bs:bs,p1w:p1w,p2w:p2w,rt:rt,rw:rw,
+    firstInCount:firstInCount,secondCount:secondCount,hasRt:hasRt,hasRw:hasRw,
+    valid:errs.length===0,errs:errs};
 }
 function calc(){
   var iv=readInputs();
   if(!iv.valid){
-    document.getElementById('res').innerHTML='<div class="info-box" style="color:#EF4444;background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.25);">请填写有效数据（ACE/双误≤总发球分，挽救≤面对数）</div>';
+    document.getElementById('res').innerHTML='<div class="info-box" style="color:#EF4444;background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.25);">请填写有效数据：'+iv.errs.join('；')+'</div>';
     return;
   }
   var aceRate=iv.ace/iv.total*100;
   var dfRate=iv.df/iv.total*100;
-  var firstInCount=iv.fi/100*iv.total;
-  var bpSaveRate=iv.bf>0?(iv.bs/iv.bf*100):100;
-  // 发球效率综合指数
+  var firstInCount=iv.firstInCount;
+  var hasBp=iv.bf>0;
+  var bpSaveRate=hasBp?(iv.bs/iv.bf*100):null;
+  // SF-N120：发球分区得分率与全场总得分率
+  var p1Rate=firstInCount>0?(iv.p1w/firstInCount*100):null;
+  var p2Rate=iv.secondCount>0?(iv.p2w/iv.secondCount*100):null;
+  var totalRate=(iv.hasRt&&iv.hasRw)?(iv.rw/iv.rt*100):null;
+  // 发球效率综合指数（破发点无样本时剔除该项、其余权重归一化，不再 0/0 送 30 分）
   var aceNorm=Math.min(aceRate/12*100,100);          // 12% ACE 率满分
   var dfNorm=Math.max(0,100-dfRate/8*100);            // 8% 双误率零分
-  var efficiency=0.40*iv.fi+0.30*bpSaveRate+0.15*aceNorm+0.15*dfNorm;
+  var wSum=0.40+0.15+0.15+(hasBp?0.30:0);
+  var efficiency=(0.40*iv.fi+(hasBp?0.30*bpSaveRate:0)+0.15*aceNorm+0.15*dfNorm)/wSum;
+  var bpRateTxt=hasBp?(bpSaveRate.toFixed(0)+'%'):'—';
+  var bpNote=hasBp?'':'（本场未出现破发点，该项已从综合指数中剔除、其余权重按比例归一）';
   var grade,gradeCls,advise;
   if(efficiency>=75){grade='优秀';gradeCls='grade-excellent';advise='发球表现全面，关键分能力强，发球局稳固。';}
   else if(efficiency>=60){grade='良好';gradeCls='grade-good';advise='发球表现较好，可进一步提升一发得分率或 ACE 数。';}
@@ -230,13 +265,19 @@ function calc(){
     '<div class="data-card"><div class="num">'+aceRate.toFixed(1)+'%</div><div class="label">ACE 率</div></div>'+
     '<div class="data-card"><div class="num">'+dfRate.toFixed(1)+'%</div><div class="label">双误率</div></div>'+
     '<div class="data-card"><div class="num">'+iv.fi.toFixed(0)+'%</div><div class="label">一发成功率</div></div>'+
-    '<div class="data-card"><div class="num">'+bpSaveRate.toFixed(0)+'%</div><div class="label">破发点挽救率</div></div>'+
+    '<div class="data-card"><div class="num">'+bpRateTxt+'</div><div class="label">破发点挽救率</div></div>'+
     '</div>'+
     '<div class="data-grid" style="margin-top:8px;">'+
     '<div class="data-card"><div class="num">'+firstInCount.toFixed(0)+'</div><div class="label">一发命中数</div></div>'+
     '<div class="data-card"><div class="num">'+iv.bs+'/'+iv.bf+'</div><div class="label">破发点挽救/面对</div></div>'+
     '<div class="data-card"><div class="num">'+efficiency.toFixed(1)+'</div><div class="label">发球效率指数</div></div>'+
     '</div>'+
+    '<div class="data-grid" style="margin-top:8px;">'+
+    '<div class="data-card"><div class="num">'+(p1Rate===null?'—':p1Rate.toFixed(1)+'%')+'</div><div class="label">一发得分率</div></div>'+
+    '<div class="data-card"><div class="num">'+(p2Rate===null?'—':p2Rate.toFixed(1)+'%')+'</div><div class="label">二发得分率</div></div>'+
+    '<div class="data-card"><div class="num">'+(totalRate===null?'—':totalRate.toFixed(1)+'%')+'</div><div class="label">总得分率</div></div>'+
+    '</div>'+
+    '<div class="info-box" style="margin-top:10px;font-size:12px;">发球分区：一发命中 <strong>'+firstInCount.toFixed(0)+'</strong> 分中赢下 <strong>'+iv.p1w+'</strong> 分；二发 <strong>'+iv.secondCount.toFixed(0)+'</strong> 分中赢下 <strong>'+iv.p2w+'</strong> 分（ACE 计入一发得分、双误计入二发失分）。'+(bpNote?' '+bpNote+'。':'')+(totalRate===null?' 总得分率需同时填「全场总得分」与「本方全场得分」才计算。':'')+'</div>'+
     '<div style="margin-top:10px;"><span class="grade-tag '+gradeCls+'">发球表现：'+grade+'</span></div>'+
     '<div class="info-box" style="margin-top:10px;">📌 '+advise+'</div>';try{ if(typeof efficiency==='number'&&isFinite(efficiency)&&typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){ TBKit.chart.refBar('#resRefBar',{value:efficiency,unit:'',bands:[{"lo":75,"hi":null,"label":{"zh":"优秀","en":"Excellent"},"color":"#10B981"},{"lo":60,"hi":75,"label":{"zh":"良好","en":"Good"},"color":"#84CC16"},{"lo":null,"hi":60,"label":{"zh":"一般","en":"Fair"},"color":"#F59E0B"}],title:((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Reference range':'参考区间标尺')}); } }catch(e){}
   document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
@@ -252,9 +293,13 @@ function resetAll(){
   document.getElementById('ace').value=8;
   document.getElementById('df').value=4;
   document.getElementById('firstIn').value=65;
+  document.getElementById('p1w').value=45;
+  document.getElementById('p2w').value=18;
+  document.getElementById('rt').value=140;
+  document.getElementById('rw').value=63;
   document.getElementById('bpFace').value=6;
   document.getElementById('bpSave').value=4;
-  ['total','ace','df','firstIn','bpFace','bpSave'].forEach(function(id){setInvalid(document.getElementById(id),false);});
+  ['total','ace','df','firstIn','p1w','p2w','rt','rw','bpFace','bpSave'].forEach(function(id){setInvalid(document.getElementById(id),false);});
   calc();
   ToolBox.showToast(i18nText(), 'info');
 }
@@ -264,7 +309,7 @@ function saveHistory(iv,aceRate,dfRate,bpSaveRate,efficiency){
     var key=historyKey();
     var list=JSON.parse(localStorage.getItem(key)||'[]');
     var now=new Date();
-    var item={t:iv.total,ace:iv.ace,df:iv.df,fi:iv.fi,bf:iv.bf,bs:iv.bs,ar:aceRate.toFixed(1),dr:dfRate.toFixed(1),bp:bpSaveRate.toFixed(0),ef:efficiency.toFixed(1),time:now.toLocaleString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})};
+    var item={t:iv.total,ace:iv.ace,df:iv.df,fi:iv.fi,bf:iv.bf,bs:iv.bs,ar:aceRate.toFixed(1),dr:dfRate.toFixed(1),bp:(bpSaveRate===null?'—':bpSaveRate.toFixed(0)),ef:efficiency.toFixed(1),time:now.toLocaleString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})};
     list.unshift(item);
     if(list.length>5)list=list.slice(0,5);
     localStorage.setItem(key,JSON.stringify(list));
@@ -407,10 +452,10 @@ function __wangqiudefenlvfenxiExport(){
 }
 function __wangqiudefenlvfenxiPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#wangqiudefenlvfenxiPresets',[{label:'默认参数',labelEn:'Default',values:{'total':'100', 'ace':'8', 'df':'4', 'firstIn':'65', 'bpFace':'6', 'bpSave':'4'}},
-  {"label":"强力发球型","labelEn":"Big-serving profile","values":{"total":120,"ace":14,"df":3,"firstIn":62,"bpFace":8,"bpSave":6}},
-  {"label":"稳健一发型","labelEn":"Steady first-serve profile","values":{"total":95,"ace":4,"df":1,"firstIn":72,"bpFace":5,"bpSave":4}},
-  {"label":"双误偏多型","labelEn":"Double-fault-prone profile","values":{"total":110,"ace":6,"df":12,"firstIn":55,"bpFace":10,"bpSave":5}}],function(){ calc(); });
+    TBKit.preset.bar('#wangqiudefenlvfenxiPresets',[{label:'默认参数',labelEn:'Default',values:{'total':'100', 'ace':'8', 'df':'4', 'firstIn':'65', 'p1w':'45', 'p2w':'18', 'rt':'140', 'rw':'63', 'bpFace':'6', 'bpSave':'4'}},
+  {"label":"强力发球型","labelEn":"Big-serving profile","values":{"total":120,"ace":14,"df":3,"firstIn":62,"p1w":56,"p2w":20,"rt":165,"rw":82,"bpFace":8,"bpSave":6}},
+  {"label":"稳健一发型","labelEn":"Steady first-serve profile","values":{"total":95,"ace":4,"df":1,"firstIn":72,"p1w":48,"p2w":14,"rt":130,"rw":66,"bpFace":5,"bpSave":4}},
+  {"label":"双误偏多型","labelEn":"Double-fault-prone profile","values":{"total":110,"ace":6,"df":12,"firstIn":55,"p1w":40,"p2w":18,"rt":150,"rw":68,"bpFace":10,"bpSave":5}}],function(){ calc(); });
 }
 var __wangqiudefenlvfenxi_f0=(typeof calc==='function')?calc:null;
 if(__wangqiudefenlvfenxi_f0){
@@ -453,7 +498,7 @@ else document.addEventListener('DOMContentLoaded', __wangqiudefenlvfenxiBoot);
 <li>一发/二发得分率。</li>
 <li>赛后统计 ACE、一发成功率与得分率，定位发球环节优势或波动。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">计算</div><div class="dd-ex-body">一发 60 个赢 42 → 一发得分率 70%；二发 30 赢 15 → 50%。</div></div>
+<div class="dd-example"><div class="dd-ex-title">计算</div><div class="dd-ex-body">一发 60 个赢 42 → 一发得分率 70%；二发 30 赢 15 → 50%。本场本方得分 63 / 全场 140 → 总得分率 45.0%。ACE 计入一发得分、双误计入二发失分；破发点一次都没出现时该项不参与综合指数（其余权重按 0.70 归一），避免 0/0 直接记为满分。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>破发点关键？</dt><dd>是，破发直接左右胜负。</dd>
