@@ -124,7 +124,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="单位投资带来的现值收益。">Compute profitability index from the present value of benefits and the initial investment, used to rank mutually exclusive projects.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">盈利指数（本页代码口径）：PI=未来现金流现值÷(−期初现金流 CF₀)（CF₀ 须为负的期初投入）；现值 PV=Σ 第 i 年现金流÷(1+r)^i（i=1~3，贴现率 r 按百分数÷100）。校验：五字段经输入守卫必填且须为合法数值，否则提示并中止。判据：无固定阈值分支，通行口径 PI&gt;1 净现值为正、项目可接受，PI=1 恰好满足要求回报。</div>
+      <div class="formula-eq">盈利指数（本页代码口径）：PI=未来现金流现值÷(−期初现金流 CF₀)；现值 PV=Σ 第 i 年现金流÷(1+r)^i（i=1~3，贴现率 r 按百分数÷100）；同时给出 NPV=PV+CF₀。校验：五字段经输入守卫必填且须为合法数值；另要求 CF₀ 为负数（期初投入记负，填正数会让分母变负、PI 符号翻转）且贴现率 > −100%（否则折现因子无意义），不满足即提示并中止。判据：无固定阈值分支，通行口径 PI&gt;1 净现值为正、项目可接受，PI=1 恰好满足要求回报。</div>
       <p class="formula-desc">单位投资带来的现值收益。</p>
     </div>
 
@@ -291,12 +291,22 @@ function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+=
 function calcTool(){
               var __ig=__tbInputGuard(['cf0', 'cf1', 'cf2', 'cf3', 'r'],["期初现金流 CF₀", "第1年 CF₁", "第2年 CF₂", "第3年 CF₃", "贴现率 r (%)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const cfs=[num('cf0'),num('cf1'),num('cf2'),num('cf3')];
-            const r=num('r')/100;
+            const rPct=num('r');
+            /* 期初现金流必须是流出（负数），否则 PI 的分母符号错误；贴现率下界 -100% 否则折现因子无意义 */
+            if(!(cfs[0]<0)){
+                ToolBox.setResult('result','<p class="tip-error">⚠ 期初现金流 CF₀ 应按投入记为负数（当前 '+cfs[0]+'）：PI = 未来现金流现值 ÷ 期初投入，正数会让分母变负、PI 符号翻转。</p>');return;
+            }
+            if(!(rPct>-100)){
+                ToolBox.setResult('result','<p class="tip-error">⚠ 贴现率须大于 -100%（当前输入 '+rPct+'%），否则折现因子无意义。</p>');return;
+            }
+            const r=rPct/100;
             let pv=0; for(let i=1;i<cfs.length;i++) pv+=cfs[i]/Math.pow(1+r,i);
             const pi=pv/(-cfs[0]);
+            const npv=pv+cfs[0];
             const __g2=dataGrid([
                 [pi.toFixed(3),'盈利指数 PI'],
-                [(pv).toFixed(2),'未来现金流现值']
+                [(pv).toFixed(2),'未来现金流现值'],
+                [npv.toFixed(2),'净现值 NPV = PV + CF₀']
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('cf0').value = '-1000';

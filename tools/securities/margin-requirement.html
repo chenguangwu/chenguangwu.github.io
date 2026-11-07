@@ -117,7 +117,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入账户权益与持仓市值，求保证金比例。">Compute the margin ratio from account equity and position market value.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">保证金比例（本页代码口径）：保证金比例=账户权益÷持仓市值×100（%）；联动量：借入资金=持仓市值−权益（元）、杠杆倍数=持仓市值÷max(权益,10⁻⁹)、小数比例=权益÷max(持仓市值,10⁻⁹)。校验：两项空值即提示并中止。判据：无固定分级，比例越低杠杆越高，跌破券商维持保证金线将触发追加保证金。</div>
+      <div class="formula-eq">保证金比例（本页代码口径）：保证金比例=账户权益÷持仓市值×100（%）；联动量：借入资金=持仓市值−权益（元，权益等于持仓时为 0 并标注「无借入」）、杠杆倍数=持仓市值÷权益、小数比例=权益÷持仓市值。校验：两项必填且须为数值；权益须 >0（为 0 或负时比例与杠杆无定义，不再用极小值兜底）、权益不得高于持仓市值（无杠杆/超额保证金场景请把持仓填成不低于权益）。判据：无固定分级，比例越低杠杆越高，跌破券商维持保证金线将触发追加保证金。</div>
       <p class="formula-desc">输入账户权益与持仓市值，求保证金比例。</p>
     </div>
 
@@ -276,12 +276,20 @@ function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+=
 function calcTool(){
               var __ig=__tbInputGuard(['eq', 'pos'],["账户权益 (元)", "持仓市值 (元)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const eq=num('eq'),pos=num('pos');
+            /* 权益为 0/负 ⇒ 比例与杠杆无定义（不得用 1e-9 兜底成 1e14 倍）；权益≥持仓 ⇒ 无借入，借入资金记 0 */
+            if(!(eq>0)){
+                ToolBox.setResult('result','<p class="tip-error">⚠ 账户权益须大于 0（当前输入 '+eq+'）：权益为 0 或为负时保证金比例、杠杆倍数均无定义。</p>');return;
+            }
+            if(!(eq<=pos)){
+                ToolBox.setResult('result','<p class="tip-error">⚠ 账户权益不能高于持仓市值（当前 权益 '+eq+' / 持仓 '+pos+'）：这种情况属于无杠杆或超额保证金，请把持仓市值填成不低于权益的金额。</p>');return;
+            }
             const mr=eq/pos*100;
+            const borrow=pos-eq;
             const __g2=dataGrid([
                 [mr.toFixed(1),'保证金比例 (%)'],
-                [(pos-eq).toFixed(2), '借入资金 (元)'],
-                [(pos/Math.max(eq,1e-9)).toFixed(3), '杠杆倍数'],
-                [(eq/Math.max(pos,1e-9)).toFixed(4), '保证金比例小数']
+                [borrow.toFixed(2), borrow>0?'借入资金 (元)':'借入资金 (元) · 权益等于持仓，无借入'],
+                [(pos/eq).toFixed(3), '杠杆倍数'],
+                [(eq/pos).toFixed(4), '保证金比例小数']
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('eq').value = '25000';
@@ -294,16 +302,21 @@ function __margin_requirementExtras(){
     function __margin_requirementRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var eq=num('eq'),pos=num('pos');
+    if (!isFinite(__margin_requirementNum('eq')) || !isFinite(__margin_requirementNum('pos')) || !(eq>0) || !(eq<=pos)) {
+        var __t=document.getElementById('margin_requirementTable');
+        if (__t) __t.innerHTML='<p style="color:var(--text-muted);font-size:13px;">— 请填写有效的账户权益与持仓市值（权益 >0 且不高于持仓）后再生成明细。</p>';
+        return;
+    }
     var mr=eq/pos*100;
-    if (!isFinite(__margin_requirementNum('eq')) || !isFinite(__margin_requirementNum('pos'))) return;
+    var borrow=pos-eq;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#margin_requirementTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
             ['保证金比例 (%)', mr.toFixed(1)],
-            ['借入资金 (元)', (pos-eq).toFixed(2)],
-            ['杠杆倍数', (pos/Math.max(eq,1e-9)).toFixed(3)],
-            ['保证金比例小数', (eq/Math.max(pos,1e-9)).toFixed(4)],
+            ['借入资金 (元)', borrow.toFixed(2)],
+            ['杠杆倍数', (pos/eq).toFixed(3)],
+            ['保证金比例小数', (eq/pos).toFixed(4)],
         ]
     });
     TBKit.history.record({eq:__margin_requirementRaw('eq'), pos:__margin_requirementRaw('pos'), mr:mr});
