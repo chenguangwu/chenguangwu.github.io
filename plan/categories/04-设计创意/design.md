@@ -2057,3 +2057,10 @@
 - 复核既有 **27** 条：22 条仍成立或部分成立，5 条已失效（D-N2、D-N17、D-N34、D-N36、D-N60）；`plan/fake-tools.md` 中 gradient/mesh 的假工具结论已随实现补齐而失效，建议降级。
 - 复算方式：按页面同款公式用 node/Python 内存复算（HSL/OKLab/WCAG/ΔE00/中位切分），未开浏览器、未跑 `_build.py`/门禁、未改源码、未做 git 写操作。
 
+
+### AA 批第 1 波处置（2026-11-07 X 批 · 对比度校验器非法 HEX 校验）
+
+- **D-N1（中，确认源码缺陷）**：`contrast-checker.html` 原 `onFgHexInput`/`onBgHexInput` 仅在 `isValidHex` 为真时刷新结果，非法值（如 `GGGGGG`）静默保留旧结果且无任何提示；且 `isValidHex` 只认 6 位、`#fff` 三位的简写被丢弃。本批：(1) `isValidHex` 扩为 `/^[0-9A-Fa-f]{3}$|^[0-9A-Fa-f]{6}$/`；(2) 输入处理函数改为始终从 DOM 读真实值（harness 经 `new Function` 注册内联 `oninput`、调用时 `this` 绑定丢失、参数可能为 `undefined`，故不再依赖入参）；非法值显式写「颜色需为有效的 3 或 6 位 HEX 值」并清空比率（`ratioNum`→`—`），合法值才同步色板并 `updateAll()`。
+- **D-N2 / D-N3 不在本批范围**：ledger 第 9 行明示 D-N2「仍待处理，不能按已修关闭」（WCAG 选字色的语义/标注口径争议），D-N3 为产品定位决策（受约束随机 vs 标注），均留待各自批次，本批未改动 `color-palette-generator.html` 源码。
+- **同批门禁维护**：`verify_design_calc.js` 增 2 用例——`GGGGGG→颜色需为有效的 3 或 6 位 HEX 值`、`#fff→21.00`；全量 `node scripts/verify_design_calc.js` **264/264**（原 262 + 2）。`discriminate_check.js verify_design_calc.js` **264 已检 / 262 变红 / 2 逃生**（2 项 `photo-print-size`、`spacing-scale` 为既有的其他工具遗留逃生项，非本批引入，留待各批次处理）。
+- **验证**：`node scripts/_verify_design_batch_x.mjs` **1/1**，`--head` 回退 **1/1**（HEAD 版 `GGGGGG` 静默显示 `14.68 / AAA 优秀` 无报错——修复真实有效）；i18n 无需同步（提示串为页面硬编码中文，EN 态同一逻辑、不影响）。

@@ -710,7 +710,7 @@ function initPresets() {
 
 // ===== 颜色转换工具 =====
 function hexToRgb(hex) {
-  hex = hex.replace('#', '');
+  hex = (hex == null ? '' : String(hex)).replace('#', '');
   if (hex.length === 3) {
     hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
   }
@@ -720,7 +720,8 @@ function hexToRgb(hex) {
 }
 
 function isValidHex(hex) {
-  return /^[0-9A-Fa-f]{6}$/.test(hex.replace('#', ''));
+  hex = (hex == null ? '' : String(hex)).replace('#', '');
+  return /^[0-9A-Fa-f]{3}$|^[0-9A-Fa-f]{6}$/.test(hex);
 }
 
 // ===== WCAG 对比度计算 =====
@@ -807,6 +808,7 @@ function updateWCAGItem(itemId, iconId, statusId, passed) {
 
 // ===== 事件处理 =====
 function onFgChange(color) {
+  if (typeof color !== 'string') return;
   var hex = color.replace('#', '').toUpperCase();
   document.getElementById('fgHex').value = hex;
   document.getElementById('fgColor').value = color;
@@ -814,6 +816,7 @@ function onFgChange(color) {
 }
 
 function onBgChange(color) {
+  if (typeof color !== 'string') return;
   var hex = color.replace('#', '').toUpperCase();
   document.getElementById('bgHex').value = hex;
   document.getElementById('bgColor').value = color;
@@ -821,18 +824,30 @@ function onBgChange(color) {
 }
 
 function onFgHexInput(val) {
-  val = val.replace('#', '').toUpperCase();
-  if (isValidHex(val)) {
-    document.getElementById('fgColor').value = '#' + val;
+  // harness 通过 new Function 注册内联 oninput，调用时 this 绑定丢失、参数可能为 undefined；
+  // 始终从 DOM 读真实输入值，保证注入生效。
+  var raw = document.getElementById('fgHex').value || '';
+  var v = String(raw).replace('#', '').toUpperCase();
+  if (isValidHex(v)) {
+    var full = v.length === 3 ? v[0] + v[0] + v[1] + v[1] + v[2] + v[2] : v;
+    document.getElementById('fgColor').value = '#' + full;
     updateAll();
+  } else {
+    document.getElementById('ratioNum').textContent = '—';
+    document.getElementById('contrastGrade').textContent = '颜色需为有效的 3 或 6 位 HEX 值';
   }
 }
 
 function onBgHexInput(val) {
-  val = val.replace('#', '').toUpperCase();
-  if (isValidHex(val)) {
-    document.getElementById('bgColor').value = '#' + val;
+  var raw = document.getElementById('bgHex').value || '';
+  var v = String(raw).replace('#', '').toUpperCase();
+  if (isValidHex(v)) {
+    var full = v.length === 3 ? v[0] + v[0] + v[1] + v[1] + v[2] + v[2] : v;
+    document.getElementById('bgColor').value = '#' + full;
     updateAll();
+  } else {
+    document.getElementById('ratioNum').textContent = '—';
+    document.getElementById('contrastGrade').textContent = '颜色需为有效的 3 或 6 位 HEX 值';
   }
 }
 

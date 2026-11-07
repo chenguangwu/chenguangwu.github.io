@@ -222,6 +222,18 @@ const CASES = [
        + "⚠ `#contrastGrade` 的 `AAA 优秀` 是静态占位，本例改锚 `AA 良好` 才具判别力。",
   },
   {
+    slug: "design/contrast-checker",
+    inputs: { fgHex: "GGGGGG", bgHex: "#000000" },
+    expect: ["颜色需为有效的 3 或 6 位 HEX 值"],
+    ref: "D-N1 锁定：非法 HEX（GGGGGG）注入 fgHex ⇒ onFgHexInput 判非法 ⇒ contrastGrade 显示错误提示「前景色需为 3 或 6 位 HEX」；默认态 #1F2937/#FFFFFF 不触发，强判别。修复前非法值静默保留旧结果且无提示。",
+  },
+  {
+    slug: "design/contrast-checker",
+    inputs: { fgHex: "#fff", bgHex: "#000000" },
+    expect: ["21.00"],
+    ref: "D-N1 附加：3 位简写 #fff 经扩展 isValidHex 接受 ⇒ 对比度 21.00（与 #FFFFFF 一致）；旧实现 #fff 被静默丢弃。默认态 14.68 不命中。",
+  },
+  {
     slug: "design/photo-aspect-ratio-calculator",
     inputs: { w: "3000", h: "2000" },
     expect: ["3:2 最简比例 1.500:1 宽高比 6.00MP"],
