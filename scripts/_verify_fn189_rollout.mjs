@@ -1,7 +1,9 @@
 // F-N189 全站铺开通用两态锁：对任意一批同构页做「源码层 + 运行期 + 同源」验证
-// 用法：node scripts/_verify_fn189_rollout.mjs --pages=slug1,slug2,... [--head] [--ref=<gitref>] [--verbose]
+// 用法：node scripts/_verify_fn189_rollout.mjs --pages=slug1,slug2,... [--head] [--ref=<gitref>] [--custom] [--verbose]
 //   --head      读 git show <ref|HEAD>:<file>（本批提交前的版本），应当 FAIL
 //   --ref=<ref> 指定负向基准（默认 HEAD）；后续批次 HEAD 已含前批已修页时用本批前一 commit
+//   --custom    定制页模式：不要求与基准新段逐字同构（定制页走局部编辑），
+//               改为断言「仍与基准不同」+「前批定制锚点仍在」；其余源码/运行期断言不变
 //   --verbose   打印全部失败明细（默认只打前 25 条）
 // 页面参数（函数前缀 / 结果容器表达式 / 计算函数名）从页面源码自动抽取，无需手工维护清单。
 // 背景：harness（verify_*_calc.js 自研 stub DOM）里 TBKit === undefined ⇒ Extras() 首行即 return，
@@ -12,6 +14,7 @@ import fs from 'fs';
 
 const argv = process.argv.slice(2);
 const head = argv.includes('--head');
+const custom = argv.includes('--custom');
 const verbose = argv.includes('--verbose');
 const pagesArg = argv.find((a) => a.startsWith('--pages='));
 const refArg = argv.find((a) => a.startsWith('--ref='));
@@ -54,6 +57,14 @@ function normSeg(info, slug) {
     .split(resExpr).join('RESEXPR')
     .split('                ' + calc + '();').join('                CALC();');
 }
+// 定制页前批功能锚点：局部编辑必须原样保留，防止「顺手整体替换」抹掉前批修复。
+// 新增定制页时在此登记，否则 --custom 模式会直接判 FAIL（强制留痕）。
+const CUSTOM_MARKERS = {
+  'dca-calculator': '__dcaSyncTiming',
+  'irr-calculator': '__irrRestoreFromSnapshot',
+  'npv-calculator': '请先输入有效的初始投资再导出',
+  'password-generator-advanced': '未保存明文'
+};
 const baseInfo = parsePage(baseRaw, BASE);
 const BASE_NORM = normSeg(baseInfo, BASE);
 assert(BASE_NORM.length > 2000 && BASE_NORM.includes('__tbScore'), '基准页 cnpj-validator 必须是已修新实现');
@@ -80,7 +91,13 @@ for (const slug of SLUGS) {
   assert(raw.includes("box.querySelector('tr')"), tag + '导出前应确保表格已渲染');
   assert(!raw.includes("/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';"), tag + '不得再过滤失败样本');
   assert(raw.includes("/^(等待输入|请输入文本|Waiting for input|Please enter text)/"), tag + '只过滤空态，双语前缀齐全');
-  assert(normSeg(info, slug) === BASE_NORM, tag + '与基准页归一化后逐字同构（同一模板）');
+  if (custom) {
+    assert(normSeg(info, slug) !== BASE_NORM, tag + '定制页应保留定制逻辑（不得与基准新段同构）');
+    const marker = CUSTOM_MARKERS[slug];
+    assert(!!marker && raw.includes(marker), tag + '前批定制锚点应仍在（未登记或已被抹掉）');
+  } else {
+    assert(normSeg(info, slug) === BASE_NORM, tag + '与基准页归一化后逐字同构（同一模板）');
+  }
 }
 
 // ── 2) JSDOM 桩 ──

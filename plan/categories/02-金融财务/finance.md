@@ -1801,3 +1801,14 @@
 - **通用两态锁加固**：注入 canvas `getContext` Proxy 桩 + `canvasColorWithAlpha` / `resolveCanvasColor`；运行期改为直接驱动 `Extras()`（写输入 + 注入成功/失败结果文本），绕开页面 `calc()` 的真机依赖；`VirtualConsole` 静默已知噪音。回归：第 42 批 8 页仍 209 PASS、第 40/41 批抽 4 页 105 PASS。
 - 证据：119 个内联脚本语法 0 错、`379/379`、判别力 0 逃生、id 审计 0 僵尸；通用锁当前 **209 PASS / 0 FAIL**、`--head` **160 FAIL / 41 PASS**。详见 `plan/已修复/2026-11-07-F-N189-第43批-铺开工具固化与finance第二组8页.md`。
 - 第 44 批方向：finance 第三组 8 页；并设计 4 个定制页（`dca` / `irr` / `npv` / `password-generator-advanced`，均为前批加过快照/IRR 逻辑者）的保留定制局部编辑方案，禁止整体替换。
+
+## 2026-11-08 第 44 批 · F-N189 finance 标准页第三组 + 定制页局部编辑工具
+
+- **铺开工具补洞（真隐患）**：`_fn189_rollout.py` 原「拒绝定制页」只检查旧段长度 >2000，实测对 4 个定制页 `--dry` **全部放行**，整体替换会静默抹掉前批定制逻辑。已改为与 **标准旧段归一化骨架逐字比对**（`scripts/_fn189_std_old_seg_normalized.txt`，2892 字符，取自 HEAD 的 `capm-return`，`cpf-validator`/`credit-card-type` 逐字一致）；不一致即 FAIL 并提示走局部编辑。加固后实测 `dca-calculator` 被正确拒绝。
+- **铺开标准页 8 页**：`capm-return` / `car-loan-calculator` / `compound-interest` / `cpf-validator` / `credit-card-bin` / `credit-card-interest` / `credit-card-luhn` / `credit-card-type`，`--dry` 与 apply 均 8/8，覆盖 `getElementById('result'|'output') + capmCalc/validate` 与 `querySelector('.result-box') + calc` 两类形态。
+- **交付 `scripts/_fn189_custom_patch.py`**（定制页专用）：只替换 8 个修复锚点（ResText 过滤行+Score / 表头结论列 / 行内结论值 / 历史恢复跳过 `__tbScore` / 趋势数值源 / 趋势名 / Extras 写 `__tbScore` / 导出前补渲染），逐行保留定制。**核心断言**：归一化后「相对标准骨架的增删行集合」替换前后**完全一致** ⇒ 除 F-N189 修复外没动任何其它字节；另断言每锚点段内/全文各恰好 1 次、`__tbScore` 4 处、旧过滤消失、新段仍不同于基准（定制仍在）。
+- **4 个定制页修完**：`dca-calculator`（F-N8 时点同步，定制差异 2 行）、`irr-calculator`（现金流快照重建，2 行）、`npv-calculator`（导出前初始投资校验，1 行）、`password-generator-advanced`（历史只存摘要、绝不存明文，6 行）；前批定制锚点全部原样保留。
+- **通用两态锁加 `--custom`**：不再要求与基准新段同构，改为断言「仍与基准不同」+「前批定制锚点仍在」（内置 4 页锚点映射，未登记即 FAIL 强制留痕）；其余源码/运行期/EN 态断言不变。
+- 证据：`_fn189_rollout.py` 8/8、`_fn189_custom_patch.py` 4/4、`verify_finance_calc.js` **379/379**、判别力 **379 正确变红 / 0 逃生**、id 审计僵尸 0、全站内联脚本 **17035 个 0 语法错**；两态锁标准页 **209 PASS / 0 FAIL**、定制页 **109 PASS / 0 FAIL**；负向锁标准 8 页 **160 FAIL / 41 PASS**、定制 4 页 **76 FAIL / 29 PASS**；`py_compile` OK。
+- **finance 剩余归零**：全部 58 页标准模板已在本批与第 45 批（全站批量）覆盖范围；第 44 批结束时 finance 旧模板剩 58 页标准 + 0 定制。
+- **老板裁断（2026-11-08）**：同意一次性把修法铺到全站标准页 ⇒ 第 45 批起转全站批量（标准 3018 / 定制 94 / 异常 29）。

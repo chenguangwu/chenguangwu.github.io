@@ -19,6 +19,13 @@ import sys
 BASE_CAT = 'finance'
 BASE_SLUG = 'cnpj-validator'
 OLD_FILTER = "/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';"
+# 标准旧段（ResText~Presets）5 参数归一化骨架，取自第 44 批 HEAD 的 capm-return
+# （cpf-validator / credit-card-type 逐字一致）。与 _fn189_custom_patch.py 共用同一真源。
+# 定制页（历史恢复回调 / 导出校验 / 结果脱敏等）归一化后必然不同 ⇒ 必须拒绝，
+# 否则整体替换会静默抹掉定制逻辑。定制页改走 scripts/_fn189_custom_patch.py。
+STD_NORM_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                             '_fn189_std_old_seg_normalized.txt')
+STD_OLD_NORM = io.open(STD_NORM_FILE, encoding='utf-8').read()
 
 
 def seg_of(s, pre):
@@ -95,9 +102,12 @@ def main():
         assert s.count('function __%sPresets()' % info['pre']) == 1, slug + ' 结束标记不唯一'
         assert OLD_FILTER in info['seg'], slug + ' 不是旧模板（已修或二次替换）'
         assert 'parseFloat(arr[j].d[rk])' in info['seg'], slug + ' 旧段缺恒 NaN 图表特征'
-        # 拒绝定制页：旧段归一化后须与「基准旧段」同形（这里用新模板的骨架做 5 参数抹平后比对骨架长度）
+        # 拒绝定制页：旧段归一化后须与标准骨架逐字一致（sha256 比对，非仅长度）
         old_norm = norm(info['seg'], info['pre'], slug, info['resexpr'], info['calc'])
         assert len(old_norm) > 2000, slug + ' 旧段过短，疑似异常'
+        if old_norm != STD_OLD_NORM:
+            print('FAIL %-28s 定制页（旧段与标准骨架不同）—— 禁止整体替换，请走 _fn189_custom_patch.py' % slug)
+            sys.exit(1)
         seg = (tpl.replace('@@PFN@@', '__' + info['pre'])
                   .replace('@@PVAR@@', '__' + info['pre'] + '_')
                   .replace('@@PID@@', info['pre'])
