@@ -3,7 +3,7 @@
 ## 2026-11-06 音乐工具静态续审
 
 - `tools/music/piano-keyboard.html:975-984,989-1016,1344-1361`：录制只记录按下时间，不记录松开时间；回放以相邻音符间隔推定时长，最长 800ms、末音固定 300ms。例如长按单音 2 秒后松开，回放仍是 300ms；和弦中相邻按键的音符时长也不能还原。仅源码判断，未听测。
-- `tools/music/rhythm-trainer.html:916-969,972-985`：训练开始预先安排全程音频和多个 `setTimeout`；停止只清倒计时且不取消音频或各 timeout。停止后旧声音仍会按计划播放，若立即重开，旧回调见 `isPlaying` 又为真，可提前高亮、开启录入或结束新训练。既有 FE-N70 两个时钟混用及 FE-N71 拍位问题代码仍在；以上均未进行浏览器或音频验证。
+- `tools/music/rhythm-trainer.html:916-969,972-985`：训练开始预先安排全程音频和多个 `setTimeout`；停止只清倒计时且不取消音频或各 timeout。停止后旧声音仍会按计划播放，若立即重开，旧回调见 `isPlaying` 又为真，可提前高亮、开启录入或结束新训练（**仍待处理**，与 FE-N64 同类，需 `pendingTimers` 统一追踪 + 停训时 `ctx.close()`/丢弃已排音频）。FE-N70 两钟混用、FE-N71 小节号 off-by-one 已于 2026-11-07 修复。
 - `tools/music/music-player.html:310,204,436-441`：初始 `repeatMode` 为 `none`，按钮却标“单曲循环”，第一次点击改为“列表循环”；展示与实际状态不一致。随机结束问题见下方既有记录。
 - `tools/music/music-theory.html:379-387,414-475,503-524`：选根音或音阶会更新音名、频率并按当前参数安排试听及导出；本轮未验证声音和导出内容，不以代码路径代替实测。
 
@@ -710,6 +710,7 @@
 - 复现：打开页面停留 3 s 后点「开始训练」，严格跟着节拍器敲 → 结果「完美命中 0 个」「准确率 0%」，且所有敲击都落在同一侧偏差（系统偏移=3 s 左右）。
 - 影响：核心评分链路恒失效，历史记录被 0 分污染；有节拍音频与网格但评分不可用，假工具：否。
 - 方案：统一时钟——`onTap` 改记 `getAudioCtx().currentTime`（音频上下文在页面加载即创建并复用）；或把 `startTime` 改成 `performance.now()/1000 + countInDuration`，二者只保留一个时基。
+- **已修复 2026-11-07**：采用前一种方案，`onTap` 改为 `const now = getAudioCtx().currentTime;`（rhythm-trainer.html ~L1011-1015），与 `startTime` 同源。判别力实测（`scripts/_verify_fun_batch_fe_n70n71.mjs`）：桩 `AudioContext.currentTime`／`performance.now` 各记一条访问日志，实跑 `startTraining()`（BPM 上限 200 → 预备拍 1.2s）等 `tapBtn` 解锁后调 `onTap`，取首条日志——当前=audio（PASS）/ HEAD=perf（FAIL）。移交：`plan/已修复/2026-11-07-FE-N70-N71-节奏评分时钟与小节号.md`。
 
 ### FE-N71 命中列表小节号 off-by-one，每小节第 4 拍被标成下一小节（中，确认源码缺陷）
 - 页面：`tools/music/rhythm-trainer.html`
@@ -718,6 +719,7 @@
 - 复现：简单难度 4 小节，命中第 1 小节第 4 拍（`noteIndex=3`，`subdivision=1` → `beatIdx=4`）→ 列表显示「第2小节 第4拍」。
 - 影响：反馈定位错误（约 1/4 的命中被标错小节），用户按提示复盘会找错位置；假工具：否。
 - 方案：`const measureNum = Math.floor((beatIdx - 1) / 4) + 1;`。
+- **已修复 2026-11-07**：`measureNum` 改用 `Math.floor((beatIdx - 1) / 4) + 1`（rhythm-trainer.html ~L1155）。判别力实测（同锁脚本）：从源码抽 3 行计算式在隔离 `new Function` 实跑，`subdivision=1 / noteIndex=3` → 当前「第1小节 第4拍」PASS / HEAD「第2小节 第4拍」FAIL。移交同 N70。
 
 ### FE-N72 只随机打印节奏型文本，无节拍器音频/敲击采集/偏差与准确率（高，确认源码缺陷；假功能）
 - 页面：`tools/music/random-training-rhythm.html`

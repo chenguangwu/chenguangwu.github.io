@@ -1008,7 +1008,9 @@ s.parentNode.insertBefore(el, s);
   // ========== Tap Handler ==========
   function onTap() {
     if (!isRecording) return;
-    const now = performance.now() / 1000; // seconds
+    // FE-N70 修复：统一用 AudioContext 时钟（与 startTime 同一起点），
+    // 原 performance.now()/1000 与 ctx.currentTime 原点相差「开页到点击开始」的时长，整体平移导致几乎全部判漏击
+    const now = getAudioCtx().currentTime;
     userTaps.push(now);
     playTapSound();
   }
@@ -1149,7 +1151,8 @@ s.parentNode.insertBefore(el, s);
         devText = (r.deviation > 0 ? '+' : '') + Math.round(r.deviation) + 'ms';
       }
       const beatIdx = Math.floor(r.noteIndex / subdivision) + 1;
-      const measureNum = Math.floor(beatIdx / 4) + 1;
+      // FE-N71 修复：beatIdx 为 1 基拍号，小节号需以 (beatIdx-1) 为基准，原 Math.floor(beatIdx/4)+1 使每小节第 4 拍被错标到下一小节
+      const measureNum = Math.floor((beatIdx - 1) / 4) + 1;
       const beatInMeasure = ((beatIdx - 1) % 4) + 1;
       listHtml += '<div class="hit-item">' +
         '<span class="hit-index ' + cls + '">' + (i + 1) + '</span>' +
