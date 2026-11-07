@@ -1264,6 +1264,7 @@
 - 复现（node 实算）：`00AAPFU0939F1ZB` → 页面「州代码：00 - 未知州」「✅ GST 号码有效」；`99AAPFU0939F1ZK` 同样 ✅；对照合法 `27AAPFU0939F1ZV` → ✅、错校验位 `27AAPFU0939F1ZW` → ❌。
 - 影响：`tools/finance/gst-validator.html`；跨州错填（如把 27 输成 00）无法拦截，与 FAQ「拦截录入错误」不符。
 - 方案：州码白名单硬判（含 37/38），未命中输出「❌ 州码不在 GST 州列表」并保留输入定位。
+- **已修复 2026-11-07（第 38 批）**：`STATE_CODES` 收敛为现行码（删 25/28、26 改全称、保留 37/38/97），新增 `RETIRED_STATE_CODES` 分层停用码与 `__gstStateCheck()` 作州码合法性单一真源；`validate()` 把 `!__st.ok` 的字段名提示写进结果容器并**保留后续 PAN/实体位/Z/校验位拆解**，最终判定改 `if (__structOk && __st.ok)`，杜绝「州代码：00 - 未知州」与「✅ GST 号码有效」同屏。全部新增文案走 `__gstIsEn() ? English : 中文` 动态双语 ⇒ 静态中文与 `i18n/tools/en/finance/gst-validator.json` 无需改动，EN 态动态串零 CJK。权威源：gstextract / checkyourgst / gstnumbersearch / taxclue 四份公开 GST 州码表（25 停用并入 26、28 旧码改 37、37/38 现行有效、97 Other Territory）。证据见 `plan/已修复/2026-11-07-F-N170-F-N171-GST州码白名单与停用码更新.md`：新增 6 条用例 `373→379/379`、单文件判别力 `379 正确变红 / 0 逃生`、id 审计 0 僵尸、页面 16 个内联脚本语法 0 错、JSDOM 两态锁当前 43 PASS / HEAD 37 FAIL。**待裁断**：99 在部分权威资料中列为 `Centre (CGST jurisdiction)` 特殊辖区码，本批按台账口径判「不在州/UT 代码列表」并保留 97；是否放开 99 需产品/税务口径裁断，裁断前不改代码、不计入已修/未修。
 
 ### F-N171 GST 页：州码表仍把 25/26 分列，2020 年合并后 25 已停用（低，确认缺陷）
 - 问题：`STATE_CODES` 保留 `'25':'Daman and Diu'`、`'26':'Dadra and Nagar Haveli'`。两属地 2020-01-26 合并为「Dadra and Nagar Haveli and Daman and Diu」，GST 州码统一为 26，25 不再分配；页面仍对 25 判有效并显示旧名，26 也只显示半名。
@@ -1271,6 +1272,7 @@
 - 复现（node 实算）：`25AAPFU0939F1ZZ` → 「州代码：25 - Daman and Diu」+ ✅；`26AAPFU0939F1ZX` → 「26 - Dadra and Nagar Haveli」+ ✅（缺「and Daman and Diu」）。
 - 影响：`tools/finance/gst-validator.html`；现行税号显示过时行政区名，25 号段被误认为可用。
 - 方案：删除 25 映射，26 改为全称；如仍需兼容历史数据，标注「25 已于 2020 合并至 26」。
+- **已修复 2026-11-07（第 38 批，与 F-N170 同批）**：25/28 从现行 `STATE_CODES` 移除并归入 `RETIRED_STATE_CODES`（25→26、28→37），26 改为 `Dadra and Nagar Haveli and Daman and Diu` 全称；停用码不再判有效，错误提示直接给出现行替代码。26 全称、38 Ladakh、27 Maharashtra、默认 09 Uttar Pradesh 均有回归护栏用例/两态锁断言，防止删旧码时误伤现行码。证据同上移交文件（两态锁当前 43 PASS / HEAD 37 FAIL，HEAD 精确复现 26 半名与 25 判有效）。
 
 - **留存建议（tools/finance/gst-validator.html）**：15 位拆分 + mod-36 校验 + 州码表是差异化能力，建议保留；补州码硬校验（F-N170）并更新 25/26（F-N171）后可对外；建议补「PAN 第 4 位实体类型」说明与 GSTR 类工具互链。
 

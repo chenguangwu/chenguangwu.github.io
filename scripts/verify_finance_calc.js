@@ -1327,6 +1327,42 @@ const CASES = [
     ref: "修复前 gstChecksum 用 const factor 却在循环里重赋值 ⇒ 所有浏览器都抛「Assignment to constant variable」整页失效；已改为 let。该号前 14 位 mod-36 校验位 = V 与末位一致 ⇒ 有效。expect 取页面回显「校验位： V（期望 V）」（含具体校验字符 ⇒ 默认预填 09AABCU9603R1ZL 输出「L（期望 L）」不命中，消除「✅ 有效」通用串导致的逃生）。",
   },
   {
+    slug: "finance/gst-validator",
+    inputs: { input: "00AAPFU0939F1ZB" },
+    expect: ["❌ 州码 00 不在 GST 州/属地代码列表（现行 01–24、26、27、29–38；97 为 Other Territory）。", "校验位： B（期望 B）"],
+    ref: "F-N170 未分配州码硬判：旧实现州码只用于展示，`zChar==='Z'` 且 mod-36 校验位正确即判「✅ GST 号码有效」，`00AAPFU0939F1ZB` 被判有效。现州码白名单参与结论，给出「州码 00 不在列表」并判「❌ GST 校验失败（州码不合法）」；第二条锚点验证错误态仍保留 PAN/实体/Z/校验位拆解（输入定位）。默认 09AABCU9603R1ZL 为合法 09 ⇒ 两条均不命中。",
+  },
+  {
+    slug: "finance/gst-validator",
+    inputs: { input: "99AAPFU0939F1ZK" },
+    expect: ["❌ 州码 99 不在 GST 州/属地代码列表", "校验位： K（期望 K）"],
+    ref: "F-N170 高位非法码护栏：`99AAPFU0939F1ZK` 校验位正确但 99 未分配给任何州/UT（97 才是 Other Territory）⇒ 必须拒绝，防止只按数值范围放行。默认态 09 ⇒ 不命中。99 作为 CGST 特殊辖区码的口径争议见台账待裁断说明。",
+  },
+  {
+    slug: "finance/gst-validator",
+    inputs: { input: "25AAPFU0939F1ZZ" },
+    expect: ["❌ 州码 25（Daman and Diu）已停用，现行应使用 26。"],
+    ref: "F-N171 停用码 25：达曼和第乌 2020-01-26 并入「Dadra and Nagar Haveli and Daman and Diu」统一用 26；旧表仍把 25 列为 Daman and Diu 且判有效。现 25 从现行表移除，归到停用表并指引入 26。默认态 09 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/gst-validator",
+    inputs: { input: "28AAPFU0939F1ZT" },
+    expect: ["❌ 州码 28（Andhra Pradesh (Old)）已停用，现行应使用 37。"],
+    ref: "F-N171 停用码 28：安得拉邦旧码，现行使用 37；旧表 `'28':'Andhra Pradesh (Old)'` 且判有效。现归到停用表并指引 37，同时保留 37/38 在现行表。默认态 09 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/gst-validator",
+    inputs: { input: "26AAPFU0939F1ZX" },
+    expect: ["州代码： 26 - Dadra and Nagar Haveli and Daman and Diu", "校验位： X（期望 X）"],
+    ref: "F-N171 行政区名全称回归护栏：26 由旧半名「Dadra and Nagar Haveli」改为合并后全称，且仍是合法码 ⇒ 校验位 X 正确时应判有效。防止把停用逻辑误伤到 26。默认态 09 - Uttar Pradesh ⇒ 不命中。",
+  },
+  {
+    slug: "finance/gst-validator",
+    inputs: { input: "38AAPFU0939F1ZS" },
+    expect: ["州代码： 38 - Ladakh", "校验位： S（期望 S）"],
+    ref: "F-N170 白名单覆盖新增码护栏：38 Ladakh（2019 新增）与 37 安得拉邦新码必须留在现行表并判有效，避免「删旧码」时把新码一起误删。默认态 09 ⇒ 不命中。",
+  },
+  {
     "slug": "finance/aadhaar-validator",
     "inputs": {
       "input": "abc123测试"

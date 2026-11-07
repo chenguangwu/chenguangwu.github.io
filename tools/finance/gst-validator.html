@@ -245,17 +245,38 @@ function gstChecksum(s14){
   const checkVal = (36 - (sum % 36)) % 36;
   return GST_BASE[checkVal];
 }
+// F-N170/F-N171：现行 GST 州/属地代码（权威公开代码表口径，2026-11 核对）
+// 25 于 2020-01-26 并入 26；28 为安得拉邦旧码、现行使用 37；37/38 为新增码；97 为 Other Territory 特殊辖区码。
 const STATE_CODES = {
   '01':'Jammu and Kashmir','02':'Himachal Pradesh','03':'Punjab','04':'Chandigarh',
   '05':'Uttarakhand','06':'Haryana','07':'Delhi','08':'Rajasthan','09':'Uttar Pradesh',
   '10':'Bihar','11':'Sikkim','12':'Arunachal Pradesh','13':'Nagaland','14':'Manipur',
   '15':'Mizoram','16':'Tripura','17':'Meghalaya','18':'Assam','19':'West Bengal',
   '20':'Jharkhand','21':'Odisha','22':'Chhattisgarh','23':'Madhya Pradesh',
-  '24':'Gujarat','25':'Daman and Diu','26':'Dadra and Nagar Haveli','27':'Maharashtra',
-  '28':'Andhra Pradesh (Old)','29':'Karnataka','30':'Goa','31':'Lakshadweep',
+  '24':'Gujarat','26':'Dadra and Nagar Haveli and Daman and Diu','27':'Maharashtra',
+  '29':'Karnataka','30':'Goa','31':'Lakshadweep',
   '32':'Kerala','33':'Tamil Nadu','34':'Puducherry','35':'Andaman and Nicobar Islands',
   '36':'Telangana','37':'Andhra Pradesh','38':'Ladakh','97':'Other Territory'
 };
+const RETIRED_STATE_CODES = {
+  '25': {name:'Daman and Diu', into:'26'},
+  '28': {name:'Andhra Pradesh (Old)', into:'37'}
+};
+function __gstIsEn(){
+  try { return !!(typeof TBKit!=='undefined' && TBKit.util && typeof TBKit.util.isEn==='function' && TBKit.util.isEn()); }
+  catch(e){ return false; }
+}
+function __gstStateCheck(code){
+  var en = __gstIsEn();
+  if (Object.prototype.hasOwnProperty.call(STATE_CODES, code)) return {ok:true, name:STATE_CODES[code], msg:''};
+  var r = RETIRED_STATE_CODES[code];
+  if (r) return {ok:false, name:r.name, msg: en
+    ? '❌ State code ' + code + ' (' + r.name + ') is retired; use ' + r.into + ' instead.'
+    : '❌ 州码 ' + code + '（' + r.name + '）已停用，现行应使用 ' + r.into + '。'};
+  return {ok:false, name: en ? 'Unknown' : '未知州', msg: en
+    ? '❌ State code ' + code + ' is not in the GST state/UT code list (current: 01-24, 26, 27, 29-38; 97 = Other Territory).'
+    : '❌ 州码 ' + code + ' 不在 GST 州/属地代码列表（现行 01–24、26、27、29–38；97 为 Other Territory）。'};
+}
 function validate(){
   const raw = document.getElementById('input').value.trim().toUpperCase();
   const out = document.getElementById('output');
@@ -280,18 +301,23 @@ function validate(){
   const zChar = raw[13];
   const checkDigit = raw[14];
   const expectedCheck = gstChecksum(raw.substring(0,14));
-  const stateName = STATE_CODES[stateCode] || '未知州';
-  html += `<p><strong>州代码：</strong>${stateCode} - ${stateName}</p>`;
+  // F-N170：州码参与有效性判定，错误码给出字段名提示但保留后续各段拆解（输入定位）
+  const __st = __gstStateCheck(stateCode);
+  html += `<p><strong>州代码：</strong>${stateCode} - ${__st.name}</p>`;
+  if (!__st.ok) html += `<p style="color:var(--danger);">${__st.msg}</p>`;
   html += `<p><strong> PAN 部分：</strong>${pan}</p>`;
   html += `<p><strong>实体位：</strong>${entity}</p>`;
   html += `<p><strong>Z 位：</strong>${zChar} ${zChar === 'Z' ? '✅' : '❌ 必须为 Z'}</p>`;
   if(expectedCheck !== -1){
     html += `<p><strong>校验位：</strong>${checkDigit}（期望 ${expectedCheck}） ${checkDigit === expectedCheck ? '✅' : '❌'}</p>`;
   }
-  if(zChar === 'Z' && expectedCheck === checkDigit){
+  const __structOk = (zChar === 'Z' && expectedCheck === checkDigit);
+  if(__structOk && __st.ok){
     html += `<p style="color:var(--success);">✅ GST 号码有效</p>`;
   } else {
-    html += `<p style="color:var(--danger);">❌ GST 校验失败</p>`;
+    html += `<p style="color:var(--danger);">${__gstIsEn()
+      ? ('❌ GST validation failed' + (!__st.ok ? ' (invalid state code)' : ''))
+      : ('❌ GST 校验失败' + (!__st.ok ? '（州码不合法）' : ''))}</p>`;
   }
   const __h3=html;if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h3;
 }
