@@ -24,6 +24,20 @@ const CASES = [
        + "本页只做随机展示与难度标注，不录音、不计时、不评分。",
   },
 
+  // ── 和弦解析（FE-N6 回归锁：Cmaj/Cmajor 应判大三和弦，非小三）──
+  {
+    slug: "music/chord-notes",
+    inputs: { chordInput: "Cmaj" },
+    expect: ["CM · 大三和弦"],
+    ref: "FE-N6 回归锁：Cmaj 经归一化 maj→M 后命中 CHORD_TYPES['M'] → 大三和弦，类型标签渲染为「CM · 大三和弦」（rootDisplay=「C」+ type=「M」+「 · 大三和弦」）。默认 chordInput=C 渲染为「C · 大三和弦」，不命中本锚 ⇒ 零逃生，可即时暴露「maj 被前缀 m 误判为小三和弦」类回归。",
+  },
+  {
+    slug: "music/chord-notes",
+    inputs: { chordInput: "Cm" },
+    expect: ["Cm · 小三和弦"],
+    ref: "FE-N6 对照：Cm 直接命中 CHORD_TYPES['m'] → 小三和弦，类型标签「Cm · 小三和弦」。与 Cmaj 的大三形成区分，确认归一化分支正确区分大小三和弦，且默认态「C · 大三和弦」不命中本锚。",
+  },
+
 
   // ── 冥想计时器 ──────────────────────────────────────────────
   {

@@ -116,11 +116,12 @@
 - 影响：`tools/music/bpm-converter.html`；只用反推功能时历史为空、CSV 无内容、图表不更新。
 - 方案：`calcReverse` 也调用同一记录函数，或把「记录」抽成两处共用的 `record()`；导出前校验表非空并提示。
 
-### FE-N6 和弦解析把 `Cmaj`/`Cmajor` 判成小三和弦（高，确认函数缺陷）
-- 描述：后缀匹配在归一化之前用 `suffix.startsWith(s)`，`maj`/`major` 先命中单字符 `m`（小三），永远走不到 `maj→M` 的归一化分支；`Cmaj` 输出 C–D♯–G。
-- 证据：`tools/music/chord-notes.html:478-512`（类型表）、`:593-600`（首轮前缀匹配）、`:602-616`（归一化仅在未匹配时执行）。Node 直接执行页面 `parseChord`：`Cmaj` → 类型 `m`、音符 C/D#/G；`Cmajor` → 类型 `m`、C/D#/G；`Cmaj7` → 类型 `maj7`、C/E/G/B（因四字符精确命中而侥幸正确）。
-- 影响：`tools/music/chord-notes.html`；常见写法 `Cmaj` 得到错误和弦，音符、频率、播放与复制结果全部错误。
-- 方案：先做全等匹配，再做「最长后缀」匹配且优先匹配大写 `M`/已归一化后缀；补 `Cmaj`、`Cmajor`、`Cmin`、`Cminor` 回归用例。
+### FE-N6 和弦解析把 `Cmaj`/`Cmajor` 判成小三和弦（高，原报函数缺陷 → **2026-11-07 复核：历史快照误报，当前源码已正确**）
+- 原描述：后缀匹配在归一化之前用 `suffix.startsWith(s)`，`maj`/`major` 先命中单字符 `m`（小三），永远走不到 `maj→M` 的归一化分支；`Cmaj` 输出 C–D♯–G。
+- 原证据：`tools/music/chord-notes.html:478-512`（类型表）、`:593-600`（首轮前缀匹配）、`:602-616`（归一化仅在未匹配时执行）。
+- 复核结论（2026-11-07）：当前源码 `parseChord`（行 592-621）**首轮即 `suffix === s` 全等匹配**（无 `startsWith` 前缀误判），未命中才走归一化分支 `maj→M`/`min→m` 并再次全等匹配；`Cmaj` → type=`M` → 类型标签「`CM · 大三和弦`」（C-E-G），`Cm` → type=`m` →「`Cm · 小三和弦`」。原 `startsWith` 缺陷不复存在。
+- 实证：在 `scripts/verify_fun_calc.js` 新增 2 条 discriminating 锁定用例（注入 `Cmaj`→期望 `CM · 大三和弦`；`Cm`→期望 `Cm · 小三和弦`），`discriminate_check.js` 全量 28/28 正确变红、0 逃生项（默认 `chordInput=C` 渲染「`C · 大三和弦`」，不命中本锚 ⇒ 零逃生）。
+- 处置：本批**只补锁定用例、未改源码**（符合"陈旧证据只复核、补锁定、不改源码"纪律）；视为已修复，从待处理清单移除。
 
 ### FE-N7 扩展和弦的九音被标成「二音」，与页内速查表矛盾（中，确认源码缺陷）
 - 描述：音程标签用 `semitone % 12` 取名称，`add9` 的 +2 与 `9`/`m9` 的 +14 都落到索引 2「二音」；同页规则表却写「加九和弦 = 大三+九音」。
