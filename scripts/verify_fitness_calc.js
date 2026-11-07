@@ -27,6 +27,32 @@ const CASES = [
   { slug: "fitness/calc-2", inputs: { gender: "female", age: "100", weight: "5", height: "50" },
     expect: ["输入超出合理范围（年龄 10–100 岁、体重 30–300 kg、身高 100–230 cm）"],
     ref: "SF-N12：原 calculate() 仅判「非零」不判范围，女 体重 5kg/身高 50cm/年龄 100 得 BMR −298.5、TDEE 全负。现补 age/weight/height 范围校验并 return 提示。注入越界值命中拦截；默认态（30/65/170）正常出表 ⇒ 零逃生。SF-N11（calc 空值负热量）因 calc() 有 1s 节流、harness 同步采集拿不到拦截提示，改走 scripts/_verify_fitness_batch_a.mjs 运行时断言。" },
+  // ---- SF-N13~N16 体育健身 B1 批修复：越界/缺参拦截（强判别） ----
+  { slug: "fitness/macro-ratio", inputs: { weight: "70", bf: "120", intensity: "heavy", goal: "bulk" },
+    expect: ["请输入有效的体脂率（3–60%）"],
+    ref: "SF-N13：原 bf 无范围校验，bf>100 时 leanMass=70×(1−1.2)=−14kg、BMR 67.6、碳水钳 0g 与目标 528kcal 自相矛盾。现补 bf 3–60 校验并 return。注入 120 命中拦截；默认态 bf=18 正常出表 ⇒ 零逃生。" },
+  { slug: "fitness/estimate", inputs: { sex: "m", h: "0", w: "70", waist: "82", neck: "38", hip: "95" },
+    expect: ["请填写有效身高（120–230 cm）"],
+    ref: "SF-N14：原 setInvalid 只标红不阻断，h=0 时 log10(0)=−Infinity、bf=−450 被钳 0 显示 0.0%。现将 h/w/waist/neck 越界纳入 valid 并 return。注入 h=0 命中拦截；默认态 h=175 正常出体脂 ⇒ 零逃生。" },
+  { slug: "fitness/calculator-calc-13", inputs: { sex: "m", age: "30", w: "70", s1: "0", s2: "0", s3: "0" },
+    expect: ["请填写三处皮褶厚度（1–80 mm）"],
+    ref: "SF-N15：原 sum3=0 时密度 1.1094、bf=−3.8 被 if(bf<0)bf=0 钳成 0.0% 且等级为 '-'。现三处皮褶任一 ≤0/>80 即停算提示。默认 12/18/15 正常出表 ⇒ 零逃生。" },
+  { slug: "fitness/calc-4", inputs: { weight: "100", reps: "1" },
+    expect: ["kg（1RM = 单次重量）"],
+    ref: "SF-N16：原 reps=1 时四式平均 (103.3+100+100+108.9)/4=103.1kg，系统性高估 3%。现 reps===1 直接输出实际重量并 return。默认 reps=6 走原表 ⇒ 该串仅 1 次态出现、零逃生。" },
+  // ---- SF-N17~N20 体育健身 B2 批修复：越界/负值/进位/空龄拦截（强判别） ----
+  { slug: "fitness/jianzhinengliangquekoujisuan", inputs: { target: "50", weeks: "10", w: "30", ratio: "0.5" },
+    expect: ["目标减脂量不能超过当前体重（当前 30 kg）"],
+    ref: "SF-N17：原未校验 target≤w，目标减脂 50kg/当前 30kg → 最终体重 −20kg、167%/周。现 target>w 即停算提示。默认 target=5/w=75 正常出表 ⇒ 零逃生。" },
+  { slug: "fitness/zuidasheyanglianggusuan", inputs: { sex: "m", age: "30", dist: "2001", w: "75" },
+    expect: ["6:00"],
+    ref: "SF-N18：原 paceSec=Math.round((12/(dist/1000)−paceMin)*60) 秒四舍五入到 60 未进位，dist=2001 → 配速「5:60」。现先算总秒数 360 再拆得 6:00。默认 dist=2400 → 5:00 不含该串 ⇒ 零逃生。" },
+  { slug: "fitness/weight-capacity-training", inputs: { weight: "100", sets: "4", reps: "5", onerm: "50" },
+    expect: ["已知 1RM 不能小于当前工作重量（100 kg）"],
+    ref: "SF-N19：原 est1rm 直接取输入，已知 1RM 50<工作重量 100 → 强度 200%、90% 行建议 45kg 倒挂。现 onerm>0 && onerm<weight 停算提示。默认 onerm 空、自动估算 ⇒ 零逃生。" },
+  { slug: "fitness/bodyfat-caliper", inputs: { gender: "male", age: "", sites: "3", site_chest: "20", site_abdomen: "30", site_thigh: "25" },
+    expect: ["请填写有效年龄（18–80 岁）"],
+    ref: "SF-N20：原 parseInt(age)||30 把空龄静默代填 30 岁。现清空/越界即停算提示（18–80）。默认 age=30 正常出表 ⇒ 零逃生。注：注入空串触发，非默认态命中。" },
   { slug: "fitness/calc-3", inputs: { gender: "female", height: "165", neck: "32", waist: "75", hip: "95" },
     expect: ["27.7%"],
     ref: "美海军公制（cm）女式：BF=163.205×log₁₀(75+95−32)−97.684×log₁₀(165)−104.91=349.238−216.615−104.91=27.71→27.7%（默认男 170/38/80 避开）。原期望 54.2% 用英寸版常数 −78.387 却代入 cm 数值，属单位口径错误；页面已改用公制常数 −104.91，期望同步更正。" },
@@ -425,17 +451,17 @@ const CASES = [
   {
     "slug": "fitness/estimate",
     "inputs": {
-      "h": "42",
-      "w": "42",
-      "waist": "42",
-      "neck": "42",
-      "hip": "42",
+      "h": "165",
+      "w": "60",
+      "waist": "72",
+      "neck": "32",
+      "hip": "95",
       "sex": "f"
     },
     "expect": [
-      "f\n42\n42\n42\n42\n42\n臀围（cm，女性必填）\n5.7% 体脂率 2.4 kg 脂肪重量 39.6 kg 去脂体重 必需脂肪"
+      "25.9% 体脂率 15.5 kg 脂肪重量 44.5 kg 去脂体重 可接受"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"h\":\"42\",\"w\":\"42\",\"waist\":\"42\",\"neck\":\"42\",\"hip\":\"42\",\"sex\":\"f\"}，输出区含「f\n42\n42\n42\n42\n42\n臀围（cm，女性必填）\n5.7% 体脂率 2.…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：SF-N14 引入身高/腰围/颈围范围校验后，原注入 h=42(<120) 会触发拦截提示、不再出体脂网格。改用合法非默认输入{\"h\":\"165\",\"w\":\"60\",\"waist\":\"72\",\"neck\":\"32\",\"hip\":\"95\",\"sex\":\"f\"}（均在合理区间），女式 d=1.29579−0.35004·log10(72+95−32)+0.22100·log10(165)=1.04011、bf=495/1.04011−450=25.9%、脂肪 60×25.9%=15.5kg、去脂 44.5kg、等级「可接受」；默认态（男/175/70/82/38/95→14.5%）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "fitness/rater-time",
