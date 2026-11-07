@@ -608,6 +608,7 @@
 - 复现：按住 `a` 2 秒（macOS 默认重复率约 30 次/秒）→ A 计数与「总按键」增加数十次，热力色阶与 Top 排行被单个长按键主导。
 - 影响：热力图、占比、排行全部失真，无法反映真实击键分布。
 - 方案：`function onKey(e){ if(e.repeat) return; … }`。
+- **状态：已修复 2026-11-07。** 修复位点：`tools/fun/keyboard-heatmap.html` `onKey(e)` 开头新增 `if(e.repeat)return; // 长按自动重复产生的 keydown 不重复计数（FE-N60）`（约 291 行）。判别力实测：`scripts/_verify_fun_batch_fe_n60.mjs` 运行期两态锁——连续触发两次 `onKey`（`repeat=false` 与 `repeat=true`），读 `counts['a']`，修复版 `counts['a']=1`（忽略重复，PASS），HEAD 旧版 `counts['a']=2`（FAIL）。移交：`plan/已修复/2026-11-07-FE-N60-N73-键盘长按与生成器预设.md`。
 
 ### FE-N61 数据表/历史/趋势只在点「载入示例文本」时写入，且示例会把按键数叠加到真实统计上（中，确认源码缺陷）
 - 页面：`tools/fun/keyboard-heatmap.html`
@@ -729,6 +730,7 @@
 - 复现：点「小规模」→ 数量框显示 `2.5`，结果仅 2 条；点「大规模」→ 显示 `7.5`，结果仅 7 条。
 - 影响：显示数量与实际输出不一致，预设不可信；假工具：否（叠加 FE-N72 的假功能结论）。
 - 方案：预设改整数 `2`/`8`，`gen()` 内 `Math.floor`，并删除「极端工况」。
+- **状态：已修复 2026-11-07（跨 5 文件统一修）。** 修复位点：`tools/fun/generator-2.html`、`tools/fun/generator-3.html`、`tools/fun/generator-24.html`、`tools/music/generator-1.html`、`tools/music/random-training-rhythm.html` 五处预设 `"cnt":"2.5"`→`"3"`、`"cnt":"7.5"`→`"8"`（同时删除无关「极端工况」模板）；`gen()` 入口由 `Math.min(+value||5,50)`（generator-1/random-training-rhythm 为 `parseInt` 取整但未钳下限）改为 `Math.max(1,Math.min(Math.floor(+value||5),50))`，确保小数与低于 1 的输入都被正确取整钳制。判别力实测：`scripts/_verify_fun_batch_fe_n73.mjs` 运行期两态锁——五文件源码均无 `"cnt":"2.5"/"7.5"`，且 `generator-2` 设 `cnt=8` 生成 8 条，修复版 PASS、HEAD 旧版仍含小数预设 FAIL。移交：`plan/已修复/2026-11-07-FE-N60-N73-键盘长按与生成器预设.md`。
 
 ### FE-N74 降号调音名全按升号输出：Bb 调主音显示 A#、4 级显示 D#，F 调 4 级显示 A#（应为 B♭）（高，确认源码缺陷）
 - 页面：`tools/music/sheet-music.html`
