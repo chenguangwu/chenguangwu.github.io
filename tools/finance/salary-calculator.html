@@ -192,6 +192,7 @@ s.parentNode.insertBefore(el, s);
     <div class="tabs">
       <button type="button" class="tab-btn active" id="tabMonthly" onclick="switchMode('monthly')">月薪计算</button>
       <button type="button" class="tab-btn" id="tabAnnual" onclick="switchMode('annual')">年薪计算</button>
+      <input type="text" id="salaryMode" value="monthly" style="display:none" oninput="__salarySyncMode()">
     </div>
 
         <div class="formula-box">
@@ -322,6 +323,7 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="bar-chart" id="barChart"></div>
+    <div id="salaryDeductionNote"></div>
 
     <div class="detail-list">
       <div class="detail-item">
@@ -555,11 +557,37 @@ function fmtShort(n){
   return '¥' + Math.round(n).toLocaleString('zh-CN');
 }
 
+// F-N15：模式快照同步（供 localStorage restore 的 input 事件调用）；不改缴费基数
+function __salaryModeIsEn(){
+  return (typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn());
+}
+function __salarySyncMode(){
+  var el = document.getElementById('salaryMode');
+  if (!el) return;
+  var m = el.value === 'annual' ? 'annual' : 'monthly';
+  currentMode = m;
+  var en = __salaryModeIsEn();
+  var tabM = document.getElementById('tabMonthly'), tabA = document.getElementById('tabAnnual');
+  if (tabM) tabM.classList.toggle('active', m === 'monthly');
+  if (tabA) tabA.classList.toggle('active', m === 'annual');
+  var sl = document.getElementById('salaryLabel');
+  if (sl) sl.textContent = m === 'monthly' ? (en ? 'Pre-tax monthly salary (CNY)' : '税前月薪（元）') : (en ? 'Pre-tax annual salary (CNY)' : '税前年薪（元）');
+  var rt = document.getElementById('resultTitle');
+  if (rt) rt.textContent = m === 'monthly' ? (en ? '📊 Monthly salary result' : '📊 月薪计算结果') : (en ? '📊 Annual salary result' : '📊 年薪计算结果');
+  var at = document.getElementById('afterTaxLabel');
+  if (at) at.textContent = m === 'monthly' ? '税后到手（月）' : '税后到手（年）';
+  var as = document.getElementById('annualStats');
+  if (as) as.style.display = m === 'annual' ? 'grid' : 'none';
+  if (typeof calculate === 'function') calculate();
+}
+
 function switchMode(mode){
   const prevMonthly = currentMode === 'annual'
     ? getNum('salary') / (getNum('monthsPerYear') || 12)
     : getNum('salary');
   currentMode = mode;
+  var __smEl = document.getElementById('salaryMode');
+  if (__smEl) __smEl.value = mode;   // F-N15：模式写入带 id 的快照输入，供 localStorage 持久化/刷新恢复
   document.getElementById('tabMonthly').classList.toggle('active', mode === 'monthly');
   document.getElementById('tabAnnual').classList.toggle('active', mode === 'annual');
   document.getElementById('salaryLabel').textContent = mode === 'monthly' ? ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Pre-tax monthly salary (CNY)':'税前月薪（元）') : ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Pre-tax annual salary (CNY)':'税前年薪（元）');
@@ -576,6 +604,8 @@ function switchMode(mode){
     }
   });
   calculate();
+  // 触发 input 让通用持久化 IIFE 立即保存模式（oninput 的同步函数幂等）
+  if (__smEl) { try { __smEl.dispatchEvent(new Event('input',{bubbles:true})); } catch(e){} }
 }
 
 function toggleSection(id){
@@ -628,7 +658,25 @@ function calculate(){
   const housingRent = getNum('housingRent');
   const elderly = getNum('elderly');
   const infant = getNum('infant');
-  const totalSpecialMonthly = childrenEdu + continuingEdu + housingLoan + housingRent + elderly + infant;
+  // F-N15：住房贷款利息与住房租金在同一纳税年度内不可同时扣除，同时填写时仅按较大者计入
+  const housingExclusive = housingLoan > 0 && housingRent > 0;
+  const housingDeduction = housingExclusive ? Math.max(housingLoan, housingRent) : (housingLoan + housingRent);
+  const housingUsed = housingLoan >= housingRent ? 'loan' : 'rent';
+  const housingIgnored = housingLoan >= housingRent ? housingRent : housingLoan;
+  const totalSpecialMonthly = childrenEdu + continuingEdu + housingDeduction + elderly + infant;
+
+  // 把「实际采用值 / 未计入项 / 合计」写进带 id 的结果容器（动态双语，EN 态零 CJK）
+  var __sdNote = document.getElementById('salaryDeductionNote');
+  if (__sdNote) {
+    if (housingExclusive) {
+      var __en = __salaryModeIsEn();
+      __sdNote.innerHTML = '<div style="font-size:12px;color:var(--text-muted);padding:6px 0;">' + (__en
+        ? 'Housing loan interest and rent cannot both be deducted: used the larger ' + fmt(housingDeduction) + '/mo (' + (housingUsed === 'loan' ? 'loan interest' : 'rent') + '); the other ' + fmt(housingIgnored) + '/mo is ignored. Total itemized deductions: ' + fmt(totalSpecialMonthly) + '/mo.'
+        : '住房贷款利息与住房租金不可同时扣除，已按较大者 ' + fmt(housingDeduction) + '/月（' + (housingUsed === 'loan' ? '房贷利息' : '住房租金') + '）计入，另一项 ' + fmt(housingIgnored) + '/月未计入；专项附加扣除合计 ' + fmt(totalSpecialMonthly) + ' 元/月。') + '</div>';
+    } else {
+      __sdNote.innerHTML = '';
+    }
+  }
 
   const taxableMonthly = Math.max(0, monthlySalary - totalInsuranceMonthly - threshold - totalSpecialMonthly);
 

@@ -132,6 +132,7 @@
 ### F-N15 工资专项附加互斥缺失、模式不入历史（中，确认）
 - 证据：`finance/salary-calculator:619` 房贷利息与租金直加，`:290` 仅文字提示；月薪 2 万/五险 4500/两项 2500 得税 590，仅租金应 690。`:803` 历史不存 currentMode，年薪 24 万刷新后按月薪算。
 - 影响/路径：`finance/salary-calculator.html`；多扣税、恢复历史口径错误。方案：两项互斥、存模式。
+- **已修复 2026-11-07（第 36 批）**：① **模式持久化**：`currentMode` 原是不在任何 input 里的纯 JS `let` 变量，页尾 localStorage 持久化 IIFE 只扫 `input[id]` ⇒ 刷新恢复后一律按 monthly 重算，年薪 24 万被当成月薪。现新增带 id 的快照输入 `salaryMode`（**刻意不带 `readonly`/`disabled`**，否则会被 IIFE 的 `:not([readonly]):not([disabled])` 选择器排除），`switchMode()` 写快照并派发 `input` 触发 `save()`；新增 `__salarySyncMode()` 由 restore 的 `input` 事件触发，同步 `currentMode`、页签/标签/年度统计区并 `calculate()` 重算，且不改动用户已保存的缴费基数。② **互斥**：`totalSpecialMonthly` 由 `housingLoan + housingRent` 直加改为两者同时 >0 时 `Math.max` 取较大者，结果容器 `salaryDeductionNote` 用 `en ? … : …` 动态双语写出「实际采用值 / 未计入项 / 合计」（静态中文与公式框未动 ⇒ en map 无需同步）。独立复算：房贷 1000 + 租金 1500 ⇒ 计入 1500、合计 3500（旧直加 2500 / 4500）；年薪 240000 恢复后 `grossSalary = ¥20,000.00`（旧 ¥240,000.00）。证据见 `plan/已修复/2026-11-07-F-N15-工资页专项附加互斥与模式持久化.md`：新增 3 条用例 + **同批重采 1 条过期 auto 锚点**，`368/368`、判别力 `368 正确变红 / 0 逃生`、id 审计 0 僵尸、页面 16 个内联脚本语法 0 错、JSDOM 两态锁当前 33 PASS / HEAD 27 FAIL（含真实 localStorage 预置的刷新恢复路径）。**踩坑**：首版模式用例用 `¥20,000.00` 作 expect，它恰是默认态 `grossSalary`，判别器按 `snapshotOnly` 的 **`fullBlob`**（含输入回显等全部元素，非 `blob`）判定时命中 ⇒ 新增 1 个逃生项；改用只在年薪注入态出现的 `¥64.80万` / `¥-408,000.00` 后清零。按老板 2026-11-07 节奏指示，本批**未**跑 `_build.py` / 全站判别力 / 229 门禁，攒批统一执行。
 
 ### F-N16 LTV 负贷款被接受（中，确认）
 - 证据：`banking/loan-to-value:220` 仅拦空值/NaN/分母 0；贷款 -10 万/价值 100 万得 LTV -10.0%、覆盖 100 万（`:283` max(loan,1)）、首付 110%。
