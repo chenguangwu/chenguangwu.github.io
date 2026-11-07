@@ -212,7 +212,7 @@ apply_tool('detector-14', '无氧阈（拐点）检测', 'Anaerobic Threshold (A
 # ---------------- 7. 最大摄氧量（VO2max）估算（跑步测试） ----------------
 apply_tool('estimate-tester', '最大摄氧量（VO2max）估算（跑步测试）', 'VO2max Estimator (Running Test)', {
  '🏃 最大摄氧量（VO2max）估算（跑步测试）': '🏃 VO2max Estimator (Running Test)',
- '通过Cooper 12分钟跑测试估算最大摄氧量(VO2max)。公式：VO2max=(距离-504.9)/44.73，支持多种跑步测试方法。': 'Estimate VO2max from a Cooper 12-minute run test using VO2max = (distance − 504.9) / 44.73, with several running-test methods supported.',
+ '通过Cooper 12分钟跑测试估算最大摄氧量(VO2max)。公式：VO2max=(距离-504.9)/44.73，支持两种跑步测试方法。': 'Estimate VO2max from a Cooper 12-minute run test using VO2max = (distance − 504.9) / 44.73, with two running-test methods supported.',
  '📖 查看「最大摄氧量（VO2max）计算器使用指南」': '📖 View the "VO2max (Maximal Oxygen Uptake) Calculator Guide"',
  'VO2max = 15.3×距离(英里)/时间 + 3.5': 'VO2max = 15.3×distance (miles)/time + 3.5',
  '测试方法选择': 'Select test method',
