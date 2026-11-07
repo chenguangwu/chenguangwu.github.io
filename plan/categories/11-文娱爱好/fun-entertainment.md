@@ -482,13 +482,12 @@
 - 影响：练习向承诺缺失，用户无法看到胜率与最少步数进步。
 - 方案：本地增记 wins/losses、最少 guessing 步数与平均步数；否则删除战绩表述。
 
-### FE-N48 抛硬币重置统计后「最近结果」残留（中，确认源码缺陷）
+### FE-N48 抛硬币重置统计后「最近结果」残留（中，已修复 2026-11-07）
 - 页面：`tools/fun/coin-flip.html`
 - 问题：`updateStats()` 仅在 `recent.length>0` 时重绘 `#recentResults`；`reset()` 清空数组后调用它，容器仍是旧序列。
-- 证据：`:359-377`（`:372` `if(recent.length>0)` 才赋值 innerHTML，无 else 清空）、`:385``reset()`、`:222`（`#recentResults` 容器）。
-- 复现：抛 10 次 → 点「重置统计」→ 正/反/总数与比例归零，但「最近结果」仍显示旧的 10 个正反标记。
-- 影响：重置后统计区自相矛盾，用户误以为数据未清。
-- 方案：`recent.length===0` 时把容器写回「暂无记录」占位。
+- 修复位点：`updateStats()` 增加 `else` 分支，当 `recent.length===0` 时把 `#recentResults` 写回 `<span style="color:var(--text-muted)">暂无记录</span>`。
+- 判别力：`scripts/_verify_fun_batch_fe_n48.mjs` JSDOM 两态锁——抛 3 次（每次等 1.1s）→ reset() → 修复版 #recentResults 显示「暂无记录」，PASS(exit 0)；HEAD 旧版残留「正/反」，FAIL(exit 1)，确认 bug 真实且已修。
+- 移交文件：`plan/已修复/2026-11-07-FE-N48-抛硬币重置清空最近结果.md`
 
 ### FE-N49 Pong AI 移动速率被乘 0.08，人机模式几乎无对抗（中，确认源码缺陷）
 - 页面：`tools/fun/pong.html`
