@@ -1004,3 +1004,9 @@
 - **SF-N111（负值控球率 + 零分母恒判本方占优，中）**：`stats-8.html` 原先只校验 `pm>mm`，控球 −10 min 时本方 −11.11%、对手 111.11%；且对手传球总数 0 时对手成功率记 0，差值恒正 ⇒ 永远「本方占优」。现加六项非负校验（停算提示「比赛数据不能为负数」），并在 `pt>0 && ot>0` 之外把差值行改为「— 个百分点（对手/本方传球总数为 0，无法比较）」。
 - **SF-N113（周训练天数可填 14，中）**：`strength-5.html` `max="14"`、只校验 `d>=2`，`DAY_LABEL` 含「第八日…第十四日」，填 14 会排出第 8–14 天的「周」计划。改 `max="7"`、校验 `2<=d<=7`、`DAY_LABEL` 只留周一~周日、提示改「周训练天数需在 2–7 天之间」、placeholder 改 `e.g. 6 (2–7)`。**同批改写门禁 B 类零用例**：原用例注入 `days=42` 并锚「第十一日」——那正是缺陷本身；改为 `days=8` 锚停算提示，另补 `days=7` 正例锚「周日 · 低强度 Z1-Z2 · 84 分钟」（证明上限含 7 且不再排第八天）。
 - **验证**：`node scripts/verify_sports_calc.js` **194/194**（+4：睡眠 0 h、stats-8 负值、stats-8 零分母、strength-5 补 7 天正例；另有 1 条改写）；`discriminate_check.js verify_sports_calc.js` **194 已检 / 194 变红 / 0 逃生**；`node scripts/_verify_sports_batch_o.mjs` **17/17**，`--head` 回退 **4/17**。
+
+### Z/AA 批遗留处置三（2026-11-07 P 批 · 2 条真修复）
+
+- **SF-N92（Sinclair 体重级别表缺 89kg / 102kg，中）**：`juzhongzongchengji-sinclair-xishu.html` 男子级别链原为 55/61/67/73/81/**96**/109/+109，缺巴黎周期（2018 起）的 89kg 与 102kg 两级，而输出文案却标「（巴黎周期级别）」。补 `<=89 → 89kg`、`<=102 → 102kg` 两档；女子 45/49/55/59/64/71/76/81/87/+87 与 IWF 一致，未动。运行期遍历 11 档位实测：88 kg ⇒ 89kg（原 96kg）、100/101 kg ⇒ 102kg（原 109kg），105 ⇒ 109kg、110 ⇒ +109kg、边界含等于。**同批改写门禁用例**：原用例注入 bw=88 锚「96kg」——那正是缺陷结果，改为锚「89kg」并补 101 kg ⇒ 102kg 用例。
+- **SF-N109（运动记录预设覆盖历史且不落盘，高）**：`sports-stats.html` `applySportPreset()` 三支均为 `records=[预设]`，只 `render()` 不 `localStorage.setItem`；随后任一「添加记录」会把当前数组整体写回 ⇒ 用户历史被永久覆盖。改为 `records = preset.concat(records)` + 立即 `localStorage.setItem` + toast 提示「已追加 N 条示例记录（历史保留，可逐条删除）」。运行期实测：预置 2 条历史 → 载入「跑步周」后 4 条（历史 2 条仍在）、存储同步 4 条；再添加 1 条 → 5 条、历史仍在（HEAD 版：载入后 2 条、历史 0 条、添加后 3 条 ⇒ 历史全丢）。
+- **验证**：`node scripts/verify_sports_calc.js` **195/195**（+1 补位用例，改写 1 条）；`discriminate_check.js verify_sports_calc.js` **195 已检 / 195 变红 / 0 逃生**；`node scripts/_verify_sports_batch_p.mjs` **7/7**，`--head` 回退 **1/7**。

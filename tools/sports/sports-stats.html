@@ -382,24 +382,31 @@ function render() {
 }
 
 function applySportPreset(kind){
+  var preset=null;
   if(kind==='run'){
-    records=[
+    preset=[
       {id:Date.now()+1,sport:'跑步',minutes:30,distance:5,cal:300,date:'2026-10-15'},
       {id:Date.now()+2,sport:'跑步',minutes:40,distance:7,cal:420,date:'2026-10-16'}
     ];
   } else if(kind==='cycle'){
-    records=[
+    preset=[
       {id:Date.now()+1,sport:'骑行',minutes:60,distance:20,cal:500,date:'2026-10-15'},
       {id:Date.now()+2,sport:'健身',minutes:45,distance:0,cal:350,date:'2026-10-17'}
     ];
   } else if(kind==='mix'){
-    records=[
+    preset=[
       {id:Date.now()+1,sport:'游泳',minutes:30,distance:1.5,cal:280,date:'2026-10-15'},
       {id:Date.now()+2,sport:'瑜伽',minutes:50,distance:0,cal:150,date:'2026-10-16'},
       {id:Date.now()+3,sport:'跑步',minutes:35,distance:6,cal:360,date:'2026-10-18'}
     ];
   } else return;
+  /* SF-N109：原实现 `records=[预设]` 直接覆盖内存且不落盘 —— 用户此前保存的历史在下次
+     「添加记录」（会整体写回 localStorage）时被永久覆盖。现改为「追加示例记录 + 立即持久化」，
+     历史不再丢失，示例行可逐条删除。 */
+  records = preset.concat(records);
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); }catch(e){}
   render();
+  try{ if(typeof ToolBox!=='undefined'&&ToolBox.showToast){ToolBox.showToast('已追加 '+preset.length+' 条示例记录（历史记录保留，可逐条删除）');} }catch(e){}
 }
 document.getElementById('aDate').valueAsDate = new Date();
 render();
