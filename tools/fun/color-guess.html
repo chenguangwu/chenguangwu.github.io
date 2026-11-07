@@ -249,6 +249,11 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 let target,score,round;
+// FE-N64 修复：保存 1s 换题定时器句柄 + 局次令牌，重置/重开时取消旧回调
+let roundTimer=null,sessionId=0;
+function clearRoundTimer(){
+  if(roundTimer!==null){clearTimeout(roundTimer);roundTimer=null;}
+}
 
 function rndColor(){
   const r=Math.floor(Math.random()*256);
@@ -257,11 +262,15 @@ function rndColor(){
   return '#'+[r,g,b].map(x=>x.toString(16).padStart(2,'0')).join('');
 }
 function start(){
+  clearRoundTimer();
+  sessionId++;
   score=0;
   round=0;
   nextRound();
 }
 function reset(){
+  clearRoundTimer();
+  sessionId++;
   score=0;
   round=0;
   document.getElementById('colorDisplay').style.display='none';
@@ -297,7 +306,11 @@ function choose(c,el){
     el.classList.add('wrong');
     opts.forEach(o=>{if(o.textContent.toLowerCase()===target.toLowerCase())o.classList.add('correct');});
   }
-  setTimeout(()=>{
+  const mySession=sessionId;
+  clearRoundTimer();
+  roundTimer=setTimeout(()=>{
+    roundTimer=null;
+    if(mySession!==sessionId)return; // 该定时器属于已被「重置/重新开始」作废的局次，丢弃
     if(round>=10){
       const __h3=`<p>🏁 游戏结束！最终得分：${score}/${round}</p>`;if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h3;
       document.getElementById('colorDisplay').style.display='none';

@@ -126,7 +126,7 @@ s.parentNode.insertBefore(el, s);
 
     <div class="input-row">
       <label>主题词（可选）</label>
-      <input type="text" id="topic" value="天气" placeholder="例如：动物/植物">
+      <input type="text" id="topic" value="动物" placeholder="例如：动物/植物（留空或输入「全部」= 全题库）">
     </div>
     <div class="toolbar">
       <div id="riddle_generatorPresets"></div>
@@ -258,16 +258,57 @@ const ANSWER = {
 };
 
 let current = '';
+// FE-N83 修复：按「池」维护已抽集合，实现「连抽不重复、抽完再循环」
+let usedSet = new Set(), usedKey = '';
 
-function pick(arr) {
-  return arr[Math.floor(Math.random() * arr.length)];
+function escHtml(s){ return String(s).replace(/[&<>"]/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]; }); }
+
+// FE-N82 修复：真实关键词匹配（分类名精确 → 分类名包含 → 谜面包含 → 明确未命中提示），不再静默回退
+function resolvePool(raw){
+  var keys = Object.keys(BANK);
+  var all = [];
+  keys.forEach(function(k){ BANK[k].forEach(function(q){ all.push(q); }); });
+  if(!raw || raw === '全部' || raw.toLowerCase() === 'all'){
+    return { key:'__all__', label:'全部', list:all, note:'' };
+  }
+  if(BANK[raw]) return { key:raw, label:raw, list:BANK[raw].slice(), note:'' };
+  var hitKeys = keys.filter(function(k){ return k.indexOf(raw) >= 0 || raw.indexOf(k) >= 0; });
+  if(hitKeys.length){
+    var list = [];
+    hitKeys.forEach(function(k){ BANK[k].forEach(function(q){ list.push(q); }); });
+    return { key:'cat:' + hitKeys.join('|'), label:hitKeys.join('/'), list:list, note:'' };
+  }
+  var byText = all.filter(function(q){ return q.indexOf(raw) >= 0; });
+  if(byText.length) return { key:'text:' + raw, label:'谜面包含「' + raw + '」', list:byText, note:'' };
+  return {
+    key:'__miss__:' + raw,
+    label:'未命中',
+    list:BANK['普通'].slice(),
+    note:'关键词「' + raw + '」未匹配任何分类或谜面，已回退到「普通」池；可输入 动物/植物/物件/数字，或输入谜面片段。'
+  };
+}
+
+// FE-N83：同一池内不重复抽取，抽完自动循环
+function pickUnique(list, key){
+  if(key !== usedKey){ usedSet = new Set(); usedKey = key; }
+  var remain = list.filter(function(x){ return !usedSet.has(x); });
+  if(!remain.length){ usedSet = new Set(); remain = list.slice(); }
+  var c = remain[Math.floor(Math.random() * remain.length)];
+  usedSet.add(c);
+  return c;
 }
 
 function generate() {
-  const t = (document.getElementById('topic').value || '').trim();
-  const pool = BANK[t] || BANK.普通;
-  current = pick(pool);
-  const __h0=`<p>谜面：${current}</p><p>答案：<span id=\"a\" style=\"display:none\"></span></p>`;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
+  const raw = (document.getElementById('topic').value || '').trim();
+  const sel = resolvePool(raw);
+  current = pickUnique(sel.list, sel.key);
+  const remainCnt = Math.max(0, sel.list.length - usedSet.size);
+  const meta = '<p class="riddle-meta" style="color:var(--text-muted);font-size:.86em;">分类：' + escHtml(sel.label)
+    + ' · 候选 ' + sel.list.length + ' 条 · 本轮剩余 ' + remainCnt + ' 条</p>';
+  const warn = sel.note ? '<p style="color:#d97706;font-size:.86em;">⚠ ' + escHtml(sel.note) + '</p>' : '';
+  document.getElementById('result').innerHTML = '<p>谜面：' + escHtml(current) + '</p>'
+    + meta + warn
+    + '<p>答案：<span id="a" style="display:none"></span></p>';
 }
 
 function showAnswer() {
@@ -394,7 +435,7 @@ function __riddle_generatorExport(){
 }
 function __riddle_generatorPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#riddle_generatorPresets',[{label:'默认参数',labelEn:'Default',values:{'topic':'天气'}},
+    TBKit.preset.bar('#riddle_generatorPresets',[{label:'默认参数',labelEn:'Default',values:{'topic':'动物'}},
   {"label":"动物谜语","labelEn":"Animal Riddles","values":{"topic":"动物"}},
   {"label":"植物谜语","labelEn":"Plant Riddles","values":{"topic":"植物"}},
   {"label":"物件谜语","labelEn":"Object Riddles","values":{"topic":"物件"}}],function(){ generate(); });
