@@ -159,11 +159,13 @@
 - 处置：仅复核，**未改源码、未加 harness 锁**（该历史恢复路径属 harness 盲区，且现行源码 déjà 正确，加锁无判别增益）。
 - 遗留可查（非本次范围）：无。
 
-### FE-N10 FEN 只校验棋盘段，缺行棋方时一律显示「黑方」且不报错（中，确认源码缺陷）
-- 描述：解析只要求 8 行×8 列，完全忽略行棋方、易位、吃过路兵、计数四段；缺第 2 段时 `turn=''`，三元判断落到「黑方」。FAQ 却称「缺段会解析失败」。
-- 证据：`tools/fun/chess-fen-viewer.html:276-298`（`parse` 只读 `fen.split(' ')[0]`）、`:316-320`（`turn=parts[1]||''`，非 `w` 即黑方）、`:221`（FAQ 承诺）。Node 直接执行页面 `parse`：仅棋盘段的 FEN、`8/8/8/8/8/8/8/8` 空棋盘、`8/8/8/8/8/8/k7/K7` 双王残局均被接受；`r9/8/…` 因列数超 8 被拒。
-- 影响：`tools/fun/chess-fen-viewer.html`；残缺或非法 FEN 得到看似正常的「黑方先走」结论，用户无法察觉输入错误。
-- 方案：校验 6 段及字段取值（`w|b`、`KQkq|-`、格位、半回合/回合数），缺段或非法时报错；无王/多王局面给出警告。
+### FE-N10 FEN 只校验棋盘段，缺行棋方时一律显示「黑方」且不报错（中，**2026-11-07 已修复**）
+- 描述（原）：解析只要求 8 行×8 列，完全忽略行棋方、易位、吃过路兵、计数四段；缺第 2 段时 `turn=''`，三元判断落到「黑方」。FAQ 却称「缺段会解析失败」。
+- 证据（原）：`tools/fun/chess-fen-viewer.html:276-298`、`tools/fun/chess-fen-viewer.html:316-320`、`tools/fun/chess-fen-viewer.html:221`。
+- **修复位点**：新增 `validateFields(fen)`（`tools/fun/chess-fen-viewer.html` `render` 之前）：按 `\s+` 切 6 段，依次校验 `parts[1]∈{w,b}`、`parts[2]∈/^K?Q?k?q?$|^-$/`、`parts[3]==='-'||/^[a-h][1-8]$/`、`parts[4]/parts[5]` 为非负整数；`render` 在 `parse` 通过后调用 `validateFields`，不通过则输出 `FEN 字段缺失或非法：需 6 段（行棋方须 w/b、易位 KQkq 或 -、吃过路兵格位或 -、计数非负整数）` 并 return。`turn/castle/enPassant` 改为取自 `fv` 而非直接 `parts[1]||''`，从而缺段必由校验拦截、不再静默落「黑方」。
+  - 附带修正：`默认参数` 预设 FEN 原为 `rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK`（第 8 行少 3 格，本就 `parse` 失败）— 补为完整起始局面 `rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1`。
+- **判别力实测**：`scripts/verify_fun_calc.js` 增缺段用例 `{fen:"rnbqkbnr/.../RNBQKBNR", expect:["FEN 字段缺失或非法"]}`（锚不含「白方/黑方/轮到」等默认态串，仅缺段输入下命中）；全量 `fun calc 33/33`；`discriminate_check` 已检 33 / 正确变红 33 / 仍 PASS(逃生项) 0。
+- 移交文件：`plan/已修复/2026-11-07-FE-N10-FEN缺段静默显示黑方已修复字段校验.md`
 
 ### FE-N11 五子棋禁手判定顺序错误，三三/四四分支忽略连子数（高，确认源码缺陷）
 - 描述：`three_three`/`four_four` 分支只看 `liveCount`，完全不读 `stoneCount`，长连与五连被误判；`custom` 分支又要求 `stones===5 && live<2` 才判五连，导致「恰好五连同时含活三」被判禁手。

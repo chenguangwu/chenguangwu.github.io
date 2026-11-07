@@ -296,12 +296,29 @@ function parse(fen){
     return null;
   }
 }
+/* FE-N10：仅校验棋盘段会放过后 5 段（行棋方/易位/吃过路兵/计数）。
+   补全 6 段校验：行棋方须 w|b、易位 KQkq 或 -、吃过路兵合法格位或 -、计数为非负整数。 */
+function validateFields(fen){
+  const parts=(fen||'').trim().split(/\s+/);
+  if(parts.length<6) return null;
+  if(parts[1]!=='w'&&parts[1]!=='b') return null;
+  if(!/^K?Q?k?q?$|^-$/.test(parts[2])) return null;
+  if(parts[3]!=='-'&&!/^[a-h][1-8]$/.test(parts[3])) return null;
+  if(!/^\d+$/.test(parts[4])) return null;
+  if(!/^\d+$/.test(parts[5])) return null;
+  return { turn:parts[1], castle:parts[2], enPassant:parts[3] };
+}
 function render(fen){
   const grid=parse(fen);
   const b=document.getElementById('board');
   const __h0='';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){b.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}b.innerHTML=__h0;
   if(!grid){
     const __h1='<p style="color:var(--danger);">无效的 FEN</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h1;
+    return;
+  }
+  const fv=validateFields(fen);
+  if(!fv){
+    const __h1='<p style="color:var(--danger);">FEN 字段缺失或非法：需 6 段（行棋方须 w/b、易位 KQkq 或 -、吃过路兵格位或 -、计数非负整数）</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h1;
     return;
   }
   for(let r=0;r<8;r++){
@@ -313,10 +330,9 @@ function render(fen){
       b.appendChild(sq);
     }
   }
-  const parts=fen.split(' ');
-  const turn=parts[1]||'';
-  const castle=parts[2]||'';
-  const enPassant=parts[3]||'';
+  const turn=fv.turn;
+  const castle=fv.castle;
+  const enPassant=fv.enPassant;
   const __h2=`<p>轮到：<strong>${turn==='w'?'白方':'黑方'}</strong> / 王车易位：<strong>${castle==='-'?'无':castle}</strong> / 吃过路兵：<strong>${enPassant}</strong></p>`;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h2;
 }
 function start(){
@@ -465,7 +481,7 @@ function __chess_fen_viewerExport(){
 }
 function __chess_fen_viewerPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#chess_fen_viewerPresets',[{label:'默认参数',labelEn:'Default',values:{'fen':'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK'}},
+    TBKit.preset.bar('#chess_fen_viewerPresets',[{label:'默认参数',labelEn:'Default',values:{'fen':'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'}},
   {"label":"王兵残局","labelEn":"King and Pawn Endgame","values":{"fen":"8/8/8/4k3/8/4K3/4P3/8 w - - 0 1"}},
   {"label":"意大利开局","labelEn":"Italian Game Opening","values":{"fen":"r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3"}},
   {"label":"双车杀王","labelEn":"Two Rooks Checkmate","values":{"fen":"8/8/8/8/8/3k4/3R4/3RK3 w - - 0 1"}}],function(){ loadPreset(); });

@@ -113,6 +113,15 @@ const CASES = [
        + "注入失败时回退默认起始局面（白方/KQkq/-）也失配。",
   },
 
+  {
+    slug: "fun/chess-fen-viewer",
+    inputs: { fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR" },
+    expect: ["FEN 字段缺失或非法"],
+    ref: "FE-N10：仅棋盘段（缺后 5 段）旧实现静默显示「黑方」、FAQ 却称「缺段会解析失败」。"
+       + "修复后 validateFields 校验 6 段，缺失即报「FEN 字段缺失或非法」；锚不含「白方/黑方/轮到」等默认态串，"
+       + "仅在缺段输入下命中，非逃生。",
+  },
+
   // ── 抽奖结果转义 ─────────────────────────────────────────────
   {
     slug: "fun/raffle-picker",
