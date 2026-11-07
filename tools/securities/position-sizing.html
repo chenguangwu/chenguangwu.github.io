@@ -467,16 +467,32 @@ function calcFixed(){
 
   var riskAmount = capital * riskPct / 100;
   var perShareRisk = Math.abs(entry - stop);
+  // FE-N131 修复①：止损距离为 0（止损价=买入价）或止损价非正时不再输出「÷0 = 0 股」的伪结果
+  if(!(stop > 0) || perShareRisk <= 0){
+    document.getElementById('statGrid').innerHTML='';
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);">止损价必须大于 0 且与买入价不同（止损距离为 0 时无法按风险预算求仓位）。</p>';
+    return;
+  }
+  // FE-N131 修复②：把「买入 + 止损卖出」的双向手续费并入每股风险，仓位才真正不超风险预算
+  var feePerShare = feeRate * (entry + stop);
+  var perShareRiskNet = perShareRisk + feePerShare;
   var perShareProfit = target - entry;
-  var shares = perShareRisk > 0 ? riskAmount / perShareRisk : 0;
+  var shares = Math.floor(riskAmount / perShareRiskNet); // 按整股向下取整
+  if(!(shares > 0)){
+    document.getElementById('statGrid').innerHTML='';
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);">按当前风险预算与止损距离，可买不足 1 股，请调大资金/风险比例或收窄止损距离。</p>';
+    return;
+  }
   var positionValue = shares * entry;
   var positionPct = capital > 0 ? positionValue / capital * 100 : 0;
-  var potentialLoss = shares * perShareRisk;
+  // 最大亏损 = 股数 × 每股净风险（价差 + 双边手续费），恒 ≤ 风险预算
+  var netLoss = shares * perShareRiskNet;
   var potentialProfit = shares * perShareProfit;
   var fee = positionValue * feeRate;
+  var feeRoundTrip = fee + shares * stop * feeRate;
   var netProfit = potentialProfit - fee * 2;
-  var netLoss = potentialLoss + fee * 2;
   var rrRatio = perShareRisk > 0 ? perShareProfit / perShareRisk : 0;
+  var rrNet = perShareProfit > 0 ? potentialProfit / netLoss : 0;
 
   var statHtml = '<div class="stat-card"><div class="val">¥' + ToolBox.formatNumber(shares, 0) + '</div><div class="lbl">建议股数</div></div>'
     + '<div class="stat-card"><div class="val">¥' + ToolBox.formatNumber(positionValue, 0) + '</div><div class="lbl">仓位市值</div></div>'
@@ -491,17 +507,20 @@ function calcFixed(){
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
   html += '<p>买入价：<strong>' + entry.toFixed(2) + '</strong> | 止损价：<strong>' + stop.toFixed(2) + '</strong> | 目标价：<strong>' + target.toFixed(2) + '</strong></p>';
   html += '<p>每股风险 = |' + entry.toFixed(2) + ' - ' + stop.toFixed(2) + '| = <strong>' + perShareRisk.toFixed(2) + '</strong></p>';
+  html += '<p>每股手续费（买入 + 止损卖出）= ' + (feeRate * 100).toFixed(3) + '% × (' + entry.toFixed(2) + ' + ' + stop.toFixed(2) + ') = <strong>' + feePerShare.toFixed(4) + '</strong></p>';
+  html += '<p>每股净风险 = ' + perShareRisk.toFixed(2) + ' + ' + feePerShare.toFixed(4) + ' = <strong>' + perShareRiskNet.toFixed(4) + '</strong></p>';
   html += '<p>每股盈利 = ' + target.toFixed(2) + ' - ' + entry.toFixed(2) + ' = <strong>' + perShareProfit.toFixed(2) + '</strong></p>';
   html += '<p>盈亏比 = ' + perShareProfit.toFixed(2) + ' ÷ ' + perShareRisk.toFixed(2) + ' = <strong style="color:' + (rrRatio >= 2 ? 'var(--success)' : (rrRatio >= 1 ? 'var(--warning)' : 'var(--danger)')) + ';">' + rrRatio.toFixed(2) + '</strong></p>';
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
-  html += '<p style="font-size:18px;font-weight:700;color:var(--primary);">建议买入股数 = ' + ToolBox.formatNumber(riskAmount, 0) + ' ÷ ' + perShareRisk.toFixed(2) + ' = ' + ToolBox.formatNumber(shares, 0) + ' 股</p>';
+  html += '<p style="font-size:18px;font-weight:700;color:var(--primary);">建议买入股数 = ' + ToolBox.formatNumber(riskAmount, 0) + ' ÷ ' + perShareRiskNet.toFixed(4) + ' = ' + ToolBox.formatNumber(shares, 0) + ' 股（向下取整）</p>';
   html += '<p>仓位市值 = ' + ToolBox.formatNumber(shares, 0) + ' × ' + entry.toFixed(2) + ' = <strong>¥' + ToolBox.formatNumber(positionValue, 0) + '</strong></p>';
   html += '<p>仓位占比 = <strong>' + positionPct.toFixed(1) + '%</strong></p>';
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
   html += '<p style="font-weight:600;">盈亏情景：</p>';
-  html += '<p>手续费（双向）= ¥' + ToolBox.formatNumber(fee * 2, 2) + '</p>';
-  html += '<p>最大亏损 = <strong style="color:var(--danger);">-¥' + ToolBox.formatNumber(netLoss, 0) + '</strong></p>';
+  html += '<p>手续费（买入 + 止损卖出）= ¥' + ToolBox.formatNumber(feeRoundTrip, 2) + '</p>';
+  html += '<p>最大亏损 = <strong style="color:var(--danger);">-¥' + ToolBox.formatNumber(netLoss, 2) + '</strong>（风险预算 ¥' + ToolBox.formatNumber(riskAmount, 0) + '，占用 ' + (riskAmount > 0 ? (netLoss / riskAmount * 100).toFixed(1) : '0.0') + '%）</p>';
   html += '<p>目标盈利 = <strong style="color:var(--success);">+¥' + ToolBox.formatNumber(netProfit, 0) + '</strong></p>';
+  html += '<p>净盈亏比（含费）= ' + (rrNet > 0 ? rrNet.toFixed(2) : '—') + '</p>';
   if(rrRatio < 1){
     html += '<div class="tip-box tip-warn">盈亏比低于1，风险收益不对称，建议盈亏比至少2:1。</div>';
   } else if(positionPct > 100){

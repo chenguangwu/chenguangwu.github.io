@@ -253,7 +253,7 @@ s.parentNode.insertBefore(el, s);
     return __msg;
   }
   // 分母项：__D 由真浏览器逐项置零探测得出，命中即说明该输入在此页作分母
-  var __D={"r": "年利率 r (%)", "y": "年限 y"};
+  var __D={"y": "年限 y"};
   for(var _d=0;_d<_ids.length;_d++){
     if(!(_ids[_d] in __D)) continue;
     var _de=document.getElementById(_ids[_d]);
@@ -285,12 +285,24 @@ function num(id){const v=parseFloat(document.getElementById(id).value);return is
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
               var __ig=__tbInputGuard(['p', 'r', 'y', 'k'],["贷款本金 P", "年利率 r (%)", "年限 y", "已还期数 k"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const P = num('p'), r = num('r') / 100 / 12, N = num('y') * 12, k = num('k');
-            const emi = P * r * Math.pow(1 + r, N) / (Math.pow(1 + r, N) - 1);
-            const B = P * Math.pow(1 + r, k) - emi * (Math.pow(1 + r, k) - 1) / r;
+const P = num('p'), r = num('r') / 100 / 12, N = Math.round(num('y') * 12), kRaw = num('k');
+            // FE 修复：期数边界校验——k 必须是 0~N 的整数，否则会算出负余额（如 1200/12%/1年/已还13期 ⇒ -106.62）
+            if(!(P > 0) || !(N > 0)){
+                ToolBox.setResult('result','<p style="color:var(--danger);">请输入有效的贷款本金与年限（本金 > 0、年限 > 0）。</p>');
+                return;
+            }
+            if(!(kRaw >= 0) || kRaw > N || Math.abs(kRaw - Math.round(kRaw)) > 1e-9){
+                ToolBox.setResult('result','<p style="color:var(--danger);">已还期数必须是 0 ~ '+N+' 之间的整数（当前输入 '+kRaw+' 期）。</p>');
+                return;
+            }
+            const k = Math.round(kRaw);
+            // 零利率单独处理：原式除以 r 会得到 NaN/Infinity
+            const emi = r > 0 ? P * r * Math.pow(1 + r, N) / (Math.pow(1 + r, N) - 1) : P / N;
+            const B = r > 0 ? P * Math.pow(1 + r, k) - emi * (Math.pow(1 + r, k) - 1) / r : P - emi * k;
             const __g2=dataGrid([
                 [B.toFixed(2), '剩余本金 B'],
-                [(P - B).toFixed(2), '已还本金']
+                [(P - B).toFixed(2), '已还本金'],
+                [emi.toFixed(2), '每月还款额']
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('p').value = '500000';
