@@ -194,16 +194,18 @@ function getNum(id){return parseFloat(document.getElementById(id).value);}
 function setInvalid(el,invalid){if(!el)return;if(invalid){el.classList.add('input-error');el.setAttribute('aria-invalid','true');}else{el.classList.remove('input-error');el.removeAttribute('aria-invalid');}}
 function readInputs(){
   var l=getNum('lunge'),f=getNum('foot'),t=getNum('time');
-  var valid=!isNaN(l)&&l>0&&!isNaN(f)&&f>0&&!isNaN(t)&&t>0;
+  // SF-N68：前脚位移不得超过弓步距离（前脚不可能比整体位移更远）。
+  // 原实现只校验 >0，输入 0.3/3/0.5 会给出「前脚速度 6.00 m/s > 峰值 1.20 m/s」「占比 1000%」「身体伸展 −2.70 m」。
+  var valid=!isNaN(l)&&l>0&&!isNaN(f)&&f>0&&!isNaN(t)&&t>0&&f<=l;
   setInvalid(document.getElementById('lunge'),isNaN(l)||l<=0);
-  setInvalid(document.getElementById('foot'),isNaN(f)||f<=0);
+  setInvalid(document.getElementById('foot'),isNaN(f)||f<=0||f>l);
   setInvalid(document.getElementById('time'),isNaN(t)||t<=0);
   return {l:isNaN(l)?0:l,f:isNaN(f)?0:f,t:isNaN(t)?0:t,valid:valid};
 }
 function calc(){
   var iv=readInputs();
   if(!iv.valid){
-    document.getElementById('res').innerHTML='<div class="info-box" style="color:#EF4444;background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.25);">请填写全部有效数值（均需大于 0）</div>';
+    document.getElementById('res').innerHTML='<div class="info-box" style="color:#EF4444;background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.25);">请填写全部有效数值（均需大于 0），且前脚位移不得超过弓步距离（0 &lt; 前脚位移 ≤ 弓步距离）</div>';
     return;
   }
   var vAvg=iv.l/iv.t;

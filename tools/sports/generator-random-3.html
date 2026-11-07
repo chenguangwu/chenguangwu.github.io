@@ -116,7 +116,7 @@ s.parentNode.insertBefore(el, s);
   
 <div class="formula-eq">瑜伽体式序列生成：从内置体式库（站姿/前屈/后弯/扭转/倒立/休息）按强度与时长随机抽取并排序，生成可跟随的居家练习序列。</div></div>
 
-<div class="input-row"><div><label>生成数量</label><input type="number" id="cnt" value="5" min="1" max="50" oninput="gen()" placeholder="e.g. 5 (1–50)"></div></div>
+<div class="input-row"><div><label>生成数量</label><input type="number" id="cnt" value="5" min="1" max="15" oninput="gen()" placeholder="e.g. 5 (1–15)"></div></div>
 <div class="toolbar"><div id="generator_random_3Presets"></div>
       <button type="button" class="btn primary" onclick="gen()">生成</button>
       <button class="btn" type="button" onclick="__generator_random_3Export()">导出明细 CSV</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
@@ -221,10 +221,21 @@ const poses = [
   {name:'头倒立',sanskrit:'Sirsasana',difficulty:'进阶',target:'全身力量、平衡',duration:'20–60秒'}
 ];
 function gen() {
-  const n = Math.min(Math.max(parseInt(document.getElementById('cnt').value) || 5, 1), 50);
-  const pool = [...poses].sort(() => Math.random() - 0.5).slice(0, n);
+  // SF-N72：内置体式只有 poses.length 个，原按 50 截断后 slice 会静默截断（请求 50 实际给 15 且不提示）；
+  // 洗牌原用 sort(()=>Math.random()-0.5)，并非等概率。现按内置数量封顶并提示，洗牌改 Fisher–Yates。
+  const reqN = Math.min(Math.max(parseInt(document.getElementById('cnt').value) || 5, 1), 50);
+  const maxN = poses.length;
+  const n = Math.min(reqN, maxN);
+  const pool = [...poses];
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const tmp = pool[i]; pool[i] = pool[j]; pool[j] = tmp;
+  }
   let h = '<p style="margin-bottom:8px;">瑜伽体式随机序列：</p>';
-  pool.forEach((p, i) => {
+  if (reqN > maxN) {
+    h += '<p style="color:var(--warning);font-size:13px;">⚠ 内置体式共 ' + maxN + ' 个，已按 ' + maxN + ' 个输出（请求 ' + reqN + ' 个）。</p>';
+  }
+  pool.slice(0, n).forEach((p, i) => {
     h += `<p style="padding:6px 0;border-bottom:1px dashed var(--border-color);">${i + 1}. <strong>${p.name}</strong>（${p.sanskrit}） — ${p.difficulty}<br><span style="color:var(--text-muted);font-size:13px;">锻炼部位：${p.target}；建议时长：${p.duration}</span></p>`;
   });
   const __h0=h;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('res').innerHTML=__h0;
