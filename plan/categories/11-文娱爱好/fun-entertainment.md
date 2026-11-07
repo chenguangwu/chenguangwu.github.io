@@ -364,13 +364,12 @@
 - 判别力：`scripts/_verify_fun_batch_fe_n33.mjs` JSDOM 两态锁——设 60 秒 → startTest → 点 3 次眨眼 → 等 0.5s（未到首个 tick）→ stopTest(false)；修复版真实耗时≈0.5s → 每分钟眨眼≈357.9 次/分，PASS(exit 0)；HEAD 旧版兜底 60s → 3.0 次/分，FAIL(exit 1)，确认 bug 真实且已修。
 - 移交文件：`plan/已修复/2026-11-07-FE-N33-眨眼测试真实耗时计算.md`
 
-### FE-N34 测试进行中修改「时长」会改写 remain/total，最终速率算错（中，确认源码缺陷）
+### FE-N34 测试进行中修改「时长」会改写 remain/total，最终速率算错（中，已修复 2026-11-07）
 - 页面：`tools/fun/blink-counter.html`
 - 问题：时长下拉 `onchange` 直接调 `updateRing()`，该函数无条件 `total=新值; remain=total`，不判断 `running`、不重启计时；正在跑的倒计时被中途换标尺。
-- 证据：`:151`（`<select id="duration" onchange="updateRing()">`）、`:290-294`（`total=...; remain=total;`）、`:311-316`。
-- 复现：60 秒开始 → 10 秒后把时长改成 30 秒（remain 由 50 跳回 30）→ 再过 20 秒点停止：`elapsed=30-10=20`、`blinks=20` → 实际 60.0 次/分；真实为 30 秒 20 次 = 40 次/分（Node 复算同值）。期望改时长对已开始的测试无效，或提示先停止。
-- 影响：中途调整时长的测试结果不可信，评级（<5 / <12 档）随之误判。
-- 方案：`running` 时禁用 `duration` 选择，或 change 时忽略并提示；也可按新时长重启测试。
+- 修复位点：① `updateRing()` 开头加 `if(running)return;`（测试进行中忽略时长改动）；② `startTest()` 内 `duration.disabled=true`、`stopTest()`/`resetTest()` 内 `duration.disabled=false`（进行中禁用选择，双重保险）。
+- 判别力：`scripts/_verify_fun_batch_fe_n34.mjs` JSDOM 两态锁——设 60 秒 → startTest → 改 duration=30 并调 updateRing()（模拟中途改时长）；修复版 running 时 updateRing 直接 return，#tNum 保持 60，PASS(exit 0)；HEAD 旧版 remain 被改写为 30（#tNum=30），FAIL(exit 1)，确认 bug 真实且已修。
+- 移交文件：`plan/已修复/2026-11-07-FE-N34-眨眼测试进行中禁改时长.md`
 
 ### FE-N35 调音器音名八度恒低一位：440 Hz 显示 A3（页面自己的算例写 A4）（高，确认源码缺陷）
 - 页面：`tools/music/web-tuner.html`
