@@ -282,10 +282,15 @@ function calc(){
   var box=document.getElementById('res');
   if(!box)return;
   if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  // SF-N34：补液系数越界（0/负数/超量）会产生 0、负或 30L 之类补液量，须限定合理范围（>0 且 ≤3，常用 1.2–1.5 L/kg）
+  if(B<=0||B>3){box.innerHTML='<div class="info-box" style="color:var(--danger)">⚠ 补液系数需在合理范围（>0 且 ≤3，运动医学常用 1.2–1.5 L/kg）。</div>';return;}
+  // SF-N34（分次卡口径）：原「2 小时分次/次」= 总量÷2，会把 1.5 L 标成「单次饮量」（低钠风险），
+  // 改为按运动医学常用单次 250 mL 折算次数，单次量固定 250 mL。
+  var totalMl=A*B*1000, perDose=250, doses=Math.max(1,Math.ceil(totalMl/perDose));
   var items=[];
   items.push([(A*B).toFixed(2)+" L", "建议补液量"]);
-  items.push([(A*B/2).toFixed(2)+" L", "2 小时分次/次"]);
-  items.push([(A*B*1000).toFixed(0)+" mL", "毫升"]);
+  items.push([perDose+" mL × "+doses+" 次", "分次安排（每次 250 mL，间隔 15–20 分钟）"]);
+  items.push([totalMl.toFixed(0)+" mL", "总毫升"]);
 
   var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
   html+='💡 补液量 = 体重差 × 补液系数（约 1.2–1.5 L/kg 失重）。';
