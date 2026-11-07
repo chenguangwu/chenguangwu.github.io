@@ -356,6 +356,13 @@ GATES = (
     # 本项对第 48 批修复的 6 页各断言一条「清空必填项 ⇒ 结果必须离开上一次展示」，
     # 负向对照已实测：换回修复前版本 6/6 全红。
     ("stale result invalidated", ("node", "scripts/_verify_stale_result.mjs")),
+    # 同一根因的另一半（2026-11-08）：__tbInputGuard 触发时主结果会换成「请填写…」，
+    # 但明细表（matrix.table 渲染的 #<pre>Table）保留上一组参数的行 ⇒ 导出 CSV 把旧参数
+    # 的结果当成本次结果带走（118 页抽样 110 页命中）。全站 823 页已统一并入 guard 分支，
+    # 另 4 页（guard 挂在非计算函数 / 页面自带前置校验）在 calc 入口补清表。
+    # 本项对 12 页固定样本断言「清空必填项 ⇒ 明细表不再留有旧行（哨兵行判定）」，
+    # 负向对照已实测：换回修复前版本 4/4 全红。
+    ("guard clears detail table", ("node", "scripts/_verify_guard_clear_table.mjs")),
 )
 
 
