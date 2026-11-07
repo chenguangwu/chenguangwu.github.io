@@ -9,25 +9,21 @@
 整体替换会静默抹掉这些逻辑。本脚本改为 8 处精确小块替换，并用「归一化后相对标准骨架
 的增删行集合，替换前后完全一致」证明除了 F-N189 修复外没有动任何其它字节。
 
-自检（全部通过才写盘）：
-  - 每个旧锚点在「段内」与「全文」均恰好出现 1 次；
-  - 旧段必须含旧过滤正则（防二次替换）、归一化后必须不同于标准骨架（确为定制页）；
-  - 新段 __tbScore 恰好 4 处、旧过滤正则消失、Score 函数存在；
-  - 定制差异行集合 diff(STD_OLD, old) === diff(BASE_NEW, new)；
-  - 新段归一化后仍不同于基准新段（定制仍在）。
+核心逻辑（load_base_new_norm / build_custom）为模块级函数，供 scripts/_fn189_rollout_all.py 复用。
 """
 import argparse
 import difflib
 import io
 import os
-import re
 import sys
 
-BASE_CAT = 'finance'
-BASE_SLUG = 'cnpj-validator'
-OLD_FILTER = "/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';"
 HERE = os.path.dirname(os.path.abspath(__file__))
-STD_OLD_NORM = io.open(os.path.join(HERE, '_fn189_std_old_seg_normalized.txt'), encoding='utf-8').read()
+sys.path.insert(0, HERE)
+import _fn189_rollout as R  # noqa: E402  复用 parse_meta / norm / STD_OLD_NORM
+
+BASE_CAT = R.BASE_CAT
+BASE_SLUG = R.BASE_SLUG
+OLD_FILTER = R.OLD_FILTER
 
 # (old, new) —— @@PFN@@ = __<pre>（函数前缀），@@PID@@ = <pre>（DOM id 前缀），@@SLUG@@ = slug
 PAIRS = [
@@ -90,41 +86,56 @@ PAIRS = [
 ]
 
 
-def seg_bounds(s, pre):
-    a = s.find('function __%sResText()' % pre)
-    b = s.find('function __%sPresets()' % pre)
-    return (a, b, s[a:b]) if a >= 0 and b > a else (-1, -1, '')
-
-
-def parse_meta(s):
-    m = re.search(r"exportTable\('#([^']+)Table','([^']+)\.csv'\)", s)
-    if not m:
-        return None
-    pre, slug = m.group(1), m.group(2)
-    a, b, seg = seg_bounds(s, pre)
-    if a < 0:
-        return None
-    rm = re.search(r'var r=(document\.(?:getElementById|querySelector)\([^)]*\));', seg)
-    cm = re.search(r'\n\s{16}([A-Za-z_][A-Za-z0-9_]*)\(\);', seg)
-    if not (rm and cm):
-        return None
-    return dict(pre=pre, slug=slug, a=a, b=b, seg=seg,
-                resexpr=rm.group(1), calc=cm.group(1))
-
-
-def norm(seg, pre, slug, resexpr, calc):
-    return (seg.replace('__' + pre + '_', '__X_')
-               .replace('__' + pre, '__X')
-               .replace('#' + pre, '#X')
-               .replace("'" + slug + ".csv'", "'X.csv'")
-               .replace(resexpr, 'RESEXPR')
-               .replace('                ' + calc + '();', '                CALC();'))
-
-
 def diff_lines(a, b):
     """统一 diff 中的增删行（不含文件头），用于证明定制差异行集合未变。"""
     return [l for l in difflib.unified_diff(a.splitlines(), b.splitlines(), lineterm='', n=1)
             if l[:1] in ('+', '-') and not l.startswith(('+++', '---'))]
+
+
+def load_base_new_norm():
+    """基准页（已修新实现）的新段归一化串。"""
+    bs = io.open('tools/%s/%s.html' % (BASE_CAT, BASE_SLUG), encoding='utf-8').read()
+    binfo = R.parse_meta(bs)
+    assert binfo and '__tbScore' in binfo['seg'], '基准页必须是已修新实现'
+    n = R.norm(binfo['seg'], binfo['pre'], binfo['slug'], binfo['resexpr'], binfo['calc'])
+    assert len(n) > 2000 and '__tbScore' in n
+    return n
+
+
+def build_custom(s, info, base_new_norm, slug):
+    """对定制页做 8 处精确局部编辑；返回 (s2, seg, custom_diff)。非定制页抛 ValueError。"""
+    pre, old_seg = info['pre'], info['seg']
+    assert info['slug'] == slug, '%s csv 名与 slug 不一致: %s' % (slug, info['slug'])
+    assert s.count('function __%sResText()' % pre) == 1, slug + ' 起始标记不唯一'
+    assert s.count('function __%sPresets()' % pre) == 1, slug + ' 结束标记不唯一'
+    assert OLD_FILTER in old_seg, slug + ' 不是旧模板（已修或二次替换）'
+    assert 'parseFloat(arr[j].d[rk])' in old_seg, slug + ' 旧段缺恒 NaN 图表特征'
+
+    old_norm = R.norm(old_seg, pre, slug, info['resexpr'], info['calc'])
+    if old_norm == R.STD_OLD_NORM:
+        raise ValueError(slug + ' 是标准页，请用 _fn189_rollout.py')
+    custom_diff = diff_lines(R.STD_OLD_NORM, old_norm)
+    assert custom_diff, slug + ' 与标准骨架无差异，异常'
+
+    seg = old_seg
+    for i, (old, new) in enumerate(PAIRS):
+        old = (old.replace('@@PFN@@', '__' + pre)
+                  .replace('@@PID@@', pre).replace('@@SLUG@@', slug))
+        new = (new.replace('@@PFN@@', '__' + pre)
+                  .replace('@@PID@@', pre).replace('@@SLUG@@', slug))
+        assert seg.count(old) == 1, '%s 第 %d 处锚点在段内不唯一 (%d)' % (slug, i + 1, seg.count(old))
+        assert s.count(old) == 1, '%s 第 %d 处锚点在全文不唯一 (%d)' % (slug, i + 1, s.count(old))
+        seg = seg.replace(old, new, 1)
+
+    new_norm = R.norm(seg, pre, slug, info['resexpr'], info['calc'])
+    assert seg.count('__tbScore') == 4, slug + ' __tbScore 数量异常: %d' % seg.count('__tbScore')
+    assert OLD_FILTER not in seg, slug + ' 旧过滤正则仍在'
+    assert 'function __%sScore(t)' % pre in seg, slug + ' Score 函数缺失'
+    new_diff = diff_lines(base_new_norm, new_norm)
+    assert new_diff == custom_diff, \
+        slug + ' 定制差异行集合变化（定制逻辑被改动）\n  OLD: %r\n  NEW: %r' % (custom_diff, new_diff)
+    assert new_norm != base_new_norm, slug + ' 定制逻辑丢失（与基准新段同构）'
+    return s[:info['a']] + seg + s[info['b']:], seg, custom_diff
 
 
 def main():
@@ -135,56 +146,22 @@ def main():
     args = ap.parse_args()
     slugs = [x.strip() for x in args.pages.split(',') if x.strip()]
 
-    # 基准页（已修新实现）→ 基准新段归一化
-    bs = io.open('tools/%s/%s.html' % (BASE_CAT, BASE_SLUG), encoding='utf-8').read()
-    binfo = parse_meta(bs)
-    assert binfo and '__tbScore' in binfo['seg'], '基准页必须是已修新实现'
-    BASE_NEW_NORM = norm(binfo['seg'], binfo['pre'], binfo['slug'], binfo['resexpr'], binfo['calc'])
-    assert len(BASE_NEW_NORM) > 2000 and '__tbScore' in BASE_NEW_NORM
-
+    base_new_norm = load_base_new_norm()
     plans = []
     for slug in slugs:
         f = 'tools/%s/%s.html' % (args.cat, slug)
         if not os.path.exists(f):
             print('FAIL %-28s 页面不存在' % slug); sys.exit(1)
         s = io.open(f, encoding='utf-8').read()
-        info = parse_meta(s)
+        info = R.parse_meta(s)
         if not info:
             print('FAIL %-28s 抽不到标准参数' % slug); sys.exit(1)
-        pre, old_seg = info['pre'], info['seg']
-        assert info['slug'] == slug, slug + ' csv 名与 slug 不一致'
-        assert s.count('function __%sResText()' % pre) == 1, slug + ' 起始标记不唯一'
-        assert s.count('function __%sPresets()' % pre) == 1, slug + ' 结束标记不唯一'
-        assert OLD_FILTER in old_seg, slug + ' 不是旧模板（已修或二次替换）'
-        assert 'parseFloat(arr[j].d[rk])' in old_seg, slug + ' 旧段缺恒 NaN 图表特征'
-
-        old_norm = norm(old_seg, pre, slug, info['resexpr'], info['calc'])
-        assert old_norm != STD_OLD_NORM, slug + ' 是标准页，请用 _fn189_rollout.py'
-        custom_diff = diff_lines(STD_OLD_NORM, old_norm)
-        assert custom_diff, slug + ' 与标准骨架无差异，异常'
-
-        seg = old_seg
-        for i, (old, new) in enumerate(PAIRS):
-            old = (old.replace('@@PFN@@', '__' + pre)
-                      .replace('@@PID@@', pre).replace('@@SLUG@@', slug))
-            new = (new.replace('@@PFN@@', '__' + pre)
-                      .replace('@@PID@@', pre).replace('@@SLUG@@', slug))
-            assert seg.count(old) == 1, '%s 第 %d 处锚点在段内不唯一 (%d)' % (slug, i + 1, seg.count(old))
-            assert s.count(old) == 1, '%s 第 %d 处锚点在全文不唯一 (%d)' % (slug, i + 1, s.count(old))
-            seg = seg.replace(old, new, 1)
-
-        new_norm = norm(seg, pre, slug, info['resexpr'], info['calc'])
-        assert seg.count('__tbScore') == 4, slug + ' __tbScore 数量异常: %d' % seg.count('__tbScore')
-        assert OLD_FILTER not in seg, slug + ' 旧过滤正则仍在'
-        assert 'function __%sScore(t)' % pre in seg, slug + ' Score 函数缺失'
-        assert diff_lines(BASE_NEW_NORM, new_norm) == custom_diff, \
-            slug + ' 定制差异行集合变化（定制逻辑被改动）\n  OLD: %r\n  NEW: %r' % (
-                custom_diff, diff_lines(BASE_NEW_NORM, new_norm))
-        assert new_norm != BASE_NEW_NORM, slug + ' 定制逻辑丢失（与基准新段同构）'
-
-        s2 = s[:info['a']] + seg + s[info['b']:]
-        plans.append((slug, f, s2, len(old_seg), len(seg), len(custom_diff)))
-        print('CHECK %-28s 定制差异 %d 行 %d -> %d chars' % (slug, len(custom_diff), len(old_seg), len(seg)))
+        try:
+            s2, seg, cd = build_custom(s, info, base_new_norm, slug)
+        except (AssertionError, ValueError) as e:
+            print('FAIL %-28s %s' % (slug, e)); sys.exit(1)
+        plans.append((slug, f, s2, len(info['seg']), len(seg), len(cd)))
+        print('CHECK %-28s 定制差异 %d 行 %d -> %d chars' % (slug, len(cd), len(info['seg']), len(seg)))
 
     print('自检通过 %d/%d 页%s' % (len(plans), len(slugs), '（--dry 不写盘）' if args.dry else ''))
     if args.dry:

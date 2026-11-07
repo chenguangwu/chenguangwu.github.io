@@ -486,8 +486,13 @@ function __straw_returnResText(){
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
+}
+function __straw_returnScore(t){
+    var s=String(t||'');
+    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    return 1;
 }
 function __straw_returnTime(t){
     var d=new Date(t);
@@ -497,10 +502,12 @@ function __straw_returnTime(t){
 function __straw_returnRender(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
-        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var head=[en?'Time':'时间'].concat(keys).concat([en?'Verdict':'结论',rk]);
         var rows=arr.map(function(it){
             var row=[__straw_returnTime(it.t)];
             for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var sc=parseFloat(it.d.__tbScore);
+            row.push(isFinite(sc)?(sc>=1?(en?'Pass':'通过'):(en?'Fail':'未通过')):'-');
             var r=it.d[rk];row.push(r==null?'':r);
             return row;
         });
@@ -510,7 +517,7 @@ function __straw_returnRender(keys,rk,en){
             __straw_return_skip=true;
             try{
                 for(var k in rec){
-                    if(k===rk) continue;
+                    if(k===rk||k==='__tbScore') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
@@ -523,11 +530,11 @@ function __straw_returnRender(keys,rk,en){
         });
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
-            var v=parseFloat(arr[j].d[rk]);
+            var v=parseFloat(arr[j].d.__tbScore);
             if(isFinite(v)){nums.push(v);labels.push(__straw_returnTime(arr[j].t));}
         }
         if(nums.length>=2){
-            TBKit.chart.line('#straw_returnChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+            TBKit.chart.line('#straw_returnChart',{labels:labels,series:[{name:en?'Validity trend':'有效性趋势',data:nums}]});
         }
     }catch(e3){}
 }
@@ -557,11 +564,21 @@ function __straw_returnExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
+    rec.__tbScore=__straw_returnScore(res);
     TBKit.history.record(rec);
     __straw_returnRender(keys,rk,en);
 }
 function __straw_returnExport(){
     if (typeof TBKit === 'undefined') return;
+    try{
+        var box=document.querySelector('#straw_returnTable');
+        if(!box||!box.querySelector('tr')){
+            var snap=__straw_returnSnap(); var keys=Object.keys(snap);
+            if(keys.length>12) keys=keys.slice(0,12);
+            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+            __straw_returnRender(keys,en?'Result':'结果',en);
+        }
+    }catch(e){}
     try { TBKit.util.exportTable('#straw_returnTable','straw-return.csv'); } catch(e){}
 }
 function __straw_returnPresets(){

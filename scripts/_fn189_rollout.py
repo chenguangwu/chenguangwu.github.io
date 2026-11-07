@@ -7,8 +7,11 @@
 - 基准页恒为 tools/finance/cnpj-validator.html（第 40 批首修、新实现单一真源）。
 - 每页自动抽取：函数/DOM id 前缀、结果容器整段表达式、计算函数名、csv 名。
 - 只处理「旧模板标准页」：写入前逐项自检，任一不通过即整批中止（不落盘脏文件）。
-- 定制页（归一化后与基准旧段不同）会被明确拒绝并提示需走「保留定制的局部编辑」。
+- 定制页（归一化后与 scripts/_fn189_std_old_seg_normalized.txt 不同）会被明确拒绝，
+  须走「保留定制的局部编辑」脚本 scripts/_fn189_custom_patch.py。
 - --dry 只检查不写，供分型复核。
+
+核心逻辑（load_template / build_standard）为模块级函数，供 scripts/_fn189_rollout_all.py 复用。
 """
 import argparse
 import io
@@ -60,21 +63,14 @@ def norm(seg, pre, slug, resexpr, calc):
                .replace('                ' + calc + '();', '                CALC();'))
 
 
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument('--cat', default='finance')
-    ap.add_argument('--pages', required=True)
-    ap.add_argument('--base', default=BASE_SLUG)
-    ap.add_argument('--dry', action='store_true')
-    args = ap.parse_args()
-    slugs = [x.strip() for x in args.pages.split(',') if x.strip()]
-
-    # 1) 从基准页反推模板
-    bf = 'tools/%s/%s.html' % (BASE_CAT, args.base)
+def load_template(base_slug=BASE_SLUG, base_cat=BASE_CAT):
+    """从已修基准页反推模板：返回 dict(tpl, base_norm, base)。"""
+    bf = 'tools/%s/%s.html' % (base_cat, base_slug)
     bs = io.open(bf, encoding='utf-8').read()
     binfo = parse_meta(bs)
     assert binfo and '__tbScore' in binfo['seg'], '基准页必须是已修新实现: ' + bf
     bp, bslug = binfo['pre'], binfo['slug']
+    # 替换顺序要紧：先变量前缀（__<pre>_）再函数前缀（__<pre>），最后 DOM id（#<pre>）
     tpl = (binfo['seg']
            .replace('__' + bp + '_', '@@PVAR@@')
            .replace('__' + bp, '@@PFN@@')
@@ -84,10 +80,47 @@ def main():
            .replace("'" + bslug + ".csv'", "'@@SLUG@@.csv'"))
     for k in ('@@PFN@@', '@@PVAR@@', '@@PID@@', '@@RESEXPR@@', '@@CALC@@', '@@SLUG@@'):
         assert k in tpl, '模板占位符缺失: ' + k
-    B = norm(binfo['seg'], bp, bslug, binfo['resexpr'], binfo['calc'])
-    assert len(B) > 2000 and '__tbScore' in B, '基准新段归一化异常'
+    base_norm = norm(binfo['seg'], bp, bslug, binfo['resexpr'], binfo['calc'])
+    assert len(base_norm) > 2000 and '__tbScore' in base_norm, '基准新段归一化异常'
+    assert base_norm.count('@@') == 0, '基准新段不应含占位符'
+    return dict(tpl=tpl, base_norm=base_norm, base=binfo)
 
-    # 2) 逐页自检（全部通过后才开始写，避免半批落盘）
+
+def build_standard(s, info, tpl, base_norm, slug):
+    """把标准旧模板页整体替换为新实现；返回 (s2, seg)。定制页抛 ValueError。"""
+    pre = info['pre']
+    assert info['slug'] == slug, '%s csv 名与 slug 不一致: %s' % (slug, info['slug'])
+    assert s.count('function __%sResText()' % pre) == 1, slug + ' 起始标记不唯一'
+    assert s.count('function __%sPresets()' % pre) == 1, slug + ' 结束标记不唯一'
+    assert OLD_FILTER in info['seg'], slug + ' 不是旧模板（已修或二次替换）'
+    assert 'parseFloat(arr[j].d[rk])' in info['seg'], slug + ' 旧段缺恒 NaN 图表特征'
+    old_norm = norm(info['seg'], pre, slug, info['resexpr'], info['calc'])
+    assert len(old_norm) > 2000, slug + ' 旧段过短，疑似异常'
+    if old_norm != STD_OLD_NORM:
+        raise ValueError(slug + ' 定制页（旧段与标准骨架不同）—— 禁止整体替换，请走 _fn189_custom_patch.py')
+    seg = (tpl.replace('@@PID@@', pre)
+              .replace('@@PFN@@', '__' + pre)
+              .replace('@@PVAR@@', '__' + pre + '_')
+              .replace('@@RESEXPR@@', info['resexpr'])
+              .replace('@@CALC@@', info['calc'])
+              .replace('@@SLUG@@', slug))
+    s2 = s[:info['a']] + seg + s[info['b']:]
+    assert s2.count('function __%sResText()' % pre) == 1, slug + ' 替换后标记异常'
+    assert s2.count('__tbScore') == 4, slug + ' __tbScore 数量异常'
+    assert norm(seg, pre, slug, info['resexpr'], info['calc']) == base_norm, slug + ' 与基准新段不同构'
+    return s2, seg
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--cat', default='finance')
+    ap.add_argument('--pages', required=True)
+    ap.add_argument('--base', default=BASE_SLUG)
+    ap.add_argument('--dry', action='store_true')
+    args = ap.parse_args()
+    slugs = [x.strip() for x in args.pages.split(',') if x.strip()]
+
+    t = load_template(args.base)
     plans = []
     for slug in slugs:
         f = 'tools/%s/%s.html' % (args.cat, slug)
@@ -97,27 +130,10 @@ def main():
         info = parse_meta(s)
         if not info:
             print('FAIL %-28s 抽不到标准参数（可能是定制页/异常页）' % slug); sys.exit(1)
-        assert info['slug'] == slug, '%s csv 名与 slug 不一致: %s' % (slug, info['slug'])
-        assert s.count('function __%sResText()' % info['pre']) == 1, slug + ' 起始标记不唯一'
-        assert s.count('function __%sPresets()' % info['pre']) == 1, slug + ' 结束标记不唯一'
-        assert OLD_FILTER in info['seg'], slug + ' 不是旧模板（已修或二次替换）'
-        assert 'parseFloat(arr[j].d[rk])' in info['seg'], slug + ' 旧段缺恒 NaN 图表特征'
-        # 拒绝定制页：旧段归一化后须与标准骨架逐字一致（sha256 比对，非仅长度）
-        old_norm = norm(info['seg'], info['pre'], slug, info['resexpr'], info['calc'])
-        assert len(old_norm) > 2000, slug + ' 旧段过短，疑似异常'
-        if old_norm != STD_OLD_NORM:
-            print('FAIL %-28s 定制页（旧段与标准骨架不同）—— 禁止整体替换，请走 _fn189_custom_patch.py' % slug)
-            sys.exit(1)
-        seg = (tpl.replace('@@PFN@@', '__' + info['pre'])
-                  .replace('@@PVAR@@', '__' + info['pre'] + '_')
-                  .replace('@@PID@@', info['pre'])
-                  .replace('@@RESEXPR@@', info['resexpr'])
-                  .replace('@@CALC@@', info['calc'])
-                  .replace('@@SLUG@@', slug))
-        s2 = s[:info['a']] + seg + s[info['b']:]
-        assert s2.count('function __%sResText()' % info['pre']) == 1, slug + ' 替换后标记异常'
-        assert s2.count('__tbScore') == 4, slug + ' __tbScore 数量异常'
-        assert norm(seg, info['pre'], slug, info['resexpr'], info['calc']) == B, slug + ' 与基准新段不同构'
+        try:
+            s2, seg = build_standard(s, info, t['tpl'], t['base_norm'], slug)
+        except (AssertionError, ValueError) as e:
+            print('FAIL %-28s %s' % (slug, e)); sys.exit(1)
         plans.append((slug, f, s2, info, seg))
         print('CHECK %-28s res=%-42s calc=%s()' % (slug, info['resexpr'], info['calc']))
 
