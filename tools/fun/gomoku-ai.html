@@ -369,13 +369,18 @@ function aiMove() {
 }
 
 function undo() {
+  if (!history.length) return;
   const last = history.pop();
-  if (!last) return;
-  const [r1, c1] = last;
-  board[r1][c1] = EMPTY;
+  board[last[0]][last[1]] = EMPTY;
+  // 若撤掉的是 AI(WHITE) 的应手，则把玩家(BLACK)那一手也一并撤掉，回到「玩家重新落子」的回合，
+  // 避免玩家在 AI 应手被撤后立刻再落一枚黑子、出现连续两手黑棋破坏回合制。
+  if (last[2] === WHITE && history.length && history[history.length - 1][2] === BLACK) {
+    const prev = history.pop();
+    board[prev[0]][prev[1]] = EMPTY;
+  }
   turn = BLACK;
   renderBoard();
-  setStatus('已悔1步，当前轮到你');
+  setStatus('已悔1回合，当前轮到你');
 }
 
 initGame();
