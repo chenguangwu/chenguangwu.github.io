@@ -124,7 +124,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="两全保险 = 定期寿险 + 满期生存给付的现值。">Price an endowment policy combining death and maturity benefits.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">两全保险年缴保费（现值均衡）：折现 v = 1 ÷ (1+i)；身故给付现值 = Σ B·v^t·ₜp·q（生存概率 ₜp 自 1 起逐年 ×(1−q)）；满期给付现值 = B·vⁿ·ₙp；年缴保费 P = (身故现值 + 满期现值) ÷ 期初年金系数 a，a = (1−vⁿ) ÷ i。校验：保额、死亡率、利率、年数四项非空守卫，年数封顶 1000，全 0 报错。判据：无固定分级，i=0 时年金系数除零由渲染兜底显示「—」。</div>
+      <div class="formula-eq">两全保险年缴保费（现值均衡）：折现 v = 1 ÷ (1+i)；身故给付现值 = Σ B·v^t·ₜp·q（生存概率 ₜp 自 1 起逐年 ×(1−q)）；满期给付现值 = B·vⁿ·ₙp；年缴保费 P = (身故现值 + 满期现值) ÷ 期初年金系数 a，a = (1−vⁿ) ÷ i。校验：四项必填且为合法数值（留空不再按 0 兜底）；保额 >0、0 ≤ q < 1（q>1 会使生存概率变负）、i > −1（i=0 由分母守卫拦截）、保险年数须为 1 到 1000 之间的正整数（不再静默截断小数或超限值）；不满足即提示并中止，错误态清空旧明细、不写历史、不导出。判据：无固定分级，满期给付必须乘期末生存概率，省略会高估现值约 19%。</div>
       <p class="formula-desc">两全保险 = 定期寿险 + 满期生存给付的现值。</p>
     </div>
 
@@ -284,19 +284,52 @@ s.parentNode.insertBefore(el, s);
 
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
-function calcTool(){  var __ig=__tbInputGuard(['B', 'q', 'i', 'n'],["保额 (元)", "年死亡率 q", "年利率 i", "保险年数 (年)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
+var __epLast=null;
+function __epNum(id){var e=document.getElementById(id);if(!e)return NaN;var s=String(e.value==null?'':e.value).trim();if(s==='')return NaN;var v=Number(s);return isFinite(v)?v:NaN;}
+function __epClearTable(msg){
+  try{
+    if(typeof TBKit!=='undefined'&&TBKit.matrix&&TBKit.matrix.table){
+      TBKit.matrix.table('#endowment_premiumTable',{head:['提示'],rows:[[msg]]});
+    }
+  }catch(e){}
+}
+function __epBlock(html){
+  __epLast=null;
+  ToolBox.setResult('result',html);
+  __epClearTable('请先修正输入后再查看逐期明细');
+}
+function __epCheck(){
+  var B=__epNum('B'),q=__epNum('q'),i=__epNum('i'),n=__epNum('n');
+  if(!isFinite(B)||!isFinite(q)||!isFinite(i)||!isFinite(n)) return {ok:false,msg:'请填写保额、年死亡率、年利率与保险年数，且必须为合法数值。'};
+  if(!(B>0)) return {ok:false,msg:'保额必须大于 0。'};
+  if(!(q>=0&&q<1)) return {ok:false,msg:'年死亡率 q 必须在 0（含）到 1（不含）之间，q>1 会使生存概率变负。'};
+  if(!(i>-1)) return {ok:false,msg:'年利率 i 必须大于 −100%（i > −1），否则折现因子无意义。'};
+  if(!(Number.isInteger(n)&&n>0&&n<=1000)) return {ok:false,msg:'保险年数必须是 1 到 1000 之间的正整数，不再静默截断小数或超限值。'};
+  return {ok:true,B:B,q:q,i:i,n:n};
+}
+function calcTool(){  var __ig=__tbInputGuard(['B', 'q', 'i', 'n'],["保额 (元)", "年死亡率 q", "年利率 i", "保险年数 (年)"]);if(__ig){__epLast=null;__epClearTable('请先修正输入后再查看逐期明细');const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
+  __epLast=null;
+  var S=__epCheck();
+  if(!S.ok){ __epBlock('<p style="color:var(--danger)">⚠ '+S.msg+'</p>'); return; }
 function fmt(v){const neg=v<0?'-':'';v=Math.abs(v);let s=v.toFixed(2);let p=s.split('.');p[0]=p[0].replace(/\B(?=(\d{3})+(?!\d))/g,',');return neg+p.join('.');}
-            const B=num('B'),q=num('q'),i=num('i'),n=Math.min(num('n'),1000);
+            const B=S.B,q=S.q,i=S.i,n=S.n;
             const v=1/(1+i);
-            let death=0, sp=1;
-            for(let t=1;t<=n;t++){ death += B*Math.pow(v,t)*sp*q; sp*=(1-q); }
+            let death=0, sp=1, schedule=[];
+            for(let t=1;t<=n;t++){
+                const term=B*Math.pow(v,t)*sp*q;
+                death+=term;
+                schedule.push([t,sp,term,death]);
+                sp*=(1-q);
+            }
             const survival=B*Math.pow(v,n)*sp;
             const a=(1-Math.pow(v,n))/i;
             const P=(death+survival)/a;
+            __epLast={B:B,q:q,i:i,n:n,sp:sp,death:death,survival:survival,a:a,P:P,schedule:schedule};
             const __g2=dataGrid([
                 [fmt(P),'两全年保费 (元)'],
                 [fmt(death),'身故给付现值 (元)'],
-                [fmt(survival),'满期给付现值 (元)']
+                [fmt(survival),'满期给付现值 (元)'],
+                [sp.toFixed(6),'期末生存概率']
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('B').value = '1000000';
@@ -324,7 +357,7 @@ function __endowment_premiumResText(){
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    if(/请输入|无效|不正确|错误|Error|NaN|请填写|⚠|不能为|必须/.test(t)) return '';
     return t.slice(0,80);
 }
 function __endowment_premiumTime(t){
@@ -400,7 +433,33 @@ function __endowment_premiumExtras(){
 }
 function __endowment_premiumExport(){
     if (typeof TBKit === 'undefined') return;
-    try { TBKit.util.exportTable('#endowment_premiumTable','endowment-premium.csv'); } catch(e){}
+    if(!__epLast){
+        try{ ToolBox.showToast('请先完成一次有效计算，明细为空时不导出。','error'); }catch(e){}
+        return;
+    }
+    var L=__epLast;
+    var en=false;
+    try{ en=TBKit.util.isEn(); }catch(e){}
+    var rows = en ? [
+        ['Item','Value'],
+        ['Sum assured (CNY)',L.B],['Annual mortality q',L.q],['Annual interest rate i',L.i],['Policy years',L.n],
+        ['Level annual premium (CNY)',L.P.toFixed(2)],['Death benefit PV (CNY)',L.death.toFixed(2)],
+        ['Maturity benefit PV (CNY)',L.survival.toFixed(2)],['Annuity-due factor a',L.a.toFixed(6)],
+        ['Survival probability at maturity',L.sp.toFixed(6)],
+        ['Year','Survival at start','Death benefit PV in year (CNY)','Cumulative death PV (CNY)']
+    ] : [
+        ['项目','数值'],
+        ['保额 (元)',L.B],['年死亡率 q',L.q],['年利率 i',L.i],['保险年数 (年)',L.n],
+        ['两全年保费 (元)',L.P.toFixed(2)],['身故给付现值 (元)',L.death.toFixed(2)],
+        ['满期给付现值 (元)',L.survival.toFixed(2)],['期初年金系数 a',L.a.toFixed(6)],
+        ['期末生存概率',L.sp.toFixed(6)],
+        ['年度','期初生存概率','当年身故给付现值 (元)','累计身故给付现值 (元)']
+    ];
+    for(var k=0;k<L.schedule.length;k++){
+        var s=L.schedule[k];
+        rows.push([s[0],s[1].toFixed(6),s[2].toFixed(2),s[3].toFixed(2)]);
+    }
+    try { TBKit.util.exportCsv('endowment-premium.csv', rows); } catch(e){}
 }
 function __endowment_premiumPresets(){
     if (typeof TBKit === 'undefined') return;
@@ -439,7 +498,7 @@ else document.addEventListener('DOMContentLoaded', __endowment_premiumBoot);
 <li>身故保障 + 期满返还组合，分别折现后相加得年保费。</li>
 <li>对比纯保障与两全的保费差距。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">保额 100 万、3%、20 年</div><div class="dd-ex-body">身故现值 = 100万×A₁ₙ(3%,20) ≈ 100万×0.1488 = 14.88万；满期现值 = 100万×v²⁰ = 100万×0.5537 = 55.37万；两全现值 ≈ 70.25万，分摊为年保费约 4.7万/年。</div></div>
+<div class="dd-example"><div class="dd-ex-title">保额 100 万、q=1%、3%、20 年</div><div class="dd-ex-body">按本页逐年模型：身故给付现值 136,786.19 元（Σ B·vᵗ·ₜp·q）；20 年生存概率 0.817907，满期给付现值 452,855.24 元（B·v²⁰·ₙp）；合计 589,641.43 元 ÷ 期初年金系数 14.877475 = 年缴保费 39,633.17 元。若省略生存概率，满期现值会写成 55.37 万、年保费约 4.7 万，比本页高约 19%。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>两全为什么比定期贵？</dt><dd>满期一定返还(确定现金流)拉高现值，身故保障再加一层，故保费高于纯身故定期险。</dd>
