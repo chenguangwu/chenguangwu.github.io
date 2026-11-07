@@ -37,20 +37,60 @@ def seg_of(s, pre):
     return (a, b, s[a:b]) if a >= 0 and b > a else (-1, -1, '')
 
 
-def parse_meta(s):
-    m = re.search(r"exportTable\('#([^']+)Table','([^']+)\.csv'\)", s)
-    if not m:
+def parse_meta(s, slug_hint=None):
+    """抽取页面参数。兼容三种变体（第 46 批全站异常页实测）：
+    ① host 名不是 `#<pre>Table`（`#resultTable` / `#tableWrap` / `#...Detail` / `#res table`）；
+    ② 一个页面有多个 exportTable（取与文件 slug / pre 相关的那个）；
+    ③ 结果容器是复合表达式（`getElementById('result'+tab)||querySelector('.result-box')`）；
+    ④ 历史回调重算调用不在独立 16 空格行（`__scaleDirty=true; calc();`）⇒ calc 回退 'calc'。
+    """
+    ets = re.findall(r"exportTable\('([^']+)','([^']+)\.csv'\)", s)
+    pres = re.findall(r'function __(\w+?)ResText\(\)', s)
+    if not pres:
         return None
-    pre, slug = m.group(1), m.group(2)
+    pre = None
+    if slug_hint and slug_hint.replace('-', '_') in pres:
+        pre = slug_hint.replace('-', '_')
+    if pre is None:
+        for host, _csv in ets:
+            for p in pres:
+                if p in host:
+                    pre = p
+                    break
+            if pre:
+                break
+    if pre is None:
+        pre = pres[0]
     a, b, seg = seg_of(s, pre)
     if a < 0:
         return None
-    rm = re.search(r'var r=(document\.(?:getElementById|querySelector)\([^)]*\));', seg)
-    cm = re.search(r'\n\s{16}([A-Za-z_][A-Za-z0-9_]*)\(\);', seg)
-    if not (rm and cm):
+    rm = (re.search(r'var r=(document\.(?:getElementById|querySelector)\([^)]*\));', seg)
+          or re.search(r'var r=([^\n;]+);', seg))
+    if not rm:
         return None
-    return dict(pre=pre, slug=slug, a=a, b=b, seg=seg,
-                resexpr=rm.group(1), calc=cm.group(1))
+    cm = re.search(r'\n\s{16}([A-Za-z_][A-Za-z0-9_]*)\(\);', seg)
+    host, csvslug = '#' + pre + 'Table', pre.replace('_', '-')
+    if ets:
+        picked = None
+        for h, c in ets:
+            if pre in h or (slug_hint and c == slug_hint) or c == pre.replace('_', '-'):
+                picked = (h, c)
+                break
+        host, csvslug = picked if picked else ets[0]
+    # ⑤ 导出目标与真正的表格容器不是同一个选择器（第 46 批实测 5 页）：
+    #   表格渲染进 matrix.table 的容器（`#reportTable` / `#pt24_point_solverTable`），
+    #   而 exportTable 还指着旧容器（`#res table` / `#resultTable` / `#tableWrap` / `#...Detail`
+    #   / `#24_point_solverTable`）⇒ 导出恒为空 CSV，是页面真 BUG。
+    #   唯一 matrix.table 容器时以它为准（多 tab 页不动，避免猜错）。
+    mts = []
+    for h in re.findall(r"matrix\.table\('([^']+)'", s):
+        if h not in mts:
+            mts.append(h)
+    oldhost = host
+    if len(mts) == 1 and host not in mts:
+        host = mts[0]
+    return dict(pre=pre, slug=csvslug, host=host, oldhost=oldhost, a=a, b=b, seg=seg,
+                resexpr=rm.group(1), calc=cm.group(1) if cm else 'calc')
 
 
 def norm(seg, pre, slug, resexpr, calc):
@@ -70,15 +110,18 @@ def load_template(base_slug=BASE_SLUG, base_cat=BASE_CAT):
     binfo = parse_meta(bs)
     assert binfo and '__tbScore' in binfo['seg'], '基准页必须是已修新实现: ' + bf
     bp, bslug = binfo['pre'], binfo['slug']
-    # 替换顺序要紧：先变量前缀（__<pre>_）再函数前缀（__<pre>），最后 DOM id（#<pre>）
+    host_base = binfo.get('host') or ('#' + bp + 'Table')
+    # 替换顺序要紧：先导出/表格 host（可能不等于 #<pre>Table），再变量前缀（__<pre>_）、
+    # 函数前缀（__<pre>），最后其余 DOM id（#<pre>）
     tpl = (binfo['seg']
+           .replace(host_base, '@@HOST@@')
            .replace('__' + bp + '_', '@@PVAR@@')
            .replace('__' + bp, '@@PFN@@')
            .replace('#' + bp, '#@@PID@@')
            .replace(binfo['resexpr'], '@@RESEXPR@@')
            .replace('                ' + binfo['calc'] + '();', '                @@CALC@@();')
            .replace("'" + bslug + ".csv'", "'@@SLUG@@.csv'"))
-    for k in ('@@PFN@@', '@@PVAR@@', '@@PID@@', '@@RESEXPR@@', '@@CALC@@', '@@SLUG@@'):
+    for k in ('@@PFN@@', '@@PVAR@@', '@@PID@@', '@@HOST@@', '@@RESEXPR@@', '@@CALC@@', '@@SLUG@@'):
         assert k in tpl, '模板占位符缺失: ' + k
     base_norm = norm(binfo['seg'], bp, bslug, binfo['resexpr'], binfo['calc'])
     assert len(base_norm) > 2000 and '__tbScore' in base_norm, '基准新段归一化异常'
@@ -98,7 +141,8 @@ def build_standard(s, info, tpl, base_norm, slug):
     assert len(old_norm) > 2000, slug + ' 旧段过短，疑似异常'
     if old_norm != STD_OLD_NORM:
         raise ValueError(slug + ' 定制页（旧段与标准骨架不同）—— 禁止整体替换，请走 _fn189_custom_patch.py')
-    seg = (tpl.replace('@@PID@@', pre)
+    seg = (tpl.replace('@@HOST@@', info['host'])
+              .replace('@@PID@@', pre)
               .replace('@@PFN@@', '__' + pre)
               .replace('@@PVAR@@', '__' + pre + '_')
               .replace('@@RESEXPR@@', info['resexpr'])

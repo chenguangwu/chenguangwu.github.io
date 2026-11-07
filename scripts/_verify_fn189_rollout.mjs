@@ -11,6 +11,8 @@
 import { JSDOM, VirtualConsole } from 'jsdom';
 import { execSync } from 'child_process';
 import fs from 'fs';
+import os from 'os';
+import path from 'path';
 
 const argv = process.argv.slice(2);
 const head = argv.includes('--head');
@@ -24,12 +26,22 @@ const CAT = catArg ? catArg.slice(6) : 'finance';   // 后续跨分类铺开用 
 if (!pagesArg) { console.error('usage: node scripts/_verify_fn189_rollout.mjs --pages=slug1,slug2,... [--head] [--ref=<ref>] [--verbose]'); process.exit(2); }
 const SLUGS = pagesArg.slice(8).split(',').map((x) => x.trim()).filter(Boolean);
 
-let pass = 0, fail = 0;
+let pass = 0, fail = 0, skipped = 0;
 const failed = [];
 // 页面若用非法选择器（yi/64-gua 实测）会让 JSDOM 内部 selector 引擎在异步阶段抛
 // DOMException 并直接终止整批。捕获后记为当前页 FAIL，其余页继续。
 let uncaught = null;
-process.on('uncaughtException', (e) => { uncaught = e; });
+let curSlug = '';
+// 绝不能静默：顶层断言 / 文件缺失抛错会让后续页与汇总行全部消失，看起来像「跑完了但没问题」。
+// 实测踩坑：--pages 跨分类而 --cat 缺省 finance 时 31 页全部 ENOENT，输出只剩标题行、exit 0。
+process.on('uncaughtException', (e) => {
+  const msg = String((e && e.message) || e).slice(0, 300);
+  uncaught = e;
+  console.log('  ✗ FATAL [' + curSlug + '] ' + msg);
+  if (process.env.FN189_DEBUG) console.log(String((e && e.stack) || '').split('\n').slice(0, 6).join('\n'));
+  console.log(`[当前] F-N189 铺开批次锁 FATAL（${pass} PASS / ${fail} FAIL，批次提前终止）`);
+  process.exit(3);
+});
 const assert = (c, m) => { if (c) pass++; else { fail++; failed.push(m); } };
 const norm = (s) => String(s == null ? '' : s).replace(/\s+/g, ' ').trim();
 const rd = (f, worktree = false) => (head && !worktree)
@@ -41,15 +53,31 @@ const CJK = /[\u3400-\u9FFF\u3000]/;
 const BASE = 'cnpj-validator';
 const baseRaw = fs.readFileSync('tools/finance/' + BASE + '.html', 'utf8');
 function parsePage(raw, slug) {
-  const em = raw.match(/exportTable\('#([^']+)Table','([^']+)\.csv'\)/);
-  if (!em) return null;
-  const pre = em[1];
-  const rm = raw.match(new RegExp('function __' + pre + 'ResText\\(\\)\\{\\s*var r=(document\\.(?:getElementById|querySelector)\\([^)]*\\));'));
-  const start = raw.indexOf('function __' + pre + 'ResText(){');
-  const end = raw.indexOf('function __' + pre + 'Presets(){');
-  const seg = start >= 0 && end > start ? raw.slice(start, end) : '';
-  const cm = seg.match(/\n\s{16}([A-Za-z_][A-Za-z0-9_]*)\(\);/);
-  return { pre, resExpr: rm ? rm[1] : "document.getElementById('output')", calc: cm ? cm[1] : 'validate', seg, start, end };
+  // 单一真源：复用 python 侧 parse_meta。mjs 自研正则取「全文第一个 exportTable(...)」在多导出页
+  // 会误判（按钮 onclick 里的导出先出现），第 46 批实测把 fertilizer_calculator 认成 purity，
+  // 导致整页断言连锁 FAIL + eval 不存在的 __purityResText() FATAL。
+  let file = 'tools/' + CAT + '/' + slug + '.html';
+  let tmp = null;
+  if (raw != null) {
+    tmp = path.join(os.tmpdir(), `_fn189meta_${process.pid}_${slug}.html`);
+    fs.writeFileSync(tmp, raw);
+    file = tmp;
+  }
+  let out = '';
+  try {
+    out = execSync(
+      `env -u NODE_OPTIONS python3 scripts/_fn189_meta.py --file="${file}" --slug="${slug}"`,
+      { maxBuffer: 64 * 1024 * 1024 },
+    ).toString().trim();
+  } catch (e) { out = 'null'; }
+  if (tmp) { try { fs.unlinkSync(tmp); } catch (e) {} }
+  let m = null;
+  try { m = JSON.parse(out); } catch (e) { m = null; }
+  if (!m || !m.pre) return null;
+  return {
+    pre: m.pre, resExpr: m.resexpr, calc: m.calc,
+    seg: m.seg || '', start: m.start, end: m.end, csv: m.csv, host: m.host,
+  };
 }
 function normSeg(info, slug) {
   const { pre, resExpr, calc } = info;
@@ -65,8 +93,20 @@ function normSeg(info, slug) {
 // --custom 模式用它反推「ref 版本相对标准骨架多出来的定制行」，再断言这些行在当前版本原样保留，
 // 无需为每页手写锚点（全站 90+ 定制页不可维护）。
 const STD_LINES = new Set(fs.readFileSync('scripts/_fn189_std_old_seg_normalized.txt', 'utf8').split('\n'));
-const addedCustomLines = (segNorm) => segNorm.split('\n')
-  .filter((l) => l.trim() && !STD_LINES.has(l));
+// 与 _fn189_custom_patch.py 的 FIX_MARKERS 对齐：这几类是修复锚点必然改写的行，
+// 不能算「定制差异」，否则「导出目标从 #res table 修正为 #reportTable」这类正当修
+// 会被判成「前批定制行丢失」。
+const FIX_MARKERS = ['parseFloat(arr[j].d[', 'chart.line', "name:en?'", "exportTable('",
+  ".test(t)) return '';", 'var box=', 'RESEXPR'];
+// 除了「旧骨架里没有的行」，还要排除「已修基准新段里本来就有的行」——那些是修复产物
+// （__Score 函数体等），不是页面定制逻辑。否则标准页会被当成「有定制行」而误报丢失。
+let BASE_LINES = null;   // 延迟到 BASE_NORM 算完再建（此处 BASE_NORM 尚未初始化）
+const addedCustomLines = (segNorm) => {
+  if (!BASE_LINES) BASE_LINES = new Set(BASE_NORM.split('\n'));
+  return segNorm.split('\n')
+    .filter((l) => l.trim() && !STD_LINES.has(l) && !BASE_LINES.has(l)
+      && !FIX_MARKERS.some((m) => l.includes(m)));
+};
 const baseInfo = parsePage(baseRaw, BASE);
 const BASE_NORM = normSeg(baseInfo, BASE);
 assert(BASE_NORM.length > 2000 && BASE_NORM.includes('__tbScore'), '基准页 cnpj-validator 必须是已修新实现');
@@ -76,8 +116,14 @@ console.log(head ? `— [${ref}] F-N189 铺开批次（应 FAIL）— ${SLUGS.le
 // ── 1) 源码层 + 同源 ──
 const INFOS = [];
 for (const slug of SLUGS) {
+  curSlug = slug;
   const f = 'tools/' + CAT + '/' + slug + '.html';
-  const raw = rd(f);
+  let raw;
+  try { raw = rd(f); } catch (e) {
+    assert(false, '[' + slug + '] 页面文件不存在（检查 --cat 是否与 slug 所在分类一致）：' + f);
+    INFOS.push(null);
+    continue;
+  }
   const info = parsePage(raw, slug);
   const tag = '[' + slug + '] ';
   assert(!!info, tag + '页面应含标准 exportTable / ResText 结构');
@@ -85,23 +131,46 @@ for (const slug of SLUGS) {
   INFOS.push(info);
   assert(info.start >= 0 && info.end > info.start, tag + '替换段边界应完整（精确边界未被截断）');
   assert(raw.includes('function __' + info.pre + 'Score(t)'), tag + '应有 __Score() 数值结论单一真源');
-  assert((raw.match(/__tbScore/g) || []).length === 4, tag + '__tbScore 应恰好 4 处');
+  // 页面已自研「有业务含义、不会恒 NaN」的趋势数值源时（CD4/D8 比值兜底、密文输出字节数），
+  // 允许跳过趋势源改写 ⇒ __tbScore 只有 3 处、且不出现「有效性趋势」字样。
+  let headRaw = raw;
+  try { headRaw = execSync(`git show HEAD:${f}`, { maxBuffer: 64 * 1024 * 1024 }).toString(); } catch (e) {}
+  const domainTrend = /arr\[j\]\.d\.(?!__tbScore)[A-Za-z_]/.test(headRaw)
+    || /arr\[j\]\.d\['(?!__tbScore)/.test(headRaw);
+  const usesTableExport = raw.includes('exportTable(');
+  info.usesTableExport = usesTableExport;
+  info.domainTrend = domainTrend;
+  const scoreN = (raw.match(/__tbScore/g) || []).length;
+  assert(scoreN === 4 || (domainTrend && scoreN === 3),
+    tag + '__tbScore 应恰好 4 处（自研趋势源页 3 处），实测 ' + scoreN);
   assert(raw.includes("en?'Verdict':'结论'"), tag + '表格应有动态双语「结论」列');
-  assert(raw.includes("en?'Validity trend':'有效性趋势'"), tag + '趋势图应标明有效性语义');
-  assert(raw.includes('parseFloat(arr[j].d.__tbScore)'), tag + '趋势图数值源应为 __tbScore');
+  if (!domainTrend) {
+    assert(raw.includes("en?'Validity trend':'有效性趋势'"), tag + '趋势图应标明有效性语义');
+    assert(raw.includes('parseFloat(arr[j].d.__tbScore)'), tag + '趋势图数值源应为 __tbScore');
+  }
   assert(raw.includes("k==='__tbScore'"), tag + '历史恢复应跳过内部数值字段');
-  assert(raw.includes("box.querySelector('tr')"), tag + '导出前应确保表格已渲染');
+  if (usesTableExport) {
+    // 只对 exportTable 族有意义：另外两族导出的是输入快照/自拼 CSV，与表格无关
+    assert(raw.includes("box.querySelector('tr')"), tag + '导出前应确保表格已渲染');
+  }
   assert(!raw.includes("/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';"), tag + '不得再过滤失败样本');
   assert(raw.includes("/^(等待输入|请输入文本|Waiting for input|Please enter text)/"), tag + '只过滤空态，双语前缀齐全');
   if (custom) {
     const curNorm = normSeg(info, slug);
-    assert(curNorm !== BASE_NORM, tag + '定制页应保留定制逻辑（不得与基准新段同构）');
     // 以 ref 版本的「定制新增行」为基准，断言当前版本原样保留（顺序无关，覆盖全站定制页）
     let refRaw = raw;
     try { refRaw = execSync(`git show ${ref}:${f}`, { maxBuffer: 64 * 1024 * 1024 }).toString(); } catch (e) {}
     const refInfo = parsePage(refRaw, slug);
-    const refAdded = refInfo ? addedCustomLines(normSeg(refInfo, slug)) : [];
-    const cur = new Set(curNorm.split('\n'));
+    // 锚点会在原跳过条件后追加 `||k==='__tbScore'`，逐字比对会把「追加修复」误判成「定制行丢失」
+    // trim：修复时把守卫代码下移一层缩进（thread-spec）不应被当成「定制行丢失」，
+    // 只比内容不比缩进；顺序无关（用集合比）。
+    const stripFix = (l) => l.replace("||k==='__tbScore'", '').replace("k==='__tbScore'||", '').trim();
+    const refAdded = (refInfo ? addedCustomLines(normSeg(refInfo, slug)) : []).map(stripFix);
+    // ref 版本本就没有定制行（只是 host 名 / 多导出等形态差异，语义等同标准页）时，
+    // 修完后与基准新段同构是正确结果，不算「定制逻辑丢失」。
+    assert(curNorm !== BASE_NORM || refAdded.length === 0,
+      tag + '定制页应保留定制逻辑（不得与基准新段同构）');
+    const cur = new Set(curNorm.split('\n').map(stripFix));
     const missing = refAdded.filter((l) => !cur.has(l));
     assert(missing.length === 0, tag + '前批定制行应全部保留（缺失 ' + missing.length + ' 行：'
       + missing.slice(0, 2).map((x) => x.trim()).join(' | ') + '）');
@@ -126,6 +195,30 @@ function build(pageRaw, url, pre) {
         esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
       };
       w.i18nText = (k) => String(k == null ? '' : k);
+      // 自拼 CSV 导出（Blob + <a download>）捕获：JSDOM 不实现导航，a.click() 本身无副作用，
+      // 只能从 createObjectURL 的 Blob 里读出内容、与 a.download 配对成一条导出记录。
+      const blobs = new Map(); let bseq = 0; let lastUrl = null;
+      const parseCsv = (txt) => String(txt).replace(/^\ufeff/, '').split(/\r?\n/)
+        .filter((l) => l !== '').map((l) => l.split(','));
+      try {
+        w.URL.createObjectURL = (b) => { const u = 'blob:fn189-' + (++bseq); blobs.set(u, b); lastUrl = u; return u; };
+        w.URL.revokeObjectURL = () => {};
+        const ap = w.HTMLAnchorElement.prototype;
+        const origClick = ap.click;
+        ap.click = function () {
+          try {
+            const b = blobs.get(this.href) || (lastUrl && blobs.get(lastUrl));
+            if (this.download && b) {
+              state.exports.push({ host: 'blob', filename: this.download,
+                rows: parseCsv((b.__parts || []).join('')) });
+            }
+          } catch (e) {}
+          try { origClick.call(this); } catch (e) {}
+        };
+        const OrigBlob = w.Blob;
+        w.Blob = function (parts, opts) { const b = new OrigBlob(parts, opts); b.__parts = parts; return b; };
+        w.Blob.prototype = OrigBlob.prototype;
+      } catch (e) {}
       // canvas 桩：部分页（如 bond-yield-calculator）的 calc() 会画图表，
       // JSDOM 未装 canvas 包时 getContext() 返回 null ⇒ ctx.scale 抛错、整页计算链中断。
       const ctxStub = new Proxy({}, {
@@ -141,11 +234,30 @@ function build(pageRaw, url, pre) {
       try { w.HTMLCanvasElement.prototype.getContext = () => ctxStub; } catch (e) {}
       w.canvasColorWithAlpha = (c) => c;
       w.resolveCanvasColor = (c) => c;
+      // 安全取元素：id 以数字开头（#24_point_solverTable / #64_guaTable）时
+      // document.querySelector('#24_…') 是非法 CSS 选择器，浏览器抛 SyntaxError、
+      // JSDOM 抛 DOMException。走 getElementById 才不会让整批 FATAL。
+      const q = (sel) => {
+        try {
+          const m = /^#([A-Za-z0-9_-]+)$/.exec(String(sel == null ? '' : sel));
+          if (m) return w.document.getElementById(m[1]);
+          return w.document.querySelector(sel);
+        } catch (e) { return null; }
+      };
       w.TBKit = {
         util: {
-          isEn: () => EN, diffBox() {}, exportCsv() { return true; },
+          isEn: () => EN, diffBox() {},
+          // exportCsv(filename, rows) 族（position-sizing / 保险族）：直接记录，供导出断言核对。
+          // 旧桩 `exportCsv() { return true; }` 不落账，导致这族页面「导出无产物」假失败。
+          exportCsv(filename, rows) {
+            state.exports.push({
+              host: 'csv', filename,
+              rows: (rows || []).map((r) => (Array.isArray(r) ? r.map(norm) : [norm(r)])),
+            });
+            return true;
+          },
           exportTable(host, filename) {
-            const box = w.document.querySelector(host); const rows = [];
+            const box = q(host); const rows = [];
             if (box) box.querySelectorAll('tr').forEach((tr) => {
               const line = []; tr.querySelectorAll('th,td').forEach((c) => line.push(norm(c.textContent)));
               if (line.length) rows.push(line);
@@ -162,7 +274,7 @@ function build(pageRaw, url, pre) {
         chart: {
           line(host, cfg) {
             state.charts.push({ host, cfg });
-            const box = w.document.querySelector(host);
+            const box = q(host);
             if (box) box.innerHTML = '<div data-chart="1">' + JSON.stringify(cfg.series[0].data) + '</div>';
           }, bar() {}
         },
@@ -170,12 +282,12 @@ function build(pageRaw, url, pre) {
           list: () => state.arr.slice(), last: () => (state.arr.length ? state.arr[0].d : null),
           record(o) { state.arr.unshift({ t: Date.now(), d: o }); }, clear() { state.arr.length = 0; },
           diffLast() { return null; },
-          mount(host) { const b = w.document.querySelector(host); if (b) b.innerHTML = '<ul data-hist="1"></ul>'; return b; }
+          mount(host) { const b = q(host); if (b) b.innerHTML = '<ul data-hist="1"></ul>'; return b; }
         },
         matrix: {
           table(host, cfg) {
             state.tables.push({ host, cfg });
-            const box = w.document.querySelector(host); if (!box) return;
+            const box = q(host); if (!box) return;
             const esc = (x) => String(x == null ? '' : x).replace(/&/g, '&amp;').replace(/</g, '&lt;');
             let h = '<table><thead><tr>' + cfg.head.map((x) => '<th>' + esc(x) + '</th>').join('') + '</tr></thead><tbody>';
             cfg.rows.forEach((r) => { h += '<tr>' + r.map((x) => '<td>' + esc(x) + '</td>').join('') + '</tr>'; });
@@ -223,11 +335,43 @@ function setRes(el, text) {
 // 部分页结果区由用户操作动态生成（如 edu/reminder-1 点「出题」后才拼 .result-box），
 // 初始化后取不到容器 ⇒ 兜底建一个同选择器可匹配的容器，专供 ResText 读取注入文本，
 // 这样仍能完整验证表格/趋势图/导出链，且不放宽任何断言。
+// 安全取元素：id 以数字开头时 querySelector('#24_…') 是非法 CSS 选择器（浏览器抛
+// SyntaxError、JSDOM 抛 DOMException），必须走 getElementById。
+function safeQ(doc, sel) {
+  try {
+    const m = /^#([A-Za-z0-9_-]+)$/.exec(String(sel == null ? '' : sel));
+    if (m) return doc.getElementById(m[1]);
+    return doc.querySelector(sel);
+  } catch (e) { return null; }
+}
+
+// 结果容器是条件表达式时（rsa：`getElementById(onSign?'signResult':'encResult')`），
+// 页面实际读哪个由运行期状态决定（tab-sign 是否 active）⇒ 所有候选容器都要写入注入文本，
+// 否则只写了「非活跃」那一个，ResText 仍读到空 ⇒ 误判「未保留失败样本」。
+function resTargets(w, resExpr) {
+  const out = [];
+  const cands = (String(resExpr).match(/'([A-Za-z0-9_-]{2,})'/g) || []).map((x) => x.slice(1, -1));
+  for (const id of cands) {
+    const e = w.document.getElementById(id);
+    if (e && !out.includes(e)) out.push(e);
+  }
+  const main = ensureRes(w, resExpr);
+  if (main && !out.includes(main)) out.unshift(main);
+  return out;
+}
+
 function ensureRes(w, resExpr) {
   let el = null;
   try { el = w.eval('(' + resExpr + ')'); } catch (e) {}
   if (el) return el;
   el = w.document.createElement('div');
+  // 结果容器是条件表达式时（rsa：`getElementById(onSign?'signResult':'encResult')`），
+  // 直接 eval 会因页面局部变量 onSign 未定义而失败 ⇒ 逐个尝试表达式里的候选 id。
+  const cands = (String(resExpr).match(/'([A-Za-z0-9_-]{2,})'/g) || []).map((x) => x.slice(1, -1));
+  for (const id of cands) {
+    const e = w.document.getElementById(id);
+    if (e) return e;
+  }
   const idM = resExpr.match(/getElementById\('([^']+)'\)/);
   const selM = resExpr.match(/querySelector\('([.#][\w-]+)'\)/);
   if (idM) el.id = idM[1];
@@ -277,6 +421,8 @@ for (let i = 0; i < SLUGS.length; i++) {
   const f = 'tools/' + CAT + '/' + slug + '.html';
   const raw = rd(f);
   const { pre, resExpr, calc } = info;
+  const usesTableExport = info.usesTableExport;
+  const domainTrend = info.domainTrend;
   const tag = '[' + slug + '] ';
   uncaught = null;
   let built;
@@ -291,9 +437,9 @@ for (let i = 0; i < SLUGS.length; i++) {
   try {
     await ready(w);
     seedInputs(w.document);
-    const rEl = ensureRes(w, resExpr);
-    assert(!!rEl, tag + '结果容器表达式应可取到元素');
-    setRes(rEl, '输入： TEST 校验和： ❌ 未通过，号码无效');
+    const rTargets = resTargets(w, resExpr);
+    assert(rTargets.length > 0, tag + '结果容器表达式应可取到元素');
+    rTargets.forEach((el) => setRes(el, '输入： TEST 校验和： ❌ 未通过，号码无效'));
     const rt = w.eval('__' + pre + 'ResText()');
     assert(typeof rt === 'string' && rt.includes('无效'), tag + 'ResText 应保留失败样本摘要');
     let bad = null, ok = null;
@@ -310,9 +456,9 @@ for (let i = 0; i < SLUGS.length; i++) {
     for (let k = 0; k < vals.length; k++) {
       const v = vals[k];
       setInput(inp, v, k);
-      setRes(rEl, k === 0
+      rTargets.forEach((el) => setRes(el, k === 0
         ? '输入： ' + v + ' 校验和： ✅ 通过'
-        : '输入： ' + v + ' ⚠️ 校验错误，号码无效');
+        : '输入： ' + v + ' ⚠️ 校验错误，号码无效'));
       w.eval('__' + pre + '_last=0');
       w.eval('__' + pre + 'Extras()');
     }
@@ -320,20 +466,46 @@ for (let i = 0; i < SLUGS.length; i++) {
     assert(state.arr.some((it) => typeof it.d.__tbScore === 'number'), tag + '历史记录应含数值字段 __tbScore');
     const t = state.tables[state.tables.length - 1];
     assert(!!t && t.cfg.head.includes('结论') && t.cfg.head.length >= 4, tag + '数据表应新增「结论」列');
-    assert(state.charts.length >= 1, tag + '两次计算后趋势图应真实渲染');
+    if (!domainTrend) {
+      assert(state.charts.length >= 1, tag + '两次计算后趋势图应真实渲染');
+    }
+    // 自研趋势源页（rsa/aes-encryptor 的 __bytes）需要页面自身 calc() 先算出该字段，
+    // harness 绕开 calc 直驱 Extras 构造不出来 ⇒ 只在该页真有图表时校验数值有限性。
     if (state.charts.length) {
       const d = state.charts[state.charts.length - 1].cfg.series[0].data;
       assert(d.length >= 2 && d.every((x) => Number.isFinite(x)), tag + '趋势图数据应为有限数值序列');
     }
     w.eval('__' + pre + 'Export()');
     const ex = state.exports[state.exports.length - 1];
-    assert(!!ex && ex.rows.length >= 3 && ex.rows[0].includes('结论'), tag + '导出 CSV 应含表头 + 结论列 + 至少 2 条明细');
-    assert(!!ex && ex.filename === slug + '.csv', tag + '导出文件名应与 slug 一致');
-    const tBox = w.document.querySelector('#' + pre + 'Table');
-    if (tBox) tBox.innerHTML = '';
-    const n = state.exports.length;
-    w.eval('__' + pre + 'Export()');
-    assert(state.exports.length === n + 1 && state.exports[n].rows.length >= 1, tag + '空表格时导出应先补渲染');
+    if (process.env.FN189_DEBUG) {
+      console.log('DEBUG ' + tag + ' exports=' + state.exports.length + ' ex='
+        + String(JSON.stringify(ex)).slice(0, 300));
+    }
+    // 导出实现分三族：exportTable（表 → CSV）/ exportCsv(rows) / Blob+<a download> 自拼 CSV。
+    // 后两族导出的是「输入快照 + 结果」而非历史表，不含「结论」列，也不存在空表补渲染问题
+    // ⇒ 表结构类断言只对 exportTable 族生效，否则会把正当实现误判成 BUG。
+    if (usesTableExport) {
+      assert(!!ex && ex.rows.length >= 3 && ex.rows[0].includes('结论'), tag + '导出 CSV 应含表头 + 结论列 + 至少 2 条明细');
+      assert(!!ex && ex.filename === slug + '.csv', tag + '导出文件名应与 slug 一致');
+    } else {
+      // 自拼导出族（Blob / canvas 图片 / 页面自算 CSV）：部分页要求先完成一次真机计算
+      // （matrix-transpose 的 __lastTranspose、pixel-art 的画布），harness 无法构造该状态。
+      // 这种情况如实记 SKIP 并在汇总里报数，不伪装成 PASS、也不冤枉成 BUG。
+      if (!ex) {
+        skipped++;
+        console.log('  ↷ ' + tag + ' 自拼导出需页面先完成计算，harness 无法构造 ⇒ 跳过导出断言');
+      } else {
+        assert(ex.rows.length >= 2, tag + '导出自拼 CSV 应至少产出表头 + 1 行');
+        assert(/\.\w{2,5}$/.test(String(ex.filename)), tag + '导出自拼文件名应带扩展名');
+      }
+    }
+    if (usesTableExport) {
+      const tBox = safeQ(w.document, '#' + pre + 'Table');
+      if (tBox) tBox.innerHTML = '';
+      const n = state.exports.length;
+      w.eval('__' + pre + 'Export()');
+      assert(state.exports.length === n + 1 && state.exports[n].rows.length >= 1, tag + '空表格时导出应先补渲染');
+    }
   } finally { dom.window.close(); }
   if (uncaught) assert(false, tag + '页面运行时未捕获异常：' + String((uncaught && uncaught.message) || uncaught).slice(0, 120));
 
@@ -349,23 +521,27 @@ for (let i = 0; i < SLUGS.length; i++) {
     seedInputs(en.w.document);
     en.state.arr.length = 0;
     const inp = pickInput(en.w.document);
-    const erEl = ensureRes(en.w, resExpr);
+    const erTargets = resTargets(en.w, resExpr);
     const evals = ['1234567890', '9876543210'];
     for (let k = 0; k < evals.length; k++) {
       setInput(inp, evals[k], k);
-      setRes(erEl, k === 0
+      erTargets.forEach((el) => setRes(el, k === 0
         ? 'Input: ' + evals[k] + ' checksum: ✅ passed'
-        : 'Input: ' + evals[k] + ' ⚠️ validation error, invalid number');
+        : 'Input: ' + evals[k] + ' ⚠️ validation error, invalid number'));
       en.w.eval('__' + pre + '_last=0');
       en.w.eval('__' + pre + 'Extras()');
     }
     const t = en.state.tables[en.state.tables.length - 1];
-    assert(!!t && t.cfg.head.includes('Verdict') && !t.cfg.head.some((h) => CJK.test(String(h))), tag + 'EN 态表头应为 Verdict 且零 CJK');
+    // 表头里可能有页面自己的中文输入键名（如 net-single-premium 的 `NSP数值`），
+    // 那是数据字段不是文案 ⇒ 只要求出现 Verdict，且结论列本身零 CJK。
+    assert(!!t && t.cfg.head.includes('Verdict'), tag + 'EN 态表头应含 Verdict');
+    assert(!!t && !CJK.test(String(t.cfg.head[t.cfg.head.length - 2])), tag + 'EN 态结论列标题应零 CJK');
     assert(!!t && t.cfg.rows.every((r) => !CJK.test(String(r[r.length - 2]))), tag + 'EN 态结论列零 CJK');
     assert(!!t && t.cfg.rows.some((r) => r.includes('Pass') || r.includes('Fail')), tag + 'EN 态结论值应为 Pass / Fail');
   } finally { en.dom.window.close(); }
 }
 
-console.log(head ? `[${ref}] ${fail} FAIL / ${pass} PASS` : `[当前] F-N189 铺开批次锁 ${fail === 0 ? 'PASS' : 'FAIL'}（${pass} PASS / ${fail} FAIL）`);
+const skipNote = skipped ? ` / ${skipped} SKIP` : '';
+console.log(head ? `[${ref}] ${fail} FAIL / ${pass} PASS${skipNote}` : `[当前] F-N189 铺开批次锁 ${fail === 0 ? 'PASS' : 'FAIL'}（${pass} PASS / ${fail} FAIL${skipNote}）`);
 if (fail) failed.slice(0, verbose ? fail : 25).forEach((m) => console.log('  ✗ ' + m));
 process.exit(fail ? 1 : 0);

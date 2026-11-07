@@ -1812,3 +1812,11 @@
 - 证据：`_fn189_rollout.py` 8/8、`_fn189_custom_patch.py` 4/4、`verify_finance_calc.js` **379/379**、判别力 **379 正确变红 / 0 逃生**、id 审计僵尸 0、全站内联脚本 **17035 个 0 语法错**；两态锁标准页 **209 PASS / 0 FAIL**、定制页 **109 PASS / 0 FAIL**；负向锁标准 8 页 **160 FAIL / 41 PASS**、定制 4 页 **76 FAIL / 29 PASS**；`py_compile` OK。
 - **finance 剩余归零**：全部 58 页标准模板已在本批与第 45 批（全站批量）覆盖范围；第 44 批结束时 finance 旧模板剩 58 页标准 + 0 定制。
 - **老板裁断（2026-11-08）**：同意一次性把修法铺到全站标准页 ⇒ 第 45 批起转全站批量（标准 3018 / 定制 94 / 异常 29）。
+
+## 2026-11-08 第 46 批 · F-N189 全站异常形态清零（31 页 + 工具链 9 处缺陷）
+
+- **全站存量清零**：`_fn189_rollout_all.py --dry` → `custom 0 / std 0 / abnormal 0`（已修 3186 / 无关 1721），F-N189 不再有待修页。
+- **6 类异常形态的根因与处置**：过滤行变体（`|⚠`/`|请填写`/`|应大于`/`|抽取中`/`|不能为|必须`）改结构正则改写；**导出目标 ≠ 表容器（5 页，导出恒空 CSV 的真 BUG）**以「唯一 `matrix.table` 容器优先」纠正，Export 内旧容器守卫一并修；**自研趋势源页（CD4/D8 比值、密文输出字节数、平均分/NSP数值）合法跳过趋势改写**，避免把页面兜底逻辑变成死代码；自拼导出族（`exportCsv` / Blob / PNG）分级断言；`chess/gomoku-forbidden` 缺 4 个容器 div 已补；数字开头 id 改走 `getElementById`。
+- **工具链 9 处真缺陷**（详见移交文件）：幂等闸缺失导致重复插入 `rec.__tbScore=`（5 处）、导出锚点硬编码 `#<pre>Table` 写坏非标准 host 页、趋势名正则删掉 `name:` 键产出语法错、`OLD_FILTER` 精确串判定漏掉变体页、`classify` 误判半修页与自研趋势页、两态锁 `parsePage` 误取按钮 onclick 的 `exportTable`（前缀判成 `purity` 直接 FATAL）、锁内 `uncaughtException` 静默吞错（exit 0 假绿）、锁桩 `querySelector` 遇数字开头 id 崩溃 + `exportCsv`/Blob 导出不可观测。
+- 证据：两态锁本批 35 页逐页 PASS（1 SKIP 已记明「需页面先完成真机计算」）、`--head` 负向正确 FAIL、全站 194 分类抽 2 页 **176 标准同构 + 12 定制全 PASS**、内联脚本 17035 段 0 语法错、`verify_calc.js ALL OK (84 pages)`、`verify_finance_calc.js 379/379`、判别力逃生 20=基线 / 跳过 7=基线（无新增）、全站导出 id 审计 3186 页仅 1 页异常已修。
+- 移交：`plan/已修复/2026-11-08-F-N189-第46批-异常形态31页与工具链9处缺陷.md`

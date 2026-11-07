@@ -18,6 +18,7 @@ import collections
 import glob
 import io
 import os
+import re
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -29,10 +30,30 @@ OLD_FILTER = R.OLD_FILTER
 NAN_SIG = 'parseFloat(arr[j].d[rk])'
 
 
+DOMAIN_TREND_PATS = (re.compile(r'arr\[j\]\.d\.(?!__tbScore)[A-Za-z_]'),
+                     re.compile(r"arr\[j\]\.d\['(?!__tbScore)"))
+
+
+def has_domain_trend(s):
+    """页面自研了有业务含义的趋势数值源（CD4/D8 比值、密文字节数、平均分…）。"""
+    return any(p.search(s) for p in DOMAIN_TREND_PATS)
+
+
+def has_old_filter(s):
+    """旧过滤行按结构正则判，精确串只覆盖标准形态（变体见 _fn189_custom_patch.OLD_FILTER_PAT）。"""
+    return bool(C.OLD_FILTER_PAT.search(s))
+
+
 def classify(s):
-    """返回 (kind, info)。kind ∈ fixed / none / std / custom / abnormal。"""
-    o, nan, fixed = OLD_FILTER in s, NAN_SIG in s, '__tbScore' in s
-    if fixed and not o and not nan:
+    """返回 (kind, info)。kind ∈ fixed / none / std / custom / abnormal。
+
+    `fixed` 的判定必须同时看「过滤行是否仍吞失败样本」：上一版只看 __tbScore/恒 NaN，
+    把「已插 Score 但过滤行仍是变体」的半修页误判成 fixed 跳过（insurance 三页实测）。
+    """
+    o, nan, fixed = has_old_filter(s), NAN_SIG in s, '__tbScore' in s
+    # 自研趋势源页即使还留着 parseFloat(arr[j].d[rk]) 的兜底分支，也不该被改成通用
+    # 有效性趋势（会把兜底变成死代码）⇒ 已含 __tbScore 即视为修好。
+    if fixed and not o and (not nan or has_domain_trend(s)):
         return 'fixed', None
     if not o and not nan:
         return 'none', None
@@ -40,9 +61,10 @@ def classify(s):
     if info is None:
         return 'abnormal', None
     n = R.norm(info['seg'], info['pre'], info['slug'], info['resexpr'], info['calc'])
-    if n == R.STD_OLD_NORM:
+    if n == R.STD_OLD_NORM and o and nan:
         return 'std', info
-    if o and nan:
+    # 半修页（只有旧过滤或只有恒 NaN）也归 custom：局部编辑按幂等补齐缺失修复点
+    if o or nan:
         return 'custom', info
     return 'abnormal', info
 

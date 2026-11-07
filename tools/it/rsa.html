@@ -591,8 +591,13 @@ function __rsaResText(){
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/结果将显示在这里|请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
+}
+function __rsaScore(t){
+    var s=String(t||'');
+    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    return 1;
 }
 function __rsaTime(t){
     var d=new Date(t);
@@ -602,10 +607,12 @@ function __rsaTime(t){
 function __rsaRender(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
-        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var head=[en?'Time':'时间'].concat(keys).concat([en?'Verdict':'结论',rk]);
         var rows=arr.map(function(it){
             var row=[__rsaTime(it.t)];
             for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var sc=parseFloat(it.d.__tbScore);
+            row.push(isFinite(sc)?(sc>=1?(en?'Pass':'通过'):(en?'Fail':'未通过')):'-');
             var r=it.d[rk];row.push(r==null?'':r);
             return row;
         });
@@ -615,7 +622,7 @@ function __rsaRender(keys,rk,en){
             __rsa_skip=true;
             try{
                 for(var k in rec){
-                    if(k===rk) continue;
+                    if(k===rk||k==='__tbScore') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
@@ -664,11 +671,21 @@ function __rsaExtras(force){
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
     if(typeof __rsaLastBytes==='number'&&__rsaLastBytes>0) rec['__bytes']=__rsaLastBytes;
+    rec.__tbScore=__rsaScore(res);
     TBKit.history.record(rec);
     __rsaRender(keys,rk,en);
 }
 function __rsaExport(){
     if (typeof TBKit === 'undefined') return;
+    try{
+        var box=document.getElementById('rsaTable')||document.querySelector('#rsaTable');
+        if(!box||!box.querySelector('tr')){
+            var snap=__rsaSnap(); var keys=Object.keys(snap);
+            if(keys.length>12) keys=keys.slice(0,12);
+            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+            __rsaRender(keys,en?'Result':'结果',en);
+        }
+    }catch(e){}
     try { TBKit.util.exportTable('#rsaTable','rsa.csv'); } catch(e){}
 }
 function __rsaPresets(){
