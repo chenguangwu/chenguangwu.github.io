@@ -633,6 +633,23 @@ function __position_sizingTime(t){
     function q(x){return (x<10?'0':'')+x;}
     return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
 }
+function __position_sizingSetMode(v){
+    // 只切模式与选中态，不触发 calc()：调用方随后会恢复输入再统一重算（B-N6）
+    var isKelly = !/固定|Fixed/i.test(String(v == null ? '' : v));
+    var tab = isKelly ? 'kelly' : 'fixed';
+    currentTab = tab;
+    var btns = document.querySelectorAll('.tab-btn');
+    for(var i = 0; i < btns.length; i++){
+        var oc = btns[i].getAttribute('onclick') || '';
+        if(oc.indexOf("'" + tab + "'") >= 0){ btns[i].classList.add('active'); }
+        else { btns[i].classList.remove('active'); }
+    }
+    var k = document.getElementById('tabKelly'), f = document.getElementById('tabFixed');
+    if(k) k.classList.remove('active');
+    if(f) f.classList.remove('active');
+    var t = document.getElementById(tab === 'kelly' ? 'tabKelly' : 'tabFixed');
+    if(t) t.classList.add('active');
+}
 function __position_sizingRender(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
@@ -648,8 +665,11 @@ function __position_sizingRender(keys,rk,en){
         TBKit.history.mount('#position_sizingHist',function(rec){
             __position_sizing_skip=true;
             try{
+                // 先恢复计算模式，再恢复输入并重算：否则凯利记录会被当前固定风险模式重算成另一套结果
+                var __mv = rec ? (rec['计算模式'] || rec['Mode']) : null;
+                if(__mv) __position_sizingSetMode(__mv);
                 for(var k in rec){
-                    if(k===rk) continue;
+                    if(k===rk||k==='计算模式'||k==='Mode') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
@@ -681,6 +701,11 @@ function __position_sizingExtras(){
     if(!res) return;
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
+    // 计算模式必须随记录一起落库，否则历史里的凯利方案会被当前模式重算成另一套结果（B-N6）
+    var __mk=en?'Mode':'计算模式';
+    var __mv=(currentTab==='kelly')?(en?'Kelly':'凯利公式'):(en?'Fixed risk':'固定风险');
+    if(keys.indexOf(__mk)<0) keys.push(__mk);
+    snap[__mk]=__mv;
     var now=Date.now();
     if(now-__position_sizing_last<1000) return;
     var last=null;
@@ -701,7 +726,20 @@ function __position_sizingExtras(){
 }
 function __position_sizingExport(){
     if (typeof TBKit === 'undefined') return;
-    try { TBKit.util.exportTable('#position_sizingTable','position-sizing.csv'); } catch(e){}
+    // 导出当前完整输入 + 计算模式 + 结果，而不是被截断的历史摘要（B-N6）
+    var en=TBKit.util.isEn();
+    var LBL={winRate:'胜率（%）',winLossRatio:'盈亏比（赢/亏）',totalCapital:'总资金（元）',riskPerTrade:'每笔风险资金（元）',capital2:'总资金（元）',riskPct:'每笔风险比例（%）',entryPrice:'买入价',stopPrice:'止损价',targetPrice:'目标价',feeRate:'手续费比例（%）'};
+    var snap=__position_sizingSnap();
+    var rows=[[en?'Item':'项目', en?'Value':'数值']];
+    rows.push([en?'Mode':'计算模式', (currentTab==='kelly')?(en?'Kelly':'凯利公式'):(en?'Fixed risk':'固定风险')]);
+    for(var k in snap){ rows.push([LBL[k]||k, snap[k]]); }
+    var resEl=document.getElementById('result');
+    var txt=((resEl&&resEl.textContent)||'').replace(/\s+/g,' ').trim();
+    rows.push([en?'Result':'当前结果', txt.slice(0,240)]);
+    var st=document.getElementById('statGrid');
+    var stx=((st&&st.textContent)||'').replace(/\s+/g,' ').trim();
+    if(stx) rows.push([en?'Details':'明细', stx.slice(0,300)]);
+    try { TBKit.util.exportCsv('position-sizing.csv', rows); } catch(e){}
 }
 function __position_sizingPresets(){
     if (typeof TBKit === 'undefined') return;

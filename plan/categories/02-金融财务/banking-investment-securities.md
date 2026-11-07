@@ -72,6 +72,10 @@
 - 证据：`tools/investment/discounted-payback.html:131-152,230-239` 的 `num` 把空输入转为零，清空期初现金流且其余为 500、500、500 和 10% 时显示 0.00 年；期初 -1000、后续各 500、贴现率 -100% 时折现分母为零，却给出「未回收」。
 - 影响：`tools/investment/discounted-payback.html`；用户可能将未完成输入或数学无效结果误判为可回收或不可回收。
 - 方案：区分缺失和显式零，要求数值有限、贴现率大于 -100%；展示各期折现现金流与累计值，允许增删期间并导出。其增删及现金流建议与前文留存项合并，不重复计数。
+- **已修复 2026-11-07**：新增 `__dpNum()` 区分「留空」与「显式 0」（空串返回 NaN），`calcTool()` 校验链逐个检查 CF₀/CF₁–CF₃/贴现率：留空报「「X」不能为空：留空会被当成 0 参与计算…」、非数报「不是有效数字」、`r ≤ −100` 报「必须大于 −100%（折现因子从第 1 期起为 0）」；结果区新增「累计折现现金流（末期）」「折现现金流合计」两卡和**逐期明细表**（期间/现金流/折现因子/折现现金流/累计折现）；未回收时给出末期累计值与原因；`CF₀ ≥ 0` 提示符号可能填反（0 年仍属合法退化结果，不拦）；导出由 `exportTable`（历史摘要）改为 `exportCsv`（当前完整输入 + 结果 + 逐期明细），非法输入时清空 `__dpLast` 并拦截导出；`formula-eq` 与英文 map 同步。
+  - 判别力（`scripts/_verify_fin_batch_bn4_bn6.mjs`）：清空 CF₀ → **拒绝**（PASS）/ HEAD **0.00 年**（FAIL）；清空 CF₂ → **拒绝**（PASS）/ HEAD **未回收**（FAIL）；`r=−100%` → **拒绝**（PASS）/ HEAD **未回收**（FAIL）；逐期明细（折现因子 1.1000 / 1779.45）**存在**（PASS）/ HEAD 无（FAIL）；导出走 `exportCsv` 且含当前输入（PASS）/ HEAD 走 `exportTable`（FAIL）。
+  - 用例同步：`verify_investment_calc.js` 的 `discounted-payback` auto 用例 `cf0=42`（正期初，回收期恒 0 年，判别力弱）改写为 `−5000/2000/2500/2500 @12% → 2.69 年`，另加 `r=−100% → 必须大于 −100` 一条；52 → **53 条全过**。原 `ref` 被上一批误写成盈利指数文案，本次一并纠正。
+  - 余项：仍为固定 4 期（CF₀ + 3 年），「允许增删期间」按原方案与留存项合并，不在本条范围。
 
 ### B-N5 理论期数乘期供不等于实际结清总额（中，确认源码缺陷）
 - 证据：`tools/banking/loan-tenure.html:280-287,330-331,339-351` 输出 `PMT×n`，但 FAQ 称末期按剩余本金及利息结清。本金 10000、每期利率 0.005、期供 200 时约 57.6801 期，页面总额约 11536.03；按前 57 期固定期供与最后一期约 136.14 计算，合计约 11536.14（未考虑银行逐期舍入）。
@@ -85,6 +89,8 @@
 - 证据：`tools/securities/position-sizing.html:361-386,592-602,629-643,677-680` 历史未记录或恢复 `currentTab`；切换到凯利模式后恢复固定风险记录，按当前模式重算，浏览器回填待测。
 - 影响：`tools/securities/position-sizing.html`；历史方案可能无法复现，影响复核。
 - 方案：保存并先恢复计算模式，再恢复全部输入和重算；另让 `tools/securities/position-sizing.html` 与 `tools/investment/discounted-payback.html` 导出当前完整输入、结果及明细，而非仅截断的历史摘要（分别见 `:604-610,683-697`、`:262-268,341-355`）。
+- **已修复 2026-11-07**：新增 `__position_sizingSetMode()`（只切 `currentTab` + tab 选中态，不触发 `calc()`）；历史记录追加 `计算模式` 字段（EN 态 `Mode`，`凯利公式`/`固定风险`）并纳入「与上次相同」判定；恢复回调改为**先切模式 → 再回填输入 → 最后统一 `calc()`**，凯利记录不再被当前模式重算；两页导出均改为 `exportCsv` 导当前完整输入 + 结果 + 明细（仓位页含当前模式与 `#statGrid`，折现回收期页含逐期折现行）。
+  - 判别力（同锁脚本）：凯利记录含「计算模式=凯利公式」（PASS）/ HEAD 字段缺失（FAIL）；点选恢复后 `currentTab=kelly` 且结果与记录时**逐字一致**（PASS）/ HEAD `currentTab=fixed` 且结果被重算（FAIL）；导出含「计算模式,凯利公式」（PASS）/ HEAD 走历史摘要表（FAIL）。`verify_securities_calc.js` **76/76** 不变（页面结果口径未改）。
 
 ### 续查覆盖
 - 新抽查 `tools/banking/loan-tenure.html`、`tools/banking/loan-remaining-balance.html`、`tools/investment/discounted-payback.html`、`tools/securities/position-sizing.html` 共 4 页，新增 6 条，其中 4 条高优；未进行浏览器、线上或门禁验证。
