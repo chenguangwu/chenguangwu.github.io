@@ -366,6 +366,15 @@ function checkAnswer(){
   const rd=document.getElementById('resultDisplay');
   if(currentExpr.length===0){rd.className='result-display result-info';rd.textContent=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Compose the expression first":"请先组成表达式");return;}
   if(usedIndices.length<4){rd.className='result-display result-lose';rd.textContent='必须使用全部 4 个数字（已用 '+usedIndices.length+'/4）';return;}
+  // 文法校验：相邻两个数字记号之间必须插入运算符，否则会被拼接成多位数（如 2 4 → 24），FE-N66
+  const isNumTok=t=>(!isNaN(parseFloat(t))&&t!=='('&&t!==')');
+  for(let k=1;k<currentExpr.length;k++){
+    if(isNumTok(currentExpr[k-1])&&isNumTok(currentExpr[k])){
+      rd.className='result-display result-lose';
+      rd.textContent='相邻两个数字之间必须插入运算符，不能拼成多位数';
+      return;
+    }
+  }
   const exprStr=currentExpr.join('');
   const val=evalExpr(exprStr);
   if(!isFinite(val)){rd.className='result-display result-lose';rd.textContent=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Invalid expression; check brackets and operators":"表达式无效，请检查括号与运算符");return;}

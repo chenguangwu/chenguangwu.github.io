@@ -1,0 +1,57 @@
+// FE-N69 运行期回归：word-scramble 未开局点「结束」会写入一条 0 分空局战绩，且 0 分被误判「新纪录」。
+// 缺陷：endGame() 无 gameActive 守卫，未开局即结算并写入 0 分 recent；saveScore 用 !data.bestScore 把 0 当首次。
+// 修复：endGame 开头 if(!gameActive) return；saveScore 用 typeof bestScore!=='number' 判首次。
+// 用法：
+//   node scripts/_verify_fun_batch_fe_n69.mjs          # 当前（修复后）版本 → 期望 PASS (exit 0)
+//   node scripts/_verify_fun_batch_fe_n69.mjs --head  # HEAD（修复前）版本 → 期望 FAIL (exit 1，确认缺陷)
+// 驱动：清空 localStorage → 直接 endGame()（未开局）→ 读 wordscramble_best，断言无 recent 记录。
+import { readFileSync } from 'fs';
+import { execSync } from 'child_process';
+import { JSDOM, VirtualConsole } from 'jsdom';
+
+const head = process.argv.includes('--head');
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+function loadHtml() {
+  if (head) return execSync('git show HEAD:tools/fun/word-scramble.html', { encoding: 'utf8' });
+  return readFileSync('tools/fun/word-scramble.html', 'utf8');
+}
+
+(async () => {
+  const html = loadHtml();
+  const vc = new VirtualConsole();
+  vc.on('jsdomError', () => {});
+  let winRef = null;
+  const dom = new JSDOM(html, {
+    runScripts: 'dangerously', url: 'https://x.test/', pretendToBeVisual: true, virtualConsole: vc,
+    beforeParse(w) {
+      winRef = w;
+      w.ToolBox = { showToast: () => {}, initToolTheme: () => {} };
+    },
+  });
+  await sleep(150);
+  const w = winRef;
+
+  // 清空历史最佳，模拟「从未玩过」
+  try { w.localStorage.removeItem('wordscramble_best'); } catch (e) {}
+
+  // 关键：未开局直接点「结束」
+  try {
+    w.endGame();
+  } catch (e) {
+    console.log(`[FE-N69] endGame 抛错: ${e.message} → FAIL`);
+    process.exit(1);
+  }
+  await sleep(50);
+
+  let stored = null;
+  try { stored = w.localStorage.getItem('wordscramble_best'); } catch (e) {}
+  let recent = [];
+  if (stored) {
+    try { recent = (JSON.parse(stored).recent) || []; } catch (e) {}
+  }
+  // 修复版：未开局结算被守卫拦截，不写任何记录（recent 为空）；缺陷版：写入一条 0 分空局战绩
+  const ok = recent.length === 0;
+  console.log(`[FE-N69] 模式: ${head ? 'HEAD(修复前)' : '当前(修复后)'} | 未开局结束写入 recent 条数=${recent.length} → ${ok ? 'PASS(无空局战绩)' : 'FAIL(写入0分空局)'}`);
+  process.exit(ok ? 0 : 1);
+})();

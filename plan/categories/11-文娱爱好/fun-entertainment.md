@@ -653,6 +653,7 @@
 - 复现：刷到牌组 `[2,4,5,5]`（该组有标准解，生成器可产出）→ 依次点 2、4、+、5、−、5 → 界面显示「2 4 + 5 − 5」，点「计算结果」→「🎉 正确！24+5−5 = 24」。
 - 影响：违反「只用 +−×÷ 与括号」仍可得 1 分并计入胜率；玩家漏点运算符（很常见）会被静默当成两位数。`/tmp` Node 枚举另有 86 组「标准无解但拼接可解」牌组（如 `[1,1,2,2]` → `12+12`），正常生成流程（`:273-284` 五十次重试求有解）极少产出无解组，但兜底分支若落到无解组即可被拼接破解。
 - 方案：数字后必须紧跟运算符，或在 `checkAnswer` 加文法校验（连续两个数字记号即判非法），再求值。
+- **状态：已修复 2026-11-07。** 修复位点：`tools/fun/number-puzzle.html` `checkAnswer()` 在 `usedIndices.length<4` 校验后新增文法校验——相邻两个数字记号之间必须插入运算符，否则判非法（提示「相邻两个数字之间必须插入运算符，不能拼成多位数」），不再 `join('')` 拼接求值。判别力实测：`scripts/_verify_fun_batch_fe_n66.mjs` 运行期两态锁——模拟 `2 4 + 5 - 5`，修复版拦截并提示「运算符」（PASS），HEAD 拼接成 `24+5-5=24` 误判「正确」（FAIL）。移交：`plan/已修复/2026-11-07-FE-N66-N68-N69-拼数拼接与重复计分.md`。
 
 ### FE-N67 规则写明「可切换为 1~10 模式」，全页没有该开关，`mode13` 永不改变（中，承诺未实现）
 - 页面：`tools/fun/number-puzzle.html`
@@ -668,6 +669,7 @@
 - 复现：输入正确单词后连按两次回车（或快速双击「提交答案」）→ 同一词计两次分、`correctCount` +2、连击 +2。
 - 影响：分数、连胜、最高连胜与最佳成绩全部可被刷高，战绩失真。
 - 方案：答对即置 `locked=true` 或立即清空输入并 disable 提交，`nextWord` 时复位。
+- **状态：已修复 2026-11-07。** 修复位点：`tools/fun/word-scramble.html` 新增 `submitLocked` 状态；`submitAnswer` 答对后设 `submitLocked=true` 并 `if(submitLocked) return` 拦截窗口内二次提交，`nextWord()` 复位。判别力实测：`scripts/_verify_fun_batch_fe_n68.mjs` 运行期两态锁——开局→答对→连点两次提交，修复版 score 仅 +1 次（55→55，PASS），HEAD 翻倍（35→75，FAIL）。移交：`plan/已修复/2026-11-07-FE-N66-N68-N69-拼数拼接与重复计分.md`。
 
 ### FE-N69 0 分也判「🏆 新纪录」，未开局点「结束」会写入一条 0 分战绩（中，确认源码缺陷）
 - 页面：`tools/fun/word-scramble.html`
@@ -676,6 +678,7 @@
 - 复现：点「开始游戏」后立刻点「结束」→ 弹窗显示「🏆 新纪录！」；再重复一次 0 分结束，仍显示「新纪录」（`bestScore` 恒为 0）。
 - 影响：最佳成绩被 0 覆盖并反复误报，战绩列表被从未开始的空局污染。
 - 方案：用 `typeof data.bestScore!=='number'` 判首次；`endGame` 开头加 `if(!gameActive) return;`。
+- **状态：已修复 2026-11-07。** 修复位点：`tools/fun/word-scramble.html` `endGame()` 开头加 `if(!gameActive) return;`（未开局/已结束时直接拦截，不写空局战绩）；`saveScore()` 首次判定由 `!data.bestScore` 改为 `typeof data.bestScore!=='number'`（0 分不再被当「无记录」误判新纪录）。判别力实测：`scripts/_verify_fun_batch_fe_n69.mjs` 运行期两态锁——清空历史后未开局直接 `endGame()`，修复版 `recent` 条数=0（PASS），HEAD 写入 1 条 0 分空局（FAIL）。移交：`plan/已修复/2026-11-07-FE-N66-N68-N69-拼数拼接与重复计分.md`。
 
 ### W 批覆盖清单（益智/记忆/随机 8 页）
 - `tools/fun/random-picker.html`：3 条（FE-N53 高·安全；FE-N54、FE-N55 中）。复核通过项：随机索引等概率、15×80ms 定格、历史保留 20 条、`unique` 关闭时每次重填池、预设文本与 `reset`。

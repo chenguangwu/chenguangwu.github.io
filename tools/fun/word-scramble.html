@@ -482,6 +482,7 @@ let hintsUsed = 0;
 let timeLeft = 60;
 let timerInterval = null;
 let gameActive = false;
+let submitLocked = false; // 答对后到 nextWord 的 800ms 窗口内锁定提交，防重复计分（FE-N68）
 let usedWords = [];
 
 function switchTab(tab, btn){
@@ -536,6 +537,7 @@ function startGame(){
 }
 
 function endGame(){
+  if(!gameActive) return; // 未开局/已结束不可重复结算，避免写入 0 分空局战绩（FE-N69）
   gameActive = false;
   if(timerInterval){
     clearInterval(timerInterval);
@@ -570,6 +572,7 @@ function getFilteredWords(){
 }
 
 function nextWord(){
+  submitLocked = false; // 换词后解除提交锁定（FE-N68）
   const available = getFilteredWords();
   if(available.length === 0){
     usedWords = [];
@@ -612,6 +615,7 @@ function renderScrambled(word){
 
 function submitAnswer(){
   if(!gameActive || !currentWord) return;
+  if(submitLocked) return; // 答对后 800ms 内锁定，避免重复提交重复计分（FE-N68）
   
   const input = document.getElementById('answerInput').value.trim().toLowerCase();
   if(!input) return;
@@ -632,6 +636,7 @@ function submitAnswer(){
     const tiles = document.querySelectorAll('.letter-tile');
     tiles.forEach(t=>t.classList.add('correct-anim'));
     
+    submitLocked = true; // 进入换词窗口，先锁住
     setTimeout(()=>{
       nextWord();
     }, 800);
@@ -687,7 +692,8 @@ function saveScore(){
   try{
     const data = JSON.parse(localStorage.getItem('wordscramble_best') || '{}');
     let isNew = false;
-    if(!data.bestScore || score > data.bestScore){
+    // 首次记录用 typeof 判定（0 分是有效成绩，不得被当作「无记录」误判新纪录，FE-N69）
+    if(typeof data.bestScore !== 'number' || score > data.bestScore){
       data.bestScore = score;
       isNew = true;
     }
