@@ -338,22 +338,17 @@
 - 判别力：`scripts/_verify_fun_batch_fe_n29.mjs` JSDOM 两态锁——`start()` 加载题目 → `reset()` → 提交 `'zzz'` → 修复版 `check` 因 `cur=null` 提前 return（`#output` 保持 reset 文本），HEAD 旧版 `cur` 未清空、`check` 进入判定改写 `#output`；修复后 PASS(exit 0) / HEAD FAIL(exit 1)，确认 bug 真实且已修。（`cur` 为顶层 let 不在 window，故经 DOM `#output` 间接观测）
 - 移交文件：`plan/已修复/2026-11-07-FE-N29-找词游戏重置清空状态.md`
 
-### FE-N30 承诺「做错有解析」「覆盖质数/阶乘/图形序列」，实现无任何讲解且只有 6 类数字序列（高，确认内容缺陷；承诺未实现）
+### FE-N30 复核误报：当前版本已实现 9 类题型 + 质数/阶乘讲解 + "只出数字题不含图形"声明（不改源码）
 - 页面：`tools/fun/sequence-puzzle.html`
-- 问题：深度解析与 FAQ 明确承诺提交后讲解所用规律、题库覆盖质数/阶乘/图形旋转；`genPuzzle` 只有 arith/geom/square/fib/alt/interleave 六类数字序列，`choose` 只把正确项标绿后 1 秒自动下一题，无解析文本。
-- 证据：`:201`（「规律覆盖：等差、等比、斐波那契、质数、图形旋转等」）、`:202`（「附解析：做错可看规律讲解学习」）、`:208`、`:209`；实现 `:256-295`（`types` 仅 6 类，无质数/阶乘/图形分支）、`:331-343`（choose 仅加 `correct` 类，无说明输出）。
-- 复现：开始后任选一题答错 → 实际只标绿正确选项，1 秒后直接换题，`#output` 始终是「找出序列的下一项」；随机 100 题不会出现质数/阶乘/图形题。期望：答错后显示规律说明，且题库包含所承诺题型。
-- 影响：页面自称的教学价值全部落空，用户无法从错误中学习；题型范围与宣传不符。
-- 方案：为每个 `t` 生成一段规律说明并在答错时输出；补充质数、阶乘分支（图形题需另做 SVG 渲染，否则删掉 :201/:208 的表述）。
-- 假工具：部分（核心「解析」能力未实现）。
+- 复核结论：台账快照为修复前状态。当前源码 `types=['arith','geom','square','cube','fib','prime','factorial','alt','interleave']`（9 类，含质数/阶乘），`genPuzzle` 对质数/阶乘均有 `why` 讲解（293/300 行），答错时 `choose()` 输出「❌ 正确答案是 X。规律：…」含解析文本；deep-dive 已明确「本工具只出数字题，不含图形序列」（commit 2f424d52b6 已修）。
+- 处置：仅标注台账，不动源码、不补锁定用例（原"承诺图形序列"问题已不存在）。
 
-### FE-N31 重开/重置后旧的 `setTimeout(next)` 仍触发，新局第 1 题被直接跳过（中，确认源码缺陷）
+### FE-N31 重开/重置后旧的 `setTimeout(next)` 仍触发，新局第 1 题被直接跳过（中，已修复 2026-11-07）
 - 页面：`tools/fun/sequence-puzzle.html`
-- 问题：`choose()` 用 `setTimeout(next,1000)` 且不保存句柄，`reset()`/`start()` 均不清理；上一题遗留的定时器会在新局里执行 `next()`。
-- 证据：`:342`（无句柄的 setTimeout）、`:299-303`（start 只调 reset + next）、`:304-310`（reset 不涉定时器）、`:311-318`（next 直接 `qNo++` 换题）。
-- 复现：开始 → 答第 1 题 → 1 秒内点「重置」再点「开始」→ 第 1 题刚出现约 1 秒后即被跳过，`qNo` 直接显示 2（本题从未作答）；期望重开后稳定停在 Q1 等待作答。只点「重置」时更会出现界面已复位、题目与计分却在后台继续推进。
-- 影响：重开后少答一题，10 题得分口径不可信。
-- 方案：保存 `timerId`，在 `start()`/`reset()` 中 `clearTimeout`。
+- 问题：`choose()` 用 `setTimeout(next,1000)` 且不保存句柄，`reset()`/`start()` 均不清理；上一题遗留的定时器会在新局里执行 `next()`，题号从 1 直接跳到 2。
+- 修复位点：第 321 行状态声明增 `timerId`（`let qNo,score,cur,timerId=null;`）；`reset()` 开头加 `if(timerId){clearTimeout(timerId);timerId=null;}`；`choose()` 末行改为 `timerId=setTimeout(next,o===cur.ans?1000:2200);`。
+- 判别力：`scripts/_verify_fun_batch_fe_n31.mjs` JSDOM 两态锁——`start()` 开局题号=1 → 点首选项 `choose()` 安排定时器 → 1 秒内再 `start()`（reset）→ 等待 2500ms 超窗；修复版残留定时器被清理，终态题号保持 1，PASS(exit 0)；HEAD 旧版定时器触发 `next()`，终态题号跳到 2，FAIL(exit 1)，确认 bug 真实且已修。（`timerId` 为顶层 let 不在 window，故经 DOM `#qNo` 间接观测）
+- 移交文件：`plan/已修复/2026-11-07-FE-N31-数列谜题重置清理定时器.md`
 
 ### FE-N32 点击速度页首屏「点击此处开始」区域点击无效，必须另点「开始」按钮（高，确认源码缺陷）
 - 页面：`tools/fun/click-speed.html`
