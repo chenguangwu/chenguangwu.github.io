@@ -443,13 +443,15 @@
 - 判别力：`scripts/_verify_fun_batch_fe_n42.mjs` JSDOM 两态锁——人机玩家先手 → makeMove(0)（排 AI 400ms）→ 立即 newGame() → 等 600ms → 修复版新棋盘 O 数=0，PASS(exit 0)；HEAD 旧版残留定时器落 1 个 O，FAIL(exit 1)，确认 bug 真实且已修。
 - 移交文件：`plan/已修复/2026-11-07-FE-N42-井字棋清理AI定时器.md`
 
-### FE-N43 太空射击结束态不复位「开始游戏」按钮（中，确认源码缺陷）
+### FE-N43 太空射击结束态不复位「开始游戏」按钮（中，**2026-11-07 已修复**）
 - 页面：`tools/fun/space-shooter.html`
 - 问题：`startGame()` 把 `#btnStart` 置为 `disabled` + 「游戏中...」，`gameOver()` 只切状态、不恢复按钮；只有 `restartGame()` 才复原。
 - 证据：`:1205-1206`（开局禁用）、`:1061-1065`（gameOver 未触碰 btnStart）、`:1231-1232`（仅 restartGame 复原）。
 - 复现：漏敌/撞机至 0 命 → 结束覆盖层出现后点「开始游戏」无任何反应，必须先点「重新开始」。
 - 影响：主操作按钮在结束态永久失效，用户误判页面卡死。
-- 方案：gameOver 时恢复按钮文案与 disabled 状态（或与 restartGame 合并语义）。
+- 修复位点：`gameOver()` 在 `updateHUD()` 后复原 `#btnStart`（`disabled=false`、文案回到「开始游戏」）；同步结束覆盖层提示指向「开始游戏」主按钮。`tools/fun/space-shooter.html:1065-1067`。
+- 判别力：`scripts/_verify_fun_batch_fe_n43.mjs` JSDOM 两态锁——覆盖 `Math.random` 使敌机必撞玩家，真实 rAF 跑到 gameOver：当前 `disabled=false/开始游戏`（PASS），HEAD 仍 `true/游戏中...`（FAIL）。
+- 移交文件：`plan/已修复/2026-11-07-FE-N43-太空射击结束复位开始按钮.md`
 
 ### FE-N44 太空射击宣称的「最高分本地保存」未实现（中，承诺未实现）
 - 页面：`tools/fun/space-shooter.html`
@@ -466,13 +468,15 @@
 - 影响：计分示例与实际规则冲突，用户对分数预期错误。
 - 方案：按 10/20/30 与三连射/护盾/加命改写算例。
 
-### FE-N46 贪吃蛇把「即将腾空的尾格」判为自撞（中，确认源码缺陷）
+### FE-N46 贪吃蛇把「即将腾空的尾格」判为自撞（中，**2026-11-07 已修复**）
 - 页面：`tools/fun/snake-game.html`
 - 问题：自撞判定在 `unshift` 前对整条蛇（含尾段）做 `some`，随后才 `pop()`；未吃到食物时尾部本会腾空，进入尾格应合法。
 - 证据：`:437-470`，判定 `:456` `snake.some(s => s.x===head.x && s.y===head.y)`，`:468` 才 `snake.pop()`。
 - 复现（Node 复算）：长度 4、头 (10,10)、身 (10,11)(11,11)、尾 (11,10)，向右一步进入尾格 → 判定 gameOver；按规则该格当帧腾空，应存活。该盘面可由「长度 3 蛇绕 2×2 环并在 (10,10) 吃到食物」达成。
 - 影响：特定盘面下错误结束游戏（误判死亡）。
-- 方案：未吃到食物时判定忽略尾段（`snake.slice(0,-1)`），吃到食物时仍全段判定。
+- 修复位点：`gameStep()` 先算 `willEat=(head==food)`，自撞判定 `bodyToCheck = willEat ? snake : snake.slice(0,-1)`；未吃时正常 `pop()`。`tools/fun/snake-game.html:456-469`。
+- 判别力：`scripts/_verify_fun_batch_fe_n46.mjs` JSDOM 两态锁——注入脚本暴露闭包内 `snake/nextDirection/food/gameStep`，构造 2×2 环盘面、头向右一步进入尾格、food 不在尾格：当前 `gameRunning=true`、新头(11,10)、蛇长 4（PASS），HEAD `gameRunning=false`（FAIL）。
+- 移交文件：`plan/已修复/2026-11-07-FE-N46-贪吃蛇尾格自撞误判.md`
 
 ### FE-N47 猜单词宣称的「统计战绩/胜率与平均步数」未实现（中，承诺未实现）
 - 页面：`tools/fun/hangman.html`
@@ -525,8 +529,8 @@
 
 ### V 批覆盖清单（小游戏 8 页）
 - `tools/fun/tic-tac-toe.html`：1 条（FE-N42 高）。复核通过项：`checkWin`/`checkWinFor` 8 组三连对称、`board.every` 平局、困难 minimax 以 O 判胜优先、分数读写与撤销栈。
-- `tools/fun/space-shooter.html`：3 条（FE-N43、FE-N44、FE-N45 中）。
-- `tools/fun/snake-game.html`：1 条（FE-N46 中）。复核通过项：食物避开蛇身（`:433`）、各难度最高分独立、暂停/结束态输入守卫、反向输入拦截。
+- `tools/fun/space-shooter.html`：3 条（FE-N43 已修复 2026-11-07；FE-N44、FE-N45 中待处理）。复核通过项：敌机三档分数(10/20/30)、道具三类、子弹碰撞与漏敌扣命、等级递增。
+- `tools/fun/snake-game.html`：1 条（FE-N46 **已修复 2026-11-07**）。复核通过项：食物避开蛇身（`:433`）、各难度最高分独立、暂停/结束态输入守卫、反向输入拦截。
 - `tools/fun/hangman.html`：1 条（FE-N47 中）。复核通过项：26 个词均为无空格单词（不存在因空格永不可胜）、6 次错误判负、7 级绞架索引不越界、命中/重复猜字母判定。
 - `tools/fun/coin-flip.html`：1 条（FE-N48 中）。复核通过项：`Math.random` 正反各半、heads/tails 累加与百分比、localStorage 回读。
 - `tools/fun/pong.html`：2 条（FE-N49、FE-N50 中）。复核通过项：11 分结束、击球点反弹角 ±60°、球速上限、暂停/可见性自动暂停。
