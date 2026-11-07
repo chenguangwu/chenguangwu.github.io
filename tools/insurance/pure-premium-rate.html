@@ -117,7 +117,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入期望损失与风险暴露单位数，求纯费率。">Divide expected loss by exposure units to obtain the pure rate.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">纯费率（本页代码口径）：纯费率=期望损失÷风险暴露单位（元/单位）；联动量：百分数形式=纯费率×100（%）、暴露与期望损失差额、小数形式=纯费率÷100。校验：两字段经输入守卫必填且须为合法数值，否则提示并中止。判据：无固定分级，纯费率与期望损失成正比、与暴露单位数成反比，同额损失下暴露越大费率越低。</div>
+      <div class="formula-eq">纯费率（本页代码口径）：纯费率=期望损失÷风险暴露单位（元/单位）；联动量：每 1000 单位暴露的期望损失=纯费率×1000（元），并按 1 / 10 / 100 / 1000 单位列出换算对照表。校验：两字段必填且须为合法数值，留空不再按 0 兜底；期望损失须 ≥0、风险暴露单位须 >0（纯费率的分母），不满足即提示并中止，错误态不生成明细、历史与导出。判据：无固定分级，纯费率与期望损失成正比、与暴露单位数成反比，同额损失下暴露越大费率越低。已移除原「纯费率百分数 ×100」「纯费率小数 ÷100」「风险单位与损失之差」三项 —— 前者无百分比基准（10.00 元/单位 会显示成 1000.000%），后者把「单位数」与「元」直接相减，量纲不成立。</div>
       <p class="formula-desc">输入期望损失与风险暴露单位数，求纯费率。</p>
     </div>
 
@@ -272,17 +272,42 @@ s.parentNode.insertBefore(el, s);
 
 
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
+// 区分「留空」与「显式 0」：留空返回 NaN（R-H3）
+function __pprNum(id){var e=document.getElementById(id);if(!e)return NaN;var s=String(e.value==null?'':e.value).trim();if(s==='')return NaN;var v=parseFloat(s);return isFinite(v)?v:NaN;}
+var __pprLast=null;   // 最近一次有效计算的输入与结果，供导出使用（R-H2 / R-H3）
+// 主计算与附表共用同一份校验
+function __pprCheck(){
+    var __ig=__tbInputGuard(['el','exp'],['期望损失 (元)','风险暴露 (单位)']);
+    if(__ig) return {ok:false,html:__ig};
+    var el=__pprNum('el'),exp=__pprNum('exp');
+    if(!(el>=0)) return {ok:false,html:'<p style="color:var(--danger)">⚠ 「期望损失 (元)」不能为负数（当前 '+el+'）：期望损失是赔付成本的估计值，负数会得到负的纯费率；风险暴露为负时曾反向得到正费率，同样不成立。</p>'};
+    if(!(exp>0)) return {ok:false,html:'<p style="color:var(--danger)">⚠ 「风险暴露 (单位)」必须大于 0（当前 '+exp+'）：暴露单位是纯费率的分母，0 或负数会使费率无定义或符号翻转。</p>'};
+    return {ok:true,el:el,exp:exp};
+}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-              var __ig=__tbInputGuard(['el', 'exp'],["期望损失 (元)", "风险暴露 (单位)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const el=num('el'),exp=num('exp');
-            const ppr=el/exp;
-            const __g2=dataGrid([
+    __pprLast=null;   // 本次输入非法时不得再用上一次结果导出
+    var S=__pprCheck();
+    if(!S.ok){ ToolBox.setResult('result',S.html); return; }
+    const el=S.el,exp=S.exp;
+    const ppr=el/exp;
+    const scale=[1,10,100,1000];
+    __pprLast={el:el,exp:exp,ppr:ppr,scale:scale};
+    var __rows='';
+    for(var i=0;i<scale.length;i++){
+        __rows+='<tr><td style="padding:5px 8px;border-bottom:1px solid var(--border);">'+scale[i]+'</td>'
+              + '<td style="padding:5px 8px;border-bottom:1px solid var(--border);text-align:right;">'+(ppr*scale[i]).toFixed(2)+'</td></tr>';
+    }
+    const __g2=dataGrid([
                 [ppr.toFixed(2),'纯费率 (元/单位)'],
-                [(ppr*100).toFixed(3), '纯费率百分数'],
-                [(exp-el).toFixed(2), '风险单位与损失之差'],
-                [(ppr/100).toFixed(5), '纯费率小数形式']
-            ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
+                [(ppr*1000).toFixed(2), '每 1000 单位暴露的期望损失 (元)']
+            ])
+            + '<p style="font-size:13px;color:var(--text-muted);margin-top:8px;">原先直接把纯费率乘 100 标成百分数、除 100 标成小数，又把「单位数」与「元」相减，三项都没有可解释的基准或统一量纲（10.00 元/单位 会被显示成 1000.000%、0.10000，且 100 单位 − 1000 元 不可相减），已移除，改列有基准的换算对照。</p>'
+            + '<div style="overflow-x:auto;margin-top:8px;"><table style="width:100%;border-collapse:collapse;font-size:12px;"><thead><tr>'
+            + '<th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border);">暴露单位数</th>'
+            + '<th style="text-align:right;padding:5px 8px;border-bottom:1px solid var(--border);">对应期望损失 (元)</th>'
+            + '</tr></thead><tbody>'+__rows+'</tbody></table></div>';
+    ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('el').value = '1000';
       document.getElementById('exp').value = '100';
@@ -293,18 +318,17 @@ function __pure_premium_rateNum(id){var e=document.getElementById(id);var v=e?pa
 function __pure_premium_rateExtras(){
     function __pure_premium_rateRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
-    var el=num('el'),exp=num('exp');
-    var ppr=el/exp;
-    if (!isFinite(__pure_premium_rateNum('el')) || !isFinite(__pure_premium_rateNum('exp'))) return;
+    var S=__pprCheck();
     var en=TBKit.util.isEn();
+    if(!S.ok){
+        // 非法输入时清空旧表并给占位，且不再写入历史（R-H3）
+        try{ TBKit.matrix.table('#pure_premium_rateTable',{head:en?['Item','Value']:['项目','数值'],rows:[['—',en?'Fill in a non-negative expected loss and exposure units greater than 0 first.':'请先填写非负期望损失与大于 0 的风险暴露单位后再生成明细。']]}); }catch(e2){}
+        return;
+    }
+    var el=S.el,exp=S.exp,ppr=el/exp;
     TBKit.matrix.table('#pure_premium_rateTable',{
-        head: en?['Item','Value']:['项目','数值'],
-        rows: [
-            ['纯费率 (元/单位)', ppr.toFixed(2)],
-            ['纯费率百分数', (ppr*100).toFixed(3)],
-            ['风险单位与损失之差', (exp-el).toFixed(2)],
-            ['纯费率小数形式', (ppr/100).toFixed(5)],
-        ]
+        head: en?['Exposure units','Expected loss (CNY)']:['暴露单位数','对应期望损失 (元)'],
+        rows: [[1,(ppr*1).toFixed(2)],[10,(ppr*10).toFixed(2)],[100,(ppr*100).toFixed(2)],[1000,(ppr*1000).toFixed(2)]]
     });
     TBKit.history.record({el:__pure_premium_rateRaw('el'), exp:__pure_premium_rateRaw('exp'), ppr:ppr});
     function __pure_premium_rateRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
@@ -313,14 +337,28 @@ function __pure_premium_rateExtras(){
 }
 function __pure_premium_rateExport(){
     if (typeof TBKit === 'undefined') return;
-    try { TBKit.util.exportTable('#pure_premium_rateTable','pure-premium-rate.csv'); } catch(e){}
+    // 导出当前完整输入 + 结果 + 换算对照，而非被截断的历史摘要；非法输入直接拦截（R-H2 / R-H3）
+    if(!__pprLast){
+        try{ ToolBox.showToast('请先完成一次有效计算，明细为空时不导出。','error'); }catch(e){}
+        return;
+    }
+    var L=__pprLast;
+    var rows=[['项目','数值'],
+        ['期望损失 (元)', L.el.toFixed(2)],
+        ['风险暴露 (单位)', String(L.exp)],
+        ['纯费率 (元/单位)', L.ppr.toFixed(2)],
+        ['每 1000 单位暴露的期望损失 (元)', (L.ppr*1000).toFixed(2)],
+        [],
+        ['暴露单位数','对应期望损失 (元)']];
+    for(var i=0;i<L.scale.length;i++) rows.push([L.scale[i], (L.ppr*L.scale[i]).toFixed(2)]);
+    try { TBKit.util.exportCsv('pure-premium-rate.csv', rows); } catch(e){}
 }
 function __pure_premium_ratePresets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#pure_premium_ratePresets',[
         {label:'默认',labelEn:'Default',values:{el:'1000', exp:'100'}},
-        {label:'示例 2×',labelEn:'Example 2×',values:{el:'2000', exp:'200'}},
-        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{el:'500', exp:'50'}},
+        {label:'损失翻倍',labelEn:'Double expected loss',values:{el:'2000', exp:'100'}},
+        {label:'暴露翻倍',labelEn:'Double exposure',values:{el:'1000', exp:'200'}},
     ],function(){ calcTool(); });
 }
 var __tb_fn0 = calcTool;
