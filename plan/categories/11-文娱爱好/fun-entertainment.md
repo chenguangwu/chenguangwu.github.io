@@ -786,6 +786,7 @@
 - 证据：`tools/fun/generator-laugh.html:410`（预设 `2.5/7.5/10`）、`:131`（整数输入 `min=1 max=50`）、`:233-235`（未取整直接循环）。
 - 影响：用户按预设期望 3/8 条，实得 2/7 条，导出/复制数量对不上；假工具：否。
 - 方案：预设改整数（如 2/8），`gen()` 用 `Math.floor`/`Math.trunc` 并钳制 `1..50`；删除或替换「极端工况」。
+- **状态：已修复 2026-11-07。** 修复位点：`tools/fun/generator-laugh.html` 预设「小规模/大规模」改 `cnt` 为 `3/8`（原 `2.5/7.5`），`gen()` 入口 `Math.max(1, Math.min(Math.floor(...), 50))`（原无 floor、无下限钳制）。判别力实测：`scripts/_verify_fun_batch_fe_n80.mjs` 运行期两态锁——抓预设配置后点「大规模」，修复版生成 8 条（PASS），HEAD 7.5 只生成 7 条（FAIL）。移交：`plan/已修复/2026-11-07-FE-N80-N87-笑声预设与冥想分段.md`。
 
 ### FE-N81 深度解析/FAQ 承诺「两人血型配对指数」，页面只有四种单型介绍（中，承诺未实现）
 - 页面：`tools/fun/blood-type-personality.html`
@@ -836,6 +837,7 @@
 - 证据：`tools/fun/meditation-timer.html:119`（分段公式）、`:277`（`Math.max(1, Math.round(dur/seg))`）、`:285-287`（标称「每 seg 分钟」与「预计结束」）、`:294-299`（只列起始时刻、无边界钳制）；`/tmp/xfun_probe.js` 复算 10/3→[0,3,6]、7/2→[0,2,4,6]。
 - 影响：计划缺段或末段缩水，用户按表执行会漏掉最后一分钟；假工具：否。
 - 方案：用 `Math.ceil(dur/seg)` 生成边界并 `Math.min(boundary, dur)` 截断，表格同时显示「起—止」；或在 UI 强制要求单段时长整除总时长。
+- **状态：已修复 2026-11-07。** 修复位点：`tools/fun/meditation-timer.html` 分段数 `Math.round(dur/seg)`→`Math.ceil(dur/seg)`；每段「起–止」展示且止时刻 `Math.min(段末, 总时长)` 钳制（原只列起始时刻）。判别力实测：`scripts/_verify_fun_batch_fe_n87.mjs` 运行期两态锁——`dur=10,seg=3` 修复版 4 段（PASS），HEAD `round` 仅 3 段（FAIL）。移交：`plan/已修复/2026-11-07-FE-N80-N87-笑声预设与冥想分段.md`。
 
 ### FE-N88 胜利弹层容器缺 `class="win-overlay"`，通关提示渲染在页面底部而非居中遮罩（中，确认源码缺陷）
 - 页面：`tools/fun/memory-game.html`
