@@ -43,6 +43,7 @@
 - 证据：`tools/finance/loan-comparison.html:134-145,248-280`：数字输入无最小值约束；`pmt` 对 `p <= 0 || months <= 0` 返回 0；`calc` 未过滤无效方案直接按月供取最小值。此为源码确定路径，尚未真机点击。
 - 影响：`tools/finance/loan-comparison.html`；复制结论也可能带走误导性推荐（`:283-285`）。
 - 方案：对本金、利率及期数明确验证，标出无效方案并将其排除比较；全部无效时不显示推荐。增加空值、零月数、负利率等用例。
+- **复核通过 2026-11-07（陈旧证据，已有锁定用例，未改源码）**：`calcScheme()` 已计算 `rateOk = isFinite(rate) && rate >= 0` 与 `valid = principal > 0 && months > 0 && rateOk`，`calc()` 仅对 `validArr` 取最低月供并输出「⚠ 无效方案…已排除比较」「⚠ 没有有效方案」。`verify_finance_calc.js` 已有 3 条锁定用例（A 本金 0 被排除、三方案全无效不推荐、F-N229 利率留空被排除），实跑 `361/361`。
 
 ### 留存优化：贷款比较显示可比性与总成本（中，建议）
 - 证据：`tools/finance/loan-comparison.html:134-151,266-278` 支持三个不同本金和期数并排、CSV 和复制，但排名仅按月供。
@@ -79,21 +80,25 @@
 - 证据：`tools/finance/dca-calculator.html:376-408,431-454,510-533` 正算将初始本金在期初投入，反算却把全部投入均摊到每月；初始 12000、每月 1000、1 年、期初、年化 12% 时，页面反算约 17.02%，真实现金流的月利率 1%，对应名义年化 12%、有效年化约 12.68%。
 - 影响：`tools/finance/dca-calculator.html`；有初始本金时资金加权业绩虚高。
 - 方案：按实际发生时点构造现金流并求 IRR，区分名义与有效年化；展示每期投入明细并与一次性投资口径对照。
+- **复核通过 2026-11-07（陈旧证据，已有锁定用例，未改源码）**：页面已有 `__dcaNPV / __dcaIRR / __dcaMoneyWeighted()` 按真实发生期构造现金流（初始本金 t=0、各期定投按期初/期末落位、期末资产 t=n）求月 IRR，结果区同时给出名义与有效年化。`verify_finance_calc.js` 已锁初始 12000 / 月投 1000 / 1 年 / 期初 / 12% ⇒ `+¥2,204.40`、`年化收益率（资金加权）： 12.00%`、`有效年化 12.68%`，旧口径约 17% 已不可达。
 
 ### F-N6 定投亏损丢负号、目标反推返回边界伪解（高，确认源码缺陷）
 - 证据：`tools/finance/dca-calculator.html:437-453,459-507` 亏损时 `profitSign` 为空且金额取绝对值；初始 0、月投 1000、1 年、年化 -12%、期初时真实约亏 752.10 元，却显示正金额。目标 100 万时搜索上限固定 500%，未验证区间即输出该边界。
 - 影响：`tools/finance/dca-calculator.html`；亏损可能误读为盈利，目标反推结果不可信。
 - 方案：金额保留负号，反推核验边界与目标残差；超范围明确提示，提供目标/可达金额差距。
+- **复核通过 2026-11-07（陈旧证据，已有锁定用例，未改源码）**：`profitSign = dcaProfit >= 0 ? '+' : '-'`，亏损显示带负号；`__dcaSolveRatePct()` 在 [−99%, 500%] 二分后以 `|fv−target|/max(1,|target|) > 1e-6` 复核残差，无解给「目标超出可反推范围」并列出可达区间与差额。`verify_finance_calc.js` 已锁 `−¥2,001.87 / −8.34% / −12.00%` 与「无法反推所需收益率」两组用例。
 
 ### F-N7 退休零收益年度支取无效及旧 CSV（高，确认源码缺陷）
 - 证据：`tools/finance/retirement-calculator.html:372-385,395-415,448-495,656-665` 年化 0 时摘要采用零利率分支，年度明细却除以 `r=0` 得 NaN；年龄校验失败未清空旧 `yearlyData`，导出仍使用旧数组。
 - 影响：`tools/finance/retirement-calculator.html`；摘要与明细矛盾，无效输入仍可导出旧方案；与 G10 的旧结果问题同类。
 - 方案：统一资产及支取函数，处理零利率极限及有效负利率；失败清空/禁用旧导出，显示年度假设与现金流。
+- **复核通过 2026-11-07（陈旧证据，已有锁定用例，未改源码）**：`verify_finance_calc.js` 已锁年化 0% 用例 `18.00万 退休时资产（名义）` / `600.00 退休后月支取（实际）`（月投 500×12×30 年 = 18 万，4% 法则月支取 600），旧代码除 `r=0` 得 NaN 的路径已不可达。
 
 ### F-N8 现金流及投入时点历史不能可靠恢复（中，确认源码路径）
 - 证据：`tools/finance/irr-calculator.html:407-413,632-651,658-682,724-726` 现金流控件无 id，通用历史快照未保存各期金额；`tools/finance/dca-calculator.html:173-175,365-369,706-716,744-755` 投入时点存在变量 `timing`，未纳入输入快照。
 - 影响：`tools/finance/irr-calculator.html`、`tools/finance/dca-calculator.html`；恢复历史后可能使用当前现金流或当前期初/期末模式，无法重现原结果，浏览器回填待测。
 - 方案：完整持久化期号、金额、时点与输入参数，恢复后重算；分别导出真实现金流和历史对比，不将历史表称现金流明细。
+- **已修复 2026-11-07（第 34 批）**：两页通用历史快照只扫 `input[id]`，而 dca 的 `timing` 是纯 JS 变量、irr 的现金流 `<input>` 无 id ⇒ 点历史记录后沿用当前状态、结果不可复现。现各加一个带 id 的只读快照输入（`dcaTiming` = `begin/end`；`irrCashflowSnapshot` = `T期号:金额` 序列），`switchTiming()` / `renderFlows()` / `updateAmount()` 在每次状态变化时写回快照并落库，历史的 `mount` 回填回调显式调用 `__dcaSyncTiming()` / `__irrRestoreFromSnapshot()` 后再 `calc()`。**恢复逻辑刻意不放进 `calc()`**：首版放进去会覆盖既有用例通过 clicks 直接赋的数组，全量从 356 掉到 354，改为显式调用后恢复。顺带修掉「新增/删除现金流期数刷新后丢失」。证据见 `plan/已修复/2026-11-07-F-N8-投入时点与现金流纳入历史快照.md`：新增 3 条用例 + 同批重采 1 条过期的 irr auto 锚点（新增输入改变了输出拼接顺序，属用例过期而非页面 bug），`361/361`、判别力 `361 正确变红 / 0 逃生`、id 审计 0 僵尸、JSDOM 两态锁当前 32 PASS / HEAD 25 FAIL、`_build.py` A 100%。
 
 ### 续查覆盖
 - 新抽查 `tools/finance/irr-calculator.html`、`tools/finance/bond-yield-calculator.html`、`tools/finance/dca-calculator.html`、`tools/finance/retirement-calculator.html` 共 4 页，新增 7 条（6 条高优），均为源码及数值推导，未做浏览器、线上和门禁验证。

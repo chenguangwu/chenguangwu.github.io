@@ -1877,9 +1877,9 @@ const CASES = [
       "periodUnit": "month"
     },
     "expect": [
-      "5 ✕ T6 ✕\n42\nmonth"
+      "T1:20000,T2:30000,T3:40000,T4:40000,T5:30000,T6:0\nmonth\n42"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"discountRate\":\"42\",\"periodUnit\":\"month\"}，输出区含「5 ✕ T6 ✕\n42\nmonth」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"discountRate\":\"42\",\"periodUnit\":\"month\"}。2026-11-07 F-N8 同批重采：页面新增只读输入 `irrCashflowSnapshot` 后，cfList 与期数单位之间多了一段现金流快照值，旧锚「5 ✕ T6 ✕\\n42\\nmonth」的跨元素拼接被截断，属**用例过期**而非页面缺陷；新锚改为「快照值 + month + 42」，同时锁住快照输入存在与注入生效。默认态（year / 8）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "finance/ird-validator",
@@ -3204,6 +3204,29 @@ const CASES = [
     clicks: ["calc(); calcPrepay()"],
     expect: ["提前还款金额须大于 0"],
     ref: "F-N227：提前还款金额为负时，旧实现 `newBalance = balanceBefore - (-100000)` 令剩余本金凭空增加 10 万且照常给出「节省利息」结论；现前置拒绝（须 > 0）。默认提前还款额 100000 为正 ⇒ 不命中。",
+  },
+
+  // ---- F-N8：投入时点 / 现金流序列纳入历史快照（两页各一组强判别） ----
+  {
+    slug: "finance/dca-calculator",
+    inputs: { dcaTiming: "end", monthly: "1000", years: "1", rate: "12", initial: "0", target: "0" },
+    clicks: ["__dcaSyncTiming(); calc()"],
+    expect: ["期末总资产： ¥12,682.50", "累计收益： +¥682.50"],
+    ref: "F-N8：投入时点此前只存在 JS 变量 `timing`，通用历史快照只扫 `input[id]` ⇒ 历史恢复后沿用当前时点、无法重现原结果。现新增带 id 的只读快照输入 `dcaTiming`，历史的 `mount` 回填回调显式调用 `__dcaSyncTiming()` 把时点同步回 JS 变量与按钮后再 `calc()`（不在每次 calc 里隐式覆盖，避免盖掉用户当期选择）。注入 `dcaTiming=end` 并在 clicks 里模拟该恢复回调（期末投入）、月投 1000、1 年、年化 12%、初始 0：期末资产 = Σ 1000×1.01^k (k=0..11) = **¥12,682.50**，累计收益 **+¥682.50**；期初投入同参数为 12,809.33。三态实测：注入 begin 与纯默认快照（10 年 / 8%）都不命中这两条；旧版没有 `dcaTiming` 输入 ⇒ 注入失败、只会给期初值，同样不命中。",
+  },
+  {
+    slug: "finance/dca-calculator",
+    inputs: { dcaTiming: "begin", monthly: "1000", years: "1", rate: "12", initial: "0", target: "0" },
+    clicks: ["__dcaSyncTiming(); calc()"],
+    expect: ["期末总资产： ¥12,809.33"],
+    ref: "F-N8 回归护栏：显式回填 `dcaTiming=begin` 必须仍按**期初**投入计算，期末资产 = Σ 1000×1.01^k (k=1..12) = **¥12,809.33**，与上面的期末投入 12,682.50 相差一个月利息，证明时点切换是双向可逆的（不是把整页锁死在期末）。纯默认快照（10 年 / 8% ⇒ 184,165.68）不命中。",
+  },
+  {
+    slug: "finance/irr-calculator",
+    inputs: { irrCashflowSnapshot: "T0:-100,T1:115", discountRate: "8", periodUnit: "year" },
+    clicks: ["__irrRestoreFromSnapshot(); calc()"],
+    expect: ["15.00%", "每期 IRR = 15.0000%", "NPV @ 折现率 8.00% = 6.48"],
+    ref: "F-N8：现金流控件由 `renderFlows()` 动态生成且无 id，通用历史快照漏掉全部期号与金额 ⇒ 恢复历史后仍用当前现金流。现新增只读快照输入 `irrCashflowSnapshot`（`T期号:金额` 序列），历史的 `mount` 回填回调显式调用 `__irrRestoreFromSnapshot()` 按快照重建现金流再 `calc()`；`renderFlows` / `updateAmount` 等在每次变化时写回快照并落 localStorage，保证快照不落后于内存。刻意不在 `calc()` 里隐式读回（否则会覆盖用户当期输入与 clicks 直接赋数组）。注入 `T0:-100,T1:115` 并在 clicks 里模拟该恢复回调、贴现率 8%、期数单位=年：IRR = 115/100 − 1 = **15.00%**（页面 `每期 IRR = 15.0000%`）；NPV = −100 + 115/1.08 = **+6.48**。三态实测：只注入贴现率/期数单位（不注入快照）与纯默认快照（project 预设 IRR≈16.60%）三条都不命中；旧版无该输入 ⇒ 注入失败，同样不命中。刻意避开 `-100/230/-132` 双根现金流（多根识别属另案 F-N29）。",
   },
 
 ];

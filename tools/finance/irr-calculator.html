@@ -193,6 +193,12 @@ s.parentNode.insertBefore(el, s);
 
     <h3 style="font-size:14px;margin:12px 0 8px;">💰 现金流列表</h3>
     <div class="cash-flow-list" id="cfList"></div>
+    <!-- F-N8：动态现金流行没有 id，通用历史快照只扫 input[id] 会漏掉全部期号与金额，
+         历史恢复后沿用当前现金流。此只读输入把现金流序列序列化为可快照/可回填的单一真源。 -->
+    <div style="margin:8px 0;">
+      <label style="font-size:12px;color:var(--text-muted);"><span data-zh="现金流快照（历史恢复依据，格式 T期号:金额）">Cash-flow snapshot (history restore source, Tperiod:amount)</span></label>
+      <input type="text" id="irrCashflowSnapshot" value="" readonly style="width:100%;font-size:12px;color:var(--text-muted);">
+    </div>
     <div class="toolbar" style="margin-top:8px;">
       <button type="button" class="btn" onclick="addPeriod()">➕ 添加一期</button>
       <button type="button" class="btn danger" onclick="resetFlows()">🗑️ 重置</button>
@@ -432,12 +438,49 @@ function removePeriod(idx) {
 
 function updateAmount(idx, value) {
   cashFlows[idx].amount = parseFloat(value) || 0;
+  // F-N8：金额变化必须同步快照，否则 calc() 会把旧快照误判成「历史恢复」而覆盖新输入
+  __irrWriteFlowSnapshot();
+  saveFlows();
   calc();
 }
 
 function updateLabel(idx, value) {
   cashFlows[idx].label = value;
   saveFlows();
+}
+
+// F-N8：现金流序列 ⇄ 只读快照输入（供通用历史快照记录 / 恢复）
+function __irrEncodeFlows(list) {
+  return (list || []).map(function (f) {
+    return 'T' + Math.max(0, Math.round(Number(f.period) || 0)) + ':' + (Number(f.amount) || 0);
+  }).join(',');
+}
+function __irrDecodeFlows(txt) {
+  var parts = String(txt || '').split(',');
+  var arr = [];
+  for (var i = 0; i < parts.length; i++) {
+    var m = /^T(\d+):(-?\d+(?:\.\d+)?)$/.exec(parts[i].trim());
+    if (!m) return null;
+    arr.push({ period: Number(m[1]), amount: Number(m[2]), label: 'T' + m[1] });
+  }
+  return arr.length >= 2 ? arr : null;
+}
+function __irrWriteFlowSnapshot() {
+  var el = document.getElementById('irrCashflowSnapshot');
+  if (el) el.value = __irrEncodeFlows(cashFlows);
+}
+// F-N8：只在「历史记录被恢复」时由 mount 回调显式调用，不在每次 calc() 里覆盖内存数组
+// （否则会盖掉用户当期输入 / 预设切换，且让通用快照变成不可控的隐式真源）。
+function __irrRestoreFromSnapshot() {
+  var el = document.getElementById('irrCashflowSnapshot');
+  if (!el) return false;
+  var txt = String(el.value || '').trim();
+  if (!txt || txt === __irrEncodeFlows(cashFlows)) return false;
+  var decoded = __irrDecodeFlows(txt);
+  if (!decoded) return false;
+  cashFlows = decoded;
+  renderFlows();
+  return true;
 }
 
 function renderFlows() {
@@ -450,6 +493,8 @@ function renderFlows() {
       <button class="remove" onclick="removePeriod(${idx})">✕</button>
     </div>
   `).join('');container.innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+  __irrWriteFlowSnapshot();
+  saveFlows();
 }
 
 // 按真实期号汇总现金流（同一期号多笔相加，稀疏期号按实际期号折现）
@@ -827,6 +872,8 @@ function __irr_calculatorRender(keys,rk,en){
                     if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
                     else{e.value=rec[k];}
                 }
+                // F-N8：历史回填了现金流快照，先按原期号/金额重建现金流，再重算
+                if (typeof __irrRestoreFromSnapshot === 'function') __irrRestoreFromSnapshot();
                 calc();
             }catch(e2){}
             __irr_calculator_skip=false;
