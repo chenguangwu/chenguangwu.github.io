@@ -1784,3 +1784,12 @@
 
 - **F-N189 已在第 40 / 41 批改完 `finance` 15 页**（详见 F-N189 条目）。但全库扫描确认该模板是全站通用注入块、尚有 **3155 页**未修，**F-N189 未整体收口**，按「禁止草率收口铁律」另立全站专项分批续修；本表上文「7 页 / 8 页 / 15 页」均只是 `finance` 子集。
 - **待裁断**：99 是否作为 GST `Centre (CGST jurisdiction)` 特殊辖区码放行（见 F-N170 第 38 批处置），裁断前不改代码。
+
+## 2026-11-07 第 42 批 · F-N189 全站专项（改模板真源 + 分型 + 试点 8 页，仍未整体收口）
+
+- **改真源 `scripts/_ux_wire.py`**：F-N189 只影响 custom 模式，classic 一行未动。9 处精确替换（`gen_custom_render` 的 head/rows/mount/图表 4 处 + `apply_custom` 的 ResText/Score/Extras/Export 4 处 + 位置感知），`python3 -m py_compile` OK；载入改后模块调 `gen_custom_render('cnpj_validator','validate')` 生成 1757 字符，与已修 cnpj 页 Render 段**逐字一致** ⇒ 未来手动重 wire 不会再注入旧缺陷。`_build.py` 不调用它，改源不影响线上字节。
+- **全站分型（4907 页扫描）**：四特征齐全旧模板 **3155 页**，其中**标准同构 3042（96.4%）可整体替换**、定制 107（须保留定制的局部编辑）、异常 6；**3148 页三容器齐全**（Chart/Table/导出按钮真实可见，非装饰）。`finance` 未修 86 页中标准 82。前缀必须从 `exportTable('#([^']+)Table','…')` 第 1 捕获组取（带 `#` 会全量假判 `no_boundary`）。
+- **试点铺开 8 页**：`aadhaar-validator` / `aba-validator` / `abn-validator` / `amount-in-words` / `analysis-44` / `analysis-5` / `analysis-cost-1` / `analysis-risk`。参数自适应脚本自动抽取结果容器与计算函数，实测覆盖 `getElementById('output')+validate()`、`querySelector('.result-box')+convert()`、`getElementById('res')+calc()` 三种形态，8/8 与基准新段归一化同构。
+- **通用两态锁 `scripts/_verify_fn189_rollout.mjs`**：`--pages` / `--cat` / `--head` / `--ref` / `--verbose` 参数化，页面参数自动抽取，后续所有铺开批次复用，不再每批派生脚本。当前 **209 PASS / 0 FAIL**、`--head` **153 FAIL / 48 PASS**。
+- 证据：126 个内联脚本语法 0 错、`verify_finance_calc.js 379/379`、判别力 0 逃生、id 审计 0 僵尸、源产物 1757 字符逐字一致。详见 `plan/已修复/2026-11-07-F-N189-第42批-改模板真源与全站铺开试点8页.md`。
+- **待老板裁断**：是否一次性铺到全站 3042 标准页（大 diff + 全站产物变化 + 需完整 229 门禁兜底）。裁断前不擅自全量铺开，继续按每批 8–12 页小步推进；定制页另设计保留定制的局部编辑脚本。
