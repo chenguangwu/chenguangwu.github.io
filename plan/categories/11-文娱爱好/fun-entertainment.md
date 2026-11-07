@@ -148,11 +148,16 @@
   - 「未知后缀不再静默降级大三」子修复属 **harness 盲区**（效果为"不出现"大三和弦），改用 `scripts/_verify_fun_batch_fe_n8.mjs` JSDOM 两态脚本：注入 `Cfoo` → 修复后 `#chordTypeLabel` 清空（不含「大三和弦」）；`--head` 回退旧版 `#chordTypeLabel="<span class=\"chord-type-badge\">C · 大三和弦</span>"`（含「大三和弦」）。修复后 1/1、HEAD 1/1 通过。
 - 移交文件：`plan/已修复/2026-11-07-FE-N8-降号根音无效与未知后缀静默降级.md`
 
-### FE-N9 FEN 历史回填调用无参 `loadPreset()`，输入框被写成字符串 `undefined`（高，确认源码缺陷）
-- 描述：历史「恢复」回调末尾调用 `loadPreset()` 而不传记录中的 FEN，`presets[undefined]` 为 `undefined`，被写进输入框并渲染为无效局面。
-- 证据：`tools/fun/chess-fen-viewer.html:405-418`（回调先按 `rec` 正确回填 `:408-414`，随后 `:416` 调用 `loadPreset();`）、`:329-332`（`value=presets[k]`、`render(presets[k])`）、`:270-274`（presets 仅有 start/mate/endgame）。Node 直接执行页面 `parse`：`parse('undefined')` 返回 `null`，`presets[undefined] === undefined`。
-- 影响：`tools/fun/chess-fen-viewer.html`；点击任一条历史记录后输入框显示 `undefined`、棋盘清空、结果变为「无效的 FEN」，历史功能反而破坏当前局面。
-- 方案：从 `rec.fen` 取记录值直接 `render(fen)`，空值不覆盖现有局面；补「解析两次 → 点历史第一条 → 局面还原」用例。
+### FE-N9 FEN 历史回填调用无参 `loadPreset()`，输入框被写成字符串 `undefined`（高，**2026-11-07 复核：历史快照误报，当前源码已正确**）
+- 描述（原）：历史「恢复」回调末尾调用 `loadPreset()` 而不传记录中的 FEN，`presets[undefined]` 为 `undefined`，被写进输入框并渲染为无效局面。
+- 证据（原）：`tools/fun/chess-fen-viewer.html:405-418`、`tools/fun/chess-fen-viewer.html:329-332`、`tools/fun/chess-fen-viewer.html:270-274`。
+- **复核结论（2026-11-07）**：当前提交 HEAD 已无此缺陷，属历史快照误报。
+  1. 历史「恢复」回调（`:408-422`）已改为**直接读 `rec[k]` 回填各输入**（`e.value=rec[k]`）后 `render(document.getElementById('fen').value)`，**不再调用 `loadPreset()`**，无 `undefined` 写入路径。`git show HEAD:tools/fun/chess-fen-viewer.html` 已确认。
+  2. `loadPreset(k)`（`:329-335`）已加守卫：`var v = (k && presets[k]) ? presets[k] : document.getElementById('fen').value;` —— 即使无参调用也回退当前输入框值，不会写 `undefined`。
+  3. 预设条 `function(){ loadPreset(); }` 亦正确：`js/tool-kit.js:preset.bar`（`:1048-1053`）在调用 `after()` **之前**已对每项 `p.values` 执行 `setValue('#'+k, p.values[k])`（即把预设 FEN 写进 `#fen` 并派发 `input`/`change` → `render`），故 `loadPreset()` 无参读到的是刚写入的预设 FEN，预设按钮行为正确。
+  4. 已修复该问题的提交：`6a13067673`（"FEN历史回填"）、`44df5bf8a0`（"修复 FEN 回填"）。
+- 处置：仅复核，**未改源码、未加 harness 锁**（该历史恢复路径属 harness 盲区，且现行源码 déjà 正确，加锁无判别增益）。
+- 遗留可查（非本次范围）：无。
 
 ### FE-N10 FEN 只校验棋盘段，缺行棋方时一律显示「黑方」且不报错（中，确认源码缺陷）
 - 描述：解析只要求 8 行×8 列，完全忽略行棋方、易位、吃过路兵、计数四段；缺第 2 段时 `turn=''`，三元判断落到「黑方」。FAQ 却称「缺段会解析失败」。
