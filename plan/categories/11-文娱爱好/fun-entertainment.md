@@ -493,13 +493,15 @@
 - 判别力：`scripts/_verify_fun_batch_fe_n48.mjs` JSDOM 两态锁——抛 3 次（每次等 1.1s）→ reset() → 修复版 #recentResults 显示「暂无记录」，PASS(exit 0)；HEAD 旧版残留「正/反」，FAIL(exit 1)，确认 bug 真实且已修。
 - 移交文件：`plan/已修复/2026-11-07-FE-N48-抛硬币重置清空最近结果.md`
 
-### FE-N49 Pong AI 移动速率被乘 0.08，人机模式几乎无对抗（中，确认源码缺陷）
+### FE-N49 Pong AI 移动速率被乘 0.08，人机模式几乎无对抗（中，**2026-11-07 已修复**）
 - 页面：`tools/fun/pong.html`
 - 问题：`AI_REACTION` 本意是反应延迟，却被当作速度系数直接乘进每帧位移，AI 实际速度仅 0.336 px/帧。
-- 证据：`:519-521`（`AI_SPEED=4.2`、`AI_REACTION=0.08`、`AI_ERROR=15`）、`:624-639`（`:635` `rightPaddle.y += Math.sign(diff)*AI_SPEED*AI_REACTION`）。
+- 证据：`:519-521`（`AI_SPEED=4.2`、`AI_ERROR=15`）、`:624-639`（`:635` `rightPaddle.y += Math.sign(diff)*AI_SPEED*AI_REACTION`）。
 - 复算：4.2×0.08=0.336 px/帧 ≈ 20 px/s；球初速 `:515` 4.5 px/帧 = 270 px/s，AI 不到球速 1/13，从场地中心走到边线需约 8 s，而球横穿一次仅 2–3 s。
 - 影响：AI 基本接不到球，人机模式失去对抗性（与该页「AI 有反应延迟和移动误差」的定位不符）。
-- 方案：位移改用 `AI_SPEED`（px/帧），把「反应」改为目标更新延迟/丢帧概率，并暴露难度档位。
+- 修复位点：`:635` 位移改为 `Math.sign(diff) * AI_SPEED`（去掉 `* AI_REACTION`），并删除已无用的 `AI_REACTION` 常量（`:520`）。保留 `AI_ERROR` 抖动作为「移动误差」定位，不引入难度档位（避免范围蔓延）。`tools/fun/pong.html:519-520,635`。
+- 判别力：`scripts/_verify_fun_batch_fe_n49.mjs` JSDOM 两态锁——覆盖 Math.random→0.9 使球恒向右、录制 canvas moveTo 提取右挡板 y(≈614)，跑真实循环 6s：当前右挡板 y 行程 100.8px（跟随球，PASS），HEAD 25.5px（恒近初始位，FAIL）。
+- 移交文件：`plan/已修复/2026-11-07-FE-N49-Pong-AI速率修复.md`
 
 ### FE-N50 Pong 宣称的「目标分可设 / AI 难度可调 / 速度叠加」均未实现（中，承诺未实现）
 - 页面：`tools/fun/pong.html`
