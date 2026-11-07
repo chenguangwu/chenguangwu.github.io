@@ -2070,3 +2070,9 @@
 - **D-N15（中，确认源码缺陷）**：`breakpoint-queries.html:274` 原 `let css='/* '+mode==='min'?'移动优先（Mobile First）':'桌面优先'+' */\n';` 因 `+` 先于 `?:` 求值，恒按 `('/* '+mode)==='min'` 判假，两模式都落入「桌面优先」分支，且 min 模式产出缺起始 `/*` 的孤立 `*/`，复制进项目会误导协作方或被工具链判为语法错误。本批改为 `let css='/* '+(mode==='min'?'移动优先（Mobile First）':'桌面优先')+' */\n';`（先求标签再拼接、统一闭合注释）。
 - **同批门禁维护（铁律①）**：`verify_design_calc.js` 增 1 用例 `mode='max' → /* 桌面优先 */`（265/265，原 264+1）。选 `mode='max'` 而非 `min` 是因为默认 mode 即 `min`，锚 `/* 桌面优先 */` 与默认态 `/* 移动优先（Mobile First） */` 不重合并零逃生。
 - **验证**：`node scripts/verify_design_calc.js` **265/265**；`discriminate_check.js verify_design_calc.js` **265 已检 / 263 变红 / 2 逃生**（2 项 `photo-print-size`、`spacing-scale` 为其他工具既有遗留逃生项，非本批引入）；`node scripts/_verify_design_batch_y.mjs` **1/1**，`--head` 回退 **1/1**（HEAD 版实测 `桌面优先 */` 孤立 `*/` 无 `/*` 开头——修复真实有效）；i18n 无需同步（注释串为页面硬编码中文）。
+
+### AA 批第 1 波处置续（2026-11-07 Z 批 · SVG 转 PNG 清空输入后仍可下载旧图）
+
+- **D-N21（中，确认源码缺陷，2026-11-06 复核"仍部分存在"）**：`svg-to-png.html` 的 `generate()` 在空 SVG（`:349`）与非法宽高（`:344`）分支提前 `return`，均未清空 `lastDataURL`；下载函数 `downloadPNG()` 仅判 `!lastDataURL` 即导出。故先转有效 SVG 得真实 `lastDataURL`，再清空文本框点「转换」（预览显示「请输入 SVG 代码」）后直接下载，仍导出上一张 PNG。本批在两处提前 `return` 前补 `lastDataURL = ''`，使清空/非法分支立即失效下载。
+- **验证约束**：Canvas/Image 在门禁桩下无法真实渲染，故不新增 harness 用例（避免假通过）；改用运行期回归脚本 `scripts/_verify_design_batch_z.mjs`：桩 `getContext/toDataURL/Image` 让成功路径把 `lastDataURL` 置为 STALE，再清空 SVG 重新 `generate()`，断言 `downloadPNG()` 因 `lastDataURL` 空而提示「请先转换」（`alert` 桩捕获）。脚本 **1/1**，`--head` 回退 **1/1**（HEAD 版清空后仍不拦截——修复真实有效）。
+- **同批门禁维护**：既有 `svg-to-png` 3 用例（`:2018/:2237/:2245`）复跑 **3/3**，全量 `verify_design_calc.js` **265/265** 不变；i18n 无需同步（提示串为页面硬编码中文）。
