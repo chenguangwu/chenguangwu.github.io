@@ -284,12 +284,24 @@ function calc(){
   if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
   if(!(B>0&&B<120)){box.innerHTML='<div class="info-box">年龄需在 1–119 岁之间。</div>';return;}
   var items=[];
-  items.push([((70-B)*0.4).toFixed(1), "年龄常模期望(s)"]);
-  items.push([(A/((70-B)*0.4)).toFixed(2), "实测/常模比"]);
-  items.push([(A>=(70-B)*0.4*1.5?"平衡优秀":(A>=(70-B)*0.4?"平衡良好":"平衡偏弱")), "平衡评级"]);
+  var norm=(70-B)*0.4;
+  var tipTxt;
+  if(norm>0){
+    items.push([norm.toFixed(1), "年龄常模期望(s)"]);
+    items.push([(A/norm).toFixed(2), "实测/常模比"]);
+    items.push([(A>=norm*1.5?"平衡优秀":(A>=norm?"平衡良好":"平衡偏弱")), "平衡评级"]);
+    tipTxt='💡 年龄常模 ≈ (70−年龄)×0.4 s；实测/常模 ≥1.5 优、≥1.0 良。';
+  }else{
+    /* 70 岁及以上：常模 (70−年龄)×0.4 不为正，比值与「≥常模即达标」判据全部失效（修复前恒判「平衡优秀」）。
+       改按绝对时长分档，阈值取自本页深度解析：≥30 s 良好、<10 s 老年人提示跌倒风险。 */
+    items.push(["不适用（年龄 ≥70）", "年龄常模期望(s)"]);
+    items.push(["—", "实测/常模比"]);
+    items.push([(A>=30?"绝对时长良好（≥30 s）":(A>=10?"绝对时长一般（10–30 s）":"跌倒风险偏高（<10 s）")), "平衡评级"]);
+    tipTxt='💡 年龄 ≥70 岁时年龄常模 (70−年龄)×0.4 不为正、比值无意义，改按绝对时长分档：≥30 s 良好、10–30 s 一般、<10 s 提示跌倒风险。';
+  }
 
   var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
-  html+='💡 年龄常模 ≈ (70−年龄)×0.4 s；实测/常模 ≥1.5 优、≥1.0 良。';
+  html+=tipTxt;
   const __g7=html;box.innerHTML=(typeof __g7==='number'?(isFinite(__g7)?__g7:'—'):String(__g7).replace(/Infinity|NaN/g,'—'));
   if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
 }

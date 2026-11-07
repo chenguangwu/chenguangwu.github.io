@@ -119,7 +119,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入初速度、末速度、时间与质量，计算加速度、合力、位移、动能变化与功率输出，适用于短跑、骑行、投掷等运动力学分析。">Enter initial velocity, final velocity, time and mass to compute acceleration, resultant force, displacement, kinetic-energy change and power output for sprint, cycling and throwing mechanics.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">运动学功率分析（本页代码口径，匀加速模型）：加速度 a=(末速 v1−初速 v0)÷时间 t（m/s²）；合力 F=质量 m×a（N）；位移 s=(v0+v1)÷2×t（m）；动能变化 ΔKE=½×m×(v1²−v0²)（J）；平均功率=ΔKE÷t（W）、马力换算=平均功率÷735.5（PS）、峰值功率=F×v1（末速处）、起始功率=F×v0（初速处）。校验：初速与末速须为有效数值且不小于 0、时间与质量须大于 0，否则提示并中止。判据：a≥0 判加速过程否则减速（制动）过程；|a|≥6 提示爆发力要求高防肌肉拉伤、≥3 中等加速度常见于起跑加速、其余趋于匀速或缓慢加减速。</div>
+      <div class="formula-eq">运动学功率分析（本页代码口径，匀加速模型）：加速度 a=(末速 v1−初速 v0)÷时间 t（m/s²）；合力 F=质量 m×a（N）；位移 s=(v0+v1)÷2×t（m）；动能变化 ΔKE=½×m×(v1²−v0²)（J）；平均功率=ΔKE÷t（W）、马力换算=平均功率÷735.5（PS）、峰值功率=F×高速端速度（v0 与 v1 中较大者，|P| 极值所在端）、起始功率=F×v0（初速处）。校验：初速与末速须为有效数值且不小于 0、时间与质量须大于 0，否则提示并中止。判据：a≥0 判加速过程否则减速（制动）过程；|a|≥6 提示爆发力要求高防肌肉拉伤、≥3 中等加速度常见于起跑加速、其余趋于匀速或缓慢加减速。</div>
       <p class="formula-desc">输入初速度、末速度、时间与质量，计算加速度、合力、位移、动能变化与功率输出，适用于短跑、骑行、投掷等运动力学分析。</p>
     </div>
     <div class="input-row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;align-items:end;">
@@ -212,7 +212,10 @@ function calc(){
   var s=(iv.v0+iv.v1)/2*iv.t;
   var dKE=0.5*iv.m*(iv.v1*iv.v1-iv.v0*iv.v0);
   var avgP=dKE/iv.t;
-  var peakP=F*iv.v1;
+  /* |P|=|F|·v 在匀变速区间内的极值端点必在高速端；原式 F×末速 在减速段给出的是低速端功率，
+     减速时 F<0、v1<v0 ⇒ 「峰值功率」比初速处更小（数值更小的负数），峰值判读反了（SF-N104）。 */
+  var vHi=Math.max(iv.v0,iv.v1);
+  var peakP=F*vHi;
   var startP=F*iv.v0;
   var mode=a>=0?'加速过程':'减速（制动）过程';
   var aAbs=Math.abs(a);
@@ -229,10 +232,11 @@ function calc(){
     '<div class="data-grid" style="margin-top:8px;">'+
     '<div class="data-card"><div class="num">'+avgP.toFixed(1)+'</div><div class="label">平均功率 (W)</div></div>'+
     '<div class="data-card"><div class="num">'+(avgP/735.5).toFixed(2)+'</div><div class="label">平均功率 (PS/马力)</div></div>'+
-    '<div class="data-card"><div class="num">'+peakP.toFixed(1)+'</div><div class="label">峰值功率 (W, 末速处)</div></div>'+
+    '<div class="data-card"><div class="num">'+peakP.toFixed(1)+'</div><div class="label">峰值功率 (W, 高速端)</div></div>'+
     '<div class="data-card"><div class="num">'+startP.toFixed(1)+'</div><div class="label">起始功率 (W, 初速处)</div></div>'+
     '</div>'+
     '<div style="margin-top:10px;"><span class="grade-tag '+(a>=0?'grade-good':'grade-pass')+'">'+mode+'</span></div>'+
+    (a<0?'<div class="info-box" style="margin-top:10px;">⚠ 减速（制动）段合力与速度反向，功率为负值表示机体在吸收能量；|P| 最大值出现在高速端（本段初速处），故此时「峰值功率」与「起始功率」同值。</div>':'')+
     '<div class="info-box" style="margin-top:10px;">📌 '+advise+'</div>';document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
   saveHistory(iv,a,F,avgP);
 }
