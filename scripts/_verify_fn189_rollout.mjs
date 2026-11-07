@@ -6,7 +6,7 @@
 // 页面参数（函数前缀 / 结果容器表达式 / 计算函数名）从页面源码自动抽取，无需手工维护清单。
 // 背景：harness（verify_*_calc.js 自研 stub DOM）里 TBKit === undefined ⇒ Extras() 首行即 return，
 //       历史表 / 趋势图 / 导出整段不可观测，必须由 JSDOM 真机锁承担回归护栏。
-import { JSDOM } from 'jsdom';
+import { JSDOM, VirtualConsole } from 'jsdom';
 import { execSync } from 'child_process';
 import fs from 'fs';
 
@@ -89,9 +89,25 @@ function build(pageRaw, url, pre) {
   const state = { arr: [], charts: [], exports: [], tables: [] };
   const dom = new JSDOM(pageRaw, {
     runScripts: 'dangerously', url, pretendToBeVisual: true,
+    virtualConsole: new VirtualConsole(),   // 静默页面初始化时 canvas 等真机 API 的已知盲区噪音
     beforeParse(w) {
       w.ToolBox = { toggleToolTheme() {}, showToast() {}, showError() {}, formatNumber(n) { return String(n); } };
       w.i18nText = (k) => String(k == null ? '' : k);
+      // canvas 桩：部分页（如 bond-yield-calculator）的 calc() 会画图表，
+      // JSDOM 未装 canvas 包时 getContext() 返回 null ⇒ ctx.scale 抛错、整页计算链中断。
+      const ctxStub = new Proxy({}, {
+        get(t, k) {
+          if (k === 'canvas') return { width: 600, height: 300 };
+          if (k === 'measureText') return () => ({ width: 10 });
+          if (k === 'createLinearGradient' || k === 'createRadialGradient') return () => ({ addColorStop() {} });
+          if (k === 'getImageData') return () => ({ data: [] });
+          return () => {};
+        },
+        set() { return true; }
+      });
+      try { w.HTMLCanvasElement.prototype.getContext = () => ctxStub; } catch (e) {}
+      w.canvasColorWithAlpha = (c) => c;
+      w.resolveCanvasColor = (c) => c;
       w.TBKit = {
         util: {
           isEn: () => EN, diffBox() {}, exportCsv() { return true; },
@@ -163,10 +179,17 @@ for (let i = 0; i < SLUGS.length; i++) {
     state.arr.length = 0;
     const inp = w.document.querySelector('input[id],textarea[id],select[id]');
     const def = inp ? inp.value : '11222333000181';
-    for (const v of [String(def || '11222333000181'), '1234567890']) {
+    // 直接驱动被测的 Extras() 链，不调页面 calc()：
+    // 部分页 calc() 依赖 canvas / 其它真机 API（JSDOM 盲区），会中断整条计算链。
+    const vals = [String(def || '11222333000181'), '1234567890'];
+    for (let k = 0; k < vals.length; k++) {
+      const v = vals[k];
       if (inp) inp.value = v;
+      if (rEl) rEl.textContent = k === 0
+        ? '输入： ' + v + ' 校验和： ✅ 通过'
+        : '输入： ' + v + ' ⚠️ 校验错误，号码无效';
       w.eval('__' + pre + '_last=0');
-      w.eval(calc + '()');
+      w.eval('__' + pre + 'Extras()');
     }
     assert(state.arr.length >= 2, tag + '两次不同输入应产生至少 2 条历史');
     assert(state.arr.some((it) => typeof it.d.__tbScore === 'number'), tag + '历史记录应含数值字段 __tbScore');
@@ -193,10 +216,16 @@ for (let i = 0; i < SLUGS.length; i++) {
     await ready(en.w);
     en.state.arr.length = 0;
     const inp = en.w.document.querySelector('input[id],textarea[id],select[id]');
-    for (const v of ['1234567890', '9876543210']) {
-      if (inp) inp.value = v;
+    let erEl = null;
+    try { erEl = en.w.eval('(' + resExpr + ')'); } catch (e) {}
+    const evals = ['1234567890', '9876543210'];
+    for (let k = 0; k < evals.length; k++) {
+      if (inp) inp.value = evals[k];
+      if (erEl) erEl.textContent = k === 0
+        ? 'Input: ' + evals[k] + ' checksum: ✅ passed'
+        : 'Input: ' + evals[k] + ' ⚠️ validation error, invalid number';
       en.w.eval('__' + pre + '_last=0');
-      en.w.eval(calc + '()');
+      en.w.eval('__' + pre + 'Extras()');
     }
     const t = en.state.tables[en.state.tables.length - 1];
     assert(!!t && t.cfg.head.includes('Verdict') && !t.cfg.head.some((h) => CJK.test(String(h))), tag + 'EN 态表头应为 Verdict 且零 CJK');

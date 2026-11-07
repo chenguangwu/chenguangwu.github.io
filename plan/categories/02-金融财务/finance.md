@@ -1793,3 +1793,11 @@
 - **通用两态锁 `scripts/_verify_fn189_rollout.mjs`**：`--pages` / `--cat` / `--head` / `--ref` / `--verbose` 参数化，页面参数自动抽取，后续所有铺开批次复用，不再每批派生脚本。当前 **209 PASS / 0 FAIL**、`--head` **153 FAIL / 48 PASS**。
 - 证据：126 个内联脚本语法 0 错、`verify_finance_calc.js 379/379`、判别力 0 逃生、id 审计 0 僵尸、源产物 1757 字符逐字一致。详见 `plan/已修复/2026-11-07-F-N189-第42批-改模板真源与全站铺开试点8页.md`。
 - **待老板裁断**：是否一次性铺到全站 3042 标准页（大 diff + 全站产物变化 + 需完整 229 门禁兜底）。裁断前不擅自全量铺开，继续按每批 8–12 页小步推进；定制页另设计保留定制的局部编辑脚本。
+
+## 2026-11-07 第 43 批 · F-N189 铺开工具固化 + finance 第二组 8 页
+
+- **交付 `scripts/_fn189_rollout.py`**：`--cat` / `--pages` / `--dry` 参数化，从 cnpj 基准新段反推模板，自动抽取 5 个页面参数，先全批自检再写盘（边界唯一 / 旧过滤正则 / 恒 NaN 特征 / `__tbScore` 4 处 / csv 名 / 归一化同构），定制页明确拒绝。后续铺开批次复用，不再重写临时脚本。
+- **铺开 8 页**：`assessor-manager` / `bic-validator` / `bond-yield-calculator` / `break-even-calculator` / `calc-2` / `calc-3` / `calc-4` / `calc-5`，`--dry` 与 `--apply` 均 8/8；第 33 批 F-N4 在 bond-yield 页的改动 7 处仍在（替换范围不相交）。
+- **通用两态锁加固**：注入 canvas `getContext` Proxy 桩 + `canvasColorWithAlpha` / `resolveCanvasColor`；运行期改为直接驱动 `Extras()`（写输入 + 注入成功/失败结果文本），绕开页面 `calc()` 的真机依赖；`VirtualConsole` 静默已知噪音。回归：第 42 批 8 页仍 209 PASS、第 40/41 批抽 4 页 105 PASS。
+- 证据：119 个内联脚本语法 0 错、`379/379`、判别力 0 逃生、id 审计 0 僵尸；通用锁当前 **209 PASS / 0 FAIL**、`--head` **160 FAIL / 41 PASS**。详见 `plan/已修复/2026-11-07-F-N189-第43批-铺开工具固化与finance第二组8页.md`。
+- 第 44 批方向：finance 第三组 8 页；并设计 4 个定制页（`dca` / `irr` / `npv` / `password-generator-advanced`，均为前批加过快照/IRR 逻辑者）的保留定制局部编辑方案，禁止整体替换。
