@@ -153,6 +153,9 @@
   - `tools/insurance/combined-ratio.html:310-313` 记录 `c`（赔款支出 6500000）并以 `['c']` 做差异，而非综合成本率 90%。
 - 影响：上述四页；历史卡片、趋势图和 CSV 的结果列均可能显示输入额/中间量，用户回顾方案时看到的是错误指标。
 - 方案：统一以核心结果字段（P/IBNR/费用率/综合成本率）为结果键，保留两位小数或结构化数值；差异框比较同一结果键；导出表头标注单位，并补充输入口径。
+- **已修复 2026-11-07**：四页 `history.record` 的结果键全部换成核心指标，值为主计算的两位小数结构化数值，输入字段保留作口径补充；`diffBox` 比较同一结果键。利用各页既有的 `en=TBKit.util.isEn()` 做**动态双语键**（中文 `均衡年保费 (元)` / `IBNR 准备金 (元)` / `费用率 (%)` / `综合成本率 (%)`，英文 `Level annual premium (CNY)` / `IBNR reserve (CNY)` / `Expense ratio (%)` / `Combined ratio (%)`），英文态历史键零 CJK、无需新增英文 map。`level-premium-life` 导出同步改 `exportCsv`（当前完整输入 + 结果 + 单位表头），空输入拦截。
+  - 判别力（`scripts/_verify_insurance_batch_rh7.mjs`）：四页中英文态结果键 / 数值 / 差异框同键 / 旧键不存在 / 与主结果同口径（当前全部 PASS）→ HEAD **仍记 `v` / `r` / `e` / `c` 且差异框比较旧键**（FAIL）；导出 `exportCsv` + 空输入拦截（PASS）→ HEAD 走 `exportTable` 且不拦截（FAIL）。当前 **PASS / HEAD 26 FAIL**。
+  - 门禁：`verify_insurance_calc.js` **89/89**（harness 的 history/diffBox 为 stub，用例无需改动）；`audit_verify_input_ids.js` EXIT=0；`discriminate_check.js` 逃生项 20 = 基线 20、跳过 7 = 基线 7；`audit_deepdive_source_sync.py --check` 不一致 0 页；`_build.py` A 级 100.0%。
 
 ### R-H8 赔付准备金的「进展期」因子把长尾准备金越乘越小（高，确认）
 - 描述：链梯法先算「最终赔款 − 已付」，再乘以随年限递减的因子（1 年 0.85、2 年 0.65、5 年及以上 0.15）。因子既不是链梯发展因子，也不符合「期限越长、未决责任越大」的方向；结果会随长尾年限增加而下降。

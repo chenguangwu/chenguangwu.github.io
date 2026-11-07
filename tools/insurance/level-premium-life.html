@@ -295,6 +295,7 @@ function resetForm(){document.getElementById('nsp').value = '85000';
       calcTool();}
 calcTool();
 
+var __lplLast=null;
 function __level_premium_lifeNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
 function __level_premium_lifeExtras(){
     function __level_premium_lifeRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
@@ -304,7 +305,7 @@ function __level_premium_lifeExtras(){
     var v=1/(1+i);
     var a=(1-Math.pow(v,n))/i;
     var P=nsp/a;
-    if (!isFinite(__level_premium_lifeNum('nsp')) || !isFinite(__level_premium_lifeNum('i')) || !isFinite(__level_premium_lifeNum('n'))) return;
+    if (!isFinite(__level_premium_lifeNum('nsp')) || !isFinite(__level_premium_lifeNum('i')) || !isFinite(__level_premium_lifeNum('n'))) { __lplLast=null; return; }
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#level_premium_lifeTable',{
         head: en?['Item','Value']:['项目','数值'],
@@ -314,14 +315,35 @@ function __level_premium_lifeExtras(){
             ['总缴费 (元)', fmt(P*n)],
         ]
     });
-    TBKit.history.record({nsp:__level_premium_lifeRaw('nsp'), i:__level_premium_lifeRaw('i'), n:__level_premium_lifeRaw('n'), v:v});
+    __lplLast={nsp:nsp,i:i,n:n,P:P,a:a,total:P*n};
+    var rk=en?'Level annual premium (CNY)':'均衡年保费 (元)';
+    var rec={nsp:__level_premium_lifeRaw('nsp'), i:__level_premium_lifeRaw('i'), n:__level_premium_lifeRaw('n')};
+    rec[rk]=Number(P.toFixed(2));
+    TBKit.history.record(rec);
     function __level_premium_lifeRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#level_premium_lifeHist',function(rec){ __level_premium_lifeRestore(rec); calcTool(); });
-    TBKit.util.diffBox('#level_premium_lifeDiff',['v']);
+    TBKit.util.diffBox('#level_premium_lifeDiff',[rk]);
 }
 function __level_premium_lifeExport(){
     if (typeof TBKit === 'undefined') return;
-    try { TBKit.util.exportTable('#level_premium_lifeTable','level-premium-life.csv'); } catch(e){}
+    if(!__lplLast){
+        try{ ToolBox.showToast('请先完成一次有效计算，明细为空时不导出。','error'); }catch(e){}
+        return;
+    }
+    var L=__lplLast, en=false;
+    try{ en=TBKit.util.isEn(); }catch(e){}
+    var rows = en ? [
+        ['Item','Value'],
+        ['Net single premium (CNY)',L.nsp.toFixed(2)],['Annual interest rate i',L.i],['Payment years',L.n],
+        ['Level annual premium (CNY)',L.P.toFixed(2)],['Annuity factor a_n',L.a.toFixed(6)],
+        ['Total premiums (CNY)',L.total.toFixed(2)]
+    ] : [
+        ['项目','数值'],
+        ['净趸缴保费 (元)',L.nsp.toFixed(2)],['年利率 i',L.i],['缴费年数 (年)',L.n],
+        ['均衡年保费 (元)',L.P.toFixed(2)],['年金现值系数 a_n|',L.a.toFixed(6)],
+        ['总缴费 (元)',L.total.toFixed(2)]
+    ];
+    try { TBKit.util.exportCsv('level-premium-life.csv', rows); } catch(e){}
 }
 function __level_premium_lifePresets(){
     if (typeof TBKit === 'undefined') return;
