@@ -134,6 +134,9 @@
 - 证据：`tools/insurance/level-premium-life.html:120` 公式框为「利率越高……均衡年保费越高」；`:187` 计算说明写「年保费随利率上升而下降」；`:282-285` 代码 `a=(1-v^n)/i`、`P=nsp/a`。node 复现（净趸缴 85000、n=20）：i=3% → a=14.877475、P=5713.34；i=6% → P=7410.69，实际随利率上升。
 - 影响：`tools/insurance/level-premium-life.html`；用户会按错误的下降方向理解利率敏感性。
 - 方案：删掉或改写计算说明第 2 条，统一为「固定净趸缴保费下，利率上升 → 年金因子下降 → 均衡年保费上升」；同步公式框、图表标题和指南。
+- **已修复 2026-11-07**：`计算说明` 第 2 条改为「固定净趸缴保费时，利率上升使年金现值系数变小，均衡年保费随之上升。」；图表标题由不准确的「随缴费年数反比下降」改「递减并趋饱和」（英文同步 `(decreasing, saturating)`）；公式框原本正确，保留不动。`i18n/tools/en/insurance/level-premium-life.json` 键（=中文源串）与英文值同批替换；`i18n/tools/insurance.json` 的 note 两处副本与 `scripts/gen_insurance_tools.py` 的 notes 一并同步，防重跑回退。
+  - 判别力（`scripts/_verify_insurance_batch_rh11_rh6.mjs`）：新 note / 旧 note 不残留 / 新图表标题 / 英文 map 新键（当前全部 PASS）→ HEAD **仍写「年保费随利率上升而下降」+「反比下降」+ 旧 map 键**（FAIL）；运行期实证 i=3% → 5,713.34、i=6% → 7,410.69、`p6 > p3`（两态共通守护），把文案方向与代码行为锁成同一结论。当前 **PASS / HEAD 17 FAIL**。
+  - 门禁：`verify_insurance_calc.js` **84/84**（本批未改计算逻辑，用例无需同步）；`discriminate_check.js` 逃生项 20 = 基线；`audit_deepdive_source_sync.py --check` 不一致 0 页；`_build.py` A 级 100.0%。
 
 ### R-H7 四个计算页把输入金额当作「结果」写入历史/趋势（中，确认源码路径）
 - 描述：历史记录与趋势图本应保存/展示本页的核心结果，但以下页面把某个输入额或中间因子写成结果键，导致历史表和趋势图显示的不是用户要看的指标。
@@ -173,6 +176,9 @@
 - 证据：`tools/insurance/ibnr-reserve.html:126-132` 只有 `reported`、`factor` 两个输入；`:120` 与 `:223-229` 按 `reported*(factor−1)` 计算；`:305` 深度解析示例写「400−320=80 万」。node 复现：默认已报案 4000000、因子 1.25 → 页面 IBNR 1000000、最终赔款 5000000；示例口径 4000000−3200000=800000，两者相差 20 万。
 - 影响：`tools/insurance/ibnr-reserve.html`；示例与主计算不是同一模型，用户按示例输入无法得到页面结果。
 - 方案：示例改成「已报案 400 万 × (1.25−1) = 100 万」，并逐年或按因子说明最终赔款 500 万；若要保留「已发生/已报告」口径，应新增对应输入并明确与因子法的换算关系。
+- **已修复 2026-11-07**：采用「改成因子法 + 说明等价条件」路线。`i18n/tools/content_deepdive.json` 的 `insurance/ibnr-reserve.examples[0]` 改「已报案 400 万、发展因子 1.25」/「IBNR = 已报案 400 万 × (1.25 − 1) = 100 万；最终赔款估计 = 400 万 × 1.25 = 500 万。因子 >1 时与「已发生 − 已报告」等价（已发生即终极赔款 500 万）。」；`_build.py` 由真源重建工具页 deep-dive 段，`guides/ibnr-reserve-guide.html` 静态产物精确同步；`i18n/tools/en/insurance/ibnr-reserve.json` 与 `i18n/guides/ibnr-reserve-guide.json` 共 4 个键整条文本级替换（键 = 中文源串，guide 正文键带前导「：」）；`scripts/apply_insurance.py` 生成真源同步防回退。
+  - 判别力（`scripts/_verify_insurance_batch_rh11_rh6.mjs`）：工具页 / 指南页算例新文案与 4 个英文 map 键全部对齐、旧 80 万口径零残留（PASS）→ HEAD **三处旧算例 + 4 个旧键**（FAIL）；运行期守护默认 400万×1.25 → IBNR `1,000,000.00`、最终赔款 `5,000,000.00`，与示例「100 万 / 500 万」逐字对应。当前 **PASS / HEAD 17 FAIL**（与 R-H6 同一锁脚本）。
+  - 门禁：`audit_deepdive_source_sync.py --check` 扫描 4573 页**不一致 0 页**；`verify_insurance_calc.js` 84/84；`discriminate_check.js` 逃生项 20 = 基线；全库旧串零残留；`_build.py` A 级 100.0%。
 
 ### R-H12 费用率页负费用会触发 10⁻⁹ 兜底，保费费用比暴涨到 1e16（中，确认）
 - 描述：页面只用 `max(费用, 1e-9)` 防止除零，未拦截负费用。负费用时费用率为负，而「保费与费用比」把分母替换成 1e-9，输出 10^16 量级，两个指标方向完全冲突。
