@@ -120,7 +120,7 @@ s.parentNode.insertBefore(el, s);
 <div class="ref-card" style="margin-bottom:16px;"><h4>测试说明</h4><p>MAOD(最大累积氧亏)通过比较实际摄氧量与理论需氧量的差值来评估无氧能力。需要先测定VO2max，再进行全力运动至力竭。</p></div>    <div class="formula-box">
       <div class="formula-title">📐 计算公式 / 原理</div>
       <div class="formula-eq">MAOD = ∫ (VO₂<sub>需求</sub> − VO₂<sub>实际</sub>) dt</div>
-      <div class="formula-desc">最大累积氧亏(MAOD)从递增负荷测试的氧需求曲线与实际耗氧曲线之差积分得到，反映无氧(磷酸原+糖酵解)供能能力，值越大无氧运动能力与乳酸耐受越强。</div>
+      <div class="formula-desc">最大累积氧亏(MAOD)从递增负荷测试的氧需求曲线与实际耗氧曲线之差积分得到，反映无氧(磷酸原+糖酵解)供能能力，值越大无氧运动能力与乳酸耐受越强。本页为简化模型：需氧量以 VO2max 作为上限（真实 MAOD 测试用 2–3 分钟超极量、并以次极量 VO2–功率回归线外推需氧量，可高于 VO2max 约 20%–30%），故本页数值偏保守、只适合同一模型下的纵向对比，不可与实验室 MAOD 文献值直接比较。</div>
     </div>
 <div class="input-row"><div><label>VO2max(ml/kg/min)</label><input type="number" id="vo2max" style="font-size:16px;" value="50" min="10" max="100" step="0.1" oninput="calc()" placeholder="e.g. 50 (10–100)"></div></div><div class="input-row"><div><label>体重(kg)</label><input type="number" id="weight" style="font-size:16px;" value="70" min="20" max="300" step="0.1" oninput="calc()" placeholder="e.g. 70 (20–300)"></div></div><div class="input-row"><div><label>全力运动持续时间(秒)</label><input type="number" id="duration" style="font-size:16px;" value="90" min="10" max="600" step="1" oninput="calc()" placeholder="e.g. 90 (10–600)"></div></div><div class="input-row"><div><label>运动中平均摄氧量(ml/kg/min)</label><input type="number" id="avgVo2" style="font-size:16px;" value="45" min="10" max="100" step="0.1" oninput="calc()" placeholder="e.g. 45 (10–100)"></div></div><div class="input-row"><div><label>静息摄氧量(ml/kg/min)</label><input type="number" id="restVo2" style="font-size:16px;" value="3.5" min="1" max="10" step="0.1" oninput="calc()" placeholder="e.g. 3.5 (1–10)"></div></div><div class="input-row"><div><label>运动类型</label><select id="exercise" style="font-size:16px;" onchange="calc()"><option value="0">跑步</option><option value="1">自行车</option><option value="2">划船</option><option value="3">游泳</option></select></div></div>
     <div class="toolbar">
@@ -179,12 +179,21 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 function calc(){
-var vo2max=+document.getElementById('vo2max').value||0;
-var weight=+document.getElementById('weight').value||70;
-var duration=+document.getElementById('duration').value||0;
-var avgVo2=+document.getElementById('avgVo2').value||0;
-var restVo2=+document.getElementById('restVo2').value||3.5;
+var vo2max=parseFloat(document.getElementById('vo2max').value);
+var weight=parseFloat(document.getElementById('weight').value);
+var duration=parseFloat(document.getElementById('duration').value);
+var avgVo2=parseFloat(document.getElementById('avgVo2').value);
+var restVo2=parseFloat(document.getElementById('restVo2').value);
 var exercise=+document.getElementById('exercise').value;
+var resBox=document.getElementById('res');
+function __bad(msg){resBox.innerHTML='<p style="color:var(--danger);">'+msg+'</p>';return;}
+if(!(vo2max>=10&&vo2max<=100))return __bad('VO2max 需在 10–100 ml/kg/min 之间（当前「'+document.getElementById('vo2max').value+'」）。');
+if(!(weight>=20&&weight<=300))return __bad('体重需在 20–300 kg 之间（当前「'+document.getElementById('weight').value+'」）。');
+if(!(duration>=10&&duration<=600))return __bad('全力运动持续时间需在 10–600 秒之间（当前「'+document.getElementById('duration').value+'」）：本页 MAOD 模型面向 2–10 分钟超极量测试，长时稳态运动不适用。');
+if(!(avgVo2>=10&&avgVo2<=100))return __bad('运动中平均摄氧量需在 10–100 ml/kg/min 之间（当前「'+document.getElementById('avgVo2').value+'」）。');
+if(!(restVo2>=1&&restVo2<=10))return __bad('静息摄氧量需在 1–10 ml/kg/min 之间（当前「'+document.getElementById('restVo2').value+'」）。');
+if(avgVo2>vo2max)return __bad('运动中平均摄氧量（'+avgVo2+'）不能高于 VO2max（'+vo2max+'）：否则需氧量小于摄氧量，累积氧亏为负值，无物理意义。');
+if(restVo2>=avgVo2)return __bad('静息摄氧量需低于运动中平均摄氧量（净摄氧量须为正）。');
 // 注意：duration 输入单位是「秒」，而 VO2 是 ml/kg/**分钟**，必须先 ÷60 换算成分钟，
 // 否则需氧量会被放大 60 倍（90 秒算出 315 L，超过人体 1.5 分钟摄氧上限约 8 L 数十倍）。
 var durMin=duration/60;
@@ -407,9 +416,9 @@ function __tester_8Export(){
 function __tester_8Presets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#tester_8Presets',[{label:'默认参数',labelEn:'Default',values:{'vo2max':'50', 'weight':'70', 'duration':'90', 'avgVo2':'45', 'restVo2':'3.5', 'exercise':'0'}},
-  {"label":"90 分钟骑行","labelEn":"90-minute cycling","values":{"vo2max":52,"weight":72,"duration":5400,"avgVo2":42,"restVo2":3.5,"exercise":"1"}},
-  {"label":"45 分钟跑步","labelEn":"45-minute running","values":{"vo2max":58,"weight":65,"duration":2700,"avgVo2":48,"restVo2":3.5,"exercise":"0"}},
-  {"label":"60 分钟游泳","labelEn":"60-minute swimming","values":{"vo2max":55,"weight":68,"duration":3600,"avgVo2":38,"restVo2":3.5,"exercise":"3"}}],function(){ calc(); });
+  {"label":"3 分钟全力骑行","labelEn":"3-minute all-out cycling","values":{"vo2max":52,"weight":72,"duration":180,"avgVo2":42,"restVo2":3.5,"exercise":"1"}},
+  {"label":"4 分钟全力跑步","labelEn":"4-minute all-out running","values":{"vo2max":58,"weight":65,"duration":240,"avgVo2":48,"restVo2":3.5,"exercise":"0"}},
+  {"label":"5 分钟全力游泳","labelEn":"5-minute all-out swimming","values":{"vo2max":55,"weight":68,"duration":300,"avgVo2":45,"restVo2":3.5,"exercise":"3"}}],function(){ calc(); });
 }
 var __tester_8_f0=(typeof calc==='function')?calc:null;
 if(__tester_8_f0){
