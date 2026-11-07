@@ -253,7 +253,12 @@ function __foreign_tax_creditExtras(){
     var ft=num('ft'),lim=num('lim');
     var cr=Math.min(ft,lim);
     var over=Math.max(ft-lim,0), unused=Math.max(lim-ft,0);
-    if (!isFinite(__foreign_tax_creditNum('ft')) || !isFinite(__foreign_tax_creditNum('lim'))) return;
+    /* T-N2：主结果与明细表必须同口径——输入无效时清空旧表，避免主结果报错、附表仍留着上一轮数据被导出 */
+    if (!isFinite(__foreign_tax_creditNum('ft')) || !isFinite(__foreign_tax_creditNum('lim')) || ft<0 || lim<0) {
+        var __t=document.getElementById('foreign_tax_creditTable');
+        if (__t) __t.innerHTML='<p style="color:var(--text-muted);font-size:13px;">— 请填写有效的境外已纳税额与抵免限额后再生成明细。</p>';
+        return;
+    }
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#foreign_tax_creditTable',{
         head: en?['Item','Value']:['项目','数值'],
@@ -272,6 +277,8 @@ function __foreign_tax_creditExtras(){
 }
 function __foreign_tax_creditExport(){
     if (typeof TBKit === 'undefined') return;
+    var __box=document.getElementById('foreign_tax_creditTable');
+    if (!__box || !__box.querySelector('tr')) { try{ ToolBox.showToast('请先完成一次有效计算，明细表为空时不导出。'); }catch(e){} return; }
     try { TBKit.util.exportTable('#foreign_tax_creditTable','foreign-tax-credit.csv'); } catch(e){}
 }
 function __foreign_tax_creditPresets(){
