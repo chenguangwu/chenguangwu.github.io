@@ -124,14 +124,14 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入多期收益率（逗号或空格分隔），求几何平均收益率。">Compute the compounded annual return from a series of period returns (comma or space separated) using g = (Π(1+rᵢ))^(1/n) − 1.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">几何平均收益率：G = (Π(1+rᵢ))^(1÷n) − 1，收益率序列按空格/逗号分隔解析；联动量：期数 n、累计增长倍数 Π(1+rᵢ)。校验：序列非空守卫（文本非空即过），逐项解析失败得 NaN 会直接污染连乘（代码无逐项过滤）。判据：无固定分级，几何平均恒不超过算术平均，适合复合收益口径。</div>
+      <div class="formula-eq">几何平均收益率：G = (Π(1+rᵢ))^(1÷n) − 1，收益率序列按空格/逗号分隔、按百分数填写（如 10 表示 +10%、-5 表示 −5%）；联动量：期数 n、累计增长倍数 Π(1+rᵢ)。校验：序列须非空；逐项校验「是数字」且「> −100%」（否则 1+r ≤ 0，复合倍数无意义），任一项不合法即整笔拒绝并指出是第几项。判据：无固定分级，几何平均恒不超过算术平均，适合复合收益口径。</div>
       <p class="formula-desc">输入多期收益率（逗号或空格分隔），求几何平均收益率。</p>
     </div>
 
     <div class="input-row">
       <div>
-        <label for="r">收益率序列 r</label>
-        <input type="text" inputmode="text" data-list="1" id="r" value="0.1, 0.2, -0.05">
+        <label for="r">收益率序列 r（%，逗号/空格分隔，亏损用负号）</label>
+        <input type="text" inputmode="text" data-list="1" id="r" value="10, 20, -5" placeholder="如 10, 20, -5">
       </div>
     </div>
 
@@ -172,7 +172,7 @@ s.parentNode.insertBefore(el, s);
       <div class="tool-notes-title">📌 计算说明</div>
       <ul>
         <li>几何平均考虑复利，低于算术平均。</li>
-        <li>0.1,0.2,−0.05 → 7.83%。</li>
+        <li>10,20,−5 → 7.83%；序列按百分数填，亏损用负号。</li>
       </ul>
     </div>
   </div>
@@ -267,17 +267,32 @@ function num(id){const v=parseFloat(document.getElementById(id).value);return is
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
               var __ig=__tbInputGuard(['r'],["收益率序列 r"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const raw=document.getElementById('r').value.split(/[ ,]+/).filter(Boolean).map(parseFloat);
+const toks=document.getElementById('r').value.split(/[ ,，]+/).filter(Boolean);
+            /* 口径统一为百分数：内部 /100；逐项校验，任一不合法即整体拒绝（不再静默「—」） */
+            const vals=[];
+            for(let i=0;i<toks.length;i++){
+                const v=parseFloat(toks[i]);
+                if(!isFinite(v)){
+                    ToolBox.setResult('result','<p class="tip-error">⚠ 第 '+(i+1)+' 项「'+toks[i]+'」不是有效数字，请修正后再计算。</p>');return;
+                }
+                if(v<=-100){
+                    ToolBox.setResult('result','<p class="tip-error">⚠ 第 '+(i+1)+' 项收益率 '+v+'% 不合法：单期跌幅不能达到或超过 100%，否则 (1+r) ≤ 0，复合倍数无意义。</p>');return;
+                }
+                vals.push(v/100);
+            }
+            if(!vals.length){
+                ToolBox.setResult('result','<p class="tip-error">⚠ 请至少填写一期收益率。</p>');return;
+            }
             let prod=1;
-            for(const x of raw){ prod*= (1+x); }
-            const g=Math.pow(prod, 1/raw.length)-1;
+            for(const x of vals){ prod*= (1+x); }
+            const g=Math.pow(prod, 1/vals.length)-1;
             const __g2=dataGrid([
                 [(g*100).toFixed(2),'几何平均收益率 g (%)'],
-                [raw.length, '期数'],
+                [vals.length, '期数'],
                 [prod.toFixed(6), '累计增长倍数']
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
-function resetForm(){document.getElementById('r').value = '0.1, 0.2, -0.05';
+function resetForm(){document.getElementById('r').value = '10, 20, -5';
       calcTool();}
 calcTool();
 
@@ -379,7 +394,7 @@ function __geometric_mean_returnExport(){
 }
 function __geometric_mean_returnPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#geometric_mean_returnPresets',[{label:'默认参数',labelEn:'Default',values:{'r':'0.1, 0.2, -0.05'}},{"label":"小规模","labelEn":"Small scale","values":{"r":"0.05"}},{"label":"大规模","labelEn":"Large scale","values":{"r":"0.15"}},{"label":"极端工况","labelEn":"Extreme case","values":{"r":"0.2"}}],function(){ calcTool(); });
+    TBKit.preset.bar('#geometric_mean_returnPresets',[{label:'默认参数',labelEn:'Default',values:{'r':'10, 20, -5'}},{"label":"单期示例","labelEn":"Single period","values":{"r":"5"}},{"label":"三期示例","labelEn":"Three periods","values":{"r":"15"}},{"label":"波动示例","labelEn":"Volatile","values":{"r":"20, -10, 15"}}],function(){ calcTool(); });
 }
 var __geometric_mean_return_f0=(typeof calcTool==='function')?calcTool:null;
 if(__geometric_mean_return_f0){

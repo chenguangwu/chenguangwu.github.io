@@ -117,18 +117,18 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入免税品种收益率与边际税率，求税后等效应税收益率。">Tax Equivalent Yield</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">税等效收益率（本页代码口径，免税收益率与边际税率均按小数输入，如 0.03 表示 3%、0.25 表示 25%）：TEY=免税收益率÷(1−边际税率)；联动量：应税需高出的百分点=(TEY−免税收益率)×100、边际税率(%)=税率×100、免税溢价系数减一=1÷(1−税率)−1。校验：无强校验，空值按 0 兜底。判据：无固定分级，税率越高 TEY 放大越显著，税率趋近 1 时 TEY 发散（分母趋零）。</div>
+      <div class="formula-eq">税等效收益率（免税收益率与边际税率均按百分数输入，如 3 表示 3%、25 表示 25%）：TEY(%)=免税收益率(%)÷(1−边际税率%÷100)；联动量：应税需高出的百分点=TEY(%)−免税收益率(%)、免税溢价系数减一=1÷(1−边际税率%÷100)−1。校验：免税收益率须 >0，边际税率须在 0–100% 之间且不等于 100%（含 100% 时分母为 0，无定义），空值拒绝计算。判据：无固定分级，税率越高 TEY 放大越显著，税率趋近 100% 时 TEY 发散（分母趋零）。</div>
       <p class="formula-desc">TEY=免税收益率÷(1−边际税率)。只有应税品种收益率高于 TEY 时才更划算，须代入自身边际税率比较；资本利得税未纳入。</p>
     </div>
 
     <div class="input-row">
       <div>
-        <label for="muni">免税收益率</label>
-        <input type="number" id="muni" value="0.03" step="0.005" placeholder="如 0.03">
+        <label for="muni">免税收益率 (%)</label>
+        <input type="number" id="muni" value="3" step="0.1" placeholder="如 3">
       </div>
       <div>
-        <label for="tax">边际税率</label>
-        <input type="number" id="tax" value="0.25" step="0.05" placeholder="如 0.25">
+        <label for="tax">边际税率 (%)</label>
+        <input type="number" id="tax" value="25" step="1" placeholder="如 25">
       </div>
     </div>
 
@@ -223,17 +223,25 @@ function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+=
 /* TOOLBOX-REQ-GUARD */function __tbReq(ids,names){for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);var v=el?el.value:'';if(v===''||v==null||!isFinite(parseFloat(v))){ToolBox.setResult('result','<p class="tip-error">请填写「'+names[i]+'」后再计算。</p>');return false;}}return true;}
 function calcTool(){
    if(!__tbReq(['muni','tax'],['免税收益率','边际税率']))return;
-            const muni=num('muni'),tax=num('tax');
+            const muniPct=num('muni'),taxPct=num('tax');
+            /* 口径统一为百分数输入，内部按小数计算；税率 100% 分母为 0 必须明确拒绝 */
+            if(!(muniPct>0)){
+                ToolBox.setResult('result','<p class="tip-error">⚠ 免税收益率须大于 0（当前输入 '+muniPct+'%）。</p>');return;
+            }
+            if(!(taxPct>=0&&taxPct<100)){
+                ToolBox.setResult('result','<p class="tip-error">⚠ 边际税率须在 0–100% 之间且不等于 100%（当前输入 '+taxPct+'%）：等于 100% 时分母为 0，等效收益率无定义。</p>');return;
+            }
+            const muni=muniPct/100,tax=taxPct/100;
             const TEY=muni/(1-tax);
             const __g1=dataGrid([
                 [(TEY*100).toFixed(3),'税后等效收益率 TEY (%)'],
-                [(TEY*100-muni*100).toFixed(3), '应税需高出的百分点'],
-                [(tax*100).toFixed(1), '边际税率 (%)'],
+                [(TEY*100-muniPct).toFixed(3), '应税需高出的百分点'],
+                [taxPct.toFixed(1), '边际税率 (%)'],
                 [(1/(1-tax)-1).toFixed(4), '免税溢价系数减一']
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
-function resetForm(){document.getElementById('muni').value = '0.03';
-      document.getElementById('tax').value = '0.25';
+function resetForm(){document.getElementById('muni').value = '3';
+      document.getElementById('tax').value = '25';
       calcTool();}
 calcTool();
 </script>
@@ -283,16 +291,21 @@ function __tax_equivalent_yieldNum(id){var e=document.getElementById(id);var v=e
 function __tax_equivalent_yieldExtras(){
     function __tax_equivalent_yieldRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
-    var muni=num('muni'),tax=num('tax');
+    var muniPct=num('muni'),taxPct=num('tax');
+    if (!isFinite(__tax_equivalent_yieldNum('muni')) || !isFinite(__tax_equivalent_yieldNum('tax')) || !(muniPct>0) || !(taxPct>=0&&taxPct<100)) {
+        var __t=document.getElementById('tax_equivalent_yieldTable');
+        if (__t) __t.innerHTML='<p style="color:var(--text-muted);font-size:13px;">— 请填写有效的免税收益率与边际税率后再生成明细。</p>';
+        return;
+    }
+    var muni=muniPct/100,tax=taxPct/100;
     var TEY=muni/(1-tax);
-    if (!isFinite(__tax_equivalent_yieldNum('muni')) || !isFinite(__tax_equivalent_yieldNum('tax'))) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#tax_equivalent_yieldTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
             ['税后等效收益率 TEY (%)', (TEY*100).toFixed(3)],
-            ['应税需高出的百分点', (TEY*100-muni*100).toFixed(3)],
-            ['边际税率 (%)', (tax*100).toFixed(1)],
+            ['应税需高出的百分点', (TEY*100-muniPct).toFixed(3)],
+            ['边际税率 (%)', taxPct.toFixed(1)],
             ['免税溢价系数减一', (1/(1-tax)-1).toFixed(4)],
         ]
     });
@@ -308,9 +321,9 @@ function __tax_equivalent_yieldExport(){
 function __tax_equivalent_yieldPresets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#tax_equivalent_yieldPresets',[
-        {label:'默认',labelEn:'Default',values:{muni:'0.03', tax:'0.25'}},
-        {label:'示例 2×',labelEn:'Example 2×',values:{muni:'0.06', tax:'0.5'}},
-        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{muni:'0.015', tax:'0.125'}},
+        {label:'默认',labelEn:'Default',values:{muni:'3', tax:'25'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{muni:'6', tax:'50'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{muni:'1.5', tax:'12.5'}},
     ],function(){ calcTool(); });
 }
 var __tb_fn0 = calcTool;
@@ -321,7 +334,7 @@ else document.addEventListener('DOMContentLoaded', __tax_equivalent_yieldBoot);
 </script>
 <script>
 function __teySweep(){
-  var muni=num('muni');
+  var muni=num('muni')/100;
   if(!isFinite(muni)||muni<=0)return null;
   var labels=[],dTey=[],dGap=[],rows=[];
   var taxes=[0,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45];
