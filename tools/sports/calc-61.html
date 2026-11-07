@@ -117,7 +117,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="基于 MET 代谢当量数据库，根据活动类型、体重与时长计算消耗热量">Based on a MET (metabolic equivalent) activity database, pick an activity and enter body weight and duration to compute calories burned for fitness tracking, fat-loss planning and energy-balance checks.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">能量消耗 kcal = 活动基础MET × 强度系数 × 体重(kg) × (时长分钟÷60)；另输出千焦 = kcal×4.184、每小时消耗 = kcal÷小时数、调整后 MET = 基础×强度系数、脂肪等效 = kcal÷7700（kg）。校验：体重或时长非数/≤0 提示「请输入有效体重与时长」并标红。判据：基础 MET 按活动项目查表（无效序号回落默认活动），食物等效按米饭/苹果/鸡蛋/可乐/跑步1km 卡价折算。</div>
+      <div class="formula-eq">能量消耗 kcal = 活动基础MET × 强度系数 × 体重(kg) × (时长分钟÷60)；另输出千焦 = kcal×4.184、每小时消耗 = kcal÷小时数、调整后 MET = 基础×强度系数、脂肪等效 = kcal÷7700（kg）。校验：体重或时长非数/≤0 提示「请输入有效体重与时长」并标红；活动类型为空/编号越界时提示「请先选择活动类型」并停算（不再静默回落到跑步 13 km/h）。判据：基础 MET 按活动项目查表，食物等效按米饭/苹果/鸡蛋/可乐/跑步1km 卡价折算。</div>
       <p class="formula-desc">基于 MET 代谢当量数据库，根据活动类型、体重与时长计算消耗热量</p>
     </div>
 
@@ -299,7 +299,13 @@ var ACTIVITIES=[
 function setInvalid(el,inv){if(!el)return;if(inv){el.classList.add('input-error');el.setAttribute('aria-invalid','true');}else{el.classList.remove('input-error');el.removeAttribute('aria-invalid');}}
 function calc(){
   var idx=parseInt(document.getElementById('activity').value,10);
-  var act=ACTIVITIES[idx]||ACTIVITIES[5];
+  var selEl=document.getElementById('activity');
+  if(isNaN(idx)||!ACTIVITIES[idx]){
+    document.getElementById('summary').innerHTML='';
+    document.getElementById('detail').innerHTML='<p style="color:var(--danger)">⚠ 请先选择活动类型（未选择时无法确定基础 MET）</p>';
+    return;
+  }
+  var act=ACTIVITIES[idx];
   var met=act[1];
   var w=parseFloat(document.getElementById('weight').value);
   var dur=parseFloat(document.getElementById('duration').value);
@@ -451,10 +457,10 @@ function __calc_61Export(){
 }
 function __calc_61Presets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#calc_61Presets',[{label:'默认参数',labelEn:'Default',values:{'weight':'65', 'duration':'60', 'intensity':'0.9'}},
-  {'label':'跑步1小时','labelEn':'Run 1h','values':{'weight':'65','duration':'60','activity':'','intensity':'1.2'}},
-  {'label':'步行90分','labelEn':'Walk 90min','values':{'weight':'65','duration':'90','activity':'','intensity':'0.9'}},
-  {'label':'适中45分','labelEn':'Mod 45min','values':{'weight':'80','duration':'45','activity':'','intensity':'1.0'}}],function(){ calc(); });
+    TBKit.preset.bar('#calc_61Presets',[{label:'默认参数',labelEn:'Default',values:{'weight':'65', 'duration':'60', 'activity':'5', 'intensity':'0.9'}},
+  {'label':'跑步1小时','labelEn':'Run 1h','values':{'weight':'65','duration':'60','activity':'4','intensity':'1.2'}},
+  {'label':'步行90分','labelEn':'Walk 90min','values':{'weight':'65','duration':'90','activity':'2','intensity':'0.9'}},
+  {'label':'适中45分','labelEn':'Mod 45min','values':{'weight':'80','duration':'45','activity':'31','intensity':'1.0'}}],function(){ calc(); });
 }
 var __calc_61_f0=(typeof calc==='function')?calc:null;
 if(__calc_61_f0){
