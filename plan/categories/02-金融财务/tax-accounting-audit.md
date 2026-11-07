@@ -95,6 +95,9 @@
 - 证据：`tools/audit/npv-discount.html:147-149,292-306,457-485` 动态现金流和模式控件无 id，持久化代码跳过无 id 控件；刷新行为未真机验证。
 - 影响：`tools/audit/npv-discount.html`；已输入的自定义方案可能丢失，无法可靠复现。
 - 方案：结构化保存模式和完整现金流数组，恢复后重算；可提供带输入与结果的本地历史及明细导出。
+- **已修复 2026-11-07**：动态行补 `id="cf{i}"`、模式单选补 `id="mode_custom"/"mode_annuity"`；保存器对 radio 增加同组兄弟键清理（修「切过去又切回 → 两组键都命中 → 按 DOM 顺序误判模式」）；新增 `__npvLS/__npvSaveFlows/__npvRestoreFlows`（持久化 `cfCount` + 逐期 `cf{i}`，恢复时补齐/裁剪 `flows` 并重算，上限 60 期防脏数据）；`addFlow/removeFlow/loadDemo` 落库，`updateFlow` **单点落库**（动态新增行不被加载时的一次性扫描绑定，否则第 6 期以后仍存不住——本轮实测第二坑）；启动顺序改为 `__npvRestoreFlows() → renderList() → calc()`。
+  - 判别力（`scripts/_verify_audit_batch_tn7.mjs`，两段式 JSDOM：交互产出快照 → 快照注入新实例重开）：交互后持久化键数 **9**（PASS）/ HEAD **0**（FAIL）；恢复后期数 **7**（PASS）/ HEAD **5**（FAIL）；第 7 期金额 **77777**（PASS）/ HEAD 无 `cf6` 元素（FAIL）；模式 **annuity**（PASS）/ HEAD **custom**（FAIL）。
+  - 余项：「带输入与结果的本地历史面板」未做；期数 60 上限只用于恢复防脏，按钮侧无上限校验。
 
 ### T-N8 净现值说明示例与实际公式不一致（低，确认数值差异）
 - 证据：`tools/audit/npv-discount.html:222,327-334` 说明示例现值 112312、NPV 12312；按页面逐期公式约为 112315.00、12315.00。

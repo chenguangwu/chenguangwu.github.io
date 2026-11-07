@@ -145,8 +145,8 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="checkbox-row">
-      <label><input type="radio" name="mode" value="custom" checked onchange="calc()"> 自定义现金流</label>
-      <label><input type="radio" name="mode" value="annuity" onchange="calc()"> 等额年金模式</label>
+      <label><input type="radio" name="mode" value="custom" id="mode_custom" checked onchange="calc()"> 自定义现金流</label>
+      <label><input type="radio" name="mode" value="annuity" id="mode_annuity" onchange="calc()"> 等额年金模式</label>
     </div>
 
     <div id="annuityBox" style="display:none;">
@@ -294,16 +294,48 @@ function renderList(){
   const __g1=flows.map(function(v,i){
     return '<div class="cf-row">'+
       '<div class="period">第'+(i+1)+'期</div>'+
-      '<input type="number" value="'+(isFinite(v)?v:'')+'" step="any" oninput="updateFlow('+i+',this.value)" placeholder="金额">'+
+      '<input type="number" id="cf'+i+'" value="'+(isFinite(v)?v:'')+'" step="any" oninput="updateFlow('+i+',this.value)" placeholder="金额">'+
       '<button class="del" onclick="removeFlow('+i+')">×</button>'+
     '</div>';
   }).join('');box.innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 
-function updateFlow(i,val){ var v=parseFloat(val); flows[i]=isFinite(v)?v:NaN; calc(); }
-function addFlow(){ flows.push(0); renderList(); calc(); }
-function removeFlow(i){ flows.splice(i,1); renderList(); calc(); }
-function loadDemo(){ flows=[25000,30000,35000,40000,30000]; renderList(); calc(); }
+function updateFlow(i,val){
+  var v=parseFloat(val);
+  flows[i]=isFinite(v)?v:NaN;
+  /* 动态新增的期没有绑到页面通用保存器（保存器只在加载时扫一遍），这里单点落库 */
+  __npvLS('cf'+i, String(isFinite(flows[i])?flows[i]:''));
+  calc();
+}
+/* T-N7：动态现金流行原本无 id，而页面的保存/恢复按元素 id 存取 ⇒ 刷新后自定义方案丢失。
+   这里给每期输入 id（cf0..cfN）并单独持久化「期数」，恢复时按保存的数组重建整份方案。 */
+var __npvNS='tools/audit/npv-discount.html';
+function __npvLS(k,v){
+  try{
+    var key='tb_uxp_'+__npvNS+'#'+k;
+    if(v===undefined) return localStorage.getItem(key);
+    localStorage.setItem(key,v); return v;
+  }catch(e){ return null; }
+}
+function __npvSaveFlows(){
+  __npvLS('cfCount', String(flows.length));
+  for(var i=0;i<flows.length;i++) __npvLS('cf'+i, String(isFinite(flows[i])?flows[i]:''));
+}
+function __npvRestoreFlows(){
+  var s=__npvLS('cfCount');
+  var n=parseInt(s===null?'':s,10);
+  if(!isFinite(n)||n<0||n>60) return false;
+  while(flows.length<n) flows.push(0);
+  while(flows.length>n) flows.pop();
+  for(var i=0;i<n;i++){
+    var v=__npvLS('cf'+i);
+    if(v!==null&&v!==''){ var f=parseFloat(v); flows[i]=isFinite(f)?f:0; }
+  }
+  return true;
+}
+function addFlow(){ flows.push(0); renderList(); __npvSaveFlows(); calc(); }
+function removeFlow(i){ flows.splice(i,1); renderList(); __npvSaveFlows(); calc(); }
+function loadDemo(){ flows=[25000,30000,35000,40000,30000]; renderList(); __npvSaveFlows(); calc(); }
 
 /* T-N6：参数校验——区分「空值」与「零」，非法参数直接停止计算，不产出看似可用的 NPV */
 function __npvParse(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
@@ -374,6 +406,7 @@ function calc(){
   }).join('');body.innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 }
 
+try{ __npvRestoreFlows(); }catch(e){}
 renderList();
 calc();
 
@@ -485,7 +518,14 @@ document.addEventListener('DOMContentLoaded',function(){
   function k(id){return 'tb_uxp_'+NS+'#'+id;}
   function save(el){try{
     if(el.type==='checkbox'){localStorage.setItem(k(el.id),el.checked?'1':'0');}
-    else if(el.type==='radio'){if(el.checked)localStorage.setItem(k(el.id),el.value);}
+    else if(el.type==='radio'){
+      if(el.checked){
+        // 同组单选先清掉兄弟键，避免「切过去又切回来」后恢复时两组都命中、按 DOM 顺序误判
+        var sibs=document.querySelectorAll('input[type=radio][name="'+el.name+'"]');
+        for(var si=0;si<sibs.length;si++){ if(sibs[si]!==el&&sibs[si].id) localStorage.removeItem(k(sibs[si].id)); }
+        localStorage.setItem(k(el.id),el.value);
+      }
+    }
     else{localStorage.setItem(k(el.id),el.value);}
   }catch(e){}}
   function restore(){try{
