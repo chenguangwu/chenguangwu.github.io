@@ -1413,6 +1413,8 @@
 - 复现（node 实算）：cnpj 页输入 `11222333000182`（校验失败）→ 结果区 ❌，但「数据表/历史」无新增行、CSV 不含该次；`parseFloat("输入： 11222333000181 格式化： …")` = `NaN`，两次计算后 `#cnpj_validatorChart` 仍为空。
 - 影响：7 个页面；「趋势图/明细导出」两个可见控件长期空转，用户会反复点击。
 - 方案：历史记录增加数值字段（如 `ok: valid?1:0`）供趋势图使用；CSV 改导「当前结果 + 时间」（或按钮改称「导出历史 CSV」）；失败样本也入库并单列「结论」字段。
+- **已修复 2026-11-07（第 40 批，第一批 7 页）**：`cnpj-validator` / `gst-validator` / `imei-validator` / `text-reverse-words` / `nie-validator` / `iccid-validator` / `bic-lookup` 七页由**同构模板统一替换**（归一化后逐字一致）：新增 `__<pre>Score(t)` 作数值结论单一真源、历史记录写 `rec.__tbScore`（失败 0 / 通过 1）、`ResText()` 只过滤空态前缀不再丢弃失败样本、表格新增动态双语「结论 / Verdict」列、趋势图数值源改 `parseFloat(arr[j].d.__tbScore)` 并更名「有效性趋势 / Validity trend」、`Export()` 在无 `<tr>` 时先补渲染再导出（消除点击无反应）。按钮文案**刻意不改**：表格已升级为「时间 + 全部输入 + 结论 + 结果摘要」的完整明细，「导出明细 CSV」名实相符；改静态中文会牵动全站 105 页与 en map，收益不抵 EN 态 CJK 泄漏风险。新增文案全走 `en ? English : 中文` 动态双语，i18n / en map / 静态按钮零改动。证据见 `plan/已修复/2026-11-07-F-N189-同构校验页族失败样本入库结论列与趋势图第一批7页.md`：`verify_finance_calc.js` **379/379 无回归**、判别力 0 逃生、id 审计 0 僵尸、112 个内联脚本语法 0 错、JSDOM 两态锁 `scripts/_verify_finance_batch_fn189.mjs` 当前 **212 PASS / 0 FAIL**、`--head` **147 FAIL**（HEAD 精确复现 ResText 过滤 / 无结论列 / 图表恒 NaN 不渲染 / 导出空表格点击无反应）。**未改 `verify_finance_calc.js` 的原因**：harness 无 `TBKit` 定义 ⇒ `Extras()` 首行即 return，本批改动全在 harness 盲区，塞 expect 只会制造逃生项；护栏按两层同批落盘（harness 层防回归 + JSDOM 两态锁锁新行为）。
+- **剩余 8 页留第 41 批**：实读确认该模板共派生 **15 页**（台账「6 个校验页 + 文本反转页」及另一处「8 页」均偏小）：`tin-validator`、`gstin-validator`、`tfn-validator`、`pan-validator`、`curp-validator`、`dni-validator`、`meid-validator`、`sort-code-validator-validator`（注意最后 slug 是重复后缀，不是 `sort-code-validator`）。每页都恰好有 `exportTable('#xxxTable')` ×1 与恒 NaN 的 `parseFloat(arr[j].d[rk])` ×1，按同一模板续修，避免逐页实现漂移。
 
 ### 承诺 vs 实际（R 批专项）
 - **BIC 反向检索**：meta「也可反向按行名检索代码」/简介同句——实际仅 code→bank 单向查表，输入行名 `Deutsche Bank` 得到「❌ BIC 长度应为 8 或 11 位」（`bic:10`/`:155` vs `:271-307`）。**未实现**。
@@ -1779,5 +1781,5 @@
 | F-N50 夏普无风险率错配 | `rfPeriod = annFactor > 1 ? riskFree / annFactor : riskFree`，结果区列出折算式 | `每期无风险利率 = 2.00% ÷ 12 = 0.167%`、`每期夏普比率 = 13.833 ÷ 20.000 = 0.6917`、`年化夏普 = 0.6917 × √12 = 2.3960` |
 | F-N52 利润率页折旧未扣 | 公式框与计算链均含「营业利润 − 折旧摊销」「EBITDA = 营业利润 + 折旧摊销」 | `净利率 54.00%` / `EBITDA利润率 60.00%`（500万收入/200万成本/30万折旧） |
 
-- **仍成立、留第 40 批修**：F-N189 —— `tools/finance/tin-validator.html` 的 `#tin_validatorTable` 由 `TBKit.history.list().slice(0,10)` 填充为**最近 10 条历史表**，导出按钮却 `TBKit.util.exportTable('#tin_validatorTable','tin-validator.csv')` 并自称「导出明细 CSV」；台账所列 8 页同构需逐页确认后一次修完，本批不动源码。
+- **F-N189 已在第 40 批改第一批 7 页**（详见 F-N189 条目）：`tin-validator` 等剩余 8 页留第 41 批按同一模板续修；本表上文「台账所列 8 页」的范围描述已被实读修正为**共 15 页同构模板**。
 - **待裁断**：99 是否作为 GST `Centre (CGST jurisdiction)` 特殊辖区码放行（见 F-N170 第 38 批处置），裁断前不改代码。
