@@ -435,13 +435,12 @@
 
 ## V 批 · 小游戏（2026-11-04）
 
-### FE-N42 井字棋 AI 定时器未清理：新局/先手切换后 AI 可连下两手（高，确认源码缺陷）
+### FE-N42 井字棋 AI 定时器未清理：新局/先手切换后 AI 可连下两手（高，已修复 2026-11-07）
 - 页面：`tools/fun/tic-tac-toe.html`
 - 问题：`newGame()` 不保存、也不 `clearTimeout()` 已排队的 AI 落子定时器；`aiMove()` 只判 `gameOver`，不校验轮次，任何残留定时器都会直接 `board[move]='O'`。两个定时器并存时同一回合 AI 连下两手。
-- 证据：`:379-393`（newGame 无定时器句柄，`:390-392` 视「玩家先手」再排一个 500ms 定时；全文件 grep 无 `clearTimeout`）、`:439-441`（玩家落子后固定 400ms 再排 aiMove）、`:444-457`（aiMove 入口仅 `if(gameOver) return`，`:457` 落 O）、`:482`（结束时强制 `currentPlayer='X'`）。
-- 复现：人机模式（默认勾选「玩家先手」）玩家落子后 400ms 内点「🎮 新游戏」→ 旧定时器在新空棋盘落一个 O，玩家 X 先走时盘面已多一子；取消「玩家先手」后开局立即点任意格 → 500ms 与 400ms 两个定时器各落一个 O，AI 连下两手。
-- 影响：对局状态被污染，胜负与 `scores.x/o`（`:420`、`:466`）计分随之失真。
-- 方案：保存定时器句柄并在 newGame / setMode / setDifficulty / gameOver 时 `clearTimeout`；aiMove 入口加 `if(gameOver || currentPlayer!=='O') return`。
+- 修复位点：新增 `let aiTimer=null;`；`newGame()` 开头 `if(aiTimer){clearTimeout(aiTimer);aiTimer=null;}`；`makeMove()` 排 AI 前先清旧定时再 `aiTimer=setTimeout(aiMove,400)`；`aiMove()` 入口 `aiTimer=null`（定时器正在触发即清空引用）。setMode/setDifficulty 经 newGame 同样受益。
+- 判别力：`scripts/_verify_fun_batch_fe_n42.mjs` JSDOM 两态锁——人机玩家先手 → makeMove(0)（排 AI 400ms）→ 立即 newGame() → 等 600ms → 修复版新棋盘 O 数=0，PASS(exit 0)；HEAD 旧版残留定时器落 1 个 O，FAIL(exit 1)，确认 bug 真实且已修。
+- 移交文件：`plan/已修复/2026-11-07-FE-N42-井字棋清理AI定时器.md`
 
 ### FE-N43 太空射击结束态不复位「开始游戏」按钮（中，确认源码缺陷）
 - 页面：`tools/fun/space-shooter.html`
