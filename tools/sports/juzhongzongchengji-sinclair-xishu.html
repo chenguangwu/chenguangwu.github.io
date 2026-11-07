@@ -118,7 +118,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="计算抓举+挺举总成绩、Sinclair 体重系数与跨体重预测总成绩">Enter snatch and clean-and-jerk results and body weight to compute total, the Sinclair body-weight coefficient and a cross-weight predicted total for weightlifting scoring and comparison.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">举重总成绩与 Sinclair 修正（本页代码口径）：总成绩=抓举+挺举（kg）；Sinclair 系数：体重 ≥b 时取 1，否则 10^(a×(log10(b÷bw))²)，男 a=0.751945030/b=175.508、女 a=0.783494761/b=153.601；Sinclair 总成绩=总成绩×系数；老将（≥35 岁）修正系数=1+0.0065×(年龄−35)，上限 1.5。校验：体重 ≤0、抓举或挺举 &lt;0 提示「请输入有效数据」并中止。判据：按性别对照体重级别表（男 55~+109kg、女 45~+87kg，边界含等于）估算所在级别。</div>
+      <div class="formula-eq">举重总成绩与 Sinclair 修正（本页代码口径）：总成绩=抓举+挺举（kg）；Sinclair 系数：体重 ≥b 时取 1，否则 10^(a×(log10(b÷bw))²)，男 a=0.751945030/b=175.508、女 a=0.783494761/b=153.601；Sinclair 总成绩=总成绩×系数；老将（≥35 岁）修正系数=1+0.0065×(年龄−35)，上限 1.5；跨体重等效总成绩 = Sinclair 总成绩 ÷ 目标体重的 Sinclair 系数（逆运算、同等相对实力换算，非增重/减重预测；目标体重留空则跳过）。校验：体重 ≤0、抓举或挺举 &lt;0 提示「请输入有效数据」并中止。判据：按性别对照体重级别表（男 55~+109kg、女 45~+87kg，边界含等于）估算所在级别。</div>
       <p class="formula-desc">计算抓举+挺举总成绩、Sinclair 体重系数与跨体重预测总成绩</p>
     </div>
 
@@ -137,6 +137,10 @@ s.parentNode.insertBefore(el, s);
       <div>
         <label>年龄（选填，≥35 启用老将修正）</label>
         <input type="number" id="age" value="25" min="5" max="100" step="1" oninput="calc()" aria-label="年龄" placeholder="e.g. 25 (5–100)">
+      </div>
+      <div>
+        <label>跨体重预测：目标体重（kg）</label>
+        <input type="number" id="targetBw" value="81" min="30" max="250" step="0.01" oninput="calc()" aria-label="跨体重预测的目标体重" placeholder="e.g. 81 (30–250)">
       </div>
     </div>
 
@@ -266,6 +270,8 @@ function calc(){
   setInvalid(document.getElementById('bw'),isNaN(bw)||bw<=0);
   setInvalid(document.getElementById('snatch'),isNaN(sn)||sn<0);
   setInvalid(document.getElementById('cj'),isNaN(cj)||cj<0);
+  var tbwEl=document.getElementById('targetBw');
+  if(tbwEl)setInvalid(tbwEl,tbwEl.value!==''&&(!(parseFloat(tbwEl.value)>0)));
   if(isNaN(bw)||bw<=0||isNaN(sn)||sn<0||isNaN(cj)||cj<0){document.getElementById('summary').innerHTML='';document.getElementById('detail').innerHTML='<p style="color:var(--danger)">请输入有效数据</p>';return;}
   age=isNaN(age)?25:age;
   var total=sn+cj;
@@ -289,6 +295,19 @@ function calc(){
   if(isMasters){
     d+='<p>老将年龄修正系数 = 1 + 0.0065 × ('+age+' − 35) = <strong>'+af.toFixed(4)+'</strong></p>';
     d+='<p>老将修正总成绩 = '+sinclairTotal.toFixed(2)+' × '+af.toFixed(4)+' = <strong style="color:var(--primary);">'+mastersTotal.toFixed(2)+' kg</strong></p>';
+  }
+  /* SF-N95：标题/meta/说明一直承诺「跨体重预测总成绩」，但结果只有当前体重的系数与总成绩。
+     实现口径 = Sinclair 归一化的逆运算：保持同一 Sinclair 水平，换算到目标体重对应的系数上。 */
+  var tbw=parseFloat(document.getElementById('targetBw').value);
+  var baseVal=isMasters?mastersTotal:sinclairTotal;
+  if(!isNaN(tbw)&&tbw>0){
+    var tCoef=sinclairCoef(gender,tbw);
+    var equiv=baseVal/tCoef;
+    d+='<p>跨体重等效成绩：目标体重 '+tbw.toFixed(2)+' kg 的 Sinclair 系数 = <strong>'+tCoef.toFixed(4)+'</strong>，'
+      +'若保持同等 Sinclair 水平（'+(isMasters?'老将修正 ':'' )+baseVal.toFixed(2)+'），等效总成绩 ≈ <strong style="color:var(--primary);">'+equiv.toFixed(1)+' kg</strong></p>';
+    d+='<p style="font-size:12px;color:var(--text-muted);">* 跨体重等效 = Sinclair 归一化的逆运算（同等相对实力的换算），不是增重/减重的真实预测：实际跨级别成绩还受体成分、级别上限（89 / 96 / 102 kg 等）与技术变化影响。目标体重留空或 ≤0 时不输出该项。</p>';
+  }else{
+    d+='<p style="font-size:12px;color:var(--text-muted);">* 跨体重预测已关闭：目标体重需为大于 0 的数值（当前「'+(isNaN(tbw)?'留空':tbw)+'」）。</p>';
   }
   // bodyweight class context
   var cls='';
