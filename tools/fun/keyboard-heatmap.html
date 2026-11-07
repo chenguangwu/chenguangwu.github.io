@@ -295,6 +295,16 @@ function onKey(e){
   total++;
   updateKbd();
   saveData();
+  __khScheduleRecord(); // FE-N61：真实打字也要落库（数据表/历史/趋势/导出才有内容）
+}
+// FE-N61：防抖写入历史（打字停顿 500ms 后记一条；记录器自身还有 1s 节流与同值去重）
+var __khRecTimer=null;
+function __khScheduleRecord(){
+  if(__khRecTimer)return;
+  __khRecTimer=setTimeout(function(){
+    __khRecTimer=null;
+    try{ if(typeof __keyboard_heatmapExtras==='function')__keyboard_heatmapExtras(); }catch(e){}
+  },500);
 }
 function mapKey(e){
   var k=e.key;
@@ -373,6 +383,7 @@ function resetHeat(){
   ToolBox.showToast(i18nText('toast.msg546'));
 }
 function loadSample(){
+  var __before=total;
   document.getElementById('typeArea').value='The quick brown fox jumps over the lazy dog. 敏捷的棕色狐狸跃过懒狗。';
   var txt=document.getElementById('typeArea').value;
   for(var i=0;i<txt.length;i++){
@@ -384,6 +395,13 @@ function loadSample(){
     }
   }
   updateKbd();saveData();
+  // FE-N61：示例是「累加」语义（不清零真实统计），必须显式告知，避免统计被无声污染
+  var __added=total-__before;
+  try{
+    var __note='<p style="color:var(--text-muted);font-size:.86em;">ℹ 示例文本已累加到当前统计：本次计入 '+__added+' 次按键，当前总计 '+total+' 次。如需从 0 开始，请点「清空统计」。</p>';
+    var __r=document.getElementById('result');
+    __r.innerHTML=String(__r.innerHTML)+__note;
+  }catch(e){}
   ToolBox.showToast(i18nText('toast.msg318'));
 }
 function exportData(){

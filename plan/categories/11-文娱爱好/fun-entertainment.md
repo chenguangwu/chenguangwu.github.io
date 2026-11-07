@@ -621,6 +621,7 @@
 - 复现：正常打字 100 键 → 切「数据表/历史/趋势」仍为空，导出明细 CSV 无数据；再点「载入示例文本」→ 热力图与总数在原有基础上又加约 80 次按键（连点两次即翻倍）。
 - 影响：三个数据页签与导出功能对正常使用无效；示例按钮还会污染真实统计，使「总按键/最高频键」失真。
 - 方案：在 `onKey` 内节流写入历史记录；`loadSample` 前清零或明确提示「示例会累加统计」。
+- **已修复 2026-11-07**：① `onKey` 末尾接 `__khScheduleRecord()`——500ms 防抖后调既有 `__keyboard_heatmapExtras()`（该记录器自带 1s 节流 + 同值去重），真实打字终于落库，数据表/历史/趋势/导出有内容；② `loadSample` 保留「累加」语义（既有 verify 用例以 `loadSample();loadSample()` ⇒ 总按键 90 为契约，改动会破坏判别力），改为在结果区显式提示「示例文本已累加到当前统计：本次计入 N 次按键，当前总计 M 次。如需从 0 开始请点清空统计」（keyboard-heatmap.html ~L297-308、L382-400）。判别力实测（`scripts/_verify_fun_batch_fe_n61.mjs`）：桩 `TBKit.history.record` 捕获，真实触发 3 次 `onKey` 后等 900ms——当前记录数 1 且含 `typeArea=abc`（PASS）/ HEAD 记录数 0（FAIL）；`loadSample()` 后结果区含「累加」（当前 PASS / HEAD FAIL）。移交：`plan/已修复/2026-11-07-FE-N61-N78-热力图落库与球速帧率无关.md`。
 
 ### FE-N62 「重置/再次开始」不取消旧的 `setTimeout` 链，重置后仍会自动回放并误判失败（中，确认源码缺陷）
 - 页面：`tools/fun/sequence-memory.html`
@@ -790,6 +791,7 @@
 - 证据：`tools/fun/breakout.html:344-345`（帧率无关承诺）、`:658-666`（球每帧固定位移）、`:646-656`（挡板每帧固定速度）。
 - 影响：120Hz 屏上球速约为 60Hz 屏的 2 倍，同一关卡难度随显示器刷新率变化；属结果不正确，非崩溃。
 - 方案：在 `gameLoop` 里记录 `dt`（并按 60fps 归一化，如 `dt/16.67`），所有位移乘该系数；否则删掉公式表的帧率无关表述。
+- **已修复 2026-11-07**：`state` 新增 `lastFrame`；`gameLoop` 每帧算 `__dt = min(now - lastFrame, 50)`（首帧/恢复帧取 16.667，上限 50ms 防切后台单帧大跳）、`__k = __dt / 16.667`，并传给 `movePaddle(__k)`/`moveBall(__k)`/`updateParticles(__k)`；三函数入口统一 `kk` 钳制（非有限/≤0 退回 1），位移与挡板速度（`7*kk`）、粒子重力与寿命均按 `kk` 缩放；`startGame` 与「恢复暂停」重置 `lastFrame=0`（breakout.html ~L408-418、L499-505、L648-676、L760-780、L796/L803）。公式表「帧率无关」表述由此成立，无需改文案。判别力实测（`scripts/_verify_fun_batch_fe_n78.mjs`）：桩 canvas（记录 `arc` 读球心）+ 桩 rAF 手动逐帧 + 桩 `performance.now`，比对「33.3ms 帧位移 / 16.7ms 帧位移」——当前 8.00/4.00=**2.00**（PASS）/ HEAD 4.00/4.00=**1.00**（FAIL）。移交同 N61。
 
 ### FE-N79 宣称 Web Audio 实时合成笑声并可导出 wav，实际只输出文字方案、无任何音频（高，假工具）
 - 页面：`tools/fun/generator-laugh.html`

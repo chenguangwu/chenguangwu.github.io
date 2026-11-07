@@ -409,7 +409,8 @@ s.parentNode.insertBefore(el, s);
     paddle: { x: 0 },
     bricks: [],
     particles: [],
-    animId: null
+    animId: null,
+    lastFrame: 0 // FE-N78：上一帧时间戳，用于按时间差归一化位移（帧率无关）
   };
 
   var BASE_SPEED = 4;
@@ -495,13 +496,14 @@ s.parentNode.insertBefore(el, s);
     }
   }
 
-  function updateParticles(){
+  function updateParticles(k){
+    var kk = (typeof k === 'number' && isFinite(k) && k > 0) ? k : 1;
     for(var i = state.particles.length - 1; i >= 0; i--){
       var p = state.particles[i];
-      p.x += p.dx;
-      p.y += p.dy;
-      p.dy += 0.15; // gravity
-      p.life -= 0.03;
+      p.x += p.dx * kk;
+      p.y += p.dy * kk;
+      p.dy += 0.15 * kk; // gravity
+      p.life -= 0.03 * kk;
       if(p.life <= 0) state.particles.splice(i, 1);
     }
   }
@@ -643,8 +645,9 @@ s.parentNode.insertBefore(el, s);
     c.closePath();
   }
 
-  function movePaddle(){
-    var speed = 7;
+  function movePaddle(k){
+    var kk = (typeof k === 'number' && isFinite(k) && k > 0) ? k : 1;
+    var speed = 7 * kk; // FE-N78：按帧时间差缩放，键盘挡板速度与刷新率无关
     if(useMouseControl && mouseX >= 0){
       state.paddle.x = mouseX - PADDLE_W / 2;
     } else {
@@ -655,15 +658,16 @@ s.parentNode.insertBefore(el, s);
     if(state.paddle.x > BASE_W - PADDLE_W) state.paddle.x = BASE_W - PADDLE_W;
   }
 
-  function moveBall(){
+  function moveBall(k){
+    var kk = (typeof k === 'number' && isFinite(k) && k > 0) ? k : 1;
     if(!state.launched){
       state.ball.x = state.paddle.x + PADDLE_W / 2;
       state.ball.y = BASE_H - PADDLE_Y_OFFSET - PADDLE_H - BALL_R - 1;
       return;
     }
 
-    state.ball.x += state.ball.dx;
-    state.ball.y += state.ball.dy;
+    state.ball.x += state.ball.dx * kk; // FE-N78：位移按时间差缩放
+    state.ball.y += state.ball.dy * kk;
 
     // 左右墙壁反弹
     if(state.ball.x - BALL_R < 0){
@@ -759,10 +763,16 @@ s.parentNode.insertBefore(el, s);
 
   function gameLoop(){
     if(!state.running) return;
+    // FE-N78 修复：位移按时间差归一化（基准 16.667ms ≈ 60fps），与公式表「按时间差积分、帧率无关」一致；
+    // 上限 50ms 防止切后台回来后的单帧大跳（穿墙）。
+    var __now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    var __dt = state.lastFrame ? Math.min(__now - state.lastFrame, 50) : 16.667;
+    state.lastFrame = __now;
+    var __k = __dt / 16.667;
     if(!state.paused){
-      movePaddle();
-      moveBall();
-      updateParticles();
+      movePaddle(__k);
+      moveBall(__k);
+      updateParticles(__k);
     }
     draw();
     state.animId = requestAnimationFrame(gameLoop);
@@ -783,12 +793,14 @@ s.parentNode.insertBefore(el, s);
     startBtn.disabled = true;
     pauseBtn.disabled = false;
     if(state.animId) cancelAnimationFrame(state.animId);
+    state.lastFrame = 0; // FE-N78：重置时间基线，首帧按 16.667ms 计
     gameLoop();
   }
 
   function togglePause(){
     if(!state.running) return;
     state.paused = !state.paused;
+    if(!state.paused) state.lastFrame = 0; // FE-N78：恢复时重置基线，避免暂停时长被计入单帧位移
     pauseBtn.textContent = state.paused ? '继续' : '暂停';
     // 主循环在整个 running 期间只启动一次：暂停时 gameLoop 仍持续（仅跳过更新），
     // 恢复时只需翻转 paused 即可由既有循环接管更新，严禁再次调用 gameLoop()，
