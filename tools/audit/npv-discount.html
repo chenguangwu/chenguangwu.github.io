@@ -219,7 +219,7 @@ s.parentNode.insertBefore(el, s);
 <li>比较互斥方案时，在相同的折现率下分别计算累计现值，择优选取净现值更高者。</li>
 <li>做租赁与购买决策、分期收款估值时，用年金或逐期折现模式对齐口径后横向对比。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">五年期投资净现值</div><div class="dd-ex-body">初始投资 100000 元，第 1~5 年净现金流分别为 25000、30000、35000、30000、20000 元，折现率 8%。各期现值系数 1/(1.08)^t 依次为 0.9259、0.8573、0.7938、0.7350、0.6806；现值合计约 25000×0.9259+30000×0.8573+35000×0.7938+30000×0.7350+20000×0.6806=23148+25719+27783+22050+13612=112312 元；净现值 NPV=112312−100000=12312 元，大于零，方案可行。</div></div>
+<div class="dd-example"><div class="dd-ex-title">五年期投资净现值</div><div class="dd-ex-body">初始投资 100000 元，第 1~5 年净现金流分别为 25000、30000、35000、30000、20000 元，折现率 8%。各期折现因子 1/(1.08)^t 全精度依次为 0.925926、0.857339、0.793832、0.735030、0.680583（页面表格按 4 位显示 0.9259、0.8573、0.7938、0.7350、0.6806）；按全精度因子算得各期现值 23148.15、25720.16、27784.13、22050.90、13611.66，合计 112315.00 元；净现值 NPV=112315.00−100000=12315.00 元，大于零，方案可行。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>折现率一般取多少？</dt><dd>折现率可参考企业加权平均资本成本（WACC）、行业基准收益率或资金机会成本；风险越高取值越大。同一批方案对比时必须使用同一折现率才有可比性。</dd>
@@ -294,31 +294,56 @@ function renderList(){
   const __g1=flows.map(function(v,i){
     return '<div class="cf-row">'+
       '<div class="period">第'+(i+1)+'期</div>'+
-      '<input type="number" value="'+v+'" step="any" oninput="updateFlow('+i+',this.value)" placeholder="金额">'+
+      '<input type="number" value="'+(isFinite(v)?v:'')+'" step="any" oninput="updateFlow('+i+',this.value)" placeholder="金额">'+
       '<button class="del" onclick="removeFlow('+i+')">×</button>'+
     '</div>';
   }).join('');box.innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 
-function updateFlow(i,val){ flows[i]=parseFloat(val)||0; calc(); }
+function updateFlow(i,val){ var v=parseFloat(val); flows[i]=isFinite(v)?v:NaN; calc(); }
 function addFlow(){ flows.push(0); renderList(); calc(); }
 function removeFlow(i){ flows.splice(i,1); renderList(); calc(); }
 function loadDemo(){ flows=[25000,30000,35000,40000,30000]; renderList(); calc(); }
 
+/* T-N6：参数校验——区分「空值」与「零」，非法参数直接停止计算，不产出看似可用的 NPV */
+function __npvParse(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __npvBlock(msg){
+  window.__npvBlocked=true;
+  var st=document.getElementById('stats');
+  if(st) st.innerHTML='<div class="stat-card" style="grid-column:1/-1;"><div class="val" style="color:var(--danger);font-size:15px;">⚠ '+msg+'</div><div class="lbl">参数不合法，已停止计算</div></div>';
+  var body=document.getElementById('detailBody'); if(body) body.innerHTML='';
+  var ch=document.getElementById('npvChart'); if(ch) ch.innerHTML='';
+  return;
+}
+
 function calc(){
   toggleMode();
-  var rate=(parseFloat(document.getElementById('rate').value)||0)/100;
-  var init=parseFloat(document.getElementById('init').value)||0;
+  var __rateRaw=__npvParse('rate'), __initRaw=__npvParse('init');
+  if(!isFinite(__rateRaw)){ __npvBlock('请填写折现率（%）后再计算。'); return; }
+  if(__rateRaw<=-100){ __npvBlock('折现率必须大于 -100%（当前输入 '+__rateRaw+'%），否则折现因子无意义。'); return; }
+  if(!isFinite(__initRaw)){ __npvBlock('请填写初始投资（元）后再计算。'); return; }
+  var rate=__rateRaw/100;
+  var init=__initRaw;
   var mode=getMode();
   var cfList=[];
 
   if(mode==='annuity'){
-    var amt=parseFloat(document.getElementById('annuityAmt').value)||0;
-    var n=parseInt(document.getElementById('annuityN').value)||1;
+    var __amtRaw=__npvParse('annuityAmt'), __nRaw=__npvParse('annuityN');
+    if(!isFinite(__amtRaw)){ __npvBlock('请填写每期金额（元）后再计算。'); return; }
+    if(!isFinite(__nRaw)||Math.floor(__nRaw)!==__nRaw||__nRaw<1||__nRaw>1000){
+      __npvBlock('期数必须是 1–1000 的整数（当前输入 '+(document.getElementById('annuityN').value||'空')+'）。'); return;
+    }
+    var amt=__amtRaw;
+    var n=__nRaw;
     for(var i=0;i<n;i++) cfList.push(amt);
   }else{
     cfList=flows.slice();
+    if(!cfList.length){ __npvBlock('请至少保留一期现金流，再计算净现值。'); return; }
+    for(var __i=0;__i<cfList.length;__i++){
+      if(!isFinite(cfList[__i])){ __npvBlock('第 '+(__i+1)+' 期现金流为空或非法，请补齐后再计算。'); return; }
+    }
   }
+  window.__npvBlocked=false;
 
   var rows=[];
   var cumPv=-init;
@@ -490,6 +515,7 @@ function __npvChartDraw(){
   try{
     var host=document.getElementById('npvChart');
     if(!host) return;
+    if(window.__npvBlocked){ host.innerHTML=''; return; }
     var init=parseFloat(document.getElementById('init').value);
     if(!isFinite(init)) return;
     var cfList=[];

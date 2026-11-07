@@ -87,6 +87,9 @@
 - 证据：`tools/audit/npv-discount.html:136-160,303,308-334` 折现率 -200%、初始投资 100、第一期流入 100 时折现因子 -1、NPV -200；-100% 时分母为零而非输入错误。年金期数 0 被 `||1` 替换为 1，空利率被视为 0%。
 - 影响：`tools/audit/npv-discount.html`；非法参数输出看似可用于投资决策的数值。
 - 方案：折现率限定大于 -100%，期数为有合理上限的正整数，区分空值与零；错误阻止结果和导出，并列逐期折现与累计值。
+- **已修复 2026-11-07**：`calc()` 顶部新增 `__npvParse()`（`parseFloat` + `isFinite`，空值返回 NaN 而不再 `||0`）与 `__npvBlock(msg)`（写入错误卡片、清空 `#detailBody` 与 `#npvChart`、置 `window.__npvBlocked`）；校验链：折现率必填 → 折现率 > -100% → 初始投资必填 → 年金模式每期金额必填 + 期数须为 1–1000 整数（原 `parseInt||1` 兜底删除）→ 自定义模式至少一期且每期现金流不得为空（`updateFlow` 改为空值存 NaN 而非 0，`renderList` 回显 NaN 时留空）。`__npvChartDraw()` 增加 `__npvBlocked` 早退，错误态不再留下基于非法参数画的曲线。逐期折现与累计现值明细表原本已有，无需新增。
+  - 判别力（`scripts/_verify_audit_batch_tn6_tn8.mjs`）：空折现率 → **「请填写折现率」**（PASS）/ HEAD **按 0% 算出 NPV 60,000.00**（FAIL）；-150% → **拒绝**（PASS）/ HEAD **NPV −630,000.00**（FAIL）；-100% → **拒绝**（PASS）/ HEAD 显示 `--` 但仍给 ROI（FAIL）；空初始投资 → **拒绝**（PASS）/ HEAD 当 0 处理算出 126,471.13（FAIL）；期数 0 → **拒绝**（PASS）/ HEAD 兜底为 1 期（FAIL）；期数 2.5 → **拒绝**（PASS）/ HEAD `parseInt` 成 0 再兜底 1 期（FAIL）；清空第 2 期 → **拒绝**（PASS）/ HEAD 按 0 兜底（FAIL）。
+  - 余项：导出按钮未加「参数非法即禁用」的前置钩子（错误态下 `#detailBody` 已为空，`exportTable` 取不到行只会静默失败），留待与 `__npvExport()` 一并整理。
 
 ### T-N7 净现值自定义现金流和模式无法由保存机制恢复（中，确认源码路径）
 - 证据：`tools/audit/npv-discount.html:147-149,292-306,457-485` 动态现金流和模式控件无 id，持久化代码跳过无 id 控件；刷新行为未真机验证。
@@ -97,6 +100,8 @@
 - 证据：`tools/audit/npv-discount.html:222,327-334` 说明示例现值 112312、NPV 12312；按页面逐期公式约为 112315.00、12315.00。
 - 影响：`tools/audit/npv-discount.html`；用户无法用内置案例精确核对结果。
 - 方案：使用同一公式与舍入规则生成示例并标注精度。
+- **已修复 2026-11-07**：示例算例原文「系数 0.9259…（4 位）→ 现值 23148+25719+27783+22050+13612 = 112312 → NPV 12312」与页面公式不符（页面按全精度因子算现值，仅显示 4 位）。改为：「各期折现因子 1/(1.08)^t 全精度依次为 0.925926、0.857339、0.793832、0.735030、0.680583（页面表格按 4 位显示 0.9259、0.8573、0.7938、0.7350、0.6806）；按全精度因子算得各期现值 23148.15、25720.16、27784.13、22050.90、13611.66，合计 **112315.00** 元；NPV=**12315.00** 元」。真源三处同批改：`i18n/tools/content_deepdive.json`（`/audit/npv-discount/examples/0/body`）、`i18n/tools/en/audit/npv-discount.json`（中文键 + 英文值）、`i18n/guides/npv-discount-guide.json`（键带前导「：」+ 英文值）；全部文本级替换、未重排 JSON，`audit_deepdive_source_sync.py --check` 4573 页不一致 0。
+  - 判别力（同锁脚本，读渲染后 DOM 全文）：当前页面含 **112315.00 / 12315.00** 且无 112312（PASS）/ HEAD 仍为 **112312 / 12312**（3 条全 FAIL）。
 
 ### 续查覆盖
 - 新抽查 `tools/tax/foreign-tax-credit.html`、`tools/accounting/depreciation-declining.html`、`tools/accounting/cash-conversion-cycle.html`、`tools/audit/npv-discount.html` 4 页；新增 8 条，其中 3 条高优；基于源码及数值执行，未做浏览器、线上或门禁验证。
