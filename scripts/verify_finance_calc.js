@@ -181,6 +181,41 @@ const CASES = [
     ref: "F-N19 单项回归护栏：只填房贷利息、无租金、大病医疗未触顶 ⇒ 12000/12=1000 + 房贷 1000 = 2000，且不应出现互斥说明行。确认新增互斥逻辑不得误伤合法单项场景；注入失败回落默认 ⇒ ¥0.00 不命中。"
   },
   {
+    slug: "finance/tax-calculator",
+    inputs: { insurance: "-2000" },
+    clicks: ["calculate()"],
+    expect: ["⚠ 社保公积金不能为负数，请填写 ≥ 0 的数值。", "20000\n-2000\n—\n—\n—\n—\n—\n—\n—"],
+    ref: "F-N18 负社保字段级拒绝：旧实现把 −2000 当作抵扣放大应税所得（台账独立复算 special=0：12000→17000、税 990→1990；页面默认 special=2000 下为 10000→15000、税 790→1590）；现 __taxCheck() 拒绝负值、__taxBlock() 把 7 个结果元素清成「—」并在结果容器给出字段名错误提示，不再参与计算。默认态社保 3000 为正 ⇒ 不命中。"
+  },
+  {
+    slug: "finance/tax-calculator",
+    inputs: { salary: "-1" },
+    clicks: ["calculate()"],
+    expect: ["⚠ 税前月薪不能为负数，请填写 ≥ 0 的数值。", "-1\n—\n—\n—\n—\n—\n—\n—"],
+    ref: "F-N18 负月薪字段级拒绝：旧实现 Math.max(0,…) 只兜住应纳税所得额，税后收入直接显示负值；现字段级拒绝并清结果。默认态 20000 ⇒ 不命中。"
+  },
+  {
+    slug: "finance/tax-calculator",
+    inputs: { special: "-5" },
+    clicks: ["calculate()"],
+    expect: ["⚠ 专项附加扣除不能为负数，请填写 ≥ 0 的数值。"],
+    ref: "F-N18 负专项附加字段级拒绝：与第 35 批 __sdAudit() 的明细负值 0 兜底分层——明细项按 0、主输入 special 为负则整页拒绝。默认态 2000 ⇒ 不命中。"
+  },
+  {
+    slug: "finance/tax-calculator",
+    inputs: { threshold: "-1" },
+    clicks: ["calculate()"],
+    expect: ["⚠ 起征点不能为负数，请填写 ≥ 0 的数值。", "20000\n3000\n0\n-1\n—"],
+    ref: "F-N18 负起征点字段级拒绝：起征点为负会凭空放大应税所得，现拒绝且清结果。默认态 5000 ⇒ 不命中。"
+  },
+  {
+    slug: "finance/tax-calculator",
+    inputs: { salary: "2000", insurance: "3000", special: "0", threshold: "5000", bonus: "0" },
+    clicks: ["calculate()"],
+    expect: ["¥0.00\n¥0.00\n¥0.00\n3%", "社保公积金已超过税前月薪，税后收入按 0 显示（原始差额为负），请核对填写。"],
+    ref: "F-N18 税后收入 0 下限与归因：月薪 2000、社保 3000（均为合法非负值）时旧实现显示「¥-1,000.00」；现 afterTax = max(0, 2000−3000−0) = ¥0.00，并在结果容器说明原始差额为负、请核对填写。默认态税后 ¥16,210.00 ⇒ 不命中。"
+  },
+  {
     slug: "finance/dca-calculator",
     inputs: { monthly: "1000", years: "10", rate: "8", initial: "0", target: "200000" },
     expect: ["达成所需年化收益率： 9.58%", "还需再提高 1.58 个百分点。"],

@@ -173,7 +173,7 @@ s.parentNode.insertBefore(el, s);
      <h2 data-zh="💰 个人所得税计算器">💰 Personal Income Tax Calculator</h2>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">个人所得税月度测算（本页代码口径）：应纳税所得额=max(0, 税前月薪−社保−起征点−专项附加扣除)（元）；税额=所得额×税率−速算扣除数（负值按 0），按月度级距表：≤3000 元 3%、≤12000 元 10% 扣 210、≤25000 元 20% 扣 1410、≤35000 元 25% 扣 2660、≤55000 元 30% 扣 4410、≤80000 元 35% 扣 7160、其余 45% 扣 15160；联动量：税后收入=月薪−社保−税额、实际税负=税额÷月薪×100%、年税=月税×12。校验：大病医疗按 80000 元/年封顶后摊到 12 个月；住房贷款利息与住房租金不可同时扣除，同时填写时仅按较大者计入；其余项负值按 0 兜底。判据：适用级随所得额升档，结果表高亮命中行。</div>
+      <div class="formula-eq">个人所得税月度测算（本页代码口径）：应纳税所得额=max(0, 税前月薪−社保−起征点−专项附加扣除)（元）；税额=所得额×税率−速算扣除数（负值按 0），按月度级距表：≤3000 元 3%、≤12000 元 10% 扣 210、≤25000 元 20% 扣 1410、≤35000 元 25% 扣 2660、≤55000 元 30% 扣 4410、≤80000 元 35% 扣 7160、其余 45% 扣 15160；联动量：税后收入=月薪−社保−税额、实际税负=税额÷月薪×100%、年税=月税×12。校验：大病医疗按 80000 元/年封顶后摊到 12 个月；住房贷款利息与住房租金不可同时扣除，同时填写时仅按较大者计入；其余明细负值按 0 兜底；月薪、社保公积金、专项附加扣除与起征点均须 ≥ 0，负值字段级拒绝且不参与计算；税后收入下限 0。判据：适用级随所得额升档，结果表高亮命中行。</div>
       <div class="formula-desc">基于个人所得税累进税率：扣除五险一金、起征点与专项附加扣除后按级距适用税率与速算扣除数计税，用于个税测算与薪酬规划。</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="基于 2024 年中国个税综合所得税率表，月度预扣预缴方式计算">Compute taxable income and after-tax income from monthly or annual income and deductions under progressive rates.</p>
@@ -181,22 +181,22 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row">
       <div>
         <label>税前月薪（元）</label>
-        <input type="number" id="salary" value="20000" oninput="calculate()" placeholder="如 20000">
+        <input type="number" id="salary" value="20000" min="0" oninput="calculate()" placeholder="如 20000">
       </div>
       <div>
         <label>社保公积金（元）</label>
-        <input type="number" id="insurance" value="3000" oninput="calculate()" placeholder="如 3000">
+        <input type="number" id="insurance" value="3000" min="0" oninput="calculate()" placeholder="如 3000">
       </div>
     </div>
 
     <div class="input-row">
       <div>
         <label>专项附加扣除（元）</label>
-        <input type="number" id="special" value="2000" oninput="calculate()" placeholder="如 2000">
+        <input type="number" id="special" value="2000" min="0" oninput="calculate()" placeholder="如 2000">
       </div>
       <div>
         <label>起征点（元）</label>
-        <input type="number" id="threshold" value="5000" oninput="calculate()" placeholder="如 5000">
+        <input type="number" id="threshold" value="5000" min="0" oninput="calculate()" placeholder="如 5000">
       </div>
     </div>
 
@@ -535,7 +535,34 @@ function renderBonus(taxableIncome){
   host.innerHTML = sdLine + html;
 }
 
+// F-N18：主输入负值字段级校验 + 错误态清理（空值仍按 0 兜底，与公式框口径一致）
+function __taxCheck(){
+  var en = __tbIsEn();
+  var names = en
+    ? {salary:'Pre-tax monthly salary', insurance:'Social insurance & housing fund', special:'Special additional deductions', threshold:'Threshold'}
+    : {salary:'税前月薪', insurance:'社保公积金', special:'专项附加扣除', threshold:'起征点'};
+  var ids = ['salary','insurance','special','threshold'];
+  for (var i=0;i<ids.length;i++){
+    var el = document.getElementById(ids[i]);
+    var v = el ? (parseFloat(el.value) || 0) : 0;
+    if (v < 0) return {ok:false, msg: en ? names[ids[i]] + ' must not be negative; enter a value >= 0.' : names[ids[i]] + '不能为负数，请填写 ≥ 0 的数值。'};
+  }
+  return {ok:true};
+}
+function __taxBlock(msg){
+  if (!msg) return;   // 免疫 harness 兜底的无参调用，避免把正确错误提示覆盖成 undefined
+  ['taxAmount','afterTax','taxRate','taxableIncome','actualTax','effectiveRate','annualTax'].forEach(function(id){
+    var el=document.getElementById(id); if(el) el.textContent='—';
+  });
+  var list=document.getElementById('bracketList'); if(list) list.innerHTML='';
+  var tb=document.getElementById('taxResultTable'); if(tb) tb.innerHTML='';
+  var host=document.getElementById('bonusBox');
+  if(host) host.innerHTML='<div style="color:var(--danger);font-size:13px;padding:8px 0;">⚠ '+msg+'</div>';
+}
+
 function calculate(){
+  var __chk = __taxCheck();
+  if (!__chk.ok) { __taxBlock(__chk.msg); return; }
   const salary = parseFloat(document.getElementById('salary').value) || 0;
   const insurance = parseFloat(document.getElementById('insurance').value) || 0;
   const special = parseFloat(document.getElementById('special').value) || 0;
@@ -561,7 +588,8 @@ function calculate(){
     }
   }
 
-  const afterTax = salary - insurance - tax;
+  const afterTaxRaw = salary - insurance - tax;
+  const afterTax = Math.max(0, afterTaxRaw);   // F-N18：社保超过月薪时不显示负的到手工资
   const fmt = n => '¥' + n.toLocaleString('zh-CN', {maximumFractionDigits: 2, minimumFractionDigits: 2});
 
   document.getElementById('taxAmount').textContent = fmt(tax);
@@ -587,6 +615,13 @@ function calculate(){
       </span>
     </div>`;
   }).join('');if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h0;
+  // F-N18：税后收入被 0 下限截断时给出归因，避免用户以为社保填错仍显示正常结果
+  if (afterTaxRaw < 0) {
+    var __host = document.getElementById('bonusBox');
+    if (__host) __host.innerHTML = String(__host.innerHTML) + '<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">' + (__tbIsEn()
+      ? 'After-tax income is floored at 0 because social insurance exceeds the pre-tax salary; please verify the inputs.'
+      : '社保公积金已超过税前月薪，税后收入按 0 显示（原始差额为负），请核对填写。') + '</div>';
+  }
 }
 
 calculate();
@@ -594,6 +629,11 @@ calculate();
 <script>
 function __taxExport(){
   if(typeof TBKit==='undefined') return;
+  var __chk = __taxCheck();
+  if(!__chk.ok){
+    try{ if(typeof ToolBox!=='undefined'&&ToolBox.showToast) ToolBox.showToast(__chk.msg,'error'); }catch(e){}
+    return;
+  }
   try{
     var salary=parseFloat(document.getElementById('salary').value)||0;
     var insurance=parseFloat(document.getElementById('insurance').value)||0;
@@ -604,7 +644,7 @@ function __taxExport(){
     for(var i=0;i<brackets.length;i++){
       if(taxableIncome<=brackets[i].max){ tax=Math.max(0, taxableIncome*brackets[i].rate-brackets[i].deduction); rate=brackets[i].rate; deduction=brackets[i].deduction; break; }
     }
-    var afterTax=salary-insurance-tax;
+    var afterTax=Math.max(0, salary-insurance-tax);
     var annual=tax*12;
     var eff=salary>0?(tax/salary*100):0;
     var rows=[
