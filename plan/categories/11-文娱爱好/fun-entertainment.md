@@ -823,6 +823,7 @@
 - 复现（源码推演）：点「开始」→ 在 800ms 内点「重置」→ 等待约 0.8s，选项区出现 2 个 Emoji；任点一个即「游戏结束！达到第 1 关 / 正确序列：」。
 - 影响：重置/重开逻辑不可靠，出现无法解释的判负与空答案；假工具：否。
 - 方案：保存所有 `timerId`，在 `reset()/start()` 中 `clearTimeout` 全清；`showSeq/showOptions` 增加 `sequence.length===0` 守卫。
+- **状态：已修复 2026-11-07。** 修复位点：`tools/fun/emoji-memory.html` 维护 `pendingTimers` 数组，`reset()`/`nextLevel()` 起点 `clearPendingTimers()`；`showSeq` 起始加 `sequence.length===0` 守卫；所有 `setTimeout` 改为 `scheduleTimer()` 纳入追踪，通关延迟 `setTimeout(nextLevel,1500)` 同样纳入。判别力实测：`scripts/_verify_fun_batch_fe_n85.mjs` 运行期两态锁——「准备」阶段立即 `reset()` 后等 >1s，修复版无任何幽灵选项按钮（PASS），HEAD 出现 2 个幽灵按钮（FAIL）。移交：`plan/已修复/2026-11-07-FE-N85-记忆游戏重置定时链.md`。
 
 ### FE-N86 名为「冥想计时器」，实际无倒计时、无提示音、无计时会话记录（高，假功能）
 - 页面：`tools/fun/meditation-timer.html`

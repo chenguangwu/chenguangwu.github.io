@@ -249,6 +249,9 @@ s.parentNode.insertBefore(el, s);
 <script>
 const emojis=['🍎','🍌','🍇','🍓','🍑','🥝','🍍','🥥','🐶','🐱','🚗','✈️','⚽','🎸','⭐'];
 let sequence,level,userInput,playing;
+let pendingTimers=[];
+function clearPendingTimers(){ pendingTimers.forEach(clearTimeout); pendingTimers=[]; }
+function scheduleTimer(fn,ms){ const id=setTimeout(fn,ms); pendingTimers.push(id); return id; }
 
 function start(){
   reset();
@@ -256,6 +259,7 @@ function start(){
   nextLevel();
 }
 function reset(){
+  clearPendingTimers();
   playing=false;
   sequence=[];
   level=1;
@@ -265,6 +269,7 @@ function reset(){
   document.getElementById('output').textContent='点击"开始"按钮开始';
 }
 function nextLevel(){
+  clearPendingTimers();
   playing=false;
   const len=level+2;
   sequence=[];
@@ -274,10 +279,11 @@ function nextLevel(){
   d.classList.remove('hidden');
   d.textContent='准备...';
   const __h1=`<p>第 ${level} 关：记忆 ${len} 个 Emoji</p>`;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h1;
-  setTimeout(()=>showSeq(0),800);
+  scheduleTimer(()=>showSeq(0),800);
 }
 function showSeq(i){
   const d=document.getElementById('display');
+  if(!sequence || sequence.length===0) return; // 守卫：序列为空（如重置后定时器残留）不展示幽灵选项
   if(i>=sequence.length){
     d.textContent='请按顺序点击';
     d.classList.add('hidden');
@@ -286,9 +292,9 @@ function showSeq(i){
   }
   d.classList.remove('hidden');
   d.textContent=sequence[i];
-  setTimeout(()=>{
+  scheduleTimer(()=>{
     d.textContent='';
-    setTimeout(()=>showSeq(i+1),200);
+    scheduleTimer(()=>showSeq(i+1),200);
   },Math.max(500,1000-level*50));
 }
 function showOptions(){
@@ -319,8 +325,8 @@ function choose(e,el){
     if(userInput.length===sequence.length){
       playing=false;
       level++;
-      const __h3=`<p style="color:var(--success);">✅ 通关！进入第 ${level} 关</p>`;if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h3;
-      setTimeout(nextLevel,1500);
+      const __h3=`<p style="color:var(--success);">✅ 通关！进入第 ${level} 关</p>`;if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}      document.getElementById('output').innerHTML=__h3;
+      scheduleTimer(nextLevel,1500);
     }
   }else{
     el.classList.add('wrong');
