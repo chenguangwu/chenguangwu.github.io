@@ -350,13 +350,12 @@
 - 判别力：`scripts/_verify_fun_batch_fe_n31.mjs` JSDOM 两态锁——`start()` 开局题号=1 → 点首选项 `choose()` 安排定时器 → 1 秒内再 `start()`（reset）→ 等待 2500ms 超窗；修复版残留定时器被清理，终态题号保持 1，PASS(exit 0)；HEAD 旧版定时器触发 `next()`，终态题号跳到 2，FAIL(exit 1)，确认 bug 真实且已修。（`timerId` 为顶层 let 不在 window，故经 DOM `#qNo` 间接观测）
 - 移交文件：`plan/已修复/2026-11-07-FE-N31-数列谜题重置清理定时器.md`
 
-### FE-N32 点击速度页首屏「点击此处开始」区域点击无效，必须另点「开始」按钮（高，确认源码缺陷）
+### FE-N32 点击速度页首屏「点击此处开始」区域点击无效，必须另点「开始」按钮（高，已修复 2026-11-07）
 - 页面：`tools/fun/click-speed.html`
 - 问题：`state` 只在 `start()/reset()` 中赋值，页面加载后为 `undefined`；`onClick()` 只处理 `'go'` 与 `'idle'/'done'`，`undefined` 时两个分支都不命中，主 CTA 点击区静默无响应。
-- 证据：`:254`（`let duration=5,clicks,state,...` 未初始化）、`:297-303`（仅 `state==='go'` 与 `'idle'||'done'` 分支）、`:166`（`onclick="onClick()"` 的「点击此处开始」）、`:171`（另一「开始」按钮）。
-- 复现：打开页面直接点 300px 高的「点击此处开始」→ 实际计数器仍 0、计时不启动、无任何提示；期望立即开始 5 秒计时并计点击数。点旁边的「开始」按钮后才一切正常，之后再点区域可用。
-- 影响：页面最显眼的入口是死控件，用户会以为工具坏了。
-- 方案：脚本初始化时 `state='idle'`（或在末尾调 `reset()`），并让 `onClick` 对未初始化状态也走 `start()`。
+- 修复位点：第 254 行状态声明由 `let duration=5,clicks,state,startTime,timer,best={5:0,10:0,30:0};` 改为 `let duration=5,clicks=0,state='idle',startTime,timer,best={5:0,10:0,30:0};` —— 加载即 `idle`，首点区域直接进入 `state==='idle'` 分支调用 `start()`。
+- 判别力：`scripts/_verify_fun_batch_fe_n32.mjs` JSDOM 两态锁——首屏连点「点击此处开始」区域两次；修复版首点 `start()`（state='go'）→ 再点 `clicks++`（#counter=1），PASS(exit 0)；HEAD 旧版两次点击均因 state=undefined 无响应（#counter=0），FAIL(exit 1)，确认 bug 真实且已修。
+- 移交文件：`plan/已修复/2026-11-07-FE-N32-点击速度首屏区域点击开始.md`
 
 ### FE-N33 眨眼测试提前停止时 `elapsed` 回退为整段时长，速率被低估一个数量级（中，确认源码缺陷）
 - 页面：`tools/fun/blink-counter.html`
