@@ -551,6 +551,7 @@
 - 复现：选项写 `<img src=x onerror=alert(document.domain)>` → 点「开始」→ 1.2 秒后弹框。
 - 影响：DOM 型自 XSS。本工具纯本地、无服务端与 URL 参数投递通道，需用户自行粘贴恶意选项才触发，非远程可利用；但输入未转义属实打实的注入缺陷，任何后续把选项做成「分享/预设链接」的改动都会把它升级为可投递 XSS。
 - 方案：结果与历史改用 `textContent`/DOM API 渲染，或统一 `escapeHtml()` 后再拼 `innerHTML`。
+- **状态：复核（2026-11-07）：历史快照误报，当前源码已修复。** 当前 `tools/fun/random-picker.html` 的 `start()` 全程用 `result.textContent`/`output` 经 `document.createElement`+`st.textContent`/`past` 经 `sp.textContent` 渲染（:319-356），选项文本不再经任何 `innerHTML` 拼接，无注入通道。补 `scripts/_verify_fun_batch_fe_n53.mjs` 回归锁——注入 `<img onerror>` 恶意选项，当前与 HEAD 均不产生可解析 `<img>` 元素、无脚本执行（PASS），防回退。
 
 ### FE-N54 数据表/历史/导出 CSV 记录的是「抽取中…」而非真实结果（中，确认源码缺陷）
 - 页面：`tools/fun/random-picker.html`
@@ -730,6 +731,7 @@
 - 复现：Node 复刻 → Bb 调输出 `A# C↑ D↑ D#↑ F↑ G↑ A↑ A#↑`（应为 `B♭ C D E♭ F G A B♭`）；F 调 4 级 `A#`（应 `B♭`）；Db 调 4 级 `F#`（应 `G♭`）；Eb 调 4 级 `G#`（应 `A♭`）；F# 调 7 级 `F`（应 `E#`）。
 - 影响：12 调中 6 个调存在错拼（Bb/Eb/Ab/Db 的 1 级与 4 级、F 的 4 级、F# 的 7 级），视唱/乐理速查场景直接教错；假工具：否。
 - 方案：按调定义调内音名表（含 ♭/♯），表格、试听与 CSV 共用同一份「音级→音名」映射。
+- **状态：已修复 2026-11-07。** 修复位点：`tools/music/sheet-music.html` 新增 `KEY_SPELLINGS`（12 调大调音阶拼写，8 项含高八度重复），`renderStaff` 与 `__staffExport` 的音名取值由 `NOTE_NAMES[noteIdx]` 改为 `KEY_SPELLINGS[currentKey/key][i]`（频率仍按 `NOTE_FREQS[noteIdx]` 不变）。判别力实测：`scripts/_verify_fun_batch_fe_n74.mjs` 运行期两态锁——`setKey('Bb')` 后读 `#staff-display`，修复版含 `Bb`/`Eb` 且不含 `A#`（PASS），HEAD 旧版无 `KEY_SPELLINGS`、Bb 调主音为 `A#`（FAIL）。移交：`plan/已修复/2026-11-07-FE-N74-N76-降号调音名与CSV唱名.md`。
 
 ### FE-N75 简谱查询：标题/meta/公式/FAQ 均承诺「五线谱位置」，实际只渲染「数字+音名」色块，无谱线/线间定位（中，承诺未实现）
 - 页面：`tools/music/sheet-music.html`
@@ -746,6 +748,7 @@
 - 复现：点「导出当前音阶 CSV」→ 第 8 行「1(8va)」的唱名列写为 `undefined`。
 - 影响：导出文件含脏值，导入表格/统计时出错；假工具：否。
 - 方案：`SOLFEGE[i === 7 ? 0 : i]`（八度重复用 do）。
+- **状态：已修复 2026-11-07。** 修复位点：`tools/music/sheet-music.html` `__staffExport` 第 8 级唱名由 `SOLFEGE[i]` 改为 `SOLFEGE[i === 7 ? 0 : i]`（同时音名列改用 `KEY_SPELLINGS[key][i]`）。判别力实测：`scripts/_verify_fun_batch_fe_n76.mjs` 运行期两态锁——`__staffExport()` 后读 `#staffHidden tbody` 第 8 行唱名列，修复版为 `do`（PASS），HEAD 旧版越界取 `SOLFEGE[7]` 得空/undefined（FAIL）。移交：`plan/已修复/2026-11-07-FE-N74-N76-降号调音名与CSV唱名.md`。
 
 ### X 批覆盖清单（音乐训练 3 页）
 - `tools/music/rhythm-trainer.html`：2 条（FE-N70 高、FE-N71 中）。复核通过项：节奏型生成保证每小节至少 1 个音符且总音符 ≥30%、4 拍预备拍、WebAudio 按 `ctx.currentTime` 预调度、停止/结束守卫、历史落库与导出接线。
