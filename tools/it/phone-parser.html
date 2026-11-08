@@ -101,11 +101,11 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="把用户粘贴的“138-0013-8000”这类乱序号码整理成标准格式。选择国家后得到带国家码的 E.164（+86...）与分组显示。">Phone Number Parser &amp; Formatter - Enter any phone number and get E.164 and grouped national/international formats by country. Free, browser-only.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">清洗：剔除非数字字符（空格、连字符、括号）<br>国家码：优先用输入中的“+”前缀识别；否则用所选地区；若纯数字开头已含所选国家码且余下长度合理，则自动剥离<br>国内首位 0：英国/日本/印度/中国台湾/澳大利亚等按规则去掉（trunk prefix）<br>E.164 = + 国家码 + 国内号码，总长 ≤15 位<br>校验：仅校验国内号码长度范围（按所选国家预设），不校验运营商号段</div>
-  <div class="formula-desc">把粘贴进来的各种写法整理成 E.164，并按常见 3-4-4 / 4-4-4 规则分组显示；同时给出长度校验结果，长度不符时明确标红提示。</div>
+  <div class="formula-desc">把粘贴进来的各种写法整理成 E.164，并按所选国家/地区的常见拨号习惯分组显示；同时给出长度校验结果，长度不符时明确标红提示。</div>
   <ul class="formula-list">
     <li><b>E.164</b>：国际标准格式，<code>+</code> 加国家码与号码，总长不超过 15 位。</li>
     <li><b>解析范围</b>：识别并剥离国家码、去掉国内首位 0；不解析区号归属地，也不判断运营商。</li>
-    <li><b>显示</b>：中国 11 位手机按 3-4-4 分组，其余按 4 位一组从右分组。</li>
+    <li><b>显示</b>：按所选国家习惯分组——中国 11 位手机 3-4-4、美加 (XXX) XXX-XXXX、英国 5-5、日本按固话/手机分 2-4-4 或 3-4-4、印度 5-5、港新 4-4、台澳 4-3-3；长度异常时回落 4 位一组。</li>
     <li><b>校验</b>：只校验长度范围；号段/前缀是否真实存在需另用权威号码库。</li>
   </ul>
 </div>
@@ -214,7 +214,7 @@ s.parentNode.insertBefore(el, s);
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function escH(s){var d=document.createElement('div');const __g1=s==null?'':String(s);d.textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
 function dataGrid(rows){rows=Array.isArray(rows)?rows:[];let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
-var CC_RULES={'86':{trunk:'',min:10,max:11},'1':{trunk:'',min:10,max:10},'44':{trunk:'0',min:10,max:10},'81':{trunk:'0',min:9,max:10},'91':{trunk:'0',min:10,max:10},'852':{trunk:'',min:8,max:8},'886':{trunk:'0',min:9,max:9},'65':{trunk:'',min:8,max:8},'61':{trunk:'0',min:9,max:9}};
+var CC_RULES={'86':{trunk:'',min:10,max:11},'1':{trunk:'',min:10,max:10},'44':{trunk:'0',min:9,max:10},'81':{trunk:'0',min:9,max:10},'91':{trunk:'0',min:10,max:10},'852':{trunk:'',min:8,max:8},'886':{trunk:'0',min:9,max:9},'65':{trunk:'',min:8,max:8},'61':{trunk:'0',min:9,max:9}};
 var __lastE164='';
 function calcTool(){
   var phone=document.getElementById('phone').value||'';
@@ -267,9 +267,22 @@ function calcTool(){
   if(valid && totalLen<=15) __lastE164=e164;
 
   function grp(s){ var a=[]; while(s.length>4){ a.unshift(s.slice(-4)); s=s.slice(0,-4); } if(s) a.unshift(s); return a.join(' '); }
-  var national=(cc==='86'&&digits.length===11)
-    ? digits.slice(0,3)+' '+digits.slice(3,7)+' '+digits.slice(7)
-    : grp(digits);
+  // 按目标国家/地区的习惯分组，而不是一律从右往左每 4 位切。
+  // 长度不落在常见形态时回落到 4 位一组，避免把校验失败的号码也硬套格式。
+  function fmtGroup(s,lens){ var a=[],i=0; for(var k=0;k<lens.length;k++){ if(i>=s.length)break; a.push(s.slice(i,i+lens[k])); i+=lens[k]; } if(i<s.length)a.push(s.slice(i)); return a.join(' '); }
+  function formatNational(ccCode,d){
+    if(ccCode==='86') return d.length===11?fmtGroup(d,[3,4,4]):grp(d);
+    if(ccCode==='1')  return d.length===10?'('+d.slice(0,3)+') '+d.slice(3,6)+'-'+d.slice(6):grp(d);
+    // 英国：剥 0 后 9 位是手机 07xxx 09584（补回 trunk 0 按 5-5），
+    // 10 位是伦敦等固话 020 7946 0958（补回 trunk 0 按 3-4-4）。
+    if(ccCode==='44') return d.length===9?fmtGroup('0'+d,[5,5]):(d.length===10?fmtGroup('0'+d,[3,4,4]):grp(d));
+    if(ccCode==='81') return d.length===9?fmtGroup('0'+d,[2,4,4]):(d.length===10?fmtGroup('0'+d,[3,4,4]):grp(d));
+    if(ccCode==='91') return d.length===10?fmtGroup(d,[5,5]):grp(d);
+    if(ccCode==='852'||ccCode==='65') return d.length===8?fmtGroup(d,[4,4]):grp(d);
+    if(ccCode==='886'||ccCode==='61') return d.length===9?fmtGroup('0'+d,[4,3,3]):grp(d);
+    return grp(d);
+  }
+  var national=formatNational(cc,digits);
 
   var html='<div class="result-title">解析结果</div>';
   html+='<div class="big-result">E.164 <b>'+e164+'</b></div>';
@@ -477,6 +490,6 @@ else document.addEventListener('DOMContentLoaded', __phone_parserBoot);
 <h3>用途</h3><p>结果展示国家码与国内号码（不拆分区号），便于国际呼叫、统一存储与长度校验；建议始终带国家区号以确保跨区可用。</p>
 </div></section>
 
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "支持哪些国家 / 地区？", "acceptedAnswer": {"@type": "Answer", "text": "内置常用国家码（中国 +86、美国/加拿大 +1、英国 +44、日本 +81、印度 +91、香港 +852、台湾 +886、新加坡 +65 等），可从下拉切换。"}}, {"@type": "Question", "name": "能判断号码是否有效吗？", "acceptedAnswer": {"@type": "Answer", "text": "工具主要做格式解析与标准化；是否\"真实在用\"的号码有效性属于运营商数据范畴，本工具不做归属地或实名校验。"}}, {"@type": "Question", "name": "为什么有的号码分组和我本地习惯不同？", "acceptedAnswer": {"@type": "Answer", "text": "本工具只实现简化分组：中国 11 位手机按 3-4-4，其余号码从右每 4 位一组；不做逐国拨号习惯的完整分组规则。"}}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "支持哪些国家 / 地区？", "acceptedAnswer": {"@type": "Answer", "text": "内置常用国家码（中国 +86、美国/加拿大 +1、英国 +44、日本 +81、印度 +91、香港 +852、台湾 +886、新加坡 +65 等），可从下拉切换。"}}, {"@type": "Question", "name": "能判断号码是否有效吗？", "acceptedAnswer": {"@type": "Answer", "text": "工具主要做格式解析与标准化；是否\"真实在用\"的号码有效性属于运营商数据范畴，本工具不做归属地或实名校验。"}}, {"@type": "Question", "name": "为什么有的号码分组和我本地习惯不同？", "acceptedAnswer": {"@type": "Answer", "text": "按所选国家/地区的常见拨号习惯分组：中国 11 位手机 3-4-4，美国/加拿大 (XXX) XXX-XXXX，英国 5-5，日本按固话/手机分 2-4-4 或 3-4-4，印度 5-5，香港/新加坡 4-4，台湾/澳大利亚 4-3-3；长度不在常见形态时回落为每 4 位一组。仍不做逐国号段级完整规则。"}}]}</script>
 </body>
 </html>
