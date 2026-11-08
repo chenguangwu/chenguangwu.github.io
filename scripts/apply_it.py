@@ -1060,8 +1060,8 @@ KB['it/serial-key-generator'] = dict(title='序列号生成器',
   faqs=[dict(q='真能激活软件吗？', a='需后端校验算法，单前端仅为格式。')])
 
 KB['it/random-port-generator'] = dict(title='随机端口生成器',
-  scenarios=['选未占用的临时端口（建议 49152–65535）。'],
-  examples=[dict(title='生成', body='随机 `52341`（动态/私有端口段）。')],
+  scenarios=['为本地服务挑一个高位端口（本工具取值 1024–65535，不保证未被占用）。'],
+  examples=[dict(title='生成', body='随机 `52341`（落在 1024–65535 范围内）。')],
   faqs=[dict(q='为什么用高位端口？', a='1024 以下需特权，动态端口段冲突少。')])
 
 KB['it/emoji-picker'] = dict(title='Emoji Picker',

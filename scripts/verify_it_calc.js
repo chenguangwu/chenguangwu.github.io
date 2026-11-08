@@ -7374,6 +7374,46 @@ const CASES = [
     "ref": "IT-N425 顺带修：动态结果串「捕获到 keydown 事件」原为硬中文，英文态残留；现经 __kcL 输出 Captured keydown event。探针临时 mock TBKit.util.isEn=true 后校验。"
   },
   {
+    "slug": "it/random-port-generator",
+    "clicks": [
+      "document.getElementById('skip').checked=false;document.getElementById('count').value='7';gen();"
+    ],
+    "expect": [
+      "已生成 7 个随机端口（1024-65535，不保证端口未被占用）"
+    ],
+    "ref": "IT-N426：清单要求文案统一为「1024–65535，不保证未被占用」。修复前结果串止于「（1024-65535）」；现补「，不保证端口未被占用」。expect 绑 count=7 派生数量，默认态 count=5 不含该串；显式关掉 skip 消除 checkbox 默认态歧义。blob 直接采集 #result 的 innerHTML 文本，无需探针拼接。"
+  },
+  {
+    "slug": "it/random-port-generator",
+    "clicks": [
+      "document.getElementById('count').value='20';gen();var __ok=ports.length===20&&ports.every(function(p){return p>=1024&&p<=65535;});document.getElementById('result').textContent='N426 range=ok'+__ok+' n='+ports.length;"
+    ],
+    "expect": [
+      "N426 range=oktrue n=20"
+    ],
+    "ref": "IT-N426 回归护栏：实现仍是 1024–65535（本批只统一文案、不改取值范围），20 个端口全部落在区间内且数量正确。修复前后同绿。"
+  },
+  {
+    "slug": "it/random-port-generator",
+    "clicks": [
+      "document.getElementById('count').value='20';gen();var __u={};ports.forEach(function(p){__u[p]=1;});document.getElementById('result').textContent='N426 uniq='+Object.keys(__u).length+'/'+ports.length;"
+    ],
+    "expect": [
+      "N426 uniq=20/20"
+    ],
+    "ref": "IT-N426 回归护栏：20 个端口去重逻辑仍有效（清单明确「端口取值与去重逻辑本身正确」），本批不得误伤。修复前后同绿。"
+  },
+  {
+    "slug": "it/random-port-generator",
+    "clicks": [
+      "document.getElementById('skip').checked=true;document.getElementById('count').value='10';gen();"
+    ],
+    "expect": [
+      "已生成 10 个随机端口（1024-65535，已避开常用保留端口，不保证端口未被占用）"
+    ],
+    "ref": "IT-N426：开启「避开常用保留端口」时结果串仍标注该状态，且同样带免责声明，验证 skip 分支拼接未因双语化改造错位。修复前无免责声明 ⇒ 变红。"
+  },
+  {
     "slug": "it/kubernetes-cheatsheet",
     "inputs": {
       "searchInput": "abc123测试"
