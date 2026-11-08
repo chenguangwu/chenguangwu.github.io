@@ -100,7 +100,7 @@ s.parentNode.insertBefore(el, s);
   <div class="card tool-card-accent" style="--tool-accent:#3B82F6;">
     <h2 data-zh="📄 TOML 转 YAML 转换器">📄 TOML to YAML Converter</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">TOML 解析：逐行去空白，跳过空行与 # 注释（# 的判定需避开成对双引号内的内容）；[节名] 按 . 逐级建立嵌套对象并设为当前表，[[数组名]] 同名数组追加一个新元素并设为当前表；其余行取第一个 = 分隔键与值，键按 . 形成点号路径，值先剥掉行尾 # 注释再解析。值解析：双引号串按 \n \t \" 反转义，true/false 转布尔，纯整数转 parseInt，纯小数转 parseFloat，[ ] 内按逗号递归解析为数组（为空返回空数组）。输出：键名匹配 ^[A-Za-z0-9_-]+$ 时原样写，否则加双引号并转义反斜杠与引号；数组写成 [a, b]，字符串转义后加双引号；同一表内先写标量键再写子表，可选按键名字典序排序</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">TOML 解析：逐行去空白，跳过空行与 # 注释（# 的判定需避开成对双引号内的内容）；[节名] 按 . 逐级建立嵌套对象并设为当前表，[[数组名]] 同名数组追加一个新元素并设为当前表（路径中若碰到数组表则下钻到它的最后一个元素，子表才不会丢）；其余行取第一个 = 分隔键与值，键按 . 形成点号路径，值先剥掉行尾 # 注释再解析；值以 [ 或 { 开头且括号未闭合时继续吞并后续行，支持多行数组。值解析：双引号串单遍反转义（\\ \n \t \r \" 一次映射，避免 \\temp 被拆成反斜杠+制表符），true/false 转布尔，纯整数转 parseInt，纯小数转 parseFloat，[ ] 内按顶层逗号（跳过引号与嵌套括号内的逗号）递归解析为数组，{ } 内联表按 a=1 递归解析为映射。输出：键名匹配 ^[A-Za-z0-9_-]+$ 时原样写，否则加双引号并转义反斜杠与引号；字符串含反斜杠、换行、制表符或 YAML 特殊字符时加双引号并转义，数组元素是映射时按 - 键: 值 逐行展开（子表/子数组继续缩进递归），同一表内先写标量键再写子表，可选按键名字典序排序</div>
   <div class="formula-desc">把 TOML 转换为 YAML。</div>
   <ul class="formula-list">
     <li><b>映射</b>：TOML 的表与键值分别转为 YAML 的映射与标量，数组转为序列。</li>
@@ -225,14 +225,78 @@ function calcTool(){function tLit(v){
   if(v instanceof Array) return '['+v.map(tLit).join(', ')+']';
   return '"'+String(v).replace(/\\/g,'\\\\').replace(/"/g,'\\"')+'"';
 }
+// IT-N359：单遍还原转义，`\\` 必须先于 n/t 被消费，否则 `"C:\\temp"` 会被拆成 `C:\` + TAB + `emp`
+function tUnescape(x){
+  return x.replace(/\\(.)/g,function(_,c){
+    if(c==='n')return '\n';
+    if(c==='t')return '\t';
+    if(c==='r')return '\r';
+    if(c==='b')return '\b';
+    if(c==='f')return '\f';
+    if(c==='"')return '"';
+    if(c==='\\')return '\\';
+    if(c==='u')return 'u';
+    return c;
+  });
+}
+// IT-N358/N360：按顶层逗号切分，尊重引号与嵌套括号
+function tSplitTop(s){
+  var out=[],buf='',d=0,q=false;
+  for(var i=0;i<s.length;i++){
+    var c=s[i];
+    if(q){ buf+=c; if(c==='\\'){ if(i+1<s.length){buf+=s[i+1];i++;} } else if(c==='"')q=false; continue; }
+    if(c==='"'){ q=true; buf+=c; continue; }
+    if(c==='['||c==='{') d++;
+    else if(c===']'||c==='}') d--;
+    if(c===','&&d===0){ out.push(buf); buf=''; continue; }
+    buf+=c;
+  }
+  if(buf.trim()!=='') out.push(buf);
+  return out;
+}
+function tDepth(s){
+  var d=0,q=false;
+  for(var i=0;i<s.length;i++){
+    var c=s[i];
+    if(q){ if(c==='\\'){i++;continue;} if(c==='"')q=false; continue; }
+    if(c==='"'){q=true;continue;}
+    if(c==='[')d++; else if(c===']')d--;
+  }
+  return d;
+}
+function tKeyName(k){
+  k=k.trim();
+  if(k.charAt(0)==='"'){ var m=k.match(/^"((?:[^"\\]|\\.)*)"$/); if(m) return tUnescape(m[1]); }
+  return k;
+}
 function tVal(s){
   s=s.trim();
-  if(s[0]==='"'){ var m=s.match(/^"((?:[^"\\]|\\.)*)"/); return m? m[1].replace(/\\n/g,'\n').replace(/\\t/g,'\t').replace(/\\"/g,'"') : s; }
+  if(s.charAt(0)==='"'){ var m=s.match(/^"((?:[^"\\]|\\.)*)"/); return m? tUnescape(m[1]) : s; }
   if(s==='true')return true; if(s==='false')return false;
   if(s==='')return '';
   if(/^-?\d+$/.test(s))return parseInt(s,10);
   if(/^-?\d+\.\d+$/.test(s))return parseFloat(s);
-  if(s[0]==='['){ var inner=s.slice(1,s.lastIndexOf(']')); if(inner.trim()==='')return []; return inner.split(',').map(function(x){return tVal(x);}); }
+  if(s.charAt(0)==='['){
+    // IT-N358：多行数组此时已被 parseToml 合并成一行，按顶层逗号切
+    var close=s.lastIndexOf(']');
+    var inner=(close<0)?s.slice(1):s.slice(1,close);
+    if(inner.trim()==='')return [];
+    return tSplitTop(inner).map(function(x){return tVal(x);});
+  }
+  if(s.charAt(0)==='{'){
+    // IT-N360：内联表 {a=1, b="x"} 递归解析成映射，不再当普通字符串
+    var close2=s.lastIndexOf('}');
+    var inner2=(close2<0)?s.slice(1):s.slice(1,close2);
+    var out={};
+    if(inner2.trim()==='') return out;
+    var parts=tSplitTop(inner2);
+    for(var i=0;i<parts.length;i++){
+      var seg=parts[i], eq=seg.indexOf('=');
+      if(eq<0) continue;
+      out[tKeyName(seg.slice(0,eq))]=tVal(seg.slice(eq+1));
+    }
+    return out;
+  }
   return s;
 }
 function stripComment(s){
@@ -240,33 +304,53 @@ function stripComment(s){
   for(var i=0;i<s.length;i++){ var c=s[i]; if(c==='"'&&s[i-1]!=='\\'){q=!q;} if(c==='#'&&!q) break; out+=c; }
   return out.trim();
 }
+// IT-N360：沿路径下钻时，若当前节点是数组表（[[x]]），新子表挂到「最后一个元素」上，
+// 否则会被挂成数组的命名属性，Object.keys 看不见 ⇒ 整段静默丢弃
+function tChild(o,k){
+  if(o instanceof Array) o=o[o.length-1]||{};
+  var cur=o[k];
+  if(cur===undefined||cur===null){ cur={}; o[k]=cur; }
+  return cur;
+}
 function parseToml(text){
   var lines=text.replace(/\r/g,'').split('\n');
   var root={}; var cur=root;
   for(var i=0;i<lines.length;i++){
     var s=lines[i].trim();
-    if(!s||s[0]==='#') continue;
-    if(s[0]==='['){
+    if(!s||s.charAt(0)==='#') continue;
+    if(s.charAt(0)==='['){
       var close=s.indexOf(']'); if(close<0) continue;
       var header=s.slice(1,close);
-      if(header[0]==='['){
+      if(header.charAt(0)==='['){
         var name=header.slice(1).trim(); var parts=name.split('.');
-        var obj=root; for(var p=0;p<parts.length-1;p++){ obj=obj[parts[p]]=obj[parts[p]]||{}; }
-        var arr=obj[parts[parts.length-1]]=obj[parts[parts.length-1]]||[];
+        var obj=root; for(var p=0;p<parts.length-1;p++){ obj=tChild(obj,parts[p].trim()); }
+        var last=parts[parts.length-1].trim();
+        var arr=obj[last]; if(!(arr instanceof Array)){ arr=[]; obj[last]=arr; }
         var elem={}; arr.push(elem); cur=elem;
       } else {
         var parts2=header.split('.'); var obj2=root;
-        for(var q=0;q<parts2.length;q++){ obj2=obj2[parts2[q]]=obj2[parts2[q]]||{}; }
+        for(var q=0;q<parts2.length;q++){ obj2=tChild(obj2,parts2[q].trim()); }
         cur=obj2;
       }
       continue;
     }
     var eq=s.indexOf('='); if(eq<0) continue;
-    var key=s.slice(0,eq).trim(); var val=stripComment(s.slice(eq+1));
-    if(key[0]==='"'){ var km=key.match(/^"((?:[^"\\]|\\.)*)"$/); if(km) key=km[1].replace(/\\"/g,'"'); }
+    var key=tKeyName(s.slice(0,eq));
+    var rawVal=s.slice(eq+1);
+    // IT-N358：多行数组/内联表 —— 当前行括号未闭合时继续吞并后续行
+    if(/^\s*[\[\{]/.test(rawVal) && tDepth(rawVal)>0){
+      var buf=stripComment(rawVal), guard=0;
+      while(tDepth(buf)>0 && i+1<lines.length && guard++<2000){
+        i++;
+        buf+='\n'+stripComment(lines[i].trim());
+      }
+      rawVal=buf;
+    }
+    var val=stripComment(rawVal);
     var ps=key.split('.'); var o=cur;
-    for(var j=0;j<ps.length-1;j++){ o=o[ps[j]]=o[ps[j]]||{}; }
-    o[ps[ps.length-1]]=tVal(val);
+    for(var j=0;j<ps.length-1;j++){ o=tChild(o,ps[j].trim()); }
+    if(o instanceof Array) o=o[o.length-1]||{};
+    o[ps[ps.length-1].trim()]=tVal(val);
   }
   return root;
 }
@@ -346,12 +430,13 @@ function yMapFrom(items, mapIndent, p, firstItem){
   }
   return m;
 }
-function yNeedQ(v){ return /[:#\-\[\]\{\},]/.test(v)||v.trim()!==v||v===''||/^\d/.test(v)||v==='true'||v==='false'||v==='null'; }
+// IT-N359 输出侧：含反斜杠/换行/制表符的值必须加引号，否则回读时被当转义序列或换行打断
+function yNeedQ(v){ return /[:#\-\[\]\{\},]/.test(v)||/[\\\n\r\t]/.test(v)||v.trim()!==v||v===''||/^\d/.test(v)||v==='true'||v==='false'||v==='null'; }
 function yVal(v){
   if(v===null||v===undefined) return 'null';
   if(typeof v==='boolean') return v?'true':'false';
   if(typeof v==='number') return String(v);
-  if(typeof v==='string'){ return yNeedQ(v)? ('"'+v.replace(/"/g,'\\"')+'"') : v; }
+  if(typeof v==='string'){ return yNeedQ(v)? ('"'+v.replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/\n/g,'\\n').replace(/\r/g,'\\r').replace(/\t/g,'\\t')+'"') : v; }
   return String(v);
 }
 function dumpYaml(node,pad,sort,isRoot){
@@ -362,7 +447,17 @@ function dumpYaml(node,pad,sort,isRoot){
       var it=node[i];
       if(it!==null && typeof it==='object' && !(it instanceof Array)){
         var ks=Object.keys(it); if(sort)ks=ks.slice().sort();
-        for(var j=0;j<ks.length;j++){ var kk=ks[j]; out+=(j===0?pad+'- ':pad+'  ')+kk+': '+yVal(it[kk])+'\n'; }
+        if(!ks.length){ out+=pad+'-\n'; continue; }
+        for(var j=0;j<ks.length;j++){
+          var kk=ks[j]; var vv=it[kk];
+          var head=(j===0?pad+'- '+kk+':' : pad+'  '+kk+':');
+          // IT-N360：数组元素里的子表/子数组要递归展开，原本走 yVal ⇒ "[object Object]"
+          if(vv instanceof Array) out+=head+'\n'+dumpYaml(vv,pad+'    ',sort,false);
+          else if(vv!==null && typeof vv==='object') out+=head+'\n'+dumpYaml(vv,pad+'    ',sort,false);
+          else out+=head+' '+yVal(vv)+'\n';
+        }
+      } else if(it instanceof Array){
+        out+=pad+'-\n'+dumpYaml(it,pad+'  ',sort,false);
       } else out+=pad+'- '+yVal(it)+'\n';
     }
     return out;

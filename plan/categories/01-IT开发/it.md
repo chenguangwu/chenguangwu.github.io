@@ -2355,35 +2355,8 @@
 
 
 
-### IT-N358 多行 TOML 数组被解析成空数组，依赖列表静默丢失（高，确认缺陷）
-- 问题：`tVal()` 只处理单行 `[...]`：`s.slice(1, s.lastIndexOf(']'))`，行内无 `]` 时 `lastIndexOf` 返回 -1，`inner` 为空直接 `return []`；后续元素行因无 `=` 被 `parseToml` 跳过。
-- 证据：`tools/it/toml-to-yaml.html:235`、`:264-265`
-- 复现（node 复刻）：`dependencies = [\n  "serde",\n  "tokio",\n]` → 实际 `dependencies:`（空数组，YAML 侧等价 null）；期望 `dependencies:\n  - serde\n  - tokio`。
-- 影响：Cargo.toml / pyproject.toml 的多行依赖数组被清空，转出的 YAML 丢数据且无任何提示。
-- 方案：值以 `[` 开头且当前行无闭合 `]` 时，继续吞并后续行直到出现 `]`，再统一按顶层逗号切分。
-
-### IT-N359 双反斜杠未先还原，`C:\temp` 被改成 `C:\` + 制表符（中，确认缺陷）
-- 问题：`tVal()` 依次 `replace(/\\n/→换行)`、`/\\t/→制表符`、`/\\"/→引号`，未先处理 `\\`；字符串中第 2 个反斜杠紧跟 `n`/`t` 时被当成转义序列。
-- 证据：`tools/it/toml-to-yaml.html:230`
-- 复现（node 复刻）：`path = "C:\\temp"` → 实际值 `C:\` + TAB + `emp`（YAML 输出同样错值）；期望 `C:\temp`。
-- 影响：Windows 路径、正则、含 `\n` 字面量的配置被静默改坏。
-- 方案：用单次 `/\\(.)/g` 映射（`n`→换行、`t`→制表符、`"`→引号、`\`→反斜杠），或先把 `\\` 换成占位符最后还原。
-
-### IT-N360 `[[数组表]]` 下的子表、内联表数据静默丢失（中，确认缺陷）
-- 问题：`[pkg.meta]` 分支把最后一段直接挂到 `root.pkg`，而 `pkg` 已是数组，命名属性不进 `Object.keys`/`dumpYaml`，子表整体丢弃；`{a=1}` 内联表被 `tVal` 当普通字符串。
-- 证据：`tools/it/toml-to-yaml.html:257-260`、`:235`、`:357-379`
-- 复现（node 复刻）：`[[pkg]]\nname="a"\n[pkg.meta]\nx=1` → 实际 `pkg:\n  - name: a`（`meta` 消失）；`arr = [{a=1}]` → 实际 `arr:\n  - "{a=1}"`；期望 `- name: a\n    meta:\n      x: 1` 与映射数组。
-- 影响：数组表下的子表/内联表被静默丢成空，配置迁移后语义缺失。
-- 方案：表头路径最后一段命中已有数组时取「数组末元素」为当前表；`{` 开头的值按内联表递归解析。
-
-
-
-
-
-
 ### 覆盖清单（T 批 IT 第 3 轮）
 - `jwt-debugger`：IT-N349（高）。
-- `toml-to-yaml`：IT-N358（高）、IT-N359、IT-N360（中）。
 - 方法声明：以上结论仅基于源码通读 + `node` 复刻页面原函数实算（json-repair / hash-identifier / yaml-to-xml / toml-to-yaml / csv-to-yaml / json-to-xml 的判定均给出「输入 → 实际 / 期望」），未开浏览器、未跑 `_build.py`/`run_gates.py`、未做线上验证；未修改任何工具页或构建产物。
 
 ## T 批 IT 第 4 轮覆盖（2026-11-04）

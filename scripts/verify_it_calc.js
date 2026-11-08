@@ -4700,6 +4700,30 @@ const CASES = [
     "ref": "TOML→YAML：注入布尔标量 + [db] 表。`debug = true` 在 YAML 侧写作 `debug: true`（冒号+空格，输入为等号），`[db]` 表写作 `db:` 后接缩进行 —— 两种形态均只在转换后出现。注：页面嵌套缩进 = 选择值+2（indent 默认 2 ⇒ 子层 4 空格），经 select 三档对照实验确认是页面一致的既定行为，非缺陷，故 expect 不含缩进相关的行首断。"
   },
   {
+    "slug": "it/toml-to-yaml",
+    "inputs": { "source": "dependencies = [\n  \"serde\",\n  \"tokio\",\n]" },
+    "expect": ["dependencies: - serde - tokio"],
+    "ref": "IT-N358：多行数组。修复前 tVal 用 `lastIndexOf(']')` 取内层，行内无 `]` 时得 -1 ⇒ 直接返回空数组，后续元素行又因无 `=` 被跳过 ⇒ `dependencies:` 后无内容（Cargo.toml 的依赖列表被清空）。现 parseToml 在括号未闭合时继续吞并后续行。expect 是「键名 + 两个元素」的连续形态，输入里元素带引号（`\"serde\"`）而输出无引号 ⇒ 非回显；修复前不产生该串 ⇒ 必红灯。"
+  },
+  {
+    "slug": "it/toml-to-yaml",
+    "inputs": { "source": "path = \"C:\\\\temp\"" },
+    "expect": ["path: \"C:\\\\temp\""],
+    "ref": "IT-N359：TOML 源码 `path = \"C:\\\\temp\"` 表示值 `C:\\temp`。修复前 tVal 依次把 `\\n`/`\\t` 换掉，第 2 个反斜杠紧跟 t ⇒ 值变成 `C:` + 制表符 + `emp`；输出侧 yVal 又不转义反斜杠，`\"C:\\temp\"` 回读时同样被当转义。两侧都修：单遍 tUnescape + yVal 转义反斜杠/换行/制表符。expect 是「`path: ` 冒号形态 + 双反斜杠」，输入是 `path = ` 等号形态且反斜杠数量不同 ⇒ 非回显；修复前输出 `path: \"C: emp\"` ⇒ 必红灯。"
+  },
+  {
+    "slug": "it/toml-to-yaml",
+    "inputs": { "source": "[[pkg]]\nname=\"a\"\n[pkg.meta]\nx=1" },
+    "expect": ["- name: a meta: x: 1"],
+    "ref": "IT-N360：`[pkg.meta]` 子表挂在 `[[pkg]]` 数组下。修复前把 `meta` 挂成数组的命名属性（不进 Object.keys）⇒ 整段丢成 `pkg: - name: a`；dumpYaml 的数组分支又只用 yVal 输出，子表会变成 `[object Object]`。现 tChild 下钻时命中数组取末元素、dumpYaml 递归展开。expect 依赖注入的键 `meta` 与值 `x: 1`，输入是 `[pkg.meta]` / `x=1` 形态（无 `meta:` 冒号）⇒ 非回显；修复前不产生该串 ⇒ 必红灯。"
+  },
+  {
+    "slug": "it/toml-to-yaml",
+    "inputs": { "source": "arr = [{a=1, b=\"z\"}]" },
+    "expect": ["arr: - a: 1 b: z"],
+    "ref": "IT-N360：内联表数组。修复前 tVal 不认 `{...}`，整行被当普通字符串 ⇒ 输出 `arr: - \"{a=1, b=\\\"z\\\"}\"`。现按顶层逗号切分递归建映射。expect 是「键名 + 子键」的 YAML 形态，输入全是等号 ⇒ 非回显；修复前不产生该串 ⇒ 必红灯。"
+  },
+  {
     "slug": "it/xml-to-yaml",
     "inputs": { "source": "<root><item id=\"1\">Alpha</item><item id=\"2\">Beta</item></root>" },
     "expect": ["@id: \"1\" #text: Alpha", "@id: \"2\" #text: Beta"],
