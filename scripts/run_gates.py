@@ -373,6 +373,7 @@ GATES = (
     # 负向对照（--root 指向 HEAD 抽取目录）2/2 全红，已实测。
     ("history restore recompute", ("node", "scripts/_verify_history_restore_recompute.mjs")),
     ("false negative unanswered guard", ("node", "scripts/_verify_false_negative_guard.mjs")),
+    ("berg partial guard", ("node", "scripts/_verify_berg_partial_guard.mjs")),
 )
 
 

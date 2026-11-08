@@ -310,6 +310,15 @@ function calcScore() {
     return;
   }
 
+  if (answered < bbsItems.length) {
+    var ph = '<div style="text-align:center;margin-bottom:12px;">'
+      + '<div style="font-size:48px;font-weight:700;color:var(--text-muted);">' + total + '</div>'
+      + '<div style="font-size:14px;color:var(--text-muted);">/ 56分（已完成' + answered + '/' + bbsItems.length + '项）</div></div>'
+      + '<div class="tip-box tip-warn" style="margin-top:8px;">仅完成 ' + answered + '/' + bbsItems.length + ' 项，样本不足无法分级，请完成全部 14 项后再评估平衡等级与跌倒风险。</div>';
+    const __hp0=ph;if((typeof __hp0==='number'&&!isFinite(__hp0))||/Infinity/.test(String(__hp0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__hp0)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__hp0;
+    return total;
+  }
+
   var level, color, risk, advice;
   if (total <= 20) { level = '严重平衡障碍'; color = '#DC2626'; risk = '高跌倒风险'; advice = '需轮椅辅助，建议专人看护和综合平衡康复训练'; }
   else if (total <= 40) { level = '中度平衡障碍'; color = '#EF4444'; risk = '中高跌倒风险'; advice = '需助行器辅助，建议系统平衡训练和肌力训练'; }
@@ -317,20 +326,16 @@ function calcScore() {
   else if (total <= 52) { level = '平衡良好'; color = '#3B82F6'; risk = '低跌倒风险'; advice = '可独立步行，建议维持性训练和预防跌倒教育'; }
   else { level = '平衡正常'; color = '#10B981'; risk = '很低跌倒风险'; advice = '平衡功能正常，保持日常活动即可'; }
 
-  var fallRisk = total < 45 ? Math.round((45 - total) * 7) : 0;
+  var fallGap = total < 45 ? (45 - total) : 0;
 
   var html = '<div style="text-align:center;margin-bottom:12px;">';
   html += '<div style="font-size:48px;font-weight:700;color:' + color + ';">' + total + '</div>';
   html += '<div style="font-size:14px;color:var(--text-muted);">/ 56分（已完成' + answered + '/' + bbsItems.length + '项）</div>';
   html += '</div>';
   html += '<p><strong>评估等级：</strong><span class="grade-tag" style="background:' + color + '22;color:' + color + ';">' + level + '</span></p>';
-  html += '<p><strong>跌倒风险：</strong>' + risk + (fallRisk > 0 ? '（估算增加约' + fallRisk + '%）' : '') + '</p>';
+  html += '<p><strong>跌倒风险：</strong>' + risk + (fallGap > 0 ? '（低于安全界值 45 分约 ' + fallGap + ' 分，每分约 7% 线性估算）' : '') + '</p>';
   html += '<div class="progress-bar"><div class="progress-fill" style="width:' + (total/56*100) + '%;background:' + color + ';"></div></div>';
   html += '<div class="tip-box tip-info" style="margin-top:8px;"><strong>康复建议：</strong>' + advice + '</div>';
-
-  if (answered < bbsItems.length) {
-    html += '<div class="tip-box tip-warn" style="margin-top:8px;">还有 ' + (bbsItems.length - answered) + ' 项未评分，建议全部完成后评估更准确</div>';
-  }
 
   const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h2;
   return total;
@@ -355,15 +360,21 @@ function __bbsExport(){
       rows.push([(i+1)+'. '+(item.name||item),v===null?(en?'Unanswered':'未评分'):scoreLabels[v],(item.desc||'')]);
     });
     var level,risk,advice;
-    if(total<=20){level=en?'Severe balance impairment':'严重平衡障碍';risk=en?'High fall risk':'高跌倒风险';advice=en?'Wheelchair assistance, dedicated supervision, comprehensive balance rehab':'需轮椅辅助，建议专人看护和综合平衡康复训练';}
-    else if(total<=40){level=en?'Moderate balance impairment':'中度平衡障碍';risk=en?'Moderate-high fall risk':'中高跌倒风险';advice=en?'Walker assistance, systematic balance and strength training':'需助行器辅助，建议系统平衡训练和肌力训练';}
-    else if(total<=44){level=en?'Mild balance impairment':'轻度平衡障碍';risk=en?'Moderate fall risk':'中度跌倒风险';advice=en?'Assistive devices, intensive balance and functional training':'需辅助器具，建议强化平衡和功能性训练';}
-    else if(total<=52){level=en?'Good balance':'平衡良好';risk=en?'Low fall risk':'低跌倒风险';advice=en?'Independent walking, maintenance training and fall prevention education':'可独立步行，建议维持性训练和预防跌倒教育';}
-    else{level=en?'Normal balance':'平衡正常';risk=en?'Very low fall risk':'很低跌倒风险';advice=en?'Normal balance function, maintain daily activities':'平衡功能正常，保持日常活动即可';}
-    var fallRisk=total<45?Math.round((45-total)*7):0;
+    if(answered<bbsItems.length){
+      level=en?'Insufficient items scored':'样本不足无法分级';
+      risk=en?'Complete all 14 items':'请完成全部 14 项';
+      advice=en?'Rating is available only after all 14 items are scored':'完成全部 14 项评分后方可评估平衡等级与跌倒风险';
+    }else{
+      if(total<=20){level=en?'Severe balance impairment':'严重平衡障碍';risk=en?'High fall risk':'高跌倒风险';advice=en?'Wheelchair assistance, dedicated supervision, comprehensive balance rehab':'需轮椅辅助，建议专人看护和综合平衡康复训练';}
+      else if(total<=40){level=en?'Moderate balance impairment':'中度平衡障碍';risk=en?'Moderate-high fall risk':'中高跌倒风险';advice=en?'Walker assistance, systematic balance and strength training':'需助行器辅助，建议系统平衡训练和肌力训练';}
+      else if(total<=44){level=en?'Mild balance impairment':'轻度平衡障碍';risk=en?'Moderate fall risk':'中度跌倒风险';advice=en?'Assistive devices, intensive balance and functional training':'需辅助器具，建议强化平衡和功能性训练';}
+      else if(total<=52){level=en?'Good balance':'平衡良好';risk=en?'Low fall risk':'低跌倒风险';advice=en?'Independent walking, maintenance training and fall prevention education':'可独立步行，建议维持性训练和预防跌倒教育';}
+      else{level=en?'Normal balance':'平衡正常';risk=en?'Very low fall risk':'很低跌倒风险';advice=en?'Normal balance function, maintain daily activities':'平衡功能正常，保持日常活动即可';}
+    }
+    var fallGap=total<45?(45-total):0;
     rows.push([en?'Total score (max 56)':'总分 (满分 56)',total+' / '+56+'（'+answered+'/'+bbsItems.length+(en?' items)':' 项）'),'']);
     rows.push([en?'Rating':'评估等级',0,level]);
-    rows.push([en?'Fall risk':'跌倒风险',0,risk+(fallRisk>0?(en?' (estimated +'+fallRisk+'%)':'（估算增加约'+fallRisk+'%）'):'')]);
+    rows.push([en?'Fall risk':'跌倒风险',0,risk+(fallGap>0?(en?' ('+fallGap+' pts below 45 cutoff, ~7% per point)':'（低于安全界值 45 分约 '+fallGap+' 分，每分约 7% 线性估算）'):'')]);
     rows.push([en?'Rehab advice':'康复建议',0,advice]);
     var tb=document.querySelector('#bbsTable tbody');
     if(!tb) return;
@@ -497,14 +508,14 @@ function __emrData(){
   else if(total<=44){ level='轻度平衡障碍'; levelEn='mild balance impairment'; risk='中度跌倒风险'; riskEn='moderate fall risk'; hz='需辅助器具，建议强化平衡和功能性训练。'; he='Assistive device; intensified balance and functional training.'; }
   else if(total<=52){ level='平衡良好'; levelEn='good balance'; risk='低跌倒风险'; riskEn='low fall risk'; hz='可独立步行，建议维持性训练和预防跌倒教育。'; he='Independent walking; maintenance training and falls-prevention education.'; }
   else { level='平衡正常'; levelEn='normal balance'; risk='很低跌倒风险'; riskEn='very low fall risk'; hz='平衡功能正常，保持日常活动即可。'; he='Normal balance; keep up routine activity.'; }
-  var fr=total<45?Math.round((45-total)*7):0;
+  var fallGap=total<45?(45-total):0;
   __emrNote({name:'Berg 平衡量表（BBS · 14 项 · 满分 56）', nameEn:'Berg Balance Scale (BBS, 14 items, max 56)',
     boxId:'resultBox',
     result:'总分 '+total+'/56，分级：'+level+'，跌倒风险：'+risk,
     resultEn:'total '+total+'/56, band: '+levelEn+', fall risk: '+riskEn,
     noPos:true, hintZh:hz, hintEn:he,
-    extra:'已完成 '+done+'/14 项；估算跌倒风险增加约 '+fr+'%（<45 分时按每分 7% 线性估算）',
-    extraEn:'Items completed '+done+'/14; estimated fall-risk increment about '+fr+'% (7% per point below 45)'});
+    extra:'已完成 '+done+'/14 项；低于安全界值 45 分约 '+fallGap+' 分（每分约 7% 线性估算）',
+    extraEn:'Items completed '+done+'/14; about '+fallGap+' points below the 45-point safety cutoff (~7% per point)'});
 }
 
 var __emrW0=(typeof calcScore==='function')?calcScore:null;
