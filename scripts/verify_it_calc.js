@@ -7304,6 +7304,76 @@ const CASES = [
     "ref": "回归护栏（修复前后同绿）：常规两字母码精确匹配与单命中详情输出保持不变。"
   },
   {
+    "slug": "it/keycode-info",
+    "clicks": [
+      "var __r=[];[[String.fromCharCode(9),'Tab',9,'DIV'],[' ','Space',32,'DIV'],['ArrowDown','ArrowDown',40,'DIV'],['F12','F12',123,'DIV'],['a','KeyA',65,'BUTTON']].forEach(function(t){var __n=0;__kcOnKeyDown({key:t[0],code:t[1],keyCode:t[2],which:t[2],ctrlKey:false,shiftKey:false,altKey:false,metaKey:false,target:{tagName:t[3]},preventDefault:function(){__n++;}});__r.push(__n);});document.getElementById('result').textContent='KC425 prevent='+__r.join('/');"
+    ],
+    "expect": [
+      "KC425 prevent=0/0/0/0/0"
+    ],
+    "ref": "IT-N425：五种按键（Tab/空格/方向键/F12/按钮目标）逐一统计 preventDefault 调用次数。修复前 DIV 目标为 1、BUTTON 为 0 ⇒ 1/1/1/1/0；现全部 0。修复前 handler 匿名注册且 harness 不派发 keydown，探针经顶层 __kcOnKeyDown 驱动。"
+  },
+  {
+    "slug": "it/keycode-info",
+    "clicks": [
+      "var __n=0;__kcOnKeyDown({key:String.fromCharCode(9),code:'Tab',keyCode:9,which:9,ctrlKey:false,shiftKey:false,altKey:false,metaKey:false,target:{tagName:'DIV'},preventDefault:function(){__n++;}});document.getElementById('result').textContent='KC425_TAB show='+document.getElementById('keyOut').textContent+'|'+document.getElementById('codeOut').textContent+'|'+document.getElementById('kcOut').textContent+' prevented='+__n;"
+    ],
+    "expect": [
+      "KC425_TAB show=Tab|Tab|9 prevented=0"
+    ],
+    "ref": "IT-N425：Tab 默认行为不再被吞（Tab 焦点切换保持可用），同时 keyOut/codeOut/kcOut 三项展示逻辑逐字不变。"
+  },
+  {
+    "slug": "it/keycode-info",
+    "clicks": [
+      "var __n=0;__kcOnKeyDown({key:' ',code:'Space',keyCode:32,which:32,ctrlKey:true,shiftKey:true,altKey:false,metaKey:false,target:{tagName:'DIV'},preventDefault:function(){__n++;}});document.getElementById('result').textContent='KC425_SPACE show='+document.getElementById('keyOut').textContent+' mods='+document.getElementById('modOut').textContent+' prevented='+__n;"
+    ],
+    "expect": [
+      "KC425_SPACE show=Space mods=Ctrl + Shift prevented=0"
+    ],
+    "ref": "IT-N425：空格键不再被吞（页面滚动保持可用）；Ctrl+Shift 修饰键收集顺序与连接符不变。"
+  },
+  {
+    "slug": "it/keycode-info",
+    "clicks": [
+      "var __n=0;__kcOnKeyDown({key:'F12',code:'F12',keyCode:123,which:123,ctrlKey:false,shiftKey:false,altKey:false,metaKey:false,target:{tagName:'BODY'},preventDefault:function(){__n++;}});document.getElementById('result').textContent='KC425_F12 key='+document.getElementById('keyOut').textContent+' prevented='+__n;"
+    ],
+    "expect": [
+      "KC425_F12 key=F12 prevented=0"
+    ],
+    "ref": "IT-N425：清单点名的 F12 空分支（注释写「允许默认」实则仍 preventDefault）已删除，浏览器快捷键真正放行；展示值仍为 F12。"
+  },
+  {
+    "slug": "it/keycode-info",
+    "clicks": [
+      "var __n=0;__kcOnKeyDown({key:'a',code:'KeyA',keyCode:65,which:65,ctrlKey:false,shiftKey:false,altKey:false,metaKey:false,target:{tagName:'BUTTON'},preventDefault:function(){__n++;}});document.getElementById('result').textContent='KC425_BUTTON prevented='+__n;"
+    ],
+    "expect": [
+      "KC425_BUTTON prevented=0"
+    ],
+    "ref": "IT-N425 回归护栏：事件来源为按钮时修复前后都不拦截；统一为「一律不拦截」后该分支被删除，行为保持等价。"
+  },
+  {
+    "slug": "it/keycode-info",
+    "clicks": [
+      "var __n=0;__kcOnKeyDown({key:'a',code:'KeyA',keyCode:65,which:65,ctrlKey:false,shiftKey:false,altKey:false,metaKey:false,target:{tagName:'DIV'},preventDefault:function(){__n++;}});document.getElementById('result').textContent='KC425_ZH mods='+document.getElementById('modOut').textContent+' prevented='+__n;"
+    ],
+    "expect": [
+      "KC425_ZH mods=无 prevented=0"
+    ],
+    "ref": "IT-N425 回归护栏：中文态无修饰键时 modOut 仍显示「无」（helper 接入未改中文态文案），DIV 目标从拦截改为放行。"
+  },
+  {
+    "slug": "it/keycode-info",
+    "clicks": [
+      "var __tb=window.TBKit;window.TBKit={util:{isEn:function(){return true;}}};__kcOnKeyDown({key:'a',code:'KeyA',keyCode:65,which:65,ctrlKey:false,shiftKey:false,altKey:false,metaKey:false,target:{tagName:'DIV'},preventDefault:function(){}});var __h=String(document.getElementById('result').innerHTML);document.getElementById('result').textContent='KC425_EN captured='+(__h.indexOf('Captured')>=0?1:0);window.TBKit=__tb;"
+    ],
+    "expect": [
+      "KC425_EN captured=1"
+    ],
+    "ref": "IT-N425 顺带修：动态结果串「捕获到 keydown 事件」原为硬中文，英文态残留；现经 __kcL 输出 Captured keydown event。探针临时 mock TBKit.util.isEn=true 后校验。"
+  },
+  {
     "slug": "it/kubernetes-cheatsheet",
     "inputs": {
       "searchInput": "abc123测试"
