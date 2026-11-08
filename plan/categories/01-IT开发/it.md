@@ -2428,17 +2428,10 @@
 
 
 
-### IT-N365 根为数组时输出多个并列根元素，产物不是合法 XML（中，确认缺陷）
-- 问题：`toXml()` 对数组按同一标签逐项输出，根级数组直接得到多个并列根元素；XML 只允许单一根，且页面无任何提示。
-- 证据：`tools/it/json-to-xml.html:269-272`（数组分支）、`:288`（`decl + toXml(data, root, …)`）
-- 复现（node 复刻）：输入 `[1,2]`、根节点 `root` → 实际 `<?xml …?>\n<root>1</root>\n<root>2</root>`（任何解析器报「junk after document element」）；期望 `<root><item>1</item><item>2</item></root>`。
-- 影响：合法 JSON 数组转出的 XML 下游必然解析失败。
-- 方案：`depth === 0` 且值为数组时先包一层 `<root>`（或 `<list>`），元素名用 `item`，再逐项输出。
 
 ### 覆盖清单（T 批 IT 第 3 轮）
 - `jwt-debugger`：IT-N349（高）。
 - `json-repair`：IT-N352（高）、IT-N353（中）。
-- `json-to-xml`：IT-N365（中）。
 - `yaml-to-xml`：IT-N354（高）、IT-N355、IT-N356、IT-N357（中）。
 - `csv-to-yaml`：IT-N362（中）。
 - `toml-to-yaml`：IT-N358（高）、IT-N359、IT-N360（中）。

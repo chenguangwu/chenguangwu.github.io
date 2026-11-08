@@ -267,6 +267,14 @@ function toXml(v, tag, indent, depth){
   if(typeof v === 'boolean' || typeof v === 'number') return pad + '<' + t + '>' + v + '</' + t + '>';
   if(typeof v === 'string') return pad + '<' + t + '>' + escapeXml(v) + '</' + t + '>';
   if(Array.isArray(v)){
+    // IT-N365：XML 只允许单一根元素。根级数组若按同一标签平铺，会得到多个并列根
+    // （<?xml?><root>1</root><root>2</root>，任何解析器都报 junk after document element）。
+    // 深度 0 时先包一层根、子项用 <item>。
+    if(depth === 0){
+      const innerRoot = v.map(item => toXml(item, 'item', indent, 1)).join(indent ? '\n' : '');
+      if(indent) return '<' + t + '>\n' + innerRoot + '\n</' + t + '>';
+      return '<' + t + '>' + innerRoot + '</' + t + '>';
+    }
     if(indent) return v.map(item => toXml(item, tag, indent, depth)).join('\n');
     return v.map(item => toXml(item, tag, indent, depth)).join('');
   }
