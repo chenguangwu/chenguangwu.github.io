@@ -7711,6 +7711,36 @@ const CASES = [
     "ref": "IT-N479：注入 searchInput='push' 过滤后应恰好渲染 4 个带 data-idx 的按钮且无内联 onclick，验证事件委托按原 COMMANDS 索引取数、不因 filtered 子集错位。注入失败回到默认空搜索 ⇒ 58 个按钮 ⇒ 变红；修复前无 data-idx 且 inline=1 ⇒ 亦红。"
   },
   {
+    "slug": "it/git-commands",
+    "clicks": [
+      "var __e=COMMANDS.filter(c=>c.cmd==='git switch')[0].example;document.getElementById('stats').textContent='N487 fix='+((__e.indexOf('git switch -c feature origin/feature')>=0&&__e.indexOf('git switch origin/feature')<0)?1:0);"
+    ],
+    "expect": [
+      "N487 fix=1"
+    ],
+    "ref": "IT-N487：清单点名的致命用法。`git switch origin/feature` 不是合法命令（switch 只接受本地分支名，实测 fatal: a branch is expected, got remote branch）；现改为 `git switch -c feature origin/feature` 并彻底移除错误串。expect 绑示例内容而非静态标签，快照态不执行 clicks ⇒ 变红。"
+  },
+  {
+    "slug": "it/git-commands",
+    "clicks": [
+      "var __e=COMMANDS.filter(c=>c.cmd==='git switch')[0].example;document.getElementById('stats').textContent='N487 full='+((__e.indexOf('git switch feature')>=0&&__e.indexOf('--detach origin/feature')>=0)?1:0);"
+    ],
+    "expect": [
+      "N487 full=1"
+    ],
+    "ref": "IT-N487：除创建跟踪分支外，补齐清单方案提到的「本地已有跟踪分支时直接切换 git switch feature」与「只看远程提交用 --detach origin/feature」两条口径，避免用户把所有场景都写成 -c。修复前两串均无 ⇒ 红。"
+  },
+  {
+    "slug": "it/git-commands",
+    "clicks": [
+      "renderCommands();var __h=String(document.getElementById('cmdList').innerHTML);document.getElementById('stats').textContent='N487 render='+((__h.indexOf('git switch main')>=0&&__h.indexOf('data-idx=')>=0)?1:0);"
+    ],
+    "expect": [
+      "N487 render=1"
+    ],
+    "ref": "IT-N487 回归护栏：改示例文本不得破坏 renderCommands 渲染与 IT-N479 的 data-idx 结构（含换行/中文注释的多行示例仍能安全进入 innerHTML）。修复前后同绿；快照态不执行 clicks ⇒ 变红，非逃生项。"
+  },
+  {
     "slug": "it/kubernetes-cheatsheet",
     "inputs": {
       "searchInput": "abc123测试"

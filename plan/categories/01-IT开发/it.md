@@ -2949,18 +2949,8 @@
 - 方案：注解改用目标语言注释符（`#` / `//`），不要指望用户手工删注解。
 - 假工具：否
 
-### IT-N487 — git-commands「切换到远程分支」示例直接 fatal 失败（中）
-- 页面：`tools/it/git-commands.html`
-- 行号：`tools/it/git-commands.html:367`
-- 问题：`git switch origin/feature` 不是合法用法，`switch` 只接受本地分支名，不会自动创建跟踪分支。
-- 复现：`git init; git commit --allow-empty; git update-ref refs/remotes/origin/feature HEAD; git switch origin/feature` → 实际 `fatal: a branch is expected, got remote branch 'origin/feature'`（exit 128，提示改用 `--detach`）。
-- 期望：`git switch -c feature origin/feature`（或本地已有跟踪分支时 `git switch feature`）。
-- 影响：按示例“切换到远程分支”会直接失败。
-- 方案：示例改为 `git switch -c feature origin/feature`；如确需游离 HEAD 用 `git switch --detach origin/feature`。
-- 假工具：否
-
 ### 覆盖清单（X 批 IT 速查/工具）
-- `git-commands`：IT-N487（中）；无其它高优（搜索/分类过滤逻辑正确，`copyCode` 本体无注入）。低优备注：`git cherry-pick`（:370/:422）与 `git bisect`（:407/:424）各重复一条，使分类计数与表格总数虚增 2。
+- `git-commands`：低优备注：`git cherry-pick`（:370/:422）与 `git bisect`（:407/:424）各重复一条，使分类计数与表格总数虚增 2。
 - `pomodoro`：IT-N480、IT-N481（中）；无高优（模式切换、时长设置、图表/统计渲染主流程可跑）。
 - `convert-11`：IT-N483（中）；其余主路径正确（`192.168.1.1 ↔ 3232235777 ↔ 11000000.00000000.00000001.00000001`，`4294967295 ↔ 255.255.255.255 ↔ 全 1` 均对齐）。
 - `typescript-cheatsheet`：IT-N485、IT-N486（中）；无高优（泛型/工具类型/`keyof` 等示例经核对正确）。
