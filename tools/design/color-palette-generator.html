@@ -566,19 +566,23 @@ function renderPalette(){
   const __h0=colors.map((c, i) => {
     const rgb = hexToRgb(c) || {r:0,g:0,b:0};
     const lum = relativeLuminance(rgb);
-    const whiteRatio = contrastRatio(lum, 1);
-    const blackRatio = contrastRatio(lum, 0);
-    const useDark = blackRatio >= whiteRatio;
-    const textColor = useDark ? '#111' : '#fff';
+    const TEXT_DARK = '#111';
+    const darkTextLum = relativeLuminance(hexToRgb(TEXT_DARK) || {r:0,g:0,b:0});
+    const cWhite = contrastRatio(lum, 1);          // 白字 #fff 相对亮度 1
+    const cDark = contrastRatio(lum, darkTextLum); // 黑字 #111 实际选用色
+    const useDark = cDark >= cWhite;
+    const textColor = useDark ? TEXT_DARK : '#fff';
     const textShadow = useDark ? 'none' : '0 1px 3px rgba(0,0,0,0.3)';
-    const whiteGrade = whiteRatio >= 7 ? 'AAA' : whiteRatio >= 4.5 ? 'AA' : '✗';
-    const blackGrade = blackRatio >= 7 ? 'AAA' : blackRatio >= 4.5 ? 'AA' : '✗';
+    const wGrade = cWhite >= 7 ? 'AAA' : cWhite >= 4.5 ? 'AA' : '✗';
+    const dGrade = cDark >= 7 ? 'AAA' : cDark >= 4.5 ? 'AA' : '✗';
+    const cText = useDark ? cDark : cWhite;
+    const grade = useDark ? dGrade : wGrade;
     return `
       <div class="color-swatch" style="background:${c};color:${textColor};" onclick="copyColor('${c}')">
         <button type="button" class="copy-btn" onclick="event.stopPropagation();copyColor('${c}')">复制</button>
         <div class="color-info" style="color:${textColor};text-shadow:${textShadow};">
           <div class="hex">${colorToFormat(c, currentFormat)}</div>
-          <div class="contrast" style="font-size:10px;opacity:0.85;margin-top:2px;">WCAG <span>白底</span> ${whiteRatio.toFixed(2)}:1 ${whiteGrade} · <span>黑底</span> ${blackRatio.toFixed(2)}:1 ${blackGrade}</div>
+          <div class="contrast" style="font-size:10px;margin-top:2px;">字色对比 ${cText.toFixed(2)}:1 ${grade}（白字 ${cWhite.toFixed(2)} / 黑字 ${cDark.toFixed(2)}）</div>
         </div>
       </div>
     `;
@@ -814,19 +818,21 @@ function exportImage(){
 
     const rgb = hexToRgb(c) || {r:0,g:0,b:0};
     const lum = relativeLuminance(rgb);
-    const whiteRatio = contrastRatio(lum, 1);
-    const blackRatio = contrastRatio(lum, 0);
-    const useDark = blackRatio >= whiteRatio;
-    const ratio = useDark ? blackRatio : whiteRatio;
-    const grade = ratio >= 7 ? 'AAA' : ratio >= 4.5 ? 'AA' : 'AA ✗';
-    ctx.fillStyle = useDark ? '#111' : '#fff';
+    const TEXT_DARK = '#111';
+    const darkTextLum = relativeLuminance(hexToRgb(TEXT_DARK) || {r:0,g:0,b:0});
+    const cWhite = contrastRatio(lum, 1);
+    const cDark = contrastRatio(lum, darkTextLum);
+    const useDark = cDark >= cWhite;
+    const cText = useDark ? cDark : cWhite;
+    const grade = cText >= 7 ? 'AAA' : cText >= 4.5 ? 'AA' : 'AA ✗';
+    ctx.fillStyle = useDark ? TEXT_DARK : '#fff';
     ctx.font = 'bold 16px monospace';
     ctx.textAlign = 'center';
     ctx.shadowColor = useDark ? 'transparent' : 'rgba(0,0,0,0.5)';
     ctx.shadowBlur = useDark ? 0 : 4;
     ctx.fillText(c.toUpperCase(), i*swatchW + swatchW/2, h - 44);
     ctx.font = '12px monospace';
-    ctx.fillText(`WCAG ${ratio.toFixed(2)}:1 ${grade}`, i*swatchW + swatchW/2, h - 22);
+    ctx.fillText(`WCAG ${cText.toFixed(2)}:1 ${grade}`, i*swatchW + swatchW/2, h - 22);
     ctx.shadowBlur = 0;
   });
   
