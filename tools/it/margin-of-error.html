@@ -297,13 +297,15 @@ function calculate(){
   const z=normalInv(1-alpha/2);
   const se=Math.sqrt(p*(1-p)/n);
   let E=z*se;
+  // IT-N378：N===n（全查）时校正因子应得 0（无抽样误差），N<n 是不可能方案必须拦下；
+  // 原来只在 N>n 时套修正、且用 parseInt 把 1e6 读成 1。
   let finiteApplied=false, Efin=E;
   if(NStr){
-    const N=parseInt(NStr);
-    if(!isNaN(N)&&N>n){
-      Efin=E*Math.sqrt((N-n)/(N-1));
-      finiteApplied=true;
-    }
+    const N=Number(NStr);
+    if(!isFinite(N)||!Number.isInteger(N)||N<1){const __hN0='<p style="color:var(--danger)">N 必须是正整数（可写 1e6 这类科学计数法）</p>';out.innerHTML=__hN0;return;}
+    if(N<n){const __hN1='<p style="color:var(--danger)">N 必须 ≥ n（抽样数不能超过总体）</p>';out.innerHTML=__hN1;return;}
+    Efin=E*Math.sqrt(Math.max(0,(N-n)/(N-1)));
+    finiteApplied=true;
   }
   const lo=p-Efin, hi=p+Efin;
   const loC=Math.max(0,lo), hiC=Math.min(1,hi);
@@ -320,7 +322,7 @@ function calculate(){
   html+=`<div class="step-line"><strong>步骤 2：</strong>SE = √[p̂(1−p̂)/n] = √[${fmt(p)}×${fmt(1-p)}/${n}] = √${fmt(p*(1-p)/n)} = ${fmt(se)}</div>`;
   html+=`<div class="step-line"><strong>步骤 3：</strong>E = z* × SE = ${fmt(z)} × ${fmt(se)} = ±${fmt(E)}</div>`;
   if(finiteApplied){
-    const N=parseInt(NStr);
+    const N=Number(NStr);
     html+=`<div class="step-line"><strong>步骤 4：</strong>有限总体修正：E = E × √[(N−n)/(N−1)] = ${fmt(E)} × √[(${N}−${n})/(${N}−1)] = ±${fmt(Efin)}</div>`;
   }
   html+=`<div class="step-line"><strong>步骤 ${finiteApplied?'5':'4'}：</strong>${(conf*100)}% CI = p̂ ± E = ${fmt(p)} ± ${fmt(Efin)} = [${fmt(loC)}, ${fmt(hiC)}]</div>`;
