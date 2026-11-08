@@ -3126,6 +3126,20 @@ const CASES = [
   },
   {
     slug: "it/roman-numeral-converter",
+    // IT-N369 回归：页面承诺「输入即可立即互转」，故不给 clicks，只靠注入产生的 input 事件。
+    inputs: { number: "2024", roman: "1" },
+    expect: ["2024 = MMXXIV"],
+    ref: "IT-N369：页面文案承诺「输入数字或罗马串即可立即互转」，修复前 #number/#roman 无 oninput、#dir 无 onchange，只在首屏跑一次 calcTool，改值必须点「计算」。本用例不给 clicks，仅依赖注入触发的 input 事件 ⇒ 结果区必须已刷新为 2024 = MMXXIV。默认示例是 1984/MCMLXXXIV，不命中。",
+  },
+  {
+    slug: "it/roman-numeral-converter",
+    // IT-N369 回归：切换方向（#dir 的 change 事件）也必须立即重算。
+    inputs: { dir: "from", roman: "MMXXIV" },
+    expect: ["MMXXIV → 2024"],
+    ref: "IT-N369：切到「罗马 → 数字」后应立刻重算。修复前 #dir 无 onchange，结果区仍停在上一次（数字→罗马）的旧值。无 clicks，只靠 change 事件；默认态 dir=to，不命中该反向结果串。",
+  },
+  {
+    slug: "it/roman-numeral-converter",
     // N368 回归：罗马→数字方向，合法串应正确还原。
     inputs: { dir: "from", roman: "MCMLXXXIV" },
     clicks: ["calcTool()"],
@@ -8933,6 +8947,14 @@ const CASES = [
     clicks: ["calcTool()"],
     expect: ["SHA-1 160 位（40 位十六进制）"],
     ref: "IT-N363：40 位十六进制 = 160 bit ⇒ SHA-1。旧「默认参数」预设把 64 位 SHA-256 截成前 40 位（本用例即该截断串），点预设即误判 SHA-1；预设值已补全为 64 位并与 resetForm 一致。页面默认值是完整 64 位 ⇒ 默认态判 SHA-256，不命中本串。",
+  },
+  {
+    // IT-N364 回归：$6$ 前缀（SHA-512-crypt）此前任何输入都落到「未知」。
+    slug: "it/hash-identifier",
+    inputs: { h: "$6$rounds=5000$abc$xyz" },
+    clicks: ["calcTool()"],
+    expect: ["SHA-512-Crypt 前缀 $6$（SHA-512 crypt）"],
+    ref: "IT-N364：本页说明与引据表都写着 `$6$` = SHA-512-crypt，修复前前缀规则只有 $2a$/$2y$/$2b$/$1$/$argon2，$6$ 一律判「未知」。默认值是 64 位十六进制，不含 $ 前缀，不命中。",
   },
 
   // —— 随机源审计（2026-11-05）：B 类密码学用途改 crypto.getRandomValues 后，
