@@ -158,7 +158,6 @@
 ## 2026-11-03 续查：文本与配置工具
 
 ### IT-N3 大小写不敏感替换的 Unicode 偏移损坏原文（高，部分修复，待处理）
-- 2026-11-06 复核基线 `06fd7b449c`：原 `Hello WORLD hello` → `X world X` 问题已修，Node 桩执行原反例得到 `X WORLD X`。
 - 新发现：`tools/it/text-replace.html:650-663` 对整个文本 `toLowerCase()` 后在小写串中查找，再用该位置切原文；`İ` 小写后变成两个码元，偏移不再一致。输入 `İ hello WORLD`，不区分大小写、全局替换 `hello` 为 `X`，原页面函数实际输出 `İ hXWORLD`，应为 `İ X WORLD`。
 - 影响：Unicode 输入中，未匹配字符丢失或保留错误，复制/下载会传播损坏的内容；非全局分支亦用同样的索引方式，需一并验证。
 - 方案：匹配位置必须对应原文，增加大小写映射长度变化、连续命中及非全局回归；尚未做浏览器验证。
@@ -168,7 +167,6 @@
 
 ## 2026-11-03 续查（并行批 G）
 
-- 2026-11-06 复核已修复项：IT-N11 的 `loadSample()` 输出含 `app.name` 的 JSON，成功提示为 `err ok`、错误提示为 `err`；IT-N15 的字节模式输入 `a`、上限 1、省略符 `...` 保留 `a`，输入 `ab` 才截断为 `.`。均以 Node 执行页面实际函数，未做浏览器验证。
 
 ### 留存优化
 - `properties-parser.html:298` 的 `unescapeVal` 不解码 `\uXXXX`：`greet=\u4f60\u597d` 原样保留（Node 已复算），与页面 FAQ 对转义的说明不一致。
@@ -185,7 +183,6 @@
 ## 2026-11-03 续查（并行批 J）
 
 ### IT-N20 历史回填不清除原本未勾选的选项（中，部分修复）
-- 2026-11-06 复核：`tools/it/text-cleaner.html:743-855` 已给 `executeClean()` 接入历史记录，并在回填时重新执行清理，不再调用会清空选项的 `applyPreset()`；原记录中的这两处问题已修。
 - 但 `__text_cleanerSnap()` 不保存未勾选的复选框，历史回调只遍历记录中存在的字段，故不能清除当前已勾选、而历史当时未勾选的选项。Node 执行实际回填回调：历史记录无 `opt-trim`，当前 `opt-trim` 已勾选，回填后仍为 `true`，再执行清理时可能产生与历史不一致的结果。未做浏览器验证。
 - 方案：恢复历史前统一重置选项，或保存和恢复完整的勾选状态；兼顾既有历史记录格式。
 
@@ -351,7 +348,6 @@
 - 影响：把结果贴进带 `u` 标志的 `RegExp`、ESLint `no-useless-escape` 或部分严格引擎会被判非法/告警。
 - 方案：`verbose` 只额外处理 `/` 与字符类内的 `-`，删除 `,;:<>@#&~=`；或在输出旁注明「本结果适用于非 `u` 模式」。
 
-- 2026-11-06 复核：原 IT-N60 引号 URL 和 IT-N61 注释开关问题已修。Node 执行页面实际 `minify()`，单双引号 URL `a)b  c` 均保留双空格；取消勾选保留 `/*keep*/`、勾选则删除。未做浏览器验证。
 
 - 备注：`tools/it/punycode.html:404-410`、`tools/it/regex-escape.html:321-328` 的 `copyResult` 依赖全局 `event`（与 IT-N31 同模式，Firefox 可能失效），不重复计数，未单列为新条目。
 - 本轮实读 8 页：`tools/it/punycode.html`、`tools/it/regex-escape.html`、`tools/it/css-minifier.html`、`tools/it/date-duration.html`、`tools/it/ipv4-range-expander.html`、`tools/it/user-agent-parser.html`、`tools/it/hash-multi.html`、`tools/it/http-cache.html`；新增 15 条（高 3 / 中 8 / 低 4）；未覆盖：`tools/it` 其余非文本页（如 `html-minifier`、`html-nesting-checker`、`c-string-escape`、`go-escape`、`java-escape`、`js-minifier`、`js-obfuscator`、`sql-formatter`、`shell-script-formatter`、`dockerfile-generator`、`gitignore-generator`、`robots-txt-generator`、`sitemap-generator`、`ssh/证书/密钥类` 等）与全部速查表页；未做浏览器、EN、移动端、门禁或部署验证。
@@ -360,7 +356,6 @@
 
 > 范围：本轮阅读 8 页（`tools/it/ip-calculator.html`、`tools/it/html-minifier.html`、`tools/it/barcode-ean.html`、`tools/it/docker-run-converter.html`、`tools/it/cron.html`、`tools/it/qr-decoder.html`、`tools/it/url-encode.html`、`tools/it/base64-converter.html`）。仅源码 + Node 复算，未开浏览器/未做 EN/移动端/门禁验证。
 
-- 2026-11-06 复核：原 IT-N72/82 的行内空格和属性空格问题已修，Node 执行 `collapseHtmlWhitespace()` 复核原例均保留；原 IT-N73/84 的 EAN 长度、字符和校验位已修，实际 `buildEAN()` 对空、短、字母、超长、错误校验位返回错误，12 位和正确 13 位均生成 `5901234123457`；原 IT-N74/75 的示例选项、引号和镜像后命令均经 `parse()` 实测通过。仅函数级验证，未做浏览器验证。
 
 - 备注：`tools/it/ip-calculator.html:453-456` 与 `tools/it/cron.html:462-466` 的 `switchTab` 依赖全局 `event`（与 IT-N31 同模式，Firefox 可能失效），不重复计数，未单列为新条目。
 - 本轮实读 8 页：`tools/it/ip-calculator.html`、`tools/it/html-minifier.html`、`tools/it/barcode-ean.html`、`tools/it/docker-run-converter.html`、`tools/it/cron.html`、`tools/it/qr-decoder.html`、`tools/it/url-encode.html`、`tools/it/base64-converter.html`；新增 15 条（高 2 / 中 12 / 低 1）；未覆盖：`tools/it` 其余非文本页（如 `base32-encode`、`base58-encode`、`base85-encode`、`http-headers`、`http-status`、`http-methods`、`mime-type`、`gitignore-generator`、`dockerfile-generator`、`shell-script-formatter`、`ipv6-ula`、`ssl-info`、`aes/des/rsa/ecdsa` 等）与全部速查表页；未做浏览器、EN、移动端、门禁或部署验证。
