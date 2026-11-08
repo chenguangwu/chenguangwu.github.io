@@ -178,13 +178,15 @@ s.parentNode.insertBefore(el, s);
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2>✨ <span data-i18n="it.uuid-generator.title" data-i18n-fb="UUID 生成器">UUID Generator</span></h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">解析前先校验格式，非法时提示无效 UUID。规范化后按 - 切成五段：版本号取第三段首字符按 16 进制解析（1 基于时间、2 DCE 安全、3 MD5 哈希、4 随机数、5 SHA-1 哈希）；变体取第四段首字符按 16 进制解析，&lt; 8 为 NCS 兼容、&lt; 12 为 RFC 4122 标准、&lt; 14 为 Microsoft 兼容、其余保留。同时给出标准格式、去掉分隔符的形式、大写形式，并判断是否等于全零的 NIL UUID</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">解析前先校验格式，非法时提示无效 UUID。规范化后按 - 切成五段：版本号取第三段首字符按 16 进制解析（1 基于时间、2 DCE 安全、3 MD5 哈希、4 随机数、5 SHA-1 哈希、7 时间有序随机）；变体取第四段首字符按 16 进制解析，&lt; 8 为 NCS 兼容、&lt; 12 为 RFC 4122 标准、&lt; 14 为 Microsoft 兼容、其余保留。同时给出标准格式、去掉分隔符的形式、大写形式，并判断是否等于全零的 NIL UUID</div>
   <div class="formula-desc">生成 UUID 全局唯一标识符。</div>
   <ul class="formula-list">
     <li><b>格式</b>：128 位，标准表示为 8-4-4-4-12 共 36 个字符的十六进制串。</li>
     <li><b>v4</b>：完全随机生成（其中 122 位为随机位），最常用。</li>
     <li><b>v1</b>：基于时间戳与 MAC 地址，具备时间顺序性但会暴露主机信息与生成时间。</li>
     <li><b>v5</b>：基于命名空间与名称做 SHA-1 哈希，同一输入恒定得到同一 UUID。</li>
+    <li><b>v7</b>：前 48 位写入 Unix 毫秒时间戳，其余为随机数；按时间有序且不暴露 MAC 地址。</li>
+    <li><b>BigInt</b>：v1 的 100ns 时间戳约为 1.4×10¹⁷，已超过 JS 安全整数上限，须用 BigInt 取位；同一毫秒内以 100ns 序号补足时序性。</li>
   </ul>
 </div>
 
@@ -203,6 +205,7 @@ s.parentNode.insertBefore(el, s);
             <option value="v1">Version 1（时间戳 + MAC）</option>
             <option value="v4" selected>Version 4（随机数）</option>
             <option value="v5">Version 5（SHA-1 命名空间）</option>
+            <option value="v7">Version 7（时间有序随机）</option>
           </select>
         </div>
         <div>
@@ -275,6 +278,10 @@ s.parentNode.insertBefore(el, s);
         <div class="lbl">SHA-1 命名空间</div>
       </div>
       <div class="stat-card">
+        <div class="val">v7</div>
+        <div class="lbl">时间有序随机</div>
+      </div>
+      <div class="stat-card">
         <div class="val">128</div>
         <div class="lbl">位长度</div>
       </div>
@@ -283,6 +290,7 @@ s.parentNode.insertBefore(el, s);
       <li><strong>Version 1:</strong> 基于时间戳和MAC地址生成，可追溯但存在隐私风险。浏览器环境下使用随机节点值替代MAC地址。</li>
       <li><strong>Version 4:</strong> 完全随机生成，最常用的版本，安全性高，约有 2¹²² 个可能的UUID。</li>
       <li><strong>Version 5:</strong> 基于命名空间和名称的SHA-1哈希生成，相同输入产生相同输出，适合需要确定性UUID的场景。</li>
+      <li><strong>Version 7:</strong> 前 48 位写入 Unix 毫秒时间戳，其余为随机数，天然按创建时间有序且不暴露 MAC 地址，适合需要按时间范围检索的数据库主键。</li>
       <li><strong>UUID 格式:</strong> xxxxxxxx-xxxx-Mxxx-Nxxx-xxxxxxxxxxxx，其中M表示版本号，N表示变体（通常为8/9/a/b）。</li>
       <li><strong>NIL UUID:</strong> 00000000-0000-0000-0000-000000000000，全零UUID，用于表示空值。</li>
     </ul>
@@ -381,16 +389,30 @@ function generateUuidV4() {
   return bytesToUuid(bytes);
 }
 
+// RFC 4122 v1 时间戳是「自 1582-10-15 起的 100ns 数」，当前值约 1.4e17，
+// 已超过 Number.MAX_SAFE_INTEGER；且 JS 位运算的移位数按 32 取模，
+// `t >>> 32` 等于不移位、`t >>> 48` 等于 `>>> 16` ⇒ 必须用 BigInt 取位，
+// 否则 time_mid / time_hi 写进去的全是低位，解出的时间会漂到几百年后。
+const UUID_GREG_OFFSET = 122192928000000000n; // 0x01b21dd213814000
+var __v1LastMs = -1, __v1Seq = 0;
+function uuidV1Timestamp() {
+  const ms = Date.now();
+  // 同一毫秒内用 100ns 序号补足时序性（每毫秒最多 10000 个刻度），
+  // 避免批量生成时时间字段完全相同、只剩随机 clock_seq。
+  if (ms === __v1LastMs) __v1Seq = Math.min(__v1Seq + 1, 9999);
+  else { __v1LastMs = ms; __v1Seq = 0; }
+  return BigInt(ms) * 10000n + BigInt(__v1Seq) + UUID_GREG_OFFSET;
+}
 function generateUuidV1() {
   const c = secureCrypto();
   if (!c) return '';
   const bytes = new Uint8Array(16);
   c.getRandomValues(bytes);
 
-  const timestamp = Date.now() * 10000 + 0x01b21dd213814000;
-  const timeLow = timestamp & 0xffffffff;
-  const timeMid = (timestamp >>> 32) & 0xffff;
-  const timeHiAndVersion = ((timestamp >>> 48) & 0x0fff) | 0x1000;
+  const timestamp = uuidV1Timestamp();
+  const timeLow = Number(timestamp & 0xffffffffn);
+  const timeMid = Number((timestamp >> 32n) & 0xffffn);
+  const timeHiAndVersion = Number((timestamp >> 48n) & 0x0fffn) | 0x1000;
   const clockSeqHiAndReserved = (bytes[8] & 0x3f) | 0x80;
   const clockSeqLow = bytes[9];
 
@@ -408,7 +430,27 @@ function generateUuidV1() {
   return bytesToUuid(bytes);
 }
 
+// RFC 9562 v7：前 48 位是 Unix 毫秒时间戳（大端），其余为随机数；
+// 版本号 0111 写在第 7 字节高 4 位，变体 10 写在第 9 字节高 2 位。
+function generateUuidV7() {
+  const c = secureCrypto();
+  if (!c) return '';
+  const bytes = new Uint8Array(16);
+  c.getRandomValues(bytes);
+  const ms = BigInt(Date.now());
+  bytes[0] = Number((ms >> 40n) & 0xffn);
+  bytes[1] = Number((ms >> 32n) & 0xffn);
+  bytes[2] = Number((ms >> 24n) & 0xffn);
+  bytes[3] = Number((ms >> 16n) & 0xffn);
+  bytes[4] = Number((ms >> 8n) & 0xffn);
+  bytes[5] = Number(ms & 0xffn);
+  bytes[6] = (bytes[6] & 0x0f) | 0x70;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  return bytesToUuid(bytes);
+}
+
 async function generateUuidV5(namespace, name) {
+  if (!isValidUuid(namespace)) throw new Error('Invalid namespace UUID');
   const nsBytes = uuidToBytes(namespace);
   const nameBytes = new TextEncoder().encode(name);
   const combined = new Uint8Array(nsBytes.length + nameBytes.length);
@@ -457,12 +499,26 @@ async function generateUuid() {
   }
   const count = Math.min(Math.max(parseInt(document.getElementById('count').value) || 1, 1), 1000);
   const version = document.getElementById('version').value;
-  
+
+  // v5 的命名空间必须是合法 UUID：uuidToBytes 只剔除非十六进制字符，
+  // 传入 'abc' 会被当成 [0xab,0x0c,0,0,…] 静默产出「看起来合法」但幂等键全漂移的结果。
+  if (version === 'v5') {
+    const ns = document.getElementById('namespace').value.trim();
+    if (!isValidUuid(ns)) {
+      document.getElementById('output').value = (typeof TBKit!=='undefined'&&TBKit.util.isEn())
+        ? 'Invalid namespace UUID: use the 8-4-4-4-12 hex form, e.g. 6ba7b810-9dad-11d1-80b4-00c04fd430c8.'
+        : '命名空间 UUID 格式非法：请填写 8-4-4-4-12 的十六进制 UUID（如 6ba7b810-9dad-11d1-80b4-00c04fd430c8）。';
+      return;
+    }
+  }
+
   const uuids = [];
   for (let i = 0; i < count; i++) {
     let raw;
     if (version === 'v1') {
       raw = generateUuidV1();
+    } else if (version === 'v7') {
+      raw = generateUuidV7();
     } else if (version === 'v5') {
       const ns = document.getElementById('namespace').value;
       const name = document.getElementById('name').value + (count > 1 ? ':' + i : '');
@@ -567,6 +623,7 @@ function parseUuid() {
   else if (version === 3) versionName = 'MD5 哈希';
   else if (version === 4) versionName = '随机数';
   else if (version === 5) versionName = 'SHA-1 哈希';
+  else if (version === 7) versionName = '时间有序随机';
   
   const nilUuid = '00000000-0000-0000-0000-000000000000';
   

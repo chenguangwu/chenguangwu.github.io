@@ -8478,6 +8478,48 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"fname\":\"abc123测试\",\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\"}。2026-10-26 S1 首屏即答案改造后：boot 首渲染令 input/output 先于 fname 登记 ⇒ 值回显段序变化，旧锚「abc123测试\\n1 2 3」断裂；改锚为兜底 enc() 的确定性产物 begin 644 abc123测试 头（依赖注入的 fname，默认态 file.txt ⇒ 不含该串，判别力保持且更强）。"
   },
   {
+    "slug": "it/uuid-generator",
+    "inputs": {"version": "v1", "count": "1"},
+    "clicks": ["var u=generateUuidV1();var p=u.replace(/-/g,'');var tl=parseInt(p.slice(0,8),16),tm=parseInt(p.slice(8,12),16),th=parseInt(p.slice(12,16),16)&4095;var t=(BigInt(th)<<48n)|(BigInt(tm)<<32n)|BigInt(tl);var now=BigInt(Date.now())*10000n+122192928000000000n;var d=t>now?t-now:now-t;document.getElementById('output').value='V1 d='+(d<100000000n?1:0)+' v='+p.charAt(12)+' q='+(document.getElementById('version').value==='v1'?1:0);"],
+    "expect": ["V1 d=1 v=1 q=1"],
+    "ref": "IT-N407（高）：按 RFC 4122 从 time_low/time_mid/time_hi 拼回 100ns 时间戳，必须等于生成时刻（差 < 1e8 个 100ns，即同一毫秒内序号）。修复前用 Number + >>>32/>>>48，解出的时间漂到 2780 年甚至 4538 年 ⇒ d 远超阈值。断言与具体日期无关（harness Date 冻结在 2024-06-15，本地与 CI 一致）。q=1 绑注入的 version。"
+  },
+  {
+    "slug": "it/uuid-generator",
+    "inputs": {"version": "v1", "count": "1"},
+    "clicks": ["var u=generateUuidV1();var p=u.replace(/-/g,'');var mid=parseInt(p.slice(8,12),16),hi=parseInt(p.slice(12,16),16)&4095;var t=BigInt(Date.now())*10000n+122192928000000000n;document.getElementById('output').value='V1F mid='+(mid===Number((t>>32n)&65535n)?1:0)+' hi='+(hi===Number((t>>48n)&4095n)?1:0);"],
+    "expect": ["V1F mid=1 hi=1"],
+    "ref": "IT-N407：直接对照 time_mid/time_hi 的真值。JS 位运算移位数按 32 取模 ⇒ 修复前 mid 取的是低 16 位、hi 取的是 >>>16 的低 12 位，两项都不可能等于 BigInt 取位的结果 ⇒ 双变红。"
+  },
+  {
+    "slug": "it/uuid-generator",
+    "inputs": {"version": "v1", "count": "2"},
+    "clicks": ["var a=generateUuidV1(),b=generateUuidV1();var la=parseInt(a.replace(/-/g,'').slice(0,8),16),lb=parseInt(b.replace(/-/g,'').slice(0,8),16);var inc=(lb===la+1)||(la>lb&&lb===0);document.getElementById('output').value='V1SEQ inc='+(inc?1:0)+' q='+(document.getElementById('count').value==='2'?1:0);"],
+    "expect": ["V1SEQ inc=1 q=1"],
+    "ref": "IT-N407：同一毫秒内连续生成两条，时间字段必须以 100ns 序号递增（修复前 time_low 完全相同 ⇒ inc=0）。q=1 绑注入的 count=2。"
+  },
+  {
+    "slug": "it/uuid-generator",
+    "inputs": {"version": "v7", "count": "1"},
+    "clicks": ["var u=generateUuidV7();var p=u.replace(/-/g,'');var hi=(BigInt(parseInt(p.slice(0,4),16))<<32n)|BigInt(parseInt(p.slice(4,12),16));document.getElementById('output').value='V7 v='+p.charAt(12)+' ms='+(hi===BigInt(Date.now())?1:0)+' q='+(document.getElementById('version').value==='v7'?1:0);"],
+    "expect": ["V7 v=7 ms=1 q=1"],
+    "ref": "IT-N408：v7 前 48 位必须是 Unix 毫秒时间戳、版本号位为 7。修复前页面根本没有 generateUuidV7（下拉也无 v7）⇒ clicks 抛错、输出区无 V7 串。"
+  },
+  {
+    "slug": "it/uuid-generator",
+    "inputs": {"version": "v7", "count": "1"},
+    "clicks": ["generateUuid();var v=document.getElementById('output').value;document.getElementById('output').value='GEN7 ver='+(v.charAt(14)==='7'?1:0)+' len='+(v.length===36?1:0)+' q='+(document.getElementById('version').value==='v7'?1:0);"],
+    "expect": ["GEN7 ver=1 len=1 q=1"],
+    "ref": "IT-N408：真入口 generateUuid() 必须把 v7 分发到 generateUuidV7，而不是落到 else 的 v4。修复前产出版本号 4 ⇒ ver=0。v7 分支无 await，async 函数体同步跑完，输出区立即可读。"
+  },
+  {
+    "slug": "it/uuid-generator",
+    "inputs": {"version": "v5", "namespace": "abc", "name": "example.com", "count": "1"},
+    "clicks": ["generateUuid();var v=document.getElementById('output').value;document.getElementById('output').value='NS5 bad='+(v.indexOf('格式非法')>=0?1:0)+' q='+(document.getElementById('namespace').value==='abc'?1:0);"],
+    "expect": ["NS5 bad=1 q=1"],
+    "ref": "IT-N409：v5 命名空间 'abc' 必须在结果区明确报「格式非法」并中止，不能静默产出看似合法的 UUID。修复前 uuidToBytes('abc') 得 [0xab,0x0c,0,0,…] 后照常哈希 ⇒ 无错误提示。q=1 绑注入的非法命名空间。"
+  },
+  {
     "slug": "it/uuid-v5-generator",
     "inputs": {
       "ns": "abc123测试",
