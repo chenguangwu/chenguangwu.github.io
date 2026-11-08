@@ -2372,12 +2372,6 @@
 - 新增 18 条（高 8 / 中 10），编号 IT-N348~IT-N365；第 2 轮止于 IT-N347，本批无重号。
 - 假工具候选 0 页：8 页均有真实转换/解析逻辑（JWT 生成器例外，见 IT-N349）。
 
-### IT-N348 正则表达式原样拼进 innerHTML，可执行任意脚本（高，确认缺陷）
-- 问题：`render()` 把 token 直接插入状态标签与边标签的 innerHTML，未做 HTML 转义；而正则里 `<`、`>`、`=`、`/` 都是合法字面量，第 272 行的 `new RegExp` 校验不会拦截这类载荷。
-- 证据：`tools/it/regex-visualizer.html:283`、`:285`（切分逻辑 `:236-248`，输入框 `:133`）
-- 复现：输入 `<img src=x onerror=alert(1)>` → `new RegExp` 通过（node 实测为合法正则），结果区 `<div class="state">S1: <img src=x onerror=alert(1)>` 注入并弹窗；期望按纯文本显示每个 token。
-- 影响：DOM XSS；该输入还会被解析历史/预设恢复路径回填（`:300-399`），刷新后点历史即可再次触发。
-- 方案：状态与边的标签统一走 `escH()` 或 `textContent`/`createTextNode` 渲染，禁止字符串拼接进 innerHTML。
 
 ### IT-N349 「生成 JWT」用 32 位滚动哈希冒充 HMAC，产出 token 无法验签（高，确认缺陷）
 - 问题：`simpleHmac()` 只是 `hash=((hash<<5)-hash)+chr` 的 32 位滚动哈希，返回十进制字符串，再对该字符串做 base64url；既不是 HMAC-SHA256/384/512，也不是签名字节的 base64url。
@@ -2386,12 +2380,6 @@
 - 影响：页面标题承诺「生成JWT」，但生成的 token 100% 无效，接入联调必得 401，属假实现。
 - 方案：改用 WebCrypto（`crypto.subtle.importKey('raw',…,{name:'HMAC',hash:'SHA-256'})` + `subtle.sign`），按 alg 映射 SHA-256/384/512，签名 ArrayBuffer 直接 base64url。
 
-### IT-N350 声明表把 payload 键/值原样写进 innerHTML，他人 token 可执行脚本（高，确认缺陷）
-- 问题：`for (const [k,v] of Object.entries(payload))` 用模板串把 `k`、`displayVal` 直接拼进 `claimsHtml`，最后 `claimsDiv.innerHTML=claimsHtml`；payload 完全来自粘贴 token 的解码结果。
-- 证据：`tools/it/jwt-debugger.html:446-454`（拼接在 `:451`）
-- 复现：构造三段合法 base64url 的 token，payload 为 `{"name":"<img src=x onerror=alert(1)>"}` → 声明表渲染即执行（node 复算确认 claimsHtml 含未转义的 `<img`）；期望显示为文本。
-- 影响：可把恶意 token 发给他人，在本站执行脚本并读取 localStorage 中的解析历史（历史里存着其它 token 前缀）。
-- 方案：`k`/`displayVal` 一律转义（或逐单元格 `textContent`），时间字段单独格式化后再插入。
 
 ### IT-N351 解析历史只存前 60 字符，点击任一历史项必然解析失败（高，确认缺陷）
 - 问题：`addToHistory(token.substring(0, 60) + '...')` 只保存截断串；`loadHist` 却把它当完整 token 回填给 `decodeJwt()`。
@@ -2499,8 +2487,7 @@
 - 方案：`depth === 0` 且值为数组时先包一层 `<root>`（或 `<list>`），元素名用 `item`，再逐项输出。
 
 ### 覆盖清单（T 批 IT 第 3 轮）
-- `regex-visualizer`：IT-N348（高）。
-- `jwt-debugger`：IT-N349、IT-N350、IT-N351（高）。
+- `jwt-debugger`：IT-N349、IT-N351（高）。
 - `hash-identifier`：IT-N363、IT-N364（中）。
 - `json-repair`：IT-N352（高）、IT-N353（中）。
 - `json-to-xml`：IT-N365（中）。
@@ -3997,7 +3984,7 @@
 - **regex-cheatsheet**：纯查表；`\A \Z` 在 JS 中是字面 A/Z（node：`/\AHello/` 命中「AHello」）；`[:alpha:]` 为 POSIX 语法，JS 不支持且未注明（IT-D30）。
 - **regex-common**：默认文本 4 token、`cat` 为空 → fallback email → 2 条；结果本身对，但类别选择器 `select` 无任何 `<option>`，8 类仅 email 可达（IT-D27）。
 - **regex-escape**：默认 `Hello (World)? [a-z]+ $19.99` → `Hello \(World\)\? \[a-z\]\+ \$19\.99` 正确；反转义 `\d+\w`→`d+w`（IT-D29）。
-- **regex-visualizer**：默认 `^a[0-9]+b$` → 10 token / 12 状态直线（node 复算），与「树状、分组/量词/字符类层级」不符（IT-D28）；token 标签原样拼 innerHTML，合法正则 `<img src=x onerror=alert(1)>` 渲染即执行（IT-N348 仍成立）。
+- **regex-visualizer**：默认 `^a[0-9]+b$` → 10 token / 12 状态直线（node 复算），与「树状、分组/量词/字符类层级」不符（IT-D28）。
 
 ### 问题清单（新增）
 
@@ -4012,7 +3999,7 @@
 
 - 页数 **5**；独立实现 **2** / 共享模板 **3**。
 - 新增 **4** 条（高 **2** / 中 **2** / 假 **0** / 安全 **0**）；编号 IT-D27–IT-D30。
-- 复核既有：IT-N253（base64 `+` 被 URLSearchParams 解成空格）、IT-N254（替换/复制恒补 `g`）、IT-N348（visualizer DOM XSS）仍成立；IT-N252 的超时部分已失效（`:492-521` Worker + 800ms），「每次按键跑两遍」仍成立（`#flags` 内联 oninput 与 `:465` 双绑）。
+- 复核既有：IT-N253（base64 `+` 被 URLSearchParams 解成空格）、IT-N254（替换/复制恒补 `g`）仍成立；IT-N252 的超时部分已失效（`:492-521` Worker + 800ms），「每次按键跑两遍」仍成立（`#flags` 内联 oninput 与 `:465` 双绑）。
 - 复算方式：`/tmp` node 同构造跑默认用例与 `\A`/`[:alpha:]` 语义，`new RegExp` 校验；未开浏览器、未跑 `_build.py`/门禁、未改仓库文件。
 
 ## AC 批 · PDF/文件解析族（2026-11-04）

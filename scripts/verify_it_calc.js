@@ -1344,6 +1344,14 @@ const CASES = [
     ref: "默认 pattern 为 `^a[0-9]+b$`（含 a 转移、无 z 转移）⇒ 锚取注入态独有的 z 转移边；`1 --a--> 2` 在默认态同命中，不可用。",
   },
   {
+    // IT-N348 回归：正则内容进 innerHTML 前必须 HTML 转义，不能原样拼出可执行标签。
+    slug: "it/regex-visualizer",
+    inputs: { pattern: "a<b" },
+    clicks: ["render()"],
+    expect: ["S2: &lt; S3: b"],
+    ref: "IT-N348：注入含 `<` 的 pattern `a<b`，状态标签里的 `<` 必须经 escapeHtml 变成 `&lt;`（裸 `<` 会被当作标签起始、在结果区不可见且存在注入风险）；默认 pattern `^a[0-9]+b$` 无 `<` 字符 ⇒ 该串仅注入态可见，强判别。",
+  },
+  {
     slug: "it/markdown-to-html",
     inputs: { md: "## Hello World" },
     expect: ["Hello World"],
