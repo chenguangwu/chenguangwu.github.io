@@ -173,6 +173,13 @@ s.parentNode.insertBefore(el, s);
           <option value="one">单侧</option>
         </select>
       </div>
+      <div><label>求解目标</label>
+        <select id="solveFor">
+          <option value="power">求功效（已知样本量 n）</option>
+          <option value="size">求样本量（已知目标功效）</option>
+        </select>
+      </div>
+      <div><label>目标功效 1−β</label><input type="number" id="targetPower" value="0.8" step="0.05" min="0.01" max="0.99" placeholder="如 0.8（0.01–0.99）"></div>
     </div>
     <div class="toolbar">
       <div id="statistical_powerPresets"></div><button type="button" class="btn primary" onclick="calculate()">计算</button><button class="btn" type="button" onclick="__statistical_powerExport()">导出明细 CSV</button>
@@ -182,6 +189,7 @@ s.parentNode.insertBefore(el, s);
   <div class="card">
     <h2>📋 功效公式（双样本 t 检验近似）</h2>
     <div class="formula-display">功效 = 1 − β = P(拒绝 H₀ | H₁ 为真) ≈ Φ(d√(n/2) − z*₁₋α)</div>
+    <div class="formula-display">反解样本量：n = ⌈2 × ((z₁₋α′ + z₁₋β) / d)²⌉（每组，α′ 双侧取 α/2）</div>
     <div class="info-box">
       <strong>功效等级：</strong><br>
       • 功效 &lt; 0.5：差<br>
@@ -298,10 +306,26 @@ function normalInv(p){
 function calculate(){
   const out=document.getElementById('output');
   const d=parseFloat(document.getElementById('d').value);
-  const n=parseInt(document.getElementById('n').value);
+  let n=parseInt(document.getElementById('n').value);
   const alpha=parseFloat(document.getElementById('alpha').value);
   const tail=document.getElementById('tail').value;
-  if([d,n,alpha].some(isNaN)||d<=0||n<1||alpha<=0||alpha>0.5){const __h0='<p style="color:var(--danger)" data-zh="请输入有效参数">Please enter valid parameters.</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0;return;}
+  const solveEl=document.getElementById('solveFor');
+  const solveFor=solveEl?solveEl.value:'power';
+  const tpEl=document.getElementById('targetPower');
+  const targetPower=tpEl?parseFloat(tpEl.value):NaN;
+  if(solveFor!=='size'&&([d,n,alpha].some(isNaN)||d<=0||n<1||alpha<=0||alpha>0.5)){const __h0='<p style="color:var(--danger)" data-zh="请输入有效参数">Please enter valid parameters.</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0;return;}
+  // IT-N375：承诺「知三求一 / 求所需样本量」，原来只有功效一个输出
+  let solvedN=null, zA=0, zB=0;
+  if(solveFor==='size'){
+    if(isNaN(d)||d<=0||isNaN(alpha)||alpha<=0||alpha>0.5){const __hs0='<p style="color:var(--danger)">请输入有效参数（d &gt; 0，α 在 0~0.5）</p>';out.innerHTML=__hs0;return;}
+    if(isNaN(targetPower)||targetPower<=0||targetPower>=1){const __hs1='<p style="color:var(--danger)">目标功效 1−β 必须在 0~1 之间（不含端点）</p>';out.innerHTML=__hs1;return;}
+    zA = (tail==='two') ? normalInv(1-alpha/2) : normalInv(1-alpha);
+    zB = normalInv(targetPower);
+    const nRaw = 2*Math.pow((zA+zB)/d,2);
+    solvedN = Math.ceil(nRaw);
+    if(!isFinite(solvedN)||solvedN<1){const __hs2='<p style="color:var(--danger)">无法反解出有效样本量，请检查效应量与目标功效</p>';out.innerHTML=__hs2;return;}
+    n = solvedN;
+  }
   // 双样本 t 检验近似：非中心参数 δ = d*√(n/2)
   const delta=d*Math.sqrt(n/2);
   let zCrit;
@@ -311,7 +335,9 @@ function calculate(){
   const power = tail==='two' ? normalCDF(delta-zCrit) + normalCDF(-delta-zCrit) : normalCDF(delta-zCrit);
   const beta=1-power;
   let powerLvl = power<0.5?'差':(power<0.8?'可接受':(power<0.95?'良好':'优秀'));
-  let html=`<div class="big-result">功效 = ${(power*100).toFixed(2)}%</div>`;
+  let html = (solvedN!==null)
+    ? `<div class="big-result">所需样本量 = ${solvedN}（每组），实际功效 ${(power*100).toFixed(2)}%</div>`
+    : `<div class="big-result">功效 = ${(power*100).toFixed(2)}%</div>`;
   html+=`<div class="stat-grid">
     <div class="stat-card"><div class="v">${fmt(d)}</div><div class="l">效应量 d</div></div>
     <div class="stat-card"><div class="v">${n}</div><div class="l">每组样本量 n</div></div>
@@ -322,6 +348,9 @@ function calculate(){
     <div class="stat-card"><div class="v" style="color:var(--success);">${powerLvl}</div><div class="l">功效等级</div></div>
   </div>`;
   html+=`<h3 style="margin-top:14px;">分步计算</h3>`;
+  if(solvedN!==null){
+    html+=`<div class="step-line"><strong>反解：</strong>n = ⌈2×((z₁₋α' + z₁₋β)/d)²⌉ = ⌈2×((${fmt(zA)} + ${fmt(zB)})/${fmt(d)})²⌉ = ${solvedN}（每组）</div>`;
+  }
   html+=`<div class="step-line"><strong>步骤 1：</strong>非中心参数 δ = d × √(n/2) = ${fmt(d)} × √(${n}/2) = ${fmt(d)} × ${fmt(Math.sqrt(n/2))} = ${fmt(delta)}</div>`;
   html+=`<div class="step-line"><strong>步骤 2：</strong>临界值 z* = ${fmt(zCrit)}（α=${alpha}，${tail==='two'?'双侧':'单侧'}）</div>`;
   html+=`<div class="step-line"><strong>步骤 3：</strong>功效 = Φ(δ − z*)${tail==='two'?' + Φ(−δ − z*)':''} = Φ(${fmt(delta-zCrit)})${tail==='two'?` + Φ(${fmt(-delta-zCrit)})`:''} = ${fmt(power)}</div>`;

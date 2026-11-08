@@ -264,6 +264,13 @@ function fmt(x){
   if(Math.abs(x)>1e15||Math.abs(x)<1e-6) return x.toExponential(8);
   return (Math.round(x*1e10)/1e10).toLocaleString();
 }
+// IT-N374：优势比的发散（分母 0）与「未定义」是两种语义，必须分开显示
+function fmtOdds(x){
+  if(x===Infinity) return '∞';
+  if(x===-Infinity) return '−∞';
+  if(!isFinite(x)) return '未定义';
+  return fmt(x);
+}
 function loadExample(type){
   if(type==='medical'){
     document.getElementById('prior').value='0.01';
@@ -302,14 +309,20 @@ function calculate(){
     <div class="stat-card"><div class="v">${fmt(pE)}</div><div class="l">证据 P(E)</div></div>
     <div class="stat-card"><div class="v">${fmt(posterior)}</div><div class="l">后验 P(H₁|E)</div></div>
     <div class="stat-card"><div class="v">${fmt(bayesFactor)}</div><div class="l">贝叶斯因子 BF</div></div>
-    <div class="stat-card"><div class="v">${fmt(priorOdds)} → ${fmt(posteriorOdds)}</div><div class="l">优势比变化</div></div>
+    <div class="stat-card"><div class="v">${fmtOdds(priorOdds)} → ${fmtOdds(posteriorOdds)}</div><div class="l">优势比变化</div></div>
   </div>`;
   html+=`<h3 style="margin-top:14px;">分步计算</h3>`;
   html+=`<div class="step-line"><strong>步骤 1：</strong>P(¬H₁) = 1 − P(H₁) = 1 − ${fmt(prior)} = ${fmt(priorNot)}</div>`;
   html+=`<div class="step-line"><strong>步骤 2：</strong>P(E) = P(E|H₁)×P(H₁) + P(E|¬H₁)×P(¬H₁) = ${fmt(likelihood)}×${fmt(prior)} + ${fmt(fp)}×${fmt(priorNot)} = ${fmt(likelihood*prior)} + ${fmt(fp*priorNot)} = ${fmt(pE)}</div>`;
   html+=`<div class="step-line"><strong>步骤 3：</strong>分子 = P(E|H₁)×P(H₁) = ${fmt(likelihood)}×${fmt(prior)} = ${fmt(likelihood*prior)}</div>`;
   html+=`<div class="step-line"><strong>步骤 4：</strong>后验 P(H₁|E) = 分子 / P(E) = ${fmt(likelihood*prior)} / ${fmt(pE)} = ${fmt(posterior)}</div>`;
-  html+=`<div class="step-line"><strong>步骤 5（优势比形式）：</strong>先验优势 = ${fmt(priorOdds)}；BF = P(E|H₁)/P(E|¬H₁) = ${fmt(likelihood)}/${fmt(fp)} = ${fmt(bayesFactor)}；后验优势 = ${fmt(priorOdds)}×${fmt(bayesFactor)} = ${fmt(posteriorOdds)}</div>`;
+  html+=`<div class="step-line"><strong>步骤 5（优势比形式）：</strong>先验优势 = ${fmtOdds(priorOdds)}；BF = P(E|H₁)/P(E|¬H₁) = ${fmt(likelihood)}/${fmt(fp)} = ${fmtOdds(bayesFactor)}；后验优势 = ${fmtOdds(priorOdds)}×${fmtOdds(bayesFactor)} = ${fmtOdds(posteriorOdds)}</div>`;
+  if(prior===0||prior===1){
+    html+=`<div class="step-line"><strong>边界说明：</strong>先验 P(H₁) = ${fmt(prior)} 时 P(¬H₁) = 0，先验优势 ${fmt(prior)}/0 发散为 ${fmtOdds(priorOdds)}；此时证据无法再改变信念，后验恒为 ${fmt(posterior)}。</div>`;
+  }
+  if(fp===0){
+    html+=`<div class="step-line"><strong>边界说明：</strong>误报率 P(E|¬H₁) = 0 意味着证据在 ¬H₁ 下不可能出现，贝叶斯因子发散为 ∞。</div>`;
+  }
   // 可视化对比
   html+=`<h3 style="margin-top:14px;">先验 vs 后验对比</h3>`;
   html+=`<div class="prob-row"><span class="name">先验 P(H₁)</span><div class="bar" style="width:${prior*100}%;"></div><span class="val">${(prior*100).toFixed(2)}%</span></div>`;

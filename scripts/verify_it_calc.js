@@ -684,6 +684,13 @@ const CASES = [
     ref: "独立复算：δ=d×√(n/2)=1×3.162=3.162，z*=1.96 ⇒ 功效=Φ(1.202)+Φ(−5.122)≈0.885 ⇒ 88.5%；默认 d=0.5/n=64 得 80.7%，不命中。",
   },
   {
+    slug: "it/statistical-power",
+    inputs: { d: "0.5", alpha: "0.05", tail: "two", solveFor: "size", targetPower: "0.8" },
+    clicks: ["calculate()"],
+    expect: ["所需样本量 = 63（每组），实际功效 80.13%"],
+    ref: "IT-N375：页面承诺「四要素知三求一 / 求所需样本量」，修复前只有功效一个输出、没有求解模式。「求解目标」选「求样本量」后按 n = ⌈2((z₁₋α/₂+z₁₋β)/d)²⌉ 反解：z₁₋α/₂=1.95996、z₁₋β=0.84162、d=0.5 ⇒ 2×((1.95996+0.84162)/0.5)² = 62.79 ⇒ n=63；再用 n=63 复核功效 δ=0.5×√31.5=2.8062，Φ(2.8062−1.95996)=0.8013 ⇒ 80.13%。expect 是反解出来的样本量与复核功效，输入里只有 0.5/0.05/0.8 ⇒ 非回显；修复前页面无 #solveFor，#targetPower 也无效 ⇒ 走的是求功效分支、输出「功效 = …%」而非该串 ⇒ 必红灯。",
+  },
+  {
     slug: "it/text-truncate",
     // 默认「省略号」select 值为 "..."；words 模式 limit=2 ⇒ "Alpha beta" + "..."。
     inputs: { input: "Alpha beta gamma delta", limit: "2", mode: "words" },
@@ -1614,6 +1621,13 @@ const CASES = [
     clicks: ["calculate()"],
     expect: ["P(H₁ | E) = 0.154 (15.38%)"],
     ref: "后验 = 0.9×0.01 / (0.9×0.01 + 0.05×0.99) = 0.009/0.059 ≈ 0.1538；默认示例先验不同，不命中。",
+  },
+  {
+    slug: "it/bayes-theorem",
+    inputs: { prior: "1", likelihood: "0.9", falsePositive: "0.05" },
+    clicks: ["calculate()"],
+    expect: ["先验优势 = ∞；BF = P(E|H₁)/P(E|¬H₁) = 0.9/0.05 = 18；后验优势 = ∞×18 = ∞"],
+    ref: "IT-N374：先验 P(H₁)=1 ⇒ P(¬H₁)=0 ⇒ 先验优势 1/0 发散为 ∞。修复前 `fmt` 把 Infinity 一律写成「未定义」，卡片显示「未定义 → 未定义」、步骤 5「先验优势 = 未定义」。现在发散与未定义分开：优势比走 fmtOdds（∞），并补「边界说明」解释先验为 0/1 时优势比发散。expect 只依赖 prior=1 这一注入值（默认示例 prior=0.01，优势比 0.01 → 有限值）⇒ 非回显、修复前必红灯。",
   },
   {
     slug: "it/exponential-distribution",
