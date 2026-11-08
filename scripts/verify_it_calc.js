@@ -6743,6 +6743,63 @@ const CASES = [
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"schema\":\"1\\n2\\n3\",\"data\":\"1\\n2\\n3\"}，输出区点名「JSON Schema 解析失败」并附 JSON.parse 的行列位置；默认示例（合法 schema/data）通过校验，不含该串 ⇒ 强判别、零逃生。"
   },
+  // ---- IT-N398 / IT-N399 / IT-N400：根 schema 类型推断、null 合法、联合 type 与原型链 ----
+  {
+    "slug": "it/json-schema-validator",
+    "inputs": { "schema": "{\"required\":[\"a\"],\"properties\":{\"a\":{\"type\":\"string\"}}}", "data": "{\"a\":1}" },
+    "expect": ["类型不匹配 root.a: 期望 string"],
+    "ref": "IT-N398（高）：根 schema 省略 `type:\"object\"` 时，`properties`/`required` 本身即隐含对象约束，必须继续按对象校验。修复前 `walk` 只在 `schema.type==='object'` 时进对象分支 ⇒ 明显非法的数据被判「校验通过」。默认示例的 schema 带 type，不会产生该串。"
+  },
+  {
+    "slug": "it/json-schema-validator",
+    "inputs": { "schema": "{\"required\":[\"a\"],\"properties\":{\"a\":{\"type\":\"string\"}}}", "data": "{}" },
+    "expect": ["缺少必填字段: root.a"],
+    "ref": "IT-N398（高）：同一 schema（无根 type）下空对象必须报缺少必填。修复前整段 required 检查被跳过 ⇒ 「校验通过」。默认示例 required 是 name 且有值 ⇒ 不含该串。"
+  },
+  {
+    "slug": "it/json-schema-validator",
+    "inputs": { "schema": "{\"properties\":{\"a\":{\"type\":\"string\"}},\"additionalProperties\":false}", "data": "{\"a\":\"x\",\"b\":1}" },
+    "expect": ["存在未允许字段: root.b"],
+    "ref": "IT-N398（高）：根无 type 时 `additionalProperties:false` 同样必须生效。修复前额外字段检查整段不执行 ⇒ 「校验通过」。默认示例虽也有 additionalProperties:false，但其数据没有多余字段 ⇒ 不产生该串。"
+  },
+  {
+    "slug": "it/json-schema-validator",
+    "inputs": { "schema": "{\"type\":\"array\",\"items\":{\"required\":[\"id\"],\"properties\":{\"id\":{\"type\":\"number\"}}}}", "data": "[{\"id\":1},{\"name\":\"x\"}]" },
+    "expect": ["缺少必填字段: root[1].id"],
+    "ref": "IT-N398：`items` 里的子 schema 同样常省略 `type`，需按 properties/required 推断为对象并校验到具体下标。修复前第二项被整体放过。"
+  },
+  {
+    "slug": "it/json-schema-validator",
+    "inputs": { "schema": "{\"type\":[\"string\",\"number\"]}", "data": "{}" },
+    "expect": ["期望 string / number"],
+    "ref": "IT-N400：`type` 允许联合数组，任一匹配即通过、全不匹配必须报错。修复前 `typeOK` 逐字符串比较，数组与每个字面量都不相等 ⇒ 落到 `return true`，任意数据都判通过。默认示例的 type 是单个字符串 ⇒ 不产生该串。"
+  },
+  {
+    "slug": "it/json-schema-validator",
+    "inputs": { "schema": "{\"type\":\"object\",\"required\":[\"constructor\"]}", "data": "{}" },
+    "expect": ["缺少必填字段: root.constructor"],
+    "ref": "IT-N400：必填检查必须用 hasOwnProperty。修复前 `k in val` 命中 `Object.prototype` ⇒ `{}` 被当成「含有 constructor」而通过。输入数据就是空对象，不可能自带该错误串。"
+  },
+  {
+    "slug": "it/json-schema-validator",
+    "inputs": { "schema": "{\"type\":\"object\",\"properties\":{\"a\":{\"type\":\"string\"}},\"additionalProperties\":false}", "data": "{\"a\":\"x\",\"toString\":1}" },
+    "expect": ["存在未允许字段: root.toString"],
+    "ref": "IT-N400：额外字段判断同理——`!(k in props)` 会把 `toString` 当成属性表里已有 ⇒ 漏报。修复前该数据判「校验通过」。"
+  },
+  {
+    "slug": "it/json-schema-validator",
+    "inputs": { "schema": "{\"type\":\"null\"}", "data": "null" },
+    "clicks": ["var r=document.getElementById('result');var ok=r.innerHTML.indexOf('校验通过')>=0?1:0;r.textContent='N399 v='+(document.getElementById('data').value==='null'?1:0)+' ok='+ok;"],
+    "expect": ["N399 v=1 ok=1"],
+    "ref": "IT-N399：合法的 JSON null 必须能通过 `{\"type\":\"null\"}` 的校验，不能被当成「JSON 格式错误」。该页 `parseSafely` 已返回 `{ok,value}`（早期批次已修），本用例作为回归锁；`v=1` 绑注入值（注入失败时 data 回落默认对象 ⇒ v=0 ⇒ FAIL），避免退化成「与输入无关」的逃生断言。"
+  },
+  {
+    "slug": "it/json-schema-validator",
+    "inputs": { "schema": "{\"type\":[\"object\",\"null\"]}", "data": "null" },
+    "clicks": ["var r=document.getElementById('result');var ok=r.innerHTML.indexOf('校验通过')>=0?1:0;r.textContent='N400N v='+(document.getElementById('data').value==='null'?1:0)+' ok='+ok;"],
+    "expect": ["N400N v=1 ok=1"],
+    "ref": "IT-N400 边界：联合类型含 null 时 null 必须放行，不能被对象分支误报「root 不是对象」（本批实现里 `else if (explicitObj && val !== null)` 就是为此）。同上的 `v=1` 防逃生。"
+  },
   {
     "slug": "it/json-formatter",
     "inputs": {

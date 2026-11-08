@@ -2377,33 +2377,6 @@
 
 ## U 批 · IT 转换/编码边界（2026-11-04）
 
-### IT-N398 schema 根缺少 `type:"object"` 时 required/properties/additionalProperties 全部被跳过，非法数据被判通过（高，确认缺陷）
-- 页面：`tools/it/json-schema-validator.html`
-- 问题：`walk` 只有在 `schema.type === 'object'` 时才检查 required/properties/additionalProperties（`:267-289`）；根 schema 未显式写 `type:"object"`（JSON Schema 中很常见，且 `properties` 本身即隐含对象约束）时，`typeOK(undefined)` 返回 true，随后两个分支都不进入，直接返回无错误。
-- 行号：`:260-299`（`:267`、`:272-288`）、`:249`
-- 复现：schema `{"required":["a"],"properties":{"a":{"type":"string"}}}` + data `{"a":1}` → 实际「校验通过 ✅」；期望「未通过：类型不匹配 root.a: 期望 string」。data `{}` 时同样漏报必填。
-- 影响：大量真实 schema 省略根 `type`，本工具会对明显非法的数据给出「通过」，比报错更危险。
-- 方案：`properties`/`required`/`additionalProperties` 存在时按对象处理（或先推断类型），不要依赖显式 `type`。
-- 假工具：否
-
-### IT-N399 合法数据 `null` 被当作「JSON 格式错误」，`{"type":"null"}` 永远无法通过（中，确认缺陷）
-- 页面：`tools/it/json-schema-validator.html`
-- 问题：`parseSafely` 解析失败返回 `null`，而 `JSON.parse('null')` 也返回 `null`，`validateJSON` 用 `data === null` 统一判为格式错误（`:304`）；因此 null 既是合法 JSON 又被误判。
-- 行号：`:240-246`、`:304`
-- 复现：schema `{"type":"null"}` + data `null` → 实际「JSON 格式错误」；期望「校验通过 ✅」（该 schema 的唯一合法值就是 null）。
-- 影响：JSON Schema 的 `null` 类型分支完全不可用，含 null 的可空字段数据也无法校验。
-- 方案：解析结果用 `{ok, value}` 包装区分「解析失败」与「值为 null」。
-- 假工具：否
-
-### IT-N400 `type` 联合数组永远通过；`in` 运算符走原型链使 `toString`/`constructor` 绕过必填与额外字段检查（中，确认缺陷）
-- 页面：`tools/it/json-schema-validator.html`
-- 问题：① `typeOK` 用 `schemaType === 'string'` 等逐字符串比较（`:248-257`），`type:["string","number"]` 是数组，所有比较为 false，函数落到 `return true`；② required/properties/additionalProperties 用 `k in val` / `k in props`（`:274`、`:279`、`:286`），会命中 `Object.prototype`，`{}` 被判定「含有 toString/constructor」。
-- 行号：`:248-257`、`:274`、`:279`、`:286`
-- 复现：schema `{"type":["string","number"]}` + data `{}` → 实际「校验通过 ✅」，期望「类型不匹配」；schema `{"type":"object","required":["constructor"]}` + data `{}` → 实际「通过」，期望「缺少必填字段 root.constructor」；data 仅多出 `toString` 时 `additionalProperties:false` 也不报。
-- 影响：联合类型与含这类键名的对象校验结果错误，且是静默放过。
-- 方案：`type` 支持数组（任一匹配即通过）；所有成员判断改用 `Object.prototype.hasOwnProperty.call(...)`。
-- 假工具：否
-
 ### IT-N401 strong/em 完全不处理，默认示例的加粗内容在 Markdown 中丢失（高，承诺未实现）
 - 页面：`tools/it/html-to-markdown.html`
 - 问题：说明区明确承诺 `strong/b → **`、`em/i → _`（`:123`），但 `nodeToMarkdown` 没有 STRONG/EM 分支，落到默认 `innerMarkdown`；且 P 用 `innerText` 取纯文本（`:248`），行内标签信息被彻底抹掉。
@@ -2459,7 +2432,6 @@
 - 假工具：否
 
 ### 覆盖清单（U 批 IT 转换/编码）
-- `json-schema-validator`：IT-N398（高）、IT-N399、IT-N400（中）。
 - `html-to-markdown`：IT-N401（高）、IT-N402、IT-N403、IT-N404（中）。
 - `text-to-unicode`：IT-N405（中）；无高优缺陷（码点列与 BMP 字符正确，仅辅助平面转义缺失）。
 - `base64-file`：IT-N406（中）；无高优缺陷（文件/文本互转主路径正确，仅下载扩展名错误）。
