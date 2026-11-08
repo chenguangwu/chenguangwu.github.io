@@ -374,6 +374,9 @@ GATES = (
     ("history restore recompute", ("node", "scripts/_verify_history_restore_recompute.mjs")),
     ("false negative unanswered guard", ("node", "scripts/_verify_false_negative_guard.mjs")),
     ("berg partial guard", ("node", "scripts/_verify_berg_partial_guard.mjs")),
+    # 第 59 批（2026-11-11）：EAT-26 高风险行为方向一致性 + 成人ADHD ★ 动态化防护锁。
+    ("eat26 risk direction", ("node", "scripts/_verify_eat26_risk_direction.mjs")),
+    ("asrs star dynamic", ("node", "scripts/_verify_asrs_star_dynamic.mjs")),
 )
 
 
