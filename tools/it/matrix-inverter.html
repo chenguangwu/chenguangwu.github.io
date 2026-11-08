@@ -255,7 +255,7 @@ s.parentNode.insertBefore(el, s);
 function build(){
   const n=+document.getElementById('size').value;
   let html='<div class="matrix-block"><h3>矩阵 A ('+n+'×'+n+')</h3><div class="matrix-grid" style="grid-template-columns:repeat('+n+',70px);">';
-  for(let i=0;i<n*n;i++) html+='<input class="cell" type="number" id="a'+i+'" value="'+(i===0||i===n+1||(n===3&&i===8)?1:0)+'" step="any" placeholder="如 '+(i===0||i===n+1||(n===3&&i===8)?1:0)+'">';
+  for(let i=0;i<n*n;i++) html+='<input class="cell" type="number" id="a'+i+'" value="'+(i%(n+1)===0?1:0)+'" step="any" placeholder="如 '+(i%(n+1)===0?1:0)+'">';
   html+='</div></div>';
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('inputArea').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('inputArea').innerHTML=__h0;
 }
@@ -271,7 +271,20 @@ function getM(n){
   return m;
 }
 function fmt(x){
-  if(Math.abs(x)<1e-12) return '0';
+  // IT-N370：原来 |x|<1e-12 一律显示 0，1e-13 这种合法小量级被抹平；改为仅在真 0 时写 0，
+  // 量级超出常规显示范围时走科学计数法。
+  if(!isFinite(x)) return '—';
+  if(x===0) return '0';
+  var a=Math.abs(x);
+  if(a<1e-6||a>=1e12){
+    var m=String(x.toExponential(6)).match(/^(-?\d+(?:\.\d+)?)e([+-]?\d+)$/);
+    if(m){
+      var mant=m[1];
+      if(mant.indexOf('.')>=0) mant=mant.replace(/0+$/,'').replace(/\.$/,'');
+      return mant+'e'+m[2];
+    }
+    return String(x.toExponential(6));
+  }
   return (Math.round(x*1e10)/1e10).toLocaleString();
 }
 function matrixHTML(m){
@@ -295,11 +308,15 @@ function inverse(A){
   // 增广矩阵 [A | I]
   const M=A.map((r,i)=>{ const row=r.slice(); for(let j=0;j<n;j++) row.push(i===j?1:0); return row; });
   const steps=[];
+  // IT-N370：奇异性判据必须相对于矩阵自身尺度，绝对阈值会把 1e-13 量级的可逆矩阵判死
+  let scale=0;
+  for(let i=0;i<n;i++) for(let j=0;j<n;j++){ const v=Math.abs(A[i][j]); if(v>scale) scale=v; }
+  const tol = scale>0 ? scale*1e-12 : 1e-12;
   for(let col=0;col<n;col++){
     // 找主元
     let piv=col;
     for(let r=col+1;r<n;r++) if(Math.abs(M[r][col])>Math.abs(M[piv][col])) piv=r;
-    if(Math.abs(M[piv][col])<1e-12) return {err:'矩阵不可逆（奇异矩阵）',steps};
+    if(Math.abs(M[piv][col])<tol) return {err:'矩阵不可逆（奇异矩阵）',steps};
     if(piv!==col){ [M[piv],M[col]]=[M[col],M[piv]]; steps.push('交换第'+(piv+1)+'行与第'+(col+1)+'行'); }
     const pv=M[col][col];
     for(let j=0;j<2*n;j++) M[col][j]/=pv;
@@ -307,7 +324,7 @@ function inverse(A){
     for(let r=0;r<n;r++){
       if(r===col) continue;
       const f=M[r][col];
-      if(Math.abs(f)<1e-12) continue;
+      if(Math.abs(f)<tol) continue;
       for(let j=0;j<2*n;j++) M[r][j]-=f*M[col][j];
       steps.push('第'+(r+1)+'行 − ('+fmt(f)+') × 第'+(col+1)+'行 消元');
     }

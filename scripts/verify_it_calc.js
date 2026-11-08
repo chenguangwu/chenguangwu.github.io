@@ -2548,6 +2548,13 @@ const CASES = [
     ref: "独立复算：A=[[4,7],[2,6]]，det=4×6−7×2=10 ⇒ A⁻¹=(1/10)·[[6,−7],[−2,4]]=[[0.6,−0.7],[−0.2,0.4]]，且 A×A⁻¹=I。同 matrix-determinant 的 clicks 模板。",
   },
   {
+    slug: "it/matrix-inverter",
+    inputs: { size: "2" },
+    clicks: ["document.getElementById('a0').value='1e-13';document.getElementById('a1').value=0;document.getElementById('a2').value=0;document.getElementById('a3').value='1e-13';calculate()"],
+    expect: ["逆矩阵 A⁻¹： 1e+13 0 0 1e+13"],
+    ref: "IT-N370：A=diag(1e-13,1e-13)，det=1e-26≠0，逆矩阵为 diag(1e13,1e13)。修复前主元判据是绝对值 `Math.abs(pivot)<1e-12` ⇒ 直接报「矩阵不可逆（奇异矩阵）」；现改为相对尺度（scale×1e-12）。expect 是求逆后的具体数值串，输入里只有 1e-13 ⇒ 量级相反、不可能是回显；修复前不产生该串 ⇒ 必红灯。"
+  },
+  {
     slug: "it/a1z26-cipher",
     inputs: { input: "AB" },
     clicks: ["enc()"],
