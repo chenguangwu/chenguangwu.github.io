@@ -8216,6 +8216,18 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"txt\":\"1\\n2\\n3\"}，输出区含「TF-16 转义 1 U+0031 \\u0031 U+000A \\u000A 2…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    "slug": "it/text-to-unicode",
+    "inputs": {"txt": "A😀B"},
+    "expect": ["U+1F600 \\uD83D\\uDE00"],
+    "ref": "IT-N405：辅助平面字符的 UTF-16 转义必须是完整代理对（高+低两个 \\uXXXX），只出高代理 \\uD83D 会得到非法孤立代理、无法嵌回 JS 字符串。输入用 😀(U+1F600) 而非默认样例里的 🚀 ⇒ 默认态输出不含 U+1F600，判别力真实。"
+  },
+  {
+    "slug": "it/text-to-unicode",
+    "inputs": {"txt": "𝄞A"},
+    "expect": ["U+1D11E \\uD834\\uDD1E"],
+    "ref": "IT-N405：换一个高代理不是 D83D 的码点（U+1D11E G 谱号 → D834 DD1E），验证代理对是按公式从码点算出的，而非对 emoji 硬编码；同时覆盖 BMP 字符紧随其后的边界。"
+  },
+  {
     "slug": "it/text-truncate",
     "inputs": {
       "limit": "42",
