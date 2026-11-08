@@ -6708,15 +6708,15 @@ const CASES = [
   {
     "slug": "it/json-diff",
     "inputs": { "left": "{\"tags\":[\"a\",\"b\"]}", "right": "{\"tags\":[\"b\",\"a\"]}", "diffMode": "deep" },
-    "clicks": ["document.getElementById('arrayMatch').checked=true;doDiff();var d=JSON.parse(document.getElementById('jsonDiff').textContent);document.getElementById('jsonDiff').textContent='AM n='+d.length+' q='+(document.getElementById('left').value.indexOf('tags')>=0?1:0);"],
-    "expect": ["AM n=0 q=1"],
+    "clicks": ["document.getElementById('arrayMatch').checked=true;doDiff();var d=JSON.parse(document.getElementById('jsonDiff').textContent);document.getElementById('jsonDiff').textContent='ARRM n='+d.length+' q='+(document.getElementById('left').value.indexOf('tags')>=0?1:0);"],
+    "expect": ["ARRM n=0 q=1"],
     "ref": "IT-N397：勾选「数组按内容匹配」后，元素换序不应再报成逐项修改。修复前数组只按下标对齐 ⇒ `tags[0]`、`tags[1]` 两处 mod（n=2）。`q=1` 绑注入值（注入失败时 left 回落默认样例、不含 tags ⇒ 整例 FAIL），避免与输入无关的静态断言。"
   },
   {
     "slug": "it/json-diff",
     "inputs": { "left": "{\"tags\":[\"a\",\"b\"]}", "right": "{\"tags\":[\"b\",\"a\",\"c\"]}", "diffMode": "deep" },
-    "clicks": ["document.getElementById('arrayMatch').checked=true;doDiff();var d=JSON.parse(document.getElementById('jsonDiff').textContent);document.getElementById('jsonDiff').textContent='AM2 n='+d.length+' mod='+d.filter(function(x){return x.op==='mod';}).length+' add='+d.filter(function(x){return x.op==='add';}).length+' p='+(d[0]?d[0].path:'-')+' q='+(document.getElementById('left').value.indexOf('tags')>=0?1:0);"],
-    "expect": ["AM2 n=1 mod=0 add=1 p=tags[2] q=1"],
+    "clicks": ["document.getElementById('arrayMatch').checked=true;doDiff();var d=JSON.parse(document.getElementById('jsonDiff').textContent);document.getElementById('jsonDiff').textContent='ARRM2 n='+d.length+' mod='+d.filter(function(x){return x.op==='mod';}).length+' add='+d.filter(function(x){return x.op==='add';}).length+' p='+(d[0]?d[0].path:'-')+' q='+(document.getElementById('left').value.indexOf('tags')>=0?1:0);"],
+    "expect": ["ARRM2 n=1 mod=0 add=1 p=tags[2] q=1"],
     "ref": "IT-N397：换序 + 追加的组合用例。按内容对齐后只应剩 `add tags[2]`（mod 必须为 0）。修复前是 2 mod + 1 add（n=3）⇒ 四元组完全不同。"
   },
   {

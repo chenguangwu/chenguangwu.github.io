@@ -686,7 +686,7 @@ KB['it/json-minify'] = dict(title='JSON 压缩/格式化',
 KB['it/json-diff'] = dict(title='JSON Diff 深度对比',
   scenarios=['对比两份配置/接口响应的差异。'],
   examples=[dict(title='对比', body='左 `{"a":1,"b":2}` 右 `{"a":1,"b":3}` → 仅 `b` 由 2 变为 3 被标出。')],
-  faqs=[dict(q='数组顺序影响对比吗？', a='默认按位置比对；语义比较需开启键匹配模式。')])
+  faqs=[dict(q='数组顺序影响对比吗？', a='默认按位置比对；勾选「数组按内容匹配」后改为按元素内容对齐，元素换序不再被报成逐项修改。')])
 
 KB['it/json-repair'] = dict(title='JSON Repairer',
   scenarios=['修复缺引号、尾逗号等非法 JSON。'],
