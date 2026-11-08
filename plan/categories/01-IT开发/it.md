@@ -2377,19 +2377,6 @@
 
 ## U 批 · IT 转换/编码边界（2026-11-04）
 
-### IT-N406 MIME 子类型被直接当文件扩展名，`text/plain`→`.plain`、`image/svg+xml`→`.svg+xml`（中，确认缺陷）
-- 页面：`tools/it/base64-file.html`
-- 问题：还原下载的文件名取 `mime.split('/')[1]` 作为扩展名（`:323`；未选文件时 `:303` 同理），没有常见 MIME→扩展名映射；`+xml`、`vnd.*` 等子类型也不清洗。
-- 行号：`:303`、`:323`（说明 `:115` 写「以 decoded. 加类型后缀」）
-- 复现：输入 `data:text/plain;base64,SGVsbG8=` → 实际下载 `decoded.plain`，期望 `decoded.txt`；`data:image/svg+xml;base64,...` → 实际 `decoded.svg+xml`，期望 `decoded.svg`；`application/json` 虽得 `.json` 但依赖子类型恰好等于扩展名。
-- 影响：还原出的文件扩展名错误，双击无法用预期程序打开；Office/XML 类型尤其明显。
-- 方案：维护常见 MIME→扩展名映射（text/plain→txt、image/jpeg→jpg、image/svg+xml→svg、application/vnd.openxmlformats-*→docx/xlsx 等），未知类型再回退 `bin`。
-- 假工具：否
-
-### 覆盖清单（U 批 IT 转换/编码）
-- `base64-file`：IT-N406（中）；无高优缺陷（文件/文本互转主路径正确，仅下载扩展名错误）。
-- 方法声明：本轮仅基于上述 10 页源码通读 + `node` 在 `/tmp` 复刻页面原函数实算（每条均给出「输入 → 实际 / 期望」），**未开浏览器、未跑 `_build.py`/`run_gates.py`、未做线上验证**；未修改任何工具页、代码或构建产物，仅在审计日志追加本节。
-
 ## U 批 · IT 查询/编码表（2026-11-04）
 
 ### IT-N407 UUID v1 时间字段写错，生成结果无法解码回当前时间（高，确认缺陷）

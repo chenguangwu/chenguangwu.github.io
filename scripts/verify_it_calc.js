@@ -5467,6 +5467,47 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"b64Out\":\"1\\n2\\n3\",\"b64In\":\"1\\n2\\n3\"}，输出区含「1 2 3\n�m\n✅ 已解码为文本（2 B）」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    "slug": "it/base64-file",
+    "clicks": ["document.getElementById('result').innerHTML='EXT '+['text/plain','image/svg+xml','image/jpeg','application/vnd.openxmlformats-officedocument.wordprocessingml.document','application/octet-stream','application/x-foo'].map(extFromMime).join('|');"],
+    "expect": ["EXT txt|svg|jpg|docx|bin|foo"],
+    "ref": "IT-N406：MIME → 标准扩展名的映射表必须存在且生效。六个取样分别覆盖「子类型≠扩展名」(text/plain→txt)、结构化语法后缀 (svg+xml→svg)、别名 (jpeg→jpg)、Office 长类型 (vnd.openxmlformats...→docx)、通用二进制 (octet-stream→bin)、未知类型清洗 (x-foo→foo)。修复前无 extFromMime 函数 ⇒ clicks 抛错、结果区恒空 ⇒ 必红。"
+  },
+  {
+    "slug": "it/base64-file",
+    "inputs": {"b64In": "data:text/plain;base64,SGVsbG8="},
+    "clicks": ["document.body=document.body||{appendChild:function(){},removeChild:function(){}};b64ToFile();"],
+    "expect": ["text/plain → decoded.txt"],
+    "ref": "IT-N406：走真实还原下载路径，结果区必须回显实际文件名。修复前文件名取 mime.split('/')[1] ⇒ decoded.plain，且结果区不含文件名 ⇒ 双变红。document.body 桩只为让 harness 跑完下载分支（浏览器里 body 恒存在）。"
+  },
+  {
+    "slug": "it/base64-file",
+    "inputs": {"b64In": "data:image/svg+xml;base64,PHN2Zy8+"},
+    "clicks": ["document.body=document.body||{appendChild:function(){},removeChild:function(){}};b64ToFile();"],
+    "expect": ["image/svg+xml → decoded.svg"],
+    "ref": "IT-N406：image/svg+xml 修复前会生成 decoded.svg+xml（扩展名里带 +，文件名非法且打不开）。输入是含 +xml 的 data URI，默认态不含 ⇒ 判别明确。"
+  },
+  {
+    "slug": "it/base64-file",
+    "inputs": {"b64In": "data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,UEs="},
+    "clicks": ["document.body=document.body||{appendChild:function(){},removeChild:function(){}};b64ToFile();"],
+    "expect": ["wordprocessingml.document → decoded.docx"],
+    "ref": "IT-N406：OOXML 长 MIME 必须映射成 docx；修复前取子类型末段会得到 decoded.document。同时验证结果区回显的是原始 MIME + 实际文件名。"
+  },
+  {
+    "slug": "it/base64-file",
+    "inputs": {"b64In": "SGVsbG8="},
+    "clicks": ["document.body=document.body||{appendChild:function(){},removeChild:function(){}};b64ToFile();"],
+    "expect": ["application/octet-stream → decoded.bin"],
+    "ref": "IT-N406：无 data URI 前缀时回落通用二进制流，文件名应为 decoded.bin；修复前是 decoded.octet-stream。注入纯 Base64（非默认空输入）⇒ 默认态不触发该分支。"
+  },
+  {
+    "slug": "it/base64-file",
+    "inputs": {"b64Out": "data:image/jpeg;base64,/9j/"},
+    "clicks": ["document.body=document.body||{appendChild:function(){},removeChild:function(){}};var __ce=document.createElement.bind(document);document.createElement=function(t){var e=__ce(t);if(t==='a'){e.click=function(){document.getElementById('result').innerHTML='DL:'+e.download;};}return e;};downloadB64();"],
+    "expect": ["DL:file.jpg"],
+    "ref": "IT-N406：第二个调用点（b64Out 的「还原为文件」）也必须走映射，文件名应是 file.jpg 而非 file.jpeg。用 createElement 桩在 a.click() 时捕获 a.download 写进结果区 ⇒ 真下载文件名契约。修复前 extFromMime 不存在 ⇒ 该分支抛错、结果区无 DL: 串。"
+  },
+  {
     "slug": "it/base85-encode",
     "inputs": {
       "input": "1\n2\n3",

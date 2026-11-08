@@ -112,7 +112,7 @@ s.parentNode.insertBefore(el, s);
 <div class="card">
     <h2 data-zh="🔤 Base64 文件转换">🔤 Base64 File Converter</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">按逗号切分输入，第一段若形如「data: 类型 ; 后续内容」则取其中的媒体类型，否则按通用二进制流类型处理；数据部分为逗号之后的所有内容（没有逗号时取整串）。对数据做 Base64 解码得到二进制字符串，逐字符取字符编码填入无符号 8 位数组，再按解析出的媒体类型构造二进制大对象，据此生成临时下载链接并以「decoded.」加类型后缀（取不到后缀时用 bin）作为文件名触发下载，随后释放该链接。输出还原后的字节数（按易读大小格式化）与媒体类型；解码失败时提示 Base64 无效</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">按逗号切分输入，第一段若形如「data: 类型 ; 后续内容」则取其中的媒体类型，否则按通用二进制流类型处理；数据部分为逗号之后的所有内容（没有逗号时取整串）。对数据做 Base64 解码得到二进制字符串，逐字符取字符编码填入无符号 8 位数组，再按解析出的媒体类型构造二进制大对象，据此生成临时下载链接；下载文件名以「decoded.」加按媒体类型查表得到的标准扩展名（text/plain→txt、image/jpeg→jpg、image/svg+xml→svg、vnd.openxmlformats 系列→docx/xlsx/pptx），未收录的类型先去掉 + 语法后缀与 x-/vnd. 前缀再取末段，仍取不到时用 bin；随后释放该链接。输出还原后的字节数（按易读大小格式化）、媒体类型与实际文件名；解码失败时提示 Base64 无效</div>
   <div class="formula-desc">把本地文件与 Base64 文本互相转换，可产出可直接嵌入页面的 Data URL。</div>
   <ul class="formula-list">
     <li><b>读取</b>：用 FileReader 读为 ArrayBuffer 或 DataURL，再按 Base64 规则编码字节流。</li>
@@ -272,6 +272,38 @@ s.parentNode.insertBefore(el, s);
 <script>
 function escH(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 var lastFile=null,lastB64='';
+// MIME → 文件扩展名：子类型并不等于扩展名（text/plain→txt、image/svg+xml→svg、
+// application/vnd.openxmlformats-*.document→docx），直接 split('/')[1] 会得到
+// .plain / .svg+xml / .wordprocessingml.document 这类打不开的文件名。
+var MIME_EXT={
+  'text/plain':'txt','text/html':'html','text/css':'css','text/csv':'csv',
+  'text/markdown':'md','text/xml':'xml','text/javascript':'js',
+  'application/json':'json','application/xml':'xml','application/pdf':'pdf',
+  'application/zip':'zip','application/gzip':'gz','application/x-tar':'tar',
+  'application/x-7z-compressed':'7z','application/x-rar-compressed':'rar',
+  'application/javascript':'js','application/wasm':'wasm','application/octet-stream':'bin',
+  'application/msword':'doc','application/vnd.ms-excel':'xls','application/vnd.ms-powerpoint':'ppt',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document':'docx',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':'xlsx',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation':'pptx',
+  'application/vnd.oasis.opendocument.text':'odt',
+  'image/jpeg':'jpg','image/png':'png','image/gif':'gif','image/webp':'webp',
+  'image/svg+xml':'svg','image/bmp':'bmp','image/x-icon':'ico',
+  'image/vnd.microsoft.icon':'ico','image/tiff':'tiff','image/avif':'avif',
+  'audio/mpeg':'mp3','audio/wav':'wav','audio/x-wav':'wav','audio/ogg':'ogg',
+  'audio/mp4':'m4a','audio/webm':'webm',
+  'video/mp4':'mp4','video/webm':'webm','video/ogg':'ogv','video/quicktime':'mov',
+  'font/woff':'woff','font/woff2':'woff2','font/ttf':'ttf','font/otf':'otf'
+};
+function extFromMime(mime){
+  var m=String(mime||'').toLowerCase().split(';')[0].trim();
+  if(MIME_EXT[m])return MIME_EXT[m];
+  var sub=m.indexOf('/')>=0?m.slice(m.indexOf('/')+1):m;
+  if(sub.indexOf('+')>=0)sub=sub.slice(0,sub.indexOf('+')); // 结构化语法后缀：svg+xml → svg
+  sub=sub.replace(/^x-/,'').replace(/^vnd\./,'');
+  var seg=sub.split('.').pop().replace(/[^a-z0-9]/g,'');
+  return seg||'bin';
+}
 function fileToBase64(f){
   var out=document.getElementById('result');
   if(!f){const __h0='';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0;return;}
@@ -300,7 +332,7 @@ function downloadB64(){
     var blob=new Blob([arr],{type:mime});
     var a=document.createElement('a');
     a.href=URL.createObjectURL(blob);
-    a.download=lastFile?('b64-'+lastFile.name):('file.'+(mime.split('/')[1]||'bin'));
+    a.download=lastFile?('b64-'+lastFile.name):('file.'+extFromMime(mime));
     document.body.appendChild(a);a.click();document.body.removeChild(a);
     URL.revokeObjectURL(a.href);
     if(ToolBox.showToast)ToolBox.showToast(i18nText('toast.msg149'));
@@ -320,10 +352,11 @@ function b64ToFile(){
     var blob=new Blob([arr],{type:mime});
     var a=document.createElement('a');
     a.href=URL.createObjectURL(blob);
-    a.download='decoded.'+(mime.split('/')[1]||'bin');
+    var fname='decoded.'+extFromMime(mime);
+    a.download=fname;
     document.body.appendChild(a);a.click();document.body.removeChild(a);
     URL.revokeObjectURL(a.href);
-    const __h3='<p style="color:var(--success)">✅ 已还原 '+fmtSize(arr.length)+' 字节文件并触发下载（'+escH(mime)+'）</p>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h3;
+    const __h3='<p style="color:var(--success)">✅ 已还原 '+fmtSize(arr.length)+' 字节文件并触发下载（'+escH(mime)+' → '+escH(fname)+'）</p>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h3;
   }catch(e){const __h4='<p style="color:var(--danger)">Base64 无效：'+escH((e.message)||e)+'</p>';if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h4;}
 }
 function b64ToText(){
