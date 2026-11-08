@@ -117,7 +117,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="📝 HTML 转 Markdown">📝 HTML to Markdown</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="支持标题、段落、列表、表格、链接、图片、代码块的一键转换。">HTML to Markdown</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">DOMParser 解析为文档后递归转换：H1-H6 → 对应个数的 # 加文本；P → 段落文本加两个换行；HR → ---；A → [文本](href)；IMG → ![alt](src)；CODE 在 PRE 内 → 三反引号代码块，否则单反引号行内码；PRE → 三反引号块并去掉尾部换行；BLOCKQUOTE → 每行加 &gt; 前缀；UL → 每项 - 前缀、OL → 每项 序号. 前缀；TABLE → 首行作表头、第二行全为 --- 分隔、其余为数据行，单元格内的 | 转义为 \|；文本节点压缩连续空白。最后把 3 个以上连续换行压成 2 个并去首尾空白</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">DOMParser 解析为文档后递归转换，行内与块级分别处理。行内：文本节点先压缩连续空白再做 Markdown 元字符转义（反斜杠、*、_、`、[、]）；STRONG/B → 两侧 **，EM/I → 两侧 _，DEL/S → 两侧 ~~；CODE 在 PRE 内取原文作三反引号代码块，否则作单反引号行内码（两者内部一律不转义）；A → [文本](href)、IMG → ![alt](src)；BR → 行尾两个空格加换行（硬换行）。块级：H1-H6 → 对应个数的 # 加递归文本；P → 递归文本加两个换行；HR → ---；PRE → 三反引号块并去掉尾部换行；BLOCKQUOTE → 每行加 &gt; 前缀；UL → 每项 - 前缀、OL → 每项 序号. 前缀，列表项内部的换行保留、续行按项目符号宽度缩进（嵌套列表因此不丢层级）；TABLE → 首行作表头、第二行全为 --- 分隔、其余为数据行，单元格取递归 Markdown 后把换行拍平、竖线转义；SCRIPT/STYLE/NOSCRIPT 整段丢弃。最后把 3 个以上连续换行压成 2 个并去首尾空白</div>
   <div class="formula-desc">把 HTML 转换为 Markdown 文本。</div>
   <ul class="formula-list">
     <li><b>映射</b>：h1–h6 → <code>#</code>~<code>######</code>，strong/b → <code>**</code>，em/i → <code>_</code>，a → <code>[文本](链接)</code>，img → <code>![alt](src)</code>。</li>
@@ -225,7 +225,9 @@ function escapeMarkdown(text) {
     .replace(/\\/g, '\\\\')
     .replace(/\*/g, '\\*')
     .replace(/_/g, '\\_')
-    .replace(/`/g, '\\`');
+    .replace(/`/g, '\\`')
+    .replace(/\[/g, '\\[')
+    .replace(/\]/g, '\\]');
 }
 
 function nodeToMarkdown(node, depth) {
@@ -233,29 +235,49 @@ function nodeToMarkdown(node, depth) {
   if (!node) return '';
   const n = node.nodeName;
 
+  // 文本节点：折叠空白后按 Markdown 元字符转义（代码块走 textContent 直取，不经过这里）
   if (n === '#text') {
-    return node.textContent.replace(/\s+/g, ' ').trim() ? node.textContent : '';
+    const t = String(node.textContent || '').replace(/\s+/g, ' ');
+    if (!t.trim()) return '';
+    return escapeMarkdown(t);
   }
 
-  if (n === 'BR') return '\n';
+  // 硬换行：Markdown 用「行尾两个空格 + 换行」表示 <br>（原先 '\n' 会被段落折叠成空格）
+  if (n === 'BR') return '  \n';
+
+  // 脚本/样式不参与文档内容：整段丢弃（说明区承诺「脚本等表现层信息会被丢弃」）
+  if (n === 'SCRIPT' || n === 'STYLE' || n === 'NOSCRIPT') return '';
 
   if (n === 'H1' || n === 'H2' || n === 'H3' || n === 'H4' || n === 'H5' || n === 'H6') {
     const level = parseInt(n.charAt(1), 10);
-    return '\n' + '#'.repeat(level) + ' ' + innerText(node) + '\n\n';
+    const body = innerMarkdown(node, depth).trim();
+    return body ? '\n' + '#'.repeat(level) + ' ' + body + '\n\n' : '';
   }
 
   if (n === 'P') {
-    const text = innerText(node);
+    const text = innerMarkdown(node, depth).trim();
     return text ? text + '\n\n' : '';
   }
 
   if (n === 'HR') return '\n---\n\n';
 
-  if (n === 'BR') return '  \n';
+  // 行内强调：说明区承诺 strong/b → **、em/i → _
+  if (n === 'STRONG' || n === 'B') {
+    const t = innerMarkdown(node, depth).trim();
+    return t ? '**' + t + '**' : '';
+  }
+  if (n === 'EM' || n === 'I') {
+    const t = innerMarkdown(node, depth).trim();
+    return t ? '_' + t + '_' : '';
+  }
+  if (n === 'DEL' || n === 'S' || n === 'STRIKE') {
+    const t = innerMarkdown(node, depth).trim();
+    return t ? '~~' + t + '~~' : '';
+  }
 
   if (n === 'A') {
     const href = node.getAttribute('href') || '#';
-    const label = innerText(node) || href;
+    const label = innerMarkdown(node, depth).trim() || href;
     return '[' + label + '](' + href + ')';
   }
 
@@ -277,25 +299,38 @@ function nodeToMarkdown(node, depth) {
   }
 
   if (n === 'BLOCKQUOTE') {
-    const txt = innerText(node);
+    const txt = innerMarkdown(node, depth).trim();
     return txt ? txt.split('\n').map(l => '> ' + l).join('\n') + '\n\n' : '';
   }
 
   if (n === 'UL' || n === 'OL') {
-    const items = Array.from(node.children || []);
+    const items = Array.from(node.children || []).filter(c => c.nodeName === 'LI');
     let out = '';
     items.forEach((li, i) => {
       const prefix = n === 'OL' ? (i + 1) + '. ' : '- ';
-      const body = innerMarkdown(li, depth + 1).replace(/^\s+|\s+$/g, '');
-      if (body) out += prefix + body.replace(/\n+/g, ' ') + '\n';
+      const pad = ' '.repeat(prefix.length);
+      // 列表项内部保留换行（嵌套列表/多段落），只把行首尾的空行去掉；
+      // 原先 replace(/\n+/g,' ') 会把子列表压平成同一行，层级直接丢失
+      const body = innerMarkdown(li, depth + 1).replace(/^\n+|\n+$/g, '');
+      if (!body) return;
+      const lines = body.split('\n');
+      out += prefix + lines[0].replace(/\s+$/, '') + '\n';
+      for (let k = 1; k < lines.length; k++) {
+        const ln = lines[k].replace(/\s+$/, '');
+        if (!ln.trim()) continue;
+        out += pad + ln + '\n';
+      }
     });
-    return out + '\n';
+    // 前置换行：列表是块级元素，紧跟在段落/列表项文本后面时不能与上文粘在同一行
+    return '\n' + out + '\n';
   }
 
   if (n === 'TABLE') {
     const rows = Array.from(node.querySelectorAll(':scope > thead > tr, :scope > tbody > tr, :scope > tr'));
     if (!rows.length) return '';
-    const parseRow = tr => Array.from(tr.children).map(c => innerText(c).replace(/\|/g, '\\|'));
+    // 单元格改成递归取行内 Markdown（保留加粗/链接/行内码），再把竖线与换行拍平
+    const parseRow = tr => Array.from(tr.children).map(c =>
+      innerMarkdown(c, depth).trim().replace(/\s*\n\s*/g, ' ').replace(/\|/g, '\\|'));
     const head = parseRow(rows[0]);
     let out = '\n| ' + head.join(' | ') + ' |\n';
     out += '| ' + head.map(() => '---').join(' | ') + ' |\n';

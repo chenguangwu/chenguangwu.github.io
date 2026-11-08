@@ -6801,6 +6801,58 @@ const CASES = [
     "ref": "IT-N400 边界：联合类型含 null 时 null 必须放行，不能被对象分支误报「root 不是对象」（本批实现里 `else if (explicitObj && val !== null)` 就是为此）。同上的 `v=1` 防逃生。"
   },
   {
+    "slug": "it/html-to-markdown",
+    "htmlDom": true,
+    "inputs": {"htmlInput": "<p>支持 <strong>HTML 转 Markdown</strong>，保留标题、列表与链接。</p>"},
+    "expect": ["支持 **HTML 转 Markdown**，保留标题、列表与链接。"],
+    "ref": "IT-N401（高）：说明区承诺 strong/b → `**`，实现里原本没有 STRONG/EM 分支、P 又用 innerText 取纯文本 ⇒ 加粗信息整段丢失（默认示例首屏即可复现）。输入是带标签的 HTML，不含 `**` ⇒ 断言串只能来自转换结果。"
+  },
+  {
+    "slug": "it/html-to-markdown",
+    "htmlDom": true,
+    "inputs": {"htmlInput": "<p><em>斜体</em> 与 <b>粗</b> 与 <i>他</i></p>"},
+    "expect": ["_斜体_ 与 **粗** 与 _他_"],
+    "ref": "IT-N401：em/i → `_`、b → `**` 两条映射都必须生效（b/i 是 strong/em 的别名标签）。修复前输出是「斜体 与 粗 与 他」，无任何标记符号。"
+  },
+  {
+    "slug": "it/html-to-markdown",
+    "htmlDom": true,
+    "inputs": {"htmlInput": "<p>2 * 3 * 4 与 a_b</p>"},
+    "expect": ["2 \\* 3 \\* 4 与 a\\_b"],
+    "ref": "IT-N402：`escapeMarkdown` 定义后从未被调用，正文里的 `*`/`_` 原样输出会被 Markdown 渲染成斜体。修复前输出与输入一致（无反斜杠）⇒ 该串只可能来自转义路径。"
+  },
+  {
+    "slug": "it/html-to-markdown",
+    "htmlDom": true,
+    "inputs": {"htmlInput": "<p>a<br>b</p>"},
+    "clicks": ["convert();var v=document.getElementById('mdOutput').value;document.getElementById('mdOutput').value='BR hard='+(v.indexOf('a  '+String.fromCharCode(10)+'b')>=0?1:0)+' flat='+(v==='a b'?1:0)+' q='+(document.getElementById('htmlInput').value.indexOf('<br>')>=0?1:0);"],
+    "expect": ["BR hard=1 flat=0 q=1"],
+    "ref": "IT-N403：`<br>` 必须转成「行尾两个空格 + 换行」的硬换行。blob 会把空白折叠（collectStrings 对 value 也做 \\s+ → 单空格），故用 clicks 在页面内判形态：修复前 BR 返回单个换行、被段落折叠成空格 ⇒ v === 'a b'。`q=1` 绑注入值防静态逃生。"
+  },
+  {
+    "slug": "it/html-to-markdown",
+    "htmlDom": true,
+    "inputs": {"htmlInput": "<ul><li>a<ul><li>b</li></ul></li></ul>"},
+    "clicks": ["convert();var v=document.getElementById('mdOutput').value;document.getElementById('mdOutput').value='UL nested='+(v.indexOf('- a'+String.fromCharCode(10)+'  - b')>=0?1:0)+' flat='+(v.indexOf('- a - b')>=0?1:0)+' q='+(document.getElementById('htmlInput').value.indexOf('<ul>')>=0?1:0);"],
+    "expect": ["UL nested=1 flat=0 q=1"],
+    "ref": "IT-N403：嵌套列表必须保留层级（父项 + 换行 + 两空格缩进的子项）。修复前列表项 body 走 `replace(/\\n+/g,' ')` 把子列表压平 ⇒ 输出 `- a - b`。blob 折叠空白，故用 clicks 在页面内判相邻形态；`q=1` 绑注入值防静态逃生。"
+  },
+  {
+    "slug": "it/html-to-markdown",
+    "htmlDom": true,
+    "inputs": {"htmlInput": "<table><thead><tr><th>名称</th></tr></thead><tbody><tr><td><strong>粗</strong></td></tr></tbody></table>"},
+    "expect": ["| **粗** |"],
+    "ref": "IT-N401：表格单元格原本用 innerText 取纯文本，行内格式同样丢失；改递归后单元格里也要保留 `**`。输入 HTML 不含 `**`。"
+  },
+  {
+    "slug": "it/html-to-markdown",
+    "htmlDom": true,
+    "inputs": {"htmlInput": "<p>正文</p><script>alert(\"zzz9\")</script><style>.zzz9{}</style>"},
+    "clicks": ["convert();var v=document.getElementById('mdOutput').value;document.getElementById('mdOutput').value='N404 js='+(v.indexOf('zzz9')>=0?1:0)+' t='+(v.indexOf('正文')>=0?1:0);"],
+    "expect": ["N404 js=0 t=1"],
+    "ref": "IT-N404：SCRIPT/STYLE 文本必须整段丢弃（注意事项承诺「脚本等表现层信息会被丢弃」）。修复前落到默认 innerMarkdown，脚本源码 `zzz9` 被写进 Markdown。`t=1` 绑注入值（注入失败时回落默认样例、不含「正文」⇒ 整例 FAIL），避免变成静态逃生项。"
+  },
+  {
     "slug": "it/json-formatter",
     "inputs": {
       "input": "1\n2\n3",
@@ -10238,6 +10290,23 @@ function makeXmlDomParserStub() {
   };
 }
 
+// HTML 版 DOMParser 桩：XML 桩只给 documentElement，够 xml-* 用，但 HTML 页需要真实 DOM 树
+// （doc.body、children、querySelectorAll(':scope > tr')、parentElement 等，html-to-markdown 全靠这些）。
+// 用 jsdom（已是 devDependency，en-CJK 探针等门禁同款）兜底，只在用例声明 `htmlDom: true` 时装配，
+// 与 XML 桩互斥使用，其它页面基线不受影响。
+function makeHtmlDomParserStub() {
+  return class {
+    parseFromString(src, type) {
+      const { JSDOM } = require("jsdom");
+      const str = String(src == null ? "" : src);
+      if (type && /xml/i.test(String(type))) {
+        try { return new JSDOM(str, { contentType: "text/xml" }).window.document; } catch (e) { /* 非法 XML 退化成 HTML */ }
+      }
+      return new JSDOM(str, { contentType: "text/html" }).window.document;
+    }
+  };
+}
+
 // 实际执行过的用例数（redirect 存根不计）：供「0 用例拒绝判绿」守卫使用。
 // 全站 200+ 个 verify_<ind>_calc.js 都复用本 harness，故此处一处收口即可覆盖。
 let __executedCases = 0;
@@ -10278,6 +10347,10 @@ async function runCaseInner(c) {
   // XML 类页面需要浏览器 DOMParser；仅对显式声明 domParser:true 的用例注入（用后清理）。
   if (c.domParser && typeof globalThis.DOMParser === "undefined") {
     globalThis.DOMParser = makeXmlDomParserStub();
+  }
+  // HTML 类页面要真实 DOM 树，XML 桩不够用 ⇒ 用 jsdom 版（见 makeHtmlDomParserStub 注释）
+  if (c.htmlDom && typeof globalThis.DOMParser === "undefined") {
+    globalThis.DOMParser = makeHtmlDomParserStub();
   }
   const file = path.join(TOOLS_DIR, c.slug + ".html");
   if (!fs.existsSync(file)) return { ok: false, why: "文件不存在" };

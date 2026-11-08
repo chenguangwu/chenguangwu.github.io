@@ -152,17 +152,23 @@ async function sweepFile(f) {
   // afterLoad / dynDom / dynInputs 只影响桩的保真度，不构成注入，故按用例原样带上。
   const snapCache = new Map();
   const snapshotOf = async (c) => {
-    const key = JSON.stringify([c.slug, !!c.afterLoad, !!c.dynDom, !!c.dynInputs]);
+    // htmlDom / domParser 必须进 key：同一 slug 可能同时存在需要/不需要 DOM 桩的用例
+    // （如 it/xml-to-json 的 XML 用例与普通用例），否则会共用错误快照。
+    const key = JSON.stringify([c.slug, !!c.afterLoad, !!c.dynDom, !!c.dynInputs, !!c.htmlDom, !!c.domParser]);
     if (snapCache.has(key)) return snapCache.get(key);
     let r;
     try {
       // 关键：只传 slug 与保真开关 + snapshotOnly。绝不传 inputs / checkIds / radios /
       // checks / clicks ⇒ harness 不注入控件值、不派发 input/change/keyup、不跑兜底。
+      // htmlDom / domParser 属于环境装配开关（不是注入），必须原样带上：漏传会让
+      // 依赖 DOMParser 的页面在快照阶段直接抛「DOMParser is not defined」→ 白丢判别力。
       r = await runCaseGuarded({
         slug: c.slug,
         afterLoad: !!c.afterLoad,
         dynDom: !!c.dynDom,
         dynInputs: !!c.dynInputs,
+        htmlDom: !!c.htmlDom,
+        domParser: !!c.domParser,
         snapshotOnly: true,
       });
     } catch (e) {
