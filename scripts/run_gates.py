@@ -368,6 +368,10 @@ GATES = (
     # 本项对第 51 批修复的 3 页各断言一条「清空必填项 ⇒ 误导结论区必须被清空或回占位」，
     # 负向对照已实测：换回修复前版本 3/3 全红。
     ("empty input conclusion guard", ("node", "scripts/_verify_empty_input_conclusion.mjs")),
+    # 第 55 批（2026-11-11）：「恢复历史后只重绘不重算」回归锁。
+    # 多页 restore 回调只 render() 不 calc()，致 #result 残留旧结论；修复后补 calc()。
+    # 负向对照（--root 指向 HEAD 抽取目录）2/2 全红，已实测。
+    ("history restore recompute", ("node", "scripts/_verify_history_restore_recompute.mjs")),
 )
 
 
