@@ -1,6 +1,5 @@
 # 运动/健身 · tools/{sports,fitness}（~116 页）
 
-## 已知问题
 ## 功能缺陷
 - ✅ 配速页「比赛目标反推」已落地（2026-10-27）：fitness/pace-calculator 新增「🎯 目标完赛时间反推」card（goalDist 距离按钮 + goalH/M/S 目标时间 → 所需平均配速、等效速度、与目标配速输入对比（可慢/需提速 + 百分比）、五等分分段达成表），分段沿用既有策略模型（even/positive/negative，各段配速均值 = 所需平均配速 ⇒ 总时间守恒）；__pcIsEn 三重回退双语。顺带修 splitDist 按钮误绑 selectRace（点分段区距离只改主区、不重算分段表）→ 改绑 selectSplitRace，并把 quickDist/splitDist/goalDist 三处渲染改为直接赋值（原 `innerHTML + html` 追加写法会在 setUnit 切换时重复堆叠按钮）。verify fitness 78→80（+2：4:00:00 主用例、负分段分支）；判别器 79 检/逃生 0；EN --container=paceGoalTable BAD=0。
 - ✅ 1RM 百分比训练表（2026-10-26）：health/one-rep-max 加「💪 训练周期处方表」(programTable)，基于算出的 1RM 自动换算 5×5/3×5/3×8/4×10 等方案的实际负重区间（80-85%/75-80%/65-70%/60-65%），__T 双语；verify health +1、判别器 0 逃生。
@@ -123,7 +122,6 @@
 - 复现：选女性→清空年龄/身高/体重 → BMR −161 kcal、TDEE −250 kcal（系数 1.55）、减脂 −750 kcal、增肌 50 kcal、碳水 −47g；期望提示补全后停算。
 - 影响：负热量目标与负碳水被当作可用结论，且页面加载即 `calc()` 自动出结果，易被截图传播。
 - 方案：任一必填为空/超范围即 return 并显示提示；负 BMR 判无效。
-- **处置（2026-11-06 A批·真修复）**：已修复。`tools/fitness/calc.html` `calc()` 加年龄/身高/体重范围校验（10–100/100–230/30–300），越界即 return 提示、不再按 0 代入渲染负热量。verify 因 `calc()` 有 1s 节流、harness 同步采集拿不到拦截提示（盲区），改走 `scripts/_verify_fitness_batch_a.mjs` 运行时断言（5/5，HEAD 回退 2/5 证有效）。移交 `plan/已修复/2026-11-06-SF-N7-N12-体育健身A.md`。
 
 ### SF-N12 BMR 页仅判「非零」不判范围，负 BMR 照常出表（高，确认缺陷）
 - 问题：只做 `if (!age || !weight || !height)` 的真值判断，年龄/体重/身高的 `min/max` 仅约束步进器，手输超范围仍计算。

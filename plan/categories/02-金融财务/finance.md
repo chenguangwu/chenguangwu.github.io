@@ -74,7 +74,6 @@
 - 证据：`tools/finance/bond-yield-calculator.html:544-568,600-618` 附息债到期收益率仅搜索 0–100%；面值 100、票息 5%、价格 110、1 年且年付的结果趋近 0%，正确为 -4.545%；零息分支仍计算并显示 `annualCoupon`、`totalCoupon`。
 - 影响：`tools/finance/bond-yield-calculator.html`；负收益和零息现金流展示错误。
 - 方案：支持可行负利率并检查求解区间和定价残差；零息模式统一清零票息，输出价格、现金流和收益率对照。
-- **已修复 2026-11-07（第 33 批）**：陈旧证据复核 —— 负 YTM（`-4.545%` + `Σ 现金流现值 = ¥110.00`）与 YTM 零息清零（`6.839%` / `年利息收入： ¥0.00` / `（零息债券：无票息）`）早已由 `verify_finance_calc.js` 3 条锁定用例闭环，`calcYTM()` 的负利率定界/二分与零息闭式解均在位，**未改已闭环源码**。残留真 bug 在「债券定价」`price` 分支：`annualCoupon = face × couponRate / 100` 无视 `p-type`，零息债仍显示年利息 ¥5.00 / 当期收益率 5.96%，并把折价错误归因于「票面利率 < 市场利率」。现按 `isZeroPrice` 显式清零 `annualCoupon` / `currentYield`（`statGrid` 与现金流图随之同步），年利息行加零息标注，底部说明改为「零息债券不付息，价格由面值按市场利率折现得到，票面利率输入不参与计算」并经 `__bondEn()` 动态双语输出；定价公式与附息债数值不变。证据见 `plan/已修复/2026-11-07-F-N4-债券定价零息分支票息清零与双语口径.md`：新增 2 条用例（零息定价 + 附息回归护栏）`358/358`、判别力 `358 正确变红 / 0 逃生`、用例 id 审计 0 僵尸、JSDOM 两态锁当前 33 PASS / HEAD 24 FAIL、`_build.py` A 100%。
 
 ### F-N5 定投资金加权年化使用错误现金流（高，确认源码缺陷）
 - 证据：`tools/finance/dca-calculator.html:376-408,431-454,510-533` 正算将初始本金在期初投入，反算却把全部投入均摊到每月；初始 12000、每月 1000、1 年、期初、年化 12% 时，页面反算约 17.02%，真实现金流的月利率 1%，对应名义年化 12%、有效年化约 12.68%。
@@ -98,7 +97,6 @@
 - 证据：`tools/finance/irr-calculator.html:407-413,632-651,658-682,724-726` 现金流控件无 id，通用历史快照未保存各期金额；`tools/finance/dca-calculator.html:173-175,365-369,706-716,744-755` 投入时点存在变量 `timing`，未纳入输入快照。
 - 影响：`tools/finance/irr-calculator.html`、`tools/finance/dca-calculator.html`；恢复历史后可能使用当前现金流或当前期初/期末模式，无法重现原结果，浏览器回填待测。
 - 方案：完整持久化期号、金额、时点与输入参数，恢复后重算；分别导出真实现金流和历史对比，不将历史表称现金流明细。
-- **已修复 2026-11-07（第 34 批）**：两页通用历史快照只扫 `input[id]`，而 dca 的 `timing` 是纯 JS 变量、irr 的现金流 `<input>` 无 id ⇒ 点历史记录后沿用当前状态、结果不可复现。现各加一个带 id 的只读快照输入（`dcaTiming` = `begin/end`；`irrCashflowSnapshot` = `T期号:金额` 序列），`switchTiming()` / `renderFlows()` / `updateAmount()` 在每次状态变化时写回快照并落库，历史的 `mount` 回填回调显式调用 `__dcaSyncTiming()` / `__irrRestoreFromSnapshot()` 后再 `calc()`。**恢复逻辑刻意不放进 `calc()`**：首版放进去会覆盖既有用例通过 clicks 直接赋的数组，全量从 356 掉到 354，改为显式调用后恢复。顺带修掉「新增/删除现金流期数刷新后丢失」。证据见 `plan/已修复/2026-11-07-F-N8-投入时点与现金流纳入历史快照.md`：新增 3 条用例 + 同批重采 1 条过期的 irr auto 锚点（新增输入改变了输出拼接顺序，属用例过期而非页面 bug），`361/361`、判别力 `361 正确变红 / 0 逃生`、id 审计 0 僵尸、JSDOM 两态锁当前 32 PASS / HEAD 25 FAIL、`_build.py` A 100%。
 
 ### 续查覆盖
 - 新抽查 `tools/finance/irr-calculator.html`、`tools/finance/bond-yield-calculator.html`、`tools/finance/dca-calculator.html`、`tools/finance/retirement-calculator.html` 共 4 页，新增 7 条（6 条高优），均为源码及数值推导，未做浏览器、线上和门禁验证。
@@ -132,7 +130,6 @@
 ### F-N15 工资专项附加互斥缺失、模式不入历史（中，确认）
 - 证据：`finance/salary-calculator:619` 房贷利息与租金直加，`:290` 仅文字提示；月薪 2 万/五险 4500/两项 2500 得税 590，仅租金应 690。`:803` 历史不存 currentMode，年薪 24 万刷新后按月薪算。
 - 影响/路径：`finance/salary-calculator.html`；多扣税、恢复历史口径错误。方案：两项互斥、存模式。
-- **已修复 2026-11-07（第 36 批）**：① **模式持久化**：`currentMode` 原是不在任何 input 里的纯 JS `let` 变量，页尾 localStorage 持久化 IIFE 只扫 `input[id]` ⇒ 刷新恢复后一律按 monthly 重算，年薪 24 万被当成月薪。现新增带 id 的快照输入 `salaryMode`（**刻意不带 `readonly`/`disabled`**，否则会被 IIFE 的 `:not([readonly]):not([disabled])` 选择器排除），`switchMode()` 写快照并派发 `input` 触发 `save()`；新增 `__salarySyncMode()` 由 restore 的 `input` 事件触发，同步 `currentMode`、页签/标签/年度统计区并 `calculate()` 重算，且不改动用户已保存的缴费基数。② **互斥**：`totalSpecialMonthly` 由 `housingLoan + housingRent` 直加改为两者同时 >0 时 `Math.max` 取较大者，结果容器 `salaryDeductionNote` 用 `en ? … : …` 动态双语写出「实际采用值 / 未计入项 / 合计」（静态中文与公式框未动 ⇒ en map 无需同步）。独立复算：房贷 1000 + 租金 1500 ⇒ 计入 1500、合计 3500（旧直加 2500 / 4500）；年薪 240000 恢复后 `grossSalary = ¥20,000.00`（旧 ¥240,000.00）。证据见 `plan/已修复/2026-11-07-F-N15-工资页专项附加互斥与模式持久化.md`：新增 3 条用例 + **同批重采 1 条过期 auto 锚点**，`368/368`、判别力 `368 正确变红 / 0 逃生`、id 审计 0 僵尸、页面 16 个内联脚本语法 0 错、JSDOM 两态锁当前 33 PASS / HEAD 27 FAIL（含真实 localStorage 预置的刷新恢复路径）。**踩坑**：首版模式用例用 `¥20,000.00` 作 expect，它恰是默认态 `grossSalary`，判别器按 `snapshotOnly` 的 **`fullBlob`**（含输入回显等全部元素，非 `blob`）判定时命中 ⇒ 新增 1 个逃生项；改用只在年薪注入态出现的 `¥64.80万` / `¥-408,000.00` 后清零。按老板 2026-11-07 节奏指示，本批**未**跑 `_build.py` / 全站判别力 / 229 门禁，攒批统一执行。
 
 ### F-N16 LTV 负贷款被接受（中，确认）
 - 证据：`banking/loan-to-value:220` 仅拦空值/NaN/分母 0；贷款 -10 万/价值 100 万得 LTV -10.0%、覆盖 100 万（`:283` max(loan,1)）、首付 110%。
@@ -158,13 +155,11 @@
 - 证据：`finance/tax-calculator.html:184,188,195,199` 四个数字输入均无 `min`；`:506` 应税所得仅 `Math.max(0, …)` 兜底，`:525` `afterTax = salary - insurance - tax` 未再兜底。node 复算：月薪 2000、社保 3000（其余 0）→ 应税 0、税额 0、税后 −1000；月薪 20000、社保 −2000 → 应税 17000、税额 1990，而社保 3000 时为 990。
 - 影响：`finance/tax-calculator.html`；负社保被当作抵扣放大应税所得、多缴税，负税后月薪直接显示为「¥-1,000.00」。
 - 方案：月薪、社保、专项附加、起征点统一限 ≥0，税后收入下限 0 并标注；负值给字段级错误提示，不参与计算。
-- **已修复 2026-11-07（第 37 批）**：四个主输入加 `min="0"`，新增 `__taxCheck()` 作非负校验单一真源（按字段返回中英双语错误名），`calculate()` 开头复用该校验链、失败由 `__taxBlock()` 把 7 个结果元素清成 `—`、清空级距列表与导出表、在被采集的结果容器 `bonusBox` 输出字段名提示后**早退不参与计算**；`__taxBlock()` 带 `if (!msg) return;` 免疫 harness 兜底无参调用。税后收入改 `afterTaxRaw = salary - insurance - tax` + `afterTax = Math.max(0, afterTaxRaw)`，被 0 下限截断时追加中英动态双语归因说明。`__taxExport()` 复用 `__taxCheck()` 拦截负值（Toast 提示、不写表不导出），导出明细 `afterTax` 同样 0 下限，主计算与导出同口径。公式框静态中文改明确口径（月薪/社保/专项附加/起征点均须 ≥0、负值字段级拒绝、税后收入下限 0），`i18n/tools/en/finance/tax-calculator.json` 文本级同步 formula-eq 键值（`json.load` + `html.unescape` 校验键逐字一致、旧键零残留）。第 35 批 `__sdAudit()` 明细负值 0 兜底保持不变 —— 明细项按 0、四个主输入负值整页拒绝，两层分层且公式框写明；未新增控件 ⇒ **无需重采 auto 锚点**。独立复算/JSDOM HEAD 态复现：负社保 `¥1,590.00 / ¥20,410.00`（旧）、月薪 2000+社保 3000 `¥-1,000.00`（旧）；修复后分别为字段名错误提示与 `¥0.00` + 归因。证据见 `plan/已修复/2026-11-07-F-N18-个税页主输入负值拒绝与税后收入0下限.md`：新增 5 条用例 `368→373/373`、单文件判别力 `373 正确变红 / 0 逃生`、id 审计 0 僵尸、页面 19 个内联脚本语法 0 错、JSDOM 两态锁当前 52 PASS / HEAD 48 FAIL。按老板 2026-11-07 节奏指示，本批**未**逐批跑 `_build.py` / 全站判别力 / 229 门禁，攒批收口统一执行。
 
 ### F-N19 专项附加扣除明细未校验年度上限与互斥（中，确认）
 - 证据：`:221-227` 七项仅设 `min="0"`，无 `max`；`:410-421` `__sdSum` 对大病医疗直接 `v/12`，未套 80000/年上限；住房贷款利息（sd5）与住房租金（sd6）可同时累加。node 复算：sd4=100000 → 计入 8333.33/月、税额 156.67；按 80000/年上限 6666.67 → 税额 323.33；房贷 1000+租金 1500 同填 → 扣 2500、税 740，仅租金 1500 时为 840。
 - 影响：`finance/tax-calculator.html`；专项附加多扣、少缴，摘要与「明细合计」同屏却给出偏乐观税负；与 F-N15 同类的互斥缺失在本页再次出现。
 - 方案：sd4 按 80000/年封顶后摊月；sd5 与 sd6 二选一并置灰另一项，超上限时提示实际采用值。
-- **已修复 2026-11-07（第 35 批）**：新增 `__sdAudit()` 作为专项附加口径单一真源 —— sd4 按 `__SD_ILLNESS_CAP = 80000` 元/年封顶后 `/12` 摊月；sd5/sd6 同时 >0 时互斥、仅按较大者计入（`Math.max`），其余四项与负值 0 兜底不变。`renderBonus()` 把「实际采用值 / 未计入项 / 未封顶对照值」写进结果容器 `bonusBox`（`en ? … : …` 动态双语，EN 态零 CJK）；公式框由「校验：无强校验」改为明确封顶与互斥口径，`i18n/tools/en/finance/tax-calculator.json` 同步删旧 formula-eq 键、加新键（`html.unescape` 校验 HTML 与 map 键逐字一致）；明细区补 `p[data-zh]` 静态规则说明。互斥未做「置灰另一项」而改为提示 + 自动按较大者，避免新增控件与禁用态改变页面结构。独立复算与台账吻合：sd4=100000 ⇒ 6666.67/月、税 **¥323.33**（旧 8333.33/月、税 156.67）；房贷 1000 + 租金 1500 ⇒ 1500/月、税 **¥840.00**（旧 2500/月、税 740）。证据见 `plan/已修复/2026-11-07-F-N19-专项附加扣除年度封顶与房贷租金互斥.md`：新增 4 条用例 `365/365`、单文件判别力 `365 正确变红 / 0 逃生`、id 审计 0 僵尸、页面 19 个内联脚本语法 0 错、JSDOM 两态锁当前 38 PASS / HEAD 34 FAIL（HEAD 精确复现旧错误值）。按老板 2026-11-07 节奏指示，本批**未**跑 `_build.py` / 全站判别力 / 229 门禁，攒批统一执行。
 
 
 ### F-N22 信用卡最低还款：还清状态和最低比例部分已修，其他问题保留（高，部分修复）
@@ -1264,7 +1259,6 @@
 - 复现（node 实算）：`00AAPFU0939F1ZB` → 页面「州代码：00 - 未知州」「✅ GST 号码有效」；`99AAPFU0939F1ZK` 同样 ✅；对照合法 `27AAPFU0939F1ZV` → ✅、错校验位 `27AAPFU0939F1ZW` → ❌。
 - 影响：`tools/finance/gst-validator.html`；跨州错填（如把 27 输成 00）无法拦截，与 FAQ「拦截录入错误」不符。
 - 方案：州码白名单硬判（含 37/38），未命中输出「❌ 州码不在 GST 州列表」并保留输入定位。
-- **已修复 2026-11-07（第 38 批）**：`STATE_CODES` 收敛为现行码（删 25/28、26 改全称、保留 37/38/97），新增 `RETIRED_STATE_CODES` 分层停用码与 `__gstStateCheck()` 作州码合法性单一真源；`validate()` 把 `!__st.ok` 的字段名提示写进结果容器并**保留后续 PAN/实体位/Z/校验位拆解**，最终判定改 `if (__structOk && __st.ok)`，杜绝「州代码：00 - 未知州」与「✅ GST 号码有效」同屏。全部新增文案走 `__gstIsEn() ? English : 中文` 动态双语 ⇒ 静态中文与 `i18n/tools/en/finance/gst-validator.json` 无需改动，EN 态动态串零 CJK。权威源：gstextract / checkyourgst / gstnumbersearch / taxclue 四份公开 GST 州码表（25 停用并入 26、28 旧码改 37、37/38 现行有效、97 Other Territory）。证据见 `plan/已修复/2026-11-07-F-N170-F-N171-GST州码白名单与停用码更新.md`：新增 6 条用例 `373→379/379`、单文件判别力 `379 正确变红 / 0 逃生`、id 审计 0 僵尸、页面 16 个内联脚本语法 0 错、JSDOM 两态锁当前 43 PASS / HEAD 37 FAIL。**待裁断**：99 在部分权威资料中列为 `Centre (CGST jurisdiction)` 特殊辖区码，本批按台账口径判「不在州/UT 代码列表」并保留 97；是否放开 99 需产品/税务口径裁断，裁断前不改代码、不计入已修/未修。
 
 ### F-N171 GST 页：州码表仍把 25/26 分列，2020 年合并后 25 已停用（低，确认缺陷）
 - 问题：`STATE_CODES` 保留 `'25':'Daman and Diu'`、`'26':'Dadra and Nagar Haveli'`。两属地 2020-01-26 合并为「Dadra and Nagar Haveli and Daman and Diu」，GST 州码统一为 26，25 不再分配；页面仍对 25 判有效并显示旧名，26 也只显示半名。
@@ -1272,7 +1266,6 @@
 - 复现（node 实算）：`25AAPFU0939F1ZZ` → 「州代码：25 - Daman and Diu」+ ✅；`26AAPFU0939F1ZX` → 「26 - Dadra and Nagar Haveli」+ ✅（缺「and Daman and Diu」）。
 - 影响：`tools/finance/gst-validator.html`；现行税号显示过时行政区名，25 号段被误认为可用。
 - 方案：删除 25 映射，26 改为全称；如仍需兼容历史数据，标注「25 已于 2020 合并至 26」。
-- **已修复 2026-11-07（第 38 批，与 F-N170 同批）**：25/28 从现行 `STATE_CODES` 移除并归入 `RETIRED_STATE_CODES`（25→26、28→37），26 改为 `Dadra and Nagar Haveli and Daman and Diu` 全称；停用码不再判有效，错误提示直接给出现行替代码。26 全称、38 Ladakh、27 Maharashtra、默认 09 Uttar Pradesh 均有回归护栏用例/两态锁断言，防止删旧码时误伤现行码。证据同上移交文件（两态锁当前 43 PASS / HEAD 37 FAIL，HEAD 精确复现 26 半名与 25 判有效）。
 
 - **留存建议（tools/finance/gst-validator.html）**：15 位拆分 + mod-36 校验 + 州码表是差异化能力，建议保留；补州码硬校验（F-N170）并更新 25/26（F-N171）后可对外；建议补「PAN 第 4 位实体类型」说明与 GSTR 类工具互链。
 
@@ -1413,8 +1406,6 @@
 - 复现（node 实算）：cnpj 页输入 `11222333000182`（校验失败）→ 结果区 ❌，但「数据表/历史」无新增行、CSV 不含该次；`parseFloat("输入： 11222333000181 格式化： …")` = `NaN`，两次计算后 `#cnpj_validatorChart` 仍为空。
 - 影响：7 个页面；「趋势图/明细导出」两个可见控件长期空转，用户会反复点击。
 - 方案：历史记录增加数值字段（如 `ok: valid?1:0`）供趋势图使用；CSV 改导「当前结果 + 时间」（或按钮改称「导出历史 CSV」）；失败样本也入库并单列「结论」字段。
-- **已修复 2026-11-07（第 40 批，第一批 7 页）**：`cnpj-validator` / `gst-validator` / `imei-validator` / `text-reverse-words` / `nie-validator` / `iccid-validator` / `bic-lookup` 七页由**同构模板统一替换**（归一化后逐字一致）：新增 `__<pre>Score(t)` 作数值结论单一真源、历史记录写 `rec.__tbScore`（失败 0 / 通过 1）、`ResText()` 只过滤空态前缀不再丢弃失败样本、表格新增动态双语「结论 / Verdict」列、趋势图数值源改 `parseFloat(arr[j].d.__tbScore)` 并更名「有效性趋势 / Validity trend」、`Export()` 在无 `<tr>` 时先补渲染再导出（消除点击无反应）。按钮文案**刻意不改**：表格已升级为「时间 + 全部输入 + 结论 + 结果摘要」的完整明细，「导出明细 CSV」名实相符；改静态中文会牵动全站 105 页与 en map，收益不抵 EN 态 CJK 泄漏风险。新增文案全走 `en ? English : 中文` 动态双语，i18n / en map / 静态按钮零改动。证据见 `plan/已修复/2026-11-07-F-N189-同构校验页族失败样本入库结论列与趋势图第一批7页.md`：`verify_finance_calc.js` **379/379 无回归**、判别力 0 逃生、id 审计 0 僵尸、112 个内联脚本语法 0 错、JSDOM 两态锁 `scripts/_verify_finance_batch_fn189.mjs` 当前 **212 PASS / 0 FAIL**、`--head` **147 FAIL**（HEAD 精确复现 ResText 过滤 / 无结论列 / 图表恒 NaN 不渲染 / 导出空表格点击无反应）。**未改 `verify_finance_calc.js` 的原因**：harness 无 `TBKit` 定义 ⇒ `Extras()` 首行即 return，本批改动全在 harness 盲区，塞 expect 只会制造逃生项；护栏按两层同批落盘（harness 层防回归 + JSDOM 两态锁锁新行为）。
-- **已修复 2026-11-07（第 41 批，第二批 8 页）**：`tin-validator` / `gstin-validator` / `tfn-validator` / `pan-validator` / `curp-validator` / `dni-validator` / `meid-validator` / `sort-code-validator-validator`（最后 slug 是重复后缀，不是 `sort-code-validator`）由**从第 40 批 cnpj 新段反推的同一模板**替换，跨批 15 页归一化后逐字同构。证据见 `plan/已修复/2026-11-07-F-N189-同构校验页族第二批8页与全站模板范围发现.md`：128 个内联脚本语法 0 错、`379/379` 无回归、判别力 0 逃生、id 审计 0 僵尸、JSDOM 两态锁 `scripts/_verify_finance_batch_fn189b.mjs` 当前 **244 PASS / 0 FAIL**、`--head` **169 FAIL / 59 PASS**，并内置「15 页跨批逐字同构」断言。
 - **⚠️ F-N189 未整体收口（全站专项，禁止自判完成）**：第 41 批全库扫描 `tools/**/*.html`（4907 页）发现该 Extras 模板是**全站通用注入块**，四特征齐全的旧模板页共 **3155 页**（旧过滤正则 3162、恒 NaN 趋势图 3168、`exportTable('#…Table')` 4503、`history.list().slice(0,10)` 3186），已修仅 15 页。`finance` 分类仍有 **87 页**未修，其余分布 `it 269 / design 82 / machinery 74 / sports 74 / biz 64 / agriculture 61 …` 共 100+ 分类。模板真源 `scripts/_ux_wire.py`（在 git 中，`gen_classic_extras` / `gen_custom_render` 两套注入块），**`_build.py` 不调用它** ⇒ 存量是固化产物、改 HTML 不会被 build 覆盖，但也不能靠改源 + build 自动铺开。跨分类**并非完全同构**（如 `agriculture/agri-calculator.html` 用 `querySelector('.result-box')` 且历史恢复回调额外 forEach 5 个计算函数）⇒ 铺开前须先分型，标准页整体替换、定制页做保留定制的精确局部编辑。下一步：改 `_ux_wire.py` 源防止未来重 wire 倒退 + finance 剩余 87 页分型统计 + 小批试点铺开。
 
 ### 承诺 vs 实际（R 批专项）
@@ -1791,7 +1782,6 @@
 - **全站分型（4907 页扫描）**：四特征齐全旧模板 **3155 页**，其中**标准同构 3042（96.4%）可整体替换**、定制 107（须保留定制的局部编辑）、异常 6；**3148 页三容器齐全**（Chart/Table/导出按钮真实可见，非装饰）。`finance` 未修 86 页中标准 82。前缀必须从 `exportTable('#([^']+)Table','…')` 第 1 捕获组取（带 `#` 会全量假判 `no_boundary`）。
 - **试点铺开 8 页**：`aadhaar-validator` / `aba-validator` / `abn-validator` / `amount-in-words` / `analysis-44` / `analysis-5` / `analysis-cost-1` / `analysis-risk`。参数自适应脚本自动抽取结果容器与计算函数，实测覆盖 `getElementById('output')+validate()`、`querySelector('.result-box')+convert()`、`getElementById('res')+calc()` 三种形态，8/8 与基准新段归一化同构。
 - **通用两态锁 `scripts/_verify_fn189_rollout.mjs`**：`--pages` / `--cat` / `--head` / `--ref` / `--verbose` 参数化，页面参数自动抽取，后续所有铺开批次复用，不再每批派生脚本。当前 **209 PASS / 0 FAIL**、`--head` **153 FAIL / 48 PASS**。
-- 证据：126 个内联脚本语法 0 错、`verify_finance_calc.js 379/379`、判别力 0 逃生、id 审计 0 僵尸、源产物 1757 字符逐字一致。详见 `plan/已修复/2026-11-07-F-N189-第42批-改模板真源与全站铺开试点8页.md`。
 - **待老板裁断**：是否一次性铺到全站 3042 标准页（大 diff + 全站产物变化 + 需完整 229 门禁兜底）。裁断前不擅自全量铺开，继续按每批 8–12 页小步推进；定制页另设计保留定制的局部编辑脚本。
 
 ## 2026-11-07 第 43 批 · F-N189 铺开工具固化 + finance 第二组 8 页
@@ -1799,7 +1789,6 @@
 - **交付 `scripts/_fn189_rollout.py`**：`--cat` / `--pages` / `--dry` 参数化，从 cnpj 基准新段反推模板，自动抽取 5 个页面参数，先全批自检再写盘（边界唯一 / 旧过滤正则 / 恒 NaN 特征 / `__tbScore` 4 处 / csv 名 / 归一化同构），定制页明确拒绝。后续铺开批次复用，不再重写临时脚本。
 - **铺开 8 页**：`assessor-manager` / `bic-validator` / `bond-yield-calculator` / `break-even-calculator` / `calc-2` / `calc-3` / `calc-4` / `calc-5`，`--dry` 与 `--apply` 均 8/8；第 33 批 F-N4 在 bond-yield 页的改动 7 处仍在（替换范围不相交）。
 - **通用两态锁加固**：注入 canvas `getContext` Proxy 桩 + `canvasColorWithAlpha` / `resolveCanvasColor`；运行期改为直接驱动 `Extras()`（写输入 + 注入成功/失败结果文本），绕开页面 `calc()` 的真机依赖；`VirtualConsole` 静默已知噪音。回归：第 42 批 8 页仍 209 PASS、第 40/41 批抽 4 页 105 PASS。
-- 证据：119 个内联脚本语法 0 错、`379/379`、判别力 0 逃生、id 审计 0 僵尸；通用锁当前 **209 PASS / 0 FAIL**、`--head` **160 FAIL / 41 PASS**。详见 `plan/已修复/2026-11-07-F-N189-第43批-铺开工具固化与finance第二组8页.md`。
 - 第 44 批方向：finance 第三组 8 页；并设计 4 个定制页（`dca` / `irr` / `npv` / `password-generator-advanced`，均为前批加过快照/IRR 逻辑者）的保留定制局部编辑方案，禁止整体替换。
 
 ## 2026-11-08 第 44 批 · F-N189 finance 标准页第三组 + 定制页局部编辑工具

@@ -18,8 +18,6 @@
 - `tools/audio/audio-echo.html`：FE-N120 的回声尾音截断仍存在。延迟 2 秒、反馈 0.9 时只渲染额外 5 秒，第 6 秒及以后的重复被裁掉；未听测，不推断实际主观响度。
 - `tools/music/music-player.html`：随机开关不改变默认不循环模式；第 398–406 行在当前曲为列表末项时不调用 `nextTrack()`，播放自然结束直接停止，即便随机模式开启且还有其他曲目。第 169 行称随机且不重复采用 Fisher-Yates，第 386–395 行实际只避免紧邻重复，不能保证整轮不重复。均为静态控制流结论，未使用音频文件验证播放。
 
-## 已知问题
-
 ## 功能缺陷
 - 音乐页缺「和弦进行速查」（常用 1645/4536 试听）。
 - fun 类「看一眼就走」重灾区：优先接 G06-S1/S4（结果生成即分享）。
@@ -53,15 +51,11 @@
 - 证据：`tools/chess/bridge-scoring.html:291-298,344-346,363-380` 有局加倍每墩一律算 200；4♠有局加倍实得 8 墩（宕 2）算 400，按首墩 200、后每墩 300 应为 500，再加倍同受影响。
 - 影响：`tools/chess/bridge-scoring.html`，错误赛局积分。
 - 方案：分别实现有局/无局逐墩阶梯及再加倍；增加宕 1、2、3 墩用例，允许按定约保存可核对明细。
-- **复核 2026-11-07（陈旧证据，源码已正确，未改源码）**：当前 `calcPenalty(undertricks,doubled,vul)` 已实现完整阶梯——未加倍 50/100（无局/有局）；加倍无局 100/200/200/300…、有局 200/300…；再加倍整体 ×2。台账所指「有局加倍一律 200」已不存在（4♠有局加倍宕 2 = 200+300 = **500**，非 400）。补回归护栏 `scripts/_verify_chess_bridge_elo_lock.mjs`：抽取源码 `calcPenalty` 实跑 15 组标准值（含无局加倍宕4=800、有局再加倍宕2=1000、无局再加倍宕1=400）全部一致。移交：`plan/已修复/2026-11-07-FE-围棋单位与音符复制-含桥牌Elo复核.md`。
 
 ### 中国围棋数子法实际沿用数目法（高，确认源码缺陷）
 - 证据：`tools/chess/go-territory.html:143-175,223-228,279-307` 中国和日本两分支均用围空加提子，缺盘上活子输入，却标为中国数子法；黑空 50、提 3、白空 48、提 5、贴目 6.5，两模式均输出 53 比 59.5。
 - 影响：`tools/chess/go-territory.html`，中国规则数据不足仍给出可能误导的胜负。
 - 方案：按选择的规则引入必要活子、空点及死子处理，注明贴目或贴子单位，不足时不出结论；可本地保存规则口径和棋局复盘明细。
-- **已修复（部分）2026-11-07**：活子输入与「缺活子不出结论」守卫此前已补（`blackStones/whiteStones` + 0/0 时拒绝计算）。本批修掉残留的**单位混用**：数子法把「贴目（目）」直接加到白方「子」数上，导致结果显示「140.0 目」而阈值行却按「180.5 + 贴目/2」判断，口径自相矛盾（极端情形直接翻转胜负：贴 7.5 目、黑 140 子对白 136.75 子，旧版判「白方胜 −0.5」）。
-  - 现改为：数子法一律以「子」计——`komiZi = komi/2`（1 子 = 2 目，与页内深解「中国贴 3¾ 子 ≈ 7.5 目」一致），白方 = 活子 + 围空 + 贴子；目差 = 子差 × 2；卡片标签「黑方子数/白方子数」「贴子」，文案显示「贴子 3.75 子（= 7.5 目）」「黑方须超过 184.25 子方胜」。日本规则分支完全未动（既有 4 条 verify 契约保持 65.0/42.5/+22.5 不变）。
-  - 判别力实测（`scripts/_verify_fun_batch_fe_go_note.mjs` A 节）：同一组输入 `komi=7.5 / 黑空50+活子90 / 白空48+活子85` → 当前「黑方胜、目差 +6.5、卡片=黑方子数 140.0 / 白方子数 136.8 / 贴子 3.75」（4 断言 PASS）；HEAD「白方胜、目差 −0.5、卡片=黑方总目 140.0 目 / 白方总目 140.5 目 / 贴目 7.5」（4 断言 FAIL）。移交同桥牌。
 
 ### 节拍细分格数与拍号音值矛盾（中，确认源码缺陷）
 - 证据：`tools/music/beat-subdivision.html:219-228,518-550,580-585,698-757` 7/8 汇总 7/3 拍却绘 3 拍组；6/8、120 BPM、四分音符显示 1.5 秒小节但绘 2 格各 750 ms；4/4 全音符汇总 1 格却绘 4 格。
@@ -72,7 +66,6 @@
 - 证据：`tools/music/freq-note-converter.html:230-267,520-525,554-566,581-590` 先计算 440 Hz，再清空输入；错误分支未清除上次 `dataset.copyValue`，复制仍优先读取旧结果。
 - 影响：`tools/music/freq-note-converter.html`，错误状态下复制过时调音数据。
 - 方案：无效时清空复制值、禁用复制和试听；恢复有效后启用并在本地预设注明 A4 参考频率。
-- **已修复 2026-11-07**：① 两个转换入口（`calcFreq2Note`/`calcNote2Freq`）取到 `box` 后**立即 `delete box.dataset.copyValue`**，旧结果不会跨非法输入存活；② `copyResult` 不再回退 `el.textContent`（原回退会把错误提示当调音数据复制），只在存在有效 `copyValue` 时复制，无值则静默不复制。判别力实测（`scripts/_verify_fun_batch_fe_go_note.mjs` B 节）：440 Hz 算出结果 → 清空输入再算 → 点复制——当前复制 0 次（PASS）/ HEAD 复制 1 次「A4 440.0000 Hz, 0.0 cents」（FAIL）；随后输入 880 恢复，两态均能复制到新值（守护断言）。移交同桥牌。
 
 ### 硬币连胜名称与定义冲突（低，确认源码缺陷）
 - 证据：`tools/fun/coin-toss-streak.html:158-172,200-208,275-294` 正、反、反、反的状态更新将任意同面最长连续次数记为 3，但解释称最长连胜为连续正面，按该定义为 1。
@@ -120,15 +113,6 @@
   2. 预设（行 836）：`小规模/大规模/极端工况` 三个预设补 `bpmSlider` 值，与 `bpmInput` 一致，修正滑块拇指不随预设移动。
 - 实证：`scripts/verify_fun_calc.js` 新增 `music/bpm-converter` 用例（注入 `bpmInput=500` → 期望四分音符 `200.00ms`，即钳到 300 计算；默认 120 → 500.00ms 不命中 ⇒ 零逃生）；`discriminate_check` 全量 29/29 正确变红、0 逃生项。整份 verify_fun_calc 29/29 通过。
 
-### FE-N5 BPM 反向时长只更新结果，数据表/历史/图表/CSV 保持旧值（低，确认源码缺陷 → **2026-11-07 已修复**）
-- 描述：`calcReverse()` 只写 `#reverseResult`；历史扩展只在 `calcAll()` 外层包装里触发，改「时长/音符类型」不会记录，也不会刷新表格与图表。
-- 证据：`tools/music/bpm-converter.html:658-699`（`calcReverse` 无扩展调用）、`:801-829`（`__bpm_converterExtras`）、`:838-840`（只包装 `calcAll`）、`:340`（表格/历史/图表宿主与反推结果同卡）。
-- 影响：`tools/music/bpm-converter.html`；只用反推功能时历史为空、CSV 无内容、图表不更新。
-- 方案：`calcReverse` 也调用同一记录函数，或把「记录」抽成两处共用的 `record()``；导出前校验表非空并提示。
-- 修复（2026-11-07）：`calcReverse` 有效分支末尾调用 `__bpm_converterExtras()`（行 706 后），用 `typeof __bpm_converterExtras === 'function'` 守卫，避免页面初始化（IIFE 内行 731 首次 `calcReverse()` 时第二段脚本 `__bpm_converterExtras` 尚未定义）误调用报错；`reverseResult` 即 `.result-box`，被 `__bpm_converterResText` 采集，故反向结果会写进 `#bpm_converterTable`、历史、图表与 CSV。
-- 验证说明（harness 盲区）：`scripts/verify_fun_calc.js` 的 harness **无法稳定验证本修复**——根因有二：① 页面 `calcReverse` 与 `__bpm_converterExtras` 分属两段 `<script>`，真实浏览器/JSDOM 下函数全局可见可调用；但 harness 把各段脚本隔离编译，跨段裸函数引用在 `calcReverse` 作用域内 `typeof` 为 `undefined`，守卫跳过 → 表格恒空；② 即便绕过，页面内部 1 秒节流 `now-__bpm_converter_last<1000` 与 harness 的 `FrozenDate`（`FIXED_NOW` 常量）叠加，注入后的第二次 `calcReverse` 必被节流。此属 harness 盲区，**非页面 bug**（JSDOM 真机已验证生效）。
-- 实证（运行期两态，权威回归锁）：`scripts/_verify_fun_batch_fe_n5.mjs`（JSDOM 真机，等同浏览器双段同全局）。修复后：注入 `reverseMs=1000`/`quarter` → `matrix.table` 被调用、`#bpm_converterTable` 含列头 `reverseMs` 与结果 `60.00 BPM`、history 记录 1 条 ⇒ 1/1 通过；`--head` 回退旧版：表格恒空、history 0 条 ⇒ 1/1 通过。
-
 ### FE-N6 和弦解析把 `Cmaj`/`Cmajor` 判成小三和弦（高，原报函数缺陷 → **2026-11-07 复核：历史快照误报，当前源码已正确**）
 - 原描述：后缀匹配在归一化之前用 `suffix.startsWith(s)`，`maj`/`major` 先命中单字符 `m`（小三），永远走不到 `maj→M` 的归一化分支；`Cmaj` 输出 C–D♯–G。
 - 原证据：`tools/music/chord-notes.html:478-512`（类型表）、`:593-600`（首轮前缀匹配）、`:602-616`（归一化仅在未匹配时执行）。
@@ -144,16 +128,6 @@
 - 修复（2026-11-07）：新增 `degreeName(s, type)` 助手（行 477 后）；`renderResult` 的音符标签与音程标签改调 `degreeName`，按原始半音数映射扩展音——`oct>=1` 时 `base∈{1,2,5,9}` 归为「九/十一/十三音」，且 `s===2 && type∈{add9,'9','m9'}` 也标「九音」；`sus2`/`2` 的 +2 仍保留「二音」（不误伤挂二和弦）。
 - 实证：`scripts/verify_fun_calc.js` 新增 `music/chord-notes` 两例：`C9`→期望「九音」（9/m9 的 +14 半音）；`Csus2`→期望「二音」（回归护栏，确认 sus2 未被误改）。`discriminate_check` 全量 31/31 正确变红、0 逃生项；整份 verify_fun_calc 31/31 通过。
 
-### FE-N8 未识别后缀静默降级为大三和弦，常用降号根音被判无效（中，**2026-11-07 已修复**）
-- 描述（原）：无法匹配的后缀直接回退 `[0,4,7]` 大三和弦，不报错；`Cb`/`Fb`/`E#`/`B#` 等合法根音因别名表缺失被 `indexOf` 判为 -1。
-- 证据（原）：`tools/music/chord-notes.html:618-621`（默认大三）、`:474`（别名仅 Db/Eb/Gb/Ab/Bb）、`:577-590`（根音查找失败返回 null）。Node 复算：`Cfoo` → 大三 C–E–G；`Cxyz9` → 大三 C–E–G；`Cb` → `null`。
-- **修复位点**：
-  1. `NOTE_ALIASES`（行 474）补 `Cb:'B', Fb:'E', E#:'F', B#:'C'`，合法降号/升号根音可正常解析；
-  2. 降级逻辑（行 633-641）改为仅当 `suffix===''`（如 `C`）才默认大三和弦，否则 `return null` 并提示「和弦类型无法识别」；`Cb` 经别名映射为 `B` 后正常走大三和弦。
-- **判别力实测**：`scripts/verify_fun_calc.js` 增 `Cb → ["Cb · 大三和弦"]` 锁定用例 → 全量 32/32、discriminate 全量 0 逃生项；
-  - 「未知后缀不再静默降级大三」子修复属 **harness 盲区**（效果为"不出现"大三和弦），改用 `scripts/_verify_fun_batch_fe_n8.mjs` JSDOM 两态脚本：注入 `Cfoo` → 修复后 `#chordTypeLabel` 清空（不含「大三和弦」）；`--head` 回退旧版 `#chordTypeLabel="<span class=\"chord-type-badge\">C · 大三和弦</span>"`（含「大三和弦」）。修复后 1/1、HEAD 1/1 通过。
-- 移交文件：`plan/已修复/2026-11-07-FE-N8-降号根音无效与未知后缀静默降级.md`
-
 ### FE-N9 FEN 历史回填调用无参 `loadPreset()`，输入框被写成字符串 `undefined`（高，**2026-11-07 复核：历史快照误报，当前源码已正确**）
 - 描述（原）：历史「恢复」回调末尾调用 `loadPreset()` 而不传记录中的 FEN，`presets[undefined]` 为 `undefined`，被写进输入框并渲染为无效局面。
 - 证据（原）：`tools/fun/chess-fen-viewer.html:405-418`、`tools/fun/chess-fen-viewer.html:329-332`、`tools/fun/chess-fen-viewer.html:270-274`。
@@ -164,14 +138,6 @@
   4. 已修复该问题的提交：`6a13067673`（"FEN历史回填"）、`44df5bf8a0`（"修复 FEN 回填"）。
 - 处置：仅复核，**未改源码、未加 harness 锁**（该历史恢复路径属 harness 盲区，且现行源码 déjà 正确，加锁无判别增益）。
 - 遗留可查（非本次范围）：无。
-
-### FE-N10 FEN 只校验棋盘段，缺行棋方时一律显示「黑方」且不报错（中，**2026-11-07 已修复**）
-- 描述（原）：解析只要求 8 行×8 列，完全忽略行棋方、易位、吃过路兵、计数四段；缺第 2 段时 `turn=''`，三元判断落到「黑方」。FAQ 却称「缺段会解析失败」。
-- 证据（原）：`tools/fun/chess-fen-viewer.html:276-298`、`tools/fun/chess-fen-viewer.html:316-320`、`tools/fun/chess-fen-viewer.html:221`。
-- **修复位点**：新增 `validateFields(fen)`（`tools/fun/chess-fen-viewer.html` `render` 之前）：按 `\s+` 切 6 段，依次校验 `parts[1]∈{w,b}`、`parts[2]∈/^K?Q?k?q?$|^-$/`、`parts[3]==='-'||/^[a-h][1-8]$/`、`parts[4]/parts[5]` 为非负整数；`render` 在 `parse` 通过后调用 `validateFields`，不通过则输出 `FEN 字段缺失或非法：需 6 段（行棋方须 w/b、易位 KQkq 或 -、吃过路兵格位或 -、计数非负整数）` 并 return。`turn/castle/enPassant` 改为取自 `fv` 而非直接 `parts[1]||''`，从而缺段必由校验拦截、不再静默落「黑方」。
-  - 附带修正：`默认参数` 预设 FEN 原为 `rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK`（第 8 行少 3 格，本就 `parse` 失败）— 补为完整起始局面 `rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1`。
-- **判别力实测**：`scripts/verify_fun_calc.js` 增缺段用例 `{fen:"rnbqkbnr/.../RNBQKBNR", expect:["FEN 字段缺失或非法"]}`（锚不含「白方/黑方/轮到」等默认态串，仅缺段输入下命中）；全量 `fun calc 33/33`；`discriminate_check` 已检 33 / 正确变红 33 / 仍 PASS(逃生项) 0。
-- 移交文件：`plan/已修复/2026-11-07-FE-N10-FEN缺段静默显示黑方已修复字段校验.md`
 
 ### FE-N11 五子棋禁手判定顺序错误，三三/四四分支忽略连子数（高，**2026-11-07 复核：历史快照误报，当前源码已正确**）
 - 描述（原）：`three_three`/`four_four` 分支只看 `liveCount`，完全不读 `stoneCount`，长连与五连被误判；`custom` 分支又要求 `stones===5 && live<2` 才判五连，导致「恰好五连同时含活三」被判禁手。
@@ -191,20 +157,6 @@
 - 判别力实测：`scripts/_verify_fun_batch_fe_n12.mjs` JSDOM 真机：loadPreset(0)→三三禁手、loadPreset(1)→长连禁手、loadPreset(2)→五连胜利，3/3 通过。FE-N11 脚本亦已证明 analyzePoint 优先级正确。
 - 处置：**未改源码**，仅加 JSDOM 回归锁 + 台账对账。
 
-### FE-N13 变速页降速时仍显示「提速 -25%」，"-"号与「提速」自相矛盾（中，**2026-11-07 已修复**）
-- 描述（原）：百分比文案固定为「提速 + 数值%」，未区分加速与降速；等速时显示「提速 0%」。
-- 证据（原）：`tools/music/convert-speed.html:166`（`'提速 '+((nb/ob-1)*100).toFixed(0)+'%'`）。Node 复算：180 s、120→90 → 新时长 `240.0` 秒、「提速 -25%」；120→120 → 「提速 0%」；180 s、120→140 → 「提速 17%」。
-- **修复位点**：`calc()`（行 166）按 `pct=(nb/ob-1)*100` 符号分支输出「提速 X% / 降速 X% / 不变」（主显示 `toFixed(0)`、换算链 `toFixed(2)` 口径统一）；旧写死「提速 + 带符号数%」已移除。
-- **判别力实测**：`scripts/verify_fun_calc.js` 增 `{nb:90}` → `["降速 25%"]`、`{nb:150}` → `["提速 25%"]`；全量 `fun calc 35/35`；`discriminate_check` 已检 35 / 正确变红 35 / 仍 PASS(逃生项) 0。
-- 移交文件：`plan/已修复/2026-11-07-FE-N13-变速页降速误显提速.md`
-
-### FE-N14 变速页宣传「对音频做变速处理、支持实时试听」，页面无音频能力（中，**2026-11-07 已修复**）
-- **真源层（关键）**：meta/og/twitter/JSON-LD 描述由构建从 `i18n/tools/music.json` 的 `convert-speed.zh-CN.intro` 注入；卡片描述（`tools/music/index.html`、`json/tools.json` 的 `d` 字段）同源。直接改 `tools/music/convert-speed.html` 的 `<meta>` 是**错层**——`_build.py` 每次构建都会按 i18n 源重生成并把我之前的 HTML 编辑还原。本次修复在 `i18n/tools/music.json` 改 intro 为「输入原曲BPM与目标BPM，计算速度比例与新时长，给出提速/降速百分比…」，构建后 meta/JSON-LD/卡片全链路生效（已 grep 确认 convert-speed.html 与 index.html 卡片均收敛，0 处「对音频做变速处理/实时试听」残留）。
-- 页面 `<body>` 内的简介 `<p>`（行 251，已是「用于 BPM 与新时长换算」）、功能特点/使用场景为 HTML 硬编码、不被构建重写，直接改 HTML 有效（与 i18n 文案口径一致）。
-- 根因：页面只做 BPM/时长纯算术（无 `audio`/`AudioContext`/`playbackRate`），meta 却承诺音频变速与试听，属能力虚标；按「不虚标、对齐真实能力」原则收敛文案（未新增音频功能，避免伪功能）。
-- 判别力：grep 复核页面自身（排除「相关工具」推荐区对其它工具的客观描述）已无「试听/音频/变速处理」字样；`verify_fun_calc.js` 该页 35/35 仍全绿、0 逃生（文案改动不影响 calc）。
-- 移交文件：`plan/已修复/2026-11-07-FE-N14-变速页文案收敛去除音频虚标.md`
-
 ### FE-N15 象棋残局「一步杀」5 条中 4 条含两步红方着法（中，**2026-11-07 复核：历史快照误报，当前源码已正确**）
 - 复核结论：台账旧描述所引「one 列表含红方着法序列、4/5 条 >1 着」在当前源码**已不存在**。当前 `tools/chess/xiangqi-endgame.html` 的 `ENDGAMES`（`var ENDGAMES={...}` 行 248）每条只有 `title/desc/keys`（成杀条件/要点/注意），**无任何 move/steps/solution 着法序列字段**；`grep moves\|steps\|solution\|红方着法` 仅在页面说明性文案命中（行 130/132/133/170/197/199/202），均明示「不提供具体着法 / 不含棋盘输入与着法推演 / 卡片为教学要点不是棋谱」。说明区（行 132-133、170、197、199、202）反复声明本页为「成杀条件速查」而非杀法求解器。
 - 判别力：源码结构复核 + grep 全量无着法序列字段 → 不存在「一步杀含两步红方着法」的数据结构。
@@ -216,7 +168,6 @@
 - **①「输入并判一步杀」宣称**：复核为**历史快照误报**。当前 `tools/chess/xiangqi-endgame.html` 无输入控件（无 `<input>`/判定逻辑），且页面多处明示「不含棋盘输入与着法推演 / 不提供具体着法 / 卡片为教学要点不是棋谱」（行 130/132/133/170/197/199/202），meta 仅称「成杀条件与要点速查」。原台账所引 `:199`（输入并判定描述）与 `:137-152`（无 input）属旧版。
 - **②查阅频次按拼接串统计（真实行为 → 已修复）**：原 `__tbn`（行 387-417）取所有 `.endgame-card.open` 标题 join 为 `A + B` 记录，频次图按拼接串计数、不可解释。修复：`__tbn(tab,idx)` 只记录刚被点开的**单个**残局标题（卡片含 `open` 类才记），`toggleCard` 包装器把 `tab/idx` 透传给 `__tbn`；频次按单项去重计数。
 - 判别力：源码逻辑复核（无拼接记录）；当前页面无 input/判定，故①认定历史快照误报、未改文案。
-- 移交文件：`plan/已修复/2026-11-07-FE-N16-残局频次按单项记录.md`
 
 ### 留存优化
 - `tools/chess/elo-rating.html`：本地保存常用「我的分/对手分/K/局数」组合与最近对局序列，便于赛后连续估算；仅存本机、可一键清空。
@@ -236,11 +187,6 @@
 - 判别力：源码逻辑复核 + 评分函数结构（连续计数 + 两端开放分档 + 双色评估）证明当前实现正确。
 - 处置：**未改源码**，仅台账对账（历史快照误报，同 N6/N9/N11/N12/N15）。
 
-### FE-N18 悔棋只撤 AI 一手，玩家可连续落两枚黑子（中，**2026-11-07 已修复**）
-- 修复位点：`tools/fun/gomoku-ai.html` 的 `undo()`（行 371）。原实现只 `history.pop()` 一条并把 `turn=BLACK`，若末手是 AI 白子，则撤白留黑、玩家可立即再落一枚黑子，破坏回合制。改为：撤掉末手后，若其颜色为 WHITE 且上一手是 BLACK，则一并 `pop` 玩家那一手，回到「玩家重新落子」回合（`turn=BLACK`），从而整回合回退。
-- 判别力实测：`scripts/_verify_fun_batch_fe_n18.mjs` JSDOM 真机：玩家点击落黑 → 等 AI 应手白 → `undo()` → 修复后棋盘 黑0/白0（整回合回退），旧实现会留 黑1/白0；脚本断言通过。
-- 移交文件：`plan/已修复/2026-11-07-FE-N18-悔棋整回合回退.md`
-
 ### FE-N19 对战战绩历史永不落库：记录回调引用未定义变量，异常被空 catch 吞掉（中，确认源码缺陷）
 - 问题：`place` 的包装器用无参 `function () {}`，内部直接引用 `r`/`c`/`color`，这三个名字只存在于原 `place(r,c,color)` 的局部作用域，包装器执行时抛 `ReferenceError`，被 `catch (e) {}` 静默吞掉，`__tbHistSave` 从未被调用。
 - 证据：`tools/fun/gomoku-ai.html:499-503`（`var __r = __tbF_place.apply(null, arguments); try { __tbHistSave((function(){ ... checkWin(r,c,color) ... })()); } catch (e) {}`）、`:266`（`function place(r, c, color)`）、`:408-418`（`__tbHistSave`）。
@@ -249,24 +195,11 @@
 - 方案：在包装器内用 `arguments[0]/[1]/[2]` 捕获实参（或把记录逻辑移入 `place` 内部再包装渲染），并补「下一手后历史表新增 1 行」的断言。
 - **修复位点（2026-11-07）**：`tools/fun/gomoku-ai.html` 的 `__tbF_place` 包装器（行 521-528）改为 `var a=arguments; var r=a[0],c=a[1],color=a[2];`，从 `arguments` 正确捕获落子坐标与颜色后再 `checkWin(r,c,color)`，仅当 `win||full` 时调用 `__tbHistSave` 写入战绩。
 - 判别力实测：`scripts/_verify_fun_batch_fe_n19.mjs` JSDOM 真机：捕捉 `TBKit.history.record`，同步摆五连黑子 → 记录写入（结果「胜」/步数 5）；修复前 `r/c/color` 未定义抛错被空 catch 吞掉、记录 0 条。
-- 移交文件：`plan/已修复/2026-11-07-FE-N19-战绩历史落库.md`
 
 ### FE-N20 无难度/先手控件，却宣传「可调强中弱」「难度越高搜索越深」「可选 AI 先手」（中，**2026-11-07 已修复**）
 - **修复位点（双源同步）**：① `tools/fun/gomoku-ai.html` 的 deep-dive 段落为 **HTML 硬编码、不被构建重写**，直接改 HTML 有效（行 581/584/588/589 收敛「难度调节/搜索越深/可选 AI 先手」→ 单一难度、玩家固定执黑先手/AI 执白后手、不提供先手切换与难度调节）；② 同步收敛 deep-dive 真源 `i18n/tools/content_deepdive.json` 的 `fun/gomoku-ai` 四条（scenarios/example/FAQ），以及英文翻译源 `i18n/tools/en/fun/gomoku-ai.json` 对应 4 条 key/value（key 即中文源串，改中文源必须同步改英文 key 否则英文态失译）；两源口径一致，构建后 gomoku-ai.html 0 处虚标残留（grep 复核）。
 - 根因：页面仅「开始新局 / 悔1手」两按钮，AI 恒白后手、`aiMove` 无难度/深度入参（与 FE-N17 修复后的 lineScore 单层打分一致），无搜索深度与先手切换能力，属能力虚标。
 - 处置：按「不虚标、对齐真实能力」原则收敛文案（未新增伪难度功能，避免假功能）。
-
-### FE-N21 2048「最大方块」只增不减：新局不重置、悔棋不回退，终局统计沿用历史值（中，**2026-11-07 已修复**）
-- 修复：新增 `computeMaxTile()` 扫描全盘取最大值；`updateScore()` 每帧 `maxTile = computeMaxTile()`（顶部分数、scores 标签页、终局弹窗 `finalMax` 全用此值）；`newGame()` 防御性 `maxTile=0`；`loadBest()` 不再用存档 `data.maxTile` 播种（仅读 `best` 分数）。修复后：含 4 棋盘→4、undo 回退→跟随棋盘、newGame→当前棋盘最大块、刷新后新局不再残留 1024。
-- 证据：`tools/fun/2048-game.html:361`（初值）、`:379-393`（newGame 重置）、`:518-528`（computeMaxTile + updateScore 每帧重算）、`:549-557`（loadBest 不读 maxTile）、`:556-560`（finalMax 用 maxTile）。
-- 判别力：`scripts/_verify_fun_batch_fe_n21.mjs` JSDOM 两态锁——设含 4 棋盘→#maxTile=4 / undo 回退→2 / newGame→随棋盘重算 / loadBest(1024)→newGame 非 1024；修复后 4/4 通过，HEAD 旧版 4/4 全 FAIL（maxTile 停在 0/1024），确认 bug 真实且已修。（页面无输入框、harness 无法驱动，故用 JSDOM 两态锁，同 FE-N18/N19）
-- 移交文件：`plan/已修复/2026-11-07-FE-N21-2048最大方块实时重算.md`
-
-### FE-N22 俄罗斯方块计分口径与深度解析算例矛盾：代码 800×等级，文档 800×(等级+1)（中，**2026-11-07 已修复**）
-- 修复（真源层）：deep-dive 示例串由构建从 `i18n/tools/content_deepdive.json` 的 `fun/tetris` 注入（直接改 `tools/fun/tetris.html` 是错层、会被还原，同 FE-N14）。把示例「800×(等级+1)…等级 3 得 3200」收敛为「**800×等级…等级 3 得 2400**」，对齐代码 `score += SCORE_TABLE[cleared] * level`（level 从 1 起）。同步改英文翻译源 `i18n/tools/en/fun/tetris.json`。构建后 tetris.html 示例已为「800×等级 分；等级 3 时单消 4 行得 2400 分」。
-- 证据：`tools/fun/tetris.html:387`（`SCORE_TABLE=[0,100,300,500,800]`）、`:520`（`score += SCORE_TABLE[cleared]*level`）、`:414`（`level=1` 起）、行 300 计分参考表已写「multiplied by the current level」（与代码一致，无需改）。
-- 判别力：grep 复核 tetris.html 示例已无「等级+1 / 3200」，改为「800×等级 / 2400」；`verify_fun_calc.js` 该页无 calc 用例受影响（纯文案口径收敛，无计算逻辑改动）。
-- 移交文件：`plan/已修复/2026-11-07-FE-N22-俄罗斯方块计分口径对齐代码.md`
 
 ### FE-N23 宣传「七袋随机」「连续消除加成」，实现是独立随机 + 固定 1/2/3/4 行计分（中，**复核误报：当前版本七袋随机已实现、无 combo 承诺**）
 - **复核结论（2026-11-07）**：经 `git blame` 确认 `randomPiece()` 已于 **2026-11-05 commit eaf4d693f5**（「文娱族三列核对——抽取种子可复算、计分口径对齐、七袋随机」）实现为**真七袋随机**（`pieceBag` 装满 7 种后 Fisher–Yates 洗牌、逐袋 `pop` 发放，每 7 块各出现一次）；当前 deep-dive 参考表（行 295）「七袋随机保证每七块各出现一次，减少极端连续」与代码一致。全文 `grep combo\|连击\|连续消除` 仅命中七袋行，**无任何 combo/连击承诺与加成分支**。原台账所列 `:436-438`（独立 `Math.random()` 抽块）与 `:300`（combo 加成）系**修复前快照误报**，当前版本不成立。
@@ -276,12 +209,6 @@
 - 影响：`tools/fun/tetris.html`；方块序列与计分均与自称的现代规则不一致，分数与难度不可比，属能力虚标。
 - 方案：实现 7-bag（洗牌袋逐袋发放）与 combo 计数加成；若不做，删除 :295/:300 两条承诺并改写参考表。
 
-### FE-N24 旋转只有水平踢墙、无向上踢墙，贴底/贴顶旋转静默失败（中，**2026-11-07 已修复**）
-- 修复：`rotate()` 踢墙表由纯横向标量 `[0,-1,1,-2,2]`（只改 `currentPiece.x`）扩展为含向上踢墙的偏移对表 `[[0,0],[-1,0],[1,0],[-2,0],[2,0],[0,-1],[0,-2],[-1,-1],[1,-1],[-1,-2],[1,-2]]`，循环内 `currentPiece.x += kicks[i][0]; currentPiece.y += kicks[i][1]`。先试原位/横向（保持原手感），横向均越界时再试向上踢墙 `[0,-1]/[0,-2]`（I 块贴底横转竖必需）。修复后 I 块横放最底行按 ↑ 成功转为竖向并向上踢墙 2 格（y 18→16），与参考表「允许贴墙与踢墙旋转」一致。
-- 证据：`tools/fun/tetris.html:593-617`（`rotate()` 新踢墙表 + 双轴偏移）、`:459-469`（`rotateCells` 方阵旋转）、`:471-483`（`isValid` 越界即 false，`ny<0` 放过）。
-- 判别力：`scripts/_verify_fun_batch_fe_n24.mjs` JSDOM 两态锁——`window.__tbTetris.setPiece('I',3,18)` 贴底 + `rotate()` → 修复后 `cells` 转竖向且 `y===16`（向上踢墙），T 块居中旋转原地形态改变；HEAD 旧版（纯横向 kick 表、无钩子）静态确认缺陷、运行期 4 项断言全 FAIL。修复版 4/4 通过，HEAD 4/4 失败，确认 bug 真实且已修。（tetris `currentPiece` 在 IIFE 闭包内，故修复版内置 `window.__tbTetris` 观测钩子；HEAD 无钩子，改用静态 kick 表差异确认，属闭包可观测性限制，已在 handoff 说明）
-- 移交文件：`plan/已修复/2026-11-07-FE-N24-俄罗斯方块旋转向上踢墙.md`
-
 ### FE-N25 反应测试每次「开始」都清空统计，平均/最佳/历史永远只有 1 次（高，**复核误报：当前版本跨轮累加正确**）
 - **复核结论（2026-11-07）**：经 `git blame`/`git log` 确认，`tools/fun/reaction-tester.html` 已于 **2026-11-04 commit 14fa9280a9**（「fix(agri-fun): …反应测试统计」）修正。当前 `start()`（行 257-270）**不含 `reset()` 调用**，仅 `clearTimeout(timeoutId)` + 置 `state='wait'`；`reset()`（行 271-284）仅由「重置」按钮（行 172 `onclick="reset()"`）触发，清空 `times=[]`/`best=null`。因此每轮「开始/再来一次」→ `start()` 不重置 `times`，`onClick` 在 `state==='ready'` 时 `times.push(rt)`（行 301）持续累加，`best`/`avg` 反映多轮；DOMContentLoaded 处理器（行 337-344）仅做 intro 折叠，不触发 reset/start。原台账「start 首行 reset() 清空」系**修复前快照误报**，当前版本不成立。
 - 处置：**不改源码**（当前累加行为已正确）；`__tbn` 历史记录器（行 403-419）另读 `times[last]` 持久化至 localStorage，与显示统计互不干扰。原快照问题（每次开始清空）已不存在。
@@ -289,15 +216,6 @@
 - 复现：测 3 次 250/230/280ms：每次结束后「平均/最佳/当前」都等于该次本身，「历史」只有 1 个值；点「点击此处再来一次」时第 1 次结果被清空。期望平均 253ms、最佳 230ms，实际分别为 280/280。
 - 影响：`tools/fun/reaction-tester.html`；核心承诺「统计平均与最佳成绩」完全失效，无法比较稳定性，属假统计。
 - 方案：`start()` 只重置本轮状态，不清 `times`/`best`；结果累加并在「重置」按钮里清空；`best` 与历史从 localStorage 读回，补「3 次测量后平均/最佳」断言。
-
-### FE-N26 CPS 评级两套阈值：深度解析算例用 5 秒窗口与「很强」，代码固定 10 秒且 13.0 判「很快」（中，**2026-11-07 已修复**）
-- 问题：深度解析写「慢<4、一般4~7、不错8~11、很强>12」并用「5 秒点 40 次」举例，但工具固定 10 秒、无时长选择，代码阈值为「<5 慢、<8 一般、<11 不错、<14 很快、否则神速」，同一页存在两套口径。
-- 证据：`tools/fun/cps-test.html:202`（文档阈值）、`:203`（5 秒算例、13.0→很强）、`:254`（`const DURATION=10`）、`:256`（`cps<5?'慢':cps<8?'一般':cps<11?'不错':cps<14?'很快':'神速'`）、`:156`（公式框阈值与代码一致）。
-- 复现：13.0 CPS 按代码 `13<14` 判「很快」，文档写「很强」；4.5 CPS 代码判「慢」，文档落在「一般 4~7」；页面无任何时长控件，「5 秒点 40 次」无法产生。
-- 影响：`tools/fun/cps-test.html`；用户按算例核对评级会得到相反结论，「设定时长」暗示可调但实际固定 10 秒。
-- 修复（真源层）：deep-dive 由构建从 `i18n/tools/content_deepdive.json` 的 `fun/cps-test` 注入（直接改 `tools/fun/cps-test.html` 是错层、会被还原，同 FE-N14/N20/N22/N24）。将 scenarios/example 的阈值与算例收敛为与代码一致：`慢<5/一般<8/不错<11/很快<14/神速≥14`，算例改为「10 秒点 80 次→8.0 不错、点 130 次→13.0 很快」；同步改英文翻译源 `i18n/tools/en/fun/cps-test.json`（key 即中文源串，删旧 key、补新 key，并清理一份与之重复但阈值写法不同的旧条目），确保 EN 态不退化。构建后 cps-test.html 深度解析（行 200/202/203）与公式框（行 156）、代码（行 256）三处口径一致。
-- 判别力：grep 复核 cps-test.html 已无「很强 >12 / 5 秒点 40 次 / 慢 <4」；`verify_fun_calc.js` 该页无 calc 用例受影响（纯文案口径收敛）。
-- 移交文件：`plan/已修复/2026-11-07-FE-N26-CPS评级阈值对齐代码.md`
 
 ### 覆盖清单
 - `tools/fun/gomoku-ai.html`：4 条（FE-N17 高；FE-N18、FE-N19、FE-N20 中）。复核通过项：胜负判定 `cnt>=5`（含长连按胜处理）、平局按 225 手、AI 会堵单端冲四、候选点遍历无越界。
@@ -334,48 +252,10 @@
 - 影响：约 2/5 的局无法达成「全部找到」，玩家会误以为自己漏词。
 - 方案：先 `new Set(cur.valid)` 去重再比长度，或直接删掉词表里的重复项。
 
-### FE-N29 重置不清当前题与已找集合，界面复位后仍可继续作答（中，**2026-11-07 已修复**）
-- 页面：`tools/fun/anagram-game.html`
-- 问题：`reset()` 只改显示，不清 `cur`、`found`、`score`；`check()` 仅以 `!cur` 作为「未开局」守卫，而 `cur` 在重置后仍指向上局题目。
-- 证据：`:298-303`（reset 仅改 DOM）、`:315`（`if(!v||!cur)return;`）、`:294-312`（start→reset→newRound 才重设 cur/found/score）。
-- 复现：开始 → 答对一个词 → 点「重置」（提示回到「点击开始按钮开始」）→ 再输入上局词 → 实际仍判分并显示「已经找过这个单词」；期望重置后任何提交都不生效，直到点「开始」。
-- 影响：重置语义失效，分数与已找列表可在「未开局」状态下继续累加。
-- 修复（源修复）：`reset()` 头部增加 `cur=null; found=new Set(); score=0;`，使「重置」按钮与「开始」按钮语义对称——重置后 `cur` 为空、`check()` 因 `!cur` 守卫直接 return，任何提交均不生效，直到再次点「开始」。`start()` 仍先 `reset()` 再 `newRound()` 重设状态，不受影响。
-- 判别力：`scripts/_verify_fun_batch_fe_n29.mjs` JSDOM 两态锁——`start()` 加载题目 → `reset()` → 提交 `'zzz'` → 修复版 `check` 因 `cur=null` 提前 return（`#output` 保持 reset 文本），HEAD 旧版 `cur` 未清空、`check` 进入判定改写 `#output`；修复后 PASS(exit 0) / HEAD FAIL(exit 1)，确认 bug 真实且已修。（`cur` 为顶层 let 不在 window，故经 DOM `#output` 间接观测）
-- 移交文件：`plan/已修复/2026-11-07-FE-N29-找词游戏重置清空状态.md`
-
 ### FE-N30 复核误报：当前版本已实现 9 类题型 + 质数/阶乘讲解 + "只出数字题不含图形"声明（不改源码）
 - 页面：`tools/fun/sequence-puzzle.html`
 - 复核结论：台账快照为修复前状态。当前源码 `types=['arith','geom','square','cube','fib','prime','factorial','alt','interleave']`（9 类，含质数/阶乘），`genPuzzle` 对质数/阶乘均有 `why` 讲解（293/300 行），答错时 `choose()` 输出「❌ 正确答案是 X。规律：…」含解析文本；deep-dive 已明确「本工具只出数字题，不含图形序列」（commit 2f424d52b6 已修）。
 - 处置：仅标注台账，不动源码、不补锁定用例（原"承诺图形序列"问题已不存在）。
-
-### FE-N31 重开/重置后旧的 `setTimeout(next)` 仍触发，新局第 1 题被直接跳过（中，已修复 2026-11-07）
-- 页面：`tools/fun/sequence-puzzle.html`
-- 问题：`choose()` 用 `setTimeout(next,1000)` 且不保存句柄，`reset()`/`start()` 均不清理；上一题遗留的定时器会在新局里执行 `next()`，题号从 1 直接跳到 2。
-- 修复位点：第 321 行状态声明增 `timerId`（`let qNo,score,cur,timerId=null;`）；`reset()` 开头加 `if(timerId){clearTimeout(timerId);timerId=null;}`；`choose()` 末行改为 `timerId=setTimeout(next,o===cur.ans?1000:2200);`。
-- 判别力：`scripts/_verify_fun_batch_fe_n31.mjs` JSDOM 两态锁——`start()` 开局题号=1 → 点首选项 `choose()` 安排定时器 → 1 秒内再 `start()`（reset）→ 等待 2500ms 超窗；修复版残留定时器被清理，终态题号保持 1，PASS(exit 0)；HEAD 旧版定时器触发 `next()`，终态题号跳到 2，FAIL(exit 1)，确认 bug 真实且已修。（`timerId` 为顶层 let 不在 window，故经 DOM `#qNo` 间接观测）
-- 移交文件：`plan/已修复/2026-11-07-FE-N31-数列谜题重置清理定时器.md`
-
-### FE-N32 点击速度页首屏「点击此处开始」区域点击无效，必须另点「开始」按钮（高，已修复 2026-11-07）
-- 页面：`tools/fun/click-speed.html`
-- 问题：`state` 只在 `start()/reset()` 中赋值，页面加载后为 `undefined`；`onClick()` 只处理 `'go'` 与 `'idle'/'done'`，`undefined` 时两个分支都不命中，主 CTA 点击区静默无响应。
-- 修复位点：第 254 行状态声明由 `let duration=5,clicks,state,startTime,timer,best={5:0,10:0,30:0};` 改为 `let duration=5,clicks=0,state='idle',startTime,timer,best={5:0,10:0,30:0};` —— 加载即 `idle`，首点区域直接进入 `state==='idle'` 分支调用 `start()`。
-- 判别力：`scripts/_verify_fun_batch_fe_n32.mjs` JSDOM 两态锁——首屏连点「点击此处开始」区域两次；修复版首点 `start()`（state='go'）→ 再点 `clicks++`（#counter=1），PASS(exit 0)；HEAD 旧版两次点击均因 state=undefined 无响应（#counter=0），FAIL(exit 1)，确认 bug 真实且已修。
-- 移交文件：`plan/已修复/2026-11-07-FE-N32-点击速度首屏区域点击开始.md`
-
-### FE-N33 眨眼测试提前停止时 `elapsed` 回退为整段时长，速率被低估一个数量级（中，已修复 2026-11-07）
-- 页面：`tools/fun/blink-counter.html`
-- 问题：`finishTest()` 用 `total-remain` 推时长；若在第一个 1 秒 tick 之前停止（`remain` 仍等于 `total`），`elapsed<=0` 被兜底成 `total`，等于把不足 1 秒的测试按整段时长计算。
-- 修复位点：新增 `startTime` 状态变量（声明 `var ...startTime=null;`，`startTest()` 内 `startTime=Date.now();`）；`finishTest()` 改为 `var elapsed=(Date.now()-startTime)/1000; if(!(elapsed>0))elapsed=0.001;`，按真实耗时计算，去掉「兜底成 total」逻辑。
-- 判别力：`scripts/_verify_fun_batch_fe_n33.mjs` JSDOM 两态锁——设 60 秒 → startTest → 点 3 次眨眼 → 等 0.5s（未到首个 tick）→ stopTest(false)；修复版真实耗时≈0.5s → 每分钟眨眼≈357.9 次/分，PASS(exit 0)；HEAD 旧版兜底 60s → 3.0 次/分，FAIL(exit 1)，确认 bug 真实且已修。
-- 移交文件：`plan/已修复/2026-11-07-FE-N33-眨眼测试真实耗时计算.md`
-
-### FE-N34 测试进行中修改「时长」会改写 remain/total，最终速率算错（中，已修复 2026-11-07）
-- 页面：`tools/fun/blink-counter.html`
-- 问题：时长下拉 `onchange` 直接调 `updateRing()`，该函数无条件 `total=新值; remain=total`，不判断 `running`、不重启计时；正在跑的倒计时被中途换标尺。
-- 修复位点：① `updateRing()` 开头加 `if(running)return;`（测试进行中忽略时长改动）；② `startTest()` 内 `duration.disabled=true`、`stopTest()`/`resetTest()` 内 `duration.disabled=false`（进行中禁用选择，双重保险）。
-- 判别力：`scripts/_verify_fun_batch_fe_n34.mjs` JSDOM 两态锁——设 60 秒 → startTest → 改 duration=30 并调 updateRing()（模拟中途改时长）；修复版 running 时 updateRing 直接 return，#tNum 保持 60，PASS(exit 0)；HEAD 旧版 remain 被改写为 30（#tNum=30），FAIL(exit 1)，确认 bug 真实且已修。
-- 移交文件：`plan/已修复/2026-11-07-FE-N34-眨眼测试进行中禁改时长.md`
 
 ### FE-N35 复核误报：当前版本已用 MIDI 口径 `69+12·log2(f/refA4)`，音名八度正确（不改源码）
 - 页面：`tools/music/web-tuner.html`
@@ -397,13 +277,6 @@
 - 假工具：部分（该按钮为装饰）。
 - 处置：**待裁断**（2026-11-07）——当前源码 `targetFreq` 仍只赋值不被读取，按钮确为装饰；但「是否实现目标弦偏差显示」属产品定位/功能取舍，需老板定夺「实现偏差输出」还是「删除按钮与文案」，暂不擅改。
 
-### FE-N38 节拍器启动后不跟随 BPM 变更：间隔只算一次，且用 setInterval 累积漂移（中，已修复 2026-11-07）
-- 页面：`tools/dance/bpm-rhythm.html`
-- 问题：`toggleMetronome()` 启动时算一次 `interval=60000/bpm` 后交给 `setInterval` 固定使用；回调里只重读 `beatsPerBar`，不重读 BPM，因此运行中改 BPM 时数据区已更新、实际响拍不变。
-- 修复位点：将 `setInterval` 改为递归 `setTimeout`——新增 `metroTick()`，每次 tick 末尾用 `60000/当前BPM` 重算并续排 `setTimeout(metroTick, interval)`；`toggleMetronome()` 也改用 `setTimeout(metroTimer,...)` 启动、停止分支用 `clearTimeout`。
-- 判别力：`scripts/_verify_fun_batch_fe_n38.mjs` JSDOM 两态锁——桩替换 setTimeout/setInterval 仅捕获调度延迟；启动 120BPM 捕获 500ms → 改 BPM 为 240 并触发一次 tick → 修复版重算为 250ms，PASS(exit 0)；HEAD 旧版间隔恒 500ms，FAIL(exit 1)，确认 bug 真实且已修。
-- 移交文件：`plan/已修复/2026-11-07-FE-N38-节拍器跟随BPM变更.md`
-
 ### FE-N39 乐理参考表把小三度/小六度/小七度与 Cm、Cdim 写成等音的升号拼法（中，确认数据缺陷）
 - 页面：`tools/music/ear-trainer.html`
 - 问题：`NOTE_NAMES` 只有升号一套，参考表直接用半音数取音名，导致小三度写成 C→D♯、小六度 C→G♯、小七度 C→A♯，小三和弦写成 `C D#-G`、减三和弦 `C D#-F#`；同页深度解析（`:575`）却写 C-E♭-G，两处自相矛盾。
@@ -419,7 +292,6 @@
 - 复现：身高 170、腿长默认、踢高 150、前踢：分别选「初学」与「专业」→ 实际 高度比 88.2%、腿长比 196.1%、角度 68.2°、评级「良好」、建议完全相同；期望按训练水平给出不同阈值或建议，或该控件不应存在。
 - 影响：用户以为可按水平个性化评估，实际无效（假参数）。
 - 方案：把 lvl 纳入阈值（如初学 优秀门槛下调 5%）并给出对应建议；否则删除下拉及相关文案。
-- **状态：已修复 2026-11-07。** 修复位点：`tools/martial/kick-height.html` 新增 `var lvlEase=[5,3,0,-3]`（初学放宽、专业更严），评级四档门槛由 `>=100/85/70/50` 改为 `>=100-ease/85-ease/70-ease/50-ease`，`lvl` 现真实参与评级。判别力实测：`scripts/_verify_fun_batch_fe_n40n41.mjs` 运行期两态锁——输入 h=170/kh=170/前踢，切换「高级」→ 优秀、「专业」→ 良好，修复版评级随水平改变（PASS），HEAD 两态均 优秀（FAIL）。移交：`plan/已修复/2026-11-07-FE-N40-N41-踢腿评级水平与出色提示.md`。
 
 ### FE-N41 评级标签与「✓ 出色」提示自相矛盾，且与参考表口径不一（中，确认源码缺陷）
 - 页面：`tools/martial/kick-height.html`
@@ -428,7 +300,6 @@
 - 复现：身高 170、高踢 173 → 实际显示「高度比 101.8% [良好]」并同时弹出「✓ 出色：踢腿高度已达头顶以上」。Node 复算：`173/170=101.8%`，`101.8/1.05=96.9%` → 良好。期望：按参考表 ≥100% 判「优秀」，或「出色」也用修正比（则两项都应为普通）。
 - 影响：同一结果给出矛盾评级，用户无法判断柔韧等级；参考表失去参照意义。
 - 方案：评级与提示统一用同一口径（建议都用 `adjustedRatio`，并在结果里明确标注「修正高度比」），同时把参考表补上「按类型系数修正」的说明。
-- **状态：已修复 2026-11-07。** 修复位点：`tools/martial/kick-height.html` 第 311 行「✓ 出色」触发条件由 `if(ratio>=100)` 改为 `if(ratio>=100 && grade==='优秀')`，与评级口径统一，消除「良好」与「出色」并存矛盾。判别力实测：`scripts/_verify_fun_batch_fe_n40n41.mjs` 运行期两态锁——h=170/kh=173/高踢（修正比 96.9% → 良好），修复版不显示「✓ 出色」（PASS），HEAD 仍显示（FAIL）。移交：`plan/已修复/2026-11-07-FE-N40-N41-踢腿评级水平与出色提示.md`。
 
 ### U 批覆盖清单（文娱/音乐/舞蹈/武术）
 - `tools/fun/1a2b-guess.html`：未发现高/中缺陷。复核：`score()` 的 A/B 计数对可重复数字正确（Node 对 2 万组随机 guess/secret 对校验 `score(g,c)===score(c,g)` 0 例不对称）；`refineCandidates` 用全历史过滤，4d 模式 `secret=1234, guess=1359` 对应 1A1B 候选数 1260（与穷举一致）；3 种模式候选集 10000 / 10000 / 30240 生成无误，12 步上限在猜中时优先判胜。
@@ -444,23 +315,6 @@
 
 ## V 批 · 小游戏（2026-11-04）
 
-### FE-N42 井字棋 AI 定时器未清理：新局/先手切换后 AI 可连下两手（高，已修复 2026-11-07）
-- 页面：`tools/fun/tic-tac-toe.html`
-- 问题：`newGame()` 不保存、也不 `clearTimeout()` 已排队的 AI 落子定时器；`aiMove()` 只判 `gameOver`，不校验轮次，任何残留定时器都会直接 `board[move]='O'`。两个定时器并存时同一回合 AI 连下两手。
-- 修复位点：新增 `let aiTimer=null;`；`newGame()` 开头 `if(aiTimer){clearTimeout(aiTimer);aiTimer=null;}`；`makeMove()` 排 AI 前先清旧定时再 `aiTimer=setTimeout(aiMove,400)`；`aiMove()` 入口 `aiTimer=null`（定时器正在触发即清空引用）。setMode/setDifficulty 经 newGame 同样受益。
-- 判别力：`scripts/_verify_fun_batch_fe_n42.mjs` JSDOM 两态锁——人机玩家先手 → makeMove(0)（排 AI 400ms）→ 立即 newGame() → 等 600ms → 修复版新棋盘 O 数=0，PASS(exit 0)；HEAD 旧版残留定时器落 1 个 O，FAIL(exit 1)，确认 bug 真实且已修。
-- 移交文件：`plan/已修复/2026-11-07-FE-N42-井字棋清理AI定时器.md`
-
-### FE-N43 太空射击结束态不复位「开始游戏」按钮（中，**2026-11-07 已修复**）
-- 页面：`tools/fun/space-shooter.html`
-- 问题：`startGame()` 把 `#btnStart` 置为 `disabled` + 「游戏中...」，`gameOver()` 只切状态、不恢复按钮；只有 `restartGame()` 才复原。
-- 证据：`:1205-1206`（开局禁用）、`:1061-1065`（gameOver 未触碰 btnStart）、`:1231-1232`（仅 restartGame 复原）。
-- 复现：漏敌/撞机至 0 命 → 结束覆盖层出现后点「开始游戏」无任何反应，必须先点「重新开始」。
-- 影响：主操作按钮在结束态永久失效，用户误判页面卡死。
-- 修复位点：`gameOver()` 在 `updateHUD()` 后复原 `#btnStart`（`disabled=false`、文案回到「开始游戏」）；同步结束覆盖层提示指向「开始游戏」主按钮。`tools/fun/space-shooter.html:1065-1067`。
-- 判别力：`scripts/_verify_fun_batch_fe_n43.mjs` JSDOM 两态锁——覆盖 `Math.random` 使敌机必撞玩家，真实 rAF 跑到 gameOver：当前 `disabled=false/开始游戏`（PASS），HEAD 仍 `true/游戏中...`（FAIL）。
-- 移交文件：`plan/已修复/2026-11-07-FE-N43-太空射击结束复位开始按钮.md`
-
 ### FE-N44 太空射击宣称的「最高分本地保存」未实现（中，承诺未实现）
 - 页面：`tools/fun/space-shooter.html`
 - 问题：meta/正文多处承诺「刷新最高分」「最高分存浏览器本地」，但页面无任何最高分变量、HUD 或存储写入；`gameOver()` 只记录本局分数。
@@ -475,19 +329,6 @@
 - 证据：`:398`（算例原文）、`:670-672`（normal 10 / fast 20 / tough 30）、`:476` 与 `:1151`（`fireInterval=250` 固定，无翻倍分支）。
 - 影响：计分示例与实际规则冲突，用户对分数预期错误。
 - 方案：按 10/20/30 与三连射/护盾/加命改写算例。
-- **已修复 2026-11-07（改 i18n 真源 + 重建注入）**：deep-dive 是构建注入产物，直接改 HTML 会被 `_build.py` 还原，故改真源 `i18n/tools/content_deepdive.json` 的 `fun/space-shooter` → `examples[1].body`（算例），并同步英文源 `i18n/tools/en/fun/space-shooter.json` 的 map（键即中文源串——旧键删除、新键新增，否则英文态失译）。新算例：第 1 波 5 架普通机各 10 分 = 50；第 2 波混编（快速机 2×20 + 厚甲机 2×30，厚甲 3 发）= 100，累计 **150** 分；注明三种道具（三连射/护盾/加命）不直接加分、射速固定，并删掉「吃加速道具后射速翻倍」这一不存在的机制。
-  - 判别力实测（`scripts/_verify_fun_batch_fe_n45.mjs`）：从构建产物抽 `normal/fast/tough` 的 score 常量断言 10/20/30，再断言页面与算例均无「射速翻倍/加速道具/8 架各 15 分/累计 170 分」、算例引用 10/20/30 与三道具、累计 150 分、英文 map 含新键——当前 7 项全 PASS；HEAD（旧构建产物）5 项 FAIL。
-  - 一致性门禁：`python3 scripts/audit_deepdive_source_sync.py --check` → 扫描 4573 页、不一致 **0** 页。移交：`plan/已修复/2026-11-07-FE-N45-太空射击算例与真实计分对齐.md`。
-
-### FE-N46 贪吃蛇把「即将腾空的尾格」判为自撞（中，**2026-11-07 已修复**）
-- 页面：`tools/fun/snake-game.html`
-- 问题：自撞判定在 `unshift` 前对整条蛇（含尾段）做 `some`，随后才 `pop()`；未吃到食物时尾部本会腾空，进入尾格应合法。
-- 证据：`:437-470`，判定 `:456` `snake.some(s => s.x===head.x && s.y===head.y)`，`:468` 才 `snake.pop()`。
-- 复现（Node 复算）：长度 4、头 (10,10)、身 (10,11)(11,11)、尾 (11,10)，向右一步进入尾格 → 判定 gameOver；按规则该格当帧腾空，应存活。该盘面可由「长度 3 蛇绕 2×2 环并在 (10,10) 吃到食物」达成。
-- 影响：特定盘面下错误结束游戏（误判死亡）。
-- 修复位点：`gameStep()` 先算 `willEat=(head==food)`，自撞判定 `bodyToCheck = willEat ? snake : snake.slice(0,-1)`；未吃时正常 `pop()`。`tools/fun/snake-game.html:456-469`。
-- 判别力：`scripts/_verify_fun_batch_fe_n46.mjs` JSDOM 两态锁——注入脚本暴露闭包内 `snake/nextDirection/food/gameStep`，构造 2×2 环盘面、头向右一步进入尾格、food 不在尾格：当前 `gameRunning=true`、新头(11,10)、蛇长 4（PASS），HEAD `gameRunning=false`（FAIL）。
-- 移交文件：`plan/已修复/2026-11-07-FE-N46-贪吃蛇尾格自撞误判.md`
 
 ### FE-N47 猜单词宣称的「统计战绩/胜率与平均步数」未实现（中，承诺未实现）
 - 页面：`tools/fun/hangman.html`
@@ -497,50 +338,12 @@
 - 影响：练习向承诺缺失，用户无法看到胜率与最少步数进步。
 - 方案：本地增记 wins/losses、最少 guessing 步数与平均步数；否则删除战绩表述。
 
-### FE-N48 抛硬币重置统计后「最近结果」残留（中，已修复 2026-11-07）
-- 页面：`tools/fun/coin-flip.html`
-- 问题：`updateStats()` 仅在 `recent.length>0` 时重绘 `#recentResults`；`reset()` 清空数组后调用它，容器仍是旧序列。
-- 修复位点：`updateStats()` 增加 `else` 分支，当 `recent.length===0` 时把 `#recentResults` 写回 `<span style="color:var(--text-muted)">暂无记录</span>`。
-- 判别力：`scripts/_verify_fun_batch_fe_n48.mjs` JSDOM 两态锁——抛 3 次（每次等 1.1s）→ reset() → 修复版 #recentResults 显示「暂无记录」，PASS(exit 0)；HEAD 旧版残留「正/反」，FAIL(exit 1)，确认 bug 真实且已修。
-- 移交文件：`plan/已修复/2026-11-07-FE-N48-抛硬币重置清空最近结果.md`
-
-### FE-N49 Pong AI 移动速率被乘 0.08，人机模式几乎无对抗（中，**2026-11-07 已修复**）
-- 页面：`tools/fun/pong.html`
-- 问题：`AI_REACTION` 本意是反应延迟，却被当作速度系数直接乘进每帧位移，AI 实际速度仅 0.336 px/帧。
-- 证据：`:519-521`（`AI_SPEED=4.2`、`AI_ERROR=15`）、`:624-639`（`:635` `rightPaddle.y += Math.sign(diff)*AI_SPEED*AI_REACTION`）。
-- 复算：4.2×0.08=0.336 px/帧 ≈ 20 px/s；球初速 `:515` 4.5 px/帧 = 270 px/s，AI 不到球速 1/13，从场地中心走到边线需约 8 s，而球横穿一次仅 2–3 s。
-- 影响：AI 基本接不到球，人机模式失去对抗性（与该页「AI 有反应延迟和移动误差」的定位不符）。
-- 修复位点：`:635` 位移改为 `Math.sign(diff) * AI_SPEED`（去掉 `* AI_REACTION`），并删除已无用的 `AI_REACTION` 常量（`:520`）。保留 `AI_ERROR` 抖动作为「移动误差」定位，不引入难度档位（避免范围蔓延）。`tools/fun/pong.html:519-520,635`。
-- 判别力：`scripts/_verify_fun_batch_fe_n49.mjs` JSDOM 两态锁——覆盖 Math.random→0.9 使球恒向右、录制 canvas moveTo 提取右挡板 y(≈614)，跑真实循环 6s：当前右挡板 y 行程 100.8px（跟随球，PASS），HEAD 25.5px（恒近初始位，FAIL）。
-- 移交文件：`plan/已修复/2026-11-07-FE-N49-Pong-AI速率修复.md`
-
 ### FE-N50 Pong 宣称的「目标分可设 / AI 难度可调 / 速度叠加」均未实现（中，承诺未实现）
 - 页面：`tools/fun/pong.html`
 - 问题：深度解析与 FAQ 称目标分可设、AI 难度可调，公式表称挡板速度可叠加到球速；实际目标分是常量，页面无任何 select/input，反弹也只用击球点角度。
 - 证据：`:448`（「难度可调」）、`:449`、`:451`（「目标分（默认 11，可设）」）、`:455`（FAQ「默认 11，可调；领先 2 分胜」）；实际 `:518` `WIN_SCORE=11`、`:686`/`:735` 直接比较该常量，全页无 `select`/`input`；`:479-480`（「挡板移动速度可部分叠加」）对应 `:652-672` 只按 `hitPos` 算角度，无 paddle 速度参与。
 - 影响：三个用户可见承诺均落空，且「领先 2 分胜」规则也未实现。
 - 方案：补目标分输入、难度档位与挡板速度叠加（或删除对应文案与表格行）。
-
-### FE-N51 石头剪刀布「重置比分」不清最高连胜（中，已修复 2026-11-07）
-- 页面：`tools/fun/rock-paper-scissors.html`
-- 问题：`resetScore()` 重置 score/streak/history，却漏掉 `maxStreak`；只有「清空记录」才置 0。
-- 修复位点：`resetScore()` 内 `streak = 0;` 之后新增 `maxStreak = 0;`。
-- 判别力：`scripts/_verify_fun_batch_fe_n51.mjs` JSDOM 两态锁——monkeypatch Math.random→0 使 cpu 恒 rock、玩家 paper 必胜；连胜 3 次 maxStreak=3 → resetScore() → 再胜 1 次（maxStreak=max(旧值,1)）→ 修复版=1（#statsDetail「最高连胜 1」），PASS(exit 0)；HEAD 旧版=3（「最高连胜 3」），FAIL(exit 1)，确认 bug 真实且已修。
-- 移交文件：`plan/已修复/2026-11-07-FE-N51-石头剪刀布重置清零最高连胜.md`
-- 证据：`:442-453`（无 maxStreak 赋值）、`:496-499`（clearHistory 才 `maxStreak=0`）、`:470`（统计页直接展示 maxStreak）、`:508`（随分数一起持久化）。
-- 复现：打出 3 连胜 → 点「🔄 重置比分」→ 总场次/胜率归零，统计页「最高连胜」仍显示 3。
-- 影响：重置后统计自相矛盾（0 场次却有最高连胜）。
-- 方案：resetScore 内加 `maxStreak = 0`。
-
-### FE-N52 滑动拼图「自动还原」被记为胜利并写入 0 步最佳纪录（高，**2026-11-07 已修复**）
-- 页面：`tools/fun/sliding-puzzle.html`
-- 问题：`solveAnimation()` 反向回放结束后直接 `won=true; celebrateWin()`，而 `celebrateWin()` 经 `:1004-1005` 包裹会 `saveBest(moves, elapsed)` + `__spRecord()`；自动还原不增加 moves、也不重置计时，于是以玩家此前的步数/用时（刚开局时为 0/0）记为新纪录，并计入完成局数。
-- 证据：`:887`（`window.solveAnimation`）、`:900-904`（回放完成即 `won=true; celebrateWin()`）、`:846-862`（celebrateWin→`saveBest`+弹窗）、`:1004-1005`（包裹追加 `__spRecord`）、`:700-709`（`saveBest` prev 为空即写「新纪录」）。
-- 复现：重新开始后立刻点「自动还原」→ 完成后弹「🏆 新纪录」，最佳记录写成「0 步」，统计完成局数 +1；该尺寸/模式的最佳此后无法再被正常刷新（`:702` 以步数最小为优，0 步恒最优）。
-- 影响：假胜利 + 永久污染最佳纪录与完成局数统计。
-- 修复位点：`solveAnimation` 完成分支改为独立路径——`won=true; playing=false; stopTimer();` + 提示「演示完成，不计入对局成绩」的 toast，**不调用 celebrateWin**，从而不写最佳、不计完成局数。`tools/fun/sliding-puzzle.html:900-905`。
-- 判别力：`scripts/_verify_fun_batch_fe_n52.mjs` JSDOM 两态锁——清 localStorage → `startGame()` → `solveAnimation()`，轮询 `puzzle_games_v1`：当前不写入（PASS），HEAD 写入 1 条完成记录（FAIL）。
-- 移交文件：`plan/已修复/2026-11-07-FE-N52-滑动拼图自动还原不计胜利.md`
 
 ### V 批覆盖清单（小游戏 8 页）
 - `tools/fun/tic-tac-toe.html`：1 条（FE-N42 高）。复核通过项：`checkWin`/`checkWinFor` 8 组三连对称、`board.every` 平局、困难 minimax 以 O 判胜优先、分数读写与撤销栈。
@@ -562,7 +365,6 @@
 - 复现：选项写 `<img src=x onerror=alert(document.domain)>` → 点「开始」→ 1.2 秒后弹框。
 - 影响：DOM 型自 XSS。本工具纯本地、无服务端与 URL 参数投递通道，需用户自行粘贴恶意选项才触发，非远程可利用；但输入未转义属实打实的注入缺陷，任何后续把选项做成「分享/预设链接」的改动都会把它升级为可投递 XSS。
 - 方案：结果与历史改用 `textContent`/DOM API 渲染，或统一 `escapeHtml()` 后再拼 `innerHTML`。
-- **状态：复核（2026-11-07）：历史快照误报，当前源码已修复。** 当前 `tools/fun/random-picker.html` 的 `start()` 全程用 `result.textContent`/`output` 经 `document.createElement`+`st.textContent`/`past` 经 `sp.textContent` 渲染（:319-356），选项文本不再经任何 `innerHTML` 拼接，无注入通道。补 `scripts/_verify_fun_batch_fe_n53.mjs` 回归锁——注入 `<img onerror>` 恶意选项，当前与 HEAD 均不产生可解析 `<img>` 元素、无脚本执行（PASS），防回退。
 
 ### FE-N54 数据表/历史/导出 CSV 记录的是「抽取中…」而非真实结果（中，确认源码缺陷）
 - 页面：`tools/fun/random-picker.html`
@@ -571,7 +373,6 @@
 - 复现：点一次「开始」→ 切到数据表/历史，首条「结果」是 `🎲 抽取中...`；第二次起去重（`:418-426`）比对同一占位串直接 return，真实抽取结果永不上表。
 - 影响：数据表、历史、导出 CSV/文案导出的全是错误数据，且不可自愈。
 - 方案：把记录调用移到 `r.textContent=picked` 之后（或包装器延迟 ≥15×80ms），并在 `__random_pickerResText` 里把「抽取中」视为无结果。
-- **状态：已修复 2026-11-07。** 修复位点：`tools/fun/random-picker.html` ① `__random_pickerResText()` 过滤正则新增 `抽取中`（:419，占位串视为无结果）；② 在 `setInterval` 真实定格（`r.textContent=picked`）之后的回调末尾新增 `__random_pickerExtras()` 调用（:357），使真实抽取结果被记录。修复前同步包装器在 `start()` 返回即抓取，记到「🎲 抽取中...」。判别力实测：`scripts/_verify_fun_batch_fe_n54.mjs` 运行期两态锁——不重复模式输入 4 项、固定种子，`start()` 后等 1.5s，捕捉 `TBKit.history.record` 末条「结果」；修复版=真实项（如「苹果」，PASS），HEAD 版=「🎲 抽取中...」（FAIL）。移交：`plan/已修复/2026-11-07-FE-N54-N55-抽取记录与抽完提示.md`。
 
 ### FE-N55 「不放回抽完提示已空」是死代码，抽完会静默重新洗牌（中，确认源码缺陷；承诺未实现）
 - 页面：`tools/fun/random-picker.html`
@@ -580,7 +381,6 @@
 - 复现：6 个选项在「不重复」模式下连抽 6 次，第 7 次点开始又从池内重新抽取，`#output` 永不出现「所有选项已抽完！」。
 - 影响：用户以为仍在「不重复」，实际已重开一轮；FAQ 承诺落空。
 - 方案：先判空再重填（把 `:274` 的重填移到 `:275` 之后，或抽完后禁用按钮并提示重置）；另 `:294` 的 `filter(x=>x!==picked)` 会把同名重复项一次性全部移除，建议改为按索引移除。
-- **状态：复核（2026-11-07）：当前源码已修复，无需改源码。** 当前 `tools/fun/random-picker.html` 在 `if(unique){...}` 内、`setInterval` 之前即设有 `if(pool.length===0){ 显示「所有选项已抽完！」; return; }`（:312-315），空池不再静默重洗，与 README/FAQ 一致。`scripts/_verify_fun_batch_fe_n55.mjs` 运行期两态锁——不重复模式 2 项连抽 3 次，当前与 HEAD 末次 output 均含「所有选项已抽完！」（PASS），证实该守卫在 HEAD 已存在，台账原描述陈旧。仅补回归锁防回退，未改源码。移交：`plan/已修复/2026-11-07-FE-N54-N55-抽取记录与抽完提示.md`。
 
 ### FE-N56 提示实际每级扣 20 分，与 FAQ「提示本身不减分」相反；连击是加法不是倍数（中，确认源码缺陷）
 - 页面：`tools/fun/daily-riddle.html`
@@ -589,7 +389,6 @@
 - 复现：简单题三级提示后答对 → 100−60=40 分（`Math.max(20,40)`），而非「不扣分」；深解算例的 +10/+30 与实现的 100/180/300 基数也对不上。
 - 影响：计分口径与页面说明完全相反，用户按 FAQ 预期使用会被扣分；深解算例不可复算。
 - 方案：二选一——改实现（提示不扣分/改为倍数），或改 FAQ 与深解算例，并让算例按 `computeScore` 实跑取数。
-- **状态：已修复 2026-11-07。** 修复位点：`tools/fun/daily-riddle.html` `computeScore()` 去掉 `- hints*20`（与 FAQ「提示本身不减分」对齐，连击奖励保留）。判别力实测：`scripts/_verify_fun_batch_fe_n56.mjs` 从真实源码抽取 `baseScore`/`computeScore` 在隔离作用域实跑——`computeScore(true,3,1)` 修复版=100（PASS），HEAD=40（100−3×20，FAIL）。移交：`plan/已修复/2026-11-07-FE-N56-N62-N67-计分与模式与定时链.md`。
 
 ### FE-N57 「三级关键词提示」实为逐位揭示答案，提示 2 起常直接给出全答案（中，承诺未实现）
 - 页面：`tools/fun/daily-riddle.html`
@@ -621,7 +420,6 @@
 - 复现：按住 `a` 2 秒（macOS 默认重复率约 30 次/秒）→ A 计数与「总按键」增加数十次，热力色阶与 Top 排行被单个长按键主导。
 - 影响：热力图、占比、排行全部失真，无法反映真实击键分布。
 - 方案：`function onKey(e){ if(e.repeat) return; … }`。
-- **状态：已修复 2026-11-07。** 修复位点：`tools/fun/keyboard-heatmap.html` `onKey(e)` 开头新增 `if(e.repeat)return; // 长按自动重复产生的 keydown 不重复计数（FE-N60）`（约 291 行）。判别力实测：`scripts/_verify_fun_batch_fe_n60.mjs` 运行期两态锁——连续触发两次 `onKey`（`repeat=false` 与 `repeat=true`），读 `counts['a']`，修复版 `counts['a']=1`（忽略重复，PASS），HEAD 旧版 `counts['a']=2`（FAIL）。移交：`plan/已修复/2026-11-07-FE-N60-N73-键盘长按与生成器预设.md`。
 
 ### FE-N61 数据表/历史/趋势只在点「载入示例文本」时写入，且示例会把按键数叠加到真实统计上（中，确认源码缺陷）
 - 页面：`tools/fun/keyboard-heatmap.html`
@@ -630,7 +428,6 @@
 - 复现：正常打字 100 键 → 切「数据表/历史/趋势」仍为空，导出明细 CSV 无数据；再点「载入示例文本」→ 热力图与总数在原有基础上又加约 80 次按键（连点两次即翻倍）。
 - 影响：三个数据页签与导出功能对正常使用无效；示例按钮还会污染真实统计，使「总按键/最高频键」失真。
 - 方案：在 `onKey` 内节流写入历史记录；`loadSample` 前清零或明确提示「示例会累加统计」。
-- **已修复 2026-11-07**：① `onKey` 末尾接 `__khScheduleRecord()`——500ms 防抖后调既有 `__keyboard_heatmapExtras()`（该记录器自带 1s 节流 + 同值去重），真实打字终于落库，数据表/历史/趋势/导出有内容；② `loadSample` 保留「累加」语义（既有 verify 用例以 `loadSample();loadSample()` ⇒ 总按键 90 为契约，改动会破坏判别力），改为在结果区显式提示「示例文本已累加到当前统计：本次计入 N 次按键，当前总计 M 次。如需从 0 开始请点清空统计」（keyboard-heatmap.html ~L297-308、L382-400）。判别力实测（`scripts/_verify_fun_batch_fe_n61.mjs`）：桩 `TBKit.history.record` 捕获，真实触发 3 次 `onKey` 后等 900ms——当前记录数 1 且含 `typeArea=abc`（PASS）/ HEAD 记录数 0（FAIL）；`loadSample()` 后结果区含「累加」（当前 PASS / HEAD FAIL）。移交：`plan/已修复/2026-11-07-FE-N61-N78-热力图落库与球速帧率无关.md`。
 
 ### FE-N62 「重置/再次开始」不取消旧的 `setTimeout` 链，重置后仍会自动回放并误判失败（中，确认源码缺陷）
 - 页面：`tools/fun/sequence-memory.html`
@@ -639,7 +436,6 @@
 - 复现：序列回放中点「重置」→ 旧链继续闪数字；结束后点任意数字 → 因 `seq` 已清空，`seq[0]` 为 `undefined`，立即「❌ 游戏结束！达到第 1 关 / 正确序列：」（空）。
 - 影响：重置失效并产生假失败；回放中再点「开始」会出现两条回放链交错，数字顺序错乱不可解。
 - 方案：记录所有 timer id（或引入 `runId` 代次校验）并在 `reset`/`start` 中 `clearTimeout`，回调先判代次再执行。
-- **状态：已修复 2026-11-07。** 修复位点：`tools/fun/sequence-memory.html` 新增 `pendingTimers` 数组 + `scheduleTimer()`/`clearPendingTimers()`，`reset()` 与 `nextRound()` 开头 `clearPendingTimers()`，全部 `setTimeout` 改为 `scheduleTimer`。判别力实测：`scripts/_verify_fun_batch_fe_n62.mjs` 运行期两态锁——`start()` 后立刻 `reset()` 再等 1.6s，修复版 `accepting` 仍为 false（链已取消，PASS），HEAD 旧链跑完设 `accepting=true`（FAIL）。移交：`plan/已修复/2026-11-07-FE-N56-N62-N67-计分与模式与定时链.md`。
 
 ### FE-N63 「长度/速度可调」只存在于描述与深解，页面只有「开始/重置」（中，承诺未实现）
 - 页面：`tools/fun/sequence-memory.html`
@@ -655,7 +451,6 @@
 - 复现：点任一选项后立刻点「重置」→ 1 秒后 `round` 从 0 变 1 并自动出新色块，界面提示仍停在「点击"开始"开始游戏」；第 10 题结束后 1 秒内点「开始」同样会被旧回调改写。
 - 影响：重置无效、轮次与得分状态错乱（可能多算/漏算一轮）。
 - 方案：保存 timeout id，`reset`/`start` 时 `clearTimeout`，并在回调内校验局次。
-- **已修复 2026-11-07**：新增 `roundTimer` + `sessionId` 局次令牌与 `clearRoundTimer()`；`start()`/`reset()` 先清定时器并 `sessionId++`；`choose()` 内 `const mySession=sessionId` 后注册定时器，回调开头 `if(mySession!==sessionId)return;` 丢弃作废局次的回调（color-guess.html ~L253-257/259-273/309-313）。判别力实测（`scripts/_verify_fun_batch_fe_n64_n82_n83.mjs` 第 1 节）：`start()`→答题→立即 `reset()`→等 1.3s，当前提示仍是「点击"开始"开始游戏」且 `round=0`（PASS）；HEAD 被旧回调推进到「第 1 轮」`round=1`（FAIL）。移交：`plan/已修复/2026-11-07-FE-N64-N82-N83-换题定时器与谜语检索去重.md`。
 
 ### FE-N65 深解承诺「输入颜色名或 HEX + 容差判对 + 记录正确率/最佳成绩」，实现是四选一精确匹配（中，承诺未实现）
 - 页面：`tools/fun/color-guess.html`
@@ -671,7 +466,6 @@
 - 复现：刷到牌组 `[2,4,5,5]`（该组有标准解，生成器可产出）→ 依次点 2、4、+、5、−、5 → 界面显示「2 4 + 5 − 5」，点「计算结果」→「🎉 正确！24+5−5 = 24」。
 - 影响：违反「只用 +−×÷ 与括号」仍可得 1 分并计入胜率；玩家漏点运算符（很常见）会被静默当成两位数。`/tmp` Node 枚举另有 86 组「标准无解但拼接可解」牌组（如 `[1,1,2,2]` → `12+12`），正常生成流程（`:273-284` 五十次重试求有解）极少产出无解组，但兜底分支若落到无解组即可被拼接破解。
 - 方案：数字后必须紧跟运算符，或在 `checkAnswer` 加文法校验（连续两个数字记号即判非法），再求值。
-- **状态：已修复 2026-11-07。** 修复位点：`tools/fun/number-puzzle.html` `checkAnswer()` 在 `usedIndices.length<4` 校验后新增文法校验——相邻两个数字记号之间必须插入运算符，否则判非法（提示「相邻两个数字之间必须插入运算符，不能拼成多位数」），不再 `join('')` 拼接求值。判别力实测：`scripts/_verify_fun_batch_fe_n66.mjs` 运行期两态锁——模拟 `2 4 + 5 - 5`，修复版拦截并提示「运算符」（PASS），HEAD 拼接成 `24+5-5=24` 误判「正确」（FAIL）。移交：`plan/已修复/2026-11-07-FE-N66-N68-N69-拼数拼接与重复计分.md`。
 
 ### FE-N67 规则写明「可切换为 1~10 模式」，全页没有该开关，`mode13` 永不改变（中，承诺未实现）
 - 页面：`tools/fun/number-puzzle.html`
@@ -679,7 +473,6 @@
 - 证据：`:171`（规则文案）、`:260`（`let mode13=true`）、`:274`（唯一读取 `const max=mode13?13:10;`）。
 - 影响：模式承诺落空；A/J/Q/K 始终参与（玩家若不熟悉对应关系，牌面理解成本高于 1~10 模式）。
 - 方案：加模式切换控件并在 `newGame()` 读取，或删除该规则句。
-- **状态：已修复 2026-11-07。** 修复位点：`tools/fun/number-puzzle.html` 新增「1~13 / 1~10 模式」切换按钮与 `setMode(v)`（设置 `mode13` 并 `newGame()` 重建牌面），初始化调用 `setMode(mode13)` 标记激活态。判别力实测：`scripts/_verify_fun_batch_fe_n67.mjs` 运行期两态锁——`setMode(false)` 后 `newGame()`，修复版 4 张数字全部 ≤10（PASS），HEAD 无 `setMode`（承诺未实现，FAIL）。移交：`plan/已修复/2026-11-07-FE-N56-N62-N67-计分与模式与定时链.md`。
 
 ### FE-N68 答对后 800ms 内重复提交会重复加分/加连胜（中，确认源码缺陷）
 - 页面：`tools/fun/word-scramble.html`
@@ -688,7 +481,6 @@
 - 复现：输入正确单词后连按两次回车（或快速双击「提交答案」）→ 同一词计两次分、`correctCount` +2、连击 +2。
 - 影响：分数、连胜、最高连胜与最佳成绩全部可被刷高，战绩失真。
 - 方案：答对即置 `locked=true` 或立即清空输入并 disable 提交，`nextWord` 时复位。
-- **状态：已修复 2026-11-07。** 修复位点：`tools/fun/word-scramble.html` 新增 `submitLocked` 状态；`submitAnswer` 答对后设 `submitLocked=true` 并 `if(submitLocked) return` 拦截窗口内二次提交，`nextWord()` 复位。判别力实测：`scripts/_verify_fun_batch_fe_n68.mjs` 运行期两态锁——开局→答对→连点两次提交，修复版 score 仅 +1 次（55→55，PASS），HEAD 翻倍（35→75，FAIL）。移交：`plan/已修复/2026-11-07-FE-N66-N68-N69-拼数拼接与重复计分.md`。
 
 ### FE-N69 0 分也判「🏆 新纪录」，未开局点「结束」会写入一条 0 分战绩（中，确认源码缺陷）
 - 页面：`tools/fun/word-scramble.html`
@@ -697,7 +489,6 @@
 - 复现：点「开始游戏」后立刻点「结束」→ 弹窗显示「🏆 新纪录！」；再重复一次 0 分结束，仍显示「新纪录」（`bestScore` 恒为 0）。
 - 影响：最佳成绩被 0 覆盖并反复误报，战绩列表被从未开始的空局污染。
 - 方案：用 `typeof data.bestScore!=='number'` 判首次；`endGame` 开头加 `if(!gameActive) return;`。
-- **状态：已修复 2026-11-07。** 修复位点：`tools/fun/word-scramble.html` `endGame()` 开头加 `if(!gameActive) return;`（未开局/已结束时直接拦截，不写空局战绩）；`saveScore()` 首次判定由 `!data.bestScore` 改为 `typeof data.bestScore!=='number'`（0 分不再被当「无记录」误判新纪录）。判别力实测：`scripts/_verify_fun_batch_fe_n69.mjs` 运行期两态锁——清空历史后未开局直接 `endGame()`，修复版 `recent` 条数=0（PASS），HEAD 写入 1 条 0 分空局（FAIL）。移交：`plan/已修复/2026-11-07-FE-N66-N68-N69-拼数拼接与重复计分.md`。
 
 ### W 批覆盖清单（益智/记忆/随机 8 页）
 - `tools/fun/random-picker.html`：3 条（FE-N53 高·安全；FE-N54、FE-N55 中）。复核通过项：随机索引等概率、15×80ms 定格、历史保留 20 条、`unique` 关闭时每次重填池、预设文本与 `reset`。
@@ -721,7 +512,6 @@
 - 复现：打开页面停留 3 s 后点「开始训练」，严格跟着节拍器敲 → 结果「完美命中 0 个」「准确率 0%」，且所有敲击都落在同一侧偏差（系统偏移=3 s 左右）。
 - 影响：核心评分链路恒失效，历史记录被 0 分污染；有节拍音频与网格但评分不可用，假工具：否。
 - 方案：统一时钟——`onTap` 改记 `getAudioCtx().currentTime`（音频上下文在页面加载即创建并复用）；或把 `startTime` 改成 `performance.now()/1000 + countInDuration`，二者只保留一个时基。
-- **已修复 2026-11-07**：采用前一种方案，`onTap` 改为 `const now = getAudioCtx().currentTime;`（rhythm-trainer.html ~L1011-1015），与 `startTime` 同源。判别力实测（`scripts/_verify_fun_batch_fe_n70n71.mjs`）：桩 `AudioContext.currentTime`／`performance.now` 各记一条访问日志，实跑 `startTraining()`（BPM 上限 200 → 预备拍 1.2s）等 `tapBtn` 解锁后调 `onTap`，取首条日志——当前=audio（PASS）/ HEAD=perf（FAIL）。移交：`plan/已修复/2026-11-07-FE-N70-N71-节奏评分时钟与小节号.md`。
 
 ### FE-N71 命中列表小节号 off-by-one，每小节第 4 拍被标成下一小节（中，确认源码缺陷）
 - 页面：`tools/music/rhythm-trainer.html`
@@ -730,7 +520,6 @@
 - 复现：简单难度 4 小节，命中第 1 小节第 4 拍（`noteIndex=3`，`subdivision=1` → `beatIdx=4`）→ 列表显示「第2小节 第4拍」。
 - 影响：反馈定位错误（约 1/4 的命中被标错小节），用户按提示复盘会找错位置；假工具：否。
 - 方案：`const measureNum = Math.floor((beatIdx - 1) / 4) + 1;`。
-- **已修复 2026-11-07**：`measureNum` 改用 `Math.floor((beatIdx - 1) / 4) + 1`（rhythm-trainer.html ~L1155）。判别力实测（同锁脚本）：从源码抽 3 行计算式在隔离 `new Function` 实跑，`subdivision=1 / noteIndex=3` → 当前「第1小节 第4拍」PASS / HEAD「第2小节 第4拍」FAIL。移交同 N70。
 
 ### FE-N72 只随机打印节奏型文本，无节拍器音频/敲击采集/偏差与准确率（高，确认源码缺陷；假功能）
 - 页面：`tools/music/random-training-rhythm.html`
@@ -747,7 +536,6 @@
 - 复现：点「小规模」→ 数量框显示 `2.5`，结果仅 2 条；点「大规模」→ 显示 `7.5`，结果仅 7 条。
 - 影响：显示数量与实际输出不一致，预设不可信；假工具：否（叠加 FE-N72 的假功能结论）。
 - 方案：预设改整数 `2`/`8`，`gen()` 内 `Math.floor`，并删除「极端工况」。
-- **状态：已修复 2026-11-07（跨 5 文件统一修）。** 修复位点：`tools/fun/generator-2.html`、`tools/fun/generator-3.html`、`tools/fun/generator-24.html`、`tools/music/generator-1.html`、`tools/music/random-training-rhythm.html` 五处预设 `"cnt":"2.5"`→`"3"`、`"cnt":"7.5"`→`"8"`（同时删除无关「极端工况」模板）；`gen()` 入口由 `Math.min(+value||5,50)`（generator-1/random-training-rhythm 为 `parseInt` 取整但未钳下限）改为 `Math.max(1,Math.min(Math.floor(+value||5),50))`，确保小数与低于 1 的输入都被正确取整钳制。判别力实测：`scripts/_verify_fun_batch_fe_n73.mjs` 运行期两态锁——五文件源码均无 `"cnt":"2.5"/"7.5"`，且 `generator-2` 设 `cnt=8` 生成 8 条，修复版 PASS、HEAD 旧版仍含小数预设 FAIL。移交：`plan/已修复/2026-11-07-FE-N60-N73-键盘长按与生成器预设.md`。
 
 ### FE-N74 降号调音名全按升号输出：Bb 调主音显示 A#、4 级显示 D#，F 调 4 级显示 A#（应为 B♭）（高，确认源码缺陷）
 - 页面：`tools/music/sheet-music.html`
@@ -756,7 +544,6 @@
 - 复现：Node 复刻 → Bb 调输出 `A# C↑ D↑ D#↑ F↑ G↑ A↑ A#↑`（应为 `B♭ C D E♭ F G A B♭`）；F 调 4 级 `A#`（应 `B♭`）；Db 调 4 级 `F#`（应 `G♭`）；Eb 调 4 级 `G#`（应 `A♭`）；F# 调 7 级 `F`（应 `E#`）。
 - 影响：12 调中 6 个调存在错拼（Bb/Eb/Ab/Db 的 1 级与 4 级、F 的 4 级、F# 的 7 级），视唱/乐理速查场景直接教错；假工具：否。
 - 方案：按调定义调内音名表（含 ♭/♯），表格、试听与 CSV 共用同一份「音级→音名」映射。
-- **状态：已修复 2026-11-07。** 修复位点：`tools/music/sheet-music.html` 新增 `KEY_SPELLINGS`（12 调大调音阶拼写，8 项含高八度重复），`renderStaff` 与 `__staffExport` 的音名取值由 `NOTE_NAMES[noteIdx]` 改为 `KEY_SPELLINGS[currentKey/key][i]`（频率仍按 `NOTE_FREQS[noteIdx]` 不变）。判别力实测：`scripts/_verify_fun_batch_fe_n74.mjs` 运行期两态锁——`setKey('Bb')` 后读 `#staff-display`，修复版含 `Bb`/`Eb` 且不含 `A#`（PASS），HEAD 旧版无 `KEY_SPELLINGS`、Bb 调主音为 `A#`（FAIL）。移交：`plan/已修复/2026-11-07-FE-N74-N76-降号调音名与CSV唱名.md`。
 
 ### FE-N75 简谱查询：标题/meta/公式/FAQ 均承诺「五线谱位置」，实际只渲染「数字+音名」色块，无谱线/线间定位（中，承诺未实现）
 - 页面：`tools/music/sheet-music.html`
@@ -773,7 +560,6 @@
 - 复现：点「导出当前音阶 CSV」→ 第 8 行「1(8va)」的唱名列写为 `undefined`。
 - 影响：导出文件含脏值，导入表格/统计时出错；假工具：否。
 - 方案：`SOLFEGE[i === 7 ? 0 : i]`（八度重复用 do）。
-- **状态：已修复 2026-11-07。** 修复位点：`tools/music/sheet-music.html` `__staffExport` 第 8 级唱名由 `SOLFEGE[i]` 改为 `SOLFEGE[i === 7 ? 0 : i]`（同时音名列改用 `KEY_SPELLINGS[key][i]`）。判别力实测：`scripts/_verify_fun_batch_fe_n76.mjs` 运行期两态锁——`__staffExport()` 后读 `#staffHidden tbody` 第 8 行唱名列，修复版为 `do`（PASS），HEAD 旧版越界取 `SOLFEGE[7]` 得空/undefined（FAIL）。移交：`plan/已修复/2026-11-07-FE-N74-N76-降号调音名与CSV唱名.md`。
 
 ### X 批覆盖清单（音乐训练 3 页）
 - `tools/music/rhythm-trainer.html`：2 条（FE-N70 高、FE-N71 中）。复核通过项：节奏型生成保证每小节至少 1 个音符且总音符 ≥30%、4 拍预备拍、WebAudio 按 `ctx.currentTime` 预调度、停止/结束守卫、历史落库与导出接线。
@@ -792,7 +578,6 @@
 - 复现（源码推演）：开始 → 空格发射 → 空格暂停 → 空格继续，球速与挡板速度变为 2 倍；再暂停/继续一次变 4 倍，以此类推，关卡基本无法游玩。
 - 影响：核心玩法在任一暂停后失准，且越暂停越失控；假工具：否。
 - 方案：主循环只启动一次（`togglePause` 只翻转 `paused`，不调用 `gameLoop`），或在暂停时 `cancelAnimationFrame(state.animId)`、恢复时再重新起一条循环。
-- **状态：已修复 2026-11-07。** 修复位点：`tools/fun/breakout.html` `togglePause()`（删除恢复时重复的 `gameLoop()` 调用，仅翻转 `state.paused`；循环在整个 running 期间只启动一次）。判别力实测：`scripts/_verify_fun_batch_fe_n77.mjs` 运行期两态锁——统计 gameLoop 的 rAF 调度次数，修复版暂停/继续前后比 =1.00（单链，PASS），HEAD 比 =2.05（双链，FAIL）。移交：`plan/已修复/2026-11-07-FE-N77-N88-N89-小游戏暂停与棋盘重建.md`。
 
 ### FE-N78 位移按「每帧固定量」推进，与公式表「按时间差积分、帧率无关」相反（中，确认源码缺陷）
 - 页面：`tools/fun/breakout.html`
@@ -800,7 +585,6 @@
 - 证据：`tools/fun/breakout.html:344-345`（帧率无关承诺）、`:658-666`（球每帧固定位移）、`:646-656`（挡板每帧固定速度）。
 - 影响：120Hz 屏上球速约为 60Hz 屏的 2 倍，同一关卡难度随显示器刷新率变化；属结果不正确，非崩溃。
 - 方案：在 `gameLoop` 里记录 `dt`（并按 60fps 归一化，如 `dt/16.67`），所有位移乘该系数；否则删掉公式表的帧率无关表述。
-- **已修复 2026-11-07**：`state` 新增 `lastFrame`；`gameLoop` 每帧算 `__dt = min(now - lastFrame, 50)`（首帧/恢复帧取 16.667，上限 50ms 防切后台单帧大跳）、`__k = __dt / 16.667`，并传给 `movePaddle(__k)`/`moveBall(__k)`/`updateParticles(__k)`；三函数入口统一 `kk` 钳制（非有限/≤0 退回 1），位移与挡板速度（`7*kk`）、粒子重力与寿命均按 `kk` 缩放；`startGame` 与「恢复暂停」重置 `lastFrame=0`（breakout.html ~L408-418、L499-505、L648-676、L760-780、L796/L803）。公式表「帧率无关」表述由此成立，无需改文案。判别力实测（`scripts/_verify_fun_batch_fe_n78.mjs`）：桩 canvas（记录 `arc` 读球心）+ 桩 rAF 手动逐帧 + 桩 `performance.now`，比对「33.3ms 帧位移 / 16.7ms 帧位移」——当前 8.00/4.00=**2.00**（PASS）/ HEAD 4.00/4.00=**1.00**（FAIL）。移交同 N61。
 
 ### FE-N79 宣称 Web Audio 实时合成笑声并可导出 wav，实际只输出文字方案、无任何音频（高，假工具）
 - 页面：`tools/fun/generator-laugh.html`
@@ -815,7 +599,6 @@
 - 证据：`tools/fun/generator-laugh.html:410`（预设 `2.5/7.5/10`）、`:131`（整数输入 `min=1 max=50`）、`:233-235`（未取整直接循环）。
 - 影响：用户按预设期望 3/8 条，实得 2/7 条，导出/复制数量对不上；假工具：否。
 - 方案：预设改整数（如 2/8），`gen()` 用 `Math.floor`/`Math.trunc` 并钳制 `1..50`；删除或替换「极端工况」。
-- **状态：已修复 2026-11-07。** 修复位点：`tools/fun/generator-laugh.html` 预设「小规模/大规模」改 `cnt` 为 `3/8`（原 `2.5/7.5`），`gen()` 入口 `Math.max(1, Math.min(Math.floor(...), 50))`（原无 floor、无下限钳制）。判别力实测：`scripts/_verify_fun_batch_fe_n80.mjs` 运行期两态锁——抓预设配置后点「大规模」，修复版生成 8 条（PASS），HEAD 7.5 只生成 7 条（FAIL）。移交：`plan/已修复/2026-11-07-FE-N80-N87-笑声预设与冥想分段.md`。
 
 ### FE-N81 深度解析/FAQ 承诺「两人血型配对指数」，页面只有四种单型介绍（中，承诺未实现）
 - 页面：`tools/fun/blood-type-personality.html`
@@ -830,7 +613,6 @@
 - 证据：`tools/fun/riddle-generator.html:123`（关键词过滤公式）、`:129`（默认 `value="天气"`）、`:239-245`（BANK 固定键）、`:268`（`BANK[t] || BANK.普通` 静默回退）、`:397`（预设 `topic='天气'`）。
 - 影响：默认入口即偏离用户预期，关键词检索能力名存实亡；假工具：否。
 - 方案：改为在 `tags/谜面` 上做包含匹配并显示命中数；或换成分类 `<select>`；默认键改为存在的分类，未命中时给提示而非静默回退。
-- **已修复 2026-11-07**：新增 `resolvePool(raw)` 四级匹配——①「全部/空」= 全题库；②分类名精确；③分类名互相包含（`动`→`动物`）；④谜面文本包含；全部未命中的**回退到普通池并在结果区显式提示**（不再静默）。结果区新增「分类：X · 候选 N 条 · 本轮剩余 M 条」一行。默认输入值 `value="天气"`→`"动物"`，预设「默认参数」`topic` 同步改 `动物`（riddle-generator.html ~L129/260-320/397）。判别力实测（同锁脚本第 2 节）：默认值=`动物`、输入「天气」结果含「未命中/回退」、输入「动」结果含「分类：动物」——当前三项全 PASS，HEAD 三项全 FAIL（默认仍 `天气`、结果无任何提示/分类行）。移交同 N64。
 
 ### FE-N83 「连抽不重复/同一轮去重」未实现，普通池仅 2 条，连抽必重（中，确认源码缺陷）
 - 页面：`tools/fun/riddle-generator.html`
@@ -838,7 +620,6 @@
 - 证据：`tools/fun/riddle-generator.html:123`、`:433-434`（去重承诺）、`:262-264`（`pick` 无状态）、`:268-269`（每次直接 `pick(pool)`）；`/tmp/xfun_probe.js` 复算普通池 2 条、重复概率 0.5。
 - 影响：连续出同一题，「连抽 5 题不重复」的用户预期直接落空；假工具：否。
 - 方案：按池维护 `used` Set，抽完再循环清空；或在界面改为「随机一条」并删除去重表述。
-- **已修复 2026-11-07**：新增 `usedSet`/`usedKey` 与 `pickUnique(list,key)`——池签名变化即清空集合，取「未抽过」的子集随机取一条入集合，集合耗尽自动循环清空（实现公式与深解承诺的「同一轮去重、抽完循环」）；`generate()` 改为 `pickUnique` 并显示「本轮剩余」（riddle-generator.html ~L261-300）。判别力实测（同锁脚本第 3 节）：钉死 `Math.random=()=>0` 后普通池（2 条）连抽两次——当前两条不同（PASS）；HEAD 两次都是同一条（FAIL）；第 3 次当前循环回池内。移交同 N64。
 
 ### FE-N84 页面通篇描述「翻牌配对（翻两张、相同消除）」，实际玩法是序列记忆点击（高，承诺未实现/名不符实）
 - 页面：`tools/fun/emoji-memory.html`
@@ -854,7 +635,6 @@
 - 复现（源码推演）：点「开始」→ 在 800ms 内点「重置」→ 等待约 0.8s，选项区出现 2 个 Emoji；任点一个即「游戏结束！达到第 1 关 / 正确序列：」。
 - 影响：重置/重开逻辑不可靠，出现无法解释的判负与空答案；假工具：否。
 - 方案：保存所有 `timerId`，在 `reset()/start()` 中 `clearTimeout` 全清；`showSeq/showOptions` 增加 `sequence.length===0` 守卫。
-- **状态：已修复 2026-11-07。** 修复位点：`tools/fun/emoji-memory.html` 维护 `pendingTimers` 数组，`reset()`/`nextLevel()` 起点 `clearPendingTimers()`；`showSeq` 起始加 `sequence.length===0` 守卫；所有 `setTimeout` 改为 `scheduleTimer()` 纳入追踪，通关延迟 `setTimeout(nextLevel,1500)` 同样纳入。判别力实测：`scripts/_verify_fun_batch_fe_n85.mjs` 运行期两态锁——「准备」阶段立即 `reset()` 后等 >1s，修复版无任何幽灵选项按钮（PASS），HEAD 出现 2 个幽灵按钮（FAIL）。移交：`plan/已修复/2026-11-07-FE-N85-记忆游戏重置定时链.md`。
 
 ### FE-N86 名为「冥想计时器」，实际无倒计时、无提示音、无计时会话记录（高，假功能）
 - 页面：`tools/fun/meditation-timer.html`
@@ -869,7 +649,6 @@
 - 证据：`tools/fun/meditation-timer.html:119`（分段公式）、`:277`（`Math.max(1, Math.round(dur/seg))`）、`:285-287`（标称「每 seg 分钟」与「预计结束」）、`:294-299`（只列起始时刻、无边界钳制）；`/tmp/xfun_probe.js` 复算 10/3→[0,3,6]、7/2→[0,2,4,6]。
 - 影响：计划缺段或末段缩水，用户按表执行会漏掉最后一分钟；假工具：否。
 - 方案：用 `Math.ceil(dur/seg)` 生成边界并 `Math.min(boundary, dur)` 截断，表格同时显示「起—止」；或在 UI 强制要求单段时长整除总时长。
-- **状态：已修复 2026-11-07。** 修复位点：`tools/fun/meditation-timer.html` 分段数 `Math.round(dur/seg)`→`Math.ceil(dur/seg)`；每段「起–止」展示且止时刻 `Math.min(段末, 总时长)` 钳制（原只列起始时刻）。判别力实测：`scripts/_verify_fun_batch_fe_n87.mjs` 运行期两态锁——`dur=10,seg=3` 修复版 4 段（PASS），HEAD `round` 仅 3 段（FAIL）。移交：`plan/已修复/2026-11-07-FE-N80-N87-笑声预设与冥想分段.md`。
 
 ### FE-N88 胜利弹层容器缺 `class="win-overlay"`，通关提示渲染在页面底部而非居中遮罩（中，确认源码缺陷）
 - 页面：`tools/fun/memory-game.html`
@@ -877,7 +656,6 @@
 - 证据：`tools/fun/memory-game.html:54`（`.win-overlay` 样式）、`:345`（`<div id="winOverlay" style="display:none;">` 无 class）、`:577`（`showWin` 仅改 display）。
 - 影响：通关提示不可见（需滚到页尾），用户误以为游戏卡死；假工具：否。
 - 方案：给容器补 `class="win-overlay"`（或 CSS 选择器改为 `#winOverlay`）。
-- **状态：已修复 2026-11-07。** 修复位点：`tools/fun/memory-game.html` winOverlay 容器补 `class="win-overlay"`（`<div id="winOverlay" class="win-overlay" style="display:none;">`）。判别力实测：`scripts/_verify_fun_batch_fe_n88.mjs` 静态结构断言——修复版命中 `id="winOverlay" class="win-overlay"`（PASS），HEAD 无 class（FAIL）。移交：`plan/已修复/2026-11-07-FE-N77-N88-N89-小游戏暂停与棋盘重建.md`。
 
 ### FE-N89 切换难度/主题不重建棋盘，配对总数与胜利判定改用新难度，导致盘面永远无法通关（中，确认源码缺陷）
 - 页面：`tools/fun/memory-game.html`
@@ -885,7 +663,6 @@
 - 证据：`tools/fun/memory-game.html:398-409`（切换仅改变量与最佳成绩）、`:411-429`（只有 `startGame` 重建棋盘）、`:491`（以 `currentDiff.pairs` 判胜）、`:526`（以 `currentDiff.pairs` 显示总数）。
 - 影响：难度按钮看起来即时生效，实际进入不可通关状态且统计错误；假工具：否。
 - 方案：难度/主题切换时自动 `startGame()`（或弹确认后重开），并在切换后同步刷新盘面与统计。
-- **状态：已修复 2026-11-07。** 修复位点：`tools/fun/memory-game.html` `setDifficulty()`/`setTheme()` 末尾调用 `startGame()` 重建棋盘并同步统计。判别力实测：`scripts/_verify_fun_batch_fe_n89.mjs` 运行期两态锁——初始 easy 12 牌，切 expert 后修复版重建为 36 牌（PASS），HEAD 仍 12 牌（FAIL）。移交：`plan/已修复/2026-11-07-FE-N77-N88-N89-小游戏暂停与棋盘重建.md`。
 
 ### X 批覆盖清单（测试/记忆/小游戏 8 页）
 - `tools/fun/zodiac-match.html`：0 条。复核通过项：同象 88±5（90/82）、同元素 86±5、火风/土水 84/82、土火 52、火水 46、风土/风水 54，分数区间与公式表「同象 80-90、互补 70-85、需磨合 40-60」基本一致；环半径按 `2πr` 实时重算；随机配对、四类相处建议与复制/导出/历史接线均正常。
