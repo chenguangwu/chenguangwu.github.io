@@ -149,7 +149,7 @@ s.parentNode.insertBefore(el, s);
 <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="🔎 MSISDN 查询">🔎 MSISDN Query</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">归一化：去除空格、连字符、括号、点，剥离前导 +；国家码按 3→1 位前缀降序匹配国家码库；+86 且国内号码 11 位时取前 4 位查运营商库；输出 E.164（+国家码+国内号码）</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">归一化：去除空格、连字符、括号、点，剥离前导 +；国家/地区码按 3→2→1 位降序匹配 E.164 码表；先校验 E.164 总长 8–15 位与各国国内号长，再按 +86 前 3 位号段查运营商、+1 按 NANP（NPA/NXX）规则校验并查区号；输出 E.164（+国家码+国内号码）</div>
   <div class="formula-desc">MSISDN 是手机号码在移动通信网络中的完整国际编号。</div>
   <ul class="formula-list">
     <li><b>结构</b>：国家码（CC）+ 国内目的地码（NDC）+ 用户号码（SN），总长不超过 15 位。</li>
@@ -240,78 +240,201 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
+/* ITU-T E.164 国家/地区码：[中文名, 英文名]。
+   中国香港 / 中国澳门 / 中国台湾是中国的地区码，与 86 同属一个编号主权口径。 */
 const CC_DB = {
-  '86':'中国','1':'美国/加拿大','7':'俄罗斯','20':'埃及','27':'南非','30':'希腊',
-  '31':'荷兰','32':'比利时','33':'法国','34':'西班牙','36':'匈牙利','39':'意大利',
-  '40':'罗马尼亚','41':'瑞士','43':'奥地利','44':'英国','45':'丹麦','46':'瑞典',
-  '47':'挪威','48':'波兰','49':'德国','51':'秘鲁','52':'墨西哥','53':'古巴',
-  '54':'阿根廷','55':'巴西','56':'智利','57':'哥伦比亚','58':'委内瑞拉','60':'马来西亚',
-  '61':'澳大利亚','62':'印度尼西亚','63':'菲律宾','64':'新西兰','65':'新加坡',
-  '66':'泰国','81':'日本','82':'韩国','84':'越南','90':'土耳其','91':'印度','92':'巴基斯坦'
+  '1':['美国/加拿大','United States / Canada'],'7':['俄罗斯/哈萨克斯坦','Russia / Kazakhstan'],
+  '20':['埃及','Egypt'],'27':['南非','South Africa'],'30':['希腊','Greece'],
+  '31':['荷兰','Netherlands'],'32':['比利时','Belgium'],'33':['法国','France'],
+  '34':['西班牙','Spain'],'36':['匈牙利','Hungary'],'39':['意大利','Italy'],
+  '40':['罗马尼亚','Romania'],'41':['瑞士','Switzerland'],'43':['奥地利','Austria'],
+  '44':['英国','United Kingdom'],'45':['丹麦','Denmark'],'46':['瑞典','Sweden'],
+  '47':['挪威','Norway'],'48':['波兰','Poland'],'49':['德国','Germany'],
+  '51':['秘鲁','Peru'],'52':['墨西哥','Mexico'],'53':['古巴','Cuba'],
+  '54':['阿根廷','Argentina'],'55':['巴西','Brazil'],'56':['智利','Chile'],
+  '57':['哥伦比亚','Colombia'],'58':['委内瑞拉','Venezuela'],
+  '60':['马来西亚','Malaysia'],'61':['澳大利亚','Australia'],
+  '62':['印度尼西亚','Indonesia'],'63':['菲律宾','Philippines'],
+  '64':['新西兰','New Zealand'],'65':['新加坡','Singapore'],'66':['泰国','Thailand'],
+  '81':['日本','Japan'],'82':['韩国','South Korea'],'84':['越南','Vietnam'],
+  '86':['中国','China'],'90':['土耳其','Turkiye'],'91':['印度','India'],
+  '92':['巴基斯坦','Pakistan'],'93':['阿富汗','Afghanistan'],
+  '94':['斯里兰卡','Sri Lanka'],'95':['缅甸','Myanmar'],'98':['伊朗','Iran'],
+  '212':['摩洛哥','Morocco'],'213':['阿尔及利亚','Algeria'],'216':['突尼斯','Tunisia'],
+  '218':['利比亚','Libya'],'234':['尼日利亚','Nigeria'],'254':['肯尼亚','Kenya'],
+  '256':['乌干达','Uganda'],'351':['葡萄牙','Portugal'],'352':['卢森堡','Luxembourg'],
+  '353':['爱尔兰','Ireland'],'354':['冰岛','Iceland'],'358':['芬兰','Finland'],
+  '370':['立陶宛','Lithuania'],'371':['拉脱维亚','Latvia'],'372':['爱沙尼亚','Estonia'],
+  '380':['乌克兰','Ukraine'],'385':['克罗地亚','Croatia'],'386':['斯洛文尼亚','Slovenia'],
+  '420':['捷克','Czechia'],'421':['斯洛伐克','Slovakia'],
+  '852':['中国香港','Hong Kong, China'],'853':['中国澳门','Macao, China'],
+  '855':['柬埔寨','Cambodia'],'856':['老挝','Laos'],'880':['孟加拉国','Bangladesh'],
+  '886':['中国台湾','Taiwan, China'],'961':['黎巴嫩','Lebanon'],
+  '962':['约旦','Jordan'],'963':['叙利亚','Syria'],'964':['伊拉克','Iraq'],
+  '965':['科威特','Kuwait'],'966':['沙特阿拉伯','Saudi Arabia'],
+  '971':['阿联酋','United Arab Emirates'],'972':['以色列','Israel'],
+  '974':['卡塔尔','Qatar'],'977':['尼泊尔','Nepal'],
+  '992':['塔吉克斯坦','Tajikistan'],'998':['乌兹别克斯坦','Uzbekistan']
 };
-const OP_DB = {
-  '8613':{'1':'移动','2':'移动','3':'电信','4':'移动','5':'电信','6':'联通','7':'移动','8':'移动','9':'电信'},
-  '8614':{'4':'电信','5':'移动','6':'联通','7':'移动','8':'电信','9':'联通'},
-  '8615':{'0':'电信','1':'移动','2':'移动','3':'电信','4':'移动','5':'移动','6':'移动','7':'移动','8':'移动','9':'移动'},
-  '8616':{'1':'电信','2':'移动','3':'电信','4':'移动','5':'联通','6':'移动','7':'移动','8':'移动'},
-  '8617':{'0':'电信','1':'电信','2':'移动','3':'电信','4':'移动','5':'联通','6':'移动','7':'移动','8':'移动'},
-  '8618':{'0':'电信','1':'电信','2':'移动','3':'电信','4':'移动','5':'联通','6':'移动','7':'移动','8':'移动','9':'电信'},
-  '8619':{'1':'电信','3':'电信','5':'电信','8':'移动','9':'联通'}
+/* 国内有效号 NSN 长度 [min,max]，依据各国编号计划；未列出的按 E.164 上限兜底 */
+const CC_LEN = {
+  '1':[10,10],'7':[10,10],'20':[10,10],'27':[9,9],'30':[10,10],
+  '31':[9,9],'32':[8,9],'33':[9,9],'34':[9,9],'36':[9,9],'39':[9,11],
+  '40':[9,9],'41':[9,9],'43':[7,13],'44':[9,10],'45':[8,8],'46':[7,9],
+  '47':[8,8],'48':[9,9],'49':[6,13],'51':[9,9],'52':[10,10],
+  '54':[10,11],'55':[10,11],'56':[9,9],'57':[10,10],
+  '60':[9,10],'61':[9,9],'62':[9,12],'63':[10,10],'64':[8,10],
+  '65':[8,8],'66':[9,9],'81':[10,10],'82':[9,10],'84':[9,9],
+  '86':[11,11],'90':[10,10],'91':[10,10],'92':[10,10],
+  '93':[9,9],'94':[9,9],'95':[8,9],'98':[10,10],
+  '212':[9,9],'213':[9,9],'216':[8,8],'218':[9,9],'234':[10,10],
+  '254':[9,9],'256':[9,9],'351':[9,9],'352':[9,9],'353':[9,9],
+  '354':[7,7],'358':[7,10],'370':[8,8],'371':[8,8],'372':[7,8],
+  '380':[9,9],'385':[8,9],'386':[8,8],'420':[9,9],'421':[9,9],
+  '852':[8,8],'853':[8,8],'855':[8,9],'856':[8,10],'880':[10,10],
+  '886':[9,9],'961':[7,8],'962':[8,9],'963':[8,9],'964':[9,10],
+  '965':[8,8],'966':[9,9],'971':[9,9],'972':[9,9],'974':[8,8],
+  '977':[10,10],'992':[9,9],'998':[9,9]
 };
+/* 中国大陆号段：以国内号码前 3 位为准（携号转网后归属可能变化） */
+const OP_NAME = {
+  '移动':['移动','China Mobile'],'联通':['联通','China Unicom'],
+  '电信':['电信','China Telecom'],'广电':['广电','China Broadnet']
+};
+const OP_DB3 = (function(){
+  const m={};
+  const put=function(op,list){ String(list).split(' ').forEach(function(p){ if(p) m[p]=OP_NAME[op]; }); };
+  put('移动','134 135 136 137 138 139 147 148 150 151 152 157 158 159 172 178 182 183 184 187 188 195 197 198');
+  put('联通','130 131 132 145 146 155 156 166 167 175 176 185 186 196');
+  put('电信','133 141 149 153 162 173 177 180 181 189 190 191 193 199');
+  put('广电','192');
+  return m;
+})();
+const OP_DB4 = {'1349':OP_NAME['电信']};
+/* NANP 常见 NPA 区号 → 地区（未收录只影响归属地展示，不否定结构合法性） */
+const AC_DB = {
+  '201':'New Jersey','202':'Washington, DC','203':'Connecticut','205':'Alabama',
+  '206':'Seattle, WA','207':'Maine','208':'Idaho','210':'San Antonio, TX',
+  '212':'New York, NY','213':'Los Angeles, CA','214':'Dallas, TX','215':'Philadelphia, PA',
+  '216':'Cleveland, OH','248':'Michigan','301':'Maryland','302':'Delaware',
+  '303':'Denver, CO','305':'Miami, FL','307':'Wyoming','310':'Los Angeles, CA',
+  '312':'Chicago, IL','313':'Detroit, MI','314':'St. Louis, MO',
+  '317':'Indianapolis, IN','347':'New York, NY','401':'Rhode Island',
+  '404':'Atlanta, GA','405':'Oklahoma City, OK','408':'San Jose, CA',
+  '412':'Pittsburgh, PA','415':'San Francisco, CA','416':'Toronto, ON',
+  '425':'Washington','480':'Arizona','501':'Arkansas','503':'Portland, OR',
+  '504':'New Orleans, LA','505':'New Mexico','510':'Oakland, CA',
+  '512':'Austin, TX','514':'Montreal, QC','602':'Phoenix, AZ',
+  '604':'Vancouver, BC','612':'Minneapolis, MN','614':'Columbus, OH',
+  '615':'Nashville, TN','617':'Boston, MA','619':'San Diego, CA',
+  '646':'New York, NY','650':'San Francisco Peninsula, CA','702':'Las Vegas, NV',
+  '703':'Northern Virginia','704':'Charlotte, NC','713':'Houston, TX',
+  '714':'Orange County, CA','718':'New York, NY','720':'Denver, CO',
+  '773':'Chicago, IL','786':'Miami, FL','801':'Salt Lake City, UT',
+  '803':'South Carolina','808':'Hawaii','813':'Tampa, FL',
+  '818':'Los Angeles, CA','832':'Houston, TX','843':'South Carolina',
+  '858':'San Diego, CA','901':'Memphis, TN','904':'Jacksonville, FL',
+  '905':'Toronto, ON','907':'Alaska','916':'Sacramento, CA',
+  '917':'New York, NY','919':'Raleigh, NC','925':'California',
+  '954':'Fort Lauderdale, FL','972':'Dallas, TX','980':'Charlotte, NC'
+};
+function __mL(zh,en){ return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?en:zh; }
+function __mEsc(s){
+  return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+/* NANP 结构校验：NPA/NXX 均须 [2-9]XX，N11 为保留服务码，N99 区号保留未分配 */
+function __mNanpErr(d){
+  d=String(d==null?'':d);
+  const npa=d.slice(0,3), nxx=d.slice(3,6);
+  if(!/^[2-9]\d\d$/.test(npa)) return __mL('❌ 区号 NPA 首位须为 2–9','❌ NPA must start with 2-9');
+  if(/^\d11$/.test(npa)) return __mL('❌ N11 是保留服务码，不能作区号','❌ N11 is a reserved service code, not an area code');
+  if(npa[1]==='9'&&npa[2]==='9') return __mL('❌ N99 是保留未分配区号','❌ N99 area codes are reserved and unassigned');
+  if(!/^[2-9]\d\d$/.test(nxx)) return __mL('❌ 局号 NXX 首位须为 2–9','❌ Central office code (NXX) must start with 2-9');
+  if(/^\d11$/.test(nxx)) return __mL('❌ N11 是保留局号','❌ N11 is a reserved central office code');
+  return '';
+}
 function validate(){
-  const raw = document.getElementById('input').value.trim();
-  const out = document.getElementById('output');
-  if(!raw){ const __h0=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Waiting for input...":"等待输入...");if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0; return; }
-  let normalized = raw.replace(/[\s\-\(\)\.]/g,'');
-  if(normalized.startsWith('+')) normalized = normalized.substring(1);
-  let html = `<p data-zh="输入：${raw}"><strong>Input:</strong>${raw}</p>`;
+  const L=__mL;
+  const raw=String(document.getElementById('input').value==null?'':document.getElementById('input').value).trim();
+  const out=document.getElementById('output');
+  const put=function(h){
+    if((typeof h==='number'&&!isFinite(h))||/Infinity/.test(String(h))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(h)){
+      out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;
+    }
+    out.innerHTML=h;
+  };
+  if(!raw){ put(L('等待输入...','Waiting for input...')); return; }
+  let normalized=raw.replace(/[\s\-\(\)\.]/g,'');
+  if(normalized.charAt(0)==='+') normalized=normalized.substring(1);
+  const safeRaw=__mEsc(raw);
   if(!/^\d+$/.test(normalized)){
-    const __h1=`<p style="color:var(--danger);">❌ 仅允许数字及 +、空格、连字符</p>`;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;
+    put('<p style="color:var(--danger);">'+L('❌ 仅允许数字及 +、空格、连字符','❌ Only digits and +, spaces, hyphens are allowed')+'</p>');
     return;
   }
-  // Detect country code
-  let cc = '', country = '';
-  for(let len = 3; len >= 1; len--){
-    const prefix = normalized.substring(0,len);
-    if(CC_DB[prefix]){ cc = prefix; country = CC_DB[prefix]; break; }
+  let cc='';
+  for(let len=3;len>=1;len--){
+    const prefix=normalized.substring(0,len);
+    if(CC_DB[prefix]){ cc=prefix; break; }
   }
   if(!cc){
-    const __h2=`<p style="color:var(--danger);">❌ 无法识别国家代码（请输入完整国际号码，如 +86...）</p>`;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h2;
+    put('<p style="color:var(--danger);">'+L('❌ 无法识别国家代码（请输入完整国际号码，如 +86...）','❌ Unrecognized country calling code (enter a full international number, e.g. +86...)')+'</p>');
     return;
   }
-  const nationalNum = normalized.substring(cc.length);
-  html += `<p><strong>国家代码：</strong>+${cc} - ${country}</p>`;
-  html += `<p><strong>国内号码：</strong>${nationalNum}</p>`;
-  html += `<p><strong>E.164 格式：</strong>+${normalized}</p>`;
-  // Operator lookup for China
-  if(cc === '86' && nationalNum.length === 11){
-    const prefix4 = nationalNum.substring(0,4);
-    const thirdDigit = nationalNum[3];
-    const opKey = '86' + prefix4.substring(0,2);
-    const thirdChar = prefix4[3];
-    if(OP_DB[opKey] && OP_DB[opKey][thirdChar]){
-      const op = OP_DB[opKey][thirdChar];
-      html += `<p><strong>运营商：</strong>${op}</p>`;
-    } else {
-      html += `<p><strong>运营商：</strong>未知（号段 ${prefix4}）</p>`;
-    }
-    // Number type
-    if(/^1[3-9]\d{9}$/.test(nationalNum)){
-      html += `<p><strong>号码类型：</strong>✅ 中国大陆手机号</p>`;
-      html += `<p style="color:var(--success);">✅ MSISDN 有效</p>`;
-    } else {
-      html += `<p style="color:var(--danger);">❌ 不是有效的中国大陆手机号</p>`;
-    }
-  } else if(cc === '1' && nationalNum.length === 10){
-    const areaCode = nationalNum.substring(0,3);
-    const AC_DB = {'212':'New York','310':'Los Angeles','415':'San Francisco','206':'Seattle','617':'Boston','312':'Chicago','404':'Atlanta','713':'Houston','214':'Dallas','305':'Miami'};
-    html += `<p><strong>区号：</strong>${areaCode} - ${AC_DB[areaCode] || '未知城市'}</p>`;
-    html += `<p><strong>号码类型：</strong>✅ NANP 号码</p>`;
-    html += `<p style="color:var(--success);">✅ MSISDN 有效</p>`;
-  } else {
-    html += `<p style="color:var(--success);">✅ MSISDN 格式有效</p>`;
+  const cLabel=CC_DB[cc];
+  const nationalNum=normalized.substring(cc.length);
+  let html='<p><strong>Input:</strong>'+safeRaw+'</p>';
+  html+='<p><strong>'+L('国家/地区代码：','Country/region code: ')+'</strong>+'+cc+' - '+L(cLabel[0],cLabel[1])+'</p>';
+  html+='<p><strong>'+L('国内号码：','National number: ')+'</strong>'+nationalNum+'</p>';
+  html+='<p><strong>'+L('E.164 格式：','E.164 format: ')+'</strong>+'+normalized+'</p>';
+  const rule=CC_LEN[cc]||[4,Math.max(4,15-cc.length)];
+  const min=rule[0],max=Math.min(rule[1],15-cc.length);
+  html+='<p>'+L('<strong>号码长度：</strong>'+nationalNum.length+' 位（允许 '+min+'–'+max+' 位）',
+                '<strong>Number length:</strong> '+nationalNum.length+' digits (allowed '+min+'-'+max+')')+'</p>';
+  let err='';
+  if(normalized.length>15){
+    err=L('❌ 超过 E.164 上限 15 位（当前 '+normalized.length+' 位）',
+          '❌ Exceeds the E.164 limit of 15 digits (currently '+normalized.length+')');
+  } else if(nationalNum.length<min||nationalNum.length>max){
+    err=L('❌ 国内号码长度非法：+'+cc+' 需 '+(min===max?min+'':min+'–'+max)+' 位，当前 '+nationalNum.length+' 位',
+          '❌ Invalid national number length: +'+cc+' requires '+(min===max?min+'':min+'-'+max)+' digits, got '+nationalNum.length);
+  } else if(normalized.length<8){
+    err=L('❌ E.164 总长过短（至少 8 位，当前 '+normalized.length+' 位）',
+          '❌ E.164 number too short (at least 8 digits, currently '+normalized.length+')');
   }
-  const __h3=html;if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h3;
+  if(err){ put(html+'<p style="color:var(--danger);">'+err+'</p>'); return; }
+  if(cc==='86'){
+    const p3=nationalNum.substring(0,3), p4=nationalNum.substring(0,4);
+    const hit=OP_DB4[p4]||OP_DB3[p3];
+    if(hit){
+      html+='<p><strong>'+L('运营商：','Carrier: ')+'</strong>'+L(hit[0],hit[1])+
+            L('（号段 '+p3+'，携号转网后可能变化）',' (prefix '+p3+', may change after number portability)')+'</p>';
+    } else {
+      html+='<p><strong>'+L('运营商：','Carrier: ')+'</strong>'+L('未知（号段 '+p3+'）','Unknown (prefix '+p3+')')+'</p>';
+    }
+    if(/^1[3-9]\d{9}$/.test(nationalNum)){
+      html+='<p><strong>'+L('号码类型：','Number type: ')+'</strong>'+L('✅ 中国大陆手机号','✅ China mainland mobile')+'</p>';
+      html+='<p style="color:var(--success);">'+L('✅ MSISDN 有效','✅ Valid MSISDN')+'</p>';
+    } else {
+      html+='<p style="color:var(--danger);">'+L('❌ 不是有效的中国大陆手机号（须 1[3-9] 开头共 11 位）','❌ Not a valid China mainland mobile number (11 digits starting with 1[3-9])')+'</p>';
+    }
+  } else if(cc==='1'){
+    const npa=nationalNum.substring(0,3);
+    const city=AC_DB[npa];
+    html+='<p><strong>'+L('区号：','Area code: ')+'</strong>'+npa+' - '+(city||L('未收录地区','Uncatalogued region'))+'</p>';
+    const nerr=__mNanpErr(nationalNum);
+    if(nerr){
+      html+='<p style="color:var(--danger);">'+nerr+'</p>';
+    } else {
+      html+='<p><strong>'+L('号码类型：','Number type: ')+'</strong>'+L('✅ NANP 号码','✅ NANP number')+'</p>';
+      html+='<p style="color:var(--success);">'+L('✅ MSISDN 有效','✅ Valid MSISDN')+'</p>';
+    }
+  } else {
+    html+='<p><strong>'+L('号码类型：','Number type: ')+'</strong>'+L('✅ 国际号码（按 E.164 长度校验）','✅ International number (E.164 length validated)')+'</p>';
+    html+='<p style="color:var(--success);">'+L('✅ MSISDN 有效','✅ Valid MSISDN')+'</p>';
+  }
+  put(html);
 }
 function toggleToolTheme(){
   const cur = document.documentElement.getAttribute('data-theme');
