@@ -154,7 +154,7 @@ s.parentNode.insertBefore(el, s);
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="✖️ 向量叉积">✖️ Vector Cross Product</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">向量叉积（向量积，仅三维）<br>A × B = (aᵧb_z − a_z bᵧ, a_z bₓ − aₓ b_z, aₓ bᵧ − aᵧ bₓ)<br>行列式形式：A × B = | i  j  k; aₓ aᵧ a_z; bₓ bᵧ b_z |<br>模长 |A × B| = 两向量构成的平行四边形面积<br>sin θ = |A×B| ÷ (|A|·|B|)，θ = arcsin(…)×180/π<br>A × B = 0 表示两向量平行（或其一为零向量）</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">向量叉积（向量积，仅三维）<br>A × B = (aᵧb_z − a_z bᵧ, a_z bₓ − aₓ b_z, aₓ bᵧ − aᵧ bₓ)<br>行列式形式：A × B = | i  j  k; aₓ aᵧ a_z; bₓ bᵧ b_z |<br>模长 |A × B| = 两向量构成的平行四边形面积<br>夹角 θ = atan2(|A×B|, A·B)×180/π（0–180°）；|A×B| = |A||B|sinθ，A·B = |A||B|cosθ；|A×B| = 0 时按 A·B 符号得 0°（同向）或 180°（反向）<br>A × B = 0 表示两向量平行（或其一为零向量）</div>
   <div class="formula-desc">叉积是三维向量特有的运算，结果是一个同时垂直于两个原向量的新向量。</div>
   <div class="formula-desc">叉积按 1e-10 精度显示；绝对值小于 1e-12 的浮点残差按 0 显示（平行相消残差属数值噪声，不代表真实小量）。</div>
   <ul class="formula-list">
@@ -266,29 +266,33 @@ function getV(prefix){
 function fmt(x){ if(Math.abs(x)<1e-12) return '0'; return (Math.round(x*1e10)/1e10).toLocaleString(); }
 function mag(v){ return Math.sqrt(v.reduce((s,x)=>s+x*x,0)); }
 function vecStr(v){ return '('+v.map(fmt).join(', ')+')'; }
+function __vcpL(zh,en){return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?en:zh;}
 function calculate(){
   const ids=['a0','a1','a2','b0','b1','b2'];
-  if(ids.every(id=>document.getElementById(id).value.trim()==='')){document.getElementById('output').innerHTML='<p class="muted">请输入向量 A 与 B 的 x/y/z 分量</p>';return;}
+  if(ids.every(id=>document.getElementById(id).value.trim()==='')){document.getElementById('output').innerHTML='<p class="muted">'+__vcpL('请输入向量 A 与 B 的 x/y/z 分量','Enter the x/y/z components of vectors A and B')+'</p>';return;}
   const A=getV('a'), B=getV('b');
   const C=[A[1]*B[2]-A[2]*B[1], A[2]*B[0]-A[0]*B[2], A[0]*B[1]-A[1]*B[0]];
   const mA=mag(A), mB=mag(B), mC=mag(C);
   let html='<p><strong>A = </strong>'+vecStr(A)+'</p><p><strong>B = </strong>'+vecStr(B)+'</p>';
   html+='<div class="big-result">A × B = '+vecStr(C)+'</div>';
   html+='<div class="det-formula">A × B = | i  j  k |<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| aₓ aᵧ a_z |<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| bₓ bᵧ b_z |</div>';
-  html+='<p style="margin-top:10px;"><strong>分量计算：</strong></p>';
+  html+='<p style="margin-top:10px;"><strong>'+__vcpL('分量计算：','Component-wise: ')+'</strong></p>';
   html+='<div class="step-line">cₓ = aᵧ·b_z − a_z·bᵧ = '+fmt(A[1])+'×'+fmt(B[2])+' − '+fmt(A[2])+'×'+fmt(B[1])+' = '+fmt(C[0])+'</div>';
   html+='<div class="step-line">cᵧ = a_z·bₓ − aₓ·b_z = '+fmt(A[2])+'×'+fmt(B[0])+' − '+fmt(A[0])+'×'+fmt(B[2])+' = '+fmt(C[1])+'</div>';
   html+='<div class="step-line">c_z = aₓ·bᵧ − aᵧ·bₓ = '+fmt(A[0])+'×'+fmt(B[1])+' − '+fmt(A[1])+'×'+fmt(B[0])+' = '+fmt(C[2])+'</div>';
-  html+='<p style="margin-top:10px;"><strong>相关量：</strong></p>';
-  html+='<div class="step-line">|A × B| = '+fmt(mC)+' （平行四边形面积）</div>';
+  html+='<p style="margin-top:10px;"><strong>'+__vcpL('相关量：','Related quantities: ')+'</strong></p>';
+  html+='<div class="step-line">|A × B| = '+fmt(mC)+__vcpL(' （平行四边形面积）',' (parallelogram area)')+'</div>';
   html+='<div class="step-line">|A| = '+fmt(mA)+', |B| = '+fmt(mB)+'</div>';
   if(mA*mB>1e-12){
     const sinT=mC/(mA*mB);
-    const ang=Math.asin(Math.max(-1,Math.min(1,sinT)))*180/Math.PI;
+    const dot=A[0]*B[0]+A[1]*B[1]+A[2]*B[2];
+    /* IT-N471：asin 只返回 0–90°，钝角会被镜像成 180°−θ；atan2(|A×B|, A·B) 给 0–180°，
+       mC=0 时按 A·B 符号自然得 0°（同向）或 180°（反向）。 */
+    const ang=Math.atan2(mC,dot)*180/Math.PI;
     html+='<div class="step-line">sin θ = |A×B|/(|A||B|) = '+fmt(sinT)+' → θ = '+fmt(ang)+'°</div>';
   }
-  if(mC<1e-12) html+='<div class="step-line" style="color:var(--success);">A × B = 0，说明 A 与 B 平行（或其中之一为零向量）</div>';
-  const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h0;
+  if(mC<1e-12) html+='<div class="step-line" style="color:var(--success);">'+__vcpL('A × B = 0，说明 A 与 B 平行（或其中之一为零向量）','A × B = 0, so A and B are parallel (or one of them is the zero vector)')+'</div>';
+  const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">'+__vcpL('⚠ 计算结果含无效值，请检查输入是否为有效正数。','⚠ The result contains an invalid value; check your inputs.')+'</p>';return;}document.getElementById('output').innerHTML=__h0;
 }
 function toggleToolTheme(){
   const cur=document.documentElement.getAttribute('data-theme');

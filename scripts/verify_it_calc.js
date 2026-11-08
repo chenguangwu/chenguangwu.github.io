@@ -7588,6 +7588,96 @@ const CASES = [
     "ref": "IT-N475 顺带修：历史区按钮文本「复用」原为硬编码中文，英文态 ?lang=en-US 动态创建的按钮残留 CJK（jsdom 真机实测 textContent=复用）。现 renderHist 经 __meL 输出 Reuse。修复前 renderHist 既无 __meL 也无 Reuse ⇒ 0 ⇒ 红；真机中英两态复核另见移交档。"
   },
   {
+    "slug": "it/vector-cross-product",
+    "inputs": {
+      "a0": "1",
+      "a1": "0",
+      "a2": "0",
+      "b0": "-1",
+      "b1": "1",
+      "b2": "0"
+    },
+    "clicks": [
+      "calculate()"
+    ],
+    "expect": [
+      "θ = 135°"
+    ],
+    "ref": "IT-N471：清单点名的钝角。A=(1,0,0)、B=(−1,1,0) ⇒ A·B=−1、|A×B|=1 ⇒ atan2(1,−1)=135°。修复前 θ=asin(0.707)=45°，被镜像成锐角。默认 (1,2,3)×(4,5,6) 是 12.933°，注入失败态不含 135° ⇒ 可判别。"
+  },
+  {
+    "slug": "it/vector-cross-product",
+    "inputs": {
+      "a0": "1",
+      "a1": "0",
+      "a2": "0",
+      "b0": "-1",
+      "b1": "0",
+      "b2": "0"
+    },
+    "clicks": [
+      "calculate()"
+    ],
+    "expect": [
+      "θ = 180°"
+    ],
+    "ref": "IT-N471：反向共线。A=(1,0,0)、B=(−1,0,0) ⇒ |A×B|=0 但 A·B=−1 ⇒ atan2(0,−1)=180°；修复前 asin(0)=0° 并提示「平行」，与 FAQ 自述的 0°/180° 矛盾。默认态 12.933° 不含 180° ⇒ 可判别。"
+  },
+  {
+    "slug": "it/vector-cross-product",
+    "inputs": {
+      "a0": "1",
+      "a1": "0",
+      "a2": "0",
+      "b0": "0",
+      "b1": "1",
+      "b2": "0"
+    },
+    "clicks": [
+      "calculate()"
+    ],
+    "expect": [
+      "θ = 90°"
+    ],
+    "ref": "IT-N471 回归护栏：正交 A=(1,0,0)、B=(0,1,0) ⇒ 90°，asin 与 atan2 同值，修复前后同绿，确保改造未误伤直角。"
+  },
+  {
+    "slug": "it/vector-cross-product",
+    "inputs": {
+      "a0": "1",
+      "a1": "1",
+      "a2": "0",
+      "b0": "1",
+      "b1": "0",
+      "b2": "0"
+    },
+    "clicks": [
+      "calculate()"
+    ],
+    "expect": [
+      "θ = 45°"
+    ],
+    "ref": "IT-N471 回归护栏：锐角 A=(1,1,0)、B=(1,0,0) ⇒ 45°，修复前后同绿。注意此串恰等于「135° 用例在修复前」的输出，但判别器按实例构造注入失败态（回到默认 12.933°），故本例自身仍具判别力。"
+  },
+  {
+    "slug": "it/vector-cross-product",
+    "inputs": {
+      "a0": "0",
+      "a1": "0",
+      "a2": "0",
+      "b0": "1",
+      "b1": "0",
+      "b2": "0"
+    },
+    "clicks": [
+      "var __h='';calculate();__h=String(document.getElementById('output').innerHTML);document.getElementById('output').innerHTML='N471 zero='+(__h.indexOf('θ = ')>=0?1:0);"
+    ],
+    "expect": [
+      "N471 zero=0"
+    ],
+    "ref": "IT-N471 回归护栏：零向量时 |A||B|=0，不得输出角度行（atan2(0,0) 会给 0° 的假结论）。探针读 #output.innerHTML 判断是否存在 θ = 并写独立串；注入失败回到默认非平行输入时会有角度行 ⇒ zero=1 ⇒ 变红，故非逃生项。"
+  },
+  {
     "slug": "it/kubernetes-cheatsheet",
     "inputs": {
       "searchInput": "abc123测试"
