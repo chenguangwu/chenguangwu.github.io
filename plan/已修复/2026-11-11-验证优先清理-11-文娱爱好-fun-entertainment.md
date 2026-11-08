@@ -223,3 +223,10 @@
 - **状态：已修复 2026-11-07。** 修复位点：`tools/fun/meditation-timer.html` 分段数 `Math.round(dur/seg)`→`Math.ceil(dur/seg)`；每段「起–止」展示且止时刻 `Math.min(段末, 总时长)` 钳制（原只列起始时刻）。判别力实测：`scripts/_verify_fun_batch_fe_n87.mjs` 运行期两态锁——`dur=10,seg=3` 修复版 4 段（PASS），HEAD `round` 仅 3 段（FAIL）。移交：`plan/已修复/2026-11-07-FE-N80-N87-笑声预设与冥想分段.md`。
 - **状态：已修复 2026-11-07。** 修复位点：`tools/fun/memory-game.html` winOverlay 容器补 `class="win-overlay"`（`<div id="winOverlay" class="win-overlay" style="display:none;">`）。判别力实测：`scripts/_verify_fun_batch_fe_n88.mjs` 静态结构断言——修复版命中 `id="winOverlay" class="win-overlay"`（PASS），HEAD 无 class（FAIL）。移交：`plan/已修复/2026-11-07-FE-N77-N88-N89-小游戏暂停与棋盘重建.md`。
 - **状态：已修复 2026-11-07。** 修复位点：`tools/fun/memory-game.html` `setDifficulty()`/`setTheme()` 末尾调用 `startGame()` 重建棋盘并同步统计。判别力实测：`scripts/_verify_fun_batch_fe_n89.mjs` 运行期两态锁——初始 easy 12 牌，切 expert 后修复版重建为 36 牌（PASS），HEAD 仍 12 牌（FAIL）。移交：`plan/已修复/2026-11-07-FE-N77-N88-N89-小游戏暂停与棋盘重建.md`。
+
+
+---
+
+## 2026-11-11 第二批追加（11-文娱爱好/fun-entertainment.md 的 INLINE/FEATURE 验证记录）
+
+- 处置：本批**只补锁定用例、未改源码**（符合"陈旧证据只复核、补锁定、不改源码"纪律）；视为已修复，从待处理清单移除。

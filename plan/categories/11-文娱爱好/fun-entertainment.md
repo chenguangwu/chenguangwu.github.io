@@ -103,30 +103,11 @@
 - 影响：`tools/chess/elo-rating.html`；概率区误导用户，尤其对和棋常见的棋类。
 - 方案：改标「预期得分率」并说明含和棋；或引入可输入的历史和棋率再拆分胜/和/负，删除或启用 `drawProb`。
 
-### FE-N4 BPM 超出 40–300 被静默钳制，输入框仍显示原值（中，确认源码缺陷 → **2026-11-07 已修复**）
-- 描述：`getBpm()` 把小于 40 或大于 300 的值钳到边界后直接计算，但只同步滑块、不回写输入框，用户看到的数值与实际计算值不一致；预设「小规模」只改输入 60、滑块仍为 120。
-- 证据：`tools/music/bpm-converter.html:495-500`（钳制）、`:503-508`（仅滑块 `value=val`）、`:261`（输入框）、`:836`（预设只写 `bpmInput`）。Node 复算：输入 500 → 按 300 算，四分音符 `200.00 ms`（按 500 应为 `120.00 ms`）；输入 10 → 按 40 算，`1500.00 ms`（按 10 应为 `6000.00 ms`）。
-- 影响：`tools/music/bpm-converter.html`；超出范围的 BPM 结果与页面显示的 BPM 不一致，误差可达 4 倍以上。
-- 方案：越界时提示并回写输入框，或按实际输入值计算；预设同时同步滑块与输入。
-- 修复（2026-11-07）：
-  1. `onBpmChange`（行 503-515）：解析 `raw` 后做与 `getBpm` 一致的钳制；**仅当 `!isNaN(raw) && raw !== val`（输入了数字但越界）时回写 `bpmInput.value = val`**，正常范围内输入（如正在键入 120）不回写以免打断；滑块 `bpmSlider.value = val` 始终同步。
-  2. 预设（行 836）：`小规模/大规模/极端工况` 三个预设补 `bpmSlider` 值，与 `bpmInput` 一致，修正滑块拇指不随预设移动。
-- 实证：`scripts/verify_fun_calc.js` 新增 `music/bpm-converter` 用例（注入 `bpmInput=500` → 期望四分音符 `200.00ms`，即钳到 300 计算；默认 120 → 500.00ms 不命中 ⇒ 零逃生）；`discriminate_check` 全量 29/29 正确变红、0 逃生项。整份 verify_fun_calc 29/29 通过。
-
 ### FE-N6 和弦解析把 `Cmaj`/`Cmajor` 判成小三和弦（高，原报函数缺陷 → **2026-11-07 复核：历史快照误报，当前源码已正确**）
 - 原描述：后缀匹配在归一化之前用 `suffix.startsWith(s)`，`maj`/`major` 先命中单字符 `m`（小三），永远走不到 `maj→M` 的归一化分支；`Cmaj` 输出 C–D♯–G。
 - 原证据：`tools/music/chord-notes.html:478-512`（类型表）、`:593-600`（首轮前缀匹配）、`:602-616`（归一化仅在未匹配时执行）。
 - 复核结论（2026-11-07）：当前源码 `parseChord`（行 592-621）**首轮即 `suffix === s` 全等匹配**（无 `startsWith` 前缀误判），未命中才走归一化分支 `maj→M`/`min→m` 并再次全等匹配；`Cmaj` → type=`M` → 类型标签「`CM · 大三和弦`」（C-E-G），`Cm` → type=`m` →「`Cm · 小三和弦`」。原 `startsWith` 缺陷不复存在。
 - 实证：在 `scripts/verify_fun_calc.js` 新增 2 条 discriminating 锁定用例（注入 `Cmaj`→期望 `CM · 大三和弦`；`Cm`→期望 `Cm · 小三和弦`），`discriminate_check.js` 全量 28/28 正确变红、0 逃生项（默认 `chordInput=C` 渲染「`C · 大三和弦`」，不命中本锚 ⇒ 零逃生）。
-- 处置：本批**只补锁定用例、未改源码**（符合"陈旧证据只复核、补锁定、不改源码"纪律）；视为已修复，从待处理清单移除。
-
-### FE-N7 扩展和弦的九音被标成「二音」，与页内速查表矛盾（中，确认源码缺陷 → **2026-11-07 已修复**）
-- 描述：音程标签用 `semitone % 12` 取名称，`add9` 的 +2 与 `9`/`m9` 的 +14 都落到索引 2「二音」；同页规则表却写「加九和弦 = 大三+九音」。
-- 证据：`tools/music/chord-notes.html:475`（`DEGREE_NAMES`，索引 1 为「九音」、索引 2 为「二音」）、`:664-668`（渲染取 `DEGREE_NAMES[note.semitone % 12]`）、`:321`（速查表「大三+九音」）。Node 直接执行页面 `parseChord`：`Cadd9` → 最高音 D 的 `semitone=2`；`C9`、`Cm9` → D 的 `semitone=14`；两值经 `%12` 均取到「二音」。
-- 影响：`tools/music/chord-notes.html`；和弦构成说明与自身规则表冲突，学习者会被误导。
-- 方案：按原始半音数映射扩展音（2→九音、14→九音，或区分 add9/9），补 `add9`、`9`、`m9` 断言用例。
-- 修复（2026-11-07）：新增 `degreeName(s, type)` 助手（行 477 后）；`renderResult` 的音符标签与音程标签改调 `degreeName`，按原始半音数映射扩展音——`oct>=1` 时 `base∈{1,2,5,9}` 归为「九/十一/十三音」，且 `s===2 && type∈{add9,'9','m9'}` 也标「九音」；`sus2`/`2` 的 +2 仍保留「二音」（不误伤挂二和弦）。
-- 实证：`scripts/verify_fun_calc.js` 新增 `music/chord-notes` 两例：`C9`→期望「九音」（9/m9 的 +14 半音）；`Csus2`→期望「二音」（回归护栏，确认 sus2 未被误改）。`discriminate_check` 全量 31/31 正确变红、0 逃生项；整份 verify_fun_calc 31/31 通过。
 
 ### FE-N9 FEN 历史回填调用无参 `loadPreset()`，输入框被写成字符串 `undefined`（高，**2026-11-07 复核：历史快照误报，当前源码已正确**）
 - 描述（原）：历史「恢复」回调末尾调用 `loadPreset()` 而不传记录中的 FEN，`presets[undefined]` 为 `undefined`，被写进输入框并渲染为无效局面。
@@ -195,11 +176,6 @@
 - 方案：在包装器内用 `arguments[0]/[1]/[2]` 捕获实参（或把记录逻辑移入 `place` 内部再包装渲染），并补「下一手后历史表新增 1 行」的断言。
 - **修复位点（2026-11-07）**：`tools/fun/gomoku-ai.html` 的 `__tbF_place` 包装器（行 521-528）改为 `var a=arguments; var r=a[0],c=a[1],color=a[2];`，从 `arguments` 正确捕获落子坐标与颜色后再 `checkWin(r,c,color)`，仅当 `win||full` 时调用 `__tbHistSave` 写入战绩。
 - 判别力实测：`scripts/_verify_fun_batch_fe_n19.mjs` JSDOM 真机：捕捉 `TBKit.history.record`，同步摆五连黑子 → 记录写入（结果「胜」/步数 5）；修复前 `r/c/color` 未定义抛错被空 catch 吞掉、记录 0 条。
-
-### FE-N20 无难度/先手控件，却宣传「可调强中弱」「难度越高搜索越深」「可选 AI 先手」（中，**2026-11-07 已修复**）
-- **修复位点（双源同步）**：① `tools/fun/gomoku-ai.html` 的 deep-dive 段落为 **HTML 硬编码、不被构建重写**，直接改 HTML 有效（行 581/584/588/589 收敛「难度调节/搜索越深/可选 AI 先手」→ 单一难度、玩家固定执黑先手/AI 执白后手、不提供先手切换与难度调节）；② 同步收敛 deep-dive 真源 `i18n/tools/content_deepdive.json` 的 `fun/gomoku-ai` 四条（scenarios/example/FAQ），以及英文翻译源 `i18n/tools/en/fun/gomoku-ai.json` 对应 4 条 key/value（key 即中文源串，改中文源必须同步改英文 key 否则英文态失译）；两源口径一致，构建后 gomoku-ai.html 0 处虚标残留（grep 复核）。
-- 根因：页面仅「开始新局 / 悔1手」两按钮，AI 恒白后手、`aiMove` 无难度/深度入参（与 FE-N17 修复后的 lineScore 单层打分一致），无搜索深度与先手切换能力，属能力虚标。
-- 处置：按「不虚标、对齐真实能力」原则收敛文案（未新增伪难度功能，避免假功能）。
 
 ### FE-N23 宣传「七袋随机」「连续消除加成」，实现是独立随机 + 固定 1/2/3/4 行计分（中，**复核误报：当前版本七袋随机已实现、无 combo 承诺**）
 - **复核结论（2026-11-07）**：经 `git blame` 确认 `randomPiece()` 已于 **2026-11-05 commit eaf4d693f5**（「文娱族三列核对——抽取种子可复算、计分口径对齐、七袋随机」）实现为**真七袋随机**（`pieceBag` 装满 7 种后 Fisher–Yates 洗牌、逐袋 `pop` 发放，每 7 块各出现一次）；当前 deep-dive 参考表（行 295）「七袋随机保证每七块各出现一次，减少极端连续」与代码一致。全文 `grep combo\|连击\|连续消除` 仅命中七袋行，**无任何 combo/连击承诺与加成分支**。原台账所列 `:436-438`（独立 `Math.random()` 抽块）与 `:300`（combo 加成）系**修复前快照误报**，当前版本不成立。
@@ -347,8 +323,6 @@
 
 ### V 批覆盖清单（小游戏 8 页）
 - `tools/fun/tic-tac-toe.html`：1 条（FE-N42 高）。复核通过项：`checkWin`/`checkWinFor` 8 组三连对称、`board.every` 平局、困难 minimax 以 O 判胜优先、分数读写与撤销栈。
-- `tools/fun/space-shooter.html`：3 条（FE-N43 已修复 2026-11-07；FE-N44、FE-N45 中待处理）。复核通过项：敌机三档分数(10/20/30)、道具三类、子弹碰撞与漏敌扣命、等级递增。
-- `tools/fun/snake-game.html`：1 条（FE-N46 **已修复 2026-11-07**）。复核通过项：食物避开蛇身（`:433`）、各难度最高分独立、暂停/结束态输入守卫、反向输入拦截。
 - `tools/fun/hangman.html`：1 条（FE-N47 中）。复核通过项：26 个词均为无空格单词（不存在因空格永不可胜）、6 次错误判负、7 级绞架索引不越界、命中/重复猜字母判定。
 - `tools/fun/coin-flip.html`：1 条（FE-N48 中）。复核通过项：`Math.random` 正反各半、heads/tails 累加与百分比、localStorage 回读。
 - `tools/fun/pong.html`：2 条（FE-N49、FE-N50 中）。复核通过项：11 分结束、击球点反弹角 ±60°、球速上限、暂停/可见性自动暂停。
