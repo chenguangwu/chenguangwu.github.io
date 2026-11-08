@@ -990,7 +990,12 @@
       var f = $(field);
       if (!f) return;
       if (f.tagName === 'SELECT' || f.tagName === 'TEXTAREA' || f.tagName === 'INPUT') {
-        if (f.type === 'checkbox' || f.type === 'radio') f.checked = !!val;
+        if (f.type === 'checkbox' || f.type === 'radio') {
+          // IT-N361：'0'/'false' 这类字符串必须解释为「未勾选」。旧实现 `!!val` 把 "0" 当 true，
+          // 使预设里用 '0'/'1' 表达开关的页面方向全反（csv-to-yaml 的「无表头」即如此）。
+          var isOff = val === false || val === 0 || val === '0' || val === 'false' || val === 'off' || val === '' || val == null;
+          f.checked = !isOff;
+        }
         else f.value = val;
         var ev = f.tagName === 'SELECT' ? 'change' : 'input';
         f.dispatchEvent(new Event(ev, { bubbles: true }));

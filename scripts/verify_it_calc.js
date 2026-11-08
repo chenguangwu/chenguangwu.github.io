@@ -2096,6 +2096,14 @@ const CASES = [
     ref: "独立复算：引号内换行属于字段内容，转成 YAML 双引号后为转义的 `\\n`，表头 `first name` 含空格须加引号 ⇒ `- \"first name\": \"Tom\"` / `note: \"line1\\nline2\"`；修复前按行切分把多行字段拆成两条记录，表头也裸写。默认 CSV 为 name/age/city，不命中。",
   },
   {
+    slug: "it/csv-to-yaml",
+    // IT-N361 回归：勾选「无表头」(top_1) 必须输出数组形态——预设「无表头」正是点这个方向。
+    inputs: { csv: "Alice,30\nBob,25" },
+    clicks: ["document.getElementById('top_1').checked=true; calcTool()"],
+    expect: ['- ["Alice", "30"]', '- ["Bob", "25"]'],
+    ref: "IT-N361：勾选「无表头」时每行输出为短横线 + 方括号数组（`- [\"Alice\", \"30\"]`）；未勾时首行是键名、输出 `- Alice: \"Bob\"` 这类键值对。旧预设把「无表头」置为 top_1='' 而 setValue 用 !!val，方向与实际相反。默认 CSV 为 name/age/city 且未勾选，不命中数组形态。",
+  },
+  {
     slug: "it/csv-to-json",
     inputs: { csvInput: "name,age\nTom,3" },
     expect: ['[{"column1":"name","column2":"age"}'],
