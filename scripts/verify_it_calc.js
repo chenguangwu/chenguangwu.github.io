@@ -2104,6 +2104,14 @@ const CASES = [
     ref: "IT-N361：勾选「无表头」时每行输出为短横线 + 方括号数组（`- [\"Alice\", \"30\"]`）；未勾时首行是键名、输出 `- Alice: \"Bob\"` 这类键值对。旧预设把「无表头」置为 top_1='' 而 setValue 用 !!val，方向与实际相反。默认 CSV 为 name/age/city 且未勾选，不命中数组形态。",
   },
   {
+    slug: "it/csv-to-yaml",
+    // IT-N362 护栏：含 `:` 的表头必须加引号，否则 YAML 会被解析成键 a、值 b: 1。
+    inputs: { csv: "a:b,c\n1,2" },
+    clicks: ["calcTool()"],
+    expect: ['"a:b": "1"'],
+    ref: "IT-N362：表头 `a:b` 不是合法 YAML 裸键（会被读成键 `a`、值 `b: 1`），yamlKey() 须 JSON.stringify 成 `\"a:b\"`。同一行的 `y`/`on` 这类 YAML 保留字同理需加引号。默认表头 name/age/city 无冒号，不命中。",
+  },
+  {
     slug: "it/csv-to-json",
     inputs: { csvInput: "name,age\nTom,3" },
     expect: ['[{"column1":"name","column2":"age"}'],

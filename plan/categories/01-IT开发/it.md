@@ -2419,12 +2419,6 @@
 - 方案：表头路径最后一段命中已有数组时取「数组末元素」为当前表；`{` 开头的值按内联表递归解析。
 
 
-### IT-N362 引号内换行被拆成两条记录；表头键不加引号生成非法 YAML（中，确认缺陷）
-- 问题：先按 `\n` 切行再逐行 `splitCsv`，引号内的换行失效（与「按 RFC 4180 处理换行」的说明相反）；表头键原样拼接，含 `:`/`#` 时不加引号。
-- 证据：`tools/it/csv-to-yaml.html:218`（先切行）、`:219-228`、`:237`（`h+': '+…`）、`:162`（说明）
-- 复现（node 复刻）：`name,note\nAlice,"line1\nline2"` → 实际拆成 `['Alice','line1']` 与 `['line2"']` 两条记录（字段错位）；表头 `a:b,c` → 实际 `- a:b: "1"`（YAML 解析成键 `a`、值 `b: 1`）；期望整段换行作为一个字段、键按需加引号。
-- 影响：含换行字段的 CSV 全部错行，特殊表头产出非法 YAML。
-- 方案：改成字符级流式扫描（同一状态机同时处理 `"`、`,`、`\n`）；键用 `JSON.stringify(head)` 或按 YAML 规则加引号。
 
 
 
@@ -2433,7 +2427,6 @@
 - `jwt-debugger`：IT-N349（高）。
 - `json-repair`：IT-N352（高）、IT-N353（中）。
 - `yaml-to-xml`：IT-N354（高）、IT-N355、IT-N356、IT-N357（中）。
-- `csv-to-yaml`：IT-N362（中）。
 - `toml-to-yaml`：IT-N358（高）、IT-N359、IT-N360（中）。
 - 方法声明：以上结论仅基于源码通读 + `node` 复刻页面原函数实算（json-repair / hash-identifier / yaml-to-xml / toml-to-yaml / csv-to-yaml / json-to-xml 的判定均给出「输入 → 实际 / 期望」），未开浏览器、未跑 `_build.py`/`run_gates.py`、未做线上验证；未修改任何工具页或构建产物。
 
