@@ -31,6 +31,31 @@ const CASES = [
     ans: '0,0,0,0', want: '筛查阳性',
     desc: '恢复 4×「是」历史答案 ⇒ #result 重算为「筛查阳性」（修复前只 render 不 calc，结论残留旧值）',
   },
+  {
+    cat: 'psychiatry', slug: 'gad7-anxiety', mountFn: '__gd7MountHist',
+    ans: '3,3,3,3,3,3,3', want: '重度焦虑',
+    desc: '恢复 7×3=21 历史答案 ⇒ #result 重算为「重度焦虑」（修复前只 render 不 calc，结论残留旧值）',
+  },
+  {
+    cat: 'psychiatry', slug: 'isi-insomnia', mountFn: '__isiMountHist',
+    ans: '4,4,4,4,4,4,4', want: '重度失眠',
+    desc: '恢复 7×4=28 历史答案 ⇒ #result 重算为「重度失眠」（修复前只 render 不 calc，结论残留旧值）',
+  },
+  {
+    cat: 'psychiatry', slug: 'ybocs-ocd', mountFn: '__ybocMountHist',
+    ans: '4,4,4,4,4,4,4,4,4,4', want: '极重度',
+    desc: '恢复 10×4=40 历史答案 ⇒ #result 重算为「极重度」（修复前只 render 不 calc，结论残留旧值）',
+  },
+  {
+    cat: 'psychiatry', slug: 'pcl5-ptsd', mountFn: '__pcl5MountHist',
+    ans: '4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4', want: '重度',
+    desc: '恢复 20×4=80 历史答案 ⇒ #result 重算为「重度」（修复前只 render 不 calc，结论残留旧值）',
+  },
+  {
+    cat: 'psychiatry', slug: 'mdq-bipolar', mountFn: '__mdqMountHist',
+    ans: '0,0,0,0,0,0,0,0,0,0,0,0,0', p2: 0, p3: 3, want: '筛查阳性',
+    desc: '恢复 13×「是」+P2同期+P3中/重度 ⇒ #result 重算为「筛查阳性」（修复前只 render 不 calc，结论残留旧值）',
+  },
 ];
 
 const anyStub = () => new Proxy({}, {
@@ -94,7 +119,7 @@ for (const c of CASES) {
     w[c.mountFn]();                 // 注册 mount → 捕获回调存入 w.__histCb
     const cb = w.__histCb;
     if (typeof cb !== 'function') { fail++; failed.push(`${tag}未捕获到 history.mount 回调`); continue; }
-    cb({ ans: c.ans });             // 模拟用户点击历史记录
+    cb({ ans: c.ans, p2: c.p2, p3: c.p3 }); // 模拟用户点击历史记录
     const got = String(w.document.getElementById('result').textContent || '');
     if (got.includes(c.want)) {
       pass++;
