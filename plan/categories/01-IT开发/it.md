@@ -2357,15 +2357,6 @@
 - 影响：C 源码中合法的八进制转义全部解错，且无提示。
 - 方案：改 `case '0': … case '7':` 或前置 `if(/[0-7]/.test(n))`，按 C 规则最多读 3 位八进制。
 
-### IT-N337 Go/PHP/Python 三页同型八进制反转义失效（历史记录；Go 源码已变，待分别回归）
-
-> 2026-11-06 续审：`tools/it/go-escape.html:349-354` 当前显式处理 `case '0'` 至 `case '7'`，旧版 `case /[0-7]/` 已不在 Go 页；PHP/Python 本批未复核，不能据此销账。
-- 问题：三页 `unescape/unesc` 均把八进制分支写成 `case /[0-7]/:`，正则与字符串严格比较恒 false，`\101` 落入 `default` 原样输出。
-- 证据：`tools/it/go-escape.html:339`、`tools/it/php-escape.html:345`、`tools/it/python-escape.html:363`
-- 复现：三页输入 `\101` → 实际均为 `101`，期望 `A`；PHP/Python 的 `\0` 也会被拆成字面 `0`。
-- 影响：三种语言官方支持的 C 风格八进制转义（如 `\101`、`\0`）在反转义时全部失效，且无提示。
-- 方案：改为字符窗口判断（`case '0'`…`case '7'` 或 `if(/[0-7]/.test(n))`），最多 3 位；三页共用同一份实现并加固定用例。
-
 ### IT-N338 Rust 字节串模式对非 ASCII 输出非法 `\u{}`（高，确认缺陷）
 - 问题：`kind==='byte'` 且 `cp > 0xFF` 时输出 `\u{...}`，Rust 字节串字面量不支持 `\u` 转义（仅 `\xNN`），生成代码不可编译。
 - 证据：`tools/it/rust-escape.html:299-301`
