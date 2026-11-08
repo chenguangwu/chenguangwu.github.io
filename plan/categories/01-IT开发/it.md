@@ -2381,12 +2381,6 @@
 - 方案：改用 WebCrypto（`crypto.subtle.importKey('raw',…,{name:'HMAC',hash:'SHA-256'})` + `subtle.sign`），按 alg 映射 SHA-256/384/512，签名 ArrayBuffer 直接 base64url。
 
 
-### IT-N351 解析历史只存前 60 字符，点击任一历史项必然解析失败（高，确认缺陷）
-- 问题：`addToHistory(token.substring(0, 60) + '...')` 只保存截断串；`loadHist` 却把它当完整 token 回填给 `decodeJwt()`。
-- 证据：`tools/it/jwt-debugger.html:457`（写入）、`:519-524`、`:533-539`（读取）
-- 复现：解析任意长度 > 60 的真实 token → 历史项显示前 60 字；点击该项 → 输入框得到 `…<截断>….eyJ…...`，`token.split('.')` 段数 ≥ 4 → 恒显示「❌ JWT格式错误：应该包含3个用点分隔的部分」；期望恢复完整 token 并正常解析。
-- 影响：解析历史功能整体不可用，且原始 token 从未落库，无法从历史找回。
-- 方案：历史存完整 token，仅在渲染时 `substring(0,60)+'…'` 展示；或只存 header/payload 解析结果。
 
 ### IT-N352 修复前无条件删注释（不区分字符串内外），合法 JSON 被静默改值（高，确认缺陷）
 - 问题：`repair()` 先用 `/\/\*[\s\S]*?\*\//g`、`/\/\/[^\n]*/g` 全局删注释，再改单引号与尾逗号；没有字符串状态机，字符串里的 `//`、`/* */` 一并被删。
@@ -2487,7 +2481,7 @@
 - 方案：`depth === 0` 且值为数组时先包一层 `<root>`（或 `<list>`），元素名用 `item`，再逐项输出。
 
 ### 覆盖清单（T 批 IT 第 3 轮）
-- `jwt-debugger`：IT-N349、IT-N351（高）。
+- `jwt-debugger`：IT-N349（高）。
 - `hash-identifier`：IT-N363、IT-N364（中）。
 - `json-repair`：IT-N352（高）、IT-N353（中）。
 - `json-to-xml`：IT-N365（中）。
