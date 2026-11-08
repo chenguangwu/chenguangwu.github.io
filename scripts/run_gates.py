@@ -372,6 +372,7 @@ GATES = (
     # 多页 restore 回调只 render() 不 calc()，致 #result 残留旧结论；修复后补 calc()。
     # 负向对照（--root 指向 HEAD 抽取目录）2/2 全红，已实测。
     ("history restore recompute", ("node", "scripts/_verify_history_restore_recompute.mjs")),
+    ("false negative unanswered guard", ("node", "scripts/_verify_false_negative_guard.mjs")),
 )
 
 
