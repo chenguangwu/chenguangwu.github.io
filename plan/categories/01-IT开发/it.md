@@ -2377,32 +2377,14 @@
 
 ## U 批 · IT 转换/编码边界（2026-11-04）
 
-### IT-N391 toml-to-xml / xml-to-toml 的「缩进」下拉均未被读取；toml-to-xml 的「按键名排序」也未接线（中，承诺未实现）
-- 页面：`tools/it/toml-to-xml.html`、`tools/it/xml-to-toml.html`（yaml-to-toml 侧已于 2026-11-08 处理：该下拉对 TOML 无语义，已连同预设一起移除，见 `plan/已修复/2026-11-08-IT-N388-N390-yaml-to-toml标量与表导出.md`）
-- 问题：两页都提供「缩进：2 空格 / 4 空格 / Tab」，但 JS 从不读取该值——toml-to-xml 与 xml-to-toml 只读排序复选框；toml-to-xml 的 `top_1`（「按键名排序输出」）在 `calcTool` 中也从未读取，`jsonToXml(obj)` 只传对象。
-- 行号：toml-to-xml `:128`、`:132`、`:362`；xml-to-toml `:127`、`:362-363`（yaml 侧两处已随控件移除）
-- 复现：两页分别把缩进切到 4 空格 / Tab → 输出与 2 空格完全一致（toml-to-xml 输出恒为单行无缩进 XML）；toml-to-xml 勾选「按键名排序」前后输出顺序不变。期望控件生效，或删除无效控件。
+### IT-N391 xml-to-toml 的「缩进」下拉未被读取（中，承诺未实现）
+- 页面：`tools/it/xml-to-toml.html`（toml-to-xml 侧已接线、yaml-to-toml 侧已随控件移除，见 `plan/已修复/2026-11-08-IT-N391-N393-toml-to-xml元素名与转义.md`、`plan/已修复/2026-11-08-IT-N388-N390-yaml-to-toml标量与表导出.md`）
+- 问题：页面提供「缩进：2 空格 / 4 空格 / Tab」，但 JS 从不读取该值——`calcTool` 只读排序复选框。
+- 行号：`:127`、`:362-363`
+- 复现：把缩进切到 4 空格 / Tab → 输出与 2 空格完全一致。期望控件生效，或删除无效控件。
 - 影响：界面承诺与实际输出不符，用户会误以为格式已按选择调整。
-- 方案：实现 XML pretty-print 与排序开关（排序传入 `ser` 的键遍历），TOML 侧若不需要缩进则删除该下拉。
+- 方案：TOML 无缩进语义（与 yaml-to-toml 侧同口径处理：移除该下拉及其预设键）；若不删则须让 `dumpToml` 真正吃缩进参数。
 - 假工具：否（承诺未实现；建议并入 `plan/fake-tools.md`）
-
-### IT-N392 TOML 键名直接当 XML 元素名，含空格/数字开头的键产出非法 XML（中，确认缺陷）
-- 页面：`tools/it/toml-to-xml.html`
-- 问题：`ser` 用 `'<'+name+...` 原样拼接键名（`:348`、`:351`），不做 XML Name 合法性转换；页面注意事项却写「XML 元素名不能以数字开头或含空格，非法名称需做转换」（`:115`）。
-- 行号：`:340-355`（`ser`）、`:348`、`:351`、`:115`
-- 复现：输入 `[cfg]\n"user name" = "x"` → 实际 `<cfg><user name>x</user name></cfg>`；输入 `"123" = "y"` → `<123>y</123>`。两者都不是 well-formed XML，期望转成 `<user_name>` / `<_123>`（或明确报错）。
-- 影响：TOML 允许带引号的任意键，导出后 XML 解析器直接报错。
-- 方案：实现 XML Name 清洗（非法字符转 `_`、数字开头加前缀、冲突去重），或对非法键报错。
-- 假工具：否
-
-### IT-N393 `#text` 原样拼接未转义、空数组整键丢失，导出的 XML 非法/不完整（中，确认缺陷）
-- 页面：`tools/it/toml-to-xml.html`
-- 问题：`ser` 对 `#text` 走 `inner += val[k]`（`:345`），不经过 `escXml`；数组分支对内层数组遍历，空数组时循环 0 次，键被整体省略（`:346`）。
-- 行号：`:343-346`
-- 复现：输入 `[cfg]\n"#text" = "<b>&</b>"` → 实际 `<cfg><b>&</b></cfg>`（未转义，XML 非法）；期望文本为 `&lt;b&gt;&amp;&lt;/b&gt;`。输入 `[cfg]\nports = []` → 实际 `<cfg></cfg>`（`ports` 键消失），期望 `<ports></ports>` 或明确标注空数组。
-- 影响：含 `#text`/空数组的 TOML 导出后要么解析失败，要么丢失字段。
-- 方案：`#text` 走 `escXml`；空数组输出 `<k></k>`（或保留空元素）。
-- 假工具：否
 
 ### IT-N394 XML 实体不解码，`&amp;` 等原样写进 TOML 值（中，确认缺陷）
 - 页面：`tools/it/xml-to-toml.html`
@@ -2523,8 +2505,7 @@
 - 假工具：否
 
 ### 覆盖清单（U 批 IT 转换/编码）
-- `toml-to-xml`：IT-N392、IT-N393（中）；无高优缺陷（核心 TOML→XML 主路径可跑通，问题集中在导出转义与非法元素名）。
-- `xml-to-toml`：IT-N394、IT-N395（中）；无高优缺陷。
+- `xml-to-toml`：IT-N391（中）、IT-N394、IT-N395（中）；无高优缺陷。
 - `json-diff`：IT-N396、IT-N397（中）；无高优缺陷（按索引与逐行的差异计算本身正确）。
 - `json-schema-validator`：IT-N398（高）、IT-N399、IT-N400（中）。
 - `html-to-markdown`：IT-N401（高）、IT-N402、IT-N403、IT-N404（中）。

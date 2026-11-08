@@ -5001,6 +5001,45 @@ const CASES = [
     "expect": ["&lt;app&gt;probe&lt;/app&gt;"],
     "ref": "TOML→XML：标量 `app = \"probe\"` 落到 `<app>probe</app>`，表 `[srv]` 落到 `<srv>` 父节点。expect 用实体形态 `&lt;app&gt;`（结果区经 escH 转义），输入是 TOML 的 `app = \"probe\"` ⇒ 不命中回显。默认样例为 name/port 组合，不出现 probe。"
   },
+  // ---- IT-N391（toml-to-xml 部分）/IT-N392/IT-N393：元素名清洗、#text 转义、空数组、缩进与排序接线 ----
+  {
+    "slug": "it/toml-to-xml",
+    "inputs": { "source": "[cfg]\n\"user name\" = \"x\"" },
+    "expect": ["&lt;user_name&gt;x&lt;/user_name&gt;"],
+    "ref": "IT-N392：XML 元素名不能含空格。修复前 `ser` 原样拼接键名 ⇒ `<user name>x</user name>`（not well-formed）。输入是 TOML 的 `\"user name\" = \"x\"`，不含尖括号形态 ⇒ 不命中回显。"
+  },
+  {
+    "slug": "it/toml-to-xml",
+    "inputs": { "source": "\"123\" = \"y\"" },
+    "expect": ["&lt;_123&gt;y&lt;/_123&gt;"],
+    "ref": "IT-N392：XML Name 不能以数字开头，需补前导下划线。修复前输出 `<123>y</123>`（解析器直接报错）。默认样例无该键。"
+  },
+  {
+    "slug": "it/toml-to-xml",
+    "inputs": { "source": "[cfg]\n\"#text\" = \"<b>&</b>\"" },
+    "expect": ["&amp;lt;b&amp;gt;&amp;amp;&amp;lt;/b&amp;gt;"],
+    "ref": "IT-N393：`#text` 是元素文本，必须过 escXml。修复前 `inner += val[k]` 原样拼 ⇒ 生成 `<cfg><b>&</b></cfg>`（未转义，XML 非法）。结果区用 textContent 写入，故最终 blob 是「二次转义」形态：XML 里的 `&lt;b&gt;&amp;&lt;/b&gt;` 在 innerHTML 里读作 `&amp;lt;b&amp;gt;&amp;amp;...`；修复前输出里没有 `&lt;` 这层实体，故 `&amp;lt;b` 只可能来自转义路径。"
+  },
+  {
+    "slug": "it/toml-to-xml",
+    "inputs": { "source": "[cfg]\nports = []" },
+    "expect": ["&lt;ports&gt;&lt;/ports&gt;"],
+    "ref": "IT-N393：空数组不能整键丢失。修复前数组分支循环 0 次 ⇒ 只剩 `<cfg></cfg>`，`ports` 字段整键消失。expect 只写 `&lt;ports&gt;&lt;/ports&gt;` 一条：不能带上 `&lt;cfg&gt;`（它修复前也成立，OR 语义下会让整例零判别力）。"
+  },
+  {
+    "slug": "it/toml-to-xml",
+    "inputs": { "source": "[zzq]\na = \"1\"" },
+    "clicks": ["document.getElementById('indent').value='4';calcTool();var t=document.getElementById('result').innerHTML;document.getElementById('result').textContent='N391 i4='+(t.indexOf(String.fromCharCode(10)+'    &lt;')>=0?1:0)+' k='+(t.indexOf('zzq')>=0?1:0);"],
+    "expect": ["N391 i4=1 k=1"],
+    "ref": "IT-N391（toml-to-xml）：缩进下拉必须生效。修复前输出恒为单行无缩进。判据读结果区 innerHTML 里是否存在「换行 + 4 空格 + `&lt;`」：只有 pad=4 才产生该串（2 空格时为「换行 + 2 空格 + `&lt;`」），入参刻意只留一层避免嵌套层级凑出 4 空格。`k=1` 让判定串依赖入参键名。"
+  },
+  {
+    "slug": "it/toml-to-xml",
+    "inputs": { "source": "[cfg]\nb = \"1\"\na = \"2\"" },
+    "clicks": ["document.getElementById('top_1').checked=true;calcTool();"],
+    "expect": ["&lt;a&gt;2&lt;/a&gt; &lt;b&gt;1&lt;/b&gt;"],
+    "ref": "IT-N391（toml-to-xml）：按键名排序开关必须生效（修复前 calcTool 从不读 top_1）。输入顺序是 b 在前、a 在后，勾选排序后输出顺序 a→b，故该相邻串只在排序生效时出现；不勾选时是 `&lt;b&gt;1&lt;/b&gt; &lt;a&gt;2&lt;/a&gt;`，互不命中。"
+  },
   {
     "slug": "it/xml-to-toml",
     "inputs": { "source": "<srv><host>127.0.0.1</host><port>5432</port></srv>" },

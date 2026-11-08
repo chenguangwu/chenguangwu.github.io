@@ -336,30 +336,74 @@ function xmlToJson(xml){
   var out={}; out[root.name]=root.val;
   return out;
 }
-function jsonToXml(obj){
-  function ser(name,val){
+// XML Name 清洗：TOML 允许任意带引号键，但 XML 元素/属性名只能是 Name 字符
+// （非法字符→_、数字/符号开头补前导 _、连续 _ 合并）
+function xmlName(k){
+  var s=String(k==null?'':k);
+  s=s.replace(/[^A-Za-z0-9_.\-\u00c0-\uffff]/g,'_').replace(/_+/g,'_');
+  if(!s) s='_';
+  if(!/^[A-Za-z_\u00c0-\uffff]/.test(s)) s='_'+s;
+  return s;
+}
+function jsonToXml(obj, opt){
+  opt=opt||{};
+  var pad=opt.pad||'  ';
+  var sort=!!opt.sort;
+  function ind(d){ var s=''; for(var i=0;i<d;i++) s+=pad; return s; }
+  function ser(name,val,depth){
+    var nm=xmlName(name);
     if(val && typeof val==='object' && !Array.isArray(val)){
-      var attrs=''; var inner='';
-      for(var k in val){
-        if(k[0]==='@') attrs+=' '+k.slice(1)+'="'+escAttr(val[k])+'"';
-        else if(k==='#text') inner+=val[k];
-        else { var v=val[k]; if(Array.isArray(v)){ for(var i=0;i<v.length;i++) inner+=ser(k,v[i]); } else inner+=ser(k,v); }
+      var attrs='', texts='', kids=[], used={}, usedAttr={};
+      var ks=Object.keys(val); if(sort) ks=ks.slice().sort();
+      for(var i=0;i<ks.length;i++){
+        var k=ks[i], v=val[k];
+        if(k[0]==='@'){
+          var an=xmlName(k.slice(1)), ab=an, m=2;
+          while(usedAttr[an]){ an=ab+'_'+m; m++; }
+          usedAttr[an]=1;
+          attrs+=' '+an+'="'+escAttr(v)+'"';
+          continue;
+        }
+        if(k==='#text'){ texts+=escXml(v===null||v===undefined?'':v); continue; }
+        // 同名兄弟（不同原始键清洗后撞名）加 _2/_3 后缀，避免出现歧义重复元素
+        var en=xmlName(k), eb=en, n=2;
+        while(used[en]){ en=eb+'_'+n; n++; }
+        used[en]=1;
+        if(Array.isArray(v)){
+          if(!v.length){ kids.push('<'+en+'></'+en+'>'); continue; }
+          for(var j=0;j<v.length;j++) kids.push(ser(en,v[j],depth+1));
+        } else {
+          kids.push(ser(en,v,depth+1));
+        }
       }
-      return '<'+name+attrs+'>'+inner+'</'+name+'>';
+      var body;
+      if(kids.length){
+        var block=kids.map(function(x){ return ind(depth+1)+x; }).join('\n');
+        body=(texts?texts+'\n':'\n')+block+'\n'+ind(depth);
+      } else body=texts;
+      return '<'+nm+attrs+'>'+body+'</'+nm+'>';
     }
-    if(Array.isArray(val)){ return val.map(function(x){return ser(name,x);}).join(''); }
-    return '<'+name+'>'+escXml(val===null?'':val)+'</'+name+'>';
+    if(Array.isArray(val)){
+      if(!val.length) return '<'+nm+'></'+nm+'>';
+      return val.map(function(x){ return ser(name,x,depth); }).join('\n'+ind(depth));
+    }
+    return '<'+nm+'>'+escXml(val===null||val===undefined?'':val)+'</'+nm+'>';
   }
-  var keys=Object.keys(obj);
-  if(keys.length!==1) return '<root>'+keys.map(function(k){return ser(k,obj[k]);}).join('')+'</root>';
-  return ser(keys[0], obj[keys[0]]);
+  var keys=Object.keys(obj); if(sort) keys=keys.slice().sort();
+  if(keys.length!==1){
+    return '<root>\n'+keys.map(function(k){ return ind(1)+ser(k,obj[k],1); }).join('\n')+'\n</root>';
+  }
+  return ser(keys[0], obj[keys[0]], 0);
 }
 
 var src=document.getElementById('source').value||'';
 if(!src.trim()){ document.getElementById('result').innerHTML='<p class="muted">请输入 TOML 文本</p>'; return; }
 var obj=parseToml(src);
 if(obj && obj.__err){ const __g3='<p class="muted">解析失败：'+escH(obj.__err)+'</p>';document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—')); return; }
-var xml=jsonToXml(obj);
+var iv=document.getElementById('indent').value||'2';
+var pad= iv==='tab' ? '\t' : (' ').repeat(parseInt(iv,10)||2);
+var xmlSort=document.getElementById('top_1').checked;
+var xml=jsonToXml(obj,{pad:pad,sort:xmlSort});
 const __g4='<div class="result-title">XML 输出</div><pre class="code-block">'+escH(xml)+'</pre>';document.getElementById('result').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));}
 function resetForm(){document.getElementById('source').value='[config]\nname = "demo"\nport = 8080\n\n[config.db]\nurl = "x"\npool = 16';
       document.getElementById('indent').selectedIndex=0;
