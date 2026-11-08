@@ -126,11 +126,6 @@
 ### I1. hash/编码类页深度参差
 - ⚠ 核实（2026-10-26）：pbkdf2 已完整参数化（迭代/盐/密钥长度/格式）、bcrypt 已有 rounds 成本因子——「参数化」部分条目过时。
 
-### I2. 正则/格式化器错误提示原始
-- ✅ 已核实并收口（2026-10-26）：json-formatter 既有行列定位、yaml-validator 既有行号+列号+上下文片段（条目过时）。真缺口在 toml 系：toml-formatter 的 parseToml 是宽松解析器（无效行静默跳过），「验证」几乎永远通过且无定位。已落地：新增 validateTomlStrict 严格逐行校验（表头格式/缺少 =/空键名/空值，带行号定位；值侧三引号多行字符串跳过内容行不误报、表头行内注释 strip），validateToml 通过时输出输入相关统计「（共 N 个键值对，M 个表）」；format/转换仍走宽松 parseToml 零漂移。verify +2 强用例（缺 = 行号锚 / 合法多行字符串统计锚——后者修复「两态同值」逃生，判别器抓到后以统计输出收敛）；verify it 766/766、判别器 0、EN 分支手写 ASCII 无 CJK。
-
-### I3. barcode/QR 系列仅静态生成
-- ✅ QR 中心 logo 已落地（2026-10-26）：qr-beautify logo 上传 + 按容错级别限宽嵌入（详见进度区）。纠错级别可视化对比核实：qrcode.html 既有「各纠错级别最小版本对比图 + 容量表高亮当前级别列」（__qrT 双语）——条目后半过时，销案。
 
 ## 功能缺陷
 - ✅ 时间戳毫秒/秒自动识别已落地（2026-10-26）：timestamp-converter 加「智能粘贴识别」smartInput（纯数字 ≥1e12 判毫秒否则判秒、日期串走 parseDate，同步填秒/毫秒/日期三框 + 识别文案进 #smartHint 可断言；expect 锚 ISO toISOString UTC 确定串免时区漂移）+「当前时间」常驻表 #nowBar（**matchMedia 守卫**：harness 会注入 rAF/setInterval 定时器桩守不住，node/真机差分用 matchMedia；stub 不采集 ⇒ 零 blob 影响，真机 setInterval 每秒刷新）。verify it 768/768、判别器 0。
@@ -146,9 +141,8 @@
 - tools/it/（340 页，全站第一大分类）
 
 ## 进度
-- ✅ QR 中心 logo 已落地（2026-10-26）：qr-beautify 加 logo 上传（FileReader→Image→drawLogoOverlay 白底圆角块 contain 居中嵌入），宽度按容错级别限幅 L≤10%/M≤15%/Q≤20%/H≤25%（可遮挡比例口径），状态行显示实际占比；clearLogo 可移除；Boot 挂 initLogoInput（__qrLogoBound 防重复绑定）。⚠ logo 路径 harness 不可达（FileAPI 缺口），闭环 = 默认态零漂移 778/778 + 代码审阅 + 真机验证待老板抽查。修复「简介承诺 add logos 但功能未实现」的名不副实。
 - 🟢 批次 2026-10-26：I1 耗时实测、I2 toml-formatter 严格校验、I3 barcode PNG 导出均已落地。
-- 🔴 待开发：QR 中心 logo/纠错级别对比；S6 输入智能化试点（正则速查输入联想）；S4 分享卡。
+- 🔴 待开发：S4 分享卡。（注：QR 中心 logo、纠错级别对比、S6 正则速查输入联想均已落地/销案，见上方已修复归档）
 
 ## 2026-11-03 审计补充（按工作树静态核查）
 
