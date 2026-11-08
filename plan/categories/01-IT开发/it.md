@@ -2357,13 +2357,6 @@
 - 影响：C 源码中合法的八进制转义全部解错，且无提示。
 - 方案：改 `case '0': … case '7':` 或前置 `if(/[0-7]/.test(n))`，按 C 规则最多读 3 位八进制。
 
-### IT-N338 Rust 字节串模式对非 ASCII 输出非法 `\u{}`（高，确认缺陷）
-- 问题：`kind==='byte'` 且 `cp > 0xFF` 时输出 `\u{...}`，Rust 字节串字面量不支持 `\u` 转义（仅 `\xNN`），生成代码不可编译。
-- 证据：`tools/it/rust-escape.html:299-301`
-- 复现：kind=byte，输入 `中` → 实际 `b"\u{4e2d}"`；期望 `b"\xe4\xb8\xad"`（UTF-8 三字节）或明确拒绝该组合。
-- 影响：宣称支持的「字节串」转义产出非法 Rust 代码；用户复制即编译失败。
-- 方案：byte 模式用 `TextEncoder` 取 UTF-8 字节后逐字节 `\xNN`；对无法表示的码点给错提示。
-
 ### IT-N339 HTML 全转义只输出 emoji 的高位代理（高，确认缺陷）
 - 问题：`escAll` 分支用 `charCodeAt(0)` 取单个 UTF-16 单元，`Array.from` 的 emoji 是双单元码点，低位代理被丢弃。
 - 证据：`tools/it/html-escape.html:450`（name）、`:461`（dec）、`:470`（hex）
