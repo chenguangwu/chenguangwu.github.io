@@ -155,6 +155,12 @@ const CASES = [
       + "修复后近点 = H·s/(H+(s−f)) = 2400×5000/(2400+5000−24) = 1626.9mm → 1.63m，仅远点为 ∞。默认 50mm/f1.8/2m 得 1.92m ~ 2.08m ⇒ 判别明确。",
   },
   {
+    slug: "design/depth-of-field-calculator",
+    inputs: { sensor: "1", focal: "24", aperture: "8", distance: "2.41" },
+    expect: ["413.14m"],
+    ref: "D-N7 残留（远点边界）：H=24²/(8×0.03)=2400mm，H+f=2424mm；s=2.41m=2410mm < H+f ⇒ 远点应有限。旧实现用 s<h（2410<2400 否）误判远点=∞；修复后远点 = H·s/(H−(s−f)) = 2400×2410/(2400−2386) = 413142.9mm → 413.14m。断言远点卡「413.14m」（默认 50mm/f1.8/2m 得 2.08m 末尾不同 ⇒ 不命中）。",
+  },
+  {
     slug: "design/focal-length-equivalent",
     inputs: { focal: "35", fromSensor: "fullframe", toSensor: "aps-c" },
     expect: ["56.0mm", "35.6° × 24.2°"],
