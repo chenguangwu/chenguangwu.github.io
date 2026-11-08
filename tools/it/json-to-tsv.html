@@ -588,8 +588,11 @@ function tsvToJson() {
         let val = cols[idx] !== undefined ? cols[idx] : '';
         if (trim) val = val.trim();
         
-        if (autoNumber && val !== '' && !isNaN(val) && !isNaN(parseFloat(val))) {
-          val = parseFloat(val);
+        // IT-N343：只有「无前导零、无千分位、且转数字后能原样打印回来」的串才转数值。
+        // 旧逻辑 parseFloat 一律转：12345678901234567890 → 12345678901234567000、
+        // 00123 → 123，订单号/身份证/带前导零编码被静默改坏且不可逆。
+        if (autoNumber && val !== '' && /^-?(0|[1-9]\d*)(\.\d+)?$/.test(val) && String(Number(val)) === val) {
+          val = Number(val);
         } else if (autoBoolean && (val === 'true' || val === 'false')) {
           val = val === 'true';
         }

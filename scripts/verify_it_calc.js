@@ -3852,6 +3852,15 @@ const CASES = [
     ref: "TSV 两列（表头 a/b，数据行 1/2）→ 紧凑输出 [{\"a\":\"1\",\"b\":\"2\"}]，存在表头行时字段值一律按字符串处理。默认态 tsvInput 为空，tsvToJson() 直接 Toast 返回，jsonOutput 不更新。",
   },
   {
+    // IT-N343 回归：自动识别数字不得改写长 ID / 前导零（勾选状态在桩内默认未勾，需在 clicks 里显式置真）。
+    slug: "it/json-to-tsv",
+    inputs: { tsvInput: "id\tcode\tamount\n12345678901234567890\t00123\t30", t2jFormat: "compact" },
+    clicks: ["document.getElementById('t2jNumber').checked=true; tsvToJson()"],
+    dumpIds: ["jsonOutput"],
+    expect: ["[{\"id\":\"12345678901234567890\",\"code\":\"00123\",\"amount\":30}]"],
+    ref: "IT-N343：开启「自动识别数字」后，20 位订单号 `12345678901234567890` 与带前导零的 `00123` 必须保持字符串原值（旧逻辑 parseFloat 会输出 12345678901234567000 / 123），而普通 `30` 仍应转成数值。三者同时成立才命中；默认态 jsonOutput 是示例数据，不含该串。",
+  },
+  {
     slug: "it/json-to-tsv",
     inputs: { tsvInput: "a\tb\n1\t2", t2jFormat: "pretty", t2jIndent: "4" },
     clicks: ["tsvToJson()"],
@@ -8908,6 +8917,14 @@ const CASES = [
     clicks: ["calcTool()"],
     expect: ["未知 无法仅凭该值判定"],
     ref: "12 位十六进制 = 48 bit，不是 CRC-32（8 位）；旧表误标为「CRC32 / 短校验」。修正后归入无法判定；默认 64 位值不命中。",
+  },
+  {
+    // IT-N363 回归：40 位十六进制必须判 SHA-1（正是旧「默认参数」预设被截断后误落的档位）。
+    slug: "it/hash-identifier",
+    inputs: { h: "5e884898da28047151d0e56f8dc6292773603d0d" },
+    clicks: ["calcTool()"],
+    expect: ["SHA-1 160 位（40 位十六进制）"],
+    ref: "IT-N363：40 位十六进制 = 160 bit ⇒ SHA-1。旧「默认参数」预设把 64 位 SHA-256 截成前 40 位（本用例即该截断串），点预设即误判 SHA-1；预设值已补全为 64 位并与 resetForm 一致。页面默认值是完整 64 位 ⇒ 默认态判 SHA-256，不命中本串。",
   },
 
   // —— 随机源审计（2026-11-05）：B 类密码学用途改 crypto.getRandomValues 后，
