@@ -155,7 +155,7 @@ s.parentNode.insertBefore(el, s);
 <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="🏷️ 高级 Slug 生成器">🏷️ Advanced Slug Generator</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">处理链：① 可选转小写；② 空白串替换为分隔符 sep；③ 汉字处理——拼音模式查拼音表，音译模式替换为 x，否则丢弃；④ 可选去停用词 \b(a|an|the)\b（忽略大小写）；⑤ 删除非字母数字且非 sep 的字符；⑥ 合并连续 sep；⑦ 可选修剪首尾 sep；⑧ 可选按 maxLen 截断并去掉尾部 sep；⑨ 可选拼接 sep + 6 位随机 id（字符池 a-z0-9）</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">处理链：① 可选转小写；② 空白串替换为分隔符 sep；③ 汉字处理——拼音模式查拼音表，音译模式替换为 x，否则丢弃；④ 可选去停用词 \b(a|an|the)\b（忽略大小写）；⑤ 删除非字母数字且非 sep 的字符；⑥ 合并连续 sep；⑦ 可选修剪首尾 sep；⑧ 可选按 maxLen 截断并去掉尾部 sep；⑨ 可选拼接 sep + 6 位随机 id（字符池 a-z0-9）；预处理先做 NFD 规范化并删除组合变音标记（如 é→e）</div>
   <div class="formula-desc">生成 URL 友好的 Slug 标识。</div>
   <ul class="formula-list">
     <li><b>处理流程</b>：转小写 → 去除变音符号（如 é→e）→ 非字母数字替换为连字符 → 合并连续连字符 → 去除首尾连字符。</li>
@@ -290,7 +290,8 @@ function slugify(text){
   const stripStop=document.getElementById('stripStop').checked;
   const appendId=document.getElementById('appendId').checked;
   const maxLen=parseInt(document.getElementById('maxLen').value)||0;
-  let s=text;
+  // IT-N473：先 NFD 分解并删除组合变音标记（é→e、ñ→n），再走后续处理链
+  let s=String(text==null?'':text).normalize('NFD').replace(/\p{M}/gu,'');
   if(lower)s=s.toLowerCase();
   // replace whitespace with sep
   s=s.replace(/\s+/g,sep);
@@ -347,7 +348,7 @@ function generate(){
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function copyResult(){
   const text = document.getElementById('output').textContent || document.getElementById('output').innerText;
-  navigator.clipboard.writeText(text).then(() => alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Copied":"已复制")));
+  navigator.clipboard.writeText(text).then(() => alert(((typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?"Copied":"已复制")));
 }
 function toggleToolTheme(){
   const cur = document.documentElement.getAttribute('data-theme');

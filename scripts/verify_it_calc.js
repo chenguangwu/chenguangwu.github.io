@@ -7414,6 +7414,62 @@ const CASES = [
     "ref": "IT-N426：开启「避开常用保留端口」时结果串仍标注该状态，且同样带免责声明，验证 skip 分支拼接未因双语化改造错位。修复前无免责声明 ⇒ 变红。"
   },
   {
+    "slug": "it/slug-generator-advanced",
+    "inputs": {
+      "text": "café",
+      "sep": "-"
+    },
+    "clicks": [
+      "generate()"
+    ],
+    "expect": [
+      "cafe ← café"
+    ],
+    "ref": "IT-N473：formula-list 承诺「去除变音符号（如 é→e）」，修复前 é 被 [^a-zA-Z0-9-] 整字符删除 ⇒ 产物 caf。现先 NFD 分解再去组合标记 ⇒ cafe。expect 用「产物 ← 原文」整段绑定输入，默认样例 Hello World 不含该串。"
+  },
+  {
+    "slug": "it/slug-generator-advanced",
+    "inputs": {
+      "text": "naïve résumé",
+      "sep": "-"
+    },
+    "clicks": [
+      "generate()"
+    ],
+    "expect": [
+      "naive-resume ← naïve résumé"
+    ],
+    "ref": "IT-N473：清单点名的 naïve résumé，修复前产物 nave-rsum（ï/é 被删）；现两个重音字母均还原、空格仍按 sep 转连字符。"
+  },
+  {
+    "slug": "it/slug-generator-advanced",
+    "inputs": {
+      "text": "ÉCOLE",
+      "sep": "-"
+    },
+    "clicks": [
+      "generate()"
+    ],
+    "expect": [
+      "ECOLE ← ÉCOLE"
+    ],
+    "ref": "IT-N473：大写重音 É 同样还原为 E（NFD 在大小写转换之前执行），验证不是只对小写 é 打补丁。"
+  },
+  {
+    "slug": "it/slug-generator-advanced",
+    "inputs": {
+      "text": "Hello World 2024",
+      "sep": "_"
+    },
+    "clicks": [
+      "generate()"
+    ],
+    "expect": [
+      "Hello_World_2024 ← Hello World 2024"
+    ],
+    "ref": "IT-N473 回归护栏：不含变音符号的常规输入、下划线分隔符路径前后同绿，确认 NFD 预处理未改写到普通 ASCII / 大小写 / sep 逻辑。"
+  },
+  {
     "slug": "it/kubernetes-cheatsheet",
     "inputs": {
       "searchInput": "abc123测试"

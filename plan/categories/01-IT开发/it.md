@@ -2848,15 +2848,6 @@
 - 方案：换完整拼音字典（如 `pinyin-pro` 静态引入）或默认改为"保留原字符/URL 编码"；音节间补 `sep`，未命中字显式告警而非静默删除。
 - 假工具：否
 
-### IT-N473 处理流程宣称"去除变音符号 é→e"，实际直接删除该字母（中，承诺未实现）
-- 页面：`tools/it/slug-generator-advanced.html`
-- 问题：`formula-list :162` 写"去除变音符号（如 é→e）"，但代码没有任何 NFD 规范化或变音替换；非 CJK 的非 ASCII 字符先 `out+=c`（`:309-311`），再被 `[^a-zA-Z0-9sep]` 整字符删除（`:320`）。
-- 行号：`:162`、`:299-320`（`:310`、`:320`）、deep-dive 表 `:250`
-- 复现（页面真实 `slugify()`）：`café` → 实际 `caf`（期望 `cafe`）；`naïve résumé` → 实际 `nave-rsum`（期望 `naive-resume`）；`Привет мир` → 实际空串（表 `:250` 称"非 ASCII 字符需音译或转写"）。
-- 影响：带重音的拉丁标题/文件名会丢字母，输出与文案承诺不符，且用户难以发现是"被删"而非"原始输入有误"。
-- 方案：先 `s.normalize('NFD').replace(/\p{M}/gu,'')` 再走原流程；或把文案改成"非 ASCII 字符直接删除"。
-- 假工具：否
-
 ### IT-N474 宣称支持取模 `%`，实际任何 `a%b` 都被改写成 `(a/100)b` 并语法报错（中，承诺未实现）
 - 页面：`tools/it/math-evaluator.html`
 - 问题：求值前 `expr.replace(/(\d+)\s*%/g,'($1/100)')`（`:295`）把所有"数字+%"无条件改写为百分比，`%` 从未作为取模运算符保留；而 `<title>`/description（`:8`、`:11`、`:17`）、h2（`:112`）、formula-list（`:120` "取模"）都宣称支持 `%`。
@@ -2912,7 +2903,7 @@
 - `vector-magnitude`：IT-N477（中）；无高优缺陷（模长/单位向量公式正确：`|(3,4)|=5`，三维方向角 `acos(vᵢ/|v|)` 正确）。
 - `calc-10`：IT-N469（高，算错）；SHA-1/256/512 经 `TextEncoder` 走 UTF-8，抽验 `中文` 与标准一致。
 - `math-evaluator`：IT-N470（高，安全）、IT-N474（中）、IT-N475（中）。
-- `slug-generator-advanced`：IT-N472（高，承诺未实现）、IT-N473（中）。
+- `slug-generator-advanced`：IT-N472（高，承诺未实现）。
 - `keyword-extractor`：IT-N478（中）；无高优缺陷（停用词表实测 183 中文 + 132 英文，标签/表格/图表输出均经 `ToolBox.escHtml`）。
 - 方法声明：逐页通读上述 8 页源码，在 `/tmp` 用 `node` 直接抽取/复刻页面原函数（页面真实 `md5()`、表达式白名单 + `new Function`、叉积夹角、`detRec` + BigInt Bareiss、页面真实 `PINYIN` 表 + `slugify()`、`tokenizeChinese`/`filterKeywords`/`deduplicateSubstrings` + 页面真实停用词表、`isPrime`/因式分解）逐一给出「输入 → 实际 / 期望」；MD5 用 `crypto.createHash('md5')` 与 `printf '中文' | md5` 双对照；`onclick` 截断用 `python3 html.parser` 验证属性拆分。**未开浏览器、未跑 `_build.py`/`run_gates.py`、未做线上验证**；未修改任何工具页、代码或构建产物，仅在本审计日志追加本节。
 
