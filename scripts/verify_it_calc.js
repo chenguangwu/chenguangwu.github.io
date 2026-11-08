@@ -841,6 +841,20 @@ const CASES = [
     ref: "独立复算：莱文斯坦距离 4、`len(A)=11` ⇒ 归一化 1−4/11=0.6364，与页面「63.64%（距离: 4）」自洽。默认态是更长示例文本，不命中。",
   },
   {
+    // IT-N367 回归：compareMode=full（LCS 对齐）下 "abc" vs "xabc" 只多 1 个字符。
+    slug: "it/text-similarity",
+    inputs: { textA: "abc", textB: "xabc", compareMode: "full", tokenMode: "char" },
+    expect: ["完整文本 · 差异合计 1 字符"],
+    ref: "IT-N367：full 走 LCS 对齐，x→abc 的匹配使差异只剩插入的 1 个字符（旧实现 compareMode 只读不用，两个选项输出逐字节相同，这行摘要也不存在）。默认示例文本更长，不命中。",
+  },
+  {
+    // IT-N367 回归：同一对文本切 compareMode=char（等长逐位）⇒ 差异合计 7。
+    slug: "it/text-similarity",
+    inputs: { textA: "abc", textB: "xabc", compareMode: "char", tokenMode: "char" },
+    expect: ["逐字符 · 差异合计 7 字符"],
+    ref: "IT-N367：char 走等长逐位对比 —— 3 位全部错位（A 侧 3 差异）+ B 侧多出的首/尾字符，合计 7；与 full 的 1 构成强判别，证明「比较模式」真的改变了对齐口径。默认 compareMode=full，不命中。",
+  },
+  {
     slug: "it/text-dedupe-sort",
     // 页面函数都包在闭包里（`applyOp` 非顶层声明）⇒ 只能从 clicks 进，不能直接 input 事件驱动。
     inputs: { input: "fig\napple\nfig\npear" },

@@ -255,7 +255,7 @@ s.parentNode.insertBefore(el, s);
 
       <!-- 差异高亮 -->
       <div class="diff-section">
-        <div class="diff-label">差异对比（逐字符）</div>
+        <div class="diff-label">差异对比</div>
         <div style="margin-bottom:8px;">
           <label style="font-size:12px;color:var(--text-muted);margin-bottom:4px;display:block;">文本 A</label>
           <div class="diff-box" id="diffA"><span class="diff-empty">等待输入...</span></div>
@@ -586,6 +586,22 @@ function computeDiff(textA, textB) {
   return { diffA: diffA, diffB: diffB };
 }
 
+// IT-N367：compareMode 此前只读不用，两个选项输出逐字节相同。
+// 这里补上「逐字符比较」的实现：按位置一一对比（不做 LCS 对齐），长度不等时
+// 多出的尾巴整段标为新增/删除 —— 与「差异高亮」的语义一致，也区别于 full 的 LCS 对齐。
+function computeDiffByPos(textA, textB) {
+  var a = textA, b = textB, diffA = [], diffB = [];
+  var n = Math.min(a.length, b.length);
+  for (var i = 0; i < n; i++) {
+    var same = a[i] === b[i];
+    diffA.push({ ch: a[i], type: same ? 'same' : 'del' });
+    diffB.push({ ch: b[i], type: same ? 'same' : 'ins' });
+  }
+  for (var k = n; k < a.length; k++) diffA.push({ ch: a[k], type: 'del' });
+  for (var q = n; q < b.length; q++) diffB.push({ ch: b[q], type: 'ins' });
+  return { diffA: diffA, diffB: diffB };
+}
+
 function renderDiff(diff, containerId) {
   var el = document.getElementById(containerId);
   if (!diff || diff.length === 0) {
@@ -725,9 +741,20 @@ function calculate() {
   }
 
   // 差异高亮（基于原始文本的逐码点对比）
-  var diff = computeDiff(aUnits, bUnits);
+  // IT-N367：按「比较模式」选择对齐口径 —— full 用 LCS 对齐（可识别插入/删除位移），
+  // char 用等长逐位对比（错位即整段标红，正是「逐字符比较」的语义）。
+  var diff = (compareMode === 'char') ? computeDiffByPos(aUnits, bUnits) : computeDiff(aUnits, bUnits);
   renderDiff(diff.diffA, 'diffA');
   renderDiff(diff.diffB, 'diffB');
+  // IT-N367：把当前口径的差异计数显示出来 —— 既让「比较模式」切换有可感知的结果，
+  // 也让回归用例能断言（高亮样式在纯文本里不可见）。
+  var _cntA = diff.diffA.filter(function (x) { return x.type !== 'same'; }).length;
+  var _cntB = diff.diffB.filter(function (x) { return x.type !== 'same'; }).length;
+  var _da = document.getElementById('diffA');
+  if (_da && typeof _da.innerHTML === 'string') {
+    _da.innerHTML = String(_da.innerHTML) + '<div class="diff-summary" style="margin-top:6px;font-size:12.5px;color:var(--text-muted);">比较口径：' +
+      (compareMode === 'char' ? '逐字符' : '完整文本') + ' · 差异合计 ' + (_cntA + _cntB) + ' 字符（A 侧 ' + _cntA + ' / B 侧 ' + _cntB + '）</div>';
+  }
 
   // 综合评分
   var avg = (cosScore + jacScore + levScore) / 3;
