@@ -149,7 +149,7 @@ s.parentNode.insertBefore(el, s);
 <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="🗺️ 美国区号查询">🗺️ Area Code Lookup</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">先以正则剔除全部非数字，保留数字串；位数不足 3 位提示无效；区号 = 数字串前 3 位，查表得地区名；余下部分为本地号，总长恰为 10 位时按 NANP 规范格式化为 (区号) 前3位-后4位，否则提示号码通常应为 10 位；仅输入 3 位时只判区号是否在表中</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">先剔除全部非数字；11 位且首位为 1 时剥离 NANP 国家码 +1；区号取前 3 位 NPA，按首位 2–9、排除 N11 服务码 / N99 保留码 / Reserved 非地理码校验后查表得地区；完整 10 位号码再校验 NXX 结构并按 (NPA) NXX-XXXX 格式化，区号未收录时只给结构结论、不判标准有效；仅输入 3 位时同样先过 NPA 规则再判区号有效性</div>
   <div class="formula-desc">按北美编号计划（NANP）规则，用区号反查所属州/城市并校验号码格式。</div>
   <ul class="formula-list">
     <li><b>结构</b>：NANP 号码为 NPA-NXX-XXXX 共 10 位，NPA 即 3 位区号。</li>
@@ -329,47 +329,104 @@ const AREA_CODES = {
   '980':'North Carolina','984':'North Carolina','985':'Louisiana','986':'Idaho',
   '989':'Michigan'
 };
+/* NANP 保留 / 非地理 NPA：不可当作地理区号判有效。
+   除显式集合外，查表值含 Reserved 的一律拦截，防止后续新增同类条目再次误判。 */
+const NPA_RESERVED = new Set([
+  '456','800','833','844','855','866','877','888','900',
+  '211','311','411','511','611','711','811','911'
+]);
+function __aeL(zh,en){
+  var enMode=false;
+  try{ enMode=/(?:^|[?&])lang=en/i.test(location.search); }catch(e){}
+  if(!enMode) enMode=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?true:false;
+  return enMode?en:zh;
+}
+/* NPA（区号）结构：首位 2–9；N11 为保留服务码；N99 保留未分配；非地理/保留码单列 */
+function __aeNpaErr(npa){
+  npa=String(npa==null?'':npa);
+  if(!/^[2-9]\d\d$/.test(npa)) return __aeL('❌ 区号 NPA 首位须为 2–9','❌ NPA must start with 2-9');
+  if(/^\d11$/.test(npa)) return __aeL('❌ N11 是保留服务码，不能作区号','❌ N11 is a reserved service code, not an area code');
+  if(npa[1]==='9'&&npa[2]==='9') return __aeL('❌ N99 是保留未分配区号','❌ N99 area codes are reserved and unassigned');
+  if(NPA_RESERVED.has(npa)) return __aeL('❌ '+npa+' 是保留 / 非地理区号，未分配为地理区号','❌ '+npa+' is a reserved / non-geographic NPA, not assigned as a geographic area code');
+  return '';
+}
+/* NXX（局号）结构：同 NPA 的 [2-9]XX 与 N11 约束 */
+function __aeNxxErr(nxx){
+  nxx=String(nxx==null?'':nxx);
+  if(!/^[2-9]\d\d$/.test(nxx)) return __aeL('❌ 局号 NXX 首位须为 2–9','❌ Central office code (NXX) must start with 2-9');
+  if(/^\d11$/.test(nxx)) return __aeL('❌ N11 是保留局号','❌ N11 is a reserved central office code');
+  return '';
+}
 function validate(){
-  const AE_EN = /(?:^|[?&])lang=en/i.test(location.search);
-  // IT-N1xx：raw 是用户原始输入，直接拼进 innerHTML 的文本与 data-zh 属性
-  // ⇒ 含引号/标签的输入可以改写 DOM（DOM 注入点）。统一走站点 escHtml 转义。
+  const AE_EN=(function(){
+    try{ if(/(?:^|[?&])lang=en/i.test(location.search)) return true; }catch(e){}
+    return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?true:false;
+  })();
+  const L=(zh,en)=>AE_EN?en:zh;
+  // 原始输入拼进 innerHTML 前统一转义（含 data-zh 属性），避免输入改写 DOM
   const esc=(typeof ToolBox!=='undefined'&&ToolBox.escHtml)?ToolBox.escHtml:function(s){
     return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
       .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   };
-  const raw = document.getElementById('input').value.trim();
-  const digits = raw.replace(/\D/g,'');
-  const out = document.getElementById('output');
-  if(!raw){ const __h0=(AE_EN?'Waiting for input...':((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Waiting for input...":"等待输入..."));if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0; return; }
-  let html = `<p data-zh="输入：${esc(raw)}"><strong>Input:</strong>${esc(raw)}</p>`;
-  if(digits.length < 3){
-    html += `<p>${AE_EN?'⚠️ At least 3 digits (area code) required':'⚠️ 至少需要 3 位数字（区号）'}</p>`;
-    const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;
-    return;
-  }
-  const areaCode = digits.substring(0,3);
-  const region = AREA_CODES[areaCode] || (AE_EN?'Unknown / non-NANP area code':'未知/非 NANP 区号');
-  html += `<p><strong>${AE_EN?'Area code: ':'区号：'}</strong>${areaCode}</p>`;
-  html += `<p><strong>${AE_EN?'Region: ':'地区：'}</strong>${region}</p>`;
-  if(digits.length > 3){
-    const rest = digits.substring(3);
-    html += `<p><strong>${AE_EN?'Remaining digits: ':'其余数字：'}</strong>${rest}</p>`;
-    // Standard NANP format
-    if(digits.length === 10){
-      const formatted = `(${areaCode}) ${rest.substring(0,3)}-${rest.substring(3)}`;
-      html += `<p><strong>${AE_EN?'Formatted: ':'格式化：'}</strong>${formatted}</p>`;
-      html += `<p style="color:var(--success);">${AE_EN?'✅ Standard 10-digit NANP number':'✅ 标准 10 位 NANP 号码'}</p>`;
-    } else {
-      html += `<p style="color:#ff9800;">${AE_EN?'⚠️ NANP numbers are usually 10 digits':'⚠️ NANP 号码通常为 10 位'}</p>`;
+  const raw=String(document.getElementById('input').value==null?'':document.getElementById('input').value).trim();
+  const out=document.getElementById('output');
+  const put=function(h){
+    if((typeof h==='number'&&!isFinite(h))||/Infinity/.test(String(h))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(h)){
+      out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;
     }
+    out.innerHTML=h;
+  };
+  if(!raw){ put(L('等待输入...','Waiting for input...')); return; }
+  let digits=raw.replace(/\D/g,'');
+  // IT-N419：11 位且首位 1 ⇒ 必为 NANP 国家码（本地号首位为 2–9），剥离后按 10 位解析
+  let stripped=false;
+  if(digits.length===11&&digits.charAt(0)==='1'){ digits=digits.substring(1); stripped=true; }
+  let html=`<p data-zh="输入：${esc(raw)}"><strong>Input:</strong>${esc(raw)}</p>`;
+  if(stripped){
+    html+=`<p><strong>${L('国家码：','Country code: ')}</strong>+1 ${L('（已剥离，按 10 位 NANP 号码解析）','(stripped; parsed as a 10-digit NANP number)')}</p>`;
+  }
+  if(digits.length<3){
+    html+=`<p>${L('⚠️ 至少需要 3 位数字（区号）','⚠️ At least 3 digits (area code) required')}</p>`;
+    put(html); return;
+  }
+  const areaCode=digits.substring(0,3);
+  const hit=AREA_CODES[areaCode];
+  const reserved=NPA_RESERVED.has(areaCode)||/reserved/i.test(String(hit||''));
+  const region=hit||L('未知/非 NANP 区号','Unknown / non-NANP area code');
+  html+=`<p><strong>${L('区号：','Area code: ')}</strong>${areaCode}</p>`;
+  html+=`<p><strong>${L('地区：','Region: ')}</strong>${region}</p>`;
+  const npaErr=__aeNpaErr(areaCode);
+  if(digits.length>3){
+    const rest=digits.substring(3);
+    html+=`<p><strong>${L('其余数字：','Remaining digits: ')}</strong>${rest}</p>`;
+    if(digits.length===10){
+      const formatted=`(${areaCode}) ${rest.substring(0,3)}-${rest.substring(3)}`;
+      html+=`<p><strong>${L('格式化：','Formatted: ')}</strong>${formatted}</p>`;
+      const err=npaErr||__aeNxxErr(rest.substring(0,3));
+      if(err){
+        // IT-N418：结构非法的区号一律不给「✅ 标准」结论
+        html+=`<p style="color:var(--danger);">${err}</p>`;
+      } else if(!hit||reserved){
+        html+=`<p style="color:#ff9800;">${L('⚠️ NANP 结构合法，但区号 '+areaCode+' 未收录或为保留码，不判为标准有效号码','⚠️ Structurally valid NANP number, but area code '+areaCode+' is uncatalogued or reserved — not confirmed as standard valid')}</p>`;
+      } else {
+        html+=`<p style="color:var(--success);">${L('✅ 标准 10 位 NANP 号码','✅ Standard 10-digit NANP number')}</p>`;
+      }
+    } else {
+      html+=`<p style="color:#ff9800;">${L('⚠️ NANP 号码通常为 10 位','⚠️ NANP numbers are usually 10 digits')}</p>`;
+      if(npaErr) html+=`<p style="color:var(--danger);">${npaErr}</p>`;
+    }
+  } else if(npaErr){
+    const detail=npaErr.replace(/^❌\s*/,'');
+    html+=`<p style="color:var(--danger);">${L('❌ 未知区号','❌ Unknown area code')}${L('（'+detail+'）',' ('+detail+')')}</p>`;
+  } else if(reserved){
+    // IT-N420：表内标 Reserved / 非地理码不算有效地理区号
+    html+=`<p style="color:var(--danger);">${L('❌ 保留区号：'+areaCode+' 未分配为地理区号','❌ Reserved area code: '+areaCode+' is not assigned as a geographic area code')}</p>`;
+  } else if(hit){
+    html+=`<p style="color:var(--success);">${L('✅ 区号有效','✅ Valid area code')}</p>`;
   } else {
-    if(AREA_CODES[areaCode]){
-      html += `<p style="color:var(--success);">${AE_EN?'✅ Valid area code':'✅ 区号有效'}</p>`;
-    } else {
-      html += `<p style="color:var(--danger);">${AE_EN?'❌ Unknown area code':'❌ 未知区号'}</p>`;
-    }
+    html+=`<p style="color:var(--danger);">${L('❌ 未知区号','❌ Unknown area code')}</p>`;
   }
-  const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h2;
+  put(html);
 }
 function toggleToolTheme(){
   const cur = document.documentElement.getAttribute('data-theme');
