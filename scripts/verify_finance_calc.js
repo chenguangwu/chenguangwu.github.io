@@ -482,6 +482,13 @@ const CASES = [
     ref: "贷款年限 2.5 年：旧实现按小数年限折期数（30 期）照算；现要求正整数年并提示。默认 30 年 ⇒ 不命中。",
   },
   {
+    slug: "investment/irr-calc",
+    inputs: { cf0: "1000", cf1: "-1100", cf2: "0", cf3: "0", cf4: "0" },
+    clicks: ["calcTool()"],
+    expect: ["10.00 内部收益率 IRR (%)"],
+    ref: "IRR 二分方向修正（investment/irr-calc）：现金流 1000,-1100,0,0,0 的真实根为 10%。修复前二分方向反置（npv(mid)>0 时误把 lo=mid）收敛到 hi=10 ⇒ 输出 1000%；修正为「扫掠找首个变号区间再标准二分」得 10.00%。默认态（cf0=-1000,300,400,500,200 ⇒ IRR≈15.32%）不含 10.00 串 ⇒ 强判别。",
+  },
+  {
     slug: "finance/simple-interest",
     inputs: { principal: "20000", rate: "4", years: "2" },
     clicks: ["calc()"],
