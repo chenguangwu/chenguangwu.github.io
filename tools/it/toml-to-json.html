@@ -104,7 +104,7 @@ s.parentNode.insertBefore(el, s);
   <div class="card tool-card-accent" style="--tool-accent:#3B82F6;">
     <h2 data-zh="📄 TOML 转 JSON 转换器">📄 TOML to JSON Converter</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">TOML 解析：去回车后逐行处理，跳过空行与 # 注释（# 判定避开成对双引号内部）；[节名] 按 . 逐级建立嵌套对象，[[数组名]] 向同名数组追加一个新元素；其余行取第一个 = 分隔键与值，值先剥掉行尾 # 注释再解析——双引号串按 \n \t \" 反转义，true/false 转布尔，纯整数转 parseInt，纯小数转 parseFloat，[ ] 内按逗号递归解析为数组。输出 JSON 时缩进取 tab 或指定个数的空格（缺省 2），勾选排序时按键名字典序递归重排所有层级的键</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">TOML 解析：去回车后逐行处理，跳过空行与 # 注释（# 判定避开引号内部）；[节名] 按 . 逐级建立嵌套对象，[[数组名]] 向同名数组追加新元素；其余行取第一个 = 分隔键与值，行尾 # 注释在引号外剥离。值解析支持双引号串（\n \t \" \\ 反转义）、单引号字面量串、三引号多行串、布尔、整数/浮点（可含下划线与 0x/0o/0b 前缀、科学计数）、[ ] 数组（按「顶层逗号」切分，引号内逗号与嵌套层级不受影响）与 { } 内联表（递归键值）；多行数组/内联表/多行串会跨行累积到括号闭合；日期时间等 JSON 无对应类型的值保留原字符串。输出 JSON 时缩进取 tab 或指定个数的空格（缺省 2），勾选排序时按键名字典序递归重排所有层级的键</div>
   <div class="formula-desc">把 TOML 转换为 JSON。</div>
   <ul class="formula-list">
     <li><b>映射</b>：TOML 的表与数组分别转换为 JSON 对象与数组。</li>
@@ -229,20 +229,118 @@ function calcTool(){function tLit(v){
   if(v instanceof Array) return '['+v.map(tLit).join(', ')+']';
   return '"'+String(v).replace(/\\/g,'\\\\').replace(/"/g,'\\"')+'"';
 }
+function tSplitTop(s, sep){
+  sep=sep||',';
+  var out=[],buf='',depth=0,q=null,i=0;
+  while(i<s.length){
+    var c=s[i];
+    if(q){
+      if(c==='\\'&&q==='"'){ buf+=c+(s[i+1]||''); i+=2; continue; }
+      buf+=c; if(c===q)q=null; i++; continue;
+    }
+    if(c==='"'||c==="'"){ q=c; buf+=c; i++; continue; }
+    if(c==='['||c==='{'){ depth++; buf+=c; i++; continue; }
+    if(c===']'||c==='}'){ depth--; buf+=c; i++; continue; }
+    if(c===sep&&depth===0){ out.push(buf); buf=''; i++; continue; }
+    buf+=c; i++;
+  }
+  if(buf.trim()!=='') out.push(buf);
+  return out.filter(function(x){ return x.trim()!==''; });
+}
+// 三引号多行串是否仍未闭合（\"\"\" / ''' 出现奇数次）
+function tOpenTriple(s){
+  return ((s.match(/"""/g)||[]).length%2===1) || ((s.match(/'''/g)||[]).length%2===1);
+}
+// 括号净深度（跳过字符串/三引号串内的括号）；多行数组/内联表靠它判断是否还要吞并下一行
+function tDepth(s){
+  var d=0,q=null,i=0;
+  while(i<s.length){
+    var c=s[i];
+    if(q){
+      if(c==='\\'&&q==='"'){ i+=2; continue; }
+      if(c===q)q=null; i++; continue;
+    }
+    if(s.substr(i,3)==='"""'||s.substr(i,3)==="'''"){
+      var t=s.substr(i,3), j=s.indexOf(t,i+3);
+      if(j<0) return 1;
+      i=j+3; continue;
+    }
+    if(c==='"'||c==="'"){ q=c; i++; continue; }
+    if(c==='['||c==='{')d++;
+    else if(c===']'||c==='}')d--;
+    i++;
+  }
+  return d;
+}
+function tKeyName(k){
+  k=String(k).trim();
+  if(k[0]==='"'||k[0]==="'"){ var v=tVal(k); return typeof v==='string' ? v : k; }
+  return k;
+}
 function tVal(s){
-  s=s.trim();
-  if(s[0]==='"'){ var m=s.match(/^"((?:[^"\\]|\\.)*)"/); return m? m[1].replace(/\\n/g,'\n').replace(/\\t/g,'\t').replace(/\\"/g,'"') : s; }
-  if(s==='true')return true; if(s==='false')return false;
-  if(s==='')return '';
-  if(/^-?\d+$/.test(s))return parseInt(s,10);
-  if(/^-?\d+\.\d+$/.test(s))return parseFloat(s);
-  if(s[0]==='['){ var inner=s.slice(1,s.lastIndexOf(']')); if(inner.trim()==='')return []; return inner.split(',').map(function(x){return tVal(x);}); }
+  s=String(s).trim();
+  if(s==='') return '';
+  // 多行基本串 """..."""
+  if(s.length>=6 && s.substr(0,3)==='"""'){
+    var b=s.slice(3, s.lastIndexOf('"""'));
+    if(b[0]==='\n') b=b.slice(1);
+    return b.replace(/\\n/g,'\n').replace(/\\t/g,'\t').replace(/\\"/g,'"').replace(/\\\\/g,'\\');
+  }
+  // 多行字面量串 '''...'''（不做任何转义）
+  if(s.length>=6 && s.substr(0,3)==="'''"){
+    var b2=s.slice(3, s.lastIndexOf("'''"));
+    if(b2[0]==='\n') b2=b2.slice(1);
+    return b2;
+  }
+  var c0=s[0];
+  if(c0==='"'){
+    var m=s.match(/^"((?:[^"\\]|\\.)*)"/);
+    if(!m) return s;
+    // 先保护 \\ 再解转义，否则 "\\\\n" 会被当成换行
+    return m[1].replace(/\\\\/g,'\u0000').replace(/\\n/g,'\n').replace(/\\t/g,'\t').replace(/\\r/g,'\r').replace(/\\"/g,'"').replace(/\u0000/g,'\\');
+  }
+  // 单引号字面量串：内容原样
+  if(c0==="'"){ var m2=s.match(/^'([^']*)'/); return m2 ? m2[1] : s; }
+  if(s==='true') return true;
+  if(s==='false') return false;
+  // 内联表 { a = 1, b = "x" }
+  if(c0==='{'){
+    var inner=s.slice(1, s.lastIndexOf('}')), o={};
+    tSplitTop(inner).forEach(function(p){
+      var eq=p.indexOf('=');
+      if(eq<0) return;
+      o[tKeyName(p.slice(0,eq))]=tVal(p.slice(eq+1));
+    });
+    return o;
+  }
+  // 数组：按「顶层逗号」切，引号内逗号/嵌套数组/内联表都能正确保留
+  if(c0==='['){
+    var inner2=s.slice(1, s.lastIndexOf(']'));
+    return tSplitTop(inner2).map(function(x){ return tVal(x); });
+  }
+  var num=s.replace(/_/g,'');
+  if(/^0[xX][0-9A-Fa-f]+$/.test(num)) return parseInt(num.slice(2),16);
+  if(/^0[oO][0-7]+$/.test(num)) return parseInt(num.slice(2),8);
+  if(/^0[bB][01]+$/.test(num)) return parseInt(num.slice(2),2);
+  if(/^[+-]?\d+$/.test(num)) return parseInt(num,10);
+  if(/^[+-]?(\d+\.\d*|\.\d+|\d+)[eE][+-]?\d+$/.test(num) || /^[+-]?(\d+\.\d*|\.\d+)$/.test(num)) return parseFloat(num);
+  // 日期时间 / inf / nan 等：JSON 无对应类型，保留原文（不静默降级成数字）
   return s;
 }
 function stripComment(s){
-  var out=''; var q=false;
-  for(var i=0;i<s.length;i++){ var c=s[i]; if(c==='"'&&s[i-1]!=='\\'){q=!q;} if(c==='#'&&!q) break; out+=c; }
-  return out.trim();
+  var out='',q=null,i=0;
+  while(i<s.length){
+    var c=s[i];
+    if(q){
+      out+=c;
+      if(c==='\\'&&q==='"'){ out+=(s[i+1]||''); i+=2; continue; }
+      if(c===q)q=null; i++; continue;
+    }
+    if(c==='"'||c==="'"){ q=c; out+=c; i++; continue; }
+    if(c==='#') break;
+    out+=c; i++;
+  }
+  return out;
 }
 function parseToml(text){
   var lines=text.replace(/\r/g,'').split('\n');
@@ -252,25 +350,34 @@ function parseToml(text){
     if(!s||s[0]==='#') continue;
     if(s[0]==='['){
       var close=s.indexOf(']'); if(close<0) continue;
-      var header=s.slice(1,close);
-      if(header[0]==='['){
-        var name=header.slice(1).trim(); var parts=name.split('.');
-        var obj=root; for(var p=0;p<parts.length-1;p++){ obj=obj[parts[p]]=obj[parts[p]]||{}; }
-        var arr=obj[parts[parts.length-1]]=obj[parts[parts.length-1]]||[];
-        var elem={}; arr.push(elem); cur=elem;
+      var isArr = s[1]==='[';
+      var hdr = isArr ? s.slice(2, s.lastIndexOf(']]')) : s.slice(1, close);
+      var hp = tSplitTop(hdr,'.').map(tKeyName);
+      if(!hp.length) continue;
+      var o=root;
+      for(var p=0;p<hp.length-1;p++){ o=o[hp[p]]=o[hp[p]]||{}; }
+      var leaf=hp[hp.length-1];
+      if(isArr){
+        var arr=o[leaf]=o[leaf]||[]; var elem={}; arr.push(elem); cur=elem;
       } else {
-        var parts2=header.split('.'); var obj2=root;
-        for(var q=0;q<parts2.length;q++){ obj2=obj2[parts2[q]]=obj2[parts2[q]]||{}; }
-        cur=obj2;
+        cur=o[leaf]=o[leaf]||{};
       }
       continue;
     }
     var eq=s.indexOf('='); if(eq<0) continue;
-    var key=s.slice(0,eq).trim(); var val=stripComment(s.slice(eq+1));
-    if(key[0]==='"'){ var km=key.match(/^"((?:[^"\\]|\\.)*)"$/); if(km) key=km[1].replace(/\\"/g,'"'); }
-    var ps=key.split('.'); var o=cur;
-    for(var j=0;j<ps.length-1;j++){ o=o[ps[j]]=o[ps[j]]||{}; }
-    o[ps[ps.length-1]]=tVal(val);
+    var key=s.slice(0,eq).trim();
+    // 多行数组 / 多行内联表 / 多行三引号串：吞并后续行直到括号闭合
+    var buf=stripComment(s.slice(eq+1));
+    var guard=0;
+    while((tDepth(buf)>0||tOpenTriple(buf))&&i+1<lines.length&&guard++<5000){
+      i++;
+      buf+='\n'+(tOpenTriple(buf)?lines[i]:stripComment(lines[i]));
+    }
+    var kp=tSplitTop(key,'.').map(tKeyName);
+    if(!kp.length) continue;
+    var oo=cur;
+    for(var j=0;j<kp.length-1;j++){ oo=oo[kp[j]]=oo[kp[j]]||{}; }
+    oo[kp[kp.length-1]]=tVal(buf);
   }
   return root;
 }
@@ -297,8 +404,10 @@ var src=document.getElementById('source').value||'';
 if(!src.trim()){ document.getElementById('result').innerHTML='<p class="muted">请输入 TOML 文本</p>'; return; }
 var obj=parseToml(src);
 if(document.getElementById('sort').checked){ obj=sortKeys(obj); }
-var n=parseInt(document.getElementById('indent').value||'2',10);
-var json=JSON.stringify(obj, null, document.getElementById('indent').value==='tab'?'\\t':n);
+var iv=document.getElementById('indent').value||'2';
+var n=parseInt(iv,10); if(isNaN(n)) n=2;
+// Tab 选项必须是真正的制表符 0x09（旧写法 '\\t' 产出的是字面反斜杠+t）
+var json=JSON.stringify(obj, null, iv==='tab'?'\t':n);
 var html='<div class="result-title">JSON 输出</div><pre class="code-block">'+escH(json)+'</pre>';
 const __g3=html;document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 function sortKeys(o){ if(!(o!==null&&typeof o==='object'))return o; if(o instanceof Array)return o.map(sortKeys); var r={};Object.keys(o).sort().forEach(function(k){r[k]=sortKeys(o[k]);}); return r; }}

@@ -757,6 +757,40 @@ const CASES = [
     expect: ["请输入 TOML 文本"],
     ref: "空输入时页面写入 `请输入 TOML 文本`；默认 TOML 非空不命中。该页此前为 P0 死页（sort id 不匹配），修复后本例才有判别力。",
   },
+  // ---- IT-N385/N386/N387：toml-to-json 解析层修复 ----
+  // 采集说明：JSON 正文走 escH()（createElement → textContent → innerHTML，桩已建模该联动），
+  // 只有 & < > 会转义，引号/大括号保留原样；#result 的 innerHTML 剥标签后空白折叠成单空格。
+  {
+    slug: "it/toml-to-json",
+    inputs: { source: 'point = { x = 1, y = 2 }' },
+    expect: ['"point": { "x": 1, "y": 2 }'],
+    ref: "IT-N385：内联表必须递归解析成对象。修复前 tVal 无 `{}` 分支 ⇒ 整串原样当字符串（`\"point\": \"{ x = 1, y = 2 }\"`）。默认样例无 point 键。",
+  },
+  {
+    slug: "it/toml-to-json",
+    inputs: { source: "a = 1_000\nh = 0xFF" },
+    expect: ['"a": 1000, "h": 255'],
+    ref: "IT-N385：数字下划线与十六进制必须按数值解析。修复前整数正则 `^-?\\d+$` 不接受 `_` ⇒ `\"a\": \"1_000\"`；`0xFF` 同样降级成字符串。默认样例无 a/h 键。",
+  },
+  {
+    slug: "it/toml-to-json",
+    inputs: { source: 'list = ["a,b", "c"]' },
+    expect: ['"list": [ "a,b", "c" ]'],
+    ref: "IT-N386：数组必须按「顶层逗号」切分。修复前 `inner.split(',')` 无视引号 ⇒ `[\"\\\"a\", \"b\\\"\", \"c\"]`（四个残片）。默认样例无 list 键。",
+  },
+  {
+    slug: "it/toml-to-json",
+    inputs: { source: "ports = [\n  8000,\n  8001\n]" },
+    expect: ['"ports": [ 8000, 8001 ]'],
+    ref: "IT-N386：多行数组必须跨行累积。修复前逐行解析 ⇒ `ports = [` 当行即得空数组、后续 8000/8001 因无 `=` 被跳过 ⇒ `\"ports\": []`。默认样例无 ports 键。",
+  },
+  {
+    slug: "it/toml-to-json",
+    inputs: { source: "zzq = 1" },
+    clicks: ["document.getElementById('indent').value='tab';calcTool();var h=document.getElementById('result').innerHTML;document.getElementById('result').textContent='N387 tab='+(h.indexOf(String.fromCharCode(9))>=0?1:0)+' key='+(h.indexOf('zzq')>=0?1:0);"],
+    expect: ["N387 tab=1 key=1"],
+    ref: "IT-N387：选 Tab 缩进必须输出真正的制表符 0x09。修复前三元写成 `'\\\\t'`（源码里是两个字面字符反斜杠+t）⇒ 输出 `\\t` 文本；blob 会把空白折叠成空格、无法断定制表符，故用 clicks 直接查 innerHTML 的 charCode 9。`key=1` 让判定串依赖入参键名。",
+  },
   {
     slug: "it/sql-formatter",
     // textarea 无 oninput ⇒ 注入不触发重算，必须在 clicks 里显式调 formatSql()。
