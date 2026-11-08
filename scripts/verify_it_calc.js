@@ -7629,6 +7629,36 @@ const CASES = [
     "ref": "IT-N475 顺带修：历史区按钮文本「复用」原为硬编码中文，英文态 ?lang=en-US 动态创建的按钮残留 CJK（jsdom 真机实测 textContent=复用）。现 renderHist 经 __meL 输出 Reuse。修复前 renderHist 既无 __meL 也无 Reuse ⇒ 0 ⇒ 红；真机中英两态复核另见移交档。"
   },
   {
+    "slug": "it/math-evaluator",
+    "clicks": ["document.getElementById('expr').value='eval(String.fromCharCode(50,42,51))';calc();var __h=String(document.getElementById('result').innerHTML);document.getElementById('stats').textContent='N470 eval='+(__h.indexOf('表达式含非法字符')>=0?1:0);"],
+    "expect": ["N470 eval=1"],
+    "ref": "IT-N470 安全回归（已修未删补护栏）：eval(String.fromCharCode(50,42,51)) 在旧实现会经 new Function 执行返回 6；现 MATH_ALLOWED 标识符白名单拒绝 eval/String/fromCharCode。探针显式重置 #expr（本页 inputs 注入会被初始样例覆盖）后取 #result 的 innerHTML 判定拒绝串，修复前为「结果：6」⇒ 0 ⇒ 红。"
+  },
+  {
+    "slug": "it/math-evaluator",
+    "clicks": ["document.getElementById('expr').value='fetch(String.fromCharCode(47,47,120,46,99))';calc();var __h=String(document.getElementById('result').innerHTML);document.getElementById('stats').textContent='N470 fetch='+(__h.indexOf('表达式含非法字符')>=0?1:0);"],
+    "expect": ["N470 fetch=1"],
+    "ref": "IT-N470：fetch(String.fromCharCode(47,47,120,46,99)) 旧实现会真的发起 fetch 外发数据；现白名单拒绝 fetch/fromCharCode。与 eval 用例分守两类全局能力（动态执行 / 网络）。纯 clicks、无花括号。"
+  },
+  {
+    "slug": "it/math-evaluator",
+    "clicks": ["document.getElementById('expr').value='document.title';calc();var __h=String(document.getElementById('result').innerHTML);document.getElementById('stats').textContent='N470 doc='+(__h.indexOf('表达式含非法字符')>=0?1:0);"],
+    "expect": ["N470 doc=1"],
+    "ref": "IT-N470：document.title 旧实现可读全局 DOM 属性；现标识符白名单拒绝 document/title，成员访问检查亦拦截非数字小数点。"
+  },
+  {
+    "slug": "it/math-evaluator",
+    "clicks": ["document.getElementById('expr').value='sin(0).constructor';calc();var __h=String(document.getElementById('result').innerHTML);document.getElementById('stats').textContent='N470 member='+(__h.indexOf('表达式含非法字符')>=0?1:0);"],
+    "expect": ["N470 member=1"],
+    "ref": "IT-N470：sin(0).constructor 是绕过「只放行数学函数」的典型原型链手法（sin 本身合法）；现成员访问检查把非数字字面量的 \".\" 一律拒绝。"
+  },
+  {
+    "slug": "it/math-evaluator",
+    "clicks": ["document.getElementById('expr').value='sqrt(144)+3';calc();var __h=String(document.getElementById('result').innerHTML);document.getElementById('stats').textContent='N470 ok='+(__h.indexOf('>15<')>=0?1:0);"],
+    "expect": ["N470 ok=1"],
+    "ref": "IT-N470 护栏：合法表达式 sqrt(144)+3 仍须正常算出 15（>15< 精确锚，避开默认结果 1030 的 token 前缀）。前 4 条注入用例在缺陷态变红，本条在修复前后同绿，证明拦截没有误伤正常计算。"
+  },
+  {
     "slug": "it/vector-cross-product",
     "inputs": {
       "a0": "1",

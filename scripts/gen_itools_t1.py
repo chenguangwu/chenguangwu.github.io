@@ -138,20 +138,29 @@ function calc(){
   var expr=document.getElementById('expr').value.trim();
   var out=document.getElementById('result');
   if(!expr){out.innerHTML='';return;}
-  if(expr.length>200){out.innerHTML='<p style="color:var(--danger)">表达式过长（≤200 字符）</p>';return;}
-  if(!/^[0-9+\\-*\\/%^().,\\sA-Za-z%]+$/.test(expr)){out.innerHTML='<p style="color:var(--danger)">表达式含非法字符（仅支持数字、运算符与函数名）</p>';return;}
+  if(expr.length>200){out.innerHTML='<p style="color:var(--danger)">'+__meL('表达式过长（≤200 字符）','Expression too long (max 200 characters)')+'</p>';return;}
+  if(!/^[0-9+\\-*\\/%^().,\\sA-Za-z%]+$/.test(expr)){out.innerHTML='<p style="color:var(--danger)">'+__meL('表达式含非法字符（仅支持数字、运算符与函数名）','Expression contains invalid characters (only digits, operators and function names are allowed)')+'</p>';return;}
+  // IT-N470：标识符白名单，只允许数学函数与常量名；eval/fetch/alert/constructor/String 等一律拒绝
+  var MATH_ALLOWED={sin:1,cos:1,tan:1,sqrt:1,abs:1,ln:1,log:1,floor:1,ceil:1,round:1,min:1,max:1,pi:1,e:1};
+  var idents=expr.match(/[A-Za-z]+/g)||[];
+  for(var ik=0;ik<idents.length;ik++){
+    if(!MATH_ALLOWED.hasOwnProperty(idents[ik].toLowerCase())){out.innerHTML='<p style="color:var(--danger)">'+__meL('表达式含非法字符（仅支持数字、运算符与函数名）','Expression contains invalid characters (only digits, operators and function names are allowed)')+'</p>';return;}
+  }
+  // IT-N470：拒绝成员访问，小数点只能出现在数字字面量里
+  if(expr.replace(/\\d*\\.?\\d+/g,'0').indexOf('.')>=0){out.innerHTML='<p style="color:var(--danger)">'+__meL('表达式含非法字符（仅支持数字、运算符与函数名）','Expression contains invalid characters (only digits, operators and function names are allowed)')+'</p>';return;}
   try{
-    var js=expr.replace(/\\^/g,'**').replace(/(\\d+)\\s*%/g,'($1/100)');
+    /* IT-N474：% 后若还有操作数（数字/字母/左括号）则是取模，保留 JS 的 % ；否则视为百分比转成 (n/100)，支持小数百分比。 */
+    var js=expr.replace(/\\^/g,'**').replace(/(\\d+(?:\\.\\d+)?)\\s*%(?!\\s*[0-9A-Za-z_(])/g,'($1/100)');
     var fn=new Function('Math','sin','cos','tan','sqrt','abs','ln','log','floor','ceil','round','min','max','pi','e','return ('+js+')');
     var val=fn(Math,Math.sin,Math.cos,Math.tan,Math.sqrt,Math.abs,Math.log,Math.log10,Math.floor,Math.ceil,Math.round,Math.min,Math.max,Math.PI,Math.E);
     if(typeof val!=='number'||!isFinite(val))throw new Error('结果不是有效数字');
-    out.innerHTML='<p>结果：<strong style="font-size:22px;color:var(--primary)">'+fmt(val)+'</strong></p>';
+    out.innerHTML='<p>'+__meL('结果：','Result: ')+'<strong style="font-size:22px;color:var(--primary)">'+fmt(val)+'</strong></p>';
     var h;
     try{h=JSON.parse(localStorage.getItem('mathHist')||'[]');}catch(e){h=[];}
     h.unshift({e:expr,v:val});if(h.length>20)h.pop();
     localStorage.setItem('mathHist',JSON.stringify(h));
     renderHist();
-  }catch(e){out.innerHTML='<p style="color:var(--danger)">表达式无效：'+escH((e&&e.message)||e)+'</p>';}
+  }catch(e){out.innerHTML='<p style="color:var(--danger)">'+__meL('表达式无效：','Invalid expression: ')+escH((e&&e.message)||e)+'</p>';}
 }
 renderHist();'''))
 
