@@ -7204,6 +7204,106 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\nInput: abc123测试 ❌ 未找到匹配的语言 支持：I…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    "slug": "it/language-code-lookup",
+    "inputs": {
+      "input": "zh-CN"
+    },
+    "expect": [
+      "Input: zh-CN BCP 47 解析： 语言 zh / 地区 CN ISO 639-1： zh ISO 639-3： zho"
+    ],
+    "ref": "IT-N424：修复前 key='zh-cn' 查表失败、名称/iso3 三条件均不成立 ⇒ 「❌ 未找到匹配的语言」；现拆 BCP 47 取语言段 zh 命中，并回显解析出的地区。默认态 en 不含该串。"
+  },
+  {
+    "slug": "it/language-code-lookup",
+    "inputs": {
+      "input": "en-US"
+    },
+    "expect": [
+      "Input: en-US BCP 47 解析： 语言 en / 地区 US ISO 639-1： en ISO 639-3： eng"
+    ],
+    "ref": "IT-N424：清单点名的 en-US。expect 绑定「原始标签 + 解析段 + 639-1/639-3」，默认态仅 en 无地区段 ⇒ 不逃生。"
+  },
+  {
+    "slug": "it/language-code-lookup",
+    "inputs": {
+      "input": "pt-BR"
+    },
+    "expect": [
+      "Input: pt-BR BCP 47 解析： 语言 pt / 地区 BR ISO 639-1： pt ISO 639-3： por"
+    ],
+    "ref": "IT-N424：清单点名的 pt-BR；同时验证 ISO 639-3 映射 por 非机械补字母。"
+  },
+  {
+    "slug": "it/language-code-lookup",
+    "inputs": {
+      "input": "zh_Hans_CN"
+    },
+    "expect": [
+      "Input: zh_Hans_CN BCP 47 解析： 语言 zh / 书写脚本 Hans / 地区 CN"
+    ],
+    "ref": "IT-N424：下划线分隔 + language-Script-REGION 三段式，脚本段按 4 字母识别、地区按 2 字母识别。"
+  },
+  {
+    "slug": "it/language-code-lookup",
+    "inputs": {
+      "input": "zh-Hant-TW"
+    },
+    "expect": [
+      "Input: zh-Hant-TW BCP 47 解析： 语言 zh / 书写脚本 Hant / 地区 TW"
+    ],
+    "ref": "IT-N424：繁体脚本 Hant 与地区 TW 同时解析；与 zh_Hans_CN 形成脚本/分隔符双向对照。"
+  },
+  {
+    "slug": "it/language-code-lookup",
+    "inputs": {
+      "input": "ZH-cn"
+    },
+    "expect": [
+      "Input: ZH-cn BCP 47 解析： 语言 zh / 地区 CN ISO 639-1： zh"
+    ],
+    "ref": "IT-N424：大小写混写标签规范化（语言段小写、地区段大写），修复前原样 toLowerCase 得 'zh-cn' 仍查不到。expect 含大写原始输入，默认态不含。"
+  },
+  {
+    "slug": "it/language-code-lookup",
+    "inputs": {
+      "input": "zho"
+    },
+    "expect": [
+      "Input: zho ISO 639-1： zh ISO 639-3： zho"
+    ],
+    "ref": "回归护栏（修复前后同绿）：ISO 639-3 三字母码反查主路径未被标签拆分改造破坏。"
+  },
+  {
+    "slug": "it/language-code-lookup",
+    "inputs": {
+      "input": "中文"
+    },
+    "expect": [
+      "Input: 中文 ISO 639-1： zh ISO 639-3： zho"
+    ],
+    "ref": "回归护栏（修复前后同绿）：中文名子串匹配仍可用。"
+  },
+  {
+    "slug": "it/language-code-lookup",
+    "inputs": {
+      "input": "qq"
+    },
+    "expect": [
+      "Input: qq ❌ 未找到匹配的语言 支持：ISO 639-1 两字母代码（如 zh、en、fr）或中英文名"
+    ],
+    "ref": "回归护栏（修复前后同绿）：无匹配时的错误文案与提示语保持逐字不变（既有自动补强用例同文案）。"
+  },
+  {
+    "slug": "it/language-code-lookup",
+    "inputs": {
+      "input": "fr"
+    },
+    "expect": [
+      "Input: fr ISO 639-1： fr ISO 639-3： fra 语言名称： French（法语）"
+    ],
+    "ref": "回归护栏（修复前后同绿）：常规两字母码精确匹配与单命中详情输出保持不变。"
+  },
+  {
     "slug": "it/kubernetes-cheatsheet",
     "inputs": {
       "searchInput": "abc123测试"

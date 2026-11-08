@@ -149,7 +149,7 @@ s.parentNode.insertBefore(el, s);
 <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="🗣️ 语言代码查询（ISO 639-1）">🗣️ Language Code Query</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">输入转小写后先按 ISO 639-1 两字母代码精确查表；未命中则遍历语种库，命中中文名子串、英文名子串（忽略大小写）或 ISO 639-3 三字母码三者之一即收录；结果唯一时输出 639-1 / 639-3 代码、中英名称、语系与书写系统，多个时列出全部匹配项</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">BCP 47 标签先按 - 或 _ 拆分为 language[-Script][-REGION]，取语言段转小写后按 ISO 639-1 两字母代码精确查表；未命中则遍历语种库，命中中文名子串、英文名子串（忽略大小写）或 ISO 639-3 三字母码三者之一即收录；结果唯一时输出 639-1 / 639-3 代码、中英名称、语系与书写系统，多个时列出全部匹配项；原始输入与子标签写回页面前统一 HTML 转义</div>
   <div class="formula-desc">语言代码用于标识自然语言，是国际化与本地化的基础。</div>
   <ul class="formula-list">
     <li><b>ISO 639-1</b>：两位小写字母代码，如 zh、en、ja；ISO 639-2 为三位代码（如 zho、eng）。</li>
@@ -289,41 +289,84 @@ const LANGS = {
   cy:{cn:'威尔士语',en:'Welsh',iso3:'cym',family:'印欧语系',script:'Latn'},
   ca:{cn:'加泰罗尼亚语',en:'Catalan',iso3:'cat',family:'印欧语系',script:'Latn'}
 };
+const LG_FAMILY_EN = {
+  '乌拉尔语系':'Uralic','人工语言':'Constructed language','南亚语系':'Austroasiatic',
+  '印欧语系':'Indo-European','壮侗语系':'Kra-Dai','尼日尔-刚果语系':'Niger-Congo',
+  '日本语系':'Japonic','朝鲜语系':'Koreanic','汉藏语系':'Sino-Tibetan',
+  '突厥语系':'Turkic','达罗毗荼语系':'Dravidian','闪含语系':'Afro-Asiatic',
+  '马来-波利尼西亚语系':'Austronesian'
+};
+function __lgL(zh,en){ return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?en:zh; }
+function __lgEsc(s){
+  return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+/* IT-N424：拆分 BCP 47 的 language[-Script][-REGION]，语言段用于查表 */
+function __lgParse(raw){
+  const parts=String(raw==null?'':raw).trim().split(/[-_]/).filter(Boolean);
+  const lang=(parts[0]||'').toLowerCase();
+  let script='',region='';
+  for(let i=1;i<parts.length;i++){
+    const p=parts[i];
+    if(!script && /^[a-z]{4}$/i.test(p)) script=p.charAt(0).toUpperCase()+p.slice(1).toLowerCase();
+    else if(!region && /^(?:[a-z]{2}|\d{3})$/i.test(p)) region=p.toUpperCase();
+  }
+  return {parts:parts,lang:lang,script:script,region:region};
+}
 function validate(){
-  const raw = document.getElementById('input').value.trim();
-  const out = document.getElementById('output');
-  if(!raw){ const __h0=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Waiting for input...":"等待输入...");if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0; return; }
-  const key = raw.toLowerCase();
-  let results = [];
+  const L=__lgL, esc=__lgEsc;
+  const raw=String(document.getElementById('input').value==null?'':document.getElementById('input').value).trim();
+  const out=document.getElementById('output');
+  const put=function(h){
+    if((typeof h==='number'&&!isFinite(h))||/Infinity/.test(String(h))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(h)){
+      out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;
+    }
+    out.innerHTML=h;
+  };
+  if(!raw){ put(L('等待输入...','Waiting for input...')); return; }
+  const par=__lgParse(raw);
+  const key=par.lang;
+  const isEn=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?true:false;
+  let results=[];
   if(LANGS[key]){
     results.push({code:key, ...LANGS[key]});
   } else {
     for(const code in LANGS){
-      const l = LANGS[code];
-      if(l.cn.includes(raw) || l.en.toLowerCase().includes(raw.toLowerCase()) || l.iso3 === key){
+      const l=LANGS[code];
+      if(l.cn.includes(raw) || l.en.toLowerCase().includes(raw.toLowerCase()) || l.iso3===key){
         results.push({code, ...l});
       }
     }
   }
-  let html = `<p data-zh="输入：${raw}"><strong>Input:</strong>${raw}</p>`;
-  if(results.length === 0){
-    html += `<p style="color:var(--danger);">❌ 未找到匹配的语言</p>`;
-    html += `<p style="color:var(--text-muted);font-size:12px;">支持：ISO 639-1 两字母代码（如 zh、en、fr）或中英文名</p>`;
-  } else if(results.length === 1){
-    const r = results[0];
-    html += `<p><strong>ISO 639-1：</strong>${r.code}</p>`;
-    html += `<p><strong>ISO 639-3：</strong>${r.iso3}</p>`;
-    html += `<p><strong>语言名称：</strong>${r.en}（${r.cn}）</p>`;
-    html += `<p><strong>语系：</strong>${r.family}</p>`;
-    html += `<p><strong>主要书写系统：</strong>${r.script}</p>`;
-    html += `<p style="color:var(--success);">✅ 找到 1 个匹配</p>`;
+  let html=`<p><strong>Input:</strong>${esc(raw)}</p>`;
+  if(par.parts.length>1){
+    const seg=[L('语言 ','Language ')+esc(par.lang)];
+    if(par.script) seg.push(L('书写脚本 ','Script ')+esc(par.script));
+    if(par.region) seg.push(L('地区 ','Region ')+esc(par.region));
+    html+=`<p><strong>${L('BCP 47 解析：','BCP 47 parsed: ')}</strong>${seg.join(' / ')}</p>`;
+  }
+  if(results.length===0){
+    html+=`<p style="color:var(--danger);">${L('❌ 未找到匹配的语言','❌ No matching language found')}</p>`;
+    html+=`<p style="color:var(--text-muted);font-size:12px;">${L('支持：ISO 639-1 两字母代码（如 zh、en、fr）或中英文名','Supported: ISO 639-1 two-letter codes (e.g. zh, en, fr), Chinese/English names, or BCP 47 tags such as zh-CN')}</p>`;
+  } else if(results.length===1){
+    const r=results[0];
+    const name=isEn?r.en:r.en+'（'+r.cn+'）';
+    const family=isEn?(LG_FAMILY_EN[r.family]||r.family):r.family;
+    html+=`<p><strong>${L('ISO 639-1：','ISO 639-1: ')}</strong>${esc(r.code)}</p>`;
+    html+=`<p><strong>${L('ISO 639-3：','ISO 639-3: ')}</strong>${esc(r.iso3)}</p>`;
+    html+=`<p><strong>${L('语言名称：','Language name: ')}</strong>${esc(name)}</p>`;
+    html+=`<p><strong>${L('语系：','Language family: ')}</strong>${esc(family)}</p>`;
+    html+=`<p><strong>${L('主要书写系统：','Main script: ')}</strong>${esc(r.script)}</p>`;
+    html+=`<p style="color:var(--success);">${L('✅ 找到 1 个匹配','✅ 1 match found')}</p>`;
   } else {
-    html += `<p><strong>找到 ${results.length} 个匹配：</strong></p>`;
-    results.forEach(r => {
-      html += `<p>✅ ${r.code} - ${r.en}（${r.cn}），ISO 639-3: ${r.iso3}</p>`;
+    html+=`<p><strong>${L('找到 ','Found ')}${results.length}${L(' 个匹配：',' matches:')}</strong></p>`;
+    results.forEach(function(r){
+      const name=isEn?r.en:r.en+'（'+r.cn+'）';
+      html+=`<p>✅ ${esc(r.code)} - ${esc(name)}${L('，ISO 639-3: ',', ISO 639-3: ')}${esc(r.iso3)}</p>`;
     });
   }
-  const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;
+  put(html);
 }
 function toggleToolTheme(){
   const cur = document.documentElement.getAttribute('data-theme');
