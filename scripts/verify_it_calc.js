@@ -7248,6 +7248,116 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\nInput: abc123测试 语言（ISO 639-1）： …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    "slug": "it/locale-lookup",
+    "inputs": {
+      "input": "de-DE-1996"
+    },
+    "expect": [
+      "Input: de-DE-1996 语言（ISO 639-1）： de 国家（ISO 3166-1）： DE 完整名称： 德语（德国）"
+    ],
+    "ref": "IT-N421：RFC 5646 允许 4 位数字 variant（1996 为德语新正字法）。旧正则 variant 限 5–8 位 ⇒ 「❌ 不符合 BCP 47 格式」；现格式合法并回退命中 de-DE。expect 绑定输入派生串，默认 en-US 不命中。"
+  },
+  {
+    "slug": "it/locale-lookup",
+    "inputs": {
+      "input": "es-419"
+    },
+    "expect": [
+      "Input: es-419 语言（ISO 639-1）： es 国家（ISO 3166-1）： 419 ✅ BCP 47 格式有效（数据库中无此条目）"
+    ],
+    "ref": "IT-N421：UN M.49 三位数字地区码 419（拉美）是合法 region。旧正则 region 只允许两位字母 ⇒ 误判非法。"
+  },
+  {
+    "slug": "it/locale-lookup",
+    "inputs": {
+      "input": "en-US-u-ca-gregory"
+    },
+    "expect": [
+      "Input: en-US-u-ca-gregory 语言（ISO 639-1）： en 国家（ISO 3166-1）： US 完整名称： 英语（美国）"
+    ],
+    "ref": "IT-N421：BCP 47 扩展子标签（singleton u + ca/gregory）。旧正则完全不支持扩展 ⇒ 误判非法；现校验通过后回退命中 en-US。"
+  },
+  {
+    "slug": "it/locale-lookup",
+    "inputs": {
+      "input": "sl-rozaj-biske-1994"
+    },
+    "expect": [
+      "Input: sl-rozaj-biske-1994 语言（ISO 639-1）： sl ✅ BCP 47 格式有效（数据库中无此条目）"
+    ],
+    "ref": "IT-N421：多个 variant 连写（含 4 位数字 1994）。顺带验证解析段不再把 variant 'rozaj' 误标成「国家（ISO 3166-1）：ROZAJ」。"
+  },
+  {
+    "slug": "it/locale-lookup",
+    "inputs": {
+      "input": "EN-US"
+    },
+    "expect": [
+      "Input: EN-US 语言（ISO 639-1）： en 国家（ISO 3166-1）： US 完整名称： 英语（美国）"
+    ],
+    "ref": "IT-N422：旧查表 `LOCALES[raw]` 原样比对，大写 EN-US 只得到「✅ 格式有效（数据库中无此条目）」；现 canonical 化后命中 en-US。expect 含大写原始输入，默认态小写 en-US 不命中。"
+  },
+  {
+    "slug": "it/locale-lookup",
+    "inputs": {
+      "input": "en_us"
+    },
+    "expect": [
+      "Input: en_us 语言（ISO 639-1）： en 国家（ISO 3166-1）： US 完整名称： 英语（美国）"
+    ],
+    "ref": "IT-N422：下划线分隔（Windows/Java 常见写法）统一规范化为 - 后命中 en-US。"
+  },
+  {
+    "slug": "it/locale-lookup",
+    "inputs": {
+      "input": "zh-Hans-CN"
+    },
+    "expect": [
+      "书写脚本： Hans 国家（ISO 3166-1）： CN 完整名称： 简体中文（中国大陆） 语言： 中文 国家/地区： 中国 书写系统： Hans 排序方式： 拼音 规范化标签： zh-Hans-CN 匹配键： zh-CN"
+    ],
+    "ref": "IT-N422：deep-dive FAQ 的规范示例 zh-Hans-CN 旧版只报「无此条目」。现按「language+region 且 script 一致」回退到 zh-CN，给出完整信息；规范化标签与匹配键均回显。"
+  },
+  {
+    "slug": "it/locale-lookup",
+    "inputs": {
+      "input": "zh-Hant-CN"
+    },
+    "expect": [
+      "完整名称： 繁体中文（语言） 语言： 中文 国家/地区： - 书写系统： Hant 规范化标签： zh-Hant-CN 匹配键： zh-Hant"
+    ],
+    "ref": "IT-N422 回退正确性：script 为 Hant 时**不得**回退到简体的 zh-CN，须截尾回退到 zh-Hant。这是「script 一致性」校验的关键反例。"
+  },
+  {
+    "slug": "it/locale-lookup",
+    "inputs": {
+      "input": "en-Latn-US"
+    },
+    "expect": [
+      "书写脚本： Latn 国家（ISO 3166-1）： US 完整名称： 英语（美国）"
+    ],
+    "ref": "IT-N422：显式 script 与命中项 script 一致时允许 language+region 回退（en-Latn-US → en-US）。"
+  },
+  {
+    "slug": "it/locale-lookup",
+    "inputs": {
+      "input": "123"
+    },
+    "expect": [
+      "Input: 123 语言（ISO 639-1）： 123 ❌ 不符合 BCP 47 格式"
+    ],
+    "ref": "回归护栏（修复前后同绿）：纯数字不是合法 language，收紧后的 RFC 5646 正则仍须拒绝；同时验证「非法标签不进入查表回退」的前置校验未把乱码放行。"
+  },
+  {
+    "slug": "it/locale-lookup",
+    "inputs": {
+      "input": "pt-BR"
+    },
+    "expect": [
+      "Input: pt-BR 语言（ISO 639-1）： pt 国家（ISO 3166-1）： BR 完整名称： 葡萄牙语（巴西）"
+    ],
+    "ref": "回归护栏（修复前后同绿）：常规 language-region 精确匹配未被规范化/回退改造破坏。"
+  },
+  {
     "slug": "it/location-qr",
     "inputs": {
       "lat": "abc123测试",

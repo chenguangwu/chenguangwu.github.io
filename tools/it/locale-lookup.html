@@ -149,7 +149,7 @@ s.parentNode.insertBefore(el, s);
 <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="🌎 区域设置查询（Locale）">🌎 Locale Lookup</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">BCP 47 解析：按 - 或 _ 分割，第 1 段为语言（ISO 639-1 小写）；第 2 段 4 字母判书写脚本、其后段为国家（ISO 3166-1 大写），否则第 2 段即国家；库未收录时按 language[-script][-region][-variant] 正则校验格式合法性</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">BCP 47 解析：按 - 或 _ 分割后做 canonical 规范化（语言小写 / script 首字母大写 / region 大写）；查表按「精确 → language+region（script 须一致）→ 逐级截尾」回退，故 EN-US / en_us / zh-Hans-CN 均可命中；库未收录时按 RFC 5646 语法校验 language(-extlang)(-script)(-region 两位字母或三位 UN M.49 数字)(-variant 含 4 位数字)(-extension singleton)(-privateuse x-)；用户输入与子标签写回页面前统一 HTML 转义</div>
   <div class="formula-desc">查询 BCP 47 区域设置（locale）标识。</div>
   <ul class="formula-list">
     <li><b>结构</b>：<code>language[-Script][-REGION]</code>，如 zh-Hans-CN、en-US、pt-BR。</li>
@@ -292,42 +292,129 @@ const LOCALES = {
   'ms-MY':{cn:'马来语（马来西亚）',lang:'马来语',country:'马来西亚',script:'Latn',sort:'-'},
   'uk-UA':{cn:'乌克兰语（乌克兰）',lang:'乌克兰语',country:'乌克兰',script:'Cyrl',sort:'-'}
 };
+/* 英文态：数据库字段是中文，需按词典本地化；港/澳/台按中国地区口径标注 */
+const LC_EN_LANG = {
+  '中文':'Chinese','英语':'English','法语':'French','德语':'German','西班牙语':'Spanish',
+  '意大利语':'Italian','葡萄牙语':'Portuguese','俄语':'Russian','日语':'Japanese','韩语':'Korean',
+  '阿拉伯语':'Arabic','印地语':'Hindi','泰语':'Thai','越南语':'Vietnamese','土耳其语':'Turkish',
+  '波兰语':'Polish','荷兰语':'Dutch','瑞典语':'Swedish','捷克语':'Czech','希腊语':'Greek',
+  '希伯来语':'Hebrew','波斯语':'Persian','印尼语':'Indonesian','马来语':'Malay','乌克兰语':'Ukrainian'
+};
+const LC_EN_COUNTRY = {
+  '中国':'China','中国台湾':'Taiwan, China','中国香港':'Hong Kong, China','中国澳门':'Macao, China',
+  '新加坡':'Singapore','美国':'United States','英国':'United Kingdom','澳大利亚':'Australia',
+  '加拿大':'Canada','印度':'India','南非':'South Africa','爱尔兰':'Ireland','法国':'France',
+  '比利时':'Belgium','瑞士':'Switzerland','德国':'Germany','奥地利':'Austria','西班牙':'Spain',
+  '墨西哥':'Mexico','阿根廷':'Argentina','哥伦比亚':'Colombia','意大利':'Italy','葡萄牙':'Portugal',
+  '巴西':'Brazil','俄罗斯':'Russia','日本':'Japan','韩国':'South Korea','沙特阿拉伯':'Saudi Arabia',
+  '埃及':'Egypt','泰国':'Thailand','越南':'Vietnam','土耳其':'Turkiye','波兰':'Poland',
+  '荷兰':'Netherlands','瑞典':'Sweden','捷克':'Czechia','希腊':'Greece','以色列':'Israel',
+  '伊朗':'Iran','印度尼西亚':'Indonesia','马来西亚':'Malaysia','乌克兰':'Ukraine','-':'-'
+};
+const LC_EN_SORT = {'拼音':'Pinyin','笔画':'Stroke order'};
+function __lcFullEn(d,key){
+  d=d||{lang:'',country:'',script:''}; key=String(key==null?'':key);
+  if(key==='zh-Hans') return 'Simplified Chinese (language)';
+  if(key==='zh-Hant') return 'Traditional Chinese (language)';
+  const lang=LC_EN_LANG[d.lang]||d.lang;
+  const country=LC_EN_COUNTRY[d.country]||d.country;
+  const base=(d.script==='Hans'?'Simplified ':d.script==='Hant'?'Traditional ':'')+lang;
+  return base+' ('+country+')';
+}
+function __lcL(zh,en){ return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?en:zh; }
+function __lcEsc(s){
+  return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+/* RFC 5646 / BCP 47 语法子集：language(-extlang)(-script)(-region)(-variant)(-extension)(-privateuse) */
+const LC_RE = /^(?:[a-z]{2,3}(?:-[a-z]{3}){0,3}|[a-z]{4}|[a-z]{5,8})(?:-[a-z]{4})?(?:-(?:[a-z]{2}|\d{3}))?(?:-(?:[a-z0-9]{5,8}|\d[a-z0-9]{3}))*(?:-[0-9a-wy-z](?:-[a-z0-9]{2,8})+)*(?:-x(?:-[a-z0-9]{1,8})+)?$/i;
+function __lcValid(raw){
+  const tag=String(raw==null?'':raw).trim().replace(/_/g,'-');
+  return LC_RE.test(tag);
+}
+/* canonical 化：分隔符统一为 -，language 小写 / script 首字母大写 / region 大写 / 其余小写 */
+function __lcNorm(raw){
+  const parts=String(raw==null?'':raw).trim().split(/[-_]/).filter(Boolean);
+  if(!parts.length) return '';
+  const out=[parts[0].toLowerCase()];
+  let i=1;
+  while(i<parts.length && out.length<4 && /^[a-z]{3}$/i.test(parts[i])){ out.push(parts[i].toLowerCase()); i++; }
+  if(i<parts.length && /^[a-z]{4}$/i.test(parts[i])){
+    const s=parts[i].toLowerCase(); out.push(s.charAt(0).toUpperCase()+s.slice(1)); i++;
+  }
+  if(i<parts.length){
+    const r=parts[i];
+    out.push(/^\d{3}$/.test(r)?r:r.toUpperCase()); i++;
+  }
+  while(i<parts.length){ out.push(parts[i].toLowerCase()); i++; }
+  return out.join('-');
+}
+/* IT-N422：精确 → language+region（script 须一致）→ 逐级截尾回退 */
+function __lcLookup(raw){
+  const norm=__lcNorm(raw);
+  if(!norm) return null;
+  const parts=norm.split('-');
+  if(LOCALES[norm]) return {norm:norm,key:norm,data:LOCALES[norm]};
+  if(parts.length>=3){
+    const k=parts[0]+'-'+parts[2];
+    const d=LOCALES[k];
+    if(d && (!/^[A-Z][a-z]{3}$/.test(parts[1]) || d.script===parts[1])) return {norm:norm,key:k,data:d};
+  }
+  for(let n=parts.length-1;n>=1;n--){
+    const k=parts.slice(0,n).join('-');
+    if(LOCALES[k]) return {norm:norm,key:k,data:LOCALES[k]};
+  }
+  return null;
+}
 function validate(){
-  const raw = document.getElementById('input').value.trim();
-  const out = document.getElementById('output');
-  if(!raw){ const __h0=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Waiting for input...":"等待输入...");if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0; return; }
-  let html = `<p data-zh="输入：${raw}"><strong>Input:</strong>${raw}</p>`;
-  // BCP 47 parsing
-  const parts = raw.split(/[-_]/);
-  let html2 = '';
-  if(parts.length >= 1){
-    html2 += `<p><strong>语言（ISO 639-1）：</strong>${parts[0].toLowerCase()}</p>`;
-  }
-  if(parts.length >= 2 && parts[1].length === 4){
-    html2 += `<p><strong>书写脚本：</strong>${parts[1]}</p>`;
-    if(parts[2]) html2 += `<p><strong>国家（ISO 3166-1）：</strong>${parts[2].toUpperCase()}</p>`;
-  } else if(parts.length >= 2){
-    html2 += `<p><strong>国家（ISO 3166-1）：</strong>${parts[1].toUpperCase()}</p>`;
-  }
-  const lookup = LOCALES[raw] || LOCALES[raw.replace('_','-')];
-  if(lookup){
-    html2 += `<p><strong>完整名称：</strong>${lookup.cn}</p>`;
-    html2 += `<p><strong>语言：</strong>${lookup.lang}</p>`;
-    html2 += `<p><strong>国家/地区：</strong>${lookup.country}</p>`;
-    html2 += `<p><strong>书写系统：</strong>${lookup.script}</p>`;
-    if(lookup.sort !== '-') html2 += `<p><strong>排序方式：</strong>${lookup.sort}</p>`;
-    html2 += `<p style="color:var(--success);">✅ 已识别 locale 标签</p>`;
-  } else {
-    // Validate format
-    const re = /^[a-z]{2,3}(-[A-Z][a-z]{3})?(-[A-Z]{2})?(-[A-Z0-9]{5,8})?$/i;
-    if(re.test(raw)){
-      html2 += `<p style="color:var(--success);">✅ BCP 47 格式有效（数据库中无此条目）</p>`;
-    } else {
-      html2 += `<p style="color:var(--danger);">❌ 不符合 BCP 47 格式（应为 language[-script][-region][-variant]，如 zh-Hans-CN、en-US）</p>`;
+  const L=__lcL, esc=__lcEsc;
+  const raw=String(document.getElementById('input').value==null?'':document.getElementById('input').value).trim();
+  const out=document.getElementById('output');
+  const put=function(h){
+    if((typeof h==='number'&&!isFinite(h))||/Infinity/.test(String(h))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(h)){
+      out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;
     }
+    out.innerHTML=h;
+  };
+  if(!raw){ put(L('等待输入...','Waiting for input...')); return; }
+  // 所有进入 innerHTML 的用户输入与子标签一律转义（含引号/尖括号）
+  let html=`<p><strong>Input:</strong>${esc(raw)}</p>`;
+  const parts=raw.split(/[-_]/);
+  let html2='';
+  if(parts.length>=1){
+    html2+=`<p><strong>${L('语言（ISO 639-1）：','Language (ISO 639-1): ')}</strong>${esc(parts[0].toLowerCase())}</p>`;
   }
-  html += html2;
-  const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;
+  const isRegion=function(s){ return /^(?:[a-z]{2}|\d{3})$/i.test(String(s==null?'':s)); };
+  if(parts.length>=2 && /^[a-z]{4}$/i.test(parts[1])){
+    html2+=`<p><strong>${L('书写脚本：','Script: ')}</strong>${esc(parts[1])}</p>`;
+    if(isRegion(parts[2])) html2+=`<p><strong>${L('国家（ISO 3166-1）：','Region (ISO 3166-1): ')}</strong>${esc(parts[2].toUpperCase())}</p>`;
+  } else if(parts.length>=2 && isRegion(parts[1])){
+    html2+=`<p><strong>${L('国家（ISO 3166-1）：','Region (ISO 3166-1): ')}</strong>${esc(parts[1].toUpperCase())}</p>`;
+  }
+  // 格式非法的标签不进入查表/回退，避免靠前缀命中把乱码当成「已识别 locale」
+  const valid=__lcValid(raw);
+  const info=valid?__lcLookup(raw):null;
+  if(info){
+    const isEn=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?true:false;
+    const fullName=isEn?__lcFullEn(info.data,info.key):info.data.cn;
+    const langName=isEn?(LC_EN_LANG[info.data.lang]||info.data.lang):info.data.lang;
+    const countryName=isEn?(LC_EN_COUNTRY[info.data.country]||info.data.country):info.data.country;
+    const sortName=isEn?(LC_EN_SORT[info.data.sort]||info.data.sort):info.data.sort;
+    html2+=`<p><strong>${L('完整名称：','Full name: ')}</strong>${esc(fullName)}</p>`;
+    html2+=`<p><strong>${L('语言：','Language: ')}</strong>${esc(langName)}</p>`;
+    html2+=`<p><strong>${L('国家/地区：','Country/region: ')}</strong>${esc(countryName)}</p>`;
+    html2+=`<p><strong>${L('书写系统：','Writing system: ')}</strong>${esc(info.data.script)}</p>`;
+    if(info.data.sort!=='-') html2+=`<p><strong>${L('排序方式：','Collation: ')}</strong>${esc(sortName)}</p>`;
+    html2+=`<p><strong>${L('规范化标签：','Normalized tag: ')}</strong>${esc(info.norm)}</p>`;
+    html2+=`<p><strong>${L('匹配键：','Matched key: ')}</strong>${esc(info.key)}</p>`;
+    html2+=`<p style="color:var(--success);">${L('✅ 已识别 locale 标签','✅ Recognized locale tag')}</p>`;
+  } else if(valid){
+    html2+=`<p style="color:var(--success);">${L('✅ BCP 47 格式有效（数据库中无此条目）','✅ Valid BCP 47 tag (not in the database)')}</p>`;
+  } else {
+    html2+=`<p style="color:var(--danger);">${L('❌ 不符合 BCP 47 格式（应为 language[-script][-region][-variant]，如 zh-Hans-CN、en-US）','❌ Not a valid BCP 47 tag (expected language[-script][-region][-variant], e.g. zh-Hans-CN, en-US)')}</p>`;
+  }
+  put(html+html2);
 }
 function toggleToolTheme(){
   const cur = document.documentElement.getAttribute('data-theme');
