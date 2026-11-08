@@ -4650,6 +4650,47 @@ const CASES = [
     expect: ["ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"],
     ref: "SHA-256('abc') = ba7816bf…20015ad（NIST FIPS 180-4 标准向量）。走 crypto.subtle 异步路径，harness 以 await Promise.allSettled(pending) 等待落盘。与上一条的 hello 向量（SHA-256 = 2cf24dba…9824）互不命中。",
   },
+  {
+    slug: "it/calc-10",
+    inputs: { textInput: "中文" },
+    clicks: ["generateHashes();"],
+    expect: ["a7bac2239fcdcb3a067903d8077c4a07"],
+    ref: "IT-N469：MD5 填充必须先按 UTF-8 转字节。修复前 convertToWordArray 用 str.length + charCodeAt 按 UTF-16 码元填充，中文摘要为 cbf9d3b2…；标准值 a7bac2239fcdcb3a067903d8077c4a07（Node crypto / md5sum 一致）。默认输入为空只提示请输入文本，不命中。"
+  },
+  {
+    slug: "it/calc-10",
+    inputs: { textInput: "café" },
+    clicks: ["generateHashes();"],
+    expect: ["07117fe4a1ebd544965dc19573183da2"],
+    ref: "IT-N469：2 字节重音字母 café 同样受影响（旧值 961f50f6…），标准 MD5 为 07117fe4a1ebd544965dc19573183da2；验证非 ASCII 双字节序列按字节写入而非码元。"
+  },
+  {
+    slug: "it/calc-10",
+    inputs: { textInput: "😀" },
+    clicks: ["generateHashes();"],
+    expect: ["2a02eac39d716a70ecf37579185927b6"],
+    ref: "IT-N469：4 字节 emoji 在 UTF-16 下是两个代理对码元，旧实现填充长度算 2 而非 4（旧值 2843eed9…）；标准 MD5 为 2a02eac39d716a70ecf37579185927b6，验证代理对按 UTF-8 编码后的字节数计长。"
+  },
+  {
+    slug: "it/calc-10",
+    inputs: { textInput: "中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中" },
+    clicks: ["generateHashes();"],
+    expect: ["e1212ccef8bfd794e6a0caa33da4533e"],
+    ref: "IT-N469：30 个中 = 90 UTF-8 字节，跨 64 字节分组边界；旧实现只当 30 字节算成单块，长度字与分块数双错。标准 MD5 为 e1212ccef8bfd794e6a0caa33da4533e，验证 lMessageLength 与 0x80 填充按字节计。"
+  },
+  {
+    slug: "it/calc-10",
+    inputs: { textInput: "你好，世界" },
+    clicks: ["generateHashes();"],
+    expect: ["dbefd3ada018615b35588a01e216ae6e"],
+    ref: "IT-N469：混合中文与全角标点（15 字节）的摘要需与 md5sum 一致；旧值 20a4a687…。同页 SHA 本就走 utf8ToBytes，本例同时守住 MD5 与 SHA 同口径。"
+  },
+  {
+    slug: "it/calc-10",
+    clicks: ["document.getElementById('stats').textContent='N469EN='+(String(generateHashes).indexOf('Algorithm')>=0&&String(generateHashes).indexOf('Hash value')>=0?1:0);"],
+    expect: ["N469EN=1"],
+    ref: "IT-N469 顺带：#result 由 generateHashes 动态重建，英文态静态扫描覆盖不到。表头算法/哈希值与空态/错误提示须逐串过 __hL helper；用源码契约守住英文实参不被删。纯 clicks、无花括号，快照态不执行即变红。中文态输出逐字不变。"
+  },
   // ── §7.4 零用例加固 · it 行业第一批（NUM 类 22 页，2026-10-05）──
   {
     slug: "it/binomial-distribution",

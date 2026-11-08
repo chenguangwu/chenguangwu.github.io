@@ -118,7 +118,7 @@ s.parentNode.insertBefore(el, s);
 <div class="card">
     <h2 data-zh="#️⃣ 哈希值生成器">#️⃣ Hash Value Generator</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">纯前端 MD5：填充阶段按 消息长度 + 8 向上取整到 64 的倍数再加一组，共 (组数 + 1) × 16 个 32 位字，末尾补 0x80，倒数第二字写 长度 &lt;&lt; 3、末字写 长度 &gt;&gt;&gt; 29（即比特长度的低位与高位）。主循环四个轮函数 F = (x &amp; y) | (~x &amp; z)、G = (x &amp; z) | (y &amp; ~z)、H = x ^ y ^ z、I = y ^ (x | ~z)，每步 a = 循环左移(a + 轮函数(b,c,d) + 消息字 + 常量, s) + b；循环左移 = (值 &lt;&lt; s) | (值 &gt;&gt;&gt; (32 − s))，模 2³² 加法用高低位拆分后按进位异或 0x80000000 / 0x40000000 / 0xC0000000 实现。最终按字节转成十六进制，勾选大写时转大写</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">纯前端 MD5：填充阶段按 消息长度 + 8 向上取整到 64 的倍数再加一组，共 (组数 + 1) × 16 个 32 位字，末尾补 0x80，倒数第二字写 长度 &lt;&lt; 3、末字写 长度 &gt;&gt;&gt; 29（即比特长度的低位与高位）。主循环四个轮函数 F = (x &amp; y) | (~x &amp; z)、G = (x &amp; z) | (y &amp; ~z)、H = x ^ y ^ z、I = y ^ (x | ~z)，每步 a = 循环左移(a + 轮函数(b,c,d) + 消息字 + 常量, s) + b；循环左移 = (值 &lt;&lt; s) | (值 &gt;&gt;&gt; (32 − s))，模 2³² 加法用高低位拆分后按进位异或 0x80000000 / 0x40000000 / 0xC0000000 实现。最终按字节转成十六进制，勾选大写时转大写；输入先按 UTF-8（RFC 3629）编码为字节序列，填充长度按字节计（RFC 1321），与同页 SHA 同口径</div>
   <div class="formula-desc">对输入计算固定长度的消息摘要（哈希），用于校验完整性。</div>
   <ul class="formula-list">
     <li><b>算法</b>：MD5（128 bit）、SHA-1（160 bit）、SHA-256 / SHA-512，把任意长度输入映射为固定长度摘要。</li>
@@ -221,6 +221,8 @@ s.parentNode.insertBefore(el, s);
   </div>
 </div>
 <script>
+/* IT-N469 顺带：#result 由脚本动态重建，英文态静态扫不到，必须逐串过 helper */
+function __hL(zh,en){return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?en:zh;}
 function utf8ToBytes(str) {
   const encoder = new TextEncoder();
   return encoder.encode(str);
@@ -273,8 +275,12 @@ function md5(text) {
     return addUnsigned(rotateLeft(a, s), b);
   }
   function convertToWordArray(str) {
+    /* IT-N469：MD5 填充以「字节」为单位（RFC 1321）。旧实现直接取 str.length / str.charCodeAt，
+       等于按 UTF-16 码元填充，中文、重音字母、emoji 的摘要与标准 MD5 全不符；同页 SHA 走
+       utf8ToBytes() 才是对的（页面「输入编码」表也要求固定 UTF-8，RFC 3629）。 */
+    const bytes = utf8ToBytes(str);
     let lWordCount;
-    const lMessageLength = str.length;
+    const lMessageLength = bytes.length;
     const lNumberOfWordsTemp1 = lMessageLength + 8;
     const lNumberOfWordsTemp2 = (lNumberOfWordsTemp1 - (lNumberOfWordsTemp1 % 64)) / 64;
     const lNumberOfWords = (lNumberOfWordsTemp2 + 1) * 16;
@@ -283,7 +289,7 @@ function md5(text) {
     while (lByteCount < lMessageLength) {
       lWordCount = (lByteCount - (lByteCount % 4)) / 4;
       lBytePosition = (lByteCount % 4) * 8;
-      lWordArray[lWordCount] = (lWordArray[lWordCount] || 0) | (str.charCodeAt(lByteCount) << lBytePosition);
+      lWordArray[lWordCount] = (lWordArray[lWordCount] || 0) | (bytes[lByteCount] << lBytePosition);
       lByteCount++;
     }
     lWordCount = (lByteCount - (lByteCount % 4)) / 4;
@@ -391,12 +397,12 @@ async function generateHashes() {
   if (document.getElementById('trimInput').checked) text = text.trim();
 
   if (!text) {
-    const __h0='<p style="color:var(--text-muted)">请输入文本。</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){result.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}result.innerHTML=__h0;
+    const __h0='<p style="color:var(--text-muted)">'+__hL('请输入文本。','Please enter some text.')+'</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){result.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}result.innerHTML=__h0;
     return;
   }
 
   if (!window.crypto || !window.crypto.subtle) {
-    const __h1='<p style="color:var(--danger)">当前浏览器不支持 Web Crypto API，无法计算 SHA 哈希。</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){result.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}result.innerHTML=__h1;
+    const __h1='<p style="color:var(--danger)">'+__hL('当前浏览器不支持 Web Crypto API，无法计算 SHA 哈希。','Web Crypto API is unavailable in this browser; SHA hashes cannot be computed.')+'</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){result.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}result.innerHTML=__h1;
     return;
   }
 
@@ -408,14 +414,14 @@ async function generateHashes() {
       sha('SHA-512', text)
     ]);
 
-    const __h2='<table><thead><tr><th>算法</th><th>哈希值</th></tr></thead><tbody>'
+    const __h2='<table><thead><tr><th>'+__hL('算法','Algorithm')+'</th><th>'+__hL('哈希值','Hash value')+'</th></tr></thead><tbody>'
       + '<tr><td>MD5</td><td><code id="hash-md5">' + md5Hash + '</code></td></tr>'
       + '<tr><td>SHA-1</td><td><code id="hash-sha1">' + sha1 + '</code></td></tr>'
       + '<tr><td>SHA-256</td><td><code id="hash-sha256">' + sha256 + '</code></td></tr>'
       + '<tr><td>SHA-512</td><td><code id="hash-sha512">' + sha512 + '</code></td></tr>'
       + '</tbody></table>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){result.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}result.innerHTML=__h2;
   } catch (e) {
-    const __h3='<p style="color:var(--danger)">计算失败：' + ToolBox.escHtml(e.message) + '</p>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){result.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}result.innerHTML=__h3;
+    const __h3='<p style="color:var(--danger)">'+__hL('计算失败：','Hash failed: ') + ToolBox.escHtml(e.message) + '</p>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){result.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}result.innerHTML=__h3;
   }
 }
 

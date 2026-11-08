@@ -107,7 +107,6 @@
 - 同批阅读 Linux、MongoDB 速查的搜索、分类与复制路径；无浏览器验证，不对完整正确性判通过。IT-N498–N500 的示例仍须按具体内容另行运行复核。
 - IT-N423、N308、N309 的数据范围问题仍在。
 - IT-N170–N173、IT-N49 的关键路径仍在。
-- IT-N469 的 MD5 仍按 UTF-16 码元打包，专业测试结论沿用历史基线，不冒称本次重跑。
 - 同批另阅读 `ascii-table`、`box-shadow-generator`、`calc-1`、`calc-10` 的主要交互路径；未对其完整正确性或浏览器行为作通过判定。
 
 ## 已知问题
@@ -2798,19 +2797,6 @@
 
 ## W 批 · IT 计算/文本（2026-11-04）
 
-### IT-N469 MD5 按 UTF-16 码元填充而非 UTF-8 字节，非 ASCII 文本摘要与标准 MD5 不符（高，算错）
-- 页面：`tools/it/calc-10.html`
-- 问题：`md5()` 的 `convertToWordArray()` 直接取 `str.charCodeAt()` 写进 32 位字（`:286`），消息长度也用 `str.length`（UTF-16 码元数，`:277`、`:292-293`），从未经过 UTF-8 编码；同页 SHA-1/256/512 走 `utf8ToBytes()`（`:224-227`、`:235`）故正确。表格 `:169` 明写"同一文本须固定 UTF-8 编码"。
-- 行号：`:239`、`:275-295`（关键 `:277`、`:286`、`:292-293`）、`:224-227`、`:169`
-- 复现（node 抽取页面原 `md5()` 直接运行，对照 `crypto.createHash('md5')` 与 `printf '中文' | md5`）：
-  - `abc` → 实际 `900150983cd24fb0d6963f7d28e17f72`，标准同值（ASCII 正常）；
-  - `中文` → 实际 `cbf9d3b2a52d5822928e434642f5077a`，标准 `a7bac2239fcdcb3a067903d8077c4a07`；
-  - `café` → 实际 `961f50f6282239d09e48f812c1ca7276`，标准 `07117fe4a1ebd544965dc19573183da2`；
-  - `😀` → 实际 `2843eed96aa1750ead0763263455f324`，标准 `2a02eac39d716a70ecf37579185927b6`；`你好，世界`、`测试`×10 同样不符。
-- 影响：中文/重音/emoji 文本的 MD5 与 `md5sum`、后端、CI 校验值全部对不上，用户会误判文件被篡改；同页 SHA 行却是对的，进一步掩盖问题。
-- 方案：先 `new TextEncoder().encode(text)` 取字节数组，按 `bytes.length` 填充并逐字节写入，再跑现成的四轮函数；或在 MD5 前统一转字节。
-- 假工具：否
-
 ### IT-N470 表达式求值器的"字符白名单"放行任意字母标识符，`new Function` 内可直达 `eval`/`fetch`/`localStorage`（高，安全）
 - 页面：`tools/it/math-evaluator.html`
 - 问题：白名单 `/^[0-9+\-*\/%^().,\sA-Za-z%]+$/`（`:293`）放行全部 `A-Za-z`，并不只限"函数名"；随后 `new Function(... , 'return ('+js+')')`（`:296`）在页面全局作用域执行，表达式可直接引用 `eval`、`fetch`、`document`、`localStorage` 等全局对象，字符串可用 `String.fromCharCode(...)` 无引号构造。页面 `:115`、`:119`、`:121` 却宣称"字符白名单校验""Shunting-yard 解析""绝不可用 eval"。
@@ -2870,7 +2856,6 @@
 - `prime-checker`：IT-N476（中）；无高优缺陷（小整数判定正确：97 质、1000 合、104729 质、999999999999989 质）。
 - `matrix-determinant`：无高优/中优缺陷（`detRec` 与 BigInt Bareiss 精确值对照 100 组随机 2–5 阶全对；5×5 整数矩阵得 −4656 一致；Sarrus 正负号与 2×2/3×3 公式均正确）。
 - `vector-magnitude`：IT-N477（中）；无高优缺陷（模长/单位向量公式正确：`|(3,4)|=5`，三维方向角 `acos(vᵢ/|v|)` 正确）。
-- `calc-10`：IT-N469（高，算错）；SHA-1/256/512 经 `TextEncoder` 走 UTF-8，抽验 `中文` 与标准一致。
 - `math-evaluator`：IT-N470（高，安全）。
 - `slug-generator-advanced`：IT-N472（高，承诺未实现）。
 - `keyword-extractor`：IT-N478（中）；无高优缺陷（停用词表实测 183 中文 + 132 英文，标签/表格/图表输出均经 `ToolBox.escHtml`）。
