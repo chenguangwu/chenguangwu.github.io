@@ -2848,15 +2848,6 @@
 - 方案：换完整拼音字典（如 `pinyin-pro` 静态引入）或默认改为"保留原字符/URL 编码"；音节间补 `sep`，未命中字显式告警而非静默删除。
 - 假工具：否
 
-### IT-N475 历史「复用」按钮的 `onclick` 被 `JSON.stringify` 的双引号截断，点击无任何反应（中，功能失效）
-- 页面：`tools/it/math-evaluator.html`
-- 问题：`renderHist` 把 `JSON.stringify(x.e)`（自带双引号）拼进 `onclick="…value="+JSON.stringify(x.e)+";calc()"`（`:284`），而属性本身用双引号包裹，属性值在表达式开头的 `"` 处提前结束。
-- 行号：`:284`、`:302-304`、`:307`
-- 复现（`python3 html.parser` 解析页面同形片段）：`onclick` 实际只剩 `document.getElementById('expr').value=`，其后 `2^10`、`+`、`sqrt(144)`、`*`、`sin(pi` 等被当成属性名（`('2^10', None)`、`('sqrt(144)', None)`…）；点击「复用」时 onclick 编译即 `SyntaxError`，输入框与结果都不变。期望回填 `2^10 + sqrt(144) * sin(pi/6)` 并重算 1030。先点一次「计算」生成的那条历史同样失效。
-- 影响：历史记录只能看不能复用，每条记录的按钮都是死的，用户会以为自己点错位置。
-- 方案：去掉内联 `onclick`，改 `data-expr` + 事件委托（`btn.dataset.expr` 赋给输入框），或至少把 JSON 串做 HTML 属性转义（`&quot;`）。
-- 假工具：否
-
 ### IT-N476 质数页不做整数校验：小数被向下取整、>2^53 被浮点舍入，判定对象被静默替换（中，结果错误）
 - 页面：`tools/it/prime-checker.html`
 - 问题：`num()` 只 `parseFloat`（`:212`），`calcTool()` 再 `Math.floor`（`:215`）；输入框 `step="1"` 但不校验合法性（`:125`）。`isPrime` 与因式分解都基于被改写后的 `n`（`:218`、`:221-227`）。
@@ -2893,7 +2884,7 @@
 - `vector-cross-product`：IT-N471（高）；无其它高优项（叉积分量正确：`(2,3,4)×(5,6,7)=(−3,6,−3)`）。
 - `vector-magnitude`：IT-N477（中）；无高优缺陷（模长/单位向量公式正确：`|(3,4)|=5`，三维方向角 `acos(vᵢ/|v|)` 正确）。
 - `calc-10`：IT-N469（高，算错）；SHA-1/256/512 经 `TextEncoder` 走 UTF-8，抽验 `中文` 与标准一致。
-- `math-evaluator`：IT-N470（高，安全）、IT-N475（中）。
+- `math-evaluator`：IT-N470（高，安全）。
 - `slug-generator-advanced`：IT-N472（高，承诺未实现）。
 - `keyword-extractor`：IT-N478（中）；无高优缺陷（停用词表实测 183 中文 + 132 英文，标签/表格/图表输出均经 `ToolBox.escHtml`）。
 - 方法声明：逐页通读上述 8 页源码，在 `/tmp` 用 `node` 直接抽取/复刻页面原函数（页面真实 `md5()`、表达式白名单 + `new Function`、叉积夹角、`detRec` + BigInt Bareiss、页面真实 `PINYIN` 表 + `slugify()`、`tokenizeChinese`/`filterKeywords`/`deduplicateSubstrings` + 页面真实停用词表、`isPrime`/因式分解）逐一给出「输入 → 实际 / 期望」；MD5 用 `crypto.createHash('md5')` 与 `printf '中文' | md5` 双对照；`onclick` 截断用 `python3 html.parser` 验证属性拆分。**未开浏览器、未跑 `_build.py`/`run_gates.py`、未做线上验证**；未修改任何工具页、代码或构建产物，仅在本审计日志追加本节。

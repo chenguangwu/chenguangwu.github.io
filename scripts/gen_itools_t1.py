@@ -102,12 +102,36 @@ function insertFn(s){
   el.value=el.value.slice(0,el.selectionStart||el.value.length)+s+el.value.slice(el.selectionEnd||el.value.length);
   el.focus(); calc();
 }
+function __meL(zh,en){return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?en:zh;}
+/* IT-N475：历史「复用」统一走此函数。表达式只经 DOM 属性赋值回填，
+   不拼进内联 onclick，避免 JSON.stringify 的双引号截断属性与 HTML 注入。 */
+function __meReuse(expr){
+  document.getElementById('expr').value=String(expr==null?'':expr);
+  calc();
+}
 function renderHist(){
   var h;
   try{h=JSON.parse(localStorage.getItem('mathHist')||'[]');}catch(e){h=[];}
-  document.getElementById('hist').innerHTML=h.length?h.map(function(x){
-    return '<div>'+escH(x.e)+' = <strong style="color:var(--primary)">'+fmt(x.v)+'</strong> <button class="btn" style="margin-left:6px;padding:2px 10px;font-size:12px;" onclick="document.getElementById(\\'expr\\').value='+JSON.stringify(x.e).replace(/</g,'\\u003c')+';calc()">复用</button></div>';
-  }).join(''):'<span style="color:var(--muted,#9CA3AF)">暂无记录</span>';
+  var box=document.getElementById('hist');
+  if(!h.length){box.innerHTML='<span style="color:var(--muted,#9CA3AF)">'+__meL('暂无记录','No Records Yet')+'</span>';return;}
+  box.textContent='';
+  h.forEach(function(x){
+    var row=document.createElement('div');
+    row.appendChild(document.createTextNode(String(x.e)+' = '));
+    var strong=document.createElement('strong');
+    strong.style.color='var(--primary)';
+    strong.textContent=fmt(x.v);
+    row.appendChild(strong);
+    row.appendChild(document.createTextNode(' '));
+    var btn=document.createElement('button');
+    btn.className='btn';
+    btn.style.cssText='margin-left:6px;padding:2px 10px;font-size:12px;';
+    btn.textContent=__meL('复用','Reuse');
+    btn.dataset.expr=String(x.e==null?'':x.e);
+    btn.addEventListener('click',function(){__meReuse(x.e);});
+    row.appendChild(btn);
+    box.appendChild(row);
+  });
 }
 function clearHist(){localStorage.removeItem('mathHist');renderHist();}
 function calc(){

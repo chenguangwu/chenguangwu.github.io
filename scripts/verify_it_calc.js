@@ -7548,6 +7548,46 @@ const CASES = [
     "ref": "IT-N474 顺带修：原正则 (\\d+) 只吃整数部分，15.5% 会变 15.(5/100) 语法错；现 (\\d+(?:\\.\\d+)?) 支持小数百分比。修复前红。"
   },
   {
+    "slug": "it/math-evaluator",
+    "clicks": [
+      "document.getElementById('expr').value='1+1';__meReuse('2^10 + sqrt(144)');var __e=document.getElementById('expr').value;var __r=String(document.getElementById('result').innerHTML);document.getElementById('result').innerHTML='N475 reuse='+__e+'|hit='+(__r.indexOf('1036')>=0?1:0);"
+    ],
+    "expect": [
+      "N475 reuse=2^10 + sqrt(144)|hit=1"
+    ],
+    "ref": "IT-N475：历史「复用」链路契约。__meReuse 先把表达式原样回填 #expr 再 calc() 重算，2^10 + sqrt(144)=1036（默认表达式结果为 1030，不含该串）。修复前页面无 __meReuse（复用靠被双引号截断的内联 onclick），调用即抛错、探针不落 ⇒ 红。expect 绑输入派生表达式与重算命中位，非静态串。"
+  },
+  {
+    "slug": "it/math-evaluator",
+    "clicks": [
+      "__meReuse('7%3');var __r=String(document.getElementById('result').innerHTML);document.getElementById('result').innerHTML='N475 mod='+(__r.indexOf('>1<')>=0?1:0);"
+    ],
+    "expect": [
+      "N475 mod=1"
+    ],
+    "ref": "IT-N475：复用后的表达式必须完整走当前 calc 求值链（含 IT-N474 的取模判别），7%3 → 1。修复前无 __meReuse；用 >1< 精确锚避免默认态结果 1030 的 token 前缀误命中。"
+  },
+  {
+    "slug": "it/math-evaluator",
+    "clicks": [
+      "var __src=String(renderHist)+String(__meReuse);document.getElementById('result').innerHTML='N475 src='+((__src.indexOf('addEventListener')>=0&&__src.indexOf('dataset.expr')>=0&&__src.indexOf('onclick=')<0)?1:0);"
+    ],
+    "expect": [
+      "N475 src=1"
+    ],
+    "ref": "IT-N475 决定性结构契约：renderHist 必须用 DOM 节点 + addEventListener 绑定复用按钮，并把表达式存进 dataset.expr；任何把 JSON.stringify 结果拼进内联 onclick 属性的旧写法都会被 onclick= 检出。修复前是 h.map 拼 innerHTML 且含 onclick= ⇒ 0 ⇒ 红。源码契约用 String(fn) 读取，避免 harness 长 clicks 内花括号解析陷阱。"
+  },
+  {
+    "slug": "it/math-evaluator",
+    "clicks": [
+      "var __src=String(renderHist);document.getElementById('result').innerHTML='N475 i18n='+((__src.indexOf('Reuse')>=0&&__src.indexOf('__meL')>=0)?1:0);"
+    ],
+    "expect": [
+      "N475 i18n=1"
+    ],
+    "ref": "IT-N475 顺带修：历史区按钮文本「复用」原为硬编码中文，英文态 ?lang=en-US 动态创建的按钮残留 CJK（jsdom 真机实测 textContent=复用）。现 renderHist 经 __meL 输出 Reuse。修复前 renderHist 既无 __meL 也无 Reuse ⇒ 0 ⇒ 红；真机中英两态复核另见移交档。"
+  },
+  {
     "slug": "it/kubernetes-cheatsheet",
     "inputs": {
       "searchInput": "abc123测试"
