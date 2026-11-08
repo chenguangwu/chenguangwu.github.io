@@ -2377,61 +2377,6 @@
 
 ## U 批 · IT 转换/编码边界（2026-11-04）
 
-### IT-N379 TypeScript 生成器只引用嵌套类型名，从不生成对应 interface/type，默认输入即不可编译（高，确认缺陷）
-- 页面：`tools/it/json-to-code.html`
-- 问题：`toTS` 只对根对象生成一个 `interface Root`；对象字段经 `tsType` 返回 `capitalize(k)` 的裸类型名（`:319`、`:333-335`），数组对象字段返回 `<Name>Item[]`，但全函数没有任何递归生成子类型的语句。默认示例 `loadSample()` 含 `user:{...}` 与 `orders:[{...}]`，首屏输出即引用不存在的 `User`、`OrdersItem`。
-- 行号：`:308-323`（toTS）、`:319`、`:333-335`
-- 复现（node 复刻默认示例）：实际输出
-  `export interface Root { readonly user: User; readonly orders: OrdersItem[]; ... }`，整份输出没有 `interface User` / `interface OrdersItem`；`tsc` 报 `Cannot find name 'User'`。期望同时生成嵌套 `interface User`、`interface OrdersItem`（或内联对象类型）。
-- 影响：TypeScript 选项在默认数据下产出的代码 100% 无法编译，用户必须手工补类型。
-- 方案：与 Go 的 `collect*Subs` 同构，增加 `collectTSSubs` 递归输出子 interface，并让字段类型引用同一套命名。
-- 假工具：否
-
-### IT-N380 数组对象字段的类型名少一个 `Item` 后缀，Go/C#/Java/Kotlin/Rust/Python 六种输出均编译失败（高，确认缺陷）
-- 页面：`tools/it/json-to-code.html`
-- 问题：字段类型由 `*Type(v, capitalize(name)+capitalize(k))` 计算，数组会返回 `[]RootOrders` / `List<RootOrders>` / `Vec<RootOrders>`；但递归收集子类型时统一用 `subName + 'Item'` 定义成 `RootOrdersItem`。引用名与定义名不一致。
-- 行号：`:342`+`:375` vs `:357`（Go）；`:385`+`:417` vs `:399`（C#）；`:426`+`:460` vs `:442`（Java）；`:471`+`:503` vs `:485`（Kotlin）；`:512`+`:544` vs `:526`（Rust）；`:555`+`:586` vs `:568`（Python）
-- 复现（node 复刻）：输入 `{"orders":[{"id":1}]}` → Go 实际 `Orders []RootOrders` + `type RootOrdersItem struct {...}`；期望字段类型 `[]RootOrdersItem` 或子类型名 `RootOrders`，二者一致。C#/Java/Kotlin/Rust/Python 同理（如 Python `List[RootOrders]` vs `class RootOrdersItem`）。
-- 影响：六种语言的数组对象输出全部报「未定义类型」，是默认示例（`orders`）即可触发的核心路径。
-- 方案：子类型定义与字段引用统一用同一命名函数，数组元素类型不要在命名层再加 `Item`。
-- 假工具：否
-
-### IT-N381 Go 子结构体重复 `package main`、Proto 重复 `syntax`，单文件多片段无法编译（高，确认缺陷）
-- 页面：`tools/it/json-to-code.html`
-- 问题：`toGo` 每个子结构体都从 `package main` 重新开头（`:340`），默认示例含 `address`/`orders` 时同一份输出出现多个 `package` 声明；`toProto` 每个嵌套 message 也从 `syntax = "proto3";` 重新开头（`:593`、`:610`），同一 `.proto` 文件重复 `syntax` 属语法错误。
-- 行号：`:340`、`:348`（拼接 subs）、`:593`、`:610`
-- 复现（node 复刻）：默认示例切 Go → 输出含两段 `package main`；切 Proto → 输出含两段 `syntax = "proto3";`。期望子结构体/嵌套 message 只输出类型体，文件头只出现一次。
-- 影响：只要 JSON 有任意嵌套对象或对象数组，Go/Proto 选项即不可编译，与实际「一键生成可用代码」的定位冲突。
-- 方案：把文件头（`package`/`syntax`/imports）拆到顶层生成函数，子类型生成只返回类型声明。
-- 假工具：否
-
-### IT-N382 根节点为数组 / 标量 / null 时，非 TS 生成器产出非法字段名或直接抛异常（中，确认缺陷）
-- 页面：`tools/it/json-to-code.html`
-- 问题：Go/C#/Java/Kotlin/Rust/Python 生成器一律 `Object.entries(obj)`；数组根被当成以 `0`、`1` 为键的对象，`null` 根则 `Object.entries(null)` 直接 TypeError。`convert()` 仅捕获 `JSON.parse`，生成阶段无 try，异常后结果区保持上一次内容。
-- 行号：`:283-300`（convert 无生成期 try）、`:341`、`:383`、`:425`、`:469`、`:511`、`:552`
-- 复现：输入 `[{"a":1}]` 切 Go → 实际 `type Root struct { 0 Root0 ... }`（字段名 `0` 非法）；输入 `null` 切 Go → 抛 `Cannot convert undefined or null to object`，结果区仍显示旧结果。期望根数组生成类型别名/切片类型，null 给出明确提示。
-- 影响：合法 JSON 根形态导致输出不可用或页面静默保留旧结果，用户会误以为已生成成功。
-- 方案：生成器入口先判根类型；数组根走 `type Root []RootItem`，标量根走类型别名，null 明确报错；`convert()` 包裹生成调用并渲染错误。
-- 假工具：否
-
-### IT-N383 Python 输出使用 `Any` 但只 import 了 `List, Optional`，类定义即 NameError（中，确认缺陷）
-- 页面：`tools/it/json-to-code.html`
-- 问题：`toPython` 头部固定 `from typing import List, Optional`（`:551`），而 `pyType` 对 null 字段返回 `Optional[Any] = None`、空数组返回 `List[Any] = []`（`:578`、`:585`）。`Any` 未导入，pydantic 在类体求值注解时抛 `NameError: name 'Any' is not defined`。
-- 行号：`:551`、`:578`、`:585`
-- 复现（node 复刻）：输入 `{"tags":[],"note":null}` 切 Python → 实际生成 `tags: List[Any] = []`、`note: Optional[Any] = None`，文件只有 `import List, Optional`；运行报 NameError。期望导入 `Any`（`from typing import Any, List, Optional`）。
-- 影响：含空数组或 null 的 JSON（常见）在 Python 选项下生成的模型无法 import。
-- 方案：补齐 `Any` 导入；或空数组改用 `List[object] = []`、null 字段改用 `Optional[object] = None`。
-- 假工具：否
-
-### IT-N384 承诺「键名按目标语言惯例转换（camelCase / snake_case）」，实际只做首字母大写（中，承诺未实现）
-- 页面：`tools/it/json-to-code.html`
-- 问题：参考表明确写「convert keys to target naming conventions」（`:259`），但代码只有 `capitalize()`（首字母大写），TS/Go 等字段名原样保留 `snake_case`/`kebab-case`，不转 camelCase，也未做 `my-key` 之类非法标识符处理。
-- 行号：`:259`、`:319`、`:335`、`:342`
-- 复现：输入 `{"user_name":1,"api-key":"x"}` 切 TS → 实际 `user_name: number;`（`api-key` 甚至不是合法 TS 字段名），期望 `userName: number;`、`apiKey: string;`（或加引号）。
-- 影响：输出风格与文档承诺不符，`kebab-case` 键直接产生语法错误。
-- 方案：按目标语言实现命名转换（TS/Java/Kotlin `camelCase`、Go/Python `PascalCase`/`snake_case`），非法标识符加引号或改写。
-- 假工具：否（承诺未实现；建议并入 `plan/fake-tools.md`）
-
 ### IT-N385 TOML 值解析不支持内联表 / 字面量字符串 / 数字下划线，合法输入被降级成字符串（高，确认缺陷）
 - 页面：`tools/it/toml-to-json.html`
 - 问题：`tVal` 只处理双引号串、布尔、空串、整数/小数、`[]` 数组，其余原样返回字符串；没有内联表 `{}` 分支、单引号 literal string 分支，整数正则 `^-?\d+$` 也不接受 `_`。但页面注意事项明确写「字符串、整数、浮点、布尔、数组、内联表都会被正确解析」（`:173`）。
@@ -2638,7 +2583,6 @@
 - 假工具：否
 
 ### 覆盖清单（U 批 IT 转换/编码）
-- `json-to-code`：IT-N379（高）、IT-N380（高）、IT-N381（高）、IT-N382、IT-N383、IT-N384（中）。
 - `toml-to-json`：IT-N385（高）、IT-N386、IT-N387（中）。
 - `yaml-to-toml`：IT-N388（高）、IT-N389、IT-N390（中）；缩进控件并入 IT-N391。
 - `toml-to-xml`：IT-N392、IT-N393（中）；无高优缺陷（核心 TOML→XML 主路径可跑通，问题集中在导出转义与非法元素名）。

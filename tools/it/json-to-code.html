@@ -150,7 +150,7 @@ s.parentNode.insertBefore(el, s);
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="🔄 JSON 转代码">🔄 JSON to Code</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">先 JSON.parse 解析输入，解析失败则输出错误信息；按目标语言分派生成器：TypeScript / Go / C# / Java / Kotlin / Rust / Python / Protobuf，根类型名取设定值（默认 Root）；类型按 JSON 值形态映射（对象→结构体或类、数组→列表、字符串→string、数字按是否含小数取整型或浮点、布尔→bool、null→可空类型）；生成结果再做语法高亮写入输出区</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">先 JSON.parse 解析输入，解析失败则输出错误信息；按目标语言分派生成器：TypeScript / Go / C# / Java / Kotlin / Rust / Python / Protobuf，根类型名取设定值（默认 Root）；类型按 JSON 值形态映射（对象→结构体或类、数组→列表、字符串→string、数字按是否含小数取整型或浮点、布尔→bool、null→可空类型）；根节点是数组或标量时生成切片/类型别名（含元素类型定义），是 null 时给出明确提示；键名按目标语言惯例转换（camelCase / PascalCase / snake_case），被改名的字段附原键名注释或 serde/json 映射；生成结果再做语法高亮写入输出区</div>
   <div class="formula-desc">由 JSON 样本生成目标语言的类型定义。</div>
   <ul class="formula-list">
     <li><b>输出</b>：TypeScript 的 interface、Go 的 struct（带 json tag）、Python 的 dataclass/TypedDict 等。</li>
@@ -288,15 +288,20 @@ function convert(){
   try{ obj = JSON.parse(input); }
   catch(e){ const __h0='<span class="com">// JSON 解析错误: ' + escapeHtml(e.message) + '</span>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h0; return; }
   let code = '';
-  switch(lang){
-    case 'ts': code = toTS(obj, rootName); break;
-    case 'go': code = toGo(obj, rootName); break;
-    case 'csharp': code = toCSharp(obj, rootName); break;
-    case 'java': code = toJava(obj, rootName); break;
-    case 'kotlin': code = toKotlin(obj, rootName); break;
-    case 'rust': code = toRust(obj, rootName); break;
-    case 'py': code = toPython(obj, rootName); break;
-    case 'proto': code = toProto(obj, rootName); break;
+  try{
+    switch(lang){
+      case 'ts': code = toTS(obj, rootName); break;
+      case 'go': code = toGo(obj, rootName); break;
+      case 'csharp': code = toCSharp(obj, rootName); break;
+      case 'java': code = toJava(obj, rootName); break;
+      case 'kotlin': code = toKotlin(obj, rootName); break;
+      case 'rust': code = toRust(obj, rootName); break;
+      case 'py': code = toPython(obj, rootName); break;
+      case 'proto': code = toProto(obj, rootName); break;
+      default: code = '// ' + ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'unsupported target language':'不支持的目标语言') + ': ' + lang;
+    }
+  }catch(err){
+    code = '// ' + ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'generation failed':'生成失败') + ': ' + (err && err.message ? err.message : String(err));
   }
   const __h1=highlight(code, lang);if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h1;
 }
@@ -305,330 +310,402 @@ function jsType(v){
   if(Array.isArray(v)) return 'array';
   return typeof v;
 }
-function toTS(obj, name, depth = 0){
-  const indent = '  '.repeat(depth);
-  const ro = document.getElementById('optReadonly').checked;
-  const ex = document.getElementById('optExport').checked ? 'export ' : '';
-  if(Array.isArray(obj)){
-    if(obj.length === 0) return `${ex}type ${name} = any[];`;
-    return `${ex}type ${name} = ${tsType(obj[0], name + 'Item', depth)}[];`;
+/* ---------- 命名转换：键名 → 目标语言标识符（IT-N384） ---------- */
+function jcT(zh, en){
+  return (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) ? en : zh;
+}
+function jcWords(k){
+  return String(k)
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .split(/[^0-9A-Za-z\u00c0-\uffff]+/)
+    .filter(function(w){ return !!w; })
+    .map(function(w){ return (w.length > 1 && w === w.toUpperCase()) ? w.toLowerCase() : w; });
+}
+function jcIdent(k, style){
+  if(style === 'raw' && /^[A-Za-z_\u00c0-\uffff][0-9A-Za-z_\u00c0-\uffff]*$/.test(String(k))) return String(k);
+  var w = jcWords(k);
+  if(!w.length) w = ['field'];
+  var out;
+  if(style === 'snake' || style === 'raw') out = w.map(function(x){ return x.toLowerCase(); }).join('_');
+  else if(style === 'pascal') out = w.map(function(x){ return capitalize(x); }).join('');
+  else out = w.map(function(x, i){ return i === 0 ? x.charAt(0).toLowerCase() + x.slice(1) : capitalize(x); }).join('');
+  if(/^[0-9]/.test(out)) out = (style === 'pascal' ? 'F' : 'f') + '_' + out;
+  return out;
+}
+function jcUniq(base, used){
+  var n = base, i = 2;
+  while(used[n]){ n = base + '_' + i; i++; }
+  used[n] = 1;
+  return n;
+}
+function jcNote(field, key, mark){
+  return field === key ? '' : ' ' + (mark || '//') + ' ' + jcT('原键: ', 'key: ') + key;
+}
+function jcObj(v){ return v !== null && typeof v === 'object' && !Array.isArray(v); }
+function jcElem(v){ while(Array.isArray(v) && v.length) v = v[0]; return v; }
+function jcSubName(parent, k){ return parent + jcIdent(k, 'pascal'); }
+function jcRoot(name){
+  var t = String(name == null ? '' : name).trim().replace(/[^0-9A-Za-z_\u00c0-\uffff]/g, '');
+  return t || 'Root';
+}
+function jcNull(){
+  return '// ' + jcT('输入是 null，无法推断类型：请提供对象或数组样例', 'input is null: provide an object or array sample');
+}
+/* 递归收集嵌套对象类型（去重，父在前、子在后） */
+function jcSubs(obj, parentType, out, seen){
+  if(!jcObj(obj)) return;
+  Object.keys(obj).forEach(function(k){
+    var el = jcElem(obj[k]), nm = jcSubName(parentType, k);
+    if(jcObj(el)) push(nm, el);
+  });
+  function push(nm, o){
+    if(seen[nm]) return;
+    seen[nm] = 1;
+    out.push({ name: nm, obj: o });
+    jcSubs(o, nm, out, seen);
   }
-  if(typeof obj !== 'object' || obj === null) return `${ex}type ${name} = ${tsType(obj, name, depth)};`;
-  let lines = [`${ex}interface ${name} {`];
-  for(const [k, v] of Object.entries(obj)){
-    lines.push(`  ${ro ? 'readonly ' : ''}${k}: ${tsType(v, capitalize(k), depth + 1)};`);
-  }
+}
+/* ---------- TypeScript ---------- */
+function tsPrim(v){
+  if(v === null) return 'null';
+  if(typeof v === 'string') return 'string';
+  if(typeof v === 'number') return 'number';
+  if(typeof v === 'boolean') return 'boolean';
+  return 'any';
+}
+function tsFieldType(v, tname){
+  if(Array.isArray(v)) return (v.length ? tsFieldType(v[0], tname) : 'any') + '[]';
+  if(jcObj(v)) return tname;
+  return tsPrim(v);
+}
+function tsBody(obj, typeName, ro, ex){
+  var used = {}, lines = [ex + 'interface ' + typeName + ' {'];
+  Object.keys(obj).forEach(function(k){
+    var f = jcUniq(jcIdent(k, 'camel'), used);
+    lines.push('  ' + (ro ? 'readonly ' : '') + f + ': ' + tsFieldType(obj[k], jcSubName(typeName, k)) + ';' + jcNote(f, k));
+  });
   lines.push('}');
   return lines.join('\n');
 }
-function tsType(v, name, depth){
-  if(v === null) return 'null';
-  switch(typeof v){
-    case 'string': return 'string';
-    case 'number': return Number.isInteger(v) ? 'number' : 'number';
-    case 'boolean': return 'boolean';
-    case 'object':
-      if(Array.isArray(v)){
-        if(v.length === 0) return 'any[]';
-        return `${tsType(v[0], name + 'Item', depth)}[]`;
-      }
-      return name;
+function toTS(obj, name){
+  var root = jcRoot(name);
+  var ro = document.getElementById('optReadonly').checked;
+  var ex = document.getElementById('optExport').checked ? 'export ' : '';
+  var subs = [], head;
+  if(obj === null) return jcNull();
+  if(Array.isArray(obj)){
+    if(!obj.length) head = ex + 'type ' + root + ' = any[];';
+    else if(jcObj(obj[0])){
+      head = ex + 'type ' + root + ' = ' + root + 'Item[];';
+      subs.push({ name: root + 'Item', obj: obj[0] });
+      jcSubs(obj[0], root + 'Item', subs, {});
+    } else head = ex + 'type ' + root + ' = ' + tsFieldType(obj, root) + '[];';
+  } else if(!jcObj(obj)){
+    head = ex + 'type ' + root + ' = ' + tsPrim(obj) + ';';
+  } else {
+    head = tsBody(obj, root, ro, ex);
+    jcSubs(obj, root, subs, {});
   }
-  return 'any';
+  return head + (subs.length ? '\n\n' + subs.map(function(s){ return tsBody(s.obj, s.name, ro, ex); }).join('\n\n') : '');
 }
-function toGo(obj, name){
-  const lines = [`package main`, ``, `type ${capitalize(name)} struct {`];
-  for(const [k, v] of Object.entries(obj)){
-    lines.push(`\t${capitalize(k)} ${goType(v, capitalize(name) + capitalize(k))} \`json:"${k}"\``);
-  }
-  lines.push('}');
-  // 子结构体
-  const subs = [];
-  collectGoSubs(obj, capitalize(name), subs);
-  return lines.join('\n') + (subs.length ? '\n\n' + subs.join('\n\n') : '');
-}
-function collectGoSubs(obj, parentName, subs){
-  if(typeof obj !== 'object' || obj === null) return;
-  if(Array.isArray(obj)){ if(obj.length && typeof obj[0] === 'object') collectGoSubs(obj[0], parentName + 'Item', subs); return; }
-  for(const [k, v] of Object.entries(obj)){
-    const subName = parentName + capitalize(k);
-    if(Array.isArray(v)){
-      if(v.length && typeof v[0] === 'object' && v[0] !== null){
-        subs.push(toGo(v[0], subName + 'Item'));
-        collectGoSubs(v[0], subName + 'Item', subs);
-      }
-    } else if(typeof v === 'object' && v !== null){
-      subs.push(toGo(v, subName));
-      collectGoSubs(v, subName, subs);
-    }
-  }
-}
-function goType(v, name){
+/* ---------- Go ---------- */
+function goPrim(v){
   if(v === null) return 'interface{}';
-  switch(typeof v){
-    case 'string': return 'string';
-    case 'number': return Number.isInteger(v) ? 'int' : 'float64';
-    case 'boolean': return 'bool';
-    case 'object':
-      if(Array.isArray(v)){
-        if(v.length === 0) return '[]interface{}';
-        return '[]' + goType(v[0], name);
-      }
-      return capitalize(name);
-  }
+  if(typeof v === 'string') return 'string';
+  if(typeof v === 'number') return Number.isInteger(v) ? 'int' : 'float64';
+  if(typeof v === 'boolean') return 'bool';
   return 'interface{}';
 }
-function toCSharp(obj, name){
-  const lines = ['using System;', 'using System.Collections.Generic;', '', `public class ${capitalize(name)}`, '{'];
-  for(const [k, v] of Object.entries(obj)){
-    lines.push(`    [Newtonsoft.Json.JsonProperty("${k}")]`);
-    lines.push(`    public ${csType(v, capitalize(name) + capitalize(k))} ${capitalize(k)} { get; set; }`);
-  }
+function goFieldType(v, tname){
+  if(Array.isArray(v)) return v.length ? '[]' + goFieldType(v[0], tname) : '[]interface{}';
+  if(jcObj(v)) return tname;
+  return goPrim(v);
+}
+function goBody(obj, typeName){
+  var used = {}, lines = ['type ' + typeName + ' struct {'];
+  Object.keys(obj).forEach(function(k){
+    var f = jcUniq(jcIdent(k, 'pascal'), used);
+    lines.push('\t' + f + ' ' + goFieldType(obj[k], jcSubName(typeName, k)) + ' `json:"' + k + '"`');
+  });
   lines.push('}');
-  const subs = [];
-  collectCSSubs(obj, capitalize(name), subs);
-  return lines.join('\n') + (subs.length ? '\n\n' + subs.join('\n\n') : '');
+  return lines.join('\n');
 }
-function collectCSSubs(obj, parentName, subs){
-  if(typeof obj !== 'object' || obj === null) return;
-  if(Array.isArray(obj)){ if(obj.length && typeof obj[0] === 'object') collectCSSubs(obj[0], parentName + 'Item', subs); return; }
-  for(const [k, v] of Object.entries(obj)){
-    const subName = parentName + capitalize(k);
-    if(Array.isArray(v)){
-      if(v.length && typeof v[0] === 'object' && v[0] !== null){
-        subs.push(toCSharp(v[0], subName + 'Item'));
-        collectCSSubs(v[0], subName + 'Item', subs);
-      }
-    } else if(typeof v === 'object' && v !== null){
-      subs.push(toCSharp(v, subName));
-      collectCSSubs(v, subName, subs);
-    }
+function toGo(obj, name){
+  var root = capitalize(jcRoot(name)), subs = [], head;
+  if(obj === null) return jcNull();
+  if(Array.isArray(obj)){
+    if(!obj.length) head = 'type ' + root + ' []interface{}';
+    else if(jcObj(obj[0])){
+      head = 'type ' + root + ' []' + root + 'Item';
+      subs.push({ name: root + 'Item', obj: obj[0] });
+      jcSubs(obj[0], root + 'Item', subs, {});
+    } else head = 'type ' + root + ' []' + goPrim(jcElem(obj));
+  } else if(!jcObj(obj)){
+    head = 'type ' + root + ' ' + goPrim(obj);
+  } else {
+    head = goBody(obj, root);
+    jcSubs(obj, root, subs, {});
   }
+  var out = ['package main', '', head];
+  subs.forEach(function(s){ out.push(''); out.push(goBody(s.obj, s.name)); });
+  return out.join('\n');
 }
-function csType(v, name){
+/* ---------- C# ---------- */
+function csPrim(v){
   if(v === null) return 'object';
-  switch(typeof v){
-    case 'string': return 'string';
-    case 'number': return Number.isInteger(v) ? 'int' : 'double';
-    case 'boolean': return 'bool';
-    case 'object':
-      if(Array.isArray(v)){
-        if(v.length === 0) return 'List<object>';
-        return `List<${csType(v[0], name)}>`;
-      }
-      return capitalize(name);
-  }
+  if(typeof v === 'string') return 'string';
+  if(typeof v === 'number') return Number.isInteger(v) ? 'int' : 'double';
+  if(typeof v === 'boolean') return 'bool';
   return 'object';
 }
-function toJava(obj, name){
-  const lines = [`public class ${capitalize(name)} {`];
-  for(const [k, v] of Object.entries(obj)){
-    lines.push(`    private ${javaType(v, capitalize(name) + capitalize(k))} ${k};`);
-    lines.push(`    public ${javaType(v, capitalize(name) + capitalize(k))} get${capitalize(k)}() { return ${k}; }`);
-    lines.push(`    public void set${capitalize(k)}(${javaType(v, capitalize(name) + capitalize(k))} ${k}) { this.${k} = ${k}; }`);
-  }
+function csFieldType(v, tname){
+  if(Array.isArray(v)) return v.length ? 'List<' + csFieldType(v[0], tname) + '>' : 'List<object>';
+  if(jcObj(v)) return tname;
+  return csPrim(v);
+}
+function csBody(obj, typeName){
+  var used = {}, lines = ['public class ' + typeName, '{'];
+  Object.keys(obj).forEach(function(k){
+    var f = jcUniq(jcIdent(k, 'pascal'), used);
+    lines.push('    [Newtonsoft.Json.JsonProperty("' + k + '")]');
+    lines.push('    public ' + csFieldType(obj[k], jcSubName(typeName, k)) + ' ' + f + ' { get; set; }');
+  });
   lines.push('}');
-  const subs = [];
-  collectJavaSubs(obj, capitalize(name), subs);
-  return lines.join('\n') + (subs.length ? '\n\n' + subs.join('\n\n') : '');
+  return lines.join('\n');
 }
-function collectJavaSubs(obj, parentName, subs){
-  if(typeof obj !== 'object' || obj === null) return;
-  if(Array.isArray(obj)){ if(obj.length && typeof obj[0] === 'object') collectJavaSubs(obj[0], parentName + 'Item', subs); return; }
-  for(const [k, v] of Object.entries(obj)){
-    const subName = parentName + capitalize(k);
-    if(Array.isArray(v)){
-      if(v.length && typeof v[0] === 'object' && v[0] !== null){
-        subs.push(toJava(v[0], subName + 'Item'));
-        collectJavaSubs(v[0], subName + 'Item', subs);
-      }
-    } else if(typeof v === 'object' && v !== null){
-      subs.push(toJava(v, subName));
-      collectJavaSubs(v, subName, subs);
-    }
+function toCSharp(obj, name){
+  var root = capitalize(jcRoot(name)), subs = [], head;
+  if(obj === null) return jcNull();
+  if(Array.isArray(obj)){
+    if(!obj.length) head = 'public class ' + root + ' : List<object> { }';
+    else if(jcObj(obj[0])){
+      head = 'public class ' + root + ' : List<' + root + 'Item> { }';
+      subs.push({ name: root + 'Item', obj: obj[0] });
+      jcSubs(obj[0], root + 'Item', subs, {});
+    } else head = 'public class ' + root + ' : List<' + csPrim(jcElem(obj)) + '> { }';
+  } else if(!jcObj(obj)){
+    head = '// ' + jcT('根节点为标量，用单字段类包装', 'scalar root wrapped in a single-field class') + '\npublic class ' + root + '\n{\n    public ' + csPrim(obj) + ' Value { get; set; }\n}';
+  } else {
+    head = csBody(obj, root);
+    jcSubs(obj, root, subs, {});
   }
+  var out = ['using System;', 'using System.Collections.Generic;', '', head];
+  subs.forEach(function(s){ out.push(''); out.push(csBody(s.obj, s.name)); });
+  return out.join('\n');
 }
-function javaType(v, name){
+/* ---------- Java ---------- */
+function javaPrim(v){
   if(v === null) return 'Object';
-  switch(typeof v){
-    case 'string': return 'String';
-    case 'number': return Number.isInteger(v) ? 'Integer' : 'Double';
-    case 'boolean': return 'Boolean';
-    case 'object':
-      if(Array.isArray(v)){
-        if(v.length === 0) return 'List<Object>';
-        return `List<${javaType(v[0], name)}>`;
-      }
-      return capitalize(name);
-  }
+  if(typeof v === 'string') return 'String';
+  if(typeof v === 'number') return Number.isInteger(v) ? 'Integer' : 'Double';
+  if(typeof v === 'boolean') return 'Boolean';
   return 'Object';
 }
-function toKotlin(obj, name){
-  const lines = [`data class ${capitalize(name)}(`];
-  const entries = Object.entries(obj);
-  entries.forEach(([k, v], i) => {
-    const comma = i < entries.length - 1 ? ',' : '';
-    lines.push(`    val ${k}: ${kotlinType(v, capitalize(name) + capitalize(k))}${comma}`);
+function javaFieldType(v, tname){
+  if(Array.isArray(v)) return v.length ? 'List<' + javaFieldType(v[0], tname) + '>' : 'List<Object>';
+  if(jcObj(v)) return tname;
+  return javaPrim(v);
+}
+function javaBody(obj, typeName){
+  var used = {}, lines = ['public class ' + typeName + ' {'];
+  Object.keys(obj).forEach(function(k){
+    var f = jcUniq(jcIdent(k, 'camel'), used);
+    var t = javaFieldType(obj[k], jcSubName(typeName, k));
+    lines.push('    private ' + t + ' ' + f + ';' + jcNote(f, k));
+    lines.push('    public ' + t + ' get' + capitalize(f) + '() { return ' + f + '; }');
+    lines.push('    public void set' + capitalize(f) + '(' + t + ' ' + f + ') { this.' + f + ' = ' + f + '; }');
+  });
+  lines.push('}');
+  return lines.join('\n');
+}
+function toJava(obj, name){
+  var root = capitalize(jcRoot(name)), subs = [], head;
+  if(obj === null) return jcNull();
+  if(Array.isArray(obj)){
+    if(!obj.length) head = 'public class ' + root + ' extends ArrayList<Object> { }';
+    else if(jcObj(obj[0])){
+      head = 'public class ' + root + ' extends ArrayList<' + root + 'Item> { }';
+      subs.push({ name: root + 'Item', obj: obj[0] });
+      jcSubs(obj[0], root + 'Item', subs, {});
+    } else head = 'public class ' + root + ' extends ArrayList<' + javaPrim(jcElem(obj)) + '> { }';
+  } else if(!jcObj(obj)){
+    head = '// ' + jcT('根节点为标量，用单字段类包装', 'scalar root wrapped in a single-field class') + '\npublic class ' + root + '\n{\n    private ' + javaPrim(obj) + ' value;\n\n    public ' + javaPrim(obj) + ' getValue() { return value; }\n\n    public void setValue(' + javaPrim(obj) + ' value) { this.value = value; }\n}';
+  } else {
+    head = javaBody(obj, root);
+    jcSubs(obj, root, subs, {});
+  }
+  var out = ['import java.util.ArrayList;', 'import java.util.List;', '', head];
+  subs.forEach(function(s){ out.push(''); out.push(javaBody(s.obj, s.name)); });
+  return out.join('\n');
+}
+/* ---------- Kotlin ---------- */
+function kotlinPrim(v){
+  if(v === null) return 'Any?';
+  if(typeof v === 'string') return 'String';
+  if(typeof v === 'number') return Number.isInteger(v) ? 'Int' : 'Double';
+  if(typeof v === 'boolean') return 'Boolean';
+  return 'Any';
+}
+function kotlinFieldType(v, tname){
+  if(Array.isArray(v)) return v.length ? 'List<' + kotlinFieldType(v[0], tname) + '>' : 'List<Any>';
+  if(jcObj(v)) return tname;
+  return kotlinPrim(v);
+}
+function kotlinBody(obj, typeName){
+  var used = {}, keys = Object.keys(obj), lines = ['data class ' + typeName + '('];
+  keys.forEach(function(k, i){
+    var f = jcUniq(jcIdent(k, 'camel'), used);
+    lines.push('    val ' + f + ': ' + kotlinFieldType(obj[k], jcSubName(typeName, k)) + (i < keys.length - 1 ? ',' : '') + jcNote(f, k));
   });
   lines.push(')');
-  const subs = [];
-  collectKotlinSubs(obj, capitalize(name), subs);
-  return lines.join('\n') + (subs.length ? '\n\n' + subs.join('\n\n') : '');
+  return lines.join('\n');
 }
-function collectKotlinSubs(obj, parentName, subs){
-  if(typeof obj !== 'object' || obj === null) return;
-  if(Array.isArray(obj)){ if(obj.length && typeof obj[0] === 'object') collectKotlinSubs(obj[0], parentName + 'Item', subs); return; }
-  for(const [k, v] of Object.entries(obj)){
-    const subName = parentName + capitalize(k);
-    if(Array.isArray(v)){
-      if(v.length && typeof v[0] === 'object' && v[0] !== null){
-        subs.push(toKotlin(v[0], subName + 'Item'));
-        collectKotlinSubs(v[0], subName + 'Item', subs);
-      }
-    } else if(typeof v === 'object' && v !== null){
-      subs.push(toKotlin(v, subName));
-      collectKotlinSubs(v, subName, subs);
-    }
+function toKotlin(obj, name){
+  var root = capitalize(jcRoot(name)), subs = [], head;
+  if(obj === null) return jcNull();
+  if(Array.isArray(obj)){
+    if(!obj.length) head = 'typealias ' + root + ' = List<Any>';
+    else if(jcObj(obj[0])){
+      head = 'typealias ' + root + ' = List<' + root + 'Item>';
+      subs.push({ name: root + 'Item', obj: obj[0] });
+      jcSubs(obj[0], root + 'Item', subs, {});
+    } else head = 'typealias ' + root + ' = List<' + kotlinPrim(jcElem(obj)) + '>';
+  } else if(!jcObj(obj)){
+    head = 'typealias ' + root + ' = ' + kotlinPrim(obj);
+  } else {
+    head = kotlinBody(obj, root);
+    jcSubs(obj, root, subs, {});
   }
+  return head + (subs.length ? '\n\n' + subs.map(function(s){ return kotlinBody(s.obj, s.name); }).join('\n\n') : '');
 }
-function kotlinType(v, name){
-  if(v === null) return 'Any?';
-  switch(typeof v){
-    case 'string': return 'String';
-    case 'number': return Number.isInteger(v) ? 'Int' : 'Double';
-    case 'boolean': return 'Boolean';
-    case 'object':
-      if(Array.isArray(v)){
-        if(v.length === 0) return 'List<Any>';
-        return `List<${kotlinType(v[0], name)}>`;
-      }
-      return capitalize(name);
-  }
-  return 'Any';
-}
-function toRust(obj, name){
-  const lines = ['use serde::{Serialize, Deserialize};', '', '#[derive(Debug, Serialize, Deserialize)]', `pub struct ${capitalize(name)} {`];
-  for(const [k, v] of Object.entries(obj)){
-    lines.push(`    pub ${k}: ${rustType(v, capitalize(name) + capitalize(k))},`);
-  }
-  lines.push('}');
-  const subs = [];
-  collectRustSubs(obj, capitalize(name), subs);
-  return lines.join('\n') + (subs.length ? '\n\n' + subs.join('\n\n') : '');
-}
-function collectRustSubs(obj, parentName, subs){
-  if(typeof obj !== 'object' || obj === null) return;
-  if(Array.isArray(obj)){ if(obj.length && typeof obj[0] === 'object') collectRustSubs(obj[0], parentName + 'Item', subs); return; }
-  for(const [k, v] of Object.entries(obj)){
-    const subName = parentName + capitalize(k);
-    if(Array.isArray(v)){
-      if(v.length && typeof v[0] === 'object' && v[0] !== null){
-        subs.push(toRust(v[0], subName + 'Item'));
-        collectRustSubs(v[0], subName + 'Item', subs);
-      }
-    } else if(typeof v === 'object' && v !== null){
-      subs.push(toRust(v, subName));
-      collectRustSubs(v, subName, subs);
-    }
-  }
-}
-function rustType(v, name){
+/* ---------- Rust ---------- */
+function rustPrim(v){
   if(v === null) return 'Option<serde_json::Value>';
-  switch(typeof v){
-    case 'string': return 'String';
-    case 'number': return Number.isInteger(v) ? 'i64' : 'f64';
-    case 'boolean': return 'bool';
-    case 'object':
-      if(Array.isArray(v)){
-        if(v.length === 0) return 'Vec<serde_json::Value>';
-        return `Vec<${rustType(v[0], name)}>`;
-      }
-      return capitalize(name);
-  }
+  if(typeof v === 'string') return 'String';
+  if(typeof v === 'number') return Number.isInteger(v) ? 'i64' : 'f64';
+  if(typeof v === 'boolean') return 'bool';
   return 'serde_json::Value';
 }
-function toPython(obj, name){
-  const lines = [`from typing import List, Optional`, `from pydantic import BaseModel`, '', `class ${capitalize(name)}(BaseModel):`];
-  const entries = Object.entries(obj);
-  if(entries.length === 0) lines.push('    pass');
-  else entries.forEach(([k, v]) => {
-    lines.push(`    ${k}: ${pyType(v, capitalize(name) + capitalize(k))}`);
+function rustFieldType(v, tname){
+  if(Array.isArray(v)) return v.length ? 'Vec<' + rustFieldType(v[0], tname) + '>' : 'Vec<serde_json::Value>';
+  if(jcObj(v)) return tname;
+  return rustPrim(v);
+}
+function rustBody(obj, typeName){
+  var used = {}, lines = ['#[derive(Debug, Serialize, Deserialize)]', 'pub struct ' + typeName + ' {'];
+  Object.keys(obj).forEach(function(k){
+    var f = jcUniq(jcIdent(k, 'snake'), used);
+    if(f !== k) lines.push('    #[serde(rename = "' + k + '")]');
+    lines.push('    pub ' + f + ': ' + rustFieldType(obj[k], jcSubName(typeName, k)) + ',');
   });
-  const subs = [];
-  collectPySubs(obj, capitalize(name), subs);
-  return lines.join('\n') + (subs.length ? '\n\n' + subs.join('\n\n') : '');
+  lines.push('}');
+  return lines.join('\n');
 }
-function collectPySubs(obj, parentName, subs){
-  if(typeof obj !== 'object' || obj === null) return;
-  if(Array.isArray(obj)){ if(obj.length && typeof obj[0] === 'object') collectPySubs(obj[0], parentName + 'Item', subs); return; }
-  for(const [k, v] of Object.entries(obj)){
-    const subName = parentName + capitalize(k);
-    if(Array.isArray(v)){
-      if(v.length && typeof v[0] === 'object' && v[0] !== null){
-        subs.push(toPython(v[0], subName + 'Item'));
-        collectPySubs(v[0], subName + 'Item', subs);
-      }
-    } else if(typeof v === 'object' && v !== null){
-      subs.push(toPython(v, subName));
-      collectPySubs(v, subName, subs);
-    }
+function toRust(obj, name){
+  var root = capitalize(jcRoot(name)), subs = [], head;
+  if(obj === null) return jcNull();
+  if(Array.isArray(obj)){
+    if(!obj.length) head = 'pub type ' + root + ' = Vec<serde_json::Value>;';
+    else if(jcObj(obj[0])){
+      head = 'pub type ' + root + ' = Vec<' + root + 'Item>;';
+      subs.push({ name: root + 'Item', obj: obj[0] });
+      jcSubs(obj[0], root + 'Item', subs, {});
+    } else head = 'pub type ' + root + ' = Vec<' + rustPrim(jcElem(obj)) + '>;';
+  } else if(!jcObj(obj)){
+    head = 'pub type ' + root + ' = ' + rustPrim(obj) + ';';
+  } else {
+    head = rustBody(obj, root);
+    jcSubs(obj, root, subs, {});
   }
+  var out = ['use serde::{Serialize, Deserialize};', '', head];
+  subs.forEach(function(s){ out.push(''); out.push(rustBody(s.obj, s.name)); });
+  return out.join('\n');
 }
-function pyType(v, name){
+/* ---------- Python ---------- */
+function pyPrim(v){
   if(v === null) return 'Optional[Any] = None';
-  switch(typeof v){
-    case 'string': return 'str';
-    case 'number': return Number.isInteger(v) ? 'int' : 'float';
-    case 'boolean': return 'bool';
-    case 'object':
-      if(Array.isArray(v)){
-        if(v.length === 0) return 'List[Any] = []';
-        return `List[${pyType(v[0], name)}]`;
-      }
-      return capitalize(name);
-  }
+  if(typeof v === 'string') return 'str';
+  if(typeof v === 'number') return Number.isInteger(v) ? 'int' : 'float';
+  if(typeof v === 'boolean') return 'bool';
   return 'Any';
 }
-function toProto(obj, name){
-  const lines = [`syntax = "proto3";`, '', `message ${capitalize(name)} {`];
-  let idx = 1;
-  const subs = [];
-  const collect = (o, parentName) => {
-    if(typeof o !== 'object' || o === null) return;
-    if(Array.isArray(o)){ if(o.length && typeof o[0] === 'object') collect(o[0], parentName + 'Item'); return; }
-    for(const [k, v] of Object.entries(o)){
-      const subName = parentName + capitalize(k);
-      if(Array.isArray(v)){
-        if(v.length && typeof v[0] === 'object' && v[0] !== null){
-          subs.push(toProto(v[0], subName + 'Item'));
-          collect(v[0], subName + 'Item');
-          lines.push(`  repeated ${capitalize(subName)}Item ${k} = ${idx++};`);
-        } else {
-          lines.push(`  repeated ${protoType(v[0])} ${k} = ${idx++};`);
-        }
-      } else if(typeof v === 'object' && v !== null){
-        subs.push(toProto(v, subName));
-        collect(v, subName);
-        lines.push(`  ${capitalize(subName)} ${k} = ${idx++};`);
-      } else {
-        lines.push(`  ${protoType(v)} ${k} = ${idx++};`);
-      }
-    }
-  };
-  collect(obj, capitalize(name));
-  lines.push('}');
-  return lines.join('\n') + (subs.length ? '\n\n' + subs.join('\n\n') : '');
+function pyFieldType(v, tname){
+  if(Array.isArray(v)) return v.length ? 'List[' + pyFieldType(v[0], tname) + ']' : 'List[Any] = []';
+  if(jcObj(v)) return tname;
+  return pyPrim(v);
 }
-function protoType(v){
-  if(v === null) return 'google.protobuf.Value';
-  switch(typeof v){
-    case 'string': return 'string';
-    case 'number': return Number.isInteger(v) ? 'int32' : 'double';
-    case 'boolean': return 'bool';
+function pyBody(obj, typeName){
+  var used = {}, keys = Object.keys(obj), lines = ['class ' + typeName + '(BaseModel):'];
+  if(!keys.length) lines.push('    pass');
+  else keys.forEach(function(k){
+    var f = jcUniq(jcIdent(k, 'raw'), used);
+    lines.push('    ' + f + ': ' + pyFieldType(obj[k], jcSubName(typeName, k)) + jcNote(f, k, '#'));
+  });
+  return lines.join('\n');
+}
+function toPython(obj, name){
+  var root = capitalize(jcRoot(name)), subs = [], head;
+  if(obj === null) return jcNull();
+  if(Array.isArray(obj)){
+    if(!obj.length) head = root + ' = List[Any]';
+    else if(jcObj(obj[0])){
+      head = root + ' = List[' + root + 'Item]';
+      subs.push({ name: root + 'Item', obj: obj[0] });
+      jcSubs(obj[0], root + 'Item', subs, {});
+    } else head = root + ' = List[' + pyPrim(jcElem(obj)) + ']';
+  } else if(!jcObj(obj)){
+    head = root + ' = ' + pyPrim(obj);
+  } else {
+    head = pyBody(obj, root);
+    jcSubs(obj, root, subs, {});
   }
+  var out = ['from typing import Any, List, Optional', 'from pydantic import BaseModel', '', head];
+  subs.forEach(function(s){ out.push(''); out.push(pyBody(s.obj, s.name)); });
+  return out.join('\n');
+}
+/* ---------- Protobuf ---------- */
+function protoPrim(v){
+  if(v === null) return 'google.protobuf.Value';
+  if(typeof v === 'string') return 'string';
+  if(typeof v === 'number') return Number.isInteger(v) ? 'int32' : 'double';
+  if(typeof v === 'boolean') return 'bool';
   return 'google.protobuf.Value';
 }
-function capitalize(s){ return s.charAt(0).toUpperCase() + s.slice(1); }
+function protoFieldType(v, tname){
+  if(jcObj(v)) return tname;
+  return protoPrim(v);
+}
+function protoBody(obj, typeName){
+  var used = {}, idx = 1, lines = ['message ' + typeName + ' {'];
+  Object.keys(obj).forEach(function(k){
+    var f = jcUniq(jcIdent(k, 'snake'), used);
+    var v = obj[k], t = protoFieldType(jcElem(v), jcSubName(typeName, k));
+    lines.push('  ' + (Array.isArray(v) ? 'repeated ' : '') + t + ' ' + f + ' = ' + (idx++) + ';');
+  });
+  lines.push('}');
+  return lines.join('\n');
+}
+function toProto(obj, name){
+  var root = capitalize(jcRoot(name)), subs = [], head;
+  if(obj === null) return jcNull();
+  if(Array.isArray(obj)){
+    if(!obj.length) head = 'message ' + root + ' {\n}';
+    else if(jcObj(obj[0])){
+      head = 'message ' + root + ' {\n  repeated ' + root + 'Item items = 1;\n}';
+      subs.push({ name: root + 'Item', obj: obj[0] });
+      jcSubs(obj[0], root + 'Item', subs, {});
+    } else head = 'message ' + root + ' {\n  repeated ' + protoPrim(jcElem(obj)) + ' items = 1;\n}';
+  } else if(!jcObj(obj)){
+    head = 'message ' + root + ' {\n  ' + protoPrim(obj) + ' value = 1;\n}';
+  } else {
+    head = protoBody(obj, root);
+    jcSubs(obj, root, subs, {});
+  }
+  var out = ['syntax = "proto3";', '', head];
+  subs.forEach(function(s){ out.push(''); out.push(protoBody(s.obj, s.name)); });
+  return out.join('\n');
+}
+function capitalize(s){ return String(s).charAt(0).toUpperCase() + String(s).slice(1); }
 function escapeHtml(s){ return String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
 function highlight(code, lang){
   let html = escapeHtml(code);
