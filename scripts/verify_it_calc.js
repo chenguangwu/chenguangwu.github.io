@@ -1216,6 +1216,14 @@ const CASES = [
     ref: "A→11、B→12 的方格坐标拼接，随输入变化；默认示例对应其它坐标，不命中。",
   },
   {
+    // IT-N346 回归：5×5 网格外字符（数字/标点）不得静默丢弃，必须回显跳过数量。
+    slug: "it/polybius-cipher",
+    inputs: { input: "AB1" },
+    clicks: ["enc()"],
+    expect: ["已跳过 1 个无法编码的字符（5×5 网格外）：1"],
+    ref: "IT-N346：`1` 在 5×5 网格外，修复前 `findInGrid` 返回 -1 直接 continue、字符静默消失（AB1→`11 12`，往返得到 AB）；修复后结果区追加提示「已跳过 1 个…：1」。默认示例纯字母 ⇒ 无该提示，强判别。",
+  },
+  {
     slug: "it/xor-cipher",
     inputs: { input: "AB", key: "XY" },
     clicks: ["process()"],
@@ -1515,6 +1523,14 @@ const CASES = [
     clicks: ["enc()"],
     expect: ["begin 644 file.txt #04)# ` end"],
     ref: "uuencode 头（begin 644 文件名）＋ 编码体 ＋ 结束行 end，随输入体变化；默认语料长度不同。",
+  },
+  {
+    // IT-N344 回归：RFC 未强制 begin 头，纯数据段（从邮件/工具截取）必须能解出内容。
+    slug: "it/uuencode",
+    inputs: { input: "&6F%P<&5R\n`\nend" },
+    clicks: ["dec()"],
+    expect: ["Zapper"],
+    ref: "IT-N344：`&6F%P<&5R` 是 Zapper 的 uuencode 体（长度字节 `&`=6，两组 6-bit：22/38/5/48 → `6F%P`，28/6/21/50 → `<&5R`，手算可复算）。无 begin 头时修复前整段被跳过、输出空串；修复后按数据行解析出 Zapper。默认样例是编码后的其它文本不是合法数据段 ⇒ 不命中。",
   },
   {
     slug: "it/css-minify",
@@ -2978,6 +2994,14 @@ const CASES = [
     clicks: ["enc()"],
     expect: ["0G4Y+"],
     ref: "独立复算（无头模式）：2 字节 ⇒ 长度字节 `0`（值 2）+ 三段 6-bit 字符（18→`G`、6→`4`、36→`Y`）+ `+` 结束符 ⇒ `0G4Y+`。默认样例内容不同。",
+  },
+  {
+    // IT-N347 回归：文本里带 begin 头时，即便「包含 begin/end 头」未勾选也必须跳过该行。
+    slug: "it/xxencode",
+    inputs: { input: "begin 644 z.txt\n4Ka3kQ4Jm\n+\nend" },
+    clicks: ["dec()"],
+    expect: ["Zapper"],
+    ref: "IT-N347：`4Ka3kQ4Jm` 是 Zapper 的 xxencode 体（长度字符 `4`=6，两组索引 22/38/5/48 → `Ka3k`、28/6/21/50 → `Q4Jm`）。默认未勾选头时修复前会把 `begin 644 z.txt` 当数据行解出脏字节且正文错位；修复后无条件跳过头行、正确解出 Zapper。",
   },
   {
     slug: "it/rc4",

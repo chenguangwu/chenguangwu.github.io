@@ -316,9 +316,10 @@ function enc(){
   const sep = document.getElementById('sep').value;
   const grid = getGrid();
   const parts = [];
+  const skipped = [];
   for(const ch of text){
     const idx = findInGrid(grid, ch);
-    if(idx === -1) continue;
+    if(idx === -1){ skipped.push(ch); continue; }
     const row = Math.floor(idx / 5) + 1;
     const col = (idx % 5) + 1;
     let code;
@@ -328,6 +329,21 @@ function enc(){
     parts.push(code);
   }
   document.getElementById('output').value = parts.join(sep);
+  // IT-N346：5×5 网格外的字符不再静默丢弃（空格按传统规则允许略过，不提示）。
+  // 提示挂在 gridBox 里、用固定 id 去重，重复点「编码」不会累积。
+  const lost = skipped.filter(function(c){ return c.trim() !== ''; });
+  const gb = document.getElementById('gridBox');
+  if(gb && typeof gb.innerHTML === 'string'){
+    let note = '';
+    if(lost.length){
+      const uniq = lost.filter(function(c,i){ return lost.indexOf(c) === i; });
+      const safe = uniq.join(' ').replace(/[&<>"']/g, function(c){
+        return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
+      });
+      note = '<p id="__polyLost" style="margin:6px 0 0;color:var(--danger);font-size:13px;">⚠ 已跳过 ' + lost.length + ' 个无法编码的字符（5×5 网格外）：' + safe + '</p>';
+    }
+    gb.innerHTML = String(gb.innerHTML).replace(/<p id="__polyLost"[\s\S]*?<\/p>/g, '') + note;
+  }
 }
 
 function dec(){

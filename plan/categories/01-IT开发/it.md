@@ -2337,27 +2337,6 @@
 - 影响：默认配置下订单号、身份证、手机号、带前导零的编码被静默改坏，复制出去即数据事故。
 - 方案：仅当 `Number.isSafeInteger(Number(val))` 且匹配 `/^-?(0|[1-9]\d*)(\.\d+)?$/`（无前导零、无千分位）时才转数字；或默认关闭并提示风险。
 
-### IT-N344 uuencode 反转义强制要求 `begin` 头，合法数据静默输出空（中，确认缺陷）
-- 问题：`decodeUu` 以 `started=false` 起步，只有匹配到 `begin <权限> <文件名>` 才置真，否则所有数据行都被跳过，且无报错。
-- 证据：`tools/it/uuencode.html:276-277`
-- 复现：粘贴仅含数据行 + `end` 的 uuencode 编码（RFC 未强制头行）→ 实际输出空字符串、无提示；期望按数据行解析或明确报错「缺少 begin 头」。
-- 影响：从邮件/工具中截取的纯数据段无法解码，用户误以为内容损坏。
-- 方案：未找到 `begin` 行时按首字符长度解析（与 `xxencode` 页行为一致），或 alert 说明缺失头行。
-
-
-### IT-N346 polybius-cipher 编码静默丢弃 5×5 网格外字符（中，确认缺陷）
-- 问题：`findInGrid` 返回 -1 时直接 `continue`，数字、标点、非拉丁字符全部消失且无提示。
-- 证据：`tools/it/polybius-cipher.html:321`
-- 复现：输入 `AB1` → 实际 `1112`（"1" 被丢弃），再解码回 `AB`；期望保留标记或明确拒绝不可编码字符。
-- 影响：含数字/标点的明文加密后信息丢失，往返不一致。
-- 方案：统计并提示不可编码字符（alert/状态行），或提供含数字的 6×6 网格选项。
-
-### IT-N347 xxencode 未勾选「包含 begin/end 头」时把 header 行当数据行解码（中，确认缺陷）
-- 问题：`started = !withHeader.checked`，默认未勾选即视为纯数据；粘贴含 `begin 644 file.txt` 的标准全文时，该行首字符 `b` 命中字母表（长度=38），被当数据行解码。
-- 证据：`tools/it/xxencode.html:277`、`:289`
-- 复现：默认状态粘贴含 `begin 644 file.txt` 的完整 xxencode 文本 → 实际输出前几字节乱码（header 被部分解码），无提示；期望无条件识别并跳过 `begin` 行。
-- 影响：解码外部 xxencode 文件时静默产生脏数据。
-- 方案：解码前无条件匹配 `^begin\s+\d+\s+\S*` 并跳过；勾选项仅控制是否解析尾部 `+`/`end`。
 
 ## T 批 IT 第 2 轮覆盖（2026-11-04）
 - 本轮审计 24 页：`binary-encode`、`baudot-code`、`c-string-escape`、`xxencode`、`uuencode`、`quoted-printable`、`html-entity-encoder`、`html-escape`、`js-escape`、`java-escape`、`go-escape`、`php-escape`、`rust-escape`、`sql-escape`、`css-escape`、`python-escape`、`text-to-binary`、`text-to-decimal`、`text-to-hex`、`text-to-octal`、`rot-cipher`、`xor-cipher`、`polybius-cipher`、`json-to-tsv`（均为 `tools/it/<slug>.html`）。
