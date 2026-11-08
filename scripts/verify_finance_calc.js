@@ -3119,6 +3119,12 @@ const CASES = [
   {
     slug: "finance/mutual-fund-calculator",
     inputs: { initial: "10000", monthly: "1000", years: "1", rate: "-50" },
+    expect: [" -32.23% 累计收益率"],
+    ref: "F-N44 双负号修复：亏损时累计收益率 −32.23% 只应有一个负号（旧实现 profitSign 复用到已是负值的 totalReturn，卡片显示「--32.23%」）。statGrid 速率卡断言「 -32.23% 累计收益率」（前导空格保证不与「--32.23%」子串误配）。默认盈利态不含该负收益率串 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/mutual-fund-calculator",
+    inputs: { initial: "10000", monthly: "1000", years: "1", rate: "-50" },
     expect: ["-¥7,090.43"],
     ref: "F-N44：同组输入的费用/收益明细行按两位小数展示 −¥7,090.43；旧实现丢负号显示 ¥7,090.43。",
   },
