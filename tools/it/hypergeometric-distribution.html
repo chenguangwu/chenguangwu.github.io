@@ -268,6 +268,18 @@ function fmt(x){
   if(Math.abs(x)>1e15||Math.abs(x)<1e-6) return x.toExponential(8);
   return (Math.round(x*1e10)/1e10).toLocaleString();
 }
+// IT-N373：C(10000,5000) ≈ 1e3009，exp() 还原必然 Infinity ⇒ 步骤里改成 e^x 形式，不再显示「未定义」
+function combInfo(n,k){
+  const lg=logComb(n,k);
+  if(!isFinite(lg)) return {ln:0, over:true, txt:'0'};
+  const over = lg > 700;                 // e^700 ≈ 1.01e304，已逼近 MAX_VALUE 1.8e308
+  return {ln:lg, over:over, txt: over ? ('≈ e^'+lg.toFixed(2)) : fmt(Math.round(Math.exp(lg)))};
+}
+function lnTxt(x){
+  if(x===-Infinity) return '−∞';
+  if(!isFinite(x)) return '—';
+  return x.toFixed(4);
+}
 function logComb(n,k){
   if(k<0||k>n) return -Infinity;
   if(k===0||k===n) return 0;
@@ -301,7 +313,9 @@ function calculate(){
   const pGe=1-pLt;
   const pGt=1-pLe;
   const mean=n*K/N;
-  const variance=n*(K/N)*((N-K)/N)*((N-n)/(N-1));
+  // IT-N372：有限总体校正因子 (N−n)/(N−1) 在 N=1 时是 0/0；N=1 时总体唯一、无抽样波动，方差恒为 0
+  const fpc = (N>1) ? (N-n)/(N-1) : 0;
+  const variance=n*(K/N)*((N-K)/N)*fpc;
   const sd=Math.sqrt(Math.max(0,variance));
   let html=`<div class="big-result">P(X = ${k}) = ${fmt(pEq)}</div>`;
   html+=`<div class="stat-grid">
@@ -314,10 +328,15 @@ function calculate(){
     <div class="stat-card"><div class="v">${fmt(sd)}</div><div class="l">标准差</div></div>
   </div>`;
   html+=`<h3 style="margin-top:14px;">分步计算</h3>`;
-  html+=`<div class="step-line"><strong>步骤 1：</strong>C(K, k) = C(${K}, ${k}) = ${fmt(Math.round(Math.exp(logComb(K,k))))}</div>`;
-  html+=`<div class="step-line"><strong>步骤 2：</strong>C(N−K, n−k) = C(${N-K}, ${n-k}) = ${fmt(Math.round(Math.exp(logComb(N-K,n-k))))}</div>`;
-  html+=`<div class="step-line"><strong>步骤 3：</strong>C(N, n) = C(${N}, ${n}) = ${fmt(Math.round(Math.exp(logComb(N,n))))}</div>`;
-  html+=`<div class="step-line"><strong>步骤 4：</strong>P = ${fmt(Math.round(Math.exp(logComb(K,k))))} × ${fmt(Math.round(Math.exp(logComb(N-K,n-k))))} / ${fmt(Math.round(Math.exp(logComb(N,n))))} = ${fmt(pEq)}</div>`;
+  const cb1=combInfo(K,k), cb2=combInfo(N-K,n-k), cb3=combInfo(N,n);
+  html+=`<div class="step-line"><strong>步骤 1：</strong>C(K, k) = C(${K}, ${k}) = ${cb1.txt}</div>`;
+  html+=`<div class="step-line"><strong>步骤 2：</strong>C(N−K, n−k) = C(${N-K}, ${n-k}) = ${cb2.txt}</div>`;
+  html+=`<div class="step-line"><strong>步骤 3：</strong>C(N, n) = C(${N}, ${n}) = ${cb3.txt}</div>`;
+  if(cb1.over||cb2.over||cb3.over){
+    html+=`<div class="step-line"><strong>步骤 4：</strong>P = exp(lnC₁ + lnC₂ − lnC₃) = exp(${lnTxt(cb1.ln)} + ${lnTxt(cb2.ln)} − ${lnTxt(cb3.ln)}) = ${fmt(pEq)}</div>`;
+  }else{
+    html+=`<div class="step-line"><strong>步骤 4：</strong>P = ${cb1.txt} × ${cb2.txt} / ${cb3.txt} = ${fmt(pEq)}</div>`;
+  }
   html+=`<div class="step-line"><strong>例子解读：</strong>从 N=${N} 个物品（其中 K=${K} 个目标）中无放回抽 n=${n} 个，恰好抽中 k=${k} 个目标的概率为 ${(pEq*100).toFixed(4)}%</div>`;
   const __h4=html;if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h4;
 }
