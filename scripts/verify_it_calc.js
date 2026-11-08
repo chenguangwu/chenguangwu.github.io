@@ -4757,8 +4757,20 @@ const CASES = [
   {
     "slug": "it/json-repair",
     "inputs": { "src": "{'name': 'probe', 'n': 2,}" },
-    "expect": ["\"name\":\"probe\",\"n\": 2"],
-    "ref": "JSON 修复：注入单引号键/值 + 尾随逗号的非法 JSON，修复后应为双引号形式 `{\"name\":\"probe\",\"n\": 2}`（逗号被去掉）。expect 取带双引号的键，而输入是单引号 ⇒ 天然不是输入回显。⚠️ 不用 `✅ JSON 合法` 作锚：默认样例修复后同样合法，判别力为零。"
+    "expect": ["\"name\": \"probe\", \"n\": 2"],
+    "ref": "JSON 修复：注入单引号键/值 + 尾随逗号的非法 JSON，修复后应为双引号形式 `{\"name\": \"probe\", \"n\": 2}`（尾逗号被去掉、原有空白原样保留）。expect 取带双引号的键，而输入是单引号 ⇒ 天然不是输入回显。⚠️ 不用 `✅ JSON 合法` 作锚：默认样例修复后同样合法，判别力为零。"
+  },
+  {
+    "slug": "it/json-repair",
+    "inputs": { "src": "{'u':'https://example.com/api','p':'P/*x*/Q',}" },
+    "expect": ["\"u\":\"https://example.com/api\",\"p\":\"P/*x*/Q\""],
+    "ref": "IT-N352：字符串内的 `//` 与 `/* */` 不是注释，绝不能删。修复前 `repair()` 先做全局正则删注释，`https://...` 被截成 `https:`、`P/*x*/Q` 被掏成 `PQ` 并静默判「合法」。现在改为字符串状态机 + 合法 JSON 提前返回。expect 用双引号形态（输入是单引号），且要求 URL 与 `/*x*/` 均完整 ⇒ 修复前必红灯。"
+  },
+  {
+    "slug": "it/json-repair",
+    "inputs": { "src": "{probeKey:7,flag:true}" },
+    "expect": ["\"probeKey\":7,\"flag\":true"],
+    "ref": "IT-N353：文档表格承诺「键无引号 → 补双引号」，修复前无此规则（结果仍 `{probeKey:7}` 判不合法）。expect 为补好引号后的形态，输入无引号 ⇒ 非回显；修复前输出不含 `\"probeKey\"` ⇒ 必红灯。"
   },
   {
     "slug": "it/toml-to-xml",

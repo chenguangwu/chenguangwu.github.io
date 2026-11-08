@@ -159,7 +159,7 @@ s.parentNode.insertBefore(el, s);
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
         <li>修复器会移除 /* */ 与 // 注释、把单引号键/值转成双引号、删除对象/数组尾随的逗号，覆盖大多数复制粘贴造成的错误。</li>
-        <li>修复是启发式的：若结构本身严重损坏（缺括号、键名无引号且非数字），仍可能失败，请对照错误提示手动修正。</li>
+        <li>修复是启发式的：若结构本身严重损坏（缺少括号或引号未闭合），仍可能失败，请对照错误提示手动修正；字符串内容（URL、正则、含 <code>//</code> 的文案）不会被当作注释删除。</li>
         <li>处理敏感数据时请在本地完成，不要上传到第三方修复网站。</li>
   </ul>
 </div>
@@ -212,13 +212,96 @@ function num(id){const v=parseFloat(document.getElementById(id).value);return is
 function escH(s){var d=document.createElement('div');const __g1=s==null?'':String(s);d.textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){var raw=document.getElementById('src').value;
+// IT-N352：字符串状态机。以下四个辅助函数都逐字符扫描并跟踪「当前是否在字符串内」，
+// 保证 `"https://x"`、`"P/*x*/Q"` 这类字符串内容不会被当成注释/尾逗号误伤。
+function jrSkipString(s,i){
+  // i 指向开引号，返回闭合引号之后的下标（不闭合则返回 len）
+  var n=s.length,q=s[i],j=i+1;
+  while(j<n){
+    var c=s[j];
+    if(c==='\\'){j+=2;continue;}
+    if(c===q){return j+1;}
+    j++;
+  }
+  return n;
+}
+function jrStripComments(s){
+  var out='',i=0,n=s.length;
+  while(i<n){
+    var ch=s[i];
+    if(ch==='"'||ch==="'"){var e=jrSkipString(s,i);out+=s.slice(i,e);i=e;continue;}
+    if(ch==='/'&&s[i+1]==='*'){var e1=s.indexOf('*/',i+2);i=(e1<0)?n:e1+2;continue;}
+    if(ch==='/'&&s[i+1]==='/'){var e2=s.indexOf('\n',i+2);i=(e2<0)?n:e2;continue;}
+    out+=ch;i++;
+  }
+  return out;
+}
+function jrNormalizeQuotes(s){
+  var out='',i=0,n=s.length;
+  while(i<n){
+    var ch=s[i];
+    if(ch==='"'){var e=jrSkipString(s,i);out+=s.slice(i,e);i=e;continue;}
+    if(ch==="'"){
+      // 单引号串转双引号：内部的 " 需转义，\' 还原为 '
+      out+='"';i++;
+      while(i<n){
+        var c=s[i];
+        if(c==='\\'){
+          var nx=s[i+1];
+          if(nx==="'"){out+="'";i+=2;continue;}
+          if(nx==='"'){out+='\\"';i+=2;continue;}
+          out+=c;if(i+1<n)out+=s[i+1];i+=2;continue;
+        }
+        if(c==='"'){out+='\\"';i++;continue;}
+        if(c==="'"){out+='"';i++;break;}
+        out+=c;i++;
+      }
+      continue;
+    }
+    out+=ch;i++;
+  }
+  return out;
+}
+function jrQuoteBareKeys(s){
+  // IT-N353：为 `{a:1}` 这类无引号键补双引号，只在字符串外、且紧跟在 { 或 , 之后生效
+  var out='',i=0,n=s.length,last='';
+  while(i<n){
+    var ch=s[i];
+    if(ch==='"'){var e=jrSkipString(s,i);out+=s.slice(i,e);i=e;last='"';continue;}
+    if(/\s/.test(ch)){out+=ch;i++;continue;}
+    if((last==='{'||last===',')&&/[A-Za-z_$]/.test(ch)){
+      var j=i,id='';
+      while(j<n&&/[A-Za-z0-9_$]/.test(s[j])){id+=s[j];j++;}
+      var k=j;
+      while(k<n&&/\s/.test(s[k]))k++;
+      if(s[k]===':'){out+='"'+id+'"';i=j;last='"';continue;}
+    }
+    out+=ch;last=ch;i++;
+  }
+  return out;
+}
+function jrStripTrailingCommas(s){
+  var out='',i=0,n=s.length;
+  while(i<n){
+    var ch=s[i];
+    if(ch==='"'){var e=jrSkipString(s,i);out+=s.slice(i,e);i=e;continue;}
+    if(ch===','){
+      var k=i+1;
+      while(k<n&&/\s/.test(s[k]))k++;
+      if(s[k]==='}'||s[k]===']'){i++;continue;}
+    }
+    out+=ch;i++;
+  }
+  return out;
+}
 function repair(s){
-  s=s.replace(/\/\*[\s\S]*?\*\//g,'');
-  s=s.replace(/\/\/[^\n]*/g,'');
-  s=s.replace(/([\{,\[\:])\s*'([^']+)'\s*:/g,'$1"$2":');
-  s=s.replace(/:\s*'([^']*)'/g,':"$1"');
-  s=s.replace(/,(\s*[\}\]])/g,'$1');
-  return s;
+  // 已经是合法 JSON 就原样返回，绝不改写（避免任何静默改值）
+  try{JSON.parse(s);return s;}catch(_e0){}
+  var t=jrStripComments(s);
+  t=jrNormalizeQuotes(t);
+  t=jrQuoteBareKeys(t);
+  t=jrStripTrailingCommas(t);
+  return t;
 }
 var fixed=repair(raw);
 var ok=true,err='';
