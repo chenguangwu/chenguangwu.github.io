@@ -161,6 +161,12 @@ const CASES = [
     ref: "D-N7 残留（远点边界）：H=24²/(8×0.03)=2400mm，H+f=2424mm；s=2.41m=2410mm < H+f ⇒ 远点应有限。旧实现用 s<h（2410<2400 否）误判远点=∞；修复后远点 = H·s/(H−(s−f)) = 2400×2410/(2400−2386) = 413142.9mm → 413.14m。断言远点卡「413.14m」（默认 50mm/f1.8/2m 得 2.08m 末尾不同 ⇒ 不命中）。",
   },
   {
+    slug: "design/depth-of-field-calculator",
+    inputs: { sensor: "2.7", focal: "50", aperture: "1.8", distance: "2" },
+    expect: ["126.3m"],
+    ref: "D-N6：1英寸画幅（sensor=2.7）CoC=0.011mm，超焦距 H=f²/(N·c)=50²/(1.8×0.011)=126262.6mm → 126.3m（超焦距卡显示一位小数）。旧实现 1英寸与全画幅 value 同为 1，选 1英寸仍按 c=0.03 算得 46.3m；修复后独立 value=2.7 命中 coc[2.7]=0.011。全画幅(sensor=1)仍得 46.3m、APS-C(1.5)得 84.2m，互不相同可判别。",
+  },
+  {
     slug: "design/focal-length-equivalent",
     inputs: { focal: "35", fromSensor: "fullframe", toSensor: "aps-c" },
     expect: ["56.0mm", "35.6° × 24.2°"],
