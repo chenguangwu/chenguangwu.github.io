@@ -7470,6 +7470,84 @@ const CASES = [
     "ref": "IT-N473 回归护栏：不含变音符号的常规输入、下划线分隔符路径前后同绿，确认 NFD 预处理未改写到普通 ASCII / 大小写 / sep 逻辑。"
   },
   {
+    "slug": "it/math-evaluator",
+    "inputs": {
+      "expr": "7%3"
+    },
+    "clicks": [
+      "document.getElementById('expr').value='7%3';calc();var __h=String(document.getElementById('result').innerHTML);document.getElementById('result').textContent='N474 mod73='+(__h.indexOf('>1<')>=0?1:0);"
+    ],
+    "expect": [
+      "N474 mod73=1"
+    ],
+    "ref": "IT-N474：清单点名 7%3。修复前 replace(/(\\d+)\\s*%/g,'($1/100)') 得 (7/100)3 ⇒ SyntaxError；现 % 后跟数字判为取模，保留 JS % 求值得 1。默认表达式结果 1030 以「结果： 1」开头，故用探针读 innerHTML 判 >1< 并写独立串，避开 token 前缀逃生。"
+  },
+  {
+    "slug": "it/math-evaluator",
+    "inputs": {
+      "expr": "10 % 3"
+    },
+    "clicks": [
+      "document.getElementById('expr').value='10 % 3';calc();var __h=String(document.getElementById('result').innerHTML);document.getElementById('result').textContent='N474 mod103='+(__h.indexOf('>1<')>=0?1:0);"
+    ],
+    "expect": [
+      "N474 mod103=1"
+    ],
+    "ref": "IT-N474：带空格的 10 % 3 同样是取模（负 lookahead 允许 % 后有空白再接操作数），修复前得 (10/100) 3 语法错。"
+  },
+  {
+    "slug": "it/math-evaluator",
+    "inputs": {
+      "expr": "17%5"
+    },
+    "clicks": [
+      "calc()"
+    ],
+    "expect": [
+      "结果： 2"
+    ],
+    "ref": "IT-N474：17 mod 5 = 2，结果不以 1 开头可直接断言，验证真实数值而非仅「不报错」。修复前 (17/100)5 语法错。"
+  },
+  {
+    "slug": "it/math-evaluator",
+    "inputs": {
+      "expr": "15%"
+    },
+    "clicks": [
+      "calc()"
+    ],
+    "expect": [
+      "结果： 0.15"
+    ],
+    "ref": "IT-N474 回归护栏：% 后无操作数仍按百分比 → (15/100)=0.15，修复前后同绿，百分比路径不得被取模改造误伤。"
+  },
+  {
+    "slug": "it/math-evaluator",
+    "inputs": {
+      "expr": "50%*120"
+    },
+    "clicks": [
+      "calc()"
+    ],
+    "expect": [
+      "结果： 60"
+    ],
+    "ref": "IT-N474 回归护栏：50%*120 = 0.5×120 = 60，% 后接运算符判为百分比，修复前后同绿。"
+  },
+  {
+    "slug": "it/math-evaluator",
+    "inputs": {
+      "expr": "15.5%"
+    },
+    "clicks": [
+      "calc()"
+    ],
+    "expect": [
+      "结果： 0.155"
+    ],
+    "ref": "IT-N474 顺带修：原正则 (\\d+) 只吃整数部分，15.5% 会变 15.(5/100) 语法错；现 (\\d+(?:\\.\\d+)?) 支持小数百分比。修复前红。"
+  },
+  {
     "slug": "it/kubernetes-cheatsheet",
     "inputs": {
       "searchInput": "abc123测试"

@@ -2848,15 +2848,6 @@
 - 方案：换完整拼音字典（如 `pinyin-pro` 静态引入）或默认改为"保留原字符/URL 编码"；音节间补 `sep`，未命中字显式告警而非静默删除。
 - 假工具：否
 
-### IT-N474 宣称支持取模 `%`，实际任何 `a%b` 都被改写成 `(a/100)b` 并语法报错（中，承诺未实现）
-- 页面：`tools/it/math-evaluator.html`
-- 问题：求值前 `expr.replace(/(\d+)\s*%/g,'($1/100)')`（`:295`）把所有"数字+%"无条件改写为百分比，`%` 从未作为取模运算符保留；而 `<title>`/description（`:8`、`:11`、`:17`）、h2（`:112`）、formula-list（`:120` "取模"）都宣称支持 `%`。
-- 行号：`:295`、`:293`、`:120`、`:112`、`:8`
-- 复现（node 复刻同路径）：`7%3` → 改写为 `(7/100)3`，抛 `SyntaxError: Unexpected number`，页面显示"表达式无效：Unexpected number"；`10%3`、`10 % 3` 同样报错；期望 1 / 1 / 1。`15%` → 0.15、`50%*120` → 60 正确（百分比侧可用）。
-- 影响：SEO 描述与公式说明都教用户用 `%` 取模，一用即"表达式无效"，且无任何提示说 `%` 只能当百分比。
-- 方案：区分取模与百分比（`%` 作取模；百分比要求 `%` 紧跟数字且后接运算符/结束/括号）；或改回取模并另设 `pct()`。
-- 假工具：否
-
 ### IT-N475 历史「复用」按钮的 `onclick` 被 `JSON.stringify` 的双引号截断，点击无任何反应（中，功能失效）
 - 页面：`tools/it/math-evaluator.html`
 - 问题：`renderHist` 把 `JSON.stringify(x.e)`（自带双引号）拼进 `onclick="…value="+JSON.stringify(x.e)+";calc()"`（`:284`），而属性本身用双引号包裹，属性值在表达式开头的 `"` 处提前结束。
@@ -2902,7 +2893,7 @@
 - `vector-cross-product`：IT-N471（高）；无其它高优项（叉积分量正确：`(2,3,4)×(5,6,7)=(−3,6,−3)`）。
 - `vector-magnitude`：IT-N477（中）；无高优缺陷（模长/单位向量公式正确：`|(3,4)|=5`，三维方向角 `acos(vᵢ/|v|)` 正确）。
 - `calc-10`：IT-N469（高，算错）；SHA-1/256/512 经 `TextEncoder` 走 UTF-8，抽验 `中文` 与标准一致。
-- `math-evaluator`：IT-N470（高，安全）、IT-N474（中）、IT-N475（中）。
+- `math-evaluator`：IT-N470（高，安全）、IT-N475（中）。
 - `slug-generator-advanced`：IT-N472（高，承诺未实现）。
 - `keyword-extractor`：IT-N478（中）；无高优缺陷（停用词表实测 183 中文 + 132 英文，标签/表格/图表输出均经 `ToolBox.escHtml`）。
 - 方法声明：逐页通读上述 8 页源码，在 `/tmp` 用 `node` 直接抽取/复刻页面原函数（页面真实 `md5()`、表达式白名单 + `new Function`、叉积夹角、`detRec` + BigInt Bareiss、页面真实 `PINYIN` 表 + `slugify()`、`tokenizeChinese`/`filterKeywords`/`deduplicateSubstrings` + 页面真实停用词表、`isPrime`/因式分解）逐一给出「输入 → 实际 / 期望」；MD5 用 `crypto.createHash('md5')` 与 `printf '中文' | md5` 双对照；`onclick` 截断用 `python3 html.parser` 验证属性拆分。**未开浏览器、未跑 `_build.py`/`run_gates.py`、未做线上验证**；未修改任何工具页、代码或构建产物，仅在本审计日志追加本节。
