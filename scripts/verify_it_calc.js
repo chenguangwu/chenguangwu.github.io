@@ -6681,15 +6681,56 @@ const CASES = [
   },
   {
     "slug": "it/json-diff",
-    "inputs": {
-      "left": "1\n2\n3",
-      "right": "1\n2\n3",
-      "diffMode": "simple"
-    },
-    "expect": [
-      "ring\" } ]\nsimple"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"left\":\"1\\n2\\n3\",\"right\":\"1\\n2\\n3\",\"diffMode\":\"simple\"}，输出区含「ring\" } ]\nsimple」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "inputs": { "left": "1\n2\n3", "right": "1\n2\n3" },
+    "clicks": ["var __t=[];var __o=ToolBox.showToast;ToolBox.showToast=function(s){__t.push(String(s));};doDiff();ToolBox.showToast=__o;document.getElementById('jsonDiff').textContent='ERR n='+__t.length+' has='+(/JSON \u89e3\u6790\u9519\u8bef/.test(__t.join('|'))?1:0);"],
+    "expect": ["ERR n=1 has=1"],
+    "ref": "非法 JSON（`1\\n2\\n3`）必须走解析失败分支：只弹一次错误 toast、且提示里点名「JSON 解析错误」。修复前该用例是自动补强的弱断言（expect 命中下拉框回显 `simple`，零判别力），本批随页面改动一并换成真实行为断言；输入含真实换行 ⇒ 与默认样例的合法 JSON 无交集。"
+  },
+  // ---- IT-N396 / IT-N397：对比模式与数组按内容匹配接线 ----
+  {
+    "slug": "it/json-diff",
+    "inputs": { "left": "{\"a\":{\"x\":1},\"b\":2}", "right": "{\"a\":{\"x\":9},\"b\":2}", "diffMode": "deep" },
+    "expect": ["\"path\": \"a.x\""],
+    "ref": "IT-N396（对照组）：深度对比必须递归展开到叶子，路径为 `a.x`。简单模式同一输入只出 `\"path\": \"a\"`（不展开），故本串仅在 deep 生效时出现。"
+  },
+  {
+    "slug": "it/json-diff",
+    "inputs": { "left": "{\"a\":{\"x\":1},\"b\":2}", "right": "{\"a\":{\"x\":9},\"b\":2}", "diffMode": "simple" },
+    "expect": ["\"path\": \"a\", \"from\": { \"x\": 1 }"],
+    "ref": "IT-N396：简单对比只看顶层键，嵌套变化合并成一处 mod。修复前 `doDiff` 从不读 `diffMode`，两种模式输出逐字节相同（都是 `\"path\": \"a.x\"`）⇒ 该串换模式后不可能出现。"
+  },
+  {
+    "slug": "it/json-diff",
+    "inputs": { "left": "{\"t\":[1,2]}", "right": "{\"t\":[1,2,3]}", "diffMode": "simple" },
+    "expect": ["\"path\": \"t\", \"from\": [ 1, 2 ], \"to\": [ 1, 2, 3 ]"],
+    "ref": "IT-N396：简单模式把数组当整体值比，只出一处 mod；深度模式同一输入是 `add t[2]`。修复前模式无效 ⇒ 恒为后者。"
+  },
+  {
+    "slug": "it/json-diff",
+    "inputs": { "left": "{\"tags\":[\"a\",\"b\"]}", "right": "{\"tags\":[\"b\",\"a\"]}", "diffMode": "deep" },
+    "clicks": ["document.getElementById('arrayMatch').checked=true;doDiff();var d=JSON.parse(document.getElementById('jsonDiff').textContent);document.getElementById('jsonDiff').textContent='AM n='+d.length+' q='+(document.getElementById('left').value.indexOf('tags')>=0?1:0);"],
+    "expect": ["AM n=0 q=1"],
+    "ref": "IT-N397：勾选「数组按内容匹配」后，元素换序不应再报成逐项修改。修复前数组只按下标对齐 ⇒ `tags[0]`、`tags[1]` 两处 mod（n=2）。`q=1` 绑注入值（注入失败时 left 回落默认样例、不含 tags ⇒ 整例 FAIL），避免与输入无关的静态断言。"
+  },
+  {
+    "slug": "it/json-diff",
+    "inputs": { "left": "{\"tags\":[\"a\",\"b\"]}", "right": "{\"tags\":[\"b\",\"a\",\"c\"]}", "diffMode": "deep" },
+    "clicks": ["document.getElementById('arrayMatch').checked=true;doDiff();var d=JSON.parse(document.getElementById('jsonDiff').textContent);document.getElementById('jsonDiff').textContent='AM2 n='+d.length+' mod='+d.filter(function(x){return x.op==='mod';}).length+' add='+d.filter(function(x){return x.op==='add';}).length+' p='+(d[0]?d[0].path:'-')+' q='+(document.getElementById('left').value.indexOf('tags')>=0?1:0);"],
+    "expect": ["AM2 n=1 mod=0 add=1 p=tags[2] q=1"],
+    "ref": "IT-N397：换序 + 追加的组合用例。按内容对齐后只应剩 `add tags[2]`（mod 必须为 0）。修复前是 2 mod + 1 add（n=3）⇒ 四元组完全不同。"
+  },
+  {
+    "slug": "it/json-diff",
+    "inputs": { "left": "{\"items\":[{\"id\":1},{\"id\":2}]}", "right": "{\"items\":[{\"id\":2},{\"id\":1}]}", "diffMode": "deep" },
+    "clicks": ["document.getElementById('arrayMatch').checked=true;doDiff();var d=JSON.parse(document.getElementById('jsonDiff').textContent);document.getElementById('jsonDiff').textContent='AM3 n='+d.length+' q='+(document.getElementById('left').value.indexOf('items')>=0?1:0);"],
+    "expect": ["AM3 n=0 q=1"],
+    "ref": "IT-N397：对象数组换序同样应判为无内容差异。比较键用排序后的规范序列化，故键序不同的 `{id:1}` 也能配对上。修复前是 `items[0].id`、`items[1].id` 两处 mod。"
+  },
+  {
+    "slug": "it/json-diff",
+    "inputs": { "left": "{\"constructor\":1}", "right": "{}" },
+    "expect": ["\"op\": \"del\", \"path\": \"constructor\""],
+    "ref": "IT-N397 同批顺带修：成员判断原来用 `k in b`（走原型链），`'constructor' in {}` 为真 ⇒ 该键被当成「两侧都有」而递归比对 function，报成 mod 甚至丢键。改用 `Object.prototype.hasOwnProperty.call` 后正确报 del。默认样例无 constructor 键。"
   },
   {
     "slug": "it/json-schema-validator",

@@ -177,11 +177,11 @@ s.parentNode.insertBefore(el, s);
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="📄 JSON Diff 深度对比">📄 JSON Diff Compare</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">左右文本各自 JSON.parse 后做深度递归比对，产出路径级差异列表，按 op 分为 add（新增）、del（删除）、mod（修改）三类并分别计数，同时统计两侧相同的节点数；差异数为 0 时提示两个 JSON 完全相同。行级对照把两侧按缩进 2 空格序列化后按行切分，再做逐行差异生成左视图、右视图与合并视图。任一侧为空时提示输入完整</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">左右文本各自 JSON.parse 后比对，产出路径级差异列表，按 op 分为 add（新增）、del（删除）、mod（修改）三类并分别计数，同时统计两侧相同的节点数；差异数为 0 时提示两个 JSON 完全相同。对比模式分两种：深度对比递归展开每一层（数组默认按下标逐项对齐），简单对比只看顶层键、嵌套变化合并成一处 mod。勾选「数组按内容匹配」后，数组改用「规范序列化键 + 最长公共子序列」先对齐相同元素再比对，元素换序不再被报成逐项修改。行级对照把两侧按缩进 2 空格序列化后按行切分，再做逐行差异生成左视图、右视图与合并视图。任一侧为空时提示输入完整</div>
   <div class="formula-desc">对比两份 JSON 并标出差异。</div>
   <ul class="formula-list">
     <li><b>方法</b>：递归比较两棵 JSON 树，标记新增、删除与值变更的节点。</li>
-    <li><b>数组</b>：可按索引对齐，也可按内容做匹配；后者对元素顺序变化更友好。</li>
+    <li><b>数组</b>：默认按索引对齐；勾选「数组按内容匹配」后按元素内容对齐，后者对元素顺序变化更友好。</li>
     <li><b>输出</b>：变更路径（如 <code>a.b[0].c</code>）、旧值、新值与变更类型。</li>
     <li><b>用途</b>：接口变更审查、配置比对、回归测试断言。</li>
   </ul>
@@ -203,9 +203,12 @@ s.parentNode.insertBefore(el, s);
           <option value="simple">简单对比</option>
         </select>
       </label>
+      <label style="font-size:13px;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;gap:6px;">
+        <input type="checkbox" id="arrayMatch" onchange="doDiff()"> 数组按内容匹配
+      </label>
     </div>
 
-    <div data-tb="preset" data-tb-presets='[{"label":"字段新增","labelEn":"Field added","values":{"left":"{\"name\":\"张三\",\"age\":30}","right":"{\"name\":\"张三\",\"age\":30,\"city\":\"北京\"}","diffMode":"deep"}},{"label":"数值修改","labelEn":"Value changed","values":{"left":"{\"limit\":100,\"enabled\":true}","right":"{\"limit\":150,\"enabled\":true}","diffMode":"deep"}},{"label":"数组追加","labelEn":"Array appended","values":{"left":"{\"tags\":[\"a\",\"b\"]}","right":"{\"tags\":[\"a\",\"b\",\"c\"]}","diffMode":"simple"}},{"label":"键被删除","labelEn":"Key removed","values":{"left":"{\"user\":{\"name\":\"A\",\"email\":\"a@b.com\"}}","right":"{\"user\":{\"name\":\"A\"}}","diffMode":"deep"}}]'></div>
+    <div data-tb="preset" data-tb-presets='[{"label":"字段新增","labelEn":"Field added","values":{"left":"{\"name\":\"张三\",\"age\":30}","right":"{\"name\":\"张三\",\"age\":30,\"city\":\"北京\"}","diffMode":"deep","arrayMatch":false}},{"label":"数值修改","labelEn":"Value changed","values":{"left":"{\"limit\":100,\"enabled\":true}","right":"{\"limit\":150,\"enabled\":true}","diffMode":"deep","arrayMatch":false}},{"label":"数组追加","labelEn":"Array appended","values":{"left":"{\"tags\":[\"a\",\"b\"]}","right":"{\"tags\":[\"a\",\"b\",\"c\"]}","diffMode":"deep","arrayMatch":false}},{"label":"键被删除","labelEn":"Key removed","values":{"left":"{\"user\":{\"name\":\"A\",\"email\":\"a@b.com\"}}","right":"{\"user\":{\"name\":\"A\"}}","diffMode":"deep","arrayMatch":false}},{"label":"数组换序（按内容匹配）","labelEn":"Reordered array (match by content)","values":{"left":"{\"tags\":[\"a\",\"b\"]}","right":"{\"tags\":[\"b\",\"a\"]}","diffMode":"deep","arrayMatch":true}}]'></div>
 
     <div class="diff-container" style="margin-bottom:12px;">
       <div>
@@ -289,7 +292,7 @@ s.parentNode.insertBefore(el, s);
 <div class="dd-example"><div class="dd-ex-title">对比</div><div class="dd-ex-body">左 `{&quot;a&quot;:1,&quot;b&quot;:2}` 右 `{&quot;a&quot;:1,&quot;b&quot;:3}` → 仅 `b` 由 2 变为 3 被标出。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>数组顺序影响对比吗？</dt><dd>默认按位置比对；语义比较需开启键匹配模式。</dd>
+<dt>数组顺序影响对比吗？</dt><dd>默认按位置比对；勾选「数组按内容匹配」后改为按元素内容对齐，元素换序不再被报成逐项修改。</dd>
 <dt>为什么数字 1 和字符串 &quot;1&quot; 被判为不同？</dt><dd>因为 <a class="term-link" href="/tools/data/calc-2.html">JSON</a> 是有类型的，类型不同即视为不同值，这是严格比较的默认行为。若只关心结构差异，可开启「忽略类型」或先做规范化；同时注意 1.0 与 1 这类表示差异，以及对象键顺序——键序在语义上无意义，但朴素<a class="term-link" href="/tools/it/text-diff.html">文本对比</a>会把它当差异。</dd>
 </dl>
 </div>
@@ -385,7 +388,43 @@ function swapInputs() {
   if (lastDiff) doDiff();
 }
 
-function deepDiff(a, b, path = '') {
+// 规范序列化：对象键排序后再 stringify，用作「数组元素是否相同」的比较键
+// （键序在 JSON 语义上无意义，直接 stringify 会把 {a:1,b:2} 与 {b:2,a:1} 判成不同）
+function jdCanon(v) {
+  if (Array.isArray(v)) return v.map(jdCanon);
+  if (v && typeof v === 'object') {
+    const o = {};
+    for (const k of Object.keys(v).sort()) o[k] = jdCanon(v[k]);
+    return o;
+  }
+  return v;
+}
+function jdKey(v) { try { return JSON.stringify(jdCanon(v)); } catch (e) { return String(v); } }
+
+// 最长公共子序列：返回 a/b 下标配对（用于「按内容匹配数组」）
+// 规模保护：n*m 过大时返回 null，调用方退回按下标对齐，避免 O(n*m) 卡死页面
+function jdLcsPairs(ak, bk) {
+  const n = ak.length, m = bk.length;
+  if (!n || !m) return [];
+  if (n * m > 200000) return null;
+  const dp = [];
+  for (let i = 0; i <= n; i++) dp.push(new Int32Array(m + 1));
+  for (let i = n - 1; i >= 0; i--) {
+    for (let j = m - 1; j >= 0; j--) {
+      dp[i][j] = ak[i] === bk[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+    }
+  }
+  const pairs = [];
+  let i = 0, j = 0;
+  while (i < n && j < m) {
+    if (ak[i] === bk[j]) { pairs.push([i, j]); i++; j++; }
+    else if (dp[i + 1][j] >= dp[i][j + 1]) i++;
+    else j++;
+  }
+  return pairs;
+}
+
+function deepDiff(a, b, path = '', arrayMatch = false) {
   const diffs = [];
   if (a === b) return diffs;
   
@@ -404,18 +443,40 @@ function deepDiff(a, b, path = '') {
     
     for (const k of allKeys) {
       const curPath = path ? path + '.' + k : k;
-      if (!(k in b)) {
+      const inA = Object.prototype.hasOwnProperty.call(a, k);
+      const inB = Object.prototype.hasOwnProperty.call(b, k);
+      if (!inB) {
         diffs.push({ op: 'del', path: curPath, value: a[k] });
-      } else if (!(k in a)) {
+      } else if (!inA) {
         diffs.push({ op: 'add', path: curPath, value: b[k] });
       } else {
-        diffs.push(...deepDiff(a[k], b[k], curPath));
+        diffs.push(...deepDiff(a[k], b[k], curPath, arrayMatch));
       }
     }
     return diffs;
   }
   
   if (ta === 'array') {
+    // 按内容匹配：先用规范键做最长公共子序列对齐相同元素（换序不再逐项报修改），
+    // 剩余元素再按顺序两两递归比对（内容真变了的仍报路径级 mod），多出来的报 add/del
+    if (arrayMatch) {
+      const ak = a.map(jdKey), bk = b.map(jdKey);
+      const pairs = jdLcsPairs(ak, bk);
+      if (pairs) {
+        const hitA = new Set(pairs.map(p => p[0]));
+        const hitB = new Set(pairs.map(p => p[1]));
+        const restA = [], restB = [];
+        for (let i = 0; i < a.length; i++) if (!hitA.has(i)) restA.push(i);
+        for (let j = 0; j < b.length; j++) if (!hitB.has(j)) restB.push(j);
+        const k2 = Math.min(restA.length, restB.length);
+        for (let t = 0; t < k2; t++) {
+          diffs.push(...deepDiff(a[restA[t]], b[restB[t]], path + '[' + restA[t] + ']', arrayMatch));
+        }
+        for (let t = k2; t < restA.length; t++) diffs.push({ op: 'del', path: path + '[' + restA[t] + ']', value: a[restA[t]] });
+        for (let t = k2; t < restB.length; t++) diffs.push({ op: 'add', path: path + '[' + restB[t] + ']', value: b[restB[t]] });
+        return diffs;
+      }
+    }
     const len = Math.max(a.length, b.length);
     for (let i = 0; i < len; i++) {
       const curPath = path + '[' + i + ']';
@@ -424,13 +485,34 @@ function deepDiff(a, b, path = '') {
       } else if (i >= b.length) {
         diffs.push({ op: 'del', path: curPath, value: a[i] });
       } else {
-        diffs.push(...deepDiff(a[i], b[i], curPath));
+        diffs.push(...deepDiff(a[i], b[i], curPath, arrayMatch));
       }
     }
     return diffs;
   }
   
   diffs.push({ op: 'mod', path: path || '(root)', from: a, to: b });
+  return diffs;
+}
+
+// 简单对比：只看顶层键，嵌套结构视为一个值（变化合并成一处 mod），不展开路径
+function simpleDiff(a, b) {
+  const diffs = [];
+  const isObj = v => v !== null && typeof v === 'object' && !Array.isArray(v);
+  if (isObj(a) && isObj(b)) {
+    const keys = [];
+    const seen = {};
+    for (const k of Object.keys(a).concat(Object.keys(b))) { if (!seen[k]) { seen[k] = 1; keys.push(k); } }
+    for (const k of keys) {
+      const inA = Object.prototype.hasOwnProperty.call(a, k);
+      const inB = Object.prototype.hasOwnProperty.call(b, k);
+      if (!inB) diffs.push({ op: 'del', path: k, value: a[k] });
+      else if (!inA) diffs.push({ op: 'add', path: k, value: b[k] });
+      else if (jdKey(a[k]) !== jdKey(b[k])) diffs.push({ op: 'mod', path: k, from: a[k], to: b[k] });
+    }
+    return diffs;
+  }
+  if (jdKey(a) !== jdKey(b)) diffs.push({ op: 'mod', path: '(root)', from: a, to: b });
   return diffs;
 }
 
@@ -545,7 +627,13 @@ function doDiff() {
     lastLeft = a;
     lastRight = b;
     
-    const diffs = deepDiff(a, b);
+    // 两个控件的值必须真正参与比对：对比模式（deep/simple）、数组是否按内容匹配
+    const modeEl = document.getElementById('diffMode');
+    const mode = modeEl && modeEl.value === 'simple' ? 'simple' : 'deep';
+    const amEl = document.getElementById('arrayMatch');
+    const arrayMatch = !!(amEl && amEl.checked);
+    
+    const diffs = mode === 'simple' ? simpleDiff(a, b) : deepDiff(a, b, '', arrayMatch);
     lastDiff = diffs;
     
     const addCount = diffs.filter(d => d.op === 'add').length;

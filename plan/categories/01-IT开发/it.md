@@ -2377,24 +2377,6 @@
 
 ## U 批 · IT 转换/编码边界（2026-11-04）
 
-### IT-N396 「对比模式」下拉从未被读取，深度/简单两种模式输出完全相同（中，承诺未实现）
-- 页面：`tools/it/json-diff.html`
-- 问题：`<select id="diffMode">` 提供「深度对比 / 简单对比」并在 `onchange` 调 `doDiff()`（`:201-203`），但 `doDiff`（`:532-594`）从未读取 `diffMode`，始终执行 `deepDiff` + 同一套逐行 diff 与统计。
-- 行号：`:201-203`、`:532-594`（无 `diffMode` 引用）
-- 复现：同一组输入分别选「深度对比」「简单对比」→ 实际差异列表、统计、行差异、JSON 视图逐字节相同；期望两种模式输出不同（例如简单模式只做逐行比较），否则应删除该控件。
-- 影响：用户按模式选择得到的其实是同一结果，容易被误读为「两种算法结论一致」。
-- 方案：接入 `diffMode`（simple 走行级 diff 且不做语义展开），或移除该下拉。
-- 假工具：否（承诺未实现；建议并入 `plan/fake-tools.md`）
-
-### IT-N397 数组只按索引对齐，「按内容匹配」未实现，FAQ 还引用了不存在的「键匹配模式」（中，承诺未实现）
-- 页面：`tools/it/json-diff.html`
-- 问题：`deepDiff` 的数组分支固定逐索引比较（`:418-430`）；说明区写「可按索引对齐，也可按内容做匹配」（`:184`），FAQ 写「语义比较需开启键匹配模式」（`:292`），但页面没有任何模式开关或内容匹配实现。
-- 行号：`:418-430`、`:184`、`:292`
-- 复现：左 `{"tags":["a","b"]}`、右 `{"tags":["b","a"]}` → 实际报 `tags[0]`、`tags[1]` 两处「修改」；期望按内容匹配得到「无差异 / 仅顺序变化」。对象数组换序同样被报成逐项修改。
-- 影响：元素顺序调整（后端返回顺序不稳定）被误报成大量字段修改，差异噪声大。
-- 方案：实现按内容（或按 key 字段）匹配的数组比对，或在文案中删除该承诺。
-- 假工具：否（承诺未实现；建议并入 `plan/fake-tools.md`）
-
 ### IT-N398 schema 根缺少 `type:"object"` 时 required/properties/additionalProperties 全部被跳过，非法数据被判通过（高，确认缺陷）
 - 页面：`tools/it/json-schema-validator.html`
 - 问题：`walk` 只有在 `schema.type === 'object'` 时才检查 required/properties/additionalProperties（`:267-289`）；根 schema 未显式写 `type:"object"`（JSON Schema 中很常见，且 `properties` 本身即隐含对象约束）时，`typeOK(undefined)` 返回 true，随后两个分支都不进入，直接返回无错误。
@@ -2477,7 +2459,6 @@
 - 假工具：否
 
 ### 覆盖清单（U 批 IT 转换/编码）
-- `json-diff`：IT-N396、IT-N397（中）；无高优缺陷（按索引与逐行的差异计算本身正确）。
 - `json-schema-validator`：IT-N398（高）、IT-N399、IT-N400（中）。
 - `html-to-markdown`：IT-N401（高）、IT-N402、IT-N403、IT-N404（中）。
 - `text-to-unicode`：IT-N405（中）；无高优缺陷（码点列与 BMP 字符正确，仅辅助平面转义缺失）。
