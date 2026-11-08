@@ -106,7 +106,7 @@ s.parentNode.insertBefore(el, s);
 <div class="card tool-card-accent" style="--tool-accent:#3B82F6;">
     <h2 data-zh="📄 YAML 转 XML 转换器">📄 YAML to XML Converter</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">YAML 解析：逐行记录缩进量（行首空白长度），跳过空行与 # 注释；行以 - 开头时按同一缩进连续收集为数组，数组元素为空则递归解析子块、形如「键: 值」则按映射解析、否则按标量解析；否则按 ^([^:]+):\s?(.*)$ 取键值对，值为空且下一行缩进更大时递归解析为子块，否则取空对象。标量还原：去成对引号，true/false 转布尔，null 与 ~ 转空，纯整数转 parseInt，纯小数转 parseFloat。输出 XML 时以 @ 前缀键为属性、#text 为文本、数组按同名元素展开，&amp; &lt; &gt; 转义、属性值再转义双引号，顶层键不止一个时外面包 &lt;root&gt;</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">YAML 解析：逐行记录缩进量（行首空白长度），跳过空行与 # 注释（例外：形如 #text: 的行是本工具的元素文本约定，不按注释丢弃）；行以 - 开头时按同一缩进连续收集为数组，数组元素为空则递归解析子块、形如「键: 值」则按映射解析、否则按标量解析；否则按 ^([^:]+):\s?(.*)$ 取键值对，值为空且下一行缩进更大时递归解析为子块，否则取空对象。标量还原：先在引号外截断行内 # 注释，再去成对引号，true/false 转布尔，null 与 ~ 转空，纯整数转 parseInt，纯小数转 parseFloat。输出 XML 时以 @ 前缀键为属性、#text 为文本、数组按同名元素展开，&amp; &lt; &gt; 转义、属性值再转义双引号；元素名中非 [A-Za-z0-9_.-] 的字符替换为 _、数字开头补前导 _；顶层为序列或标量时包一层 &lt;root&gt;（序列子项名固定为 item），顶层键不止一个时同样包 &lt;root&gt;；缩进宽度取「缩进」控件（2 空格 / 4 空格 / Tab），勾选「按键名排序输出」时各层键按字典序升序排列</div>
   <div class="formula-desc">把 YAML 转换为 XML。</div>
   <ul class="formula-list">
     <li><b>映射</b>：YAML 的映射键成为 XML 元素名，序列生成重复的同名元素。</li>
@@ -213,8 +213,20 @@ s.parentNode.insertBefore(el, s);
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function escH(s){var d=document.createElement('div');const __g1=s==null?'':String(s);d.textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
-function calcTool(){function yScalar(s){
-  s=s.trim();
+function calcTool(){
+// IT-N356：行内注释（`值 # 注释`）不属于值；引号内的 # 不算注释。
+function yStripInlineComment(s){
+  var q=null;
+  for(var i=0;i<s.length;i++){
+    var c=s[i];
+    if(q){ if(c==='\\'){i++;continue;} if(c===q)q=null; continue; }
+    if(c==='"'||c==="'"){ q=c; continue; }
+    if(c==='#'&&(i===0||/\s/.test(s[i-1]))) return s.slice(0,i);
+  }
+  return s;
+}
+function yScalar(s){
+  s=yStripInlineComment(s).trim();
   if(s==='')return '';
   if((s[0]==='"'&&s.slice(-1)==='"')||(s[0]==="'"&&s.slice(-1)==="'")) return s.slice(1,-1);
   if(s==='true')return true; if(s==='false')return false;
@@ -223,13 +235,31 @@ function calcTool(){function yScalar(s){
   if(/^-?\d+\.\d+$/.test(s))return parseFloat(s);
   return s;
 }
-function yIsMapEntry(s){ var kv=s.match(/^([^:]+):\s?(.*)$/); return kv && /^[\u4e00-\u9fa5A-Za-z0-9_\-\s]/.test(kv[1]) && s.indexOf(':')>0; }
+function yIsMapEntry(s){
+  // IT-N356：YAML 的映射要求 `:` 后跟空白或行尾；`http://x` 的 `:` 后是 `/`，属标量。
+  var m=s.match(/^([^:]+):(\s|$)/);
+  if(!m) return false;
+  var k=m[1].trim();
+  if(!k) return false;
+  if(k==='#text') return true;           // IT-N354：元素文本约定，不是注释
+  if(/[\/\\?#]/.test(k)) return false;   // 键里出现 URL/查询符号 ⇒ 是标量
+  return /^[\u4e00-\u9fa5A-Za-z0-9_\-\s@.]/.test(k);
+}
 function parseYaml(text){
   var lines=text.replace(/\r/g,'').split('\n');
   var items=[];
-  for(var i=0;i<lines.length;i++){ var raw=lines[i]; var s=raw.trim(); if(!s||s[0]==='#') continue; items.push({ind:raw.length-raw.trimStart().length, content:s}); }
+  for(var i=0;i<lines.length;i++){
+    var raw=lines[i]; var s=raw.trim();
+    if(!s) continue;
+    // IT-N354：`#text:` 是本工具的「元素文本」约定，不能当注释整行丢掉
+    if(s[0]==='#' && !/^#text\s*:/.test(s)) continue;
+    items.push({ind:raw.length-raw.trimStart().length, content:s});
+  }
   if(!items.length) return {};
   var p={i:0};
+  var head=items[0];
+  // IT-N355：顶层既不是序列（`- `）也不是映射（`键:`）⇒ 当前行本身就是标量根
+  if(head.content[0]!=='-' && !yIsMapEntry(head.content)) return yScalar(head.content);
   return yBlock(items, items[0].ind, p);
 }
 function yBlock(items, indent, p){
@@ -354,31 +384,79 @@ function xmlToJson(xml){
   var out={}; out[root.name]=root.val;
   return out;
 }
-function jsonToXml(obj){
-  function ser(name,val){
-    if(val && typeof val==='object' && !Array.isArray(val)){
-      var attrs=''; var inner='';
-      for(var k in val){
-        if(k[0]==='@') attrs+=' '+k.slice(1)+'="'+escAttr(val[k])+'"';
-        else if(k==='#text') inner+=val[k];
-        else { var v=val[k]; if(Array.isArray(v)){ for(var i=0;i<v.length;i++) inner+=ser(k,v[i]); } else inner+=ser(k,v); }
-      }
-      return '<'+name+attrs+'>'+inner+'</'+name+'>';
+// IT-N355/N357：元素名合法化 + 缩进/排序参数化
+function xName(k){
+  var s=String(k).replace(/[^A-Za-z0-9_.\-]/g,'_');
+  if(!/^[A-Za-z_]/.test(s)) s='_'+s;
+  return s||'_';
+}
+function jsonToXml(obj, unit, sortKeys){
+  unit=unit||'';
+  function nl(d){ return unit?('\n'+unit.repeat(Math.max(0,d))):''; }
+  function keysOf(o){ var ks=Object.keys(o); if(sortKeys) ks.sort(); return ks; }
+  function ser(name,val,depth){
+    if(Array.isArray(val)){
+      var a='';
+      for(var i=0;i<val.length;i++) a+=ser(name,val[i],depth);
+      return a;
     }
-    if(Array.isArray(val)){ return val.map(function(x){return ser(name,x);}).join(''); }
-    return '<'+name+'>'+escXml(val===null?'':val)+'</'+name+'>';
+    if(val && typeof val==='object'){
+      var attrs='',text='',kids=[];
+      var ks=keysOf(val);
+      for(var j=0;j<ks.length;j++){
+        var k=ks[j];
+        if(k.charAt(0)==='@'){ attrs+=' '+xName(k.slice(1))+'="'+escAttr(val[k])+'"'; }
+        else if(k==='#text'){ text+=escXml(val[k]===null||val[k]===undefined?'':val[k]); }
+        else {
+          var v=val[k];
+          if(Array.isArray(v)){ for(var m=0;m<v.length;m++) kids.push(ser(xName(k),v[m],depth+1)); }
+          else kids.push(ser(xName(k),v,depth+1));
+        }
+      }
+      var sep=nl(depth+1);
+      var body=text+(kids.length?(sep+kids.join(sep)):'');
+      if(body==='') return '<'+name+attrs+'></'+name+'>';
+      return '<'+name+attrs+'>'+body+(kids.length?nl(depth):'')+'</'+name+'>';
+    }
+    return '<'+name+'>'+escXml(val===null||val===undefined?'':val)+'</'+name+'>';
   }
-  var keys=Object.keys(obj);
-  if(keys.length!==1) return '<root>'+keys.map(function(k){return ser(k,obj[k]);}).join('')+'</root>';
-  return ser(keys[0], obj[keys[0]]);
+  // IT-N355：顶层序列 ⇒ 固定 root + item（数字下标不是合法 XML 名）
+  if(Array.isArray(obj)){
+    var items=obj.map(function(x){return ser('item',x,1);});
+    var s1=nl(1);
+    return '<root>'+(items.length?(s1+items.join(s1)+nl(0)):'')+'</root>';
+  }
+  // IT-N355：顶层标量 ⇒ 作为 root 文本，不再输出空 <root></root>
+  if(obj===null||obj===undefined||typeof obj!=='object'){
+    return '<root>'+escXml(obj===null||obj===undefined?'':obj)+'</root>';
+  }
+  var keys=keysOf(obj);
+  if(keys.length!==1){
+    var parts=keys.map(function(k){return ser(xName(k),obj[k],1);});
+    var s0=nl(1);
+    return '<root>'+s0+parts.join(s0)+nl(0)+'</root>';
+  }
+  return ser(xName(keys[0]), obj[keys[0]], 0);
 }
 
 var src=document.getElementById('source').value||'';
 if(!src.trim()){ document.getElementById('result').innerHTML='<p class="muted">请输入 YAML 文本</p>'; return; }
 var obj=parseYaml(src);
 if(obj && obj.__err){ const __g3='<p class="muted">解析失败：'+escH(obj.__err)+'</p>';document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—')); return; }
-var xml=jsonToXml(obj);
+var xml=jsonToXml(obj, __yaml_to_xmlUnit(), __yaml_to_xmlSort());
 const __g4='<div class="result-title">XML 输出</div><pre class="code-block">'+escH(xml)+'</pre>';document.getElementById('result').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));}
+// IT-N357：`#indent` 与 `#top_1` 原本是死输入，calcTool 从未读取
+function __yaml_to_xmlUnit(){
+  var el=document.getElementById('indent');
+  var v=el?String(el.value||'2'):'2';
+  if(v==='tab') return '\t';
+  var n=parseInt(v,10); if(!isFinite(n)||n<0) n=2;
+  return new Array(n+1).join(' ');
+}
+function __yaml_to_xmlSort(){
+  var el=document.getElementById('top_1');
+  return !!(el && el.checked);
+}
 function resetForm(){document.getElementById('source').value='note:\n  to: Tony\n  from: Anna\n  heading: Reminder\n  body: Don\'t forget me!\n  items:\n    - Apple\n    - Banana';
       document.getElementById('indent').selectedIndex=0;
       document.getElementById('top_1').checked=false;

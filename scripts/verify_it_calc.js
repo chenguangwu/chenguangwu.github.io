@@ -4805,14 +4805,51 @@ const CASES = [
   {
     "slug": "it/yaml-to-xml",
     "inputs": { "source": "srv:\n  host: 127.0.0.1\n  port: 5432" },
-    "expect": ["&lt;srv&gt;&lt;host&gt;127.0.0.1&lt;/host&gt;&lt;port&gt;5432&lt;/port&gt;&lt;/srv&gt;"],
-    "ref": "YAML→XML：同一份嵌套映射落成 `<srv><host>…</host><port>…</port></srv>`。expect 取整块实体形态（结果区经 escH 转义），输入的 YAML 原文不含尖括号 ⇒ 排除输入回显。默认样例为 note/to/from，不出现 srv/host。"
+    "expect": ["&lt;srv&gt; &lt;host&gt;127.0.0.1&lt;/host&gt; &lt;port&gt;5432&lt;/port&gt; &lt;/srv&gt;"],
+    "ref": "YAML→XML：同一份嵌套映射落成 `<srv><host>…</host><port>…</port></srv>`。expect 取整块实体形态（结果区经 escH 转义），输入的 YAML 原文不含尖括号 ⇒ 排除输入回显。默认样例为 note/to/from，不出现 srv/host。⚠️ IT-N357 后默认按「2 空格」缩进输出，每个子元素各占一行 ⇒ 门禁 blob 内的 `\\s+` 被压成单空格，故 expect 用「实体 + 单空格」形态（缩进宽度在 blob 里不可区分，靠 it/yaml-to-xml 的排序用例 + 离线 node 复核覆盖）。"
   },
   {
     "slug": "it/yaml-to-xml",
     "inputs": { "source": "__proto__: v" },
     "expect": ["&lt;__proto__&gt;v&lt;/__proto__&gt;"],
     "ref": "键名 `__proto__`：parseYaml 普通对象上赋值丢键 ⇒ XML 为空；Object.create(null) 后产生同名元素 `<__proto__>v</__proto__>`（XML 元素名允许下划线开头）。输入 YAML 不含尖括号，排除回显。"
+  },
+  {
+    "slug": "it/yaml-to-xml",
+    "inputs": { "source": "note:\n  @id: 1\n  #text: hi" },
+    "expect": ["&lt;note id=\"1\"&gt;hi&lt;/note&gt;"],
+    "ref": "IT-N354：`#text` 是本工具约定的「元素文本」，修复前被「# 开头即注释」整行丢掉 ⇒ 输出 `<note id=\"1\"></note>`（文本静默丢失）。现只把 `#` 后不是 `text:` 的行当注释。expect 为带属性的开标签 + 文本实体形态，输入 YAML 不含尖括号 ⇒ 非回显；修复前不产生该串 ⇒ 必红灯。"
+  },
+  {
+    "slug": "it/yaml-to-xml",
+    "inputs": { "source": "- alpha\n- beta" },
+    "expect": ["&lt;root&gt; &lt;item&gt;alpha&lt;/item&gt; &lt;item&gt;beta&lt;/item&gt; &lt;/root&gt;"],
+    "ref": "IT-N355：顶层是序列时，修复前拿 `Object.keys(array)` 当元素名，产出 `<0>`/`<1>`（数字开头，非法 XML 名）且被 XML 解析器直接拒绝。现固定包一层 `root` + 子项 `item`。expect 整串依赖注入的两个值，输入不含尖括号 ⇒ 非回显；修复前输出 `<root><0>alpha</0>…` ⇒ 必红灯。"
+  },
+  {
+    "slug": "it/yaml-to-xml",
+    "inputs": { "source": "just a probe string" },
+    "expect": ["&lt;root&gt;just a probe string&lt;/root&gt;"],
+    "ref": "IT-N355：顶层是标量时，修复前 yBlock 因该行无冒号直接 `continue`，得到空对象 ⇒ 输出空的 `<root></root>`，内容丢失。现把标量根当作 root 文本。expect 带实体标签，输入是裸文本 ⇒ 非回显；修复前不产生该串 ⇒ 必红灯。"
+  },
+  {
+    "slug": "it/yaml-to-xml",
+    "inputs": { "source": "name: ProbeBob # 注释" },
+    "expect": ["&lt;name&gt;ProbeBob&lt;/name&gt;"],
+    "ref": "IT-N356：行内注释不属于值。修复前输出 `<name>ProbeBob # 注释</name>`（注释被并进值），现截断到 `#` 之前。expect 是截断后的闭合标签形态，输入含 `# 注释` ⇒ 不命中回显；修复前必红灯。"
+  },
+  {
+    "slug": "it/yaml-to-xml",
+    "inputs": { "source": "items:\n  - http://probe.example/x" },
+    "expect": ["&lt;items&gt;http://probe.example/x&lt;/items&gt;"],
+    "ref": "IT-N356：`- ` 项是否算映射，修复前用「含冒号且首字符是字母」判定，`http://probe.example/x` 被拆成键 `http`、值 `//probe.example/x` ⇒ 输出 `<items><http>//probe.example/x</http></items>`。现要求 `:` 后必须是空白或行尾，URL 归为标量。expect 是整串标量形态，与修复前的拆键形态不同 ⇒ 强判别。"
+  },
+  {
+    "slug": "it/yaml-to-xml",
+    "inputs": { "source": "zeta: 1\nalpha: 2\nmid: 3" },
+    "clicks": ["document.getElementById('top_1').checked=true; calcTool()"],
+    "expect": ["&lt;alpha&gt;2&lt;/alpha&gt; &lt;mid&gt;3&lt;/mid&gt; &lt;zeta&gt;1&lt;/zeta&gt;"],
+    "ref": "IT-N357：「按键名排序输出」原本是死控件（calcTool 从不读 #top_1）。勾选后应输出 alpha → mid → zeta 的升序。expect 是被重排后的三段元素串，输入 YAML 的顺序是 zeta→alpha→mid ⇒ 未修复时输出顺序不同、该串不存在 ⇒ 必红灯。缩进宽度（#indent）在门禁 blob 里被空白折叠吃掉，无法断言，已用离线 node 复核 2/4 空格与 tab 三档差异。"
   },
   {
     "slug": "it/xml-to-json",

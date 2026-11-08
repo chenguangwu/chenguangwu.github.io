@@ -2355,34 +2355,6 @@
 
 
 
-### IT-N354 文档承诺的 `#text` 键被注释规则吞掉，元素文本永远无法输出（高，确认缺陷）
-- 问题：`parseYaml()` 把所有 `trim()` 后以 `#` 开头的行当注释 `continue`，而 `jsonToXml()` 里实现 `#text` 分支的前提是它能进 items——两者冲突，`#text` 永远读不到。
-- 证据：`tools/it/yaml-to-xml.html:230`（`if(!s||s[0]==='#') continue;`）、`:174`（说明「#text 键转为元素文本」）、`:363`（`else if(k==='#text')`）
-- 复现（node 复刻）：输入 `note:\n  @id: 1\n  #text: hi` → 实际 `<note id="1"></note>`（文本丢失）；期望 `<note id="1">hi</note>`。
-- 影响：文档约定的「属性 + 文本」混排写法完全不可用，文本静默丢失。
-- 方案：仅在 `#` 后不是 `text`/`text:` 时才按注释跳过（或用 `$text` 约定并同步说明）。
-
-### IT-N355 顶层为序列/标量时输出非法标签或空 root（中，确认缺陷）
-- 问题：`jsonToXml()` 用 `Object.keys(obj)` 生成元素名，顶层数组的键是 `"0"`、`"1"`（数字开头，非法 XML 名）；顶层标量在 `yBlock` 里无冒号被丢弃，得到 `{}`。
-- 证据：`tools/it/yaml-to-xml.html:371-373`、`:248-256`（无 `kv` 时 `p.i++; continue;`）
-- 复现（node 复刻）：`- a\n- b` → 实际 `<root><0>a</0><1>b</1></root>`（XML 解析器直接报错）；`just a string` → 实际 `<root></root>`（内容丢失）；期望 `<root><item>a</item><item>b</item></root>` 与 `<root>just a string</root>`。
-- 影响：合法的 YAML 序列/标量根得到非法 XML 或空文档，下游解析必失败。
-- 方案：顶层非映射时用固定元素名（`item` / `value`）包装，并对所有元素名做 `^[A-Za-z_][\w.-]*$` 校验与改写。
-
-### IT-N356 行内注释被并入值、裸 URL 被误判为映射（中，确认缺陷）
-- 问题：只过滤整行注释，值里的 ` #` 不截断；`- ` 项用 `yIsMapEntry` 以「含冒号且首字符为字母」判映射，`http://x` 因此被拆成键 `http`。
-- 证据：`tools/it/yaml-to-xml.html:226`（`yIsMapEntry`）、`:230`、`:242-243`
-- 复现（node 复刻）：`name: Bob # 注释` → 实际 `<name>Bob # 注释</name>`（期望 `Bob`）；`items:\n  - http://x` → 实际 `<items><http>//x</http></items>`（期望 `<items>http://x</items>`）。
-- 影响：常见 YAML 写法被静默改成错误值/结构。
-- 方案：取标量值时按引号状态截断 ` #` 之后内容；`- ` 项改用「`键: ` 且键名不含 `/`」的严格匹配，其余按标量。
-
-### IT-N357 缩进与「按键名排序」两个控件是死输入（中，确认缺陷）
-- 问题：`calcTool()` 全文从未读取 `#indent` 或 `#top_1`（只在 `resetForm`/预设里赋值），输出恒为无缩进的紧凑 XML，排序也不生效；预设却宣称「按键名排序输出」。
-- 证据：`tools/it/yaml-to-xml.html:127`、`:131`（控件）、`:216-381`（calcTool 无读取）、`:486-489`（预设与标签）
-- 复现：选「4 空格」并勾选「按键名排序输出」→ 实际输出与默认完全相同（`<note><to>Tony</to>…` 单行、键序未变）；期望按 4 空格缩进且键名升序。
-- 影响：两个可见控件完全无效，用户以为已生效。
-- 方案：给 `jsonToXml` 增加 `indent` 与 `sortKeys` 参数并在 `calcTool` 里读取两个控件的值。
-
 ### IT-N358 多行 TOML 数组被解析成空数组，依赖列表静默丢失（高，确认缺陷）
 - 问题：`tVal()` 只处理单行 `[...]`：`s.slice(1, s.lastIndexOf(']'))`，行内无 `]` 时 `lastIndexOf` 返回 -1，`inner` 为空直接 `return []`；后续元素行因无 `=` 被 `parseToml` 跳过。
 - 证据：`tools/it/toml-to-yaml.html:235`、`:264-265`
@@ -2411,7 +2383,6 @@
 
 ### 覆盖清单（T 批 IT 第 3 轮）
 - `jwt-debugger`：IT-N349（高）。
-- `yaml-to-xml`：IT-N354（高）、IT-N355、IT-N356、IT-N357（中）。
 - `toml-to-yaml`：IT-N358（高）、IT-N359、IT-N360（中）。
 - 方法声明：以上结论仅基于源码通读 + `node` 复刻页面原函数实算（json-repair / hash-identifier / yaml-to-xml / toml-to-yaml / csv-to-yaml / json-to-xml 的判定均给出「输入 → 实际 / 期望」），未开浏览器、未跑 `_build.py`/`run_gates.py`、未做线上验证；未修改任何工具页或构建产物。
 
