@@ -243,7 +243,7 @@
 - **影响**：`tools/neurology/dhi.html` 英文病历摘要的分维度满分错误，影响复核与转抄。
 - **方案**：三个分母由同一常量对象提供，中英文都引用；加英文 EMR 字符串断言 `P/28, E/36, F/36`。
 
-### M-N16 SAS 页面重复整块「相关工具」且第二块描述被截断（中，确认）
+### M-N16 SAS 页面重复整块「相关工具」且第二块描述被截断（中，确认）✅ 2026-11-08 已修：删第二个重复 related-tools 块（保留含 SAS 同源 6 链接的完整块）
 - **描述**：同一页连续出现两个完全相同的 `related-tools` 区块（同 6 个链接）；第二块的多条卡片描述在句子中途被截断。
 - **证据**：`tools/psychology/sas-assessment.html:246-274` 与 `:275-304` 两个 `<div class="related-tools" data-related-tools="1">`；`node` 计数为 2。第二块截断样本：`:285` 结尾「适合心理学学习与」、`:293` 结尾「被下列」、`:297` 结尾「入睡时」。
 - **影响**：`tools/psychology/sas-assessment.html`；相关工具重复 6 条、可见残句，页面体积与重复内容增加，且易被误认为两组不同推荐。
@@ -285,13 +285,13 @@
 - **影响**：上述三页；示例失去教学价值，且暗示与真实分级不同的阈值。
 - **方案**：示例分数与等级由同一 `BANDS` 常量生成，禁止手写等级；补边界分数（14/15、21/22、23/24/31/32）快照测试。
 
-### M-N23 ISI `__isiOpts` 引用未定义变量 `OPTS` 的不可达分支（低，确认）
+### M-N23 ISI `__isiOpts` 引用未定义变量 `OPTS` 的不可达分支（低，确认）✅ 2026-11-08 已修：改为 `return QS[i].o;`（消除潜在 ReferenceError 地雷）
 - **描述**：ISI 页面没有定义 `OPTS`，`__isiOpts` 的字符串分支却返回 `OPTS`；当前 `QS` 全为对象故分支不可达，一旦数据改成字符串题干即抛 `ReferenceError`。
 - **证据**：`tools/psychiatry/isi-insomnia.html:299` `return typeof q==='string'?OPTS:q.o;`；全文件无 `var OPTS`（对比 GAD-7 `:239` 有定义）。`node` 检查该标识符为 `undefined`，且 `QS` 各项均为 `{o:[...]}` 对象，故当前不触发。
 - **影响**：`tools/psychiatry/isi-insomnia.html`；潜在运行时崩溃，属隐藏地雷。
 - **方案**：删除该分支直接 `return q.o;`，或补定义 `OPTS`；若支持字符串题面需同时提供选项数组。
 
-### M-N24 Berg 重置后旧柱状图仍保留（低，确认）
+### M-N24 Berg 重置后旧柱状图仍保留（低，确认）✅ 2026-11-08 已修：`resetAll()` 末尾清 `#bergChart`
 - **描述**：`resetAll()` 只取消单选并重置结果区，未清空 `#bergChart`；旧的各项目得分柱图在重置后继续显示。
 - **证据**：`tools/rehabilitation/berg-balance-scale.html:415-418` 重置函数；图表在 `:433-438` 由 `__bergExtras()` 绘制，只有 `calcScore`/DOMContentLoaded 触发；`resetAll` 未调用 `__bergExtras` 或清空 `#bergChart`。
 - **影响**：`tools/rehabilitation/berg-balance-scale.html`；重置后结果与图表状态不一致，用户可能把旧图当作当前答卷。
@@ -492,13 +492,13 @@
 - 复现：4 项全「是」→ 4/4 阳性；再全改「否」→ 0/4；点历史恢复 4 个「是」→ 结果仍「0/4 阴性」。期望恢复后重算并显示 4/4。
 - 结论：仍成立；假工具：否；需临床复核。
 
-### M-N51 BIS-11 重置或未答完仍残留旧参考标尺（第一轮高优条目，仍成立，高）
+### M-N51 BIS-11 重置或未答完仍残留旧参考标尺（第一轮高优条目，仍成立，高）✅ 2026-11-08 已修：`resetQuiz()` 末尾清 `#resultRefBar`
 - 页面：`tools/psychiatry/bis11-impulse.html`
 - 现状：`:272` 的 `resetQuiz()` 只清 `result`，不清理 `#resultRefBar`；`:276-278` 未答完路径直接 return，旧标尺仍保留；标尺在 `:296` 渲染。
 - 复现：完成一次高分评估 → 点「重置」→ 答案与文字结果清空，标尺仍显示上一次分值；期望重置与未完成路径同步清空结果、标尺、导出/门诊记录状态。
 - 结论：仍成立；假工具：否；需临床复核。
 
-### M-N52 PHQ-15 恢复历史后只重绘、重置不清标尺（第一轮高优条目，仍成立，高）
+### M-N52 PHQ-15 恢复历史后只重绘、重置不清标尺（第一轮高优条目，仍成立，高）✅ 2026-11-08 已修：`resetQuiz()` 末尾清 `#resultRefBar`
 - 页面：`tools/psychiatry/phq15-somatization.html`（目录实页补入）
 - 现状：恢复回调仍只 `render()`（`:351-355`）；`:261` 的 `resetQuiz()` 只清 `result`，`:282` 已绘制的 `#resultRefBar` 不随重置清除。
 - 复现：15 题全 2 分 → 30/30；重置 → 结果清空但标尺仍停在 30；或先全 0 再恢复全 2 → 界面全 2、结果仍 0/30。期望恢复后 `calc()`、重置后清标尺。
