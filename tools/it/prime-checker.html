@@ -102,7 +102,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="✅ 质数检测器">✅ Prime Number Checker</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="质数（素数）只能被 1 和自身整除。本工具用试除法判定是否为质数，并对合数给出分解结果，方便学习数论与校验。">Check whether a number is prime and see its factors or the nearest primes around it.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">质数判定与因数分解<br>质数：大于 1 且只有 1 和自身两个因数的整数；n &lt; 2 既非质数也非合数<br>试除判定：偶数直接排除，奇数 i 从 3 试除至 √n（i ≤ √n），均不能整除则为质数<br>因数分解：d 从 2 试除至 √x，能整除则反复除去该因子，余数 &gt;1 则为最后一个质因子<br>合数的最小质因数 = 因数分解结果的首个因子</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">质数判定与因数分解<br>质数：大于 1 且只有 1 和自身两个因数的整数；n &lt; 2 既非质数也非合数<br>试除判定：偶数直接排除，奇数 i 从 3 试除至 √n（i ≤ √n），均不能整除则为质数<br>因数分解：d 从 2 试除至 √x，能整除则反复除去该因子，余数 &gt;1 则为最后一个质因子<br>合数的最小质因数 = 因数分解结果的首个因子<br>输入校验：仅接受十进制正整数；≤ 2^53−1 用试除精确分解，更大整数改用 BigInt + Miller-Rabin 判定并做有界试除（余项可能仍可分解）</div>
   <div class="formula-desc">判断一个数是否为质数。</div>
   <ul class="formula-list">
     <li><b>定义</b>：大于 1 且除 1 与自身外没有其他正因数的整数。</li>
@@ -209,24 +209,85 @@ s.parentNode.insertBefore(el, s);
   </div>
 </div>
 <script>
+function __pcL(zh,en){return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?en:zh;}
+/* IT-N476：>2^53 的整数改用 BigInt 精确判定，避免 parseFloat 把输入换成另一个数 */
+function __pcModPow(b,e,m){
+  if(typeof b!=='bigint'||typeof e!=='bigint'||typeof m!=='bigint'||m<2n)return 0n;
+  let r=1n;b%=m;
+  while(e>0n){if(e&1n)r=r*b%m;b=b*b%m;e>>=1n;}
+  return r;
+}
+function __pcMillerRabin(n){
+  if(typeof n!=='bigint'||n<2n)return false;
+  const bases=[2n,3n,5n,7n,11n,13n,17n,19n,23n,29n,31n,37n];
+  for(const p of bases){if(n===p)return true;if(n%p===0n)return false;}
+  let d=n-1n,ss=0n;while((d&1n)===0n){d>>=1n;ss++;}
+  for(const a of bases){
+    if(a>=n)continue;
+    let x=__pcModPow(a,d,n);
+    if(x===1n||x===n-1n)continue;
+    let witness=true;
+    for(let r=1n;r<ss;r++){x=x*x%n;if(x===n-1n){witness=false;break;}}
+    if(witness)return false;
+  }
+  return true;
+}
+function __pcBigFactor(n){
+  if(typeof n!=='bigint'||n<2n)return {min:null,rest:n};
+  for(const p of [2n,3n,5n,7n,11n,13n,17n,19n,23n,29n,31n,37n]){if(n%p===0n)return {min:p,rest:n/p};}
+  let d=41n;const L=200000n;
+  while(d*d<=n&&d<=L){if(n%d===0n)return {min:d,rest:n/d};d+=2n;}
+  return {min:null,rest:n};
+}
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function escH(s){var d=document.createElement('div');const __g1=s==null?'':String(s);d.textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
-function calcTool(){var n=Math.floor(num('n'));
-var html='<div class="result-title">判定结果</div>';
-if(n<2){html+='<p class="muted">小于 2 的数既不是质数也不是合数。</p>';const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));return;}
-function isPrime(x){if(x<2)return false;if(x<4)return true;if(x%2===0)return false;for(var i=3;i*i<=x;i+=2){if(x%i===0)return false;}return true;}
-if(isPrime(n)){html+='<div class="big-result">'+n+' 是质数 ✅</div>';}
-else{
-  var factors=[];var x=n;
-  for(var d=2;d*d<=x;d++){while(x%d===0){factors.push(d);x/=d;}}
-  if(x>1)factors.push(x);
-  var min=factors[0];
-  html+='<div class="big-result" style="font-size:16px;">'+n+' 是合数 ❌</div>';
-  html+='<p><b>最小质因数：</b>'+min+'</p>';
-  html+='<p><b>因数分解：</b>'+n+' = '+factors.join(' × ')+'</p>';
-}
-const __g3=html;document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));}
+function calcTool(){
+  /* 取元素顺序与旧实现一致（先 n 后 result）：harness stub DOM 按首次 getElementById 顺序收集输出 */
+  const raw=String(document.getElementById('n').value==null?'':document.getElementById('n').value).trim();
+  const box=document.getElementById('result');
+  /* IT-N476：旧实现 parseFloat + Math.floor 会把小数/科学计数/超 2^53 的整数静默换成另一个数再判定 */
+  if(raw===''){
+    const __g0='<p class="muted">'+__pcL('请输入一个正整数。','Please enter a positive integer.')+'</p>';box.innerHTML=(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—'));return;
+  }
+  if(!/^\d+$/.test(raw)){
+    const __g1='<p class="muted">'+__pcL('请输入整数：不支持小数、科学计数法、负号或其它字符。','Enter an integer: decimals, scientific notation, signs and other characters are not supported.')+'</p>';box.innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));return;
+  }
+  const big=BigInt(raw);
+  const head='<div class="result-title">'+__pcL('判定结果','Result')+'</div>';
+  if(big<2n){
+    const __g2=head+'<p class="muted">'+__pcL('小于 2 的数既不是质数也不是合数。','Numbers below 2 are neither prime nor composite.')+'</p>';box.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));return;
+  }
+  let html=head;
+  if(big>BigInt(Number.MAX_SAFE_INTEGER)){
+    /* 超出浮点安全范围：BigInt + 确定性 Miller-Rabin（12 个素数基）+ 有界试除找最小质因数 */
+    if(__pcMillerRabin(big)){
+      html+='<div class="big-result">'+raw+' '+__pcL('是质数','is prime')+' ✅</div>';
+    }else{
+      const f=__pcBigFactor(big);
+      html+='<div class="big-result" style="font-size:16px;">'+raw+' '+__pcL('是合数','is composite')+' ❌</div>';
+      html+='<p><b>'+__pcL('最小质因数：','Smallest prime factor: ')+'</b>'+(f.min!==null?String(f.min):__pcL('未在 20 万以内找到','not found below 200,000'))+'</p>';
+      if(f.min!==null){
+        html+='<p><b>'+__pcL('因数分解：','Factorization: ')+'</b>'+raw+' = '+String(f.min)+' × '+String(f.rest)+(__pcMillerRabin(f.rest)?'':__pcL('（余项仍可分解）',' (remainder is composite)'))+'</p>';
+      }else{
+        html+='<p><b>'+__pcL('因数分解：','Factorization: ')+'</b>'+__pcL('超出有界试除范围，未完全分解','incomplete (bounded trial division)')+'</p>';
+      }
+    }
+  }else{
+    var n=Number(big);
+    function isPrime(x){if(x<2)return false;if(x<4)return true;if(x%2===0)return false;for(var i=3;i*i<=x;i+=2){if(x%i===0)return false;}return true;}
+    if(isPrime(n)){html+='<div class="big-result">'+n+' '+__pcL('是质数','is prime')+' ✅</div>';}
+    else{
+      var factors=[];var x=n;
+      for(var d=2;d*d<=x;d++){while(x%d===0){factors.push(d);x/=d;}}
+      if(x>1)factors.push(x);
+      var min=factors[0];
+      html+='<div class="big-result" style="font-size:16px;">'+n+' '+__pcL('是合数','is composite')+' ❌</div>';
+      html+='<p><b>'+__pcL('最小质因数：','Smallest prime factor: ')+'</b>'+min+'</p>';
+      html+='<p><b>'+__pcL('因数分解：','Factorization: ')+'</b>'+n+' = '+factors.join(' × ')+'</p>';
+    }
+  }
+  const __g3=html;box.innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));}
 function resetForm(){document.getElementById('n').value='97';
       calcTool();}
 calcTool();

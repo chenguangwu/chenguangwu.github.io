@@ -8554,6 +8554,42 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"n\":\"42\"}，输出区含「42\n判定结果 42 是合数 ❌ 最小质因数： 2 因数分解： 42 = 2 ×…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    "slug": "it/prime-checker",
+    "inputs": {"n": "2.5"},
+    "expect": ["请输入整数：不支持小数、科学计数法、负号或其它字符。"],
+    "ref": "IT-N476：旧实现 parseFloat + Math.floor 把 2.5 静默改成 2 并判「2 是质数 ✅」，判定对象被替换且无提示。现严格校验 /^\\d+$/ 并明确拒绝小数；默认态 97 输出质数，不含该提示 ⇒ 强判别。"
+  },
+  {
+    "slug": "it/prime-checker",
+    "inputs": {"n": "9007199254740993"},
+    "expect": ["9007199254740993 = 3 × 3002399751580331"],
+    "ref": "IT-N476：= 3 × 3002399751580331，旧实现 parseFloat 舍入成 2^53=9007199254740992 并分解成 53 个 2。现超 2^53 走 BigInt，最小质因数 3、输入原样保留；修复前不含该分解串 ⇒ 红。"
+  },
+  {
+    "slug": "it/prime-checker",
+    "inputs": {"n": "1e21"},
+    "expect": ["请输入整数：不支持小数、科学计数法、负号或其它字符。"],
+    "ref": "IT-N476：科学计数法输入旧实现显示「1e+21 是合数」并给出伪分解，现按非十进制整数拒绝。与上一条小数用例构成两类非法格式双覆盖；默认态无该提示。"
+  },
+  {
+    "slug": "it/prime-checker",
+    "inputs": {"n": "2305843009213693951"},
+    "expect": ["2305843009213693951 是质数"],
+    "ref": "IT-N476：2^61−1（梅森质数）远超 2^53，旧实现按浮点判合数；现 BigInt + 确定性 Miller-Rabin（12 个素数基）判质数，验证大数判定不是简单拒绝而是精确算对。"
+  },
+  {
+    "slug": "it/prime-checker",
+    "clicks": ["document.getElementById('n').value='2.5';calcTool();document.getElementById('stats').textContent='N476 guard='+((typeof __pcMillerRabin==='function')&&__pcMillerRabin(2305843009213693951n)===true&&__pcMillerRabin(9007199254740993n)===false&&String(document.getElementById('result').innerHTML).indexOf('2 是质数')<0?1:0);"],
+    "expect": ["N476 guard=1"],
+    "ref": "IT-N476 行为契约：直接调用页面 BigInt Miller-Rabin 判定（2^61−1 质数 / 2^53+1 合数），并确认 2.5 不再被静默判成「2 是质数」。注意本页被 harness 包装成 __prime_checker_f0，String(calcTool) 只有包装壳，源码契约在此页不可用；改行为契约。"
+  },
+  {
+    "slug": "it/prime-checker",
+    "clicks": ["document.getElementById('stats').textContent='N476EN='+((typeof __pcL==='function')&&__pcL('判定结果','Result')==='判定结果'&&__pcL('是质数','is prime')==='是质数'?1:0);"],
+    "expect": ["N476EN=1"],
+    "ref": "IT-N476 顺带：#result 动态重建，英文态静态扫描覆盖不到；行为契约守住 __pcL helper 存在且中文态逐字返回原中文，英文态 0 CJK 由 jsdom 真机探针验证。"
+  },
+  {
     "slug": "it/pomodoro",
     "inputs": {
       "focusMin": "42",
