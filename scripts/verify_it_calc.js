@@ -1218,9 +1218,25 @@ const CASES = [
   {
     slug: "it/xor-cipher",
     inputs: { input: "AB", key: "XY" },
-    clicks: ["calcTool()"],
+    clicks: ["process()"],
     expect: ["191b"],
     ref: "0x19 0x1b 两字节异或密文（A^X=19、B^Y=1b）十六进制小写拼接。默认输入/密钥组合产物不同。",
+  },
+  {
+    slug: "it/xor-cipher",
+    // IT-N345 回归：hex 输入含非法字符，修复后 parseInput 抛错、catch 把错误写入 output 而非静默产出错误字节。
+    inputs: { input: "1g", inFmt: "hex", key: "XY" },
+    clicks: ["process()"],
+    expect: ["包含非十六进制字符"],
+    ref: "hex 通道输入 '1g' 含非十六进制字符 g，修复后抛「包含非十六进制字符」，不再静默转成错误字节；合法文本用例/默认态不命中该提示。",
+  },
+  {
+    slug: "it/xor-cipher",
+    // IT-N345 回归：hex 输入奇数长度，修复后应报「长度必须为偶数」而非静默截掉末位字节。
+    inputs: { input: "1a2", inFmt: "hex", key: "XY" },
+    clicks: ["process()"],
+    expect: ["十六进制长度必须为偶数"],
+    ref: "hex 通道输入 '1a2' 长度为奇数，修复后抛「十六进制长度必须为偶数」；合法用例不命中。",
   },
   {
     slug: "it/curl-parser",
@@ -3067,6 +3083,30 @@ const CASES = [
     clicks: ["calcTool()"],
     expect: ["248 = CCXLVIII"],
     ref: "罗马数字：248 = 100(CC) + 100(CC) + 40(XL) + 5(V) + 1(I) + 1(I) = CCXLVIII，严格按「大值优先、左减右加」拆解，可手算复算。",
+  },
+  {
+    slug: "it/roman-numeral-converter",
+    // N368 回归：罗马→数字方向，合法串应正确还原。
+    inputs: { dir: "from", roman: "MCMLXXXIV" },
+    clicks: ["calcTool()"],
+    expect: ["MCMLXXXIV → 1984"],
+    ref: "罗马→数字：MCMLXXXIV = 1000+900+50+40+4 = 1984，修复后 fromRoman 严格正则校验不影响合法串。默认态为数字→罗马，不命中。",
+  },
+  {
+    slug: "it/roman-numeral-converter",
+    // IT-N368 回归：非法罗马串（I 不能左减 L）修复后经严格正则拒绝，提示无效而非静默得出 49。
+    inputs: { dir: "from", roman: "IL" },
+    clicks: ["calcTool()"],
+    expect: ["不是有效的罗马数字"],
+    ref: "IT-N368 修复前 'IL' 被静默算成 49；修复后 fromRoman 用标准正则 ^(M{0,3})(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$ 拒绝非法串并返回 null，页面输出「不是有效的罗马数字」。合法用例('MCMLXXXIV')不命中该提示。",
+  },
+  {
+    slug: "it/roman-numeral-converter",
+    // IT-N368 回归：四重复 M（MMMM）超出构成规则与 3999 上限，应判无效而非得 4000。
+    inputs: { dir: "from", roman: "MMMM" },
+    clicks: ["calcTool()"],
+    expect: ["不是有效的罗马数字"],
+    ref: "IT-N368 修复前 'MMMM' 被静默算成 4000；修复后正则 M{0,3} 拒绝四个 M，输出无效提示。",
   },
   {
     slug: "it/triangle-calculator",
@@ -7176,9 +7216,9 @@ const CASES = [
       "dir": "from"
     },
     "expect": [
-      "from\n1 2 3\n转换结果 1 2 3 → 0\n42"
+      "不是有效的罗马数字：仅可含 I/V/X/L/C/D/M"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"number\":\"42\",\"roman\":\"1\\n2\\n3\",\"dir\":\"from\"}，输出区含「from\n1 2 3\n转换结果 1 2 3 → 0\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"number\":\"42\",\"roman\":\"1\\n2\\n3\",\"dir\":\"from\"}。修复 IT-N368 后，非法罗马串（含换行/阿拉伯数字）经严格正则拒绝，输出「不是有效的罗马数字：仅可含 I/V/X/L/C/D/M…」；旧实现静默算成 0。默认态（数字→罗马）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/rot-cipher",
@@ -7915,10 +7955,9 @@ const CASES = [
       "outFmt": "text"
     },
     "expect": [
-      "abc123测试\n1 2 3\ns\nhex\ntext",
-      "1 2 3\nabc123测试\nhex\ntext\ns"
+      "处理失败：十六进制长度必须为偶数（每字节两位十六进制）"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"key\":\"abc123测试\",\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"inFmt\":\"hex\",\"outFmt\":\"text\"}，输出区含「abc123测试\n1 2 3\ns\nhex\ntext」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。G06-S1 首屏自跑改变了元素创建序 ⇒ blob 字段序随之改变，expect 容忍新旧两种字段序；判别力不变。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"key\":\"abc123测试\",\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"inFmt\":\"hex\",\"outFmt\":\"text\"}。修复 IT-N345 后，hex 通道对奇数长度输入会抛「十六进制长度必须为偶数（每字节两位十六进制）」并写入 output，旧实现静默截断为错误字节；默认态（inFmt=text、输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   
   {
