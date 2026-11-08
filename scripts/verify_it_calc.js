@@ -5052,6 +5052,37 @@ const CASES = [
     "expect": ["__proto__ = \"v\""],
     "ref": "元素名 `__proto__`：groups/obj 为普通 `{}` 时该键被原型吞掉、TOML 输出丢行；Object.create(null) 后保留为 `__proto__ = \"v\"`。输入 XML 仅含标签，不含等号形态。"
   },
+  // ---- IT-N391（xml-to-toml 侧）/ IT-N394 / IT-N395 ----
+  {
+    "slug": "it/xml-to-toml",
+    "inputs": { "source": "<name>Tom &amp; Jerry</name>" },
+    "expect": ["name = \"Tom &amp; Jerry\""],
+    "ref": "IT-N394：XML 实体必须解码成对应字符。修复前原文直取 ⇒ TOML 里留着字面 `&amp;`（双重转义，回读值不是 `Tom & Jerry`）。注意结果是 `<pre>` + escH，故修复后 blob 里的 `&` 读作 `&amp;`；修复前是 `&amp;amp;`，两者互不包含 ⇒ 判别明确。"
+  },
+  {
+    "slug": "it/xml-to-toml",
+    "inputs": { "source": "<t>&#65;&#x42;</t>" },
+    "expect": ["t = \"AB\""],
+    "ref": "IT-N394：数字字符引用（`&#65;` / `&#x42;`）也要解码。修复前整串原样进 TOML ⇒ `t = \"&#65;&#x42;\"`。输入 XML 里的实体形态与输出 `AB` 无交集。"
+  },
+  {
+    "slug": "it/xml-to-toml",
+    "inputs": { "source": "<a url=\"x&amp;y\"/>" },
+    "expect": ["\"@url\" = \"x&amp;y\""],
+    "ref": "IT-N394：属性值同样要解码（`attrs[m[1]]=m[2]` 原文直取）。修复前 TOML 属性值是 `x&amp;y` 字面量 ⇒ blob 里是 `x&amp;amp;y`；修复后是 `x&amp;y`（escH 转义一次）。"
+  },
+  {
+    "slug": "it/xml-to-toml",
+    "inputs": { "source": "<config><item><a>1</a></item><item><a>2</a></item></config>" },
+    "expect": ["[[config.item]]"],
+    "ref": "IT-N395：嵌套表内的同名兄弟元素必须生成带父前缀的表数组头。修复前表数组分支固定写 `'[['+tKey(k)+']]'`（忽略 prefix）⇒ 输出 `[config]` 空表 + 两条 `[[item]]`，回读后 `config` 下没有 `item`。默认样例无重复元素。"
+  },
+  {
+    "slug": "it/xml-to-toml",
+    "inputs": { "source": "<r><a.b><c.d><e>1</e></c.d></a.b></r>" },
+    "expect": ["[r.\"a.b\".\"c.d\"]"],
+    "ref": "IT-N395：表头路径必须**逐段**转义。修复前递归只把上一层的 `tKey(k)` 用在末段，往下传的 prefix 却是原始键名拼接 ⇒ 深层表头写成 `[r.a.b.\"c.d\"]`（TOML 会读成 r→a→b→c.d 五层，而非 r→\"a.b\"→\"c.d\" 三层）。XML 允许元素名带点号，故该输入合法。"
+  },
   {
     "slug": "it/yaml-to-toml",
     "inputs": { "source": "srv:\n  host: 127.0.0.1\n  port: 5432" },

@@ -2377,34 +2377,6 @@
 
 ## U 批 · IT 转换/编码边界（2026-11-04）
 
-### IT-N391 xml-to-toml 的「缩进」下拉未被读取（中，承诺未实现）
-- 页面：`tools/it/xml-to-toml.html`（toml-to-xml 侧已接线、yaml-to-toml 侧已随控件移除，见 `plan/已修复/2026-11-08-IT-N391-N393-toml-to-xml元素名与转义.md`、`plan/已修复/2026-11-08-IT-N388-N390-yaml-to-toml标量与表导出.md`）
-- 问题：页面提供「缩进：2 空格 / 4 空格 / Tab」，但 JS 从不读取该值——`calcTool` 只读排序复选框。
-- 行号：`:127`、`:362-363`
-- 复现：把缩进切到 4 空格 / Tab → 输出与 2 空格完全一致。期望控件生效，或删除无效控件。
-- 影响：界面承诺与实际输出不符，用户会误以为格式已按选择调整。
-- 方案：TOML 无缩进语义（与 yaml-to-toml 侧同口径处理：移除该下拉及其预设键）；若不删则须让 `dumpToml` 真正吃缩进参数。
-- 假工具：否（承诺未实现；建议并入 `plan/fake-tools.md`）
-
-### IT-N394 XML 实体不解码，`&amp;` 等原样写进 TOML 值（中，确认缺陷）
-- 页面：`tools/it/xml-to-toml.html`
-- 问题：属性正则直接取引号内原文（`:231-232`），文本节点也只做 `trim()`（`:242`、`:254-257`），全文没有 `&amp;`/`&lt;`/`&#xNN;` 解码；XML 语义上的 `Tom & Jerry` 被写成 `Tom &amp; Jerry`。
-- 行号：`:231-232`、`:242`、`:254-257`
-- 复现：输入 `<name>Tom &amp; Jerry</name>` → 实际 TOML `name = "Tom &amp; Jerry"`；期望 `name = "Tom & Jerry"`。属性 `<a url="x&amp;y"/>` 同样保留实体。
-- 影响：所有含转义字符的 XML 文本/属性在 TOML 中被双重转义，回读值错误。
-- 方案：解析后对文本与属性统一做实体解码（至少 `&amp; &lt; &gt; &quot; &apos;` 与数字实体）。
-- 假工具：否
-
-### IT-N395 嵌套表内的同名兄弟元素生成 `[[item]]` 而非 `[[config.item]]`（中，确认缺陷）
-- 页面：`tools/it/xml-to-toml.html`
-- 问题：`dumpTable` 的数组表分支固定写 `'[['+tKey(k)+']]'`（`:348`），忽略 `prefix`；`[config]` 表内的 `item` 数组被提升为根级表数组。
-- 行号：`:340-353`（`dumpTable`）、`:348`
-- 复现：输入 `<config><item><a>1</a></item><item><a>2</a></item></config>` → 实际
-  `[config]` 空表 + `[[item]]` ×2；期望 `[[config.item]]` ×2。TOML 回读后 `config` 下没有 `item`。
-- 影响：XML 的嵌套重复元素（RSS、pom、配置文件常见）转换后层级错位。
-- 方案：数组表头同样拼接 `prefix`（`[[` + (prefix?prefix+'.':'') + key + `]]`）。
-- 假工具：否
-
 ### IT-N396 「对比模式」下拉从未被读取，深度/简单两种模式输出完全相同（中，承诺未实现）
 - 页面：`tools/it/json-diff.html`
 - 问题：`<select id="diffMode">` 提供「深度对比 / 简单对比」并在 `onchange` 调 `doDiff()`（`:201-203`），但 `doDiff`（`:532-594`）从未读取 `diffMode`，始终执行 `deepDiff` + 同一套逐行 diff 与统计。
@@ -2505,7 +2477,6 @@
 - 假工具：否
 
 ### 覆盖清单（U 批 IT 转换/编码）
-- `xml-to-toml`：IT-N391（中）、IT-N394、IT-N395（中）；无高优缺陷。
 - `json-diff`：IT-N396、IT-N397（中）；无高优缺陷（按索引与逐行的差异计算本身正确）。
 - `json-schema-validator`：IT-N398（高）、IT-N399、IT-N400（中）。
 - `html-to-markdown`：IT-N401（高）、IT-N402、IT-N403、IT-N404（中）。

@@ -106,7 +106,7 @@ s.parentNode.insertBefore(el, s);
 <div class="card tool-card-accent" style="--tool-accent:#3B82F6;">
     <h2 data-zh="📄 XML 转 TOML 转换器">📄 XML to TOML Converter</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">XML 侧：剔除注释、处理指令并把 CDATA 还原为文本，逐元素取头部标签名与属性（([\w:-]+)\s*=\s*"([^"]*)"），按标签名分组，同名单个取单值、多个取数组，属性以 @ 前缀、文本以 #text 存放。TOML 侧输出：键名匹配 ^[A-Za-z0-9_-]+$ 时原样写，否则加双引号并转义反斜杠与引号；值为空写 ""，布尔写 true/false，数字直接写字符串，数组写 [a, b]，其余加双引号转义；同一表先写标量键再写子表，可选按键名字典序排序</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">XML 侧：剔除注释、处理指令并把 CDATA 还原为文本，逐元素取头部标签名与属性（([\w:-]+)\s*=\s*"([^"]*)"），属性值与文本统一做实体解码（&amp;amp; &amp;lt; &amp;gt; &amp;quot; &amp;apos; 与 &amp;#NN; / &amp;#xNN;，只解一层），按标签名分组，同名单个取单值、多个取数组，属性以 @ 前缀、文本以 #text 存放。TOML 侧输出：键名匹配 ^[A-Za-z0-9_-]+$ 时原样写，否则加双引号并转义反斜杠与引号；值为空写 ""，布尔写 true/false，数字直接写字符串，数组写 [a, b]，其余加双引号转义；表头路径逐段转义后以点号拼接，表数组写 [[父表.子键]]；同一表先写标量键再写子表，可选按键名字典序排序</div>
   <div class="formula-desc">把 XML 转换为 TOML。</div>
   <ul class="formula-list">
     <li><b>映射</b>：XML 元素名成为 TOML 的键，嵌套元素成为子表。</li>
@@ -121,10 +121,6 @@ s.parentNode.insertBefore(el, s);
       <div>
         <label for="source">XML 源文本</label>
         <textarea id="source" rows="8" style="width:100%;font-family:monospace;font-size:12.5px;"><config>&#10;  <name>demo</name>&#10;  <port>8080</port>&#10;  <db url=&quot;x&quot; pool=&quot;16&quot;/>&#10;</config></textarea>
-      </div>
-      <div>
-        <label for="indent">缩进</label>
-        <select id="indent" style="width:100%;"><option value="2">2 空格</option><option value="4">4 空格</option><option value="tab">Tab</option></select>
       </div>
       <div>
         <label for="sort">按键名排序输出</label>
@@ -215,6 +211,26 @@ function escH(s){var d=document.createElement('div');const __g1=s==null?'':Strin
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){function escXml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function escAttr(s){return escXml(s).replace(/"/g,'&quot;');}
+// XML 实体解码：XML 语义上的 `&amp;` 就是 `&`，不解码会把实体当正文写进 TOML（双重转义）
+function xDecode(s){
+  if(s==null) return '';
+  return String(s).replace(/&(#x?[0-9A-Fa-f]+|[A-Za-z]+);/g,function(m,body){
+    if(body[0]==='#'){
+      var cp= body[1]==='x'||body[1]==='X' ? parseInt(body.slice(2),16) : parseInt(body.slice(1),10);
+      if(!isFinite(cp)||cp<0||cp>0x10FFFF) return m;
+      try{ return String.fromCodePoint(cp); }catch(e){ return m; }
+    }
+    switch(body){
+      case 'amp': return '&';
+      case 'lt': return '<';
+      case 'gt': return '>';
+      case 'quot': return '"';
+      case 'apos': return "'";
+      case 'nbsp': return '\u00a0';
+      default: return m;
+    }
+  });
+}
 function xmlToJson(xml){
   xml=xml.replace(/<!--[\s\S]*?-->/g,'').replace(/<\?[\s\S]*?\?>/g,'').replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,function(m,c){return c;});
   var pos=0;
@@ -229,7 +245,7 @@ function xmlToJson(xml){
     var attrStr= sp<0? '' : head.slice(sp+1);
     var attrs={};
     var re=/([\w:-]+)\s*=\s*"([^"]*)"/g, m;
-    while((m=re.exec(attrStr))){ attrs[m[1]]=m[2]; }
+    while((m=re.exec(attrStr))){ attrs[m[1]]=xDecode(m[2]); }
     if(selfClose) return {name:name, val:nodeVal(name,attrs,null,'')};
     var children=[]; var text='';
     while(pos<xml.length){
@@ -251,10 +267,10 @@ function xmlToJson(xml){
       var groups=Object.create(null);
       for(var k=0;k<children.length;k++){ var c=children[k]; (groups[c.name]=groups[c.name]||[]).push(c.val); }
       for(var g in groups){ obj[g]= groups[g].length===1? groups[g][0] : groups[g]; }
-      if(text && text.trim()) obj['#text']=text.trim();
+      if(text && text.trim()) obj['#text']=xDecode(text.trim());
       return obj;
     }
-    var v=text?text.trim():'';
+    var v=text?xDecode(text.trim()):'';
     if(Object.keys(attrs).length){ var o={}; for(var a2 in attrs)o['@'+a2]=attrs[a2]; if(v)o['#text']=v; return o; }
     return v;
   }
@@ -337,23 +353,28 @@ function parseToml(text){
   return root;
 }
 function tKey(k){ return /^[A-Za-z0-9_-]+$/.test(k) ? k : '"'+String(k).replace(/\\/g,'\\\\').replace(/"/g,'\\"')+'"'; }
+// 表头路径逐段转义后拼点号：直接拼原始键名时，键里含点号/空格会拼出非法表头
+function tPath(parts){ return parts.map(tKey).join('.'); }
 function dumpTable(t,sort,prefix){
-  prefix=prefix||'';
+  prefix=prefix||[];
   var out=''; var keys=Object.keys(t); if(sort)keys=keys.slice().sort();
   for(var i=0;i<keys.length;i++){ var k=keys[i]; var v=t[k];
     if(!(v!==null && typeof v==='object')) out+=tKey(k)+' = '+tLit(v)+'\n'; }
   for(var i=0;i<keys.length;i++){ var k=keys[i]; var v=t[k];
     if(v instanceof Array){
       if(v.length && typeof v[0]==='object' && v[0]!==null){
-        for(var a=0;a<v.length;a++){ out+='\n[['+tKey(k)+']]\n'+dumpTable(v[a],sort); }
+        // 表数组表头必须带父前缀，否则嵌套的重复元素被提升到根级（回读后父表里没有该键）
+        var sub=prefix.concat([k]);
+        for(var a=0;a<v.length;a++){ out+='\n[['+tPath(sub)+']]\n'+dumpTable(v[a],sort,sub); }
       } else { out+=tKey(k)+' = '+tLit(v)+'\n'; }
     } else if(v!==null && typeof v==='object'){
-      out+='\n['+(prefix?prefix+'.':'')+tKey(k)+']\n'+dumpTable(v,sort,prefix?(prefix+'.'+k):k);
+      var p2=prefix.concat([k]);
+      out+='\n['+tPath(p2)+']\n'+dumpTable(v,sort,p2);
     }
   }
   return out;
 }
-function dumpToml(node,sort){ return dumpTable(node,sort,''); }
+function dumpToml(node,sort){ return dumpTable(node,sort,[]); }
 
 var src=document.getElementById('source').value||'';
 if(!src.trim()){ document.getElementById('result').innerHTML='<p class="muted">请输入 XML 文本</p>'; return; }
@@ -363,7 +384,6 @@ var sort=document.getElementById('top_1').checked;
 var toml=dumpToml(obj,sort);
 const __g4='<div class="result-title">TOML 输出</div><pre class="code-block">'+escH(toml)+'</pre>';document.getElementById('result').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));}
 function resetForm(){document.getElementById('source').value='<config>\n  <name>demo</name>\n  <port>8080</port>\n  <db url="x" pool="16"/>\n</config>';
-      document.getElementById('indent').selectedIndex=0;
       document.getElementById('top_1').checked=false;
       calcTool();}
 calcTool();
@@ -489,10 +509,10 @@ function __xml_to_tomlExport(){
 }
 function __xml_to_tomlPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#xml_to_tomlPresets',[{label:'默认参数',labelEn:'Default',values:{'indent':'2', 'top_1':'0'}},
-  {"label":"项目元数据转 TOML","labelEn":"Project metadata to TOML","values":{"source":"<project><name>ToolBox</name><version>1.2.0</version><author><name>Chen</name><email>dev@example.com</email></author></project>","indent":"2","top_1":false}},
-  {"label":"按键名排序输出","labelEn":"Sort keys alphabetically","values":{"source":"<config><server><host>api.example.com</host><port>8080</port><timeout>30</timeout></server><database><host>db.example.com</host><port>5432</port><pool>10</pool></database></config>","indent":"2","top_1":true}},
-  {"label":"Tab 缩进的嵌套配置","labelEn":"Nested config with Tab","values":{"source":"<config><server><host>api.example.com</host><port>8080</port><timeout>30</timeout></server><database><host>db.example.com</host><port>5432</port><pool>10</pool></database></config>","indent":"tab","top_1":false}}],function(){ calcTool(); });
+    TBKit.preset.bar('#xml_to_tomlPresets',[{label:'默认参数',labelEn:'Default',values:{'top_1':'0'}},
+  {"label":"项目元数据转 TOML","labelEn":"Project metadata to TOML","values":{"source":"<project><name>ToolBox</name><version>1.2.0</version><author><name>Chen</name><email>dev@example.com</email></author></project>","top_1":false}},
+  {"label":"按键名排序输出","labelEn":"Sort keys alphabetically","values":{"source":"<config><server><host>api.example.com</host><port>8080</port><timeout>30</timeout></server><database><host>db.example.com</host><port>5432</port><pool>10</pool></database></config>","top_1":true}},
+  {"label":"嵌套重复元素","labelEn":"Nested repeated elements","values":{"source":"<config><item><sku>a</sku></item><item><sku>b</sku></item></config>","top_1":false}}],function(){ calcTool(); });
 }
 var __xml_to_toml_f0=(typeof calcTool==='function')?calcTool:null;
 if(__xml_to_toml_f0){
