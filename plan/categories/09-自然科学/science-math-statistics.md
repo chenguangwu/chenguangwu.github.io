@@ -493,7 +493,6 @@
 
 ## Z 批 · 自然科学·数学/地学/热学（2026-11-04）
 
-- `tools/science/factorial-calculator.html`：SMS-92 仍待修，斯特林近似溢出导致 n=200 的精确结果被整体判为无效；旧 SMS-93 数量级错误已修，2026-11-06 提取实际函数在 Node DOM 桩复核 20!/52!/100! 的数量级分别为 18/67/157，与位数一致。
 - `tools/science/gcd-calculator.html`：3 条（SMS-94、SMS-95 高、SMS-106）。默认 48,36,24 → GCD 12、辗转相除步骤与质因数分解正确；问题在 `parseInt` 解析小数/科学计数/超 2⁵³ 与 √n 枚举无上限，另共用 SMS-106 的附加历史模板。
 - `tools/science/lcm-calculator.html`：1 条（SMS-96 中）。默认 12,18,24 → LCM 72，gcd 链路正确；问题为 `a·b` 双精度溢出（另与 SMS-95 同源的 factorize 同样可卡死）。
 - `tools/science/geo-distance-calculator.html`：1 条（SMS-97 中）。Haversine、初始方位角与英里/海里换算正确（北京 39.9042,116.4074 → 上海 31.2304,121.4737 = 1067.310 km）；问题为同组两输入共用错误容器，提示会被后一个合法输入抹掉（另共用 SMS-106）。
@@ -504,7 +503,6 @@
 
 | 页面 | 问题（含 tools/science/&lt;slug&gt;.html:NN） | 编号 |
 |---|---|---|
-| tools/science/factorial-calculator.html | `stirling=Math.sqrt(2πn)·(n/e)^n` 在 n≥171 溢出为 `Infinity`，`:298` 的 `/Infinity/` 兜底把整块结果（BigInt 精确的 375 位）替换成「⚠ 计算结果含无效值，请检查输入是否为有效正数。」；允许域 0–10000 中 171–10000 全废（n=200 实测，node 复刻）。:292、:295、:298 | SMS-92 |
 | tools/science/gcd-calculator.html | 解析用裸 `parseInt`：`1.5,3`→[1,3] 得 GCD 1、`1e3,500`→[1,500] 得 1、`0.5,1.5`→[0,1] 误报「不能包含 0」；`9007199254740993,3` 被截为 …992，输出 GCD 1 而真值 3（node 复刻）。:249、:254 | SMS-94 |
 | tools/science/gcd-calculator.html | `factorize` 按 `for(let i=2;i*i<=x;i++)` 穷举到 √n，无上限、无 BigInt：20 位输入（parseInt→1.2e19，√≈3.5×10⁹ 次取模）使标签页冻结数分钟；lcm:238-241 同源代码。:280-289 | SMS-95 |
 | tools/science/lcm-calculator.html | `lcm2 = abs(a·b)/gcd` 全用双精度：lcm(1000000007,1000000009) 显示 1,000,000,016,000,000,000，真值 …0063（差 63）；步骤行打印的同一乘积同样失真。:234、:249 | SMS-96 |
