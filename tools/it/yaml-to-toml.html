@@ -103,7 +103,7 @@ s.parentNode.insertBefore(el, s);
 
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-  <div class="formula-eq">缩进层级 → [table] / [[array of tables]]<br>类型映射：mapping→表、sequence→数组表/数组、标量→字符串/整数/浮点/布尔/日期</div>
+  <div class="formula-eq">缩进层级 → [table] / [[array of tables]]（表数组元素内的子表带父前缀，如 [items.meta]）<br>类型映射：mapping→表、sequence→数组表/数组（含 [a, b] 流式写法）、标量→字符串/整数/浮点/布尔/日期（行尾 # 注释在引号外剥离）</div>
   <div class="formula-desc">两种格式都表达「键值 + 嵌套」的配置树，但语法差异显著：YAML 依赖缩进与 - 列表，TOML 则用 [table] 声明表、[[table]] 声明表数组、键用点号或表头表达层级。转换时的关键约束是 TOML 要求「表必须写在所有普通键之后」，因此转换器需先输出根级标量键，再按层级输出表头；YAML 的 null 在 TOML 中无对应类型，通常被丢弃或转为空串；多行字符串、锚点与别名（&/*）无法直接映射，需先展开。转换后建议用 TOML 解析器回读校验。</div>
 </div>
     </div>
@@ -111,10 +111,6 @@ s.parentNode.insertBefore(el, s);
       <div>
         <label for="source">YAML 源文本</label>
         <textarea id="source" rows="8" style="width:100%;font-family:monospace;font-size:12.5px;">server:&#10;  host: 0.0.0.0&#10;  port: 8080&#10;  debug: true&#10;features:&#10;  - logging&#10;  - metrics&#10;db:&#10;  url: postgres://localhost:5432&#10;  pool: 16</textarea>
-      </div>
-      <div>
-        <label for="indent">缩进</label>
-        <select id="indent" style="width:100%;"><option value="2">2 空格</option><option value="4">4 空格</option><option value="tab">Tab</option></select>
       </div>
       <div>
         <label for="top_1">按键名排序输出</label>
@@ -215,9 +211,54 @@ s.parentNode.insertBefore(el, s);
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function escH(s){var d=document.createElement('div');const __g1=s==null?'':String(s);d.textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
-function calcTool(){function yScalar(s){
-  s=s.trim();
+function calcTool(){// 行内注释剥离：YAML 规定 # 只有处在「行首或空白之后」才是注释，且不能在引号内
+function yStripComment(s){
+  var out='',q=null,i=0;
+  while(i<s.length){
+    var c=s[i];
+    if(q){
+      out+=c;
+      if(c==='\\'&&q==='"'){ out+=(s[i+1]||''); i+=2; continue; }
+      if(c===q)q=null; i++; continue;
+    }
+    if(c==='"'||c==="'"){ q=c; out+=c; i++; continue; }
+    if(c==='#'&&(i===0||s[i-1]===' '||s[i-1]==='\t')) break;
+    out+=c; i++;
+  }
+  return out;
+}
+// 顶层切分（引号/转义/[]{} 深度感知），供流式数组与流式映射使用
+function ySplitTop(s,sep){
+  sep=sep||',';
+  var out=[],buf='',depth=0,q=null,i=0;
+  while(i<s.length){
+    var c=s[i];
+    if(q){
+      if(c==='\\'&&q==='"'){ buf+=c+(s[i+1]||''); i+=2; continue; }
+      buf+=c; if(c===q)q=null; i++; continue;
+    }
+    if(c==='"'||c==="'"){ q=c; buf+=c; i++; continue; }
+    if(c==='['||c==='{'){ depth++; buf+=c; i++; continue; }
+    if(c===']'||c==='}'){ depth--; buf+=c; i++; continue; }
+    if(c===sep&&depth===0){ out.push(buf); buf=''; i++; continue; }
+    buf+=c; i++;
+  }
+  if(buf.trim()!=='') out.push(buf);
+  return out.filter(function(x){ return x.trim()!==''; });
+}
+function yScalar(s){
+  s=yStripComment(String(s)).trim();
   if(s==='')return '';
+  // 流式序列 [a, b, c] / 流式映射 {a: 1, b: 2}
+  if(s[0]==='['&&s.slice(-1)===']') return ySplitTop(s.slice(1,-1)).map(function(x){ return yScalar(x); });
+  if(s[0]==='{'&&s.slice(-1)==='}'){
+    var fo=Object.create(null);
+    ySplitTop(s.slice(1,-1)).forEach(function(pair){
+      var c=pair.indexOf(':'); if(c<0) return;
+      fo[yScalar(pair.slice(0,c)).toString()]=yScalar(pair.slice(c+1));
+    });
+    return fo;
+  }
   if((s[0]==='"'&&s.slice(-1)==='"')||(s[0]==="'"&&s.slice(-1)==="'")) return s.slice(1,-1);
   if(s==='true')return true; if(s==='false')return false;
   if(s==='null'||s==='~')return null;
@@ -357,35 +398,44 @@ function parseToml(text){
   return root;
 }
 function tKey(k){ return /^[A-Za-z0-9_-]+$/.test(k) ? k : '"'+String(k).replace(/\\/g,'\\\\').replace(/"/g,'\\"')+'"'; }
+// 路径段逐段加引号（键本身可能含点号/空格，不能整串 tKey）
+function tPathKeys(parts){ return parts.map(tKey).join('.'); }
+// 是否为「表数组」（元素是对象）——只有它才写成 [[k]]；标量数组是普通值 k = [...]
+function tIsTableArray(v){
+  return v instanceof Array && v.length>0 && v[0]!==null && typeof v[0]==='object' && !(v[0] instanceof Array);
+}
 function dumpTable(t,sort,prefix){
-  prefix=prefix||'';
+  prefix=prefix||[];
   var out=''; var keys=Object.keys(t); if(sort)keys=keys.slice().sort();
-  for(var i=0;i<keys.length;i++){ var k=keys[i]; var v=t[k];
-    if(!(v!==null && typeof v==='object')) out+=tKey(k)+' = '+tLit(v)+'\n'; }
-  for(var i=0;i<keys.length;i++){ var k=keys[i]; var v=t[k];
+  // 先输出全部「键 = 值」（标量、标量数组、空数组），再输出表头——否则表头之后的根级键会被
+  // TOML 解析器归到上一个表里（默认样例的 features 数组原本被挂到 [server] 下）。
+  for(var i=0;i<keys.length;i++){ var k0=keys[i]; var v0=t[k0];
+    if(!tIsTableArray(v0) && !(v0!==null && typeof v0==='object' && !(v0 instanceof Array))) out+=tKey(k0)+' = '+tLit(v0)+'\n'; }
+  for(var j=0;j<keys.length;j++){ var k=keys[j]; var v=t[k];
     if(v instanceof Array){
-      if(v.length && typeof v[0]==='object' && v[0]!==null){
-        for(var a=0;a<v.length;a++){ out+='\n[['+tKey(k)+']]\n'+dumpTable(v[a],sort); }
-      } else { out+=tKey(k)+' = '+tLit(v)+'\n'; }
-    } else if(v!==null && typeof v==='object'){
-      out+='\n['+(prefix?prefix+'.':'')+tKey(k)+']\n'+dumpTable(v,sort,prefix?(prefix+'.'+k):k);
+      if(tIsTableArray(v)){
+        var ap=prefix.concat([k]);
+        for(var a=0;a<v.length;a++){ out+='\n[['+tPathKeys(ap)+']]\n'+dumpTable(v[a],sort,ap); }
+      }
+    } else if(v!==null && typeof v==='object' && !(v instanceof Array)){
+      var tp=prefix.concat([k]);
+      out+='\n['+tPathKeys(tp)+']\n'+dumpTable(v,sort,tp);
     }
   }
   return out;
 }
-function dumpToml(node,sort){ return dumpTable(node,sort,''); }
+function dumpToml(node,sort){ return dumpTable(node,sort,[]); }
 
 var src=document.getElementById('source').value||'';
-if(!src.trim()){ document.getElementById('result').innerHTML='<p class="muted">请输入 YAML 文本</p>'; return; }
+var enNow=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+if(!src.trim()){ document.getElementById('result').innerHTML='<p class="muted">'+(enNow?'Please enter YAML text':'请输入 YAML 文本')+'</p>'; return; }
 var obj=parseYaml(src);
-if(obj && obj.__err){ const __g3='<p class="muted">解析失败：'+escH(obj.__err)+'</p>';document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—')); return; }
-var pad = 'indent'==='tab' ? '\t' : (' ').repeat(parseInt(document.getElementById('indent').value||'2',10));
+if(obj && obj.__err){ const __g3='<p class="muted">'+(enNow?'Parse error: ':'解析失败：')+escH(obj.__err)+'</p>';document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—')); return; }
 var sort=document.getElementById('top_1').checked;
 var toml=dumpToml(obj,sort);
-var html='<div class="result-title">TOML 输出</div><pre class="code-block">'+escH(toml)+'</pre>';
+var html='<div class="result-title">'+(enNow?'TOML Output':'TOML 输出')+'</div><pre class="code-block">'+escH(toml)+'</pre>';
 const __g4=html;document.getElementById('result').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));}
 function resetForm(){document.getElementById('source').value='server:\n  host: 0.0.0.0\n  port: 8080\n  debug: true\nfeatures:\n  - logging\n  - metrics\ndb:\n  url: postgres://localhost:5432\n  pool: 16';
-      document.getElementById('indent').selectedIndex=0;
       document.getElementById('top_1').checked=false;
       calcTool();}
 calcTool();
@@ -511,10 +561,10 @@ function __yaml_to_tomlExport(){
 }
 function __yaml_to_tomlPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#yaml_to_tomlPresets',[{label:'默认参数',labelEn:'Default',values:{'indent':'2', 'top_1':'0'}},
-  {"label":"服务配置转 TOML","labelEn":"Service config to TOML","values":{"source":"service: order-api\nport: 8080\nreplicas: 3\n","indent":"2","top_1":false}},
-  {"label":"按键名排序输出","labelEn":"Sort keys alphabetically","values":{"source":"zebra: 1\nalpha: 2\nmiddle: 3\n","indent":"2","top_1":true}},
-  {"label":"Tab 缩进的嵌套表","labelEn":"Nested tables with Tab","values":{"source":"database:\n  host: db.example.com\n  port: 5432\ncache:\n  host: redis.example.com\n  port: 6379\n","indent":"tab","top_1":false}}],function(){ calcTool(); });
+    TBKit.preset.bar('#yaml_to_tomlPresets',[{label:'默认参数',labelEn:'Default',values:{'top_1':'0'}},
+  {"label":"服务配置转 TOML","labelEn":"Service config to TOML","values":{"source":"service: order-api\nport: 8080\nreplicas: 3\n","top_1":false}},
+  {"label":"按键名排序输出","labelEn":"Sort keys alphabetically","values":{"source":"zebra: 1\nalpha: 2\nmiddle: 3\n","top_1":true}},
+  {"label":"嵌套表配置","labelEn":"Nested tables","values":{"source":"database:\n  host: db.example.com\n  port: 5432\ncache:\n  host: redis.example.com\n  port: 6379\n","top_1":false}}],function(){ calcTool(); });
 }
 var __yaml_to_toml_f0=(typeof calcTool==='function')?calcTool:null;
 if(__yaml_to_toml_f0){

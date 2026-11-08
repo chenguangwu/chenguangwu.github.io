@@ -2377,40 +2377,11 @@
 
 ## U 批 · IT 转换/编码边界（2026-11-04）
 
-### IT-N388 YAML 流式数组 `[a, b, c]` 未解析，按字符串输出，与对照表示例相反（高，承诺未实现）
-- 页面：`tools/it/yaml-to-toml.html`
-- 问题：`yScalar` 只处理引号、布尔、null、整数、小数，其余一律返回原字符串（`:218-226`），没有 `[` 分支；参考表却明确给出 `[a, b, c]` → `arr = ["a", "b", "c"]`（`:176`）。
-- 行号：`:218-226`、`:265`、`:176`
-- 复现（node 复刻）：输入 `arr: [a, b, c]` → 实际 `arr = "[a, b, c]"`（单个字符串）；期望 `arr = ["a", "b", "c"]`。
-- 影响：YAML 流式序列（GitHub Actions、docker-compose 常见）全部退化为字符串，TOML 语义错误。
-- 方案：在 `yScalar` 增加 `[...]`（及 `{...}` 流式映射）解析，或复用页面已有的 `tVal` 数组逻辑。
-- 假工具：否（承诺未实现；建议并入 `plan/fake-tools.md`）
-
-### IT-N389 YAML 行内注释未剥离，注释被写进值字符串（中，确认缺陷）
-- 页面：`tools/it/yaml-to-toml.html`
-- 问题：`yScalar` 直接对整段 `val` 求值（`:265`），不剥离 `# ...`；`port: 8080 # 端口` 的注释被当成值的一部分。
-- 行号：`:218-226`、`:265`
-- 复现（node 复刻）：输入 `port: 8080 # 端口` → 实际 `port = "8080 # 端口"`（字符串）；期望 `port = 8080`。
-- 影响：带注释的配置项全部变成含注释文本的字符串，数值/布尔语义丢失。
-- 方案：解析前按「引号外首个 `#`」截断（与 TOML 侧 `stripComment` 同口径）。
-- 假工具：否
-
-### IT-N390 表数组内嵌套对象/子表缺父前缀，输出 `[meta]` 而非 `[items.meta]`（中，确认缺陷）
-- 页面：`tools/it/yaml-to-toml.html`
-- 问题：`dumpTable` 处理数组表时 `out += '[[k]]' + dumpTable(v[a], sort)`（`:368`），递归调用未传 `prefix`，元素内的嵌套对象被当成根级表；同理元素内的子数组表也会落到根级。
-- 行号：`:368`、`:370-371`
-- 复现（node 复刻）：输入
-  `items:\n  - name: a\n    meta:\n      x: 1` → 实际
-  `[[items]]` / `name = "a"` / `[meta]` / `x = 1`；期望 `[items.meta]`。回读后 `meta` 变成独立根表，`items` 元素里没有 `meta`。
-- 影响：TOML 结构错位，配置回读语义与 YAML 原文不一致。
-- 方案：数组表递归传入 `prefix ? prefix+'.'+k : k`，元素内子表/子数组表都带父前缀。
-- 假工具：否
-
-### IT-N391 三页「缩进」下拉均未被读取；toml-to-xml 的「按键名排序」也未接线（中，承诺未实现）
-- 页面：`tools/it/yaml-to-toml.html`、`tools/it/toml-to-xml.html`、`tools/it/xml-to-toml.html`
-- 问题：三页都提供「缩进：2 空格 / 4 空格 / Tab」，但 JS 从不读取该值——yaml 侧算出 `pad` 后 `dumpToml` 根本不用（且比较写成字面量 `'indent'==='tab'`，永远 false），toml-to-xml 与 xml-to-toml 只读排序复选框；toml-to-xml 的 `top_1`（「按键名排序输出」）在 `calcTool` 中也从未读取，`jsonToXml(obj)` 只传对象。
-- 行号：yaml `:117`、`:382`；toml-to-xml `:128`、`:132`、`:362`；xml-to-toml `:127`、`:362-363`
-- 复现：三页分别把缩进切到 4 空格 / Tab → 输出与 2 空格完全一致（toml-to-xml 输出恒为单行无缩进 XML）；toml-to-xml 勾选「按键名排序」前后输出顺序不变。期望控件生效，或删除无效控件。
+### IT-N391 toml-to-xml / xml-to-toml 的「缩进」下拉均未被读取；toml-to-xml 的「按键名排序」也未接线（中，承诺未实现）
+- 页面：`tools/it/toml-to-xml.html`、`tools/it/xml-to-toml.html`（yaml-to-toml 侧已于 2026-11-08 处理：该下拉对 TOML 无语义，已连同预设一起移除，见 `plan/已修复/2026-11-08-IT-N388-N390-yaml-to-toml标量与表导出.md`）
+- 问题：两页都提供「缩进：2 空格 / 4 空格 / Tab」，但 JS 从不读取该值——toml-to-xml 与 xml-to-toml 只读排序复选框；toml-to-xml 的 `top_1`（「按键名排序输出」）在 `calcTool` 中也从未读取，`jsonToXml(obj)` 只传对象。
+- 行号：toml-to-xml `:128`、`:132`、`:362`；xml-to-toml `:127`、`:362-363`（yaml 侧两处已随控件移除）
+- 复现：两页分别把缩进切到 4 空格 / Tab → 输出与 2 空格完全一致（toml-to-xml 输出恒为单行无缩进 XML）；toml-to-xml 勾选「按键名排序」前后输出顺序不变。期望控件生效，或删除无效控件。
 - 影响：界面承诺与实际输出不符，用户会误以为格式已按选择调整。
 - 方案：实现 XML pretty-print 与排序开关（排序传入 `ser` 的键遍历），TOML 侧若不需要缩进则删除该下拉。
 - 假工具：否（承诺未实现；建议并入 `plan/fake-tools.md`）
@@ -2552,7 +2523,6 @@
 - 假工具：否
 
 ### 覆盖清单（U 批 IT 转换/编码）
-- `yaml-to-toml`：IT-N388（高）、IT-N389、IT-N390（中）；缩进控件并入 IT-N391。
 - `toml-to-xml`：IT-N392、IT-N393（中）；无高优缺陷（核心 TOML→XML 主路径可跑通，问题集中在导出转义与非法元素名）。
 - `xml-to-toml`：IT-N394、IT-N395（中）；无高优缺陷。
 - `json-diff`：IT-N396、IT-N397（中）；无高优缺陷（按索引与逐行的差异计算本身正确）。

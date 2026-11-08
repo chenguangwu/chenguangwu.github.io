@@ -5025,6 +5025,31 @@ const CASES = [
     "expect": ["__proto__ = \"v\""],
     "ref": "键名 `__proto__`：parseYaml 普通对象上赋值会丢键，TOML 输出为空；Object.create(null) 后输出 `__proto__ = \"v\"`。输入是冒号形态，不含等号形态。"
   },
+  // ---- IT-N388/N389/N390：yaml-to-toml 标量解析与表导出修复 ----
+  {
+    "slug": "it/yaml-to-toml",
+    "inputs": { "source": "arr: [a, b, c]" },
+    "expect": ["arr = [\"a\", \"b\", \"c\"]"],
+    "ref": "IT-N388：YAML 流式序列必须解析成数组。修复前 yScalar 无 `[` 分支 ⇒ 整串当标量 ⇒ `arr = \"[a, b, c]\"`（单个字符串，与参考表给出的示例相反）。输入是冒号+方括号形态，不含 `arr = ` 前缀。"
+  },
+  {
+    "slug": "it/yaml-to-toml",
+    "inputs": { "source": "port: 9911 # 端口" },
+    "expect": ["port = 9911"],
+    "ref": "IT-N389：行内注释必须剥离。修复前注释被算进值 ⇒ 值不是纯数字 ⇒ `port = \"9911 # 端口\"`（字符串）。端口刻意用 9911：默认样例里就有 `port: 8080`，用 8080 会让「注入失败」的默认态也命中 `port = 8080` ⇒ 变逃生项（判别器实测抓出后改为此值）。"
+  },
+  {
+    "slug": "it/yaml-to-toml",
+    "inputs": { "source": "items:\n  - name: a\n    meta:\n      x: 1" },
+    "expect": ["[items.meta]"],
+    "ref": "IT-N390：表数组元素内的子表要带父前缀。修复前 dumpTable 递归时不传 prefix ⇒ 输出 `[meta]`（根级表），回读后 meta 与 items 脱离。默认样例无 items/meta。"
+  },
+  {
+    "slug": "it/yaml-to-toml",
+    "inputs": { "source": "server:\n  host: x\nfeatures:\n  - a\n  - b" },
+    "expect": ["features = [\"a\", \"b\"] [server]"],
+    "ref": "同批顺带修（审计中发现）：根级「标量数组」原本在第二个循环里输出，若它排在某个表之后（本例 server 在前）就会被 TOML 解析器归到 server 表下。修复后先输出全部「键 = 值」再输出表头，故 features 必在 `[server]` 之前。⚠️ 入参顺序很关键：若写成 features 在前（默认样例即 server 在前），修复前的实现也恰好先输出数组 ⇒ 用例零判别力（负向对照抓出后已调换）。"
+  },
   {
     "slug": "it/yaml-to-xml",
     "inputs": { "source": "srv:\n  host: 127.0.0.1\n  port: 5432" },
