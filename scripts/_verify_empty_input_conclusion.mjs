@@ -42,6 +42,15 @@ const CASES = [
     want: '0',
     desc: '清空初始长度 ⇒ 主结果区清空（修复前 rate=0 命中「优秀/热稳定性优异」结论）',
   },
+  {
+    cat: 'encode', slug: 'encode-3',
+    // 清空算法编号 ⇒ algo 经 `||0` 走 else 分支算出 SHA-512 默认长度（64 字节）作误导结论。
+    // 修复后 algo 不在 1–4 时清空结果区并提示有效输入。
+    probe: `(function(){document.getElementById('algo').value='';calc();
+      return document.getElementById('result').textContent;})()`,
+    want: '请输入有效算法编号：1=MD5、2=SHA1、3=SHA256、4=SHA512',
+    desc: '清空算法编号 ⇒ 提示有效输入（修复前显示 SHA-512 默认 64 字节误导值）',
+  },
 ];
 
 const argv = process.argv.slice(2);
