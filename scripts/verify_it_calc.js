@@ -6576,6 +6576,46 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"count\":\"42\",\"len\":\"42\",\"prefixVal\":\"abc123测试\"}，输出区含「42\n42\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    "slug": "it/invite-code-generator",
+    "inputs": {"count": "30", "len": "4"},
+    "clicks": ["document.getElementById('upper').checked=true;document.getElementById('num').checked=true;document.getElementById('noAmb').checked=true;var __r=randInt;randInt=function(){return 0;};generate();randInt=__r;var h=document.getElementById('output').innerHTML;var rows=(h.match(/class=.code-row.>/g)||[]).length;document.getElementById('output').innerHTML='DEDUP rows='+rows+' err='+(h.indexOf('组合空间不足')>=0?1:0);"],
+    "expect": ["DEDUP rows=0 err=1"],
+    "ref": "IT-N410：批量码必须互不相同。把 randInt 固定成恒 0 构造必然碰撞：修复前 30 行全是同一个码(rows=30)、且不报错；修复后 Set 去重在尝试上限内补不满 ⇒ 明确报「组合空间不足」且一行码都不输出(rows=0, err=1)。用桩固定随机源使结果完全确定，不赌碰撞概率。"
+  },
+  {
+    "slug": "it/invite-code-generator",
+    "clicks": ["document.getElementById('output').innerHTML='LUHN ab='+luhnCheckDigit('AB')+' ba='+luhnCheckDigit('BA')+' same='+(luhnCheckDigit('AB')===luhnCheckDigit('BA')?1:0);"],
+    "expect": ["LUHN ab=7 ba=8 same=0"],
+    "ref": "IT-N411：旧校验位是字符码求和取模，'AB' 与 'BA' 的校验位相同(都是 1)⇒ 相邻换位检不出。Luhn 变体按位权交替 ⇒ AB→7、BA→8，可检出换位。修复前无 luhnCheckDigit 函数 ⇒ clicks 抛错、结果区无 LUHN 串。"
+  },
+  {
+    "slug": "it/invite-code-generator",
+    "inputs": {"verifyInput": "AB7"},
+    "clicks": ["verifyCode();var h=document.getElementById('output').innerHTML;document.getElementById('output').innerHTML='VER ok='+(h.indexOf('校验通过')>=0?1:0)+' q='+(document.getElementById('verifyInput').value==='AB7'?1:0);"],
+    "expect": ["VER ok=1 q=1"],
+    "ref": "IT-N411：新增的校验入口必须对带正确校验位的码给出「校验通过」。修复前页面根本没有校验输入框与 verifyCode()，clicks 抛错 ⇒ 变红。q=1 绑注入值防静态逃生。"
+  },
+  {
+    "slug": "it/invite-code-generator",
+    "inputs": {"verifyInput": "AB8"},
+    "clicks": ["verifyCode();var h=document.getElementById('output').innerHTML;document.getElementById('output').innerHTML='VER bad='+(h.indexOf('校验失败')>=0?1:0)+' q='+(document.getElementById('verifyInput').value==='AB8'?1:0);"],
+    "expect": ["VER bad=1 q=1"],
+    "ref": "IT-N411：把 AB7 末位改成 8 必须判「校验失败」，证明校验真的在算而不只是回显。修复前无校验入口 ⇒ 变红。"
+  },
+  {
+    "slug": "it/invite-code-generator",
+    "inputs": {"verifyInput": "INV-AB7"},
+    "clicks": ["verifyCode();var h=document.getElementById('output').innerHTML;document.getElementById('output').innerHTML='PFX ok='+(h.indexOf('校验通过')>=0?1:0)+' q='+(document.getElementById('verifyInput').value.indexOf('INV-')===0?1:0);"],
+    "expect": ["PFX ok=1 q=1"],
+    "ref": "IT-N411：勾选「加前缀」生成的码形如 INV-XXXXXXX，校验入口必须能剥掉前缀后验主体，否则该功能对默认开启前缀的用户不可用。"
+  },
+  {
+    "slug": "it/invite-code-generator",
+    "clicks": ["var c='AB'+luhnCheckDigit('AB');document.getElementById('output').innerHTML='ROUND c='+c+' ok='+(verifyLuhn(c)?1:0);"],
+    "expect": ["ROUND c=AB7 ok=1"],
+    "ref": "IT-N411：生成侧 appendChecksum 与校验侧 verifyLuhn 必须同源可逆（追加校验位后整码自校验通过）。修复前两函数都不存在 ⇒ 变红。"
+  },
+  {
     "slug": "it/integer-base-converter",
     "inputs": {
       "num": "abc123测试",

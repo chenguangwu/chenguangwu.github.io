@@ -156,7 +156,7 @@ s.parentNode.insertBefore(el, s);
 <ul>
 <li>使用 <strong>Web Crypto <code>getRandomValues</code></strong> 生成密码学安全随机数(非 <code>Math.random</code>,不可预测)。</li>
 <li>采用 Base32 / Base36 编码,并<strong>剔除易混字符</strong>(0/O、1/I、l),降低人工录入错误。</li>
-<li>可附加<strong>校验位</strong>(Luhn 变体或 CRC)以拦截错填;批量生成自动去重保证唯一。</li>
+<li>可附加<strong>校验位</strong>(Luhn 变体)以拦截错填,并在下方提供校验入口;批量生成用 Set 去重保证唯一。</li>
 </ul>
 <p>⚠️ 全程纯前端,邀请码不上传服务器;请妥善保管,避免泄露被冒用。</p>
 </div>
@@ -188,6 +188,14 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn success" onclick="copyResult()">复制</button>
     </div>
     <div class="result-box" id="output"></div> <div id="invite_code_generatorTable"></div> <div id="invite_code_generatorDiff"></div> <div id="invite_code_generatorChart"></div> <div id="invite_code_generatorHist"></div>
+    <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border,#e5e7eb);">
+      <label for="verifyInput">校验邀请码（带 Luhn 校验位）</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <input type="text" id="verifyInput" placeholder="粘贴 INV-XXXXXXX 形态的邀请码" style="flex:1 1 240px;">
+        <button type="button" class="btn" onclick="verifyCode()">校验</button>
+      </div>
+      <p style="font-size:13px;color:var(--text-muted);">校验结果追加到上方结果区；支持带前缀的码，可检出单字符错填与相邻换位。</p>
+    </div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -280,17 +288,71 @@ function generate(){
   if(lower)chars+= noAmb?'abcdefghijkmnpqrstuvwxyz':'abcdefghijklmnopqrstuvwxyz';
   if(num)chars+= noAmb?'23456789':'0123456789';
   if(!chars){alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Select a character type":"请选择字符类型"));return;}
-  let html='';
-  for(let i=0;i<count;i++){
-    let code='';
-    for(let j=0;j<len;j++){code+=chars[randInt(chars.length)];}
-    if(checksum){let sum=0;for(const c of code)sum+=c.charCodeAt(0);code+=String(sum%10);}
-    if(usePrefix&&prefix){code=prefix+'-'+code;}
-    html+='<div class="code-row">'+escapeHtml(code)+'</div>';
+  // 批量生成必须互不相同：短码 + 小字符集时碰撞概率不低（4 位、仅数字排除易混
+  // ⇒ 8^4=4096 空间，30 条约有 10% 概率重复）。用 Set 对最终码（含前缀/校验位）去重，
+  // 重复则重抽补足；组合空间确实不够时明确报错，绝不交付少于请求数量的「唯一」码。
+  const seen=new Set(),codes=[];
+  const maxAttempts=Math.max(count*50,1000);
+  let attempts=0;
+  while(codes.length<count && attempts<maxAttempts){
+    attempts++;
+    let body='';
+    for(let j=0;j<len;j++){body+=chars[randInt(chars.length)];}
+    if(checksum)body+=luhnCheckDigit(body);
+    const code=(usePrefix&&prefix)?prefix+'-'+body:body;
+    if(seen.has(code))continue;
+    seen.add(code);codes.push(code);
   }
+  if(codes.length<count){
+    const en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ '+(en
+      ?'Not enough distinct codes for this character set and length; increase the length or enable more character types.'
+      :'字符集与码长的组合空间不足，无法生成 '+count+' 个互不相同的邀请码；请增大码长或增加字符类型。')+'</p>';
+    return;
+  }
+  let html='';
+  for(const code of codes){html+='<div class="code-row">'+escapeHtml(code)+'</div>';}
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h0;
 }
-function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function escapeHtml(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+// Luhn 变体：字母 A-Z 映射为 10-35、数字 0-9 用自身，从右往左隔位乘 2（>9 减 9）求和，
+// 校验位 = (10 - sum%10)%10。与「字符码求和取模」不同，它能检出相邻两位换位（AB→BA）。
+function luhnValue(ch){
+  const c=String(ch==null?'':ch).toUpperCase();
+  if(c>='0'&&c<='9')return c.charCodeAt(0)-48;
+  if(c>='A'&&c<='Z')return c.charCodeAt(0)-55;
+  return 0;
+}
+function luhnCheckDigit(body){
+  body=String(body==null?'':body);
+  let sum=0,dbl=true;
+  for(let i=body.length-1;i>=0;i--){
+    let v=luhnValue(body.charAt(i));
+    if(dbl){v*=2;if(v>9)v-=9;}
+    sum+=v;dbl=!dbl;
+  }
+  return String((10-(sum%10))%10);
+}
+function verifyLuhn(code){code=String(code==null?'':code);return code.length>=2 && luhnCheckDigit(code.slice(0,-1))===code.slice(-1);}
+function verifyCode(){
+  const raw=String(document.getElementById('verifyInput').value||'').trim();
+  const en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  let msg;
+  if(!raw){msg=en?'Please enter an invite code':'请输入邀请码';}
+  else{
+    const m=raw.match(/^(.*?)-([A-Za-z0-9]+)$/);
+    const body=m?m[2]:raw;
+    if(!/^[A-Za-z0-9]+[0-9]$/.test(body)){
+      msg=en?'Verification: invalid format (alphanumeric body + one numeric check digit)':'校验结果：格式非法（需为字母数字主体 + 1 位数字校验位）';
+    }else{
+      msg=(en?'Verification: ':'校验结果：')+(verifyLuhn(body)
+        ?(en?'✅ valid':'✅ 校验通过')
+        :(en?'❌ invalid (typo or transposed characters)':'❌ 校验失败（码可能被改错或换位）'));
+    }
+  }
+  const out=document.getElementById('output');
+  out.innerHTML=String(out.innerHTML)+'<div class="code-row">'+escapeHtml(msg)+'</div>';
+}
 function copyResult(){
   const text = document.getElementById('output').textContent || document.getElementById('output').innerText;
   navigator.clipboard.writeText(text).then(() => alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Copied":"已复制")));

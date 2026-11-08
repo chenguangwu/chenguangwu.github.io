@@ -1,7 +1,7 @@
 // ToolBox 英文翻译数据（由 tool-i18n.js 英文路径按需加载，中文用户不加载）
 window.__TI18N_EN = {
   GEN_UI_MAP: {
-    '计算':'Calculate','重置':'Reset','清空':'Clear','复制结果':'Copy Result','📋 复制结果':'Copy Result',
+    '计算':'Calculate','校验':'Verify','重置':'Reset','清空':'Clear','复制结果':'Copy Result','📋 复制结果':'Copy Result',
     '🗑️ 重置':'Reset','🧮 计算':'Calculate','复制':'Copy','已复制':'Copied','查询':'Query','生成':'Generate',
     '统计分析':'Statistical Analysis','复制报告':'Copy Report','换算':'Convert','模拟':'Simulate',
     '转换':'Convert','计算评分':'Calculate Score','示例':'Example','📝 示例文本':'📝 Sample Text','检测判定':'Detect','评估':'Assess',
