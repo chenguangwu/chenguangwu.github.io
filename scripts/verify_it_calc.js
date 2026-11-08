@@ -7678,6 +7678,39 @@ const CASES = [
     "ref": "IT-N471 回归护栏：零向量时 |A||B|=0，不得输出角度行（atan2(0,0) 会给 0° 的假结论）。探针读 #output.innerHTML 判断是否存在 θ = 并写独立串；注入失败回到默认非平行输入时会有角度行 ⇒ zero=1 ⇒ 变红，故非逃生项。"
   },
   {
+    "slug": "it/git-commands",
+    "clicks": [
+      "renderCommands();var __h=String(document.getElementById('cmdList').innerHTML);document.getElementById('stats').textContent='N479 noinline='+((__h.indexOf('onclick=')<0&&__h.indexOf('data-idx=')>=0)?1:0);"
+    ],
+    "expect": [
+      "N479 noinline=1"
+    ],
+    "ref": "IT-N479 决定性结构契约：renderCommands 产出的 58 个按钮不得再带内联 onclick 属性，必须改用 data-idx。修复前模板把含真实换行的示例拼进 onclick=\"copyCode(this, '…')\"，58/58 编译抛 SyntaxError；快照态不执行 clicks，#stats 保持「共 58 个命令」⇒ 不含 N479 探针串，可判别。"
+  },
+  {
+    "slug": "it/git-commands",
+    "clicks": [
+      "var __src=String(copyCodeByIdx)+String(copyCode);document.getElementById('stats').textContent='N479 src='+((__src.indexOf('c.example')>=0&&__src.indexOf('COMMANDS')>=0&&__src.indexOf('&quot;')<0)?1:0);"
+    ],
+    "expect": [
+      "N479 src=1"
+    ],
+    "ref": "IT-N479：复制链路改为按 COMMANDS 原始下标取回 c.example 原文，copyCode 不再做 HTML 实体反转义（旧链路上 &quot;/&#39; 是属性转义产物）。String(copyCodeByIdx)+String(copyCode) 必须含 c.example/COMMANDS 且不含 &quot;。修复前无 copyCodeByIdx ⇒ 抛错 ⇒ 红。"
+  },
+  {
+    "slug": "it/git-commands",
+    "inputs": {
+      "searchInput": "push"
+    },
+    "clicks": [
+      "renderCommands();var __h=String(document.getElementById('cmdList').innerHTML);var __n=__h.split('data-idx=').length-1;document.getElementById('stats').textContent='N479 btns='+__n+' inline='+(__h.indexOf('onclick=')>=0?1:0);"
+    ],
+    "expect": [
+      "N479 btns=4 inline=0"
+    ],
+    "ref": "IT-N479：注入 searchInput='push' 过滤后应恰好渲染 4 个带 data-idx 的按钮且无内联 onclick，验证事件委托按原 COMMANDS 索引取数、不因 filtered 子集错位。注入失败回到默认空搜索 ⇒ 58 个按钮 ⇒ 变红；修复前无 data-idx 且 inline=1 ⇒ 亦红。"
+  },
+  {
     "slug": "it/kubernetes-cheatsheet",
     "inputs": {
       "searchInput": "abc123测试"

@@ -2880,17 +2880,6 @@
 
 > 只读审计 8 页：`tools/it/` 下 ruby-cheatsheet、pomodoro、convert-11、postgresql-cheatsheet、typescript-cheatsheet、typing-test、cpp-cheatsheet、git-commands。未开浏览器、未跑 `_build.py`/`run_gates.py`；验证脚本仅落 `/tmp`。
 
-### IT-N479 — git-commands 58 个「复制」按钮的内联 onclick 无法编译，一键复制全部失效（高，承诺未实现）
-- 页面：`tools/it/git-commands.html`
-- 行号：`tools/it/git-commands.html:474`（模板拼接）、`:464`（转义）、`:480-489`（复制函数）
-- 问题：`renderCommands()` 把示例原文（含真实换行）仅做 `"→&quot;`、`'→&#39;` 处理后拼进 `onclick="copyCode(this, '...')"`。HTML 解析会保留属性内换行（`html.parser` 实测 onclick 值含 `\n`），内联处理器按 JS 编译时单引号字符串出现字面换行 → `SyntaxError: Invalid or unexpected token`；`git tag -l 'v1.*'`（:382）这类含单引号的示例，即使去掉换行也会因 `&#39;` 被 HTML 还原成 `'` 而提前闭合字符串。
-- 复现：`node` 从页面抽取 `COMMANDS`（58 条），按页面同款转义后 `new Function('copyCode', attr)` 编译 → **58/58 抛 `Invalid or unexpected token`**；把换行替换为空格后才可编译。
-- 实际：点击任一示例右上角「复制」→ 无复制、无 ✅/toast，控制台 SyntaxError；58 个按钮全灭。
-- 期望：点击后把该条 `c.example` 写入剪贴板并提示“已复制”。
-- 影响：页面 description / og:description（:10、:15）承诺“点击示例右上角按钮可一键复制”，与实际完全相反，属承诺未实现。
-- 方案：改 `data-idx="${idx}"` + 容器事件委托（`copyCode(btn, COMMANDS[+btn.dataset.idx].example)`），或 `JSON.stringify(example)` 写入 `data-code`；禁止把多行/含引号文本内联进 `onclick`。
-- 假工具：否
-
 ### IT-N480 — pomodoro 记账用“配置时长”而非实际时长，未开始/跳过/中途改设置都会虚增统计（中）
 - 页面：`tools/it/pomodoro.html`
 - 行号：`tools/it/pomodoro.html:517`、`:525-527`、`:559-561`、`:467-480`
@@ -2971,7 +2960,7 @@
 - 假工具：否
 
 ### 覆盖清单（X 批 IT 速查/工具）
-- `git-commands`：IT-N479（高，承诺未实现）、IT-N487（中）；无其它高优（搜索/分类过滤逻辑正确，`copyCode` 本体无注入）。低优备注：`git cherry-pick`（:370/:422）与 `git bisect`（:407/:424）各重复一条，使分类计数与表格总数虚增 2。
+- `git-commands`：IT-N487（中）；无其它高优（搜索/分类过滤逻辑正确，`copyCode` 本体无注入）。低优备注：`git cherry-pick`（:370/:422）与 `git bisect`（:407/:424）各重复一条，使分类计数与表格总数虚增 2。
 - `pomodoro`：IT-N480、IT-N481（中）；无高优（模式切换、时长设置、图表/统计渲染主流程可跑）。
 - `convert-11`：IT-N483（中）；其余主路径正确（`192.168.1.1 ↔ 3232235777 ↔ 11000000.00000000.00000001.00000001`，`4294967295 ↔ 255.255.255.255 ↔ 全 1` 均对齐）。
 - `typescript-cheatsheet`：IT-N485、IT-N486（中）；无高优（泛型/工具类型/`keyof` 等示例经核对正确）。

@@ -461,7 +461,7 @@ function renderCommands(){
   document.getElementById('stats').textContent = `共 ${filtered.length} 个命令`;
   document.getElementById('cmdList').innerHTML = filtered.map(c => {
     const exampleEscaped = c.example.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    const exampleForCopy = c.example.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    const idx = COMMANDS.indexOf(c);
     return `
       <div class="cmd-item">
         <div class="cmd-title">
@@ -471,16 +471,15 @@ function renderCommands(){
         <div class="cmd-row"><strong>分类：</strong>${c.cat}</div>
         <div class="cmd-row"><strong>常用参数：</strong>${c.params}</div>
         <div class="cmd-row"><strong>示例：</strong></div>
-        <div class="cmd-example">${exampleEscaped}<button type="button" class="copy-btn" onclick="copyCode(this, '${exampleForCopy}')">复制</button></div>
+        <div class="cmd-example">${exampleEscaped}<button type="button" class="copy-btn" data-idx="${idx}">${__gcL('复制','Copy')}</button></div>
       </div>
     `;
   }).join('');
 }
 
 function copyCode(btn, code){
-  // 反转义 HTML
-  const txt = code.replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
-  navigator.clipboard.writeText(txt).then(() => {
+  /* IT-N479：调用方现在直接传 COMMANDS 原文，无需再做 HTML 实体反转义 */
+  navigator.clipboard.writeText(code).then(() => {
     const old = btn.textContent;
     btn.textContent = '✅';
     setTimeout(() => btn.textContent = old, 1000);
@@ -495,6 +494,20 @@ function showToast(msg){
   clearTimeout(window._toastTimer);
   window._toastTimer = setTimeout(() => toast.classList.remove('show'), 1500);
 }
+
+function __gcL(zh,en){return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?en:zh;}
+/* IT-N479：示例含真实换行与单引号，禁止把多行/带引号文本拼进内联 onclick。
+   按钮只携带 COMMANDS 原始下标，容器上一次性事件委托按索引取回原文复制。 */
+function copyCodeByIdx(btn){
+  const idx=Number(btn&&btn.dataset?btn.dataset.idx:-1);
+  const c=COMMANDS[idx];
+  if(c) copyCode(btn,c.example);
+}
+document.getElementById('cmdList').addEventListener('click', function(e){
+  const t=e.target;
+  const b=t&&t.closest?t.closest('.copy-btn'):null;
+  if(b) copyCodeByIdx(b);
+});
 
 document.getElementById('searchInput').addEventListener('input', e => {
   searchQuery = e.target.value;
