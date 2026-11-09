@@ -202,20 +202,6 @@
 - 影响：`tools/finance/register-depreciation.html`；未来资产被提前计提，满年资产多提一年，资产清单汇总、导出 CSV 与明细表全部沿用该口径。
 - 方案：未来日期直接返回 0 年/0 折旧/原值；按已完成年度取 `schedule[yearsElapsed - 1]`（第 0 年取原值），或明确把 `yearIdx` 解释为「当前计提年度」并在页面显著标注按整年计提。
 
-### F-N68 积分兑换价值页加钱超过商品价值仍输出负值并判「偏亏」（低，确认缺陷）
-- 描述：`val`、`fee` 仅靠 `min="0"`，`num()` 对空值与非法值一律回 0，`calcTool` 只校验 `pts > 0`；当 `fee > val` 时 `netVal` 为负，页面照常展示负的「净得价值/每万分价值」，并给出「偏亏」，没有指出加钱换购已超过商品现金价值。
-- 证据：`tools/finance/points-redemption-value.html:130,134`（仅属性 min）、`:251`（非法值回 0）、`:256-266`（仅校验 pts、直接算 `val - fee`）
-- 复现：积分 10000、商品现金价值 20、加钱 30 → 实际「净得价值 −10.00 元、每万分 −10.00 元、偏亏」（期望提示「加钱已超过商品价值」并拒绝/归零）；商品价值填 −20 → 同样输出负值结果
-- 影响：`tools/finance/points-redemption-value.html`；负价值会进入历史记录与对比柱状图，用户可能把异常输入当成正常结论。
-- 方案：val、fee 限 ≥0 且 fee ≤ val（或越界时显式提示并停止计算）；空值/非法值给字段错误而非静默按 0。
-
-### F-N69 金额大写页描述与实现不符：声称输出英文单词，实际为中文大写（低，确认缺陷）
-- 描述：页面标题、meta description、og/twitter description 与英文副标题均写「转换为英文单词大写 / English words」，但 `convert()` 输出的是中文「壹仟…元…角…分」，英文态文案与功能不一致。
-- 证据：`tools/finance/amount-in-words.html:41,43,45`（三处 description 写英文单词）、`:116`（英文副标题 English words）、`:268-277`（实现输出中文大写）
-- 复现：输入 1234.56 → 实际「壹仟贰佰叁拾肆元伍角陆分」，而页面描述承诺「英文单词大写」（期望改文案为「中文大写金额」或真正输出英文单词）
-- 影响：`tools/finance/amount-in-words.html`；英文态用户按描述预期英文支票写法，得到中文结果，SEO 摘要也与实际功能不符。
-- 方案：将 description/副标题统一改为「中文大写金额（人民币）」；若需英文能力，另加语言切换或独立工具，不要在现页混写。
-
 - 本轮实读 8 页：`tools/finance/amount-in-words.html`、`tools/finance/number-to-words-chinese.html`、`tools/finance/gold-price-calculator.html`、`tools/finance/shebeizulinfeilvjisuan.html`、`tools/finance/register-depreciation.html`、`tools/finance/credit-card-validator.html`、`tools/finance/credit-card-luhn.html`、`tools/finance/points-redemption-value.html`；新增 9 条（高 2/中 4/低 3）；未覆盖：其余 finance 页（约 78 页）未逐页复扫。
 - 证据均由源码行号 + node 内存复算取得；未做浏览器、英文态、移动端、门禁与线上验证；历史已修声明未独立复验。
 

@@ -1617,6 +1617,13 @@ const CASES = [
   },
   {
     slug: "finance/points-redemption-value",
+    inputs: { pts: "10000", val: "20", fee: "30" },
+    clicks: ["calcTool()"],
+    expect: ["加钱金额已超过商品价值，换购不划算，请核对输入"],
+    ref: "F-N68 真锁：加钱 30 元 > 商品价值 20 元时净价值为负，旧实现照常输出负「净得价值/每万分价值」并判「偏亏」；现显式拦截点明「加钱已超过商品价值」。默认 fee=0（未超）不命中；fee==val（补强用例 42/42/42）仍合法不命中 ⇒ 零逃生。",
+  },
+  {
+    slug: "finance/points-redemption-value",
     inputs: { pts: "20000", val: "25", fee: "-5" },
     clicks: ["calcTool()"],
     expect: ["需加钱换购金额不能为负数"],
