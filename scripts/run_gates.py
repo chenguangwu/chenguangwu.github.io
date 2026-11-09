@@ -38,6 +38,7 @@ GATES = (
         ("python3", "scripts/check_expect_antipattern.py"),
     ),
     ("build", ("python3", "_build.py")),
+    ("service worker kill switch", ("node", "scripts/verify_sw_kill.cjs")),
     ("static tests", ("python3", "_test_static.py")),
     ("dead-link audit", ("python3", "_audit_links.py", "--check")),
     ("asset audit", ("python3", "_audit_assets.py", "--check")),

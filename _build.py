@@ -2761,7 +2761,7 @@ def compute_sw_build():
     """按共享静态资源内容计算 SW 版本戳（纯内容驱动，保证构建幂等）。
 
     范围 = 会经 SW/CDN 缓存下发、且影响页面呈现的运行时资源：
-    css/js 全量 + json 三个索引 + i18n 英文层字典。
+    css/js 全量 + json 三个索引 + i18n 英文层字典 + SW 紧急开关。
     """
     h = hashlib.sha1()
     files = []
@@ -2771,6 +2771,9 @@ def compute_sw_build():
             for fn in sorted(os.listdir(d)):
                 if fn.endswith(exts):
                     files.append(os.path.join(d, fn))
+    kill_switch = os.path.join(ROOT, 'sw-kill.json')
+    if os.path.isfile(kill_switch):
+        files.append(kill_switch)
     jdir = os.path.join(ROOT, 'json')
     for name in ('tools.json', 'guides.json', 'channel.json'):
         p = os.path.join(jdir, name)
