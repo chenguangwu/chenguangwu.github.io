@@ -1493,13 +1493,6 @@
 - 影响：`tools/finance/sin-validator.html`；雇佣/报税场景把占位号或抄错的字母串当成合法 SIN。
 - 方案：增加 `digits === '000000000'`、首字符 `0`/`8` 的拒绝分支；清洗仅允许空格与 `-`，出现其它字符直接 ❌ 并回显位置。
 
-### F-N211 镜像文字页：`split('')` 按 UTF-16 码元反转，emoji 被拆成孤立代理项输出乱码（中，确认缺陷）
-- 问题：映射用 `for(const ch of text)`（按码点迭代，`:284-286`）是对的，但随后 `out.split('').reverse().join('')`（`:287`）按 UTF-16 码元反转，增补平面字符（emoji、部分符号）被拆散且代理项顺序颠倒。
-- 证据：`tools/finance/mirror-text.html:284-288`
-- 复现（node 实算）：输入 `a😀b` → 输出码点为 `d, \uDE00, \uD83D, ɒ`（孤立低/高代理项，浏览器显示为 `d�ɒ`）；期望 `b😀a`（`Array.from(out).reverse().join('')`）。
-- 影响：`tools/finance/mirror-text.html`；含 emoji/生僻字的签名、水印文案复制出去即乱码。
-- 方案：反转改用 `Array.from(out).reverse().join('')`（或 `[...out].reverse()`）；顺带覆盖组合字符（可先 `normalize('NFC')`）。
-
 ### F-N213 选民 ID（EPIC）页：州代码只展示不校验，`AAA0000000`/`ZZZ0000000` 判有效（中，确认缺陷）
 - 问题：`:238` 只用 `^[A-Z]{3}\d{7}$`，`:250-255` 把前 3 位当「州代码」原样回显并直接 ✅；`:153` 明确写「校验算法：无（EPIC 为格式校验）」，但页面标题/描述承诺校验「格式与结构」，州码并不在结构校验范围内。
 - 证据：`tools/finance/voter-id-validator.html:238`、`:250-255`、`:153`

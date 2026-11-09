@@ -609,6 +609,13 @@ const CASES = [
     ref: "逐字符镜像：a↔ɔ、b↔d、c↔ɔ ⇒ 输出 ɔdɒ（同时给出 transform: scaleX(-1) 的 CSS 方案）。默认态不同 ⇒ 不命中。",
   },
   {
+    slug: "finance/mirror-text",
+    inputs: { input: "a😀b" },
+    clicks: ["convert()"],
+    expect: ["d😀ɒ"],
+    ref: "F-N211 emoji 码点反转：a😀b → 映射 ɒ😀d → 按码点反转 d😀ɒ；旧实现 split('') 按 UTF-16 码元反转，把 😀 的代理项对拆成孤立代理输出乱码。默认态 Hello World! ⇒ 不命中。",
+  },
+  {
     slug: "automotive/vin-validator",
     inputs: { vinInput: "1M8GDM9AXKP042788" },
     clicks: ["validate()"],
