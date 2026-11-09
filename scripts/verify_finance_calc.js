@@ -810,6 +810,18 @@ const CASES = [
     ref: "F-N218 防误伤：显式 `HK:` 前缀仍应命中香港条目（香港无邮编系统，接受任意内容）；与无前缀 HELLO 被拒形成对照。默认 100000 不命中香港 ⇒ 不命中。",
   },
   {
+    slug: "finance/postal-code-validator",
+    inputs: { input: "1000001" },
+    expect: ["Japan（JP）：3-4 格式（连字符可省）"],
+    ref: "F-N219 日本无连字符邮编：`1000001`（东京 100-0001）7 位数字应命中 JP；旧正则强制 `\\d{3}-\\d{4}` 拒之，仅命中香港被误判国家。默认 100000 不命中 JP ⇒ 不命中。",
+  },
+  {
+    slug: "finance/postal-code-validator",
+    inputs: { input: "01310100" },
+    expect: ["Brazil（BR）：5-3 格式（连字符可省）"],
+    ref: "F-N219 巴西无连字符邮编：`01310100`（01310-100）8 位数字应命中 BR；旧正则强制连字符拒之，仅命中香港。默认 100000 不命中 BR ⇒ 不命中。",
+  },
+  {
     slug: "finance/zip-code-validator",
     inputs: { input: "95014" },
     expect: ["前 3 位（SCF）： 950"],
