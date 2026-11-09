@@ -501,6 +501,8 @@ function calc(){
   var totalFees = 0;
   var balance = initial;
   var shares = initial > 0 ? initial * (1 - buyFee) : 0;
+  // F-N45：初始投入的申购费已从份额中扣除，必须同步计入费用合计，否则费用展示系统性偏低
+  if(initial > 0) totalFees += initial * buyFee;
   var nav = 1;
 
   var monthData = [];
@@ -596,9 +598,13 @@ function calc(){
 }
 
 function calcIRR(monthly, initial, months, finalValue, monthStart){
-  var cashFlows = [-initial];
-  for(var i = 1; i <= months; i++){
-    cashFlows.push(-monthly);
+  // F-N45：按真实现金流发生时点落位——月初扣款首期在 t=0（与初始投入同时点），月末扣款首期在 t=1；期末回收统一在 t=months
+  var cashFlows = [];
+  for(var t = 0; t <= months; t++) cashFlows.push(0);
+  cashFlows[0] = -initial;
+  for(var t = 0; t < months; t++){
+    var slot = monthStart ? t : t + 1;
+    cashFlows[slot] -= monthly;
   }
   cashFlows[months] += finalValue;
 

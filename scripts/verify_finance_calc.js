@@ -791,8 +791,8 @@ const CASES = [
       custodyFee: "0.2",
     },
     clicks: ["setRate(8)"],
-    expect: ["费用合计 ¥1,554.52"],
-    ref: "费用合计 = 申购 0.5% + 赎回 0.5% + 管理费 1%/年 + 托管 0.2%/年，按 8% 年化增长的持仓规模累计扣费 1,554.52 元（旧实现因 setRate() 无参把利率置 0，才得到 1,206.39；本次修复后按真实 8% 口径）。默认态不同 ⇒ 不命中。",
+    expect: ["费用合计 ¥1,604.52"],
+    ref: "费用合计 = 初始申购 10,000×0.5%=50 + 月投申购 + 赎回 0.5% + 管理费 1%/年 + 托管 0.2%/年，按 8% 年化增长的持仓规模累计扣费 1,604.52 元（F-N45：旧实现漏计初始申购费得 1,554.52，setRate() 无参置 0 的旧实现得 1,206.39）。默认态不同 ⇒ 不命中。",
   },
   {
     slug: "finance/mutual-fund-calculator",
@@ -800,6 +800,13 @@ const CASES = [
     clicks: ["clearHistory();document.getElementById('rate').value='12';setRate();calc();"],
     expect: ["有效年化（按月复利） 12.68%"],
     ref: "无参调用 setRate() 不得把利率写成 undefined/0：注入 12% 后应保持 12%，并列显示名义 12.00% 与按月复利有效年化 (1+12%/12)^12−1 = 12.68%。默认 8% ⇒ 8.30%，不命中。",
+  },
+  {
+    slug: "finance/mutual-fund-calculator",
+    inputs: { initial: "10000", monthly: "1000", years: "10", rate: "8" },
+    clicks: ["document.getElementById('__tbProbe').textContent='FN45IRR='+calcIRR(getVal('monthly'),getVal('initial'),getVal('years')*12,184434.02,true).toFixed(2)"],
+    expect: ["FN45IRR=6.32"],
+    ref: "F-N45 月初扣款 IRR 时点：initial 10000 / monthly 1000 / 10 年 / 8%，月末扣款 IRR 6.40%（现金流 t=0 初始、t=1..120 月投、t=120 回收）；月初扣款首期应落在 t=0，真实现金流 IRR 6.32%。旧实现 monthStart 形参传入 calcIRR 却完全未使用，月初仍算成 6.40% ⇒ 不命中。",
   },
   {
     slug: "finance/mutual-fund-calculator",
