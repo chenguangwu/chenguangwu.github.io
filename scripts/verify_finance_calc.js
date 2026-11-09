@@ -3594,6 +3594,12 @@ const CASES = [
     ref: "F-N203 日期按各月天数与闰年校验：1931-02-30 不存在，即便校验位 4 吻合也必须拒绝；防止退回 mm<=12&&dd<=31 粗校验。默认态 1931-08-20 ⇒ 不命中。",
   },
   {
+    slug: "finance/curp-validator",
+    inputs: { input: "BOXW310820HMNERNA08" },
+    expect: ["长度： 19 字符（应为 18） ❌ 格式不符。应为：18 位 = 4 字母 + 6 数字(YYMMDD) + H/M/X + 2 字母(州) + 3 辅音 + 1 字母数字 + 1 校验位"],
+    ref: "F-N201 非法长度也要给结论：默认样例已修为 18 位，但旧失败分支只在 raw.length===18 时追加 ❌，19 位输入只回显长度。锁 19 位输入的完整失败串；默认 18 位合法样例不命中。",
+  },
+  {
     slug: "finance/tin-validator",
     inputs: { input: "000000000" },
     expect: ["❌ 不属于 SSN/ITIN/EIN 任何有效号段"],

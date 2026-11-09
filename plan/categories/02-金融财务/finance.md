@@ -1338,13 +1338,6 @@
 - 影响：`tools/finance/tin-validator.html`；号码夹字母/中文零拦截，与「格式校验」承诺不符；公式框结构也不覆盖 EIN/ITIN。
 - 方案：原串先做 `/^[\d-]+$/` 白名单，含非法字符即 ❌ 并回显位置；公式框改为三分支结构，列 SSN area/group/serial 与 EIN/ITIN 号段规则。
 
-### F-N201 CURP 页：默认值与 placeholder 都是 19 位，页面加载后既不显示 ✅ 也不显示 ❌（高，确认缺陷）
-- 问题：`:159` 的 `value="BOXW310820HMNERNA08"` 与 placeholder `BOXW310820HMNERNA09` 均为 19 字符（CURP 应为 18 位）；`:261-266` 的失败分支只在 `raw.length === 18` 时才追加「❌ 格式不符」，19 位输入直接 `return`，结果区只剩「输入：…」与「长度：19 字符（应为 18）」。
-- 证据：`tools/finance/curp-validator.html:159`、`:258`、`:260-266`
-- 复现（node 实算）：默认值长度 19；去掉多余的 `0` 后 `BOXW310820HMNERNA8`（18 位，末位 8 与 `curpChecksum` 吻合）→ ✅ CURP 有效；打开页面则只有长度提示、无任何结论。
-- 影响：`tools/finance/curp-validator.html`；首屏样例本身就是非法串且不给判定，用户无法分辨「号码错」还是「页面坏」；占位符同样误导复制。
-- 方案：默认值与 placeholder 改为 18 位合法样例（`BOXW310820HMNERNA8`）；`:261-266` 对所有非法长度都输出 ❌ 并给出当前位数。
-
 - **留存建议（tools/finance/tin-validator.html）**：SSN/ITIN/EIN 三类号段是美国报税、开户的高频合规场景，纯离线可用，建议保留；必须先修 EIN 兜底（F-N190）与按格式判型（F-N191），否则「任何 9 位数字都有效」等于无校验。
 - **留存建议（tools/finance/gstin-validator.html）**：15 位 base36 校验位算法已用官方样例核对无误，印度开票/供应商备案刚需，建议保留；补州码白名单（F-N193）与修正引据段序（F-N194）后可对外。
 - **留存建议（tools/finance/tfn-validator.html）**：ATO 公开的加权 mod 11 算法适合离线实现，需求真实，建议保留；但权重表末位必须先由 11 改回 10（F-N195），当前版本「错号能过、真号被拒」，负面价值大于正面。
