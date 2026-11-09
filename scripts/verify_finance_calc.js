@@ -3880,6 +3880,19 @@ const CASES = [
     expect: ["源 ISBN-10 校验未通过，不生成对应 ISBN-13"],
     ref: "F-N130 防回归锁：1234567890 校验和 210 mod 11 = 1（应为 0），源 ISBN-10 非法 ⇒ 结果区不得生成对应 ISBN-13。默认 978 前缀走 13 位分支不命中。源码 HEAD 已修，本锁防未来把「对应 ISBN-13」无条件输出的退化。",
   },
+  {
+    slug: "finance/iban-validator",
+    inputs: { ibanInput: "ZZ121234567890" },
+    expect: ["国家代码未收录，仅完成数学校验，不能判定有效"],
+    ref: "F-N132 防回归锁：ZZ121234567890 后四位前移后 BigInt mod-97 == 1（数学校验通过）但国家代码 ZZ 未收录 ⇒ 总体结论必须判「不能判定有效」，不得显示绿色「✅ mod-97 校验通过」假阳性。默认 DE89 国家已收录不命中。源码 HEAD 已修（总体结论三态），本锁防未来把国家存在性从结论中剔除的退化。",
+  },
+  {
+    slug: "finance/iban-validator",
+    inputs: { ibanInput: "SA0380000000608010167519" },
+    clicks: ["validate();var h=String(document.getElementById('result').innerHTML).replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ');document.getElementById('__tbProbe').textContent='IBSA '+document.getElementById('ibanInput').value+' '+((h.indexOf('沙特阿拉伯 (SA)')>=0&&h.indexOf('长度校验： ✅ 当前 24 位，期望 24 位')>=0&&h.indexOf('国家、长度与 mod-97 校验均通过')>=0)?'OK':'BAD');"],
+    expect: ["IBSA SA0380000000608010167519 OK"],
+    ref: "F-N133 防回归锁：SA0380000000608010167519 长度 24、mod-97==1，沙特阿拉伯必须收录、长度 24 校验通过、总体判有效，三项用探针 AND 串一次断言。旧表仅 33 国不含 SA ⇒ 三项皆不满足得 BAD。⚠️ 用 __tbProbe 而非静态 blob：页面预置国家表格含所有国名，直接写 blob 会被表格串干扰/默认态命中；探针仅取 result 容器且绑定输入号 ⇒ 零逃生。参考 MEID/DNI 用例模式。",
+  },
 
 ];
 
