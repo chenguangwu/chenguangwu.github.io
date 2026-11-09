@@ -139,21 +139,21 @@ s.parentNode.insertBefore(el, s);
 </div>
 <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="💻 十六进制转文本">💻 Hex to Text</h2>
-    <p style="font-size:13px;color:var(--text-light);margin-bottom:12px;" data-zh="自动忽略 0x 前缀、空白和常见分隔符。">Convert hexadecimal bytes to readable text and back, entirely in your browser — handy for debugging and binary inspection.</p>
+    <p style="font-size:13px;color:var(--text-light);margin-bottom:12px;" data-zh="自动忽略 0x 前缀、空白和常见分隔符。">Convert hexadecimal bytes to readable UTF-8 text in your browser — handy for debugging and binary inspection.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">清洗：去掉 \x、0x 前缀及空白与 : , ; _ - 分隔符；校验仅含 0-9 a-f A-F 且长度为偶数；每 2 位十六进制按 parseInt(s, 16) 转 1 字节填入 Uint8Array，再由 TextDecoder 解码为文本</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">清洗：去掉 \x、0x 前缀及空白与 : , ; _ - 分隔符；校验仅含 0-9 a-f A-F 且长度为偶数；每 2 位十六进制按 parseInt(s, 16) 转 1 字节填入 Uint8Array，再严格按 UTF-8 解码；无效字节会报错并清空输出。</div>
   <div class="formula-desc">把十六进制串还原为文本。</div>
   <ul class="formula-list">
     <li><b>原理</b>：每两个十六进制字符表示一个字节（00–FF），还原字节后按字符集解码。</li>
     <li><b>清洗</b>：需剔除空格、<code>0x</code> 前缀与分隔符，并校验长度为偶数、字符均为合法十六进制。</li>
-    <li><b>编码</b>：字符集选错会产生乱码，UTF-8 与 GBK 误判最常见。</li>
+    <li><b>编码</b>：本工具仅支持 UTF-8；其他编码需使用相应的解码工具。</li>
     <li><b>用途</b>：协议分析、二进制查看、调试与取证。</li>
   </ul>
 </div>
 
     <div class="toolbar">
       <div id="hex_to_textPresets"></div><button type="button" class="btn primary" onclick="convert()">转换</button><button class="btn" type="button" onclick="__hex_to_textExport()">导出明细 CSV</button>
-      <button type="button" class="btn success" onclick="copyResult(event)">复制结果</button>
+      <button type="button" class="btn success" onclick="copyResult()">复制结果</button>
       <button type="button" class="btn danger" onclick="clearAll()">清空</button>
     </div>
 
@@ -161,7 +161,7 @@ s.parentNode.insertBefore(el, s);
     <textarea id="input" placeholder="输入十六进制字符串，如 48 65 6c 6c 6f 或 0x48...">48 65 6c 6c 6f</textarea>
 
     <label style="margin-top:16px;">文本输出</label>
-    <textarea id="output" placeholder="文本结果..." readonly></textarea> <div id="hex_to_textTable"></div> <div id="hex_to_textDiff"></div> <div id="hex_to_textChart"></div> <div id="hex_to_textHist"></div>
+    <textarea id="output" placeholder="文本结果..." readonly></textarea><p id="hexStatus" role="status" aria-live="polite"></p> <div id="hex_to_textTable"></div> <div id="hex_to_textDiff"></div> <div id="hex_to_textChart"></div> <div id="hex_to_textHist"></div>
   </div>
 
   <div class="card">
@@ -201,7 +201,7 @@ s.parentNode.insertBefore(el, s);
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>奇数位 Hex 能解码吗？</dt><dd>不能，Hex 必须两位一对；缺位会报格式错误。</dd>
-<dt>解出来是乱码说明什么？</dt><dd>多半是字符集不匹配，或数据本身就不是文本。Hex 只还原字节，这些字节要按正确字符集解释才有意义：UTF-8 编码的中文按 GBK 解会乱码，压缩或加密的数据本就不是可读文本。可先按 UTF-8 试，不行再换 GBK。</dd>
+<dt>解出来是乱码说明什么？</dt><dd>本工具只支持严格 UTF-8；无效字节会报错，请确认原始编码并使用支持该编码的工具。压缩或加密数据通常不是可读文本；即使字节符合 UTF-8，也可能因原始编码不同而显示乱码。</dd>
 </dl>
 </div>
 </section>
@@ -249,35 +249,69 @@ s.parentNode.insertBefore(el, s);
 </div>
 
 <script>
+function hexEnglish(){
+  if(typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn) return TBKit.util.isEn();
+  return /^en/i.test((document.documentElement && document.documentElement.lang) || '');
+}
+function hexStatus(zh, en){
+  document.getElementById('hexStatus').textContent = hexEnglish() ? en : zh;
+}
+function clearHexArtifacts(){
+  ['hex_to_textTable','hex_to_textDiff','hex_to_textChart'].forEach(function(id){
+    const el = document.getElementById(id);
+    if(el) el.textContent = '';
+  });
+}
 function convert(){
+  const output = document.getElementById('output');
   let text = document.getElementById('input').value.trim();
-  if(!text){ document.getElementById('output').value = ''; return; }
+  // 每次转换先清除旧结果，错误输入不得继续被复制或导出。
+  output.value = '';
+  hexStatus('', '');
+  if(!text){ clearHexArtifacts(); return; }
   text = text.replace(/\\x/gi,'').replace(/0x/gi,'').replace(/[\s:,;_\-]/g,'');
-  if(!/^[0-9a-fA-F]*$/.test(text)){
-    alert('仅允许十六进制字符 (0-9, a-f, A-F)');
+  if(!text || !/^[0-9a-fA-F]+$/.test(text)){
+    clearHexArtifacts();
+    hexStatus('请输入有效的十六进制字符 (0-9, a-f, A-F)。', 'Enter valid hexadecimal digits (0-9, a-f, A-F).');
     return;
   }
   if(text.length % 2 !== 0){
-    alert('十六进制长度必须为偶数，当前长度: ' + text.length);
+    clearHexArtifacts();
+    hexStatus('十六进制长度必须为偶数，当前长度: ' + text.length, 'Hexadecimal length must be even; current length: ' + text.length);
     return;
   }
   const bytes = new Uint8Array(text.length / 2);
   for(let i = 0; i < bytes.length; i++) bytes[i] = parseInt(text.substr(i*2,2),16);
-  document.getElementById('output').value = new TextDecoder().decode(bytes);
+  if(typeof TextDecoder !== 'function'){
+    clearHexArtifacts();
+    hexStatus('当前浏览器不支持 UTF-8 解码。', 'This browser does not support UTF-8 decoding.');
+    return;
+  }
+  try {
+    output.value = new TextDecoder('utf-8', {fatal:true}).decode(bytes);
+  } catch(e){
+    clearHexArtifacts();
+    hexStatus('字节序列不是有效的 UTF-8，请确认原始字符编码。', 'The byte sequence is not valid UTF-8. Check the original character encoding.');
+  }
 }
 
-function copyResult(ev){
+async function copyResult(){
   const v = document.getElementById('output').value;
-  if(!v) return;
-  const btn = (ev && ev.target) ? ev.target.closest('.btn') : null;
-  navigator.clipboard.writeText(v).then(() => {
-    if(btn){ btn.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"✅ Copied":"✅ 已复制"); setTimeout(() => btn.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Copy result":"复制结果"), 1500); }
-  });
+  if(!v){ hexStatus('没有可复制的结果。', 'There is no result to copy.'); return; }
+  try {
+    if(!navigator.clipboard || typeof navigator.clipboard.writeText !== 'function') throw new Error('clipboard unavailable');
+    await navigator.clipboard.writeText(v);
+    hexStatus('已复制结果。', 'Result copied.');
+  } catch(e){
+    hexStatus('复制失败，请手动选择输出文本复制。', 'Copy failed. Select and copy the output manually.');
+  }
 }
 
 function clearAll(){
   document.getElementById('input').value = '';
   document.getElementById('output').value = '';
+  clearHexArtifacts();
+  hexStatus('', '');
 }
 </script><script>
 // tool-intro折叠交互
@@ -392,6 +426,7 @@ function __hex_to_textExtras(){
     __hex_to_textRender(keys,rk,en);
 }
 function __hex_to_textExport(){
+    if(!document.getElementById('output').value){ hexStatus('没有可导出的结果。', 'There is no result to export.'); return; }
     if (typeof TBKit === 'undefined') return;
     try{
         var box=document.querySelector('#hex_to_textTable');

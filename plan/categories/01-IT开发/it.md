@@ -2128,22 +2128,6 @@
 - 方案：先用 `/^\d+$/` 校验整段，再 `Number(part)`；对 `0x` 前缀给出明确提示。
 **留存建议（tools/it/decimal-encode.html）**：`:269-270` 换成严格整数校验。
 
-### IT-N313 非法 UTF-8 静默替换为 U+FFFD，且 FAQ 承诺的 GBK 并无对应选项（中，确认缺陷）
-- 问题：`new TextDecoder()` 默认 `fatal:false`，解码失败时把每个坏字节变成 U+FFFD，页面无警告，复制出去即丢数据；FAQ 建议"不行再换 GBK"，但页面没有字符集选择。
-- 证据：`tools/it/hex-to-text.html:266`（`new TextDecoder().decode(bytes)`）、`:204`（FAQ 换 GBK）、`:161-164`（只有输入/输出两个 textarea）。
-- 复现（node）：输入 `80` → 输出 `�`（U+FFFD），无任何提示；期望提示"字节序列不是合法 UTF-8"或提供 GBK/Latin-1 选项。
-- 影响：取证/协议分析场景下静默丢字节，结论失真。
-- 方案：用 `new TextDecoder('utf-8',{fatal:true})` 捕获异常并提示，或增加字符集下拉（`TextDecoder('gbk')` 浏览器已内置）。
-**留存建议（tools/it/hex-to-text.html）**：`:266` 加 fatal 与错误提示，或补字符集下拉。
-
-### IT-N314 复制按钮依赖全局 `event`，Firefox 下无反馈（低，确认缺陷）
-- 问题：`copyResult` 在 `clipboard.writeText().then()` 回调里用 `event.target`；`window.event` 仅 Chromium 系有，Firefox/Safari 中 `event` 未定义，回调抛 ReferenceError，按钮文案不恢复；写剪贴板失败也没有 catch。
-- 证据：`tools/it/hex-to-text.html:272-275`（`event.target.closest('.btn')`）、`:269-271`（取值为空直接 return）。
-- 复现：Firefox 打开页面点"复制结果" → 剪贴板可能已写入，但控制台报 `ReferenceError: event is not defined`，按钮无"✅ 已复制"反馈；期望两种浏览器都给出反馈。
-- 影响：与 AGENTS §5 主流浏览器兼容要求不符；失败无提示。
-- 方案：把按钮元素显式传入（`onclick="copyResult(this)"`），不要依赖隐式 `event`；并给 `writeText` 加 `.catch` 提示失败。
-**留存建议（tools/it/hex-to-text.html）**：`:269-276` 改为显式传参 + 失败分支。
-
 ### 承诺 vs 实际（S 批专项）
 - `tools/it/des.html:166`、`:263`：承诺"3DES 密钥 112/168 位""维护老系统时解密历史数据"，实际密钥编排只剩 1 字节有效、输出与标准不兼容（N294、N295）；`:155` 的"解密时纯十六进制且偶数长度按 hex、否则 Base64"实现一致，但奇数 hex 会抛 `InvalidCharacterError`（N296）。
 - `tools/it/js-formatter.html:225` 承诺"纯格式化不会改变代码行为，AST 不变"，实际注释换行与 `return` ASI 均改变语义（N297）；`:167` 写"必须基于 AST 而非简单正则"，本页是手写词法 + 深度计数（`:163`），压缩还不补分号（N298）。

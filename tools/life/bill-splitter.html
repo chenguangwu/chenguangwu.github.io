@@ -487,7 +487,7 @@ function renderAdvPersons() {
   el.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:8px;">`+
     advPersons.map((n,i)=>
       `<div style="display:flex;align-items:center;gap:4px;">
-        <input type="text" value="${escHtml(n)}" style="width:100px;padding:8px;" onchange="advPersons[${i}]=this.value;renderItemPersons();">
+        <input type="text" value="${escHtml(n)}" style="width:100px;padding:8px;" onchange="advPersons[${i}]=this.value;renderItemPersons();invalidateAdvanced();">
         <button type="button" class="btn danger" style="padding:6px 10px;" onclick="removeAdvPerson(${i})">×</button>
       </div>`
     ).join('')+`</div>`;
@@ -497,11 +497,16 @@ function renderAdvPersons() {
 function addAdvPerson() {
   advPersons.push(`人员${advPersons.length+1}`);
   renderAdvPersons();
+  invalidateAdvanced();
 }
 
 function removeAdvPerson(i) {
   if(advPersons.length<=1){ToolBox.showToast(i18nText('toast.msg557'),'warning');return;}
-  advPersons.splice(i,1);renderAdvPersons();
+  document.querySelectorAll('#items-list .item-persons').forEach(el=>{
+    const label=el.querySelectorAll('.person-check')[i];
+    if(label) label.remove();
+  });
+  advPersons.splice(i,1);renderAdvPersons();invalidateAdvanced();
 }
 
 function addItem() {
@@ -510,12 +515,18 @@ function addItem() {
   const __h3=`<input type="text" placeholder=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Project name":"项目名称")><input type="number" placeholder=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Amount":"金额") value="0" step="0.01"><div class="item-persons" style="display:flex;flex-wrap:wrap;gap:4px;"></div><button type="button" class="btn danger" onclick="this.parentElement.remove();calcAdvanced();">×</button>`;if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){div.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}div.innerHTML=__h3;
   document.getElementById('items-list').appendChild(div);
   renderItemPersons();
+  invalidateAdvanced();
 }
 
+function invalidateAdvanced() {
+  const en=typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn();
+  document.getElementById('adv-result').innerHTML = en ? '<p>Inputs changed. Please recalculate the split.</p>' : '<p>输入已变更，请重新计算分摊。</p>';
+}
 function renderItemPersons() {
   document.querySelectorAll('#items-list .item-persons').forEach(el=>{
+    const selected = Array.from(el.querySelectorAll('input[type="checkbox"]'), c=>c.checked);
     el.innerHTML = advPersons.map((n,i)=>
-      `<label class="person-check"><input type="checkbox" checked>${escHtml(n)}</label>`
+      `<label class="person-check"><input type="checkbox" ${i >= selected.length || selected[i] ? 'checked' : ''}>${escHtml(n)}</label>`
     ).join('');
   });
 }
@@ -534,6 +545,7 @@ function calcAdvanced() {
   const items = [];
   let total = 0;
   let invalidRow = 0;
+  let unassignedRow = 0;
   
   document.querySelectorAll('#items-list .item-row').forEach((row, idx)=>{
     const inputs = row.querySelectorAll('input');
@@ -548,11 +560,17 @@ function calcAdvanced() {
       if(invalidRow === 0) invalidRow = idx + 1;
       return;
     }
-    if(amount>0&&involved.length>0){items.push({name,amount,involved});total+=amount;}
+    if(amount>0 && involved.length===0){if(unassignedRow===0) unassignedRow=idx+1;return;}
+    if(amount>0){items.push({name,amount,involved});total+=amount;}
   });
   
   if(invalidRow > 0){
     outEl.innerHTML = `<p style="color:var(--danger)">⚠ 第 ${invalidRow} 行金额需为有效正数，已停止计算。</p>`;
+    return;
+  }
+  if(unassignedRow > 0){
+    const en=typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn();
+    outEl.innerHTML = en ? `<p style="color:var(--danger)">⚠ Item ${unassignedRow} has a positive amount. Select at least one participant to calculate.</p>` : `<p style="color:var(--danger)">⚠ 第 ${unassignedRow} 行金额大于 0，请至少选择一位参与人，已停止计算。</p>`;
     return;
   }
   
@@ -597,6 +615,8 @@ function clearHistory() {
 }
 
 initPersons();renderHistory();
+document.getElementById('items-list').addEventListener('input',invalidateAdvanced);
+document.getElementById('adv-persons-list').addEventListener('input',invalidateAdvanced);
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

@@ -145,6 +145,27 @@ function _rngReset() { _rngState = 0x9e3779b9 >>> 0; }
 // ---------------------------------------------------------------- 用例
 const CASES = [
   {
+    slug: "it/hex-to-text",
+    inputs: { input: "E4B8ADF09F9880" },
+    clicks: ["convert()"],
+    expect: ["中😀"],
+    ref: "IT-N313：E4 B8 AD 为 UTF-8 中，F0 9F 98 80 为 UTF-8 😀，合法序列须完整解码。",
+  },
+  {
+    slug: "it/hex-to-text",
+    inputs: { input: "80", output: "stale-result" },
+    clicks: ["convert();var out=document.getElementById('output');var message=document.getElementById('hexStatus').textContent;out.value='N313_INVALID='+(out.value===''&&message.includes('不是有效的 UTF-8'));"],
+    expect: ["N313_INVALID=true"],
+    ref: "IT-N313：孤立续字节 80 非法，清除旧结果并提示，不能悄悄替换为 U+FFFD。",
+  },
+  {
+    slug: "it/hex-to-text",
+    inputs: { input: "A", output: "stale-result" },
+    clicks: ["convert();var out=document.getElementById('output');var message=document.getElementById('hexStatus').textContent;out.value='N313_ODD='+(out.value===''&&message.includes('必须为偶数'));"],
+    expect: ["N313_ODD=true"],
+    ref: "IT-N313：奇数位 Hex 应提示错误并清空旧结果，不能继续显示可复制的陈旧输出。",
+  },
+  {
     slug: "it/text-replace",
     inputs: { sourceText: "aa", findInput: "aa", replaceInput: "X" },
     clicks: ["document.getElementById('sourceText').value='aa'.repeat(600);document.getElementById('optCase').checked=false;document.getElementById('optRegex').checked=false;document.getElementById('optGlobal').checked=true;doReplace();document.getElementById('resultText').value='REPLACED='+document.getElementById('resultText').value.length+' COUNT='+document.getElementById('replaceCount').textContent;"],
@@ -6556,17 +6577,6 @@ const CASES = [
       "1 2 3\n31 0a 32 0a 33"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"sep\":\" \"}，输出区含「1 2 3\n31 0a 32 0a 33」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
-    "slug": "it/hex-to-text",
-    "inputs": {
-      "input": "1\n2\n3",
-      "output": "1\n2\n3"
-    },
-    "expect": [
-      "1 2 3\n1 2 3"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\"}，输出区含「1 2 3\n1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/hash-multi",
