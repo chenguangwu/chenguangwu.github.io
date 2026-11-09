@@ -24,6 +24,13 @@ const { runCase } = require("./verify_it_calc.js");
 // ---------------------------------------------------------------- 用例
 const CASES = [
   {
+    "slug": "finance/npv-calculator",
+    "inputs": {"rate": "8", "init": "100"},
+    "clicks": ["updateCF(0, 230)", "updateCF(1, -132)", "updateCF(2, 0)", "updateCF(3, 0)"],
+    "expect": ["多根 IRR 内部收益率", "9.9%", "20.0%"],
+    "ref": "清单复核案例：现金流 −100、+230、−132 在 r=10%、20% 均为 NPV 零点（残差 ~1e-14），但两根落在均匀扫描的同一粗区间（0~0.25）、端点同号；旧实现端点变号法漏判返回「无解」。修复后每段加中点采样，左右各二分捕获两跟（9.99%、20.00%）并判「多根」。默认态不同 ⇒ 无探针串、零逃生。"
+  },
+  {
     "slug": "finance/depreciation-calculator",
     "inputs": {"cost": "10000", "salvage": "1000", "life": "5", "totalUnits": "10000", "yearUnits": "3000x,2500,2000,1500,1000"},
     "clicks": ["calc();var h=String(document.getElementById('stats').innerHTML);document.getElementById('__tbProbe').textContent='DEP53BAD '+(h.indexOf('请按使用年限逐年填写')>=0?'OK':'BAD');"],

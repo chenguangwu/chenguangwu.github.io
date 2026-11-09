@@ -398,7 +398,9 @@ function bisectNPV(init, flows, lo, hi, fLo, tol){
 }
 
 // 返回 {status:'ok'|'none'|'multiple'|'invalid', rate/rates, residual}
-// 规则：先做端点/区间符号扫描，无零点则判无解；有多个零点则判多根；命中后校验残差，触边界不当作结果。
+// 规则：均匀扫描时若一段的两端同号，中点可能与端点异号（段内有两个根）。
+// 对每个区间加一个中点采样：中点与左端异号 ⇒ 左半根；中点与右端异号 ⇒ 右半根。
+// 避免「两跟落在同一粗区间、端点同号」被漏判。
 function calcIRR(init, flows){
   flows = flows || [];
   if(init <= 0) return {status:'invalid'};
@@ -407,30 +409,34 @@ function calcIRR(init, flows){
   const scale = init + flows.reduce((a,b)=>a + Math.abs(b), 0) + 1;
   const tol = scale * 1e-6;
   const roots = [];
+  const addRoot = (rate) => {
+    if(!isFinite(rate) || rate <= LO + 1e-6 || rate >= HI - 1e-6) return;
+    if(roots.some(v => Math.abs(v - rate) <= 1e-5)) return;
+    if(Math.abs(npvAtRate(init, flows, rate)) <= tol) roots.push(rate);
+  };
   let prevR = LO, prevF = npvAtRate(init, flows, LO);
   for(let i=1;i<=STEPS;i++){
     const r = LO + (HI - LO) * i / STEPS;
     const f = npvAtRate(init, flows, r);
     if(isFinite(prevF) && isFinite(f)){
-      if(prevF === 0) roots.push(prevR);
-      else if(f === 0) roots.push(r);
-      else if(prevF * f < 0){
-        const hit = bisectNPV(init, flows, prevR, r, prevF, tol);
-        if(isFinite(hit.rate) && Math.abs(hit.residual) <= tol) roots.push(hit.rate);
+      const mid = (prevR + r) / 2;
+      const fMid = npvAtRate(init, flows, mid);
+      if(isFinite(fMid)){
+        if(fMid === 0) addRoot(mid);
+        else {
+          if(prevF * fMid < 0) addRoot(bisectNPV(init, flows, prevR, mid, prevF, tol).rate);
+          if(fMid * f < 0) addRoot(bisectNPV(init, flows, mid, r, fMid, tol).rate);
+        }
+      } else if(prevF * f < 0) {
+        addRoot(bisectNPV(init, flows, prevR, r, prevF, tol).rate);
       }
     }
     prevR = r; prevF = f;
   }
-  const uniq = roots.filter((v,i)=>
-    (i === 0 || Math.abs(v - roots[i-1]) > 1e-7) && v > LO + 1e-6 && v < HI - 1e-6
-  );
-  if(!uniq.length) return {status:'none', reason:'no-root'};
-  if(uniq.length > 1) return {status:'multiple', rates:uniq};
-  const rate = uniq[0];
-  const residual = npvAtRate(init, flows, rate);
-  if(Math.abs(residual) > tol) return {status:'none', reason:'residual'};
-  if(rate <= LO + 1e-6 || rate >= HI - 1e-6) return {status:'none', reason:'boundary'};
-  return {status:'ok', rate, residual};
+  roots.sort((a,b) => a - b);
+  if(!roots.length) return {status:'none', reason:'no-root'};
+  if(roots.length > 1) return {status:'multiple', rates:roots};
+  return {status:'ok', rate:roots[0], residual:npvAtRate(init, flows, roots[0])};
 }
 
 function calc(){
