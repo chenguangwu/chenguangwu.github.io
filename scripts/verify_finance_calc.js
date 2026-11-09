@@ -143,6 +143,12 @@ const CASES = [
     ref: "ABA 3-7-1 权重：Σ = 3×0+7×1+1×1+3×0+7×0+1×0+3×0+7×1+1×5 = 20，mod 10 == 0；expect 取页面回显「美联储分区： 01 - Boston」（含分区城市 ⇒ 默认预填 021000021 输出「02 - New York」不命中，消除「✅ 有效」通用串导致的逃生）",
   },
   {
+    slug: "finance/aba-validator",
+    inputs: { input: "000000000" },
+    expect: ["美联储分区前缀 00 未分配/非法，ABA 号码无效"],
+    ref: "F-N212 前缀白名单：全零 000000000 校验和 0 通过但前缀 00 非法；旧实现仅报「00 - 未知/特殊用途」仍判 ✅，修复后直接 ❌。默认预填前缀 02 ⇒ 不命中，强判别。",
+  },
+  {
     slug: "finance/iban-validator",
     inputs: { ibanInput: "GB82WEST12345698765432" },
     expect: ["GB82 WEST 1234 5698 7654 32"],
@@ -418,6 +424,12 @@ const CASES = [
     inputs: { input: "011000015" },
     expect: ["美联储分区： 01 - Boston"],
     ref: "ABA 路由号 9 位，按 3-7-1 权重加总 ⇒ 校验通过；前两位 01 对应波士顿联邦储备区。默认态不同 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/routing-number-validator",
+    inputs: { input: "990000000" },
+    expect: ["美联储分区前缀 99 未分配/非法，路由号码无效"],
+    ref: "F-N216 前缀白名单：前缀 99 校验和通过但未分配；旧实现仅报「99 - 未知/特殊用途」仍判 ✅，修复后直接 ❌。默认预填前缀 02 ⇒ 不命中，强判别。",
   },
   {
     slug: "finance/stock-profit-calculator",
