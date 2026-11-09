@@ -256,6 +256,8 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 let lastDataURL = '';
+// D-N21：每次 generate() 递增令牌，旧异步 img.onload 若令牌 mismatch 则丢弃，避免清空输入后旧转换结果仍写回/可下载
+var __genToken = 0;
 /* 净化外部资源：foreignObject / 外链 href|src / @import / 外链 url()
    目的：SVG 经 <img> 解码后若含外部资源会污染 canvas，toDataURL 直接抛 SecurityError。
    优先用 DOMParser 做结构删除；无 DOM 环境（如门禁桩）退回等价的字符串清理。 */
@@ -335,6 +337,8 @@ function __svgSanitize(raw){
   return { ok: true, svg: out, report: report };
 }
 function generate(){
+  __genToken++;
+  const myToken = __genToken;
   const svg = document.getElementById('svgInput').value.trim();
   const w = parseInt(document.getElementById('width').value);
   const h = parseInt(document.getElementById('height').value);
@@ -366,6 +370,7 @@ function generate(){
     const url = URL.createObjectURL(blob);
     const img = new Image();
     img.onload = () => {
+      if(myToken !== __genToken) return; // D-N21：已被新转换/清空取代，丢弃旧结果
       try{
         const canvas = document.createElement('canvas');
         canvas.width = w * scale; canvas.height = h * scale;
@@ -386,6 +391,7 @@ function generate(){
       }
     };
     img.onerror = () => {
+      if(myToken !== __genToken) return; // D-N21：已被新转换/清空取代，丢弃旧结果
       lastDataURL = '';
       preview.textContent = '⚠ SVG 加载失败：可能含外部资源或语法错误，无法导出为图片';
       URL.revokeObjectURL(url);

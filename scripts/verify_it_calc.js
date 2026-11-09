@@ -2759,6 +2759,27 @@ const CASES = [
     ref: "IT-N551：先生成 old secret（__qrMeta 置位），强制置哨兵模拟已生成二维码，清空输入再 generate()，空分支必须清空 __qrMeta（修复前仅 return 不清空，旧二维码仍可下载）。断言贴回结果区的状态标记，old secret 不出现在判定串、非回显。",
   },
   {
+    slug: "design/contrast-checker",
+    inputs: { fgHex: "GGGGGG", bgHex: "000000" },
+    clicks: ["updateAll()"],
+    expect: ["颜色需为有效的 3 或 6 位 HEX 值"],
+    ref: "D-N1：前景 GGGGGG 为非法 HEX，修复前 hexToRgb 把非法值回退成黑色 [0,0,0]，与背景 000000 算出 ratio 1.00 / 不达标，给出误导结论。修复后 updateAll() 先 isValidHex 双校验，任一非法即清空比率、显示错误提示且不输出评级。该提示串仅非法态出现，默认合法色对（如 #FFFFFF/#000000 给 21.00）不命中。",
+  },
+  {
+    slug: "sports/lanqiumingzhonglv-lanbanxiaolv",
+    inputs: { fgm: "10", fga: "2", tpm: "0", tpa: "0", ftm: "0", fta: "0", oreb: "0", dreb: "0", min: "1" },
+    clicks: ["calc()"],
+    expect: ["命中数不能大于对应出手数"],
+    ref: "SF-N35：投篮命中 10 > 出手 2 在修复前未被任何守卫覆盖（原 SF-N35 只校 tpm>fgm/tpa>fga/ftm>fta），FG% 算出 10/2=500% 虚高。修复后守卫补齐 fgm>fga 等「命中≤出手」判定，越界即清空结果区并提示。该提示串仅越界态出现，默认样例（fgm=8/fga=18）正常出数据、不命中。",
+  },
+  {
+    slug: "design/svg-to-png",
+    inputs: { svgInput: "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"10\" height=\"10\"><rect width=\"10\" height=\"10\"/></svg>", width: "10", height: "10" },
+    clicks: ["window.Image=function(){var im={};im._ol=null;im._oe=null;im._src='';Object.defineProperty(im,'onload',{configurable:true,get:function(){return im._ol;},set:function(f){im._ol=f;globalThis.__lastOnload=f;}});Object.defineProperty(im,'onerror',{configurable:true,get:function(){return im._oe;},set:function(f){im._oe=f;}});Object.defineProperty(im,'src',{configurable:true,get:function(){return im._src;},set:function(s){im._src=s;}});return im;};globalThis.Image=window.Image;if(typeof URL!=='undefined'){URL.createObjectURL=function(){return 'blob:x';};URL.revokeObjectURL=function(){};}var __ce=document.createElement.bind(document);document.createElement=function(t){if(t==='canvas'){return {width:0,height:0,style:{},getContext:function(){return {fillRect:function(){},drawImage:function(){},set fillStyle(v){},get fillStyle(){return '';}};},toDataURL:function(){return 'DATAURL_STALE_MARKER';},toBlob:function(cb){if(typeof cb==='function')cb(null);}};}return __ce(t);};document.getElementById('svgInput').value='<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"10\" height=\"10\"><rect width=\"10\" height=\"10\"/></svg>';document.getElementById('width').value='10';document.getElementById('height').value='10';generate();document.getElementById('svgInput').value='';generate();try{if(globalThis.__lastOnload)globalThis.__lastOnload();}catch(e){}var __p=document.getElementById('preview');var __m=document.getElementById('exportMetaVal');__m.textContent='D21_LAST='+(lastDataURL===''?'EMPTY':'STALE')+' PREV='+(__p.innerHTML.indexOf('<img')>=0?'IMG':'NONE');"],
+    expect: ["D21_LAST=EMPTY", "PREV=NONE"],
+    ref: "D-N21：先生成合法 SVG（注册异步 img.onload，token=1），随即清空输入再 generate()（token=2，lastDataURL 清空、preview 写入「请输入 SVG 代码」），最后手动触发那个本应已作废的旧 onload（模拟异步晚到）。修复后 onload 头部校验 myToken!==__genToken 直接 return，旧结果不写回 ⇒ lastDataURL 仍空、preview 无 <img。修复前旧 onload 仍把旧 PNG 写回 lastDataURL 与 preview（PREV=IMG）。该判定串仅由注入 clicks 写入 exportMetaVal，默认快照（B）无 clicks ⇒ 不命中、判别力真实。",
+  },
+  {
     slug: "investment/irr-calc",
     inputs: { cf0: "-100", cf1: "230", cf2: "-132", cf3: "0", cf4: "0" },
     clicks: ["calcTool()"],
