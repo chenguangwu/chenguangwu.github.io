@@ -24,6 +24,48 @@ const { runCase } = require("./verify_it_calc.js");
 // ---------------------------------------------------------------- 用例
 const CASES = [
   {
+    slug: "finance/gstin-validator",
+    clicks: ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'x',type:'text',value:'1'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('output').textContent=\"校验流程已完成。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。校验结论：校验失败，该 GSTIN 无效。\";__gstin_validatorExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='FNGS score='+(__cap.length?__cap[__cap.length-1].__tbScore:'NA');"],
+    expect: ["FNGS score=0"],
+    ref: "复核失败重做·F-N189 第二批/第42–44批 GSTIN：失败结论/必填提示位于 80 字摘要之后，旧 Score 只看 ResText 前 80 字 ⇒ 误记通过(1)；修复后 Score 读 FullResText 完整文本，命中失败词 ⇒ 0。历史展示仍用摘要。默认态无探针串 ⇒ 零逃生。"
+  },
+  {
+    slug: "finance/meid-validator",
+    clicks: ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'x',type:'text',value:'1'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('output').textContent=\"校验流程已完成。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。校验结论：校验失败，该 MEID 无效。\";__meid_validatorExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='FNME score='+(__cap.length?__cap[__cap.length-1].__tbScore:'NA');"],
+    expect: ["FNME score=0"],
+    ref: "复核失败重做·F-N189 第二批/第42–44批 MEID：失败结论/必填提示位于 80 字摘要之后，旧 Score 只看 ResText 前 80 字 ⇒ 误记通过(1)；修复后 Score 读 FullResText 完整文本，命中失败词 ⇒ 0。历史展示仍用摘要。默认态无探针串 ⇒ 零逃生。"
+  },
+  {
+    slug: "finance/abn-validator",
+    clicks: ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'x',type:'text',value:'1'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('output').textContent=\"校验流程已完成。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。校验结论：校验失败，该 ABN 无效。\";__abn_validatorExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='FNAB score='+(__cap.length?__cap[__cap.length-1].__tbScore:'NA');"],
+    expect: ["FNAB score=0"],
+    ref: "复核失败重做·F-N189 第二批/第42–44批 ABN：失败结论/必填提示位于 80 字摘要之后，旧 Score 只看 ResText 前 80 字 ⇒ 误记通过(1)；修复后 Score 读 FullResText 完整文本，命中失败词 ⇒ 0。历史展示仍用摘要。默认态无探针串 ⇒ 零逃生。"
+  },
+  {
+    slug: "finance/aadhaar-validator",
+    clicks: ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'x',type:'text',value:'1'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('output').textContent=\"校验流程已完成。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。校验结论：校验失败，该 Aadhaar 无效。\";__aadhaar_validatorExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='FNAA score='+(__cap.length?__cap[__cap.length-1].__tbScore:'NA');"],
+    expect: ["FNAA score=0"],
+    ref: "复核失败重做·F-N189 第二批/第42–44批 Aadhaar：失败结论/必填提示位于 80 字摘要之后，旧 Score 只看 ResText 前 80 字 ⇒ 误记通过(1)；修复后 Score 读 FullResText 完整文本，命中失败词 ⇒ 0。历史展示仍用摘要。默认态无探针串 ⇒ 零逃生。"
+  },
+  {
+    slug: "finance/bic-validator",
+    clicks: ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'x',type:'text',value:'1'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('output').textContent=\"校验流程已完成。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。校验结论：校验失败，该 BIC 无效。\";__bic_validatorExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='FNBV score='+(__cap.length?__cap[__cap.length-1].__tbScore:'NA');"],
+    expect: ["FNBV score=0"],
+    ref: "复核失败重做·F-N189 第二批/第42–44批 BIC：失败结论/必填提示位于 80 字摘要之后，旧 Score 只看 ResText 前 80 字 ⇒ 误记通过(1)；修复后 Score 读 FullResText 完整文本，命中失败词 ⇒ 0。历史展示仍用摘要。默认态无探针串 ⇒ 零逃生。"
+  },
+  {
+    slug: "finance/calc-5",
+    clicks: ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'x',type:'text',value:'1'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('res').textContent=\"计算流程已完成。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。请填写「投资成本」后再计算。\";__calc_5Extras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='FNC5 score='+(__cap.length?__cap[__cap.length-1].__tbScore:'NA');"],
+    expect: ["FNC5 score=0"],
+    ref: "复核失败重做·F-N189 第二批/第42–44批 calc-5：失败结论/必填提示位于 80 字摘要之后，旧 Score 只看 ResText 前 80 字 ⇒ 误记通过(1)；修复后 Score 读 FullResText 完整文本，命中失败词 ⇒ 0。历史展示仍用摘要。默认态无探针串 ⇒ 零逃生。"
+  },
+  {
+    slug: "finance/dca-calculator",
+    clicks: ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'x',type:'text',value:'1'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('res').textContent=\"计算流程已完成。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。请填写「每月定投」后再计算。\";__dca_calculatorExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='FNDC score='+(__cap.length?__cap[__cap.length-1].__tbScore:'NA');"],
+    expect: ["FNDC score=0"],
+    ref: "复核失败重做·F-N189 第二批/第42–44批 dca-calculator：失败结论/必填提示位于 80 字摘要之后，旧 Score 只看 ResText 前 80 字 ⇒ 误记通过(1)；修复后 Score 读 FullResText 完整文本，命中失败词 ⇒ 0。历史展示仍用摘要。默认态无探针串 ⇒ 零逃生。"
+  },
+  {
     slug: "finance/imei-validator",
     clicks: ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'x',type:'text',value:'1'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('output').textContent=\"校验流程已完成。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。校验结论：校验失败，该 IMEI 无效。\";__imei_validatorExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='FNIMEI score='+(__cap.length?__cap[__cap.length-1].__tbScore:'NA');"],
     expect: ["FNIMEI score=0"],
