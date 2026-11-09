@@ -14,6 +14,12 @@ const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
   {
+    slug: "edu/24-point-solver",
+    clicks: ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:\"nums\",type:'text',value:\"1 2 3 4\"}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};var __sync=function(){var r=document.getElementById('result');r.textContent=String(r.innerHTML||'').replace(/<[^>]*>/g,'').replace(/\\s+/g,' ').trim();};document.getElementById(\"nums\").value=\"1 2 3 4\";__els.find(function(e){return e.id===\"nums\";}).value=\"1 2 3 4\";solve();__sync();__24_point_solverExtras();document.getElementById(\"nums\").value=\"2 3 4 5\";__els.find(function(e){return e.id===\"nums\";}).value=\"2 3 4 5\";solve();__sync();__24_point_solverExtras();document.querySelectorAll=__oq;var __lr=__cap[__cap.length-1]||{};var __o={};for(var __k in __lr){if(__k!=='结果'&&__k!=='__tbScore')__o[__k]=__lr[__k];}document.getElementById('__tbProbe').textContent='TAIL24 n='+__cap.length+' last='+JSON.stringify(__o);"],
+    expect: ["TAIL24 n=3 last={\"nums\":\"2 3 4 5\"}"],
+    ref: "复核失败重做·F-N189 第46批（1 秒节流丢尾帧）：连续两次真实计算并各写一条历史，快速变更后的最终稳定状态必须进入历史；旧实现 `if(now-*_last<1000) return;` 直接丢弃后续更新，历史停在首次输入（n=1 且 last 为首组），修复后最后一条为第二组输入。用例自建 TBKit 桩 + querySelectorAll 桩走页面真实 Extras 路径，默认态不执行 clicks、无探针串 ⇒ 零逃生。"
+  },
+  {
     slug: "edu/calc-2",
     inputs: { score: "92", mean: "80", sd: "6", direction: "higher" },
     expect: ["2.0000", "97.72%"],
