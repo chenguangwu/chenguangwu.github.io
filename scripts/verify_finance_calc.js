@@ -3893,6 +3893,20 @@ const CASES = [
     expect: ["IBSA SA0380000000608010167519 OK"],
     ref: "F-N133 防回归锁：SA0380000000608010167519 长度 24、mod-97==1，沙特阿拉伯必须收录、长度 24 校验通过、总体判有效，三项用探针 AND 串一次断言。旧表仅 33 国不含 SA ⇒ 三项皆不满足得 BAD。⚠️ 用 __tbProbe 而非静态 blob：页面预置国家表格含所有国名，直接写 blob 会被表格串干扰/默认态命中；探针仅取 result 容器且绑定输入号 ⇒ 零逃生。参考 MEID/DNI 用例模式。",
   },
+  {
+    slug: "finance/bic-validator",
+    inputs: { input: "DEUT DEFF" },
+    clicks: ["validate();var h=String(document.getElementById('output').innerHTML).replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ');document.getElementById('__tbProbe').textContent='BICSP '+document.getElementById('input').value+' '+((h.indexOf('长度： 8 字符')>=0&&h.indexOf('银行代码： DEUT')>=0&&h.indexOf('BIC 代码格式有效')>=0)?'OK':'BAD');"],
+    expect: ["BICSP DEUT DEFF OK"],
+    ref: "F-N137 防回归锁：标准 4+2+2 空格写法「DEUT DEFF」先 replace(/[\\s-]/g,'') 清洗为 DEUTDEFF(8 位) 后应判格式有效；旧实现只 trim 不清洗 ⇒ 长度变 9 报「长度必须为 8 或 11」。探针 AND 断言长度 8 + 银行代码 + 格式有效三项，绑定原始输入串 ⇒ 默认态不命中。",
+  },
+  {
+    slug: "finance/bic-validator",
+    inputs: { input: "<img src=x onerror=alert(1)>" },
+    clicks: ["validate();var h=String(document.getElementById('output').innerHTML);document.getElementById('__tbProbe').textContent='BICXSS '+((h.indexOf('&lt;IMG')>=0&&h.indexOf('<IMG')<0&&h.indexOf('<img')<0)?'ESC':'RAW');"],
+    expect: ["BICXSS ESC"],
+    ref: "F-N136 防回归锁：用户输入 <img src=x onerror=alert(1)> 经 toUpperCase+去空格得 <IMGSRC=XONERROR=ALERT(1)>，写入 innerHTML 前必须 esc() 转义为 &lt;IMG…&gt;；旧实现直接拼 raw ⇒ 输出含裸 <IMG 可执行。探针断言含 &lt;IMG 且不含裸 <IMG/<img ⇒ 零逃生（与输入值无关，纯转义行为锁）。",
+  },
 
 ];
 

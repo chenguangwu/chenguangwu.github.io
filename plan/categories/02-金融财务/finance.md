@@ -626,20 +626,6 @@
 - 影响：`tools/finance/credit-card-type.html`；description 声称「用于表单校验与支付前端判断」，但非法卡号被判「完成」，容易让调用方误以为通过。
 - 方案：增加 Luhn 行（通过/失败独立标识），把「完成」改为「前缀与长度匹配」；补 Maestro/Diners/MIR 或明确列出支持品牌；核实 88 前缀后再保留。
 
-### F-N136 BIC 验证页：输入在正则校验前直接拼入 innerHTML，存在自 XSS 风险（低，待验证）
-- 问题：`validate()` 先把 `raw` 拼进 `html`，再跑正则；无效输入分支也把 `raw` 写入 `out.innerHTML`，未转义。`toUpperCase()` 会破坏 `alert` 这类大小写敏感的标识符，但 HTML 字符实体在属性值中会先解码，`&#97;lert(1)` 仍可能还原为 `alert(1)`。
-- 证据：`tools/finance/bic-validator.html:233`（仅 trim+uppercase）、`:237`（直接插值 `raw`）、`:249`/`:265`（写入 innerHTML）
-- 复现：输入 `<img src=x onerror=&#97;lert(1)>` → 大写后实体仍解码为 `alert(1)`，加载失败图时可能执行；直接写 `onerror=alert(1)` 则因变成 `ALERT` 而不触发。期望只显示纯文本。需真机复核实体绕过路径。
-- 影响：`tools/finance/bic-validator.html`；仅影响本机（无回显/存储型传播），但工具站仍不应允许输入执行脚本，且该输入可能进入历史快照。
-- 方案：渲染前统一 `escapeHtml(raw)`，或先校验格式、只在通过后渲染；所有用户输入用 `textContent` 写入。
-
-### F-N137 BIC 验证页：带空格/连字符的标准写法被拒，11 位主办公室仍显示「分支代码 XXX」，本地主题函数为死代码（低，确认缺陷）
-- 问题：只做 `trim()`，不清洗空格/连字符，`DEUT DEFF` 长度变 9 直接报「长度必须为 8 或 11」；11 位 `DEUTDEFFXXX` 把 `XXX` 当普通分支代码显示，未说明「主办公室」；页面内 `toggleToolTheme()` 与按钮调用的 `ToolBox.toggleToolTheme()` 重复，本地函数从未执行。
-- 证据：`tools/finance/bic-validator.html:233`（无清洗）、`:240-241`（长度判断）、`:255`（branch 直接 substring）、`:129`（按钮用 ToolBox）、`:267`（本地死函数）
-- 复现：输入 `DEUT DEFF` → ❌ 长度必须为 8 或 11（期望去空格后通过）；输入 `DEUTDEFFXXX` → 「分支代码：XXX」（期望「主办公室（XXX）」）；`DEUTDEFF` → 正常。
-- 影响：`tools/finance/bic-validator.html`；国际汇款单常见「4+2+2」空格写法被误判，主办公室语义不清；死代码增加维护成本。
-- 方案：先 `replace(/\s|-/g,'')` 再校验；`branch === 'XXX'` 时标注主办公室；删除本地 `toggleToolTheme()` 或让按钮统一调用它。
-
 ### F-N138 货币符号页：数据数组重复 4 组，计数 153 与唯一 149、文案 170+ 三重不一致（中，确认缺陷）
 - 问题：`currencies` 中 AUD、NIO、UGX、XCD 各出现 2 次（XCD 两条的国家文案还不同）；`renderCurrencies` 用 `list.length` 显示「共找到 N 种货币」，实际唯一代码只有 149 个，intro 却写「170+ 种」。
 - 证据：`tools/finance/currency-symbol.html:176`（170+ 文案）、`:332`/`:472`（AUD 重复）、`:368`/`:424`（NIO 重复）、`:432`/`:455`（UGX 重复）、`:373`/`:463`（XCD 重复）、`:559`（按数组长度计数）
