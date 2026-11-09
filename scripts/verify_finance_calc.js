@@ -850,6 +850,18 @@ const CASES = [
     ref: "DEA 编号规则 = 2 字母 + 7 数字共 9 位，`ABC123` 只有 6 位 ⇒ 长度校验直接失败。默认态为空输入，不命中本串。",
   },
   {
+    slug: "finance/dea-validator",
+    inputs: { input: "AB0134623" },
+    expect: ["7 位数字： 0134623 校验和： ✅ 通过 ✅ DEA 号码有效"],
+    ref: "F-N221 偶数位逐位取和：AB0134623 的 7 位数字 0134623 ⇒ 奇数位 0+3+6=9、偶数位 1/4/2 各自×2 得 2/8/4（均个位无需再拆）⇒ 9+2+8+4=23 → 末位 3 合法。旧实现把三项乘积之和 14 再做一次位和得 1+4=5 ⇒ 9+5=14 判 4 ⇒ ❌。修复后 ✅。expect 带输入号避免通用串逃生。",
+  },
+  {
+    slug: "finance/dea-validator",
+    inputs: { input: "AB0118785" },
+    expect: ["7 位数字： 0118785 校验和： ❌ 未通过 ❌ 校验和失败，DEA 号码无效"],
+    ref: "F-N221 反向：AB0118785 旧实现（三项和再一次取位和）误判 ✅，修复后逐位取和判 ❌。expect 带输入号；默认预填 AB1234565 不命中。",
+  },
+  {
     slug: "finance/dca-calculator",
     inputs: { initial: "2000", monthly: "300", rate: "4", years: "5" },
     clicks: ["switchTiming()"],

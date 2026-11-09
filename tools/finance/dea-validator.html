@@ -239,10 +239,11 @@ function deaCheck(s){
   const digits = s.substring(2,9); // 7 digits
   if(digits.length !== 7 || !/^\d{7}$/.test(digits)) return false;
   const d = digits.split('').map(c => parseInt(c,10));
-  // Checksum: (d1+d3+d5) + (2*d2 + 2*d4 + 2*d6, summed digits)
+  // Checksum (official DEA): (d1+d3+d5) + (each of d2,d4,d6 ×2, digits summed individually)
   const sum1 = d[0] + d[2] + d[4];
-  let s2 = 2*d[1] + 2*d[3] + 2*d[5];
-  const sum2 = Math.floor(s2/10) + (s2%10);
+  // 每个偶数位乘积单独按位求和：8×2=16→1+6=7；不可三项之和再一次取位和（F-N221）
+  function digitSum(n){ return n >= 10 ? Math.floor(n/10) + (n%10) : n; }
+  const sum2 = digitSum(2*d[1]) + digitSum(2*d[3]) + digitSum(2*d[5]);
   const total = sum1 + sum2;
   const check = total % 10;
   return check === d[6];
