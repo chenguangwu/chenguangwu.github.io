@@ -332,19 +332,29 @@ const LC_RE = /^(?:[a-z]{2,3}(?:-[a-z]{3}){0,3}|[a-z]{4}|[a-z]{5,8})(?:-[a-z]{4}
 function __lcValid(raw){
   const tag=String(raw==null?'':raw).trim().replace(/_/g,'-');
   if(!LC_RE.test(tag)) return false;
-  // IT-N421：BCP 47 禁止重复 variant 与重复扩展单例（singleton），否则 Intl.getCanonicalLocales 会以 RangeError 拒绝
+  // IT-N421：BCP 47 只禁止「同一语法段内」重复 variant 与重复扩展单例（singleton）。
+  // 旧实现把 5–8 位子标签一律当 variant、单字符一律当 singleton 全表扫描，
+  // 于是 Unicode 扩展里的 gregory 与私有用途里的同名串被误判重复、私有段里的重复 1 也被误拒。
+  // 这里按 RFC 5646 的固定次序推进：language(-extlang)(-script)(-region)(-variant)(-extension)(-privateuse)。
   const parts=tag.toLowerCase().split('-');
   const variantRe=/^[a-z0-9]{5,8}$|^[0-9][a-z0-9]{3}$/;
-  const variants=parts.filter(function(p){return variantRe.test(p);});
-  if(new Set(variants).size!==variants.length) return false;
-  const seenSingletons=new Set();
-  for(let i=0;i<parts.length;i++){
-    const p=parts[i];
-    if(/^[0-9a-wy-z]$/.test(p)){
-      if(seenSingletons.has(p)) return false;
-      seenSingletons.add(p);
-    }
+  let i=1;
+  if(/^[a-z]{2,3}$/.test(parts[0])){
+    while(i<parts.length && i<=3 && /^[a-z]{3}$/.test(parts[i])) i++; // extlang（最多 3 个）
   }
+  if(i<parts.length && /^[a-z]{4}$/.test(parts[i])) i++;                 // script
+  if(i<parts.length && (/^[a-z]{2}$/.test(parts[i])||/^\d{3}$/.test(parts[i]))) i++; // region / UN M.49
+  const variants=[], singletons=[];
+  let inExt=false;
+  for(;i<parts.length;i++){
+    const p=parts[i];
+    if(p==='x') break; // private use：x 之后的子标签不属于 variant/extension，允许重复
+    if(/^[0-9a-wy-z]$/.test(p)){ inExt=true; singletons.push(p); continue; }
+    if(inExt) continue; // 扩展 singleton 之后的属性子标签，不是 variant
+    if(variantRe.test(p)) variants.push(p);
+  }
+  if(new Set(variants).size!==variants.length) return false;
+  if(new Set(singletons).size!==singletons.length) return false;
   return true;
 }
 /* canonical 化：分隔符统一为 -，language 小写 / script 首字母大写 / region 大写 / 其余小写 */

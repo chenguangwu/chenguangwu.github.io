@@ -144,6 +144,109 @@ function _rngReset() { _rngState = 0x9e3779b9 >>> 0; }
 
 // ---------------------------------------------------------------- 用例
 const CASES = [
+  // ===== 复核失败·第二批剩余 7 条重做（IT-N492/N493、D-N21、IT-N421、N555、N355、N549、N358）=====
+  {
+    slug: "design/svg-to-png",
+    inputs: {},
+    clicks: ["var __rev=[],__n=0;globalThis.Blob=globalThis.Blob||function(){};globalThis.URL=globalThis.URL||{};URL.createObjectURL=function(){return 'blob:'+(++__n);};URL.revokeObjectURL=function(u){__rev.push(u);};var __imgs=[];window.Image=function(){var im={onload:null,onerror:null,src:''};__imgs.push(im);return im;};globalThis.Image=window.Image;var __ce=document.createElement.bind(document);document.createElement=function(t){if(t==='canvas'){return {width:0,height:0,getContext:function(){return {fillRect:function(){},drawImage:function(){}};},toDataURL:function(){return 'PNG_OK';}};}return __ce(t);};document.getElementById('svgInput').value='<svg><rect/></svg>';document.getElementById('width').value='10';document.getElementById('height').value='10';generate();generate();generate();try{__imgs[0].onload();}catch(e){}try{__imgs[1].onerror();}catch(e){}var __pv=String(document.getElementById('preview').innerHTML);var __stale=(lastDataURL===''&&__pv.indexOf('<img')<0&&__pv.indexOf('SVG 加载失败')<0)?'Y':'N';var __old=__rev.join(',');try{__imgs[2].onload();}catch(e){}var __pv2=String(document.getElementById('preview').innerHTML);var __latest=(lastDataURL==='PNG_OK'&&__pv2.indexOf('<img')>=0)?'Y':'N';document.createElement=__ce;document.getElementById('__tbProbe').textContent='D21REV='+__old+' STALE='+__stale+' LATEST='+__latest+' ALL='+__rev.join(',');"],
+    expect: ["D21REV=blob:1,blob:2 STALE=Y LATEST=Y ALL=blob:1,blob:2,blob:3"],
+    ref: "D-N21 复核重做：连续三次 generate() 各创建一个 blob URL。旧修复把 token 守卫放在释放之前，过期的 onload/onerror 直接 return ⇒ blob:1、blob:2 永不释放。现两回调都用 try/finally，过期回调照样释放各自 URL 且不改写 lastDataURL/preview；最新的第三次 onload 仍能正常出图并释放 blob:3。URL/Image/canvas 均由桩捕获，默认态不产生该串。"
+  },
+  {
+    slug: "it/locale-lookup",
+    inputs: {},
+    clicks: ["var ts=['en-u-ca-gregory-x-gregory','en-US-x-1-1','en-US-1901-1901','en-u-ca-u-ca','sl-rozaj-biske-1994','de-DE-1996'];var rs=[];for(var i=0;i<ts.length;i++)rs.push(__lcValid(ts[i])?'Y':'N');document.getElementById('__tbProbe').textContent='LC='+rs.join('');"],
+    expect: ["LC=YYNNYY"],
+    ref: "IT-N421 复核重做：旧实现对全 parts 扫描判重，把 Unicode 扩展里的 gregory 与私有用途里的同名串、私有段里重复的 1 都误判为 variant/singleton 重复。现按 RFC 5646 段位推进：x 之后停止判重、扩展属性段不算 variant ⇒ 前两例合法；真正的重复 variant（1901）与重复 singleton（u）仍拒绝；多 variant 与 4 位数字 variant 保持合法。默认态不产生该串。"
+  },
+  {
+    slug: "it/unicode-lookup",
+    inputs: {},
+    clicks: ["var cs=[0x2B739,0x2B73F,0x2B81D,0x2B81F,0x2CEA1,0x2CEAF,0x2EBE0,0x2EBEF,0x3134A,0x3134F,0x2EBF0,0x2EE5D,0x2EE5E,0x31350,0x323AF,0x323B0,0x3FFFF];var rs=[];for(var i=0;i<cs.length;i++)rs.push(String(lookupName(cs[i])).indexOf('CJK UNIFIED IDEOGRAPH-')===0?'Y':'N');document.getElementById('__tbProbe').textContent='UL='+rs.join('');"],
+    expect: ["UL=YNYNYNYNYNYYNYYNN"],
+    ref: "IT-N555 复核重做：按 Unicode 15.1.0 unicodedata.name() 逐个扫描得到的 10 段已分配区间替换 block 边界。五个 block 尾码位 2B73F/2B81F/2CEAF/2EBEF/3134F 及 2EE5E/323B0/3FFFF 未分配不得伪造名称；同时补回此前遗漏的 Ext I（2EBF0–2EE5D）与 Ext H（31350–323AF）首尾已分配码位。默认态不产生该串。"
+  },
+  {
+    slug: "it/yaml-to-xml",
+    inputs: { source: "items:\n  -\n    - a\n    - b" },
+    expect: ["&lt;root&gt; &lt;items&gt;a&lt;/items&gt;&lt;items&gt;b&lt;/items&gt; &lt;/root&gt;"],
+    ref: "IT-N355 复核重做（页面真实输入）：单键嵌套序列 items:[[a,b]] 被 ser() 递归展平成两个并列 <items>。旧判断只看外层数组长度为 1 ⇒ 直接输出两个根；现按递归展开后的顶层元素数包一层 <root>。expect 是结果区 escH 转义后的实体形态且含 &lt;root&gt;，输入 YAML 不含尖括号 ⇒ 非回显；默认 note 样例不命中。",
+  },
+  {
+    slug: "it/yaml-to-xml",
+    inputs: { source: "items:\n  -\n    - a\n    - b\n  -\n    - c" },
+    expect: ["&lt;root&gt; &lt;items&gt;a&lt;/items&gt;&lt;items&gt;b&lt;/items&gt;&lt;items&gt;c&lt;/items&gt; &lt;/root&gt;"],
+    ref: "IT-N355 复核重做：多层/多元素嵌套数组共展开 3 个 <items>，countTop 递归求和为 3 ⇒ 仍只有一个 <root>。与单键单元素、单键标量用例共同覆盖空/嵌套/多层数组的唯一根约束。默认态不命中。",
+  },
+  {
+    slug: "it/yaml-to-xml",
+    inputs: { source: "items:\n  - only" },
+    expect: ["&lt;items&gt;only&lt;/items&gt;"],
+    ref: "IT-N355 复核重做：递归展开后恰好 1 个顶层元素时，必须保持原有「该元素即唯一根」的形态，不能被新逻辑强制再包一层 root。默认样例为 note/to/from，不命中。",
+  },
+  {
+    slug: "it/yaml-to-xml",
+    inputs: { source: "a: 1\nb: 2" },
+    expect: ["&lt;root&gt; &lt;a&gt;1&lt;/a&gt; &lt;b&gt;2&lt;/b&gt; &lt;/root&gt;"],
+    ref: "IT-N355 复核重做：多键映射仍按原约定包 <root>，缩进/换行形态未回归。默认态不含 a/b 键。",
+  },
+  {
+    slug: "it/yaml-to-xml",
+    inputs: { source: "items: []" },
+    expect: ["&lt;items&gt;[]&lt;/items&gt;"],
+    ref: "IT-N355 复核重做：空态近似回归。页面简易 YAML 解析器把 [] 当标量，输出单根 <items>[]</items>；源码层 countTop([[]])=0 的空嵌套分支输出单个空 <root>，保证零元素时也只有一个根元素。默认态不命中。",
+  },
+  {
+    slug: "it/team-name-generator",
+    inputs: {},
+    clicks: ["document.getElementById('seed').value='x';document.getElementById('style').value='classical';document.getElementById('domain').value='creative';document.getElementById('maxLen').value='6';document.getElementById('suffixMode').value='word';document.getElementById('count').value='30';generate();var __o=String(document.getElementById('output').innerHTML);var __names=__o.split('</div>').map(function(s){return s.replace(/<[^>]*>/g,'');}).filter(function(s){return s.length;});var __ok=__names.length===30&&__names.every(function(s){return s.length<=6;});var __long=__names.filter(function(s){return /Collective|Studio/.test(s);}).length;var __word=__names.filter(function(s){return / (Team|Crew)$/.test(s);}).length;document.getElementById('__tbProbe').textContent='TN='+(__ok?'Y':'N')+' LONG='+__long+' WORD='+(__word>0?'Y':'N');"],
+    expect: ["TN=Y LONG=0 WORD=Y"],
+    ref: "IT-N549 复核重做：种子 x、创意词库、古风、maxLen=6、词库后缀、30 条。旧实现 Math.max(1,maxLen-suffix.length) 让 ' Collective'/' Studio' 突破上限（出现 G Collective / I Studio）。现先筛出「后缀+至少 1 字符 base」放得下的候选，仍用一次 pick 保留可用短后缀（Team/Crew），超长后缀一律不出现，30 条全部 ≤6。默认态（无种子、maxLen=24）不产生该串。"
+  },
+  {
+    slug: "it/team-name-generator",
+    inputs: {},
+    clicks: ["var modes=['word','number','symbol'],rs=[];for(var m=0;m<modes.length;m++){document.getElementById('seed').value='x'+m;document.getElementById('domain').value='creative';document.getElementById('style').value='classical';document.getElementById('maxLen').value='6';document.getElementById('suffixMode').value=modes[m];document.getElementById('count').value='30';generate();var ns=String(document.getElementById('output').innerHTML).split('</div>').map(function(s){return s.replace(/<[^>]*>/g,'');}).filter(function(s){return s.length;});rs.push(ns.length===30&&ns.every(function(s){return s.length>0&&s.length<=6;})?'Y':'N');}document.getElementById('__tbProbe').textContent='TNMODE='+rs.join('');"],
+    expect: ["TNMODE=YYY"],
+    ref: "IT-N549 复核重做：词库、数字、符号三类后缀在短 maxLen=6 下都必须不超限且非空。数字/符号后缀长度固定可保留，词库后缀走可用候选筛选；硬夹保险丝保证任何模式都不会出现空名或 >6 字符。默认态不产生该串。"
+  },
+  {
+    slug: "it/toml-to-yaml",
+    inputs: { source: "dependencies = [ # ] note\n  'a#b',\n  'tokio',\n]" },
+    expect: ["dependencies: - \"a#b\" - tokio"],
+    ref: "IT-N358 复核重做（页面真实输入）：多行数组首行注释含 ]，元素为 TOML 字面字符串。旧 stripComment 只认双引号 ⇒ 'a#b' 的 # 被当注释、后续元素被合并成一个错误字符串。现按 TOML 词法区分字面串/基本串/注释，tSplitTop、tDepth、tVal 同步支持字面串 ⇒ 两元素完整保留。expect 是 YAML 冒号形态，输入为等号形态且元素带单引号 ⇒ 非回显；默认样例不命中。",
+  },
+  {
+    slug: "it/toml-to-yaml",
+    inputs: { source: "note = \"a\\\\\" # ] comment" },
+    expect: ["note: \"a\\\\\""],
+    ref: "IT-N358 复核重做：基本字符串末尾是成对转义反斜杠后接注释。旧实现只看引号前一个字符是否为 \\\\，把真正闭合的引号误判为转义引号、注释被吞进值里。现状态机成对吞掉转义序列 ⇒ 值 a+反斜杠，输出侧按 YAML 规则转义为双反斜杠。expect 依赖该精确形态，默认样例不命中。",
+  },
+  {
+    slug: "it/toml-to-yaml",
+    inputs: { source: "items = [ # ] ] note\n \"x\", \"y\"\n]" },
+    expect: ["items: - x - y"],
+    ref: "IT-N358 复核重做：注释里连续两个 ] 都不能被 tDepth 当成数组结束。剥注释后的括号深度仍为 1 ⇒ 继续吞并后续两行，得到两个元素。默认样例不命中。",
+  },
+  {
+    slug: "it/toml-to-yaml",
+    inputs: { source: "v = \"a#b\" # c" },
+    expect: ["v: \"a#b\""],
+    ref: "IT-N358 复核重做：双引号基本字符串内的 # 是数据，串外 # c 才是注释；输出侧对含 # 的字符串加引号保证 YAML 回读一致。默认样例不命中。",
+  },
+  {
+    slug: "it/toml-to-yaml",
+    inputs: { source: "x = ['a,b','c,d']" },
+    expect: ["x: - \"a,b\" - \"c,d\""],
+    ref: "IT-N358 复核重做：字面字符串内的逗号不能被 tSplitTop 当成顶层分隔符，两个元素各自保留逗号。默认样例不命中。",
+  },
+  {
+    slug: "it/barcode-codabar",
+    inputs: {},
+    clicks: ["var ok=buildCodabar('A12345678B'),bad=buildCodabar('123456789');document.getElementById('__tbProbe').textContent='DD='+(ok.bits&&ok.bits.length===80?'Y':'N')+' OLD='+(bad.error&&bad.error.indexOf('起止符')>=0?'Y':'N');"],
+    expect: ["DD=Y OLD=Y"],
+    ref: "IT-N492/N493 复核重做：深度解析示例改为带起止符的 A12345678B（10 个字符 × 8 单元 = 80），确实可被 buildCodabar 生成；旧示例纯数字 123456789 缺起止符，实际会被首字符校验拒绝，故文案不能再把它当可用输入。标准 Codabar 不含校验位，构建源 content_deepdive.json、英文映射 i18n/tools/en/it/barcode-codabar.json 与页面 dd-ex-body 三处已同步改为「无需额外补校验位」口径。默认态不产生该串。"
+  },
   // ===== 复核失败·第三批重做（IT-N477 / IT-N478 / IT-N3 / IT-N413）=====
   {
     slug: "it/vector-magnitude",

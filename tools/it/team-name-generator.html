@@ -330,15 +330,27 @@ function generate(){
     }
     if(base.length>maxLen)base=base.slice(0,maxLen);
     let suffix='';
-    if(suffixMode==='word'){if(randInt(100)<40)suffix=' '+pick(set.suffix);}
+    if(suffixMode==='word'){
+      if(randInt(100)<40){
+        // IT-N549：词库后缀本身可能长于 maxLen（如 ' Collective' / ' Studio'），
+        // Math.max(1,maxLen-suffix.length) 会把两者一起兜出超长名字。
+        // 先筛出「后缀 + 至少 1 字符 base」能同时放下的候选，仍用一次 pick 取用；
+        // 一个都放不下则本条不带词库后缀，保证约束优先于装饰。
+        var usable=set.suffix.filter(function(s){return (' '+s).length+1<=maxLen;});
+        if(usable.length) suffix=' '+pick(usable);
+      }
+    }
     else if(suffixMode==='number'){suffix=' '+String(randInt(90)+10);}
     else if(suffixMode==='symbol'){suffix=pick(['!','#','+','~','★']);}
+    // 任何类型的后缀都不得占满或超过上限（至少给 base 留一个字符）
+    if(suffix.length>=maxLen) suffix='';
     let name=base+suffix;
     if(name.length>maxLen){
-      // IT-N549：为后缀预留长度——截断 base 再拼接，保证后缀始终可见，而非把整串（含后缀）一起截断
+      // 为后缀预留长度——截断 base 再拼接，保证后缀始终可见，而非把整串（含后缀）一起截断
       base=base.slice(0,Math.max(1,maxLen-suffix.length));
       name=base+suffix;
     }
+    if(name.length>maxLen) name=name.slice(0,maxLen); // IT-N549 硬约束保险丝
     html+='<div class="code-row">'+escapeHtml(name)+'</div>';
   }
   __tnState=null;

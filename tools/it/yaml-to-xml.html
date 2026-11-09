@@ -394,6 +394,12 @@ function jsonToXml(obj, unit, sortKeys){
   unit=unit||'';
   function nl(d){ return unit?('\n'+unit.repeat(Math.max(0,d))):''; }
   function keysOf(o){ var ks=Object.keys(o); if(sortKeys) ks.sort(); return ks; }
+  // IT-N355：ser() 会把数组递归展平成多个同名元素，故顶层元素数须按同样规则递归统计。
+  // 只看外层数组长度会漏判 {items:[[a,b]]}（产生两个根）与 {items:[[]]}（产生零个根）。
+  function countTop(val){
+    if(Array.isArray(val)) return val.reduce(function(s,x){return s+countTop(x);},0);
+    return 1;
+  }
   function ser(name,val,depth){
     if(Array.isArray(val)){
       var a='';
@@ -431,19 +437,17 @@ function jsonToXml(obj, unit, sortKeys){
     return '<root>'+escXml(obj===null||obj===undefined?'':obj)+'</root>';
   }
   var keys=keysOf(obj);
-  // 单键 + 非数组值（标量/对象）⇒ 直接作为唯一根，合法
-  if(keys.length===1 && !Array.isArray(obj[keys[0]])){
-    return ser(xName(keys[0]), obj[keys[0]], 0);
+  var total=0;
+  for(var n=0;n<keys.length;n++) total+=countTop(obj[keys[n]]);
+  // 递归展开后恰好一个顶层元素 ⇒ 该元素本身就是唯一根，直接输出（保持单键标量/单元素数组的既有形态）
+  if(total===1){
+    return keys.map(function(k){return ser(xName(k),obj[k],0);}).join('');
   }
-  // 单键 + 数组：仅当数组恰有一个元素时，`<items>x</items>` 本身是合法单一根；
-  // 多元素数组同名并列会产生多个根，必须包一层 <root>（IT-N355 修复点）
-  if(keys.length===1 && Array.isArray(obj[keys[0]]) && obj[keys[0]].length===1){
-    return ser(xName(keys[0]), obj[keys[0]], 0);
-  }
-  // 多键 / 单键多元素数组 ⇒ 包一层 <root> 保证单一根元素
+  // 零个（全为空嵌套数组）或多个 ⇒ 包一层 <root> 保证有且只有一个根元素
   var parts=keys.map(function(k){return ser(xName(k),obj[k],1);});
+  var body=parts.join(nl(1));
   var s0=nl(1);
-  return '<root>'+s0+parts.join(s0)+nl(0)+'</root>';
+  return '<root>'+(body?s0+body+nl(0):'')+'</root>';
 }
 
 var src=document.getElementById('source').value||'';

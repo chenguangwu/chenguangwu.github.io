@@ -592,11 +592,23 @@ function showDetail(code){
     </div>
   `;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('detail').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('detail').innerHTML=__h2;
 }
+/* IT-N555：按 Unicode 15.1.0 实际已分配的 CJK UNIFIED IDEOGRAPH 连续区间判断，
+   不能拿 block 边界（如 0x2B73F、0x3134F）当已分配码位，否则会给未分配码位伪造名称。
+   区间由 unicodedata 15.1.0 的 name() 逐个扫描得出，含 Ext A/B/C/D/E/F/G/H/I；
+   特别注意 Unicode 15.1 新增的 Ext I (2EBF0–2EE5D) 与 15.0 的 Ext H (31350–323AF)。 */
+var UL_CJK_RANGES=[
+  [0x3400,0x4DBF],[0x4E00,0x9FFF],
+  [0x20000,0x2A6DF],[0x2A700,0x2B739],[0x2B740,0x2B81D],
+  [0x2B820,0x2CEA1],[0x2CEB0,0x2EBE0],[0x2EBF0,0x2EE5D],
+  [0x30000,0x3134A],[0x31350,0x323AF]
+];
 function isCjkAssigned(code){
-  return (code>=0x3400&&code<=0x4DBF)||(code>=0x4E00&&code<=0x9FFF)||
-         (code>=0x20000&&code<=0x2A6DF)||(code>=0x2A700&&code<=0x2B73F)||
-         (code>=0x2B740&&code<=0x2B81F)||(code>=0x2B820&&code<=0x2CEAF)||
-         (code>=0x2CEB0&&code<=0x2EBEF)||(code>=0x30000&&code<=0x3134F);
+  code=Number(code);
+  if(!Number.isFinite(code)) return false;
+  for(var i=0;i<UL_CJK_RANGES.length;i++){
+    if(code>=UL_CJK_RANGES[i][0]&&code<=UL_CJK_RANGES[i][1]) return true;
+  }
+  return false;
 }
 function hangulSyllableName(code){
   var L=['G','GG','N','D','DD','R','M','B','BB','S','SS','NG','J','JJ','C','K','T','P','H'];

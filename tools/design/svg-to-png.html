@@ -370,8 +370,10 @@ function generate(){
     const url = URL.createObjectURL(blob);
     const img = new Image();
     img.onload = () => {
-      if(myToken !== __genToken) return; // D-N21：已被新转换/清空取代，丢弃旧结果
+      // D-N21：过期回调也必须走到 finally 释放本次创建的对象 URL。若在 try 之前 return，
+      // 旧 img 的 blob URL 会永久驻留内存；连续转换时逐个累积泄漏。
       try{
+        if(myToken !== __genToken) return; // 已被新转换/清空取代，丢弃旧结果
         const canvas = document.createElement('canvas');
         canvas.width = w * scale; canvas.height = h * scale;
         const ctx = canvas.getContext('2d');
@@ -391,10 +393,14 @@ function generate(){
       }
     };
     img.onerror = () => {
-      if(myToken !== __genToken) return; // D-N21：已被新转换/清空取代，丢弃旧结果
-      lastDataURL = '';
-      preview.textContent = '⚠ SVG 加载失败：可能含外部资源或语法错误，无法导出为图片';
-      URL.revokeObjectURL(url);
+      // D-N21：与 onload 同理，无论令牌是否过期都要释放对象 URL；只有最新一次转换才改写结果区。
+      try{
+        if(myToken !== __genToken) return; // 已被新转换/清空取代，丢弃旧结果
+        lastDataURL = '';
+        preview.textContent = '⚠ SVG 加载失败：可能含外部资源或语法错误，无法导出为图片';
+      }finally{
+        URL.revokeObjectURL(url);
+      }
     };
     img.src = url;
   }catch(e){ lastDataURL = ''; preview.textContent = '转换失败: '+e.message; }

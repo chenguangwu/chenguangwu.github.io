@@ -240,12 +240,17 @@ function tUnescape(x){
   });
 }
 // IT-N358/N360：按顶层逗号切分，尊重引号与嵌套括号
+/* IT-N358：引号状态必须区分 TOML 基本字符串(")、字面字符串(') 与串外。
+   字面字符串内的 # , [ ] 都是内容；基本字符串内的转义反斜杠要成对吞掉，
+   否则 "a\\"#c 会把真正闭合的引号误判成转义引号。q: 0 串外 / 1 基本串 / 2 字面串。 */
 function tSplitTop(s){
-  var out=[],buf='',d=0,q=false;
+  var out=[],buf='',d=0,q=0;
   for(var i=0;i<s.length;i++){
     var c=s[i];
-    if(q){ buf+=c; if(c==='\\'){ if(i+1<s.length){buf+=s[i+1];i++;} } else if(c==='"')q=false; continue; }
-    if(c==='"'){ q=true; buf+=c; continue; }
+    if(q===1){ buf+=c; if(c==='\\'){ if(i+1<s.length){buf+=s[i+1];i++;} } else if(c==='"')q=0; continue; }
+    if(q===2){ buf+=c; if(c==="'")q=0; continue; }
+    if(c==='"'){ q=1; buf+=c; continue; }
+    if(c==="'"){ q=2; buf+=c; continue; }
     if(c==='['||c==='{') d++;
     else if(c===']'||c==='}') d--;
     if(c===','&&d===0){ out.push(buf); buf=''; continue; }
@@ -255,11 +260,13 @@ function tSplitTop(s){
   return out;
 }
 function tDepth(s){
-  var d=0,q=false;
+  var d=0,q=0;
   for(var i=0;i<s.length;i++){
     var c=s[i];
-    if(q){ if(c==='\\'){i++;continue;} if(c==='"')q=false; continue; }
-    if(c==='"'){q=true;continue;}
+    if(q===1){ if(c==='\\'){i++;continue;} if(c==='"')q=0; continue; }
+    if(q===2){ if(c==="'")q=0; continue; }
+    if(c==='"'){q=1;continue;}
+    if(c==="'"){q=2;continue;}
     if(c==='[')d++; else if(c===']')d--;
   }
   return d;
@@ -272,6 +279,8 @@ function tKeyName(k){
 function tVal(s){
   s=s.trim();
   if(s.charAt(0)==='"'){ var m=s.match(/^"((?:[^"\\]|\\.)*)"/); return m? tUnescape(m[1]) : s; }
+  // IT-N358：TOML 字面字符串（单引号）不做转义，串内 # 也是数据字符
+  if(s.charAt(0)==="'"){ var lm=s.match(/^'([^']*)'/); return lm? lm[1] : s; }
   if(s==='true')return true; if(s==='false')return false;
   if(s==='')return '';
   if(/^-?\d+$/.test(s))return parseInt(s,10);
@@ -299,9 +308,37 @@ function tVal(s){
   }
   return s;
 }
+/* IT-N358：按 TOML 词法剥注释。旧实现只认双引号、且只看引号前一个字符是否为 \\，
+   于是 'a#b' 里的 # 被当注释、"a\\\\"#c 里的闭合引号被当转义引号。
+   mode: 0 串外 / 1 基本串 / 2 字面串 / 3 三引号基本串 / 4 三引号字面串。 */
 function stripComment(s){
-  var out=''; var q=false;
-  for(var i=0;i<s.length;i++){ var c=s[i]; if(c==='"'&&s[i-1]!=='\\'){q=!q;} if(c==='#'&&!q) break; out+=c; }
+  var out='',mode=0;
+  for(var i=0;i<s.length;i++){
+    var c=s[i];
+    if(mode===0){
+      if(s.substr(i,3)==='"""'){ mode=3; out+='"""'; i+=2; continue; }
+      if(s.substr(i,3)==="'''"){ mode=4; out+="'''"; i+=2; continue; }
+      if(c==='"'){ mode=1; out+=c; continue; }
+      if(c==="'"){ mode=2; out+=c; continue; }
+      if(c==='#') break;
+      out+=c; continue;
+    }
+    if(mode===1){
+      out+=c;
+      if(c==='\\'){ if(i+1<s.length){out+=s[i+1];i++;} continue; }
+      if(c==='"') mode=0;
+      continue;
+    }
+    if(mode===2){ out+=c; if(c==="'") mode=0; continue; }
+    if(mode===3){
+      out+=c;
+      if(c==='\\'){ if(i+1<s.length){out+=s[i+1];i++;} continue; }
+      if(s.substr(i,3)==='"""'){ out+='""'; i+=2; mode=0; }
+      continue;
+    }
+    out+=c;
+    if(s.substr(i,3)==="'''"){ out+="''"; i+=2; mode=0; }
+  }
   return out.trim();
 }
 // IT-N360：沿路径下钻时，若当前节点是数组表（[[x]]），新子表挂到「最后一个元素」上，
