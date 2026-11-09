@@ -3991,6 +3991,20 @@ const CASES = [
     expect: ["制造商码 0x00 为保留码，ESN 无效"],
     ref: "F-N156 保留码拒绝：8 位 HEX 00000000 制造商码 0x00（MFR_DB 标 RESERVED）应判无效。旧实现无条件输出「✅ ESN HEX 格式有效」。输入绑定保留码 ⇒ 默认态不命中。",
   },
+  {
+    slug: "finance/ein-validator",
+    inputs: { input: "00-0000000" },
+    clicks: ["validate()"],
+    expect: ["前缀 00 未在 IRS 分配范围，EIN 无效"],
+    ref: "F-N157 前缀判据锁：00 是 IRS 保留/未分配前缀，should 判无效。旧实现 IRS_PREFIX 查表只用于展示、无条件 ✅；修复后 EIN_INVALID_PREFIX 黑名单参与判据。默认 01-1234567 有效前缀不命中。",
+  },
+  {
+    slug: "finance/ein-validator",
+    inputs: { input: "1-2-3-4-5-6-7-8-9" },
+    clicks: ["validate()"],
+    expect: ["格式化： 12-3456789"],
+    ref: "F-N158 分隔符容错口径：乱分隔 1-2-...-9 剥离后 123456789，归一化为 12-3456789 并判有效（公式框已改为「剥离分隔符后 9 位数字」口径，与实现自洽）。旧实现公式写 ^\\d{2}-\\d{7}$ 与行为矛盾。默认 01-1234567 不同值不命中。",
+  },
 
 ];
 
