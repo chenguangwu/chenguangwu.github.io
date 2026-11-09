@@ -183,8 +183,8 @@ const CASES = [
   {
     slug: "health/insulin-dose",
     inputs: { currentBg: "11", targetBg: "6", icr: "12", isf: "3", carbs: "0" },
-    expect: ["1.5", "0.0U"],
-    ref: "复核失败重做 G10-48：0 碳水须被当作合法数值（修复前 !carbs 把 0 判为假致清空为 --）。carbDose=0÷12=0.0U、corrDose=(11−6)÷3=1.7U、合计 1.5 U；命中 doseVal=1.5 与 碳水剂量卡 0.0U（避开默认 8.5/6.3）。",
+    expect: ["1.5", "1.7U"],
+    ref: "复核失败重做 G10-48：0 碳水须被当作合法数值（修复前 !carbs 把 0 判为假致清空为 --）。carbDose=0÷12=0.0U、corrDose=(11−6)÷3=1.7U、合计 1.5 U；命中 doseVal=1.5 与 校正剂量卡 1.7U（0.0U 与默认态撞车，改取 1.7U 锚；避开默认 8.5/6.3）。",
   },
 
   // ---------- 孕产 ----------
