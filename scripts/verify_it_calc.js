@@ -1291,6 +1291,20 @@ const CASES = [
   },
   {
     slug: "it/markdown-lint",
+    inputs: { src: "*斜体* 后面是说明" },
+    clicks: ["calcTool()"],
+    expect: ["✅ 未发现明显风格问题。"],
+    ref: "IT-N527 复核失败重做：行首成对强调后接正文（*斜体* 后面是说明）是合法强调，旧实现整行须为强调才豁免、此处因后续正文被误报「列表符号后缺空格」；改为「行首以成对强调开头即豁免」。默认示例含待整改项不命中。回退 N527 源码会令此用例转红。",
+  },
+  {
+    slug: "it/markdown-lint",
+    inputs: { src: "```python\n~~~\ncode\n```" },
+    clicks: ["calcTool()"],
+    expect: ["✅ 未发现明显风格问题。"],
+    ref: "IT-N527 复核失败重做：以 ```python 开围栏、内部出现 ~~~ 不应被当作闭围栏；旧实现任意围栏行都翻转 inFence，导致 ~~~ 提前闭围栏、末尾 ``` 被当成无语言新围栏报 MD040。新增按定界符类型+长度匹配开闭，跨类型围栏内内容不参与检查。默认示例含待整改项不命中。回退 N527 源码会令此用例转红。",
+  },
+  {
+    slug: "it/markdown-lint",
     inputs: { src: "# T\n正文  \n- item" },
     clicks: ["calcTool()"],
     expect: ["第 2 行：行尾多余空格（MD009）"],

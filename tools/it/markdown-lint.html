@@ -216,15 +216,19 @@ function calcTool(){
 var md=document.getElementById('src').value;
 var lines=md.split(/\n/);
 var issues=[];
-var lastH=0;var heads={};var inFence=false;
+var lastH=0;var heads={};var inFence=false;var fenceChar='';var fenceLen=0;
 for(var i=0;i<lines.length;i++){
   var L=lines[i];
-  if(/^\s*(```+|~~~+)/.test(L)){
+  var fm=L.match(/^(\s*)(`+)/)||L.match(/^(\s*)(~+)/);
+  if(fm){
+    var delim=fm[2];
     if(!inFence){
-      inFence=true;
-      var info=L.replace(/^\s*(```+|~~~+)/,'').trim();
+      inFence=true;fenceChar=delim[0];fenceLen=delim.length;
+      var info=L.slice(fm[1].length+delim.length).trim();
       if(!info)issues.push(mlQ('第 '+(i+1)+' 行：围栏代码块未标注语言（MD040）','Line '+(i+1)+': fenced code block has no language (MD040)'));
-    }else{inFence=false;}
+    }else if(delim[0]===fenceChar && delim.length>=fenceLen){
+      inFence=false;
+    }
     continue;
   }
   if(inFence)continue;
@@ -238,7 +242,7 @@ for(var i=0;i<lines.length;i++){
     if(heads[txt]>1)issues.push(mlQ('第 '+(i+1)+' 行：标题重复「'+txt+'」','Line '+(i+1)+': duplicate heading "'+txt+'"'));
   }
   var listBad=/^\s*[-*]\S/.test(L);
-  if(listBad&&/^\s*(\*[^*\s][^*]*\*|\*\*[^*\s][^*]*\*\*|_[^\s_][^_]*_)\s*$/.test(L))listBad=false;
+  if(listBad&&/^\s*(\*[^*\s][^*]*\*|\*\*[^*\s][^*]*\*\*|_[^\s_][^_]*_)/.test(L))listBad=false;
   if(listBad)issues.push(mlQ('第 '+(i+1)+' 行：列表符号后缺空格','Line '+(i+1)+': missing space after the list marker'));
   var links=L.match(/\[([^\]]*)\]\(([^)]*)\)/g)||[];
   for(var k=0;k<links.length;k++){var m=links[k].match(/\[([^\]]*)\]\(([^)]*)\)/);if(!m[2])issues.push(mlQ('第 '+(i+1)+' 行：空链接地址','Line '+(i+1)+': empty link URL'));}
