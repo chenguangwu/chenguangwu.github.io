@@ -17,6 +17,18 @@
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
+  {
+    slug: "insurance/net-single-premium",
+    clicks: ["var __cap=[];var __exp=0;TBKit={util:{isEn:function(){return false;},exportTable:function(){},exportCsv:function(){__exp=1;},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'x',type:'text',value:'1'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};__nspLast=null;document.getElementById('result').textContent='请填写「保额」后再计算。';__net_single_premiumExtras();var h=__cap.length;__net_single_premiumExport();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='NSPGUARD hist='+h+' exp='+__exp;"],
+    expect: ["NSPGUARD hist=0 exp=0"],
+    ref: "复核失败重做·F-N189 第46批 净趸缴护栏：R-N6 已在 HEAD 闭环（__nspLast 为唯一有效态判据、失效清空、导出读结构化明细）。本用例证明失败态既不写历史也不导出，修复前后均绿，仅作回归护栏。"
+  },
+  {
+    slug: "insurance/endowment-premium",
+    clicks: ["var __cap=[];var __exp=0;TBKit={util:{isEn:function(){return false;},exportTable:function(){},exportCsv:function(){__exp=1;},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'x',type:'text',value:'1'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};__epLast=null;document.getElementById('result').textContent='请填写「保额」后再计算。';__endowment_premiumExtras();var h=__cap.length;__endowment_premiumExport();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='EPGUARD hist='+h+' exp='+__exp;"],
+    expect: ["EPGUARD hist=0 exp=0"],
+    ref: "复核失败重做·F-N189 第46批  endowment 护栏：R-H5 已在 HEAD 闭环（__epLast 守卫）。本用例证明失败态既不写历史也不导出，修复前后均绿，仅作回归护栏。"
+  },
   { slug: "insurance/net-single-premium", inputs: { B: "", q: "0.01", i: "0.03", n: "10" },
     expect: ["请填写「保额 (元)」后再计算。"],
     ref: "第五批 R-N6 复核重做：有效计算后清空保额再计算，旧明细/导出已拦，但无 ⚠ 的「请填写」提示仍被评分函数判为有效并写入历史。现 __net_single_premiumExtras() 以 __nspLast（仅完整有效计算才赋值）为唯一有效态判据，错误态直接 return 不写历史/不绘趋势/不记分；评分正则亦补「请填写|再计算|必须」。默认 B=1000000 合法 ⇒ 不含该提示 ⇒ 强判别。" },

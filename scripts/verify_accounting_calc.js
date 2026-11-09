@@ -11,6 +11,12 @@
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
+  {
+    slug: "accounting/depreciation-declining",
+    clicks: ["var __cap=[];var __exp=0;TBKit={util:{isEn:function(){return false;},exportTable:function(){},exportCsv:function(){__exp=1;},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'x',type:'text',value:'1'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('result').textContent='请填写「原值」后再计算。';__depreciation_decliningExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='DEPSC hist='+__cap.length;"],
+    expect: ["DEPSC hist=0"],
+    ref: "复核失败重做·F-N189 第46批 折旧页：必填提示「请填写…后再计算。」旧 Score 词表不含该词 ⇒ 错误态写历史；修复后补 请填写|再计算|必须 ⇒ Score=0，Extras 早退不写历史。默认态无探针串 ⇒ 零逃生。"
+  },
   { slug: "accounting/current-ratio", inputs: { ca: "4500000", cl: "1500000" }, expect: ["3.00"], ref: "流动比率=流动资产/流动负债=4500000/1500000=3.00（负债占比=33.3%；默认 3000000/1500000=2.00 避开）" },
   { slug: "accounting/quick-ratio", inputs: { ca: "3600000", inv: "600000", cl: "1500000" }, expect: ["2.00"], ref: "速动比率=(CA−存货)/CL=(3600000−600000)/1500000=2.00（默认 2200000/1500000=1.47 避开）" },
   { slug: "accounting/debt-to-asset", inputs: { tl: "2000000", ta: "8000000" }, expect: ["25.00"], ref: "资产负债率=负债/资产=2000000/8000000=25.00%（权益比率 75.00%；默认 3000000/8000000=37.50 避开）" },

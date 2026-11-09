@@ -145,6 +145,12 @@ function _rngReset() { _rngState = 0x9e3779b9 >>> 0; }
 // ---------------------------------------------------------------- 用例
 const CASES = [
   {
+    slug: "it/matrix-transpose",
+    clicks: ["var __oq=document.querySelectorAll;__lastTranspose=[[1,2],[3,4]];document.getElementById('rows').value='0';calculate();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='MXCLR cleared='+(__lastTranspose===null?'Y':'N');"],
+    expect: ["MXCLR cleared=Y"],
+    ref: "复核失败重做·F-N189 第46批 矩阵转置：有效转置后把行数改为 0 再计算，页面提示行列须 1–6 整数，但旧实现不清 __lastTranspose，导出仍下载旧 CSV；修复后两个失效分支均清空缓存。探针 __lastTranspose===null ⇒ 修复前 N、修复后 Y。"
+  },
+  {
     slug: "it/rsa",
     clicks: ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{\"id\":\"encInput\",\"type\":\"text\",\"value\":\"FAILED\"}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('encInput').value='FAILED';document.getElementById('encResult').textContent='FAILED';__rsaLastBytes=6;__rsaExtras(true);document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='RSAPLAIN score='+(__cap.length?__cap[__cap.length-1].__tbScore:'NA');"],
     expect: ["RSAPLAIN score=1"],
