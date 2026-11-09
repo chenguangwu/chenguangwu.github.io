@@ -248,7 +248,7 @@ s.parentNode.insertBefore(el, s);
   </div>
 </div>
 <script>
-var mediaRecorder=null,chunks=[],stream=null;
+var mediaRecorder=null,stream=null,camSession=null;
 function escH(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function startRec(){
   var out=document.getElementById('result');
@@ -260,22 +260,22 @@ function startRec(){
     var v=document.getElementById('preview');
     v.srcObject=s;v.play().catch(function(){});
     if(window.MediaRecorder){
-      chunks=[];
+      var session={chunks:[],save:true};
+      camSession=session;
       mediaRecorder=new MediaRecorder(s);
-      mediaRecorder.ondataavailable=function(e){if(e.data&&e.data.size)chunks.push(e.data);};
+      mediaRecorder.ondataavailable=function(e){if(e.data&&e.data.size)session.chunks.push(e.data);};
       mediaRecorder.onstop=function(){
-        var blob=new Blob(chunks,{type:'video/webm'});
-        // N514：「关闭摄像头」只是结束采集，不应产生下载；仅「停止并下载」走下载分支
-        if(!__camAutoSave){
-          out.innerHTML=__camEn()?'<p>Recording stopped and camera closed (no file downloaded)</p>':'<p>⏹ 录制已停止，摄像头已关闭（未下载文件）</p>';
+        if(!session.save){
+          if(camSession===session)out.innerHTML=__camEn()?'<p>Recording stopped and camera closed (no file downloaded)</p>':'<p>⏹ 录制已停止，摄像头已关闭（未下载文件）</p>';
           return;
         }
+        var blob=new Blob(session.chunks,{type:'video/webm'});
         var a=document.createElement('a');
         a.href=URL.createObjectURL(blob);
         a.download='recording-'+Date.now()+'.webm';
         document.body.appendChild(a);a.click();document.body.removeChild(a);
         URL.revokeObjectURL(a.href);
-        out.innerHTML='<p style="color:var(--success)">✅ 录制完成，已下载 '+Math.round(blob.size/1024)+' KB 视频文件</p>';
+        if(camSession===session)out.innerHTML='<p style="color:var(--success)">✅ 录制完成，已下载 '+Math.round(blob.size/1024)+' KB 视频文件</p>';
       };
       mediaRecorder.start(250);
       document.getElementById('startBtn').disabled=true;
@@ -288,10 +288,9 @@ function startRec(){
     out.innerHTML='<p style="color:var(--danger)">无法访问摄像头：'+escH((e&&e.message)||e)+'（请检查权限设置）</p>';
   });
 }
-var __camAutoSave=true;
 function __camEn(){ return (typeof TBKit!=='undefined'&&TBKit.util&&typeof TBKit.util.isEn==='function')?!!TBKit.util.isEn():false; }
 function stopRec(save){
-  __camAutoSave=(save!==false);
+  if(mediaRecorder&&camSession)camSession.save=(save!==false);
   var out=document.getElementById('result');
   if(mediaRecorder&&mediaRecorder.state!=='inactive')mediaRecorder.stop();
   if(stream)stream.getTracks().forEach(function(t){t.stop();});

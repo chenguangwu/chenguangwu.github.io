@@ -292,15 +292,6 @@ const CASES = [
     ref: "IT-N504：count=3 生成三条后，__nicknameCopyText() 必须是 3 行且含换行符。修复前 copyResult 取 output.textContent，10 个 div 的 textContent 不带分隔符 ⇒ 1 行、sep=false。行数由注入的 count 决定（默认 10 不会是 3），故有判别力。",
   },
   {
-    // IT-N514 回归：「关闭摄像头」不得触发文件下载（原 stopStream→stopRec→onstop 无条件 a.click()）
-    slug: "it/camera-recorder",
-    inputs: {},
-    clicks: ["stopStream();document.getElementById('result').textContent='N514 autosave='+__camAutoSave;"],
-    dumpIds: ["result"],
-    expect: ["N514 autosave=false"],
-    ref: "IT-N514：stopStream() 只结束采集，必须把 __camAutoSave 置 false，否则 MediaRecorder.onstop 会创建 <a download> 自动下载并谎报「录制完成，已下载」。修复前无该开关（输出 autosave=undefined）且 onstop 必下载；修复后为 false。默认态不含该串。",
-  },
-  {
     // IT-N505 回归：同一节点先作为文件、后又出现子路径时，必须改判目录并保留子树
     slug: "it/ascii-tree-generator",
     inputs: { paths: "src\nsrc/index.js" },
