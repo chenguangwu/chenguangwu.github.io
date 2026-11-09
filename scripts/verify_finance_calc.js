@@ -684,6 +684,13 @@ const CASES = [
     ref: "西班牙 DNI：8 位数字 mod 23 映射到字母表 TRWAGMYFPDXBNJZSQVHLCKE ⇒ 12345678 对应 Z。可手算，结论双写「实得/期望」判别力最强。默认态不同 ⇒ 不命中。",
   },
   {
+    slug: "finance/dni-validator",
+    inputs: { input: "12345678Z" },
+    clicks: ["dniCheck=function(){return false;};validate();var h=String(document.getElementById('output').innerHTML);document.getElementById('__tbProbe').textContent='DNIFN '+document.getElementById('input').value+' '+(h.indexOf('❌ 校验字母不符，DNI 无效')>=0?'OK':'BAD');"],
+    expect: ["DNIFN 12345678Z OK"],
+    ref: "F-N205 复用锁：把页面顶层 dniCheck 临时替换为恒 false 后，validate() 的最终结论必须随之变 ❌；旧实现在 validate 内另算一遍 `letter === expected`，替换 dniCheck 不产生任何影响 ⇒ 探针 BAD。输入号绑定避免静态逃生。",
+  },
+  {
     slug: "finance/npi-validator",
     inputs: { input: "1234567890" },
     expect: ["❌ 校验和失败，NPI 无效"],
