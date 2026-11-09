@@ -756,6 +756,18 @@ const CASES = [
     ref: "6 位数字邮编匹配多国格式：`100000` 命中 RU/CN/IN/SG 及「香港无邮编系统」。锚取可独立核对的国家条目。默认态不同 ⇒ 不命中。",
   },
   {
+    slug: "finance/postal-code-validator",
+    inputs: { input: "HELLO" },
+    expect: ["不匹配任何已知国家的邮编格式"],
+    ref: "F-N218 香港 /.*/ 默认通过：无前缀任意串 `HELLO` 旧实现仅命中香港显示「✅ 香港无邮编系统（默认通过）」，修复后香港仅在显式 HK: 前缀参与 ⇒ 落入「不匹配任何已知国家的邮编格式」。默认 100000 命中多国 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/postal-code-validator",
+    inputs: { input: "HK:任意内容123" },
+    expect: ["Hong Kong（HK）：香港无邮编系统"],
+    ref: "F-N218 防误伤：显式 `HK:` 前缀仍应命中香港条目（香港无邮编系统，接受任意内容）；与无前缀 HELLO 被拒形成对照。默认 100000 不命中香港 ⇒ 不命中。",
+  },
+  {
     slug: "finance/zip-code-validator",
     inputs: { input: "95014" },
     expect: ["前 3 位（SCF）： 950"],
@@ -2497,9 +2509,9 @@ const CASES = [
       "input": "abc123测试"
     },
     "expect": [
-      "abc123测试\n输入： ABC123测试 匹配的国家/格式： ✅ Hong Kong（HK）：香港无邮编系统（默认通过）"
+      "abc123测试\n输入： ABC123测试 ❌ 不匹配任何已知国家的邮编格式"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： ABC123测试 匹配的国家/格式： ✅ Hong K…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "F-N218 同步：香港 /.*/ 不再默认通过，带中文的任意串 `abc123测试` 修复后落入「不匹配任何已知国家的邮编格式」；默认态（100000）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "finance/position-size-calculator",
