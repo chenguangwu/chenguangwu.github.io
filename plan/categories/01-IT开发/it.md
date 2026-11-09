@@ -191,12 +191,6 @@
 - 影响：`tools/it/list-converter.html`；混合换行文件被当成一项；需要空字段或缩进的列表无法原样转换。
 - 修复（换行切分）：`convert()` 改用 `/\r\n|\r|\n/` 切分，裸 `\r` 现在被识别为多行；verify 新增 N30 回归用例（`a\rb\nc` → 断言 `a, b, c`），list-converter 全过。trim/filter 静默丢空项与缩进的部分保留为留存项（需“保留空项/缩进”开关，未实现）。
 
-### IT-N31 视图切换依赖全局 `event`（中，待验证：Firefox）
-- 描述：`switchView` 通过 `event.target` 找当前页签，`event` 未作为参数传入；Chrome/Safari 有 `window.event`，Firefox 没有全局 `event`，内联 `onclick` 调用时会取不到。
-- 证据：`tools/it/text-diff.html:405-410`、`252-253`（内联 `onclick="switchView('unified')"`）。本轮按源码推断为 Firefox 下 ReferenceError，未做浏览器验证。
-- 影响：`tools/it/text-diff.html`；Firefox 用户可能无法切换合并/并排视图。
-- 方案：改为 `switchView(view, evt)` 显式传参，或用事件委托绑定 `.view-tab`，不依赖全局 `event`。
-
 ### 留存优化
 - `tools/it/text-cleaner.html:531-535`：空输入时 `executeClean` 提前返回，上一次结果与统计原样保留，易被误复制；建议清空结果或提示。
 - `tools/it/text-cleaner.html:668-676`：`swapText` 只刷新原始字符数，“结果/减少”统计仍是交换前的值。
