@@ -91,6 +91,42 @@ for (const c of CASES) {
     dom = build(fs.readFileSync(f, 'utf8'), `https://x.test/tools/${c.cat}/${c.slug}.html`);
     await ready(dom.window);
     const w = dom.window;
+    const configs = {
+      'self-assess-4': ['#asrsItems select', '__asrsExport'],
+      'assessor-risk-5': ['#ideationItems select, #behaviorItems select', '__cssrsExport'],
+      'rater-24': ['#cdriscItems select', '__cdriscExport'],
+      'rater-23': ['#lsasItems select', '__lsasExport'],
+    };
+    if (configs[c.slug]) {
+      const [selector, exportFn] = configs[c.slug];
+      const fields = Array.from(w.document.querySelectorAll(selector));
+      let exports = 0, records = 0, exported = '';
+      w.TBKit.util.exportTable = (table) => { exports++; exported = w.document.querySelector(table).textContent; };
+      w.TBKit.history.record = () => { records++; };
+      w.TBKit.chart = { refBar: (selector) => { w.document.querySelector(selector).textContent = '旧分级标尺'; }, line() {}, bar() {} };
+      const check = (ok, label) => { if (ok) pass++; else { fail++; failed.push(tag + label); } };
+      check(fields.length > 1, '题目必须存在');
+      w[exportFn]();
+      check(exports === 0, '未答不得导出');
+      fields[0].value = '0'; w.calc(); w[exportFn]();
+      check(exports === 0, '部分作答不得导出');
+      if (c.slug === 'assessor-risk-5') check(records === 0 && !w.localStorage.getItem('__tbn_assessor_idea'), '部分作答不得写入历史');
+      fields.forEach((field) => { field.value = '0'; });
+      w.calc(); w[exportFn]();
+      const zeroMarkers = { 'self-assess-4': '阴性', 'assessor-risk-5': '极低风险', 'rater-24': '极低心理韧性', 'rater-23': '无社交焦虑' };
+      check(exports === 1 && !!w.__EMR_SUM && exported.includes(zeroMarkers[c.slug]), '全部作答为零可计算和导出正确结论');
+      const ref = w.document.getElementById('resRefBar');
+      if (ref) check(ref.textContent.includes('旧分级标尺'), '完成作答后显示分级标尺');
+      fields.forEach((field) => { field.value = '-1'; });
+      w.calc(); w[exportFn]();
+      check(exports === 1, '重置后不得导出');
+      check(!w.__EMR_SUM && !w.__EMR_NOTE && !w.document.querySelector('#emrBox'), '重置后不得保留门诊结论');
+      if (ref) check(!ref.textContent.trim(), '重置后不得保留分级标尺');
+      fields.forEach((field) => { field.value = '0'; });
+      w.calc(); w[exportFn]();
+      check(exports === 2 && exported.includes(zeroMarkers[c.slug]), '重新完整作答后可再次导出');
+      fields.forEach((field) => { field.value = '-1'; });
+    }
     // DOMContentLoaded 已自动初始化并 calc；再强制一次兜底（占位默认 -1）。
     if (typeof w.calc === 'function') { try { w.calc(); } catch (e) {} }
     const el = w.document.getElementById('res') || w.document.getElementById('result');
