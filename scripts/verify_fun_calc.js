@@ -307,10 +307,22 @@ const CASES = [
     ref: "cnt=10 ⇒ 逐条输出「#1 数独」…「#10 数独」（题面随机，但编号与条数确定）；默认 cnt=5 ⇒ 最多到 #5，锚串不出现。",
   },
   {
+    slug: "fun/generator-2",
+    inputs: { cnt: "" },
+    expect: ["请输入生成数量"],
+    ref: "FE-N73 复核重做：清空生成数量（空值）后，旧实现 `value||5` 把空当 0→5 生成 5 题；现空值直接提示「请输入生成数量」并 return。默认 cnt=5 生成 5 题不含该提示 ⇒ 强判别、零逃生。",
+  },
+  {
     slug: "fun/generator-3",
     inputs: { cnt: "10" },
     expect: ["#10 迷宫"],
     ref: "cnt=10 ⇒ 逐条输出「#1 迷宫」…「#10 迷宫」（迷宫随机，但编号与条数确定）；默认 cnt=5 ⇒ 最多到 #5，锚串不出现。",
+  },
+  {
+    slug: "fun/generator-3",
+    inputs: { cnt: "" },
+    expect: ["请输入生成数量"],
+    ref: "FE-N73 复核重做：清空生成数量（空值）后，旧实现 `value||5` 把空当 0→5 生成 5 题；现空值直接提示「请输入生成数量」并 return。默认 cnt=5 生成 5 题不含该提示 ⇒ 强判别、零逃生。",
   },
   {
     slug: "fun/generator-laugh",

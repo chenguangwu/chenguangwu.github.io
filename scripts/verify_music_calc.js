@@ -103,6 +103,12 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "music/generator-1",
+  "inputs": { "cnt": "" },
+  "expect": ["请输入生成数量"],
+  "ref": "FE-N73 复核重做：清空生成数量（空值）后，旧实现 `value||5` 把空当 0→5 生成 5 题；现空值直接提示「请输入生成数量」并 return。默认 cnt=5 生成 5 题不含该提示 ⇒ 强判别、零逃生。"
+},
+{
   "slug": "music/guitar-fretboard",
   "clicks": [
     "setTuning('drop-d');setScale('A','minor');"
@@ -163,6 +169,12 @@ const CASES = [
     "8. "
   ],
   "ref": "auto-restore（原断言为静态标题，注入失败仍命中 → 逃生项；改为断言条数/第8条）"
+},
+{
+  "slug": "music/random-training-rhythm",
+  "inputs": { "cnt": "" },
+  "expect": ["请输入生成数量"],
+  "ref": "FE-N73 复核重做：清空生成数量（空值）后，旧实现 `value||5` 把空当 0→5 生成 5 题；现空值直接提示「请输入生成数量」并 return。默认 cnt=5 生成 5 题不含该提示 ⇒ 强判别、零逃生。"
 },
 {
   "slug": "music/rhythm-trainer",
