@@ -1345,13 +1345,6 @@
 - 影响：`tools/finance/curp-validator.html`；首屏样例本身就是非法串且不给判定，用户无法分辨「号码错」还是「页面坏」；占位符同样误导复制。
 - 方案：默认值与 placeholder 改为 18 位合法样例（`BOXW310820HMNERNA8`）；`:261-266` 对所有非法长度都输出 ❌ 并给出当前位数。
 
-### F-N204 DNI 页：字母表写成 24 字符（官方 23），deep-dive 算例「mod 23 = 5」实为 14（低，确认缺陷）
-- 问题：`:231` `DNI_LETTERS='TRWAGMYFPDXBNJZSQVHLCKET'` 共 24 字符，官方表为 23 字符 `TRWAGMYFPDXBNJZSQVHLCKE`（`%23` 只用到前 23 位，行为侥幸正确）；`:153` 公式框写 23 字符版、`:192` FAQ 又重复 24 字符版；`:189` 示例称「12345678 mod 23 = 5 → 第 5 位为 Z」。
-- 证据：`tools/finance/dni-validator.html:153`、`:189`、`:192`、`:231`
-- 复现（node 实算）：`12345678 % 23 = 14`，`TRWAGMYFPDXBNJZSQVHLCKET[14] = 'Z'`（0 基第 15 个字符，非「第 5 位」）；`87654321 % 23 = 10 → 'X'`（默认值 ✅）。
-- 影响：`tools/finance/dni-validator.html`；用户按 FAQ 的 24 字符表自行复算会错位，示例推导过程不可信。
-- 方案：三处统一为 23 字符表；示例改为「余 14 → 第 15 个字符 Z」。
-
 ### F-N205 DNI 页：`dniCheck()` 定义后从未被调用，校验逻辑另写一份（低，确认缺陷）
 - 问题：`:232-238` 定义 `dniCheck(s)`（含 `^\d{8}[A-Z]$` 正则与期望字母），但 `:257` 的 `validate()` 自己重算一遍，全文件无 `dniCheck(` 调用点。
 - 证据：`tools/finance/dni-validator.html:232-238`、`:250-257`、`:261`

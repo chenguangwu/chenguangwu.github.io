@@ -200,7 +200,14 @@ const CASES = [
     slug: "finance/dni-validator",
     inputs: { input: "12345678Z" },
     expect: ["Z（期望 Z）"],
-    ref: "西班牙 DNI：校验字母 = 'TRWAGMYFPDXBNJZSQVHLCKET'[数字 mod 23]，12345678 mod 23 = 5 → Z；expect 取独有「校验字母：Z（期望 Z）」（含具体字母 ⇒ 默认预填 87654321X 输出 X（期望 X）不命中）",
+    ref: "西班牙 DNI：校验字母 = 'TRWAGMYFPDXBNJZSQVHLCKE'[数字 mod 23]，12345678 mod 23 = 14 → Z；expect 取独有「校验字母：Z（期望 Z）」（含具体字母 ⇒ 默认预填 87654321X 输出 X（期望 X）不命中）",
+  },
+  {
+    slug: "finance/dni-validator",
+    inputs: { input: "12345678Z" },
+    clicks: ["validate();var h=String(document.getElementById('output').innerHTML);document.getElementById('__tbProbe').textContent='DNIT '+document.getElementById('input').value+' '+(h.indexOf('字母表（TRWAGMYFPDXBNJZSQVHLCKE）')>=0?'OK':'BAD');"],
+    expect: ["DNIT 12345678Z OK"],
+    ref: "F-N204 字母表长度锁：官方 DNI 映射表只有 23 字符 TRWAGMYFPDXBNJZSQVHLCKE，旧表多一个尾 T（虽因 %23 不取到第 24 位而行为侥幸正确，但 FAQ/输出说明误导）。用例带输入号并断言输出算法行的闭括号边界，旧 24 字符表 hits BAD ⇒ 真判别；默认预填无 DNIT 探针 ⇒ 零逃生。",
   },
   {
     slug: "finance/npi-validator",
@@ -674,7 +681,7 @@ const CASES = [
     slug: "finance/dni-validator",
     inputs: { input: "12345678Z" },
     expect: ["校验字母： Z（期望 Z）"],
-    ref: "西班牙 DNI：8 位数字 mod 23 映射到字母表 TRWAGMYFPDXBNJZSQVHLCKET ⇒ 12345678 对应 Z。可手算，结论双写「实得/期望」判别力最强。默认态不同 ⇒ 不命中。",
+    ref: "西班牙 DNI：8 位数字 mod 23 映射到字母表 TRWAGMYFPDXBNJZSQVHLCKE ⇒ 12345678 对应 Z。可手算，结论双写「实得/期望」判别力最强。默认态不同 ⇒ 不命中。",
   },
   {
     slug: "finance/npi-validator",
