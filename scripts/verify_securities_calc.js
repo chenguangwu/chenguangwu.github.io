@@ -13,6 +13,12 @@
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
+  {
+    slug: "securities/position-sizing",
+    clicks: ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{\"id\":\"winRate\",\"type\":\"text\",\"value\":\"55\"}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('result').textContent='请填写「胜率」后再计算。';__position_sizingExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='PSFILL score='+(__cap.length?__cap[__cap.length-1].__tbScore:'NA');"],
+    expect: ["PSFILL score=0"],
+    ref: "复核失败重做·F-N189 第46批 仓位：凯利模式清空胜率，页面提示「请填写「胜率」后再计算。」应判失败。旧 Score 关键词表无「请填写/填写/required」，把必填失败记为通过（__tbScore=1）；修复后判 0。探针走真实 __position_sizingExtras，默认态无探针串 ⇒ 零逃生。"
+  },
   { slug: "securities/position-sizing",
     inputs: { winRate: "55", winLossRatio: "1.5", totalCapital: "100000", riskPerTrade: "2000", capital2: "100000", riskPct: "2", entryPrice: "10", stopPrice: "9", targetPrice: "10", feeRate: "1" },
     expect: ["目标净亏损 = -¥336"],

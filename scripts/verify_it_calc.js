@@ -144,6 +144,12 @@ function _rngReset() { _rngState = 0x9e3779b9 >>> 0; }
 
 // ---------------------------------------------------------------- 用例
 const CASES = [
+  {
+    slug: "it/rsa",
+    clicks: ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{\"id\":\"encInput\",\"type\":\"text\",\"value\":\"FAILED\"}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('encInput').value='FAILED';document.getElementById('encResult').textContent='FAILED';__rsaLastBytes=6;__rsaExtras(true);document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='RSAPLAIN score='+(__cap.length?__cap[__cap.length-1].__tbScore:'NA');"],
+    expect: ["RSAPLAIN score=1"],
+    ref: "复核失败重做·F-N189 第46批 RSA：真实解密输出明文 FAILED（__rsaLastBytes=6 且结果===输入明文）应判通过。旧 Score 只按文本关键词命中 Failed 判 0；修复后以「解密结果与输入明文一致且有字节数」为成功豁免，判 1。探针自建 TBKit 桩 + querySelectorAll 桩走真实 __rsaExtras，默认态无探针串 ⇒ 零逃生。"
+  },
   // ===== 复核失败·第一批重做·续批2（IT-N401/N403 与 文本清理器历史快照）=====
   {
     slug: "it/html-to-markdown",
