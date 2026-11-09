@@ -153,13 +153,13 @@ s.parentNode.insertBefore(el, s);
      <h2 data-zh="🇳🇿 新西兰 IRD 验证">🇳🇿 New Zealand IRD Number Validator</h2>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-      <div class="formula-eq">IRD 校验：8 位按权重 [3,2,7,6,5,4,3,2] 求和 mod 11 = 0（9 位版前置补 0 处理）</div>
+      <div class="formula-eq">IRD 校验：8 位前置补 0 成 9 位，前 8 位按权重 [3,2,7,6,5,4,3,2] 加权求和，check = (11 − sum mod 11) mod 11；得 10 时改用 secondary [7,4,3,2,5,2,7,6] 重算，仍为 10 则无效</div>
   <div class="formula-desc">依据新西兰 IRD 官方算法校验 8 或 9 位税务号的校验位；仅校验格式合法性，不验证真实性。</div>
 </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="新西兰 IRD 验证器。输入 8 或 9 位税务号，按官方算法校验校验位，用于新西兰个人与企业税务场景的号码格式检查（不验证真实性）。">Validate an 8- or 9-digit New Zealand IRD number with the official checksum. Format check only.</p>
 
     <label>输入（IRD 号码，8-9 位数字）</label>
-    <input type="text" id="input" oninput="validate()" placeholder="如：49091850" value="490918503">
+    <input type="text" id="input" oninput="validate()" placeholder="如：49091850" value="490918507">
     <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__ird_validatorExport()">导出明细 CSV</button></div><div class="result-box" id="output">等待输入...</div> <div id="ird_validatorTable"></div> <div id="ird_validatorDiff"></div> <div id="ird_validatorChart"></div> <div id="ird_validatorHist"></div>
   </div>
 
@@ -238,22 +238,24 @@ const IRD_WEIGHTS = [
 ];
 function irdCheck(digits){
   let d = digits;
-  // Pad to 9 digits with leading zero
+  // 官方口径：8 位前置补 0 成 9 位；前 8 位为 base，第 9 位为校验位（F-N220）
   while(d.length < 9) d = '0' + d;
   if(d.length !== 9) return false;
-  // The base is first 8 digits (positions 2-9 of 9), check digit is last
-  // Weight selection based on the leading digits of the 8-digit base
-  // Use first weight set by default (effective range 0-10 mod 11)
-  let weightSet = 0;
-  const base = d.substring(1,9); // 8 digits
+  const base = d.substring(0,8);
   const checkDigit = parseInt(d[8],10);
-  let sum = 0;
-  for(let i = 0; i < 8; i++){
-    sum += parseInt(base[i],10) * IRD_WEIGHTS[weightSet][i];
+  function expectedWith(w){
+    let sum = 0;
+    for(let i = 0; i < 8; i++) sum += parseInt(base[i],10) * w[i];
+    const rem = sum % 11;
+    return (rem === 0) ? 0 : 11 - rem;
   }
-  const rem = sum % 11;
-  const expected = (rem === 0) ? 0 : 11 - rem;
-  return expected === checkDigit;
+  // primary 算出 10 无法作校验位 ⇒ 改用 secondary 权重重算；仍为 10 则号码无效
+  let c = expectedWith(IRD_WEIGHTS[0]);
+  if(c === 10){
+    c = expectedWith(IRD_WEIGHTS[1]);
+    if(c === 10) return false;
+  }
+  return c === checkDigit;
 }
 function validate(){
   const raw = document.getElementById('input').value.trim();
@@ -276,7 +278,7 @@ function validate(){
   const formatted = padded.substring(0,3) + '-' + padded.substring(3,6) + '-' + padded.substring(6);
   html += `<p><strong>格式化：</strong>${formatted}</p>`;
   html += `<p><strong>长度：</strong>${digits.length} 位</p>`;
-  html += `<p><strong>校验算法：</strong>加权模 11（权重 3,2,7,6,5,4,3,2）</p>`;
+  html += `<p><strong>校验算法：</strong>加权模 11（primary 3,2,7,6,5,4,3,2；得 10 改用 secondary 7,4,3,2,5,2,7,6）</p>`;
   html += `<p><strong>校验和：</strong> ${valid?'✅ 通过':'❌ 未通过'}</p>`;
   if(valid){
     html += `<p style="color:var(--success);">✅ IRD 号码有效</p>`;
