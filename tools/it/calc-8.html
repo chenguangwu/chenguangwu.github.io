@@ -252,11 +252,18 @@ function decodeJwt() {
   }
 
   let expInfo = '';
-  if (payload && typeof payload === 'object' && payload.exp) {
-    const expDate = new Date(payload.exp * 1000);
-    const now = new Date();
-    const isExpired = expDate < now;
-    expInfo = '<p>过期时间（exp）：<strong>' + expDate.toLocaleString('zh-CN') + '</strong> <span class="grade-tag ' + (isExpired ? 'grade-fail' : 'grade-excellent') + '">' + (isExpired ? '已过期' : '未过期') + '</span></p>';
+  // 审计修复：用 hasOwnProperty 判定字段存在，exp:0（Unix 纪元，1970 年）不得被真值判断忽略；
+  // exp 必须是有限数字，否则 new Date 得到 Invalid Date、比较恒 false 会被误标「未过期」。
+  if (payload && typeof payload === 'object' && Object.prototype.hasOwnProperty.call(payload, 'exp')) {
+    const expNum = Number(payload.exp);
+    if (!isFinite(expNum)) {
+      expInfo = '<p>过期时间（exp）：<strong>无效 exp 值</strong> <span class="grade-tag grade-fail">无效</span></p>';
+    } else {
+      const expDate = new Date(expNum * 1000);
+      const now = new Date();
+      const isExpired = expDate < now;
+      expInfo = '<p>过期时间（exp）：<strong>' + expDate.toLocaleString('zh-CN') + '</strong> <span class="grade-tag ' + (isExpired ? 'grade-fail' : 'grade-excellent') + '">' + (isExpired ? '已过期' : '未过期') + '</span></p>';
+    }
   }
 
   const __h3='<p>算法（alg）：<strong>' + ToolBox.escHtml((header && header.alg) || ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Unknown":"未知")) + '</strong></p>'
