@@ -2759,6 +2759,27 @@ const CASES = [
     ref: "IT-N551：先生成 old secret（__qrMeta 置位），强制置哨兵模拟已生成二维码，清空输入再 generate()，空分支必须清空 __qrMeta（修复前仅 return 不清空，旧二维码仍可下载）。断言贴回结果区的状态标记，old secret 不出现在判定串、非回显。",
   },
   {
+    slug: "investment/irr-calc",
+    inputs: { cf0: "-100", cf1: "230", cf2: "-132", cf3: "0", cf4: "0" },
+    clicks: ["calcTool()"],
+    expect: ["可能存在多重 IRR"],
+    ref: "IRR 多根现金流：现金流 -100、230、-132、0、0 令 NPV=0 的根有两个（10% 与 20%）。修复前 noRoot 仅用两端点乘积判断，多根时两端同号误判无解却仍显示 IRR 10.00%，并配「无零点」提示，自相矛盾。修复后改以 irr() 实际求根结果（NaN=无解）为准，正确提示可能存在多重 IRR。判定串只出现在非常规多根现金流，默认 [-1000,300,400,500,200] 给 15.32% 与「解唯一」，不命中。",
+  },
+  {
+    slug: "insurance/net-single-premium",
+    inputs: {},
+    clicks: ["__nspLast={nsp:81763.70};document.getElementById('B').value='';calcTool();document.getElementById('result').textContent='R6_LAST='+(__nspLast===null?'NULL':'STALE');"],
+    expect: ["R6_LAST=NULL"],
+    ref: "R-N6：模拟一次有效计算已把 __nspLast 置为旧保费 81763.70，再清空保额 B 重算触发必填守卫。修复后 __nspLast=null 已置于守卫之前，旧明细立即清空、不可再被导出或写历史（导出入口 if(!__nspLast) 阻断）；修复前守卫 return 早于旧代码里的 __nspLast=null，旧明细仍在 ⇒ R6_LAST=STALE、导出/历史残留旧值。断言贴回结果区的状态标记，旧保费数值不出现在判定串、非回显。",
+  },
+  {
+    slug: "rehabilitation/berg-balance-scale",
+    inputs: {},
+    clicks: ["window.TBKit={util:{isEn:function(){return false;},exportTable:function(){}}};__bbsExport();var tb=document.querySelector('#bbsTable tbody');var t=tb?tb.textContent:'';document.getElementById('resultBox').textContent='M19='+(t.indexOf('低于安全界值 45 分约')>=0?'LEAK':'OK');"],
+    expect: ["M19=OK"],
+    ref: "M-N19：默认（全部未评分）调用 __bbsExport，修复后 fallGap 仅完整作答（answered===14）时计算，CSV 风险行不再外泄「低于安全界值 45 分约 X 分，每分约 7% 线性估算」后缀；修复前未完成作答仍无条件追加该后缀（total=0 ⇒ fallGap=45）。断言贴回 resultBox 的标记，输入无关、非回显。",
+  },
+  {
     slug: "it/barcode-upc",
     inputs: { data: "12345678905" },
     clicks: ["generate()"],
