@@ -456,6 +456,12 @@ const CASES = [
     ref: "GSTIN 第 15 位为 mod-36 校验位：前 14 位字符编码按序加权求和 mod 36 ⇒ V。默认态不同 ⇒ 不命中。",
   },
   {
+    slug: "finance/gstin-validator",
+    inputs: { input: "99AAPFU0939F1ZK" },
+    expect: ["州代码： 99 - ❌ 未分配州码", "❌ 州代码不是 GST 已分配州码 ❌ GSTIN 校验失败"],
+    ref: "F-N193 防回归锁：州码 99 非法，即使校验位 K 正确也不得判有效；旧实现仅凭 zChar=Z 且校验位相等即判 ✅。默认预填 09AABCU9603R1ZL（州码 09 合法）⇒ 不命中。",
+  },
+  {
     slug: "finance/routing-number-validator",
     inputs: { input: "011000015" },
     expect: ["美联储分区： 01 - Boston"],

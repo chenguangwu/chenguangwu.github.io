@@ -1338,20 +1338,6 @@
 - 影响：`tools/finance/tin-validator.html`；号码夹字母/中文零拦截，与「格式校验」承诺不符；公式框结构也不覆盖 EIN/ITIN。
 - 方案：原串先做 `/^[\d-]+$/` 白名单，含非法字符即 ❌ 并回显位置；公式框改为三分支结构，列 SSN area/group/serial 与 EIN/ITIN 号段规则。
 
-### F-N193 GSTIN 页：州码从不校验，`99`/`00` 命中校验位仍判「GSTIN 有效」（中，确认缺陷）
-- 问题：`:248-258` 的 `STATE_CODES` 只用于取显示名，`:282` 未命中兜底为「未知州」后照常往下走；`:290` 的通过条件只有 `zChar==='Z'` 且校验位相等，而正则 `:270` 允许任意两位数字。
-- 证据：`tools/finance/gstin-validator.html:270`、`:282`、`:287-294`
-- 复现（node 实算）：把合法 `27AAPFU0939F1ZV` 的州码改为 `99` 并按页面算法重算校验位 → `99AAPFU0939F1ZK`：页面输出「州代码：99 - 未知州」+「✅ GSTIN 有效」；`00AAPFU0939F1ZB` 同样 ✅。合法对照 `27AAPFU0939F1ZV` → 州 27 Maharashtra + ✅；校验位算法与官方样例吻合（`27AAPFU0939F1ZV`、`09AABCU9603R1ZL` 均算出 V/L）。
-- 影响：`tools/finance/gstin-validator.html`；州码填错（含 00、39-96 等未分配段）仍判有效，供应商备案核对会放过错误 GSTIN。
-- 方案：州码须命中 `STATE_CODES`（补齐 38 Ladakh、97 Other Territory 等），未命中直接 ❌「州码未分配」；校验位算法保持不变。
-
-### F-N194 GSTIN 页：引据表把段序写成「…实体 + 校验 + Z」，与公式框相反（低，确认缺陷）
-- 问题：`:157` 公式框为「2 位州码 + 10 位 PAN + 1 位实体码 + Z + 末位校验字符」，`:217` 的 constRef 表却写 `2state+10PAN+ent+check+Z`，把校验位排在 Z 之前。
-- 证据：`tools/finance/gstin-validator.html:157`、`:216-217`
-- 复现：按 `:217` 的顺序拼 `27AAPFU0939F1` + 校验位 + `Z`，第 14 位非 Z，必被 `:270` 正则拒绝；按 `:157` 顺序拼接才通过。
-- 影响：`tools/finance/gstin-validator.html`；同页两处结构说明冲突，用户自造/校号时会按错顺序。
-- 方案：`:217` 改为 `2state+10PAN+ent+Z+check`。
-
 ### F-N197 Sort Code 页：含字母的输入被判「格式有效」，与 deep-dive 承诺相反（中，确认缺陷）
 - 问题：`:233` 先 `replace(/\D/g,'')` 再判长度，`:264` 只要剩 6 位数字就无条件输出 ✅；`:189` 明确承诺「含字母或位数不符会提示格式错误」。
 - 证据：`tools/finance/sort-code-validator-validator.html:189`、`:233`、`:237-241`、`:264`
