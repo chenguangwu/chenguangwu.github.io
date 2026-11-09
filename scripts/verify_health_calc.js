@@ -186,6 +186,30 @@ const CASES = [
     expect: ["1.5", "1.7U"],
     ref: "复核失败重做 G10-48：0 碳水须被当作合法数值（修复前 !carbs 把 0 判为假致清空为 --）。carbDose=0÷12=0.0U、corrDose=(11−6)÷3=1.7U、合计 1.5 U；命中 doseVal=1.5 与 校正剂量卡 1.7U（0.0U 与默认态撞车，改取 1.7U 锚；避开默认 8.5/6.3）。",
   },
+  {
+    slug: "health/insulin-dose",
+    inputs: { currentBg: "11", targetBg: "6", icr: "0", isf: "3", carbs: "30" },
+    expect: ["碳水系数（ICR）与胰岛素敏感系数（ISF）须大于 0"],
+    ref: "复核失败重做 G10-48（第七批·零分母）：ICR=0 时 carbDose=30÷0=Infinity，修复前主结果显示「—」、明细含「—U」，但 __insulin_dose_ok 仍为 true 导致错误态写入历史。修复后分母非正一律拒绝，清空 doseVal/breakdown/doseMarker 并置无效标志。默认态不含该提示 ⇒ 强判别、零逃生。",
+  },
+  {
+    slug: "health/insulin-dose",
+    inputs: { currentBg: "11", targetBg: "6", icr: "12", isf: "0", carbs: "30" },
+    expect: ["碳水系数（ICR）与胰岛素敏感系数（ISF）须大于 0"],
+    ref: "G10-48 零分母另一路：ISF=0 时 corrDose=(11−6)÷0=Infinity，同样须拦截。与 ICR=0 用例构成双向覆盖，默认态不含该提示 ⇒ 强判别、零逃生。",
+  },
+  {
+    slug: "health/insulin-dose",
+    inputs: { currentBg: "11", targetBg: "6", icr: "12", isf: "3", carbs: "-10" },
+    expect: ["血糖、碳水摄入、活性胰岛素与运动系数不能为负"],
+    ref: "复核失败重做 G10-48（第七批·负碳水）：修复前 −10 g 碳水仍产生负碳水剂量并输出剂量。修复后负值统一拒绝并清空主结果、明细、标尺与历史。默认态不含该提示 ⇒ 强判别、零逃生。",
+  },
+  {
+    slug: "health/insulin-dose",
+    inputs: { currentBg: "11", targetBg: "6", icr: "12", isf: "3", carbs: "30", activeIns: "-2" },
+    expect: ["血糖、碳水摄入、活性胰岛素与运动系数不能为负"],
+    ref: "复核失败重做 G10-48（第七批·负活性胰岛素）：修复前 activeIns=−2 仍输出剂量；且旧写法 parseFloat(...)||0 对空串取 0 掩盖非法输入。修复后显式区分空串（合法 0）与非法值，负值拒绝。默认态不含该提示 ⇒ 强判别、零逃生。",
+  },
 
   // ---------- 孕产 ----------
   {

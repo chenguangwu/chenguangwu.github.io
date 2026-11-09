@@ -265,7 +265,7 @@ const SPELL_MAJOR={
 };
 const SPELL_MINOR={
   'C':['C','D','Eb','F','G','Ab','Bb'],
-  'Db':['Db','Eb','Fb','Gb','Ab','Bb','Cb'],
+  'Db':['Db','Eb','Fb','Gb','Ab','Bbb','Cb'],
   'D':['D','E','F','G','A','Bb','C'],
   'Eb':['Eb','F','Gb','Ab','Bb','Cb','Db'],
   'E':['E','F#','G','A','B','C','D'],
@@ -285,6 +285,15 @@ function applyScalePreset(kind){
   document.getElementById('root').value=p.root;
   document.getElementById('scaleType').value=p.scale;
   render();
+}
+// D-N198：关系小调须按调号的等音拼写（E 大调是 C#m，不是 Dbm）。
+const REL_MINOR={'C':'Am','Db':'Bbm','D':'Bm','Eb':'Cm','E':'C#m','F':'Dm','F#':'D#m','G':'Em','Ab':'Fm','A':'F#m','Bb':'Gm','B':'G#m'};
+// 音名 → 音高类（含重降/重升异名）；页面、图表、CSV 共用同一套频率口径。
+const NOTE_PC={'C':0,'B#':0,'Dbb':0,'C#':1,'Db':1,'B##':1,'D':2,'C##':2,'Ebb':2,'D#':3,'Eb':3,'Fbb':3,'E':4,'Fb':4,'D##':4,'F':5,'E#':5,'Gbb':5,'F#':6,'Gb':6,'E##':6,'G':7,'F##':7,'Abb':7,'G#':8,'Ab':8,'A':9,'G##':9,'Bbb':9,'A#':10,'Bb':10,'Cbb':10,'B':11,'Cb':11,'A##':11};
+function msNoteFreq(note){
+  var pc=(NOTE_PC[note]!==undefined?NOTE_PC[note]:notes.indexOf(note));
+  if(pc<0) pc=0;
+  return Math.round(440*Math.pow(2,((60+pc)-69)/12)*10)/10;
 }
 function render(){
   const root=document.getElementById('root').value;
@@ -314,9 +323,10 @@ function render(){
     if(sharps>0)sigText=`调号：${sharps}个升号（${['F#','C#','G#','D#','A#','E#','B#'].slice(0,sharps).join(' ')}）`;
     else if(sharps<0)sigText=`调号：${-sharps}个降号（${['Bb','Eb','Ab','Db','Gb','Cb','Fb'].slice(0,-sharps).join(' ')}）`;
     else sigText='调号：无升降号（C大调/A小调）';
-    const relMin=(SPELL_MINOR[Object.keys(ROOT_PC).find(k=>ROOT_PC[k]===(rootIdx+9)%12)]||[notes[(rootIdx+9)%12]])[0];
-    sigText+=`<br>关系小调：${relMin}m`;
+    sigText+=`<br>关系小调：${REL_MINOR[root]||(notes[(rootIdx+9)%12]+'m')}`;
   }
+  // 音级频率随音阶变化，写进结果容器供页面展示与回归断言；与图表、CSV 共用 msNoteFreq。
+  sigText+='<br>'+scaleNotes.map(function(n){return n+' '+msNoteFreq(n).toFixed(1)+'Hz';}).join(' · ');
   const __h1=sigText+`<br>💡 红色是根音，蓝色是音阶内音`;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('sigInfo').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('sigInfo').innerHTML=__h1;
 }
 
@@ -332,11 +342,8 @@ function __musicExtras(){
   var labels=[],data=[];
   pattern.forEach(function(i,k){
     var note=scaleNotes[k]||notes[(rootIdx+i)%12];
-    var pc=(rootIdx+i)%12;
-    var midi=60+pc;
-    var freq=440*Math.pow(2,(midi-69)/12);
     labels.push(note);
-    data.push(Math.round(freq*10)/10);
+    data.push(msNoteFreq(note));
   });
   TBKit.chart.bar('#musicChart',{labels:labels,series:[{name:'频率(Hz)',data:data}],height:Math.max(220,pattern.length*36),title:'各音级频率（Hz，十二平均律 A4=440）'});
 }
@@ -460,17 +467,12 @@ function msExportCsv(){
   if(type==='major'&&SPELL_MAJOR[root]) scaleNotes=SPELL_MAJOR[root].slice();
   else if(type==='minor'&&SPELL_MINOR[root]) scaleNotes=SPELL_MINOR[root].slice();
   else scaleNotes=pattern.map(function(i){return i===0?root:notes[(rootIdx+i)%12];});
-  // 音名→音高类映射（覆盖升/降号与倍变异名，确保 Db/Eb/Ab/Bb 等也能导出正确频率）
-  var NOTE_PC={'C':0,'C#':1,'Db':1,'D':2,'D#':3,'Eb':3,'E':4,'Fb':4,'F':5,'E#':5,'F#':6,'Gb':6,'G':7,'G#':8,'Ab':8,'A':9,'A#':10,'Bb':10,'B':11,'Cb':11};
+  // 与页面显示共用 NOTE_PC / msNoteFreq，避免 CSV 与页面口径不一致（含 Bbb 等重降异名）。
   var tbody=document.querySelector('#msHidden tbody'); if(!tbody){return;}
   tbody.innerHTML='';
   scaleNotes.forEach(function(note,idx){
-    var pc=(NOTE_PC[note]!==undefined?NOTE_PC[note]:notes.indexOf(note));
-    if(pc<0) pc=0;
-    var midi=60+pc;
-    var freq=440*Math.pow(2,(midi-69)/12);
     var tr=document.createElement('tr');
-    tr.innerHTML='<td>'+(idx+1)+'</td><td>'+note+'</td><td>'+(Math.round(freq*10)/10)+'</td>';
+    tr.innerHTML='<td>'+(idx+1)+'</td><td>'+note+'</td><td>'+msNoteFreq(note)+'</td>';
     tbody.appendChild(tr);
   });
   TBKit.util.exportTable('#msHidden', en?'music-scale.csv':'音阶参考.csv');

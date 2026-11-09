@@ -405,14 +405,25 @@ function calc() {
   const icr = parseFloat(document.getElementById('icr').value);
   const isf = parseFloat(document.getElementById('isf').value);
   const carbs = parseFloat(document.getElementById('carbs').value);
-  const active = parseFloat(document.getElementById('activeIns').value) || 0;
+  const activeRaw = String(document.getElementById('activeIns').value).trim();
+  const active = activeRaw === '' ? 0 : parseFloat(activeRaw);
   const exercise = parseFloat(document.getElementById('exercise').value);
-  
-  if(!isFinite(cur) || !isFinite(tgt) || !isFinite(icr) || !isFinite(isf) || !isFinite(carbs)){
-    // G10：输入失效必须同步清空，否则用户会把上一次的剂量当成当前输入的结论。
+
+  // G10-48：分母为 0 会得 Infinity/NaN，负输入会得出误导性剂量。
+  // 任一无效都必须清空主结果、明细、标尺，并置 __insulin_dose_ok=false 阻止写历史。
+  const enIns=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  let bad = '';
+  if(!isFinite(cur) || !isFinite(tgt) || !isFinite(icr) || !isFinite(isf) || !isFinite(carbs) || !isFinite(active) || !isFinite(exercise)){
+    bad = enIns ? 'Please enter valid values for blood glucose, carb ratio, sensitivity and carbs.' : '请填写有效的血糖、碳水系数、敏感系数与碳水摄入数值。';
+  } else if(icr <= 0 || isf <= 0){
+    bad = enIns ? 'Carb ratio (ICR) and insulin sensitivity (ISF) must be greater than zero.' : '碳水系数（ICR）与胰岛素敏感系数（ISF）须大于 0，不能为 0 或负数。';
+  } else if(cur < 0 || tgt < 0 || carbs < 0 || active < 0 || exercise < 0){
+    bad = enIns ? 'Blood glucose, carbs, active insulin and exercise factor cannot be negative.' : '血糖、碳水摄入、活性胰岛素与运动系数不能为负，请核对输入。';
+  }
+  if(bad){
     __insulin_dose_ok=false;
     document.getElementById('doseVal').textContent='--';
-    document.getElementById('breakdown').innerHTML='';
+    document.getElementById('breakdown').innerHTML='<div class="stat-card"><div class="val" style="color:var(--danger)">' + (enIns ? '⚠ Invalid input' : '⚠ 输入无效') + '</div><div class="lbl">' + bad + '</div></div>';
     document.getElementById('doseMarker').style.left='0%';
     return;
   }

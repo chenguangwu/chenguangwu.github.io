@@ -304,7 +304,7 @@ function calculate() {
     return;
   }
 
-  const factor = custom || (activityFactor + goalAdd);
+  const factor = (isFinite(custom) && custom > 0) ? custom : (activityFactor + goalAdd);
   const minFactor = Math.max(0.8, factor - 0.2);
   const maxFactor = factor + 0.2;
   const minG = weight * minFactor;
@@ -446,12 +446,20 @@ function __calc_5Export(){
     }catch(e){}
     try { TBKit.util.exportTable('#calc_5Table','calc-5.csv'); } catch(e){}
 }
+// SF-N10：预设不得携带自定义系数，否则 customFactor 会覆盖「活动量+目标」的推荐系数；
+// 预设数据提为顶层数组，按钮组件与回归用例共用同一份真实预设数据。
+var CALC5_PRESETS=[{label:'默认参数',labelEn:'Default',values:{'weight':'65', 'activity':'0.8', 'goal':'0', 'customFactor':''}},
+  {"label":"减脂保肌 70kg 规律训练","labelEn":"Cut 70kg, trained","values":{"weight":70,"activity":"1.6","goal":"0.2","customFactor":""}},
+  {"label":"增肌 80kg 高强度","labelEn":"Bulk 80kg, high intensity","values":{"weight":80,"activity":"2.0","goal":"0.4","customFactor":""}},
+  {"label":"久坐上班族 60kg 轻度","labelEn":"Sedentary 60kg, light","values":{"weight":60,"activity":"0.8","goal":"0","customFactor":""}}];
+var applyCalc5PresetAt=function(i){
+  var p=CALC5_PRESETS[i]; if(!p) return;
+  Object.keys(p.values).forEach(function(k){var el=document.getElementById(k); if(el) el.value=p.values[k];});
+  calculate();
+};
 function __calc_5Presets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#calc_5Presets',[{label:'默认参数',labelEn:'Default',values:{'weight':'65', 'activity':'0.8', 'goal':'0'}},
-  {"label":"减脂保肌 70kg 规律训练","labelEn":"Cut 70kg, trained","values":{"weight":70,"activity":"1.6","goal":"0.2","customFactor":""}},
-  {"label":"增肌 80kg 高强度","labelEn":"Bulk 80kg, high intensity","values":{"weight":80,"activity":"2.0","goal":"0.4","customFactor":2.2}},
-  {"label":"久坐上班族 60kg 轻度","labelEn":"Sedentary 60kg, light","values":{"weight":60,"activity":"0.8","goal":"0","customFactor":""}}],function(){ calculate(); });
+    TBKit.preset.bar('#calc_5Presets',CALC5_PRESETS,function(){ calculate(); });
 }
 var __calc_5_f0=(typeof calculate==='function')?calculate:null;
 if(__calc_5_f0){

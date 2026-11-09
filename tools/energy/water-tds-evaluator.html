@@ -288,7 +288,7 @@ const tdsGrades = [
     scenes: ['不建议饮用，需深度处理', '工业用水', '景观灌溉'],
     tip: '水质较差，含有较多溶解固体。必须经过专业净水设备处理后才能饮用。长期饮用可能影响健康。',
     who: '接近WHO最高限值，不建议饮用' },
-  { min: 1000, max: 99999, label: '不宜饮用', grade: 'fail', color: '#DC2626',
+  { min: 1000, max: 5000, label: '不宜饮用', grade: 'fail', color: '#DC2626',
     scenes: ['严禁直接饮用', '工业清洗用水', '农业灌溉（部分作物）'],
     tip: '水质极差，TDS严重超标。绝对不能直接饮用，即使烧开后也不安全。可能含有重金属或其他有害物质。',
     who: '严重超出WHO限值，不可饮用' }
@@ -297,13 +297,17 @@ const tdsGrades = [
 function evaluate() {
   var __ids=['tdsInput'];
   if(__ids.every(function(id){var __el=document.getElementById(id);return !__el||String(__el.value).trim()==='';})){var __rb=document.getElementById('result');if(__rb)__rb.innerHTML='<div class="info-box" style="color:#F59E0B;">请先填写 TDS 值（ppm），再点击「评估」。</div>';var __vg=document.getElementById('vizGrade');if(__vg){__vg.textContent='输入TDS值开始评估';__vg.style.color='';}var __tb=document.getElementById('tdsBar');if(__tb){__tb.style.width='3%';__tb.style.background='';__tb.textContent='';}return;}
-  const tds = parseFloat(document.getElementById('tdsInput').value) || 0;
-  if (!isFinite(tds) || tds < 0) {
+  const tdsRaw = String(document.getElementById('tdsInput').value).trim();
+  const tds = parseFloat(tdsRaw);
+  // G10-51：输入控件与提示均声明 0–5000 ppm，校验必须同时覆盖上限；
+  // 且 parseFloat('abc')||0 会把非法串伪装成合法 0，故不再用 || 兜底。
+  if (!isFinite(tds) || tds < 0 || tds > 5000) {
     const bar = document.getElementById('tdsBar');
     if (bar) { bar.style.width = '3%'; bar.style.background = ''; bar.textContent = ''; }
     const vg = document.getElementById('vizGrade');
     if (vg) { vg.textContent = '输入TDS值开始评估'; vg.style.color = ''; }
-    document.getElementById('result').innerHTML = '<div class="info-box" style="color:var(--danger);">⚠ TDS 值须为 0–5000 之间的非负数值（单位 ppm），当前输入无效，请核对后重新填写。</div>';
+    const enTds = (typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    document.getElementById('result').innerHTML = '<div class="info-box" style="color:var(--danger);">' + (enTds ? '⚠ TDS must be a non-negative value between 0 and 5000 ppm. Please check the input.' : '⚠ TDS 值须为 0–5000 之间的非负数值（单位 ppm），当前输入无效，请核对后重新填写。') + '</div>';
     return;
   }
   const gradeInfo = tdsGrades.find(function(g) { return tds >= g.min && tds < g.max; }) || tdsGrades[tdsGrades.length - 1];

@@ -452,8 +452,27 @@ const CASES = [
   {
     slug: "design/music-scale-reference",
     inputs: { root: "Db", scaleType: "minor" },
-    expect: ["Db - Eb - Fb - Gb - Ab - Bb - Cb"],
-    ref: "2026-11-09 复核失败重做（D-N198 降号音阶）：选 Db 自然小调，修复前 SPELL_MINOR['Db'] 错写成 C# 小调音节（C# D# E F# G# A B），显示与所选 Db 不一致的升号拼写，且 CSV 因 notes.indexOf('Db')=-1 直接 return 无法导出。修复后 SPELL_MINOR['Db']=['Db','Eb','Fb','Gb','Ab','Bb','Cb']，msExportCsv 改用 ROOT_PC/NOTE_PC 支持降号根音与音高类。期望音阶串 'Db - Eb - Fb - Gb - Ab - Bb - Cb'。默认 C 大调 → 'C - D - E - F - G - A - B' 不命中。"
+    expect: ["Db - Eb - Fb - Gb - Ab - Bbb - Cb"],
+    ref: "复核失败重做 D-N198（第七批·Db 自然小调第六音）：修复前 SPELL_MINOR['Db'] 错写成 C# 小调音节，且第六音写成 Bb（466.2 Hz）高半音。按自然小调半音序列逐级字母拼写，Db 小调应为 Db Eb Fb Gb Ab Bbb Cb，第六级是重降 B（音高类 9 = A4 440 Hz）。修复后 notesDisplay 输出 'Db - Eb - Fb - Gb - Ab - Bbb - Cb'。默认 C 大调 → 'C - D - E - F - G - A - B' 不命中。"
+  },
+  {
+    slug: "design/music-scale-reference",
+    inputs: { root: "E", scaleType: "major" },
+    expect: ["关系小调：C#m"],
+    ref: "复核失败重做 D-N198（第七批·关系小调等音拼写）：E 大调（4 个升号）关系小调是 C#m。修复前用 ROOT_PC 反查 (rootIdx+9)%12=1 命中字典里先出现的 'Db'，输出 'Dbm'（等音异名但记谱错误）。修复后按调号建立 REL_MINOR 映射，E→C#m。默认 C 大调输出「关系小调：Am」不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    slug: "design/music-scale-reference",
+    inputs: { root: "Db", scaleType: "minor" },
+    expect: ["Bbb 440.0Hz"],
+    ref: "复核失败重做 D-N198（第七批·CSV/页面频率口径）：旧 CSV 第六行输出 'Bb, 466.2 Hz'。修复后 NOTE_PC 扩充重降/重升异名（Bbb=9、Cb=11、Fb=4 等），频率统一由 msNoteFreq(note) 按十二平均律 A4=440 计算，页面 sigInfo、图表与 msExportCsv 三处共用同一函数；Db 小调第六音 Bbb → midi 69 → 440.0 Hz。默认 C 大调频率行不含 'Bbb' ⇒ 强判别、零逃生。"
+  },
+  {
+    slug: "design/depth-of-field-calculator",
+    inputs: { sensor: "1", focal: "85", aperture: "2.8" },
+    clicks: ["document.getElementById('distance').value='';calc();"],
+    expect: ["请填写有效的焦距、光圈与对焦距离"],
+    ref: "复核失败重做 D-N6/D-N7（第七批·空物距仍出结论）：修复前清空物距，+'' 得 0，页面仍输出景深「0.00m ~ 0.00m」与超焦距「46.3m」。修复后 calc() 显式判空/非有限/非正，清空 dofTotal、results 与标尺位置，并在 results 给出提示。默认态（距离 2m）输出正常景深不含该提示 ⇒ 强判别、零逃生。"
   },
 
   // ── §7.4 覆盖缺口线 · design/loading-dots

@@ -105,6 +105,9 @@ const CASES = [
   { slug: "fitness/calc-5", inputs: { weight: "80", activity: "2.0", goal: "0.4", customFactor: "" },
     expect: ["176-208g", "2.4g/kg"],
     ref: "复核失败重做 SF-N10：增肌目标须用 goal=0.4（修复前预设误写 0.2）。系数=2.0+0.4=2.4；区间=[max(0.8,2.2),2.6]×80=[176,208] g（避开默认 75/1.6/0.2→120-150g/1.8g/kg）。" },
+  { slug: "fitness/calc-5", inputs: {}, clicks: ["applyCalc5PresetAt(2);"],
+    expect: ["176-208g", "2.4g/kg"],
+    ref: "复核失败重做 SF-N10（第七批·真实预设路径）：修复前「增肌 80kg 高强度」预设自带 customFactor=2.2，calculate() 里 custom 优先覆盖推荐系数，点击后实际得 2.2 g/kg / 160-192g。修复后所有预设统一清空 customFactor，并把预设数据提为顶层 CALC5_PRESETS + applyCalc5PresetAt(i)，按钮组件与回归用例共用同一份数据；本例直接调用真实预设入口（index 2）：weight=80、activity=2.0、goal=0.4 ⇒ factor=2.4，区间 [2.2,2.6]×80=176-208g。默认态不含该串 ⇒ 强判别、零逃生。" },
   {
     slug: "fitness/convert",
     inputs: { val: "5", from: "1", to: "1.609344" },

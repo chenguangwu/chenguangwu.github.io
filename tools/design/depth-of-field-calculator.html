@@ -185,7 +185,7 @@ s.parentNode.insertBefore(el, s);
 <li>风光大景深设置。</li>
 <li>微距拍摄景深判断。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">50mm f/1.8 距 2m</div><div class="dd-ex-body">&lt;p&gt;&lt;strong&gt;输入：&lt;/strong&gt;焦距 50mm、光圈 f/1.8、物距 2m、弥散圆 0.03mm。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;处理：&lt;/strong&gt;按景深公式算前后清晰界。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出：&lt;/strong&gt;景深约 0.09m，虚化明显。&lt;/p&gt;</div></div>
+<div class="dd-example"><div class="dd-ex-title">50mm f/1.8 距 2m</div><div class="dd-ex-body">&lt;p&gt;&lt;strong&gt;输入：&lt;/strong&gt;焦距 50mm、光圈 f/1.8、物距 2m、弥散圆 0.03mm。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;处理：&lt;/strong&gt;按景深公式算前后清晰界，近点约 1.92m、远点约 2.09m。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出：&lt;/strong&gt;景深约 0.17m，虚化明显。&lt;/p&gt;</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>弥散圆怎么取？</dt><dd>按传感器与输出尺寸经验值，一般 0.02~0.03mm；不同标准结果略有差异。结果以浏览器实时计算为准，纯前端本地处理、数据不上传；生成的样式与代码仅作快速产出参考，正式项目请以设计系统、规范与浏览器实测为准。</dd>
@@ -239,10 +239,23 @@ s.parentNode.insertBefore(el, s);
 <script>
 const coc={1:0.03,1.5:0.02,1.6:0.019,2:0.015,2.7:0.011};
 function calc(){
-  const crop=+document.getElementById('sensor').value;
-  const f=+document.getElementById('focal').value;
-  const fNum=+document.getElementById('aperture').value;
-  const s=+document.getElementById('distance').value*1000;
+  const rawCrop=String(document.getElementById('sensor').value).trim();
+  const rawF=String(document.getElementById('focal').value).trim();
+  const rawN=String(document.getElementById('aperture').value).trim();
+  const rawS=String(document.getElementById('distance').value).trim();
+  const crop=+rawCrop;
+  const f=+rawF;
+  const fNum=+rawN;
+  const s=+rawS*1000;
+  // D-N6/N7：空串被一元加号转成 0，仍会输出「0.00m ~ 0.00m」等旧结论。
+  // 必须显式判空/非有限/非正，并清空所有依赖输入的结论与标尺位置。
+  if(!rawCrop||!rawF||!rawN||!rawS||!isFinite(crop)||!isFinite(f)||!isFinite(fNum)||!isFinite(s)||crop<=0||f<=0||fNum<=0||s<=0){
+    const enDof=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    document.getElementById('dofTotal').textContent='—';
+    document.getElementById('results').innerHTML='<div style="padding:12px;color:var(--danger);grid-column:1/-1;">' + (enDof ? '⚠ Please enter valid focal length, aperture and focus distance (all positive). Stale results have been cleared.' : '⚠ 请填写有效的焦距、光圈与对焦距离（均须为正数），当前输入缺失或非法，已清除旧景深结论。') + '</div>';
+    document.getElementById('indicator').style.left='50%';
+    return;
+  }
   const c=coc[crop]||0.03;
   const effF=f*crop;
   const h=(f*f)/(fNum*c);
