@@ -830,6 +830,12 @@ const CASES = [
     ref: "ISO 4217 查询：`USD` ⇒ 名称 US Dollar、符号 $、最小单位 2 位、使用地区美国。默认态不同 ⇒ 不命中。",
   },
   {
+    slug: "finance/currency-lookup",
+    inputs: { input: "JPY" },
+    expect: ["最小单位位数： 0（无小数）"],
+    ref: "F-N87 真锁：最小单位位数说明须闭合括号「0（无小数）」。旧实现缺右括号渲染成「0（无小数」，现补全。默认态 EUR 是「2（1/100）」不含该串 ⇒ 零逃生；JPY 为 0 位小数，绑定输入。",
+  },
+  {
     slug: "finance/vcard-qr",
     inputs: { fn: "Zhang", ln: "San", org: "ACME", title: "Eng", tel: "13800138000", email: "a@b.com", url: "https://a.com" },
     clicks: ["generate()"],
@@ -1278,6 +1284,13 @@ const CASES = [
     clicks: ["calc()"],
     expect: ["DCL = 1.33 × 1.20 = 1.60"],
     ref: "经营杠杆 DOL = 贡献边际 400,000 ÷ EBIT 300,000 = 1.33；财务杠杆 DFL = EBIT 300,000 ÷ (EBIT−利息 50,000) = 1.20；总杠杆 DCL = 1.33 × 1.20 = 1.60。默认态不同 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/analysis-risk",
+    inputs: { s: "1000000", v: "600000", f: "400000", i: "0", t: "25", n: "100000", dec: "2" },
+    clicks: ["calc()"],
+    expect: ["EBIT 为 0（盈亏平衡），DOL/DFL/DCL 杠杆系数无定义，无法计算"],
+    ref: "F-N80 真锁：收入 100 万 − 变动 60 万 − 固定 40 万 ⇒ EBIT=0，利息 i=0。旧实现 i===0 分支优先，同屏三卡均「—」却仍提示「DFL = 1」；现按 ebit===0 优先提示「杠杆系数无定义」。默认 f=20 万（EBIT=20 万）不命中 ⇒ 零逃生。",
   },
   {
     slug: "finance/analysis-5",
