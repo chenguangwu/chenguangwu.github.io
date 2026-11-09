@@ -144,6 +144,46 @@ function _rngReset() { _rngState = 0x9e3779b9 >>> 0; }
 
 // ---------------------------------------------------------------- 用例
 const CASES = [
+  // ===== 复核失败·第一批重做·续批2（IT-N401/N403 与 文本清理器历史快照）=====
+  {
+    slug: "it/html-to-markdown",
+    htmlDom: true,
+    inputs: {"htmlInput": "<ul><li>a<br>b</li></ul>"},
+    clicks: ["convert();var v=document.getElementById('mdOutput').value;document.getElementById('__tbProbe').textContent='ULBR='+(v.indexOf('- a  '+String.fromCharCode(10)+'  b')>=0?1:0)+' FLAT='+(v.indexOf('- a'+String.fromCharCode(10)+'  b')>=0?1:0)+' q='+(document.getElementById('htmlInput').value.indexOf('<br>')>=0?1:0);"],
+    expect: ["ULBR=1 FLAT=0"],
+    ref: "IT-N401/N403 复核重做：列表项内 <br> 必须保留 Markdown 硬换行（行尾两空格 + 换行）。旧 BR 直接返回「两空格+换行」，列表处理逐行 replace(/\\s+$/,'') 把这两个空格删掉 ⇒ 输出 - a\\n  b（渲染时仍合并成一行）。现 BR 用私有控制字符占位，中间所有 trim/尾空白清理都碰不到，convert() 末尾统一还原。ULBR=1 判 v 含 - a(两空格)\\n(两空格)b，FLAT=0 判不含无硬换行的普通换行，q=1 绑注入值。blob 会折叠空白，故判据全在页面内完成。",
+  },
+  {
+    slug: "it/html-to-markdown",
+    htmlDom: true,
+    inputs: {"htmlInput": "<p>Hello <strong>world </strong>again</p>"},
+    clicks: ["convert();var v=document.getElementById('mdOutput').value;document.getElementById('__tbProbe').textContent='STRONG='+v+' q='+(document.getElementById('htmlInput').value.indexOf('<strong>')>=0?1:0);"],
+    expect: ["STRONG=Hello **world** again q=1"],
+    ref: "IT-N401 复核重做：行内强调的边界空白必须留在标记之外。旧实现 innerMarkdown(...).trim() 吃掉 <strong>world </strong> 的尾空格 ⇒ Hello **world**again 单词粘连。现 inlineMark 提取 lead/trail 并拼在标记外 ⇒ Hello **world** again。q=1 绑注入的 <strong> 标签。",
+  },
+  {
+    slug: "it/html-to-markdown",
+    htmlDom: true,
+    inputs: {"htmlInput": "<p><em> italic </em>next</p>"},
+    clicks: ["convert();var v=document.getElementById('mdOutput').value;document.getElementById('__tbProbe').textContent='EM='+v+' q='+(document.getElementById('htmlInput').value.indexOf('<em>')>=0?1:0);"],
+    expect: ["EM=_italic_ next q=1"],
+    ref: "IT-N401 复核重做：<em> italic </em>next 旧输出 _italic_next（既丢空格又因标记紧跟单词无法形成斜体）。现输出 _italic_ next，斜体边界合法且 next 前有空格。与 STRONG 用例共同覆盖行内格式两侧空白。",
+  },
+  {
+    slug: "it/html-to-markdown",
+    htmlDom: true,
+    inputs: {"htmlInput": "<p>x <del> gone </del>y</p>"},
+    clicks: ["convert();var v=document.getElementById('mdOutput').value;document.getElementById('__tbProbe').textContent='DEL='+v+' q='+(document.getElementById('htmlInput').value.indexOf('<del>')>=0?1:0);"],
+    expect: ["DEL=x ~~gone~~ y q=1"],
+    ref: "IT-N401 复核重做（同族护栏）：删除线 <del>/<s>/<strike> 走同一 inlineMark，边界空白同样移到标记外，避免只修 strong/em 而留下另一分支的同类缺陷。",
+  },
+  {
+    slug: "it/text-cleaner",
+    inputs: {},
+    clicks: ["var __cap=null;var __els=[];for(var i=0;i<14;i++){__els.push({id:'opt-cb'+i,type:'checkbox',checked:(i%2===0),value:'1'});}__els.push({id:'input-text',type:'textarea',value:'  NEW TEXT  '});var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('output-text').textContent='CLEANED TEXT';globalThis.TBKit={util:{isEn:function(){return false;},exportTable:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return [];},last:function(){return null;},record:function(r){__cap=r;},mount:function(){}},preset:{bar:function(){}}};__text_cleaner_last=0;__text_cleanerExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='TC='+(__cap?Object.keys(__cap).length:'NONE')+' HAS='+(__cap&&__cap['input-text']!==undefined?'Y':'N')+' VAL='+(__cap?String(__cap['input-text']).replace(/ /g,'~'):'')+' CB0='+(__cap?String(__cap['opt-cb0']):'');"],
+    expect: ["TC=17 HAS=Y VAL=~~NEW~TEXT~~ CB0=1"],
+    ref: "IT 历史复用·文本清理器复核重做：快照按 DOM 顺序先收 14 个复选框再收 textarea input-text，旧实现 keys.slice(0,12) 同时用于保存/去重/渲染 ⇒ 历史记录里根本没有原文，点击历史只会重新清理当前 NEW TEXT。现「保存全量 allKeys」与「展示列 showKeys 限 12」分离：桩捕获的 rec 含 15 个字段 + 结果 + __tbScore = 17 键、input-text 值为两空格 NEW TEXT 两空格（探针把空格换成 ~ 防 blob 折叠）、首个复选框也在。旧代码下 TC=14 且 HAS=N ⇒ 本例必然 FAIL。",
+  },
   // ===== 复核失败·第一批重做·续批（IT-N373 / N376 / N378 / N417）=====
   {
     slug: "it/hypergeometric-distribution",

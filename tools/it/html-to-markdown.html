@@ -230,6 +230,18 @@ function escapeMarkdown(text) {
     .replace(/\]/g, '\\]');
 }
 
+// IT-N401：行内强调标记的边界空白必须留在标记之外。
+// 旧实现 innerMarkdown(...).trim() 会把 <strong>world </strong>again 拼成 **world**again，
+// 也会让 <em> italic </em>next 变成 _italic_next（既丢空格又无法形成斜体）。
+function inlineMark(mark, node, depth) {
+  if (!node) return '';
+  const raw = innerMarkdown(node, depth);
+  const lead = (raw.match(/^\s*/) || [''])[0];
+  const trail = (raw.match(/\s*$/) || [''])[0];
+  const core = raw.trim();
+  return core ? lead + mark + core + mark + trail : raw;
+}
+
 function nodeToMarkdown(node, depth) {
   depth = depth || 0;
   if (!node) return '';
@@ -242,8 +254,10 @@ function nodeToMarkdown(node, depth) {
     return escapeMarkdown(t);
   }
 
-  // 硬换行：Markdown 用「行尾两个空格 + 换行」表示 <br>（原先 '\n' 会被段落折叠成空格）
-  if (n === 'BR') return '  \n';
+  // IT-N401/N403：Markdown 硬换行是「行尾两个空格 + 换行」，但列表逐行会做
+  // replace(/\s+$/,'') 把这两个空格删掉 ⇒ 硬换行失效。改用私有控制字符占位，
+  // 所有中间 trim()/尾空白清理都碰不到它，最后在 convert() 统一还原成两个空格。
+  if (n === 'BR') return '\u0001\n';
 
   // 脚本/样式不参与文档内容：整段丢弃（说明区承诺「脚本等表现层信息会被丢弃」）
   if (n === 'SCRIPT' || n === 'STYLE' || n === 'NOSCRIPT') return '';
@@ -261,19 +275,10 @@ function nodeToMarkdown(node, depth) {
 
   if (n === 'HR') return '\n---\n\n';
 
-  // 行内强调：说明区承诺 strong/b → **、em/i → _
-  if (n === 'STRONG' || n === 'B') {
-    const t = innerMarkdown(node, depth).trim();
-    return t ? '**' + t + '**' : '';
-  }
-  if (n === 'EM' || n === 'I') {
-    const t = innerMarkdown(node, depth).trim();
-    return t ? '_' + t + '_' : '';
-  }
-  if (n === 'DEL' || n === 'S' || n === 'STRIKE') {
-    const t = innerMarkdown(node, depth).trim();
-    return t ? '~~' + t + '~~' : '';
-  }
+  // 行内强调：说明区承诺 strong/b → **、em/i → _；边界空白移到标记之外
+  if (n === 'STRONG' || n === 'B') return inlineMark('**', node, depth);
+  if (n === 'EM' || n === 'I') return inlineMark('_', node, depth);
+  if (n === 'DEL' || n === 'S' || n === 'STRIKE') return inlineMark('~~', node, depth);
 
   if (n === 'A') {
     const href = node.getAttribute('href') || '#';
@@ -349,6 +354,7 @@ function innerText(node) {
 }
 
 function innerMarkdown(node, depth) {
+  if (!node) return '';
   let out = '';
   const children = Array.from(node.childNodes || []);
   for (const child of children) {
@@ -363,7 +369,7 @@ function convert() {
   const doc = parser.parseFromString(src, 'text/html');
   const body = doc.body;
   let out = innerMarkdown(body);
-  out = out.replace(/\n{3,}/g, '\n\n').trim();
+  out = out.replace(/\n{3,}/g, '\n\n').trim().replace(/\u0001/g, '  ');
   document.getElementById('mdOutput').value = out;
 }
 

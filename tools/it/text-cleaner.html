@@ -821,9 +821,12 @@ function __text_cleanerExtras(){
     if (typeof TBKit === 'undefined') return;
     if (__text_cleaner_skip) return;
     var snap=__text_cleanerSnap();
-    var keys=Object.keys(snap);
-    if(!keys.length) return;
-    if(keys.length>12) keys=keys.slice(0,12);
+    var allKeys=Object.keys(snap);
+    if(!allKeys.length) return;
+    // IT 历史复用：保存必须包含全部字段（input-text 与各选项都在 DOM 顺序的后半段），
+    // 展示列才限 12。旧实现把同一个被截断的 keys 同时用于保存/去重/渲染 ⇒
+    // 历史记录里没有原文，点击历史只会重新清理当前文本。
+    var showKeys=allKeys.length>12?allKeys.slice(0,12):allKeys.slice();
     var res=__text_cleanerResText();
     if(!res) return;
     var en=TBKit.util.isEn();
@@ -834,24 +837,25 @@ function __text_cleanerExtras(){
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
         var same=true;
-        for(var i=0;i<keys.length;i++){
-            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        for(var i=0;i<allKeys.length;i++){
+            if(String(last[allKeys[i]])!==String(snap[allKeys[i]])){same=false;break;}
         }
         if(same&&String(last[rk])===String(res)) return;
     }
     __text_cleaner_last=now;
     var rec={};
-    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    for(var i=0;i<allKeys.length;i++) rec[allKeys[i]]=snap[allKeys[i]];
     rec[rk]=res;
     rec.__tbScore=__text_cleanerScore(res);
     TBKit.history.record(rec);
-    __text_cleanerRender(keys,rk,en);
+    __text_cleanerRender(showKeys,rk,en);
 }
 function __text_cleanerExport(){
     if (typeof TBKit === 'undefined') return;
     try{
         var box=document.querySelector('#text_cleanerTable');
         if(!box||!box.querySelector('tr')){
+            // 这里只决定导出表格的展示列，仍限 12；历史记录保存的是全量字段（见 __text_cleanerExtras）。
             var snap=__text_cleanerSnap(); var keys=Object.keys(snap);
             if(keys.length>12) keys=keys.slice(0,12);
             var en=(TBKit.util&&TBKit.util.isEn())?true:false;
