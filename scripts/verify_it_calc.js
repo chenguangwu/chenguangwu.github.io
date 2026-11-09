@@ -7944,6 +7944,76 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"rootName\":\"abc123测试\",\"input\":\"1\\n2\\n3\"}，输出区含「01-01\" }\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    "slug": "it/json-to-code",
+    "clicks": [
+      "var o={u:{aa:1}};var c=toPython(o,'Root');var iD=c.indexOf('class RootU('),iR=c.indexOf('class Root(');document.getElementById('__tbProbe').textContent='PYORD ok='+((iD>=0&&iR>=0&&iD<iR)?1:0)+' ref='+(c.indexOf('u: RootU')>=0?1:0);"
+    ],
+    "expect": [
+      "PYORD ok=1 ref=1"
+    ],
+    "ref": "复核失败重做·IT-N380 1/7（Python 嵌套类型定义顺序）：`{\"u\":{\"aa\":1}}` 生成代码里 `class RootU` 必须出现在 `class Root` 之前，且根里仍有 `u: RootU` 引用。修复前子类型排在根之后，真实 python3 执行报 `NameError: name RootU is not defined`；修复后 `PYORD ok=1 ref=1` ⇒ 强判别。"
+  },
+  {
+    "slug": "it/json-to-code",
+    "clicks": [
+      "var o1={orders:[{id:1}]};var c1=toPython(o1,'Root');var d1=c1.indexOf('class RootOrders(');var a1=(d1>=0&&d1<c1.indexOf('class Root('))?1:0;var c2=toPython([{id:1}],'Root');var d2=c2.indexOf('class RootItem(');var a2=(d2>=0&&d2<c2.indexOf('Root = List[RootItem]'))?1:0;document.getElementById('__tbProbe').textContent='PYARR nested='+a1+' rootArr='+a2+' ref='+(c1.indexOf('List[RootOrders]')>=0?1:0);"
+    ],
+    "expect": [
+      "PYARR nested=1 rootArr=1 ref=1"
+    ],
+    "ref": "复核失败重做·IT-N380 2/7（对象数组 + 根数组）：`{\"orders\":[{\"id\":1}]}` 的 `RootOrders` 与根数组 `[{\"id\":1}]` 的 `RootItem` 同样必须早于引用处定义。修复前两者分别报 `NameError: name RootOrders/RootItem is not defined`；修复后 `PYARR nested=1 rootArr=1 ref=1` ⇒ 强判别。"
+  },
+  {
+    "slug": "it/json-to-code",
+    "clicks": [
+      "var o={class:1,type:'x'};var c=toPython(o,'Root');document.getElementById('__tbProbe').textContent='PYKW ok='+((c.indexOf('class_: int')>=0&&c.indexOf('class: int')<0)?1:0);"
+    ],
+    "expect": [
+      "PYKW ok=1"
+    ],
+    "ref": "复核失败重做·IT-N382 3/7（Python 保留字）：`{\"class\":1,\"type\":\"x\"}` 不得生成 `class: int`（SyntaxError），应改名 `class_: int` 并由注释指回原键。修复前真实 python3 编译报 `SyntaxError: invalid syntax`；修复后 `PYKW ok=1` ⇒ 强判别。"
+  },
+  {
+    "slug": "it/json-to-code",
+    "clicks": [
+      "var dq=String.fromCharCode(34);var o={type:'x'};var c=toRust(o,'Root');var want='serde(rename = '+dq+'type'+dq+')';document.getElementById('__tbProbe').textContent='RSKW ok='+((c.indexOf('pub type_: String')>=0&&c.indexOf('pub type:')<0)?1:0)+' ren='+(c.indexOf(want)>=0?1:0);"
+    ],
+    "expect": [
+      "RSKW ok=1 ren=1"
+    ],
+    "ref": "复核失败重做·IT-N382 4/7（Rust 保留字）：`{\"type\":\"x\"}` 不得生成 `pub type: String`，应改名 `pub type_: String` 并补 `#[serde(rename = \"type\")]` 保留原键映射。修复前既无改名也无 rename；修复后 `RSKW ok=1 ren=1` ⇒ 强判别。"
+  },
+  {
+    "slug": "it/json-to-code",
+    "clicks": [
+      "var dq=String.fromCharCode(34),bs=String.fromCharCode(92);var o={};o['a'+dq+'b']=1;var rs=toRust(o,'Root'),cs=toCSharp(o,'Root'),go=toGo(o,'Root');var rsWant='serde(rename = '+dq+'a'+bs+dq+'b'+dq+')';var csWant='JsonProperty('+dq+'a'+bs+dq+'b'+dq+')';var goWant='json:'+dq+'a'+bs+dq+'b';var bare='json:'+dq+'a'+dq+'b';document.getElementById('__tbProbe').textContent='MAPESC rs='+(rs.indexOf(rsWant)>=0?1:0)+' cs='+(cs.indexOf(csWant)>=0?1:0)+' go='+((go.indexOf(goWant)>=0&&go.indexOf(bare)<0)?1:0);"
+    ],
+    "expect": [
+      "MAPESC rs=1 cs=1 go=1"
+    ],
+    "ref": "复核失败重做·IT-N384 5/7（含双引号键的三语言映射转义）：键 `a\"b` 在 Rust serde rename、C# JsonProperty、Go struct tag 里都必须转义成 `a\\\"b`，不能裸拼出 `a\"b`（目标语言编译失败）。修复前三处均为裸串；修复后 `MAPESC rs=1 cs=1 go=1` ⇒ 强判别。"
+  },
+  {
+    "slug": "it/json-to-code",
+    "clicks": [
+      "var o={class:1,type:'x'};var jv=toJava(o,'Root'),kt=toKotlin(o,'Root');var plain={aa:1};var pj=toJava(plain,'Root'),pk=toKotlin(plain,'Root'),pp=toPython(plain,'Root');document.getElementById('__tbProbe').textContent='KW4 jv='+(jv.indexOf('private Integer class_;')>=0?1:0)+' kt='+(kt.indexOf('val class_:')>=0?1:0)+' pj='+(pj.indexOf('private Integer aa;')>=0?1:0)+' pk='+(pk.indexOf('val aa:')>=0?1:0)+' pp='+(pp.indexOf('    aa: int')>=0?1:0);"
+    ],
+    "expect": [
+      "KW4 jv=1 kt=1 pj=1 pk=1 pp=1"
+    ],
+    "ref": "复核失败重做·IT-N382 6/7（Java / Kotlin 保留字 + 普通键护栏）：`{\"class\":1,\"type\":\"x\"}` 应改成 `private Integer class_;` 与 `val class_:`；同时普通键 `aa` 在 Java / Kotlin / Python 三种生成器中仍保持原名，证明保留字规避没有误伤。修复前 `jv=0 kt=0` 但护栏三项已是 1；修复后 `KW4 jv=1 kt=1 pj=1 pk=1 pp=1` ⇒ 强判别。真实 javac：新版 `exit=0`，旧版 `exit=1`（`private Integer class;` 报「需要<标识符>」）。"
+  },
+  {
+    "slug": "it/json-to-code",
+    "clicks": [
+      "var dq=String.fromCharCode(34),bt=String.fromCharCode(96);var o={};o['a'+bt+'b']=1;var go=toGo(o,'Root');var tag='json:'+dq+'a'+bt+'b'+dq;var want=JSON.stringify(tag);document.getElementById('__tbProbe').textContent='GOBT ok='+((go.indexOf(want)>=0&&go.indexOf(bt+'json:')<0)?1:0);"
+    ],
+    "expect": [
+      "GOBT ok=1"
+    ],
+    "ref": "复核失败重做·IT-N384 7/7（含反引号键的 Go tag）：键 `a`b` 会让 backtick 原始字符串字面量提前闭合，必须退回转义过的普通字符串字面量 tag。断言生成代码含 `JSON.stringify(tag)` 形态且不再出现以反引号起始的 `json:` tag。修复前 `GOBT ok=0`；修复后 `GOBT ok=1` ⇒ 强判别。"
+  },
+  {
     "slug": "it/json-schema-generator",
     "inputs": {
       "input": "1\n2\n3",
