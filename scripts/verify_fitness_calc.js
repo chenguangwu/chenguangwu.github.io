@@ -59,6 +59,9 @@ const CASES = [
   { slug: "fitness/calc-3", inputs: { gender: "female", height: "165", neck: "32", waist: "75", hip: "95" },
     expect: ["27.7%"],
     ref: "美海军公制（cm）女式：BF=163.205×log₁₀(75+95−32)−97.684×log₁₀(165)−104.91=349.238−216.615−104.91=27.71→27.7%（默认男 170/38/80 避开）。原期望 54.2% 用英寸版常数 −78.387 却代入 cm 数值，属单位口径错误；页面已改用公制常数 −104.91，期望同步更正。" },
+  { slug: "fitness/calc-3", inputs: { gender: "female", height: "170", neck: "30", waist: "1e308", hip: "1e308" },
+    expect: ["围度输入超出可计算范围"],
+    ref: "2026-11-09 复核失败重做（体脂计算非有限中间结果）：女性、身高170、颈30、腰1e308、臀1e308 ⇒ diff=腰+臀−颈=Infinity，修复前 Math.log10(Infinity)=Infinity 经 Math.max(2,Math.min(60,Infinity))=60 输出「肥胖」；修复后 diff 经 isFinite 拦截，提示「围度输入超出可计算范围」且不输出分级。默认态（165/32/75/95）显示正常体脂率不含该提示 ⇒ 强判别、零逃生。" },
   { slug: "fitness/calculator-calc-13", inputs: { sex: "f", age: "25", w: "60", s1: "15", s2: "20", s3: "25" },
     expect: ["1.0447", "23.8", "14.3"],
     ref: "JP 3 点女：Σ=60；D=1.0994921−0.0009929×60+0.0000023×3600−0.0001392×25=1.0447181→1.0447；BF=495/1.0447181−450=23.81→23.8%；脂肪=60×23.81%=14.3 kg（默认男 30/70/12-18-15 避开）" },
@@ -747,6 +750,13 @@ const CASES = [
     clicks: ["try{setStrategy('negative');}catch(e){} document.getElementById('goalH').value='4';document.getElementById('goalM').value='0';document.getElementById('goalS').value='0';try{calcGoal();}catch(e){}"],
     expect: ["配速策略 负配速", '20% 8.44 km 51:50 6\'09" /km'],
     ref: "「目标完赛时间反推」负分段分支：pace = 14400÷42.195 = 341.27 s/km；负分段系数 f = 1 + 0.1 − 0.2×progress，首段 progress=0.1 ⇒ f=1.08 ⇒ 段配速 368.6 s = 6'09\"/km，累计 8.44 km 用时 51:50；末段 f=0.92 ⇒ 5'14\"/km，五段合计回到 4:00:00（策略模型各段配速均值 = 所需平均配速，总时间守恒）。默认态为匀速 3:30:00 ⇒ 「配速策略 匀速」与 4'59\"/km，两条锚均不命中 ⇒ 强判别、零逃生。",
+  },
+  {
+    slug: "fitness/pace-calculator",
+    inputs: {},
+    clicks: ["document.getElementById('goalH').value='4';document.getElementById('goalM').value='59';document.getElementById('goalS').value='59';calcGoal();"],
+    expect: ["1:00:00", "2:00:00"],
+    ref: "2026-11-09 复核失败重做（目标配速分段时间 60 秒未进位）：注入目标 4:59:59、默认全马 42.195 km、匀速策略。修复前 fmtTime 对 3599.8s 取 round%60=60 得「59:60」、7199.6s 得「1:59:60」；修复后先四舍五入再分解，首段 3600s→「1:00:00」、次段 7200s→「2:00:00」。默认态目标 3:30:00 不含该串 ⇒ 强判别、零逃生。"
   },
 
 

@@ -393,8 +393,12 @@ const gender = document.getElementById('gender').value;
     return;
   }
 
-  // 先判围度差是否为正值，避免 log10(≤0) 得到 NaN/-Infinity
+  // 先判围度差是否为有限正值，避免溢出 Infinity 被钳成 60%「肥胖」或 log10(≤0) 得 NaN/-Infinity
   const diff = gender === 'male' ? (waist - neck) : (waist + hip - neck);
+  if (!isFinite(diff)) {
+    ToolBox.setResult('result', '<p style="color:var(--danger)">⚠ 围度输入超出可计算范围（数值过大或无效），无法计算体脂率，请核对测量值。</p>');
+    return;
+  }
   if (diff <= 0) {
     const msg = gender === 'male'
       ? '腰围必须大于颈围，当前围度差 ≤ 0，无法计算体脂率，请核对测量部位。'
