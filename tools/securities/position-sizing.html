@@ -493,11 +493,13 @@ function calcFixed(){
   // 最大亏损 = 股数 × 每股净风险（价差 + 双边手续费），恒 ≤ 风险预算
   var netLoss = shares * perShareRiskNet;
   var potentialProfit = shares * perShareProfit;
-  var fee = positionValue * feeRate;
-  var feeRoundTrip = fee + shares * stop * feeRate;
-  var netProfit = potentialProfit - fee * 2;
+  // B-N1 修复：目标端手续费按「买入 + 目标价卖出」双边真实价格计，净盈亏比使用含费净值
+  var feeBuy = positionValue * feeRate;
+  var feeTarget = shares * target * feeRate;
+  var feeRoundTrip = feeBuy + shares * stop * feeRate;
+  var netProfit = potentialProfit - feeBuy - feeTarget;
   var rrRatio = perShareRisk > 0 ? perShareProfit / perShareRisk : 0;
-  var rrNet = perShareProfit > 0 ? potentialProfit / netLoss : 0;
+  var rrNet = netProfit > 0 ? netProfit / netLoss : 0;
 
   var statHtml = '<div class="stat-card"><div class="val">¥' + ToolBox.formatNumber(shares, 0) + '</div><div class="lbl">建议股数</div></div>'
     + '<div class="stat-card"><div class="val">¥' + ToolBox.formatNumber(positionValue, 0) + '</div><div class="lbl">仓位市值</div></div>'
@@ -522,7 +524,8 @@ function calcFixed(){
   html += '<p>仓位占比 = <strong>' + positionPct.toFixed(1) + '%</strong></p>';
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
   html += '<p style="font-weight:600;">盈亏情景：</p>';
-  html += '<p>手续费（买入 + 止损卖出）= ¥' + ToolBox.formatNumber(feeRoundTrip, 2) + '</p>';
+  html += '<p>止损端手续费（买入 + 止损卖出）= ¥' + ToolBox.formatNumber(feeRoundTrip, 2) + '</p>';
+  html += '<p>目标端手续费（买入 + 目标价卖出）= ¥' + ToolBox.formatNumber(feeBuy + feeTarget, 2) + '</p>';
   html += '<p>最大亏损 = <strong style="color:var(--danger);">-¥' + ToolBox.formatNumber(netLoss, 2) + '</strong>（风险预算 ¥' + ToolBox.formatNumber(riskAmount, 0) + '，占用 ' + (riskAmount > 0 ? (netLoss / riskAmount * 100).toFixed(1) : '0.0') + '%）</p>';
   html += '<p>目标盈利 = <strong style="color:var(--success);">+¥' + ToolBox.formatNumber(netProfit, 0) + '</strong></p>';
   html += '<p>净盈亏比（含费）= ' + (rrNet > 0 ? rrNet.toFixed(2) : '—') + '</p>';

@@ -57,6 +57,17 @@ const CASES = [
   "ref": "2026-10-27 新增门窗扣减模块用例：注入 门3×2.5 + 窗4×2.0 ⇒ 扣减 7.50+8.00 = 15.50 m²，净面积 52.0−15.5 = 36.50 m²（用漆量 36.5×2/10 = 7.30 L、2 桶、560 元）。默认态扣减为 5.60、净面积 46.40 ⇒ 两条锚均不命中 ⇒ 强判别、零逃生。"
 },
 {
+  "slug": "home/paint-calculator",
+  "inputs": {
+    "door-count": "-1",
+    "door-area": "2"
+  },
+  "expect": [
+    "门窗数量与面积均须为非负数值"
+  ],
+  "ref": "2026-11-09 复核失败重做（涂料负门窗扣减）：原 getDeduct 用 +el.value||0 短路，门数 -1/面积2 ⇒ dc*da = -2 负扣减反增净面积（82→84）。修复后 getDeduct 校验非负，负值时返回 {ok:false,msg:'门窗数量与面积均须为非负数值（不能为空或负数）。'}，calc() 在 !deductRaw.ok 分支显示 ⚠ 提示并将 total-area/net-area/total-paint/total-buckets/total-cost 置「—」后 return。注入 door-count=-1 ⇒ 仅错误态出现该提示串，默认态（door-count 默认正数）不出现 ⇒ 强判别、零逃生。"
+},
+{
   "slug": "home/renovation-budget",
   "clicks": [
     "localStorage.getItem=function(){return JSON.stringify([{id:1,name:'瓷砖',price:8000,qty:12},{id:2,name:'地板',price:6000,qty:10}]);};renderItems();calc()"

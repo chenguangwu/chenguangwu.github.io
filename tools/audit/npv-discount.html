@@ -389,6 +389,11 @@ function calc(){
     rows.push({t:t+1,cf:cfList[t],factor:factor,pv:pv,cum:cumPv});
   }
   var npv=totalPv-init;
+  // T-N6 修复：折现因子 / 现值 / 累计 / NPV 任一非有限时，阻断结论、明细、图表与导出，避免输出 -- NPV 却仍给 ROI 与千行明细
+  if(!isFinite(npv)){
+    __npvBlock('折现因子或净现值溢出（当前折现率与期数组合导致数值超出可表示范围），请降低期数或调高折现率后再计算。');
+    return;
+  }
   var totalCash=cfList.reduce(function(a,b){return a+b;},0);
   var roi=init>0?(totalCash-init)/init:0;
 
@@ -412,6 +417,7 @@ calc();
 
 function __npvExport(){
   if(typeof TBKit==='undefined') return;
+  if(window.__npvBlocked){ try{ ToolBox.showToast('当前结果含非法参数或溢出，明细为空时不导出。','error'); }catch(e){} return; }
   try{ TBKit.util.exportTable('#detailTable','npv-detail.csv'); }catch(e){}
 }
 </script>

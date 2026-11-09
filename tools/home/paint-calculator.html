@@ -326,13 +326,18 @@ function __paintIsEn(){
   return false;
 }
 
-/** 门窗扣减量：门数×单门面积 + 窗数×单窗面积（m²） */
+/** 门窗扣减量：门数×单门面积 + 窗数×单窗面积（m²）；数量与面积均须为非负 */
 function getDeduct(){
-  const dc = +document.getElementById('door-count').value || 0;
-  const da = +document.getElementById('door-area').value || 0;
-  const wc = +document.getElementById('win-count').value || 0;
-  const wa = +document.getElementById('win-area').value || 0;
-  return { door: dc * da, win: wc * wa, total: dc * da + wc * wa };
+  const dc = +document.getElementById('door-count').value;
+  const da = +document.getElementById('door-area').value;
+  const wc = +document.getElementById('win-count').value;
+  const wa = +document.getElementById('win-area').value;
+  if(![dc, da, wc, wa].every(function(x){ return isFinite(x) && x >= 0; })){
+    return { ok:false, msg:'门窗数量与面积均须为非负数值（不能为空或负数）。' };
+  }
+  const door = dc * da;
+  const win = wc * wa;
+  return { ok:true, door:door, win:win, total: door + win };
 }
 
 /** 门窗扣减明细表（与净面积、节省量联动） */
@@ -377,8 +382,15 @@ function calc(){
  const coverage = +document.getElementById('coverage').value || 10;
  const bucketSize = +document.getElementById('bucket-size').value || 5;
  const bucketPrice = +document.getElementById('bucket-price').value || 0;
- const deduct = (typeof getDeduct === 'function') ? getDeduct() : {door:0,win:0,total:0};
- const netArea = Math.max(totalArea - deduct.total, 0);
+  const deductRaw = (typeof getDeduct === 'function') ? getDeduct() : {ok:true,door:0,win:0,total:0};
+  if(!deductRaw.ok){
+    const box = document.getElementById('paintDeductBox');
+    if(box) box.innerHTML = '<p style="color:var(--danger);">⚠ ' + deductRaw.msg + '</p>';
+    ['total-area','net-area','total-paint','total-buckets','total-cost'].forEach(function(id){ const e=document.getElementById(id); if(e) e.textContent='—'; });
+    return;
+  }
+  const deduct = deductRaw;
+  const netArea = Math.max(totalArea - deduct.total, 0);
 
  const totalPaint = netArea * coats / coverage;
  const buckets = Math.ceil(totalPaint / bucketSize);

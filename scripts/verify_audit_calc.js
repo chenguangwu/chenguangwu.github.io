@@ -80,6 +80,20 @@ const CASES = [
     "615.67"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "audit/npv-discount",
+  "inputs": {
+    "rate": "-99",
+    "init": "100000",
+    "annuityAmt": "25000",
+    "annuityN": "1000"
+  },
+  "radios": { "mode": "annuity" },
+  "expect": [
+    "折现因子或净现值溢出"
+  ],
+  "ref": "T-N6 复核失败修复：折现率 -99%、初始投资 10万、年金 2.5万、1000 期（等额年金模式），折现因子 1/0.01^(t+1) 溢出致 NPV 非有限；修复后必须阻断结论/明细/导出并提示，不得再输出 -- NPV 却仍给 24900.00% ROI 与千行明细。注入态与默认态(率 11%)该提示不命中 ⇒ 强判别。"
 }
 ];
 async function main() {
