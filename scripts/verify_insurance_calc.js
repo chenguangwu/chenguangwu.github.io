@@ -17,6 +17,16 @@
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
+  { slug: "insurance/net-single-premium", inputs: { B: "", q: "0.01", i: "0.03", n: "10" },
+    expect: ["请填写「保额 (元)」后再计算。"],
+    ref: "第五批 R-N6 复核重做：有效计算后清空保额再计算，旧明细/导出已拦，但无 ⚠ 的「请填写」提示仍被评分函数判为有效并写入历史。现 __net_single_premiumExtras() 以 __nspLast（仅完整有效计算才赋值）为唯一有效态判据，错误态直接 return 不写历史/不绘趋势/不记分；评分正则亦补「请填写|再计算|必须」。默认 B=1000000 合法 ⇒ 不含该提示 ⇒ 强判别。" },
+  { slug: "insurance/endowment-premium", inputs: { B: "", q: "0.01", i: "0.03", n: "20" },
+    expect: ["请填写「保额 (元)」后再计算。"],
+    ref: "第五批 R-H5 复核重做：清空保额等必填字段时，无 ⚠ 的「请填写」提示被当作有效结论写历史。现 __endowment_premiumExtras() 增加 if(!__epLast) return（__epLast 只在有效计算后赋值），评分正则同步补齐。默认 B=1000000 合法 ⇒ 强判别。" },
+  { slug: "insurance/net-single-premium", inputs: { B: "80000", q: "0.02", i: "0.04", n: "15" },
+    clicks: ["calcTool();document.getElementById('result').innerHTML=String(__nspLast&&isFinite(__nspLast.nsp)?'NSP_VALID '+__nspLast.nsp.toFixed(2):'NSP_BLOCKED');"],
+    expect: ["NSP_VALID 15730.63"],
+    ref: "第五批 R-N6 回归护栏：新增错误态守卫不得误伤正常有效计算。B=80000/q=0.02/i=0.04/n=15 得净趸缴保费 15730.63，__nspLast 应被正确赋值；默认态 B=1000000 ⇒ 数值完全不同，注入失败即不命中 ⇒ 强判别。" },
   { slug: "insurance/annuity-certain-pv",
     inputs: { P: "1000", i: "0.05", n: "10" },
     expect: ["7,721.73", "8,107.82"],

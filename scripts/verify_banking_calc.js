@@ -3,6 +3,13 @@
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
+  "slug": "banking/tax-equivalent-yield",
+  "inputs": { "muni": "0", "tax": "25" },
+  "clicks": ["var __s=__teySweep();document.getElementById('result').innerHTML=String(__s?__s.rows.length+'|'+__s.rows[0].join('|'):'SWEEP_NULL');"],
+  "expect": ["9|0|0.000|0.000"],
+  "ref": "第五批 B-F3 复核重做：免税收益率 0% 时主结果已为 0，但附表分支仍判 >0 无效、不记历史；先用 3% 再改 0% 时 __teySweep() 因 muni<=0 返回 null 使图表保留旧曲线。现附表/历史统一 >=0、sweep 支持 0（9 档全部 0.000）、图表在无效态清空容器。注入态首行 = 9|0|0.000|0.000；默认 muni=3 ⇒ 4.000/1.000，不命中 ⇒ 强判别。"
+},
+{
   "slug": "banking/amortization-first-interest",
   "inputs": {
     "p": "750000",

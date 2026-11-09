@@ -292,9 +292,11 @@ function __tax_equivalent_yieldExtras(){
     function __tax_equivalent_yieldRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var muniPct=num('muni'),taxPct=num('tax');
-    if (!isFinite(__tax_equivalent_yieldNum('muni')) || !isFinite(__tax_equivalent_yieldNum('tax')) || !(muniPct>0) || !(taxPct>=0&&taxPct<100)) {
+    // B-F3 复核重做：主结果已支持免税收益率 0%（合法：TEY=0），附表与历史仍以 >0 判有效，
+    // 导致 0 时附表提示「填写有效收益率」且不记历史。统一为 >=0。
+    if (!isFinite(__tax_equivalent_yieldNum('muni')) || !isFinite(__tax_equivalent_yieldNum('tax')) || !(muniPct>=0) || !(taxPct>=0&&taxPct<100)) {
         var __t=document.getElementById('tax_equivalent_yieldTable');
-        if (__t) __t.innerHTML='<p style="color:var(--text-muted);font-size:13px;">— 请填写有效的免税收益率与边际税率后再生成明细。</p>';
+        if (__t) __t.innerHTML='<p style="color:var(--text-muted);font-size:13px;">— 请填写非负的免税收益率与 0–100 之间的边际税率后再生成明细。</p>';
         return;
     }
     var muni=muniPct/100,tax=taxPct/100;
@@ -335,7 +337,8 @@ else document.addEventListener('DOMContentLoaded', __tax_equivalent_yieldBoot);
 <script>
 function __teySweep(){
   var muni=num('muni')/100;
-  if(!isFinite(muni)||muni<=0)return null;
+  // B-F3：0% 免税收益率是合法输入，此时 TEY 全为 0，图表须重绘为零线而非保留上一次的旧曲线。
+  if(!isFinite(muni)||muni<0)return null;
   var labels=[],dTey=[],dGap=[],rows=[];
   var taxes=[0,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45];
   for(var k=0;k<taxes.length;k++){
@@ -349,7 +352,8 @@ function __teySweep(){
 }
 function __teyChart(){
   if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
-  var s=__teySweep(); if(!s)return;
+  var s=__teySweep();
+  if(!s){var __c=document.getElementById('teyChart');if(__c)__c.innerHTML='';return;}
   var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
   TBKit.chart.line('#teyChart',{title:en?'Tax-Equivalent Yield vs Marginal Tax Rate (hyperbolic TEY=muni/(1-tax))':'免税等效收益率随边际税率双曲上升（TEY=免税收益率/(1-税率)）',labels:s.labels,series:[{name:en?'TEY (×10⁻⁴)':'等效收益率 (×10⁻⁴)',data:s.dTey},{name:en?'Advantage (×10⁻⁴)':'高出的部分 (×10⁻⁴)',data:s.dGap}]});
 }

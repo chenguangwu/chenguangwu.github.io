@@ -23,6 +23,13 @@ const { runCase } = require("./verify_it_calc.js");
 
 // ---------------------------------------------------------------- 用例
 const CASES = [
+  {
+    slug: "finance/tax-calculator",
+    inputs: { salary: "", insurance: "3000", special: "2000", threshold: "5000" },
+    clicks: ["__taxExport()"],
+    expect: ["请填写税前月薪后再导出"],
+    ref: "第五批 F-N18 复核重做：清空月薪并计算后主结果已提示必填，但点击导出旧 __taxExport() 仍以 parseFloat(...)||0 生成「零应缴个税/零税后收入」CSV。现导出在最前面复用必填状态（且先于 TBKit 检查），空月薪时清空结果表并提示、不导出；显式填 0 仍合法可导出。默认 salary=20000 点击导出不产生该提示 ⇒ 强判别。"
+  },
   // ── 校验位算法类（11 正例 + 2 反例）──────────────────────────────
   {
     slug: "finance/credit-card-luhn",

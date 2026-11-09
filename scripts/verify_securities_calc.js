@@ -13,6 +13,10 @@
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
+  { slug: "securities/position-sizing",
+    inputs: { winRate: "55", winLossRatio: "1.5", totalCapital: "100000", riskPerTrade: "2000", capital2: "100000", riskPct: "2", entryPrice: "10", stopPrice: "9", targetPrice: "10", feeRate: "1" },
+    expect: ["目标净亏损 = -¥336"],
+    ref: "第五批 B-N1 复核重做：总资金 10万、风险 2%、买入 10、止损 9、目标价 10（等于买价）、手续费 1%。股数=floor(2000/1.19)=1680；目标端手续费 = 1680×10×1% + 1680×10×1% = 336；净额 = 0−336 = −336 元，是净亏损。旧实现固定写「目标盈利 = +¥-336」且套成功色（正号+负数混用）；现按符号分别用「目标盈利 / 目标净亏损 / 目标盈亏持平」并配对应颜色。默认目标价 12 ⇒ +¥2,990，不含该串 ⇒ 强判别。" },
   {
     slug: "securities/market-cap",
     inputs: { price: "80", shares: "3000000000" },

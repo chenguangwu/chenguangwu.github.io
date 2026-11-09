@@ -340,6 +340,7 @@ function loadDemo(){ flows=[25000,30000,35000,40000,30000]; renderList(); __npvS
 /* T-N6：参数校验——区分「空值」与「零」，非法参数直接停止计算，不产出看似可用的 NPV */
 function __npvParse(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
 function __npvBlock(msg){
+  if(!msg) msg='参数不合法，请检查输入。';
   window.__npvBlocked=true;
   var st=document.getElementById('stats');
   if(st) st.innerHTML='<div class="stat-card" style="grid-column:1/-1;"><div class="val" style="color:var(--danger);font-size:15px;">⚠ '+msg+'</div><div class="lbl">参数不合法，已停止计算</div></div>';
@@ -379,17 +380,29 @@ function calc(){
 
   var rows=[];
   var cumPv=-init;
+  if(!isFinite(init)||!isFinite(cumPv)){
+    __npvBlock('初始投资金额超出可表示范围，导致累计现值溢出，请降低金额后重新计算。');
+    return;
+  }
   rows.push({t:0,cf:-init,factor:1,pv:-init,cum:cumPv});
   var totalPv=0;
   for(var t=0;t<cfList.length;t++){
     var factor=1/Math.pow(1+rate,t+1);
     var pv=cfList[t]*factor;
-    totalPv+=pv;
-    cumPv+=pv;
+    var nextTotal=totalPv+pv;
+    var nextCum=cumPv+pv;
+    // T-N6 复核重做：只检查最终 NPV 会漏掉「中途累计现值溢出但正负相消使 NPV 仍有限」的情形
+    // （如 init=1e308、现金流 -1e308/+1e308、rate=0）。逐期检查折现因子、单期现值、
+    // 现值合计、累计现值，任一非有限立即阻断结论、明细、图表与导出。
+    if(!isFinite(factor)||!isFinite(pv)||!isFinite(nextTotal)||!isFinite(nextCum)){
+      __npvBlock('第 '+(t+1)+' 期折现因子或净现值溢出：累计现值溢出（中途累计已超出可表示范围，最终 NPV 可能仍为有限值，但明细已不可信），请降低金额/期数或调整折现率后再计算。');
+      return;
+    }
+    totalPv=nextTotal;
+    cumPv=nextCum;
     rows.push({t:t+1,cf:cfList[t],factor:factor,pv:pv,cum:cumPv});
   }
   var npv=totalPv-init;
-  // T-N6 修复：折现因子 / 现值 / 累计 / NPV 任一非有限时，阻断结论、明细、图表与导出，避免输出 -- NPV 却仍给 ROI 与千行明细
   if(!isFinite(npv)){
     __npvBlock('折现因子或净现值溢出（当前折现率与期数组合导致数值超出可表示范围），请降低期数或调高折现率后再计算。');
     return;

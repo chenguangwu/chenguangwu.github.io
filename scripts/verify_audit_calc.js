@@ -3,6 +3,13 @@
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
+  "slug": "audit/npv-discount",
+  "inputs": { "rate": "0", "init": "1e308" },
+  "clicks": ["try{flows=[-1e308,1e308];calc();}catch(e){}"],
+  "expect": ["累计现值溢出"],
+  "ref": "第五批 T-N6 复核重做：折现率 0、初始投资 1e308、两期现金流 -1e308/+1e308。修复前只检查最终 NPV（正负相消后仍有限），累计现值中途溢出成 -Infinity、明细显示 -- 却仍允许导出。现逐期检查折现因子/单期现值/现值合计/累计现值，任一非有限即 __npvBlock 清空结论/明细/图表并拦导出。默认态 rate 11% 无溢出提示 ⇒ 强判别。"
+},
+{
   "slug": "audit/ratio-analysis",
   "inputs": {
     "curAssets": "820000",

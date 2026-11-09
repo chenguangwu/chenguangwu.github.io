@@ -632,6 +632,18 @@ calculate();
 </script>
 <script>
 function __taxExport(){
+  // F-N18 复核重做：复用 calculate() 的必填状态，且在 TBKit 检查之前拦截（无 TBKit 的环境也不得导出）。
+  // 月薪清空后主结果已提示，但导出曾用 parseFloat(...)||0 生成「零税额 / 零税后收入」CSV。
+  // 显式填 0 仍是合法输入，允许导出。
+  var __sEl=document.getElementById('salary');
+  var __sRaw=__sEl?String(__sEl.value).trim():'';
+  if(__sRaw===''){
+    var __sMsg=__tbIsEn()?'Please enter the pre-tax monthly salary before exporting.':'请填写税前月薪后再导出（当前结果无效）。';
+    var __tb0=document.getElementById('taxResultTable');
+    if(__tb0) __tb0.innerHTML='<tr><td style="color:var(--danger)">⚠ '+__sMsg+'</td></tr>';
+    try{ if(typeof ToolBox!=='undefined'&&ToolBox.showToast) ToolBox.showToast(__sMsg,'error'); }catch(e){}
+    return;
+  }
   if(typeof TBKit==='undefined') return;
   var __chk = __taxCheck();
   if(!__chk.ok){
