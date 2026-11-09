@@ -27,6 +27,7 @@ const CASES = [
   { slug: "accounting/inventory-days", inputs: { inv: "200", cogs: "600" }, expect: ["121.7"], ref: "DIO=存货/营业成本×365=200/600×365=121.7 天（默认 150/600×365=91.3 天 避开）" },
   { slug: "accounting/days-sales-outstanding", inputs: { AR: "200", rev: "1000" }, expect: ["73.0"], ref: "DSO=应收/营收×365=200/1000×365=73.0 天（默认 100/1000×365=36.5 天 避开）" },
   { slug: "accounting/days-payable-outstanding", inputs: { AP: "120", cogs: "600" }, expect: ["73.0"], ref: "DPO=应付/营业成本×365=120/600×365=73.0 天（默认 80/600×365=48.7 天 避开）" },
+  { slug: "accounting/cash-conversion-cycle", inputs: { DSO: "0", DIO: "0", DPO: "0" }, expect: ["0.00"], ref: "T-N5 复核重做：DSO/DIO/DPO 均填 0（已填写的合法天数），旧实现主结果拒绝「⚠ 输入不能全为 0」且附表/历史却写入 CCC=0.00；现允许全零计算，CCC=0+0-0=0.00（营业周期=0 时占比显示「—」）。默认态 36.5+91.25−48.67=79.08 不含 0.00 ⇒ 强判别、零逃生。" },
   { slug: "accounting/cash-conversion-cycle", inputs: { DSO: "50", DIO: "100", DPO: "60" }, expect: ["90.00"], ref: "CCC=DSO+DIO−DPO=50+100−60=90.00 天（默认 36.5+91.25−48.67=79.08 天 避开）" },
   { slug: "accounting/working-capital", inputs: { CA: "800", CL: "300" }, expect: ["500.00"], ref: "营运资金=流动资产−流动负债=800−300=500.00 万元（默认 500−300=200.00 避开）" },
   { slug: "accounting/asset-turnover", inputs: { rev: "1500", assets: "500" }, expect: ["3.00"], ref: "总资产周转率=营收/平均总资产=1500/500=3.00（默认 1000/500=2.00 避开）" },
