@@ -56,5 +56,52 @@ function loadHtml() {
   // 修复版：切换后重建为 36 张；缺陷版：仍是 12 张
   const ok = after === 36;
   console.log(`[FE-N89] 模式: ${head ? 'HEAD(修复前)' : '当前(修复后)'} | 切换前牌数=${before} 切换后牌数=${after} → ${ok ? 'PASS' : 'FAIL'}`);
-  process.exit(ok ? 0 : 1);
+  dom.window.close();
+  let allOk = ok;
+  for (const action of ['difficulty', 'theme', 'restart', 'shuffle']) {
+    const pending = new Map();
+    const errors = [];
+    let timerId = 100000;
+    const virtualConsole = new VirtualConsole();
+    virtualConsole.on('jsdomError', (err) => errors.push(err.message));
+    const game = new JSDOM(html, {
+      runScripts: 'dangerously', url: 'https://x.test/', virtualConsole,
+      beforeParse(win) {
+        const schedule = win.setTimeout.bind(win), cancel = win.clearTimeout.bind(win);
+        win.setTimeout = (fn, delay, ...args) => delay === 800
+          ? (pending.set(++timerId, () => fn(...args)), timerId)
+          : schedule(fn, delay, ...args);
+        win.clearTimeout = (id) => pending.has(id) ? pending.delete(id) : cancel(id);
+      },
+    });
+    const win = game.window, doc = win.document;
+    const mismatch = () => {
+      const tiles = Array.from(doc.querySelectorAll('.card-tile'));
+      const a = tiles[0], b = tiles.find((tile) => tile.dataset.emoji !== a.dataset.emoji);
+      a.click(); b.click();
+      return [a, b];
+    };
+    mismatch();
+    const oldTimer = pending.keys().next().value;
+    if (action === 'difficulty') win.setDifficulty('expert', doc.querySelector('[data-diff="expert"]'));
+    if (action === 'theme') win.setTheme('fruits', doc.querySelector('[data-theme="fruits"]'));
+    if (action === 'restart') win.startGame();
+    if (action === 'shuffle') win.shuffleCards();
+    const fresh = mismatch();
+    if (pending.has(oldTimer)) {
+      const callback = pending.get(oldTimer); pending.delete(oldTimer);
+      try { callback(); } catch (err) { errors.push(err.message); }
+    }
+    const intact = fresh.every((tile) => tile.classList.contains('flipped'));
+    for (const [id, callback] of pending) {
+      pending.delete(id);
+      try { callback(); } catch (err) { errors.push(err.message); }
+    }
+    const settled = fresh.every((tile) => !tile.classList.contains('flipped'));
+    const pass = intact && settled && errors.length === 0;
+    console.log(`[FE-N89] ${action} 新牌不受旧回调干扰且正常翻回 → ${pass ? 'PASS' : 'FAIL'}${errors.length ? ' ' + errors.join('; ') : ''}`);
+    allOk = allOk && pass;
+    win.close();
+  }
+  process.exit(allOk ? 0 : 1);
 })();

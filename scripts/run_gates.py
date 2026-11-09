@@ -85,6 +85,7 @@ GATES = (
     ("sports record chronology", ("node", "scripts/_verify_sports_batch_q.mjs")),
     # fun 分类的正确性验证（烧烤/火锅分量、冥想分段、婚宴桌数、步幅速度换算）。
     ("fun calc correctness", ("node", "scripts/verify_fun_calc.js")),
+    ("memory game timing", ("node", "scripts/_verify_fun_batch_fe_n89.mjs")),
     ("gomoku undo timing", ("node", "scripts/_verify_fun_batch_fe_n18.mjs")),
     ("metronome timing", ("node", "scripts/_verify_fun_batch_fe_n38.mjs")),
     ("word scramble records", ("node", "scripts/_verify_fun_batch_fe_n69.mjs")),
