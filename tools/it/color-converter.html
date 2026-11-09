@@ -253,14 +253,14 @@ s.parentNode.insertBefore(el, s);
         <div>
           <label>前景色（文字）</label>
           <div class="color-picker-row">
-            <input type="color" id="fgColor" value="#ffffff" oninput="calcContrast()">
+            <input type="color" id="fgColor" value="#ffffff" oninput="__ccSyncPicker('fg',this.value)">
             <input type="text" id="fgInput" value="#ffffff" oninput="calcContrast()">
           </div>
         </div>
         <div>
           <label>背景色</label>
           <div class="color-picker-row">
-            <input type="color" id="bgColor" value="#667eea" oninput="calcContrast()">
+            <input type="color" id="bgColor" value="#667eea" oninput="__ccSyncPicker('bg',this.value)">
             <input type="text" id="bgInput" value="#667eea" oninput="calcContrast()">
           </div>
         </div>
@@ -657,6 +657,13 @@ function selectColor(hex) {
   ToolBox.showToast('已选择颜色 ' + hex);
 }
 
+// 审计修复：颜色选择器本身不被 calcContrast 读取，须先同步到文本框再计算，
+// 否则选择颜色对结果毫无影响。
+function __ccSyncPicker(which, hex) {
+  var el = document.getElementById(which + 'Input');
+  if (el) el.value = hex;
+  calcContrast();
+}
 function calcContrast() {
   const fgStr = document.getElementById('fgInput').value;
   const bgStr = document.getElementById('bgInput').value;
@@ -822,10 +829,16 @@ function __ccExport(){
     if(fgEl&&bgEl){
       var fg=parseColor(fgEl.value),bg=parseColor(bgEl.value);
       if(fg&&bg){
-        var fgL=getLuminance(fg.r,fg.g,fg.b),bgL=getLuminance(bg.r,bg.g,bg.b);
+        // 审计修复：与 calcContrast 共用同一套 alpha 合成口径，避免主结果按合成色算、
+        // CSV 却按纯色算导致黑色 50% 前景的结果 3.95:1、导出 21:1 的矛盾。
+        var fga=clampAlpha(fg.a);
+        var fr=clampChannel(fg.r*fga+bg.r*(1-fga));
+        var fgc=clampChannel(fg.g*fga+bg.g*(1-fga));
+        var fb=clampChannel(fg.b*fga+bg.b*(1-fga));
+        var fgL=getLuminance(fr,fgc,fb),bgL=getLuminance(bg.r,bg.g,bg.b);
         var lighter=Math.max(fgL,bgL),darker=Math.min(fgL,bgL);
         var ratio=(lighter+0.05)/(darker+0.05);
-        rows.push([en?'Contrast foreground':'对比度前景色',rgbToHex(fg.r,fg.g,fg.b)]);
+        rows.push([en?'Contrast foreground':'对比度前景色',rgbToHex(fr,fgc,fb)]);
         rows.push([en?'Contrast background':'对比度背景色',rgbToHex(bg.r,bg.g,bg.b)]);
         rows.push([en?'Contrast ratio':'对比度',ratio.toFixed(2)+':1']);
         rows.push([en?'WCAG AA (4.5:1)':'WCAG AA (4.5:1)',ratio>=4.5?'✓':'✗']);

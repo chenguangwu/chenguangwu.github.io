@@ -157,6 +157,18 @@ const CASES = [
     "ref": "审计修复回归：exp:\"bad\" 旧实现 new Date(NaN) 得 Invalid Date，比较恒 false 被标「未过期」；修复后 Number(exp) 非有限数时显示「无效 exp 值 / 无效」，不再误标未过期。默认样例无 EXPTBAD 探针 ⇒ 零逃生。"
   },
   {
+    "slug": "it/calc-8",
+    "clicks": ["document.getElementById('jwtInput').value='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ6ZXJvIiwiZXhwIjowfQ.sig';decodeJwt();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='EXPT0 '+(h.indexOf('已过期')>=0&&h.indexOf('1970')>=0?'OK':'BAD');"],
+    "expect": ["EXPT0 OK"],
+    "ref": "审计修复回归：exp:0（Unix 纪元，必已过期）旧实现因真值判断 `payload.exp` 为假被完全忽略，不输出过期信息；修复后 hasOwnProperty 命中，显示 1970 年并判「已过期」。默认样例 JWT 无 exp、不含 EXPT0 探针 ⇒ 零逃生。"
+  },
+  {
+    "slug": "it/calc-8",
+    "clicks": ["document.getElementById('jwtInput').value='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiYWQiLCJleHAiOiJiYWQifQ.sig';decodeJwt();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='EXPTBAD '+(h.indexOf('无效 exp 值')>=0&&h.indexOf('未过期')<0?'OK':'BAD');"],
+    "expect": ["EXPTBAD OK"],
+    "ref": "审计修复回归：exp:\"bad\" 旧实现 new Date(NaN) 得 Invalid Date，比较恒 false 被标「未过期」；修复后 Number(exp) 非有限数时显示「无效 exp 值 / 无效」，不再误标未过期。默认样例无 EXPTBAD 探针 ⇒ 零逃生。"
+  },
+  {
     "slug": "it/email-normalizer",
     "inputs": {"input": "user.name+tag@notgmail.com"},
     "clicks": ["document.getElementById('opt_gmail').checked=true;normalize();var a=String(document.getElementById('afterOut').textContent||'');document.getElementById('__tbProbe').textContent='EMGM '+(a==='user.name+tag@notgmail.com'?'OK':'BAD');"],
