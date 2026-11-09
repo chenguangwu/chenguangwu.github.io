@@ -861,8 +861,8 @@ const CASES = [
   {
     slug: "finance/voter-id-validator",
     inputs: { input: "ABC1234567" },
-    expect: ["州代码： ABC"],
-    ref: "印度 EPIC 选民 ID：3 字母州代码 + 7 位序号，仅做格式校验（无校验位）。expect 只锁依赖输入的「州代码： ABC」；原第二条「校验算法： 无（EPIC 为格式校验）」是静态文案，默认预填 XYZ1234567 也恒出现 ⇒ 按 expect 为「或」语义会变逃生，已删除。",
+    expect: ["州代码： ABC（仅格式校验，未核对是否为有效州码）"],
+    ref: "印度 EPIC 选民 ID：3 字母 + 7 位序号，仅格式校验。F-N213 州码行加「未核对有效性」标注，避免任意 3 字母被误当合法州码；expect 带输入州码 ABC（默认 XYZ 不命中）⇒ 强判别，静态标注串单列会逃生故不单列。",
   },
   {
     slug: "finance/imsi-validator",
