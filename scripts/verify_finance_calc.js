@@ -859,6 +859,18 @@ const CASES = [
     ref: "美国 ZIP：`95014` ⇒ 5 位 ZIP + 前 3 位 SCF 950（未映射到已知州/地区）。expect 只锁依赖输入的「前 3 位（SCF）： 950」；原第二条「✅ ZIP Code 格式有效」为通用串，默认预填 10001 也有效 ⇒ 恒命中变逃生，已删除。",
   },
   {
+    slug: "finance/zip-code-validator",
+    inputs: { input: "00000" },
+    expect: ["输入： 00000 ❌ ZIP 00000–00500、99951–99999 为 USPS 未分配段"],
+    ref: "F-N208 未分配段：00000 形状合法但不在 USPS 00501–99950 分配范围，旧实现判「✅ 格式有效」；修复后 ❌。默认预填 10001 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/zip-code-validator",
+    inputs: { input: "99999" },
+    expect: ["输入： 99999 ❌ ZIP 00000–00500、99951–99999 为 USPS 未分配段"],
+    ref: "F-N208 未分配段：99999 超出 USPS 上限 99950，旧实现判「✅ 格式有效」；修复后 ❌。expect 带输入号区分 00000 用例。默认预填 10001 ⇒ 不命中。",
+  },
+  {
     slug: "finance/voter-id-validator",
     inputs: { input: "ABC1234567" },
     expect: ["州代码： ABC（仅格式校验，未核对是否为有效州码）"],
