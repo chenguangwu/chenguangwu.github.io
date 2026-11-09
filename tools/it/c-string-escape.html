@@ -171,7 +171,7 @@ s.parentNode.insertBefore(el, s);
       </label>
       <label style="margin:0;font-size:13px;">
         引号
-        <select id="qtype" style="padding:6px 10px;font-size:13px;">
+        <select id="qtype" onchange="__c_string_escapeQtypeChange()" style="padding:6px 10px;font-size:13px;">
           <option value="double">双引号 \"</option>
           <option value="single">单引号 \'</option>
         </select>
@@ -264,6 +264,7 @@ line2&quot;</div><div class="dd-ex-body">输入含换行文本 → 输出 `&quot
 <script>
 var __escLiveMode=false;
 function __escLive(){ __escLiveMode=true; esc(true); __escLiveMode=false; }
+function __c_string_escapeQtypeChange(){ __escLive(); }  // 引号类型切换即时刷新
 
 function esc(live){
   const text = document.getElementById('input').value;
@@ -364,7 +365,9 @@ function unesc(){
           let h = '';
           let k = i + 2;
           while(k < text.length && /[0-9a-fA-F]/.test(text[k]) && h.length < 2){ h += text[k]; k++; }
-          out += String.fromCodePoint(parseInt(h,16));
+          // 审计修复：\x 后必须跟有效十六进制；码点越界不得交给 fromCodePoint（抛 RangeError）。
+          if(h.length){ var cpX=parseInt(h,16); out += (cpX<=0x10FFFF ? String.fromCodePoint(cpX) : '\\x'+h); }
+          else { out += '\\x'; }
           i = k;
           break;
         default: out += n; i += 2;

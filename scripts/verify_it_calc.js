@@ -144,6 +144,41 @@ function _rngReset() { _rngState = 0x9e3779b9 >>> 0; }
 
 // ---------------------------------------------------------------- 用例
 const CASES = [
+  {
+    "slug": "it/css-escape",
+    "inputs": {"input": "-1a", "mode": "identifier"},
+    "clicks": ["esc();var o=String(document.getElementById('output').value||'');document.getElementById('__tbProbe').textContent='CSID '+(o.indexOf('\\\\2d ')>=0?'OK':'BAD');"],
+    "expect": ["CSID OK"],
+    "ref": "审计修复回归：CSS 标识符首位为 - 且次位为数字时（-1a）会被解析成数字 token，旧实现原样输出 -1a；修复后转义首位为 \\2d （即 \\2d 1a）。修复前 BAD。探针默认态不存在 ⇒ 零逃生。"
+  },
+  {
+    "slug": "it/c-string-escape",
+    "inputs": {"input": "\\x"},
+    "clicks": ["var ok=false;try{unesc();ok=true;}catch(e){};var o=String(document.getElementById('output').value||'');document.getElementById('__tbProbe').textContent='CSXBIN '+(ok&&o.indexOf('\\\\x')>=0?'OK':'BAD');"],
+    "expect": ["CSXBIN OK"],
+    "ref": "审计修复回归：反转义 \\x 后无十六进制数字时，旧实现 parseInt(\"\",16)=NaN ⇒ String.fromCodePoint(NaN) 抛 RangeError、无输出；修复后保留字面 \\x 且不抛错。修复前 BAD。探针串默认态不存在 ⇒ 零逃生。"
+  },
+  {
+    "slug": "it/c-string-escape",
+    "inputs": {"input": "a\"b", "qtype": "double"},
+    "clicks": ["esc();var before=String(document.getElementById('output').value||'');document.getElementById('qtype').value='single';var ok=typeof __c_string_escapeQtypeChange==='function';if(ok)__c_string_escapeQtypeChange();var after=String(document.getElementById('output').value||'');document.getElementById('__tbProbe').textContent='CSQQ '+(ok&&before!==after&&before.indexOf('\\\\\"')>=0&&after.indexOf('\\\\\"')<0?'OK':'BAD');"],
+    "expect": ["CSQQ OK"],
+    "ref": "审计修复回归：引号类型下拉原无 change 事件，切换后输出仍用旧引号；修复后 onchange 调 __c_string_escapeQtypeChange 即时刷新（双引号包裹→单引号包裹）。修复前函数不存在 BAD。探针默认态不存在 ⇒ 零逃生。"
+  },
+  {
+    "slug": "it/css-escape",
+    "inputs": {"input": "\\FFFFFF"},
+    "clicks": ["var ok=false;try{unesc();ok=true;}catch(e){};var o=String(document.getElementById('output').value||'');document.getElementById('__tbProbe').textContent='CSHEX '+(ok&&o.indexOf('FFFFFF')>=0?'OK':'BAD');"],
+    "expect": ["CSHEX OK"],
+    "ref": "审计修复回归：CSS 6 位 hex 可达 0xFFFFFF（16777215）超出 Unicode 码点上限 0x10FFFF，旧实现 String.fromCodePoint 抛 RangeError；修复后越界保留字面量。修复前 BAD。探针默认态不存在 ⇒ 零逃生。"
+  },
+  {
+    "slug": "it/css-escape",
+    "inputs": {"input": "1abc", "mode": "identifier"},
+    "clicks": ["esc();var before=String(document.getElementById('output').value||'');document.getElementById('mode').value='string';var ok=typeof __cssEscapeModeChange==='function';if(ok)__cssEscapeModeChange();var after=String(document.getElementById('output').value||'');document.getElementById('__tbProbe').textContent='CSMODE '+(ok&&before!==after?'OK':'BAD');"],
+    "expect": ["CSMODE OK"],
+    "ref": "审计修复回归：模式下拉原无 change 事件，切换 identifier→string 后输出不刷新；修复后 onchange 调 __cssEscapeModeChange 即时刷新（.cls→\\.cls）。修复前函数不存在 BAD。探针默认态不存在 ⇒ 零逃生。"
+  },
 {
     "slug": "it/playfair-cipher",
     "clicks": ["document.getElementById('__tbProbe').textContent='PLF score='+__playfair_cipherScore('FAILED');"],

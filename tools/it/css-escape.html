@@ -159,7 +159,7 @@ s.parentNode.insertBefore(el, s);
       <div style="flex:1;"></div>
       <label style="margin:0;font-size:13px;">
         模式
-        <select id="mode" style="padding:6px 10px;font-size:13px;">
+        <select id="mode" onchange="__cssEscapeModeChange()" style="padding:6px 10px;font-size:13px;">
           <option value="identifier">标识符 (.class #id)</option>
           <option value="string">字符串内容</option>
         </select>
@@ -262,6 +262,7 @@ s.parentNode.insertBefore(el, s);
 <script>
 var __escLiveMode=false;
 function __escLive(){ __escLiveMode=true; esc(true); __escLiveMode=false; }
+function __cssEscapeModeChange(){ __escLive(); }  // 模式切换即时刷新
 
 function esc(live){
   const text = document.getElementById('input').value;
@@ -272,11 +273,17 @@ function esc(live){
   if(mode === 'identifier'){
     if(text.length === 0){ document.getElementById('output').value = ''; return; }
     const first = text.codePointAt(0);
-    if(/^\d/.test(text[0]) || (first >= 0x30 && first <= 0x39)){
+    const second = text.codePointAt(1);
+    // 审计修复：CSS 标识符首位为数字必须转义；首位为 '-' 且次位是数字/'-' 时同样要转义
+    // （否则 -1a 会被解析成数字 token，而非标识符）。
+    const escapeFirst = (first >= 0x30 && first <= 0x39) ||
+                        (first === 0x2D && text.length > 1 &&
+                         ((second >= 0x30 && second <= 0x39) || second === 0x2D));
+    if(escapeFirst){
       const h = first.toString(16);
       out += '\\' + (six ? h.padStart(6,'0') : h) + ' ';
     }
-    for(let i = (first >= 0x30 && first <= 0x39 ? 1 : 0); i < text.length; i++){
+    for(let i = (escapeFirst ? 1 : 0); i < text.length; i++){
       out += escapeChar(text[i], six);
     }
   } else {
@@ -322,7 +329,9 @@ function unesc(){
         hex += text[j]; j++;
       }
       if(hex.length > 0){
-        out += String.fromCodePoint(parseInt(hex, 16));
+        // 审计修复：6 位 hex 可达 0xFFFFFF，超出 Unicode 码点上限；越界保留字面量，不抛 RangeError。
+        var cpX=parseInt(hex, 16);
+        out += (cpX<=0x10FFFF ? String.fromCodePoint(cpX) : hex);
         if(text[j] === ' ') j++;
       } else {
         out += text[j]; j++;
