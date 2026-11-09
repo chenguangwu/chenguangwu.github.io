@@ -216,13 +216,41 @@ function $(id){ return document.getElementById(id); }
 function save(){ try{ const data={i:$('initial').value,r:$('rate').value,f:$('flows').value}; localStorage.setItem(STORE_KEY,JSON.stringify(data)); }catch(e){} }
 function load(){ try{ const data=JSON.parse(localStorage.getItem(STORE_KEY)||'{}'); if(data.i!=null) $('initial').value=data.i; if(data.r!=null) $('rate').value=data.r; if(data.f!=null) $('flows').value=data.f; }catch(e){} }
 function fmt(n,d){ return ToolBox.formatNumber(n,d); }
-function parseFlows(){ return $('flows').value.split(/[,，\s\n]+/).map(s=>parseFloat(s.trim())).filter(n=>!isNaN(n)); }
+// F-N73：按分隔符逐段解析，非法项保留期号并按 0 计入，不因 filter 丢弃导致后续现金流整体前移
+function parseFlows(){
+  const raw = String($('flows').value||'');
+  const chunks = raw.split(/[,，\n]/);
+  const vals = [], bad = [];
+  for(let i=0;i<chunks.length;i++){
+    const seg = chunks[i].trim();
+    if(seg===''){
+      if(i < chunks.length-1){ vals.push(0); bad.push(vals.length); }
+      continue;
+    }
+    const items = seg.split(/\s+/);
+    for(const s of items){
+      const n = Number(s);
+      if(!isFinite(n)){ vals.push(0); bad.push(vals.length); }
+      else vals.push(n);
+    }
+  }
+  return { vals, bad };
+}
 function calc(){
   save();
+  const __en = (typeof TBKit!=='undefined'&&TBKit.util.isEn());
   const initial = parseFloat($('initial').value)||0;
-  const r = (parseFloat($('rate').value)||0)/100;
-  const flows = parseFlows();
-  if(flows.length===0){ $('res').innerHTML=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"<p>Enter cash flow</p>":"<p>请输入现金流</p>"); $('summary').innerHTML=''; $('detailTable').querySelector('tbody').innerHTML=''; return; }
+  const rPct = parseFloat($('rate').value);
+  // F-N72：折现率 ≤ −100% 时 1+r ≤ 0，折现因子无意义（−100% 得 Infinity），必须拒绝而非给出结论
+  if(isFinite(rPct) && rPct <= -100){
+    $('res').innerHTML = __en ? '<p style="color:var(--danger)">Discount rate must be greater than -100%.</p>' : '<p style="color:var(--danger)">折现率必须大于 −100%，无法计算 NPV。</p>';
+    $('summary').innerHTML=''; $('detailTable').querySelector('tbody').innerHTML=''; return;
+  }
+  const r = (isFinite(rPct) ? rPct : 0)/100;
+  const parsed = parseFlows();
+  const flows = parsed.vals;
+  const badHint = parsed.bad.length ? ('<p style="color:var(--danger)">' + (__en ? ('Item ' + parsed.bad.join(', ') + ' is not a number; counted as 0 in that period (period preserved).') : ('第 ' + parsed.bad.join('、') + ' 项不是有效数字，已按 0 计入该期（期号保留）。')) + '</p>') : '';
+  if(flows.length===0){ $('res').innerHTML=(__en?"<p>Enter cash flow</p>":"<p>请输入现金流</p>"); $('summary').innerHTML=''; $('detailTable').querySelector('tbody').innerHTML=''; return; }
   let npv = initial;
   let html='';
   for(let i=0;i<flows.length;i++){
@@ -240,7 +268,7 @@ function calc(){
     {num:flows.length+' 期',label:'项目期数'}
   ];
   const __g3=summary.map(s=>`<div class="data-card"><div class="num">${s.num}</div><div class="label">${s.label}</div></div>`).join('');$('summary').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
-  const __g4=`<p>净现值 NPV：<strong>${fmt(npv,2)} 元</strong></p><p>盈利指数 PI：<strong>${fmt(pi,4)}</strong></p><p>结论：<strong>${conclusion}</strong></p>`;$('res').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+  const __g4=`${badHint}<p>净现值 NPV：<strong>${fmt(npv,2)} 元</strong></p><p>盈利指数 PI：<strong>${fmt(pi,4)}</strong></p><p>结论：<strong>${conclusion}</strong></p>`;$('res').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
 }
 function copyRes(){ ToolBox.copyText($('res').innerText.replace(/\n+/g,'；'),'已复制结果'); }
 function resetAll(){ $('initial').value='-100000'; $('rate').value=8; $('flows').value='30000,30000,30000,30000,30000'; calc(); }
