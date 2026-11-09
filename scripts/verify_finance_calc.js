@@ -1811,9 +1811,9 @@ const CASES = [
       "input": "abc123测试"
     },
     "expect": [
-      "abc123测试\n输入： abc123测试 ⚠️ Aadhaar 必须为 12 位数字（当前 3 位）"
+      "abc123测试\n输入： abc123测试 ❌ 第 1 位含非法字符「a」"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： abc123测试 ⚠️ Aadhaar 必须为 12 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，F-N151 修复后含字母在第 1 位报「非法字符「a」」（旧实现静默剔除后按位数判）；输出区绑定输入串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "finance/aba-validator",
@@ -2069,9 +2069,9 @@ const CASES = [
       "input": "abc123测试"
     },
     "expect": [
-      "abc123测试\n输入： abc123测试 ⚠️ CPF 必须为 11 位数字（当前 3 位）"
+      "abc123测试\n输入： abc123测试 ❌ 第 1 位含非法字符「a」"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： abc123测试 ⚠️ CPF 必须为 11 位数字（…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，F-N154 修复后含字母在第 1 位报「非法字符「a」」（旧实现静默剔除后按位数判）；输出区绑定输入串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "finance/credit-card-bin",
@@ -3168,9 +3168,9 @@ const CASES = [
       "input": "abc123测试"
     },
     "expect": [
-      "abc123测试\n输入： abc123测试 ⚠️ UAN 必须为 12 位数字（当前 3 位）"
+      "abc123测试\n输入： abc123测试 ❌ 第 1 位含非法字符「a」"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： abc123测试 ⚠️ UAN 必须为 12 位数字（…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，F-N148 修复后含字母在第 1 位报错「非法字符「a」」（旧实现静默剔除 abc/测试 后按 3 位报长度错）；输出区绑定输入串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "finance/vcard-qr",
@@ -3927,6 +3927,48 @@ const CASES = [
     clicks: ["calc()"],
     expect: ["日利率不能为负，请填写 ≥0 的数值"],
     ref: "F-N124 负值拒绝：日利率 −0.05 旧实现 +value/100||0 → 负利率照算得负利息/负总支出；修复后 calc() 前置拒绝并提示「日利率不能为负，请填写 ≥0 的数值」。默认日利率 0.05 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/uan-validator",
+    inputs: { input: "10A1234567890" },
+    clicks: ["validate()"],
+    expect: ["第 3 位含非法字符「A」"],
+    ref: "F-N148 字母剔除修复：10A1234567890 旧实现 replace(/\\D/g,'') 静默剔除 A → 101234567890（12 位）判「✅ UAN 格式有效」；修复后含字母在第 3 位报错并指出字符。输入绑定串 ⇒ 默认态不命中。",
+  },
+  {
+    slug: "finance/uan-validator",
+    inputs: { input: "10-1234567890" },
+    clicks: ["validate();var h=String(document.getElementById('output').innerHTML).replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ');document.getElementById('__tbProbe').textContent='UANHY '+document.getElementById('input').value+' '+((h.indexOf('101234567890')>=0&&h.indexOf('12 位')>=0&&h.indexOf('UAN 格式有效')>=0&&h.indexOf('非法字符')<0)?'OK':'BAD');"],
+    expect: ["UANHY 10-1234567890 OK"],
+    ref: "F-N148 防误伤：连字符分隔是合法写法，去掉分隔符后 101234567890 共 12 位、首字符 1 ⇒ 格式有效且不报非法字符。探针 AND 四项并绑输入号（静态结论串「✅ UAN 格式有效」在默认态也命中会成逃生，故走探针）⇒ 零逃生。",
+  },
+  {
+    slug: "finance/aadhaar-validator",
+    inputs: { input: "234123412346A" },
+    clicks: ["validate()"],
+    expect: ["第 13 位含非法字符「A」"],
+    ref: "F-N151 字母拒绝：合法 Aadhaar 234123412346 尾随字母 A，旧实现 replace(/\\D/g,'') 静默剔除后判有效；修复后第 13 位报「非法字符「A」」。绑定输入与位置 ⇒ 默认态不命中。",
+  },
+  {
+    slug: "finance/cpf-validator",
+    inputs: { input: "abc11144477735" },
+    clicks: ["validate()"],
+    expect: ["第 1 位含非法字符「a」"],
+    ref: "F-N154 字母拒绝：abc11144477735 旧实现静默剔除 abc 得 11144477735（合法 CPF）判有效，与 FAQ「含字母判格式错误」矛盾；修复后第 1 位报「非法字符「a」」。绑定输入与位置 ⇒ 默认态不命中。",
+  },
+  {
+    slug: "finance/cpf-validator",
+    inputs: { input: "111.444.777-35" },
+    clicks: ["validate();var h=String(document.getElementById('output').innerHTML).replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ');document.getElementById('__tbProbe').textContent='CPFPT '+((h.indexOf('格式化： 111.444.777-35')>=0&&h.indexOf('CPF 号码有效')>=0&&h.indexOf('非法字符')<0)?'OK':'BAD');"],
+    expect: ["CPFPT OK"],
+    ref: "F-N154 防误伤：点/连字符是 CPF 标准分组写法（111.444.777-35），清洗后 11144477735 合法有效且不报非法字符。探针 AND 三项（静态「✅ CPF 号码有效」默认态命中会成逃生，故走探针）⇒ 零逃生。",
+  },
+  {
+    slug: "finance/cpf-validator",
+    inputs: { input: "<img src=x onerror=alert(1)>" },
+    clicks: ["validate();var h=String(document.getElementById('output').innerHTML);document.getElementById('__tbProbe').textContent='CPFXSS '+((h.indexOf('&lt;img')>=0&&h.indexOf('<img')<0&&h.indexOf('<IMG')<0)?'ESC':'RAW');"],
+    expect: ["CPFXSS ESC"],
+    ref: "F-N150 自 XSS：输入 <img src=x onerror=alert(1)>，四页原样插值 ${raw} 会执行；修复后 esc(raw) 转义为 &lt;img…&gt;（这四页未大写化，保留小写）。探针断言含 &lt;img 且不含裸 <img/<IMG ⇒ 零逃生（纯转义行为锁）。",
   },
 
 ];

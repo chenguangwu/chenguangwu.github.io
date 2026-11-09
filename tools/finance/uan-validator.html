@@ -150,7 +150,7 @@ s.parentNode.insertBefore(el, s);
      <h2 data-zh="🪪 印度 UAN 验证">🪪 India UAN Validator</h2>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-      <div class="formula-eq">UAN 号码格式校验（本页代码口径，纯格式规则、无校验算法）：去除非数字字符后长度须恰为 12 位，否则提示「UAN 必须为 12 位数字（当前 N 位）」；分段解析：前 2 位=地区码、中 5 位=办事机构代码、后 5 位=序列号。判据：首字符为 1 判「格式有效」，否则橙色警示「通常以 1 开头」（软判据，非硬性规则）；校验不联网核实账户真实性。</div>
+      <div class="formula-eq">UAN 号码格式校验（本页代码口径，纯格式规则、无校验算法）：仅允许数字及空格/连字符分隔，含字母等非数字字符即报「含非法字符」；去掉分隔符后长度须恰为 12 位，否则提示「UAN 必须为 12 位数字（当前 N 位）」；分段解析：前 2 位=地区码、中 5 位=办事机构代码、后 5 位=序列号。判据：首字符为 1 判「格式有效」，否则橙色警示「通常以 1 开头」（软判据，非硬性规则）；校验不联网核实账户真实性。</div>
   <div class="formula-desc">依据印度 EPFO 规则校验 12 位万能账号(UAN)的长度与数字格式；用于雇员公积金账户场景的号码格式检查（不验证真实性）。</div>
 </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="印度 UAN 验证器。输入 12 位万能账号编号，校验长度与数字格式，用于印度雇员公积金账户场景的号码格式检查（不验证真实性）。">Validate a 12-digit Indian Universal Account Number for length and digits. Format check only.</p>
@@ -228,12 +228,20 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function validate(){
   const raw = document.getElementById('input').value.trim();
-  const digits = raw.replace(/\D/g,'');
   const out = document.getElementById('output');
-  if(!digits){ const __h0=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Waiting for input...":"等待输入...");if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0; return; }
-  let html = `<p><strong>输入：</strong>${raw}</p>`;
+  if(!raw){ const __h0=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Waiting for input...":"等待输入...");if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0; return; }
+  // F-N148：字母等非数字字符（空格/连字符分隔除外）必须报错，不得静默剔除后判有效
+  const badIdx = raw.search(/[^0-9\s-]/);
+  if(badIdx >= 0){
+    const bad = raw[badIdx];
+    out.innerHTML = `<p><strong>输入：</strong>${esc(raw)}</p><p style="color:var(--danger);">❌ 第 ${badIdx+1} 位含非法字符「${esc(bad)}」：UAN 只能包含数字及空格/连字符分隔。</p>`;
+    return;
+  }
+  const digits = raw.replace(/[\s-]/g,'');
+  let html = `<p><strong>输入：</strong>${esc(raw)}</p>`;
   if(digits.length !== 12){
     html += `<p>⚠️ UAN 必须为 12 位数字（当前 ${digits.length} 位）</p>`;
     const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;
