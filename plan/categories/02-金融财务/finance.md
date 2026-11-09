@@ -771,21 +771,7 @@
 
 - **留存建议（tools/finance/cnpj-validator.html）**：双 mod-11 + 根号/分支号/校验位拆分 + 合法默认样例，骨架正确，建议保留；F-N168/169 已真修（第98批，字符白名单守卫点名非法字符 + 全同数字单独提示 + 顺带 esc() 自 XSS 转义与动态标签 helper），可对外；建议与 CPF/CNPJ 类工具互链并保留「不验证真实性」免责。
 
-### F-N170 GST 页：州码只用于展示，`00`/`99` 等非法州码也判有效（中，确认缺陷）
-- 问题：`stateName = STATE_CODES[stateCode] || '未知州'` 仅用于拼展示文案（`:283`），有效性判断（`:291`）只看 `zChar==='Z'` 与末位校验字符，州码从不参与；而 FAQ（`:196`）承诺「拦截录入错误」、deep-dive（`:191`）把州码列为 15 位结构的首段，实际错填州码不会被拦截。
-- 证据：`tools/finance/gst-validator.html:248-258`、`:283`、`:291`、`:191`、`:196`
-- 复现（node 实算）：`00AAPFU0939F1ZB` → 页面「州代码：00 - 未知州」「✅ GST 号码有效」；`99AAPFU0939F1ZK` 同样 ✅；对照合法 `27AAPFU0939F1ZV` → ✅、错校验位 `27AAPFU0939F1ZW` → ❌。
-- 影响：`tools/finance/gst-validator.html`；跨州错填（如把 27 输成 00）无法拦截，与 FAQ「拦截录入错误」不符。
-- 方案：州码白名单硬判（含 37/38），未命中输出「❌ 州码不在 GST 州列表」并保留输入定位。
-
-### F-N171 GST 页：州码表仍把 25/26 分列，2020 年合并后 25 已停用（低，确认缺陷）
-- 问题：`STATE_CODES` 保留 `'25':'Daman and Diu'`、`'26':'Dadra and Nagar Haveli'`。两属地 2020-01-26 合并为「Dadra and Nagar Haveli and Daman and Diu」，GST 州码统一为 26，25 不再分配；页面仍对 25 判有效并显示旧名，26 也只显示半名。
-- 证据：`tools/finance/gst-validator.html:254-255`、`:283`
-- 复现（node 实算）：`25AAPFU0939F1ZZ` → 「州代码：25 - Daman and Diu」+ ✅；`26AAPFU0939F1ZX` → 「26 - Dadra and Nagar Haveli」+ ✅（缺「and Daman and Diu」）。
-- 影响：`tools/finance/gst-validator.html`；现行税号显示过时行政区名，25 号段被误认为可用。
-- 方案：删除 25 映射，26 改为全称；如仍需兼容历史数据，标注「25 已于 2020 合并至 26」。
-
-- **留存建议（tools/finance/gst-validator.html）**：15 位拆分 + mod-36 校验 + 州码表是差异化能力，建议保留；补州码硬校验（F-N170）并更新 25/26（F-N171）后可对外；建议补「PAN 第 4 位实体类型」说明与 GSTR 类工具互链。
+- **留存建议（tools/finance/gst-validator.html）**：15 位拆分 + mod-36 校验 + 州码表是差异化能力，建议保留；F-N170/171 已核实真修（第99批：州码白名单硬判 + 25/28 停用码单列 + 26 全称，verify 四锁 00/99/25/28 齐全、9/9 全绿），可对外；建议补「PAN 第 4 位实体类型」说明与 GSTR 类工具互链。
 
 ### F-N176 字数统计页：deep-dive 示例数字全错，且「代码点」口径与 `text.length` 不符（低，确认缺陷）
 - 问题：`:252` 示例称「ToolBox 工具箱」汉字 4 个、英文单词 1 个、字符 8 个（不含空格）；实际为汉字 3、英文 1、不含空格 10（含空格 11）。另引据表（`:277`）写「Unicode 文本计数（代码点）」，而 `chars = text.length`（`:341`）按 UTF-16 码元计，emoji 会被算 2。
