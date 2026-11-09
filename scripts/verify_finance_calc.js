@@ -3209,9 +3209,9 @@ const CASES = [
       "input": "1\n2\n3"
     },
     "expect": [
-      "1 2 3\n5 总字符数 3 不含空格 0 中文字符 0 英文单词 3 行数 1 段落数 1 句子数 1分钟 预计阅读时间\n📖 可读性分析 平均句长： 3.0 词/句 | 平均每词： 1.0 字符 | 难度： 简单"
+      "1 2 3\n5 总字符数 3 不含空格 0 中文字符 0 英文单词 3 行数 1 段落数 1 句子数 1分钟 预计阅读时间\n📖 可读性分析 平均句长： 0.0 词/句 | 平均每词： 0 字符 | 难度： 简单"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\"}，输出区含「1 2 3\n5 总字符数 3 不含空格 0 中文字符 0 英文单词 3 行数 1…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\"}。F-N174 新口径词数=英文单词+中文字符，纯数字无可读词 ⇒ 平均句长 0.0（旧空白切分误把 3 个数字当 3 词得 3.0）。绑定输入与数值 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "finance/word-frequency",
@@ -4018,6 +4018,20 @@ const CASES = [
     clicks: ["validate()"],
     expect: ["长度： 16 位（IMEISV）", "软件版本号 SVN： 97（IMEISV 末 2 位，不参与 Luhn 校验）", "✅ IMEISV 号码有效（含软件版本号）"],
     ref: "F-N173 IMEISV 16 位支持：3569380356438097 前 14 位 356938035643809 Luhn 合法、末 2 位 97 为 SVN。旧实现仅收 14/15 位，16 位直接报长度错。三条 expect 分别锁类型/SVN/结论，绑定输入专属串（默认 15 位不含 IMEISV 串）⇒ 零逃生。",
+  },
+  {
+    slug: "finance/word-counter",
+    inputs: { input: "这是一个用于测试可读性的中文句子。它没有空格分隔词语。统计结果会显示平均句长。" },
+    clicks: ["analyze()"],
+    expect: ["平均句长： 12.0 词/句"],
+    ref: "F-N174 中文可读性：36 个汉字、0 英文词、3 句，新口径词数=英文词+中文字符=36 ⇒ 平均句长 12.0（难度中等），旧空白切分得 1 词/3 句=0.3（恒「简单」）。绑定输入专属数值 ⇒ 默认 ToolBox 样例不同值不命中。",
+  },
+  {
+    slug: "finance/word-counter",
+    inputs: { input: "中文词频测试 中文词频测试" },
+    clicks: ["document.getElementById('showDensity').checked=true;analyze();var h=String(document.getElementById('densityList').innerHTML).replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ');document.getElementById('__tbProbe').textContent='WCCN '+((h.indexOf('词频 2 次')>=0&&h.indexOf('测试 2 次')>=0)?'OK':'BAD');"],
+    expect: ["WCCN OK"],
+    ref: "F-N175 中文词频：纯中文「中文词频测试」重复 2 次，新实现按 2 字 bigram（中文/文词/词频/频测/测试 各 2 次）计入词频表。旧实现只取 [a-z]+ 得 0 项、区块空白。探针 AND 两个 bigram 计数（默认英文样例不含中文 bigram）⇒ 零逃生。",
   },
 
 ];

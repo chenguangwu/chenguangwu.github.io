@@ -801,20 +801,6 @@
 
 - **留存建议（tools/finance/gst-validator.html）**：15 位拆分 + mod-36 校验 + 州码表是差异化能力，建议保留；补州码硬校验（F-N170）并更新 25/26（F-N171）后可对外；建议补「PAN 第 4 位实体类型」说明与 GSTR 类工具互链。
 
-### F-N174 字数统计页：可读性「平均句长」按空白切分，纯中文恒 0.x 词/句、难度恒「简单」（中，确认缺陷）
-- 问题：`words` 由空白切分（`:343`），`avgWordsPerSentence = words / sentences`（`:374`）、`difficulty` 按 >20/>12 判（`:376-378`）。中文句间无空格，整段只算 1 个"词"，可读性结论失真；与公式（`:194`）「英文单词 = [a-zA-Z]+」和 FAQ（`:255`）「汉字按字计数」的口径不一致。
-- 证据：`tools/finance/word-counter.html:194`、`:255`、`:343`、`:348`、`:374-378`
-- 复现（node 实算）：纯中文三句 `这是一个用于测试可读性的中文句子。它没有空格分隔词语。统计结果会显示平均句长。` → words=1、sentences=3、avg=0.3、难度「简单」；中英混排 `I love ToolBox. It is great! 中文也要统计。` → words=7（中文段算 1 词）、avg=2.3。
-- 影响：`tools/finance/word-counter.html`；面向中文稿件时「平均句长/难度」无参考价值，且与宣传的「区分单词与汉字」矛盾。
-- 方案：词数改用 `englishWords + chineseChars`（或按字符折算），难度阈值改按「词/字每句」并在 UI 注明口径；中英混排分别展示。
-
-### F-N175 字数统计页：「显示词频」只统计英文，纯中文时列表与图表恒为空（中，确认缺陷）
-- 问题：`showDensity` 先算出 `chineseSegments`（`:394`）却从未使用；计数只取 `text.toLowerCase().match(/[a-z]+/g)`（`:393-404`）。纯中文文本勾选「显示词频」后 `:406` 生成空列表，`:413` 仍强制显示区块，`#wcChart`（`:449-467`）同样只取拉丁词而画不出图。
-- 证据：`tools/finance/word-counter.html:205`、`:215-218`、`:391-413`、`:450-467`、`:328-329`
-- 复现（node 实算）：纯中文 `中文词频测试 中文词频测试` → `englishWords=0`、`chineseSegments=4` → 词频 0 项、图表空白；对照 `ToolBox toolbox` → 2 项正常。
-- 影响：`tools/finance/word-counter.html`；中文用户的核心功能（中文高频词）不可用，页面宣称「高频词统计（前 10）」名不符实。
-- 方案：把 `chineseSegments` 并入同一 `countMap`（中文按 2–4 字 n-gram），纯中文时无结果则提示「未检测到统计词」并隐藏区块。
-
 ### F-N176 字数统计页：deep-dive 示例数字全错，且「代码点」口径与 `text.length` 不符（低，确认缺陷）
 - 问题：`:252` 示例称「ToolBox 工具箱」汉字 4 个、英文单词 1 个、字符 8 个（不含空格）；实际为汉字 3、英文 1、不含空格 10（含空格 11）。另引据表（`:277`）写「Unicode 文本计数（代码点）」，而 `chars = text.length`（`:341`）按 UTF-16 码元计，emoji 会被算 2。
 - 证据：`tools/finance/word-counter.html:252`、`:277`、`:341`
