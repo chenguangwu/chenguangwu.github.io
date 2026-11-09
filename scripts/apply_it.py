@@ -1537,9 +1537,9 @@ KB['it/keyword-density'] = dict(title='关键词密度分析器',
   faqs=[dict(q='密度越高越好？', a='不是，堆砌会被判作弊。')])
 
 KB['it/keyword-extractor'] = dict(title='关键词提取',
-  scenarios=['从文本抽取主题词（TF/TextRank）。'],
-  examples=[dict(title='提取', body='文章 → 关键词 [加密, 算法, 安全] 按权重排序。')],
-  faqs=[dict(q='中文需分词吗？', a='需，先分词再做词频/图权重。')])
+  scenarios=['从文本中提取词频较高的候选词，辅助人工整理主题。'],
+  examples=[dict(title='提取', body='例如：apple apple banana → apple 出现 2 次，banana 出现 1 次。')],
+  faqs=[dict(q='中文需分词吗？', a='需要。浏览器支持时使用中文分词，否则退回滑窗候选词；结果应人工核对。')])
 
 KB['it/code-line-counter'] = dict(title='Code Line Counter',
   scenarios=['统计项目代码行/注释/空行。'],
