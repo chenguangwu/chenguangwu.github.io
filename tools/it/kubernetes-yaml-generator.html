@@ -230,12 +230,15 @@ function kyEn(){return (typeof TBKit!=='undefined'&&TBKit.util.isEn());}
 function kyQ(zh,en){return kyEn()?en:zh;}
 function calcTool(){var name=document.getElementById('name').value.trim()||'app';
 var image=document.getElementById('image').value.trim()||'nginx:latest';
-var port=Math.floor(num('port'));
+var portRaw=num('port');var port=Math.floor(portRaw);
 var rep=Math.max(1,Math.floor(num('replicas')));
 var out=document.getElementById('result');
 var err='';
 if(!/^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/.test(name)||name.length>63)err=kyQ('⚠ 名称须符合 DNS-1123（小写字母/数字/连字符，首尾为字母或数字，≤63 字符）','⚠ Name must be a DNS-1123 label (lowercase letters/digits/hyphens, alphanumeric ends, max 63 chars)');
+else if(!Number.isInteger(portRaw))err=kyQ('⚠ 端口须为整数（1~65535，80.9 不被允许）','⚠ Port must be an integer (1–65535; 80.9 not allowed)');
 else if(!isFinite(port)||port<1||port>65535)err=kyQ('⚠ 端口须为 1 ~ 65535 的整数','⚠ Port must be an integer between 1 and 65535');
+else if(/^#/.test(image))err=kyQ('⚠ 镜像名不能以 # 开头（YAML 会当作注释）','⚠ Image must not start with # (YAML treats it as a comment)');
+else if(/^(null|true|false|yes|no|on|off|~|\{\}|\[\])$/i.test(image))err=kyQ('⚠ 镜像名不能是 YAML 关键字或空结构（{}、[]、null 等）','⚠ Image must not be a YAML keyword or empty structure ({}, [], null ...)');
 else if(/[\s"']/.test(image)||/:\s/.test(image))err=kyQ('⚠ 镜像名不能包含空白、引号或 ": "','⚠ Image must not contain whitespace, quotes or ": "');
 if(err){out.innerHTML='<p style="color:var(--danger)">'+escH(err)+'</p>';return;}
 var y='apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: '+name+'\nspec:\n  replicas: '+rep+'\n  selector:\n    matchLabels:\n      app: '+name+'\n  template:\n    metadata:\n      labels:\n        app: '+name+'\n    spec:\n      containers:\n      - name: '+name+'\n        image: '+image+'\n        ports:\n        - containerPort: '+port+'\n---\napiVersion: v1\nkind: Service\nmetadata:\n  name: '+name+'\nspec:\n  selector:\n    app: '+name+'\n  ports:\n  - port: '+port+'\n    targetPort: '+port+'\n  type: ClusterIP\n';

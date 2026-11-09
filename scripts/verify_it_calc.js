@@ -1688,6 +1688,27 @@ const CASES = [
     ref: "IT-N528：镜像引用含空白会破坏 YAML，须拒绝；修复前原样拼接。默认 nginx:latest 不含空白，不出现该提示。",
   },
   {
+    slug: "it/kubernetes-yaml-generator",
+    inputs: { name: "web", image: "nginx:latest", port: "80.9", replicas: "2" },
+    clicks: ["calcTool()"],
+    expect: ["⚠ 端口须为整数（1~65535，80.9 不被允许）"],
+    ref: "IT-N528：端口 80.9 非整数须拒绝（修复前 Math.floor 静默取整为 80 写进 containerPort，违反整数约束）。默认 80 合法不出现该提示。",
+  },
+  {
+    slug: "it/kubernetes-yaml-generator",
+    inputs: { name: "web", image: "#invalid", port: "80", replicas: "2" },
+    clicks: ["calcTool()"],
+    expect: ["⚠ 镜像名不能以 # 开头（YAML 会当作注释）"],
+    ref: "IT-N528：镜像 #invalid 以 # 开头会被 YAML 当作注释、值变 null，须拒绝。修复前原样拼成 `image: #invalid`。默认 nginx:latest 不出现该提示。",
+  },
+  {
+    slug: "it/kubernetes-yaml-generator",
+    inputs: { name: "web", image: "{}", port: "80", replicas: "2" },
+    clicks: ["calcTool()"],
+    expect: ["⚠ 镜像名不能是 YAML 关键字或空结构"],
+    ref: "IT-N528：镜像 {} 会被 YAML 解析成空映射而非字符串，须拒绝。修复前原样拼成 `image: {}`。默认 nginx:latest 不出现该提示。",
+  },
+  {
     slug: "it/emoji-cheatsheet",
     inputs: { search: "🍺" },
     expect: ["共 1 个 emoji"],
@@ -2437,6 +2458,20 @@ const CASES = [
     ref: "IT-N554：按字符名 snowman 检索命中 U+2603（内置标准名称表）。HEAD 版把 7 个字母拆成 7 格 ⇒ 不命中。",
   },
   {
+    slug: "it/unicode-lookup",
+    inputs: { search: "U+AC00" },
+    clicks: ["render()"],
+    expect: ["HANGUL SYLLABLE GA"],
+    ref: "IT-N555：U+AC00 是 Hangul 音节 가，标准名 HANGUL SYLLABLE GA（按 L/V/T 组合规则推导）。修复前显示 HANGUL SYLLABLE-AC00（拼码点而非合成名）。默认列表不含该条目。",
+  },
+  {
+    slug: "it/unicode-lookup",
+    inputs: { search: "U+3FFFF" },
+    clicks: ["render()"],
+    expect: ["名称未收录"],
+    ref: "IT-N555：U+3FFFF 落在已分配 CJK 子区间（0x30000–0x3134F）之外、属未分配码位，应标「名称未收录」而非伪造 CJK UNIFIED IDEOGRAPH-3FFFF。修复前在 0x20000–0x3FFFF 宽区间里直接套用 CJK 命名。默认列表不含该码位。",
+  },
+  {
     slug: "it/username-generator",
     inputs: { style: "fun", maxLen: "20" },
     clicks: ["generate()"],
@@ -2715,6 +2750,13 @@ const CASES = [
     clicks: ["generate()"],
     expect: ["TOOLBOX-QR-2026"],
     ref: "二维码矩阵在桩内画不出来（`renderQR … leng`），但内容串先已写进结果区 ⇒ 直接锚内容串（与 `it/qrcode` 同族）。 ⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
+  },
+  {
+    slug: "it/text-qr",
+    inputs: { text: "old secret" },
+    clicks: ["document.getElementById('text').value='old secret';generate();window.__qrMeta={probe:1};document.getElementById('text').value='';generate();document.getElementById('output').textContent='N551_META='+(window.__qrMeta===null?'NULL':'STALE');"],
+    expect: ["N551_META=NULL"],
+    ref: "IT-N551：先生成 old secret（__qrMeta 置位），强制置哨兵模拟已生成二维码，清空输入再 generate()，空分支必须清空 __qrMeta（修复前仅 return 不清空，旧二维码仍可下载）。断言贴回结果区的状态标记，old secret 不出现在判定串、非回显。",
   },
   {
     slug: "it/barcode-upc",

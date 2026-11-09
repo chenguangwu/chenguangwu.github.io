@@ -592,14 +592,27 @@ function showDetail(code){
     </div>
   `;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('detail').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('detail').innerHTML=__h2;
 }
+function isCjkAssigned(code){
+  return (code>=0x3400&&code<=0x4DBF)||(code>=0x4E00&&code<=0x9FFF)||
+         (code>=0x20000&&code<=0x2A6DF)||(code>=0x2A700&&code<=0x2B73F)||
+         (code>=0x2B740&&code<=0x2B81F)||(code>=0x2B820&&code<=0x2CEAF)||
+         (code>=0x2CEB0&&code<=0x2EBEF)||(code>=0x30000&&code<=0x3134F);
+}
+function hangulSyllableName(code){
+  var L=['G','GG','N','D','DD','R','M','B','BB','S','SS','NG','J','JJ','C','K','T','P','H'];
+  var V=['A','AE','YA','YAE','EO','E','YEO','YE','O','WA','WAE','OE','YO','U','WEO','WE','WI','YU','EU','YI','I'];
+  var T=['','G','GG','GS','N','NJ','NH','D','L','LG','LM','LB','LS','LT','LP','LH','M','B','BS','S','SS','NG','J','C','K','T','P','H'];
+  var s=code-0xAC00, li=Math.floor(s/588), vi=Math.floor((s%588)/28), ti=s%28;
+  return 'HANGUL SYLLABLE '+L[li]+V[vi]+(ti?T[ti]:'');
+}
 function lookupName(code){
   code = Number(code);
   if(!Number.isFinite(code) || code < 0 || code > 0x10FFFF) return ulQ('无效码点','Invalid code point');
   const hex = code.toString(16).toUpperCase().padStart(4,'0');
   if(Object.prototype.hasOwnProperty.call(UNICODE_NAMES, code)) return UNICODE_NAMES[code];
   // 表外码点按 Unicode 命名规则推导，其余如实标注「未收录」，不再伪装成名称。
-  if((code>=0x3400&&code<=0x9FFF)||(code>=0x20000&&code<=0x3FFFF)) return 'CJK UNIFIED IDEOGRAPH-'+hex;
-  if(code>=0xAC00&&code<=0xD7A3) return 'HANGUL SYLLABLE-'+hex;
+  if(isCjkAssigned(code)) return 'CJK UNIFIED IDEOGRAPH-'+hex;
+  if(code>=0xAC00&&code<=0xD7A3) return hangulSyllableName(code);
   return ulQ('名称未收录','Name not in local table')+' · '+getCategory(code)+' U+'+hex;
 }
 function toUtf8(code){
