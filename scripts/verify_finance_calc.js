@@ -24,6 +24,36 @@ const { runCase } = require("./verify_it_calc.js");
 // ---------------------------------------------------------------- 用例
 const CASES = [
   {
+    slug: "finance/imei-validator",
+    clicks: ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'x',type:'text',value:'1'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('output').textContent=\"校验流程已完成。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。校验结论：校验失败，该 IMEI 无效。\";__imei_validatorExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='FNIMEI score='+(__cap.length?__cap[__cap.length-1].__tbScore:'NA');"],
+    expect: ["FNIMEI score=0"],
+    ref: "复核失败重做·F-N189 第一批 IMEI：校验失败结论位于 80 字摘要之后，旧 Score 只看 ResText 前 80 字 ⇒ 误记通过(1)；修复后 Score 读 FullResText 完整文本，命中「校验失败/无效」⇒ 0。历史展示仍为摘要，不影响。默认态无探针串 ⇒ 零逃生。"
+  },
+  {
+    slug: "finance/gst-validator",
+    clicks: ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'x',type:'text',value:'1'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('output').textContent=\"校验流程已完成。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。校验结论：校验失败，该 GSTIN 无效。\";__gst_validatorExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='FNGST score='+(__cap.length?__cap[__cap.length-1].__tbScore:'NA');"],
+    expect: ["FNGST score=0"],
+    ref: "复核失败重做·F-N189 第一批 GSTIN：同 IMEI，失败结论在截断摘要之后。修复后 FullResText 判定 ⇒ 0（旧 1）。"
+  },
+  {
+    slug: "finance/iccid-validator",
+    clicks: ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'x',type:'text',value:'1'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('output').textContent=\"校验流程已完成。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。校验结论：校验失败，该 ICCID 无效。\";__iccid_validatorExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='FNICCID score='+(__cap.length?__cap[__cap.length-1].__tbScore:'NA');"],
+    expect: ["FNICCID score=0"],
+    ref: "复核失败重做·F-N189 第一批 ICCID：同 IMEI，失败结论在截断摘要之后。修复后 FullResText 判定 ⇒ 0（旧 1）。"
+  },
+  {
+    slug: "finance/bic-lookup",
+    clicks: ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'x',type:'text',value:'1'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('output').textContent=\"⚠ 格式有效，但离线库中未收录该 BIC，请核对。正在整理银行代码信息。正在整理银行代码信息。正在整理银行代码信息。正在整理银行代码信息。正在整理银行代码信息。正在整理银行代码信息。正在整理银行代码信息。正在整理银行代码信息。\";__bic_lookupExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='FNBIC score='+(__cap.length?__cap[__cap.length-1].__tbScore:'NA');"],
+    expect: ["FNBIC score=1"],
+    ref: "复核失败重做·F-N189 第一批 BIC：格式有效但离线库未知的警告（⚠）被通用词表判失败(0)；修复后从失败词表移除 ⚠（警告≠失败），FullResText 判定 ⇒ 1。"
+  },
+  {
+    slug: "finance/text-reverse-words",
+    clicks: ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'x',type:'text',value:'1'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('result').textContent=\"原文：错误 反转结果：误错。本页为纯文本处理，输出与原文逐字对应。本页为纯文本处理，输出与原文逐字对应。本页为纯文本处理，输出与原文逐字对应。本页为纯文本处理，输出与原文逐字对应。本页为纯文本处理，输出与原文逐字对应。本页为纯文本处理，输出与原文逐字对应。\";__text_reverse_wordsExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='FNTEXT score='+(__cap.length?__cap[__cap.length-1].__tbScore:'NA');"],
+    expect: ["FNTEXT score=1"],
+    ref: "复核失败重做·F-N189 第一批 文本反转：用户输入「错误」成功后结果文本含该词被判失败(0)；修复后从失败词表移除「错误/失败/Invalid/Failed」（纯文本页用户文本可含任意词），FullResText 判定 ⇒ 1。"
+  },
+  {
     slug: "finance/tax-calculator",
     inputs: { salary: "", insurance: "3000", special: "2000", threshold: "5000" },
     clicks: ["__taxExport()"],
