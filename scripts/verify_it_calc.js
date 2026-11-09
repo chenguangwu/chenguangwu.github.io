@@ -8196,6 +8196,19 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"count\":\"42\",\"output\":\"1\\n2\\n3\"}，输出区含「sectetur sed. Minim qui in duis dolore c…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    "slug": "it/lorem",
+    "inputs": {
+      "count": "1",
+      "minWords": "3",
+      "maxWords": "3"
+    },
+    "clicks": ["document.getElementById('startLorem').checked=true;generate()"],
+    "expect": [
+      "Lorem ipsum dolor."
+    ],
+    "ref": "IT-N525 复核失败重做：句长最小/最大均 3、勾选「以 Lorem ipsum 开头」、默认段落模式，首句须服从句长约束为 3 词「Lorem ipsum dolor.」；旧实现强行塞入固定 8 词句。默认态不出现该串 ⇒ 强判别、零逃生。回退 N525 源码会令此用例转红。"
+  },
+  {
     "slug": "it/markdown-editor",
     "inputs": {
       "mdInput": "1\n2\n3"

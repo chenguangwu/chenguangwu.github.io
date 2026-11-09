@@ -333,6 +333,18 @@ function randomSentence(){
   let s = sentence.join(' ');
   return s.charAt(0).toUpperCase() + s.slice(1) + '.';
 }
+// IT-N525：固定拉丁开头必须服从句长约束——超最大句长则截断、不足最小句长则补随机词，避免强行塞入 8 词固定句。
+function loremFirstSentence(){
+  const opener=['Lorem','ipsum','dolor','sit','amet','consectetur','adipiscing','elit'];
+  const rg=sentenceRange();
+  let take=opener.length;
+  if(rg[1]<take) take=rg[1];
+  let w=opener.slice(0,take);
+  while(w.length<rg[0] && w.length<opener.length) w.push(randomWord());
+  while(w.length<rg[0]) w.push(randomWord());
+  let s=w.join(' ');
+  return s.charAt(0).toUpperCase()+s.slice(1)+'.';
+}
 
 function randomParagraph(){
   const len = 3 + Math.floor(Math.random() * 4);
@@ -366,15 +378,17 @@ function generate(){
     } else if(currentType === 'chinese'){
       result.push(randomChineseSentence());
     } else if(currentType === 'sentences'){
-      let s = randomSentence();
-      if(i === 0 && startLorem){
-        s = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.';
-      }
+      let s = (i === 0 && startLorem) ? loremFirstSentence() : randomSentence();
       result.push(s);
     } else {
-      let p = randomParagraph();
+      let p;
       if(i === 0 && startLorem){
-        p = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. ' + p;
+        const plen = 3 + Math.floor(Math.random()*4);
+        let parts=[loremFirstSentence()];
+        for(let k=1;k<plen;k++) parts.push(randomSentence());
+        p = parts.join(' ');
+      } else {
+        p = randomParagraph();
       }
       result.push(p);
     }
