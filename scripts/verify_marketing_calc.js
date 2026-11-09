@@ -13,6 +13,12 @@
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
+{
+    "slug": "marketing/utm-builder",
+    "clicks": ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'url',type:'text',value:'https://example.com/test'},{id:'source',type:'text',value:'baidu'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};['url','source','medium','campaign','term','content'].forEach(function(id){var e=document.getElementById(id);e.value=(id==='url'?'https://example.com/test':(id==='source'?'baidu':''));});var __rs={textContent:'https://example.com/test?utm_source=baidu'};var __oqs=document.querySelector;document.querySelector=function(s){return s==='.result-box'?__rs:__oqs(s);};__utm_builder_last=0;generate();document.querySelectorAll=__oq;document.querySelector=__oqs;document.getElementById('__tbProbe').textContent='UTM n='+__cap.length;"],
+    "expect": ["UTM n=1"],
+    "ref": "复核失败重做·UTM 生成链接不进历史：生成真实入口是 generate()，原记录器只包装 switchTab ⇒ 生成的链接不记账。修复后同构包装 generate()，返回后触发 Extras。用例注入 url/source 并覆盖 querySelector('.result-box') 桩供 ResText 读取；修复前 n=0、修复后 n=1，默认态无探针串 ⇒ 零逃生。"
+  },
   {
     slug: "marketing/marketing-ctr-calculator",
     inputs: { impressions: "10000", clicks: "12000", cost: "2000", conversions: "50" },

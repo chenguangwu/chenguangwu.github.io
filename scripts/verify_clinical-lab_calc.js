@@ -3,6 +3,18 @@
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
+    "slug": "clinical-lab/blood-gas-analysis",
+    "clicks": ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'ph',type:'text',value:''}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};var __r=document.getElementById('result');__r.textContent='请填写 pH、PaCO2、HCO3（均需大于 0）';__blood_gas_analysis_last=0;__blood_gas_analysisExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='BGAVAL score='+__blood_gas_analysisScore('请填写 pH、PaCO2、HCO3（均需大于 0）')+' n='+__cap.length;"],
+    "expect": ["BGAVAL score=0 n=0"],
+    "ref": "复核失败重做·血气必填误判与导出夹带：BGA_INVALID_MSG『请填写 pH、PaCO2、HCO3』原词表漏掉 ⇒ Score=1；且无效记录写进历史，恢复有效后 CSV 仍夹带。修复后 Score 判 0，Extras 在 Score<=0 时直接 return 不写历史 ⇒ n=0。修复前 score=1 n=1。单条探针覆盖两处修复，默认态无探针串 ⇒ 零逃生。"
+  },
+{
+    "slug": "clinical-lab/flow-cytometry-ratio",
+    "clicks": ["document.getElementById('__tbProbe').textContent='FLOW score='+__flow_cytometry_ratioScore('请先填写有效的白细胞计数（>0）与淋巴细胞百分比（0–100%），否则无法计算绝对计数。');"],
+    "expect": ["FLOW score=0"],
+    "ref": "复核失败重做·流式细胞术必填误判：页面失效文案『请先填写有效的白细胞计数…』含『请填写』但原词表漏掉 ⇒ 判 1，表格及 CSV 同步误标。修复后补 请填写|填写 ⇒ 判 0。探针取真实 Score 函数返回值，默认态无探针串 ⇒ 零逃生。"
+  },
+{
   "slug": "clinical-lab/biochemistry-ratio",
   "inputs": {
     "alt": "60",

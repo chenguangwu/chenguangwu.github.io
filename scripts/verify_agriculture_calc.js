@@ -13,6 +13,12 @@ const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
 {
+    "slug": "agriculture/canopy-coverage",
+    "clicks": ["document.getElementById('__tbProbe').textContent='CANSCR score='+__canopy_coverageScore('行距株距必须大于0');"],
+    "expect": ["CANSCR score=0"],
+    "ref": "复核失败重做·清空行距误判：页面失效文案『行距株距必须大于0』含『必须』但原 Score 词表只列 请输入|Please enter，⇒ 判 1，历史 __tbScore=1。修复后补 必须|大于0 ⇒ 判 0。探针取真实 Score 函数返回值，默认态无探针串 ⇒ 零逃生。"
+  },
+{
     "slug": "agriculture/fertilizer-calculator",
     "clicks": ["document.getElementById('__tbProbe').textContent='FERT score='+__fertilizer_calculatorScore('请填写「种植面积(亩)」后再计算。');"],
     "expect": ["FERT score=0"],

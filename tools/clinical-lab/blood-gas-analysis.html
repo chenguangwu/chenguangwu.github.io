@@ -485,7 +485,8 @@ function __blood_gas_analysisResText(){
 }
 function __blood_gas_analysisScore(t){
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    // F-N189：BGA_INVALID_MSG『请填写 pH、PaCO2、HCO3』原词表漏掉 ⇒ 失效态记通过。
+    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|请填写|填写|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __blood_gas_analysisTime(t){
@@ -541,6 +542,8 @@ function __blood_gas_analysisExtras(){
     if(keys.length>12) keys=keys.slice(0,12);
     var res=__blood_gas_analysisResText();
     if(!res) return;
+    // F-N189：无效态（如必填提示）不写历史，避免恢复有效后导出的 CSV 仍夹带这条错误记录。
+    if(__blood_gas_analysisScore(res)<=0) return;
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();

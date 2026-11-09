@@ -12,6 +12,12 @@
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
+{
+    "slug": "fun/chess-fen-viewer",
+    "clicks": ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'fen',type:'text',value:'8/8/8/8/8/8/8/8 x - - 0 1'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('fen').value='8/8/8/8/8/8/8/8 x - - 0 1';var __r=document.getElementById('output');__r.textContent='FEN 字段缺失或非法：需 6 段（行棋方须 w/b、易位 KQkq 或 -、吃过路兵格位或 -、计数非负整数）';__chess_fen_viewer_last=0;start();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='FEN n='+__cap.length+' s='+(__cap.length?__cap[__cap.length-1].__tbScore:'NA');"],
+    "expect": ["FEN n=1 s=0"],
+    "ref": "复核失败重做·FEN 手动解析不入历史与非法态误判：手动输入 FEN 点『解析』走 start()，原记录器只包装 loadPreset ⇒ n=0；且非法 FEN 文案含『非法/缺失』而非『无效』，原 Score 判通过。修复后包装 start() 并补 非法|缺失 ⇒ n=1 s=0。用例注入 6 段全空 FEN 走真实 start()，预设 output 文本以适配桩 DOM；默认态无探针串 ⇒ 零逃生。"
+  },
 
   // ── 绕口令随机抽题 ──────────────────────────────────────────
   {
