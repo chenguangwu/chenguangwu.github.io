@@ -265,7 +265,7 @@ const SPELL_MAJOR={
 };
 const SPELL_MINOR={
   'C':['C','D','Eb','F','G','Ab','Bb'],
-  'Db':['C#','D#','E','F#','G#','A','B'],
+  'Db':['Db','Eb','Fb','Gb','Ab','Bb','Cb'],
   'D':['D','E','F','G','A','Bb','C'],
   'Eb':['Eb','F','Gb','Ab','Bb','Cb','Db'],
   'E':['E','F#','G','A','B','C','D'],
@@ -452,14 +452,21 @@ function msExportCsv(){
   var en=TBKit.util.isEn();
   var root=document.getElementById('root').value;
   var type=document.getElementById('scaleType').value;
-  var rootIdx=notes.indexOf(root);
+  var rootIdx=(ROOT_PC[root]!==undefined?ROOT_PC[root]:notes.indexOf(root));
   var pattern=scales[type];
   if(!pattern||rootIdx<0){return;}
+  // 与 render() 保持一致的拼写：优先用 SPELL_* 字典（含降号调），回退升号序列
+  var scaleNotes;
+  if(type==='major'&&SPELL_MAJOR[root]) scaleNotes=SPELL_MAJOR[root].slice();
+  else if(type==='minor'&&SPELL_MINOR[root]) scaleNotes=SPELL_MINOR[root].slice();
+  else scaleNotes=pattern.map(function(i){return i===0?root:notes[(rootIdx+i)%12];});
+  // 音名→音高类映射（覆盖升/降号与倍变异名，确保 Db/Eb/Ab/Bb 等也能导出正确频率）
+  var NOTE_PC={'C':0,'C#':1,'Db':1,'D':2,'D#':3,'Eb':3,'E':4,'Fb':4,'F':5,'E#':5,'F#':6,'Gb':6,'G':7,'G#':8,'Ab':8,'A':9,'A#':10,'Bb':10,'B':11,'Cb':11};
   var tbody=document.querySelector('#msHidden tbody'); if(!tbody){return;}
   tbody.innerHTML='';
-  pattern.forEach(function(i,idx){
-    var note=notes[(rootIdx+i)%12];
-    var pc=notes.indexOf(note);
+  scaleNotes.forEach(function(note,idx){
+    var pc=(NOTE_PC[note]!==undefined?NOTE_PC[note]:notes.indexOf(note));
+    if(pc<0) pc=0;
     var midi=60+pc;
     var freq=440*Math.pow(2,(midi-69)/12);
     var tr=document.createElement('tr');

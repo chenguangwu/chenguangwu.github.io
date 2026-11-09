@@ -143,9 +143,9 @@ const CASES = [
   {
     slug: "design/depth-of-field-calculator",
     inputs: { sensor: "1", focal: "85", aperture: "2.8", distance: "3" },
-    expect: ["2.90m", "86.0m"],
-    ref: "去默认化（原 50mm/f1.8/2m 全与默认相同）：超焦距 H = f²/(N·c) = 85²/(2.8×0.03) = 86012mm ≈ 86.0m；"
-      + "近点 = H·s/(H+(s−f)) = 86012×3000/(86012+2915) = 2.90m（远点 3.11m，景深 0.20m）。默认得 46.3m / 1.92m",
+    expect: ["2.90m", "86.1m"],
+    ref: "去默认化（原 50mm/f1.8/2m 全与默认相同）：超焦距 H = f²/(N·c) + f = 85²/(2.8×0.03) + 85 = 86011.9 + 85 = 86096.9mm ≈ 86.1m（公式框与远点边界均含 +f，卡片原漏加 f 显示 86.0m，已修正为 h+f）；"
+      + "近点 = H·s/(H+(s−f)) = 86011.9×3000/(86011.9+2915) = 2.90m（远点 3.11m，景深 0.20m）。默认得 46.3m / 1.92m",
   },
   {
     slug: "design/depth-of-field-calculator",
@@ -448,6 +448,12 @@ const CASES = [
     inputs: { root: "G#", scaleType: "major" },
     expect: ["G# - A# - C - C# - D# - F - G"],
     ref: "同页另一分支：大调音阶（G# → A# C C# D# F G）。与上一例（D 小调）构成反向双向锚，证明 root 与 scaleType 真的参与换算，而不是只回显选择项。",
+  },
+  {
+    slug: "design/music-scale-reference",
+    inputs: { root: "Db", scaleType: "minor" },
+    expect: ["Db - Eb - Fb - Gb - Ab - Bb - Cb"],
+    ref: "2026-11-09 复核失败重做（D-N198 降号音阶）：选 Db 自然小调，修复前 SPELL_MINOR['Db'] 错写成 C# 小调音节（C# D# E F# G# A B），显示与所选 Db 不一致的升号拼写，且 CSV 因 notes.indexOf('Db')=-1 直接 return 无法导出。修复后 SPELL_MINOR['Db']=['Db','Eb','Fb','Gb','Ab','Bb','Cb']，msExportCsv 改用 ROOT_PC/NOTE_PC 支持降号根音与音高类。期望音阶串 'Db - Eb - Fb - Gb - Ab - Bb - Cb'。默认 C 大调 → 'C - D - E - F - G - A - B' 不命中。"
   },
 
   // ── §7.4 覆盖缺口线 · design/loading-dots
