@@ -927,6 +927,20 @@ const CASES = [
     ref: "F-N206 防误伤：常见连字符分隔写法仍允许（分隔符清洗后按 14 位 hex 解析），制造商码 A0000012。与含 G 被拒形成对照。默认预填不同 ⇒ 不命中。",
   },
   {
+    slug: "finance/meid-validator",
+    inputs: { input: "A0000012345679" },
+    clicks: ["validate();var h=String(document.getElementById('output').innerHTML).replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ');document.getElementById('__tbProbe').textContent='MEIDFIX '+document.getElementById('input').value+' '+((h.indexOf('⚠ 仅格式通过，未提供校验位，无法完成校验')>=0&&h.indexOf('十进制表示： 045035996579124857（同一 MEID）')>=0&&h.indexOf('校验算法： 参考 Luhn Base16（非标准，仅供格式自检）')>=0)?'OK':'BAD');"],
+    expect: ["MEIDFIX A0000012345679 OK"],
+    ref: "F-N207 三合一锁：14 位 hex 缺校验位时旧实现一律 ✅，且无 hex↔dec 换算、算法自称 Luhn-like；修复后必须同时给出「无法完成校验」、十进制等价 045035996579124857 与非标准算法标注。输入号绑定避免静态逃生。",
+  },
+  {
+    slug: "finance/meid-validator",
+    inputs: { input: "045035996579124856" },
+    clicks: ["validate();var h=String(document.getElementById('output').innerHTML).replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ');document.getElementById('__tbProbe').textContent='MEIDDEC '+document.getElementById('input').value+' '+(h.indexOf('十六进制表示： A0000012345678（同一 MEID）')>=0?'OK':'BAD');"],
+    expect: ["MEIDDEC 045035996579124856 OK"],
+    ref: "F-N207 十进制→十六进制互证：BigInt('045035996579124856').toString(16) 补零为 A0000012345678，页面必须展示同一 MEID 的十六进制表示；旧实现无任何换算行 ⇒ 探针 BAD。输入号绑定避免静态逃生。",
+  },
+  {
     slug: "finance/mortgage-prepayment",
     inputs: { principal: "100000", rate: "5", months: "360", monthly: "536.82", prepay: "10000" },
     clicks: ["calc()"],

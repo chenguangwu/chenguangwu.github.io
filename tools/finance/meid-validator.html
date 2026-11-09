@@ -229,11 +229,11 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 const HEX_BASE = '0123456789ABCDEF';
-// MEID check digit using Luhn-like base-16 algorithm
+// MEID 参考校验位：Luhn Base16（非 3GPP2 官方校验位定义，仅供离线格式自检）
 function meidCheckHex(s14){
   // s14: 14 hex chars, compute RS check digit (returns hex char)
   const base = 16;
-  // Luhn-style: from right, double alternate, sum digits in base 16
+  // 参考 Luhn：自右起隔位乘 2，进位按 base 16 再取位和
   let sum = 0;
   let alt = false;
   for(let i = s14.length - 1; i >= 0; i--){
@@ -251,7 +251,7 @@ function meidCheckHex(s14){
   return checkVal;
 }
 function meidCheckDec(s18){
-  // 18-decimal MEID: Luhn mod 10
+  // 18 位十进制 MEID：参考 Luhn mod 10（非标准校验位定义）
   let sum = 0, alt = false;
   for(let i = s18.length - 1; i >= 0; i--){
     let n = parseInt(s18[i],10);
@@ -262,6 +262,16 @@ function meidCheckDec(s18){
   }
   const rem = sum % 10;
   return (10 - rem) % 10;
+}
+function meidHexToDec14(s14){
+  try { return BigInt('0x'+s14).toString(10).padStart(18,'0'); } catch(e) { return null; }
+}
+function meidDecToHex18(s18){
+  try {
+    const v = BigInt(s18);
+    if(v > 0xFFFFFFFFFFFFFFn) return null;
+    return v.toString(16).toUpperCase().padStart(14,'0');
+  } catch(e) { return null; }
 }
 function validate(){
   const raw = document.getElementById('input').value.trim().toUpperCase();
@@ -283,22 +293,26 @@ function validate(){
   // 14-hex or 15-hex (with check); 18-dec or 19-dec (with check)
   let mode = '';
   let valid = false;
+  let partial = false;
   if(isHex && (clean.length === 14 || clean.length === 15)){
     mode = 'hex';
     const hasCheck = clean.length === 15;
     const base14 = clean.substring(0,14);
     const expectedCheck = meidCheckHex(base14);
     const actualCheck = hasCheck ? HEX_BASE.indexOf(clean[14]) : -1;
+    const dec18 = meidHexToDec14(base14);
     html += `<p><strong>格式：</strong>十六进制（${hasCheck?'15':'14'} 位）</p>`;
     html += `<p><strong>制造商代码（前 8 位）：</strong>${base14.substring(0,8)}</p>`;
     html += `<p><strong>序列号（后 6 位）：</strong>${base14.substring(8,14)}</p>`;
-    html += `<p><strong>校验算法：</strong>Luhn Base16</p>`;
+    html += `<p><strong>十进制表示：</strong>${dec18}（同一 MEID）</p>`;
+    html += `<p><strong>十进制参考校验位：</strong>${meidCheckDec(dec18)}</p>`;
+    html += `<p><strong>校验算法：</strong>参考 Luhn Base16（非标准，仅供格式自检）</p>`;
     if(hasCheck){
       html += `<p><strong>校验位：</strong>${clean[14]}（期望 ${HEX_BASE[expectedCheck]}） ${actualCheck === expectedCheck ? '✅' : '❌'}</p>`;
       valid = actualCheck === expectedCheck;
     } else {
-      html += `<p><strong>建议校验位：</strong>${HEX_BASE[expectedCheck]}</p>`;
-      valid = true;
+      html += `<p><strong>校验位：</strong>未提供（参考建议 ${HEX_BASE[expectedCheck]}） ⚠ 无法完整校验</p>`;
+      partial = true;
     }
   } else if(isDec && (clean.length === 18 || clean.length === 19)){
     mode = 'dec';
@@ -306,16 +320,23 @@ function validate(){
     const base18 = clean.substring(0,18);
     const expectedCheck = meidCheckDec(base18);
     const actualCheck = hasCheck ? parseInt(clean[18],10) : -1;
+    const hex14 = meidDecToHex18(base18);
     html += `<p><strong>格式：</strong>十进制（${hasCheck?'19':'18'} 位）</p>`;
     html += `<p><strong>制造商代码（前 10 位）：</strong>${base18.substring(0,10)}</p>`;
     html += `<p><strong>序列号（后 8 位）：</strong>${base18.substring(10,18)}</p>`;
-    html += `<p><strong>校验算法：</strong>Luhn Base10</p>`;
-    if(hasCheck){
-      html += `<p><strong>校验位：</strong>${clean[18]}（期望 ${expectedCheck}） ${actualCheck === expectedCheck ? '✅' : '❌'}</p>`;
-      valid = actualCheck === expectedCheck;
+    html += `<p><strong>十六进制表示：</strong>${hex14 ? hex14+'（同一 MEID）' : '❌ 十进制值超出 MEID 56 位范围'}</p>`;
+    html += `<p><strong>校验算法：</strong>参考 Luhn Base10（非标准，仅供格式自检）</p>`;
+    if(!hex14){
+      html += `<p style="color:var(--danger);">❌ 十进制值无法换算为 14 位十六进制 MEID</p>`;
     } else {
-      html += `<p><strong>建议校验位：</strong>${expectedCheck}</p>`;
-      valid = true;
+      html += `<p><strong>十六进制参考校验位：</strong>${HEX_BASE[meidCheckHex(hex14)]}</p>`;
+      if(hasCheck){
+        html += `<p><strong>校验位：</strong>${clean[18]}（期望 ${expectedCheck}） ${actualCheck === expectedCheck ? '✅' : '❌'}</p>`;
+        valid = actualCheck === expectedCheck;
+      } else {
+        html += `<p><strong>校验位：</strong>未提供（参考建议 ${expectedCheck}） ⚠ 无法完整校验</p>`;
+        partial = true;
+      }
     }
   } else {
     const __h2=`<p style="color:var(--danger);">❌ 长度不符。HEX MEID 应为 14 或 15 位，DEC MEID 应为 18 或 19 位（当前 ${clean.length} 位）</p>`;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h2;
@@ -323,6 +344,8 @@ function validate(){
   }
   if(valid){
     html += `<p style="color:var(--success);">✅ MEID 号码有效</p>`;
+  } else if(partial){
+    html += `<p>⚠ 仅格式通过，未提供校验位，无法完成校验</p>`;
   } else {
     html += `<p style="color:var(--danger);">❌ 校验失败，MEID 无效</p>`;
   }
@@ -390,7 +413,7 @@ function __meid_validatorFullResText(){
 }
 function __meid_validatorScore(t){
     var s=String(t||'');
-    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|未提供校验位|无法完成校验|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __meid_validatorTime(t){
