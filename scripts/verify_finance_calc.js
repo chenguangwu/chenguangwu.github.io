@@ -528,6 +528,18 @@ const CASES = [
   },
   {
     slug: "finance/break-even-calculator",
+    inputs: { price: "50", vc: "60", fc: "100000" },
+    expect: ["不存在盈亏平衡点"],
+    ref: "F-N59 亏损产品：单价 50 < 单位变动成本 60 ⇒ 单位边际贡献 −10、真实边际贡献率 −20%，不存在平衡点。旧实现硬写 cmRatio:0 得「−10.00 / 0.00%」自相矛盾；现明确拒绝。默认 price50/vc30 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/break-even-calculator",
+    inputs: { price: "50", vc: "30", fc: "-100000" },
+    expect: ["固定成本、单位变动成本与销量不能为负数"],
+    ref: "F-N59 负固定成本：fc=−100000 旧实现 beq=fc/cm 得 −5000 件、平衡收入 −250000 元仍照常渲染；现字段级拒绝。默认 fc=100000 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/break-even-calculator",
     inputs: { price: "10", vc: "10", fc: "10000" },
     expect: ["不存在盈亏平衡点"],
     ref: "单位边际贡献 = 10−10 = 0 时原实现给 inf、页面显示「-」并仍渲染安全边际/经营杠杆；现明确提示不存在盈亏平衡点。默认 单价/成本不同 ⇒ 不命中。",
