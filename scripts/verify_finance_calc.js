@@ -3921,6 +3921,13 @@ const CASES = [
     expect: ["CURCNY OK"],
     ref: "F-N140 辅单位锁：CNY 的辅单位应为 Fen、换算 100（1 Yuan = 100 Fen）。旧实现 subunit:'Jiao/Fen' + subunitRate:10 显示「1 Yuan = 10 Jiao/Fen」。探针遍历去重后 currencies 找 CNY 读 subunit/subunitRate 两字段（不依赖 showDetail，harness 下其 index 参数被包装污染）⇒ 真判别、零逃生。",
   },
+  {
+    slug: "finance/credit-card-interest",
+    inputs: { billAmount: "10000", dailyRate: "-0.05", minRatio: "10", repayType: "minimum" },
+    clicks: ["calc()"],
+    expect: ["日利率不能为负，请填写 ≥0 的数值"],
+    ref: "F-N124 负值拒绝：日利率 −0.05 旧实现 +value/100||0 → 负利率照算得负利息/负总支出；修复后 calc() 前置拒绝并提示「日利率不能为负，请填写 ≥0 的数值」。默认日利率 0.05 ⇒ 不命中。",
+  },
 
 ];
 
