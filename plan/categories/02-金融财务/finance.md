@@ -812,21 +812,7 @@
 
 - **留存建议（tools/finance/text-reverse-words.html）**：三模式 + 保留标点 + 每行/首字母 + 预设 + 复制，作为文本小工具可用，建议保留；F-N177/178/179 已真修（第94批），`cat=text` 却归 finance 行业，建议按 §7 评估迁移（待裁量，本批不做）。
 
-### F-N180 NIE 页：X/Y/Z 前缀被写成「早期/中期/现行」，与 FAQ「当年批次」互相矛盾（低，确认缺陷）
-- 问题：`:264` 的 `prefixDesc` 固定输出「外国人（早期/中期/现行）」，FAQ（`:193`）却写「X、Y、Z 分别对应当年批次的外国人编号，仅表示发放时段」。两处对同一编码给出不同的时间含义，且「当年批次」= 今年发放的说法与「早期/中期」直接冲突；页面未给任何权威出处。
-- 证据：`tools/finance/nie-validator.html:193`、`:258-265`
-- 复现（node 实算）：`X1234567L` → 「前缀：X - 外国人（早期）」✅；`Z1234567R` → 「Z - 外国人（现行）」✅；同页 FAQ 仍称「当年批次」。合法/非法对照：`X1234567L` ✅、`X1234567M` ❌（期望 L）。
-- 影响：`tools/finance/nie-validator.html`；用户会据「早期/现行」推断证件年代或有效性，属无依据断言。
-- 方案：统一为「X/Y/Z 是 NIE 的分配序列（X 最早），不代表身份类别或有效期」；删除「当年批次/早期/中期/现行」。
-
-### F-N181 NIE 页：`nieCheck` 与 `validate` 双实现，`nieCheck` 零调用（低，确认缺陷）
-- 问题：`:232-241` 定义了完整校验函数 `nieCheck`，`validate` 却在 `:258-263` 复制同一套映射与 mod-23 逻辑，`nieCheck` 全页仅出现 1 次（只有定义）。一旦改算法只改一处，「校验结论」与「展示期望字母」就会漂移。
-- 证据：`tools/finance/nie-validator.html:232-241`、`:258-263`、`:267-273`
-- 复现：`grep -c nieCheck` = 1；`X1234567L` ✅ / `X1234567M` ❌ 由 `validate` 内联逻辑得出，`nieCheck` 不参与任何判断。
-- 影响：`tools/finance/nie-validator.html`；维护期易产生两套口径（同类问题已在 word-wrap 的 prefix 分支出现）。
-- 方案：`validate` 改为调用 `nieCheck(raw)`，并把「期望字母」抽成 `nieLetter(raw)` 供展示复用。
-
-- **留存建议（tools/finance/nie-validator.html）**：mod-23 + X/Y/Z 替换 + 期望字母回显，错误定位清晰，建议保留；修正前缀文案（F-N180）、收敛双实现（F-N181）后可留；建议与 CPF/CNPJ 页交叉链接。
+- **留存建议（tools/finance/nie-validator.html）**：mod-23 + X/Y/Z 替换 + 期望字母回显，错误定位清晰，建议保留；F-N180/181 已真修（第95批，前缀文案中性化 + 双实现收敛 nieLetter 单一真源，并顺带把 validate 动态标签全过 i18n helper）；建议与 CPF/CNPJ 页交叉链接。
 
 ### F-N182 ICCID 页：运营商表 4/5 位键永远查不到，默认样本显示「未知运营商」（中，确认缺陷）
 - 问题：`:270-273` 取 `issuerFull = digits.substring(0,7)`、`issuer = digits.substring(4,7)`，`:280` 只用这两个键查 `TELCO_IIN`。但表内 `:255-257` 的键是 4/5 位（`'8944'`、`'89014'`）或 3 位（`'086'`），7 位键根本不存在 → 4/5 位条目不可达；3 位 `issuer` 是「第 5-7 位」，与 `'8944'` 这种「89+国家码」前缀语义也不同。

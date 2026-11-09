@@ -1186,6 +1186,20 @@ const CASES = [
     ref: "西班牙 NIE 须以 X/Y/Z 开头 + 7 位数字 + 校验字母；喂入的 `12345678Z` 是 DNI 形态（数字开头）⇒ 如实报格式不符。默认态为空输入 ⇒ 不命中。",
   },
   {
+    slug: "finance/nie-validator",
+    inputs: { input: "Z1234567R" },
+    clicks: ["validate();var h=String(document.getElementById('output').innerHTML).replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ');document.getElementById('__tbProbe').textContent='FN180 '+document.getElementById('input').value+' '+((h.indexOf('Z - 分配序列')>=0&&h.indexOf('早期')<0&&h.indexOf('中期')<0&&h.indexOf('现行')<0&&h.indexOf('当年批次')<0)?'OK':'BAD');"],
+    expect: ["FN180 Z1234567R OK"],
+    ref: "F-N180 前缀文案中性化：Z1234567R 为合法非默认 NIE（mod23=1→R），前缀行须为「Z - 分配序列（非身份类别或有效期）」，且不得再出现早期/中期/现行/当年批次等无依据时间断言。旧文案「Z - 外国人（现行）」命中「现行」⇒ BAD 变红；探针绑定输入锚 ⇒ 默认态零逃生。",
+  },
+  {
+    slug: "finance/nie-validator",
+    inputs: { input: "Y1234567X" },
+    clicks: ["validate();var h=String(document.getElementById('output').innerHTML).replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ');document.getElementById('__tbProbe').textContent='FN181 '+document.getElementById('input').value+' '+((typeof nieLetter==='function'&&nieCheck('Y1234567X')===true&&nieCheck('Y1234567Y')===false&&h.indexOf('（期望 X）')>=0)?'OK':'BAD');"],
+    expect: ["FN181 Y1234567X OK"],
+    ref: "F-N181 单一真源：期望字母抽成 nieLetter() 供 nieCheck 判定 + validate 展示共用。Y1234567X 合法（mod23=10→X），断言 nieLetter 函数存在、nieCheck 正反例正确、展示期望字母 X。旧实现无 nieLetter、validate 内联映射 ⇒ typeof 为 undefined ⇒ BAD 变红；探针绑定输入锚 ⇒ 零逃生。",
+  },
+  {
     slug: "finance/esn-validator",
     inputs: { input: "356938035643809" },
     expect: ["ESN HEX 应为 8 位十六进制"],

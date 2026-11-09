@@ -190,7 +190,7 @@ s.parentNode.insertBefore(el, s);
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>NIE 和 DNI 的算法一样吗？</dt><dd>一样。NIE 以 X/Y/Z 开头，需先把 X/Y/Z 替换成 0/1/2 再按 mod 23 取字母，与 DNI 规则一致。</dd>
-<dt>NIE 的前缀代表什么？</dt><dd>X、Y、Z 分别对应当年批次的外国人编号，仅表示发放时段，不代表身份类别。</dd>
+<dt>NIE 的前缀代表什么？</dt><dd>X、Y、Z 是 NIE 的历史分配序列（X 最早启用），三类编号目前均有效；前缀不代表身份类别，也不表示证件有效期。</dd>
 <dt>校验通过代表身份真实吗？</dt><dd>不代表。须通过西班牙官方渠道核验。</dd>
 </dl>
 </div>
@@ -229,49 +229,54 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 const DNI_LETTERS = 'TRWAGMYFPDXBNJZSQVHLCKET';
-function nieCheck(s){
-  if(!/^[XYZ]\d{7}[A-Z]$/.test(s)) return false;
-  // Replace X->0, Y->1, Z->2 then compute like DNI
+// F-N181：期望字母抽成单一真源，供 nieCheck 判定与 validate 展示共用，避免双实现漂移
+function nieLetter(s){
+  if(!s || !/^[XYZ]/.test(s)) return null;
   const map = {X:'0', Y:'1', Z:'2'};
   const numStr = map[s[0]] + s.substring(1,8);
   const num = parseInt(numStr,10);
-  const letter = s[8];
-  const expected = DNI_LETTERS[num % 23];
-  return letter === expected;
+  return DNI_LETTERS[num % 23];
+}
+function nieCheck(s){
+  if(!/^[XYZ]\d{7}[A-Z]$/.test(s)) return false;
+  // Replace X->0, Y->1, Z->2 then compute like DNI
+  return s[8] === nieLetter(s);
 }
 function validate(){
   const raw = document.getElementById('input').value.trim().toUpperCase();
   const out = document.getElementById('output');
-  if(!raw){ const __h0=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Waiting for input...":"等待输入...");if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0; return; }
-  let html = `<p><strong>输入：</strong>${raw}</p>`;
-  html += `<p><strong>长度：</strong>${raw.length} 字符（应为 9）</p>`;
+  const __en95 = (typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  const __nanErr = __en95?'⚠ Invalid value in result. Please check your input.':'⚠ 计算结果含无效值，请检查输入是否为有效正数。';
+  if(!raw){ const __h0=(__en95?"Waiting for input...":"等待输入...");if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">'+__nanErr+'</p>';return;}out.innerHTML=__h0; return; }
+  let html = `<p><strong>${__en95?'Input':'输入'}：</strong>${raw}</p>`;
+  html += `<p><strong>${__en95?'Length':'长度'}：</strong>${raw.length} ${__en95?'characters (expected 9)':'字符（应为 9）'}</p>`;
   if(raw.length !== 9){
-    html += `<p style="color:var(--danger);">❌ 长度必须为 9 字符</p>`;
-    const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;
+    html += `<p style="color:var(--danger);">${__en95?'❌ Length must be 9 characters':'❌ 长度必须为 9 字符'}</p>`;
+    const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">'+__nanErr+'</p>';return;}out.innerHTML=__h1;
     return;
   }
   if(!/^[XYZ]\d{7}[A-Z]$/.test(raw)){
-    html += `<p style="color:var(--danger);">❌ 格式不符：首字符为 X/Y/Z，中间 7 位数字，末尾大写字母</p>`;
-    const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h2;
+    html += `<p style="color:var(--danger);">${__en95?'❌ Invalid format: leading X/Y/Z, 7 digits, trailing uppercase letter':'❌ 格式不符：首字符为 X/Y/Z，中间 7 位数字，末尾大写字母'}</p>`;
+    const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){out.innerHTML='<p style="color:var(--danger)">'+__nanErr+'</p>';return;}out.innerHTML=__h2;
     return;
   }
   const prefix = raw[0];
-  const map = {X:'0', Y:'1', Z:'2'};
-  const numStr = map[prefix] + raw.substring(1,8);
-  const num = parseInt(numStr,10);
   const letter = raw[8];
-  const expected = DNI_LETTERS[num % 23];
-  const prefixDesc = {X:'外国人（早期）', Y:'外国人（中期）', Z:'外国人（现行）'}[prefix];
-  html += `<p><strong>前缀：</strong>${prefix} - ${prefixDesc}</p>`;
-  html += `<p><strong>数字部分：</strong>${raw.substring(1,8)}</p>`;
-  html += `<p><strong>校验字母：</strong>${letter}（期望 ${expected}） ${letter === expected ? '✅' : '❌'}</p>`;
-  html += `<p><strong>校验算法：</strong>X→0/Y→1/Z→2 替换后按 DNI 规则 mod 23</p>`;
-  if(letter === expected){
-    html += `<p style="color:var(--success);">✅ NIE 有效</p>`;
+  const expected = nieLetter(raw); // F-N181：复用单一真源，不再内联重复映射/mod-23
+  // F-N180：X/Y/Z 是历史分配序列（X 最早启用），不代表身份类别或有效期；删除无依据的「早期/中期/现行/当年批次」。
+  const prefixDesc = __en95
+    ? {X:'Allocation series (X earliest; not an identity class or validity)', Y:'Allocation series (not an identity class or validity)', Z:'Allocation series (not an identity class or validity)'}[prefix]
+    : {X:'分配序列（X 最早，非身份类别或有效期）', Y:'分配序列（非身份类别或有效期）', Z:'分配序列（非身份类别或有效期）'}[prefix];
+  html += `<p><strong>${__en95?'Prefix':'前缀'}：</strong>${prefix} - ${prefixDesc}</p>`;
+  html += `<p><strong>${__en95?'Numeric part':'数字部分'}：</strong>${raw.substring(1,8)}</p>`;
+  html += `<p><strong>${__en95?'Check letter':'校验字母'}：</strong>${letter}（${__en95?'expected':'期望'} ${expected}） ${letter === expected ? '✅' : '❌'}</p>`;
+  html += `<p><strong>${__en95?'Algorithm':'校验算法'}：</strong>X→0/Y→1/Z→2 ${__en95?'then DNI mod 23':'替换后按 DNI 规则 mod 23'}</p>`;
+  if(nieCheck(raw)){
+    html += `<p style="color:var(--success);">${__en95?'✅ NIE valid':'✅ NIE 有效'}</p>`;
   } else {
-    html += `<p style="color:var(--danger);">❌ 校验字母不符，NIE 无效</p>`;
+    html += `<p style="color:var(--danger);">${__en95?'❌ Check letter mismatch, NIE invalid':'❌ 校验字母不符，NIE 无效'}</p>`;
   }
-  const __h3=html;if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h3;
+  const __h3=html;if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){out.innerHTML='<p style="color:var(--danger)">'+__nanErr+'</p>';return;}out.innerHTML=__h3;
 }
 function toggleToolTheme(){
   const cur = document.documentElement.getAttribute('data-theme');
