@@ -3230,6 +3230,13 @@ const CASES = [
     ref: "F-N47：保证金比例 0 ⇒ 旧实现保证金为 0、保证金收益率显示 +0.00%，与大额盈亏自相矛盾；修复后字段级拒绝。默认 12% ⇒ 不命中。",
   },
   {
+    slug: "finance/futures-pnl-calculator",
+    inputs: { lots: "0" },
+    clicks: ["copyResult()"],
+    expect: ["输入有误，无法复制结果"],
+    ref: "F-N47 复制绕过校验：手数 0 时 calc() 显示字段错误，但旧 copyResult() 仍按 ||1 兜底生成并复制完整盈亏；修复后 copyResult() 先走 validateInputs() 并拒绝复制。默认态复制正常 ⇒ 不命中。",
+  },
+  {
     slug: "finance/mutual-fund-calculator",
     inputs: { initial: "10000", monthly: "1000", years: "1", rate: "-50" },
     expect: ["-¥7,090 总收益"],
