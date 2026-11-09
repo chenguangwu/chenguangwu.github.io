@@ -32,15 +32,15 @@ assert(citesAllTiers, `算例应引用真实三档分值 10/20/30；实际算例
 const citesPowerups = /三连射/.test(dd) && /护盾/.test(dd) && /加命/.test(dd);
 assert(citesPowerups, `算例应说明真实三种道具（三连射/护盾/加命）；实际算例=「${dd.slice(0, 160)}」`);
 
-const totalOk = /累计 150 分/.test(dd);
-assert(totalOk, `50（第1波）+ 2×20 + 2×30（第2波）= 150 分，算例须给出一致的累计值；实际=「${dd.slice(0, 160)}」`);
-
-// —— 4. 英文源同步（键即中文源串，不同步会失译）——
-if (!head) {
-  const en = JSON.parse(fs.readFileSync('i18n/tools/en/fun/space-shooter.json', 'utf8'));
-  const hasNewKey = Object.keys(en.map || {}).some(k => k.indexOf('第 2 波为混编波') >= 0);
-  assert(hasNewKey, '英文 i18n map 已含新算例中文键（英文态不失译）');
-}
+// 算例是随机连续生成中的假设击毁数量，而非固定波次。
+const source = JSON.parse(head ? execSync('git show HEAD:i18n/tools/content_deepdive.json', { maxBuffer: 32 * 1024 * 1024 }).toString() : fs.readFileSync('i18n/tools/content_deepdive.json', 'utf8'))['fun/space-shooter'];
+const en = JSON.parse(head ? execSync('git show HEAD:i18n/tools/en/fun/space-shooter.json').toString() : fs.readFileSync('i18n/tools/en/fun/space-shooter.json', 'utf8'));
+const [method, example] = source.examples.map(item => item.body);
+assert(!/波次|第\s*\d+\s*波|混编波|全清/.test(method + example), '方法与算例不得声明固定波次或清波机制');
+assert(/随机/.test(method) && /持续|连续/.test(method) && /随机|假设/.test(example), '方法说明随机连续生成，算例明确为假设');
+assert(/enemySpawnTimer\s*-=/.test(html) && /Math\.random\(\)/.test(html) && /Math\.floor\(score\s*\/\s*500\)/.test(html), '实际机制为计时生成随机敌机、每 500 分升级');
+assert(/5 架普通/.test(example) && /2 架快速/.test(example) && /2 架厚甲/.test(example) && scoreMap.normal * 5 + scoreMap.fast * 2 + scoreMap.tough * 2 === 150 && /150 分/.test(example), '假设击毁数量与真实分值累计为 150 分');
+assert([method, example].every(text => dd.includes(text) && typeof en.map[text] === 'string' && !/\bwaves?\b/i.test(en.map[text])), '构建页面与源文一致，英文翻译匹配且不引入波次');
 
 if (failures > 0) { console.log(`\n[${head ? 'HEAD' : '当前'}] N45 锁 FAIL (${failures})`); process.exit(1); }
 console.log(`\n[${head ? 'HEAD' : '当前'}] N45 锁 PASS`);

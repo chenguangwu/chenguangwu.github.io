@@ -87,6 +87,7 @@ GATES = (
     ("metronome timing", ("node", "scripts/_verify_fun_batch_fe_n38.mjs")),
     ("word scramble records", ("node", "scripts/_verify_fun_batch_fe_n69.mjs")),
     ("random picker records", ("node", "scripts/_verify_fun_batch_fe_n54.mjs")),
+    ("space shooter rules", ("node", "scripts/_verify_fun_batch_fe_n45.mjs")),
     # ai 分类的正确性验证（混淆矩阵四指标 / 欧氏曼哈顿余弦 / 交叉熵 / Sigmoid / Softmax /
     # Cohen's Kappa / AUC 秩次 / 学习率衰减 / Transformer 参数量）。
     ("ai calc correctness", ("node", "scripts/verify_ai_calc.js")),
