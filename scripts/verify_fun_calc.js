@@ -229,6 +229,35 @@ const CASES = [
     expect: ["A=300/NaN"],
     ref: "独立复算：平均反应 = (300+200+400)/3 = 300 ms；空样本返回 NaN（页面此时显示“—”）。",
   },
+  // ── 线上 bug 回归：reaction-tester 初始状态未初始化导致 times.push 抛错 ──
+  {
+    slug: "fun/reaction-tester",
+    inputs: {},
+    clicks: ["document.getElementById('__tbProbe').textContent='RTINIT='+(Array.isArray(times)?'Y':'N')+' STATE='+String(state)+' BEST='+String(best);"],
+    expect: ["RTINIT=Y STATE=idle BEST=null"],
+    ref: "线上 bug 回归①（初始状态）：旧页面 `let state,times,...` 五个变量全为 undefined，且 reset() 从不在加载时调用 ⇒ times 未初始化。此探针在页面刚加载时读取声明处的初始值，修复后必须已是数组/空闲态。修复前会是 RTINIT=N STATE=undefined BEST=undefined，故本例在旧代码上必然 FAIL；探针串只在注入 clicks 后出现，默认态零命中。",
+  },
+  {
+    slug: "fun/reaction-tester",
+    inputs: {},
+    clicks: ["var __err='N';try{start();onClick();}catch(e){__err='Y';}var __cur=String(document.getElementById('cur').textContent);document.getElementById('__tbProbe').textContent='RTCLICK='+__err+' N='+(Array.isArray(times)?times.length:'UNDEF')+' OK='+(__cur!==String.fromCharCode(0x2014)&&__cur!==''?'Y':'N')+' STATE='+String(state);"],
+    expect: ["RTCLICK=N N=1 OK=Y STATE=idle"],
+    ref: "线上 bug 回归②（真实复现链路）：harness 的 setTimeout 桩立即执行，start() 后立即变绿进入 ready，再 onClick() 走 times.push(rt)。旧代码在此抛 \"Cannot read properties of undefined (reading 'push')\"，且异常使 state=idle 不执行 ⇒ 用户连续点击持续报错（Clarity 会话 00:09/00:10/00:11 三次）。修复后不抛错、记录 1 次成绩、cur 有值、状态回到 idle。expect 不含时钟相关的 ms 数值，避免时间漂移。",
+  },
+  {
+    slug: "fun/reaction-tester",
+    inputs: {},
+    clicks: ["var __es=[];for(var i=0;i<3;i++){try{start();onClick();__es.push('N');}catch(e){__es.push('Y');}}document.getElementById('__tbProbe').textContent='RTMULTI='+__es.join('')+' N='+(Array.isArray(times)?times.length:'UNDEF');"],
+    expect: ["RTMULTI=NNN N=3"],
+    ref: "线上 bug 回归③（连续多次点击）：模拟用户按提示连续做 3 次反应测试，每轮 start()+onClick() 都必须成功且成绩累加到 3 条。旧代码首轮即抛错、state 卡在 ready，后续点击只会重复抛错、times 始终 undefined。默认态探针不存在。",
+  },
+  {
+    slug: "fun/reaction-tester",
+    inputs: {},
+    clicks: ["reset();state='wait';onClick();var __e1=String(state);start();onClick();document.getElementById('__tbProbe').textContent='RTEARLY='+__e1+' N='+(Array.isArray(times)?times.length:'UNDEF')+' STATE='+String(state);"],
+    expect: ["RTEARLY=early N=1 STATE=idle"],
+    ref: "线上 bug 回归④（抢跳→重试全状态机）：手动置 wait 后点击应判抢跳且不记成绩，随后重新 start()+点击必须能正常记录 1 次并回到 idle。覆盖用户「等待变绿后立即点选」的完整操作路径，确认初始化修复不破坏 early/idle/ready 三态流转。默认态探针不存在。",
+  },
   {
     slug: "fun/typing-rhythm",
     inputs: {},

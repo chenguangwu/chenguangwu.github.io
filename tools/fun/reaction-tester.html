@@ -251,10 +251,14 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
-let state,times,startTime,timeoutId,best;
-function calcReactionAvg(arr){return arr.length?Math.round(arr.reduce((a,b)=>a+b,0)/arr.length):NaN;}
+// 状态必须在声明处即完成初始化：旧实现五个变量全为 undefined，且 reset() 从不在页面加载时调用，
+// 用户点「开始」→ 变绿 → 点「立即点击！」会走到 times.push(rt) 抛
+// "Cannot read properties of undefined (reading 'push')"，异常又使 state='idle' 永不执行 ⇒ 连续点击持续报错。
+let state='idle',times=[],startTime=0,timeoutId=null,best=null;
+function calcReactionAvg(arr){return (Array.isArray(arr)&&arr.length)?Math.round(arr.reduce((a,b)=>a+b,0)/arr.length):NaN;}
 
 function start(){
+  if(!Array.isArray(times))times=[]; // 防御：任何绕过初始化/外部改写 times 的路径都不再崩
   if(timeoutId)clearTimeout(timeoutId);
   state='wait';
   const t=document.getElementById('target');
@@ -431,7 +435,8 @@ var __tbn=function(){
   btn.onclick=function(){if(TBKit.export&&TBKit.export.csv)TBKit.export.csv(T.file,rows);};
   host.appendChild(btn);
 };
-var __f0=onClick;onClick=function(){var __r=__f0.apply(null,arguments);__tbn();return __r;};
+// 统计/练习历史属次要能力，异常不得反噬点击主流程；主流程自身异常照常向上抛出、不掩盖。
+var __f0=onClick;onClick=function(){var __r=__f0.apply(null,arguments);try{__tbn();}catch(e){}return __r;};
 </script>
 </body>
 </html>
