@@ -94,11 +94,6 @@
 - 原记录中的方案对比与累计支出口径未标记为本次已修、未复核；保留后续条目 F-N123、F-N225。
 
 
-### F-N24 贷款摊销页零利率被输入守卫拦截（中，确认）
-- 证据：`:342-351` 守卫把 `annualRate` 列为分母项，值为 0 即返回「不能为 0」；`:391` 等额本息月供在 r=0 时为 `0/0`（NaN）。但等额本金/先息后本分支在 r=0 时数学上可算（利息为 0）。
-- 影响：`finance/loan-amortization.html`；零息/贴息贷款无法测算，且把合法输入判为非法；与 F-N11 房贷页的零利率问题同类。
-- 方案：r=0 时等额本息改用 `amount/totalMonths`、气球贷同理；守卫只拦截真正产生除零的路径，不再整体拒绝 0%。
-
 ### F-N25 提前还款分支未覆盖先息后本/气球贷，负金额可放大本金（中，确认）
 - 证据：`:660-798`；`:753-782` 降低月供仅对 equal/principal 赋 `newPayment`，interest/balloon 下保持 0，页面显示「新月供 0.00」，减少月供等于当期月供（先息后本 100 万/4.9% 当期 4083.33）；`:668` prepayAmount 未限 ≥0，`:701` `newBalance = balanceBefore - prepayAmount`，输入 −100000 → 剩余本金从 969204.01 变为 1069204.01，「减少月供」显示 −547.59。
 - 影响：`finance/loan-amortization.html`；两种还款方式得到不可能的 0 月供，负提前还款反向增加债务却无报错。
@@ -172,18 +167,6 @@
 - 影响：`tools/finance/salary-after-tax.html`；月数控件形同装饰，年度/多月汇总缺失；税率表与计算结果不自洽。
 - 方案：删除月数输入，或补「N 个月合计税额/到手」与年度口径；税率表补齐 35%、45% 两档并高亮当前档。
 
-### F-N39 租金回报页等额本息 0% 利率月供 NaN（中，确认）
-- 问题：等额本息公式在 `monthlyRate=0` 时 `0/0`，而利率输入 `min="0"` 允许 0；月供与「月供后现金流」显示「—」，且未提示。
-- 证据：`tools/finance/rental-yield-calculator.html:289`（利率 `min="0"`）、`:506-516`（`:510` 等额本息公式、`:511` 总利息、`:516` 现金流）。node 复算：房价 300 万、贷款比例 70%、0%、30 年 → 月供 NaN；正常 4.2% 时 10,269.36。
-- 影响：`tools/finance/rental-yield-calculator.html`；无息/贴息贷款无法测算，现金流结果为空。
-- 方案：`monthlyRate=0` 时月供取 `loanAmount/months`、总利息 0，本金分支同样处理；利率字段越界提示。
-
-### F-N40 CAGR 页终值为负静默显示占位符（低，确认）
-- 问题：`end` 无下限校验，负数进入 `Math.pow(e/s, 1/n)` 得 NaN；两枚结果卡被 `NaN→—` 兜底后只剩「—」，无任何错误说明或「负增长需改口径」提示。
-- 证据：`tools/finance/cagr.html:218-227`（`:223` 幂运算、`:224-227` 两列结果）、`:239-249`（数据表重复计算）、`:300`（FAQ 已声明负值应改绝对变化）。node 复算：初值 100、终值 −50、2 年 → g=NaN，CAGR 与小数增长均显示「—」。
-- 影响：`tools/finance/cagr.html`；用户不知道是输入非法还是页面故障，FAQ 与实现未打通。
-- 方案：`end<0` 直接给字段错误并引导改用「绝对变化/亏损率」；或实现 `(end−start)/|start|` 的亏损口径并明确标注。
-
 ### 留存优化
 - `tools/finance/npv-calculator.html`：现金流输入行无 `id`，历史快照只存折现率与初始投资（`renderCashFlows` 生成的 input 无 id），恢复历史无法复现现金流；建议给每期唯一 id 或整表 JSON 持久化，并在导出 CSV 中附 NPV/IRR/PI 结论。
 - `tools/finance/investment-roi.html`：缺「一次性 vs 定投」同额对照与真实现金流 IRR 明细；方案对比仅终值维度，建议补增量 ROI 与投入差额列。
@@ -200,51 +183,6 @@
 ## 2026-11-03 续查（并行批 K）
 
 > 范围：本轮阅读 8 页（`tools/finance/inflation-calculator.html`、`credit-card-grace-period.html`、`mutual-fund-calculator.html`、`investment-calculator.html`、`futures-pnl-calculator.html`、`discount-calculator.html`、`sharpe-ratio.html`、`portfolio-return.html`）。仅源码 + node 复算，未开浏览器/未做 EN/移动端/门禁验证；历史已修声明未独立复验。
-
-### F-N41 通胀页反向模式把折现值算成终值（高，确认）
-- 描述：反向模式输入「未来金额」，`getYearData()` 却用 `purchasingPower = amt * factor` 复利放大，而文案与结果卡都称这是「折现到现在」的现值；正向分支另一路 `amt / factor` 才正确。
-- 证据：`tools/finance/inflation-calculator.html:386-394`（`:392` 反向 `amt * factor`）、`:435-437`（结果文案「折现到现在」）、`:182`（通胀率无 min/max）。
-- 复现：切「未来的钱现在值多少」，未来 100,000 元 / 3% / 20 年 → 页面 180,611.12 元（期望 55,367.58 元）；明细表与图表同样按放大后的序列绘制。
-- 影响：`tools/finance/inflation-calculator.html`；反向折算方向相反，用户拿到的「等值现值」被放大约 3.26 倍（1.03²⁰×1.03²⁰），历史折算与保值目标全部失真。
-- 方案：反向模式改为 `purchasingPower = amt / factor`；两模式的「购买力 / 所需金额」统一由同一函数按方向推导，并用 100 元 3% 10 年 ≈ 74.41 元的已知样例校验。
-
-### F-N42 信用卡免息期两个日期下拉框从未生成选项（高，确认）
-- 描述：`<select id="bill">` 与 `<select id="due">` 均为空标签，全文没有任何 `option` 生成或赋值逻辑；两处读值用 `parseInt(...) || 10 / || 25` 兜底，因此无论用户如何操作都只按账单日 10、还款日 25 计算。
-- 证据：`tools/finance/credit-card-grace-period.html:128,132`（空 select）、`:263-266`（兜底 10/25）、`:303-307`（`resetForm` 只 `selectedIndex=0`）、`:365-367`（图表同样兜底）。
-- 复现：页面打开即为空白下拉框，点「重置」或尝试切换 → 结果卡恒为「最长免息期 44 天 / 账单日当天 15 天」，表格固定「账单日 10 日、还款日 25 日」。
-- 影响：`tools/finance/credit-card-grace-period.html`；核心输入（账单日/还款日）完全不可用，所有用户的免息期结论都是同一个默认值，属于工具不可用级缺陷。
-- 方案：初始化时生成 1–28 的 option（或改为 number 输入并校验 1–28），移除 `||10/||25` 的静默兜底；空值给字段级错误。
-
-### F-N43 定投页零输入现金流收敛到边界，年化 IRR 显示 −600%（高，确认）
-- 描述：`calcIRR` 固定区间 `[-0.5, 1]`，100 次二分后直接取中点，不校验端点异号与残差。当每月定投与初始投入都为 0 时全部现金流为 0，NPV 恒为 0，`if(npv > 0)` 永不成立 → `high` 一路压到 `low=-0.5`，`-0.5×12×100 = -600%`。
-- 证据：`tools/finance/mutual-fund-calculator.html:596-615`（`:603` 固定区间、`:610-614` 无残差校验）、`:480-482`（monthly/initial 均允许 0）、`:545`（直接采用返回值）、`:645`（展示「年化收益率（IRR）」）。
-- 复现：初始投入 0、每月定投 0、年限 10（其他默认）→ 页面年化 IRR −600.00%，同屏总投入 ¥0、总收益 ¥0、期末 ¥0。
-- 影响：`tools/finance/mutual-fund-calculator.html`；清空输入即出现不可能的 −600%，且任何无根现金流都会静默返回边界伪解（与 F-N29 同类，但属独立页面）。
-- 方案：`totalInvest <= 0` 或现金流全零时不出 IRR 并提示；求解前检查两端 NPV 异号，收敛后校验残差，触边界明确提示「无解/超出区间」。
-
-### F-N49 折扣页叠加折扣控件显示「0.8 折」却按 8 折计算（中，确认）
-- 描述：叠加链的 input 值是 0–1 的乘数（0.8），但模板在输入框后直接跟一个「折」字，渲染成「0.8 折」；用户按标签改成 8 时 `updateDiscount` 不做 ÷10 换算，整条折扣链变成 8 倍。
-- 证据：`tools/finance/discount-calculator.html:326-328`（chip 模板 `${d}` + 「折」）、`:343-346`（`parseFloat(v) || 0` 直接存乘数）、`:367-370`（直接连乘）、`:380`（叠加式按乘数展示）。
-- 复现：默认原价 100、chip 显示「0.8 折」→ 结果 80 元（即 8 折）；把 chip 改为 8（用户理解为 8 折）→ 结果 800 元、节省 −700 元、显示「−700.0% OFF」。
-- 影响：`tools/finance/discount-calculator.html`；同一控件显示单位与计算单位相反，误改一次即放大 10 倍，且无任何范围提示（`min/max` 只约束了 spinner，手输不受限）。
-- 方案：chip 显示 `value*10` 折、输入按「几折」解析后 ÷10；或统一改成「折扣率（0–1）」并去掉「折」字，两处单位保持一致。
-
-### F-N50 夏普页无风险利率未随频率换算，默认值即口径错配（中，确认）
-- 描述：默认收益序列是 15 期（按月），无风险利率默认 3%（年化），`calc()` 直接相减，未按年化系数把 Rf 折算到同频率；同时页面用未年化 Sharpe 与年化 Sharpe 各判一次评级，同一策略出现两个相反结论。
-- 证据：`tools/finance/sharpe-ratio.html:130`（默认 15 期序列）、`:149`（Rf 默认 3）、`:153-158`（默认年化系数 12）、`:307-337`（直接 `portReturn - riskFree`）、`:349-353` 与 `:363-368`（两套评级同屏）。
-- 复现：默认输入（均值 3.40%、σ 3.42%、Rf 3%）→ 夏普 0.117、年化 0.405「较差」；若按月对齐 Rf=0.25%，应为 0.921、年化 3.189。直接模式 8%/12%/Rf 3% + 默认「月→年」→ 0.417「较差」与 1.443「良好」同屏。
-- 影响：`tools/finance/sharpe-ratio.html`；默认结果把夏普低估约 8 倍（0.117 vs 0.921），且同一组数据给出互相矛盾的评级。
-- 方案：按年化系数把 Rf 换算到每期口径（或把 Rf 标签改为「每期无风险利率」并在切 tab 时同步）；只对最终选用口径输出一个评级，另一个作为参考值不评级。
-
-### F-N51 组合收益页「权重合计」按小数显示、预设给出 200% 权重（低，确认）
-- 描述：`w1/w2` 已先 ÷100，页脚却用 `(w1+w2).toFixed(2)` 展示，默认 60/40 显示「权重合计 1.00」而非 100%；「示例 2×」预设直接把权重设成 120/80（合计 200%）并按此加权，页面只列合计值、无任何超限提示。
-- 证据：`tools/finance/portfolio-return.html:228`（合计显示）、`:246-252`（表格同值）、`:262-269`（预设 120/80）、`:123`（公式声明合计应≈100%）。
-- 复现：默认 60/40 → 「权重合计 1.00」；点「示例 2×」→ 权重 120/80、合计 2.00、组合预期收益 41.60%，无警示。
-- 影响：`tools/finance/portfolio-return.html`；单位错位让「≈100%」的校验形同虚设，演示预设输出 200% 权重的无意义结果。
-- 方案：合计按百分比展示并在 ≠100% 时提示/归一；把「示例 2×」改为权重不变、收益按 2 倍映射的对照预设，避免直接写入非法权重。
-
-- 本轮实读 8 页：`tools/finance/inflation-calculator.html`、`tools/finance/credit-card-grace-period.html`、`tools/finance/mutual-fund-calculator.html`、`tools/finance/investment-calculator.html`、`tools/finance/futures-pnl-calculator.html`、`tools/finance/discount-calculator.html`、`tools/finance/sharpe-ratio.html`、`tools/finance/portfolio-return.html`；新增 11 条（高 3 / 中 7 / 低 1）；未覆盖：其余 finance 页（约 90 页）未逐页复扫。
-- 证据均由源码行号 + node 内存复算取得；未做浏览器、英文态、移动端、门禁与线上验证；历史已修声明未独立复验。
 
 ## 2026-11-04 续查（并行批 L）
 

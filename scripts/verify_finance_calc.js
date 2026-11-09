@@ -1388,6 +1388,12 @@ const CASES = [
     ref: "F-N54 马丁格尔平均成本 = 累计投入 / 累计股数（各层按各自价格折算）：2000/100=20、4000/90=44.4444、8000/81=98.7654 股，累计 14000/163.2099 = ¥85.78，相对初始价 100 跌 14.22%。旧实现 avg=cumCost/(cumPos/price) 恒等于当期价 ¥81.00（跌 19.00%）⇒ 不命中。默认马丁格尔 1000/2/5/10 ⇒ 平均 ¥71.23、跌幅 28.77%，亦不命中。",
   },
   {
+    slug: "finance/mutual-fund-calculator",
+    inputs: { initial: "0", monthly: "0", years: "10", rate: "8" },
+    expect: ["无法计算（请输入有效现金流）"],
+    ref: "F-N43 零现金流：initial=0/monthly=0 ⇒ 现金流全 0，无正负号变化，IRR 不存在。旧实现固定区间二分后取中点 −0.5×12×100 = −600%；修复后 calcIRR 返回 NaN，渲染「无法计算（请输入有效现金流）」。默认 monthly=1000 ⇒ IRR 有限 ⇒ 不命中。",
+  },
+  {
     slug: "finance/installment-real-rate",
     inputs: { P: "24000", n: "24", r: "1.2" },
     clicks: ["calcTool()"],
