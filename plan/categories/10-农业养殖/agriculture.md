@@ -213,20 +213,6 @@
 - 影响：同页；复制/存档丢失核心结论。
 - 方案：copy 复用结果对象，至少输出 OCI、等级与各因子分值。
 
-### 10-25 农机对比「复制结果」漏算人工费，亩成本偏低约 30%（中，确认缺陷）
-- 问题：copyResult 重算亩成本时只算燃油费，漏掉 calc 中的人工费 `laborCost*timeNeeded`。
-- 证据：`tools/agriculture/machinery-efficiency.html:271-275`（calc 含 laborTotal）、`:332-336`（copy 仅 fuel*time*fp）。
-- 复现：大型拖拉机 3 m、6 km/h、85%、15 L/h、8 元/L、人工 50 元/h、200 亩 → 页面亩成本 7.41 元，复制输出 5.23 元。
-- 影响：同页；复制/汇报的成本偏低约 29%，影响选型比价。
-- 方案：copy 复用 calc 的结果数组，或补上 `laborCost*timeNeeded`。
-
-### 10-26 添加/删除农机时整体重绘，已填参数被重置为默认值（中，确认缺陷）
-- 问题：renderMachines 每次都按 DEFAULTS 重建全部输入行，addMachine/removeMachine 调用它后，用户已修改的幅宽/速度/利用率/油耗/单价全部被重置。
-- 证据：`tools/agriculture/machinery-efficiency.html:233-248`（renderMachines 用 DEFAULTS[i]）、`:249-250`（add/remove 调 renderMachines）。
-- 复现：把农机 1 油耗改为 20 → 点「+ 添加农机」→ 农机 1 油耗回到 15，随后 calc 按 15 计算。
-- 影响：同页；自定义参数静默丢失，对比结果失真。
-- 方案：重建前快照现有 DOM 值回填，或只追加新行/删除末行，不整体重绘。
-
 ### T 批覆盖清单（8 页）
 - `harvest-loss-rate.html`：发现 2 条（10-15 高、10-16 中）；减产卡片量纲错 50 倍为核心缺陷。
 - `irrigation-calculator.html`：发现 2 条（10-17、10-18，均中）；Kc/需水量未参与、历史不恢复。
