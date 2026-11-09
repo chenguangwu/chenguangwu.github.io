@@ -263,8 +263,14 @@ function calc(){
   // 此时数据本身不可用于出汗率估算（多为补液/称重记录错误），直接停算提示。
   var sweatKgRaw=pre-post+intake/1000-urine/1000;
   if(sweatKgRaw<=0){
+    // SF-N62 复核重做：错误说明必须与实际体重变化一致。修正出汗量≤0 既可能来自运动后增重，
+    // 也可能来自「体重确实下降、但排尿/补液记录不自洽」，不能一律说「运动后体重不低于运动前」。
+    var wtDesc=(post>pre)
+      ? '运动后体重（'+post+' kg）不低于运动前（'+pre+' kg）'
+      : (post===pre ? '运动前后体重相同（'+pre+' kg）'
+                    : '运动后体重（'+post+' kg）低于运动前（'+pre+' kg），实际体重已下降');
     document.getElementById('summary').innerHTML='';
-    document.getElementById('detail').innerHTML='<p style="color:var(--danger)">⚠ 运动后体重（'+post+' kg）不低于运动前（'+pre+' kg），扣除补液与排尿后出汗量为 '+(sweatKgRaw*1000).toFixed(0)+' ml（≤0）。请核对补液量、排尿量与两次称重（应同一衣物、擦干身体）。本次不出出汗率与补液建议。</p>';
+    document.getElementById('detail').innerHTML='<p style="color:var(--danger)">⚠ '+wtDesc+'；计入补液('+intake+' ml)与排尿('+urine+' ml)后，修正出汗量为 '+(sweatKgRaw*1000).toFixed(0)+' ml（≤0），数据不自洽，无法据此估算出汗率。请逐项核对补液量、排尿量与两次称重（同一衣物、擦干身体）。本次不给出出汗率与补液建议。</p>';
     setInvalid(document.getElementById('post'),true);
     return;
   }
@@ -276,7 +282,8 @@ function calc(){
   var zone,zoneColor,zoneDesc;
   // SF-N62：净增重（运动后体重不低于运动前，netLoss≤0）时净脱水率为负，不能分级为脱水，
   // 也不得给出「轻微脱水 / 注意补水」与每小时补液建议——否则把增重误判成脱水。
-  if(netLoss<=0){zone='净增重';zoneColor='#60A5FA';zoneDesc='体重净增加（后−前 ≤ 0），无法判定脱水；出汗率估算仅供参考，请核对称重与补液记录。';}
+  if(netLoss===0){zone='体重未变';zoneColor='#60A5FA';zoneDesc='运动前后体重相同（净变化 0 kg），既非增重也非减轻；本次出汗量来自补液/排尿修正，请核对称重与补液记录。';}
+  else if(netLoss<0){zone='净增重';zoneColor='#60A5FA';zoneDesc='体重净增加（后−前 > 0），无法判定脱水；出汗率估算仅供参考，请核对称重与补液记录。';}
   else if(Math.abs(dehyPct)<2){zone='良好';zoneColor='#34D399';zoneDesc='水合状态良好，继续保持。';}
   else if(dehyPct<3){zone='注意';zoneColor='#FBBF24';zoneDesc='轻微脱水，注意补水。';}
   else if(dehyPct<5){zone='警告';zoneColor='#FB923C';zoneDesc='中度脱水，运动表现下降，需及时补水。';}
@@ -287,7 +294,11 @@ function calc(){
     '<div class="data-card" style="border-color:'+zoneColor+';"><div class="num" style="color:'+zoneColor+';">'+zone+'</div><div class="label">水合状态</div></div>';
   const __g3=sHtml;document.getElementById('summary').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
   var html='<h3>评估详情</h3>';
-  html+='<p>运动前后体重差：<strong>'+(netLoss>=0?'-':'+')+Math.abs(netLoss).toFixed(2)+' kg</strong>（净' +(netLoss>=0?'减轻':'增加')+'）</p>';
+  // SF-N62 复核重做：netLoss=0 是「体重未变」，不得写成「−0.00 kg（净减轻）」或「净增重」。
+  var wtChange=(netLoss>0)?('-'+netLoss.toFixed(2)+' kg（净减轻）')
+    :(netLoss===0)?('0.00 kg（体重未变）')
+    :('+'+Math.abs(netLoss).toFixed(2)+' kg（净增重）');
+  html+='<p>运动前后体重差：<strong>'+wtChange+'</strong></p>';
   html+='<p>计入补液('+intake+'ml)与排尿('+urine+'ml)后，实际出汗量：<strong>'+(sweatKg*1000).toFixed(0)+' ml</strong>（'+sweatKg.toFixed(3)+' kg）</p>';
   html+='<p>出汗速率：<strong>'+sweatRate.toFixed(2)+' L/h</strong>（'+(sweatRate*1000/60).toFixed(0)+' ml/min）</p>';
   html+='<p>净脱水率：<strong>'+dehyPct.toFixed(2)+'%</strong> | 真实脱水(出汗)率：'+trueDehyPct.toFixed(2)+'%</p>';
@@ -297,6 +308,7 @@ function calc(){
   html+='<p style="margin-top:8px;color:'+zoneColor+';font-weight:600;">'+zoneDesc+'</p>';
   var perHr=sweatRate*1000;
   if(netLoss>0){ html+='<div class="tip-box tip-success" style="margin-top:10px;">✅ 建议补液：每小时约 <strong>'+Math.round(perHr)+' ml</strong>，每 15 分钟约 <strong>'+Math.round(perHr/4)+' ml</strong>，每 20 分钟约 <strong>'+Math.round(perHr/3)+' ml</strong>。少量多次饮用。</div>'; }
+  else if(netLoss===0){ html+='<div class="tip-box tip-info" style="margin-top:10px;">ℹ️ 运动前后体重未变，不据此额外安排补液；请核对称重（应同衣物、擦干身体）与补液记录。</div>'; }
   else { html+='<div class="tip-box tip-info" style="margin-top:10px;">ℹ️ 体重净增加，无需额外补液建议；请核对称重（应同衣物、擦干身体）与补液记录。</div>'; }
   const __g4=html;document.getElementById('detail').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
 }

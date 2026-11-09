@@ -120,7 +120,7 @@ s.parentNode.insertBefore(el, s);
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
       <div class="formula-eq">补液量 = 减重体重差 × 补液系数（运动医学常用 1.2–1.5 L/kg 失重）</div>
-      <p class="formula-desc">运动后称重下降主要反映脱水：补液量≈体重差×补液系数（常取 1.2–1.5 L/kg）。建议 2 小时内分次补齐，避免一次性大量饮水增加胃肠负担。</p>
+      <p class="formula-desc">运动后称重下降主要反映脱水：补液量≈体重差×补液系数（常取 1.2–1.5 L/kg）。应分次补液、避免一次性大量饮水增加胃肠负担；具体单次量、间隔与完成时长须由运动医学专业人士确认，本页仅折算总量与分次次数。</p>
     </div>
     <div class="input-row">
       <div><label>减重体重差 (kg)</label><input type="number" id="v0" value="2" step="any" oninput="calc()" enterkeyhint="done" aria-label="脱水" placeholder="e.g. 2"></div>
@@ -289,23 +289,29 @@ function calc(){
   if(A<0){box.innerHTML='<div class="info-box" style="color:var(--danger)">⚠ 减重体重差须为正数（运动后为失重，请填写正值）。</div>';return;}
   // SF-N34（分次卡口径）：按运动医学常用单次 250 mL 折算次数，单次量固定 250 mL；
   // 末次剂量 = 总量 − 已排次数×250，保证各次之和与总量严格一致。
-  var totalMl=A*B*1000;
+  // SF-N34 复核重做：3×1.3×1000 在 IEEE754 下为 3900.0000000000005，末次剂量会出现 150.00000000000045 mL。
+  // 先按 0.001 mL 精度归一，再算次数与末次剂量，保证显示合理精度且各次之和严格等于总量。
+  var totalMl=Math.round(A*B*1000*1000)/1000;
   if(totalMl<=0){ // 零体重差无需补液安排
     box.innerHTML='<div class="info-box">当前减重体重差为 0，无需额外补液安排；请继续保持水分平衡。</div>';
     if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
     return;
   }
   var perDose=250, doses=Math.max(1,Math.ceil(totalMl/perDose));
-  var lastDose=totalMl-(doses-1)*perDose; // 末次剂量，保证各次之和 = 总量
+  var lastDose=Math.round((totalMl-(doses-1)*perDose)*1000)/1000; // 末次剂量，保证各次之和 = 总量
   var schedule = (doses<=1) ? (lastDose+" mL（共 1 次）")
     : (perDose+" mL × "+(doses-1)+" 次 + 末次 "+lastDose+" mL（共 "+doses+" 次）");
+  var spanTxt = doses>1
+    ? '⚠ 排程自洽性提示：按每次间隔 15–20 分钟估算，完成 '+doses+' 次需至少 '+((doses-1)*15)+'–'+((doses-1)*20)+' 分钟（'+(((doses-1)*15)/60).toFixed(1)+'–'+(((doses-1)*20)/60).toFixed(1)+' 小时），因此次数较多时无法同时满足「2 小时内补齐」。该估算仅用于核对排程，不构成补液方案；具体单次量、间隔与完成时长须由运动医学专业人士按个体情况确认，本工具不替代专业判断。'
+    : '单次即可完成；实际补液速率与耐受量须由运动医学专业人士按个体情况确认，本工具不替代专业判断。';
   var items=[];
   items.push([(A*B).toFixed(2)+" L", "建议补液量"]);
-  items.push([schedule, "分次安排（每次 250 mL，间隔 15–20 分钟）"]);
+  items.push([schedule, "分次安排（按每次约 250 mL 折算次数）"]);
   items.push([totalMl.toFixed(0)+" mL", "总毫升"]);
 
   var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
   html+='💡 补液量 = 体重差 × 补液系数（约 1.2–1.5 L/kg 失重）。';
+  html+='<div class="info-box" style="margin-top:8px;">'+spanTxt+'</div>';
   const __g6=html;box.innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
   if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
 }
@@ -476,7 +482,7 @@ else document.addEventListener('DOMContentLoaded', __jianzhong_tuoshui_buye_kong
 <li>按级别称重控体重。</li>
 <li>格斗称重前按安全脱水上限（≤体重 5%）规划降重与 24 小时复水节奏。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">控制</div><div class="dd-ex-body">赛前脱水建议 ≤体重 2%，赛后 2 小时内补回 1.2–1.5 L/ kg 丢失。</div></div>
+<div class="dd-example"><div class="dd-ex-title">控制</div><div class="dd-ex-body">赛前脱水建议 ≤体重 2%；赛后补液总量按丢失体重 1.2–1.5 L/kg 折算，分次次数仅作排程参考，具体单次量、间隔与完成时长须由运动医学专业人士确认。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>急剧减重危害？</dt><dd>影响力量与认知，严禁极端脱水。</dd>

@@ -14,6 +14,14 @@
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
+  // ── 2026-11-09 复核失败第四批重做 ─────────────────────
+  { slug: "fitness/jianzhinengliangquekoujisuan", inputs: { target: "29.99", weeks: "10", w: "30", ratio: "0.5" },
+    expect: ["0.010 kg（正值按三位小数显示"],
+    ref: "第四批 SF-N17：30−29.99=0.01 kg 为合法正数，旧 toFixed(1) 显示「预计最终体重 0.0 kg」误导为零体重。现对 0<最终体重<0.1 用三位小数并注明，避免正数被四舍五入为零。默认 75−5=70.0 kg 不含该串 ⇒ 强判别。" },
+  { slug: "fitness/pace-calculator", inputs: {},
+    clicks: ["document.getElementById('goalH').value='4';document.getElementById('goalM').value='12';document.getElementById('goalS').value='50';calcGoal();"],
+    expect: ["所需平均配速 6'00"],
+    ref: "第四批（目标配速 fmtPace 进位）：全马 42.195 km、目标 4:12:50（15170 s）⇒ 平均配速 359.52 s/km，旧 fmtPace 先取余再 round 得 5 分 60 秒/km；现先对整体秒数取整再分解得 6 分 00 秒/km，平均与分段配速一致。默认 3:30:00 ⇒ 4 分 59 秒/km，不含 6'00 ⇒ 强判别。" },
   { slug: "fitness/angle-motion", inputs: { angle: "60", lever: "30", load: "20" },
     expect: ["50.97", "1019.5"],
     ref: "负荷重力=mg=20×9.81=196.20 N；力臂 r=0.30 m；力矩=196.20×0.30×sin60°=50.97 N·m；肌力=力矩/0.05=1019.5 N（默认 90°/35/10 避开）" },
