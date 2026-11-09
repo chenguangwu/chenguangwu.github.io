@@ -1808,6 +1808,27 @@ const CASES = [
   },
   {
     slug: "finance/invoice-generator",
+    inputs: { "rv-total": "10000", "rv-tax": "15000" },
+    clicks: ["currentMethod='reverse'; calc()"],
+    expect: ["税额不得超过含税金额"],
+    ref: "F-N77：反推税额越界（15,000 > 10,000）旧实现给出不含税 −5,000、税率 0.0000% 与矛盾公式；修复后先校验 0 ≤ tax ≤ total 并标红停止。默认组 10,000 / 825.69 不命中该拒绝语。",
+  },
+  {
+    slug: "finance/invoice-generator",
+    inputs: { "rv-total": "10000", "rv-tax": "-1" },
+    clicks: ["currentMethod='reverse'; calc()"],
+    expect: ["税额不得小于 0"],
+    ref: "F-N77：税额为负时旧实现把不含税放大到 10,001 并输出负税率；修复后拒绝 tax < 0。默认组税额 825.69 为正，不命中。",
+  },
+  {
+    slug: "finance/invoice-generator",
+    inputs: { "rv-total": "10000", "rv-tax": "10000" },
+    clicks: ["currentMethod='reverse'; calc()"],
+    expect: ["不含税为 0，无法反推税率"],
+    ref: "F-N77：税额恰等于含税金额时不含税为 0，旧实现静默输出 0.0000% 税率；修复后明确提示无法反推并停止。默认组 10,000 / 825.69 不会命中该提示。",
+  },
+  {
+    slug: "finance/invoice-generator",
     inputs: { "sp-total": "80000", "sp-limit": "-5000" },
     clicks: ["currentMethod='split'; calc()"],
     expect: ["单张限额必须大于 0"],

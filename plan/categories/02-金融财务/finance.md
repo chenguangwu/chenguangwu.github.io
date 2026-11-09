@@ -223,13 +223,6 @@
 - 影响：`tools/finance/calc-2.html`；非常规/多重符号变化现金流的 IRR 被伪造成上限值，用户会据此接受实际不可行的项目；与 F-N29（npv-calculator）同类但属独立页面，修复需覆盖本页。
 - 方案：迭代后校验 `|NPV|` 残差（如 <1e-6）且端点异号，否则返回 `null`；`null` 时结果区只提示「无实根/多根，请改用 NPV」，不再展示「NPV≈0」；文案补明多根情形。
 
-### F-N77 反推税额页税额超过含税金额仍输出负不含税与 0% 税率（中，确认缺陷）
-- 描述：反推分支直接 `excl = total - tax`，仅当 `excl > 0` 才计算税率；`tax > total` 时不含税为负值，税率静默变为 0，页面仍渲染「不含税 −5,000.00」「反推税率 0.0000%」及公式行，复制/CSV 同样带出。
-- 证据：`tools/finance/invoice-generator.html:275-276`（min 属性不拦截手输）、`:688-700`（`:691` excl、`:692` rate 兜底）、`:838-839`（回显与公式）
-- 复现：含税金额 10,000、税额 15,000 → 实际 不含税 −5,000.00、反推税率 0.0000%，公式行显示「15,000.00 ÷ −5,000.00 × 100% = 0.0000%」（期望提示「税额不得超过含税金额」并停止）
-- 影响：`tools/finance/invoice-generator.html`；负不含税与 0% 税率是相互矛盾的财务口径，用户可能据此填错开票信息。
-- 方案：校验 `0 ≤ tax ≤ total`，越界标红停止；`excl === 0` 时提示「不含税为 0，无法反推税率」，不要输出 0%。
-
 - 本轮实读 8 页：`tools/finance/calc-2.html`、`tools/finance/calc-3.html`、`tools/finance/calc-4.html`、`tools/finance/calc-5.html`、`tools/finance/invoice-generator.html`、`tools/finance/currency-converter.html`、`tools/finance/analysis-5.html`、`tools/finance/analysis-risk.html`；新增 11 条（高 3/中 6/低 2）；未覆盖：其余 finance 页（约 66 页）未逐页复扫。
 - 证据均由源码行号 + node 内存复算取得；未做浏览器、英文态、移动端、门禁与线上验证；历史已修声明未独立复验。
 
