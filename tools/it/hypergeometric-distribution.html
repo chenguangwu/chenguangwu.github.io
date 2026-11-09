@@ -271,7 +271,11 @@ function fmt(x){
 // IT-N373：C(10000,5000) ≈ 1e3009，exp() 还原必然 Infinity ⇒ 步骤里改成 e^x 形式，不再显示「未定义」
 function combInfo(n,k){
   const lg=logComb(n,k);
-  if(!isFinite(lg)) return {ln:0, over:true, txt:'0'};
+  // IT-N373：logComb 在 k<0 或 k>n 时返回 −Infinity，表示「组合数为 0」。
+  // 旧实现塞成 ln:0（对应组合数 1），使步骤 4 写成 exp(a + 0 − b) = 0，左侧其实约 1e-37，等式不成立。
+  // ln(0) 必须记作 −∞，并把该情形明确标为不可能事件。
+  if(lg===-Infinity) return {ln:-Infinity, over:true, zero:true, txt:'0'};
+  if(!isFinite(lg)) return {ln:NaN, over:true, txt:'—'};
   const over = lg > 700;                 // e^700 ≈ 1.01e304，已逼近 MAX_VALUE 1.8e308
   return {ln:lg, over:over, txt: over ? ('≈ e^'+lg.toFixed(2)) : fmt(Math.round(Math.exp(lg)))};
 }
@@ -336,6 +340,9 @@ function calculate(){
     html+=`<div class="step-line"><strong>步骤 4：</strong>P = exp(lnC₁ + lnC₂ − lnC₃) = exp(${lnTxt(cb1.ln)} + ${lnTxt(cb2.ln)} − ${lnTxt(cb3.ln)}) = ${fmt(pEq)}</div>`;
   }else{
     html+=`<div class="step-line"><strong>步骤 4：</strong>P = ${cb1.txt} × ${cb2.txt} / ${cb3.txt} = ${fmt(pEq)}</div>`;
+  }
+  if(cb1.zero||cb2.zero){
+    html+=`<div class="step-line"><strong>不可能事件：</strong>分子含 C(n, k) = 0（k 超出可选范围），故 P = 0；ln(0) 记作 −∞，不能按 ln = 0（组合数 1）代入。</div>`;
   }
   html+=`<div class="step-line"><strong>例子解读：</strong>从 N=${N} 个物品（其中 K=${K} 个目标）中无放回抽 n=${n} 个，恰好抽中 k=${k} 个目标的概率为 ${(pEq*100).toFixed(4)}%</div>`;
   const __h4=html;if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h4;

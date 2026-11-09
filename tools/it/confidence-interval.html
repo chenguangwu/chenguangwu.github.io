@@ -155,7 +155,7 @@ s.parentNode.insertBefore(el, s);
 <h2 data-zh="📊 置信区间计算">📊 Confidence Interval</h2>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">置信区间 CI = x̄ ± 临界值 × s÷√n；n &lt;30（或手动选 t 分布）时用 t 临界值（自由度 n−1），否则用 z 临界值；df &gt;120 时 t 值按 z 近似，其余按 t 表最近自由度线性内插。校验：样本量 n ≥1 且标准差 s &gt;0，否则提示输入无效。判据：CI 随置信水平提高而加宽、随样本量增大而收窄。</div>
+      <div class="formula-eq">置信区间 CI = x̄ ± 临界值 × s÷√n；n &lt;30（或手动选 t 分布）时用 t 临界值（自由度 n−1），否则用 z 临界值；df &gt;120 时 t 值按 z 近似，其余按 t 表最近自由度线性内插。校验：样本量 n 必须是 ≥1 的整数且标准差 s &gt;0；t 分布自由度 df=n−1 需 ≥1，故 auto/t 模式下 n 至少为 2，否则拒绝并提示。判据：CI 随置信水平提高而加宽、随样本量增大而收窄。</div>
     </div>
 <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="基于正态分布(z)或 t 分布计算均值的置信区间">Confidence Interval</p>
 
@@ -374,9 +374,9 @@ function calc(){
  const n = numVal('n');
  const conf = +document.getElementById('conf').value;
  const distChoice = document.getElementById('dist').value;
- if([mean,std,n].some(isNaN) || n < 1 || std <= 0){
+ if([mean,std,n].some(isNaN) || !Number.isInteger(n) || n < 1 || std <= 0){
   document.getElementById('ci').textContent = '[ 输入无效 ]';
-  document.getElementById('ci-label').textContent = '请填写均值、标准差与样本量（n ≥ 1、s > 0）';
+  document.getElementById('ci-label').textContent = '请填写均值、标准差与样本量（n 为 ≥ 1 的整数、s > 0）';
   const detailEl = document.getElementById('calc-detail');
   if(detailEl) detailEl.innerHTML = '';
   return;
@@ -384,6 +384,15 @@ function calc(){
  const alphaHalf = ALPHA_HALF[conf];
  const z = Z_TABLE[conf];
  const useT = distChoice === 't' || (distChoice === 'auto' && n < 30);
+ // IT-N376：t 分布自由度 df = n−1 必须 ≥ 1。n = 1 时 df = 0、t 临界值不存在，
+ // 旧实现继续算并把 NaN 洗成「—」，输出「[ — , — ]」这类无效结果。此处明确拒绝。
+ if(useT && n < 2){
+  document.getElementById('ci').textContent = '[ 输入无效 ]';
+  document.getElementById('ci-label').textContent = 't 分布自由度 df = n−1 需 ≥ 1；n = 1 时请改用 z 分布，或把样本量填为 ≥ 2 的整数';
+  const detailEl = document.getElementById('calc-detail');
+  if(detailEl) detailEl.innerHTML = '';
+  return;
+ }
  const critical = useT ? getTCritical(n-1, alphaHalf) : z;
  const se = std / Math.sqrt(n);
  const me = critical * se;
