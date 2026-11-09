@@ -185,6 +185,18 @@ const CASES = [
     ref: "加拿大 SIN 使用 Luhn：046454286 加权和 mod 10 == 0；expect 取页面回显的格式化串「046-454-286」（含具体号码 ⇒ 默认预填 130692544 的格式化值 130-692-544 不命中）",
   },
   {
+    slug: "finance/sin-validator",
+    inputs: { input: "000-000-000" },
+    expect: ["首字符： 0 - Not issued 校验算法： Luhn（模 10） 校验和： ❌ 未通过 ❌ 校验和失败，SIN 无效"],
+    ref: "F-N209 全零：000000000 Luhn 虽通过但首字符 0 页面自述 Not issued（CRA 未发行）⇒ 无效。旧实现仅看 Luhn 判 ✅。默认预填首位 1 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/sin-validator",
+    inputs: { input: "130692544abc" },
+    expect: ["❌ SIN 只能包含数字、空格或连字符"],
+    ref: "F-N209 字母剥离：旧实现 replace(\\D,'') 把 abc 剥离后按 130692544 判 ✅；修复后含字母直接拒绝。默认预填纯数字 ⇒ 不命中。",
+  },
+  {
     slug: "finance/dni-validator",
     inputs: { input: "12345678Z" },
     expect: ["Z（期望 Z）"],
@@ -2841,9 +2853,9 @@ const CASES = [
       "input": "abc123测试"
     },
     "expect": [
-      "abc123测试\n输入： abc123测试 ⚠️ SIN 必须为 9 位数字（当前 3 位）"
+      "abc123测试\n输入： abc123测试 ❌ SIN 只能包含数字、空格或连字符"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： abc123测试 ⚠️ SIN 必须为 9 位数字（当…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "F-N209 同步：含字母/中文的非法字符输入修复后走「只能包含数字、空格或连字符」拒绝（旧实现剥离字母按 3 位报错）；默认态（130692544）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "finance/salary-calculator",

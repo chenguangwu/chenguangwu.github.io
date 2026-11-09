@@ -247,6 +247,11 @@ function validate(){
   const out = document.getElementById('output');
   if(!digits){ const __h0=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Waiting for input...":"等待输入...");if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0; return; }
   let html = `<p><strong>输入：</strong>${raw}</p>`;
+  // F-N209：非数字字符（除空格/连字符）不得被静默剥离，直接拒绝
+  if(/[^0-9\-\s]/.test(raw)){
+    const __hBad=html+`<p style="color:var(--danger);">❌ SIN 只能包含数字、空格或连字符</p>`;
+    out.innerHTML=__hBad; return;
+  }
   if(digits.length !== 9){
     html += `<p>⚠️ SIN 必须为 9 位数字（当前 ${digits.length} 位）</p>`;
     const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;
@@ -268,7 +273,8 @@ function validate(){
     '0':'Not issued'
   };
   const province = provinceMap[firstDigit] || ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Unknown":"未知");
-  const valid = luhnCheck(digits);
+  // 首位 0 为「Not issued」，CRA 从未发行，不能因 Luhn 通过就判有效（F-N209）
+  const valid = luhnCheck(digits) && firstDigit !== '0';
   html += `<p><strong>格式化：</strong>${formatted}</p>`;
   html += `<p><strong>首字符：</strong>${firstDigit} - ${province}</p>`;
   html += `<p><strong>校验算法：</strong>Luhn（模 10）</p>`;
