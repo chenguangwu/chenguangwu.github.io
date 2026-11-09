@@ -850,6 +850,18 @@ const CASES = [
     ref: "F-N186 反向检索无匹配：非 BIC 形态且无行名命中 ⇒ 明确提示未找到；旧实现取前 4 位 NOTA 未收录并报长度错误。默认预填 CHASUS33 ⇒ 不命中。",
   },
   {
+    slug: "finance/bic-lookup",
+    inputs: { input: "ABCDEFGH" },
+    expect: ["国家代码： EF - 非 ISO 3166-1 国家码", "❌ 国家代码 EF 不是 ISO 3166-1 alpha-2 代码", "❌ BIC 格式校验失败（长度须为 8 或 11 位，且国家/位置/分支码均须合法）"],
+    ref: "F-N187 国家码白名单：EF 非 ISO 3166-1 alpha-2，旧实现仅显示「未知」并按长度判 ✅；修复后必须拒绝。默认 CHASUS33 国家 US 合法 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/bic-lookup",
+    inputs: { input: "DEUTPTFF" },
+    expect: ["国家代码： PT - 有效 ISO 代码（离线库未收录）"],
+    ref: "F-N187 防误伤：PT 是 ISO 3166-1 有效代码但不在 23 项离线名称库，不能因名称缺失误判格式无效；旧实现显示「未知」但仍 ✅，新实现明确标注有效 ISO 后仍 ✅。默认国家 US 在名称库 ⇒ 不命中。",
+  },
+  {
     slug: "finance/postal-code-validator",
     inputs: { input: "100000" },
     expect: ["China（CN）：6 位数字"],
