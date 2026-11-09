@@ -263,6 +263,7 @@ GATES = (
     ("martial calc correctness", ("node", "scripts/verify_martial_calc.js")),
     ("kick height grading", ("node", "scripts/_verify_fun_batch_fe_n40n41.mjs")),
     ("keyboard heatmap trailing history", ("node", "scripts/_verify_fun_batch_fe_n61.mjs")),
+    ("bpm input editing", ("node", "scripts/_verify_fun_batch_fe_n4.mjs")),
     ("mechanical calc correctness", ("node", "scripts/verify_mechanical_calc.js")),
     ("media calc correctness", ("node", "scripts/verify_media_calc.js")),
     ("medical calc correctness", ("node", "scripts/verify_medical_calc.js")),

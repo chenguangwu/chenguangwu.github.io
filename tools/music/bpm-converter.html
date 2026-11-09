@@ -258,7 +258,7 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row">
       <div style="flex:1;min-width:180px;">
         <label for="bpmInput">BPM 数值 (40-300)</label>
-        <input type="number" id="bpmInput" min="40" max="300" step="0.1" value="120" oninput="onBpmChange()" placeholder="如 120（40–300）">
+        <input type="number" id="bpmInput" min="40" max="300" step="0.1" value="120" oninput="onBpmChange()" onchange="onBpmCommit()" placeholder="如 120（40–300）">
       </div>
       <div style="flex:1;min-width:120px;">
         <label>&nbsp;</label>
@@ -501,14 +501,22 @@ s.parentNode.insertBefore(el, s);
 
   // 同步滑块和输入框
   window.onBpmChange = function() {
-    var raw = parseFloat(document.getElementById('bpmInput').value);
-    var val = raw;
-    if (isNaN(val) || val < 40) val = 40;
-    if (val > 300) val = 300;
-    // 仅当用户输入了数字但越界时才回写输入框，避免正常范围内输入（如正在键入 120）被打断
-    if (!isNaN(raw) && raw !== val) {
-      document.getElementById('bpmInput').value = val;
+    var input = document.getElementById('bpmInput');
+    var val = parseFloat(input.value);
+    if (input.value.trim() === '' || !Number.isFinite(val) || val < 40 || val > 300) {
+      calcAll();
+      return;
     }
+    document.getElementById('bpmSlider').value = val;
+    updateQuickBtns(val);
+    calcAll();
+  };
+
+  window.onBpmCommit = function() {
+    var input = document.getElementById('bpmInput');
+    if (input.value.trim() === '') return;
+    var val = getBpm();
+    input.value = String(val);
     document.getElementById('bpmSlider').value = val;
     updateQuickBtns(val);
     calcAll();
@@ -710,7 +718,13 @@ s.parentNode.insertBefore(el, s);
 
   // 综合计算
   function calcAll() {
-    var bpm = getBpm();
+    var input = document.getElementById('bpmInput');
+    var raw = parseFloat(input.value);
+    if (input.value.trim() === '' || !Number.isFinite(raw) || raw < 40 || raw > 300) {
+      ['noteGrid', 'delayTable', 'lfoGrid', 'sampleGrid'].forEach(function(id) { document.getElementById(id).textContent = ''; });
+      return;
+    }
+    var bpm = raw;
     renderNotes(bpm);
     renderDelay(bpm);
     renderLfo(bpm);
