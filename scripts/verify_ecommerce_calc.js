@@ -2,6 +2,10 @@
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
+  { slug: "ecommerce/analysis-71", inputs: { data: "A,90,10,4.1,-1\nB,100,20,4.2,2" },
+    clicks: ["calc();"],
+    expect: ["发货时效天数不能为负数", "请核对以下行：A"],
+    ref: "第六批 06-N50：A 发货 −1 天、B 发货 2 天，旧实现把 A 选为最快标杆并显示差 3 天。现解析时收集负发货行并停止计算、提示对应行名，负发货天数不参与时效比较；正常正数与 0 天分组保持原行为。默认态数据合法不含该提示 ⇒ 强判别。" },
   {
     slug: "ecommerce/analysis-71",
     inputs: {data: "Fast,90,10,4.1,1.5\nSlow,100,20,4.2,4.25"},

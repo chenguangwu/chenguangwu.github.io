@@ -12,6 +12,10 @@
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
+  { slug: "life/bill-splitter",
+    clicks: ["var __r=__advSplitAmounts([{amount:100,involved:[0,1,2]}],3,1,10000);document.getElementById('adv-result').innerHTML='SPLIT='+__r.map(function(x){return x.toFixed(2);}).join('|');"],
+    expect: ["SPLIT=33.34|33.33|33.33"],
+    ref: "第六批（逐项账单分摊）：三人均分 100 元旧实现按 toFixed(2) 逐人四舍五入得 33.33×3=99.99，与账单差 1 分；且以姓名作对象键导致同名参与者合并。现抽 __advSplitAmounts 按人员索引累积、以「分」为单位最大余数配平，三人得 33.34/33.33/33.33，合计严格 100.00；渲染层按 advPersons 索引逐人出行。默认态（clicks 清空）不含 SPLIT 标记 ⇒ 强判别。" },
   // ── 停车费（先扣免费时长，再按费率，最后套封顶）────────────────
   {
     slug: "life/parking-fee",

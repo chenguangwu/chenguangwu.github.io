@@ -205,7 +205,7 @@ function calc(){
   var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn()) || (document.documentElement.lang||'').toLowerCase().indexOf('en')===0;
   var dayUnit=en?' days':' 天';
   var raw=document.getElementById('data').value.split(String.fromCharCode(10)).map(function(s){return s.replace(String.fromCharCode(13),'');}).map(function(s){return s.trim();}).filter(Boolean);
-  var items=[];
+  var items=[],badDays=[];
   raw.forEach(function(line){
     var p=line.split(/[,，\t]/).map(function(x){return x.trim();});
     if(p.length>=5){
@@ -213,10 +213,21 @@ function calc(){
       var sales=parseFloat(p[2].replace(/[^0-9.\-]/g,''));
       var score=parseFloat(p[3].replace(/[^0-9.\-]/g,''));
       var days=parseFloat(p[4].replace(/[^0-9.\-]/g,''));
-      if(![price,sales,score,days].some(isNaN)) items.push({name:p[0]||(en?'Competitor ':'竞品')+(items.length+1),price:price,sales:sales,score:score,days:days});
+      if(![price,sales,score,days].some(isNaN)){
+        // 06-N50 复核重做：负发货天数无业务含义，不得参与最快/最慢标杆比较。
+        if(days<0){ badDays.push(p[0]||(en?'Row '+(items.length+badDays.length+1):'第 '+(items.length+badDays.length+1)+' 行')); return; }
+        items.push({name:p[0]||(en?'Competitor ':'竞品')+(items.length+1),price:price,sales:sales,score:score,days:days});
+      }
     }
   });
   var res=document.getElementById('res');
+  if(badDays.length){
+    var badTxt=badDays.slice(0,5).join('、').replace(/[&<>"']/g,'');
+    res.innerHTML=en
+      ? '<p style="color:var(--danger)">⚠ Shipping days cannot be negative. Please correct: '+badTxt+(badDays.length>5?' … ('+badDays.length+' rows)':'')+'. Negative shipping times are excluded from the comparison.</p>'
+      : '<p style="color:var(--danger)">⚠ 发货时效天数不能为负数，请核对以下行：'+badTxt+(badDays.length>5?' 等 '+badDays.length+' 行':'')+'。负发货天数不参与时效比较。</p>';
+    return;
+  }
   if(!items.length){res.innerHTML=en?'<p>Enter at least one valid row (competitor, price, monthly sales, rating, shipping days).</p>':'<p>请输入至少一行有效数据（竞品,价格,月销,评分,发货时效天）</p>';return;}
   var minP=Math.min.apply(null,items.map(function(x){return x.price;}));
   var maxP=Math.max.apply(null,items.map(function(x){return x.price;}));

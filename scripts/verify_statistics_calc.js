@@ -16,6 +16,10 @@
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
+  { slug: "statistics/paired-t-test", inputs: { dbar: "-2.5", sd: "2.5", n: "15" },
+    clicks: ["var __d=Number(document.getElementById('dbar').value);var __s=Number(document.getElementById('sd').value);var __z=__d/__s;document.getElementById('result').innerHTML='DZ='+__z.toFixed(4)+'|'+__ptEffectSize(__z)+'|'+__ptEffectSizeEn(__z);"],
+    expect: ["DZ=-1.0000|大效应|large"],
+    ref: "第六批 SMS-31：差值均值负、|d_z|=1.0 ⇒ 效应量应为「大效应/large」，旧实现 dz>=0.8 用带符号比较把负值误标「小效应」。现抽 __ptEffectSize/__ptEffectSizeEn 按绝对值分级，中英附表共用。默认 dbar=2.5/sd=3 ⇒ DZ=0.8333|大效应|large，注入失败即不命中 ⇒ 强判别。" },
   // ── Z 分数（z = (x−μ)/σ）─────────────────────────────────────────
   {
     slug: "statistics/z-score-calc",

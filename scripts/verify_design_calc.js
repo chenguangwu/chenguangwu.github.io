@@ -24,6 +24,13 @@ const { runCase } = require("./verify_it_calc.js");
 
 // ---------------------------------------------------------------- 用例
 const CASES = [
+  { slug: "design/contrast-checker", inputs: { fgHex: "F#FF", bgHex: "000000" },
+    expect: ["颜色需为有效的 3 或 6 位 HEX 值"],
+    ref: "第六批 D-N1：前景 F#FF 含内部 #，旧实现入口与 isValidHex 各 replace 一次 # 使其变成 FFF 通过校验，算出白黑 21.00。现 normalizeHex 只去单个前导 #，内部 # 由正则拒绝。默认白/黑为有效输入不含该提示 ⇒ 强判别。" },
+  { slug: "design/contrast-checker", inputs: { fgHex: "GGGGGG", bgHex: "000000" },
+    clicks: ["document.getElementById('fgHex').value='FFFFFF';document.getElementById('bgHex').value='000000';updateAll();document.getElementById('fgHex').value='GGGGGG';updateAll();"],
+    expect: ["待判定"],
+    ref: "第六批 D-N1：先算白/黑（21.00、AA 通过、评分条 100%），再把前景改成非法 GGGGGG。旧实现只清比率与评级，WCAG 状态与评分条残留旧结论；现 clearWCAG() 把 4 组状态置「待判定」并清零评分条。默认态为有效计算（通过/未通过），不含「待判定」⇒ 强判别。" },
   // ── 单位换算类 ─────────────────────────────────────────────────
   {
     slug: "design/px-to-rem",

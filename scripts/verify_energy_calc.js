@@ -23,6 +23,9 @@
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
+  { slug: "energy/lcoe", inputs: { capex: "5000000", n: "1e-30", r: "1e-300", om: "100000", e: "1200000" },
+    expect: ["资本回收因子不可表示"],
+    ref: "第六批 CE-N10：年限 1e-30、折现率 1e-300 均通过有效性校验，但 n·log1p(r) 下溢为 0 ⇒ -expm1(-0) = -0 ⇒ CRF = ±Infinity，主结果显示「—」而增强表仍含 Infinity 且可导出。现 __lcoeCRF 对中间量下溢返回 NaN，calcTool/Extras/Export 统一以 __lcoeComputable() 阻断并清空明细。默认 20 年/6% 正常出结果 ⇒ 强判别。" },
   // ── 电功率 P = U × I ────────────────────────────────────────────
   {
     slug: "energy/electrical-power",

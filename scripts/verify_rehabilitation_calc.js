@@ -2,6 +2,9 @@
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
+  { slug: "rehabilitation/berg-balance-scale", checks: ["4"],
+    expect: ["高于安全界值 45 分约 11 分"],
+    ref: "第六批 M-N19：14 项各 4 分 ⇒ 总分 56，高于 45 分界值 11 分。旧病历附加说明恒写「低于安全界值 45 分约 X 分」，56 分时显示「低于…约 0 分」自相矛盾。现按 <45 / =45 / >45 三分支如实描述，并注明临床阈值与「每分约 7%」线性估算须专业复核。默认态未作答不渲染病历 ⇒ 强判别。" },
   // 注：rehabilitation/analysis-time 已于 2026-09-19 改为 TOOLBOX-REDIRECT 存根（重定向到同义真工具），不再是工具页，用例移除。
 {
   "slug": "rehabilitation/asia-impairment-scale",

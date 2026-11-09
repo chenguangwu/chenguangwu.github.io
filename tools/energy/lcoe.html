@@ -307,7 +307,20 @@ function __lcoeValid(){
   return values[0]>=0 && values[1]>0 && values[2]>=0 && values[3]>=0 && values[4]>0;
 }
 // Equivalent to r(1+r)^n / ((1+r)^n - 1), without cancellation near r = 0.
-function __lcoeCRF(r,n){return r===0 ? 1/n : r / -Math.expm1(-n * Math.log1p(r));}
+function __lcoeCRF(r,n){
+  if(r===0) return n>0?1/n:NaN;
+  var x=n*Math.log1p(r);
+  // CE-N10 复核重做：n·log1p(r) 下溢为 0（如 n=1e-30、r=1e-300）时 -expm1(-x) 为 -0，
+  // r/(-0) 得 ±Infinity，主结果显示「—」而增强表仍含 Infinity。中间量不可表示即返回 NaN。
+  if(!isFinite(x)||x===0) return NaN;
+  return r / -Math.expm1(-x);
+}
+function __lcoeComputable(){
+  var C=num('capex'),n=num('n'),r=num('r'),om=num('om'),E=num('e');
+  if(!(n>0&&E>0&&r>=0)) return false;
+  var crf=__lcoeCRF(r,n);
+  return isFinite(crf)&&crf>0&&isFinite((C*crf+om)/E);
+}
 
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
@@ -322,6 +335,13 @@ const C=num('capex'),n=num('n'),r=num('r'),om=num('om'),E=num('e');
             // r→0 时 CRF 的极限为 1/n（不计折现）
             const crf = __lcoeCRF(r,n);
             const lcoe=(C*crf+om)/E;
+            if(!isFinite(crf)||!(crf>0)||!isFinite(lcoe)){
+                __lcoeClear();
+                ToolBox.setResult('result',__lcoeIsEn()
+                  ? '⚠ Parameters produce an unrepresentable capital recovery factor (intermediate underflow/overflow). Please adjust the lifetime or discount rate.'
+                  : '⚠ 当前参数组合导致资本回收因子不可表示（中间量下溢/溢出），请调整年限或折现率后重新计算。');
+                return;
+            }
             const en=__lcoeIsEn();
             const __g2=dataGrid([
                 [lcoe.toFixed(3),en?'LCOE (CNY/kWh)':'LCOE (元/kWh)'],
@@ -340,7 +360,7 @@ function __lcoeNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.va
 function __lcoeExtras(){
     function __lcoeRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
-    if(!__lcoeValid()){__lcoeClear();return;}
+    if(!__lcoeValid()||!__lcoeComputable()){__lcoeClear();return;}
     var C=num('capex'),n=num('n'),r=num('r'),om=num('om'),E=num('e');
     var crf=__lcoeCRF(r,n);
     var lcoe=(C*crf+om)/E;
@@ -360,7 +380,7 @@ function __lcoeExtras(){
 }
 function __lcoeExport(){
     if (typeof TBKit === 'undefined') return;
-    if(!__lcoeValid()) return;
+    if(!__lcoeValid()||!__lcoeComputable()){__lcoeClear();return;}
     try { TBKit.util.exportTable('#lcoeTable','lcoe.csv'); } catch(e){}
 }
 function __lcoePresets(){

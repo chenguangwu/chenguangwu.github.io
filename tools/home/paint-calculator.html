@@ -328,15 +328,24 @@ function __paintIsEn(){
 
 /** 门窗扣减量：门数×单门面积 + 窗数×单窗面积（m²）；数量与面积均须为非负 */
 function getDeduct(){
-  const dc = +document.getElementById('door-count').value;
-  const da = +document.getElementById('door-area').value;
-  const wc = +document.getElementById('win-count').value;
-  const wa = +document.getElementById('win-area').value;
-  if(![dc, da, wc, wa].every(function(x){ return isFinite(x) && x >= 0; })){
-    return { ok:false, msg:'门窗数量与面积均须为非负数值（不能为空或负数）。' };
+  // 复核失败重做：+'' 等于 0，空字段被静默当作合法 0 并继续输出净面积。
+  // 文案已声明「不能为空」，这里显式区分空串 / 非法数值 / 合法显式 0。
+  const ids=['door-count','door-area','win-count','win-area'];
+  const vals=[];
+  for(let k=0;k<ids.length;k++){
+    const el=document.getElementById(ids[k]);
+    const raw=String(el && el.value!=null ? el.value : '').trim();
+    if(raw===''){
+      return { ok:false, msg:'门窗字段不能为空，请逐项填写数值（无门窗请显式填 0）。' };
+    }
+    const v=Number(raw);
+    if(!isFinite(v)||v<0){
+      return { ok:false, msg:'门窗数量与面积均须为非负数值（不能为空或负数）。' };
+    }
+    vals.push(v);
   }
-  const door = dc * da;
-  const win = wc * wa;
+  const door = vals[0] * vals[1];
+  const win = vals[2] * vals[3];
   return { ok:true, door:door, win:win, total: door + win };
 }
 
