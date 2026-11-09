@@ -144,6 +144,42 @@ function _rngReset() { _rngState = 0x9e3779b9 >>> 0; }
 
 // ---------------------------------------------------------------- 用例
 const CASES = [
+  // ===== 条码族 deepdive 示例一致性（自查续批：修正同模板错误文案）=====
+  {
+    slug: "it/barcode-code128",
+    inputs: {},
+    clicks: ["var calls=[];window.ToolBoxBarcode={encode:function(t,s){calls.push(t+':'+s);return {ok:true,bits:'101',text:s};},renderCanvas:function(){return {width:1};}};document.getElementById('data').value='ABC-1234';try{generate();}catch(e){}document.getElementById('__tbProbe').textContent='C128='+calls.join('|');"],
+    expect: ["C128=code128:ABC-1234"],
+    ref: "条码族 deepdive 示例一致性（自查续批）：Code 128 示例改为任意 ASCII 文本 ABC-1234，页面 generate() 确实把它原文交给编码库（校验符号由编码库自动算，页面不要求用户补位）。外部编码库在门禁里以桩替身捕获调用参数；默认输入 ABC-1234 虽相同，但探针 C128= 只在注入 clicks 后出现 ⇒ 非回显、强判别。",
+  },
+  {
+    slug: "it/barcode-code39",
+    inputs: {},
+    clicks: ["var a=buildCode39('CODE-39',false),b=buildCode39('CODE-39',true);document.getElementById('__tbProbe').textContent='C39='+a.text+'|'+b.text+'|'+a.bits.length+'|'+b.bits.length;"],
+    expect: ["C39=CODE-39|CODE-39P|116|129"],
+    ref: "条码族 deepdive 示例一致性（自查续批）：Code 39 示例 CODE-39 确实可编码；标准模式不加校验位，勾选「追加 Mod 43 校验位」后由工具追加校验字符 P、bits 从 116 增至 129，与文案「校验位可选且由工具追加」一致。旧示例 9 位数字配「请按规范长度与校验位填写」与页面行为不符。默认态不产生该串。",
+  },
+  {
+    slug: "it/barcode-itf",
+    inputs: {},
+    clicks: ["var a=buildITF('12345678901234'),b=buildITF('123456789');document.getElementById('__tbProbe').textContent='ITF='+a.length+'|'+b.length;"],
+    expect: ["ITF=133|97"],
+    ref: "条码族 deepdive 示例一致性（自查续批）：ITF 示例改为 14 位 ITF-14；9 位奇数输入会被自动在前面补 0 凑偶数位，bits 长度 97 与 14 位的 133 不同，证明文案所述「只保留数字、奇数位自动补 0、两两交织」与实现一致。页面不代算 GTIN-14 校验位，文案已如实说明。默认态不产生该串。",
+  },
+  {
+    slug: "it/barcode-msi",
+    inputs: {},
+    clicks: ["var a=buildMSI('1234567','none'),b=buildMSI('1234567','mod10');document.getElementById('__tbProbe').textContent='MSI='+a.text+'|'+b.text+'|'+a.bits.length+'|'+b.bits.length;"],
+    expect: ["MSI=1234567|12345674|91|103"],
+    ref: "条码族 deepdive 示例一致性（自查续批）：MSI 示例 1234567 可编码；无校验模式原样输出，Mod 10 模式由工具追加校验位 4（bits 91→103），与文案「MSI 本身无校验、按所选模式由工具追加」一致。默认态不产生该串。",
+  },
+  {
+    slug: "it/barcode-upc",
+    inputs: {},
+    clicks: ["var a=buildUPC('03600029145'),b=buildUPC('036000291451');document.getElementById('__tbProbe').textContent='UPC='+(a.error||'OK')+'|'+(b.error||'OK')+'|'+(a.bits?a.bits.length:0)+'|'+(b.expect===undefined?'NA':b.expect);"],
+    expect: ["UPC=OK|check|95|2"],
+    ref: "条码族 deepdive 示例一致性（自查续批）：UPC-A 示例 03600029145 是 11 位，工具自动补校验位后生成 95 模块条码；12 位且末位错误时返回 check 并提示正确校验位 2，与文案「11/12 位、自动补位、12 位核对末位」一致。旧示例 9 位数字在该页根本无法生成。默认态不产生该串。",
+  },
   // ===== 复核失败·第二批剩余 7 条重做（IT-N492/N493、D-N21、IT-N421、N555、N355、N549、N358）=====
   {
     slug: "design/svg-to-png",
