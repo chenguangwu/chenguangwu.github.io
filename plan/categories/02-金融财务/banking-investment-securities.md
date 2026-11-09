@@ -1,5 +1,13 @@
 # 银行/投资/证券 · tools/{banking,investment,securities}（~110 页）
 
+## 2026-11-09 已修交接中未完成的余项
+
+以下为原交接未完成或尚待核实的余项，不代表本次复核确认当前代码仍存在：
+- `tools/banking/loan-remaining-balance.html` 与 `tools/banking/loan-tenure.html` 的数据表 / CSV 各自复算，失败态导出未禁用。
+- `tools/investment/discounted-payback.html` 仍为固定 4 期，「允许增删期间」未实现。
+- `tools/banking/loan-tenure.html` 的敏感性扫描图按连续期数绘制，属于趋势示意。
+- 其他页面的同类历史对比模板尚待统一口径与全量门禁，本次未逐页复核。
+
 ## 已知问题
 ### B1. 复利/年金公式族重复且口径不一
 - 描述：annuity 系多页（pv/fv/due/growing）间互链弱、参数名不统一（r 有百分数/小数混用——growing-annuity 已注明）。
