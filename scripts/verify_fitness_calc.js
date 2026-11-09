@@ -102,6 +102,9 @@ const CASES = [
   { slug: "fitness/calc-5", inputs: { weight: "75", activity: "1.6", goal: "0.2", customFactor: "" },
     expect: ["120-150g"],
     ref: "系数=1.6+0.2=1.8；区间=[max(0.8,1.6), 2.0]×75=[120,150] g（默认 65kg/1.3+0.2→85-111g/1.5g/kg 避开）" },
+  { slug: "fitness/calc-5", inputs: { weight: "80", activity: "2.0", goal: "0.4", customFactor: "" },
+    expect: ["176-208g", "2.4g/kg"],
+    ref: "复核失败重做 SF-N10：增肌目标须用 goal=0.4（修复前预设误写 0.2）。系数=2.0+0.4=2.4；区间=[max(0.8,2.2),2.6]×80=[176,208] g（避开默认 75/1.6/0.2→120-150g/1.8g/kg）。" },
   {
     slug: "fitness/convert",
     inputs: { val: "5", from: "1", to: "1.609344" },
