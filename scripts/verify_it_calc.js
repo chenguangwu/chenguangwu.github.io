@@ -145,6 +145,21 @@ function _rngReset() { _rngState = 0x9e3779b9 >>> 0; }
 // ---------------------------------------------------------------- 用例
 const CASES = [
   {
+    "slug": "it/email-normalizer",
+    "inputs": {"input": "user.name+tag@notgmail.com"},
+    "clicks": ["document.getElementById('opt_gmail').checked=true;normalize();var a=String(document.getElementById('afterOut').textContent||'');document.getElementById('__tbProbe').textContent='EMGM '+(a==='user.name+tag@notgmail.com'?'OK':'BAD');"],
+    "expect": ["EMGM OK"],
+    "ref": "审计修复回归：旧实现 /gmail\\.com$/ 把 notgmail.com 误判为 Gmail，去掉点号与 + 标签得到 username@notgmail.com；修复后精确匹配域名，保留原本地名。修复前 BAD。探针默认态不存在 ⇒ 零逃生。"
+  },
+  {
+    "slug": "it/email-normalizer",
+    "inputs": {"input": "A.B@gmail.com"},
+    "clicks": ["document.getElementById('__tbProbe').textContent='EMCHG '+(typeof __email_normalizerGmailChange==='function'?'OK':'BAD');"],
+    "expect": ["EMCHG OK"],
+    "ref": "审计修复回归：Gmail 归一选项原无 change 事件，取消勾选后结果不刷新；修复后绑定 onchange 调 __email_normalizerGmailChange 即时重算。修复前函数不存在 BAD。探针默认态不存在 ⇒ 零逃生。"
+  },
+
+  {
     "slug": "it/css-escape",
     "inputs": {"input": "-1a", "mode": "identifier"},
     "clicks": ["esc();var o=String(document.getElementById('output').value||'');document.getElementById('__tbProbe').textContent='CSID '+(o.indexOf('\\\\2d ')>=0?'OK':'BAD');"],

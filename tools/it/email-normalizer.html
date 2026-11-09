@@ -120,7 +120,7 @@ s.parentNode.insertBefore(el, s);
 
     <div class="input-row">
       <input type="text" id="input" placeholder="输入邮箱地址，如： John.Doe+tag @ Gmail.COM" value="John.Doe2024+tag@Gmail.COM" style="flex:2" oninput="window.normalize()">
-      <label style="flex:0 0 auto;margin:0;"><input type="checkbox" id="opt_gmail" checked> 启用 Gmail 点号/+标签归一</label>
+      <label style="flex:0 0 auto;margin:0;"><input type="checkbox" id="opt_gmail" checked onchange="__email_normalizerGmailChange()"> 启用 Gmail 点号/+标签归一</label>
     </div>
     <div class="result-box" id="result"></div> <div id="email_normalizerTable"></div> <div id="email_normalizerDiff"></div> <div id="email_normalizerChart"></div> <div id="email_normalizerHist"></div>
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
@@ -264,7 +264,8 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 function escH(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-function copyAfter(){var v=document.getElementById('afterOut').textContent;if(!v||v==='—'){if(ToolBox.showToast)ToolBox.showToast(i18nText());return;}ToolBox.copyText(v);if(ToolBox.showToast)ToolBox.showToast(i18nText());}
+function __email_normalizerGmailChange(){ normalize(); }  // Gmail 选项切换即时重算
+function copyAfter(){var v=document.getElementById('afterOut').textContent;if(!v||v==='—'||v.indexOf('❌')>=0||/Invalid|无效/.test(v)){if(ToolBox.showToast)ToolBox.showToast(i18nText());return;}ToolBox.copyText(v);if(ToolBox.showToast)ToolBox.showToast(i18nText());}
 function normalize(){
   var raw=document.getElementById('input').value;
   var useGmail=document.getElementById('opt_gmail').checked;
@@ -281,7 +282,8 @@ function normalize(){
     document.getElementById('afterOut').textContent=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"❌ Invalid email":"❌ 无效邮箱");
     const __h2='<p style="color:var(--danger)">邮箱格式无效（本地名或域名不合法）</p>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h2;return;
   }
-  var isGmail=/gmail\.com$/.test(domain)||/googlemail\.com$/.test(domain);
+  // 审计修复：必须精确匹配域名，不能让 notgmail.com 这类以 gmail.com 结尾的域名被误归一。
+  var isGmail=(domain==='gmail.com'||domain==='googlemail.com');
   if(useGmail&&isGmail){
     var before=local;
     local=local.replace(/\./g,'').split('+')[0];
@@ -354,7 +356,7 @@ function __email_normalizerRender(keys,rk,en){
                     if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
                     else{e.value=rec[k];}
                 }
-                copyAfter();
+                normalize();  // 审计修复：历史恢复后按当前参数重算，而非复制旧结果
             }catch(e2){}
             __email_normalizer_skip=false;
         });
