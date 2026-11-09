@@ -137,6 +137,12 @@ const CASES = [
     ref: "Luhn（模 10）：4532015112830366 为公开测试卡号，加权和 mod 10 == 0；expect 取页面回显的数字串（含具体卡号 ⇒ 默认预填 4111111111111111 不命中，判别力保留）",
   },
   {
+    slug: "finance/credit-card-luhn",
+    inputs: { input: "00" },
+    expect: [ "数字： 00 长度： 2 位 Luhn 校验： ✅ 通过 ⚠️ 该数字串通过 Luhn 算法，但长度 2 位不是有效卡号长度" ],
+    ref: "F-N67 真锁：2 位「00」Luhn 算法虽通过（0+0），但必须点明「长度 2 位不是有效卡号长度」，不再误称「✅ 卡号通过 Luhn 校验」。旧实现必命中「卡号通过」⇒ 反相变红；默认 16 位预填不含该串 ⇒ 零逃生。",
+  },
+  {
     slug: "finance/aba-validator",
     inputs: { input: "011000015" },
     expect: ["美联储分区： 01 - Boston"],
@@ -869,6 +875,18 @@ const CASES = [
     inputs: { input: "411111" },
     expect: ["发卡机构： Chase Bank (测试卡)"],
     ref: "BIN 库查询：`411111` ⇒ 网络 Visa、类型 Credit、国家 US、机构 Chase Bank（测试卡）。默认态不同 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/credit-card-bin",
+    inputs: { input: "220012" },
+    expect: ["BIN： 220012 卡片网络： MIR"],
+    ref: "F-N88 真锁：220012 是 MIR BIN（2200–2204），须判 MIR。旧正则 Mastercard `2[2-7]\\d{2}` 先命中且 MIR 排其后 ⇒ 判 Mastercard，反相变红；默认 411111 判 Visa、不含该串 ⇒ 零逃生。",
+  },
+  {
+    slug: "finance/credit-card-bin",
+    inputs: { input: "272100" },
+    expect: ["BIN： 272100 卡片网络： 未知网络"],
+    ref: "F-N88 真锁：272100 超出 Mastercard 2 系列精确上界 2720 ⇒ 未知网络。旧正则 `2[2-7]\\d{2}` 泛吞 2700–2799 ⇒ 判 Mastercard，反相变红；默认 411111 判 Visa、不含该串 ⇒ 零逃生。",
   },
   {
     slug: "finance/bic-lookup",
@@ -2159,9 +2177,9 @@ const CASES = [
       "input": "abc123测试"
     },
     "expect": [
-      "abc123测试\n数字： 123 长度： 3 位 Luhn 校验： ❌ 未通过 ❌ Luhn 校验失败，卡号无效"
+      "abc123测试\n数字： 123 长度： 3 位 Luhn 校验： ❌ 未通过 ❌ Luhn 校验失败，且长度 3 位不是有效卡号长度"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n数字： 123 长度： 3 位 Luhn 校验： ❌ 未通过 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "F-N67 长度门槛：3 位数字虽 Luhn 未通过，但须明确点出「长度 3 位不是有效卡号长度」，不再笼统称「卡号无效」。注入非默认输入{\"input\":\"abc123测试\"}；默认态（16 位预填）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "finance/car-loan-calculator",
