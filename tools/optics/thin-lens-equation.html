@@ -284,8 +284,18 @@ function __tbInputGuardCore(_ids,_labels){
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-              var __ig=__tbInputGuard(['f', 'do'],["焦距 f (m)", "物距 d_o (m)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
+              var __ig=__tbInputGuard(['f', 'do'],["焦距 f (m)", "物距 d_o (m)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));try{ calcRay(); }catch(e){} return;}
 const f = num('f'), do_ = num('do');
+            // 物恰好落在焦点上：1/dᵢ=0 ⇒ dᵢ 发散，出射光平行，不能说成「实像·放大」，
+            // 也不能把 Infinity 写进 SVG 坐标。用相对容差兼顾浮点输入。
+            if(f>0 && do_>0 && Math.abs(do_-f) <= 1e-9*Math.max(f,do_)){
+              const __fm=((typeof TBKit!=='undefined'&&TBKit.util.isEn())
+                ? 'Object at the focal point: outgoing rays are parallel, the image is at infinity, and no finite image is formed.'
+                : '物距等于焦距：出射光平行，像在无穷远，不形成有限像');
+              ToolBox.setResult('result', __fm);
+              try{ calcRay(); }catch(e){}
+              return;
+            }
             const di = 1 / (1 / f - 1 / do_);
             const __g2=dataGrid([
                 [di.toFixed(4), '像距 d_i (m)'],
@@ -303,10 +313,19 @@ function calcRay(){
   var __fx=function(n){ return (typeof n==='number'&&isFinite(n))?n.toFixed(4):'—'; };
   var f=parseFloat((e('f')||{}).value), do_=parseFloat((e('do')||{}).value);
   var box=e('thinLensNature'), svg=e('thinLensRay');
+  var en=false; try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) en=TBKit.util.isEn(); }catch(err){}
   if(!(f>0&&do_>0)){ if(box)box.innerHTML=''; if(svg)svg.innerHTML=''; return; }
+  // 焦点边界：清空会带 Infinity 坐标的错误光路图，改给明确的「平行出射 / 像在无穷远」结论
+  if(Math.abs(do_-f) <= 1e-9*Math.max(f,do_)){
+    if(box)box.innerHTML='<div style="font-size:13px;line-height:1.95">'
+      +'<div>'+(en?'Image distance d_i = infinity (object at focal point)':'像距 d_i = 无穷远（物位于焦点）')+'</div>'
+      +'<div>'+(en?'Lateral magnification m = not defined':'横向放大率 m = 不定义')+'</div>'
+      +'<div>'+(en?'Image nature: parallel outgoing rays / image at infinity / no finite image':'成像性质：出射光平行 · 像在无穷远 · 不形成有限像')+'</div></div>';
+    if(svg)svg.innerHTML='';
+    return;
+  }
   var di=1/(1/f-1/do_);
   var m=-di/do_;
-  var en=false; try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) en=TBKit.util.isEn(); }catch(err){}
   var L={real:en?'Real image':'实像',virt:en?'Virtual image':'虚像',inv:en?'Inverted':'倒立',up:en?'Upright':'正立',enl:en?'Enlarged':'放大',dim:en?'Diminished':'缩小',eq:en?'Same size':'等大',pos:en?'positive':'正',neg:en?'negative':'负'};
   var nat=(di>0?L.real:L.virt)+' · '+(m<0?L.inv:L.up)+' · '+(Math.abs(m)>1?L.enl:(Math.abs(m)<1?L.dim:L.eq));
   var h='<div style="font-size:13px;line-height:1.95">';

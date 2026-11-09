@@ -386,8 +386,10 @@ function downloadPNG(){
   canvas.width=W; canvas.height=H;
   const ctx=canvas.getContext('2d');
   ctx.fillStyle=colors[0]; ctx.fillRect(0,0,W,H);
-  colors.forEach((c,i)=>{
-    const p=pos[i]||[50,50];
+  // CSS 的多个 background-image 是「第一层在最上」，而 canvas 是「后画的覆盖先画的」。
+  // 必须按 colors 的逆序绘制，让 colors[0] 最后画、位于最上层，PNG 才与预览的层叠一致
+  // （色点重合时预览中心是 colors[0]，导出也必须是 colors[0]）。
+  colors.map((c,i)=>({c:c,p:pos[i]||[50,50]})).reverse().forEach(({c,p})=>{
     const x=p[0]/100*W, y=p[1]/100*H;
     const r=Math.max(Math.hypot(x,y),Math.hypot(W-x,y),Math.hypot(x,H-y),Math.hypot(W-x,H-y));
     const g=ctx.createRadialGradient(x,y,0,x,y,r);

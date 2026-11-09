@@ -2250,6 +2250,18 @@ const CASES = [
     ref: "WCAG 改造：默认三色 #667eea/#764ba2/#f093fb，叠加文字注入 #000000 ⇒ 与最暗色 #764ba2 对比度 = (0.1187+0.05)/(0.0353+0.05)=3.30"
        + "（独立复算 sRGB 线性化），等级按 <4.5 判「AA 大文本」。默认态 overlay=#ffffff 输出「最低对比度 2.04:1（与 #f093fb）」，不含该串。"
   },
+  {
+    slug: "design/mesh-gradient",
+    clicks: ["var __seq=[];var _ce=document.createElement.bind(document);document.createElement=function(t){var el=_ce(t);if(t==='canvas'){el.getContext=function(){return{fillRect:function(){},createRadialGradient:function(){return{addColorStop:function(o,c){if(o===0)__seq.push(c);}};},fillStyle:null};};el.toDataURL=function(){return 'data:image/png;base64,';};}return el;};colors=['#ff0000','#0000ff'];pos=[[50,50],[50,50]];var css=meshCSS();var cssFirst=(css.indexOf('#ff0000')>=0&&css.indexOf('#ff0000')<css.indexOf('#0000ff'))?1:0;downloadPNG();document.getElementById('__tbProbe').textContent='MESHLAYER css='+cssFirst+' order='+__seq.join(',')+' ok='+((__seq[__seq.length-1]==='#ff0000')?1:0);"],
+    expect: ["MESHLAYER css=1 order=#0000ff,#ff0000 ok=1"],
+    ref: "复核失败重做·D-N60 1/2（重合色点层叠顺序）：CSS 多个 background-image 是「第一层在最上」，canvas 却是「后画的覆盖先画的」。把红/蓝两色点都放在 50% 50%，捕获 addColorStop(0,c) 的绘制序列 ⇒ 修复前 order=#ff0000,#0000ff（最后画的蓝覆盖中心，与预览相反，ok=0）；修复后倒序 order=#0000ff,#ff0000，最后画的是 CSS 首层红 ⇒ 预览与 PNG 中心一致。默认态不执行 clicks、无探针串 ⇒ 零逃生。"
+  },
+  {
+    slug: "design/mesh-gradient",
+    clicks: ["var __seq=[];var _ce=document.createElement.bind(document);document.createElement=function(t){var el=_ce(t);if(t==='canvas'){el.getContext=function(){return{fillRect:function(){},createRadialGradient:function(){return{addColorStop:function(o,c){if(o===0)__seq.push(c);}};},fillStyle:null};};el.toDataURL=function(){return 'data:image/png;base64,';};}return el;};colors=['#111111','#222222','#333333'];pos=[[50,50],[50,50],[50,50]];downloadPNG();document.getElementById('__tbProbe').textContent='MESH3 order='+__seq.join(',')+' ok='+((__seq[__seq.length-1]==='#111111'&&__seq[0]==='#333333')?1:0);"],
+    expect: ["MESH3 order=#333333,#222222,#111111 ok=1"],
+    ref: "复核失败重做·D-N60 2/2（三色重合护栏）：三个色点重合时绘制序列必须严格倒序 #333333,#222222,#111111，证明逆序修复不止对两色成立。修复前为正序 ⇒ ok=0。"
+  },
   // ── 照片存储：超容量明示（不再静默夹 100%）────────────────────
   {
     slug: "design/photo-storage-calculator",

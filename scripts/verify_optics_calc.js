@@ -127,6 +127,24 @@ const CASES = [
     expect: ["像距 d_i = 0.5000 m（正）", "放大率 m = -1.0000"],
     ref: "1/dᵢ=1/0.25−1/0.5=4−2=2 → dᵢ=0.5000 m（实像）；m=−dᵢ/d_o=−1.0000（倒立等大）。默认 f0.1/do0.3→dᵢ0.1500/m−0.5000，避开 A===B。注意 expect 为「或」匹配：裸串『0.5000』会被默认态『-0.5000』子串命中而变逃生项，故必须带『像距 d_i = 』上下文。" },
 
+  {
+    slug: "optics/thin-lens-equation",
+    clicks: ["var e=function(id){return document.getElementById(id);};e('f').value='0.1';e('do').value='0.1';calcTool();var r=String(e('result').innerHTML||'')+'|'+String(e('result').textContent||'');var b=String(e('thinLensNature').innerHTML||'');var s=String(e('thinLensRay').innerHTML||'');document.getElementById('__tbProbe').textContent='LENSFOC svgEmpty='+(s===''?1:0)+' svgInf='+(s.indexOf('Infinity')>=0?1:0)+' msg='+(r.indexOf('像在无穷远')>=0?1:0)+' nat='+(b.indexOf('出射光平行')>=0?1:0);"],
+    expect: ["LENSFOC svgEmpty=1 svgInf=0 msg=1 nat=1"],
+    ref: "复核失败重做·薄透镜 1/3（焦点边界）：f=0.1m、d_o=0.1m 时 1/dᵢ=0，dᵢ 与 m 发散。修复前 calcRay 仍判「实像·倒立·放大」并把 Infinity 写进 SVG 坐标（svgEmpty=0 svgInf=1）；修复后结果区明确「像在无穷远」、结论区写「出射光平行」、清空错误光路图 ⇒ LENSFOC svgEmpty=1 svgInf=0 msg=1 nat=1。"
+  },
+  {
+    slug: "optics/thin-lens-equation",
+    clicks: ["var e=function(id){return document.getElementById(id);};e('f').value='0.1';e('do').value='0.3';calcTool();var s1=String(e('thinLensRay').innerHTML||''),b1=String(e('thinLensNature').innerHTML||'');e('f').value='';calcTool();var s2=String(e('thinLensRay').innerHTML||''),b2=String(e('thinLensNature').innerHTML||'');e('f').value='0.1';calcTool();var s3=String(e('thinLensRay').innerHTML||'');document.getElementById('__tbProbe').textContent='LENSCLR first='+(s1.indexOf('<svg')>=0?1:0)+' empty='+((s2===''&&b2==='')?1:0)+' restore='+(s3.indexOf('<svg')>=0?1:0);"],
+    expect: ["LENSCLR first=1 empty=1 restore=1"],
+    ref: "复核失败重做·薄透镜 2/3（有效→空→恢复）：清空焦距后 __tbInputGuard 早退，旧实现不调 calcRay ⇒ #thinLensNature / #thinLensRay 保留旧图和旧结论（empty=0）；修复后早退同样走 calcRay 清空，恢复有效输入后重新出图 ⇒ LENSCLR first=1 empty=1 restore=1。"
+  },
+  {
+    slug: "optics/thin-lens-equation",
+    clicks: ["var e=function(id){return document.getElementById(id);};e('f').value='0.1';e('do').value='0.09';calcTool();var sv=String(e('thinLensRay').innerHTML||''),bv=String(e('thinLensNature').innerHTML||'');e('do').value='0.11';calcTool();var sr=String(e('thinLensRay').innerHTML||''),br=String(e('thinLensNature').innerHTML||'');document.getElementById('__tbProbe').textContent='LENSSIDE virt='+((bv.indexOf('虚像')>=0&&sv.indexOf('<svg')>=0&&sv.indexOf('Infinity')<0)?1:0)+' real='+((br.indexOf('实像')>=0&&sr.indexOf('<svg')>=0&&sr.indexOf('Infinity')<0)?1:0);"],
+    expect: ["LENSSIDE virt=1 real=1"],
+    ref: "复核失败重做·薄透镜 3/3（焦点两侧护栏）：d_o=0.09（虚像）与 0.11（实像）都应正常出 SVG、结论分别为虚像/实像且不含 Infinity。本例修复前后都应 PASS，证明焦点分支没有误伤两侧。"
+  },
   { slug: "optics/young-fringe",
     inputs: { lam: "480", L: "2", d: "0.4" },
     expect: ["2.400"],
@@ -361,12 +379,12 @@ const CASES = [
     "slug": "optics/thin-lens-equation",
     "inputs": {
       "f": "42",
-      "do": "42"
+      "do": "43"
     },
     "expect": [
-      "-d_i/d_o 0.0238"
+      "像距 d_i = 1806.0000 m（正） 横向放大率 m = -42.0000"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"f\":\"42\",\"do\":\"42\"}，输出区含「-d_i/d_o 0.0238」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "焦点边界重做同批同步：原自动补强用例用 f=42 / d_o=42 恰好落在焦点上，修复后该输入改走「出射光平行、像在无穷远」分支，旧的 dataGrid 断言必然漂移 ⇒ inputs 改为非焦点的 42/43。1/dᵢ=1/42−1/43 ⇒ dᵢ=1806.0000 m、m=−42.0000，expect 取真实派生结论串（依赖两个注入值；默认态 f0.1/d_o0.3 不含）⇒ 强判别、零逃生。"
   }
 
 ];
