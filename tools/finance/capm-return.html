@@ -145,7 +145,7 @@ s.parentNode.insertBefore(el, s);
       </div>
       <div>
         <label for="unit">输入口径</label>
-        <select id="unit">
+        <select id="unit" onchange="__capmSwitchUnit()">
           <option value="1" selected>小数（0.03 表示 3%）</option>
           <option value="100">百分数（3 表示 3%）</option>
         </select>
@@ -256,7 +256,29 @@ function capmCalc(){
   }
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h1;
 }
+function __capmSwitchUnit(){
+  // 切换口径时按已填数值的形态互转：绝对值 ≤1 视为小数形态（如 0.03），
+  // 否则视为百分数形态（如 3）。β 是无量纲乘数，不换算。
+  // 幂等：同一形态重复调用不会二次放大，兼容重复 onchange / 脚本重入。
+  var sel=document.getElementById('unit');
+  if(!sel) return;
+  var toPct=sel.value==='100';
+  ['rf','rm','obs'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(!el||el.value==='') return;
+    var v=parseFloat(el.value);
+    if(isNaN(v)) return;
+    var isDecimal=Math.abs(v)<=1;
+    var next;
+    if(toPct && isDecimal) next=v*100;
+    else if(!toPct && !isDecimal) next=v/100;
+    else next=v;
+    el.value=String(Math.round(next*1e6)/1e6);
+  });
+  capmCalc();
+}
 function resetForm(){
+  var u=document.getElementById('unit');if(u) u.__capmLastK=1;
   document.getElementById('rf').value='0.03';
   document.getElementById('beta').value='1.2';
   document.getElementById('rm').value='0.08';
@@ -264,6 +286,7 @@ function resetForm(){
   document.getElementById('unit').value='1';
   capmCalc();
 }
+(function(){var u=document.getElementById('unit');if(u)u.__capmLastK=1;})();
 capmCalc();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->

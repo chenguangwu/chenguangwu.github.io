@@ -1311,6 +1311,13 @@ const CASES = [
     ref: "CAPM 单因子模型（无风险利率 Rf = 4%、β = 1.5、市场收益率 Rm = 10%、资产预期收益 15%）：市场风险溢价 = Rm − Rf = 10% − 4% = **6.000%**；风险补偿 = β×(Rm−Rf) = 1.5×6% = **9.000%**；必要收益率 E(R) = 4% + 9% = **13.0000%**。整页把中间式直接印在明细区，两条 expect 分别是「一步乘法」与「一步加法」，且与卡片上的「β 1.25 ⇒ 11.500%」对照行不同源。默认组（3% / 1.2 / 8% ⇒ 溢价 5%、补偿 6%、E(R) 9.0000%）不命中。",
   },
   {
+    slug: "finance/capm-return",
+    inputs: { rf: "0.04", beta: "1.5", rm: "0.10", obs: "0.15" },
+    clicks: ["var u=document.getElementById('unit');u.value='100';__capmSwitchUnit();document.getElementById('__tbProbe').textContent='UNIT '+u.value+' RF '+document.getElementById('rf').value+' RM '+document.getElementById('rm').value+' OBS '+document.getElementById('obs').value"],
+    expect: ["UNIT 100 RF 4 RM 10 OBS 15"],
+    ref: "F-N60 口径互转专用锁：切到百分数口径后，rf/rm/obs 须从 0.04/0.10/0.15 互转为 4/10/15（β 不换算）。旧实现无 onchange/无互转 ⇒ 输入仍 0.04/0.10/0.15 ⇒ 不命中。probe 挂 __tbProbe 抓转换后的实际输入值，避免仅靠结果串在小数口径下碰巧命中。",
+  },
+  {
     slug: "finance/compound-interest",
     inputs: { principal: "20000", rate: "6", years: "10", annual: "0" },
     clicks: ["calc()"],

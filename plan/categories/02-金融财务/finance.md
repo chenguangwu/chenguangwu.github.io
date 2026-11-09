@@ -302,20 +302,6 @@
 
 > 范围：本轮阅读 8 页（`tools/finance/profit-margin-calculator.html`、`depreciation-calculator.html`、`position-size-calculator.html`、`insurance-calculator.html`、`stock-profit-calculator.html`、`option-profit-calculator.html`、`break-even-calculator.html`、`capm-return.html`）。仅源码 + node 复算，未开浏览器/未做 EN/移动端/门禁验证；历史已修声明未独立复验。
 
-### F-N52 利润率页折旧摊销从未扣除，EBITDA 与净利润同时虚增（高，确认）
-- 描述：`opExp` 只汇总销售/管理/研发费用，`ebit = opProfit` 未减折旧摊销；随后 `ebitda = ebit + da`，相当于在「未扣 D&A 的 EBIT」上再加一次折旧。净利率、利润总额、所得税均沿用该虚增利润，而同页饼图/成本构成又把折旧摊销当作独立成本项，口径自相矛盾。
-- 证据：`tools/finance/profit-margin-calculator.html:445-455`（`:445` 期间费用只含三项、`:449-451` EBIT/EBITDA、`:453-456` 税与净利）、`:459-462`（四张利润率卡）、`:644-646`（饼图把折旧摊销列为成本却未从净利中扣）。
-- 复现：默认值（收入 100 万、成本 60 万、销售 8 万、管理 10 万、研发 5 万、财务 2 万、折旧摊销 6 万、税率 25%）→ 页面 EBITDA 230,000、净利率 11.25%、净利润 112,500（期望 EBITDA 170,000、净利率 6.75%、净利润 67,500）。
-- 影响：`tools/finance/profit-margin-calculator.html`；重资产企业的核心盈利指标被系统性高估（本例净利润虚增 40%），并污染行业对比与 CSV 导出。
-- 方案：`ebit = gp − opExp − da`，`ebitda = ebit + da`；饼图与成本构成复用同一 `ebit`/`np`，删除重复现金流的二次计入；补一条含 D&A 的强用例。
-
-### F-N60 CAPM 页切换输入口径不重算、不换算已填数值（低，确认）
-- 描述：`#unit` 下拉只决定除以 1 还是 100，但没有 `onchange`，切换后结果区仍是旧口径数值；同时已填的 0.03/0.08 不随口径换算，点击计算后直接缩小 100 倍，页面无任何提示。
-- 证据：`tools/finance/capm-return.html:148-151`（select 无事件）、`:200-209`（`:203-204` 仅按 `unit` 除以 k）、`:260-265`（重置只设 unit=1 不换算其他输入）。
-- 复现：默认（Rf 0.03、β 1.2、Rm 0.08）E(R) 9.0000%；切「百分数（3 表示 3%）」后结果区仍为 9.0000%，点「计算」后变为 0.0900%。
-- 影响：`tools/finance/capm-return.html`；用户误以为切换口径已生效，或在切换后拿到缩小 100 倍的必要收益率。
-- 方案：select 加 `onchange="capmCalc()"`，切换时把 Rf/Rm/实际收益按 100 倍互转并重算；或在结果区显著标注当前解读口径。
-
 - 本轮实读 8 页：`tools/finance/profit-margin-calculator.html`、`tools/finance/depreciation-calculator.html`、`tools/finance/position-size-calculator.html`、`tools/finance/insurance-calculator.html`、`tools/finance/stock-profit-calculator.html`、`tools/finance/option-profit-calculator.html`、`tools/finance/break-even-calculator.html`、`tools/finance/capm-return.html`；新增 9 条（高 1 / 中 6 / 低 2）；未覆盖：其余 finance 页（约 71 页）未逐页复扫。
 - 证据均由源码行号 + node 内存复算取得；未做浏览器、英文态、移动端、门禁与线上验证；历史已修声明未独立复验。
 
