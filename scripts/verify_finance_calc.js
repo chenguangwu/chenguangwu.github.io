@@ -3541,6 +3541,24 @@ const CASES = [
     ref: "CURP 第 17 位为字母 B 表示 2000 年后出生：年份 = 2000 + 10 = 2010，而非旧的 yy<30 启发式。校验位 7 由 mod-10 加权算得。默认态 1931 ⇒ 不命中。",
   },
   {
+    slug: "finance/curp-validator",
+    inputs: { input: "GARW150820HMNERN58" },
+    expect: ["出生日期： 150820（1915-8-20）"],
+    ref: "F-N202 数字同音位锁定：第 17 位为 5（数字）⇒ 1900+15=1915；旧 yy<30 启发式会显示 2015。校验位 8 由 mod-10 加权算得。默认态不同 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/curp-validator",
+    inputs: { input: "BOXW100820HZZERNA6" },
+    expect: ["州代码： ZZ - 未知 ❌ 未分配/非法州码", "❌ CURP 校验失败"],
+    ref: "F-N203 州码白名单：ZZ 不在 RENAPO 州码全集，即使日期 2010-08-20 合法且校验位 6 吻合也必须拒绝；旧实现仅展示「未知」并放行。默认态州码有效 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/curp-validator",
+    inputs: { input: "BOXW310230HMNERNA4" },
+    expect: ["出生日期： 310230（❌ 无效）", "❌ CURP 校验失败"],
+    ref: "F-N203 日期按各月天数与闰年校验：1931-02-30 不存在，即便校验位 4 吻合也必须拒绝；防止退回 mm<=12&&dd<=31 粗校验。默认态 1931-08-20 ⇒ 不命中。",
+  },
+  {
     slug: "finance/tin-validator",
     inputs: { input: "000000000" },
     expect: ["❌ 不属于 SSN/ITIN/EIN 任何有效号段"],

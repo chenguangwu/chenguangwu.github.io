@@ -1345,20 +1345,6 @@
 - 影响：`tools/finance/curp-validator.html`；首屏样例本身就是非法串且不给判定，用户无法分辨「号码错」还是「页面坏」；占位符同样误导复制。
 - 方案：默认值与 placeholder 改为 18 位合法样例（`BOXW310820HMNERNA8`）；`:261-266` 对所有非法长度都输出 ❌ 并给出当前位数。
 
-### F-N202 CURP 页：世纪判定用 `yy<30`，与官方「第 17 位是数字/字母」规则不符（中，确认缺陷）
-- 问题：`:274` `let year = yy < 30 ? 2000+yy : 1900+yy;`；RENAPO 规则为「第 17 位（同音防重位，正则内 `[0-9A-Z]`，见 `:260`）为数字 → 1900-1999，为字母 → 2000-2099」，与出生年份两位数字无关。
-- 证据：`tools/finance/curp-validator.html:260`、`:269`、`:274`、`:280`
-- 复现（node 实算）：`GARW150820HMNERN58`（YY=15、同音位 `5` 为数字 → 官方 1915-08-20）→ 页面 `yy=15<30` 显示「2015-8-20」；对照 `GARW150820HMNERNA8`（同音位 `A` 为字母 → 2015）页面也显示 2015，两者恰好同值。
-- 影响：`tools/finance/curp-validator.html`；1930 年前出生者的出生年会被推后 100 年，年龄核验/开户 KYC 场景直接错判。
-- 方案：`year = /[0-9]/.test(homonym) ? 1900+yy : 2000+yy`，并在结果里注明判定依据。
-
-### F-N203 CURP 页：日期只查 1-12/1-31、州码不查表，2 月 30 日与 `ZZ` 州都能过（中，确认缺陷）
-- 问题：`:275` `dateValid = mm>=1&&mm<=12&&dd>=1&&dd<=31` 不校验各月天数与闰年；`:277` `STATES[state] || '未知'` 仅展示，`:286` 的通过条件只有 `dateValid && 校验位相等`。
-- 证据：`tools/finance/curp-validator.html:275`、`:277`、`:286-290`
-- 复现（node 实算）：`BOXW310220HMNERNA4`（2 月 30 日，校验位 4 吻合）→ 「✅ CURP 有效」；`BOXW310820HMNEZZA0`（州码 ZZ）→ 「州代码：ZZ - 未知」+「✅ CURP 有效」。合法对照 `BOXW310820HMNERNA8` ✅；非法对照 `BOXW310020HMNERNA6`（月 00）→ ❌。
-- 影响：`tools/finance/curp-validator.html`；伪造/抄错的出生日期与州码不拦截，「分段可解析」这一卖点失去校验价值。
-- 方案：用 `Date` 反查月份天数（含 2 月 29 闰年）；州码须命中 `STATES` 全集（含 `NE` 境外出生），未命中 ❌。
-
 ### F-N204 DNI 页：字母表写成 24 字符（官方 23），deep-dive 算例「mod 23 = 5」实为 14（低，确认缺陷）
 - 问题：`:231` `DNI_LETTERS='TRWAGMYFPDXBNJZSQVHLCKET'` 共 24 字符，官方表为 23 字符 `TRWAGMYFPDXBNJZSQVHLCKE`（`%23` 只用到前 23 位，行为侥幸正确）；`:153` 公式框写 23 字符版、`:192` FAQ 又重复 24 字符版；`:189` 示例称「12345678 mod 23 = 5 → 第 5 位为 Z」。
 - 证据：`tools/finance/dni-validator.html:153`、`:189`、`:192`、`:231`
