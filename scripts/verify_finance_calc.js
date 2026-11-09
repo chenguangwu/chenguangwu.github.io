@@ -612,6 +612,13 @@ const CASES = [
     ref: "1234 ⇒ one thousand two hundred thirty-four。与既有 900807.05 用例互补（后者守小数位缺陷，本例守整数段）。默认样例不同 ⇒ 不命中。",
   },
   {
+    slug: "finance/number-to-words",
+    inputs: { inputVal: "1000000000000" },
+    clicks: ["convert()"],
+    expect: ["超出范围（最大 ±999,999,999,999）"],
+    ref: "F-N83 真锁：恰好 1e12 是页面声明上限之外的边界，必须拒绝。旧守卫 `> 1e12` 放过，numberToWords 的 scales 只到 billion ⇒ 单位丢失退化成「one」；现 `>= 1e12` 拦截。默认 1234567.89（远小于上限）不命中 ⇒ 零逃生。",
+  },
+  {
     slug: "finance/amount-in-words",
     inputs: { money: "99.99" },
     clicks: ["convert()"],
