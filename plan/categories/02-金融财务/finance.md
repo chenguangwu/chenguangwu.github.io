@@ -1493,13 +1493,6 @@
 - 影响：`tools/finance/msisdn-validator.html`；中国本地 11 位号被标成美加号码，任意 4–15 位数字串都被判「格式有效」，校验零区分度。
 - 方案：仅当输入带 `+` 才做国家码解析；无 `+` 且长度 > 国内号长时要求补国家码；对未收录的 1–3 位前缀输出 ⚠️/❌ 而非 ✅；补 `0` 开头直接拒绝。
 
-### F-N217 IMSI 页：3 位 MNC 命中后仍按 2 位切片展示，MNC/MSIN 同时错位（中，确认缺陷）
-- 问题：`:268-270` 先固定切 `mnc = digits.substring(3,5)`、`msin = digits.substring(5)`；`:276` 才尝试 `mncDb[mnc] || mncDb[digits.substring(3,6)]` 做 3 位匹配。命中 3 位 MNC 时，`:282` 仍展示 2 位 MNC，`:283` 的 MSIN 多带 1 位 MNC 尾数。
-- 证据：`tools/finance/imsi-validator.html:268-270`、`:276`、`:282-283`
-- 复现（node 实算）：`310410123456789`（MCC 310 / MNC 410 = AT&T，MSIN 123456789）→ 页面「MNC（第 4-5 位）：41 - AT&T」「MSIN：0123456789」。期望：MNC 显示 `410`、MSIN 显示 `123456789`。
-- 影响：`tools/finance/imsi-validator.html`；物联网卡入库、运营商归属核对时 MSIN 多一位，与 SIM 厂商数据对不上。
-- 方案：解析时先试 3 位 MNC，命中则 `mncLen=3`，`mnc=digits.substring(3,3+mncLen)`、`msin=digits.substring(3+mncLen)`，标签随 `mncLen` 显示「第 4-6 位」。
-
 ### F-N222 贷款摊销页：年限允许非整数，`2.3 年` 只摊 27 期并留下 1.1 万本金、界面打印 27.599999…（高，确认源码缺陷）
 - 问题：`totalMonths = Math.min(years * 12, 12000)`（`:386`）不做取整，`for (i = 1; i <= totalMonths; i++)`（`:393`）在非整数月数下少跑一期；月供却按 27.6 期贴现算出（`:392`），期末不归零；`:500` 直接把 `totalMonths` 原样输出。
 - 证据：`tools/finance/loan-amortization.html:179`、`:386`、`:392-400`、`:484-487`、`:500`

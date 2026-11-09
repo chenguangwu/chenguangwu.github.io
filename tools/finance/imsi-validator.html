@@ -266,20 +266,18 @@ function validate(){
     return;
   }
   const mcc = digits.substring(0,3);
-  const mnc = digits.substring(3,5); // 2-digit MNC default
-  const msin = digits.substring(5);
   const country = MCC_DB[mcc] || '未知国家';
-  // Try 2-digit then 3-digit MNC lookup
-  let operator = '';
   const mncDb = MNC_DB[mcc];
-  if(mncDb){
-    operator = mncDb[mnc] || mncDb[digits.substring(3,6)] || '未知运营商';
-  } else {
-    operator = '未知运营商';
-  }
+  // 先判 MNC 位数：3 位在库则用 3 位，否则 2 位；MSIN 从 MNC 之后切（F-N217）
+  const mnc3 = digits.substring(3,6);
+  const mnc2 = digits.substring(3,5);
+  const use3 = !!(mncDb && Object.prototype.hasOwnProperty.call(mncDb, mnc3));
+  const mnc = use3 ? mnc3 : mnc2;
+  const msin = digits.substring(use3 ? 6 : 5);
+  const operator = (mncDb && mncDb[mnc]) ? mncDb[mnc] : '未知运营商';
   html += `<p><strong>长度：</strong>${digits.length} 位</p>`;
   html += `<p><strong>移动国家代码 MCC（前 3 位）：</strong>${mcc} - ${country}</p>`;
-  html += `<p><strong>移动网络代码 MNC（第 4-5 位）：</strong>${mnc} - ${operator}</p>`;
+  html += `<p><strong>移动网络代码 MNC（第 4-${use3?6:5} 位）：</strong>${mnc} - ${operator}</p>`;
   html += `<p><strong>移动用户识别码 MSIN：</strong>${msin}</p>`;
   html += `<p><strong>校验：</strong>格式校验（IMSI 无标准校验位）</p>`;
   if(MCC_DB[mcc]){

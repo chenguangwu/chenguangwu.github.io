@@ -871,6 +871,12 @@ const CASES = [
     ref: "IMSI 15 位分段：MCC=310（美国）、MNC=15（未知运营商）、MSIN=0123456789；官方说明 IMSI 无标准校验位，仅格式校验。默认态不同 ⇒ 不命中。",
   },
   {
+    slug: "finance/imsi-validator",
+    inputs: { input: "310410123456789" },
+    expect: ["MNC（第 4-6 位）： 410 - AT&T 移动用户识别码 MSIN： 123456789"],
+    ref: "F-N217 三位 MNC：310410（AT&T）第 4-6 位 MNC 在库命中 ⇒ 按 3 位展示、MSIN 从第 7 位切 123456789；旧实现固定 2 位显示 41、MSIN 多带一位 0123456789。默认预填 460001234567890（2 位 MNC 00）⇒ 不命中。",
+  },
+  {
     slug: "finance/meid-validator",
     inputs: { input: "490154203237518" },
     expect: ["制造商代码（前 8 位）： 49015420", "序列号（后 6 位）： 323751"],
