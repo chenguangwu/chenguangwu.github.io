@@ -29,6 +29,9 @@ const DEFAULT_SAMPLE = [
   'civil/rebar-anchorage',      // 旧模板 Raw/Restore 变体
   'health/milk-tea-calories',   // 旧模板变体 + Extras 越作用域变量（曾整体静默失效）
   'welding/weld-strength',      // 旧模板变体（单复选框）
+  'it/xml-to-yaml', 'it/random-string', 'it/yaml-to-json', 'it/toml-to-json',
+  'it/yaml-to-xml', 'it/csv-to-yaml', 'it/toml-to-xml', 'it/toml-to-yaml',
+  'it/yaml-to-toml', 'it/whitespace', 'it/xml-to-toml',
 ];
 
 const TARGETS = pagesArg
@@ -175,6 +178,17 @@ for (const { cat, slug } of TARGETS) {
     state.hist && state.hist(full);
     const afterAllOff = boxIds.filter((id) => { const e = w.document.getElementById(id); return e && e.checked; }).length;
     assert(afterAllOff === 0, tag + '完整全 0 记录恢复后应无勾选，实测 ' + afterAllOff);
+    if (boxIds.some((id) => w.document.getElementById(id).value === '0')) {
+      off();
+      const mixed = {};
+      boxIds.forEach((id, i) => { mixed[id] = i % 2 ? '0' : '1'; });
+      state.hist(mixed);
+      assert(boxIds.every((id, i) => w.document.getElementById(id).checked === (i % 2 === 0)), tag + '混合 0/1 快照恢复错误');
+      state.hist(Object.fromEntries(boxIds.map((id) => [id, true])));
+      assert(boxIds.every((id) => w.document.getElementById(id).checked), tag + '旧布尔 true 恢复错误');
+      state.hist(Object.fromEntries(boxIds.map((id) => [id, false])));
+      assert(boxIds.every((id) => !w.document.getElementById(id).checked), tag + '布尔 false 恢复错误');
+    }
   } catch (e) {
     assert(false, tag + '运行期异常：' + String((e && e.message) || e).slice(0, 140));
   } finally {
