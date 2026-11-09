@@ -145,6 +145,62 @@ function _rngReset() { _rngState = 0x9e3779b9 >>> 0; }
 // ---------------------------------------------------------------- 用例
 const CASES = [
   {
+    slug: "it/text-replace",
+    inputs: { sourceText: "aa", findInput: "aa", replaceInput: "X" },
+    clicks: ["document.getElementById('sourceText').value='aa'.repeat(600);document.getElementById('optCase').checked=false;document.getElementById('optRegex').checked=false;document.getElementById('optGlobal').checked=true;doReplace();document.getElementById('resultText').value='REPLACED='+document.getElementById('resultText').value.length+' COUNT='+document.getElementById('replaceCount').textContent;"],
+    expect: ["REPLACED=600 COUNT=600"],
+    ref: "IT-N3：600 个非重叠字面量替换实际执行 600 次，计数不能停在旧的 501 上限。",
+  },
+  {
+    slug: "it/text-replace",
+    inputs: { sourceText: "ab ac", findInput: "a(.)", replaceInput: "[$1]" },
+    clicks: ["document.getElementById('optCase').checked=false;document.getElementById('optRegex').checked=true;document.getElementById('optGlobal').checked=true;doReplace();"],
+    expect: ["[b] [c]"],
+    ref: "IT-N3 回归：正则模式仍展开捕获组；字面量模式才保持 $1 原样。",
+  },
+  {
+    slug: "it/text-replace",
+    inputs: { sourceText: "İ hello WORLD hello", findInput: "hello", replaceInput: "X" },
+    clicks: ["document.getElementById('optCase').checked=false;document.getElementById('optRegex').checked=false;document.getElementById('optGlobal').checked=true;doReplace();document.getElementById('resultText').value+=' | count='+document.getElementById('replaceCount').textContent;"],
+    expect: ["İ X WORLD X | count=2"],
+    ref: "IT-N3：İ 小写会扩为两个码元；必须按原文索引替换两处且计数为 2。",
+  },
+  {
+    slug: "it/text-replace",
+    inputs: { sourceText: "İ hello WORLD hello", findInput: "hello", replaceInput: "X" },
+    clicks: ["document.getElementById('optCase').checked=false;document.getElementById('optRegex').checked=false;document.getElementById('optGlobal').checked=false;doReplace();document.getElementById('resultText').value+=' | count='+document.getElementById('replaceCount').textContent;"],
+    expect: ["İ X WORLD hello | count=1"],
+    ref: "IT-N3：非全局模式只替换首处，并保持前后原文和计数。",
+  },
+  {
+    slug: "it/text-replace",
+    inputs: { sourceText: "İ HELLO hello", findInput: "hello", replaceInput: "X" },
+    clicks: ["document.getElementById('optCase').checked=true;document.getElementById('optRegex').checked=false;document.getElementById('optGlobal').checked=true;doReplace();document.getElementById('resultText').value+=' | count='+document.getElementById('replaceCount').textContent;"],
+    expect: ["İ HELLO X | count=1"],
+    ref: "IT-N3：区分大小写只匹配小写 hello，İ 前缀与大写词不受影响。",
+  },
+  {
+    slug: "it/text-replace",
+    inputs: { sourceText: "İ a.b aXb a.b", findInput: "a.b", replaceInput: "$&" },
+    clicks: ["document.getElementById('optCase').checked=false;document.getElementById('optRegex').checked=false;document.getElementById('optGlobal').checked=true;doReplace();document.getElementById('resultText').value+=' | count='+document.getElementById('replaceCount').textContent;"],
+    expect: ["İ $& aXb $& | count=2"],
+    ref: "IT-N3：字面量模式点号不作为通配符，替换值 $& 不展开。",
+  },
+  {
+    slug: "it/text-replace",
+    inputs: { sourceText: "İ aaaa", findInput: "aa", replaceInput: "X" },
+    clicks: ["document.getElementById('optCase').checked=false;document.getElementById('optRegex').checked=false;document.getElementById('optGlobal').checked=true;doReplace();document.getElementById('resultText').value+=' | count='+document.getElementById('replaceCount').textContent;"],
+    expect: ["İ XX | count=2"],
+    ref: "IT-N3：紧邻匹配不得重叠计数；结果和次数均为 2。",
+  },
+  {
+    slug: "it/text-replace",
+    inputs: { sourceText: "İ hello WORLD hello", findInput: "hello", replaceInput: "X" },
+    clicks: ["document.getElementById('optCase').checked=false;document.getElementById('optRegex').checked=false;document.getElementById('optGlobal').checked=true;previewMatch();var ctx=document.getElementById('contextArea').innerHTML;document.getElementById('resultText').value='PREVIEW_N3='+(ctx.includes('#1 [2]')&&ctx.includes('#2 [14]'));"],
+    expect: ["PREVIEW_N3=true"],
+    ref: "IT-N3：两处预览坐标分别为原文 UTF-16 偏移 2 和 14；旧实现小写展开后偏移为 3 和 15。",
+  },
+  {
     // 原 it/base64 已在「跨分类重复工具治理（批次六）」合并进 base64-converter，
     // 旧 slug 不再存在。用例改指现存工具，避免死用例长期拖挂门禁。
     slug: "it/base64-converter",
