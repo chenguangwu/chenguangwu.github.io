@@ -470,20 +470,6 @@
 - 影响：`tools/design/css-text-shadow.html`；复制产物与界面层列表不一致，多层光晕/3D 效果无法通过增删层得到
 - 方案：`setActive()` 末尾调用 `render()`，或三个入口各自补 `render()`；补回归用例「加层后 CSS 层数 = 列表项数」
 
-### D-N65 阴影生成器：文字阴影模式仍拼入扩散半径，整条声明非法（高，确认源码缺陷）
-- 描述：`buildShadowStr()` 无论模式都输出 `x px y px blur px spread px color` 五参数；切到「文字阴影」后该串被写入 `text-shadow`，而规范中 text-shadow 只有 x/y/blur/color，无 spread，整条声明会被浏览器丢弃。默认 spread 为 -5px，切过去即全失效。
-- 证据：`tools/design/shadow-generator.html:393-397`（恒含 `${l.spread}px`）、`:405-411`（text 模式赋给 `preview.style.textShadow` 与 `#code`）、`:200-202`（扩展半径滑杆默认 -5，文字模式未隐藏）、`:183`（模式入口）
-- 复现（node 复算原串）：切「文字阴影」→ `text-shadow: 0px 10px 20px -5px #667eea;`（期望 `0px 10px 20px #667eea`）；预览无任何阴影，把扩展半径拖到 0 才短暂出现
-- 影响：`tools/design/shadow-generator.html`；页面自述「文字阴影模式支持文本阴影效果」，实际该模式默认不可用，复制结果亦为非法 CSS
-- 方案：文字模式下省略 spread（并把 `inset` 与扩展半径一起隐藏/禁用）；切回盒子模式恢复；输出前按模式做参数白名单
-
-### D-N66 阴影生成器删除最后一层后输出空声明，继续操作触发 TypeError（中，确认源码缺陷）
-- 描述：`deleteLayer()` 直接 `splice`，没有「至少保留一层」守卫；层为空后 `activeLayer=-1`，`update()` 读取 `getActiveLayer()` 的 `x/y/...` 会抛异常，页面交互中断。
-- 证据：`tools/design/shadow-generator.html:454-459`（无长度守卫）、`:366-373`（update 直接解引用 activeLayer）、`:410-411`（空层输出 `box-shadow: ;`）、`:422-428`（空态仅提示文案）
-- 复现：仅 1 层时点 ✕ → 列表显示「无阴影层」，CSS 变为 `box-shadow: ;`；随后拖动任一滑杆 → `update()` 抛 `Cannot read properties of undefined`，预览/CSS 不再更新（期望至少保留一层或安全禁用控件）
-- 影响：`tools/design/shadow-generator.html`；用户可把自己带进无法继续编辑的状态，只能刷新页面
-- 方案：`if(layers.length<=1) return;` 或删除后自动补默认层；`update()` 对无 activeLayer 时直接 return 并提示
-
 ### D-N67 玻璃拟态生成器的 12 种背景图案全部不生效（中，确认源码缺陷）
 - 描述：`PATTERNS` 存的是纯渐变值（无属性名），但缩略图写成 `style="${p.css}"`、点击时写 `style.cssText = PATTERNS[i].css`，两处都缺少 `background:`；CSSOM 会丢弃无属性名的声明。含 `background-size/position/color` 的第 9–12 项只能应用后半段，仍没有 background-image。
 - 证据：`tools/design/glassmorphism-generator.html:341-353`（PATTERNS 值）、`:518`（`style="${p.css}"`）、`:524`（`cssText = PATTERNS[i].css`）、`:578`（启动即 `setPattern(0)`）、`:30`（`.bg-pattern` 无默认背景）
