@@ -1069,8 +1069,20 @@ const CASES = [
   {
     slug: "finance/pan-validator",
     inputs: { input: "AAACN0927F" },
-    expect: ["校验位： F ✅ PAN 号码格式有效"],
-    ref: "印度 PAN：10 位，第 4 位 C = Company，前 5 位 AAACN 为实体代码，0927 为序号，末位 F 为校验位（第四位为 C 时格式校验通过）。默认态不同 ⇒ 不命中。",
+    expect: ["末位字母： F（PAN 无算术校验位，仅结构校验） ✅ PAN 号码格式有效"],
+    ref: "印度 PAN：10 位，第 4 位 C = Company，前 5 位 AAACN 为实体代码，0927 为序号，末位 F 为结构字母。F-N200 把误导性「校验位」改为诚实标注。默认态不同 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/pan-validator",
+    inputs: { input: "ABCZS1234E" },
+    expect: ["❌ 第 4 位实体类型 Z 非官方类型（仅 A/B/C/F/G/H/J/L/P/T）"],
+    ref: "F-N199 未知实体类型：第 4 位 Z 不在官方 10 种内，旧实现显示「未知类型」仍判 ✅；修复后 ❌。默认预填第 4 位 P（合法）⇒ 不命中。",
+  },
+  {
+    slug: "finance/pan-validator",
+    inputs: { input: "ABCKS1234E" },
+    expect: ["❌ 第 4 位实体类型 K 非官方类型（仅 A/B/C/F/G/H/J/L/P/T）"],
+    ref: "F-N199 非官方类型：K (Krishik) 非印度税务官方实体类型，旧表收录并判 ✅；修复后从表中移除并判 ❌。默认预填 P ⇒ 不命中。",
   },
   {
     slug: "finance/tin-validator",
