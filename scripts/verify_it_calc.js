@@ -1905,6 +1905,13 @@ const CASES = [
     ref: "IT-N522 锁定：纬度 999 超出范围须直接拒绝，不再静默生成 geo:999,999；默认样例 39.9/116.4 不出现该提示。与既有 NaN 补强用例互补（范围检查 vs 非数值检查）。",
   },
   {
+    slug: "it/location-qr",
+    inputs: { lat: "1oops", lng: "2", label: "" },
+    clicks: ["generate()"],
+    expect: ["⚠ 纬度 须为合法数字（不支持非法后缀）"],
+    ref: "IT-N522 复核失败重做：纬度 1oops 含非法后缀，parseCoord 严格正则 /^-?\\d+(\\.\\d+)?$/ 拒绝，不再 parseFloat 截断为 1 静默生成 geo:1,2。默认样例 39.9/116.4 不出现该提示 ⇒ 强判别、零逃生。",
+  },
+  {
     slug: "it/sitemap-generator",
     inputs: { urls: "https://a.test\nhttps://b.test" },
     clicks: ["calcTool()"],
@@ -3714,6 +3721,13 @@ const CASES = [
     clicks: ["generate()"],
     expect: ["*HELLO*"],
     ref: "Code39 码字：`*` 为起始/终止符、字符间以 `*` 分隔，故输出为 **`*HELLO*`**（Code39 规范：每个字符前加 `*`、字符间不加，整体首尾各一个 `*`）。这族里唯一能拿到**确定性文本产物**的条码页——同族的 `barcode-codabar/-itf/-msi` 在 harness 下 `output` 只回显原始输入（编码与绘制函数均抛 `undefined` 属性错）⇒ 不可收。注：产物虽已刷新，但 `buildCode39` 依赖 canvas 绘制会抛错，本例只锚文本码字行。",
+  },
+  {
+    slug: "it/barcode-code39",
+    inputs: { data: "A*B" },
+    clicks: ["generate()"],
+    expect: ["⚠ 不支持字符「*」，Code 39 仅支持 A–Z、0–9、空格与 - . $ / + %。"],
+    ref: "IT-N509 复核失败重做：数据含起止哨兵 * 须被拒绝，不再内部编码（buildCode39 开头 if(text.includes('*')) return {error:'*'}）。默认样例 HELLO 不出现该提示 ⇒ 强判别、零逃生。",
   },
 
   // ---- BATCH248：同页第三组参数 + 概率统计族分支覆盖（18 例） ----
@@ -5645,6 +5659,18 @@ const CASES = [
       "⚠ 输入含非数字字符：MSI 仅支持 0–9，请删除后重试，本工具不会静默丢弃字符。"
     ],
     "ref": "IT-N511 回归：混合输入 12A3 必须被拒绝。修复前 replace(/\\D/g,'') 静默剥离 A ⇒ 条码编码 123、页面文字显示 12A3（显示与编码不一致）且零提示；修复后统一报非数字错误。默认样例为纯数字不命中，注入的 A 是触发该分支的关键。"
+  },
+  {
+    "slug": "it/barcode-msi",
+    "inputs": {
+      "data": "7228588281088160612916291613220210957569",
+      "checkMode": "mod10"
+    },
+    "clicks": ["generate()"],
+    "expect": [
+      "72285882810881606129162916132202109575694"
+    ],
+    "ref": "IT-N510 复核失败重做：40 位长串 Mod 10 校验位，旧实现把加倍位拼成大整数再 ×2 超 2^53 精度 ⇒ 校验位算成 7；逐位加倍后 >9 减 9 得正确校验位 4（数据流 data+校验位 = 7228…5694）。默认样例 1234567 不出现该 40 位串 ⇒ 强判别、零逃生。回退 N510 源码会令此用例转红。"
   },
   {
     "slug": "it/barcode-itf",
@@ -8126,9 +8152,9 @@ const CASES = [
       "label": "abc123测试"
     },
     "expect": [
-      "⚠ 纬度需在 -90 ~ 90 之间"
+      "⚠ 纬度 须为合法数字（不支持非法后缀）"
     ],
-    "ref": "真实 QR 改造后经纬度做数值校验：注入 lat/lng=abc123测试，parseFloat 得 NaN ⇒ 输出「⚠ 纬度需在 -90 ~ 90 之间」。默认样例（39.9/116.4）不出现该提示 ⇒ 强判别、零逃生。"
+    "ref": "真实 QR 改造后经纬度做数值校验：注入 lat/lng=abc123测试，parseCoord 严格数字正则不匹配 ⇒ 输出「⚠ 纬度 须为合法数字（不支持非法后缀）」。默认样例（39.9/116.4）不出现该提示 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/linux-cheatsheet",

@@ -251,14 +251,19 @@ s.parentNode.insertBefore(el, s);
 // MSI (Modified Plessey): each digit = 4 bits, bit 1 = wide bar + narrow space, bit 0 = narrow bar + wide space
 const MSI={'0':'0000','1':'0001','2':'0010','3':'0011','4':'0100','5':'0101','6':'0110','7':'0111','8':'1000','9':'1001'};
 function msiMod10(d){
-  let odd='', even=0;
+  // N510：逐位处理避免溢出——旧实现把加倍位拼成大整数再乘 2，长串超出安全整数精度。
+  // 标准 MSI Mod 10：从右往左偶数距离位为「加倍位」，双倍后 >9 减 9（等价于数位求和），与其余位相加后取 (10 - 总和%10)%10。
+  let total=0;
   for(let i=0;i<d.length;i++){
-    if((d.length-1-i)%2===0) odd+=d[i]; else even+=parseInt(d[i],10);
+    const digit=parseInt(d[i],10);
+    if((d.length-1-i)%2===0){
+      const doubled=digit*2;
+      total += doubled>9 ? doubled-9 : doubled;
+    } else {
+      total += digit;
+    }
   }
-  let twice=parseInt(odd||'0',10)*2;
-  let sum=even;
-  while(twice>0){ sum+=twice%10; twice=Math.floor(twice/10); }
-  return String((10-sum%10)%10);
+  return String((10-total%10)%10);
 }
 function msiMod11(d){
   let sum=0, w=2;

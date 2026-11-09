@@ -154,7 +154,7 @@ s.parentNode.insertBefore(el, s);
 <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="📍 位置二维码">📍 Location QR</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">载荷串：geo:&lt;纬度&gt;,&lt;经度&gt; —— 纬度/经度 parseFloat 失败时取 0；填写标注时追加 ?q=&lt;encodeURIComponent(标注)&gt;</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">载荷串：geo:&lt;纬度&gt;,&lt;经度&gt; —— 纬度/经度须为合法数字（拒绝非法后缀，如 1oops），并校验范围 纬度 -90~90、经度 -180~180；填写标注时追加 ?q=&lt;encodeURIComponent(标注)&gt;</div>
   <div class="formula-desc">把地理位置编码为可扫码打开的二维码。</div>
   <ul class="formula-list">
     <li><b>URI</b>：内容为 <code>geo:纬度,经度</code>，可带 <code>?q=名称</code> 或 <code>z=缩放级别</code>。</li>
@@ -258,11 +258,18 @@ function buildGeo(){
   const latRaw=document.getElementById('lat').value.trim();
   const lngRaw=document.getElementById('lng').value.trim();
   if(!latRaw||!lngRaw) return {error:'请输入纬度和经度'};
-  const lat=parseFloat(latRaw),lng=parseFloat(lngRaw);
-  if(!isFinite(lat)||lat<-90||lat>90) return {error:'纬度需在 -90 ~ 90 之间'};
-  if(!isFinite(lng)||lng<-180||lng>180) return {error:'经度需在 -180 ~ 180 之间'};
+  const latR=parseCoord(latRaw,'纬度',-90,90);
+  if(latR.error) return latR;
+  const lngR=parseCoord(lngRaw,'经度',-180,180);
+  if(lngR.error) return lngR;
   const label=document.getElementById('label').value;
-  return {text:'geo:'+lat+','+lng+(label?('?q='+encodeURIComponent(label)):'')};
+  return {text:'geo:'+latR.value+','+lngR.value+(label?('?q='+encodeURIComponent(label)):'')};
+}
+function parseCoord(raw,name,min,max){
+  if(!/^-?\d+(\.\d+)?$/.test(raw)) return {error:name+' 须为合法数字（不支持非法后缀）'};
+  const v=parseFloat(raw);
+  if(!isFinite(v)||v<min||v>max) return {error:name+'需在 '+min+' ~ '+max+' 之间'};
+  return {value:v};
 }
 function drawQR(text){
   if(qrcode.stringToBytesFuncs && qrcode.stringToBytesFuncs['UTF-8']) qrcode.stringToBytes=qrcode.stringToBytesFuncs['UTF-8'];
