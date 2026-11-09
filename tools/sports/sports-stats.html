@@ -316,6 +316,12 @@ s.parentNode.insertBefore(el, s);
 const STORAGE_KEY = 'toolbox_sport_stats';
 let records = (function(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')}catch(e){try{localStorage.removeItem(STORAGE_KEY)}catch(_){}return []}})();
 
+function nextRecordId() {
+  let id = Date.now();
+  while (records.some(r => r.id === id)) id++;
+  return id;
+}
+
 function addRecord() {
   const sport = document.getElementById('aSport').value;
   const minutes = +document.getElementById('aMinutes').value || 0;
@@ -331,7 +337,7 @@ function addRecord() {
     return;
   }
 
-  records.unshift({ id: Date.now(), sport, minutes, distance, cal, hr, date });
+  records.unshift({ id: nextRecordId(), sport, minutes, distance, cal, hr, date });
   localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
   document.getElementById('aMinutes').value = '';
   document.getElementById('aDistance').value = '';
@@ -341,8 +347,10 @@ function addRecord() {
   render();
 }
 
-function deleteRecord(id) {
-  records = records.filter(r => r.id !== id);
+function deleteRecord(id, index) {
+  if (index == null) index = records.findIndex(r => r.id === id);
+  if (index < 0 || !records[index] || records[index].id !== id) return;
+  records.splice(index, 1);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
   render();
 }
@@ -386,14 +394,14 @@ function render() {
 
   // 最近记录
   const list = document.getElementById('records');
-  const recent = records.slice(0, 10);
+  const recent = records.slice().sort((a, b) => String(b.date || '').localeCompare(String(a.date || ''))).slice(0, 10);
   if (recent.length === 0) {
     const __h2='<div class="empty-state">' + ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'No records yet':'暂无记录') + '</div>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h2;
   } else {
     const __h3=recent.map(r => `<div class="record-item">
       <div class="sport">${r.sport}<div class="meta">${r.date} · ${r.minutes}min${r.distance ? ' · ' + r.distance + 'km' : ''}${r.hr ? ' · ' + r.hr + 'bpm' : ''}</div></div>
       <div class="cal">${r.cal || '-'} kcal</div>
-      <button type="button" class="btn" style="padding:2px 8px;font-size:11px;margin-left:6px;" onclick="deleteRecord(${r.id})">删</button>
+      <button type="button" class="btn" style="padding:2px 8px;font-size:11px;margin-left:6px;" onclick="deleteRecord(${r.id},${records.indexOf(r)})">删</button>
     </div>`).join('');if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h3;
   }
 
@@ -404,7 +412,7 @@ function render() {
   if (trendBox) {
     const winEl = document.getElementById('maWindow');
     const win = Math.max(2, parseInt((winEl && winEl.value) || '7', 10) || 7);
-    const asc = records.slice().reverse();
+    const asc = records.slice().reverse().sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
     const pacePts = [], hrPts = [];
     asc.forEach(r => {
       const d = +r.distance || 0, m = +r.minutes || 0;
@@ -454,25 +462,25 @@ function applySportPreset(kind){
   var preset=null;
   if(kind==='run'){
     preset=[
-      {id:Date.now()+1,sport:'跑步',minutes:30,distance:5,cal:300,hr:152,date:'2026-10-15'},
-      {id:Date.now()+2,sport:'跑步',minutes:40,distance:7,cal:420,hr:148,date:'2026-10-16'}
+      {sport:'跑步',minutes:30,distance:5,cal:300,hr:152,date:'2026-10-15'},
+      {sport:'跑步',minutes:40,distance:7,cal:420,hr:148,date:'2026-10-16'}
     ];
   } else if(kind==='cycle'){
     preset=[
-      {id:Date.now()+1,sport:'骑行',minutes:60,distance:20,cal:500,hr:136,date:'2026-10-15'},
-      {id:Date.now()+2,sport:'健身',minutes:45,distance:0,cal:350,hr:128,date:'2026-10-17'}
+      {sport:'骑行',minutes:60,distance:20,cal:500,hr:136,date:'2026-10-15'},
+      {sport:'健身',minutes:45,distance:0,cal:350,hr:128,date:'2026-10-17'}
     ];
   } else if(kind==='mix'){
     preset=[
-      {id:Date.now()+1,sport:'游泳',minutes:30,distance:1.5,cal:280,hr:142,date:'2026-10-15'},
-      {id:Date.now()+2,sport:'瑜伽',minutes:50,distance:0,cal:150,hr:98,date:'2026-10-16'},
-      {id:Date.now()+3,sport:'跑步',minutes:35,distance:6,cal:360,hr:150,date:'2026-10-18'}
+      {sport:'游泳',minutes:30,distance:1.5,cal:280,hr:142,date:'2026-10-15'},
+      {sport:'瑜伽',minutes:50,distance:0,cal:150,hr:98,date:'2026-10-16'},
+      {sport:'跑步',minutes:35,distance:6,cal:360,hr:150,date:'2026-10-18'}
     ];
   } else return;
   /* SF-N109：原实现 `records=[预设]` 直接覆盖内存且不落盘 —— 用户此前保存的历史在下次
      「添加记录」（会整体写回 localStorage）时被永久覆盖。现改为「追加示例记录 + 立即持久化」，
      历史不再丢失，示例行可逐条删除。 */
-  records = preset.concat(records);
+  preset.forEach(r => { r.id = nextRecordId(); records.unshift(r); });
   try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); }catch(e){}
   render();
   try{ if(typeof ToolBox!=='undefined'&&ToolBox.showToast){ToolBox.showToast('已追加 '+preset.length+' 条示例记录（历史记录保留，可逐条删除）');} }catch(e){}

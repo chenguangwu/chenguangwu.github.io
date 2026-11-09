@@ -166,5 +166,32 @@ async function loadPage(rel, seedStorage) {
   }
 }
 
+{
+  chartCalls.length = 0;
+  const seed = [8, 1, 6, 3, 7, 2, 5, 4].map(n => ({ id: n, sport: '跑步', minutes: n * 10, distance: 10, hr: 100 + n, date: `2026-11-0${n}` }));
+  const w = await loadPage('tools/sports/sports-stats.html', { key: 'toolbox_sport_stats', value: seed });
+  let pace = chartCalls.filter(c => c.sel === '#paceTrendChart').at(-1);
+  check('SF-N110 倒序插入按实际日期升序', JSON.stringify(pace?.opt.series[0].data) === JSON.stringify([1,2,3,4,5,6,7,8]));
+  check('SF-N110 最近七条均值按日期选择', /近 7 条滚动均值\s*5\.00/.test(w.document.getElementById('speedTrend').textContent));
+  w.applySportPreset('run');
+  pace = chartCalls.filter(c => c.sel === '#paceTrendChart').at(-1);
+  check('SF-N110 追加旧预设不改变最近均值', /近 7 条滚动均值\s*5\.00/.test(w.document.getElementById('speedTrend').textContent));
+  check('SF-N110 旧预设排在新日期之前', pace?.opt.labels[0] === '2026-10-15' && pace?.opt.labels.at(-1) === '2026-11-08');
+  const recentDates = Array.from(w.document.querySelectorAll('#records .meta'), el => el.textContent.slice(0, 10));
+  check('SF-N110 最近记录也按日期从新到旧排列', recentDates[0] === '2026-11-08' && recentDates.at(-1) === '2026-10-15');
+  w.close();
+}
+{
+  chartCalls.length = 0;
+  const seed = [
+    { id: 3, sport: '跑步', minutes: 30, distance: 10, date: '2026-11-08' },
+    { id: 2, sport: '跑步', minutes: 20, distance: 10, date: '2026-11-08' },
+    { id: 1, sport: '跑步', minutes: 10, distance: 10, date: '2026-11-05' }
+  ];
+  const w = await loadPage('tools/sports/sports-stats.html', { key: 'toolbox_sport_stats', value: seed });
+  const pace = chartCalls.filter(c => c.sel === '#paceTrendChart').at(-1);
+  check('SF-N110 同日按插入顺序稳定排列', JSON.stringify(pace?.opt.series[0].data) === JSON.stringify([1,2,3]));
+  w.close();
+}
 console.log('==== sports batch Q ' + pass + '/' + (pass + fail) + (HEAD ? ' (HEAD)' : '') + ' ====');
 if (fail) process.exit(1);

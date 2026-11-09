@@ -113,5 +113,37 @@ async function loadPage(rel, seedStorage) {
   w.close();
 }
 
+{
+  const KEY = 'toolbox_sport_stats';
+  const w = await loadPage('tools/sports/sports-stats.html', { key: KEY, value: [{ id: 100001, sport: '历史', minutes: 20, distance: 1, date: '2026-11-08' }] });
+  w.Date.now = () => 100000;
+  w.applySportPreset('run'); w.applySportPreset('run');
+  let saved = JSON.parse(w.localStorage.getItem(KEY));
+  check('SF-N109 固定时钟重复预设 ID 唯一', new Set(saved.map(r => r.id)).size === 5);
+  const firstPreset = saved.find(r => r.sport !== '历史');
+  w.deleteRecord(firstPreset.id);
+  saved = JSON.parse(w.localStorage.getItem(KEY));
+  check('SF-N109 删除预设仅删除一条并保留历史', saved.length === 4 && saved.some(r => r.sport === '历史'));
+  w.deleteRecord(100001);
+  saved = JSON.parse(w.localStorage.getItem(KEY));
+  check('SF-N109 删除历史仅删除一条并保留预设', saved.length === 3 && saved.every(r => r.sport !== '历史'));
+  w.document.getElementById('aMinutes').value = '20'; w.addRecord();
+  w.document.getElementById('aMinutes').value = '20'; w.addRecord();
+  saved = JSON.parse(w.localStorage.getItem(KEY));
+  check('SF-N109 同毫秒连续添加记录仍不碰撞', new Set(saved.map(r => r.id)).size === 5);
+  w.close();
+}
+{
+  const KEY = 'toolbox_sport_stats';
+  const w = await loadPage('tools/sports/sports-stats.html', { key: KEY, value: [
+    { id: 100001, sport: '跑步', minutes: 20, distance: 1, date: '2026-11-08' },
+    { id: 100001, sport: '骑行', minutes: 30, distance: 2, date: '2026-11-07' }
+  ] });
+  const buttons = w.document.querySelectorAll('#records button');
+  buttons[0].click();
+  const saved = JSON.parse(w.localStorage.getItem(KEY));
+  check('SF-N109 旧重复 ID 删除所选一条不误删另一条', saved.length === 1 && saved[0].sport === '骑行');
+  w.close();
+}
 console.log('==== sports batch P ' + pass + '/' + (pass + fail) + (HEAD ? ' (HEAD)' : '') + ' ====');
 if (fail) process.exit(1);
