@@ -1322,6 +1322,26 @@ const CASES = [
     ref: "该页把利润率/负债率按「百分数字符串」显示（注入 0.15 显示成 `净利润率：0.15%`），属既有百分比口径缺陷；本例只锚评分侧的 `75 /100` 结论。默认态不同 ⇒ 不命中。",
   },
   {
+    slug: "finance/assessor-manager",
+    inputs: {
+      debtRatio: "-20", currentRatio: "1.8", revenue: "5000",
+      profitMargin: "12", overdue: "1", creditHistory: "5",
+    },
+    clicks: ["calc()"],
+    expect: ["资产负债率不能为负数，请核对输入"],
+    ref: "F-N82 真锁：资产负债率 −20（非法负值）旧实现 dr<=50 得满档 25 分并把评级推到 AAA；现字段级校验拒绝。默认 dr=55（合法）不命中 ⇒ 零逃生。",
+  },
+  {
+    slug: "finance/assessor-manager",
+    inputs: {
+      debtRatio: "", currentRatio: "1.8", revenue: "5000",
+      profitMargin: "12", overdue: "1", creditHistory: "5",
+    },
+    clicks: ["calc()"],
+    expect: ["资产负债率须填写有效数字，不能留空或非数字"],
+    ref: "F-N82 真锁：资产负债率留空旧实现 `||0` 得满档 25 分；现字段级校验拒绝空值。默认 dr=55（非空）不命中 ⇒ 零逃生。",
+  },
+  {
     slug: "finance/report-1",
     inputs: { premium: "5000", inv: "100000", capital: "500000", pct: "0.12" },
     clicks: ["calc()"],
