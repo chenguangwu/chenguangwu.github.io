@@ -1096,10 +1096,10 @@ const CASES = [
       "bgColor": "abc123测试",
       "bgHex": "abc123测试"
     },
-    "expect": [
-      "灰背景 暖色背景\nabc123测试\nabc123测试\n1.00\n不达标"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"fgColor\":\"abc123测试\",\"fgHex\":\"abc123测试\",\"bgColor\":\"abc123测试\",\"bgHex\":\"abc123测试\"}，输出区含「灰背景 暖色背景\nabc123测试\nabc123测试\n1.00\n不达标」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+      "expect": [
+        "灰背景 暖色背景\nabc123测试\nabc123测试\n—\n颜色需为有效的 3 或 6 位 HEX 值"
+      ],
+      "ref": "自动补强（B类零用例）：注入非默认输入{\"fgColor\":\"abc123测试\",\"fgHex\":\"abc123测试\",\"bgColor\":\"abc123测试\",\"bgHex\":\"abc123测试\"}；D-N1 修复后 updateAll() 对任一非法 HEX 统一拦截，输出区含「灰背景 暖色背景\nabc123测试\nabc123测试\n—\n颜色需为有效的 3 或 6 位 HEX 值」（修复前 hexToRgb 回退黑色算成 1.00/不达标）；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "design/css-animation-generator",
