@@ -479,7 +479,10 @@ function __visual_fatigue_vasRender(keys,rk,en){
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
-                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    if(t==='radio'){
+                        var group=Array.from(document.querySelectorAll('input[type=radio]')).filter(function(r){return r.name===e.name&&Object.prototype.hasOwnProperty.call(rec,r.id);});
+                        e.checked=group.length>1?(rec[k]==='1'||rec[k]===1||rec[k]===true):(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);
+                    }else if(t==='checkbox'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
                     else{e.value=rec[k];}
                 }
                 calc();
@@ -513,14 +516,14 @@ function __visual_fatigue_vasExtras(){
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
         var same=true;
-        for(var i=0;i<keys.length;i++){
-            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        var allKeys=Object.keys(snap);
+        for(var i=0;i<allKeys.length;i++){
+            if(String(last[allKeys[i]])!==String(snap[allKeys[i]])){same=false;break;}
         }
         if(same&&String(last[rk])===String(res)) return;
     }
     __visual_fatigue_vas_last=now;
-    var rec={};
-    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    var rec=Object.assign({},snap);
     rec[rk]=res;
     rec.__tbScore=__visual_fatigue_vasScore(res);
     TBKit.history.record(rec);

@@ -136,6 +136,60 @@ for (const c of CASES) {
   }
 }
 
+for (const [cat, slug, prefix] of [
+  ['cardiology', 'aortic-dissection', 'aortic_dissection'],
+  ['forensic-medicine', 'wound-description', 'wound_description'],
+  ['hematology', 'itp-risk-score', 'itp_risk_score'],
+  ['ophthalmology', 'visual-fatigue-vas', 'visual_fatigue_vas'],
+  ['tcm-pharmacy', 'tcm-adr-assessment', 'tcm_adr_assessment'],
+]) {
+  let dom;
+  try {
+    dom = build(fs.readFileSync(path.join(BASE, 'tools', cat, slug + '.html'), 'utf8'), `https://x.test/tools/${cat}/${slug}.html`);
+    await ready(dom.window);
+    const w = dom.window;
+    const groups = Array.from(w.document.querySelectorAll('input[type=radio][id]')).reduce((m, e) => ((m[e.name] ||= []).push(e), m), {});
+    const entries = Object.values(groups).filter((g) => g.length > 1);
+    const expect = (ok, label) => { if (ok) pass++; else { fail++; failed.push(`[${slug}] ${label}`); } };
+    expect(entries.length > 0, '必须有单选组');
+    w[`__${prefix}Render`]([], '结果', false);
+    const record = {};
+    entries.forEach((group) => group.forEach((e, i) => { record[e.id] = i === 0 ? '1' : '0'; }));
+    w.__histCb(record);
+    expect(entries.every((group) => group[0].checked && group.slice(1).every((e) => !e.checked)), '完整状态快照恢复选项错误');
+    const zeroGroup = entries.find((group) => group.some((e) => e.value === '0'));
+    if (zeroGroup) {
+      const zero = zeroGroup.find((e) => e.value === '0');
+      w.__histCb({ [zero.id]: '0' });
+      expect(zero.checked, '旧稀疏记录中选中的零值丢失');
+    }
+    entries.forEach((group) => { group[group.length - 1].checked = true; });
+    const snap = w[`__${prefix}Snap`]();
+    expect(entries.every((group) => group.every((e) => Object.hasOwn(snap, e.id))), '快照丢失单选项');
+    let saved;
+    w.TBKit.history.record = (rec) => { saved = rec; };
+    w.document.getElementById('result').textContent = '已完成';
+    w[`__${prefix}Extras`]();
+    expect(!!saved && entries.every((group) => group.every((e) => Object.hasOwn(saved, e.id))), '保存记录不得截断单选答案');
+    if (saved) {
+      entries.forEach((group) => { group[0].checked = true; });
+      w.__histCb(saved);
+      expect(entries.every((group) => group[group.length - 1].checked), '保存后恢复所有单选组');
+      if (Object.keys(snap).length > 12) {
+        const before = saved;
+        w.TBKit.history.last = () => before;
+        w.document.getElementById('result').textContent = before['结果'];
+        w[`__${prefix}_last`] = 0;
+        entries[entries.length - 1][0].checked = true;
+        saved = null;
+        w[`__${prefix}Extras`]();
+        expect(!!saved, '后续题目变更不得被去重忽略');
+      }
+    }
+  } catch (e) { fail++; failed.push(`[${slug}] 运行期异常：${e.message}`); }
+  finally { if (dom) dom.window.close(); }
+}
+
 console.log(fail === 0
   ? `[历史恢复重算锁] PASS（${pass} PASS / 0 FAIL）`
   : `[历史恢复重算锁] FAIL（${pass} PASS / ${fail} FAIL）`);
