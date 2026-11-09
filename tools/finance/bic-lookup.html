@@ -273,6 +273,27 @@ function validate(){
   const out = document.getElementById('output');
   if(!raw){ const __h0=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Waiting for input...":"等待输入...");if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0; return; }
   let html = `<p><strong>输入：</strong>${raw}</p>`;
+  // F-N186 反向检索：非 BIC 形态输入（含空格/非 ASCII/超长）按行名在离线库检索代码
+  if(/[^A-Z0-9]/.test(raw) || raw.length>11){
+    function __bicRev(name){
+      var q=String(name||'').toUpperCase(),hits=[];
+      for(var code in BANK_DB){
+        if(!Object.prototype.hasOwnProperty.call(BANK_DB,code)) continue;
+        if(String(BANK_DB[code]).toUpperCase().indexOf(q)>=0) hits.push({code:code,name:BANK_DB[code]});
+      }
+      return hits;
+    }
+    var __hits=__bicRev(raw);
+    var __rev='<p><strong>'+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Reverse lookup by bank name:':'按行名检索：')+raw+'</strong></p>';
+    if(__hits.length){
+      __rev+='<p>'+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Matched ':'找到 ')+__hits.length+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?' codes:':' 个匹配代码：')+'</p>';
+      __hits.forEach(function(x){ __rev+='<p>'+x.code+' — '+x.name+'</p>'; });
+    } else {
+      __rev+='<p style="color:var(--danger);">❌ '+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'No matching bank name in offline DB':'离线库中未找到匹配的行名')+'</p>';
+    }
+    if((typeof __rev==='number'&&!isFinite(__rev))||/Infinity/.test(String(__rev))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__rev)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}
+    out.innerHTML=__rev; return;
+  }
   const bankCode = raw.substring(0,4);
   if(!/^[A-Z]{4}$/.test(bankCode)){
     const __h1=`<p>❌ 银行代码（前 4 位）必须为大写字母</p>`;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;

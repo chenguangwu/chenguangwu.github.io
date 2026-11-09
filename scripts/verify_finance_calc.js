@@ -768,6 +768,18 @@ const CASES = [
     ref: "BIC 反查：`DEUTDEFF500` ⇒ 银行代码 DEUT ⇒ Deutsche Bank（德国）、国家 DE、位置 FF、分支 500。默认态不同 ⇒ 不命中。",
   },
   {
+    slug: "finance/bic-lookup",
+    inputs: { input: "Deutsche Bank" },
+    expect: ["按行名检索：DEUTSCHE BANK", "DEUT — Deutsche Bank (德国)"],
+    ref: "F-N186 反向按行名检索：`Deutsche Bank` 含空格非 BIC 形态 ⇒ 在 BANK_DB 银行名中大小写不敏感命中 DEUT。旧实现取前 4 位 DEUT 命中后因长度 13 报「BIC 长度应为 8 或 11 位」，无检索能力。默认预填 CHASUS33 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/bic-lookup",
+    inputs: { input: "NotARealBank" },
+    expect: ["离线库中未找到匹配的行名"],
+    ref: "F-N186 反向检索无匹配：非 BIC 形态且无行名命中 ⇒ 明确提示未找到；旧实现取前 4 位 NOTA 未收录并报长度错误。默认预填 CHASUS33 ⇒ 不命中。",
+  },
+  {
     slug: "finance/postal-code-validator",
     inputs: { input: "100000" },
     expect: ["China（CN）：6 位数字"],
@@ -1662,9 +1674,9 @@ const CASES = [
       "input": "abc123测试"
     },
     "expect": [
-      "abc123测试\n❌ 银行代码（前 4 位）必须为大写字母"
+      "abc123测试\n按行名检索：ABC123测试 ❌ 离线库中未找到匹配的行名"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n❌ 银行代码（前 4 位）必须为大写字母」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "F-N186 同步：反向检索分支接管含中文的非 BIC 输入，`abc123测试` 修复后走行名检索并提示未找到（旧实现报「银行代码必须为大写字母」）；默认态（CHASUS33）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "finance/cagr",
