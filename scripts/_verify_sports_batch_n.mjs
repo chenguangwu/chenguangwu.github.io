@@ -39,7 +39,7 @@ async function loadPage(rel) {
       const kit = {
         util: { isEn: () => false, diffBox: noop, exportTable: noop, showToast: noop, copyText: noop, downloadText: noop,
           setResult: (id, v) => { const e = w.document.getElementById(id); if (e) e.innerHTML = v; } },
-        history: { list: () => [], last: () => null, record: noop, mount: noop, clear: noop },
+        history: { list: () => [], last: () => null, record: noop, mount: (_, cb) => { w.restoreHistory = cb; }, clear: noop },
         preset: { bar: noop }, chart: { line: noop, bar: noop, pie: noop, gauge: noop, scatter: noop, timeline: noop, bell: noop, histogram: noop, rangeBar: noop },
         matrix: { table: noop }, copyText: noop, downloadText: noop, showToast: noop,
       };
@@ -86,18 +86,16 @@ async function loadPage(rel) {
   check('SF-N94 选项值仍为 0/1', opts.length === 2 && opts[0].value === '0' && opts[1].value === '1');
   check('SF-N94 已无「英制」重复项', !opts.some(o => /英制/.test(o.textContent)));
 
-  // 向后兼容：历史存档里 method=2 仍按 1.5 英里式算，且与 method=1 同值
+  // 通过真实历史恢复入口验证旧记录：3000 m 的 Cooper 结果与 1.5 英里结果不同。
   const timeEl = doc.getElementById('time');
   const distEl = doc.getElementById('distance');
-  distEl.value = '2400'; timeEl.value = '720';
-  doc.getElementById('method').value = '1';
-  w.calc();
-  const v1 = (doc.querySelector('#res .stat-card .val') || {}).textContent;
-  doc.getElementById('method').value = '2';   // 无此 option 时 value 归 ''，等价 method=0
-  w.calc();
-  const v2 = (doc.querySelector('#res .stat-card .val') || {}).textContent;
-  check('SF-N94 method=2 回退分支不再输出第二套算法（等价 method 0 = Cooper 12 分钟跑）',
-    v1 !== v2 && v2 === '42.4', 'm1=' + v1 + ' m2=' + v2);
+  w.__estimate_testerRender(['method'], '结果', false);
+  w.restoreHistory({method:'2', distance:'3000', time:'720', age:'25', gender:'0', weight:'70'});
+  const restored = (doc.querySelector('#res .stat-card .val') || {}).textContent;
+  check('SF-N94 旧 method=2 恢复为 1.5 英里法（43.8）', doc.getElementById('method').value === '1' && restored === '43.8', 'method=' + doc.getElementById('method').value + ' result=' + restored);
+  w.restoreHistory({method:'0', distance:'3000', time:'720', age:'25', gender:'0', weight:'70'});
+  const cooper = (doc.querySelector('#res .stat-card .val') || {}).textContent;
+  check('SF-N94 Cooper 旧记录仍按原方法恢复', doc.getElementById('method').value === '0' && cooper === '55.8', 'result=' + cooper);
 
   // SF-N93：时间空串（不是 0）时不得兜底成 1 秒
   doc.getElementById('method').value = '1';

@@ -78,6 +78,7 @@ GATES = (
     # sports 分类的正确性验证（力量 1RM / VO2max / 心率 / 氧脉搏 / 齿比 / 坡度 / SWOLF / 出汗率）。
     ("sports calc correctness", ("node", "scripts/verify_sports_calc.js")),
     ("sports risk example", ("node", "scripts/_verify_sports_batch_k.mjs")),
+    ("sports vo2 history", ("node", "scripts/_verify_sports_batch_n.mjs")),
     # fun 分类的正确性验证（烧烤/火锅分量、冥想分段、婚宴桌数、步幅速度换算）。
     ("fun calc correctness", ("node", "scripts/verify_fun_calc.js")),
     ("gomoku undo timing", ("node", "scripts/_verify_fun_batch_fe_n18.mjs")),
