@@ -1758,6 +1758,20 @@ const CASES = [
     ref: "按 allchar 模式整体反转：Hello World → dlroW olleH。默认态（mode=space、输入为「Hello World ToolBox/中文」两行）按词反转，输出不含 dlroW olleH ⇒ 不命中。",
   },
   {
+    slug: "finance/text-reverse-words",
+    inputs: { input: "COPY_ANCHOR_2026" },
+    clicks: ["var __cpText='',__cpErr='none',__copied=false,__bv='复制结果';var __btn={};Object.defineProperty(__btn,'textContent',{get:function(){return __bv;},set:function(v){__bv=String(v);if(__bv.indexOf('✅ 已复制')>=0)__copied=true;}});__btn.closest=function(){return this;};var __ev={target:{closest:function(){return __btn;}}};document.getElementById('result').textContent=document.getElementById('input').value;navigator.clipboard.writeText=function(t){__cpText=String(t);return {then:function(cb){try{if(typeof cb==='function')cb();}catch(e){__cpErr=String(e&&e.message||e);}}}};try{copyResult(__ev);}catch(e){__cpErr=String(e&&e.message||e);}document.getElementById('__tbProbe').textContent='FN177 '+(__copied?'COPIED':'NO')+'|'+__cpErr+'|'+__cpText;"],
+    expect: ["FN177 COPIED|none|COPY_ANCHOR_2026"],
+    ref: "F-N177 复制回调防回归锁：copyResult(ev) 必须用形参 ev 的 target.closest('.btn') 取按钮，在 writeText().then() 回调里把文案改为「✅ 已复制」且回调不抛。修复前用全局 event（harness 页面作用域无 event）⇒ 回调抛 TypeError、按钮文案不变 ⇒ 探针为『FN177 NO|event is not defined|…』不命中；探针用 __tbProbe 记录按钮是否曾被写入「✅ 已复制」（避开 setTimeout 同步恢复污染）+ 绑定输入锚 ⇒ 零逃生。",
+  },
+  {
+    slug: "finance/text-reverse-words",
+    inputs: { input: "他说「你好，世界」。", mode: "zhchar" },
+    clicks: ["document.getElementById('keepPunc').checked=true;reverse();document.getElementById('__tbProbe').textContent='FN179 '+document.getElementById('input').value+' '+document.getElementById('result').textContent;"],
+    expect: ["FN179 他说「你好，世界」。 界世「好你，说他」。"],
+    ref: "F-N179 中文标点原位防回归锁：keepPunc 用 Unicode 标点类 \\p{P} 覆盖「」等中文引号，zhchar 模式逐字切分后标点固定原位、仅汉字反转 ⇒ 界世「好你，说他」。（旧手写字符集不含「」⇒ 参与反转得 」界世好你，「说他。，不命中。）探针绑定输入锚与 __tbProbe ⇒ 默认态零逃生。",
+  },
+  {
     slug: "finance/futures-pnl-calculator",
     inputs: { openPrice: "4000", closePrice: "4200", lots: "2", marginRate: "10", openFee: "25", closeFee: "35" },
     expect: ["119,880.00", "240,000.00"],

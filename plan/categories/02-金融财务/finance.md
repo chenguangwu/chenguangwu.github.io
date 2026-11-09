@@ -810,28 +810,7 @@
 
 - **留存建议（tools/finance/word-counter.html）**：实时统计 + 可读性 + 词频 + CSV 导出是高频文本能力（不属金融但通用），建议保留；先统一「词」口径（F-N174）、补中文词频（F-N175）、修正示例（F-N176）后可对外；建议与 word-frequency/word-wrap 互链。
 
-### F-N177 单词顺序反转页：「复制结果」用全局 `event`，复制成功后按钮永不变「已复制」（低，确认缺陷）
-- 问题：`:327-330` 在 `navigator.clipboard.writeText(...).then()` 回调里用全局 `event.target.closest('.btn')`。事件处理器返回后 `window.event` 已置空（Firefox 无 `window.event`），回调抛 TypeError，按钮文案更新永不执行；复制本身已完成。
-- 证据：`tools/finance/text-reverse-words.html:324-331`
-- 复现：输入 `I love ToolBox` → 结果为 `ToolBox love I`（node 复算一致）；点「复制结果」→ 剪贴板拿到正确文本，但按钮仍显示「复制结果」，控制台 `Cannot read properties of null (reading 'target')`。
-- 影响：`tools/finance/text-reverse-words.html`；用户以为没复制成功而重复点击。
-- 方案：`function copyResult(ev){ var btn=(ev&&ev.target||document.activeElement).closest('.btn'); ... }`，或按 id 取按钮。
-
-### F-N178 单词顺序反转页：「预设」页签映射到常显的工具栏 div，点按只是隐藏结果卡（低，确认缺陷）
-- 问题：`:523` 把 `pre` 面板映射到 `#text_reverse_wordsPresets`，而该 div 位于输入卡工具栏（`:171`），本来常显、且不是独立面板；`:534-536` 的 `show('pre')` 只把结果/数据表/图表/历史全部 `display:none`，预设条位置不变。
-- 证据：`tools/finance/text-reverse-words.html:171`、`:178-182`、`:523`、`:534-536`
-- 复现：点「预设」→ 结果卡整块消失、页面无新面板出现；再点「结果」才恢复。期望预设面板独立呈现（含 4 个场景按钮）。
-- 影响：`tools/finance/text-reverse-words.html`；页签看起来有 4 个能力，实际只有 3 个可用。
-- 方案：去掉 `pre` 页签，或把 `#text_reverse_wordsPresets` 移入 `<div class="tbk-panel">` 独立容器。
-
-### F-N179 单词顺序反转页：「保留标点」字符集缺中文引号/破折号/省略号，标点仍随词移动（低，确认缺陷）
-- 问题：`:295` 的标点判定只含 ASCII `,.!?;:'"()[]<>` 与 `，。！？；：、`，不含 `「」『』（）《》〈〉`、`…`、`—`、`·`。勾选「保留标点位置」时这些符号被当作普通词参与反转。
-- 证据：`tools/finance/text-reverse-words.html:295-298`、`:167`、`:218`
-- 复现（node 实算）：`他说「你好，世界」。` → keepPunc 开输出 `」界世好你，「说他。`（引号跑到句首/词间）；`价格—优惠…` → `…惠优—格价`。对照 `Hello, world.` → `world, Hello.`（逗号句号原位）。
-- 影响：`tools/finance/text-reverse-words.html`；中文文案倒置时标点错位，FAQ「标点仍在句末」不成立。
-- 方案：标点判定改用 `/\p{P}/u`（Unicode 标点类）并保留空白分支，避免手写字符集漏项。
-
-- **留存建议（tools/finance/text-reverse-words.html）**：三模式 + 保留标点 + 每行/首字母 + 预设 + 复制，作为文本小工具可用，建议保留；修 copy 反馈（F-N177）、预设页签（F-N178）、标点集（F-N179）后可留；`cat=text` 却归 finance 行业，建议按 §7 评估迁移（本批不做）。
+- **留存建议（tools/finance/text-reverse-words.html）**：三模式 + 保留标点 + 每行/首字母 + 预设 + 复制，作为文本小工具可用，建议保留；F-N177/178/179 已真修（第94批），`cat=text` 却归 finance 行业，建议按 §7 评估迁移（待裁量，本批不做）。
 
 ### F-N180 NIE 页：X/Y/Z 前缀被写成「早期/中期/现行」，与 FAQ「当年批次」互相矛盾（低，确认缺陷）
 - 问题：`:264` 的 `prefixDesc` 固定输出「外国人（早期/中期/现行）」，FAQ（`:193`）却写「X、Y、Z 分别对应当年批次的外国人编号，仅表示发放时段」。两处对同一编码给出不同的时间含义，且「当年批次」= 今年发放的说法与「早期/中期」直接冲突；页面未给任何权威出处。
