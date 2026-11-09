@@ -219,17 +219,27 @@ var issues=[];
 var lastH=0;var heads={};var inFence=false;var fenceChar='';var fenceLen=0;
 for(var i=0;i<lines.length;i++){
   var L=lines[i];
+  /* IT-N527 复核重做：闭围栏按 CommonMark 严格识别 —— 缩进不超过 3 个空格、
+     定界符字符相同且长度不小于开围栏，并且定界符之后只能有空白（不能带信息串/正文）。
+     围栏内「同类型标记 + 文本」的行是代码内容，必须保持 inFence 且不参与行内检查。 */
   var fm=L.match(/^(\s*)(`+)/)||L.match(/^(\s*)(~+)/);
-  if(fm){
+  if(fm && fm[1].length<=3){
     var delim=fm[2];
+    var rest=L.slice(fm[1].length+delim.length);
     if(!inFence){
-      inFence=true;fenceChar=delim[0];fenceLen=delim.length;
-      var info=L.slice(fm[1].length+delim.length).trim();
-      if(!info)issues.push(mlQ('第 '+(i+1)+' 行：围栏代码块未标注语言（MD040）','Line '+(i+1)+': fenced code block has no language (MD040)'));
-    }else if(delim[0]===fenceChar && delim.length>=fenceLen){
+      // 反引号围栏的信息串里不得再出现反引号，否则不是合法开围栏，按普通行检查。
+      if(!(delim[0]==='`' && rest.indexOf('`')>=0)){
+        inFence=true;fenceChar=delim[0];fenceLen=delim.length;
+        var info=rest.trim();
+        if(!info)issues.push(mlQ('第 '+(i+1)+' 行：围栏代码块未标注语言（MD040）','Line '+(i+1)+': fenced code block has no language (MD040)'));
+        continue;
+      }
+    }else if(delim[0]===fenceChar && delim.length>=fenceLen && /^\s*$/.test(rest)){
       inFence=false;
+      continue;
+    }else{
+      continue; // 围栏内的其它围栏状行都只是代码内容
     }
-    continue;
   }
   if(inFence)continue;
   var hm=L.match(/^(#{1,6})\s/);

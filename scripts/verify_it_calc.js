@@ -222,6 +222,112 @@ const CASES = [
     expect: ["EXTRAS=3000 CSVROWS=200"],
     ref: "IT-N3 复核重做：__trFind 旧的 2000 条上限会让附加统计的匹配数量/覆盖率与主替换（text.match 全局正则，不封顶）在长文本上不一致。6000 字符查 aa 得 3000 处非重叠匹配 ⇒ EXTRAS=3000；CSV 仍按自身约定只导出前 200 行 ⇒ CSVROWS=200。默认样例不产生该串。"
   },
+  // ===== 复核失败·第二批重做（前 6 条：IT-N489 / N474 / N471 / N551 / N527 / N528）=====
+  {
+    slug: "it/json-path",
+    inputs: {},
+    clicks: ["var o={a:[1,2,3,4,5]},e={a:[]};var ps=['$.a[99::-1]','$.a[:-99:-1]','$.a[-99::-1]','$.a[4:0:-1]','$.a[0:5:-1]','$.a[::-2]'];var rs=[];for(var i=0;i<ps.length;i++){rs.push(jsonPath(o,ps[i]).join(','));}rs.push(jsonPath(e,'$.a[::-1]').join(','));document.getElementById('__tbProbe').textContent='JP='+rs.join('|');"],
+    expect: ["JP=5,4,3,2,1|5,4,3,2,1||5,4,3,2||5,3,1|"],
+    ref: "IT-N489 复核重做：负步长切片的越界与省略边界。旧实现正负步长共用夹在 [0,len] 的 norm()，[99::-1] 起点未夹紧导致首项 undefined、[:-99:-1] 丢首项、[-99::-1] 多返一项。现负步长按方向夹在 [-1,len-1]：99→4、-99→-1、省略 start→len-1、省略 end→-1。七组结果（含空数组与 -2 步长）一次断言，默认 path 不产生该串。"
+  },
+  {
+    slug: "it/math-evaluator",
+    inputs: {},
+    clicks: ["var es=['7%pi','7 % pi','7%sin(1)','7%e','7%.5','15%','.5%','50%*120','7%3'];var ws=['0.7168146928','0.7168146928','0.2682321215','1.5634363431','0','0.15','0.005','60','1'];var rs=[];for(var i=0;i<es.length;i++){document.getElementById('expr').value=es[i];calc();rs.push(String(document.getElementById('result').innerHTML).indexOf('>'+ws[i]+'<')>=0?'OK':'BAD');}document.getElementById('__tbProbe').textContent='ME='+rs.join('');"],
+    expect: ["ME=OKOKOKOKOKOKOKOKOK"],
+    ref: "IT-N474 复核重做：% 的右操作数识别补齐常量 pi/e、函数名、小数点起始操作数与带空格写法。7%pi=0.7168146928、7%sin(1)=0.2682321215、7%e=1.5634363431、7%.5=0；旧实现把它们改写成 (7/100)pi 一类语法错误。同时守住百分比路径 15%=0.15、.5%=0.005、50%*120=60 与取模 7%3=1。九组结果逐项比对，默认态不产生该串。"
+  },
+  {
+    slug: "it/vector-cross-product",
+    inputs: { a0: "1e-7", a1: "0", a2: "0", b0: "0", b1: "1e-7", b2: "0" },
+    clicks: ["calculate();document.getElementById('__tbProbe').textContent='VCP='+String(document.getElementById('output').innerHTML);"],
+    expect: ["A = (1.000e-7, 0, 0)", "A × B = (0, 0, 1.000e-14)"],
+    ref: "IT-N471 复核重做：小尺度正交向量。旧 fmt() 用绝对阈值 1e-12 且 toLocaleString() 默认仅 3 位小数，把 1e-7 的输入与 1e-14 的叉积都显示成 0，却仍写 sinθ=1 → θ=90°。现真实零才显示 0，<1e-3 一律科学计数法 ⇒ 输入/叉积/模长/角度自洽。默认 (1,2,3)×(4,5,6) 不命中。"
+  },
+  {
+    slug: "it/vector-cross-product",
+    inputs: { a0: "1e-7", a1: "0", a2: "0", b0: "-1e-7", b1: "0", b2: "0" },
+    clicks: ["calculate();document.getElementById('__tbProbe').textContent='VCP='+String(document.getElementById('output').innerHTML);"],
+    expect: ["B = (-1.000e-7, 0, 0)", "θ = 180°"],
+    ref: "IT-N471 复核重做：小尺度反向共线。负分量不得被显示成 -0；归一化向量下 sinθ=0、cosθ=-1 ⇒ atan2 给 180° 且平行结论成立。默认算例 12.933° 不命中。"
+  },
+  {
+    slug: "it/vector-cross-product",
+    inputs: { a0: "1e-200", a1: "0", a2: "0", b0: "0", b1: "1e-200", b2: "0" },
+    clicks: ["calculate();document.getElementById('__tbProbe').textContent='VCP='+String(document.getElementById('output').innerHTML);"],
+    expect: ["A × B = (0, 0, 1e-400)", "叉积绝对量级低于双精度可表示范围"],
+    ref: "IT-N471 复核重做：极端下溢边界。|A||B|=1e-400 已超出双精度，直接相乘会得 0 并造成「叉积为零但 θ=90°」的矛盾。现归一化向量给出角度，并用指数分解展示 c*|A|*|B| 的量级 1e-400，同时显式说明显示口径；默认算例不命中。"
+  },
+  {
+    slug: "it/text-qr",
+    inputs: { text: "old secret" },
+    clicks: ["window.__qrCanvas={toDataURL:function(){return 'OLD_PNG';}};window.__qrMeta={probe:1};document.getElementById('text').value='';generate();var __cap=[];var __ce=document.createElement.bind(document);document.createElement=function(t){var e=__ce(t);if(t==='a'){e.click=function(){__cap.push('DL:'+e.download);};}return e;};downloadPNG();downloadSVG();document.createElement=__ce;document.getElementById('__tbProbe').textContent='QR='+__cap.join('|')+' CANVAS='+(window.__qrCanvas===null?'NULL':'STALE')+' META='+(window.__qrMeta===null?'NULL':'STALE');"],
+    expect: ["QR= CANVAS=NULL META=NULL"],
+    ref: "IT-N551 复核重做：先放一张旧 canvas + 旧元数据，清空文本再 generate()，PNG/SVG 都必须无法下载旧图。旧修复只清 __qrMeta、不清 window.__qrCanvas，downloadPNG 仍触发一次旧图下载。现 generate() 开始即把两者作废，downloadPNG 还要求画布与元数据同时有效。下载动作由 createElement('a') 桩捕获，默认态不产生该串。"
+  },
+  {
+    slug: "it/text-qr",
+    inputs: { text: "old secret" },
+    clicks: ["window.__qrCanvas={toDataURL:function(){return 'OLD_PNG';}};window.__qrMeta={probe:1};document.getElementById('text').value='anything';generate();var __p=document.getElementById('__tbProbe');__p.textContent='ERR='+(window.__qrCanvas===null&&window.__qrMeta===null?'CLEAR':'STALE');drawQR=function(t){var c=document.createElement('canvas');c.__qrMeta={n:1,margin:4,cell:8,dark:[0],fg:'#000000',bg:'#ffffff'};c.toDataURL=function(){return 'NEW_PNG';};return c;};document.getElementById('text').value='NEW-QR';generate();__p.textContent=String(__p.textContent)+' RECOVER='+(window.__qrCanvas&&window.__qrMeta?'OK':'FAIL');var __cap=[];var __ce=document.createElement.bind(document);document.createElement=function(t){var e=__ce(t);if(t==='a'){e.click=function(){__cap.push('DL:'+e.download);};}return e;};downloadPNG();document.createElement=__ce;__p.textContent=String(__p.textContent)+' DL='+__cap.join('|');"],
+    expect: ["ERR=CLEAR RECOVER=OK DL=DL:qrcode.png"],
+    ref: "IT-N551 复核重做：生成异常（harness 下 qrcode 外部脚本不可加载）时也必须同时作废画布与元数据；随后用桩替身恢复合法生成，画布与元数据重建成功，并实际调用 downloadPNG() 捕获一次真实下载 qrcode.png，证明清空逻辑没有误伤正常导出。默认态不产生该串。"
+  },
+  {
+    slug: "it/markdown-lint",
+    inputs: { src: "```js\n``` not-a-closing-fence\n*not-a-list\n```" },
+    clicks: ["calcTool();document.getElementById('__tbProbe').textContent='MD='+String(document.getElementById('result').innerHTML);"],
+    expect: ["MD= 检查结果 4 行数 0 问题"],
+    ref: "IT-N527 复核重做：闭围栏后只能跟空白。第二行 ``` not-a-closing-fence 是代码内容而非闭围栏，旧实现只比字符与长度就翻转 inFence，导致第 3 行被误报列表缺空格、第 4 行被误报 MD040。现按 CommonMark 严格判定（缩进 ≤3、同字符、长度 ≥、后缀全空白）⇒ 0 问题。默认示例含多个待整改项，不命中。"
+  },
+  {
+    slug: "it/markdown-lint",
+    inputs: { src: "```js\n    ```\n*not-a-list\n```" },
+    clicks: ["calcTool();document.getElementById('__tbProbe').textContent='MD='+String(document.getElementById('result').innerHTML);"],
+    expect: ["MD= 检查结果 4 行数 0 问题"],
+    ref: "IT-N527 复核重做：缩进 4 空格的围栏状行按 CommonMark 是缩进代码块内容，不得关闭围栏。旧实现 fm 允许任意 \\s* 前导空白，会提前闭围栏并误报后续行。现限制前导空白 ≤3 ⇒ 0 问题；默认示例含多个待整改项，不命中。"
+  },
+  {
+    slug: "it/kubernetes-yaml-generator",
+    inputs: { name: "web", port: "80", replicas: "2" },
+    clicks: ["var ims=['[nginx]','&foo','*alias','{a}','a//b','nginx:latest:bad'];var rs=[];for(var i=0;i<ims.length;i++){document.getElementById('image').value=ims[i];calcTool();rs.push(String(document.getElementById('result').innerHTML).indexOf('不是合法的容器镜像引用')>=0?'REJECT':'ACCEPT');}document.getElementById('__tbProbe').textContent='K8='+rs.join('|');"],
+    expect: ["K8=REJECT|REJECT|REJECT|REJECT|REJECT|REJECT"],
+    ref: "IT-N528 复核重做：流式集合 [nginx]、锚点 &foo、别名 *alias、映射 {a}、空路径段 a//b、双 tag nginx:latest:bad 均不符合容器镜像引用语法，必须统一拒绝，而不是枚举 null/true/{} 等少数 YAML 特殊值。原有 #/关键字/空白 三条具体提示保持不变；默认合法镜像不产生该串。"
+  },
+  {
+    slug: "it/kubernetes-yaml-generator",
+    inputs: { name: "web", image: "123", port: "80", replicas: "2" },
+    clicks: ["calcTool();document.getElementById('__tbProbe').textContent='K8='+String(document.getElementById('result').innerHTML);"],
+    expect: ["image: '123'"],
+    ref: "IT-N528 复核重做：纯数字镜像名在语法上合法，但裸输出 image: 123 会被 YAML 解析成整数。现所有合法镜像一律以单引号标量输出 ⇒ image: '123' 得到字符串。默认镜像 nginx:latest 不命中。"
+  },
+  {
+    slug: "it/kubernetes-yaml-generator",
+    inputs: { name: "web", image: "ghcr.io/team/app:1.2.3", port: "80", replicas: "2" },
+    clicks: ["calcTool();document.getElementById('__tbProbe').textContent='K8='+String(document.getElementById('result').innerHTML);"],
+    expect: ["image: 'ghcr.io/team/app:1.2.3'"],
+    ref: "IT-N528 复核重做：带 registry 主机、多段路径与语义化 tag 的合法镜像必须仍可生成清单，且被引号正确包裹。白名单校验与引号化不得误伤正常镜像；默认 nginx:latest 不命中。"
+  },
+  {
+    slug: "it/json-path",
+    inputs: {},
+    clicks: ["var o={a:[1,2,3,4,5]};var ps=['$.a[99:]','$.a[:-99]','$.a[-99:3]','$.a[2:99]','$.a[::3]','$.a[4:1:-2]'];var rs=[];for(var i=0;i<ps.length;i++){rs.push(jsonPath(o,ps[i]).join(','));}document.getElementById('__tbProbe').textContent='JP2='+rs.join('|');"],
+    expect: ["JP2=||1,2,3|3,4,5|1,4|5,3"],
+    ref: "IT-N489 复核重做：正步长同样要按下标方向夹紧。[99:] / [:-99] 均为空，[-99:3] 取 1,2,3、[2:99] 取 3,4,5，[::3] 取 1,4，[4:1:-2] 取 5,3。与负步长用例一起覆盖正负方向、显式/省略、越界起止与步长绝对值 >1；默认 path 不产生该串。"
+  },
+  {
+    slug: "it/math-evaluator",
+    inputs: {},
+    clicks: ["var es=['7%-pi','7%+sin(1)','7 % -3','7 % +3'];var ws=['0.7168146928','0.2682321215','1','1'];var rs=[];for(var i=0;i<es.length;i++){document.getElementById('expr').value=es[i];calc();rs.push(String(document.getElementById('result').innerHTML).indexOf('>'+ws[i]+'<')>=0?'OK':'BAD');}document.getElementById('__tbProbe').textContent='ME2='+rs.join('');"],
+    expect: ["ME2=OKOKOKOK"],
+    ref: "IT-N474 复核重做：一元正负号与常量/函数组合的右操作数。7%-pi = 7 % (-pi) = 0.7168146928、7%+sin(1) = 0.2682321215，带空格的 7 % -3 / 7 % +3 均为 1。确认新增的标识符识别没有破坏旧的一元符号分支；默认态不产生该串。"
+  },
+  {
+    slug: "it/markdown-lint",
+    inputs: { src: "````js\n```\n*not-a-list\n````\n- item" },
+    clicks: ["calcTool();document.getElementById('__tbProbe').textContent='MD3='+String(document.getElementById('result').innerHTML);"],
+    expect: ["MD3= 检查结果 5 行数 0 问题"],
+    ref: "IT-N527 复核重做：闭围栏长度不得短于开围栏。开围栏 4 个反引号，内部 3 个反引号的 ``` 只是代码内容，4 个反引号的 ```` 才闭围栏；随后 '- item' 的列表标记后已有空格 ⇒ 0 问题。与跨类型、同标记带正文、缩进 4 空格三例共同覆盖围栏语法；默认示例含多个待整改项，不命中。"
+  },
   {
     slug: "it/hex-to-text",
     inputs: { input: "E4B8ADF09F9880" },
@@ -5299,8 +5405,8 @@ const CASES = [
   {
     "slug": "it/kubernetes-yaml-generator",
     "inputs": { "name": "api", "image": "redis:7-alpine", "port": "6379", "replicas": "3" },
-    "expect": ["containerPort: 6379", "image: redis:7-alpine"],
-    "ref": "k8s 清单生成：注入 name/image/port/replicas。Deployment 的 `image: redis:7-alpine` 与 container 的 `containerPort: 6379` 是清单模板拼装后的形态（input value 为裸值，不含 `image: ` / `containerPort: ` 键名），排除输入回显。默认 web / nginx:latest / 80 / 2。"
+    "expect": ["containerPort: 6379", "image: 'redis:7-alpine'"],
+    "ref": "k8s 清单生成：注入 name/image/port/replicas。Deployment 的 `image: 'redis:7-alpine'` 与 container 的 `containerPort: 6379` 是清单模板拼装后的形态（input value 为裸值，不含 `image: ` / `containerPort: ` 键名），排除输入回显。IT-N528 复核重做：镜像一律输出为 YAML 单引号标量，避免纯数字/流式集合/锚点被解析成非字符串；expect 同步加引号。默认 web / nginx:latest / 80 / 2。"
   },
   {
     "slug": "it/nginx-config-generator",

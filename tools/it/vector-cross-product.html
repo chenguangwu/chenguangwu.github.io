@@ -156,7 +156,7 @@ s.parentNode.insertBefore(el, s);
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">向量叉积（向量积，仅三维）<br>A × B = (aᵧb_z − a_z bᵧ, a_z bₓ − aₓ b_z, aₓ bᵧ − aᵧ bₓ)<br>行列式形式：A × B = | i  j  k; aₓ aᵧ a_z; bₓ bᵧ b_z |<br>模长 |A × B| = 两向量构成的平行四边形面积<br>夹角 θ = atan2(|A×B|, A·B)×180/π（0–180°）；|A×B| = |A||B|sinθ，A·B = |A||B|cosθ；|A×B| = 0 时按 A·B 符号得 0°（同向）或 180°（反向）<br>A × B = 0 表示两向量平行（或其一为零向量）</div>
   <div class="formula-desc">叉积是三维向量特有的运算，结果是一个同时垂直于两个原向量的新向量。</div>
-  <div class="formula-desc">叉积按 1e-10 精度显示；绝对值小于 1e-12 的浮点残差按 0 显示（平行相消残差属数值噪声，不代表真实小量）。</div>
+  <div class="formula-desc">叉积按 1e-10 精度显示；仅真实零显示 0，微小非零量（如 1e-14）用科学计数法保留，不再被显示阈值压成零。角度与平行判定改用归一化向量，对任意尺度一致，且不受模长乘积下溢影响。</div>
   <ul class="formula-list">
     <li><b>公式</b>：<code>a×b = (a₂b₃−a₃b₂, a₃b₁−a₁b₃, a₁b₂−a₂b₁)</code>。</li>
     <li><b>模长</b>：<code>|a×b| = |a||b|sinθ</code>，等于以 a、b 为邻边的平行四边形面积。</li>
@@ -263,37 +263,79 @@ function getV(prefix){
   for(let i=0;i<3;i++){ const x=parseFloat(document.getElementById(prefix+i).value); v.push(isNaN(x)?0:x); }
   return v;
 }
-function fmt(x){ if(Math.abs(x)<1e-12) return '0'; return (Math.round(x*1e10)/1e10).toLocaleString(); }
-function mag(v){ return Math.sqrt(v.reduce((s,x)=>s+x*x,0)); }
-function vecStr(v){ return '('+v.map(fmt).join(', ')+')'; }
+// IT-N471 复核重做：显示精度不等于数值是否为零。真实 0 才显示 0；微小非零量
+// （如 1e-7 输入、1e-14 叉积）改用科学计数法，避免把整个小尺度算例压成零向量。
+function fmt(x){
+  if(x===0) return '0';
+  if(typeof x!=='number'||!isFinite(x)) return '—';
+  // toLocaleString() 默认只保留 3 位小数，1e-7 也会被吞成 0；凡小于 1e-3 或大于 1e15
+  // 的量一律用科学计数法，保证输入、叉积、模长的显示与实际数值一致。
+  if(Math.abs(x)<1e-3 || Math.abs(x)>=1e15) return x.toExponential(3);
+  return (Math.round(x*1e10)/1e10).toLocaleString();
+}
+// 稳健范数：按最大分量缩放，避免 1e-200 一类分量平方下溢为 0。
+function mag(v){
+  if(!Array.isArray(v)) return 0;
+  const maxAbs=v.reduce((s,x)=>Math.max(s,Math.abs(x)),0);
+  if(maxAbs===0) return 0;
+  return maxAbs*Math.sqrt(v.reduce((s,x)=>{const t=x/maxAbs;return s+t*t;},0));
+}
+// 计算 c*mA*mB 的字符串（指数分解），仅在乘积已下溢时使用；不依赖双精度能表示该乘积。
+function fmtScaled(c,mA,mB){
+  if(c===0||mA===0||mB===0||typeof c!=='number'||!isFinite(c)) return '0';
+  const dec=function(v){
+    const a=Math.abs(v);
+    if(a===0||!isFinite(a)) return {m:0,e:0,s:1};
+    const e=Math.floor(Math.log10(a));
+    return {m:a/Math.pow(10,e),e:e,s:v<0?-1:1};
+  };
+  const p=dec(c), q=dec(mA), r=dec(mB);
+  let mant=p.m*q.m*r.m, exp=p.e+q.e+r.e, sign=p.s*q.s*r.s;
+  if(mant===0||!isFinite(mant)) return '0';
+  while(mant>=10){ mant/=10; exp++; }
+  return (sign<0?'-':'')+(Math.round(mant*1e3)/1e3)+'e'+exp;
+}
+function vecStr(v){ return Array.isArray(v)?'('+v.map(fmt).join(', ')+')':'()'; }
 function __vcpL(zh,en){return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?en:zh;}
 function calculate(){
   const ids=['a0','a1','a2','b0','b1','b2'];
   if(ids.every(id=>document.getElementById(id).value.trim()==='')){document.getElementById('output').innerHTML='<p class="muted">'+__vcpL('请输入向量 A 与 B 的 x/y/z 分量','Enter the x/y/z components of vectors A and B')+'</p>';return;}
   const A=getV('a'), B=getV('b');
+  if(A.concat(B).some(x=>!isFinite(x))){
+    document.getElementById('output').innerHTML='<p style="color:var(--danger)">'+__vcpL('⚠ 向量分量必须为有限数值。','⚠ All vector components must be finite numbers.')+'</p>';
+    return;
+  }
   const C=[A[1]*B[2]-A[2]*B[1], A[2]*B[0]-A[0]*B[2], A[0]*B[1]-A[1]*B[0]];
   const mA=mag(A), mB=mag(B), mC=mag(C);
+  /* IT-N471 复核重做：阈值须随尺度缩放，且不能依赖 mA*mB 这种会下溢的乘积。
+     先把两向量各自归一化，用归一化叉积的模求 sinθ、归一化点积求 cosθ；
+     asin 只返回 0–90°，atan2(sinθ, cosθ) 给 0–180°，共线时按点积符号自然得 0°/180°。 */
+  const u=mA>0?A.map(x=>x/mA):[0,0,0], w=mB>0?B.map(x=>x/mB):[0,0,0];
+  const cn=[u[1]*w[2]-u[2]*w[1], u[2]*w[0]-u[0]*w[2], u[0]*w[1]-u[1]*w[0]];
+  const sinT=Math.min(1,mag(cn));
+  const dotN=u[0]*w[0]+u[1]*w[1]+u[2]*w[2];
+  // 极端小尺度（如 1e-200）下 |A||B| 会下溢为 0，C 也被算成 0。此时按
+  // 归一化叉积 × |A| × |B| 的指数分解展示量级，避免「A × B = (0,0,0) 但 θ=90°」自相矛盾。
+  const underflow=(mA>0&&mB>0&&mA*mB===0);
+  const CT=underflow?cn.map(c=>fmtScaled(c,mA,mB)):C.map(fmt);
+  const mCT=underflow?fmtScaled(sinT,mA,mB):fmt(mC);
+  const vecStrT=function(arr){ return '('+arr.join(', ')+')'; };
   let html='<p><strong>A = </strong>'+vecStr(A)+'</p><p><strong>B = </strong>'+vecStr(B)+'</p>';
-  html+='<div class="big-result">A × B = '+vecStr(C)+'</div>';
+  html+='<div class="big-result">A × B = '+vecStrT(CT)+'</div>';
   html+='<div class="det-formula">A × B = | i  j  k |<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| aₓ aᵧ a_z |<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| bₓ bᵧ b_z |</div>';
   html+='<p style="margin-top:10px;"><strong>'+__vcpL('分量计算：','Component-wise: ')+'</strong></p>';
-  html+='<div class="step-line">cₓ = aᵧ·b_z − a_z·bᵧ = '+fmt(A[1])+'×'+fmt(B[2])+' − '+fmt(A[2])+'×'+fmt(B[1])+' = '+fmt(C[0])+'</div>';
-  html+='<div class="step-line">cᵧ = a_z·bₓ − aₓ·b_z = '+fmt(A[2])+'×'+fmt(B[0])+' − '+fmt(A[0])+'×'+fmt(B[2])+' = '+fmt(C[1])+'</div>';
-  html+='<div class="step-line">c_z = aₓ·bᵧ − aᵧ·bₓ = '+fmt(A[0])+'×'+fmt(B[1])+' − '+fmt(A[1])+'×'+fmt(B[0])+' = '+fmt(C[2])+'</div>';
+  html+='<div class="step-line">cₓ = aᵧ·b_z − a_z·bᵧ = '+fmt(A[1])+'×'+fmt(B[2])+' − '+fmt(A[2])+'×'+fmt(B[1])+' = '+CT[0]+'</div>';
+  html+='<div class="step-line">cᵧ = a_z·bₓ − aₓ·b_z = '+fmt(A[2])+'×'+fmt(B[0])+' − '+fmt(A[0])+'×'+fmt(B[2])+' = '+CT[1]+'</div>';
+  html+='<div class="step-line">c_z = aₓ·bᵧ − aᵧ·bₓ = '+fmt(A[0])+'×'+fmt(B[1])+' − '+fmt(A[1])+'×'+fmt(B[0])+' = '+CT[2]+'</div>';
   html+='<p style="margin-top:10px;"><strong>'+__vcpL('相关量：','Related quantities: ')+'</strong></p>';
-  html+='<div class="step-line">|A × B| = '+fmt(mC)+__vcpL(' （平行四边形面积）',' (parallelogram area)')+'</div>';
+  html+='<div class="step-line">|A × B| = '+mCT+__vcpL(' （平行四边形面积）',' (parallelogram area)')+'</div>';
   html+='<div class="step-line">|A| = '+fmt(mA)+', |B| = '+fmt(mB)+'</div>';
-  /* IT-N471：阈值须随尺度缩放。固定 1e-12 绝对阈值会把小尺度向量的叉积/向量模长本身（如 1e-7 量级的叉积 1e-14）误判为 0，
-     导致不显示角度且错判平行。改用「相对阈值」：以 sinθ = |A×B|/(|A||B|) 与 1e-9 比较，角度与平行判定对任何尺度一致。 */
-  if(mA>1e-300 && mB>1e-300){
-    const sinT=mC/(mA*mB);
-    const dot=A[0]*B[0]+A[1]*B[1]+A[2]*B[2];
-    /* asin 只返回 0–90°，钝角会被镜像成 180°−θ；atan2(|A×B|, A·B) 给 0–180°，
-       mC=0 时按 A·B 符号自然得 0°（同向）或 180°（反向）。 */
-    const ang=Math.atan2(mC,dot)*180/Math.PI;
+  if(underflow) html+='<div class="step-line" style="color:var(--text-muted);">'+__vcpL('叉积绝对量级低于双精度可表示范围，已用指数分解保留量级；角度按归一化向量判定。','The cross-product magnitude underflows double precision; the order of magnitude is kept via exponent decomposition, and the angle uses normalized vectors.')+'</div>';
+  if(mA>0 && mB>0){
+    const ang=Math.atan2(sinT,dotN)*180/Math.PI;
     html+='<div class="step-line">sin θ = |A×B|/(|A||B|) = '+fmt(sinT)+' → θ = '+fmt(ang)+'°</div>';
-    if(mC<=1e-9*mA*mB) html+='<div class="step-line" style="color:var(--success);">'+__vcpL('A × B = 0，说明 A 与 B 平行（或其中之一为零向量）','A × B = 0, so A and B are parallel (or one of them is the zero vector)')+'</div>';
-  } else if(mC<1e-12){
+    if(sinT<=1e-9) html+='<div class="step-line" style="color:var(--success);">'+__vcpL('A × B = 0，说明 A 与 B 平行（或其中之一为零向量）','A × B = 0, so A and B are parallel (or one of them is the zero vector)')+'</div>';
+  } else {
     html+='<div class="step-line" style="color:var(--success);">'+__vcpL('A × B = 0，说明 A 与 B 平行（或其中之一为零向量）','A × B = 0, so A and B are parallel (or one of them is the zero vector)')+'</div>';
   }
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">'+__vcpL('⚠ 计算结果含无效值，请检查输入是否为有效正数。','⚠ The result contains an invalid value; check your inputs.')+'</p>';return;}document.getElementById('output').innerHTML=__h0;

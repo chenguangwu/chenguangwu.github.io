@@ -228,6 +228,10 @@ function escH(s){var d=document.createElement('div');const __g1=s==null?'':Strin
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function kyEn(){return (typeof TBKit!=='undefined'&&TBKit.util.isEn());}
 function kyQ(zh,en){return kyEn()?en:zh;}
+/* IT-N528 复核重做：按容器镜像引用语法做白名单校验，而不是枚举少量 YAML 特殊值。
+   允许 registry 主机（可带端口）/ 小写路径 / tag / @sha256 摘要；
+   [ ] { } & * ! | > # , 空格 引号 等 YAML 敏感字符一律进不来。 */
+var KY_IMG_RE=/^(?:[a-z0-9]+(?:(?:[._]|__|[-]+)[a-z0-9]+)*(?::[0-9]+)?\/)?[a-z0-9]+(?:(?:[._]|__|[-]+)[a-z0-9]+)*(?:\/[a-z0-9]+(?:(?:[._]|__|[-]+)[a-z0-9]+)*)*(?::[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,127})?(?:@sha256:[a-f0-9]{64})?$/;
 function calcTool(){var name=document.getElementById('name').value.trim()||'app';
 var image=document.getElementById('image').value.trim()||'nginx:latest';
 var portRaw=num('port');var port=Math.floor(portRaw);
@@ -240,8 +244,12 @@ else if(!isFinite(port)||port<1||port>65535)err=kyQ('⚠ 端口须为 1 ~ 65535 
 else if(/^#/.test(image))err=kyQ('⚠ 镜像名不能以 # 开头（YAML 会当作注释）','⚠ Image must not start with # (YAML treats it as a comment)');
 else if(/^(null|true|false|yes|no|on|off|~|\{\}|\[\])$/i.test(image))err=kyQ('⚠ 镜像名不能是 YAML 关键字或空结构（{}、[]、null 等）','⚠ Image must not be a YAML keyword or empty structure ({}, [], null ...)');
 else if(/[\s"']/.test(image)||/:\s/.test(image))err=kyQ('⚠ 镜像名不能包含空白、引号或 ": "','⚠ Image must not contain whitespace, quotes or ": "');
+else if(!KY_IMG_RE.test(image))err=kyQ('⚠ 镜像名不是合法的容器镜像引用（仅允许小写域名/路径、tag 或 @sha256 摘要）','⚠ Image is not a valid container image reference (lowercase domain/path, optional tag or @sha256 digest)');
 if(err){out.innerHTML='<p style="color:var(--danger)">'+escH(err)+'</p>';return;}
-var y='apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: '+name+'\nspec:\n  replicas: '+rep+'\n  selector:\n    matchLabels:\n      app: '+name+'\n  template:\n    metadata:\n      labels:\n        app: '+name+'\n    spec:\n      containers:\n      - name: '+name+'\n        image: '+image+'\n        ports:\n        - containerPort: '+port+'\n---\napiVersion: v1\nkind: Service\nmetadata:\n  name: '+name+'\nspec:\n  selector:\n    app: '+name+'\n  ports:\n  - port: '+port+'\n    targetPort: '+port+'\n  type: ClusterIP\n';
+// IT-N528：合法镜像也可能是纯数字（如 123）或含 YAML 敏感前缀的形态，
+// 一律以单引号标量输出，确保 YAML 解析成字符串而不是 int / null / 数组 / 锚点。
+var imageYaml="'"+image.replace(/'/g,"''")+"'";
+var y='apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: '+name+'\nspec:\n  replicas: '+rep+'\n  selector:\n    matchLabels:\n      app: '+name+'\n  template:\n    metadata:\n      labels:\n        app: '+name+'\n    spec:\n      containers:\n      - name: '+name+'\n        image: '+imageYaml+'\n        ports:\n        - containerPort: '+port+'\n---\napiVersion: v1\nkind: Service\nmetadata:\n  name: '+name+'\nspec:\n  selector:\n    app: '+name+'\n  ports:\n  - port: '+port+'\n    targetPort: '+port+'\n  type: ClusterIP\n';
 var html='<div class="result-title">'+kyQ('k8s 清单','k8s manifest')+'</div>';
 html+='<pre class="code-box" style="white-space:pre;font-size:12px;overflow-x:auto;">'+escH(y)+'</pre>';
 const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));}

@@ -273,8 +273,9 @@ function drawQR(text){
   return canvas;
 }
 function downloadPNG(){
+  // IT-N551 复核重做：画布与元数据必须同时有效；清空/失败后任一残留都不得触发旧图下载。
   const c=window.__qrCanvas;
-  if(!c){alert(tqQ('请先生成二维码','Generate the QR code first'));return;}
+  if(!c||!window.__qrMeta){alert(tqQ('请先生成二维码','Generate the QR code first'));return;}
   const a=document.createElement('a');
   a.href=c.toDataURL('image/png');a.download='qrcode.png';a.click();
 }
@@ -295,7 +296,10 @@ function downloadSVG(){
 function generate(){
   const text=document.getElementById('text').value;
   const out=document.getElementById('output');
-  if(!text){out.innerHTML='<p style="color:#999;">'+tqQ('请输入要编码的文本','Enter the text to encode')+'</p>';window.__qrMeta=null;return;}
+  // IT-N551：任何一次 generate() 的开始都先把旧画布/旧元数据作废，避免清空或异常后
+  // downloadPNG() 仍能拿到上一张 canvas 并导出旧 PNG（旧修复只清了 __qrMeta）。
+  window.__qrCanvas=null;window.__qrMeta=null;
+  if(!text){out.innerHTML='<p style="color:#999;">'+tqQ('请输入要编码的文本','Enter the text to encode')+'</p>';return;}
   try{
     const canvas=drawQR(text);
     window.__qrCanvas=canvas;
@@ -304,8 +308,8 @@ function generate(){
     out.innerHTML=__h0;
     out.querySelector('.qr-wrap').appendChild(canvas);
   }catch(e){
+    window.__qrCanvas=null;window.__qrMeta=null;
     out.innerHTML='<p style="color:var(--danger)">'+tqQ('⚠ 内容过长，无法生成二维码：','⚠ Content too long to encode: ')+escapeHtml(e.message)+'</p>';
-    window.__qrMeta=null;
   }
 }
 function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}

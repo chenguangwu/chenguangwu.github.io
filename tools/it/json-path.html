@@ -373,21 +373,26 @@ function jsonPath(obj, expr) {
           if (token.wildcard) {
             for (const item of current) next.push(item);
           } else if (token.slice) {
-            // N489：负索引先折算成 length+idx；省略上界按当前数组长度收敛；步长支持正负且禁止 0
+            // IT-N489 复核重做：切片边界必须按步长方向夹紧，正/负步长不能共用一套 norm。
+            // 正步长：起点/终点都夹在 [0, len]；省略 start→0、省略 end→len。
+            // 负步长：起点/终点都夹在 [-1, len-1]（-1 表示「下标 0 之前」的哨兵边界）；
+            // 省略 start→len-1、省略 end→-1。显式越界值也要夹紧到方向端点，而不是保留原值。
             const len = current.length;
-            const norm = function (v, dflt) {
+            const normPos = function (v, dflt) {
               if (v === null || v === undefined) return dflt;
               return v < 0 ? Math.max(len + v, 0) : Math.min(v, len);
             };
+            const normNeg = function (v, dflt) {
+              if (v === null || v === undefined) return dflt;
+              const x = v < 0 ? len + v : v;
+              return Math.max(-1, Math.min(x, len - 1));
+            };
             const step = token.step || 1;
-            /* N489：负步长时按步长方向从 start 向 end（不含 end）迭代；省略边界需按方向收敛——
-               负步长默认 start=len-1、end=-1，正步长沿用原 norm（省略 start→0、省略 end→len）。 */
-            const s0 = (token.start === null && step < 0) ? len - 1 : norm(token.start, 0);
-            const e0 = (token.end === null && step < 0) ? -1 : norm(token.end, len);
-            if (step > 0) {
-              for (let i = s0; i < e0; i += step) next.push(current[i]);
-            } else {
-              for (let i = s0; i > e0; i += step) next.push(current[i]);
+            const negative = step < 0;
+            const s0 = negative ? normNeg(token.start, len - 1) : normPos(token.start, 0);
+            const e0 = negative ? normNeg(token.end, -1) : normPos(token.end, len);
+            for (let i = s0; negative ? i > e0 : i < e0; i += step) {
+              if (i >= 0 && i < len) next.push(current[i]);
             }
           } else if (token.index !== undefined) {
             let idx = token.index;
