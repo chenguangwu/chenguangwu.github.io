@@ -251,8 +251,8 @@ function calc(){
   var wc=ca-cl;
   var equity=ta-tl;
   var dar=ta>0?tl/ta:NaN;
-  var de=equity!==0?tl/equity:NaN;
-  var em=equity!==0?ta/equity:NaN;
+  var de=equity>0?tl/equity:NaN;
+  var em=equity>0?ta/equity:NaN;
 
   function tag(cur,good,fair){
     if(!isFinite(cur))return '<span class="grade-tag grade-pass">无法计算</span>';
@@ -267,6 +267,14 @@ function calc(){
     if(v<=high)return '<span class="grade-tag grade-good">偏高</span>';
     return '<span class="grade-tag grade-fail">警戒</span>';
   }
+  // F-N79：产权比率专用四档，不再复用 tagHigh（其 low 分支把 <1 稳健误标「偏低」）
+  function tagDERatio(v){
+    if(!isFinite(v))return '<span class="grade-tag grade-pass">无法计算</span>';
+    if(v<1)return '<span class="grade-tag grade-excellent">稳健</span>';
+    if(v<2)return '<span class="grade-tag grade-good">一般</span>';
+    if(v<3)return '<span class="grade-tag grade-pass">偏高</span>';
+    return '<span class="grade-tag grade-fail">警戒</span>';
+  }
 
   const __g3='<div class="stat-card"><div class="val">'+fx(current,d)+'</div><div class="lbl">流动比率（参考 ≥ 2）</div></div>'
     +'<div class="stat-card"><div class="val">'+fx(quick,d)+'</div><div class="lbl">速动比率（参考 ≥ 1）</div></div>'
@@ -278,7 +286,7 @@ function calc(){
     ['速动比率',fx(quick,d),'≥ 1 良好 / 0.5~1 一般 / < 0.5 警戒',tag(quick,1,0.5),'(流动资产 '+fx(ca,d)+' − 存货 '+fx(inv,d)+' − 预付费用 '+fx(pre,d)+') ÷ 流动负债 '+fx(cl,d)],
     ['现金比率',fx(cashR,d),'≥ 0.2 充裕 / 0.1~0.2 一般 / < 0.1 偏紧',tag(cashR,0.2,0.1),'现金 '+fx(cash,d)+' ÷ 流动负债 '+fx(cl,d)],
     ['资产负债率',isFinite(dar)?(dar*100).toFixed(d)+'%':'—','40%~60% 适中 / > 70% 警戒 / < 30% 偏低',tagHigh(isFinite(dar)?dar*100:NaN,30,60,70),'负债总额 '+fx(tl,d)+' ÷ 资产总额 '+fx(ta,d)],
-    ['产权比率',fx(de,d),'< 1 稳健 / 1~2 一般 / > 2 高杠杆',tagHigh(de,1,2,2),'负债总额 '+fx(tl,d)+' ÷ 所有者权益 '+fx(equity,d)],
+    ['产权比率',fx(de,d),'< 1 稳健 / 1~2 一般 / 2~3 偏高 / > 3 警戒',tagDERatio(de),'负债总额 '+fx(tl,d)+' ÷ 所有者权益 '+fx(equity,d)],
     ['权益乘数',fx(em,d),'1.5~2.5 常见 / > 3 高杠杆',tagHigh(em,1.5,2.5,3),'资产总额 '+fx(ta,d)+' ÷ 所有者权益 '+fx(equity,d)]
   ];
   var html='<h3 style="margin-bottom:10px;font-size:15px;">📋 指标明细</h3>';

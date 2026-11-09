@@ -230,13 +230,6 @@
 - 影响：`tools/finance/invoice-generator.html`；负不含税与 0% 税率是相互矛盾的财务口径，用户可能据此填错开票信息。
 - 方案：校验 `0 ≤ tax ≤ total`，越界标红停止；`excl === 0` 时提示「不含税为 0，无法反推税率」，不要输出 0%。
 
-### F-N79 偿债比率页权益为负仍计算并标「偏低」，与 FAQ 声明相反（中，确认缺陷）
-- 描述：产权比率与权益乘数只在 `equity !== 0` 时置 NaN，权益为负仍照算负值；`tagHigh()` 对负值落入 `v<=low` 分支显示「偏低」，于是资不抵债企业被标成「偏低」而非「无法计算」。同一 `tagHigh(de,1,2,2)` 还把 de<1 的稳健区间标成「偏低」，与同行参考文案「< 1 稳健」自相矛盾。FAQ 明确写「权益为负时…页面会显示『无法计算』并给出提示」，实现未遵循。
-- 证据：`tools/finance/analysis-5.html:253-256`（`:255-256` 仅判 `!==0`）、`:282-283`（tagHigh 调用与文案）、`:201`（FAQ 声明）、`:308-309`（负权益提示）
-- 复现：资产总额 1,200,000、负债总额 1,500,000（所有者权益 −300,000）→ 实际 资产负债率 125.00%、产权比率 −5.00（判定「偏低」）、权益乘数 −4.00（判定「偏低」）（期望「—/无法计算」）；健康企业 de=0.5 → 判定「偏低」（参考文案应为「稳健」）
-- 影响：`tools/finance/analysis-5.html`；资不抵债的极端信号被「偏低」弱化，且档位标签与参考文案不一致，信贷/授信场景下可能被误读。
-- 方案：`equity <= 0` 时 de/em 置 NaN 显示「无法计算」并保留现有提示；产权比率改用四档判定（<1 稳健 / 1~2 一般 / 2~3 偏高 / >3 警戒），不要复用 `tagHigh(v,1,2,2)`。
-
 - 本轮实读 8 页：`tools/finance/calc-2.html`、`tools/finance/calc-3.html`、`tools/finance/calc-4.html`、`tools/finance/calc-5.html`、`tools/finance/invoice-generator.html`、`tools/finance/currency-converter.html`、`tools/finance/analysis-5.html`、`tools/finance/analysis-risk.html`；新增 11 条（高 3/中 6/低 2）；未覆盖：其余 finance 页（约 66 页）未逐页复扫。
 - 证据均由源码行号 + node 内存复算取得；未做浏览器、英文态、移动端、门禁与线上验证；历史已修声明未独立复验。
 
