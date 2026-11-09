@@ -2797,18 +2797,6 @@
 
 ## W 批 · IT 计算/文本（2026-11-04）
 
-### IT-N472 拼音表仅 59 个有效汉字，默认"中文转拼音"把其余汉字静默删除且不音节分隔（高，承诺未实现）
-- 页面：`tools/it/slug-generator-advanced.html`
-- 问题：`PINYIN`（`:274-282`）共 64 键，其中 5 个是永不匹配的死键（`'的2'`、`'计2'`、`'开2'`、`'前2'`、`'后2'`），有效单字仅 59 个；`slugify` 对未命中字 `PINYIN[c]||(trans?'x':'')`（`:302`），默认（`transliterate` 未勾、`:182`）直接产出空串即被删除；已命中字也直接粘连，不插分隔符。
-- 行号：`:274-282`、`:299-313`（`:302`）、`:181`（默认 `checked`）、`:222`（示例）、`:158`
-- 复现（node 直接加载页面真实 `PINYIN` 表与 `slugify()`，默认参数）：
-  - `Hello 世界!` → 实际 `hello`，页面 `:222` 声称 `hello-shi-jie`；
-  - `我的博客文章标题 - Part 1` → `wodebokewenzhangbiaoti-part-1`（8 音节粘连），期望 `wo-de-bo-ke-wen-zhang-biao-ti-part-1`；
-  - `人工智能技术` → `rengongneng`（智/技/术 被删）；`产品发布` → `fa`（产/品/布 被删）；`高级 Slug 生成器` → `slug`。
-- 影响：默认参数下大多数中文标题生成残缺甚至近乎空白的 slug（"高级 Slug 生成器"只剩 `slug`），页面自带示例与实际输出自相矛盾，用户拿去建 URL 会得到无意义链接。
-- 方案：换完整拼音字典（如 `pinyin-pro` 静态引入）或默认改为"保留原字符/URL 编码"；音节间补 `sep`，未命中字显式告警而非静默删除。
-- 假工具：否
-
 ### IT-N477 零向量仍输出方向余弦/方向角（0 与 90°），与"零向量无方向"自相矛盾（中，结果错误）
 - 页面：`tools/it/vector-magnitude.html`
 - 问题：单位向量分支对 `m≈0` 有专门提示（`:283-287`），但方向角分支不判零：三维直接 `v[i]/(m||1)`（`:292-294`），二维 `atan2(0,0)`（`:290`）。
@@ -2821,7 +2809,6 @@
 ### 覆盖清单（W 批 IT 计算/文本）
 - `matrix-determinant`：无高优/中优缺陷（`detRec` 与 BigInt Bareiss 精确值对照 100 组随机 2–5 阶全对；5×5 整数矩阵得 −4656 一致；Sarrus 正负号与 2×2/3×3 公式均正确）。
 - `vector-magnitude`：IT-N477（中）；无高优缺陷（模长/单位向量公式正确：`|(3,4)|=5`，三维方向角 `acos(vᵢ/|v|)` 正确）。
-- `slug-generator-advanced`：IT-N472（高，承诺未实现）。
 - `keyword-extractor`：停用词表实测 183 中文 + 132 英文，标签/表格/图表输出均经 `ToolBox.escHtml`。
 - 方法声明：逐页通读上述 8 页源码，在 `/tmp` 用 `node` 直接抽取/复刻页面原函数（页面真实 `md5()`、表达式白名单 + `new Function`、叉积夹角、`detRec` + BigInt Bareiss、页面真实 `PINYIN` 表 + `slugify()`、`tokenizeChinese`/`filterKeywords`/`deduplicateSubstrings` + 页面真实停用词表、`isPrime`/因式分解）逐一给出「输入 → 实际 / 期望」；MD5 用 `crypto.createHash('md5')` 与 `printf '中文' | md5` 双对照；`onclick` 截断用 `python3 html.parser` 验证属性拆分。**未开浏览器、未跑 `_build.py`/`run_gates.py`、未做线上验证**；未修改任何工具页、代码或构建产物，仅在本审计日志追加本节。
 
