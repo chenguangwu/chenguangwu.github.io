@@ -1055,13 +1055,6 @@
 
 - **留存建议（tools/finance/ein-validator.html）**：9 位格式 + 前缀→校区映射 + 「不验证真实性」免责的骨架可直接用，修好前缀判据后建议保留；补「SSN/ITIN 勿混用」提示与同目录税务类页交叉链接；`IRS 中心` 标签按实际语义改为「历史校区（多为遗产用途）」。
 
-### F-N159 word-wrap 页：宽度 ≤2 且开「悬挂缩进」时死循环；宽度 1/负数会静默吞字符（高，确认缺陷）
-- 问题：软换行 `avail = width - visualLen(prefix)` 可能为 0 或负。`takeByLen(rest,0)` 返回 `{text:'', rest:rest}`，`while(visualLen(rest) > width)` 永不推进 → 死循环；`avail<0` 时 `s.substr(0,-N)` 视作 0、`s.substr(-N)` 只留末尾 N 字符，中间字符被丢弃。`width` 仅靠 HTML `max=200` 约束（手输无效受控），`parseInt('-5')||20` 得 -5（负数 truthy），同样进入死循环。
-- 证据：`tools/finance/word-wrap.html:308`（取值无 clamp）、`:321-324`（while + avail）、`:291-293`（takeByLen 的 substr 语义）、`:157`（仅 min/max 属性）
-- 复现（node 模拟同函数）：宽度 2 + 悬挂缩进 → 100 次迭代仍未退出（死循环）；宽度 1 + 首行缩进 + 文本 `abcdef` → 输出 `["  ","f"]`，a–e 丢失；宽度 `-5` + 文本 `abcdefghij` → 连续 push 空串，死循环。期望宽度不足缩进时缩进置空或钳到下限。
-- 影响：`tools/finance/word-wrap.html`；触发后标签页卡死，且丢字符违反 FAQ「不会增删字符」。
-- 方案：入口 `width = Math.max(4, Math.min(200, parseInt(v) || 20))`；`avail = Math.max(1, width - prefix.length)`；`takeByLen` 加 `if(targetLen<=0) return {text:'', rest:''}` 或 `if(!chunk) break` 兜底。
-
 ### F-N160 word-wrap 页：首行缩进/悬挂缩进只在「软换行」生效，其余三模式静默忽略（中，确认缺陷）
 - 问题：`prefix` 只在 `mode==='soft'` 分支计算（`:322`、`:329`），`hard`（`:331-338`）、`word`（`:339-351`）、`chinese`（`:352-365`）完全不读 `indent`/`hanging`；预设「英文条款按单词折行 50」正是 `mode:'word', hanging:true`（`:496`），勾了毫无效果。
 - 证据：`tools/finance/word-wrap.html:322`/`:329`（仅 soft）、`:331-365`（三模式无 prefix）、`:496`（预设组合）
