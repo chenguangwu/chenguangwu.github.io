@@ -3852,6 +3852,20 @@ const CASES = [
     expect: ["15.00%", "每期 IRR = 15.0000%", "NPV @ 折现率 8.00% = 6.48"],
     ref: "F-N8：现金流控件由 `renderFlows()` 动态生成且无 id，通用历史快照漏掉全部期号与金额 ⇒ 恢复历史后仍用当前现金流。现新增只读快照输入 `irrCashflowSnapshot`（`T期号:金额` 序列），历史的 `mount` 回填回调显式调用 `__irrRestoreFromSnapshot()` 按快照重建现金流再 `calc()`；`renderFlows` / `updateAmount` 等在每次变化时写回快照并落 localStorage，保证快照不落后于内存。刻意不在 `calc()` 里隐式读回（否则会覆盖用户当期输入与 clicks 直接赋数组）。注入 `T0:-100,T1:115` 并在 clicks 里模拟该恢复回调、贴现率 8%、期数单位=年：IRR = 115/100 − 1 = **15.00%**（页面 `每期 IRR = 15.0000%`）；NPV = −100 + 115/1.08 = **+6.48**。三态实测：只注入贴现率/期数单位（不注入快照）与纯默认快照（project 预设 IRR≈16.60%）三条都不命中；旧版无该输入 ⇒ 注入失败，同样不命中。刻意避开 `-100/230/-132` 双根现金流（多根识别属另案 F-N29）。",
   },
+  {
+    slug: "finance/shebeizulinfeilvjisuan",
+    inputs: { price: "500000", months: "24", depYears: "8", maintRate: "3", profitRate: "8", salvageRate: "150" },
+    clicks: ["calc()"],
+    expect: ["残值率须在 0–100% 之间，维护费率与利润率不得为负。"],
+    ref: "F-N64 残值率上界：s=150% ⇒ 旧实现 depreciableBase 为负、月折旧/租金可为负，仍输出正 ROI。修复后 readInputs 字段级拒绝。默认 s=5 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/shebeizulinfeilvjisuan",
+    inputs: { price: "500000", months: "24", depYears: "8", maintRate: "3", profitRate: "8", salvageRate: "12" },
+    clicks: ["calc()"],
+    expect: ["¥9166.67 月租金 (元)", "-44.00% 投资回报率 ROI"],
+    ref: "F-N64 正常态 + ROI 公式口径：P=50万/T=24/Y=8/r=3/m=8/s=12 ⇒ 残值 60000、月折旧 (500000−60000)/96=4583.33、月租 4583.33+1250+3333.33=9166.67；总租金 220000 + 残值 60000 − 原值 500000 = −220000 ⇒ ROI −44.00%（信息框公式 (R×T+P×s/100−P)/P 与实现一致）。刻意用非默认 s=12（默认 s=5）避免 A===B 逃生；越界态拒绝不命中。",
+  },
 
 ];
 

@@ -195,13 +195,6 @@
 
 > 范围：本轮阅读 8 页（`tools/finance/amount-in-words.html`、`tools/finance/number-to-words-chinese.html`、`tools/finance/gold-price-calculator.html`、`tools/finance/shebeizulinfeilvjisuan.html`、`tools/finance/register-depreciation.html`、`tools/finance/credit-card-validator.html`、`tools/finance/credit-card-luhn.html`、`tools/finance/points-redemption-value.html`）。仅源码 + node 复算，未开浏览器/未做 EN/移动端/门禁验证；历史已修声明未独立复验。
 
-### F-N64 设备租赁费率页残值率可越界，负折旧/负租金与 ROI 公式互斥（中，确认缺陷）
-- 描述：`readInputs()` 只把 NaN 记为 0 并描红，`calc()` 仅校验 P/T/Y > 0；残值率 s、维护费率 r、利润率 m 可为负或 >100。s>100 时 `depreciableBase` 为负、月折旧为负，月租金可低于维护费；s<0 时残值转负、折旧基数被放大。同时信息框 ROI 公式 `(R×T − P×s)/(P×s)` 与实现 `(R×T + 残值 − P)/P` 完全不同。
-- 证据：`tools/finance/shebeizulinfeilvjisuan.html:187-193`（只判 NaN）、`:197-209`（仅 P/T/Y 校验、`:201-209` 直接使用 s/r/m）、`:138`（s 仅属性 max）、`:146`（ROI 公式文案）
-- 复现：P=500000、T=24、Y=8、r=3、m=8、s=150 → 期末残值 ¥750,000、月折旧 ¥−2,604.17、月租金 ¥1,979.17、ROI +59.50%（期望拒绝 s>100）；s=−50 → 月租金 ¥12,395.83、ROI −90.50%；默认参数下文案公式为 (9531.25×24−25000)/25000≈815%，页面实际 −49.25%
-- 影响：`tools/finance/shebeizulinfeilvjisuan.html`；非法残值率会产生负折旧/负租金并被评为正回报，导出的 CSV 与复制结果同样带出。
-- 方案：s 限 `0 ≤ s < 100`（至少 ≤100），r、m 限 ≥0；`iv.valid === false` 时停止计算；信息框 ROI 改为 `(R×T + P×s/100 − P)/P × 100%` 并注明租期短于折旧年限时可为负。
-
 ### F-N65 固定资产折旧页未来购入日期也按已提满一年计算（中，确认缺陷）
 - 描述：`yearsElapsed = Math.floor((now - purchaseDate)/年)`，未来日期被负数分支强制置 0，随后仍取 `schedule[0]`（第 1 年年末数），因此尚未购入的资产立即显示「当前年度 1/N」、累计折旧一整年、账面价值已扣一年；同一映射也使恰好满 1 年的资产直接跳到第 2 年数。
 - 证据：`tools/finance/register-depreciation.html:335-337`（`:336` 负数置 0、`:337` 取 `schedule[yearsElapsed]`）、`:421`（显示 `yearIdx + 1`）、`:266`（仅声明「购入当年按完整年度」）
