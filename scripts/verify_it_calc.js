@@ -646,6 +646,18 @@ const CASES = [
     ref: "JSONPath 表达式 $.a.b 命中数组 [1,2,3] ⇒ 输出按页侧格式展开为 `[ 1 , 2 , 3 ]`。默认 path 与默认 JSON 不同，不命中；expr 不以 $ 开头时页面直接报错（`jsonPath: JSONPath 表达式必须以 $ 开头`），不影响本例。",
   },
   {
+    slug: "it/json-path",
+    inputs: { input: '{"a":[1,2,3,4,5]}', path: "$.a[4:0:-1]" },
+    expect: ["[ 5 , 4 , 3 , 2 ]"],
+    ref: "IT-N489 复核失败重做：负步长切片。$.a[4:0:-1] 应从索引 4 向 0（不含）迭代 ⇒ [5,4,3,2]；修复前负步长分支写成 for(i=e0-1;i>=s0;...)，把起止语义颠倒，实得 []。结果格式按页侧 join(' , ')。默认 JSON/path 不命中 ⇒ 可判别。",
+  },
+  {
+    slug: "it/json-path",
+    inputs: { input: '{"a":[1,2,3,4,5]}', path: "$.a[::-1]" },
+    expect: ["[ 5 , 4 , 3 , 2 , 1 ]"],
+    ref: "IT-N489 负步长省略边界分支：$.a[::-1] 应整体反转 ⇒ [5,4,3,2,1]；修复前省略上界配合颠倒循环得 []。验证步长方向 + 省略边界按方向收敛（负步长默认 start=len-1、end=-1）。",
+  },
+  {
     slug: "it/keyword-density",
     inputs: { inputText: "aa bb aa cc bb aa dd" },
     expect: ["排名 关键词 出现次数 占比 密度条 1 aa 3 42.86%"],
@@ -7656,6 +7668,45 @@ const CASES = [
   },
   {
     "slug": "it/math-evaluator",
+    "inputs": {
+      "expr": "7%-3"
+    },
+    "clicks": [
+      "document.getElementById('expr').value='7%-3';calc();var __h=String(document.getElementById('result').innerHTML);document.getElementById('result').textContent='N474 signed1='+(__h.indexOf('>1<')>=0?1:0);"
+    ],
+    "expect": [
+      "N474 signed1=1"
+    ],
+    "ref": "IT-N474 复核失败重做：带一元负号的右操作数。7%-3 应判取模（7 % -3 = 1）；修复前 % 后跟 - 被当作百分比得 (7/100)-3 = -2.93。现改用函数式判别：% 后紧跟数字/左括号/正负号则保留取模。注入失败态回到默认 1030（不含 >1<）⇒ 可判别。"
+  },
+  {
+    "slug": "it/math-evaluator",
+    "inputs": {
+      "expr": "7%+3"
+    },
+    "clicks": [
+      "document.getElementById('expr').value='7%+3';calc();var __h=String(document.getElementById('result').innerHTML);document.getElementById('result').textContent='N474 signed2='+(__h.indexOf('>1<')>=0?1:0);"
+    ],
+    "expect": [
+      "N474 signed2=1"
+    ],
+    "ref": "IT-N474 复核失败重做：7%+3 应判取模（7 % 3 = 1）；修复前得 (7/100)+3 = 3.07。与 signed1 共守「带符号右操作数」分支。"
+  },
+  {
+    "slug": "it/math-evaluator",
+    "inputs": {
+      "expr": ".5%"
+    },
+    "clicks": [
+      "calc()"
+    ],
+    "expect": [
+      "结果： 0.005"
+    ],
+    "ref": "IT-N474 复核失败重做：纯小数百分比 .5% 应得 0.005；修复前正则 (\\d+(?:\\.\\d+)?) 要求整数部分，.5 不匹配 ⇒ 保留 % 致语法错。现加 (\\.\\d+) 分支支持省略整数。"
+  },
+  {
+    "slug": "it/math-evaluator",
     "clicks": [
       "document.getElementById('expr').value='1+1';__meReuse('2^10 + sqrt(144)');var __e=document.getElementById('expr').value;var __r=String(document.getElementById('result').innerHTML);document.getElementById('result').innerHTML='N475 reuse='+__e+'|hit='+(__r.indexOf('1036')>=0?1:0);"
     ],
@@ -7777,6 +7828,42 @@ const CASES = [
       "θ = 90°"
     ],
     "ref": "IT-N471 回归护栏：正交 A=(1,0,0)、B=(0,1,0) ⇒ 90°，asin 与 atan2 同值，修复前后同绿，确保改造未误伤直角。"
+  },
+  {
+    "slug": "it/vector-cross-product",
+    "inputs": {
+      "a0": "1e-7",
+      "a1": "0",
+      "a2": "0",
+      "b0": "0",
+      "b1": "1e-7",
+      "b2": "0"
+    },
+    "clicks": [
+      "calculate()"
+    ],
+    "expect": [
+      "θ = 90°"
+    ],
+    "ref": "IT-N471 复核失败重做：小尺度正交向量。A=(1e-7,0,0)、B=(0,1e-7,0) 量级 1e-7、叉积 1e-14，固定 1e-12 绝对阈值会误判为 0 且不显示角度；现改用相对阈值 sinθ=|A×B|/(|A||B|) 与 1e-9 比较，角度正常显示 90° 且不误判平行。默认 (1,2,3)×(4,5,6)=12.933° 不含 90° ⇒ 可判别。"
+  },
+  {
+    "slug": "it/vector-cross-product",
+    "inputs": {
+      "a0": "1e-7",
+      "a1": "0",
+      "a2": "0",
+      "b0": "-1e-7",
+      "b1": "0",
+      "b2": "0"
+    },
+    "clicks": [
+      "calculate()"
+    ],
+    "expect": [
+      "θ = 180°"
+    ],
+    "ref": "IT-N471 复核失败重做：小尺度反向共线。A=(1e-7,0,0)、B=(-1e-7,0,0) 叉积 0、A·B=-1e-14 ⇒ atan2(0,-1e-14)=180°；固定阈值旧实现会丢失角度。相对阈值下 180° 正常显示。"
   },
   {
     "slug": "it/vector-cross-product",

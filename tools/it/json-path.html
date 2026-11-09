@@ -380,12 +380,14 @@ function jsonPath(obj, expr) {
               return v < 0 ? Math.max(len + v, 0) : Math.min(v, len);
             };
             const step = token.step || 1;
-            const s0 = norm(token.start, 0);
-            const e0 = norm(token.end, len);
+            /* N489：负步长时按步长方向从 start 向 end（不含 end）迭代；省略边界需按方向收敛——
+               负步长默认 start=len-1、end=-1，正步长沿用原 norm（省略 start→0、省略 end→len）。 */
+            const s0 = (token.start === null && step < 0) ? len - 1 : norm(token.start, 0);
+            const e0 = (token.end === null && step < 0) ? -1 : norm(token.end, len);
             if (step > 0) {
               for (let i = s0; i < e0; i += step) next.push(current[i]);
             } else {
-              for (let i = e0 - 1; i >= s0; i += step) next.push(current[i]);
+              for (let i = s0; i > e0; i += step) next.push(current[i]);
             }
           } else if (token.index !== undefined) {
             let idx = token.index;
@@ -473,7 +475,7 @@ function parseTokens(expr) {
           const en = numOrNull(segs.length > 1 ? segs[1] : '');
           const step = numOrNull(segs.length > 2 ? segs[2] : '');
           if (step === 0) throw new Error(__jpEn() ? 'Slice step must not be 0' : '切片步长不能为 0');
-          tokens.push({ type: 'index', slice: true, start: st === null ? 0 : st, end: en, step: step === null ? 1 : step });
+          tokens.push({ type: 'index', slice: true, start: st, end: en, step: step === null ? 1 : step });
         } else {
           const idx = parseInt(spec, 10);
           if (isNaN(idx)) throw new Error((__jpEn() ? 'Invalid index: [' : '非法索引：[') + spec + ']');
