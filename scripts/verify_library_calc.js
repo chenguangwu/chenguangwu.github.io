@@ -3,6 +3,12 @@
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
+    "slug": "library/generator-label",
+    "clicks": ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'fonds',type:'text',value:'A032'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};var __r=document.getElementById('res');if(__r){__r.textContent='请至少填写一项标签内容。';}window.__labelData=null;__generator_label_last=0;__generator_labelExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='LBLEMPTY hist='+__cap.length+' score='+__generator_labelScore('请至少填写一项标签内容。');"],
+    "expect": ["LBLEMPTY hist=0 score=0"],
+    "ref": "复核失败重做·第46批 标签空态：生成默认标签后清空全部内容，gen() 写空态提示并 __labelData=null；旧实现 Extras 无成功守卫仍写历史 hist=1 且 Score 词表无「请至少填写」判通过 score=1；修复后 Extras 先判 __labelData 才记录 ⇒ hist=0，Score 补空态关键词 ⇒ score=0。单条探针同时覆盖两处修复，默认态无探针串 ⇒ 零逃生。"
+  },
+{
   "slug": "library/archive-label",
   "inputs": {
     "fonds": "4",

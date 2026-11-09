@@ -144,6 +144,18 @@ function _rngReset() { _rngState = 0x9e3779b9 >>> 0; }
 
 // ---------------------------------------------------------------- 用例
 const CASES = [
+{
+    "slug": "it/aes-encryptor",
+    "clicks": ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'encInput',type:'textarea',value:'FAILED PLAINTEXT'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};var __o=document.getElementById('output');if(__o){__o.textContent='1234abcd previous ciphertext';}__aes_encryptorLastBytes=0;__aes_encryptor_last=0;__aes_encryptorExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='AESFAIL hist='+__cap.length;"],
+    "expect": ["AESFAIL hist=0"],
+    "ref": "复核失败重做·第46批 AES 空态/失败不清算旧结果：模拟加密失败（__aes_encryptorLastBytes=0）但结果区仍留上次解密文本，旧实现无成功守卫仍会把旧文本+旧字节数写进历史 ⇒ hist=1；修复后 Extras 先判 __aes_encryptorLastBytes>0 才记录 ⇒ hist=0。探针自建 TBKit/querySelectorAll 桩走真实 __aes_encryptorExtras，默认态无探针串 ⇒ 零逃生。"
+  },
+{
+    "slug": "it/aes-encryptor",
+    "clicks": ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'encInput',type:'textarea',value:'Hello AES'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};var __o=document.getElementById('output');if(__o){__o.textContent='CIPHERTEXT9';}__aes_encryptorLastBytes=0;__aes_encryptor_last=0;__aes_encryptor_d0=function(){__aes_encryptorLastBytes=11;return undefined;};decrypt();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='AESDEC hist='+__cap.length;"],
+    "expect": ["AESDEC hist=1"],
+    "ref": "复核失败重做·第46批 AES 解密成功入历史：旧实现只包装 encrypt，decrypt 成功不触发 Extras ⇒ 调用 decrypt 不会写历史 hist=0；修复后包装 decrypt 并在其 Promise/同步返回后触发 Extras，本例把 __aes_encryptor_d0 替换为同步桩设置成功字节数，走真实包装 ⇒ hist=1。探针串依赖修复引入的 decrypt 包装，默认态无探针串 ⇒ 零逃生。"
+  },
   {
     slug: "it/matrix-transpose",
     clicks: ["var __oq=document.querySelectorAll;__lastTranspose=[[1,2],[3,4]];document.getElementById('rows').value='0';calculate();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='MXCLR cleared='+(__lastTranspose===null?'Y':'N');"],

@@ -845,7 +845,7 @@ async function encrypt(){
     var usePadding = document.getElementById('pkcs7Padding').checked;
     var includeMeta = document.getElementById('includeMeta').checked;
 
-    if(!inputText) return ToolBox.showToast(i18nText('toast.msg901'), 'error');
+    if(!inputText){ __aes_encryptorLastBytes=0; return ToolBox.showToast(i18nText('toast.msg901'), 'error'); }
 
     var result = await getKeyAndSalt();
     var key = result.key;
@@ -903,7 +903,7 @@ async function encrypt(){
     __aes_encryptorLastBytes = ciphertext.length;
     ToolBox.showToast(i18nText('toast.msg087'));
   } catch(e){
-    ToolBox.showToast('加密失败：' + e.message, 'error');
+    __aes_encryptorLastBytes=0; ToolBox.showToast('加密失败：' + e.message, 'error');
   }
 }
 
@@ -915,7 +915,7 @@ async function decrypt(){
     var outputFormat = document.getElementById('outputFormat').value;
     var usePadding = document.getElementById('pkcs7Padding').checked;
 
-    if(!inputText) return ToolBox.showToast(i18nText('toast.msg905'), 'error');
+    if(!inputText){ __aes_encryptorLastBytes=0; return ToolBox.showToast(i18nText('toast.msg905'), 'error'); }
 
     var saltHex = document.getElementById('salt').value;
     var ivHex = document.getElementById('iv').value;
@@ -1015,7 +1015,7 @@ async function decrypt(){
     __aes_encryptorLastBytes = plaintext.length;
     ToolBox.showToast(i18nText('toast.msg586'));
   } catch(e){
-    ToolBox.showToast('解密失败：' + e.message, 'error');
+    __aes_encryptorLastBytes=0; ToolBox.showToast('解密失败：' + e.message, 'error');
   }
 }
 
@@ -1171,6 +1171,8 @@ function __aes_encryptorRender(keys,rk,en){
 function __aes_encryptorExtras(){
     if (typeof TBKit === 'undefined') return;
     if (__aes_encryptor_skip) return;
+    // F-N189：只有真实加/解密成功（产出正数字节数）才写历史；失败/空输入不清算旧结果。
+    if(!(__aes_encryptorLastBytes>0)) return;
     var snap=__aes_encryptorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -1226,6 +1228,11 @@ if(__aes_encryptor_f0){
 var __aes_encryptor_m0=(typeof encrypt==='function')?encrypt:null;
 if(__aes_encryptor_m0){
     encrypt=function(){ var __r=__aes_encryptor_m0.apply(null,arguments); var __x=function(){ try{ __aes_encryptorExtras(); }catch(e){} }; if(__r&&typeof __r.then==='function'){ __r.then(__x,__x); } else { __x(); } return __r; };
+}
+// F-N189：解密路径同样要入历史（原来只包装了 encrypt，解密成功不记录）。
+var __aes_encryptor_d0=(typeof decrypt==='function')?decrypt:null;
+if(__aes_encryptor_d0){
+    decrypt=function(){ var __r=__aes_encryptor_d0.apply(null,arguments); var __x=function(){ try{ __aes_encryptorExtras(); }catch(e){} }; if(__r&&typeof __r.then==='function'){ __r.then(__x,__x); } else { __x(); } return __r; };
 }
 function __aes_encryptorBoot(){ try{ __aes_encryptorPresets(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __aes_encryptorBoot();
