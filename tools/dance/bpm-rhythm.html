@@ -271,6 +271,7 @@ s.parentNode.insertBefore(el, s);
 
 <script>
 var metroTimer=null;
+var metroNext=0;
 var beatIdx=0;
 function $(id){return document.getElementById(id);}
 function applyPreset(){
@@ -330,7 +331,10 @@ function metroTick(){
   beatIdx++;
   var bpm=parseFloat($('bpm').value)||120;
   var interval=60000/bpm;
-  metroTimer=setTimeout(metroTick, interval);
+  metroNext+=interval;
+  var now=performance.now();
+  if(metroNext<=now) metroNext+=Math.floor((now-metroNext)/interval+1)*interval;
+  metroTimer=setTimeout(metroTick, Math.max(0,metroNext-now));
 }
 function toggleMetronome(){
   if(metroTimer){clearTimeout(metroTimer);metroTimer=null;$('metroBtn').textContent='▶ 启动节拍器';resetBeatDots();return;}
@@ -338,6 +342,7 @@ function toggleMetronome(){
   var interval=60000/bpm;
   beatIdx=0;
   $('metroBtn').textContent='⏸ 停止节拍器';
+  metroNext=performance.now()+interval;
   metroTimer=setTimeout(metroTick, interval);
 }
 function resetBeatDots(){

@@ -1,11 +1,5 @@
-// FE-N38 运行期回归：节拍器启动后须跟随 BPM 变更（每次 tick 用当前 BPM 重算间隔），
-// 缺陷版 interval 只在启动时算一次、用 setInterval 固定，运行中改 BPM 实际响拍不变。
-// 用法：
-//   node scripts/_verify_fun_batch_fe_n38.mjs          # 当前（修复后）版本 → 期望 PASS (exit 0)
-//   node scripts/_verify_fun_batch_fe_n38.mjs --head  # HEAD（修复前）版本 → 期望 FAIL (exit 1，确认缺陷)
-// 观测：用桩替换 setTimeout/setInterval 仅捕获「下一次调度延迟」而不真正运行（避免递归），
-//   toggleMetronome 启动时捕获 d1（120BPM→500ms）；再把 BPM 改为 240 并直接触发一次 tick：
-//   修复版 metroTick 读当前 BPM 重算 → 捕获 d2=250ms；缺陷版无 metroTick、间隔恒 500ms → d2=500。
+// FE-N38 运行期回归：模拟回调延迟，验证绝对拍点、变速和停止。
+// 用法：node scripts/_verify_fun_batch_fe_n38.mjs [--head]
 import { readFileSync } from 'fs';
 import { execSync } from 'child_process';
 import { JSDOM, VirtualConsole } from 'jsdom';
@@ -48,24 +42,54 @@ function loadHtml() {
   const w = winRef;
   const doc = w.document;
 
-  // 桩：仅捕获下一次调度延迟，不真正运行（防止递归）
-  let lastDelay = null;
-  w.setTimeout = (fn, d) => { if (typeof d === 'number') lastDelay = d; return 0; };
-  w.setInterval = (fn, d) => { if (typeof d === 'number') lastDelay = d; return 0; };
-
+  // 单调时钟与定时器桩：每次回调都额外延迟 50ms。
+  let now = 0, nextId = 1;
+  const timers = new Map();
+  Object.defineProperty(w.performance, 'now', { value: () => now });
+  w.setTimeout = (fn, delay) => {
+    const id = nextId++;
+    timers.set(id, { fn, due: now + delay });
+    return id;
+  };
+  w.clearTimeout = (id) => timers.delete(id);
+  const fireLate = () => {
+    const [id, timer] = [...timers.entries()][0];
+    timers.delete(id);
+    now = timer.due + 50;
+    timer.fn();
+    return now;
+  };
   const bpmEl = doc.getElementById('bpm');
-  if (bpmEl) bpmEl.value = '120';
+  bpmEl.value = '120';
   w.toggleMetronome();
-  const d1 = lastDelay; // 两者均为 500（120BPM）
+  const beats = [fireLate(), fireLate(), fireLate(), fireLate()];
+  let ok = JSON.stringify(beats) === JSON.stringify([550, 1050, 1550, 2050]);
+  if (!ok) console.log(`[FAIL] 延迟回调累计漂移：${beats.join(', ')}`);
 
-  if (bpmEl) bpmEl.value = '240';
-  let d2 = d1;
-  if (typeof w.metroTick === 'function') {
-    w.metroTick();      // 修复版：读当前 BPM(240) 重算 → 250ms
-    d2 = lastDelay;
+  bpmEl.value = '240';
+  fireLate();
+  const next = [...timers.values()][0];
+  if (!next || next.due !== 2750) {
+    console.log(`[FAIL] 变速后的预定拍点应为 2750，实际 ${next?.due}`);
+    ok = false;
   }
-  // 修复版：d1=500, d2=250；缺陷版：d1=500, d2=500（interval 恒 500）
-  const ok = (d1 === 500 && d2 === 250);
-  console.log(`[FE-N38] 模式: ${head ? 'HEAD(修复前)' : '当前(修复后)'} | 启动间隔=${d1}ms 改BPM后重算间隔=${d2}ms → ${ok ? 'PASS' : 'FAIL'}`);
+  w.toggleMetronome();
+  if (timers.size !== 0) {
+    console.log('[FAIL] 停止后仍有定时器');
+    ok = false;
+  }
+  // 重新启动后遇到长时间后台延迟，不应连续立即补拍。
+  w.toggleMetronome();
+  const [id, delayed] = [...timers.entries()][0];
+  timers.delete(id);
+  now = delayed.due + 2000;
+  delayed.fn();
+  const resumed = [...timers.values()][0];
+  if (!resumed || resumed.due <= now || resumed.due > now + 250) {
+    console.log(`[FAIL] 长延迟后未跳过过期拍点：当前 ${now}，下拍 ${resumed?.due}`);
+    ok = false;
+  }
+  w.toggleMetronome();
+  console.log(`[FE-N38] ${head ? 'HEAD' : '当前'} → ${ok ? 'PASS' : 'FAIL'}`);
   process.exit(ok ? 0 : 1);
 })();

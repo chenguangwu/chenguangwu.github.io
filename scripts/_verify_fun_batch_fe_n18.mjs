@@ -70,6 +70,40 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     console.log(`[PASS] 悔棋整回合回退 → 黑${afterUndo.black}/白${afterUndo.white}（共 ${afterUndo.total} 子）`);
   }
 
+  // AI 尚未应手时悔棋，旧定时器不得在空棋盘落子。
+  w.initGame();
+  w.document.querySelectorAll('#board .cell')[center].click();
+  w.undo();
+  await sleep(200);
+  let state = countStones();
+  if (state.total !== 0) {
+    console.log(`[FAIL] 立即悔棋后出现过期落子：黑${state.black}/白${state.white}`);
+    ok = false;
+  }
+
+  // 悔棋后立即再落子，只允许新一轮的 AI 应手。
+  w.initGame();
+  w.document.querySelectorAll('#board .cell')[center].click();
+  w.undo();
+  w.document.querySelectorAll('#board .cell')[center + 1].click();
+  await sleep(250);
+  state = countStones();
+  if (state.black !== 1 || state.white !== 1) {
+    console.log(`[FAIL] 立即重下后应为 1黑1白，实得黑${state.black}/白${state.white}`);
+    ok = false;
+  }
+
+  // 新局也必须取消上一局尚未执行的应手。
+  w.initGame();
+  w.document.querySelectorAll('#board .cell')[center].click();
+  w.initGame();
+  await sleep(200);
+  state = countStones();
+  if (state.total !== 0) {
+    console.log(`[FAIL] 新局后出现旧局落子：黑${state.black}/白${state.white}`);
+    ok = false;
+  }
+
   console.log(`\n[FE-N18] ${ok ? '通过 ✅' : '失败 ❌'}`);
   process.exit(ok ? 0 : 1);
 })();
