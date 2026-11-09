@@ -431,12 +431,19 @@ function jsonToXml(obj, unit, sortKeys){
     return '<root>'+escXml(obj===null||obj===undefined?'':obj)+'</root>';
   }
   var keys=keysOf(obj);
-  if(keys.length!==1){
-    var parts=keys.map(function(k){return ser(xName(k),obj[k],1);});
-    var s0=nl(1);
-    return '<root>'+s0+parts.join(s0)+nl(0)+'</root>';
+  // 单键 + 非数组值（标量/对象）⇒ 直接作为唯一根，合法
+  if(keys.length===1 && !Array.isArray(obj[keys[0]])){
+    return ser(xName(keys[0]), obj[keys[0]], 0);
   }
-  return ser(xName(keys[0]), obj[keys[0]], 0);
+  // 单键 + 数组：仅当数组恰有一个元素时，`<items>x</items>` 本身是合法单一根；
+  // 多元素数组同名并列会产生多个根，必须包一层 <root>（IT-N355 修复点）
+  if(keys.length===1 && Array.isArray(obj[keys[0]]) && obj[keys[0]].length===1){
+    return ser(xName(keys[0]), obj[keys[0]], 0);
+  }
+  // 多键 / 单键多元素数组 ⇒ 包一层 <root> 保证单一根元素
+  var parts=keys.map(function(k){return ser(xName(k),obj[k],1);});
+  var s0=nl(1);
+  return '<root>'+s0+parts.join(s0)+nl(0)+'</root>';
 }
 
 var src=document.getElementById('source').value||'';

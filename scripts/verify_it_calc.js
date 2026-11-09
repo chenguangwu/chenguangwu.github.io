@@ -5071,6 +5071,12 @@ const CASES = [
   },
   {
     "slug": "it/toml-to-yaml",
+    "inputs": { "source": "dependencies = [ # ] 备注\n  \"serde\",\n  \"tokio\",\n]" },
+    "expect": ["dependencies: - serde - tokio"],
+    "ref": "IT-N358 续：多行数组首行带行内注释（注释内恰好含 `]`）。修复前 tDepth 在剥注释前计算括号深度，把注释里的 `]` 误当成数组结束 ⇒ 不吞并后续行 ⇒ `dependencies:` 后无内容（serde/tokio 丢失）。现先 stripComment 再判深度，后续依赖被正常并入 ⇒ 输出含 serde/tokio。expect 依赖注入的两个元素（输入里带引号、注释是中文「备注」）⇒ 非回显；修复前必红灯。"
+  },
+  {
+    "slug": "it/toml-to-yaml",
     "inputs": { "source": "path = \"C:\\\\temp\"" },
     "expect": ["path: \"C:\\\\temp\""],
     "ref": "IT-N359：TOML 源码 `path = \"C:\\\\temp\"` 表示值 `C:\\temp`。修复前 tVal 依次把 `\\n`/`\\t` 换掉，第 2 个反斜杠紧跟 t ⇒ 值变成 `C:` + 制表符 + `emp`；输出侧 yVal 又不转义反斜杠，`\"C:\\temp\"` 回读时同样被当转义。两侧都修：单遍 tUnescape + yVal 转义反斜杠/换行/制表符。expect 是「`path: ` 冒号形态 + 双反斜杠」，输入是 `path = ` 等号形态且反斜杠数量不同 ⇒ 非回显；修复前输出 `path: \"C: emp\"` ⇒ 必红灯。"
@@ -5326,6 +5332,12 @@ const CASES = [
     "inputs": { "source": "items:\n  - http://probe.example/x" },
     "expect": ["&lt;items&gt;http://probe.example/x&lt;/items&gt;"],
     "ref": "IT-N356：`- ` 项是否算映射，修复前用「含冒号且首字符是字母」判定，`http://probe.example/x` 被拆成键 `http`、值 `//probe.example/x` ⇒ 输出 `<items><http>//probe.example/x</http></items>`。现要求 `:` 后必须是空白或行尾，URL 归为标量。expect 是整串标量形态，与修复前的拆键形态不同 ⇒ 强判别。"
+  },
+  {
+    "slug": "it/yaml-to-xml",
+    "inputs": { "source": "items:\n  - a\n  - b" },
+    "expect": ["&lt;root&gt; &lt;items&gt;a&lt;/items&gt;&lt;items&gt;b&lt;/items&gt; &lt;/root&gt;"],
+    "ref": "IT-N355：单键 + 多元素数组。修复前 jsonToXml 对单键直接 `ser()` 不包 root，两个 `- ` 项并列为 `<items>a</items><items>b</items>`（两个并列根，XML 解析器拒绝）。现单键数组长度>1 时包一层 `<root>` 保证单一根。expect 含 `&lt;root&gt;` 与两个 `&lt;items&gt;`（输入 YAML 不含尖括号 ⇒ 非回显）；修复前输出无 root ⇒ 必红灯。"
   },
   {
     "slug": "it/yaml-to-xml",
@@ -11012,6 +11024,18 @@ const CASES = [
     inputs: { data: "12345" },
     expect: ["首字符必须是起止符 A/B/C/D（如 A12345B）"],
     ref: "IT-N492 起止符校验：Codabar 规定首尾必须是 A–D，`12345` 无起止符时读码器无法判读。修复前页面照样生成条形码（静默接受）；现 generate() 直接报错并说明补法。默认 data=A12345B 合法，不命中。",
+  },
+  {
+    "slug": "it/barcode-codabar",
+    "inputs": { "data": "A1B2C" },
+    "expect": ["数据位仅支持 0-9 - $ : / . +"],
+    "ref": "IT-N492/N493：起止符之间的数据位仅允许 0-9 - $ : / . +，A/B/C/D 仅为起止符不得出现在数据位。`A1B2C` 内部含 B、C（起止符）⇒ 必须报错。默认样例 A12345B 数据位全为数字不命中；修复前静默生成条码（数据位含起止符 ⇒ 扫码值与标签不一致）。"
+  },
+  {
+    "slug": "it/barcode-codabar",
+    "inputs": { "data": "AAA" },
+    "expect": ["数据位仅支持 0-9 - $ : / . +"],
+    "ref": "IT-N492/N493：`AAA` 起止符之间无合法数据字符（内部 A 不是数据字符）⇒ 必须报错。默认样例不命中；修复前静默生成条码（无有效数据）。"
   },
   ...["barcode-codabar", "barcode-code128", "barcode-code39", "barcode-ean", "barcode-itf", "barcode-msi", "barcode-upc"].map(function (slug) {
     return {

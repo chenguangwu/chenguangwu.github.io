@@ -338,8 +338,10 @@ function parseToml(text){
     var key=tKeyName(s.slice(0,eq));
     var rawVal=s.slice(eq+1);
     // IT-N358：多行数组/内联表 —— 当前行括号未闭合时继续吞并后续行
-    if(/^\s*[\[\{]/.test(rawVal) && tDepth(rawVal)>0){
-      var buf=stripComment(rawVal), guard=0;
+    // ⚠️ 必须先剥掉行内 # 注释再判断括号深度：注释里的 ] 会被误当成数组结束，导致后续行静默丢失
+    var val0=stripComment(rawVal);
+    if(/^\s*[\[\{]/.test(val0) && tDepth(val0)>0){
+      var buf=val0, guard=0;
       while(tDepth(buf)>0 && i+1<lines.length && guard++<2000){
         i++;
         buf+='\n'+stripComment(lines[i].trim());

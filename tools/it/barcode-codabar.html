@@ -304,6 +304,13 @@ function buildCodabar(text){
   if(!/^[A-D]$/.test(text[0])) return {error:__cbEn()?'The first character must be a start/stop code A, B, C or D (e.g. A12345B).':'首字符必须是起止符 A/B/C/D（如 A12345B）'};
   if(!/^[A-D]$/.test(text[text.length-1])) return {error:__cbEn()?'The last character must be a start/stop code A, B, C or D (e.g. A12345B).':'末字符必须是起止符 A/B/C/D（如 A12345B）'};
   if(text.length < 3) return {error:__cbEn()?'Need a start code, at least one data character and a stop code (e.g. A11B).':'至少需要一个数据字符，形如 A11B'};
+  // N492/N493：起止符之间仅允许数据字符 0-9 - $ : / . +，且至少一个数据字符（A/B/C/D 仅为起止符，不得出现在数据位）
+  const __dataCharset=/^[0-9\-\$:\/\.\+]$/;
+  for(let i=1;i<text.length-1;i++){
+    if(!__dataCharset.test(text[i])){
+      return {error:(__cbEn()?'Data characters may only be 0-9 - $ : / . + (A-D are start/stop only); found "':'起止符之间的数据位仅支持 0-9 - $ : / . +（A/B/C/D 仅为起止符），第 '+(i+1)+' 位含「')+text[i]+(__cbEn()?'" at position '+(i+1):'」（A-D 不是数据字符）')};
+    }
+  }
   let bits='';
   for(let i=0;i<text.length;i++){
     bits+=CODABAR[text[i]];  // 7 个单元：条 空 条 空 条 空 条
