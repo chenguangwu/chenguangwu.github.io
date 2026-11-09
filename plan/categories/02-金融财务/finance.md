@@ -626,27 +626,6 @@
 - 影响：`tools/finance/credit-card-type.html`；description 声称「用于表单校验与支付前端判断」，但非法卡号被判「完成」，容易让调用方误以为通过。
 - 方案：增加 Luhn 行（通过/失败独立标识），把「完成」改为「前缀与长度匹配」；补 Maestro/Diners/MIR 或明确列出支持品牌；核实 88 前缀后再保留。
 
-### F-N138 货币符号页：数据数组重复 4 组，计数 153 与唯一 149、文案 170+ 三重不一致（中，确认缺陷）
-- 问题：`currencies` 中 AUD、NIO、UGX、XCD 各出现 2 次（XCD 两条的国家文案还不同）；`renderCurrencies` 用 `list.length` 显示「共找到 N 种货币」，实际唯一代码只有 149 个，intro 却写「170+ 种」。
-- 证据：`tools/finance/currency-symbol.html:176`（170+ 文案）、`:332`/`:472`（AUD 重复）、`:368`/`:424`（NIO 重复）、`:432`/`:455`（UGX 重复）、`:373`/`:463`（XCD 重复）、`:559`（按数组长度计数）
-- 复现：打开页面 →「共找到 153 种货币」；搜索 `NIO` → 出现两张完全相同的尼加拉瓜科多巴卡片；导出 CSV 同样重复 4 行；期望去重后 149 条，或补足到文案承诺的 170+。
-- 影响：`tools/finance/currency-symbol.html`；重复卡片/重复 CSV 行降低可信度，数量口径三处互相矛盾。
-- 方案：按 `code` 去重（保留一条并合并国家说明），计数改用唯一码；文案改为实际数量或补齐缺失货币后同步。
-
-### F-N139 货币符号页：混入非 ISO 4217 与已废止货币，仍按「当前货币」展示（中，确认缺陷）
-- 问题：页面说明与 FAQ 以 ISO 4217 为依据，但数据含 XBT/ETH/KID/TVD 等非 ISO 代码；HRK（2023 年加入欧元区）、SLL（2022 年被 SLE 取代）、VEF（2018 年被 VES 取代）、ANG（2025 年被 XCG 取代）仍作为现行货币列出，无停用标识。
-- 证据：`tools/finance/currency-symbol.html:360`（VEF）、`:380`（ANG）、`:386`（HRK）、`:437`（SLL）、`:470-474`（KID/TVD/XBT/ETH）
-- 复现：搜索 `HRK` → 正常显示「克罗地亚库纳」卡片与详情，无任何停用提示；搜索 `XBT` → 比特币以「货币」卡片出现。期望过期项标注「已停用/已替换」或移出默认列表。
-- 影响：`tools/finance/currency-symbol.html`；跨境合同/记账引用过期代码可能开票错误；「ISO 4217」定位被非 ISO 项稀释。
-- 方案：增加 `status`（active/obsolete/non-iso）与 `replacedBy` 字段，默认折叠过期项并在详情提示；非 ISO 项单独分组，文案改为「ISO 4217 + 常用非 ISO 单位」。
-
-### F-N140 货币符号页：VEF 缺符号字段，CNY/CNH 辅单位「Jiao/Fen × 10」语义错误（低，确认缺陷）
-- 问题：VEF 没有 `symbol`，卡片用代码 `VEF` 充当大号符号、详情符号显示 `-`；CNY/CNH 的 `subunit:'Jiao/Fen'` 配 `subunitRate:10`，详情生成「1 Yuan = 10 Jiao/Fen」，既混用两个单位又算错分（1 元=10 角=100 分）。
-- 证据：`tools/finance/currency-symbol.html:360`（VEF 无 symbol）、`:570`（`c.symbol || c.code`）、`:581`（详情标题）、`:329`/`:476`（CNY/CNH 辅单位）
-- 复现：搜 `VEF` → 大号符号位显示「VEF」而非货币符号；点 CNY 详情 → 辅单位行「1 Yuan = 10 Jiao/Fen」。期望 VEF 标注历史符号并标停用；CNY 改为「1 Yuan = 100 Fen（10 Jiao）」。
-- 影响：`tools/finance/currency-symbol.html`；卡片排版不一致，辅单位换算可能被用于报价/找零。
-- 方案：VEF 补历史符号 `Bs.` 并标 `obsolete`；CNY/CNH 改 `subunit:'Fen', subunitRate:100`，另在详情加「1 角=10 分」说明。
-
 ### F-N141 货币符号页：导出后把隐藏的 153 行表格永久显示在页面上（低，确认缺陷）
 - 问题：`#curTable` 初始 `display:none`，`__curExport()` 为导出临时填表后执行 `t.style.display=''`，导出结束不恢复隐藏；用户点一次导出，页面底部就多出整张表。
 - 证据：`tools/finance/currency-symbol.html:202`（初始隐藏）、`:527-528`（导出后显示且不恢复）

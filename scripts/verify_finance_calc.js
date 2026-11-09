@@ -3907,6 +3907,20 @@ const CASES = [
     expect: ["BICXSS ESC"],
     ref: "F-N136 防回归锁：用户输入 <img src=x onerror=alert(1)> 经 toUpperCase+去空格得 <IMGSRC=XONERROR=ALERT(1)>，写入 innerHTML 前必须 esc() 转义为 &lt;IMG…&gt;；旧实现直接拼 raw ⇒ 输出含裸 <IMG 可执行。探针断言含 &lt;IMG 且不含裸 <IMG/<img ⇒ 零逃生（与输入值无关，纯转义行为锁）。",
   },
+  {
+    slug: "finance/currency-symbol",
+    inputs: { searchInput: "AUD" },
+    clicks: ["search();var g=String(document.getElementById('currencyGrid').innerHTML);var n=(g.match(/AUD/g)||[]).length;document.getElementById('__tbProbe').textContent='CURDEDUP '+(currencies.length===149&&n===1?'OK':'BAD len='+currencies.length+' aud='+n);"],
+    expect: ["CURDEDUP OK"],
+    ref: "F-N138 去重锁：原始数组 153 条、AUD/XCD/UGX/NIO 各重复 2 次，运行时按 code 去重后应剩 149 条 ⇒ 搜索 AUD 只渲染 1 张卡片。旧实现不去重为 153 条/2 张卡片。探针断言 currencies.length===149 且 AUD 卡片数===1（不依赖 resultStat，harness 下该计数被二次渲染污染）⇒ 真判别、零逃生。",
+  },
+  {
+    slug: "finance/currency-symbol",
+    inputs: { searchInput: "" },
+    clicks: ["var c=null;for(var i=0;i<currencies.length;i++){if(currencies[i].code==='CNY'){c=currencies[i];break;}}document.getElementById('__tbProbe').textContent='CURCNY '+(c&&c.subunit==='Fen'&&c.subunitRate===100?'OK':'BAD '+(c?c.subunit+'/'+c.subunitRate:'NOCNY'));"],
+    expect: ["CURCNY OK"],
+    ref: "F-N140 辅单位锁：CNY 的辅单位应为 Fen、换算 100（1 Yuan = 100 Fen）。旧实现 subunit:'Jiao/Fen' + subunitRate:10 显示「1 Yuan = 10 Jiao/Fen」。探针遍历去重后 currencies 找 CNY 读 subunit/subunitRate 两字段（不依赖 showDetail，harness 下其 index 参数被包装污染）⇒ 真判别、零逃生。",
+  },
 
 ];
 
