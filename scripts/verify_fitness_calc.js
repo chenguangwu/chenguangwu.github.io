@@ -44,6 +44,9 @@ const CASES = [
   { slug: "fitness/jianzhinengliangquekoujisuan", inputs: { target: "50", weeks: "10", w: "30", ratio: "0.5" },
     expect: ["目标减脂量不能超过当前体重（当前 30 kg）"],
     ref: "SF-N17：原未校验 target≤w，目标减脂 50kg/当前 30kg → 最终体重 −20kg、167%/周。现 target>w 即停算提示。默认 target=5/w=75 正常出表 ⇒ 零逃生。" },
+  { slug: "fitness/jianzhinengliangquekoujisuan", inputs: { target: "30", weeks: "10", w: "30", ratio: "0.5" },
+    expect: ["目标减脂量不能超过当前体重（当前 30 kg）"],
+    ref: "SF-N17 复核重做：目标减脂 30kg = 当前体重 30kg（相等）时，原仅拦 target>w、相等仍算（最终体重 0、速率 0%/周）。现 target>=w 即停算 ⇒ 与 target>w 同提示。默认 target=5/w=75 正常出表 ⇒ 零逃生。" },
   { slug: "fitness/zuidasheyanglianggusuan", inputs: { sex: "m", age: "30", dist: "2001", w: "75" },
     expect: ["6:00"],
     ref: "SF-N18：原 paceSec=Math.round((12/(dist/1000)−paceMin)*60) 秒四舍五入到 60 未进位，dist=2001 → 配速「5:60」。现先算总秒数 360 再拆得 6:00。默认 dist=2400 → 5:00 不含该串 ⇒ 零逃生。" },
@@ -533,15 +536,15 @@ const CASES = [
   {
     "slug": "fitness/jianzhinengliangquekoujisuan",
     "inputs": {
-      "target": "42",
+      "target": "20",
       "weeks": "42",
       "w": "42",
       "ratio": "0.6"
     },
     "expect": [
-      "计达成日期 2025/04/05 减脂占体重比 2.38"
+      "预计达成日期 2025/04/05 减脂占体重比 1.13% / 周"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"target\":\"42\",\"weeks\":\"42\",\"w\":\"42\",\"ratio\":\"0.6\"}，输出区含「计达成日期 2025/04/05 减脂占体重比 2.38」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：SF-N17 修复后 target>=w 才放行（相等亦拦截），原 target=w=42 已非合法输入。改为 target=20<w=42（合法），输出区含「预计达成日期 2025/04/05 减脂占体重比 1.13% / 周」；默认态（target=5/w=75/weeks=8/ratio=0.75）日期与比例均不同 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "fitness/reminder",

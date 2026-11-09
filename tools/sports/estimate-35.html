@@ -274,7 +274,10 @@ function calc(){
   var dehyPct=netLoss/pre*100;
   var trueDehyPct=sweatKg/pre*100;
   var zone,zoneColor,zoneDesc;
-  if(Math.abs(dehyPct)<2){zone='良好';zoneColor='#34D399';zoneDesc='水合状态良好，继续保持。';}
+  // SF-N62：净增重（运动后体重不低于运动前，netLoss≤0）时净脱水率为负，不能分级为脱水，
+  // 也不得给出「轻微脱水 / 注意补水」与每小时补液建议——否则把增重误判成脱水。
+  if(netLoss<=0){zone='净增重';zoneColor='#60A5FA';zoneDesc='体重净增加（后−前 ≤ 0），无法判定脱水；出汗率估算仅供参考，请核对称重与补液记录。';}
+  else if(Math.abs(dehyPct)<2){zone='良好';zoneColor='#34D399';zoneDesc='水合状态良好，继续保持。';}
   else if(dehyPct<3){zone='注意';zoneColor='#FBBF24';zoneDesc='轻微脱水，注意补水。';}
   else if(dehyPct<5){zone='警告';zoneColor='#FB923C';zoneDesc='中度脱水，运动表现下降，需及时补水。';}
   else{zone='危险';zoneColor='#F87171';zoneDesc='严重脱水，有热射病风险，应停止运动补水降温！';}
@@ -293,7 +296,8 @@ function calc(){
     '<div style="width:60px;text-align:right;color:'+zoneColor+';font-weight:600;">'+zone+'</div></div>';
   html+='<p style="margin-top:8px;color:'+zoneColor+';font-weight:600;">'+zoneDesc+'</p>';
   var perHr=sweatRate*1000;
-  html+='<div class="tip-box tip-success" style="margin-top:10px;">✅ 建议补液：每小时约 <strong>'+Math.round(perHr)+' ml</strong>，每 15 分钟约 <strong>'+Math.round(perHr/4)+' ml</strong>，每 20 分钟约 <strong>'+Math.round(perHr/3)+' ml</strong>。少量多次饮用。</div>';
+  if(netLoss>0){ html+='<div class="tip-box tip-success" style="margin-top:10px;">✅ 建议补液：每小时约 <strong>'+Math.round(perHr)+' ml</strong>，每 15 分钟约 <strong>'+Math.round(perHr/4)+' ml</strong>，每 20 分钟约 <strong>'+Math.round(perHr/3)+' ml</strong>。少量多次饮用。</div>'; }
+  else { html+='<div class="tip-box tip-info" style="margin-top:10px;">ℹ️ 体重净增加，无需额外补液建议；请核对称重（应同衣物、擦干身体）与补液记录。</div>'; }
   const __g4=html;document.getElementById('detail').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
 }
 function copyRes(){

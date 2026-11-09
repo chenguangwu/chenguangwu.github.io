@@ -221,9 +221,10 @@ const poses = [
   {name:'头倒立',sanskrit:'Sirsasana',difficulty:'进阶',target:'全身力量、平衡',duration:'20–60秒'}
 ];
 function gen() {
-  // SF-N72：内置体式只有 poses.length 个，原按 50 截断后 slice 会静默截断（请求 50 实际给 15 且不提示）；
-  // 洗牌原用 sort(()=>Math.random()-0.5)，并非等概率。现按内置数量封顶并提示，洗牌改 Fisher–Yates。
-  const reqN = Math.min(Math.max(parseInt(document.getElementById('cnt').value) || 5, 1), 50);
+  // SF-N72：内置体式只有 poses.length 个；保留用户真实请求数用于提示，输出数量另行封顶到内置数量，
+  // 避免「请求 50 个」把用户的真实请求数（如 100）吞掉。洗牌改 Fisher–Yates 保证等概率。
+  const rawReq = parseInt((document.getElementById('cnt') || {}).value, 10);
+  const reqN = Math.min(Math.max(rawReq || 5, 1), 50);
   const maxN = poses.length;
   const n = Math.min(reqN, maxN);
   const pool = [...poses];
@@ -233,7 +234,7 @@ function gen() {
   }
   let h = '<p style="margin-bottom:8px;">瑜伽体式随机序列：</p>';
   if (reqN > maxN) {
-    h += '<p style="color:var(--warning);font-size:13px;">⚠ 内置体式共 ' + maxN + ' 个，已按 ' + maxN + ' 个输出（请求 ' + reqN + ' 个）。</p>';
+    h += '<p style="color:var(--warning);font-size:13px;">⚠ 内置体式共 ' + maxN + ' 个，已按 ' + maxN + ' 个输出（请求 ' + (isNaN(rawReq) ? reqN : rawReq) + ' 个）。</p>';
   }
   pool.slice(0, n).forEach((p, i) => {
     h += `<p style="padding:6px 0;border-bottom:1px dashed var(--border-color);">${i + 1}. <strong>${p.name}</strong>（${p.sanskrit}） — ${p.difficulty}<br><span style="color:var(--text-muted);font-size:13px;">锻炼部位：${p.target}；建议时长：${p.duration}</span></p>`;

@@ -215,11 +215,17 @@ function readInputs(){
   // SF-N120：发球分区与全场得分率
   if(!(!isNaN(p1w)&&p1w>=0)) errs.push('一发得分需 ≥0');
   else if(!isNaN(firstInCount)&&p1w>firstInCount+1e-9) errs.push('一发得分不能超过一发命中数（'+firstInCount.toFixed(0)+'）');
+  // SF-N120：ACE 计入一发得分，故一发得分不应少于 ACE 数
+  if(!isNaN(p1w)&&!isNaN(ace)&&p1w<ace-1e-9) errs.push('一发得分应不少于 ACE 数（ACE 计入一发得分）');
   if(!(!isNaN(p2w)&&p2w>=0)) errs.push('二发得分需 ≥0');
   else if(!isNaN(secondCount)&&p2w>secondCount+1e-9) errs.push('二发得分不能超过二发球数（'+secondCount.toFixed(0)+'）');
+  // SF-N120：双误计入二发失分，故二发得分不应超过（二发球数 − 双误数）
+  if(!isNaN(p2w)&&!isNaN(secondCount)&&!isNaN(df)&&p2w>secondCount-df+1e-9) errs.push('二发得分不能超过二发球数减去双误数（双误计入二发失分）');
   if(!isNaN(p1w)&&!isNaN(p2w)&&!isNaN(total)&&p1w+p2w>total+1e-9) errs.push('一发得分 + 二发得分不能超过总发球分');
   var hasRt=!isNaN(rt)&&rt>0, hasRw=!isNaN(rw)&&rw>=0;
   if(!isNaN(rt)&&rt>0&&!isNaN(rw)&&rw>rt+1e-9) errs.push('本方全场得分不能超过全场总得分');
+  // SF-N120：本方全场得分非负，负值虽标红但此前仍继续输出，须中止
+  if(!isNaN(rw)&&rw<0) errs.push('本方全场得分需 ≥0');
   setInvalid(document.getElementById('total'),!(!isNaN(total)&&total>0));
   setInvalid(document.getElementById('ace'),!(!isNaN(ace)&&ace>=0&&ace<=total));
   setInvalid(document.getElementById('df'),!(!isNaN(df)&&df>=0&&df<=total));
