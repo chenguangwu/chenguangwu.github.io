@@ -4103,6 +4103,13 @@ const CASES = [
     expect: ["WCCN OK"],
     ref: "F-N175 中文词频：纯中文「中文词频测试」重复 2 次，新实现按 2 字 bigram（中文/文词/词频/频测/测试 各 2 次）计入词频表。旧实现只取 [a-z]+ 得 0 项、区块空白。探针 AND 两个 bigram 计数（默认英文样例不含中文 bigram）⇒ 零逃生。",
   },
+  {
+    slug: "finance/word-counter",
+    inputs: { input: "A😀B" },
+    clicks: ["analyze();var g=String(document.getElementById('statsGrid').innerHTML).replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ');document.getElementById('__tbProbe').textContent='FN176 '+document.getElementById('input').value+' '+((g.indexOf('3 总字符数')>=0&&g.indexOf('3 不含空格')>=0)?'OK':'BAD');"],
+    expect: ["FN176 A😀B OK"],
+    ref: "F-N176 代码点计数：A😀B 含 emoji，码点数=3（A/😀/B），旧 text.length 按 UTF-16 码元=4 ⇒「4 总字符数」不命中。引据表承诺「代码点」、示例亦同步。探针读 statsGrid 两张卡片且绑定输入锚 ⇒ 默认态零逃生。",
+  },
 
 ];
 

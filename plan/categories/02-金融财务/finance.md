@@ -773,14 +773,7 @@
 
 - **留存建议（tools/finance/gst-validator.html）**：15 位拆分 + mod-36 校验 + 州码表是差异化能力，建议保留；F-N170/171 已核实真修（第99批：州码白名单硬判 + 25/28 停用码单列 + 26 全称，verify 四锁 00/99/25/28 齐全、9/9 全绿），可对外；建议补「PAN 第 4 位实体类型」说明与 GSTR 类工具互链。
 
-### F-N176 字数统计页：deep-dive 示例数字全错，且「代码点」口径与 `text.length` 不符（低，确认缺陷）
-- 问题：`:252` 示例称「ToolBox 工具箱」汉字 4 个、英文单词 1 个、字符 8 个（不含空格）；实际为汉字 3、英文 1、不含空格 10（含空格 11）。另引据表（`:277`）写「Unicode 文本计数（代码点）」，而 `chars = text.length`（`:341`）按 UTF-16 码元计，emoji 会被算 2。
-- 证据：`tools/finance/word-counter.html:252`、`:277`、`:341`
-- 复现（node 实算）：`ToolBox 工具箱` → chars=11、noSpace=10、cn=3、en=1；`😀` → `text.length`=2（代码点应为 1）。
-- 影响：`tools/finance/word-counter.html`；示例与实现互相打脸，降低可信度；含 emoji 的字符数与「代码点」承诺不符。
-- 方案：示例改为实测 3/1/10；`chars` 改 `[...text].length`，或把引据表改为「UTF-16 码元」。
-
-- **留存建议（tools/finance/word-counter.html）**：实时统计 + 可读性 + 词频 + CSV 导出是高频文本能力（不属金融但通用），建议保留；先统一「词」口径（F-N174）、补中文词频（F-N175）、修正示例（F-N176）后可对外；建议与 word-frequency/word-wrap 互链。
+- **留存建议（tools/finance/word-counter.html）**：实时统计 + 可读性 + 词频 + CSV 导出是高频文本能力（不属金融但通用），建议保留；F-N174/175（第93批）、F-N176（第100批，示例改实测 3/1/10 + chars/charsNoSpace 改 Unicode 码点计数 + 公式框口径）均已真修，可对外；建议与 word-frequency/word-wrap 互链。
 
 - **留存建议（tools/finance/text-reverse-words.html）**：三模式 + 保留标点 + 每行/首字母 + 预设 + 复制，作为文本小工具可用，建议保留；F-N177/178/179 已真修（第94批），`cat=text` 却归 finance 行业，建议按 §7 评估迁移（待裁量，本批不做）。
 
