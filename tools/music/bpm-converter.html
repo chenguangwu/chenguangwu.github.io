@@ -674,7 +674,8 @@ s.parentNode.insertBefore(el, s);
     var ms = parseFloat(document.getElementById('reverseMs').value);
     var noteType = document.getElementById('reverseNote').value;
 
-    if (isNaN(ms) || ms <= 0) {
+    if (!Number.isFinite(ms) || ms <= 0) {
+      clearTimeout(__bpm_converter_tail); __bpm_converter_tail = null;
       const __h4='<p style="color:var(--danger);text-align:center;">请输入有效的时长值</p>';if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){document.getElementById('reverseResult').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('reverseResult').innerHTML=__h4;
       return;
     }
@@ -758,7 +759,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __bpm_converter_last=0,__bpm_converter_skip=false;
+var __bpm_converter_last=0,__bpm_converter_skip=false,__bpm_converter_tail=null;
 function __bpm_converterSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -804,6 +805,7 @@ function __bpm_converterRender(keys,rk,en){
         TBKit.matrix.table('#bpm_converterTable',{head:head,rows:rows});
         TBKit.util.diffBox('#bpm_converterDiff');
         TBKit.history.mount('#bpm_converterHist',function(rec){
+            clearTimeout(__bpm_converter_tail); __bpm_converter_tail=null;
             __bpm_converter_skip=true;
             try{
                 for(var k in rec){
@@ -815,6 +817,7 @@ function __bpm_converterRender(keys,rk,en){
                     else{e.value=rec[k];}
                 }
                 calcAll();
+                calcReverse();
             }catch(e2){}
             __bpm_converter_skip=false;
         });
@@ -828,9 +831,14 @@ function __bpm_converterRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __bpm_converterExtras(){
+function __bpm_converterExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__bpm_converter_skip) return;
+    var ms=parseFloat(document.getElementById('reverseMs').value);
+    if(!Number.isFinite(ms) || ms<=0){
+        clearTimeout(__bpm_converter_tail); __bpm_converter_tail=null;
+        return;
+    }
     var snap=__bpm_converterSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -840,7 +848,12 @@ function __bpm_converterExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__bpm_converter_last<1000) return;
+    if(!force && now-__bpm_converter_last<1000){
+        clearTimeout(__bpm_converter_tail);
+        __bpm_converter_tail=setTimeout(function(){__bpm_converter_tail=null;__bpm_converterExtras();},1000-(now-__bpm_converter_last));
+        return;
+    }
+    clearTimeout(__bpm_converter_tail); __bpm_converter_tail=null;
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -858,8 +871,17 @@ function __bpm_converterExtras(){
     TBKit.history.record(rec);
     __bpm_converterRender(keys,rk,en);
 }
+window.addEventListener('pagehide',function(){
+    if(__bpm_converter_tail) __bpm_converterExtras(true);
+});
 function __bpm_converterExport(){
     if (typeof TBKit === 'undefined') return;
+    var ms=parseFloat(document.getElementById('reverseMs').value);
+    if(!Number.isFinite(ms) || ms<=0){
+        ToolBox.showToast('请先输入有效的时长值');
+        return;
+    }
+    __bpm_converterExtras(true);
     try{
         var box=document.querySelector('#bpm_converterTable');
         if(!box||!box.querySelector('tr')){
