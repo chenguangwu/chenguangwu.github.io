@@ -9554,6 +9554,56 @@ const CASES = [
       + "修复前异常裸冒成 pageerror、无任何提示；默认态无 TOAST: 串 ⇒ 判别明确。"
   },
   {
+    "slug": "it/qr-beautify",
+    "clicks": [
+      "globalThis.__q=[];globalThis.__t=[];ToolBox.showToast=function(m){globalThis.__t.push(String(m));};globalThis.qrcode=function(){this.addData=function(){};this.make=function(){};this.getModuleCount=function(){return 21;};this.isDark=function(r,c){return (r+c)%2===0;};};var __myCtx={clearRect:function(){},fillRect:function(){},fillStyle:'',beginPath:function(){},moveTo:function(){},arcTo:function(){},closePath:function(){},fill:function(){},drawImage:function(){globalThis.__q.push({t:'draw'});}};document.getElementById('qrCanvas').getContext=function(){return __myCtx;};globalThis.FileReader=function(){this.readAsDataURL=function(f){globalThis.__q.push({t:'rd',o:this,n:String(f&&f.name)});};};globalThis.Image=function(){var o=this;o.width=10;o.height=10;Object.defineProperty(o,'src',{set:function(v){o.__n=String(v);globalThis.__q.push({t:'img',o:o});}});};var __lf=document.getElementById('logoFile');if(!__lf._handlers.change||!__lf._handlers.change.length){__lf.__qrLogoBound=false;initLogoInput();}function __chg(n){__lf.files=[{name:n,type:'image/png'}];__lf._handlers.change[0].call(__lf,{target:__lf,preventDefault:function(){},stopPropagation:function(){}});}function __rds(){return globalThis.__q.filter(function(x){return x.t==='rd';});}function __imgs(){return globalThis.__q.filter(function(x){return x.t==='img';});}function __draws(){return globalThis.__q.filter(function(x){return x.t==='draw';});}function __probe(s){document.getElementById('__tbProbe').textContent=s;}__chg('A.png');__rds()[0].o.result='A';__rds()[0].o.onload();__imgs()[0].o.onload();__probe('QROK=1 IMG='+String(__qrLogoImg&&__qrLogoImg.__n)+' HAS='+(__qrLogoImg?1:0)+' DRAW='+__draws().length+' LABEL='+(document.getElementById('result').innerHTML.indexOf('已嵌中心 logo')>=0?1:0));"
+    ],
+    "expect": [
+      "QROK=1 IMG=A HAS=1 DRAW=1 LABEL=1"
+    ],
+    "ref": "复核失败重做·QR 美化过期回调 1/5（正常上传回归护栏）：用可控桩接管 FileReader / Image / 画布上下文，触发 A.png 的 rd.onload 与 img.onload ⇒ logo 生效、drawImage 1 次、结果区出现「已嵌中心 logo」（QROK=1 IMG=A HAS=1 DRAW=1 LABEL=1）。修复前后都应 PASS，用于证明取消机制没有破坏正常上传；默认态不执行 clicks、无探针串 ⇒ 零逃生。"
+  },
+  {
+    "slug": "it/qr-beautify",
+    "clicks": [
+      "globalThis.__q=[];globalThis.__t=[];ToolBox.showToast=function(m){globalThis.__t.push(String(m));};globalThis.qrcode=function(){this.addData=function(){};this.make=function(){};this.getModuleCount=function(){return 21;};this.isDark=function(r,c){return (r+c)%2===0;};};var __myCtx={clearRect:function(){},fillRect:function(){},fillStyle:'',beginPath:function(){},moveTo:function(){},arcTo:function(){},closePath:function(){},fill:function(){},drawImage:function(){globalThis.__q.push({t:'draw'});}};document.getElementById('qrCanvas').getContext=function(){return __myCtx;};globalThis.FileReader=function(){this.readAsDataURL=function(f){globalThis.__q.push({t:'rd',o:this,n:String(f&&f.name)});};};globalThis.Image=function(){var o=this;o.width=10;o.height=10;Object.defineProperty(o,'src',{set:function(v){o.__n=String(v);globalThis.__q.push({t:'img',o:o});}});};var __lf=document.getElementById('logoFile');if(!__lf._handlers.change||!__lf._handlers.change.length){__lf.__qrLogoBound=false;initLogoInput();}function __chg(n){__lf.files=[{name:n,type:'image/png'}];__lf._handlers.change[0].call(__lf,{target:__lf,preventDefault:function(){},stopPropagation:function(){}});}function __rds(){return globalThis.__q.filter(function(x){return x.t==='rd';});}function __imgs(){return globalThis.__q.filter(function(x){return x.t==='img';});}function __draws(){return globalThis.__q.filter(function(x){return x.t==='draw';});}function __probe(s){document.getElementById('__tbProbe').textContent=s;}__chg('A.png');clearLogo();__rds()[0].o.result='A';__rds()[0].o.onload();var __im2=__imgs();if(__im2.length){__im2[0].o.onload();if(typeof __im2[0].o.onerror==='function')__im2[0].o.onerror();}if(typeof __rds()[0].o.onerror==='function')__rds()[0].o.onerror();__probe('QRRD=0 NEWIMG='+__imgs().length+' HAS='+(__qrLogoImg?1:0)+' TOAST='+globalThis.__t.length+' DRAW='+__draws().length);"
+    ],
+    "expect": [
+      "QRRD=0 NEWIMG=0 HAS=0 TOAST=0 DRAW=0"
+    ],
+    "ref": "复核失败重做·QR 美化过期回调 2/5（清除发生在 FileReader 完成前）：选图后立即 clearLogo()，再让旧 rd.onload、它创建的 img.onload / onerror 以及 rd.onerror 全部执行。修复前实测 QRRD=0 NEWIMG=1 HAS=1 TOAST=1 DRAW=1（旧回调把 logo 写回并重新绘制，正是复核失败描述），修复后应为 NEWIMG=0 HAS=0 TOAST=0 DRAW=0 ⇒ 强判别。"
+  },
+  {
+    "slug": "it/qr-beautify",
+    "clicks": [
+      "globalThis.__q=[];globalThis.__t=[];ToolBox.showToast=function(m){globalThis.__t.push(String(m));};globalThis.qrcode=function(){this.addData=function(){};this.make=function(){};this.getModuleCount=function(){return 21;};this.isDark=function(r,c){return (r+c)%2===0;};};var __myCtx={clearRect:function(){},fillRect:function(){},fillStyle:'',beginPath:function(){},moveTo:function(){},arcTo:function(){},closePath:function(){},fill:function(){},drawImage:function(){globalThis.__q.push({t:'draw'});}};document.getElementById('qrCanvas').getContext=function(){return __myCtx;};globalThis.FileReader=function(){this.readAsDataURL=function(f){globalThis.__q.push({t:'rd',o:this,n:String(f&&f.name)});};};globalThis.Image=function(){var o=this;o.width=10;o.height=10;Object.defineProperty(o,'src',{set:function(v){o.__n=String(v);globalThis.__q.push({t:'img',o:o});}});};var __lf=document.getElementById('logoFile');if(!__lf._handlers.change||!__lf._handlers.change.length){__lf.__qrLogoBound=false;initLogoInput();}function __chg(n){__lf.files=[{name:n,type:'image/png'}];__lf._handlers.change[0].call(__lf,{target:__lf,preventDefault:function(){},stopPropagation:function(){}});}function __rds(){return globalThis.__q.filter(function(x){return x.t==='rd';});}function __imgs(){return globalThis.__q.filter(function(x){return x.t==='img';});}function __draws(){return globalThis.__q.filter(function(x){return x.t==='draw';});}function __probe(s){document.getElementById('__tbProbe').textContent=s;}__chg('A.png');__rds()[0].o.result='A';__rds()[0].o.onload();var __ia=__imgs()[0].o;clearLogo();__ia.onload();__ia.onerror();__probe('QRIMG=0 HAS='+(__qrLogoImg?1:0)+' TOAST='+globalThis.__t.length+' DRAW='+__draws().length+' IMGS='+__imgs().length);"
+    ],
+    "expect": [
+      "QRIMG=0 HAS=0 TOAST=0 DRAW=0 IMGS=1"
+    ],
+    "ref": "复核失败重做·QR 美化过期回调 3/5（清除发生在 Image 完成前）：rd 已完成并创建 img，clearLogo() 后才触发旧 img.onload 与 img.onerror。修复前实测 HAS=1 TOAST=1 DRAW=1，修复后 HAS=0 TOAST=0 DRAW=0、IMGS=1（img 本身已创建，只是回调失效）⇒ 强判别。"
+  },
+  {
+    "slug": "it/qr-beautify",
+    "clicks": [
+      "globalThis.__q=[];globalThis.__t=[];ToolBox.showToast=function(m){globalThis.__t.push(String(m));};globalThis.qrcode=function(){this.addData=function(){};this.make=function(){};this.getModuleCount=function(){return 21;};this.isDark=function(r,c){return (r+c)%2===0;};};var __myCtx={clearRect:function(){},fillRect:function(){},fillStyle:'',beginPath:function(){},moveTo:function(){},arcTo:function(){},closePath:function(){},fill:function(){},drawImage:function(){globalThis.__q.push({t:'draw'});}};document.getElementById('qrCanvas').getContext=function(){return __myCtx;};globalThis.FileReader=function(){this.readAsDataURL=function(f){globalThis.__q.push({t:'rd',o:this,n:String(f&&f.name)});};};globalThis.Image=function(){var o=this;o.width=10;o.height=10;Object.defineProperty(o,'src',{set:function(v){o.__n=String(v);globalThis.__q.push({t:'img',o:o});}});};var __lf=document.getElementById('logoFile');if(!__lf._handlers.change||!__lf._handlers.change.length){__lf.__qrLogoBound=false;initLogoInput();}function __chg(n){__lf.files=[{name:n,type:'image/png'}];__lf._handlers.change[0].call(__lf,{target:__lf,preventDefault:function(){},stopPropagation:function(){}});}function __rds(){return globalThis.__q.filter(function(x){return x.t==='rd';});}function __imgs(){return globalThis.__q.filter(function(x){return x.t==='img';});}function __draws(){return globalThis.__q.filter(function(x){return x.t==='draw';});}function __probe(s){document.getElementById('__tbProbe').textContent=s;}__chg('A.png');__chg('B.png');var __rs=__rds();__rs[0].o.result='A';__rs[0].o.onload();__rs[1].o.result='B';__rs[1].o.onload();var __im=__imgs();__im[0].o.onload();__probe('QRSWAP=1 IMGS='+__im.length+' LAST='+String(__qrLogoImg&&__qrLogoImg.__n)+' HAS='+(__qrLogoImg?1:0)+' DRAW='+__draws().length+' TOAST='+globalThis.__t.length);"
+    ],
+    "expect": [
+      "QRSWAP=1 IMGS=1 LAST=B HAS=1 DRAW=1 TOAST=0"
+    ],
+    "ref": "复核失败重做·QR 美化过期回调 4/5（换图乱序）：连续选 A、B 两图，先让 A 的 rd.onload 晚到，再让 B 完整加载。修复前实测 IMGS=2 LAST=A（旧图回调仍生效），修复后 A 的 rd.onload 被令牌挡住、根本不创建 Image ⇒ IMGS=1 LAST=B HAS=1 DRAW=1 TOAST=0 ⇒ 强判别。"
+  },
+  {
+    "slug": "it/qr-beautify",
+    "clicks": [
+      "globalThis.__q=[];globalThis.__t=[];ToolBox.showToast=function(m){globalThis.__t.push(String(m));};globalThis.qrcode=function(){this.addData=function(){};this.make=function(){};this.getModuleCount=function(){return 21;};this.isDark=function(r,c){return (r+c)%2===0;};};var __myCtx={clearRect:function(){},fillRect:function(){},fillStyle:'',beginPath:function(){},moveTo:function(){},arcTo:function(){},closePath:function(){},fill:function(){},drawImage:function(){globalThis.__q.push({t:'draw'});}};document.getElementById('qrCanvas').getContext=function(){return __myCtx;};globalThis.FileReader=function(){this.readAsDataURL=function(f){globalThis.__q.push({t:'rd',o:this,n:String(f&&f.name)});};};globalThis.Image=function(){var o=this;o.width=10;o.height=10;Object.defineProperty(o,'src',{set:function(v){o.__n=String(v);globalThis.__q.push({t:'img',o:o});}});};var __lf=document.getElementById('logoFile');if(!__lf._handlers.change||!__lf._handlers.change.length){__lf.__qrLogoBound=false;initLogoInput();}function __chg(n){__lf.files=[{name:n,type:'image/png'}];__lf._handlers.change[0].call(__lf,{target:__lf,preventDefault:function(){},stopPropagation:function(){}});}function __rds(){return globalThis.__q.filter(function(x){return x.t==='rd';});}function __imgs(){return globalThis.__q.filter(function(x){return x.t==='img';});}function __draws(){return globalThis.__q.filter(function(x){return x.t==='draw';});}function __probe(s){document.getElementById('__tbProbe').textContent=s;}__chg('A.png');__rds()[0].o.result='A';__rds()[0].o.onload();var __ia=__imgs()[0].o;__chg('B.png');var __rb=__rds()[1];__rb.o.result='B';__rb.o.onload();var __ib=__imgs()[1].o;__ib.onload();__ia.onload();__ia.onerror();__probe('QRLATE=1 LAST='+String(__qrLogoImg&&__qrLogoImg.__n)+' DRAW='+__draws().length+' TOAST='+globalThis.__t.length);"
+    ],
+    "expect": [
+      "QRLATE=1 LAST=B DRAW=1 TOAST=0"
+    ],
+    "ref": "复核失败重做·QR 美化过期回调 5/5（旧图 Image 回调最晚到达）：A 的 img 已创建后换选 B，B 正常生效，最后才触发 A 的 img.onload / img.onerror。修复前实测 LAST=A DRAW=2 TOAST=1（旧图覆盖新图并重复绘制），修复后 LAST=B DRAW=1 TOAST=0 ⇒ 强判别。"
+  },
+  {
     "slug": "it/python-formatter",
     "inputs": {
       "input": "1\n2\n3",

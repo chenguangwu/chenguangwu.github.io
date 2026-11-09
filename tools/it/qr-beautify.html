@@ -348,9 +348,14 @@ function draw(){
 // ── 中心 logo：上传 → 白底圆角块内居中嵌入，宽度按容错级别限幅（可遮挡比例）──
 var __qrLogoImg=null;
 var __logoMax=0;
+// 上传任务版本号：清除 logo 或重新选图都会 +1，使尚未完成的 FileReader/Image 回调失效，
+// 避免旧图片在用户已经移除（或换图）之后又把 __qrLogoImg 写回来。
+var __qrLogoToken=0;
 var __LOGO_LIMIT={L:0.10,M:0.15,Q:0.20,H:0.25};
 function clearLogo(){
+  __qrLogoToken++;
   __qrLogoImg=null;
+  __logoMax=0;
   document.getElementById('logoFile').value='';
   draw();
 }
@@ -367,18 +372,30 @@ function initLogoInput(){
       return;
     }
     if(typeof FileReader==='undefined'){if(ToolBox.showToast)ToolBox.showToast(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Current environment does not support file reading":"当前环境不支持文件读取"));return;}
+    var myToken=++__qrLogoToken;
     var rd=new FileReader();
     rd.onload=function(){
+      if(myToken!==__qrLogoToken)return;
       var img=new Image();
-      img.onload=function(){__qrLogoImg=img;draw();};
-      img.onerror=function(){if(ToolBox.showToast)ToolBox.showToast(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Logo image failed to load":"logo 图片加载失败"));};
+      img.onload=function(){
+        if(myToken!==__qrLogoToken)return;
+        __qrLogoImg=img;draw();
+      };
+      img.onerror=function(){
+        if(myToken!==__qrLogoToken)return;
+        if(ToolBox.showToast)ToolBox.showToast(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Logo image failed to load":"logo 图片加载失败"));
+      };
       img.src=rd.result;
+    };
+    rd.onerror=function(){
+      if(myToken!==__qrLogoToken)return;
+      if(ToolBox.showToast)ToolBox.showToast(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Logo file failed to read":"logo 文件读取失败"));
     };
     rd.readAsDataURL(f);
   });
 }
 function drawLogoOverlay(ctx,size,ecc){
-  if(!__qrLogoImg)return;
+  if(!ctx||!__qrLogoImg)return;
   __logoMax=__LOGO_LIMIT[ecc]||0.10;
   var w=size*__logoMax;
   var pad=size*0.015;
