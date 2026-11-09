@@ -1486,6 +1486,20 @@ const CASES = [
     ref: "黄金折算（总投入 6,500 元、足金 999.9 含金量 99.99%、现价 600 元/克）：页面自印计算式 6,500 ÷ (含金量 99.99% × ¥**600.00**/克) = **10.8344 克**，其中 600.00 即注入现价（一步取值）、10.8344 即该式结果（6,500/(0.9999×600) = 10.83447，一步可复算）。同页纯度表列出足金 99.99% 每克 599.94 元、18K 金每克 450.00 元，均 = 600×纯度 ⇒ 自洽。默认现价 650 ⇒ 10.0015 克，不命中。",
   },
   {
+    slug: "finance/gold-price-calculator",
+    inputs: { goldPrice: "650", discountRate: "150", weightInput: "10" },
+    clicks: ["calcAll()"],
+    expect: ["回收折价率须在 0–100% 之间，请修改后重试。"],
+    ref: "F-N63 折价率上界：150% ⇒ 旧实现只靠 HTML max 属性、JS 读入后不校验，输出回收估价 ¥9,749.03（高于金料总值 6,499.35）。修复后字段级拒绝。默认 95% ⇒ 不命中。",
+  },
+  {
+    slug: "finance/gold-price-calculator",
+    inputs: { goldPrice: "650", discountRate: "-10", weightInput: "10" },
+    clicks: ["calcAll()"],
+    expect: ["回收折价率须在 0–100% 之间，请修改后重试。"],
+    ref: "F-N63 折价率下界：−10% ⇒ 旧实现输出负回收价 ¥−649.94 并进入复制/导出/历史。修复后字段级拒绝。默认 95% ⇒ 不命中。",
+  },
+  {
     slug: "finance/break-even-calculator",
     inputs: { fc: "150000", price: "60", vc: "35", taxRate: "25" },
     clicks: ["calc()"],

@@ -195,27 +195,6 @@
 
 > 范围：本轮阅读 8 页（`tools/finance/amount-in-words.html`、`tools/finance/number-to-words-chinese.html`、`tools/finance/gold-price-calculator.html`、`tools/finance/shebeizulinfeilvjisuan.html`、`tools/finance/register-depreciation.html`、`tools/finance/credit-card-validator.html`、`tools/finance/credit-card-luhn.html`、`tools/finance/points-redemption-value.html`）。仅源码 + node 复算，未开浏览器/未做 EN/移动端/门禁验证；历史已修声明未独立复验。
 
-### F-N61 金额大写转换器：零分组仍拼「万/亿」、三位小数产出 undefined 角（高，确认缺陷）
-- 描述：`integerToCN` 从低位向高位遍历 4 位分组，无论该组是否为 `"0000"` 都执行 `out += part + BIG[b]`，零分组会凭空多出「万/亿」且不补「零」；小数部分 `f = Math.round((val - y) * 100)` 达到 100 时 `jiao = 10`，`CN[10]` 为 `undefined`，直接写入结果；另因浮点误差，1.005 被舍成 0 分而静默显示「壹元整」。
-- 证据：`tools/finance/amount-in-words.html:250-251`（零分组仍拼 BIG）、`:262`（f 可为 100）、`:265-272`（`CN[jiao]` 无越界保护）、`:261`（1e-8 偏移不足以保证两位小数）
-- 复现：输入 100000000 → 实际「壹亿万元整」（期望「壹亿元整」）；100000001 → 「壹亿万壹元整」（期望「壹亿零壹元整」）；100010001 → 「壹亿壹万壹元整」（期望「壹亿零壹万零壹元整」）；1.999 → 「壹元undefined角」、0.999 → 「零元undefined角」（期望按分进位为「贰元整 / 壹元整」）；1.005 → 「壹元整」（期望「壹元零壹分」）
-- 影响：`tools/finance/amount-in-words.html`；支票、发票、合同的大写金额在含零分组或三位小数时直接错误或出现英文 `undefined`，属不可交付的财务文本。
-- 方案：零分组跳过并统一补「零」（仅在非最高组且后续有值时），如「壹亿零壹万零壹」；小数改为 `Math.round(val * 100)` 后进位（`f >= 100` 时 `y += 1; f -= 100`），或直接解析输入字符串的小数位；对 `CN[jiao]` 加边界。
-
-### F-N62 数字转中文（逐位小数）：浮点尾数被逐位读出（高，确认缺陷）
-- 描述：`numberToChinese` 用 `decPart = n - intPart` 再做 `decPart.toString().replace(/^0\./, '')` 逐字符映射，二进制浮点尾差会原样进入中文结果，常见两位小数金额即可输出十几位错误数字。
-- 证据：`tools/finance/number-to-words-chinese.html:315-328`（`:316` 浮点减法、`:325` 直接 toString 取小数位）
-- 复现：输入 10012003.45 → 实际「一千零一万二千零三点四四九九九九九九九二五四九四一九四」（期望「…点四五」）；1.1 → 「一点一零零零零零零零零零零零零零零零九」（期望「一点一」）；3.14 → 小数段出现 `一四零零零零…`（期望「三点一四」）
-- 影响：`tools/finance/number-to-words-chinese.html`；绝大多数带小数输入都会得到不可读的长串，且页面无异常提示。
-- 方案：从原始输入字符串取小数部分（`v.split('.')[1]`），或 `toFixed(保留位数)` 后再逐位映射；不要用浮点差值。
-
-### F-N63 金价回收页折价率无上下限，150% 回收价高于金价、负折价出负数（中，确认缺陷）
-- 描述：`discountRate` 仅靠 HTML `max="100"` 限制，`calcAll()` 用 `parseFloat(...) || 0` 读取后未校验范围；折价率 >100 时回收估价超过金料总值，为负时输出负回收价，结果卡片仍按原样标注「回收估价（150%）」。
-- 证据：`tools/finance/gold-price-calculator.html:238`（仅属性 max）、`:503-506`（读值无范围判断）、`:519`（`totalCny * discount / 100`）、`:529`（直接回显 discount）
-- 复现：金价 650 元/克、足金 999.9、10 克 → 金料总值 ¥6,499.35；折价率 150% → 回收估价 ¥9,749.03（期望 ≤¥6,499.35）；折价率 −10% → ¥−649.94（期望报错或按 0）
-- 影响：`tools/finance/gold-price-calculator.html`；回收金额可高于金料本身，负数也会进入复制/导出与历史记录。
-- 方案：折价率限制 `0 ≤ d ≤ 100`（或 `0 < d ≤ 100`），越界标红并停止计算；结果卡显示实际采用的折价率且与输入联动。
-
 ### F-N64 设备租赁费率页残值率可越界，负折旧/负租金与 ROI 公式互斥（中，确认缺陷）
 - 描述：`readInputs()` 只把 NaN 记为 0 并描红，`calc()` 仅校验 P/T/Y > 0；残值率 s、维护费率 r、利润率 m 可为负或 >100。s>100 时 `depreciableBase` 为负、月折旧为负，月租金可低于维护费；s<0 时残值转负、折旧基数被放大。同时信息框 ROI 公式 `(R×T − P×s)/(P×s)` 与实现 `(R×T + 残值 − P)/P` 完全不同。
 - 证据：`tools/finance/shebeizulinfeilvjisuan.html:187-193`（只判 NaN）、`:197-209`（仅 P/T/Y 校验、`:201-209` 直接使用 s/r/m）、`:138`（s 仅属性 max）、`:146`（ROI 公式文案）
