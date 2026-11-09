@@ -24,6 +24,20 @@ const { runCase } = require("./verify_it_calc.js");
 // ---------------------------------------------------------------- 用例
 const CASES = [
   {
+    "slug": "finance/depreciation-calculator",
+    "inputs": {"cost": "10000", "salvage": "1000", "life": "5", "totalUnits": "10000", "yearUnits": "3000x,2500,2000,1500,1000"},
+    "clicks": ["calc();var h=String(document.getElementById('stats').innerHTML);document.getElementById('__tbProbe').textContent='DEP53BAD '+(h.indexOf('请按使用年限逐年填写')>=0?'OK':'BAD');"],
+    "expect": ["DEP53BAD OK"],
+    "ref": "F-N53 审计修复回归：旧实现 parseFloat 把 \"3000x\" 读成 3000，工作量法照常出现；修复后严格纯数字校验拒绝该输入，提示「请按使用年限逐年填写」。默认态 yearUnits 合法且无 DEP53BAD 探针 ⇒ 零逃生。"
+  },
+  {
+    "slug": "finance/depreciation-calculator",
+    "inputs": {"cost": "10000", "salvage": "1000", "life": "5", "totalUnits": "10000", "yearUnits": "5000,5000,5000,5000,5000"},
+    "clicks": ["calc();var h=String(document.getElementById('stats').innerHTML);document.getElementById('__tbProbe').textContent='DEP53OVR '+(h.indexOf('超过总工作量')>=0?'OK':'BAD');"],
+    "expect": ["DEP53OVR OK"],
+    "ref": "F-N53 审计修复回归：5 年各 5000 合计 25000 > 总工作量 10000，旧实现静默截断无任何提示；修复后 calcUnits 标记 overflow、stats 提示「超过总工作量…已截封顶」。默认态合计 10000 不超额、无 DEP53OVR 探针 ⇒ 零逃生。"
+  },
+  {
     slug: "finance/housing-fund-loan",
     clicks: ["var __cap=null;TBKit={util:{isEn:function(){return false;},exportTable:function(sel,name){__cap={sel:sel,name:name};},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return [];},last:function(){return null;},record:function(){},mount:function(){}},preset:{bar:function(){}}};var __oq=document.querySelector;document.querySelector=function(s){return {querySelectorAll:function(q){return [{tagName:'TR'}];}};};__housing_fund_loanExport();document.querySelector=__oq;document.getElementById('__tbProbe').textContent='EXPH sel='+(__cap?__cap.sel:'NA')+' name='+(__cap?__cap.name:'NA');"],
     expect: ["EXPH sel=#housing_fund_loanDetail name=housing-fund-loan.csv"],

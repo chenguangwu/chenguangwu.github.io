@@ -343,20 +343,30 @@ function calcUnits(cost, salvage, life, totalUnits, yearUnits){
   const depreciable = cost - salvage;
   const table = [];
   let accumulated = 0;
+  let overflow = false;
   for(let y = 1; y <= life; y++){
     const units = yearUnits[y-1] || 0;
     let dep = units * perUnit;
-    // 累计折旧不得超过可折旧总额
-    if(accumulated + dep > depreciable) dep = Math.max(0, depreciable - accumulated);
+    // F-N53：累计工作量超过总工作量时，折旧被截断且与逐年输入不一致，必须显式提示。
+    if(accumulated + dep > depreciable + 1e-9){ dep = Math.max(0, depreciable - accumulated); overflow = true; }
     accumulated += dep;
     table.push({year:y, depreciation:dep, accumulated, balance:cost - accumulated, units});
   }
+  table.overflow = overflow;
   return table;
 }
 
 function parseYearUnits(raw, life){
-  const parts = String(raw || '').split(/[,，\s]+/).filter(Boolean).map(parseFloat);
-  if(parts.length !== life || parts.some(v => !isFinite(v) || v < 0)) return null;
+  // F-N53：parseFloat 会把 "3000x" 静默读成 3000，非法后缀必须拒绝。
+  const tokens = String(raw || '').split(/[,，\s]+/).filter(Boolean);
+  if(tokens.length !== life) return null;
+  const parts = [];
+  for(const t of tokens){
+    if(!/^\d+(?:\.\d+)?$/.test(t)) return null;
+    const v = Number(t);
+    if(!isFinite(v) || v < 0) return null;
+    parts.push(v);
+  }
   return parts;
 }
 
@@ -375,12 +385,13 @@ function calc(){
   }
 
   const yearUnits = parseYearUnits(document.getElementById('yearUnits').value, life);
-  const unitsWarning = (totalUnits > 0 && !yearUnits) ? '请按使用年限逐年填写各年工作量（非负数字，用逗号分隔）。' : '';
+  let unitsWarning = (totalUnits > 0 && !yearUnits) ? '请按使用年限逐年填写各年工作量（非负数字，用逗号分隔）。' : '';
 
   const straight = calcStraight(cost, salvage, life);
   const ddb = calcDDB(cost, salvage, life);
   const syd = calcSYD(cost, salvage, life);
   const units = totalUnits > 0 && yearUnits ? calcUnits(cost, salvage, life, totalUnits, yearUnits) : null;
+  if(units && units.overflow) unitsWarning = (unitsWarning ? unitsWarning + ' ' : '') + '各年工作量合计超过总工作量，超出部分折旧已截封顶（账面净值不会为负）。';
 
   const straightFirst = straight[0].depreciation;
   const ddbFirst = ddb[0].depreciation;
