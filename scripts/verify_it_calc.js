@@ -7712,6 +7712,96 @@ const CASES = [
     "ref": "IT-N397 同批顺带修：成员判断原来用 `k in b`（走原型链），`'constructor' in {}` 为真 ⇒ 该键被当成「两侧都有」而递归比对 function，报成 mod 甚至丢键。改用 `Object.prototype.hasOwnProperty.call` 后正确报 del。默认样例无 constructor 键。"
   },
   {
+    "slug": "it/json-diff",
+    "inputs": {
+      "left": "{\"tags\":[\"a\",\"b\",\"c\"]}",
+      "right": "{\"tags\":[\"c\",\"b\",\"a\"]}",
+      "diffMode": "deep"
+    },
+    "clicks": [
+      "document.getElementById('arrayMatch').checked=true;doDiff();var d=JSON.parse(document.getElementById('jsonDiff').textContent);document.getElementById('__tbProbe').textContent='JDMUL n='+d.length+' mod='+d.filter(function(x){return x.op==='mod';}).length+' q='+document.getElementById('left').value.length;"
+    ],
+    "expect": [
+      "JDMUL n=0 mod=0 q=22"
+    ],
+    "ref": "复核失败重做·IT-N396 1/6（三元素完全逆序）：勾选数组按内容匹配，`{\"tags\":[\"a\",\"b\",\"c\"]}` 对 `{\"tags\":[\"c\",\"b\",\"a\"]}` 内容多重集相同，应判 0 处差异。修复前 LCS 只能配到 1 个元素，剩余项按下标硬配对 ⇒ `n=2 mod=2`；修复后剩余项先按规范内容多重集抵消 ⇒ `JDMUL n=0 mod=0 q=22` ⇒ 强判别。"
+  },
+  {
+    "slug": "it/json-diff",
+    "inputs": {
+      "left": "{\"tags\":[\"a\",\"b\",\"c\"]}",
+      "right": "{\"tags\":[\"c\",\"x\",\"a\"]}",
+      "diffMode": "deep"
+    },
+    "clicks": [
+      "document.getElementById('arrayMatch').checked=true;doDiff();var d=JSON.parse(document.getElementById('jsonDiff').textContent);document.getElementById('__tbProbe').textContent='JDMIX n='+d.length+' mod='+d.filter(function(x){return x.op==='mod';}).length+' p='+(d[0]?d[0].path:'-')+' q='+document.getElementById('left').value.length;"
+    ],
+    "expect": [
+      "JDMIX n=1 mod=1 p=tags[1] q=22"
+    ],
+    "ref": "复核失败重做·IT-N396 2/6（逆序 + 真变化）：`[\"a\",\"b\",\"c\"]` 对 `[\"c\",\"x\",\"a\"]`，应只报 1 处 mod（b→x）。修复前 `n=2 mod=2 p=tags[0]`；修复后多重集抵消掉 c/a，只剩 b 与 x 递归比对 ⇒ `JDMIX n=1 mod=1 p=tags[1] q=22` ⇒ 强判别，同时证明抵消没有把真变化吞掉。"
+  },
+  {
+    "slug": "it/json-diff",
+    "inputs": {
+      "left": "{\"a\":{\"__proto__\":{\"v\":1}}}",
+      "right": "{\"a\":{\"__proto__\":{\"v\":2}}}",
+      "diffMode": "simple"
+    },
+    "clicks": [
+      "doDiff();var d=JSON.parse(document.getElementById('jsonDiff').textContent);document.getElementById('__tbProbe').textContent='JDPROTO n='+d.length+' op='+(d[0]?d[0].op:'-')+' path='+(d[0]?d[0].path:'-')+' q='+document.getElementById('left').value.length;"
+    ],
+    "expect": [
+      "JDPROTO n=1 op=mod path=a q=27"
+    ],
+    "ref": "复核失败重做·IT-N397 3/6（简单模式嵌套特殊键）：`{\"a\":{\"__proto__\":{\"v\":1}}}` 对同处值为 2。修复前 `jdCanon` 用普通 `{}`，`o[\"__proto__\"]=...` 触发原型 setter、序列化丢键 ⇒ 两侧比较键都是 `{}` ⇒ `n=0 op=- path=-`；修复后无原型对象保住自有键 ⇒ `JDPROTO n=1 op=mod path=a q=27` ⇒ 强判别。"
+  },
+  {
+    "slug": "it/json-diff",
+    "inputs": {
+      "left": "{\"__proto__\":{\"v\":1}}",
+      "right": "{\"__proto__\":{\"v\":2}}",
+      "diffMode": "simple"
+    },
+    "clicks": [
+      "doDiff();var d=JSON.parse(document.getElementById('jsonDiff').textContent);document.getElementById('__tbProbe').textContent='JDTOP n='+d.length+' op='+(d[0]?d[0].op:'-')+' path='+(d[0]?d[0].path:'-')+' q='+document.getElementById('left').value.length;"
+    ],
+    "expect": [
+      "JDTOP n=1 op=mod path=__proto__ q=21"
+    ],
+    "ref": "复核失败重做·IT-N397 4/6（简单模式顶层特殊键）：`{\"__proto__\":{\"v\":1}}` 对 `{\"__proto__\":{\"v\":2}}`。修复前 `simpleDiff` 的去重表用普通 `{}`，`seen[\"__proto__\"]` 命中 Object.prototype 为 truthy ⇒ 该键被整个跳过，加上 jdCanon 丢键 ⇒ `n=0`；修复后去重表与规范化都用 `Object.create(null)` ⇒ `JDTOP n=1 op=mod path=__proto__ q=21` ⇒ 强判别。"
+  },
+  {
+    "slug": "it/json-diff",
+    "inputs": {
+      "left": "{\"arr\":[{\"__proto__\":{\"v\":1}}]}",
+      "right": "{\"arr\":[{\"__proto__\":{\"v\":2}}]}",
+      "diffMode": "deep"
+    },
+    "clicks": [
+      "document.getElementById('arrayMatch').checked=true;doDiff();var d=JSON.parse(document.getElementById('jsonDiff').textContent);document.getElementById('__tbProbe').textContent='JDARR n='+d.length+' op='+(d[0]?d[0].op:'-')+' path='+(d[0]?d[0].path:'-')+' q='+document.getElementById('left').value.length;"
+    ],
+    "expect": [
+      "JDARR n=1 op=mod path=arr[0].__proto__.v q=31"
+    ],
+    "ref": "复核失败重做·IT-N397 5/6（数组元素含特殊键，按内容匹配）：`{\"arr\":[{\"__proto__\":{\"v\":1}}]}` 对同处值为 2，deep + 按内容匹配。修复前元素比较键相同被 LCS 直接配对 ⇒ `n=0`；修复后比较键不同、多重集也无匹配 ⇒ 递归到叶子 ⇒ `JDARR n=1 op=mod path=arr[0].__proto__.v q=31` ⇒ 强判别。"
+  },
+  {
+    "slug": "it/json-diff",
+    "inputs": {
+      "left": "{\"a\":{\"x\":1,\"y\":2}}",
+      "right": "{\"a\":{\"y\":2,\"x\":1}}",
+      "diffMode": "simple"
+    },
+    "clicks": [
+      "doDiff();var d=JSON.parse(document.getElementById('jsonDiff').textContent);document.getElementById('__tbProbe').textContent='JDORDER n='+d.length+' q='+document.getElementById('left').value.length;"
+    ],
+    "expect": [
+      "JDORDER n=0 q=19"
+    ],
+    "ref": "复核失败重做·IT-N397 6/6（键序护栏）：`{\"a\":{\"x\":1,\"y\":2}}` 对 `{\"a\":{\"y\":2,\"x\":1}}` 在简单模式应仍判 0 处差异。本例修复前后都应 PASS，用于证明改用无原型对象后的规范序列化仍按键名排序，没有把「仅键序不同」误报成变化；默认态不执行 clicks、无探针串 ⇒ 零逃生。"
+  },
+  {
     "slug": "it/json-schema-validator",
     "inputs": {
       "schema": "1\n2\n3",

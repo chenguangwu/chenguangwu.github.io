@@ -393,7 +393,10 @@ function swapInputs() {
 function jdCanon(v) {
   if (Array.isArray(v)) return v.map(jdCanon);
   if (v && typeof v === 'object') {
-    const o = {};
+    // 必须用无原型对象：普通 {} 的 `o['__proto__'] = ...` 会触发原型 setter，
+    // 该键不会成为自有属性，JSON.parse 出来的 __proto__ 自有键会在规范化时凭空消失，
+    // 导致含该键的对象/数组元素在比较键上被判成「完全相同」。
+    const o = Object.create(null);
     for (const k of Object.keys(v).sort()) o[k] = jdCanon(v[k]);
     return o;
   }
@@ -468,12 +471,29 @@ function deepDiff(a, b, path = '', arrayMatch = false) {
         const restA = [], restB = [];
         for (let i = 0; i < a.length; i++) if (!hitA.has(i)) restA.push(i);
         for (let j = 0; j < b.length; j++) if (!hitB.has(j)) restB.push(j);
-        const k2 = Math.min(restA.length, restB.length);
-        for (let t = 0; t < k2; t++) {
-          diffs.push(...deepDiff(a[restA[t]], b[restB[t]], path + '[' + restA[t] + ']', arrayMatch));
+        // LCS 只认「顺序也能对齐」的相同元素；完全逆序时它只能配到 1 个，
+        // 其余元素内容明明相同却会被按下标两两递归，误报成 mod。
+        // 因此先按规范内容对剩余项做多重集抵消，真正配不上的才进入递归比较 / add / del。
+        const poolB = new Map();
+        for (const j of restB) {
+          const key = bk[j];
+          if (!poolB.has(key)) poolB.set(key, []);
+          poolB.get(key).push(j);
         }
-        for (let t = k2; t < restA.length; t++) diffs.push({ op: 'del', path: path + '[' + restA[t] + ']', value: a[restA[t]] });
-        for (let t = k2; t < restB.length; t++) diffs.push({ op: 'add', path: path + '[' + restB[t] + ']', value: b[restB[t]] });
+        const usedB = new Set();
+        const pendingA = [];
+        for (const i of restA) {
+          const bucket = poolB.get(ak[i]);
+          if (bucket && bucket.length) { usedB.add(bucket.shift()); continue; }
+          pendingA.push(i);
+        }
+        const pendingB = restB.filter(j => !usedB.has(j));
+        const k2 = Math.min(pendingA.length, pendingB.length);
+        for (let t = 0; t < k2; t++) {
+          diffs.push(...deepDiff(a[pendingA[t]], b[pendingB[t]], path + '[' + pendingA[t] + ']', arrayMatch));
+        }
+        for (let t = k2; t < pendingA.length; t++) diffs.push({ op: 'del', path: path + '[' + pendingA[t] + ']', value: a[pendingA[t]] });
+        for (let t = k2; t < pendingB.length; t++) diffs.push({ op: 'add', path: path + '[' + pendingB[t] + ']', value: b[pendingB[t]] });
         return diffs;
       }
     }
@@ -501,7 +521,9 @@ function simpleDiff(a, b) {
   const isObj = v => v !== null && typeof v === 'object' && !Array.isArray(v);
   if (isObj(a) && isObj(b)) {
     const keys = [];
-    const seen = {};
+    // 无原型对象：普通 {} 下 `seen['__proto__']` 命中 Object.prototype 而为 truthy，
+    // 该顶层键会被去重逻辑整个跳过 ⇒ 简单模式对 __proto__ 的变化漏报。
+    const seen = Object.create(null);
     for (const k of Object.keys(a).concat(Object.keys(b))) { if (!seen[k]) { seen[k] = 1; keys.push(k); } }
     for (const k of keys) {
       const inA = Object.prototype.hasOwnProperty.call(a, k);
@@ -527,7 +549,7 @@ function countSame(a, b, path = '') {
   
   if (ta === 'object' && a !== null && b !== null) {
     for (const k of Object.keys(a)) {
-      if (k in b) count += countSame(a[k], b[k], path ? path + '.' + k : k);
+      if (Object.prototype.hasOwnProperty.call(b, k)) count += countSame(a[k], b[k], path ? path + '.' + k : k);
     }
     return count;
   }
