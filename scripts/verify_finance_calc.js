@@ -420,6 +420,18 @@ const CASES = [
     ref: "新加坡 NRIC：前缀 S（2000 年前出生公民）+ 7 位数字 1234567，按加权表 mod 11 得余数 ⇒ 校验字母 D。默认态输入不同 ⇒ 不命中。",
   },
   {
+    slug: "finance/nric-validator",
+    inputs: { input: "M1234567X" },
+    expect: ["前缀： M - 外国人（FIN，2022 年后） 7 位数字： 1234567 校验字母： X（期望 X） ✅ NRIC/FIN 号码有效"],
+    ref: "F-N214 M 系列 FIN：2022 年后外国人前缀 M 纳入正则、offset=4、走 FG 字母表，M1234567 期望校验位 X ⇒ 合法。旧实现正则 ^[STFG] 拒 M 报「格式不符」。默认态 S1234568B ⇒ 不命中。",
+  },
+  {
+    slug: "finance/nric-validator",
+    inputs: { input: "M1234567K" },
+    expect: ["校验字母： K（期望 X） ❌ 校验和失败，号码无效"],
+    ref: "F-N214 M 系列错校验位：M1234567 期望 X，填 K ⇒ 无效（验证 M 纳入后仍按 FG 表校验，非无条件放行）。默认态 ⇒ 不命中。",
+  },
+  {
     slug: "finance/ifsc-validator",
     inputs: { input: "HDFC0001234" },
     expect: ["分支代码： 001234"],
