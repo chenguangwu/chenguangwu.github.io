@@ -39,6 +39,7 @@ GATES = (
     ),
     ("build", ("python3", "_build.py")),
     ("service worker kill switch", ("node", "scripts/verify_sw_kill.cjs")),
+    ("clarity privacy integration", ("node", "scripts/verify_clarity_privacy.cjs")),
     ("static tests", ("python3", "_test_static.py")),
     ("dead-link audit", ("python3", "_audit_links.py", "--check")),
     ("asset audit", ("python3", "_audit_assets.py", "--check")),

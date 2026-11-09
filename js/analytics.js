@@ -75,9 +75,14 @@
     });
   });
 
-  // Microsoft Clarity（会话回放）已移除（2026-11-04）：实测其 DOM 快照包含页面
-  // 可见文本（工具页回显的用户输入即成明文上传），服务端脱敏不可自证，
-  // 与 AGENTS.md §2「任何数据不上传服务器」冲突。基础统计（51.la / 百度 / TTZZ）保留。
+  // Microsoft Clarity：初始化前设置全页遮罩；其他采集通道仍须核验。
+  runSafely(function () {
+    document.documentElement.setAttribute('data-clarity-mask', 'true');
+    window.clarity = window.clarity || function () {
+      (window.clarity.q = window.clarity.q || []).push(arguments);
+    };
+    loadScript('tb-clarity-sdk', 'https://www.clarity.ms/tag/y48102uvzx?ref=bwt');
+  });
 
   // 百度统计与自动推送
   runSafely(function () {

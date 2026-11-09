@@ -114,5 +114,26 @@ async function loadPage(rel, onKit) {
   check('SF-N83 不再渲染 114.59 倍角度因子', !/114\.59/.test(res), 'res=' + res.slice(0, 160));
 }
 
+// SF-N122：公式、说明和英文词典须与实际的失误率标准化计算一致。
+{
+  const rel = 'tools/sports/yumaoqiushaqiuxiaolv.html';
+  const w = await loadPage(rel);
+  const doc = w.document;
+  const formula = doc.querySelector('.formula-eq').textContent.trim();
+  const info = Array.from(doc.querySelectorAll('.info-box')).find(el => el.textContent.includes('有效率='));
+  const infoText = info.textContent.trim();
+  const dict = JSON.parse(read('i18n/tools/en/sports/yumaoqiushaqiuxiaolv.json')).map;
+  check('SF-N122 公式明确失误分归一化为 max(0, 100−失误率/20×100)', formula.includes('max(0, 100−失误率/20×100)'));
+  check('SF-N122 说明使用失误分而非原始失误率', infoText.includes('0.3×失误分') && !infoText.includes('0.3×(1−失误率)'));
+  check('SF-N122 新公式和说明均有一致的英文翻译', !!dict[formula] && !!dict[infoText] && dict[formula].includes('max(0, 100 − error rate / 20 × 100)') && dict[infoText].includes('error score'));
+  for (const [errors, expected] of [[0, '75.6'], [5, '56.9'], [8, '45.6'], [10, '45.6']]) {
+    for (const [id, value] of Object.entries({ speed: '280', total: '40', win: '12', err: String(errors) })) doc.getElementById(id).value = value;
+    w.calc();
+    const result = doc.getElementById('res').textContent;
+    check('SF-N122 失误 ' + errors + ' 次按公式得到 ' + expected, result.includes(expected), '页面=' + result.slice(0, 200));
+  }
+  w.close();
+}
+
 console.log('\n==== sports K 批运行期证据: ' + pass + '/' + (pass + fail) + ' ====');
 process.exit(fail ? 1 : 0);
