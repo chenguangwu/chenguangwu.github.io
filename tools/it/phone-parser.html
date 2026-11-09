@@ -262,6 +262,8 @@ function calcTool(){
   }
 
   var valid=digits.length>=rule.min && digits.length<=rule.max;
+  // IT-N413：英国按 07 手机与 01/02 固话分别校验。手机国内须恰为 10 位（含 trunk 0 共 11 位）；固话 9–10 位。
+  if(cc==='44' && digits.charAt(0)==='7') valid=(digits.length===10);
   var e164='+'+cc+digits;
   var totalLen=cc.length+digits.length;
   if(valid && totalLen<=15) __lastE164=e164;
@@ -275,7 +277,13 @@ function calcTool(){
     if(ccCode==='1')  return d.length===10?'('+d.slice(0,3)+') '+d.slice(3,6)+'-'+d.slice(6):grp(d);
     // 英国：剥 0 后 9 位是手机 07xxx 09584（补回 trunk 0 按 5-5），
     // 10 位是伦敦等固话 020 7946 0958（补回 trunk 0 按 3-4-4）。
-    if(ccCode==='44') return d.length===9?fmtGroup('0'+d,[5,5]):(d.length===10?fmtGroup('0'+d,[3,4,4]):grp(d));
+    if(ccCode==='44'){
+      // IT-N413：07 开头为手机，按 5-6 分组；其余为固话（9 位 5-5，10 位 3-4-4）
+      if(d.length===10 && d.charAt(0)==='7') return fmtGroup('0'+d,[5,6]);
+      if(d.length===9) return fmtGroup('0'+d,[5,5]);
+      if(d.length===10) return fmtGroup('0'+d,[3,4,4]);
+      return grp(d);
+    }
     if(ccCode==='81') return d.length===9?fmtGroup('0'+d,[2,4,4]):(d.length===10?fmtGroup('0'+d,[3,4,4]):grp(d));
     if(ccCode==='91') return d.length===10?fmtGroup(d,[5,5]):grp(d);
     if(ccCode==='852'||ccCode==='65') return d.length===8?fmtGroup(d,[4,4]):grp(d);

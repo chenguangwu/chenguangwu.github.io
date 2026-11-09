@@ -670,6 +670,18 @@ const CASES = [
     ref: "locale 标签解析：zh-CN ⇒ 语言 zh / 国家 CN / 完整名「简体中文（中国大陆）」/ 书写系统 Hans / 排序拼音。默认输入不同 ⇒ 不命中（双态核验：注入 PASS / 默认 FAIL）。",
   },
   {
+    slug: "it/locale-lookup",
+    inputs: { input: "de-1996-1996" },
+    expect: ["不符合 BCP 47 格式"],
+    ref: "IT-N421：重复 variant 必须拒绝。`de-1996-1996` 含两个相同 variant 1996，Intl.getCanonicalLocales 以 RangeError 拒绝；原正则 LC_RE 不查重误判有效。现 __lcValid 增加 variant/扩展单例去重检查。expect 命中「不符合 BCP 47 格式」提示（默认 en-US 命中「✅ 有效」串、不命中「不符合」）⇒ 强判别；回退去重检查后必红。"
+  },
+  {
+    slug: "it/locale-lookup",
+    inputs: { input: "en-u-ca-gregory-u-nu-latn" },
+    expect: ["不符合 BCP 47 格式"],
+    ref: "IT-N421：重复扩展单例 u 必须拒绝。`en-u-ca-gregory-u-nu-latn` 含两个 u 扩展单例，Intl.getCanonicalLocales 拒绝；现单例去重检查拦截。expect 命中「不符合 BCP 47 格式」（默认态不命中）⇒ 强判别。"
+  },
+  {
     slug: "it/ipv6-converter",
     // 注意：默认地址（2001:db8::1）与注入值同串，属逃生项；改用非默认地址即可。
     inputs: { addr: "fe80::abcd" },
@@ -941,6 +953,12 @@ const CASES = [
     clicks: ["document.getElementById('seed').value='TB549B';document.getElementById('maxLen').value='10';document.getElementById('suffixMode').value='none';document.getElementById('count').value='8';generate();var __o=document.getElementById('output').innerHTML;var __names=__o.split('</div>').map(function(s){return s.replace(/<[^>]*>/g,'');}).filter(function(s){return s.length;});document.getElementById('output').textContent='TN549_LEN='+__names.length+'/'+(__names.every(function(s){return s.length<=10;})?1:0);"],
     expect: ["TN549_LEN=8/1"],
     ref: "IT-N549 最大长度：maxLen=10、无后缀、8 条，重试 16 次仍超长按上限截断 ⇒ 8 条全部 ≤10 字符。修复前无 maxLen 控件，候选常有 20+ 字符 ⇒ 该哨兵不出现。默认态不含该串。",
+  },
+  {
+    slug: "it/team-name-generator",
+    clicks: ["document.getElementById('seed').value='x';document.getElementById('style').value='classical';document.getElementById('domain').value='creative';document.getElementById('maxLen').value='6';document.getElementById('suffixMode').value='number';document.getElementById('count').value='5';generate();var __o=document.getElementById('output').innerHTML;var __names=__o.split('</div>').map(function(s){return s.replace(/<[^>]*>/g,'');}).filter(function(s){return s.length;});var __all=__names.length>0&&__names.every(function(s){return / [0-9][0-9]$/.test(s);});document.getElementById('output').textContent='TN549_SUFFIX='+(__all?1:0);"],
+    expect: ["TN549_SUFFIX=1"],
+    ref: "IT-N549：短 maxLen 时后缀须保留可见。种子 x、古风、创意、maxLen=6、数字后缀、5 条，修复后每条以「 两位数字」结尾（复现得 Jad 25 / Neo 19 / Moo 72 / Neo 28 / Cry 42），因截断时为后缀预留长度；修复前整串被截到 6 字符、数字后缀丢失（如 Jade W）⇒ 该哨兵为 0。默认态（无种子、maxLen=24）不命中 TN549_SUFFIX=。"
   },
   {
     slug: "it/screen-size",
@@ -1877,6 +1895,20 @@ const CASES = [
     clicks: ["calcTool()"],
     expect: ["国内格式：139 0013 9000"],
     ref: "E.164 与国内按位分组格式随号码变化：注入 13900139000 + 国家码 86 ⇒ E.164 +8613900139000、国内格式 139 0013 9000。原注入 13800138000 恰为页面默认号码，默认态同样输出「138 0013 8000」，属逃生项。",
+  },
+  {
+    slug: "it/phone-parser",
+    inputs: { phone: "07946095842", cc: "44" },
+    clicks: ["calcTool()"],
+    expect: ["07946 095842"],
+    ref: "IT-N413：英国手机 07 开头须按手机分组（5-6）。输入 07946095842（含前导 0 共 11 位）⇒ 剥 trunk 后 7946095842（10 位、手机），国内格式应为 07946 095842。修复前按固话 3-4-4 显示 079 4609 5842。expect 命中手机分组串（默认 zh-CN 态不出现）⇒ 强判别；回退移动/固话分支后必红。"
+  },
+  {
+    slug: "it/phone-parser",
+    inputs: { phone: "0794609584", cc: "44" },
+    clicks: ["calcTool()"],
+    expect: ["⚠️ 国内号码应为 9–10 位"],
+    ref: "IT-N413：英国 07 手机国内须恰为 10 位（含 trunk 0 共 11 位）。0794609584 仅 10 位（含 0），剥 0 后 9 位 ⇒ 手机长度不足 ⇒ 应提示长度错误。修复前按 9 位固话判通过。expect 命中「⚠️ 国内号码应为 9–10 位」（默认态不命中）⇒ 强判别。"
   },
   {
     slug: "it/country-code-lookup",
