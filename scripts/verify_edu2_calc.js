@@ -3,6 +3,12 @@
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
+    "slug": "edu2/exam-analysis",
+    "clicks": ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'fullScore',type:'text',value:''},{id:'scoreInput',type:'textarea',value:'张三,92'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};var __r=document.getElementById('result');__r.textContent='平均分 85.5 · 及格率 90%';__r.style=__r.style||{};__r.style.display='none';__exam_analysis_last=0;__exam_analysisExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='EXAMHIDE n='+__cap.length;"],
+    "expect": ["EXAMHIDE n=0"],
+    "ref": "复核失败重做·考试隐藏旧结果被采集：清空满分后 calc() 只隐藏 #result 并弹 Toast，旧结果文本仍留在隐藏容器；旧 ResText 照读 ⇒ 写历史且同值去重连失败都不记，CSV 保留旧通过结果。修复后 ResText 判 style.display==='none' 直接返回 '' ⇒ 失效态不入账。用例把结果区置为旧有效文本再隐藏走真实 Extras；修复前 n=1、修复后 n=0，默认态无探针串 ⇒ 零逃生。"
+  },
+{
   "slug": "edu2/exam-analysis",
   "inputs": {
     "fullScore": "120",

@@ -3,6 +3,12 @@
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
+    "slug": "chess/gomoku-forbidden",
+    "clicks": ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'goCol',type:'text',value:'Z'},{id:'goRow',type:'text',value:'99'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('goCol').value='Z';document.getElementById('goRow').value='99';var __r=document.getElementById('result');__r.textContent='坐标无效：列取 A-O，行取 1-15。';__gomoku_forbidden_last=0;analyzeCoordinate();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='GOMOCO n='+__cap.length+' s='+(__cap.length?__cap[__cap.length-1].__tbScore:'NA');"],
+    "expect": ["GOMOCO n=1 s=0"],
+    "ref": "复核失败重做·禁手坐标早退不入账：analyzeCoordinate 是坐标输入真实入口，坐标无效时在此早退（不调 analyzePoint）；旧记录器只包装 analyzePoint ⇒ 历史/趋势/CSV 停留旧结果。修复后同构包装 analyzeCoordinate，早退写『坐标无效』也走 Extras，Score 词表含『无效』判 0。用例注入非法坐标 Z/99 走真实 analyzeCoordinate，innerHTML→textContent 同步以适配桩 DOM；修复前 n=0、修复后 n=1 s=0，默认态无探针串 ⇒ 零逃生。"
+  },
+{
   "slug": "chess/bridge-scoring",
   "inputs": {
     "level": "5",

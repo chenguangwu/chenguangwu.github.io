@@ -12,6 +12,12 @@
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
+{
+    "slug": "agriculture/fertilizer-calculator",
+    "clicks": ["document.getElementById('__tbProbe').textContent='FERT score='+__fertilizer_calculatorScore('请填写「种植面积(亩)」后再计算。');"],
+    "expect": ["FERT score=0"],
+    "ref": "复核失败重做·肥料必填误判：页面必填守卫文案为『请填写「%s」后再计算。』，清空种植面积即产出该串；旧 Score 词表只有 请输入|Please enter ⇒ 判 1（通过），历史/表格/CSV 全误标。修复后补 请填写|填写|再计算 ⇒ 判 0。探针取真实 Score 函数返回值，默认态无探针串 ⇒ 零逃生。"
+  },
   // ── 作物需水（ETc = ET0 × Kc，净需水扣雨量）────────────────────
   {
     slug: "agriculture/estimate-3",
