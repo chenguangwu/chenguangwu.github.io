@@ -297,14 +297,15 @@ function walk(schema, val, path, out, depth) {
     return;
   }
 
-  // 未显式声明 type 时按关键字推断角色：properties/required/additionalProperties 本身即隐含
-  // 对象约束，items 隐含数组约束（JSON Schema 里省略根 type 的写法非常常见）
+  // IT-N398/N400：关键字按「实例实际类型」应用，而不是靠 schema 里出现哪类关键字猜角色。
+  // typeOK() 已经校验 type（含联合类型），此处只负责把适用的关键字套到真实值上：
+  // required/properties 只对对象生效，items 只对数组生效；联合类型不得要求同时满足 object+array。
   const hasObjKw = schema.properties !== undefined || schema.required !== undefined || schema.additionalProperties !== undefined;
   const hasArrKw = schema.items !== undefined;
-  const explicitObj = typeList.indexOf('object') >= 0;
-  const explicitArr = typeList.indexOf('array') >= 0;
-  const asObject = explicitObj || (!typeList.length && hasObjKw);
-  const asArray = explicitArr || (!typeList.length && !hasObjKw && hasArrKw);
+  const isObjVal = val !== null && typeof val === 'object' && !Array.isArray(val);
+  const isArrVal = Array.isArray(val);
+  const asObject = isObjVal && hasObjKw;
+  const asArray = isArrVal && hasArrKw;
 
   if (asObject) {
     if (val !== null && typeof val === 'object' && !Array.isArray(val)) {
@@ -327,17 +328,10 @@ function walk(schema, val, path, out, depth) {
           if (!hasOwn(props, k)) out.push(`存在未允许字段: ${path ? path + '.' : ''}${k}`);
         }
       }
-    } else if (explicitObj && val !== null) {
-      out.push(`${path} 不是对象`);
-      return;
     }
   }
 
   if (asArray) {
-    if (!Array.isArray(val)) {
-      if (explicitArr) out.push(`${path} 不是数组`);
-      return;
-    }
     const itemSchema = schema.items || null;
     val.forEach((v, idx) => walk(itemSchema, v, `${path}[${idx}]`, out, depth + 1));
   }

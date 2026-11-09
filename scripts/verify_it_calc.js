@@ -144,6 +144,91 @@ function _rngReset() { _rngState = 0x9e3779b9 >>> 0; }
 
 // ---------------------------------------------------------------- 用例
 const CASES = [
+  // ===== 复核失败·第一批重做（IT-N409 / N411 / N370 / N392 / N398 / N400 / N385 / N386）=====
+  {
+    slug: "it/uuid-generator",
+    inputs: {},
+    clicks: ["var ts=[' 6ba7b810-9dad-11d1-80b4-00c04fd430c8 ','6ba7b810----9dad11d180b400c04fd430c8','6ba7b8109dad11d180b400c04fd430c8','{6ba7b810-9dad-11d1-80b4-00c04fd430c8}','6ba7b810-9dad-11d1-80b4-00c04fd430c8'];var rs=[];for(var i=0;i<ts.length;i++)rs.push(isValidUuid(ts[i])?'Y':'N');document.getElementById('__tbProbe').textContent='UU='+rs.join('')+' NORM='+normalizeUuid(ts[0]);"],
+    expect: ["UU=YNYYY NORM=6ba7b810-9dad-11d1-80b4-00c04fd430c8"],
+    ref: "IT-N409 复核重做：isValidUuid 改为只接受 8-4-4-4-12 或 32 位连续十六进制（含首尾空格与花括号包裹）。五种书写依次 合法/错位连字符非法/连续 hex 合法/花括号合法/标准合法；NORM 证明带空格输入被规范化成同一标准串，生成时不再取未 trim 原值。探针只在注入 clicks 后出现，默认态零命中。",
+  },
+  {
+    slug: "it/uuid-generator",
+    inputs: {"version": "v5", "namespace": "6ba7b810----9dad11d180b400c04fd430c8", "name": "example.com", "count": "1"},
+    expect: ["命名空间 UUID 格式非法：请填写 8-4-4-4-12 的十六进制 UUID（或 32 位连续十六进制）"],
+    ref: "IT-N409 复核重做：错位连字符串旧实现去掉所有 - 后恰有 32 位 hex 而被接受，与错误提示宣称的 8-4-4-4-12 格式不符。现入口严格拒绝并给出明确提示；默认 v4 态不出现该提示。",
+  },
+  {
+    slug: "it/uuid-generator",
+    inputs: {"version": "v5", "namespace": " 6ba7b810-9dad-11d1-80b4-00c04fd430c8 ", "name": "www.example.com", "count": "1"},
+    expect: ["2ed6657d-e927-568b-95e1-2665a8aea6a2"],
+    ref: "IT-N409 复核重做：首尾带空格的合法 DNS 命名空间，旧实现入口 trim 通过但生成时读未 trim 原值 ⇒ generateUuidV5 抛 Invalid namespace UUID 且异步异常未捕获。现校验与 SHA-1 共用规范化结果，并用 try/catch 兜住异步异常；产物命中 RFC 4122 / Python uuid5(NAMESPACE_DNS, \"www.example.com\") 标准向量 2ed6657d-e927-568b-95e1-2665a8aea6a2。默认 v4 随机值不命中。",
+  },
+  {
+    slug: "it/matrix-inverter",
+    inputs: {},
+    clicks: ["var A=[[1e13,1e13],[1e13,2e13]],r=inverse(A),I=r.inv,P=[];for(var i=0;i<2;i++)for(var j=0;j<2;j++){var s=0;for(var k=0;k<2;k++)s+=A[i][k]*I[k][j];P.push(Math.round(s*1e6)/1e6);}document.getElementById('__tbProbe').textContent='MI='+P.join(',')+' INV='+I.map(function(x){return x.map(function(y){return y.toExponential(1);}).join(',');}).join('|');"],
+    expect: ["MI=1,0,0,1 INV=2.0e-13,-1.0e-13|-1.0e-13,1.0e-13"],
+    ref: "IT-N370 复核重做：A=[[1e13,1e13],[1e13,2e13]] 的尺度 tol≈20，旧实现把该相对主元阈值也用于「归一化之后」的消元因子 f≈1 ⇒ 跳过消元、输出 [[1e-13,0],[-1e-13,1e-13]]，A×A⁻¹=[[0,1],[-1,2]]。现只有 f===0 才跳过，逆矩阵与乘积单位阵自洽。默认单位阵不产生该串。",
+  },
+  {
+    slug: "it/toml-to-xml",
+    inputs: {"source": "\"a　b\" = 1"},
+    expect: ["&lt;a_b&gt;1&lt;/a_b&gt;"],
+    ref: "IT-N392 复核重做：合法 TOML 键 \"a　b\"（U+3000 全角空格）。旧 xmlName 放行整个 \\u00c0-\\uffff ⇒ 输出 <a　b> 被 XML 解析器拒绝；现按 XML 1.0 NameStartChar/NameChar 逐码点清洗 ⇒ <a_b>。expect 是结果区 escH 实体形态，输入 TOML 原文不含尖括号 ⇒ 非回显；默认 config 样例不命中。",
+  },
+  {
+    slug: "it/toml-to-xml",
+    inputs: {"source": "\"́x\" = 1"},
+    expect: ["&lt;_x&gt;1&lt;/_x&gt;"],
+    ref: "IT-N392 复核重做：键首字符为 U+0301 组合音标（属 NameChar 但不是 NameStartChar）。旧实现原样放到标签首字符导致 XML 解析失败；现首字符非法补 _ 且不可见组合标记一律替换 ⇒ <_x>。同时回归锁住「数字开头须保留原字符」：既有用例 \"123\" 仍输出 <_123>，本批修掉的正是首字符被吞成 _23 的回归。默认态不命中。",
+  },
+  {
+    slug: "it/json-schema-validator",
+    inputs: {"schema": "{\"required\":[\"x\"],\"items\":{\"type\":\"number\"}}", "data": "[\"bad\"]"},
+    clicks: ["var sc=JSON.parse(document.getElementById('schema').value),da=JSON.parse(document.getElementById('data').value),o=[];walk(sc,da,'root',o,0);document.getElementById('__tbProbe').textContent='JSV='+(o.length?'FAIL:'+o.join('|'):'PASS')+' N='+Object.keys(sc).join(',');"],
+    expect: ["JSV=FAIL:类型不匹配 root[0]: 期望 number N=required,items"],
+    ref: "IT-N398 复核重做：schema 同时含 required 与 items、实例是数组 [\"bad\"]。旧实现因 hasObjKw 把角色猜成对象，items 不生效 ⇒ 判通过。现关键字按实例类型应用：required 只对对象生效、items 只对数组生效 ⇒ 指出元素 0 类型错误。探针由 clicks 写入，默认态（默认 schema/data 校验通过）不产生该串。",
+  },
+  {
+    slug: "it/json-schema-validator",
+    inputs: {"schema": "{\"type\":[\"object\",\"array\"],\"items\":{\"type\":\"number\"}}", "data": "[1]"},
+    clicks: ["var sc=JSON.parse(document.getElementById('schema').value),da=JSON.parse(document.getElementById('data').value),o=[];walk(sc,da,'root',o,0);document.getElementById('__tbProbe').textContent='JSV='+(o.length?'FAIL:'+o.join('|'):'PASS')+' N='+Object.keys(sc).join(',');"],
+    expect: ["JSV=PASS N=type,items"],
+    ref: "IT-N400 复核重做：联合类型 [\"object\",\"array\"] + items，实例 [1] 合法。旧实现因 explicitObj 在数组值上误报「不是对象」；现 typeOK 只校验类型集合，关键字按实例类型应用 ⇒ 无错误输出。默认态探针不存在。",
+  },
+  {
+    slug: "it/json-schema-validator",
+    inputs: {"schema": "{\"type\":[\"array\",\"string\"]}", "data": "\"hello\""},
+    clicks: ["var sc=JSON.parse(document.getElementById('schema').value),da=JSON.parse(document.getElementById('data').value),o=[];walk(sc,da,'root',o,0);document.getElementById('__tbProbe').textContent='JSV='+(o.length?'FAIL:'+o.join('|'):'PASS')+' N='+Object.keys(sc).join(',');"],
+    expect: ["JSV=PASS N=type"],
+    ref: "IT-N400 复核重做：联合类型 [\"array\",\"string\"] 配字符串 \"hello\"。旧实现要求同时满足 object/array 约束而误报「不是数组」；现按允许类型集合判断 ⇒ 通过。与 N398 用例共同覆盖对象/数组/标量三类实例。默认态探针不存在。",
+  },
+  {
+    slug: "it/invite-code-generator",
+    inputs: {},
+    clicks: ["var rs=['AB7','KB7','AK9','KA9','AB8'].map(function(c){return verifyLuhn(c)?'Y':'N';});document.getElementById('__tbProbe').textContent='IC='+rs.join('');"],
+    expect: ["IC=YYYYN"],
+    ref: "IT-N411 复核重做：实测 AB7→KB7 单字符替换、AK9→KA9 相邻换位均通过校验，AB8 改错校验位被拒。1 位数字校验位仅 10 种取值而字符集有 36 个符号（鸽巢原理），不可能保证全检出；本批保留兼容既有已发码的 Luhn 变体，改为如实标注边界：页面说明、公式注释与英文映射均改为「拦截部分错填 / 无法保证全部检出（附两个反例）」，不再冒称「可检出单字符错填与相邻换位」。该用例把漏检反例固化为回归护栏。",
+  },
+  {
+    slug: "it/toml-to-json",
+    inputs: {"source": "p = \"\"\"C:\\\\temp\"\"\""},
+    expect: ["JSON 输出 { \"p\": \"C:\\\\temp\" }"],
+    ref: "IT-N385 复核重做：TOML 多行基本串 \"\"\"C:\\\\temp\"\"\" 应解析为 C:\\temp（单个反斜杠）。旧实现链式 replace 先解 \\t 再解 \\\\，第二个反斜杠吃掉 t ⇒ 反斜杠后跟 TAB；现改单遍 tUnescape。expect 是 JSON.stringify 的双反斜杠转义形态，输入原文是 TOML 三引号 ⇒ 非回显；默认样例不命中。",
+  },
+  {
+    slug: "it/toml-to-json",
+    inputs: {"source": "m = \"\"\"a ''' b\"\"\"\nx = 1"},
+    expect: ["JSON 输出 { \"m\": \"a ''' b\", \"x\": 1 }"],
+    ref: "IT-N386 复核重做：合法混合引号 m = \"\"\"a ''' b\"\"\" 后另起一行 x = 1。旧 tOpenTriple 分别数 \"\"\" 与 ''' 的奇偶，双引号串里的三个单引号被误当成另一种多行串开头 ⇒ 继续吞并下一行、x 丢失；现按当前打开的三引号定界符类型判断闭合，两字段都保留。默认样例不命中。",
+  },
+  {
+    slug: "it/toml-to-json",
+    inputs: {"source": "v = \"C:\\\\temp\"\ns = \"a\\\\tb\""},
+    expect: ["JSON 输出 { \"v\": \"C:\\\\temp\", \"s\": \"a\\\\tb\" }"],
+    ref: "IT-N385 复核重做：单行基本字符串同样走单遍解码。C:\\\\temp 保留反斜杠不被 \\t 污染，a\\\\tb 解为 a + TAB + b 并在 JSON 输出里转义为 \\t。与多行串用例共同覆盖两条解码路径；默认样例不命中。",
+  },
   // ===== 条码族 deepdive 示例一致性（自查续批：修正同模板错误文案）=====
   {
     slug: "it/barcode-code128",

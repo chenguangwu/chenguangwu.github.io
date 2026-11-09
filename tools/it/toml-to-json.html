@@ -247,9 +247,47 @@ function tSplitTop(s, sep){
   if(buf.trim()!=='') out.push(buf);
   return out.filter(function(x){ return x.trim()!==''; });
 }
-// 三引号多行串是否仍未闭合（\"\"\" / ''' 出现奇数次）
+// IT-N385/N386：按「当前打开的三引号串类型」判断是否闭合，返回未闭合的定界符或 false。
+// 旧实现分别数 """ 与 ''' 的奇偶：双引号多行串里的 ''' 只是内容，却会被当成另一种串的开头，
+// 于是后续 `x = 1` 被继续吞并进字符串而丢失。这里以先遇到的开定界符为准，只找同种闭合。
 function tOpenTriple(s){
-  return ((s.match(/"""/g)||[]).length%2===1) || ((s.match(/'''/g)||[]).length%2===1);
+  var i=0, open=false;
+  while(i<s.length){
+    if(open){
+      if(s.substr(i,3)===open){ open=false; i+=3; continue; }
+      if(open==='"""' && s[i]==='\\'){ i+=2; continue; }
+      i++; continue;
+    }
+    if(s.substr(i,3)==='"""'||s.substr(i,3)==="'''"){ open=s.substr(i,3); i+=3; continue; }
+    if(s[i]==='"'){
+      i++;
+      while(i<s.length){ if(s[i]==='\\'){ i+=2; continue; } if(s[i]==='"'){ i++; break; } i++; }
+      continue;
+    }
+    if(s[i]==="'"){
+      i++;
+      while(i<s.length){ if(s[i]==="'"){ i++; break; } i++; }
+      continue;
+    }
+    i++;
+  }
+  return open;
+}
+// IT-N385：单遍解码 TOML 基本字符串转义。链式 replace 会先把 `\\t` 里的 `\t` 当制表符解掉，
+// 再解 `\\` 时就只剩一个孤立的反斜杠，导致 `C:\\temp` 变成 `C:` + TAB + `emp`。
+function tUnescape(b){
+  var out='';
+  for(var i=0;i<b.length;i++){
+    if(b[i]!=='\\'){ out+=b[i]; continue; }
+    var n=b[++i];
+    if(n===undefined){ out+='\\'; break; }
+    if(n==='n')out+='\n'; else if(n==='t')out+='\t'; else if(n==='r')out+='\r';
+    else if(n==='b')out+='\b'; else if(n==='f')out+='\f';
+    else if(n==='"')out+='"'; else if(n==='\\')out+='\\';
+    else if(n==='\n'){ while(i+1<b.length&&/\s/.test(b[i+1])) i++; }
+    else out+=n;
+  }
+  return out;
 }
 // 括号净深度（跳过字符串/三引号串内的括号）；多行数组/内联表靠它判断是否还要吞并下一行
 function tDepth(s){
@@ -284,7 +322,7 @@ function tVal(s){
   if(s.length>=6 && s.substr(0,3)==='"""'){
     var b=s.slice(3, s.lastIndexOf('"""'));
     if(b[0]==='\n') b=b.slice(1);
-    return b.replace(/\\n/g,'\n').replace(/\\t/g,'\t').replace(/\\"/g,'"').replace(/\\\\/g,'\\');
+    return tUnescape(b);
   }
   // 多行字面量串 '''...'''（不做任何转义）
   if(s.length>=6 && s.substr(0,3)==="'''"){
@@ -296,8 +334,8 @@ function tVal(s){
   if(c0==='"'){
     var m=s.match(/^"((?:[^"\\]|\\.)*)"/);
     if(!m) return s;
-    // 先保护 \\ 再解转义，否则 "\\\\n" 会被当成换行
-    return m[1].replace(/\\\\/g,'\u0000').replace(/\\n/g,'\n').replace(/\\t/g,'\t').replace(/\\r/g,'\r').replace(/\\"/g,'"').replace(/\u0000/g,'\\');
+    // 单遍解码：既不会把 "\\\\n" 当换行，也不会让 "C:\\\\temp" 的第二个反斜杠吃掉 t
+    return tUnescape(m[1]);
   }
   // 单引号字面量串：内容原样
   if(c0==="'"){ var m2=s.match(/^'([^']*)'/); return m2 ? m2[1] : s; }

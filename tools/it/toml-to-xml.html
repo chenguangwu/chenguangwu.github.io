@@ -338,12 +338,36 @@ function xmlToJson(xml){
 }
 // XML Name 清洗：TOML 允许任意带引号键，但 XML 元素/属性名只能是 Name 字符
 // （非法字符→_、数字/符号开头补前导 _、连续 _ 合并）
+// IT-N392：按 XML 1.0 (5th ed) 的 NameStartChar / NameChar 逐码点清洗。
+// 旧实现粗略放行整个 \u00c0-\uffff 区间，把 U+3000 全角空格、U+0301 组合音标（作首字符）
+// 等不是 Name 字符的码位原样塞进标签名 ⇒ XML 解析器直接报非法标签。
+function xmlStartCp(cp){
+  return cp===0x3A||(cp>=0x41&&cp<=0x5A)||cp===0x5F||(cp>=0x61&&cp<=0x7A)||
+    (cp>=0xC0&&cp<=0xD6)||(cp>=0xD8&&cp<=0xF6)||(cp>=0xF8&&cp<=0x2FF)||
+    (cp>=0x370&&cp<=0x37D)||(cp>=0x37F&&cp<=0x1FFF)||(cp>=0x200C&&cp<=0x200D)||
+    (cp>=0x2070&&cp<=0x218F)||(cp>=0x2C00&&cp<=0x2FEF)||(cp>=0x3001&&cp<=0xD7FF)||
+    (cp>=0xF900&&cp<=0xFDCF)||(cp>=0xFDF0&&cp<=0xFFFD)||(cp>=0x10000&&cp<=0xEFFFF);
+}
+function xmlCharCp(cp){
+  return xmlStartCp(cp)||cp===0x2D||cp===0x2E||(cp>=0x30&&cp<=0x39)||cp===0xB7||
+    (cp>=0x300&&cp<=0x36F)||(cp>=0x203F&&cp<=0x2040);
+}
 function xmlName(k){
-  var s=String(k==null?'':k);
-  s=s.replace(/[^A-Za-z0-9_.\-\u00c0-\uffff]/g,'_').replace(/_+/g,'_');
-  if(!s) s='_';
-  if(!/^[A-Za-z_\u00c0-\uffff]/.test(s)) s='_'+s;
-  return s;
+  var s=String(k==null?'':k), out='';
+  for(var i=0;i<s.length;i++){
+    var cp=s.codePointAt(i), ch=String.fromCodePoint(cp);
+    if(cp>0xFFFF) i++;
+    if(out.length===0 && !xmlStartCp(cp)){
+      // 首字符不是 NameStartChar：补前导 _。数字是常见合法值（如 "123"）必须保留，
+      // 否则会丢字符产出 _23 这类错误标签；组合音标等不可见码位一律替换成 _，
+      // 避免产出含不可见字符的标签名（XML 虽合法但不可用）。
+      out += '_' + ((cp>=0x30&&cp<=0x39)?ch:'_');
+    }else{
+      out += (xmlCharCp(cp)?ch:'_');
+    }
+  }
+  out=out.replace(/_+/g,'_');
+  return out||'_';
 }
 function jsonToXml(obj, opt){
   opt=opt||{};

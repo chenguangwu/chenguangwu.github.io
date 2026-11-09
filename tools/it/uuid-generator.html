@@ -502,14 +502,17 @@ async function generateUuid() {
 
   // v5 的命名空间必须是合法 UUID：uuidToBytes 只剔除非十六进制字符，
   // 传入 'abc' 会被当成 [0xab,0x0c,0,0,…] 静默产出「看起来合法」但幂等键全漂移的结果。
+  // IT-N409：入口校验与真正参与 SHA-1 的命名空间必须是同一个规范化字符串
+  let v5ns = '';
   if (version === 'v5') {
-    const ns = document.getElementById('namespace').value.trim();
-    if (!isValidUuid(ns)) {
+    const nsRaw = document.getElementById('namespace').value.trim();
+    if (!isValidUuid(nsRaw)) {
       document.getElementById('output').value = (typeof TBKit!=='undefined'&&TBKit.util.isEn())
-        ? 'Invalid namespace UUID: use the 8-4-4-4-12 hex form, e.g. 6ba7b810-9dad-11d1-80b4-00c04fd430c8.'
-        : '命名空间 UUID 格式非法：请填写 8-4-4-4-12 的十六进制 UUID（如 6ba7b810-9dad-11d1-80b4-00c04fd430c8）。';
+        ? 'Invalid namespace UUID: use the 8-4-4-4-12 hex form (or 32 contiguous hex digits), e.g. 6ba7b810-9dad-11d1-80b4-00c04fd430c8.'
+        : '命名空间 UUID 格式非法：请填写 8-4-4-4-12 的十六进制 UUID（或 32 位连续十六进制），如 6ba7b810-9dad-11d1-80b4-00c04fd430c8。';
       return;
     }
+    v5ns = normalizeUuid(nsRaw);
   }
 
   const uuids = [];
@@ -520,9 +523,16 @@ async function generateUuid() {
     } else if (version === 'v7') {
       raw = generateUuidV7();
     } else if (version === 'v5') {
-      const ns = document.getElementById('namespace').value;
-      const name = document.getElementById('name').value + (count > 1 ? ':' + i : '');
-      raw = await generateUuidV5(ns, name);
+      // IT-N409：异步 SHA-1 异常必须落到结果区，不能变成未捕获的 Promise rejection
+      try {
+        const name = document.getElementById('name').value + (count > 1 ? ':' + i : '');
+        raw = await generateUuidV5(v5ns, name);
+      } catch (e) {
+        document.getElementById('output').value = (typeof TBKit!=='undefined'&&TBKit.util.isEn())
+          ? 'UUID v5 generation failed: ' + ((e && e.message) || e)
+          : 'UUID v5 生成失败：' + ((e && e.message) || e);
+        return;
+      }
     } else {
       raw = generateUuidV4();
     }
@@ -582,13 +592,17 @@ function clearResult() {
   const __h2='';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('resultList').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultList').innerHTML=__h2;
 }
 
+// IT-N409：校验与生成必须用同一个规范化结果，且只接受两种合法书写：
+// 8-4-4-4-12 连字符形式，或 32 位连续十六进制。旧实现先删掉所有 '-' 再数 32 位 hex，
+// 于是连字符错位（6ba7b810----9dad…）也被接受；首尾空格虽在入口 trim 过，生成时又取了未 trim 的原值。
 function isValidUuid(uuid) {
-  const clean = uuid.replace(/[{}]/g, '').replace(/-/g, '').toLowerCase();
-  return /^[0-9a-f]{32}$/.test(clean);
+  const s = String(uuid == null ? '' : uuid).trim().replace(/^\{/, '').replace(/\}$/, '');
+  return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(s)
+      || /^[0-9a-fA-F]{32}$/.test(s);
 }
 
 function normalizeUuid(uuid) {
-  const clean = uuid.replace(/[{}]/g, '').replace(/-/g, '').toLowerCase();
+  const clean = String(uuid == null ? '' : uuid).trim().replace(/^\{/, '').replace(/\}$/, '').replace(/-/g, '').toLowerCase();
   return `${clean.slice(0,8)}-${clean.slice(8,12)}-${clean.slice(12,16)}-${clean.slice(16,20)}-${clean.slice(20,32)}`;
 }
 
