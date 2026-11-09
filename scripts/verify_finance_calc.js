@@ -3237,6 +3237,12 @@ const CASES = [
     ref: "F-N47 复制绕过校验：手数 0 时 calc() 显示字段错误，但旧 copyResult() 仍按 ||1 兜底生成并复制完整盈亏；修复后 copyResult() 先走 validateInputs() 并拒绝复制。默认态复制正常 ⇒ 不命中。",
   },
   {
+    slug: "finance/investment-calculator",
+    inputs: { initial: "10000", final: "8000", years: "5", additional: "-5000" },
+    expect: ["追加投入须 ≥ 0；如需从本金中取出，请按真实现金流另行计算。"],
+    ref: "F-N46：初始 10,000、期末 8,000、追加 −5,000 ⇒ 旧实现 totalInv=5,000、累计盈亏 +3,000、回报率 +60.00%、CAGR +9.86%，把真实亏损包装成高收益；修复后字段级拒绝负追加。默认追加 0 ⇒ 不命中。",
+  },
+  {
     slug: "finance/mutual-fund-calculator",
     inputs: { initial: "10000", monthly: "1000", years: "1", rate: "-50" },
     expect: ["-¥7,090 总收益"],
