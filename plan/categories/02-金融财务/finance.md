@@ -309,13 +309,6 @@
 - 影响：`tools/finance/profit-margin-calculator.html`；重资产企业的核心盈利指标被系统性高估（本例净利润虚增 40%），并污染行业对比与 CSV 导出。
 - 方案：`ebit = gp − opExp − da`，`ebitda = ebit + da`；饼图与成本构成复用同一 `ebit`/`np`，删除重复现金流的二次计入；补一条含 D&A 的强用例。
 
-### F-N54 仓位页马丁格尔「平均价」数学上恒等于当期价（中，确认）
-- 描述：`avg = cumCost / (cumPos / price)`，而 `cumPos` 与 `cumCost` 在每层都相等，化简后 `avg === price`。平均持仓成本应为 `累计投入 / 累计股数`，页面却把累计投入除以「按当期价折算的股数」，导致每层平均价都等于该层价格，最终平均成本与真实成本相差数个百分点。
-- 证据：`tools/finance/position-size-calculator.html:527-535`（`:528` 本层投入、`:529-533` 累计与错误 avg）、`:543`（采用该 avg）、`:620-627`（表格与「下跌 X%」结论）。
-- 复现：初始仓位 1,000、2 倍、5 次、每次跌 10% → 第 5 层页面平均价 65.61 元（真实平均成本 71.23 元）；页脚「相对初始价下跌 34.39%」（按真实平均成本应为 28.77%）。
-- 影响：`tools/finance/position-size-calculator.html`；加仓计划的回本价被低估约 8%，用户会误判反弹到 65.61 即可解套。
-- 方案：累计股数改为 `cumShares += pos / price`，`avg = cumCost / cumShares`；全部层级与页脚统一用该 avg，并补一组可手算的强弱用例。
-
 ### F-N55 保险页双十法则明细金额与结果卡不一致、年支出输入无效（中，确认）
 - 描述：结果卡用 `income*10 + debt − existing` 计算寿险保额，明细行却硬写 `income*10`；`dt_expense` 读入后从未参与任何公式，输入框形同装饰。
 - 证据：`tools/finance/insurance-calculator.html:473-481`（`:474` 读入未用、`:478` 计算含负债/已有保障）、`:490`（明细值仅 `income*10`）、`:601`（结果卡用 `lifeInsurance`）。
