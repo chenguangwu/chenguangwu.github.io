@@ -253,7 +253,14 @@ function calcTool(){
   }
 
   var rule=CC_RULES[cc]||{trunk:'',min:6,max:15};
-  if(rule.trunk && digits.charAt(0)==='0'){
+  // IT-N413 复核重做：英国必须先剥掉 trunk 0 再判长度。旧实现只在「剥 0 后仍落在
+  // 通用 9–10 位」时才剥，079460958 剥 0 后仅 8 位 ⇒ 首位 0 被保留，
+  // 于是既按 9 位固话通过通用校验，又绕过 digits.charAt(0)==='7' 的 07 手机专属校验，
+  // 产生 00794 60958 与可复制的 +44079460958。剥 0 是格式归一化，不是长度校验。
+  if(cc==='44' && digits.charAt(0)==='0'){
+    digits=digits.replace(/^0+/,'');
+    notes.push('已去掉国内首位 0（trunk prefix）。');
+  }else if(rule.trunk && digits.charAt(0)==='0'){
     var stripped=digits.replace(/^0+/,'');
     if(stripped.length>=rule.min && stripped.length<=rule.max){
       digits=stripped;
@@ -263,7 +270,8 @@ function calcTool(){
 
   var valid=digits.length>=rule.min && digits.length<=rule.max;
   // IT-N413：英国按 07 手机与 01/02 固话分别校验。手机国内须恰为 10 位（含 trunk 0 共 11 位）；固话 9–10 位。
-  if(cc==='44' && digits.charAt(0)==='7') valid=(digits.length===10);
+  var ukMobile=(cc==='44' && digits.charAt(0)==='7');
+  if(ukMobile) valid=(digits.length===10);
   var e164='+'+cc+digits;
   var totalLen=cc.length+digits.length;
   if(valid && totalLen<=15) __lastE164=e164;
@@ -280,6 +288,9 @@ function calcTool(){
     if(ccCode==='44'){
       // IT-N413：07 开头为手机，按 5-6 分组；其余为固话（9 位 5-5，10 位 3-4-4）
       if(d.length===10 && d.charAt(0)==='7') return fmtGroup('0'+d,[5,6]);
+      // IT-N413：长度不足时国内格式仍要保留 trunk 0，不能把 079460958 显示成
+      // 7946 0958（与 9/10 位分支口径不一致），也不要拼出 00794 60958 双零形态。
+      if(d.length===8) return fmtGroup('0'+d,[5,5]);
       if(d.length===9) return fmtGroup('0'+d,[5,5]);
       if(d.length===10) return fmtGroup('0'+d,[3,4,4]);
       return grp(d);
@@ -297,10 +308,15 @@ function calcTool(){
   html+='<p class="muted">国内格式：'+national+'</p>';
   html+='<p class="muted">国家/地区代码：+'+cc+' · 国内号码位数：'+digits.length+'</p>';
   if(valid && totalLen<=15){
-    html+='<p class="muted">✅ 长度校验通过（'+cc+' 预设 '+rule.min+'–'+rule.max+' 位，E.164 共 '+totalLen+' 位）。</p>';
+    var passRule=ukMobile?'英国 07 手机国内号码须恰为 10 位':(cc+' 预设 '+rule.min+'–'+rule.max+' 位');
+    html+='<p class="muted">✅ 长度校验通过（'+passRule+'，E.164 共 '+totalLen+' 位）。</p>';
   }else{
     var why=[];
-    if(!valid) why.push('国内号码应为 '+rule.min+'–'+rule.max+' 位，当前 '+digits.length+' 位');
+    if(!valid){
+      // 短号警告要点名手机需 10 位，不能再笼统写「9–10 位」让用户误以为 9 位也合规。
+      if(ukMobile) why.push('英国 07 手机国内号码应为 10 位（含 trunk 0 共 11 位），当前 '+digits.length+' 位');
+      else why.push('国内号码应为 '+rule.min+'–'+rule.max+' 位，当前 '+digits.length+' 位');
+    }
     if(totalLen>15) why.push('E.164 超过 15 位上限');
     html+='<p style="color:var(--danger,#dc2626);">⚠️ '+why.join('；')+'。结果仅供整理参考，暂不可复制。</p>';
   }

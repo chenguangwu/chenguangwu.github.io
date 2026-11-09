@@ -265,34 +265,74 @@ function build(){
 function getV(d){
   const v=[]; for(let i=0;i<d;i++){ const x=parseFloat(document.getElementById('v'+i).value); v.push(isNaN(x)?0:x); } return v;
 }
-function fmt(x){ if(Math.abs(x)<1e-12) return '0'; return (Math.round(x*1e10)/1e10).toLocaleString(); }
+function fmt(x){
+  // IT-N477 复核重做：显示精度不等于数值是否为零。真实 0 才显示 0，
+  // 微小非零量用科学计数法保留，避免 (1e-13, 0) 被显示成 (0, 0)。
+  if(x===0) return '0';
+  if(typeof x!=='number'||!isFinite(x)) return '—';
+  if(Math.abs(x)<1e-10 || Math.abs(x)>=1e15) return x.toExponential(3);
+  return (Math.round(x*1e10)/1e10).toLocaleString();
+}
+// 分量平方与平方和都可能上溢/下溢（1e200²、1e-200²），用指数分解给出可读串，
+// 避免步骤里出现「√0」「√Infinity」与 |v| 自相矛盾。
+function fmtSq(x){
+  if(x===0) return '0';
+  if(typeof x!=='number'||!isFinite(x)) return '—';
+  const a=Math.abs(x);
+  if(a>=1e-150 && a<=1e150) return fmt(x*x);
+  const e=Math.floor(Math.log10(a)), mant=a/Math.pow(10,e);
+  let s=mant*mant, e2=2*e;
+  while(s>=10){ s/=10; e2++; }
+  return (Math.round(s*1e6)/1e6)+'e'+e2;
+}
+function fmtSumSq(v,maxAbs){
+  if(!Array.isArray(v)||typeof maxAbs!=='number'||!isFinite(maxAbs)||maxAbs===0) return '0';
+  const ss=v.reduce((s,x)=>{const t=x/maxAbs;return s+t*t;},0);
+  if(maxAbs>=1e-150 && maxAbs<=1e150) return fmt(maxAbs*maxAbs*ss);
+  const e=Math.floor(Math.log10(maxAbs)), mant=maxAbs/Math.pow(10,e);
+  let s=mant*mant*ss, e2=2*e;
+  while(s>=10){ s/=10; e2++; }
+  return (Math.round(s*1e6)/1e6)+'e'+e2;
+}
 function calculate(){
   const VM_EN=/(?:^|[?&])lang=en/i.test(location.search);
   const d=+document.getElementById('dim').value;
   const v=getV(d);
-  const sumSq=v.reduce((s,x)=>s+x*x,0);
-  const m=Math.sqrt(sumSq);
+  // IT-N477：任一分量非有限（如 1e999）时不得给出伪结论。
+  if(v.some(x=>!isFinite(x))){
+    document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 向量分量必须为有限数值。</p>';
+    return;
+  }
+  // 稳健范数：先按最大分量缩放再求平方和，避免 1e-200 一类分量平方下溢导致 m=0 误判零向量。
+  const maxAbs=v.reduce((s,x)=>Math.max(s,Math.abs(x)),0);
+  const ss=(maxAbs>0)?v.reduce((s,x)=>{const t=x/maxAbs;return s+t*t;},0):0;
+  const m=(maxAbs>0)?maxAbs*Math.sqrt(ss):0;
+  if(!isFinite(m)){
+    document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 向量模长超出可表示范围，请缩小分量。</p>';
+    return;
+  }
+  const sumSqTxt=fmtSumSq(v,maxAbs);
   let html='<p><strong>v = </strong>('+v.map(fmt).join(', ')+')</p>';
   html+='<div class="big-result">|v| = '+fmt(m)+'</div>';
   html+='<p style="margin-top:10px;"><strong>'+(VM_EN?'Calculation steps:':'计算步骤：')+'</strong></p>';
   html+='<div class="step-line">|v| = √(v₁² + v₂² + ... + vₙ²)</div>';
   html+='<div class="step-line">= √('+v.map(x=>'('+fmt(x)+')²').join(' + ')+')</div>';
-  html+='<div class="step-line">= √('+v.map(x=>fmt(x*x)).join(' + ')+')</div>';
-  html+='<div class="step-line">= √'+fmt(sumSq)+'</div>';
+  html+='<div class="step-line">= √('+v.map(fmtSq).join(' + ')+')</div>';
+  html+='<div class="step-line">= √'+sumSqTxt+'</div>';
   html+='<div class="step-line">= <strong style="color:var(--primary);">'+fmt(m)+'</strong></div>';
   html+='<p style="margin-top:10px;"><strong>'+(VM_EN?'Related:':'相关：')+'</strong></p>';
-  html+='<div class="step-line">'+(VM_EN?'Sum of squares = ':'平方和 = ')+fmt(sumSq)+'</div>';
-  if(m>1e-12){
+  html+='<div class="step-line">'+(VM_EN?'Sum of squares = ':'平方和 = ')+sumSqTxt+'</div>';
+  if(m>0){
     const unit=v.map(x=>x/m);
     html+='<div class="step-line">'+(VM_EN?'Unit vector v̂ = v/|v| = (':'单位向量 v̂ = v/|v| = (')+unit.map(fmt).join(', ')+')</div>';
   } else {
     html+='<div class="step-line" style="color:var(--danger);">'+(VM_EN?'Zero vector has no unit vector.':'零向量无单位向量。')+'</div>';
   }
   if(d===2){
-    if(m>1e-12) html+='<div class="step-line">'+(VM_EN?'Direction angle θ = atan2(y, x) = ':'方向角 θ = atan2(y, x) = ')+fmt(Math.atan2(v[1],v[0])*180/Math.PI)+'°</div>';
+    if(m>0) html+='<div class="step-line">'+(VM_EN?'Direction angle θ = atan2(y, x) = ':'方向角 θ = atan2(y, x) = ')+fmt(Math.atan2(v[1],v[0])*180/Math.PI)+'°</div>';
     else html+='<div class="step-line" style="color:var(--danger);">'+(VM_EN?'Zero vector has no direction angle.':'零向量无方向角。')+'</div>';
   } else if(d===3){
-    if(m>1e-12){
+    if(m>0){
       const ax=Math.acos(v[0]/m)*180/Math.PI;
       const ay=Math.acos(v[1]/m)*180/Math.PI;
       const az=Math.acos(v[2]/m)*180/Math.PI;

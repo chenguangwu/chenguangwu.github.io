@@ -500,7 +500,9 @@ s.parentNode.insertBefore(el, s);
         // 非全局模式只替换首个匹配，计数也应为 1（此前恒按全部匹配计数，展示次数与实际不符）
         const count = allMatches ? (opts.global ? allMatches.length : 1) : 0;
 
-        // Collect match positions for preview (limit to first 200)
+        // Collect match positions for preview (limit to first 200)。
+        // IT-N3 复核重做：非全局模式下预览/上下文列表必须只保留首个匹配，
+        // 不能一边显示 count=1、一边高亮全部命中（统计、预览、导出、替换语义统一）。
         const posRegex = new RegExp(pattern, buildFlags({ ...opts, global: true }));
         let match;
         let idx = 0;
@@ -508,6 +510,7 @@ s.parentNode.insertBefore(el, s);
           matches.push({ index: match.index, length: match[0].length, text: match[0] });
           idx++;
           if (match[0].length === 0) posRegex.lastIndex++; // Avoid infinite loop on zero-length matches
+          if (!opts.global) break;
         }
         return { matches, count, error: null };
       } else {
@@ -846,31 +849,33 @@ function __trOpts(){
   };
 }
 function __trFlags(o){ var f=''; if(!o.cs)f+='i'; if(o.g)f+='g'; if(o.m)f+='m'; return f; }
+// IT-N3 复核重做：附加统计 / 预览摘要 / CSV 导出必须与主替换 findMatches() 完全同源语义：
+//   ① 字面查找一律在「原文」上用转义后的正则执行，不再先 toLowerCase()（İ 之类字符小写后
+//      UTF-16 长度会变化，旧实现按小写串索引去原文 substr，导致位置 3/15 与文本 'ello '）；
+//   ② 匹配非重叠（RegExp 的 lastIndex 自然前进），旧 st=idx+1 把 'aaaa' 查 'aa' 数成 3 次；
+//   ③ 关闭全局时只取首个匹配，统计 / 预览 / 导出 / 结果四处一致。
 function __trFind(text, pattern, o){
   var out=[];
   if(!text || !pattern) return out;
   try{
+    var src, flags;
     if(o.re){
-      var rx=new RegExp(pattern, __trFlags({cs:o.cs, re:o.re, g:true, m:o.m}));
-      var m, c=0;
-      while((m=rx.exec(text))!==null && c<2000){
-        out.push({i:m.index, len:m[0].length, t:m[0]});
-        c++;
-        if(m[0].length===0) rx.lastIndex++;
-      }
-    } else {
-      var s=o.cs?pattern:pattern.toLowerCase();
-      var tg=o.cs?text:text.toLowerCase();
-      var st=0, c2=0;
-      while(true){
-        var idx=tg.indexOf(s, st);
-        if(idx===-1) break;
-        out.push({i:idx, len:s.length, t:text.substr(idx, s.length)});
-        c2++;
-        if(!o.g) break;
-        st=idx+1;
-        if(c2>2000) break;
-      }
+      src=pattern;
+      flags=(o.cs?'':'i')+(o.m?'m':'')+'g';
+    }else{
+      src=pattern.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+      flags=(o.cs?'':'i')+'g'; // 与主替换 buildLiteralRegex 一致（字面模式不含 m）
+    }
+    // 不再设 2000 上限：主替换 findMatches() 的计数来自 text.match(全局正则) 不封顶，
+    // 附加统计若在这里截断，长文本的「匹配数量 / 覆盖率」会与主结果不一致。
+    // CSV 自身另按 200 行截断（__trExport 的 slice(0,200)），两者职责分开。
+    var rx=new RegExp(src, flags), m, c=0;
+    while((m=rx.exec(text))!==null){
+      out.push({i:m.index, len:m[0].length, t:text.substr(m.index, m[0].length)});
+      c++;
+      if(c>200000) break; // 极端输入保险丝，正常文本不会触发
+      if(m[0].length===0) rx.lastIndex++;
+      if(!o.g) break;
     }
   }catch(e){}
   return out;

@@ -526,7 +526,10 @@ s.parentNode.insertBefore(el, s);
 
   /* ===== 词频统计 ===== */
   function countFrequency(tokens) {
-    var freq = {};
+    // IT-N478 复核重做：词是用户输入的任意字符串，普通对象会让 `constructor`、
+    // `toString`、`valueOf` 等读到 Object.prototype 上的继承属性并被当成词频拼接成
+    // 函数源码字符串。改用无原型字典，任何词都从 0 开始计数。
+    var freq = Object.create(null);
     for (var i = 0; i < tokens.length; i++) {
       var t = tokens[i];
       freq[t] = (freq[t] || 0) + 1;
@@ -538,7 +541,8 @@ s.parentNode.insertBefore(el, s);
   function sortFreq(freq) {
     var arr = [];
     for (var k in freq) {
-      if (freq.hasOwnProperty(k)) {
+      // 无原型字典没有 hasOwnProperty 方法，统一走 Object.prototype 的静态实现。
+      if (Object.prototype.hasOwnProperty.call(freq, k)) {
         arr.push({ word: k, count: freq[k] });
       }
     }

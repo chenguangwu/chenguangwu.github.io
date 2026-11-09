@@ -144,6 +144,84 @@ function _rngReset() { _rngState = 0x9e3779b9 >>> 0; }
 
 // ---------------------------------------------------------------- 用例
 const CASES = [
+  // ===== 复核失败·第三批重做（IT-N477 / IT-N478 / IT-N3 / IT-N413）=====
+  {
+    slug: "it/vector-magnitude",
+    inputs: {},
+    clicks: ["document.getElementById('dim').value='2';document.getElementById('v0').value='1e-13';document.getElementById('v1').value='0';calculate();"],
+    expect: ["|v| = 1.000e-13", "方向角 θ = atan2(y, x) = 0°"],
+    ref: "IT-N477 复核重做：二维 (1e-13, 0) 是非零向量。旧实现用 m>1e-12 判零且 fmt() 把微小数显示成 0，于是输出 v=(0,0)、|v|=0 并称无单位向量/方向角。现按最大分量缩放求稳健范数，真实 0 才显示 0，微小非零用科学计数法 ⇒ |v|=1.000e-13、单位向量 (1,0)、方向角 0°。两条 expect 都只在二维微小非零输入出现，默认态 (3,4,0) 三维不命中。"
+  },
+  {
+    slug: "it/vector-magnitude",
+    inputs: {},
+    clicks: ["document.getElementById('dim').value='3';document.getElementById('v0').value='1e-200';document.getElementById('v1').value='0';document.getElementById('v2').value='0';calculate();"],
+    expect: ["|v| = 1.000e-200", "方向余弦：cos α = 1, cos β = 0, cos γ = 0"],
+    ref: "IT-N477 复核重做：三维下溢边界。分量平方 1e-400 已超出 Number 范围，旧 x*x 平方和为 0 ⇒ 误判零向量。缩放范数与指数分解的平方和展示同时生效，方向余弦仍为 (1,0,0)、方向角 0/90/90；默认态三维 (3,4,0) 的余弦为 0.6/0.8/0 ⇒ 不命中。"
+  },
+  {
+    slug: "it/vector-magnitude",
+    inputs: {},
+    clicks: ["document.getElementById('dim').value='2';document.getElementById('v0').value='1e999';document.getElementById('v1').value='0';calculate();"],
+    expect: ["⚠ 向量分量必须为有限数值。"],
+    ref: "IT-N477 复核重做：1e999 经 parseFloat 得 Infinity，属非有限分量，必须阻断结论而不是输出 ∞ 或伪方向角。默认态有限输入不出现该提示。"
+  },
+  {
+    slug: "it/keyword-extractor",
+    inputs: { inputText: "constructor constructor" },
+    clicks: ["extractKeywords();"],
+    expect: ["1 constructor 2 100.0%"],
+    ref: "IT-N478 复核重做：词是任意用户字符串，普通对象词频表让 freq.constructor 读到 Object.prototype 的构造函数，拼接出 `function Object() { [native code] }11` 且相对频率 0.0%。改用无原型字典后应得 2 次、100.0%；默认中文样例词表不含 constructor ⇒ 强判别。"
+  },
+  {
+    slug: "it/keyword-extractor",
+    inputs: { inputText: "constructor constructor toString valueOf" },
+    clicks: ["extractKeywords();"],
+    expect: ["1 constructor 2 100.0% 2 tostring 1 50.0% 3 valueof 1 50.0%"],
+    ref: "IT-N478 复核重做：覆盖原型属性词的排序分支。toString / valueOf 同样不得继承原型值，按词频 2/1/1 与 100.0%/50.0%/50.0% 排序输出；sortFreq 改用 Object.prototype.hasOwnProperty.call 兼容无原型字典。默认样例不命中。"
+  },
+  {
+    slug: "it/text-replace",
+    inputs: { sourceText: "İ hello WORLD hello", findInput: "hello", replaceInput: "X" },
+    clicks: ["document.getElementById('optCase').checked=false;document.getElementById('optRegex').checked=false;document.getElementById('optGlobal').checked=true;document.getElementById('optMultiline').checked=false;var __cap=[];globalThis.TBKit={util:{isEn:function(){return false;},exportCsv:function(n,rows){__cap.push('CSV='+rows.slice(6).map(function(r){return r.join('|');}).join(','));}},chart:{bar:function(){}},history:{record:function(r){__cap.push('EXTRAS='+r.matches);},mount:function(){}}};__trExtras();__trExport();document.getElementById('resultText').value=__cap.join(' ');try{delete globalThis.TBKit;}catch(e){}"],
+    expect: ["EXTRAS=2 CSV=1|2|hello,2|14|hello"],
+    ref: "IT-N3 复核重做：附加统计与 CSV 导出共用 __trFind。旧实现先 toLowerCase() 再按小写串索引去原文 substr（İ 小写会扩为两个码元），导出位置 3/15 与文本 `ello `；现统一在原文上用转义正则匹配 ⇒ 位置 2/14、文本两处 hello，统计计数 2。EXTRAS/CSV 由 TBKit 桩捕获，只在注入态产生。"
+  },
+  {
+    slug: "it/text-replace",
+    inputs: { sourceText: "aaaa", findInput: "aa", replaceInput: "X" },
+    clicks: ["document.getElementById('optCase').checked=false;document.getElementById('optRegex').checked=false;document.getElementById('optGlobal').checked=true;document.getElementById('optMultiline').checked=false;var __cap=[];globalThis.TBKit={util:{isEn:function(){return false;},exportCsv:function(n,rows){__cap.push('CSV='+rows.slice(6).map(function(r){return r.join('|');}).join(','));}},chart:{bar:function(){}},history:{record:function(r){__cap.push('EXTRAS='+r.matches);},mount:function(){}}};__trExtras();__trExport();document.getElementById('resultText').value=__cap.join(' ');try{delete globalThis.TBKit;}catch(e){}"],
+    expect: ["EXTRAS=2 CSV=1|0|aa,2|2|aa"],
+    ref: "IT-N3 复核重做：字面全局查找必须非重叠。旧 __trFind 用 st=idx+1 把 aaaa 查 aa 数成 3 次、覆盖率 150%、CSV 位置 0/1/2；现与主替换 findMatches 一致用正则 lastIndex 自然前进 ⇒ 2 次、位置 0/2。"
+  },
+  {
+    slug: "it/text-replace",
+    inputs: { sourceText: "foo foo", findInput: "foo", replaceInput: "X" },
+    clicks: ["document.getElementById('optCase').checked=false;document.getElementById('optRegex').checked=true;document.getElementById('optGlobal').checked=false;document.getElementById('optMultiline').checked=false;var __cap=[];globalThis.TBKit={util:{isEn:function(){return false;},exportCsv:function(n,rows){__cap.push('CSV='+rows.slice(6).map(function(r){return r.join('|');}).join(','));}},chart:{bar:function(){}},history:{record:function(r){__cap.push('EXTRAS='+r.matches);},mount:function(){}}};__trExport();previewMatch();var __ctx=String(document.getElementById('contextArea').innerHTML);__cap.push('CTX='+(__ctx.indexOf('#1 [0]')>=0&&__ctx.indexOf('#2 [4]')<0?'ONE':'MULTI'));document.getElementById('resultText').value=__cap.join(' ');try{delete globalThis.TBKit;}catch(e){}"],
+    expect: ["CSV=1|0|foo EXTRAS=1 CTX=ONE"],
+    ref: "IT-N3 复核重做：正则模式关闭全局时，统计/预览/上下文列表/CSV/替换必须只取首个匹配。旧预览恒用 global 扫描 ⇒ 高亮两处并列出 0/4，与 count=1 矛盾。现 findMatches 与 __trFind 均在非全局时 break，CSV 仅 1 行、上下文仅 #1 [0]。"
+  },
+  {
+    slug: "it/phone-parser",
+    inputs: { phone: "079460958", cc: "44" },
+    clicks: ["calcTool();document.getElementById('__tbCopyProbe').textContent='COPY='+(typeof __lastE164!=='undefined'&&__lastE164===''?'BLOCKED':'OPEN');"],
+    expect: ["⚠️ 英国 07 手机国内号码应为 10 位（含 trunk 0 共 11 位），当前 8 位", "COPY=BLOCKED", "国内格式：07946 0958"],
+    ref: "IT-N413 复核重做：短英国 07 号 079460958 剥 trunk 0 后仅 8 位。旧实现只在剥 0 后仍满足通用 9–10 位时才剥，导致首位 0 保留、按 9 位固话通过、绕过 digits.charAt(0)==='7' 的手机专属校验，显示 00794 60958 且可复制 +44079460958。现先归一化剥 0 再按 07 手机恰 10 位校验，报错且 __lastE164 保持空 ⇒ 禁止复制；国内格式保留单个 trunk 0（与 9/10 位分支口径一致）。COPY 探针写入独立容器，默认态不存在。"
+  },
+  {
+    slug: "it/keyword-extractor",
+    inputs: { inputText: "__proto__ constructor __proto__ constructor prototype" },
+    clicks: ["extractKeywords();"],
+    expect: ["1 constructor 2 100.0% 2 proto 2 100.0% 3 prototype 1 50.0%"],
+    ref: "IT-N478 复核重做：__proto__ 是最易触发原型 setter 的键。无原型字典下按普通词计数，且与 constructor 同为 2 次时按词长降序排（constructor 11 > proto 5），验证 sortFreq 的计数/长度双键排序未被原型属性破坏；默认中文样例不命中。"
+  },
+  {
+    slug: "it/text-replace",
+    inputs: { findInput: "aa", replaceInput: "X" },
+    clicks: ["document.getElementById('sourceText').value='aa'.repeat(3000);document.getElementById('optCase').checked=false;document.getElementById('optRegex').checked=false;document.getElementById('optGlobal').checked=true;document.getElementById('optMultiline').checked=false;var __cap=[];globalThis.TBKit={util:{isEn:function(){return false;},exportCsv:function(n,rows){__cap.push('CSVROWS='+(rows.length-6));}},chart:{bar:function(){}},history:{record:function(r){__cap.push('EXTRAS='+r.matches);},mount:function(){}}};__trExtras();__trExport();document.getElementById('resultText').value=__cap.join(' ');try{delete globalThis.TBKit;}catch(e){}"],
+    expect: ["EXTRAS=3000 CSVROWS=200"],
+    ref: "IT-N3 复核重做：__trFind 旧的 2000 条上限会让附加统计的匹配数量/覆盖率与主替换（text.match 全局正则，不封顶）在长文本上不一致。6000 字符查 aa 得 3000 处非重叠匹配 ⇒ EXTRAS=3000；CSV 仍按自身约定只导出前 200 行 ⇒ CSVROWS=200。默认样例不产生该串。"
+  },
   {
     slug: "it/hex-to-text",
     inputs: { input: "E4B8ADF09F9880" },
@@ -1919,8 +1997,8 @@ const CASES = [
     slug: "it/phone-parser",
     inputs: { phone: "0794609584", cc: "44" },
     clicks: ["calcTool()"],
-    expect: ["⚠️ 国内号码应为 9–10 位"],
-    ref: "IT-N413：英国 07 手机国内须恰为 10 位（含 trunk 0 共 11 位）。0794609584 仅 10 位（含 0），剥 0 后 9 位 ⇒ 手机长度不足 ⇒ 应提示长度错误。修复前按 9 位固话判通过。expect 命中「⚠️ 国内号码应为 9–10 位」（默认态不命中）⇒ 强判别。"
+    expect: ["⚠️ 英国 07 手机国内号码应为 10 位（含 trunk 0 共 11 位），当前 9 位"],
+    ref: "IT-N413 复核重做（用例同步）：英国 07 手机国内须恰为 10 位（含 trunk 0 共 11 位）。0794609584 仅 10 位（含 0），剥 0 后 9 位 ⇒ 手机长度不足 ⇒ 应提示长度错误。短号警告不再笼统写 9–10 位，而点名手机需 10 位；expect 随页面文案同步更新（默认态不命中）⇒ 强判别。"
   },
   {
     slug: "it/country-code-lookup",
