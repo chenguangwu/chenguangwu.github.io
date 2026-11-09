@@ -247,7 +247,7 @@ function resetForm(){document.getElementById('ft').value = '2000';
 calcTool();
 
 function __foreign_tax_creditNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
-function __foreign_tax_creditExtras(){
+function __foreign_tax_creditExtras(skipHistory){
     function __foreign_tax_creditRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var ft=num('ft'),lim=num('lim');
@@ -270,6 +270,7 @@ function __foreign_tax_creditExtras(){
             ['未使用限额 (元)', unused.toFixed(2)],
         ]
     });
+    if (skipHistory) return;
     TBKit.history.record({ft:__foreign_tax_creditRaw('ft'), lim:__foreign_tax_creditRaw('lim'), cr:cr});
     function __foreign_tax_creditRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#foreign_tax_creditHist',function(rec){ __foreign_tax_creditRestore(rec); calcTool(); });
@@ -277,9 +278,23 @@ function __foreign_tax_creditExtras(){
 }
 function __foreign_tax_creditExport(){
     if (typeof TBKit === 'undefined') return;
+    __tb_fn0(); __foreign_tax_creditExtras(true);
     var __box=document.getElementById('foreign_tax_creditTable');
     if (!__box || !__box.querySelector('tr')) { try{ ToolBox.showToast('请先完成一次有效计算，明细表为空时不导出。'); }catch(e){} return; }
-    try { TBKit.util.exportTable('#foreign_tax_creditTable','foreign-tax-credit.csv'); } catch(e){}
+    var copy=__box.cloneNode(true), tbody=copy.querySelector('tbody'), en=TBKit.util.isEn();
+    var rules=en?[
+        ['Credit formula','min(foreign tax paid, credit limit)'],
+        ['Excess formula','max(foreign tax paid - credit limit, 0)'],
+        ['Unused limit formula','max(credit limit - foreign tax paid, 0)'],
+        ['Input rule','Amounts must be non-negative; zero is allowed.']
+    ]:[
+        ['抵免公式','min(境外已纳税额, 抵免限额)'],
+        ['超额公式','max(境外已纳税额 - 抵免限额, 0)'],
+        ['未使用限额公式','max(抵免限额 - 境外已纳税额, 0)'],
+        ['输入口径','金额须非负，允许为 0。']
+    ];
+    rules.forEach(function(row){var tr=document.createElement('tr');row.forEach(function(value){var td=document.createElement('td');td.textContent=value;tr.appendChild(td);});tbody.appendChild(tr);});
+    try { TBKit.util.exportTable(copy,'foreign-tax-credit.csv'); } catch(e){}
 }
 function __foreign_tax_creditPresets(){
     if (typeof TBKit === 'undefined') return;

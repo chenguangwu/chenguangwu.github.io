@@ -340,7 +340,7 @@ calcTool();
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "现金周期的公式是什么？", "acceptedAnswer": {"@type": "Answer", "text": "CCC=应收账款周转天数(DSO)+存货周转天数(DIH)−应付账款周转天数(DPO)；DPO 越大周期越短，但不能无限压供应商账期。"}}, {"@type": "Question", "name": "现金周期为负说明什么？", "acceptedAnswer": {"@type": "Answer", "text": "当 DPO 大于 DSO+DIH 时周期为负，说明企业可无偿占用供应商资金覆盖经营占用，是强势供应链地位的体现（如部分零售巨头）。"}}]}</script>
 <script>
 function __cash_conversion_cycleNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
-function __cash_conversion_cycleExtras(){
+function __cash_conversion_cycleExtras(skipHistory){
     function __cash_conversion_cycleRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var DSO=num('DSO'),DIO=num('DIO'),DPO=num('DPO');
@@ -365,6 +365,7 @@ function __cash_conversion_cycleExtras(){
             ['应付占营业周期比 (%)', payRatio===null?'—（营业周期为 0，占比无定义）':payRatio.toFixed(2)],
         ]
     });
+    if (skipHistory) return;
     TBKit.history.record({DSO:__cash_conversion_cycleRaw('DSO'), DIO:__cash_conversion_cycleRaw('DIO'), DPO:__cash_conversion_cycleRaw('DPO'), CCC:CCC});
     function __cash_conversion_cycleRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#cash_conversion_cycleHist',function(rec){ __cash_conversion_cycleRestore(rec); calcTool(); });
@@ -372,9 +373,23 @@ function __cash_conversion_cycleExtras(){
 }
 function __cash_conversion_cycleExport(){
     if (typeof TBKit === 'undefined') return;
+    __tb_fn0(); __cash_conversion_cycleExtras(true);
     var __box=document.getElementById('cash_conversion_cycleTable');
     if (!__box || !__box.querySelector('tr')) { try{ ToolBox.showToast('请先完成一次有效计算，明细表为空时不导出。'); }catch(e){} return; }
-    try { TBKit.util.exportTable('#cash_conversion_cycleTable','cash-conversion-cycle.csv'); } catch(e){}
+    var copy=__box.cloneNode(true), tbody=copy.querySelector('tbody'), en=TBKit.util.isEn();
+    var rules=en?[
+        ['Cash conversion cycle','CCC = DSO + DIO - DPO (days)'],
+        ['Operating cycle','DSO + DIO (days)'],
+        ['Payables share','DPO / (DSO + DIO) × 100%; undefined when operating cycle is 0.'],
+        ['Input rule','Days must be non-negative; zero is allowed. CCC may be negative.']
+    ]:[
+        ['现金转换周期公式','CCC = DSO + DIO - DPO（天）'],
+        ['营业周期公式','DSO + DIO（天）'],
+        ['应付占比公式','DPO / (DSO + DIO) × 100%；营业周期为 0 时占比无定义。'],
+        ['输入口径','天数须非负，允许为 0；现金转换周期可为负数。']
+    ];
+    rules.forEach(function(row){var tr=document.createElement('tr');row.forEach(function(value){var td=document.createElement('td');td.textContent=value;tr.appendChild(td);});tbody.appendChild(tr);});
+    try { TBKit.util.exportTable(copy,'cash-conversion-cycle.csv'); } catch(e){}
 }
 function __cash_conversion_cyclePresets(){
     if (typeof TBKit === 'undefined') return;

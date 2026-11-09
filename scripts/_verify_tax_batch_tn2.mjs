@@ -97,5 +97,50 @@ const rows = (w, id) => { const e = w.document.getElementById(id); return e ? e.
   w.close();
 }
 
+// 使用真实 ToolKit 导出器，捕获 Blob 和下载文件名，验证 CSV 而非仅检查表格桩。
+async function checkCsv(file, ids, values, exportName, filename, required) {
+  const html = head ? execSync(`git show HEAD:${file}`).toString() : fs.readFileSync(file, 'utf8');
+  const exports = [];
+  let blob;
+  const dom = new JSDOM(html, {
+    runScripts: 'dangerously', url: 'https://example.test/' + file,
+    beforeParse(w) {
+      w.ToolBox = { setResult(id, h) { const e = w.document.getElementById(id); if (e) e.innerHTML = String(h); }, showToast() {}, showError() {}, copyText() {} };
+      w.i18nText = k => String(k);
+      const Blob = w.Blob;
+      w.Blob = function(parts, options) { const b = new Blob(parts, options); b.parts = parts; return b; };
+      w.Blob.prototype = Blob.prototype;
+      w.URL.createObjectURL = b => { blob = b; return 'blob:test'; };
+      w.URL.revokeObjectURL = () => {};
+      w.HTMLAnchorElement.prototype.click = function() { exports.push({ name: this.download, text: blob.parts.join('') }); };
+      w.eval(fs.readFileSync('js/tool-kit.js', 'utf8'));
+    }
+  });
+  const w = dom.window;
+  await new Promise(r => { if (w.document.readyState === 'complete') r(); else w.addEventListener('load', r); });
+  ids.forEach((id, i) => set(w, id, values[i]));
+  w.calcTool();
+  const historyBefore = w.TBKit.history.list().length;
+  w[exportName]();
+  assert(w.TBKit.history.list().length === historyBefore, `${file} 导出不得重复记录历史`);
+  const csv = exports.at(-1);
+  assert(csv?.name === filename && required.every(s => csv.text.includes(s)), `${file} 实际 CSV 必须包含输入与计算口径`);
+  set(w, ids[0], ''); w[exportName]();
+  assert(exports.length === 1, `${file} 清空输入后不点计算也不得导出旧数据`);
+  ids.forEach((id, i) => set(w, id, values[i])); w[exportName]();
+  assert(exports.length === 2 && required.every(s => exports[1].text.includes(s)), `${file} 恢复有效输入可再次导出`);
+  set(w, ids[0], -1); w[exportName]();
+  assert(exports.length === 2, `${file} 负数输入不得导出旧数据`);
+  set(w, ids[0], 123); w[exportName]();
+  assert(exports.length === 3 && /123\.00/.test(exports[2].text), `${file} 修改有效输入后直接导出应使用新值`);
+  ids.forEach(id => set(w, id, 0)); w[exportName]();
+  const zero = exports[3]?.text || '';
+  assert(exports.length === 4 && /0\.00/.test(zero) && /允许为 0/.test(zero), `${file} 零值输入可导出并说明边界`);
+  if (ids.length === 3) assert(/占比无定义/.test(zero) && /营业周期为 0/.test(zero), `${file} 零营业周期占比及公式口径一致`);
+  w.close();
+}
+await checkCsv('tools/tax/foreign-tax-credit.html', ['ft', 'lim'], [1800, 2500], '__foreign_tax_creditExport', 'foreign-tax-credit.csv', ['1800.00', '2500.00', 'min(', 'max(']);
+await checkCsv('tools/accounting/cash-conversion-cycle.html', ['DSO', 'DIO', 'DPO'], [50, 100, 60], '__cash_conversion_cycleExport', 'cash-conversion-cycle.csv', ['50.00', '100.00', '60.00', 'DSO + DIO', 'DPO']);
+
 if (failures > 0) { console.log(`\n[${head ? 'HEAD' : '当前'}] T-N2 锁 FAIL (${failures})`); process.exit(1); }
 console.log(`\n[${head ? 'HEAD' : '当前'}] T-N2 锁 PASS`);
