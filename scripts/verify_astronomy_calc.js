@@ -3,6 +3,18 @@
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
+    "slug": "astronomy/observation-conditions",
+    "clicks": ["calcPlanets(2024,1,1,39.9);var h=String(document.getElementById('planetVisibility').innerHTML);document.getElementById('__tbProbe').textContent='ASTROHON '+(h.indexOf('距角评价')>=0&&h.indexOf('整夜可见')<0&&h.indexOf('距角偏小')>=0?'OK':'BAD');"],
+    "expect": ["ASTROHON OK"],
+    "ref": "复核失败重做·行星表冒称当地可见：旧表头『观测评价』且结论写『接近冲日·整夜可见』，但 calcPlanets 只用日期与地心黄经距角、与经纬度无关。修复后表头改『距角评价』、结论文案中性化为『距角有利/距角偏小』，表格说明明确为地心距角且与观测地无关。修复前 BAD。默认态无探针串 ⇒ 零逃生。"
+  },
+{
+    "slug": "astronomy/observation-conditions",
+    "clicks": ["calcPlanets(2024,1,1,90);var a=String(document.getElementById('planetVisibility').innerHTML);calcPlanets(2024,1,1,0);var b=String(document.getElementById('planetVisibility').innerHTML);document.getElementById('__tbProbe').textContent='ASTROLOC '+(a.indexOf('极圈内')>=0&&a.indexOf('90.0°')>=0&&b.indexOf('极圈内')<0?'OK':'BAD');"],
+    "expect": ["ASTROLOC OK"],
+    "ref": "复核失败重做·同一天改坐标行星表完全一致：修复后 calcPlanets 接收纬度，极圈(|lat|>=66.56°)时追加位置相关的『极昼/极夜由当地太阳高度主导』提示，非极圈不追加。用例注入纬度 90 与 0 各算一次：修复前两者都无提示 BAD、修复后北极有提示且赤道无提示 OK。默认态无探针串 ⇒ 零逃生。"
+  },
+{
   "slug": "astronomy/apparent-magnitude-distance",
   "inputs": {
     "m": "4",

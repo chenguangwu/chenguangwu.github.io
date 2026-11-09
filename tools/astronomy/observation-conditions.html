@@ -261,7 +261,7 @@ s.parentNode.insertBefore(el, s);
   <!-- 行星可见性 -->
   <div class="card">
     <h3>🪐 当日行星可见性</h3>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">按 J2000 轨道要素（JPL 近似算法）算出水金火木土相对太阳的距角与晨昏方位；距角越大越适合观测</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">按 J2000 轨道要素（JPL 近似算法）估算水金火木土相对太阳的<b>地心黄经距角</b>与晨昏方位。本表<b>与观测地经纬度无关</b>，仅反映日心视角的距角条件；实际是否可见还取决于当地地平线、太阳高度、天气与光污染。极圈内极昼/极夜期间尤其需要按当地太阳高度另行判断。</p>
     <div style="overflow-x:auto;">
       <table id="planetVisibility" class="bortle-table"></table>
     </div>
@@ -502,7 +502,7 @@ function calc(){
   renderBortleTable(bortle);
 
   // 行星可见性（随观测日期联动）
-  try { calcPlanets(year, month + 1, day); } catch(e){}
+  try { calcPlanets(year, month + 1, day, lat); } catch(e){}
 }
 
 /* ============ 行星可见性（JPL 近似轨道要素） ============ */
@@ -545,7 +545,7 @@ function __plIsEn(){
   return false;
 }
 
-function calcPlanets(y, m, d){
+function calcPlanets(y, m, d, lat){
   var box = $('planetVisibility'); if (!box) return;
   var en = __plIsEn();
   var RAD = Math.PI / 180;
@@ -567,16 +567,25 @@ function calcPlanets(y, m, d){
       grade = en ? 'Not visible (near conjunction, elongation ' + elon.toFixed(1) + '°)' : '不可见（合日附近，距角 ' + elon.toFixed(1) + '°）';
     } else {
       side = diff > 0 ? (en ? 'Evening (W after sunset)' : '昏星（日落后西方）') : (en ? 'Morning (E before sunrise)' : '晨星（日出前东方）');
-      if (elon >= 120){ grade = en ? 'Near opposition, all night (elongation ' + elon.toFixed(1) + '°)' : '接近冲日·整夜可见（距角 ' + elon.toFixed(1) + '°）'; }
+      if (elon >= 120){ grade = en ? 'Favorable elongation, near opposition (' + elon.toFixed(1) + '°)' : '距角有利·接近冲日（距角 ' + elon.toFixed(1) + '°）'; }
       else if (elon >= 45){ grade = en ? 'Good conditions (elongation ' + elon.toFixed(1) + '°)' : '条件良好（距角 ' + elon.toFixed(1) + '°）'; }
-      else { grade = en ? 'Visible but low (elongation ' + elon.toFixed(1) + '°)' : '可见但高度偏低（距角 ' + elon.toFixed(1) + '°）'; }
+      else { grade = en ? 'Modest elongation (' + elon.toFixed(1) + '°)' : '距角偏小（距角 ' + elon.toFixed(1) + '°）'; }
     }
     rows += '<tr><td>' + name + '</td><td>' + elon.toFixed(1) + '°</td><td>' + side + '</td><td>' + (en ? __ZODIAC_EN[zi] : __ZODIAC[zi]) + '</td><td>' + grade + '</td></tr>';
   });
   var head = en
-    ? '<thead><tr><th>Planet</th><th>Elongation</th><th>Side</th><th>Zodiac</th><th>Verdict</th></tr></thead>'
-    : '<thead><tr><th>行星</th><th>距角</th><th>晨昏方位</th><th>黄道位置</th><th>观测评价</th></tr></thead>';
-  box.innerHTML = head + '<tbody>' + rows + '</tbody>';
+    ? '<thead><tr><th>Planet</th><th>Elongation</th><th>Side</th><th>Zodiac</th><th>Elongation verdict</th></tr></thead>'
+    : '<thead><tr><th>行星</th><th>距角</th><th>晨昏方位</th><th>黄道位置</th><th>距角评价</th></tr></thead>';
+  // 天文观测复核：距角本身与地点无关，但极圈纬度下极昼/极夜会主导实际可见性。
+  // 给出明确的位置相关限定，避免把地心距角结论误读为当地可见结论。
+  var locNote = '';
+  if (typeof lat === 'number' && isFinite(lat) && Math.abs(lat) >= 66.56) {
+    locNote = '<p style="font-size:12px;color:var(--text-muted);margin:8px 0 0;">'
+      + (en ? 'Polar latitude ' + lat.toFixed(1) + '°: this table is geocentric only; actual visibility is governed by local solar altitude (polar day/night).'
+           : '当前纬度 ' + lat.toFixed(1) + '° 位于极圈内：本表仅为地心距角参考，实际可见性由当地太阳高度（极昼/极夜）主导。')
+      + '</p>';
+  }
+  box.innerHTML = head + '<tbody>' + rows + '</tbody>' + locNote;
 }
 
 /* ============ Bortle 对照表 ============ */
