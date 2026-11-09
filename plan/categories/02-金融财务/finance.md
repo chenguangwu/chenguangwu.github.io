@@ -1374,14 +1374,6 @@
 
 ## T 批 finance 覆盖（2026-11-04）
 
-### F-N223 vCard 二维码页：所谓「二维码」是按文本 hash 播种的伪随机 33×33 网格，任何扫码器都读不出（高，确认源码缺陷）
-- 问题：`renderQR()`（`:261-281`）只画三个定位角、时序线和一圈 `rnd()<0.5` 的「数据点」：`rnd` 由 `pseudoRandom(strHash(text))` 生成（`:248-249`、`:274-278`），没有字符编码、没有 Reed-Solomon 纠错、没有掩码选择或格式/版本信息；`drawQR()` 只是把该网格逐格填色（`:282-288`），`generate()` 把它当二维码贴到结果区（`:289-294`）。
-- 证据：`tools/finance/vcard-qr.html:248-249`、`:261-281`、`:282-288`、`:289-294`
-- 复现（源码判定）：输入默认 vCard 生成一张 231×231 的「像二维码」的图；该网格无 RS 码字与格式信息，任何解码器（手机扫码/ZXing）都无法还原 `BEGIN:VCARD` 文本，只有下方 `.qr-text` 明文可用。期望：输出可被扫码器还原为 vCard 的真二维码，或明确告知「本页仅生成 vCard 文本，不生成二维码」。
-- 影响：`tools/finance/vcard-qr.html`；用户扫描后无任何结果，属于「宣称生成却无实际实现」。
-- 方案：引入本地打包的 QR 编码库（如 `qrcode-generator`，锁版本、纯前端）走标准 QR 编码 + RS 纠错；或降级为 vCard 文本生成器并删除二维码画布与「扫码添加」文案。
-- **假工具候选：是（类型 B——生成器输出为伪随机绘制，无真实编码实现）**
-
 ### T 批覆盖说明
 - 本轮审计 19 页：`dns-record-info`、`zip-code-validator`、`sin-validator`、`ifsc-validator`、`npi-validator`、`mirror-text`、`abn-validator`、`aba-validator`、`voter-id-validator`、`nric-validator`、`msisdn-validator`、`word-frequency`、`routing-number-validator`、`imsi-validator`、`postal-code-validator`、`ird-validator`、`dea-validator`、`loan-amortization`、`vcard-qr`（后 3 页为 `finance.md` 未提及页中补齐）。
 - 新增 16 条（高 11 / 中 5），编号 F-N208~F-N223；假工具候选 1 页（`vcard-qr`，类型 B）。

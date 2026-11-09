@@ -798,6 +798,13 @@ const CASES = [
     ref: "vCard 3.0 文本：姓/名写入 `N:San;Zhang;;;`，字段名用大写驼峰（`FN`/`ORG`/`TEL`/`EMAIL`/`URL`），电话带 `;TYPE=CELL`。产物与输入形态不同 ⇒ 天然非回显。默认态不同 ⇒ 不命中。",
   },
   {
+    slug: "finance/vcard-qr",
+    inputs: { fn: "李四", ln: "测试", org: "ACME", title: "Eng", tel: "13900000000", email: "li@example.com", url: "https://li.example.com" },
+    clicks: ["var cap={};qrcode=function(t,e){cap.ec=e;return {addData:function(d){cap.data=d;},make:function(){cap.made=true;},getModuleCount:function(){return 21;},isDark:function(r,c){return r===0&&c===0;}};};qrcode.stringToBytesFuncs={'UTF-8':function(){}};var txt=buildVcard();var g=renderQR(txt);document.getElementById('__tbProbe').textContent='VCREAL '+document.getElementById('fn').value+' '+(cap.data===txt&&cap.ec==='M'&&cap.made&&g&&g.length===29&&g[4][4]===1?'OK':'BAD');"],
+    expect: ["VCREAL 李四 OK"],
+    ref: "F-N223 真编码锁：用可控 qrcode 桩替换后，renderQR 必须把 buildVcard() 全文交给 qrcode(0,'M').addData()/make()，并按 getModuleCount()+4 静区生成网格；旧伪随机网格既不调用库也不产生 29×29 静区布局 ⇒ 探针 BAD。输入姓名绑定避免静态逃生。",
+  },
+  {
     slug: "finance/option-profit-calculator",
     inputs: { s0: "100", strike: "105", premium: "3", mult: "100", fee: "1" },
     clicks: ["switchTab()"],
