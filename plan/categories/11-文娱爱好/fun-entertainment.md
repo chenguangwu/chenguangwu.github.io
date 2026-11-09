@@ -363,14 +363,6 @@
 - 影响：热力图、占比、排行全部失真，无法反映真实击键分布。
 - 方案：`function onKey(e){ if(e.repeat) return; … }`。
 
-### FE-N61 数据表/历史/趋势只在点「载入示例文本」时写入，且示例会把按键数叠加到真实统计上（中，确认源码缺陷）
-- 页面：`tools/fun/keyboard-heatmap.html`
-- 问题：`onKey` 只 `saveData`，不调用 TBKit 记录包装器；只有 `loadSample` 被包装。而 `loadSample` 又把示例文本逐字符累加到现有 `counts`/`total`，不清零。
-- 证据：`:290-297`（onKey 无 `__keyboard_heatmapExtras` 调用）、`:564-567`（仅包装 `loadSample`）、`:374-384`（示例直接 `counts[...]++`、`total++`）。
-- 复现：正常打字 100 键 → 切「数据表/历史/趋势」仍为空，导出明细 CSV 无数据；再点「载入示例文本」→ 热力图与总数在原有基础上又加约 80 次按键（连点两次即翻倍）。
-- 影响：三个数据页签与导出功能对正常使用无效；示例按钮还会污染真实统计，使「总按键/最高频键」失真。
-- 方案：在 `onKey` 内节流写入历史记录；`loadSample` 前清零或明确提示「示例会累加统计」。
-
 ### FE-N62 「重置/再次开始」不取消旧的 `setTimeout` 链，重置后仍会自动回放并误判失败（中，确认源码缺陷）
 - 页面：`tools/fun/sequence-memory.html`
 - 问题：`showSeq` 用嵌套 `setTimeout` 逐位回放，未保存句柄；`reset()` 只把 `accepting=false`、`seq=[]`，旧链会继续显示并在结束时把 `accepting` 设回 `true`。
@@ -436,7 +428,7 @@
 - `tools/fun/random-picker.html`：3 条（FE-N53 高·安全；FE-N54、FE-N55 中）。复核通过项：随机索引等概率、15×80ms 定格、历史保留 20 条、`unique` 关闭时每次重填池、预设文本与 `reset`。
 - `tools/fun/daily-riddle.html`：3 条（FE-N56、FE-N57、FE-N58 中）。复核通过项：日期+难度种子出题稳定、同难度当日只计一次分、连击按自然日推进且当日第二次难度不重复推进、答案归一化忽略空格与中英文标点、历史保留 30 条。
 - `tools/fun/tongue-twister.html`：1 条（FE-N59 高·假功能）。复核通过项：题库 20 条、`next()` 不与上一条重复、难度标签展示、`reset` 复位计数。
-- `tools/fun/keyboard-heatmap.html`：2 条（FE-N60、FE-N61 中）。复核通过项：键位布局渲染、热力色阶映射、`localStorage` 回读与清空、非单字符键名映射。
+- `tools/fun/keyboard-heatmap.html`：1 条（FE-N60 中）。复核通过项：键位布局渲染、热力色阶映射、`localStorage` 回读与清空、非单字符键名映射。
 - `tools/fun/sequence-memory.html`：2 条（FE-N62、FE-N63 中）。复核通过项：序列长度 `level+1`、按序输入判定、失败展示正确序列、过关 `level++`、限时展示公式与实现一致。
 - `tools/fun/color-guess.html`：2 条（FE-N64、FE-N65 中）。复核通过项：4 选项必含目标色、点选后禁用二次点击、10 题结束、`score/10` 结算文案。
 - `tools/fun/number-puzzle.html`：2 条（FE-N66、FE-N67 中）。复核通过项：`solve24` 覆盖 4!×4³×5 种括号结构（`/tmp` 实测单次约 2.6ms）、无解提示、参考解法输出、退格还原牌面、连胜/最佳连胜。

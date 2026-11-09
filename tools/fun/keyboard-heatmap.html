@@ -376,6 +376,8 @@ function loadData(){
   }catch(e){}
 }
 function resetHeat(){
+  clearTimeout(__khRecTimer); __khRecTimer=null;
+  clearTimeout(__keyboard_heatmap_tail); __keyboard_heatmap_tail=null;
   counts={};total=0;
   saveData();updateKbd();
   document.getElementById('typeArea').value='';
@@ -551,7 +553,8 @@ function __keyboard_heatmapRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __keyboard_heatmapExtras(){
+var __keyboard_heatmap_tail=null;
+function __keyboard_heatmapExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__keyboard_heatmap_skip) return;
     var snap=__keyboard_heatmapSnap();
@@ -563,7 +566,12 @@ function __keyboard_heatmapExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__keyboard_heatmap_last<1000) return;
+    if (!force && now-__keyboard_heatmap_last<1000) {
+        clearTimeout(__keyboard_heatmap_tail);
+        __keyboard_heatmap_tail=setTimeout(function(){__keyboard_heatmap_tail=null;__keyboard_heatmapExtras();},1000-(now-__keyboard_heatmap_last));
+        return;
+    }
+    clearTimeout(__keyboard_heatmap_tail); __keyboard_heatmap_tail=null;
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -581,6 +589,12 @@ function __keyboard_heatmapExtras(){
     TBKit.history.record(rec);
     __keyboard_heatmapRender(keys,rk,en);
 }
+window.addEventListener('pagehide',function(){
+    if (__khRecTimer || __keyboard_heatmap_tail) {
+        clearTimeout(__khRecTimer); __khRecTimer=null;
+        __keyboard_heatmapExtras(true);
+    }
+});
 function __keyboard_heatmapExport(){
     if (typeof TBKit === 'undefined') return;
     try{
