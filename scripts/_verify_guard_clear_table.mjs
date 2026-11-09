@@ -25,6 +25,11 @@ const SAMPLE = [
   'nephrology/shenxiaoqiulvguolv-24h-jiganqingchu-ccr',
   'marketing/marketing-ltv-cac-ratio',
   'ophthalmology/iol-power',
+  'hydraulic/pressure-drop',
+  'hydraulic/daohongxi-shuitousunshi-maishen',
+  'hydraulic/qudao-buchong-buyu-liusu',
+  'hydraulic/yuji-nisha-kurongsunshi',
+  'hydraulic/shenliu-jinrunxian-weizhi',
 ];
 
 const argv = process.argv.slice(2);
@@ -140,6 +145,28 @@ for (const rel of PAGES) {
     const left = String(tb.textContent || '').includes(SENTINEL) ? tb.querySelectorAll('tbody tr').length : 0;
     if (left === 0) { pass++; if (verbose) console.log(`  ✓ ${tag}清空 ${ids.join('/')} ⇒ #${tblId} 已清空`); }
     else { fail++; failed.push(`${tag}清空必填项后 #${tblId} 仍剩 ${left} 行`); }
+    if (rel.startsWith('hydraulic/')) {
+      const fields = ids.map((id) => w.document.getElementById(id));
+      fields.forEach((el) => { el.value = el.defaultValue; });
+      w.calcTool();
+      const valid = tb.querySelectorAll('tbody tr').length > 0;
+      const exportName = '__' + tblId.replace(/Table$/, '') + 'Export';
+      let exportedRows = -1;
+      w.TBKit.util.exportTable = (selector) => { exportedRows = w.document.querySelectorAll(selector + ' tr').length; };
+      w[exportName]();
+      if (valid && exportedRows > 1) pass++; else { fail++; failed.push(tag + '有效输入未生成或导出明细'); }
+      let records = 0;
+      w.TBKit.history.record = () => { records++; };
+      fields[0].value = '-1';
+      w.calcTool(); w[exportName]();
+      if (!tb.querySelector('tr') && exportedRows === 0 && records === 0) pass++; else { fail++; failed.push(tag + '非法输入仍可导出明细或写入历史'); }
+      fields[0].value = fields[0].defaultValue;
+      w.calcTool(); w[exportName]();
+      if (tb.querySelector('tbody tr') && exportedRows > 1) pass++; else { fail++; failed.push(tag + '恢复有效输入后不能导出明细'); }
+      fields[0].value = '';
+      w.calcTool(); w[exportName]();
+      if (!tb.querySelector('tr') && exportedRows === 0) pass++; else { fail++; failed.push(tag + '清空输入仍可导出明细'); }
+    }
   } catch (e) {
     fail++; failed.push(`${tag}运行期异常：${String((e && e.message) || e).slice(0, 130)}`);
   } finally {
