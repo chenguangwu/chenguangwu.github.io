@@ -289,6 +289,7 @@ function randomPickOne(list,seed){
   return list[Math.floor(rng()*list.length)];
 }
 function start(){
+  const restoring=__random_picker_skip;
   const list=document.getElementById('items').value.split('\n').map(s=>s.trim()).filter(Boolean);
   if(list.length<1){alert('请至少输入 1 个选项');return;}
   const seedEl=document.getElementById('seed');
@@ -354,7 +355,7 @@ function start(){
       var past=document.getElementById('past');
       past.textContent='历史：';
       history.forEach(function(s){var sp=document.createElement('span');sp.textContent=s;past.appendChild(sp);});
-      __random_pickerExtras(); // 真实结果定格后再记录（FE-N54 修复：原先在 start() 同步返回即抓取，会记到「抽取中…」占位串）
+      if(!restoring) __random_pickerExtras(); // 只记录真实抽取，不记录历史恢复
     }
   },80);
 }
@@ -398,7 +399,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __random_picker_last=0,__random_picker_skip=false;
+var __random_picker_skip=false;
 function __random_pickerSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -415,14 +416,7 @@ function __random_pickerResText(){
     var r=document.getElementById('result');
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
-    if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
-}
-function __random_pickerScore(t){
-    var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
-    return 1;
 }
 function __random_pickerTime(t){
     var d=new Date(t);
@@ -485,22 +479,10 @@ function __random_pickerExtras(){
     if(!res) return;
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
-    var now=Date.now();
-    if(now-__random_picker_last<1000) return;
-    var last=null;
-    try{ last=TBKit.history.last(); }catch(e){}
-    if(last){
-        var same=true;
-        for(var i=0;i<keys.length;i++){
-            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
-        }
-        if(same&&String(last[rk])===String(res)) return;
-    }
-    __random_picker_last=now;
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__random_pickerScore(res);
+    rec.__tbScore=1;
     TBKit.history.record(rec);
     __random_pickerRender(keys,rk,en);
 }
@@ -519,10 +501,6 @@ function __random_pickerExport(){
 }
 function __random_pickerPresets(){
     if (typeof TBKit === 'undefined') return;
-}
-var __random_picker_f0=(typeof start==='function')?start:null;
-if(__random_picker_f0){
-    start=function(){ var __r=__random_picker_f0.apply(null,arguments); try{ __random_pickerExtras(); }catch(e){} return __r; };
 }
 function __random_pickerBoot(){ try{ __random_pickerPresets(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __random_pickerBoot();

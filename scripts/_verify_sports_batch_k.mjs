@@ -86,7 +86,10 @@ async function loadPage(rel, onKit) {
   const zhAttrs = Array.from(doc.querySelectorAll('[data-zh]')).map((e) => e.getAttribute('data-zh')).join('\n');
   check('SF-N86 引据表不再称「加权总分 / 乘以权重后求和」', !/加权总分/.test(zhAttrs) && !/乘以权重后求和/.test(zhAttrs));
   check('SF-N86 引据表已写明「8 项等权相加、满分 40」', /安全评分 = 8 项得分直接相加/.test(zhAttrs) && /满分 40/.test(zhAttrs), 'zh 片段缺失');
+  const deepDive = JSON.parse(read('i18n/tools/content_deepdive.json'))['sports/assessor-risk-2'].examples[0].body;
+  const english = JSON.parse(read('i18n/tools/en/sports/assessor-risk-2.json')).map[deepDive];
   check('SF-N86 深度解析示例改为 8 维算例（23 分 → 43/100）', /23 分/.test(body) && /43\/100/.test(body));
+  check('SF-N86 构建源与页面算例一致并有英文译文', body.includes(deepDive) && !!english && /23 points/.test(english) && /43\/100/.test(english));
 
   const vals = { a1: '2', a2: '2', a3: '2', a4: '3', a5: '3', a6: '4', a7: '3', a8: '4' };
   for (const k of Object.keys(vals)) { const el = doc.getElementById(k); if (el) el.value = vals[k]; }

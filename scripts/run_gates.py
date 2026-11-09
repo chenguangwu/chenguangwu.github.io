@@ -77,11 +77,13 @@ GATES = (
     ("science calc correctness", ("node", "scripts/verify_science_calc.js")),
     # sports 分类的正确性验证（力量 1RM / VO2max / 心率 / 氧脉搏 / 齿比 / 坡度 / SWOLF / 出汗率）。
     ("sports calc correctness", ("node", "scripts/verify_sports_calc.js")),
+    ("sports risk example", ("node", "scripts/_verify_sports_batch_k.mjs")),
     # fun 分类的正确性验证（烧烤/火锅分量、冥想分段、婚宴桌数、步幅速度换算）。
     ("fun calc correctness", ("node", "scripts/verify_fun_calc.js")),
     ("gomoku undo timing", ("node", "scripts/_verify_fun_batch_fe_n18.mjs")),
     ("metronome timing", ("node", "scripts/_verify_fun_batch_fe_n38.mjs")),
     ("word scramble records", ("node", "scripts/_verify_fun_batch_fe_n69.mjs")),
+    ("random picker records", ("node", "scripts/_verify_fun_batch_fe_n54.mjs")),
     # ai 分类的正确性验证（混淆矩阵四指标 / 欧氏曼哈顿余弦 / 交叉熵 / Sigmoid / Softmax /
     # Cohen's Kappa / AUC 秩次 / 学习率衰减 / Transformer 参数量）。
     ("ai calc correctness", ("node", "scripts/verify_ai_calc.js")),
