@@ -1271,6 +1271,34 @@ const CASES = [
     ref: "Unix 秒 1600000000 = 2020-09-13T12:26:40.000Z（UTC）。踩坑：默认 1700000000，注入值撞默认会逃生。",
   },
   {
+    slug: "it/bayes-theorem",
+    inputs: {"prior":"0","likelihood":"0.9","falsePositive":"0.05"},
+    clicks: ["calculate();var s=document.getElementById('output').innerHTML;var p=s.indexOf('边界说明');document.getElementById('__tbProbe').textContent='BAYES0 '+s.slice(p,p+160).replace(/<[^>]*>/g,'');"],
+    expect: ["BAYES0 边界说明：先验 P(H₁) = 0 时 P(¬H₁) = 1，先验优势 0/1 = 0；此时证据无法再改变信念，后验恒为 0。先验 vs 后验对比<span class=\"nam"],
+    ref: "复核失败重做·IT-N374 1/2（prior=0 边界说明）：旧说明把 prior=0 与 prior=1 混为一谈，误写「P(¬H₁)=0、先验优势 0/0 发散」。prior=0 实际 P(¬H₁)=1、先验优势 0/1=0，不发散。修复后 BAYES0 边界说明写「P(¬H₁) = 1，先验优势 0/1 = 0」；修复前写「P(¬H₁) = 0，先验优势 0/0 发散为 0」⇒ 真变红。默认态 prior=0.01 不进边界分支、无探针串 ⇒ 零逃生。"
+  },
+  {
+    slug: "it/bayes-theorem",
+    inputs: {"prior":"0.01","likelihood":"0.9","falsePositive":"0"},
+    clicks: ["calculate();var s=document.getElementById('output').innerHTML;document.getElementById('__tbProbe').textContent='BAYESBF inf='+(s.indexOf('<div class=\"v\">∞</div><div class=\"l\">贝叶斯因子 BF')>=0?1:0)+' undef='+(s.indexOf('<div class=\"v\">未定义</div><div class=\"l\">贝叶斯因子 BF')>=0?1:0);"],
+    expect: ["BAYESBF inf=1 undef=0"],
+    ref: "复核失败重做·IT-N374 2/2（BF 发散语义）：误报率 fp=0 时贝叶斯因子 BF=∞，统计卡必须用 fmtOdds 显示 ∞ 而不是 fmt 的「未定义」。探针在 #output 精确锚定 `<div class=\"v\">∞</div><div class=\"l\">贝叶斯因子 BF`，修复后 inf=1 undef=0；修复前 inf=0 undef=1 ⇒ 真变红。默认态 fp=0.05 不产生 ∞ ⇒ 零逃生。"
+  },
+  {
+    slug: "it/statistical-power",
+    inputs: {"d":"0.5","alpha":"0.05","tail":"two","solveFor":"size","targetPower":"0.001"},
+    clicks: ["calculate();var s=document.getElementById('output').innerHTML;var p=s.indexOf('反解');document.getElementById('__tbProbe').textContent='PWRMIN '+s.slice(p,p+200).replace(/<[^>]*>/g,'');"],
+    expect: ["PWRMIN 反解：n = ⌈2×((z₁₋α' + z₁₋β)/d)²⌉ = ⌈2×((1.96 + -3.09)/0.5)²⌉ = 11（正态近似候选）；用本页正算公式逐整数核验后，满足目标功效 0.001 的最小每组样本量 = 1步骤 1：非中心参数 δ = d × √(n/2) = 0.5 ×"],
+    ref: "复核失败重做·IT-N375 1/2（低功效反解过度估计）：solveFor=size、d=0.5、α=0.05、targetPower=0.001、双侧时，正态近似给出候选 n=11，但本页正算公式在 n=1 已达 0.001 目标功效。修复后从候选向下逐整数核验，给出最小每组样本量 1；修复前直出 11 ⇒ 真变红。默认态 solveFor 非 size、无「反解」行 ⇒ 零逃生。"
+  },
+  {
+    slug: "it/statistical-power",
+    inputs: {"d":"0.3","alpha":"0.01","tail":"two","solveFor":"size","targetPower":"0.01"},
+    clicks: ["calculate();var s=document.getElementById('output').innerHTML;var p=s.indexOf('反解');document.getElementById('__tbProbe').textContent='PWRCHK '+s.slice(p,p+200).replace(/<[^>]*>/g,'');"],
+    expect: ["PWRCHK 反解：n = ⌈2×((z₁₋α' + z₁₋β)/d)²⌉ = ⌈2×((2.576 + -2.326)/0.3)²⌉ = 2（正态近似候选）；用本页正算公式逐整数核验后，满足目标功效 0.01 的最小每组样本量 = 1步骤 1：非中心参数 δ = d × √(n/2) = 0.3 ×"],
+    ref: "复核失败重做·IT-N375 2/2（近似偏保守回退一整级）：d=0.3、α=0.01、targetPower=0.01 时近似候选 n=2，正算核验 n=1 已达标。修复后最小样本量 1；修复前 2 ⇒ 真变红。与上例共同覆盖「向下收敛多级」与「收敛一级」，默认态不触发 ⇒ 零逃生。"
+  },
+  {
     slug: "it/statistical-power",
     // 只锚「功效 = 88.54%」；原 expect 第二条「临界值 z* = 1.96」是 α=0.05 双侧常量，
     // 默认态同样命中 ⇒ 逃生项（判据⑤静态常量），已剔除。

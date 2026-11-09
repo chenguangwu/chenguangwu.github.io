@@ -303,6 +303,13 @@ function normalInv(p){
   else {q=Math.sqrt(-2*Math.log(1-p));z=-(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);}
   return z;
 }
+// IT-N375：反解只是正态近似，取整后必须回到页面自己的正算公式核验，
+// 否则低目标功效区会给出非最小的每组样本量（如目标 0.01 时反解给 2，n=1 其实已达标）。
+function __spPowerAt(nn,d,zCrit,tail){
+  if(!isFinite(nn)||nn<1||!isFinite(d)||!isFinite(zCrit)) return 0;
+  const delta=d*Math.sqrt(nn/2);
+  return tail==='two' ? normalCDF(delta-zCrit)+normalCDF(-delta-zCrit) : normalCDF(delta-zCrit);
+}
 function calculate(){
   const out=document.getElementById('output');
   const d=parseFloat(document.getElementById('d').value);
@@ -315,15 +322,22 @@ function calculate(){
   const targetPower=tpEl?parseFloat(tpEl.value):NaN;
   if(solveFor!=='size'&&([d,n,alpha].some(isNaN)||d<=0||n<1||alpha<=0||alpha>0.5)){const __h0='<p style="color:var(--danger)" data-zh="请输入有效参数">Please enter valid parameters.</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0;return;}
   // IT-N375：承诺「知三求一 / 求所需样本量」，原来只有功效一个输出
-  let solvedN=null, zA=0, zB=0;
+  let solvedN=null, nApprox=null, zA=0, zB=0;
   if(solveFor==='size'){
     if(isNaN(d)||d<=0||isNaN(alpha)||alpha<=0||alpha>0.5){const __hs0='<p style="color:var(--danger)">请输入有效参数（d &gt; 0，α 在 0~0.5）</p>';out.innerHTML=__hs0;return;}
     if(isNaN(targetPower)||targetPower<=0||targetPower>=1){const __hs1='<p style="color:var(--danger)">目标功效 1−β 必须在 0~1 之间（不含端点）</p>';out.innerHTML=__hs1;return;}
     zA = (tail==='two') ? normalInv(1-alpha/2) : normalInv(1-alpha);
     zB = normalInv(targetPower);
     const nRaw = 2*Math.pow((zA+zB)/d,2);
-    solvedN = Math.ceil(nRaw);
-    if(!isFinite(solvedN)||solvedN<1){const __hs2='<p style="color:var(--danger)">无法反解出有效样本量，请检查效应量与目标功效</p>';out.innerHTML=__hs2;return;}
+    nApprox = Math.max(1, Math.ceil(nRaw));
+    if(!isFinite(nApprox)||nApprox<1){const __hs2='<p style="color:var(--danger)">无法反解出有效样本量，请检查效应量与目标功效</p>';out.innerHTML=__hs2;return;}
+    // 以近似候选为起点：先向下收敛到仍满足目标的最小整数，再向上补齐（近似公式偏保守时）
+    const zCritSolve = (tail==='two') ? normalInv(1-alpha/2) : normalInv(1-alpha);
+    let cand=nApprox, guard=0;
+    while(cand>1 && __spPowerAt(cand-1,d,zCritSolve,tail)>=targetPower && guard++<100000) cand--;
+    guard=0;
+    while(__spPowerAt(cand,d,zCritSolve,tail)<targetPower && guard++<100000) cand++;
+    solvedN = cand;
     n = solvedN;
   }
   // 双样本 t 检验近似：非中心参数 δ = d*√(n/2)
@@ -349,7 +363,7 @@ function calculate(){
   </div>`;
   html+=`<h3 style="margin-top:14px;">分步计算</h3>`;
   if(solvedN!==null){
-    html+=`<div class="step-line"><strong>反解：</strong>n = ⌈2×((z₁₋α' + z₁₋β)/d)²⌉ = ⌈2×((${fmt(zA)} + ${fmt(zB)})/${fmt(d)})²⌉ = ${solvedN}（每组）</div>`;
+    html+=`<div class="step-line"><strong>反解：</strong>n = ⌈2×((z₁₋α' + z₁₋β)/d)²⌉ = ⌈2×((${fmt(zA)} + ${fmt(zB)})/${fmt(d)})²⌉ = ${nApprox}（正态近似候选）；用本页正算公式逐整数核验后，满足目标功效 ${fmt(targetPower)} 的最小每组样本量 = ${solvedN}</div>`;
   }
   html+=`<div class="step-line"><strong>步骤 1：</strong>非中心参数 δ = d × √(n/2) = ${fmt(d)} × √(${n}/2) = ${fmt(d)} × ${fmt(Math.sqrt(n/2))} = ${fmt(delta)}</div>`;
   html+=`<div class="step-line"><strong>步骤 2：</strong>临界值 z* = ${fmt(zCrit)}（α=${alpha}，${tail==='two'?'双侧':'单侧'}）</div>`;

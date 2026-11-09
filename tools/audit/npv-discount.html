@@ -271,6 +271,8 @@ s.parentNode.insertBefore(el, s);
 
 <script>
 var flows=[25000,30000,35000,40000,30000];
+// T-N7：保存与恢复必须用同一个期数上限，否则 UI 能加到 61 期、刷新却被恢复函数整体拒绝。
+var __NPV_MAX_FLOWS=60;
 
 function fmt(n){
   if(!isFinite(n)) return '--';
@@ -324,7 +326,10 @@ function __npvSaveFlows(){
 function __npvRestoreFlows(){
   var s=__npvLS('cfCount');
   var n=parseInt(s===null?'':s,10);
-  if(!isFinite(n)||n<0||n>60) return false;
+  if(!isFinite(n)||n<0) return false;
+  // 越界值（例如手工写入 localStorage 或旧版本保存到 61 期）截断到上限，
+  // 而不是整体放弃恢复导致页面直接退回默认 5 期。
+  if(n>__NPV_MAX_FLOWS) n=__NPV_MAX_FLOWS;
   while(flows.length<n) flows.push(0);
   while(flows.length>n) flows.pop();
   for(var i=0;i<n;i++){
@@ -333,7 +338,13 @@ function __npvRestoreFlows(){
   }
   return true;
 }
-function addFlow(){ flows.push(0); renderList(); __npvSaveFlows(); calc(); }
+function addFlow(){
+  if(flows.length>=__NPV_MAX_FLOWS){
+    try{ ToolBox.showToast(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Up to 60 cash-flow periods are supported':'最多支持 60 期现金流'),'error'); }catch(e){}
+    return;
+  }
+  flows.push(0); renderList(); __npvSaveFlows(); calc();
+}
 function removeFlow(i){ flows.splice(i,1); renderList(); __npvSaveFlows(); calc(); }
 function loadDemo(){ flows=[25000,30000,35000,40000,30000]; renderList(); __npvSaveFlows(); calc(); }
 

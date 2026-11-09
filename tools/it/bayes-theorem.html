@@ -308,7 +308,7 @@ function calculate(){
     <div class="stat-card"><div class="v">${fmt(fp)}</div><div class="l">误报 P(E|¬H₁)</div></div>
     <div class="stat-card"><div class="v">${fmt(pE)}</div><div class="l">证据 P(E)</div></div>
     <div class="stat-card"><div class="v">${fmt(posterior)}</div><div class="l">后验 P(H₁|E)</div></div>
-    <div class="stat-card"><div class="v">${fmt(bayesFactor)}</div><div class="l">贝叶斯因子 BF</div></div>
+    <div class="stat-card"><div class="v">${fmtOdds(bayesFactor)}</div><div class="l">贝叶斯因子 BF</div></div>
     <div class="stat-card"><div class="v">${fmtOdds(priorOdds)} → ${fmtOdds(posteriorOdds)}</div><div class="l">优势比变化</div></div>
   </div>`;
   html+=`<h3 style="margin-top:14px;">分步计算</h3>`;
@@ -318,7 +318,12 @@ function calculate(){
   html+=`<div class="step-line"><strong>步骤 4：</strong>后验 P(H₁|E) = 分子 / P(E) = ${fmt(likelihood*prior)} / ${fmt(pE)} = ${fmt(posterior)}</div>`;
   html+=`<div class="step-line"><strong>步骤 5（优势比形式）：</strong>先验优势 = ${fmtOdds(priorOdds)}；BF = P(E|H₁)/P(E|¬H₁) = ${fmt(likelihood)}/${fmt(fp)} = ${fmtOdds(bayesFactor)}；后验优势 = ${fmtOdds(priorOdds)}×${fmtOdds(bayesFactor)} = ${fmtOdds(posteriorOdds)}</div>`;
   if(prior===0||prior===1){
-    html+=`<div class="step-line"><strong>边界说明：</strong>先验 P(H₁) = ${fmt(prior)} 时 P(¬H₁) = 0，先验优势 ${fmt(prior)}/0 发散为 ${fmtOdds(priorOdds)}；此时证据无法再改变信念，后验恒为 ${fmt(posterior)}。</div>`;
+    // prior=1 时 P(¬H₁)=0、先验优势 1/0 发散；prior=0 时 P(¬H₁)=1、先验优势 0/1=0。
+    // 旧说明把两种边界混为一谈，对 prior=0 误写「P(¬H₁)=0、0/0 发散」。
+    const __edge = (prior===1)
+      ? 'P(¬H₁) = 0，先验优势 '+fmt(prior)+'/0 发散为 '+fmtOdds(priorOdds)
+      : 'P(¬H₁) = 1，先验优势 '+fmt(prior)+'/1 = '+fmtOdds(priorOdds);
+    html+=`<div class="step-line"><strong>边界说明：</strong>先验 P(H₁) = ${fmt(prior)} 时 ${__edge}；此时证据无法再改变信念，后验恒为 ${fmt(posterior)}。</div>`;
   }
   if(fp===0){
     html+=`<div class="step-line"><strong>边界说明：</strong>误报率 P(E|¬H₁) = 0 意味着证据在 ¬H₁ 下不可能出现，贝叶斯因子发散为 ∞。</div>`;

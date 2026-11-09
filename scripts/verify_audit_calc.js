@@ -4,6 +4,19 @@ const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
   "slug": "audit/npv-discount",
+  "inputs": {},
+  "clicks": ["for(var i=0;i<75;i++)addFlow();document.getElementById('__tbProbe').textContent='NPVCAP n='+flows.length+' cap='+(typeof __NPV_MAX_FLOWS!=='undefined'?__NPV_MAX_FLOWS:'NA');"],
+  "expect": ["NPVCAP n=60 cap=60"],
+  "ref": "复核失败重做·T-N7 1/2（添加期数上限）：重复调用 addFlow() 75 次，期数必须停在 60 而不是无限增长。修复后 NPVCAP n=60 cap=60；修复前 n=80 且无上限常量 ⇒ 真变红。默认态不执行 clicks、无探针串 ⇒ 零逃生。"
+},
+{
+  "slug": "audit/npv-discount",
+  "inputs": {},
+  "clicks": ["__npvLS('cfCount','61');var ok=__npvRestoreFlows();document.getElementById('__tbProbe').textContent='NPVREST ok='+(ok?1:0)+' n='+flows.length;"],
+  "expect": ["NPVREST ok=1 n=60"],
+  "ref": "复核失败重做·T-N7 2/2（越界快照截断恢复）：用页面自身的 __npvLS 把 cfCount 写成 61 再调 __npvRestoreFlows()：越界值应截断到上限 60 并成功恢复，而不是整体拒绝退回默认 5 期。修复后 NPVREST ok=1 n=60；修复前 ok=0 n=5 ⇒ 真变红。默认态 localStorage 无该键、不执行 clicks ⇒ 零逃生。"
+},{
+  "slug": "audit/npv-discount",
   "inputs": { "rate": "0", "init": "1e308" },
   "clicks": ["try{flows=[-1e308,1e308];calc();}catch(e){}"],
   "expect": ["累计现值溢出"],
