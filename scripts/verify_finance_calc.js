@@ -2253,9 +2253,9 @@ const CASES = [
       "input": "abc123测试"
     },
     "expect": [
-      "abc123测试\n输入： ABC123测试 ❌ 格式不符。ESN HEX 应为 8 位十六进制，ESN DEC 应为 11 位十进制 提示：ESN 已被 MEID 取代，仅旧设备使用"
+      "abc123测试\n输入： ABC123测试 ❌ 第 7 位含非法字符「测」"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： ABC123测试 ❌ 格式不符。ESN HEX 应为 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，F-N156 修复后含中文「测」在第 7 位报「非法字符」（旧实现静默剔除后按位数判格式不符）；输出区绑定输入串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "finance/ein-validator",
@@ -3969,6 +3969,27 @@ const CASES = [
     clicks: ["validate();var h=String(document.getElementById('output').innerHTML);document.getElementById('__tbProbe').textContent='CPFXSS '+((h.indexOf('&lt;img')>=0&&h.indexOf('<img')<0&&h.indexOf('<IMG')<0)?'ESC':'RAW');"],
     expect: ["CPFXSS ESC"],
     ref: "F-N150 自 XSS：输入 <img src=x onerror=alert(1)>，四页原样插值 ${raw} 会执行；修复后 esc(raw) 转义为 &lt;img…&gt;（这四页未大写化，保留小写）。探针断言含 &lt;img 且不含裸 <img/<IMG ⇒ 零逃生（纯转义行为锁）。",
+  },
+  {
+    slug: "finance/esn-validator",
+    inputs: { input: "80A1B2C3" },
+    clicks: ["validate()"],
+    expect: ["12810597059（3 位制造商码 + 8 位序列号）"],
+    ref: "F-N155 十进制标准拼接：80A1B2C3（制造商 0x80=128、序列 0xA1B2C3=10597059）应输出标准 11 位十进制 ESN 12810597059（3+8 拼接）。旧实现 parseInt(hex,16) 整体转十进制得 02158080707（互不可逆）。输入绑定串 ⇒ 默认 A1B2C3D4 不同值不命中。",
+  },
+  {
+    slug: "finance/esn-validator",
+    inputs: { input: "A1B2C3D4G" },
+    clicks: ["validate()"],
+    expect: ["第 9 位含非法字符「G」"],
+    ref: "F-N156 非法字符拒绝：A1B2C3D4G 第 9 位 G 非十六进制，旧实现 replace(/[^0-9A-F]/g,'') 静默剔除后按 8 位 HEX 判有效；修复后按整体形态判并报第 9 位非法字符。输入绑定串 ⇒ 默认态不命中。",
+  },
+  {
+    slug: "finance/esn-validator",
+    inputs: { input: "00000000" },
+    clicks: ["validate()"],
+    expect: ["制造商码 0x00 为保留码，ESN 无效"],
+    ref: "F-N156 保留码拒绝：8 位 HEX 00000000 制造商码 0x00（MFR_DB 标 RESERVED）应判无效。旧实现无条件输出「✅ ESN HEX 格式有效」。输入绑定保留码 ⇒ 默认态不命中。",
   },
 
 ];
