@@ -145,6 +145,12 @@ function _rngReset() { _rngState = 0x9e3779b9 >>> 0; }
 // ---------------------------------------------------------------- 用例
 const CASES = [
 {
+    "slug": "it/playfair-cipher",
+    "clicks": ["document.getElementById('__tbProbe').textContent='PLF score='+__playfair_cipherScore('FAILED');"],
+    "expect": ["PLF score=1"],
+    "ref": "复核失败重做·Playfair 明文误判：密钥 PLAYFAIR、明文 FAILED，加密再解密得到合法明文 FAILED，原 Score 命中 Failed 判 0 ⇒ 历史/趋势/CSV 全误标未通过。修复后 Score 只保留明确业务失败标识（⚠|无效|未通过|不正确|must be|请填写…），移除 Failed/失败/错误/Invalid 等用户文本词 ⇒ 判 1。默认态无探针串 ⇒ 零逃生。"
+  },
+{
     "slug": "it/aes-encryptor",
     "clicks": ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'encInput',type:'textarea',value:'FAILED PLAINTEXT'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};var __o=document.getElementById('output');if(__o){__o.textContent='1234abcd previous ciphertext';}__aes_encryptorLastBytes=0;__aes_encryptor_last=0;__aes_encryptorExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='AESFAIL hist='+__cap.length;"],
     "expect": ["AESFAIL hist=0"],

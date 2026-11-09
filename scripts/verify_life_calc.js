@@ -12,6 +12,12 @@
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
+{
+    "slug": "life/bill-splitter",
+    "clicks": ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'total-amount',type:'text',value:'300'},{id:'person-count',type:'text',value:'4'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};var __rs={textContent:'每人 75 元 · 合计 300 元'};var __oqs=document.querySelector;document.querySelector=function(s){return s==='.result-box'?__rs:__oqs(s);};__bill_splitter_last=0;__bill_splitter_a0=function(){};calcAdvanced();document.querySelectorAll=__oq;document.querySelector=__oqs;document.getElementById('__tbProbe').textContent='BILLADV n='+__cap.length;"],
+    "expect": ["BILLADV n=1"],
+    "ref": "复核失败重做·高级分账不入历史：切到高级模式后真实入口是 calcAdvanced()，原记录器只包装 calcSimple() ⇒ 火锅 100 元/4 人算出每人 25 元也不进历史，CSV 仍是旧结果。修复后同构包装 calcAdvanced()。用例把原函数桩替换为空函数以避免复杂计算，走真实包装触发 Extras：修复前 n=0、修复后 n=1。默认态无探针串 ⇒ 零逃生。"
+  },
   { slug: "life/bill-splitter",
     clicks: ["var __r=__advSplitAmounts([{amount:100,involved:[0,1,2]}],3,1,10000);document.getElementById('adv-result').innerHTML='SPLIT='+__r.map(function(x){return x.toFixed(2);}).join('|');"],
     expect: ["SPLIT=33.34|33.33|33.33"],
