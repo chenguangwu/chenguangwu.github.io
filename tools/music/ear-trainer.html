@@ -687,10 +687,12 @@ s.parentNode.insertBefore(el, s);
 
   /* ========== 和弦定义 ========== */
   const CHORDS = [
-    { id: 'major',   name: '大三和弦', intervals: [4, 7], short: 'Major' },
-    { id: 'minor',   name: '小三和弦', intervals: [3, 7], short: 'Minor' },
-    { id: 'aug',     name: '增三和弦', intervals: [4, 8], short: 'Aug' },
-    { id: 'dim',     name: '减三和弦', intervals: [3, 6], short: 'Dim' }
+    { id: 'major',   name: '大三和弦', intervals: [4, 7], short: 'Major', spell: ['C','E','G'] },
+    { id: 'minor',   name: '小三和弦', intervals: [3, 7], short: 'Minor', spell: ['C','E♭','G'] },
+    // FE-N39：和弦须按音级拼写（增三度叠增三度=G♯ 而非等音 A♭；减三度叠减三度=G♭ 而非 F#）。
+    // 不能复用 DEGREE_SPELL 的半音映射：那是音程语境（8 半音=小六度=A♭、6 半音=三全音）。
+    { id: 'aug',     name: '增三和弦', intervals: [4, 8], short: 'Aug',   spell: ['C','E','G♯'] },
+    { id: 'dim',     name: '减三和弦', intervals: [3, 6], short: 'Dim',   spell: ['C','E♭','G♭'] }
   ];
 
   const CHORD_DIFFICULTY = {
@@ -796,7 +798,10 @@ s.parentNode.insertBefore(el, s);
     } else {
       let html = '<table><thead><tr><th>和弦</th><th>英文</th><th>结构</th><th>示例（C为根音）</th></tr></thead><tbody>';
       CHORDS.forEach(function(ch) {
-        html += '<tr><td><strong>' + ch.name + '</strong></td><td>' + ch.short + '</td><td>根音 + ' + ch.intervals.join('+') + ' 半音</td><td>C ' + ch.intervals.map(function(s) { return DEGREE_SPELL[s]; }).join('-') + '</td></tr>';
+        // FE-N39：和弦示例按音级拼写（ch.spell），不再共用音程的半音映射 DEGREE_SPELL。
+        // 结构列仍展示半音数（4+8 / 3+6），CSV 直接读取本表 ⇒ 同步修正。
+        var __spell = ch.spell || ch.intervals.map(function(s) { return DEGREE_SPELL[s]; });
+        html += '<tr><td><strong>' + ch.name + '</strong></td><td>' + ch.short + '</td><td>根音 + ' + ch.intervals.join('+') + ' 半音</td><td>C ' + __spell.slice(1).join('-') + '</td></tr>';
       });
       html += '</tbody></table>';
       const __h6=html;if((typeof __h6==='number'&&!isFinite(__h6))||/Infinity/.test(String(__h6))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h6)){el.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}el.innerHTML=__h6;

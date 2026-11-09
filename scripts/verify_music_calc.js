@@ -3,6 +3,18 @@
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
+    "slug": "music/ear-trainer",
+    "clicks": ["var __oq=document.querySelectorAll;document.querySelectorAll=function(){return [{classList:{remove:function(){},add:function(){}}},{classList:{remove:function(){},add:function(){}}}];};EarTrainer.setMode('chord');document.querySelectorAll=__oq;var h=String(document.getElementById('refContent').innerHTML);var ok=(h.indexOf('C E-G')>=0&&h.indexOf('C E♭-G')>=0&&h.indexOf('C E-G♯')>=0&&h.indexOf('C E♭-G♭')>=0&&h.indexOf('A♭')<0&&h.indexOf('F#')<0);document.getElementById('__tbProbe').textContent='CHORDREF '+(ok?'OK':'BAD');"],
+    "expect": ["CHORDREF OK"],
+    "ref": "复核失败重做·FE-N39 和弦音级拼写：C 增三和弦（增三度叠增三度）应写 C E G♯，减三和弦（减三度叠减三度）应写 C E♭ G♭；旧实现把 CHORDS.intervals 直接喂给音程语境的 DEGREE_SPELL，得 C E A♭ / C E♭ F#。修复后 CHORDS 各带按音级 spell 字段、参考表用 ch.spell。用例切 chord 模式走真实 renderRefTable，断言四种和弦拼写齐全且旧的等音写法不再出现；修复前 BAD。默认态无探针串 ⇒ 零逃生。"
+  },
+{
+    "slug": "music/ear-trainer",
+    "clicks": ["var __oq=document.querySelectorAll;document.querySelectorAll=function(){return [{classList:{remove:function(){},add:function(){}}},{classList:{remove:function(){},add:function(){}}}];};EarTrainer.setMode('chord');document.querySelectorAll=__oq;var h=String(document.getElementById('refContent').innerHTML);var rows=[];var re=/<tr><td><strong>([^<]*)<\\/strong><\\/td><td>([^<]*)<\\/td><td>([^<]*)<\\/td><td>([^<]*)<\\/td><\\/tr>/g;var m;while((m=re.exec(h))){rows.push([m[1],m[2],m[3],m[4]]);}var __tbl={querySelectorAll:function(){return rows.map(function(r){return {querySelectorAll:function(){return r.map(function(c){return {textContent:c};});}};});}};var __hidden={innerHTML:'',appendChild:function(el){this.innerHTML+=String(el.innerHTML||'')+'|';}};var __oqs=document.querySelector;document.querySelector=function(s){if(s==='#refContent table tbody')return __tbl;if(s==='#earHidden tbody')return __hidden;return __oqs(s);};var __or=__earRow;__earRow=function(cells){return {innerHTML:cells.join('|')};};TBKit={util:{isEn:function(){return false;},exportTable:function(){}}};__earExport();document.querySelector=__oqs;__earRow=__or;document.getElementById('__tbProbe').textContent='EARCSV '+(__hidden.innerHTML.indexOf('G♯')>=0&&__hidden.innerHTML.indexOf('G♭')>=0?'OK':'BAD');"],
+    "expect": ["EARCSV OK"],
+    "ref": "复核失败重做·FE-N39 CSV 同步：__earExport() 直接复制 #refContent 参考表四列进 #earHidden 再导出；参考表按音级拼写修好后 CSV 同步为 G♯/G♭。用例以真实参考表行喂 __earExport、stub 中间 DOM，断言导出内容含 G♯/G♭；修复前参考表是 A♭/F# ⇒ BAD。默认态无探针串 ⇒ 零逃生。"
+  },
+{
   "slug": "music/audio-converter",
   "inputs": {
     "sr": "66150",
