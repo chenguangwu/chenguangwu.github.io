@@ -241,7 +241,7 @@ function mod11_cnpj(digits, weights){
   return rem < 2 ? 0 : 11 - rem;
 }
 function cnpjCheck(digits){
-  if(digits.length !== 14) return false;
+  if(!digits || digits.length !== 14) return false;
   if(/^(\d)\1+$/.test(digits)) return false; // all same digit
   const w1 = [5,4,3,2,9,8,7,6,5,4,3,2];
   const w2 = [6,5,4,3,2,9,8,7,6,5,4,3,2];
@@ -249,29 +249,41 @@ function cnpjCheck(digits){
   const d2 = mod11_cnpj(digits, w2);
   return d1 === parseInt(digits[12],10) && d2 === parseInt(digits[13],10);
 }
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function validate(){
   const raw = document.getElementById('input').value.trim();
-  const digits = raw.replace(/\D/g,'');
   const out = document.getElementById('output');
-  if(!digits){ const __h0=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Waiting for input...":"等待输入...");if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0; return; }
-  let html = `<p><strong>输入：</strong>${raw}</p>`;
+  const __en98 = (typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  // F-N168：先做字符白名单（仅数字与 . / - 空格），非法字符点名位置，不再静默剥离把录入错误「修正」成有效
+  const badIdx = raw.search(/[^0-9./\-\s]/);
+  if(badIdx >= 0){
+    const bad = raw[badIdx];
+    out.innerHTML = `<p><strong>${__en98?'Input':'输入'}：</strong>${esc(raw)}</p><p style="color:var(--danger);">${__en98?`❌ Character ${badIdx+1} "${esc(bad)}" is invalid; CNPJ allows only digits and . / - separators.`:`❌ 第 ${badIdx+1} 位含非法字符「${esc(bad)}」：CNPJ 只能包含数字及 . / - 分隔符。`}</p>`;
+    return;
+  }
+  const digits = raw.replace(/\D/g,'');
+  if(!digits){ const __h0=(__en98?"Waiting for input...":"等待输入...");if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0; return; }
+  let html = `<p><strong>${__en98?'Input':'输入'}：</strong>${esc(raw)}</p>`;
   if(digits.length !== 14){
-    html += `<p>⚠️ CNPJ 必须为 14 位数字（当前 ${digits.length} 位）</p>`;
+    html += `<p>⚠️ ${__en98?`CNPJ must be 14 digits (currently ${digits.length})`:`CNPJ 必须为 14 位数字（当前 ${digits.length} 位）`}</p>`;
     const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;
     return;
   }
   const formatted = digits.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+  const allSame = /^(\d)\1+$/.test(digits); // F-N169：全同数字与校验和失败分开定位
   const valid = cnpjCheck(digits);
-  html += `<p><strong>格式化：</strong>${formatted}</p>`;
-  html += `<p><strong>根号（前 8 位）：</strong>${digits.substring(0,8)}</p>`;
-  html += `<p><strong>分支号：</strong>${digits.substring(8,12)}（0001 = 总公司）</p>`;
-  html += `<p><strong>校验位：</strong>${digits.substring(12,14)}</p>`;
-  html += `<p><strong>校验算法：</strong>模 11 双校验</p>`;
-  html += `<p><strong>校验和：</strong> ${valid?'✅ 通过':'❌ 未通过'}</p>`;
+  html += `<p><strong>${__en98?'Formatted':'格式化'}：</strong>${formatted}</p>`;
+  html += `<p><strong>${__en98?'Root (first 8)':'根号（前 8 位）'}：</strong>${digits.substring(0,8)}</p>`;
+  html += `<p><strong>${__en98?'Branch':'分支号'}：</strong>${digits.substring(8,12)}（0001 = ${__en98?'head office':'总公司'}）</p>`;
+  html += `<p><strong>${__en98?'Check digits':'校验位'}：</strong>${digits.substring(12,14)}</p>`;
+  html += `<p><strong>${__en98?'Algorithm':'校验算法'}：</strong>${__en98?'mod-11 double check':'模 11 双校验'}</p>`;
+  html += `<p><strong>${__en98?'Checksum':'校验和'}：</strong> ${valid?(__en98?'✅ pass':'✅ 通过'):(__en98?'❌ fail':'❌ 未通过')}</p>`;
   if(valid){
-    html += `<p style="color:var(--success);">✅ CNPJ 号码有效</p>`;
+    html += `<p style="color:var(--success);">${__en98?'✅ CNPJ valid':'✅ CNPJ 号码有效'}</p>`;
+  } else if(allSame){
+    html += `<p style="color:var(--danger);">${__en98?'❌ All digits are identical — not a valid CNPJ (not a checksum error)':'❌ 全部数字相同，非有效 CNPJ（非校验和错误）'}</p>`;
   } else {
-    html += `<p style="color:var(--danger);">❌ 校验和失败，CNPJ 无效</p>`;
+    html += `<p style="color:var(--danger);">${__en98?'❌ Checksum failed, CNPJ invalid':'❌ 校验和失败，CNPJ 无效'}</p>`;
   }
   const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h2;
 }

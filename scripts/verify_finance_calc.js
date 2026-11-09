@@ -167,6 +167,27 @@ const CASES = [
     ref: "巴西 CNPJ 模 11 双校验：权重 [5,4,3,2,9,8,7,6,5,4,3,2]，余数 <2 记 0；expect 取页面回显的格式化串（含具体号码 ⇒ 默认预填 00000000000191 的格式化值 00.000.000/0001-91 不命中）",
   },
   {
+    slug: "finance/cnpj-validator",
+    inputs: { input: "11ABC2223330001-81" },
+    clicks: ["validate();var h=String(document.getElementById('output').innerHTML).replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ');document.getElementById('__tbProbe').textContent='FNCNPJ '+document.getElementById('input').value+' '+((h.indexOf('第 3 位含非法字符「A」')>=0&&h.indexOf('✅ CNPJ 号码有效')<0)?'OK':'BAD');"],
+    expect: ["FNCNPJ 11ABC2223330001-81 OK"],
+    ref: "F-N168 字母拒绝：11ABC2223330001-81 剥离字母后是合法 CNPJ 11222333000181，旧实现 replace(\\D,'') 静默剔除 ABC 后判「✅ CNPJ 号码有效」；新实现白名单守卫点名第 3 位非法字符 A 并拒绝。默认态合法 ⇒ 零逃生。",
+  },
+  {
+    slug: "finance/cnpj-validator",
+    inputs: { input: "00000000000000" },
+    clicks: ["validate();var h=String(document.getElementById('output').innerHTML).replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ');document.getElementById('__tbProbe').textContent='FNCNPZ '+document.getElementById('input').value+' '+((h.indexOf('全部数字相同，非有效 CNPJ（非校验和错误）')>=0&&h.indexOf('校验和失败')<0)?'OK':'BAD');"],
+    expect: ["FNCNPZ 00000000000000 OK"],
+    ref: "F-N169 全同数字分流：00000000000000 的两个 mod-11 期望其实为 0/0 与末位相符，失败原因是「数字全同」而非「校验和失败」。旧实现统一输出「❌ 校验和失败」误导定位；新实现单独提示「全部数字相同，非有效 CNPJ（非校验和错误）」。默认预填 00000000000191 非全同 ⇒ 零逃生。",
+  },
+  {
+    slug: "finance/cnpj-validator",
+    inputs: { input: "<img src=x onerror=1>" },
+    clicks: ["validate();var h=String(document.getElementById('output').innerHTML);document.getElementById('__tbProbe').textContent='FNCXSS '+((h.indexOf('&lt;img')>=0&&h.indexOf('<img')<0)?'ESC':'RAW');"],
+    expect: ["FNCXSS ESC"],
+    ref: "CNPJ 自 XSS 转义（同族第89批模式顺带修）：旧实现把 raw 原样拼入 innerHTML，输入 <img src=x onerror=1> 即执行；新实现 esc() 转义输出 &lt;img。默认态不含探针串 ⇒ 零逃生。",
+  },
+  {
     slug: "finance/abn-validator",
     inputs: { input: "98765432122" },
     expect: ["98 765 432 122"],
@@ -2031,9 +2052,9 @@ const CASES = [
       "input": "abc123测试"
     },
     "expect": [
-      "abc123测试\n输入： abc123测试 ⚠️ CNPJ 必须为 14 位数字（当前 3 位）"
+      "abc123测试\n输入： abc123测试 ❌ 第 1 位含非法字符「a」：CNPJ 只能包含数字及 . / - 分隔符。"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： abc123测试 ⚠️ CNPJ 必须为 14 位数字…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "F-N168 字符白名单守卫（第98批同步）：注入非默认输入{\"input\":\"abc123测试\"}，旧实现先 replace(\\D,'') 静默剥离字母后按 123 判位数错误；新实现先白名单守卫点名第 1 位非法字符「a」。默认态（合法预填）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "finance/break-even-calculator",
