@@ -1109,6 +1109,12 @@ const CASES = [
     ref: "英国 Sort Code 6 位，前 2 位 11 对应 Lloyds Bank。默认态不同 ⇒ 不命中。",
   },
   {
+    slug: "finance/sort-code-validator-validator",
+    inputs: { input: "12A34B56" },
+    expect: ["输入： 12A34B56 ❌ Sort Code 仅允许数字、空格或连字符，含字母为格式错误"],
+    ref: "F-N197 含字母拒绝：旧实现 replace(\\D,'') 剥离 A/B 后按 123456 判 ✅ 并给银行名；deep-dive 却承诺含字母提示格式错误。修复后直接拒绝。默认预填 200000 ⇒ 不命中。",
+  },
+  {
     slug: "finance/nie-validator",
     inputs: { input: "12345678Z" },
     expect: ["首字符为 X/Y/Z，中间 7 位数字，末尾大写字母"],
@@ -2950,9 +2956,9 @@ const CASES = [
       "input": "abc123测试"
     },
     "expect": [
-      "abc123测试\n输入： abc123测试 ⚠️ Sort Code 必须为 6 位数字（当前 3 位）"
+      "abc123测试\n输入： abc123测试 ❌ Sort Code 仅允许数字、空格或连字符，含字母为格式错误"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： abc123测试 ⚠️ Sort Code 必须为 6…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "F-N197 同步：含字母/中文输入修复后走「含字母为格式错误」拒绝（旧实现剥离字母按 3 位报错）；默认态（200000）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "finance/swift-bic-validator",
