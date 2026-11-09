@@ -1031,6 +1031,18 @@ const CASES = [
     ref: "E.164：去掉前缀 0 后 14 位 ≤ 15 上限，+49 为德国。默认态不同 ⇒ 不命中。",
   },
   {
+    slug: "finance/msisdn-validator",
+    inputs: { input: "13800138000" },
+    expect: ["缺国家码，无法判定（疑似 +86 中国大陆手机号）"],
+    ref: "F-N215 本地号误判：无 + 的中国 11 位号旧实现命中前缀 '1' 硬判美加 +1、国内 3800138000 + NANP 通过；修复后提示疑似 +86 缺国家码。默认预填 +86 13800138000 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/msisdn-validator",
+    inputs: { input: "999999999999" },
+    expect: ["❌ 国家码未识别，无法验证号码格式"],
+    ref: "F-N215 未识别国家码：CC_DB 无 999/99/9 前缀，旧实现落入本地号分支仍输出「✅ MSISDN 格式有效」零区分度；修复后 ❌。默认预填 +86 ⇒ 不命中。",
+  },
+  {
     slug: "finance/pan-validator",
     inputs: { input: "AAACN0927F" },
     expect: ["校验位： F ✅ PAN 号码格式有效"],

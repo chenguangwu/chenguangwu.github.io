@@ -156,7 +156,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="MSISDN 验证器（手机号）。输入带国家码的移动号码，校验数字及 +、空格、连字符格式，用于国际手机号格式核验与表单校验（不验证真实性）。">Validate an international mobile number with country code, allowing digits, + and separators. Format check only.</p>
 
     <label>输入（MSISDN，含国家代码或不含）</label>
-    <input type="text" id="input" oninput="validate()" placeholder="如：+86 13800138000 或 13800138000" value="13800138000">
+    <input type="text" id="input" oninput="validate()" placeholder="如：+86 13800138000 或 13800138000" value="+86 13800138000">
     <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__msisdn_validatorExport()">导出明细 CSV</button></div><div class="result-box" id="output">等待输入...</div> <div id="msisdn_validatorTable"></div> <div id="msisdn_validatorDiff"></div> <div id="msisdn_validatorChart"></div> <div id="msisdn_validatorHist"></div>
   </div>
 
@@ -243,6 +243,7 @@ function validate(){
   const out = document.getElementById('output');
   if(!raw){ const __h0=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Waiting for input...":"等待输入...");if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0; return; }
   // Normalize: remove +, spaces, dashes, parentheses
+  const hasPlus = raw.replace(/[\s\-\(\)\.]/g,'').startsWith('+');
   let normalized = raw.replace(/[\s\-\(\)\.]/g,'');
   if(normalized.startsWith('+')) normalized = normalized.substring(1);
   let html = `<p><strong>输入：</strong>${raw}</p>`;
@@ -255,6 +256,13 @@ function validate(){
     html += `<p style="color:var(--danger);">❌ 超过 E.164 规定的 15 位最大长度</p>`;
     const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h2;
     return;
+  }
+  // F-N215：无显式 + 的中国 11 位本地号不得被前缀 '1' 硬判成美加号
+  if(!hasPlus && /^1[3-9]\d{9}$/.test(normalized)){
+    html += `<p><strong>归一化：</strong>${normalized}</p>`;
+    html += `<p style="color:#ff9800;">⚠️ 缺国家码，无法判定（疑似 +86 中国大陆手机号）；请补全 +86 后重试</p>`;
+    const __hCn=html;if((typeof __hCn==='number'&&!isFinite(__hCn))||/Infinity/.test(String(__hCn))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__hCn)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}
+    out.innerHTML=__hCn; return;
   }
   // Detect country code
   let cc = '';
@@ -299,8 +307,11 @@ function validate(){
     } else {
       extra = `<p style="color:var(--danger);">❌ NANP 号码应为 10 位数字</p>`;
     }
-  } else {
+  } else if(cc){
     extra = `<p style="color:var(--success);">✅ MSISDN 格式有效</p>`;
+  } else {
+    // F-N215：国家码未识别不得无条件判「格式有效」
+    extra = `<p style="color:var(--danger);">❌ 国家码未识别，无法验证号码格式（请用 + 国家码开头）</p>`;
   }
   html += extra;
   const __h3=html;if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h3;
