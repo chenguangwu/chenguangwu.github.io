@@ -284,12 +284,24 @@ function calc(){
   if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
   // SF-N34：补液系数越界（0/负数/超量）会产生 0、负或 30L 之类补液量，须限定合理范围（>0 且 ≤3，常用 1.2–1.5 L/kg）
   if(B<=0||B>3){box.innerHTML='<div class="info-box" style="color:var(--danger)">⚠ 补液系数需在合理范围（>0 且 ≤3，运动医学常用 1.2–1.5 L/kg）。</div>';return;}
-  // SF-N34（分次卡口径）：原「2 小时分次/次」= 总量÷2，会把 1.5 L 标成「单次饮量」（低钠风险），
-  // 改为按运动医学常用单次 250 mL 折算次数，单次量固定 250 mL。
-  var totalMl=A*B*1000, perDose=250, doses=Math.max(1,Math.ceil(totalMl/perDose));
+  // SF-N34：减重体重差须为正（运动后为失重，应填正值）；负体重差无物理意义，仍会输出负补液量。
+  // 注意：A=0（零体重差）不在此拦截，交由下方 totalMl<=0 分支提示「无需额外补液安排」。
+  if(A<0){box.innerHTML='<div class="info-box" style="color:var(--danger)">⚠ 减重体重差须为正数（运动后为失重，请填写正值）。</div>';return;}
+  // SF-N34（分次卡口径）：按运动医学常用单次 250 mL 折算次数，单次量固定 250 mL；
+  // 末次剂量 = 总量 − 已排次数×250，保证各次之和与总量严格一致。
+  var totalMl=A*B*1000;
+  if(totalMl<=0){ // 零体重差无需补液安排
+    box.innerHTML='<div class="info-box">当前减重体重差为 0，无需额外补液安排；请继续保持水分平衡。</div>';
+    if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
+    return;
+  }
+  var perDose=250, doses=Math.max(1,Math.ceil(totalMl/perDose));
+  var lastDose=totalMl-(doses-1)*perDose; // 末次剂量，保证各次之和 = 总量
+  var schedule = (doses<=1) ? (lastDose+" mL（共 1 次）")
+    : (perDose+" mL × "+(doses-1)+" 次 + 末次 "+lastDose+" mL（共 "+doses+" 次）");
   var items=[];
   items.push([(A*B).toFixed(2)+" L", "建议补液量"]);
-  items.push([perDose+" mL × "+doses+" 次", "分次安排（每次 250 mL，间隔 15–20 分钟）"]);
+  items.push([schedule, "分次安排（每次 250 mL，间隔 15–20 分钟）"]);
   items.push([totalMl.toFixed(0)+" mL", "总毫升"]);
 
   var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
