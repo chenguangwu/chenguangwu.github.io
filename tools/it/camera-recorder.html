@@ -248,14 +248,17 @@ s.parentNode.insertBefore(el, s);
   </div>
 </div>
 <script>
-var mediaRecorder=null,stream=null,camSession=null;
+var mediaRecorder=null,stream=null,camSession=null,camRequest=0;
 function escH(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function startRec(){
   var out=document.getElementById('result');
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
     out.innerHTML='<p style="color:var(--danger)">当前浏览器不支持摄像头访问（需 HTTPS 环境）</p>';return;
   }
+  var request=++camRequest;
+  camSession=null;
   navigator.mediaDevices.getUserMedia({video:true,audio:true}).then(function(s){
+    if(request!==camRequest){s.getTracks().forEach(function(t){t.stop();});return;}
     stream=s;
     var v=document.getElementById('preview');
     v.srcObject=s;v.play().catch(function(){});
@@ -285,11 +288,13 @@ function startRec(){
       out.innerHTML='<p style="color:var(--warning)">当前浏览器不支持 MediaRecorder，仅可预览</p>';
     }
   }).catch(function(e){
+    if(request!==camRequest)return;
     out.innerHTML='<p style="color:var(--danger)">无法访问摄像头：'+escH((e&&e.message)||e)+'（请检查权限设置）</p>';
   });
 }
 function __camEn(){ return (typeof TBKit!=='undefined'&&TBKit.util&&typeof TBKit.util.isEn==='function')?!!TBKit.util.isEn():false; }
 function stopRec(save){
+  camRequest++;
   if(mediaRecorder&&camSession)camSession.save=(save!==false);
   var out=document.getElementById('result');
   if(mediaRecorder&&mediaRecorder.state!=='inactive')mediaRecorder.stop();
