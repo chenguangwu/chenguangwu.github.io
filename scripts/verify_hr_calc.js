@@ -2,6 +2,12 @@
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
+  {
+    slug: "hr/attendance-stats",
+    clicks: ["var __cap=null;TBKit={util:{isEn:function(){return false;},exportTable:function(sel,name){__cap={sel:sel,name:name};},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return [];},last:function(){return null;},record:function(){},mount:function(){}},preset:{bar:function(){}}};var __oq=document.querySelector;document.querySelector=function(s){return {querySelectorAll:function(q){return [{tagName:'TR'}];}};};__attendance_statsExport();document.querySelector=__oq;document.getElementById('__tbProbe').textContent='EXPA sel='+(__cap?__cap.sel:'NA')+' name='+(__cap?__cap.name:'NA');"],
+    expect: ["EXPA sel=#resultTable name=attendance-stats.csv"],
+    ref: "复核失败重做·F-N189 第46批 考勤统计：导出目标应是真实业务明细容器，而非历史记录表。旧实现把 TBKit.util.exportTable 指向 #<pre>Table（历史摘要），修复后指向该页业务明细容器。用例桩捕获 exportTable 的选择器与文件名，默认态不执行 clicks、无探针串 ⇒ 零逃生。"
+  },
 {
   "slug": "hr/annual-leave-calc",
   "inputs": {

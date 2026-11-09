@@ -24,6 +24,12 @@ const { runCase } = require("./verify_it_calc.js");
 // ---------------------------------------------------------------- 用例
 const CASES = [
   {
+    slug: "finance/housing-fund-loan",
+    clicks: ["var __cap=null;TBKit={util:{isEn:function(){return false;},exportTable:function(sel,name){__cap={sel:sel,name:name};},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return [];},last:function(){return null;},record:function(){},mount:function(){}},preset:{bar:function(){}}};var __oq=document.querySelector;document.querySelector=function(s){return {querySelectorAll:function(q){return [{tagName:'TR'}];}};};__housing_fund_loanExport();document.querySelector=__oq;document.getElementById('__tbProbe').textContent='EXPH sel='+(__cap?__cap.sel:'NA')+' name='+(__cap?__cap.name:'NA');"],
+    expect: ["EXPH sel=#housing_fund_loanDetail name=housing-fund-loan.csv"],
+    ref: "复核失败重做·F-N189 第46批 公积金贷款：导出目标应是真实业务明细容器，而非历史记录表。旧实现把 TBKit.util.exportTable 指向 #<pre>Table（历史摘要），修复后指向该页业务明细容器。用例桩捕获 exportTable 的选择器与文件名，默认态不执行 clicks、无探针串 ⇒ 零逃生。"
+  },
+  {
     slug: "finance/gstin-validator",
     clicks: ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'x',type:'text',value:'1'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('output').textContent=\"校验流程已完成。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。校验结论：校验失败，该 GSTIN 无效。\";__gstin_validatorExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='FNGS score='+(__cap.length?__cap[__cap.length-1].__tbScore:'NA');"],
     expect: ["FNGS score=0"],

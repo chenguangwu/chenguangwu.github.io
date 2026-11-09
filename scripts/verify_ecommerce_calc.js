@@ -2,6 +2,12 @@
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
+  {
+    slug: "ecommerce/report",
+    clicks: ["var __cap=null;TBKit={util:{isEn:function(){return false;},exportTable:function(sel,name){__cap={sel:sel,name:name};},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return [];},last:function(){return null;},record:function(){},mount:function(){}},preset:{bar:function(){}}};var __oq=document.querySelector;document.querySelector=function(s){return {querySelectorAll:function(q){return [{tagName:'TR'}];}};};__reportExport();document.querySelector=__oq;document.getElementById('__tbProbe').textContent='EXPR sel='+(__cap?__cap.sel:'NA')+' name='+(__cap?__cap.name:'NA');"],
+    expect: ["EXPR sel=#res table name=report.csv"],
+    ref: "复核失败重做·F-N189 第46批 电商报表：导出目标应是真实业务明细容器，而非历史记录表。旧实现把 TBKit.util.exportTable 指向 #<pre>Table（历史摘要），修复后指向该页业务明细容器。用例桩捕获 exportTable 的选择器与文件名，默认态不执行 clicks、无探针串 ⇒ 零逃生。"
+  },
   { slug: "ecommerce/analysis-71", inputs: { data: "A,90,10,4.1,-1\nB,100,20,4.2,2" },
     clicks: ["calc();"],
     expect: ["发货时效天数不能为负数", "请核对以下行：A"],
