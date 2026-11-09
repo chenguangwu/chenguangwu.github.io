@@ -3606,6 +3606,12 @@ const CASES = [
     ref: "9 位兜底：Area 000 属 SSN 禁用号段、group 00 不满足 ITIN 70–88、EIN 前缀 00 不在 IRS 分配号段 ⇒ 必须判无效（旧逻辑无条件当 EIN 通过）。",
   },
   {
+    slug: "finance/tin-validator",
+    inputs: { input: "12-3456789" },
+    expect: ["类型： EIN (雇主识别号)", "EIN 格式： 12-3456789"],
+    ref: "F-N191 防回归锁：2-7 连字符写法必须按原文判为 EIN（旧实现按 3-2-4 切片报 SSN），并按 2+7 展示；默认 456789012 判 SSN ⇒ 不命中。F-N192 公式框三分支属静态文案，harness 不采集 constRefBox，按源码 diff 核实。",
+  },
+  {
     slug: "finance/mortgage-prepayment",
     inputs: { principal: "500000", rate: "4.5", months: "240", monthly: "500", prepay: "20000", precision: "2" },
     clicks: ["calc()"],
