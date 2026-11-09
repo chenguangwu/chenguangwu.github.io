@@ -252,23 +252,26 @@ function validate(){
   const out = document.getElementById('output');
   if(!digits){ const __h0=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Waiting for input...":"等待输入...");if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0; return; }
   let html = `<p><strong>输入：</strong>${raw}</p>`;
-  if(digits.length !== 15 && digits.length !== 14){
-    html += `<p>⚠️ IMEI 必须为 14 或 15 位数字（当前 ${digits.length} 位）</p>`;
+  if(digits.length !== 15 && digits.length !== 14 && digits.length !== 16){
+    html += `<p>⚠️ IMEI 必须为 14/15 位，IMEISV 为 16 位数字（当前 ${digits.length} 位）</p>`;
     const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;
     return;
   }
   // 14-digit = no check, compute it; 15-digit = with check
   let imei = digits;
-  let hasCheck = digits.length === 15;
-  const valid = hasCheck ? luhnCheck(imei) : null;
+  let isSv = digits.length === 16;
+  let hasCheck = digits.length === 15 || isSv;
+  // IMEISV 16 位：前 14 位（含 Luhn 校验位）判有效性，末 2 位为 SVN 软件版本号不参与 Luhn
+  const luhnBody = isSv ? digits.substring(0,14) : digits;
+  const valid = hasCheck ? luhnCheck(luhnBody) : null;
   const tac = digits.substring(0,8);
   const tac6 = digits.substring(0,6);
   const serial = digits.substring(8,14);
-  const check = hasCheck ? digits[14] : '—';
+  const check = isSv ? digits[13] : (hasCheck ? digits[14] : '—');
   const expectedCheck = (() => {
     let sum = 0, alt = false;
     // 校验位由前 14 位本体决定：按「本体 + 0 占位」跑 Luhn 反推，含校验位的 15 位不能直接反推
-    const tmp = digits.substring(0,14) + '0';
+    const tmp = (isSv ? digits.substring(0,13) : digits.substring(0,14)) + '0';
     for(let i = tmp.length - 1; i >= 0; i--){
       let n = parseInt(tmp[i],10);
       if(alt){ n *= 2; if(n > 9) n -= 9; }
@@ -277,18 +280,19 @@ function validate(){
     }
     return (10 - (sum % 10)) % 10;
   })();
-  html += `<p><strong>长度：</strong>${digits.length} 位</p>`;
+  html += `<p><strong>长度：</strong>${digits.length} 位${isSv ? '（IMEISV）' : ''}</p>`;
   html += `<p><strong>类型分配码 TAC（前 8 位）：</strong>${tac}</p>`;
   html += `<p><strong>型号识别（前 6 位）：</strong>${tac6} - ${TAC_DB[tac6] || '未知型号'}</p>`;
   html += `<p><strong>序列号 SNR（第 9-14 位）：</strong>${serial}</p>`;
   html += `<p><strong>校验位：</strong>${check}${hasCheck ? `（期望 ${expectedCheck}） ${parseInt(check,10) === expectedCheck ? '✅' : '❌'}` : `（建议 ${expectedCheck}）`}</p>`;
-  html += `<p><strong>校验算法：</strong>Luhn（模 10）</p>`;
+  if(isSv){ html += `<p><strong>软件版本号 SVN：</strong>${digits.substring(14,16)}（IMEISV 末 2 位，不参与 Luhn 校验）</p>`; }
+  html += `<p><strong>校验算法：</strong>Luhn（模 10）${isSv ? '，仅前 14 位参与' : ''}</p>`;
   if(!hasCheck){
     html += `<p style="color:var(--text-muted);">ℹ️ 输入为 14 位本体，不含校验位，无法判定有效性；补上建议校验位 ${expectedCheck} 即构成 15 位 IMEI。</p>`;
   } else if(valid){
-    html += `<p style="color:var(--success);">✅ IMEI 号码有效</p>`;
+    html += `<p style="color:var(--success);">✅ ${isSv ? 'IMEISV 号码有效（含软件版本号）' : 'IMEI 号码有效'}</p>`;
   } else {
-    html += `<p style="color:var(--danger);">❌ Luhn 校验失败，IMEI 无效</p>`;
+    html += `<p style="color:var(--danger);">❌ Luhn 校验失败，${isSv ? 'IMEISV' : 'IMEI'} 无效</p>`;
   }
   const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h2;
 }

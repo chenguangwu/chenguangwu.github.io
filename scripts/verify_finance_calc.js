@@ -2347,9 +2347,9 @@ const CASES = [
       "input": "abc123测试"
     },
     "expect": [
-      "abc123测试\n输入： abc123测试 ⚠️ IMEI 必须为 14 或 15 位数字（当前 3 位）"
+      "abc123测试\n输入： abc123测试 ⚠️ IMEI 必须为 14/15 位，IMEISV 为 16 位数字（当前 3 位）"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： abc123测试 ⚠️ IMEI 必须为 14 或 1…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，F-N173 支持 16 位后守卫文案更新为「14/15 位，IMEISV 为 16 位」；绑定输入与位数 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "finance/dca-calculator",
@@ -4004,6 +4004,20 @@ const CASES = [
     clicks: ["validate()"],
     expect: ["格式化： 12-3456789"],
     ref: "F-N158 分隔符容错口径：乱分隔 1-2-...-9 剥离后 123456789，归一化为 12-3456789 并判有效（公式框已改为「剥离分隔符后 9 位数字」口径，与实现自洽）。旧实现公式写 ^\\d{2}-\\d{7}$ 与行为矛盾。默认 01-1234567 不同值不命中。",
+  },
+  {
+    slug: "finance/imei-validator",
+    inputs: { input: "356938035643809" },
+    clicks: ["validate();var h=String(document.getElementById('output').innerHTML).replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ');document.getElementById('__tbProbe').textContent='IMEIFIX '+document.getElementById('input').value+' '+((h.indexOf('校验位： 9（期望 9） ✅')>=0&&h.indexOf('IMEI 号码有效')>=0)?'OK':'BAD');"],
+    expect: ["IMEIFIX 356938035643809 OK"],
+    ref: "F-N172 校验位相位修复：356938035643809 是 Luhn 合法 15 位 IMEI（校验位 9），期望位必须由前 14 位本体反推得 9，不得出现「校验位 9（期望 0）❌」与「✅ 有效」同屏矛盾。旧实现把含校验位的整串从右 alt=false 求和致期望恒 0。探针 AND 两串并绑输入号（裸 blob 中该串在判别器注入失败态仍命中别处，故走探针）⇒ 零逃生。",
+  },
+  {
+    slug: "finance/imei-validator",
+    inputs: { input: "3569380356438097" },
+    clicks: ["validate()"],
+    expect: ["长度： 16 位（IMEISV）", "软件版本号 SVN： 97（IMEISV 末 2 位，不参与 Luhn 校验）", "✅ IMEISV 号码有效（含软件版本号）"],
+    ref: "F-N173 IMEISV 16 位支持：3569380356438097 前 14 位 356938035643809 Luhn 合法、末 2 位 97 为 SVN。旧实现仅收 14/15 位，16 位直接报长度错。三条 expect 分别锁类型/SVN/结论，绑定输入专属串（默认 15 位不含 IMEISV 串）⇒ 零逃生。",
   },
 
 ];
