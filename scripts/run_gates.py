@@ -133,6 +133,7 @@ GATES = (
     ("surveying calc correctness", ("node", "scripts/verify_surveying_calc.js")),
     ("fishery calc correctness", ("node", "scripts/verify_fishery_calc.js")),
     ("securities calc correctness", ("node", "scripts/verify_securities_calc.js")),
+    ("maximum drawdown guide", ("node", "scripts/_verify_securities_batch_bf7_bf8.mjs")),
     ("aerospace calc correctness", ("node", "scripts/verify_aerospace_calc.js")),
     ("geology calc correctness", ("node", "scripts/verify_geology_calc.js")),
     ("machinery calc correctness", ("node", "scripts/verify_machinery_calc.js")),

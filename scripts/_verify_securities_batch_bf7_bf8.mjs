@@ -65,6 +65,24 @@ assert(/以正数表示跌幅/.test(dd), `应声明「回撤以正数表示跌�
 assert(/= \(100−70\)\/100 = 30%/.test(dd), `算例应改为 (100−70)/100 = 30%；实际${/= \(100−70\)\/100 = 30%/.test(dd) ? '已改' : '仍是旧写法'}`);
 assert(!/−30%/.test(dd), `深度解析不得残留 −30% 表述；实际${/−30%/.test(dd) ? '仍存在' : '已清'}`);
 
+// 指南文本、FAQ 结构化数据和英文逐文本节点字典必须保持一致。
+const guideFile = 'guides/max-drawdown-guide.html';
+const dictFile = 'i18n/guides/max-drawdown-guide.json';
+const read = (f) => head ? execSync(`git show HEAD:${f}`).toString() : fs.readFileSync(f, 'utf8');
+const guide = new JSDOM(read(guideFile));
+const gd = guide.window.document;
+const examples = [...gd.querySelectorAll('main ul')].find(el => el.textContent.includes('净值 100 → 70'));
+const faq = [...gd.querySelectorAll('.faq dt')].find(el => el.textContent.trim() === '最大回撤能为负吗？');
+const answer = faq?.nextElementSibling?.textContent.trim();
+const jsonld = [...gd.querySelectorAll('script[type="application/ld+json"]')].map(el => JSON.parse(el.textContent));
+const structured = jsonld.find(item => item['@type'] === 'FAQPage')?.mainEntity.find(item => item.name === '最大回撤能为负吗？')?.acceptedAnswer.text;
+const map = JSON.parse(read(dictFile)).map;
+const nodes = [...examples.querySelectorAll('li')].map(li => [...li.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent.trim()).join(''));
+assert(/\(100−70\)\/100 = 30%/.test(examples.textContent) && !/−(?:20|30)%/.test(examples.textContent), '指南算例以正数表示 20% 和 30% 跌幅');
+assert(/以正数表示跌幅/.test(answer || '') && !/记为负值/.test(answer || ''), '指南 FAQ 解释正数口径');
+assert(structured === answer, '指南 FAQPage 答案与可见答案一致');
+assert(nodes.every(s => map[s] && /30%/.test(map[s])) && !!map[answer] && /positive/i.test(map[answer]), '指南算例和 FAQ 均精确匹配英文译文');
+guide.window.close();
 w.close();
 if (failures > 0) { console.log(`\n[${head ? 'HEAD' : '当前'}] B-F7/B-F8 锁 FAIL (${failures})`); process.exit(1); }
 console.log(`\n[${head ? 'HEAD' : '当前'}] B-F7/B-F8 锁 PASS`);
