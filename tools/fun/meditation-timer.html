@@ -331,13 +331,16 @@ function __meditation_timerExtras(){
     function __meditation_timerRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var dur=Math.floor(num('dur')), seg=Math.floor(num('seg')), style=document.getElementById('style').value;
-    var nSeg=Math.max(1,Math.round(dur/seg));
+    var nSeg=Math.max(1,Math.ceil(dur/seg));
     var styleName={breath:'呼吸觉察',body:'身体扫描',mantra:'咒语默念',free:'自由冥想'}[style]||'呼吸觉察';
     var now=new Date();
     var end=new Date(now.getTime()+dur*60000);
     var pad=function(x){return x<10?'0'+x:''+x;};
     var fmtTime=function(d){return pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds());};
-    if (!isFinite(__meditation_timerNum('dur')) || !isFinite(__meditation_timerNum('seg')) || !__meditation_timerRaw('style')) return;
+    if (!isFinite(__meditation_timerNum('dur')) || !isFinite(__meditation_timerNum('seg')) || dur<=0 || seg<=0 || !__meditation_timerRaw('style')) {
+      ['meditation_timerTable','meditation_timerDiff'].forEach(function(id){var el=document.getElementById(id);if(el)el.innerHTML='';});
+      return;
+    }
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#meditation_timerTable',{
         head: en?['Item','Value']:['项目','数值'],
@@ -372,10 +375,11 @@ else document.addEventListener('DOMContentLoaded', __meditation_timerBoot);
 <script>/*TBKIT-INJECT-START*/
 function __mtmChart(){
   if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar)return;
-  var seg=Math.max(1,Math.floor(num('seg'))||2);
+  var total=Math.floor(num('dur')), seg=Math.floor(num('seg'));
+  if(total<=0 || seg<=0){var chart=document.getElementById('mtmChart');if(chart)chart.innerHTML='';return;}
   var labels=[],data=[];
   for(var dur=5;dur<=60;dur+=5){
-    var nSeg=Math.max(1,Math.round(dur/seg));
+    var nSeg=Math.max(1,Math.ceil(dur/seg));
     labels.push(String(dur)); data.push(nSeg);
   }
   var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());

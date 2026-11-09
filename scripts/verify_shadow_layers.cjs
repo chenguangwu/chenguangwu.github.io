@@ -1,0 +1,41 @@
+#!/usr/bin/env node
+// Exercises the actual page functions and DOM without network or a running server.
+const assert = require('assert');
+const fs = require('fs');
+const path = require('path');
+const { JSDOM } = require('jsdom');
+const html = fs.readFileSync(path.join(__dirname, '../tools/design/shadow-generator.html'), 'utf8');
+const dom = new JSDOM(html, { url: 'https://toolbox.local/tools/design/shadow-generator.html', runScripts: 'outside-only' });
+const w = dom.window, doc = w.document;
+const start = html.indexOf('let layers = ['), end = html.indexOf('</script>', start);
+assert(start >= 0 && end > start);
+w.eval(html.slice(start, end));
+const code = () => doc.getElementById('code').textContent;
+const count = () => doc.querySelectorAll('#layerList .layer-item').length;
+assert.strictEqual(count(), 1);
+assert(doc.querySelector('#layerList .del').disabled, 'the sole layer must not be deletable');
+w.deleteLayer(0); // Defensive path even if invoked directly.
+assert.strictEqual(count(), 1);
+doc.getElementById('offsetX').value = '7';
+w.update();
+assert(code().includes('7px 10px 20px -5px #667eea'), 'remaining layer still editable');
+w.addLayer();
+assert.strictEqual(count(), 2);
+assert(code().includes('7px 10px 20px -5px #667eea, 0px 0px 10px 0px #000000'), 'adding layer updates result');
+assert(!doc.querySelector('#layerList .del').disabled);
+w.deleteLayer(0);
+assert.strictEqual(count(), 1);
+assert(code().includes('0px 0px 10px 0px #000000'));
+assert(!code().includes('#667eea'), 'deleting layer updates result');
+w.resetLayers();
+assert.strictEqual(code(), 'box-shadow: 0px 10px 20px -5px #667eea;');
+w.setMode('text');
+assert.strictEqual(code(), 'text-shadow: 0px 10px 20px #667eea;');
+assert.strictEqual(doc.getElementById('spreadGroup').style.display, 'none');
+assert.strictEqual(doc.getElementById('insetRow').style.display, 'none');
+w.setMode('box');
+assert.strictEqual(code(), 'box-shadow: 0px 10px 20px -5px #667eea;');
+w.applyPreset(14);
+assert(code().includes('9px 9px 18px 0px #d1d9e6, -9px -9px 18px 0px #ffffff'), 'preset updates result');
+w.close();
+console.log('shadow layers: add/delete/reset, minimum layer, text mode and preset checks passed');

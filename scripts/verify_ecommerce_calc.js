@@ -2,6 +2,37 @@
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
+  {
+    slug: "ecommerce/analysis-71",
+    inputs: {data: "Fast,90,10,4.1,1.5\nSlow,100,20,4.2,4.25"},
+    clicks: ["document.documentElement.lang='en-US';calc();var h=document.getElementById('res').innerHTML;document.getElementById('res').textContent='N50_EN='+[h.includes('Fastest shipping: <strong>Fast (1.5 days)'),h.includes('Slowest shipping: <strong>Slow (4.25 days)'),h.includes('Shipping time gap: <strong>2.75 days')].join('/');"],
+    expect: ["N50_EN=true/true/true"],
+    ref: "06-N50：英文态运行时结果显示最快、最慢、时差及英文单位。",
+  },
+
+  {
+    slug: "ecommerce/analysis-71",
+    inputs: {data: "A,90,10,4.1,0\nB,100,20,4.2,0"},
+    clicks: ["calc();var h=document.getElementById('res').innerHTML;document.getElementById('res').textContent='N50_TIE='+[h.includes('时效差距：<strong>0 天'),h.includes('为发货时效标杆'),!h.includes('时效短板')].join('/');"],
+    expect: ["N50_TIE=true/true/true"],
+    ref: "06-N50：两条均为 0 天时差距为 0，零值合法，不能凭空产生时效短板。",
+  },
+
+  {
+    slug: "ecommerce/analysis-71",
+    inputs: {data: "K1,299,1500,4.5,4\nK2,259,2200,4.7,3\nK3,209,3100,4.9,2"},
+    clicks: ["calc();var h=document.getElementById('res').innerHTML;document.getElementById('res').textContent='N50='+[h.includes('发货最快：<strong>K3（2 天）'),h.includes('发货最慢：<strong>K1（4 天）'),h.includes('时效差距：<strong>2 天'),h.includes('以 K3 为发货时效标杆'),!h.includes('对 K3 等时效短板')].join('/');"],
+    expect: ["N50=true/true/true/true/true"],
+    ref: "06-N50：K3 2 天最快、K1 4 天最慢，相差 2 天，最快只作标杆，不能当短板。旧页缺最慢和差距且将 K3 写成短板。",
+  },
+  {
+    slug: "ecommerce/analysis-71",
+    inputs: {data: "Fast,90,10,4.1,1.5\nSlow,100,20,4.2,4.25"},
+    clicks: ["calc();var h=document.getElementById('res').innerHTML;document.getElementById('res').textContent='N50_DECIMAL='+[h.includes('Fast（1.5 天）'),h.includes('Slow（4.25 天）'),h.includes('时效差距：<strong>2.75 天'),h.includes('4.25 天</td>')].join('/');"],
+    expect: ["N50_DECIMAL=true/true/true/true"],
+    ref: "06-N50：小数天数 1.5 与 4.25 的差是 2.75，明细和汇总必须显示同一精度。",
+  },
+
   // —— 13 个双变量计算器（v0/v1）：缺陷 M 已把"通用两参共享脚本（A×B/A−B/(A+B)/2）"替换为真实业务公式。
   // 每例输入均为非默认值，expect 为按各页真实公式独立复算的结果（详见各 ref）。
   {

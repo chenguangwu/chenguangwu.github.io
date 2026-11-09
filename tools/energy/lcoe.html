@@ -223,7 +223,7 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>function __tbInputGuard(_ids,_labels){
   var __r=__tbInputGuardCore(_ids,_labels);
-  if(__r){var __t=document.getElementById('lcoeTable');if(__t)__t.innerHTML='';}
+  if(__r) __lcoeClear();
   return __r;
 }
 function __tbInputGuardCore(_ids,_labels){
@@ -293,21 +293,39 @@ function __tbInputGuardCore(_ids,_labels){
 }
 
 
+function __lcoeIsEn(){return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn()) || /(?:^|[?&])lang=en-US(?:&|$)/i.test(location.search);}
+function __lcoeClear(){
+  ['lcoeTable','lcoeDiff','lcoChart'].forEach(function(id){var el=document.getElementById(id);if(el)el.innerHTML='';});
+}
+function __lcoeValid(){
+  var ids=['capex','n','r','om','e'], values=[];
+  for(var i=0;i<ids.length;i++){
+    var el=document.getElementById(ids[i]), raw=el?String(el.value).trim():'';
+    if(raw==='' || !Number.isFinite(Number(raw))) return false;
+    values.push(Number(raw));
+  }
+  return values[0]>=0 && values[1]>0 && values[2]>=0 && values[3]>=0 && values[4]>0;
+}
+// Equivalent to r(1+r)^n / ((1+r)^n - 1), without cancellation near r = 0.
+function __lcoeCRF(r,n){return r===0 ? 1/n : r / -Math.expm1(-n * Math.log1p(r));}
+
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
               var __ig=__tbInputGuard(['capex', 'n', 'r', 'om', 'e'],["初投资 (元)", "年限 (年)", "折现率 r", "年运维 (元)", "年发电量 (kWh)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
+              if(!__lcoeValid()){__lcoeClear();ToolBox.setResult('result',__lcoeIsEn()?'Please enter valid finite values.':'请输入有效的有限数值。');return;}
 const C=num('capex'),n=num('n'),r=num('r'),om=num('om'),E=num('e');
             if(n<=0||E<=0){
                 ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 年限与年发电量须大于 0。</p>');
                 return;
             }
             // r→0 时 CRF 的极限为 1/n（不计折现）
-            const crf = r===0 ? 1/n : r*Math.pow(1+r,n)/(Math.pow(1+r,n)-1);
+            const crf = __lcoeCRF(r,n);
             const lcoe=(C*crf+om)/E;
+            const en=__lcoeIsEn();
             const __g2=dataGrid([
-                [lcoe.toFixed(3),'LCOE (元/kWh)'],
-                [crf.toFixed(4),'资本回收因子 CRF']
+                [lcoe.toFixed(3),en?'LCOE (CNY/kWh)':'LCOE (元/kWh)'],
+                [crf.toFixed(4),en?'Capital recovery factor CRF':'资本回收因子 CRF']
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('capex').value = '5000000';
@@ -322,16 +340,17 @@ function __lcoeNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.va
 function __lcoeExtras(){
     function __lcoeRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
+    if(!__lcoeValid()){__lcoeClear();return;}
     var C=num('capex'),n=num('n'),r=num('r'),om=num('om'),E=num('e');
-    var crf=r*Math.pow(1+r,n)/(Math.pow(1+r,n)-1);
+    var crf=__lcoeCRF(r,n);
     var lcoe=(C*crf+om)/E;
     if (!isFinite(__lcoeNum('capex')) || !isFinite(__lcoeNum('n')) || !isFinite(__lcoeNum('r')) || !isFinite(__lcoeNum('om')) || !isFinite(__lcoeNum('e'))) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#lcoeTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
-            ['LCOE (元/kWh)', lcoe.toFixed(3)],
-            ['资本回收因子 CRF', crf.toFixed(4)],
+            [en?'LCOE (CNY/kWh)':'LCOE (元/kWh)', lcoe.toFixed(3)],
+            [en?'Capital recovery factor CRF':'资本回收因子 CRF', crf.toFixed(4)],
         ]
     });
     TBKit.history.record({capex:__lcoeRaw('capex'), n:__lcoeRaw('n'), r:__lcoeRaw('r'), om:__lcoeRaw('om'), e:__lcoeRaw('e'), C:C});
@@ -341,6 +360,7 @@ function __lcoeExtras(){
 }
 function __lcoeExport(){
     if (typeof TBKit === 'undefined') return;
+    if(!__lcoeValid()) return;
     try { TBKit.util.exportTable('#lcoeTable','lcoe.csv'); } catch(e){}
 }
 function __lcoePresets(){
@@ -399,14 +419,13 @@ else document.addEventListener('DOMContentLoaded', __lcoeBoot);
 <section class="opt-guide"><h2>如何使用生命周期成本 / 发电量</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>初投资 (元)</li><li>年限 (年)</li><li>折现率 r</li><li>年运维 (元)</li><li>年发电量 (kWh)</li></ul><h2>适用场景</h2><p>家庭光伏与风电项目初投、运维与年发电量核算，对比不同容量机组的度电成本与回收期。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>生命周期成本 / 发电量是做什么的？</dt><dd>按 CAPEX、折现率、运维与年发电量计算平准化度电成本 LCOE，比较发电项目经济性，纯前端估算辅助投资判断。</dd><dt>如何使用生命周期成本 / 发电量？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>生命周期成本 / 发电量适合哪些场景？</dt><dd>家庭光伏与风电项目初投、运维与年发电量核算，对比不同容量机组的度电成本与回收期。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>
 <script>
 function __lcoSweep(){
+  if(!__lcoeValid())return null;
   var C=num('capex'), r=num('r'), om=num('om'), E=num('e');
-  if(!isFinite(C)||!isFinite(r)||!isFinite(om)||!isFinite(E)||C<=0||r<=0||E<=0)return null;
   var labels=[],dL=[],dF=[];
   var ns=[5,10,15,20,25,30];
   for(var k=0;k<ns.length;k++){
     var nv=ns[k];
-    var pw=Math.pow(1+r,nv);
-    var crf=r*pw/(pw-1);
+    var crf=__lcoeCRF(r,nv);
     labels.push(nv.toFixed(0));
     dL.push(Math.round((C*crf+om)/E*1000)/1000);
     dF.push(Math.round(crf*10000)/10000);
@@ -415,7 +434,7 @@ function __lcoSweep(){
 }
 function __lcoChart(){
   if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
-  var s=__lcoSweep(); if(!s)return;
+  var s=__lcoSweep(); if(!s){var el=document.getElementById('lcoChart');if(el)el.innerHTML='';return;}
   var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
   TBKit.chart.line('#lcoChart',{title:en?'LCOE & CRF vs Project Life (hyperbolic decay)':'LCOE 与资本回收因子随年限双曲下降',labels:s.labels,series:[{name:en?'LCOE (¥/kWh)':'LCOE (元/kWh)',data:s.dL},{name:en?'CRF capital recovery factor':'资本回收因子 CRF',data:s.dF}]});
 }

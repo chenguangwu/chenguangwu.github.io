@@ -155,11 +155,11 @@ s.parentNode.insertBefore(el, s);
 <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="🏷️ 高级 Slug 生成器">🏷️ Advanced Slug Generator</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">处理链：① 可选转小写；② 空白串替换为分隔符 sep；③ 汉字处理——拼音模式查拼音表，音译模式替换为 x，否则丢弃；④ 可选去停用词 \b(a|an|the)\b（忽略大小写）；⑤ 删除非字母数字且非 sep 的字符；⑥ 合并连续 sep；⑦ 可选修剪首尾 sep；⑧ 可选按 maxLen 截断并去掉尾部 sep；⑨ 可选拼接 sep + 6 位随机 id（字符池 a-z0-9）；预处理先做 NFD 规范化并删除组合变音标记（如 é→e）</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">处理链：先规范化变音符号；中文拼音模式使用本地拼音库按上下文转写，音节之间添加分隔符，无法转写的汉字以 Unicode 编码保留并提示。可选转为 X 或移除中文；再按设置处理大小写、停用词、符号、分隔符、长度与随机 ID。拼音可能受多音字影响，使用前请核对。</div>
   <div class="formula-desc">生成 URL 友好的 Slug 标识。</div>
   <ul class="formula-list">
     <li><b>处理流程</b>：转小写 → 去除变音符号（如 é→e）→ 非字母数字替换为连字符 → 合并连续连字符 → 去除首尾连字符。</li>
-    <li><b>中文</b>：可转为拼音，或按站点策略保留原字符（现代浏览器与搜索引擎均支持）。</li>
+    <li><b>中文</b>：可转为拼音或 X；两个选项均未启用时会移除中文。</li>
     <li><b>参数</b>：可指定分隔符、最大长度、是否保留数字与停用词。</li>
     <li><b>用途</b>：生成可读且利于 SEO 的文章、商品与分类链接。</li>
   </ul>
@@ -269,19 +269,11 @@ C++ 与 Rust 性能对比 (2024)</textarea>
 </div>
 <!-- /注意事项区块 -->
 </div>
+<script src="/js/pinyin-pro-3.29.5.min.js"></script>
 <script>
-// Simple pinyin map for common chars (limited). For unmapped CJK, fallback to X or remove.
-const PINYIN={
-'这':'zhe','是':'shi','一':'yi','条':'tiao','测':'ce','试':'shi','的':'de','我':'wo','的2':'de',
-'博':'bo','客':'ke','文':'wen','章':'zhang','标':'biao','题':'ti','与':'yu','性':'xing','能':'neng',
-'对':'dui','比':'bi','上':'shang','下':'xia','中':'zhong','国':'guo','人':'ren','大':'da','小':'xiao',
-'天':'tian','地':'di','日':'ri','月':'yue','年':'nian','好':'hao','新':'xin','旧':'jiu','前':'qian','后':'hou',
-'第':'di','部':'bu','分':'fen','开':'kai','始':'shi','结':'jie','束':'shu','学':'xue','习':'xi','工':'gong',
-'作':'zuo','项':'xiang','目':'mu','计':'ji','划':'hua','设':'she','计2':'ji','开2':'kai','发':'fa',
-'前2':'qian','端':'duan','后2':'hou','云':'yun','计2':'ji','算':'suan','数':'shu','据':'ju','库':'ku'
-};
+// Pinyin library is bundled locally; unknown Han characters use reversible Unicode code points.
 function randInt(max){const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]%max;}
-function slugify(text){
+function slugify(text,warnings){
   const sep=document.getElementById('sep').value||'-';
   const lower=document.getElementById('lower').checked;
   const trimSym=document.getElementById('trimSym').checked;
@@ -293,25 +285,31 @@ function slugify(text){
   // IT-N473：先 NFD 分解并删除组合变音标记（é→e、ñ→n），再走后续处理链
   let s=String(text==null?'':text).normalize('NFD').replace(/\p{M}/gu,'');
   if(lower)s=s.toLowerCase();
-  // replace whitespace with sep
-  s=s.replace(/\s+/g,sep);
-  // process CJK chars
-  let out='';
-  for(const c of s){
-    if(/[\u4e00-\u9fff]/.test(c)){
-      if(pinyin){
-        const py=PINYIN[c]||(trans?'x':'');
-        out+=py;
-      }else if(trans){
-        out+='x';
-      }else{
-        // skip
+  // Process whole Han runs for polyphonic context; separate syllables and adjacent Latin text.
+  s=s.replace(/\p{Script=Han}+/gu,function(run,offset,source){
+    var before=offset>0?sep:'', after=offset+run.length<source.length?sep:'';
+    if(pinyin){
+      if(typeof pinyinPro==='undefined' || typeof pinyinPro.pinyin!=='function'){
+        throw new Error((typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?'Pinyin data is unavailable. Reload the page and try again.':'拼音数据未加载，请刷新页面后重试。');
       }
-    }else{
-      out+=c;
+      var parts=pinyinPro.pinyin(run,{toneType:'none',type:'array',nonZh:'consecutive'});
+      var converted=[];
+      parts.forEach(function(part){
+        if(/\p{Script=Han}/u.test(part)){
+          for(var c of part){
+            if(/\p{Script=Han}/u.test(c)){
+              if(warnings) warnings.push(c);
+              converted.push('u'+c.codePointAt(0).toString(16));
+            }else converted.push(c);
+          }
+        }else converted.push(part.normalize('NFD').replace(/\p{M}/gu,''));
+      });
+      return before+converted.join(sep)+after;
     }
-  }
-  s=out;
+    if(trans) return before+Array.from(run,function(){return 'x';}).join(sep)+after;
+    return before+after;
+  });
+  s=s.replace(/\s+/g,sep);
   // remove stop words
   if(stripStop){
     s=s.replace(new RegExp('\\b(a|an|the)\\b','gi'),'');
@@ -320,9 +318,9 @@ function slugify(text){
   const escSep=sep.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
   s=s.replace(new RegExp('[^a-zA-Z0-9'+escSep+']','g'),'');
   // collapse multiple seps
-  s=s.replace(new RegExp(escSep+'+','g'),sep);
+  s=s.replace(new RegExp('(?:'+escSep+')+','g'),sep);
   // trim sep at ends
-  if(trimSym)s=s.replace(new RegExp('^'+escSep+'|'+escSep+'$','g'),'');
+  if(trimSym)s=s.replace(new RegExp('^(?:'+escSep+')|(?:'+escSep+')$','g'),'');
   // truncate
   if(maxLen>0&&s.length>maxLen){
     s=s.slice(0,maxLen);
@@ -340,8 +338,14 @@ function generate(){
   const lines=document.getElementById('text').value.split(/\n/).map(s=>s.trim()).filter(s=>s);
   let html='';
   for(const line of lines){
-    const slug=slugify(line);
+    let slug, warnings=[];
+    try { slug=slugify(line,warnings); }
+    catch(e){ html+='<div class="code-row">'+escapeHtml(e.message)+'</div>'; continue; }
     html+='<div class="code-row">'+escapeHtml(slug)+'</div><div style="font-size:13px;color:var(--text-light);margin-bottom:8px;">← '+escapeHtml(line)+'</div>';
+    if(warnings.length){
+      const en=typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn();
+      html+='<div style="color:var(--danger);">'+escapeHtml((en?'No pinyin found; Unicode code points used for: ':'未找到拼音，已使用 Unicode 编码：')+Array.from(new Set(warnings)).join(' '))+'</div>';
+    }
   }
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h0;
 }

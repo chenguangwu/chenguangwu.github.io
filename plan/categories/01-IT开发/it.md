@@ -144,11 +144,6 @@
 
 ## 2026-11-03 续查：文本与配置工具
 
-### IT-N3 大小写不敏感替换的 Unicode 偏移损坏原文（高，部分修复，待处理）
-- 新发现：`tools/it/text-replace.html:650-663` 对整个文本 `toLowerCase()` 后在小写串中查找，再用该位置切原文；`İ` 小写后变成两个码元，偏移不再一致。输入 `İ hello WORLD`，不区分大小写、全局替换 `hello` 为 `X`，原页面函数实际输出 `İ hXWORLD`，应为 `İ X WORLD`。
-- 影响：Unicode 输入中，未匹配字符丢失或保留错误，复制/下载会传播损坏的内容；非全局分支亦用同样的索引方式，需一并验证。
-- 方案：匹配位置必须对应原文，增加大小写映射长度变化、连续命中及非全局回归；尚未做浏览器验证。
-
 ### 续查覆盖
 - 新抽查 `tools/it/env-generator.html`、`tools/it/json-to-csv.html`、`tools/it/number-base-converter.html`、`tools/it/text-replace.html`、`tools/it/nginx-config-generator.html` 共 5 页，新增 7 条问题（历史计数）；未做浏览器、部署或门禁验证。历史回填的实际交互需真机复核。
 
@@ -190,12 +185,6 @@
 - 证据：`tools/it/list-converter.html:272-290`（273 切分/清洗、280 quote、283 csv）。Node 复算：`a\rb`、comma 模式 → 单条 `a\rb`（未按 CR 切分）；`"  a  \n\nb "` → `["a","b"]`，结果 `a, b`。
 - 影响：`tools/it/list-converter.html`；混合换行文件被当成一项；需要空字段或缩进的列表无法原样转换。
 - 修复（换行切分）：`convert()` 改用 `/\r\n|\r|\n/` 切分，裸 `\r` 现在被识别为多行；verify 新增 N30 回归用例（`a\rb\nc` → 断言 `a, b, c`），list-converter 全过。trim/filter 静默丢空项与缩进的部分保留为留存项（需“保留空项/缩进”开关，未实现）。
-
-### IT-N31 视图切换依赖全局 `event`（中，待验证：Firefox）
-- 描述：`switchView` 通过 `event.target` 找当前页签，`event` 未作为参数传入；Chrome/Safari 有 `window.event`，Firefox 没有全局 `event`，内联 `onclick` 调用时会取不到。
-- 证据：`tools/it/text-diff.html:405-410`、`252-253`（内联 `onclick="switchView('unified')"`）。本轮按源码推断为 Firefox 下 ReferenceError，未做浏览器验证。
-- 影响：`tools/it/text-diff.html`；Firefox 用户可能无法切换合并/并排视图。
-- 方案：改为 `switchView(view, evt)` 显式传参，或用事件委托绑定 `.view-tab`，不依赖全局 `event`。
 
 ### 留存优化
 - `tools/it/text-cleaner.html:531-535`：空输入时 `executeClean` 提前返回，上一次结果与统计原样保留，易被误复制；建议清空结果或提示。
@@ -300,7 +289,6 @@
 - 影响：用户以为校验的是完整报文，实际少算了尾部或整段被当成 0。
 - 方案：先校验仅含十六进制字符与分隔符，且去分隔后长度为偶数；非法/奇数时明确报错并停止计算。
 
-- 备注：`tools/it/timestamp-converter.html:429-435`、`tools/it/color-converter.html:414-423` 的 `switchTab` 依赖全局 `event`（与 IT-N31 同模式，Firefox 可能失效），不重复计数，未单列为新条目。
 - 本轮实读 8 页：`tools/it/time-format-converter.html`、`tools/it/timestamp-converter.html`、`tools/it/color-converter.html`、`tools/it/integer-base-converter.html`、`tools/it/chmod-calculator.html`、`tools/it/crontab-generator.html`、`tools/it/ipv6-converter.html`、`tools/it/crc-calculator.html`；新增 16 条（高 3 / 中 10 / 低 3）；未覆盖：`tools/it` 其余非文本页（如 `regex-escape`、`css-minifier`、`html-minifier`、`date-duration`、`ipv4-range-expander`、`punycode`、`user-agent-parser` 等）与全部速查表页；未做浏览器、EN、移动端、门禁或部署验证。
 
 ## 2026-11-04 续查（并行批 M）
@@ -344,7 +332,6 @@
 > 范围：本轮阅读 8 页（`tools/it/ip-calculator.html`、`tools/it/html-minifier.html`、`tools/it/barcode-ean.html`、`tools/it/docker-run-converter.html`、`tools/it/cron.html`、`tools/it/qr-decoder.html`、`tools/it/url-encode.html`、`tools/it/base64-converter.html`）。仅源码 + Node 复算，未开浏览器/未做 EN/移动端/门禁验证。
 
 
-- 备注：`tools/it/ip-calculator.html:453-456` 与 `tools/it/cron.html:462-466` 的 `switchTab` 依赖全局 `event`（与 IT-N31 同模式，Firefox 可能失效），不重复计数，未单列为新条目。
 - 本轮实读 8 页：`tools/it/ip-calculator.html`、`tools/it/html-minifier.html`、`tools/it/barcode-ean.html`、`tools/it/docker-run-converter.html`、`tools/it/cron.html`、`tools/it/qr-decoder.html`、`tools/it/url-encode.html`、`tools/it/base64-converter.html`；新增 15 条（高 2 / 中 12 / 低 1）；未覆盖：`tools/it` 其余非文本页（如 `base32-encode`、`base58-encode`、`base85-encode`、`http-headers`、`http-status`、`http-methods`、`mime-type`、`gitignore-generator`、`dockerfile-generator`、`shell-script-formatter`、`ipv6-ula`、`ssl-info`、`aes/des/rsa/ecdsa` 等）与全部速查表页；未做浏览器、EN、移动端、门禁或部署验证。
 
 ## 2026-11-04 续查（并行批 O）
@@ -2141,22 +2128,6 @@
 - 方案：先用 `/^\d+$/` 校验整段，再 `Number(part)`；对 `0x` 前缀给出明确提示。
 **留存建议（tools/it/decimal-encode.html）**：`:269-270` 换成严格整数校验。
 
-### IT-N313 非法 UTF-8 静默替换为 U+FFFD，且 FAQ 承诺的 GBK 并无对应选项（中，确认缺陷）
-- 问题：`new TextDecoder()` 默认 `fatal:false`，解码失败时把每个坏字节变成 U+FFFD，页面无警告，复制出去即丢数据；FAQ 建议"不行再换 GBK"，但页面没有字符集选择。
-- 证据：`tools/it/hex-to-text.html:266`（`new TextDecoder().decode(bytes)`）、`:204`（FAQ 换 GBK）、`:161-164`（只有输入/输出两个 textarea）。
-- 复现（node）：输入 `80` → 输出 `�`（U+FFFD），无任何提示；期望提示"字节序列不是合法 UTF-8"或提供 GBK/Latin-1 选项。
-- 影响：取证/协议分析场景下静默丢字节，结论失真。
-- 方案：用 `new TextDecoder('utf-8',{fatal:true})` 捕获异常并提示，或增加字符集下拉（`TextDecoder('gbk')` 浏览器已内置）。
-**留存建议（tools/it/hex-to-text.html）**：`:266` 加 fatal 与错误提示，或补字符集下拉。
-
-### IT-N314 复制按钮依赖全局 `event`，Firefox 下无反馈（低，确认缺陷）
-- 问题：`copyResult` 在 `clipboard.writeText().then()` 回调里用 `event.target`；`window.event` 仅 Chromium 系有，Firefox/Safari 中 `event` 未定义，回调抛 ReferenceError，按钮文案不恢复；写剪贴板失败也没有 catch。
-- 证据：`tools/it/hex-to-text.html:272-275`（`event.target.closest('.btn')`）、`:269-271`（取值为空直接 return）。
-- 复现：Firefox 打开页面点"复制结果" → 剪贴板可能已写入，但控制台报 `ReferenceError: event is not defined`，按钮无"✅ 已复制"反馈；期望两种浏览器都给出反馈。
-- 影响：与 AGENTS §5 主流浏览器兼容要求不符；失败无提示。
-- 方案：把按钮元素显式传入（`onclick="copyResult(this)"`），不要依赖隐式 `event`；并给 `writeText` 加 `.catch` 提示失败。
-**留存建议（tools/it/hex-to-text.html）**：`:269-276` 改为显式传参 + 失败分支。
-
 ### 承诺 vs 实际（S 批专项）
 - `tools/it/des.html:166`、`:263`：承诺"3DES 密钥 112/168 位""维护老系统时解密历史数据"，实际密钥编排只剩 1 字节有效、输出与标准不兼容（N294、N295）；`:155` 的"解密时纯十六进制且偶数长度按 hex、否则 Base64"实现一致，但奇数 hex 会抛 `InvalidCharacterError`（N296）。
 - `tools/it/js-formatter.html:225` 承诺"纯格式化不会改变代码行为，AST 不变"，实际注释换行与 `return` ASI 均改变语义（N297）；`:167` 写"必须基于 AST 而非简单正则"，本页是手写词法 + 深度计数（`:163`），压缩还不补分号（N298）。
@@ -2797,41 +2768,10 @@
 
 ## W 批 · IT 计算/文本（2026-11-04）
 
-### IT-N472 拼音表仅 59 个有效汉字，默认"中文转拼音"把其余汉字静默删除且不音节分隔（高，承诺未实现）
-- 页面：`tools/it/slug-generator-advanced.html`
-- 问题：`PINYIN`（`:274-282`）共 64 键，其中 5 个是永不匹配的死键（`'的2'`、`'计2'`、`'开2'`、`'前2'`、`'后2'`），有效单字仅 59 个；`slugify` 对未命中字 `PINYIN[c]||(trans?'x':'')`（`:302`），默认（`transliterate` 未勾、`:182`）直接产出空串即被删除；已命中字也直接粘连，不插分隔符。
-- 行号：`:274-282`、`:299-313`（`:302`）、`:181`（默认 `checked`）、`:222`（示例）、`:158`
-- 复现（node 直接加载页面真实 `PINYIN` 表与 `slugify()`，默认参数）：
-  - `Hello 世界!` → 实际 `hello`，页面 `:222` 声称 `hello-shi-jie`；
-  - `我的博客文章标题 - Part 1` → `wodebokewenzhangbiaoti-part-1`（8 音节粘连），期望 `wo-de-bo-ke-wen-zhang-biao-ti-part-1`；
-  - `人工智能技术` → `rengongneng`（智/技/术 被删）；`产品发布` → `fa`（产/品/布 被删）；`高级 Slug 生成器` → `slug`。
-- 影响：默认参数下大多数中文标题生成残缺甚至近乎空白的 slug（"高级 Slug 生成器"只剩 `slug`），页面自带示例与实际输出自相矛盾，用户拿去建 URL 会得到无意义链接。
-- 方案：换完整拼音字典（如 `pinyin-pro` 静态引入）或默认改为"保留原字符/URL 编码"；音节间补 `sep`，未命中字显式告警而非静默删除。
-- 假工具：否
-
-### IT-N477 零向量仍输出方向余弦/方向角（0 与 90°），与"零向量无方向"自相矛盾（中，结果错误）
-- 页面：`tools/it/vector-magnitude.html`
-- 问题：单位向量分支对 `m≈0` 有专门提示（`:283-287`），但方向角分支不判零：三维直接 `v[i]/(m||1)`（`:292-294`），二维 `atan2(0,0)`（`:290`）。
-- 行号：`:290-296`（`:292-294`）、`:283-287`、formula `:155`
-- 复现：v=(0,0,0) → 实际依次输出「|v| = 0」「零向量无单位向量。」「方向余弦：cos α = 0, cos β = 0, cos γ = 0」「方向角：α = 90°, β = 90°, γ = 90°」；切换二维、v=(0,0) → 「方向角 θ = 0°」。期望零向量不输出方向余弦/角，或标注"方向未定义"。
-- 影响：零向量方向在数学上未定义，页面却给出确定值，与自身 formula 文本"零向量无单位向量"冲突，学习者会形成错误结论。
-- 方案：方向余弦/方向角分支加 `if(m>1e-12)` 守卫，否则输出"零向量方向未定义"。
-- 假工具：否
-
-### IT-N478 中文 2–4 字滑窗计频且去重只处理 ≤2 字，默认示例前 8 条有 7 条是同一短语的重叠碎片（中，结果冗余/错误）
-- 页面：`tools/it/keyword-extractor.html`
-- 问题：`tokenizeChinese` 对每个连续中文段生成全部 2/3/4 字子串（`:493-498`）；`deduplicateSubstrings` 只对 `item.word.length <= 2` 做包含过滤（`:571`），3 字碎片即便被同频 4 字词包含也保留。`topSet`（`:561-565`）算完从未使用，formula `:185` 宣称"取前 30 个高频词做共现加权"实际不存在。
-- 行号：`:493-498`、`:558-583`（`:571`、`:561-565`）、`:185`、`:600-613`
-- 复现（node 用页面真实 `CN_STOPS`/`EN_STOPS` 与四个原函数复刻）：默认输入 → 前 10 实际 `自然语(2), 然语言(2), 语言处(2), 言处理(2), 自然语言(2), 然语言处(2), 语言处理(2), 文本(2), 人工(1), 工智(1)`；预设「中文技术文章」→ `吞吐(2), 大模型(1), 模型推(1), 型推理(1), 推理服(1), 理服务(1), 服务需(1)…`，同样是连续切片。期望同频时只保留最长词/按长度降序，不把同一短语的 2/3/4 字切片并列。
-- 影响：默认参数下"关键词"大半是同一词的重叠子串，顺序取决于滑窗生成顺序而非重要性；表格、条形图、导出 CSV 同步失真，用户据此做 SEO/摘要会得到无意义词表。
-- 方案：去重对所有长度生效（被同频或更高频长词包含即丢弃），同频按长度降序+首次出现位置排序；或接入真实分词词典。
-- 假工具：否
-
 ### 覆盖清单（W 批 IT 计算/文本）
 - `matrix-determinant`：无高优/中优缺陷（`detRec` 与 BigInt Bareiss 精确值对照 100 组随机 2–5 阶全对；5×5 整数矩阵得 −4656 一致；Sarrus 正负号与 2×2/3×3 公式均正确）。
-- `vector-magnitude`：IT-N477（中）；无高优缺陷（模长/单位向量公式正确：`|(3,4)|=5`，三维方向角 `acos(vᵢ/|v|)` 正确）。
-- `slug-generator-advanced`：IT-N472（高，承诺未实现）。
-- `keyword-extractor`：IT-N478（中）；无高优缺陷（停用词表实测 183 中文 + 132 英文，标签/表格/图表输出均经 `ToolBox.escHtml`）。
+- `vector-magnitude`：模长/单位向量公式正确：`|(3,4)|=5`，三维方向角 `acos(vᵢ/|v|)` 正确。
+- `keyword-extractor`：停用词表实测 183 中文 + 132 英文，标签/表格/图表输出均经 `ToolBox.escHtml`。
 - 方法声明：逐页通读上述 8 页源码，在 `/tmp` 用 `node` 直接抽取/复刻页面原函数（页面真实 `md5()`、表达式白名单 + `new Function`、叉积夹角、`detRec` + BigInt Bareiss、页面真实 `PINYIN` 表 + `slugify()`、`tokenizeChinese`/`filterKeywords`/`deduplicateSubstrings` + 页面真实停用词表、`isPrime`/因式分解）逐一给出「输入 → 实际 / 期望」；MD5 用 `crypto.createHash('md5')` 与 `printf '中文' | md5` 双对照；`onclick` 截断用 `python3 html.parser` 验证属性拆分。**未开浏览器、未跑 `_build.py`/`run_gates.py`、未做线上验证**；未修改任何工具页、代码或构建产物，仅在本审计日志追加本节。
 
 ## X 批 · IT 速查/工具（2026-11-04）

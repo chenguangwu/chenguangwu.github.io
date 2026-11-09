@@ -1,0 +1,32 @@
+#!/usr/bin/env node
+// Exercises actual calculator, data table and project-life chart in a DOM.
+const assert=require('assert'),fs=require('fs'),path=require('path');
+const {JSDOM}=require('jsdom');
+const html=fs.readFileSync(path.join(__dirname,'../tools/energy/lcoe.html'),'utf8');
+const dom=new JSDOM(html,{url:'https://toolbox.local/tools/energy/lcoe.html',runScripts:'outside-only'});
+const w=dom.window,doc=w.document;let lastChart=null,exportCount=0,records=0;
+w.ToolBox={setResult(id,value){doc.getElementById(id).innerHTML=String(value);}};
+w.TBKit={util:{isEn:()=>false,diffBox(sel){doc.querySelector(sel).textContent='previous result'},exportTable(){exportCount++;}},matrix:{table(sel,data){doc.querySelector(sel).textContent=data.rows.map(x=>x.join(' ')).join(' | ');}},history:{record(){records++},mount(){}},preset:{bar(){}},chart:{line(sel,data){lastChart=data;doc.querySelector(sel).textContent=JSON.stringify(data.series);}}};
+const start=html.indexOf('function __tbInputGuard('),end=html.indexOf('</script>',start);
+assert(start>=0&&end>start);w.eval(html.slice(start,end));
+const chartStart=html.indexOf('function __lcoSweep('),chartEnd=html.indexOf('</script>',chartStart);
+assert(chartStart>=0&&chartEnd>chartStart);w.eval(html.slice(chartStart,chartEnd));
+const set=(id,v)=>doc.getElementById(id).value=v;
+const text=id=>doc.getElementById(id).textContent;
+set('r','0');w.calcTool();
+assert(text('result').includes('0.292')&&text('result').includes('0.0500'));
+assert(text('lcoeTable').includes('0.292')&&text('lcoeTable').includes('0.0500'));
+assert(lastChart&&lastChart.series[1].data.includes(0.05),'20-year curve must use CRF=1/20');
+assert(lastChart.series.every(s=>s.data.every(Number.isFinite)),'zero-rate chart data must be finite');
+set('r','1e-18');w.calcTool();
+assert(text('result').includes('0.292')&&text('result').includes('0.0500'),'tiny rate must not suffer cancellation');
+assert(text('lcoeTable').includes('0.292')&&lastChart.series.every(s=>s.data.every(Number.isFinite)));
+set('capex','0');set('om','0');set('r','0');w.calcTool();
+assert(text('result').includes('0.000')&&text('lcoeTable').includes('0.000'));
+assert(lastChart.series[0].data.every(v=>v===0),'zero-cost chart is valid');
+const prior=records;set('n','0');w.calcTool();
+assert.strictEqual(text('lcoeTable'),'');assert.strictEqual(text('lcoeDiff'),'');assert.strictEqual(text('lcoChart'),'');
+assert.strictEqual(records,prior);w.__lcoeExport();assert.strictEqual(exportCount,0);
+set('n','20');set('capex','5000000');set('om','100000');set('r','0.06');w.calcTool();
+assert(text('result').includes('0.447')&&text('lcoeTable').includes('0.447'));
+w.close();console.log('LCOE: zero and tiny rates, zero cost, chart/table and invalid-input checks passed');

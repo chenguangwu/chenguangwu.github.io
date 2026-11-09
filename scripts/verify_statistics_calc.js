@@ -423,6 +423,24 @@ const CASES = [
     ref: "注入非默认(默认 2.5/3/15)：SE = 4/√20 = 0.8944 ⇒ t = 3.5/0.8944 = 3.9131；df = 20−1 = 19；双侧 p ≈ 0.0009。默认态 t=3.2275/df=14/p=0.0065 均不命中。"
   },
   {
+    slug: "statistics/paired-t-test",
+    inputs: { dbar: "2.5", sd: "3", n: "0" },
+    expect: ["配对数须为大于或等于 2 的整数"],
+    ref: "SMS-31：配对数 0 不满足至少 2 个完整配对，不能显示 t 或 p；默认 n=15 不含此错误提示。"
+  },
+  {
+    slug: "statistics/paired-t-test",
+    inputs: { dbar: "2.5", sd: "3", n: "1" },
+    expect: ["配对数须为大于或等于 2 的整数"],
+    ref: "SMS-31：配对数 1 不满足至少 2 个完整配对，不能显示 t 或 p；默认 n=15 不含此错误提示。"
+  },
+  {
+    slug: "statistics/paired-t-test",
+    inputs: { dbar: "2.5", sd: "3", n: "2.5" },
+    expect: ["配对数须为大于或等于 2 的整数"],
+    ref: "SMS-31：配对数 2.5 不满足至少 2 个完整配对，不能显示 t 或 p；默认 n=15 不含此错误提示。"
+  },
+  {
     slug: "statistics/one-way-anova",
     inputs: { m1: "12", m2: "15", m3: "19", s1: "3", s2: "3", s3: "3", n1: "12", n2: "12", n3: "12" },
     expect: ["16.4444 F 统计量", "2, 33"],

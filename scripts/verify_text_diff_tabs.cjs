@@ -1,0 +1,25 @@
+#!/usr/bin/env node
+const assert = require('assert');
+const fs = require('fs');
+const path = require('path');
+const { JSDOM } = require('jsdom');
+const html = fs.readFileSync(path.join(__dirname, '../tools/it/text-diff.html'), 'utf8');
+const dom = new JSDOM(html, { url: 'https://toolbox.local/', runScripts: 'outside-only' });
+const w = dom.window;
+const start = html.indexOf('function switchView('), end = html.indexOf('function normalizeText(', start);
+assert(start >= 0 && end > start);
+w.eval(html.slice(start, end));
+const tabs = w.document.querySelectorAll('.view-tab');
+assert.strictEqual(tabs.length, 2);
+w.switchView('split', tabs[1]);
+assert(tabs[1].classList.contains('active'));
+assert(!tabs[0].classList.contains('active'));
+assert.strictEqual(w.document.getElementById('view-split').style.display, 'block');
+assert.strictEqual(w.document.getElementById('view-unified').style.display, 'none');
+w.switchView('unified', tabs[0]);
+assert(tabs[0].classList.contains('active'));
+assert.strictEqual(w.document.getElementById('view-unified').style.display, 'block');
+assert.strictEqual(w.document.getElementById('view-split').style.display, 'none');
+assert(html.includes("switchView('unified', this)") && html.includes("switchView('split', this)"));
+w.close();
+console.log('text diff: both tabs switch without a global event');

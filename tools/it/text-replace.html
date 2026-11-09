@@ -478,6 +478,12 @@ s.parentNode.insertBefore(el, s);
     return new RegExp(pattern, flags);
   }
 
+  // 字面量匹配始终在原文上执行，避免大小写转换改变 UTF-16 长度而错位。
+  function buildLiteralRegex(pattern, opts) {
+    const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(escaped, (opts.caseSensitive ? '' : 'i') + (opts.global ? 'g' : ''));
+  }
+
   // 执行查找，返回匹配信息
   function findMatches(text, pattern, opts) {
     if (!pattern) return { matches: [], count: 0, error: null };
@@ -505,22 +511,15 @@ s.parentNode.insertBefore(el, s);
         }
         return { matches, count, error: null };
       } else {
-        // Plain text search
-        const searchStr = opts.caseSensitive ? pattern : pattern.toLowerCase();
-        const targetStr = opts.caseSensitive ? text : text.toLowerCase();
+        // 计数与替换使用同一规则（非重叠匹配），预览仅保留前 200 条。
+        const regex = buildLiteralRegex(pattern, opts);
         const matches = [];
         let count = 0;
-        let startIdx = 0;
-
-        while (true) {
-          const foundIdx = targetStr.indexOf(searchStr, startIdx);
-          if (foundIdx === -1) break;
-          // text 用原文切片，保留命中处的真实大小写（不能回填 pattern）
-          matches.push({ index: foundIdx, length: searchStr.length, text: text.substr(foundIdx, searchStr.length) });
+        let match;
+        while ((match = regex.exec(text)) !== null) {
+          if (matches.length < 200) matches.push({ index: match.index, length: match[0].length, text: match[0] });
           count++;
           if (!opts.global) break;
-          startIdx = foundIdx + 1;
-          if (count > 500) break; // Safety limit
         }
         return { matches, count, error: null };
       }
@@ -647,31 +646,8 @@ s.parentNode.insertBefore(el, s);
           result = text.replace(regex, replacement);
         }
       } else {
-        if (opts.global) {
-          // 在原文中逐处查找并拼接替换，未命中的片段（含大小写）保持原样
-          const hay = opts.caseSensitive ? text : text.toLowerCase();
-          const needle = opts.caseSensitive ? pattern : pattern.toLowerCase();
-          let out = '';
-          let start = 0;
-          while (true) {
-            const idx = hay.indexOf(needle, start);
-            if (idx === -1) break;
-            out += text.slice(start, idx) + replacement;
-            start = idx + needle.length;
-          }
-          out += text.slice(start);
-          result = out;
-        } else {
-          // Non-global case-insensitive plain replace
-          const searchStr = opts.caseSensitive ? pattern : pattern.toLowerCase();
-          const targetStr = opts.caseSensitive ? text : text.toLowerCase();
-          const idx = targetStr.indexOf(searchStr);
-          if (idx !== -1) {
-            result = text.substring(0, idx) + replacement + text.substring(idx + pattern.length);
-          } else {
-            result = text;
-          }
-        }
+        // 回调保证 $&、$1 等在字面量模式下仍按用户输入原样写入。
+        result = text.replace(buildLiteralRegex(pattern, opts), () => replacement);
       }
     } catch (e) {
       markField('findInput', true);

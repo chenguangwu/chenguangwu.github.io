@@ -34,6 +34,8 @@ python3 -m http.server 8765
 
 然后访问 <http://localhost:8765>。
 
+高级 Slug 生成器使用本地随站发布的 `pinyin-pro` 3.29.5（MIT，版本锁定于 `package-lock.json`）进行中文转拼音；运行时无需访问外部服务。升级时需同步 `js/pinyin-pro-3.29.5.min.js` 与许可证文件并验证页面。
+
 ### 台湾繁体页面
 
 `zh-tw/` 是 `_build.py` 根据简体中文源页面生成的静态发布目录，已通过根目录 `.gitignore` 忽略：

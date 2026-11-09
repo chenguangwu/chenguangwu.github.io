@@ -232,6 +232,8 @@ var DEFAULTS = [
 ];
 function renderMachines(){
   var box = document.getElementById('machineRows');
+  var previous = {};
+  box.querySelectorAll('input').forEach(function(el){ previous[el.id] = el.value; });
   var html = '';
   for(var i=0;i<machineCount;i++){
     var d = DEFAULTS[i] || {name:'农机'+(i+1), width:2, speed:5, eff:75, fuel:8, fuelPrice:8};
@@ -245,16 +247,12 @@ function renderMachines(){
     html += '</div>';
   }
   const __g0=html;box.innerHTML=(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—'));
+  box.querySelectorAll('input').forEach(function(el){ if(Object.prototype.hasOwnProperty.call(previous,el.id)) el.value=previous[el.id]; });
 }
 function addMachine(){ machineCount++; renderMachines(); calc(); }
 function removeMachine(){ if(machineCount>1){ machineCount--; renderMachines(); calc(); } }
 
-function calc(){
-  var totalArea = +document.getElementById('totalArea').value || 0;
-  var laborCost = +document.getElementById('laborCost').value || 0;
-  if(totalArea<=0){ ToolBox.setResult('result','<p style="color:var(--danger);">作业总面积必须大于 0，否则亩成本无意义</p>'); return; }
-  if(laborCost<0){ ToolBox.setResult('result','<p style="color:var(--danger);">人工时薪不能为负值</p>'); return; }
-
+function collectMachines(totalArea, laborCost){
   var machines = [];
   for(var i=0;i<machineCount;i++){
     var name = document.getElementById('name'+i) ? document.getElementById('name'+i).value : ('农机'+(i+1));
@@ -264,7 +262,8 @@ function calc(){
     var fuel = +(document.getElementById('fuel'+i)?document.getElementById('fuel'+i).value:0) || 0;
     var fp = +(document.getElementById('fp'+i)?document.getElementById('fp'+i).value:0) || 0;
 
-    if(width<=0||speed<=0||eff<=0||eff>100) continue;
+    var fuelEl=document.getElementById('fuel'+i), fpEl=document.getElementById('fp'+i);
+    if(width<=0||speed<=0||eff<=0||eff>100||!fuelEl||!fpEl||fuelEl.value.trim()===''||fpEl.value.trim()===''||fuel<0||fp<0) continue;
     // 理论生产率 = 幅宽(m) × 速度(km/h) × 1.5 (换算为亩/h: 1km×1m=1000m²=1.5亩)
     // 实际生产率 = 理论生产率 × 时间利用率
     var theoryRate = width * speed * 1.5; // 亩/h
@@ -284,6 +283,18 @@ function calc(){
       totalCost:totalCost, costPerMu:costPerMu
     });
   }
+
+  return machines;
+}
+
+function calc(){
+  var totalArea = +document.getElementById('totalArea').value || 0;
+  var laborCost = +document.getElementById('laborCost').value || 0;
+  if(totalArea<=0){ ToolBox.setResult('result','<p style="color:var(--danger);">作业总面积必须大于 0，否则亩成本无意义</p>'); return; }
+  if(document.getElementById('laborCost').value.trim()===''){ ToolBox.setResult('result','<p style="color:var(--danger);">请输入人工费（0 表示无人工费）</p>'); return; }
+  if(laborCost<0){ ToolBox.setResult('result','<p style="color:var(--danger);">人工时薪不能为负值</p>'); return; }
+
+  var machines = collectMachines(totalArea, laborCost);
 
   if(machines.length===0){ ToolBox.setResult('result','<p style="color:var(--danger);">请至少输入一台有效农机数据</p>'); return; }
 
@@ -310,7 +321,7 @@ function calc(){
   html += '</div>';
 
   var tipType = bestCost===bestRate ? 'tip-success' : 'tip-info';
-  var tipContent = bestCost===bestRate ? ('推荐使用 '+bestCost.name+'：既高效又经济，亩成本仅'+bestCost.costPerMu.toFixed(2)+'元。') : ('效率最高的是'+bestRate.name+'，但综合成本最低的是'+bestCost.name+'。建议根据作业紧迫性和预算选择。');
+  var tipContent = bestCost===bestRate ? ('推荐使用 '+ToolBox.escHtml(bestCost.name)+'：既高效又经济，亩成本仅'+bestCost.costPerMu.toFixed(2)+'元。') : ('效率最高的是'+ToolBox.escHtml(bestRate.name)+'，但综合成本最低的是'+ToolBox.escHtml(bestCost.name)+'。建议根据作业紧迫性和预算选择。');
   html += '<div class="tip-box '+tipType+'" style="margin-top:12px;">'+tipContent+'</div>';
 
   html += '<div class="tip-box tip-info" style="margin-top:10px;">';
@@ -323,23 +334,15 @@ function calc(){
 }
 function copyResult(){
   var totalArea=+document.getElementById('totalArea').value||0;
-  if(totalArea<=0){ ToolBox.showToast('作业总面积必须大于 0','warning'); return; }
-  var results=[];
-  for(var i=0;i<machineCount;i++){
-    var name=document.getElementById('name'+i)?document.getElementById('name'+i).value:('农机'+(i+1));
-    var width=+(document.getElementById('width'+i)?document.getElementById('width'+i).value:0)||0;
-    var speed=+(document.getElementById('speed'+i)?document.getElementById('speed'+i).value:0)||0;
-    var eff=+(document.getElementById('eff'+i)?document.getElementById('eff'+i).value:0)||0;
-    var fuel=+(document.getElementById('fuel'+i)?document.getElementById('fuel'+i).value:0)||0;
-    var fp=+(document.getElementById('fp'+i)?document.getElementById('fp'+i).value:0)||0;
-    if(width<=0||speed<=0||eff<=0||eff>100)continue;
-    var actualRate=width*speed*1.5*(eff/100);
-    var timeNeeded=actualRate>0?totalArea/actualRate:0;
-    var totalCost=fuel*timeNeeded*fp;
-    results.push(name+': 效率'+actualRate.toFixed(2)+'亩/h, 亩成本'+(totalCost/totalArea).toFixed(2)+'元');
-  }
+  var laborEl=document.getElementById('laborCost');
+  var laborCost=+laborEl.value;
+  if(totalArea<=0 || laborEl.value.trim()==='' || laborCost<0){ ToolBox.showToast('请输入有效的作业面积和人工费','warning'); return; }
+  var machines=collectMachines(totalArea,laborCost);
+  if(!machines.length){ ToolBox.showToast('请至少输入一台有效农机数据','warning'); return; }
+  var results=machines.map(function(m){return m.name+': 效率'+m.actualRate.toFixed(2)+'亩/h, 亩成本'+m.costPerMu.toFixed(2)+'元';});
   ToolBox.copyText('农机效率对比：\n'+results.join('\n'), i18nText('msg228'));
 }
+
 renderMachines();
 calc();
 </script>

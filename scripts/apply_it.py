@@ -115,7 +115,8 @@ KB['it/hex-to-text'] = dict(title='十六进制转文本',
   scenarios=['拿到 `\\x41\\x42` 这类转义序列时，反查原始字符串。',
     '逆向或取证中把 Hex 流还原为可读文本。'],
   examples=[dict(title='解码 48656c6c6f', body='输入 `48656c6c6f` → 输出 `Hello`（每两位一字节：0x48=H …）。')],
-  faqs=[dict(q='奇数位 Hex 能解码吗？', a='不能，Hex 必须两位一对；缺位会报格式错误。')])
+  faqs=[dict(q='奇数位 Hex 能解码吗？', a='不能，Hex 必须两位一对；缺位会报格式错误。'),
+    dict(q='解出来是乱码说明什么？', a='本工具只支持严格 UTF-8；无效字节会报错，请确认原始编码并使用支持该编码的工具。压缩或加密数据通常不是可读文本；即使字节符合 UTF-8，也可能因原始编码不同而显示乱码。')])
 
 KB['it/binary-encode'] = dict(title='二进制字符串编解码',
   scenarios=['理解字符底层存储、做位运算教学时把文本转成 0/1 串。',
@@ -1537,9 +1538,9 @@ KB['it/keyword-density'] = dict(title='关键词密度分析器',
   faqs=[dict(q='密度越高越好？', a='不是，堆砌会被判作弊。')])
 
 KB['it/keyword-extractor'] = dict(title='关键词提取',
-  scenarios=['从文本抽取主题词（TF/TextRank）。'],
-  examples=[dict(title='提取', body='文章 → 关键词 [加密, 算法, 安全] 按权重排序。')],
-  faqs=[dict(q='中文需分词吗？', a='需，先分词再做词频/图权重。')])
+  scenarios=['从文本中提取词频较高的候选词，辅助人工整理主题。'],
+  examples=[dict(title='提取', body='例如：apple apple banana → apple 出现 2 次，banana 出现 1 次。')],
+  faqs=[dict(q='中文需分词吗？', a='需要。浏览器支持时使用中文分词，否则退回滑窗候选词；结果应人工核对。')])
 
 KB['it/code-line-counter'] = dict(title='Code Line Counter',
   scenarios=['统计项目代码行/注释/空行。'],

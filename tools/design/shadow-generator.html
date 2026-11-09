@@ -38,8 +38,9 @@
 .layer-item .info{flex:1;cursor:pointer;font-family:'SF Mono',monospace;font-size:11px;color:var(--text-light);}
 .layer-item .type{padding:2px 8px;border-radius:4px;background:#e3f2fd;color:#1976d2;font-size:10px;font-weight:600;}
 .layer-item .type.inset{background:#fce4ec;color:#c2185b;}
-.layer-item .del{padding:4px 8px;background:#ffecec;color:#cb2431;border-radius:4px;cursor:pointer;font-size:11px;}
-.layer-item .del:hover{background:#cb2431;color:#fff;}
+.layer-item .del{padding:4px 8px;background:#ffecec;color:#cb2431;border:0;border-radius:4px;cursor:pointer;font-size:11px;}
+.layer-item .del:disabled{opacity:.5;cursor:not-allowed;}
+.layer-item .del:not(:disabled):hover{background:#cb2431;color:#fff;}
 .slider-group{margin-bottom:14px;}
 .slider-group label{display:flex;justify-content:space-between;font-size:13px;color:var(--text-light);margin-bottom:4px;}
 .slider-group label .val{color:var(--primary);font-weight:600;font-family:'SF Mono',monospace;}
@@ -366,6 +367,7 @@ function getActiveLayer(){
 
 function update(){
   const layer = getActiveLayer();
+  if(!layer) return;
   layer.x = parseInt(document.getElementById('offsetX').value);
   layer.y = parseInt(document.getElementById('offsetY').value);
   layer.blur = parseInt(document.getElementById('blur').value);
@@ -386,7 +388,9 @@ function syncColor(input){
   const v = input.value.trim();
   if(/^#[0-9a-f]{6}$/i.test(v)){
     document.getElementById('color').value = v;
-    getActiveLayer().color = v;
+    const layer = getActiveLayer();
+    if(!layer) return;
+    layer.color = v;
     render();
   }
 }
@@ -423,11 +427,12 @@ function renderLayerList(){
     const __h0='<div style="padding:14px;text-align:center;color:var(--text-muted);font-size:13px;">无阴影层，点击上方添加</div>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h0;
     return;
   }
+  const en = /(?:^|[?&])lang=en-US(?:&|$)/i.test(location.search) || /^en/i.test(document.documentElement.lang || '');
   const __h1=layers.map((l, i) => `
     <div class="layer-item ${i === activeLayer ? 'active' : ''}" onclick="setActive(${i})">
       <span class="type ${l.inset ? 'inset' : ''}">${l.inset ? '内' : '外'}</span>
       <span class="info">${l.x},${l.y},${l.blur},${l.spread} ${l.color}</span>
-      <span class="del" onclick="event.stopPropagation(); deleteLayer(${i})">✕</span>
+      <button type="button" class="del" ${layers.length === 1 ? 'disabled' : ''} title="${layers.length === 1 ? (en ? 'At least one layer is required' : '至少保留一层阴影') : (en ? 'Delete layer' : '删除阴影层')}" aria-label="${en ? 'Delete layer' : '删除阴影层'}" onclick="event.stopPropagation(); deleteLayer(${i})">✕</button>
     </div>
   `).join('');if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h1;
 }
@@ -446,7 +451,7 @@ function setActive(i){
   document.getElementById('blurVal').textContent = l.blur + 'px';
   document.getElementById('spreadVal').textContent = l.spread + 'px';
   document.getElementById('colorText').value = l.color;
-  renderLayerList();
+  render();
 }
 
 function addLayer(){
@@ -456,10 +461,11 @@ function addLayer(){
 }
 
 function deleteLayer(i){
+  if(layers.length <= 1 || !Number.isInteger(i) || i < 0 || i >= layers.length) return;
   layers.splice(i, 1);
+  if(i < activeLayer) activeLayer--;
   if(activeLayer >= layers.length) activeLayer = layers.length - 1;
-  if(activeLayer >= 0) setActive(activeLayer);
-  else render();
+  setActive(activeLayer);
 }
 
 function resetLayers(){

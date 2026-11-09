@@ -124,7 +124,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="对同一对象前后/配对测量的差值进行检验。">Enter paired measurements of the same subjects (e.g. before and after treatment) to compute the mean and SD of differences and test whether the difference is non-zero, returning t, df and p.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">配对样本 t 检验（本页代码口径）：t=d̄÷(s_d÷√n)（d̄ 差值均值、s_d 差值标准差、n 配对数）；自由度 df=n−1；双侧 p 值按不完全贝塔函数 p=I(df÷2, 0.5, df÷(df+t²)) 数值求得。校验：d̄、s_d、n 空值即提示并中止。判据：无固定阈值分支，通行口径 p&lt;0.05 视为差值统计显著。</div>
+      <div class="formula-eq">配对样本 t 检验（本页代码口径）：t=d̄÷(s_d÷√n)（d̄ 差值均值、s_d 差值标准差、n 配对数）；自由度 df=n−1；双侧 p 值按不完全贝塔函数 p=I(df÷2, 0.5, df÷(df+t²)) 数值求得。校验：d̄、s_d、n 必填，s_d 必须大于 0，n 必须是至少为 2 的整数。判据：无固定阈值分支，通行口径 p&lt;0.05 视为差值统计显著。</div>
       <p class="formula-desc">对同一对象前后/配对测量的差值进行检验。</p>
     </div>
 
@@ -139,7 +139,7 @@ s.parentNode.insertBefore(el, s);
       </div>
       <div>
         <label for="n">配对数 n</label>
-        <input type="number" id="n" value="15" step="1" placeholder="如 15">
+        <input type="number" id="n" value="15" min="2" step="1" placeholder="如 15">
       </div>
     </div>
 
@@ -236,7 +236,7 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>function __tbInputGuard(_ids,_labels){
   var __r=__tbInputGuardCore(_ids,_labels);
-  if(__r){var __t=document.getElementById('ptTable');if(__t)__t.innerHTML='';}
+  if(__r) __ptClearExtras();
   return __r;
 }
 function __tbInputGuardCore(_ids,_labels){
@@ -306,10 +306,30 @@ function __tbInputGuardCore(_ids,_labels){
 }
 
 
+function __ptClearExtras(){
+  ['ptTable','ptDiff'].forEach(function(id){var el=document.getElementById(id);if(el)el.innerHTML='';});
+}
+function __ptIsEn(){return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn()) || /(?:^|[?&])lang=en-US(?:&|$)/i.test(location.search);}
+function __ptValidationError(){
+  var sd=document.getElementById('sd'), count=document.getElementById('n');
+  var en=__ptIsEn();
+  var sdValue=Number(sd.value), nValue=Number(count.value);
+  if(!isFinite(sdValue)||sdValue<=0){
+    sd.classList.add('input-error');
+    return en?'The standard deviation of differences must be greater than 0.':'差值标准差须大于 0。';
+  }
+  if(!Number.isSafeInteger(nValue)||nValue<2){
+    count.classList.add('input-error');
+    return en?'The number of pairs must be an integer of at least 2.':'配对数须为大于或等于 2 的整数。';
+  }
+  return '';
+}
+
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
   var __ig=__tbInputGuard(['dbar', 'sd', 'n'],["差值均值 d̄", "差值标准差 s_d", "配对数 n"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
+  var __validationError=__ptValidationError();if(__validationError){__ptClearExtras();ToolBox.setResult('result',__validationError);return;}
 function erf(x){const s=x<0?-1:1;x=Math.abs(x);const t=1/(1+0.3275911*x);
   const y=1-(((((1.061405429*t-1.453152027)*t+1.421413741)*t-0.284496736)*t+0.254829592)*t)*Math.exp(-x*x);
   return s*y;}
@@ -333,10 +353,11 @@ function betai(a,b,x){if(x<=0)return 0; if(x>=1)return 1;
             const t=d/(s/Math.sqrt(n));
             const df=n-1;
             const p=betai(df/2,0.5, df/(df+t*t));
+            const en=__ptIsEn();
             const __g2=dataGrid([
-                [t.toFixed(4),'t 统计量'],
-                [df.toFixed(0),'自由度 df'],
-                [p.toFixed(4),'双侧 p 值']
+                [t.toFixed(4),en?'t statistic':'t 统计量'],
+                [df.toFixed(0),en?'Degrees of freedom df':'自由度 df'],
+                [p.toFixed(4),en?'Two-sided p value':'双侧 p 值']
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('dbar').value = '2.5';
@@ -350,7 +371,7 @@ function __ptNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.valu
 function __ptExtras(){
     if (typeof TBKit === 'undefined') return;
     var d=__ptNum('dbar'), s=__ptNum('sd'), n=__ptNum('n');
-    if(!isFinite(d)||!isFinite(s)||!isFinite(n)||s<=0||n<2) return;
+    if(!isFinite(d)||!isFinite(s)||!isFinite(n)||__ptValidationError()){__ptClearExtras();return;}
     var en=TBKit.util.isEn();
     var se=s/Math.sqrt(n), df=n-1, t=d/se;
     var p=TBKit.util.tP2(t,df);
@@ -392,6 +413,7 @@ function __ptExtras(){
 }
 function __ptExport(){
     if (typeof TBKit === 'undefined') return;
+    if(!isFinite(__ptNum('dbar')) || !isFinite(__ptNum('sd')) || !isFinite(__ptNum('n')) || __ptValidationError()) return;
     try { TBKit.util.exportTable('#ptTable','paired-t-test.csv'); } catch (e) {}
 }
 function __ptPresets(){
