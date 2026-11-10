@@ -319,8 +319,19 @@ function checkCardInput() {
   }
 }
 
+function checkWordCounterDescription() {
+  const page = fs.readFileSync(path.join(root, 'tools/finance/word-counter.html'), 'utf8');
+  const deep = JSON.parse(fs.readFileSync(path.join(root, 'i18n/tools/content_deepdive.json'), 'utf8'))['finance/word-counter'].examples[0].body;
+  const translations = JSON.parse(fs.readFileSync(path.join(root, 'i18n/tools/en/finance/word-counter.json'), 'utf8')).map;
+  assert.ok(deep.includes('😀') && deep.includes('👨‍👩‍👧‍👦') && deep.includes('7 个码点'), '示例应区分单码点和复合 emoji');
+  assert.ok(page.includes(deep), '页面示例应与构建源一致');
+  assert.ok(translations[deep] && translations[deep].includes('7 code points'), '英文示例应说明复合 emoji 的码点数');
+  const formula = '总字符数 = Unicode 码点数｜不含空格 = 去空白后码点数';
+  assert.ok(page.includes(formula) && translations[formula], '中英文公式应按码点说明，不应声称每个 emoji 均为 1');
+}
+
 let failed = false;
-for (const [name, test] of [['银行卡输入', checkCardInput], ['名片二维码超限', checkVcardOverflow], ['基金定投时点', checkFundTiming], ['退休现金流', checkRetirementCashFlow], ['颜色历史', checkColorHistory], ['工序排期', checkSchedule], ['SIN 输入', checkSinValidation], ['邮编输入', checkPostalValidation], ['CURP 输入', () => checkIdValidation('curp', 'CURP_BASE', 'BOXW310820HMNERN16', 'BOXW310820HMNERN160')], ['DNI 输入', () => checkIdValidation('dni', 'DNI_LETTERS', '12345678Z', '12345678A')], ['投资回报历史', checkInvestmentHistory], ['期权盈亏', checkOptionCalculator]]) {
+for (const [name, test] of [['字数统计说明', checkWordCounterDescription], ['银行卡输入', checkCardInput], ['名片二维码超限', checkVcardOverflow], ['基金定投时点', checkFundTiming], ['退休现金流', checkRetirementCashFlow], ['颜色历史', checkColorHistory], ['工序排期', checkSchedule], ['SIN 输入', checkSinValidation], ['邮编输入', checkPostalValidation], ['CURP 输入', () => checkIdValidation('curp', 'CURP_BASE', 'BOXW310820HMNERN16', 'BOXW310820HMNERN160')], ['DNI 输入', () => checkIdValidation('dni', 'DNI_LETTERS', '12345678Z', '12345678A')], ['投资回报历史', checkInvestmentHistory], ['期权盈亏', checkOptionCalculator]]) {
   try { test(); console.log('PASS', name); } catch (err) { failed = true; console.error('FAIL', name, err.message); }
 }
 if (failed) process.exitCode = 1;
