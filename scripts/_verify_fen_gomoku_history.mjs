@@ -562,4 +562,38 @@ for (const [file, prefix, input, error] of [
   check('项目名称作为文本而非 HTML 展示',!doc.getElementById('batchRes').querySelector('img'));
   w.close();
 }
+// Financial ratio history uses actual calculation validity rather than warning text.
+{
+  const downloads=[], trends=[];
+  const dom=new JSDOM(readFileSync('tools/finance/analysis-5.html','utf8'),{
+    url:'https://x.test/tools/finance/analysis-5.html',runScripts:'dangerously',pretendToBeVisual:true,
+    virtualConsole:new VirtualConsole(),beforeParse(w){
+      w.ToolBox={showToast(){},escHtml:s=>String(s)};w.i18nText=k=>k;
+      w.Blob=class{constructor(parts){this.text=parts.join('');}};
+      w.URL.createObjectURL=blob=>{downloads.push(blob.text);return 'blob:test';};
+      w.URL.revokeObjectURL=()=>{};w.HTMLAnchorElement.prototype.click=function(){};
+      w.eval(readFileSync('js/tool-kit.js','utf8'));
+      const line=w.TBKit.chart.line;
+      w.TBKit.chart.line=(host,config)=>{trends.push(Array.from(config.series[0].data));return line(host,config);};
+    }
+  });
+  const w=dom.window,doc=w.document,cl=doc.getElementById('cl');
+  await new Promise(resolve=>w.addEventListener('load',resolve));
+  const check=(label,ok)=>{console.log(`${ok?'PASS':'FAIL'} analysis-5 ${label}`);if(!ok)failed=true;};
+  const calculate=value=>{cl.value=value;w.calc();};
+  w.TBKit.history.clear();w.eval('__analysis_5_last=0');
+  calculate('300000');calculate('0');doc.querySelector('[onclick="__analysis_5Export()"]')?.click();
+  let records=w.TBKit.history.list();
+  check('快速导出记录无效分母',records.length===2 && records[0].d.__tbScore===0 && downloads[0]?.includes('未通过'));
+  check('趋势反映计算有效性',trends.some(t=>t.join(',')==='1,0'));
+  calculate('');await new Promise(resolve=>setTimeout(resolve,1100));
+  records=w.TBKit.history.list();
+  check('空字段保存在失败快照中',records.length===3 && records[0].d.cl==='' && records[0].d.__tbScore===0);
+  calculate('500000');doc.querySelector('#analysis_5Hist .tbk-history-item')?.click();
+  await new Promise(resolve=>setTimeout(resolve,1100));
+  check('恢复空字段并取消待保存输入',cl.value==='' && w.TBKit.history.list().length===3);
+  calculate('500000');doc.getElementById('ca').value='1';w.calc();doc.querySelector('[onclick="__analysis_5Export()"]')?.click();
+  check('偿债风险警告不等于输入无效',w.TBKit.history.list()[0]?.d.__tbScore===1 && /偿债压力/.test(doc.getElementById('res').textContent));
+  w.close();
+}
 process.exit(failed ? 1 : 0);
