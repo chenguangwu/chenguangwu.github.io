@@ -699,8 +699,39 @@ function checkDniDeepReview() {
   for (const text of [deep.examples[0].body, deep.faqs[0].a]) assert.ok(dom.window.document.body.textContent.includes(text) && en[text]);
   dom.window.close();
 }
+function checkReverseHistoryReview() {
+  const { dom, scripts } = loadFinancePage('text-reverse-words');
+  const doc = dom.window.document;
+  dom.window.eval(fs.readFileSync(path.join(root, 'js/tool-kit.js'), 'utf8'));
+  let copied = '', alerts = 0, exports = 0;
+  Object.defineProperty(dom.window.navigator, 'clipboard', { value: { writeText: text => { copied = text; return Promise.resolve(); } } });
+  dom.window.alert = () => { alerts++; };
+  dom.window.eval(scripts.find(s => s.includes('function reverseWords(')));
+  dom.window.eval(scripts.find(s => s.includes('function __text_reverse_wordsExtras(')));
+  dom.window.TBKit.history.clear();
+  dom.window.TBKit.util.exportTable = () => { exports++; };
+  doc.getElementById('mode').value = 'space';
+  for (const [input, expected] of [['无效', '无效'], ['请输入文本...', '请输入文本...'], ['错误', '错误'], ['Please enter text...', 'text... enter Please']]) {
+    doc.getElementById('input').value = input;
+    dom.window.__text_reverse_words_last = 0;
+    dom.window.reverse();
+    const last = dom.window.TBKit.history.last();
+    assert.strictEqual(last.__tbScore, 1, input + ' 是合法文本');
+    assert.strictEqual(last['结果'], expected);
+    dom.window.copyResult();
+    assert.strictEqual(copied, expected, '占位文案作为合法结果时应能复制');
+    dom.window.__text_reverse_wordsExport();
+    assert.ok(doc.getElementById('text_reverse_wordsTable').textContent.includes(input), 'CSV 来源表应包含实际结果');
+  }
+  assert.strictEqual(alerts, 0);
+  assert.strictEqual(exports, 4);
+  dom.window.clearAll();
+  dom.window.copyResult();
+  assert.strictEqual(alerts, 1, '空态不可复制提示');
+  dom.window.close();
+}
 let failed = false;
-for (const [name, test] of [...['meid-validator','aba-validator','routing-number-validator','voter-id-validator','tfn-validator','zip-code-validator'].map(slug => [slug, () => checkRemainingIdentifier(slug)]), ['DNI 内容', checkDniDeepReview], ['Sort PAN TIN 复核', checkSortPanTinReview],['NIE ICCID ISBN 复核', checkNieIccidIsbnReview], ['GST IMEI EIN 复核', checkGstImeiEinReview], ['BIC 查询复核', checkBicLookupReview], ['GSTIN 复核', checkGstinReview], ['CNPJ 复核', checkCnpjReview], ['货币符号复核', checkCurrencyReview], ['信用卡利息复核', checkCreditInterestReview], ['IBAN 复核', checkIbanReview], ['标签生成空态', checkLabelEmptyState], ['Code128 字符范围', checkCode128Descriptions], ['仓位缺填历史', checkPositionSizingMissingInput], ['行业利润率', checkIndustryProfitMargins], ['字数统计说明', checkWordCounterDescription], ['银行卡输入', checkCardInput], ['名片二维码超限', checkVcardOverflow], ['基金定投时点', checkFundTiming], ['退休现金流', checkRetirementCashFlow], ['颜色历史', checkColorHistory], ['工序排期', checkSchedule], ['SIN 输入', checkSinValidation], ['邮编输入', checkPostalValidation], ['CURP 输入', () => checkIdValidation('curp', 'CURP_BASE', 'BOXW310820HMNERN16', 'BOXW310820HMNERN160')], ['DNI 输入', () => checkIdValidation('dni', 'DNI_LETTERS', '12345678Z', '12345678A')], ['投资回报历史', checkInvestmentHistory], ['期权盈亏', checkOptionCalculator]]) {
+for (const [name, test] of [['文本反转历史导出', checkReverseHistoryReview], ...['meid-validator','aba-validator','routing-number-validator','voter-id-validator','tfn-validator','zip-code-validator'].map(slug => [slug, () => checkRemainingIdentifier(slug)]), ['DNI 内容', checkDniDeepReview], ['Sort PAN TIN 复核', checkSortPanTinReview],['NIE ICCID ISBN 复核', checkNieIccidIsbnReview], ['GST IMEI EIN 复核', checkGstImeiEinReview], ['BIC 查询复核', checkBicLookupReview], ['GSTIN 复核', checkGstinReview], ['CNPJ 复核', checkCnpjReview], ['货币符号复核', checkCurrencyReview], ['信用卡利息复核', checkCreditInterestReview], ['IBAN 复核', checkIbanReview], ['标签生成空态', checkLabelEmptyState], ['Code128 字符范围', checkCode128Descriptions], ['仓位缺填历史', checkPositionSizingMissingInput], ['行业利润率', checkIndustryProfitMargins], ['字数统计说明', checkWordCounterDescription], ['银行卡输入', checkCardInput], ['名片二维码超限', checkVcardOverflow], ['基金定投时点', checkFundTiming], ['退休现金流', checkRetirementCashFlow], ['颜色历史', checkColorHistory], ['工序排期', checkSchedule], ['SIN 输入', checkSinValidation], ['邮编输入', checkPostalValidation], ['CURP 输入', () => checkIdValidation('curp', 'CURP_BASE', 'BOXW310820HMNERN16', 'BOXW310820HMNERN160')], ['DNI 输入', () => checkIdValidation('dni', 'DNI_LETTERS', '12345678Z', '12345678A')], ['投资回报历史', checkInvestmentHistory], ['期权盈亏', checkOptionCalculator]]) {
   try { test(); console.log('PASS', name); } catch (err) { failed = true; console.error('FAIL', name, err.message); }
 }
 if (failed) process.exitCode = 1;
