@@ -793,6 +793,65 @@ function checkGuaRealHistory() {
   assert.strictEqual(kit.history.list().length, 2, '恢复历史不得产生新记录');
   dom.window.close();
 }
+function checkValidatorVerdictReview() {
+  const cases = [
+    ['gstin-validator', 'const GST_BASE =', '27ABCDE1234F1Z1', '27AAPFU0939F1ZV'],
+    ['meid-validator', 'const HEX_BASE =', 'A00000000000001', 'A0000012345678'],
+    ['abn-validator', 'function abnCheck(', '51824753557', '51824753556'],
+    ['aadhaar-validator', 'function verhoeffCheck(', '2'.repeat(100), '234567890124'],
+    ['bic-validator', 'const COUNTRY_CODES', '2'.repeat(100), 'DEUTDEFF'],
+  ];
+  for (const [slug, mainMarker, bad, good] of cases) {
+    const { dom, scripts } = loadFinancePage(slug);
+    const w = dom.window, doc = w.document, name = slug.replace(/-/g, '_');
+    w.eval(fs.readFileSync(path.join(root, 'js/tool-kit.js'), 'utf8'));
+    const charts = [];
+    w.TBKit.chart.line = (_, options) => charts.push(options.series[0].data);
+    for (const script of [scripts.find(s => s.includes(mainMarker)), scripts.find(s => s.includes(`function __${name}Extras(`))]) {
+      const el = doc.createElement('script'); el.textContent = script; doc.body.appendChild(el);
+    }
+    w.TBKit.history.clear();
+    doc.getElementById('input').value = slug === 'meid-validator' ? good + '0123456789ABCDEF'[w.meidCheckHex(good)] : good;
+    w[`__${name}_last`] = 0; w.validate();
+    assert.strictEqual(w.TBKit.history.last().__tbScore, 1, slug + ' 合法号码应通过');
+    doc.getElementById('input').value = bad;
+    w[`__${name}_last`] = 0; w.validate();
+    assert.strictEqual(w.TBKit.history.last().__tbScore, 0, slug + ' 校验失败应记录未通过');
+    assert.deepStrictEqual(Array.from(charts.at(-1)), [1, 0], slug + ' 趋势应反映失败');
+    let exported = '';
+    w.TBKit.util.exportTable = selector => { exported = doc.querySelector(selector).textContent; };
+    w[`__${name}Export`]();
+    assert.ok(exported.includes('未通过'), slug + ' 导出表应含未通过');
+    w.close();
+  }
+}
+function checkCalculatorMissingVerdict() {
+  for (const [slug, missing] of [['calc-5', 'cost'], ['dca-calculator', 'monthly']]) {
+    const { dom, scripts } = loadFinancePage(slug);
+    const w = dom.window, doc = w.document, name = slug.replace(/-/g, '_');
+    w.ToolBox = { formatNumber: (n, d) => Number(n).toFixed(d || 0), setResult: (id, html) => { doc.getElementById(id).innerHTML = html; }, createTable: () => '', showToast() {} };
+    w.HTMLCanvasElement.prototype.getContext = () => new Proxy({}, { get: (_, k) => k === 'createLinearGradient' ? () => ({ addColorStop() {} }) : () => {} });
+    w.eval(fs.readFileSync(path.join(root, 'js/tool-kit.js'), 'utf8'));
+    const charts = [];
+    w.TBKit.chart.line = (_, options) => charts.push(options.series[0].data);
+    for (const script of new Set([scripts.find(s => s.includes('function __tbInputGuardCore(')), scripts.find(s => s.includes(`function __${name}Extras(`))])) {
+      const el = doc.createElement('script'); el.textContent = script; doc.body.appendChild(el);
+    }
+    w.TBKit.history.clear();
+    w[`__${name}_last`] = 0; w.calc();
+    assert.strictEqual(w.TBKit.history.last().__tbScore, 1, slug + ' 默认计算应通过');
+    doc.getElementById(missing).value = '';
+    w[`__${name}_last`] = 0; w.calc();
+    assert.ok(doc.getElementById('res').textContent.includes('请填写'));
+    assert.strictEqual(w.TBKit.history.last().__tbScore, 0, slug + ' 缺填应记录失败');
+    assert.deepStrictEqual(Array.from(charts.at(-1)), [1, 0]);
+    let exported = '';
+    w.TBKit.util.exportTable = selector => { exported = doc.querySelector(selector).textContent; };
+    w[`__${name}Export`]();
+    assert.ok(exported.includes('未通过'));
+    w.close();
+  }
+}
 function checkPlayfairRealHistory() {
   const page = fs.readFileSync(path.join(root, 'tools/it/playfair-cipher.html'), 'utf8');
   const dom = new JSDOM(page.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ''), { url: 'https://example.test/', runScripts: 'dangerously' });
@@ -850,7 +909,7 @@ function checkBillAdvancedRealHistory() {
   dom.window.close();
 }
 let failed = false;
-for (const [name, test] of [['Playfair 真实历史', checkPlayfairRealHistory], ['高级分账真实历史', checkBillAdvancedRealHistory], ['真实选卦历史', checkGuaRealHistory], ['随机抽取定格历史', checkRandomPickerHistory], ['文本反转历史导出', checkReverseHistoryReview], ...['meid-validator','aba-validator','routing-number-validator','voter-id-validator','tfn-validator','zip-code-validator'].map(slug => [slug, () => checkRemainingIdentifier(slug)]), ['DNI 内容', checkDniDeepReview], ['Sort PAN TIN 复核', checkSortPanTinReview],['NIE ICCID ISBN 复核', checkNieIccidIsbnReview], ['GST IMEI EIN 复核', checkGstImeiEinReview], ['BIC 查询复核', checkBicLookupReview], ['GSTIN 复核', checkGstinReview], ['CNPJ 复核', checkCnpjReview], ['货币符号复核', checkCurrencyReview], ['信用卡利息复核', checkCreditInterestReview], ['IBAN 复核', checkIbanReview], ['标签生成空态', checkLabelEmptyState], ['Code128 字符范围', checkCode128Descriptions], ['仓位缺填历史', checkPositionSizingMissingInput], ['行业利润率', checkIndustryProfitMargins], ['字数统计说明', checkWordCounterDescription], ['银行卡输入', checkCardInput], ['名片二维码超限', checkVcardOverflow], ['基金定投时点', checkFundTiming], ['退休现金流', checkRetirementCashFlow], ['颜色历史', checkColorHistory], ['工序排期', checkSchedule], ['SIN 输入', checkSinValidation], ['邮编输入', checkPostalValidation], ['CURP 输入', () => checkIdValidation('curp', 'CURP_BASE', 'BOXW310820HMNERN16', 'BOXW310820HMNERN160')], ['DNI 输入', () => checkIdValidation('dni', 'DNI_LETTERS', '12345678Z', '12345678A')], ['投资回报历史', checkInvestmentHistory], ['期权盈亏', checkOptionCalculator]]) {
+for (const [name, test] of [['计算器缺填结论', checkCalculatorMissingVerdict], ['校验结论真实历史', checkValidatorVerdictReview], ['Playfair 真实历史', checkPlayfairRealHistory], ['高级分账真实历史', checkBillAdvancedRealHistory], ['真实选卦历史', checkGuaRealHistory], ['随机抽取定格历史', checkRandomPickerHistory], ['文本反转历史导出', checkReverseHistoryReview], ...['meid-validator','aba-validator','routing-number-validator','voter-id-validator','tfn-validator','zip-code-validator'].map(slug => [slug, () => checkRemainingIdentifier(slug)]), ['DNI 内容', checkDniDeepReview], ['Sort PAN TIN 复核', checkSortPanTinReview],['NIE ICCID ISBN 复核', checkNieIccidIsbnReview], ['GST IMEI EIN 复核', checkGstImeiEinReview], ['BIC 查询复核', checkBicLookupReview], ['GSTIN 复核', checkGstinReview], ['CNPJ 复核', checkCnpjReview], ['货币符号复核', checkCurrencyReview], ['信用卡利息复核', checkCreditInterestReview], ['IBAN 复核', checkIbanReview], ['标签生成空态', checkLabelEmptyState], ['Code128 字符范围', checkCode128Descriptions], ['仓位缺填历史', checkPositionSizingMissingInput], ['行业利润率', checkIndustryProfitMargins], ['字数统计说明', checkWordCounterDescription], ['银行卡输入', checkCardInput], ['名片二维码超限', checkVcardOverflow], ['基金定投时点', checkFundTiming], ['退休现金流', checkRetirementCashFlow], ['颜色历史', checkColorHistory], ['工序排期', checkSchedule], ['SIN 输入', checkSinValidation], ['邮编输入', checkPostalValidation], ['CURP 输入', () => checkIdValidation('curp', 'CURP_BASE', 'BOXW310820HMNERN16', 'BOXW310820HMNERN160')], ['DNI 输入', () => checkIdValidation('dni', 'DNI_LETTERS', '12345678Z', '12345678A')], ['投资回报历史', checkInvestmentHistory], ['期权盈亏', checkOptionCalculator]]) {
   try { test(); console.log('PASS', name); } catch (err) { failed = true; console.error('FAIL', name, err.message); }
 }
 if (failed) process.exitCode = 1;
