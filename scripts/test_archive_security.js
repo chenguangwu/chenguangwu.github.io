@@ -421,8 +421,92 @@ function checkLabelEmptyState() {
   dom.window.close();
 }
 
+function loadFinancePage(slug) {
+  const page = fs.readFileSync(path.join(root, `tools/finance/${slug}.html`), 'utf8');
+  const dom = new JSDOM(page.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ''), { url: 'https://example.test/', runScripts: 'dangerously' });
+  dom.window.HTMLElement.prototype.scrollIntoView = () => {};
+  return { page, dom, scripts: [...page.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]) };
+}
+function checkCurrencyReview() {
+  {
+    const { page, dom, scripts } = loadFinancePage('currency-symbol');
+    dom.window.eval(scripts.find(s => s.includes('function renderCurrencies(')));
+    const list = dom.window.currencies;
+    assert.strictEqual(new Set(list.map(c => c.code)).size, list.length, '货币代码不得重复');
+    for (const c of list) {
+      for (const key of ['code', 'symbol', 'name', 'nameEn', 'country', 'region', 'unit']) assert.ok(c[key], `${c.code} 缺少 ${key}`);
+      assert.ok(!Object.keys(c).some(k => /^\d+$/.test(k)), `${c.code} 不得出现字符串索引字段`);
+    }
+    assert.strictEqual(list.find(c => c.code === 'VEF').symbol, 'Bs.');
+    dom.window.document.getElementById('searchInput').value = 'VEF';
+    dom.window.search();
+    assert.ok(dom.window.document.querySelector('.currency-card').textContent.includes('Bs.'), 'VEF 卡片应显示历史符号');
+    dom.window.showDetail(list.findIndex(c => c.code === 'VEF'));
+    assert.ok(dom.window.document.getElementById('detailContent').textContent.includes('Bs.'));
+    for (const code of ['CNY', 'CNH']) {
+      const c = list.find(c => c.code === code);
+      assert.strictEqual(c.subunit, 'Fen'); assert.strictEqual(c.subunitRate, 100);
+    }
+    for (const code of ['HRK', 'SLL', 'VEF', 'ANG']) assert.strictEqual(list.find(c => c.code === code).status, 'obsolete');
+    for (const code of ['XBT', 'ETH', 'KID', 'TVD']) assert.strictEqual(list.find(c => c.code === code).status, 'non-iso');
+    dom.window.close();
+  }
+}
+function checkCreditInterestReview() {
+  {
+    const { dom, scripts } = loadFinancePage('credit-card-interest');
+    dom.window.eval(scripts.find(s => s.includes('function simulateMinimum(')));
+    const doc = dom.window.document;
+    const set = (id, value) => { doc.getElementById(id).value = value; };
+    set('billAmount', '10000'); set('dailyRate', '0.05'); set('minRatio', '1'); set('installmentFee', '0.6'); set('repayType', 'minimum');
+    dom.window.calc();
+    assert.ok(doc.getElementById('resultBox').textContent.includes('120 期累计已付'));
+    assert.ok(doc.getElementById('resultBox').textContent.includes('17,515.49'), '累计已付不含剩余本金');
+    dom.window.showCompare();
+    let text = doc.getElementById('compareContent').textContent;
+    assert.ok(text.includes('20,509.29'), '对比总支出不得重复计算剩余本金');
+    assert.ok(!text.includes('23,503.10'), '对比不得重复加剩余本金');
+    assert.ok(!text.includes('更省钱') && !text.includes('可节省约'), '未还清时不能推断最终节省额');
+    set('minRatio', '10'); dom.window.showCompare();
+    assert.ok(doc.getElementById('compareContent').textContent.includes('更省钱'), '已还清时应正常比较');
+    set('minRatio', '1');
+    assert.ok(!doc.querySelector('input[id*="late" i]'), '按时最低还款不应提供无效违约金输入');
+    assert.ok(doc.querySelector('.formula-box').textContent.includes('按月单利'));
+    for (const [id, type, message] of [['dailyRate', 'minimum', '日利率不能为负'], ['installmentFee', 'installment', '分期手续费率不能为负']]) {
+      set(id, '-1'); set('repayType', type); dom.window.calc();
+      assert.ok(doc.getElementById('resultBox').textContent.includes(message), '计算入口应拒绝负费率');
+      dom.window.showCompare(); text = doc.getElementById('compareContent').textContent;
+      assert.ok(text.includes(message), '对比入口应拒绝负费率');
+      assert.ok(!text.includes('结论：'), '错误态不得保留旧结论');
+      set(id, id === 'dailyRate' ? '0.05' : '0.6');
+    }
+    dom.window.close();
+  }
+}
+function checkIbanReview() {
+  {
+    const { page, dom, scripts } = loadFinancePage('iban-validator');
+    assert.ok(dom.window.document.title.includes('核对国家长度及模 97 校验位'), '标题应明确国家长度及模 97 校验');
+    assert.strictEqual(dom.window.document.querySelector('meta[property="og:title"]').content, dom.window.document.title);
+    assert.strictEqual(dom.window.document.querySelector('meta[name="twitter:title"]').content, dom.window.document.title);
+    dom.window.eval(scripts.find(s => s.includes('function mod97Check(')));
+    const doc = dom.window.document;
+    for (const [input, expected] of [['GB82WEST12345698765432', '国家、长度与 mod-97 校验均通过'], ['SA0380000000608010167519', '国家、长度与 mod-97 校验均通过'], ['GB82WEST12345698765433', 'mod-97 校验未通过'], ['GB82WEST1234569876543', '长度与国家规则不符'], ['ZZ121234567890', '仅数学校验通过'], ['GB82<svg>', '格式错误']]) {
+      doc.getElementById('ibanInput').value = input; dom.window.validate();
+      assert.ok(doc.getElementById('result').textContent.includes(expected), input);
+    }
+    let toast = '';
+    dom.window.ToolBox = { showToast: message => { toast = message; } };
+    dom.window.loadExample('GB');
+    assert.strictEqual(doc.getElementById('ibanInput').value, 'GB82WEST12345698765432');
+    dom.window.loadExample('AT');
+    assert.ok(toast.includes('暂无示例'));
+    dom.window.close();
+  }
+}
+
 let failed = false;
-for (const [name, test] of [['标签生成空态', checkLabelEmptyState], ['Code128 字符范围', checkCode128Descriptions], ['仓位缺填历史', checkPositionSizingMissingInput], ['行业利润率', checkIndustryProfitMargins], ['字数统计说明', checkWordCounterDescription], ['银行卡输入', checkCardInput], ['名片二维码超限', checkVcardOverflow], ['基金定投时点', checkFundTiming], ['退休现金流', checkRetirementCashFlow], ['颜色历史', checkColorHistory], ['工序排期', checkSchedule], ['SIN 输入', checkSinValidation], ['邮编输入', checkPostalValidation], ['CURP 输入', () => checkIdValidation('curp', 'CURP_BASE', 'BOXW310820HMNERN16', 'BOXW310820HMNERN160')], ['DNI 输入', () => checkIdValidation('dni', 'DNI_LETTERS', '12345678Z', '12345678A')], ['投资回报历史', checkInvestmentHistory], ['期权盈亏', checkOptionCalculator]]) {
+for (const [name, test] of [['货币符号复核', checkCurrencyReview], ['信用卡利息复核', checkCreditInterestReview], ['IBAN 复核', checkIbanReview], ['标签生成空态', checkLabelEmptyState], ['Code128 字符范围', checkCode128Descriptions], ['仓位缺填历史', checkPositionSizingMissingInput], ['行业利润率', checkIndustryProfitMargins], ['字数统计说明', checkWordCounterDescription], ['银行卡输入', checkCardInput], ['名片二维码超限', checkVcardOverflow], ['基金定投时点', checkFundTiming], ['退休现金流', checkRetirementCashFlow], ['颜色历史', checkColorHistory], ['工序排期', checkSchedule], ['SIN 输入', checkSinValidation], ['邮编输入', checkPostalValidation], ['CURP 输入', () => checkIdValidation('curp', 'CURP_BASE', 'BOXW310820HMNERN16', 'BOXW310820HMNERN160')], ['DNI 输入', () => checkIdValidation('dni', 'DNI_LETTERS', '12345678Z', '12345678A')], ['投资回报历史', checkInvestmentHistory], ['期权盈亏', checkOptionCalculator]]) {
   try { test(); console.log('PASS', name); } catch (err) { failed = true; console.error('FAIL', name, err.message); }
 }
 if (failed) process.exitCode = 1;

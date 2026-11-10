@@ -527,6 +527,12 @@ function showCompare() {
     document.getElementById('compareCard').style.display = 'none';
     return;
   }
+  if (dailyRate < 0 || instFee < 0) {
+    var message = dailyRate < 0 ? '日利率不能为负，请填写 ≥0 的数值' : '分期手续费率不能为负，请填写 ≥0 的数值';
+    document.getElementById('compareContent').innerHTML = '<p style="color:var(--danger);">' + message + '</p>';
+    document.getElementById('compareCard').style.display = 'block';
+    return;
+  }
   if (!(minRatioRaw >= 1 && minRatioRaw <= 100)) {
     document.getElementById('minRatio').classList.add('input-error');
     document.getElementById('compareContent').innerHTML = '<p style="color:var(--danger);">最低还款比例须为 1%–100% 才能进行对比</p>';
@@ -538,8 +544,7 @@ function showCompare() {
   var minTotalInterest = sim.totalInterest;
   var minMonths = sim.months;
   var minCleared = sim.cleared;
-  var minRemaining = minCleared ? 0 : sim.balance;
-  var minTotal = bill + minTotalInterest + minRemaining;
+  var minTotal = bill + minTotalInterest;
 
   var instTotalFee = bill * instFee * instMonths;
   var instTotal = bill + instTotalFee;
@@ -557,13 +562,13 @@ function showCompare() {
   html += '<tr><td>还清时间</td><td>' + (minCleared ? minMonths + ' 个月' : '120 期内未还清') + '</td><td>' + instMonths + ' 个月</td></tr>';
   html += '</tbody></table>';
   if (!minCleared) {
-    html += '<p style="color:var(--danger);">⚠️ 最低还款 120 期内未还清，剩余本金 ' + fmt(sim.balance) + ' 元，对比结论仅供参考</p>';
+    html += '<p style="color:var(--danger);">⚠️ 最低还款 120 期内未还清，剩余本金 ' + fmt(sim.balance) + ' 元，后续利息未知，无法比较最终总支出。</p>';
+  } else {
+    html += '<div style="margin-top:16px;padding:12px;background:var(--result-bg);border-radius:8px;">';
+    html += '<p><strong>结论：</strong><span style="color:var(--success);font-size:16px;">' + better + '更省钱</span></p>';
+    html += '<p>可节省约 <strong style="color:var(--primary);">' + fmt(savings) + '</strong> 元</p>';
+    html += '</div>';
   }
-
-  html += '<div style="margin-top:16px;padding:12px;background:var(--result-bg);border-radius:8px;">';
-  html += '<p><strong>结论：</strong><span style="color:var(--success);font-size:16px;">' + better + '更省钱</span></p>';
-  html += '<p>可节省约 <strong style="color:var(--primary);">' + fmt(savings) + '</strong> 元</p>';
-  html += '</div>';
 
   const __g3=html;document.getElementById('compareContent').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
   document.getElementById('compareCard').style.display = 'block';
