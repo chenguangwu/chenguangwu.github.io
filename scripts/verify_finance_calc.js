@@ -3573,9 +3573,9 @@ const CASES = [
       "input": "abc123测试"
     },
     "expect": [
-      "abc123测试\n输入： ABC123测试 长度： 8 字符（8 或 11） ❌ 前 4 位必须为字母（银行代码）"
+      "abc123测试\n输入： ABC123测试 长度： 8 字符（8 或 11） ❌ 仅允许字母、数字及空格/连字符分隔"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： ABC123测试 长度： 8 字符（8 或 11） ❌…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "第119批 F-N146 契约同步：注入 abc123测试 时新版先做字符白名单校验，明确拒绝非法字符（旧版误报「前 4 位必须为字母」）；旧源码不含「仅允许字母、数字及空格/连字符分隔」⇒ 强判别、零逃生。默认态不含该串。"
   },
   {
     "slug": "finance/simple-interest",
@@ -4540,6 +4540,48 @@ const CASES = [
     clicks: ["analyze();var g=String(document.getElementById('statsGrid').innerHTML).replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ');document.getElementById('__tbProbe').textContent='FN176 '+document.getElementById('input').value+' '+((g.indexOf('3 总字符数')>=0&&g.indexOf('3 不含空格')>=0)?'OK':'BAD');"],
     expect: ["FN176 A😀B OK"],
     ref: "F-N176 代码点计数：A😀B 含 emoji，码点数=3（A/😀/B），旧 text.length 按 UTF-16 码元=4 ⇒「4 总字符数」不命中。引据表承诺「代码点」、示例亦同步。探针读 statsGrid 两张卡片且绑定输入锚 ⇒ 默认态零逃生。",
+  },
+
+  // ---------------- 第 119 批：F-N160/161/162（word-wrap）、F-N146、F-N152 判别锁 ----------------
+  {
+    slug: "finance/swift-bic-validator",
+    inputs: { input: "DEUT DE FF 500" },
+    expect: ["已忽略 3 个空格/连字符分隔符"],
+    ref: "F-N146 4-2-2-3 分组书写：DEUT DE FF 500 含 3 个空格，归一化后按 DEUTDEFF500 校验并注明忽略数量；旧源码只 trim+uppercase ⇒ 长度 14 报错、不含该串 ⇒ 不命中。默认态不含。",
+  },
+  {
+    slug: "finance/swift-bic-validator",
+    inputs: { input: "<img src=x onerror=alert(1)>" },
+    clicks: ["validate();var h=document.getElementById('output').innerHTML;document.getElementById('__tbProbe').textContent='SWXSS '+(h.indexOf('<img')<0&&h.indexOf('&lt;IMG')>=0&&h.indexOf('仅允许字母、数字')>=0?'OK':'BAD');"],
+    expect: ["SWXSS OK"],
+    ref: "F-N146 顺带修回显 XSS：非法输入须转义后回显并明确拒绝，不能把 <img> 原样插入 innerHTML；旧源码无转义、无白名单分支 ⇒ 不命中。探针绑定被测输入。",
+  },
+  {
+    slug: "finance/aadhaar-validator",
+    inputs: { input: "00-0000-0000-00" },
+    expect: ["格式化： 0000 0000 0000"],
+    ref: "F-N152 首位 0/1 分支须与常规分支一样给出「输入/格式化/长度」上下文；旧源码该分支只输出一句错误后早退，不含格式化行 ⇒ 不命中。默认态不含。",
+  },
+  {
+    slug: "finance/word-wrap",
+    inputs: { width: "8" },
+    clicks: ["document.getElementById('countBytes').checked=true;document.getElementById('__tbProbe').textContent='WWBYTES '+(visualLen('中文测试')===12&&visualLen('😀')===4?'OK':'BAD');"],
+    expect: ["WWBYTES OK"],
+    ref: "F-N161 按真实 UTF-8 字节计：中文 3 字节 ⇒「中文测试」=12、emoji=4；旧实现把 CJK 记 2 字节、emoji 记 1 ⇒ 8/1，不命中。与 deep-dive/FAQ「中文 UTF-8 占 3 字节」口径一致。",
+  },
+  {
+    slug: "finance/word-wrap",
+    inputs: { width: "20", mode: "chinese" },
+    clicks: ["document.getElementById('input').value='这是一个没有任何标点的超长连续中文句子用于测试按中文断句模式是否会在宽度不足时继续强行折行';wrap();var ls=document.getElementById('result').textContent.split('\\n');document.getElementById('__tbProbe').textContent='WWZH '+(ls.length>=3&&ls.every(function(l){return l.length<=20;})?'OK':'BAD');"],
+    expect: ["WWZH OK"],
+    ref: "F-N162 无标点超长中文句必须退回逐段强折：宽 20、45 字长句应至少 3 行且每行 ≤20；旧 chinese 分支整段压成一行 ⇒ 不命中。探针绑定被测输入。",
+  },
+  {
+    slug: "finance/word-wrap",
+    inputs: { width: "20", mode: "word" },
+    clicks: ["document.getElementById('hanging').checked=true;document.getElementById('keepExisting').checked=false;document.getElementById('input').value='This is a fairly long English clause that must wrap onto several lines for the hanging indent';wrap();var ls=document.getElementById('result').textContent.split('\\n');document.getElementById('__tbProbe').textContent='WWHANG '+(ls.length>=3&&ls.slice(1).every(function(l){return l.indexOf('  ')===0;})?'OK':'BAD');"],
+    expect: ["WWHANG OK"],
+    ref: "F-N160 首行/悬挂缩进四模式统一生效：word 模式勾悬挂缩进后，续行须以 2 空格开头且计入行宽；旧实现只有 soft 分支读 indent/hanging ⇒ 续行无前缀、不命中。",
   },
 
 ];

@@ -106,7 +106,7 @@
 <script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "自动换行是做什么的？", "acceptedAnswer": {"@type": "Answer", "text": "金融文本自动换行工具，按指定宽度对段落折行，适合报表备注与文档排版对齐，纯前端即时处理。"}}, {"@type": "Question", "name": "如何使用自动换行？", "acceptedAnswer": {"@type": "Answer", "text": "在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。"}}, {"@type": "Question", "name": "计算结果准确吗？", "acceptedAnswer": {"@type": "Answer", "text": "本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。"}}, {"@type": "Question", "name": "自动换行适合哪些场景？", "acceptedAnswer": {"@type": "Answer", "text": "个人或家庭的理财规划、贷款与投资收益测算、日常收支与税务估算。"}}, {"@type": "Question", "name": "使用本工具需要联网或上传数据吗？", "acceptedAnswer": {"@type": "Answer", "text": "不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。"}}]}
+{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "自动换行是做什么的？", "acceptedAnswer": {"@type": "Answer", "text": "金融文本自动换行工具，按指定宽度对段落折行，适合报表备注与文档排版对齐，纯前端即时处理。"}}, {"@type": "Question", "name": "如何使用自动换行？", "acceptedAnswer": {"@type": "Answer", "text": "粘贴或输入文本，设定每行宽度与换行模式，点击「换行」按钮即可在结果区看到折行结果，支持复制结果与导出结果明细 CSV。"}}, {"@type": "Question", "name": "计算结果准确吗？", "acceptedAnswer": {"@type": "Answer", "text": "本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。"}}, {"@type": "Question", "name": "自动换行适合哪些场景？", "acceptedAnswer": {"@type": "Answer", "text": "报表备注与合同条款按固定宽度排版、固定宽度文本字段对齐、中英文混排窄栏折行。"}}, {"@type": "Question", "name": "使用本工具需要联网或上传数据吗？", "acceptedAnswer": {"@type": "Answer", "text": "不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。"}}]}
 </script>
 <!-- TOOLBOX-TTZZ -->
 <script>
@@ -170,7 +170,7 @@ s.parentNode.insertBefore(el, s);
       <label><input type="checkbox" id="keepExisting" checked> 保留原有换行</label>
       <label><input type="checkbox" id="indent"> 首行缩进 2 字符</label>
       <label><input type="checkbox" id="hanging"> 悬挂缩进</label>
-      <label><input type="checkbox" id="countBytes"> 按字节（中文 2 字节）</label>
+      <label><input type="checkbox" id="countBytes"> 按字节（UTF-8，中文 3 字节）</label>
     </div>
     <div class="toolbar">
       <div id="word_wrapPresets"></div><button type="button" class="btn primary" onclick="wrap()">换行</button><button class="btn" type="button" onclick="__word_wrapExport()">导出明细 CSV</button>
@@ -183,7 +183,6 @@ s.parentNode.insertBefore(el, s);
 <div class="tbk-tabbar" role="tablist">
   <button type="button" class="tbk-tab" data-pane="res">结果</button>
   <button type="button" class="tbk-tab" data-pane="tbl">数据表</button>
-  <button type="button" class="tbk-tab" data-pane="pre">预设</button>
   <button type="button" class="tbk-tab" data-pane="his">历史</button>
 </div>
 <div class="card">
@@ -280,11 +279,21 @@ function toggleToolTheme(){
   }
 })();
 
+// F-N161：统一按真实 UTF-8 字节计（中文 3 / emoji 与 CJK 扩展 B 4），与 deep-dive / FAQ 口径一致。
+// 旧实现只把 CJK 基本区记 2 字节，emoji 与扩展区按 1，且与文案「UTF-8 占 3 字节」自相矛盾。
+function utf8Bytes(ch){
+  const cp = ch.codePointAt(0);
+  if(cp <= 0x7F) return 1;
+  if(cp <= 0x7FF) return 2;
+  if(cp <= 0xFFFF) return 3;
+  return 4;
+}
+
 function visualLen(s){
   const countBytes = document.getElementById('countBytes').checked;
   if(!countBytes) return s.length;
   let n = 0;
-  for(const ch of s) n += /[\u4e00-\u9fff\uff00-\uffef]/.test(ch) ? 2 : 1;
+  for(const ch of s) n += utf8Bytes(ch);
   return n;
 }
 
@@ -292,12 +301,17 @@ function takeByLen(s, targetLen){
   const countBytes = document.getElementById('countBytes').checked;
   if(!countBytes) return {text: s.substr(0, targetLen), rest: s.substr(targetLen)};
   let n = 0, i = 0;
-  for(; i < s.length; i++){
-    const b = /[\u4e00-\u9fff\uff00-\uffef]/.test(s[i]) ? 2 : 1;
+  // 按码点迭代，避免把 emoji / 增补平面字符从中间劈成半个代理项。
+  for(const ch of s){
+    const b = utf8Bytes(ch);
     if(n + b > targetLen) break;
     n += b;
+    i += ch.length;
   }
-  if(i === 0 && s.length) i = 1;
+  if(i === 0 && s.length){
+    const first = Array.from(s)[0];
+    i = first.length;
+  }
   return {text: s.substr(0, i), rest: s.substr(i)};
 }
 
@@ -316,53 +330,62 @@ function wrap(){
   const out = [];
 
   paragraphs.forEach(para => {
-    if(mode === 'soft'){
+    // F-N160：首行/悬挂缩进在四种模式统一生效，且计入每行可用宽度（旧版只有 soft 读 indent/hanging）。
+    const prefixFor = (isFirst) => (isFirst && indent) ? '  ' : (hanging && !isFirst ? '  ' : '');
+    let first = true;
+    const pushLine = (lineText) => {
+      out.push(prefixFor(first) + lineText);
+      first = false;
+    };
+
+    if(mode === 'soft' || mode === 'hard'){
       let rest = para;
-      let first = true;
-      while(visualLen(rest) > width){
-        const prefix = (first && indent) ? '  ' : (hanging && !first ? '  ' : '');
-        const avail = Math.max(1, width - visualLen(prefix));
+      while(visualLen(prefixFor(first)) + visualLen(rest) > width){
+        const avail = Math.max(1, width - visualLen(prefixFor(first)));
         const {text: chunk, rest: r} = takeByLen(rest, avail);
-        out.push(prefix + chunk);
-        rest = r;
-        first = false;
-      }
-      const prefix = (first && indent) ? '  ' : (hanging && !first ? '  ' : '');
-      if(rest) out.push(prefix + rest);
-    }else if(mode === 'hard'){
-      let rest = para;
-      while(visualLen(rest) > width){
-        const {text: chunk, rest: r} = takeByLen(rest, width);
-        out.push(chunk);
+        if(!chunk) break;
+        pushLine(chunk);
         rest = r;
       }
-      if(rest) out.push(rest);
-    }else if(mode === 'word'){
-      // 按单词
-      const tokens = para.match(/\S+|\s+/g) || [];
+      if(rest) pushLine(rest);
+    }else{
+      // word / chinese 共用「按 token 装行」，且超长 token 逐段强折（F-N162）。
+      const tokens = (mode === 'word')
+        ? (para.match(/\S+|\s+/g) || [])
+        : (para.match(/[^，。！？；：、,.!?;:]+|[\u4e00-\u9fff]+|[a-zA-Z]+|\d+|./g) || []);
       let line = '';
+      const flush = () => {
+        if(line){
+          pushLine(mode === 'word' ? line.trimEnd() : line);
+          line = '';
+        }
+      };
+      const hardSplit = (tok) => {
+        let rest = tok;
+        while(visualLen(rest) > 0){
+          const avail = Math.max(1, width - visualLen(prefixFor(first)));
+          const {text: chunk, rest: r} = takeByLen(rest, avail);
+          if(!chunk) break;
+          if(!r){ line = chunk; break; }
+          pushLine(chunk);
+          rest = r;
+        }
+      };
       for(const tok of tokens){
-        if(visualLen(line + tok) <= width){
+        const avail = Math.max(1, width - visualLen(prefixFor(first)));
+        if(visualLen(line + tok) <= avail){
           line += tok;
         }else{
-          if(line) out.push(line.trimEnd());
-          line = tok.replace(/^\s+/, '');
+          flush();
+          const cleanTok = (mode === 'word') ? tok.replace(/^\s+/, '') : tok;
+          if(visualLen(cleanTok) > Math.max(1, width - visualLen(prefixFor(first)))){
+            hardSplit(cleanTok);
+          }else{
+            line = cleanTok;
+          }
         }
       }
-      if(line) out.push(line);
-    }else if(mode === 'chinese'){
-      // 中文断句：标点处优先断
-      const tokens = para.match(/[^，。！？；：、,.!?;:]+|[\u4e00-\u9fff]+|[a-zA-Z]+|\d+|./g) || [];
-      let line = '';
-      for(const tok of tokens){
-        if(visualLen(line + tok) <= width){
-          line += tok;
-        }else{
-          if(line) out.push(line);
-          line = tok;
-        }
-      }
-      if(line) out.push(line);
+      flush();
     }
   });
   result.textContent = out.join('\n');
@@ -515,16 +538,22 @@ function __word_wrapExtras(force){
 function __word_wrapExport(){
     if (typeof TBKit === 'undefined') return;
     __word_wrapExtras(true);
+    // F-N163：旧版导出的是 TBKit 历史表（首次使用为空），根本不含换行结果。
+    // 改为导出当前折行结果的逐行明细，列含字符数与真实 UTF-8 字节数。
     try{
-        var box=document.querySelector('#word_wrapTable');
-        if(!box||!box.querySelector('tr')){
-            var snap=__word_wrapSnap(); var keys=Object.keys(snap);
-            if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
-            __word_wrapRender(keys,en?'Result':'结果',en);
+        var r=document.getElementById('result');
+        var txt=String((r&&r.textContent)||'');
+        var en=(TBKit.util&&TBKit.util.isEn)?TBKit.util.isEn():false;
+        if(!txt||/^(请输入文本|Please enter text)/.test(txt.trim())) return;
+        var lines=txt.split('\n');
+        var rows=[[en?'Line':'行号',en?'Wrapped text':'折行后文本',en?'Characters':'字符数',en?'UTF-8 bytes':'UTF-8 字节数']];
+        for(var i=0;i<lines.length;i++){
+            var bytes=0;
+            for(var ch of lines[i]) bytes+=utf8Bytes(ch);
+            rows.push([String(i+1),lines[i],String(lines[i].length),String(bytes)]);
         }
+        TBKit.export.csv('word-wrap-result.csv',rows);
     }catch(e){}
-    try { TBKit.util.exportTable('#word_wrapTable','word-wrap.csv'); } catch(e){}
 }
 function __word_wrapPresets(){
     if (typeof TBKit === 'undefined') return;
@@ -599,12 +628,12 @@ else document.addEventListener('DOMContentLoaded', __word_wrapBoot);
     </div>
 </div>
 <!-- /SEO 介绍区块 -->
-<section class="opt-guide"><h2>如何使用自动换行</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>输入文本</li><li>每行字符数</li><li>换行模式</li><li>保留原有换行</li><li>首行缩进 2 字符</li><li>悬挂缩进</li><li>按字节（中文 2 字节）</li></ul><h2>适用场景</h2><p>个人或家庭的理财规划、贷款与投资收益测算、日常收支与税务估算。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>自动换行是做什么的？</dt><dd>金融文本自动换行工具，按指定宽度对段落折行，适合报表备注与文档排版对齐，纯前端即时处理。</dd><dt>如何使用自动换行？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>自动换行适合哪些场景？</dt><dd>个人或家庭的理财规划、贷款与投资收益测算、日常收支与税务估算。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>
+<section class="opt-guide"><h2>如何使用自动换行</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「换行」按钮运行，结果区即时显示折行后的文本。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>输入文本</li><li>每行字符数</li><li>换行模式</li><li>保留原有换行</li><li>首行缩进 2 字符</li><li>悬挂缩进</li><li>按字节（UTF-8，中文 3 字节）</li></ul><h2>适用场景</h2><p>报表备注与合同条款按固定宽度排版、固定宽度文本字段对齐、中英文混排窄栏折行。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>自动换行是做什么的？</dt><dd>金融文本自动换行工具，按指定宽度对段落折行，适合报表备注与文档排版对齐，纯前端即时处理。</dd><dt>如何使用自动换行？</dt><dd>粘贴或输入文本，设定每行宽度与换行模式，点击「换行」按钮即可在结果区看到折行结果，支持复制结果与导出结果明细 CSV。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>自动换行适合哪些场景？</dt><dd>报表备注与合同条款按固定宽度排版、固定宽度文本字段对齐、中英文混排窄栏折行。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>
 
 
 <script>/*TBKIT-INJECT-START*/
 (function(){
-  var P={"res": ["result", "word_wrapChart"], "tbl": ["word_wrapTable"], "pre": ["word_wrapPresets"], "his": ["word_wrapHist"]};
+  var P={"res": ["result", "word_wrapChart"], "tbl": ["word_wrapTable"], "his": ["word_wrapHist"]};
   var L={res:['结果','Result'],chart:['图表','Chart'],tbl:['数据表','Data'],pre:['预设','Presets'],his:['历史','History']};
   function tabify(){
     var bar=document.querySelector('.tbk-tabbar');
