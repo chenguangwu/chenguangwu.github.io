@@ -403,7 +403,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __64_gua_last=0,__64_gua_skip=false;
+var __64_gua_skip=false;
 function __64_guaSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -417,7 +417,7 @@ function __64_guaSnap(){
     return out;
 }
 function __64_guaResText(){
-    var r=document.getElementById('guaList');
+    var r=document.getElementById('guaDetail');
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
@@ -446,9 +446,9 @@ function __64_guaRender(keys,rk,en){
             var r=it.d[rk];row.push(r==null?'':r);
             return row;
         });
-        TBKit.matrix.table('#64_guaTable',{head:head,rows:rows});
-        TBKit.util.diffBox('#64_guaDiff');
-        TBKit.history.mount('#64_guaHist',function(rec){
+        TBKit.matrix.table('[id="64_guaTable"]',{head:head,rows:rows});
+        TBKit.util.diffBox('[id="64_guaDiff"]');
+        TBKit.history.mount('[id="64_guaHist"]',function(rec){
             __64_gua_skip=true;
             try{
                 for(var k in rec){
@@ -460,6 +460,7 @@ function __64_guaRender(keys,rk,en){
                     else{e.value=rec[k];}
                 }
                 filterList();
+                if(rec.__guaNum) selectGua(Number(rec.__guaNum));
             }catch(e2){}
             __64_gua_skip=false;
         });
@@ -469,23 +470,22 @@ function __64_guaRender(keys,rk,en){
             if(isFinite(v)){nums.push(v);labels.push(__64_guaTime(arr[j].t));}
         }
         if(nums.length>=2){
-            TBKit.chart.line('#64_guaChart',{labels:labels,series:[{name:en?'Validity trend':'有效性趋势',data:nums}]});
+            TBKit.chart.line('[id="64_guaChart"]',{labels:labels,series:[{name:en?'Validity trend':'有效性趋势',data:nums}]});
         }
     }catch(e3){}
 }
 function __64_guaExtras(){
     if (typeof TBKit === 'undefined') return;
     if (__64_gua_skip) return;
+    if(!selectedGua) return;
     var snap=__64_guaSnap();
+    snap.__guaNum=selectedGua.num;
     var keys=Object.keys(snap);
-    if(!keys.length) return;
     if(keys.length>12) keys=keys.slice(0,12);
     var res=__64_guaResText();
     if(!res) return;
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
-    var now=Date.now();
-    if(now-__64_gua_last<1000) return;
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -495,7 +495,6 @@ function __64_guaExtras(){
         }
         if(same&&String(last[rk])===String(res)) return;
     }
-    __64_gua_last=now;
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
@@ -520,10 +519,6 @@ function __64_guaExport(){
 }
 function __64_guaPresets(){
     if (typeof TBKit === 'undefined') return;
-}
-var __64_gua_f0=(typeof filterList==='function')?filterList:null;
-if(__64_gua_f0){
-    filterList=function(){ var __r=__64_gua_f0.apply(null,arguments); try{ __64_guaExtras(); }catch(e){} return __r; };
 }
 // F-N189：选卦是用户真实交互入口，原记录器只包装 filterList ⇒ 选不同卦不增加历史。
 var __64_gua_s0=(typeof selectGua==='function')?selectGua:null;

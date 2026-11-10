@@ -4,9 +4,9 @@ const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
     "slug": "yi/64-gua",
-    "clicks": ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'search',type:'text',value:'乾'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};var __r=document.getElementById('guaList');__r.textContent='第1卦 乾卦 乾为天';__64_gua_last=0;__64_gua_s0=function(){};selectGua(1);document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='GUASEL n='+__cap.length;"],
+    "clicks": ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'search',type:'text',value:'乾'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};var __r=document.getElementById('guaDetail');__r.textContent='第1卦 乾卦 乾为天';selectedGua=GUA[0];__64_gua_s0=function(){};selectGua(1);document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='GUASEL n='+__cap.length;"],
     "expect": ["GUASEL n=1"],
-    "ref": "复核失败重做·选卦不入历史：搜索『乾』只记录全量列表前 80 字，随后选不同卦未增加历史；根因是真实交互入口 selectGua() 未被包装（只包装 filterList）。修复后同构包装 selectGua()。用例把原函数桩替换为空函数、预设 #guaList 文本供 ResText 读取，走真实包装：修复前 n=0、修复后 n=1。默认态无探针串 ⇒ 零逃生。"
+    "ref": "复核失败重做·选卦不入历史：搜索『乾』只记录全量列表前 80 字，随后选不同卦未增加历史；根因是真实交互入口 selectGua() 未被包装（只包装 filterList）。修复后同构包装 selectGua()。用例把原函数桩替换为空函数，预设选中卦和卦象详情，验证包装记录。默认态无探针串 ⇒ 零逃生。"
   },
 {
     "slug": "yi/64-gua",

@@ -730,8 +730,127 @@ function checkReverseHistoryReview() {
   assert.strictEqual(alerts, 1, '空态不可复制提示');
   dom.window.close();
 }
+function checkRandomPickerHistory() {
+  const page = fs.readFileSync(path.join(root, 'tools/fun/random-picker.html'), 'utf8');
+  const dom = new JSDOM(page.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ''), { url: 'https://example.test/', runScripts: 'dangerously' });
+  const scripts = [...page.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]);
+  const doc = dom.window.document;
+  let tick, exports = 0;
+  dom.window.setInterval = fn => { tick = fn; return 1; };
+  dom.window.clearInterval = () => {};
+  dom.window.eval(fs.readFileSync(path.join(root, 'js/tool-kit.js'), 'utf8'));
+  dom.window.eval(scripts.find(s => s.includes('function start()')));
+  dom.window.eval(scripts.find(s => s.includes('function __random_pickerExtras()')));
+  dom.window.TBKit.history.clear();
+  dom.window.TBKit.util.exportTable = () => { exports++; };
+  doc.getElementById('seed').value = 'seed';
+  doc.getElementById('unique').checked = false;
+  for (const input of ['等待', '抽取中', '🎲', '错误']) {
+    doc.getElementById('items').value = input;
+    const count = dom.window.TBKit.history.list().length;
+    dom.window.start();
+    assert.strictEqual(dom.window.TBKit.history.list().length, count, '动画占位不能入历史');
+    for (let i = 0; i < 15; i++) tick();
+    const last = dom.window.TBKit.history.last();
+    assert.strictEqual(last['结果'], input);
+    assert.strictEqual(last.__tbScore, 1, '候选原文不应被误判');
+    assert.strictEqual(dom.window.TBKit.history.list().length, count + 1);
+    dom.window.__random_pickerExport();
+    assert.ok(doc.getElementById('random_pickerTable').textContent.includes(input));
+  }
+  assert.strictEqual(exports, 4);
+  dom.window.close();
+}
+function checkGuaRealHistory() {
+  const page = fs.readFileSync(path.join(root, 'tools/yi/64-gua.html'), 'utf8');
+  const dom = new JSDOM(page.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ''), { url: 'https://example.test/', runScripts: 'dangerously' });
+  const scripts = [...page.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]);
+  dom.window.ToolBox = { initToolTheme() {} };
+  dom.window.eval(fs.readFileSync(path.join(root, 'js/tool-kit.js'), 'utf8'));
+  for (const script of [scripts.find(s => s.includes('function selectGua(')), scripts.find(s => s.includes('function __64_guaExtras('))]) {
+    const el = dom.window.document.createElement('script'); el.textContent = script; dom.window.document.body.appendChild(el);
+  }
+  const kit = dom.window.TBKit, doc = dom.window.document;
+  kit.history.clear();
+  doc.getElementById('searchInput').value = '';
+  dom.window.selectGua(1);
+  assert.strictEqual(kit.history.list().length, 1, '无搜索词也应记录选卦');
+  assert.ok(kit.history.last()['结果'].includes('乾卦'));
+  assert.ok(doc.getElementById('64_guaTable').querySelector('tr'), '选卦应产生可导出表');
+  dom.window.selectGua(2);
+  assert.strictEqual(kit.history.list().length, 2, '切换卦象必须新增记录');
+  assert.ok(kit.history.last()['结果'].includes('坤卦'));
+  assert.ok(doc.getElementById('64_guaTable').textContent.includes('坤卦'));
+  doc.getElementById('searchInput').value = '乾';
+  dom.window.filterList();
+  assert.strictEqual(kit.history.list().length, 2, '搜索过滤不应重复记录旧卦象');
+  let exported = '';
+  kit.util.exportTable = selector => { exported = doc.querySelector(selector).textContent; };
+  dom.window.__64_guaExport();
+  assert.ok(exported.includes('坤卦'), '实际导出应读取卦象历史表');
+  doc.querySelectorAll('[id="64_guaHist"] .tbk-history-item')[1].click();
+  assert.ok(doc.getElementById('guaDetail').textContent.includes('乾卦'), '点击历史应恢复所选卦');
+  assert.strictEqual(kit.history.list().length, 2, '恢复历史不得产生新记录');
+  dom.window.close();
+}
+function checkPlayfairRealHistory() {
+  const page = fs.readFileSync(path.join(root, 'tools/it/playfair-cipher.html'), 'utf8');
+  const dom = new JSDOM(page.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ''), { url: 'https://example.test/', runScripts: 'dangerously' });
+  const scripts = [...page.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]);
+  const w = dom.window, doc = w.document;
+  w.ToolBox = { initToolTheme() {}, showToast() {} };
+  w.eval(fs.readFileSync(path.join(root, 'js/tool-kit.js'), 'utf8'));
+  for (const script of [scripts.find(s => s.includes('function buildGrid(')), scripts.find(s => s.includes('function __playfair_cipherExtras('))]) {
+    const el = doc.createElement('script'); el.textContent = script; doc.body.appendChild(el);
+  }
+  w.TBKit.history.clear();
+  doc.getElementById('key').value = 'PLAYFAIR';
+  doc.getElementById('input').value = 'FAILED';
+  w.process();
+  const cipher = doc.getElementById('output').value;
+  doc.getElementById('input').value = cipher;
+  w.setMode('decrypt');
+  assert.strictEqual(doc.getElementById('output').value, 'FAILED');
+  assert.strictEqual(w.TBKit.history.last()['结果'], 'FAILED', '解密结果应及时记录');
+  assert.strictEqual(w.TBKit.history.last().__tbScore, 1);
+  let exported = '';
+  w.TBKit.util.exportTable = selector => { exported = doc.querySelector(selector).textContent; };
+  w.__playfair_cipherExport();
+  assert.ok(exported.includes('FAILED') && exported.includes('通过'), '导出应包含通过的明文');
+  w.close();
+}
+function checkBillAdvancedRealHistory() {
+  const page = fs.readFileSync(path.join(root, 'tools/life/bill-splitter.html'), 'utf8');
+  const dom = new JSDOM(page.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ''), { url: 'https://example.test/', runScripts: 'dangerously' });
+  const scripts = [...page.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]);
+  dom.window.ToolBox = { initToolTheme() {}, showToast() {} };
+  dom.window.i18nText = () => '';
+  dom.window.eval(fs.readFileSync(path.join(root, 'js/tool-kit.js'), 'utf8'));
+  for (const script of [scripts.find(s => s.includes('function calcAdvanced(')), scripts.find(s => s.includes('function __bill_splitterExtras('))]) {
+    const el = dom.window.document.createElement('script'); el.textContent = script; dom.window.document.body.appendChild(el);
+  }
+  const doc = dom.window.document, kit = dom.window.TBKit;
+  kit.history.clear();
+  doc.getElementById('total-amount').value = '1000';
+  doc.getElementById('person-count').value = '4';
+  dom.window.calcSimple();
+  assert.strictEqual(kit.history.list().length, 1, '普通模式应记录结果');
+  dom.window.renderAdvPersons();
+  const row = doc.querySelector('#items-list .item-row');
+  const inputs = row.querySelectorAll('input');
+  inputs[0].value = '火锅'; inputs[1].value = '100';
+  row.querySelectorAll('input[type=checkbox]').forEach(input => { input.checked = true; });
+  dom.window.calcAdvanced();
+  assert.ok(doc.getElementById('adv-result').textContent.includes('25.00'));
+  assert.strictEqual(kit.history.list().length, 2, '快速切换到高级分账也应新增历史');
+  assert.ok(kit.history.last()['结果'].includes('100.00'), '历史应记录高级分账结果');
+  assert.ok(doc.getElementById('bill_splitterTable').textContent.includes('100.00'), '导出表应显示高级结果');
+  const csv = dom.window.__bill_splitterCsvText();
+  assert.ok(csv.includes('25.00') && csv.includes('100.00') && !csv.includes('1000.00'), '高级分账 CSV 应导出当前结果而不是普通模式旧数据');
+  dom.window.close();
+}
 let failed = false;
-for (const [name, test] of [['文本反转历史导出', checkReverseHistoryReview], ...['meid-validator','aba-validator','routing-number-validator','voter-id-validator','tfn-validator','zip-code-validator'].map(slug => [slug, () => checkRemainingIdentifier(slug)]), ['DNI 内容', checkDniDeepReview], ['Sort PAN TIN 复核', checkSortPanTinReview],['NIE ICCID ISBN 复核', checkNieIccidIsbnReview], ['GST IMEI EIN 复核', checkGstImeiEinReview], ['BIC 查询复核', checkBicLookupReview], ['GSTIN 复核', checkGstinReview], ['CNPJ 复核', checkCnpjReview], ['货币符号复核', checkCurrencyReview], ['信用卡利息复核', checkCreditInterestReview], ['IBAN 复核', checkIbanReview], ['标签生成空态', checkLabelEmptyState], ['Code128 字符范围', checkCode128Descriptions], ['仓位缺填历史', checkPositionSizingMissingInput], ['行业利润率', checkIndustryProfitMargins], ['字数统计说明', checkWordCounterDescription], ['银行卡输入', checkCardInput], ['名片二维码超限', checkVcardOverflow], ['基金定投时点', checkFundTiming], ['退休现金流', checkRetirementCashFlow], ['颜色历史', checkColorHistory], ['工序排期', checkSchedule], ['SIN 输入', checkSinValidation], ['邮编输入', checkPostalValidation], ['CURP 输入', () => checkIdValidation('curp', 'CURP_BASE', 'BOXW310820HMNERN16', 'BOXW310820HMNERN160')], ['DNI 输入', () => checkIdValidation('dni', 'DNI_LETTERS', '12345678Z', '12345678A')], ['投资回报历史', checkInvestmentHistory], ['期权盈亏', checkOptionCalculator]]) {
+for (const [name, test] of [['Playfair 真实历史', checkPlayfairRealHistory], ['高级分账真实历史', checkBillAdvancedRealHistory], ['真实选卦历史', checkGuaRealHistory], ['随机抽取定格历史', checkRandomPickerHistory], ['文本反转历史导出', checkReverseHistoryReview], ...['meid-validator','aba-validator','routing-number-validator','voter-id-validator','tfn-validator','zip-code-validator'].map(slug => [slug, () => checkRemainingIdentifier(slug)]), ['DNI 内容', checkDniDeepReview], ['Sort PAN TIN 复核', checkSortPanTinReview],['NIE ICCID ISBN 复核', checkNieIccidIsbnReview], ['GST IMEI EIN 复核', checkGstImeiEinReview], ['BIC 查询复核', checkBicLookupReview], ['GSTIN 复核', checkGstinReview], ['CNPJ 复核', checkCnpjReview], ['货币符号复核', checkCurrencyReview], ['信用卡利息复核', checkCreditInterestReview], ['IBAN 复核', checkIbanReview], ['标签生成空态', checkLabelEmptyState], ['Code128 字符范围', checkCode128Descriptions], ['仓位缺填历史', checkPositionSizingMissingInput], ['行业利润率', checkIndustryProfitMargins], ['字数统计说明', checkWordCounterDescription], ['银行卡输入', checkCardInput], ['名片二维码超限', checkVcardOverflow], ['基金定投时点', checkFundTiming], ['退休现金流', checkRetirementCashFlow], ['颜色历史', checkColorHistory], ['工序排期', checkSchedule], ['SIN 输入', checkSinValidation], ['邮编输入', checkPostalValidation], ['CURP 输入', () => checkIdValidation('curp', 'CURP_BASE', 'BOXW310820HMNERN16', 'BOXW310820HMNERN160')], ['DNI 输入', () => checkIdValidation('dni', 'DNI_LETTERS', '12345678Z', '12345678A')], ['投资回报历史', checkInvestmentHistory], ['期权盈亏', checkOptionCalculator]]) {
   try { test(); console.log('PASS', name); } catch (err) { failed = true; console.error('FAIL', name, err.message); }
 }
 if (failed) process.exitCode = 1;

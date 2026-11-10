@@ -408,6 +408,7 @@ function equalSplit() {
 }
 
 function calcSimple() {
+  __billSplitLast = null;
   const totalEl = document.getElementById('total-amount');
   const tipEl = document.getElementById('tip-percent');
   const outEl = document.getElementById('simple-result');
@@ -537,6 +538,7 @@ function __advSplitAmounts(items, personCount, tipMultiplier, totalCents){
   return cents.map(c=>c/100);
 }
 function invalidateAdvanced() {
+  __billSplitLast = null;
   const en=typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn();
   document.getElementById('adv-result').innerHTML = en ? '<p>Inputs changed. Please recalculate the split.</p>' : '<p>输入已变更，请重新计算分摊。</p>';
 }
@@ -550,6 +552,7 @@ function renderItemPersons() {
 }
 
 function calcAdvanced() {
+  __billSplitLast = null;
   const tipEl = document.getElementById('adv-tip');
   const outEl = document.getElementById('adv-result');
   const rawTip = String(tipEl.value == null ? '' : tipEl.value).trim();
@@ -612,7 +615,12 @@ function calcAdvanced() {
   });
   html += `</div>`;
   outEl.innerHTML = html;
-  
+  __billSplitLast = {
+    totalCents: totalCents,
+    totalShare: '',
+    rule: '逐项按参与人员分摊，按最大余数配平',
+    rows: advPersons.map((name, idx) => ({ name: String(name), share: '', cents: Math.round(amounts[idx] * 100) })),
+  };
   if(total>0) addToHistory(total, advPersons.length);
 }
 
@@ -647,7 +655,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __bill_splitter_last=0,__bill_splitter_skip=false;
+var __bill_splitter_skip=false;
 function __bill_splitterSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -661,8 +669,8 @@ function __bill_splitterSnap(){
     }
     return out;
 }
-function __bill_splitterResText(){
-    var r=document.querySelector('.result-box');
+function __bill_splitterResText(resultId){
+    var r=resultId ? document.getElementById(resultId) : document.querySelector('.result-box');
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
@@ -724,19 +732,17 @@ function __bill_splitterRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __bill_splitterExtras(){
+function __bill_splitterExtras(resultId){
     if (typeof TBKit === 'undefined') return;
     if (__bill_splitter_skip) return;
     var snap=__bill_splitterSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
     if(keys.length>12) keys=keys.slice(0,12);
-    var res=__bill_splitterResText();
+    var res=__bill_splitterResText(resultId);
     if(!res) return;
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
-    var now=Date.now();
-    if(now-__bill_splitter_last<1000) return;
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -746,7 +752,6 @@ function __bill_splitterExtras(){
         }
         if(same&&String(last[rk])===String(res)) return;
     }
-    __bill_splitter_last=now;
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
@@ -797,12 +802,12 @@ function __bill_splitterPresets(){
 }
 var __bill_splitter_f0=(typeof calcSimple==='function')?calcSimple:null;
 if(__bill_splitter_f0){
-    calcSimple=function(){ var __r=__bill_splitter_f0.apply(null,arguments); try{ __bill_splitterExtras(); }catch(e){} return __r; };
+    calcSimple=function(){ var __r=__bill_splitter_f0.apply(null,arguments); try{ __bill_splitterExtras('simple-result'); }catch(e){} return __r; };
 }
 // F-N189：切到高级模式后真实入口是 calcAdvanced()，原记录器只包装 calcSimple ⇒ 高级模式计算不进历史。
 var __bill_splitter_a0=(typeof calcAdvanced==='function')?calcAdvanced:null;
 if(__bill_splitter_a0){
-    calcAdvanced=function(){ var __r=__bill_splitter_a0.apply(null,arguments); try{ __bill_splitterExtras(); }catch(e){} return __r; };
+    calcAdvanced=function(){ var __r=__bill_splitter_a0.apply(null,arguments); try{ __bill_splitterExtras('adv-result'); }catch(e){} return __r; };
 }
 function __bill_splitterBoot(){ try{ __bill_splitterPresets(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __bill_splitterBoot();
