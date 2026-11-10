@@ -3894,6 +3894,26 @@ const CASES = [
   },
   {
     slug: "it/json-to-code",
+    inputs: { input: '{"parent":{"a\\\"b":1}}' },
+    clicks: ["var t=toGo(JSON.parse(document.getElementById('input').value),'Root');document.getElementById('__tbProbe').textContent='GOTAG nestedWarning='+(t.includes('Go JSON tag 无法映射')?1:0)+' noStruct='+(t.includes('type Root struct')?0:1);"],
+    expect: ["GOTAG nestedWarning=1 noStruct=1"],
+    ref: "特殊键位于嵌套对象时必须明确拒绝生成误导性 Go struct，避免 encoding/json 静默丢失字段映射。",
+  },
+  {
+    slug: "it/json-to-code",
+    clicks: ["var bad=['a,b','a\\\\b','', '-', 'a`b', 'a'+String.fromCharCode(0)+'b'];var ok=bad.every(function(k){var o={};o[k]=1;var t=toGo(o,'Root');return t.includes('Go JSON tag 无法映射')&&!t.includes('type Root struct');});document.getElementById('__tbProbe').textContent='GOBAD all='+Number(ok);"],
+    expect: ["GOBAD all=1"],
+    ref: "Go 特殊键包含逗号、反斜杠、空键、忽略标记、反引号和控制字符时必须全数拒绝错误映射。",
+  },
+  {
+    slug: "it/json-to-code",
+    inputs: { input: '{"姓名":"Alice","normal":4}' },
+    clicks: ["var t=toGo(JSON.parse(document.getElementById('input').value),'Root');document.getElementById('__tbProbe').textContent='GOUNICODE exported='+(t.includes('F姓名 string')?1:0);"],
+    expect: ["GOUNICODE exported=1"],
+    ref: "Unicode 字母虽可用于 Go JSON tag，但汉字字段名必须以大写字母开头导出，才能参与 encoding/json 的双向转换。",
+  },
+  {
+    slug: "it/json-to-code",
     inputs: { input: '[{"zz":1}]' },
     clicks: ["setLang('go')"],
     expect: ["type Root []RootItem", "type RootItem struct { Zz int"],
@@ -8202,12 +8222,12 @@ const CASES = [
   {
     "slug": "it/json-to-code",
     "clicks": [
-      "var dq=String.fromCharCode(34),bs=String.fromCharCode(92);var o={};o['a'+dq+'b']=1;var rs=toRust(o,'Root'),cs=toCSharp(o,'Root'),go=toGo(o,'Root');var rsWant='serde(rename = '+dq+'a'+bs+dq+'b'+dq+')';var csWant='JsonProperty('+dq+'a'+bs+dq+'b'+dq+')';var goWant='json:'+dq+'a'+bs+dq+'b';var bare='json:'+dq+'a'+dq+'b';document.getElementById('__tbProbe').textContent='MAPESC rs='+(rs.indexOf(rsWant)>=0?1:0)+' cs='+(cs.indexOf(csWant)>=0?1:0)+' go='+((go.indexOf(goWant)>=0&&go.indexOf(bare)<0)?1:0);"
+      "var dq=String.fromCharCode(34),bs=String.fromCharCode(92);var o={};o['a'+dq+'b']=1;var rs=toRust(o,'Root'),cs=toCSharp(o,'Root'),go=toGo(o,'Root');var rsWant='serde(rename = '+dq+'a'+bs+dq+'b'+dq+')';var csWant='JsonProperty('+dq+'a'+bs+dq+'b'+dq+')';document.getElementById('__tbProbe').textContent='MAPESC rs='+(rs.indexOf(rsWant)>=0?1:0)+' cs='+(cs.indexOf(csWant)>=0?1:0)+' go='+((go.indexOf('Go JSON tag 无法映射')>=0&&go.indexOf('type Root struct')<0)?1:0);"
     ],
     "expect": [
       "MAPESC rs=1 cs=1 go=1"
     ],
-    "ref": "复核失败重做·IT-N384 5/7（含双引号键的三语言映射转义）：键 `a\"b` 在 Rust serde rename、C# JsonProperty、Go struct tag 里都必须转义成 `a\\\"b`，不能裸拼出 `a\"b`（目标语言编译失败）。修复前三处均为裸串；修复后 `MAPESC rs=1 cs=1 go=1` ⇒ 强判别。"
+    "ref": "含双引号键：Rust 和 C# 必须转义；Go 的 encoding/json 不支持此 tag 名，必须明确提示并禁止生成误导性的 struct。"
   },
   {
     "slug": "it/json-to-code",
@@ -8222,18 +8242,18 @@ const CASES = [
   {
     "slug": "it/json-to-code",
     "clicks": [
-      "var dq=String.fromCharCode(34),bt=String.fromCharCode(96);var o={};o['a'+bt+'b']=1;var go=toGo(o,'Root');var tag='json:'+dq+'a'+bt+'b'+dq;var want=JSON.stringify(tag);document.getElementById('__tbProbe').textContent='GOBT ok='+((go.indexOf(want)>=0&&go.indexOf(bt+'json:')<0)?1:0);"
+      "var dq=String.fromCharCode(34),bt=String.fromCharCode(96);var o={};o['a'+bt+'b']=1;var go=toGo(o,'Root');document.getElementById('__tbProbe').textContent='GOBT ok='+((go.indexOf('Go JSON tag 无法映射')>=0&&go.indexOf('type Root struct')<0)?1:0);"
     ],
     "expect": [
       "GOBT ok=1"
     ],
-    "ref": "复核失败重做·IT-N384 7/7（含反引号键的 Go tag）：键 `a`b` 会让 backtick 原始字符串字面量提前闭合，必须退回转义过的普通字符串字面量 tag。断言生成代码含 `JSON.stringify(tag)` 形态且不再出现以反引号起始的 `json:` tag。修复前 `GOBT ok=0`；修复后 `GOBT ok=1` ⇒ 强判别。"
+    "ref": "含反引号键也不属于 encoding/json 支持的 tag 名，应提示限制并停止生成 struct，避免语法合法但映射错误。"
   },
   {
     slug: "it/json-to-code",
-    clicks: ["var k='a'+String.fromCharCode(0,8,12,31)+'b',o={};o[k]=1;var rs=toRust(o,'Root'),cs=toCSharp(o,'Root'),go=toGo(o,'Root'),py=toPython(o,'Root'),bs=String.fromCharCode(92);var r='a'+bs+'u{0000}'+bs+'u{0008}'+bs+'u{000c}'+bs+'u{001f}b',s='a'+bs+'u0000'+bs+'u0008'+bs+'u000c'+bs+'u001fb';document.getElementById('__tbProbe').textContent='CTL rust='+(rs.indexOf(r)>=0?1:0)+' cs='+(cs.indexOf(s)>=0?1:0)+' go='+(go.indexOf(s)>=0?1:0)+' py='+(py.indexOf(String.fromCharCode(0))<0?1:0);"],
+    clicks: ["var k='a'+String.fromCharCode(0,8,12,31)+'b',o={};o[k]=1;var rs=toRust(o,'Root'),cs=toCSharp(o,'Root'),go=toGo(o,'Root'),py=toPython(o,'Root'),bs=String.fromCharCode(92);var r='a'+bs+'u{0000}'+bs+'u{0008}'+bs+'u{000c}'+bs+'u{001f}b',s='a'+bs+'u0000'+bs+'u0008'+bs+'u000c'+bs+'u001fb';document.getElementById('__tbProbe').textContent='CTL rust='+(rs.indexOf(r)>=0?1:0)+' cs='+(cs.indexOf(s)>=0?1:0)+' go='+(go.indexOf('Go JSON tag 无法映射')>=0&&go.indexOf('type Root struct')<0?1:0)+' py='+(py.indexOf(String.fromCharCode(0))<0?1:0);"],
     expect: ["CTL rust=1 cs=1 go=1 py=1"],
-    ref: "JSON 字符串可包含转义后的 NUL 等控制字符；目标代码必须按各语言语法转义，Python 注释不能包含 NUL。"
+    ref: "JSON 键中的控制字符需在 Rust/C# 字面量中转义、不得出现在 Python 注释中；Go 必须提示 tag 无法映射。"
   },
   {
     "slug": "it/json-schema-generator",

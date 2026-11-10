@@ -433,6 +433,20 @@ function toTS(obj, name){
   return head + (subs.length ? '\n\n' + subs.map(function(s){ return tsBody(s.obj, s.name, ro, ex); }).join('\n\n') : '');
 }
 /* ---------- Go ---------- */
+// encoding/json 的 tag 名不接受逗号、引号、反斜杠、控制字符等；单独的 - 代表忽略字段。
+function goUnsupportedKey(value){
+  if(Array.isArray(value)){
+    for(var i=0;i<value.length;i++){ var nested=goUnsupportedKey(value[i]); if(nested!==null) return nested; }
+  }else if(jcObj(value)){
+    var keys=Object.keys(value);
+    for(var j=0;j<keys.length;j++){
+      var key=keys[j];
+      if(key==='-' || !/^[\p{L}\p{Nd}!#$%&()*+\-./:;<=>?@\[\]^_{|}~ ]+$/u.test(key)) return key;
+      var nested=goUnsupportedKey(value[key]); if(nested!==null) return nested;
+    }
+  }
+  return null;
+}
 function goPrim(v){
   if(v === null) return 'interface{}';
   if(typeof v === 'string') return 'string';
@@ -448,7 +462,10 @@ function goFieldType(v, tname){
 function goBody(obj, typeName){
   var used = {}, lines = ['type ' + typeName + ' struct {'];
   Object.keys(obj).forEach(function(k){
-    var f = jcUniq(jcSafe(jcIdent(k, 'pascal'), 'go'), used);
+    var base = jcSafe(jcIdent(k, 'pascal'), 'go');
+    // Go 仅导出以大写字母开头的字段；汉字等非大写字母需加前缀。
+    if(!/^[A-Z]/.test(base)) base = 'F' + base;
+    var f = jcUniq(base, used);
     var tag = 'json:"' + jcStr(k) + '"';
     // 原键含反引号/换行时，backtick 原始字符串会被截断 ⇒ 退回转义过的普通字符串字面量
     var tagLit = /[`\r\n]/.test(String(k)) ? JSON.stringify(tag) : '`' + tag + '`';
@@ -460,6 +477,8 @@ function goBody(obj, typeName){
 function toGo(obj, name){
   var root = capitalize(jcRoot(name)), subs = [], head;
   if(obj === null) return jcNull();
+  var unsupported = goUnsupportedKey(obj);
+  if(unsupported !== null) return '// ' + jcT('Go JSON tag 无法映射键 ', 'Go JSON tags cannot map key ') + JSON.stringify(unsupported) + jcT('；请手写 MarshalJSON / UnmarshalJSON 或使用 map。', '; implement MarshalJSON / UnmarshalJSON or use a map.');
   if(Array.isArray(obj)){
     if(!obj.length) head = 'type ' + root + ' []interface{}';
     else if(jcObj(obj[0])){
