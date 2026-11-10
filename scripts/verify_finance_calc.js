@@ -2891,6 +2891,33 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"pv\":\"42\",\"downPct\":\"42\",\"rate\":\"42\",\"months\":\"42\",\"fv\":\"42\",\"fee\":\"42\",\"type\":\"principal\",\"timing\":\"begin\"}，输出区含「余本金 第1期 ¥0.45 ¥-0.42 ¥0.87 ¥24.78 第2期 ¥0…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    slug: "finance/password-generator-advanced",
+    inputs: { "len": "8", "count": "3" },
+    clicks: ["document.getElementById('up').checked=true;document.getElementById('lo').checked=true;document.getElementById('nm').checked=true;generate();var before=String(document.getElementById('output').innerHTML).length;clearAll();document.getElementById('__tbProbe').textContent='PGCLR before='+(before>0?'Y':'N')+' after='+String(document.getElementById('output').innerHTML).length+' strength='+String(document.getElementById('strengthText').textContent);"],
+    expect: ["PGCLR before=Y after=0 strength=点击生成按钮"],
+    ref: "F-N142 核实锁：旧按钮 onclick 只声明常量，生成 3 条后清空无效；现 clearAll() 同时清 #output 与强度条并把文案复位「点击生成按钮」。探针绑定 before>0 与 after=0，默认态无 PGCLR 探针串 ⇒ 零逃生。",
+  },
+  {
+    slug: "finance/password-generator-advanced",
+    inputs: { "len": "8", "count": "3" },
+    clicks: ["document.getElementById('up').checked=true;document.getElementById('lo').checked=true;document.getElementById('nm').checked=true;generate();var q=document.querySelectorAll;document.querySelectorAll=function(sel){if(sel==='#output .hist-item'){return [{textContent:'AAAAAAAA'},{textContent:'BBBBBBBB'},{textContent:'CCCCCCCC'}];}return q(sel);};var t='';navigator.clipboard={writeText:function(s){t=String(s);return Promise.resolve();}};copyResult();document.querySelectorAll=q;document.getElementById('__tbProbe').textContent='PGCOPY='+JSON.stringify(t);"],
+    expect: ["PGCOPY=\"AAAAAAAA\\nBBBBBBBB\\nCCCCCCCC\""],
+    ref: "F-N144 核实锁：stub DOM 不建模 innerHTML 子元素 textContent（#output.textContent 为空、.hist-item 节点无文本），故注入 querySelectorAll 桩返回三条固定文本，直接验证 copyResult 的逐行 join('\n') 行为：旧实现取整块 textContent ⇒ 无换行；现逐条文本换行拼接 ⇒ 三条各行。探针由 clicks 写入，默认态无 PGCOPY 串。",
+  },
+  {
+    slug: "finance/password-generator-advanced",
+    clicks: ["updateStrengthBatch(['a','Abcdefgh1!']);document.getElementById('__tbProbe').textContent='PGBAT '+String(document.getElementById('strengthText').textContent);"],
+    expect: ["PGBAT 强度：很弱 (0/5)（批量按最弱一条）"],
+    ref: "F-N145 核实锁：旧 generate 仅对首条 updateStrength，批量强度口径错误；现 updateStrengthBatch 取最弱一条并标注「批量按最弱一条」。直接注入 ['a','Abcdefgh1!'] 令最弱分=0，默认态无 PGBAT 探针串 ⇒ 零逃生。",
+  },
+  {
+    slug: "finance/password-generator-advanced",
+    inputs: { "len": "8", "count": "2" },
+    clicks: ["__password_generator_advanced_last=0;__password_generator_advancedSnap=function(){return {count:'2',len:'8'};};__password_generator_advancedResText=function(){return 'AAAAAAAA BBBBBBBB';};var rec=null;if(typeof TBKit==='undefined'){TBKit={util:{isEn:function(){return false},diffBox:function(){}},history:{record:function(r){rec=r;},last:function(){return null;},mount:function(){},list:function(){return [];}},matrix:{table:function(){}}};}else{TBKit.util=TBKit.util||{};TBKit.util.isEn=function(){return false;};TBKit.util.diffBox=function(){};TBKit.history={record:function(r){rec=r;},last:function(){return null;},mount:function(){},list:function(){return [];}};TBKit.matrix=TBKit.matrix||{};TBKit.matrix.table=function(){};}__password_generator_advancedExtras();document.getElementById('__tbProbe').textContent='PGMASK='+(rec?String(rec['结果']||''):'NOREC');"],
+    expect: ["PGMASK=已生成 2 条 · 长度 8（未保存明文）"],
+    ref: "F-N143 隐私锁：stub 的组合选择器不识别 input[id],select[id] 等，故对快照/结果文本注入桩函数，直接验证 Extras 写入历史的 rk 字段是掩码而非明文：旧实现 rec[rk]=res（明文）⇒ 不命中；现写「已生成 N 条 · 长度 L（未保存明文）」。绑定注入 len=8/count=2，默认态无 PGMASK 探针。",
+  },
+  {
     "slug": "finance/password-generator-advanced",
     "inputs": {
       "len": "42",
