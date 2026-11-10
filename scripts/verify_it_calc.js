@@ -248,6 +248,20 @@ const CASES = [
     expect: ["RSAPLAIN score=1"],
     ref: "复核失败重做·F-N189 第46批 RSA：真实解密输出明文 FAILED（__rsaLastBytes=6 且结果===输入明文）应判通过。旧 Score 只按文本关键词命中 Failed 判 0；修复后以「解密结果与输入明文一致且有字节数」为成功豁免，判 1。探针自建 TBKit 桩 + querySelectorAll 桩走真实 __rsaExtras，默认态无探针串 ⇒ 零逃生。"
   },
+  {
+    slug: "it/json-diff",
+    inputs: {},
+    clicks: ["var a=Array.from({length:448},function(_,i){return i}),b=a.slice().reverse(),d=deepDiff(a,b,'items',true);document.getElementById('__tbProbe').textContent='BIGMATCH len='+a.length+' diffs='+d.length;"],
+    expect: ["BIGMATCH len=448 diffs=0"],
+    ref: "IT-N396 复核：超过 LCS 规模保护阈值的完全逆序数组，选择按内容匹配仍应判无差异。",
+  },
+  {
+    slug: "it/json-diff",
+    inputs: {},
+    clicks: ["var a=Array.from({length:448},function(_,i){return i%7}),b=a.slice().reverse();b[0]=999;var d=deepDiff(a,b,'items',true);document.getElementById('__tbProbe').textContent='BIGCHANGE diffs='+d.length+' op='+d[0].op+' from='+d[0].from+' to='+d[0].to;"],
+    expect: ["BIGCHANGE diffs=1 op=mod from=6 to=999"],
+    ref: "IT-N396 复核：大数组含重复值时多重集匹配不能吞掉真实变化。",
+  },
   // ===== 复核失败·第一批重做·续批2（IT-N401/N403 与 文本清理器历史快照）=====
   {
     slug: "it/html-to-markdown",
