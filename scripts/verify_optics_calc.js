@@ -145,6 +145,12 @@ const CASES = [
     expect: ["LENSSIDE virt=1 real=1"],
     ref: "复核失败重做·薄透镜 3/3（焦点两侧护栏）：d_o=0.09（虚像）与 0.11（实像）都应正常出 SVG、结论分别为虚像/实像且不含 Infinity。本例修复前后都应 PASS，证明焦点分支没有误伤两侧。"
   },
+  {
+    slug: "optics/thin-lens-equation",
+    clicks: ["globalThis.TBKit={util:{isEn:function(){return false;}},matrix:{table:function(){}},history:{record:function(){throw Error('invalid input recorded');}}};var e=function(id){return document.getElementById(id);};e('f').value='';e('do').value='0.4';e('thin_lens_equationDiff').textContent='OLD COMPARISON';__thin_lens_equationExtras();document.getElementById('__tbProbe').textContent='LENSINVALID diffCleared='+(e('thin_lens_equationDiff').textContent===''?1:0);"],
+    expect: ["LENSINVALID diffCleared=1"],
+    ref: "真实页面连续计算两个有效值后清空焦距，旧结果对比条必须清除；探针模拟已有对比条并走真实 extras 的无效输入分支，不能残留旧计算结论。"
+  },
   { slug: "optics/young-fringe",
     inputs: { lam: "480", L: "2", d: "0.4" },
     expect: ["2.400"],
