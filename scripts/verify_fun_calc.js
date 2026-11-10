@@ -14,9 +14,9 @@ const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
     "slug": "fun/random-picker",
-    "clicks": ["document.getElementById('__tbProbe').textContent='RP a='+__random_pickerScore('🎲 抽取中...')+' b='+__random_pickerScore('错误');"],
-    "expect": ["RP a=0 b=1"],
-    "ref": "复核失败重做·随机抽取分类错误：原实现硬编码 __tbScore=1，动画占位『🎲 抽取中...』被记为通过；而候选原文恰好叫『错误』时又被通用关键词规则判未通过。修复后新增 __random_pickerScore：只有占位/等待态判 0，候选原文一律判 1（内容不可控，不能按关键词判定）。修复前无该函数、click 阶段即抛错；修复后 a=0 b=1。默认态无探针串 ⇒ 零逃生。"
+    "clicks": ["document.getElementById('__tbProbe').textContent='RP a='+__random_pickerScore('🎲 抽取中...')+' b='+__random_pickerScore('错误')+' c='+__random_pickerScore('请输入文本');"],
+    "expect": ["RP a=0 b=1 c=1"],
+    "ref": "复核失败重做·随机抽取分类错误：原实现硬编码 __tbScore=1，动画占位『🎲 抽取中...』被记为通过；而候选原文恰好叫『错误』时又被通用关键词规则判未通过。修复后新增 __random_pickerScore：只有占位/等待态判 0，候选原文一律判 1。FE-N54 门禁补充：『请输入文本』同样可能是用户名单里的合法选项，通用表单提示语关键词（请填写/请输入/Please enter/must be）已从失败判据移除，否则导出历史被误标『未通过』。修复后 a=0 b=1 c=1。默认态无探针串 ⇒ 零逃生。"
   },
 {
     "slug": "fun/chess-fen-viewer",

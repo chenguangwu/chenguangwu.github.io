@@ -6726,17 +6726,11 @@ const CASES = [
     "ref": "关闭「仅字母移位」时作用于可打印 ASCII 共 95 个字符：xyz 位移 +3 ⇒ x→{、y→|、z→}。修复前模数固定 26，会错误地回绕成字母；默认输入不是 xyz，注入失败即不命中。"
   },
   {
-    "slug": "it/calc-3",
-    "inputs": {
-      "hexInput": "abc123测试",
-      "colorPicker": "abc123测试",
-      "rgbInput": "abc123测试",
-      "hslInput": "abc123测试"
-    },
-    "expect": [
-      "3%, 39%)\n#5b1bac\nabc123测试"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"hexInput\":\"abc123测试\",\"colorPicker\":\"abc123测试\",\"rgbInput\":\"abc123测试\",\"hslInput\":\"abc123测试\"}，输出区含「3%, 39%)\n#5b1bac\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    slug: "it/calc-3",
+    inputs: { hexInput: "#00FF7F" },
+    clicks: ["fromHex();document.getElementById('__tbProbe').textContent=String(document.getElementById('result').textContent).replace(/\\s+/g,' ').trim();"],
+    expect: ["HEX： #00FF7F RGB： rgb(0, 255, 127) HSL： hsl(150, 100%, 50%)"],
+    ref: "G06 元素顺序变更后的过期断言修正：旧断言锚「3%, 39%)\\n#5b1bac\\nabc123测试」，其中 #5b1bac 是页面默认色值、且三元素连续串依赖创建序 ⇒ 首屏自跑改变元素顺序后即失配（门禁 it calc correctness 红）。改为注入合法非默认色 #00FF7F 并显式 fromHex()，探针取结果区归一文本，锚完整派生串「HEX： … RGB： … HSL： …」；默认 #5B1BAC 不含该串 ⇒ 强判别、零逃生。",
   },
   {
     "slug": "it/calc-10",

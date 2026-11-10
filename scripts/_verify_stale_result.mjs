@@ -14,12 +14,13 @@ const CASES = [
   {
     cat: 'health', slug: 'insulin-dose',
     probe: `(function(){document.getElementById('currentBg').value='';calc();
+      var b=document.getElementById('breakdown').innerHTML;
       return [document.getElementById('doseVal').textContent,
-              document.getElementById('breakdown').innerHTML.length,
+              /输入无效/.test(b)&&!/餐时剂量|校正剂量|活性胰岛素|总计/.test(b)?1:0,
               document.getElementById('doseMarker').style.left,
               (typeof __insulin_doseResText==='function'?__insulin_doseResText():'n/a')].join('|');})()`,
-    want: '--|0|0%|',
-    desc: '清空当前血糖 ⇒ 主剂量回 --、明细清空、标尺归零、历史文本判无效',
+    want: '--|1|0%|',
+    desc: '清空当前血糖 ⇒ 主剂量回 --、旧剂量明细不残留（仅显示输入无效提示）、标尺归零、历史文本判无效',
   },
   {
     cat: 'engineering', slug: 'thermal-expansion',
