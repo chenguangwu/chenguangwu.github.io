@@ -24,6 +24,34 @@ const { runCase } = require("./verify_it_calc.js");
 // ---------------------------------------------------------------- 用例
 const CASES = [
   {
+    slug: "finance/payroll-calculator",
+    inputs: { pension: "-1" },
+    clicks: ["calc();var g=document.getElementById('statGrid'),t=document.getElementById('tableWrap');document.getElementById('__tbProbe').textContent='PAYCLR '+((!g||!g.innerHTML)&&(!t||!t.innerHTML)&&__payroll_calculatorScore('')===0&&currentResult===null?'OK':'BAD');"],
+    expect: ["PAYCLR OK"],
+    ref: "第128批 F-N35 拒绝态残留（真机发现）：旧 calc() 的 fail() 只往 #res 写提示就 return，statGrid 汇总卡与 tableWrap 逐期明细仍挂上一次合法方案；且 Score 纯关键词词表，「养老保险比例不能为负数。」不含任何失败词 ⇒ 无效输入被记成通过。修复后 fail() 清两容器 + currentResult=null + monthlyData=[]，Score 改按业务状态判定。注入 pension=-1 命中；默认 pension=8 为合法态 ⇒ BAD ⇒ 强判别、零逃生。"
+  },
+  {
+    slug: "finance/payroll-calculator",
+    inputs: { threshold: "6000" },
+    clicks: ["calc();var cr=currentResult&&currentResult.inputs;var src=String(loadHistory);document.getElementById('__tbProbe').textContent='PAYHIST '+(cr&&cr.threshold==='6000'&&Object.keys(cr).length===16&&src.indexOf('PAYROLL_INPUT_IDS')>=0&&src.indexOf('h.inputs')>=0?'OK':'BAD');"],
+    expect: ["PAYHIST OK"],
+    ref: "第128批 F-N36：旧版 currentResult 只存 15 个结果字段，loadHistory() 只回填 salary/bonus/city 三项 ⇒ 同名历史在不同比例/基数/扣除下重算出不同个税（真机实测回放结果 != 原结果）。修复后存 16 个输入的完整 inputs 快照并整体回填，旧记录缺 inputs 时回退并在列表标注「按当前参数重算」。注入 threshold=6000 且快照恰 16 键才 OK；默认 5000 或旧源码无 inputs ⇒ BAD ⇒ 强判别、零逃生。"
+  },
+  {
+    slug: "finance/payroll-calculator",
+    inputs: { baby: "777" },
+    clicks: ["var s=__payrollInputSnap();var src=String(__payroll_calculatorExtras);document.getElementById('__tbProbe').textContent='PAYSNAP '+(Object.keys(s).length===16&&s.baby==='777'&&src.indexOf('keys.length>24')>=0?'OK':'BAD');"],
+    expect: ["PAYSNAP OK"],
+    ref: "第128批 通用历史快照截断：本页 16 个输入全部影响结果，旧 Extras/Export 两处 keys.length>12 会把 baby/medicalBig/threshold/city 永久挤出历史表与回放。修复放宽到 24。注入 baby=777 才命中；默认 0 或旧源码 ⇒ BAD ⇒ 强判别、零逃生。"
+  },
+  {
+    slug: "finance/salary-after-tax",
+    inputs: { gross: "0", ins: "0", ded: "0", months: "1" },
+    clicks: ["var okIn=String(document.getElementById('gross').value)==='0';calcTool();var s1=__salary_after_taxScore('');document.getElementById('months').value='0';calcTool();var s0=__salary_after_taxScore('');document.getElementById('__tbProbe').textContent='SATSCORE '+(okIn&&s1===1&&s0===0?'OK':'BAD');"],
+    expect: ["SATSCORE OK"],
+    ref: "第128批 F-N37 关联：旧 Score 只看 gross>0，gross=0 是 calcTool() 的合法输入（gross<0 才拒绝）却被误记成未通过，months 越界也只靠词表兜底。修复按 calcTool() 真实业务边界判定（gross/ins/ded ≥0、months 1–12）。同用例内连测合法 0 与非法 months=0；注入失败回默认 gross=15000 ⇒ okIn=false ⇒ BAD ⇒ 强判别、零逃生。"
+  },
+  {
     slug: "finance/investment-roi",
     inputs: { aCost: "10000", aRate: "0", aYears: "5", aAdd: "1000", bCost: "10000", bRate: "0", bYears: "5", bAdd: "1000" },
     clicks: ["switchTab('compare');calcCompare();document.getElementById('aCost').value='-1';calcCompare();var h=String(document.getElementById('compareStats').innerHTML);document.getElementById('__tbProbe').textContent='ROIREJ '+(h.indexOf('须为有效正数')>=0&&h.indexOf('15,000')<0?'OK':'BAD');"],

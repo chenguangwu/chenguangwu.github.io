@@ -488,30 +488,56 @@ function rawNum(id){
   return raw === '' ? NaN : parseFloat(raw);
 }
 
+function __payrollTx(zh, en){
+  return (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn()) ? en : zh;
+}
+// F-N36：页面原生历史必须保存完整输入快照，否则回放只用当前界面的比例/基数/扣除，
+// 同名记录在不同参数下会重算出不同个税。16 个输入全部影响结果，不能只存 3 项。
+var PAYROLL_INPUT_IDS = ['city','salary','bonus','pension','medical','unemployment','housing','base',
+  'children','continuing','housingLoan','rent','elderly','baby','medicalBig','threshold'];
+function __payrollInputSnap(){
+  var o={};
+  for(var i=0;i<PAYROLL_INPUT_IDS.length;i++){
+    var id=PAYROLL_INPUT_IDS[i], e=document.getElementById(id);
+    if(e) o[id]=String(e.value==null?'':e.value);
+  }
+  return o;
+}
 function calc(){
   var res = document.getElementById('res');
-  function fail(msg){ res.innerHTML = '<p class="tip-error">' + msg + '</p>'; }
+  // F-N35：拒绝态必须清掉上一次合法结果的汇总卡 / 逐期明细 / currentResult，
+  // 否则「左边报错、右边还挂着上一套工资明细」，且历史与导出会沿用旧结果。
+  function fail(msg){
+    res.innerHTML = '<p class="tip-error">' + msg + '</p>';
+    ['statGrid','tableWrap'].forEach(function(__id){
+      var __e=document.getElementById(__id);
+      if(__e) __e.innerHTML='';
+    });
+    currentResult = null;
+    monthlyData = [];
+  }
   var salaryRaw = rawNum('salary');
-  if (!isFinite(salaryRaw) || salaryRaw <= 0) { fail('请输入大于 0 的税前工资。'); return; }
-  var limits = [['pension','养老保险比例'],['medical','医疗保险比例'],['unemployment','失业保险比例'],['housing','住房公积金比例']];
+  if (!isFinite(salaryRaw) || salaryRaw <= 0) { fail(__payrollTx('请输入大于 0 的税前工资。','Please enter a gross salary greater than 0.')); return; }
+  var limits = [['pension','养老保险比例','Pension rate'],['medical','医疗保险比例','Medical rate'],
+    ['unemployment','失业保险比例','Unemployment rate'],['housing','住房公积金比例','Housing fund rate']];
   var rates = {};
   for (var li = 0; li < limits.length; li++) {
-    var key = limits[li][0], label = limits[li][1];
+    var key = limits[li][0], label = limits[li][1], labelEn = limits[li][2];
     var raw = rawNum(key);
     var val = raw === raw && isFinite(raw) ? raw : 0;
-    if (val < 0) { fail(label + '不能为负数。'); return; }
+    if (val < 0) { fail(__payrollTx(label + '不能为负数。', labelEn + ' cannot be negative.')); return; }
     rates[key] = val / 100;
   }
   var bonusRaw = rawNum('bonus');
-  if (isFinite(bonusRaw) && bonusRaw < 0) { fail('年终奖需为 ≥0 的数字。'); return; }
+  if (isFinite(bonusRaw) && bonusRaw < 0) { fail(__payrollTx('年终奖需为 ≥0 的数字。','Annual bonus must be ≥ 0.')); return; }
   var baseRaw = rawNum('base');
-  if (isFinite(baseRaw) && baseRaw < 0) { fail('社保缴费基数需为 ≥0 的数字。'); return; }
+  if (isFinite(baseRaw) && baseRaw < 0) { fail(__payrollTx('社保缴费基数需为 ≥0 的数字。','Social-insurance base must be ≥ 0.')); return; }
   var thresholdRaw = rawNum('threshold');
-  if (!isFinite(thresholdRaw) || thresholdRaw < 0) { fail('起征点需为 ≥0 的数字。'); return; }
+  if (!isFinite(thresholdRaw) || thresholdRaw < 0) { fail(__payrollTx('起征点需为 ≥0 的数字。','Basic deduction must be ≥ 0.')); return; }
   var deductIds = ['children','continuing','housingLoan','rent','elderly','baby','medicalBig'];
   for (var di = 0; di < deductIds.length; di++) {
     var dv = rawNum(deductIds[di]);
-    if (isFinite(dv) && dv < 0) { fail('专项附加扣除需为 ≥0 的数字。'); return; }
+    if (isFinite(dv) && dv < 0) { fail(__payrollTx('专项附加扣除需为 ≥0 的数字。','Special additional deductions must be ≥ 0.')); return; }
   }
 
   var salary = salaryRaw;
@@ -627,6 +653,7 @@ function calc(){
     totalInsurance: totalInsurance,
     specialDeduction: specialDeductionMonthly,
     city: document.getElementById('city').value,
+    inputs: __payrollInputSnap(),
     timestamp: Date.now()
   };
 
@@ -728,7 +755,8 @@ function renderHistory(){
     html += '<div class="history-item" onclick="loadHistory(' + i + ')">';
     html += '<div class="time">' + timeStr + '</div>';
     html += '<div class="summary">税前：¥' + ToolBox.formatNumber(h.salary, 0) + ' | 税后：¥' + ToolBox.formatNumber(h.monthlyNet, 0) + ' | 个税：¥' + ToolBox.formatNumber(h.monthlyTax, 0) + '</div>';
-    html += '<div class="detail">五险一金：¥' + ToolBox.formatNumber(h.insurance, 0) + ' · 专项附加：¥' + ToolBox.formatNumber(h.specialDeduction, 0) + '</div>';
+    html += '<div class="detail">五险一金：¥' + ToolBox.formatNumber(h.insurance, 0) + ' · 专项附加：¥' + ToolBox.formatNumber(h.specialDeduction, 0)
+      + (h.inputs ? '' : __payrollTx(' · 旧记录未含完整参数，回放按当前参数重算',' · Legacy record lacks full inputs; replay uses current values')) + '</div>';
     html += '</div>';
   });
   const __g5=html;list.innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
@@ -739,9 +767,18 @@ function loadHistory(index){
   try { history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch(e){}
   var h = history[index];
   if(!h) return;
-  document.getElementById('salary').value = h.salary;
-  document.getElementById('bonus').value = h.bonus || 0;
-  document.getElementById('city').value = h.city || 'custom';
+  // F-N36：有完整快照时按快照整体回填；旧记录（本批之前保存）缺少 inputs，
+  // 只能回退到原有三项，并在历史列表里标注「按当前参数重算」，不静默伪装成可复现。
+  if(h.inputs){
+    for(var i=0;i<PAYROLL_INPUT_IDS.length;i++){
+      var id=PAYROLL_INPUT_IDS[i], e=document.getElementById(id);
+      if(e && Object.prototype.hasOwnProperty.call(h.inputs,id)) e.value = h.inputs[id];
+    }
+  }else{
+    document.getElementById('salary').value = h.salary;
+    document.getElementById('bonus').value = h.bonus || 0;
+    document.getElementById('city').value = h.city || 'custom';
+  }
   calc();
   switchTab('calc', document.querySelectorAll('.tab-btn')[0]);
 }
@@ -815,8 +852,23 @@ function __payroll_calculatorFullResText(){
     return t;
 }
 function __payroll_calculatorScore(t){
+    // 按业务状态判定，不靠关键词词表：本页拒绝文案「养老保险比例不能为负数。」
+    // 「社保缴费基数需为 ≥0 的数字。」等不含任何失败词，旧实现会把无效输入记成通过。
+    // 空值语义与 calc() 的 rawNum 一致（比例/年终奖/基数/扣除空 ⇒ 当 0；工资/起征点空 ⇒ 拒绝）。
+    var raw=function(id){var e=document.getElementById(id);if(!e)return NaN;
+      var v=String(e.value==null?'':e.value).trim();return v===''?NaN:parseFloat(v);};
+    var salary=raw('salary'), threshold=raw('threshold');
+    if(!isFinite(salary)||salary<=0) return 0;
+    if(!isFinite(threshold)||threshold<0) return 0;
+    var ids=['pension','medical','unemployment','housing','bonus','base','children','continuing',
+      'housingLoan','rent','elderly','baby','medicalBig'];
+    for(var i=0;i<ids.length;i++){
+      var x=raw(ids[i]);
+      if(isFinite(x)&&x<0) return 0;
+      if(!isFinite(x)&&!isNaN(x)) return 0;
+    }
     var s=String(t||'');
-    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __payroll_calculatorTime(t){
@@ -871,7 +923,9 @@ function __payroll_calculatorExtras(force){
     var snap=__payroll_calculatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
-    if(keys.length>12) keys=keys.slice(0,12);
+    // 本页 16 个参数全部影响结果；旧版截断到 12 会丢 baby/medicalBig/threshold/city，
+    // 通用历史回放无法复现（F-N36 同类）。
+    if(keys.length>24) keys=keys.slice(0,24);
     var res=__payroll_calculatorResText();
     if(!res) return;
     var en=TBKit.util.isEn();
@@ -905,7 +959,7 @@ function __payroll_calculatorExport(){
         var box=document.querySelector('#payroll_calculatorTable');
         if(!box||!box.querySelector('tr')){
             var snap=__payroll_calculatorSnap(); var keys=Object.keys(snap);
-            if(keys.length>12) keys=keys.slice(0,12);
+            if(keys.length>24) keys=keys.slice(0,24);
             var en=(TBKit.util&&TBKit.util.isEn())?true:false;
             __payroll_calculatorRender(keys,en?'Result':'结果',en);
         }
