@@ -305,7 +305,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __assessor_manager_last=0,__assessor_manager_skip=false;
+var __assessor_manager_last=0,__assessor_manager_skip=false,__assessor_manager_timer=null;
 function __assessor_managerSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -314,7 +314,7 @@ function __assessor_managerSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -326,10 +326,9 @@ function __assessor_managerResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
-function __assessor_managerScore(t){
-    var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
-    return 1;
+function __assessor_managerScore(){
+    var first=document.getElementById('res').firstElementChild;
+    return first && first.classList.contains('tip-error') ? 0 : 1;
 }
 function __assessor_managerTime(t){
     var d=new Date(t);
@@ -352,6 +351,8 @@ function __assessor_managerRender(keys,rk,en){
         TBKit.util.diffBox('#assessor_managerDiff');
         TBKit.history.mount('#assessor_managerHist',function(rec){
             __assessor_manager_skip=true;
+            clearTimeout(__assessor_manager_timer);
+            __assessor_manager_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -375,9 +376,11 @@ function __assessor_managerRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __assessor_managerExtras(){
+function __assessor_managerExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__assessor_manager_skip) return;
+    clearTimeout(__assessor_manager_timer);
+    __assessor_manager_timer=null;
     var snap=__assessor_managerSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -387,7 +390,10 @@ function __assessor_managerExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__assessor_manager_last<1000) return;
+    if(!force && now-__assessor_manager_last<1000){
+        __assessor_manager_timer=setTimeout(function(){__assessor_managerExtras(true);},1000-(now-__assessor_manager_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -407,6 +413,7 @@ function __assessor_managerExtras(){
 }
 function __assessor_managerExport(){
     if (typeof TBKit === 'undefined') return;
+    __assessor_managerExtras(true);
     try{
         var box=document.querySelector('#assessor_managerTable');
         if(!box||!box.querySelector('tr')){

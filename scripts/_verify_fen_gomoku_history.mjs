@@ -495,4 +495,42 @@ for (const [file, prefix, input, error] of [
   check('清空输入不保存被替换的待处理记录',w.TBKit.history.list().length===1 && /请输入/.test(doc.getElementById('out').textContent));
   w.close();
 }
+// Credit assessment history must reflect actual validation and restore empty fields.
+{
+  const downloads=[],trends=[];
+  const dom=new JSDOM(readFileSync('tools/finance/assessor-manager.html','utf8'),{
+    url:'https://x.test/tools/finance/assessor-manager.html',runScripts:'dangerously',pretendToBeVisual:true,
+    virtualConsole:new VirtualConsole(),beforeParse(w){
+      w.ToolBox={showToast(){},escHtml:s=>String(s)};w.i18nText=k=>k;
+      w.Blob=class{constructor(parts){this.text=parts.join('');}};
+      w.URL.createObjectURL=blob=>{downloads.push(blob.text);return 'blob:test';};
+      w.URL.revokeObjectURL=()=>{};w.HTMLAnchorElement.prototype.click=function(){};
+      w.eval(readFileSync('js/tool-kit.js','utf8'));
+      const line=w.TBKit.chart.line;
+      w.TBKit.chart.line=(host,config)=>{trends.push(Array.from(config.series[0].data));return line(host,config);};
+    }
+  });
+  const w=dom.window,doc=w.document,input=doc.getElementById('debtRatio');
+  await new Promise(resolve=>w.addEventListener('load',resolve));
+  const enter=value=>{input.value=value;input.dispatchEvent(new w.Event('input',{bubbles:true}));};
+  const check=(label,ok)=>{console.log(`${ok?'PASS':'FAIL'} assessor-manager ${label}`);if(!ok)failed=true;};
+  w.TBKit.history.clear();w.eval('__assessor_manager_last=0');
+  enter('55');enter('101');doc.querySelector('[onclick="__assessor_managerExport()"]')?.click();
+  let records=w.TBKit.history.list();
+  check('超出范围与快速导出记为失败',records.length===2 && records[0].d.__tbScore===0 && downloads[0]?.includes('未通过'));
+  check('趋势反映真实成功与失败',trends.some(t=>t.join(',')==='1,0'));
+  enter('');await new Promise(resolve=>setTimeout(resolve,1100));
+  records=w.TBKit.history.list();
+  check('空字段作为失败快照保存',records.length===3 && records[0].d.debtRatio==='' && records[0].d.__tbScore===0);
+  enter('50');doc.querySelector('#assessor_managerHist .tbk-history-item')?.click();
+  await new Promise(resolve=>setTimeout(resolve,1100));
+  check('恢复空字段且取消待保存输入',input.value==='' && w.TBKit.history.list().length===3 && /留空/.test(doc.getElementById('res').textContent));
+  w.TBKit.history.clear();w.eval('__assessor_manager_last=0');
+  enter('100');doc.getElementById('currentRatio').value='0';doc.getElementById('revenue').value='0';doc.getElementById('profitMargin').value='-1';doc.getElementById('overdue').value='5';doc.getElementById('creditHistory').value='0';w.calc();
+  doc.querySelector('[onclick="__assessor_managerExport()"]')?.click();
+  check('高信用风险不等同于无效输入',w.TBKit.history.list()[0]?.d.__tbScore===1 && /信用风险高/.test(doc.getElementById('res').textContent));
+  doc.getElementById('overdue').value='0.5';w.calc();doc.querySelector('[onclick="__assessor_managerExport()"]')?.click();
+  check('逾期次数非整数记为失败',w.TBKit.history.list()[0]?.d.__tbScore===0 && /非负整数/.test(doc.getElementById('res').textContent));
+  w.close();
+}
 process.exit(failed ? 1 : 0);
