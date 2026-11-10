@@ -653,8 +653,54 @@ function checkSortPanTinReview() {
     dom.window.close();
   }
 }
+function checkRemainingIdentifier(slug) {
+  const { dom, scripts } = loadFinancePage(slug);
+  dom.window.eval(scripts.find(s => s.includes('function validate()')));
+  const doc = dom.window.document;
+  const check = value => { doc.getElementById('input').value = value; dom.window.validate(); return doc.getElementById('output'); };
+  if (slug === 'aba-validator' || slug === 'routing-number-validator') {
+    assert.ok(check('021000021').textContent.includes('号码有效'));
+    assert.ok(check('021 000 021').textContent.includes('号码有效'));
+    assert.ok(check('021000021x').textContent.includes('非法字符'));
+    assert.ok(check('abc').textContent.includes('非法字符'));
+    assert.ok(check('000000000').textContent.includes('非法'));
+  } else {
+    const payload = '1<svg id=x onload=alert(1)>';
+    const out = check(payload);
+    assert.strictEqual(out.querySelector('svg'), null, slug + ' 不得创建注入节点');
+    assert.ok(out.textContent.toUpperCase().includes(payload.toUpperCase()), '输入应安全回显');
+    if (slug === 'meid-validator') {
+      assert.ok(check('A0000012345678G').textContent.includes('非法字符'));
+      assert.ok(check('A00000-12345679').textContent.includes('十进制'));
+    }
+    if (slug === 'voter-id-validator') assert.ok(check('ABC1234567').textContent.includes('州码'));
+    if (slug === 'zip-code-validator') {
+      assert.ok(check('00000').textContent.includes('未分配'));
+      assert.ok(check('10001').textContent.includes('格式有效'));
+    }
+    if (slug === 'tfn-validator') {
+      assert.ok(check('876543210x').textContent.includes('非法字符'), 'TFN 不能忽略非法字符');
+      assert.ok(check('876 543 210').textContent.includes('校验和： ✅ 通过'));
+      const deep = JSON.parse(fs.readFileSync(path.join(root, 'i18n/tools/content_deepdive.json'), 'utf8'))['finance/tfn-validator'];
+      const en = JSON.parse(fs.readFileSync(path.join(root, 'i18n/tools/en/finance/tfn-validator.json'), 'utf8')).map;
+      assert.ok(deep.faqs[0].a.includes('6、9、10'));
+      assert.ok(doc.body.textContent.includes(deep.faqs[0].a));
+      assert.ok(en[deep.faqs[0].a]);
+    }
+  }
+  dom.window.close();
+}
+function checkDniDeepReview() {
+  const { dom } = loadFinancePage('dni-validator');
+  const deep = JSON.parse(fs.readFileSync(path.join(root, 'i18n/tools/content_deepdive.json'), 'utf8'))['finance/dni-validator'];
+  const en = JSON.parse(fs.readFileSync(path.join(root, 'i18n/tools/en/finance/dni-validator.json'), 'utf8')).map;
+  assert.ok(deep.examples[0].body.includes('mod 23 = 14'));
+  assert.ok(deep.faqs[0].a.includes('TRWAGMYFPDXBNJZSQVHLCKE') && !deep.faqs[0].a.includes('TRWAGMYFPDXBNJZSQVHLCKET'));
+  for (const text of [deep.examples[0].body, deep.faqs[0].a]) assert.ok(dom.window.document.body.textContent.includes(text) && en[text]);
+  dom.window.close();
+}
 let failed = false;
-for (const [name, test] of [['Sort PAN TIN 复核', checkSortPanTinReview],['NIE ICCID ISBN 复核', checkNieIccidIsbnReview], ['GST IMEI EIN 复核', checkGstImeiEinReview], ['BIC 查询复核', checkBicLookupReview], ['GSTIN 复核', checkGstinReview], ['CNPJ 复核', checkCnpjReview], ['货币符号复核', checkCurrencyReview], ['信用卡利息复核', checkCreditInterestReview], ['IBAN 复核', checkIbanReview], ['标签生成空态', checkLabelEmptyState], ['Code128 字符范围', checkCode128Descriptions], ['仓位缺填历史', checkPositionSizingMissingInput], ['行业利润率', checkIndustryProfitMargins], ['字数统计说明', checkWordCounterDescription], ['银行卡输入', checkCardInput], ['名片二维码超限', checkVcardOverflow], ['基金定投时点', checkFundTiming], ['退休现金流', checkRetirementCashFlow], ['颜色历史', checkColorHistory], ['工序排期', checkSchedule], ['SIN 输入', checkSinValidation], ['邮编输入', checkPostalValidation], ['CURP 输入', () => checkIdValidation('curp', 'CURP_BASE', 'BOXW310820HMNERN16', 'BOXW310820HMNERN160')], ['DNI 输入', () => checkIdValidation('dni', 'DNI_LETTERS', '12345678Z', '12345678A')], ['投资回报历史', checkInvestmentHistory], ['期权盈亏', checkOptionCalculator]]) {
+for (const [name, test] of [...['meid-validator','aba-validator','routing-number-validator','voter-id-validator','tfn-validator','zip-code-validator'].map(slug => [slug, () => checkRemainingIdentifier(slug)]), ['DNI 内容', checkDniDeepReview], ['Sort PAN TIN 复核', checkSortPanTinReview],['NIE ICCID ISBN 复核', checkNieIccidIsbnReview], ['GST IMEI EIN 复核', checkGstImeiEinReview], ['BIC 查询复核', checkBicLookupReview], ['GSTIN 复核', checkGstinReview], ['CNPJ 复核', checkCnpjReview], ['货币符号复核', checkCurrencyReview], ['信用卡利息复核', checkCreditInterestReview], ['IBAN 复核', checkIbanReview], ['标签生成空态', checkLabelEmptyState], ['Code128 字符范围', checkCode128Descriptions], ['仓位缺填历史', checkPositionSizingMissingInput], ['行业利润率', checkIndustryProfitMargins], ['字数统计说明', checkWordCounterDescription], ['银行卡输入', checkCardInput], ['名片二维码超限', checkVcardOverflow], ['基金定投时点', checkFundTiming], ['退休现金流', checkRetirementCashFlow], ['颜色历史', checkColorHistory], ['工序排期', checkSchedule], ['SIN 输入', checkSinValidation], ['邮编输入', checkPostalValidation], ['CURP 输入', () => checkIdValidation('curp', 'CURP_BASE', 'BOXW310820HMNERN16', 'BOXW310820HMNERN160')], ['DNI 输入', () => checkIdValidation('dni', 'DNI_LETTERS', '12345678Z', '12345678A')], ['投资回报历史', checkInvestmentHistory], ['期权盈亏', checkOptionCalculator]]) {
   try { test(); console.log('PASS', name); } catch (err) { failed = true; console.error('FAIL', name, err.message); }
 }
 if (failed) process.exitCode = 1;
