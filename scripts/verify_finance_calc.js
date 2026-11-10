@@ -1438,6 +1438,32 @@ const CASES = [
     ref: "F-N82 真锁：资产负债率留空旧实现 `||0` 得满档 25 分；现字段级校验拒绝空值。默认 dr=55（非空）不命中 ⇒ 零逃生。",
   },
   {
+    slug: "finance/assessor-manager",
+    inputs: { debtRatio: "55", currentRatio: "1.8", revenue: "5000", profitMargin: "-5", overdue: "1", creditHistory: "5" },
+    clicks: ["calc()"],
+    expect: ["净利润率：-5%", "信用评分： 64 /100"],
+    ref: "亏损企业的负净利润率应按原分档得零分，而非拒绝评分。",
+  },
+  {
+    slug: "finance/assessor-manager",
+    inputs: { debtRatio: "55", currentRatio: "1.8", revenue: "5000", profitMargin: "", overdue: "1", creditHistory: "5" },
+    clicks: ["calc()"],
+    expect: ["净利润率须填写有效数字，不能留空或非数字"],
+    ref: "净利润率允许负数，但不允许空值。",
+  },
+  ...[
+    ["currentRatio", "-1", "流动比率不能为负数"],
+    ["revenue", "-1", "年营业收入不能为负数"],
+    ["overdue", "-1", "逾期次数不能为负数"],
+    ["creditHistory", "-1", "信用历史不能为负数"],
+    ["debtRatio", "101", "资产负债率须在 0–100% 之间"],
+    ["overdue", "1.5", "逾期次数须为非负整数"],
+  ].map(([field, value, message]) => ({
+    slug: "finance/assessor-manager",
+    inputs: { [field]: value }, clicks: ["calc()"], expect: [message],
+    ref: "逐项保留负数、负债率范围与逾期次数整数校验。",
+  })),
+  {
     slug: "finance/report-1",
     inputs: { premium: "5000", inv: "100000", capital: "500000", pct: "0.12" },
     clicks: ["calc()"],
