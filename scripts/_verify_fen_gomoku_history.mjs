@@ -41,6 +41,41 @@ for (const [file, prefix, button, valid, invalid] of [
   dom.window.close();
 }
 // Exercise validation with real output, history, trend and CSV.
+for (const [slug, valid] of [
+  ['tfn-validator','876543210'], ['pan-validator','ABCPS1234E'],
+  ['curp-validator','BOXW310820HMNERN16'], ['dni-validator','12345678Z'],
+  ['sort-code-validator-validator','200000'],
+]) {
+  const downloads=[], trends=[];
+  const dom=new JSDOM(readFileSync(`tools/finance/${slug}.html`,'utf8'),{
+    url:`https://x.test/tools/finance/${slug}.html`,runScripts:'dangerously',pretendToBeVisual:true,
+    virtualConsole:new VirtualConsole(),beforeParse(w){
+      let now=100000; w.Date.now=()=>now+=1100;
+      w.ToolBox={showToast(){},escHtml:s=>String(s)}; w.i18nText=k=>k;
+      w.Blob=class{constructor(parts){this.text=parts.join('');}};
+      w.URL.createObjectURL=blob=>{downloads.push(blob.text);return 'blob:test';};
+      w.URL.revokeObjectURL=()=>{}; w.HTMLAnchorElement.prototype.click=function(){};
+      w.eval(readFileSync('js/tool-kit.js','utf8'));
+      const line=w.TBKit.chart.line;
+      w.TBKit.chart.line=(host,config)=>{trends.push(Array.from(config.series[0].data));return line(host,config);};
+    }
+  });
+  const w=dom.window,doc=w.document,pre=slug.replaceAll('-','_');
+  await new Promise(resolve=>w.addEventListener('load',resolve));
+  w.TBKit.history.clear();
+  const input=doc.getElementById('input');
+  function enter(value){input.value=value;input.dispatchEvent(new w.Event('input',{bubbles:true}));}
+  enter(valid);
+  const validOutput=doc.getElementById('output').textContent;
+  enter('2'.repeat(100));
+  const records=w.TBKit.history.list();
+  const check=(label,ok)=>{console.log(`${ok?'PASS':'FAIL'} ${slug} ${label}`);if(!ok)failed=true;};
+  check('真实有效与长输入无效结论一致',validOutput.includes('✅') && records.length===2 && records[0].d.__tbScore===0 && records[1].d.__tbScore===1);
+  check('趋势包含真实通过和未通过',trends.some(t=>t.join(',')==='1,0'));
+  doc.querySelector(`[onclick="__${pre}Export()"]`)?.click();
+  check('真实 CSV 包含未通过',downloads.length===1 && downloads[0].includes('未通过'));
+  w.close();
+}
 {
   const downloads=[], trends=[];
   const dom=new JSDOM(readFileSync('tools/finance/tin-validator.html','utf8'),{
