@@ -193,8 +193,8 @@ s.parentNode.insertBefore(el, s);
 <div class="dd-example"><div class="dd-ex-title">示例：NRIC 校验字母</div><div class="dd-ex-body">输入 S1234567D，按前缀权重对 7 位数字加权后 mod 11 查表得到校验字母，须与末位一致；不符则失败。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>NRIC 校验字母怎么算？</dt><dd>按前缀对应的权重对 7 位数字加权求和，加上前缀偏移量后 mod 11 查表得校验字母。</dd>
-<dt>NRIC 和 FIN 的区别？</dt><dd>NRIC 面向公民与永久居民（S/T 前缀），FIN 面向外国人（F/G/M 前缀），算法相同。</dd>
+<dt>NRIC 校验字母怎么算？</dt><dd>按固定权重对 7 位数字加权求和，加上前缀偏移量后取模 11，再按前缀对应字母表查得校验字母。</dd>
+<dt>NRIC 和 FIN 的区别？</dt><dd>NRIC 面向公民与永久居民（S/T 前缀），FIN 面向外国人（F/G/M 前缀）；数字权重相同，但偏移量与校验字母表因前缀而异。</dd>
 <dt>校验通过代表身份有效吗？</dt><dd>不代表。须通过新加坡官方渠道核验。</dd>
 </dl>
 </div>
@@ -245,12 +245,13 @@ function nricCheck(s){
   for(let i = 0; i < 7; i++){
     sum += parseInt(digits[i],10) * weights[i];
   }
-  // offset for T/G/M（2000+ 出生 / 2022+ FIN）
-  const offset = (prefix === 'T' || prefix === 'G' || prefix === 'M') ? 4 : 0;
+  const offset = prefix === 'M' ? 3 : (prefix === 'T' || prefix === 'G') ? 4 : 0;
   const rem = (sum + offset) % 11;
   const checkArrS = ['J','Z','I','H','G','F','E','D','C','B','A'];
   const checkArrFG = ['X','W','U','T','R','Q','P','N','M','L','K'];
-  const expected = (prefix === 'S' || prefix === 'T') ? checkArrS[rem] : checkArrFG[rem];
+  const checkArrM = ['K','L','J','N','P','Q','R','T','U','W','X'];
+  const expected = prefix === 'M' ? checkArrM[10 - rem] :
+    (prefix === 'S' || prefix === 'T') ? checkArrS[rem] : checkArrFG[rem];
   return {
     valid: expected === checkLetter,
     expected: expected
