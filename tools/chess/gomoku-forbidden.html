@@ -536,7 +536,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __gomoku_forbidden_last=0,__gomoku_forbidden_skip=false;
+var __gomoku_forbidden_last=0,__gomoku_forbidden_skip=false,__gomoku_forbidden_timer=null;
 function __gomoku_forbiddenSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -606,7 +606,7 @@ function __gomoku_forbiddenRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __gomoku_forbiddenExtras(){
+function __gomoku_forbiddenExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__gomoku_forbidden_skip) return;
     var snap=__gomoku_forbiddenSnap();
@@ -618,7 +618,6 @@ function __gomoku_forbiddenExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__gomoku_forbidden_last<1000) return;
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -628,16 +627,25 @@ function __gomoku_forbiddenExtras(){
         }
         if(same&&String(last[rk])===String(res)) return;
     }
+    var score=__gomoku_forbiddenScore(res);
+    if(!force&&last&&last.__tbScore===score&&now-__gomoku_forbidden_last<1000){
+        clearTimeout(__gomoku_forbidden_timer);
+        __gomoku_forbidden_timer=setTimeout(function(){__gomoku_forbiddenExtras(true);},1000-(now-__gomoku_forbidden_last));
+        return;
+    }
+    clearTimeout(__gomoku_forbidden_timer);
+    __gomoku_forbidden_timer=null;
     __gomoku_forbidden_last=now;
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__gomoku_forbiddenScore(res);
+    rec.__tbScore=score;
     TBKit.history.record(rec);
     __gomoku_forbiddenRender(keys,rk,en);
 }
 function __gomoku_forbiddenExport(){
     if (typeof TBKit === 'undefined') return;
+    if (__gomoku_forbidden_timer) __gomoku_forbiddenExtras(true);
     try{
         var box=document.querySelector('#gomoku_forbiddenTable');
         if(!box||!box.querySelector('tr')){
