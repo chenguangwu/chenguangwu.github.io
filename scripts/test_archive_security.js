@@ -400,8 +400,29 @@ function checkCode128Descriptions() {
   dom.window.close();
 }
 
+function checkLabelEmptyState() {
+  const page = fs.readFileSync(path.join(root, 'tools/library/generator-label.html'), 'utf8');
+  const scripts = [...page.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]);
+  const dom = new JSDOM(page.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ''), { url: 'https://example.test/', runScripts: 'dangerously' });
+  const w = dom.window, doc = w.document, records = [];
+  w.ToolBox = { copyText: () => {} };
+  w.TBKit = { util: { isEn: () => false, diffBox: () => {} }, matrix: { table: () => {} }, chart: { line: () => {} }, preset: { bar: () => {} }, history: { list: () => records, last: () => records[0]?.d, record: d => records.unshift({t: Date.now(), d}), mount: () => {} } };
+  w.eval(scripts.find(s => s.includes('function gen()')));
+  w.eval(scripts.find(s => s.includes('function __generator_labelExtras')));
+  w.gen();
+  assert.ok(w.__labelData && records.length === 1, '默认标签应成功生成并入历史');
+  for (const id of ['unit', 'fonds', 'year', 'org', 'range', 'boxNo']) doc.getElementById(id).value = '';
+  w.__generator_label_last = 0;
+  w.gen();
+  assert.ok(doc.getElementById('res').textContent.includes('请至少填写'));
+  assert.strictEqual(w.__labelData, null);
+  assert.strictEqual(records.length, 1, '空标签不得写入历史');
+  assert.strictEqual(w.__generator_labelScore(doc.getElementById('res').textContent), 0);
+  dom.window.close();
+}
+
 let failed = false;
-for (const [name, test] of [['Code128 字符范围', checkCode128Descriptions], ['仓位缺填历史', checkPositionSizingMissingInput], ['行业利润率', checkIndustryProfitMargins], ['字数统计说明', checkWordCounterDescription], ['银行卡输入', checkCardInput], ['名片二维码超限', checkVcardOverflow], ['基金定投时点', checkFundTiming], ['退休现金流', checkRetirementCashFlow], ['颜色历史', checkColorHistory], ['工序排期', checkSchedule], ['SIN 输入', checkSinValidation], ['邮编输入', checkPostalValidation], ['CURP 输入', () => checkIdValidation('curp', 'CURP_BASE', 'BOXW310820HMNERN16', 'BOXW310820HMNERN160')], ['DNI 输入', () => checkIdValidation('dni', 'DNI_LETTERS', '12345678Z', '12345678A')], ['投资回报历史', checkInvestmentHistory], ['期权盈亏', checkOptionCalculator]]) {
+for (const [name, test] of [['标签生成空态', checkLabelEmptyState], ['Code128 字符范围', checkCode128Descriptions], ['仓位缺填历史', checkPositionSizingMissingInput], ['行业利润率', checkIndustryProfitMargins], ['字数统计说明', checkWordCounterDescription], ['银行卡输入', checkCardInput], ['名片二维码超限', checkVcardOverflow], ['基金定投时点', checkFundTiming], ['退休现金流', checkRetirementCashFlow], ['颜色历史', checkColorHistory], ['工序排期', checkSchedule], ['SIN 输入', checkSinValidation], ['邮编输入', checkPostalValidation], ['CURP 输入', () => checkIdValidation('curp', 'CURP_BASE', 'BOXW310820HMNERN16', 'BOXW310820HMNERN160')], ['DNI 输入', () => checkIdValidation('dni', 'DNI_LETTERS', '12345678Z', '12345678A')], ['投资回报历史', checkInvestmentHistory], ['期权盈亏', checkOptionCalculator]]) {
   try { test(); console.log('PASS', name); } catch (err) { failed = true; console.error('FAIL', name, err.message); }
 }
 if (failed) process.exitCode = 1;
