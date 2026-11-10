@@ -284,7 +284,7 @@ s.parentNode.insertBefore(el, s);
           <tr><td><strong>9%</strong></td><td>交通运输、建筑、不动产</td><td>物流、建筑、房地产</td></tr>
           <tr><td><strong>6%</strong></td><td>现代服务、金融、生活服务</td><td>咨询、金融、餐饮</td></tr>
           <tr><td><strong>3%</strong></td><td>小规模纳税人</td><td>小微企业、个体工商户</td></tr>
-          <tr><td><strong>1%</strong></td><td>小规模优惠税率</td><td>疫情期间优惠政策</td></tr>
+          <tr><td><strong>1%</strong></td><td>小规模纳税人 1% 优惠（执行至 2027-12-31）</td><td>财政部 税务总局公告 2023 年第 19 号，以最新公告为准</td></tr>
           <tr><td><strong>0%</strong></td><td>出口货物、免税项目</td><td>出口贸易、农业生产</td></tr>
         </tbody>
       </table>
@@ -379,6 +379,43 @@ s.parentNode.insertBefore(el, s);
 <script>
 var HISTORY_KEY = 'vat_calc_history';
 var currentRate = 13;
+// F-N110：页面同时有自定义「历史记录」tab 与 TBKit 自动历史。清空/删除必须同步，
+// 否则用户以为已清空，自动历史仍留在本机。这里复用 TBKit 的存储键（与 tool-kit.js
+// 的 hkey() 同口径），只用公开数据格式读写，不改动全局 tool-kit.js。
+function __vatTbkKey(){
+  try { return 'tbk_hist_' + (location.pathname || 'p'); } catch(e){ return 'tbk_hist_p'; }
+}
+function __vatTbkList(){
+  try {
+    if(typeof TBKit !== 'undefined' && TBKit.history && TBKit.history.list) return TBKit.history.list();
+    var raw = localStorage.getItem(__vatTbkKey());
+    var arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr : [];
+  } catch(e){ return []; }
+}
+function __vatTbkWrite(arr){
+  try { localStorage.setItem(__vatTbkKey(), JSON.stringify(arr)); } catch(e){}
+}
+function __vatTbkRepaint(){
+  // 清掉自动历史四容器 + 重置去重/节流状态，避免下次重绘把旧记录带回来。
+  try {
+    __vat_calculator_last = 0;
+    clearTimeout(__vat_calculator_timer); __vat_calculator_timer = null;
+  } catch(e){}
+  ['vat_calculatorTable','vat_calculatorDiff','vat_calculatorChart','vat_calculatorHist'].forEach(function(id){
+    var e = document.getElementById(id); if(e) e.innerHTML = '';
+  });
+  try {
+    if(typeof TBKit === 'undefined') return;
+    // 两套都清空时不再重绘，避免历史表留下空表头（与 clearAll 口径一致）。
+    if(!TBKit.history.list().length) return;
+    var snap = __vat_calculatorSnap(); var keys = Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length > 12) keys = keys.slice(0, 12);
+    var en = TBKit.util.isEn();
+    __vat_calculatorRender(keys, en ? 'Result' : '结果', en);
+  } catch(e){}
+}
 var VAT_RATE_MSG = '⚠ 税率须为 0–100 之间的数字，请修正后再计算。';
 var VAT_AMOUNT_MSG = '⚠ 金额须为 ≥0 的数字，请修正后再计算。';
 
@@ -478,6 +515,9 @@ function saveToHistory(){
   history.unshift(record);
   if(history.length > 20) history = history.slice(0, 20);
   try{ localStorage.setItem(HISTORY_KEY, JSON.stringify(history)); }catch(e){}
+  // F-N110：保存到自定义 tab 时确保自动历史也有这一笔（calcSingle 包装已自动记录，
+  // 这里强制刷新一次，避免节流把最后一次输入丢掉）。
+  try{ if(typeof __vat_calculatorExtras === 'function') __vat_calculatorExtras(true); }catch(e){}
   ToolBox.showToast(i18nText());
 }
 
@@ -533,8 +573,23 @@ function loadHistory(i){
 
 function deleteHistory(i){
   var history = getHistory();
-  history.splice(i, 1);
+  var removed = history.splice(i, 1)[0];
   try{ localStorage.setItem(HISTORY_KEY, JSON.stringify(history)); }catch(e){}
+  // F-N110：同步删掉 TBKit 自动历史里对应这一笔（按方向 / 金额 / 税率匹配），
+  // 保留其余记录与原始时间戳，避免「删了 tab 里一条、自动历史还在」。
+  var arr = __vatTbkList(), idx = -1;
+  if(removed){
+    for(var k = 0; k < arr.length; k++){
+      var d = arr[k].d || {};
+      if(String(d.amount) === String(removed.amount) &&
+         String(d.dir) === String(removed.dir) &&
+         String(d.customRate != null ? d.customRate : d.rate) === String(removed.rate)){
+        idx = k; break;
+      }
+    }
+  }
+  if(idx >= 0){ arr.splice(idx, 1); __vatTbkWrite(arr); }
+  __vatTbkRepaint();
   renderHistory();
   ToolBox.showToast(i18nText());
 }
@@ -542,6 +597,9 @@ function deleteHistory(i){
 function clearHistory(){
   if(!confirm(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Clear all history?":"确定要清空所有历史记录吗？"))) return;
   try{ localStorage.removeItem(HISTORY_KEY); }catch(e){}
+  // F-N110：两套历史一起清空，用户「清空历史」后本机不再残留任何一笔。
+  __vatTbkWrite([]);
+  __vatTbkRepaint();
   renderHistory();
   ToolBox.showToast(i18nText('toast.msg273'));
 }
@@ -626,6 +684,8 @@ function exportBatchCSV(){
   if(!lines.length){ ToolBox.showToast(i18nText('toast.empty_export'), 'warning'); return; }
   var csv = '\uFEFF序号,输入金额,不含税价,增值税额,含税价\n';
   var ignored = 0, valid = 0;
+  // F-N112：导出末尾追加与屏显一致的合计行，报销/对账不必手工再加一遍。
+  var totalEx = 0, totalTax = 0, totalIncl = 0;
   lines.forEach(function(line){
     var amt = __vatParse(line);
     if(!__vatAmountOK(amt)){ ignored++; return; }
@@ -633,9 +693,11 @@ function exportBatchCSV(){
     var incl, ex, tax;
     if(dir === 'inclusive'){ incl = amt; ex = incl/(1+rate/100); tax = incl-ex; }
     else{ ex = amt; tax = ex*rate/100; incl = ex+tax; }
+    totalEx += ex; totalTax += tax; totalIncl += incl;
     csv += valid + ',' + amt + ',' + ex.toFixed(2) + ',' + tax.toFixed(2) + ',' + incl.toFixed(2) + '\n';
   });
   if(!valid){ ToolBox.showToast('没有可导出的金额（须为 ≥0 的数字）。', 'warning'); return; }
+  csv += '合计,,' + totalEx.toFixed(2) + ',' + totalTax.toFixed(2) + ',' + totalIncl.toFixed(2) + '\n';
   ToolBox.downloadText('增值税批量计算_' + rate + '%_' + Date.now() + '.csv', csv, 'text/csv');
   if(ignored) ToolBox.showToast('已忽略 ' + ignored + ' 行（非数字或负数）', 'warning');
   else ToolBox.showToast(i18nText('toast.msg005'));
@@ -651,6 +713,7 @@ function copyBatchResult(){
   var text = '增值税批量计算（税率' + rate + '%）\n';
   text += '序号\t输入金额\t不含税价\t增值税额\t含税价\n';
   var ignored = 0, valid = 0;
+  var totalEx = 0, totalTax = 0, totalIncl = 0;
   lines.forEach(function(line){
     var amt = __vatParse(line);
     if(!__vatAmountOK(amt)){ ignored++; return; }
@@ -658,9 +721,12 @@ function copyBatchResult(){
     var incl, ex, tax;
     if(dir === 'inclusive'){ incl = amt; ex = incl/(1+rate/100); tax = incl-ex; }
     else{ ex = amt; tax = ex*rate/100; incl = ex+tax; }
+    totalEx += ex; totalTax += tax; totalIncl += incl;
     text += valid + '\t' + amt + '\t' + ex.toFixed(2) + '\t' + tax.toFixed(2) + '\t' + incl.toFixed(2) + '\n';
   });
   if(!valid){ ToolBox.showToast('没有可复制的金额（须为 ≥0 的数字）。', 'warning'); return; }
+  // F-N112：复制文本与 CSV、屏显合计保持同一口径。
+  text += '合计\t\t' + totalEx.toFixed(2) + '\t' + totalTax.toFixed(2) + '\t' + totalIncl.toFixed(2) + '\n';
   if(ignored) text += '已忽略 ' + ignored + ' 行（非数字或负数）\n';
   ToolBox.copyText(text, i18nText());
 }
@@ -685,13 +751,17 @@ document.addEventListener('DOMContentLoaded',function(){
 var __vat_calculator_last=0,__vat_calculator_skip=false,__vat_calculator_timer=null;
 function __vat_calculatorSnap(){
     var out={};
-    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    // F-N111：只快照单笔页签内可见控件。旧版遍历页面全部 input/select/textarea，
+    // 把隐藏的 batchDir / batchRate / 多行 batchInput 也写进历史表与 CSV，
+    // textarea 的换行还会形成跨行单元格。
+    var host=document.getElementById('tab-single');
+    var els=host?host.querySelectorAll('input[id],select[id]'):document.querySelectorAll('input[id],select[id]');
     for(var i=0;i<els.length;i++){
         var e=els[i];
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=String(v).replace(/[\r\n]+/g,' ');
     }
     return out;
 }
@@ -801,16 +871,27 @@ function __vat_calculatorExtras(force){
 function __vat_calculatorExport(){
     if (typeof TBKit === 'undefined') return;
     __vat_calculatorExtras(true);
+    // F-N112：按钮文案是「导出明细 CSV」，旧版却导出 TBKit 自动历史表
+    // （时间 + 输入 + 结果摘要），拿不到当前单笔的四项结果。
+    // 改为导出当前结果区 #singleResult 的 result-item 明细，可见输出零改动。
     try{
-        var box=document.querySelector('#vat_calculatorTable');
-        if(!box||!box.querySelector('tr')){
-            var snap=__vat_calculatorSnap(); var keys=Object.keys(snap);
-            if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
-            __vat_calculatorRender(keys,en?'Result':'结果',en);
+        var box=document.getElementById('singleResult');
+        if(!box) return;
+        var rows=[['项目','数值']];
+        var items=box.querySelectorAll('.result-item');
+        for(var i=0;i<items.length;i++){
+            var lab=items[i].querySelector('.label'), val=items[i].querySelector('.value');
+            var l=lab?(lab.textContent||'').trim():'', v=val?(val.textContent||'').trim():'';
+            if(l||v) rows.push([l,v]);
+        }
+        if(rows.length>1) TBKit.export.csv('vat-calculator-detail.csv',rows);
+        else {
+            // 拒绝态结果区只有一行提示，导出按钮不能点了没反应：
+            // 给一份说明「本次输入无效」的可留档文件，且不含误导性的金额明细。
+            var t=(box.textContent||'').replace(/\s+/g,' ').trim();
+            if(t) TBKit.export.csv('vat-calculator-invalid.csv',[['项目','说明'],['无效输入',t]]);
         }
     }catch(e){}
-    try { TBKit.util.exportTable('#vat_calculatorTable','vat-calculator.csv'); } catch(e){}
 }
 function __vat_calculatorPresets(){
     if (typeof TBKit === 'undefined') return;

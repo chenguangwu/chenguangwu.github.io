@@ -55,6 +55,19 @@ const CASES = [
     ref: "第121批 F-N94 提前还款「导出明细 CSV」：旧版把 TBKit 自动历史表 #mortgage_prepaymentTable 传给 exportTable，不含两方案明细。修复后导出当前结果区 #result 的逐行明细并调用 TBKit.export.csv，文件名 -detail.csv。用例桩住 result 只有 1 段 + 1 行对比表 ⇒ rows=3；默认态不执行 clicks、无探针串 ⇒ 零逃生。"
   },
   {
+    slug: "finance/vat-calculator",
+    clicks: ["var __cap=null;TBKit={util:{isEn:function(){return false;},exportTable:function(s,n){__cap={n:n};},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return [];},last:function(){return null;},record:function(){},mount:function(){}},preset:{bar:function(){}},export:{csv:function(n,r){__cap={name:n,rows:r};}}};var __og=document.getElementById;document.getElementById=function(id){if(id==='singleResult')return {textContent:'不含税价 2,358.49',querySelectorAll:function(q){if(String(q).indexOf('.result-item')>=0)return [{querySelector:function(s){return {textContent:s==='.label'?'不含税价':'2,358.49'};}}];return [];}};return __og(id);};__vat_calculatorExport();document.getElementById=__og;document.getElementById('__tbProbe').textContent='VATEX '+(__cap&&__cap.name?__cap.name:'NA')+' n='+(__cap&&__cap.rows?__cap.rows.length:0);"],
+    expect: ["VATEX vat-calculator-detail.csv n=2"],
+    ref: "第122批 F-N112 增值税单笔「导出明细 CSV」：旧版把 TBKit 自动历史表 #vat_calculatorTable 传给 exportTable，不含当前单笔四项结果。修复后导出 #singleResult 的 result-item 明细并走 TBKit.export.csv，文件名 -detail.csv。用例桩住结果区只有 1 项明细 ⇒ rows=2（表头 + 1 行）；默认态不执行 clicks、无探针串 ⇒ 零逃生。"
+  },
+  {
+    slug: "finance/vat-calculator",
+    inputs: { batchInput: "1000\nabc\n5000", batchRate: "13" },
+    clicks: ["var __f=null;ToolBox={downloadText:function(n,t){__f=String(t);},showToast:function(){},copyText:function(){},formatNumber:function(v,d){return String(v);}};exportBatchCSV();document.getElementById('__tbProbe').textContent='VATSUM '+(__f&&__f.indexOf('合计,,5309.73,690.27,6000.00')>=0?'OK':'BAD');"],
+    expect: ["VATSUM OK"],
+    ref: "第122批 F-N112 批量 CSV 补合计：注入 3 行含 1 行非数字（abc 被忽略），有效两行 1000/5000 按含税 13% 倒推 ⇒ 不含税合计 1000/1.13+5000/1.13 = 5309.73、税额 690.27、含税 6000.00。旧版 exportBatchCSV 只逐行写明细、无合计 ⇒ 探针 BAD。默认批量 5 行合计 7,522.12 不含该串 ⇒ 强判别。"
+  },
+  {
     "slug": "finance/npv-calculator",
     "inputs": {"rate": "8", "init": "100"},
     "clicks": ["updateCF(0, 230)", "updateCF(1, -132)", "updateCF(2, 0)", "updateCF(3, 0)"],
