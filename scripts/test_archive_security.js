@@ -349,8 +349,32 @@ function checkIndustryProfitMargins() {
   dom.window.close();
 }
 
+function checkPositionSizingMissingInput() {
+  const page = fs.readFileSync(path.join(root, 'tools/securities/position-sizing.html'), 'utf8');
+  const scripts = [...page.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]);
+  const dom = new JSDOM(page.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ''), { url: 'https://example.test/', runScripts: 'dangerously' });
+  const w = dom.window, doc = w.document, records = [], charts = [], exports = [];
+  w.ToolBox = { setResult: (id, value) => { doc.getElementById(id).innerHTML = value; }, formatNumber: n => String(n) };
+  w.TBKit = { util: { isEn: () => false, diffBox: () => {}, exportCsv: (...args) => exports.push(args) }, matrix: { table: () => {} }, chart: { line: (_, cfg) => charts.push(cfg) }, preset: { bar: () => {} }, history: { list: () => records, last: () => records[0]?.d, record: d => records.unshift({t: Date.now(), d}), mount: () => {} } };
+  w.eval(scripts.find(s => s.includes('function __tbInputGuardCore')));
+  w.eval(scripts.find(s => s.includes('function __position_sizingExtras')));
+  w.calc();
+  assert.ok(doc.getElementById('statGrid').textContent.includes('凯利比例'), '有效输入应生成结果');
+  w.__position_sizing_last = 0;
+  doc.getElementById('winRate').value = '';
+  w.calc();
+  assert.ok(doc.getElementById('result').textContent.includes('请填写'));
+  assert.strictEqual(records[0].d.__tbScore, 0, '缺填历史应为未通过');
+  assert.deepStrictEqual(Array.from(charts.at(-1).series[0].data), [1, 0], '趋势应记录失败');
+  w.__position_sizingExport();
+  assert.ok(exports[0][1].some(row => row[0] === '当前结果' && row[1].includes('请填写')), '导出应包含缺填提示');
+  assert.strictEqual(doc.getElementById('statGrid').textContent.trim(), '', '缺填后不得保留旧结论');
+  assert.ok(!exports[0][1].some(row => row[0] === '明细'), '缺填导出不得包含旧结论');
+  dom.window.close();
+}
+
 let failed = false;
-for (const [name, test] of [['行业利润率', checkIndustryProfitMargins], ['字数统计说明', checkWordCounterDescription], ['银行卡输入', checkCardInput], ['名片二维码超限', checkVcardOverflow], ['基金定投时点', checkFundTiming], ['退休现金流', checkRetirementCashFlow], ['颜色历史', checkColorHistory], ['工序排期', checkSchedule], ['SIN 输入', checkSinValidation], ['邮编输入', checkPostalValidation], ['CURP 输入', () => checkIdValidation('curp', 'CURP_BASE', 'BOXW310820HMNERN16', 'BOXW310820HMNERN160')], ['DNI 输入', () => checkIdValidation('dni', 'DNI_LETTERS', '12345678Z', '12345678A')], ['投资回报历史', checkInvestmentHistory], ['期权盈亏', checkOptionCalculator]]) {
+for (const [name, test] of [['仓位缺填历史', checkPositionSizingMissingInput], ['行业利润率', checkIndustryProfitMargins], ['字数统计说明', checkWordCounterDescription], ['银行卡输入', checkCardInput], ['名片二维码超限', checkVcardOverflow], ['基金定投时点', checkFundTiming], ['退休现金流', checkRetirementCashFlow], ['颜色历史', checkColorHistory], ['工序排期', checkSchedule], ['SIN 输入', checkSinValidation], ['邮编输入', checkPostalValidation], ['CURP 输入', () => checkIdValidation('curp', 'CURP_BASE', 'BOXW310820HMNERN16', 'BOXW310820HMNERN160')], ['DNI 输入', () => checkIdValidation('dni', 'DNI_LETTERS', '12345678Z', '12345678A')], ['投资回报历史', checkInvestmentHistory], ['期权盈亏', checkOptionCalculator]]) {
   try { test(); console.log('PASS', name); } catch (err) { failed = true; console.error('FAIL', name, err.message); }
 }
 if (failed) process.exitCode = 1;
