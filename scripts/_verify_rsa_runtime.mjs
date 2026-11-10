@@ -31,6 +31,8 @@ function check(name, ok, detail) {
 
 const recs = []; // 与 js/tool-kit.js 一致：条目形如 { t, d }，新记录 unshift 到最前
 const charts = [];
+const tables = [];
+const exports = [];
 const toasts = [];
 const vc = new VirtualConsole();
 vc.on("jsdomError", (e) => {
@@ -43,16 +45,27 @@ const dom = new JSDOM(readFileSync(PAGE, "utf8"), {
   pretendToBeVisual: true,
   virtualConsole: vc,
   beforeParse(w) {
-    try {
-      Object.defineProperty(w, "crypto", { value: webcrypto, configurable: true, writable: true });
-    } catch {
-      w.crypto.subtle = webcrypto.subtle;
-    }
+    w.TextEncoder = TextEncoder;
+    w.TextDecoder = TextDecoder;
+    const subtle = new Proxy(webcrypto.subtle, {
+      get(target, name) {
+        const fn = target[name];
+        if (typeof fn !== "function") return fn;
+        return (...args) => {
+          const positions = { importKey: [1], encrypt: [2], decrypt: [2], sign: [2], verify: [2, 3] }[name] || [];
+          for (const i of positions) {
+            if (args[i] instanceof w.ArrayBuffer) args[i] = Buffer.from(new w.Uint8Array(args[i]));
+          }
+          return fn.apply(target, args);
+        };
+      },
+    });
+    Object.defineProperty(w, "crypto", { value: { subtle, getRandomValues: webcrypto.getRandomValues.bind(webcrypto) }, configurable: true });
     w.i18nText = (k) => `MSG:${k}`;
     w.ToolBox = { showToast: (m, t) => toasts.push(`${t || ""}|${m}`), copyText: () => {} };
     w.TBKit = {
-      util: { isEn: () => false, diffBox: () => {}, exportTable: () => {} },
-      matrix: { table: () => {} },
+      util: { isEn: () => false, diffBox: () => {}, exportTable: (...args) => exports.push(args) },
+      matrix: { table: (_sel, data) => tables.push(data) },
       chart: { line: (_sel, cfg) => charts.push(cfg) },
       preset: { bar: () => {} },
       history: {
@@ -81,7 +94,7 @@ const signRec = recs[0] ? recs[0].d : null;
 check(
   "N96 签名成功后写入历史，结果列含签名内容",
   recs.length === 1 && signRec && /签名已生成/.test(String(signRec["结果"] || "")),
-  `记录数=${recs.length}`
+  `记录数=${recs.length} toast=${JSON.stringify(toasts.slice(-1))}`
 );
 check(
   "N96 历史条目不含 PEM 密钥明文",
@@ -116,6 +129,25 @@ check(
   !!lastChart && Array.isArray(lastChart.series[0].data) && lastChart.series[0].data.every((v) => typeof v === "number" && v > 0),
   lastChart ? `series=${JSON.stringify(lastChart.series[0])}` : "未绘制"
 );
+
+// 连续真实加解密：明文中的失败词不代表解密失败。
+g("tab-sign").classList.remove("active");
+g("encInput").value = "FAILED";
+await w.doEncrypt();
+g("encInput").value = g("encResult").textContent;
+await w.doDecrypt();
+check("二次复核 RSA 解密明文 FAILED 记录通过", g("encResult").textContent === "FAILED" && recs[0]?.d?.__tbScore === 1, `结果=${g("encResult").textContent} score=${recs[0]?.d?.__tbScore}`);
+w.__rsaExport();
+check("二次复核 RSA 导出表包含正确结论", tables.at(-1)?.rows[0]?.includes("通过") && tables.at(-1)?.rows[0]?.includes("FAILED") && exports.at(-1)?.[0] === "#rsaTable");
+g("encInput").value = "请输入文本";
+await w.doEncrypt();
+g("encInput").value = g("encResult").textContent;
+await w.doDecrypt();
+check("二次复核 RSA 提示词明文仍入历史", recs[0]?.d?.["结果"] === "请输入文本" && recs[0]?.d?.__tbScore === 1);
+g("tab-sign").classList.add("active");
+g("signInput").value = "tampered";
+await w.doVerify();
+check("二次复核 RSA 验签失败仍记录未通过", recs[0]?.d?.__tbScore === 0, `score=${recs[0]?.d?.__tbScore}`);
 
 // ---------------------------------------------------------------- 汇总
 const failed = results.filter((r) => !r.ok);

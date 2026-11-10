@@ -482,7 +482,7 @@ async function doDecrypt() {
     const pt = await crypto.subtle.decrypt({ name: 'RSA-OAEP' }, privKey, ctBuf);
     document.getElementById('encResult').textContent = new TextDecoder().decode(pt);
     __rsaLastBytes = pt.byteLength;
-    try{ __rsaExtras(true); }catch(e3){}
+    try{ __rsaExtras(true, true); }catch(e3){}
     ToolBox.showToast(i18nText('toast.msg586'));
   } catch(e) { ToolBox.showToast('解密失败: ' + e.message, 'error'); }
 }
@@ -584,24 +584,18 @@ function __rsaSnap(){
     }
     return out;
 }
-function __rsaResText(){
+function __rsaResText(decryptSuccess){
     var signTab=document.getElementById('tab-sign');
     var onSign=!!(signTab&&signTab.classList&&signTab.classList.contains('active'));
     var r=document.getElementById(onSign?'signResult':'encResult');
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
-    if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
+    if(!t || (!decryptSuccess && (t==='--'||t==='—'||t==='-'))) return '';
+    if(!decryptSuccess && /^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
 function __rsaScore(t){
     var s=String(t||'');
-    // F-N189：解密所得明文可能恰好是 FAILED / 错误 等业务词，不能仅凭文本关键词判失败。
-    // 解密结果与用户输入明文一致且有实际字节数，即为真实成功路径。
-    if(typeof __rsaLastBytes==='number'&&__rsaLastBytes>0){
-      var __inp=document.getElementById('encInput');
-      if(__inp&&s===String(__inp.value||'').slice(0,80)) return 1;
-    }
     if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
@@ -650,14 +644,14 @@ function __rsaRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __rsaExtras(force){
+function __rsaExtras(force, decryptSuccess){
     if (typeof TBKit === 'undefined') return;
     if (__rsa_skip) return;
     var snap=__rsaSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
     if(keys.length>12) keys=keys.slice(0,12);
-    var res=__rsaResText();
+    var res=__rsaResText(decryptSuccess);
     if(!res) return;
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
@@ -677,7 +671,7 @@ function __rsaExtras(force){
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
     if(typeof __rsaLastBytes==='number'&&__rsaLastBytes>0) rec['__bytes']=__rsaLastBytes;
-    rec.__tbScore=__rsaScore(res);
+    rec.__tbScore=decryptSuccess ? 1 : __rsaScore(res);
     TBKit.history.record(rec);
     __rsaRender(keys,rk,en);
 }

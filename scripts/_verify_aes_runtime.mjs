@@ -163,6 +163,30 @@ check(
   `snapshot.password=${JSON.stringify(snap.password)}`
 );
 
+// 连续真实加解密应各写一条历史。
+const history = [];
+const tables = [];
+const exports = [];
+w.TBKit = {
+  util: { isEn: () => false, diffBox: () => {}, exportTable: (...args) => exports.push(args) },
+  matrix: { table: (_sel, data) => tables.push(data) }, chart: { line: () => {} }, preset: { bar: () => {} },
+  history: { list: () => history, last: () => history[0]?.d, record: d => history.unshift({ t: Date.now(), d }), mount: () => {} },
+};
+set("input", "Hello AES");
+await w.encrypt();
+set("input", g("output").value);
+await w.decrypt();
+check("二次复核 AES 连续加密解密均写入历史", g("output").value === "Hello AES" && history.length === 2 && history[0].d["结果"] === "Hello AES", `记录数=${history.length}`);
+w.__aes_encryptorExport();
+check("二次复核 AES 导出表包含两次结果", tables.at(-1)?.rows.length === 2 && tables.at(-1)?.rows[0]?.includes("Hello AES") && exports.at(-1)?.[0] === "#aes_encryptorTable");
+set("input", "");
+await w.encrypt();
+check("二次复核 AES 空输入不写旧结果", history.length === 2, `记录数=${history.length}`);
+set("pkcs7Padding", false);
+set("input", "not-a-block");
+await w.encrypt();
+check("二次复核 AES 填充错误不写旧结果", history.length === 2, `记录数=${history.length}`);
+
 // ---------------------------------------------------------------- 汇总
 const failed = results.filter((r) => !r.ok);
 console.log(`\n==== ${results.length - failed.length}/${results.length} 通过 ====`);
