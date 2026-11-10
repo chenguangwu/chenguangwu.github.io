@@ -161,8 +161,56 @@ function checkInvestmentHistory() {
   dom.window.close();
 }
 
+function checkOptionCalculator() {
+  const page = fs.readFileSync(path.join(root, 'tools/finance/option-profit-calculator.html'), 'utf8');
+  const scripts = [...page.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]);
+  const main = scripts.find(s => s.includes("var currentType = 'call'"));
+  const extras = scripts.find(s => s.includes('function __option_profit_calculatorExtras()'));
+  const dom = new JSDOM(page.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ''), { url: 'https://example.test/tools/finance/option-profit-calculator.html', runScripts: 'dangerously' });
+  const { document } = dom.window;
+  let clears = 0, exports = 0;
+  const ctx = new Proxy({}, { get: (_, key) => key === 'clearRect' ? () => { clears++; } : key === 'createLinearGradient' ? () => ({ addColorStop() {} }) : () => {} });
+  dom.window.HTMLCanvasElement.prototype.getContext = () => ctx;
+  dom.window.ToolBox = { formatNumber: (n, digits) => Number(n).toFixed(digits), showToast: () => {} };
+  dom.window.i18nText = () => '';
+  dom.window.resolveCanvasColor = (_, fallback) => fallback;
+  dom.window.eval(fs.readFileSync(path.join(root, 'js/tool-kit.js'), 'utf8'));
+  dom.window.eval(main);
+  dom.window.eval(extras);
+  const kit = dom.window.TBKit;
+  kit.util.exportTable = () => { exports++; };
+  const set = (id, value) => { document.getElementById(id).value = value; };
+  set('strike', '100'); set('premium', '5'); set('s0', '110'); set('contracts', '2'); set('mult', '0.5'); set('fee', '2');
+  dom.window.calc();
+  assert.strictEqual(dom.window.currentResult.multiplier, 0.5, '正数乘数不可擅自改写');
+  assert.strictEqual(dom.window.currentResult.totalProfit, -3, '按乘数和手续费计算总盈亏');
+  const cases = [['call','buy','最大亏损：¥13.00'], ['put','buy','最大盈利：¥87.00'], ['call','sell','最大盈利：¥-3.00'], ['put','sell','最大亏损：¥103.00']];
+  for (const [type, side, expected] of cases) {
+    dom.window.switchType(type, side);
+    assert.ok(document.getElementById('res').textContent.includes(expected), type + ' ' + side);
+  }
+  set('mult', '100'); dom.window.calc();
+  kit.history.clear(); dom.window.localStorage.removeItem('option_calc_history');
+  for (const [id, value] of [['contracts','0'], ['contracts',''], ['mult','0'], ['mult',''], ['premium','0'], ['fee','-1']]) {
+    set('contracts','2'); set('mult','100'); set('premium','5'); set('fee','2'); dom.window.calc();
+    const previousClears = clears;
+    const before = kit.history.list().length;
+    set(id, value); dom.window.__option_profit_calculator_last = 0; dom.window.calc();
+    assert.strictEqual(dom.window.currentResult, null, '非法态应清空缓存');
+    assert.strictEqual(document.getElementById('statGrid').textContent.trim(), '', '非法态应清空统计');
+    assert.ok(clears > previousClears, '非法态应清空图表');
+    assert.strictEqual(kit.history.list().length, before, '非法态不得写入历史');
+    dom.window.saveHistory(); dom.window.__option_profit_calculatorExport();
+    assert.strictEqual(dom.window.localStorage.getItem('option_calc_history'), null, '非法态不得保存旧结果');
+    assert.strictEqual(exports, 0, '非法态不得导出旧结果');
+  }
+  set('fee','2'); dom.window.calc();
+  assert.ok(dom.window.currentResult, '恢复合法输入后应重新计算');
+  dom.window.close();
+}
+
 let failed = false;
-for (const [name, test] of [['颜色历史', checkColorHistory], ['工序排期', checkSchedule], ['SIN 输入', checkSinValidation], ['邮编输入', checkPostalValidation], ['CURP 输入', () => checkIdValidation('curp', 'CURP_BASE', 'BOXW310820HMNERN16', 'BOXW310820HMNERN160')], ['DNI 输入', () => checkIdValidation('dni', 'DNI_LETTERS', '12345678Z', '12345678A')], ['投资回报历史', checkInvestmentHistory]]) {
+for (const [name, test] of [['颜色历史', checkColorHistory], ['工序排期', checkSchedule], ['SIN 输入', checkSinValidation], ['邮编输入', checkPostalValidation], ['CURP 输入', () => checkIdValidation('curp', 'CURP_BASE', 'BOXW310820HMNERN16', 'BOXW310820HMNERN160')], ['DNI 输入', () => checkIdValidation('dni', 'DNI_LETTERS', '12345678Z', '12345678A')], ['投资回报历史', checkInvestmentHistory], ['期权盈亏', checkOptionCalculator]]) {
   try { test(); console.log('PASS', name); } catch (err) { failed = true; console.error('FAIL', name, err.message); }
 }
 if (failed) process.exitCode = 1;
