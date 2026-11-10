@@ -693,4 +693,42 @@ for (const [file, prefix, input, error] of [
   check('恢复历史切换对应方法并恢复参数',w.currentMethod==='price' && doc.getElementById('p-rate').value==='8');
   w.close();
 }
+// Break-even validity follows parameter validation, not product names or summary text.
+{
+  const downloads=[],trends=[];
+  const dom=new JSDOM(readFileSync('tools/finance/break-even-calculator.html','utf8'),{
+    url:'https://x.test/tools/finance/break-even-calculator.html',runScripts:'dangerously',pretendToBeVisual:true,
+    virtualConsole:new VirtualConsole(),beforeParse(w){
+      w.ToolBox={showToast(){},escHtml:s=>String(s).replace(/[&<>"']/g,''),formatNumber:(v,d)=>Number(v).toFixed(d)};w.i18nText=k=>k;
+      w.Blob=class{constructor(parts){this.text=parts.join('');}};
+      w.URL.createObjectURL=blob=>{downloads.push(blob.text);return 'blob:test';};
+      w.URL.revokeObjectURL=()=>{};w.HTMLAnchorElement.prototype.click=function(){};
+      w.HTMLCanvasElement.prototype.getContext=()=>({clearRect(){}});
+      w.eval(readFileSync('js/tool-kit.js','utf8'));
+      const line=w.TBKit.chart.line;
+      w.TBKit.chart.line=(host,config)=>{trends.push(Array.from(config.series[0].data));return line(host,config);};
+    }
+  });
+  const w=dom.window,doc=w.document,price=doc.getElementById('price');
+  await new Promise(resolve=>w.addEventListener('load',resolve));
+  const check=(label,ok)=>{console.log(`${ok?'PASS':'FAIL'} break-even ${label}`);if(!ok)failed=true;};
+  const calculate=value=>{price.value=value;w.calc();};
+  w.TBKit.history.clear();w.eval('__break_even_calculator_last=0');
+  doc.getElementById('pname').value='失败项目';calculate('50');calculate('20');
+  doc.querySelector('[onclick="__break_even_calculatorExport()"]')?.click();
+  check('无效参数不触发导出',downloads.length===0);
+  await new Promise(resolve=>setTimeout(resolve,1100));
+  let records=w.TBKit.history.list();
+  check('有效产品名和无平衡点分别记录通过及失败',records.length===2 && records[1].d.__tbScore===1 && records[0].d.__tbScore===0);
+  check('趋势反映计算状态',trends.some(t=>t.join(',')==='1,0'));
+  calculate('');await new Promise(resolve=>setTimeout(resolve,1100));
+  records=w.TBKit.history.list();
+  check('缺填参数保存为失败快照',records.length===3 && records[0].d.price==='' && records[0].d.__tbScore===0);
+  calculate('60');doc.querySelector('#break_even_calculatorHist .tbk-history-item')?.click();
+  await new Promise(resolve=>setTimeout(resolve,1100));
+  check('恢复空字段并取消待保存输入',price.value==='' && w.TBKit.history.list().length===3);
+  calculate('50');calculate('60');doc.querySelector('[onclick="__break_even_calculatorExport()"]')?.click();
+  check('有效快速导出包含最新输入',w.TBKit.history.list()[0]?.d.price==='60' && downloads[0]?.includes('60'));
+  w.close();
+}
 process.exit(failed ? 1 : 0);
