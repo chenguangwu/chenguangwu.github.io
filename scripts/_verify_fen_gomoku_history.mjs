@@ -731,4 +731,36 @@ for (const [file, prefix, input, error] of [
   check('有效快速导出包含最新输入',w.TBKit.history.list()[0]?.d.price==='60' && downloads[0]?.includes('60'));
   w.close();
 }
+// IRR history distinguishes calculated results from no-solution and missing flows.
+{
+  const downloads=[],trends=[];
+  const dom=new JSDOM(readFileSync('tools/finance/calc-2.html','utf8'),{
+    url:'https://x.test/tools/finance/calc-2.html',runScripts:'dangerously',pretendToBeVisual:true,
+    virtualConsole:new VirtualConsole(),beforeParse(w){
+      w.ToolBox={showToast(){},escHtml:s=>String(s),formatNumber:(v,d)=>Number(v).toFixed(d)};w.i18nText=k=>k;
+      w.Blob=class{constructor(parts){this.text=parts.join('');}};
+      w.URL.createObjectURL=blob=>{downloads.push(blob.text);return 'blob:test';};
+      w.URL.revokeObjectURL=()=>{};w.HTMLAnchorElement.prototype.click=function(){};
+      w.eval(readFileSync('js/tool-kit.js','utf8'));
+      const line=w.TBKit.chart.line;
+      w.TBKit.chart.line=(host,config)=>{trends.push(Array.from(config.series[0].data));return line(host,config);};
+    }
+  });
+  const w=dom.window,doc=w.document,flows=doc.getElementById('flows');
+  await new Promise(resolve=>w.addEventListener('load',resolve));
+  const check=(label,ok)=>{console.log(`${ok?'PASS':'FAIL'} calc-2 ${label}`);if(!ok)failed=true;};
+  const calculate=value=>{flows.value=value;w.calc();};
+  w.TBKit.history.clear();w.eval('__calc_2_last=0');
+  calculate('30000,30000,30000,30000,30000');calculate('-1,-1');doc.querySelector('[onclick="__calc_2Export()"]')?.click();
+  let records=w.TBKit.history.list();
+  check('快速导出包含无解状态',records.length===2 && records[1].d.__tbScore===1 && records[0].d.__tbScore===0 && downloads[0]?.includes('未通过'));
+  check('趋势反映计算状态',trends.some(t=>t.join(',')==='1,0'));
+  calculate('');await new Promise(resolve=>setTimeout(resolve,1100));
+  records=w.TBKit.history.list();
+  check('空现金流记录失败',records.length===3 && records[0].d.flows==='' && records[0].d.__tbScore===0);
+  calculate('50000');doc.querySelector('#calc_2Hist .tbk-history-item')?.click();
+  await new Promise(resolve=>setTimeout(resolve,1100));
+  check('恢复空现金流并取消待处理输入',flows.value==='' && w.TBKit.history.list().length===3);
+  w.close();
+}
 process.exit(failed ? 1 : 0);
