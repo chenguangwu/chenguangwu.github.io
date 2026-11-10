@@ -272,8 +272,30 @@ function checkFundTiming() {
   dom.window.close();
 }
 
+function checkVcardOverflow() {
+  const page = fs.readFileSync(path.join(root, 'tools/finance/vcard-qr.html'), 'utf8');
+  const main = [...page.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]).find(s => s.includes('function buildVcard()'));
+  const dom = new JSDOM(page.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ''), { url: 'https://example.test/', runScripts: 'dangerously' });
+  dom.window.HTMLCanvasElement.prototype.getContext = () => ({ fillRect() {} });
+  dom.window.eval(fs.readFileSync(path.join(root, 'js/qrcode.js'), 'utf8'));
+  dom.window.eval(main);
+  const { document } = dom.window;
+  document.getElementById('fn').value = '李四';
+  dom.window.generate();
+  assert.ok(document.querySelector('#output canvas'), '正常名片应生成二维码');
+  document.getElementById('fn').value = '林'.repeat(3000);
+  assert.doesNotThrow(() => dom.window.generate(), '超出容量应得到明确提示');
+  assert.strictEqual(document.querySelector('#output canvas'), null, '超限时不得保留旧二维码');
+  assert.ok(document.getElementById('output').textContent.includes('内容过长'), '应提示容量超限');
+  assert.ok(document.getElementById('output').textContent.includes('林'.repeat(20)), '应保留当前名片文本');
+  dom.window.qrcode = undefined;
+  dom.window.generate();
+  assert.ok(document.getElementById('output').textContent.includes('编码库未加载'), '缺库提示应与超限区分');
+  dom.window.close();
+}
+
 let failed = false;
-for (const [name, test] of [['基金定投时点', checkFundTiming], ['退休现金流', checkRetirementCashFlow], ['颜色历史', checkColorHistory], ['工序排期', checkSchedule], ['SIN 输入', checkSinValidation], ['邮编输入', checkPostalValidation], ['CURP 输入', () => checkIdValidation('curp', 'CURP_BASE', 'BOXW310820HMNERN16', 'BOXW310820HMNERN160')], ['DNI 输入', () => checkIdValidation('dni', 'DNI_LETTERS', '12345678Z', '12345678A')], ['投资回报历史', checkInvestmentHistory], ['期权盈亏', checkOptionCalculator]]) {
+for (const [name, test] of [['名片二维码超限', checkVcardOverflow], ['基金定投时点', checkFundTiming], ['退休现金流', checkRetirementCashFlow], ['颜色历史', checkColorHistory], ['工序排期', checkSchedule], ['SIN 输入', checkSinValidation], ['邮编输入', checkPostalValidation], ['CURP 输入', () => checkIdValidation('curp', 'CURP_BASE', 'BOXW310820HMNERN16', 'BOXW310820HMNERN160')], ['DNI 输入', () => checkIdValidation('dni', 'DNI_LETTERS', '12345678Z', '12345678A')], ['投资回报历史', checkInvestmentHistory], ['期权盈亏', checkOptionCalculator]]) {
   try { test(); console.log('PASS', name); } catch (err) { failed = true; console.error('FAIL', name, err.message); }
 }
 if (failed) process.exitCode = 1;
