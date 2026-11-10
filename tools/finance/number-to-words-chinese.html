@@ -379,7 +379,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __number_to_words_chinese_last=0,__number_to_words_chinese_skip=false;
+var __number_to_words_chinese_last=0,__number_to_words_chinese_skip=false,__number_to_words_chinese_timer=null;
 function __number_to_words_chineseSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -388,7 +388,7 @@ function __number_to_words_chineseSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -400,9 +400,16 @@ function __number_to_words_chineseResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __number_to_words_chineseFullResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __number_to_words_chineseScore(t){
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __number_to_words_chineseTime(t){
@@ -425,7 +432,7 @@ function __number_to_words_chineseRender(keys,rk,en){
         TBKit.matrix.table('#number_to_words_chineseTable',{head:head,rows:rows});
         TBKit.util.diffBox('#number_to_words_chineseDiff');
         TBKit.history.mount('#number_to_words_chineseHist',function(rec){
-            __number_to_words_chinese_skip=true;
+            __number_to_words_chinese_skip=true;clearTimeout(__number_to_words_chinese_timer);__number_to_words_chinese_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -449,9 +456,11 @@ function __number_to_words_chineseRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __number_to_words_chineseExtras(){
+function __number_to_words_chineseExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__number_to_words_chinese_skip) return;
+    clearTimeout(__number_to_words_chinese_timer);
+    __number_to_words_chinese_timer=null;
     var snap=__number_to_words_chineseSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -461,7 +470,10 @@ function __number_to_words_chineseExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__number_to_words_chinese_last<1000) return;
+    if(!force && now-__number_to_words_chinese_last<1000){
+        __number_to_words_chinese_timer=setTimeout(function(){__number_to_words_chineseExtras(true);},1000-(now-__number_to_words_chinese_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -475,12 +487,13 @@ function __number_to_words_chineseExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__number_to_words_chineseScore(res);
+    rec.__tbScore=__number_to_words_chineseScore(__number_to_words_chineseFullResText());
     TBKit.history.record(rec);
     __number_to_words_chineseRender(keys,rk,en);
 }
 function __number_to_words_chineseExport(){
     if (typeof TBKit === 'undefined') return;
+    __number_to_words_chineseExtras(true);
     try{
         var box=document.querySelector('#number_to_words_chineseTable');
         if(!box||!box.querySelector('tr')){

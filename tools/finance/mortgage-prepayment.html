@@ -405,7 +405,7 @@ function copyResult() {
 
 calc();
 
-var __mortgage_prepayment_last=0,__mortgage_prepayment_skip=false;
+var __mortgage_prepayment_last=0,__mortgage_prepayment_skip=false,__mortgage_prepayment_timer=null;
 function __mortgage_prepaymentSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -414,7 +414,7 @@ function __mortgage_prepaymentSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -426,9 +426,16 @@ function __mortgage_prepaymentResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __mortgage_prepaymentFullResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __mortgage_prepaymentScore(t){
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __mortgage_prepaymentTime(t){
@@ -451,7 +458,7 @@ function __mortgage_prepaymentRender(keys,rk,en){
         TBKit.matrix.table('#mortgage_prepaymentTable',{head:head,rows:rows});
         TBKit.util.diffBox('#mortgage_prepaymentDiff');
         TBKit.history.mount('#mortgage_prepaymentHist',function(rec){
-            __mortgage_prepayment_skip=true;
+            __mortgage_prepayment_skip=true;clearTimeout(__mortgage_prepayment_timer);__mortgage_prepayment_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -475,9 +482,11 @@ function __mortgage_prepaymentRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __mortgage_prepaymentExtras(){
+function __mortgage_prepaymentExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__mortgage_prepayment_skip) return;
+    clearTimeout(__mortgage_prepayment_timer);
+    __mortgage_prepayment_timer=null;
     var snap=__mortgage_prepaymentSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -487,7 +496,10 @@ function __mortgage_prepaymentExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__mortgage_prepayment_last<1000) return;
+    if(!force && now-__mortgage_prepayment_last<1000){
+        __mortgage_prepayment_timer=setTimeout(function(){__mortgage_prepaymentExtras(true);},1000-(now-__mortgage_prepayment_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -501,12 +513,13 @@ function __mortgage_prepaymentExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__mortgage_prepaymentScore(res);
+    rec.__tbScore=__mortgage_prepaymentScore(__mortgage_prepaymentFullResText());
     TBKit.history.record(rec);
     __mortgage_prepaymentRender(keys,rk,en);
 }
 function __mortgage_prepaymentExport(){
     if (typeof TBKit === 'undefined') return;
+    __mortgage_prepaymentExtras(true);
     try{
         var box=document.querySelector('#mortgage_prepaymentTable');
         if(!box||!box.querySelector('tr')){

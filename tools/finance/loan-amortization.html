@@ -909,7 +909,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __loan_amortization_last=0,__loan_amortization_skip=false;
+var __loan_amortization_last=0,__loan_amortization_skip=false,__loan_amortization_timer=null;
 function __loan_amortizationSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -918,7 +918,7 @@ function __loan_amortizationSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?'1':'0'):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -930,9 +930,18 @@ function __loan_amortizationResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __loan_amortizationFullResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __loan_amortizationScore(t){
+    var la=parseFloat(document.getElementById('loanAmount').value);
+    if(!isFinite(la)||la<=0||/请填写|贷款金额须/.test(String(t||''))) return 0;
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __loan_amortizationTime(t){
@@ -955,7 +964,7 @@ function __loan_amortizationRender(keys,rk,en){
         TBKit.matrix.table('#loan_amortizationTable',{head:head,rows:rows});
         TBKit.util.diffBox('#loan_amortizationDiff');
         TBKit.history.mount('#loan_amortizationHist',function(rec){
-            __loan_amortization_skip=true;
+            __loan_amortization_skip=true;clearTimeout(__loan_amortization_timer);__loan_amortization_timer=null;
             try{
                 // 恢复前先清空未记录的勾选：旧记录是稀疏的（只存勾选中的项），
                 // 不清理会把当前多勾的权限带过来（600→777→恢复 600 仍显示 777）。
@@ -985,9 +994,11 @@ function __loan_amortizationRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __loan_amortizationExtras(){
+function __loan_amortizationExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__loan_amortization_skip) return;
+    clearTimeout(__loan_amortization_timer);
+    __loan_amortization_timer=null;
     var snap=__loan_amortizationSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -997,7 +1008,10 @@ function __loan_amortizationExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__loan_amortization_last<1000) return;
+    if(!force && now-__loan_amortization_last<1000){
+        __loan_amortization_timer=setTimeout(function(){__loan_amortizationExtras(true);},1000-(now-__loan_amortization_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -1011,12 +1025,13 @@ function __loan_amortizationExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__loan_amortizationScore(res);
+    rec.__tbScore=__loan_amortizationScore(__loan_amortizationFullResText());
     TBKit.history.record(rec);
     __loan_amortizationRender(keys,rk,en);
 }
 function __loan_amortizationExport(){
     if (typeof TBKit === 'undefined') return;
+    __loan_amortizationExtras(true);
     try{
         var box=document.querySelector('#loan_amortizationTable');
         if(!box||!box.querySelector('tr')){

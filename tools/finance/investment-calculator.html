@@ -327,7 +327,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __investment_calculator_last=0,__investment_calculator_skip=false;
+var __investment_calculator_last=0,__investment_calculator_skip=false,__investment_calculator_timer=null;
 function __investment_calculatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -336,7 +336,7 @@ function __investment_calculatorSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -348,9 +348,19 @@ function __investment_calculatorResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __investment_calculatorFullResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __investment_calculatorScore(t){
+    var ini=parseFloat(document.getElementById('initial').value);
+    if(!isFinite(ini)||ini<=0) return 0;
+    if(/请输入合理的正数|计算结果含无效值/.test(String(t||''))) return 0;
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __investment_calculatorTime(t){
@@ -373,7 +383,7 @@ function __investment_calculatorRender(keys,rk,en){
         TBKit.matrix.table('#investment_calculatorTable',{head:head,rows:rows});
         TBKit.util.diffBox('#investment_calculatorDiff');
         TBKit.history.mount('#investment_calculatorHist',function(rec){
-            __investment_calculator_skip=true;
+            __investment_calculator_skip=true;clearTimeout(__investment_calculator_timer);__investment_calculator_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -397,9 +407,12 @@ function __investment_calculatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __investment_calculatorExtras(){
-    if (!investmentResultValid || typeof TBKit === 'undefined') return;
+function __investment_calculatorExtras(force){
+    // 复核判据：拒绝态也要写历史并判未通过，不能用 valid 守卫把失败操作整个丢掉。
+    if (typeof TBKit === 'undefined') return;
     if (__investment_calculator_skip) return;
+    clearTimeout(__investment_calculator_timer);
+    __investment_calculator_timer=null;
     var snap=__investment_calculatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -409,7 +422,10 @@ function __investment_calculatorExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__investment_calculator_last<1000) return;
+    if(!force && now-__investment_calculator_last<1000){
+        __investment_calculator_timer=setTimeout(function(){__investment_calculatorExtras(true);},1000-(now-__investment_calculator_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -423,12 +439,13 @@ function __investment_calculatorExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__investment_calculatorScore(res);
+    rec.__tbScore=__investment_calculatorScore(__investment_calculatorFullResText());
     TBKit.history.record(rec);
     __investment_calculatorRender(keys,rk,en);
 }
 function __investment_calculatorExport(){
-    if (!investmentResultValid || typeof TBKit === 'undefined') return;
+    if (typeof TBKit === 'undefined') return;
+    __investment_calculatorExtras(true);
     try{
         var box=document.querySelector('#investment_calculatorTable');
         if(!box||!box.querySelector('tr')){
