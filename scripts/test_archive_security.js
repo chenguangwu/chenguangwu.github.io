@@ -585,8 +585,48 @@ function checkGstImeiEinReview() {
     dom.window.close();
   }
 }
+function checkNieIccidIsbnReview() {
+  for (const slug of ['nie-validator', 'iccid-validator']) {
+    const { dom, scripts } = loadFinancePage(slug);
+    dom.window.eval(scripts.find(s => s.includes('function validate()')));
+    const doc = dom.window.document;
+    const check = value => { doc.getElementById('input').value = value; dom.window.validate(); return doc.getElementById('output'); };
+    const payload = slug === 'iccid-validator' ? '1<svg id=x onload=alert(1)>' : '<svg id=x onload=alert(1)>';
+    assert.strictEqual(check(payload).querySelector('svg'), null, slug + ' 不得执行输入');
+    if (slug === 'nie-validator') {
+      assert.ok(check('Z1234567R').textContent.includes('NIE 有效'));
+      assert.ok(check('Y1234567Y').textContent.includes('NIE 无效'));
+    } else {
+      const text = check('8930123456789012345').textContent;
+      assert.ok(text.includes('国家代码（E.164，变长）') && text.includes('30 - 希腊') && !text.includes('Japan') && !text.includes('可能的运营商'), text);
+      assert.ok(check('89123456789012345675').textContent.includes('1 - 北美'));
+      assert.ok(check('8985212345678901234').textContent.includes('852 - 中国香港'));
+    }
+    dom.window.close();
+  }
+  const { dom, scripts } = loadFinancePage('isbn-validator');
+  const doc = dom.window.document;
+  dom.window.eval(scripts.find(s => s.includes('function isbn10Check(')));
+  doc.getElementById('isbnInput').value = '9780306406157';
+  dom.window.validate();
+  assert.ok(doc.querySelector('.formula-box'), 'ISBN 校验后公式说明必须保留');
+  assert.ok(doc.getElementById('result').textContent.includes('0-306-40615-2'));
+  doc.getElementById('isbnInput').value = '4006381333931';
+  dom.window.validate();
+  assert.ok(doc.getElementById('result').textContent.includes('不是 ISBN'));
+  doc.getElementById('isbnInput').value = '1234567890';
+  dom.window.validate();
+  assert.ok(doc.getElementById('result').textContent.includes('源 ISBN-10 校验未通过'));
+  dom.window.clearAll();
+  assert.ok(doc.querySelector('.formula-box'), 'ISBN 清空后公式说明必须保留');
+  assert.ok(!doc.title.includes('位为 10 时用 X 表示') && doc.title.includes('ISBN'));
+  assert.ok(doc.querySelector('meta[name="description"]').content.startsWith('ISBN 校验'));
+  assert.strictEqual(doc.querySelector('meta[property="og:title"]').content, doc.title);
+  assert.strictEqual(doc.querySelector('meta[name="twitter:title"]').content, doc.title);
+  dom.window.close();
+}
 let failed = false;
-for (const [name, test] of [['GST IMEI EIN 复核', checkGstImeiEinReview], ['BIC 查询复核', checkBicLookupReview], ['GSTIN 复核', checkGstinReview], ['CNPJ 复核', checkCnpjReview], ['货币符号复核', checkCurrencyReview], ['信用卡利息复核', checkCreditInterestReview], ['IBAN 复核', checkIbanReview], ['标签生成空态', checkLabelEmptyState], ['Code128 字符范围', checkCode128Descriptions], ['仓位缺填历史', checkPositionSizingMissingInput], ['行业利润率', checkIndustryProfitMargins], ['字数统计说明', checkWordCounterDescription], ['银行卡输入', checkCardInput], ['名片二维码超限', checkVcardOverflow], ['基金定投时点', checkFundTiming], ['退休现金流', checkRetirementCashFlow], ['颜色历史', checkColorHistory], ['工序排期', checkSchedule], ['SIN 输入', checkSinValidation], ['邮编输入', checkPostalValidation], ['CURP 输入', () => checkIdValidation('curp', 'CURP_BASE', 'BOXW310820HMNERN16', 'BOXW310820HMNERN160')], ['DNI 输入', () => checkIdValidation('dni', 'DNI_LETTERS', '12345678Z', '12345678A')], ['投资回报历史', checkInvestmentHistory], ['期权盈亏', checkOptionCalculator]]) {
+for (const [name, test] of [['NIE ICCID ISBN 复核', checkNieIccidIsbnReview], ['GST IMEI EIN 复核', checkGstImeiEinReview], ['BIC 查询复核', checkBicLookupReview], ['GSTIN 复核', checkGstinReview], ['CNPJ 复核', checkCnpjReview], ['货币符号复核', checkCurrencyReview], ['信用卡利息复核', checkCreditInterestReview], ['IBAN 复核', checkIbanReview], ['标签生成空态', checkLabelEmptyState], ['Code128 字符范围', checkCode128Descriptions], ['仓位缺填历史', checkPositionSizingMissingInput], ['行业利润率', checkIndustryProfitMargins], ['字数统计说明', checkWordCounterDescription], ['银行卡输入', checkCardInput], ['名片二维码超限', checkVcardOverflow], ['基金定投时点', checkFundTiming], ['退休现金流', checkRetirementCashFlow], ['颜色历史', checkColorHistory], ['工序排期', checkSchedule], ['SIN 输入', checkSinValidation], ['邮编输入', checkPostalValidation], ['CURP 输入', () => checkIdValidation('curp', 'CURP_BASE', 'BOXW310820HMNERN16', 'BOXW310820HMNERN160')], ['DNI 输入', () => checkIdValidation('dni', 'DNI_LETTERS', '12345678Z', '12345678A')], ['投资回报历史', checkInvestmentHistory], ['期权盈亏', checkOptionCalculator]]) {
   try { test(); console.log('PASS', name); } catch (err) { failed = true; console.error('FAIL', name, err.message); }
 }
 if (failed) process.exitCode = 1;

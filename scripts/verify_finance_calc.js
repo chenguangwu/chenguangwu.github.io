@@ -1283,15 +1283,15 @@ const CASES = [
   {
     slug: "finance/iccid-validator",
     inputs: { input: "8986011234567890123" },
-    expect: ["国家代码（第 3-4 位）： 86", "校验位： 3"],
+    expect: ["国家代码（E.164，变长）： 86", "校验位： 3"],
     ref: "ICCID 19 位：前 2 位 89 = ITU 电信、第 3-4 位 86 = 中国、第 5-7 位 011 = 发卡机构、末位 3 为 Luhn 校验位。该号 Luhn 实际不通过（页内如实报「❌ 校验失败」），本例只锁分段解析段。默认态不同 ⇒ 不命中。",
   },
   {
     slug: "finance/iccid-validator",
     inputs: { input: "8930123456789012347" },
-    clicks: ["validate();var h=String(document.getElementById('output').innerHTML).replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ');document.getElementById('__tbProbe').textContent='FN182 '+document.getElementById('input').value+' '+((h.indexOf('可能的运营商： Japan')>=0&&h.indexOf('未知运营商')<0)?'OK':'BAD');"],
+    clicks: ["validate();var h=String(document.getElementById('output').innerHTML).replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ');document.getElementById('__tbProbe').textContent='FN182 '+document.getElementById('input').value+' '+((h.indexOf('30 - 希腊')>=0&&h.indexOf('无法由此不完整的代码表确定')>=0&&h.indexOf('Japan')<0)?'OK':'BAD');"],
     expect: ["FN182 8930123456789012347 OK"],
-    ref: "F-N182 运营商变长前缀最长匹配：893012... 的运营商键是 4 位前缀 '8930'(Japan)，旧实现只查 7 位 issuerFull='8930123' 与 3 位 issuer='012' 均 miss ⇒「未知运营商」；新实现 TELCO 键变长最长前缀匹配命中 Japan。该号 Luhn 通过、非默认预填(894450...) ⇒ 零逃生。",
+    ref: "E.164 国家码 30 为希腊，不应凭不可靠前缀表推断日本运营商。",
   },
   {
     slug: "finance/iccid-validator",
@@ -1303,7 +1303,7 @@ const CASES = [
   {
     slug: "finance/iccid-validator",
     inputs: { input: "89123456789012345675" },
-    clicks: ["validate();var h=String(document.getElementById('output').innerHTML).replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ');document.getElementById('__tbProbe').textContent='FN184 '+document.getElementById('input').value+' '+((h.indexOf('国家代码（第 3-4 位）： 1 - 北美')>=0&&h.indexOf('国家代码（第 3-4 位）： 12')<0)?'OK':'BAD');"],
+    clicks: ["validate();var h=String(document.getElementById('output').innerHTML).replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ');document.getElementById('__tbProbe').textContent='FN184 '+document.getElementById('input').value+' '+((h.indexOf('国家代码（E.164，变长）： 1 - 北美')>=0&&h.indexOf('国家代码（E.164，变长）： 12')<0)?'OK':'BAD');"],
     expect: ["FN184 89123456789012345675 OK"],
     ref: "F-N184 变长国家码最长匹配：891234... 的 89 之后国家码为 1 位（E.164 NANP=1），旧实现固定 substring(2,4)取'12'判未知⇒错位；新实现 E.164 表 3→1 位最长匹配命中 1=北美（NANP）。该号 Luhn 通过、非默认预填 ⇒ 零逃生。",
   },

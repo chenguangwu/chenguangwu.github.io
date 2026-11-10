@@ -184,7 +184,7 @@ s.parentNode.insertBefore(el, s);
 <li>物联网卡、SIM 卡入库与激活前核对卡号</li>
 <li>识别 ICCID 手输或扫码错误</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">示例：ICCID Luhn 校验</div><div class="dd-ex-body">输入 89 开头的 19–20 位 SIM 卡号，页面按 Luhn 校验末位，并按 E.118 解析主要行业标识、变长国家码与发卡方。</div></div>
+<div class="dd-example"><div class="dd-ex-title">示例：ICCID Luhn 校验</div><div class="dd-ex-body">输入 89 开头的 19–20 位 SIM 卡号，页面按 Luhn 校验末位并参考 E.164 常见国家码；发卡方及运营商须另行核实。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>ICCID 的结构是什么？</dt><dd>通常 19–20 位数字：前 2 位行业标识(89)+国家码+发卡方标识+个人化数据，末位为 Luhn 校验位。</dd>
@@ -276,23 +276,6 @@ const E164_CC_EN = {
   '853':'Macao, China','855':'Cambodia','856':'Laos','880':'Bangladesh',
   '886':'Taiwan, China','997':'Kazakhstan'
 };
-const TELCO_IIN = {
-  '001':'Bite ( Lithuania )','003':'Skano ( Sweden )','010':'Tele2 ( Latvia )',
-  '01':'Debitel ( Germany )','012':'Telenor ( Norway )','013':'Sonofon ( Denmark )',
-  '016':'Tele2 ( Sweden )','017':'Telia ( Sweden )','018':'Telia ( Finland )',
-  '019':'Telenor ( Norway )','020':'Tele Danmark','024':'Radiator ( UK )',
-  '026':'T-Mobile ( Germany )','027':'Vodafone ( UK )','028':'Verizon ( US )',
-  '030':' mobilcom ( Germany )','033':'Radiator ( UK )','034':'SFR ( France )',
-  '036':'Telenor ( Norway )','042':'Vodafone ( Germany )','043':'E-Plus ( Germany )',
-  '046':'Vodafone ( Iceland )','047':'O2 ( Germany )','050':'Telia ( Sweden )',
-  '060':'Vodafone ( Italy )','070':'Orange ( Spain )','078':'Vodafone ( Spain )',
-  '086':'China Mobile','088':'China Unicom','089':'China Telecom',
-  '89014':'Verizon ( US )','89012':'Sprint ( US )','8901':'US - various',
-  '8915':'Brazil','8923':'Russia','8930':'Japan','8943':'Netherlands',
-  '8944':'France','8946':'UK','8948':'Germany','8960':'India','8962':'Italy'
-};
-// F-N182/F-N184：E.118 分段解析单一真源。运营商表键为变长前缀（89 或不带 89），
-// 按「最长前缀优先」匹配 digits，避免 4/5 位键因只查固定 7 位/3 位而永不命中。
 function parseIccid(digits){
   // 国家码：89 之后按 3→1 位最长匹配（E.164 变长 1–3 位）
   let cc = '', ccLen = 0;
@@ -300,15 +283,7 @@ function parseIccid(digits){
     const cand = digits.substring(2, 2 + len);
     if(cand.length === len && E164_CC[cand]){ cc = cand; ccLen = len; break; }
   }
-  // 发卡方标识：国家码之后至第 7 位的数字（E.118 IIN 剩余段）
-  const iin = digits.substring(2 + ccLen, 7);
-  // 运营商：变长前缀最长匹配（表键可能含 89 开头或为纯 IIN）
-  let telco = '';
-  const keys = Object.keys(TELCO_IIN).sort((a,b) => b.length - a.length);
-  for(const k of keys){
-    if(digits.indexOf(k) === 0){ telco = TELCO_IIN[k]; break; }
-  }
-  return { cc: cc, ccLen: ccLen, ccName: ccLen ? E164_CC[cc] : '', iin: iin, telco: telco || '' };
+  return { cc: cc, ccLen: ccLen, ccName: ccLen ? E164_CC[cc] : '' };
 }
 function validate(){
   const raw = document.getElementById('input').value.trim();
@@ -316,7 +291,7 @@ function validate(){
   const out = document.getElementById('output');
   if(!digits){ const __h0=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Waiting for input...":"等待输入...");if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0; return; }
   const __en96a = (typeof TBKit!=='undefined'&&TBKit.util.isEn());
-  let html = `<p><strong>${__en96a?'Input':'输入'}：</strong>${raw}</p>`;
+  let html = `<p><strong>${__en96a?'Input':'输入'}：</strong>${raw.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}</p>`;
   if(digits.length < 19 || digits.length > 20){
     html += `<p>⚠️ ICCID 通常为 19 或 20 位数字（当前 ${digits.length} 位）</p>`;
     const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;
@@ -325,18 +300,14 @@ function validate(){
   const __en96 = (typeof TBKit!=='undefined'&&TBKit.util.isEn());
   const iin = digits.substring(0,2); // '89' for telecom
   const info = parseIccid(digits);   // F-N182/F-N184：E.118 变长分段单一真源
-  const issuer = info.iin;
-  const mainAccount = digits.substring(2 + info.ccLen + issuer.length, digits.length - 1);
   const check = digits[digits.length - 1];
   const valid = luhnCheck(digits);
   const isTelecom = iin === '89';    // F-N183：MII 89 是 E.118 电信标识，非 89 不得判 ICCID 有效
   html += `<p><strong>${__en96?'Length':'长度'}：</strong>${digits.length} ${__en96?'digits':'位'}</p>`;
   html += `<p><strong>${__en96?'Major industry identifier (first 2)':'主要行业标识符（前 2 位）'}：</strong>${iin} ${isTelecom?(__en96?'✅ ITU telecom':'✅ ITU 电信'):(__en96?'⚠️ normally 89':'⚠️ 通常为 89')}</p>`;
   const ccNameShow = info.ccLen ? (__en96 ? (E164_CC_EN[info.cc]||'') : info.ccName) : '';
-  html += `<p><strong>${__en96?'Country code (E.164, variable)':'国家代码（第 3-4 位）'}：</strong>${info.cc || digits.substring(2,4)}${ccNameShow?' - '+ccNameShow:''}</p>`;
-  html += `<p><strong>${__en96?'Issuer identifier':'发卡机构标识符'}：</strong>${issuer||'—'}</p>`;
-  html += `<p><strong>${__en96?'Likely operator':'可能的运营商'}：</strong>${info.telco||(__en96?'Unknown':'未知运营商')}</p>`;
-  html += `<p><strong>${__en96?'Individual account':'主账号'}：</strong>${mainAccount}</p>`;
+  html += `<p><strong>${__en96?'Country code (E.164, variable)':'国家代码（E.164，变长）'}：</strong>${info.cc || (__en96?'Not listed':'未收录')}${ccNameShow?' - '+ccNameShow:''}</p>`;
+  html += `<p>${__en96?'Issuer and operator cannot be determined from this partial code list.':'发卡机构及运营商无法由此不完整的代码表确定。'}</p>`;
   html += `<p><strong>${__en96?'Check digit':'校验位'}：</strong>${check}</p>`;
   html += `<p><strong>${__en96?'Algorithm':'校验算法'}：</strong>Luhn (${__en96?'mod 10':'模 10'})</p>`;
   html += `<p><strong>${__en96?'Checksum':'校验和'}：</strong> ${valid?(__en96?'✅ pass':'✅ 通过'):(__en96?'❌ fail':'❌ 未通过')}</p>`;
