@@ -750,7 +750,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __futures_pnl_calculator_last=0,__futures_pnl_calculator_skip=false;
+var __futures_pnl_calculator_last=0,__futures_pnl_calculator_skip=false,__futures_pnl_calculator_timer=null;
 function __futures_pnl_calculatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -759,21 +759,29 @@ function __futures_pnl_calculatorSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
 function __futures_pnl_calculatorResText(){
-    var r=document.getElementById('statSummary');
+    var r=document.getElementById('resultGrid');
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __futures_pnl_calculatorFullResText(){
+    var r=document.getElementById('resultGrid');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __futures_pnl_calculatorScore(t){
+    if(/输入有误|请修改后重试/.test(String(t||''))) return 0;
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __futures_pnl_calculatorTime(t){
@@ -796,7 +804,7 @@ function __futures_pnl_calculatorRender(keys,rk,en){
         TBKit.matrix.table('#futures_pnl_calculatorTable',{head:head,rows:rows});
         TBKit.util.diffBox('#futures_pnl_calculatorDiff');
         TBKit.history.mount('#futures_pnl_calculatorHist',function(rec){
-            __futures_pnl_calculator_skip=true;
+            __futures_pnl_calculator_skip=true;clearTimeout(__futures_pnl_calculator_timer);__futures_pnl_calculator_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -820,9 +828,11 @@ function __futures_pnl_calculatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __futures_pnl_calculatorExtras(){
+function __futures_pnl_calculatorExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__futures_pnl_calculator_skip) return;
+    clearTimeout(__futures_pnl_calculator_timer);
+    __futures_pnl_calculator_timer=null;
     var snap=__futures_pnl_calculatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -832,7 +842,10 @@ function __futures_pnl_calculatorExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__futures_pnl_calculator_last<1000) return;
+    if(!force && now-__futures_pnl_calculator_last<1000){
+        __futures_pnl_calculator_timer=setTimeout(function(){__futures_pnl_calculatorExtras(true);},1000-(now-__futures_pnl_calculator_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -846,12 +859,13 @@ function __futures_pnl_calculatorExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__futures_pnl_calculatorScore(res);
+    rec.__tbScore=__futures_pnl_calculatorScore(__futures_pnl_calculatorFullResText());
     TBKit.history.record(rec);
     __futures_pnl_calculatorRender(keys,rk,en);
 }
 function __futures_pnl_calculatorExport(){
     if (typeof TBKit === 'undefined') return;
+    __futures_pnl_calculatorExtras(true);
     try{
         var box=document.querySelector('#futures_pnl_calculatorTable');
         if(!box||!box.querySelector('tr')){

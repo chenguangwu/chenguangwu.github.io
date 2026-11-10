@@ -879,7 +879,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __currency_converter_last=0,__currency_converter_skip=false;
+var __currency_converter_last=0,__currency_converter_skip=false,__currency_converter_timer=null;
 function __currency_converterSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -888,7 +888,7 @@ function __currency_converterSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -900,9 +900,18 @@ function __currency_converterResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __currency_converterFullResText(){
+    var r=document.querySelector('.result-display');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __currency_converterScore(t){
+    var a=parseFloat(document.getElementById('fromAmount').value);
+    if(!isFinite(a)||a<0) return 0;
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __currency_converterTime(t){
@@ -925,7 +934,7 @@ function __currency_converterRender(keys,rk,en){
         TBKit.matrix.table('#currency_converterTable',{head:head,rows:rows});
         TBKit.util.diffBox('#currency_converterDiff');
         TBKit.history.mount('#currency_converterHist',function(rec){
-            __currency_converter_skip=true;
+            __currency_converter_skip=true;clearTimeout(__currency_converter_timer);__currency_converter_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -949,9 +958,11 @@ function __currency_converterRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __currency_converterExtras(){
+function __currency_converterExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__currency_converter_skip) return;
+    clearTimeout(__currency_converter_timer);
+    __currency_converter_timer=null;
     var snap=__currency_converterSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -961,7 +972,10 @@ function __currency_converterExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__currency_converter_last<1000) return;
+    if(!force && now-__currency_converter_last<1000){
+        __currency_converter_timer=setTimeout(function(){__currency_converterExtras(true);},1000-(now-__currency_converter_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -975,12 +989,13 @@ function __currency_converterExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__currency_converterScore(res);
+    rec.__tbScore=__currency_converterScore(__currency_converterFullResText());
     TBKit.history.record(rec);
     __currency_converterRender(keys,rk,en);
 }
 function __currency_converterExport(){
     if (typeof TBKit === 'undefined') return;
+    __currency_converterExtras(true);
     try{
         var box=document.querySelector('#currency_converterTable');
         if(!box||!box.querySelector('tr')){

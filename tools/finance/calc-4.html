@@ -273,7 +273,7 @@ function copyRes(){ ToolBox.copyText($('res').innerText.replace(/\n+/g,'；'),'�
 function resetAll(){ $('amount').value=1000000; $('rate').value=4.2; $('years').value=30; $('type').value='equal-interest'; calc(); }
 document.addEventListener('DOMContentLoaded',()=>{ load(); calc(); });
 
-var __calc_4_last=0,__calc_4_skip=false;
+var __calc_4_last=0,__calc_4_skip=false,__calc_4_timer=null;
 function __calc_4Snap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -282,7 +282,7 @@ function __calc_4Snap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -294,9 +294,18 @@ function __calc_4ResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __calc_4FullResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __calc_4Score(t){
+    var a=parseFloat(document.getElementById('amount').value),r=parseFloat(document.getElementById('rate').value),y=parseFloat(document.getElementById('years').value);
+    if(!isFinite(a)||a<=0||!isFinite(r)||r<0||!isFinite(y)||y<=0) return 0;
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __calc_4Time(t){
@@ -319,7 +328,7 @@ function __calc_4Render(keys,rk,en){
         TBKit.matrix.table('#calc_4Table',{head:head,rows:rows});
         TBKit.util.diffBox('#calc_4Diff');
         TBKit.history.mount('#calc_4Hist',function(rec){
-            __calc_4_skip=true;
+            __calc_4_skip=true;clearTimeout(__calc_4_timer);__calc_4_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -343,9 +352,11 @@ function __calc_4Render(keys,rk,en){
         }
     }catch(e3){}
 }
-function __calc_4Extras(){
+function __calc_4Extras(force){
     if (typeof TBKit === 'undefined') return;
     if (__calc_4_skip) return;
+    clearTimeout(__calc_4_timer);
+    __calc_4_timer=null;
     var snap=__calc_4Snap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -355,7 +366,10 @@ function __calc_4Extras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__calc_4_last<1000) return;
+    if(!force && now-__calc_4_last<1000){
+        __calc_4_timer=setTimeout(function(){__calc_4Extras(true);},1000-(now-__calc_4_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -369,12 +383,13 @@ function __calc_4Extras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__calc_4Score(res);
+    rec.__tbScore=__calc_4Score(__calc_4FullResText());
     TBKit.history.record(rec);
     __calc_4Render(keys,rk,en);
 }
 function __calc_4Export(){
     if (typeof TBKit === 'undefined') return;
+    __calc_4Extras(true);
     try{
         var box=document.querySelector('#calc_4Table');
         if(!box||!box.querySelector('tr')){

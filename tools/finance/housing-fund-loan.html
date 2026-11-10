@@ -495,7 +495,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __housing_fund_loan_last=0,__housing_fund_loan_skip=false;
+var __housing_fund_loan_last=0,__housing_fund_loan_skip=false,__housing_fund_loan_timer=null;
 function __housing_fund_loanSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -504,7 +504,7 @@ function __housing_fund_loanSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -516,9 +516,18 @@ function __housing_fund_loanResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __housing_fund_loanFullResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __housing_fund_loanScore(t){
+    var bal=parseFloat(document.getElementById('balance').value);
+    if(!isFinite(bal)||bal<=0) return 0;
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __housing_fund_loanTime(t){
@@ -541,7 +550,7 @@ function __housing_fund_loanRender(keys,rk,en){
         TBKit.matrix.table('#housing_fund_loanTable',{head:head,rows:rows});
         TBKit.util.diffBox('#housing_fund_loanDiff');
         TBKit.history.mount('#housing_fund_loanHist',function(rec){
-            __housing_fund_loan_skip=true;
+            __housing_fund_loan_skip=true;clearTimeout(__housing_fund_loan_timer);__housing_fund_loan_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -565,9 +574,11 @@ function __housing_fund_loanRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __housing_fund_loanExtras(){
+function __housing_fund_loanExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__housing_fund_loan_skip) return;
+    clearTimeout(__housing_fund_loan_timer);
+    __housing_fund_loan_timer=null;
     var snap=__housing_fund_loanSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -577,7 +588,10 @@ function __housing_fund_loanExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__housing_fund_loan_last<1000) return;
+    if(!force && now-__housing_fund_loan_last<1000){
+        __housing_fund_loan_timer=setTimeout(function(){__housing_fund_loanExtras(true);},1000-(now-__housing_fund_loan_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -591,12 +605,13 @@ function __housing_fund_loanExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__housing_fund_loanScore(res);
+    rec.__tbScore=__housing_fund_loanScore(__housing_fund_loanFullResText());
     TBKit.history.record(rec);
     __housing_fund_loanRender(keys,rk,en);
 }
 function __housing_fund_loanExport(){
     if (typeof TBKit === 'undefined') return;
+    __housing_fund_loanExtras(true);
     // F-N189：导出真实业务明细（#housing_fund_loanDetail），不是历史记录表 #housing_fund_loanTable。
     var __biz='#housing_fund_loanDetail';
     try{

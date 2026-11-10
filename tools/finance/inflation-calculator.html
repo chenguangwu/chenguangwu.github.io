@@ -608,7 +608,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __inflation_calculator_last=0,__inflation_calculator_skip=false;
+var __inflation_calculator_last=0,__inflation_calculator_skip=false,__inflation_calculator_timer=null;
 function __inflation_calculatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -617,7 +617,7 @@ function __inflation_calculatorSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -629,9 +629,18 @@ function __inflation_calculatorResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __inflation_calculatorFullResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __inflation_calculatorScore(t){
+    var a=parseFloat(document.getElementById('amt').value);
+    if(!isFinite(a)||a<=0||String(t||'').indexOf('购买力缩水')<0) return 0;
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __inflation_calculatorTime(t){
@@ -654,7 +663,7 @@ function __inflation_calculatorRender(keys,rk,en){
         TBKit.matrix.table('#inflation_calculatorTable',{head:head,rows:rows});
         TBKit.util.diffBox('#inflation_calculatorDiff');
         TBKit.history.mount('#inflation_calculatorHist',function(rec){
-            __inflation_calculator_skip=true;
+            __inflation_calculator_skip=true;clearTimeout(__inflation_calculator_timer);__inflation_calculator_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -678,9 +687,11 @@ function __inflation_calculatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __inflation_calculatorExtras(){
+function __inflation_calculatorExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__inflation_calculator_skip) return;
+    clearTimeout(__inflation_calculator_timer);
+    __inflation_calculator_timer=null;
     var snap=__inflation_calculatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -690,7 +701,10 @@ function __inflation_calculatorExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__inflation_calculator_last<1000) return;
+    if(!force && now-__inflation_calculator_last<1000){
+        __inflation_calculator_timer=setTimeout(function(){__inflation_calculatorExtras(true);},1000-(now-__inflation_calculator_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -704,12 +718,13 @@ function __inflation_calculatorExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__inflation_calculatorScore(res);
+    rec.__tbScore=__inflation_calculatorScore(__inflation_calculatorFullResText());
     TBKit.history.record(rec);
     __inflation_calculatorRender(keys,rk,en);
 }
 function __inflation_calculatorExport(){
     if (typeof TBKit === 'undefined') return;
+    __inflation_calculatorExtras(true);
     try{
         var box=document.querySelector('#inflation_calculatorTable');
         if(!box||!box.querySelector('tr')){

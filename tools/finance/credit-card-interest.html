@@ -603,7 +603,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __credit_card_interest_last=0,__credit_card_interest_skip=false;
+var __credit_card_interest_last=0,__credit_card_interest_skip=false,__credit_card_interest_timer=null;
 function __credit_card_interestSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -612,7 +612,7 @@ function __credit_card_interestSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -624,9 +624,16 @@ function __credit_card_interestResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __credit_card_interestFullResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __credit_card_interestScore(t){
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __credit_card_interestTime(t){
@@ -649,7 +656,7 @@ function __credit_card_interestRender(keys,rk,en){
         TBKit.matrix.table('#credit_card_interestTable',{head:head,rows:rows});
         TBKit.util.diffBox('#credit_card_interestDiff');
         TBKit.history.mount('#credit_card_interestHist',function(rec){
-            __credit_card_interest_skip=true;
+            __credit_card_interest_skip=true;clearTimeout(__credit_card_interest_timer);__credit_card_interest_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -673,9 +680,11 @@ function __credit_card_interestRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __credit_card_interestExtras(){
+function __credit_card_interestExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__credit_card_interest_skip) return;
+    clearTimeout(__credit_card_interest_timer);
+    __credit_card_interest_timer=null;
     var snap=__credit_card_interestSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -685,7 +694,10 @@ function __credit_card_interestExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__credit_card_interest_last<1000) return;
+    if(!force && now-__credit_card_interest_last<1000){
+        __credit_card_interest_timer=setTimeout(function(){__credit_card_interestExtras(true);},1000-(now-__credit_card_interest_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -699,12 +711,13 @@ function __credit_card_interestExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__credit_card_interestScore(res);
+    rec.__tbScore=__credit_card_interestScore(__credit_card_interestFullResText());
     TBKit.history.record(rec);
     __credit_card_interestRender(keys,rk,en);
 }
 function __credit_card_interestExport(){
     if (typeof TBKit === 'undefined') return;
+    __credit_card_interestExtras(true);
     try{
         var box=document.querySelector('#credit_card_interestTable');
         if(!box||!box.querySelector('tr')){

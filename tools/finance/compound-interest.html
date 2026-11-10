@@ -697,7 +697,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __compound_interest_last=0,__compound_interest_skip=false;
+var __compound_interest_last=0,__compound_interest_skip=false,__compound_interest_timer=null;
 function __compound_interestSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -706,21 +706,30 @@ function __compound_interestSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
 function __compound_interestResText(){
-    var r=document.querySelector('.result-box');
+    var r=document.querySelector('.summary');
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __compound_interestFullResText(){
+    var r=document.querySelector('.summary');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __compound_interestScore(t){
+    var fv=document.getElementById('totalFV');
+    if(!fv||!/[0-9]/.test(String(fv.textContent||''))) return 0;
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __compound_interestTime(t){
@@ -743,7 +752,7 @@ function __compound_interestRender(keys,rk,en){
         TBKit.matrix.table('#compound_interestTable',{head:head,rows:rows});
         TBKit.util.diffBox('#compound_interestDiff');
         TBKit.history.mount('#compound_interestHist',function(rec){
-            __compound_interest_skip=true;
+            __compound_interest_skip=true;clearTimeout(__compound_interest_timer);__compound_interest_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -767,9 +776,11 @@ function __compound_interestRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __compound_interestExtras(){
+function __compound_interestExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__compound_interest_skip) return;
+    clearTimeout(__compound_interest_timer);
+    __compound_interest_timer=null;
     var snap=__compound_interestSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -779,7 +790,10 @@ function __compound_interestExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__compound_interest_last<1000) return;
+    if(!force && now-__compound_interest_last<1000){
+        __compound_interest_timer=setTimeout(function(){__compound_interestExtras(true);},1000-(now-__compound_interest_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -793,12 +807,13 @@ function __compound_interestExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__compound_interestScore(res);
+    rec.__tbScore=__compound_interestScore(__compound_interestFullResText());
     TBKit.history.record(rec);
     __compound_interestRender(keys,rk,en);
 }
 function __compound_interestExport(){
     if (typeof TBKit === 'undefined') return;
+    __compound_interestExtras(true);
     try{
         var box=document.querySelector('#compound_interestTable');
         if(!box||!box.querySelector('tr')){

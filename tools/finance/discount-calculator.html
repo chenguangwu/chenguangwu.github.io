@@ -455,7 +455,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __discount_calculator_last=0,__discount_calculator_skip=false;
+var __discount_calculator_last=0,__discount_calculator_skip=false,__discount_calculator_timer=null;
 function __discount_calculatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -464,7 +464,7 @@ function __discount_calculatorSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?'1':'0'):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -476,9 +476,16 @@ function __discount_calculatorResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __discount_calculatorFullResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __discount_calculatorScore(t){
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __discount_calculatorTime(t){
@@ -501,7 +508,7 @@ function __discount_calculatorRender(keys,rk,en){
         TBKit.matrix.table('#discount_calculatorTable',{head:head,rows:rows});
         TBKit.util.diffBox('#discount_calculatorDiff');
         TBKit.history.mount('#discount_calculatorHist',function(rec){
-            __discount_calculator_skip=true;
+            __discount_calculator_skip=true;clearTimeout(__discount_calculator_timer);__discount_calculator_timer=null;
             try{
                 // 恢复前先清空未记录的勾选：旧记录是稀疏的（只存勾选中的项），
                 // 不清理会把当前多勾的权限带过来（600→777→恢复 600 仍显示 777）。
@@ -531,9 +538,11 @@ function __discount_calculatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __discount_calculatorExtras(){
+function __discount_calculatorExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__discount_calculator_skip) return;
+    clearTimeout(__discount_calculator_timer);
+    __discount_calculator_timer=null;
     var snap=__discount_calculatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -543,7 +552,10 @@ function __discount_calculatorExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__discount_calculator_last<1000) return;
+    if(!force && now-__discount_calculator_last<1000){
+        __discount_calculator_timer=setTimeout(function(){__discount_calculatorExtras(true);},1000-(now-__discount_calculator_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -557,12 +569,13 @@ function __discount_calculatorExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__discount_calculatorScore(res);
+    rec.__tbScore=__discount_calculatorScore(__discount_calculatorFullResText());
     TBKit.history.record(rec);
     __discount_calculatorRender(keys,rk,en);
 }
 function __discount_calculatorExport(){
     if (typeof TBKit === 'undefined') return;
+    __discount_calculatorExtras(true);
     try{
         var box=document.querySelector('#discount_calculatorTable');
         if(!box||!box.querySelector('tr')){

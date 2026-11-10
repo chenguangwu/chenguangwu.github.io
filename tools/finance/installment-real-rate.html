@@ -375,7 +375,7 @@ function resetForm(){document.getElementById('P').value='12000';
       calcTool();}
 calcTool();
 
-var __installment_real_rate_last=0,__installment_real_rate_skip=false;
+var __installment_real_rate_last=0,__installment_real_rate_skip=false,__installment_real_rate_timer=null;
 function __installment_real_rateSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -384,7 +384,7 @@ function __installment_real_rateSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -396,9 +396,16 @@ function __installment_real_rateResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __installment_real_rateFullResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __installment_real_rateScore(t){
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __installment_real_rateTime(t){
@@ -421,7 +428,7 @@ function __installment_real_rateRender(keys,rk,en){
         TBKit.matrix.table('#installment_real_rateTable',{head:head,rows:rows});
         TBKit.util.diffBox('#installment_real_rateDiff');
         TBKit.history.mount('#installment_real_rateHist',function(rec){
-            __installment_real_rate_skip=true;
+            __installment_real_rate_skip=true;clearTimeout(__installment_real_rate_timer);__installment_real_rate_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -445,9 +452,11 @@ function __installment_real_rateRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __installment_real_rateExtras(){
+function __installment_real_rateExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__installment_real_rate_skip) return;
+    clearTimeout(__installment_real_rate_timer);
+    __installment_real_rate_timer=null;
     var snap=__installment_real_rateSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -457,7 +466,10 @@ function __installment_real_rateExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__installment_real_rate_last<1000) return;
+    if(!force && now-__installment_real_rate_last<1000){
+        __installment_real_rate_timer=setTimeout(function(){__installment_real_rateExtras(true);},1000-(now-__installment_real_rate_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -471,12 +483,13 @@ function __installment_real_rateExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__installment_real_rateScore(res);
+    rec.__tbScore=__installment_real_rateScore(__installment_real_rateFullResText());
     TBKit.history.record(rec);
     __installment_real_rateRender(keys,rk,en);
 }
 function __installment_real_rateExport(){
     if (typeof TBKit === 'undefined') return;
+    __installment_real_rateExtras(true);
     try{
         var box=document.querySelector('#installment_real_rateTable');
         if(!box||!box.querySelector('tr')){
