@@ -294,8 +294,33 @@ function checkVcardOverflow() {
   dom.window.close();
 }
 
+function checkCardInput() {
+  for (const slug of ['credit-card-luhn', 'credit-card-type', 'credit-card-bin', 'credit-card-validator']) {
+    const page = fs.readFileSync(path.join(root, `tools/finance/${slug}.html`), 'utf8');
+    const main = [...page.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]).find(s => s.includes('function validate()'));
+    const dom = new JSDOM(page.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ''), { url: 'https://example.test/', runScripts: 'dangerously' });
+    dom.window.eval(main);
+    const document = dom.window.document;
+    const input = document.getElementById(slug === 'credit-card-validator' ? 'cardInput' : 'input');
+    const out = document.getElementById(slug === 'credit-card-validator' ? 'result' : 'output');
+    const check = value => { input.value = value; dom.window.validate(); return out.textContent; };
+    const good = slug === 'credit-card-bin' ? '220012' : '4111111111111111';
+    check(good);
+    for (const value of [good + 'x', 'abc', '!!!', good + '<svg>']) {
+      const text = check(value);
+      assert.ok(text.includes('只能包含数字、空格或连字符'), `${slug} 非法输入应报错`);
+      assert.ok(!out.querySelector('svg'), '非法输入不能注入节点');
+      if (slug === 'credit-card-validator') assert.strictEqual(document.getElementById('cardBrand').textContent, '未知卡组织', '非法态应清空卡组织预览');
+    }
+    assert.ok(!check('   ').includes('只能包含'), '空白输入不应视为非法');
+    const result = check(slug === 'credit-card-bin' ? '220-012' : '4111 1111-1111 1111');
+    assert.ok(result.includes(slug === 'credit-card-bin' ? 'MIR' : slug === 'credit-card-type' ? '均通过' : slug === 'credit-card-luhn' ? '卡号通过 Luhn' : '卡号有效'), `${slug} 应接受空格和连字符`);
+    dom.window.close();
+  }
+}
+
 let failed = false;
-for (const [name, test] of [['名片二维码超限', checkVcardOverflow], ['基金定投时点', checkFundTiming], ['退休现金流', checkRetirementCashFlow], ['颜色历史', checkColorHistory], ['工序排期', checkSchedule], ['SIN 输入', checkSinValidation], ['邮编输入', checkPostalValidation], ['CURP 输入', () => checkIdValidation('curp', 'CURP_BASE', 'BOXW310820HMNERN16', 'BOXW310820HMNERN160')], ['DNI 输入', () => checkIdValidation('dni', 'DNI_LETTERS', '12345678Z', '12345678A')], ['投资回报历史', checkInvestmentHistory], ['期权盈亏', checkOptionCalculator]]) {
+for (const [name, test] of [['银行卡输入', checkCardInput], ['名片二维码超限', checkVcardOverflow], ['基金定投时点', checkFundTiming], ['退休现金流', checkRetirementCashFlow], ['颜色历史', checkColorHistory], ['工序排期', checkSchedule], ['SIN 输入', checkSinValidation], ['邮编输入', checkPostalValidation], ['CURP 输入', () => checkIdValidation('curp', 'CURP_BASE', 'BOXW310820HMNERN16', 'BOXW310820HMNERN160')], ['DNI 输入', () => checkIdValidation('dni', 'DNI_LETTERS', '12345678Z', '12345678A')], ['投资回报历史', checkInvestmentHistory], ['期权盈亏', checkOptionCalculator]]) {
   try { test(); console.log('PASS', name); } catch (err) { failed = true; console.error('FAIL', name, err.message); }
 }
 if (failed) process.exitCode = 1;
