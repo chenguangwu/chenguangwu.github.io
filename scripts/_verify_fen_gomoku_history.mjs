@@ -40,6 +40,45 @@ for (const [file, prefix, button, valid, invalid] of [
   }
   dom.window.close();
 }
+// Real validator interactions must preserve the latest rapid input, including on export.
+for (const slug of ['gstin-validator', 'meid-validator']) {
+  const downloads = [], trends = [];
+  const dom = new JSDOM(readFileSync(`tools/finance/${slug}.html`, 'utf8'), {
+    url:`https://x.test/tools/finance/${slug}.html`, runScripts:'dangerously', pretendToBeVisual:true,
+    virtualConsole:new VirtualConsole(), beforeParse(w) {
+      w.ToolBox={showToast(){},escHtml:s=>String(s)}; w.i18nText=k=>k;
+      w.Blob=class { constructor(parts){this.text=parts.join('');} };
+      w.URL.createObjectURL=blob=>{downloads.push(blob.text);return 'blob:test';};
+      w.URL.revokeObjectURL=()=>{}; w.HTMLAnchorElement.prototype.click=function(){};
+      w.eval(readFileSync('js/tool-kit.js','utf8'));
+      const line=w.TBKit.chart.line;
+      w.TBKit.chart.line=(host,config)=>{trends.push(Array.from(config.series[0].data));return line(host,config);};
+    }
+  });
+  const w=dom.window, doc=w.document, prefix=slug.replaceAll('-','_');
+  await new Promise(resolve=>w.addEventListener('load',resolve));
+  w.TBKit.history.clear(); w.eval(`__${prefix}_last=0`);
+  const valid=slug==='gstin-validator' ? '27ABCDE1234F1Z'+w.gstChecksum('27ABCDE1234F1Z') : 'A0000012345678'+w.eval('HEX_BASE[meidCheckHex("A0000012345678")]');
+  const input=doc.getElementById('input');
+  const enter=value=>{input.value=value;input.dispatchEvent(new w.Event('input',{bubbles:true}));};
+  const check=(label,ok)=>{console.log(`${ok?'PASS':'FAIL'} ${slug} ${label}`);if(!ok)failed=true;};
+  enter(valid); enter('2'.repeat(100));
+  doc.querySelector(`[onclick="__${prefix}Export()"]`).click();
+  let records=w.TBKit.history.list();
+  check('快速输入后导出包含最新失败', records.length===2 && records[0].d.__tbScore===0 && downloads[0]?.includes('未通过'));
+  check('快速输入趋势保留真实状态', trends.some(t=>t.join(',')==='1,0'));
+  w.TBKit.history.clear(); w.eval(`__${prefix}_last=0`);
+  enter(valid); enter('3'.repeat(100));
+  await new Promise(resolve=>setTimeout(resolve,1100));
+  records=w.TBKit.history.list();
+  check('节流结束后记录最新失败', records.length===2 && records[0].d.input==='3'.repeat(100) && records[0].d.__tbScore===0);
+  w.TBKit.history.clear(); w.eval(`__${prefix}_last=0`);
+  enter(valid); enter('4'.repeat(100));
+  doc.querySelector(`#${prefix}Hist .tbk-history-item`)?.click();
+  await new Promise(resolve=>setTimeout(resolve,1100));
+  check('恢复历史时取消待处理输入', input.value===valid && w.TBKit.history.list().length===1);
+  w.close();
+}
 // Exercise validation with real output, history, trend and CSV.
 for (const [slug, valid] of [
   ['tfn-validator','876543210'], ['pan-validator','ABCPS1234E'],
