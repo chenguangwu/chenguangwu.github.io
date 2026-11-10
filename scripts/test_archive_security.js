@@ -330,8 +330,27 @@ function checkWordCounterDescription() {
   assert.ok(page.includes(formula) && translations[formula], '中英文公式应按码点说明，不应声称每个 emoji 均为 1');
 }
 
+function checkIndustryProfitMargins() {
+  const page = fs.readFileSync(path.join(root, 'tools/finance/profit-margin-calculator.html'), 'utf8');
+  const main = [...page.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]).find(s => s.includes('function showIndustryDetail(idx)'));
+  const dom = new JSDOM(page.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ''), { url: 'https://example.test/', runScripts: 'dangerously' });
+  dom.window.ToolBox = { formatNumber: n => Number(n).toFixed(2) };
+  dom.window.eval(main.replace(/renderIndustries\(\);\s*calc\(\);\s*calcReverse\(\);\s*calcDupont\(\);\s*$/, ''));
+  const doc = dom.window.document;
+  const values = () => [...doc.querySelectorAll('#industryDetail .bar-fill')].map(el => el.textContent.trim().split(' / ')[0]);
+  dom.window.showIndustryDetail(0);
+  assert.deepStrictEqual(values(), ['40.0%', '11.0%', '17.0%', '6.8%']);
+  dom.window.showIndustryDetail(1);
+  assert.ok(doc.getElementById('industryDetail').textContent.includes('电子商务'));
+  doc.getElementById('da').value = '100000';
+  dom.window.calc();
+  assert.ok(doc.getElementById('industryDetail').textContent.includes('电子商务'), '输入变化应保留所选行业');
+  assert.deepStrictEqual(values(), ['40.0%', '7.0%', '17.0%', '3.8%'], '现有行业明细应随输入更新');
+  dom.window.close();
+}
+
 let failed = false;
-for (const [name, test] of [['字数统计说明', checkWordCounterDescription], ['银行卡输入', checkCardInput], ['名片二维码超限', checkVcardOverflow], ['基金定投时点', checkFundTiming], ['退休现金流', checkRetirementCashFlow], ['颜色历史', checkColorHistory], ['工序排期', checkSchedule], ['SIN 输入', checkSinValidation], ['邮编输入', checkPostalValidation], ['CURP 输入', () => checkIdValidation('curp', 'CURP_BASE', 'BOXW310820HMNERN16', 'BOXW310820HMNERN160')], ['DNI 输入', () => checkIdValidation('dni', 'DNI_LETTERS', '12345678Z', '12345678A')], ['投资回报历史', checkInvestmentHistory], ['期权盈亏', checkOptionCalculator]]) {
+for (const [name, test] of [['行业利润率', checkIndustryProfitMargins], ['字数统计说明', checkWordCounterDescription], ['银行卡输入', checkCardInput], ['名片二维码超限', checkVcardOverflow], ['基金定投时点', checkFundTiming], ['退休现金流', checkRetirementCashFlow], ['颜色历史', checkColorHistory], ['工序排期', checkSchedule], ['SIN 输入', checkSinValidation], ['邮编输入', checkPostalValidation], ['CURP 输入', () => checkIdValidation('curp', 'CURP_BASE', 'BOXW310820HMNERN16', 'BOXW310820HMNERN160')], ['DNI 输入', () => checkIdValidation('dni', 'DNI_LETTERS', '12345678Z', '12345678A')], ['投资回报历史', checkInvestmentHistory], ['期权盈亏', checkOptionCalculator]]) {
   try { test(); console.log('PASS', name); } catch (err) { failed = true; console.error('FAIL', name, err.message); }
 }
 if (failed) process.exitCode = 1;
