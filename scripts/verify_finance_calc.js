@@ -1303,6 +1303,42 @@ const CASES = [
   },
   {
     slug: "finance/msisdn-validator",
+    inputs: { input: "+44" },
+    expect: ["❌ 缺少国内号码"],
+    ref: "只有英国国家码，不是完整号码。",
+  },
+  {
+    slug: "finance/msisdn-validator",
+    inputs: { input: "+49" },
+    expect: ["❌ 缺少国内号码"],
+    ref: "只有德国国家码，不是完整号码。",
+  },
+  {
+    slug: "finance/msisdn-validator",
+    inputs: { input: "+44 1" },
+    expect: ["⚠️ 已识别国家码，但未校验该国家的国内号码格式或长度"],
+    ref: "英国短号不得断言有效，仅报告缺少对应国别规则。",
+  },
+  {
+    slug: "finance/msisdn-validator",
+    inputs: { input: "+44 7911 123456" },
+    expect: ["⚠️ 已识别国家码，但未校验该国家的国内号码格式或长度"],
+    ref: "英国号码也只能识别前缀，不能未经规则确认有效。",
+  },
+  {
+    slug: "finance/msisdn-validator",
+    inputs: { input: "+1 2025550123" },
+    expect: ["✅ 符合 NANP 10 位号码格式"],
+    ref: "NANP 的 10 位长度规则保持有效。",
+  },
+  {
+    slug: "finance/msisdn-validator",
+    inputs: { input: "+86 13900139000" },
+    expect: ["归一化： 8613900139000", "✅ 符合中国大陆 11 位手机号格式"],
+    ref: "中国号码规则保持有效。",
+  },
+  {
+    slug: "finance/msisdn-validator",
     inputs: { input: "13800138000" },
     expect: ["缺国家码，无法判定（疑似 +86 中国大陆手机号）"],
     ref: "F-N215 本地号误判：无 + 的中国 11 位号旧实现命中前缀 '1' 硬判美加 +1、国内 3800138000 + NANP 通过；修复后提示疑似 +86 缺国家码。默认预填 +86 13800138000 ⇒ 不命中。",
