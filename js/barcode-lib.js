@@ -75,7 +75,7 @@
         values.push(cc < 32 ? cc + 64 : cc - 32);
       }
     } else {
-      return { ok: false, error: 'Code 128 仅支持 ASCII 0~127，请改用 Code 39 或缩短内容' };
+      return { ok: false, error: 'Code 128 仅支持单一子集：ASCII 0~95 或 32~127，暂不支持混合子集切换' };
     }
     var sum = start;
     for (i = 0; i < values.length; i++) sum += values[i] * (i + 1);

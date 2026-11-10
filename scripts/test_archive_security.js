@@ -373,8 +373,35 @@ function checkPositionSizingMissingInput() {
   dom.window.close();
 }
 
+function checkCode128Descriptions() {
+  const lib = fs.readFileSync(path.join(root, 'js/barcode-lib.js'), 'utf8');
+  const dom = new JSDOM('', { runScripts: 'dangerously' });
+  dom.window.eval(lib);
+  const encode = value => dom.window.ToolBoxBarcode.encode('code128', value);
+  assert.strictEqual(encode('ABC-1234').ok, true);
+  assert.strictEqual(encode('123456').detail.subset, 'C');
+  assert.strictEqual(encode('\u0001A').detail.subset, 'A');
+  assert.strictEqual(encode('abc').detail.subset, 'B');
+  assert.strictEqual(encode('\u0001a').ok, false, '混合控制符与小写字母无法用单一子集编码');
+  assert.ok(encode('\u0001a').error.includes('子集'), '错误信息应说明子集限制');
+  const deep = JSON.parse(fs.readFileSync(path.join(root, 'i18n/tools/content_deepdive.json'), 'utf8'))['it/barcode-code128'];
+  const en = JSON.parse(fs.readFileSync(path.join(root, 'i18n/tools/en/it/barcode-code128.json'), 'utf8')).map;
+  const page = fs.readFileSync(path.join(root, 'tools/it/barcode-code128.html'), 'utf8');
+  assert.ok(deep.examples[0].body.includes('可打印 ASCII') && deep.examples[0].body.includes('不支持子集切换'));
+  assert.ok(en[deep.examples[0].body] && en[deep.examples[0].body].includes('subset switching'));
+  assert.ok(page.includes(deep.examples[0].body) && !page.includes('输入任意 ASCII 文本'));
+  const allDeep = JSON.parse(fs.readFileSync(path.join(root, 'i18n/tools/content_deepdive.json'), 'utf8'));
+  for (const slug of ['barcode-codabar', 'barcode-code39', 'barcode-itf', 'barcode-msi', 'barcode-upc']) {
+    const body = allDeep[`it/${slug}`].examples[0].body;
+    const map = JSON.parse(fs.readFileSync(path.join(root, `i18n/tools/en/it/${slug}.json`), 'utf8')).map;
+    const html = fs.readFileSync(path.join(root, `tools/it/${slug}.html`), 'utf8');
+    assert.ok(html.includes(body) && map[body], `${slug} 示例及英文翻译应与构建源一致`);
+  }
+  dom.window.close();
+}
+
 let failed = false;
-for (const [name, test] of [['仓位缺填历史', checkPositionSizingMissingInput], ['行业利润率', checkIndustryProfitMargins], ['字数统计说明', checkWordCounterDescription], ['银行卡输入', checkCardInput], ['名片二维码超限', checkVcardOverflow], ['基金定投时点', checkFundTiming], ['退休现金流', checkRetirementCashFlow], ['颜色历史', checkColorHistory], ['工序排期', checkSchedule], ['SIN 输入', checkSinValidation], ['邮编输入', checkPostalValidation], ['CURP 输入', () => checkIdValidation('curp', 'CURP_BASE', 'BOXW310820HMNERN16', 'BOXW310820HMNERN160')], ['DNI 输入', () => checkIdValidation('dni', 'DNI_LETTERS', '12345678Z', '12345678A')], ['投资回报历史', checkInvestmentHistory], ['期权盈亏', checkOptionCalculator]]) {
+for (const [name, test] of [['Code128 字符范围', checkCode128Descriptions], ['仓位缺填历史', checkPositionSizingMissingInput], ['行业利润率', checkIndustryProfitMargins], ['字数统计说明', checkWordCounterDescription], ['银行卡输入', checkCardInput], ['名片二维码超限', checkVcardOverflow], ['基金定投时点', checkFundTiming], ['退休现金流', checkRetirementCashFlow], ['颜色历史', checkColorHistory], ['工序排期', checkSchedule], ['SIN 输入', checkSinValidation], ['邮编输入', checkPostalValidation], ['CURP 输入', () => checkIdValidation('curp', 'CURP_BASE', 'BOXW310820HMNERN16', 'BOXW310820HMNERN160')], ['DNI 输入', () => checkIdValidation('dni', 'DNI_LETTERS', '12345678Z', '12345678A')], ['投资回报历史', checkInvestmentHistory], ['期权盈亏', checkOptionCalculator]]) {
   try { test(); console.log('PASS', name); } catch (err) { failed = true; console.error('FAIL', name, err.message); }
 }
 if (failed) process.exitCode = 1;
