@@ -46,6 +46,7 @@ for (const [slug, valid] of [
   ['tfn-validator','876543210'], ['pan-validator','ABCPS1234E'],
   ['curp-validator','BOXW310820HMNERN16'], ['dni-validator','12345678Z'],
   ['sort-code-validator-validator','200000'], ['tin-validator','123-45-6789'],
+  ['credit-card-luhn','4111111111111111'], ['credit-card-type','4111111111111111'],
 ]) {
   const downloads = [], trends = [];
   const dom = new JSDOM(readFileSync(`tools/finance/${slug}.html`, 'utf8'), {
@@ -82,6 +83,37 @@ for (const [slug, valid] of [
   doc.querySelector(`#${prefix}Hist .tbk-history-item`)?.click();
   await new Promise(resolve=>setTimeout(resolve,1100));
   check('恢复历史时取消待处理输入', input.value===actualValid && w.TBKit.history.list().length===1);
+  w.close();
+}
+// Inspect real validity across malformed inputs and summaries longer than 80 characters.
+for (const slug of ['credit-card-luhn','credit-card-type']) {
+  const downloads=[], trends=[];
+  const dom=new JSDOM(readFileSync(`tools/finance/${slug}.html`,'utf8'),{
+    url:`https://x.test/tools/finance/${slug}.html`,runScripts:'dangerously',pretendToBeVisual:true,
+    virtualConsole:new VirtualConsole(),beforeParse(w){
+      let now=100000; w.Date.now=()=>now+=1100;
+      w.ToolBox={showToast(){},escHtml:s=>String(s)}; w.i18nText=k=>k;
+      w.Blob=class{constructor(parts){this.text=parts.join('');}};
+      w.URL.createObjectURL=blob=>{downloads.push(blob.text);return 'blob:test';};
+      w.URL.revokeObjectURL=()=>{}; w.HTMLAnchorElement.prototype.click=function(){};
+      w.eval(readFileSync('js/tool-kit.js','utf8'));
+      const line=w.TBKit.chart.line;
+      w.TBKit.chart.line=(host,config)=>{trends.push(Array.from(config.series[0].data));return line(host,config);};
+    }
+  });
+  const w=dom.window,doc=w.document,prefix=slug.replaceAll('-','_');
+  await new Promise(resolve=>w.addEventListener('load',resolve));
+  w.TBKit.history.clear();
+  const input=doc.getElementById('input');
+  const enter=value=>{input.value=value;input.dispatchEvent(new w.Event('input',{bubbles:true}));};
+  const check=(label,ok)=>{console.log(`${ok?'PASS':'FAIL'} ${slug} ${label}`);if(!ok)failed=true;};
+  enter('4111111111111111'); enter('invalid');
+  check('非法字符记为未通过',w.TBKit.history.list()[0]?.d.__tbScore===0);
+  enter('4'.repeat(100));
+  check('超长卡号记为未通过',w.TBKit.history.list()[0]?.d.__tbScore===0);
+  check('趋势包含真实通过与失败',trends.some(t=>t.includes(1)&&t.includes(0)));
+  doc.querySelector(`[onclick="__${prefix}Export()"]`).click();
+  check('CSV 导出真实失败结论',downloads[0]?.includes('未通过'));
   w.close();
 }
 // Exercise validation with real output, history, trend and CSV.

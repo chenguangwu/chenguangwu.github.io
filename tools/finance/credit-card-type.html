@@ -261,7 +261,9 @@ function luhnCheck(digits){
   }
   return sum % 10 === 0;
 }
+let __creditCardTypeValid = false;
 function validate(){
+  __creditCardTypeValid = false;
   const raw = document.getElementById('input').value.trim();
   const digits = raw.replace(/[\s-]/g,'');
   const out = document.getElementById('output');
@@ -285,6 +287,7 @@ function validate(){
       html += `<p><strong>长度校验：</strong> ⚠️ 当前 ${digits.length} 位，${brand.name} 常见为 ${brand.lengths.join('/')} 位</p>`;
     }
     const luhnOk = luhnCheck(digits);
+    __creditCardTypeValid = lenOk && luhnOk;
     html += `<p><strong>Luhn 校验：</strong> ${luhnOk ? '<span style="color:var(--success);">✅ 通过</span>' : '<span style="color:var(--danger);">❌ 未通过（卡号可能录错或不存在）</span>'}</p>`;
     if(lenOk && luhnOk){
       html += `<p style="color:var(--success);">✅ 前缀、长度与 Luhn 校验均通过</p>`;
@@ -328,7 +331,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __credit_card_type_last=0,__credit_card_type_skip=false;
+var __credit_card_type_last=0,__credit_card_type_skip=false,__credit_card_type_timer=null;
 function __credit_card_typeSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -349,11 +352,7 @@ function __credit_card_typeResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
-function __credit_card_typeScore(t){
-    var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
-    return 1;
-}
+function __credit_card_typeScore(){ return __creditCardTypeValid ? 1 : 0; }
 function __credit_card_typeTime(t){
     var d=new Date(t);
     function q(x){return (x<10?'0':'')+x;}
@@ -398,9 +397,11 @@ function __credit_card_typeRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __credit_card_typeExtras(){
+function __credit_card_typeExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__credit_card_type_skip) return;
+    clearTimeout(__credit_card_type_timer);
+    __credit_card_type_timer=null;
     var snap=__credit_card_typeSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -410,7 +411,10 @@ function __credit_card_typeExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__credit_card_type_last<1000) return;
+    if(!force && now-__credit_card_type_last<1000){
+        __credit_card_type_timer=setTimeout(function(){__credit_card_typeExtras(true);},1000-(now-__credit_card_type_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -430,6 +434,7 @@ function __credit_card_typeExtras(){
 }
 function __credit_card_typeExport(){
     if (typeof TBKit === 'undefined') return;
+    __credit_card_typeExtras(true);
     try{
         var box=document.querySelector('#credit_card_typeTable');
         if(!box||!box.querySelector('tr')){
