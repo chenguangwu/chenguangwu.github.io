@@ -596,4 +596,36 @@ for (const [file, prefix, input, error] of [
   check('偿债风险警告不等于输入无效',w.TBKit.history.list()[0]?.d.__tbScore===1 && /偿债压力/.test(doc.getElementById('res').textContent));
   w.close();
 }
+// Cost allocation verdicts follow allocation validity, not arbitrary object names.
+{
+  const downloads=[],trends=[];
+  const dom=new JSDOM(readFileSync('tools/finance/analysis-cost-1.html','utf8'),{
+    url:'https://x.test/tools/finance/analysis-cost-1.html',runScripts:'dangerously',pretendToBeVisual:true,
+    virtualConsole:new VirtualConsole(),beforeParse(w){
+      w.ToolBox={showToast(){},escHtml:s=>String(s)};w.i18nText=k=>k;
+      w.Blob=class{constructor(parts){this.text=parts.join('');}};
+      w.URL.createObjectURL=blob=>{downloads.push(blob.text);return 'blob:test';};
+      w.URL.revokeObjectURL=()=>{};w.HTMLAnchorElement.prototype.click=function(){};
+      w.eval(readFileSync('js/tool-kit.js','utf8'));
+      const line=w.TBKit.chart.line;
+      w.TBKit.chart.line=(host,config)=>{trends.push(Array.from(config.series[0].data));return line(host,config);};
+    }
+  });
+  const w=dom.window,doc=w.document,rows=doc.getElementById('rows');
+  await new Promise(resolve=>w.addEventListener('load',resolve));
+  const check=(label,ok)=>{console.log(`${ok?'PASS':'FAIL'} analysis-cost-1 ${label}`);if(!ok)failed=true;};
+  const calculate=value=>{rows.value=value;w.calc();};
+  w.TBKit.history.clear();w.eval('__analysis_cost_1_last=0');
+  calculate('失败项目,100');calculate('');doc.querySelector('[onclick="__analysis_cost_1Export()"]')?.click();
+  let records=w.TBKit.history.list();
+  check('成本对象名称不影响有效性',records[1]?.d.__tbScore===1);
+  check('快速导出记录空对象失败',records.length===2 && records[0].d.rows==='' && records[0].d.__tbScore===0 && downloads[0]?.includes('未通过'));
+  check('趋势反映真实有效性',trends.some(t=>t.join(',')==='1,0'));
+  calculate('新对象,10');doc.querySelector('#analysis_cost_1Hist .tbk-history-item')?.click();
+  await new Promise(resolve=>setTimeout(resolve,1100));
+  check('恢复空对象并取消待保存输入',rows.value==='' && w.TBKit.history.list().length===2);
+  calculate('A,0');doc.querySelector('[onclick="__analysis_cost_1Export()"]')?.click();
+  check('零基数合计记为未通过',w.TBKit.history.list()[0]?.d.__tbScore===0);
+  w.close();
+}
 process.exit(failed ? 1 : 0);
