@@ -119,8 +119,50 @@ function checkIdValidation(slug, constant, valid, invalid) {
   dom.window.close();
 }
 
+function checkInvestmentHistory() {
+  const page = fs.readFileSync(path.join(root, 'tools/finance/investment-calculator.html'), 'utf8');
+  const scripts = [...page.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]);
+  const main = scripts.find(s => s.includes('function fmt(n)'));
+  const extras = scripts.find(s => s.includes('function __investment_calculatorExtras()'));
+  const html = page.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '');
+  const dom = new JSDOM(html, { url: 'https://example.test/tools/finance/investment-calculator.html', runScripts: 'dangerously' });
+  const { document } = dom.window;
+  dom.window.eval(fs.readFileSync(path.join(root, 'js/tool-kit.js'), 'utf8'));
+  dom.window.eval(main);
+  dom.window.eval(extras);
+  const kit = dom.window.TBKit;
+  let exports = 0;
+  kit.util.exportTable = () => { exports++; };
+  const fields = { initial: '10000', final: '18000', years: '5', additional: '0' };
+  const set = values => Object.entries(values).forEach(([id, value]) => { document.getElementById(id).value = value; });
+  function calculate(values) {
+    set(values);
+    dom.window.__investment_calculator_last = 0;
+    dom.window.calc();
+  }
+  kit.history.clear();
+  calculate(fields);
+  assert.strictEqual(kit.history.list().length, 1, '零追加应保存合法结果');
+  dom.window.__investment_calculatorExport();
+  assert.strictEqual(exports, 1, '合法结果应允许导出');
+  for (const invalid of [{ additional: '-5000' }, { initial: '0' }, { final: '-1' }, { years: '0' }]) {
+    calculate(fields);
+    const before = kit.history.list().length;
+    calculate(invalid);
+    assert.strictEqual(kit.history.list().length, before, '拒绝态不得写入历史');
+    dom.window.__investment_calculatorExport();
+    assert.strictEqual(exports, 1, '拒绝态不得导出旧结果');
+  }
+  calculate({ ...fields, additional: '6000' });
+  assert.strictEqual(kit.history.last().additional, '6000', '正追加应保存合法结果');
+  dom.window.clearAll();
+  dom.window.__investment_calculatorExport();
+  assert.strictEqual(exports, 1, '清空后不得导出旧结果');
+  dom.window.close();
+}
+
 let failed = false;
-for (const [name, test] of [['颜色历史', checkColorHistory], ['工序排期', checkSchedule], ['SIN 输入', checkSinValidation], ['邮编输入', checkPostalValidation], ['CURP 输入', () => checkIdValidation('curp', 'CURP_BASE', 'BOXW310820HMNERN16', 'BOXW310820HMNERN160')], ['DNI 输入', () => checkIdValidation('dni', 'DNI_LETTERS', '12345678Z', '12345678A')]]) {
+for (const [name, test] of [['颜色历史', checkColorHistory], ['工序排期', checkSchedule], ['SIN 输入', checkSinValidation], ['邮编输入', checkPostalValidation], ['CURP 输入', () => checkIdValidation('curp', 'CURP_BASE', 'BOXW310820HMNERN16', 'BOXW310820HMNERN160')], ['DNI 输入', () => checkIdValidation('dni', 'DNI_LETTERS', '12345678Z', '12345678A')], ['投资回报历史', checkInvestmentHistory]]) {
   try { test(); console.log('PASS', name); } catch (err) { failed = true; console.error('FAIL', name, err.message); }
 }
 if (failed) process.exitCode = 1;
