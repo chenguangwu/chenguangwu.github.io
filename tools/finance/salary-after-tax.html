@@ -327,7 +327,7 @@ function resetForm(){document.getElementById('gross').value='15000';
       calcTool();}
 calcTool();
 
-var __salary_after_tax_last=0,__salary_after_tax_skip=false;
+var __salary_after_tax_last=0,__salary_after_tax_skip=false,__salary_after_tax_timer=null;
 function __salary_after_taxSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -336,7 +336,7 @@ function __salary_after_taxSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -348,9 +348,18 @@ function __salary_after_taxResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __salary_after_taxFullResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __salary_after_taxScore(t){
+    var gr=parseFloat(document.getElementById('gross').value);
+    if(!isFinite(gr)||gr<=0) return 0;
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __salary_after_taxTime(t){
@@ -373,7 +382,7 @@ function __salary_after_taxRender(keys,rk,en){
         TBKit.matrix.table('#salary_after_taxTable',{head:head,rows:rows});
         TBKit.util.diffBox('#salary_after_taxDiff');
         TBKit.history.mount('#salary_after_taxHist',function(rec){
-            __salary_after_tax_skip=true;
+            __salary_after_tax_skip=true;clearTimeout(__salary_after_tax_timer);__salary_after_tax_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -397,9 +406,11 @@ function __salary_after_taxRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __salary_after_taxExtras(){
+function __salary_after_taxExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__salary_after_tax_skip) return;
+    clearTimeout(__salary_after_tax_timer);
+    __salary_after_tax_timer=null;
     var snap=__salary_after_taxSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -409,7 +420,10 @@ function __salary_after_taxExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__salary_after_tax_last<1000) return;
+    if(!force && now-__salary_after_tax_last<1000){
+        __salary_after_tax_timer=setTimeout(function(){__salary_after_taxExtras(true);},1000-(now-__salary_after_tax_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -423,12 +437,13 @@ function __salary_after_taxExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__salary_after_taxScore(res);
+    rec.__tbScore=__salary_after_taxScore(__salary_after_taxFullResText());
     TBKit.history.record(rec);
     __salary_after_taxRender(keys,rk,en);
 }
 function __salary_after_taxExport(){
     if (typeof TBKit === 'undefined') return;
+    __salary_after_taxExtras(true);
     try{
         var box=document.querySelector('#salary_after_taxTable');
         if(!box||!box.querySelector('tr')){

@@ -1004,7 +1004,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __profit_margin_calculator_last=0,__profit_margin_calculator_skip=false;
+var __profit_margin_calculator_last=0,__profit_margin_calculator_skip=false,__profit_margin_calculator_timer=null;
 function __profit_margin_calculatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -1013,7 +1013,7 @@ function __profit_margin_calculatorSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -1025,9 +1025,18 @@ function __profit_margin_calculatorResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __profit_margin_calculatorFullResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __profit_margin_calculatorScore(t){
+    var rev=parseFloat(document.getElementById('revenue').value);
+    if(!isFinite(rev)||rev<=0) return 0;
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __profit_margin_calculatorTime(t){
@@ -1050,7 +1059,7 @@ function __profit_margin_calculatorRender(keys,rk,en){
         TBKit.matrix.table('#profit_margin_calculatorTable',{head:head,rows:rows});
         TBKit.util.diffBox('#profit_margin_calculatorDiff');
         TBKit.history.mount('#profit_margin_calculatorHist',function(rec){
-            __profit_margin_calculator_skip=true;
+            __profit_margin_calculator_skip=true;clearTimeout(__profit_margin_calculator_timer);__profit_margin_calculator_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -1074,9 +1083,11 @@ function __profit_margin_calculatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __profit_margin_calculatorExtras(){
+function __profit_margin_calculatorExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__profit_margin_calculator_skip) return;
+    clearTimeout(__profit_margin_calculator_timer);
+    __profit_margin_calculator_timer=null;
     var snap=__profit_margin_calculatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -1086,7 +1097,10 @@ function __profit_margin_calculatorExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__profit_margin_calculator_last<1000) return;
+    if(!force && now-__profit_margin_calculator_last<1000){
+        __profit_margin_calculator_timer=setTimeout(function(){__profit_margin_calculatorExtras(true);},1000-(now-__profit_margin_calculator_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -1100,12 +1114,13 @@ function __profit_margin_calculatorExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__profit_margin_calculatorScore(res);
+    rec.__tbScore=__profit_margin_calculatorScore(__profit_margin_calculatorFullResText());
     TBKit.history.record(rec);
     __profit_margin_calculatorRender(keys,rk,en);
 }
 function __profit_margin_calculatorExport(){
     if (typeof TBKit === 'undefined') return;
+    __profit_margin_calculatorExtras(true);
     try{
         var box=document.querySelector('#profit_margin_calculatorTable');
         if(!box||!box.querySelector('tr')){

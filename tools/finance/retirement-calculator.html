@@ -676,7 +676,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __retirement_calculator_last=0,__retirement_calculator_skip=false;
+var __retirement_calculator_last=0,__retirement_calculator_skip=false,__retirement_calculator_timer=null;
 function __retirement_calculatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -685,7 +685,7 @@ function __retirement_calculatorSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -697,9 +697,20 @@ function __retirement_calculatorResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __retirement_calculatorFullResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __retirement_calculatorScore(t){
+    // 复核判据：本页「❌ 资金不足 / ⚠️ 接近目标」是有效业务结论，不是计算失败；
+    // Score 只表示本次计算是否成功，年龄等输入非法才判 0。
+    var age=parseFloat(document.getElementById('age').value);
+    if(!isFinite(age)||age<=0||age>120) return 0;
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/请输入|含无效值|无法计算|Waiting|Please enter|Invalid|Failed/i.test(s)) return 0;
     return 1;
 }
 function __retirement_calculatorTime(t){
@@ -722,7 +733,7 @@ function __retirement_calculatorRender(keys,rk,en){
         TBKit.matrix.table('#retirement_calculatorTable',{head:head,rows:rows});
         TBKit.util.diffBox('#retirement_calculatorDiff');
         TBKit.history.mount('#retirement_calculatorHist',function(rec){
-            __retirement_calculator_skip=true;
+            __retirement_calculator_skip=true;clearTimeout(__retirement_calculator_timer);__retirement_calculator_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -746,9 +757,11 @@ function __retirement_calculatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __retirement_calculatorExtras(){
+function __retirement_calculatorExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__retirement_calculator_skip) return;
+    clearTimeout(__retirement_calculator_timer);
+    __retirement_calculator_timer=null;
     var snap=__retirement_calculatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -758,7 +771,10 @@ function __retirement_calculatorExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__retirement_calculator_last<1000) return;
+    if(!force && now-__retirement_calculator_last<1000){
+        __retirement_calculator_timer=setTimeout(function(){__retirement_calculatorExtras(true);},1000-(now-__retirement_calculator_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -772,12 +788,13 @@ function __retirement_calculatorExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__retirement_calculatorScore(res);
+    rec.__tbScore=__retirement_calculatorScore(__retirement_calculatorFullResText());
     TBKit.history.record(rec);
     __retirement_calculatorRender(keys,rk,en);
 }
 function __retirement_calculatorExport(){
     if (typeof TBKit === 'undefined') return;
+    __retirement_calculatorExtras(true);
     try{
         var box=document.querySelector('#retirement_calculatorTable');
         if(!box||!box.querySelector('tr')){

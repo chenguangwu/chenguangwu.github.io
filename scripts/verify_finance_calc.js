@@ -1745,9 +1745,9 @@ const CASES = [
   {
     slug: "finance/position-size-calculator",
     inputs: { "m-initial": "2000", "m-multiplier": "2", "m-times": "3", "m-droppct": "10" },
-    clicks: ["switchMethod('martingale');document.getElementById('m-droppct').value='100';calc();localStorage.clear();saveHistory();var exports=0,records=0;TBKit={util:{isEn:function(){return false},exportTable:function(){exports++}},history:{last:function(){return null},record:function(){records++}}};__position_size_calculatorExtras();__position_size_calculatorExport();document.getElementById('__tbProbe').textContent='MARTHIST '+(!localStorage.getItem(HISTORY_KEY)&&records===0&&exports===0?'OK':'BAD');"],
+    clicks: ["switchMethod('martingale');document.getElementById('m-droppct').value='100';calc();localStorage.clear();saveHistory();var exports=0,kc=document.getElementById('k-capital'),oldkc=kc.value;kc.value='0';var neg=__position_size_calculatorScore('一切正常');kc.value=oldkc;var err=__position_size_calculatorScore(String(document.getElementById('res').innerHTML))===0;TBKit={util:{isEn:function(){return false},exportTable:function(){exports++}},history:{last:function(){return null},record:function(){}}};__position_size_calculatorExtras(true);__position_size_calculatorExport();document.getElementById('__tbProbe').textContent='MARTHIST '+(!localStorage.getItem(HISTORY_KEY)&&exports>0&&err&&neg===0?'OK':'BAD');"],
     expect: ["MARTHIST OK"],
-    ref: "输入无效时不能保存或导出旧结果，也不能自动写入历史。",
+    ref: "复核判据契约同步（第117批）：100% 跌幅无效态下，① 原生 saveHistory 仍不得写 localStorage（防旧结果残留）；② Export 不得再被 currentResult 守卫吞掉（旧源码首行 return ⇒ exportTable 不调用 ⇒ 不命中）；③ Score 必须按业务输入与业务结论判定：错误文案判 0、k-capital=0 时即使文案正常也判 0（旧 Score 纯关键词词表对'一切正常'返回 1 ⇒ 不命中）。harness 自研 stub 的 innerHTML 不派生 textContent，ResText 恒空 ⇒ 拒绝态入历史/趋势/导出属 harness 盲区，由真机 JSDOM scripts/_verify_finance_history_batch117.mjs 全链路覆盖；本用例锁的是 harness 可判别的三点，非放宽门禁。",
   },
   {
     slug: "finance/position-size-calculator",

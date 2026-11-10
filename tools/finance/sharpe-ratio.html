@@ -467,7 +467,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __sharpe_ratio_last=0,__sharpe_ratio_skip=false;
+var __sharpe_ratio_last=0,__sharpe_ratio_skip=false,__sharpe_ratio_timer=null;
 function __sharpe_ratioSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -476,7 +476,7 @@ function __sharpe_ratioSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -488,9 +488,16 @@ function __sharpe_ratioResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __sharpe_ratioFullResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __sharpe_ratioScore(t){
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __sharpe_ratioTime(t){
@@ -513,7 +520,7 @@ function __sharpe_ratioRender(keys,rk,en){
         TBKit.matrix.table('#sharpe_ratioTable',{head:head,rows:rows});
         TBKit.util.diffBox('#sharpe_ratioDiff');
         TBKit.history.mount('#sharpe_ratioHist',function(rec){
-            __sharpe_ratio_skip=true;
+            __sharpe_ratio_skip=true;clearTimeout(__sharpe_ratio_timer);__sharpe_ratio_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -537,9 +544,11 @@ function __sharpe_ratioRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __sharpe_ratioExtras(){
+function __sharpe_ratioExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__sharpe_ratio_skip) return;
+    clearTimeout(__sharpe_ratio_timer);
+    __sharpe_ratio_timer=null;
     var snap=__sharpe_ratioSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -549,7 +558,10 @@ function __sharpe_ratioExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__sharpe_ratio_last<1000) return;
+    if(!force && now-__sharpe_ratio_last<1000){
+        __sharpe_ratio_timer=setTimeout(function(){__sharpe_ratioExtras(true);},1000-(now-__sharpe_ratio_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -563,12 +575,13 @@ function __sharpe_ratioExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__sharpe_ratioScore(res);
+    rec.__tbScore=__sharpe_ratioScore(__sharpe_ratioFullResText());
     TBKit.history.record(rec);
     __sharpe_ratioRender(keys,rk,en);
 }
 function __sharpe_ratioExport(){
     if (typeof TBKit === 'undefined') return;
+    __sharpe_ratioExtras(true);
     try{
         var box=document.querySelector('#sharpe_ratioTable');
         if(!box||!box.querySelector('tr')){

@@ -975,7 +975,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __position_size_calculator_last=0,__position_size_calculator_skip=false;
+var __position_size_calculator_last=0,__position_size_calculator_skip=false,__position_size_calculator_timer=null;
 function __position_size_calculatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -984,7 +984,7 @@ function __position_size_calculatorSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -996,9 +996,18 @@ function __position_size_calculatorResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __position_size_calculatorFullResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __position_size_calculatorScore(t){
+    var kc=parseFloat(document.getElementById('k-capital').value);
+    if(!isFinite(kc)||kc<=0) return 0;
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __position_size_calculatorTime(t){
@@ -1021,7 +1030,7 @@ function __position_size_calculatorRender(keys,rk,en){
         TBKit.matrix.table('#position_size_calculatorTable',{head:head,rows:rows});
         TBKit.util.diffBox('#position_size_calculatorDiff');
         TBKit.history.mount('#position_size_calculatorHist',function(rec){
-            __position_size_calculator_skip=true;
+            __position_size_calculator_skip=true;clearTimeout(__position_size_calculator_timer);__position_size_calculator_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -1045,9 +1054,12 @@ function __position_size_calculatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __position_size_calculatorExtras(){
-    if (!currentResult || typeof TBKit === 'undefined') return;
+function __position_size_calculatorExtras(force){
+    // 复核判据：拒绝态也要入历史并判未通过，不能用 currentResult 守卫丢掉失败操作。
+    if (typeof TBKit === 'undefined') return;
     if (__position_size_calculator_skip) return;
+    clearTimeout(__position_size_calculator_timer);
+    __position_size_calculator_timer=null;
     var snap=__position_size_calculatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -1057,7 +1069,10 @@ function __position_size_calculatorExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__position_size_calculator_last<1000) return;
+    if(!force && now-__position_size_calculator_last<1000){
+        __position_size_calculator_timer=setTimeout(function(){__position_size_calculatorExtras(true);},1000-(now-__position_size_calculator_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -1071,12 +1086,13 @@ function __position_size_calculatorExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__position_size_calculatorScore(res);
+    rec.__tbScore=__position_size_calculatorScore(__position_size_calculatorFullResText());
     TBKit.history.record(rec);
     __position_size_calculatorRender(keys,rk,en);
 }
 function __position_size_calculatorExport(){
-    if (!currentResult || typeof TBKit === 'undefined') return;
+    if (typeof TBKit === 'undefined') return;
+    __position_size_calculatorExtras(true);
     try{
         var box=document.querySelector('#position_size_calculatorTable');
         if(!box||!box.querySelector('tr')){

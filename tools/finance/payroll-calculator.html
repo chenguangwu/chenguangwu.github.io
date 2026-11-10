@@ -786,7 +786,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __payroll_calculator_last=0,__payroll_calculator_skip=false;
+var __payroll_calculator_last=0,__payroll_calculator_skip=false,__payroll_calculator_timer=null;
 function __payroll_calculatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -795,7 +795,7 @@ function __payroll_calculatorSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -807,9 +807,16 @@ function __payroll_calculatorResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __payroll_calculatorFullResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __payroll_calculatorScore(t){
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __payroll_calculatorTime(t){
@@ -832,7 +839,7 @@ function __payroll_calculatorRender(keys,rk,en){
         TBKit.matrix.table('#payroll_calculatorTable',{head:head,rows:rows});
         TBKit.util.diffBox('#payroll_calculatorDiff');
         TBKit.history.mount('#payroll_calculatorHist',function(rec){
-            __payroll_calculator_skip=true;
+            __payroll_calculator_skip=true;clearTimeout(__payroll_calculator_timer);__payroll_calculator_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -856,9 +863,11 @@ function __payroll_calculatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __payroll_calculatorExtras(){
+function __payroll_calculatorExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__payroll_calculator_skip) return;
+    clearTimeout(__payroll_calculator_timer);
+    __payroll_calculator_timer=null;
     var snap=__payroll_calculatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -868,7 +877,10 @@ function __payroll_calculatorExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__payroll_calculator_last<1000) return;
+    if(!force && now-__payroll_calculator_last<1000){
+        __payroll_calculator_timer=setTimeout(function(){__payroll_calculatorExtras(true);},1000-(now-__payroll_calculator_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -882,12 +894,13 @@ function __payroll_calculatorExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__payroll_calculatorScore(res);
+    rec.__tbScore=__payroll_calculatorScore(__payroll_calculatorFullResText());
     TBKit.history.record(rec);
     __payroll_calculatorRender(keys,rk,en);
 }
 function __payroll_calculatorExport(){
     if (typeof TBKit === 'undefined') return;
+    __payroll_calculatorExtras(true);
     try{
         var box=document.querySelector('#payroll_calculatorTable');
         if(!box||!box.querySelector('tr')){

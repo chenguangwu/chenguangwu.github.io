@@ -875,7 +875,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __option_profit_calculator_last=0,__option_profit_calculator_skip=false;
+var __option_profit_calculator_last=0,__option_profit_calculator_skip=false,__option_profit_calculator_timer=null;
 function __option_profit_calculatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -884,7 +884,7 @@ function __option_profit_calculatorSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -896,9 +896,18 @@ function __option_profit_calculatorResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __option_profit_calculatorFullResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __option_profit_calculatorScore(t){
+    var st=parseFloat(document.getElementById('strike').value);
+    if(!isFinite(st)||st<=0||/需大于 0/.test(String(t||''))) return 0;
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __option_profit_calculatorTime(t){
@@ -921,7 +930,7 @@ function __option_profit_calculatorRender(keys,rk,en){
         TBKit.matrix.table('#option_profit_calculatorTable',{head:head,rows:rows});
         TBKit.util.diffBox('#option_profit_calculatorDiff');
         TBKit.history.mount('#option_profit_calculatorHist',function(rec){
-            __option_profit_calculator_skip=true;
+            __option_profit_calculator_skip=true;clearTimeout(__option_profit_calculator_timer);__option_profit_calculator_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -945,9 +954,12 @@ function __option_profit_calculatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __option_profit_calculatorExtras(){
-    if (!currentResult || typeof TBKit === 'undefined') return;
+function __option_profit_calculatorExtras(force){
+    // 复核判据：拒绝态也要入历史并判未通过，不能用 currentResult 守卫丢掉失败操作。
+    if (typeof TBKit === 'undefined') return;
     if (__option_profit_calculator_skip) return;
+    clearTimeout(__option_profit_calculator_timer);
+    __option_profit_calculator_timer=null;
     var snap=__option_profit_calculatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -957,7 +969,10 @@ function __option_profit_calculatorExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__option_profit_calculator_last<1000) return;
+    if(!force && now-__option_profit_calculator_last<1000){
+        __option_profit_calculator_timer=setTimeout(function(){__option_profit_calculatorExtras(true);},1000-(now-__option_profit_calculator_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -971,12 +986,13 @@ function __option_profit_calculatorExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__option_profit_calculatorScore(res);
+    rec.__tbScore=__option_profit_calculatorScore(__option_profit_calculatorFullResText());
     TBKit.history.record(rec);
     __option_profit_calculatorRender(keys,rk,en);
 }
 function __option_profit_calculatorExport(){
-    if (!currentResult || typeof TBKit === 'undefined') return;
+    if (typeof TBKit === 'undefined') return;
+    __option_profit_calculatorExtras(true);
     try{
         var box=document.querySelector('#option_profit_calculatorTable');
         if(!box||!box.querySelector('tr')){

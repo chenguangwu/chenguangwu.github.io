@@ -377,7 +377,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __report_1_last=0,__report_1_skip=false;
+var __report_1_last=0,__report_1_skip=false,__report_1_timer=null;
 function __report_1Snap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -386,7 +386,7 @@ function __report_1Snap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -398,9 +398,18 @@ function __report_1ResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __report_1FullResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __report_1Score(t){
+    var inv=parseFloat(document.getElementById('inv').value);
+    if(!isFinite(inv)||inv<=0) return 0;
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __report_1Time(t){
@@ -423,7 +432,7 @@ function __report_1Render(keys,rk,en){
         TBKit.matrix.table('#report_1Table',{head:head,rows:rows});
         TBKit.util.diffBox('#report_1Diff');
         TBKit.history.mount('#report_1Hist',function(rec){
-            __report_1_skip=true;
+            __report_1_skip=true;clearTimeout(__report_1_timer);__report_1_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -447,9 +456,11 @@ function __report_1Render(keys,rk,en){
         }
     }catch(e3){}
 }
-function __report_1Extras(){
+function __report_1Extras(force){
     if (typeof TBKit === 'undefined') return;
     if (__report_1_skip) return;
+    clearTimeout(__report_1_timer);
+    __report_1_timer=null;
     var snap=__report_1Snap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -459,7 +470,10 @@ function __report_1Extras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__report_1_last<1000) return;
+    if(!force && now-__report_1_last<1000){
+        __report_1_timer=setTimeout(function(){__report_1Extras(true);},1000-(now-__report_1_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -473,12 +487,13 @@ function __report_1Extras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__report_1Score(res);
+    rec.__tbScore=__report_1Score(__report_1FullResText());
     TBKit.history.record(rec);
     __report_1Render(keys,rk,en);
 }
 function __report_1Export(){
     if (typeof TBKit === 'undefined') return;
+    __report_1Extras(true);
     try{
         var box=document.querySelector('#report_1Table');
         if(!box||!box.querySelector('tr')){
