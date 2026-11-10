@@ -238,6 +238,12 @@ const CASES = [
   },
   {
     slug: "finance/npi-validator",
+    inputs: { input: "2234567891" },
+    expect: ["校验和： ✅ 通过 ✅ NPI 号码有效"],
+    ref: "CMS 已发行号段 2，80840 + 2234567891 通过 Luhn。",
+  },
+  {
+    slug: "finance/npi-validator",
     inputs: { input: "5234567893" },
     expect: ["首位 5 为未分配号段（CMS 已发行号段首位为 1 或 2），号码无效"],
     ref: "F-N210 号段写反：首位 5 属未分配段，旧实现仅 Luhn 通过后判「✅ 有效」，修复后直接 ❌。expect 带首位 5（默认预填首位 4 不命中）⇒ 强判别。",
