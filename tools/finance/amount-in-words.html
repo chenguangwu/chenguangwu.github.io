@@ -326,7 +326,7 @@ function copyResult() {
 
 convert();
 
-var __amount_in_words_last=0,__amount_in_words_skip=false;
+var __amount_in_words_last=0,__amount_in_words_skip=false,__amount_in_words_timer=null;
 function __amount_in_wordsSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -349,7 +349,7 @@ function __amount_in_wordsResText(){
 }
 function __amount_in_wordsScore(t){
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|⚠️|⚠|无效|超出支持范围|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __amount_in_wordsTime(t){
@@ -373,6 +373,8 @@ function __amount_in_wordsRender(keys,rk,en){
         TBKit.util.diffBox('#amount_in_wordsDiff');
         TBKit.history.mount('#amount_in_wordsHist',function(rec){
             __amount_in_words_skip=true;
+            clearTimeout(__amount_in_words_timer);
+            __amount_in_words_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -396,9 +398,11 @@ function __amount_in_wordsRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __amount_in_wordsExtras(){
+function __amount_in_wordsExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__amount_in_words_skip) return;
+    clearTimeout(__amount_in_words_timer);
+    __amount_in_words_timer=null;
     var snap=__amount_in_wordsSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -408,7 +412,10 @@ function __amount_in_wordsExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__amount_in_words_last<1000) return;
+    if(!force && now-__amount_in_words_last<1000){
+        __amount_in_words_timer=setTimeout(function(){__amount_in_wordsExtras(true);},1000-(now-__amount_in_words_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -428,6 +435,7 @@ function __amount_in_wordsExtras(){
 }
 function __amount_in_wordsExport(){
     if (typeof TBKit === 'undefined') return;
+    __amount_in_wordsExtras(true);
     try{
         var box=document.querySelector('#amount_in_wordsTable');
         if(!box||!box.querySelector('tr')){

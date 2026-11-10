@@ -455,4 +455,44 @@ for (const [file, prefix, input, error] of [
   check('真实页面显示无法确定而不是无解',w.document.getElementById('stats').textContent.includes('无法确定') && w.document.getElementById('detail').textContent.includes('无法确定'));
   w.close();
 }
+// Exercise real amount conversion and history, including out-of-range and rapid edits.
+{
+  const downloads=[], trends=[];
+  const dom=new JSDOM(readFileSync('tools/finance/amount-in-words.html','utf8'),{
+    url:'https://x.test/tools/finance/amount-in-words.html',runScripts:'dangerously',pretendToBeVisual:true,
+    virtualConsole:new VirtualConsole(),beforeParse(w){
+      w.ToolBox={showToast(){},escHtml:s=>String(s)};w.i18nText=k=>k;
+      w.Blob=class{constructor(parts){this.text=parts.join('');}};
+      w.URL.createObjectURL=blob=>{downloads.push(blob.text);return 'blob:test';};
+      w.URL.revokeObjectURL=()=>{};w.HTMLAnchorElement.prototype.click=function(){};
+      w.eval(readFileSync('js/tool-kit.js','utf8'));
+      const line=w.TBKit.chart.line;
+      w.TBKit.chart.line=(host,config)=>{trends.push(Array.from(config.series[0].data));return line(host,config);};
+    }
+  });
+  const w=dom.window,doc=w.document;
+  await new Promise(resolve=>w.addEventListener('load',resolve));
+  const input=doc.getElementById('money');
+  const enter=value=>{input.value=value;input.dispatchEvent(new w.Event('input',{bubbles:true}));};
+  const check=(label,ok)=>{console.log(`${ok?'PASS':'FAIL'} amount-in-words ${label}`);if(!ok)failed=true;};
+  w.TBKit.history.clear();w.eval('__amount_in_words_last=0');
+  enter('1234.56');enter('10000000000000000');
+  doc.querySelector('[onclick="__amount_in_wordsExport()"]')?.click();
+  let records=w.TBKit.history.list();
+  check('快速导出保留超范围失败',records.length===2 && records[0].d.__tbScore===0 && downloads[0]?.includes('未通过'));
+  check('趋势包含真实通过和失败',trends.some(t=>t.join(',')==='1,0'));
+  w.TBKit.history.clear();w.eval('__amount_in_words_last=0');
+  enter('0');enter('9999999999999999.995');
+  await new Promise(resolve=>setTimeout(resolve,1100));
+  records=w.TBKit.history.list();
+  check('舍入溢出记为失败且零元有效',records.length===2 && records[1].d.__tbScore===1 && records[0].d.__tbScore===0);
+  enter('123');doc.querySelector('#amount_in_wordsHist .tbk-history-item')?.click();
+  await new Promise(resolve=>setTimeout(resolve,1100));
+  check('恢复历史取消待保存输入',input.value==='9999999999999999.995' && w.TBKit.history.list().length===2);
+  w.TBKit.history.clear();w.eval('__amount_in_words_last=0');
+  enter('1');enter('2');enter('');
+  await new Promise(resolve=>setTimeout(resolve,1100));
+  check('清空输入不保存被替换的待处理记录',w.TBKit.history.list().length===1 && /请输入/.test(doc.getElementById('out').textContent));
+  w.close();
+}
 process.exit(failed ? 1 : 0);
