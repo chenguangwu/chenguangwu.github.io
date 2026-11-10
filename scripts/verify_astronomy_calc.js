@@ -4,6 +4,12 @@ const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
     "slug": "astronomy/observation-conditions",
+    "clicks": ["var oldEn=__plIsEn;__plIsEn=function(){return false};calcPlanets(2026,6,21,90);var zh=String(document.getElementById('planetVisibility').innerHTML);__plIsEn=function(){return true};calcPlanets(2026,6,21,-90);var en=String(document.getElementById('planetVisibility').innerHTML);__plIsEn=oldEn;document.getElementById('__tbProbe').textContent='ASTROWORD '+(/木星/.test(zh)&&/土星/.test(zh)&&/距角偏小/.test(zh)&&/距角较大/.test(zh)&&!/不可见|条件良好|整夜可见/.test(zh)&&/Jupiter/.test(en)&&/Saturn/.test(en)&&/Small elongation/.test(en)&&/Large elongation/.test(en)&&!/Not visible|Good conditions|visible all night/.test(en)?'OK':'BAD');"],
+    "expect": ["ASTROWORD OK"],
+    "ref": "复核真实行星表在南北极的中英文距角评价，不以距角推断当地可见或观测条件。"
+  },
+{
+    "slug": "astronomy/observation-conditions",
     "clicks": ["calcPlanets(2024,1,1,39.9);var h=String(document.getElementById('planetVisibility').innerHTML);document.getElementById('__tbProbe').textContent='ASTROHON '+(h.indexOf('距角评价')>=0&&h.indexOf('整夜可见')<0&&h.indexOf('距角偏小')>=0?'OK':'BAD');"],
     "expect": ["ASTROHON OK"],
     "ref": "复核失败重做·行星表冒称当地可见：旧表头『观测评价』且结论写『接近冲日·整夜可见』，但 calcPlanets 只用日期与地心黄经距角、与经纬度无关。修复后表头改『距角评价』、结论文案中性化为『距角有利/距角偏小』，表格说明明确为地心距角且与观测地无关。修复前 BAD。默认态无探针串 ⇒ 零逃生。"
