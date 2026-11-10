@@ -24,6 +24,27 @@ const { runCase } = require("./verify_it_calc.js");
 // ---------------------------------------------------------------- 用例
 const CASES = [
   {
+    slug: "finance/lease-payment-calculator",
+    inputs: { downPct: "150" },
+    clicks: ["calc();var g=document.getElementById('statGrid'),t=document.getElementById('tableWrap'),r=String(document.getElementById('res').innerHTML);document.getElementById('__tbProbe').textContent='LEASECLR '+((g&&!g.innerHTML)&&(t&&!t.innerHTML)&&r.indexOf('首付比例须在 0–100%')>=0?'OK':'BAD');"],
+    expect: ["LEASECLR OK"],
+    ref: "第126批 F-N117 拒绝态清空残留：旧版越界时只写错误提示到 #res，汇总卡片 statGrid、逐期明细 tableWrap、图表仍挂着上一次合法方案，同屏自相矛盾。修复后越界分支清空这两个容器并 clearRect 图表。注入 downPct=150 命中；默认合法态两个容器都有内容 ⇒ BAD ⇒ 强判别、零逃生。"
+  },
+  {
+    slug: "finance/lease-payment-calculator",
+    inputs: { downPct: "150" },
+    clicks: ["calc();var s0=__lease_payment_calculatorScore('');document.getElementById('downPct').value='0';calc();var s1=__lease_payment_calculatorScore('');document.getElementById('__tbProbe').textContent='LEASESCORE '+(s0===0&&s1===1?'OK':'BAD');"],
+    expect: ["LEASESCORE OK"],
+    ref: "第126批 F-N117 Score 按业务状态判定：旧 Score 靠关键词词表，「首付比例须在 0–100% 之间」「手续费不能为负」等拒绝提示不含任何失败词 ⇒ 无效输入被记成通过并允许导出。修复后读 calc() 越界分支置的 currentResult===null 直接判 0，合法态仍判 1。同用例内连测两态；默认态 s0 恒为 1 ⇒ BAD ⇒ 强判别、零逃生。"
+  },
+  {
+    slug: "finance/lease-payment-calculator",
+    inputs: { fee: "0" },
+    clicks: ["var a=[];['0','5000','20000'].forEach(function(f){document.getElementById('fee').value=f;calc();a.push(currentResult.effectiveRate);});document.getElementById('__tbProbe').textContent='LEASEIRR '+(a[0]<a[1]&&a[1]<a[2]&&Math.abs(a[1]-9.48)<0.05?'OK':'BAD');"],
+    expect: ["LEASEIRR OK"],
+    ref: "第126批 F-N114 防回退：清单复现本金 10 万 / 6% / 36 期，手续费 0/5000/20000。旧版 cashFlows[0] 用 principal+fee 把费用当多借本金，IRR 随费用上升反而下降；修复为净融资额 principal-fee 后实测 6.00% / 9.48% / 21.68% 严格递增（5000 时与清单 node 独立复算 9.48% 一致）。同用例内三态连算；默认 fee=0 单态不产生该探针 ⇒ 强判别、零逃生。"
+  },
+  {
     slug: "finance/mortgage-prepayment",
     inputs: { principal: "500000", rate: "4.5", months: "240", monthly: "4000", prepay: "0" },
     clicks: ["calc();var t=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='MPHIGH '+(t.indexOf('提示：填写的月供高于合同应还月供')>=0&&t.indexOf('3163.25')>=0?'OK':'BAD');"],

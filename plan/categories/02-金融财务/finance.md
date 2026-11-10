@@ -250,48 +250,6 @@
 
 范围：复读 `tools/finance/` 下 8 页（lease-payment-calculator、credit-card-interest、credit-card-type、isbn-validator、iban-validator、bic-validator、currency-symbol、password-generator-advanced），编号 F-N114~F-N145。说明：lease 与 credit-card-interest 在旧批次有 F-N13/F-N22，本段只记录本次复读仍存在或由旧修法引入的问题，不重复旧结论；F-N1~F-N113 未改动。
 
-### F-N114 租赁计算页：手续费被当成「额外本金流出」，实际年化随手续费上升反而下降（高，确认缺陷）
-- 问题：`calcIRR` 把手续费与本金同向相加：`cashFlows[0] -= principal + fee`。手续费是承租人期初支付的成本，净融资额应为 `principal - fee`；现在把 fee 当成「多借出的本金」，导致费用越高、算出的收益率越低。
-- 证据：`tools/finance/lease-payment-calculator.html:624`（t0 现金流）、`:586`（`*12` 年化）、`:648`/`:669`（「实际年化(IRR)」展示）、`:498`（总还款已含 fee）
-- 复现：本金 100,000、0 首付、年利率 6%、36 期、手续费 5,000 → 页面月供 3,042.19、「实际年化(IRR)」2.75%（低于名义 6%）；按净融资 95,000 的借款人现金流 `node -e` 复算，真实成本约 9.48%（名义）/9.90%（有效）。手续费改为 0 → 6.00%；改为 20,000 会进一步降到负值附近。期望：手续费越高 IRR 越高。
-- 影响：`tools/finance/lease-payment-calculator.html`；高手续费租赁方案被显示成「更便宜」，用户可能据此选错产品，属于核心结论错误。
-- 方案：t0 现金流改为 `-(principal - fee)`（借款人视角取相反符号亦可），`totalPayment` 同步按「月供×期数+首付+fee」口径；补 fee=0/5000/20000 的单调性单测。
-
-### F-N115 租赁计算页：残值/留购款在「先息后本」「等额本金」下双重计算，IRR 为负或无解（高，确认缺陷）
-- 问题：先息后本末期只还「本金+当期利息」，并未把 `fv` 留购款加入末期还款，但 `calcIRR` 又在 t=n 额外扣一次 `fv`；等额本金同样末期不含留购款，导致现金流总额小于融资本金、IRR 无解显示「—」。「总还款额」也不含留购款。
-- 证据：`tools/finance/lease-payment-calculator.html:566-569`（末期 `pay = principal + interest; balance = fv`）、`:582`（总还款=各期之和+fee）、`:630`（`cashFlows[n] -= fv`）、`:498`（等额型总还款同样不含 fv）
-- 复现：10 万、6%、36 期、残值 20,000、先息后本 → 末期还款 100,500（不含留购款）、总还款 118,000、明细末期余额 20,000、「实际年化(IRR)」−0.74%；等额本金同参 → IRR 显示「—」，总还款 91,000（少 20,000）。期望末期还款 120,500（或明确留购款另付并计入总成本），IRR≈6%。
-- 影响：`tools/finance/lease-payment-calculator.html`；残值租赁是页面主场景，实际成本被低估 2 万且年化为负/无解，直接误导留购决策。
-- 方案：先息后本/等额本金的末期 `payment += fv`、`totalPayment` 含 fv；IRR 只通过付款行计入 fv，删除 `cashFlows[n] -= fv`；等额型保持公式口径并做三种模式的对账测试。
-
-### F-N116 租赁计算页：期初等额还款明细出现负利息，明细合计与汇总卡片对不上（中，确认缺陷）
-- 问题：期初模式先 `balance -= pmt` 再按剩余余额计息，末期余额已为负，末期利息变成负数；各期本金合计超过融资本金，明细利息合计与汇总卡片的「总利息」不一致。
-- 证据：`tools/finance/lease-payment-calculator.html:505-508`（期初先冲减再计息）、`:499`（总利息公式）、`:515-520`（明细入表）
-- 复现：10 万、6%、36 期、期初还款 → 末期利息 −44.87，明细利息合计 7,919.90 而卡片总利息 8,974.10，本金合计 101,054.21（>100,000）。期望末期利息≥0、本金合计=100,000、明细利息合计=卡片总利息。
-- 影响：`tools/finance/lease-payment-calculator.html`；明细表与汇总卡自相矛盾，财务对账时无法解释差额（约 1,054 元）。
-- 方案：期初模式改为「先计息、再还款」：`interest = balance*r; principalPart = pmt - interest; balance -= principalPart`，末期用剩余余额校正最后一期；或直接按 annuity-due 摊还公式生成整表。
-
-### F-N117 租赁计算页：首付>100%、残值>本金均未校验，出现负融资额/负月供并照常导出（中，确认缺陷）
-- 问题：首付比例只有 HTML `max=90`（不阻止键入），JS 直接 `pv*downPct/100`；残值也未限制 `≤principal`。极端输入会产生负融资本金、负月供、负总还款，进度条宽度超过 100%，且仍写入历史/导出。
-- 证据：`tools/finance/lease-payment-calculator.html:187`（max=90）、`:471`/`:479`（无 JS 校验）、`:658-659`（`Math.max(downPct,5)` 直接作宽度）、`:512-513`（只对 fv 做余额赋值）
-- 复现：首付 150% → 融资金额 −50,000、月供 −1,521.10、总利息 −4,759.49；残值 150,000 > 本金 100,000 → 月供 −771.10、总还款 −27,759.49、IRR 显示「—」。期望拒绝并提示「首付比例须 0–100%、残值不得超过融资本金」。
-- 影响：`tools/finance/lease-payment-calculator.html`；负成本方案可被导出成正式报价附件，用户无法察觉输入越界。
-- 方案：计算前校验 `0≤downPct≤100`、`0≤fv≤principal`、`fee≥0`；进度条宽度 `Math.min(Math.max(...),100)`；越界时在结果区显示错误而不是继续计算。
-
-### F-N118 租赁计算页：0% 利率历史被 `|| 6` 回填成 6%，无法回放贴息方案（低，确认缺陷）
-- 问题：`loadHistory` 用 `h.annualRate || 6`、`h.pv || 100000` 回填，合法的 0 被当成空值；0 利率/免息租赁的历史记录一点击就变成 6%。
-- 证据：`tools/finance/lease-payment-calculator.html:836`（`h.pv || 100000`）、`:838`（`h.annualRate || 6`）
-- 复现：计算 10 万、0% 利率、36 期并保存/自动记录 → 点该历史条目 → 利率输入变 6%，重算月供从 2,777.78 变 3,042.19。期望回填 0 并保持 2,777.78。
-- 影响：`tools/finance/lease-payment-calculator.html`；厂商贴息/0 利率方案无法复现，历史记录失真。
-- 方案：改为 `Number.isFinite(+h.annualRate) ? +h.annualRate : 6`，其余字段同样只在 `undefined/null` 时回退。
-
-### F-N119 租赁计算页：第一个「导出明细 CSV」导出自动历史，逐期摊销要另一个按钮导出（低，确认缺陷）
-- 问题：结果区上方「导出明细 CSV」调用 `__lease_payment_calculatorExport()`，导出的是 TBKit 自动历史表（时间+输入+结果摘要）；真正的逐期摊销由详情区「📥 导出CSV」`exportCSV()` 导出，两个按钮文案相近、目标不同。
-- 证据：`tools/finance/lease-payment-calculator.html:219`（首个导出按钮）、`:994`（导出历史实现）、`:223`（第二个导出按钮）、`:856`（摊销导出实现）
-- 复现：计算默认方案 → 点第一个「导出明细 CSV」得到历史摘要（无期数/本金/利息/余额）；点下方「导出CSV」才得到逐期明细。期望第一个按钮直接导出摊销表，历史另设「导出历史」。
-- 影响：`tools/finance/lease-payment-calculator.html`；用户拿到的「明细」不是摊销计划，留档/对账价值低。
-- 方案：删除重复按钮，保留一个「导出摊销明细 CSV」指向 `exportCSV()`；历史表另设独立入口并明确命名。
-
 ### F-N122 信用卡利息页：账单日/到期日只影响「免息天数」展示，不参与任何计息（低，确认缺陷）
 - 问题：`billDay`/`dueDay` 仅用于 `interestFreeDays` 文案，`simulateMinimum` 固定按 30 天计息、分期也不使用日期；`+value || 1` 使 0 变 1，免息天数再被 clamp 到 20–56，非法日期被掩盖。
 - 证据：`tools/finance/credit-card-interest.html:376-377`（`|| 1`）、`:398-404`（免息天数与 clamp）、`:345`（固定 30 天）、`:448-461`（分期不看日期）

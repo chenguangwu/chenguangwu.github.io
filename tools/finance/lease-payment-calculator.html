@@ -491,6 +491,19 @@ function calc(){
     schedule = [];
     currentResult = null;
     document.getElementById('res').innerHTML = '<p style="color:var(--danger);">⚠ ' + __err + '</p>';
+    // F-N117：越界时必须清空上一次的汇总卡片 / 逐期明细 / 图表，
+    // 否则结果区写着错误提示，旁边却还挂着上一套合法方案的月供与总还款。
+    ['statGrid','tableWrap'].forEach(function(__id){
+      var __e = document.getElementById(__id);
+      if(__e) __e.innerHTML = '';
+    });
+    try{
+      var __cv = document.getElementById('chart');
+      if(__cv && __cv.getContext){
+        var __cx = __cv.getContext('2d');
+        if(__cx && __cx.clearRect) __cx.clearRect(0, 0, __cv.width, __cv.height);
+      }
+    }catch(e){}
     return;
   }
 
@@ -977,6 +990,10 @@ function __lease_payment_calculatorFullResText(){
 function __lease_payment_calculatorScore(t){
     var pv=parseFloat(document.getElementById('pv').value);
     if(!isFinite(pv)||pv<=0||/必须大于 0/.test(String(t||''))) return 0;
+    // F-N117：拒绝态按业务状态判定（calc() 越界分支已把 currentResult 置 null）。
+    // 不能靠关键词词表猜结论：「首付比例须在 0–100% 之间」「手续费不能为负」
+    // 等提示不含任何失败词，旧实现会把无效输入记成「通过」并允许导出。
+    try{ if(typeof currentResult !== 'undefined' && currentResult === null) return 0; }catch(e){}
     var s=String(t||'');
     if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
