@@ -831,4 +831,37 @@ for (const [file, prefix, input, error] of [
   check('复利年化不可用但总 ROI 可算',w.TBKit.history.list()[0]?.d.__tbScore===1 && /亏损超过本金/.test(doc.getElementById('res').textContent));
   w.close();
 }
+// DCA restores empty inputs and investment timing without losing rapid calculations.
+{
+  const downloads=[],trends=[];
+  const dom=new JSDOM(readFileSync('tools/finance/dca-calculator.html','utf8'),{
+    url:'https://x.test/tools/finance/dca-calculator.html',runScripts:'dangerously',pretendToBeVisual:true,
+    virtualConsole:new VirtualConsole(),beforeParse(w){
+      w.ToolBox={showToast(){},escHtml:s=>String(s),formatNumber:(v,d)=>Number(v).toFixed(d),createTable:()=>'',setResult:(id,s)=>{w.document.getElementById(id).innerHTML=s;}};w.i18nText=k=>k;
+      w.HTMLCanvasElement.prototype.getContext=()=>new Proxy({}, {get:(_,key)=>key==='createLinearGradient'?()=>({addColorStop(){}}):()=>{}});
+      w.Blob=class{constructor(parts){this.text=parts.join('');}};
+      w.URL.createObjectURL=blob=>{downloads.push(blob.text);return 'blob:test';};
+      w.URL.revokeObjectURL=()=>{};w.HTMLAnchorElement.prototype.click=function(){};
+      w.eval(readFileSync('js/tool-kit.js','utf8'));
+      const line=w.TBKit.chart.line;
+      w.TBKit.chart.line=(host,config)=>{trends.push(Array.from(config.series[0].data));return line(host,config);};
+    }
+  });
+  const w=dom.window,doc=w.document,monthly=doc.getElementById('monthly');
+  await new Promise(resolve=>w.addEventListener('load',resolve));
+  const check=(label,ok)=>{console.log(`${ok?'PASS':'FAIL'} dca-calculator ${label}`);if(!ok)failed=true;};
+  const calculate=value=>{monthly.value=value;w.calc();};
+  w.TBKit.history.clear();w.eval('__dca_calculator_last=0');
+  calculate('1000');calculate('');doc.querySelector('[onclick="__dca_calculatorExport()"]')?.click();
+  let records=w.TBKit.history.list();
+  check('快速导出包含缺填结果',records.length===2 && records[1].d.__tbScore===1 && records[0].d.monthly==='' && records[0].d.__tbScore===0 && downloads[0]?.includes('未通过'));
+  check('趋势显示真实状态',trends.some(t=>t.join(',')==='1,0'));
+  calculate('2000');await new Promise(resolve=>setTimeout(resolve,1100));
+  records=w.TBKit.history.list();
+  check('节流后记录最新计算',records.length===3 && records[0].d.monthly==='2000' && records[0].d.__tbScore===1);
+  calculate('3000');doc.querySelectorAll('#dca_calculatorHist .tbk-history-item')[1]?.click();
+  await new Promise(resolve=>setTimeout(resolve,1100));
+  check('恢复空金额并取消待处理计算',monthly.value==='' && w.TBKit.history.list().length===3);
+  w.close();
+}
 process.exit(failed ? 1 : 0);
