@@ -461,6 +461,10 @@ function getVal(id){
   return el ? (+el.value || 0) : 0;
 }
 
+function formatLifeAmount(value){
+  return String(Number(value.toPrecision(15)));
+}
+
 function calc(){
   var result = {method: currentMethod, timestamp: Date.now()};
   var lifeInsurance = 0;
@@ -475,7 +479,8 @@ function calc(){
     var debt = getVal('dt_debt');
     var existing = getVal('dt_existing');
 
-    lifeInsurance = Math.max(income * 10 + debt - existing, 0);
+    var rawLifeInsurance = income * 10 + debt - existing;
+    lifeInsurance = Math.max(rawLifeInsurance, 0);
     healthInsurance = Math.max(income * 5, 30);
     accidentInsurance = income * 10;
     premiumBudget = income * 0.1;
@@ -487,7 +492,7 @@ function calc(){
     result.premiumBudget = premiumBudget;
 
     details = [
-      {label:'寿险保额计算', value: lifeInsurance + '万', desc: '年收入' + income + '万×10 + 负债' + debt + '万 − 已有保障' + existing + '万 = ' + lifeInsurance + '万（不为负）'},
+      {label:'寿险保额计算', value: formatLifeAmount(lifeInsurance) + '万', desc: '年收入' + income + '万×10 + 负债' + debt + '万 − 已有保障' + existing + '万 = ' + formatLifeAmount(rawLifeInsurance) + '万；取零下限后 = ' + formatLifeAmount(lifeInsurance) + '万'},
       {label:'重疾保额建议', value: healthInsurance + '万', desc: '年收入5倍/最低30万'},
       {label:'意外险保额', value: accidentInsurance + '万', desc: '年收入×10'},
       {label:'年保费预算', value: premiumBudget.toFixed(1) + '万', desc: '年收入×10%'},
@@ -603,7 +608,8 @@ function calc(){
   result.premiumBudget = premiumBudget;
   currentResult = result;
 
-  var statHtml = '<div class="stat-card"><div class="val">' + lifeInsurance.toFixed(0) + '万</div><div class="lbl">寿险保额建议</div></div>'
+  var lifeDisplay = currentMethod === 'dual-ten' ? formatLifeAmount(lifeInsurance) : lifeInsurance.toFixed(0);
+  var statHtml = '<div class="stat-card"><div class="val">' + lifeDisplay + '万</div><div class="lbl">寿险保额建议</div></div>'
     + '<div class="stat-card"><div class="val">' + healthInsurance.toFixed(0) + '万</div><div class="lbl">重疾保额建议</div></div>'
     + '<div class="stat-card"><div class="val">' + premiumBudget.toFixed(1) + '万</div><div class="lbl">年保费预算</div></div>';
   const __g1=statHtml;document.getElementById('statGrid').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
@@ -623,7 +629,7 @@ function calc(){
   resHtml += '</div>';
   resHtml += '<div class="insurance-item">';
   resHtml += '<div class="name">☠️ 寿险</div>';
-  resHtml += '<div class="amount">' + lifeInsurance.toFixed(0) + ' 万保额</div>';
+  resHtml += '<div class="amount">' + lifeDisplay + ' 万保额</div>';
   resHtml += '<div class="desc">覆盖家庭负债、子女教育、赡养老人等家庭责任</div>';
   resHtml += '</div>';
   resHtml += '<div class="insurance-item">';
