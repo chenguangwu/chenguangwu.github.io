@@ -47,6 +47,7 @@ for (const [slug, valid] of [
   ['curp-validator','BOXW310820HMNERN16'], ['dni-validator','12345678Z'],
   ['sort-code-validator-validator','200000'], ['tin-validator','123-45-6789'],
   ['credit-card-luhn','4111111111111111'], ['credit-card-type','4111111111111111'],
+  ['aba-validator','021000021'],
 ]) {
   const downloads = [], trends = [];
   const dom = new JSDOM(readFileSync(`tools/finance/${slug}.html`, 'utf8'), {
@@ -83,6 +84,64 @@ for (const [slug, valid] of [
   doc.querySelector(`#${prefix}Hist .tbk-history-item`)?.click();
   await new Promise(resolve=>setTimeout(resolve,1100));
   check('恢复历史时取消待处理输入', input.value===actualValid && w.TBKit.history.list().length===1);
+  w.close();
+}
+// BIN lookups distinguish known records, incomplete input, and unrecognized prefixes.
+{
+  const downloads=[],trends=[];
+  const dom=new JSDOM(readFileSync('tools/finance/credit-card-bin.html','utf8'),{
+    url:'https://x.test/tools/finance/credit-card-bin.html',runScripts:'dangerously',pretendToBeVisual:true,
+    virtualConsole:new VirtualConsole(),beforeParse(w){
+      let now=100000; w.Date.now=()=>now+=1100;
+      w.ToolBox={showToast(){},escHtml:s=>String(s)}; w.i18nText=k=>k;
+      w.Blob=class{constructor(parts){this.text=parts.join('');}};
+      w.URL.createObjectURL=blob=>{downloads.push(blob.text);return 'blob:test';};
+      w.URL.revokeObjectURL=()=>{};w.HTMLAnchorElement.prototype.click=function(){};
+      w.eval(readFileSync('js/tool-kit.js','utf8'));
+      const line=w.TBKit.chart.line;
+      w.TBKit.chart.line=(host,config)=>{trends.push(Array.from(config.series[0].data));return line(host,config);};
+    }
+  });
+  const w=dom.window,doc=w.document;
+  await new Promise(resolve=>w.addEventListener('load',resolve));
+  w.TBKit.history.clear();
+  const enter=value=>{const input=doc.getElementById('input');input.value=value;input.dispatchEvent(new w.Event('input',{bubbles:true}));};
+  const check=(label,ok)=>{console.log(`${ok?'PASS':'FAIL'} credit-card-bin ${label}`);if(!ok)failed=true;};
+  enter('411111');enter('invalid');
+  check('非法字符记为未通过',w.TBKit.history.list()[0]?.d.__tbScore===0);
+  enter('400000');
+  check('未收录不冒充通过或失败',w.TBKit.history.list()[0]?.d.__tbScore==null && doc.getElementById('credit_card_binTable').textContent.includes('未收录'));
+  check('趋势不将未收录计入通过或失败',trends.at(-1)?.join(',')==='1,0');
+  doc.querySelector('[onclick="__credit_card_binExport()"]')?.click();
+  check('CSV 区分未收录与非法输入',downloads[0]?.includes('未收录') && downloads[0]?.includes('未通过'));
+  w.close();
+}
+{
+  const downloads=[];
+  const dom=new JSDOM(readFileSync('tools/finance/credit-card-bin.html','utf8'),{
+    url:'https://x.test/tools/finance/credit-card-bin.html',runScripts:'dangerously',pretendToBeVisual:true,
+    virtualConsole:new VirtualConsole(),beforeParse(w){
+      w.ToolBox={showToast(){},escHtml:s=>String(s)};w.i18nText=k=>k;
+      w.Blob=class{constructor(parts){this.text=parts.join('');}};
+      w.URL.createObjectURL=blob=>{downloads.push(blob.text);return 'blob:test';};
+      w.URL.revokeObjectURL=()=>{};w.HTMLAnchorElement.prototype.click=function(){};
+      w.eval(readFileSync('js/tool-kit.js','utf8'));
+    }
+  });
+  const w=dom.window,doc=w.document;
+  await new Promise(resolve=>w.addEventListener('load',resolve));
+  w.TBKit.history.clear();w.eval('__credit_card_bin_last=0');
+  const input=doc.getElementById('input');
+  const enter=value=>{input.value=value;input.dispatchEvent(new w.Event('input',{bubbles:true}));};
+  const check=(label,ok)=>{console.log(`${ok?'PASS':'FAIL'} credit-card-bin ${label}`);if(!ok)failed=true;};
+  enter('411111');enter('invalid');
+  doc.querySelector('[onclick="__credit_card_binExport()"]')?.click();
+  check('快速输入后导出最新失败',w.TBKit.history.list().length===2 && w.TBKit.history.list()[0]?.d.__tbScore===0 && downloads[0]?.includes('未通过'));
+  enter('400000');await new Promise(resolve=>setTimeout(resolve,1100));
+  check('节流后保存最终未收录结果',w.TBKit.history.list()[0]?.d.input==='400000' && w.TBKit.history.list()[0]?.d.__tbScore==null);
+  enter('invalid');doc.querySelector('#credit_card_binHist .tbk-history-item')?.click();
+  await new Promise(resolve=>setTimeout(resolve,1100));
+  check('恢复历史不保存被替换输入',input.value==='400000' && w.TBKit.history.list()[0]?.d.input==='400000');
   w.close();
 }
 // Inspect real validity across malformed inputs and summaries longer than 80 characters.

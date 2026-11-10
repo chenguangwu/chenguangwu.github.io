@@ -270,7 +270,9 @@ function detectNetwork(digits){
   for(const n of NETWORKS){ if(n.pattern.test(digits)) return n.name; }
   return '未知网络';
 }
+let __binStatus = 'invalid';
 function validate(){
+  __binStatus = 'invalid';
   const raw = document.getElementById('input').value.trim();
   const digits = raw.replace(/[\s-]/g,'');
   const out = document.getElementById('output');
@@ -280,6 +282,7 @@ function validate(){
   const bin = digits.substring(0,6);
   const network = detectNetwork(digits);
   const info = BIN_DB[bin];
+  __binStatus = info ? 'found' : 'not-found';
   let html = `<p><strong>BIN：</strong>${bin}</p>`;
   html += `<p><strong>卡片网络：</strong>${network}</p>`;
   if(info){
@@ -325,7 +328,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __credit_card_bin_last=0,__credit_card_bin_skip=false;
+var __credit_card_bin_last=0,__credit_card_bin_skip=false,__credit_card_bin_timer=null;
 function __credit_card_binSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -346,11 +349,7 @@ function __credit_card_binResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
-function __credit_card_binScore(t){
-    var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
-    return 1;
-}
+function __credit_card_binScore(){ return __binStatus==='found' ? 1 : __binStatus==='invalid' ? 0 : null; }
 function __credit_card_binTime(t){
     var d=new Date(t);
     function q(x){return (x<10?'0':'')+x;}
@@ -364,7 +363,7 @@ function __credit_card_binRender(keys,rk,en){
             var row=[__credit_card_binTime(it.t)];
             for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
             var sc=parseFloat(it.d.__tbScore);
-            row.push(isFinite(sc)?(sc>=1?(en?'Pass':'通过'):(en?'Fail':'未通过')):'-');
+            row.push(it.d.__tbStatus==='not-found' ? (en?'Not found':'未收录') : isFinite(sc)?(sc>=1?(en?'Pass':'通过'):(en?'Fail':'未通过')):'-');
             var r=it.d[rk];row.push(r==null?'':r);
             return row;
         });
@@ -372,9 +371,11 @@ function __credit_card_binRender(keys,rk,en){
         TBKit.util.diffBox('#credit_card_binDiff');
         TBKit.history.mount('#credit_card_binHist',function(rec){
             __credit_card_bin_skip=true;
+            clearTimeout(__credit_card_bin_timer);
+            __credit_card_bin_timer=null;
             try{
                 for(var k in rec){
-                    if(k===rk||k==='__tbScore') continue;
+                    if(k===rk||k==='__tbScore'||k==='__tbStatus') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
@@ -395,9 +396,11 @@ function __credit_card_binRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __credit_card_binExtras(){
+function __credit_card_binExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__credit_card_bin_skip) return;
+    clearTimeout(__credit_card_bin_timer);
+    __credit_card_bin_timer=null;
     var snap=__credit_card_binSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -407,7 +410,10 @@ function __credit_card_binExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__credit_card_bin_last<1000) return;
+    if(!force && now-__credit_card_bin_last<1000){
+        __credit_card_bin_timer=setTimeout(function(){__credit_card_binExtras(true);},1000-(now-__credit_card_bin_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -421,12 +427,14 @@ function __credit_card_binExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__credit_card_binScore(res);
+    rec.__tbScore=__credit_card_binScore();
+    rec.__tbStatus=__binStatus;
     TBKit.history.record(rec);
     __credit_card_binRender(keys,rk,en);
 }
 function __credit_card_binExport(){
     if (typeof TBKit === 'undefined') return;
+    __credit_card_binExtras(true);
     try{
         var box=document.querySelector('#credit_card_binTable');
         if(!box||!box.querySelector('tr')){

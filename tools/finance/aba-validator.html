@@ -234,7 +234,9 @@ function abaCheck(digits){
   const sum = 3*(d[0]+d[3]+d[6]) + 7*(d[1]+d[4]+d[7]) + (d[2]+d[5]+d[8]);
   return sum % 10 === 0;
 }
+let __abaValid = false;
 function validate(){
+  __abaValid = false;
   const raw = document.getElementById('input').value.trim();
   const digits = raw.replace(/\D/g,'');
   const out = document.getElementById('output');
@@ -257,6 +259,7 @@ function validate(){
   };
   const district = frDistricts[frPrefix] || '未分配/非法前缀';
   const prefixValid = Object.prototype.hasOwnProperty.call(frDistricts, frPrefix);
+  __abaValid = valid && prefixValid;
   let html = `<p><strong>ABA 号码：</strong>${digits}</p>`;
   html += `<p><strong>美联储分区：</strong>${frPrefix} - ${district}</p>`;
   html += `<p><strong>校验和：</strong> ${valid?'✅ 通过':'❌ 未通过'}</p>`;
@@ -301,7 +304,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __aba_validator_last=0,__aba_validator_skip=false;
+var __aba_validator_last=0,__aba_validator_skip=false,__aba_validator_timer=null;
 function __aba_validatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -322,11 +325,7 @@ function __aba_validatorResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
-function __aba_validatorScore(t){
-    var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
-    return 1;
-}
+function __aba_validatorScore(){ return __abaValid ? 1 : 0; }
 function __aba_validatorTime(t){
     var d=new Date(t);
     function q(x){return (x<10?'0':'')+x;}
@@ -348,6 +347,8 @@ function __aba_validatorRender(keys,rk,en){
         TBKit.util.diffBox('#aba_validatorDiff');
         TBKit.history.mount('#aba_validatorHist',function(rec){
             __aba_validator_skip=true;
+            clearTimeout(__aba_validator_timer);
+            __aba_validator_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -371,9 +372,11 @@ function __aba_validatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __aba_validatorExtras(){
+function __aba_validatorExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__aba_validator_skip) return;
+    clearTimeout(__aba_validator_timer);
+    __aba_validator_timer=null;
     var snap=__aba_validatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -383,7 +386,10 @@ function __aba_validatorExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__aba_validator_last<1000) return;
+    if(!force && now-__aba_validator_last<1000){
+        __aba_validator_timer=setTimeout(function(){__aba_validatorExtras(true);},1000-(now-__aba_validator_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -403,6 +409,7 @@ function __aba_validatorExtras(){
 }
 function __aba_validatorExport(){
     if (typeof TBKit === 'undefined') return;
+    __aba_validatorExtras(true);
     try{
         var box=document.querySelector('#aba_validatorTable');
         if(!box||!box.querySelector('tr')){
