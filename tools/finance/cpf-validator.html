@@ -328,7 +328,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __cpf_validator_last=0,__cpf_validator_skip=false;
+var __cpf_validator_last=0,__cpf_validator_skip=false,__cpf_validator_timer=null;
 function __cpf_validatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -349,10 +349,9 @@ function __cpf_validatorResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
-function __cpf_validatorScore(t){
-    var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
-    return 1;
+function __cpf_validatorScore(){
+    var raw=document.getElementById('input').value.trim();
+    return !/[^0-9\s.-]/.test(raw) && cpfCheck(raw.replace(/[\s.-]/g,'')) ? 1 : 0;
 }
 function __cpf_validatorTime(t){
     var d=new Date(t);
@@ -375,6 +374,8 @@ function __cpf_validatorRender(keys,rk,en){
         TBKit.util.diffBox('#cpf_validatorDiff');
         TBKit.history.mount('#cpf_validatorHist',function(rec){
             __cpf_validator_skip=true;
+            clearTimeout(__cpf_validator_timer);
+            __cpf_validator_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -398,9 +399,11 @@ function __cpf_validatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __cpf_validatorExtras(){
+function __cpf_validatorExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__cpf_validator_skip) return;
+    clearTimeout(__cpf_validator_timer);
+    __cpf_validator_timer=null;
     var snap=__cpf_validatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -410,7 +413,10 @@ function __cpf_validatorExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__cpf_validator_last<1000) return;
+    if(!force && now-__cpf_validator_last<1000){
+        __cpf_validator_timer=setTimeout(function(){__cpf_validatorExtras(true);},1000-(now-__cpf_validator_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -430,6 +436,7 @@ function __cpf_validatorExtras(){
 }
 function __cpf_validatorExport(){
     if (typeof TBKit === 'undefined') return;
+    __cpf_validatorExtras(true);
     try{
         var box=document.querySelector('#cpf_validatorTable');
         if(!box||!box.querySelector('tr')){

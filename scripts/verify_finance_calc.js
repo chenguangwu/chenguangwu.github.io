@@ -64,9 +64,10 @@ const CASES = [
   },
   {
     slug: "finance/abn-validator",
-    clicks: ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'x',type:'text',value:'1'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('output').textContent=\"校验流程已完成。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。校验结论：校验失败，该 ABN 无效。\";__abn_validatorExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='FNAB score='+(__cap.length?__cap[__cap.length-1].__tbScore:'NA');"],
+    inputs: { input: "2222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222" },
+    clicks: ["validate();document.getElementById('__tbProbe').textContent='FNAB score='+__abn_validatorScore();"],
     expect: ["FNAB score=0"],
-    ref: "复核失败重做·F-N189 第二批/第42–44批 ABN：失败结论/必填提示位于 80 字摘要之后，旧 Score 只看 ResText 前 80 字 ⇒ 误记通过(1)；修复后 Score 读 FullResText 完整文本，命中失败词 ⇒ 0。历史展示仍用摘要。默认态无探针串 ⇒ 零逃生。"
+    ref: "ABN 长无效输入走真实校验，失败状态不受历史摘要截断影响。"
   },
   {
     slug: "finance/aadhaar-validator",
@@ -2304,9 +2305,9 @@ const CASES = [
       "input": "abc123测试"
     },
     "expect": [
-      "abc123测试\n输入： abc123测试 ⚠️ ABN 必须为 11 位数字（当前 3 位）"
+      "❌ 含非法字符：仅允许数字、空格或连字符"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： abc123测试 ⚠️ ABN 必须为 11 位数字（…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "ABN 非法字符必须明确拒绝，不能静默剔除或直接插入 HTML。"
   },
   {
     "slug": "finance/amount-in-words",

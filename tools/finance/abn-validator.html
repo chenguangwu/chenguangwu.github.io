@@ -243,8 +243,9 @@ function abnCheck(digits){
 }
 function validate(){
   const raw = document.getElementById('input').value.trim();
-  const digits = raw.replace(/\D/g,'');
+  const digits = raw.replace(/[\s-]/g,'');
   const out = document.getElementById('output');
+  if(/[^0-9\s-]/.test(raw)){out.textContent='❌ 含非法字符：仅允许数字、空格或连字符';return;}
   if(!digits){ const __h0=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Waiting for input...":"等待输入...");if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0; return; }
   let html = `<p><strong>输入：</strong>${raw}</p>`;
   if(digits.length !== 11){
@@ -299,7 +300,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __abn_validator_last=0,__abn_validator_skip=false;
+var __abn_validator_last=0,__abn_validator_skip=false,__abn_validator_timer=null;
 function __abn_validatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -327,10 +328,10 @@ function __abn_validatorFullResText(){
     if(!t||t==='--'||t==='—'||t==='-') return '';
     return t;
 }
-function __abn_validatorScore(t){
-    var s=String(t||'');
-    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
-    return 1;
+function __abn_validatorScore(){
+    var raw=document.getElementById('input').value.trim();
+    var digits=raw.replace(/[\s-]/g,'');
+    return !/[^0-9\s-]/.test(raw) && digits.length===11 && abnCheck(digits) ? 1 : 0;
 }
 function __abn_validatorTime(t){
     var d=new Date(t);
@@ -353,6 +354,8 @@ function __abn_validatorRender(keys,rk,en){
         TBKit.util.diffBox('#abn_validatorDiff');
         TBKit.history.mount('#abn_validatorHist',function(rec){
             __abn_validator_skip=true;
+            clearTimeout(__abn_validator_timer);
+            __abn_validator_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -376,9 +379,11 @@ function __abn_validatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __abn_validatorExtras(){
+function __abn_validatorExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__abn_validator_skip) return;
+    clearTimeout(__abn_validator_timer);
+    __abn_validator_timer=null;
     var snap=__abn_validatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -388,7 +393,10 @@ function __abn_validatorExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__abn_validator_last<1000) return;
+    if(!force && now-__abn_validator_last<1000){
+        __abn_validator_timer=setTimeout(function(){__abn_validatorExtras(true);},1000-(now-__abn_validator_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -408,6 +416,7 @@ function __abn_validatorExtras(){
 }
 function __abn_validatorExport(){
     if (typeof TBKit === 'undefined') return;
+    __abn_validatorExtras(true);
     try{
         var box=document.querySelector('#abn_validatorTable');
         if(!box||!box.querySelector('tr')){

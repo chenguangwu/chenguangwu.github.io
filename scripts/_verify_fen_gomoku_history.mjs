@@ -47,7 +47,8 @@ for (const [slug, valid] of [
   ['curp-validator','BOXW310820HMNERN16'], ['dni-validator','12345678Z'],
   ['sort-code-validator-validator','200000'], ['tin-validator','123-45-6789'],
   ['credit-card-luhn','4111111111111111'], ['credit-card-type','4111111111111111'],
-  ['aba-validator','021000021'],
+  ['aba-validator','021000021'], ['aadhaar-validator','345678901238'],
+  ['abn-validator','53004085616'], ['bic-validator','CHASUS33'], ['cpf-validator','11144477735'],
 ]) {
   const downloads = [], trends = [];
   const dom = new JSDOM(readFileSync(`tools/finance/${slug}.html`, 'utf8'), {
@@ -84,6 +85,30 @@ for (const [slug, valid] of [
   doc.querySelector(`#${prefix}Hist .tbk-history-item`)?.click();
   await new Promise(resolve=>setTimeout(resolve,1100));
   check('恢复历史时取消待处理输入', input.value===actualValid && w.TBKit.history.list().length===1);
+  w.close();
+}
+// Invalid long inputs and malformed ABNs must not be recorded as valid.
+for(const [slug,valid] of [['aadhaar-validator','345678901238'],['abn-validator','53004085616'],['bic-validator','CHASUS33'],['cpf-validator','11144477735']]) {
+  const dom=new JSDOM(readFileSync(`tools/finance/${slug}.html`,'utf8'),{
+    url:`https://x.test/tools/finance/${slug}.html`,runScripts:'dangerously',virtualConsole:new VirtualConsole(),beforeParse(w){
+      let now=100000;w.Date.now=()=>now+=1100;w.ToolBox={showToast(){},escHtml:s=>String(s)};w.i18nText=k=>k;
+      w.eval(readFileSync('js/tool-kit.js','utf8'));
+    }
+  });
+  const w=dom.window,doc=w.document;
+  await new Promise(resolve=>w.addEventListener('load',resolve));
+  w.TBKit.history.clear();
+  const enter=value=>{const el=doc.getElementById('input');el.value=value;el.dispatchEvent(new w.Event('input',{bubbles:true}));};
+  const check=(label,ok)=>{console.log(`${ok?'PASS':'FAIL'} ${slug} ${label}`);if(!ok)failed=true;};
+  enter(valid);enter('2'.repeat(100));
+  let records=w.TBKit.history.list();
+  check('有效值及长无效值结论一致',records.length===2 && records[1].d.__tbScore===1 && records[0].d.__tbScore===0);
+  if(slug==='abn-validator') {
+    enter('53004085616x'); records=w.TBKit.history.list();
+    check('夹杂字母的 ABN 被拒绝',records[0]?.d.__tbScore===0 && /非法|只能/.test(doc.getElementById('output').textContent));
+    enter('<img src=x onerror=alert(1)>53004085616');
+    check('输入不注入 HTML',!doc.getElementById('output').querySelector('img'));
+  }
   w.close();
 }
 // BIN lookups distinguish known records, incomplete input, and unrecognized prefixes.

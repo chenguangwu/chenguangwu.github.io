@@ -290,7 +290,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __bic_validator_last=0,__bic_validator_skip=false;
+var __bic_validator_last=0,__bic_validator_skip=false,__bic_validator_timer=null;
 function __bic_validatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -344,6 +344,8 @@ function __bic_validatorRender(keys,rk,en){
         TBKit.util.diffBox('#bic_validatorDiff');
         TBKit.history.mount('#bic_validatorHist',function(rec){
             __bic_validator_skip=true;
+            clearTimeout(__bic_validator_timer);
+            __bic_validator_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -367,9 +369,11 @@ function __bic_validatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __bic_validatorExtras(){
+function __bic_validatorExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__bic_validator_skip) return;
+    clearTimeout(__bic_validator_timer);
+    __bic_validator_timer=null;
     var snap=__bic_validatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -379,7 +383,10 @@ function __bic_validatorExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__bic_validator_last<1000) return;
+    if(!force && now-__bic_validator_last<1000){
+        __bic_validator_timer=setTimeout(function(){__bic_validatorExtras(true);},1000-(now-__bic_validator_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -399,6 +406,7 @@ function __bic_validatorExtras(){
 }
 function __bic_validatorExport(){
     if (typeof TBKit === 'undefined') return;
+    __bic_validatorExtras(true);
     try{
         var box=document.querySelector('#bic_validatorTable');
         if(!box||!box.querySelector('tr')){
