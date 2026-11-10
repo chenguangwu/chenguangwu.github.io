@@ -329,10 +329,11 @@ function unesc(){
         hex += text[j]; j++;
       }
       if(hex.length > 0){
-        // 审计修复：6 位 hex 可达 0xFFFFFF，超出 Unicode 码点上限；越界保留字面量，不抛 RangeError。
-        var cpX=parseInt(hex, 16);
-        out += (cpX<=0x10FFFF ? String.fromCodePoint(cpX) : hex);
-        if(text[j] === ' ') j++;
+        const cpX = parseInt(hex, 16);
+        out += (cpX === 0 || cpX > 0x10FFFF || (cpX >= 0xD800 && cpX <= 0xDFFF))
+          ? '\uFFFD' : String.fromCodePoint(cpX);
+        if(text[j] === '\r' && text[j + 1] === '\n') j += 2;
+        else if(/[\t\n\r\f ]/.test(text[j] || '')) j++;
       } else {
         out += text[j]; j++;
       }

@@ -213,9 +213,9 @@ const CASES = [
   {
     "slug": "it/css-escape",
     "inputs": {"input": "\\FFFFFF"},
-    "clicks": ["var ok=false;try{unesc();ok=true;}catch(e){};var o=String(document.getElementById('output').value||'');document.getElementById('__tbProbe').textContent='CSHEX '+(ok&&o.indexOf('FFFFFF')>=0?'OK':'BAD');"],
+    "clicks": ["var input=document.getElementById('input'),output=document.getElementById('output');var cases=[['\\\\FFFFFF','\uFFFD'],['\\\\0','\uFFFD'],['\\\\d800','\uFFFD'],['\\\\10ffff',String.fromCodePoint(0x10ffff)],['\\\\41\\tB','AB'],['\\\\41 B','AB']];var ok=cases.every(function(c){input.value=c[0];unesc();return output.value===c[1];});document.getElementById('__tbProbe').textContent='CSHEX '+(ok?'OK':'BAD');"],
     "expect": ["CSHEX OK"],
-    "ref": "审计修复回归：CSS 6 位 hex 可达 0xFFFFFF（16777215）超出 Unicode 码点上限 0x10FFFF，旧实现 String.fromCodePoint 抛 RangeError；修复后越界保留字面量。修复前 BAD。探针默认态不存在 ⇒ 零逃生。"
+    "ref": "CSS Syntax 反转义：越界、零及代理码点替换为 U+FFFD；合法最大码点保留，十六进制后的制表符或空格作为终止符消费。"
   },
   {
     "slug": "it/css-escape",
