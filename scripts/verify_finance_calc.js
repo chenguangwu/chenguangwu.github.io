@@ -24,6 +24,34 @@ const { runCase } = require("./verify_it_calc.js");
 // ---------------------------------------------------------------- 用例
 const CASES = [
   {
+    slug: "finance/salary-calculator",
+    inputs: { salary: "20000" },
+    clicks: ["currentMode='monthly';var d=document.getElementById.bind(document);d('salary').value='20000';d('baseSalary').value='0';d('housingBase').value='0';d('monthsPerYear').value='12';d('threshold').value='5000';calculate();var ti=d('totalInsurance').textContent,pa=d('pensionAmount').textContent;d('__tbProbe').textContent='SALZERO '+(String(ti).indexOf('¥0.00')===0&&String(pa).indexOf('¥0.00')===0?'OK':'BAD');"],
+    expect: ["SALZERO OK"],
+    ref: "第124批 F-N101 缴费基数合法 0：旧版 getNum('baseSalary') || monthlySalary 把 0 当空值回退月薪，无法表达「不缴社保」。修复用 __salaryNum 区分空/非数字与合法 0，基数 0 ⇒ 五险一金合计与养老均为 ¥0.00。探针在 calculate() 后立刻读取结果容器，避开 harness 兜底函数重跑覆盖；默认态 ¥4,500.00 / ¥1,600.00 ⇒ BAD ⇒ 强判别、零逃生。"
+  },
+  {
+    slug: "finance/salary-calculator",
+    inputs: { monthsPerYear: "13" },
+    clicks: ["currentMode='monthly';var d=document.getElementById.bind(document);d('salary').value='20000';d('baseSalary').value='20000';d('housingBase').value='20000';d('threshold').value='5000';d('monthsPerYear').value='12';calculate();var t12=d('annualTax').textContent;d('monthsPerYear').value='13';calculate();var t13=d('annualTax').textContent;d('__tbProbe').textContent='SALM13 '+(t12==='¥5,880'&&t13==='¥6,580'?'OK':'BAD');"],
+    expect: ["SALM13 OK"],
+    ref: "第124批 F-N100 年度扣除同口径：独立复算（月薪 20000、社保 22.5%、起征点 5000、专项 3500/月、无年终奖）——12 月 240000−54000−60000−42000=84000 → 84000×10%−2520=5880；13 月 260000−58500−65000−45500=91000 → 91000×10%−2520=6580（旧版固定乘 12 得 7430）。探针同一次用例内连算两态，旧源码两值都不同 ⇒ 变红；默认 12 月单态不产生该探针 ⇒ 零逃生。"
+  },
+  {
+    slug: "finance/salary-calculator",
+    inputs: { salary: "240000", salaryMode: "annual" },
+    clicks: ["currentMode='monthly';var d=document.getElementById.bind(document);d('salary').value='240000';d('baseSalary').value='20000';d('housingBase').value='20000';d('monthsPerYear').value='12';d('threshold').value='5000';calculate();switchMode('annual');var net=d('netSalary').textContent,hero=d('afterTaxAmount').textContent,gross=d('grossSalary').textContent;d('__tbProbe').textContent='SALAN '+(net===hero&&gross==='¥240,000.00'?'OK':'BAD');"],
+    expect: ["SALAN OK"],
+    ref: "第124批 F-N99 年薪模式同口径：旧版明细卡 netSalary 恒用 netMonthly、grossSalary 恒用 monthlySalary，与 hero 的年度值同屏矛盾。修复后明细卡/比例/柱状图全部按当前模式，年薪 240000 ⇒ grossSalary ¥240,000.00 且 netSalary === afterTaxAmount（¥180,120.00）。探针锁两处相等与年值；默认月薪 20000 态 grossSalary 为 ¥20,000.00 ⇒ BAD ⇒ 强判别、零逃生。"
+  },
+  {
+    slug: "finance/salary-calculator",
+    inputs: { monthsPerYear: "0" },
+    clicks: ["currentMode='monthly';var d=document.getElementById.bind(document);d('monthsPerYear').value='0';calculate();var b=String(d('salaryBaseNote').innerHTML),a=d('afterTaxAmount').textContent;d('__tbProbe').textContent='SALM0 '+(b.indexOf('每年计薪月数须为正数')>=0&&a==='--'?'OK':'BAD');"],
+    expect: ["SALM0 OK"],
+    ref: "第124批 F-N101 计薪月数 0 明确拒绝：旧版 `|| 12` 静默兜底，0 还会让年薪折算除零。修复后写出带业务口径的拒绝提示并清空数值区（不残留上一次结果、不产生 Infinity/NaN）。探针同时锁提示与清空；默认 12 月为正常结果 ⇒ BAD ⇒ 强判别、零逃生。"
+  },
+  {
     slug: "finance/housing-fund-loan",
     inputs: { balance: "-8", housePrice: "300" },
     expect: ["⚠ 输入不能为负数：账户余额 -8 万元。请更正后再计算，无效输入不展示额度依据与还款明细。"],
@@ -2005,8 +2033,8 @@ const CASES = [
     slug: "finance/salary-calculator",
     inputs: { salaryMode: "annual", salary: "240000" },
     clicks: ["calculate()"],
-    expect: ["¥64.80万", "¥-408,000.00"],
-    ref: "F-N15 模式纳入持久化快照：注入 salaryMode=annual 且年薪 240000，页面按年薪口径把月薪折算为 240000÷12 = ¥20,000.00（grossSalary），五险一金年合计显示 ¥64.80万、年薪口径税后到手 ¥-408,000.00。旧实现 currentMode 是不在任何 input 里的纯 JS let 变量，localStorage 恢复后一律按 monthly 处理，240000 会被当成月薪，两条锚点都不命中。⚠️ 刻意不用 ¥20,000.00 / ¥24.00万 作 expect：前者正是默认态 grossSalary、后者是默认态年税前工资，都会在判别器 fullBlob 里命中变成逃生项。默认态不含本例两条 ⇒ 零逃生。"
+    expect: ["⚠ 五险一金缴费基数 ¥240,000.00/月 高于税前工资 ¥20,000.00/月"],
+    ref: "第124批 F-N98 契约同步（用例过期，非页面 bug）：旧版年薪模式沿用月薪默认缴费基数，同屏输出「年五险一金 ¥64.80万 / 税后年收入 ¥-408,000.00」这类不可能的负工资，旧 expect 把该缺陷固化成契约。修复后按业务状态拒绝、写出带当前取值的提示并清空数值区。注入 salary=240000 使提示含 240,000.00 与 20,000.00；默认态（20,000.00 / 1,666.67）不含该串 ⇒ 强判别、零逃生。F-N15 模式快照与状态链由真机 JSDOM 独立脚本覆盖（harness 存在跨用例 salaryMode 残留，不能作为模式锁）。"
   },
   {
     slug: "finance/salary-calculator",
@@ -3608,10 +3636,11 @@ const CASES = [
       "threshold": "42",
       "monthsPerYear": "42"
     },
+    "clicks": ["calculate()"],
     "expect": [
-      "42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n住房贷款利息与住房租金不可同时扣除，已按较大者 ¥42.00/月（房贷利息）计入，另一项 ¥42.00/月未计入；专项附加扣除合计 ¥210.00 元/月。\n¥-4,361.28\n¥84\n¥0\n¥4,445\n¥1.00\n¥17.64\n¥17.64\n¥17.64\n¥17.64\n"
+      "⚠ 五险一金缴费基数 ¥42.00/月 高于税前工资 ¥1.00/月"
     ],
-    "ref": "F-N15 同批重采（用例过期，非页面 bug）：新增带 id 的结果容器 salaryDeductionNote 与模式快照输入后，输出元素拼接顺序与互斥口径均变化 —— 18 项 42 注入后房贷 42 与租金 42 不再直加，改按较大者 42 计入（专项附加合计 252 → 210），结果区插入「已按较大者 ¥42.00/月（房贷利息）…合计 ¥210.00 元/月」说明行。expect 重采为新形态，仍以 18 个注入值 + 说明行 + 转换后结果为锚；默认态不含 ⇒ 零逃生。"
+    "ref": "第124批 F-N98/F-N100 契约同步（用例过期，非页面 bug）：18 项 42 注入、计薪月数 42 时旧版输出年应税额与 ¥-4,361.28 负收入，旧 expect 超长串把该缺陷固化成契约。修复后按业务状态拒绝，提示含当前基数 42.00 与折算月薪 1.00（42÷42）。显式 clicks=calculate() 保证动态结果区被 harness 采集（无 clicks 时新形态不进 blob）。互斥说明行仍由用例 #3/#4 锁定，本例只锚转换后的拒绝态；默认态（20,000.00 / 1,666.67）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "finance/sort-code-validator-validator",

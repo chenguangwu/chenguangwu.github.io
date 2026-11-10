@@ -324,6 +324,8 @@ s.parentNode.insertBefore(el, s);
 
     <div class="bar-chart" id="barChart"></div>
     <div id="salaryDeductionNote"></div>
+    <div id="salaryScopeNote"></div>
+    <div id="salaryBaseNote"></div>
 
     <div class="detail-list">
       <div class="detail-item">
@@ -583,7 +585,7 @@ function __salarySyncMode(){
 
 function switchMode(mode){
   const prevMonthly = currentMode === 'annual'
-    ? getNum('salary') / (getNum('monthsPerYear') || 12)
+    ? getNum('salary') / (__salaryNum('monthsPerYear', 12) || 12)
     : getNum('salary');
   currentMode = mode;
   var __smEl = document.getElementById('salaryMode');
@@ -595,7 +597,7 @@ function switchMode(mode){
   document.getElementById('afterTaxLabel').textContent = mode === 'monthly' ? '税后到手（月）' : '税后到手（年）';
   document.getElementById('annualStats').style.display = mode === 'annual' ? 'grid' : 'none';
   // 缴费基数仍按月薪口径；若用户未单独改过基数（仍等于切换前月薪），随模式同步为新月薪
-  const newMonthly = mode === 'annual' ? getNum('salary') / (getNum('monthsPerYear') || 12) : getNum('salary');
+  const newMonthly = mode === 'annual' ? getNum('salary') / (__salaryNum('monthsPerYear', 12) || 12) : getNum('salary');
   ['baseSalary', 'housingBase'].forEach(function(id){
     const el = document.getElementById(id);
     const v = parseFloat(el.value);
@@ -618,12 +620,42 @@ function toggleSection(id){
 function getNum(id){
   return parseFloat(document.getElementById(id).value) || 0;
 }
+// F-N101：getNum 的 `|| 默认值` 会把合法的 0 当成空值（缴费基数 0 / 起征点 0 无法表达）。
+// 仅在「真空值 / 非数字」时回退默认值；0 按 0 参与计算。
+function __salaryNum(id, fallback){
+  var el = document.getElementById(id);
+  if(!el) return fallback;
+  var raw = String(el.value == null ? '' : el.value).trim();
+  if(raw === '' || !isFinite(parseFloat(raw))) return fallback;
+  return parseFloat(raw);
+}
+// 拒绝态统一清空数值区，避免上一次计算的结果残留造成「有结果」假象。
+function __salaryClearResults(){
+  ['afterTaxAmount','beforeTaxShow','taxShow','insuranceShow','grossSalary','pensionAmount',
+   'medicalAmount','unemploymentAmount','injuryAmount','maternityAmount','housingAmount',
+   'totalInsurance','taxAmount','netSalary','taxableIncome','marginalRate','effectiveRate',
+   'takeHomeRate','annualGross','annualInsurance','annualTax','annualNet'].forEach(function(id){
+    var e = document.getElementById(id); if(e) e.textContent = '--';
+  });
+  var bar = document.getElementById('barChart'); if(bar) bar.innerHTML = '';
+  var scope = document.getElementById('salaryScopeNote'); if(scope) scope.innerHTML = '';
+}
 
 function calculate(){
-  const salaryInput = getNum('salary');
-  const bonus = getNum('bonus');
-  const monthsPerYear = getNum('monthsPerYear') || 12;
-  const threshold = getNum('threshold') || 5000;
+  const salaryInput = __salaryNum('salary', 0);
+  const bonus = __salaryNum('bonus', 0);
+  const monthsPerYear = __salaryNum('monthsPerYear', 12);
+  const threshold = __salaryNum('threshold', 5000);
+  // F-N101：计薪月数 0 会导致年薪折算除零，属无效输入，明确拒绝而不是静默兜底成 12。
+  if(!isFinite(monthsPerYear) || monthsPerYear <= 0){
+    var __enM = __salaryModeIsEn();
+    var __bnM = document.getElementById('salaryBaseNote');
+    if(__bnM) __bnM.innerHTML = '<div style="font-size:13px;color:var(--danger);padding:8px 0;">' + (__enM
+      ? '⚠ Pay months per year must be a positive number (12 normally, 13 for a 13th-month pay).'
+      : '⚠ 每年计薪月数须为正数（通常填 12；13 薪填 13），当前填写无效，已停止计算。') + '</div>';
+    __salaryClearResults();
+    return;
+  }
 
   let monthlySalary, annualSalary;
   if(currentMode === 'monthly'){
@@ -634,8 +666,8 @@ function calculate(){
     monthlySalary = salaryInput / monthsPerYear;
   }
 
-  const baseSalary = getNum('baseSalary') || monthlySalary;
-  const housingBase = getNum('housingBase') || monthlySalary;
+  const baseSalary = __salaryNum('baseSalary', monthlySalary);
+  const housingBase = __salaryNum('housingBase', monthlySalary);
 
   const pensionRate = getNum('pensionRate') / 100;
   const medicalRate = getNum('medicalRate') / 100;
@@ -698,16 +730,49 @@ function calculate(){
   const takeHomeRate = monthlySalary > 0 ? (netMonthly / monthlySalary * 100) : 0;
 
   const annualInsurance = totalInsuranceMonthly * monthsPerYear;
-  const annualTaxable = Math.max(0, annualSalary - annualInsurance - threshold * 12 - totalSpecialMonthly * 12);
+  // F-N100：起征点与专项附加扣除与年社保同按 monthsPerYear 折算，避免「社保按 N 月、扣除固定按 12 月」的口径冲突。
+  const annualTaxable = Math.max(0, annualSalary - annualInsurance - threshold * monthsPerYear - totalSpecialMonthly * monthsPerYear);
   let annualTax = 0;
+  let annualMarginalRate = 0;
   for(let i = 0; i < annualBrackets.length; i++){
     if(annualTaxable <= annualBrackets[i].max || i === annualBrackets.length - 1){
       annualTax = annualTaxable * annualBrackets[i].rate - annualBrackets[i].deduction;
       annualTax = Math.max(0, annualTax);
+      annualMarginalRate = annualBrackets[i].rate;
       break;
     }
   }
   const annualNet = annualSalary - annualInsurance - annualTax;
+
+  var __annual = currentMode === 'annual';
+  var __en = __salaryModeIsEn();
+  var __baseNote = document.getElementById('salaryBaseNote');
+  var __scopeNote = document.getElementById('salaryScopeNote');
+
+  // F-N98：缴费基数沿用旧值（或高于月薪）导致税后收入为负时，明确拒绝并给出修正示例，
+  // 绝不再静默输出「税后年收入 −40.80万」这类不可能的结论。
+  if(annualNet < 0 || netMonthly < 0){
+    if(__baseNote) __baseNote.innerHTML = '<div style="font-size:13px;color:var(--danger);padding:8px 0;">' + (__en
+      ? '⚠ The social-insurance base ' + fmt(baseSalary) + '/mo exceeds pre-tax salary ' + fmt(monthlySalary) + '/mo, which would make net pay negative. Calculation stopped. In annual mode the base is a MONTHLY amount (about annual salary ÷ ' + monthsPerYear + ' = ' + fmt(salaryInput / monthsPerYear) + '/mo); enter 0 if no social insurance is paid.'
+      : '⚠ 五险一金缴费基数 ' + fmt(baseSalary) + '/月 高于税前工资 ' + fmt(monthlySalary) + '/月，计算出的税后收入为负，已停止计算。年薪模式下缴费基数按「月薪」填写（约 年薪÷' + monthsPerYear + ' = ' + fmt(salaryInput / monthsPerYear) + '/月）；如无需缴纳社保请填 0。') + '</div>';
+    __salaryClearResults();
+    return;
+  }
+  // 未致负收入但基数高于月薪时，也给出「按月填写」提示，避免静默沿用旧值。
+  if(__baseNote){
+    var __over = __annual && baseSalary > 0 && baseSalary > monthlySalary + 0.01;
+    __baseNote.innerHTML = __over
+      ? '<div style="font-size:12px;color:var(--text-muted);padding:6px 0;">' + (__en
+        ? 'Note: the insurance base ' + fmt(baseSalary) + '/mo is higher than monthly salary ' + fmt(monthlySalary) + '/mo. In annual mode it should be a monthly figure (about annual salary ÷ ' + monthsPerYear + ').'
+        : '提示：缴费基数 ' + fmt(baseSalary) + '/月 高于月薪 ' + fmt(monthlySalary) + '/月；年薪模式下基数应按月薪填写（约 年薪÷' + monthsPerYear + '）。') + '</div>'
+      : '';
+  }
+  // F-N100 / F-N99：把当前采用的年度口径与明细卡口径写明，避免同屏混用月度与年度。
+  if(__scopeNote){
+    __scopeNote.innerHTML = '<div style="font-size:12px;color:var(--text-muted);padding:6px 0;">' + (__en
+      ? 'Annual figures use ' + monthsPerYear + ' pay month(s)/year; the basic deduction and itemized deductions are scaled by the same ' + monthsPerYear + ' month(s) (estimate only; official annual filing prevails). Detail figures below are ' + (__annual ? 'annual totals' : 'monthly amounts') + '.'
+      : '年度口径按每年 ' + monthsPerYear + ' 个计薪月换算，起征点与专项附加扣除同步按 ' + monthsPerYear + ' 个月计（估算口径，正式申报以税务机关年度汇算为准）。以下明细为' + (__annual ? '全年合计' : '每月金额') + '。') + '</div>';
+  }
 
   const displaySalary = currentMode === 'monthly' ? monthlySalary : annualSalary;
   const displayInsurance = currentMode === 'monthly' ? totalInsuranceMonthly : annualInsurance;
@@ -715,33 +780,36 @@ function calculate(){
   const displayNet = currentMode === 'monthly' ? netMonthly : annualNet;
   const displayTaxable = currentMode === 'monthly' ? taxableMonthly : annualTaxable;
 
+  // F-N99：明细卡、实际税负率、到手比例、柱状图与 hero 全部按当前模式口径，年终奖税负不再被比例卡忽略。
+  const __k = __annual ? monthsPerYear : 1;
+
   document.getElementById('afterTaxAmount').textContent = fmt(displayNet);
   document.getElementById('beforeTaxShow').textContent = fmtShort(displaySalary);
   document.getElementById('taxShow').textContent = fmtShort(displayTax);
   document.getElementById('insuranceShow').textContent = fmtShort(displayInsurance);
 
-  document.getElementById('grossSalary').textContent = fmt(monthlySalary);
-  document.getElementById('pensionAmount').textContent = fmt(pension);
-  document.getElementById('medicalAmount').textContent = fmt(medical);
-  document.getElementById('unemploymentAmount').textContent = fmt(unemployment);
-  document.getElementById('injuryAmount').textContent = fmt(injury);
-  document.getElementById('maternityAmount').textContent = fmt(maternity);
-  document.getElementById('housingAmount').textContent = fmt(housing);
-  document.getElementById('totalInsurance').textContent = fmt(totalInsuranceMonthly);
-  document.getElementById('taxAmount').textContent = fmt(monthlyTax);
-  document.getElementById('netSalary').textContent = fmt(netMonthly);
+  document.getElementById('grossSalary').textContent = fmt(displaySalary);
+  document.getElementById('pensionAmount').textContent = fmt(pension * __k);
+  document.getElementById('medicalAmount').textContent = fmt(medical * __k);
+  document.getElementById('unemploymentAmount').textContent = fmt(unemployment * __k);
+  document.getElementById('injuryAmount').textContent = fmt(injury * __k);
+  document.getElementById('maternityAmount').textContent = fmt(maternity * __k);
+  document.getElementById('housingAmount').textContent = fmt(housing * __k);
+  document.getElementById('totalInsurance').textContent = fmt(displayInsurance);
+  document.getElementById('taxAmount').textContent = fmt(displayTax);
+  document.getElementById('netSalary').textContent = fmt(displayNet);
 
   document.getElementById('taxableIncome').textContent = fmtShort(displayTaxable);
-  document.getElementById('marginalRate').textContent = (marginalRate * 100).toFixed(0) + '%';
-  document.getElementById('effectiveRate').textContent = effectiveRate.toFixed(1) + '%';
-  document.getElementById('takeHomeRate').textContent = takeHomeRate.toFixed(1) + '%';
+  document.getElementById('marginalRate').textContent = ((__annual ? annualMarginalRate : marginalRate) * 100).toFixed(0) + '%';
+  document.getElementById('effectiveRate').textContent = (displaySalary > 0 ? (displayTax / displaySalary * 100) : 0).toFixed(1) + '%';
+  document.getElementById('takeHomeRate').textContent = (displaySalary > 0 ? (displayNet / displaySalary * 100) : 0).toFixed(1) + '%';
 
   document.getElementById('annualGross').textContent = fmtShort(annualSalary);
   document.getElementById('annualInsurance').textContent = fmtShort(annualInsurance);
   document.getElementById('annualTax').textContent = fmtShort(annualTax);
   document.getElementById('annualNet').textContent = fmtShort(annualNet);
 
-  renderBarChart(monthlySalary, totalInsuranceMonthly, monthlyTax, netMonthly);
+  renderBarChart(displaySalary, displayInsurance, displayTax, displayNet);
   renderBracketTable(taxableMonthly, bracketIndex);
 }
 
