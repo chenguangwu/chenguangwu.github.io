@@ -797,4 +797,38 @@ for (const [file, prefix, input, error] of [
   check('按零保留期号的警告不等于无法计算',w.TBKit.history.list()[0]?.d.__tbScore===1 && /已按 0/.test(doc.getElementById('res').textContent));
   w.close();
 }
+// ROI history follows the real calculation and preserves rapid edits and empty fields.
+{
+  const downloads=[],trends=[];
+  const dom=new JSDOM(readFileSync('tools/finance/calc-5.html','utf8'),{
+    url:'https://x.test/tools/finance/calc-5.html',runScripts:'dangerously',pretendToBeVisual:true,
+    virtualConsole:new VirtualConsole(),beforeParse(w){
+      w.ToolBox={showToast(){},escHtml:s=>String(s),formatNumber:(v,d)=>Number(v).toFixed(d),setResult:(id,s)=>{w.document.getElementById(id).innerHTML=s;}};w.i18nText=k=>k;
+      w.Blob=class{constructor(parts){this.text=parts.join('');}};
+      w.URL.createObjectURL=blob=>{downloads.push(blob.text);return 'blob:test';};
+      w.URL.revokeObjectURL=()=>{};w.HTMLAnchorElement.prototype.click=function(){};
+      w.eval(readFileSync('js/tool-kit.js','utf8'));
+      const line=w.TBKit.chart.line;
+      w.TBKit.chart.line=(host,config)=>{trends.push(Array.from(config.series[0].data));return line(host,config);};
+    }
+  });
+  const w=dom.window,doc=w.document,cost=doc.getElementById('cost');
+  await new Promise(resolve=>w.addEventListener('load',resolve));
+  const check=(label,ok)=>{console.log(`${ok?'PASS':'FAIL'} calc-5 ${label}`);if(!ok)failed=true;};
+  const calculate=value=>{cost.value=value;w.calc();};
+  w.TBKit.history.clear();w.eval('__calc_5_last=0');
+  calculate('100000');calculate('0');doc.querySelector('[onclick="__calc_5Export()"]')?.click();
+  let records=w.TBKit.history.list();
+  check('快速导出记录零成本失败',records.length===2 && records[1].d.__tbScore===1 && records[0].d.cost==='0' && records[0].d.__tbScore===0 && downloads[0]?.includes('未通过'));
+  check('趋势反映真实计算状态',trends.some(t=>t.join(',')==='1,0'));
+  calculate('');await new Promise(resolve=>setTimeout(resolve,1100));
+  records=w.TBKit.history.list();
+  check('空成本被记录为失败',records.length===3 && records[0].d.cost==='' && records[0].d.__tbScore===0);
+  calculate('50000');doc.querySelector('#calc_5Hist .tbk-history-item')?.click();
+  await new Promise(resolve=>setTimeout(resolve,1100));
+  check('恢复空成本并取消待处理计算',cost.value==='' && w.TBKit.history.list().length===3);
+  cost.value='100000';doc.getElementById('value').value='0';doc.getElementById('extra').value='1000';w.calc();doc.querySelector('[onclick="__calc_5Export()"]')?.click();
+  check('复利年化不可用但总 ROI 可算',w.TBKit.history.list()[0]?.d.__tbScore===1 && /亏损超过本金/.test(doc.getElementById('res').textContent));
+  w.close();
+}
 process.exit(failed ? 1 : 0);
