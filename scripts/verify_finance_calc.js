@@ -1390,6 +1390,20 @@ const CASES = [
     ref: "F-N79 真锁②：资产 150 万、负债 50 万 ⇒ 权益 100 万、de=0.5。旧用 tagHigh(de,1,2,2) 把 <1 标「偏低」，与同行参考「<1 稳健」矛盾；现专用四档标「稳健」。锚点绑定 de=0.50 与 ta/tl；默认 de=70/50=1.4（一般）不命中 ⇒ 零逃生。",
   },
   {
+    slug: "finance/analysis-5",
+    inputs: { ta: "400000", tl: "300000" },
+    clicks: ["calc()"],
+    expect: ["产权比率 3.00 3 警戒 偏高 负债总额 300000.00 ÷ 所有者权益 100000.00"],
+    ref: "产权比率恰为 3 时属于偏高而非警戒。",
+  },
+  {
+    slug: "finance/analysis-5",
+    inputs: { ta: "400000", tl: "300100" },
+    clicks: ["calc()"],
+    expect: ["产权比率 3.00 3 警戒 警戒 负债总额 300100.00 ÷ 所有者权益 99900.00"],
+    ref: "产权比率略大于 3 时即使显示为 3.00 也应警戒。",
+  },
+  {
     slug: "finance/assessor-manager",
     inputs: {
       revenue: "1000000",
@@ -1980,6 +1994,27 @@ const CASES = [
     clicks: ["calc()"],
     expect: ["合计 1,000.00 100.00% 120,000.00 —"],
     ref: "F-N84 真锁：产量含负值 -500，旧实现 qtyOk 只比条数、sumQty 累加负数得 2000 ⇒ 综合单位成本 60.00，合计行末位为 60.00；现 qtyOk 要求逐项有限且非负，负值使整体降级，合计行末位为「—」。锚点含 total=120,000（Σ基数默认 1,000）；默认 outQty=1500,2500,1000（全正，末位 24.00）不命中 ⇒ 零逃生。",
+  },
+  {
+    slug: "finance/analysis-cost-1",
+    inputs: { outQty: "1500,-500,1000" },
+    clicks: ["calc()"],
+    expect: ["产量必须为非负且有效的数字"],
+    ref: "负产量应明确提示无效，而非误报条数不一致。",
+  },
+  {
+    slug: "finance/analysis-cost-1",
+    inputs: { outQty: "1500,abc,1000" },
+    clicks: ["calc()"],
+    expect: ["产量必须为非负且有效的数字"],
+    ref: "非法产量应明确提示无效。",
+  },
+  {
+    slug: "finance/analysis-cost-1",
+    inputs: { outQty: "1500,1000" },
+    clicks: ["calc()"],
+    expect: ["产量条数（2）与对象条数（3）不一致"],
+    ref: "产量数量不匹配时保留对应提示。",
   },
   {
     slug: "finance/analysis-44",
