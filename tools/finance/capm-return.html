@@ -198,6 +198,11 @@ s.parentNode.insertBefore(el, s);
 function num(id){var v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function fp(x,dec){if(!isFinite(x))return '—';return (x*100).toFixed(dec==null?2:dec)+'%';}
 function capmCalc(){
+  if(['rf','beta','rm'].some(function(id){return document.getElementById(id).value.trim()==='';})){
+    document.getElementById('statGrid').innerHTML='';
+    document.getElementById('result').textContent='请输入无风险利率、贝塔系数和市场收益率。';
+    return;
+  }
   var unitEl=document.getElementById('unit');
   var isPct=unitEl&&unitEl.value==='100';
   var k=isPct?100:1;
@@ -257,24 +262,20 @@ function capmCalc(){
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h1;
 }
 function __capmSwitchUnit(){
-  // 切换口径时按已填数值的形态互转：绝对值 ≤1 视为小数形态（如 0.03），
-  // 否则视为百分数形态（如 3）。β 是无量纲乘数，不换算。
-  // 幂等：同一形态重复调用不会二次放大，兼容重复 onchange / 脚本重入。
   var sel=document.getElementById('unit');
   if(!sel) return;
-  var toPct=sel.value==='100';
-  ['rf','rm','obs'].forEach(function(id){
-    var el=document.getElementById(id);
-    if(!el||el.value==='') return;
-    var v=parseFloat(el.value);
-    if(isNaN(v)) return;
-    var isDecimal=Math.abs(v)<=1;
-    var next;
-    if(toPct && isDecimal) next=v*100;
-    else if(!toPct && !isDecimal) next=v/100;
-    else next=v;
-    el.value=String(Math.round(next*1e6)/1e6);
-  });
+  var nextK=sel.value==='100'?100:1;
+  var lastK=sel.__capmLastK || 1;
+  if(nextK!==lastK){
+    ['rf','rm','obs'].forEach(function(id){
+      var el=document.getElementById(id);
+      if(!el||el.value==='') return;
+      var v=Number(el.value);
+      if(!isFinite(v)) return;
+      el.value=String(Number((v*nextK/lastK).toPrecision(15)));
+    });
+    sel.__capmLastK=nextK;
+  }
   capmCalc();
 }
 function resetForm(){
@@ -452,6 +453,8 @@ function __capm_returnRender(keys,rk,en){
                     if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
                     else{e.value=rec[k];}
                 }
+                var unit=document.getElementById('unit');
+                if(unit) unit.__capmLastK=unit.value==='100'?100:1;
                 capmCalc();
             }catch(e2){}
             __capm_return_skip=false;
@@ -511,7 +514,14 @@ function __capm_returnExport(){
 }
 function __capm_returnPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#capm_returnPresets',[{label:"默认参数",labelEn:"Default",values:{"rf":"0.03", "beta":"1.2", "rm":"0.08", "obs":"0.10"}}, {label:"大盘蓝筹 β0.9",labelEn:"Large cap β0.9",values:{"rf":"0.02", "beta":"0.9", "rm":"0.08", "obs":"0.08"}}, {label:"成长股 β1.5",labelEn:"Growth stock β1.5",values:{"rf":"0.02", "beta":"1.5", "rm":"0.09", "obs":"0.12"}}, {label:"防御配置 β0.4",labelEn:"Defensive β0.4",values:{"rf":"0.02", "beta":"0.4", "rm":"0.06", "obs":"0.05"}}],function(){ capmCalc(); });
+    TBKit.preset.bar('#capm_returnPresets',[{label:"默认参数",labelEn:"Default",values:{"rf":"0.03", "beta":"1.2", "rm":"0.08", "obs":"0.10"}}, {label:"大盘蓝筹 β0.9",labelEn:"Large cap β0.9",values:{"rf":"0.02", "beta":"0.9", "rm":"0.08", "obs":"0.08"}}, {label:"成长股 β1.5",labelEn:"Growth stock β1.5",values:{"rf":"0.02", "beta":"1.5", "rm":"0.09", "obs":"0.12"}}, {label:"防御配置 β0.4",labelEn:"Defensive β0.4",values:{"rf":"0.02", "beta":"0.4", "rm":"0.06", "obs":"0.05"}}],function(){
+      var u=document.getElementById('unit');
+      if(u && u.value==='100') ['rf','rm','obs'].forEach(function(id){
+        var el=document.getElementById(id);
+        if(el && el.value!=='') el.value=String(Number((Number(el.value)*100).toPrecision(15)));
+      });
+      capmCalc();
+    });
 }
 var __capm_return_f0=(typeof capmCalc==='function')?capmCalc:null;
 if(__capm_return_f0){
