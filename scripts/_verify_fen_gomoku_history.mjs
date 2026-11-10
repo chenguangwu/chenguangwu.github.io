@@ -40,6 +40,37 @@ for (const [file, prefix, button, valid, invalid] of [
   }
   dom.window.close();
 }
+// Exercise validation with real output, history, trend and CSV.
+{
+  const downloads=[], trends=[];
+  const dom=new JSDOM(readFileSync('tools/finance/tin-validator.html','utf8'),{
+    url:'https://x.test/tools/finance/tin-validator.html',runScripts:'dangerously',pretendToBeVisual:true,
+    virtualConsole:new VirtualConsole(),beforeParse(w){
+      let now=100000; w.Date.now=()=>now+=1100;
+      w.ToolBox={showToast(){},escHtml:s=>String(s)}; w.i18nText=k=>k;
+      w.Blob=class{constructor(parts){this.text=parts.join('');}};
+      w.URL.createObjectURL=blob=>{downloads.push(blob.text);return 'blob:test';};
+      w.URL.revokeObjectURL=()=>{}; w.HTMLAnchorElement.prototype.click=function(){};
+      w.eval(readFileSync('js/tool-kit.js','utf8'));
+      const line=w.TBKit.chart.line;
+      w.TBKit.chart.line=(host,config)=>{trends.push(Array.from(config.series[0].data));return line(host,config);};
+    }
+  });
+  const w=dom.window,doc=w.document;
+  await new Promise(resolve=>w.addEventListener('load',resolve));
+  w.TBKit.history.clear();
+  const input=doc.getElementById('input');
+  function enter(value){input.value=value;input.dispatchEvent(new w.Event('input',{bubbles:true}));}
+  enter('123-45-6789');
+  enter('2'.repeat(100));
+  const records=w.TBKit.history.list();
+  const check=(label,ok)=>{console.log(`${ok?'PASS':'FAIL'} tin ${label}`);if(!ok)failed=true;};
+  check('真实长输入失败结论不受摘要截断影响',records.length===2 && records[0].d.__tbScore===0 && records[1].d.__tbScore===1);
+  check('趋势包含真实通过和未通过',trends.some(t=>t.join(',')==='1,0'));
+  doc.querySelector('[onclick="__tin_validatorExport()"]')?.click();
+  check('真实 CSV 包含未通过',downloads.length===1 && downloads[0].includes('未通过'));
+  w.close();
+}
 // Exercise the real toolkit, including its CSV serialization and download path.
 for (const [file, prefix] of [
   ['tools/agriculture/fertilizer-calculator.html', 'fertilizer_calculator'],

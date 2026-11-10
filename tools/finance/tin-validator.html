@@ -228,7 +228,9 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
+var __tinValid=false;
 function validate(){
+  __tinValid=false;
   const raw = document.getElementById('input').value.trim();
   const digits = raw.replace(/\D/g,'');
   const out = document.getElementById('output');
@@ -258,12 +260,14 @@ function validate(){
   const itinOk = area.startsWith('9') && parseInt(group,10) >= 70 && parseInt(group,10) <= 88 && group !== '76' && group !== '77';
   if(rawFormat === 'EIN' || itinOk || rawFormat === 'SSN' || ssnOk || einPrefixOk){
     if(itinOk){
+      __tinValid=true;
       type = 'ITIN (个人纳税人识别号)';
       html2 += `<p><strong>类型：</strong>${type}${rawFormat === 'auto' ? '（按号段推断）' : ''}</p>`;
       html2 += `<p><strong>ITIN 格式：</strong>${area}-${group}-${serial}</p>`;
       html2 += `<p style="color:var(--success);">✅ TIN/ITIN 格式有效</p>`;
     }else if(rawFormat === 'EIN' || (rawFormat === 'auto' && !ssnOk && einPrefixOk)){
       if(einPrefixOk){
+        __tinValid=true;
         type = 'EIN (雇主识别号)';
         html2 += `<p><strong>类型：</strong>${type}${rawFormat === 'auto' ? '（按号段推断）' : ''}</p>`;
         html2 += `<p><strong>EIN 格式：</strong>${einPrefix}-${digits.substring(2)}</p>`;
@@ -275,6 +279,7 @@ function validate(){
       }
     }else{
       if(ssnOk){
+        __tinValid=true;
         type = 'SSN (社会安全号)';
         html2 += `<p><strong>类型：</strong>${type}${rawFormat === 'auto' ? '（按号段推断）' : ''}</p>`;
         html2 += `<p><strong>SSN 格式：</strong>${area}-${group}-${serial}</p>`;
@@ -348,10 +353,8 @@ function __tin_validatorResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
-function __tin_validatorScore(t){
-    var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
-    return 1;
+function __tin_validatorScore(){
+    return __tinValid ? 1 : 0;
 }
 function __tin_validatorTime(t){
     var d=new Date(t);
