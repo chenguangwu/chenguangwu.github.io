@@ -247,8 +247,11 @@ function tSplitTop(s){
   var out=[],buf='',d=0,q=0;
   for(var i=0;i<s.length;i++){
     var c=s[i];
+    if(q===3||q===4){ var end=q===3?'"""':"'''"; if(s.substr(i,3)===end){buf+=end;i+=2;q=0;} else {buf+=c;if(q===3&&c==='\\'&&i+1<s.length)buf+=s[++i];} continue; }
     if(q===1){ buf+=c; if(c==='\\'){ if(i+1<s.length){buf+=s[i+1];i++;} } else if(c==='"')q=0; continue; }
     if(q===2){ buf+=c; if(c==="'")q=0; continue; }
+    if(s.substr(i,3)==='"""'){q=3;buf+='"""';i+=2;continue;}
+    if(s.substr(i,3)==="'''"){q=4;buf+="'''";i+=2;continue;}
     if(c==='"'){ q=1; buf+=c; continue; }
     if(c==="'"){ q=2; buf+=c; continue; }
     if(c==='['||c==='{') d++;
@@ -263,8 +266,11 @@ function tDepth(s){
   var d=0,q=0;
   for(var i=0;i<s.length;i++){
     var c=s[i];
+    if(q===3||q===4){ if(s.substr(i,3)===(q===3?'"""':"'''")){i+=2;q=0;} else if(q===3&&c==='\\')i++; continue; }
     if(q===1){ if(c==='\\'){i++;continue;} if(c==='"')q=0; continue; }
     if(q===2){ if(c==="'")q=0; continue; }
+    if(s.substr(i,3)==='"""'){q=3;i+=2;continue;}
+    if(s.substr(i,3)==="'''"){q=4;i+=2;continue;}
     if(c==='"'){q=1;continue;}
     if(c==="'"){q=2;continue;}
     if(c==='[')d++; else if(c===']')d--;
@@ -278,6 +284,10 @@ function tKeyName(k){
 }
 function tVal(s){
   s=s.trim();
+  if((s.slice(0,3)==='"""'||s.slice(0,3)==="'''") && s.slice(-3)===s.slice(0,3)){
+    var content=s.slice(3,-3).replace(/^\n/,'');
+    return s.charAt(0)==='"' ? tUnescape(content) : content;
+  }
   if(s.charAt(0)==='"'){ var m=s.match(/^"((?:[^"\\]|\\.)*)"/); return m? tUnescape(m[1]) : s; }
   // IT-N358：TOML 字面字符串（单引号）不做转义，串内 # 也是数据字符
   if(s.charAt(0)==="'"){ var lm=s.match(/^'([^']*)'/); return lm? lm[1] : s; }
@@ -320,7 +330,7 @@ function stripComment(s){
       if(s.substr(i,3)==="'''"){ mode=4; out+="'''"; i+=2; continue; }
       if(c==='"'){ mode=1; out+=c; continue; }
       if(c==="'"){ mode=2; out+=c; continue; }
-      if(c==='#') break;
+      if(c==='#'){ while(i+1<s.length && s[i+1]!=='\n') i++; continue; }
       out+=c; continue;
     }
     if(mode===1){
@@ -378,10 +388,10 @@ function parseToml(text){
     // ⚠️ 必须先剥掉行内 # 注释再判断括号深度：注释里的 ] 会被误当成数组结束，导致后续行静默丢失
     var val0=stripComment(rawVal);
     if(/^\s*[\[\{]/.test(val0) && tDepth(val0)>0){
-      var buf=val0, guard=0;
-      while(tDepth(buf)>0 && i+1<lines.length && guard++<2000){
+      var buf=rawVal, guard=0;
+      while(tDepth(stripComment(buf))>0 && i+1<lines.length && guard++<2000){
         i++;
-        buf+='\n'+stripComment(lines[i].trim());
+        buf+='\n'+lines[i];
       }
       rawVal=buf;
     }

@@ -2070,12 +2070,13 @@ const CASES = [
     "inputs": {
       "width": "42",
       "height": "42",
-      "svgInput": "1\n2\n3"
+      "svgInput": "<svg xmlns='http://www.w3.org/2000/svg'><rect width='10' height='10'/></svg>"
     },
+    "clicks": ["generate()"],
     "expect": [
-      "42\n42\n1 2 3"
+      "42 × 42 · 1x · transparent"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"width\":\"42\",\"height\":\"42\",\"svgInput\":\"1\\n2\\n3\"}，输出区含「42\n42\n1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "42×42、1x 透明背景生成前输出像素元信息；不依赖输入回显或测试环境中的 Image 实现。"
   },
   {
     "slug": "design/tester-assessor",

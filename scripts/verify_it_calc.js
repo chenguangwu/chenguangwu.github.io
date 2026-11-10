@@ -468,6 +468,31 @@ const CASES = [
   {
     slug: "design/svg-to-png",
     inputs: {},
+    clicks: ["var imgs=[],rev=[];globalThis.URL=globalThis.URL||{};URL.createObjectURL=function(){return 'blob:test';};URL.revokeObjectURL=function(u){rev.push(u);};window.Image=function(){var im={};imgs.push(im);return im;};globalThis.Image=window.Image;var ce=document.createElement.bind(document);document.createElement=function(t){return t==='canvas'?{getContext:function(){return {drawImage:function(){}};},toDataURL:function(){return 'PNG_OK';}}:ce(t);};var el=document.getElementById('svgInput');el.value='<svg><rect/></svg>';document.getElementById('width').value='10';document.getElementById('height').value='10';generate();el.value='';el.fire('input');imgs[0].onload();document.getElementById('__tbProbe').textContent='SVG_CLEAR='+(lastDataURL===''&&rev.length===1?'OK':'FAIL');"],
+    expect: ["SVG_CLEAR=OK"],
+    ref: "转换未完成时清空 SVG：旧回调必须作废且释放对象 URL，不得重新产生可下载结果。"
+  },
+  {
+    slug: "it/yaml-to-xml",
+    inputs: { source: "items:\n  - alpha\n  -" },
+    expect: ["&lt;root&gt; &lt;items&gt;alpha&lt;/items&gt;&lt;items&gt;&lt;/items&gt; &lt;/root&gt;"],
+    ref: "尾部空 YAML 序列项是 null，须保留为空 XML 元素而不抛异常。"
+  },
+  {
+    slug: "it/toml-to-yaml",
+    inputs: { source: "items = [\"\"\"a,b#c\"\"\", 'tail']" },
+    expect: ["items: - \"a,b#c\" - tail"],
+    ref: "TOML 三引号字符串位于数组时，逗号和 # 均为内容，不得丢弃。"
+  },
+  {
+    slug: "it/toml-to-yaml",
+    inputs: { source: "items = [ # ] comment\n  '''hello,\n# world]''',\n  'tail' # ] comment\n]" },
+    expect: ["items: - \"hello,\\n# world]\" - tail"],
+    ref: "多行字面字符串内的换行、# 和 ] 都是内容，字符串外注释里的 ] 不结束数组。"
+  },
+  {
+    slug: "design/svg-to-png",
+    inputs: {},
     clicks: ["var __rev=[],__n=0;globalThis.Blob=globalThis.Blob||function(){};globalThis.URL=globalThis.URL||{};URL.createObjectURL=function(){return 'blob:'+(++__n);};URL.revokeObjectURL=function(u){__rev.push(u);};var __imgs=[];window.Image=function(){var im={onload:null,onerror:null,src:''};__imgs.push(im);return im;};globalThis.Image=window.Image;var __ce=document.createElement.bind(document);document.createElement=function(t){if(t==='canvas'){return {width:0,height:0,getContext:function(){return {fillRect:function(){},drawImage:function(){}};},toDataURL:function(){return 'PNG_OK';}};}return __ce(t);};document.getElementById('svgInput').value='<svg><rect/></svg>';document.getElementById('width').value='10';document.getElementById('height').value='10';generate();generate();generate();try{__imgs[0].onload();}catch(e){}try{__imgs[1].onerror();}catch(e){}var __pv=String(document.getElementById('preview').innerHTML);var __stale=(lastDataURL===''&&__pv.indexOf('<img')<0&&__pv.indexOf('SVG 加载失败')<0)?'Y':'N';var __old=__rev.join(',');try{__imgs[2].onload();}catch(e){}var __pv2=String(document.getElementById('preview').innerHTML);var __latest=(lastDataURL==='PNG_OK'&&__pv2.indexOf('<img')>=0)?'Y':'N';document.createElement=__ce;document.getElementById('__tbProbe').textContent='D21REV='+__old+' STALE='+__stale+' LATEST='+__latest+' ALL='+__rev.join(',');"],
     expect: ["D21REV=blob:1,blob:2 STALE=Y LATEST=Y ALL=blob:1,blob:2,blob:3"],
     ref: "D-N21 复核重做：连续三次 generate() 各创建一个 blob URL。旧修复把 token 守卫放在释放之前，过期的 onload/onerror 直接 return ⇒ blob:1、blob:2 永不释放。现两回调都用 try/finally，过期回调照样释放各自 URL 且不改写 lastDataURL/preview；最新的第三次 onload 仍能正常出图并释放 blob:3。URL/Image/canvas 均由桩捕获，默认态不产生该串。"
