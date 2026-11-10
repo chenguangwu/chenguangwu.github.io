@@ -1082,16 +1082,16 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __bond_yield_calculator_last=0,__bond_yield_calculator_skip=false;
+var __bond_yield_calculator_last=0,__bond_yield_calculator_skip=false,__bond_yield_calculator_timer=null;
 function __bond_yield_calculatorSnap(){
-    var out={};
+    var out={__tbMethod:currentMethod};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
     for(var i=0;i<els.length;i++){
         var e=els[i];
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -1103,10 +1103,12 @@ function __bond_yield_calculatorResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
-function __bond_yield_calculatorScore(t){
-    var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
-    return 1;
+function __bond_yield_calculatorScore(){
+    if(!currentResult) return 0;
+    if(currentMethod==='ytm') return currentResult.checkOk ? 1 : 0;
+    if(currentMethod==='current') return isFinite(currentResult.currentYield) ? 1 : 0;
+    if(currentMethod==='holding') return isFinite(currentResult.holdingReturn) && isFinite(currentResult.annualReturn) ? 1 : 0;
+    return isFinite(currentResult.price) && isFinite(currentResult.premiumRate) ? 1 : 0;
 }
 function __bond_yield_calculatorTime(t){
     var d=new Date(t);
@@ -1129,6 +1131,8 @@ function __bond_yield_calculatorRender(keys,rk,en){
         TBKit.util.diffBox('#bond_yield_calculatorDiff');
         TBKit.history.mount('#bond_yield_calculatorHist',function(rec){
             __bond_yield_calculator_skip=true;
+            clearTimeout(__bond_yield_calculator_timer);
+            __bond_yield_calculator_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -1138,7 +1142,10 @@ function __bond_yield_calculatorRender(keys,rk,en){
                     if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
                     else{e.value=rec[k];}
                 }
-                calc();
+                if(rec.__tbMethod){
+                    var methods=['ytm','current','holding','price'];
+                    switchMethod(rec.__tbMethod,document.querySelectorAll('.method-tab')[methods.indexOf(rec.__tbMethod)]);
+                }else calc();
             }catch(e2){}
             __bond_yield_calculator_skip=false;
         });
@@ -1152,19 +1159,23 @@ function __bond_yield_calculatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __bond_yield_calculatorExtras(){
+function __bond_yield_calculatorExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__bond_yield_calculator_skip) return;
+    clearTimeout(__bond_yield_calculator_timer);
+    __bond_yield_calculator_timer=null;
     var snap=__bond_yield_calculatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
-    if(keys.length>12) keys=keys.slice(0,12);
     var res=__bond_yield_calculatorResText();
     if(!res) return;
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__bond_yield_calculator_last<1000) return;
+    if(!force && now-__bond_yield_calculator_last<1000){
+        __bond_yield_calculator_timer=setTimeout(function(){__bond_yield_calculatorExtras(true);},1000-(now-__bond_yield_calculator_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -1184,11 +1195,11 @@ function __bond_yield_calculatorExtras(){
 }
 function __bond_yield_calculatorExport(){
     if (typeof TBKit === 'undefined') return;
+    __bond_yield_calculatorExtras(true);
     try{
         var box=document.querySelector('#bond_yield_calculatorTable');
         if(!box||!box.querySelector('tr')){
             var snap=__bond_yield_calculatorSnap(); var keys=Object.keys(snap);
-            if(keys.length>12) keys=keys.slice(0,12);
             var en=(TBKit.util&&TBKit.util.isEn())?true:false;
             __bond_yield_calculatorRender(keys,en?'Result':'结果',en);
         }

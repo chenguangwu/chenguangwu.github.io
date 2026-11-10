@@ -657,4 +657,40 @@ for (const [file, prefix, input, error] of [
   check('恢复空字段取消待保存输入',s.value==='' && w.TBKit.history.list().length===3);
   w.close();
 }
+// Bond history records the active method, complete inputs, and actual YTM solver status.
+{
+  const downloads=[],trends=[];
+  const dom=new JSDOM(readFileSync('tools/finance/bond-yield-calculator.html','utf8'),{
+    url:'https://x.test/tools/finance/bond-yield-calculator.html',runScripts:'dangerously',pretendToBeVisual:true,
+    virtualConsole:new VirtualConsole(),beforeParse(w){
+      w.ToolBox={showToast(){},escHtml:s=>String(s),formatNumber:(v,d)=>Number(v).toFixed(d),setResult:(id,s)=>{w.document.getElementById(id).innerHTML=s;}};w.i18nText=k=>k;
+      w.Blob=class{constructor(parts){this.text=parts.join('');}};
+      w.URL.createObjectURL=blob=>{downloads.push(blob.text);return 'blob:test';};
+      w.URL.revokeObjectURL=()=>{};w.HTMLAnchorElement.prototype.click=function(){};
+      w.HTMLCanvasElement.prototype.getContext=()=>null;
+      w.eval(readFileSync('js/tool-kit.js','utf8'));
+      const line=w.TBKit.chart.line;
+      w.TBKit.chart.line=(host,config)=>{trends.push(Array.from(config.series[0].data));return line(host,config);};
+    }
+  });
+  const w=dom.window,doc=w.document;
+  await new Promise(resolve=>w.addEventListener('load',resolve));
+  w.drawChart=()=>{};
+  const check=(label,ok)=>{console.log(`${ok?'PASS':'FAIL'} bond-yield ${label}`);if(!ok)failed=true;};
+  w.TBKit.history.clear();w.eval('__bond_yield_calculator_last=0');
+  doc.getElementById('y-price').value='950';w.calc();
+  doc.getElementById('y-price').value='1e40';w.calc();
+  doc.querySelector('[onclick="__bond_yield_calculatorExport()"]')?.click();
+  let records=w.TBKit.history.list();
+  check('快速导出识别到期收益率无解',records.length===2 && records[0].d.__tbScore===0 && downloads[0]?.includes('未通过') && /无解/.test(doc.getElementById('res').textContent));
+  check('趋势包含有效与无解',trends.some(t=>t.join(',')==='1,0'));
+  w.switchMethod('price',doc.querySelector('[onclick="switchMethod(\'price\',this)"]'));
+  doc.getElementById('p-rate').value='8';w.calc();doc.querySelector('[onclick="__bond_yield_calculatorExport()"]')?.click();
+  records=w.TBKit.history.list();
+  check('定价方法及其输入完整保存',records[0]?.d.__tbMethod==='price' && records[0].d['p-rate']==='8');
+  w.switchMethod('ytm',doc.querySelector('[onclick="switchMethod(\'ytm\',this)"]'));
+  doc.querySelector('#bond_yield_calculatorHist .tbk-history-item')?.click();
+  check('恢复历史切换对应方法并恢复参数',w.currentMethod==='price' && doc.getElementById('p-rate').value==='8');
+  w.close();
+}
 process.exit(failed ? 1 : 0);
