@@ -384,7 +384,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __analysis_risk_last=0,__analysis_risk_skip=false;
+var __analysis_risk_last=0,__analysis_risk_skip=false,__analysis_risk_timer=null;
 function __analysis_riskSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -393,7 +393,7 @@ function __analysis_riskSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -431,6 +431,8 @@ function __analysis_riskRender(keys,rk,en){
         TBKit.util.diffBox('#analysis_riskDiff');
         TBKit.history.mount('#analysis_riskHist',function(rec){
             __analysis_risk_skip=true;
+            clearTimeout(__analysis_risk_timer);
+            __analysis_risk_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -454,9 +456,11 @@ function __analysis_riskRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __analysis_riskExtras(){
+function __analysis_riskExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__analysis_risk_skip) return;
+    clearTimeout(__analysis_risk_timer);
+    __analysis_risk_timer=null;
     var snap=__analysis_riskSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -466,7 +470,10 @@ function __analysis_riskExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__analysis_risk_last<1000) return;
+    if(!force && now-__analysis_risk_last<1000){
+        __analysis_risk_timer=setTimeout(function(){__analysis_riskExtras(true);},1000-(now-__analysis_risk_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -486,6 +493,7 @@ function __analysis_riskExtras(){
 }
 function __analysis_riskExport(){
     if (typeof TBKit === 'undefined') return;
+    __analysis_riskExtras(true);
     try{
         var box=document.querySelector('#analysis_riskTable');
         if(!box||!box.querySelector('tr')){

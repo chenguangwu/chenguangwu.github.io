@@ -628,4 +628,33 @@ for (const [file, prefix, input, error] of [
   check('零基数合计记为未通过',w.TBKit.history.list()[0]?.d.__tbScore===0);
   w.close();
 }
+// Risk analysis must not lose rapid calculations or empty input snapshots.
+{
+  const downloads=[];
+  const dom=new JSDOM(readFileSync('tools/finance/analysis-risk.html','utf8'),{
+    url:'https://x.test/tools/finance/analysis-risk.html',runScripts:'dangerously',pretendToBeVisual:true,
+    virtualConsole:new VirtualConsole(),beforeParse(w){
+      w.ToolBox={showToast(){},escHtml:s=>String(s)};w.i18nText=k=>k;
+      w.Blob=class{constructor(parts){this.text=parts.join('');}};
+      w.URL.createObjectURL=blob=>{downloads.push(blob.text);return 'blob:test';};
+      w.URL.revokeObjectURL=()=>{};w.HTMLAnchorElement.prototype.click=function(){};
+      w.eval(readFileSync('js/tool-kit.js','utf8'));
+    }
+  });
+  const w=dom.window,doc=w.document,s=doc.getElementById('s');
+  await new Promise(resolve=>w.addEventListener('load',resolve));
+  const check=(label,ok)=>{console.log(`${ok?'PASS':'FAIL'} analysis-risk ${label}`);if(!ok)failed=true;};
+  const calculate=value=>{s.value=value;w.calc();};
+  w.TBKit.history.clear();w.eval('__analysis_risk_last=0');
+  calculate('1000000');calculate('500000');doc.querySelector('[onclick="__analysis_riskExport()"]')?.click();
+  let records=w.TBKit.history.list();
+  check('快速导出保留最新风险计算',records.length===2 && records[0].d.s==='500000' && records[0].d.__tbScore===1 && downloads[0]?.includes('500000'));
+  calculate('');await new Promise(resolve=>setTimeout(resolve,1100));
+  records=w.TBKit.history.list();
+  check('空字段保存在计算快照',records.length===3 && records[0].d.s==='');
+  calculate('900000');doc.querySelector('#analysis_riskHist .tbk-history-item')?.click();
+  await new Promise(resolve=>setTimeout(resolve,1100));
+  check('恢复空字段取消待保存输入',s.value==='' && w.TBKit.history.list().length===3);
+  w.close();
+}
 process.exit(failed ? 1 : 0);
