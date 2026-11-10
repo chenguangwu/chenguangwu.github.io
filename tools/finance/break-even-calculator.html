@@ -212,6 +212,7 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="tab-content" id="tab-chart">
+      <div id="chartError" role="alert"></div>
       <div class="chart-container">
         <canvas id="breakEvenChart" height="350"></canvas>
       </div>
@@ -234,6 +235,7 @@ s.parentNode.insertBefore(el, s);
         <button type="button" class="btn" onclick="loadCurrentToScenario()">当前参数→新场景</button>
         <button type="button" class="btn danger" onclick="clearScenarios()">清空全部</button>
       </div>
+      <div id="scenarioError" role="alert"></div>
       <div id="scenarioList"></div>
       <div class="result-box" id="scenarioCompare" style="margin-top:16px;"></div>
     </div>
@@ -361,25 +363,50 @@ function getParams(){
   };
 }
 
+// 场景可保存亏损产品以比较负边际贡献率，但成本和其他输入必须合法。
+function validateParams(p, allowLoss){
+  if(p.price <= 0) return '请输入大于 0 的产品单价。';
+  if(p.fc < 0 || p.vc < 0 || p.qty < 0) return '固定成本、单位变动成本与销量不能为负数。';
+  if(p.taxRate < 0 || p.taxRate > 100) return '所得税率应在 0–100% 之间。';
+  var ids = ['fc', 'price', 'vc', 'qty', 'taxRate'];
+  for(var i = 0; i < ids.length; i++){
+    var value = document.getElementById(ids[i]).value;
+    if(String(value).trim() === '' || !isFinite(+value)) return '请填写有效的数值参数。';
+  }
+  if(!allowLoss && p.price - p.vc <= 0) return '单位边际贡献 ≤ 0（单价不高于单位变动成本），不存在盈亏平衡点，请调整价格或成本。';
+  return '';
+}
+function setParamError(id, err){
+  document.getElementById(id).innerHTML = err ? '<p class="tip-error">' + err + '</p>' : '';
+}
+function clearCanvas(id){
+  var canvas = document.getElementById(id);
+  var ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
 function calcBEP(fc, price, vc){
   var cm = price - vc;
-  if(cm <= 0) return {qty: Infinity, revenue: Infinity, cm: cm, cmRatio: 0};
+  if(cm <= 0) return {qty: Infinity, revenue: Infinity, cm: cm, cmRatio: price > 0 ? cm / price * 100 : 0};
   var beq = fc / cm;
   return {qty: beq, revenue: beq * price, cm: cm, cmRatio: cm / price * 100};
 }
 
 function calc(){
   var p = getParams();
-  var err = '';
-  if(p.price <= 0) err = '请输入大于 0 的产品单价。';
-  else if(p.fc < 0 || p.vc < 0 || p.qty < 0) err = '固定成本、单位变动成本与销量不能为负数。';
-  else if(p.taxRate < 0 || p.taxRate > 100) err = '所得税率应在 0–100% 之间。';
-  else if(p.price - p.vc <= 0) err = '单位边际贡献 ≤ 0（单价不高于单位变动成本），不存在盈亏平衡点，请调整价格或成本。';
+  var err = validateParams(p, false);
   if(err){
     document.getElementById('statGrid').innerHTML = '';
-    document.getElementById('res').innerHTML = '<p class="tip-error">' + err + '</p>';
+    setParamError('res', err);
+    setParamError('chartError', err);
+    setParamError('sensGrid', err);
+    setParamError('detailTable', err);
+    clearCanvas('breakEvenChart');
+    clearCanvas('sensitivityChart');
     return;
   }
+  setParamError('chartError', '');
+  setParamError('scenarioError', '');
   var bep = calcBEP(p.fc, p.price, p.vc);
   var revenue = p.qty * p.price;
   var totalVC = p.qty * p.vc;
@@ -445,6 +472,9 @@ function getSafetyRating(ratio){
 
 function drawChart(){
   var p = getParams();
+  var err = validateParams(p, true);
+  setParamError('chartError', err);
+  if(err){ clearCanvas('breakEvenChart'); return; }
   var canvas = document.getElementById('breakEvenChart');
   var ctx = canvas.getContext('2d');
   
@@ -623,6 +653,9 @@ function formatMoney(n){
 
 function addScenario(){
   var p = getParams();
+  var err = validateParams(p, true);
+  setParamError('scenarioError', err);
+  if(err) return false;
   scenarios.push({
     name: '场景' + (scenarios.length + 1),
     fc: p.fc,
@@ -633,11 +666,11 @@ function addScenario(){
   });
   renderScenarios();
   updateScenarioCompare();
+  return true;
 }
 
 function loadCurrentToScenario(){
-  addScenario();
-  ToolBox.showToast(i18nText('toast.msg261'));
+  if(addScenario()) ToolBox.showToast(i18nText('toast.msg261'));
 }
 
 function removeScenario(idx){
@@ -741,27 +774,34 @@ function updateScenarioCompare(){
 
 function calcSensitivity(){
   var p = getParams();
-  var pct = +document.getElementById('sensPct').value || 10;
-  if(p.price <= 0 || p.price - p.vc <= 0){
-    document.getElementById('sensGrid').innerHTML = '<p class="tip-error">单价需大于 0 且高于单位变动成本，才能做敏感性分析。</p>';
+  var pctRaw = document.getElementById('sensPct').value;
+  var pct = +pctRaw;
+  var err = validateParams(p, false);
+  if(!err && (String(pctRaw).trim() === '' || !isFinite(pct) || pct < 0 || pct > 100)) err = '变动幅度应在 0–100% 之间。';
+  if(err){
+    setParamError('sensGrid', err);
+    clearCanvas('sensitivityChart');
     return;
   }
   var baseBEP = calcBEP(p.fc, p.price, p.vc);
   
   var items = [];
+  function changeFromBase(qty){
+    return isFinite(qty) && baseBEP.qty !== 0 ? (qty - baseBEP.qty) / baseBEP.qty * 100 : null;
+  }
   
   var priceUp = calcBEP(p.fc, p.price * (1 + pct / 100), p.vc);
   var priceDown = calcBEP(p.fc, p.price * (1 - pct / 100), p.vc);
   items.push({
     label: '售价 +' + pct + '%',
     bep: priceUp.qty,
-    change: isFinite(baseBEP.qty) && isFinite(priceUp.qty) ? ((priceUp.qty - baseBEP.qty) / baseBEP.qty * 100) : 0,
+    change: changeFromBase(priceUp.qty),
     color: priceUp.qty < baseBEP.qty ? 'var(--success)' : 'var(--danger)'
   });
   items.push({
     label: '售价 -' + pct + '%',
     bep: priceDown.qty,
-    change: isFinite(baseBEP.qty) && isFinite(priceDown.qty) ? ((priceDown.qty - baseBEP.qty) / baseBEP.qty * 100) : 0,
+    change: changeFromBase(priceDown.qty),
     color: priceDown.qty > baseBEP.qty ? 'var(--danger)' : 'var(--success)'
   });
   
@@ -770,13 +810,13 @@ function calcSensitivity(){
   items.push({
     label: '变动成本 +' + pct + '%',
     bep: vcUp.qty,
-    change: isFinite(baseBEP.qty) && isFinite(vcUp.qty) ? ((vcUp.qty - baseBEP.qty) / baseBEP.qty * 100) : 0,
+    change: changeFromBase(vcUp.qty),
     color: vcUp.qty > baseBEP.qty ? 'var(--danger)' : 'var(--success)'
   });
   items.push({
     label: '变动成本 -' + pct + '%',
     bep: vcDown.qty,
-    change: isFinite(baseBEP.qty) && isFinite(vcDown.qty) ? ((vcDown.qty - baseBEP.qty) / baseBEP.qty * 100) : 0,
+    change: changeFromBase(vcDown.qty),
     color: vcDown.qty < baseBEP.qty ? 'var(--success)' : 'var(--danger)'
   });
   
@@ -785,13 +825,13 @@ function calcSensitivity(){
   items.push({
     label: '固定成本 +' + pct + '%',
     bep: fcUp.qty,
-    change: isFinite(baseBEP.qty) && isFinite(fcUp.qty) ? ((fcUp.qty - baseBEP.qty) / baseBEP.qty * 100) : 0,
+    change: changeFromBase(fcUp.qty),
     color: fcUp.qty > baseBEP.qty ? 'var(--danger)' : 'var(--success)'
   });
   items.push({
     label: '固定成本 -' + pct + '%',
     bep: fcDown.qty,
-    change: isFinite(baseBEP.qty) && isFinite(fcDown.qty) ? ((fcDown.qty - baseBEP.qty) / baseBEP.qty * 100) : 0,
+    change: changeFromBase(fcDown.qty),
     color: fcDown.qty < baseBEP.qty ? 'var(--success)' : 'var(--danger)'
   });
   
@@ -801,7 +841,7 @@ function calcSensitivity(){
     html += '<div class="label">' + item.label + '</div>';
     html += '<div class="value" style="font-size:16px;">' + (isFinite(item.bep) ? Math.ceil(item.bep) + ' 件' : '-') + '</div>';
     html += '<div style="font-size:12px;color:' + item.color + ';margin-top:4px;">';
-    html += (item.change >= 0 ? '+' : '') + item.change.toFixed(2) + '%';
+    html += item.change === null ? '—' : (item.change >= 0 ? '+' : '') + item.change.toFixed(2) + '%';
     html += '</div></div>';
   });
   const __g6=html;document.getElementById('sensGrid').innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
@@ -841,7 +881,8 @@ function drawSensitivityChart(p, pct, baseBEP){
   
   var minVal = Infinity, maxVal = -Infinity;
   dataSeries.forEach(function(s){
-    for(var t = -range; t <= range; t += range / steps){
+    for(var n = 0; n <= steps * 2; n++){
+      var t = -range + range * n / steps;
       var v = s.calc(t);
       if(isFinite(v)){
         minVal = Math.min(minVal, v);
@@ -852,7 +893,7 @@ function drawSensitivityChart(p, pct, baseBEP){
   if(!isFinite(baseBEP.qty)) return;
   minVal = Math.min(minVal, baseBEP.qty);
   maxVal = Math.max(maxVal, baseBEP.qty);
-  if(minVal === maxVal){ minVal *= 0.9; maxVal *= 1.1; }
+  if(minVal === maxVal){ if(maxVal === 0) maxVal = 1; else { minVal *= 0.9; maxVal *= 1.1; } }
   minVal = Math.max(0, minVal * 0.9);
   maxVal *= 1.1;
   
@@ -904,10 +945,11 @@ function drawSensitivityChart(p, pct, baseBEP){
     ctx.lineWidth = 2;
     ctx.beginPath();
     var first = true;
-    for(var t2 = -range; t2 <= range; t2 += range / 20){
+    for(var n2 = 0; n2 <= 40; n2++){
+      var t2 = -range + range * n2 / 20;
       var v2 = s.calc(t2);
       if(!isFinite(v2)) continue;
-      var x2 = padding.left + ((t2 + range) / (range * 2)) * chartW;
+      var x2 = padding.left + n2 / 40 * chartW;
       var y2 = padding.top + chartH - ((v2 - minVal) / (maxVal - minVal)) * chartH;
       if(first){ ctx.moveTo(x2, y2); first = false; }
       else ctx.lineTo(x2, y2);
@@ -939,6 +981,8 @@ function drawSensitivityChart(p, pct, baseBEP){
 
 function generateDetailTable(){
   var p = getParams();
+  var err = validateParams(p, true);
+  if(err){ setParamError('detailTable', err); return; }
   var start = +document.getElementById('detailStart').value || 0;
   var end = +document.getElementById('detailEnd').value || 20000;
   var step = +document.getElementById('detailStep').value || 1000;
@@ -974,6 +1018,8 @@ function generateDetailTable(){
 
 function exportCSV(){
   var p = getParams();
+  var err = validateParams(p, true);
+  if(err){ setParamError('detailTable', err); return; }
   var start = +document.getElementById('detailStart').value || 0;
   var end = +document.getElementById('detailEnd').value || 20000;
   var step = +document.getElementById('detailStep').value || 1000;
@@ -1158,6 +1204,8 @@ function __break_even_calculatorExtras(){
     __break_even_calculatorRender(keys,rk,en);
 }
 function __break_even_calculatorExport(){
+    var err = validateParams(getParams(), false);
+    if(err){ setParamError('res', err); return; }
     if (typeof TBKit === 'undefined') return;
     try{
         var box=document.querySelector('#break_even_calculatorTable');
