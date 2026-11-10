@@ -68,6 +68,18 @@ const CASES = [
     ref: "第122批 F-N112 批量 CSV 补合计：注入 3 行含 1 行非数字（abc 被忽略），有效两行 1000/5000 按含税 13% 倒推 ⇒ 不含税合计 1000/1.13+5000/1.13 = 5309.73、税额 690.27、含税 6000.00。旧版 exportBatchCSV 只逐行写明细、无合计 ⇒ 探针 BAD。默认批量 5 行合计 7,522.12 不含该串 ⇒ 强判别。"
   },
   {
+    slug: "finance/tax-calculator",
+    inputs: { sd2: "2000", special: "0" },
+    expect: ["明细合计 ¥2,000.00/月尚未应用"],
+    ref: "第123批 F-N109 个税页扣除明细未应用：填了子女教育 2000、上方 special 仍为 0 时，旧版结果区只显示「明细合计 ¥2,000.00」却按 0 扣税，两个口径并排无说明。修复后明确写出「尚未应用」及当前真正生效的 ¥0.00/月。默认 7 项全 0 时按设计不提示（避免首屏误报）⇒ 该串不出现，强判别。"
+  },
+  {
+    slug: "finance/tax-calculator",
+    clicks: ["var __cap=null;TBKit={util:{isEn:function(){return false;},exportTable:function(s,n){__cap={sel:s,name:n};},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return [];},last:function(){return null;},record:function(){},mount:function(){}},preset:{bar:function(){}},export:{csv:function(){}}};ToolBox={showToast:function(){},formatNumber:function(v){return String(v);},setResult:function(){},copyText:function(){},downloadText:function(){}};__taxExport();var t=String(document.getElementById('taxResultTable').innerHTML);document.getElementById('__tbProbe').textContent='TAXEXP '+(t.indexOf('单独计税·全年个税合计')>=0&&t.indexOf('专项附加扣除明细合计')>=0&&t.indexOf('当前生效的专项附加扣除')>=0?'OK':'OLD');"],
+    expect: ["TAXEXP OK"],
+    ref: "第123批 F-N108 个税导出 CSV 补全：旧版 __taxExport 只写工资 7 行，不含奖金两方案/全年合计与 7 项扣除明细。修复后 #taxResultTable 追加这些行，探针读取导出表内容判定。默认态不执行 clicks、无探针串 ⇒ 零逃生。"
+  },
+  {
     "slug": "finance/npv-calculator",
     "inputs": {"rate": "8", "init": "100"},
     "clicks": ["updateCF(0, 230)", "updateCF(1, -132)", "updateCF(2, 0)", "updateCF(3, 0)"],

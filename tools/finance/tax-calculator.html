@@ -243,7 +243,7 @@ s.parentNode.insertBefore(el, s);
       <div class="summary-card"><div class="num" id="taxableIncome">--</div><div class="lbl">应纳税所得额</div></div>
       <div class="summary-card"><div class="num" id="actualTax">--</div><div class="lbl">实付个税</div></div>
       <div class="summary-card"><div class="num" id="effectiveRate">--</div><div class="lbl">实际税负</div></div>
-      <div class="summary-card"><div class="num" id="annualTax">--</div><div class="lbl">年个税估算</div></div>
+      <div class="summary-card"><div class="num" id="annualTax">--</div><div class="lbl">工资部分年个税（不含奖金）</div></div>
     </div>
     <div id="bonusBox" style="margin-top:14px;"></div>
     <div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
@@ -481,6 +481,18 @@ function renderBonus(taxableIncome){
     }
     sdLine += '<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">' + sdNotes.join(' ') + '</div>';
   }
+  // F-N109：明细合计只是展示值，真正进税基的是上方 special 输入。
+  // 填了明细却没点「填入」时必须明确指出「未应用」，否则同屏两个口径用户无从判断。
+  var __sdAppliedEl = document.getElementById('special');
+  var __sdApplied = __sdAppliedEl ? (parseFloat(__sdAppliedEl.value) || 0) : 0;
+  var __sdAny = false;
+  if (sdA && sdA.v){ for (var __sdk in sdA.v){ if (sdA.v[__sdk] > 0){ __sdAny = true; break; } } }
+  if (__sdAny && Math.abs(sdSum - __sdApplied) > 0.005){
+    sdLine += '<div style="font-size:12px;color:var(--danger);margin-top:4px;">' +
+      (en ? '⚠ Itemized total ' + __sdFmt(sdSum) + '/mo is NOT applied: the tax above still uses ' + __sdFmt(__sdApplied) + '/mo from the deduction field. Click "Apply to deduction" to use the itemized total.'
+          : '⚠ 明细合计 ' + __sdFmt(sdSum) + '/月尚未应用：上方税额仍按「专项附加扣除」' + __sdFmt(__sdApplied) + '/月计算。如需按明细扣除，请点「填入上方」。') +
+      '</div>';
+  }
 
   if (bonus <= 0){
     host.innerHTML = sdLine + '<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">' + (en ? 'Enter a year-end bonus above to compare separate vs. merged taxation.' : '填写全年一次性奖金金额后，自动对比「单独计税」与「并入综合所得」两种方式的税负。') + '</div>';
@@ -526,12 +538,16 @@ function renderBonus(taxableIncome){
     '<table class="result-table" style="width:100%;border-collapse:collapse;font-size:13px;">' +
     '<thead><tr><th>' + (en ? 'Method' : '计税方式') + '</th><th>' + (en ? 'Tax on bonus' : '年终奖应缴个税') +
     '</th><th>' + (en ? 'Total annual tax' : '全年个税合计') + '</th><th>' + (en ? 'Note' : '结论') + '</th></tr></thead><tbody>' +
-    '<tr><td>' + nameSep + '</td><td>' + fm(sepTax) + '</td><td>' + fm(sepTotal) + '</td><td>' +
+    '<tr><td>' + nameSep + '</td><td>' + fm(sepTax) + '</td><td><strong style="color:var(--primary)">' + fm(sepTotal) + '</strong></td><td>' +
       (better === 'separate' ? (en ? '✅ lower' : '✅ 更省') : '') + '</td></tr>' +
-    '<tr><td>' + nameMerge + '</td><td>' + fm(mergedTax) + '</td><td>' + fm(mergeTotal) + '</td><td>' +
+    '<tr><td>' + nameMerge + '</td><td>' + fm(mergedTax) + '</td><td><strong style="color:var(--primary)">' + fm(mergeTotal) + '</strong></td><td>' +
       (better === 'merge' ? (en ? '✅ lower' : '✅ 更省') : '') + '</td></tr>' +
     '</tbody></table>' +
-    '<div style="margin-top:8px;font-size:13px;">' + concl + '</div>' + zoneTip;
+    '<div style="margin-top:8px;font-size:13px;">' + concl + '</div>' + zoneTip +
+    // F-N107：顶部卡片只是工资部分年税，奖金表这两列才含奖金税，必须写明口径避免用户少算。
+    '<div style="font-size:12px;color:var(--text-muted);margin-top:6px;">' +
+      (en ? '"Total annual tax" = annual tax on salary + tax on the bonus; the top card covers salary only.'
+          : '「全年个税合计」＝工资部分年个税＋年终奖税额；顶部卡片仅统计工资部分，不含奖金。') + '</div>';
   host.innerHTML = sdLine + html;
 }
 
@@ -670,8 +686,38 @@ function __taxExport(){
       ['应缴个税 (元)', tax.toFixed(2)],
       ['税后收入 (元)', afterTax.toFixed(2)],
       ['实际税负', eff.toFixed(1)+'%'],
-      ['年个税估算 (元)', annual.toFixed(2)]
+      ['工资部分年个税（不含奖金） (元)', annual.toFixed(2)]
     ];
+    // F-N108：导出补齐奖金两方案、全年合计与 7 项扣除明细，留档内容与屏显一一对应。
+    try{
+      var bonusEl=document.getElementById('bonus');
+      var bonus=bonusEl?(parseFloat(bonusEl.value)||0):0;
+      if(bonus>0 && typeof __bonusParts==='function' && typeof __taxAnnualOf==='function'){
+        var p=__bonusParts(bonus);
+        var sepTax=Math.max(0, bonus*p.rate-p.ded);
+        var annualTaxable=Math.max(0, taxableIncome*12);
+        var baseTax=__taxAnnualOf(annualTaxable);
+        var mergedTax=Math.max(0, __taxAnnualOf(annualTaxable+bonus)-baseTax);
+        var sepTotal=baseTax+sepTax, mergeTotal=baseTax+mergedTax;
+        var better=sepTotal<mergeTotal?'单独计税':(mergeTotal<sepTotal?'并入综合所得':'两种方式相同');
+        var modeEl=document.getElementById('bonusMode');
+        var mode=modeEl?modeEl.value:'auto';
+        rows.push(['年终奖 (元)',bonus.toFixed(2)]);
+        rows.push(['单独计税·年终奖税额 (元)',sepTax.toFixed(2)]);
+        rows.push(['单独计税·全年个税合计 (元)',sepTotal.toFixed(2)]);
+        rows.push(['并入综合所得·年终奖税额 (元)',mergedTax.toFixed(2)]);
+        rows.push(['并入综合所得·全年个税合计 (元)',mergeTotal.toFixed(2)]);
+        rows.push(['更省方案',better]);
+        rows.push(['当前计税方式',mode==='separate'?'单独计税':(mode==='merge'?'并入综合所得':'自动（推荐更省）')]);
+      }
+      if(typeof __sdAudit==='function'){
+        var sdA=__sdAudit();
+        rows.push(['专项附加扣除明细合计 (元/月)',sdA.sum.toFixed(2)]);
+        var sdNames=['3岁以下婴幼儿照护','子女教育','继续教育','大病医疗(元/年)','住房贷款利息','住房租金','赡养老人'];
+        for(var q=0;q<7;q++) rows.push(['扣除明细·'+sdNames[q],sdA.v['sd'+(q+1)].toFixed(2)]);
+        rows.push(['当前生效的专项附加扣除 (元/月)',special.toFixed(2)]);
+      }
+    }catch(e){}
     var tb=document.getElementById('taxResultTable');
     if(!tb) return;
     var html='<thead><tr><th>项目</th><th>数值</th></tr></thead><tbody>';

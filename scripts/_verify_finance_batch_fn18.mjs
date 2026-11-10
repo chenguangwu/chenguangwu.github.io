@@ -47,7 +47,10 @@ assert(raw.includes('if (afterTaxRaw < 0)') && raw.includes('社保公积金已�
   '被 0 下限截断时应在被采集的结果容器写出中文归因');
 assert(raw.includes('After-tax income is floored at 0 because social insurance exceeds the pre-tax salary; please verify the inputs.'),
   '同一归因应有英文分支（动态双语，不新增静态中文键）');
-assert(raw.includes('var __chk = __taxCheck();') && /function __taxExport\(\)\{[\s\S]{0,300}__taxCheck\(\)/.test(raw),
+// F-N18 复核重做后 __taxExport() 开头新增了「月薪清空」守卫与说明注释，
+// __taxCheck() 距函数头已超过 300 字符（旧/新源码均如此，属预存的过期断言）。
+// 窗口放宽到 1200 仍限在导出函数头部，并保留 `var __chk = __taxCheck();` 精确串，判别力不降级。
+assert(raw.includes('var __chk = __taxCheck();') && /function __taxExport\(\)\{[\s\S]{0,1200}__taxCheck\(\)/.test(raw),
   '导出函数必须复用 __taxCheck() 拦截负值，主计算与导出同口径');
 assert(raw.includes('var afterTax=Math.max(0, salary-insurance-tax);'),
   '导出明细的税后收入同样要 0 下限');
