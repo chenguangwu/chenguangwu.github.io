@@ -13,6 +13,22 @@ class DeepDiveRegressions(unittest.TestCase):
         with (ROOT / "i18n/tools/content_deepdive.json").open(encoding="utf-8") as source:
             cls.entries = json.load(source)
 
+    def test_ird_documentation_matches_implemented_weights(self):
+        entry = self.entries["finance/ird-validator"]
+        faq = [item["a"] for item in entry["faqs"][:2]]
+        page = (ROOT / "tools/finance/ird-validator.html").read_text(encoding="utf-8")
+        translations = json.loads((ROOT / "i18n/tools/en/finance/ird-validator.json").read_text(encoding="utf-8"))["map"]
+        self.assertIn("前 8 位", faq[0])
+        self.assertIn("第 9 位", faq[0])
+        self.assertIn("10", faq[1])
+        self.assertIn("7、4、3、2、5、2、7、6", faq[1])
+        for answer in faq:
+            self.assertIn(answer, page)
+            self.assertIn(answer, translations)
+        self.assertIn("first eight", translations[faq[0]])
+        self.assertIn("secondary", translations[faq[1]])
+        self.assertNotIn("期望校验位为 6", entry["examples"][0]["body"])
+
     def test_weighted_grade_example_matches_formula(self):
         text = self.entries["edu/calc-4"]["examples"][0]["body"]
         self.assertIn(f"{(85 - 70 * 0.4) / 0.6:.1f}", text)

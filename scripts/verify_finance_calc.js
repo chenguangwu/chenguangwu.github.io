@@ -273,6 +273,19 @@ const CASES = [
     ref: "F-N220 非法号：8 位 10000019 补 0 → base 01000001 期望校验位 7 ≠ 9 ⇒ ❌；旧实现错位判 ✅。与 10000009（合法）镜像。默认预填 490918507 合法 ⇒ 不命中。",
   },
 
+  {
+    slug: "finance/ird-validator",
+    inputs: { input: "100000131" },
+    expect: ["输入： 100000131", "✅ IRD 号码有效"],
+    ref: "主权重结果为 10，备用权重得校验位 1。",
+  },
+  {
+    slug: "finance/ird-validator",
+    inputs: { input: "100000132" },
+    expect: ["输入： 100000132", "❌ 校验和失败，IRD 无效"],
+    ref: "相同前八位经备用权重应为 1，校验位 2 无效。",
+  },
+
   // ── 金融公式类（7 个，期望值由 python 独立复算）────────────────────
   {
     slug: "finance/simple-interest",
