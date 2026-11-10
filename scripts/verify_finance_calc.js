@@ -307,8 +307,8 @@ const CASES = [
   {
     slug: "finance/calc-5",
     inputs: { cost: "100000", value: "0", years: "5" },
-    expect: ["亏损超过本金，无法按复利年化"],
-    ref: "F-N75 本金全损：ROI = −100% ⇒ 1+roi=0 无法复利开方，旧实现摘要卡仍显示年化 0.00% 且正文无年化行；修复后摘要显示「—」、正文给出无法年化提示。默认 ROI 50% ⇒ 两条均不命中。",
+    expect: ["年化回报率（复利）： -100.00%"],
+    ref: "本金全损时 1+ROI=0，正年限的复利年化为 -100%，而非无法计算。",
   },
   {
     slug: "finance/calc-5",
@@ -1352,6 +1352,13 @@ const CASES = [
     clicks: ["calc()"],
     expect: ["EBIT 为 0（盈亏平衡），DOL/DFL/DCL 杠杆系数无定义，无法计算"],
     ref: "F-N80 真锁：收入 100 万 − 变动 60 万 − 固定 40 万 ⇒ EBIT=0，利息 i=0。旧实现 i===0 分支优先，同屏三卡均「—」却仍提示「DFL = 1」；现按 ebit===0 优先提示「杠杆系数无定义」。默认 f=20 万（EBIT=20 万）不命中 ⇒ 零逃生。",
+  },
+  {
+    slug: "finance/analysis-risk",
+    inputs: { s: "1000000", v: "600000", f: "400000", i: "10000", t: "25", n: "100000", dec: "2" },
+    clicks: ["calc()"],
+    expect: ["DFL = 0.00 ÷ (0.00 − 10000.00) = —"],
+    ref: "EBIT 为零时百分比杠杆无定义，非零利息下 DFL 也应显示 —。",
   },
   {
     slug: "finance/analysis-5",
