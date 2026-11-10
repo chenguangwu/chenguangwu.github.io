@@ -252,6 +252,14 @@ const CASES = [
   {
     slug: "it/html-to-markdown",
     htmlDom: true,
+    inputs: {htmlInput: "<p><strong>Hello</strong> <em>world</em></p>"},
+    clicks: ["convert();document.getElementById('__tbProbe').textContent='SPACE='+document.getElementById('mdOutput').value;"],
+    expect: ["SPACE=**Hello** _world_"],
+    ref: "IT-N401 复核：相邻行内元素之间独立空白文本节点必须保留，避免加粗与斜体的词粘连。",
+  },
+  {
+    slug: "it/html-to-markdown",
+    htmlDom: true,
     inputs: {"htmlInput": "<ul><li>a<br>b</li></ul>"},
     clicks: ["convert();var v=document.getElementById('mdOutput').value;document.getElementById('__tbProbe').textContent='ULBR='+(v.indexOf('- a  '+String.fromCharCode(10)+'  b')>=0?1:0)+' FLAT='+(v.indexOf('- a'+String.fromCharCode(10)+'  b')>=0?1:0)+' q='+(document.getElementById('htmlInput').value.indexOf('<br>')>=0?1:0);"],
     expect: ["ULBR=1 FLAT=0"],
@@ -280,6 +288,13 @@ const CASES = [
     clicks: ["convert();var v=document.getElementById('mdOutput').value;document.getElementById('__tbProbe').textContent='DEL='+v+' q='+(document.getElementById('htmlInput').value.indexOf('<del>')>=0?1:0);"],
     expect: ["DEL=x ~~gone~~ y q=1"],
     ref: "IT-N401 复核重做（同族护栏）：删除线 <del>/<s>/<strike> 走同一 inlineMark，边界空白同样移到标记外，避免只修 strong/em 而留下另一分支的同类缺陷。",
+  },
+  {
+    slug: "it/text-cleaner",
+    inputs: {"input-text": "  OLD TEXT  "},
+    clicks: ["var pick,cap;TBKit={util:{isEn:function(){return false},diffBox:function(){}},matrix:{table:function(){}},chart:{line:function(){}},history:{record:function(x){cap=x},last:function(){return null},list:function(){return []},mount:function(h,f){pick=f}}};var input=document.getElementById('input-text'),trim=document.getElementById('opt-trim'),output=document.getElementById('output-text');trim.checked=true;var oq=document.querySelectorAll;document.querySelectorAll=function(s){if(s==='input[id],select[id],textarea[id]')return [trim,input];if(s==='input[type=checkbox],input[type=radio]')return [trim];return []};output.tagName='TEXTAREA';__text_cleaner_last=0;executeClean();input.value='  NEW TEXT  ';trim.checked=false;if(pick)pick(cap);document.querySelectorAll=oq;document.getElementById('__tbProbe').textContent='RESTORE='+input.value.replace(/ /g,'~')+' OUT='+output.value+' CHECK='+trim.checked+' PICK='+!!pick;"],
+    expect: ["RESTORE=~~OLD~TEXT~~ OUT=OLD TEXT CHECK=true PICK=true"],
+    ref: "文本清理器历史：记录原文与选项后修改，调用历史回填入口须恢复旧文本及选项并重新清理。",
   },
   {
     slug: "it/text-cleaner",
