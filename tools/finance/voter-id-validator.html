@@ -288,7 +288,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __voter_id_validator_last=0,__voter_id_validator_skip=false;
+var __voter_id_validator_last=0,__voter_id_validator_skip=false,__voter_id_validator_timer=null;
 function __voter_id_validatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -297,7 +297,7 @@ function __voter_id_validatorSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -309,9 +309,16 @@ function __voter_id_validatorResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __voter_id_validatorFullResText(){
+    var r=document.getElementById('output');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __voter_id_validatorScore(t){
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __voter_id_validatorTime(t){
@@ -334,7 +341,7 @@ function __voter_id_validatorRender(keys,rk,en){
         TBKit.matrix.table('#voter_id_validatorTable',{head:head,rows:rows});
         TBKit.util.diffBox('#voter_id_validatorDiff');
         TBKit.history.mount('#voter_id_validatorHist',function(rec){
-            __voter_id_validator_skip=true;
+            __voter_id_validator_skip=true;clearTimeout(__voter_id_validator_timer);__voter_id_validator_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -358,9 +365,11 @@ function __voter_id_validatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __voter_id_validatorExtras(){
+function __voter_id_validatorExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__voter_id_validator_skip) return;
+    clearTimeout(__voter_id_validator_timer);
+    __voter_id_validator_timer=null;
     var snap=__voter_id_validatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -370,7 +379,10 @@ function __voter_id_validatorExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__voter_id_validator_last<1000) return;
+    if(!force && now-__voter_id_validator_last<1000){
+        __voter_id_validator_timer=setTimeout(function(){__voter_id_validatorExtras(true);},1000-(now-__voter_id_validator_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -384,12 +396,13 @@ function __voter_id_validatorExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__voter_id_validatorScore(res);
+    rec.__tbScore=__voter_id_validatorScore(__voter_id_validatorFullResText());
     TBKit.history.record(rec);
     __voter_id_validatorRender(keys,rk,en);
 }
 function __voter_id_validatorExport(){
     if (typeof TBKit === 'undefined') return;
+    __voter_id_validatorExtras(true);
     try{
         var box=document.querySelector('#voter_id_validatorTable');
         if(!box||!box.querySelector('tr')){

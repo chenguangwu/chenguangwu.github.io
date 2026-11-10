@@ -384,7 +384,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __bic_lookup_last=0,__bic_lookup_skip=false;
+var __bic_lookup_last=0,__bic_lookup_skip=false,__bic_lookup_timer=null;
 function __bic_lookupSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -393,7 +393,7 @@ function __bic_lookupSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -437,7 +437,7 @@ function __bic_lookupRender(keys,rk,en){
         TBKit.matrix.table('#bic_lookupTable',{head:head,rows:rows});
         TBKit.util.diffBox('#bic_lookupDiff');
         TBKit.history.mount('#bic_lookupHist',function(rec){
-            __bic_lookup_skip=true;
+            __bic_lookup_skip=true;clearTimeout(__bic_lookup_timer);__bic_lookup_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -461,9 +461,11 @@ function __bic_lookupRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __bic_lookupExtras(){
+function __bic_lookupExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__bic_lookup_skip) return;
+    clearTimeout(__bic_lookup_timer);
+    __bic_lookup_timer=null;
     var snap=__bic_lookupSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -473,7 +475,10 @@ function __bic_lookupExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__bic_lookup_last<1000) return;
+    if(!force && now-__bic_lookup_last<1000){
+        __bic_lookup_timer=setTimeout(function(){__bic_lookupExtras(true);},1000-(now-__bic_lookup_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -493,6 +498,7 @@ function __bic_lookupExtras(){
 }
 function __bic_lookupExport(){
     if (typeof TBKit === 'undefined') return;
+    __bic_lookupExtras(true);
     try{
         var box=document.querySelector('#bic_lookupTable');
         if(!box||!box.querySelector('tr')){

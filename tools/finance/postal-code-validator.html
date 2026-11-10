@@ -333,7 +333,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __postal_code_validator_last=0,__postal_code_validator_skip=false;
+var __postal_code_validator_last=0,__postal_code_validator_skip=false,__postal_code_validator_timer=null;
 function __postal_code_validatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -342,7 +342,7 @@ function __postal_code_validatorSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -354,9 +354,16 @@ function __postal_code_validatorResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __postal_code_validatorFullResText(){
+    var r=document.getElementById('output');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __postal_code_validatorScore(t){
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __postal_code_validatorTime(t){
@@ -379,7 +386,7 @@ function __postal_code_validatorRender(keys,rk,en){
         TBKit.matrix.table('#postal_code_validatorTable',{head:head,rows:rows});
         TBKit.util.diffBox('#postal_code_validatorDiff');
         TBKit.history.mount('#postal_code_validatorHist',function(rec){
-            __postal_code_validator_skip=true;
+            __postal_code_validator_skip=true;clearTimeout(__postal_code_validator_timer);__postal_code_validator_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -403,9 +410,11 @@ function __postal_code_validatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __postal_code_validatorExtras(){
+function __postal_code_validatorExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__postal_code_validator_skip) return;
+    clearTimeout(__postal_code_validator_timer);
+    __postal_code_validator_timer=null;
     var snap=__postal_code_validatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -415,7 +424,10 @@ function __postal_code_validatorExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__postal_code_validator_last<1000) return;
+    if(!force && now-__postal_code_validator_last<1000){
+        __postal_code_validator_timer=setTimeout(function(){__postal_code_validatorExtras(true);},1000-(now-__postal_code_validator_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -429,12 +441,13 @@ function __postal_code_validatorExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__postal_code_validatorScore(res);
+    rec.__tbScore=__postal_code_validatorScore(__postal_code_validatorFullResText());
     TBKit.history.record(rec);
     __postal_code_validatorRender(keys,rk,en);
 }
 function __postal_code_validatorExport(){
     if (typeof TBKit === 'undefined') return;
+    __postal_code_validatorExtras(true);
     try{
         var box=document.querySelector('#postal_code_validatorTable');
         if(!box||!box.querySelector('tr')){

@@ -307,7 +307,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __routing_number_validator_last=0,__routing_number_validator_skip=false;
+var __routing_number_validator_last=0,__routing_number_validator_skip=false,__routing_number_validator_timer=null;
 function __routing_number_validatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -316,7 +316,7 @@ function __routing_number_validatorSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -328,9 +328,21 @@ function __routing_number_validatorResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __routing_number_validatorFullResText(){
+    var r=document.getElementById('output');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __routing_number_validatorScore(t){
+    // 复核判据：9 位数字 + ABA 模 3 校验和 + 美联储分区前缀在已分配白名单内
+    var raw=document.getElementById('input').value.trim();
+    var d=raw.replace(/\D/g,'');
+    if(!raw||/[^0-9\s-]/.test(raw)||d.length!==9||!abaCheck(d)) return 0;
+    if(!/^(0[1-9]|1[0-2]|2[1-9]|3[0-2]|61|80|89)$/.test(d.substring(0,2))) return 0;
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __routing_number_validatorTime(t){
@@ -353,7 +365,7 @@ function __routing_number_validatorRender(keys,rk,en){
         TBKit.matrix.table('#routing_number_validatorTable',{head:head,rows:rows});
         TBKit.util.diffBox('#routing_number_validatorDiff');
         TBKit.history.mount('#routing_number_validatorHist',function(rec){
-            __routing_number_validator_skip=true;
+            __routing_number_validator_skip=true;clearTimeout(__routing_number_validator_timer);__routing_number_validator_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -377,9 +389,11 @@ function __routing_number_validatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __routing_number_validatorExtras(){
+function __routing_number_validatorExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__routing_number_validator_skip) return;
+    clearTimeout(__routing_number_validator_timer);
+    __routing_number_validator_timer=null;
     var snap=__routing_number_validatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -389,7 +403,10 @@ function __routing_number_validatorExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__routing_number_validator_last<1000) return;
+    if(!force && now-__routing_number_validator_last<1000){
+        __routing_number_validator_timer=setTimeout(function(){__routing_number_validatorExtras(true);},1000-(now-__routing_number_validator_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -403,12 +420,13 @@ function __routing_number_validatorExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__routing_number_validatorScore(res);
+    rec.__tbScore=__routing_number_validatorScore(__routing_number_validatorFullResText());
     TBKit.history.record(rec);
     __routing_number_validatorRender(keys,rk,en);
 }
 function __routing_number_validatorExport(){
     if (typeof TBKit === 'undefined') return;
+    __routing_number_validatorExtras(true);
     try{
         var box=document.querySelector('#routing_number_validatorTable');
         if(!box||!box.querySelector('tr')){

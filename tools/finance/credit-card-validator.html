@@ -446,7 +446,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __credit_card_validator_last=0,__credit_card_validator_skip=false;
+var __credit_card_validator_last=0,__credit_card_validator_skip=false,__credit_card_validator_timer=null;
 function __credit_card_validatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -455,7 +455,7 @@ function __credit_card_validatorSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -467,9 +467,23 @@ function __credit_card_validatorResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __credit_card_validatorFullResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __credit_card_validatorScore(t){
+    // 复核判据：按本页 validate() 的真实业务状态判定（非法字符/长度不符/Luhn 失败一律未通过）
+    var raw=document.getElementById('cardInput').value.trim();
+    var d=raw.replace(/[\s-]/g,'');
+    if(!d||/[^\d\s-]/.test(raw)) return 0;
+    var brand=detectBrand(d);
+    var lenOk=brand.lengths.length>0?brand.lengths.indexOf(d.length)>=0:(d.length>=13&&d.length<=19);
+    if(!lenOk||!luhnCheck(d)) return 0;
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __credit_card_validatorTime(t){
@@ -492,7 +506,7 @@ function __credit_card_validatorRender(keys,rk,en){
         TBKit.matrix.table('#credit_card_validatorTable',{head:head,rows:rows});
         TBKit.util.diffBox('#credit_card_validatorDiff');
         TBKit.history.mount('#credit_card_validatorHist',function(rec){
-            __credit_card_validator_skip=true;
+            __credit_card_validator_skip=true;clearTimeout(__credit_card_validator_timer);__credit_card_validator_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -516,9 +530,11 @@ function __credit_card_validatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __credit_card_validatorExtras(){
+function __credit_card_validatorExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__credit_card_validator_skip) return;
+    clearTimeout(__credit_card_validator_timer);
+    __credit_card_validator_timer=null;
     var snap=__credit_card_validatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -528,7 +544,10 @@ function __credit_card_validatorExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__credit_card_validator_last<1000) return;
+    if(!force && now-__credit_card_validator_last<1000){
+        __credit_card_validator_timer=setTimeout(function(){__credit_card_validatorExtras(true);},1000-(now-__credit_card_validator_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -542,12 +561,13 @@ function __credit_card_validatorExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__credit_card_validatorScore(res);
+    rec.__tbScore=__credit_card_validatorScore(__credit_card_validatorFullResText());
     TBKit.history.record(rec);
     __credit_card_validatorRender(keys,rk,en);
 }
 function __credit_card_validatorExport(){
     if (typeof TBKit === 'undefined') return;
+    __credit_card_validatorExtras(true);
     try{
         var box=document.querySelector('#credit_card_validatorTable');
         if(!box||!box.querySelector('tr')){
