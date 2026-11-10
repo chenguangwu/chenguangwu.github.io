@@ -243,7 +243,9 @@ function monthlyPayment(p, r, n) {
 function remainingMonths(p, r, pmt) {
   const m = r / 12;
   if (pmt <= p * m) return null;
-  if (m === 0) return p / pmt;
+  // F-N93：0 利率下期数必须取整（末期不足额）。本函数已不参与结论区，
+  // 结论统一走 amortizeExact 的逐期整数摊还；此处同步收口避免浮点期数残留。
+  if (m === 0) return Math.ceil(p / pmt);
   let n = 0;
   let bal = p;
   while (bal > 0 && n < 1200) {
@@ -325,9 +327,13 @@ function calc() {
   const requiredMp = monthlyPayment(p, annual, months);
   const totalBefore = requiredMp * months;
   // 容差 0.005：应还月供常由用户输入四舍五入而来（如 536.82），不得自己提示自己
+  // F-N91：高于应还月供同样要提示（旧版只对低月供告警，用户多还时看不出对照口径已变）。
+  // F-N92：低月供告警双语化，避免 EN 态结果区泄漏中文。
   const mpWarn = mp < requiredMp - 0.005
-    ? '<p style="color:var(--danger);">⚠ 输入的月供低于原方案应还月供 <strong>' + requiredMp.toFixed(2) + '</strong> 元，原方案将出现负摊还，对比结果仅供参考</p>'
-    : '';
+    ? '<p style="color:var(--danger);">' + __mpTx('⚠ 输入的月供低于原方案应还月供 <strong>' + requiredMp.toFixed(2) + '</strong> 元，原方案将出现负摊还，对比结果仅供参考', '⚠ The entered payment is below the contractual payment of <strong>' + requiredMp.toFixed(2) + '</strong> CNY; the baseline amortizes negatively, so the comparison is indicative only.') + '</p>'
+    : (mp > requiredMp + 0.005
+      ? '<p style="font-size:13px;color:var(--text-muted);">' + __mpTx('提示：填写的月供高于合同应还月供 <strong>' + requiredMp.toFixed(2) + '</strong> 元，对照方案按实际填写的月供计算，会比合同更快还清；节省额只归因于本次提前还款。', 'Note: the entered payment is above the contractual payment of <strong>' + requiredMp.toFixed(2) + '</strong> CNY. The baseline uses the payment you entered and pays off faster than the contract; savings are attributed only to this prepayment.') + '</p>'
+      : '');
 
   // F-N224/F-N233：对照方案统一为「同月供、不提前还款」的精确摊还方案。
   // 旧实现拿「应还月供 × 合同期数」当基准、却用填写的月供算新模式，两者月供不同
@@ -366,8 +372,16 @@ function calc() {
   // 本次提前偿还的 prepay 本金也是支出，必须从节省额中扣除
   const outlayShort = prepay + totalShort;
   const outlayReduce = prepay + totalReduce;
-  const saveInterest1 = (base.total - outlayShort).toFixed(fixed);
-  const saveInterest2 = (base.total - outlayReduce).toFixed(fixed);
+  // F-N92：节省额按正负着色，负节省不得用绿色当「收益」展示，并追加口径说明。
+  const __saveNum1 = base.total - outlayShort;
+  const __saveNum2 = base.total - outlayReduce;
+  const saveInterest1 = __saveNum1.toFixed(fixed);
+  const saveInterest2 = __saveNum2.toFixed(fixed);
+  const __saveColor1 = __saveNum1 >= -0.005 ? 'var(--success)' : 'var(--danger)';
+  const __saveColor2 = __saveNum2 >= -0.005 ? 'var(--success)' : 'var(--danger)';
+  const __negSaveNote = (__saveNum1 < -0.005 || __saveNum2 < -0.005)
+    ? '<p style="font-size:13px;color:var(--danger);">' + __mpTx('⚠ 相较对照方案，本次提前还款后的总支出更高（出现负节省）；请核对月供与提前还款金额，不要据此判断提前还款更划算。', '⚠ The total outlay after this prepayment is higher than the baseline (negative savings). Check the payment and prepayment amount before treating prepayment as beneficial.') + '</p>'
+    : '';
   const interestBefore = (base.total - p).toFixed(fixed);
   const interestShort = (outlayShort - p).toFixed(fixed);
   const interestReduce = (outlayReduce - p).toFixed(fixed);
@@ -383,7 +397,7 @@ function calc() {
              'Better: ' + (better === 'short' ? 'shorten the term' : 'lower the monthly payment') + ', saving ' + Math.abs(rawGap).toFixed(fixed) + ' CNY more; ' +
              (better === 'short' ? 'your monthly payment stays at ' + mp.toFixed(fixed) + ' CNY.' : 'the payoff date is not earlier (' + keepMonths + ' months).'));
 
-  const __g3=precisionWarn + mpWarn + '<p>' + __mpTx('对照方案（不提前还款，月供不变）', 'Baseline (no prepayment, same monthly payment)') + '：' + __mpTx('月供', 'monthly') + ' <strong>' + mp.toFixed(fixed) + '</strong> ' + __mpTx('元 × ', ' CNY × ') + '<strong>' + keepMonths + '</strong> ' + __mpTx('期，总还款 ', ' periods, total ') + '<strong>' + base.total.toFixed(fixed) + '</strong> ' + __mpTx('元（总利息 ', ' CNY (interest ') + '<strong>' + interestBefore + '</strong> ' + __mpTx('元）', ' CNY)') + '</p>' +
+  const __g3=precisionWarn + mpWarn + '<p>' + __mpTx('对照方案（不提前还款，月供不变）', 'Baseline (no prepayment, same monthly payment)') + __mpTx('：', ': ') + __mpTx('月供', 'monthly') + ' <strong>' + mp.toFixed(fixed) + '</strong> ' + __mpTx('元 × ', ' CNY × ') + '<strong>' + keepMonths + '</strong> ' + __mpTx('期，总还款 ', ' periods, total ') + '<strong>' + base.total.toFixed(fixed) + '</strong> ' + __mpTx('元（总利息 ', ' CNY (interest ') + '<strong>' + interestBefore + '</strong> ' + __mpTx('元）', ' CNY)') + '</p>' +
     '<p style="font-size:13px;color:var(--text-muted);margin:6px 0;">' + __mpTx('合同参考：按本金 / 利率 / 合同剩余 ' + months + ' 期反推的应还月供 ' + requiredMp.toFixed(fixed) + ' 元，合同总还款 ' + totalBefore.toFixed(fixed) + ' 元；下方两方案以实际填写的月供为对照。', 'Contract reference: a ' + months + '-month schedule implies a payment of ' + requiredMp.toFixed(fixed) + ' CNY and total repayment of ' + totalBefore.toFixed(fixed) + ' CNY; the comparison below uses the monthly payment you entered.') + '</p>' +
     '<table class="result-table" style="width:100%;border-collapse:collapse;margin-top:8px;font-size:13px;">' +
     '<thead><tr><th>' + __mpTx('对比项', 'Item') + '</th><th>① ' + __mpTx('缩短期限（月供不变）', 'Shorten term (payment unchanged)') + '</th><th>② ' + __mpTx('降低月供（期限不变）', 'Lower payment (term unchanged)') + '</th></tr></thead><tbody>' +
@@ -394,9 +408,9 @@ function calc() {
     '<tr><td>' + __mpTx('提前还款后累计还款（元）', 'Sum of remaining payments (CNY)') + '</td><td>' + totalShort.toFixed(fixed) + '</td><td>' + totalReduce.toFixed(fixed) + '</td></tr>' +
     '<tr><td>' + __mpTx('含本次提前还款的总支出（元）', 'Total outlay incl. this prepayment (CNY)') + '</td><td><strong>' + outlayShort.toFixed(fixed) + '</strong></td><td><strong>' + outlayReduce.toFixed(fixed) + '</strong></td></tr>' +
     '<tr><td>' + __mpTx('总利息（元）', 'Total interest (CNY)') + '</td><td>' + interestShort + '</td><td>' + interestReduce + '</td></tr>' +
-    '<tr><td>' + __mpTx('较对照方案节省（元）', 'Saved vs. baseline (CNY)') + '</td><td style="color:var(--success);"><strong>' + saveInterest1 + '</strong></td><td style="color:var(--success);"><strong>' + saveInterest2 + '</strong></td></tr>' +
+    '<tr><td>' + __mpTx('较对照方案节省（元）', 'Saved vs. baseline (CNY)') + '</td><td style="color:' + __saveColor1 + ';"><strong>' + saveInterest1 + '</strong></td><td style="color:' + __saveColor2 + ';"><strong>' + saveInterest2 + '</strong></td></tr>' +
     '</tbody></table>' +
-    '<p style="margin-top:8px;">' + __mpConcl + '</p>';document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+    '<p style="margin-top:8px;">' + __mpConcl + '</p>' + __negSaveNote;document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 }
 
 function copyResult() {

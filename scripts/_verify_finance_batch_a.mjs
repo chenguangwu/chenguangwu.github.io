@@ -109,6 +109,19 @@ function enDom(html, rel) {
         preset: { bar: noop }, matrix: { table: noop }, chart: { line: noop },
         copyText: noop, downloadText: noop, showToast: noop,
       };
+      // 复核判据：JSDOM 不实现 canvas getContext，页面 calc() 在渲染图表时会抛
+      // `Cannot read properties of null (reading 'clearRect')`，被 withInputs 的 try/catch
+      // 吞掉后 resultBox 恒空 ⇒ EN 态气球超期提示断言假失败。补保真桩（与 batch_b 同口径）。
+      w.HTMLCanvasElement.prototype.getContext = () => new Proxy({}, {
+        get: (_, k) => k === 'createLinearGradient' ? () => ({ addColorStop() {} }) : () => {},
+      });
+      w.resolveCanvasColor = () => '#333';
+      kit.formatNumber = (v, d) => {
+        const n = Number(v), k = typeof d === 'number' ? d : 2;
+        return isFinite(n) ? n.toLocaleString('en-US', { minimumFractionDigits: k, maximumFractionDigits: k }) : String(v);
+      };
+      kit.createTable = () => '';
+      kit.toggleToolTheme = noop;
       w.TBKit = kit;
       w.ToolBox = kit;
     },

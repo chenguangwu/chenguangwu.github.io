@@ -24,6 +24,41 @@ const { runCase } = require("./verify_it_calc.js");
 // ---------------------------------------------------------------- 用例
 const CASES = [
   {
+    slug: "finance/mortgage-prepayment",
+    inputs: { principal: "500000", rate: "4.5", months: "240", monthly: "4000", prepay: "0" },
+    clicks: ["calc();var t=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='MPHIGH '+(t.indexOf('提示：填写的月供高于合同应还月供')>=0&&t.indexOf('3163.25')>=0?'OK':'BAD');"],
+    expect: ["MPHIGH OK"],
+    ref: "第125批 F-N91 高月供提示：旧版 mpWarn 只在 mp 低于应还月供时告警，用户把月供填高时看不出对照口径已变。修复后补带应还月供 3163.25 的中性提示，并明确对照方案按填写月供计算、节省只归因于本次提前还款。注入 monthly=4000（应还 3163.25）命中；默认态不出现该提示 ⇒ 强判别、零逃生。"
+  },
+  {
+    slug: "finance/mortgage-prepayment",
+    inputs: { principal: "500000", rate: "4.5", months: "240", monthly: "4000", prepay: "0" },
+    clicks: ["TBKit={util:{isEn:function(){return true;}}};calc();var t=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='MPENCJK '+(t.indexOf('Baseline')>=0&&t.indexOf('：')<0?'OK':'BAD');"],
+    expect: ["MPENCJK OK"],
+    ref: "第125批 EN 态零 CJK 泄漏：结果区基线行把全角冒号「：」硬编码在 __mpTx 之外，EN 态输出「Baseline …：monthly」泄漏 CJK；低月供告警同样是纯中文。修复后冒号走 __mpTx('：', ': ')、告警双语化。探针注入 TBKit.util.isEn=true 后检查 EN 态结果区出现 Baseline 且无全角冒号；中文默认态不含 Baseline ⇒ BAD ⇒ 强判别、零逃生。"
+  },
+  {
+    slug: "finance/mortgage-prepayment",
+    inputs: { principal: "500000", rate: "4.5", months: "240", monthly: "3000", prepay: "20000" },
+    clicks: ["var __oa=amortizeExact;amortizeExact=function(){return {months:10,total:1,interest:0};};calc();var t=String(document.getElementById('result').innerHTML);amortizeExact=__oa;document.getElementById('__tbProbe').textContent='MPNEG '+(t.indexOf('var(--danger)')>=0&&t.indexOf('出现负节省')>=0?'OK':'BAD');"],
+    expect: ["MPNEG OK"],
+    ref: "第125批 F-N92 负节省不得标绿：旧版节省行恒 var(--success)，负节省会当收益展示且无说明。修复后按 __saveNum 正负切换 var(--danger) 并追加「出现负节省」提示。真实输入下节省恒非负，故探针临时把 amortizeExact 替成极小 total 构造负节省边界（属合法边界构造，不改页面实现）；默认态无 danger/负节省文案 ⇒ BAD ⇒ 强判别、零逃生。"
+  },
+  {
+    slug: "finance/mortgage-prepayment",
+    inputs: { principal: "500000", rate: "0", months: "240", monthly: "3000", prepay: "0" },
+    clicks: ["calc();var t=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='MPZERO '+(t.indexOf('总利息 <strong>0.00</strong> 元')>=0&&t.indexOf('220,000')<0&&t.indexOf('较对照方案节省（元）')>=0?'OK':'BAD');"],
+    expect: ["MPZERO OK"],
+    ref: "第125批 F-N91/F-N93 0% 利率防回退：清单复现 50 万 / 0% / 240 期 / 月供 3000 / 提前还款 0，旧版输出「原方案总利息 220,000.00」并凭空产生等额节省；修复后基线为逐期精确摊还，总利息 0.00、两方案节省 0.00、期数整数 167。探针读 innerHTML（harness stub 的 innerHTML 不派生 textContent）；默认 4.5% 态总利息非 0 ⇒ BAD ⇒ 强判别、零逃生。"
+  },
+  {
+    slug: "finance/mortgage-prepayment",
+    inputs: { principal: "500000", rate: "0", months: "240", monthly: "3000", prepay: "0" },
+    clicks: ["var n=remainingMonths(500000,0,3000);document.getElementById('__tbProbe').textContent='MPRM0 '+(n===167?'OK':'BAD');"],
+    expect: ["MPRM0 OK"],
+    ref: "第125批 F-N93 0 利率期数取整：清单要求 0 利率分支返回整数期（500000/3000 ⇒ 167 期，末期不足额），旧版 return p/pmt 得 166.666…。本函数现已不参与结论区（结论统一走 amortizeExact 整数摊还），但仍按清单口径把死代码收口为 Math.ceil。探针直接调用该函数断言 167；旧源码返回小数 ⇒ BAD ⇒ 强判别、零逃生。"
+  },
+  {
     slug: "finance/salary-calculator",
     inputs: { salary: "20000" },
     clicks: ["currentMode='monthly';var d=document.getElementById.bind(document);d('salary').value='20000';d('baseSalary').value='0';d('housingBase').value='0';d('monthsPerYear').value='12';d('threshold').value='5000';calculate();var ti=d('totalInsurance').textContent,pa=d('pensionAmount').textContent;d('__tbProbe').textContent='SALZERO '+(String(ti).indexOf('¥0.00')===0&&String(pa).indexOf('¥0.00')===0?'OK':'BAD');"],
