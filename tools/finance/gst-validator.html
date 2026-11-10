@@ -353,7 +353,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __gst_validator_last=0,__gst_validator_skip=false;
+var __gst_validator_last=0,__gst_validator_skip=false,__gst_validator_timer=null;
 function __gst_validatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -362,7 +362,7 @@ function __gst_validatorSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -406,7 +406,7 @@ function __gst_validatorRender(keys,rk,en){
         TBKit.matrix.table('#gst_validatorTable',{head:head,rows:rows});
         TBKit.util.diffBox('#gst_validatorDiff');
         TBKit.history.mount('#gst_validatorHist',function(rec){
-            __gst_validator_skip=true;
+            __gst_validator_skip=true;clearTimeout(__gst_validator_timer);__gst_validator_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -430,9 +430,11 @@ function __gst_validatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __gst_validatorExtras(){
+function __gst_validatorExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__gst_validator_skip) return;
+    clearTimeout(__gst_validator_timer);
+    __gst_validator_timer=null;
     var snap=__gst_validatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -442,7 +444,10 @@ function __gst_validatorExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__gst_validator_last<1000) return;
+    if(!force && now-__gst_validator_last<1000){
+        __gst_validator_timer=setTimeout(function(){__gst_validatorExtras(true);},1000-(now-__gst_validator_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -462,6 +467,7 @@ function __gst_validatorExtras(){
 }
 function __gst_validatorExport(){
     if (typeof TBKit === 'undefined') return;
+    __gst_validatorExtras(true);
     try{
         var box=document.querySelector('#gst_validatorTable');
         if(!box||!box.querySelector('tr')){

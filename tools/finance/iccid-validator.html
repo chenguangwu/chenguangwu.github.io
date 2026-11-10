@@ -352,7 +352,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __iccid_validator_last=0,__iccid_validator_skip=false;
+var __iccid_validator_last=0,__iccid_validator_skip=false,__iccid_validator_timer=null;
 function __iccid_validatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -361,7 +361,7 @@ function __iccid_validatorSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -381,6 +381,10 @@ function __iccid_validatorFullResText(){
     return t;
 }
 function __iccid_validatorScore(t){
+    // 复核判据：按本页真实校验状态判定，不能靠「警告词」猜结论
+    var raw=document.getElementById('input').value.trim();
+    var d=raw.replace(/\D/g,'');
+    if(/[^0-9\s-]/.test(raw)||d.length<19||d.length>20||!luhnCheck(d)) return 0;
     var s=String(t||'');
     if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
@@ -405,7 +409,7 @@ function __iccid_validatorRender(keys,rk,en){
         TBKit.matrix.table('#iccid_validatorTable',{head:head,rows:rows});
         TBKit.util.diffBox('#iccid_validatorDiff');
         TBKit.history.mount('#iccid_validatorHist',function(rec){
-            __iccid_validator_skip=true;
+            __iccid_validator_skip=true;clearTimeout(__iccid_validator_timer);__iccid_validator_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -429,9 +433,11 @@ function __iccid_validatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __iccid_validatorExtras(){
+function __iccid_validatorExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__iccid_validator_skip) return;
+    clearTimeout(__iccid_validator_timer);
+    __iccid_validator_timer=null;
     var snap=__iccid_validatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -441,7 +447,10 @@ function __iccid_validatorExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__iccid_validator_last<1000) return;
+    if(!force && now-__iccid_validator_last<1000){
+        __iccid_validator_timer=setTimeout(function(){__iccid_validatorExtras(true);},1000-(now-__iccid_validator_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -461,6 +470,7 @@ function __iccid_validatorExtras(){
 }
 function __iccid_validatorExport(){
     if (typeof TBKit === 'undefined') return;
+    __iccid_validatorExtras(true);
     try{
         var box=document.querySelector('#iccid_validatorTable');
         if(!box||!box.querySelector('tr')){

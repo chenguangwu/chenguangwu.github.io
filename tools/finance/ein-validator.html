@@ -302,7 +302,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __ein_validator_last=0,__ein_validator_skip=false;
+var __ein_validator_last=0,__ein_validator_skip=false,__ein_validator_timer=null;
 function __ein_validatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -311,7 +311,7 @@ function __ein_validatorSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -323,9 +323,20 @@ function __ein_validatorResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __ein_validatorFullResText(){
+    var r=document.getElementById('output');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __ein_validatorScore(t){
+    // 复核判据：EIN 必须 9 位纯数字，长度不符即未通过
+    var raw=document.getElementById('input').value.trim();
+    var d=raw.replace(/[\s-]/g,'');
+    if(!/^\d{9}$/.test(d)) return 0;
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __ein_validatorTime(t){
@@ -348,7 +359,7 @@ function __ein_validatorRender(keys,rk,en){
         TBKit.matrix.table('#ein_validatorTable',{head:head,rows:rows});
         TBKit.util.diffBox('#ein_validatorDiff');
         TBKit.history.mount('#ein_validatorHist',function(rec){
-            __ein_validator_skip=true;
+            __ein_validator_skip=true;clearTimeout(__ein_validator_timer);__ein_validator_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -372,9 +383,11 @@ function __ein_validatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __ein_validatorExtras(){
+function __ein_validatorExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__ein_validator_skip) return;
+    clearTimeout(__ein_validator_timer);
+    __ein_validator_timer=null;
     var snap=__ein_validatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -384,7 +397,10 @@ function __ein_validatorExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__ein_validator_last<1000) return;
+    if(!force && now-__ein_validator_last<1000){
+        __ein_validator_timer=setTimeout(function(){__ein_validatorExtras(true);},1000-(now-__ein_validator_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -398,12 +414,13 @@ function __ein_validatorExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__ein_validatorScore(res);
+    rec.__tbScore=__ein_validatorScore(__ein_validatorFullResText());
     TBKit.history.record(rec);
     __ein_validatorRender(keys,rk,en);
 }
 function __ein_validatorExport(){
     if (typeof TBKit === 'undefined') return;
+    __ein_validatorExtras(true);
     try{
         var box=document.querySelector('#ein_validatorTable');
         if(!box||!box.querySelector('tr')){

@@ -325,7 +325,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __esn_validator_last=0,__esn_validator_skip=false;
+var __esn_validator_last=0,__esn_validator_skip=false,__esn_validator_timer=null;
 function __esn_validatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -334,7 +334,7 @@ function __esn_validatorSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -346,9 +346,16 @@ function __esn_validatorResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __esn_validatorFullResText(){
+    var r=document.getElementById('output');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __esn_validatorScore(t){
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __esn_validatorTime(t){
@@ -371,7 +378,7 @@ function __esn_validatorRender(keys,rk,en){
         TBKit.matrix.table('#esn_validatorTable',{head:head,rows:rows});
         TBKit.util.diffBox('#esn_validatorDiff');
         TBKit.history.mount('#esn_validatorHist',function(rec){
-            __esn_validator_skip=true;
+            __esn_validator_skip=true;clearTimeout(__esn_validator_timer);__esn_validator_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -395,9 +402,11 @@ function __esn_validatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __esn_validatorExtras(){
+function __esn_validatorExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__esn_validator_skip) return;
+    clearTimeout(__esn_validator_timer);
+    __esn_validator_timer=null;
     var snap=__esn_validatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -407,7 +416,10 @@ function __esn_validatorExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__esn_validator_last<1000) return;
+    if(!force && now-__esn_validator_last<1000){
+        __esn_validator_timer=setTimeout(function(){__esn_validatorExtras(true);},1000-(now-__esn_validator_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -421,12 +433,13 @@ function __esn_validatorExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__esn_validatorScore(res);
+    rec.__tbScore=__esn_validatorScore(__esn_validatorFullResText());
     TBKit.history.record(rec);
     __esn_validatorRender(keys,rk,en);
 }
 function __esn_validatorExport(){
     if (typeof TBKit === 'undefined') return;
+    __esn_validatorExtras(true);
     try{
         var box=document.querySelector('#esn_validatorTable');
         if(!box||!box.querySelector('tr')){

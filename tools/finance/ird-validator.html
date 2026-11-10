@@ -319,7 +319,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __ird_validator_last=0,__ird_validator_skip=false;
+var __ird_validator_last=0,__ird_validator_skip=false,__ird_validator_timer=null;
 function __ird_validatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -328,7 +328,7 @@ function __ird_validatorSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -340,9 +340,20 @@ function __ird_validatorResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __ird_validatorFullResText(){
+    var r=document.getElementById('output');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __ird_validatorScore(t){
+    // 复核判据：8/9 位纯数字且模 11 校验通过才算有效（对齐 Aadhaar 口径）
+    var raw=document.getElementById('input').value.trim();
+    var d=raw.replace(/\D/g,'');
+    if(/[^0-9\s-]/.test(raw)||d.length<8||d.length>9||!irdCheck(d)) return 0;
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __ird_validatorTime(t){
@@ -365,7 +376,7 @@ function __ird_validatorRender(keys,rk,en){
         TBKit.matrix.table('#ird_validatorTable',{head:head,rows:rows});
         TBKit.util.diffBox('#ird_validatorDiff');
         TBKit.history.mount('#ird_validatorHist',function(rec){
-            __ird_validator_skip=true;
+            __ird_validator_skip=true;clearTimeout(__ird_validator_timer);__ird_validator_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -389,9 +400,11 @@ function __ird_validatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __ird_validatorExtras(){
+function __ird_validatorExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__ird_validator_skip) return;
+    clearTimeout(__ird_validator_timer);
+    __ird_validator_timer=null;
     var snap=__ird_validatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -401,7 +414,10 @@ function __ird_validatorExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__ird_validator_last<1000) return;
+    if(!force && now-__ird_validator_last<1000){
+        __ird_validator_timer=setTimeout(function(){__ird_validatorExtras(true);},1000-(now-__ird_validator_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -415,12 +431,13 @@ function __ird_validatorExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__ird_validatorScore(res);
+    rec.__tbScore=__ird_validatorScore(__ird_validatorFullResText());
     TBKit.history.record(rec);
     __ird_validatorRender(keys,rk,en);
 }
 function __ird_validatorExport(){
     if (typeof TBKit === 'undefined') return;
+    __ird_validatorExtras(true);
     try{
         var box=document.querySelector('#ird_validatorTable');
         if(!box||!box.querySelector('tr')){
