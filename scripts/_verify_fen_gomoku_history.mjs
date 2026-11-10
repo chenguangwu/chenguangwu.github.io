@@ -864,4 +864,36 @@ for (const [file, prefix, input, error] of [
   check('恢复空金额并取消待处理计算',monthly.value==='' && w.TBKit.history.list().length===3);
   w.close();
 }
+// CAPM history restores empty required values and the correct rate unit.
+{
+  const downloads=[],trends=[];
+  const dom=new JSDOM(readFileSync('tools/finance/capm-return.html','utf8'),{
+    url:'https://x.test/tools/finance/capm-return.html',runScripts:'dangerously',pretendToBeVisual:true,
+    virtualConsole:new VirtualConsole(),beforeParse(w){
+      w.ToolBox={showToast(){},escHtml:s=>String(s)};w.i18nText=k=>k;
+      w.Blob=class{constructor(parts){this.text=parts.join('');}};
+      w.URL.createObjectURL=blob=>{downloads.push(blob.text);return 'blob:test';};
+      w.URL.revokeObjectURL=()=>{};w.HTMLAnchorElement.prototype.click=function(){};
+      w.eval(readFileSync('js/tool-kit.js','utf8'));
+      const line=w.TBKit.chart.line;
+      w.TBKit.chart.line=(host,config)=>{trends.push(Array.from(config.series[0].data));return line(host,config);};
+    }
+  });
+  const w=dom.window,doc=w.document,rf=doc.getElementById('rf');
+  await new Promise(resolve=>w.addEventListener('load',resolve));
+  const check=(label,ok)=>{console.log(`${ok?'PASS':'FAIL'} capm-return ${label}`);if(!ok)failed=true;};
+  const calculate=value=>{rf.value=value;w.capmCalc();};
+  w.TBKit.history.clear();w.eval('__capm_return_last=0');
+  calculate('0.03');calculate('');doc.querySelector('[onclick="__capm_returnExport()"]')?.click();
+  let records=w.TBKit.history.list();
+  check('快速导出缺填失败',records.length===2 && records[1].d.__tbScore===1 && records[0].d.rf==='' && records[0].d.__tbScore===0 && downloads[0]?.includes('未通过'));
+  check('趋势保留成功与失败',trends.some(t=>t.join(',')==='1,0'));
+  calculate('0.04');await new Promise(resolve=>setTimeout(resolve,1100));
+  records=w.TBKit.history.list();
+  check('节流后记录最终计算',records.length===3 && records[0].d.rf==='0.04' && records[0].d.__tbScore===1);
+  calculate('0.05');doc.querySelectorAll('#capm_returnHist .tbk-history-item')[1]?.click();
+  await new Promise(resolve=>setTimeout(resolve,1100));
+  check('恢复缺填并取消待处理计算',rf.value==='' && w.TBKit.history.list().length===3);
+  w.close();
+}
 process.exit(failed ? 1 : 0);

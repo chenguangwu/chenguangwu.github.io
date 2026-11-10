@@ -397,7 +397,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __capm_return_last=0,__capm_return_skip=false;
+var __capm_return_last=0,__capm_return_skip=false,__capm_return_timer=null;
 function __capm_returnSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -406,7 +406,7 @@ function __capm_returnSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -444,6 +444,8 @@ function __capm_returnRender(keys,rk,en){
         TBKit.util.diffBox('#capm_returnDiff');
         TBKit.history.mount('#capm_returnHist',function(rec){
             __capm_return_skip=true;
+            clearTimeout(__capm_return_timer);
+            __capm_return_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -469,9 +471,11 @@ function __capm_returnRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __capm_returnExtras(){
+function __capm_returnExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__capm_return_skip) return;
+    clearTimeout(__capm_return_timer);
+    __capm_return_timer=null;
     var snap=__capm_returnSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -481,7 +485,10 @@ function __capm_returnExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__capm_return_last<1000) return;
+    if(!force && now-__capm_return_last<1000){
+        __capm_return_timer=setTimeout(function(){__capm_returnExtras(true);},1000-(now-__capm_return_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -501,6 +508,7 @@ function __capm_returnExtras(){
 }
 function __capm_returnExport(){
     if (typeof TBKit === 'undefined') return;
+    __capm_returnExtras(true);
     try{
         var box=document.querySelector('#capm_returnTable');
         if(!box||!box.querySelector('tr')){
