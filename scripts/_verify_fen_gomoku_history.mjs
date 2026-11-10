@@ -533,4 +533,33 @@ for (const [file, prefix, input, error] of [
   check('逾期次数非整数记为失败',w.TBKit.history.list()[0]?.d.__tbScore===0 && /非负整数/.test(doc.getElementById('res').textContent));
   w.close();
 }
+// Investment variance must restore and track the batch as well as the main calculation.
+{
+  const downloads=[];
+  const dom=new JSDOM(readFileSync('tools/finance/analysis-44.html','utf8'),{
+    url:'https://x.test/tools/finance/analysis-44.html',runScripts:'dangerously',pretendToBeVisual:true,
+    virtualConsole:new VirtualConsole(),beforeParse(w){
+      w.ToolBox={showToast(){},escHtml:s=>String(s)};w.i18nText=k=>k;
+      w.Blob=class{constructor(parts){this.text=parts.join('');}};
+      w.URL.createObjectURL=blob=>{downloads.push(blob.text);return 'blob:test';};
+      w.URL.revokeObjectURL=()=>{};w.HTMLAnchorElement.prototype.click=function(){};
+      w.eval(readFileSync('js/tool-kit.js','utf8'));
+    }
+  });
+  const w=dom.window,doc=w.document,plan=doc.getElementById('plan'),items=doc.getElementById('items');
+  await new Promise(resolve=>w.addEventListener('load',resolve));
+  const change=(el,value)=>{el.value=value;el.dispatchEvent(new w.Event('input',{bubbles:true}));};
+  const check=(label,ok)=>{console.log(`${ok?'PASS':'FAIL'} analysis-44 ${label}`);if(!ok)failed=true;};
+  w.TBKit.history.clear();w.eval('__analysis_44_last=0');
+  change(plan,'100');change(plan,'0');doc.querySelector('[onclick="__analysis_44Export()"]')?.click();
+  check('快速导出包含无效计划',w.TBKit.history.list().length===2 && w.TBKit.history.list()[0].d.__tbScore===0 && downloads[0]?.includes('未通过'));
+  change(plan,'100');change(items,'测试项目,100,105');await new Promise(resolve=>setTimeout(resolve,1100));
+  check('批量输入的最新内容写入历史',w.TBKit.history.list()[0]?.d.items==='测试项目,100,105');
+  change(items,'其他项目,100,120');doc.querySelector('#analysis_44Hist .tbk-history-item')?.click();
+  await new Promise(resolve=>setTimeout(resolve,1100));
+  check('恢复历史同步批量结果并取消待处理输入',items.value==='测试项目,100,105' && doc.getElementById('batchRes').textContent.includes('测试项目') && !doc.getElementById('batchRes').textContent.includes('其他项目'));
+  change(items,'<img src=x onerror=alert(1)>,100,105');
+  check('项目名称作为文本而非 HTML 展示',!doc.getElementById('batchRes').querySelector('img'));
+  w.close();
+}
 process.exit(failed ? 1 : 0);

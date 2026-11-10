@@ -203,7 +203,7 @@ s.parentNode.insertBefore(el, s);
 function analyze(plan,actual){var dv=actual-plan;var rate=plan>0?((dv/plan)*100):NaN;var cpi=(actual>0&&plan>0)?(plan/actual):NaN;var lvl,tip;if(!isFinite(rate)){lvl="—";tip="计划投资需大于 0";}else if(rate>10){lvl="严重超支";tip="触发专项纠偏：重新评估范围与现金流，必要时调整投资计划";}else if(rate>5){lvl="轻度超支";tip="复核明细并收紧后续预算";}else if(rate<-5){lvl="明显节约";tip="核实是否有未完成项，避免成本转移至后期";}else{lvl="正常波动";tip="偏差在 ±5% 内，按计划推进";}return {dv:dv,rate:rate,cpi:cpi,lvl:lvl,tip:tip};}
 function fmt(v,d){return (v===null||!isFinite(v))?"—":v.toFixed(d==null?2:d);}
 function calc(){var plan=parseFloat(document.getElementById("plan").value),actual=parseFloat(document.getElementById("actual").value);var el=document.getElementById("res");if(!isFinite(plan)||!isFinite(actual)||plan<=0){el.innerHTML='<p>请输入有效的计划（&gt;0）与实际投资</p>';return;}var r=analyze(plan,actual);var color=r.rate>5?"var(--danger)":(r.rate<-5?"#16a34a":"var(--text)");const __g2='<p>偏差额：<strong style="color:'+color+';">'+fmt(r.dv)+' 元</strong></p><p>偏差率：<strong style="color:'+color+';">'+fmt(r.rate)+'%</strong></p><p>成本绩效指数 CPI：<strong>'+fmt(r.cpi,4)+'</strong></p><p>判定：<strong>'+r.lvl+'</strong>　建议：'+r.tip+'</p>';el.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));}
-function calcBatch(){var lines=document.getElementById("items").value.split(/\n+/).map(function(s){return s.trim();}).filter(Boolean);var rows="";var skipped=0;lines.forEach(function(ln){var p=ln.split(/[,\t]+/);var name=(p[0]||"").trim();var pl=parseFloat(p[1]),ac=parseFloat(p[2]);if(!name||!isFinite(pl)||!isFinite(ac)||pl<=0){skipped++;return;}var r=analyze(pl,ac);var color=r.rate>5?"var(--danger)":(r.rate<-5?"#16a34a":"var(--text)");rows+='<tr><td>'+name+'</td><td>'+fmt(pl)+'</td><td>'+fmt(ac)+'</td><td style="color:'+color+';">'+fmt(r.dv)+'</td><td style="color:'+color+';">'+fmt(r.rate)+'%</td><td>'+r.lvl+'</td></tr>';});var el=document.getElementById("batchRes");const __g3=(rows?('<table class="ref-table"><thead><tr><th>项目</th><th>计划</th><th>实际</th><th>偏差额</th><th>偏差率</th><th>判定</th></tr></thead><tbody>'+rows+'</tbody></table>'):'<p>请输入每行「项目,计划,实际」</p>')+(skipped?('<p style="color:var(--danger);">已跳过 '+skipped+' 行：计划投资需大于 0 或数据无效</p>'):'');el.innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));}
+function calcBatch(){var lines=document.getElementById("items").value.split(/\n+/).map(function(s){return s.trim();}).filter(Boolean);var rows="";var skipped=0;lines.forEach(function(ln){var p=ln.split(/[,\t]+/);var name=(p[0]||"").trim();var pl=parseFloat(p[1]),ac=parseFloat(p[2]);if(!name||!isFinite(pl)||!isFinite(ac)||pl<=0){skipped++;return;}var r=analyze(pl,ac);var color=r.rate>5?"var(--danger)":(r.rate<-5?"#16a34a":"var(--text)");rows+='<tr><td>'+name.replace(/[&<>"']/g,function(ch){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];})+'</td><td>'+fmt(pl)+'</td><td>'+fmt(ac)+'</td><td style="color:'+color+';">'+fmt(r.dv)+'</td><td style="color:'+color+';">'+fmt(r.rate)+'%</td><td>'+r.lvl+'</td></tr>';});var el=document.getElementById("batchRes");const __g3=(rows?('<table class="ref-table"><thead><tr><th>项目</th><th>计划</th><th>实际</th><th>偏差额</th><th>偏差率</th><th>判定</th></tr></thead><tbody>'+rows+'</tbody></table>'):'<p>请输入每行「项目,计划,实际」</p>')+(skipped?('<p style="color:var(--danger);">已跳过 '+skipped+' 行：计划投资需大于 0 或数据无效</p>'):'');el.innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));}
 function copyRes(){ToolBox.copyText((document.getElementById("res").innerText+"\n"+document.getElementById("batchRes").innerText).trim());}
 calc();calcBatch();
 </script>
@@ -282,7 +282,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __analysis_44_last=0,__analysis_44_skip=false;
+var __analysis_44_last=0,__analysis_44_skip=false,__analysis_44_timer=null;
 function __analysis_44Snap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -291,7 +291,7 @@ function __analysis_44Snap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -329,6 +329,8 @@ function __analysis_44Render(keys,rk,en){
         TBKit.util.diffBox('#analysis_44Diff');
         TBKit.history.mount('#analysis_44Hist',function(rec){
             __analysis_44_skip=true;
+            clearTimeout(__analysis_44_timer);
+            __analysis_44_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -339,6 +341,7 @@ function __analysis_44Render(keys,rk,en){
                     else{e.value=rec[k];}
                 }
                 calc();
+                calcBatch();
             }catch(e2){}
             __analysis_44_skip=false;
         });
@@ -352,9 +355,11 @@ function __analysis_44Render(keys,rk,en){
         }
     }catch(e3){}
 }
-function __analysis_44Extras(){
+function __analysis_44Extras(force){
     if (typeof TBKit === 'undefined') return;
     if (__analysis_44_skip) return;
+    clearTimeout(__analysis_44_timer);
+    __analysis_44_timer=null;
     var snap=__analysis_44Snap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -364,7 +369,10 @@ function __analysis_44Extras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__analysis_44_last<1000) return;
+    if(!force && now-__analysis_44_last<1000){
+        __analysis_44_timer=setTimeout(function(){__analysis_44Extras(true);},1000-(now-__analysis_44_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -384,6 +392,7 @@ function __analysis_44Extras(){
 }
 function __analysis_44Export(){
     if (typeof TBKit === 'undefined') return;
+    __analysis_44Extras(true);
     try{
         var box=document.querySelector('#analysis_44Table');
         if(!box||!box.querySelector('tr')){
@@ -400,12 +409,14 @@ function __analysis_44Presets(){
     TBKit.preset.bar('#analysis_44Presets',[{label:'默认参数',labelEn:'Default',values:{'plan':'1000000', 'actual':'1080000'}},
   {"label":"工程投资超支 8%","labelEn":"Capex overrun 8%","values":{"plan":"1000000","actual":"1080000","items":"主体工程,500000,530000\n设备采购,300000,282000\n安装调试,200000,215000"}},
   {"label":"设备采购节约（负偏差）","labelEn":"Equipment under budget","values":{"plan":"800000","actual":"742000","items":"主机,400000,360000\n辅材,200000,205000\n运输,200000,177000"}},
-  {"label":"营销投放超支 15%","labelEn":"Marketing overrun 15%","values":{"plan":"500000","actual":"575000","items":"信息流,250000,300000\n达人合作,150000,160000\n线下物料,100000,115000"}}],function(){ calc(); });
+  {"label":"营销投放超支 15%","labelEn":"Marketing overrun 15%","values":{"plan":"500000","actual":"575000","items":"信息流,250000,300000\n达人合作,150000,160000\n线下物料,100000,115000"}}],function(){ calc(); calcBatch(); });
 }
 var __analysis_44_f0=(typeof calc==='function')?calc:null;
 if(__analysis_44_f0){
     calc=function(){ var __r=__analysis_44_f0.apply(null,arguments); try{ __analysis_44Extras(); }catch(e){} return __r; };
 }
+var __analysis_44_batch=calcBatch;
+calcBatch=function(){ var result=__analysis_44_batch.apply(null,arguments); try{ __analysis_44Extras(); }catch(e){} return result; };
 function __analysis_44Boot(){ try{ __analysis_44Presets(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __analysis_44Boot();
 else document.addEventListener('DOMContentLoaded', __analysis_44Boot);
