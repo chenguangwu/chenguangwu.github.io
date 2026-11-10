@@ -352,16 +352,17 @@ function jcSafe(name, lang){
 }
 /* 代码里的字符串字面量转义（IT-N384）：原键含引号/反斜杠/控制字符时不能裸拼进
    serde rename / JsonProperty / Go struct tag，否则目标语言直接编译失败。 */
-function jcStr(s){
+function jcStr(s, rust){
   return String(s)
     .replace(/\\/g, '\\\\')
     .replace(/"/g, '\\"')
-    .replace(/\r/g, '\\r')
-    .replace(/\n/g, '\\n')
-    .replace(/\t/g, '\\t');
+    .replace(/[\x00-\x1f]/g, function(ch){
+      var hex = ('000' + ch.charCodeAt(0).toString(16)).slice(-4);
+      return rust ? '\\u{' + hex + '}' : '\\u' + hex;
+    });
 }
 function jcNote(field, key, mark){
-  var safeKey = String(key).replace(/[\r\n]/g, ' ');
+  var safeKey = String(key).replace(/[\x00-\x1f]/g, ' ');
   return field === key ? '' : ' ' + (mark || '//') + ' ' + jcT('原键: ', 'key: ') + safeKey;
 }
 function jcObj(v){ return v !== null && typeof v === 'object' && !Array.isArray(v); }
@@ -621,7 +622,7 @@ function rustBody(obj, typeName){
   var used = {}, lines = ['#[derive(Debug, Serialize, Deserialize)]', 'pub struct ' + typeName + ' {'];
   Object.keys(obj).forEach(function(k){
     var f = jcUniq(jcSafe(jcIdent(k, 'snake'), 'rust'), used);
-    if(f !== k) lines.push('    #[serde(rename = "' + jcStr(k) + '")]');
+    if(f !== k) lines.push('    #[serde(rename = "' + jcStr(k, true) + '")]');
     lines.push('    pub ' + f + ': ' + rustFieldType(obj[k], jcSubName(typeName, k)) + ',');
   });
   lines.push('}');

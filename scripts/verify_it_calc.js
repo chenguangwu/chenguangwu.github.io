@@ -8217,6 +8217,12 @@ const CASES = [
     "ref": "复核失败重做·IT-N384 7/7（含反引号键的 Go tag）：键 `a`b` 会让 backtick 原始字符串字面量提前闭合，必须退回转义过的普通字符串字面量 tag。断言生成代码含 `JSON.stringify(tag)` 形态且不再出现以反引号起始的 `json:` tag。修复前 `GOBT ok=0`；修复后 `GOBT ok=1` ⇒ 强判别。"
   },
   {
+    slug: "it/json-to-code",
+    clicks: ["var k='a'+String.fromCharCode(0,8,12,31)+'b',o={};o[k]=1;var rs=toRust(o,'Root'),cs=toCSharp(o,'Root'),go=toGo(o,'Root'),py=toPython(o,'Root'),bs=String.fromCharCode(92);var r='a'+bs+'u{0000}'+bs+'u{0008}'+bs+'u{000c}'+bs+'u{001f}b',s='a'+bs+'u0000'+bs+'u0008'+bs+'u000c'+bs+'u001fb';document.getElementById('__tbProbe').textContent='CTL rust='+(rs.indexOf(r)>=0?1:0)+' cs='+(cs.indexOf(s)>=0?1:0)+' go='+(go.indexOf(s)>=0?1:0)+' py='+(py.indexOf(String.fromCharCode(0))<0?1:0);"],
+    expect: ["CTL rust=1 cs=1 go=1 py=1"],
+    ref: "JSON 字符串可包含转义后的 NUL 等控制字符；目标代码必须按各语言语法转义，Python 注释不能包含 NUL。"
+  },
+  {
     "slug": "it/json-schema-generator",
     "inputs": {
       "input": "1\n2\n3",
