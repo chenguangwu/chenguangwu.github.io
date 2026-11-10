@@ -77,5 +77,55 @@ let snapshot = null;
   w.close();
 }
 
+// The actual add button and page reload must agree on the 60-period limit.
+{
+  const dom = boot(null), w = dom.window; await ready(w);
+  const button = w.document.querySelector('[onclick="addFlow()"]');
+  for (let i = 0; i < 56; i++) button.click();
+  assert(w.document.querySelectorAll('#cfList input').length === 60, '连续点击不得超过 60 期');
+  const last = w.document.getElementById('cf59');
+  last.value = '77777'; last.dispatchEvent(new w.Event('input', { bubbles: true }));
+  const seed = dumpLS(w); w.close();
+  const reopened = boot(seed); await ready(reopened.window);
+  assert(reopened.window.document.querySelectorAll('#cfList input').length === 60 && reopened.window.document.getElementById('cf59').value === '77777', '60 期金额刷新后保留');
+  reopened.window.close();
+  seed['tb_uxp_tools/audit/npv-discount.html#cfCount'] = '61';
+  const legacy = boot(seed); await ready(legacy.window);
+  assert(legacy.window.document.querySelectorAll('#cfList input').length === 60 && legacy.window.document.getElementById('cf59').value === '77777', '旧 61 期快照截断并保留末期金额');
+  legacy.window.close();
+}
+// Verify the inverse against the same forward formula at the computed integer boundary.
+{
+  const power = fs.readFileSync('tools/it/statistical-power.html', 'utf8');
+  const dom = new JSDOM(power, { runScripts: 'dangerously', url: 'https://example.test/', beforeParse(w) { w.ToolBox = {showToast(){}}; } });
+  const w = dom.window; await ready(w);
+  const d = w.document;
+  for (const [effect, alpha, tail, target] of [[0.0001,0.05,'two',0.001],[0.5,0.05,'two',0.8],[0.2,0.01,'one',0.9],[0.00001,0.05,'two',0.8]]) {
+    for (const [key, value] of Object.entries({d:effect,alpha,tail,solveFor:'size',targetPower:target})) d.getElementById(key).value = value;
+    d.querySelector('[onclick="calculate()"]').click();
+    const match = d.getElementById('output').textContent.match(/所需样本量 = (\d+)（每组）/);
+    const n = match ? Number(match[1]) : NaN;
+    const z = w.normalInv(1 - alpha / (tail === 'two' ? 2 : 1));
+    assert(Number.isSafeInteger(n) && w.__spPowerAt(n,effect,z,tail) >= target && (n === 1 || w.__spPowerAt(n-1,effect,z,tail) < target), `功效反解最小整数 d=${effect} α=${alpha} ${tail} 目标=${target} n=${n}`);
+  }
+  w.close();
+}
+{
+  const bayes = fs.readFileSync('tools/it/bayes-theorem.html', 'utf8');
+  const dom = new JSDOM(bayes, { runScripts: 'dangerously', url: 'https://example.test/' });
+  const w = dom.window; await ready(w);
+  const doc = w.document;
+  doc.getElementById('prior').value = '0';
+  doc.getElementById('likelihood').value = '0.9';
+  doc.getElementById('falsePositive').value = '0.1';
+  doc.querySelector('[onclick="calculate()"]').click();
+  assert(doc.getElementById('output').textContent.includes('P(¬H₁) = 1，先验优势 0/1 = 0'), '先验为零的边界说明正确');
+  doc.getElementById('prior').value = '0.01';
+  doc.getElementById('falsePositive').value = '0';
+  doc.querySelector('[onclick="calculate()"]').click();
+  const card = Array.from(doc.querySelectorAll('#output .stat-card')).find(el => el.textContent.includes('贝叶斯因子 BF'));
+  assert(card && card.querySelector('.v').textContent === '∞', '误报为零时贝叶斯因子卡片显示无穷');
+  w.close();
+}
 if (failures > 0) { console.log(`\n[${head ? 'HEAD' : '当前'}] T-N7 锁 FAIL (${failures})`); process.exit(1); }
 console.log(`\n[${head ? 'HEAD' : '当前'}] T-N7 锁 PASS`);
