@@ -209,8 +209,40 @@ function checkOptionCalculator() {
   dom.window.close();
 }
 
+function checkRetirementCashFlow() {
+  const page = fs.readFileSync(path.join(root, 'tools/finance/retirement-calculator.html'), 'utf8');
+  const main = [...page.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]).find(s => s.includes('function generateYearlyData'));
+  const dom = new JSDOM(page.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ''), { url: 'https://example.test/', runScripts: 'dangerously' });
+  const { document } = dom.window;
+  dom.window.HTMLCanvasElement.prototype.getContext = () => new Proxy({}, { get: () => () => {} });
+  let exports = 0;
+  dom.window.ToolBox = { setResult: (id, msg) => { document.getElementById(id).innerHTML = msg; }, showToast() {}, downloadText() { exports++; } };
+  dom.window.i18nText = () => '';
+  dom.window.eval(main);
+  const set = fields => Object.entries(fields).forEach(([id, value]) => { document.getElementById(id).value = String(value); });
+  for (const [rate, inflation] of [[-10, 0], [0, 0], [6, 3], [2, 5]]) {
+    set({ age: 30, retireAge: 60, lifeAge: 90, currentSavings: 100000, monthlyContribution: 0, returnRate: rate, inflation, monthlyExpense: 1000 });
+    dom.window.calc();
+    const rows = dom.window.yearlyData;
+    const retirement = rows.find(row => row.age === 60);
+    const realRate = (1 + rate / 100) / (1 + inflation / 100) - 1;
+    const expectedAnnual = realRate === 0 ? retirement.realBalance / 30 : retirement.realBalance * realRate / (1 - Math.pow(1 + realRate, -30));
+    const actualAnnual = retirement.withdrawal / Math.pow(1 + inflation / 100, 31);
+    assert.ok(Math.abs(actualAnnual - expectedAnnual) < 1e-7, `年末实际支取与年金公式一致，收益率 ${rate}%`);
+    assert.ok(document.getElementById('resultBox').textContent.includes((expectedAnnual / 12).toFixed(2)), '摘要月均支取与年度明细一致');
+    assert.ok(Math.abs(rows[rows.length - 1].balance) < 1e-6, '退休终值应为零');
+    assert.strictEqual(rows[rows.length - 1].withdrawal, 0, '寿命终点不能再产生支取');
+  }
+  dom.window.exportCSV();
+  assert.strictEqual(exports, 1);
+  set({ retireAge: 100 }); dom.window.calc(); dom.window.exportCSV();
+  assert.strictEqual(exports, 1, '无效年龄不得导出旧数据');
+  assert.strictEqual(dom.window.yearlyData.length, 0);
+  dom.window.close();
+}
+
 let failed = false;
-for (const [name, test] of [['颜色历史', checkColorHistory], ['工序排期', checkSchedule], ['SIN 输入', checkSinValidation], ['邮编输入', checkPostalValidation], ['CURP 输入', () => checkIdValidation('curp', 'CURP_BASE', 'BOXW310820HMNERN16', 'BOXW310820HMNERN160')], ['DNI 输入', () => checkIdValidation('dni', 'DNI_LETTERS', '12345678Z', '12345678A')], ['投资回报历史', checkInvestmentHistory], ['期权盈亏', checkOptionCalculator]]) {
+for (const [name, test] of [['退休现金流', checkRetirementCashFlow], ['颜色历史', checkColorHistory], ['工序排期', checkSchedule], ['SIN 输入', checkSinValidation], ['邮编输入', checkPostalValidation], ['CURP 输入', () => checkIdValidation('curp', 'CURP_BASE', 'BOXW310820HMNERN16', 'BOXW310820HMNERN160')], ['DNI 输入', () => checkIdValidation('dni', 'DNI_LETTERS', '12345678Z', '12345678A')], ['投资回报历史', checkInvestmentHistory], ['期权盈亏', checkOptionCalculator]]) {
   try { test(); console.log('PASS', name); } catch (err) { failed = true; console.error('FAIL', name, err.message); }
 }
 if (failed) process.exitCode = 1;

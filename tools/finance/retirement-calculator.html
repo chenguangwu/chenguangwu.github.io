@@ -153,7 +153,7 @@ s.parentNode.insertBefore(el, s);
         <div class="formula-box">
       <div class="formula-title">📐 计算公式 / 说明</div>
       <div class="formula-eq">所需资金池 ≈ 年支出 / 4%（即约 25 倍年支出）；缺口 = 目标资金池 − 现有资产按收益复利增长后的值</div>
-      <div class="formula-desc">基于 4% 提取法则：退休资金池约为年支出的 25 倍；现有资产按预期收益复利增长并与目标对比，得出缺口与所需年储蓄额，用于养老规划。</div>
+      <div class="formula-desc">基于 4% 提取法则：退休资金池约为年支出的 25 倍。投入按年末计入，退休后按年末等额实际购买力支取；月支取为年支取额除以 12，并非逐月支取模拟。</div>
     </div>
 <div class="input-row">
       <div>
@@ -386,6 +386,11 @@ function fvAnnuity(annualContribution, r, years) {
   return annualContribution * (Math.pow(1 + r, years) - 1) / r;
 }
 
+function annualWithdrawal(fund, realRate, years) {
+  if (realRate === 0) return fund / years;
+  return fund * realRate / -Math.expm1(-years * Math.log1p(realRate));
+}
+
 function calc() {
     var __ig=__tbInputGuard(['age', 'retireAge', 'lifeAge', 'currentSavings', 'monthlyContribution', 'returnRate', 'inflation', 'monthlyExpense'],["当前年龄", "退休年龄", "预期寿命", "当前已有储蓄（元）", "每月投入（元）", "年化收益率（%）", "通胀率（%）", "退休后月支出（现值元）"]);if(__ig){clearYearlyOutput(); const __g1=__ig;ToolBox.setResult("resultBox",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 var age = parseFloat(document.getElementById('age').value) || 0;
@@ -418,14 +423,7 @@ var age = parseFloat(document.getElementById('age').value) || 0;
   var neededFund = annualExpenseRetire / 0.04;
 
   var realRetirementFund = totalRetirementFund / Math.pow(1 + inf, workYears);
-  var monthlyWithdrawal = 0;
-  if (retireYears > 0 && realReturn > 0) {
-    var monthlyRate = realReturn / 12;
-    var months = retireYears * 12;
-    monthlyWithdrawal = realRetirementFund * monthlyRate / (1 - Math.pow(1 + monthlyRate, -months));
-  } else if (retireYears > 0) {
-    monthlyWithdrawal = realRetirementFund / (retireYears * 12);
-  }
+  var monthlyWithdrawal = annualWithdrawal(realRetirementFund, realReturn, retireYears) / 12;
 
   var sufficiency = totalRetirementFund / neededFund * 100;
   var statusText = '';
@@ -480,19 +478,11 @@ function generateYearlyData(age, retireAge, lifeAge, currentSavings, monthlyCont
     var withdrawal = 0;
     var realBalance = balance / Math.pow(1 + inf, yr);
 
-    if (!isWorking) {
+    if (!isWorking && currentAge < lifeAge) {
       var retireYears = lifeAge - retireAge;
-      var yearsInRetirement = yr - (retireAge - age);
       var realReturn = (1 + r) / (1 + inf) - 1;
-      var realRetireFund = currentSavings * Math.pow(1 + r, retireAge - age) / Math.pow(1 + inf, retireAge - age) + fvAnnuity(annualContribution, r, retireAge - age) / Math.pow(1 + inf, retireAge - age);
-      if (realReturn > 0) {
-        var monthlyRate = realReturn / 12;
-        var months = retireYears * 12;
-        var monthlyRealWithdrawal = realRetireFund * monthlyRate / (1 - Math.pow(1 + monthlyRate, -months));
-        withdrawal = monthlyRealWithdrawal * 12 * Math.pow(1 + inf, yr);
-      } else {
-        withdrawal = realRetireFund / retireYears * Math.pow(1 + inf, yr);
-      }
+      var realRetireFund = (currentSavings * Math.pow(1 + r, retireAge - age) + fvAnnuity(annualContribution, r, retireAge - age)) / Math.pow(1 + inf, retireAge - age);
+      withdrawal = annualWithdrawal(realRetireFund, realReturn, retireYears) * Math.pow(1 + inf, yr + 1);
     }
 
     yearlyData.push({
@@ -507,7 +497,6 @@ function generateYearlyData(age, retireAge, lifeAge, currentSavings, monthlyCont
 
     var yearEndReturn = balance * r;
     balance = balance + yearEndReturn + contribution - withdrawal;
-    if (balance < 0) balance = 0;
   }
 }
 
@@ -629,14 +618,7 @@ function renderSensitivity(age, retireAge, lifeAge, currentSavings, monthlyContr
     var total = fvCurrent + fvContrib;
     var realTotal = total / Math.pow(1 + inf, workYears);
     var realReturn = (1 + r) / (1 + inf) - 1;
-    var monthlyWd = 0;
-    if (realReturn > 0) {
-      var mr = realReturn / 12;
-      var m = retireYears * 12;
-      monthlyWd = realTotal * mr / (1 - Math.pow(1 + mr, -m));
-    } else {
-      monthlyWd = realTotal / (retireYears * 12);
-    }
+    var monthlyWd = annualWithdrawal(realTotal, realReturn, retireYears) / 12;
     var suff = total / neededFund * 100;
     var status = suff >= 100 ? '<span style="color:var(--success);">充足</span>' : suff >= 70 ? '<span style="color:#ff9800;">接近</span>' : '<span style="color:var(--danger);">不足</span>';
 
