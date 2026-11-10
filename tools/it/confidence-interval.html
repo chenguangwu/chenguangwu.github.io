@@ -155,13 +155,13 @@ s.parentNode.insertBefore(el, s);
 <h2 data-zh="📊 置信区间计算">📊 Confidence Interval</h2>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">置信区间 CI = x̄ ± 临界值 × s÷√n；n &lt;30（或手动选 t 分布）时用 t 临界值（自由度 n−1），否则用 z 临界值；df &gt;120 时 t 值按 z 近似，其余按 t 表最近自由度线性内插。校验：样本量 n 必须是 ≥1 的整数且标准差 s &gt;0；t 分布自由度 df=n−1 需 ≥1，故 auto/t 模式下 n 至少为 2，否则拒绝并提示。判据：CI 随置信水平提高而加宽、随样本量增大而收窄。</div>
+      <div class="formula-eq">置信区间 CI = x̄ ± 临界值 × 标准差÷√n；t 分布使用样本标准差 s（自由度 n−1），z 分布在总体标准差 σ 已知时使用 σ，或在大样本时用 s 近似。自动模式在 n &lt;30 时用 t，否则用 z 近似；df &gt;120 时 t 值按 z 近似，其余按 t 表最近自由度线性内插。样本量 n 必须是 ≥1 的整数且标准差 &gt;0；t 分布要求 n ≥2。n = 1 时只能输入已知的总体标准差并手动选择 z。</div>
     </div>
 <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="基于正态分布(z)或 t 分布计算均值的置信区间">Confidence Interval</p>
 
 <div class="input-row">
  <div><label>样本均值 x̄</label><input type="number" id="mean" value="50" step="0.1" oninput="calc()" placeholder="如 50"></div>
- <div><label>样本标准差 s</label><input type="number" id="std" value="8" min="0" step="0.1" oninput="calc()" placeholder="如 8"></div>
+ <div><label>标准差（样本 s 或已知总体 σ）</label><input type="number" id="std" value="8" min="0" step="0.1" oninput="calc()" placeholder="如 8"></div>
  <div><label>样本量 n</label><input type="number" id="n" value="30" min="1" step="1" oninput="calc()" placeholder="如 30"></div>
 </div>
 
@@ -194,14 +194,14 @@ s.parentNode.insertBefore(el, s);
 </div> <div id="confidence_intervalTable"></div> <div id="confidence_intervalDiff"></div> <div id="confidence_intervalChart"></div> <div id="confidence_intervalHist"></div>
 
 <div class="formula">
- 公式: <strong>CI = x̄ ± z<sub>α/2</sub> × (s / √n)</strong> (z 分布)<br>
+ 公式: <strong>CI = x̄ ± z<sub>α/2</sub> × (σ / √n)</strong> (z 分布；大样本时可用 s 近似 σ)<br>
  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>CI = x̄ ± t<sub>α/2,n-1</sub> × (s / √n)</strong> (t 分布)
  <div id="calc-detail" style="margin-top:8px;"></div>
 </div>
 
 <div class="info-box" style="margin-top:12px;">
- 💡 当总体标准差 σ 已知或样本量 n≥30 时,使用 z 分布;<br>
- 当 σ 未知且 n<30 时,使用 t 分布(自由度 df=n-1)。<br>
+ 💡 总体标准差 σ 已知时可输入 σ 并选 z；σ 未知时输入样本标准差 s，使用 t 分布（自由度 df=n-1）。<br>
+ 自动模式在 n≥30 时用 z 近似；小样本 t 区间假设总体近似正态。<br>
  置信水平越高,区间越宽。
 </div>
 
@@ -336,6 +336,9 @@ const T_TABLE = {
  60: {0.10:1.296, 0.05:1.671, 0.025:2.000, 0.01:2.390, 0.005:2.660},
  120: {0.10:1.289, 0.05:1.658, 0.025:1.980, 0.01:2.358, 0.005:2.617}
 };
+// 99.9% 双侧区间：单侧 α=0.0005，与表中自由度一一对应。
+const T_999 = [636.619,31.599,12.924,8.610,6.869,5.959,5.408,5.041,4.781,4.587,4.437,4.318,4.221,4.140,4.073,4.015,3.965,3.922,3.883,3.850,3.725,3.646,3.551,3.460,3.373];
+Object.keys(T_TABLE).map(Number).sort((a,b)=>a-b).forEach((df,i)=>{ T_TABLE[df][0.0005]=T_999[i]; });
 
 function getTCritical(df, alphaHalf){
  if(df < 1) return NaN;
@@ -388,7 +391,7 @@ function calc(){
  // 旧实现继续算并把 NaN 洗成「—」，输出「[ — , — ]」这类无效结果。此处明确拒绝。
  if(useT && n < 2){
   document.getElementById('ci').textContent = '[ 输入无效 ]';
-  document.getElementById('ci-label').textContent = 't 分布自由度 df = n−1 需 ≥ 1；n = 1 时请改用 z 分布，或把样本量填为 ≥ 2 的整数';
+  document.getElementById('ci-label').textContent = (document.documentElement.lang || '').toLowerCase().startsWith('en') ? 'The t distribution requires df = n−1 ≥ 1; use at least 2 samples. For n = 1, use z only when the population standard deviation is known.' : 't 分布自由度 df = n−1 需 ≥ 1；请使用至少 2 个样本。仅当总体标准差已知时，n = 1 才可使用 z 分布';
   const detailEl = document.getElementById('calc-detail');
   if(detailEl) detailEl.innerHTML = '';
   return;
@@ -400,14 +403,15 @@ function calc(){
  const upper = mean + me;
 
  const __g2=`[ ${lower.toFixed(3)} , ${upper.toFixed(3)} ]`;document.getElementById('ci').textContent=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
- const __g3=`${(conf*100)}% 置信区间 · ${useT?'t 分布':'z 分布'} · 临界值=${critical.toFixed(3)}`;document.getElementById('ci-label').textContent=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+ const en = (document.documentElement.lang || '').toLowerCase().startsWith('en');
+ const __g3=en ? `${conf*100}% confidence interval · ${useT?'t distribution':'z distribution'} · critical value=${critical.toFixed(3)}` : `${conf*100}% 置信区间 · ${useT?'t 分布':'z 分布'} · 临界值=${critical.toFixed(3)}`;document.getElementById('ci-label').textContent=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 
  const __g4=`
- x̄ = ${mean}, s = ${std}, n = ${n}<br>
- 标准误 SE = s/√n = ${std}/√${n} = ${se.toFixed(4)}<br>
- 临界值 ${useT?'t'+(conf===0.95?'(0.025,'+(n-1)+')':''):'z'} = ${critical.toFixed(3)}<br>
- 边际误差 ME = ${critical.toFixed(3)} × ${se.toFixed(4)} = ${me.toFixed(4)}<br>
- 置信区间 = [${mean} - ${me.toFixed(4)}, ${mean} + ${me.toFixed(4)}]
+ x̄ = ${mean}, ${en?'standard deviation':'标准差'} = ${std}, n = ${n}<br>
+ ${en?'Standard error':'标准误'} SE = ${en?'standard deviation':'标准差'}/√n = ${std}/√${n} = ${se.toFixed(4)}<br>
+ ${en?'Critical value':'临界值'} ${useT?'t'+(conf===0.95?'(0.025,'+(n-1)+')':''):'z'} = ${critical.toFixed(3)}<br>
+ ${en?'Margin of error':'边际误差'} ME = ${critical.toFixed(3)} × ${se.toFixed(4)} = ${me.toFixed(4)}<br>
+ ${en?'Confidence interval':'置信区间'} = [${mean} - ${me.toFixed(4)}, ${mean} + ${me.toFixed(4)}]
  `;document.getElementById('calc-detail').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
 }
 

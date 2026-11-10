@@ -290,6 +290,18 @@ const CASES = [
   },
   // ===== 复核失败·第一批重做·续批（IT-N373 / N376 / N378 / N417）=====
   {
+    slug: "it/confidence-interval",
+    inputs: {mean: "50", std: "8", n: "2", conf: "0.999", dist: "t"},
+    expect: ["临界值=636.619"],
+    ref: "99.9% 双侧 t，df=1，t=cot(π×0.0005)=636.619；旧表缺少 0.0005 列，输出无效值。",
+  },
+  {
+    slug: "it/confidence-interval",
+    inputs: {mean: "50", std: "8", n: "11", conf: "0.999", dist: "t"},
+    expect: ["临界值=4.587"],
+    ref: "99.9% 双侧 t，df=10，临界值约 4.587，验证非单自由度的表项。",
+  },
+  {
     slug: "it/hypergeometric-distribution",
     inputs: {"N": "2000", "K": "1500", "n": "1500", "k": "749"},
     expect: ["exp(1035.8369 + −∞ − 1120.7877) = 0"],
@@ -298,7 +310,7 @@ const CASES = [
   {
     slug: "it/confidence-interval",
     inputs: {"mean": "50", "std": "8", "n": "1", "conf": "0.95", "dist": "auto"},
-    expect: ["t 分布自由度 df = n−1 需 ≥ 1；n = 1 时请改用 z 分布，或把样本量填为 ≥ 2 的整数"],
+    expect: ["t 分布自由度 df = n−1 需 ≥ 1；请使用至少 2 个样本。仅当总体标准差已知时，n = 1 才可使用 z 分布"],
     ref: "IT-N376 复核重做：n=1 且 auto 会选 t 分布，df=0 使 t 临界值为 NaN，旧实现把 NaN 洗成「—」输出「[ — , — ]」这种无效结果。现明确拒绝并给出可执行建议。默认 n=30/d auto 输出有效区间，不命中。",
   },
   {
@@ -311,7 +323,7 @@ const CASES = [
     slug: "it/confidence-interval",
     inputs: {"mean": "50", "std": "8", "n": "1", "conf": "0.95", "dist": "z"},
     expect: ["[ 34.320 , 65.680 ]"],
-    ref: "IT-N376 复核重做（对照组）：显式选 z 分布时 n=1 数学上可算（z 不依赖自由度），不应被新的 df 守卫误拒；50 ± 1.960×8 = [34.320, 65.680]。证明拒绝只限 t 路径。默认 n=30/d auto 区间不同，不命中。",
+    ref: "IT-N376 复核重做（对照组）：显式选 z 且总体标准差已知时 n=1 可算；50 ± 1.960×8 = [34.320, 65.680]。默认 n=30/d auto 区间不同，不命中。",
   },
   {
     slug: "it/margin-of-error",
