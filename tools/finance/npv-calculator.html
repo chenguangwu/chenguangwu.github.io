@@ -384,59 +384,74 @@ function npvAtRate(init, flows, r){
   return npv;
 }
 
-function bisectNPV(init, flows, lo, hi, fLo, tol){
-  for(let i=0;i<120;i++){
-    const mid = (lo + hi) / 2;
-    const fm = npvAtRate(init, flows, mid);
-    if(!isFinite(fm)) break;
-    if(Math.abs(fm) <= tol) return {rate:mid, residual:fm};
-    if(fLo * fm < 0) hi = mid;
-    else { lo = mid; fLo = fm; }
-  }
-  const rate = (lo + hi) / 2;
-  return {rate, residual:npvAtRate(init, flows, rate)};
-}
-
-// 返回 {status:'ok'|'none'|'multiple'|'invalid', rate/rates, residual}
-// 规则：均匀扫描时若一段的两端同号，中点可能与端点异号（段内有两个根）。
-// 对每个区间加一个中点采样：中点与左端异号 ⇒ 左半根；中点与右端异号 ⇒ 右半根。
-// 避免「两跟落在同一粗区间、端点同号」被漏判。
+// 以 x = 1 / (1 + r) 转为多项式；导数的根将区间划分为单调段，
+// 因而能检查同号端点间的成对根及极值处的重根。
 function calcIRR(init, flows){
   flows = flows || [];
-  if(init <= 0) return {status:'invalid'};
+  if(!(init > 0) || !isFinite(init) || flows.some(v => !isFinite(v))) return {status:'invalid'};
   if(!flows.some(v => v > 0)) return {status:'none', reason:'no-positive'};
-  const LO = -0.9999, HI = 1000, STEPS = 4000;
-  const scale = init + flows.reduce((a,b)=>a + Math.abs(b), 0) + 1;
-  const tol = scale * 1e-6;
-  const roots = [];
-  const addRoot = (rate) => {
-    if(!isFinite(rate) || rate <= LO + 1e-6 || rate >= HI - 1e-6) return;
-    if(roots.some(v => Math.abs(v - rate) <= 1e-5)) return;
-    if(Math.abs(npvAtRate(init, flows, rate)) <= tol) roots.push(rate);
-  };
-  let prevR = LO, prevF = npvAtRate(init, flows, LO);
-  for(let i=1;i<=STEPS;i++){
-    const r = LO + (HI - LO) * i / STEPS;
-    const f = npvAtRate(init, flows, r);
-    if(isFinite(prevF) && isFinite(f)){
-      const mid = (prevR + r) / 2;
-      const fMid = npvAtRate(init, flows, mid);
-      if(isFinite(fMid)){
-        if(fMid === 0) addRoot(mid);
-        else {
-          if(prevF * fMid < 0) addRoot(bisectNPV(init, flows, prevR, mid, prevF, tol).rate);
-          if(fMid * f < 0) addRoot(bisectNPV(init, flows, mid, r, fMid, tol).rate);
-        }
-      } else if(prevF * f < 0) {
-        addRoot(bisectNPV(init, flows, prevR, r, prevF, tol).rate);
+  const coeff=[-init].concat(flows);
+  while(coeff.length>1 && coeff[coeff.length-1]===0) coeff.pop();
+  const max=Math.max(...coeff.map(Math.abs));
+  const normalized=coeff.map(v=>v/max);
+  const signs=normalized.filter(v=>v!==0).map(Math.sign);
+  const changes=signs.slice(1).reduce((n,s,i)=>n+(s!==signs[i]?1:0),0);
+  if(changes>1 && coeff.length>25) return {status:'uncertain'};
+  const lo=1/1001, hi=10000;
+  let uncertain=false;
+  function evaluate(c,x){
+    let value=0, magnitude=0;
+    if(x<=1){
+      for(let i=c.length-1;i>=0;i--){value=value*x+c[i]; magnitude=magnitude*x+Math.abs(c[i]);}
+    } else {
+      for(let i=0;i<c.length;i++){value=value/x+c[i]; magnitude=magnitude/x+Math.abs(c[i]);}
+    }
+    return {value, magnitude};
+  }
+  function isolate(c, left, right){
+    while(c.length>1 && c[c.length-1]===0) c=c.slice(0,-1);
+    if(c.length<=1) return [];
+    let critical=[];
+    if(c.length>2){
+      const d=c.slice(1).map((v,i)=>v*(i+1));
+      const scale=Math.max(...d.map(Math.abs));
+      critical=isolate(d.map(v=>v/scale),left,right);
+    }
+    const points=[left].concat(critical,[right]), roots=[];
+    const add=x=>{if(!roots.some(y=>Math.abs(x-y)<=1e-12*Math.max(1,Math.abs(x)))) roots.push(x);};
+    const vals=points.map(x=>evaluate(c,x));
+    for(let i=0;i<points.length;i++){
+      if(Math.abs(vals[i].value)<=vals[i].magnitude*2e-14){
+        add(points[i]);
+        if(i>0 && i<points.length-1 && Math.abs(vals[i].value)>vals[i].magnitude*2e-16) uncertain=true;
       }
     }
-    prevR = r; prevF = f;
+    for(let i=0;i<points.length-1;i++){
+      if(vals[i].value===0 || vals[i+1].value===0 || Math.sign(vals[i].value)===Math.sign(vals[i+1].value)) continue;
+      let a=points[i], b=points[i+1], sign=Math.sign(vals[i].value);
+      for(let j=0;j<100;j++){
+        const m=(a+b)/2;
+        if(m===a || m===b) break;
+        const fm=evaluate(c,m).value;
+        if(fm===0){a=b=m;break;}
+        if(Math.sign(fm)===sign) a=m; else b=m;
+      }
+      add((a+b)/2);
+    }
+    return roots.sort((a,b)=>a-b);
   }
-  roots.sort((a,b) => a - b);
+  const xs=changes===1 ? (function(){
+    const a=evaluate(normalized,lo).value, b=evaluate(normalized,hi).value;
+    if(Math.sign(a)===Math.sign(b)) return [];
+    let left=lo,right=hi;
+    for(let i=0;i<100;i++){const mid=(left+right)/2, v=evaluate(normalized,mid).value; if(v===0){left=right=mid;break;} if(Math.sign(v)===Math.sign(a)) left=mid; else right=mid;}
+    return [(left+right)/2];
+  })() : isolate(normalized,lo,hi);
+  const roots=xs.map(x=>1/x-1).sort((a,b)=>a-b);
+  if(uncertain) return {status:'uncertain'};
   if(!roots.length) return {status:'none', reason:'no-root'};
-  if(roots.length > 1) return {status:'multiple', rates:roots};
-  return {status:'ok', rate:roots[0], residual:npvAtRate(init, flows, roots[0])};
+  if(roots.length>1) return {status:'multiple', rates:roots};
+  return {status:'ok', rate:roots[0], residual:npvAtRate(init,flows,roots[0])};
 }
 
 function calc(){
@@ -490,7 +505,7 @@ function calc(){
 
   const __g4=`
     <div class="stat-card"><div class="val" style="color:${npvColor};">${fmt(npv)}</div><div class="lbl">NPV 净现值</div></div>
-    <div class="stat-card"><div class="val" style="color:${irrColor};">${irr !== null ? fmtPct(irr) : (irrInfo.status === 'multiple' ? '多根' : '无解')}</div><div class="lbl">IRR 内部收益率</div></div>
+    <div class="stat-card"><div class="val" style="color:${irrColor};">${irr !== null ? fmtPct(irr) : (irrInfo.status === 'multiple' ? '多根' : irrInfo.status === 'uncertain' ? '无法确定' : '无解')}</div><div class="lbl">IRR 内部收益率</div></div>
     <div class="stat-card"><div class="val" style="color:${piColor};">${pi.toFixed(3)}</div><div class="lbl">PI 获利指数</div></div>
     <div class="stat-card"><div class="val">${paybackYear>=0 ? (paybackYear+paybackFrac).toFixed(2)+'期' : '未回收'}</div><div class="lbl">投资回收期</div></div>
     <div class="stat-card"><div class="val">${fmt(init)}</div><div class="lbl">初始投资</div></div>
@@ -514,8 +529,10 @@ function calc(){
     detailHtml += `<span>IRR ${irr>=r?'≥':'<'} 折现率：<strong style="color:${irrColor};">${irr>=r?'✓ 可行':'✗ 不可行'}</strong></span>`;
   } else if(irrInfo.status === 'multiple'){
     detailHtml += `<span>IRR：<strong style="color:var(--danger);">✗ 存在多个根（${irrInfo.rates.map(fmtPct).join('、')}），无唯一解，不可行</strong></span>`;
+  } else if(irrInfo.status === 'uncertain'){
+    detailHtml += `<span>IRR：<strong style="color:var(--danger);">无法确定（现金流过长或数值精度不足），请用专业工具复核</strong></span>`;
   } else {
-    detailHtml += `<span>IRR：<strong style="color:var(--danger);">✗ 无解（现金流同号或 NPV 无零点），不可行</strong></span>`;
+    detailHtml += `<span>IRR：<strong style="color:var(--danger);">✗ 无解（现金流同号或在 −99.99% 至 100000% 范围内无零点），不可行</strong></span>`;
   }
   detailHtml += `<span>PI ${pi>=1?'≥':'<'} 1：<strong style="color:${piColor};">${pi>=1?'✓ 可行':'✗ 不可行'}</strong></span>`;
   detailHtml += `<span style="width:100%;color:var(--text-dim);">明细按实际折现率 ${fmtPct(r)} 计算。</span>`;

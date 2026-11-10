@@ -176,4 +176,43 @@ for (const [file, prefix, input, error] of [
   }
   w.close();
 }
+{
+  const dom=new JSDOM(readFileSync('tools/finance/npv-calculator.html','utf8'), {url:'https://x.test/',runScripts:'dangerously',virtualConsole:new VirtualConsole(),beforeParse(w){w.ToolBox={showToast(){}};w.HTMLCanvasElement.prototype.getContext=()=>null;}});
+  const w=dom.window;
+  await new Promise(resolve=>w.addEventListener('load',resolve));
+  const check=(label,ok)=>{console.log(`${ok?'PASS':'FAIL'} npv ${label}`);if(!ok) failed=true;};
+  const close=(a,b)=>Math.abs(a-b)<1e-7;
+  let result=w.calcIRR(100,[221,-122.1]);
+  check('同区间两根 10% 与 11%',result.status==='multiple' && result.rates.length===2 && close(result.rates[0],.1) && close(result.rates[1],.11));
+  result=w.calcIRR(100,[220,-121]);
+  check('10% 重根',result.status==='ok' && close(result.rate,.1));
+  result=w.calcIRR(100,[230,-132]);
+  check('原案例两根 10% 与 20%',result.status==='multiple' && result.rates.length===2 && close(result.rates[0],.1) && close(result.rates[1],.2));
+  result=w.calcIRR(100,[220,-121.0001]);
+  check('接近重根但无根不误报',result.status==='none');
+  result=w.calcIRR(100,[30,30,30,30,30]);
+  check('普通单根',result.status==='ok' && close(result.rate,.1523823712));
+  result=w.calcIRR(100,[221,-122.1,0,0]);
+  check('尾随零不会隐藏两根',result.status==='multiple' && result.rates.length===2);
+  result=w.calcIRR(100,[330,-363,133.1]);
+  check('高阶重复根不能误报无解',result.status!=='none');
+  result=w.calcIRR(100,[360,-431,171.6]);
+  check('三根 10%、20%、30%',result.status==='multiple' && result.rates.length===3 && close(result.rates[0],.1) && close(result.rates[1],.2) && close(result.rates[2],.3));
+  result=w.calcIRR(100,[200,-100*(1-1e-10)]);
+  check('非常接近的两个根不合并', result.status==='multiple' && result.rates.length===2 && result.rates[1]-result.rates[0]>1e-5);
+  result=w.calcIRR(100,[200,-100*(1+1e-10)]);
+  check('近似重根但无解不误报', result.status==='none' || result.status==='uncertain');
+  result=w.calcIRR(100,[100100]);
+  check('100000% 上边界', result.status==='ok' && close(result.rate,1000));
+  result=w.calcIRR(100,[.01]);
+  check('−99.99% 下边界', result.status==='ok' && close(result.rate,-.9999));
+  const longFlows=[200,-100].concat(Array(23).fill(1));
+  check('长现金流不虚报无解',w.calcIRR(100,longFlows).status==='uncertain');
+  w.drawChart=()=>{}; w.document.getElementById('init').value='100';
+  w.eval('cashFlows=[221,-122.1]'); w.calc();
+  check('真实页面展示两根',w.document.getElementById('detail').textContent.includes('10.00%') && w.document.getElementById('detail').textContent.includes('11.00%'));
+  w.eval('cashFlows=[200,-100].concat(Array(23).fill(1))'); w.calc();
+  check('真实页面显示无法确定而不是无解',w.document.getElementById('stats').textContent.includes('无法确定') && w.document.getElementById('detail').textContent.includes('无法确定'));
+  w.close();
+}
 process.exit(failed ? 1 : 0);
