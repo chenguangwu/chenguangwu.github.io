@@ -299,8 +299,23 @@ function fmtM(n) { return n.toFixed(2); }
 
 function calc() {
   var city = document.getElementById('city').value;
-  var balanceWan = parseFloat(document.getElementById('balance').value) || 0;
-  var housePriceWan = parseFloat(document.getElementById('housePrice').value) || 0;
+  var balanceRaw = document.getElementById('balance').value;
+  var housePriceRaw = document.getElementById('housePrice').value;
+  var balanceWan = parseFloat(balanceRaw) || 0;
+  var housePriceWan = parseFloat(housePriceRaw) || 0;
+  // F-N97：负余额/负房价是常见录入错误。旧版依据表按原值显示负额度、最终额度却夹到 0，
+  // 同一结果区出现「−120 万」与「最高可贷 0 万」的矛盾。这里直接拒绝并给出带取值的提示。
+  if(balanceWan < 0 || housePriceWan < 0){
+    var __hfEn=false;
+    try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) __hfEn=TBKit.util.isEn(); }catch(e){}
+    var __parts=[];
+    if(balanceWan<0) __parts.push(__hfEn ? 'account balance '+balanceRaw+' (×10,000 CNY)' : '账户余额 '+balanceRaw+' 万元');
+    if(housePriceWan<0) __parts.push(__hfEn ? 'house price '+housePriceRaw+' (×10,000 CNY)' : '房屋总价 '+housePriceRaw+' 万元');
+    document.getElementById('result').innerHTML = __hfEn
+      ? '<div class="tip-box tip-warn" style="margin-top:12px;">⚠ Negative input is invalid: '+__parts.join('; ')+'. Correct it and calculate again; no quota is shown for invalid inputs.</div>'
+      : '<div class="tip-box tip-warn" style="margin-top:12px;">⚠ 输入不能为负数：'+__parts.join('；')+'。请更正后再计算，无效输入不展示额度依据与还款明细。</div>';
+    return;
+  }
   var age = parseInt(document.getElementById('age').value) || 30;
   var repayType = document.getElementById('repayType').value;
   var loanYears = parseInt(document.getElementById('loanYears').value) || 20;
@@ -526,8 +541,12 @@ function __housing_fund_loanFullResText(){
 function __housing_fund_loanScore(t){
     var bal=parseFloat(document.getElementById('balance').value);
     if(!isFinite(bal)||bal<=0) return 0;
+    // F-N97：负房价按输入业务状态判未通过，不靠结果文案词表猜。
+    var hp=parseFloat(document.getElementById('housePrice').value);
+    if(!isFinite(hp)||hp<0) return 0;
     var s=String(t||'');
-    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    // 「输入无效已按 2.85% 计」是利率回退后的有效结论，不能因「无效」二字误判失败。
+    if(/[❌]|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __housing_fund_loanTime(t){
@@ -617,7 +636,17 @@ function __housing_fund_loanExport(){
     try{
         var box=document.querySelector(__biz);
         if(!box||!box.querySelector('tr')){
-            if(typeof ToolBox!=='undefined'&&ToolBox.showToast){ToolBox.showToast('当前无业务明细，请先计算再导出');}
+            // F-N97：拒绝态没有业务明细表。导出按钮不能点了没反应 ——
+            // 仍导出一份说明「本次输入无效」的可留档文件，避免用户误以为页面坏了。
+            var __en=false; try{ __en=TBKit.util.isEn(); }catch(e){}
+            var res=document.getElementById('result');
+            var t=res?(res.textContent||'').replace(/\s+/g,' ').trim():'';
+            if(t && TBKit.export && TBKit.export.csv){
+                TBKit.export.csv('housing-fund-loan-invalid.csv',[['序号','结果明细'],['1',t]]);
+            }
+            if(typeof ToolBox!=='undefined'&&ToolBox.showToast){
+                ToolBox.showToast(__en?'No business detail; exported the invalid-input note instead':'当前无业务明细，已导出本次无效输入说明');
+            }
             return;
         }
     }catch(e){}

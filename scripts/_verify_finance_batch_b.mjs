@@ -84,6 +84,14 @@ function enDom(html, rel) {
     runScripts: 'dangerously', url: 'https://example.com/' + rel + '?lang=en-US',
     pretendToBeVisual: true, virtualConsole: vc,
     beforeParse(w) {
+      // 保真桩：jsdom 无 canvas。缺 getContext 会让 calc() 在生成 scheduleData 之前
+      // 抛 "Cannot read properties of null (reading 'clearRect')"，被 withInputs 的
+      // try/catch 吞掉 ⇒ calcPrepay() 看到空计划表误报「提前还款期数无效」。
+      // 补齐后 EN 态 F-N227 断言才跑在真实计算结果上，而不是桩缺失的假失败。
+      w.HTMLCanvasElement.prototype.getContext = () => new Proxy({}, {
+        get: (_, k) => k === 'createLinearGradient' ? () => ({ addColorStop() {} }) : () => {},
+      });
+      w.HTMLAnchorElement.prototype.click = function () {};
       const noop = () => {};
       const kit = {
         util: { isEn: () => true, diffBox: noop, exportTable: noop, showToast: noop, copyText: noop, downloadText: noop, setResult: (id, v) => { const e = w.document.getElementById(id); if (e) e.innerHTML = v; } },

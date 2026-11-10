@@ -24,6 +24,37 @@ const { runCase } = require("./verify_it_calc.js");
 // ---------------------------------------------------------------- 用例
 const CASES = [
   {
+    slug: "finance/housing-fund-loan",
+    inputs: { balance: "-8", housePrice: "300" },
+    expect: ["⚠ 输入不能为负数：账户余额 -8 万元。请更正后再计算，无效输入不展示额度依据与还款明细。"],
+    ref: "第121批 F-N97 公积金贷款负余额：旧实现只做 parseFloat||0，依据表按原值显示「余额 × 15 倍 −120.0 万」而最终额度被夹到 0.0 万，同一结果区自相矛盾。修复后直接拒绝并在 #result 写出带当前取值的提示。注入 balance=-8 命中；默认 8 万合法态不出现该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    slug: "finance/housing-fund-loan",
+    inputs: { balance: "8", housePrice: "-50" },
+    expect: ["⚠ 输入不能为负数：房屋总价 -50 万元。请更正后再计算，无效输入不展示额度依据与还款明细。"],
+    ref: "第121批 F-N97 负房价分支：与负余额同一拒绝路径但命中不同的输入字段，锁住「房屋总价 -50 万元」这一带值文案；默认房价 300 万合法态不出现 ⇒ 强判别。Score 同步按输入业务状态判 0（真机回归覆盖）。"
+  },
+  {
+    slug: "finance/mortgage-calculator",
+    inputs: { loanAmount: "100", rate: "4.2", years: "30", downPayment: "120" },
+    expect: ["首付比例须为 0%（含）至 100%（不含），当前输入 120%"],
+    ref: "第121批 F-N95 房贷非法首付：旧实现只 resetDisplay() 静默清空数字、不留任何提示，饼图还保留上一次本金/利息比例。修复后按非法字段写出带当前取值的明确提示到结果区（#scheduleBody）。注入 120 命中；默认 30% 合法态不出现 ⇒ 强判别。"
+  },
+  {
+    slug: "finance/mortgage-calculator",
+    inputs: { loanAmount: "100", rate: "4.2", years: "30", downPayment: "30" },
+    clicks: ["calculate();document.getElementById('downPayment').value='120';calculate();var p=document.getElementById('pieChart');var bg=(p&&p.style)?String(p.style.background):'';document.getElementById('__tbProbe').textContent='MCPIE '+(bg===''?'EMPTY':'KEPT');"],
+    expect: ["MCPIE EMPTY"],
+    ref: "第121批 F-N95 饼图残留：先按合法参数写入 conic-gradient，再把首付改成 120 触发非法分支，探针读取 #pieChart.style.background。旧版 resetDisplay() 不清饼图 ⇒ KEPT，修复后清空回退 CSS 全灰 ⇒ EMPTY。默认态不执行 clicks、无探针串 ⇒ 零逃生。"
+  },
+  {
+    slug: "finance/mortgage-prepayment",
+    clicks: ["var __cap=null;TBKit={util:{isEn:function(){return false;},exportTable:function(s,n){__cap={sel:s,name:n};},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return [];},last:function(){return null;},record:function(){},mount:function(){}},preset:{bar:function(){}},export:{csv:function(n,r){__cap={name:n,rows:r};}}};var __og=document.getElementById;document.getElementById=function(id){if(id==='result')return {querySelectorAll:function(){return [{tagName:'P',textContent:'对照方案（不提前还款）'},{tagName:'TR',querySelectorAll:function(){return [{textContent:'对比项'},{textContent:'① 缩短期限（月供不变）'},{textContent:'② 降低月供（期限不变）'}];}}];}};return __og(id);};__mortgage_prepaymentExport();document.getElementById=__og;document.getElementById('__tbProbe').textContent='MPEX '+(__cap&&__cap.name?__cap.name:'NA')+' rows='+(__cap&&__cap.rows?__cap.rows.length:0);"],
+    expect: ["MPEX mortgage-prepayment-detail.csv rows=3"],
+    ref: "第121批 F-N94 提前还款「导出明细 CSV」：旧版把 TBKit 自动历史表 #mortgage_prepaymentTable 传给 exportTable，不含两方案明细。修复后导出当前结果区 #result 的逐行明细并调用 TBKit.export.csv，文件名 -detail.csv。用例桩住 result 只有 1 段 + 1 行对比表 ⇒ rows=3；默认态不执行 clicks、无探针串 ⇒ 零逃生。"
+  },
+  {
     "slug": "finance/npv-calculator",
     "inputs": {"rate": "8", "init": "100"},
     "clicks": ["updateCF(0, 230)", "updateCF(1, -132)", "updateCF(2, 0)", "updateCF(3, 0)"],

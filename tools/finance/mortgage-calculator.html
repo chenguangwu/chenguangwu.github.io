@@ -352,20 +352,45 @@ function setMethod(m){
   calculate();
 }
 
+function __mcTx(zh,en){ return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?en:zh; }
 function calculate(){
   const price = parseFloat(document.getElementById('loanAmount').value) * 10000;
   const annualRate = parseFloat(document.getElementById('rate').value) / 100;
   const years = parseInt(document.getElementById('years').value);
   const downPaymentPct = parseFloat(document.getElementById('downPayment').value) || 0;
+  const loanRaw = document.getElementById('loanAmount').value;
+  const rateRaw = document.getElementById('rate').value;
+  const downRaw = document.getElementById('downPayment').value;
 
-  if(!isFinite(price) || price <= 0 || !isFinite(annualRate) || annualRate < 0 || !years || !isFinite(downPaymentPct) || downPaymentPct < 0 || downPaymentPct >= 100){
-    resetDisplay();
+  // F-N95：非法输入不能静默清空数字，必须在结果区留下带当前取值的明确提示。
+  if(!isFinite(price) || price <= 0){
+    resetDisplay(__mcTx('⚠ 房价须为正数（当前输入 ' + loanRaw + ' 万元），请更正后再查看结果。',
+                        '⚠ House price must be positive (current: ' + loanRaw + ' ×10,000 CNY); correct it to see results.'));
+    return;
+  }
+  if(!isFinite(annualRate) || annualRate < 0){
+    resetDisplay(__mcTx('⚠ 年利率须为不小于 0 的数字（当前输入 ' + rateRaw + '%），请更正后再查看结果。',
+                        '⚠ Annual rate must be a non-negative number (current: ' + rateRaw + '%); correct it to see results.'));
+    return;
+  }
+  if(!years || years <= 0){
+    resetDisplay(__mcTx('⚠ 贷款年限须为正整数（当前 ' + years + ' 年），请更正后再查看结果。',
+                        '⚠ Loan term must be a positive number of years (current: ' + years + '); correct it to see results.'));
+    return;
+  }
+  if(!isFinite(downPaymentPct) || downPaymentPct < 0 || downPaymentPct >= 100){
+    resetDisplay(__mcTx('⚠ 首付比例须为 0%（含）至 100%（不含），当前输入 ' + downRaw + '%；请更正后再查看结果。',
+                        '⚠ Down payment must be at least 0% and less than 100% (current: ' + downRaw + '%); correct it to see results.'));
     return;
   }
 
   // 贷款本金 = 房价 ×（1 − 首付比例）
   const amount = price * (1 - downPaymentPct / 100);
-  if(amount <= 0){ resetDisplay(); return; }
+  if(amount <= 0){
+    resetDisplay(__mcTx('⚠ 贷款本金为 0：首付比例 ' + downRaw + '% 已覆盖全部房价，请调整首付比例。',
+                        '⚠ Loan principal is 0: a ' + downRaw + '% down payment covers the whole price; adjust it.'));
+    return;
+  }
 
   const months = years * 12;
   const monthlyRate = annualRate / 12;
@@ -436,11 +461,16 @@ function calculate(){
   `).join('');if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){tbody.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}tbody.innerHTML=__h0;
 }
 
-function resetDisplay(){
+function resetDisplay(msg){
   ['monthlyPay','totalInterest','totalPayment','totalRatio','effectiveRate','totalLoan','totalIntBar','pieTotal'].forEach(id => {
     document.getElementById(id).textContent = '--';
   });
-  const __h1='';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('scheduleBody').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('scheduleBody').innerHTML=__h1;
+  // F-N95：清掉上一次的 conic-gradient，回退 CSS 默认全灰饼图，避免把旧比例当成新结果。
+  const pie = document.getElementById('pieChart');
+  if(pie && pie.style) pie.style.background = '';
+  // F-N95：非法提示写进结果区（还款明细表），并带上当前输入值，便于定位。
+  const __h1 = msg ? '<tr><td colspan="5" style="color:var(--danger);padding:12px;line-height:1.7;">' + msg + '</td></tr>' : '';
+  if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('scheduleBody').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('scheduleBody').innerHTML=__h1;
 }
 
 function exportCSV(){

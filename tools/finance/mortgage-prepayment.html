@@ -520,16 +520,28 @@ function __mortgage_prepaymentExtras(force){
 function __mortgage_prepaymentExport(){
     if (typeof TBKit === 'undefined') return;
     __mortgage_prepaymentExtras(true);
+    // F-N94：按钮文案是「导出明细 CSV」，旧版却导出 TBKit 自动历史表
+    // （时间 + 输入 + 结果摘要），不含「缩短期限 / 降低月供」的两方案明细。
+    // 改为导出当前结果区 #result 的逐行明细：说明段落 + 两方案对比表行。
+    // 不新增第二份隐藏数据源，可见输出保持不变。
     try{
-        var box=document.querySelector('#mortgage_prepaymentTable');
-        if(!box||!box.querySelector('tr')){
-            var snap=__mortgage_prepaymentSnap(); var keys=Object.keys(snap);
-            if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
-            __mortgage_prepaymentRender(keys,en?'Result':'结果',en);
+        var box=document.getElementById('result');
+        if(!box) return;
+        var rows=[['序号','结果明细']];
+        var nodes=box.querySelectorAll('p, tr');
+        for(var i=0;i<nodes.length;i++){
+            var n=nodes[i], txt='';
+            if(n.tagName==='TR'){
+                var cs=n.querySelectorAll('th,td'), parts=[];
+                for(var j=0;j<cs.length;j++) parts.push((cs[j].textContent||'').trim());
+                txt=parts.join(' | ');
+            }else{
+                txt=(n.textContent||'').trim();
+            }
+            if(txt) rows.push([String(rows.length),txt]);
         }
+        if(rows.length>1) TBKit.export.csv('mortgage-prepayment-detail.csv',rows);
     }catch(e){}
-    try { TBKit.util.exportTable('#mortgage_prepaymentTable','mortgage-prepayment.csv'); } catch(e){}
 }
 function __mortgage_prepaymentPresets(){
     if (typeof TBKit === 'undefined') return;
