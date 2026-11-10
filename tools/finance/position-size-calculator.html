@@ -522,6 +522,16 @@ function calc(){
     var multiplier = getVal('m-multiplier');
     var times = Math.floor(getVal('m-times'));
     var dropPct = getVal('m-droppct') / 100;
+    var lastPrice = 100 * Math.pow(1 - dropPct, times - 1);
+    var lastPosition = initial * Math.pow(multiplier, times - 1);
+    if(!isFinite(dropPct) || dropPct < 0 || dropPct > 1 || !(lastPrice > 0) || !isFinite(lastPosition / lastPrice)){
+      currentResult = null;
+      document.getElementById('statGrid').innerHTML = '';
+      document.getElementById('res').innerHTML = '<p class="tip-error">❌ 跌幅须在 0% 至 100% 之间；多层买入时必须小于 100%，且成交价与股数须为有效值。</p>';
+      var canvas = document.getElementById('chart');
+      if(canvas) canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+      return;
+    }
     var positions = [];
     var totalPosition = 0;
     var totalCost = 0;
@@ -1036,7 +1046,7 @@ function __position_size_calculatorRender(keys,rk,en){
     }catch(e3){}
 }
 function __position_size_calculatorExtras(){
-    if (typeof TBKit === 'undefined') return;
+    if (!currentResult || typeof TBKit === 'undefined') return;
     if (__position_size_calculator_skip) return;
     var snap=__position_size_calculatorSnap();
     var keys=Object.keys(snap);
@@ -1066,7 +1076,7 @@ function __position_size_calculatorExtras(){
     __position_size_calculatorRender(keys,rk,en);
 }
 function __position_size_calculatorExport(){
-    if (typeof TBKit === 'undefined') return;
+    if (!currentResult || typeof TBKit === 'undefined') return;
     try{
         var box=document.querySelector('#position_size_calculatorTable');
         if(!box||!box.querySelector('tr')){
