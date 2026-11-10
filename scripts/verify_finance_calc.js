@@ -757,6 +757,13 @@ const CASES = [
     ref: "贷款年限 2.5 年：旧实现按小数年限折期数（30 期）照算；现要求正整数年并提示。默认 30 年 ⇒ 不命中。",
   },
   {
+    slug: "finance/loan-amortization",
+    inputs: { loanAmount: "120000", annualRate: "6", loanYears: "2" },
+    clicks: ["calc();var before=scheduleData.length;document.getElementById('loanYears').value='2.3';calc();var noTable=!document.getElementById('scheduleTable').innerHTML&&!document.getElementById('yearlyTable').innerHTML;var exported=false;ToolBox.downloadText=function(){exported=true;};exportCSV();document.getElementById('__tbProbe').textContent='LOANSTALE '+(before===24&&scheduleData.length===0&&noTable&&!exported?'OK':'BAD');"],
+    expect: ["LOANSTALE OK"],
+    ref: "有效 2 年计划后改为非法 2.3 年，必须清空旧还款计划和表格并禁止导出旧数据。"
+  },
+  {
     slug: "investment/irr-calc",
     inputs: { cf0: "1000", cf1: "-1100", cf2: "0", cf3: "0", cf4: "0" },
     clicks: ["calcTool()"],
