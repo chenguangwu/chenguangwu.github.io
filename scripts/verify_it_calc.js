@@ -145,6 +145,12 @@ function _rngReset() { _rngState = 0x9e3779b9 >>> 0; }
 // ---------------------------------------------------------------- 用例
 const CASES = [
   {
+    slug: "it/calc-8",
+    clicks: ["var vals=[null,false,'123',1e20,-1e20],ok=0;vals.forEach(function(v){var h=btoa(JSON.stringify({alg:'none'})).replace(/=/g,''),p=btoa(JSON.stringify({exp:v})).replace(/=/g,'');document.getElementById('jwtInput').value=h+'.'+p+'.sig';decodeJwt();var out=document.getElementById('result').innerHTML;if(out.indexOf('无效 exp 值')>=0&&out.indexOf('未过期')<0)ok++;});document.getElementById('__tbProbe').textContent='EXPTYPE '+ok;"],
+    expect: ["EXPTYPE 5"],
+    ref: "RFC 7519 NumericDate 必须为数字，null、布尔值和数字字符串无效；超出 JavaScript Date 范围不得误判未过期。"
+  },
+  {
     "slug": "it/calc-8",
     "clicks": ["document.getElementById('jwtInput').value='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ6ZXJvIiwiZXhwIjowfQ.sig';decodeJwt();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='EXPT0 '+(h.indexOf('已过期')>=0&&h.indexOf('1970')>=0?'OK':'BAD');"],
     "expect": ["EXPT0 OK"],
