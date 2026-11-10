@@ -89,8 +89,38 @@ function checkPostalValidation() {
   dom.window.close();
 }
 
+function checkIdValidation(slug, constant, valid, invalid) {
+  const page = fs.readFileSync(path.join(root, `tools/finance/${slug}-validator.html`), 'utf8');
+  const script = page.slice(page.indexOf(`const ${constant}`), page.indexOf('function toggleToolTheme()'));
+  const dom = new JSDOM('<input id="input"><div id="output"></div>', { runScripts: 'dangerously' });
+  const { document } = dom.window;
+  let executed = false;
+  dom.window.ALERT = () => { executed = true; };
+  dom.window.eval(script);
+  function check(input, expected) {
+    document.getElementById('input').value = input;
+    dom.window.validate();
+    const output = document.getElementById('output');
+    const svg = output.querySelector('svg');
+    if (svg) svg.dispatchEvent(new dom.window.Event('load'));
+    assert.strictEqual(svg, null, `${slug} 输入不得创建注入节点`);
+    assert.strictEqual(executed, false, `${slug} 输入不得执行注入事件`);
+    assert.ok(output.textContent.includes(input.toUpperCase()), '输入应以文本安全回显');
+    assert.ok(output.textContent.includes(expected), input);
+  }
+  check('<svg id=x onload=alert(1)>', slug === 'curp' ? '格式不符' : '长度必须为 9');
+  check(valid, slug === 'curp' ? 'CURP 有效' : 'DNI 有效');
+  check(invalid, slug === 'curp' ? '格式不符' : 'DNI 无效');
+  if (slug === 'dni') {
+    check('<svg/x=1>', '格式不符');
+    dom.window.dniCheck = () => false;
+    check(valid, 'DNI 无效');
+  }
+  dom.window.close();
+}
+
 let failed = false;
-for (const [name, test] of [['颜色历史', checkColorHistory], ['工序排期', checkSchedule], ['SIN 输入', checkSinValidation], ['邮编输入', checkPostalValidation]]) {
+for (const [name, test] of [['颜色历史', checkColorHistory], ['工序排期', checkSchedule], ['SIN 输入', checkSinValidation], ['邮编输入', checkPostalValidation], ['CURP 输入', () => checkIdValidation('curp', 'CURP_BASE', 'BOXW310820HMNERN16', 'BOXW310820HMNERN160')], ['DNI 输入', () => checkIdValidation('dni', 'DNI_LETTERS', '12345678Z', '12345678A')]]) {
   try { test(); console.log('PASS', name); } catch (err) { failed = true; console.error('FAIL', name, err.message); }
 }
 if (failed) process.exitCode = 1;
