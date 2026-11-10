@@ -241,8 +241,39 @@ function checkRetirementCashFlow() {
   dom.window.close();
 }
 
+function checkFundTiming() {
+  const page = fs.readFileSync(path.join(root, 'tools/finance/mutual-fund-calculator.html'), 'utf8');
+  const main = [...page.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]).find(s => s.includes('var HISTORY_KEY = \'mutualfund_calc_history\''));
+  const dom = new JSDOM(page.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ''), { url: 'https://example.test/', runScripts: 'dangerously' });
+  const { document } = dom.window;
+  dom.window.HTMLCanvasElement.prototype.getContext = () => new Proxy({}, { get: (_, key) => key === 'createLinearGradient' ? () => ({ addColorStop() {} }) : () => {} });
+  dom.window.ToolBox = { formatNumber: (n, d) => Number(n).toFixed(d), createTable: () => '', showToast() {}, downloadText() {} };
+  dom.window.i18nText = () => '';
+  dom.window.eval(main);
+  let chart;
+  dom.window.drawChart = data => { chart = data; };
+  const set = fields => Object.entries(fields).forEach(([id, value]) => { document.getElementById(id).value = String(value); });
+  for (const start of [false, true]) {
+    for (const [initial, buyFee, sellFee] of [[0, 0, 0], [1000, 2, 1]]) {
+      set({ initial, monthly: 100, years: 1, rate: 12, buyFee, sellFee, manageFee: 0, custodyFee: 0 });
+      document.getElementById('monthStart').checked = start;
+      dom.window.calc();
+      const gross = initial * (1 - buyFee / 100) * 1.01 ** 12 + 100 * (1 - buyFee / 100) * ((1.01 ** 12 - 1) / 0.01) * (start ? 1.01 : 1);
+      const result = dom.window.currentResult;
+      assert.ok(Math.abs(result.finalBalance - gross * (1 - sellFee / 100)) < 1e-7, '期末资产应遵循扣款时点与费用');
+      assert.ok(Math.abs(result.totalFees - ((initial + 1200) * buyFee / 100 + gross * sellFee / 100)) < 1e-7, '费用应含初始申购、月投申购和赎回');
+      assert.ok(Math.abs(chart[12].balance - gross) < 1e-7, '图表终点应与持仓一致');
+      assert.ok(Math.abs(dom.window.yearlyData[0].yearEndBalance - result.finalBalance) < 1e-7, '年度表应与赎回后资产一致');
+      if (!buyFee && !sellFee) assert.ok(Math.abs(result.annualized - (1.01 ** 12 - 1) * 100) < 1e-7, '无费资金加权年化应吻合月复利');
+      dom.window.saveHistory();
+      assert.strictEqual(JSON.parse(dom.window.localStorage.getItem('mutualfund_calc_history'))[0].finalBalance, result.finalBalance, '历史记录应保存正确结果');
+    }
+  }
+  dom.window.close();
+}
+
 let failed = false;
-for (const [name, test] of [['退休现金流', checkRetirementCashFlow], ['颜色历史', checkColorHistory], ['工序排期', checkSchedule], ['SIN 输入', checkSinValidation], ['邮编输入', checkPostalValidation], ['CURP 输入', () => checkIdValidation('curp', 'CURP_BASE', 'BOXW310820HMNERN16', 'BOXW310820HMNERN160')], ['DNI 输入', () => checkIdValidation('dni', 'DNI_LETTERS', '12345678Z', '12345678A')], ['投资回报历史', checkInvestmentHistory], ['期权盈亏', checkOptionCalculator]]) {
+for (const [name, test] of [['基金定投时点', checkFundTiming], ['退休现金流', checkRetirementCashFlow], ['颜色历史', checkColorHistory], ['工序排期', checkSchedule], ['SIN 输入', checkSinValidation], ['邮编输入', checkPostalValidation], ['CURP 输入', () => checkIdValidation('curp', 'CURP_BASE', 'BOXW310820HMNERN16', 'BOXW310820HMNERN160')], ['DNI 输入', () => checkIdValidation('dni', 'DNI_LETTERS', '12345678Z', '12345678A')], ['投资回报历史', checkInvestmentHistory], ['期权盈亏', checkOptionCalculator]]) {
   try { test(); console.log('PASS', name); } catch (err) { failed = true; console.error('FAIL', name, err.message); }
 }
 if (failed) process.exitCode = 1;
