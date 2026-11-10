@@ -268,7 +268,7 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
-let pool,history,poolSig;
+let pool,history,poolSig,drawTimer=null;
 
 function secureCrypto(){return (typeof crypto!=='undefined'&&crypto&&crypto.getRandomValues)?crypto:((typeof window!=='undefined'&&window.crypto&&window.crypto.getRandomValues)?window.crypto:null);}
 function hashSeed(s){
@@ -289,6 +289,7 @@ function randomPickOne(list,seed){
   return list[Math.floor(rng()*list.length)];
 }
 function start(){
+  if(drawTimer!==null) return; // 动画期间忽略重复启动，避免共享候选池被并发消耗
   const restoring=__random_picker_skip;
   const list=document.getElementById('items').value.split('\n').map(s=>s.trim()).filter(Boolean);
   if(list.length<1){alert('请至少输入 1 个选项');return;}
@@ -320,12 +321,13 @@ function start(){
   const r=document.getElementById('result');
   r.textContent='🎲 抽取中...';
   let cycles=0;
-  const interval=setInterval(()=>{
-    if(!pool){clearInterval(interval);return;}
+  drawTimer=setInterval(()=>{
+    if(!pool){clearInterval(drawTimer);drawTimer=null;return;}
     r.textContent=pool[Math.floor(Math.random()*pool.length)];
     cycles++;
     if(cycles>=15){
-      clearInterval(interval);
+      clearInterval(drawTimer);
+      drawTimer=null;
       const picked=randomPickOne(pool,seed);
       r.textContent=picked;
       if(unique){
@@ -360,6 +362,7 @@ function start(){
   },80);
 }
 function reset(){
+  if(drawTimer!==null){clearInterval(drawTimer);drawTimer=null;}
   pool=null;
   poolSig=null;
   history=[];
@@ -438,6 +441,7 @@ function __random_pickerRender(keys,rk,en){
         TBKit.matrix.table('#random_pickerTable',{head:head,rows:rows});
         TBKit.util.diffBox('#random_pickerDiff');
         TBKit.history.mount('#random_pickerHist',function(rec){
+            if(drawTimer!==null) return;
             __random_picker_skip=true;
             try{
                 // 恢复前先清空未记录的勾选：旧记录是稀疏的（只存勾选中的项），
