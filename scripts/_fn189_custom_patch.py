@@ -144,6 +144,7 @@ ALREADY = {
 
 def build_custom(s, info, base_new_norm, slug):
     """对定制页 / 半修页做 8 处精确局部编辑；返回 (s2, seg, custom_added)。"""
+    raise ValueError('business verdict must be implemented and verified per page')
     pre, old_seg = info['pre'], info['seg']
     assert info['slug'] == slug, '%s csv 名与 slug 不一致: %s' % (slug, info['slug'])
     assert s.count('function __%sResText()' % pre) == 1, slug + ' 起始标记不唯一'

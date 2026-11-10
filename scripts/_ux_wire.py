@@ -336,7 +336,8 @@ def extract_custom(page):
     """新架构手工页模式：顶层 function <fn> + 结果容器（id/res/output 或 result-box 类）
     + 输入控件（无 calcTool/dataGrid）。返回 dict(fn, inputs, defaults, container) 或 None。
     fn 取按钮/输入事件回调中的顶层函数，优先 calc/compute/solve/count/estimate/eval 系命名。"""
-    s = open(page, encoding='utf-8').read()
+    with open(page, encoding='utf-8') as source:
+        s = source.read()
     if 'TBKit.matrix.table' in s:
         return None
     container = find_result_container(s)
@@ -677,7 +678,8 @@ def apply_custom(page, dry=False):
     """新架构手工页接线：包装顶层 calc 函数，calc 后快照输入+结果摘要，
     经 TBKit 落 history/matrix/diffBox/chart/preset/export。全部 try 包裹，
     TBKit 缺失时静默跳过，不触碰页面核心计算。"""
-    s0 = open(page, encoding='utf-8').read()
+    with open(page, encoding='utf-8') as source:
+        s0 = source.read()
     info = extract_custom(page)
     if info is None:
         return None
@@ -687,6 +689,8 @@ def apply_custom(page, dry=False):
     # 包装器体内引用的正是这个全局变量 → 包装器调用自己 → 无限递归。
     if ("var __%s_f0" % p) in s0 or ('id="%sTable"' % p) in s0:
         return "skip:already-wired(custom)"
+    # Arbitrary result text has no reliable generic pass/fail semantics.
+    return "skip:business-verdict-required"
     fn = info["fn"]
     defaults = info["defaults"]
     container = info["container"]

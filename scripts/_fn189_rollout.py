@@ -105,6 +105,7 @@ def norm(seg, pre, slug, resexpr, calc):
 
 def load_template(base_slug=BASE_SLUG, base_cat=BASE_CAT):
     """从已修基准页反推模板：返回 dict(tpl, base_norm, base)。"""
+    raise ValueError('business verdict must be implemented and verified per page')
     bf = 'tools/%s/%s.html' % (base_cat, base_slug)
     bs = io.open(bf, encoding='utf-8').read()
     binfo = parse_meta(bs)
@@ -131,6 +132,7 @@ def load_template(base_slug=BASE_SLUG, base_cat=BASE_CAT):
 
 def build_standard(s, info, tpl, base_norm, slug):
     """把标准旧模板页整体替换为新实现；返回 (s2, seg)。定制页抛 ValueError。"""
+    raise ValueError('business verdict must be implemented and verified per page')
     pre = info['pre']
     assert info['slug'] == slug, '%s csv 名与 slug 不一致: %s' % (slug, info['slug'])
     assert s.count('function __%sResText()' % pre) == 1, slug + ' 起始标记不唯一'
