@@ -313,7 +313,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __pan_validator_last=0,__pan_validator_skip=false;
+var __pan_validator_last=0,__pan_validator_skip=false,__pan_validator_timer=null;
 function __pan_validatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -379,9 +379,11 @@ function __pan_validatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __pan_validatorExtras(){
+function __pan_validatorExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__pan_validator_skip) return;
+    clearTimeout(__pan_validator_timer);
+    __pan_validator_timer=null;
     var snap=__pan_validatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -391,7 +393,10 @@ function __pan_validatorExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__pan_validator_last<1000) return;
+    if(!force && now-__pan_validator_last<1000){
+        __pan_validator_timer=setTimeout(function(){__pan_validatorExtras(true);},1000-(now-__pan_validator_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -411,6 +416,7 @@ function __pan_validatorExtras(){
 }
 function __pan_validatorExport(){
     if (typeof TBKit === 'undefined') return;
+    __pan_validatorExtras(true);
     try{
         var box=document.querySelector('#pan_validatorTable');
         if(!box||!box.querySelector('tr')){

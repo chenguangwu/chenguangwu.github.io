@@ -311,7 +311,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __tfn_validator_last=0,__tfn_validator_skip=false;
+var __tfn_validator_last=0,__tfn_validator_skip=false,__tfn_validator_timer=null;
 function __tfn_validatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -377,9 +377,11 @@ function __tfn_validatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __tfn_validatorExtras(){
+function __tfn_validatorExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__tfn_validator_skip) return;
+    clearTimeout(__tfn_validator_timer);
+    __tfn_validator_timer=null;
     var snap=__tfn_validatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -389,7 +391,10 @@ function __tfn_validatorExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__tfn_validator_last<1000) return;
+    if(!force && now-__tfn_validator_last<1000){
+        __tfn_validator_timer=setTimeout(function(){__tfn_validatorExtras(true);},1000-(now-__tfn_validator_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -409,6 +414,7 @@ function __tfn_validatorExtras(){
 }
 function __tfn_validatorExport(){
     if (typeof TBKit === 'undefined') return;
+    __tfn_validatorExtras(true);
     try{
         var box=document.querySelector('#tfn_validatorTable');
         if(!box||!box.querySelector('tr')){
