@@ -62,8 +62,35 @@ function checkSinValidation() {
   dom.window.close();
 }
 
+function checkPostalValidation() {
+  const page = fs.readFileSync(path.join(root, 'tools/finance/postal-code-validator.html'), 'utf8');
+  const script = page.match(/const FORMATS = \[[\s\S]*?\nfunction toggleToolTheme\(\)/)[0].replace(/function toggleToolTheme\(\)$/, '');
+  const dom = new JSDOM('<input id="input"><div id="output"></div>', { runScripts: 'dangerously' });
+  const { document } = dom.window;
+  let executed = false;
+  dom.window.ALERT = () => { executed = true; };
+  dom.window.eval(script);
+  const check = (input, expected) => {
+    document.getElementById('input').value = input;
+    dom.window.validate();
+    const output = document.getElementById('output');
+    const img = output.querySelector('img');
+    if (img) img.dispatchEvent(new dom.window.Event('error'));
+    assert.strictEqual(img, null, '邮编输入不得创建注入节点');
+    assert.strictEqual(executed, false, '邮编输入不得执行注入事件');
+    assert.ok(output.textContent.includes(input.toUpperCase()), '输入应以文本安全回显');
+    assert.ok(output.textContent.includes(expected), input);
+  };
+  check('HK:<img src=x onerror=alert(1)>', 'Hong Kong（HK）');
+  check('<img src=x onerror=alert(1)>', '不匹配任何已知国家');
+  check('HELLO', '不匹配任何已知国家');
+  check('HK:任意内容123', 'Hong Kong（HK）');
+  check('100000', 'China（CN）');
+  dom.window.close();
+}
+
 let failed = false;
-for (const [name, test] of [['颜色历史', checkColorHistory], ['工序排期', checkSchedule], ['SIN 输入', checkSinValidation]]) {
+for (const [name, test] of [['颜色历史', checkColorHistory], ['工序排期', checkSchedule], ['SIN 输入', checkSinValidation], ['邮编输入', checkPostalValidation]]) {
   try { test(); console.log('PASS', name); } catch (err) { failed = true; console.error('FAIL', name, err.message); }
 }
 if (failed) process.exitCode = 1;
