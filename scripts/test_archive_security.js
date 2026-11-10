@@ -505,8 +505,60 @@ function checkIbanReview() {
   }
 }
 
+function checkBicLookupReview() {
+  const { dom, scripts } = loadFinancePage('bic-lookup');
+  dom.window.eval(scripts.find(s => s.includes('const BANK_DB =')) + '\nwindow.__bankCount = Object.keys(BANK_DB).length;');
+  const doc = dom.window.document;
+  const check = value => { doc.getElementById('input').value = value; dom.window.validate(); return doc.getElementById('output'); };
+  assert.ok(check('Deutsche Bank').textContent.includes('DEUT'));
+  assert.ok(check('DEUTDEFF500').textContent.includes('BIC 格式有效'));
+  assert.ok(check('ABCDEFGH').textContent.includes('国家代码 EF 不是'));
+  assert.ok(check('DEUTPTFF').textContent.includes('BIC 格式有效'));
+  const input = '<svg id=x onload=alert(1)>';
+  const out = check(input);
+  assert.strictEqual(out.querySelector('svg'), null, '反向查询不得创建 HTML 节点');
+  assert.ok(out.textContent.includes(input.toUpperCase()), '查询词应安全回显');
+  assert.ok(out.textContent.includes('未找到匹配'));
+  const deep = JSON.parse(fs.readFileSync(path.join(root, 'i18n/tools/content_deepdive.json'), 'utf8'))['finance/bic-lookup'];
+  const answer = deep.faqs[1].a;
+  const en = JSON.parse(fs.readFileSync(path.join(root, 'i18n/tools/en/finance/bic-lookup.json'), 'utf8')).map;
+  assert.ok(answer.includes('34 个银行代码前缀'), 'FAQ 应明确统计代码而非机构');
+  assert.ok(doc.body.textContent.includes(answer));
+  assert.ok(en[answer] && en[answer].includes('34 bank code prefixes'));
+  assert.strictEqual(dom.window.__bankCount, 34);
+  dom.window.close();
+}
+function checkGstinReview() {
+  const { dom, scripts } = loadFinancePage('gstin-validator');
+  dom.window.eval(scripts.find(s => s.includes('const GST_BASE =')));
+  const doc = dom.window.document;
+  const check = value => { doc.getElementById('input').value = value; dom.window.validate(); return doc.getElementById('output'); };
+  const payload = '<svg id=x onload=alert(1)>';
+  const out = check(payload);
+  assert.strictEqual(out.querySelector('svg'), null, 'GSTIN 输入不得创建 HTML 节点');
+  assert.ok(out.textContent.includes(payload.toUpperCase()));
+  assert.ok(check('27AAPFU0939F1ZV').textContent.includes('GSTIN 有效'));
+  assert.ok(check('99AAPFU0939F1ZK').textContent.includes('州代码不是'));
+  assert.ok(check('27AAPFU0939F1AV').textContent.includes('必须为 Z'));
+  dom.window.close();
+}
+function checkCnpjReview() {
+  const { dom, scripts } = loadFinancePage('cnpj-validator');
+  dom.window.eval(scripts.find(s => s.includes('function mod11_cnpj(')));
+  const doc = dom.window.document;
+  const check = value => { doc.getElementById('input').value = value; dom.window.validate(); return doc.getElementById('output'); };
+  let text = check('00000000000000').textContent;
+  assert.ok(text.includes('校验和： ✅ 通过') && text.includes('全部数字相同'), '全零校验和通过仍应拒绝全同号');
+  text = check('11111111111111').textContent;
+  assert.ok(text.includes('校验和： ❌ 未通过') && text.includes('全部数字相同') && !text.includes('非校验和错误'), '全一应真实报告校验和失败');
+  assert.ok(check('04.252.011/0001-10').textContent.includes('CNPJ 号码有效'));
+  assert.ok(check('04A252011000110').textContent.includes('非法字符'));
+  assert.strictEqual(check('<img src=x onerror=1>').querySelector('img'), null);
+  dom.window.close();
+}
+
 let failed = false;
-for (const [name, test] of [['货币符号复核', checkCurrencyReview], ['信用卡利息复核', checkCreditInterestReview], ['IBAN 复核', checkIbanReview], ['标签生成空态', checkLabelEmptyState], ['Code128 字符范围', checkCode128Descriptions], ['仓位缺填历史', checkPositionSizingMissingInput], ['行业利润率', checkIndustryProfitMargins], ['字数统计说明', checkWordCounterDescription], ['银行卡输入', checkCardInput], ['名片二维码超限', checkVcardOverflow], ['基金定投时点', checkFundTiming], ['退休现金流', checkRetirementCashFlow], ['颜色历史', checkColorHistory], ['工序排期', checkSchedule], ['SIN 输入', checkSinValidation], ['邮编输入', checkPostalValidation], ['CURP 输入', () => checkIdValidation('curp', 'CURP_BASE', 'BOXW310820HMNERN16', 'BOXW310820HMNERN160')], ['DNI 输入', () => checkIdValidation('dni', 'DNI_LETTERS', '12345678Z', '12345678A')], ['投资回报历史', checkInvestmentHistory], ['期权盈亏', checkOptionCalculator]]) {
+for (const [name, test] of [['BIC 查询复核', checkBicLookupReview], ['GSTIN 复核', checkGstinReview], ['CNPJ 复核', checkCnpjReview], ['货币符号复核', checkCurrencyReview], ['信用卡利息复核', checkCreditInterestReview], ['IBAN 复核', checkIbanReview], ['标签生成空态', checkLabelEmptyState], ['Code128 字符范围', checkCode128Descriptions], ['仓位缺填历史', checkPositionSizingMissingInput], ['行业利润率', checkIndustryProfitMargins], ['字数统计说明', checkWordCounterDescription], ['银行卡输入', checkCardInput], ['名片二维码超限', checkVcardOverflow], ['基金定投时点', checkFundTiming], ['退休现金流', checkRetirementCashFlow], ['颜色历史', checkColorHistory], ['工序排期', checkSchedule], ['SIN 输入', checkSinValidation], ['邮编输入', checkPostalValidation], ['CURP 输入', () => checkIdValidation('curp', 'CURP_BASE', 'BOXW310820HMNERN16', 'BOXW310820HMNERN160')], ['DNI 输入', () => checkIdValidation('dni', 'DNI_LETTERS', '12345678Z', '12345678A')], ['投资回报历史', checkInvestmentHistory], ['期权盈亏', checkOptionCalculator]]) {
   try { test(); console.log('PASS', name); } catch (err) { failed = true; console.error('FAIL', name, err.message); }
 }
 if (failed) process.exitCode = 1;

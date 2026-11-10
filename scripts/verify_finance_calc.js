@@ -176,9 +176,9 @@ const CASES = [
   {
     slug: "finance/cnpj-validator",
     inputs: { input: "00000000000000" },
-    clicks: ["validate();var h=String(document.getElementById('output').innerHTML).replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ');document.getElementById('__tbProbe').textContent='FNCNPZ '+document.getElementById('input').value+' '+((h.indexOf('全部数字相同，非有效 CNPJ（非校验和错误）')>=0&&h.indexOf('校验和失败')<0)?'OK':'BAD');"],
+    clicks: ["validate();var h=String(document.getElementById('output').innerHTML).replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ');document.getElementById('__tbProbe').textContent='FNCNPZ '+document.getElementById('input').value+' '+((h.indexOf('全部数字相同，非有效 CNPJ')>=0&&h.indexOf('校验和： ✅ 通过')>=0)?'OK':'BAD');"],
     expect: ["FNCNPZ 00000000000000 OK"],
-    ref: "F-N169 全同数字分流：00000000000000 的两个 mod-11 期望其实为 0/0 与末位相符，失败原因是「数字全同」而非「校验和失败」。旧实现统一输出「❌ 校验和失败」误导定位；新实现单独提示「全部数字相同，非有效 CNPJ（非校验和错误）」。默认预填 00000000000191 非全同 ⇒ 零逃生。",
+    ref: "F-N169 全同数字分流：00000000000000 的两个 mod-11 期望其实为 0/0 与末位相符，失败原因是「数字全同」而非「校验和失败」。旧实现统一输出「❌ 校验和失败」误导定位；新实现独立报告校验和通过，并提示「全部数字相同，非有效 CNPJ」。默认预填 00000000000191 非全同 ⇒ 零逃生。",
   },
   {
     slug: "finance/cnpj-validator",
