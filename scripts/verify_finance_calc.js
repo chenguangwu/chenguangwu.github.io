@@ -24,6 +24,41 @@ const { runCase } = require("./verify_it_calc.js");
 // ---------------------------------------------------------------- 用例
 const CASES = [
   {
+    slug: "finance/investment-roi",
+    inputs: { aCost: "10000", aRate: "0", aYears: "5", aAdd: "1000", bCost: "10000", bRate: "0", bYears: "5", bAdd: "1000" },
+    clicks: ["switchTab('compare');calcCompare();document.getElementById('aCost').value='-1';calcCompare();var h=String(document.getElementById('compareStats').innerHTML);document.getElementById('__tbProbe').textContent='ROIREJ '+(h.indexOf('须为有效正数')>=0&&h.indexOf('15,000')<0?'OK':'BAD');"],
+    expect: ["ROIREJ OK"],
+    ref: "第127批 真机发现的真 bug：calcCompare() 对成本/期限 ≤0 是静默 return，既不给提示也不清结果区，上一次合法方案的 15,000 仍挂着，历史却按新输入判 0（同屏自相矛盾、可导出旧报价）。修复为字段级拒绝 + __roiReject 清残留。同一用例内先算合法 0%+追加（15,000）再拒绝；旧源码保留旧结果 ⇒ BAD ⇒ 强判别、零逃生。"
+  },
+  {
+    slug: "finance/investment-roi",
+    inputs: { aCost: "10000", aRate: "0", aYears: "5", aAdd: "1000", bCost: "10000", bRate: "0", bYears: "5", bAdd: "1000" },
+    clicks: ["switchTab('compare');calcCompare();var h=String(document.getElementById('compareStats').innerHTML);document.getElementById('__tbProbe').textContent='ROIZERO '+(h.indexOf('15,000')>=0&&h.indexOf('-100.00%')<0&&h.indexOf('NaN')<0&&h.indexOf('0.00%')>=0&&h.indexOf('持平')>=0?'OK':'BAD');"],
+    expect: ["ROIZERO OK"],
+    ref: "第127批 F-N33 0% 利率 + 每年追加：旧 calcFV 与绘图 calcFVAt 各写一遍 ((1+r)^t−1)/r，r=0 得 0/0=NaN，fmt 后结果卡显示「-- 方案A终值」与「-100.00% A年化」（比清单记录的整卡替换更隐蔽）。修复抽成 roiFutureValue 统一公式，r=0 走 add*t，并用 expm1/log1p 消除 r→0 的浮点抵消；实测两方案终值均 15,000、资金加权年化均 0.00%、判持平。注入态（0% + 追加 1000）命中；默认态 aRate=8 终值 14,000+ ⇒ BAD ⇒ 强判别、零逃生。"
+  },
+  {
+    slug: "finance/investment-roi",
+    inputs: { aCost: "100", aRate: "9", aYears: "2", aAdd: "0", bCost: "100", bRate: "10", bYears: "2", bAdd: "100" },
+    clicks: ["switchTab('compare');calcCompare();var h=String(document.getElementById('compareStats').innerHTML);document.getElementById('__tbProbe').textContent='ROIIRR '+(h.indexOf('118.81')>=0&&h.indexOf('352')>=0&&h.indexOf('9.00%')>=0&&h.indexOf('10.00%')>=0&&h.indexOf('8.32%')<0&&h.indexOf('>方案B<')>=0&&h.indexOf('>方案A<')<0?'OK':'BAD');"],
+    expect: ["ROIIRR OK"],
+    ref: "第127批 F-N34 清单原例：A 100 元 @9%/2 年不追加，B 100 元 @10%/2 年每年追加 100。旧版把 B 的「总收益/累计投入」按 2 年开方得 8.32%，低于 A 的 9.00% ⇒ 误判 A 更优（2026-11-06 复核明确仍待修）。修复按各期投入时点反解资金加权 IRR ⇒ A 9.00% / B 10.00%、终值 118.81 / 352、判 B 更优（结果卡 winner 值为「方案B」）；断言同时排除 8.32% 并要求 winner 不是「方案A」。注入态命中；默认态两方案 10,000 元 ⇒ BAD ⇒ 强判别、零逃生。"
+  },
+  {
+    slug: "finance/investment-roi",
+    inputs: { aCost: "10000", aRate: "100000", aYears: "5", aAdd: "0", bCost: "10000", bRate: "3", bYears: "5", bAdd: "0" },
+    clicks: ["switchTab('compare');calcCompare();var h=String(document.getElementById('compareStats').innerHTML);document.getElementById('__tbProbe').textContent='ROINULL '+(h.indexOf('无法确定')>=0&&h.indexOf('持平')<0&&h.indexOf('NaN')<0?'OK':'BAD');"],
+    expect: ["ROINULL OK"],
+    ref: "第127批 复核方判据「未检出当无解 → 保守无法确定」：aRate=100000% 时 FV 远超二分区间上界能覆盖的终值，roiMoneyWeightedIrr 端点同号返回 null。修复后判优显示「无法确定」而不是把求解失败当成「持平」或伪造上限；旧累计 ROI 开方版会给出有限年化并判 A ⇒ BAD。注入态命中；默认态 aRate=8 ⇒ BAD ⇒ 强判别、零逃生。"
+  },
+  {
+    slug: "finance/investment-roi",
+    inputs: { bCost: "5000" },
+    clicks: ["switchTab('compare');var src=String(__investment_roiScore)+String(__investment_roiSnap);var f1=typeof __investment_roi_f1,f2=typeof __investment_roi_f2;var okIn=String(document.getElementById('bCost').value)==='5000';document.getElementById('__tbProbe').textContent='ROITAB '+(okIn&&src.indexOf('aCost')>=0&&src.indexOf('.tab-panel.active')>=0&&f1==='function'&&f2==='function'?'OK':'BAD');"],
+    expect: ["ROITAB OK"],
+    ref: "第127批 机制层防回退：旧版 Extras 只包装 calcSimple，定投/方案对比两个真实入口完全不写历史；Snap 全表抓 17 键再截断到 12，bCost/bRate/bAdd 永远进不了历史；Score 恒读 simple 的 cost/years 与 simpleStats。修复后三个入口均包装、快照收窄到活动 tab、Score 按 tab 业务状态判定。harness stub 不支持复杂选择器与真历史，故锁源码级特征 + 注入值 bCost=5000（注入失败回默认值 10000 ⇒ BAD）。"
+  },
+  {
     slug: "finance/lease-payment-calculator",
     inputs: { downPct: "150" },
     clicks: ["calc();var g=document.getElementById('statGrid'),t=document.getElementById('tableWrap'),r=String(document.getElementById('res').innerHTML);document.getElementById('__tbProbe').textContent='LEASECLR '+((g&&!g.innerHTML)&&(t&&!t.innerHTML)&&r.indexOf('首付比例须在 0–100%')>=0?'OK':'BAD');"],
@@ -4173,8 +4208,8 @@ const CASES = [
     slug: "finance/investment-roi",
     inputs: { aCost: "1000", aRate: "10", aYears: "5", aAdd: "0", bCost: "5000", bRate: "3", bYears: "5", bAdd: "0" },
     clicks: ["switchTab('compare')", "calcCompare()"],
-    expect: ["方案A 更优方案（按年化回报率判优）"],
-    ref: "F-N34：A 1,000 元 @10%/5 年 → 终值 1,610.51、年化 10.00%；B 5,000 元 @3%/5 年 → 终值 5,796.37、年化 3.00%。旧实现按终值判 B 更优（投入更多者占优）；修复后按年化回报率判 A。默认两方案 10,000 元 ⇒ 不命中。",
+    expect: ["方案A 更优方案（按资金加权年化 IRR 判优）"],
+    ref: "F-N34：A 1,000 元 @10%/5 年 → 终值 1,610.51、资金加权年化 10.00%；B 5,000 元 @3%/5 年 → 终值 5,796.37、年化 3.00%。旧实现按终值判 B 更优（投入更多者占优），上一版改按「累计 ROI 开方」判 A；第 127 批改为按各期实际投入时点反解 IRR 判优，卡片标签同步改为「按资金加权年化 IRR 判优」（属测试契约同步，非页面回归）。默认两方案 10,000 元 ⇒ 不命中。",
   },
   {
     slug: "finance/investment-roi",

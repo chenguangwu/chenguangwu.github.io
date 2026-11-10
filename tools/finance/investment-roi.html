@@ -595,7 +595,8 @@ function calcRegular(){
   for(let t=0;t<nInt;t++) cashFlows.push(-pmt);
   cashFlows.push(fv);
   const irrPer = irrFromCashFlows(cashFlows, ratePer);
-  const hasIrr = isFinite(irrPer);
+  // irrFromCashFlows 求解失败返回 null；全局 isFinite(null) 为 true，旧判定会把 null 当成 0 展示
+  const hasIrr = irrPer !== null && isFinite(irrPer);
   const nominalIrr = hasIrr ? irrPer * periodsPerYear : null;
   const effectiveIrr = hasIrr ? Math.pow(1 + irrPer, periodsPerYear) - 1 : null;
 
@@ -695,6 +696,59 @@ function drawRegularChart(){
   ctx.fillStyle = primary; ctx.fillText('投入本金', padL+90, padT+14);
 }
 
+// F-N33 / F-N34：期末价值统一公式（初始投资一次复利 + 每年期初追加的年金终值）。
+// r→0 时年金退化为 add*t；旧实现在 calcFV 与绘图 calcFVAt 两处各写一遍
+// ((1+r)^t−1)/r，0% 时 0/0=NaN，结果卡把 NaN 格式化成「--」并给出 −100% 年化。
+function roiFutureValue(p, t, r){
+  // 顶层函数会被站内的通用回归桩无参兜底调用；参数不完整时安全返回，不抛出中断渲染
+  if(!p || !isFinite(t) || !isFinite(r)) return 0;
+  var base = 1 + r;
+  var v = p.cost * Math.pow(base, t);
+  if(p.add > 0 && t > 0){
+    // expm1/log1p 避免 r→0 时 ((1+r)^t−1)/r 的灾难性抵消：
+    // 旧写法在 r≈1e-13 时分子被浮点吃掉，0% 方案反解 IRR 会假报「无法确定」。
+    var q = Math.expm1(Math.log1p(r));      // ≈ r，小 r 下比 (1+r)−1 精确
+    var g = Math.expm1(t * Math.log1p(r));  // ≈ (1+r)^t − 1
+    v += Math.abs(r) < 1e-12 ? p.add * t : p.add * (g / q) * base;
+  }
+  return v;
+}
+// F-N34：资金加权年化（IRR）。按「初始投入 t=0、每年期初追加、期末一次收回终值」
+// 的现金流口径反解年化利率；与 roiFutureValue 同源，期限含小数时仍自洽。
+// 旧版把「总收益/累计投入」按总期限开方，追加资金被当作期初一次性本金，
+// 清单原例 A 9% / B 10%（每年追加 100）被判成 A 9.00% > B 8.32%。
+function roiMoneyWeightedIrr(p, fv){
+  if(!p || !isFinite(fv)) return null;
+  // 0% 名义利率下所有投入无时间价值，终值恒等于累计投入，IRR 严格为 0
+  if(Math.abs(p.rate/100) < 1e-12 && fv > 0) return 0;
+  var lo = -0.9999, hi = 10;
+  var fLo = roiFutureValue(p, p.years, lo) - fv;
+  var fHi = roiFutureValue(p, p.years, hi) - fv;
+  if(!isFinite(fLo) || !isFinite(fHi) || fLo * fHi > 0) return null;
+  var fSign = fLo < 0;
+  for(var i=0;i<160;i++){
+    var mid = (lo + hi) / 2;
+    var fm = roiFutureValue(p, p.years, mid) - fv;
+    if(!isFinite(fm)) return null;
+    if((fm < 0) === fSign){ lo = mid; } else { hi = mid; }
+  }
+  var rate = (lo + hi) / 2;
+  return Math.abs(roiFutureValue(p, p.years, rate) - fv) > Math.max(1, Math.abs(fv)) * 1e-9 ? null : rate;
+}
+// 运行时重渲染的动态串统一走 helper，英文态不残留中文
+function __roiTx(zh, en){
+  return (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn()) ? en : zh;
+}
+// 拒绝态统一出口：写明原因并清掉上一次合法方案的图表，避免「提示 + 旧报价」同屏
+function __roiReject(zh, en){
+  var box=document.getElementById('compareStats');
+  if(box) box.innerHTML='<div class="stat-card"><div class="val" style="font-size:14px;color:var(--danger);">'+__roiTx(zh,en)+'</div></div>';
+  try{
+    var cv=document.getElementById('compareChart');
+    if(cv&&cv.getContext){ var cx=cv.getContext('2d'); if(cx&&cx.clearRect) cx.clearRect(0,0,cv.width,cv.height); }
+  }catch(e){}
+}
+
 function calcCompare(){
   const a = {
     cost: parseFloat(document.getElementById('aCost').value)||0,
@@ -708,43 +762,51 @@ function calcCompare(){
     years: parseFloat(document.getElementById('bYears').value)||0,
     add: parseFloat(document.getElementById('bAdd').value)||0
   };
-  if(a.cost <= 0 || b.cost <= 0 || a.years <= 0 || b.years <= 0) return;
+  // F-N34 关联：旧版成本/期限 ≤0 时静默 return，结果区仍挂着上一次合法方案，
+  // 历史却按新输入判 0（同屏自相矛盾且可导出旧报价）。改为字段级拒绝 + 清残留。
+  if(a.cost <= 0 || b.cost <= 0 || a.years <= 0 || b.years <= 0){
+    __roiReject('初始投资与投资期限须为有效正数（成本 > 0、期限 > 0）。','Initial cost and investment horizon must be positive numbers.');
+    return;
+  }
   // 负追加会被当成 0 静默丢弃并放大投入基数，直接按字段错误处理
   if(a.add < 0 || b.add < 0){
-    document.getElementById('compareStats').innerHTML='<div class="stat-card"><div class="val" style="font-size:14px;color:var(--danger);">每年追加须 ≥ 0；如需从本金中取出，请按真实现金流另行计算。</div></div>';
-    const cv=document.getElementById('compareChart');
-    if(cv){ const c2=cv.getContext('2d'); c2.clearRect(0,0,cv.width,cv.height); }
+    __roiReject('每年追加须 ≥ 0；如需从本金中取出，请按真实现金流另行计算。','Yearly top-up must be ≥ 0. To withdraw from principal, model the real cash flows instead.');
     return;
   }
 
-  function calcFV(p){
-    let fv = p.cost * Math.pow(1 + p.rate/100, p.years);
-    if(p.add > 0){
-      const r = p.rate/100;
-      fv += p.add * ((Math.pow(1+r, p.years)-1)/r) * (1+r);
-    }
-    return fv;
-  }
+  // F-N33：0% 是合法输入，统一走 roiFutureValue（r=0 走加性分支）
+  function calcFV(p){ return roiFutureValue(p, p.years, p.rate/100); }
   const aFV = calcFV(a), bFV = calcFV(b);
   const aInvest = a.cost + a.add * a.years;
   const bInvest = b.cost + b.add * b.years;
   const aProfit = aFV - aInvest, bProfit = bFV - bInvest;
   const aRoi = aInvest > 0 ? aProfit/aInvest : 0;
   const bRoi = bInvest > 0 ? bProfit/bInvest : 0;
-  const aAnnual = aRoi > -1 ? Math.pow(1+aRoi, 1/a.years)-1 : -1;
-  const bAnnual = bRoi > -1 ? Math.pow(1+bRoi, 1/b.years)-1 : -1;
+  // F-N34：按各期实际投入时点反解资金加权年化（IRR），不再用累计 ROI 开方
+  const aAnnual = roiMoneyWeightedIrr(a, aFV);
+  const bAnnual = roiMoneyWeightedIrr(b, bFV);
   const diff = bFV - aFV;
-  // 判优按「年化回报率」而非终值：本金/追加不同时，终值天然偏向投入更多的一方
-  const winner = Math.abs(bAnnual - aAnnual) < 1e-9 ? '持平' : (bAnnual > aAnnual ? 'B' : 'A');
+  const hasBoth = aAnnual !== null && bAnnual !== null && isFinite(aAnnual) && isFinite(bAnnual);
+  // 求解失败时保守显示「无法确定」：不把没解出来当成「持平」或「无实根」
+  const winner = !hasBoth ? 'unknown' : (Math.abs(bAnnual - aAnnual) < 1e-9 ? 'tie' : (bAnnual > aAnnual ? 'B' : 'A'));
+  const aAnnualTxt = (aAnnual === null || !isFinite(aAnnual)) ? '—' : fmtPct(aAnnual);
+  const bAnnualTxt = (bAnnual === null || !isFinite(bAnnual)) ? '—' : fmtPct(bAnnual);
+  const winnerTxt = winner === 'unknown' ? __roiTx('无法确定', 'Undetermined')
+    : winner === 'tie' ? __roiTx('持平', 'Tie')
+    : __roiTx('方案' + winner, 'Plan ' + winner);
 
   const __h5=`
-    <div class="stat-card"><div class="val" style="color:var(--primary);">${fmt(aFV)}</div><div class="lbl">方案A终值</div></div>
-    <div class="stat-card"><div class="val" style="color:var(--success);">${fmt(bFV)}</div><div class="lbl">方案B终值</div></div>
-    <div class="stat-card"><div class="val" style="color:${diff>=0?'var(--success)':'var(--danger)'};">${diff>=0?'+':''}${fmt(diff)}</div><div class="lbl">B-A 差额</div></div>
-    <div class="stat-card"><div class="val">${winner==='持平'?'持平':'方案'+winner}</div><div class="lbl">更优方案（按年化回报率判优）</div></div>
-    <div class="stat-card"><div class="val">${fmtPct(aAnnual)}</div><div class="lbl">A年化</div></div>
-    <div class="stat-card"><div class="val">${fmtPct(bAnnual)}</div><div class="lbl">B年化</div></div>
-  `;if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){document.getElementById('compareStats').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('compareStats').innerHTML=__h5;
+    <div class="stat-card"><div class="val" style="color:var(--primary);">${fmt(aFV)}</div><div class="lbl">${__roiTx('方案A终值','Plan A final value')}</div></div>
+    <div class="stat-card"><div class="val" style="color:var(--success);">${fmt(bFV)}</div><div class="lbl">${__roiTx('方案B终值','Plan B final value')}</div></div>
+    <div class="stat-card"><div class="val" style="color:${diff>=0?'var(--success)':'var(--danger)'};">${diff>=0?'+':''}${fmt(diff)}</div><div class="lbl">${__roiTx('B-A 差额','B-A difference')}</div></div>
+    <div class="stat-card"><div class="val">${winnerTxt}</div><div class="lbl">${__roiTx('更优方案（按资金加权年化 IRR 判优）','Better plan (by money-weighted annualized IRR)')}</div></div>
+    <div class="stat-card"><div class="val">${aAnnualTxt}</div><div class="lbl">${__roiTx('A 资金加权年化（IRR）','Plan A money-weighted IRR')}</div></div>
+    <div class="stat-card"><div class="val">${bAnnualTxt}</div><div class="lbl">${__roiTx('B 资金加权年化（IRR）','Plan B money-weighted IRR')}</div></div>
+    <div class="stat-card" style="grid-column:1/-1;text-align:left;"><div class="lbl" style="line-height:1.6;">${__roiTx(
+      '口径：资金加权年化（IRR）按「初始投入 t=0、每年期初追加、期末收回终值」反解，与定投 IRR 同口径；累计投入只用于展示成本，终值差额不代表收益率高低。A ' + aAnnualTxt + ' / B ' + bAnnualTxt + '。',
+      'Basis: the money-weighted annualized return (IRR) is solved from cash flows (initial outlay at t=0, yearly top-ups at the start of each year, final value at maturity), same basis as the DCA IRR. Total outlay is cost only; a larger final value does not mean a higher return. A ' + aAnnualTxt + ' / B ' + bAnnualTxt + '.'
+    )}</div></div>
+  `;if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){document.getElementById('compareStats').innerHTML='<p style="color:var(--danger)">⚠ ' + __roiTx('计算结果含无效值，请检查输入是否为有效正数。','The result contains invalid values. Check the inputs.') + '</p>';try{var __cv=document.getElementById('compareChart');if(__cv&&__cv.getContext){var __cx=__cv.getContext('2d');if(__cx&&__cx.clearRect)__cx.clearRect(0,0,__cv.width,__cv.height);}}catch(e){}return;}document.getElementById('compareStats').innerHTML=__h5;
   drawCompareChart();
 }
 
@@ -767,14 +829,8 @@ function drawCompareChart(){
   const maxYears = Math.max(a.years, b.years);
   if(maxYears <= 0) return;
 
-  function calcFVAt(p, t){
-    let fv = p.cost * Math.pow(1 + p.rate/100, t);
-    if(p.add > 0 && t > 0){
-      const r = p.rate/100;
-      fv += p.add * ((Math.pow(1+r, t)-1)/r) * (1+r);
-    }
-    return fv;
-  }
+  // F-N33：绘图采样同样走统一公式，避免 0% 时曲线单独出现 NaN
+  function calcFVAt(p, t){ return roiFutureValue(p, t, p.rate/100); }
 
   const dpr = window.devicePixelRatio || 1;
   const w = canvas.clientWidth, h = canvas.clientHeight;
@@ -861,9 +917,24 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 
 var __investment_roi_last=0,__investment_roi_skip=false,__investment_roi_timer=null;
+function __investment_roiTab(){
+    try{
+      var p=document.querySelector('.tab-panel.active');
+      return p ? String(p.id||'').replace(/^tab-/,'') : 'simple';
+    }catch(e){ return 'simple'; }
+}
 function __investment_roiSnap(){
     var out={};
-    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    // F-N34 关联：本页三个计算 tab 共 17 个控件，旧版全表抓取再截断到 12 个，
+    // 方案对比的 bCost/bRate/bAdd 永远进不了历史 ⇒ 回放无法复现方案对比。
+    // 只快照当前活动 tab 的输入；不支持复杂选择器的环境回退到全表。
+    var panel=null;
+    try{ panel=document.querySelector('.tab-panel.active'); }catch(e){}
+    if(!panel || !panel.querySelectorAll || !panel.querySelectorAll('input[id],select[id],textarea[id]').length){
+      try{ panel=document.getElementById('tab-simple'); }catch(e){}
+    }
+    var els=(panel && panel.querySelectorAll) ? panel.querySelectorAll('input[id],select[id],textarea[id]')
+                                              : document.querySelectorAll('input[id],select[id],textarea[id]');
     for(var i=0;i<els.length;i++){
         var e=els[i];
         var t=(e.type||'').toLowerCase();
@@ -873,8 +944,14 @@ function __investment_roiSnap(){
     }
     return out;
 }
+function __investment_roiBox(){
+    var t=__investment_roiTab();
+    if(t==='regular') return document.getElementById('regularStats');
+    if(t==='compare') return document.getElementById('compareStats');
+    return document.getElementById('simpleStats');
+}
 function __investment_roiResText(){
-    var r=document.getElementById('simpleStats');
+    var r=__investment_roiBox();
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
@@ -882,18 +959,36 @@ function __investment_roiResText(){
     return t.slice(0,80);
 }
 function __investment_roiFullResText(){
-    var r=document.getElementById('simpleStats');
+    var r=__investment_roiBox();
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
     return t;
 }
 function __investment_roiScore(t){
-    var c=parseFloat(document.getElementById('cost').value),y=parseFloat(document.getElementById('years').value);
-    if(!isFinite(c)||c<=0||!isFinite(y)||y<=0) return 0;
-    if(/请输入合理的正数|计算结果含无效值/.test(String(t||''))) return 0;
+    // 按业务状态判定，不靠关键词词表猜结论：三个 tab 各自的输入与结果容器不同，
+    // 旧版恒读 cost/years 与 simpleStats，方案对比/定投的非法输入会被记成「通过」。
+    var tab=__investment_roiTab();
+    var v=function(id){var e=document.getElementById(id);return e?parseFloat(e.value):NaN;};
+    if(tab==='regular'){
+      var m=v('monthly'),p=v('period'),ar=v('annualRate');
+      if(!isFinite(m)||m<=0||!isFinite(p)||p<=0||!isFinite(ar)||ar<=-100) return 0;
+    }else if(tab==='compare'){
+      var ids=['aCost','aRate','aYears','aAdd','bCost','bRate','bYears','bAdd'];
+      for(var i=0;i<ids.length;i++){
+        var x=v(ids[i]);
+        if(!isFinite(x)) return 0;
+        if(/(Cost|Years)$/.test(ids[i]) && x<=0) return 0;
+        if(/Add$/.test(ids[i]) && x<0) return 0;
+        if(/Rate$/.test(ids[i]) && x<=-100) return 0;
+      }
+    }else{
+      var c=v('cost'),y=v('years');
+      if(!isFinite(c)||c<=0||!isFinite(y)||y<=0) return 0;
+    }
     var s=String(t||'');
-    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/请输入合理的正数|计算结果含无效值|每年追加须|The result contains invalid values|Please enter|请输入/.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __investment_roiTime(t){
@@ -926,7 +1021,13 @@ function __investment_roiRender(keys,rk,en){
                     if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
                     else{e.value=rec[k];}
                 }
-                calcSimple();
+                var __tab=String(rec.__tbTab||'simple');
+                try{ switchTab(__tab); }catch(e4){}
+                try{
+                  if(__tab==='regular') calcRegular();
+                  else if(__tab==='compare') calcCompare();
+                  else calcSimple();
+                }catch(e5){}
             }catch(e2){}
             __investment_roi_skip=false;
         });
@@ -971,6 +1072,7 @@ function __investment_roiExtras(force){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
+    rec.__tbTab=__investment_roiTab();
     rec.__tbScore=__investment_roiScore(__investment_roiFullResText());
     TBKit.history.record(rec);
     __investment_roiRender(keys,rk,en);
@@ -996,11 +1098,20 @@ function __investment_roiPresets(){
       {label:'股票2年·5万买入·6.8万卖出',labelEn:'Stock · buy 50k · sell 68k · 2y',values:{'cost':'50000', 'return':'68000', 'years':'2', 'unit':'year', 'discount':'5', 'monthly':'1000', 'freq':'monthly', 'annualRate':'10', 'period':'5', 'aCost':'50000', 'aRate':'10', 'aYears':'2', 'aAdd':'0', 'bCost':'50000', 'bRate':'15', 'bYears':'2', 'bAdd':'0'}},
       {label:'定投基金·每月3000·12%·10年',labelEn:'Fund DCA · 3000/mo · 12% · 10y',values:{'cost':'10000', 'return':'13000', 'years':'2', 'unit':'year', 'discount':'5', 'monthly':'3000', 'freq':'monthly', 'annualRate':'12', 'period':'10', 'aCost':'10000', 'aRate':'12', 'aYears':'10', 'aAdd':'3000', 'bCost':'10000', 'bRate':'4', 'bYears':'10', 'bAdd':'3000'}},
       {label:'项目对比·各10万·8% vs 15%',labelEn:'Project A/B · 100k each · 8% vs 15%',values:{'cost':'100000', 'return':'130000', 'years':'3', 'unit':'year', 'discount':'8', 'monthly':'1000', 'freq':'monthly', 'annualRate':'8', 'period':'3', 'aCost':'100000', 'aRate':'8', 'aYears':'3', 'aAdd':'0', 'bCost':'100000', 'bRate':'15', 'bYears':'3', 'bAdd':'0'}}
-    ],function(){ calcSimple(); });
+    ],function(){ try{ switchTab('simple'); }catch(e){} calcSimple(); });
 }
 var __investment_roi_f0=(typeof calcSimple==='function')?calcSimple:null;
 if(__investment_roi_f0){
     calcSimple=function(){ var __r=__investment_roi_f0.apply(null,arguments); try{ __investment_roiExtras(); }catch(e){} return __r; };
+}
+// 旧版只包装 calcSimple：定投 / 方案对比两个真实入口的计算完全不写历史、不判结论。
+var __investment_roi_f1=(typeof calcRegular==='function')?calcRegular:null;
+if(__investment_roi_f1){
+    calcRegular=function(){ var __r=__investment_roi_f1.apply(null,arguments); try{ __investment_roiExtras(); }catch(e){} return __r; };
+}
+var __investment_roi_f2=(typeof calcCompare==='function')?calcCompare:null;
+if(__investment_roi_f2){
+    calcCompare=function(){ var __r=__investment_roi_f2.apply(null,arguments); try{ __investment_roiExtras(); }catch(e){} return __r; };
 }
 function __investment_roiBoot(){ try{ __investment_roiPresets(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __investment_roiBoot();
