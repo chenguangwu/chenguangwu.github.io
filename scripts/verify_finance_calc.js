@@ -693,6 +693,19 @@ const CASES = [
     ref: "F-N211 emoji 码点反转：a😀b → 映射 ɒ😀d → 按码点反转 d😀ɒ；旧实现 split('') 按 UTF-16 码元反转，把 😀 的代理项对拆成孤立代理输出乱码。默认态 Hello World! ⇒ 不命中。",
   },
   {
+    slug: "finance/mirror-text",
+    inputs: { input: "a👩‍💻🇨🇳👍🏽e\u0301😀𠀀b" },
+    clicks: ["convert()"],
+    expect: ["d𠀀😀ɘ\u0301👍🏽🇨🇳👩‍💻ɒ"],
+    ref: "F-N211 字素簇倒序：ZWJ、国旗、肤色、组合重音内部顺序不变，单 emoji、增补汉字及映射字母也正确。",
+  },
+  {
+    slug: "finance/mirror-text",
+    clicks: ["var original=Intl.Segmenter;try{Intl.Segmenter=undefined;document.getElementById('input').value='a👩‍💻🇨🇳👍🏽e\\u0301b';convert();document.getElementById('__tbProbe').textContent='MIRRORFALLBACK='+document.getElementById('result').textContent;}finally{Intl.Segmenter=original;}"],
+    expect: ["MIRRORFALLBACK=dɘ\u0301👍🏽🇨🇳👩‍💻ɒ"],
+    ref: "无 Intl.Segmenter 的兼容回退：保持常见组合重音、肤色、旗帜和 ZWJ 簇。",
+  },
+  {
     slug: "automotive/vin-validator",
     inputs: { vinInput: "1M8GDM9AXKP042788" },
     clicks: ["validate()"],
