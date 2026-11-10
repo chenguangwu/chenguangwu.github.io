@@ -188,6 +188,12 @@ const CASES = [
   },
   {
     slug: "health/insulin-dose",
+    inputs: { currentBg: "11", targetBg: "6", icr: "1e-320", isf: "3", carbs: "30", activeIns: "0", exercise: "1" },
+    expect: ["计算结果超出可计算范围"],
+    ref: "G10-48 再复核：极小正 ICR 导致碳水剂量溢出，必须拒绝计算并清空结果，而不是记录无效剂量。",
+  },
+  {
+    slug: "health/insulin-dose",
     inputs: { currentBg: "11", targetBg: "6", icr: "0", isf: "3", carbs: "30" },
     expect: ["碳水系数（ICR）与胰岛素敏感系数（ISF）须大于 0"],
     ref: "复核失败重做 G10-48（第七批·零分母）：ICR=0 时 carbDose=30÷0=Infinity，修复前主结果显示「—」、明细含「—U」，但 __insulin_dose_ok 仍为 true 导致错误态写入历史。修复后分母非正一律拒绝，清空 doseVal/breakdown/doseMarker 并置无效标志。默认态不含该提示 ⇒ 强判别、零逃生。",

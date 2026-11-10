@@ -17,6 +17,15 @@
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
+  { slug: "insurance/net-single-premium", inputs: { B: "80000", q: "0.02", i: "-0.99", n: "200" },
+    clicks: ["calcTool();document.getElementById('__tbProbe').textContent='NSPOVER '+(__nspLast===null?'BLOCKED':'VALID');"],
+    expect: ["计算溢出", "NSPOVER BLOCKED"], ref: "极端折现导致中间值溢出，不得生成有效保费。" },
+  { slug: "insurance/endowment-premium", inputs: { B: "80000", q: "0.02", i: "-0.99", n: "200" },
+    clicks: ["calcTool();document.getElementById('__tbProbe').textContent='EPOVER '+(__epLast===null?'BLOCKED':'VALID');"],
+    expect: ["计算溢出", "EPOVER BLOCKED"], ref: "极端折现导致中间值溢出，不得生成有效保费。" },
+  { slug: "insurance/endowment-premium", inputs: { B: "80000", q: "0", i: "0", n: "10" },
+    clicks: ["calcTool();document.getElementById('__tbProbe').textContent='EPZERO '+(__epLast?__epLast.P.toFixed(2):'BLOCKED');"],
+    expect: ["EPZERO 8000.00"], ref: "零利率时年金系数为年数 10，保费为 80000/10。" },
   {
     slug: "insurance/net-single-premium",
     clicks: ["var __cap=[];var __exp=0;TBKit={util:{isEn:function(){return false;},exportTable:function(){},exportCsv:function(){__exp=1;},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'x',type:'text',value:'1'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};__nspLast=null;document.getElementById('result').textContent='请填写「保额」后再计算。';__net_single_premiumExtras();var h=__cap.length;__net_single_premiumExport();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='NSPGUARD hist='+h+' exp='+__exp;"],

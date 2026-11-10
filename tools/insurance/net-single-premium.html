@@ -291,7 +291,7 @@ function num(id){const v=parseFloat(document.getElementById(id).value);return is
 // 区分「留空」与「显式 0」：留空返回 NaN（B/R 类校验用，R-N5）
 function __nspNum(id){var e=document.getElementById(id);if(!e)return NaN;var s=String(e.value==null?'':e.value).trim();if(s==='')return NaN;var v=parseFloat(s);return isFinite(v)?v:NaN;}
 var __nspLast=null;   // 最近一次有效计算的输入/结果/逐年明细，供导出与趋势使用（R-N5 / R-N6）
-function __nspFail(msg){ToolBox.setResult('result','<p class="tip-error">⚠ '+msg+'</p>');}
+function __nspFail(msg){var table=document.getElementById('net_single_premiumTable');if(table)table.innerHTML='';ToolBox.setResult('result','<p class="tip-error">⚠ '+msg+'</p>');}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){  __nspLast=null;   var __ig=__tbInputGuard(['B', 'q', 'i', 'n'],["保额 (元)", "年死亡率 q", "年利率 i", "保障年数 (年)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 function fmt(v){const neg=v<0?'-':'';v=Math.abs(v);let s=v.toFixed(2);let p=s.split('.');p[0]=p[0].replace(/\B(?=(\d{3})+(?!\d))/g,',');return neg+p.join('.');}
@@ -306,7 +306,8 @@ function fmt(v){const neg=v<0?'-':'';v=Math.abs(v);let s=v.toFixed(2);let p=s.sp
             const v=1/(1+i);
             let nsp=0, sp=1;
             const __rows=[];
-            for(let t=1;t<=n;t++){ const prob=sp*q; const df=Math.pow(v,t); const dcf=B*df*prob; nsp += dcf; __rows.push([String(t), sp.toFixed(6), prob.toFixed(6), df.toFixed(6), dcf.toFixed(2)]); sp*=(1-q); }
+            for(let t=1;t<=n;t++){ const prob=sp*q; const df=Math.pow(v,t); const dcf=B*df*prob; nsp += dcf; if(!isFinite(df)||!isFinite(dcf)||!isFinite(nsp)){__nspFail('计算溢出，请调整利率、金额或年数后重试。');return;} __rows.push([String(t), sp.toFixed(6), prob.toFixed(6), df.toFixed(6), dcf.toFixed(2)]); sp*=(1-q); }
+            if(!isFinite(nsp/B*100)){__nspFail('计算溢出，请调整利率、金额或年数后重试。');return;}
             __nspLast={B:B,q:q,i:i,n:n,nsp:nsp,spEnd:sp,rows:__rows.map(function(x){return x.slice();})};
             const __note=[];
             if(i===0) __note.push('年利率为 0，折现因子 v 恒为 1，净趸缴保费等于各年死亡赔付的算术和。');

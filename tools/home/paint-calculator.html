@@ -387,16 +387,21 @@ function renderDeductBox(totalArea, deduct, netArea, savedPaint, savedBuckets){
 function calc(){
  const list = getSurfaces();
  const totalArea = list.reduce((s,x) => s + x.area, 0);
- const coats = +document.getElementById('coats').value || 1;
- const coverage = +document.getElementById('coverage').value || 10;
- const bucketSize = +document.getElementById('bucket-size').value || 5;
- const bucketPrice = +document.getElementById('bucket-price').value || 0;
+ const rawParams=['coats','coverage','bucket-size','bucket-price'].map(function(id){return document.getElementById(id).value.trim();});
+ const params=rawParams.map(Number);
+ if(rawParams.some(function(v){return v==='';})||params.some(function(v){return !isFinite(v);})||params[0]<=0||params[1]<=0||params[2]<=0||params[3]<0){
+   const box=document.getElementById('paintDeductBox');
+   if(box)box.textContent=__paintIsEn()?'Please enter valid paint parameters; coats, coverage and bucket size must be positive, price must be nonnegative.':'请填写油漆计算参数：遍数、覆盖率和容量须大于 0，价格须为非负数。';
+   ['total-area','net-area','total-paint','total-buckets','total-cost'].forEach(function(id){const e=document.getElementById(id);if(e)e.textContent='—';});
+   return false;
+ }
+ const coats=params[0], coverage=params[1], bucketSize=params[2], bucketPrice=params[3];
   const deductRaw = (typeof getDeduct === 'function') ? getDeduct() : {ok:true,door:0,win:0,total:0};
   if(!deductRaw.ok){
     const box = document.getElementById('paintDeductBox');
     if(box) box.innerHTML = '<p style="color:var(--danger);">⚠ ' + deductRaw.msg + '</p>';
     ['total-area','net-area','total-paint','total-buckets','total-cost'].forEach(function(id){ const e=document.getElementById(id); if(e) e.textContent='—'; });
-    return;
+    return false;
   }
   const deduct = deductRaw;
   const netArea = Math.max(totalArea - deduct.total, 0);
@@ -413,12 +418,13 @@ function calc(){
  const __g4=buckets;document.getElementById('total-buckets').textContent=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
  const __g5=cost.toFixed(0);document.getElementById('total-cost').textContent=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
  try{ renderDeductBox(totalArea, deduct, netArea, savedPaint, buckets); }catch(e){}
+ return true;
 }
 
 function exportResult(){
  const list = getSurfaces();
  if(!list.length){ ToolBox.showToast(i18nText('toast.msg427'),'warn'); return; }
- calc();
+ if(!calc()) return;
  const t = `油漆用量计算 - ${new Date().toLocaleString('zh-CN')}\n${'='.repeat(40)}\n\n涂刷面清单:\n${list.map(s => `  - ${s.name}: ${s.area} m²`).join('\n')}\n\n参数:\n  涂刷遍数: ${document.getElementById('coats').value}\n  覆盖率: ${document.getElementById('coverage').value} m²/L/遍\n  单桶容量: ${document.getElementById('bucket-size').value} L\n  单桶价格: ${document.getElementById('bucket-price').value} 元\n\n汇总:\n  总面积: ${document.getElementById('total-area').textContent} m²\n  总用量: ${document.getElementById('total-paint').textContent} L\n  建议购买: ${document.getElementById('total-buckets').textContent} 桶\n  预估成本: ${document.getElementById('total-cost').textContent} 元\n`;
  ToolBox.downloadText(`paint-estimate-${Date.now()}.txt`, t);
 }
@@ -440,7 +446,7 @@ function __paintExport(){
   if(typeof TBKit==='undefined'){ ToolBox.showToast('导出组件未加载'); return; }
   var list=getSurfaces();
   if(!list||!list.length){ ToolBox.showToast(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Add a coating surface first":"请先添加涂刷面")); return; }
-  calc();
+  if(!calc()) return;
   var en=TBKit.util.isEn();
   var t=document.getElementById('paintHidden'); if(!t) return;
   var rows=list.map(function(s){ return [s.name, (+s.area.toFixed(1))]; });

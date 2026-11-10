@@ -16,6 +16,8 @@
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
+  { slug: "statistics/paired-t-test", inputs: { dbar: "1e308", sd: "1e-308", n: "15" },
+    expect: ["计算结果超出可表示范围"], ref: "统计量或效应量溢出必须阻断结论及导出。" },
   { slug: "statistics/paired-t-test", inputs: { dbar: "-2.5", sd: "2.5", n: "15" },
     clicks: ["var __d=Number(document.getElementById('dbar').value);var __s=Number(document.getElementById('sd').value);var __z=__d/__s;document.getElementById('result').innerHTML='DZ='+__z.toFixed(4)+'|'+__ptEffectSize(__z)+'|'+__ptEffectSizeEn(__z);"],
     expect: ["DZ=-1.0000|大效应|large"],

@@ -2,6 +2,11 @@
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
+  { slug: "home/paint-calculator", inputs: { coverage: "" },
+    expect: ["请填写油漆计算参数"], ref: "清空覆盖率不得静默回退默认值。" },
+  { slug: "home/paint-calculator", inputs: { "bucket-price": "0" },
+    clicks: ["calc();document.getElementById('__tbProbe').textContent='PAINTZERO '+document.getElementById('total-cost').textContent;"],
+    expect: ["PAINTZERO 0"], ref: "显式零价格仍合法。" },
   { slug: "home/paint-calculator", inputs: { "door-count": "" },
     expect: ["门窗字段不能为空"],
     ref: "第六批（涂料空门窗）：清空门数时旧实现 +'' = 0，把空值当合法 0 继续输出默认毛面积 52 m² / 净面积 48.4 m²，与错误文案「不能为空」矛盾。现显式区分空串 / 非法数值 / 合法显式 0，空值清空结论并提示。默认态四字段均有值、正常出结果，不含该提示 ⇒ 强判别。" },

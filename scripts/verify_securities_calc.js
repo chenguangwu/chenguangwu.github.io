@@ -13,6 +13,12 @@
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
+  { slug: "securities/position-sizing",
+    inputs: { winRate: "55", winLossRatio: "1.5", totalCapital: "100000", riskPerTrade: "2000", capital2: "100000", riskPct: "2", entryPrice: "10", stopPrice: "9", targetPrice: "9.99999", feeRate: "0" },
+    expect: ["目标净亏损 = -¥0.02"], ref: "微小净亏损不得舍入显示为负零。" },
+  { slug: "securities/position-sizing",
+    inputs: { winRate: "55", winLossRatio: "1.5", totalCapital: "100000", riskPerTrade: "2000", capital2: "100000", riskPct: "2", entryPrice: "10", stopPrice: "9", targetPrice: "10.00001", feeRate: "0" },
+    expect: ["目标盈利 = +¥0.02"], ref: "微小净盈利不得舍入显示为正零。" },
   {
     slug: "securities/position-sizing",
     clicks: ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{\"id\":\"winRate\",\"type\":\"text\",\"value\":\"55\"}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('result').textContent='请填写「胜率」后再计算。';__position_sizingExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='PSFILL score='+(__cap.length?__cap[__cap.length-1].__tbScore:'NA');"],

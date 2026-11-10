@@ -286,8 +286,8 @@ function fmtScaled(c,mA,mB){
   const dec=function(v){
     const a=Math.abs(v);
     if(a===0||!isFinite(a)) return {m:0,e:0,s:1};
-    const e=Math.floor(Math.log10(a));
-    return {m:a/Math.pow(10,e),e:e,s:v<0?-1:1};
+    const parts=a.toExponential(16).split('e');
+    return {m:Number(parts[0]),e:Number(parts[1]),s:v<0?-1:1};
   };
   const p=dec(c), q=dec(mA), r=dec(mB);
   let mant=p.m*q.m*r.m, exp=p.e+q.e+r.e, sign=p.s*q.s*r.s;
@@ -310,15 +310,18 @@ function calculate(){
   /* IT-N471 复核重做：阈值须随尺度缩放，且不能依赖 mA*mB 这种会下溢的乘积。
      先把两向量各自归一化，用归一化叉积的模求 sinθ、归一化点积求 cosθ；
      asin 只返回 0–90°，atan2(sinθ, cosθ) 给 0–180°，共线时按点积符号自然得 0°/180°。 */
-  const u=mA>0?A.map(x=>x/mA):[0,0,0], w=mB>0?B.map(x=>x/mB):[0,0,0];
+  const scaleA=Math.max(...A.map(Math.abs)), scaleB=Math.max(...B.map(Math.abs));
+  const scaledA=scaleA>0?A.map(x=>x/scaleA):[0,0,0], scaledB=scaleB>0?B.map(x=>x/scaleB):[0,0,0];
+  const normA=mag(scaledA), normB=mag(scaledB);
+  const u=normA>0?scaledA.map(x=>x/normA):[0,0,0], w=normB>0?scaledB.map(x=>x/normB):[0,0,0];
   const cn=[u[1]*w[2]-u[2]*w[1], u[2]*w[0]-u[0]*w[2], u[0]*w[1]-u[1]*w[0]];
   const sinT=Math.min(1,mag(cn));
   const dotN=u[0]*w[0]+u[1]*w[1]+u[2]*w[2];
   // 极端小尺度（如 1e-200）下 |A||B| 会下溢为 0，C 也被算成 0。此时按
   // 归一化叉积 × |A| × |B| 的指数分解展示量级，避免「A × B = (0,0,0) 但 θ=90°」自相矛盾。
-  const underflow=(mA>0&&mB>0&&mA*mB===0);
-  const CT=underflow?cn.map(c=>fmtScaled(c,mA,mB)):C.map(fmt);
-  const mCT=underflow?fmtScaled(sinT,mA,mB):fmt(mC);
+  const underflow=(mA>0&&mB>0&&isFinite(mA)&&isFinite(mB)&&(mA*mB===0||C.some((v,i)=>v===0&&cn[i]!==0)));
+  const CT=underflow?cn.map((c,i)=>C[i]===0&&c!==0?fmtScaled(c,mA,mB):fmt(C[i])):C.map(fmt);
+  const mCT=underflow&&mC===0?fmtScaled(sinT,mA,mB):fmt(mC);
   const vecStrT=function(arr){ return '('+arr.join(', ')+')'; };
   let html='<p><strong>A = </strong>'+vecStr(A)+'</p><p><strong>B = </strong>'+vecStr(B)+'</p>';
   html+='<div class="big-result">A × B = '+vecStrT(CT)+'</div>';
@@ -334,7 +337,8 @@ function calculate(){
   if(mA>0 && mB>0){
     const ang=Math.atan2(sinT,dotN)*180/Math.PI;
     html+='<div class="step-line">sin θ = |A×B|/(|A||B|) = '+fmt(sinT)+' → θ = '+fmt(ang)+'°</div>';
-    if(sinT<=1e-9) html+='<div class="step-line" style="color:var(--success);">'+__vcpL('A × B = 0，说明 A 与 B 平行（或其中之一为零向量）','A × B = 0, so A and B are parallel (or one of them is the zero vector)')+'</div>';
+    if(sinT===0) html+='<div class="step-line" style="color:var(--success);">'+__vcpL('A × B = 0，说明 A 与 B 平行（或其中之一为零向量）','A × B = 0, so A and B are parallel (or one of them is the zero vector)')+'</div>';
+    else if(sinT<=1e-9) html+='<div class="step-line" style="color:var(--success);">'+__vcpL('A 与 B 近似平行（按角度阈值判断）','A and B are approximately parallel (angle threshold)')+'</div>';
   } else {
     html+='<div class="step-line" style="color:var(--success);">'+__vcpL('A × B = 0，说明 A 与 B 平行（或其中之一为零向量）','A × B = 0, so A and B are parallel (or one of them is the zero vector)')+'</div>';
   }

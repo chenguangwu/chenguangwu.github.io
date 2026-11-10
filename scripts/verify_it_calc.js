@@ -569,6 +569,17 @@ const CASES = [
   },
   // ===== 复核失败·第三批重做（IT-N477 / IT-N478 / IT-N3 / IT-N413）=====
   {
+    slug: "it/text-replace", inputs: {},
+    clicks: ["document.getElementById('__tbProbe').textContent='TOTAL='+__trFind('a'.repeat(200002),'a',{re:false,g:true,i:false,m:false}).length;"],
+    expect: ["TOTAL=200002"],
+    ref: "IT-N3 再复核：超过 20 万匹配时统计仍须与主替换计数一致。"
+  },
+  {
+    slug: "it/phone-parser", inputs: { phone: "07946095", cc: "44" },
+    expect: ["国内格式：0794 6095"],
+    ref: "IT-N413 再复核：剥除 trunk 后不足 8 位的英国短号，国内格式仍应保留单个前导 0。"
+  },
+  {
     slug: "it/vector-magnitude",
     inputs: {},
     clicks: ["document.getElementById('dim').value='2';document.getElementById('v0').value='1e-13';document.getElementById('v1').value='0';calculate();"],

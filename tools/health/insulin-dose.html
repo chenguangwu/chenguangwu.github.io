@@ -420,6 +420,15 @@ function calc() {
   } else if(cur < 0 || tgt < 0 || carbs < 0 || active < 0 || exercise < 0){
     bad = enIns ? 'Blood glucose, carbs, active insulin and exercise factor cannot be negative.' : '血糖、碳水摄入、活性胰岛素与运动系数不能为负，请核对输入。';
   }
+  let carbDose, corrDose, total;
+  if(!bad){
+    carbDose = carbs / icr;
+    corrDose = Math.max(0, (cur - tgt) / isf);
+    total = (carbDose + corrDose - active) * exercise;
+    if(!isFinite(carbDose) || !isFinite(corrDose) || !isFinite(total) || !isFinite(total * 2)){
+      bad = enIns ? 'The calculation exceeds the supported numeric range. Please check the inputs.' : '计算结果超出可计算范围，请核对输入。';
+    }
+  }
   if(bad){
     __insulin_dose_ok=false;
     document.getElementById('doseVal').textContent='--';
@@ -429,10 +438,6 @@ function calc() {
   }
   __insulin_dose_ok=true;
   
-  const carbDose = carbs / icr;
-  const corrDose = Math.max(0, (cur - tgt) / isf);
-  let total = carbDose + corrDose - active;
-  total = total * exercise;
   total = Math.max(0, Math.round(total * 2) / 2);
   
   const __g1=total.toFixed(1);document.getElementById('doseVal').textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));

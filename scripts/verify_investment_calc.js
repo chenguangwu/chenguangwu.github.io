@@ -12,6 +12,12 @@
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
+  { slug: "investment/irr-calc", inputs: { cf0: "-100", cf1: "220", cf2: "-121.000001", cf3: "0", cf4: "0" },
+    expect: ["未找到 IRR 零点"], ref: "判别式为负，近零残差不等于存在重根。" },
+  { slug: "investment/irr-calc", inputs: { cf0: "-100", cf1: "220", cf2: "-120.999999", cf3: "0", cf4: "0" },
+    expect: ["10.00 内部收益率 IRR (%)", "可能存在多重 IRR"], ref: "两根相邻但确实存在，应找到其中一根。" },
+  { slug: "investment/irr-calc", inputs: { cf0: "0", cf1: "0", cf2: "0", cf3: "0", cf4: "0" },
+    expect: ["所有现金流均为零", "无法确定唯一 IRR"], ref: "全零现金流在整个区间均为零，不能判定唯一解。" },
   { slug: "investment/irr-calc",
     inputs: { cf0: "-100", cf1: "220", cf2: "-121", cf3: "0", cf4: "0" },
     expect: ["10.00 内部收益率 IRR (%)"],

@@ -476,6 +476,12 @@ const CASES = [
   },
   {
     slug: "design/depth-of-field-calculator",
+    inputs: { sensor: "1", focal: "50", aperture: "1.8", distance: "0.01" },
+    expect: ["对焦距离须大于焦距"],
+    ref: "D-N6 再复核：对焦距离 10mm 小于焦距 50mm，不能输出负景深。"
+  },
+  {
+    slug: "design/depth-of-field-calculator",
     inputs: { sensor: "1", focal: "85", aperture: "2.8" },
     clicks: ["document.getElementById('distance').value='';calc();"],
     expect: ["请填写有效的焦距、光圈与对焦距离"],

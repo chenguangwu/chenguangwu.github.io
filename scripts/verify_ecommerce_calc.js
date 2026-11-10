@@ -2,6 +2,10 @@
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
+  { slug: "ecommerce/analysis-71", inputs: { data: "A,100,100,,-1\nB,100,100,4,2" },
+    clicks: ["calc();"], expect: ["发货时效天数不能为负数"], ref: "即使同行其他字段缺失，仍应指出负发货时效。" },
+  { slug: "ecommerce/analysis-71", inputs: { data: "A,100,100,4,1e-2\nB,100,100,4,2" },
+    clicks: ["calc();"], expect: ["0.01 天"], ref: "科学计数法 1e-2 必须正确解析为 0.01。" },
   {
     slug: "ecommerce/report",
     clicks: ["var __cap=null;TBKit={util:{isEn:function(){return false;},exportTable:function(sel,name){__cap={sel:sel,name:name};},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return [];},last:function(){return null;},record:function(){},mount:function(){}},preset:{bar:function(){}}};var __oq=document.querySelector;document.querySelector=function(s){return {querySelectorAll:function(q){return [{tagName:'TR'}];}};};__reportExport();document.querySelector=__oq;document.getElementById('__tbProbe').textContent='EXPR sel='+(__cap?__cap.sel:'NA')+' name='+(__cap?__cap.name:'NA');"],

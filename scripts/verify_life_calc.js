@@ -12,6 +12,9 @@
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
+  { slug: "life/bill-splitter",
+    clicks: ["var x=__advSplitAmounts([{amount:0.03,involved:[0,1]}],3,1,3);document.getElementById('__tbProbe').textContent='SPLITZERO '+x.map(function(v){return v.toFixed(2);}).join('|');"],
+    expect: ["SPLITZERO 0.02|0.01|0.00"], ref: "未参与人员不得因配平被扣成负数。" },
 {
     "slug": "life/bill-splitter",
     "clicks": ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'total-amount',type:'text',value:'300'},{id:'person-count',type:'text',value:'4'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};var __rs={textContent:'每人 75 元 · 合计 300 元'};var __oqs=document.querySelector;document.querySelector=function(s){return s==='.result-box'?__rs:__oqs(s);};__bill_splitter_last=0;__bill_splitter_a0=function(){};calcAdvanced();document.querySelectorAll=__oq;document.querySelector=__oqs;document.getElementById('__tbProbe').textContent='BILLADV n='+__cap.length;"],

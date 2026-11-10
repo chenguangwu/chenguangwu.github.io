@@ -237,48 +237,48 @@ function num(id){const v=parseFloat(document.getElementById(id).value);return is
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
 function npv(rate, cfs){let s=0; for(let i=0;i<cfs.length;i++) s+=cfs[i]/Math.pow(1+rate,i); return s;}
+var irrUncertain=false;
 function irr(cfs){
   const lo0=-0.99, hi0=10, N=20000, step=(hi0-lo0)/N;
-  let scale=1;
-  for(let q=0;q<cfs.length;q++){const a=Math.abs(cfs[q]);if(a>scale)scale=a;}
-  const tol=1e-7*scale;                 // 相对残差容差，按现金流规模自适应
+  let degree=cfs.length-1;
+  while(degree>0&&cfs[degree]===0)degree--;
+  if(degree===2){
+    const a=cfs[0],b=cfs[1],c=cfs[2];
+    let disc=b*b-4*a*c;
+    if(isFinite(disc)){
+      const err=8*Number.EPSILON*(Math.abs(b*b)+Math.abs(4*a*c));
+      if(disc < -err)return NaN;
+      if(Math.abs(disc)<=err){irrUncertain=true;disc=0;}
+      if(a!==0){
+        const root=Math.sqrt(disc), q=-0.5*(b+(b>=0?root:-root));
+        const values=q===0?[-b/(2*a)]:[q/a,c/q];
+        for(const x of values){const r=x-1;if(isFinite(r)&&r>=lo0&&r<=hi0)return r;}
+        return NaN;
+      }
+    }
+  }
   let px=lo0, py=npv(px,cfs);
-  let bestX=px, bestY=isFinite(py)?Math.abs(py):Infinity;
   for(let i=1;i<=N;i++){
     const x=lo0+step*i, y=npv(x,cfs);
     if(!isFinite(y)){px=x;py=y;continue;}
     if(py===0) return px;
     if(y===0) return x;
-    const ay=Math.abs(y);
-    if(ay<bestY){bestY=ay;bestX=x;}
-    if(isFinite(py)&&py*y<0){
+    if(isFinite(py)&&((py<0&&y>0)||(py>0&&y<0))){
       let a=px, b=x, fa=py, fb=y;
       for(let k=0;k<300;k++){const m=(a+b)/2, fm=npv(m,cfs); if(fa*fm<=0){b=m;fb=fm;}else{a=m;fa=fm;}}
       return (a+b)/2;
     }
     px=x; py=y;
   }
-  // 复核失败重做：偶重根处 NPV 触零但不变号（如 -100,220,-121 在 r=10%），
-  // 单靠「采样点为零 / 相邻变号」必然漏掉且会错误断言「无解」。
-  // 对 |NPV| 全局最小点做局部三分搜索精化，残差收敛到容差内即认定为根。
-  if(bestY<tol*1000){
-    let a=bestX-step*2, b=bestX+step*2;
-    if(a<lo0)a=lo0; if(b>hi0)b=hi0;
-    for(let k=0;k<160;k++){
-      const m1=a+(b-a)/3, m2=b-(b-a)/3;
-      if(Math.abs(npv(m1,cfs))<=Math.abs(npv(m2,cfs))) b=m2; else a=m1;
-    }
-    const r=(a+b)/2;
-    if(isFinite(r)&&Math.abs(npv(r,cfs))<=tol) return r;
-  }
   return NaN;
 }
 
             const cfs=[num('cf0'),num('cf1'),num('cf2'),num('cf3'),num('cf4')];
             var scCnt=0,prev=0;for(var si=0;si<cfs.length;si++){var vv=cfs[si];if(vv===0)continue;if(prev!==0&&((prev>0)!==(vv>0)))scCnt++;prev=vv;}
-            var irrVal=irr(cfs);
+            var allZero=cfs.every(function(v){return v===0;});
+            var irrVal=allZero?NaN:irr(cfs);
             var noRoot=isNaN(irrVal);
-            var irrVerdict=noRoot?'⚠ 搜索区间 [−99%, 1000%] 内未找到 IRR 零点（可能存在偶重根或极窄区间根），请结合现金流复核，不能据此断言现金流无解':(scCnt>1?'⚠ 现金流变号 '+scCnt+' 次，可能存在多重 IRR，下值仅为其中之一':'常规现金流（单次变号），解唯一');
+            var irrVerdict=allZero?'⚠ 所有现金流均为零，无法确定唯一 IRR':noRoot?'⚠ 搜索区间 [−99%, 1000%] 内未找到 IRR 零点（可能存在偶重根或极窄区间根），请结合现金流复核，不能据此断言现金流无解':irrUncertain?'⚠ 疑似重根，受浮点精度限制尚不能确认，请用高精度方法复核':(scCnt>1?'⚠ 现金流变号 '+scCnt+' 次，可能存在多重 IRR，下值仅为其中之一':'常规现金流（单次变号），解唯一');
             const __g1=dataGrid([
                 [(irrVal*100).toFixed(2),'内部收益率 IRR (%)'],
                 [irrVerdict,'求解有效性判据']

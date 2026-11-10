@@ -4,6 +4,13 @@ const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
   "slug": "audit/npv-discount",
+  "inputs": { "rate": "100", "init": "1" },
+  "clicks": ["flows=[1e308,1e308];calc();document.getElementById('__tbProbe').textContent='NPVTOTAL '+(window.__npvBlocked?'BLOCKED':'VALID');"],
+  "expect": ["NPVTOTAL BLOCKED"],
+  "ref": "未折现现金流总额溢出时必须阻止回报率及明细导出。"
+},
+{
+  "slug": "audit/npv-discount",
   "inputs": {},
   "clicks": ["for(var i=0;i<75;i++)addFlow();document.getElementById('__tbProbe').textContent='NPVCAP n='+flows.length+' cap='+(typeof __NPV_MAX_FLOWS!=='undefined'?__NPV_MAX_FLOWS:'NA');"],
   "expect": ["NPVCAP n=60 cap=60"],

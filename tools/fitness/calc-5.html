@@ -297,14 +297,21 @@ function calculate() {
   const weight = parseFloat(document.getElementById('weight').value) || 0;
   const activityFactor = parseFloat(document.getElementById('activity').value) || 1.3;
   const goalAdd = parseFloat(document.getElementById('goal').value) || 0;
-  const custom = parseFloat(document.getElementById('customFactor').value);
+  const customRaw = document.getElementById('customFactor').value.trim();
+  const custom = parseFloat(customRaw);
 
   if (weight <= 0) {
     ToolBox.showToast(i18nText('toast.msg810'), 'error');
     return;
   }
 
-  const factor = (isFinite(custom) && custom > 0) ? custom : (activityFactor + goalAdd);
+  if (customRaw !== '' && (!isFinite(custom) || custom <= 0)) {
+    const en = typeof TBKit !== 'undefined' && TBKit.util.isEn();
+    document.getElementById('result').innerHTML = '<p style="color:var(--danger)">' + (en ? 'The custom factor must be a positive number.' : '自定义系数须为正数。') + '</p>';
+    return;
+  }
+
+  const factor = customRaw !== '' ? custom : (activityFactor + goalAdd);
   const minFactor = Math.max(0.8, factor - 0.2);
   const maxFactor = factor + 0.2;
   const minG = weight * minFactor;
