@@ -196,6 +196,16 @@ for (const [file, prefix, input, error] of [
   check('尾随零不会隐藏两根',result.status==='multiple' && result.rates.length===2);
   result=w.calcIRR(100,[330,-363,133.1]);
   check('高阶重复根不能误报无解',result.status!=='none');
+  for(const flows of [[2,-1.0000000000000002],[2,-0.9999999999999999],[2,-0.9999999999999998],[4,-6,4,-1]]){
+    result=w.calcIRR(1,flows);
+    check('精度极限不作错误判定 '+flows.join(','),result.status==='uncertain');
+  }
+  result=w.calcIRR(1,[10,-25]);
+  check('严格重根不产生伪根',result.status==='ok' && close(result.rate,4));
+  result=w.calcIRR(1,[1002,-1000.9999999999]);
+  check('上边界外的根不误报多根',result.status==='uncertain' || result.status==='ok');
+  result=w.calcIRR(1,[1.0001,-.000099999999999999]);
+  check('下边界外的根不误报多根',result.status==='uncertain' || result.status==='ok');
   result=w.calcIRR(100,[360,-431,171.6]);
   check('三根 10%、20%、30%',result.status==='multiple' && result.rates.length===3 && close(result.rates[0],.1) && close(result.rates[1],.2) && close(result.rates[2],.3));
   result=w.calcIRR(100,[200,-100*(1-1e-10)]);
