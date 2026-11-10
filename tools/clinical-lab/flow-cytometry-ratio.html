@@ -450,7 +450,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __flow_cytometry_ratio_last=0,__flow_cytometry_ratio_skip=false;
+var __flow_cytometry_ratio_last=0,__flow_cytometry_ratio_skip=false,__flow_cytometry_ratio_timer=null;
 function __flow_cytometry_ratioSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -459,7 +459,7 @@ function __flow_cytometry_ratioSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -474,7 +474,7 @@ function __flow_cytometry_ratioResText(){
 function __flow_cytometry_ratioScore(t){
     var s=String(t||'');
     // F-N189：失效文案『请先填写有效的白细胞计数…』原词表漏掉 ⇒ 失效态记通过且 CSV 误标。
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|请填写|填写|Waiting/i.test(s)) return 0;
+    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|请填写|填写|须在 0–100% 之间|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __flow_cytometry_ratioTime(t){
@@ -497,6 +497,8 @@ function __flow_cytometry_ratioRender(keys,rk,en){
         TBKit.matrix.table('#flow_cytometry_ratioTable',{head:head,rows:rows});
         TBKit.util.diffBox('#flow_cytometry_ratioDiff');
         TBKit.history.mount('#flow_cytometry_ratioHist',function(rec){
+            clearTimeout(__flow_cytometry_ratio_timer);
+            __flow_cytometry_ratio_timer=null;
             __flow_cytometry_ratio_skip=true;
             try{
                 for(var k in rec){
@@ -513,6 +515,7 @@ function __flow_cytometry_ratioRender(keys,rk,en){
         });
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
+            if(arr[j].d.__tbScore===0) continue;
             var v=parseFloat(arr[j].d[rk]);
             if(!isFinite(v)){
                 var c4=parseFloat(arr[j].d.cd4), c8=parseFloat(arr[j].d.cd8);
@@ -525,7 +528,7 @@ function __flow_cytometry_ratioRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __flow_cytometry_ratioExtras(){
+function __flow_cytometry_ratioExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__flow_cytometry_ratio_skip) return;
     var snap=__flow_cytometry_ratioSnap();
@@ -537,7 +540,6 @@ function __flow_cytometry_ratioExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__flow_cytometry_ratio_last<1000) return;
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -547,16 +549,25 @@ function __flow_cytometry_ratioExtras(){
         }
         if(same&&String(last[rk])===String(res)) return;
     }
+    var score=__flow_cytometry_ratioScore(res);
+    if(!force&&last&&last.__tbScore===score&&now-__flow_cytometry_ratio_last<1000){
+        clearTimeout(__flow_cytometry_ratio_timer);
+        __flow_cytometry_ratio_timer=setTimeout(function(){__flow_cytometry_ratioExtras(true);},1000-(now-__flow_cytometry_ratio_last));
+        return;
+    }
+    clearTimeout(__flow_cytometry_ratio_timer);
+    __flow_cytometry_ratio_timer=null;
     __flow_cytometry_ratio_last=now;
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__flow_cytometry_ratioScore(res);
+    rec.__tbScore=score;
     TBKit.history.record(rec);
     __flow_cytometry_ratioRender(keys,rk,en);
 }
 function __flow_cytometry_ratioExport(){
     if (typeof TBKit === 'undefined') return;
+    if (__flow_cytometry_ratio_timer) __flow_cytometry_ratioExtras(true);
     try{
         var box=document.querySelector('#flow_cytometry_ratioTable');
         if(!box||!box.querySelector('tr')){

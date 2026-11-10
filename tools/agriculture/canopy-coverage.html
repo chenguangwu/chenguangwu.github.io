@@ -436,7 +436,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __canopy_coverage_last=0,__canopy_coverage_skip=false;
+var __canopy_coverage_last=0,__canopy_coverage_skip=false,__canopy_coverage_timer=null;
 function __canopy_coverageSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -445,7 +445,7 @@ function __canopy_coverageSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -483,6 +483,8 @@ function __canopy_coverageRender(keys,rk,en){
         TBKit.matrix.table('#canopy_coverageTable',{head:head,rows:rows});
         TBKit.util.diffBox('#canopy_coverageDiff');
         TBKit.history.mount('#canopy_coverageHist',function(rec){
+            clearTimeout(__canopy_coverage_timer);
+            __canopy_coverage_timer=null;
             __canopy_coverage_skip=true;
             try{
                 for(var k in rec){
@@ -507,7 +509,7 @@ function __canopy_coverageRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __canopy_coverageExtras(){
+function __canopy_coverageExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__canopy_coverage_skip) return;
     var snap=__canopy_coverageSnap();
@@ -519,7 +521,6 @@ function __canopy_coverageExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__canopy_coverage_last<1000) return;
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -529,16 +530,25 @@ function __canopy_coverageExtras(){
         }
         if(same&&String(last[rk])===String(res)) return;
     }
+    var score=__canopy_coverageScore(res);
+    if(!force&&last&&last.__tbScore===score&&now-__canopy_coverage_last<1000){
+        clearTimeout(__canopy_coverage_timer);
+        __canopy_coverage_timer=setTimeout(function(){__canopy_coverageExtras(true);},1000-(now-__canopy_coverage_last));
+        return;
+    }
+    clearTimeout(__canopy_coverage_timer);
+    __canopy_coverage_timer=null;
     __canopy_coverage_last=now;
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__canopy_coverageScore(res);
+    rec.__tbScore=score;
     TBKit.history.record(rec);
     __canopy_coverageRender(keys,rk,en);
 }
 function __canopy_coverageExport(){
     if (typeof TBKit === 'undefined') return;
+    if (__canopy_coverage_timer) __canopy_coverageExtras(true);
     try{
         var box=document.querySelector('#canopy_coverageTable');
         if(!box||!box.querySelector('tr')){

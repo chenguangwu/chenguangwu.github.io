@@ -646,7 +646,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __utm_builder_last=0,__utm_builder_skip=false;
+var __utm_builder_last=0,__utm_builder_skip=false,__utm_builder_timer=null;
 function __utm_builderSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -655,22 +655,16 @@ function __utm_builderSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
 function __utm_builderResText(){
-    var r=document.querySelector('.result-box');
-    if(!r) return '';
-    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
-    if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
-    return t.slice(0,80);
+    var r=document.getElementById('resultUrl');
+    return r ? (r.textContent||'').trim() : '';
 }
-function __utm_builderScore(t){
-    var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
-    return 1;
+function __utm_builderScore(){
+    return document.getElementById('url').value.trim() && document.getElementById('source').value.trim() ? 1 : 0;
 }
 function __utm_builderTime(t){
     var d=new Date(t);
@@ -692,6 +686,8 @@ function __utm_builderRender(keys,rk,en){
         TBKit.matrix.table('#utm_builderTable',{head:head,rows:rows});
         TBKit.util.diffBox('#utm_builderDiff');
         TBKit.history.mount('#utm_builderHist',function(rec){
+            clearTimeout(__utm_builder_timer);
+            __utm_builder_timer=null;
             __utm_builder_skip=true;
             try{
                 for(var k in rec){
@@ -702,8 +698,8 @@ function __utm_builderRender(keys,rk,en){
                     if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
                     else{e.value=rec[k];}
                 }
-                // 该分支无自动化用例，原因：TBKit.history.mount 在 verify harness 中为 noop，点击历史记录无法触发恢复回调。
                 switchTab('single');
+                generate();
             }catch(e2){}
             __utm_builder_skip=false;
         });
@@ -717,7 +713,7 @@ function __utm_builderRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __utm_builderExtras(){
+function __utm_builderExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__utm_builder_skip) return;
     var snap=__utm_builderSnap();
@@ -729,7 +725,6 @@ function __utm_builderExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__utm_builder_last<1000) return;
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -739,16 +734,25 @@ function __utm_builderExtras(){
         }
         if(same&&String(last[rk])===String(res)) return;
     }
+    var score=__utm_builderScore();
+    if(!force&&last&&last.__tbScore===score&&now-__utm_builder_last<1000){
+        clearTimeout(__utm_builder_timer);
+        __utm_builder_timer=setTimeout(function(){__utm_builderExtras(true);},1000-(now-__utm_builder_last));
+        return;
+    }
+    clearTimeout(__utm_builder_timer);
+    __utm_builder_timer=null;
     __utm_builder_last=now;
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__utm_builderScore(res);
+    rec.__tbScore=score;
     TBKit.history.record(rec);
     __utm_builderRender(keys,rk,en);
 }
 function __utm_builderExport(){
     if (typeof TBKit === 'undefined') return;
+    if (__utm_builder_timer) __utm_builderExtras(true);
     try{
         var box=document.querySelector('#utm_builderTable');
         if(!box||!box.querySelector('tr')){
