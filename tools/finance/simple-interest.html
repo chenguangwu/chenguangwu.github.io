@@ -367,6 +367,12 @@ function clearAll(){
   document.getElementById('rate').value = '';
   document.getElementById('years').value = '';
   document.getElementById('resultBox').innerHTML=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter data":"请输入数据");
+  // F-N103：清空动作须同步清掉 TBKit 渲染的历史表/趋势图/差异框/历史列表与历史数据，
+  // 否则结果区已显示「请输入数据」，下方仍留着上一次计算的记录，容易被误当成新结果。
+  ['simple_interestTable','simple_interestDiff','simple_interestChart','simple_interestHist'].forEach(function(id){
+    var e=document.getElementById(id); if(e) e.innerHTML='';
+  });
+  try{ if(typeof TBKit!=='undefined'&&TBKit.history&&TBKit.history.clear) TBKit.history.clear(); }catch(e){}
 }
 calc();
 </script><script>
@@ -495,16 +501,27 @@ function __simple_interestExtras(force){
 function __simple_interestExport(){
     if (typeof TBKit === 'undefined') return;
     __simple_interestExtras(true);
+    // F-N102
+    // 旧版导出 TBKit 自动历史表（首次为空），不含结果区的逐年/分档明细。
+    // 改为导出「当前结果区」的逐行明细：p 段落 + 表格行，任何模式都拿得到本次结果。
     try{
-        var box=document.querySelector('#simple_interestTable');
-        if(!box||!box.querySelector('tr')){
-            var snap=__simple_interestSnap(); var keys=Object.keys(snap);
-            if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
-            __simple_interestRender(keys,en?'Result':'结果',en);
+        var box=document.getElementById('resultBox');
+        if(!box) return;
+        var rows=[['序号','结果明细']];
+        var nodes=box.querySelectorAll('p, tr');
+        for(var i=0;i<nodes.length;i++){
+            var n=nodes[i], txt='';
+            if(n.tagName==='TR'){
+                var cs=n.querySelectorAll('th,td'), parts=[];
+                for(var j=0;j<cs.length;j++) parts.push((cs[j].textContent||'').trim());
+                txt=parts.join(' | ');
+            }else{
+                txt=(n.textContent||'').trim();
+            }
+            if(txt) rows.push([String(rows.length),txt]);
         }
+        if(rows.length>1) TBKit.export.csv('simple-interest-detail.csv',rows);
     }catch(e){}
-    try { TBKit.util.exportTable('#simple_interestTable','simple-interest.csv'); } catch(e){}
 }
 function __simple_interestPresets(){
     if (typeof TBKit === 'undefined') return;

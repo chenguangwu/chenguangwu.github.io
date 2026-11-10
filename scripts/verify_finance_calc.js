@@ -4584,6 +4584,22 @@ const CASES = [
     ref: "F-N160 首行/悬挂缩进四模式统一生效：word 模式勾悬挂缩进后，续行须以 2 空格开头且计入行宽；旧实现只有 soft 分支读 indent/hanging ⇒ 续行无前缀、不命中。",
   },
 
+  // ---------------- 第 120 批：F-N103 清空同步、F-N105 口径防回退 ----------------
+  {
+    slug: "finance/simple-interest",
+    inputs: { principal: "10000", rate: "5", years: "3" },
+    clicks: ["calc();['simple_interestTable','simple_interestDiff','simple_interestChart','simple_interestHist'].forEach(function(id){var e=document.getElementById(id);if(e)e.innerHTML='<tr><td>OLD</td></tr>';});clearAll();var ids=['simple_interestTable','simple_interestDiff','simple_interestChart','simple_interestHist'];var empty=ids.every(function(id){var e=document.getElementById(id);return e&&!e.innerHTML;});document.getElementById('__tbProbe').textContent='SICLR '+(empty?'OK':'BAD');"],
+    expect: ["SICLR OK"],
+    ref: "F-N103：清空须同步清掉历史表/趋势图/差异框/历史列表。探针先模拟上次计算留下的 OLD 记录再 clearAll；旧实现只清输入与 resultBox ⇒ 容器残留、不命中。",
+  },
+  {
+    slug: "finance/tax-bracket",
+    inputs: { income: "200000" },
+    clicks: ["calc()"],
+    expect: ["税后余额（应纳税所得额 − 个税，未扣五险一金与专项附加）： 176,920 元"],
+    ref: "F-N105 口径防回退：应税所得 200,000 → 税 200,000×20%−16,920=23,080，税后应税余额 176,920。旧文案「税后所得」不含该口径说明 ⇒ 不命中；默认 100,000（92,520）亦不命中 ⇒ 零逃生。",
+  },
+
 ];
 
 // ---------------------------------------------------------------- main
