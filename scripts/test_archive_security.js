@@ -557,8 +557,36 @@ function checkCnpjReview() {
   dom.window.close();
 }
 
+function checkGstImeiEinReview() {
+  for (const slug of ['gst-validator', 'imei-validator', 'ein-validator']) {
+    const { dom, scripts } = loadFinancePage(slug);
+    dom.window.eval(scripts.find(s => s.includes('function validate()')));
+    const doc = dom.window.document;
+    const check = value => { doc.getElementById('input').value = value; dom.window.validate(); return doc.getElementById('output'); };
+    const payload = slug === 'imei-validator' ? '1<svg id=x onload=alert(1)>' : '<svg id=x onload=alert(1)>';
+    assert.strictEqual(check(payload).querySelector('svg'), null, slug + ' 不得创建用户输入节点');
+    if (slug === 'imei-validator') {
+      const sv = check('3569380356438097').textContent;
+      assert.ok(sv.includes('564380') && sv.includes('97') && sv.includes('不含校验位') && !/校验失败|校验通过|号码有效/.test(sv), sv);
+      assert.ok(check('356938035643809').textContent.includes('IMEI 号码有效'));
+      assert.ok(check('356938035643808').textContent.includes('校验失败'));
+      assert.ok(check('35693803564380').textContent.includes('建议 9'));
+      assert.ok(check('3569380356438097x').textContent.includes('非法字符'));
+      assert.ok(doc.querySelector('meta[name="description"]').content.includes('IMEISV 不含校验位'));
+      assert.ok(doc.querySelector('.formula-eq').textContent.includes('16 位 IMEISV'));
+      assert.ok(doc.body.textContent.includes('16 位 IMEISV 则由 14 位本体'));
+      assert.ok(doc.querySelector('[data-zh^="支持 14 位 IMEI"]').textContent.includes('16-digit IMEISV'));
+    }
+    if (slug === 'ein-validator') {
+      assert.ok(check('12-3456789').textContent.includes('9 位格式有效'));
+      assert.ok(check('12A3456789').textContent.includes('非法字符'));
+      assert.ok(check('ABCDE').textContent.includes('非法字符'));
+    }
+    dom.window.close();
+  }
+}
 let failed = false;
-for (const [name, test] of [['BIC 查询复核', checkBicLookupReview], ['GSTIN 复核', checkGstinReview], ['CNPJ 复核', checkCnpjReview], ['货币符号复核', checkCurrencyReview], ['信用卡利息复核', checkCreditInterestReview], ['IBAN 复核', checkIbanReview], ['标签生成空态', checkLabelEmptyState], ['Code128 字符范围', checkCode128Descriptions], ['仓位缺填历史', checkPositionSizingMissingInput], ['行业利润率', checkIndustryProfitMargins], ['字数统计说明', checkWordCounterDescription], ['银行卡输入', checkCardInput], ['名片二维码超限', checkVcardOverflow], ['基金定投时点', checkFundTiming], ['退休现金流', checkRetirementCashFlow], ['颜色历史', checkColorHistory], ['工序排期', checkSchedule], ['SIN 输入', checkSinValidation], ['邮编输入', checkPostalValidation], ['CURP 输入', () => checkIdValidation('curp', 'CURP_BASE', 'BOXW310820HMNERN16', 'BOXW310820HMNERN160')], ['DNI 输入', () => checkIdValidation('dni', 'DNI_LETTERS', '12345678Z', '12345678A')], ['投资回报历史', checkInvestmentHistory], ['期权盈亏', checkOptionCalculator]]) {
+for (const [name, test] of [['GST IMEI EIN 复核', checkGstImeiEinReview], ['BIC 查询复核', checkBicLookupReview], ['GSTIN 复核', checkGstinReview], ['CNPJ 复核', checkCnpjReview], ['货币符号复核', checkCurrencyReview], ['信用卡利息复核', checkCreditInterestReview], ['IBAN 复核', checkIbanReview], ['标签生成空态', checkLabelEmptyState], ['Code128 字符范围', checkCode128Descriptions], ['仓位缺填历史', checkPositionSizingMissingInput], ['行业利润率', checkIndustryProfitMargins], ['字数统计说明', checkWordCounterDescription], ['银行卡输入', checkCardInput], ['名片二维码超限', checkVcardOverflow], ['基金定投时点', checkFundTiming], ['退休现金流', checkRetirementCashFlow], ['颜色历史', checkColorHistory], ['工序排期', checkSchedule], ['SIN 输入', checkSinValidation], ['邮编输入', checkPostalValidation], ['CURP 输入', () => checkIdValidation('curp', 'CURP_BASE', 'BOXW310820HMNERN16', 'BOXW310820HMNERN160')], ['DNI 输入', () => checkIdValidation('dni', 'DNI_LETTERS', '12345678Z', '12345678A')], ['投资回报历史', checkInvestmentHistory], ['期权盈亏', checkOptionCalculator]]) {
   try { test(); console.log('PASS', name); } catch (err) { failed = true; console.error('FAIL', name, err.message); }
 }
 if (failed) process.exitCode = 1;

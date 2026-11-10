@@ -2736,9 +2736,9 @@ const CASES = [
       "input": "abc123测试"
     },
     "expect": [
-      "abc123测试\n输入： abc123测试 ⚠️ EIN 必须为 9 位数字（当前 3 位）"
+      "输入： abc123测试 ❌ 含非法字符，仅允许数字、空格和连字符"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： abc123测试 ⚠️ EIN 必须为 9 位数字（当…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "EIN 非数字字符不得被静默剔除，输入含字母时应报告非法字符。"
   },
   {
     "slug": "finance/generator-report-1",
@@ -2820,9 +2820,9 @@ const CASES = [
       "input": "abc123测试"
     },
     "expect": [
-      "abc123测试\n输入： abc123测试 ⚠️ IMEI 必须为 14/15 位，IMEISV 为 16 位数字（当前 3 位）"
+      "输入： abc123测试 ❌ 含非法字符，仅允许数字、空格和连字符"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，F-N173 支持 16 位后守卫文案更新为「14/15 位，IMEISV 为 16 位」；绑定输入与位数 ⇒ 强判别、零逃生。"
+    "ref": "IMEI 和 IMEISV 不得静默丢弃输入中的非法字符。"
   },
   {
     "slug": "finance/dca-calculator",
@@ -4516,8 +4516,8 @@ const CASES = [
     slug: "finance/imei-validator",
     inputs: { input: "3569380356438097" },
     clicks: ["validate()"],
-    expect: ["长度： 16 位（IMEISV）", "软件版本号 SVN： 97（IMEISV 末 2 位，不参与 Luhn 校验）", "✅ IMEISV 号码有效（含软件版本号）"],
-    ref: "F-N173 IMEISV 16 位支持：3569380356438097 前 14 位 356938035643809 Luhn 合法、末 2 位 97 为 SVN。旧实现仅收 14/15 位，16 位直接报长度错。三条 expect 分别锁类型/SVN/结论，绑定输入专属串（默认 15 位不含 IMEISV 串）⇒ 零逃生。",
+    expect: ["长度： 16 位（IMEISV）", "序列号 SNR（第 9-14 位）： 564380", "软件版本号 SVN： 97", "IMEISV 不含校验位，仅检查 16 位数字结构"],
+    ref: "IMEISV 由 8 位 TAC、6 位 SNR 和 2 位 SVN 构成，不含 Luhn 校验位，不能宣称校验通过。",
   },
   {
     slug: "finance/word-counter",
