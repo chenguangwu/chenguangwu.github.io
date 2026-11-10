@@ -625,8 +625,36 @@ function checkNieIccidIsbnReview() {
   assert.strictEqual(doc.querySelector('meta[name="twitter:title"]').content, doc.title);
   dom.window.close();
 }
+function checkSortPanTinReview() {
+  for (const slug of ['sort-code-validator-validator', 'pan-validator', 'tin-validator']) {
+    const { dom, scripts } = loadFinancePage(slug);
+    dom.window.eval(scripts.find(s => s.includes('function validate()')));
+    const doc = dom.window.document;
+    const check = value => { doc.getElementById('input').value = value; dom.window.validate(); return doc.getElementById('output'); };
+    const payload = '1<svg id=x onload=alert(1)>';
+    const out = check(payload);
+    assert.strictEqual(out.querySelector('svg'), null, slug + ' 不得创建输入节点');
+    assert.ok(out.textContent.includes(slug === 'pan-validator' ? payload.toUpperCase() : payload), '输入应安全回显');
+    if (slug !== 'pan-validator') {
+      assert.ok(!check('abc').textContent.includes('等待输入'), slug + ' 非空非法字符不得判空');
+      assert.ok(check('abc').textContent.includes(slug === 'tin-validator' ? '非法字符' : '格式错误'));
+      assert.ok(check('').textContent.includes('等待输入'));
+      assert.ok(check(slug === 'tin-validator' ? '12-3456789' : '12-34-56').textContent.includes(slug === 'tin-validator' ? 'EIN' : '格式有效'));
+    } else {
+      assert.ok(check('ABCPS1234E').textContent.includes('无算术校验位'));
+      assert.ok(check('ABCZS1234E').textContent.includes('非官方类型'));
+      const deep = JSON.parse(fs.readFileSync(path.join(root, 'i18n/tools/content_deepdive.json'), 'utf8'))['finance/pan-validator'];
+      const en = JSON.parse(fs.readFileSync(path.join(root, 'i18n/tools/en/finance/pan-validator.json'), 'utf8')).map;
+      assert.ok(deep.examples[0].body.includes('ABCPS1234E') && !deep.examples[0].body.includes('校验字母'));
+      assert.ok(doc.body.textContent.includes(deep.examples[0].body));
+      assert.ok(en[deep.examples[0].body] && en[deep.examples[0].body].includes('ABCPS1234E'));
+      for (const item of [...deep.faqs.map(f => f.a), ...deep.tips]) assert.ok(!/字母校验字符/.test(item), item);
+    }
+    dom.window.close();
+  }
+}
 let failed = false;
-for (const [name, test] of [['NIE ICCID ISBN 复核', checkNieIccidIsbnReview], ['GST IMEI EIN 复核', checkGstImeiEinReview], ['BIC 查询复核', checkBicLookupReview], ['GSTIN 复核', checkGstinReview], ['CNPJ 复核', checkCnpjReview], ['货币符号复核', checkCurrencyReview], ['信用卡利息复核', checkCreditInterestReview], ['IBAN 复核', checkIbanReview], ['标签生成空态', checkLabelEmptyState], ['Code128 字符范围', checkCode128Descriptions], ['仓位缺填历史', checkPositionSizingMissingInput], ['行业利润率', checkIndustryProfitMargins], ['字数统计说明', checkWordCounterDescription], ['银行卡输入', checkCardInput], ['名片二维码超限', checkVcardOverflow], ['基金定投时点', checkFundTiming], ['退休现金流', checkRetirementCashFlow], ['颜色历史', checkColorHistory], ['工序排期', checkSchedule], ['SIN 输入', checkSinValidation], ['邮编输入', checkPostalValidation], ['CURP 输入', () => checkIdValidation('curp', 'CURP_BASE', 'BOXW310820HMNERN16', 'BOXW310820HMNERN160')], ['DNI 输入', () => checkIdValidation('dni', 'DNI_LETTERS', '12345678Z', '12345678A')], ['投资回报历史', checkInvestmentHistory], ['期权盈亏', checkOptionCalculator]]) {
+for (const [name, test] of [['Sort PAN TIN 复核', checkSortPanTinReview],['NIE ICCID ISBN 复核', checkNieIccidIsbnReview], ['GST IMEI EIN 复核', checkGstImeiEinReview], ['BIC 查询复核', checkBicLookupReview], ['GSTIN 复核', checkGstinReview], ['CNPJ 复核', checkCnpjReview], ['货币符号复核', checkCurrencyReview], ['信用卡利息复核', checkCreditInterestReview], ['IBAN 复核', checkIbanReview], ['标签生成空态', checkLabelEmptyState], ['Code128 字符范围', checkCode128Descriptions], ['仓位缺填历史', checkPositionSizingMissingInput], ['行业利润率', checkIndustryProfitMargins], ['字数统计说明', checkWordCounterDescription], ['银行卡输入', checkCardInput], ['名片二维码超限', checkVcardOverflow], ['基金定投时点', checkFundTiming], ['退休现金流', checkRetirementCashFlow], ['颜色历史', checkColorHistory], ['工序排期', checkSchedule], ['SIN 输入', checkSinValidation], ['邮编输入', checkPostalValidation], ['CURP 输入', () => checkIdValidation('curp', 'CURP_BASE', 'BOXW310820HMNERN16', 'BOXW310820HMNERN160')], ['DNI 输入', () => checkIdValidation('dni', 'DNI_LETTERS', '12345678Z', '12345678A')], ['投资回报历史', checkInvestmentHistory], ['期权盈亏', checkOptionCalculator]]) {
   try { test(); console.log('PASS', name); } catch (err) { failed = true; console.error('FAIL', name, err.message); }
 }
 if (failed) process.exitCode = 1;
