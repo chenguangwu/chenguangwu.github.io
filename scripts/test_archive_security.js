@@ -36,8 +36,34 @@ function checkSchedule() {
   assert.ok(dom.window.document.querySelector('.gantt-bar'), '应渲染工序条');
 }
 
+function checkSinValidation() {
+  const page = fs.readFileSync(path.join(root, 'tools/finance/sin-validator.html'), 'utf8');
+  const script = page.match(/function luhnCheck\(digits\)\{[\s\S]*?\nfunction toggleToolTheme\(\)/)[0].replace(/function toggleToolTheme\(\)$/, '');
+  const dom = new JSDOM('<input id="input"><div id="output"></div>', { runScripts: 'dangerously' });
+  const { document } = dom.window;
+  let executed = false;
+  dom.window.alert = () => { executed = true; };
+  dom.window.eval(script);
+  const check = (input, expected) => {
+    document.getElementById('input').value = input;
+    dom.window.validate();
+    assert.ok(document.getElementById('output').textContent.includes(expected), input);
+  };
+  check('abc', '只能包含数字、空格或连字符');
+  check('!!!', '只能包含数字、空格或连字符');
+  check('130692544<img src=x onerror=alert(1)>', '只能包含数字、空格或连字符');
+  const img = document.querySelector('#output img');
+  if (img) img.dispatchEvent(new dom.window.Event('error'));
+  assert.strictEqual(img, null, 'SIN 输入不得创建注入节点');
+  assert.strictEqual(executed, false, 'SIN 输入不得执行注入事件');
+  check('130 692 544', 'SIN 号码有效');
+  check('000-000-000', 'SIN 无效');
+  check('', '等待输入');
+  dom.window.close();
+}
+
 let failed = false;
-for (const [name, test] of [['颜色历史', checkColorHistory], ['工序排期', checkSchedule]]) {
+for (const [name, test] of [['颜色历史', checkColorHistory], ['工序排期', checkSchedule], ['SIN 输入', checkSinValidation]]) {
   try { test(); console.log('PASS', name); } catch (err) { failed = true; console.error('FAIL', name, err.message); }
 }
 if (failed) process.exitCode = 1;
