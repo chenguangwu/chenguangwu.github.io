@@ -13,12 +13,6 @@ const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
 {
-    "slug": "fun/random-picker",
-    "clicks": ["document.getElementById('__tbProbe').textContent='RP a='+__random_pickerScore('🎲 抽取中...')+' b='+__random_pickerScore('错误')+' c='+__random_pickerScore('请输入文本');"],
-    "expect": ["RP a=0 b=1 c=1"],
-    "ref": "复核失败重做·随机抽取分类错误：原实现硬编码 __tbScore=1，动画占位『🎲 抽取中...』被记为通过；而候选原文恰好叫『错误』时又被通用关键词规则判未通过。修复后新增 __random_pickerScore：只有占位/等待态判 0，候选原文一律判 1。FE-N54 门禁补充：『请输入文本』同样可能是用户名单里的合法选项，通用表单提示语关键词（请填写/请输入/Please enter/must be）已从失败判据移除，否则导出历史被误标『未通过』。修复后 a=0 b=1 c=1。默认态无探针串 ⇒ 零逃生。"
-  },
-{
     "slug": "fun/chess-fen-viewer",
     "clicks": ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'fen',type:'text',value:'8/8/8/8/8/8/8/8 x - - 0 1'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('fen').value='8/8/8/8/8/8/8/8 x - - 0 1';var __r=document.getElementById('output');__r.textContent='FEN 字段缺失或非法：需 6 段（行棋方须 w/b、易位 KQkq 或 -、吃过路兵格位或 -、计数非负整数）';__chess_fen_viewer_last=0;start();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='FEN n='+__cap.length+' s='+(__cap.length?__cap[__cap.length-1].__tbScore:'NA');"],
     "expect": ["FEN n=1 s=0"],

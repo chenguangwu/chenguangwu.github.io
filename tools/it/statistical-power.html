@@ -281,7 +281,7 @@ function fmt(x){
   if(!isFinite(x)) return '未定义';
   if(x===0) return '0';
   if(Math.abs(x)>1e15||Math.abs(x)<1e-6) return x.toExponential(8);
-  return (Math.round(x*1e10)/1e10).toLocaleString();
+  return (Math.round(x*1e10)/1e10).toLocaleString(undefined,{maximumFractionDigits:Math.abs(x)<0.001?10:3});
 }
 function normalCDF(z){
   if(z<-8) return 0; if(z>8) return 1;
@@ -330,14 +330,27 @@ function calculate(){
     zB = normalInv(targetPower);
     const nRaw = 2*Math.pow((zA+zB)/d,2);
     nApprox = Math.max(1, Math.ceil(nRaw));
-    if(!isFinite(nApprox)||nApprox<1){const __hs2='<p style="color:var(--danger)">无法反解出有效样本量，请检查效应量与目标功效</p>';out.innerHTML=__hs2;return;}
-    // 以近似候选为起点：先向下收敛到仍满足目标的最小整数，再向上补齐（近似公式偏保守时）
-    const zCritSolve = (tail==='two') ? normalInv(1-alpha/2) : normalInv(1-alpha);
-    let cand=nApprox, guard=0;
-    while(cand>1 && __spPowerAt(cand-1,d,zCritSolve,tail)>=targetPower && guard++<100000) cand--;
-    guard=0;
-    while(__spPowerAt(cand,d,zCritSolve,tail)<targetPower && guard++<100000) cand++;
-    solvedN = cand;
+    const zCritSolve = zA;
+    const maxN=Number.MAX_SAFE_INTEGER;
+    if(__spPowerAt(1,d,zCritSolve,tail)>=targetPower){
+      solvedN=1;
+    }else{
+      let low=1, high=1;
+      while(high<maxN && __spPowerAt(high,d,zCritSolve,tail)<targetPower){
+        low=high;
+        high=Math.min(maxN,high*2);
+      }
+      if(__spPowerAt(high,d,zCritSolve,tail)<targetPower){
+        out.innerHTML='<p style="color:var(--danger)">所需样本量超出安全整数范围，无法准确反解</p>';return;
+      }
+      while(high-low>1){
+        const mid=low+Math.floor((high-low)/2);
+        if(__spPowerAt(mid,d,zCritSolve,tail)>=targetPower) high=mid;
+        else low=mid;
+      }
+      solvedN=high;
+    }
+    if(!isFinite(nApprox)||nApprox>maxN) nApprox='超出安全整数范围';
     n = solvedN;
   }
   // 双样本 t 检验近似：非中心参数 δ = d*√(n/2)
@@ -363,7 +376,7 @@ function calculate(){
   </div>`;
   html+=`<h3 style="margin-top:14px;">分步计算</h3>`;
   if(solvedN!==null){
-    html+=`<div class="step-line"><strong>反解：</strong>n = ⌈2×((z₁₋α' + z₁₋β)/d)²⌉ = ⌈2×((${fmt(zA)} + ${fmt(zB)})/${fmt(d)})²⌉ = ${nApprox}（正态近似候选）；用本页正算公式逐整数核验后，满足目标功效 ${fmt(targetPower)} 的最小每组样本量 = ${solvedN}</div>`;
+    html+=`<div class="step-line"><strong>反解：</strong>n = ⌈2×((z₁₋α' + z₁₋β)/d)²⌉ = ⌈2×((${fmt(zA)} + ${fmt(zB)})/${fmt(d)})²⌉ = ${nApprox}（正态近似候选）；用本页正算公式二分核验后，满足目标功效 ${fmt(targetPower)} 的最小每组样本量 = ${solvedN}</div>`;
   }
   html+=`<div class="step-line"><strong>步骤 1：</strong>非中心参数 δ = d × √(n/2) = ${fmt(d)} × √(${n}/2) = ${fmt(d)} × ${fmt(Math.sqrt(n/2))} = ${fmt(delta)}</div>`;
   html+=`<div class="step-line"><strong>步骤 2：</strong>临界值 z* = ${fmt(zCrit)}（α=${alpha}，${tail==='two'?'双侧':'单侧'}）</div>`;

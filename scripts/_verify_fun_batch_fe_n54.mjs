@@ -48,11 +48,19 @@ doc.getElementById('items').value = '请输入文本';
 w.start();
 await wait(1350);
 check('提示语样式的合法选项也入历史', records.length === 3 && records[2].d['结果'] === '请输入文本');
+for (const candidate of ['等待', '抽取中', '🎲']) {
+  doc.getElementById('items').value = candidate;
+  const count = records.length;
+  w.start();
+  check(`${candidate} 动画不入历史`, records.length === count);
+  await wait(1350);
+  check(`${candidate} 真实结果判通过`, records.length === count + 1 && records.at(-1).d['结果'] === candidate && records.at(-1).d.__tbScore === 1);
+}
 restore(records[0].d);
 await wait(1350);
-check('恢复历史不新增记录', records.length === 3);
+check('恢复历史不新增记录', records.length === 6);
 w.__random_pickerExport();
-check('导出只包含真实结果且不含占位', exports.length === 1 && exports[0].length === 3 && exports[0].every(row => (row.includes('错误') || row.includes('请输入文本')) && row.includes('通过') && !row.some(v => String(v).includes('抽取中'))));
+check('导出真实结果均为通过', exports.length === 1 && exports[0].length === 6 && exports[0].every(row => row.includes('通过')));
 doc.getElementById('unique').checked = true;
 w.start();
 await wait(1350);

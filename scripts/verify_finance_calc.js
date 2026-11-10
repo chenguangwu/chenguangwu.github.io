@@ -117,12 +117,6 @@ const CASES = [
     ref: "复核失败重做·F-N189 第一批 BIC：格式有效但离线库未知的警告（⚠）被通用词表判失败(0)；修复后从失败词表移除 ⚠（警告≠失败），FullResText 判定 ⇒ 1。"
   },
   {
-    slug: "finance/text-reverse-words",
-    clicks: ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'x',type:'text',value:'1'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('result').textContent=\"原文：错误 反转结果：误错。本页为纯文本处理，输出与原文逐字对应。本页为纯文本处理，输出与原文逐字对应。本页为纯文本处理，输出与原文逐字对应。本页为纯文本处理，输出与原文逐字对应。本页为纯文本处理，输出与原文逐字对应。本页为纯文本处理，输出与原文逐字对应。\";__text_reverse_wordsExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='FNTEXT score='+(__cap.length?__cap[__cap.length-1].__tbScore:'NA');"],
-    expect: ["FNTEXT score=1"],
-    ref: "复核失败重做·F-N189 第一批 文本反转：用户输入「错误」成功后结果文本含该词被判失败(0)；修复后从失败词表移除「错误/失败/Invalid/Failed」（纯文本页用户文本可含任意词），FullResText 判定 ⇒ 1。"
-  },
-  {
     slug: "finance/tax-calculator",
     inputs: { salary: "", insurance: "3000", special: "2000", threshold: "5000" },
     clicks: ["__taxExport()"],

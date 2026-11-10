@@ -372,23 +372,40 @@ function __thin_lens_equationNum(id){var e=document.getElementById(id);var v=e?p
 function __thin_lens_equationExtras(){
     function __thin_lens_equationRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
-    var f = num('f'), do_ = num('do');
-    var di = 1 / (1 / f - 1 / do_);
-    if (!isFinite(__thin_lens_equationNum('f')) || !isFinite(__thin_lens_equationNum('do'))) return;
+    var f = __thin_lens_equationNum('f'), do_ = __thin_lens_equationNum('do');
     var en=TBKit.util.isEn();
+    if (!(f>0 && do_>0)){
+        TBKit.matrix.table('#thin_lens_equationTable',{head:en?['Item','Value']:['项目','数值'],rows:[]});
+        return;
+    }
+    var focal=Math.abs(do_-f)<=1e-9*Math.max(f,do_);
+    var di=focal?null:1/(1/f-1/do_);
+    if(!focal && !isFinite(di)){
+        TBKit.matrix.table('#thin_lens_equationTable',{head:en?['Item','Value']:['项目','数值'],rows:[]});
+        return;
+    }
     TBKit.matrix.table('#thin_lens_equationTable',{
         head: en?['Item','Value']:['项目','数值'],
-        rows: [
+        rows: focal ? [
+            [en?'Image distance':'像距 d_i (m)',en?'At infinity':'无穷远'],
+            [en?'Image nature':'像性质',en?'No finite image':'不形成有限像'],
+            [en?'Magnification':'放大率 m = -d_i/d_o',en?'Undefined':'不定义'],
+            [en?'Optical power':'光焦度 1/f (1/m)',(1/f).toFixed(4)]
+        ] : [
             ['像距 d_i (m)', di.toFixed(4)],
             ['像性质', (di > 0 ? '实像' : '虚像')],
             ['放大率 m = -d_i/d_o', (-di/do_).toFixed(4)],
             ['光焦度 1/f (1/m)', (1/f).toFixed(4)],
         ]
     });
-    TBKit.history.record({f:__thin_lens_equationRaw('f'), do:__thin_lens_equationRaw('do'), di:di});
+    TBKit.history.record({f:__thin_lens_equationRaw('f'), do:__thin_lens_equationRaw('do'), di:focal?(en?'At infinity':'无穷远'):di});
     function __thin_lens_equationRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#thin_lens_equationHist',function(rec){ __thin_lens_equationRestore(rec); calcTool(); });
-    TBKit.util.diffBox('#thin_lens_equationDiff',['di']);
+    var previous=TBKit.history.list()[1];
+    if(focal || (previous && typeof previous.d.di!=='number')){
+        var diff=document.getElementById('thin_lens_equationDiff');
+        if(diff) diff.textContent='';
+    }else TBKit.util.diffBox('#thin_lens_equationDiff',['di']);
 }
 function __thin_lens_equationExport(){
     if (typeof TBKit === 'undefined') return;

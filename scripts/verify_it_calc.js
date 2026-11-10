@@ -1473,16 +1473,23 @@ const CASES = [
   },
   {
     slug: "it/statistical-power",
+    inputs: {"d":"0.0001","alpha":"0.05","tail":"two","solveFor":"size","targetPower":"0.001"},
+    clicks: ["calculate()"],
+    expect: ["所需样本量 = 1（每组）", "0.0001 效应量 d"],
+    ref: "小效应量低目标功效：正算 n=1 已满足目标，反解结果和效应量显示均须正确。"
+  },
+  {
+    slug: "it/statistical-power",
     inputs: {"d":"0.5","alpha":"0.05","tail":"two","solveFor":"size","targetPower":"0.001"},
     clicks: ["calculate();var s=document.getElementById('output').innerHTML;var p=s.indexOf('反解');document.getElementById('__tbProbe').textContent='PWRMIN '+s.slice(p,p+200).replace(/<[^>]*>/g,'');"],
-    expect: ["PWRMIN 反解：n = ⌈2×((z₁₋α' + z₁₋β)/d)²⌉ = ⌈2×((1.96 + -3.09)/0.5)²⌉ = 11（正态近似候选）；用本页正算公式逐整数核验后，满足目标功效 0.001 的最小每组样本量 = 1步骤 1：非中心参数 δ = d × √(n/2) = 0.5 ×"],
+    expect: ["PWRMIN 反解：n = ⌈2×((z₁₋α' + z₁₋β)/d)²⌉ = ⌈2×((1.96 + -3.09)/0.5)²⌉ = 11（正态近似候选）；用本页正算公式二分核验后，满足目标功效 0.001 的最小每组样本量 = 1步骤 1：非中心参数 δ = d × √(n/2) = 0.5 ×"],
     ref: "复核失败重做·IT-N375 1/2（低功效反解过度估计）：solveFor=size、d=0.5、α=0.05、targetPower=0.001、双侧时，正态近似给出候选 n=11，但本页正算公式在 n=1 已达 0.001 目标功效。修复后从候选向下逐整数核验，给出最小每组样本量 1；修复前直出 11 ⇒ 真变红。默认态 solveFor 非 size、无「反解」行 ⇒ 零逃生。"
   },
   {
     slug: "it/statistical-power",
     inputs: {"d":"0.3","alpha":"0.01","tail":"two","solveFor":"size","targetPower":"0.01"},
     clicks: ["calculate();var s=document.getElementById('output').innerHTML;var p=s.indexOf('反解');document.getElementById('__tbProbe').textContent='PWRCHK '+s.slice(p,p+200).replace(/<[^>]*>/g,'');"],
-    expect: ["PWRCHK 反解：n = ⌈2×((z₁₋α' + z₁₋β)/d)²⌉ = ⌈2×((2.576 + -2.326)/0.3)²⌉ = 2（正态近似候选）；用本页正算公式逐整数核验后，满足目标功效 0.01 的最小每组样本量 = 1步骤 1：非中心参数 δ = d × √(n/2) = 0.3 ×"],
+    expect: ["PWRCHK 反解：n = ⌈2×((z₁₋α' + z₁₋β)/d)²⌉ = ⌈2×((2.576 + -2.326)/0.3)²⌉ = 2（正态近似候选）；用本页正算公式二分核验后，满足目标功效 0.01 的最小每组样本量 = 1步骤 1：非中心参数 δ = d × √(n/2) = 0.3 ×"],
     ref: "复核失败重做·IT-N375 2/2（近似偏保守回退一整级）：d=0.3、α=0.01、targetPower=0.01 时近似候选 n=2，正算核验 n=1 已达标。修复后最小样本量 1；修复前 2 ⇒ 真变红。与上例共同覆盖「向下收敛多级」与「收敛一级」，默认态不触发 ⇒ 零逃生。"
   },
   {
