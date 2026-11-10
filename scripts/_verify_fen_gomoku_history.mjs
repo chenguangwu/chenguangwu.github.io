@@ -896,4 +896,35 @@ for (const [file, prefix, input, error] of [
   check('恢复缺填并取消待处理计算',rf.value==='' && w.TBKit.history.list().length===3);
   w.close();
 }
+// Car-loan history must follow the actual calculation and selected repayment method.
+{
+  const downloads=[],trends=[];
+  const dom=new JSDOM(readFileSync('tools/finance/car-loan-calculator.html','utf8'),{
+    url:'https://x.test/tools/finance/car-loan-calculator.html',runScripts:'dangerously',pretendToBeVisual:true,
+    virtualConsole:new VirtualConsole(),beforeParse(w){
+      w.ToolBox={showToast(){},escHtml:s=>String(s)};w.i18nText=k=>k;
+      w.Blob=class{constructor(parts){this.text=parts.join('');}};
+      w.URL.createObjectURL=blob=>{downloads.push(blob.text);return 'blob:test';};
+      w.URL.revokeObjectURL=()=>{};w.HTMLAnchorElement.prototype.click=function(){};
+      w.eval(readFileSync('js/tool-kit.js','utf8'));
+      const line=w.TBKit.chart.line;
+      w.TBKit.chart.line=(host,config)=>{trends.push(Array.from(config.series[0].data));return line(host,config);};
+    }
+  });
+  const w=dom.window,doc=w.document,price=doc.getElementById('price');
+  await new Promise(resolve=>w.addEventListener('load',resolve));
+  const check=(label,ok)=>{console.log(`${ok?'PASS':'FAIL'} car-loan-calculator ${label}`);if(!ok)failed=true;};
+  w.TBKit.history.clear();w.eval('__car_loan_calculator_last=0');
+  w.calculate();price.value='';w.calculate();doc.querySelector('[onclick="__car_loan_calculatorExport()"]')?.click();
+  let records=w.TBKit.history.list();
+  check('缺失车价的历史和快速导出为失败',records.length===2 && records[1].d.__tbScore===1 && records[0].d.price==='' && records[0].d.__tbScore===0 && downloads[0]?.includes('未通过'));
+  check('趋势显示成功及失败',trends.some(t=>t.join(',')==='1,0'));
+  price.value='150000';w.setMethod('equal-principal');doc.querySelector('[onclick="__car_loan_calculatorExport()"]')?.click();
+  records=w.TBKit.history.list();
+  check('历史保存等额本金方式',records[0]?.d.method==='equal-principal' && records[0]?.d.__tbScore===1);
+  w.setMethod('equal-payment');doc.querySelector('#car_loan_calculatorHist .tbk-history-item')?.click();
+  await new Promise(resolve=>setTimeout(resolve,1100));
+  check('恢复还款方式且取消待处理计算',doc.querySelector('[data-method="equal-principal"]').classList.contains('active') && records.length===w.TBKit.history.list().length);
+  w.close();
+}
 process.exit(failed ? 1 : 0);

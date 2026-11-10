@@ -429,6 +429,7 @@ s.parentNode.insertBefore(el, s);
 
 <script>
 let method = 'equal-payment';
+var __car_loan_calculator_valid=false;
 
 function setMethod(m){
   method = m;
@@ -501,6 +502,7 @@ function calculate(){
   const annualRate = parseFloat(document.getElementById('rate').value) || 0;
   const years = parseInt(document.getElementById('years').value) || 0;
 
+  __car_loan_calculator_valid=false;
   if(price <= 0 || downPct < 0 || downPct > 100 || years <= 0){
     resetDisplay();
     return;
@@ -540,6 +542,7 @@ function calculate(){
   `).join('');if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){tbody.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}tbody.innerHTML=__h0;
 
   calculateCosts(price, downPayment, totalPayment);
+  __car_loan_calculator_valid=true;
 }
 
 function calculateCosts(price, downPayment, totalLoanPayment){
@@ -640,7 +643,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __car_loan_calculator_last=0,__car_loan_calculator_skip=false;
+var __car_loan_calculator_last=0,__car_loan_calculator_skip=false,__car_loan_calculator_timer=null;
 function __car_loan_calculatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -649,8 +652,9 @@ function __car_loan_calculatorSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
+    out.method=method;
     return out;
 }
 function __car_loan_calculatorResText(){
@@ -660,11 +664,6 @@ function __car_loan_calculatorResText(){
     if(!t||t==='--'||t==='—'||t==='-') return '';
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
-}
-function __car_loan_calculatorScore(t){
-    var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
-    return 1;
 }
 function __car_loan_calculatorTime(t){
     var d=new Date(t);
@@ -687,6 +686,8 @@ function __car_loan_calculatorRender(keys,rk,en){
         TBKit.util.diffBox('#car_loan_calculatorDiff');
         TBKit.history.mount('#car_loan_calculatorHist',function(rec){
             __car_loan_calculator_skip=true;
+            clearTimeout(__car_loan_calculator_timer);
+            __car_loan_calculator_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -696,7 +697,8 @@ function __car_loan_calculatorRender(keys,rk,en){
                     if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
                     else{e.value=rec[k];}
                 }
-                calculate();
+                if(rec.method) setMethod(rec.method);
+                else calculate();
             }catch(e2){}
             __car_loan_calculator_skip=false;
         });
@@ -710,9 +712,11 @@ function __car_loan_calculatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __car_loan_calculatorExtras(){
+function __car_loan_calculatorExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__car_loan_calculator_skip) return;
+    clearTimeout(__car_loan_calculator_timer);
+    __car_loan_calculator_timer=null;
     var snap=__car_loan_calculatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -722,7 +726,10 @@ function __car_loan_calculatorExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__car_loan_calculator_last<1000) return;
+    if(!force && now-__car_loan_calculator_last<1000){
+        __car_loan_calculator_timer=setTimeout(function(){__car_loan_calculatorExtras(true);},1000-(now-__car_loan_calculator_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -736,12 +743,13 @@ function __car_loan_calculatorExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__car_loan_calculatorScore(res);
+    rec.__tbScore=__car_loan_calculator_valid?1:0;
     TBKit.history.record(rec);
     __car_loan_calculatorRender(keys,rk,en);
 }
 function __car_loan_calculatorExport(){
     if (typeof TBKit === 'undefined') return;
+    __car_loan_calculatorExtras(true);
     try{
         var box=document.querySelector('#car_loan_calculatorTable');
         if(!box||!box.querySelector('tr')){
