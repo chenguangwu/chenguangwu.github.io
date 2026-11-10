@@ -228,18 +228,15 @@ var pass=num("pass"),full=num("full");
 if(!(full>0)){document.getElementById("res").innerHTML='<p style="color:var(--danger)">⚠ 满分必须大于 0。</p>';return;}
 if(pass<0||pass>full){document.getElementById("res").innerHTML='<p style="color:var(--danger)">⚠ 达标线须在 0–'+full+' 之间（不得高于满分）。</p>';return;}
 var arr=[],badRows=0,overRows=[],badName='';
-// SF-N75 复核重做：parseFloat 会接受「2次测试」「007」这类数字前缀，导致附注被当成绩、数字姓名被当成绩。
-// 现只认「完整数字字段」，成绩必须位于第 2 列及之后（姓名列永不作成绩），末尾非数字附注忽略；
-// 若成绩列之后还有完整数字字段，说明姓名/成绩/附注位置有歧义 ⇒ 记为待人工核对行，绝不静默纳入统计。
+// 逗号或制表符分列时保留空字段；空格分隔时允许姓名包含空格。
 var NUM_FIELD=/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/;
 lines.forEach(function(ln){
-var p=ln.split(/[,，\t ]+/).filter(function(x){return x!=='';});
-if(p.length<2){badRows++;if(!badName)badName=ln;return;}
-var scIdx=-1;
-for(var i=p.length-1;i>=1;i--){if(NUM_FIELD.test(p[i])){scIdx=i;break;}}
-var tailNum=false;
-for(var j=scIdx+1;j<p.length;j++){if(NUM_FIELD.test(p[j])){tailNum=true;break;}}
-if(scIdx<0||tailNum){badRows++;if(!badName)badName=ln;return;}
+var delimited=/[,，\t]/.test(ln);
+var p=delimited?ln.split(/[,，\t]/).map(function(x){return x.trim();}):ln.split(/\s+/);
+if(p.length<2||!p[0]){badRows++;if(!badName)badName=ln;return;}
+var scIdx=-1,numberCount=0;
+for(var i=1;i<p.length;i++){if(NUM_FIELD.test(p[i])){if(scIdx<0)scIdx=i;numberCount++;}}
+if(scIdx<0||numberCount!==1||(delimited&&scIdx!==1)){badRows++;if(!badName)badName=ln;return;}
 var sc=parseFloat(p[scIdx]);
 var name=p.slice(0,scIdx).join(' ');
 if(sc<0||sc>full){overRows.push(name+'='+sc);return;}

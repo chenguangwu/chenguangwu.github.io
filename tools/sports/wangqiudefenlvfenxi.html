@@ -120,7 +120,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入发球相关数据，计算 ACE 率、双误率、一发成功率、破发点挽救率与发球效率综合指数，评估发球表现与关键分能力。">Enter serve-related data to compute ace rate, double-fault rate, first-serve in-rate, break-point save rate and a composite serve-efficiency index for serve performance and key-point ability.</p>    <div class="formula-box">
       <div class="formula-title">📐 计算公式 / 原理</div>
       <div class="formula-eq">网球发球统计（本页代码口径）：ACE 率=ACE÷总发球分×100；双误率=双误÷总发球分×100；一发成功率=f；破发点挽救率=面对&gt;0 时 挽救÷面对×100，面对=0 时显示「—」并从综合指数中剔除该项、其余权重按比例归一（不再 0/0 记 100 白送 30 分）；一发得分率=一发得分÷(总发球分×f)；二发得分率=二发得分÷(总发球分×(1−f))；总得分率=本方全场得分÷全场总得分（两者留空则不算）。发球效率指数=0.40×一发成功率+0.30×破发点挽救率+0.15×ACE 标准化+0.15×双误标准化（ACE 率 12% 记满分、双误率 8% 记零分线性折算），破发点无样本时按 0.70 权重和归一。校验：总发球分&gt;0、ACE/双误∈[0,总发球分]、一发得分≤一发命中数、二发得分≤二发球数、一发得分+二发得分≤总发球分、挽救≤面对、本方全场得分≤全场总得分，不满足即标红并中止。判据：指数≥75 优秀、≥60 良好、≥45 一般、其余待提升。</div>
-      <div class="formula-desc">网球发球统计：ACE 率、双误率、一发成功率、一发/二发得分率、总得分率与破发点挽救率综合为发球效率指数，用于评估发球表现与关键分能力。ACE 计入一发得分、双误计入二发失分；破发点无样本时不参与指数计算。</div>
+      <div class="formula-desc">网球发球统计：ACE 率、双误率、一发成功率与破发点挽救率综合为发球效率指数；一发、二发及全场得分率单独计算。ACE 可来自一发或二发，双误计入二发失分；破发点无样本时不参与指数计算。</div>
     </div>
 
     <div class="input-row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;align-items:end;">
@@ -128,7 +128,7 @@ s.parentNode.insertBefore(el, s);
       <div><label>ACE 数</label><input type="number" id="ace" value="8" min="0" max="500" step="1" oninput="calc()" enterkeyhint="done" aria-label="ACE数" placeholder="e.g. 8 (0–500)"></div>
       <div><label>双误数</label><input type="number" id="df" value="4" min="0" max="500" step="1" oninput="calc()" enterkeyhint="done" aria-label="双误数" placeholder="e.g. 4 (0–500)"></div>
       <div><label>一发成功率 (%)</label><input type="number" id="firstIn" value="65" min="0" max="100" step="1" oninput="calc()" enterkeyhint="done" aria-label="一发成功率" placeholder="e.g. 65 (0–100)"></div>
-      <div><label>一发得分（赢下的分）</label><input type="number" id="p1w" value="45" min="0" max="2000" step="1" oninput="calc()" enterkeyhint="done" aria-label="一发得分" placeholder="e.g. 45 (含 ACE)"></div>
+      <div><label>一发得分（赢下的分）</label><input type="number" id="p1w" value="45" min="0" max="2000" step="1" oninput="calc()" enterkeyhint="done" aria-label="一发得分" placeholder="e.g. 45"></div>
       <div><label>二发得分（赢下的分）</label><input type="number" id="p2w" value="18" min="0" max="2000" step="1" oninput="calc()" enterkeyhint="done" aria-label="二发得分" placeholder="e.g. 18"></div>
       <div><label>全场总得分（双方合计，可留空）</label><input type="number" id="rt" value="140" min="1" max="5000" step="1" oninput="calc()" enterkeyhint="done" aria-label="全场总得分" placeholder="e.g. 140（留空则不算总得分率）"></div>
       <div><label>本方全场得分（可留空）</label><input type="number" id="rw" value="63" min="0" max="5000" step="1" oninput="calc()" enterkeyhint="done" aria-label="本方全场得分" placeholder="e.g. 63"></div>
@@ -224,7 +224,10 @@ function readInputs(){
   if(!isNaN(p2w)&&!isNaN(secondCount)&&!isNaN(df)&&p2w>secondCount-df+1e-9) errs.push('二发得分不能超过二发球数减去双误数（双误计入二发失分）');
   if(!isNaN(p1w)&&!isNaN(p2w)&&!isNaN(total)&&p1w+p2w>total+1e-9) errs.push('一发得分 + 二发得分不能超过总发球分');
   var hasRt=!isNaN(rt)&&rt>0, hasRw=!isNaN(rw)&&rw>=0;
-  if(!isNaN(rt)&&rt>0&&!isNaN(rw)&&rw>rt+1e-9) errs.push('本方全场得分不能超过全场总得分');
+  if(hasRt&&hasRw&&rw>rt+1e-9) errs.push('本方全场得分不能超过全场总得分');
+  if(hasRt&&!isNaN(total)&&rt<total-1e-9) errs.push('全场总得分不能少于总发球分');
+  if(hasRw&&!isNaN(p1w)&&!isNaN(p2w)&&rw<p1w+p2w-1e-9) errs.push('本方全场得分不能少于发球得分');
+  if(hasRt&&hasRw&&!isNaN(total)&&!isNaN(p1w)&&!isNaN(p2w)&&rw-p1w-p2w>rt-total+1e-9) errs.push('接发球得分不能超过接发球总分');
   // SF-N120：本方全场得分非负，负值虽标红但此前仍继续输出，须中止
   if(!isNaN(rw)&&rw<0) errs.push('本方全场得分需 ≥0');
   setInvalid(document.getElementById('total'),!(!isNaN(total)&&total>0));

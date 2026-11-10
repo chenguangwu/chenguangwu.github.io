@@ -14,6 +14,9 @@
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
+  { slug: "fitness/jianzhinengliangquekoujisuan", inputs: { target: "29.9999", weeks: "10", w: "30", ratio: "0.5" }, expect: ["小于 0.001 kg"], ref: "极小的正最终体重不能显示为零。" },
+  { slug: "fitness/jianzhinengliangquekoujisuan", inputs: { target: "29.99", weeks: "10", w: "30", ratio: "0.5" }, clicks: ["calc();document.getElementById('__tbProbe').textContent='COPYFINAL '+(lastResult.indexOf('0.010kg')>=0?'OK':'BAD');"], expect: ["COPYFINAL OK"], ref: "复制结果的最终体重要与显示精度一致。" },
+  { slug: "fitness/jianzhinengliangquekoujisuan", inputs: { target: "5", weeks: "8", w: "75", ratio: "0.5" }, clicks: ["calc();document.getElementById('target').value='75';calc();document.getElementById('__tbProbe').textContent='COPYINVALID '+(lastResult===''?'OK':'BAD');"], expect: ["COPYINVALID OK"], ref: "无效输入后不能复制上次结果。" },
   // ── 2026-11-09 复核失败第四批重做 ─────────────────────
   { slug: "fitness/jianzhinengliangquekoujisuan", inputs: { target: "29.99", weeks: "10", w: "30", ratio: "0.5" },
     expect: ["0.010 kg（正值按三位小数显示"],
