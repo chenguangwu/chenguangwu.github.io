@@ -631,7 +631,7 @@ document.addEventListener('DOMContentLoaded',function(){
   ]
 }</script>
 <script>
-var __fertilizer_calculator_last=0,__fertilizer_calculator_skip=false;
+var __fertilizer_calculator_last=0,__fertilizer_calculator_skip=false,__fertilizer_calculator_timer=null;
 function __fertilizer_calculatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -702,7 +702,7 @@ function __fertilizer_calculatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __fertilizer_calculatorExtras(){
+function __fertilizer_calculatorExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__fertilizer_calculator_skip) return;
     var snap=__fertilizer_calculatorSnap();
@@ -714,7 +714,6 @@ function __fertilizer_calculatorExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__fertilizer_calculator_last<1000) return;
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -724,16 +723,25 @@ function __fertilizer_calculatorExtras(){
         }
         if(same&&String(last[rk])===String(res)) return;
     }
+    var score=__fertilizer_calculatorScore(res);
+    if(!force&&last&&last.__tbScore===score&&now-__fertilizer_calculator_last<1000){
+        clearTimeout(__fertilizer_calculator_timer);
+        __fertilizer_calculator_timer=setTimeout(function(){__fertilizer_calculatorExtras(true);},1000-(now-__fertilizer_calculator_last));
+        return;
+    }
+    clearTimeout(__fertilizer_calculator_timer);
+    __fertilizer_calculator_timer=null;
     __fertilizer_calculator_last=now;
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__fertilizer_calculatorScore(res);
+    rec.__tbScore=score;
     TBKit.history.record(rec);
     __fertilizer_calculatorRender(keys,rk,en);
 }
 function __fertilizer_calculatorExport(){
     if (typeof TBKit === 'undefined') return;
+    if (__fertilizer_calculator_timer) __fertilizer_calculatorExtras(true);
     try{
         var box=document.querySelector('#fertilizer_calculatorTable');
         if(!box||!box.querySelector('tr')){

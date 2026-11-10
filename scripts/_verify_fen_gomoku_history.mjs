@@ -40,4 +40,67 @@ for (const [file, prefix, button, valid, invalid] of [
   }
   dom.window.close();
 }
+// Exercise the real toolkit, including its CSV serialization and download path.
+for (const [file, prefix] of [
+  ['tools/agriculture/fertilizer-calculator.html', 'fertilizer_calculator'],
+  ['tools/chess/gomoku-forbidden.html', 'gomoku_forbidden'],
+  ['tools/edu2/exam-analysis.html', 'exam_analysis'],
+]) {
+  const downloads = [], trends = [];
+  const dom = new JSDOM(readFileSync(file, 'utf8'), {
+    url: `https://x.test/${file}`, runScripts: 'dangerously', pretendToBeVisual: true,
+    virtualConsole: new VirtualConsole(),
+    beforeParse(w) {
+      w.ToolBox = { showToast() {}, escHtml: s => String(s), setResult(id, html) { w.document.getElementById(id).innerHTML = html; } };
+      w.i18nText = k => k;
+      w.Blob = class { constructor(parts) { this.text = parts.join(''); } };
+      w.URL.createObjectURL = blob => { downloads.push(blob.text); return 'blob:test'; };
+      w.URL.revokeObjectURL = () => {};
+      w.HTMLAnchorElement.prototype.click = function () {};
+      w.eval(readFileSync('js/tool-kit.js', 'utf8'));
+      const line = w.TBKit.chart.line;
+      w.TBKit.chart.line = (host, config) => { trends.push(Array.from(config.series[0].data)); return line(host, config); };
+    },
+  });
+  const w = dom.window, doc = w.document;
+  await new Promise(resolve => w.addEventListener('load', resolve));
+  w.TBKit.history.clear();
+  w.eval(`__${prefix}_last=0`);
+  const check = (label, ok) => { console.log(`${ok ? 'PASS' : 'FAIL'} ${prefix} ${label}`); if (!ok) failed = true; };
+  if (prefix === 'fertilizer_calculator') {
+    w.drawChart = () => {};
+    w.calc();
+    doc.getElementById('area').value = '';
+    doc.getElementById('area').dispatchEvent(new w.Event('input', { bubbles: true }));
+  } else if (prefix === 'gomoku_forbidden') {
+    doc.getElementById('goCol').value = 'H';
+    doc.getElementById('goRow').value = '8';
+    doc.getElementById('goCol').dispatchEvent(new w.Event('input', { bubbles: true }));
+    doc.getElementById('goCol').value = '';
+    doc.getElementById('goCol').dispatchEvent(new w.Event('input', { bubbles: true }));
+  } else {
+    doc.getElementById('scoreInput').value = '甲,80\n乙,90';
+    doc.querySelector('[onclick="calc()"].btn').click();
+    doc.getElementById('fullScore').value = '';
+    doc.querySelector('[onclick="calc()"].btn').click();
+  }
+  const records = w.TBKit.history.list();
+  check('连续有效和无效操作分别记账', records.length === 2 && records[0].d.__tbScore === 0 && records[1].d.__tbScore === 1);
+  const err = prefix === 'fertilizer_calculator' ? '请填写' : prefix === 'gomoku_forbidden' ? '坐标无效' : '满分必须大于 0';
+  check('失败记录包含当前错误而非旧结果', !!records[0] && String(records[0].d['结果']).includes(err));
+  if (prefix === 'exam_analysis') check('失败记录不携带旧平均分', !!records[0] && records[0].d.__mean == null);
+  const table = doc.getElementById(`${prefix}Table`);
+  check('真实表格显示失败及通过', table.textContent.includes('未通过') && table.textContent.includes('通过'));
+  check('真实趋势图包含通过与失败', !!doc.querySelector(`#${prefix}Chart svg`) && trends.some(t => t.join(',') === '1,0'));
+  doc.querySelector(`[onclick="__${prefix}Export()"]`).click();
+  check('实际下载 CSV 包含当前失败结果', downloads.length === 1 && downloads[0].includes('未通过') && downloads[0].includes(err));
+  if (prefix === 'exam_analysis') {
+    doc.getElementById('fullScore').value = '100';
+    doc.getElementById('scoreInput').value = '甲,20';
+    doc.querySelector('[onclick="calc()"].btn').click();
+    const current = w.TBKit.history.list()[0].d;
+    check('低分为有效计算而非输入失败', current.__tbScore === 1 && current['结果'].includes('不及格'));
+  }
+  dom.window.close();
+}
 process.exit(failed ? 1 : 0);

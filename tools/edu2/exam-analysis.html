@@ -296,11 +296,15 @@ function parseScores(text){
   return list;
 }
 
+var __exam_analysis_error='';
 function calc(){
+  __exam_analysis_error='';
   var text = document.getElementById('scoreInput').value;
   var list = parseScores(text);
   if(list.length===0){
-    ToolBox.showToast(i18nText('toast.msg826'),'error');
+    __exam_analysis_error=i18nText('toast.msg826');
+    window.__EXAM_METRICS=null;
+    ToolBox.showToast(__exam_analysis_error,'error');
     document.getElementById('result').style.display='none';
     return;
   }
@@ -313,6 +317,8 @@ function calc(){
   else if(!isFinite(excelPct) || excelPct < 0 || excelPct > 100) __err = '优秀线须在 0–100% 之间。';
   else if(excelPct < passPct) __err = '优秀线不应低于及格线。';
   if(__err){
+    __exam_analysis_error=__err;
+    window.__EXAM_METRICS=null;
     ToolBox.showToast(__err,'error');
     document.getElementById('result').style.display='none';
     return;
@@ -462,7 +468,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __exam_analysis_last=0,__exam_analysis_skip=false;
+var __exam_analysis_last=0,__exam_analysis_skip=false,__exam_analysis_timer=null;
 function __exam_analysisSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -478,18 +484,11 @@ function __exam_analysisSnap(){
 function __exam_analysisResText(){
     var r=document.getElementById('result');
     if(!r) return '';
-    // F-N189：失效时 calc() 只隐藏 #result 并弹 Toast，旧结果文本仍留在隐藏容器里。
-    // 记录器若照读会把隐藏的旧结果当新结果（同值去重后连失败都不记）⇒ 隐藏态一律视为无结果。
-    if(r.style && r.style.display==='none') return '';
+    if(r.style && r.style.display==='none') return __exam_analysis_error || '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
-}
-function __exam_analysisScore(t){
-    var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
-    return 1;
 }
 function __exam_analysisTime(t){
     var d=new Date(t);
@@ -527,16 +526,15 @@ function __exam_analysisRender(keys,rk,en){
         });
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
-            var v=arr[j].d['__mean'];
-            if(v==null) v=parseFloat(arr[j].d[rk]);
+            var v=arr[j].d.__tbScore;
             if(isFinite(+v)){nums.push(+v);labels.push(__exam_analysisTime(arr[j].t));}
         }
         if(nums.length>=2){
-            TBKit.chart.line('#exam_analysisChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+            TBKit.chart.line('#exam_analysisChart',{labels:labels,series:[{name:en?'Validity trend':'有效性趋势',data:nums}]});
         }
     }catch(e3){}
 }
-function __exam_analysisExtras(){
+function __exam_analysisExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__exam_analysis_skip) return;
     var snap=__exam_analysisSnap();
@@ -548,7 +546,6 @@ function __exam_analysisExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__exam_analysis_last<1000) return;
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -558,17 +555,26 @@ function __exam_analysisExtras(){
         }
         if(same&&String(last[rk])===String(res)) return;
     }
+    var score=__exam_analysis_error ? 0 : 1;
+    if(!force&&last&&last.__tbScore===score&&now-__exam_analysis_last<1000){
+        clearTimeout(__exam_analysis_timer);
+        __exam_analysis_timer=setTimeout(function(){__exam_analysisExtras(true);},1000-(now-__exam_analysis_last));
+        return;
+    }
+    clearTimeout(__exam_analysis_timer);
+    __exam_analysis_timer=null;
     __exam_analysis_last=now;
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
     try{ if(window.__EXAM_METRICS) rec['__mean']=window.__EXAM_METRICS.mean; }catch(e){}
-    rec.__tbScore=__exam_analysisScore(res);
+    rec.__tbScore=score;
     TBKit.history.record(rec);
     __exam_analysisRender(keys,rk,en);
 }
 function __exam_analysisExport(){
     if (typeof TBKit === 'undefined') return;
+    if (__exam_analysis_timer) __exam_analysisExtras(true);
     try{
         var box=document.querySelector('#exam_analysisTable');
         if(!box||!box.querySelector('tr')){
