@@ -1079,14 +1079,26 @@ const CASES = [
   {
     slug: "finance/imsi-validator",
     inputs: { input: "310150123456789" },
-    expect: ["MCC（前 3 位）： 310 - 美国", "MNC（第 4-5 位）： 15 - 未知运营商"],
-    ref: "IMSI 15 位分段：MCC=310（美国）、MNC=15（未知运营商）、MSIN=0123456789；官方说明 IMSI 无标准校验位，仅格式校验。默认态不同 ⇒ 不命中。",
+    expect: ["MNC（第 4-6 位）： 150 - 未知运营商 移动用户识别码 MSIN： 123456789"],
+    ref: "MCC 310 的 MNC 为三位，未收录 150 也不能截成两位。",
   },
   {
     slug: "finance/imsi-validator",
     inputs: { input: "310410123456789" },
     expect: ["MNC（第 4-6 位）： 410 - AT&T 移动用户识别码 MSIN： 123456789"],
     ref: "F-N217 三位 MNC：310410（AT&T）第 4-6 位 MNC 在库命中 ⇒ 按 3 位展示、MSIN 从第 7 位切 123456789；旧实现固定 2 位显示 41、MSIN 多带一位 0123456789。默认预填 460001234567890（2 位 MNC 00）⇒ 不命中。",
+  },
+  {
+    slug: "finance/imsi-validator",
+    inputs: { input: "460011234567890" },
+    expect: ["MNC（第 4-5 位）： 01 - China Unicom 中国联通", "MSIN： 1234567890"],
+    ref: "中国 460 的 MNC 使用两位。",
+  },
+  {
+    slug: "finance/imsi-validator",
+    inputs: { input: "999123456789012" },
+    expect: ["MNC 位数无法确定，无法解析 MNC 和 MSIN"],
+    ref: "未知 MCC 不应猜测 MNC 长度和 MSIN。",
   },
   {
     slug: "finance/meid-validator",
