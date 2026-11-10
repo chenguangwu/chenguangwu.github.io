@@ -394,7 +394,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __word_wrap_last=0,__word_wrap_skip=false;
+var __word_wrap_last=0,__word_wrap_skip=false,__word_wrap_timer=null;
 function __word_wrapSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -403,7 +403,7 @@ function __word_wrapSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?'1':'0'):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -415,9 +415,16 @@ function __word_wrapResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __word_wrapFullResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __word_wrapScore(t){
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __word_wrapTime(t){
@@ -440,7 +447,7 @@ function __word_wrapRender(keys,rk,en){
         TBKit.matrix.table('#word_wrapTable',{head:head,rows:rows});
         TBKit.util.diffBox('#word_wrapDiff');
         TBKit.history.mount('#word_wrapHist',function(rec){
-            __word_wrap_skip=true;
+            __word_wrap_skip=true;clearTimeout(__word_wrap_timer);__word_wrap_timer=null;
             try{
                 // 恢复前先清空未记录的勾选：旧记录是稀疏的（只存勾选中的项），
                 // 不清理会把当前多勾的权限带过来（600→777→恢复 600 仍显示 777）。
@@ -470,9 +477,11 @@ function __word_wrapRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __word_wrapExtras(){
+function __word_wrapExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__word_wrap_skip) return;
+    clearTimeout(__word_wrap_timer);
+    __word_wrap_timer=null;
     var snap=__word_wrapSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -482,7 +491,10 @@ function __word_wrapExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__word_wrap_last<1000) return;
+    if(!force && now-__word_wrap_last<1000){
+        __word_wrap_timer=setTimeout(function(){__word_wrapExtras(true);},1000-(now-__word_wrap_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -496,12 +508,13 @@ function __word_wrapExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__word_wrapScore(res);
+    rec.__tbScore=__word_wrapScore(__word_wrapFullResText());
     TBKit.history.record(rec);
     __word_wrapRender(keys,rk,en);
 }
 function __word_wrapExport(){
     if (typeof TBKit === 'undefined') return;
+    __word_wrapExtras(true);
     try{
         var box=document.querySelector('#word_wrapTable');
         if(!box||!box.querySelector('tr')){

@@ -347,7 +347,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __text_reverse_words_last=0,__text_reverse_words_skip=false;
+var __text_reverse_words_last=0,__text_reverse_words_skip=false,__text_reverse_words_timer=null;
 function __text_reverse_wordsSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -356,7 +356,7 @@ function __text_reverse_wordsSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?'1':'0'):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -365,6 +365,22 @@ function __text_reverse_wordsResText(){
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     return t.slice(0,80);
+}
+function __text_reverse_wordsFullResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    return t;
+}
+function __text_reverse_wordsScore(t){
+    // 复核判据：按本页业务状态判定，不靠 80 字摘要，也不硬编码通过。
+    // 空输入/占位语/失败文案记 0；正常反转结果记 1。
+    var v=String(document.getElementById('input').value||'');
+    if(!v.trim()) return 0;
+    var s=String(t||'');
+    if(/^(请输入文本|Please enter text|等待输入|Waiting for input)/i.test(s)) return 0;
+    if(/无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Waiting/i.test(s)) return 0;
+    return 1;
 }
 function __text_reverse_wordsTime(t){
     var d=new Date(t);
@@ -386,7 +402,7 @@ function __text_reverse_wordsRender(keys,rk,en){
         TBKit.matrix.table('#text_reverse_wordsTable',{head:head,rows:rows});
         TBKit.util.diffBox('#text_reverse_wordsDiff');
         TBKit.history.mount('#text_reverse_wordsHist',function(rec){
-            __text_reverse_words_skip=true;
+            __text_reverse_words_skip=true;clearTimeout(__text_reverse_words_timer);__text_reverse_words_timer=null;
             try{
                 // 恢复前先清空未记录的勾选：旧记录是稀疏的（只存勾选中的项），
                 // 不清理会把当前多勾的权限带过来（600→777→恢复 600 仍显示 777）。
@@ -416,9 +432,11 @@ function __text_reverse_wordsRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __text_reverse_wordsExtras(){
+function __text_reverse_wordsExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__text_reverse_words_skip) return;
+    clearTimeout(__text_reverse_words_timer);
+    __text_reverse_words_timer=null;
     if (!document.getElementById('input').value) return;
     var snap=__text_reverse_wordsSnap();
     var keys=Object.keys(snap);
@@ -429,7 +447,10 @@ function __text_reverse_wordsExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__text_reverse_words_last<1000) return;
+    if(!force && now-__text_reverse_words_last<1000){
+        __text_reverse_words_timer=setTimeout(function(){__text_reverse_wordsExtras(true);},1000-(now-__text_reverse_words_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -443,12 +464,13 @@ function __text_reverse_wordsExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=1;
+    rec.__tbScore=__text_reverse_wordsScore(__text_reverse_wordsFullResText());
     TBKit.history.record(rec);
     __text_reverse_wordsRender(keys,rk,en);
 }
 function __text_reverse_wordsExport(){
     if (typeof TBKit === 'undefined') return;
+    __text_reverse_wordsExtras(true);
     try{
         var box=document.querySelector('#text_reverse_wordsTable');
         if(!box||!box.querySelector('tr')){

@@ -424,7 +424,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __word_frequency_last=0,__word_frequency_skip=false;
+var __word_frequency_last=0,__word_frequency_skip=false,__word_frequency_timer=null;
 function __word_frequencySnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -433,7 +433,7 @@ function __word_frequencySnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?'1':'0'):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -445,9 +445,16 @@ function __word_frequencyResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __word_frequencyFullResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __word_frequencyScore(t){
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __word_frequencyTime(t){
@@ -470,7 +477,7 @@ function __word_frequencyRender(keys,rk,en){
         TBKit.matrix.table('#word_frequencyTable',{head:head,rows:rows});
         TBKit.util.diffBox('#word_frequencyDiff');
         TBKit.history.mount('#word_frequencyHist',function(rec){
-            __word_frequency_skip=true;
+            __word_frequency_skip=true;clearTimeout(__word_frequency_timer);__word_frequency_timer=null;
             try{
                 // 恢复前先清空未记录的勾选：旧记录是稀疏的（只存勾选中的项），
                 // 不清理会把当前多勾的权限带过来（600→777→恢复 600 仍显示 777）。
@@ -500,9 +507,11 @@ function __word_frequencyRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __word_frequencyExtras(){
+function __word_frequencyExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__word_frequency_skip) return;
+    clearTimeout(__word_frequency_timer);
+    __word_frequency_timer=null;
     var snap=__word_frequencySnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -512,7 +521,10 @@ function __word_frequencyExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__word_frequency_last<1000) return;
+    if(!force && now-__word_frequency_last<1000){
+        __word_frequency_timer=setTimeout(function(){__word_frequencyExtras(true);},1000-(now-__word_frequency_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -526,12 +538,13 @@ function __word_frequencyExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__word_frequencyScore(res);
+    rec.__tbScore=__word_frequencyScore(__word_frequencyFullResText());
     TBKit.history.record(rec);
     __word_frequencyRender(keys,rk,en);
 }
 function __word_frequencyExport(){
     if (typeof TBKit === 'undefined') return;
+    __word_frequencyExtras(true);
     try{
         var box=document.querySelector('#word_frequencyTable');
         if(!box||!box.querySelector('tr')){

@@ -682,7 +682,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __vat_calculator_last=0,__vat_calculator_skip=false;
+var __vat_calculator_last=0,__vat_calculator_skip=false,__vat_calculator_timer=null;
 function __vat_calculatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -691,7 +691,7 @@ function __vat_calculatorSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -703,9 +703,20 @@ function __vat_calculatorResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __vat_calculatorFullResText(){
+    var r=document.getElementById('singleResult');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __vat_calculatorScore(t){
+    // 复核判据：⚠ 提示不是失败词表项，但税率越界/非数字时本页只出这行提示，
+    // 必须按业务输入判定，否则非法税率会被记成通过。
+    var rt=parseFloat(document.getElementById('customRate').value);
+    if(!isFinite(rt)||rt<0||rt>100||/税率须为/.test(String(t||''))) return 0;
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __vat_calculatorTime(t){
@@ -728,7 +739,7 @@ function __vat_calculatorRender(keys,rk,en){
         TBKit.matrix.table('#vat_calculatorTable',{head:head,rows:rows});
         TBKit.util.diffBox('#vat_calculatorDiff');
         TBKit.history.mount('#vat_calculatorHist',function(rec){
-            __vat_calculator_skip=true;
+            __vat_calculator_skip=true;clearTimeout(__vat_calculator_timer);__vat_calculator_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -752,9 +763,11 @@ function __vat_calculatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __vat_calculatorExtras(){
+function __vat_calculatorExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__vat_calculator_skip) return;
+    clearTimeout(__vat_calculator_timer);
+    __vat_calculator_timer=null;
     var snap=__vat_calculatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -764,7 +777,10 @@ function __vat_calculatorExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__vat_calculator_last<1000) return;
+    if(!force && now-__vat_calculator_last<1000){
+        __vat_calculator_timer=setTimeout(function(){__vat_calculatorExtras(true);},1000-(now-__vat_calculator_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -778,12 +794,13 @@ function __vat_calculatorExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__vat_calculatorScore(res);
+    rec.__tbScore=__vat_calculatorScore(__vat_calculatorFullResText());
     TBKit.history.record(rec);
     __vat_calculatorRender(keys,rk,en);
 }
 function __vat_calculatorExport(){
     if (typeof TBKit === 'undefined') return;
+    __vat_calculatorExtras(true);
     try{
         var box=document.querySelector('#vat_calculatorTable');
         if(!box||!box.querySelector('tr')){
