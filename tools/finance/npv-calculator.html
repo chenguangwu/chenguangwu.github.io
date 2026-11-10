@@ -394,9 +394,10 @@ function calcIRR(init, flows){
   while(coeff.length>1 && coeff[coeff.length-1]===0) coeff.pop();
   const max=Math.max(...coeff.map(Math.abs));
   const normalized=coeff.map(v=>v/max);
+  if(coeff.some((v,i)=>v!==0 && normalized[i]===0)) return {status:'uncertain'};
   const signs=normalized.filter(v=>v!==0).map(Math.sign);
   const changes=signs.slice(1).reduce((n,s,i)=>n+(s!==signs[i]?1:0),0);
-  if(changes>1 && coeff.length>25) return {status:'uncertain'};
+  if(coeff.length>25) return {status:'uncertain'};
   const lo=1/1001, hi=10000;
   const cents=coeff.map(v=>v*100);
   const exactDouble=coeff.length===3 && cents.every(Number.isSafeInteger) &&
@@ -450,8 +451,10 @@ function calcIRR(init, flows){
     }
     return roots.sort((a,b)=>a-b);
   }
+  const endpoints=[evaluate(normalized,lo),evaluate(normalized,hi)];
+  if(coeff.length>2 && endpoints.some(v=>Math.abs(v.value)<=v.magnitude*2e-14)) return {status:'uncertain'};
   const xs=changes===1 ? (function(){
-    const a=evaluate(normalized,lo).value, b=evaluate(normalized,hi).value;
+    const a=endpoints[0].value, b=endpoints[1].value;
     if(Math.sign(a)===Math.sign(b)) return [];
     let left=lo,right=hi;
     for(let i=0;i<100;i++){const mid=(left+right)/2, v=evaluate(normalized,mid).value; if(v===0){left=right=mid;break;} if(Math.sign(v)===Math.sign(a)) left=mid; else right=mid;}

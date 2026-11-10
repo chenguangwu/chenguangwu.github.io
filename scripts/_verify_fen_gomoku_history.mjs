@@ -216,6 +216,10 @@ for (const [file, prefix, input, error] of [
   check('100000% 上边界', result.status==='ok' && close(result.rate,1000));
   result=w.calcIRR(100,[.01]);
   check('−99.99% 下边界', result.status==='ok' && close(result.rate,-.9999));
+  result=w.calcIRR(1e-300,Array(150).fill(0).concat([-1e308,1e308]));
+  check('归一化下溢不能虚报正 IRR',result.status==='uncertain' || (result.status==='ok' && result.rate<0 && result.rate>-.5));
+  result=w.calcIRR(1,[1001,1e-11]);
+  check('搜索范围外近边界单根不误报边界解',result.status==='none' || result.status==='uncertain');
   const longFlows=[200,-100].concat(Array(23).fill(1));
   check('长现金流不虚报无解',w.calcIRR(100,longFlows).status==='uncertain');
   w.drawChart=()=>{}; w.document.getElementById('init').value='100';
