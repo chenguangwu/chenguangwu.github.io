@@ -146,7 +146,7 @@
   <div class="formula-desc">每 4 字节编码为 5 个可打印字符，比 Base64 更紧凑。</div>
   <ul class="formula-list">
     <li><b>分组</b>：每 4 字节（32 位）视为一个大整数，反复除以 85 得 5 个余数并映射字符。</li>
-    <li><b>Ascii85</b>：字符集为 <code>!</code> 到 <code>u</code>，<code>z</code> 表示连续 4 个零字节，<code>y</code> 用于特定历史情形。</li>
+    <li><b>Ascii85</b>：字符集为 <code>!</code> 到 <code>u</code>，<code>z</code> 表示连续 4 个零字节。</li>
     <li><b>Z85</b>：ZeroMQ 定义的变体，刻意避开引号与反斜杠，便于直接嵌入源码字符串。</li>
     <li><b>效率</b>：膨胀率约 25%（4 字节→5 字符），优于 Base64 的 33%。</li>
   </ul>
@@ -206,7 +206,7 @@
 <li>PostScript、Git 二进制 diff（diff --binary）常用 Base85 压缩体积。</li>
 <li>需要在文本协议里嵌入较长二进制时，Base85 比 Base64 更省空间。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">编码 &quot;Hello&quot;</div><div class="dd-ex-body">输入 `Hello` → 输出 `&lt;~87cURD~&gt;`（ASCII85 形式，每 4 字节原文约编为 5 字符）。</div></div>
+<div class="dd-example"><div class="dd-ex-title">编码 &quot;Hello&quot;</div><div class="dd-ex-body">输入 `Hello` → 输出 `&lt;~87cURDZ~&gt;`（ASCII85 形式，每 4 字节原文约编为 5 字符）。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>Base85 比 Base64 省多少？</dt><dd>Base85 每 4 字节编 5 字符，膨胀约 25%，优于 Base64 的 33%。</dd>
@@ -229,8 +229,8 @@
       <tbody>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Base85 编码">Base85</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="4 字节→5 字符（85 进制），含 Ascii85 / RFC 1924">4 bytes → 5 chars (base 85)</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="RFC 1924（IPv6 的 Base85）">RFC 1924 Base85</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="4 字节→5 字符（85 进制），含 Adobe Ascii85 / ZeroMQ Z85">4 bytes → 5 chars (base 85), Adobe Ascii85 / ZeroMQ Z85</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Adobe PostScript Language Reference（Ascii85）；ZeroMQ RFC 32（Z85）">Adobe PostScript Language Reference (Ascii85); ZeroMQ RFC 32 (Z85)</td>
         </tr>
       </tbody>
     </table>
@@ -284,6 +284,7 @@ function decodeAscii85(str){
       if(c < 0 || c > 84) throw new Error('非法字符: ' + block[k]);
       n = n * 85 + c;
     }
+    if(n > 0xFFFFFFFF) throw new Error('非规范组：数值超出 32 位范围');
     let valid = 5;
     while(i + valid - 1 >= str.length) valid--;
     const buf = new Uint8Array(4);
@@ -322,6 +323,7 @@ function decodeZ85(str){
       if(idx === -1) throw new Error('非法字符: ' + str[i + j]);
       n = n * 85 + idx;
     }
+    if(n > 0xFFFFFFFF) throw new Error('非规范组：数值超出 32 位范围');
     out.push((n >>> 24) & 0xff, (n >>> 16) & 0xff, (n >>> 8) & 0xff, n & 0xff);
   }
   return new Uint8Array(out);
@@ -488,7 +490,7 @@ function __base85_encodePresets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#base85_encodePresets',[{label:'默认参数',labelEn:'Default',values:{'variant':'ascii85'}},
   {'label':'Ascii85','labelEn':'Ascii85','values':{'variant':'ascii85','input':'Hello Ascii85'}},
-  {'label':'Z85','labelEn':'Z85','values':{'variant':'z85','input':'ZeroMQ Z85'}}],function(){ enc(); });
+  {'label':'Z85','labelEn':'Z85','values':{'variant':'z85','input':'ZeroMQ!!'}}],function(){ enc(); });
 }
 var __base85_encode_f0=(typeof enc==='function')?enc:null;
 if(__base85_encode_f0){

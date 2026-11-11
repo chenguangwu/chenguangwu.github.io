@@ -1066,6 +1066,13 @@ const CASES = [
     ref: "IT-N117：dec() 必须像 enc() 一样被历史记录包装（函数体含 __base58_encodeExtras），旧源码只包装 enc ⇒ N。哨兵 SENTINEL 被真解码结果 Hello 覆盖，证明执行的仍是真 dec。方向字段与历史记录由 JSDOM 真机脚本验证。探针仅 clicks 注入出现。",
   },
   {
+    slug: "it/base58-encode",
+    // IT-N119：非 UTF-8 载荷必须明确报错，不能静默产出 U+FFFD。
+    clicks: ["var e=encodeBase58([0x80,0xff]),i=document.getElementById('input'),o=document.getElementById('output'),msg='',oa=alert;i.value=e;o.value='KEEP';alert=function(m){msg=String(m);};try{dec();}catch(x){}alert=oa;document.getElementById('__tbProbe').textContent='B58FAT '+(/非 UTF-8/.test(msg)?'ERR':'NO')+' '+o.value;"],
+    expect: ["B58FAT ERR KEEP"],
+    ref: "IT-N119：把 [0x80,0xFF] 编成 Base58 再解码。修复后用 fatal:true 的 TextDecoder 拒绝并弹「载荷含非 UTF-8 字节」，输出哨兵 KEEP 不被 U+FFFD 覆盖 ⇒ B58FAT ERR KEEP；旧实现默认非严格解码 ⇒ msg 空且 out=两个 U+FFFD ⇒ B58FAT NO，判别明确。默认态无探针。",
+  },
+  {
     slug: "it/hex-encode",
     inputs: { input: "hello" },
     expect: ["68656c6c6f", "68656C6C6F"],
@@ -6262,6 +6269,21 @@ const CASES = [
     clicks: ["dec();"],
     expect: ["hello"],
     ref: "解码方向（与上条互逆，同一实现）：<~BOu!rDZ~> → 'hello'，写入 #output.value，由 collectStrings 采集。默认输入为空时不命中。",
+  },
+  {
+    slug: "it/base85-encode",
+    // IT-N121：85^5 > 2^32，两个解码器都必须拒绝超范围的非规范组。
+    clicks: ["var a='',b='';try{decodeZ85('#####');a='NO';}catch(e){a=/非规范组/.test(e.message)?'OK':e.message;}try{decodeAscii85('<~uuuuu~>');b='NO';}catch(e){b=/非规范组/.test(e.message)?'OK':e.message;}document.getElementById('__tbProbe').textContent='B85LIM '+a+' '+b;"],
+    expect: ["B85LIM OK OK"],
+    ref: "IT-N121：Z85 的 ##### 与 Ascii85 的 uuuuu 都取值 85^5-1=4437053124 > 0xFFFFFFFF，规范要求拒绝。旧实现直接按 32 位截断得 08 78 0e c4、无异常 ⇒ B85LIM NO NO；修复后两条均抛「非规范组」⇒ B85LIM OK OK。默认态无探针。",
+  },
+  {
+    slug: "it/base85-encode",
+    // IT-N122：Hello 的 Ascii85 示例必须与实现一致（补第 7 个 payload 字符 Z）。
+    inputs: { input: "Hello" },
+    clicks: ["enc();document.getElementById('__tbProbe').textContent='B85EX '+document.getElementById('output').value.replace(/</g,'LT').replace(/>/g,'GT');"],
+    expect: ["B85EX LT~87cURDZ~GT"],
+    ref: "IT-N122：Python base64.a85encode(b'Hello') = b'<~87cURDZ~>'，页面实现输出必须一致。探针把尖括号换成 LT/GT（harness collectStrings 会剥 HTML 标签），故期望 B85EX LT~87cURDZ~GT；旧文档示例缺 Z 时 ⇒ LT~87cURD~GT，判别明确。默认态无探针。",
   },
   {
     slug: "it/base64-file",

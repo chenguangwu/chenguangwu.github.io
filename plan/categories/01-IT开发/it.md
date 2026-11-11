@@ -229,44 +229,9 @@
 
 范围：只读实读 8 页（`tools/it/base58-encode.html`、`base85-encode.html`、`barcode-code128.html`、`barcode-upc.html`、`bluetooth-version.html`、`usb-version.html`、`ascii-table.html`、`caesar-cipher.html`），编号接续 IT-N117。所有数值结论均用 `node -e` 按页面源码逻辑（或 `/js/barcode-lib.js`）复算；未开浏览器、未跑构建/门禁、未做 EN/繁体/移动端验证。上一轮已记入 IT-N110/111/112 的 Base32 同型问题不作为本轮重复项。
 
-### IT-N119 Base58 编解码：只支持文本（UTF-8），与 meta"输入文本或字节"不符；二进制解码静默变 U+FFFD（低，确认源码缺陷）
-- 问题：页面输入是单个 `<textarea>`，编码固定 `new TextEncoder().encode(text)`、解码固定 `new TextDecoder().decode(bytes)`；没有字节/十六进制输入，也没有字节输出。非 UTF-8 的 Base58 载荷（如比特币原始公钥）解码后会被替换为 `U+FFFD`，且无任何提示。
-- 证据：`tools/it/base58-encode.html:10`（meta"输入文本或字节"）、`tools/it/base58-encode.html:174`（唯一文本输入）、`tools/it/base58-encode.html:314`、`tools/it/base58-encode.html:321`
-- 复现：把字节序列 `[0x80, 0xFF]` 按页内 `encodeBase58()` 编成 Base58 再粘回解码 → 实际输出两个 `�`（U+FFFD），无"非文本数据"提示（`TextDecoder` 静默替换非法字节）。期望：提供 hex/字节视图或明确拒绝。
-- 影响：把二进制当文本处理会静默损坏数据，与 meta 承诺不符。
-- 方案：增加"文本 / Hex 字节"输入切换，解码输出同时给 UTF-8 文本与 hex；若不做，删掉 meta 中的"或字节"。
-
 - 留存建议（base58-encode）：①补"文本 / Hex 字节"双模式，真正兑现 meta；②结果区显示字符数与字节数；③支持 Base58Check（双 SHA-256 前 4 字节）校验，或明确标注"仅纯 Base58、不校验地址"。
 
-### IT-N120 Base85 编解码："Z85"预设必然报错（`ZeroMQ Z85` 为 10 字节，非 4 的倍数）（中，确认源码缺陷）
-- 问题：预设 `Z85` 把输入设为 `ZeroMQ Z85`（10 字节），而 `encodeZ85()` 开头硬性要求字节数为 4 的倍数并抛错；点击该预设只会弹出"编码失败：Z85 编码要求字节数为 4 的倍数"，输出保持旧值。
-- 证据：`tools/it/base85-encode.html:484`（预设值）、`tools/it/base85-encode.html:309-310`（`bytes.length % 4 !== 0` 抛错）
-- 复现（Node 复算）：`node -e "console.log(new TextEncoder().encode('ZeroMQ Z85').length%4)"` → `2`；因此 `Z85` 预设 100% 失败。期望预设改用 8/12 字节样例（如 `ZeroMQ!!` 8 字节）或自动补位。
-- 影响：三种变体里的 Z85 无法通过预设体验，用户会误以为 Z85 模式坏了。
-- 方案：预设改 `ZeroMQ!`（8 字节）等 4 倍数样例；或在 UI 提示"Z85 需 4 字节对齐"并禁用不合规预设。
-
-### IT-N121 Base85 编解码：两个解码器都不校验 5 字符组的数值上限（85⁵ > 2³²），非法组静默产出错误字节（中，确认源码缺陷）
-- 问题：`decodeZ85()` 把 5 个字符累加成 `n` 后直接用 `n >>> 24` 等按 32 位截断；`decodeAscii85()` 同样不校验 `n ≤ 0xFFFFFFFF`。而 85⁵−1 = 4437053124 > 4294967295，规范要求该组非法。超出上限的组不会被拒绝，而是按 `n mod 2³²` 输出字节。
-- 证据：`tools/it/base85-encode.html:334-336`（累加后直接位运算）、`tools/it/base85-encode.html:284-296`（Ascii85 同样无上限校验）
-- 复现（Node 复算页内函数）：`decodeZ85('#####')` → 实际 `08 78 0e c4`，无异常；`decodeAscii85('<~uuuuu~>')` → 同样 `08 78 0e c4`。该组十进制值 4437053124 > 2³²−1，期望抛"非规范 Base85 组"。
-- 影响：截断/篡改的 Base85 被当成合法数据解码，输出看似正常但语义错误（用于二进制载荷时不可察觉）。
-- 方案：累加后 `if(n > 0xFFFFFFFF) throw new Error('非规范组')`；Ascii85 同理；补 `#####`/`uuuuu` 两条负例。
-
-### IT-N122 Base85 编解码：deep-dive 示例少写一个字符（实际 `<~87cURDZ~>`）（低，确认源码缺陷）
-- 问题：示例称 `Hello` → `<~87cURD~>`，但 `Hello` 的 5 字节应编为 5+2=7 个 payload 字符；页面实现实际输出 `<~87cURDZ~>`（8 字符）。
-- 证据：`tools/it/base85-encode.html:220`（示例）；算法见 `tools/it/base85-encode.html:264-282`
-- 复现（Node 复算页内 `encodeAscii85`）：`Hello` → `<~87cURDZ~>`；示例值 `<~87cURD~>` 无法被本页解码回 `Hello`（缺 `Z` 时解出 `Hell`）。
-- 影响：示例与实现不一致，用户复制示例去解码会得到 `Hell`。
-- 方案：改为 `<~87cURDZ~>`；建议示例同时给出"输入/输出/可逆验证"三行。
-
-### IT-N123 Base85 编解码：引据写 RFC 1924（其字符表与本页两种变体都不同），且 formula-list 声称支持 `y` 但实现没有（低，确认源码缺陷）
-- 问题：本页只实现 Adobe Ascii85（`!`~`u` + `z`）与 ZeroMQ Z85；RFC 1924 的 Base85 字母表是另一套（`0-9A-Za-z!#$%&()*+-;<=>?@^_`{|}~`），既非 Ascii85 也非 Z85。另 formula-list 写"`y` 用于特定历史情形"，但 `decodeAscii85()` 遇到 `y`（码值 88 > 84）直接抛"非法字符"。
-- 证据：`tools/it/base85-encode.html:160`（`y` 的说法）、`tools/it/base85-encode.html:243-244`（RFC 1924 引据）、`tools/it/base85-encode.html:295`（`c > 84` 抛错）
-- 复现：解码 `y` 开头的组 → 实际"非法字符: y"；期望要么支持（btoa 扩展把 `y` 视为 4 个空格），要么在说明中不要声称支持。
-- 影响：引据不可核、说明与行为不符，教学场景易误导。
-- 方案：引据改为 Adobe PostScript Language Reference（Ascii85）与 ZeroMQ RFC 32/Z85；删除 `y` 说法或实现 `y`→4 空格。
-
-- 留存建议（base85-encode）：①Z85 预设改为 4 字节对齐样例并显示对齐要求；②解码加组值上限与非规范组报错；③结果区显示"字符数 / 膨胀率"并支持 `<~ ~>` 可选开关。
+- 留存建议（base85-encode）：①在 UI 明示 Z85 需 4 字节对齐（当前仅预设改用合规样例）；②结果区显示"字符数 / 膨胀率"并支持 `<~ ~>` 可选开关。
 
 ### IT-N124 Code128 条形码：宣称支持全部 ASCII 0–127，但"可打印 + 控制字符"混合输入被拒（中，确认源码缺陷）
 - 问题：`code128Encode()` 的子集选择是"整串只能落在一个区间"：纯偶数位数字→C；整串都在 32–127→B；整串都在 0–95→A；否则报"仅支持 ASCII 0~127"。因此 `a\x01`（97 与 1，均在 0–127 内）被拒绝，但正确做法是 B→A 切换（或 A→B），Code 128 本身完全支持。
