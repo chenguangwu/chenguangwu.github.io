@@ -2624,26 +2624,13 @@
 - 方案：按"输出格式"选择输入格式（Base64 与 Hex 各一个显式选项），或先 `atob` 成功再用 Base64、失败再回退 Hex。
 - 假工具：否
 
-### IT-N464 正则删注释 + 抹掉换行，会破坏字符串 / 正则 / 模板字符串与 ASI，输出废码（高，算错）
-- 页面：`tools/it/js-minify.html`
-- 问题：`minify()` 依次 `replace(/\/\*[\s\S]*?\*\//g,'')`、`replace(/\/\/[^\n]*/g,'')`、`replace(/\s+/g,' ')`（`:216-222`），完全不识别字符串、模板字符串、正则字面量，也把换行压成空格（ASI 依赖换行）。
-- 行号：`:216-222`（核心 `:217-219`）、`:230`
-- 复现（node 复刻同函数）：
-  - `var u = "https://api.example.com/v1";` + 下一行 `console.log(u);` → 实际 `var u= "https: console.log(u);"`（URL 后半与整行被当注释吃掉，`new Function` 解析失败）；
-  - `var a = 1` 换行 `var b = 2` → `var a= 1 var b= 2`（SyntaxError）；
-  - `` const t = `line1\nline2`; `` → 实际 `` const t= `line1 line2`; ``，模板字符串的值被改；
-  - `function f(){ return` 换行 ` 42 }` → `return 42`，语义由返回 undefined 变为返回 42。
-- 影响：页面 `:103`、`:168` 称"几乎不改变行为"，实际对含 URL、正则、模板字符串或无分号风格的真实代码直接产出不可执行/语义漂移的结果；用户拿去上线即报错。
-- 方案：改用 tokenizer（acorn/esprima）或直接调 Terser；最低限度也要保留换行、跳过字符串与正则区间，并在页面声明"仅适用于带分号的简单代码"。
-- 假工具：否
-
 ### 覆盖清单（W 批 IT URL/签名/安全）
 - `url-qr`：IT-N456（高，假工具）；IT-N457（中）。
 - `og-meta-tag-generator`：IT-N458（中）；无高优缺陷（`escA` 先转 `&` 再转 `"`，输出走 `textarea.value`，属性上下文不可注入）。
 - `http-response-headers`：IT-N459（中）；无高优缺陷（`renderCommands` 对全部字段走 `escapeHtml`，搜索/复制路径无注入）。
 - `api-sign-generator`：IT-N460（高，安全）、IT-N461（高）；IT-N462（中）。
 - `rc4`：IT-N463（中）；无高优缺陷（`rc4()` 与 `RC4-drop` 主路径对照已知向量 `Key`/`Plaintext` → `bbf316e8d940af0ad3` 正确，KSA/PRGA 无死循环）。
-- `js-minify`：IT-N464（高）；无其它高优项（结果渲染走 `escH`，无注入）。
+- `js-minify`：无剩余高优/中优缺陷（IT-N464 已改为轻量词法扫描，保留字符串/正则/模板串与换行，第182批销账；结果渲染走 `escH`，无注入）。
 - `url-params`：无剩余高优/中优缺陷（IT-N465/IT-N466/IT-N467 均已修复，第178–179批补独立锁与真机复核后销账）。
 - `short-link-generator`：无剩余高优/中优缺陷（IT-N468 已改为 hash 映射，第180批销账；输出全部经 `escapeHtml`）。
 - 方法声明：本轮逐页通读上述 8 页源码，用 `node` 在 `/tmp` 复刻页面原函数（`renderQR`、`minify`、`rc4`、`parseParams`、`md5Hex`）并给出「输入 → 实际 / 期望」；MD5 对照用 `crypto.createHash('md5')`，QR 不可扫码依据"无数据位/格式信息/纠错码字"的算法结构判定；`esc()` 不转义双引号、`innerHTML` 属性注入按 HTML 序列化规则判定（文本节点只转义 `&<>`），未开真机浏览器复现 XSS。**未开浏览器、未跑 `_build.py`/`run_gates.py`、未做线上验证**；未修改任何工具页、代码或构建产物，仅在本审计日志追加本节。

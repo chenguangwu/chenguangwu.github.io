@@ -10066,6 +10066,13 @@ const CASES = [
     "ref": "IT-N481：用固定假时间戳（不依赖当前真实时间）模拟后台节流——起表后把时钟推进 10 分钟再 tick，25 分钟专注应剩 15:00。旧实现 tick 只 timeLeft-- ⇒ 24:59，不命中。探针结束恢复 Date.now 并暂停计时；默认态不执行探针 ⇒ 零逃生。"
   },
   {
+    "slug": "it/js-minify",
+    // IT-N464：字符串内的 // 不得被当作行注释删除。
+    "clicks": ["var q=String.fromCharCode(34);var s=document.getElementById('src');s.value='var u='+q+'https://x.com/a'+q+';result=u;';calcTool();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='LEX '+(h.indexOf('https://x.com/a')>=0?'SAFE':'BROKEN');"],
+    "expect": ["LEX SAFE"],
+    "ref": "IT-N464：旧实现先删 /* */、再删 // 到行尾，字符串里的 `https://x.com/a` 从 `//` 起被吞，产出 `var u=\"https: result=u;\"` 废码。修复后轻量词法扫描把字符串整体保留，注释只在代码区删除。探针用 String.fromCharCode(34) 构造引号避开 clicks 转义坑；默认态示例不含 x.com/a ⇒ 零逃生。"
+  },
+  {
     "slug": "it/postgresql-cheatsheet",
     "inputs": {
       "searchInput": "abc123测试"

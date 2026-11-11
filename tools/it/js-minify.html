@@ -203,12 +203,68 @@ function escH(s){var d=document.createElement('div');const __g1=s==null?'':Strin
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){var js=document.getElementById('src').value;
 function minify(s){
-  s=s.replace(/\/\*[\s\S]*?\*\//g,'');
-  s=s.replace(/\/\/[^\n]*/g,'');
-  s=s.replace(/\s+/g,' ');
-  s=s.replace(/\s*([=+\-*/%<>{},;:()\[\]]\s*)/g,'$1');
-  s=s.replace(/\s+/g,' ').trim();
-  return s;
+  // IT-N464：轻量词法扫描——字符串/正则/模板串原样保留，注释只在代码区删除，
+  // 保留换行以维持 ASI；纯正则替换会把 URL 的 // 当注释、把换行压掉造成废码。
+  var out='', i=0, n=s.length, lastSig='';
+  function regexAllowed(prev){
+    if(!prev) return true;
+    return !/[A-Za-z0-9_$\)\]\}]/.test(prev);
+  }
+  while(i<n){
+    var c=s[i], d=s[i+1];
+    if(c==='/'&&d==='*'){
+      var e=s.indexOf('*/',i+2);
+      i=e<0?n:e+2;
+      continue;
+    }
+    if(c==='/'&&d==='/'){
+      while(i<n&&s[i]!=='\n') i++;
+      continue;
+    }
+    if(c==="'"||c==='"'){
+      var q=c; out+=c; i++;
+      while(i<n){
+        var ch=s[i]; out+=ch; i++;
+        if(ch==='\\'&&i<n){out+=s[i];i++;continue;}
+        if(ch===q) break;
+      }
+      lastSig=q; continue;
+    }
+    if(c==='`'){
+      out+=c; i++;
+      while(i<n){
+        var ch=s[i]; out+=ch; i++;
+        if(ch==='\\'&&i<n){out+=s[i];i++;continue;}
+        if(ch==='`') break;
+      }
+      lastSig='`'; continue;
+    }
+    if(c==='/'&&regexAllowed(lastSig)){
+      out+=c; i++;
+      var inClass=false;
+      while(i<n){
+        var ch=s[i]; out+=ch; i++;
+        if(ch==='\\'&&i<n){out+=s[i];i++;continue;}
+        if(ch==='[') inClass=true;
+        else if(ch===']') inClass=false;
+        else if(ch==='/'&&!inClass) break;
+      }
+      while(i<n&&/[A-Za-z]/.test(s[i])){out+=s[i];i++;}
+      lastSig='/'; continue;
+    }
+    if(/\s/.test(c)){
+      var j=i, hasNL=false;
+      while(j<n&&/\s/.test(s[j])){if(s[j]==='\n')hasNL=true;j++;}
+      var prev=lastSig, next=s[j]||'';
+      var need=prev&&next&&(/[A-Za-z0-9_$]/.test(prev)||/[A-Za-z0-9_$]/.test(next));
+      if(hasNL) out+='\n';
+      else if(need) out+=' ';
+      i=j; continue;
+    }
+    out+=c; i++; lastSig=c;
+  }
+  out=out.replace(/[ \t]*([=+\-*/%<>{},;:()\[\]])[ \t]*/g,'$1');
+  return out.split('\n').map(function(l){return l.replace(/^[ \t]+|[ \t]+$/g,'');}).join('\n').trim();
 }
 var out=minify(js);
 var html='<div class="result-title">压缩结果</div><div class="data-grid">';
