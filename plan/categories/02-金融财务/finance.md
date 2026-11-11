@@ -39,10 +39,6 @@
 
 ## 2026-11-03 续查：现金流、债券与退休规划
 
-### F-N8 现金流及投入时点历史不能可靠恢复（中，确认源码路径）
-- 证据：`tools/finance/irr-calculator.html:407-413,632-651,658-682,724-726` 现金流控件无 id，通用历史快照未保存各期金额；`tools/finance/dca-calculator.html:173-175,365-369,706-716,744-755` 投入时点存在变量 `timing`，未纳入输入快照。
-- 影响：`tools/finance/irr-calculator.html`、`tools/finance/dca-calculator.html`；恢复历史后可能使用当前现金流或当前期初/期末模式，无法重现原结果，浏览器回填待测。
-- 方案：完整持久化期号、金额、时点与输入参数，恢复后重算；分别导出真实现金流和历史对比，不将历史表称现金流明细。
 
 ### 续查覆盖
 - 新抽查 `tools/finance/irr-calculator.html`、`tools/finance/bond-yield-calculator.html`、`tools/finance/dca-calculator.html`、`tools/finance/retirement-calculator.html` 共 4 页，新增 7 条（6 条高优），均为源码及数值推导，未做浏览器、线上和门禁验证。
