@@ -2570,15 +2570,6 @@
 - 方案：删除请求头或单列"请求头"分类；去掉重复的 `ETag` / `Last-Modified`。
 - 假工具：否
 
-### IT-N461 "MD5" 选项实为 SHA-256 取前 32 位，签名与任何 MD5 服务端都不匹配（高，算错）
-- 页面：`tools/it/api-sign-generator.html`
-- 问题：`md5Hex()` 实际执行 `crypto.subtle.digest('SHA-256', …)` 再 `.slice(0,32)`（`:253-263`），下拉文案为"MD5（兼容：SHA-256 取前 32 位）"（`:137`），但 `formula-eq`（`:124`）与 `formula-desc` 仍写"MD5 模式：sign = MD5(待签名串)"、"对拼接串做 MD5"（`:129`）。
-- 行号：`:253-263`（核心 `:256`、`:260`）、`:137`、`:124`、`:129`
-- 复现：默认参数（`amount=39.80&app_id=1001&method=order.create`、secret `test_secret`）→ 实际输出 `b9777fe0ef17ab7900fe95ad22b1134c`；node 复算真 MD5(`…&secret=test_secret`) = `cd1422f9e084e02caf2bf8842ec5492d`。期望两者一致。
-- 影响：选 MD5 得到的串在服务端一律验签失败，且无法用 `md5sum` / 任何标准工具复核，排查成本极高。
-- 方案：内置纯 JS MD5（或接 spark-md5 并锁版本）；更简单的做法是删掉 MD5 选项，只保留 HMAC-SHA256 并同步改写公式与文案。
-- 假工具：否（假算法）
-
 ### IT-N462 预设 / 历史回调调 `copyResult` 不重算，且预设参数用 `&` 分隔被解析成单个值（中，结果错误）
 - 页面：`tools/it/api-sign-generator.html`
 - 问题：预设 bar 与历史恢复的回调都传 `function(){ copyResult(); }`（`:425`、`:373`），`copyResult` 只复制不计算，参数框也没有 `oninput` 重算；预设 `params` 写成 `'a=1&b=2&c=3'`（`:423`、`:425`），而 `parseParams` 只按 `\n` 切分（`:281`）。
@@ -2601,7 +2592,7 @@
 - `url-qr`：无剩余缺陷（IT-N456 真编码器、IT-N457 纠错+尺寸双控件均已销账，第183–184批）。
 - `og-meta-tag-generator`：IT-N458（中）；无高优缺陷（`escA` 先转 `&` 再转 `"`，输出走 `textarea.value`，属性上下文不可注入）。
 - `http-response-headers`：IT-N459（中）；无高优缺陷（`renderCommands` 对全部字段走 `escapeHtml`，搜索/复制路径无注入）。
-- `api-sign-generator`：IT-N461（高）；IT-N462（中）。IT-N460 已销账（escHtml 转义复核通过，第185批）。
+- `api-sign-generator`：IT-N462（中）。IT-N460（XSS 转义）、IT-N461（真 MD5）均已销账（第185–186批）。
 - `rc4`：IT-N463（中）；无高优缺陷（`rc4()` 与 `RC4-drop` 主路径对照已知向量 `Key`/`Plaintext` → `bbf316e8d940af0ad3` 正确，KSA/PRGA 无死循环）。
 - `js-minify`：无剩余高优/中优缺陷（IT-N464 已改为轻量词法扫描，保留字符串/正则/模板串与换行，第182批销账；结果渲染走 `escH`，无注入）。
 - `url-params`：无剩余高优/中优缺陷（IT-N465/IT-N466/IT-N467 均已修复，第178–179批补独立锁与真机复核后销账）。

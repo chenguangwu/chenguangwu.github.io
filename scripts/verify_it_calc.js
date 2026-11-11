@@ -2649,8 +2649,8 @@ const CASES = [
     slug: "it/api-sign-generator",
     inputs: { secret: "s", params: "a=1", algo: "md5" },
     clicks: ["runSign()"],
-    expect: ["签名结果： 14c37dbbd13c5d12d5ef41a29a5c6fb1"],
-    ref: "按 `参数串 + &secret=` 拼接待签串后做 HMAC-MD5 ⇒ 固定 32 位十六进制签名；默认参数组合产出不同密文。",
+    expect: ["签名结果： 9b211a5b174da8c32c0c361b39155597"],
+    ref: "IT-N461 真 MD5：按 `参数串 + &secret=` 拼接待签串 a=1&secret=s，RFC 1321 MD5（node crypto 权威向量）= 9b211a5b174da8c32c0c361b39155597。旧实现拿 SHA-256 前 32 位冒充 MD5（得 14c37dbb…），与真 MD5 不符；默认参数组合产出不同密文。",
   },
   {
     slug: "it/api-sign-generator",
