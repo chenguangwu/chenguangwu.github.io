@@ -1377,13 +1377,7 @@
 
 - `regex`：IT-N253 分享链接 base64url 对称修复（写入 +→- /→/ 去尾=，读取逆变换并兼容旧标准 base64 的空格化 +、补 padding，catch 加 console.warn），中文/换行 payload 往返正确，第200批销账；verify 无用例（页面依赖原生 location.hash + btoa/atob，harness stub DOM 不适用），由 JSDOM 真机 12/12 vs 旧5/12 覆盖。IT-N252（ReDoS 超时 + flags 双绑定）已于第201批整条销账。 IT-N254（替换页尊重用户 flags，非 g 只替首个且 count 按命中数、copyMatches global 跟随 flags 防 1001 条重复）第202批销账；真机 14/14 vs 旧 6/14（8 项变红）。
 
-### IT-N255 在线状态徽章被 `escapeHtml` 转义，页面直接显示 `<span class=…>` 源码（中，确认缺陷）
-- 问题：`item()` 对传入 value 一律 `escapeHtml`，而 `:349`/`:369` 传的是 badge 的 HTML 串。
-- 证据：`tools/it/device-info.html:301`（转义 `<`）、`:305`（`${escapeHtml(value)}`）、`:349`、`:369`；`:36-39` 的 `.status-badge` 样式因此永不生效。
-- 复现：静态必然——`item('在线状态','<span class="status-badge ok">在线</span>')` 渲染为文本 `&lt;span class="status-badge ok"&gt;在线&lt;/span&gt;`，用户看到一行裸标签；期望是绿色"在线"徽章。
-- 影响：`tools/it/device-info.html`（首屏最显眼的两处状态展示变成源码）
-- 方案：`item()` 增加第 4 参 `raw`（true 时跳过转义，仅用于内部可信串），或把 badge 拼在 `item()` 之外；绝不对外部值放开转义。
-**留存建议（tools/it/device-info.html）**：与 `:369` 一起改，两处同因。
+- `device-info`：IT-N255 item() 加第4参 raw（仅内部可信 badge 串跳过转义），在线状态/网络状态两处 status-badge 不再显示为裸标签，第203批销账；普通/外部值仍走 escapeHtml 不回退安全。verify 无用例（依赖 navigator/screen 原生对象），真机 8/8 vs 旧 1/8。
 
 ### IT-N256 快照只记 5 个字段，且"趋势/对比"用的是恒定的 CPU 核数（中，确认缺陷）
 - 问题：`__tbDevRec()` 只采 时间/`navigator.platform`/分辨率/语言/核心数 五项；图表与 diff 只读 `__v`（= `hardwareConcurrency`），同一台设备恒为常数 → 趋势是水平线、对比恒 `+0`，而真正会变的视口、DPR、在线状态、电池都没进快照。
