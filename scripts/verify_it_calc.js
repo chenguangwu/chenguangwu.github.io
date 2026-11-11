@@ -4170,6 +4170,22 @@ const CASES = [
   },
   {
     slug: "it/user-agent-parser",
+    // IT-D41：微信内置浏览器 UA 含 MicroMessenger/，须先于底层 Chrome/ 判定。
+    inputs: { uaInput: "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 MicroMessenger/8.0.40(0x1800282a) NetType/WIFI Language/zh_CN" },
+    clicks: ["parse()"],
+    expect: ["WeChat 8.0.40"],
+    ref: "真实微信 UA（含 MicroMessenger/8.0.40，无 Chrome/）：旧实现无微信规则落「未知浏览器」。按 UA 特征应识别为 WeChat，版本取 MicroMessenger/ 后的 8.0.40；默认示例 UA 不同。",
+  },
+  {
+    slug: "it/user-agent-parser",
+    // IT-D41：Baiduspider 设备已判爬虫，浏览器此前落「未知浏览器」。
+    inputs: { uaInput: "Mozilla/5.0 (compatible; Baiduspider/2.0; +http://www.baidu.com/search/spider.html)" },
+    clicks: ["parse()"],
+    expect: ["Baiduspider 2.0"],
+    ref: "百度爬虫 UA：parseDevice 已识别为爬虫，但 parseBrowser 无对应规则 ⇒ 旧实现浏览器列「未知浏览器」。应识别为 Baiduspider，版本取 2.0；默认示例 UA 不含 Baiduspider。",
+  },
+  {
+    slug: "it/user-agent-parser",
     inputs: { uaInput: "Mozilla/5.0 (Windows Phone 10.0; Android 4.2.1; Microsoft; Lumia 640) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/52.0.2749.62 Mobile Safari/537.36 Edge/15.15254" },
     clicks: ["parse()"],
     expect: ["Microsoft Edge 15.15254"],
