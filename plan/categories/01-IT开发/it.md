@@ -53,7 +53,7 @@
 
 ### 历史结论状态
 - Unicode 查询 IT-N554–N556 已于第212批真机验证并销账：U+/0x 码点检索、1342 条标准名称表、`data-code` 复制均在位。
-- 原文本统计 IT-N39 码元计数实现已变化：`tools/it/text-statistics.html:250-277` 使用字素簇统计并另列码点数；句号和裸回车分割路径仍在。未运行回归，不正式销账。本批另阅读 SQL、SQLite、tmux 速查及字符串混淆主要交互，未穷举内容正确性或运行页面。
+- 原文本统计 IT-N39 已于第243批销账：字素簇统计 + 码点数分列、句号保护小数与缩写、裸 CR 切行均已真机回归。本批另阅读 SQL、SQLite、tmux 速查及字符串混淆主要交互，未穷举内容正确性或运行页面。
 - 正则转义 IT-N58 所述非法十六进制和越界直接抛错的实现已变化，当前 `tools/it/regex-escape.html:301-315` 校验后保留不完整转义；未运行回归，不正式销账。IT-N59 的额外元字符集合仍在，风格下拉也未绑定变更刷新。
 - Rust 转义 IT-N338 旧字节串非法 `\u{}` 路径已变化，当前 `tools/it/rust-escape.html:287-295` 明确拒绝非 ASCII；未运行编译回归，不正式销账。本批另阅读 REST、Ruby、Rust 速查搜索、分类和复制，未穷举语法正确性或运行页面。
 - 番茄钟 IT-N480、N481 已改为时间戳计时与跳过不落账并销账（第181批）；Redis IT-N543、N544 的原示例尚需独立复核（正则速查 IT-D30 已独立复核并修复，第170批）。本批另阅读 PostgreSQL、Python、Redis、正则速查的搜索、分类与复制，不把源码阅读当作运行通过。
@@ -157,27 +157,6 @@
 ## 2026-11-03 续查（并行批 K）
 
 > 范围：本轮阅读 8 页（`tools/it/xml-formatter.html`、`tools/it/html-entities.html`、`tools/it/text-statistics.html`、`tools/text/stats-1.html`、`tools/text/analysis-density.html`、`tools/text/reading-time-estimator.html`、`tools/text/sensitive-word-filter.html`、`tools/text/text-extract-phones.html`）。仅源码 + Node/jsdom 复算，未开浏览器/未做 EN/移动端/门禁验证。
-
-### IT-N32 XML 格式化与压缩丢失根元素、CDATA 和文本内换行（高，确认源码缺陷）
-- 描述：`formatXml` 把 `doc.documentElement` 传给 `serializeNode`，而后者只遍历 `childNodes`，根元素自身的开闭标签永远不输出；子节点收集只认元素与文本（`nodeType 1/3`），CDATA（`nodeType 4`）被当作空内容输出为自闭合标签，内容整体丢失；`doMinify` 又对序列化结果全局删除 `\n`，文本节点与 CDATA 内部的合法换行一并被删。XML 声明、DOCTYPE、根外注释同样不会保留。
-- 证据：`tools/it/xml-formatter.html:262,264-296,272,284-285,306-312`
-- 复现：用 jsdom 加载页面原有函数执行。默认 `SAMPLE` 经 `formatXml(SAMPLE,true)` → 输出以 `<to from="Alice">Bob</to>` 开头、`<raw/>`，根 `<note>` 与 `<![CDATA[<unparsed>text</unparsed>]]>` 全部消失；`<root><a>1</a><b>2</b></root>` → `<a>1</a>\n<b>2</b>`（期望保留 `<root>`）；`<a>line1\nline2</a>` 压缩 → `<a>line1line2</a>`（期望保留文本换行）。
-- 影响：页面 Boot 直接 `doBeautify()`，首屏示例即为多根、非法 XML；用户复制格式化/压缩结果会解析失败或丢失整段 CDATA 内容。
-- 方案：在 `formatXml` 中单独输出根元素本身；按 `nodeType` 分发并保留 CDATA、注释、处理指令与 XML 声明；压缩只删除元素之间的缩进换行，文本与 CDATA 原样保留；补根元素、CDATA、mixed content 往返用例。
-
-### IT-N38 字数统计按 UTF-16 与 ASCII 正则计数，emoji/扩展汉字/连字符词与说明不符（低，确认源码缺陷）
-- 描述：总字符用 `t.length`（UTF-16 码元），emoji 与扩展区汉字计 2；中文字符正则仅 `4E00–9FFF`，`𠮷` 计 0；英文词正则不含连字符，`well-known` 计 2 词，但 FAQ 声称“连字符与缩写内的字母并入同一词”；行数只按 `\r?\n` 切分，裸 `\r` 不识别。
-- 证据：`tools/text/stats-1.html:198,115,154-155`
-- 复现：`😀` → 总字符 2 / 中文 0（期望 1 / 1）；`𠮷` → 总字符 2 / 中文 0（期望 1 / 1）；`well-known` → 英文 2 词（期望 1）；`a\rb` → 1 行（期望 2 行）。
-- 影响：含 emoji 或生僻字的文本字符数偏大、中文数偏小；旧 Mac 换行文件行数偏少；与页面说明不一致。
-- 方案：按码点/字素簇计数（`Array.from` 或 `Intl.Segmenter`）；汉字范围补扩展 A/B；连字符词按说明并入或改文案；换行用 `/\r\n|\r|\n/`。
-
-### IT-N39 文本统计把小数点和裸 CR 当句子/换行边界（低，确认源码缺陷）
-- 描述：句子按 `/[。！？.!?]+/` 直接切分，小数点和缩写中的句点会被当成句末；行数用 `text.split('\n')`，裸 `\r` 不切分；字符数同样按 UTF-16 码元计。
-- 证据：`tools/it/text-statistics.html:250-271`（`264-268` 字符/行/句）
-- 复现：`Version 3.14 is out` → 句子数 2（期望 1）；`a\rb` → 行数 1（期望 2）；`😀` → 总字符 2（页面已在 `149` 说明按码元计，属口径提示而非修复）。
-- 影响：含版本号、小数、缩写或旧式换行的文本，句子与行数统计偏大/偏小。
-- 方案：句子切分前保护小数与常见缩写，或改用分段器；换行统一 `/\r\n|\r|\n/`；如需精确字符数按字素簇计数。
 
 - 本轮实读 8 页：`tools/it/xml-formatter.html`、`tools/it/html-entities.html`、`tools/it/text-statistics.html`、`tools/text/stats-1.html`、`tools/text/analysis-density.html`、`tools/text/reading-time-estimator.html`、`tools/text/sensitive-word-filter.html`、`tools/text/text-extract-phones.html`；新增 8 条（高 1 / 中 5 / 低 2）；未覆盖：`tools/text` 其余 7 页（`lorem-ipsum-generator`、`text-to-1337`、`text-to-ascii-art`、`text-to-braille`、`convert-6`、`convert-7`、`calc-1`）及 `tools/it` 的 json/yaml/csv/xml 转换余页；未做浏览器、EN、移动端、门禁或部署验证。
 

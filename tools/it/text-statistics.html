@@ -244,6 +244,19 @@ function graphemeCount(str){
     return Array.from(str).length;
   }
 }
+// IT-N39：句子切分保护小数点（3.14）与常见缩写（Dr./Mr./e.g. 等）内的句点
+function splitSentences(text){
+  const DOT = '\u0001';  // 保护的小数点/缩写点
+  const END = '\u0002';  // 句末标记
+  let s = String(text).replace(/(\d)\.(\d)/g, '$1' + DOT + '$2');
+  const abbr = ['e.g','i.e','Dr','Mr','Mrs','Ms','Prof','St','vs','etc','No','Fig'];
+  abbr.forEach(function(a){
+    s = s.replace(new RegExp('\\b' + a + '\\.', 'gi'), a + DOT);
+  });
+  // 中文句末标点无条件切；英文句点仅后接空白或结尾时切（避免缩写/小数残留被切）
+  s = s.replace(/[。！？!?]+/g, END).replace(/\.(?=\s|$)/g, END);
+  return s.split(END).map(function(x){ return x.split(DOT).join('.'); });
+}
 
 function analyze() {
   const text = document.getElementById('textInput').value;
@@ -263,9 +276,10 @@ function analyze() {
   const totalChars = graphemeCount(text);
   const codePoints = Array.from(text).length;
   const charsNoSpace = graphemeCount(text.replace(/\s/g, ''));
-  const lines = text.split('\n').length;
-  const paragraphs = text.split(/\n\s*\n/).filter(p => p.trim()).length;
-  const sentences = text.split(/[。！？.!?]+/).filter(s => s.trim()).length;
+  // IT-N39：裸 CR 也须切行；句子边界排除小数点（3.14）与常见缩写内的句点
+  const lines = text.split(/\r\n|\r|\n/).length;
+  const paragraphs = text.split(/\r\n|\r|\n\s*(?:\r\n|\r|\n)/).filter(p => p.trim()).length;
+  const sentences = splitSentences(text).filter(s => s.trim()).length;
   const chineseReadMin = Math.ceil(chineseChars / 300);
   const englishReadMin = Math.ceil(englishWords.length / 200);
   const readMin = Math.max(chineseReadMin, englishReadMin);

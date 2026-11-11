@@ -101,8 +101,8 @@
     <h2 data-zh="📖 字数统计（含字符数、单词数）">Word Counter</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="含字符数、单词数">Word Counter</p>
 <div class="formula-box">
-  <div class="formula-title">📐 统计口径说明</div> <div class="formula-eq">统计口径：中文字符按 Unicode 4E00–9FFF 区间匹配；英文单词按连续字母串（含撇号延伸）计数；数字组按整数 / 小数串计数；行数按换行符分割、另计去空白后的非空行数</div>
-  <p class="formula-desc">中文字符按 Unicode 汉字范围逐字计数；英文单词按连续字母串计数；数字按连续数字串计数；字符总数分别给出含空白与不含空白两种口径；行数按换行切分，非空行排除纯空白行。</p>
+  <div class="formula-title">📐 统计口径说明</div> <div class="formula-eq">统计口径：字符按 Unicode 字素簇计数（emoji、扩展汉字记 1）；中文含扩展 A/B（3400–9FFF 等）；英文单词按连续字母串（含撇号 / 连字符内字母）计数；数字组按整数 / 小数串计数；行数按 CRLF / CR / LF 分割、另计去空白后的非空行数</div>
+  <p class="formula-desc">字符总数按 Unicode 字素簇计（emoji 与扩展汉字各记 1）；中文覆盖基本区与扩展 A/B；英文单词按连续字母串（含撇号与连字符）计数；数字按连续数字串计数；字符总数分别给出含空白与不含空白两种口径；行数按 CRLF / CR / LF 切分，非空行排除纯空白行。</p>
 </div>
 
 <label>输入待统计文本</label>
@@ -154,7 +154,7 @@
       <tbody>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="字符统计">Char count</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="中文按 4E00–9FFF 区间匹配">Han by Unicode 4E00–9FFF</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="字符按字素簇；中文含扩展 A/B（3400–9FFF 等）">Chars by grapheme cluster; Han incl. Ext-A/B (3400–9FFF)</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Unicode ranges</td>
         </tr>
         <tr>
@@ -184,7 +184,13 @@
 </div>
 <script>
 function fmt(n,d){d=d==null?0:d;return n.toLocaleString('zh-CN',{minimumFractionDigits:d,maximumFractionDigits:d});}
-function calc(){var t=document.getElementById('text').value;if(t.trim()===''){document.getElementById('res').innerHTML=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"<p>Enter the text to count before counting.</p>":"<p>请输入待统计文本后再统计。</p>");return;}var total=t.length;var noSpace=t.replace(/\s/g,'').length;var cn=(t.match(/[\u4e00-\u9fff]/g)||[]).length;var enWords=(t.match(/[A-Za-z]+(?:'[A-Za-z]+)?/g)||[]).length;var numGroups=(t.match(/\d+(?:\.\d+)?/g)||[]).length;var lines=t===''?[]:t.split(/\r?\n/);var lineCount=lines.length;var nonEmpty=lines.filter(function(l){return l.trim()!=='';}).length;var html='<p>总字符数（含空白）：<strong>'+fmt(total)+'</strong></p><p>总字符数（不含空白）：<strong>'+fmt(noSpace)+'</strong></p><p>中文字符数：<strong style="color:var(--primary);">'+fmt(cn)+'</strong></p><p>英文单词数：<strong>'+fmt(enWords)+'</strong></p><p>数字组数：<strong>'+fmt(numGroups)+'</strong></p><p>行数：<strong>'+fmt(lineCount)+'</strong></p><p>非空行数：<strong>'+fmt(nonEmpty)+'</strong></p>';const __g1=html;document.getElementById('res').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));}
+function calc(){var t=document.getElementById('text').value;if(t.trim()===''){document.getElementById('res').innerHTML=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"<p>Enter the text to count before counting.</p>":"<p>请输入待统计文本后再统计。</p>");return;}
+// IT-N38：字符按字素簇（emoji/扩展汉字记 1）；中文含扩展 A/B；英文词含撇号与连字符内字母；换行识别裸 CR。
+var cps=Array.from(t);var total=(typeof Intl!=='undefined'&&Intl.Segmenter)?Array.from(new Intl.Segmenter(undefined,{granularity:'grapheme'}).segment(t)).length:cps.length;
+var noSpace=(typeof Intl!=='undefined'&&Intl.Segmenter)?Array.from(new Intl.Segmenter(undefined,{granularity:'grapheme'}).segment(t.replace(/\s/g,''))).length:Array.from(t.replace(/\s/g,'')).length;
+var cn=(t.match(/[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]|[\u{20000}-\u{2a6df}]/gu)||[]).length;
+var enWords=(t.match(/[A-Za-z]+(?:['’-][A-Za-z]+)*/g)||[]).length;
+var numGroups=(t.match(/\d+(?:\.\d+)?/g)||[]).length;var lines=t===''?[]:t.split(/\r\n|\r|\n/);var lineCount=lines.length;var nonEmpty=lines.filter(function(l){return l.trim()!=='';}).length;var html='<p>总字符数（含空白）：<strong>'+fmt(total)+'</strong></p><p>总字符数（不含空白）：<strong>'+fmt(noSpace)+'</strong></p><p>中文字符数：<strong style="color:var(--primary);">'+fmt(cn)+'</strong></p><p>英文单词数：<strong>'+fmt(enWords)+'</strong></p><p>数字组数：<strong>'+fmt(numGroups)+'</strong></p><p>行数：<strong>'+fmt(lineCount)+'</strong></p><p>非空行数：<strong>'+fmt(nonEmpty)+'</strong></p>';const __g1=html;document.getElementById('res').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));}
 calc();
 function copyResult(){ToolBox.copyText(document.getElementById('res').innerText);}
 </script>

@@ -12234,6 +12234,25 @@ const CASES = [
     ref: "IT-N312：解码必须用 /^\\d+$/ 整段校验——65x（尾部垃圾）、0x41（0x 前缀静默变 0）、256（越界）三种脏数据都必须拒绝且不改写输出，合法串仍须正常解码 Hello。旧实现 parseInt 宽松：65x→65、0x41→0，静默写出错误值。探针仅在注入 clicks 后出现，默认态零命中；ok 依赖 dec() 真实行为，非固定文案。",
   },
   {
+    slug: "text/stats-1",
+    inputs: { text: "😀" },
+    expect: ["总字符数（含空白）： 1 总字符数（不含空白）： 1"],
+    ref: "IT-N38：😀 是 1 个字素簇（UTF-16 记 2）。修复后 calc 用 Intl.Segmenter 按字素簇计数 ⇒ 总字符 1；旧实现 t.length=2。expect 为结果区连续串，默认中文样例不含 emoji ⇒ 不命中。",
+  },
+  {
+    slug: "text/stats-1",
+    inputs: { text: "𠮷 well-known" },
+    expect: ["中文字符数： 1 英文单词数： 1"],
+    ref: "IT-N38：𠮷（U+20BB7 扩展 B）须计入中文（旧 4E00–9FFF 漏计），well-known 须按连字符词计 1 个（旧正则拆成 2 个）。expect 锚结果区「中文1 英文1」连续串，默认样例不含扩展汉字与连字符词 ⇒ 不命中。",
+  },
+  {
+    slug: "it/text-statistics",
+    inputs: { textInput: "Version 3.14 is out" },
+    clicks: ["document.getElementById('__tbProbe').textContent='N39SENT '+splitSentences('Version 3.14 is out').filter(function(s){return s.trim();}).length;"],
+    expect: ["N39SENT 1"],
+    ref: "IT-N39：小数 3.14 的句点不得当句末，splitSentences 须返回 1 段；旧实现（无该函数，analyze 内直接 /[。！？.!?]+/ 切）⇒ 2 段。策略：切句前把 \\d.\\d 的句点替换为哨兵再还原。探针仅注入 clicks 出现，默认态零命中。",
+  },
+  {
     slug: "it/c-string-escape",
     inputs: { input: "中文😀" },
     clicks: ["esc();"],
