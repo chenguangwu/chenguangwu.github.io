@@ -276,6 +276,27 @@ const CASES = [
     "ref": "清单复核案例：现金流 −100、+230、−132 在 r=10%、20% 均为 NPV 零点（残差 ~1e-14），但两根落在均匀扫描的同一粗区间（0~0.25）、端点同号；旧实现端点变号法漏判返回「无解」。修复后每段加中点采样，左右各二分捕获两跟（9.99%、20.00%）并判「多根」。默认态不同 ⇒ 无探针串、零逃生。"
   },
   {
+    "slug": "finance/npv-calculator",
+    "inputs": { "init": "100", "rate": "8" },
+    "clicks": ["updateCF(0,221);updateCF(1,-122.1);document.getElementById('__tbProbe').textContent='IRR211 '+(function(){var r=calcIRR(100,[221,-122.1]);return r.status+':'+(r.rates||[]).map(function(x){return (x*100).toFixed(1);}).join(',');})();"],
+    "expect": ["IRR211 multiple:10.0,11.0"],
+    "ref": "复核失败点：现金流 −100、+221、−122.1 在 r=10% 与 11% 有两个紧邻实根；旧中点采样仍落在同号子区间而漏判无解。修复后以 x=1/(1+r) 多项式按导数临界点分段隔离，两个根均捕获。锚定为注入向量派生的探针串（默认态不执行 clicks，零逃生）。"
+  },
+  {
+    "slug": "finance/npv-calculator",
+    "inputs": { "init": "100", "rate": "8" },
+    "clicks": ["updateCF(0,220);updateCF(1,-121);document.getElementById('__tbProbe').textContent='IRRDBL '+(function(){var r=calcIRR(100,[220,-121]);return r.status+':'+(r.rate===undefined?'NA':(r.rate*100).toFixed(2));})();"],
+    "expect": ["IRRDBL ok:10.00"],
+    "ref": "复核失败点：现金流 −100、+220、−121 在 r=10% 有重根（判别式恰为 0），旧实现端点同号且中点不精确命中而误报无解。修复后对分位精确二次重根直接给唯一解 10.00%。探针串绑定注入向量，默认态不命中。"
+  },
+  {
+    "slug": "finance/npv-calculator",
+    "inputs": { "init": "100", "rate": "8" },
+    "clicks": ["updateCF(0,400);updateCF(1,-600);updateCF(2,400);updateCF(3,-100);document.getElementById('__tbProbe').textContent='IRRQUAD '+calcIRR(100,[400,-600,400,-100]).status;"],
+    "expect": ["IRRQUAD uncertain"],
+    "ref": "复核失败点补充：四重根（−100、+400、−600、+400、−100）在机器精度下无法可靠判定，修复后明确返回 uncertain（页面显示「无法确定」），绝不误称无解，也不伪造唯一根。探针串绑定注入向量，默认态不命中。"
+  },
+  {
     "slug": "finance/depreciation-calculator",
     "inputs": {"cost": "10000", "salvage": "1000", "life": "5", "totalUnits": "10000", "yearUnits": "3000x,2500,2000,1500,1000"},
     "clicks": ["calc();var h=String(document.getElementById('stats').innerHTML);document.getElementById('__tbProbe').textContent='DEP53BAD '+(h.indexOf('请按使用年限逐年填写')>=0?'OK':'BAD');"],
