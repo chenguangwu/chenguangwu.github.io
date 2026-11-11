@@ -1377,23 +1377,7 @@
 
 - `regex`：IT-N253 分享链接 base64url 对称修复（写入 +→- /→/ 去尾=，读取逆变换并兼容旧标准 base64 的空格化 +、补 padding，catch 加 console.warn），中文/换行 payload 往返正确，第200批销账；verify 无用例（页面依赖原生 location.hash + btoa/atob，harness stub DOM 不适用），由 JSDOM 真机 12/12 vs 旧5/12 覆盖。IT-N252（ReDoS 超时 + flags 双绑定）已于第201批整条销账。 IT-N254（替换页尊重用户 flags，非 g 只替首个且 count 按命中数、copyMatches global 跟随 flags 防 1001 条重复）第202批销账；真机 14/14 vs 旧 6/14（8 项变红）。
 
-- `device-info`：IT-N255 item() 加第4参 raw（仅内部可信 badge 串跳过转义），在线状态/网络状态两处 status-badge 不再显示为裸标签，第203批销账；普通/外部值仍走 escapeHtml 不回退安全。verify 无用例（依赖 navigator/screen 原生对象），真机 8/8 vs 旧 1/8。
-
-### IT-N256 快照只记 5 个字段，且"趋势/对比"用的是恒定的 CPU 核数（中，确认缺陷）
-- 问题：`__tbDevRec()` 只采 时间/`navigator.platform`/分辨率/语言/核心数 五项；图表与 diff 只读 `__v`（= `hardwareConcurrency`），同一台设备恒为常数 → 趋势是水平线、对比恒 `+0`，而真正会变的视口、DPR、在线状态、电池都没进快照。
-- 证据：`tools/it/device-info.html:601-605`（`__tbDevRec`）、`:541`（`pts.push(d.__v)`）、`:546`（`chart.line` "趋势"）、`:551-553`（`diffLast(['__v'])`）。
-- 复现：同一台机器连点 3 次"保存快照" → 三条记录 `__v` 完全相同：趋势图为直线，对比框显示"核心 0"；期望"对比"能反映实际变化（如视口尺寸、在线状态）。
-- 影响：`tools/it/device-info.html`（"设备快照记录与对比"整体名不副实）
-- 方案：`__v` 换成真正会变的标量（如视口面积 `innerWidth*innerHeight` 或 DPR），并把快照字段扩为 label/value 全量（可直接抓 `#screenInfo/#browserInfo/#localeInfo/#deviceStatus` 的条目文本）。
-**留存建议（tools/it/device-info.html）**：先换 `__v`，一行即可让"趋势/对比"有意义。
-
-### IT-N257 "复制全部信息"把 label、数值、条目全部粘连成一行（低，确认缺陷）
-- 问题：直接 `join('\n')` 各容器的 `textContent`；而每个 `.info-item` 内 label 与 value 是相邻无空白的 `<div>`，条目之间也无空白 → 复制结果没有任何分隔。
-- 证据：`tools/it/device-info.html:607-613`（`out.push(el.textContent.replace(/\s+/g,' ').trim())`）、`:305`（label/value 相邻 `<div>`，无空白文本节点）。
-- 复现：静态推演复制结果首行 = `屏幕分辨率1920 × 1080视口大小1920 × 969设备像素比2.00…`（label 与数值、条目与条目全部粘连）；期望 `屏幕分辨率: 1920 × 1080` 每行一条。
-- 影响：`tools/it/device-info.html`
-- 方案：遍历 `.info-item` 取 `label + ': ' + value` 以 `\n` 连接；或直接 `JSON.stringify(__tbDevSnap())` 输出结构化文本。
-**留存建议（tools/it/device-info.html）**：低优先，但"复制全部信息"是最常用的导出路径。
+- `device-info`：IT-N255 item() 加第4参 raw（仅内部可信 badge 串跳过转义），在线状态/网络状态两处 status-badge 不再显示为裸标签，第203批销账；普通/外部值仍走 escapeHtml 不回退安全。verify 无用例（依赖 navigator/screen 原生对象），真机 8/8 vs 旧 1/8。 IT-N256（__v 从恒定核心数改视口面积，趋势/对比有真实变化，新增「视口」字段+字典英译）、IT-N257（复制全部改为逐条 label: value 换行、UA 单独成块）第204批销账；真机 9/9 vs 旧 2/9。
 
 ### IT-N258 中文/emoji 按 Latin-1 低字节写入二维码，扫码结果不是原文（高，确认缺陷）
 - 问题：页面 `qrcode(0, level).addData(text)` 未指定编码，而本地库的 `stringToBytes` 默认实现是逐字符取 `charCodeAt & 0xFF`（单字节），页面从未切到 `stringToBytesFuncs['UTF-8']` → 中文字符被压成一个无关的 ASCII 低字节。
