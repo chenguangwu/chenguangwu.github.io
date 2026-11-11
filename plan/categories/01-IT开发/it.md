@@ -1866,14 +1866,6 @@
 - 方案：属性值统一走 `escAttr`（`"`→`&quot;`、`'`→`&#39;`），URL 做协议白名单（仅 http/https/mailto，禁 `javascript:`/`data:`），并本地引入 DOMPurify 做最后一道白名单净化。
 **留存建议（tools/it/markdown-editor.html）**：XSS 是本页最高优先，先补 `escAttr`+协议白名单，再谈语法扩展。
 
-### IT-N289 预设"任务清单"的 `- [x]` 不渲染复选框，原样当文本输出（中，确认缺陷）
-- 问题：列表解析只识别 `^[-*+]\s+` 并整段塞进 `<li>`，不处理 GFM task list 的 `[ ]`/`[x]`；预设却把"任务清单"当卖点，渲染结果是字面量 `[x]`。
-- 证据：`tools/it/markdown-editor.html:582`（预设内容 `- [x] 编写文档`）、`:888-905`（`parseLists` 无 task list 分支）、`:521`（解析顺序说明也未提任务列表）。
-- 复现：点"任务清单"预设 → 预览实际 `<li>[x] 编写文档</li>`（纯文本）；期望 `<li><input type="checkbox" checked disabled> 编写文档</li>`。
-- 影响：预设承诺的语法不支持，用户以为勾选状态会保留。
-- 方案：`parseLists` 对 item 前缀 `^\[([ xX])\]\s+` 生成 disabled checkbox；或在预设文案标注"任务清单仅作纯文本"。
-**留存建议（tools/it/markdown-editor.html）**：要么实现 task list，要么删该预设，别留半承诺。
-
 ### IT-N290 `#` 与 `##` 都渲染成 h2，预览与导出都没有 h1（低，确认缺陷）
 - 问题：`^#\s+` 被映射为 `<h2>`，与 `^##\s+` 相同，文档级一级标题在预览/导出 HTML 中不存在；这与 CommonMark 的 h1 语义不符，导出到别处层级整体下移。
 - 证据：`tools/it/markdown-editor.html:735-736`（两条都输出 `<h2>`）、`:521`（公式里明确写"# 与 ## 均输出 h2"，属有意为之）、`:203`（CSS 备了 h1 样式却用不到）。

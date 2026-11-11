@@ -1996,6 +1996,14 @@ const CASES = [
     ref: "独立复算：verbose 风味下 `=` `,` 不是 ECMAScript 正则元字符须原样保留，仅 `.` 被转义 ⇒ `a=b,c\\.d`。修复前 VERBOSE_META 含 `=,;:<>@#&~=` ⇒ 输出 `a\\=b\\,c\\.d`，不命中；贴进带 u/v 标志的 RegExp 会 SyntaxError。默认态输入为 Hello 预设串，不命中。expect 含被转义的 `.`（非纯输入回显）。",
   },
   {
+    slug: "it/markdown-editor",
+    // IT-N289 回归：预设「任务清单」的 `- [x]` / `- [ ]` 必须渲染成复选框，不得原样输出字面量。
+    inputs: { mdInput: "- [x] done-item\n- [ ] todo-item" },
+    clicks: ["var h=String(document.getElementById('mdPreview').innerHTML);document.getElementById('__tbProbe').textContent='TASKCHECK '+(h.indexOf('checkbox')>=0&&h.indexOf(' checked')>=0&&h.indexOf('task-list-item')>=0&&h.indexOf('[x]')<0&&h.indexOf('done-item')>=0?'OK':'BAD');"],
+    expect: ["TASKCHECK OK"],
+    ref: "探针校验解析产物：注入任务清单后预览须含禁用复选框（checked 勾已完成项、task-list-item 类）且不再有字面 `[x]`，文本 done-item 保留。修复前 parseLists 把 `[x] done-item` 整段当文本塞进 li ⇒ 无 checkbox、含 `[x]` ⇒ TASKCHECK BAD。默认态是页面样例（非任务清单）⇒ 不命中。",
+  },
+  {
     slug: "it/regex-escape",
     // IT-N21 回归：非法 `\\x` 转义必须原样保留，不能抛 RangeError 中断。
     inputs: { input: "\\x41\\xzz" },
