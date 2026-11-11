@@ -614,7 +614,8 @@ function doReplace() {
     return;
   }
   
-  runRegexGuarded({mode:'replace', pattern:pattern, flags:flags.includes('g') ? flags : flags + 'g', text:text, repl:replaceWith}, function(res){
+  // IT-N254：尊重用户 flags，不再强制补 g——匹配页只取首个时替换页也应只替首个
+  runRegexGuarded({mode:'replace', pattern:pattern, flags:flags, text:text, repl:replaceWith}, function(res){
     if(!res.ok){
       const msg = res.err === '__timeout__'
         ? '⏱ 正则执行超过 ' + RX_TIMEOUT_MS + 'ms 已强制中止：该表达式可能触发灾难性回溯，请改写表达式或缩短文本后重试。'
@@ -647,7 +648,9 @@ function copyMatches(){
   const text = document.getElementById('testText').value;
   if (!pattern) return;
   
-  runRegexGuarded({mode:'test', pattern:pattern, flags:flags.includes('g') ? flags : flags + 'g', text:text, global:true}, function(res){
+  // IT-N254：跟随用户 flags；global 必须同步（非 g 时若仍传 global:true，worker 的
+  // exec 循环因 lastIndex 不前进会把同一条匹配重复 1000+ 次）。
+  runRegexGuarded({mode:'test', pattern:pattern, flags:flags, text:text, global:flags.includes('g')}, function(res){
     if(!res.ok){ ToolBox.showToast(i18nText('toast.msg455')); return; }
     if(res.matches.length === 0){ ToolBox.showToast(i18nText('toast.msg475')); return; }
     ToolBox.copyText(res.matches.map(function(m){ return m.g[0]; }).join('\n'));
@@ -885,7 +888,11 @@ self.onmessage = function(e){
       o = { ok: true, matches: ms };
     } else {
       var re2 = new RegExp(d.pattern, d.flags);
-      var cnt = (d.text.match(re2) || []).length;
+      // IT-N254：非全局时 match() 的数组含捕获组（如 (\d) → 长度 2），不能当替换次数。
+      // 全局才用 match().length；非全局按是否命中记 0/1，与 replace 实际替换数一致。
+      var cnt;
+      if (d.flags.indexOf('g') >= 0) cnt = (d.text.match(re2) || []).length;
+      else { var probe = new RegExp(d.pattern, d.flags); cnt = probe.test(d.text) ? 1 : 0; }
       o = { ok: true, result: d.text.replace(re2, d.repl), count: cnt };
     }
   } catch (err) {
