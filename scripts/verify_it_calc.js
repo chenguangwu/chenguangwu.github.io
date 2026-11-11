@@ -7878,9 +7878,9 @@ const CASES = [
       "toBase": "42"
     },
     "expect": [
-      "第 7 位 \"测\" 不是 36 进制的有效数字\n—\n—\n—\n—\n—\n—\n❌"
+      "源进制与目标进制都必须是 2 到 36 的整数"
     ],
-    "ref": "注入非默认输入{\"num\":\"abc123测试\",\"fromBase\":\"42\",\"toBase\":\"42\"}：基数 42 被钳到 36、toBigInt 在第 7 位『测』抛错；IT-N48-a 修复后 catch 清空全部六个结果卡片（六行『—』）且主输出 ❌。原断言锚定的『错误时保留上次 ff 的旧值』正是被修复的缺陷行为，故随修复更新为六卡片清空。默认态 16→10 合法、无此错误串与六行清空 ⇒ 不命中。"
+    "ref": "注入非默认输入{\"num\":\"abc123测试\",\"fromBase\":\"42\",\"toBase\":\"42\"}：IT-N48-b 修复后越界基数不再静默钳到 36，而是保留输入并输出明确报错。旧断言锚定『钳到 36 后 toBigInt 在第 7 位抛错』正是被修复的缺陷行为，随修复更新。默认态 16→10 合法、无此报错串 ⇒ 不命中。"
   },
   {
     "slug": "it/ipv4-range-expander",
@@ -12120,6 +12120,14 @@ const CASES = [
     clicks: ["var n=document.getElementById('num'),f=document.getElementById('fromBase'),t=document.getElementById('toBase');f.value='16';t.value='10';n.value='ff';convert();var had=document.getElementById('r2').textContent!=='—';n.value='1g';convert();var ids=['r2','r8','r10','r16','r32','r36'],clr=ids.every(function(id){return document.getElementById(id).textContent==='—';});document.getElementById('__tbProbe').textContent='STALECLR '+(had&&clr&&document.getElementById('mainOut').textContent==='❌'?'OK':'BAD');"],
     expect: ["STALECLR OK"],
     ref: "状态链探针：先以合法 ff(16) 转换令六卡片有值（had），再以非法 1g(16) 转换，要求六卡片全部回到『—』且主输出 ❌。修复前 catch 只置主输出 ❌、六卡片仍保留 ff 的旧值 ⇒ clr=false ⇒ STALECLR BAD。默认态首屏即 ff/16→10 合法态、无第二次非法转换动作 ⇒ 不命中。",
+  },
+  {
+    slug: "it/integer-base-converter",
+    // IT-N48-b：基数越界须保留用户输入并明确报错，不得静默 clamp 写回输入框。
+    inputs: { num: "ff", fromBase: "99", toBase: "10" },
+    clicks: ["convert();document.getElementById('__tbProbe').textContent='BASEKEEP '+document.getElementById('fromBase').value;"],
+    expect: ["源进制与目标进制都必须是 2 到 36 的整数", "BASEKEEP 99"],
+    ref: "注入越界源进制 99：修复后输出明确报错且输入框保留 99 ⇒ 探针 BASEKEEP 99；旧实现 clamp 到 36 并写回输入框、无任何提示 ⇒ 两锚均不命中。默认态 16→10 合法，不命中。",
   },
   {
     slug: "it/charset-detector",

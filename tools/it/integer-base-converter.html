@@ -288,11 +288,22 @@ function fromBigInt(v,base){
 }
 function convert(){
   var str=document.getElementById('num').value.trim();
-  var fb=parseInt(document.getElementById('fromBase').value)||10;
-  var tb=parseInt(document.getElementById('toBase').value)||10;
-  if(fb<2)fb=2;if(fb>36)fb=36;if(tb<2)tb=2;if(tb>36)tb=36;
-  document.getElementById('fromBase').value=fb;document.getElementById('toBase').value=tb;
+  var fbStr=document.getElementById('fromBase').value.trim();
+  var tbStr=document.getElementById('toBase').value.trim();
+  // 严格整数字面量校验：parseInt('2.5')=2 会静默截断输入口径，必须拒绝。
+  var fb=/^\d+$/.test(fbStr)?Number(fbStr):NaN;
+  var tb=/^\d+$/.test(tbStr)?Number(tbStr):NaN;
   var out=document.getElementById('result');
+  // IT-N48-b：越界基数旧实现静默 clamp 到 2/36 并写回输入框，用户不知口径已变。
+  // 改为保留输入、双语明确报错并清空全部结果卡片；文案不含用户输入，不进 innerHTML 拼接。
+  if(!Number.isInteger(fb)||!Number.isInteger(tb)||fb<2||fb>36||tb<2||tb>36){
+    var __en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+    var __msg=__en?'Source and target bases must be integers from 2 to 36':'源进制与目标进制都必须是 2 到 36 的整数';
+    document.getElementById('mainOut').textContent='❌';
+    ['r2','r8','r10','r16','r32','r36'].forEach(function(id){document.getElementById(id).textContent='—';});
+    var __h='<p style="color:var(--danger)">'+__msg+'</p>';if((typeof __h==='number'&&!isFinite(__h))||/Infinity/.test(String(__h))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h;
+    return;
+  }
   if(!str){document.getElementById('mainOut').textContent='—';['r2','r8','r10','r16','r32','r36'].forEach(function(id){document.getElementById(id).textContent='—';});const __h0='';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0;return;}
   try{
     var v=toBigInt(str,fb);
