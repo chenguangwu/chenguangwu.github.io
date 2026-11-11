@@ -6311,8 +6311,8 @@ const CASES = [
   {
     "slug": "it/xml-to-yaml",
     "inputs": { "source": "<root><item id=\"1\">Alpha</item><item id=\"2\">Beta</item></root>" },
-    "expect": ["@id: \"1\" #text: Alpha", "@id: \"2\" #text: Beta"],
-    "ref": "XML→YAML：注入含属性的同名兄弟节点。页面约定把属性写作 `@id`、文本节点写作 `#text`，重复元素收敛为序列 `- `。这两个约定形态在输入 XML 中完全不存在（输入为 `<item id=\"1\">Alpha</item>`），因而天然排除输入回显。默认样例为不同的 XML。"
+    "expect": ["\"@id\": \"1\" \"#text\": Alpha", "\"@id\": \"2\" \"#text\": Beta"],
+    "ref": "XML→YAML：注入含属性的同名兄弟节点。页面把属性写作 `@id`、文本写作 `#text`，重复元素收敛为序列 `- `；IT-N266 后这两个键按 YAML 1.2 加双引号（`@` 是保留指示符、`#` 起始即注释），输出形态为 `\"@id\": \"1\" \"#text\": Alpha`。输入 XML 是 `id=\"1\"` 与裸文本，不含带引号的 YAML 键形态 ⇒ 零回显、强判别。默认样例为不同的 XML。"
   },
   {
     "slug": "it/xml-to-yaml",
