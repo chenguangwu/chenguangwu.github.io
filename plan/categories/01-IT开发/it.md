@@ -62,7 +62,7 @@
 - 同批阅读 Linux、MongoDB 速查的搜索、分类与复制路径；无浏览器验证，不对完整正确性判通过。IT-N498–N500 的示例仍须按具体内容另行运行复核。
 - IT-N423、N308、N309 的数据范围问题仍在。
 - IT-N49 已于第215批真修并销账：`chmod-calculator` 支持 setuid(4)/setgid(2)/sticky(1) 特殊位与四位数模式（如 4755/2755/1777），符号位按 s/S 与 t/T 分别渲染，快捷预设及复制命令同步；JSDOM 修好版 18/18、旧源码 3/18。
-- IT-N170–N173 已于第217批真修并销账（`calc-3` 三路区间钳制 / 预设回调 / 重复预设条 / HEX 简写与 alpha），IT-N174–N177 已于第218批销账（`matrix-transpose` 维度/精度/空值/导出），详见下方覆盖行；IT-N178–N179（HTTP Cookie 速查英文简介与过期示例）等关键路径仍在。
+- IT-N170–N173 已于第217批真修并销账（`calc-3`），IT-N174–N177 第218批销账（`matrix-transpose`），IT-N178–N180 第219批销账（`http-cookies` 与 4 个 HTTP 页的过期示例），详见下方覆盖行；IT-N181–N182（文本转 ASCII 参照表与 UTF-16 计数）等关键路径仍在。
 - 同批另阅读 `ascii-table`、`box-shadow-generator`、`calc-1`、`calc-10` 的主要交互路径；未对其完整正确性或浏览器行为作通过判定。
 
 ## 已知问题
@@ -741,29 +741,7 @@
 
 - `calc-3`（颜色值转换器）：IT-N170–N173 已于第217批真修并销账——三路输入统一钳制（r/g/b 0–255、`h=((h%360)+360)%360`、s/l 0–100，越界回写规范化串，同屏 HEX/RGB/HSL 不再矛盾）；预设同时写 `hexInput` 使统一 `fromHex()` 回调生效（红/蓝/绿由页内 hslToRgb+rgbToHex 反算，往返一致）；删声明式 preset div 并显式放 `#calc_3Presets` 宿主，只留一组 4 条；HEX 支持 3/4/6/8 位（简写按位扩展、4/8 位带 alpha 并展示）、`maxlength` 7→9；公式说明与格式说明中英三源同步。JSDOM `scripts/_verify_it_batch217.mjs` 修好版 22/22、旧源码 3/22；verify 1554/1554 未改。
 - `matrix-transpose`（矩阵转置）：IT-N174–N177 已于第218批真机验证并销账。N174/N176/N177 源码已由其他 Agent 修好（`calculate()` 单元格数不符自动 `build()` 保留旧值、`readDims()` 整数+1–6 校验、`getM()` 空/非数抛错并标红、失败分支清空 `__lastTranspose`、`__matrix_transposeExport()` 现场生成 Aᵀ CSV），清单漏销账，本批补证据；N175 残留缺陷真修——`fmt()` 的 `toPrecision(12)` 会把 15 位大整数静默抹成 `123456789012000`，改为整数原样 `String()`、超安全整数走指数表示、非整数才用 12 位有效数字消浮点噪声。JSDOM `scripts/_verify_it_batch218.mjs` 修好版 33/33、缺陷态注入（换回旧 fmt）31/33（大数两项精确变红）；verify 1554/1554。
-### IT-N178 HTTP Cookie 英文简介宣称 "Parse and build ... headers"，页面只有静态速查（中，确认源码缺陷）
-- 问题：169 的英文文案写 "Parse and build HTTP Cookie and Set-Cookie headers with their attributes."；页面只有 `#searchInput`（171）+ 静态 `COMMANDS` 列表 + 图表/明细表，没有任何解析/构建输入框或函数。
-- 证据：`tools/it/http-cookies.html:169`、`:171`、`:478-541`、`:650-661`
-- 复现：英文态首段承诺解析/构建，但全页无对应控件，只能搜索 26 条属性说明；与中文 `data-zh`"属性与 JS 操作方法"的口径也不一致。
-- 影响：`tools/it/http-cookies.html` —— 英文用户按简介预期找解析器，找不到即流失。
-- 方案：英文改为 "Reference for Cookie attributes ... and JS operations"，或新增一个 Cookie 头解析/构建小工具。
-
-### IT-N179 Cookie 示例 `Expires=Wed, 21 Oct 2025 ...` 星期与日期不符且已过期（中，确认源码缺陷）
-- 问题：280 沿用 RFC 6265 的 `Wed, 21 Oct 2015` 只改年份为 2025，未改星期。2025-10-21 是周二；且相对当前日期（2026-11）已过期。
-- 证据：`tools/it/http-cookies.html:280`
-- 复现（node）：`new Date('2025-10-21T07:28:00Z').toUTCString()` → `Tue, 21 Oct 2025 07:28:00 GMT`（非 Wed）；与 `new Date('2026-11-04')` 比较为已过期。
-- 影响：`tools/it/http-cookies.html` —— 作为"过期时间点"示例既演示错误星期，又演示已过期时间，用户照抄会立刻删 Cookie。
-- 方案：换未过期且星期正确的日期（如 `Thu, 21 Oct 2027 07:28:00 GMT`，已实算），或保留 RFC 原文 2015 并注明"格式示例，日期已过期"。
-
-### IT-N180 Cookie 属性表未说明 `Max-Age` ≤0 即删除，中文界面表头固定英文（低，确认源码缺陷）
-- 问题：283-288 `Max-Age` desc 只写"存活秒数（相对，优先于 Expires）"，params 写"正数/0/负数"却未说明 0/负值即立即删除（等价于删除 Cookie）；这是与 Expires 并列最常用的删除手段。另 `__ckTable()` 658 无条件 `th1.textContent='Attribute'`，中文界面表头混英文（SameSite 的默认行为在 331-333 已有说明，不算缺失）。
-- 证据：`tools/it/http-cookies.html:283-288`、`:657-660`
-- 复现：查 `Max-Age` 条目只看到"正数/0/负数"，无删除语义；中文态打开「明细表」→ 表头为 `# / Attribute / 分类 / 说明`（其余三列中文）。
-- 影响：`tools/it/http-cookies.html` —— 最容易踩的"用 0/负值删除 Cookie"没写清；UI 语言不统一。
-- 方案：`Max-Age` desc 补"0 或负数 → 立即删除"；`th1` 按 `en` 切换 `Attribute/属性`。
-
-- 留存建议（tools/it/http-cookies.html）：①英文简介改口径或补解析器；②Expires 示例换未过期且星期正确；③补 `Max-Age`≤0 删除语义并统一表头语言。
-
+- `http-cookies`（HTTP Cookie 速查）：IT-N178–N180 已于第219批销账。N178 英文简介已由其他 Agent 改为 "as a searchable quick reference"（不再宣称 Parse and build），与页面仅有搜索+静态速查的能力一致，属漏销账补证据；N179 真修——`Expires=Wed, 21 Oct 2025` 星期错（实算周二）且已过期，全站同类 11 处（http-cookies 1 / http-headers 2 / http-response-headers 3 / http-cache 5）统一换为 `Thu, 21 Oct 2027 07:28:00 GMT`（实算周四、未过期）；刻意保留星期正确的历史示例（1970 epoch 删 Cookie、2015 RFC 原文、2026 条件请求）；N180 真修——`Max-Age` desc/params 补「0 或负数立即删除」语义（中英 en JSON 同步），明细表 `th1` 按 `en` 切换 `Attribute/属性`。JSDOM `scripts/_verify_it_batch219.mjs` 修好版 19/19、旧源码差分 9/19（10 项红）；verify 1554/1554、deepdive sync 0 不一致。
 ### IT-N181 文本转 ASCII 参照表把制表符写成 `9(制表) 57 39`，与"32–126 可打印"标题矛盾（中，确认源码缺陷）
 - 问题：171 `<td>9(制表)</td><td>57</td><td>39</td>`：十进制 57/0x39 是字符 `9`，TAB 是 9/0x09。该表标题（165）明确"可打印字符（32–126）"，TAB(9) 不在范围。另 A(65/41) 在 169 与 173 重复出现。
 - 证据：`tools/it/text-to-ascii.html:165-173`
