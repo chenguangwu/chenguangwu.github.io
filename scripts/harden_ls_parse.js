@@ -199,28 +199,17 @@ function main() {
       }
       return html;
     };
-    // 必须插在 TTZZ 整块之后：_build.py::inject_ttzz_snippet 用
-    // TTZZ_MARKER + 紧随其后的首个 <script> 做整块替换，插在标记与 script 之间会被构建抹掉。
-    const TTZZ_RE = /<!--\s*TOOLBOX-TTZZ\s*-->\s*<script\b[^>]*>[\s\S]*?<\/script>/i;
     let changed = 0;
     for (const rel of rels) {
       const abs = path.join(ROOT, rel);
       let html = fs.readFileSync(abs, "utf8");
       const before = html;
       html = stripGuard(html);
-      // 归一 TTZZ 块头部空白（旧 guard 曾嵌在块内，删除后会残留空行，构建端会判定不一致而整块重写）
-      html = html.replace(/<!--\s*TOOLBOX-TTZZ\s*-->\s*<script\s*>\s*/i,
-        "<!-- TOOLBOX-TTZZ -->\n<script>\n");
       let idx = -1;
-      const tz = TTZZ_RE.exec(html);
-      if (tz) {
-        idx = tz.index + tz[0].length;
-      } else {
-        for (const x of html.matchAll(/<script\b([^>]*)>/gi)) {
-          if (/\bsrc\s*=/.test(x[1])) continue;
-          if (/type\s*=\s*["']application\/ld\+json/i.test(x[1])) continue;
-          idx = x.index; break;
-        }
+      for (const x of html.matchAll(/<script\b([^>]*)>/gi)) {
+        if (/\bsrc\s*=/.test(x[1])) continue;
+        if (/type\s*=\s*["']application\/ld\+json/i.test(x[1])) continue;
+        idx = x.index; break;
       }
       if (idx < 0) { console.log("SKIP(no inline script)", rel); continue; }
       html = html.slice(0, idx) + "\n<script>" + GUARD + "</script>\n" + html.slice(idx);

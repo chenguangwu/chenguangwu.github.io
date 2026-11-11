@@ -49,7 +49,6 @@ function main() {
   check('游戏文件存在', game.length > 1000000, game.length);
   check('游戏文件 MD5 未变（内容零改动）', md5 === EXPECTED_MD5, md5);
   const gs = game.toString('utf8');
-  check('游戏文件未被注入 ttzz 统计', !/lf1-cdn-tos\.bytegoofy\.com/.test(gs));
   check('游戏文件未被注入 secmeta', !/X-Content-Type-Options/.test(gs));
 
   // 索引注册

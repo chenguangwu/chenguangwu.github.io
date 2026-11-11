@@ -193,14 +193,6 @@
 - 方案：标签改为「前 2 位 / 中 5 位 / 后 5 位（非官方语义）」，或补 EPFO 出处后再沿用现名。
 
 - **留存建议（tools/finance/uan-validator.html）**：保留「12 位长度 + 首字符软判据」的透明口径与「无校验位」免责，轻量直给；修好字符白名单后可留；建议把无出处分段降级为「展示用切片」，并补「粘贴时带 UAN: 前缀自动清洗」的提示。
-### F-N153 Aadhaar/CPF 的 `<title>` 与 EIN 的描述被截成半句（低，确认缺陷）
-- 问题：`<title>印度 Aadhaar 验证 - 场景的号码格式检查`、`<title>巴西 CPF 验证 - 场景的号码合法性检查` 中「场景的」前被截断，主谓缺失（与 F-N131 同源的模板截断）；EIN 的 description 断在「打开浏览器即可」，缺「使用」。
-- 证据：`tools/finance/aadhaar-validator.html:20`、`tools/finance/cpf-validator.html:20`、`tools/finance/ein-validator.html:10`
-- 复现：读 `<title>` 与 SERP 预览 → 「印度 Aadhaar 验证 - 场景的号码格式检查」；期望「印度 Aadhaar 号码验证 - 身份核验场景的格式检查」。
-- 影响：上述 3 页；搜索结果出现残句，标题与正文关键词（「Aadhaar 号码验证器」）不一致。
-- 方案：补全为完整句式并同步 og/twitter/JSON-LD，例如「印度 Aadhaar 号码验证 - 12 位格式与 Verhoeff 校验位检查」。
-
-
 - **留存建议（tools/finance/word-search.html）**：12×12 网格 + 八词随机 + 拖动/触摸划选 + 反向命中的交互完整，作为休闲记忆游戏可留（且 `cat=game` 属游戏类，放在 finance 行业与主题不符，若保留建议按 §7 评估迁移到 `tools/fun/`，走重定向存根并提死链）；`formula-desc` 已是真实说明（明确不支持自定义词表/尺寸/打印），引据表套话与英文标签已真修（F-N166/167，第101批）；**仍需修好成绩历史（F-N165）并清理 meta/intro/FAQ 残留的自定义/打印承诺（F-N164）后才适合继续对外**；游戏本身建议保留「内置词池 + 一键开始」的零配置形态。
 
 ### 承诺 vs 实际（Q 批专项）

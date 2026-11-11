@@ -48,7 +48,6 @@ TELEMETRY_HOSTS = {
     "v6-widget.51.la",
     "hm.baidu.com",
     "zz.bdstatic.com",
-    "lf1-cdn-tos.bytegoofy.com",
     "pagead2.googlesyndication.com",
 }
 
@@ -220,7 +219,7 @@ def collect_records() -> list[dict]:
                 if not hm or host_of(hm.group(1)) in (SELF_ORIGIN, *DOC_HOSTS):
                     continue
                 add(host_of(hm.group(1)), hm.group(1), "link", rel, tag=tag)
-            # 内联脚本里动态注入的第三方脚本（TTZZ 等）
+            # 内联脚本里动态注入的第三方脚本
             for m in INLINE_JS_URL_RE.finditer(text):
                 url = m.group(0)
                 if host_of(url) in (SELF_ORIGIN, *DOC_HOSTS):

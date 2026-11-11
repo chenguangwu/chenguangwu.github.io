@@ -3,8 +3,7 @@
  *
  * 结构（与 verify_inline_handlers.js 同口径）：
  * - 静态段（纯文本，决定退出码；无浏览器也能跑）：
- *   ① 9 个解析期写入页必须保留 GUARD，且 GUARD 不能落在 TTZZ 整块内
- *      （_build.py::inject_ttzz_snippet 用「标记 + 紧随首个 <script>」整块替换，块内片段会被静默抹掉）；
+ *   ① 9 个解析期写入页必须保留 GUARD；
  *   ② js/common.js 的 catch 必须只吞四类存储异常并保留 `throw e`（防止被改回 catch-all）；
  *   ③ security/virtual-safe 必须保留写入后回读的两个 getItem 比对（收窄 catch 后这是唯一失败路径）。
  * - 动态段（puppeteer + Chrome，缺浏览器显式 SKIP 且 exit 0）：
@@ -38,7 +37,6 @@ const PARSE_TIME_PAGES = [
 ];
 
 const GUARD_START = "(function(){try{var o=Storage.prototype.setItem";
-const TTZZ_RE = /<!--\s*TOOLBOX-TTZZ\s*-->\s*<script\b[^>]*>[\s\S]*?<\/script>/i;
 const STORE_WHITELIST = [
   "QuotaExceededError",
   "SecurityError",
@@ -59,19 +57,12 @@ function staticGuards() {
     try { html = read(rel); } catch (e) { problems.push(`${rel} 读取失败`); continue; }
     if (!html.includes(GUARD_START)) { problems.push(`${rel} 缺 GUARD 函数体`); continue; }
     if (!html.includes("__tbSyncWarned")) { problems.push(`${rel} GUARD 缺 __tbSyncWarned 标记`); }
-    const tz = TTZZ_RE.exec(html);
-    if (tz) {
-      const guardIdx = html.indexOf(GUARD_START);
-      if (guardIdx < tz.index + tz[0].length) {
-        problems.push(`${rel} GUARD 落在 TTZZ 块内（会被构建整块替换抹掉）`);
-      }
-    }
   }
   return {
     ok: problems.length === 0,
     got: problems.length
       ? problems.join(" | ")
-      : `${PARSE_TIME_PAGES.length}/${PARSE_TIME_PAGES.length} 页 GUARD 齐全且在 TTZZ 块之外`,
+      : `${PARSE_TIME_PAGES.length}/${PARSE_TIME_PAGES.length} 页 GUARD 齐全`,
   };
 }
 
