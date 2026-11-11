@@ -150,7 +150,7 @@
   <div class="formula-desc">由示例 JSON 推断生成 JSON Schema。</div>
   <ul class="formula-list">
     <li><b>推断</b>：根据出现的键、值类型与出现频率生成 type、properties 与 required。</li>
-    <li><b>required</b>：在所有样本中都出现的键才会被判定为必填。</li>
+    <li><b>required</b>：本工具按单个样本推断，对象中的非 null 键均列入必填；null 字段不列入（避免「必填且只能为 null」），数组元素的多个对象只取共有键。多份样本需人工合并后再调整。</li>
     <li><b>数组</b>：元素类型由所有元素推断，混合类型可用 anyOf/oneOf 表达。</li>
     <li><b>局限</b>：结果为草稿，格式约束（format、pattern、数值范围）需人工补充。</li>
   </ul>
@@ -418,10 +418,16 @@ function inferSchema(value, path = '', options = {}) {
     for (const key of Object.keys(value)) {
       const propSchema = inferSchema(value[key], path + '.' + key, options);
       schema.properties[key] = propSchema;
-      required.push(key);
-      
+      // IT-N267：本工具只吃一个样本，null 字段若进 required 就等于「必填且只能为 null」，
+      // 任何真实响应都校验不过；null 字段不列入（数组元素的多个对象取共有键，见 mergeSchemas）。
+      if (propSchema.type !== 'null') required.push(key);
+
       if (options.title) {
         propSchema.title = keyToTitle(key);
+      }
+      // IT-N268：描述注释此前只被读取进 options、全程无消费点；现在确实输出 description。
+      if (options.descriptions) {
+        propSchema.description = 'The ' + key + ' field.';
       }
     }
     
@@ -462,12 +468,24 @@ function mergeSchemas(schemas) {
           .map(s => s.properties[key]);
         merged.properties[key] = propSchemas.length > 0 ? mergeSchemas(propSchemas) : {};
       }
+      // 顺带：对象数组多样本合并时保留「每个元素都出现」的 required，不再整段丢失。
+      const withReq = schemas.filter(s => Array.isArray(s.required) && s.required.length);
+      if (withReq.length === schemas.length) {
+        const common = withReq[0].required.filter(k => withReq.every(s => s.required.indexOf(k) >= 0));
+        if (common.length) merged.required = common;
+      }
       return merged;
     }
     return schemas[0];
   }
-  
-  return {};
+
+  // IT-N269：混合类型原来直接返回 {}（items 变成「任意值均可」，元素类型信息全丢），
+  // 按本页「混合类型可用 anyOf 表达」的承诺输出去重后的 anyOf。
+  const uniq = [];
+  schemas.forEach(s => {
+    if (!uniq.some(u => JSON.stringify(u) === JSON.stringify(s))) uniq.push(s);
+  });
+  return uniq.length === 1 ? uniq[0] : { anyOf: uniq };
 }
 
 function isEmail(s) {
@@ -487,7 +505,9 @@ function isDate(s) {
 }
 
 function isIPv4(s) {
-  return /^(\d{1,3}\.){3}\d{1,3}$/.test(s);
+  const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(s);
+  // 顺带：逐段校验 0-255，并拒绝 01.2.3.4 这类前导零写法（非合法点分十进制）
+  return !!m && m.slice(1).every(n => Number(n) <= 255 && (n === '0' || n.charAt(0) !== '0'));
 }
 
 function isIPv6(s) {
@@ -626,7 +646,12 @@ function buildTreeView(schema, level = 0) {
   if (schema.required) {
     result.required = schema.required;
   }
-  
+
+  // IT-N269：anyOf 也要在树视图可见，否则 JSON 输出有、结构树却空一块。
+  if (schema.anyOf) {
+    result.anyOf = schema.anyOf.map(s => buildTreeView(s, level + 1));
+  }
+
   return result;
 }
 

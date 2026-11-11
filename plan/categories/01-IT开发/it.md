@@ -1383,35 +1383,13 @@
 
 - `qrcode`：IT-N259 SEO 宣称口径（title/h1/keywords/meta/JSON-LD/intro 全部只宣称「生成」无「识别/解析/上传图片解析」，无 file input/解码入口）源码已在 HEAD（其他 Agent 修复），清单漏销账，第206批补证据销账；真机 14/14（缺陷态注入旧宣称 11/14），verify 无用例。N260（容量图只到v10）等仍留清单。
 
-- `qrcode`：IT-N260 容量表 QR_BYTE_CAP 补到 v40（用本页 js/qrcode.js 二分实测各版字节容量，与库实际编码口径一致，v40 L=2953 与表注吻合），超限标 41=超出v40 不再错误压成10；第207批销账；真机 19/19 vs 旧 4/15项红（300/900字节各级别版本与库实际生成一致），verify 无用例。N267（json-schema-generator 单样本）等仍留清单。
+- `qrcode`：IT-N260 容量表 QR_BYTE_CAP 补到 v40（用本页 js/qrcode.js 二分实测各版字节容量，与库实际编码口径一致，v40 L=2953 与表注吻合），超限标 41=超出v40 不再错误压成10；第207批销账；真机 19/19 vs 旧 4/15项红（300/900字节各级别版本与库实际生成一致），verify 无用例。后续条目仍留清单。
 
-- `hex-encode`：IT-N261 解码改为先剥分隔符、再全局 `replace(/0x/gi,'')`（每行/每字节 0x 的 hexdump 都能解，大小写 0X 兼容），编码侧勾选 prefix 时按字节加（`0x48 0x69`）；IT-N262 历史读取 F-N189 全站修复已覆盖（`#output` 是 textarea，现读 `r.value`），本批删掉 `__hex_encodeScore` 关键词判 0 启发式（恒 1，与 N246 同型，避免 "Error 404"/严格解码告警被误判无效）；IT-N263 改严格 UTF-8（`fatal:true,ignoreBOM:true`）+ 非法字节计数/Latin-1 对照/原始 hex 字节列表，`dec` 也包进 extras 并写「模式=编码/解码」，历史回放按方向选 `enc()`/`dec()`；第208批销账；真机 25/25 vs 旧 9/25（16 项红），verify 无用例（依赖 TextEncoder/TextDecoder 原生对象）。N267（json-schema-generator 单样本）等仍留清单。
+- `hex-encode`：IT-N261 解码改为先剥分隔符、再全局 `replace(/0x/gi,'')`（每行/每字节 0x 的 hexdump 都能解，大小写 0X 兼容），编码侧勾选 prefix 时按字节加（`0x48 0x69`）；IT-N262 历史读取 F-N189 全站修复已覆盖（`#output` 是 textarea，现读 `r.value`），本批删掉 `__hex_encodeScore` 关键词判 0 启发式（恒 1，与 N246 同型，避免 "Error 404"/严格解码告警被误判无效）；IT-N263 改严格 UTF-8（`fatal:true,ignoreBOM:true`）+ 非法字节计数/Latin-1 对照/原始 hex 字节列表，`dec` 也包进 extras 并写「模式=编码/解码」，历史回放按方向选 `enc()`/`dec()`；第208批销账；真机 25/25 vs 旧 9/25（16 项红），verify 无用例（依赖 TextEncoder/TextDecoder 原生对象）。后续条目仍留清单。
 
-- `xml-to-yaml`：IT-N264（textarea 初值塞深潜 CSS/被吞 `</body>`）与 IT-N265（数组套对象输出 `[object Object]`）源码已由其他 Agent 修好且在 HEAD，清单漏销账，本批补真机证据（初值 187 字符/10 行、无 CSS、深潜容器在 textarea 外、首屏干净 YAML；嵌套数组递归输出 `d: "1"` 无 `[object Object]`）；IT-N266 真修：属性正则补单引号 `(?:"([^"]*)"|'([^']*)')`、标签头 `>` 查找加 findGt 跳过引号内字符、以 @/# 开头的键过 `yKey()` 加双引号（YAML 1.2 保留指示符/注释，加引号不影响 XML 往返）；顺带修 indent 承诺（dumpYaml 加 unit 参数，root 传空前缀、每层递增 unit，2 空格→首层 2 空格，4 空格/tab 同样对齐）。同页 en JSON 更新两条中文键/英译并清理 N264 遗留的旧深潜示例键。第209批销账；真机 22/22 vs 旧 10/22（12 项红；N264/N265 共 5 项旧态已绿如实记录），verify 无用例。N267（json-schema-generator 单样本）等仍留清单。
+- `xml-to-yaml`：IT-N264（textarea 初值塞深潜 CSS/被吞 `</body>`）与 IT-N265（数组套对象输出 `[object Object]`）源码已由其他 Agent 修好且在 HEAD，清单漏销账，本批补真机证据（初值 187 字符/10 行、无 CSS、深潜容器在 textarea 外、首屏干净 YAML；嵌套数组递归输出 `d: "1"` 无 `[object Object]`）；IT-N266 真修：属性正则补单引号 `(?:"([^"]*)"|'([^']*)')`、标签头 `>` 查找加 findGt 跳过引号内字符、以 @/# 开头的键过 `yKey()` 加双引号（YAML 1.2 保留指示符/注释，加引号不影响 XML 往返）；顺带修 indent 承诺（dumpYaml 加 unit 参数，root 传空前缀、每层递增 unit，2 空格→首层 2 空格，4 空格/tab 同样对齐）。同页 en JSON 更新两条中文键/英译并清理 N264 遗留的旧深潜示例键。第209批销账；真机 22/22 vs 旧 10/22（12 项红；N264/N265 共 5 项旧态已绿如实记录），verify 无用例。承诺 vs 实际段其余项仍留清单。
 
-### IT-N267 只有单样本入口，却把所有键都写进 `required`（含 `null` 字段），与"多样本取交集"的说明矛盾（中，确认缺陷）
-- 问题：`inferSchema` 对每个 key 无条件 `required.push(key)`；页面只能粘一个 JSON，不存在"所有样本"。公式清单却写"在所有样本中都出现的键才会被判定为必填"。
-- 证据：`tools/it/json-schema-generator.html:429-441`（`:432` 无条件 push）、`:164`（说明）、`:206`（单个 textarea）、`:307-329`（SAMPLE 含 `metadata: null`）。
-- 复现：用默认示例生成 → `required` 含 `metadata`，其 schema 为 `{type:"null",examples:[null]}`，等价于"该字段必填且只能为 null"；任何真实响应都会校验失败。期望：`null` 字段要么不进 required，要么标 `type:["null","string"]`。
-- 影响：`tools/it/json-schema-generator.html`（生成的契约必然过度约束）
-- 方案：支持多样本（顶层数组或多文档）取交集后再定 required，否则默认关闭该选项并删掉"多样本"文案；对 `null` 值输出 `type:["null", …]` 或直接跳过。
-**留存建议（tools/it/json-schema-generator.html）**：本页最影响可用性的一条，先统一"单样本"口径再谈推断精度。
-
-### IT-N268 "描述注释"勾选框是死控件，从不产出 `description`（中，确认缺陷）
-- 问题：`optDescriptions` 的值读进 `options` 后没有任何消费点，`inferSchema` 全程不写 `description`。
-- 证据：`tools/it/json-schema-generator.html:183`（控件）、`:572`（读取）、`:160`（公式说明自称"descriptions 生成说明"）、`:354-455`（推断无 `description`）、`:797`（预设"描述+极值+标题"还专门勾上它）。
-- 复现：勾选与否各生成一次，`JSON.stringify(lastSchema)` 完全一致（diff 为空）；而预设 `:797` 声称会输出"描述"。
-- 影响：`tools/it/json-schema-generator.html`（UI 承诺与输出不符，用户会以为功能坏了）
-- 方案：实现 `description`（如 `prop.description = keyToTitle(key)` 或 `'The ' + key + ' field.'`），或删掉该复选框（成本最低）。
-**留存建议（tools/it/json-schema-generator.html）**：删控件最省事，别留半截功能。
-
-### IT-N269 混合类型数组直接退化成空 schema，没有任何 `anyOf/oneOf`（中，确认缺陷）
-- 问题：`mergeSchemas` 在类型不一致时 `return {}`，于是 `items` 变成空 schema（"任意值均可"），元素类型信息全丢；同页 `:165` 却写"混合类型可用 anyOf/oneOf 表达"。
-- 证据：`tools/it/json-schema-generator.html:461-481`（`:481` 返回 `{}`）、`:367-372`、`:165`。
-- 复现：node 同逻辑 `mergeSchemas([{type:'integer'},{type:'string'}])` → `{}`；输入 `{"tags":[1,"a"]}` → `"tags":{"type":"array","items":{}}`，无法看出元素可为整数或字符串。期望 `items:{anyOf:[{type:"integer"},{type:"string"}]}` 或 `type:["integer","string"]`。
-- 影响：`tools/it/json-schema-generator.html`
-- 方案：返回 `{anyOf:[…去重同类…]}`（2020-12/draft-07 均支持），或 `{type:[...]}`；至少保留首个类型并加 `description:"mixed types in sample"` 作提示。
-**留存建议（tools/it/json-schema-generator.html）**：与 N267 同批，属"推断结论丢失"。
+- `json-schema-generator`：IT-N267 required 不再无条件收键——null 字段跳过（否则「必填且只能为 null」让任何真实响应校验失败），数组元素的多个对象取共有键（mergeSchemas 顺带保留 required），说明文案改为「单样本推断、多样本需人工合并」；IT-N268「描述注释」勾选框从死控件变成真输出 `description: 'The <key> field.'`（保留预设「描述+极值+标题」的承诺）；IT-N269 混合类型不再退化空 schema，输出去重后的 `anyOf` 且树视图同步展示；顺带修 `isIPv4` 逐段 0-255 + 拒前导零（999/256/01 段不再误标 ipv4）。en JSON required 说明键/英译同步。第210批销账；真机 21/21 vs 旧 6/21（15 项红），verify 无用例。承诺 vs 实际段其余项仍留清单。
 
 ### 承诺 vs 实际（R 批专项·8 页）
 - `tools/it/qrcode.html:299`："最高版本 40 约存 2953 字节（数字模式）"——2953 是**字节模式**容量（数字模式为 7089 位），与同页 `:559` 的正确表注自相矛盾。
