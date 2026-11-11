@@ -11040,6 +11040,15 @@ const CASES = [
     "ref": "真编码器改造：url 50 个 ASCII 字节、纠错 H（容量表 H 的 V5=44、V6=58）⇒ qrPlan 选最小版本 V6，模块 17+4×6=41 ⇒ 结果区输出该串。默认态是 github.com + M（22 字节 ⇒ V2、25×25），不含 50/V6/41，且 'H' 不是默认选项值。"
   },
   {
+    "slug": "it/url-qr",
+    // IT-N456：renderQR 必须走真实编码器 API——传 level、addData(原文)、切 UTF-8、返回 qr 对象。
+    // 旧假实现自造 strHash/pseudoRandom 点阵，从不调用 qrcode ⇒ 探针全 NA 且返回数组。
+    "inputs": { "url": "https://github.com" },
+    "clicks": ["var _l={level:'NA',data:'NA',made:'N',utf8:'N'};globalThis.qrcode=function(t,lv){_l.level=String(lv);return {addData:function(d){_l.data=String(d);},make:function(){_l.made='Y';},getModuleCount:function(){return 25;},isDark:function(){return false;}};};globalThis.qrcode.stringToBytesFuncs={'UTF-8':function(s){_l.utf8='Y';return s;}};globalThis.qrcode.stringToBytes=null;var r=renderQR('https://verify.example.com/pay','Q');_l.utf8=(globalThis.qrcode.stringToBytes===globalThis.qrcode.stringToBytesFuncs['UTF-8'])?'Y':'N';document.getElementById('__tbProbe').textContent='QRAPI '+_l.level+'|'+_l.data+'|'+_l.made+'|'+_l.utf8+'|'+(r&&r.qr?'OBJ':'ARR');"],
+    "expect": ["QRAPI Q|https://verify.example.com/pay|Y|Y|OBJ"],
+    "ref": "注入 mock 编码器后调 renderQR(注入URL, 'Q')：真实现必传 level=Q、addData 注入 URL、调 make、切 UTF-8 并返回 {qr} 对象 ⇒ 探针串含注入值。旧假实现 strHash/pseudoRandom 自造点阵，全程不碰 qrcode ⇒ NA/ARR，判别明确。默认态不执行探针。"
+  },
+  {
     "slug": "it/url-parser",
     "inputs": {
       "b-hostname": "abc123测试",
