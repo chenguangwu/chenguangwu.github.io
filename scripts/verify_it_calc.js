@@ -10712,6 +10712,13 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"timestampSec\":\"abc123测试\",\"timestampMs\":\"abc123测试\",\"dateInput\":\"abc123测试\",\"calcStartDate\":\"abc123测试\",\"calcAmount\":\"42\",\"diffStart\":\"abc123测试\",\"diffEnd\":\"abc123测试\",\"calcOp\":\"subtract\",\"calcUnit\":\"week\"}，输出区含「 14:00:00\nabc123测试\n42\nabc123测试\nabc123测试\n…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    "slug": "it/timestamp-converter",
+    "inputs": { "diffStart": "2025-12-31", "diffEnd": "2026-01-01" },
+    "clicks": ["calculateDiff();document.getElementById('__tbProbe').textContent=document.getElementById('calcResult2').textContent;"],
+    "expect": ["相差整年数: 0 年", "相差整月数: 0 个月", "相差天数: 1 天"],
+    "ref": "IT-N45 相差年/月按日历字段相减的回归：2025-12-31→2026-01-01 仅 1 天，旧实现按年份/月份字段差输出「约 1 年」「约 1 个月」；整月/整年口径修复后为 0/0，天数 1。expect 三条都绑定注入日期派生的输出，旧源码「约 1 年」不命中 ⇒ 强判别。用 clicks 显式调 calculateDiff（diffStart 无 oninput）。"
+  },
+  {
     "slug": "it/toml-to-json",
     "inputs": {
       "source": "1\n2\n3",
