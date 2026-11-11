@@ -150,12 +150,6 @@
 > 范围：本轮阅读 8 页（`tools/finance/calc-2.html`、`tools/finance/calc-3.html`、`tools/finance/calc-4.html`、`tools/finance/calc-5.html`、`tools/finance/invoice-generator.html`、`tools/finance/currency-converter.html`、`tools/finance/analysis-5.html`、`tools/finance/analysis-risk.html`）。仅源码 + node 复算，未开浏览器/未做 EN/移动端/门禁验证；历史已修声明未独立复验。
 
 
-### F-N71 IRR 页无实根仍返回 1000% 并把 NPV≈0 写进结论（高，确认缺陷）
-- 描述：`irr()` 的二分回退固定区间 `[-0.99, 10]`，只按 `npv(lo)*fmid<0` 决定 hi，从不校验两端异号，也不校验最终残差；当现金流虽有正负但 NPV 无实根时，`lo` 被单调推向 `hi`，直接返回 `mid≈10`（1000%）。页面随后以该利率复算明细，并在结果文案中断言「项目净现值 NPV 约等于 0」。
-- 证据：`tools/finance/calc-2.html:244-251`（`:249` 仅按符号推进、`:251` 直接 `return mid`）、`:264`、`:288`（结论文案）
-- 复现：初始投资 −100、各期现金流 230、−132.5（NPV = −100 + 230x − 132.5x²，判别式 52900−53000 < 0，无实根）→ 实际 IRR 1000.0000%、明细末期累计 NPV −7.29，页面仍写「当折现率为 1000.0000% 时，项目净现值 NPV 约等于 0」（期望提示「该现金流无实根，IRR 不存在」）
-- 影响：`tools/finance/calc-2.html`；非常规/多重符号变化现金流的 IRR 被伪造成上限值，用户会据此接受实际不可行的项目；与 F-N29（npv-calculator）同类但属独立页面，修复需覆盖本页。
-- 方案：迭代后校验 `|NPV|` 残差（如 <1e-6）且端点异号，否则返回 `null`；`null` 时结果区只提示「无实根/多根，请改用 NPV」，不再展示「NPV≈0」；文案补明多根情形。
 
 - 本轮实读 8 页：`tools/finance/calc-2.html`、`tools/finance/calc-3.html`、`tools/finance/calc-4.html`、`tools/finance/calc-5.html`、`tools/finance/invoice-generator.html`、`tools/finance/currency-converter.html`、`tools/finance/analysis-5.html`、`tools/finance/analysis-risk.html`；新增 11 条（高 3/中 6/低 2）；未覆盖：其余 finance 页（约 66 页）未逐页复扫。
 - 证据均由源码行号 + node 内存复算取得；未做浏览器、英文态、移动端、门禁与线上验证；历史已修声明未独立复验。
