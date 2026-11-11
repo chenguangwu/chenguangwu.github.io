@@ -2501,6 +2501,30 @@ const CASES = [
     ref: "校验路径输出结构统计：两行函数定义 ⇒ 总行数 2、def 数量 1。压缩路径已改为保留物理行，不再把语句用 `; ` 串成一行。默认示例含更多 def/行数，不命中。",
   },
   {
+    slug: "it/python-formatter",
+    // IT-N300：缩进栈按真实层级输出 8/4/0，避免自带样例与小例不可编译。
+    clicks: ["var nl=String.fromCharCode(10);document.getElementById('indent').value='4';document.getElementById('input').value='def f():'+nl+'    if x:'+nl+'        y=1'+nl+'    z=2'+nl+'w=3';doBeautify();var L=document.getElementById('output').textContent.replace(/ /g,'.').split(nl);var ok=L[1].indexOf('....if.x:')===0&&L[2].indexOf('........y=1')===0&&L[3].indexOf('....z=2')===0&&L[4]==='w=3';document.getElementById('__tbProbe').textContent='FMT300 '+(ok?'OK':'BAD:'+L.join('|'));"],
+    inputs: { input: "def f():\n    if x:\n        y=1\n    z=2\nw=3", indent: "4" },
+    expect: ["FMT300 OK"],
+    ref: "IT-N300 独立复算：if 体 8 空格、def 体 4 空格、顶层 0；旧栈算法会给 4/2/2，Python 编译报 IndentationError。默认 fibonacci 示例不命中。"
+  },
+  {
+    slug: "it/python-formatter",
+    // IT-N301：注释独占一行，不能把后续代码拼到注释尾部吞掉。
+    clicks: ["var nl=String.fromCharCode(10);document.getElementById('input').value='# comment'+nl+'x = 1'+nl+'print(x)';doMinify();var o=document.getElementById('output').textContent;document.getElementById('__tbProbe').textContent='MIN301 '+(o.indexOf('# comment;')<0&&o.indexOf(nl+'x = 1'+nl+'print(x)')>0?'OK':'BAD:'+o);"],
+    inputs: { input: "# comment\nx = 1\nprint(x)", indent: "4" },
+    expect: ["MIN301 OK"],
+    ref: "IT-N301 注入注释+两行代码：压缩保留三条物理行，注释不得吞进赋值。旧实现输出 `# comment; x = 1; print(x)`，赋值与打印都成注释，不命中。"
+  },
+  {
+    slug: "it/python-formatter",
+    // IT-N302：冒号行后未缩进必须报错。
+    clicks: ["var nl=String.fromCharCode(10);document.getElementById('input').value='def f():'+nl+'print(1)';doValidate();var e=document.getElementById('err').textContent;document.getElementById('__tbProbe').textContent='VAL302 '+(e.indexOf('未缩进')>=0&&e.indexOf('❌')===0?'OK':'BAD:'+e);"],
+    inputs: { input: "def f():\nprint(1)", indent: "4" },
+    expect: ["VAL302 OK"],
+    ref: "IT-N302 注入 `def f():\\nprint(1)`：括号与三引号均平衡，但第 2 行未缩进必须报错；旧实现只看三引号闭合会报校验通过，不命中。"
+  },
+  {
     slug: "it/graphql-formatter",
     inputs: { input: "{a{b}}" },
     clicks: ["doMinify()"],
