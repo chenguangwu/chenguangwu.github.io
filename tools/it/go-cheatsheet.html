@@ -327,7 +327,7 @@ const COMMANDS = [
     "desc": "延迟调用",
     "syntax": "defer expr",
     "params": "LIFO",
-    "example": "f, _ := os.Open(\"f\")\ndefer f.Close()\n\n// LIFO 顺序\ndefer fmt.Println(\"1\")\ndefer fmt.Println(\"2\")  -- 先输出"
+    "example": "f, _ := os.Open(\"f\")\ndefer f.Close()\n\n// LIFO 顺序：最后 defer 的最先执行\ndefer fmt.Println(\"1\")\ndefer fmt.Println(\"2\") // 先输出 2"
   },
   {
     "cmd": "if",
@@ -335,7 +335,7 @@ const COMMANDS = [
     "desc": "if",
     "syntax": "if init; cond {}",
     "params": "",
-    "example": "if err := do(); err != nil {\n  log.Fatal(err)\n}\nif x > 0 { ... } else if x == 0 { ... } else { ... }"
+    "example": "if err := do(); err != nil {\n  log.Fatal(err)\n}\nif x > 0 {\n  fmt.Println(\"positive\")\n} else if x == 0 {\n  fmt.Println(\"zero\")\n} else {\n  fmt.Println(\"negative\")\n}"
   },
   {
     "cmd": "for",
@@ -351,7 +351,7 @@ const COMMANDS = [
     "desc": "switch",
     "syntax": "switch x { case v: }",
     "params": "默认 break",
-    "example": "switch day {\ncase \"Sat\", \"Sun\": fmt.Println(\"weekend\")\ndefault: fmt.Println(\"workday\")\n}\n\nswitch {  -- 无表达式\n  case x < 0: ...\n}"
+    "example": "switch day {\ncase \"Sat\", \"Sun\": fmt.Println(\"weekend\")\ndefault: fmt.Println(\"workday\")\n}\n\nswitch { // 无表达式，等价于 switch true\ncase x < 0:\n  fmt.Println(\"negative\")\ndefault:\n  fmt.Println(\"non-negative\")\n}"
   },
   {
     "cmd": "数组",
@@ -375,7 +375,7 @@ const COMMANDS = [
     "desc": "映射",
     "syntax": "map[K]V",
     "params": "",
-    "example": "m := map[string]int{\"a\": 1}\nm[\"b\"] = 2\nv, ok := m[\"a\"]\ndelete(m, \"b\")\nfor k, v := range m {}"
+    "example": "m := map[string]int{\"a\": 1}\nm[\"b\"] = 2\nv, ok := m[\"a\"]\n_, _ = v, ok\ndelete(m, \"b\")\nfor k, v := range m {\n  fmt.Println(k, v)\n}"
   },
   {
     "cmd": "字符串",
@@ -383,7 +383,7 @@ const COMMANDS = [
     "desc": "字符串",
     "syntax": "string",
     "params": "不可变 UTF-8",
-    "example": "s := \"hello\"\nlen(s)\ns[0]  -- byte\nfor i, r := range s {}  -- rune\nstrings.Contains(s, \"ell\")\nstrings.Split(\"a,b\", \",\")"
+    "example": "s := \"hello\"\n_ = len(s)\n_ = s[0] // byte\nfor i, r := range s { // i 是字节索引，r 是 rune\n  _, _ = i, r\n}\n_ = strings.Contains(s, \"ell\")\n_ = strings.Split(\"a,b\", \",\")"
   },
   {
     "cmd": "struct",
@@ -415,7 +415,7 @@ const COMMANDS = [
     "desc": "any",
     "syntax": "interface{}  /  any",
     "params": "",
-    "example": "func print(v any) { fmt.Println(v) }\nvar i any = 1\nv, ok := i.(int)  -- 类型断言\nswitch v := i.(type) {\n  case int: ...\n}"
+    "example": "func print(v any) { fmt.Println(v) }\nvar i any = 1\nv, ok := i.(int) // 类型断言\n_, _ = v, ok\nswitch v := i.(type) {\ncase int:\n  fmt.Println(\"int\", v)\ndefault:\n  print(v)\n}"
   },
   {
     "cmd": "指针",
@@ -423,7 +423,7 @@ const COMMANDS = [
     "desc": "指针",
     "syntax": "*T  &x",
     "params": "",
-    "example": "x := 1\np := &x\n*p = 2\nfmt.Println(x)  -- 2"
+    "example": "x := 1\np := &x\n*p = 2\nfmt.Println(x) // 2"
   },
   {
     "cmd": "错误",
@@ -447,7 +447,7 @@ const COMMANDS = [
     "desc": "goroutine",
     "syntax": "go func()",
     "params": "",
-    "example": "go doWork()\n\nvar wg sync.WaitGroup\nwg.Add(2)\ngo func() { defer wg.Done(); ... }()\ngo func() { defer wg.Done(); ... }()\nwg.Wait()"
+    "example": "go doWork()\n\nvar wg sync.WaitGroup\nwg.Add(2)\ngo func() { defer wg.Done(); doWork() }()\ngo func() { defer wg.Done(); doWork() }()\nwg.Wait()"
   },
   {
     "cmd": "channel",
@@ -463,7 +463,7 @@ const COMMANDS = [
     "desc": "select",
     "syntax": "select { case }",
     "params": "",
-    "example": "select {\n  case v := <-ch1: ...\n  case ch2 <- 1: ...\n  case <-time.After(time.Second): ...\n  default: ...\n}"
+    "example": "select {\ncase v := <-ch1:\n  fmt.Println(v)\ncase ch2 <- 1:\n  fmt.Println(\"sent\")\ncase <-time.After(time.Second):\n  fmt.Println(\"timeout\")\ndefault:\n  fmt.Println(\"no case ready\")\n}"
   },
   {
     "cmd": "mutex",
@@ -471,7 +471,7 @@ const COMMANDS = [
     "desc": "互斥锁",
     "syntax": "sync.Mutex",
     "params": "",
-    "example": "var mu sync.Mutex\nmu.Lock()\nx++\nmu.Unlock()\n\nvar rw sync.RWMutex\nrw.RLock(); ...; rw.RUnlock()"
+    "example": "var mu sync.Mutex\nmu.Lock()\nx++\nmu.Unlock()\n\nvar rw sync.RWMutex\nrw.RLock()\n// 读取共享数据\nrw.RUnlock()"
   },
   {
     "cmd": "context",

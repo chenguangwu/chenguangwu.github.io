@@ -3511,6 +3511,18 @@ const CASES = [
     ref: "反向锚：Go 速查搜索无命中 ⇒ 计数归零；默认列表非空。",
   },
   {
+    slug: "it/go-cheatsheet",
+    clicks: ["(function(){var bad=0;COMMANDS.forEach(function(c){var ex=c.example||'';if(/--\\s/.test(ex))bad++;ex.split('\\n').forEach(function(ln){var t=ln.trim();if(/\\{\\s*\\.\\.\\.\\s*\\}/.test(t)||/:\\s*\\.\\.\\.\\s*$/.test(t)||/\\.\\.\\.\\s*;/.test(t))bad++;});if(/for\\s+\\w+\\s*,\\s*\\w+\\s*:=\\s*range[^{]*\\{\\s*\\}/.test(ex))bad++;});document.getElementById('__tbProbe').innerHTML='GOSYNTAX '+(bad===0?'OK':'BAD'+bad);})()"],
+    expect: ["GOSYNTAX OK"],
+    ref: "IT-N244/N245 静态 Go 规则守卫：遍历 30 条 COMMANDS.example，统计非法 `--` 注释、裸 `...` 占位（`{...}`/`case: ...`/`...;`）、未使用变量空循环体（for k,v := range {}），全清零 ⇒ GOSYNTAX OK。旧源码 5 处 `--` + 8 处裸 `...` + 2 处空体 ⇒ BAD15 红。合法 `...T`/`[...]T`/`./...` 不在规则内、保留。探针只在 clicks 执行，默认态无该串 ⇒ 零逃生。",
+  },
+  {
+    slug: "it/go-cheatsheet",
+    clicks: ["(function(){var g=function(cmd){var c=COMMANDS.find(function(x){return x.cmd===cmd;});return c?c.example:'';};var ok=g('defer').indexOf('// \\u5148\\u8f93\\u51fa 2')>=0&&g('switch').indexOf('// \\u65e0\\u8868\\u8fbe\\u5f0f')>=0&&g('map').indexOf('fmt.Println(k, v)')>=0&&g('select').indexOf('no case ready')>=0&&g('\\u5b57\\u7b26\\u4e32').indexOf('i \\u662f\\u5b57\\u8282\\u7d22\\u5f15')>=0&&g('\\u6307\\u9488').indexOf('fmt.Println(x) // 2')>=0;document.getElementById('__tbProbe').innerHTML='GOFIX '+(ok?'OK':'BAD');})()"],
+    expect: ["GOFIX OK"],
+    ref: "IT-N244/N245 关键修复串：逐条读 COMMANDS 中 defer/switch/map/select/字符串/指针的 example，断言全含新注释/新语句（`// 先输出 2`、`// 无表达式`、`fmt.Println(k, v)`、`no case ready`、`i 是字节索引`、`fmt.Println(x) // 2`）。旧源码这些串均不存在 ⇒ GOFIX BAD 红。探针只在 clicks 执行，默认态无该串 ⇒ 零逃生。",
+  },
+  {
     slug: "it/linux-cheatsheet",
     inputs: { searchInput: "zzz" },
     expect: ["共 0 项"],

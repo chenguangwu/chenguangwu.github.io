@@ -1349,21 +1349,7 @@
 - `binomial-distribution`：无剩余缺陷（IT-N241 n 上限 10000 + `Number.isInteger` 校验 + cdf 对数域递推 O(n)、IT-N242 大组合数对数形式 e^{ln C} + 注记、IT-N243 引据表阈值统一 ≥5，三条均已销账，第196批；verify 3 条强锁 + JSDOM 真机 20/20、旧源码 11/20，cdf 递推 9 组独立复算 maxErr 3.4e-12）。
 - 留存建议（tools/it/binomial-distribution.html）：正态近似可补连续性校正 `z=(k−np±0.5)/√(np(1−p))` 说明。
 
-### IT-N244 Go 示例用 `--` 当注释，复制进 .go 文件即编译失败（中，确认缺陷）
-- 问题：多条可复制示例用 `--` 作行内注释，Go 只有 `//` 与 `/* */`；`--` 在 Go 里是自减运算符，出现在语句位置属语法错误。示例块自带"复制"按钮，用户会直接粘贴。
-- 证据：`tools/it/go-cheatsheet.html:341`、`:365`、`:397`、`:429`、`:437`（同页 5 处）；其中 `:341` 同一段示例上一行刚用了合法注释 `// LIFO 顺序`，下一行却写 `-- 先输出`，自相矛盾。
-- 复现：把 `:437` 示例存为 main.go（`x := 1; p := &x; *p = 2; fmt.Println(x)  -- 2`）→ `go build` 报 `syntax error: unexpected --`；`:365` 的 `switch {  -- 无表达式` 同理（`{` 后紧跟 `--` 非法）。
-- 影响：`tools/it/go-cheatsheet.html`
-- 方案：全部替换为 `//`（中文说明可保留），并检查是否还有把中文破折号排成 `--` 的残留。
-**留存建议（tools/it/go-cheatsheet.html）**：批量替换 5 处即可，别留"看起来像注释"的坑。
-
-### IT-N245 示例中的 `...` 占位与未使用变量使片段不可编译（低，确认缺陷）
-- 问题：多个示例直接写 `...` 省略（`if x > 0 { ... }`、`case int: ...`、`rw.RLock(); ...; rw.RUnlock()`），Go 无此占位语法；另 `for k, v := range m {}`、`for i, r := range s {}` 因变量声明未使用会报 "declared and not used"。
-- 证据：`tools/it/go-cheatsheet.html:349`、`:365`、`:389`（`for k, v := range m {}`）、`:397`（`for i, r := range s {}`）、`:429`、`:461`、`:485`（`rw.RLock(); ...; rw.RUnlock()`）。
-- 复现：静态对读 Go 语法 + 编译规则：`...` 单独成句为语法错误；`for i, r := range s {}` 在 `go build` 下报 i、r declared and not used（空 body 不会使用它们）。
-- 影响：`tools/it/go-cheatsheet.html`
-- 方案：省略处补最小可编译语句（`_ = i`、`_ = r`、`fmt.Println(x)`），或在示例块头加"片段示意，不可直接编译"并弱化复制暗示。
-**留存建议（tools/it/go-cheatsheet.html）**：与 N244 同批改，统一成"可编译片段"标准。
+- `go-cheatsheet`：无剩余缺陷（IT-N244 6 处非法 `--` 注释全改 `//`、IT-N245 8 处裸 `...` 占位与 2 处未使用变量空循环体改为可编译片段，两条均已销账，第197批；verify 2 条探针强锁 + JSDOM 真机 20/20、旧源码 6/20，30 条 example 静态 Go 规则全清、合法 `...T`/`[...]T`/`./...` 保留）。
 
 ### 承诺 vs 实际（R 批专项）
 - `tools/it/rabbit.html:165`、`:157`：称 eSTREAM Profile 1 获胜算法、128 位密钥 + 可选 64 位 IV，但 `:333` 进位实现错误（N225）、`:312` 密钥装入与 `:154` 说明不符（N226）→ 输出不是标准 Rabbit，无法与其它实现互通；页面未提供任何测试向量自检。
