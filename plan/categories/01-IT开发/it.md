@@ -62,7 +62,7 @@
 - 同批阅读 Linux、MongoDB 速查的搜索、分类与复制路径；无浏览器验证，不对完整正确性判通过。IT-N498–N500 的示例仍须按具体内容另行运行复核。
 - IT-N423、N308、N309 的数据范围问题仍在。
 - IT-N49 已于第215批真修并销账：`chmod-calculator` 支持 setuid(4)/setgid(2)/sticky(1) 特殊位与四位数模式（如 4755/2755/1777），符号位按 s/S 与 t/T 分别渲染，快捷预设及复制命令同步；JSDOM 修好版 18/18、旧源码 3/18。
-- IT-N170–N173 第217批销账（`calc-3`）、IT-N174–N177 第218批（`matrix-transpose`）、IT-N178–N180 第219批（`http-cookies` 与 4 个 HTTP 页过期示例）、IT-N181–N184 第220批（`text-to-ascii`），详见下方覆盖行；IT-N185（Shell 压缩拼成非法脚本，高）等关键路径仍在。
+- IT-N170–N173 第217批销账（`calc-3`）、IT-N174–N177 第218批（`matrix-transpose`）、IT-N178–N180 第219批（`http-cookies` 与 4 个 HTTP 页过期示例）、IT-N181–N184 第220批（`text-to-ascii`）、IT-N185–N190 第221批（`shell-script-formatter`），详见下方覆盖行；IT-N191–N195（高级单位换算预设/类别/精度）等关键路径仍在。
 - 同批另阅读 `ascii-table`、`box-shadow-generator`、`calc-1`、`calc-10` 的主要交互路径；未对其完整正确性或浏览器行为作通过判定。
 
 ## 已知问题
@@ -743,56 +743,7 @@
 - `matrix-transpose`（矩阵转置）：IT-N174–N177 已于第218批真机验证并销账。N174/N176/N177 源码已由其他 Agent 修好（`calculate()` 单元格数不符自动 `build()` 保留旧值、`readDims()` 整数+1–6 校验、`getM()` 空/非数抛错并标红、失败分支清空 `__lastTranspose`、`__matrix_transposeExport()` 现场生成 Aᵀ CSV），清单漏销账，本批补证据；N175 残留缺陷真修——`fmt()` 的 `toPrecision(12)` 会把 15 位大整数静默抹成 `123456789012000`，改为整数原样 `String()`、超安全整数走指数表示、非整数才用 12 位有效数字消浮点噪声。JSDOM `scripts/_verify_it_batch218.mjs` 修好版 33/33、缺陷态注入（换回旧 fmt）31/33（大数两项精确变红）；verify 1554/1554。
 - `http-cookies`（HTTP Cookie 速查）：IT-N178–N180 已于第219批销账。N178 英文简介已由其他 Agent 改为 "as a searchable quick reference"（不再宣称 Parse and build），与页面仅有搜索+静态速查的能力一致，属漏销账补证据；N179 真修——`Expires=Wed, 21 Oct 2025` 星期错（实算周二）且已过期，全站同类 11 处（http-cookies 1 / http-headers 2 / http-response-headers 3 / http-cache 5）统一换为 `Thu, 21 Oct 2027 07:28:00 GMT`（实算周四、未过期）；刻意保留星期正确的历史示例（1970 epoch 删 Cookie、2015 RFC 原文、2026 条件请求）；N180 真修——`Max-Age` desc/params 补「0 或负数立即删除」语义（中英 en JSON 同步），明细表 `th1` 按 `en` 切换 `Attribute/属性`。JSDOM `scripts/_verify_it_batch219.mjs` 修好版 19/19、旧源码差分 9/19（10 项红）；verify 1554/1554、deepdive sync 0 不一致。
 - `text-to-ascii`（文本转 ASCII）：IT-N181–N184 已于第220批真修并销账。N181 参照表错的 TAB 行 `9(制表)|57|39` 改为数字 `9|57|39`、删重复 A 行（补 `Z=90/5A`），控制字符 TAB/LF/CR 单列成表（data-zh 双语）；N182 `for(const c of s)` + `codePointAt(0)` 按码点遍历，1 个 emoji 只跳过 1 次；N183 十六进制 `padStart(2,'0')`，换行 10 由 `0xA` 改 `0x0A`，公式说明中英同步；N184 导出改为现场生成逐字符四列 CSV（字符/十进制/十六进制/二进制，含 CSV 转义），不再导历史表，空输入清空结果缓存避免导出旧表。改输出格式同批同步 `scripts/verify_it_calc.js` 的 `0xA`→`0x0A` expect（新页+旧 expect 实测 1553/1554 红，证明必须同步）。JSDOM `scripts/_verify_it_batch220.mjs` 修好版 24/24、旧源码差分 9/20；verify 1554/1554、deepdive sync 0 不一致。
-### IT-N185 Shell「压缩」把 `&&`/`|` 续行、`else`、`case … in`、heredoc 拼成非法脚本（高，确认源码缺陷）
-- 问题：`minifyShell()` 逐行 trim 后按 `needsSep` 决定换行，否则追加 `'; '`（315-325）。`needsSep` 只覆盖 `; { ( \ then do`、下一行以 then/do/fi/done/else/elif/esac/}/) 开头、`#!`，不覆盖行尾 `&&`/`||`/`|`、`else` 行本身、`case … in`；heredoc 也被逐行当普通命令拼接。
-- 证据：`tools/it/shell-script-formatter.html:311-329`（判定 323、拼接 324）、`:214`（FAQ"仅调整空白"）
-- 复现（用页内函数复算，输出交 `bash -n`）：
-  - `if true; then\n cmd1 &&\n cmd2\nfi` → `cmd1 &&; cmd2` → `syntax error near unexpected token ';'`
-  - `if true; then\necho a\nelse\necho b\nfi` → `else; echo b` → 同错
-  - `case $1 in … esac` → `case $1 in; start); …` → 同错
-  - `cat <<EOF\nhello world\nEOF\necho done` → `cat <<EOF; hello world; EOF; echo done;`（`bash -n` 通过但语义破坏，body 变命令）
-- 影响：`tools/it/shell-script-formatter.html` —— 页面主打的"压缩"对最常见的多行条件/管道/case/heredoc 直接产出跑不起来的脚本；FAQ 214 的"仅调整空白"与实际插入分号不符。
-- 方案：行尾为 `&& || | \` 时保留换行；`else/elif/do/then/case … in` 单独成行；检测到 heredoc 整段原样保留；压缩后跑一次关键字/括号平衡提示。
-
-### IT-N186 Shell 格式化把行尾 `)` 误判为 case 分支模式，后续缩进整体漂移（中，确认源码缺陷）
-- 问题：`isCasePat = /^([A-Za-z0-9_*?\-|]+\)|.+\))/.test(trimmed)`（300）的第二分支 `.+\)` 命中任何含 `)` 的行；303 只要 `endsWith(')')` 就 `depth++`。于是 `echo $(date)`、`arr=(1 2 3)` 都被当成 case 分支。
-- 证据：`tools/it/shell-script-formatter.html:300`、`:302-305`
-- 复现（node 复算页内 `formatShell`，4 空格）：
-  - `if true; then\necho $(date)\necho hi\nfi` → 实际 `    echo $(date)` / `        echo hi` / `    fi`；期望 4/4/0。
-  - `arr=(1 2 3)\necho done` → 实际 `    echo done`；期望 0。
-- 影响：`tools/it/shell-script-formatter.html` —— 命令替换/数组赋值后整段缩进错位，格式化结果不可信。
-- 方案：case 分支判定收紧为"行首到第一个 `)` 之间无空白且 `)` 是行尾"（如 `^[^\s()'"]+\)$`），且仅在 `case` 块内（记录 case 深度）启用。
-
-### IT-N187 Shell 单独成行的 `then`/`do` 被多缩进一级且深度多开一层（中，确认源码缺陷）
-- 问题：本行减级只处理 `fi/done/esac`（296）与 `else/elif`（298），`then/do` 不减级；输出后 302 又因 `endsWith('then'|'do')` 增级，导致 `then` 比 `if` 深一级、正文再深一级、`fi` 落在中间层。
-- 证据：`tools/it/shell-script-formatter.html:296-302`
-- 复现（4 空格）`if [ "$x" = 1 ]\nthen\necho hi\nfi` → 实际 `    then` / `        echo hi` / `    fi`；期望 `then` 与 `if` 同列（至少 `fi` 与 `if` 同列）。
-- 影响：`tools/it/shell-script-formatter.html` —— 多行 then/do 是长条件的常见写法，格式化后层级错乱。
-- 方案：本行减级条件加入 `^then\b|^do\b`，并避免对独占的 `then/do` 行再增级（增级只发生在 `if/for/while/until` 首行）。
-
-### IT-N188 Shell 函数/块闭合 `}` 未先减级，输出比 `{` 深一级（中，确认源码缺陷）
-- 问题：`dedMid` 只含 `fi|done|esac`（278），`}` 的减级放在输出后（304 的 `funcClose`/`=== '}'`），于是 `}` 按当前 depth 缩进后再减级。
-- 证据：`tools/it/shell-script-formatter.html:278`、`:296`、`:304`
-- 复现：载入页面自带示例点「美化」（4 空格）→ 实际 `backup() {` 在 0、`if` 在 4、`}` 输出为 `    }`；期望 `}` 与 `backup() {` 同列。
-- 影响：`tools/it/shell-script-formatter.html` —— 自带示例第一次点"美化"就产出不规范收尾括号。
-- 方案：把 `^\}` 并入本行减级集合（296 之前），304 只做深度回落。
-
-### IT-N189 Shell heredoc 起始行不参与缩进，且正则把字符串/注释里的 `<<` 当 here-doc（低，确认源码缺陷）
-- 问题：命中 heredoc 的行直接 `out.push(line)`（289），块内保持原始列位；`<<` 正则（288）不区分上下文，`echo "a << b"`、`# see << docs` 都会命中并把后续所有行当 heredoc 原样输出。
-- 证据：`tools/it/shell-script-formatter.html:288-289`、`:283-287`
-- 复现（node）：`if true; then\ncat <<EOF\nhello\nEOF\necho after\nfi` → `cat <<EOF` 在 0 列（块内应为 4）；`echo "a << b"\necho x` → 命中正则（group2=`b`），后续行不再格式化。
-- 影响：`tools/it/shell-script-formatter.html` —— 带 heredoc 的脚本整段失去缩进；一句普通字符串即可让格式化"失效"。
-- 方案：heredoc 起始行按当前 depth 缩进；正则限定 `<<` 前为空白/重定向位置（如 `/(^|\s)<<-?\s*.../`）并排除引号内与注释行。
-
-### IT-N190 Shell「校验」用全局关键字计数，字符串/注释误计；且结果覆盖格式化输出（低，确认源码缺陷）
-- 问题：`doValidate()` 用 `\b(if|for|while|until|case)\b` 与 `\b(fi|done|esac)\b` 统计全文（336-337），不剥离注释/引号，`echo "fi"` 会被当成一个结束块；`{`/`}`/`(`/`)` 也按字符计数（338-341），`${x}`、`$(cmd)` 被计入。最后 `setOut(stats)`（355）把「输出结果」替换成统计文本，格式化结果丢失。
-- 证据：`tools/it/shell-script-formatter.html:336-341`、`:342-355`
-- 复现：输入 `echo "fi"` → 实际"块未平衡：开始 0 / 结束 1"；输入 `echo "${x}"` → 花括号 1/1 但语义错；点「校验」后已生成的美化结果被统计覆盖。
-- 影响：`tools/it/shell-script-formatter.html` —— 校验误报/漏报，且一键"校验"会毁掉已生成结果。
-- 方案：校验前剥离 `#` 注释与引号内文本；只统计行首关键字与独占行 `fi/done/esac`；统计写入独立区域，不覆盖 `#output`。
-
-- 留存建议（tools/it/shell-script-formatter.html）：①压缩保留 `&&`/`|`/`else`/`case`/heredoc 换行；②case 分支判定收紧；③`then/do` 与 `}` 本行减级；④heredoc 上下文识别；⑤校验剥离注释/引号且不覆盖输出。
-
+- `shell-script-formatter`（Shell 脚本格式化）：IT-N185–N190 已于第221批收口。N185 进批真机探测发现 `minifyShell()` 已由其他 Agent 改为「逐行 trim + 删空行、保留换行、heredoc 正文原样」、不再插入 `; `，属清单漏销账（`&&` 续行 / else / case / heredoc 四组输出交 `bash -n` 均通过）；本批顺带加固 heredoc 探测——改在 `shellCode()` 剥离引号/注释后的代码上判定，字符串字面量 `"a <<EOF"` 不再误触发。N186–N189 真修 `formatShell()`：新增 `shellCode()` 统一剥离引号、转义与行内注释；case 分支模式收紧为「仅 case 块内 + 行首到 `)` 无空白/引号/括号且 `)` 是行尾」（`echo $(date)`、`arr=(1 2 3)` 不再漂移）；单独成行的 `then`/`do` 与 `else`/`elif` 只回落本行、不再额外开层；`}` 与 `fi/done/esac`、`;;` 一律本行减级；heredoc 起始行参与当前缩进、body 原样保留。N190 真修 `doValidate()`：按剥离后代码统计关键字与括号、跳过 heredoc 正文，统计写入状态栏（`white-space:pre-line` + 通过态 `err ok` 绿色）且绝不覆盖 `#output`。公式说明中英三源同步。JSDOM `scripts/_verify_it_batch221.mjs` 修好版 44/44（含 `bash -n` 实算与历史/表格/CSV 全链路、状态链），旧源码差分 23/44（21 项红，N185 压缩主断言在旧页仍全过 ⇒ 印证漏销账）；verify 新增 3 条强锁 1557/1557、判别逃生 1 + 跳过 1 为基线、audit 0 僵尸、deepdive sync 0 不一致。
 ### IT-N191 高级单位换算「温度 ℃」预设传 `from:"℃"`，被校验直接拒绝（中，确认源码缺陷）
 - 问题：预设 356 `values:{cat:'temp', val:'100', from:'℃'}`；温度分支只接受 `['C','F','K']`（236），点击后直接输出"⚠️ 温度单位请用 C/F/K。"，100℃ 不会换算。
 - 证据：`tools/it/unit-converter-advanced.html:356`、`:235-238`

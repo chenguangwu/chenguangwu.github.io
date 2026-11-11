@@ -1825,6 +1825,27 @@ const CASES = [
     ref: "独立复算：压缩保留换行，逐行去除首尾空白 ⇒ 输出两行 `echo a` 与 `echo b`（不再用 `; ` 合并，以免破坏 `&&`/`|`/`else`/`case`/heredoc 语法）。",
   },
   {
+    slug: "it/shell-script-formatter",
+    inputs: { input: "if true; then\necho $(date)\necho hi\nfi\nf() {\necho x\n}", indent: "2" },
+    clicks: ["formatShell();var L=document.getElementById('output').textContent.split('\\n');var d=L.map(function(x){return (x.match(/^ */)||[''])[0].length;});document.getElementById('output').textContent='SHFMT221A='+d.join(',');"],
+    expect: ["SHFMT221A=0,2,2,0,0,2,0"],
+    ref: "第221批 IT-N186/N188：独立复算缩进序列。`if true; then` 开层(d=0)，`echo $(date)` 因行尾 ) 不再是 case 分支故与 `echo hi` 同为 1 层(2 空格)，`fi` 回 0；`f() {` 开层(d=0)、`echo x` 1 层(2 空格)、`}` 本行先减级回 0 ⇒ 0,2,2,0,0,2,0。修前宽泛正则 `.+\\)` 把命令替换当 case 分支、且 } 不先减级 ⇒ 0,2,4,2,2,4,4，必红。锚是把 output 每行前导空格数编码回 output（blob 会折叠空白，无法直接断言缩进），默认态输入为空 ⇒ SHFMT221A=0，不命中。",
+  },
+  {
+    slug: "it/shell-script-formatter",
+    inputs: { input: 'if [ "$x" = 1 ]\nthen\necho hi\nfi\ncat <<EOF\nhello\nEOF\necho "a <<EOF"\necho done', indent: "4" },
+    clicks: ["formatShell();var pre=document.getElementById('output').textContent;var L=pre.split('\\n');var d=L.map(function(x){return (x.match(/^ */)||[''])[0].length;});doValidate();var post=document.getElementById('output').textContent;document.getElementById('output').textContent='SHFMT221B='+d.join(',')+'|OUTSAME='+(pre===post?'Y':'N');"],
+    expect: ["SHFMT221B=0,0,4,0,0,0,0,0,0|OUTSAME=Y"],
+    ref: "第221批 IT-N187/N189/N190：4 空格档独立复算。`if [ \"$x\" = 1 ]` 开层(d=0)、单独成行 `then` 本行减级后与 if 同列(d=0)且不再多开一层、`echo hi` 1 层(4 空格)、`fi` 回 0；heredoc 起始行按当前缩进输出(d=0)、body `hello`/`EOF` 原样、`echo \"a <<EOF\"` 剥离引号后不误触发 heredoc ⇒ 后续两行仍 d=0 ⇒ 0,0,4,0,0,0,0,0,0。`OUTSAME=Y` 锁 doValidate 绝不覆盖输出结果（修前 setOut(stats) ⇒ N）。默认态输入空 ⇒ SHFMT221B=0|OUTSAME=Y，不命中。",
+  },
+  {
+    slug: "it/shell-script-formatter",
+    inputs: { input: '  echo "a <<EOF"\n    echo next  ' },
+    clicks: ["minifyShell();var L=document.getElementById('output').textContent.split('\\n');document.getElementById('output').textContent='SHFMT221C='+(L[1]==='echo next'?'TRIM':'RAW');"],
+    expect: ["SHFMT221C=TRIM"],
+    ref: "第221批 IT-N185 加固：压缩的 heredoc 探测改在剥离引号/注释后的代码上做。注入第 1 行是字符串字面量 `\"a <<EOF\"`，不含真实定界符；第 2 行仍应被逐行 trim 成 `echo next` ⇒ TRIM。修前按原始文本匹配 `<<EOF` 会误进 heredoc 态、第 2 行原样保留缩进 ⇒ RAW。默认态输入空 ⇒ RAW，不命中。",
+  },
+  {
     slug: "it/sql-escape",
     inputs: { input: "O'Brien" },
     clicks: ["esc()"],
