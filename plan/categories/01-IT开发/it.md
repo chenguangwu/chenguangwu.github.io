@@ -62,7 +62,7 @@
 - 同批阅读 Linux、MongoDB 速查的搜索、分类与复制路径；无浏览器验证，不对完整正确性判通过。IT-N498–N500 的示例仍须按具体内容另行运行复核。
 - IT-N423、N308、N309 的数据范围问题仍在。
 - IT-N49 已于第215批真修并销账：`chmod-calculator` 支持 setuid(4)/setgid(2)/sticky(1) 特殊位与四位数模式（如 4755/2755/1777），符号位按 s/S 与 t/T 分别渲染，快捷预设及复制命令同步；JSDOM 修好版 18/18、旧源码 3/18。
-- IT-N170–N173 已于第217批真修并销账（`calc-3` 三路区间钳制 / 预设回调 / 重复预设条 / HEX 简写与 alpha），详见下方覆盖行；IT-N174（matrix 改维度直接转置抛错）等关键路径仍在。
+- IT-N170–N173 已于第217批真修并销账（`calc-3` 三路区间钳制 / 预设回调 / 重复预设条 / HEX 简写与 alpha），IT-N174–N177 已于第218批销账（`matrix-transpose` 维度/精度/空值/导出），详见下方覆盖行；IT-N178–N179（HTTP Cookie 速查英文简介与过期示例）等关键路径仍在。
 - 同批另阅读 `ascii-table`、`box-shadow-generator`、`calc-1`、`calc-10` 的主要交互路径；未对其完整正确性或浏览器行为作通过判定。
 
 ## 已知问题
@@ -740,36 +740,7 @@
 - 留存建议（tools/it/ksuid-generator.html）：①复制按行 `join('\n')`、导出含当前完整结果；②英文简介改 16-byte payload；③示例改 27 字符并标注生成时间。
 
 - `calc-3`（颜色值转换器）：IT-N170–N173 已于第217批真修并销账——三路输入统一钳制（r/g/b 0–255、`h=((h%360)+360)%360`、s/l 0–100，越界回写规范化串，同屏 HEX/RGB/HSL 不再矛盾）；预设同时写 `hexInput` 使统一 `fromHex()` 回调生效（红/蓝/绿由页内 hslToRgb+rgbToHex 反算，往返一致）；删声明式 preset div 并显式放 `#calc_3Presets` 宿主，只留一组 4 条；HEX 支持 3/4/6/8 位（简写按位扩展、4/8 位带 alpha 并展示）、`maxlength` 7→9；公式说明与格式说明中英三源同步。JSDOM `scripts/_verify_it_batch217.mjs` 修好版 22/22、旧源码 3/22；verify 1554/1554 未改。
-### IT-N174 matrix 改维度后不点「构建矩阵」直接点「计算转置」抛 TypeError，结果区空白（高，确认源码缺陷）
-- 问题：`rows/cols` 输入框无 oninput 重建（170-171），`calculate()` 直接 `getM(r,c)`，而 `getM` 按新维度读取 `a<i*c+j>`（268）。仅 a0…a(旧r*旧c-1) 存在，新维度需要更多格时 `getElementById` 返回 null，`.value` 抛 TypeError；`calculate()` 无 try/catch（281-296），异常冒泡，输出区保持"点击「计算转置」查看结果"。
-- 证据：`tools/it/matrix-transpose.html:170-171`、`:174-175`、`:257-260`、`:266-269`、`:281-296`
-- 复现：默认 2×3 → 把「行」改成 3（不点构建）→ 点「计算转置」：实际 `Uncaught TypeError: Cannot read properties of null (reading 'value')`，无结果；期望自动重建或提示先构建。另 `行=2.5` → `build()` 用 `i<r*c` 造出 8 格（260），`grid-template-columns:repeat(2.5,70px)` 非法（259），`getM` 按 3 行读到 a8 → 同类 TypeError。
-- 影响：`tools/it/matrix-transpose.html` —— 先改维度再算是最自然路径，直接静默报错。
-- 方案：`calculate()` 前比对 DOM 单元格数与 `r*c`，不一致先 `build()`（保留已有值）；`rows/cols` 用 `Number.isInteger` + 1–6 校验，非法值提示且不构建。
-
-### IT-N175 matrix 结果用 `toLocaleString()` 展示：千分位、最多 3 位小数、大数精度溢出（中，确认源码缺陷）
-- 问题：`fmt` 先 `Math.round(x*1e10)/1e10` 再 `toLocaleString()`（272）。`toLocaleString()` 默认 `maximumFractionDigits=3`，转置值被二次四舍五入；同时插入千分位逗号，`1,234.5` 无法直接复制回输入框；`x*1e10` 在 |x|≳1e13 时溢出双精度有效位产生伪小数。
-- 证据：`tools/it/matrix-transpose.html:270-272`、`:278`
-- 复现（node）：`1.2345678 → "1.235"`、`0.123456789 → "0.123"`、`1234.5 → "1,234.5"`、`123456789012345 → "123,456,789,012,345.02"`（末两位是运算噪声）。期望 `1.2345678` 原样且无千分位。
-- 影响：`tools/it/matrix-transpose.html` —— 转置结果被 UI 抹掉精度，抄回计算会得到不同值。
-- 方案：去掉 `toLocaleString()`，改用 `String()` 或固定 6–12 位有效数字；超大数改指数表示。
-
-### IT-N176 matrix 空单元格/非数字静默按 0，维度 0 或 >6 无提示（低，确认源码缺陷）
-- 问题：`getM` `isNaN(v)?0:v`（268）把空白都当 0，转置照常"成功"；`build` 只按 `+value` 造格（258-260），行填 0 → 0 个格、`repeat(0,70px)` 非法，输出仍写 `Aᵀ（3×0）`；行填 7 也照造 49 格（min/max 只是 spinner 提示）。
-- 证据：`tools/it/matrix-transpose.html:258-260`、`:266-269`、`:275`、`:286`
-- 复现：清空 a0 → 计算实际得 `A[1][1]=0` 且无提示；行填 0 → 输出"3×0"空表；列填 0 → `matrixHTML([])` 返回空串（275），输出只剩标题；行填 7 → 49 格照算。
-- 影响：`tools/it/matrix-transpose.html` —— 空白被当真实 0，统计/线代结果被悄悄改写。
-- 方案：空/非数单元格标红并中止计算；维度做 1–6 整数校验并给出 `err` 文案。
-
-### IT-N177 matrix「导出明细 CSV」导的是历史表，不含转置矩阵（低，确认源码缺陷）
-- 问题：按钮绑定 `exportTable('#matrix_transposeTable')`（413-415），该 id 是历史表容器；当前转置矩阵渲染在 `#output`（286），没有可导出的表格 id，历史只存输入各格 + 截断的结果文本。
-- 证据：`tools/it/matrix-transpose.html:413-415`、`:286`、`:175`、`:349-357`（历史表）
-- 复现：2×3 算完后点导出 → CSV 列为 时间/rows/cols/a0…/结果，结果列是截断文本，无 3×2 的 Aᵀ。
-- 影响：`tools/it/matrix-transpose.html` —— 导出按钮名不副实。
-- 方案：给结果表加 id（如 `#transposeResultTable`）并导出它，或在导出函数里现场生成 Aᵀ CSV。
-
-- 留存建议（tools/it/matrix-transpose.html）：①计算前校验/重建单元格并做整数维度校验；②`fmt` 去 `toLocaleString` 保留精度；③空值校验并提示；④导出改导转置结果。
-
+- `matrix-transpose`（矩阵转置）：IT-N174–N177 已于第218批真机验证并销账。N174/N176/N177 源码已由其他 Agent 修好（`calculate()` 单元格数不符自动 `build()` 保留旧值、`readDims()` 整数+1–6 校验、`getM()` 空/非数抛错并标红、失败分支清空 `__lastTranspose`、`__matrix_transposeExport()` 现场生成 Aᵀ CSV），清单漏销账，本批补证据；N175 残留缺陷真修——`fmt()` 的 `toPrecision(12)` 会把 15 位大整数静默抹成 `123456789012000`，改为整数原样 `String()`、超安全整数走指数表示、非整数才用 12 位有效数字消浮点噪声。JSDOM `scripts/_verify_it_batch218.mjs` 修好版 33/33、缺陷态注入（换回旧 fmt）31/33（大数两项精确变红）；verify 1554/1554。
 ### IT-N178 HTTP Cookie 英文简介宣称 "Parse and build ... headers"，页面只有静态速查（中，确认源码缺陷）
 - 问题：169 的英文文案写 "Parse and build HTTP Cookie and Set-Cookie headers with their attributes."；页面只有 `#searchInput`（171）+ 静态 `COMMANDS` 列表 + 图表/明细表，没有任何解析/构建输入框或函数。
 - 证据：`tools/it/http-cookies.html:169`、`:171`、`:478-541`、`:650-661`
