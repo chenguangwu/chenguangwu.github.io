@@ -62,7 +62,7 @@
 - 同批阅读 Linux、MongoDB 速查的搜索、分类与复制路径；无浏览器验证，不对完整正确性判通过。IT-N498–N500 的示例仍须按具体内容另行运行复核。
 - IT-N423、N308、N309 的数据范围问题仍在。
 - IT-N49 已于第215批真修并销账：`chmod-calculator` 支持 setuid(4)/setgid(2)/sticky(1) 特殊位与四位数模式（如 4755/2755/1777），符号位按 s/S 与 t/T 分别渲染，快捷预设及复制命令同步；JSDOM 修好版 18/18、旧源码 3/18。
-- IT-N170–N173 第217批销账（`calc-3`）、IT-N174–N177 第218批（`matrix-transpose`）、IT-N178–N180 第219批（`http-cookies` 与 4 个 HTTP 页过期示例）、IT-N181–N184 第220批（`text-to-ascii`）、IT-N185–N190 第221批（`shell-script-formatter`）、IT-N191–N195 第222批（`unit-converter-advanced`），详见下方覆盖行；IT-N196–N198（HTML 实体解码码点范围 / XSS / 两条解码路径）等关键路径仍在。
+- IT-N170–N173 第217批销账（`calc-3`）、IT-N174–N177 第218批（`matrix-transpose`）、IT-N178–N180 第219批（`http-cookies` 与 4 个 HTTP 页过期示例）、IT-N181–N184 第220批（`text-to-ascii`）、IT-N185–N190 第221批（`shell-script-formatter`）、IT-N191–N195 第222批（`unit-converter-advanced`）、IT-N196–N198 第223批（`html-entities-encode`），详见下方覆盖行；IT-N199–N224（JSON→TOML 键名等第二批审计条目）等关键路径仍在。
 - 同批另阅读 `ascii-table`、`box-shadow-generator`、`calc-1`、`calc-10` 的主要交互路径；未对其完整正确性或浏览器行为作通过判定。
 
 ## 已知问题
@@ -745,28 +745,7 @@
 - `text-to-ascii`（文本转 ASCII）：IT-N181–N184 已于第220批真修并销账。N181 参照表错的 TAB 行 `9(制表)|57|39` 改为数字 `9|57|39`、删重复 A 行（补 `Z=90/5A`），控制字符 TAB/LF/CR 单列成表（data-zh 双语）；N182 `for(const c of s)` + `codePointAt(0)` 按码点遍历，1 个 emoji 只跳过 1 次；N183 十六进制 `padStart(2,'0')`，换行 10 由 `0xA` 改 `0x0A`，公式说明中英同步；N184 导出改为现场生成逐字符四列 CSV（字符/十进制/十六进制/二进制，含 CSV 转义），不再导历史表，空输入清空结果缓存避免导出旧表。改输出格式同批同步 `scripts/verify_it_calc.js` 的 `0xA`→`0x0A` expect（新页+旧 expect 实测 1553/1554 红，证明必须同步）。JSDOM `scripts/_verify_it_batch220.mjs` 修好版 24/24、旧源码差分 9/20；verify 1554/1554、deepdive sync 0 不一致。
 - `shell-script-formatter`（Shell 脚本格式化）：IT-N185–N190 已于第221批收口。N185 进批真机探测发现 `minifyShell()` 已由其他 Agent 改为「逐行 trim + 删空行、保留换行、heredoc 正文原样」、不再插入 `; `，属清单漏销账（`&&` 续行 / else / case / heredoc 四组输出交 `bash -n` 均通过）；本批顺带加固 heredoc 探测——改在 `shellCode()` 剥离引号/注释后的代码上判定，字符串字面量 `"a <<EOF"` 不再误触发。N186–N189 真修 `formatShell()`：新增 `shellCode()` 统一剥离引号、转义与行内注释；case 分支模式收紧为「仅 case 块内 + 行首到 `)` 无空白/引号/括号且 `)` 是行尾」（`echo $(date)`、`arr=(1 2 3)` 不再漂移）；单独成行的 `then`/`do` 与 `else`/`elif` 只回落本行、不再额外开层；`}` 与 `fi/done/esac`、`;;` 一律本行减级；heredoc 起始行参与当前缩进、body 原样保留。N190 真修 `doValidate()`：按剥离后代码统计关键字与括号、跳过 heredoc 正文，统计写入状态栏（`white-space:pre-line` + 通过态 `err ok` 绿色）且绝不覆盖 `#output`。公式说明中英三源同步。JSDOM `scripts/_verify_it_batch221.mjs` 修好版 44/44（含 `bash -n` 实算与历史/表格/CSV 全链路、状态链），旧源码差分 23/44（21 项红，N185 压缩主断言在旧页仍全过 ⇒ 印证漏销账）；verify 新增 3 条强锁 1557/1557、判别逃生 1 + 跳过 1 为基线、audit 0 僵尸、deepdive sync 0 不一致。
 - `unit-converter-advanced`（高级单位转换器）：IT-N191–N195 已于第222批收口。进批探测：N193（`ucFmtNum` 已有科学计数分支）与 N195（`nm:1e-9` / `nmi:1852`）已由其他 Agent 修好，属漏销账；但 N193 只留 3 位有效数字（`1.16e-10`），本批提到 6 位（`1.164153e-10`），并把 ≥1e15 的大值也纳入科学计数（旧 `toFixed(6)` 会把 1 J→eV 输出成 19 位伪精度整数 `6241509074460763136`，违反「禁 ≥15 位有效数字」）；N195 本批补 `um:1e-6`。N191 真修：`normTempUnit()` 把 ℃ / °C / ℉ / °F / 小写统一归一到 C/F/K，预设「温度 ℃」从被拒变为 100℃ → 212.00°F / 373.15K，归一后的 from 参与目标卡去重。N192 真修：补 `pressure`（pa/kpa/mpa/bar/psi/atm/torr/mmhg）与 `energy`（j/kj/mj/cal/kcal/wh/kwh/btu/ev）两张因子表 + 两个下拉项，因子取国际约定 / 2019 SI 定义值（1 atm = 101325 Pa、1 psi = 6894.757293168 Pa、1 Torr = 101325/760 Pa、1 cal = 4.184 J、1 BTU_IT = 1055.05585262 J、1 eV = 1.602176634e-19 J），`js/tool-i18n-en.js` GEN_UI_MAP 补「压强」英译。N194 真修：`val` 空/非有限值不再 `isNaN?0` 静默换算，改为提示「请输入有效数值」；新增 `escTxt()` 让 `cat`/`from` 进结果区前转义（修掉裸 `<img onerror>` 注入），并用 `hasOwnProperty` 挡住 `__proto__` 原型链键；`</div` 未闭合已由其他 Agent 修好，补证据。三条动态结果串与 result-title 共用 `isEn` 双语，EN 态零 CJK；公式说明中英三源同步。JSDOM `scripts/_verify_it_batch222.mjs` 修好版 39/39（含 lbf/in²、cal、BTU 独立复算，输出→历史→表格→CSV 全链路，状态链，EN 态），旧源码差分 9/39（30 项红，N193/N195 核心断言旧页仍过 ⇒ 印证漏销账）；verify 新增 7 条强锁 1564/1564、判别逃生 1 + 跳过 1 为基线、audit 0 僵尸、deepdive sync 0 不一致。
-### IT-N196 HTML 实体解码未校验码点范围，`&#1114112;` 抛未捕获 RangeError（中，确认源码缺陷）
-- 问题：`dec()` 的十进制/十六进制分支直接 `String.fromCodePoint(parseInt(...))`（305-306），未校验 0–0x10FFFF；越界码点抛 `RangeError: Invalid code point`，异常从 `onclick` 冒泡，`#output` 不更新、无提示。
-- 证据：`tools/it/html-entities-encode.html:298-308`（`:305-306`）
-- 复现（node）`String.fromCodePoint(1114112)` → `RangeError: Invalid code point 1114112`；页面输入 `&#1114112;` → 控制台报错、结果区保持旧值；期望原样保留该文本或提示"码点超出 Unicode 范围"。
-- 影响：`tools/it/html-entities-encode.html` —— 解码按钮对畸形输入静默失效，用户以为复制/粘贴丢了内容。
-- 方案：`cp<=0x10FFFF ? String.fromCodePoint(cp) : m`，或整段 try/catch 后提示；同时过滤 surrogate 区（0xD800–0xDFFF）。
-
-### IT-N197 HTML 实体解码用 `div.innerHTML` 注入用户输入，会触发第三方资源请求（中，确认源码缺陷）
-- 问题：`div.innerHTML = text`（302）对任意输入（即使不含实体）都先建完整 DOM；粘贴 `<img src="https://x/y.png">`、`<link>`、`<iframe>` 时浏览器会请求该 URL。元素虽未挂载，`img` 仍会加载；`<script>` 不执行，故非 XSS，而是**出站请求/隐私**问题，与页面及 meta 宣称的"数据不上传、纯前端"（`:10`）冲突。
-- 证据：`tools/it/html-entities-encode.html:301-303`、`:177`（`<textarea id="input">`）、`:10`（meta description）
-- 复现：输入 `<img src="https://example.com/track.png">` 点「解码」→ DevTools Network 出现对 `example.com` 的请求；期望零请求（纯本地解码）。
-- 影响：`tools/it/html-entities-encode.html` —— 用户粘贴含图/链接的 HTML 片段时会向第三方泄露（至少泄露 IP 与 UA），违背隐私承诺，离线场景还会卡顿。
-- 方案：改用惰性解析 `new DOMParser().parseFromString(text,'text/html')`（不加载资源），或先去标签再 `innerHTML`，或纯实体表替换（不建 DOM）。
-
-### IT-N198 HTML 实体解码两条路径不一致：含分号实体存在时，无分号 legacy 实体不被解码（低，确认源码缺陷）
-- 问题：304 只要文本含任一**带分号**实体，就整段走手写替换（305-307）；三条正则都要求结尾 `;`。同一段里的 `&#65`、`&amp`（HTML 允许省略分号的 legacy 写法）因此不被解码，而 `div.textContent` 原本能解。结果取决于输入里是否还有别的带分号实体。
-- 证据：`tools/it/html-entities-encode.html:304-307`
-- 复现：输入 `&#65; &amp` → 实际 `A &amp`（`&amp` 未解）；输入仅 `&amp` → 走 textContent 分支 → `&`。同一实体因上下文不同结果不同。
-- 影响：`tools/it/html-entities-encode.html` —— 批量清洗混合写法时结果不可预测。
-- 方案：统一出口（手写替换后再用 `DOMParser` 文本节点兜底），或补 `&#\d+` / `&#x[0-9a-f]+` 无分号正则并说明取舍。
-
-- 留存建议（tools/it/html-entities-encode.html）：①解码前校验码点范围并捕获异常；②改用 `DOMParser`/本地实体表，避免 `innerHTML` 触发出站请求；③统一有/无分号解码路径；④（可选）补齐常用命名实体并删"完整"表述。
+- `html-entities-encode`（HTML 实体编解码）：IT-N196–N198 已于第223批收口。进批探测：N196（`fromCp` 已校验 0–0x10FFFF 且排除代理区）与 N197（已改纯文本替换、不再用 `div.innerHTML`）均由其他 Agent 修好，属漏销账，本批补真机证据；N198 真修——旧实现用「文本里是否含带分号实体」做总开关，仅有 `&amp` / `&#65` 时一个都不解、混合写法结果依赖上下文，改为单次纯文本扫描 `/&(?:#(\d+)|#x([0-9a-fA-F]+)|([a-zA-Z]+))(;?)/g` 统一出口：带分号一律解，无分号数字实体按 HTML5 解、无分号命名实体只解 legacy 子集（amp/lt/gt/quot/nbsp/copy/reg），表外实体与 `AT&T` 原样保留；单次 replace 杜绝 `&amp;lt;` 二次解码。顺带修「真实入口漏包装」：`dec()` 原先未接历史/明细表/趋势/CSV（只包装了 `enc`），现同型包装。公式说明补解码规则并中英三源同步。JSDOM `scripts/_verify_it_batch223.mjs` 修好版 35/35、旧源码差分 23/35（12 项红，N196/N197 旧页全过 ⇒ 印证漏销账）；verify 新增 4 条强锁 1568/1568、判别逃生 1 + 跳过 1 为基线、audit 0 僵尸、deepdive 0 不一致。注：工具名/meta 的「完整编解码」与 `NAMED` 仅 39 条属 Q 批专项承诺条目，改动牵涉 SEO 标题/JSON-LD/面包屑，本批未动、仍留在「承诺 vs 实际」专项段。
 
 ### 承诺 vs 实际（Q 批专项）
 - `tools/it/ksuid-generator.html:479`：英文简介"20-byte random payload"，实现 16 字节（281-282）；同段"27-character"但 hex 选项输出 40 字符（170、267-269）。
