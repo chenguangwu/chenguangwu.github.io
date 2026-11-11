@@ -24,6 +24,20 @@ const { runCase } = require("./verify_it_calc.js");
 // ---------------------------------------------------------------- 用例
 const CASES = [
   {
+    slug: "finance/report-1",
+    inputs: { inv: "400000", pct: "80", capital: "500000", retained: "200000", premium: "0", profit: "150000", dec: "2" },
+    clicks: ["calc()"],
+    expect: ["长期股权投资（全额） 400,000.00", "借方 700,000.00 / 贷方 700,000.00 借贷平衡 ✓"],
+    ref: "第132批 F-N81 负商誉借贷平衡：旧实现贷方长期股权投资只记 parentShare=560,000（「母公司享有部分」），负商誉另贷 160,000 ⇒ 借 700,000 / 贷 860,000 差 -160,000（=|diff|）。修复后贷方按全额 inv=400,000 冲销，借 700,000 = 贷 400,000+140,000+160,000=700,000，并补合计行。两条分别绑定全额冲销金额与借贷平衡合计；默认 inv=800,000 金额不同、旧源码无合计行且写「享有部分」⇒ 均不命中，零逃生。",
+  },
+  {
+    slug: "finance/report-1",
+    inputs: { inv: "900000", pct: "80", capital: "500000", retained: "200000", premium: "0", profit: "150000", dec: "2" },
+    clicks: ["calc()"],
+    expect: ["长期股权投资（全额） 900,000.00", "借方 1,040,000.00 / 贷方 1,040,000.00 借贷平衡 ✓"],
+    ref: "第132批 F-N81 商誉借贷平衡：inv=900000、parentShare=560000 ⇒ 商誉 diff=340000；旧实现借 500000+200000+340000=1,040,000、贷 560000+140000=700000 差 340000=diff。修复后贷方全额 inv=900000+少数 140000=1,040,000=借方，合计行标「借贷平衡 ✓」。绑定注入金额 inv=900000 与平衡合计；默认 inv=800000 不命中、旧源码贷方写 560000 且无合计行 ⇒ 零逃生。",
+  },
+  {
     slug: "finance/calc-4",
     inputs: { amount: "1000000", rate: "4.2", years: "0" },
     clicks: ["calc();var s=document.getElementById('summary'),r=document.getElementById('res'),b=document.querySelector('#schedule tbody');document.getElementById('__tbProbe').textContent='C4Y0 '+((!s||!s.innerHTML)&&(!b||!b.innerHTML)&&r&&r.innerHTML.indexOf('贷款期限须为大于 0')>=0?'OK':'BAD');"],

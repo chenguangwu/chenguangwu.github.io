@@ -267,10 +267,16 @@ function calc(){
   html+='<tr><td>借</td><td>实收资本 / 股本</td><td>'+fmt(capital,d)+'</td></tr>';
   html+='<tr><td>借</td><td>未分配利润 / 留存收益</td><td>'+fmt(retained,d)+'</td></tr>';
   if(premium!==0) html+='<tr><td>借</td><td>资产评估增值</td><td>'+fmt(premium,d)+'</td></tr>';
-  html+='<tr><td>贷</td><td>长期股权投资（母公司享有部分）</td><td>'+fmt(parentShare,d)+'</td></tr>';
+  html+='<tr><td>贷</td><td>长期股权投资（全额）</td><td>'+fmt(inv,d)+'</td></tr>';
   html+='<tr><td>贷</td><td>少数股东权益</td><td>'+fmt(minority,d)+'</td></tr>';
   if(diff>0) html+='<tr><td>借</td><td>商誉</td><td>'+fmt(diff,d)+'</td></tr>';
   if(diff<0) html+='<tr><td>贷</td><td>营业外收入 / 未分配利润（负商誉）</td><td>'+fmt(-diff,d)+'</td></tr>';
+  // F-N81：借贷合计自校验。贷方长期股权投资须按全额 inv 冲销（旧版记 parentShare 导致差额恰为 diff 永远不平）。
+  // 借 = 净资产 + 商誉(diff>0)；贷 = 全额 inv + 少数股东权益 + 负商誉(diff<0)，两式恒等。
+  var __dr = netAssets + (diff>0?diff:0);
+  var __cr = inv + minority + (diff<0?-diff:0);
+  var __bal = Math.abs(__dr-__cr) < 0.005;
+  html+='<tr style="font-weight:600;border-top:1px solid var(--border);"><td>合计</td><td>借方 '+fmt(__dr,d)+' / 贷方 '+fmt(__cr,d)+'</td><td>'+(__bal?'借贷平衡 ✓':'差额 '+fmt(__dr-__cr,d))+'</td></tr>';
   html+='</tbody></table>';
 
   html+='<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';

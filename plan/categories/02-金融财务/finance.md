@@ -158,12 +158,6 @@
 
 > 范围：本轮阅读 8 页（`tools/finance/analysis-44.html`、`analysis-cost-1.html`、`assessor-manager.html`、`report-1.html`、`generator-report-1.html`、`number-to-words.html`、`currency-lookup.html`、`credit-card-bin.html`）。仅源码 + node 复算，未开浏览器/未做 EN/移动端/门禁验证；历史已修声明未独立复验。
 
-### F-N81 报表合并页：简化抵销分录借贷不平，差额等于合并价差（高，确认缺陷）
-- 描述：抵销分录把「长期股权投资」贷方只记母公司享有份额 `parentShare`，而不是全额长期股权投资 `inv`；商誉 / 负商誉又在分录里单独列示，于是借方合计与贷方合计相差恰好 `diff`，分录永远不平。
-- 证据：`tools/finance/report-1.html:267-275`（`:271` 贷方金额为 `parentShare`；`:273-274` 商誉 / 负商誉另起一行）
-- 复现：默认 长期股权投资 800,000、持股 80%、实收资本 500,000、未分配利润 200,000、增值 0 → 实际借方 500,000+200,000+240,000（商誉）=940,000，贷方 560,000+140,000=700,000，差 240,000（期望贷方「长期股权投资」800,000，借贷均 940,000，`node` 复算差值为 `diff`）
-- 影响：`tools/finance/report-1.html`；页面自称「最简抵销分录便于对照账务处理」，但任何有商誉的合并都做不出平衡分录，直接抄进底稿会造成试算不平。
-- 方案：贷方「长期股权投资」改用全额 `inv`；商誉借记 `diff`、负商誉贷记 `-diff`（按准则计入营业外收入或调整留存收益），并补一条借贷合计行自校验。
 
 - 本轮实读 8 页：`tools/finance/analysis-44.html`、`tools/finance/analysis-cost-1.html`、`tools/finance/assessor-manager.html`、`tools/finance/report-1.html`、`tools/finance/generator-report-1.html`、`tools/finance/number-to-words.html`、`tools/finance/currency-lookup.html`、`tools/finance/credit-card-bin.html`；新增 10 条（高 1/中 5/低 4）；未覆盖：其余 finance 页（约 58 页）未逐页复扫。
 
