@@ -62,7 +62,7 @@
 - 同批阅读 Linux、MongoDB 速查的搜索、分类与复制路径；无浏览器验证，不对完整正确性判通过。IT-N498–N500 的示例仍须按具体内容另行运行复核。
 - IT-N423、N308、N309 的数据范围问题仍在。
 - IT-N49 已于第215批真修并销账：`chmod-calculator` 支持 setuid(4)/setgid(2)/sticky(1) 特殊位与四位数模式（如 4755/2755/1777），符号位按 s/S 与 t/T 分别渲染，快捷预设及复制命令同步；JSDOM 修好版 18/18、旧源码 3/18。
-- IT-N170–N173 第217批销账（`calc-3`）、IT-N174–N177 第218批（`matrix-transpose`）、IT-N178–N180 第219批（`http-cookies` 与 4 个 HTTP 页过期示例）、IT-N181–N184 第220批（`text-to-ascii`）、IT-N185–N190 第221批（`shell-script-formatter`）、IT-N191–N195 第222批（`unit-converter-advanced`）、IT-N196–N198 第223批（`html-entities-encode`）、IT-N199–N201 第224批（`json-to-toml`）、IT-N202–N206 第225批（`plist-parser` 与 `char-encoder`）、IT-N207–N211 第226批（`char-encoder` 实体补全与 `basic-auth-generator` 冒号/charset）、IT-N212–N216 第227批（`nanoid-generator` 与 `markdown-table-generator`）、IT-N217–N221 第228批（`markdown-table-generator` CSV 解析与 `wifi-qr-generator` 改名），详见下方覆盖行；IT-N222（phone-screen-sizes 页签默认态）等关键路径仍在。
+- IT-N170–N173 第217批销账（`calc-3`）、IT-N174–N177 第218批（`matrix-transpose`）、IT-N178–N180 第219批（`http-cookies` 与 4 个 HTTP 页过期示例）、IT-N181–N184 第220批（`text-to-ascii`）、IT-N185–N190 第221批（`shell-script-formatter`）、IT-N191–N195 第222批（`unit-converter-advanced`）、IT-N196–N198 第223批（`html-entities-encode`）、IT-N199–N201 第224批（`json-to-toml`）、IT-N202–N206 第225批（`plist-parser` 与 `char-encoder`）、IT-N207–N211 第226批（`char-encoder` 实体补全与 `basic-auth-generator` 冒号/charset）、IT-N212–N216 第227批（`nanoid-generator` 与 `markdown-table-generator`）、IT-N217–N221 第228批（`markdown-table-generator` CSV 解析与 `wifi-qr-generator` 改名），详见下方覆盖行；IT-N222–N226 第229批（`phone-screen-sizes` 页签默认态/DPR 列/描述去重、`rabbit` RFC 4503 全量对齐与 32 hex 密钥语义），详见移交档。
 - 同批另阅读 `ascii-table`、`box-shadow-generator`、`calc-1`、`calc-10` 的主要交互路径；未对其完整正确性或浏览器行为作通过判定。
 
 ## 已知问题
@@ -769,30 +769,6 @@
 - 第227批销账：IT-N212–N216（`nanoid-generator` 大字母表拒绝采样/emoji 码点/历史取值、`markdown-table-generator` 反斜杠转义与编辑期不写回），详见下方覆盖行。
 - 第228批销账：IT-N217–N221（`markdown-table-generator` CSV 双引号逗号解析、`wifi-qr-generator` 改名「配网字符串生成器」；N218/N219 转义与字段顺序、N221 残缺 div 已由其他 Agent 修好补证据），详见下方覆盖行。
 
-### IT-N222 "图表"页签默认隐藏结果区，"数据表"页签显示的却是结果卡片（中，确认缺陷）
-- 问题：初始化调用 `__pssShow('chart')`，把整个 `#result`（PPI、尺寸、分辨率及机型表）设为 `display:none`；只有点"数据表"才显示结果，而真正的 TBKit 数据表（`#phone_screen_sizesTable`）没有页签入口，标签语义与内容错位。
-- 证据：`tools/it/phone-screen-sizes.html:367-372`（`__pssShow`）、`:379`（默认 chart）、`:145`（`#result`）、`:152-155`（页签）。
-- 复现：打开页面 → 计算结果不可见，只见 PPI 曲线；点"数据表" → 出现结果卡片而非表格；期望默认展示结果或页签改名为"结果/图表"。
-- 影响：`tools/it/phone-screen-sizes.html`
-- 方案：默认 `display:''` 且保留图表切换；页签改为"结果+图表 / 历史"，或把机型表放进"数据表"面板。
-**留存建议（tools/it/phone-screen-sizes.html）**：保留，调整默认态与标签。
-
-### IT-N223 宣称可查 DPR，参数表却无 DPR/CSS 视口，且分辨率书写顺序前后不一（中，确认缺陷）
-- 问题：体验清单和 FAQ 反复讲 DPR（"查主流机型分辨率与 DPR 做适配"），但 10 款机型表只有尺寸/分辨率/PPI 四列，无 DPR、无 CSS 视口，也无 DPR 计算；同一台 iPhone 15 Pro 在表格写 `2556×1179`、示例写 `1179×2556`，顺序不统一。
-- 证据：`tools/it/phone-screen-sizes.html:178-179`（宣称）、`:272-282`（表）、`:291-294`（表头）、`:181`（示例顺序）、`:184-185`（FAQ 讲 DPR）。
-- 复现：node 反算 iPhone 15 Pro：物理 1179×2556、DPR=3 → CSS 视口 393×852；页面任何输出均无此两项。10 款机型 PPI 用 `√(w²+h²)/英寸` 复算全部与表值一致（460/460/460/326/416/460/440/450/452/510），仅信息维度缺失。
-- 影响：`tools/it/phone-screen-sizes.html`
-- 方案：表增加 DPR、CSS 视口列并统一"N×M（宽×高）"书写；或删掉 DPR 相关宣称。
-**留存建议（tools/it/phone-screen-sizes.html）**：保留（PPI 数据准确），补 DPR 列即可显著提升实用性。
-
-### IT-N224 meta/og/twitter 描述整句重复 2–3 遍（低，确认缺陷）
-- 问题：描述中"手机屏幕尺寸速查是一款免费的在线IT 开发工具"重复两次，"纯前端运行…"重复两次，og/description/twitter/JSON-LD 四处同文。
-- 证据：`tools/it/phone-screen-sizes.html:13`、`:16`、`:33`、`:36`（JSON-LD 同文）。
-- 复现：直接读取 meta 文本即可见连续重复短语。
-- 影响：`tools/it/phone-screen-sizes.html`
-- 方案：去重为单句，并保留"常见机型 PPI 速查"作为差异化描述。
-**留存建议（tools/it/phone-screen-sizes.html）**：SEO 文案修复即可。
-
 ### 承诺 vs 实际（Q 批专项）
 - `tools/it/json-to-toml.html:10`、`:20`：宣称支持"ISO 日期字符串"，实际 `:271` 对所有字符串加引号，日期不会输出为 TOML 日期（见 N201）。
 - `tools/it/json-to-toml.html:172`："校验"按钮（`:321` `doValidate(){doToml();}`）只是再转换一次，不校验 TOML 语法，也不校验 JSON 语义（如重复键、超大数）。
@@ -804,7 +780,6 @@
 - `tools/it/wifi-qr-generator.html:103`：宣称"任何扫码 App 都能识别"；但 `:235-236` 不转义特殊字符（N218），隐藏网络字符串还缺 `;;`（N219），且 `:175` 与 `:110` 对"是否需要转义"自相矛盾。
 - `tools/it/wifi-qr-generator.html:83`、`:103`、`:105`：页面名为"二维码生成器"、简介称"生成二维码"，实际不生成 QR（N220）。
 - `tools/it/phone-screen-sizes.html:16`：宣称"输入参数即可实时得出结果"，但全页无 `input` 监听，只有"计算"按钮 `onclick`（`:147` 附近），属文案夸大（未单列）。
-- `tools/it/phone-screen-sizes.html:178-179`：宣称可查 DPR 做适配，页面无 DPR 数据/计算（N223）。
 - `tools/it/basic-auth-generator.html:8`：宣称"支持中文用户名"，实际 UTF-8 编码但不声明 charset，ISO-8859-1 服务端会乱码（N209）。
 - 通用：本批 8 页"导出明细 CSV"均为历史表导出（如 `json-to-toml.html:433`、`markdown-table-generator.html:418`），不导出当前结果；未单列编号。
 
@@ -813,22 +788,6 @@
 - 新增 26 条（高 2 / 中 17 / 低 7），编号 IT-N199~IT-N224；本批无重号（上一批止于 IT-N198）。
 - 未覆盖说明：只审计主流程、边界与文档口径，未逐条核对 FAQ/JSON-LD 文案（仅发现 `phone-screen-sizes` 描述整句重复并单列）；未穷举 plist 全部数据类型、未测试二进制 bplist00（页面已明确不支持）；WiFi QR 未实际扫码验证；屏幕参数表仅复算 PPI 与分辨率/尺寸自洽性，未核对 10 款机型官方规格的发布时间与市场版本。
 - 未做验证：未开浏览器（结论均为源码静态分析 + `node -e` 内存复算）、未验证英文态 `?lang=en-US`/繁体/移动端、未跑 `_test_static.py`/`_audit_links.py`/`_audit_assets.py`/`run_gates.py` 等门禁，未触发 `_build.py` 或任何 git 写操作。
-
-### IT-N225 Rabbit 进位用 `t>>>32`，等于取低 32 位，密钥流偏离标准（高，确认缺陷）
-- 问题：`next()` 用 `carry=t>>>32` 取 32 位加法的进位。JS 的 `>>>` 会把移位量按 32 取模，`t>>>32 === t>>>0`，得到的是和的低 32 位（十亿量级）而不是 0/1 进位；该值随即被加进下一个状态字，并在末尾 `C[0]=(C[0]+carry)>>>0` 再加一次。
-- 证据：`tools/it/rabbit.html:333`（`carry=t>>>32;`）、`:335`（把错误进位加回 C[0]）、`:154`（说明写"进位取和右移 32 位的结果"）。
-- 复现：node 复刻 `next()` 并打印前 16 次进位 = `1295344757, 545429832, 1431692924, 2727000521, …`，无一是 0/1；单步对照 `t=0xFFFFFFFF+0x4D34D34D` → `t>>>32 = 1295307596`，数学右移应为 `1`。加/解密仍可逆（密钥流确定），但密钥流与 RFC 4503 不一致。
-- 影响：`tools/it/rabbit.html`
-- 方案：改为 `carry = Math.floor(t / 4294967296)`（或 `(t / 0x100000000) | 0`），循环后 `C[0]=(C[0]+carry)>>>0; carry=0;`，并补一组 RFC 4503 测试向量做自检。
-**留存建议（tools/it/rabbit.html）**：这是全页唯一"算法真错"的点，必须修；修完用官方向量回归。
-
-### IT-N226 密钥按文本截断，与"32 hex 字符"标签及"每 4 字节拼 1 字"说明均不符（高，确认缺陷）
-- 问题：`getKey()` 把密钥串直接 `strToBytes` 后 `slice(0,16)`，即"取前 16 个**字符**"；但 label 承诺"16字节 = 32 hex字符"，公式说明又称"取密钥字节每 4 个拼成一个 32 位字"。实际 `:311` 先按"2 字节小端 + 4 字节补 0"算一遍，`:312` 立即用"2 字节大端"覆盖，`:311` 成为死代码。
-- 证据：`tools/it/rabbit.html:181`（label）、`:154`（说明"每 4 个字节"）、`:311-313`（同一 `X[i]` 连写两次）、`:373`（`slice(0,16)`）、`:370`（密钥清空时返回 15 字节的 `defaultkey12345`，未补齐 16）。
-- 复现：node 实算，key=`00112233445566778899aabbccddeeff`（32 hex）→ UTF-8 得 32 个 ASCII 字节 → 取前 16 字符 `0011223344556677` → `X[0]=0x30303131`；若按 label 的 hex 语义应为 `0x00112233`。同理 `X[1]=0x33343535`。
-- 影响：`tools/it/rabbit.html`
-- 方案：先判 `/^[0-9a-fA-F]{32}$/`（或 `{16}` 文本）再决定"hex 字节装入"还是"UTF-8 文本补齐"；删掉 `:311` 死代码，按 RFC 4503 §2.1 的 4 字节小端装入重写，并在界面回显实际装入的 16 字节。
-**留存建议（tools/it/rabbit.html）**：与 N225 同批修，否则"标准 Rabbit"的说法不成立。
 
 ### IT-N227 密文基数靠猜、非法 IV 静默变全 0（中，确认缺陷）
 - 问题：解密时先按正则猜 Hex，再退回 Base64；`getIV()` 对非 hex 输入把 `parseInt` 的 NaN 写进 `Uint8Array`（自动存 0），只要长度 ≥8 就当作"全 0 IV"并额外空转 4 轮，既不报错也不提示。
@@ -948,8 +907,6 @@
 - `go-cheatsheet`：无剩余缺陷（IT-N244 6 处非法 `--` 注释全改 `//`、IT-N245 8 处裸 `...` 占位与 2 处未使用变量空循环体改为可编译片段，两条均已销账，第197批；verify 2 条探针强锁 + JSDOM 真机 20/20、旧源码 6/20，30 条 example 静态 Go 规则全清、合法 `...T`/`[...]T`/`./...` 保留）。
 
 ### 承诺 vs 实际（R 批专项）
-- `tools/it/rabbit.html:165`、`:157`：称 eSTREAM Profile 1 获胜算法、128 位密钥 + 可选 64 位 IV，但 `:333` 进位实现错误（N225）、`:312` 密钥装入与 `:154` 说明不符（N226）→ 输出不是标准 Rabbit，无法与其它实现互通；页面未提供任何测试向量自检。
-- `tools/it/rabbit.html:181`：label 承诺"32 hex 字符"密钥，实际按文本截断（N226）；`:370` 密钥清空时用 15 字节默认值且不补齐。
 - `tools/it/rabbit.html:201`："导出明细 CSV"导的是 `#rabbitTable`，而 `:441-443` 读 `#output`（**textarea**）的 `textContent`，textarea 的 textContent 是初始内容（恒空）→ 历史/图表/CSV 恒空（IT-N140 同型，不重复编号）。
 - `tools/it/mysql-cheatsheet.html:643`、`:645`：权限示例为 8.0 已移除语法（N228）；全页无 `CREATE USER`，而 8.0 建账号必须先 CREATE USER。
 - `tools/it/sms-qr.html:156` 写 `SMSTO:号码:内容`，`:196` 示例却写 `smsto:13800000000?body=Hi`（两种格式互斥）；`:157` 宣称"版本升高、纠错 M"，`:255` 却把 `N=27` 写死（N230）。
@@ -1491,9 +1448,6 @@
 - 影响：含数字 8 的报文被静默改写，与真实 ITA2 设备互通时错码。
 - 方案：补 `FIGS[6]='8'` 并按 ITA2 标准核对全表（含 code 5 的国别变体）；编码遇网格外字符时显式报错并列出被丢弃字符。
 
-
-
-
 ## T 批 IT 第 2 轮覆盖（2026-11-04）
 - 本轮审计 24 页：`binary-encode`、`baudot-code`、`c-string-escape`、`xxencode`、`uuencode`、`quoted-printable`、`html-entity-encoder`、`html-escape`、`js-escape`、`java-escape`、`go-escape`、`php-escape`、`rust-escape`、`sql-escape`、`css-escape`、`python-escape`、`text-to-binary`、`text-to-decimal`、`text-to-hex`、`text-to-octal`、`rot-cipher`、`xor-cipher`、`polybius-cipher`、`json-to-tsv`（均为 `tools/it/<slug>.html`）。
 - 新增 14 条（高 10 / 中 4），编号 IT-N334~IT-N347；第 1 轮止于 IT-N333，本批无重号。
@@ -1515,8 +1469,6 @@
 - 影响：页面标题承诺「生成JWT」，但生成的 token 100% 无效，接入联调必得 401，属假实现。
 - 方案：改用 WebCrypto（`crypto.subtle.importKey('raw',…,{name:'HMAC',hash:'SHA-256'})` + `subtle.sign`），按 alg 映射 SHA-256/384/512，签名 ArrayBuffer 直接 base64url。
 
-
-
 ### 覆盖清单（T 批 IT 第 3 轮）
 - `jwt-debugger`：IT-N349（高）。
 - 方法声明：以上结论仅基于源码通读 + `node` 复刻页面原函数实算（json-repair / hash-identifier / yaml-to-xml / toml-to-yaml / csv-to-yaml / json-to-xml 的判定均给出「输入 → 实际 / 期望」），未开浏览器、未跑 `_build.py`/`run_gates.py`、未做线上验证；未修改任何工具页或构建产物。
@@ -1529,9 +1481,6 @@
 - 复现（node 复刻）：A/B 各 8000 字符 → 矩阵 64,016,001 格，单次 Levenshtein 810ms、峰值内存 819,633,824 B（约 782MB）；页面同时还要再建一张同规模 LCS 表，峰值约 1.5–1.6GB，且每个按键都重跑一遍；期望：对超过阈值（如 2000 字符）的输入提示「文本过长」并停止自动计算，或改用双行滚动 DP + Myers diff。
 - 影响：粘贴两段长文本（代码 diff 是本工具典型用法）后逐字输入即长时间卡死；移动端/低内存设备直接 OOM 崩溃，结果区永远算不完。
 - 方案：`levenshtein` 只保留两行滚动数组（回溯改为 ops 栈），`computeDiff` 用线性空间 Myers；同时在 `autoCalc` 前对 `max(lenA,lenB)` 设阈值（超限提示「文本过长」并停止计算），`oninput` 改防抖。
-
-
-
 
 ### 覆盖清单（T 批 IT 第 4 轮）
 - `text-similarity`：IT-N366（高）。
@@ -1836,9 +1785,6 @@
 - 方法声明：本轮逐页通读上述 8 页源码，用 `node` 在 `/tmp` 复刻页面原函数实算（`calcTool` 行数统计、`enc/dec`、`prettyHtml`、emoji 数组去重、`split('')` 反转）并给出「输入 → 实际 / 期望」；**未开浏览器、未跑 `_build.py`/`run_gates.py`、未做线上验证**；未修改任何工具页、代码或构建产物，仅在审计日志追加本节。IT-N437 的事件属性执行、IT-N451 的沙箱逃逸依据 HTML 规范（`innerHTML` 插入的 `onerror` 会触发；`allow-scripts` + `allow-same-origin` 不提供来源隔离）判定，未做真机复现。
 
 ## W 批 · IT URL/签名/安全（2026-11-04）
-
-
-
 
 ### 覆盖清单（W 批 IT URL/签名/安全）
 - `url-qr`：无剩余缺陷（IT-N456 真编码器、IT-N457 纠错+尺寸双控件均已销账，第183–184批）。

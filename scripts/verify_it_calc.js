@@ -12960,6 +12960,28 @@ const CASES = [
     expect: ["WRONG 1 CORRECT 2"],
     ref: "类型反馈探针：目标文本 abc、已输入 axc（第 2 位打错），应恰有 1 个 wrong + 2 个 correct。修复前 renderText 只按 i<pos 判 correct ⇒ 3 个 correct、0 个 wrong ⇒ WRONG 0 CORRECT 3，不命中。默认态 text 是随机预设、pos=0 ⇒ 无 wrong/correct，不命中。",
   },
+  // ── 第229批 IT-N222~N226 ──
+  {
+    slug: "it/phone-screen-sizes",
+    inputs: { diag: "5", resw: "1080", resh: "1920" },
+    clicks: ["calcTool();var h=pssPhoneTable();document.getElementById('__tbProbe').textContent='PSS229 '+(/1920/.test(document.getElementById('result').innerHTML)&&/DPR（典型）/.test(h)&&/CSS 视口（宽×高）/.test(h)&&/1179×2556/.test(h)&&/393×852/.test(h)?'OK':'BAD');"],
+    expect: ["PSS229 OK"],
+    ref: "IT-N223 强锁：注入 1080×1920 → 结果区含输入派生分辨率，同时机型表必须给出 DPR/CSS 视口列、宽×高顺序与 iPhone 393×852。修复前机型表只有四列且写 2556×1179，探针命中 BAD。",
+  },
+  {
+    slug: "it/rabbit",
+    inputs: { key: "00000000000000000000000000000000", iv: "0000000000000000", outputFormat: "hex", input: "616263" },
+    clicks: ["var b=new Uint8Array(16);new Rabbit(getKey(),hexToBytes(document.getElementById('iv').value)).keystream(b,0,16);document.getElementById('__tbProbe').textContent='RAB229 '+bytesToHex(b);"],
+    expect: ["RAB229 c6a7275ef85495d87ccd5d376705b7ed"],
+    ref: "IT-N225/N226 强锁：注入 RFC 4503 全零密钥(32 hex)+全零 IV，首块密钥流必须等于官方向量 C6A7275E…。修复前 hex 密钥被当 ASCII 且算法非 RFC ⇒ 必不命中。",
+  },
+  {
+    slug: "it/rabbit",
+    inputs: { key: "this-key-is-way-too-long-12345", input: "616263" },
+    clicks: ["var o='BAD';try{getKey();}catch(e){o=/16/.test(e.message)?'KEY229 OK':'BAD';}document.getElementById('__tbProbe').textContent=o;"],
+    expect: ["KEY229 OK"],
+    ref: "IT-N226 强锁：注入超过 16 字节的文本密钥，getKey 必须明确报错（含 16），修复前静默 slice(0,16) 无异常 ⇒ BAD。默认 16 字节密钥不命中。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub

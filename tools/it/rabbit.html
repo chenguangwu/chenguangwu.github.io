@@ -140,7 +140,7 @@
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="🔐 Rabbit 流加密">🔐 Rabbit Stream Cipher</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">密钥装入：取密钥字节每 4 个拼成一个 32 位字写入状态 X（不足的字节补 0），共 8 个字；计数器 C 的第 i 个字取 X 的第 i 个字循环左移 16 位。先空转 4 轮；若提供至少 8 字节初始向量，把其前 4 字节与后 4 字节分别拼成 iv0 与 iv1，令 C 的第 0、2、4、6 个字异或 iv0，第 1、3、5、7 个字异或 iv1，再空转 4 轮。每轮推进：状态字按下标顺序加上常量表对应字与上轮进位，进位取和右移 32 位的结果，最后把进位加回 C 的第 0 个字；随后计算 g 函数——把字拆成高 16 位与低 16 位，取「高×高 异或 低16位 异或 交叉乘积左移 16 位 异或 低×低 右移 16 位」；再由 X 与 C 之和的 g 值滚动更新 X：奇数项加上后一项的循环左移 16 位与前一项的循环左移 8 位组合。密钥流每 16 字节生成一次，由状态字交叉异或并左右移位得到 16 个字，明密文按字节与该字的最低 8 位逐字节异或</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">按 RFC 4503 实现：128 位密钥按小端切成 K0=密钥末两字节…K7=密钥头两字节，再按 §2.3 交错装入 8 个状态字 X 与 8 个计数字 C，迭代 4 轮后令 C_j ^= X[(j+4) mod 8]。若给出 8 字节 IV，按 §2.4 将 IV 的四组 16 位片段分别异或到 C0/C4、C1/C5、C2/C6、C3/C7，再迭代 4 轮。每轮先按 §2.5 更新计数器：temp=C_j+A_j+b，b=temp÷2^32 且必须保留给下一位与下一轮，C_j=temp mod 2^32（不把 b 额外加回 C0）；再按 §2.6 计算 g(u,v)=LSW((u+v)²)⊕MSW((u+v)²) 并滚动更新 X；按 §2.7 提取 16 字节密钥流，按 S[127..0] 高字节优先与明密文逐字节异或。32 位 hex 密钥按字节装入；文本密钥按 UTF-8 补齐到 16 字节，超出 16 字节直接报错而非截断</div>
   <div class="formula-desc">Rabbit 流加密：用密钥流与明文逐字节异或。</div>
   <ul class="formula-list">
     <li><b>参数</b>：128 位密钥，可配 64 位初始化向量（IV）。</li>
@@ -167,8 +167,8 @@
 
     <div class="input-row">
       <div style="flex:2;">
-        <label>密钥 (16字节 = 32 hex字符，文本自动填充)</label>
-        <input type="text" id="key" value="myrabbitsecretkey" placeholder="加密密钥">
+        <label>密钥（16 字节：32 hex 字符；文本按 UTF-8 补齐）</label>
+        <input type="text" id="key" value="myrabbitsecret12" placeholder="32 位 hex 或不超过 16 字节文本">
       </div>
     </div>
 
@@ -177,7 +177,7 @@
         <label>IV (8字节 = 16 hex字符，可选)</label>
         <div style="display:flex;gap:6px;">
           <input type="text" id="iv" placeholder="留空不使用IV（ECB模式）" style="flex:1;">
-          <button type="button" class="btn" style="padding:8px 12px;white-space:nowrap;" onclick="document.getElementById('iv').value=randomHex(16)">随机IV</button>
+          <button type="button" class="btn" style="padding:8px 12px;white-space:nowrap;" onclick="document.getElementById('iv').value=randomHex(8)">随机IV</button>
           <button type="button" class="btn" style="padding:8px 12px;white-space:nowrap;" onclick="document.getElementById('iv').value=''">清除</button>
         </div>
       </div>
@@ -232,7 +232,7 @@
 <li>eSTREAM 推荐的高速流密码，适合资源受限环境。</li>
 <li>在嵌入式或高吞吐场景评估流密码：与 AES-CTR 等方案做性能与安全性对照，再决定是否采用。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">说明</div><div class="dd-ex-body">Rabbit 以 128 位密钥 + 64 位 IV 驱动内部状态，生成密钥流异或明文。</div></div>
+<div class="dd-example"><div class="dd-ex-title">说明</div><div class="dd-ex-body">Rabbit 以 128 位密钥 + 64 位 IV 驱动内部状态，生成密钥流异或明文。RFC 4503 官方向量：全零密钥 + 全零 IV 的首 16 字节密钥流为 C6 A7 27 5E F8 54 95 D8 7C CD 5D 37 67 05 B7 ED，可用「32 位 hex 密钥 + 16 位 hex IV」复算。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>Rabbit 与 RC4 比？</dt><dd>Rabbit 设计更现代、无 RC4 的初期偏置问题。</dd>
@@ -292,38 +292,39 @@ function base64ToBytes(b64){var s=atob(b64);var b=new Uint8Array(s.length);for(v
 function randomHex(n){var b=new Uint8Array(n);crypto.getRandomValues(b);return bytesToHex(b);}
 function strToBytes(s){return new TextEncoder().encode(s);}
 
+// RFC 4503 §2.6 的 g 函数：LSW((u+v)^2) XOR MSW((u+v)^2)。
+// 32 位乘积用 16 位拆分 + 显式进位，避免 JS Number 超过 2^53 后失真。
+function rabbitG(x){
+  var xh=x>>>16,xl=x&0xFFFF;
+  var a=xl*xh,b=xl*xl,c=xh*xh;
+  var loRaw=(a&0x7FFF)*0x20000+b;
+  var lo=loRaw>>>0;
+  var hi=(c+(a>>>15)+Math.floor(loRaw/0x100000000))>>>0;
+  return (lo^hi)>>>0;
+}
 function Rabbit(keyBytes, ivBytes) {
   var X=new Array(8), C=new Array(8), b=0;
-  for(var i=0;i<8;i++){
-    var j=i*2;
-    if(j+1<keyBytes.length){
-      X[i]=((keyBytes[j+1]|(keyBytes[j]<<8))|((j+3<keyBytes.length?keyBytes[j+2]:0)<<16)|((j+3<keyBytes.length?keyBytes[j+3]:0)<<24))>>>0;
-      X[i]=((keyBytes[j]<<24)|(keyBytes[j+1]<<16)|(j+2<keyBytes.length?keyBytes[j+2]<<8:0)|(j+3<keyBytes.length?keyBytes[j+3]:0))>>>0;
-    }else X[i]=0;
-    C[i]=rotl(X[i],16);
-  }
-  for(var r=0;r<4;r++)next();
-  if(ivBytes&&ivBytes.length>=8){
-    var iv0=((ivBytes[0]<<24)|(ivBytes[1]<<16)|(ivBytes[2]<<8)|ivBytes[3])>>>0;
-    var iv1=((ivBytes[4]<<24)|(ivBytes[5]<<16)|(ivBytes[6]<<8)|ivBytes[7])>>>0;
-    C[0]^=iv0;C[1]^=iv1>>>0;C[2]^=iv0;C[3]^=iv1>>>0;
-    C[4]^=iv0;C[5]^=iv1>>>0;C[6]^=iv0;C[7]^=iv1>>>0;
-    for(var r=0;r<4;r++)next();
-  }
-  var carry=b;
-  function gfunc(x){
-    var xh=x>>>16,xl=x&0xFFFF;
-    var a=(xl*xh)|0,b=(xl*xl)|0,c=(xh*xh)|0;
-    return ((c^xl)^(a<<16)^(b>>>16))>>>0;
+  var A=[0x4D34D34D,0xD34D34D3,0x34D34D34,0x4D34D34D,0xD34D34D3,0x34D34D34,0x4D34D34D,0xD34D34D3];
+  // RFC 4503 §2.3：K0=末两字节 … K7=头两字节（小端 subkey）
+  var K=[];
+  for(var j=0;j<8;j++){var p=14-2*j;K[j]=(((keyBytes[p]||0)<<8)|((keyBytes[p+1]||0)))>>>0;}
+  for(var j=0;j<8;j++){
+    if(j%2===0){
+      X[j]=((K[(j+1)%8]<<16)|K[j])>>>0;
+      C[j]=((K[(j+4)%8]<<16)|K[(j+5)%8])>>>0;
+    }else{
+      X[j]=((K[(j+5)%8]<<16)|K[(j+4)%8])>>>0;
+      C[j]=((K[j]<<16)|K[(j+1)%8])>>>0;
+    }
   }
   function next(){
-    var A=[0x4D34D34D,0xD34D34D3,0x34D34D34,0x4D34D34D,0xD34D34D3,0x34D34D34,0x4D34D34D,0xD34D34D3];
-    for(var i=0;i<8;i++){
-      var t=C[i]+A[i]+carry;carry=Math.floor(t/0x100000000);C[i]=t>>>0;
+    for(var j=0;j<8;j++){
+      var t=C[j]+A[j]+b;
+      b=Math.floor(t/0x100000000); // 进位保留到下一位、下一轮
+      C[j]=t>>>0;
     }
-    C[0]=(C[0]+carry)>>>0;carry=0;
     var G=new Array(8);
-    for(var i=0;i<8;i++)G[i]=gfunc((X[i]+C[i])>>>0);
+    for(var j=0;j<8;j++)G[j]=rabbitG((X[j]+C[j])>>>0);
     X[0]=(G[0]+rotl(G[7],16)+rotl(G[6],16))>>>0;
     X[1]=(G[1]+rotl(G[0],8)+G[7])>>>0;
     X[2]=(G[2]+rotl(G[1],16)+rotl(G[0],16))>>>0;
@@ -332,22 +333,43 @@ function Rabbit(keyBytes, ivBytes) {
     X[5]=(G[5]+rotl(G[4],8)+G[3])>>>0;
     X[6]=(G[6]+rotl(G[5],16)+rotl(G[4],16))>>>0;
     X[7]=(G[7]+rotl(G[6],8)+G[5])>>>0;
-    return X;
+  }
+  for(var r=0;r<4;r++)next();
+  for(var j=0;j<8;j++)C[j]=(C[j]^X[(j+4)%8])>>>0;
+  if(ivBytes&&ivBytes.length>=8){
+    // RFC 4503 §2.4：iv0=IV[31..0]=后四字节，iv1=IV[63..32]=前四字节
+    var iv0=((ivBytes[4]<<24)|(ivBytes[5]<<16)|(ivBytes[6]<<8)|ivBytes[7])>>>0;
+    var iv1=((ivBytes[0]<<24)|(ivBytes[1]<<16)|(ivBytes[2]<<8)|ivBytes[3])>>>0;
+    C[0]=(C[0]^iv0)>>>0;
+    C[1]=((C[1]^((ivBytes[0]<<24)|(ivBytes[1]<<16)|(ivBytes[4]<<8)|ivBytes[5])))>>>0;
+    C[2]=(C[2]^iv1)>>>0;
+    C[3]=((C[3]^((ivBytes[2]<<24)|(ivBytes[3]<<16)|(ivBytes[6]<<8)|ivBytes[7])))>>>0;
+    C[4]=(C[4]^iv0)>>>0;
+    C[5]=((C[5]^((ivBytes[0]<<24)|(ivBytes[1]<<16)|(ivBytes[4]<<8)|ivBytes[5])))>>>0;
+    C[6]=(C[6]^iv1)>>>0;
+    C[7]=((C[7]^((ivBytes[2]<<24)|(ivBytes[3]<<16)|(ivBytes[6]<<8)|ivBytes[7])))>>>0;
+    for(var r=0;r<4;r++)next();
+  }
+  // RFC 4503 §2.7：16 个 16 位片按 S[127..0] 高字节优先输出
+  function extract(){
+    var S=new Array(8);
+    S[0]=(X[0]&0xFFFF)^(X[5]>>>16);
+    S[1]=(X[0]>>>16)^(X[3]&0xFFFF);
+    S[2]=(X[2]&0xFFFF)^(X[7]>>>16);
+    S[3]=(X[2]>>>16)^(X[5]&0xFFFF);
+    S[4]=(X[4]&0xFFFF)^(X[1]>>>16);
+    S[5]=(X[4]>>>16)^(X[7]&0xFFFF);
+    S[6]=(X[6]&0xFFFF)^(X[3]>>>16);
+    S[7]=(X[6]>>>16)^(X[1]&0xFFFF);
+    return S;
   }
   this.keystream=function(buf,off,len){
+    var z=null;
     for(var i=0;i<len;i++){
       if(i%16===0){
-        var S=next();
-        var z=new Array(16);
-        z[0]=S[0]^(S[5]>>>16)^(S[3]<<16);z[1]=(S[0]>>>8)^(S[5]>>>24)^(S[3]<<8);
-        z[2]=(S[0]>>>16)^S[5]^(S[3]>>>16);z[3]=(S[0]>>>24)^(S[5]<<8)^(S[3]>>>24);
-        z[4]=S[2]^(S[7]>>>16)^(S[5]<<16);z[5]=(S[2]>>>8)^(S[7]>>>24)^(S[5]<<8);
-        z[6]=(S[2]>>>16)^S[7]^(S[5]>>>16);z[7]=(S[2]>>>24)^(S[7]<<8)^(S[5]>>>24);
-        z[8]=S[4]^(S[1]>>>16)^(S[7]<<16);z[9]=(S[4]>>>8)^(S[1]>>>24)^(S[7]<<8);
-        z[10]=(S[4]>>>16)^S[1]^(S[7]>>>16);z[11]=(S[4]>>>24)^(S[1]<<8)^(S[7]>>>24);
-        z[12]=S[6]^(S[3]>>>16)^(S[1]<<16);z[13]=(S[6]>>>8)^(S[3]>>>24)^(S[1]<<8);
-        z[14]=(S[6]>>>16)^S[3]^(S[1]>>>16);z[15]=(S[6]>>>24)^(S[3]<<8)^(S[1]>>>24);
-        for(var j=0;j<16;j++)z[j]>>>0;
+        next();
+        var S=extract();z=new Array(16);
+        for(var j=7;j>=0;j--){z[2*(7-j)]=S[j]>>>8;z[2*(7-j)+1]=S[j]&0xFF;}
       }
       buf[off+i]^=z[i%16]&0xff;
     }
@@ -355,12 +377,14 @@ function Rabbit(keyBytes, ivBytes) {
 }
 
 function getKey(){
-  var k=document.getElementById('key').value;
-  if(!k)return strToBytes('defaultkey12345');
+  var el=document.getElementById('key');
+  var k=el?String(el.value==null?'':el.value).trim():'';
+  var en=!!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+  if(!k)k='myrabbitsecret12';
+  if(/^[0-9a-fA-F]{32}$/.test(k))return hexToBytes(k); // 32 hex 字符 = 真实 16 字节
   var kb=strToBytes(k);
-  if(kb.length<16){var p=new Uint8Array(16);p.set(kb);return p;}
-  if(kb.length>16)return kb.slice(0,16);
-  return kb;
+  if(kb.length>16)throw new Error(en?'Key exceeds 16 bytes: use 32 hex chars or at most 16 UTF-8 bytes':'密钥超过 16 字节：请用 32 位 hex，或不超过 16 字节的文本');
+  var p=new Uint8Array(16);p.set(kb);return p;
 }
 function getIV(){
   var iv=document.getElementById('iv').value.trim();
@@ -373,6 +397,7 @@ function getIV(){
 function process(isEnc){
   var fmt=document.getElementById('outputFormat').value;
   var input=document.getElementById('input').value;
+  var en=!!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
   if(!input){ToolBox.showToast(i18nText(),'error');return;}
   try{
     var key=getKey(),iv=getIV();
@@ -394,7 +419,10 @@ function process(isEnc){
       catch(e){document.getElementById('output').value=bytesToHex(out);}
     }
     ToolBox.showToast(isEnc?'加密成功':'解密成功');
-  }catch(e){ToolBox.showToast('处理失败: '+e.message,'error');}
+  }catch(e){
+    document.getElementById('output').value=''; // 失败时清掉旧结果
+    ToolBox.showToast((en?'Failed: ':'处理失败: ')+e.message,'error');
+  }
 }
 
 function encrypt(){process(true);}
@@ -529,7 +557,7 @@ function __rabbitExport(){
 }
 function __rabbitPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#rabbitPresets',[{label:'默认参数',labelEn:'Default',values:{'outputFormat':'base64', 'key':'myrabbitsecretkey'}},
+    TBKit.preset.bar('#rabbitPresets',[{label:'默认参数',labelEn:'Default',values:{'outputFormat':'base64', 'key':'myrabbitsecret12'}},
   {"label":"Hex 带 IV","labelEn":"Hex with IV","values":{"key":"anotherkey123","iv":"1234567890abcdef","outputFormat":"hex","input":"secret message one"}},
   {"label":"Base64 带 IV","labelEn":"Base64 with IV","values":{"key":"testkey","iv":"abcdef1234567890","outputFormat":"base64","input":"another secret"}},
   {"label":"Hex 无 IV","labelEn":"Hex no IV","values":{"key":"longkey_2026","iv":"","outputFormat":"hex","input":"third payload"}}],function(){ encrypt(); });
