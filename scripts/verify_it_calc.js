@@ -11421,6 +11421,27 @@ const CASES = [
     ref: "IT-N337：PHP 双引号字符串八进制 \\172 = 'z'；旧实现八进制分支永不命中。默认 Hello 无 zz。",
   },
   {
+    slug: "it/php-escape",
+    inputs: { input: '"\\u{110000}"' },
+    clicks: ["unesc();"],
+    expect: ["⚠️ 非法转义：\\u{110000}"],
+    ref: "PHP 反转义码点越界：U+110000 超出 Unicode 上限 0x10FFFF，旧实现 fromCodePoint 抛 RangeError 保留旧输出，修复后显示绑定原片段的错误提示。默认 Hello 不命中。",
+  },
+  {
+    slug: "it/php-escape",
+    inputs: { input: '"\\xGG"' },
+    clicks: ["unesc();"],
+    expect: ["⚠️ 非法转义：\\xGG"],
+    ref: "PHP 反转义 \\x 需要恰好两位十六进制；GG 非法时旧实现 parseInt→NaN 抛 RangeError，修复后显示绑定原片段的错误提示。默认 Hello 不命中。",
+  },
+  {
+    slug: "it/php-escape",
+    inputs: { input: '"\\uZZZZ"' },
+    clicks: ["unesc();"],
+    expect: ["⚠️ 非法转义：\\uZZZZ"],
+    ref: "PHP 反转义 \\uXXXX 需要四位十六进制；ZZZZ 非法时旧实现 parseInt→NaN 抛 RangeError，修复后显示绑定原片段的错误提示。默认 Hello 不命中。",
+  },
+  {
     slug: "it/python-escape",
     inputs: { input: "\\172\\172" },
     clicks: ["unesc();"],
