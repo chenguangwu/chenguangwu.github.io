@@ -10,6 +10,12 @@
 <script src="../../js/common.js" defer></script>
   <style>
     .state{padding:8px 10px;border:1px solid var(--border);border-radius:8px;margin:8px 0;background:var(--result-bg);}
+    /* IT-D28: AST 层级树 —— 只依赖主题变量，暗色/亮色均可读 */
+    .ast-tree,.ast-children{list-style:none;margin:4px 0 8px;padding-left:16px;border-left:1px solid var(--border);}
+    .ast-children{border-left-style:dashed;margin-left:6px;}
+    .ast-node{margin:3px 0;font-family:monospace;font-size:12.5px;line-height:1.7;}
+    .ast-label{display:inline-block;padding:1px 7px;border-radius:5px;background:var(--result-bg);border:1px solid var(--border);color:var(--tool-accent,var(--accent));}
+    .ast-detail{margin-left:8px;color:var(--text-muted);}
   </style>
 
 <script type="application/ld+json">
@@ -238,6 +244,94 @@ function tokenize(p) {
 
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
+// IT-D28: 递归下降解析器 —— 把正则解析为真实 AST（分支/序列/分组/量词/字符类/锚点/转义）。
+// 仅做结构解析，不替代 new RegExp 的合法性校验；所有标签文本经 escapeHtml 后落 DOM。
+function parseRegexAst(p){
+  let i=0;
+  function parseAlt(){
+    const branches=[parseSeq()];
+    while(i<p.length && p[i]==='|'){ i++; branches.push(parseSeq()); }
+    if(branches.length===1) return branches[0];
+    return [{type:'alt',label:'分支',detail:branches.length+' 路择一',
+      children:branches.map(b=>({type:'seq',label:'分支项',detail:'',children:b}))}];
+  }
+  function parseSeq(){
+    const seq=[];
+    while(i<p.length && p[i]!==')' && p[i]!=='|'){
+      const before=i;
+      const atom=parseAtom();
+      if(!atom || i===before) break;
+      let node=atom;
+      if(i<p.length && '*+?'.indexOf(p[i])>=0){
+        const sym=p[i++];
+        const lazy=(i<p.length && p[i]==='?')?(i++,true):false;
+        node={type:'quant',label:sym+(lazy?'?':''),detail:lazy?'惰性':'贪婪',children:[atom]};
+      } else if(p[i]==='{'){
+        const m=/^\{(\d+)(,(\d*))?\}/.exec(p.slice(i));
+        if(m){
+          i+=m[0].length;
+          const lazy=(i<p.length && p[i]==='?')?(i++,true):false;
+          node={type:'quant',label:m[0]+(lazy?'?':''),detail:lazy?'惰性':'重复次数',children:[atom]};
+        }
+      }
+      seq.push(node);
+    }
+    return seq;
+  }
+  function parseAtom(){
+    const c=p[i];
+    if(c===undefined) return null;
+    if(c==='('){
+      i++;
+      let kind='捕获分组';
+      if(p.slice(i,i+2)==='?:'){ i+=2; kind='非捕获分组'; }
+      else if(p[i]==='?'){
+        const n=p[i+1];
+        if(n==='='){ i+=2; kind='正向先行'; }
+        else if(n==='!'){ i+=2; kind='负向先行'; }
+        else if(n==='<'){
+          if(p[i+2]==='='){ i+=3; kind='正向后行'; }
+          else if(p[i+2]==='!'){ i+=3; kind='负向后行'; }
+          else { const e=p.indexOf('>',i+2); if(e>=0){ kind='命名分组 '+p.slice(i+2,e); i=e+1; } else { i++; kind='分组'; } }
+        } else { i++; kind='分组'; }
+      }
+      const kids=parseAlt();
+      if(p[i]===')') i++;
+      return {type:'group',label:kind,detail:'',children:Array.isArray(kids)?kids:[kids]};
+    }
+    if(c==='['){
+      const st=i; i++;
+      if(p[i]==='^') i++;
+      if(p[i]===']') i++;
+      while(i<p.length && p[i]!==']'){ if(p[i]==='\\') i++; i++; }
+      if(p[i]===']') i++;
+      const raw=p.slice(st,i);
+      return {type:'class',label:'字符类',detail:raw+(raw.indexOf('[^')===0?'（取反）':''),children:[]};
+    }
+    if(c==='\\'){
+      const e=p.slice(i,i+2); i+=2;
+      const desc={d:'数字',D:'非数字',s:'空白',S:'非空白',w:'单词字符',W:'非单词字符',b:'单词边界',B:'非单词边界',n:'换行',t:'制表'}[e.charAt(1)]||'转义序列';
+      return {type:/^[bB]$/.test(e.charAt(1))?'anchor':'escape',label:e,detail:desc,children:[]};
+    }
+    if(c==='^'||c==='$'){ i++; return {type:'anchor',label:c,detail:c==='^'?'行/串起始':'行/串结束',children:[]}; }
+    if(c==='.'){ i++; return {type:'dot',label:'.',detail:'任意字符（换行除外）',children:[]}; }
+    i++;
+    return {type:'literal',label:c,detail:'字面字符',children:[]};
+  }
+  const root=parseAlt();
+  return Array.isArray(root)?root:[root];
+}
+function renderAstTree(nodes){
+  function li(n){
+    const kids=(n.children||[]).map(li).join('');
+    let s='<li class="ast-node ast-'+n.type+'"><span class="ast-label">'+escapeHtml(n.label)+'</span>';
+    if(n.detail) s+='<span class="ast-detail">'+escapeHtml(n.detail)+'</span>';
+    if(kids) s+='<ul class="ast-children">'+kids+'</ul>';
+    return s+'</li>';
+  }
+  return '<ul class="ast-tree">'+nodes.map(li).join('')+'</ul>';
+}
+
 function buildStates(tokens) {
   const states = [{id:0,label:'start'}];
   let id = 1;
@@ -270,7 +364,10 @@ function render() {
 
   const tokens = tokenize(p);
   const {states, edges} = buildStates(tokens);
-  let html = '<div class="state">';
+  // IT-D28: 先输出真实语法树层级，再保留既有线性状态链（兼容原有导出与用例）。
+  const ast = parseRegexAst(p);
+  let html = '<div class="state">' + (__en ? 'Syntax tree (AST):' : '语法树（AST）：') + '</div>' + renderAstTree(ast);
+  html += '<div class="state">';
   html += __en ? `Total states: ${states.length} (including start + accept)` : `总状态：${states.length}（含 start + accept）`;
   html += '</div>';
   html += states.map(s => `<div class="state">S${s.id}: ${s.label}</div>`).join('');

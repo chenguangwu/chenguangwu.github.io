@@ -3032,7 +3032,7 @@
 | `tools/it/regex-cheatsheet` | 纯查表：静态 `COMMANDS` 数组 + 过滤（无执行） | 仅内容正确性 | 检索可用；JS 不支持语法已显式标注（IT-D30，第170批） |
 | `tools/it/regex-common` | 查表（8 条类别常量）+ 原生 RegExp 逐类执行 | 给定类/文本可验证 | 8 类下拉已实装并可切换（IT-D27，第169批） |
 | `tools/it/regex-escape` | 自写逐字符映射转义/反转义，不走 RegExp | 部分可逆 | 转义正确；反转义吞类别转义 |
-| `tools/it/regex-visualizer` | 自写逐字符 tokenizer + 线性「状态」列表（非 AST/NFA），仅 `new RegExp` 校验合法性 | 合法性可验证；结构不可逆 | 承诺的树状层级未实现 + DOM XSS |
+| `tools/it/regex-visualizer` | 递归下降解析 AST 树 + 保留线性状态链；`new RegExp` 校验合法性 | 树结构可验证、状态链可复算 | AST 层级已实装且双路径转义（IT-D28，第171批）；铁路图样式仍未实现 |
 
 ### 独立实现 vs 共享实现
 
@@ -3046,13 +3046,12 @@
 - **regex-cheatsheet**：纯查表；`\A \Z` 与 `[:alpha:]` 两条 params 已标注「JS 不支持」及适用引擎（IT-D30，第170批）；检索/分类/复制逻辑不变。
 - **regex-common**：类别选择器已补齐 8 个 option 并可切换（IT-D27，第169批）；默认 email，8 类均可达，结果与原高亮/偏移明细逻辑不变。
 - **regex-escape**：默认 `Hello (World)? [a-z]+ $19.99` → `Hello \(World\)\? \[a-z\]\+ \$19\.99` 正确；反转义 `\d+\w`→`d+w`（IT-D29）。
-- **regex-visualizer**：默认 `^a[0-9]+b$` → 10 token / 12 状态直线（node 复算），与「树状、分组/量词/字符类层级」不符（IT-D28）。
+- **regex-visualizer**：递归下降 AST 树已实装（分支/分组类型/量词/字符类/锚点层级，第171批），默认 `^a[0-9]+b$` 仍输出 10 token / 12 状态线性链作为附加视图；AST 与状态链双路径均经 escapeHtml（IT-N348 回归保持）。
 
 ### 问题清单（新增）
 
 | 编号 | 页面:行 | 级别 | 问题与期望值 |
 |---|---|---|---|
-| IT-D28 | `tools/it/regex-visualizer.html:250-266,283-285` | 高 | `buildStates` 每个 token 建 1 状态并首尾串联，无分支、无分组/量词/字符类嵌套；默认 `^a[0-9]+b$` 得直线而非树。期望真实 AST/NFA 树渲染 |
 | IT-D29 | `tools/it/regex-escape.html:310` | 中 | `default: out += n` 丢弃反斜杠：`\d+\w`→`d+w`、`\b`→`b`、`\s`→`s`，反转义后正则语义反转。期望保留 `\d \w \b \s \p{…}` 原样 |
 
 ### 统计

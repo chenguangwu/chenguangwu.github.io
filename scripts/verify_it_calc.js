@@ -2284,6 +2284,22 @@ const CASES = [
     ref: "IT-N348：注入含 `<` 的 pattern `a<b`，状态标签里的 `<` 必须经 escapeHtml 变成 `&lt;`（裸 `<` 会被当作标签起始、在结果区不可见且存在注入风险）；默认 pattern `^a[0-9]+b$` 无 `<` 字符 ⇒ 该串仅注入态可见，强判别。",
   },
   {
+    slug: "it/regex-visualizer",
+    // IT-D28：必须输出真实 AST 层级（分支 + 分组 + 量词），旧实现只有线性状态链，无树节点 class。
+    inputs: { pattern: "a(b|c)*" },
+    clicks: ["render()"],
+    expect: ["ast-alt", "2 路择一", "ast-group"],
+    ref: "注入 `a(b|c)*`：递归下降解析应产出分支节点（2 路择一）、捕获分组节点与 * 量词节点，AST 树用 ast-alt/ast-group class 渲染；默认 pattern `^a[0-9]+b$` 无分组与分支 ⇒ 这些串仅注入态可见。",
+  },
+  {
+    slug: "it/regex-visualizer",
+    // IT-D28-b：分组类型细分（非捕获组、命名组、前后行断言）须在树上体现。
+    inputs: { pattern: "(?:ab)+" },
+    clicks: ["render()"],
+    expect: ["非捕获分组"],
+    ref: "注入 `(?:ab)+` 应解析为非捕获分组节点并渲染其类型标签；默认 pattern 只有一般字符类与锚点，无该标签 ⇒ 强判别。",
+  },
+  {
     slug: "it/markdown-to-html",
     inputs: { md: "## Hello World" },
     expect: ["Hello World"],
