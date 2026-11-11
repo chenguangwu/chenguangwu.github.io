@@ -3075,7 +3075,7 @@
 | `tools/office/pdf-rotate` | pdf.js 预览 + pdf-lib `setRotation`/`save` | node 回读角度 [90,270] 正确 | 真处理，未发现缺陷 |
 | `tools/it/pdf-signature-checker` | 自读字节 + 正则匹配 `/ByteRange`、`/Contents` | 构造字节可验证 | 只判签名存在，无密码学验签 |
 | `tools/it/properties-parser` | 自写逐行扫描 + 转义还原 | node 7 组用例 | 真解析；CRLF/`\u`/续行有错 |
-| `tools/it/ini-parser` | 自写 `indexOf('=')` 逐行解析 | node 7 组用例 | 真解析；不支持 `:` 与无值键 |
+| `tools/it/ini-parser` | 自写 `indexOf('=')` 逐行解析 | node 7 组用例 + JSDOM 7 组 | 真解析；无值键已修（IT-D40，第168批），`:` 分隔仍不支持 |
 | `tools/it/curl-parser` | 正则分词 + 选项表 | node 9 组命令 | 真解析；续行/转义/urlencode 有缺陷 |
 | `tools/it/plist-parser` | 原生 `DOMParser` 解析 XML plist | 默认 SAMPLE 可验证 | 真解析（binary plist 明确不支持） |
 | `tools/it/user-agent-parser` | 正则抽取浏览器/引擎/OS/设备 | UA 用例可复现 | 覆盖不足（微信、CriOS 等） |
@@ -3093,7 +3093,7 @@
 - **pdf-rotate**：真旋转，预览叠加差值、写入绝对角度，回读一致，本轮无缺陷。
 - **pdf-signature-checker**：仅检测签名存在；文件头 `%PDF-49.46` 恒不匹配判红（既有 `it.md:2582`）、字节数算式错（既有 `:2588`）、PKCS#7 验签承诺未实现（既有 `:2593`）。
 - **properties-parser**：核心扫描正确；CRLF/裸 CR 换行已修正（IT-D33，第167批）；`\uXXXX` 不解码（既有 `:140`）、行尾 `\\` 当续行（既有 `:141`）仍留存。
-- **ini-parser**：节/注释/重复键正常；`:` 分隔与无值键不支持（IT-D39/IT-D40）。
+- **ini-parser**：节/注释/重复键正常；无值键（裸布尔标志）已保留为空串（IT-D40，第168批）；`:` 分隔仍不支持（IT-D39）。
 - **curl-parser**：`-d`→POST、选项值消费、输出转义、`--data-urlencode` 百分号编码（IT-D37，第164批）、双引号内 `\"` 反转义（IT-D38，第165批）、反斜杠续行折叠（IT-D31，第166批）均已修到位；本批无其它残留项。
 - **plist-parser**：XML 真解析，dict/array/integer/real/bool 正确；`data`、`date` 原样返回（既有）。
 - **user-agent-parser**：Chrome/Safari/Edge/Firefox/Googlebot 正确；微信 UA 归为 Chrome、CriOS/FxiOS 归「未知」（IT-D41 / 既有 IT-N65）。
@@ -3107,7 +3107,6 @@
 | IT-D35 | `tools/office/pdf-split.html:907` | 中 | 强制 `sort` 升序：`7-10,1` → `[1,7,8,9,10]`，与 `:480,:519`「按填写顺序」矛盾（pdf-lib 本身保序） |
 | IT-D36 | `tools/office/pdf-split.html:1170` | 中 | 历史记录回填后直接调 `downloadResult()`：有缓存则莫名下载，无缓存弹「开始下载」错误提示 |
 | IT-D39 | `tools/it/ini-parser.html:275` | 中 | 只认 `=`：`[s]` + `host: localhost` → `{}`，期望 `{"s":{"host":"localhost"}}`（页面称「= 或 : 分隔」） |
-| IT-D40 | `tools/it/ini-parser.html:275` | 中 | 无值键整行丢弃：`[s]` + `flag` → `{}`，期望 `{"s":{"flag":""}}` |
 | IT-D41 | `tools/it/user-agent-parser.html:316` | 中 | 微信 UA（`MicroMessenger/8.0.40 … Chrome/116`）判为 `Chrome 116`，无微信规则；`Baiduspider` 浏览器为「未知」（设备已判爬虫） |
 
 ### 统计

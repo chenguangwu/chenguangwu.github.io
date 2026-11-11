@@ -2191,6 +2191,14 @@ const CASES = [
     ref: "独立复算：输入 JSON 数组，doBeautify 用 JSON.parse 判别（非 startsWith('{')）⇒ 走 toIni 数组分支产出 '0 = a'/'1 = b'；修复前 startsWith('[') 误入 INI 分支、parseIni 把整行当节名、输出形如 '[{\"a\",\"b\":'，不含 '0 = a'。默认示例非 JSON 数组，不命中。",
   },
   {
+    slug: "it/ini-parser",
+    // IT-D40：无值键（布尔标志）须保留为空串值，不得整行丢弃。
+    inputs: { input: "[s]\nflag\nx=1" },
+    clicks: ["iniToJson()"],
+    expect: ['"flag": ""'],
+    ref: "INI 节中裸行 flag 是常见无值键（布尔标志），应解析为 flag 值为空串并与 x=1 共存。修复前 eq<0 直接 continue ⇒ 该行被丢弃，JSON 无 flag 键。默认示例各键均为 key=value，不命中。",
+  },
+  {
     slug: "it/properties-parser",
     inputs: { input: "a=1\nb=two" },
     clicks: ["propsToJson()"],
