@@ -3497,6 +3497,30 @@ const CASES = [
     ref: "美化按原换行保留结构：函数体缩进 2 空格（默认缩进选项），语句不再被拼成一行。默认示例为 fibonacci，不命中该函数名组合。",
   },
   {
+    slug: "it/js-formatter",
+    // IT-N297：块注释内联保留，格式化结果仍是能算出 3 的合法 JS。
+    clicks: ["var nl=String.fromCharCode(10);document.getElementById('input').value='const x = 1/*c*/+2'+nl+'console.log(x)';formatJs();var o=document.getElementById('output').textContent;var ok=false;try{ok=(new Function(o+'return x;')())===3;}catch(e){}document.getElementById('__tbProbe').textContent='ASI297 '+(ok?'OK':'BAD');"],
+    inputs: { input: "const x = 1/*c*/+2\nconsole.log(x)", indent: "4" },
+    expect: ["ASI297 OK"],
+    ref: "IT-N297 独立执行：原码 x=3；格式化必须保留块注释原位与语句换行，编译后返回 3。旧实现把注释与 +2 拆到新行导致 SyntaxError；默认示例不命中。"
+  },
+  {
+    slug: "it/js-formatter",
+    // IT-N298：压缩结果自检失败时不得把坏代码留在输出框。
+    clicks: ["document.getElementById('input').value='let a = ;';doMinify();var o=document.getElementById('output').textContent;var e=document.getElementById('err').textContent;document.getElementById('__tbProbe').textContent='MINI298 '+(o===''&&e.indexOf('自检失败')>=0?'OK':'BAD:'+o+'/'+e);"],
+    inputs: { input: "let a = ;", indent: "4" },
+    expect: ["MINI298 OK"],
+    ref: "IT-N298 失败注入：非法源码压缩后必须清空 output 并报自检失败；旧实现输出 `let a =;` 还报压缩成功。默认示例不命中。"
+  },
+  {
+    slug: "it/js-formatter",
+    // IT-N299：校验必须调用 JS 引擎编译，而不是只数括号。
+    clicks: ["document.getElementById('input').value='const 1 = 2;';doValidate();var e=document.getElementById('err').textContent;document.getElementById('__tbProbe').textContent='VAL299 '+(e.indexOf('语法错误')>=0&&e.indexOf('静态检查')<0?'OK':'BAD:'+e);"],
+    inputs: { input: "const 1 = 2;", indent: "4" },
+    expect: ["VAL299 OK"],
+    ref: "IT-N299 括号 0/0 但语法非法 `const 1 = 2;`；新校验明确报语法错误，旧实现输出「已通过静态检查」不命中。"
+  },
+  {
     slug: "it/mysql-cheatsheet",
     inputs: { searchInput: "zzz" },
     expect: ["共 0 项"],

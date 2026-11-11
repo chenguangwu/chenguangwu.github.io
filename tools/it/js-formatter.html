@@ -149,7 +149,7 @@
 <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="📜 JavaScript 格式化">📜 JavaScript Format</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">手写词法分析：跳过多行与单行注释；识别单引号 / 双引号 / 模板字符串（模板内 ${} 按花括号配对跳过）、正则（依据前一个有效 token 是否为运算符或关键字判断上下文）、数字（含 0x、指数与下划线）、标识符与关键字；再按缩进设置（tab 或指定空格数）重排，并用花括号、方括号、圆括号三级深度计数器控制换行与缩进。历史记录时间按 月-日 时:分 补零格式化</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">手写词法分析：跳过多行与单行注释；识别单引号 / 双引号 / 模板字符串（模板内 ${} 按花括号配对跳过）、正则（依据前一个有效 token 是否为运算符或关键字判断上下文）、数字（含 0x、指数与下划线）、标识符与关键字；格式化保留原有换行，只在行首重排缩进并规范 token 间空格，避免改变 ASI；压缩删除注释与多余空格、保留必要换行，并用 JS 引擎编译自检；校验同样只编译不执行。历史记录时间按 月-日 时:分 补零格式化</div>
   <div class="formula-desc">按统一风格重新排版 JavaScript 代码。</div>
   <ul class="formula-list">
     <li><b>处理</b>：解析为 AST 后按缩进、换行、分号、引号等规则重新输出，保证语义不变。</li>
@@ -211,7 +211,7 @@ const total=calc(10,5)</textarea>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>会还原变量名吗？</dt><dd>不会，格式化不逆混淆。</dd>
-<dt>格式化会改变代码行为吗？</dt><dd>纯格式化不会——它只调整空白、缩进与分号，AST 不变。但有两个例外：一是自动分号插入（ASI）相关写法（如以括号或方括号开头的行）在换行改变时可能被错误合并；二是依赖换行行为的模板字符串与正则字面量。格式化后建议跑一遍测试。</dd>
+<dt>格式化会改变代码行为吗？</dt><dd>本工具保留原有换行，只重排缩进与空格，不会把 return 后的对象字面量合并到同一行；压缩同样保留必要换行并通过 JS 引擎编译自检。依赖模板字符串和正则字面量的代码仍建议在目标环境复测。</dd>
 </dl>
 </div>
 </section>
@@ -332,95 +332,90 @@ function tokenizeJs(src){
 function formatJs(){
   setErr('');
   try{
-    const tokens = tokenizeJs(document.getElementById('input').value);
+    const src = document.getElementById('input').value;
+    const tokens = tokenizeJs(src);
     let out = '';
     let depth = 0;
-    let parenDepth = 0;
-    let bracketDepth = 0;
     let atLineStart = true;
-    let pendingNewline = false;
     let pendingSpace = false;
     const wordLike = t => t === 'name' || t === 'num' || t === 'keyword' || t === 'str' || t === 'regex';
     const pad = () => IND().repeat(Math.max(0, depth));
-    const newline = () => { out = out.replace(/\s+$/, ''); out += '\n'; atLineStart = true; };
+    const breakLine = raw => {
+      const n = Math.max(1, (String(raw).match(/\n/g) || []).length);
+      out = out.replace(/[ \t]+$/, '');
+      out += '\n'.repeat(n);
+      atLineStart = true;
+      pendingSpace = false;
+    };
     let prevType = null, prevVal = '';
-    for(let k = 0; k < tokens.length; k++){
-      const tk = tokens[k];
+    for(const tk of tokens){
       if(tk.t === 'ws'){
-        if(tk.v.indexOf('\n') >= 0) pendingNewline = true;
-        else pendingSpace = true;
+        if(tk.v.indexOf('\n') >= 0) breakLine(tk.v);
+        else if(out && !atLineStart) pendingSpace = true;
         continue;
       }
-      if(tk.t === 'comment'){
-        if(pendingNewline && !atLineStart) newline();
-        else if(pendingSpace && !atLineStart && out.slice(-1) !== ' ') out += ' ';
-        if(atLineStart) out += pad();
-        out += tk.v;
-        atLineStart = false;
-        pendingNewline = pendingSpace = false;
-        if(tk.v.slice(0,2) === '//') newline();
-        prevType = 'comment'; prevVal = tk.v;
-        continue;
-      }
-      // 关闭花括号前先降级，避免缩进多一级
+      // 注释保持在原 token 位置：行注释之后的换行由 ws token 负责，块注释绝不强制换行。
       if(tk.v === '}') depth = Math.max(0, depth - 1);
-      if(pendingNewline){
-        if(!atLineStart) newline();
-        else if(out === '' ) atLineStart = true;
-      }
-      if(atLineStart){ out += pad(); atLineStart = false; }
+      if(atLineStart) out += pad();
       else {
         let needSpace = false;
-        if(pendingSpace && prevType && !['(','[','.'].includes(prevVal) && ![')',']','.',',',';',':'].includes(tk.v)) needSpace = true;
+        if(pendingSpace && prevType && !['(','[','.','{'].includes(prevVal) && ![')',']','.',',',';',':','}'].includes(tk.v)) needSpace = true;
         if(prevType && wordLike(prevType) && wordLike(tk.t)) needSpace = true;
-        if(prevVal === 'return' || prevVal === 'throw') needSpace = true;
+        if(['return','throw','typeof','instanceof','new','delete','void','in','of','await','yield','case'].includes(prevVal)) needSpace = true;
         if(prevType === 'op' && tk.t === 'op' && /[+\-]$/.test(prevVal) && /^[+\-]/.test(tk.v)) needSpace = true;
         if((prevVal === '++' || prevVal === '--') && wordLike(tk.t)) needSpace = true;
-        if(needSpace && out.slice(-1) !== ' ') out += ' ';
+        if(needSpace && out.slice(-1) !== ' ' && !/[\s([{]/.test(out.slice(-1))) out += ' ';
       }
       out += tk.v;
-      pendingNewline = pendingSpace = false;
-      if(tk.v === '{'){ depth++; newline(); }
-      else if(tk.v === '}'){ if(k + 1 < tokens.length){ const n = tokens[k+1]; if(n.t !== 'ws' && ![';',',',')',']'].includes(n.v)) newline(); } }
-      else if(tk.v === ';' && parenDepth === 0 && bracketDepth === 0){ newline(); }
-      if(tk.v === '(') parenDepth++;
-      if(tk.v === ')') parenDepth = Math.max(0, parenDepth - 1);
-      if(tk.v === '[') bracketDepth++;
-      if(tk.v === ']') bracketDepth = Math.max(0, bracketDepth - 1);
+      atLineStart = false;
+      pendingSpace = false;
+      if(tk.v === '{') depth++;
       prevType = tk.t; prevVal = tk.v;
     }
-    setOut(out.replace(/\n{3,}/g, '\n\n').trim() + '\n');
-    setErr('✅ 格式化成功');
+    let formatted = out.replace(/[ \t]+$/gm, '').replace(/\n{3,}/g, '\n\n').trim();
+    if(formatted) formatted += '\n';
+    setOut(formatted);
+    setErr('✅ 格式化成功（保留原有换行，仅重排缩进与空格）');
   }catch(e){ setErr('❌ ' + e.message); }
 }
 function minifyJs(){
   setErr('');
   try{
-    const tokens = tokenizeJs(document.getElementById('input').value);
+    const src = document.getElementById('input').value;
+    const tokens = tokenizeJs(src);
     let out = '';
     let prevType = null, prevVal = '';
+    let pendingSpace = false;
     const wordLike = t => t === 'name' || t === 'num' || t === 'keyword' || t === 'str' || t === 'regex';
     for(const tk of tokens){
-      // 注释直接丢弃
+      // 注释直接丢弃；原换行必须保留，否则 ASI 边界会消失。
       if(tk.t === 'comment') continue;
       if(tk.t === 'ws'){
-        if(tk.v.indexOf('\n') >= 0) out += '\n';
-        else if(prevType && wordLike(prevType) && out.slice(-1) !== ' ') out += ' ';
+        if(tk.v.indexOf('\n') >= 0){ out = out.replace(/[ \t]+$/, '') + '\n'; pendingSpace = false; }
+        else pendingSpace = true;
         continue;
       }
       let needSpace = false;
       if(prevType){
+        if(pendingSpace && !['(','[','.','{'].includes(prevVal) && ![')',']','.',',',';',':','}'].includes(tk.v)) needSpace = true;
         if(wordLike(prevType) && wordLike(tk.t)) needSpace = true;
-        if(prevVal === 'return' || prevVal === 'typeof' || prevVal === 'instanceof' || prevVal === 'new' || prevVal === 'throw' || prevVal === 'delete' || prevVal === 'void' || prevVal === 'in' || prevVal === 'of' || prevVal === 'await' || prevVal === 'yield') needSpace = true;
+        if(['return','throw','typeof','instanceof','new','delete','void','in','of','await','yield','case'].includes(prevVal)) needSpace = true;
         if(prevType === 'op' && tk.t === 'op' && /[+\-]$/.test(prevVal) && /^[+\-]/.test(tk.v)) needSpace = true;
+        if((prevVal === '++' || prevVal === '--') && wordLike(tk.t)) needSpace = true;
       }
-      if(needSpace && out.slice(-1) !== ' ' && out.slice(-1) !== '\n') out += ' ';
+      if(needSpace && out && !/[\s([{]/.test(out.slice(-1))) out += ' ';
       out += tk.v;
-      prevType = tk.t; prevVal = tk.v;
+      prevType = tk.t; prevVal = tk.v; pendingSpace = false;
     }
+    out = out.replace(/[ \t]+$/gm, '').trim();
+    if(!out) throw new Error('没有可压缩的 JavaScript');
+    if(/\b(import|export)\b/.test(src)) throw new Error('含 import/export 模块语法，无法用函数构造器自检');
+    // 只编译、不执行：压缩结果若语法非法，绝不交给用户复制。
+    try{ new Function(out); }
+    catch(e){ throw new Error('压缩结果自检失败：' + e.message); }
     setOut(out);
-    setErr('✅ 压缩成功（保留必要的换行以维持语义）');
-  }catch(e){ setErr('❌ ' + e.message); }
+    setErr('✅ 压缩成功（保留必要换行，已通过语法自检）');
+  }catch(e){ setOut(''); setErr('❌ ' + e.message); }
 }
 function doBeautify(){ formatJs(); }
 function doMinify(){ minifyJs(); }
@@ -447,11 +442,16 @@ function doValidate(){
     setOut(stats);
     if(braceO !== braceC || parenO !== parenC || brackO !== brackC){ setErr('❌ 括号不平衡'); return; }
     if(/\b(import|export)\b/.test(src)){
-      setErr('⚠ 含 import/export 模块语法，仅做括号配对检查（不做动态编译校验）');
+      setErr('⚠ 含 import/export 模块语法：以上仅为括号统计，请用 type=module 环境检查语法');
       return;
     }
-    // 出于安全限制不做动态编译（不使用 Function 构造器），仅给出静态检查结论
-    setErr('ℹ 已通过静态检查（括号配对与关键字统计）；动态编译校验已移除，无法覆盖全部语法错误');
+    // new Function 只编译、不执行代码，用来给出真实语法结论。
+    try{
+      new Function(src);
+      setErr('✅ 语法检查通过（JS 引擎编译校验，未执行代码）');
+    }catch(e){
+      setErr('❌ 语法错误：' + e.message + '（JS 引擎编译校验，未执行代码）');
+    }
   }catch(e){ setErr('❌ ' + e.message); }
 }
 function getIndent(){const v=document.getElementById('indent').value;return v==='tab'?'\t':' '.repeat(parseInt(v));}
