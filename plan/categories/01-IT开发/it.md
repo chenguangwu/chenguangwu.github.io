@@ -62,7 +62,7 @@
 - 同批阅读 Linux、MongoDB 速查的搜索、分类与复制路径；无浏览器验证，不对完整正确性判通过。IT-N498–N500 的示例仍须按具体内容另行运行复核。
 - IT-N423、N308、N309 的数据范围问题仍在。
 - IT-N49 已于第215批真修并销账：`chmod-calculator` 支持 setuid(4)/setgid(2)/sticky(1) 特殊位与四位数模式（如 4755/2755/1777），符号位按 s/S 与 t/T 分别渲染，快捷预设及复制命令同步；JSDOM 修好版 18/18、旧源码 3/18。
-- IT-N170–N173 第217批销账（`calc-3`）、IT-N174–N177 第218批（`matrix-transpose`）、IT-N178–N180 第219批（`http-cookies` 与 4 个 HTTP 页过期示例）、IT-N181–N184 第220批（`text-to-ascii`）、IT-N185–N190 第221批（`shell-script-formatter`）、IT-N191–N195 第222批（`unit-converter-advanced`）、IT-N196–N198 第223批（`html-entities-encode`）、IT-N199–N201 第224批（`json-to-toml`）、IT-N202–N206 第225批（`plist-parser` 与 `char-encoder`）、IT-N207–N211 第226批（`char-encoder` 实体补全与 `basic-auth-generator` 冒号/charset）、IT-N212–N216 第227批（`nanoid-generator` 与 `markdown-table-generator`），详见下方覆盖行；IT-N217（行列输入逗号转义）等关键路径仍在。
+- IT-N170–N173 第217批销账（`calc-3`）、IT-N174–N177 第218批（`matrix-transpose`）、IT-N178–N180 第219批（`http-cookies` 与 4 个 HTTP 页过期示例）、IT-N181–N184 第220批（`text-to-ascii`）、IT-N185–N190 第221批（`shell-script-formatter`）、IT-N191–N195 第222批（`unit-converter-advanced`）、IT-N196–N198 第223批（`html-entities-encode`）、IT-N199–N201 第224批（`json-to-toml`）、IT-N202–N206 第225批（`plist-parser` 与 `char-encoder`）、IT-N207–N211 第226批（`char-encoder` 实体补全与 `basic-auth-generator` 冒号/charset）、IT-N212–N216 第227批（`nanoid-generator` 与 `markdown-table-generator`）、IT-N217–N221 第228批（`markdown-table-generator` CSV 解析与 `wifi-qr-generator` 改名），详见下方覆盖行；IT-N222（phone-screen-sizes 页签默认态）等关键路径仍在。
 - 同批另阅读 `ascii-table`、`box-shadow-generator`、`calc-1`、`calc-10` 的主要交互路径；未对其完整正确性或浏览器行为作通过判定。
 
 ## 已知问题
@@ -767,46 +767,7 @@
 - 第225批销账：IT-N202–N206（`plist-parser` real/date/data 保型与超安全整数与大整数往返与控制字符剔除、`char-encoder` ASCII 行按码点与清空清字节视图），详见下方覆盖行。
 - 第226批销账：IT-N207–N211（`char-encoder` 常用 HTML 实体补全、`basic-auth-generator` 冒号校验与 UTF-8 charset 提示；N210 历史不写密码与 N211 复制提示已由其他 Agent 修好补证据），详见下方覆盖行。
 - 第227批销账：IT-N212–N216（`nanoid-generator` 大字母表拒绝采样/emoji 码点/历史取值、`markdown-table-generator` 反斜杠转义与编辑期不写回），详见下方覆盖行。
-
-### IT-N217 行列输入不支持逗号转义，内容含逗号即被拆列（低，确认缺陷）
-- 问题：`parseRow` 直接 `split(',')`，没有引号/转义规则；单元格内容含英文逗号时无法表达，会被拆成额外列。
-- 证据：`tools/it/markdown-table-generator.html:236-241`、`:147`（说明只写"英文逗号分隔"）。
-- 复现：node 复算想输入 `a,b` 与 `c`：写 `"a\\,b,c"` → `["a\\","b","c"]` 3 列，期望 2 列 `["a,b","c"]`。
-- 影响：`tools/it/markdown-table-generator.html`
-- 方案：支持 CSV 双引号包裹（`"a,b",c`），或提供逐格编辑表格。
-**留存建议（tools/it/markdown-table-generator.html）**：文档标注限制或加引号解析。
-
-### IT-N218 WiFi 字符串未按 ZXing 规则转义，含 `;`/`\` 时字段截断（高，确认缺陷）
-- 问题：SSID/密码直接拼接，未对 `\ ; , : "` 转义；含分号时后续字段被解析为独立字段，末尾反斜杠还会吞掉结束符；页面注释却明确写"无需手动转义"，与引据表"特殊字符需转义"自相矛盾。
-- 证据：`tools/it/wifi-qr-generator.html:235-236`（拼接）、`:175`（"无需手动转义"）、`:110`（引据表要求转义）。
-- 复现：node 复算 SSID=`My;AP`、密码=`pw;x` → `WIFI:T:WPA;S:My;AP;P:pw;x;;`，扫码端解析为 S=`My`、P=`pw`（数据缺失）；期望 `S:My\;AP;P:pw\;x;;`。
-- 影响：`tools/it/wifi-qr-generator.html`
-- 方案：统一转义函数（`\` 先转 `\\`，再对 `; , : "` 前加 `\`），同步修正 `:175` 文案。
-**留存建议（tools/it/wifi-qr-generator.html）**：高优修复后再考虑上线推广。
-
-### IT-N219 隐藏网络字段顺序/分号错误：多一个空字段且缺结尾 `;;`（中，确认缺陷）
-- 问题：`;H:true` 被追加在已带分号的 `P` 字段后，产生空字段；结尾只补一个 `;`，不符合规范要求的 `;;` 结束。
-- 证据：`tools/it/wifi-qr-generator.html:235-236`。
-- 复现：node 复算 hidden=true → `WIFI:T:WPA;S:MyHomeAP;P:secret123;;H:true;`；期望 `WIFI:T:WPA;S:MyHomeAP;P:secret123;H:true;;`；nopass 隐藏同样得到 `...S:x;;H:true;`。
-- 影响：`tools/it/wifi-qr-generator.html`
-- 方案：按字段数组拼接（`T,S,P,H` 后统一 join(';')），末尾固定 `;;`，H 置于 P 之后、结束符之前。
-**留存建议（tools/it/wifi-qr-generator.html）**：与 N218 同批修。
-
-### IT-N220 名为"二维码生成器"却不生成二维码（中，确认缺陷/承诺不符）
-- 问题：标题、H1、面包屑均为"WiFi 配网二维码生成器"，简介/公式说明写"生成 WiFi 配网二维码""任何扫码 App 都能识别"，但页面无 QR 库、canvas 或图像输出，只产出 `WIFI:` 文本并要求"复制后交给二维码工具"。
-- 证据：`tools/it/wifi-qr-generator.html:10`、`:83`、`:103`、`:105`、`:236`（仅字符串输出）。
-- 复现：点击"生成" → 页面只有文本域与复制按钮，无可扫描图像；期望至少输出可保存的二维码图片。
-- 影响：`tools/it/wifi-qr-generator.html`
-- 方案：内置纯前端 QR 渲染（无后端），或把页面改名为"WiFi 配网字符串生成器"并在首句说明需外部二维码工具。
-**留存建议（tools/it/wifi-qr-generator.html）**：若不做 QR，务必改名以免误导。
-
-### IT-N221 两处 `</div` 缺少 `>`，存在结构/残留文本风险（低，确认缺陷）
-- 问题：HTML 中出现两个未闭合的结束标签片段 `</div`（无 `>`），解析器的错误恢复可能把残留字符当文本或改变嵌套。
-- 证据：`tools/it/wifi-qr-generator.html:128`、`:134`。
-- 复现：静态阅读确认；浏览器容错后的实际渲染未实测（未开浏览器），故标"低/待验证"。
-- 影响：`tools/it/wifi-qr-generator.html`
-- 方案：补全为 `</div>`。
-**留存建议（tools/it/wifi-qr-generator.html）**：顺手修，成本 2 个字符。
+- 第228批销账：IT-N217–N221（`markdown-table-generator` CSV 双引号逗号解析、`wifi-qr-generator` 改名「配网字符串生成器」；N218/N219 转义与字段顺序、N221 残缺 div 已由其他 Agent 修好补证据），详见下方覆盖行。
 
 ### IT-N222 "图表"页签默认隐藏结果区，"数据表"页签显示的却是结果卡片（中，确认缺陷）
 - 问题：初始化调用 `__pssShow('chart')`，把整个 `#result`（PPI、尺寸、分辨率及机型表）设为 `display:none`；只有点"数据表"才显示结果，而真正的 TBKit 数据表（`#phone_screen_sizesTable`）没有页签入口，标签语义与内容错位。

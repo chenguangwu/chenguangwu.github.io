@@ -12837,6 +12837,13 @@ const CASES = [
   },
   {
     slug: "it/markdown-table-generator",
+    inputs: { cols: "2", rows: "1", align: "left", headerLine: '"a,b",c', bodyLine: '"x,y",z' },
+    clicks: ["renderPreview()", "var v=document.getElementById('output').value;document.getElementById('__tbProbe').textContent='CSVQ '+(v.indexOf('| a,b | c |')>=0?'OK':'BAD');"],
+    expect: ["CSVQ OK"],
+    ref: "IT-N217 第228批：双引号包裹的单元格 \"a,b\" 算 1 列，c 算第 2 列 ⇒ 表头行 `| a,b | c |`；旧实现按裸 split(',') 拆成 4 列。默认样例无引号逗号，不命中。",
+  },
+  {
+    slug: "it/markdown-table-generator",
     inputs: { cols: "3", headerLine: "a", bodyLine: "x" },
     clicks: ["syncColumns();var h=document.getElementById('headerLine').value,b=document.getElementById('bodyLine').value;document.getElementById('__tbProbe').textContent='MD-NOREWRITE '+(h==='a'&&b==='x'&&/C2/.test(document.getElementById('output').value)?'OK':'BAD');"],
     expect: ["MD-NOREWRITE OK"],
