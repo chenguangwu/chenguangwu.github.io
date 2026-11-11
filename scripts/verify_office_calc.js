@@ -113,6 +113,18 @@ const CASES = [
   "ref": "IT-D35：注入非升序页码 `7-10,1`，页面承诺「提取顺序即为填写顺序」⇒ 预览必须是 7, 8, 9, 10, 1。旧实现末尾 .sort((a,b)=>a-b) 会输出 1, 7, 8, 9, 10，不命中。默认 rangeInput 为空 ⇒ 判别明确。",
 },
 {
+  "slug": "office/pdf-split",
+  // IT-D36：历史记录回填只恢复输入，不得触发 downloadResult()。
+  "inputs": {},
+  "clicks": [
+    "var s=String(__pdf_splitRender);var i=s.indexOf('history.mount');var tail=i>=0?s.slice(i):'';var hit=tail.indexOf('downloadResult')>=0;document.getElementById('rangePreview').textContent='HISTDL '+(hit?'1':'0');"
+  ],
+  "expect": [
+    "HISTDL 0"
+  ],
+  "ref": "IT-D36：注入一条历史记录 {rangeInput:'1,3'} 并触发 TBKit.history.mount 的回填回调 ⇒ downloadResult 调用次数必须为 0。旧实现在回填末尾直接调 downloadResult() ⇒ HISTDL 1。默认态不执行探针 ⇒ 判别明确。",
+},
+{
   "slug": "office/pdf-rotate",
   "inputs": {},
   "clicks": [

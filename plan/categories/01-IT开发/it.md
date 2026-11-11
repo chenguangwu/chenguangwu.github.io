@@ -3068,7 +3068,7 @@
 | 页面 | 实现方式 | 可逆或可验证 | 结论 |
 |---|---|---|---|
 | `tools/office/pdf-merge` | pdf-lib@1.17.1 `copyPages` + `save` | node 实测 2+3 页合并成 5 页、尺寸正确 | 真处理；加密文件预检有缺陷 |
-| `tools/office/pdf-split` | pdf.js 渲染缩略图 + pdf-lib 提取页 | 页数/旋转/顺序可验证 | 真提取；range 模式已按填写顺序（IT-D35，第173批）；只产 1 个文件仍留存 |
+| `tools/office/pdf-split` | pdf.js 渲染缩略图 + pdf-lib 提取页 | 页数/旋转/顺序可验证 | 真提取；range 按填写顺序（IT-D35，第173批）、历史回填不下载（IT-D36，第174批）；只产 1 个文件仍留存 |
 | `tools/office/pdf-rotate` | pdf.js 预览 + pdf-lib `setRotation`/`save` | node 回读角度 [90,270] 正确 | 真处理，未发现缺陷 |
 | `tools/it/pdf-signature-checker` | 自读字节 + 正则匹配 `/ByteRange`、`/Contents` | 构造字节可验证 | 只判签名存在，无密码学验签 |
 | `tools/it/properties-parser` | 自写逐行扫描 + 转义还原 | node 7 组用例 | 真解析；CRLF/`\u`/续行有错 |
@@ -3086,7 +3086,7 @@
 ### 逐页结论
 
 - **pdf-merge**：真实合并并正确转义文件名；加密 PDF 预检用 `ignoreEncryption` 判为可用，`copyPages` 不解密 → 与「跳过并继续」承诺不符（IT-D32）。
-- **pdf-split**：真实提取、真实缩略图；range 模式已按填写顺序解析（IT-D35，第173批），缩略图勾选模式仍按自然升序；只产 1 个 PDF（IT-D34）与历史回填触发下载（IT-D36）仍留存。
+- **pdf-split**：真实提取、真实缩略图；range 模式已按填写顺序解析（IT-D35，第173批），缩略图勾选模式仍按自然升序；历史回填只恢复输入、不再触发下载（IT-D36，第174批）；只产 1 个 PDF（IT-D34）仍留存。
 - **pdf-rotate**：真旋转，预览叠加差值、写入绝对角度，回读一致，本轮无缺陷。
 - **pdf-signature-checker**：仅检测签名存在；文件头 `%PDF-49.46` 恒不匹配判红（既有 `it.md:2582`）、字节数算式错（既有 `:2588`）、PKCS#7 验签承诺未实现（既有 `:2593`）。
 - **properties-parser**：核心扫描正确；CRLF/裸 CR 换行已修正（IT-D33，第167批）；`\uXXXX` 不解码（既有 `:140`）、行尾 `\\` 当续行（既有 `:141`）仍留存。
@@ -3101,7 +3101,6 @@
 |---|---|---|---|
 | IT-D32 | `tools/office/pdf-merge.html:512,703` | 高 | `loadPageCount` 用 `ignoreEncryption` 使加密文件列为可用；`copyPages` 不解密 → 整体抛错或输出空白，与 `:349,:391`「跳过并提示、不影响其余」矛盾。期望单文件标 error 后 `continue`（node 加载同版本 pdf-lib：正常 2+3 页合并成功，`copyPages` 无加密检查） |
 | IT-D34 | `tools/office/pdf-split.html:568,455-466` | 假 | 宣称「拆分 PDF 为多个小文件」「段数=ceil(总页数/每段页数)」「文件数=段数」，实际无「每段页数」输入且只产出 1 个 PDF |
-| IT-D36 | `tools/office/pdf-split.html:1170` | 中 | 历史记录回填后直接调 `downloadResult()`：有缓存则莫名下载，无缓存弹「开始下载」错误提示 |
 | IT-D39 | `tools/it/ini-parser.html:275` | 中 | 只认 `=`：`[s]` + `host: localhost` → `{}`，期望 `{"s":{"host":"localhost"}}`（页面称「= 或 : 分隔」） |
 
 ### 统计
