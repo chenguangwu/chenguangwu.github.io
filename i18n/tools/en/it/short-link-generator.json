@@ -5,9 +5,9 @@
   "map": {
     "🔗 短链接生成器": "🔗 Short Link Generator",
     "短链接生成器。专为开发者打造的在线工具，纯前端运行，代码不离开浏览器。": "Short link generator. An online tool built for developers, runs entirely in the browser; your code never leaves the device.",
-    "短码 = base62(自增 ID) 或 hash(长链) 前 N 位": "Short code = base62(auto-increment ID) or the first N chars of hash(long URL)",
+    "短码 = 字符集[ hash(长链) 逐位取模 ]（同链稳定）": "Short code = alphabet[hash(long URL) mod base, per position] (stable for the same URL)",
     "解析：短码 → 301/302 跳转原 URL": "Resolve: short code → 301/302 redirect to the original URL",
-    "短链的核心是「短码 ↔ 长链」的映射表。常见做法有两种：一是把自增 ID 做 base62 编码（ID 1234567 → 4k8x），短码长度随 ID 增长而缓慢变长，无碰撞；二是对长链做哈希后取前 N 位，长度固定但有碰撞风险，需冲突检测与再散列。跳转响应建议用 302（临时）以便统计每次点击，301（永久）会被浏览器缓存、导致后续点击无法计数。短码字符集建议剔除 0/O、1/l 等易混字符。": "A short link's core is a \"short code ↔ long URL\" mapping table. Two common approaches: encode an auto-increment ID in base62 (ID 1234567 → 4k8x), where the code grows slowly with the ID and has no collisions; or hash the long URL and take the first N chars—fixed length but collision-prone, needing conflict detection and rehashing. Use 302 (temporary) for the redirect to count every click; 301 (permanent) is cached by browsers and later clicks can't be counted. The short-code alphabet should drop ambiguous chars like 0/O and 1/l.",
+    "短链的核心是「短码 ↔ 长链」的映射表。本工具对长链做 FNV-1a 哈希，再用确定性混合流按所选字符集逐位取模生成短码：同一条长链、同一组设置必得同一短码，不同长链的短码也不同（哈希仍有碰撞可能，真实服务需唯一索引兜底）。批量生成时序号也参与哈希，故一组短码固定且互不相同。跳转响应建议用 302（临时）以便统计每次点击，301（永久）会被浏览器缓存、导致后续点击无法计数。短码字符集建议剔除 0/O、1/l 等易混字符；本工具只生成映射码，不提供服务端存储与跳转。": "A short link's core is a \"short code ↔ long URL\" mapping table. This tool hashes the long URL with FNV-1a, then maps a deterministic mixing stream into the selected alphabet one character at a time: the same URL with the same settings always yields the same code, while different URLs yield different codes (hash collisions remain possible, so a real service needs a unique index). The batch index also feeds the hash, so a multi-code batch is stable and each code differs. Use 302 (temporary) for redirects to count every click; 301 (permanent) is cached by browsers. Drop ambiguous chars like 0/O and 1/l from the alphabet. This tool only generates mapping codes, with no server storage or redirect.",
     "Slug 长度": "Slug length",
     "自定义 slug": "Custom slug",
     "排除易混": "Exclude ambiguous",
@@ -20,6 +20,8 @@
     "和真实短链服务差在哪？": "How does it differ from a real short-link service?",
     "真实服务需要服务端存储「短码 ↔ 长链」映射，并在访问时返回 301/302 跳转、同时记录点击统计。本工具只在本地生成字符串，没有服务端存储与跳转能力，因此生成的短码无法被其他人访问——它演示的是编码环节，而不是完整服务。": "A real service needs server-side storage of the \"short code ↔ long URL\" mapping and returns a 301/302 redirect on access while logging click stats. This tool only generates strings locally, with no server storage or redirect capability, so the generated codes can't be accessed by others—it demonstrates the encoding step, not the full service.",
     "关于「短链接生成器」": "About \"Short Link Generator\"",
-    "导出明细 CSV": "Export detail CSV"
+    "导出明细 CSV": "Export detail CSV",
+    "同一条长链会生成不同短码吗？": "Do I get different codes for the same long URL?",
+    "不会。长链内容参与哈希，同一 URL、同一设置（长度/数量/字符集）必得同一组短码；改变设置或 URL 才会变化。批量生成时序号也参与哈希，因此同一次生成的每条短码互不相同。": "No. The URL content feeds the hash: the same URL with the same settings (length, count, alphabet) always produces the same set of codes. Batch rows also include their index, so each code in a batch differs."
   }
 }

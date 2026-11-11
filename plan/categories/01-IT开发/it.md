@@ -2637,15 +2637,6 @@
 - 方案：改用 tokenizer（acorn/esprima）或直接调 Terser；最低限度也要保留换行、跳过字符串与正则区间，并在页面声明"仅适用于带分号的简单代码"。
 - 假工具：否
 
-### IT-N468 短码是纯随机串，与 URL 无任何函数关系，并非 base62/hash 编码（中，承诺未实现）
-- 页面：`tools/it/short-link-generator.html`
-- 问题：短码循环只用 `crypto.getRandomValues` 抽字符（`:283-287`），URL 仅被显示、不参与运算；`formula-eq`（`:160`）称"短码 = base62(自增 ID) 或 hash(长链) 前 N 位"，description（`:10`）称"将长网址编码为简短易记的短链"，英文简介写 "using Base62 encoding"（`:482`）。
-- 行号：`:283-287`、`:160`、`:10`、`:482`、`:219`
-- 复现：同一 URL 连点两次「生成」→ 实际得到两组完全不同的随机串；同参数下任意两个不同 URL 的短码分布也无差别。期望同一条长链得到稳定短码（hash 方案）或按自增 ID 编码。
-- 影响：页面演示的是"随机字符串生成器"，"编码 / 映射"承诺未兑现；FAQ `:219` 只说明没有服务端跳转，没说明短码与 URL 无关，读者会误以为它真的编码了 URL。
-- 方案：改为 `base62(hash(url))` 取前 N 位（同链稳定）并保留自增 ID 模式作对照；或把标题/描述改成"短码样式演示（随机）"。
-- 假工具：否
-
 ### 覆盖清单（W 批 IT URL/签名/安全）
 - `url-qr`：IT-N456（高，假工具）；IT-N457（中）。
 - `og-meta-tag-generator`：IT-N458（中）；无高优缺陷（`escA` 先转 `&` 再转 `"`，输出走 `textarea.value`，属性上下文不可注入）。
@@ -2654,7 +2645,7 @@
 - `rc4`：IT-N463（中）；无高优缺陷（`rc4()` 与 `RC4-drop` 主路径对照已知向量 `Key`/`Plaintext` → `bbf316e8d940af0ad3` 正确，KSA/PRGA 无死循环）。
 - `js-minify`：IT-N464（高）；无其它高优项（结果渲染走 `escH`，无注入）。
 - `url-params`：无剩余高优/中优缺陷（IT-N465/IT-N466/IT-N467 均已修复，第178–179批补独立锁与真机复核后销账）。
-- `short-link-generator`：IT-N468（中）；无高优缺陷（输出全部经 `escapeHtml`，`randInt` 模偏差可忽略）。
+- `short-link-generator`：无剩余高优/中优缺陷（IT-N468 已改为 hash 映射，第180批销账；输出全部经 `escapeHtml`）。
 - 方法声明：本轮逐页通读上述 8 页源码，用 `node` 在 `/tmp` 复刻页面原函数（`renderQR`、`minify`、`rc4`、`parseParams`、`md5Hex`）并给出「输入 → 实际 / 期望」；MD5 对照用 `crypto.createHash('md5')`，QR 不可扫码依据"无数据位/格式信息/纠错码字"的算法结构判定；`esc()` 不转义双引号、`innerHTML` 属性注入按 HTML 序列化规则判定（文本节点只转义 `&<>`），未开真机浏览器复现 XSS。**未开浏览器、未跑 `_build.py`/`run_gates.py`、未做线上验证**；未修改任何工具页、代码或构建产物，仅在本审计日志追加本节。
 
 ## W 批 · IT 计算/文本（2026-11-04）

@@ -6428,6 +6428,13 @@ const CASES = [
     "ref": "IT-N467：decodeURIComponent 无 try/catch 时，畸形 `%` 抛 URIError 会让整块解析停止（其余参数也不再刷新）。探针走顶层 parseQueryPairs(qs,true)，坏值须按字面保留为 100%，其后的 ok=fine 必须仍被解析出来。缺陷态抛错 ⇒ 探针不出串 ⇒ URIERR BAD/无串。默认态不执行探针 ⇒ 零逃生。"
   },
   {
+    "slug": "it/short-link-generator",
+    // IT-N468：短码必须与 URL 有函数关系——同链稳定、异链不同。
+    "clicks": ["var u=document.getElementById('url'),o=document.getElementById('output');document.getElementById('len').value='6';document.getElementById('count').value='2';u.value='https://stable.example.org/p?q=1';generate();var a=String(o.innerHTML);generate();var b=String(o.innerHTML);u.value='https://other.example.org/p?q=1';generate();var c=String(o.innerHTML);document.getElementById('__tbProbe').textContent='STABLE '+(a===b&&a!==c&&a.indexOf('stable.example.org')<0?'HASH':'RAND');"],
+    "expect": ["STABLE HASH"],
+    "ref": "IT-N468：旧实现每次用 crypto.getRandomValues 抽字符，同一 URL 连点两次得到两组不同短码，短码与 URL 无任何函数关系。修复后 URL 内容参与 FNV-1a 哈希，同链同设置必得同一短码。探针显式设 len/count 避免 harness 里 range 默认值为空，连续生成两次比较 innerHTML，再换一条 URL 必须不同；a 不含原始 URL 排除回显。默认态不执行探针 ⇒ 零逃生。"
+  },
+  {
     "slug": "it/a1z26-cipher",
     "inputs": {
       "input": "1\n2\n3",

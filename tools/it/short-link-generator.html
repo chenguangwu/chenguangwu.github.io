@@ -146,8 +146,8 @@
     <h2 data-zh="🔗 短链接生成器">🔗 Short Link Generator</h2>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-  <div class="formula-eq">短码 = base62(自增 ID) 或 hash(长链) 前 N 位<br>解析：短码 → 301/302 跳转原 URL</div>
-  <div class="formula-desc">短链的核心是「短码 ↔ 长链」的映射表。常见做法有两种：一是把自增 ID 做 base62 编码（ID 1234567 → 4k8x），短码长度随 ID 增长而缓慢变长，无碰撞；二是对长链做哈希后取前 N 位，长度固定但有碰撞风险，需冲突检测与再散列。跳转响应建议用 302（临时）以便统计每次点击，301（永久）会被浏览器缓存、导致后续点击无法计数。短码字符集建议剔除 0/O、1/l 等易混字符。</div>
+  <div class="formula-eq">短码 = 字符集[ hash(长链) 逐位取模 ]（同链稳定）<br>解析：短码 → 301/302 跳转原 URL</div>
+  <div class="formula-desc">短链的核心是「短码 ↔ 长链」的映射表。本工具对长链做 FNV-1a 哈希，再用确定性混合流按所选字符集逐位取模生成短码：同一条长链、同一组设置必得同一短码，不同长链的短码也不同（哈希仍有碰撞可能，真实服务需唯一索引兜底）。批量生成时序号也参与哈希，故一组短码固定且互不相同。跳转响应建议用 302（临时）以便统计每次点击，301（永久）会被浏览器缓存、导致后续点击无法计数。短码字符集建议剔除 0/O、1/l 等易混字符；本工具只生成映射码，不提供服务端存储与跳转。</div>
 </div>
 
     <label>原始 URL</label>
@@ -204,6 +204,7 @@
 <div class="dd-example"><div class="dd-ex-title">生成</div><div class="dd-ex-body">长链 `https://ex.com/a/b/c?x=1` → 短码 `ex.am/ab3kQ`（演示，非真实跳转）。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
+<dt>同一条长链会生成不同短码吗？</dt><dd>不会。长链内容参与哈希，同一 URL、同一设置（长度/数量/字符集）必得同一组短码；改变设置或 URL 才会变化。批量生成时序号也参与哈希，因此同一次生成的每条短码互不相同。</dd>
 <dt>短码会冲突吗？</dt><dd>需唯一索引保证不冲突。</dd>
 <dt>和真实短链服务差在哪？</dt><dd>真实服务需要服务端存储「短码 ↔ 长链」映射，并在访问时返回 301/302 跳转、同时记录点击统计。本工具只在本地生成字符串，没有服务端存储与跳转能力，因此生成的短码无法被其他人访问——它演示的是编码环节，而不是完整服务。</dd>
 </dl>
@@ -253,6 +254,27 @@
 </div>
 <script>
 function randInt(max){const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]%max;}
+// IT-N468：长链内容参与 FNV-1a 哈希，再用确定性混合流映射到所选字符集。
+// 同一 input 必得同一短码；混合流保证任意长度每一位都随哈希变化。
+function urlHash62(input, len, chars){
+  var h1=0x811c9dc5>>>0, h2=0x9e3779b9>>>0;
+  for(var i=0;i<input.length;i++){
+    var c=input.charCodeAt(i);
+    h1=Math.imul(h1^(c&255),0x01000193)>>>0;
+    h2=Math.imul(h2^(c>>>8),0x85ebca6b)>>>0;
+  }
+  var out='';
+  for(var j=0;j<len;j++){
+    h1^=h1<<13; h1>>>=0; h1^=h1>>>17; h1^=h1<<5; h1>>>=0;
+    h2=(h2+0x6d2b79f5)>>>0;
+    var t=h2;
+    t=Math.imul(t^(t>>>15),t|1);
+    t^=t+Math.imul(t^(t>>>7),t|61);
+    var mix=(h1^(t>>>0))>>>0;
+    out+=chars[mix%chars.length];
+  }
+  return out;
+}
 function generate(){
   const url=document.getElementById('url').value.trim();
   let domain=document.getElementById('domain').value.trim().replace(/\/+$/,'');
@@ -270,8 +292,8 @@ function generate(){
     html+='<div style="font-size:13px;color:var(--text-light);">原始 URL: '+escapeHtml(url)+'</div>';
   }else{
     for(let i=0;i<count;i++){
-      let slug='';
-      for(let j=0;j<len;j++)slug+=chars[randInt(chars.length)];
+      // IT-N468：序号参与哈希 ⇒ 同一 URL 的批量结果稳定且逐条不同。
+      let slug=urlHash62(url+'#'+i,len,chars);
       html+='<div class="code-row">'+escapeHtml(domain+'/'+slug)+'</div>';
     }
   }
