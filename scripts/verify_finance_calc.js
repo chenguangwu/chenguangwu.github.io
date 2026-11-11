@@ -24,6 +24,13 @@ const { runCase } = require("./verify_it_calc.js");
 // ---------------------------------------------------------------- 用例
 const CASES = [
   {
+    slug: "finance/word-search",
+    inputs: {},
+    clicks: ["var s=String(__tbn),g=String(__tbnRecordOnce),rs=String(render);document.getElementById('__tbProbe').textContent='WSMECH '+((typeof __tbnCur!=='undefined'&&g.indexOf('__tbnRecorded')>=0&&s.indexOf('var acc=__tbnCur')>=0&&s.indexOf('last.t!==now')>=0&&rs.indexOf('__tbn()')<0)?'OK':'BAD');"],
+    expect: ["WSMECH OK"],
+    ref: "第134批 F-N165 成绩历史恒 0：旧实现 __tbn 挂在 render 包装上、开局 found 为空记 0，acc 取 found.size，去重 last.v!==acc 让恒 0 只留一条。修复后 acc 取缓存 __tbnCur（endSelect 更新）、去重改 {t,v} 整体比对（last.t!==now）、记录走 __tbnRecordOnce 标志位、render 不再自动记成绩。四条同时命中才 OK；旧源码字符串均不满足 ⇒ 强判别、零逃生（默认态与注入态同为空 inputs，但锁的是实现机制，旧源码必 BAD）。"
+  },
+  {
     slug: "finance/report-1",
     inputs: { inv: "400000", pct: "80", capital: "500000", retained: "200000", premium: "0", profit: "150000", dec: "2" },
     clicks: ["calc()"],

@@ -251,6 +251,8 @@ function reset(){
   document.getElementById('output').textContent='点击"开始"开始游戏';
 }
 function newGame(){
+  // F-N165：开始新局前记录上一局成绩（此时 found/__tbnCur 还是上一局结果）
+  if(typeof found!=='undefined'&&found&&found.size>0&&typeof __tbnRecordOnce==='function') __tbnRecordOnce();
   grid=[];
   for(let r=0;r<SIZE;r++){
     grid.push(Array(SIZE).fill(''));
@@ -265,6 +267,7 @@ function newGame(){
     if(!grid[r][c])grid[r][c]=String.fromCharCode(65+Math.floor(Math.random()*26));
   }
   found=new Set();
+  __tbnSetCur(0); __tbnRecorded=false;
   render();
   document.getElementById('output').textContent=`找到 ${words.length} 个动物单词（拖动选择）`;
 }
@@ -365,10 +368,12 @@ function endSelect(){
   else if(words.includes(reversed))matched=reversed;
   if(matched&&!found.has(matched)){
     found.add(matched);
+    __tbnSetCur(found.size);   // F-N165：同步当前局成绩缓存
     cells.forEach(c=>{c.classList.remove('selecting');c.classList.add('found');});
     document.querySelector(`span[data-w="${matched}"]`).classList.add('found');
     if(found.size===words.length){
       const __h4='<p style="color:var(--success);">🎉 全部找到！</p>';if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h4;
+      if(typeof __tbnRecordOnce==='function') __tbnRecordOnce();   // F-N165：通关立即记一条最终成绩
     }else{
       document.getElementById('output').textContent=`已找到 ${found.size}/${words.length}`;
     }
@@ -468,9 +473,14 @@ document.addEventListener('DOMContentLoaded',function(){
 </div>
 <!-- /SEO 介绍区块 -->
 <script>
+// F-N165：开局 render 时 found 恒为空，成绩被记成 0；真实成绩在玩家找词过程中产生。
+// __tbnCur 缓存当前局已找到词数（由 endSelect 更新），__tbnRecorded 保证每局只记一条。
+var __tbnCur = 0, __tbnRecorded = false;
+function __tbnSetCur(v){ if(typeof v==='number'&&isFinite(v)&&v>=0) __tbnCur=v; }
+function __tbnRecordOnce(){ if(__tbnRecorded) return; __tbnRecorded=true; try{__tbn();}catch(e){} }
 var __tbn=function(){
   if(typeof TBKit==='undefined')return;
-  var acc=(function(){return (typeof found!=='undefined'&&found.size)?found.size:0;})();
+  var acc=__tbnCur;
   if(typeof acc!=='number'||!isFinite(acc)||acc<0)return;
   var EN=false;try{EN=TBKit.util.isEn();}catch(e){}
   var LBL=EN?'Words Found':'已找到词数'; // F-N167：英文分支原与中文分支字面相同，英文态泄漏 CJK
@@ -479,8 +489,11 @@ var __tbn=function(){
   var KEY='__tbn_word_search';
   var hist=[];try{hist=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){hist=[];}
   if(!Array.isArray(hist))hist=[];
+  // F-N165：旧去重 last.v!==acc 让连续同分（尤其恒 0）只留一条 ⇒ 历史永不增长、趋势不出现。
+  // 改为 {t,v} 整体比对：不同时刻即为不同局，各记一条。
+  var now=Date.now();
   var last=hist[hist.length-1];
-  if(!last||last.v!==acc){hist.push({t:Date.now(),v:acc});}
+  if(!last||last.t!==now||last.v!==acc){hist.push({t:now,v:acc});}
   if(hist.length>30)hist=hist.slice(-30);
   try{localStorage.setItem(KEY,JSON.stringify(hist));}catch(e){}
   var __rec={};__rec[LBL]=acc;if(TBKit.history&&TBKit.history.record)TBKit.history.record(__rec);
@@ -501,7 +514,8 @@ var __tbn=function(){
 function __word_searchBoot(){ try{ start(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __word_searchBoot();
 else document.addEventListener('DOMContentLoaded', __word_searchBoot);
-var __f0=render;render=function(){var __r=__f0.apply(null,arguments);__tbn();return __r;};
+// F-N165：不再在 render（开局）里自动记录成绩——那会在 found 为空时记 0。
+// 成绩改由 newGame（上一局收尾）与 endSelect 通关处按真实 found.size 记录。
 </script>
 </body>
 </html>
