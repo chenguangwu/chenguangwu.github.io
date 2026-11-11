@@ -97,9 +97,10 @@
     <h2 data-zh="🧮 CSS clamp 计算器">🧮 CSS clamp Calculator</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="响应式字号 clamp() 计算器：输入最小/首选/最大字号与视口范围，生成流畅缩放表达式并实时预览。">Calculate CSS clamp() values in your browser — find the responsive min, preferred and max for any range.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">clamp 生成：斜率 = (期望值 − 最小值) ÷ (最小视口 ÷ 100)（vw/100vw），截距 = 期望值 − 斜率 × 最小视口 ÷ 100；表达式 = clamp(最小px, 斜率vw + 截距px, 最大px)</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">clamp 生成：最小值锁定最小视口，首选值锁定视口中点，最大值锁定最大视口；中间按两段线性折线生成 clamp(min, min/max(线段1, 线段2), max)</div>
   <div class="formula-desc">计算 CSS clamp() 的中间值与取值区间，辅助流式排版。</div>
   <ul class="formula-list">
+    <li><b>首选字号</b>：本工具把首选字号定义为视口中点的目标字号，预览与表达式使用同一条折线。</li>
     <li><b>语法</b>：<code>clamp(min, preferred, max)</code>，结果被限制在 [min, max] 之间。</li>
     <li><b>求值</b>：preferred 小于 min 取 min，大于 max 取 max，否则取 preferred。</li>
     <li><b>流式字号</b>：preferred 常写作含 vw 的表达式（如 <code>2vw + 1rem</code>），随视口平滑变化。</li>
@@ -155,7 +156,7 @@
 <li>生成响应式字号 clamp(min, preferred, max)。</li>
 <li>做流式排版：把标题字号设为 clamp(1.25rem, 4vw, 2rem)，小屏不小于 20px、大屏不超过 32px，中间按视口宽度线性缩放，省去多个断点。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">生成</div><div class="dd-ex-body">视口 320–1280px、期望 16–24px：clamp(16px, 1rem + 0.625vw, 24px)（约在 320px=16、1280px=24）。</div></div>
+<div class="dd-example"><div class="dd-ex-title">生成</div><div class="dd-ex-body">视口 320–1280px、期望 16–24px：clamp(16px, 0.833vw + 13.334px, 24px)（约在 320px=16、1280px=24）。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>preferred 用 vw 还是 %？</dt><dd>字体用 vw，因 % 相对父字号而非视口。</dd>
@@ -254,41 +255,91 @@
 <script>
 function escH(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function fmt(n){return Math.round(n*100)/100;}
+function fmtMath(n){return Math.round(n*1000)/1000;}
+function clampLine(s,r){return fmtMath(s)+'vw '+(r<0?'- '+fmtMath(-r):'+ '+fmtMath(r))+'px';}
+function clampText(key){
+  var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+  var m={
+    positive: en?'Sizes and viewports must be positive numbers':'字号与视口必须是有效正数',
+    viewport: en?'Minimum viewport must be smaller than maximum viewport':'最小视口必须小于最大视口',
+    range: en?'Require minimum ≤ preferred ≤ maximum':'必须满足：最小字号 ≤ 首选字号 ≤ 最大字号',
+    empty: en?'No expression to copy':'没有可复制的表达式',
+    copied: en?'Copied':'已复制',
+    previewSize: en?'Responsive font preview ':'响应式字体效果预览 ',
+    generated: en?'Generated expression: ':'生成表达式：',
+    bounds: en?'Bounds: ':'边界校验：',
+    mid: en?'midpoint ':'中点',
+    rule: en?'Minimum at the smallest viewport, preferred at the midpoint, maximum at the largest viewport; the preview and expression share the same polyline.':'最小字号→最小视口，首选字号→视口中点，最大字号→最大视口；预览与表达式共用同一条折线。'
+  };
+  return m[key]||'';
+}
+function clampConfig(){
+  var ids=['min','pref','max','vwMin','vwMax'];
+  var vals={};
+  for(var i=0;i<ids.length;i++){
+    var el=document.getElementById(ids[i]);
+    vals[ids[i]]=el?String(el.value):'';
+    if(vals[ids[i]].trim()==='') return {err:clampText('positive')};
+  }
+  var m=Number(vals.min),p=Number(vals.pref),x=Number(vals.max),a=Number(vals.vwMin),b=Number(vals.vwMax);
+  var nums=[m,p,x,a,b];
+  for(var j=0;j<nums.length;j++){if(!isFinite(nums[j])||nums[j]<=0) return {err:clampText('positive')};}
+  if(a>=b) return {err:clampText('viewport')};
+  if(m>p||p>x) return {err:clampText('range')};
+  var mid=(a+b)/2;
+  var single=Math.abs(p-(m+x)/2)<1e-9;
+  var s1,r1,s2,r2,inner,evaluate;
+  if(single){
+    s1=fmtMath((x-m)/(b-a)*100); r1=fmtMath(m-s1*a/100);
+    inner=clampLine(s1,r1);
+    evaluate=function(v){return Math.max(m,Math.min(x,s1*v/100+r1));};
+  }else{
+    s1=fmtMath(2*(p-m)/(b-a)*100); r1=fmtMath(m-s1*a/100);
+    s2=fmtMath(2*(x-p)/(b-a)*100); r2=fmtMath(p-s2*mid/100);
+    var join=s1>=s2?'min':'max';
+    inner=join+'('+clampLine(s1,r1)+', '+clampLine(s2,r2)+')';
+    evaluate=function(v){
+      var y1=s1*v/100+r1, y2=s2*v/100+r2;
+      return Math.max(m,Math.min(x,join==='min'?Math.min(y1,y2):Math.max(y1,y2)));
+    };
+  }
+  return {min:m,pref:p,max:x,vwMin:a,vwMax:b,mid:mid,inner:inner,
+    expr:'clamp('+fmt(m)+'px, '+inner+', '+fmt(x)+'px)',evaluate:evaluate};
+}
 function calc(){
-  var min=parseFloat(document.getElementById('min').value)||16;
-  var pref=parseFloat(document.getElementById('pref').value)||24;
-  var max=parseFloat(document.getElementById('max').value)||48;
-  var vwMin=parseFloat(document.getElementById('vwMin').value)||375;
-  var vwMax=parseFloat(document.getElementById('vwMax').value)||1440;
-  if(vwMin>=vwMax){document.getElementById('result').innerHTML='<p style="color:var(--danger)">最小视口必须小于最大视口</p>';return;}
-  if(pref<min||pref>max){document.getElementById('result').innerHTML='<p style="color:var(--danger)">首选值必须介于最小值与最大值之间</p>';return;}
-  // 线性插值：在 vwMin 时取 preferred，在 vwMax 时取 max；min 作为下限钳制
-  var slope=(max-pref)/(vwMax-vwMin)*100;   // 每 100vw 增长 px
-  var rem=pref-slope*vwMin/100;
-  var vw=slope;
-  var clamp='clamp('+fmt(min)+'px, '+fmt(vw)+'vw + '+fmt(rem)+'px, '+fmt(max)+'px)';
-  const __g2='<p>生成表达式：<code style="background:rgba(0,0,0,.05);padding:4px 10px;border-radius:8px;font-size:14px;">'+escH(clamp)+'</code></p>'+
-    '<p style="font-size:12px;color:var(--muted,#6B7280);">斜率 '+fmt(vw)+'vw · 截距 '+fmt(rem)+'px · 视口 '+vwMin+'~'+vwMax+'px</p>';document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
-  window._clamp=clamp;
+  var cfg=clampConfig();
+  if(cfg.err){
+    window._clamp=''; window.__clampConfig=null;
+    document.getElementById('result').innerHTML='<p style="color:var(--danger)">'+escH(cfg.err)+'</p>';
+    slide();
+    return;
+  }
+  var lo=fmt(cfg.evaluate(cfg.vwMin)), mid=fmt(cfg.evaluate(cfg.mid)), hi=fmt(cfg.evaluate(cfg.vwMax));
+  var html='<p>'+clampText('generated')+'<code style="background:rgba(0,0,0,.05);padding:4px 10px;border-radius:8px;font-size:14px;">'+escH(cfg.expr)+'</code></p>'+
+    '<p style="font-size:12px;color:var(--muted,#6B7280);">'+clampText('bounds')+fmt(cfg.vwMin)+'px='+lo+'px · '+clampText('mid')+fmt(cfg.mid)+'px='+mid+'px · '+fmt(cfg.vwMax)+'px='+hi+'px</p>'+
+    '<p style="font-size:12px;color:var(--muted,#6B7280);">'+clampText('rule')+'</p>';
+  document.getElementById('result').innerHTML=html;
+  window._clamp=cfg.expr;
+  window.__clampConfig=cfg;
   slide();
 }
 function slide(){
-  var w=parseInt(document.getElementById('slider').value)||800;
-  const __g3=w;document.getElementById('vwNow').textContent=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
-  var min=parseFloat(document.getElementById('min').value)||16;
-  var pref=parseFloat(document.getElementById('pref').value)||24;
-  var max=parseFloat(document.getElementById('max').value)||48;
-  var vwMin=parseFloat(document.getElementById('vwMin').value)||375;
-  var vwMax=parseFloat(document.getElementById('vwMax').value)||1440;
-  var slope=(max-pref)/(vwMax-vwMin)*100;
-  var rem=pref-slope*vwMin/100;
-  var size=fmt(Math.max(min,Math.min(max,rem+slope*w/100)));
-  document.getElementById('preview').style.fontSize=size+'px';
+  var el=document.getElementById('slider');
+  var w=parseInt(el&&el.value,10); if(!isFinite(w))w=800;
+  document.getElementById('vwNow').textContent=String(w);
+  var cfg=window.__clampConfig||clampConfig();
+  var pv=document.getElementById('preview');
+  if(cfg.err||!cfg.evaluate){pv.style.fontSize='';return;}
+  var size=fmt(cfg.evaluate(w));
+  pv.style.fontSize=size+'px';
+  pv.textContent=clampText('previewSize')+'('+size+'px)';
 }
 function copyClamp(){
-  if(!window._clamp){calc();if(!window._clamp){if(ToolBox.showToast)ToolBox.showToast(i18nText());return;}}
-  ToolBox.copyText(window._clamp);
-  if(ToolBox.showToast)ToolBox.showToast('已复制 '+window._clamp.slice(0,40)+'...');
+  var v=window._clamp;
+  if(!v){calc();v=window._clamp;}
+  if(!v){if(ToolBox.showToast)ToolBox.showToast(clampText('empty'));return;}
+  ToolBox.copyText(v);
+  if(ToolBox.showToast)ToolBox.showToast(clampText('copied')+' '+v.slice(0,40)+'...');
 }
 calc();
 

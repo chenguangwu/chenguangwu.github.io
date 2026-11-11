@@ -1319,11 +1319,11 @@ const CASES = [
   },
   {
     slug: "it/clamp-calculator",
-    // 页面按「vwMin→preferred、vwMax→max」线性插值：slope=(max−pref)/(vwMax−vwMin)×100，rem=pref−slope×vwMin/100；min 为下限钳制。
-    // 注入 min=10 / max=100 / vwMin=50（pref 用默认 24、vwMax 默认 1440）⇒ slope=(100−24)/13.9≈5.4676→5.47vw、rem=24−5.4676×0.5≈21.266→21.27。
+    // IT-N291/N292：首选值锁定视口中点，min/max 锁定两端；中间两段折线共用同一函数。
+    // 注入 min=10 / max=100 / vwMin=50（pref 用默认 24、vwMax 默认 1440）⇒ 中点745px，两段分别 2.014vw+8.993px 与 10.935vw−57.466px。
     inputs: { min: "10", max: "100", vwMin: "50" },
-    expect: ["生成表达式： clamp(10px, 5.47vw + 21.27px, 100px)"],
-    ref: "独立复算：slope=(100−24)/(1440−50)×100=5.4676 ⇒ 5.47vw；截距 rem=24−5.4676×50/100=21.266 ⇒ 21.27px；min=10 仅作下限 ⇒ clamp(10px, 5.47vw + 21.27px, 100px)。默认 min/max/vwMin 为 16/48/375，表达式不同 ⇒ 不命中。",
+    expect: ["生成表达式： clamp(10px, max(2.014vw + 8.993px, 10.935vw - 57.466px), 100px)"],
+    ref: "IT-N291 独立复算：中点=(50+1440)/2=745；slope1=2×(24−10)/1390×100=2.014vw，r1=10−2.014×0.5=8.993px；slope2=2×(100−24)/1390×100=10.935vw，r2=24−10.935×7.45=−57.466px；slope1<slope2 ⇒ max(...)；clamp(10px, max(2.014vw + 8.993px, 10.935vw - 57.466px), 100px)。旧实现按 pref 锚定单线 5.47vw+21.27px，不命中；默认参数不命中。",
   },
   {
     slug: "it/confidence-interval",
@@ -6265,8 +6265,31 @@ const CASES = [
   {
     slug: "it/clamp-calculator",
     inputs: { min: "10", pref: "30", max: "60", vwMin: "320", vwMax: "1200" },
-    expect: ["clamp(10px, 3.41vw + 19.09px, 60px)"],
-    ref: "注入非默认(默认 16/24/48/375/1440)：slope=(max−pref)/(vwMax−vwMin)×100=(60−30)/880×100≈3.40909→3.41vw；rem=pref−slope×vwMin/100=30−3.40909×3.2≈19.0909→19.09；min 为下限 ⇒ clamp(10px, 3.41vw + 19.09px, 60px)。默认态表达式不同，本例不命中。"
+    expect: ["clamp(10px, max(4.545vw - 4.544px, 6.818vw - 21.817px), 60px)"],
+    ref: "IT-N291 独立复算（默认 16/24/48/375/1440）：中点760；slope1=2×(30−10)/880×100=4.545，r1=10−4.545×3.2=−4.544；slope2=2×(60−30)/880×100=6.818，r2=30−6.818×7.6=−21.817；取 max(...) 并 clamp 到 10/60。旧实现 3.41vw+19.09px 不命中。"
+  },
+  {
+    slug: "it/clamp-calculator",
+    // IT-N291/N292：默认值下最小视口必须命中 min，中点命中 pref，最大视口命中 max。
+    inputs: { min: "12", pref: "18", max: "36", vwMin: "320", vwMax: "768", slider: "544" },
+    expect: ["320px=12px · 中点544px=18px · 768px=36px"],
+    ref: "IT-N291 独立复算（非默认）：中点=(320+768)/2=544；两段折线在最小视口给 12px、中点给 18px、最大视口给 36px。旧实现最小视口给 18px、提前封顶 36px，不命中；默认 16/24/48/375/1440 不命中。"
+  },
+  {
+    slug: "it/clamp-calculator",
+    // IT-N292：只改 pref，表达式与预览必须同步变化；预览共用同一条折线。
+    clicks: ["calc();var p=document.getElementById('preview').style.fontSize;var h=String(document.getElementById('result').innerHTML);var ok=h.indexOf('min(4.507vw - 0.901px, 1.502vw + 26.369px)')>=0;document.getElementById('__tbProbe').textContent='PREF40 EXPR '+(ok?'OK':'BAD')+' PREVIEW '+p;"],
+    inputs: { min: "16", pref: "40", max: "48", vwMin: "375", vwMax: "1440", slider: "800" },
+    expect: ["PREF40 EXPR OK PREVIEW 35.15px"],
+    ref: "IT-N292 独立复算：中点907.5，slope1=4.507>r2段 1.502 ⇒ min(...)；800px 处取 max(16,min(48,1.502×8+26.369))=35.15px。旧实现改 pref 只得到 0.75vw+37.18px、预览 43.19px，不命中。"
+  },
+  {
+    slug: "it/clamp-calculator",
+    // IT-N293：min>max、空输入、视口倒置三类非法输入必须显式报错并清掉旧表达式。
+    clicks: ["var r=[];function set(o){for(var k in o)document.getElementById(k).value=o[k];calc();r.push(String(document.getElementById('result').innerHTML).replace(/<[^>]+>/g,'').slice(0,40));}set({min:'48',pref:'40',max:'16',vwMin:'375',vwMax:'1440'});set({min:'',pref:'24',max:'48',vwMin:'375',vwMax:'1440'});set({min:'16',pref:'24',max:'48',vwMin:'1440',vwMax:'375'});document.getElementById('__tbProbe').textContent='VALID '+r.join('|');"],
+    inputs: { min: "12", pref: "18", max: "36", vwMin: "320", vwMax: "768" },
+    expect: ["必须满足：最小字号 ≤ 首选字号 ≤ 最大字号|字号与视口必须是有效正数|最小视口必须小于最大视口"],
+    ref: "IT-N293 三类非法输入依次注入；旧实现把空 min 静默回退 16、min>max 只给「首选值必须介于…」且保留旧 _clamp，三段串无法同时命中。"
   },
   {
     slug: "it/hypergeometric-distribution",
