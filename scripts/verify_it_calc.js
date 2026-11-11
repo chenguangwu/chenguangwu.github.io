@@ -11049,6 +11049,14 @@ const CASES = [
     "ref": "注入 mock 编码器后调 renderQR(注入URL, 'Q')：真实现必传 level=Q、addData 注入 URL、调 make、切 UTF-8 并返回 {qr} 对象 ⇒ 探针串含注入值。旧假实现 strHash/pseudoRandom 自造点阵，全程不碰 qrcode ⇒ NA/ARR，判别明确。默认态不执行探针。"
   },
   {
+    "slug": "it/url-qr",
+    // IT-N457：尺寸下拉必须真正改变 canvas 边长；drawQR 不再固定 cell=8。
+    "inputs": { "url": "https://github.com" },
+    "clicks": ["var _c=[];globalThis.qrcode=function(){return {addData:function(){},make:function(){},getModuleCount:function(){return 25;},isDark:function(){return false;}};};var _ce=document.createElement.bind(document);document.createElement=function(t){var e=_ce(t);if(t==='canvas'){e.getContext=function(){return {fillStyle:'',fillRect:function(){}};};_c.push(e);}return e;};function _sz(px){document.getElementById('qrSize').value=String(px);generate();return _c.length?_c[_c.length-1].width:0;}var w128=_sz(128),w512=_sz(512);document.createElement=_ce;document.getElementById('__tbProbe').textContent='SIZE '+w128+'/'+w512;"],
+    "expect": ["SIZE 128/512"],
+    "ref": "注入 mock 编码器（固定 25 模块）+ 捕获 createElement('canvas')，切尺寸 128 与 512 各调 generate()：真实现 canvas.width 必分别为 128/512 ⇒ 探针 SIZE 128/512。旧实现无尺寸控件、drawQR 固定 cell=8 ⇒ createElement('qrSize') 取不到且宽度恒 232/232，判别明确。"
+  },
+  {
     "slug": "it/url-parser",
     "inputs": {
       "b-hostname": "abc123测试",

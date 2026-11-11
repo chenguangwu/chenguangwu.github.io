@@ -156,6 +156,13 @@ canvas{background:#fff;border:6px solid #fff;border-radius:8px;box-shadow:var(--
       <option value="Q">Q（约 25% 恢复能力）</option>
       <option value="H">H（约 30% 恢复能力）</option>
     </select>
+    <label for="qrSize">输出尺寸（像素，正方形边长）</label>
+    <select id="qrSize" onchange="generate()" style="margin-bottom:12px;">
+      <option value="128">128 × 128（小图标）</option>
+      <option value="256" selected>256 × 256（屏幕显示，推荐）</option>
+      <option value="512">512 × 512（高清分享）</option>
+      <option value="1024">1024 × 1024（打印物料）</option>
+    </select>
     <div class="toolbar">
       <div id="url_qrPresets"></div><button type="button" class="btn primary" onclick="generate()">生成</button><button class="btn" type="button" onclick="__url_qrExport()">导出明细 CSV</button>
       <button type="button" class="btn success" onclick="copyResult()">复制</button>
@@ -274,11 +281,13 @@ function renderQR(text, level){
     return {qr:qr, n:qr.getModuleCount()};
   }catch(e){ return null; }
 }
-function drawQR(qr){
-  const n=qr.getModuleCount(),margin=4,cell=8,size=(n+margin*2)*cell;
+function drawQR(qr, px){
+  const n=qr.getModuleCount(),margin=4,total=n+margin*2;
+  const size=Math.round(px>0?px:256);
+  const cell=size/total; // 用浮点单元尺寸把总边长精确落在所选像素，避免整除取整导致尺寸漂移
   const canvas=document.createElement('canvas');canvas.width=size;canvas.height=size;
   const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,size,size);ctx.fillStyle='#000';
-  for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(qr.isDark(r,c))ctx.fillRect((c+margin)*cell,(r+margin)*cell,cell,cell);
+  for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(qr.isDark(r,c))ctx.fillRect((c+margin)*cell,(r+margin)*cell,cell+0.5,cell+0.5);
   return canvas;
 }
 function __qrIsEn(){
@@ -291,17 +300,20 @@ function generate(){
   if(!/^https?:\/\//i.test(url))url='https://'+url;
   const eclEl=document.getElementById('ecl');
   const level=eclEl?eclEl.value:'M';
+  const sizeEl=document.getElementById('qrSize');
+  const px=sizeEl?(parseInt(sizeEl.value,10)||256):256;
   const plan=qrPlan(url,level);
   const en=__qrIsEn();
+  const pxText=en?(' · '+px+'×'+px+' px'):(' · 输出 '+px+'×'+px+' 像素');
   const info=en
     ? '<div class="qr-info">'+plan.bytes+' bytes · EC level '+plan.level
-      +(plan.version?(' · minimum version V'+plan.version+' ('+plan.modules+'×'+plan.modules+' modules)'):' · beyond V10, full encoder picks a larger version')+'</div>'
+      +(plan.version?(' · minimum version V'+plan.version+' ('+plan.modules+'×'+plan.modules+' modules)'):' · beyond V10, full encoder picks a larger version')+pxText+'</div>'
     : '<div class="qr-info">内容 '+plan.bytes+' 字节 · 纠错等级 '+plan.level
-      +(plan.version?(' · 最小版本 V'+plan.version+'（'+plan.modules+'×'+plan.modules+' 模块）'):' · 超出 V10 容量，按完整编码器自动选版')+'</div>';
+      +(plan.version?(' · 最小版本 V'+plan.version+'（'+plan.modules+'×'+plan.modules+' 模块）'):' · 超出 V10 容量，按完整编码器自动选版')+pxText+'</div>';
   const out=document.getElementById('output');
   out.innerHTML='<div class="qr-wrap"></div>'+info+'<div class="qr-text">'+escapeHtml(url)+'</div>';
   const real=renderQR(url,level);
-  if(real) out.querySelector('.qr-wrap').appendChild(drawQR(real.qr));
+  if(real) out.querySelector('.qr-wrap').appendChild(drawQR(real.qr, px));
   else out.querySelector('.qr-wrap').innerHTML='<p style="color:var(--danger)">'+(en?'QR encoder not loaded; cannot render the matrix.':'二维码编码库未加载，无法绘制矩阵。')+'</p>';
 }
 function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}

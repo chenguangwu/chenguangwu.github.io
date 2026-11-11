@@ -2552,15 +2552,6 @@
 
 ## W 批 · IT URL/签名/安全（2026-11-04）
 
-### IT-N457 描述承诺"可调尺寸与容错"，界面无任何尺寸 / 纠错控件（中，承诺未实现）
-- 页面：`tools/it/url-qr.html`
-- 问题：`<meta name="description">`（`:10`）与 og:description 写"可调尺寸与容错"，`formula-eq`（`:156`）按"纠错等级 M"说明，但表单只有网址输入（`:161`）；`renderQR` 固定 29×29，`drawQR` 固定 `cell=8`（`:248`、`:269`）。
-- 行号：`:10`、`:156`、`:161`、`:248`、`:269`
-- 复现：查找尺寸/纠错选项 → 实际不存在，输出恒为 232px、固定密度；期望能设尺寸与 L/M/Q/H。
-- 影响：SERP 与分享卡片承诺的能力并不存在。
-- 方案：补尺寸与纠错等级下拉并接入编码器，或从描述中删掉该承诺。
-- 假工具：否
-
 ### IT-N458 空标题/描述仍输出 `content=""`，缺必填项也不告警（中，产出错误标签）
 - 页面：`tools/it/og-meta-tag-generator.html`
 - 问题：`formula-eq`（`:113`）明确写"有值字段才输出"，实际 `build()` 无条件输出 `og:title`/`og:description`/`twitter:title`/`twitter:description`（`:290-291`、`:300-301`），值为空时得到 `content=""`；缺图片/URL 时反而省略了必填的 `og:image`/`og:url`（`:292-293`），与 `:117` 的"必填四项"相悖，结果区仍按 `^<meta` 计数报"已生成 N 条"（`:304-305`）。
@@ -2616,7 +2607,7 @@
 - 假工具：否
 
 ### 覆盖清单（W 批 IT URL/签名/安全）
-- `url-qr`：IT-N457（中，尺寸承诺）；IT-N456 已销账（真编码器复核通过，第183批）。
+- `url-qr`：无剩余缺陷（IT-N456 真编码器、IT-N457 纠错+尺寸双控件均已销账，第183–184批）。
 - `og-meta-tag-generator`：IT-N458（中）；无高优缺陷（`escA` 先转 `&` 再转 `"`，输出走 `textarea.value`，属性上下文不可注入）。
 - `http-response-headers`：IT-N459（中）；无高优缺陷（`renderCommands` 对全部字段走 `escapeHtml`，搜索/复制路径无注入）。
 - `api-sign-generator`：IT-N460（高，安全）、IT-N461（高）；IT-N462（中）。
