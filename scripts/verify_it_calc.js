@@ -2660,6 +2660,14 @@ const CASES = [
     ref: "注入 payload 参数 `<img src=x onerror=alert(1)>=1`：修复后 escHtml 把 < > 转成 &lt; &gt;，out.innerHTML 必含整段转义串 `&lt;img src=x onerror=alert(1)&gt;=1&secret=s` ⇒ 匹配。缺陷态（5640fa93c6^）原样拼接 ⇒ 裸 `<img onerror>` 入 DOM、无该转义串 ⇒ 不匹配。默认态 params 为正常键值、不含 payload ⇒ 判别明确。"
   },
   {
+    slug: "it/api-sign-generator",
+    // IT-N462：parseParams 必须把 a=1&b=2&c=3 解析成 3 个参数（预设用 & 分隔）。
+    inputs: { secret: "s", params: "a=1&b=2&c=3", algo: "sha256" },
+    clicks: ["var p=parseParams(),k=Object.keys(p);document.getElementById('__tbProbe').textContent='PP '+k.length+' '+(p.a||'')+'/'+(p.b||'')+'/'+(p.c||'');"],
+    expect: ["PP 3 1/2/3"],
+    ref: "注入 `a=1&b=2&c=3`：IT-N462 修复后 parseParams 按 [\\n&] 切分 ⇒ 3 键 a=1/b=2/c=3 ⇒ 探针 PP 3 1/2/3。旧实现只按换行切 ⇒ 1 键 a='1&b=2&c=3' ⇒ PP 1 1&b=2&c=3//，判别明确。默认态 params 正常键值、不执行探针。"
+  },
+  {
     slug: "it/http-status",
     inputs: { search: "zzz" },
     expect: ["No matching status code."],

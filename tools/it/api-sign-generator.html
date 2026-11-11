@@ -300,13 +300,18 @@ async function hmacHex(secret, s) {
 }
 
 function parseParams() {
-  const lines = (document.getElementById('params').value || '').split('\n');
+  // IT-N462：同时支持每行一条（k=v\n）与 URL 查询串风格（k=v&k=v）两种输入，
+  // 预设里的 a=1&b=2&c=3 必须解析成 3 个参数，而不是 1 个 key 带 & 的值。
+  const raw = (document.getElementById('params').value || '').replace(/\r/g, '');
+  const entries = raw.split(/[\n&]/);
   const obj = {};
-  for (const line of lines) {
-    const i = line.indexOf('=');
+  for (const line of entries) {
+    const t = line.trim();
+    if (!t) continue;
+    const i = t.indexOf('=');
     if (i <= 0) continue;
-    const k = line.slice(0, i).trim();
-    const v = line.slice(i + 1).trim();
+    const k = t.slice(0, i).trim();
+    const v = t.slice(i + 1).trim();
     if (k) obj[k] = v;
   }
   return obj;
@@ -406,7 +411,7 @@ function __api_sign_generatorRender(keys,rk,en){
                     if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
                     else{e.value=rec[k];}
                 }
-                copyResult();
+                runSign();
             }catch(e2){}
             __api_sign_generator_skip=false;
         });
@@ -468,7 +473,7 @@ function __api_sign_generatorPresets(){
     TBKit.preset.bar('#api_sign_generatorPresets',[{label:'默认参数',labelEn:'Default',values:{'algo':'md5', 'secret':'test_secret'}},
   {'label':'SHA256·参数','labelEn':'SHA256 params','values':{'secret':'my_secret_key','algo':'sha256','params':'a=1&b=2&c=3'}},
   {'label':'MD5·订单','labelEn':'MD5 order','values':{'secret':'app_secret_xyz','algo':'md5','params':'user=alice&action=buy&ts=1700000000'}},
-  {'label':'SHA256·分页','labelEn':'SHA256 page','values':{'secret':'token2024','algo':'sha256','params':'page=1&limit=20&sort=desc'}}],function(){ copyResult(); });
+  {'label':'SHA256·分页','labelEn':'SHA256 page','values':{'secret':'token2024','algo':'sha256','params':'page=1&limit=20&sort=desc'}}],function(){ runSign(); });
 }
 var __api_sign_generator_f0=(typeof copyResult==='function')?copyResult:null;
 if(__api_sign_generator_f0){

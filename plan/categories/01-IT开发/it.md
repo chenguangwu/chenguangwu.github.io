@@ -2570,14 +2570,6 @@
 - 方案：删除请求头或单列"请求头"分类；去掉重复的 `ETag` / `Last-Modified`。
 - 假工具：否
 
-### IT-N462 预设 / 历史回调调 `copyResult` 不重算，且预设参数用 `&` 分隔被解析成单个值（中，结果错误）
-- 页面：`tools/it/api-sign-generator.html`
-- 问题：预设 bar 与历史恢复的回调都传 `function(){ copyResult(); }`（`:425`、`:373`），`copyResult` 只复制不计算，参数框也没有 `oninput` 重算；预设 `params` 写成 `'a=1&b=2&c=3'`（`:423`、`:425`），而 `parseParams` 只按 `\n` 切分（`:281`）。
-- 行号：`:281`、`:422-425`（预设值 `:423`、`:425`；回调 `:425`）、`:373`
-- 复现：点「SHA256·参数」→ 实际参数框变成单行 `a=1&b=2&c=3`，node 复算 `parseParams` 得 `{a:"1&b=2&c=3"}`（1 个参数），结果区仍是上一轮签名；期望解析成 3 个参数并重算，得 HMAC `1faea69380f0ed8d2c2b6c5aca63df82a7860a473e55a9f75e8c348d5ec3d106`（规范串 `a=1&b=2&c=3`）。
-- 影响：预设点了没反应，照着预设学的人会拿到与文档不符的规范化串，签名全错。
-- 方案：回调改 `runSign()`；预设 `params` 改换行分隔，或让 `parseParams` 同时按 `&` 切分。
-- 假工具：否
 
 ### IT-N463 解密按"纯十六进制"猜格式，Base64 密文恰为 hex 时被误当 Hex 解出乱码（中，结果错误）
 - 页面：`tools/it/rc4.html`
@@ -2592,7 +2584,7 @@
 - `url-qr`：无剩余缺陷（IT-N456 真编码器、IT-N457 纠错+尺寸双控件均已销账，第183–184批）。
 - `og-meta-tag-generator`：IT-N458（中）；无高优缺陷（`escA` 先转 `&` 再转 `"`，输出走 `textarea.value`，属性上下文不可注入）。
 - `http-response-headers`：IT-N459（中）；无高优缺陷（`renderCommands` 对全部字段走 `escapeHtml`，搜索/复制路径无注入）。
-- `api-sign-generator`：IT-N462（中）。IT-N460（XSS 转义）、IT-N461（真 MD5）均已销账（第185–186批）。
+- `api-sign-generator`：无剩余缺陷（IT-N460 XSS、IT-N461 真 MD5、IT-N462 预设重算均已销账，第185–187批）。
 - `rc4`：IT-N463（中）；无高优缺陷（`rc4()` 与 `RC4-drop` 主路径对照已知向量 `Key`/`Plaintext` → `bbf316e8d940af0ad3` 正确，KSA/PRGA 无死循环）。
 - `js-minify`：无剩余高优/中优缺陷（IT-N464 已改为轻量词法扫描，保留字符串/正则/模板串与换行，第182批销账；结果渲染走 `escH`，无注入）。
 - `url-params`：无剩余高优/中优缺陷（IT-N465/IT-N466/IT-N467 均已修复，第178–179批补独立锁与真机复核后销账）。
