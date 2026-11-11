@@ -71,6 +71,18 @@ if (typeof globalThis.mermaid === "undefined") {
 
 const ROOT = path.join(__dirname, "..");
 
+// 共享条码库在页面里由 <script src> 加载，harness 不加载外部脚本。
+// 这里在独立 vm 沙箱里加载一次，只暴露给需要直接测编码库的用例（Code128 A/B 切换），
+// 不覆盖页面用的 ToolBoxBarcode 桩，避免影响其他条码页用例。
+try {
+  const _vm = require("vm");
+  const _sandbox = {};
+  _vm.runInNewContext(fs.readFileSync(path.join(ROOT, "js/barcode-lib.js"), "utf8"), _sandbox);
+  globalThis.__tbBarcodeLibForVerify = _sandbox.ToolBoxBarcode || null;
+} catch (e) {
+  globalThis.__tbBarcodeLibForVerify = null;
+}
+
 // ToolBox 早期 API 桩（/js/toolbox-stub.js）源缓存：页面已将该桩外链化（<script src>），
 // 本 harness 不加载外部脚本，故在用例上下文里显式以同内容注入，使 harness 的 window.ToolBox
 // 与生产设备一致：补全 qs/qsa/debounce/resolveCanvasColor/canvasColorWithAlpha/i18nText 等
@@ -484,6 +496,20 @@ const CASES = [
     ref: "条码族 deepdive 示例一致性（自查续批）：Code 128 示例改为任意 ASCII 文本 ABC-1234，页面 generate() 确实把它原文交给编码库（校验符号由编码库自动算，页面不要求用户补位）。外部编码库在门禁里以桩替身捕获调用参数；默认输入 ABC-1234 虽相同，但探针 C128= 只在注入 clicks 后出现 ⇒ 非回显、强判别。",
   },
   {
+    slug: "it/barcode-code128",
+    // IT-N124：共享码库必须支持 ASCII 0~127 的 A/B 子集切换。
+    clicks: ["var L=globalThis.__tbBarcodeLibForVerify,r=L?L.code128('a\\u0001'):null,t=L?L.code128('\\u0001~'):null;document.getElementById('__tbProbe').textContent='C128MIX '+(r&&r.ok?'OK':'BAD')+' '+(r&&r.detail?r.detail.subset:'-')+' '+(t&&t.ok?t.detail.subset:'-');"],
+    expect: ["C128MIX OK B/A A/B"],
+    ref: "IT-N124：'a\\u0001' 需 B→A（100→101 编码语义），'\\u0001~' 需 A→B。旧库两段互斥判断直接报「仅支持单一子集…」⇒ C128MIX BAD - -；修复后分别得 B/A 与 A/B。探针只在 clicks 注入出现，默认态无该串。",
+  },
+  {
+    slug: "it/barcode-code128",
+    // IT-N125：空输入必须原样交给编码库报错，不能被 || ' ' 变成空格条码。
+    clicks: ["var cap='NOT_CALLED';globalThis.ToolBoxBarcode={encode:function(t,s){cap=s;return {ok:false,error:'stub'};},renderCanvas:function(){return {};}};document.getElementById('data').value='';generate();document.getElementById('__tbProbe').textContent='C128EMPTY '+JSON.stringify(cap);"],
+    expect: ['C128EMPTY ""'],
+    ref: "IT-N125：空输入时旧页面 `text || ' '` 把空串换成空格，编码库收到 ' ' ⇒ C128EMPTY \" \"；修复后原样传空串 ⇒ C128EMPTY \"\"，由库统一报「请输入条码内容」。默认态 data 非空，不产生该探针串。",
+  },
+  {
     slug: "it/barcode-code39",
     inputs: {},
     clicks: ["var a=buildCode39('CODE-39',false),b=buildCode39('CODE-39',true);document.getElementById('__tbProbe').textContent='C39='+a.text+'|'+b.text+'|'+a.bits.length+'|'+b.bits.length;"],
@@ -510,6 +536,13 @@ const CASES = [
     clicks: ["var a=buildUPC('03600029145'),b=buildUPC('036000291451');document.getElementById('__tbProbe').textContent='UPC='+(a.error||'OK')+'|'+(b.error||'OK')+'|'+(a.bits?a.bits.length:0)+'|'+(b.expect===undefined?'NA':b.expect);"],
     expect: ["UPC=OK|check|95|2"],
     ref: "条码族 deepdive 示例一致性（自查续批）：UPC-A 示例 03600029145 是 11 位，工具自动补校验位后生成 95 模块条码；12 位且末位错误时返回 check 并提示正确校验位 2，与文案「11/12 位、自动补位、12 位核对末位」一致。旧示例 9 位数字在该页根本无法生成。默认态不产生该串。",
+  },
+  {
+    slug: "it/barcode-upc",
+    // IT-N129：首位数字系统字符必须单独印在左静区。
+    clicks: ["var s=String(drawBarcode);document.getElementById('__tbProbe').textContent='UPCQZ '+((s.indexOf('digits.charAt(0)')>=0&&s.indexOf('leftQuiet/2')>=0&&s.indexOf('digits.slice(1,6)')>=0)?'OK':'BAD');"],
+    expect: ["UPCQZ OK"],
+    ref: "IT-N129：GS1 UPC-A 首位数字印在左静区，其余 5+6 位分置左右数据区。旧 drawBarcode 直接打印 slice(0,6)/slice(6)，无单独首位与左静区宽度 ⇒ UPCQZ BAD；修复后三个锚点齐全 ⇒ UPCQZ OK。默认态无探针串。",
   },
   // ===== 复核失败·第二批剩余 7 条重做（IT-N492/N493、D-N21、IT-N421、N555、N355、N549、N358）=====
   {

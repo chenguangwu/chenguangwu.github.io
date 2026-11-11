@@ -54,28 +54,39 @@
   }
 
   /**
-   * Code 128 编码。子集选择策略（不做动态规划，取确定性规则）：
+   * Code 128 编码。子集选择策略（确定性规则）：
    *   纯数字且长度为偶数 → Code C（每两位一个符号，最紧凑）
    *   全部可打印 ASCII（32~127）→ Code B
-   *   其余落在 ASCII 0~95 内 → Code A
+   *   含控制字符（<32）时按字符动态切换 A/B（100=切到 B，101=切到 A）
+   *   超出 ASCII 0~127 的字符直接拒绝
    */
   function code128Encode(text) {
     if (!text) return { ok: false, error: '请输入条码内容' };
-    var start, values = [], i;
+    var start, values = [], i, cc, hasCtrl = false, switched = false, cur;
+    for (i = 0; i < text.length; i++) {
+      cc = text.charCodeAt(i);
+      if (cc > 127) return { ok: false, error: 'Code 128 仅支持 ASCII 0~127，当前含超出范围的字符' };
+      if (cc < 32) hasCtrl = true;
+    }
     if (/^[0-9]+$/.test(text) && text.length % 2 === 0 && text.length >= 2) {
       start = C128_START_C;
       for (i = 0; i < text.length; i += 2) values.push(parseInt(text.substr(i, 2), 10));
-    } else if (inRange(text, 32, 127)) {
+    } else if (!hasCtrl) {
       start = C128_START_B;
       for (i = 0; i < text.length; i++) values.push(text.charCodeAt(i) - 32);
-    } else if (inRange(text, 0, 95)) {
-      start = C128_START_A;
-      for (i = 0; i < text.length; i++) {
-        var cc = text.charCodeAt(i);
-        values.push(cc < 32 ? cc + 64 : cc - 32);
-      }
     } else {
-      return { ok: false, error: 'Code 128 仅支持单一子集：ASCII 0~95 或 32~127，暂不支持混合子集切换' };
+      start = text.charCodeAt(0) < 32 ? C128_START_A : C128_START_B;
+      cur = start === C128_START_A ? 'A' : 'B';
+      for (i = 0; i < text.length; i++) {
+        cc = text.charCodeAt(i);
+        if (cur === 'A') {
+          if (cc <= 95) values.push(cc < 32 ? cc + 64 : cc - 32);
+          else { values.push(100); cur = 'B'; switched = true; values.push(cc - 32); }
+        } else {
+          if (cc >= 32) values.push(cc - 32);
+          else { values.push(101); cur = 'A'; switched = true; values.push(cc + 64); }
+        }
+      }
     }
     var sum = start;
     for (i = 0; i < values.length; i++) sum += values[i] * (i + 1);
@@ -84,6 +95,7 @@
     for (i = 0; i < values.length; i++) bits += CODE128[values[i]];
     bits += CODE128[checksum] + CODE128[C128_STOP];
     var subset = start === C128_START_C ? 'C' : (start === C128_START_B ? 'B' : 'A');
+    if (switched) subset += '/' + cur;
     return {
       ok: true, bits: bits, text: text,
       detail: {
