@@ -3,6 +3,8 @@ window.__TI18N_EN = {
   GEN_UI_MAP: {
     // IT-N457：url-qr 输出尺寸下拉 label + 4 项，英文态精确整节点替换
     '输出尺寸（像素，正方形边长）':'Output size (pixels, square side)','128 × 128（小图标）':'128 × 128 (small icon)','256 × 256（屏幕显示，推荐）':'256 × 256 (screen, recommended)','512 × 512（高清分享）':'512 × 512 (HD share)','1024 × 1024（打印物料）':'1024 × 1024 (print material)',
+    // IT-N192：unit-converter-advanced 新增「压强」下拉项（「能量」已有通用映射）
+    '压强':'Pressure',
     // IT-D27：regex-common 类别下拉 8 项 + label，英文态精确整节点替换
     '正则类别':'Regex Category','邮箱地址':'Email Address','中国大陆手机号':'Mainland China Phone','身份证号':'ID Card Number','URL 链接':'URL Link','IPv4 地址':'IPv4 Address','日期 YYYY-MM-DD':'Date YYYY-MM-DD','中文字符':'Chinese Characters','用户名(字母数字_3-16)':'Username (letters/digits/_ 3-16)',
     '计算':'Calculate','校验':'Verify','重置':'Reset','清空':'Clear','复制结果':'Copy Result','📋 复制结果':'Copy Result',
