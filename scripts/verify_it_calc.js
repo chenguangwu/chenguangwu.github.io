@@ -4181,6 +4181,14 @@ const CASES = [
     ref: "产物条数 = 非空字段数决定的 og/twitter/meta 组合数；本组入参产出 9 条。默认样例字段组合不同。",
   },
   {
+    "slug": "it/og-meta-tag-generator",
+    // IT-N458：空标题/描述不得输出 content=""，且必填缺失须告警。
+    "inputs": { "f_title": "", "f_desc": "", "f_img": "https://x.com/a.jpg", "f_url": "", "f_type": "website" },
+    "clicks": ["var o=String(document.getElementById('output').value);var _re=document.getElementById('result');var r=_re?String(_re.textContent||_re.innerHTML||''):'';document.getElementById('output').value='OGMETA '+(o.indexOf('og:title')<0&&o.indexOf('content='+String.fromCharCode(34)+String.fromCharCode(34))<0?'NOEMPTY':'HAS')+' '+(r.indexOf('og:title')>=0&&r.indexOf('og:url')>=0?'WARN':'NOWARN');"],
+    "expect": ["OGMETA NOEMPTY WARN"],
+    "ref": "注入空标题/描述、只填图片：IT-N458 修复后 og:title/og:description 空值字段跳过（不产出 content=\"\"），结果区告警缺 og:title/og:url ⇒ OGMETA NOEMPTY WARN。旧实现无条件输出 4 条 content=\"\" 且无告警 ⇒ HAS NOWARN，判别明确。默认态有标题不执行探针。"
+  },
+  {
     slug: "it/qr-decoder",
     inputs: { input: "HELLO" },
     clicks: ["generate()"],

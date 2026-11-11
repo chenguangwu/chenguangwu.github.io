@@ -2552,14 +2552,6 @@
 
 ## W 批 · IT URL/签名/安全（2026-11-04）
 
-### IT-N458 空标题/描述仍输出 `content=""`，缺必填项也不告警（中，产出错误标签）
-- 页面：`tools/it/og-meta-tag-generator.html`
-- 问题：`formula-eq`（`:113`）明确写"有值字段才输出"，实际 `build()` 无条件输出 `og:title`/`og:description`/`twitter:title`/`twitter:description`（`:290-291`、`:300-301`），值为空时得到 `content=""`；缺图片/URL 时反而省略了必填的 `og:image`/`og:url`（`:292-293`），与 `:117` 的"必填四项"相悖，结果区仍按 `^<meta` 计数报"已生成 N 条"（`:304-305`）。
-- 行号：`:113`、`:117`、`:288-305`（核心 `:290-291`、`:292-293`、`:304-305`）
-- 复现：清空标题与描述、只填图片 URL → 实际输出含 4 条 `content=""` 的标签，并提示"已生成 6 条 meta 标签"；期望跳过空值，并提示 `og:image` / `og:url` 缺失。
-- 影响：复制走的标签被各平台忽略（空 og:title 会直接退回抓取 `<title>`），用户却以为配置完成。
-- 方案：空值不进 `L`；对 `og:title/type/image/url` 四项做缺失校验并在结果区标红。
-- 假工具：否
 
 ### IT-N459 速查表把 4 个请求头当响应头收录，且 ETag / Last-Modified 各重复两条（中，参考结果错误）
 - 页面：`tools/it/http-response-headers.html`
@@ -2574,7 +2566,7 @@
 
 ### 覆盖清单（W 批 IT URL/签名/安全）
 - `url-qr`：无剩余缺陷（IT-N456 真编码器、IT-N457 纠错+尺寸双控件均已销账，第183–184批）。
-- `og-meta-tag-generator`：IT-N458（中）；无高优缺陷（`escA` 先转 `&` 再转 `"`，输出走 `textarea.value`，属性上下文不可注入）。
+- `og-meta-tag-generator`：无剩余缺陷（IT-N458 空值跳过+缺失告警已销账，第189批；`escA` 先转 `&` 再转 `"`，输出走 `textarea.value`，属性上下文不可注入）。
 - `http-response-headers`：IT-N459（中）；无高优缺陷（`renderCommands` 对全部字段走 `escapeHtml`，搜索/复制路径无注入）。
 - `api-sign-generator`：无剩余缺陷（IT-N460 XSS、IT-N461 真 MD5、IT-N462 预设重算均已销账，第185–187批）。
 - `rc4`：无剩余缺陷（IT-N463 显式格式解析已销账，第188批；`rc4()` 与 `RC4-drop` 主路径对照已知向量 `Key`/`Plaintext` → `bbf316e8d940af0ad3` 正确，KSA/PRGA 无死循环）。
