@@ -3094,7 +3094,7 @@
 - **pdf-signature-checker**：仅检测签名存在；文件头 `%PDF-49.46` 恒不匹配判红（既有 `it.md:2582`）、字节数算式错（既有 `:2588`）、PKCS#7 验签承诺未实现（既有 `:2593`）。
 - **properties-parser**：核心扫描正确；CRLF 的 `\r` 留在每个值尾（IT-D33）、`\uXXXX` 不解码（既有 `:140`）、行尾 `\\` 当续行（既有 `:141`）。
 - **ini-parser**：节/注释/重复键正常；`:` 分隔与无值键不支持（IT-D39/IT-D40）。
-- **curl-parser**：`-d`→POST、选项值消费、输出转义、`--data-urlencode` 百分号编码（IT-D37，第164批已修）、双引号内 `\"` 反转义（IT-D38，第165批已修）已到位；末行续行 `\` 被当 URL（IT-D31）仍留存。
+- **curl-parser**：`-d`→POST、选项值消费、输出转义、`--data-urlencode` 百分号编码（IT-D37，第164批）、双引号内 `\"` 反转义（IT-D38，第165批）、反斜杠续行折叠（IT-D31，第166批）均已修到位；本批无其它残留项。
 - **plist-parser**：XML 真解析，dict/array/integer/real/bool 正确；`data`、`date` 原样返回（既有）。
 - **user-agent-parser**：Chrome/Safari/Edge/Firefox/Googlebot 正确；微信 UA 归为 Chrome、CriOS/FxiOS 归「未知」（IT-D41 / 既有 IT-N65）。
 
@@ -3102,7 +3102,6 @@
 
 | 编号 | 页面:行 | 级别 | 问题与期望值 |
 |---|---|---|---|
-| IT-D31 | `tools/it/curl-parser.html:339` | 高 | URL 位于末行且上游用 `\` 续行时，`\` 被当作 URL：实测 `url:"\\"`，期望 `https://api.example.com/users`（node 复刻分词与主循环） |
 | IT-D32 | `tools/office/pdf-merge.html:512,703` | 高 | `loadPageCount` 用 `ignoreEncryption` 使加密文件列为可用；`copyPages` 不解密 → 整体抛错或输出空白，与 `:349,:391`「跳过并提示、不影响其余」矛盾。期望单文件标 error 后 `continue`（node 加载同版本 pdf-lib：正常 2+3 页合并成功，`copyPages` 无加密检查） |
 | IT-D33 | `tools/it/properties-parser.html:258,298` | 高 | 只按 `\n` 切行，CRLF 的 `\r` 留在值尾：`a=b\r\nc=d\r\n` → `{"a":"b\r","c":"d\r"}`，期望 `"b"/"d"`（node 复刻 `parseProps`） |
 | IT-D34 | `tools/office/pdf-split.html:568,455-466` | 假 | 宣称「拆分 PDF 为多个小文件」「段数=ceil(总页数/每段页数)」「文件数=段数」，实际无「每段页数」输入且只产出 1 个 PDF |

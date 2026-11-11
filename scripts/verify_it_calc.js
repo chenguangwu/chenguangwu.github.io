@@ -11226,6 +11226,13 @@ const CASES = [
     expect: ['"body": "{\\"name\\":\\"a\\"}"'],
     ref: "双引号包裹的 -d 值 {\\\"name\\\":\\\"a\\\"} 中 \\\" 是转义引号，trimQuote 须还原为 {\"name\":\"a\"}，结构化 JSON 里表现为 \"body\": \"{\\\"name\\\":\\\"a\\\"}\"（JSON 序列化再转义）。修复前 body 保留反斜杠 {\\\"name\\\":\\\"a\\\"}，不命中。默认示例无转义引号，不命中。",
   },
+  {
+    slug: "it/curl-parser",
+    // IT-D31：shell 反斜杠续行须折叠，不得把 `\` 当成 URL。
+    inputs: { cmd: "curl -X POST \\\n https://api.example.com/users" },
+    expect: ['"url": "https://api.example.com/users"'],
+    ref: "命令用 `\\` + 换行续行，URL 在下一行；shell 语义下续行折叠为空格，URL 应为 https://api.example.com/users。修复前 `\\` 作为独立 token 被首个非选项词捕获成 URL ⇒ url 为 `\\`，不命中。默认示例为单行命令，不命中。",
+  },
 
   {
     slug: "it/text-replace",
