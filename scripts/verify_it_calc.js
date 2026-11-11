@@ -1486,8 +1486,20 @@ const CASES = [
   {
     slug: "it/numeronym-generator",
     inputs: { input: "global navigation" },
-    expect: ["global → g4l navigation → n8n"],
-    ref: "numeronym（首字母+中间字母个数+末字母）：global(6字母⇒4中间)→g4l；navigation(11字母⇒8中间)→n8n。默认示例单词不同 ⇒ 不命中。",
+    expect: ["navigation → n8n"],
+    ref: "IT-N286：默认最小字母数 7，global(6<7) 原样保留、navigation(11≥7) → n8n（首字母+8中间字母+尾字母）。修复前无阈值 global→g4l ⇒ 旧 expect 含 g4l；默认示例单词不同 ⇒ 不命中。",
+  },
+  {
+    slug: "it/numeronym-generator",
+    clicks: ["var a=numeronym('internationalization,',7),b=numeronym('(internationalization)',7);document.getElementById('__tbProbe').textContent='PUNCT '+(a==='i18n,'&&b==='(i18n)'?'OK':'BAD:'+a+'/'+b);"],
+    expect: ["PUNCT OK"],
+    ref: "IT-N285：带标点的词须取纯字母串首尾并保留前后标点（internationalization, → i18n,、(internationalization) → (i18n)）。修复前取 w[0]/w[last] ⇒ i18, / (18) ⇒ PUNCT BAD。",
+  },
+  {
+    slug: "it/numeronym-generator",
+    clicks: ["var cap=null;ToolBox.copyText=function(t){cap=t;};document.getElementById('input').value='internationalization';generate();copyOut();document.getElementById('__tbProbe').textContent='COPY '+(cap==='i18n'?'OK':'BAD:'+cap);"],
+    expect: ["COPY OK"],
+    ref: "IT-N287：「复制结果」须复制大号展示区 #outBig 的缩写结果（i18n），不是 #output 的逐词对照（internationalization → i18n）。修复前复制对照表 ⇒ COPY BAD。另 i18nText 已定义，空结果 toast 不再 undefined。",
   },
   {
     slug: "it/prime-checker",
@@ -4180,8 +4192,8 @@ const CASES = [
     slug: "it/numeronym-generator",
     inputs: { input: "Global Positioning System" },
     clicks: ["generate()"],
-    expect: ["G4l"],
-    ref: "独立复算：numeronym 取首字母 + 中间字母数 + 末字母 ⇒ `G`+4个字母+`l` = G4l（Positioning⇒P9g、System⇒S4m）。产物含数字与缩略形态，非裸回显。默认样例不同。",
+    expect: ["P9g"],
+    ref: "IT-N286 默认阈值 7：Global(6<7) 与 System(6<7) 原样保留，Positioning(10≥7) → P9g（P+9字母+g）。修复前 G4l（Global 被缩）⇒ 旧锚不命中；默认样例不同。",
   },
   {
     slug: "it/morse",
@@ -10237,9 +10249,9 @@ const CASES = [
       "output": "1\n2\n3"
     },
     "expect": [
-      "1 2 3\n✅ 已转换 3 个单词\n1 2 3\n1 2 3"
+      "1 2 3\n✅ 已转换 3 个单词\n7\n1 2 3\n1 2 3"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\"}，输出区含「1 2 3\n✅ 已转换 3 个单词\n1 2 3\n1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\"}，输出区含「1 2 3\n✅ 已转换 3 个单词\n7\n1 2 3\n1 2 3」；IT-N286 新增 minLen=7 输入框，blob 多一行「7」。默认态（输入回退）为英文长词，不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/octal-encode",

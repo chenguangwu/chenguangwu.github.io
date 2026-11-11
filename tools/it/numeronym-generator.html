@@ -98,7 +98,7 @@
     <h2 data-zh="💻 Numeronym 数字缩写">💻 Numeronym Numeronym</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="把单词转换为数字缩写（首字母+中间字符数+尾字母）：internationalization → i18n、accessibility → a11y，批量转换整段文本。">Turn words into numeronyms (like i18n) in your browser — compact labels for docs and products.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">逐词转换：先剔除所有非字母字符得到纯字母串，字母数不超过 2 时原词返回；否则取首字符 + (字母数 − 2) + 末字符，如 internationalization → i18n；按空白切词后逐词处理并以空格连接，映射区按「原词 → 缩写」逐行给出，状态栏统计单词数</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">逐词转换：先剔除所有非字母字符得到纯字母串，字母数小于「最小字母数」（默认 7，与通常 7 字母以上才用的口径一致）时原词返回；否则取首字符 + (字母数 − 2) + 末字符，并保留原词前后的标点，如 internationalization → i18n、(internationalization) → (i18n)；按空白切词后逐词处理并以空格连接，映射区按「原词 → 缩写」逐行给出，状态栏统计单词数</div>
   <div class="formula-desc">把长单词缩写为首尾字母加字母数的形式。</div>
   <ul class="formula-list">
     <li><b>规则</b>：首字母 + 省略的字符数 + 尾字母，如 internationalization → <code>i18n</code>。</li>
@@ -110,6 +110,11 @@
 
     <div class="input-row">
       <textarea id="input" placeholder="输入文本，如：internationalization accessibility localization" style="min-height:120px" oninput="generate()">internationalization accessibility localization</textarea>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin:8px 0;font-size:13px;">
+      <label for="minLen" data-zh="最小字母数（少于则不缩写）">Min letters (shorter words stay as-is)</label>
+      <input type="number" id="minLen" value="7" min="1" max="100" style="width:72px;padding:6px 8px;" oninput="generate()">
+      <span style="color:var(--text-muted,#666);" data-zh="默认 7，与「通常 7 字母以上才用」一致">Default 7, matching the usual 7+ guideline</span>
     </div>
     <div class="result-box" id="result"></div> <div id="numeronym_generatorTable"></div> <div id="numeronym_generatorDiff"></div> <div id="numeronym_generatorChart"></div> <div id="numeronym_generatorHist"></div>
     <div style="background:var(--bg,#FFFAF7);border:1px solid var(--border,#E5E7EB);border-radius:12px;padding:14px;margin-bottom:12px;font-size:18px;font-weight:700;color:var(--primary);word-break:break-all;" id="outBig">—</div>
@@ -244,22 +249,45 @@
 </div>
 <script>
 function escH(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-function copyOut(){var v=document.getElementById('output').value;if(!v){if(ToolBox.showToast)ToolBox.showToast(i18nText());return;}ToolBox.copyText(v);if(ToolBox.showToast)ToolBox.showToast(i18nText());}
-function numeronym(w){
+function i18nText(key){
+  var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  var map={
+    copied: en?'Copied':'已复制',
+    empty: en?'Please enter text':'请输入文本',
+    invalid: en?'Invalid minimum length':'最小字母数非法'
+  };
+  return map[key]||'';
+}
+function copyOut(){
+  var el=document.getElementById('outBig');
+  var v=(el&&el.textContent)||'';
+  if(!v||v==='—'){if(ToolBox.showToast)ToolBox.showToast(i18nText('empty'));return;}
+  ToolBox.copyText(v);
+  if(ToolBox.showToast)ToolBox.showToast(i18nText('copied'));
+}
+function numeronym(w, minArg){
   var alpha=w.replace(/[^A-Za-z]/g,'');
-  if(alpha.length<=2)return w;
-  var first=w[0],last=w[w.length-1];
-  return first+(alpha.length-2)+last;
+  var min=parseInt(minArg,10);
+  if(!isFinite(min)||min<1) min=7;
+  // 少于最小字母数（默认 7）或不足 3 个字母（无法构成 首+数字+尾）时原样返回。
+  if(alpha.length<Math.max(3,min)) return w;
+  // 首尾取纯字母串的端点，并保留原词前后的非字母标点（internationalization, → i18n, 等）。
+  var first=alpha[0], last=alpha[alpha.length-1];
+  var m=w.match(/^([^A-Za-z]*)([A-Za-z].*[A-Za-z])([^A-Za-z]*)$/);
+  var prefix=m?m[1]:'', suffix=m?m[3]:'';
+  return prefix+first+(alpha.length-2)+last+suffix;
 }
 function generate(){
   var text=document.getElementById('input').value;
   var out=document.getElementById('result');
   if(!text.trim()){document.getElementById('outBig').textContent='—';document.getElementById('output').value='';const __h0='';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0;return;}
   var words=text.split(/\s+/);
-  var result=words.map(numeronym).join(' ');
+  var minEl=document.getElementById('minLen');
+  var minVal=minEl?minEl.value:7;
+  var result=words.map(function(w){return numeronym(w,minVal);}).join(' ');
   document.getElementById('outBig').textContent=result;
   var mapping=words.map(function(w){
-    var n=numeronym(w);
+    var n=numeronym(w,minVal);
     return w!==n?w+' → '+n:w;
   }).join('\n');
   document.getElementById('output').value=mapping;

@@ -872,30 +872,6 @@
 - 方案：历史摘要改存结构化数字（如 `{stacks: sel.length, rules: lines.length}`），或至少把 `resText` 改为读取规则条数；图表用该数值字段。
 **留存建议（tools/it/gitignore-generator.html）**：历史字段别存整段文本，存 `stacks/rules` 两个计数即可。
 
-### IT-N285 首尾字母取原始 token（含标点），带标点的词输出乱码（中，确认缺陷）
-- 问题：`numeronym` 用 `w[0]` / `w[w.length-1]` 而不是去掉非字母后的 `alpha` 首尾；`internationalization,` 的尾字符是逗号，`(internationalization)` 的首尾是括号。
-- 证据：`tools/it/numeronym-generator.html:260-264`（`:262` 用 `alpha.length` 判长、`:263` 却取 `w[0]/w[len-1]`）。
-- 复现（node 同逻辑）：`internationalization,` → `i18,`；`internationalization.` → `i18.`；`(internationalization)` → `(18)`；期望均为 `i18n`。
-- 影响：整段文本里带标点的词（句末、括号、引号）全部输出错误，且"复制结果"会把乱码带出去。
-- 方案：`return alpha[0] + (alpha.length-2) + alpha[alpha.length-1]`，并保留原词前后的标点（如 `i18n,`）。
-**留存建议（tools/it/numeronym-generator.html）**：一行改 `alpha` 首尾即可覆盖 90% 场景。
-
-### IT-N286 对所有 ≥3 字母词都缩写，无 7 字母阈值，整段散文变得不可读（中，确认缺陷）
-- 问题：文档口径"通常 7 字母以上才用"，实现只要字母数 >2 就缩写；`the`→`t1e`、`cat`→`c1t`，整段普通英文被改成缩写串，且没有最小长度选项。
-- 证据：`tools/it/numeronym-generator.html:262`（`alpha.length<=2` 才豁免）、`:193`（"通常 7 字母以上才用"）、`:124`（示例输入为长词，掩盖了短词问题）。
-- 复现（node 同逻辑）：`the quick brown fox` → `t1e q3k b3n f1x`；期望短词原样保留（`the quick brown fox`）。
-- 影响：段落级转换结果不可用，用户需手工挑词；与页面自述阈值矛盾。
-- 方案：加"最小字母数"输入（默认 7），`alpha.length < min` 原样返回；或提供"仅转换已知长词"模式。
-**留存建议（tools/it/numeronym-generator.html）**：默认 7 与文档对齐，示例补一条短词对照。
-
-### IT-N287 "复制结果"复制的是逐词对照，不是展示结果；空结果 toast 为 undefined（低，确认缺陷）
-- 问题：大号展示区 `#outBig` 是最终缩写串，`#output` 是逐词对照表；`copyOut` 复制 `#output`。空值时 `i18nText()` 未传参，`i18nText` 返回 `undefined`，`showToast(undefined)` 会显示空/`undefined` 文案。
-- 证据：`tools/it/numeronym-generator.html:127`（`#outBig` 结果）、`:128`（`#output` 对照）、`:272-277`（分别写入）、`:131`（按钮文案"复制结果"）、`:259`（`i18nText()` 无参）。
-- 复现：输入 `internationalization` → 点"复制结果"→ 粘贴得到 `internationalization → i18n`；期望 `i18n`。清空后点复制 → toast 内容为空/undefined。
-- 影响：复制内容与所见不一致，用户易把对照表贴进文档。
-- 方案：复制 `#outBig.textContent`（为空时提示"请输入文本"），并给 `i18nText` 传具体 key 或 fallback 字符串。
-**留存建议（tools/it/numeronym-generator.html）**：复制源切到 `#outBig`，与页面主展示一致。
-
 - `markdown-editor`：IT-N288 属性注入 XSS 与 IT-N289 GFM 任务清单源码已修好（`escAttr` + `safeUrl` 协议白名单、`- [x]` → 禁用复选框），清单及开头待办漏销账，本批补真机安全回归证据（alt 引号不闭合属性、`javascript:`/`data:text/html` 拦截、`data:image` 与正常链接放行、任务清单 checked 语义）；IT-N290 真修：`#` 由 `<h2>` 改为 `<h1>`（CommonMark 一级标题语义，`##`/`###`/`####` 不变），工作原理公式说明与 en JSON 中文键/英译同步。第211批销账；真机 16/16 vs 旧 13/16（3 项红均为 N290，N288/N289 旧态已绿如实记录），verify 4 条相关用例均不依赖 h2、无需改 expect。
 
 ### IT-N291 clamp 表达式算错：最小视口得到"首选字号"，大范围还会提前封顶（高，确认缺陷）
