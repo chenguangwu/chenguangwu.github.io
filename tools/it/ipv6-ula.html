@@ -92,7 +92,7 @@
     <h2 data-zh="✨ IPv6 ULA 生成器">✨ IPv6 ULA Generator</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="ULA（Unique Local Address）相当于 IPv6 的“内网地址”，前缀 fd00::/8，用于站点内部通信、不会路由到公网。生成 48 位前缀与完整示例地址。">IPv6 ULA Generator - Generate IPv6 Unique Local Address (fd00::/8) prefixes and sample addresses with random global IDs. Free, browser-only.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">生成个数保证在 1 到 20 之间（非法时取 3）。每个地址：先取 10 位随机十六进制字符作为 40 位全局 ID，前缀拼为「fd 加第 1 到 2 位 : 第 3 到 6 位 : 第 7 到 10 位」；再取 16 位随机十六进制字符，按每 4 位一组以冒号连接作为接口标识部分，拼成完整的 IPv6 地址。输出前缀加双冒号与 /48 前缀长度，并附一个示例地址；说明前缀格式为 fd 开头（前 8 位固定）加 40 位全局 ID 再加 16 位子网</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">生成个数保证在 1 到 50 之间（非法时取 3）。每个地址：先取 10 位随机十六进制字符作为 40 位全局 ID，前缀拼为「fd 加第 1 到 2 位 : 第 3 到 6 位 : 第 7 到 10 位」；再取 16 位随机十六进制字符，按每 4 位一组以冒号连接作为接口标识部分，拼成完整的 IPv6 地址。输出前缀加双冒号与 /48 前缀长度，并附一个示例地址；说明前缀格式为 fd 开头（前 8 位固定）加 40 位全局 ID 再加 16 位子网</div>
   <div class="formula-desc">生成 IPv6 唯一本地地址（ULA）前缀。</div>
   <ul class="formula-list">
     <li><b>范围</b>：ULA 前缀为 <code>fc00::/7</code>，实际部署使用其中的 <code>fd00::/8</code>。</li>
@@ -202,18 +202,49 @@
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function escH(s){var d=document.createElement('div');const __g1=s==null?'':String(s);d.textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
-function calcTool(){var cnt=Math.min(Math.max(parseInt(num('cnt'))||3,1),20);
-function h(n){ var s=''; for(var i=0;i<n;i++){ s+=Math.floor(Math.random()*16).toString(16).toUpperCase(); } return s; }
+function ulaText(zh,en){ return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?en:zh; }
+var __ipv6_ulaRows=[],__ulaWeakRandom=false;
+function h(n){
+  var out='';
+  var secure=(typeof crypto!=='undefined'&&crypto.getRandomValues)?true:false;
+  while(out.length<n){
+    if(secure){
+      var b=new Uint8Array(Math.max(1,Math.ceil((n-out.length)/2)));
+      crypto.getRandomValues(b);
+      for(var i=0;i<b.length&&out.length<n;i++) out+=b[i].toString(16).toUpperCase().padStart(2,'0');
+    }else{
+      out+=Math.floor(Math.random()*16).toString(16).toUpperCase();
+      __ulaWeakRandom=true;
+    }
+  }
+  return out;
+}
+function copyUlaPrefixes(ev){
+  var text=__ipv6_ulaRows.map(function(r){return r[0];}).join('\n');
+  if(!text) return;
+  try{
+    navigator.clipboard.writeText(text).then(function(){
+      if(!ev||!ev.target) return;
+      ev.target.textContent=ulaText('✅ 已复制','✅ Copied');
+      setTimeout(function(){ev.target.textContent=ulaText('复制全部前缀','Copy all prefixes');},1200);
+    });
+  }catch(e){}
+}
+function calcTool(){var cnt=Math.min(Math.max(parseInt(num('cnt'))||3,1),50);
+__ulaWeakRandom=false;
 function grp(s){ var o=[]; for(var i=0;i<s.length;i+=4){ o.push(s.substr(i,4)); } return o.join(':'); }
-var lines=[];
+var lines=[];__ipv6_ulaRows=[];
 for(var i=0;i<cnt;i++){
   var g=h(10); // 40-bit global ID
   var prefix='fd'+g.substr(0,2)+':'+g.substr(2,4)+':'+g.substr(6,4);
   var addr=prefix+'::'+grp(h(16));
   lines.push(prefix+'::/48   示例 '+addr);
+  __ipv6_ulaRows.push([prefix+'::/48',addr]);
 }
-var html='<div class="result-title">生成的 IPv6 ULA（'+cnt+' 个）</div><pre class="code-block">'+escH(lines.join('\n'))+'</pre>';
-html+='<p class="muted">前缀格式 fdxx:xxxx:xxxx::/48（第 8 位固定为 fd，即二进制 1111 1101 0 + 全局 ID 40 位 + 子网 16 位）</p>';
+var html='<div class="result-title">生成的 IPv6 ULA（'+cnt+' 个）</div><pre class="code-block">'+escH(lines.join('\n'))+'</pre>'
+  +'<div class="toolbar" style="margin:8px 0;"><button type="button" class="btn success" onclick="copyUlaPrefixes(event)">'+ulaText('复制全部前缀','Copy all prefixes')+'</button></div>';
+html+='<p class="muted">'+ulaText('前缀格式 fdxx:xxxx:xxxx::/48（fd = 二进制 1111 1101，共 8 位，其中 L 位为 1；后接 40 位全局 ID + 16 位子网）','Prefix format fdxx:xxxx:xxxx::/48 (fd = binary 1111 1101, 8 bits with the L bit set; followed by a 40-bit global ID and a 16-bit subnet)')+'</p>';
+if(__ulaWeakRandom) html+='<p style="color:var(--danger)">'+ulaText('⚠ 当前环境无 crypto.getRandomValues，本次使用非安全伪随机，不满足 RFC 4086','⚠ crypto.getRandomValues unavailable; non-secure PRNG used, not RFC 4086 compliant')+'</p>';
 const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));}
 function resetForm(){document.getElementById('cnt').value='3';
       calcTool();}
@@ -319,17 +350,21 @@ function __ipv6_ulaExtras(){
     TBKit.history.record(rec);
     __ipv6_ulaRender(keys,rk,en);
 }
+function __ipv6_ulaToast(msg){
+    try{ if(typeof ToolBox!=='undefined'&&ToolBox.showToast){ToolBox.showToast(msg);return;} }catch(e){}
+}
+function __ipv6_ulaDataTable(){
+    if (typeof TBKit === 'undefined' || !TBKit.matrix) return;
+    var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+    TBKit.matrix.table('#ipv6_ulaTable',{head:[en?'Prefix':'前缀',en?'Sample address':'示例地址'],rows:__ipv6_ulaRows.map(function(r){return r.slice();})});
+}
 function __ipv6_ulaExport(){
-    if (typeof TBKit === 'undefined') return;
-    try{
-        var box=document.querySelector('#ipv6_ulaTable');
-        if(!box||!box.querySelector('tr')){
-            var snap=__ipv6_ulaSnap(); var keys=Object.keys(snap);
-            if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
-            __ipv6_ulaRender(keys,en?'Result':'结果',en);
-        }
-    }catch(e){}
+    var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?true:false;
+    if (typeof TBKit === 'undefined' || !TBKit.util || !TBKit.util.exportTable) {
+        __ipv6_ulaToast(ulaText('数据未就绪','Data not ready')); return;
+    }
+    try{ __ipv6_ulaDataTable(); }catch(e){}
+    if(!__ipv6_ulaRows.length){ __ipv6_ulaToast(ulaText('暂无可导出的数据','No data to export')); return; }
     try { TBKit.util.exportTable('#ipv6_ulaTable','ipv6-ula.csv'); } catch(e){}
 }
 function __ipv6_ulaPresets(){
@@ -343,7 +378,7 @@ var __ipv6_ula_f0=(typeof calcTool==='function')?calcTool:null;
 if(__ipv6_ula_f0){
     calcTool=function(){ var __r=__ipv6_ula_f0.apply(null,arguments); try{ __ipv6_ulaExtras(); }catch(e){} return __r; };
 }
-function __ipv6_ulaBoot(){ try{ __ipv6_ulaPresets(); }catch(e){} }
+function __ipv6_ulaBoot(){ try{ __ipv6_ulaPresets(); }catch(e){} try{ __ipv6_ulaDataTable(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __ipv6_ulaBoot();
 else document.addEventListener('DOMContentLoaded', __ipv6_ulaBoot);
 </script>
@@ -372,7 +407,7 @@ else document.addEventListener('DOMContentLoaded', __ipv6_ulaBoot);
 <li>生成 fd00::/8 的唯一本地地址用于内网。</li>
 <li>搭建内网或实验环境：生成 fd00::/8 段内的 /48 前缀，再自行划分子网，避免与公网路由冲突。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">生成</div><div class="dd-ex-body">随机 ULA 前缀如 `fd12:3456:789a::/48`（48 位全局 ID 随机，后接子网）。</div></div>
+<div class="dd-example"><div class="dd-ex-title">生成</div><div class="dd-ex-body">随机 ULA 前缀如 `fd12:3456:789a::/48`（40 位全局 ID 随机，后接 16 位子网 ID）。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>ULA 能上公网吗？</dt><dd>不能，fd00::/8 仅本地通信，类似 IPv4 私网。</dd>

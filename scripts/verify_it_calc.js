@@ -3089,6 +3089,41 @@ const CASES = [
     ref: "随机地址只锚计数：注入 cnt=5 ⇒ 条数字符串必为（5 个），默认 cnt=3 不命中。",
   },
   {
+    slug: "it/ipv6-ula",
+    inputs: { cnt: "99" },
+    clicks: ["calcTool()"],
+    expect: ["生成的 IPv6 ULA（50 个）"],
+    ref: "IT-N113 上限 50：注入 cnt=99 必须被 clamp 到 50 ⇒ 计数行为（50 个）；旧实现上限 20 得（20 个）不命中。默认 cnt=3 亦不命中。地址本体随机不可锚，只锚随 cnt 变的确定性计数行。",
+  },
+  {
+    slug: "it/ipv6-ula",
+    inputs: { cnt: "7" },
+    clicks: ["(function(){calcTool();var h=document.getElementById('result').innerHTML;var ok=h.indexOf('生成的 IPv6 ULA（7 个）')>=0&&h.indexOf('fd = 二进制 1111 1101，共 8 位，其中 L 位为 1；后接 40 位全局 ID + 16 位子网')>=0;document.getElementById('result').innerHTML=ok?'ULADOC-OK-7':'ULADOC-BAD';})()"],
+    expect: ["ULADOC-OK-7"],
+    ref: "IT-N115 说明纠错：注入 cnt=7 触发 calcTool，探针要求结果区同时含（7 个）计数与修正后的 8 位/40 位全局 ID/16 位子网说明；旧说明写「1111 1101 0」9 位且「48 位全局 ID」，不含该串 ⇒ 红。诊断串 ULADOC-OK-7 依赖修复后文案，默认态无该探针执行 ⇒ 零逃生。",
+  },
+  {
+    slug: "it/ipv6-ula",
+    inputs: { cnt: "6" },
+    clicks: ["(function(){var s=String(h);var ok=s.indexOf('getRandomValues')>=0;calcTool();var t=document.getElementById('result').innerHTML;var bad=t.indexOf('非安全伪随机')>=0;document.getElementById('result').innerHTML=(ok&&!bad&&t.indexOf('生成的 IPv6 ULA（6 个）')>=0)?'ULASAFE-OK-6':'ULASAFE-BAD';})()"],
+    expect: ["ULASAFE-OK-6"],
+    ref: "IT-N114 安全随机：注入 cnt=6，探针校验 h() 源码含 crypto.getRandomValues 且结果区无「非安全伪随机」告警（harness 全局有 webcrypto ⇒ 走安全路径）。旧实现 h() 纯 Math.random、源码无 getRandomValues ⇒ ULASAFE-BAD 红；默认态不执行探针 ⇒ 零逃生。",
+  },
+  {
+    slug: "it/ipv6-ula",
+    inputs: { cnt: "4" },
+    clicks: ["(function(){calcTool();var cap='';var _nw=navigator.clipboard;navigator.clipboard={writeText:function(t){cap=t;return Promise.resolve();}};try{copyUlaPrefixes({target:{textContent:''}});}catch(e){}navigator.clipboard=_nw;var n=cap.split('::/48').length-1;var ok=n===4&&cap.indexOf('fd')===0;document.getElementById('result').innerHTML=ok?'ULACOPY-OK-4':'ULACOPY-BAD-'+n;})()"],
+    expect: ["ULACOPY-OK-4"],
+    ref: "IT-N116 复制按钮：注入 cnt=4，探针替换 navigator.clipboard 后调用页面 copyUlaPrefixes，断言写入含 4 个 ::/48 前缀且以 fd 开头；旧实现无 copyUlaPrefixes 函数 ⇒ 抛错、cap 空、n=0 ⇒ ULACOPY-BAD-0 红。诊断串依赖新增复制函数，默认态无探针执行 ⇒ 零逃生。",
+  },
+  {
+    slug: "it/ipv6-ula",
+    inputs: { cnt: "4" },
+    clicks: ["(function(){calcTool();var rows=null,name='';globalThis.TBKit={util:{isEn:function(){return false;},exportTable:function(_s,n){name=n;}},matrix:{table:function(_sel,cfg){rows=cfg.rows;}}};try{__ipv6_ulaExport();}catch(e){}var ok=name==='ipv6-ula.csv'&&rows&&rows.length===4&&rows[0][0].indexOf('::/48')>0&&rows[0][1].indexOf('::')>0;document.getElementById('result').innerHTML=ok?'ULAEXP-OK-4':'ULAEXP-BAD';})()"],
+    expect: ["ULAEXP-OK-4"],
+    ref: "IT-N116 导出当前产物：注入 cnt=4，探针以 TBKit 桩调用 __ipv6_ulaExport，断言导出文件名 ipv6-ula.csv 且 matrix.table 收到 4 行本次生成的前缀/示例地址（非历史表）；旧实现导出走 __ipv6_ulaRender 历史快照、不写 matrix 表且文件名不同 ⇒ 红。诊断串依赖新导出逻辑，默认态无探针执行 ⇒ 零逃生。",
+  },
+  {
     slug: "it/mime-type",
     inputs: { search: "zzz" },
     expect: ["共 0 条"],
@@ -8121,9 +8156,9 @@ const CASES = [
       "cnt": "42"
     },
     "expect": [
-      "/48 示例 fdEE:6C9F:CCFC::890C:B94B:60B7:6719 fd75:3E68:7666"
+      "生成的 IPv6 ULA（42 个）"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"cnt\":\"42\"}，输出区含「/48 示例 fdEE:6C9F:CCFC::890C:B94B:60B7:67…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入 cnt=42 ⇒ 计数行必为「生成的 IPv6 ULA（42 个）」，默认 cnt=3 不命中。地址本体已改 crypto.getRandomValues，无固定串可锚，只锚随 cnt 变的确定性计数行 ⇒ 强判别、零逃生。dataGrid 报错系 harness 通用探针已知问题（同 mac-generator），不参与匹配。"
   },
   {
     "slug": "it/java-cheatsheet",
