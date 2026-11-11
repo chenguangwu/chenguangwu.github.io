@@ -3490,6 +3490,12 @@ const CASES = [
     ref: "反向锚：REST API 速查搜索无命中 ⇒ 计数归零；默认列表非空。",
   },
   {
+    slug: "it/rest-api-cheatsheet",
+    clicks: ["var e=(COMMANDS||[]).filter(function(c){return c.cmd==='错误格式';})[0];var ok=false;try{var j=JSON.parse(e.syntax);ok=!!(j.error&&j.error.code&&j.error.message&&j.error.details)&&/problem\\+json/.test(e.params||'');}catch(x){}document.getElementById('__tbProbe').textContent='RACERR '+(ok?'OK':'BAD');"],
+    expect: ["RACERR OK"],
+    ref: "IT-N236：错误格式 syntax 必须是合法 JSON 且含 code/message/details，params 引 RFC 9457 problem+json。旧 syntax 写 `{\"error\":{\"code\",\"message\",\"details\"}}` 缺冒号与值，JSON.parse 抛错且 params 为空 ⇒ RACERR BAD。",
+  },
+  {
     slug: "it/postgresql-cheatsheet",
     inputs: { searchInput: "zzz" },
     expect: ["共 0 项"],
@@ -12681,10 +12687,10 @@ const CASES = [
   {
     slug: "it/md5",
     inputs: { textInput: "中文" },
-    checkIds: ["uppercase", "utf8"],
+    checkIds: ["uppercase"],
     clicks: ["calcText()"],
     expect: ["A7BAC2239FCDCB3A067903D8077C4A07"],
-    ref: "hashlib.md5('中文'.encode('utf-8')) = a7bac2239fcdcb3a067903d8077c4a07，大写开关 ⇒ 整串大写。utf8 与 uppercase 在 HTML 里默认勾选，harness 桩默认 false，故显式 checkIds 还原真机首屏态；若按 UTF-16 码元取字节会得到 f2f4599f…（非任何标准编码），可判别口径错误。",
+    ref: "IT-N239：hashlib.md5('中文'.encode('utf-8')) = a7bac2239fcdcb3a067903d8077c4a07，大写开关 ⇒ 整串大写。UTF-8 勾选框已移除、md5() 恒按 UTF-8 字节串计算（与文件哈希/HMAC/主流实现一致）；uppercase 在 HTML 默认勾选而 harness 桩默认 false，故显式 checkIds 还原真机首屏态。旧实现取消勾选时按 UTF-16 码元无掩码拼字节得到 c2981cdd…（非任何标准编码），可判别口径错误。",
   },
   {
     slug: "it/sha",
