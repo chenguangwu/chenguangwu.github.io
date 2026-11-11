@@ -101,7 +101,7 @@
 <!-- TOOLBOX-POLISH -->
 
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">按版本查表取出速率、接口形态与供电能力两项做并排对比（未匹配时主版本回退到 3.2、对比版本回退到 2.0）。接口提示：USB-C 时版本 ≥ 3.1 判支持全速率、否则仅承载较低速率；Type-A 时版本 ≤ 3.0 判常见、否则少见需转 C；Micro 时版本 ≤ 2.0 判常见、否则已淘汰。总体建议按数值比较：主版本号 ≥ 对比版本号判较新速率更高，否则判旧版兼容更广</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">按版本查表取出速率、接口形态与供电能力做并排对比（所有可选项均有独立数据，未匹配时明确提示未知版本）。接口提示：USB-C 在 3.1 Gen2 及以上支持全速率，USB 2.0 可跑满 480 Mbps，1.x 仅低速/全速；Type-A 时版本 ≤ 3.0 判常见、否则少见需转 C；Micro 时版本 ≤ 2.0 判常见、否则已淘汰。总体建议按数值比较：主版本号 ≥ 对比版本号判较新速率更高，否则判旧版兼容更广</div>
   <div class="formula-desc">USB 各代速率与供电对照（速查）：USB 2.0 = 480 Mbps；USB 3.0/3.1 Gen1 = 5 Gbps；USB 3.1 Gen2 = 10 Gbps；USB 3.2 = 20 Gbps；USB4 = 40 Gbps（2.0 版达 80 Gbps 单向）。接口形态含 Type-A/B/C。</div>
   <ul class="formula-list">
     <li>供电：USB 2.0 约 0.5A/5V；BC 1.2 达 1.5A；Type-C PD 可达 3A/5A（100W/240W）。</li>
@@ -116,9 +116,11 @@
       <div>
         <label for="v">版本</label>
         <select id="v" style="width:100%;">
+          <option value="1.0">USB 1.0</option>
+          <option value="1.1">USB 1.1</option>
           <option value="2.0">USB 2.0</option>
           <option value="3.0">USB 3.0</option>
-          <option value="3.1">USB 3.1</option>
+          <option value="3.1">USB 3.1 Gen2（10 Gbps）</option>
           <option value="3.2" selected>USB 3.2</option>
           <option value="4.0">USB 4.0</option>
         </select>
@@ -126,9 +128,11 @@
       <div>
         <label for="v2">对比版本</label>
         <select id="v2" style="width:100%;">
+          <option value="1.0">USB 1.0</option>
+          <option value="1.1">USB 1.1</option>
           <option value="2.0" selected>USB 2.0</option>
           <option value="3.0">USB 3.0</option>
-          <option value="3.1">USB 3.1</option>
+          <option value="3.1">USB 3.1 Gen2（10 Gbps）</option>
           <option value="3.2">USB 3.2</option>
           <option value="4.0">USB 4.0</option>
         </select>
@@ -230,7 +234,7 @@
 
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
-        <li>USB 2.0 480M / 3.0 5G / 3.1 10G / 3.2 20G / 4.0 40Gbps</li>
+        <li>USB 2.0 480M / 3.0（现 3.2 Gen1）5G / 3.1 Gen2（现 3.2 Gen2）10G / 3.2 20G / USB4 40Gbps</li>
         <li>USB 3.x 接口多为蓝色芯（Type-A）</li>
         <li>USB 4 兼容雷电 3，必须 Type-C</li>
         <li>实际速率取两端设备与线缆的较低者</li>
@@ -269,6 +273,16 @@
 </div>
 
 <script>
+// 版本数据唯一源：主计算与扩展表格共用；3.1 明确区分 Gen1/Gen2，避免把 10 Gbps 当成整个 3.1。
+const USB_INFO={
+  '1.0':['12 Mbps（低速 1.5 Mbps）','USB-A/B','5V / 0.5A','早期低速 / 全速'],
+  '1.1':['12 Mbps','USB-A/B','5V / 0.5A','全速普及'],
+  '2.0':['480 Mbps','USB-A/B/Mini/Micro','5V / 0.5A','普及型'],
+  '3.0':['5 Gbps','USB-A（蓝芯）/C','5V / 0.9A','SuperSpeed（现 3.2 Gen1）'],
+  '3.1':['10 Gbps（Gen2；Gen1 为 5 Gbps）','USB-C 为主','5V / 0.9A','SuperSpeed+（现 3.2 Gen2）'],
+  '3.2':['20 Gbps','USB-C','5V / 1.5A','双通道'],
+  '4.0':['40 Gbps','USB-C','最高 240W（PD 3.1）','雷电兼容']
+};
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function escH(s){var d=document.createElement('div');const __g1=s==null?'':String(s);d.textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
 function fmtMoney(n){return n.toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2});}
@@ -276,15 +290,11 @@ function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+=
 function calcTool(){const v=document.getElementById('v').value||'3.2';
    const v2=document.getElementById('v2').value||'2.0';
    const conn=document.getElementById('conn').value||'usbc';
-   const info={
-     '2.0':['480 Mbps','USB-A/B/Mini/Micro','5V / 0.5A','普及型'],
-     '3.0':['5 Gbps','USB-A（蓝芯）/C','5V / 0.9A','SuperSpeed'],
-     '3.1':['10 Gbps','USB-C 为主','5V / 0.9A','SuperSpeed+'],
-     '3.2':['20 Gbps','USB-C','5V / 1.5A','双通道'],
-     '4.0':['40 Gbps','USB-C','最高 240W（PD 3.1）','雷电兼容'],
-   };
-   const row=info[v]||info['3.2'], row2=info[v2]||info['2.0'];
-   const connNote={usbc:parseFloat(v)>=3.1?'USB-C 支持全速率':'USB-C 仅承载较低速率',typea:parseFloat(v)<=3.0?'Type-A 常见':'Type-A 少见（需 C）',micro:parseFloat(v)<=2.0?'Micro 常见':'Micro 已淘汰'}[conn]||'';
+   const info=USB_INFO;
+   if(!info[v]||!info[v2]){ToolBox.setResult('result','<p style="color:var(--danger)">未知 USB 版本，请重新选择。</p>');return;}
+   const row=info[v], row2=info[v2];
+   const pv=parseFloat(v);
+   const connNote={usbc:pv>=3.1?'USB-C 支持全速率':(pv===2?'USB-C 可承载 USB 2.0 全速（480 Mbps）':'USB-C 可承载低速 / 全速（12 Mbps）'),typea:pv<=3.0?'Type-A 常见':'Type-A 少见（需 C）',micro:pv<=2.0?'Micro 常见':'Micro 已淘汰'}[conn]||'';
    const adv=parseFloat(v)>=parseFloat(v2)?'较新，速率更高':'旧版，兼容更广';
    let html=dataGrid([
      ['USB '+v+' vs '+v2,'版本对比'],
@@ -302,7 +312,7 @@ function calcTool(){const v=document.getElementById('v').value||'3.2';
      '<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">1.0/1.1</td><td style="border:1px solid #d1d5db;padding:5px 8px;">12 Mbps</td><td style="border:1px solid #d1d5db;padding:5px 8px;">USB-A/B</td><td style="border:1px solid #d1d5db;padding:5px 8px;">5V/0.5A</td></tr>'+
      '<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">2.0</td><td style="border:1px solid #d1d5db;padding:5px 8px;">480 Mbps</td><td style="border:1px solid #d1d5db;padding:5px 8px;">A/B/Mini/Micro</td><td style="border:1px solid #d1d5db;padding:5px 8px;">5V/0.5A</td></tr>'+
      '<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">3.0</td><td style="border:1px solid #d1d5db;padding:5px 8px;">5 Gbps</td><td style="border:1px solid #d1d5db;padding:5px 8px;">A（蓝芯）/C</td><td style="border:1px solid #d1d5db;padding:5px 8px;">5V/0.9A</td></tr>'+
-     '<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">3.1</td><td style="border:1px solid #d1d5db;padding:5px 8px;">10 Gbps</td><td style="border:1px solid #d1d5db;padding:5px 8px;">C 为主</td><td style="border:1px solid #d1d5db;padding:5px 8px;">5V/0.9A</td></tr>'+
+     '<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">3.1 Gen2</td><td style="border:1px solid #d1d5db;padding:5px 8px;">10 Gbps（Gen1 为 5 Gbps）</td><td style="border:1px solid #d1d5db;padding:5px 8px;">C 为主</td><td style="border:1px solid #d1d5db;padding:5px 8px;">5V/0.9A</td></tr>'+
      '<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">3.2</td><td style="border:1px solid #d1d5db;padding:5px 8px;">20 Gbps</td><td style="border:1px solid #d1d5db;padding:5px 8px;">USB-C</td><td style="border:1px solid #d1d5db;padding:5px 8px;">5V/1.5A</td></tr>'+
      '<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">4.0</td><td style="border:1px solid #d1d5db;padding:5px 8px;">40 Gbps</td><td style="border:1px solid #d1d5db;padding:5px 8px;">USB-C</td><td style="border:1px solid #d1d5db;padding:5px 8px;">PD 3.1 最高 240W</td></tr>'+
      '</table>';
@@ -322,9 +332,11 @@ function __usb_versionExtras(){
     var v=document.getElementById('v').value||'3.2';
     var v2=document.getElementById('v2').value||'2.0';
     var conn=document.getElementById('conn').value||'usbc';
-    var info={ '2.0':['480 Mbps','USB-A/B/Mini/Micro','5V / 0.5A','普及型'], '3.0':['5 Gbps','USB-A（蓝芯）/C','5V / 0.9A','SuperSpeed'], '3.1':['10 Gbps','USB-C 为主','5V / 0.9A','SuperSpeed+'], '3.2':['20 Gbps','USB-C','5V / 1.5A','双通道'], '4.0':['40 Gbps','USB-C','最高 240W（PD 3.1）','雷电兼容'], };
-    var row=info[v]||info['3.2'], row2=info[v2]||info['2.0'];
-    var connNote={usbc:parseFloat(v)>=3.1?'USB-C 支持全速率':'USB-C 仅承载较低速率',typea:parseFloat(v)<=3.0?'Type-A 常见':'Type-A 少见（需 C）',micro:parseFloat(v)<=2.0?'Micro 常见':'Micro 已淘汰'}[conn]||'';
+    var info=USB_INFO;
+    if(!info[v]||!info[v2])return;
+    var row=info[v], row2=info[v2];
+    var pv=parseFloat(v);
+    var connNote={usbc:pv>=3.1?'USB-C 支持全速率':(pv===2?'USB-C 可承载 USB 2.0 全速（480 Mbps）':'USB-C 可承载低速 / 全速（12 Mbps）'),typea:pv<=3.0?'Type-A 常见':'Type-A 少见（需 C）',micro:pv<=2.0?'Micro 常见':'Micro 已淘汰'}[conn]||'';
     var adv=parseFloat(v)>=parseFloat(v2)?'较新，速率更高':'旧版，兼容更广';
     if (!__usb_versionRaw('v') || !__usb_versionRaw('v2') || !__usb_versionRaw('conn')) return;
     var en=TBKit.util.isEn();

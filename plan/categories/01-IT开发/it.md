@@ -239,28 +239,7 @@
 
 - 留存建议（bluetooth-version）：①选项改由 `BT_INFO` key 驱动生成（当前 HTML 写死，仍是双源）；②"数据表"页签当前切换的是 `#result` 而非 `#bluetooth_versionTable`，建议改为真正的表格面板。
 
-### IT-N133 USB 版本速查：三个下拉框没有任何 `<option>`，版本/对比版本/接口类型完全无法选择（高，确认源码缺陷）
-- 问题：`#v`、`#v2`、`#conn` 均为空 `<select>`，全页无 `<option>`、无动态填充；`calcTool()` 依赖 `|| '3.2'`、`|| '2.0'`、`|| 'usbc'` 兜底，结果永远是"3.2 vs 2.0 + USB-C"。
-- 证据：`tools/it/usb-version.html:129`、`tools/it/usb-version.html:133`、`tools/it/usb-version.html:137`（空 select）、`tools/it/usb-version.html:271-273`（读值 + 兜底）、`tools/it/usb-version.html:307-309`（reset 置 −1）
-- 复现（Node 静态校验）：`<select id="v">`、`<select id="v2">`、`<select id="conn">` 内部文本长度均为 0，全页 `<option` 计数为 0，`appendChild`/`new Option` 计数也为 0；打开页面三个下拉均无项，点"计算"结果不变。期望至少 2.0/3.0/3.1/3.2/4.0 与 usbc/typea/micro。
-- 影响：与蓝牙页同型——核心选择器不可用，工具只剩一张固定默认结果。
-- 方案：boot 时按 `info` 的 key 生成 option，接口类型用固定三项；HTML 亦可直接写死。
-
-### IT-N134 USB 版本速查：数据表缺 1.0/1.1（图表与页内表格却有），回退 3.2/2.0；`connNote` 把 USB 2.0 + USB-C 判成"仅承载较低速率"（中，确认源码缺陷）
-- 问题：`info` 只有 `2.0/3.0/3.1/3.2/4.0`，缺 1.0/1.1；`row=info[v]||info['3.2']` 会把 1.x 显示成 3.2 的 20 Gbps。另 `connNote.usbc = parseFloat(v)>=3.1 ? '支持全速率' : 'USB-C 仅承载较低速率'`：接口形态并不限制速率，USB 2.0 的 USB-C 口也能跑满 480 Mbps，"仅承载较低速率"表述错误；同法 `typea`/`micro` 的数值门槛也与事实不符（Micro-B 也有 USB 3.0 版本）。
-- 证据：`tools/it/usb-version.html:274-281`（info 表与回退）、`tools/it/usb-version.html:282`（connNote）、`tools/it/usb-version.html:363-364`（图表却含 1.1/12 Mbps）
-- 复现（Node 复算）：`v='1.1'` → 实际 20 Gbps / USB-C / 240W（均为 3.2 行）；`v='2.0', conn='usbc'` → 实际"USB-C 仅承载较低速率"，期望"USB-C 形态不限制速率，受协议/线材约束"。
-- 影响：补选项后会把 1.1 说成 20 Gbps；接口建议把形态与协议混为一谈，选型结论可能相反。
-- 方案：补齐 1.0/1.1 行；未收录显示"暂无数据"；`connNote` 改为"Type-C 支持最高 240W 供电（PD 3.1），速率取决于协议与线材"等不依赖版本门槛的表述。
-
-### IT-N135 USB 版本速查：把 3.1 简写成 10 Gbps，与自身引据"3.0/3.1 已更名为 3.2 Gen1/Gen2"矛盾（低，确认源码缺陷）
-- 问题：`info['3.1']=['10 Gbps',…]` 与底部说明"3.1 10G"把 USB 3.1 等同于 Gen2；但 USB-IF 命名里 3.1 Gen1 仍是 5 Gbps，只有 Gen2 是 10 Gbps；引据表也写"3.0 and 3.1 were renamed to 3.2 Gen1 and Gen2"。
-- 证据：`tools/it/usb-version.html:276-277`（3.1=10 Gbps）、`tools/it/usb-version.html:228`（"3.1 10G"）、`tools/it/usb-version.html:213`（引据）
-- 复现：阅读同页"命名演进"引据与 3.1 行 → 无法解释 3.1 Gen1（5 Gbps）落在哪一行；期望标注 "3.1 Gen1 = 5 Gbps / Gen2 = 10 Gbps"。
-- 影响：选购扩展坞/硬盘盒时按"3.1=10G"预期，买到 Gen1 实际只有 5 Gbps。
-- 方案：拆成 `3.1 Gen1 (5 Gbps)` 与 `3.1 Gen2 (10 Gbps)`，或统一改用 3.2 Gen1/Gen2/Gen2x2 命名并保留旧名括注。
-
-- 留存建议（usb-version）：①option 由数据表驱动生成；②补 1.0/1.1 与 3.2 Gen1/Gen2/2x2 细分；③接口建议与协议速率解耦（形态≠速率），并把"数据表"页签指向真正的表格。
+- 留存建议（usb-version）：①option 改由 `USB_INFO` key 驱动生成（当前 HTML 写死，仍是双源）；②补 3.2 Gen1/Gen2/2x2 细分（1.0/1.1 与 3.1 Gen1/Gen2 已补）；③接口建议与协议速率解耦（形态≠速率），并把"数据表"页签指向真正的表格。
 
 ### IT-N136 ASCII 码表：meta 三处承诺"点击即可复制对应编码"，实际点击只弹详情、没有任何剪贴板调用（中，确认源码缺陷）
 - 问题：卡片 `onclick="showDetail(${i})"` 只更新详情面板；全页检索无 `navigator.clipboard`、无 `copy`、无"复制"按钮/提示。meta/og/twitter 三处却都写"点击即可复制对应编码"。

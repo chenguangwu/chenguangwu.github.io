@@ -3555,6 +3555,34 @@ const CASES = [
     ref: "IT-N131：注入 4.0/5.0 后结果区既要显示正确标题，也要显示 4.0 自身的「BLE 低功耗引入」。旧实现 4.0 未命中数据表 ⇒ 回退 5.3 的「连接子评级」⇒ BT40 TN；修复后 BT40 TD。默认态为 5.3/5.0，不产生该探针串。",
   },
   {
+    slug: "it/usb-version",
+    // IT-N134：所有可选项必须有独立数据，1.0/1.1 不再缺失。
+    clicks: ["var sel=document.getElementById('v'),opts=[].map.call(sel.options,function(o){return o.value;}),need=['1.0','1.1','2.0','3.0','3.1','3.2','4.0'],missOpt=need.filter(function(v){return opts.indexOf(v)<0;}),missData=need.filter(function(v){return !USB_INFO[v];});document.getElementById('__tbProbe').textContent='USBOPT '+(missOpt.length?missOpt.join(','):'ALL')+' '+(missData.length?missData.join(','):'ALL');"],
+    expect: ["USBOPT ALL ALL"],
+    ref: "IT-N134：版本下拉必须覆盖 1.0/1.1/2.0/3.0/3.1/3.2/4.0 且每个值在 USB_INFO 中有独立数据。旧页只有 5 项且无 1.0/1.1 ⇒ USBOPT 1.0,1.1 ALL，不命中；修复后 USBOPT ALL ALL。默认态无探针。",
+  },
+  {
+    slug: "it/usb-version",
+    inputs: { v: "1.1", v2: "2.0" },
+    clicks: ["calcTool();var s=String(document.getElementById('result').innerHTML||'').split('USB 历代版本特性')[0];document.getElementById('__tbProbe').textContent='USB11 '+(/USB 1\\.1 vs 2\\.0/.test(s)?'T':'N')+(/12 Mbps/.test(s)?'D':'N')+(/20 Gbps/.test(s)?'B':'G');"],
+    expect: ["USB11 TDG"],
+    ref: "IT-N134：注入 1.1/2.0 后结果摘要必须显示「USB 1.1 vs 2.0」与 1.1 自身的 12 Mbps，且不能出现 3.2 的 20 Gbps。旧实现 1.1 未收录 ⇒ 回退 3.2 ⇒ USB11 TNB；修复后 USB11 TDG。默认态 3.2/2.0 不命中。",
+  },
+  {
+    slug: "it/usb-version",
+    inputs: { v: "2.0", v2: "2.0", conn: "usbc" },
+    clicks: ["calcTool();var s=String(document.getElementById('result').innerHTML||'');document.getElementById('__tbProbe').textContent='USBC2 '+(/USB 2\\.0 全速（480 Mbps）/.test(s)?'OK':'BAD');"],
+    expect: ["USBC2 OK"],
+    ref: "IT-N134：USB-C 可以承载完整 USB 2.0（480 Mbps），旧文案「仅承载较低速率」是错误结论 ⇒ USBC2 BAD；修复后给出「USB 2.0 全速（480 Mbps）」⇒ USBC2 OK。默认态 conn=usbc 但 v=3.2，不产生该串。",
+  },
+  {
+    slug: "it/usb-version",
+    inputs: { v: "3.1", v2: "2.0" },
+    clicks: ["calcTool();var s=String(document.getElementById('result').innerHTML||'').split('USB 历代版本特性')[0];document.getElementById('__tbProbe').textContent='USB31 '+(/10 Gbps（Gen2；Gen1 为 5 Gbps）/.test(s)?'OK':'BAD');"],
+    expect: ["USB31 OK"],
+    ref: "IT-N135：USB 3.1 必须区分 Gen2=10 Gbps 与 Gen1=5 Gbps（后者后更名为 3.2 Gen1），与引据表更名口径一致。旧数据只写 10 Gbps ⇒ USB31 BAD；修复后 USB31 OK。默认态 3.2/2.0 不命中。",
+  },
+  {
     slug: "it/emoji-cheatsheet",
     inputs: { search: "zzz" },
     expect: ["共 0 个 emoji"],
