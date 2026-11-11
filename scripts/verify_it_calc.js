@@ -3541,6 +3541,20 @@ const CASES = [
     ref: "独立复算：注入两侧版本 4.0 / 5.0 ⇒ 标题必为「Bluetooth 4.0 vs 5.0 版本对比」。默认态两侧同版（5.0/5.2 等）不命中。",
   },
   {
+    slug: "it/bluetooth-version",
+    // IT-N131：所有可选项必须有独立数据，4.0 不再静默回退 5.3。
+    clicks: ["var sel=document.getElementById('v'),opts=[].map.call(sel.options,function(o){return o.value;}),need=['1.0','2.0','3.0','4.0','4.1'],missOpt=need.filter(function(v){return opts.indexOf(v)<0;}),missData=opts.filter(function(v){return !BT_INFO[v];});document.getElementById('__tbProbe').textContent='BTOPT '+(missOpt.length?missOpt.join(','):'ALL')+' '+(missData.length?missData.join(','):'ALL');"],
+    expect: ["BTOPT ALL ALL"],
+    ref: "IT-N131：下拉选项必须覆盖 1.0/2.0/3.0/4.0/4.1 且每个选项在 BT_INFO 中有独立数据。旧页只有 4.2~5.4 六项且 4.0 静默回退 5.3 ⇒ BTOPT 1.0,2.0,3.0,4.0,4.1 ALL（或未覆盖串）不命中；修复后 BTOPT ALL ALL。默认态无探针。",
+  },
+  {
+    slug: "it/bluetooth-version",
+    inputs: { v: "4.0", v2: "5.0" },
+    clicks: ["calcTool();var s=String(document.getElementById('result').innerHTML||'');document.getElementById('__tbProbe').textContent='BT40 '+(/Bluetooth 4.0 vs 5.0/.test(s)?'T':'N')+(/BLE 低功耗引入/.test(s)?'D':'N');"],
+    expect: ["BT40 TD"],
+    ref: "IT-N131：注入 4.0/5.0 后结果区既要显示正确标题，也要显示 4.0 自身的「BLE 低功耗引入」。旧实现 4.0 未命中数据表 ⇒ 回退 5.3 的「连接子评级」⇒ BT40 TN；修复后 BT40 TD。默认态为 5.3/5.0，不产生该探针串。",
+  },
+  {
     slug: "it/emoji-cheatsheet",
     inputs: { search: "zzz" },
     expect: ["共 0 个 emoji"],

@@ -237,28 +237,7 @@
 
 - 留存建议（barcode-upc）：①删除本地 `buildUPC`，统一走共享库；②补 UPC-E 互转/校验位自动纠正说明，兑现 FAQ 的 UPC-E 提及。
 
-### IT-N130 蓝牙版本速查：三个下拉框没有任何 `<option>`，版本/对比版本/场景完全无法选择（高，确认源码缺陷）
-- 问题：`#v`、`#v2`、`#scene` 都是空 `<select>`；全页既无 `<option>` 标记，也无 `new Option`/`appendChild` 之类的填充代码。`calcTool()` 只能拿到空值，靠 `|| '5.3'`、`|| '5.0'`、`|| 'audio'` 兜底，页面展示的永远是"5.3 vs 5.0 + audio 场景"这一组默认结果。
-- 证据：`tools/it/bluetooth-version.html:129`、`tools/it/bluetooth-version.html:133`、`tools/it/bluetooth-version.html:137`（三个空 select）、`tools/it/bluetooth-version.html:271-273`（读值 + 兜底）、`tools/it/bluetooth-version.html:308-310`（`resetForm` 对空 select 置 `selectedIndex=0` 实为 −1）
-- 复现（Node 静态校验）：`<select id="v">`、`<select id="v2">`、`<select id="scene">` 内部文本长度均为 0，全页 `<option` 计数为 0，`appendChild`/`new Option` 计数也为 0；因此打开页面三个下拉均无项，换任何操作结果都不变。期望至少 6 个版本项（4.2/5.0/5.1/5.2/5.3/5.4）与 3 个场景项（audio/iot/peripheral）。
-- 影响：核心交互（选版本、选场景做对比）完全不可用，页面退化为固定的一张默认结果卡；这也解释了为什么"计算"按钮看起来没有反应。
-- 方案：在 boot 时用 `info` 表的 key 生成 `#v`/`#v2` 的 option，场景用固定 `audio/iot/peripheral` 生成 `#scene`；或直接在 HTML 写死 `<option>`，避免再次漏项。
-
-### IT-N131 蓝牙版本速查：数据表只覆盖 4.2~5.4，未命中静默回退 5.3/5.0（补齐下拉后会显示错误对比数据）（中，确认源码缺陷）
-- 问题：`info` 只有 `4.2/5.0/5.1/5.2/5.3/5.4`，缺 1.x/2.x/3.0/4.0/4.1；`row=info[v]||info['5.3']`，一旦选项里出现 4.0/4.1，页面会显示"Bluetooth 4.0"标题却配 5.3 的 2 Mbps 与"连接子评级"特性，且无提示。
-- 证据：`tools/it/bluetooth-version.html:274-281`（info 表）、`tools/it/bluetooth-version.html:282`（静默回退）、`tools/it/bluetooth-version.html:114`（公式区自述回退规则）
-- 复现（Node 复算映射）：`v='4.0', v2='4.2'` → 实际 `2 Mbps / 2 Mbps`、特性"连接子评级、周期广播改进"（均为 5.3 的内容）；期望 4.0 显示 1 Mbps（BLE）且标注"无 2M PHY"。
-- 影响：当前因下拉为空暂时不可见，但一旦按 N130 补选项即暴露"张冠李戴"的对比结论，属于高风险的潜在数据错误。
-- 方案：补齐 1.x~4.1 行；对未覆盖版本显示"暂无数据"而不是回退；回退时在结果区标注"未收录，按 5.3 代替"。
-
-### IT-N132 蓝牙版本速查：meta/og/twitter/JSON-LD 描述整句重复两遍（低，确认源码缺陷）
-- 问题：description 写成"蓝牙版本速查是一款免费的在线IT 开发工具，蓝牙版本速查是一款免费的在线IT 开发工具，输入参数即可实时得出结果；纯前端运行、数据不上传…纯前端运行、数据不上传…"，同句重复。
-- 证据：`tools/it/bluetooth-version.html:13`、`tools/it/bluetooth-version.html:16`、`tools/it/bluetooth-version.html:33`、`tools/it/bluetooth-version.html:36`
-- 复现：查看页面源码或搜索结果摘要 → 同句连续出现两次；期望单次且语义完整（本页是速查表，不应写"输入参数即可实时得出结果"）。
-- 影响：搜索结果摘要冗长且像机器拼接，降低点击率；与同批 usb-version 的正常文案不一致，说明是单页模板污染。
-- 方案：改为"蓝牙 5.4/5.3/5.2/5.1/5.0/4.2 的速率、距离、LE Audio 与 AoA/AoD 特性对照速查"。
-
-- 留存建议（bluetooth-version）：①选项由数据表 key 驱动生成（根治空下拉）；②补齐 1.x/2.x/3.0/4.0/4.1 或对未收录版本明确提示；③"数据表"页签当前切换的是 `#result` 而非 `#bluetooth_versionTable`，建议改为真正的表格面板。
+- 留存建议（bluetooth-version）：①选项改由 `BT_INFO` key 驱动生成（当前 HTML 写死，仍是双源）；②"数据表"页签当前切换的是 `#result` 而非 `#bluetooth_versionTable`，建议改为真正的表格面板。
 
 ### IT-N133 USB 版本速查：三个下拉框没有任何 `<option>`，版本/对比版本/接口类型完全无法选择（高，确认源码缺陷）
 - 问题：`#v`、`#v2`、`#conn` 均为空 `<select>`，全页无 `<option>`、无动态填充；`calcTool()` 依赖 `|| '3.2'`、`|| '2.0'`、`|| 'usbc'` 兜底，结果永远是"3.2 vs 2.0 + USB-C"。
