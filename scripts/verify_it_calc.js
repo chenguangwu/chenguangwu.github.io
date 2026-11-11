@@ -4253,6 +4253,24 @@ const CASES = [
     ref: "速查表按关键字过滤后统计命中条数；`git` 命中 1 项。默认态（无关键字）条数不同。",
   },
   {
+    slug: "it/regex-cheatsheet",
+    // IT-D30：\A \Z 在 JS 中是字面 A/Z（node: /\AHello/.test('AHello')===true），
+    // 速查表必须显式标注「JS 不支持」；探针读过滤后该条目的渲染文本，避免默认态全表命中。
+    inputs: { searchInput: "字符串首" },
+    clicks: ["var h=String(document.getElementById('cmdList').innerHTML);document.getElementById('__tbProbe').textContent='JSDOC '+((h.match(/JS 不支持/g)||[]).length);"],
+    expect: ["JSDOC 1"],
+    ref: "搜索「字符串首」只命中 \\A \\Z 一条，其 params 必须含 JS 不支持标注 ⇒ 探针 JSDOC 1；旧源码该条目 params 为空 ⇒ JSDOC 0。默认态不执行探针，无 JSDOC 串。",
+  },
+  {
+    slug: "it/regex-cheatsheet",
+    // IT-D30-b：POSIX [:alpha:] 在 JS 中不工作（node: /[[:alpha:]]/.test('abc')===false），
+    // 原 params「部分引擎支持」过于含糊，须明确 JS 不支持。
+    inputs: { searchInput: "POSIX 字符类" },
+    clicks: ["var h=String(document.getElementById('cmdList').innerHTML);document.getElementById('__tbProbe').textContent='POSIDOC '+((h.match(/JS 不支持/g)||[]).length);"],
+    expect: ["POSIDOC 1"],
+    ref: "搜索「POSIX 字符类」只命中 [:alpha:] 一条，其 params 必须含 JS 不支持标注 ⇒ 探针 POSIDOC 1；旧源码仅写「部分引擎支持」⇒ POSIDOC 0。",
+  },
+  {
     slug: "it/tmux-cheatsheet",
     inputs: { searchInput: "split" },
     clicks: ["calcTool()"],

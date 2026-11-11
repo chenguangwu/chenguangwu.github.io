@@ -56,7 +56,7 @@
 - 原文本统计 IT-N39 码元计数实现已变化：`tools/it/text-statistics.html:250-277` 使用字素簇统计并另列码点数；句号和裸回车分割路径仍在。未运行回归，不正式销账。本批另阅读 SQL、SQLite、tmux 速查及字符串混淆主要交互，未穷举内容正确性或运行页面。
 - 正则转义 IT-N58 所述非法十六进制和越界直接抛错的实现已变化，当前 `tools/it/regex-escape.html:301-315` 校验后保留不完整转义；未运行回归，不正式销账。IT-N59 的额外元字符集合仍在，风格下拉也未绑定变更刷新。
 - Rust 转义 IT-N338 旧字节串非法 `\u{}` 路径已变化，当前 `tools/it/rust-escape.html:287-295` 明确拒绝非 ASCII；未运行编译回归，不正式销账。本批另阅读 REST、Ruby、Rust 速查搜索、分类和复制，未穷举语法正确性或运行页面。
-- 番茄钟 IT-N480、N481 的跳过计入配置时长及 interval 递减路径仍在；Redis IT-N543、N544、正则速查 IT-D30 的原示例尚需独立复核。本批另阅读 PostgreSQL、Python、Redis、正则速查的搜索、分类与复制，不把源码阅读当作运行通过。
+- 番茄钟 IT-N480、N481 的跳过计入配置时长及 interval 递减路径仍在；Redis IT-N543、N544 的原示例尚需独立复核（正则速查 IT-D30 已独立复核并修复，第170批）。本批另阅读 PostgreSQL、Python、Redis、正则速查的搜索、分类与复制，不把源码阅读当作运行通过。
 - 密码强度 IT-N536–N538 的计算与首位锚定路径仍在；MySQL、Nginx、PHP 速查本批仅阅读搜索/分类/复制，历史示例正确性未重新执行。
 - IT-N288 原图片 alt/链接 URL 未转义的实现已变化：当前 `tools/it/markdown-editor.html:706-715,769-780` 有属性转义及 URL 协议筛选，历史示例不能直接沿用；未经安全回归测试，不能认定全部注入风险消除或正式销账。IT-N289 的任务清单列表及 IT-N290 的 h1 映射仍是旧实现。
 - 同批阅读 Linux、MongoDB 速查的搜索、分类与复制路径；无浏览器验证，不对完整正确性判通过。IT-N498–N500 的示例仍须按具体内容另行运行复核。
@@ -3029,7 +3029,7 @@
 | 页面 | 实现方式 | 可逆或可验证 | 结论 |
 |---|---|---|---|
 | `tools/it/regex` | 原生 RegExp：Worker 内 `new RegExp(p,f)`，替换同引擎（`:850-877`） | 同构造可验证 | 核心匹配/分组/替换正确；既有 N253/N254 仍在 |
-| `tools/it/regex-cheatsheet` | 纯查表：静态 `COMMANDS` 数组 + 过滤（无执行） | 仅内容正确性 | 检索可用；含 JS 不支持语法 |
+| `tools/it/regex-cheatsheet` | 纯查表：静态 `COMMANDS` 数组 + 过滤（无执行） | 仅内容正确性 | 检索可用；JS 不支持语法已显式标注（IT-D30，第170批） |
 | `tools/it/regex-common` | 查表（8 条类别常量）+ 原生 RegExp 逐类执行 | 给定类/文本可验证 | 8 类下拉已实装并可切换（IT-D27，第169批） |
 | `tools/it/regex-escape` | 自写逐字符映射转义/反转义，不走 RegExp | 部分可逆 | 转义正确；反转义吞类别转义 |
 | `tools/it/regex-visualizer` | 自写逐字符 tokenizer + 线性「状态」列表（非 AST/NFA），仅 `new RegExp` 校验合法性 | 合法性可验证；结构不可逆 | 承诺的树状层级未实现 + DOM XSS |
@@ -3043,7 +3043,7 @@
 ### 逐页结论
 
 - **regex**：默认 `\d+`/`g`/含 123、456、8888、9999 的文本 → 4 条匹配正确；`escapeHtml` 覆盖全部输出（`:547/566/578/602/642`），无 XSS；`:727` 早于 `#rx-worker-src`（`:850`）调用，首屏短暂显示「组件未加载」（IT-N252 的超时部分已修，双跑仍成立）。
-- **regex-cheatsheet**：纯查表；`\A \Z` 在 JS 中是字面 A/Z（node：`/\AHello/` 命中「AHello」）；`[:alpha:]` 为 POSIX 语法，JS 不支持且未注明（IT-D30）。
+- **regex-cheatsheet**：纯查表；`\A \Z` 与 `[:alpha:]` 两条 params 已标注「JS 不支持」及适用引擎（IT-D30，第170批）；检索/分类/复制逻辑不变。
 - **regex-common**：类别选择器已补齐 8 个 option 并可切换（IT-D27，第169批）；默认 email，8 类均可达，结果与原高亮/偏移明细逻辑不变。
 - **regex-escape**：默认 `Hello (World)? [a-z]+ $19.99` → `Hello \(World\)\? \[a-z\]\+ \$19\.99` 正确；反转义 `\d+\w`→`d+w`（IT-D29）。
 - **regex-visualizer**：默认 `^a[0-9]+b$` → 10 token / 12 状态直线（node 复算），与「树状、分组/量词/字符类层级」不符（IT-D28）。
@@ -3054,7 +3054,6 @@
 |---|---|---|---|
 | IT-D28 | `tools/it/regex-visualizer.html:250-266,283-285` | 高 | `buildStates` 每个 token 建 1 状态并首尾串联，无分支、无分组/量词/字符类嵌套；默认 `^a[0-9]+b$` 得直线而非树。期望真实 AST/NFA 树渲染 |
 | IT-D29 | `tools/it/regex-escape.html:310` | 中 | `default: out += n` 丢弃反斜杠：`\d+\w`→`d+w`、`\b`→`b`、`\s`→`s`，反转义后正则语义反转。期望保留 `\d \w \b \s \p{…}` 原样 |
-| IT-D30 | `tools/it/regex-cheatsheet.html:419-424,582-584` | 中 | `\A \Z` 标「字符串首/末」，JS 无此锚点；`[:alpha:]` 为 POSIX，JS 不支持且未注明引擎。期望标注 JS 不支持或删除 |
 
 ### 统计
 
