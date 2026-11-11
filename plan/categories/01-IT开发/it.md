@@ -2570,15 +2570,6 @@
 - 方案：删除请求头或单列"请求头"分类；去掉重复的 `ETag` / `Last-Modified`。
 - 假工具：否
 
-### IT-N460 待签名串未转义直接写入 innerHTML，参数可执行脚本（高，安全）
-- 页面：`tools/it/api-sign-generator.html`
-- 问题：`signText = base + '&secret=' + secret`（`:297-298`）中 `base` 由用户参数原样拼接，随后直接 `document.getElementById('out').innerHTML = '<p>待签名串：<strong>${signText}</strong></p>'`（`:311-312`），全程无转义。
-- 行号：`:281-298`、`:311-312`
-- 复现：参数框输入一行 `<img src=x onerror=alert(1)>=1` → `parseParams` 取 k=`<img src`、v=`x onerror=alert(1)>=1`，拼成 `<img src=x onerror=alert(1)>=1` 插入 DOM → 实际执行 `onerror` 弹窗；期望只作为纯文本显示。
-- 影响：只要粘贴别人给的参数（或从共享文档复制的签名串）就能在本站执行任意脚本，可读本站 localStorage、伪造结果区或跳转页面。
-- 方案：改用现成的 `escH()` 逐段拼接，或用 `textContent` + 单独 `<strong>` 节点渲染。
-- 假工具：否
-
 ### IT-N461 "MD5" 选项实为 SHA-256 取前 32 位，签名与任何 MD5 服务端都不匹配（高，算错）
 - 页面：`tools/it/api-sign-generator.html`
 - 问题：`md5Hex()` 实际执行 `crypto.subtle.digest('SHA-256', …)` 再 `.slice(0,32)`（`:253-263`），下拉文案为"MD5（兼容：SHA-256 取前 32 位）"（`:137`），但 `formula-eq`（`:124`）与 `formula-desc` 仍写"MD5 模式：sign = MD5(待签名串)"、"对拼接串做 MD5"（`:129`）。
@@ -2610,7 +2601,7 @@
 - `url-qr`：无剩余缺陷（IT-N456 真编码器、IT-N457 纠错+尺寸双控件均已销账，第183–184批）。
 - `og-meta-tag-generator`：IT-N458（中）；无高优缺陷（`escA` 先转 `&` 再转 `"`，输出走 `textarea.value`，属性上下文不可注入）。
 - `http-response-headers`：IT-N459（中）；无高优缺陷（`renderCommands` 对全部字段走 `escapeHtml`，搜索/复制路径无注入）。
-- `api-sign-generator`：IT-N460（高，安全）、IT-N461（高）；IT-N462（中）。
+- `api-sign-generator`：IT-N461（高）；IT-N462（中）。IT-N460 已销账（escHtml 转义复核通过，第185批）。
 - `rc4`：IT-N463（中）；无高优缺陷（`rc4()` 与 `RC4-drop` 主路径对照已知向量 `Key`/`Plaintext` → `bbf316e8d940af0ad3` 正确，KSA/PRGA 无死循环）。
 - `js-minify`：无剩余高优/中优缺陷（IT-N464 已改为轻量词法扫描，保留字符串/正则/模板串与换行，第182批销账；结果渲染走 `escH`，无注入）。
 - `url-params`：无剩余高优/中优缺陷（IT-N465/IT-N466/IT-N467 均已修复，第178–179批补独立锁与真机复核后销账）。

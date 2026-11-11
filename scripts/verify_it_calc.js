@@ -2653,6 +2653,13 @@ const CASES = [
     ref: "按 `参数串 + &secret=` 拼接待签串后做 HMAC-MD5 ⇒ 固定 32 位十六进制签名；默认参数组合产出不同密文。",
   },
   {
+    slug: "it/api-sign-generator",
+    // IT-N460：待签名串里的 payload 必须转义为文本，不得生成可执行 <img onerror> 节点。
+    inputs: { secret: "s", params: "<img src=x onerror=alert(1)>=1", algo: "sha256" },
+    expect: ["待签名串： &lt;img src=x onerror=alert(1)&gt;=1&secret=s"],
+    ref: "注入 payload 参数 `<img src=x onerror=alert(1)>=1`：修复后 escHtml 把 < > 转成 &lt; &gt;，out.innerHTML 必含整段转义串 `&lt;img src=x onerror=alert(1)&gt;=1&secret=s` ⇒ 匹配。缺陷态（5640fa93c6^）原样拼接 ⇒ 裸 `<img onerror>` 入 DOM、无该转义串 ⇒ 不匹配。默认态 params 为正常键值、不含 payload ⇒ 判别明确。"
+  },
+  {
     slug: "it/http-status",
     inputs: { search: "zzz" },
     expect: ["No matching status code."],
