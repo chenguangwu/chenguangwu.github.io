@@ -325,20 +325,6 @@
 
 - 留存建议（http-status）：①补 301/302/307/308 与 401/403/404/410 的决策对照表；②支持"复制整行/导出全量 CSV"（当前导出只导当前筛选且需先点导出才渲染表）；③增加常见框架默认页（Nginx/Tomcat/Spring）对应状态码的排查提示。
 
-### IT-N104 HTTP 请求头速查：凭空编造 `Range-Unit` 请求头并单列"范围"分类（中，确认源码缺陷）
-- 问题：条目 `Range-Unit: <unit>` / `Range-Unit: bytes` 在 RFC 9110 中不存在；范围单位由 `Range: bytes=…` 与 `Accept-Ranges: bytes` 表达。页面为它单开"范围"分类（仅此一条），会让人以为存在独立字段。
-- 证据：`tools/it/http-headers.html:915-920`（条目与示例）、`tools/it/http-headers.html:499-506`（正确的 `Accept-Ranges`）、`tools/it/http-headers.html:491-498`（`Range`）
-- 复现：搜索 `Range-Unit` → 返回该条目及 `Range-Unit: bytes` 示例；按 RFC 9110 §14 检索无此字段（期望标注"非标准/常见误写"，或删除并把示例并入 `Range`）。
-- 影响：把错误字段教给用户，照抄会写出服务端不识别、代理可能拒绝的请求头。
-- 方案：删除该条并把 `bytes` 单位说明并入 `Range`/`Accept-Ranges`；若保留则明确标为"非标准（不存在此字段）"。
-
-### IT-N105 HTTP 请求头速查：缺最常用的缓存与安全头，"缓存"分类只剩 Vary（中，确认源码缺陷）
-- 问题：91 条中没有任何 `Cache-Control`、`Last-Modified`、`Strict-Transport-Security`、`Content-Security-Policy`、`Permissions-Policy` 的独立条目；`ETag`、`Expires` 只作为 `If-Match`/`If-None-Match`、`Set-Cookie`/`Trailer` 的示例串出现，查不到词条。"缓存"分类只有 `Vary` 一条。
-- 证据：`tools/it/http-headers.html:547-554`（缓存分类唯一 Vary）、`tools/it/http-headers.html:683-690`（安全分类有 X-Frame-Options，但缺 HSTS/CSP）、`tools/it/http-headers.html:509-519`（ETag 仅作为 If-Match/If-None-Match 的参数）
-- 复现：搜索 `Cache-Control` → 0 条；搜索 `ETag` → 0 条词条（仅 509/517 行的 If-* 参数里出现字符串）；搜索 `Content-Security-Policy` → 0 条（期望至少给出语法与常见指令）。
-- 影响：最常被查阅的缓存协商/安全响应头缺失，用户仍需另找资料，降低留存。
-- 方案：补 `Cache-Control`（含 `no-store/max-age/s-maxage/immutable`）、`ETag`/`If-None-Match`、`Last-Modified`/`If-Modified-Since`、`Expires`、`HSTS`、`CSP`、`Permissions-Policy`，并把 `Vary` 归入"缓存/协商"。
-
 ### IT-N106 HTTP 请求头速查：中文标题只写"请求头"，条目却含大量响应头（低，确认源码缺陷）
 - 问题：`<h1 class="sr-only">`、面包屑、`<title>` 均称"HTTP 请求头速查"，但数据里含 `Server`、`X-Powered-By`、`Allow`、`WWW-Authenticate`、`Set-Cookie` 等响应头（英文简介写的是 "request and response headers"，反而准确）。
 - 证据：`tools/it/http-headers.html:143`（h1）、`tools/it/http-headers.html:159`（面包屑）、`tools/it/http-headers.html:939-969`（响应分类 4 条）、`tools/it/http-headers.html:339`（Set-Cookie 亦为响应头）、`tools/it/http-headers.html:175`（英文简介含 response）

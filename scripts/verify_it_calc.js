@@ -2793,6 +2793,36 @@ const CASES = [
     ref: "反向锚：搜索不存在的头名 ⇒ 计数为 0；默认列表非空。",
   },
   {
+    slug: "it/http-headers",
+    clicks: ["var n=COMMANDS.map(function(c){return c.cmd;});var c={};COMMANDS.forEach(function(x){c[x.cat]=1;});document.getElementById('__tbProbe').textContent='HDRBAD RU='+(n.indexOf('Range-Unit')>=0?1:0)+' total='+COMMANDS.length+' cats='+Object.keys(c).length;"],
+    expect: ["HDRBAD RU=0 total=97 cats=20"],
+    ref: "IT-N104/N105：删除 RFC 中不存在的 Range-Unit 并补 7 个缓存/安全头 ⇒ 91→97 条、21→20 分类（「范围」分类消失）。旧表 RU=1 total=91 cats=21。探针仅 clicks 注入出现，默认态零命中。",
+  },
+  {
+    slug: "it/http-headers",
+    clicks: ["var n=COMMANDS.map(function(c){return c.cmd;});var need=['Cache-Control','ETag','Last-Modified','Expires','Strict-Transport-Security','Content-Security-Policy','Permissions-Policy'];var miss=need.filter(function(x){return n.indexOf(x)<0;});document.getElementById('__tbProbe').textContent='HDRNEED '+(miss.length===0?'OK':'BAD')+' '+need.length+'|'+miss.join(',');"],
+    expect: ["HDRNEED OK 7|"],
+    ref: "IT-N105：7 个最常查阅的缓存/安全响应头必须有独立词条（旧表全部缺失，ETag 仅作为 If-Match 参数出现）。显式 OK/BAD 标记杜绝前缀逃生——旧态输出 HDRNEED BAD 7|缺… 不命中。探针仅 clicks 注入出现。",
+  },
+  {
+    slug: "it/http-headers",
+    clicks: ["var cc=COMMANDS.filter(function(c){return c.cat==='缓存';}).length,sc=COMMANDS.filter(function(c){return c.cat==='安全';}).length;document.getElementById('__tbProbe').textContent='HDRCAT cache='+cc+' sec='+sc;"],
+    expect: ["HDRCAT cache=5 sec=8"],
+    ref: "IT-N105：原「缓存」分类仅 Vary 一条、安全 5 条；补 4 个缓存头 + 3 个安全头后为 5/8。旧表 cache=1 sec=5。探针仅 clicks 注入出现。",
+  },
+  {
+    slug: "it/http-headers",
+    inputs: { searchInput: "Cache-Control" },
+    expect: ["共 1 项"],
+    ref: "IT-N105 用户可见行为：搜索 Cache-Control 必须命中独立词条；旧表 0 条。默认态全表 97 项不产生「共 1 项」。",
+  },
+  {
+    slug: "it/http-headers",
+    inputs: { searchInput: "Range-Unit" },
+    expect: ["共 0 项"],
+    ref: "IT-N104 用户可见行为：搜索 RFC 中不存在的 Range-Unit 应零命中；旧表返回该编造条目 1 条。默认态全表不产生「共 0 项」。",
+  },
+  {
     slug: "it/http-cache",
     inputs: { searchInput: "zzz" },
     expect: ["共 0 项"],
