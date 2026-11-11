@@ -10981,9 +10981,9 @@ const CASES = [
       "msg": "1\n2\n3"
     },
     "expect": [
-      "sms:abc123测试?body=1%0A2%0A3"
+      "电话号码仅支持 5–15 位数字与可选的前导 +"
     ],
-    "ref": "注入非默认号码/短信（换行消息编码为 %0A）⇒ 输出区含 sms:abc123测试?body=1%0A2%0A3；默认号码/短信不同，仍为强判别。二维码库在 harness 内不执行，故断言聚焦可验证的 URI 文本。"
+    "ref": "IT-N231 强锁：注入非数字号码 abc123测试，必须报「电话号码仅支持 5–15 位数字与可选的前导 +」而不是生成残缺 URI；默认号码 13800138000 合法、不命中该错误串。"
   },
   {
     "slug": "it/sql-cheatsheet",
@@ -12981,6 +12981,28 @@ const CASES = [
     clicks: ["var o='BAD';try{getKey();}catch(e){o=/16/.test(e.message)?'KEY229 OK':'BAD';}document.getElementById('__tbProbe').textContent=o;"],
     expect: ["KEY229 OK"],
     ref: "IT-N226 强锁：注入超过 16 字节的文本密钥，getKey 必须明确报错（含 16），修复前静默 slice(0,16) 无异常 ⇒ BAD。默认 16 字节密钥不命中。",
+  },
+  // ── 第230批 IT-N227 / N231 / N232 ──
+  {
+    slug: "it/rabbit",
+    inputs: { iv: "abcdefghijklmnop", input: "616263", outputFormat: "hex" },
+    clicks: ["var o='BAD';try{getIV();}catch(e){o=/16/.test(e.message)?'IV230 OK':'BAD';}document.getElementById('__tbProbe').textContent=o;"],
+    expect: ["IV230 OK"],
+    ref: "IT-N227 强锁：注入 16 个非 hex 字符的 IV，必须报「16 位 hex」错误；修复前 hexToBytes 把 NaN 写成 0，按全 0 IV 静默继续 ⇒ BAD。默认 IV 留空不命中。",
+  },
+  {
+    slug: "it/sms-qr",
+    inputs: { phone: "13800138000", msg: "NaN" },
+    clicks: ["generate();var h=String(document.getElementById('output').innerHTML);document.getElementById('__tbProbe').textContent=(/body=NaN/.test(h)&&!/无效值/.test(h)?'NAN230 OK':'BAD');"],
+    expect: ["NAN230 OK"],
+    ref: "IT-N232 强锁：短信正文合法含 NaN 时必须照常输出 URI；修复前 NaN 正则守卫把结果换成「计算结果含无效值」⇒ BAD。默认正文不含 NaN，不命中。",
+  },
+  {
+    slug: "it/sms-qr",
+    inputs: { phone: "13800138000#test", msg: "Hi" },
+    clicks: ["var o='BAD';try{buildSms();}catch(e){o=/5.15/.test(e.message)?'TEL230 OK':'BAD';}document.getElementById('__tbProbe').textContent=o;"],
+    expect: ["TEL230 OK"],
+    ref: "IT-N231 强锁：注入含 # 的非法号码必须报 5–15 位数字错误；修复前原样拼进 sms: URI，# 把 ?body 变成 fragment ⇒ BAD。默认号码合法，不命中。",
   },
 ];
 

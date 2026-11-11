@@ -62,7 +62,7 @@
 - 同批阅读 Linux、MongoDB 速查的搜索、分类与复制路径；无浏览器验证，不对完整正确性判通过。IT-N498–N500 的示例仍须按具体内容另行运行复核。
 - IT-N423、N308、N309 的数据范围问题仍在。
 - IT-N49 已于第215批真修并销账：`chmod-calculator` 支持 setuid(4)/setgid(2)/sticky(1) 特殊位与四位数模式（如 4755/2755/1777），符号位按 s/S 与 t/T 分别渲染，快捷预设及复制命令同步；JSDOM 修好版 18/18、旧源码 3/18。
-- IT-N170–N173 第217批销账（`calc-3`）、IT-N174–N177 第218批（`matrix-transpose`）、IT-N178–N180 第219批（`http-cookies` 与 4 个 HTTP 页过期示例）、IT-N181–N184 第220批（`text-to-ascii`）、IT-N185–N190 第221批（`shell-script-formatter`）、IT-N191–N195 第222批（`unit-converter-advanced`）、IT-N196–N198 第223批（`html-entities-encode`）、IT-N199–N201 第224批（`json-to-toml`）、IT-N202–N206 第225批（`plist-parser` 与 `char-encoder`）、IT-N207–N211 第226批（`char-encoder` 实体补全与 `basic-auth-generator` 冒号/charset）、IT-N212–N216 第227批（`nanoid-generator` 与 `markdown-table-generator`）、IT-N217–N221 第228批（`markdown-table-generator` CSV 解析与 `wifi-qr-generator` 改名），详见下方覆盖行；IT-N222–N226 第229批（`phone-screen-sizes` 页签默认态/DPR 列/描述去重、`rabbit` RFC 4503 全量对齐与 32 hex 密钥语义），详见移交档。
+- IT-N170–N173 第217批销账（`calc-3`）、IT-N174–N177 第218批（`matrix-transpose`）、IT-N178–N180 第219批（`http-cookies` 与 4 个 HTTP 页过期示例）、IT-N181–N184 第220批（`text-to-ascii`）、IT-N185–N190 第221批（`shell-script-formatter`）、IT-N191–N195 第222批（`unit-converter-advanced`）、IT-N196–N198 第223批（`html-entities-encode`）、IT-N199–N201 第224批（`json-to-toml`）、IT-N202–N206 第225批（`plist-parser` 与 `char-encoder`）、IT-N207–N211 第226批（`char-encoder` 实体补全与 `basic-auth-generator` 冒号/charset）、IT-N212–N216 第227批（`nanoid-generator` 与 `markdown-table-generator`）、IT-N217–N221 第228批（`markdown-table-generator` CSV 解析与 `wifi-qr-generator` 改名），详见下方覆盖行；IT-N222–N226 第229批（`phone-screen-sizes` 页签默认态/DPR 列/描述去重、`rabbit` RFC 4503 全量对齐与 32 hex 密钥语义）；IT-N227 与 IT-N230–N232 第230批（`rabbit` 严格 IV/解密格式、`sms-qr` 真实 QR 补证据与号码校验/NaN 守卫移除），详见移交档。
 - 同批另阅读 `ascii-table`、`box-shadow-generator`、`calc-1`、`calc-10` 的主要交互路径；未对其完整正确性或浏览器行为作通过判定。
 
 ## 已知问题
@@ -789,14 +789,6 @@
 - 未覆盖说明：只审计主流程、边界与文档口径，未逐条核对 FAQ/JSON-LD 文案（仅发现 `phone-screen-sizes` 描述整句重复并单列）；未穷举 plist 全部数据类型、未测试二进制 bplist00（页面已明确不支持）；WiFi QR 未实际扫码验证；屏幕参数表仅复算 PPI 与分辨率/尺寸自洽性，未核对 10 款机型官方规格的发布时间与市场版本。
 - 未做验证：未开浏览器（结论均为源码静态分析 + `node -e` 内存复算）、未验证英文态 `?lang=en-US`/繁体/移动端、未跑 `_test_static.py`/`_audit_links.py`/`_audit_assets.py`/`run_gates.py` 等门禁，未触发 `_build.py` 或任何 git 写操作。
 
-### IT-N227 密文基数靠猜、非法 IV 静默变全 0（中，确认缺陷）
-- 问题：解密时先按正则猜 Hex，再退回 Base64；`getIV()` 对非 hex 输入把 `parseInt` 的 NaN 写进 `Uint8Array`（自动存 0），只要长度 ≥8 就当作"全 0 IV"并额外空转 4 轮，既不报错也不提示。
-- 证据：`tools/it/rabbit.html:395`（`/^[0-9a-fA-F\s]+$/` + 偶数长度判定）、`:379-380`（`hexToBytes` 长度 ≥8 即返回，否则退回文本）、`:317-322`（IV 只要非 null 就异或并多跑 4 轮）。
-- 复现：node（1）IV=`abcdefghijklmnop`（16 字符、全非 hex）→ `hexToBytes` 得 8 个 0 → 页面按"零 IV"处理，结果与留空 IV 不同，无任何提示；（2）密文 `abcd` 既是合法 Base64（atob 得 3 字节）又符合 hex 正则且长度为偶 → 被判为 Hex 解 2 字节，明文错乱。
-- 影响：`tools/it/rabbit.html`
-- 方案：解密格式跟随已有的 `#outputFormat`（Hex/Base64 下拉）而不是猜；IV 严格校验 `/^[0-9a-fA-F]{16}$/` 或明确"按 UTF-8 文本补齐 8 字节"，长度不符时报错而非静默补 0。
-**留存建议（tools/it/rabbit.html）**：改下拉联动即可，成本低、收益直接。
-
 ### IT-N228 GRANT 示例使用 MySQL 8.0 已移除的 `IDENTIFIED BY` 子句（中，确认缺陷）
 - 问题：权限条目照抄 5.6 时代写法 `GRANT ... TO user IDENTIFIED BY 'pwd'`。`IDENTIFIED BY` 在 5.7.6 起废弃、8.0 已移除，8.0/8.4 执行直接 1064 语法错误；且 GRANT 后的 `FLUSH PRIVILEGES` 并非必需（只有直接改 grant 表才需要）。
 - 证据：`tools/it/mysql-cheatsheet.html:643`（syntax）、`:645`（example）、`:653`（REVOKE 写法正常，可作对照）。
@@ -812,30 +804,6 @@
 - 影响：`tools/it/mysql-cheatsheet.html`
 - 方案：syntax 去掉 `[(M)]`/`[ZEROFILL]` 或加"（8.0.17 起废弃）"；UPSERT 示例换成 `AS new ... new.name`。
 **留存建议（tools/it/mysql-cheatsheet.html）**：顺手改，避免教出告警代码。
-
-### IT-N230 名为"SMS 二维码"却不生成可扫二维码：数据区是伪随机填充（高，确认缺陷）
-- 问题：`renderQR()` 只画了 3 个定位图案与定时图案，其余数据区用 FNV 哈希做种子的 LCG 随机填 0/1；没有数据编码、Reed–Solomon 纠错、格式/版本信息、掩码，网格固定 `N=27`（版本 5），任何标准扫码器都解不出内容。
-- 证据：`tools/it/sms-qr.html:255`（`const N=27`）、`:267-272`（`rnd()<0.5?0:1` 铺满数据区）、`:275-281`（只把格子画进 canvas）、`:157`（说明宣称"版本升高、纠错等级 M"）。
-- 复现：读源码即可判定（无任何 QR 编码步骤）；对照 `:157` 的"内容较长时版本升高"——代码中 N 是常量，无法升版。
-- 影响：`tools/it/sms-qr.html`
-- 方案：引入纯前端 QR 编码库（锁版本、本地引入，符合纯前端约束）按 version/ECC 真实编码；否则按 N220 的先例把页面改名为"SMS 链接（sms: URI）生成器"并说明需外部二维码工具。
-**留存建议（tools/it/sms-qr.html）**：与 N220（WiFi 页）同一病灶，建议两页共用一套本地 QR 渲染。
-
-### IT-N231 只编码正文不编码号码，号码含 `#`/`&`/空格即被截断（中，确认缺陷）
-- 问题：`buildSms()` 对正文做了 `encodeURIComponent`，号码原样拼接；号码含 `#` 会把 `?body=` 落到 fragment，含 `&` 会起新参数，含空格/连字符则产生非法 URI。页面说明自己写着"正文与号码中的特殊字符需先做百分号编码"。
-- 证据：`tools/it/sms-qr.html:249-253`（`'sms:'+phone+'?body='+msg`）、`:157`（说明要求号码也编码）、`:161`（`#phone` 无 `pattern`、无校验）。
-- 复现：phone=`13800138000#test`、msg=`Hi` → 生成 `sms:13800138000#test?body=Hi`，`?body` 成为 fragment 内容，扫码端只填号码、正文丢失；phone=`138 0013 8000` → URI 含空格，RFC 3986 非法，部分扫码器截断。
-- 影响：`tools/it/sms-qr.html`
-- 方案：号码先去空格/连字符并校验 `^\+?\d{5,15}$`（不合法则提示"仅支持数字与可选 +"），正文保持 `encodeURIComponent`；若允许扩展号再单独约定分隔符。
-**留存建议（tools/it/sms-qr.html）**：属于"生成物不可用"级别，应与 N230 同批修。
-
-### IT-N232 模板 NaN 守卫误伤含 "NaN" 的短信正文，直接吞掉结果（中，确认缺陷）
-- 问题：结果渲染前先用 `/NaN/` 正则扫描**拼入用户文本**的 HTML，命中就把 `out.innerHTML` 换成"⚠ 计算结果含无效值，请检查输入是否为有效正数"，后续 `appendChild(canvas)` 也不再执行。
-- 证据：`tools/it/sms-qr.html:285`（守卫 + 正则）；`:343`（历史读取同样把含 "NaN" 的结果判为无效）。
-- 复现：msg=`NaN`、phone=`13800138000` → `buildSms()` = `sms:13800138000?body=NaN`，正则 `(^|[^A-Za-z])NaN([^A-Za-z]|$)` 命中（前一字符 `=`、后为串尾）→ 页面只剩错误提示，二维码与 URI 都不出现。
-- 影响：`tools/it/sms-qr.html`（该守卫为全站模板注入，凡"结果里拼用户文本"的页面都有同型风险）
-- 方案：文本/URI 类页面删除该守卫；数值页改判 `Number.isFinite(数值结果)` 而不是正则扫 HTML。
-**留存建议（tools/it/sms-qr.html）**：顺手删，属于"用户输入决定是否报错"的错误设计。
 
 ### IT-N233 "两类错误/效能"模块忽略单尾选择，与上方主结果自相矛盾（中，确认缺陷）
 - 问题：`__stTail()` 只认 `one`/`1`/`单`，而 `#tail` 的取值是 `two|left|right`，于是恒返回 `'two'`。结果：主计算区按单尾算 p 与临界值，下方"两类错误"模块却按双尾算临界值/效能/MDE，并显示"±1.960（双尾）"。
@@ -909,7 +877,6 @@
 ### 承诺 vs 实际（R 批专项）
 - `tools/it/rabbit.html:201`："导出明细 CSV"导的是 `#rabbitTable`，而 `:441-443` 读 `#output`（**textarea**）的 `textContent`，textarea 的 textContent 是初始内容（恒空）→ 历史/图表/CSV 恒空（IT-N140 同型，不重复编号）。
 - `tools/it/mysql-cheatsheet.html:643`、`:645`：权限示例为 8.0 已移除语法（N228）；全页无 `CREATE USER`，而 8.0 建账号必须先 CREATE USER。
-- `tools/it/sms-qr.html:156` 写 `SMSTO:号码:内容`，`:196` 示例却写 `smsto:13800000000?body=Hi`（两种格式互斥）；`:157` 宣称"版本升高、纠错 M"，`:255` 却把 `N=27` 写死（N230）。
 - `tools/it/hypothesis-test.html:516` "z or t"、`:161` t 公式与 df → 实际只有 Z 检验（N234）；`:585-589` 单尾选择失效（N233）。
 - `tools/it/rest-api-cheatsheet.html:558` 错误格式 syntax 非法 JSON（N236）；`:221` "POST 建"指向 `/users/{id}`（N237）。
 - `tools/it/md5.html:201`：称"支持任意大小文件"，但 `:338`/`:375` 的 `tail[14]=n*8` 只写低 32 位、未给高位字 `tail[15]` 赋值 → ≥512 MiB 文件摘要错误；且 `:417-426` 用 `readAsArrayBuffer` 全量读入内存，"任意大小"不成立。
@@ -1969,7 +1936,7 @@
 | `tools/it/qr-decoder.html` | `wifiValue`（`:265`）用 `unescape` 解百分号：`unescape('%E4%B8%AD')` 得 `ä¸­`（Latin-1 逐字节），不是 UTF-8 的「中」；中文 SSID/密码显示乱码，用户照抄连不上。应改 `decodeURIComponent`。 | IT-D04 |
 | `tools/it/qr-decoder.html` | 只匹配 `^sms:`（`:285`），而本站 `qrcode.html:217` 预设与 `sms-qr.html:156` 均输出 `SMSTO:号码:内容`；自家生成的短信二维码粘回来被判为「纯文本」，号码/正文都不提取。 | IT-D05 |
 | `tools/it/qr-decoder.html` | `:149` 英文与 `:152` 公式写「Decode QR codes from an image or camera」「从图片中识别并解码二维码」，`:154-157` 还列出定位/采样/RS 纠错；实际控件只有文本框（`:163`），`decode()` `:266-345` 仅按前缀解析，无文件/相机/图像处理，英文态按说明使用必然扑空。 | IT-D06 |
-| `tools/it/qr-decoder.html` | `:342` 的模板 NaN 守卫扫描 `decode()` 返回的、已拼入用户值的 HTML；正文/URL 含独立 `NaN` 或 `Infinity`（如 `mailto:...&body=NaN`、`WIFI:S:NaN;...`）即被替换成「⚠ 计算结果含无效值，请检查输入是否为有效正数」，解析结果整块消失。与 IT-N232 同型；`email-qr.html:293`、`text-qr.html:280` 同样中招。 | IT-D07 |
+| `tools/it/qr-decoder.html` | `:342` 的模板 NaN 守卫扫描 `decode()` 返回的、已拼入用户值的 HTML；正文/URL 含独立 `NaN` 或 `Infinity`（如 `mailto:...&body=NaN`、`WIFI:S:NaN;...`）即被替换成「⚠ 计算结果含无效值，请检查输入是否为有效正数」，解析结果整块消失。与第230批已修的短信页 NaN 守卫同型；`email-qr.html:293`、`text-qr.html:280` 同样中招。 | IT-D07 |
 | `tools/it/barcode-code128.html` | 静区单位错位：`:272` 传 `quiet:10`，`js/barcode-lib.js:343` 定义了却从未使用的 `quietModules()`，`:349-351` 把 `quiet` 当像素加在 `bits.length*scale` 两侧；`scale=2` 时仅 5 模块，低于 Code 128 规范 10 模块。同型：EAN/UPC 页 10px≈3.3 模块（规范 9–11），打印/贴标时四周留白不足；SVG 路径同样按 `q*2` 处理。 | IT-D08 |
 
 **统计**

@@ -140,7 +140,7 @@
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="🔐 Rabbit 流加密">🔐 Rabbit Stream Cipher</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">按 RFC 4503 实现：128 位密钥按小端切成 K0=密钥末两字节…K7=密钥头两字节，再按 §2.3 交错装入 8 个状态字 X 与 8 个计数字 C，迭代 4 轮后令 C_j ^= X[(j+4) mod 8]。若给出 8 字节 IV，按 §2.4 将 IV 的四组 16 位片段分别异或到 C0/C4、C1/C5、C2/C6、C3/C7，再迭代 4 轮。每轮先按 §2.5 更新计数器：temp=C_j+A_j+b，b=temp÷2^32 且必须保留给下一位与下一轮，C_j=temp mod 2^32（不把 b 额外加回 C0）；再按 §2.6 计算 g(u,v)=LSW((u+v)²)⊕MSW((u+v)²) 并滚动更新 X；按 §2.7 提取 16 字节密钥流，按 S[127..0] 高字节优先与明密文逐字节异或。32 位 hex 密钥按字节装入；文本密钥按 UTF-8 补齐到 16 字节，超出 16 字节直接报错而非截断</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">按 RFC 4503 实现：128 位密钥按小端切成 K0=密钥末两字节…K7=密钥头两字节，再按 §2.3 交错装入 8 个状态字 X 与 8 个计数字 C，迭代 4 轮后令 C_j ^= X[(j+4) mod 8]。若给出 8 字节 IV，按 §2.4 将 IV 的四组 16 位片段分别异或到 C0/C4、C1/C5、C2/C6、C3/C7，再迭代 4 轮。每轮先按 §2.5 更新计数器：temp=C_j+A_j+b，b=temp÷2^32 且必须保留给下一位与下一轮，C_j=temp mod 2^32（不把 b 额外加回 C0）；再按 §2.6 计算 g(u,v)=LSW((u+v)²)⊕MSW((u+v)²) 并滚动更新 X；按 §2.7 提取 16 字节密钥流，按 S[127..0] 高字节优先与明密文逐字节异或。32 位 hex 密钥按字节装入；文本密钥按 UTF-8 补齐到 16 字节，超出 16 字节直接报错而非截断。解密格式严格跟随「输出格式」下拉（Hex 须为偶数位 hex，Base64 须合法）；IV 必须恰好 16 位 hex 字符或留空，非法输入直接报错而非静默按全 0 处理</div>
   <div class="formula-desc">Rabbit 流加密：用密钥流与明文逐字节异或。</div>
   <ul class="formula-list">
     <li><b>参数</b>：128 位密钥，可配 64 位初始化向量（IV）。</li>
@@ -284,9 +284,18 @@
 </div>
 
 <script>
+function rabbitEn(){return !!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());}
 function rotl(x,n){return ((x<<n)|(x>>>(32-n)))>>>0;}
 function bytesToHex(b){return Array.from(b).map(function(x){return x.toString(16).padStart(2,'0')}).join('');}
-function hexToBytes(h){h=h.replace(/\s/g,'');var b=new Uint8Array(h.length/2);for(var i=0;i<b.length;i++)b[i]=parseInt(h.substr(i*2,2),16);return b;}
+function hexToBytes(h){
+  h=String(h==null?'':h).replace(/\s/g,'');
+  if(!/^[0-9a-fA-F]*$/.test(h)||h.length%2){
+    throw new Error(rabbitEn()?'Hex input must contain only hex chars and an even number of digits':'Hex 输入只能是十六进制字符且长度必须为偶数');
+  }
+  var b=new Uint8Array(h.length/2);
+  for(var i=0;i<b.length;i++)b[i]=parseInt(h.substr(i*2,2),16);
+  return b;
+}
 function bytesToBase64(b){var s='';for(var i=0;i<b.length;i++)s+=String.fromCharCode(b[i]);return btoa(s);}
 function base64ToBytes(b64){var s=atob(b64);var b=new Uint8Array(s.length);for(var i=0;i<s.length;i++)b[i]=s.charCodeAt(i);return b;}
 function randomHex(n){var b=new Uint8Array(n);crypto.getRandomValues(b);return bytesToHex(b);}
@@ -389,9 +398,10 @@ function getKey(){
 function getIV(){
   var iv=document.getElementById('iv').value.trim();
   if(!iv)return null;
-  try{var b=hexToBytes(iv);if(b.length>=8)return b.slice(0,8);}catch(e){}
-  var b=strToBytes(iv);if(b.length>=8)return b.slice(0,8);
-  return null;
+  if(!/^[0-9a-fA-F]{16}$/.test(iv)){
+    throw new Error(rabbitEn()?'IV must be exactly 16 hex characters (8 bytes), or left empty':'IV 必须是 16 位 hex 字符（8 字节）或留空');
+  }
+  return hexToBytes(iv);
 }
 
 function process(isEnc){
@@ -405,9 +415,14 @@ function process(isEnc){
     if(isEnc){
       data=strToBytes(input);
     }else{
-      var t=input.trim();
-      if(/^[0-9a-fA-F\s]+$/.test(t.replace(/\s/g,''))&&t.replace(/\s/g,'').length%2===0)data=hexToBytes(t);
-      else data=base64ToBytes(t);
+      // 解密格式严格跟随「输出格式」下拉，不再靠正则猜 Hex/Base64。
+      if(fmt==='hex'){
+        data=hexToBytes(input);
+      }else{
+        var t=input.trim();
+        try{data=base64ToBytes(t);}
+        catch(e){throw new Error(en?'Ciphertext is not valid Base64 for the selected format':'密文不是所选 Base64 格式要求的合法 Base64');}
+      }
     }
     var ctx=new Rabbit(key,iv);
     var out=new Uint8Array(data);
