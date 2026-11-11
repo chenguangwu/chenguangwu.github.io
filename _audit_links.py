@@ -16,6 +16,7 @@
 教学示例源码与 JS 运行时伪链（$1 / ${} 等），避免误报。
 """
 import os, re, sys, json
+from urllib.parse import unquote
 from collections import defaultdict, Counter
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -63,8 +64,8 @@ def resolve(target, src_rel, existing):
     else:
         base = os.path.dirname(src_rel)
         cand = os.path.normpath(os.path.join(base, t)).replace(os.sep, '/')
-    # 去掉 fragment
-    cand = cand.split('#')[0]
+    # 去掉 fragment；再对 URL 编码路径解码（内链可用 %XX 形式指向含中文/空格的真实文件名）
+    cand = unquote(cand.split('#')[0])
     if cand == '' or cand.endswith('/'):
         # 目录路由 → 尝试 index.html
         idx = (cand + 'index.html').lstrip('/')
