@@ -88,7 +88,7 @@
     <h2 data-zh="💻 文本转 ASCII 码 / 二进制">💻 Text to ASCII Converter</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="在编码、调试、教学场景常需要查看字符的底层数值。输入任意文本，立即得到每个字符的 ASCII 十进制、十六进制与二进制表示（仅 ASCII 范围内字符，非 ASCII 会被跳过并提示）。">Text to ASCII Converter - Show decimal, hex and 8-bit binary for each character. Free, instant, browser-only.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">逐字符取 UTF-16 编码单元，大于 127 的字符跳过并累计跳过个数。保留的字符分别输出十进制、十六进制（0x 加两位大写十六进制）与二进制（转 2 进制后前面补 0 到 8 位），空格字符以中点加括号注明。以表格逐行展示字符、十进制、十六进制与二进制；存在跳过的非 ASCII 字符时提示已跳过多少个非 ASCII 字符，并说明本表仅显示 ASCII 字符</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">按 Unicode 码点逐字符遍历（保留完整代理对），大于 127 的字符跳过并累计跳过个数。保留的字符分别输出十进制、十六进制（0x 加两位大写十六进制）与二进制（转 2 进制后前面补 0 到 8 位），空格字符以中点加括号注明。以表格逐行展示字符、十进制、十六进制与二进制；存在跳过的非 ASCII 字符时提示已跳过多少个非 ASCII 字符，并说明本表仅显示 ASCII 字符</div>
   <div class="formula-desc">把文本转换为 ASCII 码或二进制表示。</div>
   <ul class="formula-list">
     <li><b>原理</b>：取每个字符的码点或字节值，以十进制或二进制形式输出。</li>
@@ -157,11 +157,18 @@
     <tr><td>空格</td><td>32</td><td>20</td><td>@</td><td>64</td><td>40</td></tr>
     <tr><td>!</td><td>33</td><td>21</td><td>A</td><td>65</td><td>41</td></tr>
     <tr><td>0</td><td>48</td><td>30</td><td>a</td><td>97</td><td>61</td></tr>
-    <tr><td>9(制表)</td><td>57</td><td>39</td><td>z</td><td>122</td><td>7A</td></tr>
+    <tr><td>9</td><td>57</td><td>39</td><td>z</td><td>122</td><td>7A</td></tr>
     <tr><td>:</td><td>58</td><td>3A</td><td>{</td><td>123</td><td>7B</td></tr>
-    <tr><td>A</td><td>65</td><td>41</td><td>~</td><td>126</td><td>7E</td></tr>
+    <tr><td>~</td><td>126</td><td>7E</td><td>Z</td><td>90</td><td>5A</td></tr>
   </table>
   <p>大写字母 A–Z = 65–90，小写 a–z = 97–122，数字 0–9 = 48–57，二者相差 32（异或 0x20 可互转）。</p>
+  <p style="margin-top:8px;" data-zh="控制字符不属于可打印范围，常见值：TAB = 9 / 09，LF（换行）= 10 / 0A，CR（回车）= 13 / 0D。">Control characters are outside the printable range: TAB = 9 / 09, LF = 10 / 0A, CR = 13 / 0D.</p>
+  <table class="ref-table" style="margin-top:6px;">
+    <tr><th data-zh="控制字符">Control character</th><th data-zh="十进制">Decimal</th><th data-zh="十六进制">Hex</th></tr>
+    <tr><td data-zh="TAB（制表）">TAB</td><td>9</td><td>09</td></tr>
+    <tr><td data-zh="LF（换行）">LF</td><td>10</td><td>0A</td></tr>
+    <tr><td data-zh="CR（回车）">CR</td><td>13</td><td>0D</td></tr>
+  </table>
 </div>
 
 </div>
@@ -197,20 +204,28 @@
   </div>
 </div>
 <script>
+// IT-N184：逐字符结果缓存（供导出使用）；声明前置，避免首屏 calcTool() 后被后置 var 重置
+var __textToAsciiRows=null;
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function escH(s){var d=document.createElement('div');const __g1=s==null?'':String(s);d.textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){var s=document.getElementById('txt').value||'';
-if(!s){ document.getElementById('result').innerHTML='<p class="muted">请输入文本</p>'; return; }
+// 空输入必须清空结果缓存，否则导出会带走上一次的旧逐字符表（G10 残留）
+if(!s){ __textToAsciiRows=null; document.getElementById('result').innerHTML='<p class="muted">请输入文本</p>'; return; }
 var rows=[], skipped=0;
-for(var i=0;i<s.length;i++){
-  var c=s.charAt(i); var code=c.charCodeAt(0);
+// IT-N182：按 Unicode 码点遍历（for...of 保留完整代理对），1 个 emoji 只跳过 1 次；
+// 旧实现按 UTF-16 单元 charAt 遍历会把 emoji 拆成两半、跳过数翻倍。
+for(const c of s){
+  var code=c.codePointAt(0);
   if(code>127){ skipped++; continue; }
   var bin=code.toString(2); while(bin.length<8){bin='0'+bin;}
-  rows.push([escH(c===' '?'·(空格)':c), code, '0x'+code.toString(16).toUpperCase(), bin]);
+  // IT-N183：十六进制补到两位，与公式「0x 加两位大写十六进制」及 8 位二进制列一致
+  rows.push([escH(c===' '?'·(空格)':c), code, '0x'+code.toString(16).toUpperCase().padStart(2,'0'), bin]);
 }
+// IT-N184：缓存逐字符结果供导出使用（导出的是本表而非历史表）
+__textToAsciiRows=rows;
 var html='<div class="result-title">逐字符编码（ASCII 0–127）</div>';
-html+='<table class="ref-table"><tr><th>字符</th><th>十进制</th><th>十六进制</th><th>二进制</th></tr>';
+html+='<table class="ref-table" id="textToAsciiResultTable"><tr><th>字符</th><th>十进制</th><th>十六进制</th><th>二进制</th></tr>';
 for(var k=0;k<rows.length;k++){ html+='<tr><td>'+rows[k][0]+'</td><td>'+rows[k][1]+'</td><td>'+rows[k][2]+'</td><td><code>'+rows[k][3]+'</code></td></tr>'; }
 html+='</table>';
 if(skipped>0){ html+='<p class="muted">已跳过 '+skipped+' 个非 ASCII 字符（码点 >127，如中文），本表仅显示 ASCII 可打印/控制字符。</p>'; }
@@ -319,18 +334,29 @@ function __text_to_asciiExtras(){
     TBKit.history.record(rec);
     __text_to_asciiRender(keys,rk,en);
 }
+// IT-N184：导出「逐字符编码」四列明细，而非历史表（历史表只有截断 80 字符的结果文本）
 function __text_to_asciiExport(){
-    if (typeof TBKit === 'undefined') return;
+    if (typeof ToolBox === 'undefined' || typeof ToolBox.showToast !== 'function') return;
+    if(!__textToAsciiRows || !__textToAsciiRows.length){
+        ToolBox.showToast('请先输入文本并点击「计算」'); return;
+    }
+    function csvCell(v){
+        var t=String(v);
+        // 反解 escH 产生的实体，CSV 里保留原字符
+        var dv=document.createElement('div'); dv.innerHTML=t; t=dv.textContent||'';
+        return /[",\n\r]/.test(t) ? '"'+t.replace(/"/g,'""')+'"' : t;
+    }
+    var lines=[['字符','十进制','十六进制','二进制'].join(',')];
+    for(var i=0;i<__textToAsciiRows.length;i++){
+        lines.push(__textToAsciiRows[i].map(csvCell).join(','));
+    }
     try{
-        var box=document.querySelector('#text_to_asciiTable');
-        if(!box||!box.querySelector('tr')){
-            var snap=__text_to_asciiSnap(); var keys=Object.keys(snap);
-            if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
-            __text_to_asciiRender(keys,en?'Result':'结果',en);
-        }
-    }catch(e){}
-    try { TBKit.util.exportTable('#text_to_asciiTable','text-to-ascii.csv'); } catch(e){}
+        var blob=new Blob([lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+        var a=document.createElement('a');
+        a.href=URL.createObjectURL(blob); a.download='text-to-ascii-detail.csv';
+        document.body.appendChild(a); a.click();
+        setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },100);
+    }catch(e){ ToolBox.showToast('导出失败：'+e.message); }
 }
 function __text_to_asciiPresets(){
     if (typeof TBKit === 'undefined') return;

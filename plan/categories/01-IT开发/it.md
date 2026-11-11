@@ -62,7 +62,7 @@
 - 同批阅读 Linux、MongoDB 速查的搜索、分类与复制路径；无浏览器验证，不对完整正确性判通过。IT-N498–N500 的示例仍须按具体内容另行运行复核。
 - IT-N423、N308、N309 的数据范围问题仍在。
 - IT-N49 已于第215批真修并销账：`chmod-calculator` 支持 setuid(4)/setgid(2)/sticky(1) 特殊位与四位数模式（如 4755/2755/1777），符号位按 s/S 与 t/T 分别渲染，快捷预设及复制命令同步；JSDOM 修好版 18/18、旧源码 3/18。
-- IT-N170–N173 已于第217批真修并销账（`calc-3`），IT-N174–N177 第218批销账（`matrix-transpose`），IT-N178–N180 第219批销账（`http-cookies` 与 4 个 HTTP 页的过期示例），详见下方覆盖行；IT-N181–N182（文本转 ASCII 参照表与 UTF-16 计数）等关键路径仍在。
+- IT-N170–N173 第217批销账（`calc-3`）、IT-N174–N177 第218批（`matrix-transpose`）、IT-N178–N180 第219批（`http-cookies` 与 4 个 HTTP 页过期示例）、IT-N181–N184 第220批（`text-to-ascii`），详见下方覆盖行；IT-N185（Shell 压缩拼成非法脚本，高）等关键路径仍在。
 - 同批另阅读 `ascii-table`、`box-shadow-generator`、`calc-1`、`calc-10` 的主要交互路径；未对其完整正确性或浏览器行为作通过判定。
 
 ## 已知问题
@@ -742,36 +742,7 @@
 - `calc-3`（颜色值转换器）：IT-N170–N173 已于第217批真修并销账——三路输入统一钳制（r/g/b 0–255、`h=((h%360)+360)%360`、s/l 0–100，越界回写规范化串，同屏 HEX/RGB/HSL 不再矛盾）；预设同时写 `hexInput` 使统一 `fromHex()` 回调生效（红/蓝/绿由页内 hslToRgb+rgbToHex 反算，往返一致）；删声明式 preset div 并显式放 `#calc_3Presets` 宿主，只留一组 4 条；HEX 支持 3/4/6/8 位（简写按位扩展、4/8 位带 alpha 并展示）、`maxlength` 7→9；公式说明与格式说明中英三源同步。JSDOM `scripts/_verify_it_batch217.mjs` 修好版 22/22、旧源码 3/22；verify 1554/1554 未改。
 - `matrix-transpose`（矩阵转置）：IT-N174–N177 已于第218批真机验证并销账。N174/N176/N177 源码已由其他 Agent 修好（`calculate()` 单元格数不符自动 `build()` 保留旧值、`readDims()` 整数+1–6 校验、`getM()` 空/非数抛错并标红、失败分支清空 `__lastTranspose`、`__matrix_transposeExport()` 现场生成 Aᵀ CSV），清单漏销账，本批补证据；N175 残留缺陷真修——`fmt()` 的 `toPrecision(12)` 会把 15 位大整数静默抹成 `123456789012000`，改为整数原样 `String()`、超安全整数走指数表示、非整数才用 12 位有效数字消浮点噪声。JSDOM `scripts/_verify_it_batch218.mjs` 修好版 33/33、缺陷态注入（换回旧 fmt）31/33（大数两项精确变红）；verify 1554/1554。
 - `http-cookies`（HTTP Cookie 速查）：IT-N178–N180 已于第219批销账。N178 英文简介已由其他 Agent 改为 "as a searchable quick reference"（不再宣称 Parse and build），与页面仅有搜索+静态速查的能力一致，属漏销账补证据；N179 真修——`Expires=Wed, 21 Oct 2025` 星期错（实算周二）且已过期，全站同类 11 处（http-cookies 1 / http-headers 2 / http-response-headers 3 / http-cache 5）统一换为 `Thu, 21 Oct 2027 07:28:00 GMT`（实算周四、未过期）；刻意保留星期正确的历史示例（1970 epoch 删 Cookie、2015 RFC 原文、2026 条件请求）；N180 真修——`Max-Age` desc/params 补「0 或负数立即删除」语义（中英 en JSON 同步），明细表 `th1` 按 `en` 切换 `Attribute/属性`。JSDOM `scripts/_verify_it_batch219.mjs` 修好版 19/19、旧源码差分 9/19（10 项红）；verify 1554/1554、deepdive sync 0 不一致。
-### IT-N181 文本转 ASCII 参照表把制表符写成 `9(制表) 57 39`，与"32–126 可打印"标题矛盾（中，确认源码缺陷）
-- 问题：171 `<td>9(制表)</td><td>57</td><td>39</td>`：十进制 57/0x39 是字符 `9`，TAB 是 9/0x09。该表标题（165）明确"可打印字符（32–126）"，TAB(9) 不在范围。另 A(65/41) 在 169 与 173 重复出现。
-- 证据：`tools/it/text-to-ascii.html:165-173`
-- 复现：对照 ASCII 表，TAB → 9 / 09；57 / 39 → `9`，表中该行自相矛盾；重复 A 行可在同表两处读到。
-- 影响：`tools/it/text-to-ascii.html` —— 初学者把 TAB 记成 57，写解析器/校验会出错；参照表是页面主要价值之一。
-- 方案：该行改为 `9(TAB) | 9 | 09` 并移出"可打印"表（或单列控制字符表）；删重复 A 行。
-
-### IT-N182 文本转 ASCII 按 UTF-16 单元计数，1 个 emoji 被报成"跳过 2 个字符"（中，确认源码缺陷）
-- 问题：`for(i=0;i<s.length;i++)` + `charAt(i)`（217-218）把代理对拆成两个单元，两单元码点都 >127 各 `skipped++`（219），提示"已跳过 N 个非 ASCII 字符"（227）。
-- 证据：`tools/it/text-to-ascii.html:217-221`、`:227`、`:100`（"非 ASCII 会被跳过"）
-- 复现（node）：`a😀b` → `skipped=2`（实际非 ASCII 字符 1 个）；单个 `😀` → 报"跳过 2 个"。
-- 影响：`tools/it/text-to-ascii.html` —— 计数翻倍，表情/生僻字多的文本会被误判。
-- 方案：用 `for(const ch of s)` + `codePointAt(0)` 按码点遍历（保留完整代理对）；或文案改为"跳过 N 个 UTF-16 编码单元"。
-
-### IT-N183 文本转 ASCII 十六进制不补位，与公式"0x 加两位大写十六进制"不符（低，确认源码缺陷）
-- 问题：102 公式写"0x 加两位大写十六进制"；221 `'0x'+code.toString(16).toUpperCase()` 对码点 <16 只出 1 位。表中 ≥0x20 的行看不出，控制字符（换行 10、TAB 9）会显示 `0xA`、`0x9`。
-- 证据：`tools/it/text-to-ascii.html:102`、`:221`、`:220`（二进制已补 8 位）
-- 复现（node）：code 10 → `0xA`（期望 `0x0A`）；code 9 → `0x9`。二进制列同为 8 位补齐，风格不一致。
-- 影响：`tools/it/text-to-ascii.html` —— 用户以为十六进制列漏字符，且与公式不符。
-- 方案：`toString(16).toUpperCase().padStart(2,'0')`。
-
-### IT-N184 文本转 ASCII「导出明细 CSV」导历史表而非逐字符表（低，确认源码缺陷）
-- 问题：逐字符表由 `calcTool()` 拼成 HTML（224-225）写入 `#result`，无 id；导出函数 `exportTable('#text_to_asciiTable')`（327）导的是历史表（269），历史「结果」还被 `slice(0,80)` 截断（249-251）。首屏 `calcTool()` 在 231 直接执行且未走 history，若用户未再点「计算」就导出，CSV 为空。
-- 证据：`tools/it/text-to-ascii.html:224-225`、`:269`、`:249-251`、`:327`、`:231`
-- 复现：打开页 → 直接点导出 → 空 CSV；点「计算」后导出 → 仅 1 行历史（时间/输入/结果前 80 字符），无 逐字符四列。
-- 影响：`tools/it/text-to-ascii.html` —— 导出与"明细"不符。
-- 方案：给逐字符表加 id 并导出它（列：字符/十进制/十六进制/二进制）。
-
-- 留存建议（tools/it/text-to-ascii.html）：①修正 TAB 行并删重复 A；②按码点遍历修正跳过计数；③hex 补两位；④导出逐字符表。
-
+- `text-to-ascii`（文本转 ASCII）：IT-N181–N184 已于第220批真修并销账。N181 参照表错的 TAB 行 `9(制表)|57|39` 改为数字 `9|57|39`、删重复 A 行（补 `Z=90/5A`），控制字符 TAB/LF/CR 单列成表（data-zh 双语）；N182 `for(const c of s)` + `codePointAt(0)` 按码点遍历，1 个 emoji 只跳过 1 次；N183 十六进制 `padStart(2,'0')`，换行 10 由 `0xA` 改 `0x0A`，公式说明中英同步；N184 导出改为现场生成逐字符四列 CSV（字符/十进制/十六进制/二进制，含 CSV 转义），不再导历史表，空输入清空结果缓存避免导出旧表。改输出格式同批同步 `scripts/verify_it_calc.js` 的 `0xA`→`0x0A` expect（新页+旧 expect 实测 1553/1554 红，证明必须同步）。JSDOM `scripts/_verify_it_batch220.mjs` 修好版 24/24、旧源码差分 9/20；verify 1554/1554、deepdive sync 0 不一致。
 ### IT-N185 Shell「压缩」把 `&&`/`|` 续行、`else`、`case … in`、heredoc 拼成非法脚本（高，确认源码缺陷）
 - 问题：`minifyShell()` 逐行 trim 后按 `needsSep` 决定换行，否则追加 `'; '`（315-325）。`needsSep` 只覆盖 `; { ( \ then do`、下一行以 then/do/fi/done/else/elif/esac/}/) 开头、`#!`，不覆盖行尾 `&&`/`||`/`|`、`else` 行本身、`case … in`；heredoc 也被逐行当普通命令拼接。
 - 证据：`tools/it/shell-script-formatter.html:311-329`（判定 323、拼接 324）、`:214`（FAQ"仅调整空白"）
