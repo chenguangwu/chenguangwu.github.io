@@ -2811,6 +2811,30 @@ const CASES = [
     ref: "反向锚：响应头速查过滤空结果计数归零；默认列表非空。",
   },
   {
+    slug: "it/http-response-headers",
+    clicks: ["var n=COMMANDS.map(function(c){return c.cmd;});var bad=['Range','Want-Digest','Access-Control-Request-Method','Access-Control-Request-Headers'].filter(function(x){return n.indexOf(x)>=0;});document.getElementById('__tbProbe').textContent='RHREQ N='+bad.length+'|'+bad.join(',');"],
+    expect: ["RHREQ N=0|"],
+    ref: "IT-N459：请求头不得混入响应头速查表。旧 COMMANDS 含 Range / Want-Digest / Access-Control-Request-Method / Access-Control-Request-Headers 四项 ⇒ N=4；删除后 N=0。探针仅注入 clicks 时出现，默认态零命中。",
+  },
+  {
+    slug: "it/http-response-headers",
+    clicks: ["var n=COMMANDS.map(function(c){return c.cmd;});var d=[];n.forEach(function(x,i){if(n.indexOf(x)!==i&&d.indexOf(x)<0)d.push(x);});document.getElementById('__tbProbe').textContent='RHDUP N='+d.length+'|'+d.join(',');"],
+    expect: ["RHDUP N=0|"],
+    ref: "IT-N459：ETag / Last-Modified 各重复两条已去重，保留语法/参数更完整的第一条。旧表 ⇒ N=2|ETag,Last-Modified；现 N=0。探针仅 clicks 注入出现。",
+  },
+  {
+    slug: "it/http-response-headers",
+    clicks: ["var c={};COMMANDS.forEach(function(x){c[x.cat]=1;});document.getElementById('__tbProbe').textContent='RHSTAT total='+COMMANDS.length+' cats='+Object.keys(c).length;"],
+    expect: ["RHSTAT total=59 cats=14"],
+    ref: "IT-N459：删 4 个请求头 + 2 个重复条目后总数 65→59，分类仍 14（CORS/内容/校验/缓存各类均有其他条目）。旧表 total=65 ⇒ 红。探针仅 clicks 注入出现。",
+  },
+  {
+    slug: "it/http-response-headers",
+    inputs: { searchInput: "Access-Control-Request" },
+    expect: ["共 0 项"],
+    ref: "IT-N459 用户可见行为：预检请求头已从表中删除，搜索 Access-Control-Request 应零命中；旧表含两条 ⇒ 共 2 项。默认态（空搜索，59 项）不产生「共 0 项」。",
+  },
+  {
     slug: "it/affine-cipher",
     inputs: { input: "ABCD", a: "3", b: "1" },
     clicks: ["dec()"],

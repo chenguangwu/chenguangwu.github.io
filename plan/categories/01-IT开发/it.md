@@ -2553,21 +2553,12 @@
 ## W 批 · IT URL/签名/安全（2026-11-04）
 
 
-### IT-N459 速查表把 4 个请求头当响应头收录，且 ETag / Last-Modified 各重复两条（中，参考结果错误）
-- 页面：`tools/it/http-response-headers.html`
-- 问题：`COMMANDS` 里混入请求头：`Range`（`:567`）、`Access-Control-Request-Method`（`:327`）、`Access-Control-Request-Headers`（`:335`）、`Want-Digest`（`:775`）；`ETag` 出现两次（`:439`、`:647`），`Last-Modified` 出现两次（`:447`、`:655`）。
-- 行号：`:327`、`:335`、`:439`、`:447`、`:567`、`:647`、`:655`、`:775`
-- 复现：切"内容"分类 → 实际出现 `Range`（请求范围，属请求头），"共 N 项"计数把重复条目也算进去；期望响应头表只含响应头、无重复行。
-- 影响：用该表逐项核对生产响应头会误判（去查一个根本不会出现在响应里的头），分类统计数字也偏高。
-- 方案：删除请求头或单列"请求头"分类；去掉重复的 `ETag` / `Last-Modified`。
-- 假工具：否
-
 
 
 ### 覆盖清单（W 批 IT URL/签名/安全）
 - `url-qr`：无剩余缺陷（IT-N456 真编码器、IT-N457 纠错+尺寸双控件均已销账，第183–184批）。
 - `og-meta-tag-generator`：无剩余缺陷（IT-N458 空值跳过+缺失告警已销账，第189批；`escA` 先转 `&` 再转 `"`，输出走 `textarea.value`，属性上下文不可注入）。
-- `http-response-headers`：IT-N459（中）；无高优缺陷（`renderCommands` 对全部字段走 `escapeHtml`，搜索/复制路径无注入）。
+- `http-response-headers`：无剩余缺陷（IT-N459 删除 4 个混入的请求头 + ETag/Last-Modified 去重已销账，第190批；`COMMANDS` 65→59、分类仍 14，`renderCommands` 全部字段走 `escapeHtml`，搜索/复制路径无注入）。
 - `api-sign-generator`：无剩余缺陷（IT-N460 XSS、IT-N461 真 MD5、IT-N462 预设重算均已销账，第185–187批）。
 - `rc4`：无剩余缺陷（IT-N463 显式格式解析已销账，第188批；`rc4()` 与 `RC4-drop` 主路径对照已知向量 `Key`/`Plaintext` → `bbf316e8d940af0ad3` 正确，KSA/PRGA 无死循环）。
 - `js-minify`：无剩余高优/中优缺陷（IT-N464 已改为轻量词法扫描，保留字符串/正则/模板串与换行，第182批销账；结果渲染走 `escH`，无注入）。
