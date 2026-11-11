@@ -1379,13 +1379,7 @@
 
 - `device-info`：IT-N255 item() 加第4参 raw（仅内部可信 badge 串跳过转义），在线状态/网络状态两处 status-badge 不再显示为裸标签，第203批销账；普通/外部值仍走 escapeHtml 不回退安全。verify 无用例（依赖 navigator/screen 原生对象），真机 8/8 vs 旧 1/8。 IT-N256（__v 从恒定核心数改视口面积，趋势/对比有真实变化，新增「视口」字段+字典英译）、IT-N257（复制全部改为逐条 label: value 换行、UA 单独成块）第204批销账；真机 9/9 vs 旧 2/9。
 
-### IT-N258 中文/emoji 按 Latin-1 低字节写入二维码，扫码结果不是原文（高，确认缺陷）
-- 问题：页面 `qrcode(0, level).addData(text)` 未指定编码，而本地库的 `stringToBytes` 默认实现是逐字符取 `charCodeAt & 0xFF`（单字节），页面从未切到 `stringToBytesFuncs['UTF-8']` → 中文字符被压成一个无关的 ASCII 低字节。
-- 证据：`tools/it/qrcode.html:429-430`（`addData(text)`）、`js/qrcode.js:748`（`qrcode.stringToBytes = qrcode.stringToBytesFuncs['default']`）、`tools/it/qrcode.html:379-388`（`__qrBytes` 却按 UTF-8 计 3 字节）。
-- 复现：node `require('./js/qrcode.js').stringToBytes('你好')` → `[96, 125]`（UTF-8 应为 `[228,189,160,229,165,189]`）；`stringToBytes('😀')` → `[61, 0]`（代理对被压成 1 个字节）。即"你好"实际写进码的是 `0x60 0x7D`，任何扫码器都读不出中文。同页 `__qrBytes('你好')=6` 与实际写入 2 字节也不一致。
-- 影响：`tools/it/qrcode.html`（`vCard`/`WiFi` 等预设含中文，生成的码即错）
-- 方案：`generate()` 内先 `qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8']`（或显式按 UTF-8 打包后 `addData`），并让 `__qrBytes` 与实际编码一致；代对（emoji）另加校验。
-**留存建议（tools/it/qrcode.html）**：编码与容量估算两处必须同改，否则图与码继续互相打脸。
+- `qrcode`：IT-N258 中文/emoji UTF-8 编码（generate() 切 qrcode.stringToBytes 到 UTF-8、__qrBytes 按 UTF-8 计字节含 emoji 代理对）源码已在 HEAD（其他 Agent 修复），清单漏销账，第205批补证据销账；真机 13/13（库编码对照标准 UTF-8、__qrBytes 一致、中文/ASCII 矩阵不同、缺陷态对照切换项变红），verify 无用例。N259（宣称识别但无解码）等仍留清单。
 
 ### IT-N259 h1/面包屑/JSON-LD/keywords/intro 都宣称"二维码识别/解析"，页面没有任何解码能力（高，确认缺陷）
 - 问题：全站把本页当"生成 + 识别"工具（"上传二维码图片解析内容"），实际只引了生成库，无文件输入、无解码库、无 `decode` 函数。顺带 `<title>`（`:20` "二维码生成器"）与 h1（`:169` "二维码生成识别工具"）不一致，也是 SEO 缺陷。
