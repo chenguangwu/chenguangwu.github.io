@@ -105,7 +105,7 @@
 <div class="card">
     <h2 data-zh="🎨 颜色值转换器">🎨 Color Value Converter (HEX / RGB / HSL)</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">HEX 转 RGB：去掉开头的井号后要求为 6 位十六进制，按每两位一段分别按 16 进制解析为红、绿、蓝三个通道。RGB 转 HSL：三个通道各除以 255 后取最大值与最小值，亮度 = (最大值 + 最小值) ÷ 2；最大值等于最小值时色相与饱和度均为 0；否则差值 = 最大值 − 最小值，饱和度在亮度大于 0.5 时取 差值 ÷ (2 − 最大值 − 最小值)，否则取 差值 ÷ (最大值 + 最小值)；色相按哪个通道最大分别计算——红最大时取 (绿 − 蓝) ÷ 差值（绿小于蓝时再加 6），绿最大时取 (蓝 − 红) ÷ 差值 加 2，蓝最大时取 (红 − 绿) ÷ 差值 加 4，最后统一除以 6；色相四舍五入到 0 到 360 度，饱和度与亮度四舍五入为百分比。HSL 转 RGB：色相除以 360、饱和度与亮度除以 100；饱和度为 0 时三个通道同为亮度值；否则取 q 为「亮度小于 0.5 时 亮度 × (1 + 饱和度)，否则 亮度 + 饱和度 − 亮度 × 饱和度」，p = 2 × 亮度 − q，再用分段函数分别代入 色相 + 三分之一、色相、色相 − 三分之一 求出红绿蓝，最后各乘以 255 并四舍五入</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">HEX 转 RGB：去掉开头的井号后，3/4 位简写先按位扩展为 6/8 位，再按每两位一段分别按 16 进制解析为红、绿、蓝三个通道；4/8 位的末两位为 alpha 通道。RGB 转 HSL：三个通道各除以 255 后取最大值与最小值，亮度 = (最大值 + 最小值) ÷ 2；最大值等于最小值时色相与饱和度均为 0；否则差值 = 最大值 − 最小值，饱和度在亮度大于 0.5 时取 差值 ÷ (2 − 最大值 − 最小值)，否则取 差值 ÷ (最大值 + 最小值)；色相按哪个通道最大分别计算——红最大时取 (绿 − 蓝) ÷ 差值（绿小于蓝时再加 6），绿最大时取 (蓝 − 红) ÷ 差值 加 2，蓝最大时取 (红 − 绿) ÷ 差值 加 4，最后统一除以 6；色相四舍五入到 0 到 360 度，饱和度与亮度四舍五入为百分比。HSL 转 RGB：色相除以 360、饱和度与亮度除以 100；饱和度为 0 时三个通道同为亮度值；否则取 q 为「亮度小于 0.5 时 亮度 × (1 + 饱和度)，否则 亮度 + 饱和度 − 亮度 × 饱和度」，p = 2 × 亮度 − q，再用分段函数分别代入 色相 + 三分之一、色相、色相 − 三分之一 求出红绿蓝，最后各乘以 255 并四舍五入</div>
   <div class="formula-desc">在 RGB、HEX、HSL、HSV 等颜色表示之间转换。</div>
   <ul class="formula-list">
     <li><b>RGB/HEX</b>：三通道各 0–255，HEX 为 <code>#RRGGBB</code>，<code>#RGB</code> 简写会等比扩展。</li>
@@ -119,9 +119,10 @@
 
     <div class="input-row">
       <div>
-        <div data-tb="preset" data-tb-presets='[{"label":"HEX#FF6B35·色板#FF6B35·RGBrgb(2…","labelEn":"hexInput=#FF6B35 · colorPicker=#FF6B35 …","values":{"hexInput":"#FF6B35","colorPicker":"#FF6B35","rgbInput":"rgb(255, 107, 53)","hslInput":"hsl(17, 100%, 60%)"}}]'></div>
+        <!-- IT-N172：显式宿主，避免声明式预设与 __calc_3Presets 渲染出两组 -->
+        <div id="calc_3Presets"></div>
 <label for="hexInput">HEX</label>
-        <input type="text" id="hexInput" value="#FF6B35" placeholder="#RRGGBB" maxlength="7" oninput="fromHex()">
+        <input type="text" id="hexInput" value="#FF6B35" placeholder="#RRGGBB / #RGB / #RRGGBBAA" maxlength="9" oninput="fromHex()">
       </div>
       <div>
         <label for="colorPicker">色板</label>
@@ -182,7 +183,7 @@
 
     <div class="tool-notes-title">📌 格式说明</div>
     <ul>
-      <li>HEX：#RRGGBB，如 #FF6B35。</li>
+      <li>HEX：支持 #RGB / #RGBA / #RRGGBB / #RRGGBBAA（如 #FF6B35），简写按位扩展，4/8 位含 alpha。</li>
       <li>RGB：rgb(255, 107, 53) 或 rgba(255,107,53,1)。</li>
       <li>HSL：hsl(17, 100%, 60%) 或 hsla(17,100%,60%,1)。</li>
     </ul>
@@ -221,14 +222,28 @@
   </div>
 </div>
 <script>
+// IT-N170：数值统一钳到合法区间，避免三路输入互相矛盾
+function clamp255(v) { v = Number(v); return isFinite(v) ? Math.min(255, Math.max(0, Math.round(v))) : 0; }
+function clampPct(v) { v = Number(v); return isFinite(v) ? Math.min(100, Math.max(0, Math.round(v))) : 0; }
+function normHue(h) { h = Number(h); return isFinite(h) ? ((h % 360) + 360) % 360 : 0; }
+
+// IT-N173：支持 #RGB / #RGBA / #RRGGBB / #RRGGBBAA；3/4 位按位扩展，4/8 位带 alpha
 function hexToRgb(hex) {
-  hex = hex.replace(/^#/, '');
-  if (!/^[0-9A-Fa-f]{6}$/.test(hex)) return null;
-  return {
+  hex = String(hex == null ? '' : hex).trim().replace(/^#/, '');
+  if (!/^[0-9A-Fa-f]+$/.test(hex)) return null;
+  var L = hex.length;
+  if (L === 3 || L === 4) {
+    hex = hex.split('').map(function (c) { return c + c; }).join('');
+    L = hex.length;
+  }
+  if (L !== 6 && L !== 8) return null;
+  var out = {
     r: parseInt(hex.substring(0, 2), 16),
     g: parseInt(hex.substring(2, 4), 16),
     b: parseInt(hex.substring(4, 6), 16)
   };
+  if (L === 8) out.a = Math.round(parseInt(hex.substring(6, 8), 16) / 255 * 100) / 100;
+  return out;
 }
 
 function rgbToHex(r, g, b) {
@@ -239,6 +254,8 @@ function rgbToHex(r, g, b) {
 }
 
 function rgbToHsl(r, g, b) {
+  // IT-N170：入口钳制，避免越界通道算出 >100% 的饱和度
+  r = clamp255(r); g = clamp255(g); b = clamp255(b);
   r /= 255; g /= 255; b /= 255;
   const max = Math.max(r, g, b), min = Math.min(r, g, b);
   let h, s, l = (max + min) / 2;
@@ -262,6 +279,8 @@ function rgbToHsl(r, g, b) {
 }
 
 function hslToRgb(h, s, l) {
+  // IT-N170：色相取模归一（720≡0），饱和度/亮度钳到 0–100
+  h = normHue(h); s = clampPct(s); l = clampPct(l);
   h /= 360; s /= 100; l /= 100;
   let r, g, b;
   if (s === 0) {
@@ -282,13 +301,15 @@ function hslToRgb(h, s, l) {
     b = hue2rgb(p, q, h - 1/3);
   }
   return {
-    r: Math.round(r * 255),
-    g: Math.round(g * 255),
-    b: Math.round(b * 255)
+    r: clamp255(r * 255),
+    g: clamp255(g * 255),
+    b: clamp255(b * 255)
   };
 }
 
 function updateUI(rgb, source) {
+  // IT-N170：所有来源统一钳制，保证同屏 HEX/RGB/HSL 不矛盾
+  rgb = { r: clamp255(rgb.r), g: clamp255(rgb.g), b: clamp255(rgb.b), a: rgb.a };
   const hex = rgbToHex(rgb.r, rgb.g, rgb.b);
   const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
   document.getElementById('colorPicker').value = hex.toLowerCase();
@@ -303,6 +324,7 @@ function updateUI(rgb, source) {
     + '<p>HEX：<strong>' + hex + '</strong></p>'
     + '<p>RGB：<strong>rgb(' + rgb.r + ', ' + rgb.g + ', ' + rgb.b + ')</strong></p>'
     + '<p>HSL：<strong>hsl(' + hsl.h + ', ' + hsl.s + '%, ' + hsl.l + '%)</strong></p>'
+    + ((rgb.a === undefined) ? '' : '<p>Alpha: <strong>' + rgb.a + '</strong> (' + Math.round(rgb.a * 100) + '%)</p>')
     + '</div></div>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){result.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}result.innerHTML=__h0;
 }
 
@@ -310,8 +332,14 @@ function fromHex() {
   const hex = document.getElementById('hexInput').value.trim();
   const rgb = hexToRgb(hex);
   if (!rgb) {
-    const __h1='<p style="color:var(--danger)">请输入有效的 HEX 颜色，如 #FF6B35。</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h1;
+    const __h1='<p style="color:var(--danger)">请输入有效的 HEX 颜色，如 #FF6B35 / #F00 / #FF6B3580。</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h1;
     return;
+  }
+  // IT-N173：3/4 位简写回写为展开形式，8 位保留 alpha 位
+  const raw = hex.replace(/^#/, '');
+  if (raw.length === 3 || raw.length === 4) {
+    document.getElementById('hexInput').value = '#' + rgbToHex(rgb.r, rgb.g, rgb.b) +
+      (rgb.a === undefined ? '' : Math.round(rgb.a * 255).toString(16).padStart(2, '0').toUpperCase());
   }
   updateUI(rgb, 'hex');
 }
@@ -323,7 +351,12 @@ function fromRgb() {
     const __h2='<p style="color:var(--danger)">请输入有效的 RGB 格式，如 rgb(255, 107, 53)。</p>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h2;
     return;
   }
-  updateUI({r: parseInt(m[1]), g: parseInt(m[2]), b: parseInt(m[3])}, 'rgb');
+  // IT-N170：越界通道钳制后回写输入框，避免结果区已规范而输入框仍是非法值（复制会拿到越界值）
+  const r = clamp255(m[1]), g = clamp255(m[2]), b = clamp255(m[3]);
+  if (r !== parseInt(m[1], 10) || g !== parseInt(m[2], 10) || b !== parseInt(m[3], 10)) {
+    document.getElementById('rgbInput').value = 'rgb(' + r + ', ' + g + ', ' + b + ')';
+  }
+  updateUI({r: r, g: g, b: b}, 'rgb');
 }
 
 function fromHsl() {
@@ -333,7 +366,13 @@ function fromHsl() {
     const __h3='<p style="color:var(--danger)">请输入有效的 HSL 格式，如 hsl(17, 100%, 60%)。</p>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h3;
     return;
   }
-  const rgb = hslToRgb(parseInt(m[1]), parseInt(m[2]), parseInt(m[3]));
+  // IT-N170：色相取模归一、S/L 钳 0–100，并回写规范化串
+  const h0 = parseInt(m[1], 10), s0 = parseInt(m[2], 10), l0 = parseInt(m[3], 10);
+  const h = Math.round(normHue(h0)), s = clampPct(s0), l = clampPct(l0);
+  if (h !== h0 || s !== s0 || l !== l0) {
+    document.getElementById('hslInput').value = 'hsl(' + h + ', ' + s + '%, ' + l + '%)';
+  }
+  const rgb = hslToRgb(h, s, l);
   updateUI(rgb, 'hsl');
 }
 
@@ -474,10 +513,12 @@ function __calc_3Export(){
 }
 function __calc_3Presets(){
     if (typeof TBKit === 'undefined') return;
+    // IT-N171：回调统一 fromHex()，故每个预设必须同时写 hexInput；
+    // 下面 3 个 HEX 由页内 hslToRgb+rgbToHex 反算，往返一致（红/蓝/绿分别 0/219/142 度）。
     TBKit.preset.bar('#calc_3Presets',[{label:'默认参数',labelEn:'Default',values:{'hexInput':'#FF6B35', 'colorPicker':'#FF6B35', 'rgbInput':'rgb(255, 107, 53)', 'hslInput':'hsl(17, 100%, 60%)'}},
-  {"label":"红色","labelEn":"Red","values":{"hslInput":"hsl(0, 100%, 50%)"}},
-  {"label":"蓝色","labelEn":"Blue","values":{"hslInput":"hsl(219, 100%, 50%)"}},
-  {"label":"绿色","labelEn":"Green","values":{"hslInput":"hsl(142, 71%, 45%)"}}],function(){ fromHex(); });
+  {"label":"红色","labelEn":"Red","values":{"hexInput":"#FF0000","colorPicker":"#FF0000","hslInput":"hsl(0, 100%, 50%)"}},
+  {"label":"蓝色","labelEn":"Blue","values":{"hexInput":"#0059FF","colorPicker":"#0059FF","hslInput":"hsl(219, 100%, 50%)"}},
+  {"label":"绿色","labelEn":"Green","values":{"hexInput":"#21C45D","colorPicker":"#21C45D","hslInput":"hsl(142, 71%, 45%)"}}],function(){ fromHex(); });
 }
 var __calc_3_f0=(typeof fromHex==='function')?fromHex:null;
 if(__calc_3_f0){

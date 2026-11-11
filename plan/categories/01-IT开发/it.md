@@ -62,7 +62,7 @@
 - 同批阅读 Linux、MongoDB 速查的搜索、分类与复制路径；无浏览器验证，不对完整正确性判通过。IT-N498–N500 的示例仍须按具体内容另行运行复核。
 - IT-N423、N308、N309 的数据范围问题仍在。
 - IT-N49 已于第215批真修并销账：`chmod-calculator` 支持 setuid(4)/setgid(2)/sticky(1) 特殊位与四位数模式（如 4755/2755/1777），符号位按 s/S 与 t/T 分别渲染，快捷预设及复制命令同步；JSDOM 修好版 18/18、旧源码 3/18。
-- IT-N170–N173 的关键路径仍在。
+- IT-N170–N173 已于第217批真修并销账（`calc-3` 三路区间钳制 / 预设回调 / 重复预设条 / HEX 简写与 alpha），详见下方覆盖行；IT-N174（matrix 改维度直接转置抛错）等关键路径仍在。
 - 同批另阅读 `ascii-table`、`box-shadow-generator`、`calc-1`、`calc-10` 的主要交互路径；未对其完整正确性或浏览器行为作通过判定。
 
 ## 已知问题
@@ -739,36 +739,7 @@
 
 - 留存建议（tools/it/ksuid-generator.html）：①复制按行 `join('\n')`、导出含当前完整结果；②英文简介改 16-byte payload；③示例改 27 字符并标注生成时间。
 
-### IT-N170 calc-3 HEX/RGB/HSL 三路输入都不校验区间，越界得矛盾或错误颜色（中，确认源码缺陷）
-- 问题：`hexToRgb` 只校验 6 位长度（238）；`fromRgb` 正则只取 `\d+`（333），300 等越界值照收；`fromHsl` 正则同样只取 `\d+`（343），h=720、s=200 照收；`rgbToHex` 才 clamp（248），而 `rgbToHsl`/`hslToRgb` 不 clamp（253-284），`updateUI` 直接展示未 clamp 的 rgb（316）。
-- 证据：`tools/it/calc-3.html:238`、`:246-251`、`:253-273`、`:276-291`、`:303-317`、`:331-339`、`:341-350`
-- 复现（node 复算页内函数）：`rgb(300,0,0)` → 实际 `HEX #FF0000` + `HSL hsl(0, 143%, 59%)`（饱和度 143% 不可能），期望 clamp 后 `s=100%` 或拒绝；`hsl(720,100%,50%)` → 实际 `rgb(0,0,0)`（黑），期望 `rgb(255,0,0)`（720≡0）；`hsl(0,200%,50%)` → 实际 `rgb(383,-127,-127)`，而同屏 HEX 显示 `#FF0000`。
-- 影响：`tools/it/calc-3.html` —— 同屏 HEX/RGB/HSL 互相矛盾，复制 RGB 会拿到越界值。
-- 方案：入口统一 clamp（r/g/b 0–255；`h=((h%360)+360)%360`；s/l 0–100 或拒绝并提示），`hslToRgb` 输出后再 clamp 一次。
-
-### IT-N171 calc-3 预设回调 `fromHex()` 覆盖刚写入的 HSL，红/蓝/绿预设点了没反应（中，确认源码缺陷）
-- 问题：`preset.bar(..., function(){ fromHex(); })`（476）；红/蓝/绿预设只写 `hslInput`（473-475），随后 `fromHex()` 读的是 `hexInput`（322-328），`updateUI(rgb,'hex')` 在 `source!=='hsl'` 时把 `hslInput` 改写回旧值（309）。
-- 证据：`tools/it/calc-3.html:472-476`、`:307-309`、`:321-329`
-- 复现：点「红色」→ 实际 `hslInput` 闪成 `hsl(0,100%,50%)` 后立即变回 `hsl(16, 100%, 60%)`，预览仍是橙色；期望纯红 `#FF0000`。
-- 影响：`tools/it/calc-3.html` —— 4 个预设中 3 个视觉效果为零，用户以为预设坏了。
-- 方案：回调按字段来源分派（写 hsl 的预设调 `fromHsl()`，默认参数预设调 `fromHex()`），或预设同时写 `hexInput`。
-
-### IT-N172 calc-3 同页渲染两套预设条（声明式 + `#calc_3Presets` 自动宿主）（中，确认源码缺陷）
-- 问题：正文 134 已有 `data-tb="preset"`（仅"默认参数"1 条），`__calc_3Presets()` 又调 `TBKit.preset.bar('#calc_3Presets', 4 条)`（472）；页面没有 `id="calc_3Presets"`，`preset.ensureHost()` 会在首个 `.input-row`（132）前新建宿主（`js/tool-kit.js:1013-1033`），于是出现上下两条「常用场景」。
-- 证据：`tools/it/calc-3.html:132`、`:134`、`:470-475`、`js/tool-kit.js:1035-1039`
-- 复现：打开页 → 工具栏上方两条预设按钮组（1 个 + 4 个）；期望只留一组 4 个。
-- 影响：`tools/it/calc-3.html` —— 重复 UI，且两条预设行为不同（声明式那条能正常生效）。
-- 方案：删除 134 的声明式 preset div（或删 `__calc_3Presets`），统一保留 4 条并显式放宿主 div。
-
-### IT-N173 calc-3 文档承诺 `#RGB` 简写与 8 位 alpha，实现只接受 6 位且输入框限长 7（低，确认源码缺陷）
-- 问题：123 "`#RGB` 简写会等比扩展"、187 "#RRGGBB 或 #RGB 简写，另有 8 位含 alpha"；`hexToRgb` 要求 `^[0-9A-Fa-f]{6}$`（238），输入框 `maxlength="7"`（136）连 `#RRGGBBAA`（9 字符）都输不进去。
-- 证据：`tools/it/calc-3.html:123`、`:187`、`:136`、`:236-238`
-- 复现：输入 `#F00` → 实际提示"请输入有效的 HEX 颜色"；输入 `#FF6B3580` → 被截成 `#FF6B35` 且 alpha 丢失；期望 `#F00 → #FF0000`。
-- 影响：`tools/it/calc-3.html` —— 文档承诺两种常见写法都不可用。
-- 方案：支持 3/4/6/8 位（3 位按位扩展，4/8 位取 alpha 并展示），同步放宽 `maxlength`。
-
-- 留存建议（tools/it/calc-3.html）：①三路入口统一区间校验 + clamp；②预设回调按来源调用 `fromHsl`；③删重复预设条；④补 `#RGB`/8 位 alpha 或删掉该承诺。
-
+- `calc-3`（颜色值转换器）：IT-N170–N173 已于第217批真修并销账——三路输入统一钳制（r/g/b 0–255、`h=((h%360)+360)%360`、s/l 0–100，越界回写规范化串，同屏 HEX/RGB/HSL 不再矛盾）；预设同时写 `hexInput` 使统一 `fromHex()` 回调生效（红/蓝/绿由页内 hslToRgb+rgbToHex 反算，往返一致）；删声明式 preset div 并显式放 `#calc_3Presets` 宿主，只留一组 4 条；HEX 支持 3/4/6/8 位（简写按位扩展、4/8 位带 alpha 并展示）、`maxlength` 7→9；公式说明与格式说明中英三源同步。JSDOM `scripts/_verify_it_batch217.mjs` 修好版 22/22、旧源码 3/22；verify 1554/1554 未改。
 ### IT-N174 matrix 改维度后不点「构建矩阵」直接点「计算转置」抛 TypeError，结果区空白（高，确认源码缺陷）
 - 问题：`rows/cols` 输入框无 oninput 重建（170-171），`calculate()` 直接 `getM(r,c)`，而 `getM` 按新维度读取 `a<i*c+j>`（268）。仅 a0…a(旧r*旧c-1) 存在，新维度需要更多格时 `getElementById` 返回 null，`.value` 抛 TypeError；`calculate()` 无 try/catch（281-296），异常冒泡，输出区保持"点击「计算转置」查看结果"。
 - 证据：`tools/it/matrix-transpose.html:170-171`、`:174-175`、`:257-260`、`:266-269`、`:281-296`
