@@ -7851,9 +7851,10 @@ const CASES = [
       "search": "abc123测试"
     },
     "expect": [
-      "洲 大洋洲 非洲\nabc123测试\n共 0 个国家/地区"
+      "洲 大洋洲 非洲\nabc123测试\n未找到匹配项。当前仅收录 48 个常用国家/地区",
+      "共 0 个国家/地区（仅收录 48 个常用国家/地区）"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"search\":\"abc123测试\"}，输出区含「洲 大洋洲 非洲\nabc123测试\n共 0 个国家/地区」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "IT-N309 更新：注入不存在的国家名 abc123测试 ⇒ 空态提示须明确「仅收录 48 个常用国家/地区」（grid 与 count 双处）；默认态列表非空、不含该提示 ⇒ 强判别、零逃生。expect 是「或」：两条分别锚 grid 空态与 count 范围说明，缺一即红。"
   },
   {
     "slug": "it/crontab-generator",
@@ -12224,6 +12225,13 @@ const CASES = [
     clicks: ["enc();"],
     expect: ["065122"],
     ref: "IT-N310：无分隔符时必须用定长 3 位（A=065、z=122 ⇒ 065122）才能反向还原；旧实现 join('') 得 65122，解码端无法还原。改用 Az：legacy 桩把 `<option value=' '>` 的默认分隔符 trim 成空串，与 sep='' 等价 ⇒ 原注入态与默认态输出完全相同（逃生）；默认正文的码点串不含 065122 ⇒ 不命中。",
+  },
+  {
+    slug: "it/decimal-encode",
+    inputs: { input: "65x 66" },
+    clicks: ["var inp=document.getElementById('input'),out=document.getElementById('output'),ok=0;['65x 66','0x41 0x42','256 1'].forEach(function(v){out.value='KEEP';inp.value=v;try{dec();}catch(e){}if(out.value==='KEEP')ok++;});inp.value='72 101 108 108 111';out.value='';try{dec();}catch(e){}if(out.value==='Hello')ok++;document.getElementById('__tbProbe').textContent='N312STRICT '+ok;"],
+    expect: ["N312STRICT 4"],
+    ref: "IT-N312：解码必须用 /^\\d+$/ 整段校验——65x（尾部垃圾）、0x41（0x 前缀静默变 0）、256（越界）三种脏数据都必须拒绝且不改写输出，合法串仍须正常解码 Hello。旧实现 parseInt 宽松：65x→65、0x41→0，静默写出错误值。探针仅在注入 clicks 后出现，默认态零命中；ok 依赖 dec() 真实行为，非固定文案。",
   },
   {
     slug: "it/c-string-escape",
