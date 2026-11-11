@@ -130,7 +130,7 @@
     <h2 data-zh="💻 二进制转文本">💻 Binary to Text</h2>
     <p style="font-size:13px;color:var(--text-light);margin-bottom:12px;" data-zh="支持 8 位二进制字符串，自动忽略分隔符。">Convert a binary (0/1) string into readable text in your browser, with UTF-8 decoding.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">清洗：去掉空白与 : , ; _ - . 换行回车制表符；校验仅含 0 与 1 且长度为 8 的倍数；每 8 位按 parseInt(s, 2) 转 1 字节填入 Uint8Array，再由 TextDecoder 解码为文本</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">清洗：去掉空白与 : , ; _ - . 换行回车制表符；校验仅含 0 与 1 且长度为 8 的倍数；每 8 位按 parseInt(s, 2) 转 1 字节填入 Uint8Array，再以严格 UTF-8（fatal:true, ignoreBOM:true）解码；含非法字节时报错并给出 Latin-1 对照与十六进制字节列表，开头 BOM 不再被吞</div>
   <div class="formula-desc">把二进制位串按固定位宽还原为文本，常用于协议调试与教学。</div>
   <ul class="formula-list">
     <li><b>切分</b>：按 8 位（字节）或 7 位（ASCII）切分位串，逐段映射为字符。</li>
@@ -188,8 +188,8 @@
 <div class="dd-example"><div class="dd-ex-title">解码 01001000 01000101</div><div class="dd-ex-body">输入 `01001000 01000101` → 输出 `HE`（0x48=H、0x45=E）。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>位数不是 8 的倍数怎么办？</dt><dd>按 8 位一组截取，未对齐的尾组无法构成完整字节会被忽略或报错。</dd>
-<dt>位串里有空格或换行能解吗？</dt><dd>可以。工具会先剔除空格、换行等常见分隔符再按固定位宽切分。但要留意：若原文本身含空格字符，剔除后就无法还原空格；此外位串长度不是位宽整数倍时，末尾不足的位会被丢弃或报错，需检查是否复制完整。</dd>
+<dt>位数不是 8 的倍数怎么办？</dt><dd>直接报错并中止，未对齐的尾位不会被忽略或丢弃；请检查是否复制完整，不要在末尾随意补 0。</dd>
+<dt>位串里有空格或换行能解吗？</dt><dd>可以。空格、换行、短横线等只是排版分隔符，剔除它们不影响正文里的空格——文本空格本身由字节 00100000 正常还原（例如 01000001 00100000 01000010 解得「A B」）。位串长度不是 8 的倍数时会直接报错并中止，不会丢弃末尾的位；请检查是否复制完整，不要在末尾随意补 0。</dd>
 </dl>
 </div>
 </section>
@@ -251,7 +251,27 @@ function convert(){
   }
   const bytes = new Uint8Array(text.length / 8);
   for(let i = 0; i < bytes.length; i++) bytes[i] = parseInt(text.substr(i*8,8),2);
-  document.getElementById('output').value = new TextDecoder().decode(bytes);
+  // IT-N247：严格 UTF-8（fatal 拒绝非法字节、ignoreBOM 保留开头 BOM），失败给 Latin-1 对照 + 字节视图。
+  const en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn());
+  let out;
+  try {
+    out = new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(bytes);
+  } catch(e) {
+    // 逐字节流式喂入统计非法字节数（stream 模式保持多字节序列状态）
+    let bad=0; const probe=new TextDecoder('utf-8',{fatal:true});
+    for(let i=0;i<bytes.length;i++){
+      try{ probe.decode(bytes.subarray(i,i+1),{stream:true}); }catch(err){ bad++; }
+    }
+    try{ probe.decode(); }catch(err){ bad++; }
+    if(bad===0) bad=1;
+    const latin=Array.prototype.map.call(bytes,function(b){return String.fromCharCode(b);}).join('');
+    const hex=Array.prototype.map.call(bytes,function(b){return '0x'+(b<16?'0':'')+b.toString(16).toUpperCase();}).join(' ');
+    out=(en
+      ? '⚠ Contains '+bad+' invalid UTF-8 byte(s); strict decoding failed. Latin-1 fallback and raw bytes shown below.\n'
+      : '⚠ 含 '+bad+' 个非法 UTF-8 字节，严格解码失败。下面给出 Latin-1 对照与原始字节。\n')
+      +latin+'\n\n'+(en?'Bytes (hex):':'字节（十六进制）:')+'\n'+hex;
+  }
+  document.getElementById('output').value = out;
 }
 
 function copyResult(ev){
@@ -301,8 +321,9 @@ function __binary_to_textResText(){
     return t.slice(0,80);
 }
 function __binary_to_textScore(t){
-    var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    // IT-N246：旧版以「错误/Error/Failed…」等关键词给结果判 0，会把解码出的
+    // 正常文本（如 "Error 404"）误判为无效历史。非法输入在 convert() 已 alert 拦下，
+    // 进入历史的都是有效产物，恒记 1；有效性趋势图因此不再假性掉零。
     return 1;
 }
 function __binary_to_textTime(t){

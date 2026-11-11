@@ -1268,6 +1268,26 @@ const CASES = [
     ref: "8 位二进制按字节解码：01000001 = 0x41 = 'A'。默认态解码区为空 ⇒ 不命中（双态核验已确认判别力；此处仅断言单字符是够用的，因为默认态 blob 完全不含该输出）。",
   },
   {
+    slug: "it/binary-to-text",
+    inputs: { input: "11111111 01000001" },
+    clicks: ["(function(){var v=document.getElementById('output').value;document.getElementById('__tbProbe').innerHTML='B2TBAD '+((v.indexOf('非法 UTF-8')>=0||v.indexOf('invalid UTF-8')>=0)&&v.indexOf('Latin-1')>=0&&v.indexOf('0xFF')>=0?'OK':'BAD:'+v.slice(0,60));})()"],
+    expect: ["B2TBAD OK"],
+    ref: "IT-N247 非法 UTF-8：注入 FF 41（0xFF 非合法 UTF-8 起始），严格 TextDecoder 抛错后须给「非法 UTF-8 字节数 + Latin-1 对照 + 0xFF 字节列表」。旧实现 new TextDecoder() 默认 fatal:false ⇒ 静默得 U+FFFD「A」，无这些提示 ⇒ B2TBAD 红。诊断串只在 clicks 执行写入，默认态无 ⇒ 零逃生。",
+  },
+  {
+    slug: "it/binary-to-text",
+    inputs: { input: "11101111 10111011 10111111 01000001" },
+    clicks: ["(function(){var v=document.getElementById('output').value;document.getElementById('__tbProbe').innerHTML='B2TBOM '+((v.indexOf('\\uFEFF')>=0||v.indexOf('BOM')>=0||v.indexOf('0xEF')>=0)?'OK':'BAD:'+JSON.stringify(v.slice(0,40)));})()"],
+    expect: ["B2TBOM OK"],
+    ref: "IT-N247 BOM：注入 EF BB BF 41（UTF-8 BOM + A），ignoreBOM:true 须保留 BOM（U+FEFF 或字节视图 0xEF），旧实现默认 ignoreBOM:false 把 3 字节 BOM 吞掉仅得「A」⇒ B2TBOM 红。诊断串只在 clicks 执行，默认态无 ⇒ 零逃生。",
+  },
+  {
+    slug: "it/binary-to-text",
+    clicks: ["(function(){var s=__binary_to_textScore('页面显示：错误');document.getElementById('__tbProbe').innerHTML='B2TSCORE '+(s===1?'OK':'BAD'+s);})()"],
+    expect: ["B2TSCORE OK"],
+    ref: "IT-N246 错误词启发式：解码出的正常文本若含「错误/失败/Invalid」等词，旧 __binary_to_textScore 将其判 0（历史有效性假性掉零），修复后恒记 1（非法输入已在 convert() alert 拦下）。探针传「页面显示：错误」断言 score=1；旧源码该串得分 0 ⇒ B2TSCORE BAD0 红。诊断串只在 clicks 执行，默认态无 ⇒ 零逃生。",
+  },
+  {
     slug: "it/adfgvx-cipher",
     inputs: { input: "abc" },
     expect: ["A A F D D G"],

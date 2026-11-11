@@ -1371,29 +1371,7 @@
 - 未覆盖说明：只审计主流程、参数边界与文档口径，未逐条穷举 MySQL/Go 语法（仅抽检 GRANT、`INT[(M)]`/`ZEROFILL`、`VALUES()`、`--`、`...`）；Rabbit 未做官方向量比对（缺 RFC 4503 期望值，只证明了"进位/密钥装入偏离本页说明"）；sms-qr 未实际扫码；binomial 参数域抽样到 n=20000；rest-api/mysql 内容准确性对照 RFC 9110/9457 与 MySQL 8.0 手册，非逐条穷举。
 - 未做验证：未开浏览器、未构建、未跑门禁、未 git 写；全部结论为源码静态分析 + `node` 内存复算（临时脚本在 `/tmp`，未落仓库），未验证英文态 `?lang=en-US`/繁体/移动端。
 
-### IT-N246 历史/数据表/图表与 CSV 全恒空：结果写进 textarea 的 `value`，历史读 `textContent`（中，确认缺陷）
-- 问题：`convert()` 把结果赋给 `#output`（textarea）的 `.value`，而 `__binary_to_textResText()` 读同一元素的 `.textContent`。textarea 的 `textContent` 是它的初始子节点（此处为空），不随 `.value` 变化 → `res` 恒 `''`，`__binary_to_textExtras()` 在 `:363` 直接 return，TBKit 的记录/渲染整条链都不触发。
-- 证据：`tools/it/binary-to-text.html:164`（`<textarea id="output" …></textarea>`，无初始文本）、`:265`（写 `.value`）、`:305-311`（读 `textContent`，`:310` 还会把含 `Error` 的结果判空）、`:362-363`（`if(!res) return`）、`:384-386`（CSV 导的 `#binary_to_textTable` 只在 `:382` 的 Render 里填充，该 Render 永不执行）、`:134-138`（四个页签）。
-- 复现：输入 `01001000 01101001` → `#output.value === "Hi"`，但 `#output.textContent === ""`；`__binary_to_textExtras()` 立即返回 → 全程不会走到 `:381` 的 `TBKit.history.record(...)`，历史条目恒为 0，"数据表/图表/历史"三个页签恒空，导出的 CSV 只有表头。
-- 影响：`tools/it/binary-to-text.html`（"历史/趋势/导出"三个卖点全部失效）
-- 方案：`__binary_to_textResText()` 改为 `var t=(r.value||r.textContent||'')…`（textarea 用 `.value`，div 型结果仍走 `textContent`），并删除 `:310` 那条以 `/错误|Error/` 判空的启发式（它会把正常文本里的 "Error" 判成无效结果）。
-**留存建议（tools/it/binary-to-text.html）**：与 IT-N140 同型（第 4 例）；建议全站统一 `__*ResText()` 的取值口径，别再逐个补。
-
-### IT-N247 非法 UTF-8 被静默换成 U+FFFD、首部 BOM 被吞，且无字节视图兜底（中，确认缺陷）
-- 问题：`new TextDecoder()` 默认 `fatal:false`（解不出的字节静默变 `�`）且 `ignoreBOM:false`（开头 `EF BB BF` 会被当 BOM 剥掉），页面既无"含非法字节"提示，也没有 Latin-1/hex 备选出口。
-- 证据：`tools/it/binary-to-text.html:265`、`:222`（引据表只写 "then UTF-8 decode"）、`:203`（FAQ 只讨论分隔符与长度）。
-- 复现：node 同口径——`new TextDecoder().decode(new Uint8Array([0xFF,0x41]))` → `"\u{FFFD}A"`；`decode([0xEF,0xBB,0xBF,0x41])` → `"A"`（BOM 3 字节被无声丢弃）；`decode([0xC3])` → `"\u{FFFD}"`。即 `11111111 01000001` 只得到 `�A`，`11101111 10111011 10111111 01000001` 得到 `A`。
-- 影响：`tools/it/binary-to-text.html`（`:197` 自述用于"协议负载还原/判断是否已加密"，此处恰恰分不清"真乱码"与"字节非法"）
-- 方案：`new TextDecoder('utf-8',{fatal:true,ignoreBOM:true})` 包 try/catch，失败时提示"含 N 个非法 UTF-8 字节"并给出 Latin-1 解码结果作对照；再加一个 `0x..` 字节列表输出。
-**留存建议（tools/it/binary-to-text.html）**：与 IT-N263（hex-encode）同型，两页应一起改。
-
-### IT-N248 FAQ 两处说明与实现相反（低，确认缺陷）
-- 问题：`:203` 写"若原文本身含空格字符，剔除后就无法还原空格"——输入是 0/1 位串，空格只是排版分隔符，原文空格由字节 `00100000` 还原，不存在丢失；同句"末尾不足的位会被丢弃或报错"——实际是硬报错并中止，既无"丢弃"也无部分输出。
-- 证据：`tools/it/binary-to-text.html:203` vs `:254`（无条件剥离 `[\s:,;_\-.\n\r\t]`）、`:259-261`（非 8 倍数 → `alert` 后 `return`，输出框保持空）。
-- 复现：`01000001 00100000 01000010` → 输出 `A B`（空格完整还原，与"无法还原"相反）；`010000011` → alert "二进制长度必须为 8 的倍数，当前长度: 9"，无任何结果（不存在"丢弃"分支）。
-- 影响：`tools/it/binary-to-text.html`
-- 方案：改写为"分隔符仅用于排版，不影响正文；长度非 8 倍数时直接报错，建议尾部补 0 或去掉多余位"。
-**留存建议（tools/it/binary-to-text.html）**：文案小改，成本一行。
+- `binary-to-text`：无剩余缺陷（IT-N246 结果读取统一走 textarea.value + 删除以错误词判空的启发式，历史/表格/图表/CSV 链恢复；IT-N247 严格 UTF-8 `fatal:true,ignoreBOM:true` + 非法字节计数/Latin-1 对照/0x 字节列表；IT-N248 FAQ 与公式三源口径纠正，三条均已销账，第198批；verify 3 条探针强锁 + JSDOM 真机 21/21、旧源码 6/21，非法字节/BOM/错误词评分/三源文案全变红）。
 
 ### IT-N249 「2 字名/3 字名」被用字池里的双字词条破坏：选 2 字会得到 3 字（中，确认缺陷）
 - 问题：`maleChars` 混入 3 个双字词条（`建国`/`志强`/`建华`），而 `generateOneName()` 把池中**每一项**当作一个"字"拼接——`givenLen = max(nameLen − surname.length, 1)` 只控制拼接次数，不控制字符数。
