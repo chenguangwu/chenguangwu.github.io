@@ -2826,6 +2826,20 @@ const CASES = [
     ref: "反向锚：不存在的状态码 ⇒ 列表区落英文空态提示（默认示例列表非空，必不命中）。",
   },
   {
+    slug: "it/http-status",
+    // IT-N101：数据规模与常用标准码补齐（旧态仅 32 条、缺 203/451 等）。
+    clicks: ["var need=[103,203,205,300,303,305,411,412,414,416,417,418,421,425,426,428,431,451,506,507,508,510],miss=need.filter(function(c){return !statusCodes.some(function(s){return s.code===c;});});document.getElementById('__tbProbe').textContent='N101C '+(statusCodes.length>=50?'GE50':'LT50')+' '+(miss.length?miss.join(','):'ALL');"],
+    expect: ["N101C GE50 ALL"],
+    ref: "IT-N101：注入探针统计 statusCodes 条数与 22 个遗漏常用码。修复后 ≥50 条且 22 码齐全 ⇒ N101C GE50 ALL；旧态 32 条且缺全部 22 码 ⇒ N101C LT50 103,203,...，判别明确。默认态无探针，不产生该串。"
+  },
+  {
+    slug: "it/http-status",
+    // IT-N102：401 统一为「未认证」，detail 明确与 403 的权限差异。
+    clicks: ["var s=statusCodes.find(function(x){return x.code===401;});document.getElementById('__tbProbe').textContent='N102A '+(s&&s.desc==='未认证'&&/403/.test(s.detail)?'OK':'BAD');"],
+    expect: ["N102A OK"],
+    ref: "IT-N102：401 卡片描述必须与概览一致为「未认证」且 detail 含 403 区分说明。旧态 desc=「未授权」且无 403 说明 ⇒ N102A BAD；修复后 ⇒ N102A OK。默认态无探针，不产生该串。"
+  },
+  {
     slug: "it/xxtea",
     inputs: { input: "ABC", key: "KY" },
     clicks: ["encrypt()"],
