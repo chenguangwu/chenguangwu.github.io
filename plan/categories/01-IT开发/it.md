@@ -62,7 +62,7 @@
 - 同批阅读 Linux、MongoDB 速查的搜索、分类与复制路径；无浏览器验证，不对完整正确性判通过。IT-N498–N500 的示例仍须按具体内容另行运行复核。
 - IT-N423、N308、N309 的数据范围问题仍在。
 - IT-N49 已于第215批真修并销账：`chmod-calculator` 支持 setuid(4)/setgid(2)/sticky(1) 特殊位与四位数模式（如 4755/2755/1777），符号位按 s/S 与 t/T 分别渲染，快捷预设及复制命令同步；JSDOM 修好版 18/18、旧源码 3/18。
-- IT-N170–N173 第217批销账（`calc-3`）、IT-N174–N177 第218批（`matrix-transpose`）、IT-N178–N180 第219批（`http-cookies` 与 4 个 HTTP 页过期示例）、IT-N181–N184 第220批（`text-to-ascii`）、IT-N185–N190 第221批（`shell-script-formatter`）、IT-N191–N195 第222批（`unit-converter-advanced`）、IT-N196–N198 第223批（`html-entities-encode`）、IT-N199–N201 第224批（`json-to-toml`）、IT-N202–N206 第225批（`plist-parser` 与 `char-encoder`），详见下方覆盖行；IT-N207（char-encoder HTML 命名仅 9 项）等关键路径仍在。
+- IT-N170–N173 第217批销账（`calc-3`）、IT-N174–N177 第218批（`matrix-transpose`）、IT-N178–N180 第219批（`http-cookies` 与 4 个 HTTP 页过期示例）、IT-N181–N184 第220批（`text-to-ascii`）、IT-N185–N190 第221批（`shell-script-formatter`）、IT-N191–N195 第222批（`unit-converter-advanced`）、IT-N196–N198 第223批（`html-entities-encode`）、IT-N199–N201 第224批（`json-to-toml`）、IT-N202–N206 第225批（`plist-parser` 与 `char-encoder`）、IT-N207–N211 第226批（`char-encoder` 实体补全与 `basic-auth-generator` 冒号/charset），详见下方覆盖行；IT-N212（自定义字母表超 256 字符）等关键路径仍在。
 - 同批另阅读 `ascii-table`、`box-shadow-generator`、`calc-1`、`calc-10` 的主要交互路径；未对其完整正确性或浏览器行为作通过判定。
 
 ## 已知问题
@@ -765,46 +765,7 @@
 - 未覆盖说明：只审计主流程、边界与文档口径，未逐条核对 FAQ/JSON-LD 文案，未检查同模板其它 IT 页；`html-entities-encode` 的"完整实体覆盖"仅按 `NAMED` 表条目数与解码行为核对，未穷举 2000+ HTML5 命名实体。
 - 未做验证：未开浏览器（结论均为源码静态分析 + `node -e` 内存复算，Shell 压缩另用 `bash -n` 校验）、未验证英文态 `?lang=en-US`/繁体/移动端、未跑 `_test_static.py`/`_audit_links.py`/`_audit_assets.py`/`run_gates.py` 等门禁，未触发 `_build.py` 或任何 git 写操作。
 - 第225批销账：IT-N202–N206（`plist-parser` real/date/data 保型与超安全整数与大整数往返与控制字符剔除、`char-encoder` ASCII 行按码点与清空清字节视图），详见下方覆盖行。
-
-### IT-N207 "HTML 命名"只覆盖 9 个字符，与格式名不符（低，确认缺陷）
-- 问题：命名实体映射仅 `& < > " ' © ® ™ €` 9 项，其余字符原样输出，且没有 `&nbsp;`；标签叫"HTML 命名"容易让用户以为全量命名实体。
-- 证据：`tools/it/char-encoder.html:286-290`、`:174`（格式清单）。
-- 复现：输入 `中`/`é` → 该行原样返回 `中`/`é`；期望无命名实体时显示"—"或改用十进制。
-- 影响：`tools/it/char-encoder.html`
-- 方案：改名"常用 HTML 实体"或补全 HTML5 命名实体表（与 `html-entities-encode.html` 共享数据）。
-**留存建议（tools/it/char-encoder.html）**：文案层修复即可。
-
-### IT-N208 用户名含冒号不校验，令牌被服务端按首个冒号切分（中，确认缺陷）
-- 问题：RFC 7617 规定 user-id 不得含 `:`，页面直接 `user+':'+pass` 编码，`a:b` + `c` 得到 `a:b:c`，服务端会解成 user=`a`、password=`b:c`，认证错位且用户无感知。
-- 证据：`tools/it/basic-auth-generator.html:282`、`:277-281`（无任何输入校验）。
-- 复现：node 复算 `btoa("a:b:c")` = `YTpiOmM=`；按 RFC 解码即 user=`a`、pass=`b:c`，与输入不符。
-- 影响：`tools/it/basic-auth-generator.html`
-- 方案：用户名含 `:` 时阻止生成并提示"用户名不能包含冒号（RFC 7617）"。
-**留存建议（tools/it/basic-auth-generator.html）**：保留，补输入校验。
-
-### IT-N209 非 ASCII 凭据按 UTF-8 编码但无 charset 声明，与自身引据矛盾（中，确认缺陷）
-- 问题：构造说明写"按 UTF-8 编码"（`btoa(unescape(encodeURIComponent))`），引据表却写"默认 ISO 8859-1，可用 charset 声明 UTF-8"，而页面既不声明 charset 也不提示服务端需支持 UTF-8，服务端按 ISO-8859-1 解码即乱码。
-- 证据：`tools/it/basic-auth-generator.html:275`、`:118`、`:210-211`；meta `:8` 还宣称"支持中文用户名"。
-- 复现：node 复算 `btoa(unescape(encodeURIComponent("admin:密码")))` 得到 UTF-8 字节令牌；按 ISO-8859-1 解码为 `admin:å¯†ç `（乱码），期望页面提示或提供 ASCII/UTF-8 选项。
-- 影响：`tools/it/basic-auth-generator.html`
-- 方案：输出区标注"含非 ASCII 时服务端须按 UTF-8 解码（RFC 7617 charset）"，或对非 ASCII 输入给出显式警告。
-**留存建议（tools/it/basic-auth-generator.html）**：补一句能力边界说明即可。
-
-### IT-N210 历史快照把密码明文写入 localStorage（中，确认缺陷/隐私）
-- 问题：快照遍历页面所有 `input[id]`，`f_pass`（`type=password`）同样被收集，随后写入 TBKit 历史（localStorage），密码长期落盘，同源脚本可读。
-- 证据：`tools/it/basic-auth-generator.html:292-299`（收集所有 input，仅排除 button/submit/hidden）、`:127`（`f_pass`）、`:375-378`（`history.record`）。
-- 复现：输入 `admin/secret` → 生成 → localStorage 历史 JSON 出现 `"f_pass":"secret"`（静态路径可证，未开浏览器验证键名）。
-- 影响：`tools/it/basic-auth-generator.html`
-- 方案：快照跳过 `type=password` 或显式排除 `f_pass`；历史只保留 token/请求头，不存原始密码。
-**留存建议（tools/it/basic-auth-generator.html）**：安全项，建议优先修。
-
-### IT-N211 复制提示 `i18nText()` 无参，toast 显示 undefined（低，确认缺陷）
-- 问题：`copyField` 两处调用 `i18nText()` 不传 key，`i18nText(undefined)` 最终回落 `undefined`，`showToast` 把 `textContent` 设为字符串 "undefined"。
-- 证据：`tools/it/basic-auth-generator.html:276`；`js/common.js:1510-1521`（缺 key 时回落 `key` 本身）。
-- 复现：点"复制请求头" → 剪贴板内容正确，但提示条出现 `undefined`（源码路径推导，未开浏览器）。
-- 影响：`tools/it/basic-auth-generator.html`
-- 方案：改为 `i18nText('toast.copied','已复制')` 一类带 key 的调用。
-**留存建议（tools/it/basic-auth-generator.html）**：文案层修复。
+- 第226批销账：IT-N207–N211（`char-encoder` 常用 HTML 实体补全、`basic-auth-generator` 冒号校验与 UTF-8 charset 提示；N210 历史不写密码与 N211 复制提示已由其他 Agent 修好补证据），详见下方覆盖行。
 
 ### IT-N212 自定义字母表超过 256 字符时后半段字符永远不可达（中，确认缺陷）
 - 问题：`idx = bytes[i] & mask`，单字节最大 255；字母表长度 257–511 时 mask=511，但索引永远 ≤255，256 及之后的字符被静默排除；`customAlpha` 也无长度上限。

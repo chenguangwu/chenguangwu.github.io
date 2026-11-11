@@ -267,12 +267,25 @@ function generate(){
   var user=document.getElementById('f_user').value;
   var pass=document.getElementById('f_pass').value;
   var out=document.getElementById('result');
-  if(!user||!pass){['headerOut','urlOut','tokenOut'].forEach(function(id){document.getElementById(id).value='';});out.innerHTML='<p style="color:var(--danger)">⚠ 请填写用户名和密码后再生成。</p>';return;}
+  var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  var clear=function(){['headerOut','urlOut','tokenOut'].forEach(function(id){document.getElementById(id).value='';});};
+  if(!user||!pass){clear();out.innerHTML='<p style="color:var(--danger)">⚠ '+(en?'Enter a username and password before generating.':'请填写用户名和密码后再生成。')+'</p>';return;}
+  // IT-N208：RFC 7617 规定 user-id 不得含冒号，否则服务端按首个冒号切分导致认证错位
+  if(user.indexOf(':')>=0){
+    clear();
+    out.innerHTML='<p style="color:var(--danger)">⚠ '+(en?'Username must not contain a colon (RFC 7617).':'用户名不能包含冒号（RFC 7617）。')+'</p>';
+    return;
+  }
   var token=b64(user+':'+pass);
   document.getElementById('headerOut').value='Authorization: Basic '+token;
   document.getElementById('urlOut').value='https://'+encodeURIComponent(user)+':'+encodeURIComponent(pass)+'@example.com/';
   document.getElementById('tokenOut').value=token;
-  const __h1='<p>✅ 已生成 Basic 认证信息（令牌 '+token.length+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" characters)</p>":" 字符）</p>");if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;
+  var html='<p>✅ '+(en?'Basic credentials generated (token ':'已生成 Basic 认证信息（令牌 ')+token.length+(en?' characters)':' 字符）')+'</p>';
+  // IT-N209：非 ASCII 凭据按 UTF-8 编码，服务端须按 UTF-8 解码（RFC 7617 charset 参数）
+  if(/[^\x00-\x7F]/.test(user+pass)){
+    html+='<p style="color:var(--warning,#b45309);font-size:12px;">'+(en?'Non-ASCII credentials are UTF-8 encoded; the server must decode them as UTF-8 (RFC 7617 charset).':'含非 ASCII 字符时凭据按 UTF-8 编码，服务端须按 UTF-8 解码（RFC 7617 charset 参数）。')+'</p>';
+  }
+  const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;
 }
 
 var __basic_auth_generator_last=0,__basic_auth_generator_skip=false;

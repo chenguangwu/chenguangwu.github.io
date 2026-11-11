@@ -2967,6 +2967,19 @@ const CASES = [
     ref: "Basic 认证头 = `Basic ` + Base64(`alice:pw123`) = YWxpY2U6cHcxMjM=；裸 input event 即渲染，无需 clicks。默认示例用户名/口令不同。",
   },
   {
+    slug: "it/basic-auth-generator",
+    inputs: { f_user: "a:b", f_pass: "c" },
+    clicks: ["generate();var t=String(document.getElementById('result').innerHTML||'');var tok=document.getElementById('tokenOut').value||'';document.getElementById('__tbProbe').textContent='AUTHCOLON '+(t.indexOf('用户名不能包含冒号')>=0&&tok.indexOf('YTpiOmM=')<0?'OK':'BAD');"],
+    expect: ["AUTHCOLON OK"],
+    ref: "IT-N208 第226批：用户名含冒号（a:b）须阻止生成并提示 RFC 7617，不得产出 a:b:c 的令牌 YTpiOmM=；旧实现直接 Base64('a:b:c') 生成该令牌。探针绑输入串，默认态用户名无冒号 ⇒ 零逃生。",
+  },
+  {
+    slug: "it/char-encoder",
+    inputs: { input: " …—" },
+    expect: ["常用 HTML 实体 &nbsp;&hellip;&mdash;"],
+    ref: "IT-N207 第226批：常见命名实体  = &nbsp;、… = &hellip;、— = &mdash;，标签改「常用 HTML 实体」。默认态 input 为空 ⇒ 该行无值，不命中。",
+  },
+  {
     slug: "it/date-duration",
     inputs: { d1: "2024-01-01", d2: "2024-03-15", inc: "1" },
     clicks: ["calcTool()"],
@@ -7225,9 +7238,9 @@ const CASES = [
       "tokenOut": "abc123测试"
     },
     "expect": [
-      "abc123测试\nabc123测试\n✅ 已生成 Basic 认证信息（令牌 36 字符）\nAuthorization: Basic YWJjMTIz5rWL6K+VOmFiYzEyM+a1i+ivlQ==\nhttps://abc123%E6"
+      "abc123测试\nabc123测试\n✅ 已生成 Basic 认证信息（令牌 36 字符） 含非 ASCII 字符时凭据按 UTF-8 编码，服务端须按 UTF-8 解码（RFC 7617 charset 参数）。\nAuthorization: Basic YWJjMTIz5rWL6K+VOmFiYzEyM+a1i+ivlQ==\nhttps://abc123%E6"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"f_user\":\"abc123测试\",\"f_pass\":\"abc123测试\",\"headerOut\":\"abc123测试\",\"urlOut\":\"abc123测试\",\"tokenOut\":\"abc123测试\"}，输出区含「abc123测试\nabc123测试\n✅ 已生成 Basic 认证信息（令牌 36…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"f_user\":\"abc123测试\",\"f_pass\":\"abc123测试\",\"headerOut\":\"abc123测试\",\"urlOut\":\"abc123测试\",\"tokenOut\":\"abc123测试\"}，输出区含成功行 + IT-N209 charset 提示 + Authorization/URL；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。第226批 N209 新增 charset 提示后同批同步本 expect。"
   },
   {
     "slug": "it/bcrypt",
