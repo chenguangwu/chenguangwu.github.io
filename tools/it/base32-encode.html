@@ -257,12 +257,21 @@ function bytesToBase32(bytes){
   return out;
 }
 
+function b32Err(zh,en){ return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?en:zh; }
 function base32ToBytes(str){
-  str = str.toUpperCase().replace(/=+$/,'').replace(/\s/g,'');
+  // RFC 4648：去掉的尾部 '=' 个数必须与数据符号数匹配（2→6、4→4、5→3、7→1、0→0）。
+  // 允许完全省略填充（常见做法），但出现填充时个数错误必须拒绝（旧实现 ME======= 仍解出 'a'）。
+  const raw = String(str).toUpperCase().replace(/\s/g,'');
+  const pad = (raw.match(/=*$/)||[''])[0].length;
+  const core = raw.slice(0, raw.length - pad);
+  if(core.indexOf('=') >= 0) throw new Error(b32Err('Base32 填充位置无效','Invalid Base32 padding position'));
+  const need = {0:0,2:6,4:4,5:3,7:1}[core.length % 8];
+  if(need === undefined) throw new Error(b32Err('Base32 长度无效（末组不完整）','Invalid Base32 length (incomplete final group)'));
+  if(pad !== 0 && pad !== need) throw new Error(b32Err('Base32 填充数无效（应为 '+need+' 个 =）','Invalid Base32 padding count (expected '+need+' =)'));
   let out = [], bits = 0, value = 0;
-  for(let i = 0; i < str.length; i++){
-    const idx = ALPHA.indexOf(str[i]);
-    if(idx === -1) throw new Error('非法字符: ' + str[i]);
+  for(let i = 0; i < core.length; i++){
+    const idx = ALPHA.indexOf(core[i]);
+    if(idx === -1) throw new Error(b32Err('非法字符: ' + core[i],'Invalid character: ' + core[i]));
     value = (value << 5) | idx;
     bits += 5;
     if(bits >= 8){
@@ -270,11 +279,11 @@ function base32ToBytes(str){
       bits -= 8;
     }
   }
-  // RFC 4648：符号数模 8 为 1/3/6 时末组不完整（M/MZXQS/MZXW…），
-  // 且末组剩余位必须为 0；否则会把截断串静默解成字节（旧实现 "MZ" → "f"）。
-  if(bits >= 5) throw new Error('Base32 长度无效（末组不完整）');
+  // 符号数模 8 为 1/3/6 时末组不完整（M/MZXQS/MZXW…），且末组剩余位必须为 0；
+  // 否则会把截断串静默解成字节（旧实现 "MZ" → "f"）。
+  if(bits >= 5) throw new Error(b32Err('Base32 长度无效（末组不完整）','Invalid Base32 length (incomplete final group)'));
   if(bits > 0 && (value & ((1 << bits) - 1)) !== 0){
-    throw new Error('Base32 填充位非零，输入可能被截断');
+    throw new Error(b32Err('Base32 填充位非零，输入可能被截断','Non-zero padding bits, input may be truncated'));
   }
   return new Uint8Array(out);
 }
@@ -293,7 +302,7 @@ function decode32(){
     const bytes = base32ToBytes(text);
     document.getElementById('output').value = new TextDecoder().decode(bytes);
   }catch(e){
-    alert('解码失败：' + e.message);
+    alert(b32Err('解码失败：','Decode failed: ') + e.message);
   }
 }
 
@@ -404,6 +413,7 @@ function __base32_encodeExtras(){
     var snap=__base32_encodeSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
+    if(keys.indexOf('方向')<0) keys.push('方向');
     if(keys.length>12) keys=keys.slice(0,12);
     var res=__base32_encodeResText();
     if(!res) return;
@@ -416,13 +426,14 @@ function __base32_encodeExtras(){
     if(last){
         var same=true;
         for(var i=0;i<keys.length;i++){
-            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+            var lv=String(last[keys[i]]),sv=String(keys[i]==='方向'?__base32_encodeDir:snap[keys[i]]);
+            if(lv!==sv){same=false;break;}
         }
         if(same&&String(last[rk])===String(res)) return;
     }
     __base32_encode_last=now;
     var rec={};
-    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=(keys[i]==='方向'?__base32_encodeDir:snap[keys[i]]);
     rec[rk]=res;
     rec.__tbScore=__base32_encodeScore(res);
     TBKit.history.record(rec);
@@ -442,11 +453,24 @@ function __base32_encodeExport(){
     try { TBKit.util.exportTable('#base32_encodeTable','base32-encode.csv'); } catch(e){}
 }
 function __base32_encodePresets(){
-    if (typeof TBKit === 'undefined') return;
+    if (typeof TBKit === 'undefined' || !TBKit.preset) return;
+    TBKit.preset.bar('#base32_encodePresets',[
+      {label:'Hello World（编码）',labelEn:'Hello World (encode)',values:{'input':'Hello World','noPad':'0'}},
+      {label:'中文测试（编码）',labelEn:'Chinese text (encode)',values:{'input':'中文测试','noPad':'0'}},
+      {label:'JBSWY3DP（解码）',labelEn:'JBSWY3DP (decode)',values:{'input':'JBSWY3DP','noPad':'0'}}
+    ],function(){
+      var v=(document.getElementById('input').value||'').trim();
+      if(/^[A-Z2-7]{8}=*$/.test(v)) decode32(); else encode32();
+    });
 }
+var __base32_encodeDir='编码';
 var __base32_encode_f0=(typeof encode32==='function')?encode32:null;
 if(__base32_encode_f0){
-    encode32=function(){ var __r=__base32_encode_f0.apply(null,arguments); try{ __base32_encodeExtras(); }catch(e){} return __r; };
+    encode32=function(){ __base32_encodeDir=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?'Encode':'编码'; var __r=__base32_encode_f0.apply(null,arguments); try{ __base32_encodeExtras(); }catch(e){} return __r; };
+}
+var __base32_encode_f1=(typeof decode32==='function')?decode32:null;
+if(__base32_encode_f1){
+    decode32=function(){ __base32_encodeDir=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?'Decode':'解码'; var __r=__base32_encode_f1.apply(null,arguments); try{ __base32_encodeExtras(); }catch(e){} return __r; };
 }
 function __base32_encodeBoot(){ try{ __base32_encodePresets(); }catch(e){} try{ encode32(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __base32_encodeBoot();

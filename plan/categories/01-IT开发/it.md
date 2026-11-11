@@ -343,27 +343,6 @@
 
 - 留存建议（mime-type）：①提供"反向查询"（输入 `application/json` → 推荐扩展名）；②数据表按分类分组并支持导出全量 CSV；③每条给 Nginx/Apache 的 `types` 配置片段一键复制；④补 `charset`/`nosniff` 配置示例。
 
-### IT-N110 Base32 编解码：解码不校验长度、填充数与残余位，损坏输入被静默还原为错误内容（中，确认源码缺陷）
-- 问题：`base32ToBytes()` 只校验字符是否在字母表内，去掉所有尾部 `=` 后不检查合法长度（mod 8 只能为 0/2/4/5/7）、不检查 `=` 的个数、也不检查最后一个字符的低位（残余位）是否全 0，剩余位直接丢弃。
-- 证据：`tools/it/base32-encode.html:271-284`（272 行剥填充、无长度/残余位校验）
-- 复现（Node 复算页内函数）：`MZXW6YQ` 与 `MZXW6YR` → 实际都解为 `foob`（`R` 的末 3 位为 001，应报非法/非规范）；`ABC`（长度 3 非法）→ 实际解出 1 字节 `0x00`；`A`（长度 1 非法）→ 实际空串且无报错；`ME=======`（7 个等号，合法应为 6 个）→ 实际解出 `a`。
-- 影响：截断/篡改/错误填充的 Base32 被当成合法数据，输出看似正常但语义错误（用于 OTP/DNS/配置时尤其危险）。
-- 方案：剥填充前先记录 `=` 数量并按长度校验（2→6 个、4→4 个、5→3 个、7→1 个、0→0 个）；解码后校验残余位必须为 0；非法长度/残余位抛"非规范 Base32"；补上述四组用例。
-
-### IT-N111 Base32 编解码：历史、趋势图、导出全为空壳（读取 textarea 的 textContent 恒为空）（中，确认源码缺陷）
-- 问题：`__base32_encodeResText()` 读 `#output` 的 `textContent`，而结果写入的是 `.value`，`textContent` 永远为空 → `__base32_encodeExtras()` 直接 return，`history.record` 从不执行；导出目标是这张永远空的历史表，`exportTable` 返回 false 且无提示。解码操作也未包装 `decode32`，同样不入历史。
-- 证据：`tools/it/base32-encode.html:173`（空的 `<textarea id="output">`）、`tools/it/base32-encode.html:342-345`、`tools/it/base32-encode.html:421-423`、`tools/it/base32-encode.html:428-433`（只包装 `encode32`）
-- 复现：编码 `Hello` → 输出 `JBSWY3DP`；切"历史"页签无记录；点"导出明细 CSV"无文件无提示（期望一行记录并可导出）。
-- 影响：三块留存/导出功能全部失效，且解码历史永远缺失。
-- 方案：改读 `.value`；同时包装 `decode32` 并把"方向（编码/解码）"作为记录字段；补编码/解码各一条历史用例。
-
-### IT-N112 Base32 编解码："预设"页签为空白（函数体是空的）（低，确认源码缺陷）
-- 问题：页签栏渲染了"预设"（`data-pane="pre"`），宿主 `#base32_encodePresets` 也存在，但 `__base32_encodePresets()` 只有 `typeof TBKit` 判断，没有任何预设数据。
-- 证据：`tools/it/base32-encode.html:141`（预设页签）、`tools/it/base32-encode.html:425-427`（空实现）、`tools/it/base32-encode.html:159`（宿主 div）
-- 复现：点"预设"页签 → 面板空白（期望至少"Hello/中文/二进制字节"等样例，或移除该页签）。
-- 影响：空页签像功能未完成。
-- 方案：补 2–3 条预设（如 `Hello`、`中文测试`、`noPad` 示例），或删掉该页签。
-
 - 留存建议（base32-encode）：①补 Base32hex / Crockford / z-base-32 的字母表对照与切换（页面已提"不可混用"）；②结果区显示字符数/填充数（当前无任何统计）；③提供编码→解码一键往返校验与非法样例提示。
 
 ### IT-N113 IPv6 ULA 生成器：预设"生成 50 个"被静默截断为 20，与自身公式"1 到 20"矛盾（中，确认源码缺陷）

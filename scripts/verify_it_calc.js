@@ -1036,6 +1036,24 @@ const CASES = [
     ref: "python base64.b32encode(b'hello') = NBSWY3DP（RFC 4648）",
   },
   {
+    slug: "it/base32-encode",
+    clicks: ["var r=[];['ME=======','ME======','MZXW6YQ','MZXR','A'].forEach(function(x){try{var b=base32ToBytes(x);r.push(x+':OK'+b.length);}catch(e){r.push(x+':ERR');}});document.getElementById('__tbProbe').textContent='B32PAD '+r.join('|');"],
+    expect: ["B32PAD ME=======:ERR|ME======:OK1|MZXW6YQ:OK4|MZXR:ERR|A:ERR"],
+    ref: "IT-N110：ME=======（7 个填充，合法应 6）必须拒绝；ME====== 解出 1 字节 a；省略填充的 MZXW6YQ 仍解出 3 字节 foo；MZXR 残余位非零、A 长度非法均拒绝。旧实现无填充数校验 ⇒ ME=======:OK1 不命中。探针仅 clicks 注入出现。",
+  },
+  {
+    slug: "it/base32-encode",
+    clicks: ["var wrapped=(typeof decode32==='function')&&decode32.toString().indexOf('__base32_encodeExtras')>=0;document.getElementById('input').value='JBSWY3DP';document.getElementById('output').value='SENTINEL';decode32();document.getElementById('__tbProbe').textContent='B32H '+(wrapped?'W':'N')+' out='+document.getElementById('output').value;"],
+    expect: ["B32H W out=Hello"],
+    ref: "IT-N111：decode32 必须像 encode32 一样被历史记录包装（函数体含 __base32_encodeExtras），旧源码只包装 encode32 ⇒ N。哨兵 SENTINEL 被真解码结果 Hello 覆盖，证明执行的仍是真 decode32。历史记录与方向字段由 JSDOM 真机脚本完整验证（harness stub DOM 的 querySelectorAll 无法喂给快照）。探针仅 clicks 注入出现。",
+  },
+  {
+    slug: "it/base32-encode",
+    clicks: ["var cb=null,cap=null;globalThis.TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return [];},last:function(){return null;},record:function(){},mount:function(){},clear:function(){}},preset:{bar:function(sel,items,c){cap={sel:sel,n:items.length,labels:items.map(function(x){return x.label;})};cb=c;}}};__base32_encodePresets();document.getElementById('input').value='中文测试';document.getElementById('output').value='SENTINEL';if(cb)cb();document.getElementById('__tbProbe').textContent='B32PRE '+(cap?cap.sel+' n='+cap.n+' '+cap.labels.join('/'):'NONE')+' cb='+document.getElementById('output').value;"],
+    expect: ["B32PRE #base32_encodePresets n=3 Hello World（编码）/中文测试（编码）/JBSWY3DP（解码） cb=4S4K3ZUWQ7TLLC7IV6KQ===="],
+    ref: "IT-N112：预设页签必须有 3 条可用预设且回调真能跑（中文测试经 UTF-8 Base32 = 4S4K3ZUWQ7TLLC7IV6KQ====，node 独立复算）。旧实现 preset.bar 从不调用 ⇒ NONE、哨兵不被覆盖。探针仅 clicks 注入出现。",
+  },
+  {
     slug: "it/base58-encode",
     inputs: { input: "hello" },
     expect: ["Cn8eVZg"],
