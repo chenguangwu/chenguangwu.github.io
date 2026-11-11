@@ -7989,6 +7989,14 @@ const CASES = [
     "ref": "openssl 交叉验证：3DES-CBC/PKCS7，key=0123…cdef（24 字节）、iv=0123456789abcdef、明文 hello world ⇒ 80a2142026acbc3842a787847d41b09e。checkIds 还原 HTML 默认勾选的 PKCS7（桩内 checkbox 恒 false，11 字节明文非 8 倍数会被拦下）。原锚「3des」是算法下拉框回显、默认态即有（静态文案），已删。"
   },
   {
+    "slug": "it/des",
+    // IT-N296：合法输入算出密文后，改用非法密钥必须清掉旧结果，不能让用户误读为当前输出。
+    "inputs": { "key": "0123456789abcdef", "iv": "", "input": "Now is t", "algo": "des", "mode": "ECB", "outputFormat": "hex", "output": "" },
+    "clicks": ["encrypt();var before=document.getElementById('output').value;document.getElementById('key').value='not-hex-key';encrypt();var after=document.getElementById('output').value;document.getElementById('__tbProbe').textContent='STALE '+(before==='3fa40e8a984d4815'&&after===''?'OK':'BAD:'+before+'/'+after);"],
+    "expect": ["STALE OK"],
+    "ref": "IT-N296 状态链合法→非法：FIPS 向量 key=0123456789abcdef / 明文 Now is t / DES-ECB 无填充 ⇒ 3fa40e8a984d4815；随后把 key 改成非 hex，process() 必须先清空 output 再报错。旧实现保留上一次密文 ⇒ STALE BAD。默认参数为 3DES-CBC/48hex 密钥，不命中。"
+  },
+  {
     "slug": "it/docker-cheatsheet",
     "inputs": {
       "searchInput": "abc123测试"
