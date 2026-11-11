@@ -4371,10 +4371,10 @@ const CASES = [
   },
   {
     slug: "it/pomodoro",
-    inputs: { focusMin: "25" },
+    inputs: { focusMin: "37" },
     clicks: ["toggleTimer()"],
-    expect: ["24:59"],
-    ref: "计时器按 `分:秒` 刷新，注入专注时长 25 分钟后起表 ⇒ 首个读数 24:59（tick 已跑过一次）。默认专注时长不是 25 ⇒ 默认态读数不含该串。",
+    expect: ["37:00"],
+    ref: "IT-N481 时间戳口径：起表瞬间剩余 37:00（tick 按真实经过秒数递减，不再无条件 timeLeft--）。注入非默认 37 分钟后起表读数 37:00；默认态为 25:00，不含该串 ⇒ 零逃生。",
   },
   {
     slug: "it/markdown-editor",
@@ -10051,6 +10051,20 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"focusMin\":\"42\",\"shortMin\":\"42\",\"longMin\":\"42\"}，输出区含「始第一个番茄吧！\n42:00\n42\n42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   
+  {
+    "slug": "it/pomodoro",
+    // IT-N480：跳过（含从未开始）不得计入完成次数与专注分钟。
+    "clicks": ["confirm=function(){return true;};var a=todayStats.totalCount,b=todayStats.focusTime,c=todayStats.history.length;resetTimer();skipTimer();document.getElementById('__tbProbe').textContent='SKIP '+(todayStats.totalCount===a&&todayStats.focusTime===b&&todayStats.history.length===c?'ZERO':'COUNT');"],
+    "expect": ["SKIP ZERO"],
+    "ref": "IT-N480：旧实现 skipTimer() 无条件调 completeSession()，即使从未开始也按配置时长 +1 次、+25 分钟并写历史。修复后跳过走 skip=true 分支：不计数、不加时、不写历史。探针读顶层 todayStats 前后快照，默认态不执行探针 ⇒ 零逃生。"
+  },
+  {
+    "slug": "it/pomodoro",
+    // IT-N481：剩余时间按真实时间戳差值计算，而非每次 tick 减 1 秒。
+    "clicks": ["var D=Date.now,T=1700000000000;Date.now=function(){return T;};resetTimer();document.getElementById('focusMin').value='25';updateDurations();toggleTimer();T+=600000;tick();var s=document.getElementById('timeDisplay').textContent;Date.now=D;pauseTimer();document.getElementById('__tbProbe').textContent='TSTAMP '+(s==='15:00'?'OK':'BAD:'+s);"],
+    "expect": ["TSTAMP OK"],
+    "ref": "IT-N481：用固定假时间戳（不依赖当前真实时间）模拟后台节流——起表后把时钟推进 10 分钟再 tick，25 分钟专注应剩 15:00。旧实现 tick 只 timeLeft-- ⇒ 24:59，不命中。探针结束恢复 Date.now 并暂停计时；默认态不执行探针 ⇒ 零逃生。"
+  },
   {
     "slug": "it/postgresql-cheatsheet",
     "inputs": {

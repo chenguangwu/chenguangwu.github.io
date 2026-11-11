@@ -351,6 +351,10 @@ let timeLeft = durations.focus * 60;
 let totalTime = durations.focus * 60;
 let running = false;
 let timerId = null;
+// IT-N480/N481：以真实时间戳为准，累计有效运行毫秒；避开 setInterval 被后台节流导致的偏慢。
+let startedAt = 0;
+let remainingAtStart = 0;
+let elapsedMs = 0;
 let completedPomodoros = 0;
 let todayStats = {date:'', focusCount:0, focusTime:0, totalCount:0, history:[]};
 
@@ -448,6 +452,8 @@ function switchMode(mode){
 }
 
 function setPreset(f, s, l){
+  // IT-N480：运行中禁止改时长，避免按新配置记录旧计时段。
+  if(running) return;
   document.getElementById('focusMin').value = f;
   document.getElementById('shortMin').value = s;
   document.getElementById('longMin').value = l;
@@ -455,6 +461,7 @@ function setPreset(f, s, l){
 }
 
 function updateDurations(){
+  if(running) return;
   durations.focus = Math.max(1, parseInt(document.getElementById('focusMin').value) || 25);
   durations.short = Math.max(1, parseInt(document.getElementById('shortMin').value) || 5);
   durations.long = Math.max(1, parseInt(document.getElementById('longMin').value) || 15);
@@ -475,9 +482,20 @@ function toggleTimer(){
   else startTimer();
 }
 
+function setDurationInputsDisabled(disabled){
+  ['focusMin','shortMin','longMin'].forEach(function(id){
+    var e = document.getElementById(id);
+    if(e) e.disabled = disabled;
+  });
+}
+
 function startTimer(){
+  if(running) return;
   running = true;
+  startedAt = Date.now();
+  remainingAtStart = timeLeft;
   document.getElementById('startBtn').textContent = '⏸ 暂停';
+  setDurationInputsDisabled(true);
   timerId = setInterval(tick, 1000);
   if(document.getElementById('soundEnable').checked){
     // 唤醒 AudioContext
@@ -486,50 +504,67 @@ function startTimer(){
 }
 
 function pauseTimer(){
+  if(!running) return;
+  const deltaMs = Date.now() - startedAt;
+  elapsedMs += deltaMs;
+  timeLeft = Math.max(0, remainingAtStart - Math.floor(deltaMs/1000));
   running = false;
   document.getElementById('startBtn').textContent = '▶ 继续';
+  setDurationInputsDisabled(false);
   clearInterval(timerId);
+  updateDisplay();
 }
 
 function tick(){
-  timeLeft--;
+  if(!running) return;
+  // IT-N481：剩余时间 = 本段起始剩余 − 真实经过秒数；后台节流后回到前台立即追平。
+  const elapsedSec = Math.floor((Date.now() - startedAt)/1000);
+  timeLeft = Math.max(0, remainingAtStart - elapsedSec);
   if(timeLeft <= 0){
-    completeSession();
+    completeSession(false);
     return;
   }
   updateDisplay();
 }
 
-function completeSession(){
+function completeSession(skip){
+  if(running){
+    elapsedMs += Date.now() - startedAt;
+    running = false;
+  }
   clearInterval(timerId);
-  running = false;
-  
-  const duration = durations[currentMode];
-  todayStats.totalCount++;
-  todayStats.history.push({
-    mode: currentMode,
-    duration: duration,
-    time: new Date().toLocaleTimeString('zh-CN', {hour:'2-digit', minute:'2-digit'})
-  });
+  setDurationInputsDisabled(false);
+  // IT-N480：落账用实际运行分钟，跳过（含从未开始）记 0 且不计数、不写历史。
+  const actualMinutes = Math.round(elapsedMs/60000);
+  if(!skip){
+    todayStats.totalCount++;
+    todayStats.history.push({
+      mode: currentMode,
+      duration: actualMinutes,
+      time: new Date().toLocaleTimeString('zh-CN', {hour:'2-digit', minute:'2-digit'})
+    });
+  }
   
   if(currentMode === 'focus'){
-    todayStats.focusCount++;
-    todayStats.focusTime += duration;
-    completedPomodoros++;
-    playSound();
+    if(!skip){
+      todayStats.focusCount++;
+      todayStats.focusTime += actualMinutes;
+      completedPomodoros++;
+      playSound();
+    }
     // 每完成 4 个番茄，长休
     const nextMode = (completedPomodoros % 4 === 0) ? 'long' : 'short';
     setTimeout(() => {
-      alert(`🎉 专注完成！${nextMode === 'long' ? '该长休 15 分钟了' : '该短休 5 分钟了'}`);
+      if(!skip) alert(`🎉 专注完成！${nextMode === 'long' ? '该长休 15 分钟了' : '该短休 5 分钟了'}`);
       switchMode(nextMode);
-      if(document.getElementById('autoStart').checked) startTimer();
+      if(!skip && document.getElementById('autoStart').checked) startTimer();
     }, 500);
   } else {
-    playSound();
+    if(!skip) playSound();
     setTimeout(() => {
-      alert('☕ 休息结束！开始下一个专注吧');
+      if(!skip) alert('☕ 休息结束！开始下一个专注吧');
       switchMode('focus');
-      if(document.getElementById('autoStart').checked) startTimer();
+      if(!skip && document.getElementById('autoStart').checked) startTimer();
     }, 500);
   }
   
@@ -540,6 +575,8 @@ function completeSession(){
 
 function resetTimer(){
   if(running) pauseTimer();
+  elapsedMs = 0;
+  setDurationInputsDisabled(false);
   timeLeft = durations[currentMode] * 60;
   totalTime = durations[currentMode] * 60;
   updateDisplay();
@@ -547,8 +584,13 @@ function resetTimer(){
 }
 
 function skipTimer(){
-  if(confirm('确定跳过当前计时吗？')) completeSession();
+  if(confirm('确定跳过当前计时吗？')) completeSession(true);
 }
+
+// IT-N481：切回前台立即按时间戳校准，消除后台标签页定时器节流造成的累积偏差。
+document.addEventListener('visibilitychange', function(){
+  if(!document.hidden && running) tick();
+});
 
 function updateDisplay(){
   const m = Math.floor(timeLeft / 60);
