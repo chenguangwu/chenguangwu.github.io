@@ -668,14 +668,21 @@ function copyShareLink() {
     f: document.getElementById('flags').value,
     t: document.getElementById('testText').value
   };
-  const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+  // IT-N253：标准 base64 的 + 会被 URLSearchParams 当成空格解开，改 base64url（+→- /→/ 去尾部 =）
+  const standard = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+  const encoded = standard.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   const url = location.href.split('#')[0] + '#regex=' + encoded;
   ToolBox.copyText(url, '已复制分享链接');
 }
 
 function restoreSharedRegex() {
-  const encoded = new URLSearchParams(location.hash.slice(1)).get('regex');
+  let encoded = new URLSearchParams(location.hash.slice(1)).get('regex');
   if (!encoded) return;
+  // IT-N253：URLSearchParams 把 base64 里的 + 解成空格。先按 base64url 逆变换；若来自旧版标准
+  // base64 链接（+ 已被解成空格、- / 不存在），把空格还原成 + 以兼容旧链接。
+  encoded = encoded.replace(/-/g, '+').replace(/_/g, '/');
+  if (encoded.indexOf(' ') >= 0) encoded = encoded.replace(/ /g, '+');
+  while (encoded.length % 4) encoded += '=';
   try {
     const payload = JSON.parse(decodeURIComponent(escape(atob(encoded))));
     if (typeof payload.p === 'string') document.getElementById('pattern').value = payload.p;
@@ -683,6 +690,7 @@ function restoreSharedRegex() {
     if (typeof payload.t === 'string') document.getElementById('testText').value = payload.t;
   } catch (error) {
     // 无效片段仅忽略，避免阻碍本地编辑。
+    if (typeof console !== 'undefined' && console.warn) console.warn('[regex] 忽略无效分享片段', error);
   }
 }
 

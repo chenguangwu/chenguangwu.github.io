@@ -1383,13 +1383,7 @@
 - 方案：匹配移到 Web Worker + 200ms 超时（超时 `terminate` 并提示"疑似灾难性回溯"）；`exec` 前先做"嵌套量词/超长输入"预检；输入事件统一去抖 300ms 并合并到一次调用。
 **留存建议（tools/it/regex.html）**：本页最高优先，属"自述风险却不设防"。
 
-### IT-N253 分享链接的 base64 含 `+`，`URLSearchParams` 把 `+` 解成空格 → 链接静默失效（中，确认缺陷）
-- 问题：`btoa` 产出标准 base64（字母表含 `+` `/` `=`），分享 URL 拼成 `#regex=` + 原样 base64；`restoreSharedRegex()` 用 `new URLSearchParams(hash)` 取值，而 URLSearchParams 按 application/x-www-form-urlencoded 把 `+` 当作空格 → base64 被破坏，`atob` 抛 `URI malformed` 后被空 `catch` 吞掉。
-- 证据：`tools/it/regex.html:654-656`（拼 `#regex=`）、`:660`（`URLSearchParams`）、`:663`（`atob`）、`:667-669`（空 catch，"无效片段仅忽略"）。
-- 复现：node 复算同 payload `{p:"\\d+",f:"g",t:"联系我 张三 13800138000"}` → base64 中段含 `+`；`new URLSearchParams("regex="+b64).get("regex")` ≠ 原串，`Buffer.from(...,'base64')` 再 `decodeURIComponent` → `URI malformed`。页面表现：打开他人分享的链接后三个输入框仍是默认值，且无任何提示。
-- 影响：`tools/it/regex.html`（"复制分享链接"整个功能对含中文/换行的用例失效）
-- 方案：改用 base64url（`btoa(...).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')`），读取时逆变换；或 `encodeURIComponent(btoa(...))` 再拼并 `decodeURIComponent` 取回；catch 里至少 `console.warn`。
-**留存建议（tools/it/regex.html）**：一个编码函数就能修，注意别只改一半（写入/读取必须对称）。
+- `regex`：IT-N253 分享链接 base64url 对称修复（写入 +→- /→/ 去尾=，读取逆变换并兼容旧标准 base64 的空格化 +、补 padding，catch 加 console.warn），中文/换行 payload 往返正确，第200批销账；verify 无用例（页面依赖原生 location.hash + btoa/atob，harness stub DOM 不适用），由 JSDOM 真机 12/12 vs 旧5/12 覆盖。**IT-N252（ReDoS 超时保护）仍在清单未处理**。
 
 ### IT-N254 替换页无视用户 flags，恒补 `g`：与"匹配"页口径不一致、替换数恒为全量（中，确认缺陷）
 - 问题：`doReplace()` 与 `copyMatches()` 都用 `flags.includes('g') ? flags : flags+'g'`，强制全局；而 `testRegex()` 严格按用户 flags（不勾 g 只取首个）。同一份 flags 下两页结论不同，"替换数"也永远等于全部匹配数。
