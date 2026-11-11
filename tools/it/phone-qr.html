@@ -153,6 +153,7 @@ canvas{background:#fff;border:6px solid #fff;border-radius:8px;box-shadow:var(--
     <div class="toolbar">
       <div id="phone_qrPresets"></div><button type="button" class="btn primary" onclick="generate()">生成</button><button class="btn" type="button" onclick="__phone_qrExport()">导出明细 CSV</button>
       <button type="button" class="btn success" onclick="copyResult()">复制</button>
+      <button type="button" class="btn" onclick="downloadPNG()" data-zh="下载 PNG">Download PNG</button>
     </div>
     <div class="result-box" id="output"></div> <div id="phone_qrTable"></div> <div id="phone_qrDiff"></div> <div id="phone_qrChart"></div> <div id="phone_qrHist"></div>
   </div>
@@ -234,6 +235,7 @@ canvas{background:#fff;border:6px solid #fff;border-radius:8px;box-shadow:var(--
 </div>
 <script src="../../js/qrcode.js"></script>
 <script>
+var __phone_qrCanvas=null;
 // 使用 qrcode-generator 库生成真正可扫描的二维码（此前为随机图案，扫码无效）
 function drawQR(text){
   if(typeof qrcode!=='function')return null;
@@ -248,14 +250,31 @@ function drawQR(text){
 function generate(){
   let phone=document.getElementById('phone').value.trim();
   if(!phone){alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter phone number":"请输入电话号码"));return;}
-  if(!/^tel:/i.test(phone))phone='tel:'+phone.replace(/\s+/g,'');
+  // 先剥离全部空白字符（含已带 tel: 前缀的输入），再按需补 tel:；RFC 3966 不允许裸空格分隔符。
+  phone=phone.replace(/\s+/g,'');
+  if(!/^tel:/i.test(phone))phone='tel:'+phone;
   const canvas=drawQR(phone);
   const out=document.getElementById('output');
+  __phone_qrCanvas=canvas;
   if(!canvas){out.innerHTML='<p style="color:var(--danger)">⚠ 二维码库加载失败，请刷新页面重试。</p><div class="qr-text">'+escapeHtml(phone)+'</div>';return;}
   const __h0='<div class="qr-wrap"></div><div class="qr-text">'+escapeHtml(phone)+'</div>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0;
   out.querySelector('.qr-wrap').appendChild(canvas);
 }
 function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function downloadPNG(){
+  if(!__phone_qrCanvas){
+    alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Generate a QR code first":"请先生成二维码"));
+    return;
+  }
+  try{
+    const url=__phone_qrCanvas.toDataURL('image/png');
+    const a=document.createElement('a');
+    a.href=url; a.download='phone-qr.png';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  }catch(e){
+    alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"PNG export failed":"PNG 导出失败"));
+  }
+}
 function copyResult(){
   const text = document.getElementById('output').textContent || document.getElementById('output').innerText;
   if (navigator.clipboard && navigator.clipboard.writeText) {

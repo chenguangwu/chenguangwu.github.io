@@ -311,12 +311,24 @@ function parseProto(){
       expect('{');
       const fields = [];
       while(peek() && peek().v !== '}'){
-        const type = next().v;
+        let type = next().v;
+        let mapKey = null, mapValue = null;
+        if(type === 'map' && peek() && peek().v === '<'){
+          next();
+          mapKey = next().v;
+          while(peek() && peek().v === '.'){ next(); mapKey += '.' + next().v; }
+          expect(',');
+          mapValue = next().v;
+          while(peek() && peek().v === '.'){ next(); mapValue += '.' + next().v; }
+          expect('>');
+          type = 'map<' + mapKey + ', ' + mapValue + '>';
+        }
+        while(peek() && peek().v === '.'){ next(); type += '.' + next().v; }
         const fname = next().v;
         let num = null;
         if(peek() && peek().v === '='){ next(); num = parseInt(next().v); }
         expect(';');
-        fields.push({type, name:fname, number:num});
+        fields.push({type, name:fname, number:num, mapKey, mapValue});
       }
       expect('}');
       return {kind:'oneof', name, fields};
@@ -386,7 +398,13 @@ function parseProto(){
       else if(t === 'message') result.messages.push(parseMessage(0));
       else if(t === 'enum') result.enums.push(parseEnum());
       else if(t === 'service') result.services.push(parseService());
-      else { next(); }
+      else if(t === ';'){ next(); } // 允许顶层空语句
+      else if(t === 'extend'){ // extend 块：跳过到配对 }
+        next(); next(); expect('{'); let depth=1;
+        while(peek() && depth>0){ const v=next().v; if(v==='{')depth++; else if(v==='}')depth--; }
+        if(depth!==0) throw new Error('extend 块缺少 }');
+      }
+      else throw new Error('无法识别的顶层内容「'+t+'」');
     }
     setOut(JSON.stringify(result, null, 2));
     setErr('✅ 解析成功');

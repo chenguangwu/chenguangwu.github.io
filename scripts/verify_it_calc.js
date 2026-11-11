@@ -2338,6 +2338,33 @@ const CASES = [
     ref: "message 名与字段（type/name/number/标记位）由语法树解析得出；默认示例 message 名不同，不命中。",
   },
   {
+    slug: "it/protobuf-parser",
+    inputs: { input: "syntax = \"proto3\"; message Outer { oneof pick { map<string, string> opts = 1; } }" },
+    clicks: ["parseProto()"],
+    expect: ['"map<string, string>"', '"opts"'],
+    ref: "IT-N276：oneof 内的 map<> 字段须被解析（type 为 map<string, string>、字段名 opts）。修复前 parseOneof 把 map 当普通类型、把 < 当字段名，抛「期望 ;」⇒ 两锚不命中；默认示例的 oneof 无 map ⇒ 不命中。",
+  },
+  {
+    slug: "it/protobuf-parser",
+    inputs: { input: "not proto at all" },
+    clicks: ["doValidate()"],
+    expect: ["校验失败", "无法识别的顶层内容"],
+    ref: "IT-N277：任意非 .proto 文本校验须报失败。修复前主循环 `else { next(); }` 把未知顶层 token 静默跳过 ⇒ 空结果报「✅ 校验通过」；现未知顶层 name 抛「无法识别的顶层内容」。默认示例为合法 proto ⇒ 不命中。",
+  },
+  {
+    slug: "it/phone-qr",
+    inputs: { phone: "tel:+86 138 0013 8000" },
+    clicks: ["generate();document.getElementById('__tbProbe').textContent='TELNW '+String(document.getElementById('output').innerHTML);"],
+    expect: ["tel:+8613800138000"],
+    ref: "IT-N274：已带 tel: 前缀的输入也须剥离全部空白（RFC 3966 不允许裸空格）。修复前只在非 tel: 分支 replace ⇒ 载荷保留空格；现先 replace 再补前缀。harness 无 qrcode 库，generate 走库加载失败分支但仍把处理后的 phone 写进 qr-text，可据此判别。",
+  },
+  {
+    slug: "it/phone-qr",
+    clicks: ["var ok=typeof downloadPNG==='function'&&/toDataURL\\(['\"]image\\/png/.test(String(downloadPNG))&&!!document.getElementById('__tbProbe');document.getElementById('__tbProbe').textContent='PNGD '+(ok?'OK':'BAD');"],
+    expect: ["PNGD OK"],
+    ref: "IT-N275：须有 downloadPNG() 且内部以 image/png 调用 canvas.toDataURL。修复前只有 copyResult（复制文本），无任何 PNG 导出 ⇒ PNGD BAD；默认态同样成立（检测函数存在性，与输入无关）。",
+  },
+  {
     slug: "it/math-evaluator",
     inputs: { expr: "2*(3+4)" },
     clicks: ["calc()"],
