@@ -367,10 +367,14 @@ function process(text, isEncrypt) {
   if (isEncrypt) {
     inputBytes = new TextEncoder().encode(text);
   } else {
+    // IT-N463：按所选输出格式显式决定输入编码，不再用「是否全为 hex 字符」猜测——
+    // Base64 密文恰好全为 0-9a-f 且偶数长度（如 "27Ea"）会被旧启发式误判成 Hex 解出乱码。
     const trimmed = text.trim();
     try {
-      if (/^[0-9a-fA-F\s]+$/.test(trimmed) && trimmed.replace(/\s/g, '').length % 2 === 0) {
-        inputBytes = hexToBytes(trimmed);
+      if (format === 'hex') {
+        const clean = trimmed.replace(/\s/g, '');
+        if (!/^[0-9a-fA-F]*$/.test(clean) || clean.length % 2 !== 0) throw new Error('bad hex');
+        inputBytes = hexToBytes(clean);
       } else {
         inputBytes = base64ToBytes(trimmed);
       }
