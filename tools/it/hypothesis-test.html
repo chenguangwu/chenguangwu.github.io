@@ -147,7 +147,7 @@
   <ul class="formula-list">
     <li><b>流程</b>：提出原假设 H0 与备择假设 H1 → 选检验统计量 → 计算 p 值 → 与显著性水平 α 比较。</li>
     <li><b>z 检验</b>：σ 已知或大样本时用 <code>z = (x̄ − μ₀)/(σ/√n)</code>。</li>
-    <li><b>t 检验</b>：σ 未知且小样本时用 <code>t = (x̄ − μ₀)/(s/√n)</code>，自由度为 n−1。</li>
+    <li><b>适用范围</b>：本页仅做 σ 已知的单样本 Z 检验；σ 未知且小样本应使用 t 检验（本页不支持），因此不提供 t 统计量与自由度。</li>
     <li><b>判定</b>：p &lt; α 则拒绝 H0；需留意第一类错误 α（弃真）与第二类错误 β（取伪）。</li>
   </ul>
 </div>
@@ -263,15 +263,28 @@
 function fmt(x){
   if(!isFinite(x)) return '未定义';
   if(x===0) return '0';
-  if(Math.abs(x)>1e15||Math.abs(x)<1e-6) return x.toExponential(8);
+  // 小数只保留 6 位有效数字：CDF 近似的精度不足以支撑更多位；
+  // 旧规则用 toLocaleString 把 <0.001 的 p 显示成 0，或用 toExponential(8) 虚报 9 位精度。
+  if(Math.abs(x)<1e-3||Math.abs(x)>1e15) return x.toExponential(5);
   return (Math.round(x*1e10)/1e10).toLocaleString();
 }
 function normalCDF(z){
-  if(z<-8) return 0; if(z>8) return 1;
-  const t=1/(1+0.2316419*Math.abs(z));
-  const d=0.3989423*Math.exp(-z*z/2);
-  let p=d*t*(0.3193815+t*(-0.3565638+t*(1.781478+t*(-1.821256+t*1.330274))));
-  return z>0?1-p:p;
+  const x=Math.abs(z);
+  if(x===0) return 0.5;
+  if(x>40) return z>0?1:0;
+  if(x<=3){
+    // A&S 26.2.17：|z|<=3 时绝对误差 <1e-7，足够显示 6 位有效数字。
+    const t=1/(1+0.2316419*x);
+    const d=0.3989423*Math.exp(-x*x/2);
+    const p=d*t*(0.3193815+t*(-0.3565638+t*(1.781478+t*(-1.821256+t*1.330274))));
+    return z>0?1-p:p;
+  }
+  // 远尾改用 Mills 连分式求上尾：Φ(−x)=φ(x)/(x+1/(x+2/(x+3/…)))，
+  // 60 项在 x>=3 时相对误差 <1e-12（Python math.erfc 对照）。
+  let f=1e-300;
+  for(let i=60;i>=1;i--) f=1/(x+i*f);
+  const tail=Math.exp(-x*x/2)/Math.sqrt(2*Math.PI)*f;
+  return z>0?1-tail:tail;
 }
 function normalInv(p){
   if(p<=0) return -Infinity; if(p>=1) return Infinity;
@@ -519,7 +532,7 @@ else document.addEventListener('DOMContentLoaded', __hypothesis_testBoot);
   </div>
   <div class="tool-intro-body">
     <h4><span class="h4-icon">📝</span>工具简介</h4>
-    <p data-zh="假设检验计算器。专为开发者打造的在线工具，纯前端运行，代码不离开浏览器。">Run a basic hypothesis test (z or t) in your browser — p-values and confidence at a glance.</p>
+    <p data-zh="假设检验计算器。专为开发者打造的在线工具，纯前端运行，代码不离开浏览器。">Run a one-sample Z test (population sigma known) in your browser — p-values and power at a glance.</p>
     
       </div>
 </div>
@@ -567,20 +580,6 @@ else document.addEventListener('DOMContentLoaded', __hypothesis_testBoot);
     return '<div style="background:var(--border);border-radius:6px;height:14px;overflow:hidden;margin:6px 0 2px;">'
          + '<div style="width:' + w.toFixed(1) + '%;height:100%;background:' + color + ';"></div></div>';
   }
-  // 双尾 alpha=0.05 的 t 临界值（df 1..30 精确，之后按常用分档）
-  function __stTcrit(df){
-    var T = [12.706,4.303,3.182,2.776,2.571,2.447,2.365,2.306,2.262,2.228,
-             2.201,2.179,2.160,2.145,2.131,2.120,2.110,2.101,2.093,2.086,
-             2.080,2.074,2.069,2.064,2.060,2.056,2.052,2.048,2.045,2.042];
-    if (!(df >= 1)) return NaN;
-    if (df <= 30) return T[df - 1];
-    if (df <= 40) return 2.021;
-    if (df <= 60) return 2.000;
-    if (df <= 120) return 1.980;
-    return 1.960;
-  }
-
-
   // 二分法求正态分位数（z 使 Phi(z) = p），避免依赖页面内部函数
   function __stZ(p){
     if (!(p > 0 && p < 1)) return NaN;
@@ -588,11 +587,18 @@ else document.addEventListener('DOMContentLoaded', __hypothesis_testBoot);
     for (i = 0; i < 120; i++){ mid = (lo + hi) / 2; if (__stNcdf(mid) < p) lo = mid; else hi = mid; }
     return (lo + hi) / 2;
   }
+  // #tail 的实际取值为 two|left|right；旧版只认 one/1/单，导致左尾右尾恒按双尾计算。
   function __stTail(){
     var e = document.getElementById('tail');
-    if (!e) return 'two';
-    var v = String(e.value || '').toLowerCase();
-    return (v.indexOf('one') >= 0 || v === '1' || v.indexOf('单') >= 0) ? 'one' : 'two';
+    var v = e ? String(e.value || '').toLowerCase() : '';
+    return (v === 'left' || v === 'right' || v.indexOf('one') >= 0 || v === '1' || v.indexOf('单') >= 0) ? 'one' : 'two';
+  }
+  function __stDirection(){
+    var e = document.getElementById('tail');
+    var v = e ? String(e.value || '').toLowerCase() : '';
+    if (v === 'left') return -1;
+    if (v === 'right' || v.indexOf('one') >= 0 || v === '1' || v.indexOf('单') >= 0) return 1;
+    return 0; // 双侧
   }
   function __stHT(){
     var mean = __stNum('mean'), mu0 = __stNum('mu0'), sigma = __stNum('sigma'),
@@ -601,16 +607,17 @@ else document.addEventListener('DOMContentLoaded', __hypothesis_testBoot);
     if (!(sigma > 0) || !(n > 0) || !(alpha > 0) || !(alpha < 1)) return null;
     var se = sigma / Math.sqrt(n);
     var z = (mean - mu0) / se;
-    var tail = __stTail();
+    var tail = __stTail(), dir = __stDirection();
     var zc = tail === 'one' ? __stZ(1 - alpha) : __stZ(1 - alpha / 2);
     if (!isFinite(zc)) return null;
-    var delta = Math.abs(mean - mu0) / se;                 // 以观测差作为效应量
-    // 双尾：power = Phi(delta - zc) + Phi(-delta - zc)；单尾只取同向那一侧
-    var power = tail === 'one' ? __stNcdf(delta - zc) : (__stNcdf(delta - zc) + __stNcdf(-delta - zc));
+    var delta = Math.abs(mean - mu0) / se;                 // 效应量（绝对值，供展示）
+    // 单尾要带方向：右尾 power=Φ(z−zc)，左尾 power=Φ(−z−zc)。
+    // 旧版恒把 left/right 当双尾，还会把与备择方向相反的观测误判为高效能。
+    var power = tail === 'one' ? __stNcdf(dir * z - zc) : (__stNcdf(delta - zc) + __stNcdf(-delta - zc));
     // 可检出的最小效应（power = 80%）：(z_crit + z_0.80) * sigma / sqrt(n)
     var mde = (zc + 0.8416) * se;
     return { z: z, zc: zc, alpha: alpha, delta: delta, power: power, mde: mde,
-             tail: tail, se: se, diff: mean - mu0, n: n, sigma: sigma };
+             tail: tail, dir: dir, se: se, diff: mean - mu0, n: n, sigma: sigma };
   }
 
   function __stUpdate(){ {
@@ -628,7 +635,7 @@ else document.addEventListener('DOMContentLoaded', __hypothesis_testBoot);
       if (tb) tb.innerHTML = '';
       return;
     }
-    var rej = Math.abs(m.z) > m.zc;      // 是否落在拒绝域
+    var rej = m.tail === 'one' ? (m.dir * m.z > m.zc) : Math.abs(m.z) > m.zc; // 单尾拒绝域带方向
     var beta = 1 - m.power;
     var lvl, color;
     if (rej && m.power >= 0.80){ lvl = en ? 'Rejected, well powered' : '拒绝且效能充足'; color = '#dc2626'; }
@@ -637,9 +644,9 @@ else document.addEventListener('DOMContentLoaded', __hypothesis_testBoot);
     else { lvl = en ? 'Not rejected, power is low' : '未拒绝且效能不足'; color = '#16a34a'; }
     if (badge){ badge.style.display = 'inline-block'; badge.style.background = color; badge.textContent = lvl; }
     if (val) val.textContent = (en ? 'z = ' : 'z = ') + m.z.toFixed(4)
-      + (en ? '  critical ' : '  临界值 ') + (m.tail === 'one' ? '' : '±') + m.zc.toFixed(3)
+      + (en ? '  critical ' : '  临界值 ') + (m.tail === 'one' ? (m.dir < 0 ? '−' : '+') : '±') + m.zc.toFixed(3)
       + (en ? '  (' : '（')
-      + (m.tail === 'one' ? (en ? 'one-tailed' : '单尾') : (en ? 'two-tailed' : '双尾'))
+      + (m.tail === 'one' ? (m.dir < 0 ? (en ? 'left-tailed' : '左尾') : (en ? 'right-tailed' : '右尾')) : (en ? 'two-tailed' : '双尾'))
       + (en ? ')' : '）');
 
     var rows = '';
@@ -698,8 +705,8 @@ else document.addEventListener('DOMContentLoaded', __hypothesis_testBoot);
     document.getElementById('__charHtTitle').textContent = en ? '⚖️ The errors behind this test' : '⚖️ 这个检验背后的两类错误';
     document.getElementById('__charHtDesc').textContent = en ? 'A hypothesis test can fail in two directions. This lays out the false-positive and false-negative rates, the power of your design, and the smallest effect it can actually detect.' : '假设检验会在两个方向上出错。这里给出假阳性与假阴性率、当前设计的检验效能，以及它实际能检出的最小效应。';
     document.getElementById('__charHtNote').textContent = en
-      ? 'Power uses the normal approximation: for a two-tailed test power = Phi(delta - z_crit) + Phi(-delta - z_crit), for one-tailed power = Phi(delta - z_crit), with delta = |mean - mu0| / (sigma/sqrt(n)). The minimum detectable effect is (z_crit + z_0.80) * sigma / sqrt(n) at 80% power. Power computed from the observed effect is post hoc and only illustrative - plan a study from the effect you care about, not from the result you happened to get. Indicative reading aid.'
-      : '效能采用正态近似：双尾 power = Φ(δ − z_crit) + Φ(−δ − z_crit)，单尾 power = Φ(δ − z_crit)，其中 δ = |x̄ − μ0|/(σ/√n)。可检出最小效应 MDE = (z_crit + z_0.80)·σ/√n（效能 80%）。依据观测效应反算的效能属事后效能，仅作示意 —— 研究设计应基于你关切的效应量，而不是碰巧得到的结果。以上为判读提示。';
+      ? 'Power uses the normal approximation: for a two-tailed test power = Phi(delta - z_crit) + Phi(-delta - z_crit), for one-tailed power = Phi(signed delta - z_crit), with signed delta = (mean - mu0) / (sigma/sqrt(n)) (negative for a left-tailed test). The minimum detectable effect is (z_crit + z_0.80) * sigma / sqrt(n) at 80% power. Power computed from the observed effect is post hoc and only illustrative - plan a study from the effect you care about, not from the result you happened to get. Indicative reading aid.'
+      : '效能采用正态近似：双尾 power = Φ(δ − z_crit) + Φ(−δ − z_crit)，单尾 power = Φ(δ方向 − z_crit)，其中 δ方向 = (x̄ − μ0)/(σ/√n)（左尾取负）。可检出最小效应 MDE = (z_crit + z_0.80)·σ/√n（效能 80%）。依据观测效应反算的效能属事后效能，仅作示意 —— 研究设计应基于你关切的效应量，而不是碰巧得到的结果。以上为判读提示。';
     __stUpdate();
     var IDS = ['mean', 'mu0', 'sigma', 'n', 'alpha', 'tail'];
     IDS.forEach(function(id){

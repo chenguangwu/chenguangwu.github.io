@@ -13004,6 +13004,28 @@ const CASES = [
     expect: ["TEL230 OK"],
     ref: "IT-N231 强锁：注入含 # 的非法号码必须报 5–15 位数字错误；修复前原样拼进 sms: URI，# 把 ?body 变成 fragment ⇒ BAD。默认号码合法，不命中。",
   },
+  // ── 第231批 IT-N228/N229/N235 ──
+  {
+    slug: "it/mysql-cheatsheet",
+    inputs: { searchInput: "GRANT" },
+    clicks: ["renderCommands();var o=String(document.getElementById('cmdList').innerHTML);document.getElementById('__tbProbe').textContent=(/CREATE USER/.test(o)&&!/FLUSH PRIVILEGES/.test(o)&&!/IDENTIFIED BY 'pwd'/.test(o)?'MYSQL228 OK':'BAD');"],
+    expect: ["MYSQL228 OK"],
+    ref: "IT-N228 强锁：搜索 GRANT 后示例必须是 CREATE USER + GRANT 两行，无 FLUSH PRIVILEGES 与旧 IDENTIFIED BY 'pwd'；修复前示例照抄 5.6 写法 ⇒ BAD。默认搜索为空时锚点不同。",
+  },
+  {
+    slug: "it/mysql-cheatsheet",
+    inputs: { searchInput: "ON DUPLICATE KEY UPDATE" },
+    clicks: ["renderCommands();var o=String(document.getElementById('cmdList').innerHTML);document.getElementById('__tbProbe').textContent=(/AS new/.test(o)&&/new\\.name/.test(o)&&!/VALUES\\(name\\)/.test(o)?'MYSQL229 OK':'BAD');"],
+    expect: ["MYSQL229 OK"],
+    ref: "IT-N229 强锁：UPSERT 示例必须改成行别名 new.name；修复前用 MySQL 8.0.20 起废弃的 VALUES(name) ⇒ BAD。默认搜索为空时不命中这些锚点。",
+  },
+  {
+    slug: "it/hypothesis-test",
+    inputs: { mean: "108", mu0: "100", sigma: "10", n: "25", alpha: "0.05", tail: "two" },
+    clicks: ["calculate();var o=String(document.getElementById('output').innerHTML);document.getElementById('__tbProbe').textContent=(/6\\.33425e-5/.test(o)?'HYP235 OK':'BAD');"],
+    expect: ["HYP235 OK"],
+    ref: "IT-N235 强锁：z=4 双侧 p 必须显示 6.33425e-5（math.erfc 高精度值 6.334248e-5 的 6 位有效数字）；修复前 A&S 多项式给 6.337206e-5 且 toLocaleString 把 6e-5 显示成 0 ⇒ BAD。默认 z=2 不命中。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub

@@ -62,7 +62,7 @@
 - 同批阅读 Linux、MongoDB 速查的搜索、分类与复制路径；无浏览器验证，不对完整正确性判通过。IT-N498–N500 的示例仍须按具体内容另行运行复核。
 - IT-N423、N308、N309 的数据范围问题仍在。
 - IT-N49 已于第215批真修并销账：`chmod-calculator` 支持 setuid(4)/setgid(2)/sticky(1) 特殊位与四位数模式（如 4755/2755/1777），符号位按 s/S 与 t/T 分别渲染，快捷预设及复制命令同步；JSDOM 修好版 18/18、旧源码 3/18。
-- IT-N170–N173 第217批销账（`calc-3`）、IT-N174–N177 第218批（`matrix-transpose`）、IT-N178–N180 第219批（`http-cookies` 与 4 个 HTTP 页过期示例）、IT-N181–N184 第220批（`text-to-ascii`）、IT-N185–N190 第221批（`shell-script-formatter`）、IT-N191–N195 第222批（`unit-converter-advanced`）、IT-N196–N198 第223批（`html-entities-encode`）、IT-N199–N201 第224批（`json-to-toml`）、IT-N202–N206 第225批（`plist-parser` 与 `char-encoder`）、IT-N207–N211 第226批（`char-encoder` 实体补全与 `basic-auth-generator` 冒号/charset）、IT-N212–N216 第227批（`nanoid-generator` 与 `markdown-table-generator`）、IT-N217–N221 第228批（`markdown-table-generator` CSV 解析与 `wifi-qr-generator` 改名），详见下方覆盖行；IT-N222–N226 第229批（`phone-screen-sizes` 页签默认态/DPR 列/描述去重、`rabbit` RFC 4503 全量对齐与 32 hex 密钥语义）；IT-N227 与 IT-N230–N232 第230批（`rabbit` 严格 IV/解密格式、`sms-qr` 真实 QR 补证据与号码校验/NaN 守卫移除），详见移交档。
+- IT-N170–N173 第217批销账（`calc-3`）、IT-N174–N177 第218批（`matrix-transpose`）、IT-N178–N180 第219批（`http-cookies` 与 4 个 HTTP 页过期示例）、IT-N181–N184 第220批（`text-to-ascii`）、IT-N185–N190 第221批（`shell-script-formatter`）、IT-N191–N195 第222批（`unit-converter-advanced`）、IT-N196–N198 第223批（`html-entities-encode`）、IT-N199–N201 第224批（`json-to-toml`）、IT-N202–N206 第225批（`plist-parser` 与 `char-encoder`）、IT-N207–N211 第226批（`char-encoder` 实体补全与 `basic-auth-generator` 冒号/charset）、IT-N212–N216 第227批（`nanoid-generator` 与 `markdown-table-generator`）、IT-N217–N221 第228批（`markdown-table-generator` CSV 解析与 `wifi-qr-generator` 改名），详见下方覆盖行；IT-N222–N226 第229批（`phone-screen-sizes` 页签默认态/DPR 列/描述去重、`rabbit` RFC 4503 全量对齐与 32 hex 密钥语义）；IT-N227 与 IT-N230–N232 第230批（`rabbit` 严格 IV/解密格式、`sms-qr` 真实 QR 补证据与号码校验/NaN 守卫移除）；IT-N228/N229 与 IT-N233–N235 第231批（MySQL 8.0 语法纠偏、hypothesis-test 单尾效能与远尾 p 精度），详见移交档。
 - 同批另阅读 `ascii-table`、`box-shadow-generator`、`calc-1`、`calc-10` 的主要交互路径；未对其完整正确性或浏览器行为作通过判定。
 
 ## 已知问题
@@ -789,46 +789,6 @@
 - 未覆盖说明：只审计主流程、边界与文档口径，未逐条核对 FAQ/JSON-LD 文案（仅发现 `phone-screen-sizes` 描述整句重复并单列）；未穷举 plist 全部数据类型、未测试二进制 bplist00（页面已明确不支持）；WiFi QR 未实际扫码验证；屏幕参数表仅复算 PPI 与分辨率/尺寸自洽性，未核对 10 款机型官方规格的发布时间与市场版本。
 - 未做验证：未开浏览器（结论均为源码静态分析 + `node -e` 内存复算）、未验证英文态 `?lang=en-US`/繁体/移动端、未跑 `_test_static.py`/`_audit_links.py`/`_audit_assets.py`/`run_gates.py` 等门禁，未触发 `_build.py` 或任何 git 写操作。
 
-### IT-N228 GRANT 示例使用 MySQL 8.0 已移除的 `IDENTIFIED BY` 子句（中，确认缺陷）
-- 问题：权限条目照抄 5.6 时代写法 `GRANT ... TO user IDENTIFIED BY 'pwd'`。`IDENTIFIED BY` 在 5.7.6 起废弃、8.0 已移除，8.0/8.4 执行直接 1064 语法错误；且 GRANT 后的 `FLUSH PRIVILEGES` 并非必需（只有直接改 grant 表才需要）。
-- 证据：`tools/it/mysql-cheatsheet.html:643`（syntax）、`:645`（example）、`:653`（REVOKE 写法正常，可作对照）。
-- 复现：静态对照 MySQL 8.0 手册 GRANT 语法（已无 `IDENTIFIED BY`）；正确顺序为 `CREATE USER 'app'@'%' IDENTIFIED BY 'secret'; GRANT SELECT, INSERT ON mydb.* TO 'app'@'%';`。本机无 MySQL，未实跑，仅按官方语法判定。
-- 影响：`tools/it/mysql-cheatsheet.html`
-- 方案：syntax 改为 `GRANT priv ON db.* TO user@host`，example 换成 `CREATE USER` + `GRANT` 两行，并删掉不必要的 `FLUSH PRIVILEGES`（或注明"仅直接改 grant 表后需要"）。
-**留存建议（tools/it/mysql-cheatsheet.html）**：速查表被照抄的概率极高，这条必须改。
-
-### IT-N229 `INT[(M)] [ZEROFILL]` 与 `VALUES(col)` 两处 8.0 废弃语法未标注（低，确认缺陷）
-- 问题：类型表仍给 `INT[(M)] [UNSIGNED] [ZEROFILL]`，而整数显示宽度自 8.0.17 废弃（8.0.19 起直接被忽略）；UPSERT 示例用 `VALUES(name)`，自 8.0.20 起废弃并告警，现行写法是行别名。
-- 证据：`tools/it/mysql-cheatsheet.html:363`、`:669`。
-- 复现：静态对照 8.0 手册；废弃写法仍可执行但会告警，未来版本删除。别名写法：`INSERT INTO users (id,name) VALUES (1,'A') AS new ON DUPLICATE KEY UPDATE name = new.name;`。
-- 影响：`tools/it/mysql-cheatsheet.html`
-- 方案：syntax 去掉 `[(M)]`/`[ZEROFILL]` 或加"（8.0.17 起废弃）"；UPSERT 示例换成 `AS new ... new.name`。
-**留存建议（tools/it/mysql-cheatsheet.html）**：顺手改，避免教出告警代码。
-
-### IT-N233 "两类错误/效能"模块忽略单尾选择，与上方主结果自相矛盾（中，确认缺陷）
-- 问题：`__stTail()` 只认 `one`/`1`/`单`，而 `#tail` 的取值是 `two|left|right`，于是恒返回 `'two'`。结果：主计算区按单尾算 p 与临界值，下方"两类错误"模块却按双尾算临界值/效能/MDE，并显示"±1.960（双尾）"。
-- 证据：`tools/it/hypothesis-test.html:173-177`（option 值）、`:585-589`（`__stTail`）、`:599`（`zc`）、`:603`（power 公式）、`:634-636`（渲染"±…（双尾）"）、`:307-322`（主计算区正确使用 `tail`）。
-- 复现：mean=95、mu0=100、sigma=15、n=36、α=0.05、选"左尾" → 主结果 p=Φ(−2)=0.0228、临界 −1.645（拒绝 H₀）；下方模块显示"z=-2.0000 临界值 ±1.960（双尾）"，效能 51.60%、β=48.40%。node 实算单尾正解：效能 Φ(2−1.6449)=63.88%、β=36.12%；MDE 由 7.004 降为 6.216（页面偏大 12.7%）。
-- 影响：`tools/it/hypothesis-test.html`
-- 方案：`__stTail` 改判 `two|left|right`（left/right → 单尾并带方向符号），或直接复用主模块已算好的 `tail`/`zc` 传入 `__stHT()`。
-**留存建议（tools/it/hypothesis-test.html）**：这是本页最会误导决策的缺陷（效能/MDE 偏大一成），优先修。
-
-### IT-N234 简介称 "z or t"、公式列 t 检验与自由度，实际只有 Z 检验（中，确认缺陷）
-- 问题：英文简介写 "Run a basic hypothesis test (z or t)"，公式清单给出 `t=(x̄−μ₀)/(s/√n)`、自由度为 n−1，但输入只有 σ（必填且 >0），无 s、无 df；`__stTcrit(df)` 与 df 表定义后从未被调用，属死代码。
-- 证据：`tools/it/hypothesis-test.html:516`（"z or t"）、`:161`（t 公式与 df）、`:562-575`（`__stTcrit` 与 T 表）、全文仅此一处出现 `__stTcrit`。
-- 复现：留空 sigma → `__stHT()` 因 `!isFinite(sigma)` 返回 null，模块只提示"请填写…sigma"，全程无 s/df 入口；页面任何输出都不含 t 分布或自由度。
-- 影响：`tools/it/hypothesis-test.html`
-- 方案：二选一——删掉 "z or t"、t 公式与 df 死代码，标题明确"σ 已知的单样本 Z 检验"；或加 s 输入并按 t 分布算 p（需引入不完整 Beta 函数，注意与现有近似精度口径一致）。
-**留存建议（tools/it/hypothesis-test.html）**：建议走"删宣称"路线，成本最低且与实现一致。
-
-### IT-N235 p 值打印 9 位有效数字，但 CDF 近似在远尾只有 2–3 位可信（低，确认缺陷）
-- 问题：`fmt` 对小数用 `toExponential(8)`，而 `normalCDF` 是 A&S 26.2.17 多项式（绝对误差约 7.5e-8），尾部相对误差随 |z| 放大；显示精度远超算法精度。
-- 证据：`tools/it/hypothesis-test.html:277`（`toExponential(8)`）、`:280-286`（`normalCDF` 多项式）。
-- 复现：node 与高精度 erf 对照 p=2·min(Φ,1−Φ)：z=4 → 页面 6.337206e-5 vs 真值 6.334248e-5（+0.05%）；z=5 → 5.7421e-7 vs 5.7334e-7（+0.15%）；z=6 → 1.980244e-9 vs 1.973200e-9（+0.36%，第 3 位有效数字已错）。中段 z≤3 误差 ≤6e-5，可放心。
-- 影响：`tools/it/hypothesis-test.html`
-- 方案：|z|≤4 时保留 6 位有效数字；|z|>4 改用 `erfc` 连分式，或直接输出"p < 1e-6"这类区间表述。
-**留存建议（tools/it/hypothesis-test.html）**：低优先，但"9 位小数"会让人误以为精确。
-
 ### IT-N236 "错误格式"示例既不是合法 JSON，也未引 RFC 9457（低，确认缺陷）
 - 问题：syntax 写成 `{"error":{"code","message","details"}}`——缺冒号与值，`JSON.parse` 直接抛错；页面把自定义 error 包装当作唯一定式，未提 2022 年后的标准 `application/problem+json`。
 - 证据：`tools/it/rest-api-cheatsheet.html:558`（syntax）、`:560`（example）、`:244-256`（引据表只引 RFC 9110）。
@@ -876,8 +836,6 @@
 
 ### 承诺 vs 实际（R 批专项）
 - `tools/it/rabbit.html:201`："导出明细 CSV"导的是 `#rabbitTable`，而 `:441-443` 读 `#output`（**textarea**）的 `textContent`，textarea 的 textContent 是初始内容（恒空）→ 历史/图表/CSV 恒空（IT-N140 同型，不重复编号）。
-- `tools/it/mysql-cheatsheet.html:643`、`:645`：权限示例为 8.0 已移除语法（N228）；全页无 `CREATE USER`，而 8.0 建账号必须先 CREATE USER。
-- `tools/it/hypothesis-test.html:516` "z or t"、`:161` t 公式与 df → 实际只有 Z 检验（N234）；`:585-589` 单尾选择失效（N233）。
 - `tools/it/rest-api-cheatsheet.html:558` 错误格式 syntax 非法 JSON（N236）；`:221` "POST 建"指向 `/users/{id}`（N237）。
 - `tools/it/md5.html:201`：称"支持任意大小文件"，但 `:338`/`:375` 的 `tail[14]=n*8` 只写低 32 位、未给高位字 `tail[15]` 赋值 → ≥512 MiB 文件摘要错误；且 `:417-426` 用 `readAsArrayBuffer` 全量读入内存，"任意大小"不成立。
 - `tools/it/md5.html:47`、`:606`：宣称"支持批量生成""MD5 碰撞检测参考"，实际无批量与碰撞功能（N240）。
