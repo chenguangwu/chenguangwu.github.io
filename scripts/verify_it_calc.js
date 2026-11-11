@@ -3989,6 +3989,20 @@ const CASES = [
     ref: "独立复算：A=1、B=2，默认分隔符为 `-` ⇒ `1-2`。产物是纯数字、不含输入字母 ⇒ 天然非回显。默认样例是单词（多位字母），默认态不含本串。",
   },
   {
+    slug: "it/a1z26-cipher",
+    inputs: { input: "42!" },
+    clicks: ["enc();document.getElementById('__tbProbe').textContent='N282 '+document.getElementById('output').value;"],
+    expect: ["4-2-!"],
+    ref: "IT-N282：非字母（数字/标点）须原样保留、不静默丢弃，也不产生空词分隔符。修复前 enc 对非字母 return '' 后 filter ⇒ 输出空串；现字符级保留并用 sep 连接（42! → 4-2-!）。默认样例为字母词，不命中。",
+  },
+  {
+    slug: "it/a1z26-cipher",
+    inputs: { input: "1-99-2" },
+    clicks: ["dec();document.getElementById('__tbProbe').textContent='N283 '+document.getElementById('output').value;"],
+    expect: ["A?B", "99"],
+    ref: "IT-N283：越界数字 99 不得静默跳过，须就地标记并提示非法项。修复前 dec 只输出合法的 ⇒ `AB`；现输出 `A?B  [非法项: 99]`。默认样例非该数字串，不命中。",
+  },
+  {
     slug: "it/affine-cipher",
     inputs: { input: "ABCD", a: "3", b: "5" },
     clicks: ["enc()"],

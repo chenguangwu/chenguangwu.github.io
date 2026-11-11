@@ -245,10 +245,15 @@ function enc(){
   const wordSep = document.getElementById('wordSep').value;
   const words = text.split(/\s+/).filter(w => w.length > 0);
   const encodedWords = words.map(word => {
-    return word.split('').map(ch => {
-      if(ch >= 'A' && ch <= 'Z') return ch.charCodeAt(0) - 64;
-      return '';
-    }).filter(s => s !== '').join(sep);
+    // NFD 分解：重音字母取基字母编码（é→E=5），组合符随分解丢弃；纯非字母（数字/标点）原样保留。
+    const decomposed = word.normalize('NFD');
+    const parts = [];
+    for(const ch of decomposed){
+      if(ch >= 'A' && ch <= 'Z'){ parts.push(String(ch.charCodeAt(0) - 64)); }
+      else if(ch >= '\u0300' && ch <= '\u036F'){ continue; } // 组合符不单独输出
+      else { parts.push(ch); } // 数字、标点等非字母原样保留
+    }
+    return parts.join(sep);
   });
   document.getElementById('output').value = encodedWords.join(wordSep);
 }
@@ -259,17 +264,23 @@ function dec(){
   const wordSep = document.getElementById('wordSep').value;
   const words = text.split(new RegExp(wordSep.replace(/\s+/g, '\\s+').replace(/\|/g,'\\|').replace(/\//g,'\\/')));
   let out = '';
+  let invalid = [];
   for(const word of words){
     const nums = word.split(/[\s,\-.]+/).filter(s => s.length > 0);
     for(const n of nums){
-      const v = parseInt(n, 10);
-      if(v >= 1 && v <= 26){
-        out += String.fromCharCode(v + 64);
+      // 仅接受纯数字且落在 1–26；非法项就地标记，不静默跳过（与解码说明一致）。
+      if(/^\d+$/.test(n)){
+        const v = parseInt(n, 10);
+        if(v >= 1 && v <= 26){ out += String.fromCharCode(v + 64); continue; }
       }
+      out += '?';
+      invalid.push(n);
     }
     out += ' ';
   }
-  document.getElementById('output').value = out.trim();
+  const result = out.trim();
+  const tag = (typeof TBKit!=='undefined'&&TBKit.util.isEn()) ? '  [invalid: ' : '  [非法项: ';
+  document.getElementById('output').value = invalid.length ? (result + tag + invalid.join(', ') + ']') : result;
 }
 
 function copyResult(ev){

@@ -872,30 +872,6 @@
 - 方案：历史摘要改存结构化数字（如 `{stacks: sel.length, rules: lines.length}`），或至少把 `resText` 改为读取规则条数；图表用该数值字段。
 **留存建议（tools/it/gitignore-generator.html）**：历史字段别存整段文本，存 `stacks/rules` 两个计数即可。
 
-### IT-N282 编码丢弃所有非字母（含数字/标点/重音字母），与"非字母原样保留"相反（中，确认缺陷）
-- 问题：`enc` 的 map 对非 `A-Z` 一律 `return ''` 并 `filter` 掉，数字、标点、空格内标点、`é` 等全部消失；整词都是非字母时产生空词，`join(wordSep)` 后留下多余分隔符。
-- 证据：`tools/it/a1z26-cipher.html:147`（"非字母字符原样保留"）、`:259-262`（非字母返回空串并过滤）、`:264`（空词仍参与 join）。
-- 复现（node 同逻辑）：`hello 42!` → `8-5-12-12-15/`（尾随 `/`，`42!` 成空词）；`café` → `3-1-6`（`É` 被丢）；期望保留 `42!` 或至少提示"已忽略 4 个非字母字符"。
-- 影响：原文不可逆（数字/标点永久丢失），且输出出现 `//` 之类异常分隔，接收方无法判断是数据还是空词。
-- 方案：非字母原样写入并保留词边界；或过滤空词后统计"忽略数"并 toast/结果区提示；如需支持重音字母，先 `normalize('NFD')` 去组合符。
-**留存建议（tools/it/a1z26-cipher.html）**：与 N283 一起改口径，别再"文档说保留、代码全丢"。
-
-### IT-N283 解码对越界数字静默跳过，与"超出 1–26 视为非法输入"不符（中，确认缺陷）
-- 问题：`dec` 只在 `v>=1 && v<=26` 时输出字母，其余既不入结果也不报错；`parseInt` 还会把 `12a`、`1e2` 截成合法数字。
-- 证据：`tools/it/a1z26-cipher.html:149`（非法输入声明）、`:274-279`（越界静默跳过、`parseInt` 无整串校验）。
-- 复现（node 同逻辑）：`1-99-2` → 实际 `AB`；`12a-3` → 实际 `LC`；期望报"99 超出 1–26"或输出 `A?B` 标出非法项。
-- 影响：错误输入得到看似正常的结果，用户无法发现数据损坏；与页面自己的解码说明冲突。
-- 方案：先按 `/^\d+$/` 校验每个 token，越界或非纯数字时抛错并在结果中定位（如 `第 2 项 99 非法`）。
-**留存建议（tools/it/a1z26-cipher.html）**：解码入口加一次 token 校验，成本很低。
-
-### IT-N284 历史/数据表/图表读 textarea 的 textContent（恒空），三个 tab 永远无数据（中，确认缺陷）
-- 问题：输出是 `<textarea id="output">`，代码写 `.value`，但 `ResText` 读 `.textContent`——textarea 的 textContent 是初始子节点（空），因此摘要恒 `''`，`history.record` 直接 return；图表也没有数据。
-- 证据：`tools/it/a1z26-cipher.html:183`（`textarea#output`）、`:323-329`（读 `r.textContent`）、`:264`/`:283`（写的是 `.value`）。
-- 复现：编码 `hello` 后 → 历史 0 条、数据表 0 行、图表空白；期望至少记录输入与输出摘要。
-- 影响：历史/对比/趋势全部不可用（与本批 N246/N262/N272/N279 同类问题）。
-- 方案：`ResText` 改用 `r.value`；图表若要数值，另存字符数/词数。
-**留存建议（tools/it/a1z26-cipher.html）**：`textContent`→`value` 一行修复，顺带检查同模板其它页。
-
 ### IT-N285 首尾字母取原始 token（含标点），带标点的词输出乱码（中，确认缺陷）
 - 问题：`numeronym` 用 `w[0]` / `w[w.length-1]` 而不是去掉非字母后的 `alpha` 首尾；`internationalization,` 的尾字符是逗号，`(internationalization)` 的首尾是括号。
 - 证据：`tools/it/numeronym-generator.html:260-264`（`:262` 用 `alpha.length` 判长、`:263` 却取 `w[0]/w[len-1]`）。
