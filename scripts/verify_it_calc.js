@@ -7779,9 +7779,9 @@ const CASES = [
       "toBase": "42"
     },
     "expect": [
-      "abc123测试\n36\n36\n第 7 位 \"测\" 不是 36 进制的有效数字\n❌"
+      "第 7 位 \"测\" 不是 36 进制的有效数字\n—\n—\n—\n—\n—\n—\n❌"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"num\":\"abc123测试\",\"fromBase\":\"42\",\"toBase\":\"42\"}，输出区含「abc123测试\n36\n36\n第 7 位 \"测\" 不是 36 进制的有效数字\n❌」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "注入非默认输入{\"num\":\"abc123测试\",\"fromBase\":\"42\",\"toBase\":\"42\"}：基数 42 被钳到 36、toBigInt 在第 7 位『测』抛错；IT-N48-a 修复后 catch 清空全部六个结果卡片（六行『—』）且主输出 ❌。原断言锚定的『错误时保留上次 ff 的旧值』正是被修复的缺陷行为，故随修复更新为六卡片清空。默认态 16→10 合法、无此错误串与六行清空 ⇒ 不命中。"
   },
   {
     "slug": "it/ipv4-range-expander",
@@ -11986,6 +11986,13 @@ const CASES = [
     inputs: { num: "-255", fromBase: "10", toBase: "16" },
     expect: ["-ff"],
     ref: "负号支持：-255(10) = -ff(16)，与 number-base-converter 的口径对齐；旧实现按位扫描时 '-' 被判为非法数字位直接抛错，且 fromBigInt 对负数返回空串。默认 255 输出 ff，不命中。",
+  },
+  {
+    slug: "it/integer-base-converter",
+    // IT-N48-a 回归：非法输入须清空全部结果卡片，不得保留上一次的旧值供复制。
+    clicks: ["var n=document.getElementById('num'),f=document.getElementById('fromBase'),t=document.getElementById('toBase');f.value='16';t.value='10';n.value='ff';convert();var had=document.getElementById('r2').textContent!=='—';n.value='1g';convert();var ids=['r2','r8','r10','r16','r32','r36'],clr=ids.every(function(id){return document.getElementById(id).textContent==='—';});document.getElementById('__tbProbe').textContent='STALECLR '+(had&&clr&&document.getElementById('mainOut').textContent==='❌'?'OK':'BAD');"],
+    expect: ["STALECLR OK"],
+    ref: "状态链探针：先以合法 ff(16) 转换令六卡片有值（had），再以非法 1g(16) 转换，要求六卡片全部回到『—』且主输出 ❌。修复前 catch 只置主输出 ❌、六卡片仍保留 ff 的旧值 ⇒ clr=false ⇒ STALECLR BAD。默认态首屏即 ff/16→10 合法态、无第二次非法转换动作 ⇒ 不命中。",
   },
   {
     slug: "it/charset-detector",
