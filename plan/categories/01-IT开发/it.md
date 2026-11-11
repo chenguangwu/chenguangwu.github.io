@@ -62,7 +62,7 @@
 - 同批阅读 Linux、MongoDB 速查的搜索、分类与复制路径；无浏览器验证，不对完整正确性判通过。IT-N498–N500 的示例仍须按具体内容另行运行复核。
 - IT-N423、N308、N309 的数据范围问题仍在。
 - IT-N49 已于第215批真修并销账：`chmod-calculator` 支持 setuid(4)/setgid(2)/sticky(1) 特殊位与四位数模式（如 4755/2755/1777），符号位按 s/S 与 t/T 分别渲染，快捷预设及复制命令同步；JSDOM 修好版 18/18、旧源码 3/18。
-- IT-N170–N173 第217批销账（`calc-3`）、IT-N174–N177 第218批（`matrix-transpose`）、IT-N178–N180 第219批（`http-cookies` 与 4 个 HTTP 页过期示例）、IT-N181–N184 第220批（`text-to-ascii`）、IT-N185–N190 第221批（`shell-script-formatter`）、IT-N191–N195 第222批（`unit-converter-advanced`）、IT-N196–N198 第223批（`html-entities-encode`），详见下方覆盖行；IT-N199–N224（JSON→TOML 键名等第二批审计条目）等关键路径仍在。
+- IT-N170–N173 第217批销账（`calc-3`）、IT-N174–N177 第218批（`matrix-transpose`）、IT-N178–N180 第219批（`http-cookies` 与 4 个 HTTP 页过期示例）、IT-N181–N184 第220批（`text-to-ascii`）、IT-N185–N190 第221批（`shell-script-formatter`）、IT-N191–N195 第222批（`unit-converter-advanced`）、IT-N196–N198 第223批（`html-entities-encode`）、IT-N199–N201 第224批（`json-to-toml`），详见下方覆盖行；IT-N202–N206（plist 精度/类型与 ASCII 码工具）等关键路径仍在。
 - 同批另阅读 `ascii-table`、`box-shadow-generator`、`calc-1`、`calc-10` 的主要交互路径；未对其完整正确性或浏览器行为作通过判定。
 
 ## 已知问题
@@ -746,6 +746,7 @@
 - `shell-script-formatter`（Shell 脚本格式化）：IT-N185–N190 已于第221批收口。N185 进批真机探测发现 `minifyShell()` 已由其他 Agent 改为「逐行 trim + 删空行、保留换行、heredoc 正文原样」、不再插入 `; `，属清单漏销账（`&&` 续行 / else / case / heredoc 四组输出交 `bash -n` 均通过）；本批顺带加固 heredoc 探测——改在 `shellCode()` 剥离引号/注释后的代码上判定，字符串字面量 `"a <<EOF"` 不再误触发。N186–N189 真修 `formatShell()`：新增 `shellCode()` 统一剥离引号、转义与行内注释；case 分支模式收紧为「仅 case 块内 + 行首到 `)` 无空白/引号/括号且 `)` 是行尾」（`echo $(date)`、`arr=(1 2 3)` 不再漂移）；单独成行的 `then`/`do` 与 `else`/`elif` 只回落本行、不再额外开层；`}` 与 `fi/done/esac`、`;;` 一律本行减级；heredoc 起始行参与当前缩进、body 原样保留。N190 真修 `doValidate()`：按剥离后代码统计关键字与括号、跳过 heredoc 正文，统计写入状态栏（`white-space:pre-line` + 通过态 `err ok` 绿色）且绝不覆盖 `#output`。公式说明中英三源同步。JSDOM `scripts/_verify_it_batch221.mjs` 修好版 44/44（含 `bash -n` 实算与历史/表格/CSV 全链路、状态链），旧源码差分 23/44（21 项红，N185 压缩主断言在旧页仍全过 ⇒ 印证漏销账）；verify 新增 3 条强锁 1557/1557、判别逃生 1 + 跳过 1 为基线、audit 0 僵尸、deepdive sync 0 不一致。
 - `unit-converter-advanced`（高级单位转换器）：IT-N191–N195 已于第222批收口。进批探测：N193（`ucFmtNum` 已有科学计数分支）与 N195（`nm:1e-9` / `nmi:1852`）已由其他 Agent 修好，属漏销账；但 N193 只留 3 位有效数字（`1.16e-10`），本批提到 6 位（`1.164153e-10`），并把 ≥1e15 的大值也纳入科学计数（旧 `toFixed(6)` 会把 1 J→eV 输出成 19 位伪精度整数 `6241509074460763136`，违反「禁 ≥15 位有效数字」）；N195 本批补 `um:1e-6`。N191 真修：`normTempUnit()` 把 ℃ / °C / ℉ / °F / 小写统一归一到 C/F/K，预设「温度 ℃」从被拒变为 100℃ → 212.00°F / 373.15K，归一后的 from 参与目标卡去重。N192 真修：补 `pressure`（pa/kpa/mpa/bar/psi/atm/torr/mmhg）与 `energy`（j/kj/mj/cal/kcal/wh/kwh/btu/ev）两张因子表 + 两个下拉项，因子取国际约定 / 2019 SI 定义值（1 atm = 101325 Pa、1 psi = 6894.757293168 Pa、1 Torr = 101325/760 Pa、1 cal = 4.184 J、1 BTU_IT = 1055.05585262 J、1 eV = 1.602176634e-19 J），`js/tool-i18n-en.js` GEN_UI_MAP 补「压强」英译。N194 真修：`val` 空/非有限值不再 `isNaN?0` 静默换算，改为提示「请输入有效数值」；新增 `escTxt()` 让 `cat`/`from` 进结果区前转义（修掉裸 `<img onerror>` 注入），并用 `hasOwnProperty` 挡住 `__proto__` 原型链键；`</div` 未闭合已由其他 Agent 修好，补证据。三条动态结果串与 result-title 共用 `isEn` 双语，EN 态零 CJK；公式说明中英三源同步。JSDOM `scripts/_verify_it_batch222.mjs` 修好版 39/39（含 lbf/in²、cal、BTU 独立复算，输出→历史→表格→CSV 全链路，状态链，EN 态），旧源码差分 9/39（30 项红，N193/N195 核心断言旧页仍过 ⇒ 印证漏销账）；verify 新增 7 条强锁 1564/1564、判别逃生 1 + 跳过 1 为基线、audit 0 僵尸、deepdive sync 0 不一致。
 - `html-entities-encode`（HTML 实体编解码）：IT-N196–N198 已于第223批收口。进批探测：N196（`fromCp` 已校验 0–0x10FFFF 且排除代理区）与 N197（已改纯文本替换、不再用 `div.innerHTML`）均由其他 Agent 修好，属漏销账，本批补真机证据；N198 真修——旧实现用「文本里是否含带分号实体」做总开关，仅有 `&amp` / `&#65` 时一个都不解、混合写法结果依赖上下文，改为单次纯文本扫描 `/&(?:#(\d+)|#x([0-9a-fA-F]+)|([a-zA-Z]+))(;?)/g` 统一出口：带分号一律解，无分号数字实体按 HTML5 解、无分号命名实体只解 legacy 子集（amp/lt/gt/quot/nbsp/copy/reg），表外实体与 `AT&T` 原样保留；单次 replace 杜绝 `&amp;lt;` 二次解码。顺带修「真实入口漏包装」：`dec()` 原先未接历史/明细表/趋势/CSV（只包装了 `enc`），现同型包装。公式说明补解码规则并中英三源同步。JSDOM `scripts/_verify_it_batch223.mjs` 修好版 35/35、旧源码差分 23/35（12 项红，N196/N197 旧页全过 ⇒ 印证漏销账）；verify 新增 4 条强锁 1568/1568、判别逃生 1 + 跳过 1 为基线、audit 0 僵尸、deepdive 0 不一致。注：工具名/meta 的「完整编解码」与 `NAMED` 仅 39 条属 Q 批专项承诺条目，改动牵涉 SEO 标题/JSON-LD/面包屑，本批未动、仍留在「承诺 vs 实际」专项段。
+- `json-to-toml`（JSON 转 TOML）：IT-N199–N201 已于第224批收口。进批探测：N199 键名引用（`tomlKey()` 按 `[A-Za-z0-9_-]+` 判裸键，否则 `JSON.stringify`）与 N201 的 null / 对象标量混排数组报错均已由其他 Agent 修好，属漏销账，本批补真机证据。N200 真修：`toToml(v, prefix, depth, unit)` 接收缩进串并逐层 `unit.repeat(depth)`，2 空格 / 4 空格 / Tab 三档产出不同、Tab 为真 0x09，表数组 `[[...]]` 与压缩转换同样生效，缩进只改排版不改语义；顺带删掉重复注入的一组同名函数（`getIndent`/`setOut`/`setErr`/`clearAll`/`loadSample` 各留一份），修掉「成功提示也被标红」——`setErr` 成功/空态给 `err ok` 绿、失败态给 `err` 红。N201 真修：新增 `tomlDateLiteral()`，严格 ISO 8601 的 date / datetime / time 按 TOML 原生日期类型输出裸值（保留小数秒与偏移、空格分隔归一为 T、月日与时分秒先做范围校验），不合格与普通字符串仍双引号转义，兑现页面「支持 ISO 日期字符串」的宣称。公式说明中英三源同步（键名引用 / 缩进 / ISO 日期）。JSDOM `scripts/_verify_it_batch224.mjs` 修好版 36/36、旧源码差分 18/36（18 项红，N199 与 null/混排数组旧页全过 ⇒ 印证漏销账）；verify 新增 4 条强锁 1572/1572、判别逃生 1 + 跳过 1 为基线、audit 0 僵尸、deepdive 0 不一致。**踩坑**：该页 en JSON 有两个同前缀「递归转换」中文键（短 151 字 / 长 215 字），用短键做子串替换会把页面长公式污染成「新文案 + 旧后半段」；正确做法是从 `git show HEAD:` 恢复 map 顺序、只替换长键并把 formula-eq 整块设为纯新文案，短键原样保留。
 
 ### 承诺 vs 实际（Q 批专项）
 - `tools/it/ksuid-generator.html:479`：英文简介"20-byte random payload"，实现 16 字节（281-282）；同段"27-character"但 hex 选项输出 40 字符（170、267-269）。
@@ -763,30 +764,6 @@
 - 新增 32 条（高 2 / 中 18 / 低 12），编号 IT-N167~IT-N198。
 - 未覆盖说明：只审计主流程、边界与文档口径，未逐条核对 FAQ/JSON-LD 文案，未检查同模板其它 IT 页；`html-entities-encode` 的"完整实体覆盖"仅按 `NAMED` 表条目数与解码行为核对，未穷举 2000+ HTML5 命名实体。
 - 未做验证：未开浏览器（结论均为源码静态分析 + `node -e` 内存复算，Shell 压缩另用 `bash -n` 校验）、未验证英文态 `?lang=en-US`/繁体/移动端、未跑 `_test_static.py`/`_audit_links.py`/`_audit_assets.py`/`run_gates.py` 等门禁，未触发 `_build.py` 或任何 git 写操作。
-
-### IT-N199 JSON→TOML 键名不加引号，含点/空格/空键时输出非法或语义改变（高，确认缺陷）
-- 问题：所有键都按裸键直接拼接。TOML 裸键只允许 `A-Za-z0-9_-`；含 `.` 会被解析成嵌套表，含空格/引号/空串直接语法错误。
-- 证据：`tools/it/json-to-toml.html:286`（`s += k + ' = '`）、`:288-292`（表头 `prefix + '.' + k`）、`:178`（无"键名加引号"选项）。
-- 复现：输入 `{"a.b":1}` → 实际 `a.b = 1`（TOML 读成表 `a.b`），期望 `"a.b" = 1`；`{"a b":1}` → `a b = 1`（解析报错）；`{"":1}` → ` = 1`。node 复算上述三种输入均未做键引用。
-- 影响：`tools/it/json-to-toml.html`
-- 方案：按 bare-key 正则判断，不匹配则 `JSON.stringify(k)`；表头 `[[full]]` 同样逐段引用，空键改为报错。
-**留存建议（tools/it/json-to-toml.html）**：保留工具（JSON→TOML 是刚需），修键名引用并补 `{a.b / a b / ""}` 回归用例。
-
-### IT-N200 "缩进"下拉与 Tab 预设完全无效（中，确认缺陷）
-- 问题：块内 `getIndent` 声明两次（后者读下拉）但全文件从未调用；`toToml` 不接收缩进参数，输出固定无缩进，预设"Tab 缩进"也只写 `indent` 字段。
-- 证据：`tools/it/json-to-toml.html:177-181`（下拉）、`:317`、`:322`（两个 `getIndent`）、`:276-295`（`toToml(v, prefix)` 无缩进参与）、`:439`（预设仅改 `indent`）。
-- 复现：分别选"2 空格 / 4 空格 / Tab"生成同一 JSON，输出逐字节相同（`node` 按源码函数复算，深度参数未被使用）。
-- 影响：`tools/it/json-to-toml.html`
-- 方案：把 indent 串传入 `toToml` 递归用于 `[table]`/`[[table]]` 前导空格，或删掉该控件与预设避免假开关。
-**留存建议（tools/it/json-to-toml.html）**：该控件属于承诺能力，建议实现而非隐藏。
-
-### IT-N201 null、ISO 日期与混合数组的转换与声明不符（中，确认缺陷）
-- 问题：`null` 被写成 `""`（静默改类型）；ISO 日期字符串始终走 `JSON.stringify`，输出带引号字符串，与标题"支持 ISO 日期字符串"不符；对象+标量混合数组落入 `JSON.stringify`，产出 `[{"x":1},2]` 这类非 TOML 内联表。
-- 证据：`tools/it/json-to-toml.html:268`（null→`""`）、`:271`（字符串恒加引号）、`:283`（仅"全为对象"才按表数组）、`:273`（对象直出 JSON）。
-- 复现：node 复算 `{"n":null}`→`n = ""`；`{"d":"2020-01-01T00:00:00Z"}`→`d = "2020-01-01T00:00:00Z"`；`{"a":[{"x":1},2]}`→`a = [{"x":1}, 2]`（TOML 解析器报错）。
-- 影响：`tools/it/json-to-toml.html`
-- 方案：null 跳过或转注释；日期用正则输出裸 TOML 日期/时间；混合数组转 `{x = 1}` 内联表或直接报错提示。
-**留存建议（tools/it/json-to-toml.html）**：至少修三类硬错误（null、混合数组、日期），并在页脚标注"非 100% TOML 规范"。
 
 ### IT-N202 plist `real` 整数值降级为 integer，date/data 往返变 string（中，确认缺陷）
 - 问题：`parseFloat` 后靠 `Number.isInteger` 决定回写标签，`<real>1.0</real>` 往返成 `<integer>1</integer>`；`<date>`/`<data>` 解析时只取文本，回写统一 `<string>`，与 meta 宣称支持这四种类型不符。

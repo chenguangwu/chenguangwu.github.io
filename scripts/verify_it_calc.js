@@ -4203,6 +4203,34 @@ const CASES = [
   },
   {
     slug: "it/json-to-toml",
+    inputs: { input: '{"a":1,"b":{"c":2}}', indent: "4" },
+    clicks: ["doToml();var t=String(document.getElementById('output').textContent);document.getElementById('output').textContent='UC224I='+(/\\n {4}c = 2/.test(t)&&/^a = 1/.test(t)?'OK':'BAD');"],
+    expect: ["UC224I=OK"],
+    ref: "第224批 IT-N200：独立复算 4 空格档——顶层 `a = 1` 不缩进、`[b]` 在 depth 0 不缩进、子层 `c = 2` 前导恰好 4 空格。修复前 `toToml` 不接收缩进参数，三档输出逐字节相同（`c = 2` 无缩进）⇒ BAD。默认态 SAMPLE 用 2 空格档 ⇒ BAD。",
+  },
+  {
+    slug: "it/json-to-toml",
+    inputs: { input: '{"a":1,"b":{"c":2}}', indent: "tab" },
+    clicks: ["doToml();var t=String(document.getElementById('output').textContent);document.getElementById('output').textContent='UC224T='+(/\\n\\tc = 2/.test(t)?'OK':'BAD');"],
+    expect: ["UC224T=OK"],
+    ref: "第224批 IT-N200：Tab 预设必须输出真制表符 0x09 而不是两个字面字符 `\\t` 或两空格。修复前下拉完全无效 ⇒ BAD；默认态（2 空格档）BAD。blob 会折叠空白，故用页内探针判形态。",
+  },
+  {
+    slug: "it/json-to-toml",
+    inputs: { input: '{"d":"2020-01-01T00:00:00Z"}' },
+    clicks: ["doToml();document.getElementById('output').textContent='UC224D='+String(document.getElementById('output').textContent);"],
+    expect: ["UC224D=d = 2020-01-01T00:00:00Z"],
+    ref: "第224批 IT-N201：严格 ISO 8601 日期时间按 TOML 原生 datetime 输出为裸值（不加引号），兑现页面「支持 ISO 日期字符串」的宣称。修复前字符串一律 JSON.stringify ⇒ `d = \"2020-01-01T00:00:00Z\"`。默认 SAMPLE 无该字段 ⇒ 不命中。",
+  },
+  {
+    slug: "it/json-to-toml",
+    inputs: { input: '{"a.b":1,"a b":2}' },
+    clicks: ["doToml();var q=String.fromCharCode(34),t=String(document.getElementById('output').textContent);document.getElementById('output').textContent='UC224K='+(t.indexOf(q+'a.b'+q+' = 1')>=0&&t.indexOf(q+'a b'+q+' = 2')>=0?'OK':'BAD');"],
+    expect: ["UC224K=OK"],
+    ref: "第224批 IT-N199 补证据：含点 / 含空格的键必须用 quoted key，否则 TOML 会把 `a.b = 1` 读成嵌套表、`a b = 1` 直接语法错。该能力已由其他 Agent 修好（`tomlKey`），本例锁住不回退。默认 SAMPLE 无这两键 ⇒ BAD。",
+  },
+  {
+    slug: "it/json-to-toml",
     // IT-N23 回归：TOML 无 null 类型，必须显式报错而不是静默改写成空字符串。
     inputs: { input: '{"a":null}' },
     clicks: ["doToml()"],

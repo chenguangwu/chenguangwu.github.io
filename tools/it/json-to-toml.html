@@ -150,7 +150,7 @@
 <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="⚙️ JSON 转 TOML">⚙️ JSON to TOML</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">递归转换：把当前层级的键分为标量与表两类——值为非数组的对象时归为表，值为「元素全部是对象的非空数组」时也归为表（表数组），其余归为标量。先逐行输出标量（键 = 值），再处理表：表数组为每个元素输出一对方括号包裹的表头并递归其内容，普通表输出单个方括号包裹的表头并递归；有前缀时完整键名以前缀加点号连接。TOML 没有 null 类型，遇到 null 或「对象与标量混排的数组」时直接报错，不静默改写；字符串统一用双引号包裹并转义</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">递归转换：把当前层级的键分为标量与表两类——值为非数组的对象时归为表，值为「元素全部是对象的非空数组」时也归为表（表数组），其余归为标量。先逐行输出标量（键 = 值），再处理表：表数组为每个元素输出一对方括号包裹的表头并递归其内容，普通表输出单个方括号包裹的表头并递归；有前缀时完整键名以前缀加点号连接。键名只在匹配 [A-Za-z0-9_-]+ 时按裸键输出，否则用 JSON.stringify 加双引号，含点、空格或空键都不会被误解析成嵌套表；表头的每一段同样逐段引用。缩进下拉决定每层表头与标量行的前导空白（2 空格 / 4 空格 / Tab），只影响排版不改变 TOML 语义。TOML 没有 null 类型，遇到 null 或「对象与标量混排的数组」时直接报错，不静默改写；字符串统一用双引号包裹并转义，唯独严格匹配 ISO 8601 的日期、日期时间或时间字符串按 TOML 原生日期类型输出为裸值（月日与时分秒先做范围校验，不合格仍按普通字符串处理）</div>
   <div class="formula-desc">本开发工具在前端本地完成解析、转换与处理，代码不离开浏览器，遵循对应语法与格式规范。 工具名称：JSON 转 TOML - 免费开发工具，在线JSON 转 TOML，免费使用。</div>
 </div>
 
@@ -253,11 +253,29 @@ age = 20`。</div></div>
 
 <script>
 const SAMPLE = JSON.stringify({title:"My App",version:"1.0",debug:true,port:8080,database:{host:"localhost",port:5432,pool:10},tags:["a","b","c"],owner:{name:"Alice",email:"alice@example.com"}}, null, 2);
+// IT-N201：严格 ISO 8601 的日期 / 日期时间 / 时间字符串按 TOML 原生日期类型输出（裸值）。
+// 先做月日与时分秒范围校验，不合格的字符串仍按普通字符串加双引号，避免产出非法 TOML。
+function tomlDateLiteral(v){
+  const m = /^(\d{4})-(\d{2})-(\d{2})(?:[Tt ](\d{2}):(\d{2}):(\d{2})(\.\d+)?(Z|z|[+-]\d{2}:\d{2})?)?$/.exec(v);
+  if(m){
+    if(+m[2] < 1 || +m[2] > 12 || +m[3] < 1 || +m[3] > 31) return null;
+    if(m[4] !== undefined && (+m[4] > 23 || +m[5] > 59 || +m[6] > 59)) return null;
+    let lit = m[1] + '-' + m[2] + '-' + m[3];
+    if(m[4] !== undefined) lit += 'T' + m[4] + ':' + m[5] + ':' + m[6] + (m[7] || '') + (m[8] || '');
+    return lit;
+  }
+  const t = /^(\d{2}):(\d{2}):(\d{2})(\.\d+)?$/.exec(v);
+  if(t && +t[1] <= 23 && +t[2] <= 59 && +t[3] <= 59) return t[0];
+  return null;
+}
 function tomlVal(v){
   if(v === null) throw new Error('TOML 没有 null 类型：请先移除该字段或改为空字符串 / 0');
   if(typeof v === 'boolean') return String(v);
   if(typeof v === 'number') return String(v);
-  if(typeof v === 'string') return JSON.stringify(v);
+  if(typeof v === 'string'){
+    const dl = tomlDateLiteral(v);
+    return dl === null ? JSON.stringify(v) : dl;
+  }
   if(Array.isArray(v)){
     // TOML 数组不能混排「表」与标量：对象数组只能整体走 [[表数组]] 分支；嵌套数组仍合法。
     if(v.some(x => x && typeof x === 'object' && !Array.isArray(x))) throw new Error('TOML 数组不支持对象与标量混排：请拆分字段');
@@ -269,8 +287,12 @@ function tomlVal(v){
 function tomlKey(k){
   return /^[A-Za-z0-9_-]+$/.test(k) ? k : JSON.stringify(String(k));
 }
-function toToml(v, prefix){
+// IT-N200：缩进下拉真正参与输出。depth 只影响排版，不改变 TOML 语义。
+function toToml(v, prefix, depth, unit){
   prefix = prefix || '';
+  depth = depth || 0;
+  if(unit === undefined) unit = getIndent();
+  const pad = unit.repeat(depth);
   let s = '';
   const scalar = {}, tables = {};
   for(const k in v){
@@ -279,13 +301,13 @@ function toToml(v, prefix){
     else if(Array.isArray(val) && val.length && val.every(x => x && typeof x === 'object' && !Array.isArray(x))){ tables[k] = val; }
     else { scalar[k] = val; }
   }
-  for(const k in scalar) s += tomlKey(k) + ' = ' + tomlVal(scalar[k]) + '\n';
+  for(const k in scalar) s += pad + tomlKey(k) + ' = ' + tomlVal(scalar[k]) + '\n';
   for(const k in tables){
     const full = prefix ? prefix + '.' + tomlKey(k) : tomlKey(k);
     if(Array.isArray(tables[k])){
-      tables[k].forEach(item => { s += '\n[[' + full + ']]\n' + toToml(item, full); });
+      tables[k].forEach(item => { s += '\n' + pad + '[[' + full + ']]\n' + toToml(item, full, depth + 1, unit); });
     } else {
-      s += '\n[' + full + ']\n' + toToml(tables[k], full);
+      s += '\n' + pad + '[' + full + ']\n' + toToml(tables[k], full, depth + 1, unit);
     }
   }
   return s;
@@ -309,15 +331,12 @@ function doMinToml(){
     setErr('✅ 压缩转换');
   }catch(e){ setErr('❌ ' + e.message); }
 }
-function loadSample(){document.getElementById('input').value = SAMPLE; doToml();}
-function getIndent(){return '  ';}
-function setOut(s){document.getElementById('output').textContent = s;}
-function setErr(s){const e = document.getElementById('err'); e.textContent = s || ''; e.className = 'err' + (s && s.startsWith('✅') ? ' ok' : '');}
-function clearAll(){document.getElementById('input').value = ''; setOut('等待转换...'); setErr('');}
 function doValidate(){ doToml(); }
+// IT-N200：删掉重复注入的一组同名函数（后者会静默覆盖前者），只留一份；成功态给绿色 ok 类
+function loadSample(){document.getElementById('input').value = SAMPLE; doToml();}
 function getIndent(){const v=document.getElementById('indent').value;return v==='tab'?'\t':' '.repeat(parseInt(v));}
 function setOut(s){document.getElementById('output').textContent=s;}
-function setErr(s){const e=document.getElementById('err');e.textContent=s||'';e.className='err'+(s?'':' ok');}
+function setErr(s){const e=document.getElementById('err');e.textContent=s||'';e.className='err'+(!s||String(s).startsWith('✅')?' ok':'');}
 function clearAll(){document.getElementById('input').value='';setOut('等待输入...');setErr('');}
 function loadSample(){document.getElementById('input').value=SAMPLE;doToml();}
 
