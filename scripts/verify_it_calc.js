@@ -2936,6 +2936,30 @@ const CASES = [
     ref: "注入搜索「重载」后探针读示例区：必须含无默认参数的双参 add 定义与 `// 重载` 注解。旧示例 `int add(int a, int b = 0)` + `int add(int a)` 调用 add(1) 编译歧义，且用 `--` 注解 ⇒ CPPOVL BAD。默认态不执行探针 ⇒ 判别明确。",
   },
   {
+    slug: "it/ruby-cheatsheet",
+    // IT-N486：Ruby 示例注解必须用 #，复制后可直接运行。
+    inputs: { searchInput: "常量大写" },
+    clicks: ["var h=String(document.getElementById('cmdList').innerHTML);document.getElementById('__tbProbe').textContent='RUBYCMT '+(h.indexOf('PI = 3.14  # 常量大写')>=0&&h.indexOf('-- 常量大写')<0?'OK':'BAD');"],
+    expect: ["RUBYCMT OK"],
+    ref: "搜索「常量大写」后探针读示例区：必须是 `PI = 3.14  # 常量大写`（Ruby 注释符 #）。旧示例用 `-- 常量大写`，Ruby 无此注释符、复制运行报 NameError ⇒ RUBYCMT BAD。",
+  },
+  {
+    slug: "it/cpp-cheatsheet",
+    // IT-N486：C++ 示例注解必须用 //。
+    inputs: { searchInput: "必须释放" },
+    clicks: ["var h=String(document.getElementById('cmdList').innerHTML);document.getElementById('__tbProbe').textContent='CPPCOMMENT '+(h.indexOf('delete[] arr;  // 必须释放')>=0&&h.indexOf('-- 必须释放')<0?'OK':'BAD');"],
+    expect: ["CPPCOMMENT OK"],
+    ref: "搜索「必须释放」后探针读示例区：必须是 `delete[] arr;  // 必须释放`。旧示例用 `-- 必须释放`，C++ 无此注释符 ⇒ CPPCOMMENT BAD。",
+  },
+  {
+    slug: "it/typescript-cheatsheet",
+    // IT-N486 + IT-N485：TS 注解用 //，且非空断言示例须带泛型参数否则 Element 无 value。
+    inputs: { searchInput: "断言非空" },
+    clicks: ["var h=String(document.getElementById('cmdList').innerHTML);document.getElementById('__tbProbe').textContent='TSCMT '+(h.indexOf('// 断言非空')>=0&&h.indexOf('&lt;HTMLInputElement&gt;')>=0&&h.indexOf('-- 断言非空')<0?'OK':'BAD');"],
+    expect: ["TSCMT OK"],
+    ref: "搜索「断言非空」后探针读示例区：注解须为 `// 断言非空`，且 querySelector 带 `<HTMLInputElement>` 泛型（旧写法 el 为 Element，TS2339 类型错误）。旧示例用 `--` 且无泛型 ⇒ TSCMT BAD。",
+  },
+  {
     slug: "it/docker-cheatsheet",
     inputs: { searchInput: "zzz" },
     expect: ["共 0 项"],

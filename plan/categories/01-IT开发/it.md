@@ -2716,33 +2716,14 @@
 - 方案：保存 `startedAt` + `remainingAtStart`，`tick` 用时间戳算剩余；`visibilitychange` 时立即刷新。
 - 假工具：否
 
-### IT-N485 — typescript-cheatsheet 非空断言示例对 Element 取 .value，类型检查报错（中）
-- 页面：`tools/it/typescript-cheatsheet.html`
-- 行号：`tools/it/typescript-cheatsheet.html:520`（同页 `:512` 已给出正确写法 `as HTMLInputElement`）
-- 问题：`let el = document.querySelector("#x"); el!.value;` 中 `el` 为 `Element | null`，`!` 只去 null 不去 `Element`，`Element` 上没有 `value`。
-- 复现：粘入 `.ts`、`strict` 下 `tsc --noEmit` → 实际 `TS2339: Property 'value' does not exist on type 'Element'`；期望通过（`document.querySelector<HTMLInputElement>("#x")!.value`）。
-- 影响：页面教“非空断言”，示例本身类型却不通过，用户会误以为 `!` 能解决类型不匹配。
-- 方案：`let el = document.querySelector<HTMLInputElement>("#x"); el!.value;`。
-- 假工具：否
-
-### IT-N486 — ruby/cpp/typescript 速查示例用 `--` 作注解，复制粘贴即运行报错（中）
-- 页面：`tools/it/ruby-cheatsheet.html`、`tools/it/cpp-cheatsheet.html`、`tools/it/typescript-cheatsheet.html`
-- 行号：`ruby-cheatsheet.html:280`、`:288`、`:304`；`cpp-cheatsheet.html:365`、`:413`、`:429`；`typescript-cheatsheet.html:392`、`:408`、`:424`
-- 问题：这三门语言没有 `--` 注释（Ruby 用 `#`、TS/C++ 用 `//`），但 `.cmd-example` 把示例与注解放同一文本节点，`copyCode()` 复制整块，注解随代码一起进剪贴板。
-- 复现：复制 ruby `p [1, 2, 3]  -- inspect` 运行 → 实际 `TypeError: no implicit conversion of String into Array`（:280）；复制 `PI = 3.14  -- 常量大写` → 实际 `NameError: undefined local variable or method '常量大写'`（:288）。TS/C++ 的 `-- 推断/重载` 同理报未声明标识符/不可赋值。
-- 期望：复制出的示例可直接运行。
-- 影响：一键复制的主要用途（带走代码）产出不可执行文本。
-- 方案：注解改用目标语言注释符（`#` / `//`），不要指望用户手工删注解。
-- 假工具：否
-
 ### 覆盖清单（X 批 IT 速查/工具）
 - `git-commands`：低优备注：`git cherry-pick`（:370/:422）与 `git bisect`（:407/:424）各重复一条，使分类计数与表格总数虚增 2。
 - `pomodoro`：IT-N480、IT-N481（中）；无高优（模式切换、时长设置、图表/统计渲染主流程可跑）。
 - `convert-11`：IT-N483（中）；其余主路径正确（`192.168.1.1 ↔ 3232235777 ↔ 11000000.00000000.00000001.00000001`，`4294967295 ↔ 255.255.255.255 ↔ 全 1` 均对齐）。
-- `typescript-cheatsheet`：IT-N485、IT-N486（中）；无高优（泛型/工具类型/`keyof` 等示例经核对正确）。
+- `typescript-cheatsheet`：示例注解已全改 `//`、非空断言示例带 `<HTMLInputElement>` 泛型（IT-N485/N486，第177批）；无高优（泛型/工具类型/`keyof` 等示例经核对正确）。
 - `typing-test`：IT-N482（中）；无高优（WPM/准确率公式正确，中文按字/分、英文按 5 字符/词，历史与图表取数正确）。
-- `cpp-cheatsheet`：IT-N486（中，其余条目的 `--` 注解待修；重载示例的 `--` 已随 IT-N484 于第176批改为 `//`）；无其它高优（`constexpr` 阶乘、`std::optional`、模板示例经核对正确）。
-- `ruby-cheatsheet`：IT-N486（中）；无高优（搜索/分类/复制/图表逻辑正常，块/Proc/Lambda 示例正确）。
+- `cpp-cheatsheet`：示例注解已全改 `//`（IT-N484 第176批 + IT-N486 第177批）；无其它高优（`constexpr` 阶乘、`std::optional`、模板示例经核对正确）。
+- `ruby-cheatsheet`：示例注解已全改 `#`（IT-N486，第177批）；无高优（搜索/分类/复制/图表逻辑正常，块/Proc/Lambda 示例正确）。
 - `postgresql-cheatsheet`：无高优/中优（`--` 在 SQL/psql 中是合法注释；`psql` 元命令、DML/DDL、JSONB、`pg_dump -Fc` 与 `pg_restore -j` 组合均与官方文档一致——`-j` 明确支持 custom 与 directory 两种格式）。
 - 安全：本批 8 页未发现可利用的安全问题（唯一 HTML 拼接点是 `git-commands` 的静态 `COMMANDS` 与搜索文本匹配，不写入 `innerHTML`；`typing-test` 历史渲染的 localStorage 内容仅在同源自污染范围内，不计）。
 - 方法声明：逐页通读 8 页源码；在 `/tmp` 用 `node` 抽取 `git-commands` 的 `COMMANDS` 并对 58 条内联 `onclick` 逐一 `new Function` 编译、用 `python3 html.parser` 验证属性换行保留；用 `node` 复刻 `convert-11` 的 `calc()`/`toBin32()` 逐输入实跑；用 `clang++ -std=c++20 -fsyntax-only` 编译重载示例；用 `ruby`/`ruby -c` 实跑 `--` 注解示例；用真实 `git update-ref` + `git switch` 复现远程分支错误。**未开浏览器、未跑 `_build.py`/`run_gates.py`、未做线上验证**；未修改任何工具页、代码或构建产物，仅在本审计日志追加本节。
