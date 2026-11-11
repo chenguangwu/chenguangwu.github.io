@@ -1,6 +1,8 @@
 // ToolBox 英文翻译数据（由 tool-i18n.js 英文路径按需加载，中文用户不加载）
 window.__TI18N_EN = {
   GEN_UI_MAP: {
+    // IT-D27：regex-common 类别下拉 8 项 + label，英文态精确整节点替换
+    '正则类别':'Regex Category','邮箱地址':'Email Address','中国大陆手机号':'Mainland China Phone','身份证号':'ID Card Number','URL 链接':'URL Link','IPv4 地址':'IPv4 Address','日期 YYYY-MM-DD':'Date YYYY-MM-DD','中文字符':'Chinese Characters','用户名(字母数字_3-16)':'Username (letters/digits/_ 3-16)',
     '计算':'Calculate','校验':'Verify','重置':'Reset','清空':'Clear','复制结果':'Copy Result','📋 复制结果':'Copy Result',
     '🗑️ 重置':'Reset','🧮 计算':'Calculate','复制':'Copy','已复制':'Copied','查询':'Query','生成':'Generate',
     '统计分析':'Statistical Analysis','复制报告':'Copy Report','换算':'Convert','模拟':'Simulate',

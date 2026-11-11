@@ -2505,6 +2505,15 @@ const CASES = [
   },
   {
     slug: "it/regex-common",
+    // IT-D27：类别下拉必须实装 8 个 option；旧源码 <select id=cat></select> 无选项，
+    // 页面任何选择都回退 email。探针读注入后的 select.innerHTML，锚 3 个非默认类别值。
+    inputs: { txt: "13812345678", cat: "phone", limit: "5" },
+    clicks: ["var s=document.getElementById('cat');var n=s.options?s.options.length:0;document.getElementById('__tbProbe').textContent='CATOPT '+n;"],
+    expect: ["CATOPT 8"],
+    ref: "IT-D27 修复后 #cat 必须含 8 个真实 option（phone/chinese/username 等）⇒ 探针 CATOPT 8；修复前下拉框为空 ⇒ CATOPT 0。探针串不来自默认态，判别力强。",
+  },
+  {
+    slug: "it/regex-common",
     inputs: { txt: "x a@b.com y c@d.org z", cat: "email", limit: "8" },
     clicks: ["calcTool()"],
     expect: ["命中位置（字符偏移）：#1 [2-9] a@b.com、#2 [12-19] c@d.org"],

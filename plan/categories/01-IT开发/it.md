@@ -3030,7 +3030,7 @@
 |---|---|---|---|
 | `tools/it/regex` | 原生 RegExp：Worker 内 `new RegExp(p,f)`，替换同引擎（`:850-877`） | 同构造可验证 | 核心匹配/分组/替换正确；既有 N253/N254 仍在 |
 | `tools/it/regex-cheatsheet` | 纯查表：静态 `COMMANDS` 数组 + 过滤（无执行） | 仅内容正确性 | 检索可用；含 JS 不支持语法 |
-| `tools/it/regex-common` | 查表（8 条类别常量）+ 原生 RegExp 逐类执行 | 给定类/文本可验证 | 类别下拉为空，8 类仅 email 可达 |
+| `tools/it/regex-common` | 查表（8 条类别常量）+ 原生 RegExp 逐类执行 | 给定类/文本可验证 | 8 类下拉已实装并可切换（IT-D27，第169批） |
 | `tools/it/regex-escape` | 自写逐字符映射转义/反转义，不走 RegExp | 部分可逆 | 转义正确；反转义吞类别转义 |
 | `tools/it/regex-visualizer` | 自写逐字符 tokenizer + 线性「状态」列表（非 AST/NFA），仅 `new RegExp` 校验合法性 | 合法性可验证；结构不可逆 | 承诺的树状层级未实现 + DOM XSS |
 
@@ -3044,7 +3044,7 @@
 
 - **regex**：默认 `\d+`/`g`/含 123、456、8888、9999 的文本 → 4 条匹配正确；`escapeHtml` 覆盖全部输出（`:547/566/578/602/642`），无 XSS；`:727` 早于 `#rx-worker-src`（`:850`）调用，首屏短暂显示「组件未加载」（IT-N252 的超时部分已修，双跑仍成立）。
 - **regex-cheatsheet**：纯查表；`\A \Z` 在 JS 中是字面 A/Z（node：`/\AHello/` 命中「AHello」）；`[:alpha:]` 为 POSIX 语法，JS 不支持且未注明（IT-D30）。
-- **regex-common**：默认文本 4 token、`cat` 为空 → fallback email → 2 条；结果本身对，但类别选择器 `select` 无任何 `<option>`，8 类仅 email 可达（IT-D27）。
+- **regex-common**：类别选择器已补齐 8 个 option 并可切换（IT-D27，第169批）；默认 email，8 类均可达，结果与原高亮/偏移明细逻辑不变。
 - **regex-escape**：默认 `Hello (World)? [a-z]+ $19.99` → `Hello \(World\)\? \[a-z\]\+ \$19\.99` 正确；反转义 `\d+\w`→`d+w`（IT-D29）。
 - **regex-visualizer**：默认 `^a[0-9]+b$` → 10 token / 12 状态直线（node 复算），与「树状、分组/量词/字符类层级」不符（IT-D28）。
 
@@ -3052,7 +3052,6 @@
 
 | 编号 | 页面:行 | 级别 | 问题与期望值 |
 |---|---|---|---|
-| IT-D27 | `tools/it/regex-common.html:127,269,323,333` | 高 | `<select id="cat"></select>` 全文件 0 个 `<option>`，`getElementById('cat').value\|\|'email'` 恒取 email → 手机/URL/IPv4/日期/身份证/用户名/中文 7 类永不生效。期望构建 8 个 option 并随选切换（默认文本下任何选择都只出 abc@example.com、test@mail.cn） |
 | IT-D28 | `tools/it/regex-visualizer.html:250-266,283-285` | 高 | `buildStates` 每个 token 建 1 状态并首尾串联，无分支、无分组/量词/字符类嵌套；默认 `^a[0-9]+b$` 得直线而非树。期望真实 AST/NFA 树渲染 |
 | IT-D29 | `tools/it/regex-escape.html:310` | 中 | `default: out += n` 丢弃反斜杠：`\d+\w`→`d+w`、`\b`→`b`、`\s`→`s`，反转义后正则语义反转。期望保留 `\d \w \b \s \p{…}` 原样 |
 | IT-D30 | `tools/it/regex-cheatsheet.html:419-424,582-584` | 中 | `\A \Z` 标「字符串首/末」，JS 无此锚点；`[:alpha:]` 为 POSIX，JS 不支持且未注明引擎。期望标注 JS 不支持或删除 |
