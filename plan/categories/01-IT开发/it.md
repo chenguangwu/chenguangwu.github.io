@@ -2724,16 +2724,6 @@
 - 方案：保存 `startedAt` + `remainingAtStart`，`tick` 用时间戳算剩余；`visibilitychange` 时立即刷新。
 - 假工具：否
 
-### IT-N482 — typing-test 错字仍标绿，错误反馈与准确率自相矛盾（中）
-- 页面：`tools/it/typing-test.html`
-- 行号：`tools/it/typing-test.html:438`（类别判定）、`:42-43`（从未被应用的 `.char.wrong`）、`:459-463`（错误计数）
-- 问题：`renderText()` 只按位置判断 `i < pos ? 'correct'`，从不比较 `input[i]` 与 `text[i]`；全站没有任何代码添加 `wrong` 类。
-- 复现：任取一段文本，第 2 个字符故意打错（`abc` 输成 `axc`）→ 实际第 1、2 个字符均为绿色 `.correct`，页面无任何红色；结果卡准确率却显示 66.7%。
-- 期望：`i < pos` 且字符不相等时给 `.wrong`（红底），与错误计数一致。
-- 影响：用户看不到错在哪，练习反馈失效；CSS 里的错字样式成了死代码。
-- 方案：`renderText(input)`，类别改 `i < pos ? (input[i] === text[i] ? 'correct' : 'wrong') : ...`。
-- 假工具：否
-
 ### IT-N483 — convert-11 非法段/非整数输入通过校验并静默输出错误值（中）
 - 页面：`tools/it/convert-11.html`
 - 行号：`tools/it/convert-11.html:168`（`calc()` 单行体，含 `ps.some(...)` 与 `parseInt(v,10)`）

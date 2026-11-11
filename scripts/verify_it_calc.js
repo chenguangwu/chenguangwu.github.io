@@ -12266,6 +12266,13 @@ const CASES = [
     ref: "失败注入：captchaCanvas.toDataURL 必抛 Error + 录制 ToolBox.showToast ⇒ 必须出现「TOAST:导出失败：Error」。"
       + "修复前异常裸冒成 pageerror、且下载失败后仍弹「已导出」；默认态无 TOAST: 串 ⇒ 判别明确。",
   },
+  {
+    slug: "it/typing-test",
+    // IT-N482 回归：已输入但打错的字符须标 .wrong（红底），与错误计数/准确率一致。
+    clicks: ["text='abc';pos=3;document.getElementById('typingInput').value='axc';renderText();var area=document.getElementById('testArea');document.getElementById('__tbProbe').textContent='WRONG '+(area.querySelectorAll('.char.wrong').length)+' CORRECT '+(area.querySelectorAll('.char.correct').length);"],
+    expect: ["WRONG 1 CORRECT 2"],
+    ref: "类型反馈探针：目标文本 abc、已输入 axc（第 2 位打错），应恰有 1 个 wrong + 2 个 correct。修复前 renderText 只按 i<pos 判 correct ⇒ 3 个 correct、0 个 wrong ⇒ WRONG 0 CORRECT 3，不命中。默认态 text 是随机预设、pos=0 ⇒ 无 wrong/correct，不命中。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
