@@ -1383,33 +1383,11 @@
 
 - `qrcode`：IT-N259 SEO 宣称口径（title/h1/keywords/meta/JSON-LD/intro 全部只宣称「生成」无「识别/解析/上传图片解析」，无 file input/解码入口）源码已在 HEAD（其他 Agent 修复），清单漏销账，第206批补证据销账；真机 14/14（缺陷态注入旧宣称 11/14），verify 无用例。N260（容量图只到v10）等仍留清单。
 
-- `qrcode`：IT-N260 容量表 QR_BYTE_CAP 补到 v40（用本页 js/qrcode.js 二分实测各版字节容量，与库实际编码口径一致，v40 L=2953 与表注吻合），超限标 41=超出v40 不再错误压成10；第207批销账；真机 19/19 vs 旧 4/15项红（300/900字节各级别版本与库实际生成一致），verify 无用例。N264（xml-to-yaml 首屏）等仍留清单。
+- `qrcode`：IT-N260 容量表 QR_BYTE_CAP 补到 v40（用本页 js/qrcode.js 二分实测各版字节容量，与库实际编码口径一致，v40 L=2953 与表注吻合），超限标 41=超出v40 不再错误压成10；第207批销账；真机 19/19 vs 旧 4/15项红（300/900字节各级别版本与库实际生成一致），verify 无用例。N267（json-schema-generator 单样本）等仍留清单。
 
-- `hex-encode`：IT-N261 解码改为先剥分隔符、再全局 `replace(/0x/gi,'')`（每行/每字节 0x 的 hexdump 都能解，大小写 0X 兼容），编码侧勾选 prefix 时按字节加（`0x48 0x69`）；IT-N262 历史读取 F-N189 全站修复已覆盖（`#output` 是 textarea，现读 `r.value`），本批删掉 `__hex_encodeScore` 关键词判 0 启发式（恒 1，与 N246 同型，避免 "Error 404"/严格解码告警被误判无效）；IT-N263 改严格 UTF-8（`fatal:true,ignoreBOM:true`）+ 非法字节计数/Latin-1 对照/原始 hex 字节列表，`dec` 也包进 extras 并写「模式=编码/解码」，历史回放按方向选 `enc()`/`dec()`；第208批销账；真机 25/25 vs 旧 9/25（16 项红），verify 无用例（依赖 TextEncoder/TextDecoder 原生对象）。N264（xml-to-yaml 首屏）等仍留清单。
+- `hex-encode`：IT-N261 解码改为先剥分隔符、再全局 `replace(/0x/gi,'')`（每行/每字节 0x 的 hexdump 都能解，大小写 0X 兼容），编码侧勾选 prefix 时按字节加（`0x48 0x69`）；IT-N262 历史读取 F-N189 全站修复已覆盖（`#output` 是 textarea，现读 `r.value`），本批删掉 `__hex_encodeScore` 关键词判 0 启发式（恒 1，与 N246 同型，避免 "Error 404"/严格解码告警被误判无效）；IT-N263 改严格 UTF-8（`fatal:true,ignoreBOM:true`）+ 非法字节计数/Latin-1 对照/原始 hex 字节列表，`dec` 也包进 extras 并写「模式=编码/解码」，历史回放按方向选 `enc()`/`dec()`；第208批销账；真机 25/25 vs 旧 9/25（16 项红），verify 无用例（依赖 TextEncoder/TextDecoder 原生对象）。N267（json-schema-generator 单样本）等仍留清单。
 
-### IT-N264 深度解析整块被塞进 `<textarea id="source">`：首屏输入框装 45 行 CSS/中文，深度解析永不渲染（高，确认缺陷）
-- 问题：`<!-- TOOLBOX-DEEP-DIVE -->` 注入点落在 textarea 起始标签之后、`</textarea>` 之前。RCDATA 内除 `</textarea>` 外一律按文本处理，于是 `<style>…</style><section class="deep-dive">…</section>` 连同中间那个 `</body>` 全变成默认值文本；深度解析内容不渲染，示例 XML 也被撕成两半。
-- 证据：`tools/it/xml-to-yaml.html:123`（`<textarea …><note>…<body>Don't forget me!<!-- TOOLBOX-DEEP-DIVE -->`）、`:124-155`（被吞的 style/section/`</section>`）、`:158`（`</body>&#10;  <items …>…</note></textarea>`）、`:419`（`resetForm()` 里才存着正确示例）。
-- 复现：node 还原初值 → 长度 1909、45 行、含 `.deep-dive{` 与"深度解析"；`xmlToJson` 解出根 `note`，`dumpYaml` 得 55 行 YAML，开头即 `body:` 下挂 `style: ".deep-dive{max-width:960px…"`。即首屏"结果"页签展示的是把 CSS 当 XML 解析的垃圾，而非 `<note>` 转出的干净 YAML。
-- 影响：`tools/it/xml-to-yaml.html`（首屏即坏；深度解析/FAQ 内容在页面上完全不存在）
-- 方案：把 `:124-155` 与 `:158` 的 `</body>` 整段移出 textarea（插到 `:212-213`，即使用说明 `</ul>` 之后、容器 `</div>` 之前），恢复 `<note>…</note>` 为唯一初值；移动后必须重跑 `python3 _build.py`（构建对该区域只写一次，会一次性改写）。
-**留存建议（tools/it/xml-to-yaml.html）**：本批最高优先，属"打开即废"；修完再逐条看 N265/N266。
-
-### IT-N265 数组元素里套对象时输出 `[object Object]`（高，确认缺陷）
-- 问题：`dumpYaml` 的数组分支只支持"标量元素或一层映射"，元素内的对象/数组仍交给 `yVal()`；`yVal` 对对象走 `String(v)` → `[object Object]`。
-- 证据：`tools/it/xml-to-yaml.html:395-396`（数组分支 `out += (j===0?pad+'- ':pad+'  ')+kk+': '+yVal(it[kk])`）、`:380-385`（`yVal` 兜底 `return String(v)`）。
-- 复现：`<a><b><c><d>1</d></c></b><b><e>2</e></b></a>` → JSON `{"a":{"b":[{"c":{"d":"1"}},{"e":"2"}]}}` → YAML `b:` 下两行 `- c: [object Object]` / `- e: "2"`。凡"列表里套对象"（K8s 清单、SOAP 列表、RSS）必中。
-- 影响：`tools/it/xml-to-yaml.html`（真实配置迁移的主要场景直接不可用）
-- 方案：数组元素递归 `dumpYaml(it, pad+'  ', sort, false)` 并做首行 `- ` 前缀处理（后续键缩进 2），或统一改走 JSON→YAML 的标准序列化。
-**留存建议（tools/it/xml-to-yaml.html）**：与 N264 同批修，否则修好首屏也仍导错数据。
-
-### IT-N266 属性两端都不合规：解析丢单引号属性/被 `>` 截断；输出 `@id`、`#text` 不是合法 YAML（中，确认缺陷）
-- 问题：① 解析：属性正则只认 `="…"`，单引号属性静默丢弃；取标签头用 `indexOf('>')`，属性值里合法的 `>` 会提前截断。② 输出：`@`/`#text` 键连引号都不加。YAML 1.2 §5.1 中 `@` 是保留指示符、`#` 起始即注释，二者都不能作 plain scalar 开头 → 生成物在严格解析器里 `@id` 报错、`#text` 被当注释丢弃。
-- 证据：`tools/it/xml-to-yaml.html:266-267`（`/([\w:-]+)\s*=\s*"([^"]*)"/g` 与 `while((m=re.exec(attrStr)))`）、`:258`（`indexOf('>',pos)`）、`:285`、`:289`（拼 `@` 与 `#text`）、`:402-406`（`out+=p+k+': '`，键从不加引号）、`:209` + `:109`（把这套约定写成推荐用法）。
-- 复现：`<a b='v'>x</a>` → `{"a":"x"}`（属性丢失）；`<a b="x>y"><c>1</c></a>` → `{"a":{"c":"1","#text":"y\">"}}`（属性丢失且多出假文本）；`<items id="1">foo<item>a</item></items>` → 输出含 `@id: "1"`、`#text: foo` 两行，前者非法、后者等价注释。
-- 影响：`tools/it/xml-to-yaml.html`（"属性/文本"这一核心映射规则产出不可解析的 YAML）
-- 方案：属性正则补 `|='([^']*)'`；找 `>` 时跳过引号内字符；键统一过 `yKey()`（`@`/`#`/`:`/数字开头/YAML 保留字一律加双引号），并把 `#text` 改名（如 `text`）或加引号输出。
-**留存建议（tools/it/xml-to-yaml.html）**：与 N264/N265 同批，改完用 `yaml` 解析器回读自检一次。
+- `xml-to-yaml`：IT-N264（textarea 初值塞深潜 CSS/被吞 `</body>`）与 IT-N265（数组套对象输出 `[object Object]`）源码已由其他 Agent 修好且在 HEAD，清单漏销账，本批补真机证据（初值 187 字符/10 行、无 CSS、深潜容器在 textarea 外、首屏干净 YAML；嵌套数组递归输出 `d: "1"` 无 `[object Object]`）；IT-N266 真修：属性正则补单引号 `(?:"([^"]*)"|'([^']*)')`、标签头 `>` 查找加 findGt 跳过引号内字符、以 @/# 开头的键过 `yKey()` 加双引号（YAML 1.2 保留指示符/注释，加引号不影响 XML 往返）；顺带修 indent 承诺（dumpYaml 加 unit 参数，root 传空前缀、每层递增 unit，2 空格→首层 2 空格，4 空格/tab 同样对齐）。同页 en JSON 更新两条中文键/英译并清理 N264 遗留的旧深潜示例键。第209批销账；真机 22/22 vs 旧 10/22（12 项红；N264/N265 共 5 项旧态已绿如实记录），verify 无用例。N267（json-schema-generator 单样本）等仍留清单。
 
 ### IT-N267 只有单样本入口，却把所有键都写进 `required`（含 `null` 字段），与"多样本取交集"的说明矛盾（中，确认缺陷）
 - 问题：`inferSchema` 对每个 key 无条件 `required.push(key)`；页面只能粘一个 JSON，不存在"所有样本"。公式清单却写"在所有样本中都出现的键才会被判定为必填"。
