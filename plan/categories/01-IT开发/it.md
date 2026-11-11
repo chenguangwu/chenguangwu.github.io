@@ -167,32 +167,11 @@
 ### IT-N54 CRC-8/ITU 的 CCITT 别名待核实（疑似待验证）
 - `tools/it/crc-calculator.html:330` 将模型标为 `CRC-8/ITU (CCITT)`；[CRC RevEng 参数目录](https://reveng.sourceforge.io/crc-catalogue/1-15.htm#crc.cat.crc-8-i-432-1) 列出该参数模型为 `CRC-8/I-432-1`，别名为 `CRC-8/ITU`，未列 CCITT。需核实 CCITT 别名的权威依据，避免与其他 CRC 模型混淆。
 
-### IT-N55 CRC 计算器：十六进制模式不校验奇偶与非法字符，静默丢半字节/归零（中，确认源码缺陷）
-- 描述：`getInputBytes` 去掉分隔符后直接按 `s.length/2` 建数组，奇数长度丢掉最后一个半字节；`parseInt` 失败得 NaN，写入 `Uint8Array` 变 0，仍输出"正常"CRC。
-- 证据：`tools/it/crc-calculator.html:339-349`（344-346）
-- 复现：hex 勾选后输入 `ABC` → 仅按 `AB` 计 1 字节（期望报"半字节数不足"或补 0）；输入 `zz` → 按 `0x00` 计（期望报非法十六进制）
-- 影响：用户以为校验的是完整报文，实际少算了尾部或整段被当成 0。
-- 方案：先校验仅含十六进制字符与分隔符，且去分隔后长度为偶数；非法/奇数时明确报错并停止计算。
-
 - 本轮实读 8 页：`tools/it/time-format-converter.html`、`tools/it/timestamp-converter.html`、`tools/it/color-converter.html`、`tools/it/integer-base-converter.html`、`tools/it/chmod-calculator.html`、`tools/it/crontab-generator.html`、`tools/it/ipv6-converter.html`、`tools/it/crc-calculator.html`；新增 16 条（高 3 / 中 10 / 低 3）；未覆盖：`tools/it` 其余非文本页（如 `regex-escape`、`css-minifier`、`html-minifier`、`date-duration`、`ipv4-range-expander`、`punycode`、`user-agent-parser` 等）与全部速查表页；未做浏览器、EN、移动端、门禁或部署验证。
 
 ## 2026-11-04 续查（并行批 M）
 
 > 范围：本轮阅读 8 页（`tools/it/punycode.html`、`tools/it/regex-escape.html`、`tools/it/css-minifier.html`、`tools/it/date-duration.html`、`tools/it/ipv4-range-expander.html`、`tools/it/user-agent-parser.html`、`tools/it/hash-multi.html`、`tools/it/http-cache.html`）。仅源码 + Node/jsdom 复算，未开浏览器/未做 EN/移动端/门禁验证。
-
-### IT-N56 Punycode 编解码：核心算法错误，编码末位多加 t、解码忽略权重（高，确认源码缺陷）
-- 描述：编码器在循环末尾把终止数字写成 `digitToChar(t + q)`（RFC 3492 应为 `digitToChar(q)`，此时 `q < t`）；解码器把增量累加写成 `pos += d - t`，而 `w *= BASE - t` 算出的权重从未参与乘法。两处叠加后编码出的串不是合法 Punycode，解码也还原不出原字符。
-- 证据：`tools/it/punycode.html:323`（编码终止位）、`tools/it/punycode.html:357-358`（解码权重未乘）
-- 复现：输入 `中文`（页面默认输入 `中文域名.com` 同样受影响）→ 编码实际 `fi@2282`（期望 `fiq228c`）；`中国` → `fi@s8B`（期望 `fiqs8s`）。解码 `fiq228c` → 输出两个不可打印字符 `""`（期望 `中文`）；解码 `fiqs8s` → 乱码（期望 `中国`）。
-- 影响：编码/解码两个方向全部不可用；复制出去的 `xn--fi@2282.com` 不是合法 IDN，DNS/备案场景会直接失败，且界面无任何报错。
-- 方案：终止位改回 `digitToChar(q)`；解码按 RFC 3492 用 `pos += d * w`（并在 `d < t` 时终止），`w *= BASE - t` 保持在后；用 `中文`、`中国`、`bücher`、`中文abc` 与 Node `punycode` 的 `fiq228c/fiqs8s/bcher-kva/abc-u68do18h` 做往返回归。
-
-### IT-N57 Punycode：纯 ASCII 单标签被补尾随连字符，算法说明示例自相矛盾（低，确认源码缺陷）
-- 描述：`encode()` 只要存在基础码点就追加 `-`，即使没有任何非 ASCII 码点；`enc()` 对不含点号的输入直接返回 `encode(text)`，于是纯 ASCII 串变成 `hello-`。另外页面两处示例互相矛盾：157 行说「中国」→ `xn--fiqs8s`（正确），185 行说 `中文.com` → `xn--fiqs8s.com`（`fiqs8s` 解码为「中国」，正确值应为 `fiq228c`）。
-- 证据：`tools/it/punycode.html:295`（无条件补 `-`）、`tools/it/punycode.html:381`（无点号走整串编码）、`tools/it/punycode.html:185`（错误示例）
-- 复现：勾选 ACE，输入 `hello`（无点号）→ 输出 `hello` 加尾随 `-` 即 `hello-`（期望原样 `hello`）；输入 `中文.com` 点「编码」→ `xn--fi@2282.com`（期望 `xn--fiq228c.com`）
-- 影响：普通 ASCII 标签被多出一个连字符，复制到 hosts/DNS 后成为不同标签；示例误导用户以为 `fiqs8s` 是「中文」。
-- 方案：当 `basic.length === 0` 时不要追加分隔符（或在 `enc()` 对纯 ASCII 标签直接原样返回）；修正 185 行示例为 `xn--fiq228c.com`。
 
 ### IT-N58 正则转义：反转义遇非法 `\x`/`\u` 逃逸抛未捕获异常，按钮无响应（中，确认源码缺陷）
 - 描述：`unesc()` 对 `\xHH`、`\uHHHH`、`\u{...}` 直接 `String.fromCodePoint(parseInt(...))`，不校验十六进制合法性与码点范围；`\u{` 缺少右花括号时 `indexOf` 返回 -1，`substring` 取到空串。`parseInt` 得 `NaN`、码点越界或空值都会让 `fromCodePoint` 抛 `RangeError`，`unesc` 没有 try/catch，异常冒泡到内联 `onclick`。
