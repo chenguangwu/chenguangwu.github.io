@@ -198,7 +198,7 @@
 <li>比特币地址、IPFS 哈希等采用 Base58，去掉了易混字符 0/O、I/l。</li>
 <li>需要人类可读又不区分<a class="term-link" href="/tools/it/case-converter.html">大小写</a>的短标识时可用它代替 Base64。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">编码 &quot;Hello World&quot;</div><div class="dd-ex-body">输入 `Hello World` → 输出 `2NEwd2UZ`；Base58 移除了 0、O、I、l 四个易混字符。</div></div>
+<div class="dd-example"><div class="dd-ex-title">编码 &quot;Hello World&quot;</div><div class="dd-ex-body">输入 `Hello World` → 输出 `JxF12TrwUP45BMd`（Bitcoin 字母表）；Ripple 字母表 → `JxErpTiA7PhnBMd`，Flickr 字母表 → `iXf12sRWto45bmC`；Base58 移除了 0、O、I、l 四个易混字符。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>Base58 比 Base64 短吗？</dt><dd>字符集更小（58 vs 64），同等信息编码后略长，但避免了视觉歧义。</dd>
@@ -414,6 +414,7 @@ function __base58_encodeExtras(){
     var snap=__base58_encodeSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
+    if(keys.indexOf('方向')<0) keys.push('方向');
     if(keys.length>12) keys=keys.slice(0,12);
     var res=__base58_encodeResText();
     if(!res) return;
@@ -426,13 +427,14 @@ function __base58_encodeExtras(){
     if(last){
         var same=true;
         for(var i=0;i<keys.length;i++){
-            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+            var lv=String(last[keys[i]]),sv=String(keys[i]==='方向'?__base58_encodeDir:snap[keys[i]]);
+            if(lv!==sv){same=false;break;}
         }
         if(same&&String(last[rk])===String(res)) return;
     }
     __base58_encode_last=now;
     var rec={};
-    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=(keys[i]==='方向'?__base58_encodeDir:snap[keys[i]]);
     rec[rk]=res;
     rec.__tbScore=__base58_encodeScore(res);
     TBKit.history.record(rec);
@@ -458,9 +460,14 @@ function __base58_encodePresets(){
   {'label':'Ripple','labelEn':'Ripple','values':{'variant':'ripple','input':'Ripple XRP test'}},
   {'label':'Flickr','labelEn':'Flickr','values':{'variant':'flickr','input':'flickr photo id'}}],function(){ enc(); });
 }
+var __base58_encodeDir='编码';
 var __base58_encode_f0=(typeof enc==='function')?enc:null;
 if(__base58_encode_f0){
-    enc=function(){ var __r=__base58_encode_f0.apply(null,arguments); try{ __base58_encodeExtras(); }catch(e){} return __r; };
+    enc=function(){ __base58_encodeDir=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?'Encode':'编码'; var __r=__base58_encode_f0.apply(null,arguments); try{ __base58_encodeExtras(); }catch(e){} return __r; };
+}
+var __base58_encode_f1=(typeof dec==='function')?dec:null;
+if(__base58_encode_f1){
+    dec=function(){ __base58_encodeDir=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?'Decode':'解码'; var __r=__base58_encode_f1.apply(null,arguments); try{ __base58_encodeExtras(); }catch(e){} return __r; };
 }
 function __base58_encodeBoot(){ try{ __base58_encodePresets(); }catch(e){} try{ enc(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __base58_encodeBoot();

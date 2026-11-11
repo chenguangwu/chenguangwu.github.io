@@ -382,20 +382,6 @@
 
 范围：只读实读 8 页（`tools/it/base58-encode.html`、`base85-encode.html`、`barcode-code128.html`、`barcode-upc.html`、`bluetooth-version.html`、`usb-version.html`、`ascii-table.html`、`caesar-cipher.html`），编号接续 IT-N117。所有数值结论均用 `node -e` 按页面源码逻辑（或 `/js/barcode-lib.js`）复算；未开浏览器、未跑构建/门禁、未做 EN/繁体/移动端验证。上一轮已记入 IT-N110/111/112 的 Base32 同型问题不作为本轮重复项。
 
-### IT-N117 Base58 编解码：历史、数据表、趋势图、导出全为空壳（读 textarea 的 textContent 恒为空）（中，确认源码缺陷）
-- 问题：`__base58_encodeResText()` 读 `#output` 的 `textContent`，而结果写的是 `.value`；空的 `<textarea>` 其 `textContent` 永远是空串 → `__base58_encodeExtras()` 在 `if(!res) return;` 处直接返回，`TBKit.history.record` 从不执行，`__base58_encodeRender()` 也从不运行。
-- 证据：`tools/it/base58-encode.html:177`（空的 `<textarea id="output" readonly>`）、`tools/it/base58-encode.html:364-367`（读 `r.textContent`）、`tools/it/base58-encode.html:421-422`（`if(!res) return`）、`tools/it/base58-encode.html:440-445`（record/Render/Export 全依赖上一步）
-- 复现（静态可判）：编码 `Hello` → 输出 `9Ajdvzr`；切"数据表"页签无任何行；点"导出明细 CSV"无文件、无提示（期望至少一行"输入/字母表/结果"并可导出）。
-- 影响：四个留存相关页签（图表/数据表/预设/历史）中的图表与数据表恒空，导出功能等于失效；解码 `dec()` 也未包装，历史永远缺解码记录。
-- 方案：改读 `.value`；同时包装 `dec()` 并把 `variant` 与"方向"写入记录；补编码/解码两条历史用例。
-
-### IT-N118 Base58 编解码：deep-dive 示例输出错误（`Hello World` 实际为 `JxF12TrwUP45BMd`）（中，确认源码缺陷）
-- 问题：示例声称 `Hello World` → `2NEwd2UZ`，与页面自身算法结果不符；且 `2NEwd2UZ` 长度 8 也短于 11 字节原文的合理编码长度（11 字节 → 约 16 个 Base58 字符）。
-- 证据：`tools/it/base58-encode.html:212`（示例）；算符见 `tools/it/base58-encode.html:262-283`
-- 复现（Node 复算页内 `encodeBase58`）：`Hello World`（11 字节）→ 实际 `JxF12TrwUP45BMd`；`Hello`（5 字节）→ `9Ajdvzr`。期望示例与真实输出一致。
-- 影响：用户照示例核对会以为工具算错，降低可信度；示例是本页唯一的"可验证样例"。
-- 方案：把示例改为 `Hello World → JxF12TrwUP45BMd`（Bitcoin 字母表），并注明字母表；同时给 Ripple/Flickr 各一条真实样例。
-
 ### IT-N119 Base58 编解码：只支持文本（UTF-8），与 meta"输入文本或字节"不符；二进制解码静默变 U+FFFD（低，确认源码缺陷）
 - 问题：页面输入是单个 `<textarea>`，编码固定 `new TextEncoder().encode(text)`、解码固定 `new TextDecoder().decode(bytes)`；没有字节/十六进制输入，也没有字节输出。非 UTF-8 的 Base58 载荷（如比特币原始公钥）解码后会被替换为 `U+FFFD`，且无任何提示。
 - 证据：`tools/it/base58-encode.html:10`（meta"输入文本或字节"）、`tools/it/base58-encode.html:174`（唯一文本输入）、`tools/it/base58-encode.html:314`、`tools/it/base58-encode.html:321`

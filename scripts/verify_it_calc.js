@@ -1060,6 +1060,12 @@ const CASES = [
     ref: "自实现 Base58（BTC 字母表）编码 'hello' = Cn8eVZg",
   },
   {
+    slug: "it/base58-encode",
+    clicks: ["var wrapped=(typeof dec==='function')&&dec.toString().indexOf('__base58_encodeExtras')>=0;document.getElementById('input').value='9Ajdvzr';document.getElementById('output').value='SENTINEL';dec();document.getElementById('__tbProbe').textContent='B58DEC '+(wrapped?'W':'N')+' out='+document.getElementById('output').value;"],
+    expect: ["B58DEC W out=Hello"],
+    ref: "IT-N117：dec() 必须像 enc() 一样被历史记录包装（函数体含 __base58_encodeExtras），旧源码只包装 enc ⇒ N。哨兵 SENTINEL 被真解码结果 Hello 覆盖，证明执行的仍是真 dec。方向字段与历史记录由 JSDOM 真机脚本验证。探针仅 clicks 注入出现。",
+  },
+  {
     slug: "it/hex-encode",
     inputs: { input: "hello" },
     expect: ["68656c6c6f", "68656C6C6F"],
