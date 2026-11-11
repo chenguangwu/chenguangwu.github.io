@@ -743,7 +743,9 @@ function generateOutput(format, vars) {
       const jsonObj = {};
       vars.forEach(v => {
         let val = effectiveValue(v);
-        if (v.type === 'number') val = Number(val) || 0;
+        // 修复：number 类型空值/非法值不再静默变 0（伪造用户数据）。
+        // 能解析成有限数字才转 number，否则保留原字符串，让非法值在导出中可见以便核对。
+        if (v.type === 'number') { var _nv=Number(val); val=(String(val).trim()!=='' && isFinite(_nv)) ? _nv : val; }
         else if (v.type === 'boolean') val = val === 'true';
         else if (v.type === 'json') {
           try { val = JSON.parse(val); } catch(e) { /* keep string */ }
@@ -844,9 +846,9 @@ window.generatePreview = function() {
   size.textContent = bytes > 1024 ? (bytes / 1024).toFixed(1) + ' KB' : bytes + ' B';
 
   if (output.trim()) {
-    const __h2=highlightOutput(format, output);if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){preview.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}preview.innerHTML=__h2;
+    const __h2=highlightOutput(format, output);if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){preview.dataset.raw='';preview.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}preview.innerHTML=__h2;
   } else {
-    const __h3='<span class="hl-comment"># 添加变量后自动生成...</span>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){preview.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}preview.innerHTML=__h3;
+    const __h3='<span class="hl-comment"># 添加变量后自动生成...</span>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){preview.dataset.raw='';preview.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}preview.innerHTML=__h3;
   }
 
   // Store raw output for copy/download
