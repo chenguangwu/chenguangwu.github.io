@@ -11804,6 +11804,27 @@ const CASES = [
     ref: "Rust 字节串控制字符：b\"…\" 不支持 \\u{{…}}，必须用 \\xNN；BEL 码位 7 ⇒ b\"\\x07\"。旧实现输出 b\"\\u{{7}}\"，rustc 报 unknown character escape。默认 Hello 不含 BEL。",
   },
   {
+    slug: "it/rust-escape",
+    inputs: { input: '"\\u{110000}"' },
+    clicks: ["unesc();"],
+    expect: ["⚠️ 非法转义：\\u{110000}"],
+    ref: "Rust Unicode 标量上限 0x10FFFF；旧实现 fromCodePoint(U+110000) 抛 RangeError 保留旧输出，修复后显示绑定原片段的错误提示。默认 Hello 不命中。",
+  },
+  {
+    slug: "it/rust-escape",
+    inputs: { input: '"\\u{D800}"' },
+    clicks: ["unesc();"],
+    expect: ["⚠️ 非法转义：\\u{D800}"],
+    ref: "Rust Unicode scalar value 排除代理区 D800–DFFF；旧实现 output 得到孤立代理，修复后显示绑定原片段的错误提示。默认 Hello 不命中。",
+  },
+  {
+    slug: "it/rust-escape",
+    inputs: { input: '"\\xGG"' },
+    clicks: ["unesc();"],
+    expect: ["⚠️ 非法转义：\\xGG"],
+    ref: "Rust \\x 需要恰好两位十六进制；GG 非法时旧实现 parseInt→NaN 抛 RangeError，修复后显示绑定原片段的错误提示。默认 Hello 不命中。",
+  },
+  {
     slug: "it/python-escape",
     inputs: { input: "line1\nline2" },
     clicks: ["document.getElementById('mode').value='raw';document.getElementById('qtype').value='double';esc()"],
