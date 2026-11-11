@@ -1375,15 +1375,7 @@
 
 - `chinese-name-generator`：无剩余缺陷（IT-N249 拆 maleChars 双字词条建/志/华 + generateOneName 复姓避让、逐字符拼接、字数兜底断言，2字名/3字名字数精确；IT-N250 getCharPool 出口 Set 去重，薇/素/毅不再放大取样；IT-N251 取消收藏 toast 补 toast.fav_removed key + 中文兜底，不再空提示，三条均已销账，第199批；verify 3 条探针强锁 + 1 条结构例改造 + JSDOM 真机 18/18、旧源码 3/18，verify 用例级旧态 1551/1554 三锁全红）。
 
-### IT-N252 页面自带 ReDoS 章节却无超时保护：`(a+)+$` + 30 位输入卡 6.9 秒，且每次按键重跑两遍（高，确认缺陷）
-- 问题：`testRegex()` 在 UI 线程同步 `regex.exec`，无 Worker、无时长上限；`:517` 的 `matches.length > 1000` 只限制**匹配个数**，对单次灾难性回溯完全无效。pattern/textarea 的 `input` 事件以及 `#flags` 的 `input` 监听都会同时跑 `testRegex()+doReplace()`（`:465-480` + 控件上的 `oninput`），一次按键两次全量匹配。
-- 证据：`tools/it/regex.html:490-518`（`:509` 构造、`:514` `while((match=regex.exec(text))` 在 `:491` 的 `t0` 之后同步执行）、`:517`（1000 条上限）、`:465-480`（重复绑定）、`:345`（FAQ 自称"用户可控的正则应设超时保护"）、`:187`。
-- 复现：node 同引擎 `^(a+)+$` 对 `"a"*n+"X"`：n=24 → 106ms；n=26 → 2.5s；n=30 → 6.9s（每 +1 位约 ×4，n=34 即分钟级）。页面上粘贴 30 个 a + X 后标签页整页卡死，期间无法输入。
-- 影响：`tools/it/regex.html`（一个"正则调试器"在最需要它的时候把自己锁死）
-- 方案：匹配移到 Web Worker + 200ms 超时（超时 `terminate` 并提示"疑似灾难性回溯"）；`exec` 前先做"嵌套量词/超长输入"预检；输入事件统一去抖 300ms 并合并到一次调用。
-**留存建议（tools/it/regex.html）**：本页最高优先，属"自述风险却不设防"。
-
-- `regex`：IT-N253 分享链接 base64url 对称修复（写入 +→- /→/ 去尾=，读取逆变换并兼容旧标准 base64 的空格化 +、补 padding，catch 加 console.warn），中文/换行 payload 往返正确，第200批销账；verify 无用例（页面依赖原生 location.hash + btoa/atob，harness stub DOM 不适用），由 JSDOM 真机 12/12 vs 旧5/12 覆盖。**IT-N252（ReDoS 超时保护）仍在清单未处理**。
+- `regex`：IT-N253 分享链接 base64url 对称修复（写入 +→- /→/ 去尾=，读取逆变换并兼容旧标准 base64 的空格化 +、补 padding，catch 加 console.warn），中文/换行 payload 往返正确，第200批销账；verify 无用例（页面依赖原生 location.hash + btoa/atob，harness stub DOM 不适用），由 JSDOM 真机 12/12 vs 旧5/12 覆盖。IT-N252（ReDoS 超时 + flags 双绑定）已于第201批整条销账。
 
 ### IT-N254 替换页无视用户 flags，恒补 `g`：与"匹配"页口径不一致、替换数恒为全量（中，确认缺陷）
 - 问题：`doReplace()` 与 `copyMatches()` 都用 `flags.includes('g') ? flags : flags+'g'`，强制全局；而 `testRegex()` 严格按用户 flags（不勾 g 只取首个）。同一份 flags 下两页结论不同，"替换数"也永远等于全部匹配数。
