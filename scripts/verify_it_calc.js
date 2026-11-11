@@ -1989,6 +1989,14 @@ const CASES = [
   },
   {
     slug: "it/regex-escape",
+    // IT-N59 回归：verbose 风味只转义真正则元字符，= , ; : < > @ # & ~ 非元字符须原样保留。
+    inputs: { input: "a=b,c.d", flavor: "verbose" },
+    clicks: ["esc()"],
+    expect: ["a=b,c\\.d"],
+    ref: "独立复算：verbose 风味下 `=` `,` 不是 ECMAScript 正则元字符须原样保留，仅 `.` 被转义 ⇒ `a=b,c\\.d`。修复前 VERBOSE_META 含 `=,;:<>@#&~=` ⇒ 输出 `a\\=b\\,c\\.d`，不命中；贴进带 u/v 标志的 RegExp 会 SyntaxError。默认态输入为 Hello 预设串，不命中。expect 含被转义的 `.`（非纯输入回显）。",
+  },
+  {
+    slug: "it/regex-escape",
     // IT-N21 回归：非法 `\\x` 转义必须原样保留，不能抛 RangeError 中断。
     inputs: { input: "\\x41\\xzz" },
     clicks: ["unesc()"],

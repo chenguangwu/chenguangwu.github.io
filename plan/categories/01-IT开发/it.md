@@ -257,14 +257,6 @@
 - 影响：用户在整理日志/正则时输入不完整转义即静默失败，看不到任何界面反馈；旧结果可能被误当成本次结果复制。
 - 方案：对 `\x`/`\u` 先校验 `^[0-9a-fA-F]{2,4}$` 与码点 ≤ 0x10FFFF，`\u{...}` 要求存在闭合 `}`；失败时在输出区显示具体位置与原因，并清空旧输出。
 
-### IT-N59 正则转义：`verbose` 模式过度转义非元字符，`u`/`v` 模式下生成非法正则（低，确认源码缺陷）
-- 描述：`VERBOSE_META` 把 `, ; : < > @ # & ~ =` 也当作元字符加反斜杠，但这些字符在 ECMAScript 正则中不是元字符。非 `u` 模式把它们当 identity escape 尚可，`u`/`v` 模式会直接 `SyntaxError: Invalid escape`。
-- 证据：`tools/it/regex-escape.html:257`（`VERBOSE_META` 定义）、`tools/it/regex-escape.html:267-268`（逐字符加 `\`）
-- 复现：风格选「含 / 括号」，输入 `a=b,c` → 输出 `a\=b\,c`；`new RegExp('a\\=b\\,c','u')` → `SyntaxError: Invalid regular expression: /a\=b\,c/u: Invalid escape`（期望只转义 `. * + ? ( ) [ ] { } ^ $ | \ /`）
-- 影响：把结果贴进带 `u` 标志的 `RegExp`、ESLint `no-useless-escape` 或部分严格引擎会被判非法/告警。
-- 方案：`verbose` 只额外处理 `/` 与字符类内的 `-`，删除 `,;:<>@#&~=`；或在输出旁注明「本结果适用于非 `u` 模式」。
-
-
 - 备注：`tools/it/punycode.html:404-410`、`tools/it/regex-escape.html:321-328` 的 `copyResult` 依赖全局 `event`（与 IT-N31 同模式，Firefox 可能失效），不重复计数，未单列为新条目。
 - 本轮实读 8 页：`tools/it/punycode.html`、`tools/it/regex-escape.html`、`tools/it/css-minifier.html`、`tools/it/date-duration.html`、`tools/it/ipv4-range-expander.html`、`tools/it/user-agent-parser.html`、`tools/it/hash-multi.html`、`tools/it/http-cache.html`；新增 15 条（高 3 / 中 8 / 低 4）；未覆盖：`tools/it` 其余非文本页（如 `html-minifier`、`html-nesting-checker`、`c-string-escape`、`go-escape`、`java-escape`、`js-minifier`、`js-obfuscator`、`sql-formatter`、`shell-script-formatter`、`dockerfile-generator`、`gitignore-generator`、`robots-txt-generator`、`sitemap-generator`、`ssh/证书/密钥类` 等）与全部速查表页；未做浏览器、EN、移动端、门禁或部署验证。
 
