@@ -575,12 +575,24 @@ def normalize_tool_h1(html_str, zh_name='', dd_title=''):
     均不可用则保持原样（不瞎编）。返回 (新 html, 改动数)。
     """
     n = 0
+    # script/style 块内的 '<h1>...</h1>' 是 JS/CSS 字符串字面量（如 markdown 渲染器的标题模板），
+    # 不是真实标题；下面的全局正则会误伤并改坏页面功能（2026-11-11 markdown-editor 回归）。
+    # 先标记这些区间，②③④ 及错配修复一律跳过。
+    skip_spans = [(m.start(), m.end()) for m in
+                  re.finditer(r'<(script|style)\b[^>]*>[\s\S]*?</\1>', html_str, re.I)]
+
+    def _h1_in_skip(pos):
+        return any(s <= pos < e for s, e in skip_spans)
+
     # ① 错配闭标签
     i = 0
     while True:
         m = _H1_OPEN_RE.search(html_str, i)
         if not m:
             break
+        if _h1_in_skip(m.start()):
+            i = m.end()
+            continue
         oe = m.end()
         n1 = html_str.find('</h1>', oe)
         n2 = html_str.find('</h2>', oe)
@@ -601,6 +613,8 @@ def normalize_tool_h1(html_str, zh_name='', dd_title=''):
     # ②③④ 处理 h1 块
     reps = []
     for idx, b in enumerate(_H1_BLOCK_RE.finditer(html_str)):
+        if _h1_in_skip(b.start()):
+            continue
         attr, inner, close = b.group(1), b.group(2), b.group(3)
         _raw = _h1_text(inner)
         if not re.search(r'[\u4e00-\u9fff]', _raw):
