@@ -7371,6 +7371,9 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"txt\":\"1\\n2\\n3\"}，输出区含「未检测到明显乱码特征。 修复输出： 1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。// 2026-11-04：harness 保真度修复后 textarea 默认文本会同时进 .textContent，快照字符串顺序改变，故去掉跨元素的换行拼接断言，只锚输出域自身内容（仍含注入值 1 2 3）。"
   },
   {
+    // 2026-11-11 第199批：原自动补强例锚具体随机名字串（含旧双字词条缺陷产物「利建华」），
+    // 修复 N249（拆双字词条 + 复姓避让 + 逐字拼接）后 PRNG 调用序列改变、名字全变 ⇒ 必然失效。
+    // 随机内容不可断言，改为结构断言：注入 count=5 / 2字名，结果恰好 5 条且每条姓名恰 2 字。
     "slug": "it/chinese-name-generator",
     "inputs": {
       "optCount": "5",
@@ -7378,10 +7381,46 @@ const CASES = [
       "optLength": "2",
       "optStyle": "modern"
     },
-    "expect": [
-      "1\n5\nmale\n2\nmodern\n盛浩 男 现代 姓盛 名用字：浩：浩大、浩然 风格：现代 🤍 📋 禹翔 男 现代 姓禹 名用字：翔：翱翔 风格：现代 🤍 📋 利建华 男 现代 姓利 名用字：华：中华 风格：现代 🤍 📋 郁毅"
+    "clicks": [
+      '(function(){generate();var ok=generatedNames.length===5;for(var i=0;i<generatedNames.length;i++){if(String(generatedNames[i].name).length!==2)ok=false;}document.getElementById("__tbProbe").innerHTML="CNSTRUCT "+(ok?"OK":"BAD:"+generatedNames.length);})()'
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"optCount\":\"5\",\"optGender\":\"male\",\"optLength\":\"2\",\"optStyle\":\"modern\"}，输出区含「1\n5\nmale\n2\nmodern\n盛浩 男 现代 姓盛 名用字：浩：浩大、浩然…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "expect": [
+      "CNSTRUCT OK"
+    ],
+    "ref": "自动补强改造·结构断言：注入 count=5/2字名，调 generate() 后读顶层 generatedNames，断言恰 5 条且每条姓名恰 2 字；不锚随机姓名内容，避免 PRNG 序列变动导致脆断。harness stub DOM 不渲染本页 resultArea 且 getAnalysis 有噪声，故走 JS 变量探针而非 DOM。默认态 count 非 5 ⇒ 探针只在 clicks 执行、零逃生。"
+  },
+  {
+    // IT-N249：2 字名/3 字名必须精确等于目标字数（拆双字词条 + 复姓避让 + 逐字拼接 + 兜底）
+    "slug": "it/chinese-name-generator",
+    "clicks": [
+      '(function(){var bad=0;for(var L=2;L<=3;L++)for(var i=0;i<60;i++){var it=generateOneName("male",String(L),"modern");if(String(it.name).length!==L)bad++;}document.getElementById("__tbProbe").innerHTML="CNLEN "+(bad===0?"OK":"BAD"+bad);})()'
+    ],
+    "expect": [
+      "CNLEN OK"
+    ],
+    "ref": "IT-N249 字数精确：反复调 generateOneName(male,2/3,modern) 120 次，断言 name.length===目标字数。旧实现 maleChars 含「建国/志强/建华」双字词条，2 字名抽到即得 3 字；复姓用于 2 字名亦超长 ⇒ CNLEN BAD>0 红。诊断串只在 clicks 写入，默认态无 ⇒ 零逃生。"
+  },
+  {
+    // IT-N250：getCharPool 出口去重，薇/素/毅 不再被放大取样
+    "slug": "it/chinese-name-generator",
+    "clicks": [
+      '(function(){var bad=[];var combos=[["male","modern"],["female","modern"],["random","classic"]];for(var c=0;c<combos.length;c++){var p=getCharPool(combos[c][0],combos[c][1]);var s={};for(var i=0;i<p.length;i++)s[p[i]]=(s[p[i]]||0)+1;for(var k in s)if(s[k]>1){bad.push(k);break;}}document.getElementById("__tbProbe").innerHTML="CNUNIQ "+(bad.length===0?"OK":"BAD"+bad.join(","));})()'
+    ],
+    "expect": [
+      "CNUNIQ OK"
+    ],
+    "ref": "IT-N250 字池去重：检查 male/female/random 三池出口无重复字（Set 去重）。旧实现 femaleChars 薇×3/素×3 等 17 组、maleChars 毅×3 ⇒ CNUNIQ BAD 红。诊断串只在 clicks 写入 ⇒ 零逃生。"
+  },
+  {
+    // IT-N251：取消收藏 toast 有明确文案而非空/undefined
+    "slug": "it/chinese-name-generator",
+    "clicks": [
+      '(function(){var got="";var old=ToolBox.showToast;ToolBox.showToast=function(m){got=String(m);};favorites=[{name:"__CNFAV__",gender:"male",style:"modern",time:1}];try{toggleFav("__CNFAV__","male","modern");}catch(e){}ToolBox.showToast=old;document.getElementById("__tbProbe").innerHTML="CNFAV "+(got&&got!=="undefined"&&got.indexOf("undefined")<0?"OK":"BAD:"+got);})()'
+    ],
+    "expect": [
+      "CNFAV OK"
+    ],
+    "ref": "IT-N251 收藏 toast：stub showToast 捕获后调 toggleFav 取消收藏，断言 toast 文案非空且不含 undefined。旧实现 i18nText() 空参 ⇒ showToast 收到空串 ⇒ 空提示 ⇒ CNFAV BAD 红。诊断串只在 clicks 写入，默认态无 ⇒ 零逃生。"
   },
   {
     "slug": "it/clamp-calculator",

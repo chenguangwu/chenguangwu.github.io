@@ -1373,29 +1373,7 @@
 
 - `binary-to-text`：无剩余缺陷（IT-N246 结果读取统一走 textarea.value + 删除以错误词判空的启发式，历史/表格/图表/CSV 链恢复；IT-N247 严格 UTF-8 `fatal:true,ignoreBOM:true` + 非法字节计数/Latin-1 对照/0x 字节列表；IT-N248 FAQ 与公式三源口径纠正，三条均已销账，第198批；verify 3 条探针强锁 + JSDOM 真机 21/21、旧源码 6/21，非法字节/BOM/错误词评分/三源文案全变红）。
 
-### IT-N249 「2 字名/3 字名」被用字池里的双字词条破坏：选 2 字会得到 3 字（中，确认缺陷）
-- 问题：`maleChars` 混入 3 个双字词条（`建国`/`志强`/`建华`），而 `generateOneName()` 把池中**每一项**当作一个"字"拼接——`givenLen = max(nameLen − surname.length, 1)` 只控制拼接次数，不控制字符数。
-- 证据：`tools/it/chinese-name-generator.html:513`（三个双字项）、`:807-813`（`givenLen` 与 `given += pick(pool)`）。
-- 复现：node 统计 `maleChars` 共 100 项、其中 3 项长度为 2 → 男性"2字名"（姓氏 1 字 → `givenLen=1`）有 3% 概率抽到双字词条，得到 `李建国`（3 字）；选"3字名"时若又抽到复姓（`surnames` 含 20 个双字姓，`:506-507`）则 `givenLen=max(3-2,1)=1`，仍可拼出 `欧阳建国`（4 字）。
-- 影响：`tools/it/chinese-name-generator.html`
-- 方案：把 `建国/志强/建华` 拆成单字（建、国、志、强、华）或移除；`givenLen` 改按"还差几个字符"循环并在拼满时停；末尾加 `fullName.length===nameLen` 断言兜底。
-**留存建议（tools/it/chinese-name-generator.html）**：数据拆分一行即可，属正确性修复，优先于下面两条。
-
-### IT-N250 用字池有 15 组重复条目，`pick()` 均匀取下标导致某些字被放大取样（低，确认缺陷）
-- 问题：两个池都按"每项一个下标"随机取样，重复条目等于给该字加权；重复多为手录冗余。
-- 证据：`tools/it/chinese-name-generator.html:525-536`（`femaleChars`：`薇`×3、`素`×3，另 13 字各 ×2）、`:511-522`（`maleChars`：`毅`×3、`荣`×2）、`:783-792`（`pool = …slice()` / `concat()` 均不去重）。
-- 复现：node 统计 → female `[["燕",2],["琳",2],["慧",2],["兰",2],["菊",2],["薇",3],["颖",2],["露",2],["悦",2],["洁",2],["佳",2],["彤",2],["珊",2],["珠",2],["素",3]]`；male `[["毅",3],["荣",2]]`。即"薇/素"的出现率是"芳"的 3 倍（3% vs 1%）。
-- 影响：`tools/it/chinese-name-generator.html`（分布失衡，"随机"名扎堆在同几个字）
-- 方案：`getCharPool()` 末尾 `pool = Array.from(new Set(pool))`，或按字义权重显式加权（有意的加权需注释说明）。
-**留存建议（tools/it/chinese-name-generator.html）**：一行去重，顺手改。
-
-### IT-N251 收藏/取消收藏的 toast 调用无参，文案会显示 `undefined`（低，待验证）
-- 问题：`ToolBox.showToast(i18nText())` 未传 key/fallback；`i18nText` 在无 key 时 `I18n.t(undefined, undefined)`，最终 `return key`（即 `undefined`）。
-- 证据：`tools/it/chinese-name-generator.html:768`；`js/common.js:1510-1521`。
-- 复现：静态推演——`i18nText()` → `undefined` → toast 文本为 `"undefined"`；`I18n.t` 若抛错也会被 `js/common.js:1520` 的 catch 吞掉，结果同为 `undefined`。未真机确认 toast 渲染（本批不开浏览器）。
-- 影响：`tools/it/chinese-name-generator.html`
-- 方案：`i18nText('toast.fav_removed','已取消收藏')` / `i18nText('toast.fav_added','已加入收藏 ❤️')`。
-**留存建议（tools/it/chinese-name-generator.html）**：顺手补 key，与 IT-N211 同型。
+- `chinese-name-generator`：无剩余缺陷（IT-N249 拆 maleChars 双字词条建/志/华 + generateOneName 复姓避让、逐字符拼接、字数兜底断言，2字名/3字名字数精确；IT-N250 getCharPool 出口 Set 去重，薇/素/毅不再放大取样；IT-N251 取消收藏 toast 补 toast.fav_removed key + 中文兜底，不再空提示，三条均已销账，第199批；verify 3 条探针强锁 + 1 条结构例改造 + JSDOM 真机 18/18、旧源码 3/18，verify 用例级旧态 1551/1554 三锁全红）。
 
 ### IT-N252 页面自带 ReDoS 章节却无超时保护：`(a+)+$` + 30 位输入卡 6.9 秒，且每次按键重跑两遍（高，确认缺陷）
 - 问题：`testRegex()` 在 UI 线程同步 `regex.exec`，无 Worker、无时长上限；`:517` 的 `matches.length > 1000` 只限制**匹配个数**，对单次灾难性回溯完全无效。pattern/textarea 的 `input` 事件以及 `#flags` 的 `input` 监听都会同时跑 `testRegex()+doReplace()`（`:465-480` + 控件上的 `oninput`），一次按键两次全量匹配。

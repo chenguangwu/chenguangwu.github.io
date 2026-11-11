@@ -499,7 +499,7 @@ var surnames = [
 // ============ 男性常用名用字 ============
 var maleChars = [
   '伟','强','磊','军','勇','杰','超','明','辉','刚',
-  '浩','宇','鹏','飞','斌','涛','亮','建国','志强','建华',
+  '浩','宇','鹏','飞','斌','涛','亮','建','志','华',
   '文','武','博','彬','鑫','凯','翔','昊','天','瑞',
   '泽','栋','晨','峰','毅','俊','达','龙','海','山',
   '川','岩','雷','震','坤','恒','毅','楠','智','诚',
@@ -754,7 +754,8 @@ function isFav(name) {
 function toggleFav(name, gender, style) {
   if (isFav(name)) {
     favorites = favorites.filter(f => f.name !== name);
-    ToolBox.showToast(i18nText());
+    // IT-N251：空参 i18nText() 在无 fallback 时 toast 显示为空/无提示，补 key + 中文兜底
+    ToolBox.showToast(i18nText('toast.fav_removed', '已取消收藏'));
   } else {
     favorites.push({ name, gender, style, time: Date.now() });
     ToolBox.showToast('已收藏: ' + name);
@@ -782,6 +783,8 @@ function getCharPool(gender, style) {
     if (style === 'classic') pool = pool.concat(classicChars.filter(c => !pool.includes(c)));
     if (style === 'literary') pool = pool.concat(literaryChars.filter(c => !pool.includes(c)));
   }
+  // IT-N250：字池里的手录重复条目会让重复字被放大取样（薇/素 3 倍），统一去重保证每字等概率
+  pool = Array.from(new Set(pool));
   return pool;
 }
 
@@ -793,15 +796,23 @@ function generateOneName(genderOpt, lengthOpt, styleOpt) {
   if (style === 'random') style = pick(['modern','classic','literary']);
 
   var pool = getCharPool(gender, style);
-  var givenLen = nameLen - surname.length;
-  givenLen = Math.max(givenLen, 1);
+  // IT-N249：复姓本身占 2 字，2 字名放不下；抽到复姓时重抽单字姓，保证能拼满目标字数
+  var guard = 0;
+  while (surname.length >= nameLen && guard++ < 100) surname = pick(surnames);
+  var givenLen = Math.max(nameLen - surname.length, 1);
 
+  // IT-N249：逐字符累加，每个用字只取第一个字符，拼满即停——即使字池混入多字条目也不会撑长名字
   var given = '';
-  for (var i = 0; i < givenLen; i++) {
-    given += pick(pool);
+  while (given.length < givenLen) {
+    given += pick(pool).charAt(0);
   }
 
+  // IT-N249 兜底：字数不符时按目标字数截断（保留姓），确保 fullName.length === nameLen
   var fullName = surname + given;
+  if (fullName.length !== nameLen) {
+    fullName = fullName.slice(0, nameLen);
+    given = fullName.slice(surname.length);
+  }
   return { name: fullName, surname: surname, given: given, gender: gender, style: style };
 }
 
