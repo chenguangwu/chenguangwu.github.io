@@ -1383,31 +1383,9 @@
 
 - `qrcode`：IT-N259 SEO 宣称口径（title/h1/keywords/meta/JSON-LD/intro 全部只宣称「生成」无「识别/解析/上传图片解析」，无 file input/解码入口）源码已在 HEAD（其他 Agent 修复），清单漏销账，第206批补证据销账；真机 14/14（缺陷态注入旧宣称 11/14），verify 无用例。N260（容量图只到v10）等仍留清单。
 
-- `qrcode`：IT-N260 容量表 QR_BYTE_CAP 补到 v40（用本页 js/qrcode.js 二分实测各版字节容量，与库实际编码口径一致，v40 L=2953 与表注吻合），超限标 41=超出v40 不再错误压成10；第207批销账；真机 19/19 vs 旧 4/15项红（300/900字节各级别版本与库实际生成一致），verify 无用例。N261（hex多行）等仍留清单。
+- `qrcode`：IT-N260 容量表 QR_BYTE_CAP 补到 v40（用本页 js/qrcode.js 二分实测各版字节容量，与库实际编码口径一致，v40 L=2953 与表注吻合），超限标 41=超出v40 不再错误压成10；第207批销账；真机 19/19 vs 旧 4/15项红（300/900字节各级别版本与库实际生成一致），verify 无用例。N264（xml-to-yaml 首屏）等仍留清单。
 
-### IT-N261 多行或"每字节 0x"的十六进制粘贴直接报非法，`^0x` 只去一次（中，确认缺陷）
-- 问题：`dec()` 先 `replace(/^0x/i,'')`（只处理串首一个前缀）再剥分隔符，hexdump 形式（每行/每字节带 `0x`）残留的 `x` 触发"非法十六进制字符"。
-- 证据：`tools/it/hex-encode.html:290`（`^0x` + `[\s:,;_-]` 剥离顺序）、`:291`（正则校验）、`:284`（编码侧 `prefix` 也只在整个串首加一个 `0x`）。
-- 复现：node——`"0x48\n0x69 6f".replace(/^0x/i,'').replace(/[\s:,;_-]/g,'')` → `"480x696f"` → 命中 `:291` 报错；`"0x48 69"` → `"4869"`（仅首前缀可用）。期望两种写法都能解出 `Hi  o`。
-- 影响：`tools/it/hex-encode.html`（开发者最常粘的 hexdump / 内存 dump 一律失败）
-- 方案：先剥分隔符，再 `replace(/0x/gi,'')` 全局去前缀；编码侧勾选 `prefix` 时按字节加（`0x48 0x69`），与 C 数组/常见工具一致。
-**留存建议（tools/it/hex-encode.html）**：两行调整，收益高。
-
-### IT-N262 历史/数据表/图表与 CSV 恒空：textarea 结果读 `textContent`（中，确认缺陷）
-- 问题：与 IT-N246 同型。`enc()` 写 `#output`（textarea）的 `.value`，`__hex_encodeResText()` 读 `.textContent` → 恒空 → `:393` 早退，记录/渲染/图表链全不触发；CSV 导的 `#hex_encodeTable` 也只在 Render 里填充。
-- 证据：`tools/it/hex-encode.html:284`（写 `.value`）、`:335-342`（读 `textContent`）、`:392-393`（`if(!res) return`）、`:348-358`（Render 才填表）、`:414-416`（`exportTable('#hex_encodeTable')`）、`:157`（"导出明细 CSV"）。
-- 复现：编码 `Hi` → `.value === "4869"`、`.textContent === ""`；不会走到 `TBKit.history.record(...)`，历史条目恒为 0，"数据表/图表/历史"三页签恒空，导出 CSV 无数据行。
-- 影响：`tools/it/hex-encode.html`
-- 方案：同 N246，`res` 取值改 `r.value || r.textContent` 并删掉 `/错误|Error/` 判空启发式。
-**留存建议（tools/it/hex-encode.html）**：与 N246 一起改，避免两页再各修一遍。
-
-### IT-N263 解码侧静默替换非法字节，且 `dec` 未接入历史（中，确认缺陷）
-- 问题：`dec()` 用默认 `TextDecoder`（非 fatal）→ 非法 UTF-8 输出 `�` 无提示；历史包装只包了 `enc`（`:421-423`），点"解码 ↓"不会产生任何记录。
-- 证据：`tools/it/hex-encode.html:295`、`:421-423`（`var __hex_encode_f0=(typeof enc==='function')?enc:null`）、`:392-393`。
-- 复现：node `new TextDecoder().decode(new Uint8Array([0xFF]))` → `"�"`；页面输入 `FF` 点解码，输出框只显示一个替换符（用户会以为编码写错），且 history 不变。
-- 影响：`tools/it/hex-encode.html`
-- 方案：`TextDecoder('utf-8',{fatal:true})` + 失败提示并提供 Latin-1 对照；把 `dec` 也包进 `__hex_encodeExtras()`（方向记入记录键，如"模式=解码"）。
-**留存建议（tools/it/hex-encode.html）**：与 N247 同一改法，顺手把 dec 补进历史。
+- `hex-encode`：IT-N261 解码改为先剥分隔符、再全局 `replace(/0x/gi,'')`（每行/每字节 0x 的 hexdump 都能解，大小写 0X 兼容），编码侧勾选 prefix 时按字节加（`0x48 0x69`）；IT-N262 历史读取 F-N189 全站修复已覆盖（`#output` 是 textarea，现读 `r.value`），本批删掉 `__hex_encodeScore` 关键词判 0 启发式（恒 1，与 N246 同型，避免 "Error 404"/严格解码告警被误判无效）；IT-N263 改严格 UTF-8（`fatal:true,ignoreBOM:true`）+ 非法字节计数/Latin-1 对照/原始 hex 字节列表，`dec` 也包进 extras 并写「模式=编码/解码」，历史回放按方向选 `enc()`/`dec()`；第208批销账；真机 25/25 vs 旧 9/25（16 项红），verify 无用例（依赖 TextEncoder/TextDecoder 原生对象）。N264（xml-to-yaml 首屏）等仍留清单。
 
 ### IT-N264 深度解析整块被塞进 `<textarea id="source">`：首屏输入框装 45 行 CSS/中文，深度解析永不渲染（高，确认缺陷）
 - 问题：`<!-- TOOLBOX-DEEP-DIVE -->` 注入点落在 textarea 起始标签之后、`</textarea>` 之前。RCDATA 内除 `</textarea>` 外一律按文本处理，于是 `<style>…</style><section class="deep-dive">…</section>` 连同中间那个 `</body>` 全变成默认值文本；深度解析内容不渲染，示例 XML 也被撕成两半。
