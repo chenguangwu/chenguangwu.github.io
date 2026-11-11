@@ -61,7 +61,8 @@
 - IT-N288/N289/N290 已于第211批真机回归并销账：XSS 防护（escAttr + safeUrl 协议白名单）与 GFM 任务清单复选框均在位，`#` 已改渲染 h1。
 - 同批阅读 Linux、MongoDB 速查的搜索、分类与复制路径；无浏览器验证，不对完整正确性判通过。IT-N498–N500 的示例仍须按具体内容另行运行复核。
 - IT-N423、N308、N309 的数据范围问题仍在。
-- IT-N170–N173、IT-N49 的关键路径仍在。
+- IT-N49 已于第215批真修并销账：`chmod-calculator` 支持 setuid(4)/setgid(2)/sticky(1) 特殊位与四位数模式（如 4755/2755/1777），符号位按 s/S 与 t/T 分别渲染，快捷预设及复制命令同步；JSDOM 修好版 18/18、旧源码 3/18。
+- IT-N170–N173 的关键路径仍在。
 - 同批另阅读 `ascii-table`、`box-shadow-generator`、`calc-1`、`calc-10` 的主要交互路径；未对其完整正确性或浏览器行为作通过判定。
 
 ## 已知问题
@@ -201,13 +202,6 @@
 - 复现：`2026-07-01T12:00:00Z` → "纽约 (GMT-5)" 显示 `07:00`（期望 08:00，EDT -4）；"伦敦 (GMT+0)" 显示 `12:00`（期望 13:00，BST +1）
 - 影响：跨时区排障时纽约/伦敦/巴黎/悉尼结果偏差 1 小时；北京/东京/夏威夷不受影响。
 - 方案：改用 `Intl.DateTimeFormat` 的 IANA 时区（America/New_York 等）格式化，或明确标注"标准时（不含 DST）"。
-
-### IT-N49 Chmod 计算器：文档承诺特殊位，界面无法输入/输出四位数（低，确认源码缺陷）
-- 描述：公式说明与 FAQ 都写 setuid/setgid/sticky 置于首位（如 4755），但页面只有 9 个 r/w/x 复选框，`calc` 恒拼接 3 位数字，复制命令也永远是 3 位。
-- 证据：`tools/it/chmod-calculator.html:122`（公式列表）、`200`（FAQ）、`305-311`（calc）、`327-331`（copyPerm）
-- 复现：勾选全部 rwx → `chmod 777 <file>`；没有任何控件能得到 `4755`（期望提供 setuid/setgid/sticky 三个开关并输出 4 位）
-- 影响：需要 setuid/sticky 的场景无法使用，文档与功能不一致。
-- 方案：增加三个特殊位复选框（4/2/1 置千位），或在说明中注明"本工具仅支持 3 位权限"。
 
 ### IT-N54 CRC-8/ITU 的 CCITT 别名待核实（疑似待验证）
 - `tools/it/crc-calculator.html:330` 将模型标为 `CRC-8/ITU (CCITT)`；[CRC RevEng 参数目录](https://reveng.sourceforge.io/crc-catalogue/1-15.htm#crc.cat.crc-8-i-432-1) 列出该参数模型为 `CRC-8/I-432-1`，别名为 `CRC-8/ITU`，未列 CCITT。需核实 CCITT 别名的权威依据，避免与其他 CRC 模型混淆。

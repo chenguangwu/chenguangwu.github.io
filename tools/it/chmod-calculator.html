@@ -136,6 +136,11 @@
         <td><input type="checkbox" id="x2" onchange="calc()"></td>
       </tr>
     </table>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin:-2px 0 14px;font-size:13px;">
+      <label style="margin:0;display:flex;align-items:center;gap:6px;"><input type="checkbox" id="suid" onchange="calc()"> <span data-zh="setuid（4）">setuid (4)</span></label>
+      <label style="margin:0;display:flex;align-items:center;gap:6px;"><input type="checkbox" id="sgid" onchange="calc()"> <span data-zh="setgid（2）">setgid (2)</span></label>
+      <label style="margin:0;display:flex;align-items:center;gap:6px;"><input type="checkbox" id="sticky" onchange="calc()"> <span data-zh="sticky（1）">sticky (1)</span></label>
+    </div>
     <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__chmod_calculatorExport()">导出明细 CSV</button></div><div class="result-box" id="result"></div> <div id="chmod_calculatorTable"></div> <div id="chmod_calculatorDiff"></div> <div id="chmod_calculatorChart"></div> <div id="chmod_calculatorHist"></div>
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
       <div style="flex:1;min-width:140px;background:var(--bg,#FFFAF7);border:1px solid var(--border,#E5E7EB);border-radius:12px;padding:12px;text-align:center;">
@@ -154,6 +159,8 @@
       <button class="btn" onclick="quick('644')">644</button>
       <button class="btn" onclick="quick('700')">700</button>
       <button class="btn" onclick="quick('600')">600</button>
+      <button class="btn" onclick="quick('4755')">4755</button>
+      <button class="btn" onclick="quick('1777')">1777</button>
     </div>
   </div>
 </div>
@@ -283,8 +290,15 @@
 function escH(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function quick(d){
   var map={'7':[1,1,1],'6':[1,1,0],'5':[1,0,1],'4':[1,0,0],'3':[0,1,1],'2':[0,1,0],'1':[0,0,1],'0':[0,0,0]};
+  // IT-N49：支持四位数（4755 / 1777），最高位还原为三个特殊位复选框
+  var s=String(d),sp=0,base=s;
+  if(s.length===4){ sp=parseInt(s.charAt(0),10)||0; base=s.slice(1); }
+  var suid=document.getElementById('suid'),sgid=document.getElementById('sgid'),sticky=document.getElementById('sticky');
+  if(suid)suid.checked=!!(sp&4);
+  if(sgid)sgid.checked=!!(sp&2);
+  if(sticky)sticky.checked=!!(sp&1);
   for(var i=0;i<3;i++){
-    var m=map[d[i]]||[0,0,0];
+    var m=map[base.charAt(i)]||[0,0,0];
     document.getElementById('r'+i).checked=!!m[0];
     document.getElementById('w'+i).checked=!!m[1];
     document.getElementById('x'+i).checked=!!m[2];
@@ -292,11 +306,20 @@ function quick(d){
   calc();
 }
 function calc(){
-  var digits='',syms=[];
+  // IT-N49：setuid(4)/setgid(2)/sticky(1) 置千位，符号模式用 s/S、t/T 标记
+  var sp=0;
+  var suid=document.getElementById('suid'),sgid=document.getElementById('sgid'),sticky=document.getElementById('sticky');
+  if(suid&&suid.checked)sp+=4;
+  if(sgid&&sgid.checked)sp+=2;
+  if(sticky&&sticky.checked)sp+=1;
+  var digits=sp?String(sp):'',syms=[];
   for(var i=0;i<3;i++){
     var r=document.getElementById('r'+i).checked,w=document.getElementById('w'+i).checked,x=document.getElementById('x'+i).checked;
     digits+=(r?4:0)+(w?2:0)+(x?1:0);
-    syms.push((r?'r':'-')+(w?'w':'-')+(x?'x':'-'));
+    var marked=(i===0&&(sp&4))||(i===1&&(sp&2))||(i===2&&(sp&1));
+    // setuid/setgid 的执行位标 s/S；sticky（其他用户位）标 t/T（POSIX 约定）
+    var xch=marked?((i===2)?(x?'t':'T'):(x?'s':'S')):(x?'x':'-');
+    syms.push((r?'r':'-')+(w?'w':'-')+xch);
   }
   const __g1=digits;document.getElementById('numOut').textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
   const __g2=syms.join('');document.getElementById('symOut').textContent=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
@@ -308,9 +331,15 @@ function calc(){
     '600':'仅属主可读可写（私钥、配置文件）',
     '444':'所有用户只读',
     '555':'所有用户可读可执行（防写）',
-    '000':'无任何权限'
+    '000':'无任何权限',
+    '4755':'setuid：执行时以属主身份运行（如 /usr/bin/passwd）',
+    '2755':'setgid：目录内新建文件继承组（共享目录常用）',
+    '1777':'sticky：仅属主可删除自己的文件（如 /tmp）'
   };
-  var tip=tips[digits]||'读(4)+写(2)+执行(1) 之和为该用户组权限位';
+  var __chmodEn=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+  var tip=tips[digits]||(sp
+    ? (__chmodEn?'Special bits '+sp+': setuid=4, setgid=2, sticky=1':'特殊位 '+sp+'：setuid=4、setgid=2、sticky=1')
+    : (__chmodEn?'Sum of read(4)+write(2)+execute(1) per group':'读(4)+写(2)+执行(1) 之和为该用户组权限位'));
   const __g3='<p><code>chmod '+digits+' file</code> → '+escH(syms.join(''))+' · '+escH(tip)+'</p>';document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 }
 function copyPerm(){
