@@ -70,15 +70,15 @@ const CASES = [
   },
   {
     slug: "design/photo-print-size",
-    inputs: { pw: "4000", ph: "3000", dpi: "300" },
-    expect: ["33.9 × 25.4 cm"],
-    ref: "冲印尺寸 = 像素 ÷ DPI × 2.54cm：4000/300×2.54 = 33.87 → 33.9；3000/300×2.54 = 25.4",
+    inputs: { pw: "5000", ph: "4000", dpi: "250" },
+    expect: ["50.8 × 40.6 cm"],
+    ref: "冲印尺寸 = 像素 ÷ DPI × 2.54cm：5000/250×2.54=50.8、4000/250×2.54=40.64→40.6；原 4000/3000/300 恰为页面默认值（A===B 注入无效）且默认态直接命中，改非默认输入与派生尺寸锚。",
   },
   {
     slug: "design/spacing-scale",
-    inputs: { baseSize: "4", ratio: "1.25", levels: "10" },
-    expect: ["space-4 9.8px", "29.8px"],
-    ref: "等比数列 size_i = round(base × ratio^i × 10)/10：4×1.25⁴ = 9.7656 → 9.8；4×1.25⁹ = 29.80 → 29.8",
+    inputs: { baseSize: "6", ratio: "1.4", levels: "8" },
+    expect: ["space-4 23px", "space-7 63.2px"],
+    ref: "等比数列 size_i = round(base × ratio^i × 10)/10，注入非默认值 6/1.4/8：6×1.4⁴ = 23.05 → 23；6×1.4⁷ = 63.25 → 63.2。默认态 4/1.25/10 ⇒ 两条均不命中（旧用例注入的正是默认值，判别器实测 2/2 逃生）。",
   },
   {
     slug: "design/typography-scale",

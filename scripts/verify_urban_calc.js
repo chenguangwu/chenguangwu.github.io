@@ -56,17 +56,17 @@ const CASES = [
 {
   "slug": "urban/parking-ratio",
   "inputs": {
-    "inArea": "50000",
-    "inRatio": "1.0",
-    "inVisitor": "20",
-    "inSpaceArea": "35",
-    "inAccessible": "2",
-    "inType": "office"
+    "inArea": "60000",
+    "inRatio": "1.2",
+    "inVisitor": "25",
+    "inSpaceArea": "30",
+    "inAccessible": "3"
   },
+  "clicks": ["calc();"],
   "expect": [
-    "100m2"
+    "60,000 ÷ 100 × 1.2 = 720.0"
   ],
-  "ref": "auto-restore"
+  "ref": "非默认输入 60000/1.2/25/30/3 派生：60,000÷100×1.2=720.0 个车位；原 expect「100m2」是固定单位标签（两态均命中，判别器实测逃生）。默认态 50,000÷100×1=500.0，不命中。不注入 inType：该 select 的 onchange=onTypeChange() 会把 inArea/inRatio 重置为类型默认，导致派生值回退。"
 },
 {
   "slug": "urban/population-density",

@@ -97,10 +97,10 @@ const CASES = [
   // ── 法律援助资格（低保户免核查）────────────────────────────────────
   {
     slug: "legal/legal-aid-eligibility",
-    inputs: { applicantType: "lowincome" },
+    inputs: { applicantType: "normal", monthlyIncome: "999999", localLowIncome: "2000" },
     checks: ["labor"],
-    expect: ["初步判断符合法律援助申请条件"],
-    ref: "低保户/特困人员免予经济困难核查，且已选申请事项→符合",
+    expect: ["可能不符合法律援助条件"],
+    ref: "普通申请人月人均收入 999999 远超低保标准 2 倍（2000×2=4000）⇒ 明确可能不符合；原 lowincome 用例的「初步判断符合」在默认态同样命中（判别器实测逃生），改用反例锚。",
   },
   // ── 工伤赔偿（一级27个月 + 90%津贴）───────────────────────────────
   {

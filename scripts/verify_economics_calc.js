@@ -14,9 +14,9 @@ const CASES = [
     ref: "APC=C/Y=600/1500=0.400" },
 
   { slug: "economics/balance-of-trade",
-    inputs: { X: "300", M: "250" },
-    expect: ["50"],
-    ref: "BoT=X−M=300−250=50" },
+    inputs: { X: "321", M: "123" },
+    expect: ["198"],
+    ref: "BoT=X−M=321−123=198；改用非默认输入且锚定三位派生差额，避免默认态文本中的裸 50 造成假命中（判别器实测该锚为逃生项）。默认 300/250 态不命中该串。" },
 
   { slug: "economics/cobb-douglas",
     inputs: { A: "2", K: "100", al: "0.5", L: "64" },
