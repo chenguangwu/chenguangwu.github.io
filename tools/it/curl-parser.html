@@ -350,7 +350,11 @@ function parse() {
 }
 
 function trimQuote(v) {
-  return v.replace(/^['\"]|['\"]$/g, '');
+  // IT-D38：双引号包裹时，内部的 \" 是转义引号，须还原成 "；
+  // 单引号包裹时反斜杠是字面量（curl 语义），保持原样。
+  const dq = v.length >= 2 && v[0] === '"' && v[v.length - 1] === '"';
+  const bare = v.replace(/^['\"]|['\"]$/g, '');
+  return dq ? bare.replace(/\\"/g, '"') : bare;
 }
 
 // IT-D37：curl --data-urlencode 的百分号编码（RFC3986）。

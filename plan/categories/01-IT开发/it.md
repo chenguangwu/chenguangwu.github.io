@@ -3094,7 +3094,7 @@
 - **pdf-signature-checker**：仅检测签名存在；文件头 `%PDF-49.46` 恒不匹配判红（既有 `it.md:2582`）、字节数算式错（既有 `:2588`）、PKCS#7 验签承诺未实现（既有 `:2593`）。
 - **properties-parser**：核心扫描正确；CRLF 的 `\r` 留在每个值尾（IT-D33）、`\uXXXX` 不解码（既有 `:140`）、行尾 `\\` 当续行（既有 `:141`）。
 - **ini-parser**：节/注释/重复键正常；`:` 分隔与无值键不支持（IT-D39/IT-D40）。
-- **curl-parser**：`-d`→POST、选项值消费、输出转义、`--data-urlencode` 百分号编码（IT-D37，第164批已修）已到位；末行续行 `\` 被当 URL（IT-D31）、双引号内 `\"` 未反转义（IT-D38）。
+- **curl-parser**：`-d`→POST、选项值消费、输出转义、`--data-urlencode` 百分号编码（IT-D37，第164批已修）、双引号内 `\"` 反转义（IT-D38，第165批已修）已到位；末行续行 `\` 被当 URL（IT-D31）仍留存。
 - **plist-parser**：XML 真解析，dict/array/integer/real/bool 正确；`data`、`date` 原样返回（既有）。
 - **user-agent-parser**：Chrome/Safari/Edge/Firefox/Googlebot 正确；微信 UA 归为 Chrome、CriOS/FxiOS 归「未知」（IT-D41 / 既有 IT-N65）。
 
@@ -3108,7 +3108,6 @@
 | IT-D34 | `tools/office/pdf-split.html:568,455-466` | 假 | 宣称「拆分 PDF 为多个小文件」「段数=ceil(总页数/每段页数)」「文件数=段数」，实际无「每段页数」输入且只产出 1 个 PDF |
 | IT-D35 | `tools/office/pdf-split.html:907` | 中 | 强制 `sort` 升序：`7-10,1` → `[1,7,8,9,10]`，与 `:480,:519`「按填写顺序」矛盾（pdf-lib 本身保序） |
 | IT-D36 | `tools/office/pdf-split.html:1170` | 中 | 历史记录回填后直接调 `downloadResult()`：有缓存则莫名下载，无缓存弹「开始下载」错误提示 |
-| IT-D38 | `tools/it/curl-parser.html:357` | 中 | `trimQuote` 只剥外层引号，双引号内 `\"` 未反转义：data 为 `{\"name\":\"a\"}`，期望 `{"name":"a"}` |
 | IT-D39 | `tools/it/ini-parser.html:275` | 中 | 只认 `=`：`[s]` + `host: localhost` → `{}`，期望 `{"s":{"host":"localhost"}}`（页面称「= 或 : 分隔」） |
 | IT-D40 | `tools/it/ini-parser.html:275` | 中 | 无值键整行丢弃：`[s]` + `flag` → `{}`，期望 `{"s":{"flag":""}}` |
 | IT-D41 | `tools/it/user-agent-parser.html:316` | 中 | 微信 UA（`MicroMessenger/8.0.40 … Chrome/116`）判为 `Chrome 116`，无微信规则；`Baiduspider` 浏览器为「未知」（设备已判爬虫） |

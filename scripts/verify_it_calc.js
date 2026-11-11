@@ -11219,6 +11219,13 @@ const CASES = [
     expect: ["name=a%26b%3Dc"],
     ref: "name=a&b=c 按 key=value 拆分后只对 value 编码：& → %26、= → %3D，key 与分隔符保留 ⇒ name=a%26b%3Dc。修复前原样输出 name=a&b=c，不命中。",
   },
+  {
+    slug: "it/curl-parser",
+    // IT-D38：双引号包裹时内部 \" 是转义引号，须还原成 "；单引号内保持字面反斜杠。
+    inputs: { cmd: "curl -d \"{\\\"name\\\":\\\"a\\\"}\" https://x.com/" },
+    expect: ['"body": "{\\"name\\":\\"a\\"}"'],
+    ref: "双引号包裹的 -d 值 {\\\"name\\\":\\\"a\\\"} 中 \\\" 是转义引号，trimQuote 须还原为 {\"name\":\"a\"}，结构化 JSON 里表现为 \"body\": \"{\\\"name\\\":\\\"a\\\"}\"（JSON 序列化再转义）。修复前 body 保留反斜杠 {\\\"name\\\":\\\"a\\\"}，不命中。默认示例无转义引号，不命中。",
+  },
 
   {
     slug: "it/text-replace",
