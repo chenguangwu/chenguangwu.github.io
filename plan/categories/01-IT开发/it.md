@@ -62,7 +62,7 @@
 - 同批阅读 Linux、MongoDB 速查的搜索、分类与复制路径；无浏览器验证，不对完整正确性判通过。IT-N498–N500 的示例仍须按具体内容另行运行复核。
 - IT-N423、N308、N309 的数据范围问题仍在。
 - IT-N49 已于第215批真修并销账：`chmod-calculator` 支持 setuid(4)/setgid(2)/sticky(1) 特殊位与四位数模式（如 4755/2755/1777），符号位按 s/S 与 t/T 分别渲染，快捷预设及复制命令同步；JSDOM 修好版 18/18、旧源码 3/18。
-- IT-N170–N173 第217批销账（`calc-3`）、IT-N174–N177 第218批（`matrix-transpose`）、IT-N178–N180 第219批（`http-cookies` 与 4 个 HTTP 页过期示例）、IT-N181–N184 第220批（`text-to-ascii`）、IT-N185–N190 第221批（`shell-script-formatter`）、IT-N191–N195 第222批（`unit-converter-advanced`）、IT-N196–N198 第223批（`html-entities-encode`）、IT-N199–N201 第224批（`json-to-toml`），详见下方覆盖行；IT-N202–N206（plist 精度/类型与 ASCII 码工具）等关键路径仍在。
+- IT-N170–N173 第217批销账（`calc-3`）、IT-N174–N177 第218批（`matrix-transpose`）、IT-N178–N180 第219批（`http-cookies` 与 4 个 HTTP 页过期示例）、IT-N181–N184 第220批（`text-to-ascii`）、IT-N185–N190 第221批（`shell-script-formatter`）、IT-N191–N195 第222批（`unit-converter-advanced`）、IT-N196–N198 第223批（`html-entities-encode`）、IT-N199–N201 第224批（`json-to-toml`）、IT-N202–N206 第225批（`plist-parser` 与 `char-encoder`），详见下方覆盖行；IT-N207（char-encoder HTML 命名仅 9 项）等关键路径仍在。
 - 同批另阅读 `ascii-table`、`box-shadow-generator`、`calc-1`、`calc-10` 的主要交互路径；未对其完整正确性或浏览器行为作通过判定。
 
 ## 已知问题
@@ -764,46 +764,7 @@
 - 新增 32 条（高 2 / 中 18 / 低 12），编号 IT-N167~IT-N198。
 - 未覆盖说明：只审计主流程、边界与文档口径，未逐条核对 FAQ/JSON-LD 文案，未检查同模板其它 IT 页；`html-entities-encode` 的"完整实体覆盖"仅按 `NAMED` 表条目数与解码行为核对，未穷举 2000+ HTML5 命名实体。
 - 未做验证：未开浏览器（结论均为源码静态分析 + `node -e` 内存复算，Shell 压缩另用 `bash -n` 校验）、未验证英文态 `?lang=en-US`/繁体/移动端、未跑 `_test_static.py`/`_audit_links.py`/`_audit_assets.py`/`run_gates.py` 等门禁，未触发 `_build.py` 或任何 git 写操作。
-
-### IT-N202 plist `real` 整数值降级为 integer，date/data 往返变 string（中，确认缺陷）
-- 问题：`parseFloat` 后靠 `Number.isInteger` 决定回写标签，`<real>1.0</real>` 往返成 `<integer>1</integer>`；`<date>`/`<data>` 解析时只取文本，回写统一 `<string>`，与 meta 宣称支持这四种类型不符。
-- 证据：`tools/it/plist-parser.html:270`（real）、`:282`（整数/浮点判定）、`:273-274`（date/data 返回 textContent）、`:283`（字符串回写）、`:10`/`:164`（宣称 date/data）。
-- 复现：node 复算 `real 1.0` → `<integer>1</integer>`；`<date>2020-01-01T00:00:00Z</date>` → `<string>...`；`<data>AAECAw==</data>` → `<string>AAECAw==</string>`。
-- 影响：`tools/it/plist-parser.html`
-- 方案：解析时保留类型包装（如 `{__plistType:'real'|'date'|'data'}`），回写按标记输出；real 不再用 `Number.isInteger` 猜。
-**留存建议（tools/it/plist-parser.html）**：保留，补 real/date/data 的往返用例。
-
-### IT-N203 plist 大整数超过 2^53 精度丢失（中，确认缺陷）
-- 问题：`<integer>` 用 `parseInt` 转 Number，超过 `Number.MAX_SAFE_INTEGER` 的值被就近改写，且无提示。
-- 证据：`tools/it/plist-parser.html:269`。
-- 复现：node 复算 `parseInt("9007199254740993")` → `9007199254740992`；期望保留原值或明确告警。
-- 影响：`tools/it/plist-parser.html`
-- 方案：用 `/^-?\d+$/` 校验后 `BigInt` 保存，超安全整数时以字符串标注；或解析时收集告警并在结果区提示。
-**留存建议（tools/it/plist-parser.html）**：修复成本低，建议保留并加边界用例。
-
-### IT-N204 plist 字符串控制字符未转义，可产出非法 XML（低，确认缺陷）
-- 问题：`escapeXml` 只替换 `& < >`，JSON 字符串中的 U+0000–U+001F（除 `\t\n\r`）直接写入 XML 1.0，属非法字符，可被本页解析器和其他 plist 工具拒收。
-- 证据：`tools/it/plist-parser.html:292`、`:283`。
-- 复现：node 复算 `toPlistNode("a\u0001b",0)` 输出含裸 U+0001；把该串喂回本页 `parseInput` 会命中 `parsererror`（`:297`）。
-- 影响：`tools/it/plist-parser.html`
-- 方案：按 XML 1.0 合法码点过滤/替换非法控制字符，并在结果区提示"已剔除 N 个不可打印字符"。
-**留存建议（tools/it/plist-parser.html）**：随 N202/N203 一并修，避免生成"自己都解析不了"的 plist。
-
-### IT-N205 "ASCII 码"行用 UTF-8 字节数判定多字节，纯 ASCII 也被误标（中，确认缺陷）
-- 问题：条件 `bytes.length <= 1` 才显示单值，否则前缀"多字节序列"；因此 `Hello`、`admin` 这类纯 ASCII 文本也会被标注为多字节序列，且该行内容与下一行 UTF-8 字节完全重复。
-- 证据：`tools/it/char-encoder.html:281`。
-- 复现：node 复算 `"Hello"` → `多字节序列: 72, 101, 108, 108, 111`；`"A"` → `65`；期望 ASCII 行按码点输出 `72 101 ...` 或对非 ASCII 标 U+XXXX。
-- 影响：`tools/it/char-encoder.html`
-- 方案：按码点（`codePointAt(0) <= 127`）判定；ASCII 行输出码点，多字节字符显示"非 ASCII（U+XXXX）"，避免与 UTF-8 行重复。
-**留存建议（tools/it/char-encoder.html）**：保留，修标签语义。
-
-### IT-N206 清空后字节视图残留上一段文本（低，确认缺陷）
-- 问题：`clearAll` 只清 `#input` 与 `#results`，不碰 `#byteViewBox`，字符/字节表继续显示旧文本。
-- 证据：`tools/it/char-encoder.html:381-384`、`:168`（独立 `byteViewBox`）、`:335-337`。
-- 复现：输入 `Hello` → 点"清空" → 输入框空、结果空，但字节表仍是 H/e/l/l/o 行（期望整表消失）。
-- 影响：`tools/it/char-encoder.html`
-- 方案：`clearAll` 内补 `byteViewBox.innerHTML=''`，或直接调用 `convert()` 走空输入分支（`:275` 已实现清空）。
-**留存建议（tools/it/char-encoder.html）**：一行修复，建议保留。
+- 第225批销账：IT-N202–N206（`plist-parser` real/date/data 保型与超安全整数与大整数往返与控制字符剔除、`char-encoder` ASCII 行按码点与清空清字节视图），详见下方覆盖行。
 
 ### IT-N207 "HTML 命名"只覆盖 9 个字符，与格式名不符（低，确认缺陷）
 - 问题：命名实体映射仅 `& < > " ' © ® ™ €` 9 项，其余字符原样输出，且没有 `&nbsp;`；标签叫"HTML 命名"容易让用户以为全量命名实体。

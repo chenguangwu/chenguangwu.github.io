@@ -146,7 +146,7 @@
 <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="🍎 Plist 解析器">🍎 Plist Parser</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">用 XML 解析器把 plist 文本解析为文档对象，出现解析错误节点时抛出 XML 解析错误。取 plist 根元素的第一个子元素作为值的根节点，按节点类型递归转换为 JSON（字典转对象、数组转数组、字符串与整数与实数与真假值转对应类型），最后以两个空格缩进输出 JSON</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">用 XML 解析器把 plist 文本解析为文档对象，出现解析错误节点时抛出 XML 解析错误。取 plist 根元素的第一个子元素作为值的根节点，按节点类型递归转换为 JSON（字典转对象、数组转数组、字符串与整数与布尔值转对应类型）；real、date、data 及超过 ±(2^53−1) 的大整数在 JSON 中用 __plistType 标记对象保留原始文本，回写时按标记还原原生标签，避免 real 1.0 降级为 integer、date/data 降级为 string、大整数精度丢失；回写前剔除 U+0000–U+001F 中除制表符/换行/回车外的非法控制字符并提示剔除个数；最后以两个空格缩进输出 JSON</div>
   <div class="formula-desc">本开发工具在前端本地完成解析、转换与处理，代码不离开浏览器，遵循对应语法与格式规范。 工具名称：Plist 解析器 - 免费开发工具，在线Plist 解析器，免费使用。</div>
 </div>
 
@@ -242,6 +242,10 @@
 
 <script>
 const SAMPLE = '<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0">\n<dict>\n  <key>name</key><string>Alice</string>\n  <key>age</key><integer>30</integer>\n  <key>active</key><true/>\n  <key>tags</key>\n  <array>\n    <string>admin</string>\n    <string>user</string>\n  </array>\n  <key>address</key>\n  <dict>\n    <key>city</key><string>SH</string>\n  </dict>\n</dict>\n</plist>';
+// IT-N202/N203：plist 专有类型（real/date/data/超安全整数）在 JSON 里没有原生对应，
+// 用 __plistType 标记对象保留，回写时按标记还原标签；real 保留原始文本，绝不用 Number.isInteger 猜。
+var __plistDropped = 0;
+function plistTyped(type, value){ return {__plistType: type, value: value}; }
 function plistNode(node){
   switch(node.tagName){
     case 'dict': {
@@ -255,19 +259,36 @@ function plistNode(node){
     }
     case 'array': return Array.from(node.children).map(plistNode);
     case 'string': return node.textContent;
-    case 'integer': return parseInt(node.textContent);
-    case 'real': return parseFloat(node.textContent);
+    case 'integer': {
+      const raw = String(node.textContent).trim();
+      // IT-N203：超过 ±(2^53-1) 的十进制整数用 BigInt 判定，保留原始串避免就近改写
+      if(/^-?\d+$/.test(raw)){
+        try{
+          const bi = BigInt(raw);
+          if(bi > BigInt(Number.MAX_SAFE_INTEGER) || bi < BigInt(Number.MIN_SAFE_INTEGER)) return plistTyped('integer', raw);
+        }catch(e){}
+      }
+      return parseInt(raw, 10);
+    }
+    case 'real': return plistTyped('real', String(node.textContent).trim());
     case 'true': case 'True': return true;
     case 'false': case 'False': return false;
-    case 'date': return node.textContent;
-    case 'data': return node.textContent;
+    case 'date': return plistTyped('date', String(node.textContent).trim());
+    case 'data': return plistTyped('data', String(node.textContent).replace(/\s+/g,''));
     default: return node.textContent;
   }
+}
+function isPlistTyped(v){
+  return !!(v && typeof v === 'object' && !Array.isArray(v) &&
+    typeof v.__plistType === 'string' && Object.keys(v).length === 2 &&
+    /^(real|date|data|integer)$/.test(v.__plistType));
 }
 function toPlistNode(v, indent){
   const pad = '  '.repeat(indent);
   if(v === null) return pad + '<string></string>';
   if(typeof v === 'boolean') return pad + '<' + v + '/>';
+  // IT-N202：解析/手写的类型标记对象按标记还原原生标签
+  if(isPlistTyped(v)) return pad + '<' + v.__plistType + '>' + escapeXml(String(v.value)) + '</' + v.__plistType + '>';
   if(typeof v === 'number') return pad + (Number.isInteger(v) ? '<integer>' + v + '</integer>' : '<real>' + v + '</real>');
   if(typeof v === 'string') return pad + '<string>' + escapeXml(v) + '</string>';
   if(Array.isArray(v)) return pad + '<array>\n' + v.map(x => toPlistNode(x, indent + 1)).join('\n') + '\n' + pad + '</array>';
@@ -278,7 +299,11 @@ function toPlistNode(v, indent){
   }
   return pad + '<string>' + escapeXml(String(v)) + '</string>';
 }
-function escapeXml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+// IT-N204：XML 1.0 不允许 U+0000-U+001F（除 \t\n\r），剔除并计数，避免产出自己都解析不了的 plist
+function escapeXml(s){
+  return String(s).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, function(){ __plistDropped++; return ''; })
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
 function plistToJson(){
   setErr('');
   try{
@@ -290,22 +315,27 @@ function plistToJson(){
     setErr('✅ 解析成功');
   }catch(e){ setErr('❌ ' + e.message); }
 }
+function plistDropNote(){
+  return __plistDropped ? '（已剔除 ' + __plistDropped + ' 个不可打印字符）' : '';
+}
 function jsonToPlist(){
   setErr('');
+  __plistDropped = 0;
   try{
     const data = JSON.parse(document.getElementById('input').value);
     setOut('<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0">\n' + toPlistNode(data, 0) + '\n</plist>');
-    setErr('✅ 转换成功');
+    setErr('✅ 转换成功' + plistDropNote());
   }catch(e){ setErr('❌ ' + e.message); }
 }
 function doBeautify(){ plistToJson(); }
 function doMinify(){
   setErr('');
+  __plistDropped = 0;
   try{
     const data = JSON.parse(document.getElementById('input').value);
     const out = '<?xml version="1.0" encoding="UTF-8"?><plist version="1.0">' + toPlistNode(data, 0) + '</plist>';
     setOut(out);
-    setErr('✅ 压缩成功');
+    setErr('✅ 压缩成功' + plistDropNote());
   }catch(e){ setErr('❌ ' + e.message); }
 }
 function loadSample(){document.getElementById('input').value = SAMPLE; plistToJson();}
@@ -313,10 +343,6 @@ function setOut(s){document.getElementById('output').textContent = s;}
 function setErr(s){const e = document.getElementById('err'); e.textContent = s || ''; e.className = 'err' + (s && s.startsWith('✅') ? ' ok' : '');}
 function clearAll(){document.getElementById('input').value = ''; setOut('等待转换...'); setErr('');}
 function getIndent(){const v=document.getElementById('indent').value;return v==='tab'?'\t':' '.repeat(parseInt(v));}
-function setOut(s){document.getElementById('output').textContent=s;}
-function setErr(s){const e=document.getElementById('err');e.textContent=s||'';e.className='err'+(s?'':' ok');}
-function clearAll(){document.getElementById('input').value='';setOut('等待输入...');setErr('');}
-function loadSample(){document.getElementById('input').value=SAMPLE;doBeautify();}
 
 </script><script>
 // tool-intro折叠交互

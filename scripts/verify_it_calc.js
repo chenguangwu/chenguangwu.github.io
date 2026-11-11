@@ -1911,6 +1911,12 @@ const CASES = [
     ref: "独立复算：`Hi~` 的 Base64 ⇒ `SGl+`（同批 ASCII 码 72,105,126 / Unicode U+0048… / 二进制 01001000…，任一都行）。默认态 input 为空 ⇒ 各编码块只渲染标题不渲染值，不命中。",
   },
   {
+    slug: "it/char-encoder",
+    inputs: { input: "AZ" },
+    expect: ["ASCII 码 65 90"],
+    ref: "IT-N205 第225批：纯 ASCII 文本 ASCII 行按码点输出 `65 90`（空格分隔十进制），不再错误标「多字节序列」也不带逗号。默认态 input 为空 ⇒ ASCII 行无值，不命中。",
+  },
+  {
     slug: "it/quoted-printable",
     inputs: { input: "a=b&c" },
     clicks: ["enc()"],
@@ -4401,6 +4407,27 @@ const CASES = [
     clicks: ["jsonToPlist()"],
     expect: ["a 1"],
     ref: "JSON → plist：字段名与标量值按序排列。默认样例键名不同。",
+  },
+  {
+    slug: "it/plist-parser",
+    inputs: { input: '{"a":{"__plistType":"real","value":"1.0"}}' },
+    clicks: ["jsonToPlist();var t=String(document.getElementById('output').textContent||'');document.getElementById('__tbProbe').textContent='PLREAL '+(t.indexOf('<real>1.0</real>')>=0&&t.indexOf('__plistType')<0?'OK':'BAD');"],
+    expect: ["PLREAL OK"],
+    ref: "IT-N202 第225批：带 __plistType 标记的 real 对象回写为原生 <real> 标签（不是当普通 dict 拆成键）。harness blob 会剥标签，故在页面内读 textContent 判断后写探针。输入串移除或改普通对象即不命中。",
+  },
+  {
+    slug: "it/plist-parser",
+    inputs: { input: '{"n":{"__plistType":"integer","value":"9007199254740993"}}' },
+    clicks: ["jsonToPlist();var t=String(document.getElementById('output').textContent||'');document.getElementById('__tbProbe').textContent='PLBIG '+(t.indexOf('<integer>9007199254740993</integer>')>=0?'OK':'BAD');"],
+    expect: ["PLBIG OK"],
+    ref: "IT-N203 第225批：__plistType integer 包装保留完整十进制串（9007199254740993，非就近改写为 ...992）。默认样例不含此大数。",
+  },
+  {
+    slug: "it/plist-parser",
+    inputs: { input: '{"a":"x\\u0001y"}' },
+    clicks: ["jsonToPlist();var t=String(document.getElementById('output').textContent||'');document.getElementById('__tbProbe').textContent='PLCTRL '+(t.indexOf('<string>xy</string>')>=0?'OK':'BAD');"],
+    expect: ["PLCTRL OK"],
+    ref: "IT-N204 第225批：XML 非法控制字符 U+0001 被剔除后输出 <string>xy</string>；旧实现写裸控制字符不命中。默认样例无控制字符。",
   },
   {
     slug: "it/ascii-art",

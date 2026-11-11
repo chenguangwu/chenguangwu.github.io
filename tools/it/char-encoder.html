@@ -268,7 +268,13 @@ function convert(){
   for(const ch of text) codePoints.push(ch.codePointAt(0));
 
   const formats = [
-    [(EN?'ASCII code':'ASCII 码'), bytes.length <= 1 ? bytes.join(', ') : (EN?'Multi-byte sequence: ':'多字节序列: ') + Array.from(bytes).join(', ')],
+    [(EN?'ASCII code':'ASCII 码'), (() => {
+      // IT-N205：按码点（非 UTF-8 字节数）判定。纯 ASCII 输出十进制码点，
+      // 含非 ASCII 时逐点标注 U+XXXX，不再与下一行 UTF-8 字节重复、也不误标 "多字节序列"。
+      if(codePoints.every(cp => cp <= 0x7F)) return codePoints.join(' ');
+      return codePoints.map(cp => cp <= 0x7F ? String(cp) :
+        ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Non-ASCII(U+':'非ASCII(U+') + cp.toString(16).toUpperCase().padStart(4,'0') + ')').join(' ');
+    })()],
     [(EN?'Unicode code point':'Unicode 码点'), codePoints.map(cp => 'U+' + cp.toString(16).toUpperCase().padStart(4,'0')).join(' ')],
     ['UTF-8 Bytes', Array.from(bytes).map(b => b).join(' ')],
     [(EN?'HTML decimal':'HTML 十进制'), codePoints.map(cp => '&#' + cp + ';').join('')],
@@ -370,6 +376,8 @@ function copyAll(){
 
 function clearAll(){
   document.getElementById('input').value = '';
+  // IT-N206：清空时同步清掉字节对照表，避免残留上一段文本
+  document.getElementById('byteViewBox').innerHTML = '';
   const __h2='';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('results').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('results').innerHTML=__h2;
 }
 
