@@ -312,7 +312,13 @@ function parse() {
         val = trimQuote(val);
         if (kind === 'method') { method = val.toUpperCase(); explicitMethod = true; }
         else if (kind === 'header') headers.push(val);
-        else if (kind === 'data') { data = data ? data + '&' + val : val; hasData = true; }
+        else if (kind === 'data') {
+          // IT-D37：--data-urlencode 须按 curl 语义做百分号编码（RFC3986，空格→%20），
+          // 而非像普通 -d 那样原样拼接。name=value 形态只编码两端、保留 '=' 分隔符。
+          const enc = (name === '--data-urlencode') ? urlEncodeData(val) : val;
+          data = data ? data + '&' + enc : enc;
+          hasData = true;
+        }
         else if (kind === 'form') { formFields.push(val); hasData = true; }
         // 其余带值选项（认证/输出文件/代理等）只消费值，不参与 URL
         continue;
@@ -345,6 +351,15 @@ function parse() {
 
 function trimQuote(v) {
   return v.replace(/^['\"]|['\"]$/g, '');
+}
+
+// IT-D37：curl --data-urlencode 的百分号编码（RFC3986）。
+// encodeURIComponent 保留 !'()*，curl 对这些也编码；空格→%20（非 +）。
+function urlEncodeData(v) {
+  const rfc3986 = s => encodeURIComponent(s).replace(/[!'()*]/g, ch => '%' + ch.charCodeAt(0).toString(16).toUpperCase());
+  const eq = v.indexOf('=');
+  if (eq < 0) return rfc3986(v);            // 裸值：整体编码
+  return rfc3986(v.slice(0, eq)) + '=' + rfc3986(v.slice(eq + 1));  // key=value：保留分隔符
 }
 
 function copyResult() {

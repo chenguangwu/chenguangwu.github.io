@@ -11205,6 +11205,20 @@ const CASES = [
     expect: ["方法： PUT URL： https://x.com/api"],
     ref: "IT-N14 显式方法优先：有 -X PUT 时即使带 -d 也不能被默认 POST 覆盖。默认示例为 POST + 另一域名。",
   },
+  {
+    slug: "it/curl-parser",
+    // IT-D37：--data-urlencode 须做 RFC3986 百分号编码，空格→%20（非原样、非 +）。
+    inputs: { cmd: "curl --data-urlencode 'q=a b' https://x.com/" },
+    expect: ["q=a%20b"],
+    ref: "curl --data-urlencode 'q=a b' 按 RFC3986 编码 value 中的空格为 %20 ⇒ body 含 q=a%20b。修复前把 --data-urlencode 当普通 data 原样拼接 ⇒ body 为 q=a b，不命中。默认示例无 --data-urlencode，不命中。",
+  },
+  {
+    slug: "it/curl-parser",
+    // IT-D37：value 中的 & 与 = 须编码，key 与 value 之间的分隔符 = 须保留。
+    inputs: { cmd: "curl --data-urlencode 'name=a&b=c' https://x.com/" },
+    expect: ["name=a%26b%3Dc"],
+    ref: "name=a&b=c 按 key=value 拆分后只对 value 编码：& → %26、= → %3D，key 与分隔符保留 ⇒ name=a%26b%3Dc。修复前原样输出 name=a&b=c，不命中。",
+  },
 
   {
     slug: "it/text-replace",
