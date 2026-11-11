@@ -2928,6 +2928,14 @@ const CASES = [
     ref: "反向锚：C++ 速查过滤无结果计数归零；默认列表非空。",
   },
   {
+    slug: "it/cpp-cheatsheet",
+    // IT-N484：重载示例必须可编译（去掉与单参重载歧义的默认参数），注解用 C++ 注释符。
+    inputs: { searchInput: "重载" },
+    clicks: ["var h=String(document.getElementById('cmdList').innerHTML);document.getElementById('__tbProbe').textContent='CPPOVL '+(h.indexOf('int add(int a, int b) { return a + b; }')>=0&&h.indexOf('// 重载')>=0?'OK':'BAD');"],
+    expect: ["CPPOVL OK"],
+    ref: "注入搜索「重载」后探针读示例区：必须含无默认参数的双参 add 定义与 `// 重载` 注解。旧示例 `int add(int a, int b = 0)` + `int add(int a)` 调用 add(1) 编译歧义，且用 `--` 注解 ⇒ CPPOVL BAD。默认态不执行探针 ⇒ 判别明确。",
+  },
+  {
     slug: "it/docker-cheatsheet",
     inputs: { searchInput: "zzz" },
     expect: ["共 0 项"],

@@ -2716,16 +2716,6 @@
 - 方案：保存 `startedAt` + `remainingAtStart`，`tick` 用时间戳算剩余；`visibilitychange` 时立即刷新。
 - 假工具：否
 
-### IT-N484 — cpp-cheatsheet「函数重载」示例与默认参数冲突，add(1) 编译歧义（中）
-- 页面：`tools/it/cpp-cheatsheet.html`
-- 行号：`tools/it/cpp-cheatsheet.html:365`
-- 问题：示例同时给出 `int add(int a, int b = 0)` 与 `int add(int a)`，并调用 `add(1);`；两个候选对 1 个实参的转换序列完全相同 → 歧义。
-- 复现：`printf 'int add(int a,int b=0){return a+b;}\nint add(int a){return a+1;}\nint use(){return add(1);}' > /tmp/x.cpp && clang++ -std=c++20 -fsyntax-only /tmp/x.cpp` → 实际 `error: call to 'add' is ambiguous` 并列出两候选；`add(1,2)` 正常。
-- 期望：示例可编译（删掉单参重载，或去掉默认参数）。
-- 影响：标为“重载”的示例复制后直接编译失败；默认参数+重载本就是常见误区，示例反而示范了错误写法。
-- 方案：`int add(int a, int b)` 与 `int add(int a)`，或保留默认参数时删掉单参版本。
-- 假工具：否
-
 ### IT-N485 — typescript-cheatsheet 非空断言示例对 Element 取 .value，类型检查报错（中）
 - 页面：`tools/it/typescript-cheatsheet.html`
 - 行号：`tools/it/typescript-cheatsheet.html:520`（同页 `:512` 已给出正确写法 `as HTMLInputElement`）
@@ -2751,7 +2741,7 @@
 - `convert-11`：IT-N483（中）；其余主路径正确（`192.168.1.1 ↔ 3232235777 ↔ 11000000.00000000.00000001.00000001`，`4294967295 ↔ 255.255.255.255 ↔ 全 1` 均对齐）。
 - `typescript-cheatsheet`：IT-N485、IT-N486（中）；无高优（泛型/工具类型/`keyof` 等示例经核对正确）。
 - `typing-test`：IT-N482（中）；无高优（WPM/准确率公式正确，中文按字/分、英文按 5 字符/词，历史与图表取数正确）。
-- `cpp-cheatsheet`：IT-N484、IT-N486（中）；无其它高优（`constexpr` 阶乘、`std::optional`、模板示例经核对正确）。
+- `cpp-cheatsheet`：IT-N486（中，其余条目的 `--` 注解待修；重载示例的 `--` 已随 IT-N484 于第176批改为 `//`）；无其它高优（`constexpr` 阶乘、`std::optional`、模板示例经核对正确）。
 - `ruby-cheatsheet`：IT-N486（中）；无高优（搜索/分类/复制/图表逻辑正常，块/Proc/Lambda 示例正确）。
 - `postgresql-cheatsheet`：无高优/中优（`--` 在 SQL/psql 中是合法注释；`psql` 元命令、DML/DDL、JSONB、`pg_dump -Fc` 与 `pg_restore -j` 组合均与官方文档一致——`-j` 明确支持 custom 与 directory 两种格式）。
 - 安全：本批 8 页未发现可利用的安全问题（唯一 HTML 拼接点是 `git-commands` 的静态 `COMMANDS` 与搜索文本匹配，不写入 `innerHTML`；`typing-test` 历史渲染的 localStorage 内容仅在同源自污染范围内，不计）。
