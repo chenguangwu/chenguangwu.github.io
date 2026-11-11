@@ -153,7 +153,36 @@
 </div>
 <script>
 function toBin32(n){var s='';for(var i=31;i>=0;i--){s+=((n>>i)&1);if(i%8===0&&i>0)s+='.';}return s;}
-function calc(){var v=(document.getElementById('val').value||'').trim();var from=document.getElementById('from').value;var to=document.getElementById('to').value;var dec,out='';try{if(from==='dot'){var ps=v.split('.');if(ps.length!==4||ps.some(function(x){return x===''||+x<0||+x>255;})){out='IPv4 格式无效';}else{dec=ps.reduce(function(a,x){return a*256+(+x);},0);}}else if(from==='bin'){var bs=v.replace(/\./g,'');if(bs.length!==32||/[^01]/.test(bs)){out='二进制串应为32位0/1';}else{dec=parseInt(bs,2);}}else{dec=parseInt(v,10);if(isNaN(dec)||dec<0||dec>4294967295)out='整数超出 IPv4 范围';}if(out===''){if(to==='dot'){out=[(dec>>24)&255,(dec>>16)&255,(dec>>8)&255,dec&255].join('.');}else if(to==='bin'){out=toBin32(dec);}else{out=dec.toString(10);}}}catch(e){out='输入无效';}const __g1='<p style="font-size:18px;color:var(--primary);"><strong>'+out+'</strong></p>';document.getElementById('res').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));}calc();function copyRes(){ToolBox.copyText(document.getElementById('res').innerText);}
+function calc(){
+  var v=(document.getElementById('val').value||'').trim();
+  var from=document.getElementById('from').value;
+  var to=document.getElementById('to').value;
+  var dec,out='';
+  try{
+    if(from==='dot'){
+      // IT-N483：每段须为 1–3 位纯十进制数字且 0–255。
+      // 旧判据 x===''||+x<0||+x>255 对 NaN 两比较均 false，非数字段被放行，reduce 得 NaN。
+      var ps=v.split('.');
+      if(ps.length!==4||ps.some(function(x){return !/^\d{1,3}$/.test(x)||+x>255;})){out='IPv4 格式无效';}
+      else{dec=ps.reduce(function(a,x){return a*256+(+x);},0);}
+    }else if(from==='bin'){
+      var bs=v.replace(/\./g,'');
+      if(bs.length!==32||/[^01]/.test(bs)){out='二进制串应为32位0/1';}
+      else{dec=parseInt(bs,2);}
+    }else{
+      // 十进制须为纯整数字符串：parseInt 会把 '1e3' 截断成 1、'12.9' 成 12、'0x10' 成 0。
+      if(!/^\d+$/.test(v)){out='整数超出 IPv4 范围';}
+      else{dec=Number(v);if(!Number.isSafeInteger(dec)||dec<0||dec>4294967295)out='整数超出 IPv4 范围';}
+    }
+    if(out===''){
+      if(to==='dot'){out=[(dec>>24)&255,(dec>>16)&255,(dec>>8)&255,dec&255].join('.');}
+      else if(to==='bin'){out=toBin32(dec);}
+      else{out=dec.toString(10);}
+    }
+  }catch(e){out='输入无效';}
+  const __g1='<p style="font-size:18px;color:var(--primary);"><strong>'+out+'</strong></p>';document.getElementById('res').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+}
+calc();function copyRes(){ToolBox.copyText(document.getElementById('res').innerText);}
 <!-- TOOLBOX-REALIZED -->
 </script>
 

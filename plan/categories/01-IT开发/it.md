@@ -2724,16 +2724,6 @@
 - 方案：保存 `startedAt` + `remainingAtStart`，`tick` 用时间戳算剩余；`visibilitychange` 时立即刷新。
 - 假工具：否
 
-### IT-N483 — convert-11 非法段/非整数输入通过校验并静默输出错误值（中）
-- 页面：`tools/it/convert-11.html`
-- 行号：`tools/it/convert-11.html:168`（`calc()` 单行体，含 `ps.some(...)` 与 `parseInt(v,10)`）
-- 问题：点分校验 `x === '' || +x < 0 || +x > 255` 对 `NaN` 两个比较均为 false，任一段写成非数字即放行，`reduce` 得 `NaN`：`to=bin` → `toBin32(NaN)` 全 0、`to=dot` → `0.0.0.0`、`to=dec` → 字符串 `NaN`。十进制分支 `parseInt(v,10)` 只判范围，`1e3`→1、`12.9`→12、`0x10`→0。
-- 复现（`node` 复刻页面原函数逐条实跑）：`from=dot, "1.2.3.x", to=dot` → 实际 `0.0.0.0`；`from=dot, "1a.2.3.4", to=bin` → 实际 `00000000.00000000.00000000.00000000`；`from=dec, "1e3", to=dot` → 实际 `0.0.0.1`；`from=dec, "12.9", to=dot` → 实际 `0.0.0.12`。
-- 期望：非法 IPv4 提示“IPv4 格式无效”；十进制仅接受 `/^\d+$/` 且 0–4294967295 的整数（`1e3`→1000 或拒绝，`12.9`/`0x10` 拒绝）。
-- 影响：用户以为转换成功，实际得到 0.0.0.0/截断值；`0.0.0.0` 还能通过 `__convert_11ResText` 的 NaN 过滤进入历史与导出。
-- 方案：每段加 `/^\d{1,3}$/` 且 `Number.isInteger`、0–255；十进制先 `/^\d+$/` 再 `Number()`。
-- 假工具：否
-
 ### IT-N484 — cpp-cheatsheet「函数重载」示例与默认参数冲突，add(1) 编译歧义（中）
 - 页面：`tools/it/cpp-cheatsheet.html`
 - 行号：`tools/it/cpp-cheatsheet.html:365`

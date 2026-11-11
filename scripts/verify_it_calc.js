@@ -2824,6 +2824,30 @@ const CASES = [
     ref: "十进制 255 → 点分二进制补齐 8 位×4 ⇒ 11111111；默认入参是 IP 地址 192.168.1.1（dot→bin），不命中。",
   },
   {
+    slug: "it/convert-11",
+    // IT-N483-a：非数字段（NaN）不得放行成 0.0.0.0。
+    inputs: { val: "1.2.3.x", from: "dot", to: "dot" },
+    clicks: ["calc()"],
+    expect: ["IPv4 格式无效"],
+    ref: "点分段 'x' 非数字，旧判据 on +x<0 / +x>255 对 NaN 均 false ⇒ 放行并 reduce 得 NaN ⇒ 输出 0.0.0.0。修复后每段须 /^\\d{1,3}$/ ⇒ 明确报 IPv4 格式无效。默认 192.168.1.1 合法不命中。",
+  },
+  {
+    slug: "it/convert-11",
+    // IT-N483-b：十进制 parseInt 截断（1e3→1）不得放行。
+    inputs: { val: "1e3", from: "dec", to: "dot" },
+    clicks: ["calc()"],
+    expect: ["整数超出 IPv4 范围"],
+    ref: "十进制 '1e3' 非纯数字，旧 parseInt(v,10)=1 ⇒ 输出 0.0.0.1。修复后先 /^\\d+$/ 校验 ⇒ 报整数超出 IPv4 范围。默认 192.168.1.1 走 dot 分支不命中。",
+  },
+  {
+    slug: "it/convert-11",
+    // IT-N483-c：小数 parseInt 截断（12.9→12）不得放行。
+    inputs: { val: "12.9", from: "dec", to: "dot" },
+    clicks: ["calc()"],
+    expect: ["整数超出 IPv4 范围"],
+    ref: "十进制 '12.9' 非整数，旧 parseInt=12 ⇒ 输出 0.0.0.12。修复后 /^\\d+$/ 拒绝 ⇒ 报整数超出 IPv4 范围。与 1e3 用例同分支但不同非法形态，分别锁住科学计数/小数两类截断。",
+  },
+  {
     slug: "it/playfair-cipher",
     inputs: { input: "HELLO", key: "KEY" },
     expect: ["DBNVMI"],
