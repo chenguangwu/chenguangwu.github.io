@@ -32,9 +32,6 @@
 - `tools/it/js-minifier.html:176,383-430` 即使 tokenize 区分字符串和正则，最后仍对整段输出全局替换空白及运算符。Node 抽取页面原函数复算：`const text = "a  b";` 被压成 `const text="a b";`，字符串数据改变。应仅在 token 间压缩，生产使用仍需真正的解析器。
 - `:189,445-459,462-491` 输入变化只重置统计，不清空输出；选择示例亦仅重置统计，复制仍读取前次结果。应在输入变化时清空旧结果或明确标记过期。
 
-### JS / Java 转义非法输入缺少错误处理（中，代码确认）
-- `tools/it/js-escape.html:318-327` 输入 `\u{110000}` 时 `String.fromCodePoint` 抛 RangeError；`tools/it/java-escape.html:328-330` 输入 `\u` 会因 NaN 抛同样异常。二者无输入校验或 catch，导致不更新旧输出；应校验码点及十六进制长度并清除旧结果。
-
 ### Markdown 正文命中数值守卫导致预览错误（中，代码确认）
 - `tools/it/markdown-editor.html:954-958,1120-1126,1187-1193` 对生成的整段 HTML 匹配 `Infinity` 或独立 `NaN`，合法 Markdown 正文或代码包含这些字符串时预览被替换为「计算结果含无效值」，统计也不更新；复制 HTML 复制错误提示，而导出 HTML 直接解析源内容，二者不一致。应移除对文本内容的数值守卫；未运行浏览器。
 

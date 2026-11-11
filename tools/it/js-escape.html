@@ -139,6 +139,7 @@
     <li><b>码点</b>：ES6 起可用 <code>\u{XXXXX}</code> 表示超出 BMP 的字符（如 emoji）。</li>
     <li><b>模板串</b>：反引号字符串支持多行与 <code>${}</code> 插值，其中的反引号与 <code>${</code> 需转义。</li>
     <li><b>用途</b>：把文本安全嵌入 JS 字面量，避免语法错误与注入风险。</li>
+    <li><b>非法序列</b>：十六进制位数不足/非法、码点超过 U+10FFFF 或缺少右花括号时显示错误并清空旧结果。</li>
   </ul>
 </div>
 
@@ -280,6 +281,13 @@ function esc(live){
   document.getElementById('output').value = out;
 }
 
+function __jsUnescErr(frag){
+  const raw = String(frag);
+  const zh = "⚠️ 非法转义：" + raw;
+  const en = "Invalid escape: " + raw;
+  document.getElementById('output').value = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh);
+}
+
 function unesc(){
   const text = document.getElementById('input').value;
   if(!text) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter JS string to unescape":"请输入要反转义的 JS 字符串"));
@@ -304,14 +312,27 @@ function unesc(){
         case '\\': out += '\\'; i += 2; break;
         case '\'': out += "'"; i += 2; break;
         case '"': out += '"'; i += 2; break;
-        case 'x': out += String.fromCodePoint(parseInt(s.substr(i+2,2),16)); i += 4; break;
+        case 'x': {
+          const hex = s.substr(i+2,2);
+          if(!/^[0-9a-fA-F]{2}$/.test(hex)){ __jsUnescErr(s.substr(i,2+hex.length)); return; }
+          out += String.fromCodePoint(parseInt(hex,16));
+          i += 4; break;
+        }
         case 'u':
           if(s[i+2] === '{'){
             const end = s.indexOf('}', i+3);
-            out += String.fromCodePoint(parseInt(s.substring(i+3,end),16));
+            const hex = end < 0 ? '' : s.substring(i+3,end);
+            const cp = parseInt(hex,16);
+            if(end < 0 || !/^[0-9a-fA-F]{1,6}$/.test(hex) || cp > 0x10FFFF){
+              __jsUnescErr(end < 0 ? s.slice(i) : s.slice(i,end+1));
+              return;
+            }
+            out += String.fromCodePoint(cp);
             i = end + 1;
           } else {
-            out += String.fromCodePoint(parseInt(s.substr(i+2,4),16));
+            const hex = s.substr(i+2,4);
+            if(!/^[0-9a-fA-F]{4}$/.test(hex)){ __jsUnescErr(s.substr(i,2+hex.length)); return; }
+            out += String.fromCodePoint(parseInt(hex,16));
             i += 6;
           }
           break;
