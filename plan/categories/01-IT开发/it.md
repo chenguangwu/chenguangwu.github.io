@@ -54,7 +54,7 @@
 ### 历史结论状态
 - Unicode 查询 IT-N554–N556 已于第212批真机验证并销账：U+/0x 码点检索、1342 条标准名称表、`data-code` 复制均在位。
 - 原文本统计 IT-N39 已于第243批销账：字素簇统计 + 码点数分列、句号保护小数与缩写、裸 CR 切行均已真机回归。本批另阅读 SQL、SQLite、tmux 速查及字符串混淆主要交互，未穷举内容正确性或运行页面。
-- 正则转义 IT-N58 所述非法十六进制和越界直接抛错的实现已变化，当前 `tools/it/regex-escape.html:301-315` 校验后保留不完整转义；未运行回归，不正式销账。IT-N59 的额外元字符集合仍在，风格下拉也未绑定变更刷新。
+- 正则转义 IT-N58 已于第246批真机复核销账：非法/越界转义校验后保留字面、不抛异常。IT-N59 的额外元字符集合仍在，风格下拉也未绑定变更刷新。
 - Rust 转义 IT-N338 旧字节串非法 `\u{}` 路径已变化，当前 `tools/it/rust-escape.html:287-295` 明确拒绝非 ASCII；未运行编译回归，不正式销账。本批另阅读 REST、Ruby、Rust 速查搜索、分类和复制，未穷举语法正确性或运行页面。
 - 番茄钟 IT-N480、N481 已改为时间戳计时与跳过不落账并销账（第181批）；Redis IT-N543、N544 的原示例尚需独立复核（正则速查 IT-D30 已独立复核并修复，第170批）。本批另阅读 PostgreSQL、Python、Redis、正则速查的搜索、分类与复制，不把源码阅读当作运行通过。
 - 密码强度 IT-N536–N538 已于第214批真机验证并销账：三档破解速率标签与除数一致（10亿/1000亿/1万亿 与 seconds、/100、/1000 同步）、熵判读按 <40/<60/<120 阈值单列且与清单等级并存、弱点清单（常见片段/重复/序列）提示到位；MySQL、Nginx、PHP 速查历史示例正确性仍待单独复核。
@@ -173,13 +173,6 @@
 
 > 范围：本轮阅读 8 页（`tools/it/punycode.html`、`tools/it/regex-escape.html`、`tools/it/css-minifier.html`、`tools/it/date-duration.html`、`tools/it/ipv4-range-expander.html`、`tools/it/user-agent-parser.html`、`tools/it/hash-multi.html`、`tools/it/http-cache.html`）。仅源码 + Node/jsdom 复算，未开浏览器/未做 EN/移动端/门禁验证。
 
-### IT-N58 正则转义：反转义遇非法 `\x`/`\u` 逃逸抛未捕获异常，按钮无响应（中，确认源码缺陷）
-- 描述：`unesc()` 对 `\xHH`、`\uHHHH`、`\u{...}` 直接 `String.fromCodePoint(parseInt(...))`，不校验十六进制合法性与码点范围；`\u{` 缺少右花括号时 `indexOf` 返回 -1，`substring` 取到空串。`parseInt` 得 `NaN`、码点越界或空值都会让 `fromCodePoint` 抛 `RangeError`，`unesc` 没有 try/catch，异常冒泡到内联 `onclick`。
-- 证据：`tools/it/regex-escape.html:298-309`（299 `\x`、304 `\u{...}`、307 `\uHHHH`）
-- 复现：输入 `\xZZ` 点「反转义」→ 控制台抛 `RangeError: Invalid code point NaN`，输出框保持旧值（期望提示「非法十六进制转义」）；`\u{110000}` → `Invalid code point 1114112`；`\u{` → `Invalid code point NaN`；`\uZZZZ` → 同样抛错。
-- 影响：用户在整理日志/正则时输入不完整转义即静默失败，看不到任何界面反馈；旧结果可能被误当成本次结果复制。
-- 方案：对 `\x`/`\u` 先校验 `^[0-9a-fA-F]{2,4}$` 与码点 ≤ 0x10FFFF，`\u{...}` 要求存在闭合 `}`；失败时在输出区显示具体位置与原因，并清空旧输出。
-
 - 备注：`tools/it/punycode.html:404-410`、`tools/it/regex-escape.html:321-328` 的 `copyResult` 依赖全局 `event`（与 IT-N31 同模式，Firefox 可能失效），不重复计数，未单列为新条目。
 - 本轮实读 8 页：`tools/it/punycode.html`、`tools/it/regex-escape.html`、`tools/it/css-minifier.html`、`tools/it/date-duration.html`、`tools/it/ipv4-range-expander.html`、`tools/it/user-agent-parser.html`、`tools/it/hash-multi.html`、`tools/it/http-cache.html`；新增 15 条（高 3 / 中 8 / 低 4）；未覆盖：`tools/it` 其余非文本页（如 `html-minifier`、`html-nesting-checker`、`c-string-escape`、`go-escape`、`java-escape`、`js-minifier`、`js-obfuscator`、`sql-formatter`、`shell-script-formatter`、`dockerfile-generator`、`gitignore-generator`、`robots-txt-generator`、`sitemap-generator`、`ssh/证书/密钥类` 等）与全部速查表页；未做浏览器、EN、移动端、门禁或部署验证。
 
@@ -201,34 +194,6 @@
 - 影响："文件加密/解密"名实不符，密文体积翻倍且丢失二进制语义；用户无法完成文件级往返。
 - 方案：文件模式直接把 `Uint8Array` 作为明文/密文（跳过 TextEncoder），解密后提供"下载原文件"按钮并按原文件名保存；或在 UI 明示"文件仅转为 Base64 文本，不支持还原"。
 - 状态（2026-11-06）：本批未处理——彻底修复需新增"下载原文件"按钮与文件名字还原链路，涉及新增 UI 标签（须同步 `js/tool-i18n-en.js` GEN_UI_MAP），单列下批处理；本页 N86/N87/N88/N91/N92 已在同批修复。
-
-### IT-N97 SSL/TLS 知识速查：中文说"浏览器无法读取远程证书"，英文却说"从主机读取证书详情"（中，确认源码缺陷）
-- 问题：同一 `<p>` 的中文 `data-zh` 明确写"纯前端静态工具…浏览器无法直接读取远程证书…请用锁图标或 openssl s_client"，而英文正文承诺 "Decode and inspect SSL/TLS certificate details (issuer, validity, SAN) from a host in your browser."；页面实际没有任何主机输入与证书读取能力。
-- 证据：`tools/it/ssl-info.html:155-157`
-- 复现：`?lang=en-US` 打开页面 → 简介宣称可读取远程证书；页内无 host/URL 输入，只有"知识速查 + 强度估算器"两个页签（期望英文与中文同义，或提供 PEM 粘贴解析）。
-- 影响：英文用户按说明寻找"输入域名看证书"功能而找不到，信任受损；也是 SEO 描述与实际功能不符。
-- 方案：英文改为与中文一致的静态说明（"reference only; use the address-bar lock icon or openssl s_client"）；若想兑现该描述，另加"粘贴 PEM 证书离线解析 SAN/有效期/颁发者"。
-
-### IT-N98 SSL/TLS 知识速查：预设条重复，且其中一条标签被截断成"…"（中，确认源码缺陷）
-- 问题：正文手写了一条 `data-tb="preset"`，标签是生成时被截断的 `"算力（次/秒）：1000000000000·算法类型：ae…"`；同时脚本又调用 `TBKit.preset.bar('#ssl_infoPresets', …)`，而页面没有该 id，`preset.ensureHost` 会在第一个 `input[type=number]`（`#calcSpeed`）前自动新建宿主，于是同一页出现两条预设栏，手写那条永远显示省略号。
-- 证据：`tools/it/ssl-info.html:295`（截断标签）、`tools/it/ssl-info.html:575-577`（脚本预设）、`js/tool-kit.js:1013-1031`（缺宿主时自动建）
-- 复现：打开"强度估算器" → 预设区出现两组按钮（一组"默认参数/…"，另一组"默认参数/AES-256/…"），其中第一组首个按钮文字以 `ae…` 结尾（期望仅一条预设、标签完整）。
-- 影响：UI 重复且出现裸省略号，像未完成的占位内容；也浪费首屏高度。
-- 方案：删除 295 行手写 `data-tb="preset"`（或改成 `id="ssl_infoPresets"` 的宿主并删脚本重复注册），标签用完整中文"算力 1e12 次/秒 · AES-128"。
-
-### IT-N99 SSL/TLS 知识速查：破解耗时取整越界，364.99 天显示成"12 个月"（低，确认源码缺陷）
-- 问题：各档位先按上限判断再 `Math.round`，临界值会跨档：`sec=31,535,999`（差 1 秒满一年）→ `Math.round(31535999/2592000)=12` → "12 个月"；`sec=59.7` → "60 秒"；`sec=86,399` → "24 小时"。
-- 证据：`tools/it/ssl-info.html:450-464`（453/454/455/457 行）
-- 复现（Node 复算页内 `formatTime`）：`formatTime(31535999)` → 实际 `12 个月`（期望 `1 年`）；`formatTime(59.7)` → `60 秒`（期望 `1 分钟`）；`formatTime(86399)` → `24 小时`（期望 `1 天`）。
-- 影响：估算结果在临界点自相矛盾（"12 个月"却 <1 年），降低可信度。
-- 方案：先对秒数做向下取整到目标单位再判档，或在 `Math.round` 后若达到下一档阈值则进位；补 59.5/3599/86399/31535999 边界用例。
-
-### IT-N100 SSL/TLS 知识速查：算力输入不校验正数，负数会得到"< 1 秒"却判"不安全"（低，确认源码缺陷）
-- 问题：`parseFloat(...) || 1` 只兜底空值/0/NaN，负数原样进入 `sec = avg / speed`，得到负时间；`formatTime` 落进 `sec < 1` 分支输出"< 1 秒"，安全分级落到"❌ 不安全"。
-- 证据：`tools/it/ssl-info.html:412`、`tools/it/ssl-info.html:432-438`、`tools/it/ssl-info.html:452`
-- 复现：算法 AES-128、算力输入 `-100` → 实际"破解耗时 < 1 秒 / 不安全"（期望提示"算力必须为正数"或按 1 次/秒计算并标注）。
-- 影响：负时间在语义上不可能，结果自相矛盾；用户可能误以为工具算错。
-- 方案：`const speed = parseFloat(...); if (!(speed > 0)) { toast/提示; 回退 1 }`；同时把 `min="1"` 的约束在 JS 侧执行（浏览器只拦 spinner，手输可绕过）。
 
 - 留存建议（ssl-info）：①增加"粘贴 PEM 证书离线解析"（SAN/有效期/颁发者/密钥用法），比纯口诀更实用；②强度估算增加"所需算力/电费量级"与"推荐算法"结论；③补 SSL3/TLS1.0-1.3 对照与常见配置错误清单，并提供可复制的 Nginx 配置片段。
 

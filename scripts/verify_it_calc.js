@@ -6882,6 +6882,20 @@ const CASES = [
     "ref": "注入算法 aes256、算力 1e12 ops/s。2^256 ≈ 10^77.1（密钥空间），远不可破解 ⇒ 『极度安全』。默认态算法 aes128 ⇒ 2^128 ≈ 10^38.6，不出现 10^77.1。注：页面按所选算法估算密钥空间，纯算术无随机。"
   },
   {
+    slug: "it/ssl-info",
+    inputs: { calcSpeed: "1000000000000", calcAlgo: "aes128" },
+    clicks: ["document.getElementById('__tbProbe').textContent='N99FT '+[formatTime(59.7),formatTime(86399),formatTime(31535999)].join('|');"],
+    expect: ["N99FT 1 分钟|1 天|1 年"],
+    ref: "IT-N99：临界秒数取整后不得跨档——59.7 秒须进为「1 分钟」（旧 Math.round 得「60 秒」）、86399 秒须进为「1 天」（旧「24 小时」）、31535999 秒须进为「1 年」（旧「12 个月」）。探针直接调 formatTime，默认态无该串。",
+  },
+  {
+    slug: "it/ssl-info",
+    inputs: { calcSpeed: "-100", calcAlgo: "aes128" },
+    clicks: ["estimate();document.getElementById('__tbProbe').textContent='N100SPD '+document.getElementById('crackTime').textContent;"],
+    expect: ["N100SPD 算力须为正数"],
+    ref: "IT-N100：算力为负数时旧实现 parseFloat||1 放行、sec=avg/speed 得负时间并显示「< 1 秒」却判不安全；现明确提示「算力须为正数」并停止。默认算力 1e12 合法、不出现该提示。",
+  },
+  {
     "slug": "it/emoji-meaning",
     "inputs": { "searchInput": "火箭" },
     "clicks": ["renderCategories()"],

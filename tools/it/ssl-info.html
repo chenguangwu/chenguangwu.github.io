@@ -281,7 +281,7 @@
       <h3>🔒 加密强度估算器</h3>
       <p style="font-size:13px;color:#666;margin-bottom:10px;">估算破解对应密钥所需的算力与时间</p>
       <div class="calc-row">
-        <div data-tb="preset" data-tb-presets='[{"label":"算力（次/秒）：1000000000000·算法类型：ae…","labelEn":"calcSpeed=1000000000000 · calcAlgo=aes1…","values":{"calcSpeed":"1000000000000","calcAlgo":"aes128"}}]'></div>
+        <div id="ssl_infoPresets"></div>
 <label>算法类型：</label>
         <select id="calcAlgo" onchange="estimate()">
           <option value="aes128">AES-128</option>
@@ -398,7 +398,16 @@ function showTab(name, btn){
 
 function estimate(){
   const algo = document.getElementById('calcAlgo').value;
-  const speed = parseFloat(document.getElementById('calcSpeed').value) || 1;
+  // IT-N100：算力必须为正数。旧 `|| 1` 只兜底 0/NaN，负数原样进入 sec=avg/speed 得到负时间并显示「< 1 秒」却判「不安全」。
+  const speedRaw = parseFloat(document.getElementById('calcSpeed').value);
+  const badSpeed = !isFinite(speedRaw) || speedRaw <= 0;
+  const speed = badSpeed ? 1 : speedRaw;
+  if(badSpeed){
+    const en = (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+    document.getElementById('crackTime').textContent = en ? 'Invalid speed: must be a positive number (using 1/s)' : '算力须为正数（已按 1 次/秒计算）';
+    document.getElementById('bigResult').textContent = document.getElementById('crackTime').textContent;
+    return;
+  }
   const data = {
     aes128: {bits:128, name:'AES-128'},
     aes256: {bits:256, name:'AES-256'},
@@ -438,14 +447,15 @@ function formatBig(n){
 
 function formatTime(sec){
   if(!isFinite(sec) || sec > 1e25) return '∞（不可破解）';
+  // IT-N99：先算取整值，若达到下一档的进位阈值则直接进到下一档，避免 59.7→"60 秒"、31535999→"12 个月" 这类跨档矛盾。
   if(sec < 1) return '< 1 秒';
-  if(sec < 60) return Math.round(sec) + ' 秒';
-  if(sec < 3600) return Math.round(sec/60) + ' 分钟';
-  if(sec < 86400) return Math.round(sec/3600) + ' 小时';
-  if(sec < 2592000) return Math.round(sec/86400) + ' 天';
-  if(sec < 31536000) return Math.round(sec/2592000) + ' 个月';
+  let v = Math.round(sec);           if(v < 60) return v + ' 秒';
+  v = Math.round(sec/60);            if(sec < 3600 && v < 60) return v + ' 分钟';
+  v = Math.round(sec/3600);          if(sec < 86400 && v < 24) return v + ' 小时';
+  v = Math.round(sec/86400);         if(sec < 2592000 && v < 30) return v + ' 天';
+  v = Math.round(sec/2592000);       if(sec < 31536000 && v < 12) return v + ' 个月';
   const years = sec / 31536000;
-  if(years < 1000) return Math.round(years) + ' 年';
+  if(years < 1000) return Math.max(1, Math.round(years)) + ' 年';
   if(years < 1e6) return Math.round(years/1000) + ' 千年';
   if(years < 1e9) return Math.round(years/1e6) + ' 百万年';
   if(years < 1e12) return Math.round(years/1e9) + ' 十亿年';
