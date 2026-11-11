@@ -3435,6 +3435,14 @@ const CASES = [
     ref: "独立复算：RFC 4180 只允许字段起始处的双引号开启引用段 ⇒ 第二行是 3 个单元格 `1` / `x\"y` / `2`；修复前把中间双引号当引用起点，输出 `xy,2` 一个单元格（`<td>xy,2</td>`），本锚不命中。默认示例无引号。",
   },
   {
+    slug: "it/csv-to-html-table",
+    // IT-N304：文本 NaN/Infinity 不得改成破折号；空输入不得回退虚构样例。
+    clicks: ["var nl=String.fromCharCode(10);var el=document.getElementById('csvInput');el.value='v'+nl+'NaN'+nl+'Infinity Labs'+nl+'NaNValue';calcTool();var h=document.getElementById('htmlOut').value;var p=document.getElementById('previewBox').innerHTML;var t=(h.indexOf('NaN')>0&&h.indexOf('Infinity Labs')>0&&h.indexOf('NaNValue')>0&&h.indexOf('—')<0&&p.indexOf('NaNValue')>0?'OK':'BAD');el.value='';calcTool();var e=document.getElementById('htmlOut').value;var ep=document.getElementById('previewBox').innerHTML;document.getElementById('__tbProbe').textContent='N304 '+t+' EMPTY '+(e===''&&ep.indexOf('输入为空')>=0?'OK':'BAD');"],
+    inputs: { csvInput: "v\nNaN\nInfinity Labs\nNaNValue", sepSel: ",", withHeader: true },
+    expect: ["N304 OK EMPTY OK"],
+    ref: "IT-N304 合法文本含 NaN/Infinity 必须原样进入 HTML 与预览；随后清空输入必须清掉输出与示例，提示输入为空。旧实现两态均红；默认 Alice/Bob 样例不命中。"
+  },
+  {
     slug: "it/csv-to-yaml",
     // IT-N26 回归：引号内换行不得切成两条记录；表头含空格须加引号。
     inputs: { csv: 'first name,note\nTom,"line1\nline2"' },
@@ -6886,6 +6894,22 @@ const CASES = [
     "clicks": ["calcTool()"],
     "expect": ["共 1 条"],
     "ref": "注入 LaTeX 命令 \\frac{1}{2}。结果精确匹配 1 条（动能命令 \\frac{1}{2}mv^2）⇒ 统计行『共 1 条』。默认态 q 为空 ⇒ 渲染全部命令表（137 条）⇒ 『共 137 条』，不出现『共 1 条』。注：½mv² 等示例属静态参考表默认全量渲染，故改用计数串作判别点。纯前端无随机。"
+  },
+  {
+    "slug": "it/latex",
+    // IT-N305/N307：输入即筛选，且显示符号可反查命令。
+    "clicks": ["var q=document.getElementById('q');q.value='alpha';q.fire('input');var a=document.getElementById('result').innerHTML;q.value='∑';q.fire('input');var s=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='SYM305 '+(a.indexOf('共 1 条')>=0&&a.indexOf('\\\\alpha')>=0?'OK':'BAD')+' SYM307 '+(s.indexOf('共 1 条')>=0&&s.indexOf('\\\\sum')>=0?'OK':'BAD');"],
+    "inputs": { "q": "alpha" },
+    "expect": ["SYM305 OK SYM307 OK"],
+    "ref": "IT-N305/N307 注入 alpha 后只触发 input 事件即应筛到 1 条；再注入显示符号 ∑ 应按 e[1] 反查到 \\sum 且为 1 条。旧实现无 oninput 且不查符号字段，两态均红。"
+  },
+  {
+    "slug": "it/latex",
+    // IT-N306：复制必须先尝试 Clipboard API，失败分支给出明确提示。
+    "clicks": ["var s=String(copyLatex);var ok=s.indexOf('navigator.clipboard')>=0&&s.indexOf('复制失败')>=0&&s.indexOf('execCommand')>=0;document.getElementById('__tbProbe').textContent='COPY306 '+(ok?'OK':'BAD');"],
+    "inputs": { "q": "beta" },
+    "expect": ["COPY306 OK"],
+    "ref": "IT-N306 函数源码特征探针：优先 Clipboard API、保留 execCommand 兜底并判断布尔返回值、失败写「复制失败」提示。旧实现无条件 toast「已复制」且忽略返回值，不命中。行为路径由 JSDOM 真机脚本覆盖。"
   },
   {
     "slug": "it/usb-version",

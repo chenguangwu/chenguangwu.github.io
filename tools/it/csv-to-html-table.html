@@ -145,6 +145,7 @@ Carol,31,Shenzhen</textarea>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0;">
       <button type="button" class="btn primary" onclick="copyHtml()">复制 HTML 代码</button>
       <button type="button" class="btn" onclick="downloadHtml()">下载 .html 文件</button>
+      <button type="button" class="btn" onclick="loadSampleCsv()">加载示例</button>
     </div>
     <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__csv_to_html_tableExport()">导出明细 CSV</button></div><div class="result-box" id="result" style="margin-bottom:12px;"></div> <div id="csv_to_html_tableTable"></div> <div id="csv_to_html_tableDiff"></div> <div id="csv_to_html_tableChart"></div> <div id="csv_to_html_tableHist"></div>
     <div id="previewBox" style="overflow-x:auto;"></div>
@@ -284,10 +285,16 @@ function parseCSV(text,sep){
   if(field!==''||row.length){row.push(field);rows.push(row);}
   return rows.filter(function(r){return r.length>1||(r.length===1&&r[0].trim()!=='');});
 }
-function escH(s){var d=document.createElement('div');const __g1=s==null?'':String(s);d.textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
+function escH(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML;}
 function calcTool(){
   var raw=(document.getElementById('csvInput').value||'').trim();
-  if(!raw){raw='name,age,city\nAlice,28,Shanghai\nBob,35,Beijing';}
+  if(!raw){
+    var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+    document.getElementById('htmlOut').value='';
+    document.getElementById('result').innerHTML='';
+    document.getElementById('previewBox').innerHTML='<p class="tip-mini" style="color:var(--text-muted);">'+(en?'Empty input. Paste CSV or click "Load sample".':'输入为空，请粘贴 CSV 或点击「加载示例」。')+'</p>';
+    return;
+  }
   var sep=document.getElementById('sepSel').value;
   var header=document.getElementById('withHeader').checked;
   var rows=parseCSV(raw,sep);
@@ -303,7 +310,7 @@ function calcTool(){
   }
   h+='  </tbody>\n</table>';
   document.getElementById('htmlOut').value=h;
-  const __g3='<div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">预览（'+rows.length+' 行）</div>'+h;document.getElementById('previewBox').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+  const __g3='<div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">预览（'+rows.length+' 行）</div>'+h;document.getElementById('previewBox').innerHTML=String(__g3);
   var cols=header&&rows.length>1?rows[0].length:rows[0].length;
   var dataRows=header?Math.max(0,rows.length-1):rows.length;
   const __g4='<div style="display:flex;gap:10px;flex-wrap:wrap;">'+
@@ -327,6 +334,10 @@ function downloadHtml(){
   document.body.appendChild(a);
   a.click();
   setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},100);
+}
+function loadSampleCsv(){
+  document.getElementById('csvInput').value='name,age,city\nAlice,28,Shanghai\nBob,35,Beijing\nCarol,31,Shenzhen';
+  calcTool();
 }
 document.getElementById('csvFile').addEventListener('change',function(){
   var f=this.files&&this.files[0];if(!f)return;
