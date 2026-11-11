@@ -1280,6 +1280,24 @@ const CASES = [
     ref: "X~B(10,0.5)：P(X=3)=C(10,3)·0.5³·0.5⁷=120×0.125×0.0078125=0.1172（Python comb(10,3)=120、binom.pmf(3,10,0.5)=0.1172）；分步区同步给出 C(10,3)=120。默认 n/p/k 与注入值不同，两串均不出现。",
   },
   {
+    slug: "it/binomial-distribution",
+    inputs: { n: "10.5", p: "0.5", k: "3" },
+    expect: ["n must be an integer from 1 to 10000"],
+    ref: "IT-N241 整数校验：注入 n=10.5（小数），Number.isInteger 拒绝并报「n 必须为 1~10000 的整数」（harness 默认英文态读 data-zh 的英文本）。旧实现 parseInt('10.5')=10 静默截断、照常算出 P(X=3)=0.117 ⇒ 不含该错误串，红。默认 n=10 合法不命中。",
+  },
+  {
+    slug: "it/binomial-distribution",
+    inputs: { n: "20000", p: "0.5", k: "3" },
+    expect: ["n cannot exceed 10000"],
+    ref: "IT-N241 上限：注入 n=20000 超过新上限 10000 ⇒ 提示「n 不能超过 10000，更大样本请用正态/Poisson 近似」。旧实现无上限、照常逐项算 cdf（O(n²) 冻页隐患）⇒ 不含该串，红。默认 n=10 不命中。",
+  },
+  {
+    slug: "it/binomial-distribution",
+    inputs: { n: "1030", p: "0.5", k: "515" },
+    expect: ["e^{710.25}"],
+    ref: "IT-N242 大组合数对数形式：n=1030,k=515 ⇒ ln C(1030,515)=710.25，Math.exp 溢出为 Infinity，步骤区应显示 e^{710.25} 而非「未定义」。旧实现 fmt(Math.round(exp(logComb))) 得 Infinity→「未定义」⇒ 不含该串，红。默认 n=10 的 C(10,5)=252 走数值分支不命中。e^{710.25} 由 Node 独立 logComb 复算。",
+  },
+  {
     slug: "it/clamp-calculator",
     // 页面按「vwMin→preferred、vwMax→max」线性插值：slope=(max−pref)/(vwMax−vwMin)×100，rem=pref−slope×vwMin/100；min 为下限钳制。
     // 注入 min=10 / max=100 / vwMin=50（pref 用默认 24、vwMax 默认 1440）⇒ slope=(100−24)/13.9≈5.4676→5.47vw、rem=24−5.4676×0.5≈21.266→21.27。

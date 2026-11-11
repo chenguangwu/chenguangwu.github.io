@@ -240,7 +240,7 @@
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="正态近似">Normal approximation</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="np 与 n(1-p) 均 >5 时近似 N(np, np(1-p))">for np, n(1-p) > 5, approx N(np, np(1-p))</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="np 与 n(1-p) 均 ≥5 时近似 N(np, np(1-p))">for np, n(1-p) ≥ 5, approx N(np, np(1-p))</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="De Moivre-Laplace theorem">De Moivre-Laplace theorem</td>
         </tr>
       </tbody>
@@ -278,19 +278,47 @@ function pmf(n,k,p){
   if(p>=1) return k===n?1:0;
   return Math.exp(logComb(n,k)+k*Math.log(p)+(n-k)*Math.log(1-p));
 }
+// IT-N242：组合数超过双精度上限（ln C > ~709.78）时 Math.exp 溢出为 Infinity，
+// 步骤区显示"未定义"却与同页正常 PMF 矛盾。大数改显示对数形式 e^{ln C} 并注记。
+function fmtComb(n,k){
+  const lc=logComb(n,k);
+  if(lc<700) return fmt(Math.round(Math.exp(lc)));
+  return 'e^{'+(Math.round(lc*100)/100)+'}';
+}
 function cdf(n,k,p){
-  let s=0;
-  for(let i=0;i<=k;i++) s+=pmf(n,i,p);
-  return s;
+  // IT-N241：对数域递推 P(i+1)=P(i)·(n−i)/(i+1)·p/(1−p)，O(n) 取代逐项 logComb 的 O(n²)。
+  // 在对数域起步并递推，避免 n 大时 (1−p)^n / p^n 直接下溢为 0 导致 CDF 错成 0/1。
+  // p 端点单独处理（避免 log(0)），与 pmf 端点语义一致。
+  if(p<=0) return 1;          // X 恒为 0，k≥0 ⇒ P(X≤k)=1
+  if(p>=1) return k>=n?1:0;   // X 恒为 n
+  if(k<0) return 0;
+  if(k>=n) return 1;
+  const lp=Math.log(p), lq=Math.log(1-p);
+  // 累积较短一侧：k 靠近 0 直接累加 P(0..k)；靠近 n 用 1−P(k+1..n)。
+  if(k<=(n-1)/2){
+    let logT=n*lq, s=0;                        // logT = ln P(X=0)
+    for(let i=0;i<=k;i++){
+      s+=Math.exp(logT);
+      if(i<k) logT+=Math.log(n-i)-Math.log(i+1)+lp-lq;
+    }
+    return s;
+  }
+  let logT=n*lp, s=0;                          // logT = ln P(X=n)
+  for(let i=n;i>k;i--){
+    s+=Math.exp(logT);
+    if(i>k+1) logT+=Math.log(i)-Math.log(n-i+1)+lq-lp;
+  }
+  return 1-s;
 }
 function calculate(){
   const out=document.getElementById('output');
-  const n=parseInt(document.getElementById('n').value);
-  const p=parseFloat(document.getElementById('p').value);
-  const k=parseInt(document.getElementById('k').value);
-  if(isNaN(n)||n<1){const __h0='<p style="color:var(--danger)" data-zh="n 必须 ≥ 1">n must be ≥ 1.</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0;return;}
-  if(isNaN(p)||p<0||p>1){const __h1='<p style="color:var(--danger)">p 必须在 0~1 之间</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;return;}
-  if(isNaN(k)||k<0||k>n){const __h2='<p style="color:var(--danger)">k 必须在 0~n 之间</p>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h2;return;}
+  const nv=document.getElementById('n').value, pv=document.getElementById('p').value, kv=document.getElementById('k').value;
+  const n=Number(nv), p=Number(pv), k=Number(kv);
+  // IT-N241：Number.isInteger 拒绝小数（旧 parseInt 静默截断），n 上限 10000 防 O(n) 递推仍冻页。
+  if(nv===''||!Number.isInteger(n)||n<1){const __h0='<p style="color:var(--danger)" data-zh="n 必须为 1~10000 的整数">n must be an integer from 1 to 10000.</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0;return;}
+  if(n>10000){const __h0b='<p style="color:var(--danger)" data-zh="n 不能超过 10000，更大样本请用正态/Poisson 近似">n cannot exceed 10000; use a normal/Poisson approximation for larger samples.</p>';out.innerHTML=__h0b;return;}
+  if(pv===''||isNaN(p)||p<0||p>1){const __h1='<p style="color:var(--danger)">p 必须在 0~1 之间</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;return;}
+  if(kv===''||!Number.isInteger(k)||k<0||k>n){const __h2='<p style="color:var(--danger)">k 必须在 0~n 之间</p>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h2;return;}
   const probEq=pmf(n,k,p);
   const probLe=cdf(n,k,p);
   const probLt=cdf(n,k-1,p);
@@ -311,9 +339,11 @@ function calculate(){
     <div class="stat-card"><div class="v">${fmt(sd)}</div><div class="l">标准差</div></div>
   </div>`;
   html+=`<h3 style="margin-top:14px;">分步计算</h3>`;
-  html+=`<div class="step-line"><strong>步骤 1：</strong>C(${n}, ${k}) = ${fmt(Math.round(Math.exp(logComb(n,k))))}</div>`;
+  const combBig=logComb(n,k)>=700;
+  html+=`<div class="step-line"><strong>步骤 1：</strong>C(${n}, ${k}) = ${fmtComb(n,k)}</div>`;
   html+=`<div class="step-line"><strong>步骤 2：</strong>p<sup>${k}</sup> = ${fmt(Math.pow(p,k))}；(1−p)<sup>${n-k}</sup> = ${fmt(Math.pow(1-p,n-k))}</div>`;
-  html+=`<div class="step-line"><strong>步骤 3：</strong>P(X = ${k}) = ${fmt(Math.round(Math.exp(logComb(n,k))))} × ${fmt(Math.pow(p,k))} × ${fmt(Math.pow(1-p,n-k))} = ${fmt(probEq)}</div>`;
+  html+=`<div class="step-line"><strong>步骤 3：</strong>P(X = ${k}) = ${fmtComb(n,k)} × ${fmt(Math.pow(p,k))} × ${fmt(Math.pow(1-p,n-k))} = ${fmt(probEq)}</div>`;
+  if(combBig) html+=`<p class="muted" style="font-size:12px;" data-zh="组合数 e^{ln C} 超出双精度范围，以对数形式显示；PMF 全程用对数计算，结果仍有效。">The combination e^{ln C} exceeds double precision and is shown in logarithmic form; the PMF is computed entirely in log space and remains valid.</p>`;
   // PMF 分布图
   if(n<=50){
     html+=`<h3 style="margin-top:14px;">概率分布图（n=${n}, p=${p}）</h3>`;

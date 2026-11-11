@@ -1346,29 +1346,8 @@
 - 方案：删除两处宣称；若要做实，最小增量是"textarea 按行逐条输出 32 位哈希"（真实批量，成本低）。
 **留存建议（tools/it/md5.html）**：文案删除即可，二选一。
 
-### IT-N241 n 无上限且 cdf 为 O(n²)，大 n 会把页面拖到无响应（中，确认缺陷）
-- 问题：`n` 只有 `min=1`、无 `max`；`cdf()` 外层跑 `0..k`，内层 `pmf()` 又用循环算 O(k) 的对数组合，整体 O(n²)。n、k 还用 `parseInt` 静默截断小数。
-- 证据：`tools/it/binomial-distribution.html:176`（`min="1"` 无 max）、`:292-296`（`cdf`）、`:279-286`（`logComb`/`pmf`）、`:299-301`（`parseInt`）。
-- 复现：node 同算法实测（k=n/2,p=0.5）：n=5000 → 28ms；n=20000 → 398ms；按 O(n²) 外推 n=1e5 ≈ 10s、n=1e6 ≈ 千秒级。另输入 n=10.5 → 按 10 计算，页面无提示。
-- 影响：`tools/it/binomial-distribution.html`
-- 方案：加 `max`（如 10000）并在超限时提示改用正态/泊松近似；`cdf` 改递推 `P(i+1)=P(i)·(n−i)/(i+1)·p/(1−p)`（O(n) 且数值更稳）；n/k 用 `Number.isInteger` 校验。
-**留存建议（tools/it/binomial-distribution.html）**：递推改写一行代码就能从 O(n²) 降到 O(n)，性价比最高。
-
-### IT-N242 分步计算用 `exp(logComb)` 还原组合数，n≳1030 时显示"未定义"（低，确认缺陷）
-- 问题：步骤 1/3 用 `Math.round(Math.exp(logComb(n,k)))` 直接打印 C(n,k)，`exp` 溢出为 Infinity，`fmt` 对非有限值返回"未定义"，而同一页 PMF 仍正常输出，容易被误读成算错。
-- 证据：`tools/it/binomial-distribution.html:325`、`:327`（两处 `Math.exp(logComb(...))`）、`:272-277`（`fmt` 的"未定义"分支）。
-- 复现：node 实算：n=1000,k=500 → logComb=689.47、exp=2.70e299（可显示）；n=1030,k=515 → logComb=710.25、exp=Infinity → 步骤显示 `C(1030, 515) = 未定义`，而 `pmf(1030,515,0.5)=2.485513e-2` 正常；临界点约在 logComb≈709.78（n≈1030）。
-- 影响：`tools/it/binomial-distribution.html`
-- 方案：输出对数形式（如 `e^{710.25}` / `10^{308.5}`）并加注"组合数超出双精度范围，PMF 用对数计算"；或只在 logComb<700 时还原数值。
-**留存建议（tools/it/binomial-distribution.html）**：低优先，但会让人误判结果。
-
-### IT-N243 同一页对正态近似阈值写 "≥5" 与 ">5"，边界自相矛盾（低，确认缺陷）
-- 问题：公式清单写"np 与 n(1−p) 均 ≥5"，下方 info-box 写"np≥5 且 n(1−p)≥5"，而引据表（中英）都写 "> 5"，边界情形（np=5）到底可否近似没有统一口径。
-- 证据：`tools/it/binomial-distribution.html:171`（`≥5`）、`:192`（`≥5`）、`:254`（`np, n(1-p) > 5`）、`:225`（FAQ 也写 `≥5`）。
-- 复现：取 np=5：n=10,p=0.5 → np=5、n(1−p)=5。按 `:192`/`:171`/`:225` 可用正态近似，按 `:254` 不可用，同页三种说法互相打脸。
-- 影响：`tools/it/binomial-distribution.html`
-- 方案：统一为"≥5（经验阈值，部分教材要求 ≥10）"，并注明连续性校正 `z=(k−np±0.5)/√(np(1−p))`。
-**留存建议（tools/it/binomial-distribution.html）**：一处口径统一，成本 4 个字符。
+- `binomial-distribution`：无剩余缺陷（IT-N241 n 上限 10000 + `Number.isInteger` 校验 + cdf 对数域递推 O(n)、IT-N242 大组合数对数形式 e^{ln C} + 注记、IT-N243 引据表阈值统一 ≥5，三条均已销账，第196批；verify 3 条强锁 + JSDOM 真机 20/20、旧源码 11/20，cdf 递推 9 组独立复算 maxErr 3.4e-12）。
+- 留存建议（tools/it/binomial-distribution.html）：正态近似可补连续性校正 `z=(k−np±0.5)/√(np(1−p))` 说明。
 
 ### IT-N244 Go 示例用 `--` 当注释，复制进 .go 文件即编译失败（中，确认缺陷）
 - 问题：多条可复制示例用 `--` 作行内注释，Go 只有 `//` 与 `/* */`；`--` 在 Go 里是自减运算符，出现在语句位置属语法错误。示例块自带"复制"按钮，用户会直接粘贴。
