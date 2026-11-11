@@ -149,12 +149,6 @@
 
 > 范围：本轮阅读 8 页（`tools/finance/amount-in-words.html`、`tools/finance/number-to-words-chinese.html`、`tools/finance/gold-price-calculator.html`、`tools/finance/shebeizulinfeilvjisuan.html`、`tools/finance/register-depreciation.html`、`tools/finance/credit-card-validator.html`、`tools/finance/credit-card-luhn.html`、`tools/finance/points-redemption-value.html`）。仅源码 + node 复算，未开浏览器/未做 EN/移动端/门禁验证；历史已修声明未独立复验。
 
-### F-N65 固定资产折旧页未来购入日期也按已提满一年计算（中，确认缺陷）
-- 描述：`yearsElapsed = Math.floor((now - purchaseDate)/年)`，未来日期被负数分支强制置 0，随后仍取 `schedule[0]`（第 1 年年末数），因此尚未购入的资产立即显示「当前年度 1/N」、累计折旧一整年、账面价值已扣一年；同一映射也使恰好满 1 年的资产直接跳到第 2 年数。
-- 证据：`tools/finance/register-depreciation.html:335-337`（`:336` 负数置 0、`:337` 取 `schedule[yearsElapsed]`）、`:421`（显示 `yearIdx + 1`）、`:266`（仅声明「购入当年按完整年度」）
-- 复现：购入日期 2027-01-01、原值 10000、残值 500、5 年、直线法 → 实际「当前年度 1/5」、累计折旧 ¥1,900.00、账面 ¥8,100.00（期望 0 年、¥0.00、¥10,000.00）；购入日期恰为 2025-11-04（满 1 年）→ 实际第 2 年数 ¥3,800.00、账面 ¥6,200.00（按已完成年度应为 ¥1,900.00、¥8,100.00）
-- 影响：`tools/finance/register-depreciation.html`；未来资产被提前计提，满年资产多提一年，资产清单汇总、导出 CSV 与明细表全部沿用该口径。
-- 方案：未来日期直接返回 0 年/0 折旧/原值；按已完成年度取 `schedule[yearsElapsed - 1]`（第 0 年取原值），或明确把 `yearIdx` 解释为「当前计提年度」并在页面显著标注按整年计提。
 
 - 本轮实读 8 页：`tools/finance/amount-in-words.html`、`tools/finance/number-to-words-chinese.html`、`tools/finance/gold-price-calculator.html`、`tools/finance/shebeizulinfeilvjisuan.html`、`tools/finance/register-depreciation.html`、`tools/finance/credit-card-validator.html`、`tools/finance/credit-card-luhn.html`、`tools/finance/points-redemption-value.html`；新增 9 条（高 2/中 4/低 3）；未覆盖：其余 finance 页（约 78 页）未逐页复扫。
 - 证据均由源码行号 + node 内存复算取得；未做浏览器、英文态、移动端、门禁与线上验证；历史已修声明未独立复验。
@@ -163,12 +157,6 @@
 
 > 范围：本轮阅读 8 页（`tools/finance/calc-2.html`、`tools/finance/calc-3.html`、`tools/finance/calc-4.html`、`tools/finance/calc-5.html`、`tools/finance/invoice-generator.html`、`tools/finance/currency-converter.html`、`tools/finance/analysis-5.html`、`tools/finance/analysis-risk.html`）。仅源码 + node 复算，未开浏览器/未做 EN/移动端/门禁验证；历史已修声明未独立复验。
 
-### F-N70 贷款月供页期限解析：0 年静默变 1 年、小数被截断、负年限产出「−60 期」（中，确认缺陷）
-- 描述：`years = parseInt($('years').value)||1` 把 0 与空值都兜成 1 年；`parseInt` 直接丢弃小数（2.5 年按 2 年算）；负数不被拦截，`n = years*12` 为负，等额本息仍按负期数幂运算给出负月供，而 `for(i=1;i<=n;i++)` 一次都不执行，摘要照常显示「−60 期」「还款总额 0.00」「总利息 0.00」。
-- 证据：`tools/finance/calc-4.html:226-230`（`:228` parseInt+兜底、`:230` n=years*12）、`:238`（循环条件）、`:249`、`:264`（期数回显）、`:128`（min 属性不拦截手输/清空）
-- 复现：本金 100 万、年利率 4.2%、期限 0 → 实际 12 期、首月 85,241.31 元（期望提示期限须 ≥1 年或按 0 期处理）；期限 2.5 → 实际 24 期（期望 30 期）；期限 −5 → 实际「−60 期」、首月 −15,006.91 元、还款总额 0.00、明细表为空（期望字段级报错并停止计算）
-- 影响：`tools/finance/calc-4.html`；合法的小数期限被无声压缩、0 年被放大成 1 年，负期限还会输出负月供与空明细，历史记录与 CSV 导出沿用同一 `n`。
-- 方案：期限限 `>0` 且按「年×12」取整（或新增「月」输入并明确口径）；0/空/负/非数字给字段错误，不进入计算；分母 `n<=0` 时直接返回。
 
 ### F-N71 IRR 页无实根仍返回 1000% 并把 NPV≈0 写进结论（高，确认缺陷）
 - 描述：`irr()` 的二分回退固定区间 `[-0.99, 10]`，只按 `npv(lo)*fmid<0` 决定 hi，从不校验两端异号，也不校验最终残差；当现金流虽有正负但 NPV 无实根时，`lo` 被单调推向 `hi`，直接返回 `mid≈10`（1000%）。页面随后以该利率复算明细，并在结果文案中断言「项目净现值 NPV 约等于 0」。

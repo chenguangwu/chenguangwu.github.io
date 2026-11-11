@@ -24,6 +24,27 @@ const { runCase } = require("./verify_it_calc.js");
 // ---------------------------------------------------------------- 用例
 const CASES = [
   {
+    slug: "finance/calc-4",
+    inputs: { amount: "1000000", rate: "4.2", years: "0" },
+    clicks: ["calc();var s=document.getElementById('summary'),r=document.getElementById('res'),b=document.querySelector('#schedule tbody');document.getElementById('__tbProbe').textContent='C4Y0 '+((!s||!s.innerHTML)&&(!b||!b.innerHTML)&&r&&r.innerHTML.indexOf('贷款期限须为大于 0')>=0?'OK':'BAD');"],
+    expect: ["C4Y0 OK"],
+    ref: "第129批 F-N70：旧 years=parseInt(...)||1 把 0 兜成 1 年，照常输出 12 期/85,241.31 元月供并留下明细。修复后 0/空/负/非数字字段级拒绝、清 #summary 与 #schedule tbody、#res 写期限须>0 提示。注入 years=0 命中；默认 30 为合法态 ⇒ BAD ⇒ 强判别、零逃生。"
+  },
+  {
+    slug: "finance/calc-4",
+    inputs: { amount: "1000000", rate: "4.2", years: "-5" },
+    clicks: ["calc();var s=document.getElementById('summary'),r=document.getElementById('res'),b=document.querySelector('#schedule tbody');document.getElementById('__tbProbe').textContent='C4YNEG '+((!s||!s.innerHTML)&&(!b||!b.innerHTML)&&r&&r.innerHTML.indexOf('贷款期限须为大于 0')>=0&&r.innerHTML.indexOf('-60')<0?'OK':'BAD');"],
+    expect: ["C4YNEG OK"],
+    ref: "第129批 F-N70：旧负年限产出「-60 期」、-15,006.91 元负月供、空明细却仍显示；修复后负期限走字段级拒绝、清残留、无负期数回显。注入 years=-5 命中；默认 30 ⇒ BAD ⇒ 强判别、零逃生。"
+  },
+  {
+    slug: "finance/calc-4",
+    inputs: { amount: "1000000", rate: "4.2", years: "2.5" },
+    clicks: ["calc();var s=document.getElementById('summary');document.getElementById('__tbProbe').textContent='C4YDEC '+((s&&s.innerHTML.indexOf('30 期')>=0&&s.innerHTML.indexOf('24 期')<0)?'OK':'BAD');"],
+    expect: ["C4YDEC OK"],
+    ref: "第129批 F-N70：旧 parseInt(2.5)=2 截断为 24 期；修复后 parseFloat + Math.round(years*12)=30 期，期数卡片用 n 回显。注入 years=2.5 命中 30 期；默认 30 年=360 期、旧源码=24 期 ⇒ BAD ⇒ 强判别、零逃生。"
+  },
+  {
     slug: "finance/payroll-calculator",
     inputs: { pension: "-1" },
     clicks: ["calc();var g=document.getElementById('statGrid'),t=document.getElementById('tableWrap');document.getElementById('__tbProbe').textContent='PAYCLR '+((!g||!g.innerHTML)&&(!t||!t.innerHTML)&&__payroll_calculatorScore('')===0&&currentResult===null?'OK':'BAD');"],

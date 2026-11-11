@@ -225,9 +225,22 @@ function calc(){
   save();
   const P = parseFloat($('amount').value)||0;
   const rAnnual = (parseFloat($('rate').value)||0)/100;
-  const years = parseInt($('years').value)||1;
+  const __yRaw = String($('years').value == null ? '' : $('years').value).trim();
+  const years = parseFloat(__yRaw);
   const monthlyRate = rAnnual / 12;
-  const n = years * 12;
+  // F-N70：期限须 >0 且保留小数（2.5 年 = 30 期）。旧 parseInt(...)||1 把 0/空/非数字
+  // 兜成 1 年、截断小数、负期限还会产出负期数与负月供。拒绝态清残留并停止计算。
+  if(!isFinite(years) || years <= 0 || years > 100){
+    const __en = (typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn());
+    $('summary').innerHTML = '';
+    const __tb = $('schedule') && $('schedule').querySelector('tbody');
+    if(__tb) __tb.innerHTML = '';
+    $('res').innerHTML = __en
+      ? '<p style="color:var(--danger);">⚠ Loan term must be a number greater than 0 and no more than 100 years (decimals allowed, e.g. 2.5). Calculation stopped.</p>'
+      : '<p style="color:var(--danger);">⚠ 贷款期限须为大于 0 且不超过 100 年的数值（支持小数，如 2.5 年）。计算已停止。</p>';
+    return;
+  }
+  const n = Math.round(years * 12);
   const type = $('type').value;
   let totalPayment=0, totalInterest=0, firstMonth=0, lastMonth=0;
   let schedule=[];
@@ -261,7 +274,7 @@ function calc(){
     {num:fmt(type==='equal-interest'?firstMonth:firstMonth,2)+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" CNY":" 元"),label:'首月还款'},
     {num:fmt(totalPayment,2),label:'还款总额（元）'},
     {num:fmt(totalInterest,2),label:'总利息（元）'},
-    {num:years*12+' 期',label:'还款期数'}
+    {num:n+' 期',label:'还款期数'}
   ];
   if(type==='equal-principal') summary[0].num = fmt(firstMonth,2)+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" CNY":" 元");
   const __g1=summary.map(s=>`<div class="data-card"><div class="num">${s.num}</div><div class="label">${s.label}</div></div>`).join('');$('summary').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
