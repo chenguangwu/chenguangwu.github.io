@@ -62,7 +62,7 @@
 - 同批阅读 Linux、MongoDB 速查的搜索、分类与复制路径；无浏览器验证，不对完整正确性判通过。IT-N498–N500 的示例仍须按具体内容另行运行复核。
 - IT-N423、N308、N309 的数据范围问题仍在。
 - IT-N49 已于第215批真修并销账：`chmod-calculator` 支持 setuid(4)/setgid(2)/sticky(1) 特殊位与四位数模式（如 4755/2755/1777），符号位按 s/S 与 t/T 分别渲染，快捷预设及复制命令同步；JSDOM 修好版 18/18、旧源码 3/18。
-- IT-N170–N173 第217批销账（`calc-3`）、IT-N174–N177 第218批（`matrix-transpose`）、IT-N178–N180 第219批（`http-cookies` 与 4 个 HTTP 页过期示例）、IT-N181–N184 第220批（`text-to-ascii`）、IT-N185–N190 第221批（`shell-script-formatter`）、IT-N191–N195 第222批（`unit-converter-advanced`）、IT-N196–N198 第223批（`html-entities-encode`）、IT-N199–N201 第224批（`json-to-toml`）、IT-N202–N206 第225批（`plist-parser` 与 `char-encoder`）、IT-N207–N211 第226批（`char-encoder` 实体补全与 `basic-auth-generator` 冒号/charset），详见下方覆盖行；IT-N212（自定义字母表超 256 字符）等关键路径仍在。
+- IT-N170–N173 第217批销账（`calc-3`）、IT-N174–N177 第218批（`matrix-transpose`）、IT-N178–N180 第219批（`http-cookies` 与 4 个 HTTP 页过期示例）、IT-N181–N184 第220批（`text-to-ascii`）、IT-N185–N190 第221批（`shell-script-formatter`）、IT-N191–N195 第222批（`unit-converter-advanced`）、IT-N196–N198 第223批（`html-entities-encode`）、IT-N199–N201 第224批（`json-to-toml`）、IT-N202–N206 第225批（`plist-parser` 与 `char-encoder`）、IT-N207–N211 第226批（`char-encoder` 实体补全与 `basic-auth-generator` 冒号/charset）、IT-N212–N216 第227批（`nanoid-generator` 与 `markdown-table-generator`），详见下方覆盖行；IT-N217（行列输入逗号转义）等关键路径仍在。
 - 同批另阅读 `ascii-table`、`box-shadow-generator`、`calc-1`、`calc-10` 的主要交互路径；未对其完整正确性或浏览器行为作通过判定。
 
 ## 已知问题
@@ -766,46 +766,7 @@
 - 未做验证：未开浏览器（结论均为源码静态分析 + `node -e` 内存复算，Shell 压缩另用 `bash -n` 校验）、未验证英文态 `?lang=en-US`/繁体/移动端、未跑 `_test_static.py`/`_audit_links.py`/`_audit_assets.py`/`run_gates.py` 等门禁，未触发 `_build.py` 或任何 git 写操作。
 - 第225批销账：IT-N202–N206（`plist-parser` real/date/data 保型与超安全整数与大整数往返与控制字符剔除、`char-encoder` ASCII 行按码点与清空清字节视图），详见下方覆盖行。
 - 第226批销账：IT-N207–N211（`char-encoder` 常用 HTML 实体补全、`basic-auth-generator` 冒号校验与 UTF-8 charset 提示；N210 历史不写密码与 N211 复制提示已由其他 Agent 修好补证据），详见下方覆盖行。
-
-### IT-N212 自定义字母表超过 256 字符时后半段字符永远不可达（中，确认缺陷）
-- 问题：`idx = bytes[i] & mask`，单字节最大 255；字母表长度 257–511 时 mask=511，但索引永远 ≤255，256 及之后的字符被静默排除；`customAlpha` 也无长度上限。
-- 证据：`tools/it/nanoid-generator.html:295-296`（mask/step）、`:302-304`（按位与取值）、`:176`（自定义输入无 maxlength）。
-- 复现：node 用 300 个不同字符作字母表、100 次采样，`usedMax` 仅 243，索引 >255 从未出现；期望 300 个字符均可能被选中，或 UI 明确限制 256。
-- 影响：`tools/it/nanoid-generator.html`
-- 方案：字母表 >256 时改用 32 位随机数拒绝采样，或在输入处限制 256 并提示。
-**留存建议（tools/it/nanoid-generator.html）**：保留，修上限/采样。
-
-### IT-N213 自定义字母表按 UTF-16 码元处理，emoji 会被拆成孤立代理项（中，确认缺陷）
-- 问题：长度、去重与取值都基于 UTF-16 码元，`Array.from` 缺失；一个 emoji 即占 2 个"字符"，`alphabet[idx]` 取到的是半个代理对，生成的 ID 含非法孤立代理项。
-- 证据：`tools/it/nanoid-generator.html:285-289`（`a.length`/`new Set(a)`）、`:304`（`alphabet[idx]`）。
-- 复现：node 模拟：字母表 `"😀😁"` 的 `length=4`、通过"至少 2 字符"校验；按码元索引可产出 `\uD83D` 或 `\uDE00` 单独半字（复制/粘贴后显示为 �）。
-- 影响：`tools/it/nanoid-generator.html`
-- 方案：统一 `const chars=Array.from(a)`，用 `chars.length`/`new Set(chars)`/`chars[idx]`。
-**留存建议（tools/it/nanoid-generator.html）**：与 N212 同批修。
-
-### IT-N214 历史与图表读取首个 `.result-box`（静态说明块），结果恒为同一段文字（中，确认缺陷）
-- 问题：`*ResText()` 用 `document.querySelector('.result-box')`，页面首个该类元素是"📖 NanoID 说明"静态容器，而真正的 `#results` 没有该 class；历史每条记录都写同一段说明前 80 字，图表/趋势恒定。
-- 证据：`tools/it/nanoid-generator.html:372`（选择器）、`:190`（说明块 `.result-box`）、`:178`（`#results`）、`:447`（record）。
-- 复现：连续生成 8 位与 24 位 ID → 历史两条 `res` 均为"• 默认长度 21 字符…"，期望记录实际生成的 ID 列表。
-- 影响：`tools/it/nanoid-generator.html`
-- 方案：改为读取 `#results` 内 `textarea/code` 的 `value`，或给结果区加唯一 id 并显式取用它。
-**留存建议（tools/it/nanoid-generator.html）**：保留，修历史取值。
-
-### IT-N215 Markdown 单元格不处理既有反斜杠，`a\|b` 会破坏列结构（中，确认缺陷）
-- 问题：`escapeMarkdown` 仅把 `|` 换成 `\|`、换行换空格；输入本身含 `\` 时转义串变成 `\\|`，GFM 把 `\\` 当字面反斜杠、`|` 重新成为列分隔符，单元格被拆开。
-- 证据：`tools/it/markdown-table-generator.html:257-262`、`:129`（公式只说明"把 `|` 转成 `\|`"）。
-- 复现：node 复算 `"a\\|b"`（源文本 `a\|b`）→ `"a\\\\|b"`（源文本 `a\\|b`），渲染列数由 1 变 2；期望先把 `\` 转义为 `\\` 再处理 `|`。
-- 影响：`tools/it/markdown-table-generator.html`
-- 方案：`replace(/\\/g,'\\\\')` 先于 `replace(/\|/g,'\\|')`，并补用例。
-**留存建议（tools/it/markdown-table-generator.html）**：保留，修转义顺序。
-
-### IT-N216 表头/首行实时回写并自动补占位，光标跳末尾、无法删列（中，确认缺陷）
-- 问题：两个输入都绑 `oninput="syncColumns()"`，函数把补齐后的值写回 `input.value`；用户键入 `a` 时 cols=3，值立即变 `a,列,列`，光标跳末尾，删掉尾列会被立刻补回。
-- 证据：`tools/it/markdown-table-generator.html:148`、`:151`（oninput）、`:309-321`（syncColumns 回写）、`:246`（`C${i+1}` 占位）。
-- 复现：node 模拟 `syncColumns(parseRow("a"),3)` → `a,列,列`；期望编辑期不改写输入，生成时再补齐/截断。
-- 影响：`tools/it/markdown-table-generator.html`
-- 方案：去掉 `oninput` 回写，改为失焦或"生成"时补齐；或仅在内部状态补，不写回输入框。
-**留存建议（tools/it/markdown-table-generator.html）**：保留，交互修复。
+- 第227批销账：IT-N212–N216（`nanoid-generator` 大字母表拒绝采样/emoji 码点/历史取值、`markdown-table-generator` 反斜杠转义与编辑期不写回），详见下方覆盖行。
 
 ### IT-N217 行列输入不支持逗号转义，内容含逗号即被拆列（低，确认缺陷）
 - 问题：`parseRow` 直接 `split(',')`，没有引号/转义规则；单元格内容含英文逗号时无法表达，会被拆成额外列。

@@ -12820,6 +12820,29 @@ const CASES = [
     ref: "默认 URL-safe 字母表（A-Za-z0-9_-），长度 12、条数 4 ⇒ 4 个 12 位串，字符集校验禁止出现表外字符。默认长度 21、条数 5 ⇒ 不命中。生成路径已改 crypto.getRandomValues。",
   },
   {
+    slug: "it/nanoid-generator",
+    inputs: { length: "100", count: "1", customAlpha: "😀😁😃😄" },
+    clicks: [
+      '(function(){var s=nanoid(100,Array.from("😀😁😃😄"));var arr=Array.from(s);var allowed={"😀":1,"😁":1,"😃":1,"😄":1};var ok=arr.length===100&&arr.every(function(x){return allowed[x];});document.getElementById("__tbProbe").textContent="NANOID-EMOJI "+(ok?"OK":"BAD:"+arr.length);})()'
+    ],
+    expect: ["NANOID-EMOJI OK"],
+    ref: "IT-N213 第227批：直接以 emoji 码点字母表调用 nanoid(100)，应产出 100 个完整 emoji（非 50 个 = 旧实现 id.length 按 UTF-16 码元计数提前停）。harness stub 的 radio.checked 恒 false，故直测核心函数而非走 UI。",
+  },
+  {
+    slug: "it/markdown-table-generator",
+    inputs: { cols: "1", rows: "1", align: "left", headerLine: "a\\|b", bodyLine: "a\\|b" },
+    clicks: ["renderPreview()"],
+    expect: ["a\\\\\\|b"],
+    ref: "IT-N215 第227批：单元格源文本 a\\|b（含字面反斜杠+竖线）须先转义反斜杠再转义竖线 ⇒ 产物 a\\\\\\|b（双反斜杠+转义竖线）；旧实现只转义竖线得 a\\\\|b，渲染时竖线重新成列分隔符。默认样例无反斜杠，不命中。",
+  },
+  {
+    slug: "it/markdown-table-generator",
+    inputs: { cols: "3", headerLine: "a", bodyLine: "x" },
+    clicks: ["syncColumns();var h=document.getElementById('headerLine').value,b=document.getElementById('bodyLine').value;document.getElementById('__tbProbe').textContent='MD-NOREWRITE '+(h==='a'&&b==='x'&&/C2/.test(document.getElementById('output').value)?'OK':'BAD');"],
+    expect: ["MD-NOREWRITE OK"],
+    ref: "IT-N216 第227批：syncColumns 编辑期不写回输入（表头仍 a、首行仍 x），缺列由预览占位 C2/C3 补齐；旧实现写回 a,列,列 且 x,值,值。默认样例表头含 3 列，不命中。",
+  },
+  {
     slug: "it/uuid-generator",
     inputs: { count: "3" },
     clicks: [

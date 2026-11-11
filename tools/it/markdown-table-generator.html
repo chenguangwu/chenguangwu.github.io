@@ -110,7 +110,7 @@
       <h2 data-zh="📝 Markdown 表格生成器">📝 Markdown Table Generator</h2>
       <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入行列与表头文本，快速生成标准 Markdown 表格源码。">Generate Markdown table syntax from rows, columns, and content.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">行数取输入值并保证在 1 到 50 之间（非法时取 1），列数取输入值并保证在 1 到 20 之间（非法时取 1）。表头与正文种子均按逗号切分、逐项去首尾空白，去掉首项为空的前导项后截断到列数。填充单元格时按顺序取种子值，取不到时用「C 加列序号」占位，并对内容做 Markdown 转义。分隔行按对齐方式生成标记：居中为两侧带冒号、右对齐为右侧带冒号、其余为左侧带冒号，各列标记以空格竖线空格连接。正文每行在种子值后追加行序号，逐行以竖线包裹、单元格之间以空格竖线空格连接。最终依次拼为表头行、分隔行与若干正文行</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">行数取输入值并保证在 1 到 50 之间（非法时取 1），列数取输入值并保证在 1 到 20 之间（非法时取 1）。表头与正文种子均按逗号切分、逐项去首尾空白，去掉首项为空的前导项后截断到列数。填充单元格时按顺序取种子值，取不到时用「C 加列序号」占位，并对内容做 Markdown 转义：先把反斜杠转义为双反斜杠，再把竖线转义为反斜杠加竖线，最后把换行换成空格，避免输入本身含反斜杠时竖线重新变成列分隔符。分隔行按对齐方式生成标记：居中为两侧带冒号、右对齐为右侧带冒号、其余为左侧带冒号，各列标记以空格竖线空格连接。正文每行在种子值后追加行序号，逐行以竖线包裹、单元格之间以空格竖线空格连接。最终依次拼为表头行、分隔行与若干正文行</div>
   <div class="formula-desc">生成 Markdown 格式的表格。</div>
   <ul class="formula-list">
     <li><b>结构</b>：表头行 + 分隔行（<code>| --- | --- |</code>）+ 数据行。</li>
@@ -245,6 +245,8 @@
 
   function escapeMarkdown(text) {
     return String(text == null ? '' : text)
+      // IT-N215：先转义反斜杠再转义竖线，否则输入 a\|b 会变成 a\\|b（GFM 把 \\ 当字面反斜杠、| 重新成为分隔符）
+      .replace(/\\/g, '\\\\')
       .replace(/\|/g, '\\|')
       .replace(/\r?\n/g, ' ')
       .trim();
@@ -296,17 +298,8 @@
   }
 
   function syncColumns() {
-    const cols = Math.max(1, parseInt(document.getElementById('cols').value, 10) || 1);
-    const headerVals = parseRow(document.getElementById('headerLine').value);
-    const bodyVals = parseRow(document.getElementById('bodyLine').value);
-    if (headerVals.length < cols) {
-      const add = new Array(cols - headerVals.length).fill('列');
-      document.getElementById('headerLine').value = headerVals.concat(add).join(',');
-    }
-    if (bodyVals.length < cols) {
-      const add = new Array(cols - bodyVals.length).fill('值');
-      document.getElementById('bodyLine').value = bodyVals.concat(add).join(',');
-    }
+    // IT-N216：编辑期绝不写回表头/首行输入（旧实现补占位写回 value 会让光标跳末尾、删掉的尾列被立刻补回）。
+    // 缺列由 fillCells() 在生成预览时用 C1/C2… 占位补齐即可，输入框保持用户原样。
     renderPreview();
   }
 
