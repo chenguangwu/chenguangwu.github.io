@@ -272,15 +272,21 @@
 <script>
 var _decMode = true;
 function esc(s){var d=document.createElement('div');const __g1=s==null?'':String(s);d.textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));return d.innerHTML.replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+// IT-N466：解码逻辑提升为顶层函数，calcTool 与 renderUrl 共用；非法百分号按字面保留。
+function urlParamsDec(s){var t=String(s==null?'':s).replace(/\+/g,' ');try{return decodeURIComponent(t);}catch(e){return t;}}
+// IT-N466：查询串解析与「值解码显示」开关解耦，decode=false 时保留原始百分号形态。
+function parseQueryPairs(qs, decode){
+  var pairs=[];
+  if(qs){qs.split('&').forEach(function(p){if(!p)return;var i=p.indexOf('=');var k=i>=0?p.slice(0,i):p;var v=i>=0?p.slice(i+1):'';pairs.push({k:decode?urlParamsDec(k):k,v:decode?urlParamsDec(v):v});});}
+  return pairs;
+}
 function calcTool(){
   var raw=(document.getElementById('urlInput').value||'').trim();
   if(!raw){raw='https://example.com/search?q=toolbox&lang=zh-CN&page=2';}
   var qm=raw.indexOf('?');
   var base=qm>=0?raw.slice(0,qm):raw;
   var qs=qm>=0?raw.slice(qm+1):'';
-  var pairs=[];
-  function decPart(s){var t=s.replace(/\+/g,' ');try{return decodeURIComponent(t);}catch(e){return t;}}
-  if(qs){qs.split('&').forEach(function(p){if(!p)return;var i=p.indexOf('=');var k=i>=0?p.slice(0,i):p;var v=i>=0?p.slice(i+1):'';pairs.push({k:decPart(k),v:decPart(v)});});}
+  var pairs=parseQueryPairs(qs,_decMode);
   var box=document.getElementById('paramsBox');
   var tpl=document.getElementById('paramRowTpl').innerHTML;
   var out='';
@@ -297,6 +303,8 @@ function renderUrl(){
     var k=r.querySelector('.p-key').value.trim();
     if(!k)return;
     var v=r.querySelector('.p-val').value;
+    // 关闭解码时参数框显示原始编码值，先还原再编码，避免 % 被二次编码成 %25。
+    if(!_decMode){k=urlParamsDec(k);v=urlParamsDec(v);}
     parts.push(encodeURIComponent(k).replace(/%20/g,'+')+'='+encodeURIComponent(v).replace(/%20/g,'+'));
   });
   var url=parts.length?base+'?'+parts.join('&'):base;

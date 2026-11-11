@@ -6406,6 +6406,14 @@ const CASES = [
     "ref": "畸形百分号：`%` 单独出现时 decodeURIComponent 抛 URIError，旧实现整段中断、结果区停在默认示例（`…/search?q=toolbox…`）；修复后按标准把非法转义按字面 `%` 保留，基 URL `…/zz` 正常回写。默认示例不含 `/zz` ⇒ 判别有效。"
   },
   {
+    "slug": "it/url-params",
+    // IT-N466：「值解码显示：开/关」必须真正改变参数框显示值。
+    "inputs": { "urlInput": "https://x.com/?q=%74oolbox&lang=%E6%89%8B" },
+    "clicks": ["var u=document.getElementById('urlInput').value.split('?')[1]||'';var on=parseQueryPairs(u,true),off=parseQueryPairs(u,false);document.getElementById('__tbProbe').textContent='DECMODE '+(on[0].v==='toolbox'&&off[0].v==='%74oolbox'&&off[1].v==='%E6%89%8B'?'RAW':'DEC');"],
+    "expect": ["DECMODE RAW"],
+    "ref": "IT-N466：值解码显示开关必须真正改变解析结果。注入含百分号编码的 URL，探针从注入值取查询串并调用顶层 parseQueryPairs：开态应得 toolbox/手，关态应原样保留 %74oolbox/%E6%89%8B。旧实现 _decMode 从未被 calcTool 读取、也没有该解析函数 ⇒ 探针 ReferenceError 不出串 ⇒ DECMODE DEC/无串。harness stub DOM 不建模 <script type=text/template> 的 paramRowTpl，参数行根本未渲染，故不能直接读 paramsBox.innerHTML；完整集成态由 JSDOM 真机脚本覆盖。默认态不执行探针 ⇒ 零逃生。"
+  },
+  {
     "slug": "it/a1z26-cipher",
     "inputs": {
       "input": "1\n2\n3",

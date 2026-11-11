@@ -2646,15 +2646,6 @@
 - 方案：属性上下文改用 `escAttr()`（额外转义 `"` 与 `'`），或先 `document.createElement('input')` 再 `el.value = p.v` 赋值，避免字符串拼 HTML。
 - 假工具：否
 
-### IT-N466 「值解码显示：开 / 关」是假控件，`_decMode` 从未被计算逻辑读取（高，假功能）
-- 页面：`tools/it/url-params.html`
-- 问题：`toggleEncoding()` 只翻转 `_decMode` 并改按钮文案（`:284`、`:349-353`），而 `calcTool()` 解析时恒执行 `decodeURIComponent(k.replace(/\+/g,' '))`（`:293`），从不判断 `_decMode`。
-- 行号：`:284`、`:293`、`:349-353`
-- 复现：点「值解码显示：关」→ 实际按钮文字变"关"，参数值仍是解码后的 `toolbox`；期望切换为原始 `%74oolbox` / `%E6%89%8B%E6%9C%9F` 形态。
-- 影响：切换按钮纯装饰，用户以为能看到编码前后对照，核对编码时会得出错误结论。
-- 方案：`calcTool` 按 `_decMode` 分别取 `decodeURIComponent(v)` 或原样值。
-- 假工具：否（假控件）
-
 ### IT-N467 `decodeURIComponent` 无容错，非法百分号转义抛 URIError 后整块停止刷新（中，崩溃）
 - 页面：`tools/it/url-params.html`
 - 问题：`calcTool()` 在 `forEach` 里直接 `decodeURIComponent(k…)` / `decodeURIComponent(v…)`（`:293`），无 `try/catch`。
@@ -2680,7 +2671,7 @@
 - `api-sign-generator`：IT-N460（高，安全）、IT-N461（高）；IT-N462（中）。
 - `rc4`：IT-N463（中）；无高优缺陷（`rc4()` 与 `RC4-drop` 主路径对照已知向量 `Key`/`Plaintext` → `bbf316e8d940af0ad3` 正确，KSA/PRGA 无死循环）。
 - `js-minify`：IT-N464（高）；无其它高优项（结果渲染走 `escH`，无注入）。
-- `url-params`：IT-N465（高，安全）、IT-N466（高，假功能）；IT-N467（中）。
+- `url-params`：IT-N465（高，安全）；IT-N467（中）。
 - `short-link-generator`：IT-N468（中）；无高优缺陷（输出全部经 `escapeHtml`，`randInt` 模偏差可忽略）。
 - 方法声明：本轮逐页通读上述 8 页源码，用 `node` 在 `/tmp` 复刻页面原函数（`renderQR`、`minify`、`rc4`、`parseParams`、`md5Hex`）并给出「输入 → 实际 / 期望」；MD5 对照用 `crypto.createHash('md5')`，QR 不可扫码依据"无数据位/格式信息/纠错码字"的算法结构判定；`esc()` 不转义双引号、`innerHTML` 属性注入按 HTML 序列化规则判定（文本节点只转义 `&<>`），未开真机浏览器复现 XSS。**未开浏览器、未跑 `_build.py`/`run_gates.py`、未做线上验证**；未修改任何工具页、代码或构建产物，仅在本审计日志追加本节。
 
