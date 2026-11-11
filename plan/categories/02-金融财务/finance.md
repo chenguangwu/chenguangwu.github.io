@@ -168,12 +168,6 @@
 
 范围：复读 `tools/finance/` 下 8 页（lease-payment-calculator、credit-card-interest、credit-card-type、isbn-validator、iban-validator、bic-validator、currency-symbol、password-generator-advanced），编号 F-N114~F-N145。说明：lease 与 credit-card-interest 在旧批次有 F-N13/F-N22，本段只记录本次复读仍存在或由旧修法引入的问题，不重复旧结论；F-N1~F-N113 未改动。
 
-### F-N122 信用卡利息页：账单日/到期日只影响「免息天数」展示，不参与任何计息（低，确认缺陷）
-- 问题：`billDay`/`dueDay` 仅用于 `interestFreeDays` 文案，`simulateMinimum` 固定按 30 天计息、分期也不使用日期；`+value || 1` 使 0 变 1，免息天数再被 clamp 到 20–56，非法日期被掩盖。
-- 证据：`tools/finance/credit-card-interest.html:376-377`（`|| 1`）、`:398-404`（免息天数与 clamp）、`:345`（固定 30 天）、`:448-461`（分期不看日期）
-- 复现：账单日 10、到期日 30 → 免息 40 天、利息 1,493.89；只把到期日改 31 → 免息 41 天，利息与期数完全不变。期望日期变化至少改变计息天数，或明确标注「日期仅用于免息天数展示」。
-- 影响：`tools/finance/credit-card-interest.html`；用户以为输入真实账单周期能提高精度，实际是装饰性字段。
-- 方案：用实际账单周期天数代替固定 30，并校验 1–31；若暂不建模，则在日期输入旁注明「仅展示，不参与计息」。
 ### 留存/优势建议（按页）
 - **lease-payment-calculator**：等额/等额本金/先息后本三模式 + 期初/期末 + 残值 + 明细表/图表/IRR 的密度在同类页中少见；建议修好 IRR 口径与残值对账后，补「总成本（租金+首付+手续费+留购款）」和「不同手续费方案对比」，保留离线计算。
 - **credit-card-interest**：最低还款逐期模拟表、分期 IRR 与双方案对比是差异化能力；建议保留并统一计息口径、接通账单日/到期日、补「全额还款」为第三方案。

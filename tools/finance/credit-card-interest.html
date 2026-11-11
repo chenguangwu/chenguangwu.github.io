@@ -369,8 +369,8 @@ function calc() {
   var billEl = document.getElementById('billAmount');
   var bill = +billEl.value || 0;
   var dailyRate = +document.getElementById('dailyRate').value / 100 || 0;
-  var billDay = +document.getElementById('billDay').value || 1;
-  var dueDay = +document.getElementById('dueDay').value || 1;
+  var billDay = +document.getElementById('billDay').value;
+  var dueDay = +document.getElementById('dueDay').value;
   var minRatioEl = document.getElementById('minRatio');
   var minRatioRaw = +minRatioEl.value;
   var minRatio = minRatioRaw / 100 || 0;
@@ -400,6 +400,16 @@ function calc() {
     document.getElementById('scheduleCard').style.display = 'none';
     return;
   }
+  // F-N122：账单日 / 还款日须为 1–31 的整数（旧 +value||1 把 0 变 1、非法值被 clamp 掩盖）
+  var billDayOk = Number.isInteger(billDay) && billDay >= 1 && billDay <= 31;
+  var dueDayOk = Number.isInteger(dueDay) && dueDay >= 1 && dueDay <= 31;
+  document.getElementById('billDay').classList.toggle('input-error', !billDayOk);
+  document.getElementById('dueDay').classList.toggle('input-error', !dueDayOk);
+  if (!(billDayOk && dueDayOk)) {
+    document.getElementById('resultBox').innerHTML = '<p style="color:var(--danger);">' + __ccTx('账单日与还款日须为 1–31 的整数', 'Billing day and due day must be integers from 1 to 31') + '</p>';
+    document.getElementById('scheduleCard').style.display = 'none';
+    return;
+  }
 
   var interestFreeDays = 0;
   if (dueDay > billDay) {
@@ -411,6 +421,12 @@ function calc() {
 
   var html = '';
   var schedule = [];
+
+  // F-N122：口径透明——账单日/还款日仅用于估算免息天数，不参与循环利息与分期的计息（按 30 天/月模拟）
+  html += '<p style="color:var(--text-muted);font-size:12px;margin-bottom:10px;">📅 ' + __ccTx(
+    '账单日 ' + billDay + ' 日 / 还款日 ' + dueDay + ' 日仅用于估算免息天数，不参与循环利息与分期计息（利息按每月 30 天模拟）。',
+    'Billing day ' + billDay + ' / due day ' + dueDay + ' only estimate the interest-free period; they do not affect interest (simulated at 30 days/month).'
+  ) + '</p>';
 
   if (type === 'full') {
     html += '<div class="stat-grid">';

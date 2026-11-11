@@ -4523,6 +4523,20 @@ const CASES = [
     ref: "F-N230：分期 10000 元 /12 期 /0.75% 手续费，每期 908.33 元，IRR 月利率二分 80 次 ⇒ 单利近似 ×12 = 16.22%、按月复利 EAR = 17.48%。旧实现只把 EAR 标成「实际年化利率」，与 `installment-real-rate` 的双列命名冲突；现两列并列。默认态为 minimum 模式、不出现这两个标签 ⇒ 零逃生。",
   },
   {
+    slug: "finance/credit-card-interest",
+    inputs: { billAmount: "10000", dailyRate: "0.05", billDay: "0", dueDay: "30", minRatio: "10", repayType: "minimum" },
+    clicks: ["calc()"],
+    expect: ["账单日与还款日须为 1–31 的整数"],
+    ref: "F-N122：账单日 0 旧实现 `+value||1` 静默变 1、非法 99 被免息天数 clamp 掩盖，任何日期都照常出结果；现 billDay/dueDay 校验 1–31 整数，非法即字段级拒绝并清结果区。expect 锁拒绝提示；默认态 10/30 合法不命中 ⇒ 零逃生。",
+  },
+  {
+    slug: "finance/credit-card-interest",
+    inputs: { billAmount: "10000", dailyRate: "0.05", billDay: "2", dueDay: "20", minRatio: "10", repayType: "minimum" },
+    clicks: ["calc()"],
+    expect: ["账单日 2 日 / 还款日 20 日仅用于估算免息天数，不参与循环利息与分期计息"],
+    ref: "F-N122：口径透明——结果区标注账单日/还款日仅估算免息期、不参与计息（按 30 天/月模拟），消除「日期影响利息」的误解。expect 绑定注入的 2/20 具体日期（默认态 10/30 不命中 ⇒ 零逃生）；旧实现无此标注即变红。",
+  },
+  {
     slug: "finance/loan-amortization",
     inputs: { loanAmount: "120000", annualRate: "6", loanYears: "10", balloonMonths: "", balloonRatio: "", prepayMonth: "", prepayAmount: "" },
     clicks: ["calc()"],
