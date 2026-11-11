@@ -4236,6 +4236,12 @@ const CASES = [
     expect: ["hi"],
     ref: "预览区把 Markdown 标题 `# hi` 渲染成 `<h1>hi</h1>`（textContent 只留 `hi`），是解析产物而非原样回显；默认态渲染的是页面自带样例，预览文本不同 ⇒ 不命中。",
   },
+  {
+    slug: "it/markdown-editor",
+    inputs: { mdInput: "**NaN** Infinity 正文" },
+    expect: ["NaN Infinity 正文"],
+    ref: "Markdown 正文含 NaN/Infinity 是合法文本，不是数值计算结果；`**NaN**` 经粗体解析后产物为 `NaN Infinity 正文`，与原输入字符串（含星号）不同，故不是 input 回显。旧实现的通用数值守卫把预览替换成无效值提示并 return ⇒ 不命中。默认样例不含该串。",
+  },
   // ---- BATCH243：编码族 + 数学/判定族（8 例） ----
   {
     slug: "it/base32-encode",
