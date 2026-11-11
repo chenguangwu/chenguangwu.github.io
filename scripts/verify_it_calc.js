@@ -6414,6 +6414,20 @@ const CASES = [
     "ref": "IT-N466：值解码显示开关必须真正改变解析结果。注入含百分号编码的 URL，探针从注入值取查询串并调用顶层 parseQueryPairs：开态应得 toolbox/手，关态应原样保留 %74oolbox/%E6%89%8B。旧实现 _decMode 从未被 calcTool 读取、也没有该解析函数 ⇒ 探针 ReferenceError 不出串 ⇒ DECMODE DEC/无串。harness stub DOM 不建模 <script type=text/template> 的 paramRowTpl，参数行根本未渲染，故不能直接读 paramsBox.innerHTML；完整集成态由 JSDOM 真机脚本覆盖。默认态不执行探针 ⇒ 零逃生。"
   },
   {
+    "slug": "it/url-params",
+    // IT-N465：属性上下文必须转义引号，禁止裸引号进入 value="…" 模板。
+    "clicks": ["var q=String.fromCharCode(34);var s=esc('a'+q+'b<c'+q+'>');document.getElementById('__tbProbe').textContent='ATTR '+(s.indexOf('&quot;')>=0&&s.indexOf('&lt;')>=0&&s.indexOf('&gt;')>=0&&s.indexOf(q)<0?'SAFE':'RAW');"],
+    "expect": ["ATTR SAFE"],
+    "ref": "IT-N465：esc() 先走 div.textContent→innerHTML（只转义 &<>），必须再补双引号/单引号实体，否则解析结果拼进 `<input value=\"{v}\">` 会破出属性执行脚本。探针用 String.fromCharCode(34) 构造引号，避开 clicks 里复杂引号转义；断言返回值同时含 &quot;/&lt;/&gt; 且不含裸引号。旧实现无这两次 replace ⇒ ATTR RAW。默认态不执行探针 ⇒ 零逃生。"
+  },
+  {
+    "slug": "it/url-params",
+    // IT-N467：非法百分号必须按字面保留且不中断其余参数。
+    "clicks": ["var r=parseQueryPairs('q=100%&ok=fine',true);document.getElementById('__tbProbe').textContent='URIERR '+(r.length===2&&r[0].v==='100%'&&r[1].v==='fine'?'SAFE':'BAD');"],
+    "expect": ["URIERR SAFE"],
+    "ref": "IT-N467：decodeURIComponent 无 try/catch 时，畸形 `%` 抛 URIError 会让整块解析停止（其余参数也不再刷新）。探针走顶层 parseQueryPairs(qs,true)，坏值须按字面保留为 100%，其后的 ok=fine 必须仍被解析出来。缺陷态抛错 ⇒ 探针不出串 ⇒ URIERR BAD/无串。默认态不执行探针 ⇒ 零逃生。"
+  },
+  {
     "slug": "it/a1z26-cipher",
     "inputs": {
       "input": "1\n2\n3",

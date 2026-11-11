@@ -2637,24 +2637,6 @@
 - 方案：改用 tokenizer（acorn/esprima）或直接调 Terser；最低限度也要保留换行、跳过字符串与正则区间，并在页面声明"仅适用于带分号的简单代码"。
 - 假工具：否
 
-### IT-N465 `esc()` 不转义双引号，参数值拼进 `value="…"` 造成属性注入执行脚本（高，安全）
-- 页面：`tools/it/url-params.html`
-- 问题：`esc()` 用 `div.textContent` 再读 `div.innerHTML`（`:285`），只转义 `&`/`<`/`>`，双引号原样保留；解析结果被 `tpl.replace('{v}', esc(p.v))` 拼进模板 `<input … value="{v}">`（模板定义 `:162`，替换在 `:298`），JSON 导入同样（`:343`），整段走 `innerHTML`（`:299`、`:344`）。
-- 行号：`:162`、`:285`、`:293`、`:298-299`、`:343-344`
-- 复现：URL 输入 `https://x.com/?a=" autofocus onfocus="alert(1)` → 实际生成 `<input … value="" autofocus onfocus="alert(1)">`，`innerHTML` 插入后 `autofocus` + `onfocus` 触发脚本；期望引号被转成 `&quot;`，只当普通值显示。
-- 影响：从聊天记录/工单里粘贴一条"参数含引号"的 URL 就能在本站执行脚本，可读 localStorage、伪造结果或整页替换。
-- 方案：属性上下文改用 `escAttr()`（额外转义 `"` 与 `'`），或先 `document.createElement('input')` 再 `el.value = p.v` 赋值，避免字符串拼 HTML。
-- 假工具：否
-
-### IT-N467 `decodeURIComponent` 无容错，非法百分号转义抛 URIError 后整块停止刷新（中，崩溃）
-- 页面：`tools/it/url-params.html`
-- 问题：`calcTool()` 在 `forEach` 里直接 `decodeURIComponent(k…)` / `decodeURIComponent(v…)`（`:293`），无 `try/catch`。
-- 行号：`:293`、`:286-301`
-- 复现：URL 输入 `https://x.com/?q=100%` → 实际抛 `URIError: URI malformed`，行内 `oninput` 中断，参数区与结果区停留在上一次内容（改别的参数也不再刷新）；期望提示"参数编码非法"并继续渲染其余参数。
-- 影响：日志、埋点、手工拼的 URL 常带不完整转义，一出现就让整页解析静默失效，且界面看不出报错。
-- 方案：逐个 `try/catch`，失败时回落原文并加"未解码"标记。
-- 假工具：否
-
 ### IT-N468 短码是纯随机串，与 URL 无任何函数关系，并非 base62/hash 编码（中，承诺未实现）
 - 页面：`tools/it/short-link-generator.html`
 - 问题：短码循环只用 `crypto.getRandomValues` 抽字符（`:283-287`），URL 仅被显示、不参与运算；`formula-eq`（`:160`）称"短码 = base62(自增 ID) 或 hash(长链) 前 N 位"，description（`:10`）称"将长网址编码为简短易记的短链"，英文简介写 "using Base62 encoding"（`:482`）。
@@ -2671,7 +2653,7 @@
 - `api-sign-generator`：IT-N460（高，安全）、IT-N461（高）；IT-N462（中）。
 - `rc4`：IT-N463（中）；无高优缺陷（`rc4()` 与 `RC4-drop` 主路径对照已知向量 `Key`/`Plaintext` → `bbf316e8d940af0ad3` 正确，KSA/PRGA 无死循环）。
 - `js-minify`：IT-N464（高）；无其它高优项（结果渲染走 `escH`，无注入）。
-- `url-params`：IT-N465（高，安全）；IT-N467（中）。
+- `url-params`：无剩余高优/中优缺陷（IT-N465/IT-N466/IT-N467 均已修复，第178–179批补独立锁与真机复核后销账）。
 - `short-link-generator`：IT-N468（中）；无高优缺陷（输出全部经 `escapeHtml`，`randInt` 模偏差可忽略）。
 - 方法声明：本轮逐页通读上述 8 页源码，用 `node` 在 `/tmp` 复刻页面原函数（`renderQR`、`minify`、`rc4`、`parseParams`、`md5Hex`）并给出「输入 → 实际 / 期望」；MD5 对照用 `crypto.createHash('md5')`，QR 不可扫码依据"无数据位/格式信息/纠错码字"的算法结构判定；`esc()` 不转义双引号、`innerHTML` 属性注入按 HTML 序列化规则判定（文本节点只转义 `&<>`），未开真机浏览器复现 XSS。**未开浏览器、未跑 `_build.py`/`run_gates.py`、未做线上验证**；未修改任何工具页、代码或构建产物，仅在本审计日志追加本节。
 
