@@ -92,12 +92,6 @@
 - 影响：`tools/finance/npv-calculator.html`；亏损/全流出项目被包装成超高收益且标「可行」，是投资决策页的核心误导。
 - 方案：求解前检查 `npvAt(low)` 与 `npvAt(high)` 异号，无根时显示「无 IRR／现金流全为同号」；有根时校验残差并标注区间；IRR 越界（触 ±边界）明确提示而非当成结果。
 
-### F-N30 NPV 页初始投资清空后旧明细与导出仍有效（中，确认）
-- 问题：`calc()` 在 `init <= 0` 时只替换统计卡后 `return`，明细表、图表与历史读取的 `.result-box` 残留上一次结果；`exportCSV` 仍用当前（0）初始投资导出，历史记录也会把旧明细文本配到新输入上。
-- 证据：`tools/finance/npv-calculator.html:398-404`（仅 `stats` 被改写并 return）、`:444-460`（明细写入 `#detail`）、`:563-571`（导出读 live 输入）、`:640-647`（`__npv_calculatorResText` 取首个 `.result-box`，即 `#detail`）。源码路径确定，未做点击验证。
-- 影响：`tools/finance/npv-calculator.html`；用户清空初始投资后仍能看到旧 NPV/明细并可导出，历史记录与新参数错配。
-- 方案：无效输入时统一清空 `stats`/`detail`/图表并禁用导出；历史只记录同一次有效计算的结果，或记录后校验结果与输入一致。
-
 ### 留存优化
 - `tools/finance/npv-calculator.html`：现金流输入行无 `id`，历史快照只存折现率与初始投资（`renderCashFlows` 生成的 input 无 id），恢复历史无法复现现金流；建议给每期唯一 id 或整表 JSON 持久化，并在导出 CSV 中附 NPV/IRR/PI 结论。
 - `tools/finance/investment-roi.html`：缺「一次性 vs 定投」同额对照与真实现金流 IRR 明细；方案对比仅终值维度，建议补增量 ROI 与投入差额列。
