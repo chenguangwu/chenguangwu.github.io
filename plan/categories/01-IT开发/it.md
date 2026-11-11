@@ -164,24 +164,6 @@
 
 > 范围：本轮阅读 8 页（`tools/it/time-format-converter.html`、`tools/it/timestamp-converter.html`、`tools/it/color-converter.html`、`tools/it/integer-base-converter.html`、`tools/it/chmod-calculator.html`、`tools/it/crontab-generator.html`、`tools/it/ipv6-converter.html`、`tools/it/crc-calculator.html`）。仅源码 + Node 复算，未开浏览器/未做 EN/移动端/门禁验证。
 
-### 时间格式转换示例的时间戳与日期不一致（中，确认缺陷）
-- `tools/it/time-format-converter.html:428-429` 称 Unix 秒 `1690000000` 对应 `2023-07-22T08:53:20.000Z`，实际为 `2023-07-22T04:26:40.000Z`；反向示例 `2023-07-22 08:53:20` 在 UTC+8 下对应 `1689987200`，并非 `1690000000`。本地时间取决于浏览器时区。
-- 影响：示例给出互相矛盾的换算结果。应按明确时区重新计算示例。
-
-### IT-N42 时间格式转换：裸数字 "0"/"1" 被当成年份 2000/2001（低，确认源码缺陷）
-- 描述：非 10–13 位纯数字落入 `new Date(v)`；V8 把 `"0"`、`"1"` 解释为年份 2000/2001，而不是 Unix 秒。
-- 证据：`tools/it/time-format-converter.html:235-240`
-- 复现：输入 `0` → `2000-01-01 00:00:00`；`1` → `2001-01-01 00:00:00`（期望 `1970-01-01 08:00:00` 或提示"位数不足"）
-- 影响：粘贴被截断的时间戳会被静默当成 2000/2001 年，排查日志时误判。
-- 方案：纯数字统一走时间戳分支（按位数或阈值判定秒/毫秒），不足 10 位给出明确提示。
-
-### IT-N44 时间戳转换：时区表写死固定偏移，忽略夏令时（中，确认源码缺陷）
-- 描述：`TIMEZONES` 为纽约 -5、伦敦 0、巴黎 +1、悉尼 +11 等固定值；这些地区夏季使用 DST（-4/+1/+2/+10），固定偏移在半年内整体差 1 小时。
-- 证据：`tools/it/timestamp-converter.html:416-427`、`546-562`（553-554 固定偏移计算）
-- 复现：`2026-07-01T12:00:00Z` → "纽约 (GMT-5)" 显示 `07:00`（期望 08:00，EDT -4）；"伦敦 (GMT+0)" 显示 `12:00`（期望 13:00，BST +1）
-- 影响：跨时区排障时纽约/伦敦/巴黎/悉尼结果偏差 1 小时；北京/东京/夏威夷不受影响。
-- 方案：改用 `Intl.DateTimeFormat` 的 IANA 时区（America/New_York 等）格式化，或明确标注"标准时（不含 DST）"。
-
 ### IT-N54 CRC-8/ITU 的 CCITT 别名待核实（疑似待验证）
 - `tools/it/crc-calculator.html:330` 将模型标为 `CRC-8/ITU (CCITT)`；[CRC RevEng 参数目录](https://reveng.sourceforge.io/crc-catalogue/1-15.htm#crc.cat.crc-8-i-432-1) 列出该参数模型为 `CRC-8/I-432-1`，别名为 `CRC-8/ITU`，未列 CCITT。需核实 CCITT 别名的权威依据，避免与其他 CRC 模型混淆。
 
