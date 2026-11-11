@@ -3092,7 +3092,7 @@
 - **pdf-split**：真实提取、真实缩略图；但只产 1 个 PDF、结果强制升序，与「拆成多个文件」「按填写顺序」矛盾（IT-D34/IT-D35）；历史回填触发下载（IT-D36）。
 - **pdf-rotate**：真旋转，预览叠加差值、写入绝对角度，回读一致，本轮无缺陷。
 - **pdf-signature-checker**：仅检测签名存在；文件头 `%PDF-49.46` 恒不匹配判红（既有 `it.md:2582`）、字节数算式错（既有 `:2588`）、PKCS#7 验签承诺未实现（既有 `:2593`）。
-- **properties-parser**：核心扫描正确；CRLF 的 `\r` 留在每个值尾（IT-D33）、`\uXXXX` 不解码（既有 `:140`）、行尾 `\\` 当续行（既有 `:141`）。
+- **properties-parser**：核心扫描正确；CRLF/裸 CR 换行已修正（IT-D33，第167批）；`\uXXXX` 不解码（既有 `:140`）、行尾 `\\` 当续行（既有 `:141`）仍留存。
 - **ini-parser**：节/注释/重复键正常；`:` 分隔与无值键不支持（IT-D39/IT-D40）。
 - **curl-parser**：`-d`→POST、选项值消费、输出转义、`--data-urlencode` 百分号编码（IT-D37，第164批）、双引号内 `\"` 反转义（IT-D38，第165批）、反斜杠续行折叠（IT-D31，第166批）均已修到位；本批无其它残留项。
 - **plist-parser**：XML 真解析，dict/array/integer/real/bool 正确；`data`、`date` 原样返回（既有）。
@@ -3103,7 +3103,6 @@
 | 编号 | 页面:行 | 级别 | 问题与期望值 |
 |---|---|---|---|
 | IT-D32 | `tools/office/pdf-merge.html:512,703` | 高 | `loadPageCount` 用 `ignoreEncryption` 使加密文件列为可用；`copyPages` 不解密 → 整体抛错或输出空白，与 `:349,:391`「跳过并提示、不影响其余」矛盾。期望单文件标 error 后 `continue`（node 加载同版本 pdf-lib：正常 2+3 页合并成功，`copyPages` 无加密检查） |
-| IT-D33 | `tools/it/properties-parser.html:258,298` | 高 | 只按 `\n` 切行，CRLF 的 `\r` 留在值尾：`a=b\r\nc=d\r\n` → `{"a":"b\r","c":"d\r"}`，期望 `"b"/"d"`（node 复刻 `parseProps`） |
 | IT-D34 | `tools/office/pdf-split.html:568,455-466` | 假 | 宣称「拆分 PDF 为多个小文件」「段数=ceil(总页数/每段页数)」「文件数=段数」，实际无「每段页数」输入且只产出 1 个 PDF |
 | IT-D35 | `tools/office/pdf-split.html:907` | 中 | 强制 `sort` 升序：`7-10,1` → `[1,7,8,9,10]`，与 `:480,:519`「按填写顺序」矛盾（pdf-lib 本身保序） |
 | IT-D36 | `tools/office/pdf-split.html:1170` | 中 | 历史记录回填后直接调 `downloadResult()`：有缓存则莫名下载，无缓存弹「开始下载」错误提示 |

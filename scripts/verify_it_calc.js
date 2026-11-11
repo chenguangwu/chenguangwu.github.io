@@ -2199,6 +2199,14 @@ const CASES = [
   },
   {
     slug: "it/properties-parser",
+    // IT-D33：CRLF / 裸 CR 换行的 \r 不得残留在值尾。
+    inputs: { input: "a=b\r\nc=d\r\n" },
+    clicks: ["propsToJson()"],
+    expect: ['"a": "b"', '"c": "d"'],
+    ref: "CRLF 文本 a=b\\r\\nc=d\\r\\n 按行解析后值应为 b / d，不带残留 \\r。修复前只按 \\n 切行，值含 \\r ⇒ JSON 为 {\"a\":\"b\\r\",...}，锚 \"a\": \"b\" 不命中。默认示例为 LF 且键为 app.*，不命中。",
+  },
+  {
+    slug: "it/properties-parser",
     inputs: { input: "__proto__=x" },
     clicks: ["propsToJson()"],
     expect: ['"__proto__": "x"'],
