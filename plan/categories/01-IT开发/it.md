@@ -872,38 +872,6 @@
 - 方案：历史摘要改存结构化数字（如 `{stacks: sel.length, rules: lines.length}`），或至少把 `resText` 改为读取规则条数；图表用该数值字段。
 **留存建议（tools/it/gitignore-generator.html）**：历史字段别存整段文本，存 `stacks/rules` 两个计数即可。
 
-### IT-N278 页面宣称解析"二进制编码结构"，实现只做 .proto 文本转 JSON（中，确认缺陷）
-- 问题：`formula-desc` 写"解析 Protocol Buffers 的二进制编码结构"，深度解析两条都写"按 .proto 解析二进制消息/抓包排查 gRPC"，但代码只 `tokenizeProto` 文本并 `JSON.stringify` 结构，没有 varint、字段号、wire type、长度前缀的任何解码。标题"Protobuf 解析器"也易被理解为二进制解析。
-- 证据：`tools/it/protobuf-parser.html:161`（二进制结构）、`:204-205`（解析二进制消息/抓包）、`:278-281`（只读 `#input` 文本）、`:391`（输出 JSON 结构）。
-- 复现：输入一段真实 wire bytes（如 `08 96 01`）→ 实际 `❌ 期望 {` 或空结构；期望得到 `field 1 varint = 150`。
-- 影响：按"抓包排查 gRPC"来的用户完全用不了；标题与 meta（`:12` 写"解析 .proto 文件为 JSON"）又自相矛盾。
-- 方案：二选一——把文案统一改为".proto → JSON 结构解析"并改标题为"Proto 结构解析器"；或真正实现 wire format 解码（varint/zigzag/fixed/length-delimited + 字段号树）。
-**留存建议（tools/it/protobuf-parser.html）**：本批最大口径偏差，先统一命名与文案，再决定是否做二进制。
-
-### IT-N279 历史/数据表/图表取到静态"算法说明"卡片，记录恒定、图表恒空（中，确认缺陷）
-- 问题：`ResText` 用 `document.querySelector('.result-box')` 取到页面第一个 `.result-box`——`:184` 的算法说明卡，而非 `#results` 的结果卡。该文本永不变，历史只记一条后因 `last` 相同不再新增；图表 `parseFloat('HMAC (Hash-based…')` → `NaN`，永不渲染。
-- 证据：`tools/it/hmac-generator.html:184`（首个 `result-box` 是说明卡）、`:187`（真正的 `#results` 容器）、`:340-347`（querySelector 选择器）、`:305`（`previousElementSibling` 复制逻辑，仅供对照）。
-- 复现：以 `secret-key` 对 `hello`、`world` 各算一次 → 历史仍只有一条，内容是 `HMAC (Hash-based Message Authentication Code) 用于验证消息完整性和真实性。 公式：HMAC(K, m) = …`；数据表只有这一行；图表空白。期望每条记录含 key/msg 与四档摘要。
-- 影响：三个辅助 tab 全部失效，无法比对两次签名。
-- 方案：`ResText` 改为读 `#results` 的第一个 `.hmac-card .val`（或拼接四档），历史摘要存 `{algo: hex}`；图表不要对摘要做 `parseFloat`。
-**留存建议（tools/it/hmac-generator.html）**：选择器改成 `#results` 即可，别再依赖页面首个 `.result-box`。
-
-### IT-N280 密钥只能按 UTF-8 文本处理，无法按 hex/Base64 解释（中，确认缺陷）
-- 问题：`getKeyBytes` 直接 `new TextEncoder().encode(key)`，把 `0x0b0b…`、Base64 `a2V5` 都当普通字面量；页面 FAQ 却把"编码不一致（hex vs Base64）"列为签名对不上的三大原因之一，工具本身没有任何编码选项。
-- 证据：`tools/it/hmac-generator.html:263-264`（TextEncoder）、`:219`（FAQ 编码原因）、`:151`（输出长度说明，未涉及输入编码）。
-- 复现：后端密钥为 16 字节 `0x0b0b…`，输入 `0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b` → 实际按 32 个 ASCII 字符计算，HMAC 与后端不符；输入 Base64 `a2V5` → 按 4 字符 `a2V5` 计算；期望按字节解码。
-- 影响：对接 Webhook/API 签名时结果永远对不上，且页面给出的排查建议无法执行。
-- 方案：密钥区加"文本 / hex / Base64"选择，hex/base64 走 `Uint8Array`；输出同时给 hex 与 Base64 两种格式。
-**留存建议（tools/it/hmac-generator.html）**：加编码选择器比补文档更有效，顺带补 Base64 输出。
-
-### IT-N281 "默认参数"预设只改 key，不重算，复制的是旧卡片（低，确认缺陷）
-- 问题：预设 `after` 回调是 `copyAll()`，而 `copyAll` 只读现有 `.hmac-card` 并复制；`key` 输入没有 `oninput`，`setValue` 派发的 `input` 不会触发 `calc`。点击"默认参数"后卡片仍是上一次的摘要，toast 还说"已复制全部 HMAC"。
-- 证据：`tools/it/hmac-generator.html:167`（key 无 oninput）、`:425`（默认参数只设 key）、`:428`（after=copyAll）、`:430-432`（预设后包装 copyAll 触发 extras）。
-- 复现：先算 `hello`/`secret-key`，再点"默认参数"（key 变 `secret-key`）→ 卡片摘要不变（仍是旧 key 的结果），剪贴板也是旧值；期望立即按新 key 重算。
-- 影响：预设给出并复制过期签名，属"看起来成功、实际错误"。
-- 方案：`after` 改为 `calc()`（async 可 `void calc()`），预设内不要复制；`key` 加 `oninput="calc()"` 或 debounce。
-**留存建议（tools/it/hmac-generator.html）**：预设回调一律指向计算函数，不要指向复制函数。
-
 ### IT-N282 编码丢弃所有非字母（含数字/标点/重音字母），与"非字母原样保留"相反（中，确认缺陷）
 - 问题：`enc` 的 map 对非 `A-Z` 一律 `return ''` 并 `filter` 掉，数字、标点、空格内标点、`é` 等全部消失；整词都是非字母时产生空词，`join(wordSep)` 后留下多余分隔符。
 - 证据：`tools/it/a1z26-cipher.html:147`（"非字母字符原样保留"）、`:259-262`（非字母返回空串并过滤）、`:264`（空词仍参与 join）。

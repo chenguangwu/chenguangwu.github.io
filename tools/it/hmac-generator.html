@@ -153,7 +153,15 @@
     </div>
 
     <label>密钥</label>
-    <input type="text" id="key" value="secret-key" placeholder="HMAC 密钥">
+    <input type="text" id="key" value="secret-key" placeholder="HMAC 密钥" oninput="calc()">
+    <div style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:13px;">
+      <span data-zh="密钥编码">Key encoding</span>
+      <select id="keyEnc" onchange="calc()">
+        <option value="text" data-zh="文本（UTF-8）">Text (UTF-8)</option>
+        <option value="hex" data-zh="Hex（十六进制字节）">Hex</option>
+        <option value="base64" data-zh="Base64">Base64</option>
+      </select>
+    </div>
 
     <label style="margin-top:12px;">消息</label>
     <textarea id="msg" placeholder="输入要计算 HMAC 的消息..." oninput="calc()">Hello, HMAC!</textarea>
@@ -248,9 +256,26 @@ function bytesToHex(bytes, upper){
   return upper ? s.toUpperCase() : s;
 }
 
-function getKeyBytes(key){
-  const enc = new TextEncoder();
-  return enc.encode(key);
+function getKeyBytes(key, encoding){
+  const mode = encoding || (document.getElementById('keyEnc') && document.getElementById('keyEnc').value) || 'text';
+  if(mode === 'hex'){
+    const clean = String(key).replace(/\s+/g,'');
+    if(!/^[0-9a-fA-F]*$/.test(clean) || clean.length % 2 !== 0){
+      throw new Error(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Hex key must be an even number of hex characters':'Hex 密钥必须为偶数位十六进制字符'));
+    }
+    const out = new Uint8Array(clean.length/2);
+    for(let i=0;i<out.length;i++) out[i] = parseInt(clean.slice(i*2,i*2+2),16);
+    return out;
+  }
+  if(mode === 'base64'){
+    let bin;
+    try{ bin = atob(String(key).replace(/\s+/g,'')); }
+    catch(e){ throw new Error(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Invalid Base64 key':'Base64 密钥格式非法')); }
+    const out = new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+  return new TextEncoder().encode(key);
 }
 
 async function calcHmac(algo, keyBytes, msgBytes){
@@ -278,7 +303,14 @@ async function calc(){
   const msg = document.getElementById('msg').value;
   if(!msg) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter message":"请输入消息"));
   const upper = document.getElementById('upper').checked;
-  const keyBytes = getKeyBytes(key);
+  const keyEncEl = document.getElementById('keyEnc');
+  let keyBytes;
+  try{ keyBytes = getKeyBytes(key, keyEncEl ? keyEncEl.value : 'text'); }
+  catch(e){
+    document.getElementById('results').innerHTML='';
+    alert(e.message);
+    return;
+  }
   const msgBytes = new TextEncoder().encode(msg);
   document.getElementById('results').innerHTML='';
   const algos = [['SHA-1','HMAC-SHA1'], ['SHA-256','HMAC-SHA256'], ['SHA-384','HMAC-SHA384'], ['SHA-512','HMAC-SHA512']];
@@ -327,7 +359,20 @@ function __hmac_generatorSnap(){
     return out;
 }
 function __hmac_generatorResText(){
-    var r=document.querySelector('.result-box');
+    // 只读真正的计算结果卡（#results 内的 hmac-card），不再误取页面首个结果框算法说明卡。
+    var box=document.getElementById('results');
+    var cards=box&&box.querySelectorAll?box.querySelectorAll('.hmac-card .val'):null;
+    if(cards&&cards.length){
+        var parts=[];
+        for(var i=0;i<cards.length;i++){
+            var card=cards[i].parentNode;
+            var nm=card&&card.querySelector?card.querySelector('.name'):null;
+            parts.push((nm?(nm.textContent||''):'')+':'+(cards[i].textContent||''));
+        }
+        var txt=parts.join(' ').replace(/\s+/g,' ').trim();
+        if(txt) return txt.slice(0,80);
+    }
+    var r=box;
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
@@ -437,7 +482,7 @@ function __hmac_generatorPresets(){
     TBKit.preset.bar('#hmac_generatorPresets',[{label:'默认参数',labelEn:'Default',values:{'key':'secret-key'}},
   {"label":"SHA256","labelEn":"SHA256","values":{"key":"mykey","msg":"Hello HMAC"}},
   {"label":"大写","labelEn":"Upper","values":{"key":"anotherkey","msg":"data to sign","upper":"1"}},
-  {"label":"长消息","labelEn":"Long msg","values":{"key":"topsecret","msg":"The quick brown fox jumps over the lazy dog"}}],function(){ copyAll(); });
+  {"label":"长消息","labelEn":"Long msg","values":{"key":"topsecret","msg":"The quick brown fox jumps over the lazy dog"}}],function(){ void calc(); });
 }
 var __hmac_generator_f0=(typeof copyAll==='function')?copyAll:null;
 if(__hmac_generator_f0){

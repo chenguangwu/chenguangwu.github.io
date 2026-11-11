@@ -12744,6 +12744,24 @@ const CASES = [
     ref: "RFC 4231 测试用例 2：HMAC-SHA-256('Jefe', 'what do ya want for nothing?') = 5bdcc146…ec3843（Python hmac 逐字节同值）。默认 key=secret-key / msg='Hello, HMAC!'，不命中。",
   },
   {
+    slug: "it/hmac-generator",
+    clicks: ["var b=Array.from(getKeyBytes('0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b','hex'));var ok=b.length===16&&b.every(function(x){return x===11;});document.getElementById('__tbProbe').textContent='HEXKEY '+(ok?'OK':'BAD:'+b.length);"],
+    expect: ["HEXKEY OK"],
+    ref: "IT-N280：getKeyBytes(key,'hex') 须把 32 位 hex 解成 16 个 0x0b 字节（RFC 4231 长密钥场景）。修复前仅 TextEncoder 按文本编码，得 32 个 ASCII 码（首字节 0x30）⇒ HEXKEY BAD。",
+  },
+  {
+    slug: "it/hmac-generator",
+    clicks: ["var s=String(__hmac_generatorResText);var ok=s.indexOf('results')>=0&&s.indexOf('.result-box')<0;document.getElementById('__tbProbe').textContent='RESTXT '+(ok?'OK':'BAD');"],
+    expect: ["RESTXT OK"],
+    ref: "IT-N279：ResText 须读 #results 的结果卡摘要，不得取页面首个 .result-box 算法说明卡。修复前源码取 .result-box、不含 results ⇒ RESTXT BAD（改用函数源码特征探针，规避 harness stub 不完整的 DOM 注入能力）。",
+  },
+  {
+    slug: "it/hmac-generator",
+    clicks: ["var s=String(__hmac_generatorPresets);var ok=s.indexOf('calc')>=0&&s.indexOf('copyAll')<0;document.getElementById('__tbProbe').textContent='KEYRECALC '+(ok?'OK':'BAD');"],
+    expect: ["KEYRECALC OK"],
+    ref: "IT-N281：预设 after 回调须指向重算 calc()，不得是纯复制 copyAll()。修复前 preset 源码含 copyAll、不含 calc ⇒ KEYRECALC BAD（JSDOM 真机另验 key oninput 绑定）。",
+  },
+  {
     slug: "it/crc-calculator",
     inputs: { input: "abc" },
     checkIds: ["upper"],
