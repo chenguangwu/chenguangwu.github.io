@@ -2933,7 +2933,7 @@ TTZZ_BLOCK = (
 
 # 不注入的页面：谷歌 / 字节站点验证文件（须保持最小标记，且无 <head> 结构）、
 # ui/ 设计稿（非站点公开页面）。
-TTZZ_SKIP_DIRS = {'.git', '.github', 'node_modules', '.idea', 'ui'}
+TTZZ_SKIP_DIRS = {'.git', '.github', 'node_modules', '.idea', 'ui', 'games'}
 TTZZ_SKIP_FILE_RE = re.compile(r'^(?:google[0-9a-f]+|ByteDanceVerify)\.html$')
 
 # 已注入块（含历史版本片段）：命中则把旧片段原位升级为当前 TTZZ_BLOCK。

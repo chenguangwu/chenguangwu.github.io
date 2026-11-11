@@ -21,7 +21,7 @@ SEC = (
     '<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">\n'
     + MARKER + '\n'
 )
-SKIP_DIRS = {'.git', 'node_modules', 'zh-tw', '.trae', '.workbuddy'}
+SKIP_DIRS = {'.git', 'node_modules', 'zh-tw', '.trae', '.workbuddy', 'games'}
 
 
 def walk_html(root):
