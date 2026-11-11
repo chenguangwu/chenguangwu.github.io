@@ -28,9 +28,6 @@
 ### Emoji 明细编码显示及复制错误（中，代码确认）
 - `tools/it/emoji-meaning.html:818-821,835-845` 将 HTML 实体直接写入 `innerHTML`，因此显示及 `onclick` 属性中的实体会被 HTML 解析成 Emoji，而非字面 `&#x1f600;`；JS 转义插入事件处理器后被 JS 解析成字符，CSS 转义则被解析成旧式八进制。以 😀 为例，JS 表达式复算 `copyText("\u{1f600}")` 接收 😀，`copyText("\1f600")` 接收控制字符 U+0001 和 `f600`，均不是期望的字面编码。应使用文本节点显示并在事件中传递原始字符串；未在浏览器执行复制。
 
-### HTML 标签速查导出损坏示例（中，代码确认）
-- `tools/it/html-tags.html:338,408-427` 将 `t.example` 原样拼入临时表格的 `innerHTML`，`js/tool-kit.js:221-236` 随后取单元格 `textContent` 导出。超链接示例 `<a href="https://example.com" target="_blank">链接</a>` 因被当作真实元素解析，仅剩「链接」，标签及属性丢失。应创建单元格后以 `textContent` 写入原示例；未实际下载文件。
-
 ### 环境变量预览错误保留旧复制值（中，代码确认）
 - `tools/it/env-generator.html:844-865,868-882` 在高亮后的整段 HTML 中匹配 `Infinity` 或独立 `NaN` 并提前 return，此时展示无效值提示，却不会更新或清空 `preview.dataset.raw`。此前存在有效预览时，添加文本值 `Infinity` 后复制/下载仍取旧配置。应只验证真正的数值结果，失败时同步清空缓存。
 - `tools/it/env-generator.html:753-758` JSON 数字类型用 `Number(val) || 0`，空值或无效数字会静默变为 0；应校验并报错而非改变用户数据。

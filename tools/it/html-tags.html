@@ -410,7 +410,16 @@ function __htgExport(){
   tb.innerHTML='';
   list.forEach(function(t){
     var tr=document.createElement('tr');
-    tr.innerHTML='<td>'+t.name+'</td><td>'+t.cat+'</td><td>'+t.desc+'</td><td>'+t.attrs+'</td><td>'+(t.new?'Yes':'No')+'</td><td>'+(t.deprecated?'Yes':'No')+'</td><td>'+t.example.replace(/\n/g,' ')+'</td>';
+    // 修复：example 等字段是「要原样展示的示例文本」（含 <a href=...> 等标签字面）。
+    // 旧代码用 innerHTML 拼接，示例被浏览器解析成真实元素，exportTable 读 textContent
+    // 时只剩可见文字（如 <a>链接</a> → 「链接」），标签与属性全丢。
+    // 改为逐单元格 textContent 赋值，导出读到的即示例字面，与页面 escapeHtml 显示语义一致。
+    var cells=[t.name,t.cat,t.desc,t.attrs,(t.new?'Yes':'No'),(t.deprecated?'Yes':'No'),t.example.replace(/\n/g,' ')];
+    cells.forEach(function(v){
+      var td=document.createElement('td');
+      td.textContent=(v==null?'':String(v));
+      tr.appendChild(td);
+    });
     tb.appendChild(tr);
   });
   TBKit.util.exportTable('#htgHidden',en?'html-tags-reference.csv':'HTML标签速查.csv');
