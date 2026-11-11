@@ -3071,6 +3071,30 @@ const CASES = [
     ref: "反向锚：MIME 表搜索无命中计数归零；默认列表非空。",
   },
   {
+    slug: "it/mime-type",
+    inputs: { search: "  json  " },
+    expect: ["共 2 条"],
+    ref: "IT-N108：搜索词前后带空格必须先 trim 再过滤，命中 .json 与 .gltf(model/gltf+json) 共 2 条；旧实现未 trim ⇒ 共 0 条。默认态 84 条不命中。",
+  },
+  {
+    slug: "it/mime-type",
+    clicks: ["globalThis.TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return [];},last:function(){return null;},record:function(){},mount:function(){}},preset:{bar:function(){}}};var cap=null;var old=TBKit.matrix.table;TBKit.matrix.table=function(sel,cfg){cap={sel:sel,head:cfg.head,rows:cfg.rows};};__mime_typeDataTable();TBKit.matrix.table=old;document.getElementById('__tbProbe').textContent='MTTAB '+(cap?cap.sel+' '+cap.head.join('|')+' n='+cap.rows.length+' r0='+cap.rows[0].join('|'):'NONE');"],
+    expect: ["MTTAB #mime_typeTable 扩展名|MIME 类型|分类 n=84 r0=.html|text/html|文本"],
+    ref: "IT-N107：数据表必须渲染完整 MIME 清单（扩展名/MIME/分类 三列、84 行），不是搜索历史。旧源码无 __mime_typeDataTable 函数 ⇒ 探针 NONE。默认态无该串。",
+  },
+  {
+    slug: "it/mime-type",
+    clicks: ["globalThis.TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return [];},last:function(){return null;},record:function(){},mount:function(){}},preset:{bar:function(){}}};var calls=[];var oldT=TBKit.matrix.table,oldE=TBKit.util.exportTable;TBKit.matrix.table=function(sel,cfg){calls.push('TAB:'+sel+':'+cfg.head.join('/'));};TBKit.util.exportTable=function(sel,name){calls.push('EXP:'+sel+':'+name);};__mime_typeExport();TBKit.matrix.table=oldT;TBKit.util.exportTable=oldE;document.getElementById('__tbProbe').textContent='MTEXP '+calls.join(' ');"],
+    expect: ["MTEXP TAB:#mime_typeTable:扩展名/MIME 类型/分类 EXP:#mime_typeTable:mime-type.csv"],
+    ref: "IT-N107：导出前必须先重建 MIME 数据表再导出该表，调用序列固定为 TAB→EXP；旧实现直接导出历史表（无 TAB 或 TAB 头为时间/search/结果）⇒ 不命中。默认态无该串。",
+  },
+  {
+    slug: "it/mime-type",
+    clicks: ["globalThis.TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return [];},last:function(){return null;},record:function(){},mount:function(){}},preset:{bar:function(){}}};var n=0;var old=TBKit.matrix.table;TBKit.matrix.table=function(){n++;};__mime_typeRender(['search'],'结果',false);TBKit.matrix.table=old;document.getElementById('__tbProbe').textContent='MTHIST n='+n+'|';"],
+    expect: ["MTHIST n=0|"],
+    ref: "IT-N107：历史渲染路径不得再写 #mime_typeTable（历史已有独立 #mime_typeHist 页签）。旧实现写一次 ⇒ n=1，不命中；显式 n=0| 标记杜绝前缀逃生。探针仅 clicks 注入出现。",
+  },
+  {
     slug: "it/json-to-csv",
     inputs: { input: '[{"name":"Tom","age":3},{"name":"Ann","age":5}]' },
     clicks: ["toCSV()"],

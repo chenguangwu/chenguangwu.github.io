@@ -334,20 +334,6 @@
 
 - 留存建议（http-headers）：①增加"请求/响应/通用"方向过滤与 CORS/缓存/安全三组场景预设；②每条支持复制 curl/Node/fetch 片段（当前仅复制单行示例）；③补 Cache-Control/HSTS/CSP 后提供"安全响应头基线"清单。
 
-### IT-N107 MIME 类型速查表："数据表"与"导出明细 CSV"实际是搜索历史，不是 MIME 清单，首屏导出静默无反应（中，确认源码缺陷）
-- 问题：`#mime_typeTable` 由 `__mime_typeRender()` 用 `TBKit.history.list()` 渲染，列是"时间 / search / 结果（列表文本前 80 字）"；导出也导这张表。且 `init()` 在 `render` 被包装之前执行，首屏不会记录历史，此时点导出 `exportTable` 遇空表直接 `return false`，没有任何提示。
-- 证据：`tools/it/mime-type.html:169`（`#mime_typeTable` 位置）、`tools/it/mime-type.html:407-417`（历史行）、`tools/it/mime-type.html:473-475`（导出该表）、`tools/it/mime-type.html:369`（`init()` 早于 480-483 的包装）
-- 复现：打开页面不做任何操作 → 点"导出明细 CSV"：无文件、无 toast（期望导出当前 MIME 清单）；先搜索 `json` 再点"数据表" → 表格只有"时间 / search / 结果"三列，结果列是把整段列表压平后截取前 80 字（形如 `json application/json 复制 …`），不是结构化的"扩展名｜MIME"两列（期望是完整 MIME 数据表）。
-- 影响：导出内容语义错误且首屏像坏按钮；用户拿到的 CSV 无法当 MIME 映射使用。
-- 方案：`数据表` 直接渲染 `MIME`（扩展名/MIME/分类），导出该表；搜索历史可另设"历史"页签（当前历史页签已存在）；空表导出给 toast。
-
-### IT-N108 MIME 类型速查表：搜索词不 trim，前导空格导致 0 条（低，确认源码缺陷）
-- 问题：`const q = …value.toLowerCase()` 未 `trim()`，过滤用 `m.ext.includes(q) || m.mime.toLowerCase().includes(q)`；粘贴时常见的行首/行尾空格会让结果全空。
-- 证据：`tools/it/mime-type.html:354-357`
-- 复现：搜索框输入 `" json"`（前导空格）→ 实际"共 0 条"（期望与 `json` 相同，命中 `.json`/`application/json`）。
-- 影响：复制粘贴搜索词时误判"没有该类型"。
-- 方案：`q = value.trim().toLowerCase()`；补前导/尾随空格用例。
-
 ### IT-N109 MIME 类型速查表：个别映射过时/分类不当（低，确认源码缺陷）
 - 问题：`.exe` 给 `application/x-msdownload`（IANA 已注册 `application/vnd.microsoft.portable-executable`）；`.ai` 给 `application/postscript`（现代 Illustrator 文件实为 PDF 容器，常见为 `application/pdf` 或 `application/illustrator`）；`.m3u8` 归"视频"（实际是 HLS 播放列表 `application/vnd.apple.mpegurl`）。
 - 证据：`tools/it/mime-type.html:313`（exe）、`tools/it/mime-type.html:339`（ai）、`tools/it/mime-type.html:292`（m3u8）

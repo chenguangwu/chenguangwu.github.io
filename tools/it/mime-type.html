@@ -142,7 +142,7 @@
 <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="📦 MIME 类型速查表">📦 MIME Type Quick Reference</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">过滤条件 = (当前分类为全部 或 条目分类等于当前分类) 且 (无搜索词 或 扩展名包含搜索词 或 MIME 类型小写后包含搜索词)，搜索词统一先转小写；命中条目逐条渲染扩展名、MIME 与复制按钮，计数显示为过滤后的条数</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">过滤条件 = (当前分类为全部 或 条目分类等于当前分类) 且 (无搜索词 或 扩展名包含搜索词 或 MIME 类型小写后包含搜索词)，搜索词统一先 trim 再转小写；命中条目逐条渲染扩展名、MIME 与复制按钮，计数显示为过滤后的条数</div>
   <div class="formula-desc">MIME 类型用 type/subtype 标识数据格式，决定接收方如何处理内容。</div>
   <ul class="formula-list">
     <li><b>结构</b>：<code>type/subtype</code>，可附加参数（如 <code>text/html; charset=utf-8</code>）。</li>
@@ -340,7 +340,7 @@ function init(){
 }
 function setCat(c){ currentCat = c; document.querySelectorAll('#catFilter button').forEach((b,i) => b.classList.toggle('active', (i === 0 && c === 'all') || b.textContent === c)); render(); }
 function render(){
-  const q = document.getElementById('search').value.toLowerCase();
+  const q = (document.getElementById('search').value || '').trim().toLowerCase();
   const filtered = MIME.filter(m =>
     (currentCat === 'all' || m.cat === currentCat) &&
     (!q || m.ext.includes(q) || m.mime.toLowerCase().includes(q))
@@ -401,16 +401,6 @@ function __mime_typeTime(t){
 function __mime_typeRender(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
-        var head=[en?'Time':'时间'].concat(keys).concat([en?'Verdict':'结论',rk]);
-        var rows=arr.map(function(it){
-            var row=[__mime_typeTime(it.t)];
-            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
-            var sc=parseFloat(it.d.__tbScore);
-            row.push(isFinite(sc)?(sc>=1?(en?'Pass':'通过'):(en?'Fail':'未通过')):'-');
-            var r=it.d[rk];row.push(r==null?'':r);
-            return row;
-        });
-        TBKit.matrix.table('#mime_typeTable',{head:head,rows:rows});
         TBKit.util.diffBox('#mime_typeDiff');
         TBKit.history.mount('#mime_typeHist',function(rec){
             __mime_type_skip=true;
@@ -467,17 +457,28 @@ function __mime_typeExtras(){
     TBKit.history.record(rec);
     __mime_typeRender(keys,rk,en);
 }
+function __mime_typeToast(msg){
+    try{ if(typeof ToolBox!=='undefined'&&ToolBox.showToast){ToolBox.showToast(msg);return;} }catch(e){}
+    try{ if(typeof showToast==='function'){showToast(msg);return;} }catch(e){}
+}
+function __mime_typeDataTable(){
+    if (typeof TBKit === 'undefined' || !TBKit.matrix) return;
+    var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+    var CAT_EN={'文本':'Text','图片':'Image','音频':'Audio','视频':'Video','文档':'Document','压缩':'Archive','程序':'Program','字体':'Font','其他':'Other'};
+    var head=[en?'Extension':'扩展名',en?'MIME type':'MIME 类型',en?'Category':'分类'];
+    var rows=MIME.map(function(m){ return [m.ext,m.mime,en?(CAT_EN[m.cat]||m.cat):m.cat]; });
+    TBKit.matrix.table('#mime_typeTable',{head:head,rows:rows});
+}
 function __mime_typeExport(){
-    if (typeof TBKit === 'undefined') return;
-    try{
-        var box=document.querySelector('#mime_typeTable');
-        if(!box||!box.querySelector('tr')){
-            var snap=__mime_typeSnap(); var keys=Object.keys(snap);
-            if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
-            __mime_typeRender(keys,en?'Result':'结果',en);
-        }
-    }catch(e){}
+    var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?true:false;
+    if (typeof TBKit === 'undefined' || !TBKit.util || !TBKit.util.exportTable) {
+        __mime_typeToast(en?'Data not ready':'数据未就绪'); return;
+    }
+    try{ __mime_typeDataTable(); }catch(e){}
+    var box=document.querySelector('#mime_typeTable');
+    if(!box || !MIME.length){
+        __mime_typeToast(en?'No data to export':'暂无可导出的数据'); return;
+    }
     try { TBKit.util.exportTable('#mime_typeTable','mime-type.csv'); } catch(e){}
 }
 function __mime_typePresets(){
@@ -487,7 +488,7 @@ var __mime_type_f0=(typeof render==='function')?render:null;
 if(__mime_type_f0){
     render=function(){ var __r=__mime_type_f0.apply(null,arguments); try{ __mime_typeExtras(); }catch(e){} return __r; };
 }
-function __mime_typeBoot(){ try{ __mime_typePresets(); }catch(e){} }
+function __mime_typeBoot(){ try{ __mime_typePresets(); }catch(e){} try{ __mime_typeDataTable(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __mime_typeBoot();
 else document.addEventListener('DOMContentLoaded', __mime_typeBoot);
 </script>
