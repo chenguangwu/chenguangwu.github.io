@@ -83,7 +83,7 @@
 - `properties-parser.html`：行尾双字面反斜杠被误当续行符问题已于第301批修复销账（按行尾连续反斜杠奇偶判定：偶数不续行、奇数才续行；真机双态验证偶数不吞行、奇数仍续行）。
 - `url-parser.html:442-459` 构造器不校验 host/port，host 为空会生成 `https:///path`，端口可写入任意非数字内容。
 - `slugify.html`：拼音表「音频」拼写错误已于第298批修复销账（yinpinyin→yinpin）；297 的 15 字长键因贪心上限 8（324）永远匹配不到，属冗余数据（清理性质，未处理）。
-- `text-truncate.html:330` `fromEnd` 分支完全忽略 `wordBoundary`，与正向行为不对称。
+- `text-truncate.html`：chars 模式 `fromEnd` 忽略 `wordBoundary` 的不对称问题已于第302批修复销账（反向对称地把词中间起点推进到下一词首，真机四态验证且不超预算）。
 - `case-converter.html:384` `toSentenceCase` 先整体小写，专有名词与缩写（NASA、iOS）会被降格，如需保留应改为逐句首字母处理。
 
 ### 续查覆盖

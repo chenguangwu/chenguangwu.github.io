@@ -13812,6 +13812,12 @@ const CASES = [
     expect: ["PPBS OK"],
     ref: "清单行尾反斜杠续行误判：path=C: 后跟两个字面反斜杠（偶数个，代表一个字面反斜杠）不得当作续行符吞掉下一行。旧 endsWith 反斜杠一律续行，导致 next=1 被拼进 path 值并被当转义解码，无独立 next 键 ⇒ BAD；修复后按行尾连续反斜杠个数奇偶判定：偶数不续行、奇数才续行 ⇒ 出现独立 next 键 ⇒ PPBS OK。探针只在 clicks 内生成。",
   },
+  {
+    slug: "it/text-truncate",
+    clicks: ["document.getElementById('input').value='aa bb cc dd';document.getElementById('limit').value='7';document.getElementById('mode').value='chars';document.getElementById('wordBoundary').checked=true;document.getElementById('fromEnd').checked=true;truncate();var v=String(document.getElementById('result').textContent);document.getElementById('__tbProbe').textContent=(v==='...dd'?'TRUNCEB OK':'BAD '+v);"],
+    expect: ["TRUNCEB OK"],
+    ref: "清单：chars 模式 fromEnd 分支完全忽略 wordBoundary，与正向不对称。输入 aa bb cc dd(11 字素)、limit=7、省略符 ...(3) ⇒ budget=4，从末尾保留末 4 字素起点落在 cc 词中间(c)。旧实现忽略 wordBoundary ⇒ 输出 ...c dd（切开单词）；修复后对称地把起点推进到下一个词首(dd) ⇒ ...dd，且不超上限。探针精确相等，默认态不含该哨兵。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub

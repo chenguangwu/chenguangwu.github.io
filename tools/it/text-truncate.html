@@ -332,8 +332,18 @@ function truncate(){
         while(keep > 0 && !/\s/.test(cps[keep - 1])) keep--;
         if(keep === 0) keep = budget;
       }
-      return fromEnd ? ellipsis + cps.slice(cps.length - budget).join('')
-                     : cps.slice(0, keep).join('') + ellipsis;
+      if(fromEnd){
+        // 清单修正：fromEnd 分支对称应用 wordBoundary——起点若落在单词中间，
+        // 前进到下一个词首丢弃不完整的词（与正向「回退丢弃不完整词」对称），且保证不超预算。
+        let start = cps.length - budget;
+        if(wordBoundary){
+          let s = start;
+          while(s < cps.length && s > 0 && !/\s/.test(cps[s - 1])) s++;
+          if(s < cps.length) start = s; // 无后续词首时保留原起点，避免清空结果
+        }
+        return ellipsis + cps.slice(start).join('');
+      }
+      return cps.slice(0, keep).join('') + ellipsis;
     }else if(mode === 'words'){
       const words = s.split(/\s+/);
       if(words.length > limit){
