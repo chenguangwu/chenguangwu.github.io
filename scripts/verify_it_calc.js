@@ -3280,6 +3280,22 @@ const CASES = [
     ref: "IT-N166 状态链：ATTACK+KEY 加密得 KXRKGI，清空密钥后必须清空上一轮残留、恢复密钥后重新得 KXRKGI。旧实现非法态输出仍为 ATTACK（回退 'A' 原样返回）⇒ BAD。注入非默认明文/密钥，且默认态不执行 clicks 时探针不出现 ⇒ 零逃生。",
   },
   {
+    slug: "it/vigenere-visualizer",
+    // IT-N164：解密分步面板必须把输入标成「密文字母」，公式左右恒等
+    inputs: { input: "LXFOPVEFRNHR", key: "LEMON" },
+    clicks: ["var __e='';try{setMode('decrypt');process();stepNext();}catch(ex){__e='THROW';}var __i=String(document.getElementById('stepInfo').innerHTML||'').replace(/<[^>]*>/g,'');document.getElementById('__tbProbe').textContent='VIGSTEP '+(__e===''&&__i.indexOf('密文字母')>=0&&__i.indexOf('明文字母')<0&&__i.indexOf('(11 - 11 + 26) mod 26 = 0')>=0&&__i.indexOf('结果: A')>=0?'OK':'BAD');"],
+    expect: ["VIGSTEP OK"],
+    ref: "IT-N164 强锁：解密 LXFOPVEFRNHR(LEMON) 第 1 步，输入是密文 L/11、输出是明文 A/0。旧面板把 L 标成「明文字母」且公式 (0 - 11 + 26) mod 26 = 11 左右不等；修复后用 in/out 角色字段显示「密文字母: L (位置 11)」与 (11 - 11 + 26) mod 26 = 0 ⇒ VIGSTEP OK。默认态不执行 clicks 时探针不存在 ⇒ 零逃生。",
+  },
+  {
+    slug: "it/vigenere-visualizer",
+    // IT-N165：方阵行=密钥字母、列=明文字母，解密不得把行列对调
+    inputs: { input: "LXFOPVEFRNHR", key: "LEMON" },
+    clicks: ["var __hits=[];var __orig=document.getElementById;document.getElementById=function(id){if(/^(row|col)-\\d+$/.test(id))return{id:id,classList:{add:function(c){if(c==='highlight-row'||c==='highlight-col')__hits.push(id+':'+c);},remove:function(){},contains:function(){return false;}}};if(/^cell-/.test(id))return{id:id,classList:{add:function(){},remove:function(){},contains:function(){return false;}},getBoundingClientRect:function(){return{left:0,right:0};},scrollIntoView:function(){}};return __orig.call(document,id);};var __e='';try{setMode('decrypt');highlightVigenereTable({keyIdx:11,plainIdx:11,cipherIdx:0});}catch(ex){__e='THROW';}document.getElementById=__orig;document.getElementById('__tbProbe').textContent='VIGHL '+(__e===''&&__hits.indexOf('row-11:highlight-row')>=0&&__hits.indexOf('col-0:highlight-col')>=0?'OK':'BAD');"],
+    expect: ["VIGHL OK"],
+    ref: "IT-N165 强锁：给 highlightVigenereTable 喂解密第 1 步（密钥 L=11、密文 L=11、明文 A=0），用自建 getElementById 桩记录 classList.add。方阵定义行=密钥、列=明文，应高亮 row-11 / col-0；旧实现取 rowIdx=cipherIdx=0、colIdx=keyIdx=11 ⇒ 高亮 row-0 / col-11 判 BAD。桩规避 harness stub DOM 不解析 innerHTML 生成子元素的问题；默认态不执行 clicks 时探针不存在 ⇒ 零逃生。",
+  },
+  {
     slug: "it/html-escape",
     inputs: { batchInput: "<b>x</b>" },
     clicks: ["convert()"],

@@ -241,20 +241,6 @@
 
 - 留存建议（rail-fence-cipher）：“保留空格”旁注明空白也参与置换、解密后位置会改变。
 
-### IT-N164 Vigenère 解密分步面板把密文字母标成“明文字母”，位置字段命名整体反转（中，确认源码缺陷）
-- 问题：`vigenere()` 解密时 `step.plain = ch`（输入的是密文）、`step.plainIdx = p`（密文字母下标）、`step.cipherIdx = c`（解出的明文字母下标）；`updateStepDisplay()` 却固定输出“明文字母: step.plain（位置 step.plainIdx）”“结果: step.cipher（位置 step.cipherIdx）”，解密模式下前两项展示的是密文，标签与数值全部错位。
-- 证据：`tools/it/vigenere-visualizer.html:371-401`（解密分支字段赋值）、`tools/it/vigenere-visualizer.html:470-494`（分步面板文案与公式）、`tools/it/vigenere-visualizer.html:485-487`（解密公式用 `cipherIdx - keyIdx = plainIdx`）
-- 复现：解密 `LXFOPVEFRNHR`（LEMON）第 1 步，密钥 L、密文 L、明文 A → 面板显示“明文字母: L（位置 11）”（实际 L 是密文，明文字母应为 A/0），公式显示 `(0 - 11 + 26) mod 26 = 11`，左侧实算 15 ≠ 11，数值本身也对不上。
-- 影响：分步演示是本页核心卖点，解密模式下讲解文字与公式变量名全部反了（且公式左右不相等），学习者会混淆 P/C 的角色、无法据此手算。
-- 方案：为 step 增加 `inLetter/inIdx/outLetter/outIdx` 并按模式渲染（加密：明文→密文，`(inIdx+k) mod 26 = outIdx`；解密：密文→明文，`(inIdx-k+26) mod 26 = outIdx`），不要把 `plainIdx/cipherIdx` 在两种模式下复用为不同含义。
-
-### IT-N165 Vigenère 解密时方阵高亮行列互换（应高亮密钥行 + 明文字列，实际高亮明文字母行 + 密钥列）（低，确认源码缺陷）
-- 问题：方阵定义为“行=密钥字母、列=明文字母”。解密查找应在密钥行中找密文字母、读出列头明文；代码解密时取 `rowIdx = step.cipherIdx`（明文字母下标）、`colIdx = step.keyIdx`，把行列对调。由于 `(key+plain)` 可交换，高亮格子的字母值恰好仍是密文，但行/列标题指向错误字母。
-- 证据：`tools/it/vigenere-visualizer.html:549-563`（方阵构造 `(i+j)%26`）、`tools/it/vigenere-visualizer.html:578-588`（解密行列选择）
-- 复现：解密 `LXFOPVEFRNHR`（LEMON）第 1 步，密钥 L、密文 L、明文 A → 实际高亮行 A、列 L（格子值 L）；期望高亮行 L、列 A。
-- 影响：视觉演示与文字说明“行=密钥、列=明文”不一致，用户对照方阵会读错交叉点。
-- 方案：解密分支改为 `rowIdx = step.keyIdx; colIdx = step.cipherIdx`（即明文字母下标），加密分支保持 `rowIdx=keyIdx; colIdx=plainIdx`。
-
 - 备注：`adfgvx-cipher`、`affine-cipher`、`hill-cipher`、`rail-fence-cipher`、`bacon-cipher` 的“复制结果”仍依赖 Chrome 专有全局 `event`（Firefox/程序化调用会失效），与 IT-N31 同模式，未重复计数；8 页的 TBKit `*ResText()` 均读 `textarea` 的 `textContent`（恒空）导致数据表/趋势图/CSV 恒空，与 IT-N140 同类模板缺陷，已在 IT-N140 统一记录，本批不重复编号。
 
 - 覆盖小结：本轮实读 8 页（adfgvx-cipher、affine-cipher、atbash-cipher、bacon-cipher、hill-cipher、playfair-cipher、rail-fence-cipher、vigenere-visualizer），新增 24 条（高 3 / 中 14 / 低 7），编号 IT-N143~IT-N166。未覆盖：本分区其余约 257 页（含全部编码/哈希/格式化/HTTP/Git/Docker 生成器与速查表）；未做浏览器、英文态、繁体、移动端、门禁与线上部署验证。

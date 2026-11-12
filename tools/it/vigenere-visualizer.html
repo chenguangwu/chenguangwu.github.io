@@ -372,7 +372,9 @@ function vigenere(text, key, encrypt){
         cipher: result,
         keyIdx: k,
         plainIdx: p,
-        cipherIdx: c
+        cipherIdx: c,
+        // IT-N164: 显式记录「输入/输出」角色，解密时 plain/cipher 字段含义反转，分步面板不得再直接使用
+        inLetter: ch, inIdx: p, outLetter: result, outIdx: c
       });
       plainArr.push(ch);
       keyArr.push(key[ki % key.length]);
@@ -391,7 +393,9 @@ function vigenere(text, key, encrypt){
         cipher: result.toUpperCase(),
         keyIdx: k,
         plainIdx: p,
-        cipherIdx: c
+        cipherIdx: c,
+        // IT-N164: 小写输入同样记录输入/输出角色，展示统一用大写形式
+        inLetter: ch.toUpperCase(), inIdx: p, outLetter: result.toUpperCase(), outIdx: c
       });
       plainArr.push(ch.toUpperCase());
       keyArr.push(key[ki % key.length]);
@@ -480,7 +484,7 @@ function stepPrev(){
 
 function updateStepDisplay(){
   document.getElementById('stepNum').textContent = currentStep;
-  
+  const __en = (typeof TBKit!=='undefined'&&TBKit.util.isEn());
   const text = document.getElementById('input').value;
   const key = document.getElementById('key').value;
   const encrypt = currentMode === 'encrypt';
@@ -492,19 +496,27 @@ function updateStepDisplay(){
     highlightIdx = findHighlightIndex(plainArr, step.index);
     
     const info = document.getElementById('stepInfo');
-    const opName = encrypt ? '加密' : '解密';
-    const formula = encrypt 
-      ? `(${step.plainIdx} + ${step.keyIdx}) mod 26 = ${step.cipherIdx}`
-      : `(${step.cipherIdx} - ${step.keyIdx} + 26) mod 26 = ${step.plainIdx}`;
+    const opName = __en ? (encrypt ? 'Encrypt' : 'Decrypt') : (encrypt ? '加密' : '解密');
+    const inLabel = __en ? (encrypt ? 'Plaintext letter' : 'Ciphertext letter') : (encrypt ? '明文字母' : '密文字母');
+    const keyLabel = __en ? 'Key letter' : '密钥字母';
+    const outLabel = __en ? 'Result' : '结果';
+    const posWord = __en ? 'index' : '位置';
+    // IT-N164: 统一用 in/out 角色字段，公式左右恒等；旧版解密把密文标成明文，且 (c-k+26)=p 左右不等
+    const formula = encrypt
+      ? `(${step.inIdx} + ${step.keyIdx}) mod 26 = ${step.outIdx}`
+      : `(${step.inIdx} - ${step.keyIdx} + 26) mod 26 = ${step.outIdx}`;
+    const head = __en
+      ? `${opName} step ${currentStep}:<br>`
+      : `${opName}第 ${currentStep} 个字符：<br>`;
     const __h1=`
       <span class="step-num">${currentStep}</span>
-      ${opName}第 ${currentStep} 个字符：<br>
-      明文字母: <code>${step.plain}</code> (位置 ${step.plainIdx})，
-      密钥字母: <code>${step.key}</code> (位置 ${step.keyIdx})<br>
-      ${formula} → 结果: <code>${step.cipher}</code> (位置 ${step.cipherIdx})
+      ${head}
+      ${inLabel}: <code>${step.inLetter}</code> (${posWord} ${step.inIdx})，
+      ${keyLabel}: <code>${step.key}</code> (${posWord} ${step.keyIdx})<br>
+      ${formula} → ${outLabel}: <code>${step.outLetter}</code> (${posWord} ${step.outIdx})
     `;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){info.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}info.innerHTML=__h1;
   } else {
-    document.getElementById('stepInfo').textContent = '点击"下一步"开始分步演示';
+    document.getElementById('stepInfo').textContent = __en ? 'Click "Next" to start the step-by-step demo' : '点击"下一步"开始分步演示';
   }
   
   renderVizTable(plainArr, keyArr, cipherArr, highlightIdx);
@@ -587,8 +599,10 @@ function highlightVigenereTable(step){
   }
   
   if(step){
-    const rowIdx = currentMode === 'encrypt' ? step.keyIdx : step.cipherIdx;
-    const colIdx = currentMode === 'encrypt' ? step.plainIdx : step.keyIdx;
+    // IT-N165: 方阵行=密钥字母、列=明文字母。解密时明文下标在 step.cipherIdx，密钥下标在 keyIdx；
+    // 旧版解密取 rowIdx=cipherIdx、colIdx=keyIdx，行列对调，与页面说明及列头字母矛盾。
+    const rowIdx = step.keyIdx;
+    const colIdx = currentMode === 'encrypt' ? step.plainIdx : step.cipherIdx;
     
     const row = document.getElementById(`row-${rowIdx}`);
     const col = document.getElementById(`col-${colIdx}`);
