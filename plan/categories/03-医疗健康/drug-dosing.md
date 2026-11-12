@@ -667,12 +667,9 @@
 - 影响：同一页三套口径，用户无法判断以说明框还是结果卡为准。
 - 方案：说明框改为「R=(ALT/ULN)/(ALP/ULN)」「AST/ALT 0.7–1.0 正常」「BUN/Cr 按 mg/dL 换算（BUN×2.8、Cr÷88.4）」并删除 ×1000 说法；阈值需临床复核。
 
-### D-N84 生化比值：公式说明 `data-zh` 残缺为「÷88.4)；×2.8；bun × 2.8」（低，确认缺陷）
-- 问题：公式说明以半截括号和碎片变量开头，中英文两版都不成句，缺少被除对象与公式主体。
-- 证据：`tools/clinical-lab/biochemistry-ratio.html:134`。
-- 复现：直接查看页面公式框下方说明 → 中文「核心计算公式（按输入变量）：÷88.4)；×2.8；bun × 2.8」，英文「Key formulas: ÷88.4); ×2.8; bun × 2.8」。
-- 影响：公式区反而比结果卡更难读，降低可信度。
-- 方案：改为完整公式串，如「BUN/Cr = (BUN×2.8)/(Cr÷88.4)；AST/ALT=AST/ALT；R=(ALT/40)/(ALP/120)」，并同步 `data-zh` 与英文。
+### D-N84 生化比值：公式说明 `data-zh` 残缺（低，第304批已修销账）
+- 已修（第304批）：`tools/clinical-lab/biochemistry-ratio.html:123` 碎片串改为完整公式串「核心计算公式（按输入变量）：BUN/Cr=(BUN×2.8)/(Cr÷88.4)；De Ritis=AST/ALT；R因子=(ALT/40)/(ALP/120)」，与 calc 实际公式一致（bun*2.8 / cr/88.4、ast/alt、(alt/40)/(alp/120)）；三源同步 HTML data-zh + 可见英文 + `i18n/tools/en/clinical-lab/biochemistry-ratio.json` map 键值。JSDOM 差分 NEW 双态 OK / OLD 双态 BAD，build 后修改存活、三源一致（data-zh 命中 json map 且值等于可见英文）。未触碰同页高危 D-N83 口径问题。
+- 原问题/证据/复现（存档）：`biochemistry-ratio.html` 公式框说明以半截括号和碎片变量开头，中文「核心计算公式（按输入变量）：÷88.4)；×2.8；bun × 2.8」，英文「Key formulas: ÷88.4); ×2.8; bun × 2.8」，中英两版都不成句。
 
 ### D-N85 PCR：样本 Ct=0（无扩增）判阴性，却同时输出约 1.10e+12 拷贝、ΔCt 与相对表达量（高，确认缺陷）
 - 问题：阴性判定把 `ct===0` 纳入，但拷贝数分支只判 `ct<cutoff`，Ct=0 同时满足两者；ΔCt 分支也只判 `ref>0`，不判样本 Ct，导致「阴性」结果下继续输出定量值。
