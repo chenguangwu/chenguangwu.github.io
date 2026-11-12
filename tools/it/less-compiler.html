@@ -476,6 +476,17 @@ const SAMPLES = [SAMPLE_LESS];
 let sampleIndex = 0;
 let compileTimer = null;
 let lastCompiledCSS = '';
+// 异步竞态防护：每次编译/清空都递增序号；回调捕获自己的序号，过期回调整段丢弃。
+// 输入或选项变化时立即清空 lastCompiledCSS，避免防抖期间复制/下载取到上次结果。
+let compileSeq = 0;
+function invalidateOutput() {
+  compileSeq++;
+  if (compileTimer) { clearTimeout(compileTimer); compileTimer = null; }
+  lastCompiledCSS = '';
+}
+function outputIsStale(seq, code) {
+  return seq !== compileSeq || code !== inputEl.value;
+}
 
 const inputEl = document.getElementById('input');
 const outputEl = document.getElementById('output');
@@ -519,6 +530,9 @@ function showError(msg) {
 
 function compile(manual) {
   const lessCode = inputEl.value;
+  const seq = ++compileSeq;
+  if (compileTimer) { clearTimeout(compileTimer); compileTimer = null; }
+  lastCompiledCSS = ''; // 新编译在途，旧结果对当前输入/选项已过期
   if (!lessCode.trim()) {
     outputEl.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Compilation result will appear here...":"编译结果将显示在此处...");
     outputEl.classList.add('empty-state');
@@ -543,6 +557,8 @@ function compile(manual) {
     strictMath: opts.strictMath,
     strictUnits: opts.strictUnits
   }).then(function(output) {
+    // 旧任务或输入已变：整段丢弃，绝不写输出/状态/统计。
+    if (outputIsStale(seq, lessCode)) return;
     const css = output.css;
     lastCompiledCSS = css;
     const elapsed = Math.round(performance.now() - start);
@@ -561,6 +577,7 @@ function compile(manual) {
 
     if (manual) ToolBox.showToast(i18nText('toast.msg551'), 'success');
   }).catch(function(err) {
+    if (outputIsStale(seq, lessCode)) return;
     let msg = err.message || String(err);
     if (err.line) msg += '\n行号: ' + err.line;
     if (err.column) msg += '  列号: ' + err.column;
@@ -572,7 +589,11 @@ function compile(manual) {
 }
 
 function debouncedCompile() {
+  // 输入已变：立即使上次输出失效（seq++ + 清 lastCompiledCSS），
+  // 防抖未触发期间复制/下载不再取到过期结果；在途旧回调也因 seq 过期被丢弃。
   if (compileTimer) clearTimeout(compileTimer);
+  compileSeq++;
+  lastCompiledCSS = '';
   setStatus('idle', '编译中...');
   compileTimer = setTimeout(function() { compile(false); }, 400);
 }
@@ -603,6 +624,7 @@ function downloadOutput() {
 }
 
 function clearAll() {
+  invalidateOutput(); // 让在途编译回调失效，清空后不得被旧结果重新填充
   inputEl.value = '';
   outputEl.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Compilation result will appear here...":"编译结果将显示在此处...");
   outputEl.classList.add('empty-state');
@@ -634,7 +656,10 @@ inputEl.addEventListener('input', function() {
 
 // 选项变化时重新编译
 ['optCompress', 'optStrictMath', 'optStrictUnits'].forEach(function(id) {
-  document.getElementById(id).addEventListener('change', function() { compile(false); });
+  document.getElementById(id).addEventListener('change', function() {
+    lastCompiledCSS = ''; // 选项变了，旧输出的 compress/strictMath 口径已过期
+    compile(false);
+  });
 });
 
 // 初始化：加载默认示例

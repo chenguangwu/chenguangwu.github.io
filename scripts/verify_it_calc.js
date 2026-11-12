@@ -13758,6 +13758,18 @@ const CASES = [
     expect: ["HYP235 OK"],
     ref: "IT-N235 强锁：z=4 双侧 p 必须显示 6.33425e-5（math.erfc 高精度值 6.334248e-5 的 6 位有效数字）；修复前 A&S 多项式给 6.337206e-5 且 toLocaleString 把 6e-5 显示成 0 ⇒ BAD。默认 z=2 不命中。",
   },
+  {
+    slug: "it/less-compiler",
+    clicks: ["(function(){var s0=compileSeq;invalidateOutput();var s1=compileSeq;var ok=(typeof s0==='number'&&s1===s0+1&&typeof outputIsStale==='function');document.getElementById('__tbProbe').textContent=ok?'LESSSEQ OK':'LESSSEQ BAD '+s0+','+s1;})()"],
+    expect: ["LESSSEQ OK"],
+    ref: "IT-N420 强锁：异步编译必须单调递增序号，清空/失效时递增以丢弃在途旧回调。旧源码无 compileSeq/invalidateOutput/outputIsStale ⇒ LESSSEQ BAD。探针只在 clicks 内生成。",
+  },
+  {
+    slug: "it/less-compiler",
+    clicks: ["(function(){var code=document.getElementById('input').value;var seq=compileSeq;var same=outputIsStale(seq,code);var newer=outputIsStale(seq-1,code);var changed=outputIsStale(seq,code+' /*x*/');var ok=(same===false&&newer===true&&changed===true);document.getElementById('__tbProbe').textContent=ok?'LESSSTALE OK':'LESSSTALE BAD '+same+','+newer+','+changed;})()"],
+    expect: ["LESSSTALE OK"],
+    ref: "IT-N421 强锁：过期判定须同时比对序号与输入代码——旧任务(seq 小)或输入已改都必须判 stale，当前任务同一代码不得判 stale。旧源码无 outputIsStale ⇒ LESSSTALE BAD。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
