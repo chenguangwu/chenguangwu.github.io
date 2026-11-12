@@ -3273,6 +3273,20 @@ const CASES = [
     ref: "独立复算：密钥矩阵 [[3,1],[1,2]]（det=5，与 26 互素）作用于补齐后的 HELLOX ⇒ 逐对 (7,4)(11,11)(14,23) → ZP / SH / NI。明文与密钥均无 oninput ⇒ 必须 clicks `enc()`。",
   },
   {
+    slug: "it/hill-cipher",
+    inputs: { key: "-3,3,2,5", input: "HELP" },
+    clicks: ["(function(){document.getElementById('key').value='-3,3,2,5';document.getElementById('input').value='HELP';document.getElementById('output').value='';enc();var v=String(document.getElementById('output').value||'');document.getElementById('__tbProbe').textContent='HILLNEG '+(v==='RIMT'&&/^[A-Z]+$/.test(v)?'OK':'BAD-'+v);})()"],
+    expect: ["HILLNEG OK"],
+    ref: "IT-N155 负数归一化：密钥 -3,3,2,5 应归一化为 23,3,2,5，HELP 加密得 RIMT（首分量 23*7+3*4=173 mod 26=17=R）。旧源码负余数产出含数字的 8IMT ⇒ HILLNEG BAD-8IMT；默认态不执行探针 ⇒ 零逃生。",
+  },
+  {
+    slug: "it/hill-cipher",
+    inputs: { key: "3.7,3,2,5", input: "HI" },
+    clicks: ["(function(){document.getElementById('key').value='3.7,3,2,5';document.getElementById('input').value='HI';document.getElementById('output').value='';enc();var v=String(document.getElementById('output').value||'');var m=getMatrix();document.getElementById('__tbProbe').textContent='HILLDEC '+(v===''&&m===null?'OK':'BAD-'+v);})()"],
+    expect: ["HILLDEC OK"],
+    ref: "IT-N156 小数拒绝：3.7,3,2,5 必须被判无效（getMatrix() 返回 null、输出保持空）。旧源码 parseInt 静默截断为 3,3,2,5 并输出 TC ⇒ HILLDEC BAD-TC；默认态不执行探针 ⇒ 零逃生。",
+  },
+  {
     slug: "it/matrix-transpose",
     inputs: { rows: "1", cols: "2", a0: "7", a1: "3" },
     clicks: ["calculate()"],

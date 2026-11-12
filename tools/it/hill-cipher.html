@@ -194,9 +194,9 @@
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
 <li>用<a class="term-link" href="/tools/it/matrix-multiplier.html">矩阵乘法</a>做线性代换的分组密码，教学模 26 矩阵。</li>
-<li>线性代数教学：用 2×2 或 3×3 矩阵做加解密，亲手计算 mod 26 下的逆矩阵，把抽象概念落到具体的字母变换上。</li>
+<li>线性代数教学：用 2×2 密钥矩阵做加解密，亲手计算 mod 26 下的逆矩阵，把抽象概念落到具体的字母变换上。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">加密 &quot;HI&quot; 用矩阵 [[3,2],[5,7]]</div><div class="dd-ex-body">H=7,I=8 → 向量 (3·7+2·8, 5·7+7·8)=(37,91) mod26=(11,13) → `LM`。</div></div>
+<div class="dd-example"><div class="dd-ex-title">加密 &quot;HI&quot; 用矩阵 [[3,2],[5,7]]</div><div class="dd-ex-body">H=7,I=8 → 向量 (3·7+2·8, 5·7+7·8)=(37,91) mod26=(11,13) → `LN`（37 mod 26 = 11 → L；91 mod 26 = 13 → N）。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>密钥矩阵为何要可逆(mod26)？</dt><dd>否则无法解出明文，需 det 与 26 互质。</dd>
@@ -282,16 +282,19 @@ function process(text, m){
 }
 
 function getMatrix(){
-  const parts = document.getElementById('key').value.split(',').map(s => parseInt(s.trim(),10));
-  if(parts.length !== 4 || parts.some(isNaN)) return null;
-  return parts;
+  // IT-N155/N156: 严格整数校验（拒绝小数/空值），每个元素归一化到 0-25，避免负余数写出数字/控制字符
+  const raw = document.getElementById('key').value.split(',').map(s => s.trim());
+  if(raw.length !== 4 || raw.some(s => s === '' || !/^-?\d+$/.test(s))) return null;
+  const parts = raw.map(s => Number(s));
+  if(parts.some(v => !Number.isInteger(v))) return null;
+  return parts.map(v => ((v % 26) + 26) % 26);
 }
 
 function enc(){
   const text = document.getElementById('input').value;
   if(!text) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter plaintext to encrypt":"请输入要加密的明文"));
   const m = getMatrix();
-  if(!m) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter 4 digits as the key matrix":"请输入 4 个数字作为密钥矩阵"));
+  if(!m) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter 4 integers in 0-25 as the key matrix":"请输入 4 个 0-25 的整数作为密钥矩阵"));
   document.getElementById('output').value = process(text, m);
   renderInfo();
 }
@@ -300,7 +303,7 @@ function dec(){
   const text = document.getElementById('input').value;
   if(!text) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter ciphertext to decrypt":"请输入要解密的密文"));
   const m = getMatrix();
-  if(!m) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter 4 digits as the key matrix":"请输入 4 个数字作为密钥矩阵"));
+  if(!m) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter 4 integers in 0-25 as the key matrix":"请输入 4 个 0-25 的整数作为密钥矩阵"));
   const inv = inverseMatrix(m);
   if(!inv) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Key matrix is not invertible (determinant not coprime with 26)":"密钥矩阵不可逆（行列式与 26 不互素）"));
   document.getElementById('output').value = process(text, inv);
