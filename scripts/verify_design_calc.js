@@ -1541,14 +1541,14 @@ const CASES = [
       "bgColor": "abc123测试",
       "lineColor": "abc123测试",
       "cellSize": "42",
-      "lineWidth": "42",
+      "lineWidth": "8",
       "cssOutput": "1\n2\n3",
       "gridType": "dotted"
     },
     "expect": [
-      "abc123测试\nabc123测试\n42\n42\ndotted"
+      "abc123测试\nabc123测试\n42\n8\ndotted"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"bgColor\":\"abc123测试\",\"lineColor\":\"abc123测试\",\"cellSize\":\"42\",\"lineWidth\":\"42\",\"cssOutput\":\"1\\n2\\n3\",\"gridType\":\"dotted\"}，输出区含「abc123测试\nabc123测试\n42\n42\ndotted」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"bgColor\":\"abc123测试\",\"lineColor\":\"abc123测试\",\"cellSize\":\"42\",\"lineWidth\":\"8\",\"cssOutput\":\"1\\n2\\n3\",\"gridType\":\"dotted\"}，输出区含「abc123测试\nabc123测试\n42\n8\ndotted」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。第318批：lineWidth 由 42 改为合法值 8（HTML max=10），因修复后 generate() 会按 1..10 钳制并回写，越界 42 会被回写成 10 而破坏回显锚。"
   },
   {
     "slug": "design/glassmorphism-generator",
@@ -2188,16 +2188,16 @@ const CASES = [
   {
     "slug": "design/waveform-visualizer",
     "inputs": {
-      "freq": "42",
-      "amp": "42",
+      "freq": "8",
+      "amp": "0.6",
       "phase": "42",
       "color": "abc123测试",
       "waveType": "square"
     },
     "expect": [
-      "square\n42\n42\n42\nabc123测试\n⏸ 暂停"
+      "square\n8\n0.6\n42\nabc123测试\n⏸ 暂停"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"freq\":\"42\",\"amp\":\"42\",\"phase\":\"42\",\"color\":\"abc123测试\",\"waveType\":\"square\"}，输出区含「square\n42\n42\n42\nabc123测试\n⏸ 暂停」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"freq\":\"8\",\"amp\":\"0.6\",\"phase\":\"42\",\"color\":\"abc123测试\",\"waveType\":\"square\"}，输出区含「square\n8\n0.6\n42\nabc123测试\n⏸ 暂停」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。第318批：freq/amp 由越界 42 改为合法 8/0.6（HTML 1–20 / 0.1–1），因修复后 drawWave() 会钳制并回写，越界 42 会被回写成 20/1 而破坏回显锚。"
   },
   {
     "slug": "design/web-audio-metronome",
@@ -2750,6 +2750,75 @@ const CASES = [
   inputs: { size: "999" },
   expect: ["background-size: 200px 200px"],
   ref: "D-N62：size=999 旧实现原样输出 background-size: 999px 999px；修复后 clamp 到 5..200 并回写 ⇒ background-size: 200px 200px。默认 size=40 不含 ⇒ 强判别。",
+},
+
+// ── 第318批：数值钳制 + 结果区读取 + 复制兜底强锁 ─────────────────
+{
+  slug: "design/grid-pattern",
+  inputs: { cellSize: "999", lineWidth: "999" },
+  expect: ["background-size: 200px 200px;"],
+  ref: "D-N73：旧实现只夹下限，cellSize=999 直接进 background-size: 999px 999px；修复后 clamp 到 5..200 并回写 ⇒ background-size: 200px 200px;。默认 cellSize=30 不含该串 ⇒ 强判别。",
+},
+{
+  slug: "design/progress-bar-generator",
+  inputs: { height: "9999", radius: "-10" },
+  expect: ["height: 60px;", "border-radius: 0px;"],
+  ref: "D-N74：旧实现 height 无上限、radius 接受负值 ⇒ height: 9999px / border-radius: -10px；修复后 clamp 高度 4..60、圆角 0..50 并回写 ⇒ height: 60px; 与 border-radius: 0px;。默认 20/10 两串皆不含 ⇒ 强判别。",
+},
+{
+  slug: "design/shutter-speed-calculator",
+  inputs: { focal: "100000", crop: "2.7", is: "5" },
+  clicks: ["calc();"],
+  expect: ["焦距超过 2000 mm"],
+  ref: "D-N120：旧实现焦距无上限，100000mm×2.7 仍按档位表封顶给出 1/30 的荒谬结论；修复后 f>2000 直接给出越界提示并停止计算。默认焦距 50 不触发 ⇒ 强判别。",
+},
+{
+  slug: "design/waveform-visualizer",
+  inputs: { freq: "999", amp: "999" },
+  clicks: ["try{generate();}catch(e){};document.getElementById('__svg_probe').textContent='CLAMP:'+document.getElementById('freq').value+'|'+document.getElementById('amp').value;"],
+  expect: ["CLAMP:20|1"],
+  ref: "D-N133：旧实现 amp/freq 越界不拦截，amp=999 使 py 远在画布外；修复后 clamp 到 freq 1..20、amp 0.1..1 并回写 ⇒ 输入框为 20|1。默认 3|0.8 不含该串 ⇒ 强判别。",
+},
+{
+  slug: "design/spectrum-visualizer",
+  inputs: { bars: "-8" },
+  clicks: ["try{generate();}catch(e){};document.getElementById('__svg_probe').textContent='CLAMP:'+document.getElementById('bars').value;"],
+  expect: ["CLAMP:8"],
+  ref: "D-N136：旧实现 bars=-8 参与 barW=w/-8 计算导致画布空白；修复后 clamp 到 8..120 并回写 ⇒ 输入框为 8。默认 48 不含该串 ⇒ 强判别。",
+},
+{
+  slug: "design/stripe-pattern",
+  inputs: { angle: "137", width: "47", color1: "#12b886", stripeType: "multi" },
+  clicks: ["try{generate();}catch(e){};document.getElementById('__svg_probe').textContent='RES:'+__stripe_patternResText();"],
+  expect: ["RES:background: repeating-linear-gradient(137deg, #12b886, #12b886 47px"],
+  ref: "D-N163：旧 ResText 读空 #output.textContent 恒返回 ''，历史/CSV 全空；修复后改读 #cssOutput.value ⇒ 探针得到含注入角度/宽度/颜色的 CSS 摘要。旧实现探针只有 RES: ⇒ 强判别。",
+},
+{
+  slug: "design/dot-pattern",
+  inputs: { dotSize: "18", spacing: "54", dotColor: "#22d3ee", arrangement: "square" },
+  clicks: ["try{generate();}catch(e){};document.getElementById('__svg_probe').textContent='RES:'+__dot_patternResText();"],
+  expect: ["RES:background-color: #f5f7fa; background-image: radial-gradient(#22d3ee 9px"],
+  ref: "D-N166：旧 ResText 读空 #output 恒返回 ''；修复后改读 #cssOutput.value ⇒ 探针得到含注入点径 9px（dotSize 18 的一半）与点色的 CSS 摘要。旧实现只有 RES: ⇒ 强判别。锚长控制在 ResText 的 slice(0,80) 内。",
+},
+{
+  slug: "design/gradient-from-color",
+  inputs: { baseColor: "#12b886", steps: "7", direction: "135" },
+  clicks: ["try{generate();}catch(e){};document.getElementById('__svg_probe').textContent='RES:'+__gradient_from_colorResText();"],
+  expect: ["RES:background: linear-gradient(135deg, #d1faee 0%"],
+  ref: "D-N124：旧 ResText 读空 #output 恒返回 ''，历史/趋势/CSV 全空；修复后改读 #cssOutput.value ⇒ 探针得到含注入方向 135deg 与基色首色标的 CSS 摘要。旧实现只有 RES: ⇒ 强判别。",
+},
+{
+  slug: "design/isometric-grid",
+  inputs: { size: "64", lineWidth: "3" },
+  clicks: ["try{generate();}catch(e){};document.getElementById('__svg_probe').textContent='RES:'+__isometric_gridResText();"],
+  expect: ["RES:background-color: #1a1a2e; background-image: linear-gradient(30deg, #667eea 3px"],
+  ref: "D-N193：旧 ResText 读只有预览 div 的 #output 恒返回 ''；修复后改读 #cssOutput.value ⇒ 探针得到含注入线宽 3px 的 CSS 摘要。旧实现只有 RES: ⇒ 强判别。锚长控制在 slice(0,80) 内。",
+},
+{
+  slug: "design/gradient-from-color",
+  clicks: ["alert=function(m){document.getElementById('__svg_probe').textContent='ALERT:'+m;};document.getElementById('cssOutput').value='SENTINEL_CSS';copyResult();"],
+  expect: ["ALERT:复制失败，请手动复制"],
+  ref: "D-N127：harness 内 navigator.clipboard 缺失，旧实现 copyResult 直接 writeText 抛 TypeError 静默失败；修复后走 __gfcFallback（execCommand 亦不可用）⇒ catch 给出「复制失败，请手动复制」反馈。默认态不调 copyResult ⇒ 强判别。",
 }
 ];
 

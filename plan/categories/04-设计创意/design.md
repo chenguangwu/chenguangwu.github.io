@@ -334,20 +334,6 @@
 - 影响：`tools/design/grid-pattern.html`；五种类型里两个实质重复，用户选「虚线网格」拿不到虚线
 - 方案：用 `repeating-linear-gradient(${line} 0 ${lw}px, transparent ${lw}px ${lw*3}px)` 构造两方向的虚线段；补「五种类型输出互不相同」断言
 
-### D-N73 网格图案生成器尺寸/线宽只夹下限，999 直接进入 background-size（低，确认源码缺陷）
-- 描述：`size = Math.max(5, parseInt(...)||30)`、`lw = Math.max(1, parseInt(...)||1)` 仅约束下限；HTML 的 `max=200`/`max=10` 只约束 spinner，脚本不读取。清空回落 30/1 且不回写输入框。
-- 证据：`tools/design/grid-pattern.html:265-266`（仅 Math.max）、`:164-165`（min/max 属性）、`:270-279`（原样拼入 background-size/线宽）
-- 复现（node 复算）：cellSize=999 → `background-size: 999px 999px`（期望 200）；lineWidth=999 → 线宽大于格子，预览整片填色（期望 10）；清空 → 30/1，输入框仍为空
-- 影响：`tools/design/grid-pattern.html`；超大值撑爆/糊死预览，界面数值与实际参数不一致
-- 方案：`Math.min(200, Math.max(5, …))`、`Math.min(10, Math.max(1, …))` 并回写；超范围给出提示
-
-### D-N74 进度条生成器高度/圆角越界不拦截，负圆角生成非法声明（低，确认源码缺陷）
-- 描述：`h = Math.max(4, parseInt(...)||20)` 无上限，`radius = parseInt(...)||0` 接受负值；HTML 的 `max=60`/`min=0` 不参与脚本。负 border-radius 非法，浏览器会丢弃该声明。
-- 证据：`tools/design/progress-bar-generator.html:263`（高度仅下限）、`:266`（圆角无校验）、`:275-276`（拼入内联样式）、`:164`、`:167`（min/max 属性）、`:282`（CSS 文本同值）
-- 复现（node 复算原表达式）：height=9999 → `height: 9999px`（期望 60）；radius=-10 → `border-radius: -10px`，预览退回直角且复制产物无效（期望 0）；清空 → 20/0，输入框不回写
-- 影响：`tools/design/progress-bar-generator.html`；超高进度条破坏页面布局，负圆角在项目中静默失效
-- 方案：clamp 高度 4–60、圆角 0–50 并回写；非法时标红并停止生成
-
 - 本轮实读 8 页：`css-box-shadow-generator.html`、`css-text-shadow.html`、`shadow-generator.html`、`glassmorphism-generator.html`、`neomorphism-generator.html`、`spinner-generator.html`、`progress-bar-generator.html`、`grid-pattern.html`；新增 12 条（高 2 / 中 7 / 低 3）。D-N63/D-N64 与既有 D-N44 属同一「增删层不重绘」模板缺陷，D-N69/D-N70 为同页两个独立问题（keyframes 未注入 / 音波柱 HTML 拼接），其余为各页独有。未覆盖：`tools/design` 其余约 53 页（108 个工具页中本文件已引 56 个），代表页含 `favicon-from-text`、`favicon-from-emoji`、`initials-avatar`、`identicon-generator`、`loading-dots`、`ripple-effect`、`pixel-art-generator`、`checkerboard-generator`、`dot-pattern`、`stripe-pattern`、`toast-generator`、`material-color`、`tailwind-colors`、`colorblind-simulator`、`cvd-safe-palette`、`gradient-from-color`、`base64-to-image`、`signature-pad` 等。所有结论均为源码行号 + node 内存复算/源码路径推演；未做浏览器交互、EN 运行态探针、移动端、门禁与线上验证。
 
 ## 2026-11-04 续查（并行批 O）
@@ -651,14 +637,6 @@
 - 影响：同一页三处（结果 / CSV / 图表）三个快门值，用户不知该信哪个。
 - 方案：图表复用同一 `stops.findIndex` 逻辑，`Math.round` 改 `Math.ceil`（更快方向）。
 
-### D-N120 shutter-speed 焦距无上限，越界给出荒谬「安全快门」（低，确认源码缺陷）
-
-- 问题：`focal` 只 `+value||50`，无上限、无提示；`min=1` 不阻止输入 100000。
-- 证据：`tools/design/shutter-speed-calculator.html:253`（`+value||50`）、`:145`（`min=1` 无 max）。
-- 复现：焦距输入 100000、裁切 2.7、5 档 → effF=270000，档位表封顶 1/1000（baseIdx=10），safeIdx=10−5=5 → 仍显示 `1/30`。
-- 影响：越界输入被当成有效结果，且与任何真实镜头无关。
-- 方案：设上限（如 2000mm），超出档位表时提示「低于 1/1000 s，需三脚架」。
-
 ### D-N121 flexbox-generator gap 无校验，负数/科学计数法直接进 CSS（中，确认源码缺陷）
 
 - 问题：`g` 直接取 `#gap` 的值，无 `parseFloat`、上限与符号校验，原样拼进生成的 CSS 与预览 `style`。
@@ -683,14 +661,6 @@
 - 影响：用户以为调参即预览。
 - 方案：给控件绑 `change` 调 `calcTool()`，或把标题改为「预览」。
 
-### D-N124 gradient-from-color 历史/数据表/趋势/CSV 恒空（中，确认源码缺陷）
-
-- 问题：`#output` 只含一个纯背景的 `div#preview`，`__gradient_from_colorResText` 读 `#output.textContent` 恒为空 → `Extras` 直接 return，三个页签与「导出明细 CSV」永远为空。
-- 证据：`tools/design/gradient-from-color.html:180`（output 仅 preview）、`:393-399`（ResText）、`:450-451`（`if(!res) return`）。
-- 复现：改方向/步数点生成 3 次 → 历史页签空、CSV 只有表头。
-- 影响：附加页签与导出入口不可用（与 D-N59/D-N89 同族；D-N91/D-N99 已于第317批修复）。
-- 方案：ResText 返回 `base|dir|steps|首色标` 摘要。
-
 ### D-N125 gradient-from-color FAQ 宣称 WCAG 对比度检测，实际无任何实现（中，文案与实现不一致）
 
 - 问题：FAQ 写「会按 WCAG 算出对比度值与等级，未达标会标红提醒」，引据表也登记 WCAG 2.2 (1.4.3)，但全页没有对比度计算（无 relative luminance、无 4.5:1 判断）。
@@ -706,14 +676,6 @@
 - 复现（node）：基色 `#000000`（HSL 0,0,0）→ 色标 `hsl(0,0%,90%)`→`hsl(0,0%,20%)`，即 `#E6E6E6 → #333333`，纯黑不出现；`#FFFFFF` 同样得到灰阶 90→20。
 - 影响：「从颜色生成渐变」却不含该颜色，黑白基色结果不符合预期。
 - 方案：端点锚定基色（i=0 用 `hsl.l`），或整体在 `[max(10, l−45), min(95, l+30)]` 内插值。
-
-### D-N127 gradient-from-color 复制无 `navigator.clipboard` 兜底（低，确认源码缺陷）
-
-- 问题：`copyGradient`/`copyResult` 直接 `navigator.clipboard.writeText(...).then(...)`，无存在性判断、无 catch/兜底；非安全上下文或旧浏览器下抛 TypeError，点击无反馈。
-- 证据：`tools/design/gradient-from-color.html:340`、`:345`（两处均直接 `navigator.clipboard.writeText(...)`）。
-- 复现：在 `http://`（非 localhost）或禁用剪贴板权限的浏览器点渐变卡 → 控制台 TypeError，无「已复制」提示。
-- 影响：核心「点击卡片复制」静默失败。
-- 方案：加 `if (!navigator.clipboard)` 的 textarea + `execCommand` 兜底与 catch 提示。
 
 ### D-N128 toast-generator 任何「生成」触发都会把自定义背景色改回预设（中，确认源码缺陷）
 
@@ -747,7 +709,7 @@
 - 本轮实读 8 页（整份 HTML：内联 JS、`js/tools/colorblind-simulator.js`、deep-dive、FAQ、引据表全读）。
 - 新增 29 条：高 3（D-N106、D-N112、D-N115）/ 中 18 / 低 8。
 - 高优均可复现：D-N106 发散亮度 L=0.90/0.32/0.90（node）；D-N112 「#FFFF33 vs #FFFFFF」ΔE00=29.8 却被记 `oklch=1.1`（node）；D-N115 ISO 6400 + 1/60 的「等效卡」实际 EV 差 +1.06 / +2.06 档（node）。
-- 同族合并：转义标签文本只记 D-N122（另 4 页同行号已在条目列出）；结果区无文本致历史/CSV 恒空记 D-N124（与 D-N59/N89/N91/N99 同族）。
+- 同族合并：转义标签文本只记 D-N122（另 4 页同行号已在条目列出）；结果区无文本致历史/CSV 恒空记 D-N124（第318批已修，与 D-N59/N89/N91/N99 同族）。
 - 未覆盖：`tools/design` 其余约 36 页（本文件累计覆盖 72/108）。
 - 未做：浏览器交互、EN 运行态探针、移动端、`run_gates.py` 与线上验证；D-N112/D-N115/D-N106 的数值均为 `node` 按页面同款公式复算，未在页面内实测。
 
@@ -772,14 +734,6 @@
 - 影响：`tools/design/waveform-visualizer.html` 波形周期疏密随窗口变化，放大后笔画发虚。
 - 方案：用 `ResizeObserver` 设 `canvas.width=clientWidth*dpr`、`canvas.height=200*dpr` 并按 CSS 坐标缩放绘制；或固定内部比例并加 `aspect-ratio:4/1`。
 
-### D-N133 waveform 振幅/频率越界不拦截，超大振幅整条波形画出画布（低，确认源码缺陷）
-
-- 问题：`amp = parseFloat(...) || 0.8`、`freq = parseInt(...) || 3`，脚本不夹 HTML 的 `min/max`；振幅 >1、频率 0 等直接进入公式。
-- 证据：`tools/design/waveform-visualizer.html:265-266`（解析）、`:295`（`py = h/2 − y*amp*(h/2−10)`）、`:167-169`（HTML 仅提示 1–20 / 0.1–1 / 0–360）。
-- 复现（node 复算）：amp=5 → `py = 100 − 5×90 = −350`，整条线在 200 px 画布之外；freq=0 输入被 `||3` 改成 3。期望夹到 [0.1,1]/[1,20] 并回写输入框。
-- 影响：`tools/design/waveform-visualizer.html` 用户输入越界后「生成」看似无反应。
-- 方案：统一 `clamp()` 后再计算，并把夹取后的值写回输入框。
-
 ### D-N134 spectrum 简介/FAQ 承诺 Web Audio + FFT + 峰值 + 麦克风，实际是正弦动画且麦克风被 Permissions-Policy 禁止（高，确认文案与实现不一致）
 
 - 问题：meta、formula-desc、deep-dive 示例与 FAQ 称「AnalyserNode 做 FFT」「频谱条动画」「可用麦克风或音频输入」；实现只有 `sin(animT…)` 伪随机柱状动画，且页面 `Permissions-Policy` 明确 `microphone=()`。
@@ -795,14 +749,6 @@
 - 复现（node 复算）：容器 350 px → 半径 50 显示为 21.9×50 CSS px（纵横比 0.44，竖椭圆）；860 px → 53.8×50（1.07）；1080 px → 67.5×50（1.35）。期望 1:1。
 - 影响：`tools/design/spectrum-visualizer.html` 移动端圆环严重变形，视觉不可信。
 - 方案：按 CSS 尺寸重设画布并按同一坐标系绘制；或固定 `aspect-ratio:4/1` 并让圆环按短边取半径。
-
-### D-N136 spectrum 条数负数/0/超上限不夹取，负值直接空白画布（低，确认源码缺陷）
-
-- 问题：`barCount = parseInt(...) || 48` 只处理 0 与 NaN，不夹 `min=8/max=120`；负值参与 `barW` 计算。
-- 证据：`tools/design/spectrum-visualizer.html:262`（解析）、`:158`（HTML 8–120）、`:286-287`（`barW=w/barCount` 与循环）。
-- 复现：输入 -8 → `barW = 800/-8 = -100`，`for(i<-8)` 执行 0 次 → 画布空白；输入 1000 → 每柱 0.8 px 近似不可见；期望夹到 [8,120]。
-- 影响：`tools/design/spectrum-visualizer.html` 越界输入后「生成」无任何图形。
-- 方案：`Math.max(8, Math.min(120, n||48))` 并回写。
 
 ### D-N137 data-matrix 输出不是 Data Matrix：无编码/无纠错，定位边方向与 ISO 16022 相反，扫码器读不出（高，确认源码缺陷）
 
@@ -1047,14 +993,6 @@
 - 影响：以「图片导出」获客的页面无法交付承诺物；包装/印刷场景不可用。
 - 方案：补「导出 PNG」（离屏 canvas 绘制 repeating 条纹，尺寸/倍率可选）与「导出 SVG」；同步改文案。
 
-### D-N163 stripe-pattern 结果区只有空预览 div，历史/数据表/CSV 永久为空（中，确认源码缺陷，同族 D-N155）
-
-- 问题：`#output` 只包一个空 `#preview`，`ResText()` 读 `#output.textContent` 得到空串并直接返回 ''；CSS 写在 `<textarea>` 的 `value` 里，textContent 读不到。`__stripe_patternExtras` 因此从不 record，表格/CSV 永远只有表头。
-- 证据：`:175`（结构）、`:331-337`（ResText）、`:410`（导出）、`:278`（写 textarea.value）。
-- 复现：连续生成 5 次 → 历史 tab 空；点「导出明细 CSV」→ 仅表头。
-- 影响：历史回看与 CSV 导出入口全失效。
-- 方案：`ResText` 返回 `角度|宽度|类型|色1|色2` 摘要，或直接读 `#cssOutput.value` 并截断。
-
 ### D-N164 stripe-pattern 双线型在宽度 <6px 时停点越界，实际周期为 w+6 而非 2×w（低，确认源码/复算缺陷）
 
 - 问题：双线型停点 `w+6` 与末点 `w*2` 在 w<6 时逆序；CSS 会把小于前值的停点抬到前值，末段 c2 变成零宽，重复周期变成 `w+6`，与 formula-eq 写的「色二 宽度+6→2×宽度」自相矛盾。
@@ -1070,14 +1008,6 @@
 - 复现：Ctrl+F `png|download|toDataURL|canvas|SVG` → 0；无下载按钮，预览只是 DOM 背景。
 - 影响：透明底 PNG / SVG 底纹无法产出，「印刷稿」用途落空。
 - 方案：canvas 平铺绘制并支持透明/背景色两种导出；或用 `<svg><pattern>` 生成矢量下载。
-
-### D-N166 dot-pattern 结果区只有空预览 div，历史/数据表/CSV 永久为空（中，确认源码缺陷，同族 D-N155）
-
-- 问题：`#output` 内只有空 `#preview`；`ResText()` 读其 `textContent` 为空即返回 ''，`__dot_patternExtras` 从不写入历史。
-- 证据：`:175`（结构）、`:325-331`（ResText）、`:404`（导出）、`:272`（写 textarea.value）。
-- 复现：切换排列方式生成 5 次 → 历史空、CSV 仅表头。
-- 影响：历史与明细导出入口失效。
-- 方案：ResText 返回 `排列|点径|间距|背景|点色` 摘要。
 
 ### D-N167 dot-pattern 引据称 SVG pattern/矢量输出，实际是 CSS radial-gradient；选项「渐变大小」也不改变点径（中，确认引据与实现不符）
 
@@ -1320,14 +1250,6 @@
 - 复现：找遍按钮 → 只有「生成/复制/导出明细 CSV」；全文无 `<canvas>` / `toDataURL` / `.png` 链接，唯一「Canvas」字样就是 FAQ `:206` 的虚构说明。期望点「导出图片」得到 PNG，meta 主卖点无法兑现。
 - 影响：SEO 描述与实际功能不符，按「导出图片」进来的用户找不到入口；FAQ 的 Canvas 说法纯属虚构。
 - 方案：用 `canvas` 画 512×512 平铺图 + `toDataURL('image/png')` 下载，或至少导出 SVG `<pattern>`；删掉 `:206` 的 Canvas 大图说法。
-
-### D-N193 历史/数据表恒空：ResText 读的是只有预览的 `#output`（中，确认缺陷）
-
-- 问题：`__isometric_gridResText()` 读 `#output`，而 `#output` 内只有 `#preview` 背景 div（无文本），CSS 代码在 `#output` 之外的 `#cssOutput`；`res` 恒空 → extras 提前 return → 历史、数据表、趋势图、CSV 全无数据。
-- 证据：`:172`（`<div id="output"><div id="preview"></div></div>`）、`:173`（`cssOutput` 在外部）、`:314-320`（ResText 读 `#output`，空则返回 ''）、`:395`（导出读 `#isometric_gridTable`）。
-- 复现：生成 2 次切「历史/数据表」→ 空白；导出 CSV → 只有表头。期望记录尺寸/线宽/主色/底色。
-- 影响：四个数据页签全部失效，CSV 导出无内容。
-- 方案：ResText 改读 `cssOutput.value`（或返回 `size|lw|line|bg`）；表头改为「尺寸/线宽/主色/底色」。
 
 ### D-N194 四层渐变实为 3 方向（30° 重复）+ 公式与规格不符（低，确认缺陷）
 
@@ -1645,7 +1567,7 @@
 - **colorblind-simulator**：默认绿盲 #FF6B35→#B9A62F 与 Machado 1.0 手算一致；D-N102（取色器不写回 HEX）已于第317批修复。
 - **contrast-checker**：默认 14.68:1、AA/AAA 判定正确；D-N1（非法 HEX 不刷新结果）仍成立。
 - **cvd-safe-palette**：无默认结果；D-N106（发散亮度方向反，L 两端 0.90、中心 0.32）、D-N107（策略两分支同实现）仍成立；D-N108（首色恒定）已于第317批修复。
-- **gradient-from-color**：默认 L90→20 五色标，基色 #667eea(L66) 不出现；D-N124/D-N125/D-N126 仍成立。
+- **gradient-from-color**：默认 L90→20 五色标，基色 #667eea(L66) 不出现；D-N125/D-N126 仍成立，D-N124/D-N127 已于第318批修复。
 - **gradient**：默认相邻色标 1.74:1；新增对比度使 D-N47/D-N48 的 gradient 部分失效（image-color-picker 部分仍成立）；D-N233/D-N234 为新增。
 - **material-color**：常量表正确；主色徽标取 600 阶而图表取 500 阶；D-N204（图表取 400 阶）已于第311批修复，D-N205 仍成立。
 - **mesh-gradient**：默认白字最差 2.04:1，报告正确；D-N59（无 id → 历史/预设/CSV 恒空）仍成立，D-N60 已失效。
