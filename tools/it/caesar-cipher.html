@@ -304,6 +304,7 @@ const HISTORY_KEY = 'caesar_history';
 const MAX_HISTORY = 20;
 
 function setMode(mode){
+  mode = mode || currentMode || 'encrypt';  // IT-N142: 无参调用（历史回填）不得把模式置 undefined
   currentMode = mode;
   document.querySelectorAll('.mode-tabs button').forEach(b => {
     b.classList.toggle('active', b.dataset.mode === mode);
@@ -367,7 +368,7 @@ function process(){
     const encrypt = currentMode === 'encrypt';
     const result = caesarShift(input, shift, onlyAlpha, preserveCase, encrypt);
     document.getElementById('output').value = result;
-    saveHistory(input, result, shift, currentMode);
+    __caesar_cipherScheduleHistory(input, result, shift, currentMode);
   }
 }
 
@@ -449,6 +450,15 @@ function escapeHtml(text){
   return div.innerHTML;
 }
 
+// IT-N141: oninput 每次按键都写历史 → 前缀刷满 20 条。改为 500ms 防抖，停止输入后只落一条完整结果。
+var __caesarHistoryTimer = null;
+function __caesar_cipherScheduleHistory(input, output, shift, mode){
+  if(__caesarHistoryTimer){ clearTimeout(__caesarHistoryTimer); __caesarHistoryTimer=null; }
+  __caesarHistoryTimer = setTimeout(function(){
+    __caesarHistoryTimer=null;
+    saveHistory(input, output, shift, mode);
+  }, 500);
+}
 function saveHistory(input, output, shift, mode){
   if(!input || !output) return;
   let history = getHistory();
@@ -459,12 +469,12 @@ function saveHistory(input, output, shift, mode){
     mode,
     time: Date.now()
   };
-  // 与最新一条完全相同则跳过：首屏自跑（boot 调 process()）会在每次访问时落一条，
-  // 不去重则历史被重复样例刷满（MAX_HISTORY=20 截断后真实记录被挤出）。
-  if(history.length > 0 && history[0].input === item.input && history[0].output === item.output
-     && history[0].shift === item.shift && history[0].mode === item.mode){
-    return;
-  }
+  // IT-N141: 与全部历史按「完整输入 + 参数」去重（不只看最新一条），同一输入只保留一份。
+  var dup = history.findIndex(function(h){
+    return h.input === item.input && h.shift === item.shift && h.mode === item.mode;
+  });
+  if(dup === 0) return;                       // 最新一条即本条：输入未变，跳过写入
+  if(dup > 0) history.splice(dup, 1);         // 旧位置存在：先删后插，保证最新在前
   history.unshift(item);
   if(history.length > MAX_HISTORY) history = history.slice(0, MAX_HISTORY);
   localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
@@ -607,14 +617,14 @@ function __caesar_cipherRender(keys,rk,en){
                     if(!Object.prototype.hasOwnProperty.call(rec,__cbs[__ci].id)) __cbs[__ci].checked=false;
                 }
                 for(var k in rec){
-                    if(k===rk||k==='__tbScore') continue;
+                    if(k===rk||k==='__tbScore'||k==='__mode') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
                     if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
                     else{e.value=rec[k];}
                 }
-                setMode();
+                setMode(rec.__mode || 'encrypt');
             }catch(e2){}
             __caesar_cipher_skip=false;
         });
@@ -655,6 +665,7 @@ function __caesar_cipherExtras(){
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
     rec.__tbScore=__caesar_cipherScore(res);
+    rec.__mode=currentMode;
     TBKit.history.record(rec);
     __caesar_cipherRender(keys,rk,en);
 }

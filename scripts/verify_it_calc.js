@@ -4240,6 +4240,24 @@ const CASES = [
     ref: "独立复算：凯撒位移 +3 ⇒ A→D、B→E、C→F ⇒ `DEF`。默认样例文本不是本串。",
   },
   {
+    slug: "it/caesar-cipher",
+    clicks: ["var e=caesarShift('Hi! 2024',7,false,true,true);document.getElementById('__tbProbe').textContent='CAROUND '+(caesarShift(e,7,false,true,false)==='Hi! 2024'?'OK':'BAD');"],
+    expect: ["CAROUND OK"],
+    ref: "IT-N139：关闭「仅字母移位」后按 mod 95 位移，加密→解密必须往返还原。旧实现解密固定 mod 26 ⇒ 净偏移 26 ⇒ BAD。默认 onlyAlpha=true 分支不触及该缺陷。探针仅 clicks 注入。",
+  },
+  {
+    slug: "it/caesar-cipher",
+    clicks: ["document.getElementById('__tbProbe').textContent='CADEDUP '+(/history\\.findIndex\\(function/.test(String(saveHistory))?'D':'N');"],
+    expect: ["CADEDUP D"],
+    ref: "IT-N141：saveHistory 必须按「完整输入+参数」对全部历史 findIndex 去重（不只看最新一条），否则前缀逐字写入刷满 20 条。旧实现仅比对 history[0] ⇒ CADEDUP N。真实防抖写入与去重条数由 JSDOM 真机脚本覆盖。",
+  },
+  {
+    slug: "it/caesar-cipher",
+    clicks: ["setMode('decrypt');setMode();document.getElementById('__tbProbe').textContent='CAMODE '+(typeof currentMode!=='undefined'?currentMode:'undef');"],
+    expect: ["CAMODE decrypt"],
+    ref: "IT-N142：setMode() 无参（历史回填路径）必须保留当前模式 decrypt，不得置 undefined 导致标签变「密文/破解结果」并按解密重算。旧实现 ⇒ undef。",
+  },
+  {
     slug: "it/binary-to-text",
     inputs: { input: "01000001" },
     clicks: ["convert()"],

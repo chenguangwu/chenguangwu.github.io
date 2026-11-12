@@ -243,35 +243,7 @@
 
 - 留存建议（ascii-table）：①扩展区提供 Latin-1 / Windows-1252 双选项（当前统一按 Latin-1 口径并已明确标注）；②补"输入任意字符反查码点"与可打印/控制统计。
 
-### IT-N139 凯撒密码：关闭"仅字母移位"时解密仍按 mod 26 取反向位移（应 mod 95），加解密不可逆（高，确认源码缺陷）
-- 问题：`caesarShift()` 先算 `dir = (26 - s) % 26`，再在 `onlyAlpha=false` 分支用 `(code-32+dir)%95+32`；加密用 `+s mod 95`、解密用 `+(26-s) mod 95`，两者合计 26 而非 95 的倍数，无法还原。所有 1–25 位移都错（净偏移恒为 26）。
-- 证据：`tools/it/caesar-cipher.html:343-344`（方向计算）、`tools/it/caesar-cipher.html:353-361`（mod 95 分支）、`tools/it/caesar-cipher.html:374`（解密调用）
-- 复现（Node 复算页内函数，`onlyAlpha=false, preserveCase=true`）：`Hello, World! 2024` shift 3 加密 → `Khoor/#Zruog$#5357`；再以 shift 3 解密 → 实际 `b ''*F:q*-'~;:LJLN`（期望还原 `Hello, World! 2024`）。`Hello` shift 13 → `Uryy|`，解密 → `b ''*`。
-- 影响：一旦取消勾选"仅字母移位"，解密/暴力破解全部输出乱码，用户会以为密文损坏；这也是本页第二个模式的核心功能。
-- 方案：按字母表大小取逆：`const base = onlyAlpha ? 26 : 95; const dir = encrypt ? s % base : (base - s % base) % base;`；补 `onlyAlpha=false` 的加解密往返用例（至少 shift 3/13/25）。
-
-### IT-N140 凯撒密码：TBKit 数据表/趋势图/导出 CSV 恒为空（`__caesar_cipherResText` 读 textarea 的 textContent）（中，确认源码缺陷）
-- 问题：结果写入 `#output.value`，而 `__caesar_cipherResText()` 读 `#output.textContent`（空 textarea 恒为空）→ `__caesar_cipherExtras()` 在 `if(!res) return` 处退出，`TBKit.history.record` 与 `__caesar_cipherRender` 从不执行。
-- 证据：`tools/it/caesar-cipher.html:195`（空 `<textarea id="output">`）、`tools/it/caesar-cipher.html:573-579`（读 textContent）、`tools/it/caesar-cipher.html:630-631`（`if(!res) return`）、`tools/it/caesar-cipher.html:652-655`（导出依赖空表）
-- 复现：加密 `Hello` → 输出 `Khoor`；切 TBKit 历史/查看数据表 → 无记录；点"导出明细 CSV"无文件无提示。期望一行"输入/移位/模式/结果"并可导出。
-- 影响：与页面自带的 localStorage 历史并存但完全空转，用户看到两套历史、其中一套永远空；CSV 导出是死按钮。
-- 方案：改读 `.value`；包装 `process()` 而非仅 `setMode()` 触发 extras；导出改为本次结果而非历史表。
-
-### IT-N141 凯撒密码：`oninput` 每次按键都写 localStorage，20 条上限被同一段输入的前缀刷满（中，确认源码缺陷）
-- 问题：`<textarea id="input" oninput="process();">`，`process()` 无条件 `saveHistory(input, result, …)`；`saveHistory` 只与"最新一条"去重，不防抖，因此输入 `Hello` 会依次落下 `H`、`He`、`Hel`、`Hell`、`Hello` 5 条记录。
-- 证据：`tools/it/caesar-cipher.html:191`（`oninput`）、`tools/it/caesar-cipher.html:376`（无条件 save）、`tools/it/caesar-cipher.html:458-475`（仅与首条比较）、`tools/it/caesar-cipher.html:312`（`MAX_HISTORY=20`）
-- 复现：清空历史后逐字输入 `Hello` → 实际历史 5 条（每条都是前缀）；20 字符的输入即可占满全部容量，真实历史被挤出。
-- 影响：历史功能基本不可用，且每次按键同步写 localStorage（长文本输入有卡顿风险）。
-- 方案：改为失焦/点击按钮/500ms 防抖后写入；`MAX_HISTORY` 提到 50 或按"完整输入"去重（同一 session 只留最终值）。
-
-### IT-N142 凯撒密码：TBKit 历史回填调用 `setMode()` 无参 → `currentMode=undefined`、标签变"密文/破解结果"、按解密重算（低，确认源码缺陷）
-- 问题：`TBKit.history.mount` 的回填回调末尾调用 `setMode()`（无参数），函数内 `currentMode = mode` 即 `undefined`；随后三个按钮全部取消 active，`inputLabel` 走 else 分支变"密文"、`outputLabel` 变"破解结果"，`process()` 里 `encrypt = currentMode==='encrypt'` 为 false，按解密计算。
-- 证据：`tools/it/caesar-cipher.html:609`（`setMode();`）、`tools/it/caesar-cipher.html:314-334`（无参时的分支）、`tools/it/caesar-cipher.html:373-374`
-- 复现：在 TBKit 历史面板点一条"加密"记录 → 实际模式按钮无高亮、标签显示"密文/破解结果"、结果按解密方向计算；期望恢复原 `mode` 并高亮"加密"。
-- 影响：从历史恢复后状态错乱，用户再点"加密"才恢复；与自带 `loadHistory()` 的行为不一致。
-- 方案：`setMode(rec.mode || 'encrypt')`，或从 `snap` 里带出 `mode` 字段一并回填。
-
-- 留存建议（caesar-cipher）：①解密方向按字母表大小（26/95）计算并补往返用例；②历史写入加防抖、容量改为按完整输入去重；③统一两套历史（自带 localStorage 与 TBKit），去掉重复面板。
+- 留存建议（caesar-cipher）：①统一两套历史（自带 localStorage 与 TBKit），去掉重复面板；②历史容量可提到 50；③视觉核对暴力破解列表分页截断。
 
 - 备注：`tools/it/base58-encode.html:327` 与 `tools/it/base85-encode.html:360` 的复制按钮仍依赖 Chrome 专有全局 `event`（Firefox/程序化调用会失效），与 IT-N31 同模式，不重复计数、未单列。`tools/it/barcode-upc.html:245-246` 自建 `L_CODES/R_CODES` 与 `js/barcode-lib.js:101-106` 重复且未加载共享库；N127/N128 的校验缺陷已在本页修复，统一共享库仍列为留存建议。
 
