@@ -373,20 +373,6 @@
 - 未覆盖说明：只审计主流程、边界与文档口径，未穷举全部输入组合（DES 只逐字节改 0x11 观察敏感性，未做全密钥空间统计；JS 只测 5 组输入；Python 只测自带 SAMPLE 与 2 个小例；CSV 只测默认数据与引号/换行字段；country 只做数据一致性与长度统计，未核对全部国名/首都时效）。
 - 未做验证：未改代码、未构建、未跑门禁、未 git 写、未开浏览器；结论为源码静态分析 + `node` 内存复算（临时脚本 `/tmp/audit_des.js`、`/tmp/audit_fmt.js`、`/tmp/audit_misc.js`，未落仓库）；DES 标准向量因本机 OpenSSL 无 `des-ecb` 采用 FIPS 公开值（key `0123456789ABCDEF` / 明文 `Now is t` → `3FA40E8A984D4815`）；未验证英文态 `?lang=en-US`、繁体与移动端。
 
-### IT-N330 OTP 复制把「X 秒后刷新」一起写进剪贴板（中，确认缺陷）
-- 问题：输出容器同时含验证码 `<div class="code-row">` 和倒计时文本，`copyResult` 取整个容器 `textContent`，两段无换行直接粘连。
-- 证据：`tools/it/otp-generator.html:317`（code-row）、`:321`（timer 文本）、`:335-336`（`output.textContent` 写剪贴板）。
-- 复现：TOTP 模式点「复制」→ 剪贴板为 `12345623 秒后刷新`（或 `123456`+`30 秒后刷新` 粘连），期望只有 6/8 位数字。
-- 影响：粘贴进 2FA 输入框会多出非数字字符，验证直接失败；每秒刷新还会在整分边界换码，用户复制的可能是上一窗口的码。
-- 方案：复制只取 `.code-row` 的文本；倒计时进度单独渲染并用 `aria-live`，不进入复制源。
-
-### IT-N331 改维度后直接点「计算乘法」触发 null 解引用（中，确认缺陷）
-- 问题：`getM` 按新维度拼 `id` 取输入框，但矩阵 DOM 只在点「构建矩阵」时重建；改 A 列数后未重建，读取不存在的 `a4/a5`。
-- 证据：`tools/it/matrix-multiplier.html:283`（`document.getElementById(prefix+(i*cols+j)).value`）、`:305`（只校验 `ac!==br`，未校验 DOM 是否重建）。
-- 复现：A 由 2×2 改为 2×3（只改「列」输入），不点「构建矩阵」直接点「计算乘法」→ `Cannot read properties of null (reading 'value')`，结果区无输出；期望自动重建或提示「请先构建矩阵」。
-- 影响：输入维度与控件不同步时页面抛异常，用户看到按钮「没反应」。
-- 方案：`calculate()` 开头先校验所需 `id` 是否存在（或比较维度与已建控件数量），不匹配则先 `build()`；`getM` 对 null 给出明确提示。
-
 ### IT-N332 文件 MD5 先 `TextDecoder` 解码再重编码，二进制文件结果必然错（高，确认缺陷）
 - 问题：文件分支 `strData=null`，走 `md5(new TextDecoder().decode(bytes))`；UTF-8 解码会把二进制坏字节变成 U+FFFD，`md5()` 内部再按 UTF-16→UTF-8 编码，已无法还原原始字节。
 - 证据：`tools/it/hash.html:548-563`（`strData` 为 null 时 `TextDecoder().decode(bytes)` 再 `md5(str)`）、`:459`（`utf8Encode` 逐 UTF-16 单元编码）。

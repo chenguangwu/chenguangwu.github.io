@@ -10856,6 +10856,12 @@ const CASES = [
   },
   {
     "slug": "it/otp-generator",
+    "clicks": ["var host=document.getElementById('output');var oldQ=host.querySelector;host.querySelector=function(s){return s==='.code-row'?{textContent:'654321'}:null;};var cap='';var old=navigator.clipboard;navigator.clipboard={writeText:function(t){cap=String(t);return Promise.resolve();}};copyResult();navigator.clipboard=old;host.querySelector=oldQ;document.getElementById('__tbProbe').textContent='OTPCOPY '+(cap==='654321'?'OK':'BAD');"],
+    "expect": ["OTPCOPY OK"],
+    "ref": "IT-N330：旧 copyResult 取整个 #output.textContent，验证码与「N 秒后刷新」倒计时粘连（如 12345630 秒后刷新），粘进 2FA 输入框必然失败。修复后只取 .code-row 文本。桩注入 code-row + 剪贴板录音，断言严格为 6 位数字；旧实现读整个容器 ⇒ cap 含倒计时/默认样本文本 ⇒ BAD。默认态不执行 clicks ⇒ 零逃生。"
+  },
+  {
+    "slug": "it/otp-generator",
     "inputs": {
       "secret": "abc123测试",
       "step": "42",
