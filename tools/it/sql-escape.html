@@ -148,7 +148,7 @@
       <div style="flex:1;"></div>
       <label style="margin:0;font-size:13px;">
         方言
-        <select id="dialect" style="padding:6px 10px;font-size:13px;">
+        <select id="dialect" onchange="__escLive()" style="padding:6px 10px;font-size:13px;">
           <option value="mysql">MySQL</option>
           <option value="postgres">PostgreSQL</option>
           <option value="sqlserver">SQL Server</option>
@@ -291,9 +291,11 @@ function esc(live){
 function unesc(){
   let text = document.getElementById('input').value;
   if(!text) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter SQL string to unescape":"请输入要反转义的 SQL 字符串"));
-  text = text.trim();
-  if((text.startsWith("'") && text.endsWith("'")) || (text.startsWith('"') && text.endsWith('"'))){
-    text = text.slice(1, -1);
+  // 仅当「trim 后」呈配对引号字面量时，才按字面量边界剥首尾引号；
+  // 未加引号的纯文本须原样保留首尾空格（旧实现无条件 trim 会把 '  abc  ' 变 'abc'，无法还原）。
+  const trimmed = text.trim();
+  if(trimmed.length >= 2 && ((trimmed.startsWith("'") && trimmed.endsWith("'")) || (trimmed.startsWith('"') && trimmed.endsWith('"')))){
+    text = trimmed.slice(1, -1);
   }
   const dialect = document.getElementById('dialect').value;
   let out = '';

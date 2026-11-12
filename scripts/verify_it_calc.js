@@ -1720,6 +1720,12 @@ const CASES = [
     ref: "独立复算：\"ab cd ab ef\" 共 11 个字符（含 2 个空格，字素簇口径同上）、按空白切出 4 个英文词、去重 3 个 ⇒ `11 总字符(字素)` / `4 总词数`。默认态为中文长文本，不命中。",
   },
   {
+    slug: "it/text-statistics",
+    inputs: { textInput: "constructor constructor hello" },
+    expect: ["constructor 2 hello 1"],
+    ref: "IT-N282 原型属性词频：wordFreq 用普通 {} 时 'constructor' 读到 Object.prototype.constructor（函数），函数+1 得字符串、下游百分比 NaN ⇒ 词频区被换成「计算结果含无效值」。改 Object.create(null) 后正常显示「constructor 2 hello 1」。默认中文态不含 constructor ⇒ 零逃生。",
+  },
+  {
     slug: "it/string-obfuscator",
     // mode 取值是 b64（不是 base64）；选错 mode 会落到空结果分支（输出 0 字符）。
     inputs: { input: "Hi there 42", mode: "b64" },
@@ -1951,6 +1957,13 @@ const CASES = [
     clicks: ["esc()"],
     expect: ["O\\'Brien"],
     ref: "独立复算：MySQL 方言把单引号转义为 `\\'` ⇒ `O\\'Brien`（反斜杠转义后长度 9）。默认态输入为空直接 return，不命中。",
+  },
+  {
+    slug: "it/sql-escape",
+    inputs: { input: "  abc  " },
+    clicks: ["unesc();document.getElementById('__tbProbe').textContent='TRIM '+JSON.stringify(document.getElementById('output').value);"],
+    expect: ['TRIM " abc "'],
+    ref: "IT-N282 反转义空白：未加引号的纯文本首尾空格须原样保留。旧实现无条件 trim() ⇒ `TRIM \"abc\"`（无空格）；修复后 ⇒ `TRIM \" abc \"`（前后各留 1 空格，collectStrings 折叠连续空白为单空格）。仅配对引号字面量才按边界剥引号。默认 O'Brien 样例不含首尾空格。",
   },
   {
     slug: "it/text-to-binary",
