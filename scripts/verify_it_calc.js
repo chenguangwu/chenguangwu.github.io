@@ -532,8 +532,8 @@ const CASES = [
     slug: "it/barcode-itf",
     inputs: {},
     clicks: ["var a=buildITF('12345678901234'),b=buildITF('123456789');document.getElementById('__tbProbe').textContent='ITF='+a.length+'|'+b.length;"],
-    expect: ["ITF=133|97"],
-    ref: "条码族 deepdive 示例一致性（自查续批）：ITF 示例改为 14 位 ITF-14；9 位奇数输入会被自动在前面补 0 凑偶数位，bits 长度 97 与 14 位的 133 不同，证明文案所述「只保留数字、奇数位自动补 0、两两交织」与实现一致。页面不代算 GTIN-14 校验位，文案已如实说明。默认态不产生该串。",
+    expect: ["ITF=139|103"],
+    ref: "条码族 deepdive 示例一致性：ITF 示例为 14 位 ITF-14；9 位奇数输入自动前补 0 凑偶数位。IT-N324 修正起止符后 guards 从 4+3 模块变为 4+9 模块（ISO 16390 终止 11010 元素 = 111010111 模块），故 bits 长度从 133/97 更新为 139/103，证明文案所述编码规则与实现一致。页面不代算 GTIN-14 校验位。默认态不产生该串。",
   },
   {
     slug: "it/barcode-msi",
@@ -6019,6 +6019,18 @@ const CASES = [
     clicks: ["var rows=[{textContent:'Alpha1'},{textContent:'Beta2'},{textContent:'Gamma3'}];var host=document.getElementById('output');host.querySelectorAll=function(){return rows;};var cap='';var old=navigator.clipboard;navigator.clipboard={writeText:function(t){cap=String(t);return Promise.resolve();}};copyResult();navigator.clipboard=old;var nl=String.fromCharCode(10);document.getElementById('__tbProbe').textContent='GTCOPY '+(cap==='Alpha1'+nl+'Beta2'+nl+'Gamma3'?'OK':'BAD');"],
     expect: ["GTCOPY OK"],
     ref: "IT-N323：旧 copyResult 直取 #output.textContent，块级 .code-row 之间无分隔符，三条昵称被拼成一词。修复后逐条读 .code-row.textContent 并用换行 join。桩注入 3 行固定文本 + 剪贴板录音，断言复制串严格为逐行内容；默认态不执行 clicks ⇒ 零逃生。",
+  },
+  {
+    slug: "it/barcode-itf",
+    clicks: ["var b=buildITF('1234');document.getElementById('__tbProbe').textContent='ITFGUARD '+(b.slice(0,4)==='1010'&&b.slice(-9)==='111010111'?'OK':'BAD');"],
+    expect: ["ITFGUARD OK"],
+    ref: "IT-N324：ISO/IEC 16390 起始符 1010（窄条-窄空-窄条-窄空）、终止符 11010 宽窄元素按 3:1 展开为模块位 111010111。旧实现起始 '0000' 不画条、终止 '100' 窄窄窄，扫描器无法识读；默认样例 bits 不含探针串 ⇒ 零逃生。",
+  },
+  {
+    slug: "it/barcode-itf",
+    clicks: ["document.getElementById('data').value='ITF1234';generate();var h=String(document.getElementById('output').innerHTML||'');var cap='';var old=navigator.clipboard;navigator.clipboard={writeText:function(t){cap=String(t);return Promise.resolve();}};copyResult();navigator.clipboard=old;document.getElementById('__tbProbe').textContent='ITFNORM '+((__itfLastNormalized==='1234'&&h.indexOf('>1234<')>=0&&h.indexOf('ITF1234')<0&&cap==='1234')?'OK':'BAD');"],
+    expect: ["ITFNORM OK"],
+    ref: "IT-N325：规范化数字串（去非数字、奇数前补 0）是唯一真值。注入 ITF1234，断言页面 .bar-text、复制内容、__itfLastNormalized 均为 1234 且原始输入不再出现；旧态 bar-text/复制均为 ITF1234、奇数位也不补零 ⇒ BAD。默认态不执行 clicks ⇒ 零逃生。",
   },  // —— BATCH284：哈希计算器多算法 / 批量 / 校验分支 + JSON 与 TSV 双向转换 ——
   {
     slug: "it/hash",
@@ -7696,9 +7708,9 @@ const CASES = [
       "data": "abc123测试"
     },
     "expect": [
-      "abc123测试\nabc123测试"
+      "abc123测试\n0123"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"data\":\"abc123测试\"}，输出区含「abc123测试\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "IT-N325 口径同步：注入非默认输入 abc123测试，页面只保留数字并规范化为偶数位 0123 作为唯一真值，输出区不再回显原始输入（仅输入框保留原值）；新版 expect 锚定带换行的 abc123测试 / 0123，旧实现回显两次原始输入 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/barcode-upc",
