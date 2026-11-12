@@ -3943,6 +3943,18 @@ const CASES = [
     ref: "独立复算：填 Sitemap 后 `render()` 把该行并进预览（`addRule()` 先把默认规则行补进来，故预览里同时含默认 UA/Disallow 行）。锚取注入的 sitemap 行，默认态不含。",
   },
   {
+    slug: "it/robots-txt-generator",
+    clicks: ["(function(){var q=String.fromCharCode(34);var r={ua:'X'+q+'<Y',allow:['</textarea><img>'],disallow:['/a<'],delay:'1<2'};var h=rowTemplate(r);var ok=h.indexOf('X&quot;&lt;Y')>=0&&h.indexOf('&lt;/textarea&gt;&lt;img&gt;')>=0&&h.indexOf('1&lt;2')>=0;document.getElementById('__tbProbe').innerHTML=ok?'ROBOTSESC OK':'ROBOTSESC BAD';})()"],
+    expect: ["ROBOTSESC OK"],
+    ref: "IT-N418 强锁：rowTemplate 把用户输入拼进 value 属性和 textarea 文本节点，必须实体转义。注入含引号/尖括号的 ua、路径、delay，只有全部转为 &quot;/&lt;/&gt; 才 OK。旧源码直接拼接 ⇒ ROBOTSESC BAD。探针只在 clicks 内生成，默认态无该串。",
+  },
+  {
+    slug: "it/robots-txt-generator",
+    clicks: ["(function(){rules.length=0;rules.push({ua:'*',allow:[],disallow:['/NaN/','/InfinityPage'],delay:''});buildDom();var h=document.getElementById('rules').innerHTML;var ok=h.indexOf('data-group')>=0&&h.indexOf('无效值')<0;document.getElementById('__tbProbe').innerHTML=ok?'ROBOTSNAN OK':'ROBOTSNAN BAD';})()"],
+    expect: ["ROBOTSNAN OK"],
+    ref: "IT-N419 强锁：buildDom 对整个 HTML 串做 Infinity/NaN 数值守卫，路径含合法字样 /NaN/（NaN 后为非字母）或 /InfinityPage（Infinity 子串）会把规则区整块替换为“无效值”且不可恢复。现移除守卫，规则区始终渲染当前规则。旧源码 ⇒ ROBOTSNAN BAD。探针只在 clicks 内生成。",
+  },
+  {
     slug: "it/go-cheatsheet",
     inputs: { searchInput: "zzz" },
     expect: ["共 0 项"],

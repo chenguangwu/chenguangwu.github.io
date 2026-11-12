@@ -233,23 +233,37 @@ const rules = [{
   delay: '10'
 }];
 
+/* IT-N418：用户输入会进入 value="" 属性和 textarea 文本节点，必须先做 HTML 实体转义，
+   否则 ua 含 " 会闭合属性、路径含 </textarea> 会闭合文本框并注入任意 HTML。 */
+function escRobotsHtml(v) {
+  return String(v == null ? '' : v)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function rowTemplate(r) {
   return `
 <div class="card" style="margin-top:10px;" data-group>
   <label>User-agent（逗号分隔）</label>
-  <input class="ua" type="text" value="${r.ua}" oninput="syncRule(this)">
+  <input class="ua" type="text" value="${escRobotsHtml(r.ua)}" oninput="syncRule(this)">
   <label>Allow（每行一个路径）</label>
-  <textarea class="allow" rows="2" oninput="syncRule(this)">${r.allow.join('\n')}</textarea>
+  <textarea class="allow" rows="2" oninput="syncRule(this)">${escRobotsHtml(r.allow.join('\n'))}</textarea>
   <label>Disallow（每行一个路径）</label>
-  <textarea class="disallow" rows="2" oninput="syncRule(this)">${r.disallow.join('\n')}</textarea>
+  <textarea class="disallow" rows="2" oninput="syncRule(this)">${escRobotsHtml(r.disallow.join('\n'))}</textarea>
   <label>Crawl-Delay（可选）</label>
-  <input class="delay" type="number" min="0" value="${r.delay}" oninput="syncRule(this)" placeholder="如 ${r.delay}">
+  <input class="delay" type="number" min="0" value="${escRobotsHtml(r.delay)}" oninput="syncRule(this)" placeholder="如 ${escRobotsHtml(r.delay)}">
 </div>`;
 }
 
+/* IT-N419：此页纯文本拼接，不产生数值结果；对整段 HTML 做 Infinity/NaN 守卫会把
+   路径含这些合法字样的规则区整块替换成“无效值”提示，且 rules 已保存输入 ⇒ 不可恢复。
+   去掉该守卫，转义由 escRobotsHtml 保证，预览渲染永远反映当前规则。 */
 function buildDom() {
   const container = document.getElementById('rules');
-  const __h0=rules.map(r => rowTemplate(r)).join('');if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){container.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}container.innerHTML=__h0;
+  container.innerHTML = rules.map(r => rowTemplate(r)).join('');
 }
 
 function addRule() {
