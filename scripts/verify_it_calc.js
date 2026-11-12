@@ -5954,6 +5954,13 @@ const CASES = [
     clicks: ["document.querySelectorAll=function(){return [{checked:true,value:'node'},{checked:false,value:'py'},{checked:false,value:'go'},{checked:false,value:'rust'},{checked:false,value:'java'},{checked:false,value:'dotnet'},{checked:false,value:'c'},{checked:false,value:'ide'}];};escH=function(s){return String(s==null?'':s);};calcTool();var o=String(document.getElementById('result').innerHTML||'');document.getElementById('__tbProbe').textContent='GIENV '+(o.indexOf('.env')>=0&&o.indexOf('.env.*')>=0&&o.indexOf('!.env.example')>=0?'OK':'BAD');"],
     expect: ["GIENV OK"],
     ref: "IT-N270 安全承诺：页面提示「机密文件 .env 务必忽略」且 deep-dive 示例称「选 Node → 输出 .env」，但旧模板 8 栈 29 规则无任何 .env（只有 env/ 目录）⇒ 承诺落空。修复后每个模板统一含 .env / .env.* / !.env.example（保留样例）。注入只勾 node，断言输出三件套齐全；默认态（无勾选）落空分支不含探针串 ⇒ 零逃生。",
+  },
+  {
+    slug: "it/gitignore-generator",
+    checks: ["node"],
+    clicks: ["document.querySelectorAll=function(){return [{checked:true,value:'node'},{checked:false,value:'py'},{checked:false,value:'go'},{checked:false,value:'rust'},{checked:false,value:'java'},{checked:false,value:'dotnet'},{checked:false,value:'c'},{checked:false,value:'ide'}];};escH=function(s){return String(s==null?'':s);};var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},preset:{bar:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}}};calcTool();var st=String((document.getElementById('result').getAttribute&&document.getElementById('result').getAttribute('data-stats'))||'');__gitignore_generator_last=0;__gitignore_generatorExtras();var rules=__cap.length?__cap[__cap.length-1].__rules:null;var rs=String(__cap.length?__cap[__cap.length-1]['结果']||'':'');document.getElementById('__tbProbe').textContent='GISTAT '+((/^1\\|\\d+$/.test(st)&&Number.isInteger(rules)&&/个技术栈/.test(rs))?'OK':'BAD');"],
+    expect: ["GISTAT OK"],
+    ref: "IT-N272：历史「结果」列旧版取 textContent slice(0,80) 只剩截断的 .gitignore 头，图表 parseFloat 截断文本恒 NaN。修复后 calcTool 写 result[data-stats]=栈数|规则数，ResText 返回「N 个技术栈 · M 条规则」短摘要，Extras 存 rec.__rules 供图表画规则条数趋势。注入只勾 node，断言 data-stats 形态 + __rules 整数 + 摘要含「个技术栈」；默认态无历史记录、探针串不出现 ⇒ 零逃生。",
   },  // —— BATCH284：哈希计算器多算法 / 批量 / 校验分支 + JSON 与 TSV 双向转换 ——
   {
     slug: "it/hash",
