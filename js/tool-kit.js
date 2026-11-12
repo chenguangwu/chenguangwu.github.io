@@ -295,7 +295,13 @@
     opts = opts || {};
     var h = opts.height || 220;
     var pad = opts.padding == null ? { t: 16, r: 16, b: 28, l: 44 } : opts.padding;
+    // 默认 640（兼容既有全部页面）；显式传 width:'container' 时按宿主容器实际宽度
+    // 设置 viewBox，避免固定 viewBox + width:100% 在宽屏下出现左右大片留白。
     var w = 640;
+    if (opts.width === 'container' && host) {
+      var box = $(host);
+      if (box) w = Math.max(320, Math.round(box.getBoundingClientRect().width || box.clientWidth || 640));
+    }
     var svg = s('svg', {
       viewBox: '0 0 ' + w + ' ' + h,
       width: '100%',
@@ -359,7 +365,7 @@
     var labels = cfg.labels || [];
     var series = cfg.series || [];
     if (!series.length) return null;
-    var c = canvas(host, { height: cfg.height || 220, title: cfg.title });
+    var c = canvas(host, { height: cfg.height || 220, title: cfg.title, width: cfg.width });
     var all = [];
     series.forEach(function (se) { (se.data || []).forEach(function (v) { all.push(num(v)); }); });
     var max = cfg.max == null ? niceMax(Math.max.apply(null, all.concat([0])) * 1.1) : cfg.max;
