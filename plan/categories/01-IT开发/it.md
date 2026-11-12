@@ -239,22 +239,6 @@
 - 留存建议（hill-cipher）：①LN 算例、②矩阵元素 mod 26 与整数校验、③删除 3×3 承诺并显示规范化矩阵，均已于第258批完成。
 - 留存建议（hill-cipher）：①修正 LN 算例；②矩阵元素统一 mod 26 并校验整数；③补 3×3 或删掉该承诺，同时在“矩阵信息”里显示规范化后的矩阵。
 
-### IT-N159 Playfair 原理区 “26×26=676 种字母对” 与自身 5×5/I-J 合并（25×25=625）矛盾（中，确认源码缺陷）
-- 问题：正文说“Playfair 有 26×26=676 种可能的字母对”，但同一页明确 5×5 方阵、I/J 共用一格，实际字母表 25 个，双字母组合是 25×25=625。
-- 证据：`tools/it/playfair-cipher.html:275`（676 说法）、`tools/it/playfair-cipher.html:184`（I/J 合并）、`tools/it/playfair-cipher.html:395-413`（buildGrid 去 J 后 25 格）
-- 复现：按 `buildGrid('PLAYFAIR')` 实得 25 个字母，任意两格有序组合 625；页面却用 676 解释频率分析难度。
-- 影响：教学数字错误，夸大约 8% 的组合空间；与页面自身的方阵构造直接冲突，细心的读者会质疑整页可信度。
-- 方案：改为 25×25=625，并补一句“若使用 6×6 含数字变体则为 36×36=1296”。
-
-### IT-N160 Playfair deep-dive 示例 “HI → BM” 未给密钥且与默认密钥实算 EB 不符（低，待验证）
-- 问题：示例只写“如 HI → `BM`（示例密钥方阵）”，没有给出方阵内容；按页面默认密钥 `PLAYFAIR` 实算，H 在第 3 行第 3 列、I 在第 2 行第 1 列，矩形对角为 E 与 B，结果 `EB`，不是 `BM`。
-- 证据：`tools/it/playfair-cipher.html:323`（HI→BM）、`tools/it/playfair-cipher.html:197`（默认 key=PLAYFAIR）、`tools/it/playfair-cipher.html:395-413`（方阵构造）、`tools/it/playfair-cipher.html:828-831`（四个预设密钥）
-- 复现（Node 复算）：`HI` 在默认 `PLAYFAIR` 下 → `EB`；四个预设密钥实算分别为 `PLAYFAIR→EB`、`MONARCHY→BF`、`SECRET→IK`、`KEYWORD→IL`，均非 `BM`，页面 `BM` 无法在任一内置配置复现。
-- 影响：示例不可复现，用户按默认参数试算对不上，降低信任；因未给密钥，暂列待验证而非确认错误。
-- 方案：示例标注完整 5×5 方阵（或指定 key），并按该方阵重算 HI 的结果。
-
-- 留存建议（playfair-cipher）：①加解密分组逻辑分离（解密禁止插填充）；②预设显式 `setMode('encrypt')`；③把 676 改 625，并为 deep-dive 示例补密钥/方阵。
-
 - 留存建议（rail-fence-cipher）：“保留空格”旁注明空白也参与置换、解密后位置会改变。
 
 ### IT-N163 Vigenère deep-dive 算例 “ATTACK + KEY → AXVCZ” 完全算错，密钥字母也错位（中，确认源码缺陷）
