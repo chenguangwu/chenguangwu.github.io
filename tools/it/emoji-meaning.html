@@ -801,24 +801,46 @@ function renderEmojis(){
 function showDetail(index){
   const e = EMOJIS[index];
   document.getElementById('detailPreview').textContent = e.emoji;
-  const __h2=`
-    <div class="detail-row"><span class="label">名称</span><span class="value">${e.name}</span></div>
-    <div class="detail-row"><span class="label">分类</span><span class="value">${e.cat}</span></div>
-    <div class="detail-row"><span class="label">Unicode</span><span class="value">${e.code}</span><button type="button" class="btn success" onclick="copyText('${e.code}')">复制</button></div>
-    <div class="detail-row"><span class="label">HTML 实体</span><span class="value" style="font-size:11px;">${htmlEntity(e.emoji)}</span><button type="button" class="btn success" onclick="copyText('${htmlEntity(e.emoji)}')">复制</button></div>
-    <div class="detail-row"><span class="label">CSS 转义</span><span class="value" style="font-size:11px;">${cssEscape(e.emoji)}</span><button type="button" class="btn success" onclick="copyText('${cssEscape(e.emoji)}')">复制</button></div>
-    <div class="detail-row"><span class="label">JS 转义</span><span class="value" style="font-size:11px;">${jsEscape(e.emoji)}</span><button type="button" class="btn success" onclick="copyText('${jsEscape(e.emoji)}')">复制</button></div>
-    <div class="detail-row"><span class="label">URL 编码</span><span class="value" style="font-size:11px;">${encodeURIComponent(e.emoji)}</span><button type="button" class="btn success" onclick="copyText('${encodeURIComponent(e.emoji)}')">复制</button></div>
-    <div class="detail-row" style="flex-direction:column;align-items:flex-start;">
+  const row = (label, kind, value, small) => `
+    <div class="detail-row"><span class="label">${label}</span><span class="value"${small?' style="font-size:11px;"':''}>${escHtmlText(value)}</span><button type="button" class="btn success" data-ntcopy="${kind}" data-ntindex="${index}">复制</button></div>`;
+  const __h2=
+    `<div class="detail-row"><span class="label">名称</span><span class="value">${escHtmlText(e.name)}</span></div>` +
+    `<div class="detail-row"><span class="label">分类</span><span class="value">${escHtmlText(e.cat)}</span></div>` +
+    row('Unicode','unicode',e.code) +
+    row('HTML 实体','html',htmlEntity(e.emoji),true) +
+    row('CSS 转义','css',cssEscape(e.emoji),true) +
+    row('JS 转义','js',jsEscape(e.emoji),true) +
+    row('URL 编码','url',encodeURIComponent(e.emoji),true) +
+    `<div class="detail-row" style="flex-direction:column;align-items:flex-start;">
       <span class="label">关键词</span>
       <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px;">
-        ${e.keywords.map(k => `<span style="background:#f0f4ff;color:var(--primary);padding:2px 8px;border-radius:4px;font-size:11px;">${k}</span>`).join('')}
+        ${e.keywords.map(k => `<span style="background:#f0f4ff;color:var(--primary);padding:2px 8px;border-radius:4px;font-size:11px;">${escHtmlText(k)}</span>`).join('')}
       </div>
-    </div>
-    <button type="button" class="btn primary" style="width:100%;margin-top:14px;" onclick="copyText('${e.emoji}')">📋 复制 Emoji</button>
-  `;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('detailInfo').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('detailInfo').innerHTML=__h2;
+    </div>` +
+    `<button type="button" class="btn primary" style="width:100%;margin-top:14px;" data-ntcopy="emoji" data-ntindex="${index}">📋 复制 Emoji</button>`;
+  if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('detailInfo').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('detailInfo').innerHTML=__h2;
   document.getElementById('detailBox').classList.add('show');
   document.getElementById('detailOverlay').classList.add('show');
+}
+
+// 把转义串作为「字面文本」放进 innerHTML：& < > 必须先实体化，否则 &#x1f600; 会被解析成 😀。
+function escHtmlText(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+// 编码副本：key → 原始待复制字面串（不走 onclick 属性拼接，避免 HTML/JS 二次解析）
+function emojiCopyValue(kind, index){
+  const e = EMOJIS[index];
+  if(!e) return '';
+  switch(kind){
+    case 'unicode': return e.code;
+    case 'html': return htmlEntity(e.emoji);
+    case 'css': return cssEscape(e.emoji);
+    case 'js': return jsEscape(e.emoji);
+    case 'url': return encodeURIComponent(e.emoji);
+    case 'emoji': return e.emoji;
+    default: return '';
+  }
 }
 
 function htmlEntity(emoji){
@@ -861,6 +883,21 @@ function emojiQuickSearch(q){
   searchQuery = q;
   renderEmojis();
 }
+
+// 详情面板「复制」：用事件委托 + data 属性传索引，值在点击时现算，
+// 避免把 &#x1f600; / \u{1f600} / \1f600 等转义串拼进 onclick 被 HTML/JS 二次解析。
+(function bindDetailCopy(){
+  var host = document.getElementById('detailInfo');
+  if(!host) return;
+  host.addEventListener('click', function(ev){
+    var btn = ev.target && ev.target.closest ? ev.target.closest('[data-ntcopy]') : null;
+    if(!btn) return;
+    var kind = btn.getAttribute('data-ntcopy');
+    var idx = parseInt(btn.getAttribute('data-ntindex'), 10);
+    var val = emojiCopyValue(kind, idx);
+    if(val) copyText(val);
+  });
+})();
 
 renderCategories();
 renderEmojis();

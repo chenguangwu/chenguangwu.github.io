@@ -7354,6 +7354,12 @@ const CASES = [
     "ref": "注入搜索『火箭』。内置 emoji 字典精确匹配 1 条 ⇒ 统计行『共 1 个 Emoji』。默认态 searchInput 为空 ⇒ 渲染全部 444 个 ⇒ 『共 444 个 Emoji』，不出现『共 1 个』。注：U+1F642 等码点属静态参考表，默认全量渲染，故改用计数串作判别点（已查字典确认『火箭』唯一匹配 1 条）。纯前端无随机。"
   },
   {
+    "slug": "it/emoji-meaning",
+    "clicks": ["showDetail(0);document.getElementById('__tbProbe').textContent='EMJDETAIL '+document.getElementById('detailInfo').innerHTML.slice(0,180);"],
+    "expect": ["HTML 实体 &amp;#x1f600;"],
+    "ref": "IT-N282 emoji 编码字面显示：htmlEntity(😀)=&#x1f600; 必须作为字面文本显示（HTML 转义为 &amp;#x1f600;），旧实现直接写入 innerHTML 被解析成 😀；JS/CSS 转义同理走事件委托传值，不从 onclick 属性二次解析。默认详情面板展示 😀 ⇒ 新有旧无。",
+  },
+  {
     "slug": "it/latex",
     "inputs": { "q": "\\frac{1}{2}" },
     "clicks": ["calcTool()"],
