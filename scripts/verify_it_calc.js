@@ -13770,6 +13770,12 @@ const CASES = [
     expect: ["LESSSTALE OK"],
     ref: "IT-N421 强锁：过期判定须同时比对序号与输入代码——旧任务(seq 小)或输入已改都必须判 stale，当前任务同一代码不得判 stale。旧源码无 outputIsStale ⇒ LESSSTALE BAD。",
   },
+  {
+    slug: "text/calc-1",
+    clicks: ["(function(){document.getElementById('textA').value='value NaN here';document.getElementById('textB').value='value Infinity here';compareText();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent=(h.indexOf('无效值')<0&&h.indexOf('NaN')>=0&&h.indexOf('Infinity')>=0&&h.indexOf('处差异')>=0?'TXTDNAN OK':'BAD');})()"],
+    expect: ["TXTDNAN OK"],
+    ref: "清单634 强锁：纯文本差异不产生数值；用户文本含独立 NaN / Infinity 字样时必须照常输出差异行。旧实现对整段结果 HTML 做 NaN/Infinity 守卫 ⇒ 整块替换成「无效值」⇒ BAD。探针只在 clicks 内生成，默认态不命中。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
