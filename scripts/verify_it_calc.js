@@ -6007,6 +6007,18 @@ const CASES = [
     clicks: ["divideSubnets();var h=String(document.getElementById('subRes').innerHTML||'');document.getElementById('__tbProbe').textContent='SUBCAP '+(h.indexOf('超出展示上限')>=0&&h.indexOf('8192')<0?'OK':'BAD');"],
     expect: ["SUBCAP OK"],
     ref: "IT-N321：N=4097 在 /8 下需借 13 位、realN=8192，旧实现直接渲染 8192 行（页面长时间无响应）。修复后 input[max]=4096 且 divideSubnets 在 n>4096 / realN>4096 时立即拒绝，不出现 8192 行汇总。默认 subN=4 不触发上限、默认态不执行 clicks 探针 ⇒ 零逃生。",
+  },
+  {
+    slug: "it/generator-16",
+    clicks: ["globalThis.crypto={getRandomValues:function(a){for(var i=0;i<a.length;i++)a[i]=(i*17+3)&255;return a;}};document.getElementById('cnt').value='20';gen();var t=String(document.getElementById('res').innerHTML||'').replace(/<[^>]*>/g,'');var lines=t.split('\\n').map(function(s){return s.trim();}).filter(Boolean);var keys=lines.map(function(s){return s.split('=')[0];});var seen={};keys.forEach(function(k){seen[k]=1;});var sec=lines.filter(function(s){return /^(JWT_SECRET|SESSION_SECRET|OPENAI_API_KEY|STRIPE_SECRET_KEY)/.test(s);});var ok=lines.length===20&&Object.keys(seen).length===20&&keys.some(function(k){return /_[2-9]$/.test(k);})&&sec.length>0&&sec.every(function(s){return !/change-me|random-secret-string|sk-xxxxxxxx/.test(s)&&/[0-9a-f]{48}/.test(s);});document.getElementById('__tbProbe').textContent='ENVGEN '+(ok?'OK':'BAD');"],
+    expect: ["ENVGEN OK"],
+    ref: "IT-N322：旧实现 15 个固定键取模轮转，N=20 时 uniq 仅 16，且 JWT_SECRET 恒为 change-me-in-production（假工具）。修复后超 15 条追加 _2/_3 唯一后缀，密钥类字段用 Web Crypto 随机 hex 且每次不同。捕获确定性 crypto 桩生成 20 行，断言键全唯一、有后缀、密钥非占位符且为 48+ 位 hex；默认 N=5 不触发后缀、默认态不执行 clicks ⇒ 零逃生。",
+  },
+  {
+    slug: "it/gamertag-generator",
+    clicks: ["var rows=[{textContent:'Alpha1'},{textContent:'Beta2'},{textContent:'Gamma3'}];var host=document.getElementById('output');host.querySelectorAll=function(){return rows;};var cap='';var old=navigator.clipboard;navigator.clipboard={writeText:function(t){cap=String(t);return Promise.resolve();}};copyResult();navigator.clipboard=old;var nl=String.fromCharCode(10);document.getElementById('__tbProbe').textContent='GTCOPY '+(cap==='Alpha1'+nl+'Beta2'+nl+'Gamma3'?'OK':'BAD');"],
+    expect: ["GTCOPY OK"],
+    ref: "IT-N323：旧 copyResult 直取 #output.textContent，块级 .code-row 之间无分隔符，三条昵称被拼成一词。修复后逐条读 .code-row.textContent 并用换行 join。桩注入 3 行固定文本 + 剪贴板录音，断言复制串严格为逐行内容；默认态不执行 clicks ⇒ 零逃生。",
   },  // —— BATCH284：哈希计算器多算法 / 批量 / 校验分支 + JSON 与 TSV 双向转换 ——
   {
     slug: "it/hash",

@@ -100,7 +100,7 @@
     <h2 data-zh="🖥️ 环境变量生成器（.env格式）">🖥️ Generator 16</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh=".env格式">Generate .env format environment variables in your browser — quick configuration scaffolding.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">生成条数保证在 1 到 50 之间（非法时取 5）。把内置的环境变量键值对数组随机打乱后按条数循环取用（取完一轮回到开头继续），逐条按「键 = 值」拼行，整体作为 .env 配置片段输出</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">生成条数保证在 1 到 50 之间（非法时取 5）。把内置环境变量键名随机打乱后按条数取用；超过 15 条时重复键名追加 _2、_3 等唯一后缀；JWT/API/会话密钥用 Web Crypto 生成随机 hex，其余为非机密示例值，逐条按「键 = 值」拼成 .env 片段</div>
   <div class="formula-desc">生成 .env 格式的环境变量配置。</div>
   <ul class="formula-list">
     <li><b>格式</b>：每行 <code>KEY=VALUE</code>，支持 <code>#</code> 注释与引号包裹的值。</li>
@@ -209,17 +209,38 @@ const ENV_KEYS = [
   ['SESSION_SECRET', 'random-secret-string'],
   ['CACHE_TTL', '3600']
 ];
+function randomHex(bytes){
+  if(typeof crypto==='undefined'||!crypto.getRandomValues) throw new Error('当前浏览器不支持 Web Crypto 安全随机数，无法生成密钥');
+  const a = new Uint8Array(bytes);
+  crypto.getRandomValues(a);
+  return Array.from(a, x => x.toString(16).padStart(2,'0')).join('');
+}
+function envValue(key, fallback){
+  // IT-N322：密钥类字段必须真随机，不能输出 change-me-in-production 这类固定占位符。
+  if(key==='JWT_SECRET'||key==='SESSION_SECRET') return randomHex(32);
+  if(key==='OPENAI_API_KEY') return 'sk-'+randomHex(24);
+  if(key==='STRIPE_SECRET_KEY') return 'sk_test_'+randomHex(24);
+  return fallback;
+}
 function gen() {
-  const n = Math.min(Math.max(parseInt(document.getElementById('cnt').value) || 5, 1), 50);
-  const shuffled = [...ENV_KEYS].sort(() => Math.random() - 0.5);
-  let html = '<p style="margin-bottom:8px;">生成 .env 配置：</p>';
-  html += '<pre style="background:var(--bg-body);padding:12px;border-radius:8px;overflow:auto;font-family:monospace;line-height:1.6;">';
-  for (let i = 0; i < n; i++) {
-    const [k, v] = shuffled[i % shuffled.length];
-    html += `${k}=${v}\n`;
+  try {
+    const n = Math.min(Math.max(parseInt(document.getElementById('cnt').value) || 5, 1), 50);
+    const shuffled = [...ENV_KEYS].sort(() => Math.random() - 0.5);
+    const used = Object.create(null);
+    let html = '<p style="margin-bottom:8px;">生成 .env 配置：</p>';
+    html += '<pre style="background:var(--bg-body);padding:12px;border-radius:8px;overflow:auto;font-family:monospace;line-height:1.6;">';
+    for (let i = 0; i < n; i++) {
+      const [base, fallback] = shuffled[i % shuffled.length];
+      // IT-N322：超过 15 条时按键名加唯一后缀，杜绝重复键被 .env 解析器后者覆盖前者。
+      used[base] = (used[base] || 0) + 1;
+      const key = used[base] === 1 ? base : base + '_' + used[base];
+      html += `${key}=${envValue(base, fallback)}\n`;
+    }
+    html += '</pre>';
+    const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('res').innerHTML=__h0;
+  } catch(e) {
+    document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ '+e.message+'</p>';
   }
-  html += '</pre>';
-  const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('res').innerHTML=__h0;
 }
 gen();
 function copyRes() { ToolBox.copyText(document.getElementById('res').innerText); }

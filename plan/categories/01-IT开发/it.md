@@ -373,21 +373,6 @@
 - 未覆盖说明：只审计主流程、边界与文档口径，未穷举全部输入组合（DES 只逐字节改 0x11 观察敏感性，未做全密钥空间统计；JS 只测 5 组输入；Python 只测自带 SAMPLE 与 2 个小例；CSV 只测默认数据与引号/换行字段；country 只做数据一致性与长度统计，未核对全部国名/首都时效）。
 - 未做验证：未改代码、未构建、未跑门禁、未 git 写、未开浏览器；结论为源码静态分析 + `node` 内存复算（临时脚本 `/tmp/audit_des.js`、`/tmp/audit_fmt.js`、`/tmp/audit_misc.js`，未落仓库）；DES 标准向量因本机 OpenSSL 无 `des-ecb` 采用 FIPS 公开值（key `0123456789ABCDEF` / 明文 `Now is t` → `3FA40E8A984D4815`）；未验证英文态 `?lang=en-US`、繁体与移动端。
 
-### IT-N322 生成数量超过 15 后循环复用同一批键，.env 出现重复键（高，确认缺陷）
-- 问题：`ENV_KEYS` 固定 15 条，`n` 上限 50，生成时用 `shuffled[i % shuffled.length]` 取模，超过 15 即重复整组键值。
-- 证据：`tools/it/generator-16.html:208-222`（15 组键值）、`:225`（`Math.min(...,50)`）、`:230`（`i % shuffled.length`）。
-- 复现：数量填 `20` → 输出中 `DATABASE_URL=postgres://...` 出现两次、`REDIS_URL` 等也重复；期望 20 个唯一键，或数量上限收紧到 15 并提示。
-- 影响：多数 .env 解析器「后者覆盖前者」，重复键让最终生效配置与用户看到的清单不一致；同时所有值都是硬编码占位（`JWT_SECRET=change-me-in-production`），并未真正生成随机密钥。
-- 方案：超过 15 时拒绝并提示，或按键名生成唯一后缀；若要保留「生成器」定位，至少为密钥类字段用 `crypto.getRandomValues` 生成随机值。
-**假工具候选：是（类型 A）** —— 唯一输入只有「数量」，输出恒为固定 15 条硬编码键值轮转，不存在任何按用户输入生成/随机化的内容。
-
-### IT-N323 「复制」把所有昵称无分隔拼成一串（中，确认缺陷）
-- 问题：每条结果是一个 `<div class="code-row">`，`copyResult` 直接取容器 `textContent`，块级元素之间没有换行符。
-- 证据：`tools/it/gamertag-generator.html:293`（逐条 `<div>`）、`:299-300`（`output.textContent` 写剪贴板）。
-- 复现：生成 3 条 → 剪贴板得到 `ShadowWolf7NeonBlade12CyberFox3`（三个名字连成一串），期望每行一个昵称。
-- 影响：复制出的候选名无法直接粘贴进注册表单或表格，用户需手工切分。
-- 方案：复制时按 `.code-row` 逐条收集 `textContent` 并用 `\n` join，或改用 `<pre>`/`<br>` 结构。
-
 ### IT-N324 ITF 起止符画错，生成的条码缺少扫描器必需的 guard（高，确认缺陷）
 - 问题：起始符写成 `'0000'`（四个空格，等于不画任何东西）；终止符写成 `'100'`（窄条-窄空-窄条），而 ISO/IEC 16390 要求起始 `1010`、终止 `11010`（宽条-窄空-窄条）。
 - 证据：`tools/it/barcode-itf.html:253`（`let bits='0000'`）、`:264`（`bits+='100'`）。
