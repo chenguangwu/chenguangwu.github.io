@@ -339,15 +339,6 @@
 - 未覆盖说明：只审计主流程、边界与文档口径，未逐条穷举 8 页全部输入域（binary/hex 只测分隔符、长度、非法 UTF-8/BOM 与 `0x` 前缀；regex 只测 ReDoS 计时、分享链接往返、强制 g 与 1000 条上限，未逐条验证所有 flag 组合与 `u`/`v` 语义；qrcode 只验证编码字节、容量估算与导出参数，未实际扫码；xml 用页面自身函数跑 6 组用例，未覆盖命名空间/CDATA 嵌套；schema 只验证 required/anyOf/描述/ipv4/验证按钮）。姓名池统计已全量（两池各 100 项），但未统计真实重名率（跨批不查重）。
 - 未做验证：未开浏览器、未构建、未跑门禁、未 git 写；结论为源码静态分析 + `node` 内存复算（临时脚本 `/tmp/audit_xml.js`、`/tmp/audit_name.js`，未落仓库）；未验证英文态 `?lang=en-US`、繁体与移动端；`IT-N251`（toast 文案）与 `device-info` 的 iPad/触摸两项标为待验证。
 
-### IT-N271 "默认参数"预设把 8 个技术栈全勾上，且预设不清除旧勾选（中，确认缺陷）
-- 问题：预设"默认参数"给 8 个 checkbox 全传真值；而页面真实默认只勾 Node。`setValue` 对 checkbox 执行 `f.checked = !!val`，传 `'py'/'node'/…` 均为 true。且预设只设置所列字段，不重置未列出的项，切换预设会叠加而非替换。
-- 证据：`tools/it/gitignore-generator.html:344`（values 覆盖 `top_py`~`top_ide`）、`:127`（仅 `top_node` 带 `checked`）、`js/tool-kit.js:993`（`checked = !!val`）、`:235-243`（resetForm 才是全不选）。
-- 复现：点"默认参数"→ 8 项全选中，输出 8 段规则；先点"默认参数"再点"Python+Node"→ 仍是 8 项全选（未列出的项保持原状）；期望"默认参数"只勾 Node、"Python+Node"只勾这两项。
-- 影响：每次都要手动取消 7 项，极易生成与项目无关的大段规则；"默认参数"名不副实。
-- 方案：`preset.bar` 层支持 `values` 全量赋值（未列出的 checkbox 显式置 false），或将"默认参数"改名为"全栈模板"并另加一个真正只勾 Node 的默认项。
-**留存建议（tools/it/gitignore-generator.html）**：与 `js/tool-kit.js` 的 preset 语义一起改，别只改本页。
-
-
 - `markdown-editor`：IT-N288 属性注入 XSS 与 IT-N289 GFM 任务清单源码已修好（`escAttr` + `safeUrl` 协议白名单、`- [x]` → 禁用复选框），清单及开头待办漏销账，本批补真机安全回归证据（alt 引号不闭合属性、`javascript:`/`data:text/html` 拦截、`data:image` 与正常链接放行、任务清单 checked 语义）；IT-N290 真修：`#` 由 `<h2>` 改为 `<h1>`（CommonMark 一级标题语义，`##`/`###`/`####` 不变），工作原理公式说明与 en JSON 中文键/英译同步。第211批销账；真机 16/16 vs 旧 13/16（3 项红均为 N290，N288/N289 旧态已绿如实记录），verify 4 条相关用例均不依赖 h2、无需改 expect。
 
 ### 承诺 vs 实际（S 批专项）

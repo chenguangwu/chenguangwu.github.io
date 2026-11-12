@@ -5961,6 +5961,13 @@ const CASES = [
     clicks: ["document.querySelectorAll=function(){return [{checked:true,value:'node'},{checked:false,value:'py'},{checked:false,value:'go'},{checked:false,value:'rust'},{checked:false,value:'java'},{checked:false,value:'dotnet'},{checked:false,value:'c'},{checked:false,value:'ide'}];};escH=function(s){return String(s==null?'':s);};var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},preset:{bar:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}}};calcTool();var st=String((document.getElementById('result').getAttribute&&document.getElementById('result').getAttribute('data-stats'))||'');__gitignore_generator_last=0;__gitignore_generatorExtras();var rules=__cap.length?__cap[__cap.length-1].__rules:null;var rs=String(__cap.length?__cap[__cap.length-1]['结果']||'':'');document.getElementById('__tbProbe').textContent='GISTAT '+((/^1\\|\\d+$/.test(st)&&Number.isInteger(rules)&&/个技术栈/.test(rs))?'OK':'BAD');"],
     expect: ["GISTAT OK"],
     ref: "IT-N272：历史「结果」列旧版取 textContent slice(0,80) 只剩截断的 .gitignore 头，图表 parseFloat 截断文本恒 NaN。修复后 calcTool 写 result[data-stats]=栈数|规则数，ResText 返回「N 个技术栈 · M 条规则」短摘要，Extras 存 rec.__rules 供图表画规则条数趋势。注入只勾 node，断言 data-stats 形态 + __rules 整数 + 摘要含「个技术栈」；默认态无历史记录、探针串不出现 ⇒ 零逃生。",
+  },
+  {
+    slug: "it/gitignore-generator",
+    checks: ["node"],
+    clicks: ["var __gp=null;TBKit={preset:{bar:function(h,l,a){__gp=l;}}};__gitignore_generatorPresets();var __ids=['top_py','top_node','top_go','top_rust','top_java','top_dotnet','top_c','top_ide'];var __groups=[['top_node'],['top_py','top_node'],['top_go','top_rust','top_java'],['top_c','top_ide']];var __ok=!!(__gp&&__gp.length===4);if(__ok){__gp.forEach(function(p,i){var v=p.values||{};__ok=__ok&&__ids.every(function(id){return Object.prototype.hasOwnProperty.call(v,id)&&(String(v[id])==='0'||String(v[id])==='1');});__ok=__ok&&__ids.every(function(id){return String(v[id])===((__groups[i].indexOf(id)>=0)?'1':'0');});});}document.getElementById('__tbProbe').textContent='GPRE '+(__ok?'OK':'BAD');"],
+    expect: ["GPRE OK"],
+    ref: "IT-N271：TBKit.preset.bar 只把 values 列出的键写回控件，旧版除「默认参数」外只列 2~3 个 tech key，且默认参数传 'py'/'node' 等裸字符串（在真实 setValue 语义下全部解释为勾选）⇒ 切换预设叠加旧勾选、默认 8 栈全勾。修复后 4 个预设均显式写全 8 个 checkbox 且值严格为 '0'/'1'，每个预设只勾自己的技术栈。捕获 preset.bar 的第二参数逐项断言，默认态不执行该 clicks，探针串不出现 ⇒ 零逃生。",
   },  // —— BATCH284：哈希计算器多算法 / 批量 / 校验分支 + JSON 与 TSV 双向转换 ——
   {
     slug: "it/hash",
