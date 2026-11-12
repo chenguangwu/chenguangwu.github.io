@@ -272,8 +272,12 @@ function dec(){
   }
   const bytes = new Uint8Array(chunks.length);
   for(let i = 0; i < chunks.length; i++){
+    // IT-N318：必须整段匹配 1–3 位 [0-7]，禁止 parseInt 的宽松截断（'078'→7、'378'→31）。
     const v = /^[0-7]{1,3}$/.test(chunks[i]) ? parseInt(chunks[i], 8) : NaN;
-    if(isNaN(v) || v < 0 || v > 255) return alert('非法八进制数: ' + chunks[i]);
+    if(isNaN(v) || v < 0 || v > 255){
+      const bad = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Invalid octal number: ':'非法八进制数: ');
+      return alert(bad + chunks[i]);
+    }
     bytes[i] = v;
   }
   document.getElementById('output').value = new TextDecoder().decode(bytes);

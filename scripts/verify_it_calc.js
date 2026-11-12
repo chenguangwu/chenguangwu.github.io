@@ -5974,6 +5974,24 @@ const CASES = [
     clicks: ["var s='%PDF-1.7 /ByteRange [0 8000 9000 1200] /Contents <AABB>';var b=new Uint8Array(s.length);for(var i=0;i<s.length;i++)b[i]=s.charCodeAt(i)&255;window.FileReader=function(){this.onload=null;this.readAsArrayBuffer=function(){var ab=b.buffer;if(typeof this.onload==='function')this.onload({target:{result:ab}});};};globalThis.FileReader=window.FileReader;document.getElementById('file').files=[{size:b.length}];check();var h=String(document.getElementById('d_head').textContent||'');var c=String(document.getElementById('d_head').style.color||'');var n=String(document.getElementById('d_bytes').textContent||'');document.getElementById('__tbProbe').textContent='PDFH '+(h==='%PDF-1.7'&&c.indexOf('success')>=0&&n==='9200 bytes'?'OK':'BAD');"],
     expect: ["PDFH OK"],
     ref: "IT-N315/N316：旧代码用字节码 buf[5]/buf[6] 拼头（'%PDF-49.46'）且正则只认一位版本 ⇒ 合法 PDF 判红；覆盖长度用 br[4]-br[3] ⇒ 本例 -7800 bytes。修复后取前 8 字节原文并严格匹配 %PDF-x.y，覆盖长度按 ByteRange=[offset1 len1 offset2 len2] 取 len1+len2=8000+1200=9200 bytes（BigInt 防溢出）。probes 默认态不注入文件、不执行 clicks ⇒ 零逃生。",
+  },
+  {
+    slug: "it/octal-encode",
+    clicks: ["var oa=alert,msgs=[];TBKit={util:{isEn:function(){return false;}}};alert=function(m){msgs.push(String(m));};var i=document.getElementById('input');i.value='078';dec();i.value='378';dec();var zh=msgs.length===2&&msgs[0].indexOf('非法八进制数')>=0&&msgs[1].indexOf('378')>=0;TBKit.util.isEn=function(){return true;};msgs=[];i.value='078';dec();var en=msgs.length===1&&/^Invalid octal number: 078$/.test(msgs[0]);alert=oa;document.getElementById('__tbProbe').textContent='OCTBAD '+((zh&&en)?'OK':'BAD');"],
+    expect: ["OCTBAD OK"],
+    ref: "IT-N318：整段正则 /^[0-7]{1,3}$/ 必须拒绝 '078'/'378'（parseInt 宽松截断会解成 7/31），且英文态提示不得残留 CJK。捕获 alert 分两轮断言中文与英文提示；默认态不执行 clicks、无 OCTBAD 探针 ⇒ 零逃生。源码严格守卫在进批时已由其他 Agent 修好，本批校正状态并补 i18n/强锁。",
+  },
+  {
+    slug: "it/random-string",
+    clicks: ["var ids=['top_upper','top_lower','top_digit','top_sym'];ids.forEach(function(id){document.getElementById(id).checked=false;});document.getElementById('len').value='7';document.getElementById('cnt').value='2';resetForm();var s=ids.filter(function(id){return document.getElementById(id).checked;}).join(',');var h=String(document.getElementById('result').innerHTML||'');document.getElementById('__tbProbe').textContent='RSRST '+((s==='top_upper,top_lower,top_digit'&&document.getElementById('len').value==='16'&&document.getElementById('cnt').value==='5'&&h.indexOf('生成 5 个随机字符串')>=0&&h.indexOf('请至少选择一种字符集')<0)?'OK':'BAD');"],
+    expect: ["RSRST OK"],
+    ref: "IT-N319：旧 resetForm 把四个 checkbox 全置 false，calcTool 落入空字符集分支只显示「请至少选择一种字符集」。修复后按 HTML 出厂默认恢复 upper/lower/digit=true、sym=false、len=16、cnt=5 并立即生成 5 条。默认态已是正常生成页，不会执行 clicks 探针串 ⇒ 零逃生。",
+  },
+  {
+    slug: "it/random-string",
+    clicks: ["var rp=null;TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return [];},last:function(){return null;},record:function(){},mount:function(){}},preset:{bar:function(h,l,a){rp=l;}}};__random_stringPresets();var ids=['top_upper','top_lower','top_digit','top_sym'];var groups=[['top_upper','top_lower','top_digit'],['top_upper','top_lower'],['top_upper','top_lower','top_digit','top_sym'],['top_digit','top_sym']];var ok=!!(rp&&rp.length===4);if(ok){rp.forEach(function(p,i){var v=p.values||{};ok=ok&&ids.every(function(id){return Object.prototype.hasOwnProperty.call(v,id)&&(String(v[id])==='0'||String(v[id])==='1')&&(String(v[id])===(groups[i].indexOf(id)>=0?'1':'0'));});});}document.getElementById('__tbProbe').textContent='RSPRE '+(ok?'OK':'BAD');"],
+    expect: ["RSPRE OK"],
+    ref: "IT-N319 预设同修：旧「默认参数」把四个 checkbox 全设 '0'（等于空字符集报错），其它预设只列 2~3 键且用裸布尔，切换会叠加旧勾选。修复后 4 个预设均显式写全 4 键、值严格 '0'/'1'，且与 resetForm 出厂默认一致；捕获 preset.bar 第二参数逐项断言。默认态不执行 clicks ⇒ 零逃生。",
   },  // —— BATCH284：哈希计算器多算法 / 批量 / 校验分支 + JSON 与 TSV 双向转换 ——
   {
     slug: "it/hash",
