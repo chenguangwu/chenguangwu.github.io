@@ -1330,8 +1330,20 @@ const CASES = [
   {
     slug: "it/adfgvx-cipher",
     inputs: { input: "abc" },
-    expect: ["A A F D D G"],
-    ref: "ADFGVX 多表替换：'abc' 经加密方格替换后再按 ADFGVX 列调位置排列，得 'A A F D D G'。默认态输入为空 ⇒ 不命中。",
+    expect: ["A A F D D G~P0"],
+    ref: "ADFGVX 多表替换：'abc' 经加密方格替换后再按 ADFGVX 列调位置排列，得 'A A F D D G'；IT-N144 末尾附 ~P0（本例无补位）供解密剥离。默认态输入为空 ⇒ 不命中。",
+  },
+  {
+    slug: "it/adfgvx-cipher",
+    clicks: ["var i=document.getElementById('input'),o=document.getElementById('output'),t=document.getElementById('transKey');t.value='LEMON';i.value='HIJ';enc();var c=o.value;i.value=c;dec();document.getElementById('__tbProbe').textContent='ADPAD '+o.value;"],
+    expect: ["ADPAD HIJ"],
+    ref: "IT-N144：LEMON 加密 HIJ 生成 ~P4 标记，解密按标记剥离补位后必须还原 HIJ。旧实现无标记、补位被解码 ⇒ ADPAD HIJYY。探针仅 clicks 注入。",
+  },
+  {
+    slug: "it/adfgvx-cipher",
+    clicks: ["var k=document.getElementById('key');k.value='KEY';renderGrid();document.getElementById('__tbProbe').textContent='ADKEY '+document.getElementById('keyStatus').textContent;"],
+    expect: ["ADKEY 已回退默认方阵（当前 3/36 字符，需 36 个不重复的 0-9A-Z）"],
+    ref: "IT-N145：key 长度不足 36 时 getGrid() 静默回退，页面必须显式提示当前字符数与要求，不能让用户误以为 KEY 已生效。旧实现无 #keyStatus ⇒ 探针串不落。",
   },
   {
     slug: "it/binomial-distribution",

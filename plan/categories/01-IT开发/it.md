@@ -6,7 +6,7 @@
 
 ## 2026-11-06 已修条目独立复核（O-1/O-2/P-06）
 
-- **IT-N143 / P-06：原列置换问题已修复。** 抽取 `tools/it/adfgvx-cipher.html:253-342` 实际函数，用 `CIPHER`、`FRANCE`、`LEMON` 三个密钥对 `ATTACKATDAWN` 加解密均还原原文。`order.indexOf(i)` 修正列回填；测试为 DOM 桩，未运行浏览器。补位问题 IT-N144 不在本条修复范围，仍保留。
+- **IT-N143 / P-06：原列置换问题已修复。** 抽取 `tools/it/adfgvx-cipher.html` 实际函数，用 `CIPHER`、`FRANCE`、`LEMON` 三个密钥对 `ATTACKATDAWN` 加解密均还原原文。`order.indexOf(i)` 修正列回填；测试为 DOM 桩，未运行浏览器。补位问题 IT-N144 已于第254批一并修复（密文附 `~P<n>` 标记、解密剥离），均已销账。
 
 ## 2026-11-06 文本差异工具静态续审（清单 634）
 
@@ -254,28 +254,7 @@
 - 范围：`tools/it/` 下 8 个古典密码页（adfgvx-cipher、affine-cipher、atbash-cipher、bacon-cipher、hill-cipher、playfair-cipher、rail-fence-cipher、vigenere-visualizer），逐页完整读取 HTML、内联 JS、deep-dive 与 FAQ；编号续接 P 批第一波最大号 IT-N142，本批新增 IT-N143~IT-N166。
 - 方法：纯静态阅读 + `node -e`/`node /tmp/*.js` 按页内算法逐函数复算；未开浏览器、未跑构建、未做 git 写。
 
-### IT-N143 ADFGVX 解密列还原用错置换表，非对合密钥（含默认 CIPHER）加解密不可逆（高，确认源码缺陷）
-- 问题：加密按「目标名次→原始列」读取，用 `order.indexOf(target)`；解密却按「第 i 个密文块→`order[i]`」回填。`order[i]` 是原始列 i 的名次，不是名次 i 对应的原始列，二者只在置换恰好为对合时相等。默认 `transKey=CIPHER` 的 `order=[0,3,4,2,1,5]`，名次 2 应回填原始列 2，代码却回填 4，名次与原始列被互换。
-- 证据：`tools/it/adfgvx-cipher.html:298-304`（加密 `order.indexOf(target)`）、`tools/it/adfgvx-cipher.html:319-327`（解密 `const targetCol = order[i]`）、`tools/it/adfgvx-cipher.html:267-277`（`getTransOrder`）、`tools/it/adfgvx-cipher.html:174`（默认 `value="CIPHER"`）
-- 复现（Node 复算页内函数）：默认 `transKey=CIPHER`，输入 `ATTACKATDAWN` 加密得 `AAAA DVFA DGDF DDDD DADF DGXA`；再点“解密”实际输出 `ATTNOGABM18E`，期望 `ATTACKATDAWN`。换 `FRANCE` 同样失败；`LEMON` 因 `order` 恰为对合才偶然正确。
-- 影响：默认配置下用户无法解开自己刚生成的密文；任何非对合密钥全部解错，且错位后还会从 6×6 方阵里取到数字，输出看似“合法密文”，误导性很强。
-- 方案：解密改为 `const targetCol = order.indexOf(i);`（与加密互逆），并为 `CIPHER`/`FRANCE`/`LEMON` 补加解密往返用例；`getTransOrder` 可同时缓存逆置换避免重复 `indexOf`。
-
-### IT-N144 ADFGVX 解密不剥除补位 X，尾部被当作正文解码（中，确认源码缺陷）
-- 问题：加密用 `while(intermediate.length < numRows*numCols) intermediate += 'X'` 补齐整行；解密按矩阵还原全部中间串后逐对解码，没有记录/剔除补位长度，补位字母会继续走方阵映射变成正文。
-- 证据：`tools/it/adfgvx-cipher.html:291-297`（补 X）、`tools/it/adfgvx-cipher.html:328-340`（解密全量解码，无剥除）
-- 复现（Node 复算）：`transKey=LEMON`，输入 `HIJ` → 密文 `XX AD GX VX XX` → 解密实际 `HIJYY`（5 字符），期望 `HIJ`。补位对经方阵映射后不一定还原成 X，会变成任意字母。
-- 影响：凡中间串长度不是列数整数倍（大多数字符数都会出现），解密结果尾部多出 1–N 个无意义字母，用户无法判断哪些是填充。
-- 方案：加密时把补位个数存入输出（如前置 `rows*cols - intermediate.length` 标记或写进历史），解密按该数在分对前截断；至少在 UI 提示“末尾补位需手动删除”。
-
-### IT-N145 ADFGVX 三个预设把 36 格方阵密钥写成 KEY/SECRET/BREAK，被 `getGrid()` 静默忽略（低，确认源码缺陷）
-- 问题：`getGrid()` 仅当去噪后长度恰为 36 才采用，否则回退 `DEFAULT_KEY`；预设一/二/三分别写入 `key=KEY`、`SECRET`、`BREAK`，长度都不足 36，方阵永远不变，但输入框里确实填了值。
-- 证据：`tools/it/adfgvx-cipher.html:257-261`（长度 36 才生效）、`tools/it/adfgvx-cipher.html:484-487`（三个非法 key）、`tools/it/adfgvx-cipher.html:170-171`（占位提示“36 个字符”）
-- 复现：点“示例一”→ `key` 输入框显示 `KEY`，右侧 6×6 方阵仍为默认 `NA1C3H...`；期望预设切换方阵或明确提示“需 36 字符，当前已回退默认”。
-- 影响：预设演示“自定义方阵”名不副实，用户以为换了密钥但密文与默认完全相同。
-- 方案：给预设填一个真实 36 字符置换（如打乱的 0-9A-Z），或移除预设里的 `key` 字段；同时在输入框失焦时提示长度不合法并显示“使用默认方阵”。
-
-- 留存建议（adfgvx-cipher）：①修正解密列映射并补三组密钥往返用例；②补位剥离或显式提示；③自定义方阵改为长度校验 + 可视化预览。
+- 留存建议（adfgvx-cipher）：①补多组非对合密钥（CIPHER/FRANCE/GERMAN）往返用例并核对 UI 提示；②自定义方阵密钥增加字符唯一性校验（当前仅校验长度 36，重复字符未拦截）。
 
 ### IT-N146 Affine `a` 输入框清空触发 `gcd(NaN,26)` 无限递归，栈溢出（中，确认源码缺陷）
 - 问题：`gcd` 只有 `b===0` 出口，无 `NaN`/非有限数保护；`renderGrid()` 与 `enc()` 都会调用 `gcd(a,26)`。数字框允许被清空，`parseInt('')` 得 `NaN`，`gcd(NaN,26) → gcd(26,NaN) → gcd(NaN,NaN) → …` 永不终止。
