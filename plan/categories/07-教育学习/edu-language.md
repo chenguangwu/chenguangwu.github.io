@@ -852,13 +852,6 @@
 - 影响：`tools/edu/certificate-check.html`；用户无法区分两个发证机构的证书，收藏与备考统计被虚增。
 - 方案：给记录加唯一键（如 `n + '|' + d`），收藏/备考/筛选统一用该键；或在名称后显示发证机构并作为键的一部分。
 
-### EL-J87 「证书查询」面包屑写"考试备考"，页面实际归属"教育学习"（中，确认缺陷）
-- 问题：页面位于 `tools/edu/`，面包屑与 JSON-LD 应为"教育学习"，但 breadcrumb 显示"📖 考试备考"，与目录页标题不一致。
-- 证据：`tools/edu/certificate-check.html:158`（`<a href="index.html">📖 考试备考</a>`）对比 `:98`（BreadcrumbList 写"教育学习"）与 `tools/edu/index.html:24,71`（"教育学习工具"）。
-- 复现：打开页面看面包屑为"教育备考"→ 点击后进入 `tools/edu/index.html`，标题为"教育学习"，两级命名不一致；期望统一。
-- 影响：`tools/edu/certificate-check.html`；导航语义与结构化数据自相矛盾，影响分类归属与收录。
-- 方案：面包屑改为"📖 教育学习"，与 JSON-LD、目录页保持一致。
-
 ### EL-J88 「证书查询」"图表"是默认首 tab 但永远为空（中，确认缺陷）
 - 问题：tab 列表只有 图表/数据表/历史，默认 `show(btns[0])` 即图表；趋势图数据源从结果文本 `parseFloat` 取值，而结果文本以证书名称开头，恒为 NaN，图表永不渲染，首屏因此是空面板。
 - 证据：`tools/edu/certificate-check.html:169`（首个 tab = chart）、`:566`（P 只含 chart/tbl/his，无 res）、`:462`（`parseFloat(arr[j].d[rk])`）；结果区文本由 `:344-369` 生成，首字符为证书名。
@@ -1151,16 +1144,8 @@
 - 影响：`tools/edu/timezone-converter.html`；世界时钟与真实当地时间不符，徽标误导。
 - 方案：`updateWorldClock` 改用 `getOffset(tz, isLikelyDST(tz))`；徽标按当前月份显隐，文案统一为"夏令时期间 UTC±X"。
 
-### EL-J125 「时区转换」标题/面包屑不一致，JSON-LD url 指向第三方域名，重复公式框（中，确认缺陷）
-- 问题：`<title>`/`og:title` 是"当前本地时间"，而 h1、面包屑是"时区转换器"；首个 WebApplication LD 的 `url` 写成 `https://toolbox.1010tools.com/...`（非本站），且与第二个 WebApplication LD 重复；`formula-box` 连续两次；简介称"15+ 城市"实际正好 15 个。
-- 证据：`tools/edu/timezone-converter.html:10`、`:12`（标题）、`:319`（h1）、`:338`（面包屑）、`:27-33`（首个 LD，`:29` 第三方 url）、`:261-263`（第二个 LD）、`:433-440`（重复公式框）、`:529`（"15+"）、`:631-647`（15 条）。
-- 复现：页面标签页标题"当前本地时间"、页内 h1"时区转换器"；查看源码可见两个名称相同、url 不同的 WebApplication；滚动世界时钟上方有两个"📐 计算方式"。
-- 影响：`tools/edu/timezone-converter.html`；结构化数据指向他人域名可能被判无效，标题与正文实体不一致影响 SEO 与用户预期。
-- 方案：统一为"时区转换器"并同步 title/og/面包屑/h1；删除第三方 url 的 LD 或改本站；删重复公式框；"15+"改为"15 个"或补城市。
-
 ### 留存建议（tools/edu/timezone-converter.html）
 - DST 按具体日期/规则判断，`isLikelyDST` 接入主流程，世界时钟同步。
-- 统一页面标题与 LD（本站 url、单一 WebApplication），删重复 formula-box。
 - 校验时/分/秒范围（`:818-820` 目前 25 点会静默进位到次日），下拉标签随 DST 勾选更新。
 
 ### EL-J126 「国家测验」宣称"国旗、首都或地理位置"且"限时作答"，实际仅国旗题、无计时器、无错题库（高，承诺未实现）
