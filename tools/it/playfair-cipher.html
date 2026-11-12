@@ -371,6 +371,7 @@ const HISTORY_KEY = 'playfair_history';
 const MAX_HISTORY = 20;
 
 function setMode(mode){
+  mode = mode || currentMode || 'encrypt';  // IT-N151: 防御无参调用
   currentMode = mode;
   document.querySelectorAll('.mode-tabs button').forEach(b => {
     b.classList.toggle('active', b.dataset.mode === mode);
@@ -499,7 +500,7 @@ function process(){
   resetStep();
   
   if(text && output){
-    saveHistory(text, output, key, currentMode);
+    __playfair_cipherScheduleHistory(text, output, key, currentMode);
   }
 }
 
@@ -630,6 +631,12 @@ function escapeHtml(text){
   return div.innerHTML;
 }
 
+// IT-N150: 500ms 防抖
+var __playfairHistoryTimer = null;
+function __playfair_cipherScheduleHistory(input, output, key, mode){
+  if(__playfairHistoryTimer){ clearTimeout(__playfairHistoryTimer); __playfairHistoryTimer=null; }
+  __playfairHistoryTimer = setTimeout(function(){ __playfairHistoryTimer=null; saveHistory(input, output, key, mode); }, 500);
+}
 function saveHistory(input, output, key, mode){
   if(!input || !output) return;
   let history = getHistory();
@@ -640,9 +647,9 @@ function saveHistory(input, output, key, mode){
     mode,
     time: Date.now()
   };
-  if(history.length > 0 && history[0].input === item.input && history[0].key === key && history[0].mode === mode){
-    return;
-  }
+  var dup = history.findIndex(function(h){ return h.input === item.input && h.key === key && h.mode === mode; });
+  if(dup === 0) return;
+  if(dup > 0) history.splice(dup, 1);
   history.unshift(item);
   if(history.length > MAX_HISTORY) history = history.slice(0, MAX_HISTORY);
   localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
@@ -787,7 +794,7 @@ function __playfair_cipherRender(keys,rk,en){
                     if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
                     else{e.value=rec[k];}
                 }
-                setMode(currentMode || 'encrypt');
+                setMode(rec.__mode || currentMode || 'encrypt');
             }catch(e2){}
             __playfair_cipher_skip=false;
         });
@@ -825,6 +832,7 @@ function __playfair_cipherExtras(){
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
     rec.__tbScore=__playfair_cipherScore(res);
+    rec.__mode=currentMode;
     TBKit.history.record(rec);
     __playfair_cipherRender(keys,rk,en);
 }

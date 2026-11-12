@@ -334,6 +334,7 @@ const HISTORY_KEY = 'vigenere_history';
 const MAX_HISTORY = 20;
 
 function setMode(mode){
+  mode = mode || currentMode || 'encrypt';  // IT-N151: 无参（历史回填）不得置 undefined
   currentMode = mode;
   document.querySelectorAll('.mode-tabs button').forEach(b => {
     b.classList.toggle('active', b.dataset.mode === mode);
@@ -423,7 +424,7 @@ function process(){
   resetStep();
   
   if(text && result){
-    saveHistory(text, result, key, currentMode);
+    __vigenere_visualizerScheduleHistory(text, result, key, currentMode);
   }
 }
 
@@ -620,6 +621,12 @@ function escapeHtml(text){
   return div.innerHTML;
 }
 
+// IT-N150: 500ms 防抖
+var __vigenereHistoryTimer = null;
+function __vigenere_visualizerScheduleHistory(input, output, key, mode){
+  if(__vigenereHistoryTimer){ clearTimeout(__vigenereHistoryTimer); __vigenereHistoryTimer=null; }
+  __vigenereHistoryTimer = setTimeout(function(){ __vigenereHistoryTimer=null; saveHistory(input, output, key, mode); }, 500);
+}
 function saveHistory(input, output, key, mode){
   if(!input || !output) return;
   let history = getHistory();
@@ -630,6 +637,9 @@ function saveHistory(input, output, key, mode){
     mode,
     time: Date.now()
   };
+  var dup = history.findIndex(function(h){ return h.input === item.input && h.key === key && h.mode === mode; });
+  if(dup === 0) return;
+  if(dup > 0) history.splice(dup, 1);
   history.unshift(item);
   if(history.length > MAX_HISTORY) history = history.slice(0, MAX_HISTORY);
   localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
@@ -760,14 +770,14 @@ function __vigenere_visualizerRender(keys,rk,en){
             __vigenere_visualizer_skip=true;
             try{
                 for(var k in rec){
-                    if(k===rk||k==='__tbScore') continue;
+                    if(k===rk||k==='__tbScore'||k==='__mode') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
                     if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
                     else{e.value=rec[k];}
                 }
-                setMode();
+                setMode(rec.__mode || 'encrypt');
             }catch(e2){}
             __vigenere_visualizer_skip=false;
         });
@@ -808,6 +818,7 @@ function __vigenere_visualizerExtras(){
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
     rec.__tbScore=__vigenere_visualizerScore(res);
+    rec.__mode=currentMode;
     TBKit.history.record(rec);
     __vigenere_visualizerRender(keys,rk,en);
 }

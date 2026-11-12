@@ -258,28 +258,7 @@
 
 - 留存建议（affine-cipher）：①补 a=3/5/7/11/15/17/19/21/23/25 与 b=0/25 的往返用例；②映射表在参数非法时已给红字提示，考虑加“当前 a,b 归一化后实际值”显示。
 
-### IT-N149 Atbash 原理区称“本质上是凯撒密码位移 13 的特例”，与两种映射的实际关系不符（中，确认源码缺陷）
-- 问题：Atbash 是自反置换 `f(x)=25-x`（A→Z、B→Y）；凯撒位移 13（ROT13）是 `f(x)=x+13`（A→N）。两者都满足“二次还原”，但映射完全不同，不能称 Atbash 是 ROT13 的特例。
-- 证据：`tools/it/atbash-cipher.html:245`（“本质上是凯撒密码在位移为13时的特例”）、`tools/it/atbash-cipher.html:351-359`（实际 `90 - code` / `122 - code`）
-- 复现：按页面自身实现，`A` 加密为 `Z`；若按“位移 13 的特例”，`A` 应为 `N`。页面示例 1 的 `HELLO → SVOOL` 也证明不是 ROT13（ROT13 为 `URYYB`）。
-- 影响：古典密码教学页面的核心概念错误，会误导初学者把“自反”与“ROT13”混为一谈。
-- 方案：改为“Atbash 是字母表镜像置换 f(x)=25−x，与 ROT13 同为对合置换，但映射不同；ROT13 的 A→N，Atbash 的 A→Z”，并保留示例 3 的自反验证。
-
-### IT-N150 Atbash / Playfair / Vigenère 三页 `oninput` 每次按键都写 localStorage，20 条上限被输入前缀刷满（中，确认源码缺陷）
-- 问题：三页都把 `process()/transform()` 直接绑到输入框 `oninput`，且保存逻辑只在“与最新一条完全相同”时去重（Vigenère 连这层去重都没有）。每敲一个字符输入就变一次，于是 `H`、`He`、`Hel`… 逐条落库。
-- 证据：`tools/it/atbash-cipher.html:180`（oninput）、`tools/it/atbash-cipher.html:367-369`（无条件 save）、`tools/it/atbash-cipher.html:423-425`（仅比首条 input）；`tools/it/playfair-cipher.html:205`、`tools/it/playfair-cipher.html:506-508`、`tools/it/playfair-cipher.html:648-650`；`tools/it/vigenere-visualizer.html:186`、`tools/it/vigenere-visualizer.html:433-435`、`tools/it/vigenere-visualizer.html:631-645`（完全无去重）
-- 复现：清空历史后逐字输入 `Hello` → Atbash/Playfair 实际新增 5 条（每条为前缀），Vigenère 同样 5 条；输入 20 字符即占满 `MAX_HISTORY=20`，此前的真实记录全部被挤出。
-- 影响：历史面板基本不可用；每次按键同步 `localStorage.setItem` + 重建 DOM，长文本输入有卡顿风险。
-- 方案：改为 500ms 防抖或失焦/点击“转换”时写入；按最终完整输入去重（同一会话只保留最新一条），容量提高或按 hash 去重。
-
-### IT-N151 Atbash / Playfair / Vigenère 的 TBKit 历史回填调用 `setMode()` 无参，模式变 `undefined`（低，确认源码缺陷）
-- 问题：三页 `TBKit.history.mount` 的回填回调末尾都调用 `setMode()`（无参数）。`setMode` 内 `currentMode = undefined`，随后所有模式按钮失去 active；Atbash 标签走 else 变“输入文本/转换结果”，Playfair/Vigenère 标签变“密文/明文”，且 `process()` 中 `encrypt=false`，按解密方向重算。
-- 证据：`tools/it/atbash-cipher.html:553`、`tools/it/atbash-cipher.html:332-349`；`tools/it/playfair-cipher.html:779`、`tools/it/playfair-cipher.html:381-389`；`tools/it/vigenere-visualizer.html:770`、`tools/it/vigenere-visualizer.html:344-352`
-- 复现：在 TBKit 历史面板点一条“加密”记录 → 实际无按钮高亮、标签反转、结果按解密计算；期望恢复记录里的 `mode` 并高亮对应按钮。
-- 影响：从 TBKit 历史恢复后状态错乱，与页面自带 `loadHistory()` 的行为不一致，用户需再点一次模式按钮才能恢复。
-- 方案：`setMode(rec.mode || 'encrypt')`，并把 `mode` 一并写入 `TBKit.history.record` 的 `snap`。
-
-- 留存建议（atbash-cipher）：①修正“ROT13 特例”表述；②历史写入防抖；③补“自反性一键验证”按钮（同一输入连续转换两次比对）。
+- 留存建议（atbash-cipher）：①补“自反性一键验证”按钮（同一输入连续转换两次比对）；②「ROT13 特例」表述与历史防抖已于第256批完成。
 
 ### IT-N152 Bacon 只实现 26 字母二进制表，页面宣称的 24 字母版缺失，FAQ 对两版差异的说明也错误（中，确认源码缺陷）
 - 问题：`TABLE` 由 `i.toString(2).padStart(5,'0')` 生成 0–25，即 A=00000…I=01000、J=01001…Y=11000、Z=11001；页面 formula-list 却写“24 字母版中 I/J 与 U/V 同码”，FAQ 进一步说“26 字母版则把剩余两个组合分配给 J 和 V”。实际 26 字母版是拆开 I/J 与 U/V、把后续字母整体顺延，码 24/25 落在 Y/Z，并不存在“剩余两个组合分给 J/V”。
@@ -384,7 +363,7 @@
 - 影响：用户会误以为加密成功，把明文当密文使用；历史里也留下误导记录。
 - 方案：`process()` 在 `key.trim()` 为空时弹提示并停止；或在输出区标注“密钥为空，未执行位移”。
 
-- 留存建议（vigenere-visualizer）：①修正 deep-dive 算例与密钥字母；②解密分步文案/公式/高亮按 P/C 角色分离；③空密钥拒绝计算，历史写入防抖。
+- 留存建议（vigenere-visualizer）：①修正 deep-dive 算例与密钥字母；②解密分步文案/公式/高亮按 P/C 角色分离；③空密钥拒绝计算（历史写入防抖已于第256批完成）。
 
 - 备注：`adfgvx-cipher`、`affine-cipher`、`hill-cipher`、`rail-fence-cipher`、`bacon-cipher` 的“复制结果”仍依赖 Chrome 专有全局 `event`（Firefox/程序化调用会失效），与 IT-N31 同模式，未重复计数；8 页的 TBKit `*ResText()` 均读 `textarea` 的 `textContent`（恒空）导致数据表/趋势图/CSV 恒空，与 IT-N140 同类模板缺陷，已在 IT-N140 统一记录，本批不重复编号。
 

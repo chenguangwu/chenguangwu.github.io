@@ -234,7 +234,7 @@
       <p>埃特巴什密码最早出现在《耶利米书》中，用希伯来语书写。它被用来掩盖一些地名和人名，例如"巴比伦"被写成"示巴"。在中世纪的犹太神秘主义文献中也有使用。</p>
       
       <h4 style="margin-top:16px;">安全性</h4>
-      <p>埃特巴什码的安全性极低，因为它只有一种固定的替换方式，不需要密钥。任何人只要知道这是埃特巴什码，就能立即解密。它本质上是凯撒密码在位移为13时的特例（对于26个字母来说）。</p>
+      <p>埃特巴什码的安全性极低，因为它只有一种固定的替换方式，不需要密钥。任何人只要知道这是埃特巴什码，就能立即解密。它与凯撒位移 13（ROT13）都满足「加密两次还原」的对合性质，但映射完全不同：Atbash 是字母表镜像置换 f(x)=25−x（A→Z、B→Y），ROT13 是 f(x)=x+13（A→N），两者不能混为一谈。</p>
       
       <h4 style="margin-top:16px;">扩展版本</h4>
       <p>• <strong>全字符埃特巴什</strong>：对 ASCII 可打印字符进行反向映射<br>
@@ -322,6 +322,7 @@ const HISTORY_KEY = 'atbash_history';
 const MAX_HISTORY = 20;
 
 function setMode(mode){
+  mode = mode || currentMode || 'encrypt';  // IT-N151: 无参（历史回填）不得置 undefined
   currentMode = mode;
   document.querySelectorAll('.mode-tabs button').forEach(b => {
     b.classList.toggle('active', b.dataset.mode === mode);
@@ -357,7 +358,7 @@ function transform(){
   document.getElementById('output').value = result;
   
   if(text && result){
-    saveHistory(text, result, currentMode);
+    __atbash_cipherScheduleHistory(text, result, currentMode);
   }
 }
 
@@ -403,6 +404,12 @@ function escapeHtml(text){
   return div.innerHTML;
 }
 
+// IT-N150: 500ms 防抖，停止输入后才写一条完整结果
+var __atbashHistoryTimer = null;
+function __atbash_cipherScheduleHistory(input, output, mode){
+  if(__atbashHistoryTimer){ clearTimeout(__atbashHistoryTimer); __atbashHistoryTimer=null; }
+  __atbashHistoryTimer = setTimeout(function(){ __atbashHistoryTimer=null; saveHistory(input, output, mode); }, 500);
+}
 function saveHistory(input, output, mode){
   if(!input || !output) return;
   let history = getHistory();
@@ -412,9 +419,9 @@ function saveHistory(input, output, mode){
     mode,
     time: Date.now()
   };
-  if(history.length > 0 && history[0].input === item.input){
-    return;
-  }
+  var dup = history.findIndex(function(h){ return h.input === item.input && h.mode === item.mode; });
+  if(dup === 0) return;
+  if(dup > 0) history.splice(dup, 1);
   history.unshift(item);
   if(history.length > MAX_HISTORY) history = history.slice(0, MAX_HISTORY);
   localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
@@ -543,14 +550,14 @@ function __atbash_cipherRender(keys,rk,en){
             __atbash_cipher_skip=true;
             try{
                 for(var k in rec){
-                    if(k===rk||k==='__tbScore') continue;
+                    if(k===rk||k==='__tbScore'||k==='__mode') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
                     if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
                     else{e.value=rec[k];}
                 }
-                setMode();
+                setMode(rec.__mode || 'encrypt');
             }catch(e2){}
             __atbash_cipher_skip=false;
         });
@@ -591,6 +598,7 @@ function __atbash_cipherExtras(){
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
     rec.__tbScore=__atbash_cipherScore(res);
+    rec.__mode=currentMode;
     TBKit.history.record(rec);
     __atbash_cipherRender(keys,rk,en);
 }

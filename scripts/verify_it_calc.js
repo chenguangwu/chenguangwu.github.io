@@ -4224,6 +4224,24 @@ const CASES = [
     ref: "独立复算：Atbash 把字母表倒序映射（A↔Z、B↔Y、C↔X）⇒ `ZYX`。产物不含输入字母 ⇒ 非回显；默认样例是单词，默认态不含本串。",
   },
   {
+    slug: "it/atbash-cipher",
+    clicks: ["setMode('decrypt');setMode();document.getElementById('__tbProbe').textContent='ATMODE '+(typeof currentMode!=='undefined'?currentMode:'undef');"],
+    expect: ["ATMODE decrypt"],
+    ref: "IT-N151：setMode() 无参（历史回填路径）必须保留当前模式 decrypt，不得置 undefined 导致标签反转、按错误方向重算。旧实现 ⇒ undef。",
+  },
+  {
+    slug: "it/vigenere-visualizer",
+    clicks: ["setMode('decrypt');setMode();document.getElementById('__tbProbe').textContent='VIGMODE '+(typeof currentMode!=='undefined'?currentMode:'undef');"],
+    expect: ["VIGMODE decrypt"],
+    ref: "IT-N151：Vigenère setMode() 无参必须保留 decrypt，不得 undefined。旧实现 ⇒ undef。",
+  },
+  {
+    slug: "it/playfair-cipher",
+    clicks: ["setMode('decrypt');setMode();document.getElementById('__tbProbe').textContent='PFMODE '+(typeof currentMode!=='undefined'?currentMode:'undef');"],
+    expect: ["PFMODE decrypt"],
+    ref: "IT-N151：Playfair setMode() 无参兜底保留 decrypt。",
+  },
+  {
     slug: "it/ascii-tree-generator",
     inputs: { paths: "a/b.txt\na/c/d.txt" },
     clicks: ["build()"],
