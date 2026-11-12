@@ -238,6 +238,7 @@
 </div>
 <script>
 let lastURL = '';
+let __aztecParams = '';
 function __exportFail(msg){
   var box=document.getElementById('preview');
   if(box){
@@ -299,11 +300,14 @@ function generate(){
     }
   }
   try{ lastURL = canvas.toDataURL('image/png'); }catch(e){ lastURL=''; __exportFail('导出 PNG 失败：'+((e&&(e.name||e.message))||((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Unknown error":"未知错误"))+'（画布可能含外部资源或被污染）'); return; }
+  __aztecParams=[document.getElementById('text').value,document.getElementById('fgColor').value,document.getElementById('bgColor').value,document.getElementById('size').value].join('|');
   const __h0='';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('preview').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('preview').innerHTML=__h0;
   document.getElementById('preview').appendChild(canvas);
 }
 function downloadImg(){
   if(!lastURL){ alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Generate first":"请先生成")); return; }
+  var __cur=[document.getElementById('text').value,document.getElementById('fgColor').value,document.getElementById('bgColor').value,document.getElementById('size').value].join('|');
+  if(__aztecParams&&__cur!==__aztecParams){ alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Settings changed, please generate again before downloading":"参数已变更，请先点击生成再下载")); return; }
   const a = document.createElement('a');
   a.href = lastURL; a.download = 'aztec.png'; a.click();
 }
@@ -357,12 +361,12 @@ function __aztec_codeSnap(){
     return out;
 }
 function __aztec_codeResText(){
-    var r=document.getElementById('output');
-    if(!r) return '';
-    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
-    if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
-    return t.slice(0,80);
+    var g=function(id){var e=document.getElementById(id);return e?String(e.value||''):'';};
+    var text=g('text');
+    if(!text) return '';
+    var size=g('size');
+    if(!size||!isFinite(Number(size))) return '';
+    return ('Aztec:'+text+'|'+size+'|'+g('fgColor')+'|'+g('bgColor')).slice(0,80);
 }
 function __aztec_codeScore(t){
     var s=String(t||'');
@@ -399,7 +403,7 @@ function __aztec_codeRender(keys,rk,en){
                     if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
                     else{e.value=rec[k];}
                 }
-                downloadImg();
+                generate();
             }catch(e2){}
             __aztec_code_skip=false;
         });
@@ -463,9 +467,9 @@ function __aztec_codePresets(){
   {"label":"高对比度票券码","labelEn":"High-contrast ticket code","values":{"text":"TICKET-2026-11-02-0088","fgColor":"#1e3a8a","bgColor":"#fef3c7","size":"10"}},
   {"label":"紧凑型大容量码","labelEn":"Compact high-capacity","values":{"text":"ORDER|20261102|A-01x2|B-07x1|CNY398.00|SH-Pudong","fgColor":"#111111","bgColor":"#ffffff","size":"8"}}],function(){ generate(); });
 }
-var __aztec_code_f0=(typeof downloadImg==='function')?downloadImg:null;
+var __aztec_code_f0=(typeof generate==='function')?generate:null;
 if(__aztec_code_f0){
-    downloadImg=function(){ var __r=__aztec_code_f0.apply(null,arguments); try{ __aztec_codeExtras(); }catch(e){} return __r; };
+    generate=function(){ var __r=__aztec_code_f0.apply(null,arguments); try{ __aztec_codeExtras(); }catch(e){} return __r; };
 }
 function __aztec_codeBoot(){ try{ __aztec_codePresets(); }catch(e){} try{ if(typeof generate==='function') generate(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __aztec_codeBoot();

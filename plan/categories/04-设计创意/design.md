@@ -428,14 +428,6 @@
 - 影响：文案承诺落空，设计场景常用的矢量导出缺失。
 - 方案：补 SVG 导出（圆形/圆角矩形 + `<text>`），或删掉文案中的 SVG。
 
-### D-N86 initials-avatar 历史/数据表/CSV 恒空（中，确认源码缺陷；与 D-N59/D-N62 同族）
-
-- 问题：结果区只写入 `<img>`，无任何文本；`ResText` 取 `textContent` 为空即不记录历史，因此历史页签、数据表与 CSV 永远为空。
-- 证据：`tools/design/initials-avatar.html:185`（output 仅 preview）、`:326`（只写 img）、`:383-390`（`ResText` 空则提前 return）、`:440`、`:473-475`（仅在 `downloadImg` 后触发 Extras）。
-- 复现：改姓名/尺寸并多次点「下载」→ 历史页签无记录，导出 CSV 为空表头。
-- 影响：历史与导出两个功能形同虚设；下载本身正常。
-- 方案：`ResText` 返回可序列化的参数摘要（姓名/尺寸/色值），或记录 base64 长度 + 参数。
-
 ### D-N87 identicon 引据表称 SHA-256，实现为 Java 风格 31 乘哈希（低，确认文案与实现不一致）
 
 - 问题：引据表声称 SHA-256 保证 256 位分布，代码实际是 `hash = hash*31 + charCode` 的 32 位字符串哈希；公式说明自己写的也是 31 乘，两处自相矛盾。
@@ -451,14 +443,6 @@
 - 复现：方块数 9、背景 `#1e293b` → 主图 9 块深底；画廊仍 5 块浅灰底；点任一画廊格 → 主图变 9 块深底，与所点缩略图不符。
 - 影响：画廊不能预览当前配色方案，选图后出现「所见非所得」。
 - 方案：画廊复用当前 `blocks/bg`，并在参数变化时重绘画廊。
-
-### D-N89 identicon 历史/数据表/CSV 恒空（中，确认源码缺陷；与 D-N59 同族）
-
-- 问题：结果区只写 `<img>`，`ResText` 恒为空，历史与 CSV 不会产生记录。
-- 证据：`tools/design/identicon-generator.html:173`（output 仅 preview）、`:291`（只写 img）、`:382-389`（`ResText` 空则 return）、`:474`（Extras 仅在下载后触发）。
-- 复现：改种子/方块数并多次下载 → 历史页签空、CSV 空。
-- 影响：历史/导出入口不可用。
-- 方案：`ResText` 返回 `seed|size|blocks|bg` 摘要。
 
 ### D-N92 ripple-effect 点击预览不产生任何涟漪（高，确认源码缺陷）
 
@@ -540,7 +524,7 @@
 - 本轮实读 8 页（整份 HTML：内联 JS/CSS 生成逻辑、deep-dive、FAQ 全读）。
 - 新增 27 条：高 2（D-N92、D-N96）/ 中 20 / 低 5。
 - 高优均给出可复现输入：D-N92 点击预览无涟漪（`.ripple` 无样式）；D-N96 8×8 点击命中错位（匹配 65 个元素，`idx` 整体偏移 1）。
-- 同族合并：D-N77 = favicon 两页历史恢复下载；D-N83/D-N84 为 initials 独有；D-N86/D-N89 = 结果区无文本致历史/CSV 恒空（与 D-N59 同族）；D-N91/D-N99 已于第317批修复。
+- 同族合并：D-N77 = favicon 两页历史恢复下载；D-N83/D-N84 为 initials 独有；D-N86/D-N89 结果区无文本致历史/CSV 恒空，已于第319批修复（与 D-N59 同族）；D-N91/D-N99 已于第317批修复。
 - 未覆盖：`tools/design` 其余约 44 页（本文件累计覆盖 64/108）。
 - 未做：浏览器交互、EN 运行态探针、移动端、门禁与线上验证；D-N96 的 DOM 命中顺序按标准文档序推演，未开浏览器。
 
@@ -637,14 +621,6 @@
 - 影响：同一页三处（结果 / CSV / 图表）三个快门值，用户不知该信哪个。
 - 方案：图表复用同一 `stops.findIndex` 逻辑，`Math.round` 改 `Math.ceil`（更快方向）。
 
-### D-N121 flexbox-generator gap 无校验，负数/科学计数法直接进 CSS（中，确认源码缺陷）
-
-- 问题：`g` 直接取 `#gap` 的值，无 `parseFloat`、上限与符号校验，原样拼进生成的 CSS 与预览 `style`。
-- 证据：`tools/design/flexbox-generator.html:238`（`gap: '+g+'px`）、`:241`（预览同理）、`:129`（gap 输入无 min/max）。
-- 复现：gap 输入 `-5` → 输出 `gap: -5px`（`gap` 不接受负值，声明被浏览器丢弃），预览无间距而代码块写着 -5px；输入 `1e3` → `gap: 1e3px` 同样非法。
-- 影响：复制出的 CSS 失效，预览与代码不一致。
-- 方案：`g = Math.max(0, Math.min(200, parseFloat(value) || 0))`，非法输入提示。
-
 ### D-N122 deep-dive 示例显示转义后的 `<p><strong>` 标签文本（中，文案与实现不一致；同族 5 页）
 
 - 问题：示例正文把整段 `<p><strong>` 转义后写入 `dd-ex-body`，页面上直接显示 `<p><strong>输入：</strong>…` 的标签文字，而不是「输入：」加粗。
@@ -709,7 +685,7 @@
 - 本轮实读 8 页（整份 HTML：内联 JS、`js/tools/colorblind-simulator.js`、deep-dive、FAQ、引据表全读）。
 - 新增 29 条：高 3（D-N106、D-N112、D-N115）/ 中 18 / 低 8。
 - 高优均可复现：D-N106 发散亮度 L=0.90/0.32/0.90（node）；D-N112 「#FFFF33 vs #FFFFFF」ΔE00=29.8 却被记 `oklch=1.1`（node）；D-N115 ISO 6400 + 1/60 的「等效卡」实际 EV 差 +1.06 / +2.06 档（node）。
-- 同族合并：转义标签文本只记 D-N122（另 4 页同行号已在条目列出）；结果区无文本致历史/CSV 恒空记 D-N124（第318批已修，与 D-N59/N89/N91/N99 同族）。
+- 同族合并：转义标签文本只记 D-N122（另 4 页同行号已在条目列出）；结果区无文本致历史/CSV 恒空记 D-N124（第318批已修，与 D-N59/N89/N91/N99 同族；N89 已于第319批修复）。
 - 未覆盖：`tools/design` 其余约 36 页（本文件累计覆盖 72/108）。
 - 未做：浏览器交互、EN 运行态探针、移动端、`run_gates.py` 与线上验证；D-N112/D-N115/D-N106 的数值均为 `node` 按页面同款公式复算，未在页面内实测。
 
@@ -886,14 +862,6 @@
 - 影响：7 页同时出现与功能无关的卖点，降低工具可信度；colorblind 的简介（`:504-509`）是唯一按真实能力撰写的。
 - 方案：按工具真实能力重写简介/功能特点（构建期按工具注入），删除「CSS 代码/实时预览与调试」通用套话。
 
-### D-N155 waveform/spectrum/data-matrix/base64 的历史、数据表、CSV 恒为空（中，确认源码缺陷，同族 D-N59/D-N89；D-N91/D-N99 已于第317批修复）
-
-- 问题：四页结果区 `#output` 只有 canvas/img 或纯预览 div，没有可读文本；`ResText()` 取 `#output.textContent` 后为空 → 历史永不记录、数据表无行、CSV 只有表头。base64 的历史恢复回调还会调用 `downloadImg()`，一旦有记录会“恢复即下载”。
-- 证据：`tools/design/waveform-visualizer.html:178`（output 仅 canvas）、`:371-377`（ResText）、`:450`（导出 CSV）；`tools/design/spectrum-visualizer.html:176`、`:388-394`；`tools/design/data-matrix.html:172`、`:352-358`；`tools/design/base64-to-image.html:170`、`:324-330`、`:360`（恢复调 downloadImg）。
-- 复现：连续生成/转换 5 次 → 历史页签为空，点「导出明细 CSV」只得到表头；`ResText` 的过滤还只排除「无效/错误/NaN」，无法补救空串。
-- 影响：四页的历史/CSV/数据表入口全部失效，属结果区结构的系统性问题。
-- 方案：`ResText` 返回参数+结果摘要（波形 `type|freq|amp|phase`、频谱 `bars|style`、矩阵 `text|size`、Base64 `mime|尺寸`）；把历史恢复回调改为纯重绘（base64 不要调 `downloadImg`）。
-
 ### 承诺 vs 实际（Q 批专项）
 
 | 页面 | 宣称（行号） | 实际 |
@@ -1039,15 +1007,8 @@
 - 证据：`:220`（回落逻辑）、`:120`（`oninput="gen()"`）。
 - 复现：清空「生成数量」→ 立刻变成 5 条；输入 `0` → 生成 5 条；期望提示范围 1–50 或保留上次值。
 - 影响：用户以为输入生效，实际条数被静默替换，且每次按键都重掷整批。
+- 第319批复核：数量已补 `Math.min(Math.max(…,1),50)` 钳制且输入框有 min/max，但 `parseInt(value)||5` 与 `oninput="gen()"` 仍在，清空/手输 0 静默回落 5、键入即重掷两条未修 ⇒ 本条仍成立，不予销账。
 - 方案：用 `Number.isFinite` 校验并提示；非法时不清空/不重掷，改用 `change` 触发。
-
-### D-N171 css-border-radius 简单模式滑杆上限 150px，隐藏的进阶滑杆 max=100，>100px 时预览与代码被夹到 100px（高，确认源码缺陷）
-
-- 问题：`#allRadius` 是 0–150，联动时把值写给 8 个 `max=100` 的 range；HTML range 的值会被清洗到 max，于是 `tl1=100`，`updateRadius()` 生成 `100px` 并把 `#allVal` 改回「100px」，但滑杆拇指仍在 120–150 处。
-- 证据：`:213`（max=150）、`:227`/`:232`/`:242`/`:247`/`:257`/`:262`/`:272`/`:277`（max=100）、`:414-426`（回写）、`:451-457`（生成 CSS 并回写标签）。
-- 复现：拖动到 150 → 标签闪成「100px」，`#cssOutput` 为 `border-radius: 100px …`，滑杆停在 150；期望 150px 且标签与拇指一致。
-- 影响：核心「实时预览/代码生成」在最常用的大圆角区间失真，150px 整段无效。
-- 方案：把 8 个进阶滑杆 max 统一为 150（或简单模式单独维护 150 上限，不写进阶滑杆）。
 
 ### D-N172 css-border-radius 关闭「四角联动」后，简单模式唯一滑杆完全失效（中，确认源码缺陷）
 
@@ -1057,13 +1018,12 @@
 - 影响：用户可见的死控件，误以为工具卡死。
 - 方案：未勾选时禁用滑杆并提示「请切换到进阶模式分角调整」，或仍按统一值更新四角。
 
-### D-N173 css-border-radius 结果在 `<textarea>` 的 value 里，ResText 读 textContent 恒为空，历史/CSV 全空（中，确认源码缺陷，同族 D-N155）
+### D-N173 css-border-radius 缺预设条占位 div，预设区被插到页面顶部（低，第319批复核后收窄）
 
-- 问题：`#cssOutput` 是 `<textarea readonly>`，代码写 `value`；`__css_border_radiusResText()` 对 `#cssOutput` 读 `textContent`（textarea 的文本节点为空），因此永远返回 ''，`__css_border_radiusExtras` 从不记录。
-- 证据：`:286`（textarea）、`:454`（写 value）、`:649-655`（读 textContent）、`:741`（历史钩子）。
-- 复现：拖滑杆 5 次或应用 4 个预设 → 历史 tab 空、数据表无行、「导出明细 CSV」只有表头。
-- 影响：历史与导出入口失效。附带：本页无 `#css_border_radiusPresets` 占位 div，`ensureHost` 会回退到 `body` 并把预设条插到页面最顶部（`js/tool-kit.js:1028-1029`）。
-- 方案：ResText 改读 `#cssOutput.value`；同时在正文放 `#css_border_radiusPresets` 占位 div。
+- 问题：本页无 `#css_border_radiusPresets` 占位 div，`ensureHost` 会回退到 `body` 并把预设条插到页面最顶部（`js/tool-kit.js:1028-1029`）。
+- 证据：`__css_border_radiusPresets()` 调 `TBKit.preset.bar('#css_border_radiusPresets',…)`，页面内无同 id 元素。
+- 第319批复核：原条目所述「ResText 读 textContent 恒为空、历史/CSV 全空」已失效——现实现按 `isField` 判断后读 `#cssOutput.value`，历史链路已通；D-N155 同族四页已于第319批修复。
+- 方案：在正文结果区附近补 `<div id="css_border_radiusPresets"></div>`，并真机确认预设条位置不破坏既有排版。
 
 ### D-N175 tester-assessor 历史快照被截到前 12 个输入，SUS 只存 4 题，恢复后结果与记录不符（中，确认源码缺陷）
 
@@ -1096,14 +1056,6 @@
 - 复现：输入 `"A"` 与 200 字符文本 → 同一 15×15；点「紧凑型大容量码」→ 输入框显示 8，实际 canvas 11×11。
 - 影响：容量/版本承诺失实，尺寸参数语义混乱。
 - 方案：按编码后码字长度选择版本并拒绝超容量输入；至少让输入显示值等于实际矩阵尺寸（预设改 ≥11 或回写夹取后的值）。
-
-### D-N179 aztec-code 历史钩子包在 `downloadImg` 上且 `#output` 无可读文本，历史/CSV 永远为空；改文本后下载仍是旧图（中，确认源码缺陷）
-
-- 问题：`__aztec_codeExtras` 由 `downloadImg` 包裹（不是 `generate`），而 `ResText` 读 `#output`（只有 canvas）得到空串 → 从不 record。`lastURL`/预览仅在 generate 时更新，文本或颜色改了但没点生成时，点「下载」仍下载上一张 PNG。
-- 证据：`:453-455`（包裹 downloadImg）、`:363-369`（读 output）、`:305-307`（空文本 + canvas）、`:309-312`（下载用 lastURL）。
-- 复现：生成 3 次 → 历史空、CSV 仅表头；改文本为 `NEW` 不点生成直接点下载 → 得到旧文本的 PNG。
-- 影响：历史/导出失效，下载结果与当前输入不一致，易误交付。
-- 方案：把 Extras 钩到 `generate`；ResText 返回 `文本摘要|尺寸|前景|背景`；输入变更时清空 `lastURL` 并禁用下载。
 
 ### 承诺 vs 实际（R 批专项）
 

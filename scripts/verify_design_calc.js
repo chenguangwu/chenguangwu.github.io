@@ -2819,6 +2819,64 @@ const CASES = [
   clicks: ["alert=function(m){document.getElementById('__svg_probe').textContent='ALERT:'+m;};document.getElementById('cssOutput').value='SENTINEL_CSS';copyResult();"],
   expect: ["ALERT:复制失败，请手动复制"],
   ref: "D-N127：harness 内 navigator.clipboard 缺失，旧实现 copyResult 直接 writeText 抛 TypeError 静默失败；修复后走 __gfcFallback（execCommand 亦不可用）⇒ catch 给出「复制失败，请手动复制」反馈。默认态不调 copyResult ⇒ 强判别。",
+},
+
+// ── 第319批：画布/图片类页面结果区恒空同族强锁 ─────────────────
+{
+  slug: "design/initials-avatar",
+  inputs: { name: "张伟", size: "128", radius: "12", fontSize: "56", textColor: "#123456", bgStyle: "solid", bg1: "#abcdef" },
+  clicks: ["document.getElementById('__svg_probe').textContent='RES:'+__initials_avatarResText();"],
+  expect: ["RES:头像:张伟|128px|圆角12|字号56|solid|#123456"],
+  ref: "D-N86：旧 ResText 读只有 img 的 #output.textContent 恒返回空串，历史/数据表/CSV 永不记录；修复后返回姓名、尺寸、圆角、字号、背景模式与色值的参数摘要。探针锚含全部注入值，默认态 name='Tool Box' 不命中 ⇒ 强判别。",
+},
+{
+  slug: "design/identicon-generator",
+  inputs: { seed: "workbuddy", size: "256", blocks: "7", bgColor: "#101010" },
+  clicks: ["document.getElementById('__svg_probe').textContent='RES:'+__identicon_generatorResText();"],
+  expect: ["RES:Identicon:workbuddy|256|7|#101010"],
+  ref: "D-N89：同族结果区恒空；修复后按清单方案返回 seed|size|blocks|bg 摘要。锚含注入的种子与尺寸，默认 seed='github'/200 不命中 ⇒ 强判别。",
+},
+{
+  slug: "design/waveform-visualizer",
+  inputs: { waveType: "square", freq: "7", amp: "0.5", phase: "90", color: "#ff0000" },
+  clicks: ["document.getElementById('__svg_probe').textContent='RES:'+__waveform_visualizerResText();"],
+  expect: ["RES:波形:square|7|0.5|90|#ff0000"],
+  ref: "D-N155-1：旧 ResText 读只有 canvas 的 #output 恒空；修复后返回 type|freq|amp|phase|color 参数摘要。锚含注入的方波类型与频率相位，默认 sine|3|0.8 不命中 ⇒ 强判别。",
+},
+{
+  slug: "design/spectrum-visualizer",
+  inputs: { bars: "64", barStyle: "mirror", color1: "#112233", color2: "#445566" },
+  clicks: ["document.getElementById('__svg_probe').textContent='RES:'+__spectrum_visualizerResText();"],
+  expect: ["RES:频谱:64|mirror|#112233|#445566"],
+  ref: "D-N155-2：旧 ResText 读只有 canvas 的 #output 恒空；修复后返回 bars|style|color1|color2 摘要。锚含注入条数与镜像样式，默认 48|bars 不命中 ⇒ 强判别。",
+},
+{
+  slug: "design/data-matrix",
+  inputs: { text: "ORDER-77", size: "18", fgColor: "#111111", bgColor: "#fafafa" },
+  clicks: ["document.getElementById('__svg_probe').textContent='RES:'+__data_matrixResText();"],
+  expect: ["RES:DataMatrix:ORDER-77|18|#111111|#fafafa"],
+  ref: "D-N155-3：结果区只有 canvas，旧 ResText 恒空；修复后返回 text|size|fg|bg 摘要。锚含注入文本与尺寸，默认 'Data Matrix'|14 不命中 ⇒ 强判别。",
+},
+{
+  slug: "design/base64-to-image",
+  inputs: { b64Input: "data:image/webp;base64,QUJDREVG" },
+  clicks: ["document.getElementById('__svg_probe').textContent='RES:'+__base64_to_imageResText();"],
+  expect: ["RES:Base64:image/webp|"],
+  ref: "D-N155-4：结果区只有 img，旧 ResText 恒空；修复后返回 mime|数据长度的摘要。注入 webp 头，默认输入为 image/svg+xml ⇒ 不命中，强判别。",
+},
+{
+  slug: "design/aztec-code",
+  inputs: { text: "TICKET-9527", size: "21", fgColor: "#123456", bgColor: "#abcdef" },
+  clicks: ["document.getElementById('__svg_probe').textContent='RES:'+__aztec_codeResText();"],
+  expect: ["RES:Aztec:TICKET-9527|21|#123456|#abcdef"],
+  ref: "D-N179-1：结果区只有 canvas，旧 ResText 恒空且历史钩子错挂在 downloadImg 上；修复后返回文本|尺寸|前景|背景摘要并改挂 generate。锚含注入文本，默认 'Hello Aztec' 不命中 ⇒ 强判别。",
+},
+{
+  slug: "design/aztec-code",
+  inputs: { text: "NEW-TEXT" },
+  clicks: ["alert=function(m){document.getElementById('__svg_probe').textContent='ALERT:'+m+'|'+document.getElementById('text').value;};lastURL='SENTINEL_PNG';__aztecParams='OLD|#000000|#ffffff|15';downloadImg();"],
+  expect: ["ALERT:参数已变更，请先点击生成再下载|NEW-TEXT"],
+  ref: "D-N179-2：旧实现 lastURL/预览只在 generate 时刷新，改文本不点生成直接下载会拿到旧 PNG；修复后生成时记录参数快照，下载前比对当前输入，不一致即拦截并提示。探针同时回显注入文本，expect 依赖输入；旧码直接走 a.click() 不产生 alert ⇒ 强判别。",
 }
 ];
 
