@@ -311,6 +311,7 @@ GATES = (
     ("datazh hardcoded anchors", ("node", "scripts/_verify_datazh_anchors.mjs")),
     ("h2 data-zh chinese restore", ("node", "scripts/_verify_h2_data_zh.mjs")),
     ("typescript compiler guards", ("node", "scripts/_verify_ts_compiler.mjs")),
+    ("regex flavor change binding", ("node", "scripts/_verify_regex_flavor.mjs")),
     ("plastic calc correctness", ("node", "scripts/verify_plastic_calc.js")),
     ("transport calc correctness", ("node", "scripts/verify_transport_calc.js")),
     ("niche calc correctness", ("node", "scripts/verify_niche_calc.js")),
