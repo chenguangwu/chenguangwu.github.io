@@ -5992,6 +5992,21 @@ const CASES = [
     clicks: ["var rp=null;TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return [];},last:function(){return null;},record:function(){},mount:function(){}},preset:{bar:function(h,l,a){rp=l;}}};__random_stringPresets();var ids=['top_upper','top_lower','top_digit','top_sym'];var groups=[['top_upper','top_lower','top_digit'],['top_upper','top_lower'],['top_upper','top_lower','top_digit','top_sym'],['top_digit','top_sym']];var ok=!!(rp&&rp.length===4);if(ok){rp.forEach(function(p,i){var v=p.values||{};ok=ok&&ids.every(function(id){return Object.prototype.hasOwnProperty.call(v,id)&&(String(v[id])==='0'||String(v[id])==='1')&&(String(v[id])===(groups[i].indexOf(id)>=0?'1':'0'));});});}document.getElementById('__tbProbe').textContent='RSPRE '+(ok?'OK':'BAD');"],
     expect: ["RSPRE OK"],
     ref: "IT-N319 预设同修：旧「默认参数」把四个 checkbox 全设 '0'（等于空字符集报错），其它预设只列 2~3 键且用裸布尔，切换会叠加旧勾选。修复后 4 个预设均显式写全 4 键、值严格 '0'/'1'，且与 resetForm 出厂默认一致；捕获 preset.bar 第二参数逐项断言。默认态不执行 clicks ⇒ 零逃生。",
+  },
+  {
+    slug: "it/xml-to-json",
+    htmlDom: true,
+    inputs: { input: "<p>Hello <b>world</b>!</p>" },
+    clicks: ["doBeautify();var o=String(document.getElementById('output').textContent||'').replace(/\\s+/g,'').split(String.fromCharCode(34)).join('');document.getElementById('__tbProbe').textContent='XMLMIX '+(o.indexOf('#text:Hello!')>=0&&o.indexOf('b:world')>=0?'OK':'BAD');"],
+    expect: ["XMLMIX OK"],
+    ref: "IT-N320：混合内容 p 的直接文本节点 Hello 与感叹号必须合并为 #text，子元素 b 仍保留；旧实现只遍历 node.children，输出没有 #text。探针把 JSON 引号剥掉后匹配，避开用例抽取器的引号敏感性；默认样例无 Hello/! 混合文本 ⇒ 零逃生。",
+  },
+  {
+    slug: "it/calc-subnet",
+    inputs: { ip: "10.0.0.0", cidr: "8", subN: "4097" },
+    clicks: ["divideSubnets();var h=String(document.getElementById('subRes').innerHTML||'');document.getElementById('__tbProbe').textContent='SUBCAP '+(h.indexOf('超出展示上限')>=0&&h.indexOf('8192')<0?'OK':'BAD');"],
+    expect: ["SUBCAP OK"],
+    ref: "IT-N321：N=4097 在 /8 下需借 13 位、realN=8192，旧实现直接渲染 8192 行（页面长时间无响应）。修复后 input[max]=4096 且 divideSubnets 在 n>4096 / realN>4096 时立即拒绝，不出现 8192 行汇总。默认 subN=4 不触发上限、默认态不执行 clicks 探针 ⇒ 零逃生。",
   },  // —— BATCH284：哈希计算器多算法 / 批量 / 校验分支 + JSON 与 TSV 双向转换 ——
   {
     slug: "it/hash",

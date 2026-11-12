@@ -120,7 +120,7 @@
 
     <h3 style="margin-top:18px;">✂️ 子网划分</h3>
     <div class="input-row">
-      <div><label>划分子网数量 N</label><input type="number" id="subN" value="4" min="1" step="1" enterkeyhint="done" placeholder="如 4"></div>
+      <div><label>划分子网数量 N</label><input type="number" id="subN" value="4" min="1" max="4096" step="1" enterkeyhint="done" placeholder="如 4"></div>
       <div style="display:flex;align-items:flex-end;"><button class="btn" type="button" onclick="divideSubnets()">划分子网</button></div>
     </div>
     <div class="result-box" id="subRes"></div>
@@ -289,6 +289,8 @@ function divideSubnets(){
   if(ip===null){ document.getElementById('subRes').innerHTML='<p style="color:var(--danger);">请先输入合法 IP</p>'; return; }
   if(pc.err){ document.getElementById('subRes').innerHTML='<p style="color:var(--danger);">请先输入合法掩码/前缀</p>'; return; }
   if(isNaN(n)||n<1){ document.getElementById('subRes').innerHTML='<p style="color:var(--danger);">子网数量需为正整数</p>'; return; }
+  // IT-N321：表格逐行渲染，必须先拦住可让页面卡死的规模；上限与 input[max] 保持一致。
+  if(!Number.isSafeInteger(n) || n>4096){ document.getElementById('subRes').innerHTML='<p style="color:var(--danger);">子网数量超出展示上限（最多 4096 个），请减少 N 后再划分</p>'; return; }
 
   var prefix = pc.prefix;
   var bits = Math.ceil(Math.log2(n));
@@ -296,6 +298,7 @@ function divideSubnets(){
   if(newPrefix>32){ const __g7='<p style="color:var(--danger);">子网数量过多，超出可划分范围（新前缀 '+newPrefix+' > 32）</p>';document.getElementById('subRes').innerHTML=(typeof __g7==='number'?(isFinite(__g7)?__g7:'—'):String(__g7).replace(/Infinity|NaN/g,'—')); return; }
 
   var realN = Math.pow(2, bits);
+  if(realN>4096){ document.getElementById('subRes').innerHTML='<p style="color:var(--danger);">实际子网数 '+realN+' 超出展示上限（最多 4096 个）</p>'; return; }
   var blockSize = Math.pow(2, 32-newPrefix);
   var network = (ip & prefixToMask(prefix)) >>> 0;
   var rows = [];

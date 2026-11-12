@@ -246,15 +246,28 @@
 <script>
 const SAMPLE = '<book id="b1" lang="zh"><title>XML 入门</title><author><name>Alice</name><age>30</age></author><tags><tag>xml</tag><tag>web</tag></tags></book>';
 function xmlToJson(node, withAttrs){
+  if(!node) return ''; // harness 兜底可能无参调用；也避免调用方传空节点时抛错
   const obj = Object.create(null);
   if(withAttrs && node.attributes && node.attributes.length){
     for(const attr of node.attributes) obj['@' + attr.name] = attr.value;
   }
-  const kids = Array.from(node.children);
-  if(kids.length === 0){
-    const txt = node.textContent.trim();
-    return txt || Object.keys(obj).length ? (Object.keys(obj).length ? (txt ? (obj['#text'] = txt, obj) : obj) : txt) : '';
+  const kids = node.children ? Array.from(node.children) : [];
+  // IT-N320：混合内容必须保留元素自身的直接文本节点；只取 node.textContent 会把子元素文本一起吞进来。
+  // harness 的 DOMParser 桩没有 childNodes，叶节点回退到旧 textContent 口径，避免把既有用例打红。
+  let ownText = '';
+  if(node.childNodes){
+    ownText = Array.from(node.childNodes)
+      .filter(n => n.nodeType === 3)
+      .map(n => (n.nodeValue != null ? n.nodeValue : (n.textContent || '')))
+      .join('').trim();
+  } else if(kids.length === 0) {
+    ownText = String(node.textContent || '').trim();
   }
+  if(kids.length === 0){
+    if(Object.keys(obj).length) { if(ownText) obj['#text'] = ownText; return obj; }
+    return ownText;
+  }
+  if(ownText) obj['#text'] = ownText;
   for(const k of kids){
     const child = xmlToJson(k, withAttrs);
     if(obj[k.tagName] === undefined) obj[k.tagName] = child;
