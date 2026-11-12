@@ -3197,6 +3197,30 @@ const CASES = [
   },
   {
     slug: "it/playfair-cipher",
+    // IT-N157：奇数长度密文不得把 undefined 拼进结果，必须清空并给出偶数分组提示
+    inputs: { input: "Z", key: "KEY" },
+    clicks: ["var __e='';try{setMode('decrypt');process();}catch(ex){__e='THROW';}var __o=String(document.getElementById('output').value||'');var __p=String(document.getElementById('pairList').innerHTML||'');document.getElementById('__tbProbe').textContent='PFODD '+(__e===''&&__o===''&&/偶数个字母/.test(__p)?'OK':'BAD');"],
+    expect: ["PFODD OK"],
+    ref: "IT-N157 强锁：密文 'Z' 清洗后仅 1 个字母，Playfair 按 2 字母分组应拒绝。旧实现产出 'Tundefined' 且 pairList 写 Zundefined、stepTotal=1、无提示；修复后清空输出/步骤并给出「密文需为偶数个字母」提示 ⇒ PFODD OK。注入值经 DOM 读取参与判定，默认态 ATTACKATDAWN 不命中 ⇒ 零逃生。",
+  },
+  {
+    slug: "it/playfair-cipher",
+    // IT-N157：纯非字母密文清洗后为空，旧实现 .match() 返回 null 再 .map() 抛 TypeError
+    inputs: { input: "123", key: "KEY" },
+    clicks: ["var __e='';try{setMode('decrypt');process();}catch(ex){__e='THROW';}var __o=String(document.getElementById('output').value||'');var __p=String(document.getElementById('pairList').innerHTML||'');document.getElementById('__tbProbe').textContent='PFDIG '+(__e===''&&__o===''&&/偶数个字母/.test(__p)?'OK':'BAD');"],
+    expect: ["PFDIG OK"],
+    ref: "IT-N157 强锁：密文 '123' 清洗后为空串，旧实现 null.map 抛 TypeError 且进程中断；修复后先判 !cleaned 再校验偶数长度，走统一错误提示 ⇒ PFDIG OK。异常被探针捕获为 THROW 判 BAD，故旧态变红而非静默跳过。默认态无探针串 ⇒ 零逃生。",
+  },
+  {
+    slug: "it/playfair-cipher",
+    // IT-N157：明文字母对本身为 X 时不得再补 X 生成 XX 同字母对
+    inputs: { input: "XX", key: "KEY" },
+    clicks: ["var __t=String(document.getElementById('input').value||'');var __p=prepareText(__t);document.getElementById('__tbProbe').textContent='PFXX '+(__p.length>0&&__p[0][0]==='X'&&__p[0][1]==='Q'?'OK':'BAD');"],
+    expect: ["PFXX OK"],
+    ref: "IT-N157 强锁：prepareText('XX') 旧实现补 X 得 [['X','X'],['X','X']] 同字母对，违反 Playfair 规则；修复后字母对为 X 时改用 Q 填充得 [['X','Q'],['X','Q']] ⇒ PFXX OK。输入由 DOM 注入值驱动，替换成默认明文后首对不再是 X ⇒ 判 BAD 变红，零逃生。",
+  },
+  {
+    slug: "it/playfair-cipher",
     inputs: { input: "HELLO", key: "KEY" },
     expect: ["DBNVMI"],
     ref: "Playfair 加密：`HELLO` 成对切分为 HE/LL/OX 后在 5×5 矩阵（KEY 去重后填充）中按行/列规则替换 ⇒ DBNVMI。默认示例明文/密钥不同，产物不命中。",

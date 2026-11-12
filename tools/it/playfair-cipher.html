@@ -419,7 +419,8 @@ function prepareText(text){
     let a = text[i];
     let b = i + 1 < text.length ? text[i+1] : 'X';
     if(a === b){
-      pairs.push([a, 'X']);
+      // IT-N157: 字母对本身为 X 时改用 Q 填充，否则会生成 XX 同字母对（Playfair 规则不允许）
+      pairs.push([a, a === 'X' ? 'Q' : 'X']);
       i += 1;
     } else {
       pairs.push([a, b]);
@@ -469,9 +470,26 @@ function process(){
   }
   
   // 解密时密文已按 2 个字符一组切好，不能再插入填充 X 或合并重复字母
-  const pairs = encrypt
-    ? prepareText(text)
-    : text.toUpperCase().replace(/[^A-Z]/g, '').replace(/J/g, 'I').match(/.{1,2}/g).map(s => s.split(''));
+  let pairs;
+  if(encrypt){
+    pairs = prepareText(text);
+  } else {
+    // IT-N157: 清洗后为空或奇数长度会在分组时产出 undefined 或让 .match() 返回 null 后抛 TypeError
+    const cleaned = text.toUpperCase().replace(/[^A-Z]/g, '').replace(/J/g, 'I');
+    if(!cleaned || cleaned.length % 2 !== 0){
+      const __msg = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())
+        ? 'Ciphertext must contain an even number of letters (Playfair works on 2-letter pairs).'
+        : '密文需为偶数个字母（Playfair 按 2 字母分组），请检查输入。');
+      document.getElementById('output').value = '';
+      stepData = [];
+      totalSteps = 0;
+      document.getElementById('stepTotal').textContent = 0;
+      document.getElementById('pairList').innerHTML = '<p style="color:var(--danger)">⚠ ' + __msg + '</p>';
+      if(typeof ToolBox!=='undefined' && ToolBox.showToast) ToolBox.showToast(__msg, 'error');
+      return;
+    }
+    pairs = cleaned.match(/.{2}/g).map(s => s.split(''));
+  }
   
   let output = '';
   stepData = [];

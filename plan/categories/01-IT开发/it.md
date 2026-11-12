@@ -239,10 +239,6 @@
 - 留存建议（hill-cipher）：①LN 算例、②矩阵元素 mod 26 与整数校验、③删除 3×3 承诺并显示规范化矩阵，均已于第258批完成。
 - 留存建议（hill-cipher）：①修正 LN 算例；②矩阵元素统一 mod 26 并校验整数；③补 3×3 或删掉该承诺，同时在“矩阵信息”里显示规范化后的矩阵。
 
-### IT-N157 Playfair 密文未校验偶数长度，非字母输入会中断（高）
-- `tools/it/playfair-cipher.html:481-491` 解密时未校验清洗后的密文：输入 `Z` 会将缺失的第二字符传给 `processPair()`，输出 `Tundefined`；输入 `123` 时 `.match()` 返回 null，调用 `.map()` 抛出 TypeError，Node 执行页面原函数已复现。
-- `prepareText()` 在明文字母对均为 `X` 时仍补 `X`（`:424-437`），产生同字母对；应使用其他填充字母，并明确说明解密保留填充字符。解密应在分组前检查有效字符及偶数长度，非法时清空旧输出并提示。
-
 ### IT-N159 Playfair 原理区 “26×26=676 种字母对” 与自身 5×5/I-J 合并（25×25=625）矛盾（中，确认源码缺陷）
 - 问题：正文说“Playfair 有 26×26=676 种可能的字母对”，但同一页明确 5×5 方阵、I/J 共用一格，实际字母表 25 个，双字母组合是 25×25=625。
 - 证据：`tools/it/playfair-cipher.html:275`（676 说法）、`tools/it/playfair-cipher.html:184`（I/J 合并）、`tools/it/playfair-cipher.html:395-413`（buildGrid 去 J 后 25 格）
