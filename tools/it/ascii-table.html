@@ -157,8 +157,8 @@
     <div class="cat-tabs">
       <button class="active" onclick="setCat('all', this)">全部</button>
       <button onclick="setCat('ctrl', this)">控制字符 (0-31)</button>
-      <button onclick="setCat('print', this)">可打印 (32-127)</button>
-      <button onclick="setCat('extended', this)">扩展 (128-255)</button>
+      <button onclick="setCat('print', this)">可打印 (32-126)</button>
+      <button onclick="setCat('extended', this)">Latin-1 (128-255)</button>
     </div>
     <div class="ascii-grid" id="grid"></div>
   </div>
@@ -240,8 +240,8 @@
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="ANSI X3.4-1986">ANSI X3.4-1986</td>
         </tr>
         <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="扩展区">Extended range</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="128-255 为扩展 ASCII，编码依 ISO 8859-1 等方案而定">128-255 is extended ASCII, mapping depends on code page</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Latin-1 区">Latin-1 range</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="128-255 按 ISO-8859-1 (Latin-1) 显示；128–159 为 C1 控制区（显示 ·），非 Windows-1252 等代码页">128-255 shown as ISO-8859-1 (Latin-1); 128-159 are C1 controls (shown as ·), not Windows-1252 or other code pages</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="ISO/IEC 8859-1">ISO/IEC 8859-1</td>
         </tr>
       </tbody>
@@ -268,8 +268,8 @@ function setCat(c, btn){
   render();
 }
 function getRange(){
-  if(currentCat === 'ctrl') return [0, 32];
-  if(currentCat === 'print') return [32, 128];
+  if(currentCat === 'ctrl') return [0, 32];        // 0-31 控制字符
+  if(currentCat === 'print') return [32, 127];     // 32-126；127=DEL 归入控制字符，不计入可打印
   if(currentCat === 'extended') return [128, 256];
   return [0, 256];
 }
@@ -300,6 +300,9 @@ function showDetail(code){
   const ch = String.fromCharCode(code);
   const ctrlName = code < 32 ? CTRL_NAMES[code] : code === 127 ? 'DEL' : '—';
   const display = code < 32 || code === 127 ? ctrlName : (ch === ' ' ? '空格' : ch);
+  const isEn = (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+  const cls = code < 32 || code === 127 ? (isEn?'Control character':'控制字符') : code < 128 ? (isEn?'Printable ASCII':'可打印 ASCII') : 'Latin-1 (ISO-8859-1)';
+  const copyLabel = isEn ? 'Code (auto-copied on click)' : '编码（点击卡片已自动复制）';
   const __h1=`
     <div class="detail-item"><div class="lbl">字符</div><div class="v" style="font-size:32px;">${escapeHtml(display)}</div></div>
     <div class="detail-item"><div class="lbl">十进制</div><div class="v">${code}</div></div>
@@ -308,8 +311,21 @@ function showDetail(code){
     <div class="detail-item"><div class="lbl">二进制</div><div class="v">${code.toString(2).padStart(8,'0')}</div></div>
     <div class="detail-item"><div class="lbl">HTML 实体</div><div class="v">&amp;#${code};</div></div>
     <div class="detail-item"><div class="lbl">URL 编码</div><div class="v">%${code.toString(16).toUpperCase().padStart(2,'0')}</div></div>
-    <div class="detail-item"><div class="lbl">分类</div><div class="v" style="font-size:13px;">${code < 32 ? '控制字符' : code < 128 ? '可打印 ASCII' : '扩展 ASCII'}</div></div>
+    <div class="detail-item"><div class="lbl">${copyLabel}</div><div class="v" id="asciiCopyVal">${code}</div></div>
+    <div class="detail-item"><div class="lbl">分类</div><div class="v" style="font-size:13px;">${cls}</div></div>
   `;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('detail').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('detail').innerHTML=__h1;
+  // IT-N136：兑现 meta「点击即可复制对应编码」，复制十进制码值并 toast
+  const copyVal = String(code);
+  const dEl = document.getElementById('detail');
+  if(dEl && typeof dEl.setAttribute==='function'){ try{ dEl.setAttribute('data-copied', copyVal); }catch(e){} }
+  try{
+    if(typeof navigator!=='undefined' && navigator.clipboard && typeof navigator.clipboard.writeText==='function'){
+      const cp = navigator.clipboard.writeText(copyVal);
+      if(cp && typeof cp.then==='function') cp.then(function(){
+        if(typeof ToolBox!=='undefined' && ToolBox.showToast) ToolBox.showToast(isEn ? ('Copied '+copyVal) : ('已复制编码 '+copyVal));
+      }).catch(function(){});
+    }
+  }catch(e){}
 }
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 render();

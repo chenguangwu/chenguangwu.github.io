@@ -3430,6 +3430,24 @@ const CASES = [
     ref: "反向锚：ASCII 速查搜索无命中 ⇒ 空态提示；默认列表非空。",
   },
   {
+    slug: "it/ascii-table",
+    clicks: ["currentCat='print';document.getElementById('__tbProbe').textContent='ASCIIRANGE '+getRange()[0]+'-'+(getRange()[1]-1);currentCat='all';"],
+    expect: ["ASCIIRANGE 32-126"],
+    ref: "IT-N138：可打印区间必须 32-126（右开 [32,127)，127=DEL 归入控制符）。旧实现 getRange() 返回 [32,128] ⇒ ASCIIRANGE 32-127，判别明确。默认态 all 不产生该探针。",
+  },
+  {
+    slug: "it/ascii-table",
+    clicks: ["showDetail(128);document.getElementById('__tbProbe').textContent='ASCIILATIN '+(/Latin-1 \\(ISO-8859-1\\)/.test(document.getElementById('detail').innerHTML)?'Y':'N');"],
+    expect: ["ASCIILATIN Y"],
+    ref: "IT-N137：128 号详情分类必须标 Latin-1 (ISO-8859-1)，旧实现显示「扩展 ASCII」⇒ ASCIILATIN N。探针仅在 clicks 注入出现。",
+  },
+  {
+    slug: "it/ascii-table",
+    clicks: ["showDetail(65);document.getElementById('__tbProbe').textContent='ASCIICOPY '+document.getElementById('detail').getAttribute('data-copied');"],
+    expect: ["ASCIICOPY 65"],
+    ref: "IT-N136：点击 65 号卡片后详情容器写入 data-copied=十进制编码，兑现 meta「点击即可复制」。旧实现无复制、无该属性 ⇒ ASCIICOPY null。剪贴板真调用与 toast 由 JSDOM 真机脚本覆盖。",
+  },
+  {
     slug: "it/ascii-tree-generator",
     inputs: { paths: "src/\na.js\nb.js\nlib/util.js" },
     clicks: ["build()"],
