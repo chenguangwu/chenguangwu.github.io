@@ -125,24 +125,24 @@
     <h3 style="margin-bottom:8px;">选择分期</h3>
     <div class="stage-tab" id="stageTab">
       <div id="pressure_injury_descriptionPresets"></div>
-      <button class="active" onclick="selectStage('1',this)">1期</button>
+      <button class="active" data-stage="1" onclick="selectStage('1',this)">1期</button>
       <button class="btn" type="button" onclick="__pressure_injury_descriptionExport()">导出明细 CSV</button>
-      <button onclick="selectStage('2',this)">2期</button>
-      <button onclick="selectStage('3',this)">3期</button>
-      <button onclick="selectStage('4',this)">4期</button>
-      <button onclick="selectStage('unstageable',this)">不可分期</button>
-      <button onclick="selectStage('dti',this)">深部损伤</button>
+      <button data-stage="2" onclick="selectStage('2',this)">2期</button>
+      <button data-stage="3" onclick="selectStage('3',this)">3期</button>
+      <button data-stage="4" onclick="selectStage('4',this)">4期</button>
+      <button data-stage="unstageable" onclick="selectStage('unstageable',this)">不可分期</button>
+      <button data-stage="dti" onclick="selectStage('dti',this)">深部损伤</button>
     </div>
     <h3 style="margin-bottom:8px;">选择部位（可多选）</h3>
     <div class="loc-check" id="locationCheck">
-      <label><input type="checkbox" value="骶尾部">骶尾部</label>
-      <label><input type="checkbox" value="足跟">足跟</label>
-      <label><input type="checkbox" value="坐骨结节">坐骨结节</label>
-      <label><input type="checkbox" value="大转子">大转子</label>
-      <label><input type="checkbox" value="踝部">踝部</label>
-      <label><input type="checkbox" value="肩胛部">肩胛部</label>
-      <label><input type="checkbox" value="枕部">枕部</label>
-      <label><input type="checkbox" value="肘部">肘部</label>
+      <label><input type="checkbox" id="loc0" value="骶尾部">骶尾部</label>
+      <label><input type="checkbox" id="loc1" value="足跟">足跟</label>
+      <label><input type="checkbox" id="loc2" value="坐骨结节">坐骨结节</label>
+      <label><input type="checkbox" id="loc3" value="大转子">大转子</label>
+      <label><input type="checkbox" id="loc4" value="踝部">踝部</label>
+      <label><input type="checkbox" id="loc5" value="肩胛部">肩胛部</label>
+      <label><input type="checkbox" id="loc6" value="枕部">枕部</label>
+      <label><input type="checkbox" id="loc7" value="肘部">肘部</label>
     </div>
     <div class="input-row">
       <div>
@@ -322,7 +322,9 @@ var currentStage = '1';
 function selectStage(stage, btn){
   currentStage = stage;
   document.querySelectorAll('#stageTab button').forEach(function(b){ b.classList.remove('active'); });
-  btn.classList.add('active');
+  // D-N124：回放调用可能无 btn，容错；有 btn 时用 data-stage 精确匹配高亮
+  var target = btn || (stage ? document.querySelector('#stageTab button[data-stage="'+stage+'"]') : null);
+  if(target) target.classList.add('active');
   generate();
 }
 
@@ -565,14 +567,14 @@ function __pressure_injury_descriptionRender(keys,rk,en){
                     if(!Object.prototype.hasOwnProperty.call(rec,__cbs[__ci].id)) __cbs[__ci].checked=false;
                 }
                 for(var k in rec){
-                    if(k===rk||k==='__tbScore') continue;
+                    if(k===rk||k==='__tbScore'||k==='__stage') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
                     if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
                     else{e.value=rec[k];}
                 }
-                selectStage();
+                selectStage(rec.__stage || currentStage); // D-N124：还原记录时的分期，避免无参抛 TypeError 且部位不还原
             }catch(e2){}
             __pressure_injury_description_skip=false;
         });
@@ -613,6 +615,7 @@ function __pressure_injury_descriptionExtras(){
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
     rec.__tbScore=__pressure_injury_descriptionScore(res);
+    rec.__stage=currentStage; // D-N124：分期单独入记录（不进 keys/CSV 业务列），供回放还原
     TBKit.history.record(rec);
     __pressure_injury_descriptionRender(keys,rk,en);
 }
