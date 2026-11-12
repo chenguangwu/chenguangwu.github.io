@@ -2920,7 +2920,7 @@ const CASES = [
     slug: "it/caa-record-generator",
     inputs: {},
     clicks: ["document.getElementById('ca_lets').checked=true;document.getElementById('domain').value='a.test';gen()"],
-    expect: ['a.test CAA 0 issue "letsencrypt.org"'],
+    expect: ['a.test. CAA 0 issue "letsencrypt.org"'],
     ref: "勾选 letsencrypt 授权者 + 注入域名 ⇒ 输出标准 CAA 记录行（flags 0、issue 指令）。算法 checkbox 需 clicks 置位。",
   },
   {
@@ -8052,7 +8052,7 @@ const CASES = [
       "flag": "128"
     },
     "expect": [
-      "abc123测试\n128\n请至少选择一个 CA\nabc123测试"
+      "abc123测试\n⚠ 请填写裸域名（如 example.com），不要带协议、空格或路径。\nabc123测试\n128"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"domain\":\"abc123测试\",\"iodefEmail\":\"abc123测试\",\"output\":\"1\\n2\\n3\",\"flag\":\"128\"}，输出区含「abc123测试\n128\n请至少选择一个 CA\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -13883,6 +13883,49 @@ const CASES = [
     clicks: ["var el=document.getElementById('__tbProbe');document.getElementById('codeInput').value='/* start\\n middle\\n*/ const a = 1;';calcTool();var v=String(document.getElementById('result').innerHTML);el.textContent=(v.indexOf('>3<')>=0&&v.indexOf('>1<')>=0&&v.indexOf('>2<')>=0&&v.indexOf('总行数')>=0&&v.indexOf('注释行')>=0?'CLCN OK':'BAD '+v.slice(0,120));"],
     expect: ["CLCN OK"],
     ref: "IT-N446 块注释结束行重复计数：输入 /* start / middle / */ const a = 1;（3 行）。旧实现 inBlock 分支 comment++ + 结束行收口再 comment++ ⇒ 注释 3、代码 1 合计 4>总行 3；修复后中间行计一次、结束行交统一收口 ⇒ 总行3/代码1/注释2 合计=3。探针断言该分配 ⇒ CLCN OK。",
+  },
+  {
+    slug: "it/meta-tags-generator",
+    inputs: { title: '我的"站点"', desc: '描述<tag>' },
+    expect: ['name="viewport" content="width=device-width'],
+    ref: "IT-N429 修复：旧实现漏输出 viewport 元标签。现 calcTool 默认补 charset+viewport ⇒ 输出必含 name=\"viewport\"。注入带引号/尖括号输入，旧实现原样拼入破坏 HTML，新实现 attr() 转义；该串依赖输入且默认态不含 ⇒ 强判别。",
+  },
+  {
+    slug: "it/meta-tags-generator",
+    inputs: { title: '我的"站点"', desc: '描述<tag>' },
+    expect: ['twitter:title" content="我的'],
+    ref: "IT-N428 修复：旧实现 twitter:title/description 写死本站文案，忽略用户输入。新实现改用输入 t/d ⇒ 输出 twitter:title\" content=\"我的…。默认 title 不同不命中。",
+  },
+  {
+    slug: "it/meta-tags-generator",
+    inputs: { title: '我的"站点"', desc: '描述<tag>' },
+    expect: ['我的&amp;quot;站点&amp;quot;'],
+    ref: "IT-N430 修复：旧 escH 只转义 &<> 不转义 \"，用户双引号原样拼进属性值导致提前闭合。新 attr() 额外转义 \" ⇒ 输出 我的&amp;quot;站点&amp;quot;。默认输入不含引号不命中。",
+  },
+  {
+    slug: "it/caa-record-generator",
+    inputs: { domain: 'http://example.com' },
+    expect: ['请填写裸域名'],
+    ref: "IT-N434 修复：旧实现仅 trim+去前导点即拼记录，带协议/路径的域名原样生成非法 CAA。新实现先校验裸域名正则，不合规即清空并报错 ⇒ 必含「请填写裸域名」。默认空域名走另一分支不命中。",
+  },
+  {
+    slug: "it/emoji-picker",
+    inputs: {},
+    expect: ['共 192 个'],
+    ref: "IT-N450 修复：原 EMOJI 数组含 3 个重复字符（✈️/💡/💬 各两次），未去重致计数虚高。新实现按字符去重 ⇒ 共 192 个。旧实现输出更大计数不匹配。空搜索=全量依赖输入。",
+  },
+  {
+    slug: "it/code-line-counter",
+    inputs: { codeInput: 'var a = 1; /* 行内注释不在行首 */\n/* 块注释在行首 */\nvar b = 2;' },
+    expect: ['2 代码行 1 注释行'],
+    ref: "IT-N447 修复：旧实现行内 /* 即判整行注释（isComment=true 不查位置），行中块注释误判。新实现要求块注释标记在行首（si===0）才计注释行。注入行内 /* + 行首 /* 各一行 ⇒ 新：代码2/注释1；旧：代码1/注释2。默认示例分配不同不命中。",
+  },
+  {
+    slug: "it/string-obfuscator",
+    inputs: { input: '😀a', mode: 'rev' },
+    clicks: ["var el=document.getElementById('__tbProbe');var v=document.getElementById('output').value;el.textContent=(v==='a😀'?'SOBREV OK':'BAD '+v);"],
+    expect: ['SOBREV OK'],
+    ref: "IT-N444 修复：旧实现 result=text.split('').reverse() 按 UTF-16 码元反转，😀 被拆成两个代理项 ⇒ output.value 含乱码且长度 3；新实现 Array.from 按码点反转 ⇒ '😀a'→'a😀' 且长度 2。探针读 #output.value 精确比对 ⇒ SOBREV OK。默认空输入走另一分支不命中。",
   },
 ];
 

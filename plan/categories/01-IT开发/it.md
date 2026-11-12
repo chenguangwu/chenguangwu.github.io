@@ -407,32 +407,6 @@
 
 ## V 批 · IT 生成/校验/计算（2026-11-04）
 
-### IT-N428 meta 生成器的 twitter:title / twitter:description 写死为本站文案，完全忽略用户输入（高，假功能）
-- 页面：`tools/it/meta-tags-generator.html`
-- 问题：`calcTool` 里 og:title / og:description 用的是用户输入 `t` / `d`（`:230-231`），但 twitter 卡两行直接拼了本工具自己的标题与简介常量（`:236-237`），与输入的 `t`、`d` 无关。原理说明还写着「社交：……以及 Twitter Card 的 twitter:card 等」（`:105`），暗示按输入生成。
-- 行号：`:227-238`（核心 `:236`、`:237`）
-- 复现：`title=我的站点`、`description=这是站点描述`、`url=https://example.com/` → 实际输出 `twitter:title="Meta 标签生成器 - 免费在线开发工具"`、`twitter:description="Meta 标签生成器是一款免费的在线IT 开发工具，……"`；期望 `twitter:title="我的站点"`、`twitter:description="这是站点描述"`。
-- 影响：用户复制整段 meta 后，Twitter/X 分享卡片显示的是本工具的名字与简介，与其站点无关；且 twitter:description 里还有重复两遍的套话。
-- 方案：改为 `'<meta name="twitter:title" content="'+t+'">'`、`…content="'+d+'">'`，与 og 两行同源。
-- 假工具：否（核心输出错误）
-
-### IT-N429 说明把 viewport 列为「必需」，生成结果却完全没有 viewport / charset / robots / keywords（中，承诺未实现）
-- 页面：`tools/it/meta-tags-generator.html`
-- 问题：原理框列出「基础」五项含 keywords、viewport、robots、charset（`:104`），并强调「viewport 是移动端正确适配的前提，缺失会触发桌面版缩放」（`:107`）；但 `calcTool` 只输出 `<title>`、`description`、`og:*`、`twitter:*`（`:228-238`），页面也没有这些字段的输入控件。
-- 行号：`:104-107`（说法）、`:223-238`（实现）
-- 复现：输入 `title=T`、`description=D`、`url=https://example.com/` → 实际输出 9 行，无 `<meta name="viewport">`、无 `<meta charset>`、无 `robots`、无 `keywords`；期望至少输出 `viewport`（或明确标注「不含 viewport」，由用户自加）。
-- 影响：工具名叫「Meta 标签生成器」、说明也称「生成完整 meta 片段」，但用户把结果贴进 `<head>` 后移动端仍走桌面缩放，必须自己补标签。
-- 假工具：否（功能缺口）
-
-### IT-N430 用户输入里的双引号未转义，复制出的 meta 标签属性被提前闭合（中，确认缺陷）
-- 页面：`tools/it/meta-tags-generator.html`
-- 问题：`escH` 走 `div.textContent → innerHTML`（`:221`），HTML 文本节点序列化只转义 `& < >`，不转义 `"`；随后把整段字符串塞进 `<pre>` 展示（`:229-231` 的 `content="'+d+'"`）。用户据此复制粘贴得到的是原始双引号。同一行末的 `replace(/Infinity|NaN/g,'—')` 还会把用户文本里的 `NaN` / `Infinity` 字样改写为「—」。
-- 行号：`:221`、`:228-234`、`:236-237`
-- 复现：`description=He said "hi"` → 实际展示并可复制 `<meta name="description" content="He said "hi"">`，粘贴后属性在 `He said ` 处闭合，description 被截成 `He said `；期望 `content="He said &quot;hi&quot;"`。另：`title=NaN` → 实际显示 `—`。
-- 影响：description/og/twitter 任一字段含引号（常见于引用型文案、含英寸/尺寸的文案）都会产出坏 HTML，页面本身不报错，难以发现。
-- 方案：拼装时对字段单独做 `&quot;` 转义（或在 `escH` 里补 `"`/`'`），并把 NaN/Infinity 兜底只施加于数值结果、不施加到用户文本。
-- 假工具：否
-
 ### IT-N431 CSS 压缩在引号字符串内照常删空白与 `: ; , > }`，合法 CSS 被静默改义（高，确认缺陷）
 - 页面：`tools/it/css-minify.html`
 - 问题：`minify` 是 4 条全局正则（`:216-221`），不区分字符串/`url()`：`\s*([{}:;,>])\s*`（`:219`）会把 `content:"a: b"` 里的 `:` 后空格删掉，`\s+/g→' '`（`:218`）把字符串内连续空格压成一个，`;\}`（`:220`）把字符串内的 `;}` 也删掉。页面却承诺「压缩仅去注释与空白，不改变选择器与声明语义」（`:168`），只是在 `:176` 含糊提了一句 content 特殊空格。
@@ -458,33 +432,15 @@
 - 方案：改用 `Number(s)` 并校验 `Number.isFinite`，非法 token 收集后提示；`12abc`、`0x10` 这类应报错而不是截断。
 - 假工具：否
 
-### IT-N434 CAA 生成器对域名不做任何校验，完整 URL / 含空格 / 大写域名都原样输出成「记录」（中，确认缺陷）
-- 页面：`tools/it/caa-record-generator.html`
-- 问题：`gen()` 只做 `trim()` 和去掉前导点（`:281`），随后直接把 `d` 拼进记录（`:297`），没有 hostname 合法性检查、没有小写归一、也不补结尾点；而 deep-dive 示例给的是带结尾点的 `example.com. CAA 0 issue "letsencrypt.org"`（`:181`），与输出格式不一致。
-- 行号：`:281`、`:287-298`（核心 `:297`）、`:181`
-- 复现：`domain=https://example.com`、勾选 Let's Encrypt → 实际输出 `https://example.com  CAA  0 issue "letsencrypt.org"`；期望拒绝并提示「请填写裸域名 example.com」。`domain=example com` → 输出 `example com  CAA …`；`Example.COM` → 保持大写不被归一。
-- 影响：输出框被当作可直接粘贴的记录，非法 owner name 会被 DNS 服务商拒绝或写坏 zone；再者按 RFC 1035 主文件相对名规则，不带结尾点在 BIND zone 里会被拼上 `$ORIGIN`，指向错误的域名。
-- 方案：`new URL`/正则校验 hostname（仅 `[a-z0-9.-]`、至少一个点、非 IP），统一小写，输出可选补 `.`。
-- 假工具：否
-
-### IT-N435 验证码「排除易混淆字符」在纯数字 / 纯字母模式下可见但代码未生效（中，承诺未实现）
-- 页面：`tools/it/captcha-generator.html`
-- 问题：`setType` 只在 `math`/`cn` 时隐藏该勾选框（`:921-924`），所以「纯数字」「纯字母」下勾选框仍然显示；但过滤逻辑只写在 `alnum` 分支（`:615-619`），`num` 分支死用 `0123456789`（`:588`），`alpha` 分支死用大小写字母表（`:596-604`），均未读 `state.excludeConfused`。默认预设「8个深色」还专门勾了这个选项（`:1081`）。
-- 行号：`:344-346`、`:588-592`、`:596-604`、`:615-619`、`:921-924`、`:952-955`
-- 复现：类型选「纯数字」+ 勾选「排除易混淆字符(0/O/o/I/l/1)」→ 实际仍生成如 `1010`、`0183`（含 0/1）；类型选「纯字母」+ 勾选 → 实际仍出现 `I`、`l`、`O`、`o`。期望结果中不含 `0OoIl1`。
-- 影响：用户以为已规避易读错字符，实测仍出现，抄写验证码时按 0/O、1/l 混淆导致「验证失败」；对一个验证码示例工具而言等于选项无效。
-- 方案：把过滤抽成公共函数对 `num`、`alpha`、`alnum` 的字符池统一应用（`num` 过滤后剩 8 位，需保证长度上限）。
-- 假工具：否
-
 ### 覆盖清单（V 批 IT 生成/校验/计算）
 - `css-properties`：无高优/中优缺陷（属性值/初始值/继承性抽查正确；IT-N436 vertical-align 重复条目已于第310批修复销账）。
-- `meta-tags-generator`：IT-N428（高）、IT-N429、IT-N430（中）。
+- `meta-tags-generator`：IT-N428/429/430 已于第316批修复销账。
 - `sqlite-cheatsheet`：无高优/中优缺陷（命令语法、`.mode`/JSON1/窗口函数示例与版本注记抽查正确；Chart/Table 双视图与检索联动正常）。
 - `standard-deviation`：IT-N433（中）；无高优缺陷（sample/population 公式与 32/7≈4.57、s≈2.138 复算一致）。
 - `tiny-url`：无高优/中优缺陷（随机短码生成与历史去重逻辑正常；IT-N432 复制拼接已于第310批修复销账）。
 - `css-minify`：IT-N431（高）。
-- `caa-record-generator`：IT-N434（中）；无高优缺陷（CAA 记录语法、flag 128 关键位、iodef mailto 形式正确）。
-- `captcha-generator`：IT-N435（中）；无高优缺陷（四种类型出题、数学答案校验、大小写归一逻辑正确）。
+- `caa-record-generator`：IT-N434 已于第316批修复销账；无高优缺陷（CAA 记录语法、flag 128 关键位、iodef mailto 形式正确）。
+- `captcha-generator`：IT-N435 已于第316批修复销账；无高优缺陷（四种类型出题、数学答案校验、大小写归一逻辑正确）。
 - 方法声明：本轮逐页通读上述 8 页源码，用 `node` 在 `/tmp` 复刻页面原函数实算（`minify`、`parseData/calculate`、`PROPERTIES` 去重）并给出「输入 → 实际 / 期望」；**未开浏览器、未跑 `_build.py`/`run_gates.py`、未做线上验证**；未修改任何工具页、代码或构建产物，仅在审计日志追加本节。IT-N430 的引号未转义依据 HTML 文本节点序列化规则判定（`& < >` 转义、引号不转义），未做真机粘贴验证；两处 `</div`（缺 `>`，`meta-tags-generator.html:124`、`css-minify.html:127`）会吞掉紧随的 `<div class="toolbar">` 开标签，属结构/布局问题，未计入本批条目。
 
 ## V 批 · IT 编辑器/安全/编码（2026-11-04）
@@ -496,24 +452,6 @@
 - 复现：源码框粘贴 `<img src="x" onerror="alert(document.domain)">` → 点「✓ 应用到编辑区」→ 实际弹窗显示当前域名（图片加载失败即触发）；期望 `onerror` 被剥除或作为纯文本插入。导入文件名为 `<img src=x onerror=…>.html` 时，`:550` 同样执行。
 - 影响：任何下载来的 HTML 模板/他人给的 `.html` 文件，导入后即可在本站源执行任意脚本，读写本站 localStorage、改写页面；用户把该工具当"本地编辑"用，不会预期导入即执行脚本。
 - 方案：赋值前用 DOMPurify（或白名单清洗）过滤 `script/iframe/on*`；文件名用 `textContent` 拼接。
-- 假工具：否
-
-### IT-N438 有序列表导出 Markdown 时编号丢失，全部变成无序列表（中，功能缺口）
-- 页面：`tools/it/rich-text-editor.html`
-- 问题：`walk()` 对 `li` 一律输出 `'\n- '`（`:479`），`ul`/`ol` 只做内容透传（`:480`），不区分父标签、也不读 `start`/序号；公式 :119 虽写明"li 前加 `- `"，但结果是把有序列表的编号语义抹掉。
-- 行号：`:479-480`
-- 复现：编辑区写有序列表「1. 第一步 / 2. 第二步」→ 点「复制 Markdown」→ 实际 `- 第一步\n- 第二步`；期望 `1. 第一步\n2. 第二步`。
-- 影响：粘贴到文档/README 后步骤编号消失，顺序语义丢失；页面 :291 只说"近似转换"，未提示有序列表会被降级。
-- 方案：`walk` 传入父标签，`ol` 内的 `li` 用递增序号输出。
-- 假工具：否
-
-### IT-N439 `prettyHtml` 逐行 `trim`，代码块缩进经源码框往返后丢失（中，确认缺陷）
-- 页面：`tools/it/rich-text-editor.html`
-- 问题：`prettyHtml()` 在 `></` 处断行后对每一行 `.trim()`（`:406`），`syncSource()`/`syncToSource()`/`applySource()` 都以它为准（`:413`、`:416`、`:424`），因此 `<pre>` 内的行首缩进也被删掉。
-- 行号：`:402-409`（核心 `:406`）、`:410-427`
-- 复现：编辑区代码块 `<pre>function f(){\n  if (a) {\n    return 1;\n  }\n}</pre>` → 依次点「↻ 从编辑区刷新」「✓ 应用到编辑区」→ 实际 `<pre>function f(){\nif (a) {\nreturn 1;\n}\n}</pre>`（`node` 复刻 `prettyHtml` 输出 `"<pre>function f(){\nif (a) {\nreturn 1;\n}\n}</pre>"`）；期望缩进原样保留。
-- 影响：代码块内容只要经过一次源码区往返就被破坏；Python/YAML/Makefile 等缩进敏感代码直接失效，而页面主打"代码块 + 往返编辑"。
-- 方案：格式化时跳过 `<pre>`/`<code>` 内部内容，或只插换行不做 `trim`。
 - 假工具：否
 
 ### IT-N440 「增强版/自动推断时间单位/容错」完全未实现，无分隔电码一律解成 `?`（高，假工具）
@@ -552,15 +490,6 @@
 - 方案：`enc()` 先用 `/<[A-Z]{2}>/` 整体匹配 `PROSIGNS`，再逐字符编码。
 - 假工具：否
 
-### IT-N444 「倒序」按 UTF-16 码元反转，emoji/辅助平面字符被拆成无效代理项（中，编码往返不一致）
-- 页面：`tools/it/string-obfuscator.html`
-- 问题：`result=text.split('').reverse().join('')`（`:290`）按码元反转，代理对被打散。
-- 行号：`:290`
-- 复现：输入 `😀a` → 实际 `a\uDE00\uD83D`（`node` 实测 JSON 为 `"a\ude00\ud83d"`，渲染为 `a` + 乱码/替换符）；期望 `a😀`（`Array.from` 反转）。
-- 影响：含 emoji、生僻字（辅助平面）的文本倒序后产生孤立代理项，输出不可读且不可还原。
-- 方案：改为 `Array.from(text).reverse().join('')`。
-- 假工具：否
-
 ### IT-N445 字符串内的 `/*` 被当作块注释起点，后续整段代码被吞为注释（高，确认缺陷）
 - 页面：`tools/it/code-line-counter.html`
 - 问题：`isInStr()` 定义于 `:292-301` 但全文无任何调用（grep 仅定义 1 处），块注释检测直接用 `t.indexOf('/*')`（`:325`），不区分字符串/模板字符串/正则。页面 :123 却明确承诺「字符串或正则字面量中出现的 `//`、`/*` 不应被误判为注释」。
@@ -568,15 +497,6 @@
 - 复现：JS 输入 `var re = "/*";` 换行 `var a = 1;` 换行 `var b = 2;` → 实际 总行 3 / 代码 0 / 注释 3 / 空 0、代码占比 `0.0%`（`node` 复刻）；期望 代码 2、注释 0、占比 `66.7%`。
 - 影响：正则、URL、模板字符串里出现 `/*` 的代码会被整段吞为注释，代码行数与占比严重失真；这是统计工具的核心输出。
 - 方案：扫描时维护字符串/模板字符串/正则状态机，在字符串内跳过 `/*`、`//`。
-- 假工具：否
-
-### IT-N447 行中块注释被判为整行注释，行尾 `/* */` 使代码行漏计（中，确认缺陷）
-- 页面：`tools/it/code-line-counter.html`
-- 问题：块注释起点只要 `indexOf('/*')>=0` 就置 `isComment`（`:325`），不检查其前面是否有代码；而行注释只在行首匹配（`:319`），两者口径不一致。
-- 行号：`:319`、`:321-327`
-- 复现：JS 输入 `var x = 1; /* note */` 换行 `var y = 2;` → 实际 代码 1 / 注释 1（第一行算注释）；期望 代码 2 / 注释 0（或单列"含注释的代码行"）。
-- 影响：常见的行尾块注释让代码行被少计，统计口径与主流工具（cloc/tokei）不一致。
-- 方案：命中 `/*` 时若其前有非空代码，计为代码行；只有整行都是注释时才计注释行。
 - 假工具：否
 
 ### IT-N448 高亮按行独立 tokenize，跨行块注释/三引号字符串/HTML 注释无法识别（中，确认缺陷）
@@ -595,15 +515,6 @@
 - 复现：输入 `const a = 1;` → 点「🎨 高亮渲染」→「📋 复制高亮 HTML」→ 把剪贴板内容存成 `.html` 打开 → 实际只有黑色等宽文本与行号，关键字/字符串/注释全无颜色；期望保留着色。
 - 影响：该按钮的唯一用途就是带走带色片段，产物在页面外不可用（结构、行号、字体正常，仅颜色全部丢失）。
 - 方案：复制时把 `.hl-*` 规则（含浅/深主题色）内联成 `<style>` 前缀，或为每个 span 写行内 `style="color:…"`。
-- 假工具：否
-
-### IT-N450 Emoji 数据集重复 3 个字符，计数虚高且检索出现重复卡片（中，确认缺陷）
-- 页面：`tools/it/emoji-picker.html`
-- 问题：`EMOJI` 数组（`:209`）里 `💡`（idea/bulb）、`✈️`（airplane/plane）、`💬`（speech/comment）各出现两次，`calcTool()` 不去重，标题直接用 `list.length`（`:212`）。
-- 行号：`:209`、`:211-212`
-- 复现：留空搜索 → 实际「共 195 个 emoji」，去重后 192（`node` 读页内数组：total 195 / unique 192）；搜索 `灯`、`飞机` 各返回两张同字符卡片；期望 192 且每字符一张。
-- 影响：计数口径错误，检索结果重复，用户以为存在不同表情；与"内置约 180 个"（`:169`）也对不上。
-- 方案：构建/加载时按字符去重（保留首个），或删除重复条目。
 - 假工具：否
 
 ### IT-N451 `sandbox` 同时开 `allow-scripts` 与 `allow-same-origin`，隔离失效且可外发数据（高，安全缺陷）
@@ -652,12 +563,12 @@
 - 假工具：否
 
 ### 覆盖清单（V 批 IT 编辑器/安全/编码）
-- `rich-text-editor`：IT-N437（高，安全）；IT-N438、IT-N439（中）。
+- `rich-text-editor`：IT-N437（高，安全待修）；IT-N438、IT-N439 已于第316批修复销账。
 - `morse-decode-advanced`：IT-N440（高，假工具）；IT-N441、IT-N442、IT-N443（中）。
-- `string-obfuscator`：IT-N444（中）；无高优缺陷（全角/ROT13/Base64/`\x` 十六进制/HTML 实体主路径往返核对正确，十六进制对 emoji 按 UTF-8 字节输出无截断）。
-- `code-line-counter`：IT-N445（高）；IT-N447（中）。IT-N446 块注释重复计数已于第310批修复销账。
+- `string-obfuscator`：IT-N444 已于第316批修复销账（split("")→Array.from 按码点反转）；无高优缺陷（全角/ROT13/Base64/`\x` 十六进制/HTML 实体主路径往返核对正确，十六进制对 emoji 按 UTF-8 字节输出无截断）。
+- `code-line-counter`：IT-N445（高待修）；IT-N447 已于第316批修复销账。IT-N446 块注释重复计数已于第310批修复销账。
 - `code-highlighter`：IT-N448、IT-N449（中）；无高优缺陷（token 渲染统一走 `esc()`，`<`/`>`/`&`/`"` 已转义，未发现注入）。
-- `emoji-picker`：IT-N450（中）；无高优缺陷（字符/中文关键词/英文名过滤逻辑本身正确，复制路径无注入）。
+- `emoji-picker`：IT-N450 已于第316批修复销账（数据去重）；无高优缺陷（字符/中文关键词/英文名过滤逻辑本身正确，复制路径无注入）。
 - `code-runner`：IT-N451（高，安全）；IT-N452、IT-N453（中）。
 - `benchmark-builder`：IT-N454、IT-N455（中）；无高优缺陷（五种负载的循环体与吞吐公式本身可算，评级阈值仅为经验值）。
 - 方法声明：本轮逐页通读上述 8 页源码，用 `node` 在 `/tmp` 复刻页面原函数实算（`calcTool` 行数统计、`enc/dec`、`prettyHtml`、emoji 数组去重、`split('')` 反转）并给出「输入 → 实际 / 期望」；**未开浏览器、未跑 `_build.py`/`run_gates.py`、未做线上验证**；未修改任何工具页、代码或构建产物，仅在审计日志追加本节。IT-N437 的事件属性执行、IT-N451 的沙箱逃逸依据 HTML 规范（`innerHTML` 插入的 `onerror` 会触发；`allow-scripts` + `allow-same-origin` 不提供来源隔离）判定，未做真机复现。

@@ -445,11 +445,16 @@ function fmtSize(b){
 
 /* ---------- 源码同步 ---------- */
 function prettyHtml(html){
+  var inPre = false;
   return html
     .replace(/></g, '>\n<')
     .split('\n')
-    .map(function(l){ return l.trim(); })
-    .filter(Boolean)
+    .map(function(l){
+      var keep = inPre;
+      if(/<pre\b/i.test(l)) inPre = true;
+      if(/<\/pre>/i.test(l)) inPre = false;
+      return (keep || inPre) ? l : l.trim();
+    })
     .join('\n');
 }
 function syncSource(){
@@ -527,7 +532,15 @@ function walk(node){
     } else if(tag === 'blockquote'){
       md += '\n\n' + inner.trim().split('\n').map(function(l){ return '> ' + l; }).join('\n') + '\n\n';
     } else if(tag === 'li'){
-      md += '\n- ' + inner.trim();
+      var par = n.parentNode;
+      var ordered = !!(par && par.tagName && par.tagName.toLowerCase() === 'ol');
+      if(ordered){
+        var idx = 1, sib = n.previousElementSibling;
+        while(sib){ if(sib.tagName && sib.tagName.toLowerCase() === 'li') idx++; sib = sib.previousElementSibling; }
+        md += '\n' + idx + '. ' + inner.trim();
+      } else {
+        md += '\n- ' + inner.trim();
+      }
     } else if(tag === 'ul' || tag === 'ol'){
       md += inner;
     } else if(tag === 'hr'){
