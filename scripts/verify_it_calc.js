@@ -3264,6 +3264,22 @@ const CASES = [
     ref: "维吉尼亚加密：A+K、B+E、C+Y ⇒ KFA（逐字符位移）。默认明文/密钥组合产物不同。",
   },
   {
+    slug: "it/vigenere-visualizer",
+    // IT-N166：清洗后无字母的密钥不得静默回退 'A'（位移 0 = 不加密）
+    inputs: { input: "ATTACK", key: "123" },
+    clicks: ["var __e='';try{process();}catch(ex){__e='THROW';}var __o=String(document.getElementById('output').value||'');var __si=String(document.getElementById('stepInfo').innerHTML||'');document.getElementById('__tbProbe').textContent='VIGKEY '+(__e===''&&__o===''&&/请输入含字母的密钥/.test(__si)?'OK':'BAD');"],
+    expect: ["VIGKEY OK"],
+    ref: "IT-N166 强锁：key='123' 清洗后无字母，旧 vigenere() 回退 'A' 使位移为 0，process() 仍把明文 ATTACK 原样写进结果/历史 ⇒ 无提示、output=ATTACK；修复后清空结果/步骤/可视化表并在 stepInfo 给出「请输入含字母的密钥」⇒ VIGKEY OK。用纯数字而非空串注入，避开 harness 空串回退默认值的坑；默认 key=LEMON 不产生该提示 ⇒ 零逃生。",
+  },
+  {
+    slug: "it/vigenere-visualizer",
+    // IT-N166 状态链：合法 → 非法 → 恢复，三个状态都必须正确
+    inputs: { input: "ATTACK", key: "KEY" },
+    clicks: ["var __e='';try{process();var __a=String(document.getElementById('output').value||'');document.getElementById('key').value='';process();var __b=String(document.getElementById('output').value||'');document.getElementById('key').value='KEY';process();var __c=String(document.getElementById('output').value||'');document.getElementById('__tbProbe').textContent='VIGCHAIN '+(__a==='KXRKGI'&&__b===''&&__c==='KXRKGI'?'OK':'BAD');}catch(ex){__e='THROW';}"],
+    expect: ["VIGCHAIN OK"],
+    ref: "IT-N166 状态链：ATTACK+KEY 加密得 KXRKGI，清空密钥后必须清空上一轮残留、恢复密钥后重新得 KXRKGI。旧实现非法态输出仍为 ATTACK（回退 'A' 原样返回）⇒ BAD。注入非默认明文/密钥，且默认态不执行 clicks 时探针不出现 ⇒ 零逃生。",
+  },
+  {
     slug: "it/html-escape",
     inputs: { batchInput: "<b>x</b>" },
     clicks: ["convert()"],

@@ -241,13 +241,6 @@
 
 - 留存建议（rail-fence-cipher）：“保留空格”旁注明空白也参与置换、解密后位置会改变。
 
-### IT-N163 Vigenère deep-dive 算例 “ATTACK + KEY → AXVCZ” 完全算错，密钥字母也错位（中，确认源码缺陷）
-- 问题：标准维吉尼亚加密 `A+K=K`、`T+E=X`、`T+Y=R`、`A+K=K`、`C+E=G`、`K+Y=I`，`ATTACK` 应为 `KXRKGI`；页面写 `A+K=A、T+E=X、T+C=V`，把第三个密钥字母写成 C（实际循环到 Y），并给出 5 字母的 `AXVCZ`（比明文少 1 位）。
-- 证据：`tools/it/vigenere-visualizer.html:284`（deep-dive 示例）、`tools/it/vigenere-visualizer.html:362-416`（`vigenere()` 算法）、`tools/it/vigenere-visualizer.html:183`（默认 key=LEMON）
-- 复现（Node 复算页内函数）：`vigenere('ATTACK','KEY',true)` → `KXRKGI`；`ATTACKATDAWN` + `LEMON` → `LXFOPVEFRNHR`（后者正确，说明算法本身无误，仅示例文案错）。
-- 影响：核心教学算例与工具输出矛盾，用户按示例手算/对照分步演示会发现对不上。
-- 方案：把示例改为 `ATTACK → KXRKGI`，逐位写 `A+K=K、T+E=X、T+Y=R、A+K=K、C+E=G、K+Y=I`。
-
 ### IT-N164 Vigenère 解密分步面板把密文字母标成“明文字母”，位置字段命名整体反转（中，确认源码缺陷）
 - 问题：`vigenere()` 解密时 `step.plain = ch`（输入的是密文）、`step.plainIdx = p`（密文字母下标）、`step.cipherIdx = c`（解出的明文字母下标）；`updateStepDisplay()` 却固定输出“明文字母: step.plain（位置 step.plainIdx）”“结果: step.cipher（位置 step.cipherIdx）”，解密模式下前两项展示的是密文，标签与数值全部错位。
 - 证据：`tools/it/vigenere-visualizer.html:371-401`（解密分支字段赋值）、`tools/it/vigenere-visualizer.html:470-494`（分步面板文案与公式）、`tools/it/vigenere-visualizer.html:485-487`（解密公式用 `cipherIdx - keyIdx = plainIdx`）
@@ -261,15 +254,6 @@
 - 复现：解密 `LXFOPVEFRNHR`（LEMON）第 1 步，密钥 L、密文 L、明文 A → 实际高亮行 A、列 L（格子值 L）；期望高亮行 L、列 A。
 - 影响：视觉演示与文字说明“行=密钥、列=明文”不一致，用户对照方阵会读错交叉点。
 - 方案：解密分支改为 `rowIdx = step.keyIdx; colIdx = step.cipherIdx`（即明文字母下标），加密分支保持 `rowIdx=keyIdx; colIdx=plainIdx`。
-
-### IT-N166 Vigenère 空密钥静默回退 `'A'`，加密输出原样返回且无提示（低，确认源码缺陷）
-- 问题：`vigenere()` 中 `if(!key) key='A'`，位移 0，等价于不加密；`process()` 仍把结果写入输出并记历史，用户清空密钥后看到“成功”的原样输出。
-- 证据：`tools/it/vigenere-visualizer.html:362-364`（空 key 回退 A）、`tools/it/vigenere-visualizer.html:418-436`（process 无密钥校验/无提示）
-- 复现：清空密钥框 → 输入 `ATTACK` → 输出仍为 `ATTACK`，无任何错误或提示；期望提示“请输入密钥”或至少显示“位移 0，未加密”。
-- 影响：用户会误以为加密成功，把明文当密文使用；历史里也留下误导记录。
-- 方案：`process()` 在 `key.trim()` 为空时弹提示并停止；或在输出区标注“密钥为空，未执行位移”。
-
-- 留存建议（vigenere-visualizer）：①修正 deep-dive 算例与密钥字母；②解密分步文案/公式/高亮按 P/C 角色分离；③空密钥拒绝计算（历史写入防抖已于第256批完成）。
 
 - 备注：`adfgvx-cipher`、`affine-cipher`、`hill-cipher`、`rail-fence-cipher`、`bacon-cipher` 的“复制结果”仍依赖 Chrome 专有全局 `event`（Firefox/程序化调用会失效），与 IT-N31 同模式，未重复计数；8 页的 TBKit `*ResText()` 均读 `textarea` 的 `textContent`（恒空）导致数据表/趋势图/CSV 恒空，与 IT-N140 同类模板缺陷，已在 IT-N140 统一记录，本批不重复编号。
 

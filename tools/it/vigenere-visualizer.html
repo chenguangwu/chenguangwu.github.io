@@ -273,7 +273,7 @@
 <li>用关键词循环位移的多表代替密码，比凯撒更难破。</li>
 <li>讲清多表替换的原理：可视化展示关键词如何循环位移，理解它为何能抵抗简单的频率分析。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">加密 &quot;ATTACK&quot; key=KEY</div><div class="dd-ex-body">A+K=A、T+E=X、T+C=V … → 输出 `AXVCZ`；密钥 KEY 循环使用。</div></div>
+<div class="dd-example"><div class="dd-ex-title">加密 &quot;ATTACK&quot; key=KEY</div><div class="dd-ex-body">A+K=K、T+E=X、T+Y=R、A+K=K、C+E=G、K+Y=I → 输出 `KXRKGI`；密钥 KEY 按 K/E/Y/K/E/Y 循环。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>维吉尼亚如何被破？</dt><dd>用卡西斯基试验或重合指数找密钥长度后逐位频分析。</dd>
@@ -412,7 +412,25 @@ function process(){
   const text = document.getElementById('input').value;
   const key = document.getElementById('key').value;
   const encrypt = currentMode === 'encrypt';
-  
+
+  // IT-N166: vigenere() 会把空密钥（以及清洗后无字母的密钥）回退成 'A'，位移 0 等价于不加密，
+  // 旧实现仍把明文原样写进结果区与历史，用户会误以为加密成功。这里统一拒绝，并清掉上一轮残留结果。
+  const cleanKey = String(key || '').toUpperCase().replace(/[^A-Z]/g, '');
+  if(!cleanKey){
+    const __msg = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())
+      ? 'Please enter a key containing letters before calculating (an empty key means no shift).'
+      : '请输入含字母的密钥后再计算（空密钥相当于不加密）。');
+    steps = [];
+    totalSteps = 0;
+    document.getElementById('output').value = '';
+    document.getElementById('stepTotal').textContent = 0;
+    resetStep();
+    document.getElementById('stepInfo').innerHTML = '<span style="color:var(--danger)">⚠ ' + __msg + '</span>';
+    document.getElementById('vizTable').innerHTML = '';
+    if(typeof ToolBox!=='undefined' && ToolBox.showToast) ToolBox.showToast(__msg, 'error');
+    return;
+  }
+
   const {result, steps: s, plainArr, keyArr, cipherArr} = vigenere(text, key, encrypt);
   steps = s;
   totalSteps = steps.length;
