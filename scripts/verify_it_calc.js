@@ -13806,6 +13806,12 @@ const CASES = [
     expect: ["PPUNI OK"],
     ref: "清单：.properties 标准 \\uXXXX 转义须解码（FAQ 已说明）。旧 unescapeVal 不解码 ⇒ 输出字面 \\u4f60\\u597d，PPUNI BAD；修复后输出「你好」。占位符保护双反斜杠，\\\\u4f60 不误解码。探针只在 clicks 内生成。",
   },
+  {
+    slug: "it/properties-parser",
+    clicks: ["document.getElementById('input').value='path=C:'+String.fromCharCode(92)+String.fromCharCode(92)+String.fromCharCode(10)+'next=1';propsToJson();var v=String(document.getElementById('output').textContent);document.getElementById('__tbProbe').textContent=(v.indexOf('\"path\"')>=0&&v.indexOf('C:')>=0&&v.indexOf('\"next\": \"1\"')>=0?'PPBS OK':'BAD '+v.slice(0,80));"],
+    expect: ["PPBS OK"],
+    ref: "清单行尾反斜杠续行误判：path=C: 后跟两个字面反斜杠（偶数个，代表一个字面反斜杠）不得当作续行符吞掉下一行。旧 endsWith 反斜杠一律续行，导致 next=1 被拼进 path 值并被当转义解码，无独立 next 键 ⇒ BAD；修复后按行尾连续反斜杠个数奇偶判定：偶数不续行、奇数才续行 ⇒ 出现独立 next 键 ⇒ PPBS OK。探针只在 clicks 内生成。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub

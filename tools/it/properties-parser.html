@@ -254,7 +254,12 @@ function parseProps(text){
     // 行首空白不属于键名
     let t = line.replace(/^[ \t\f]+/, '');
     if(!t || t.startsWith('#') || t.startsWith('!')) continue;
-    while(t.endsWith('\\') && i < lines.length){
+    // 清单续行修正：.properties 行尾反斜杠只有「奇数个」才表示续行（最后一个是续行符，
+    // 前面成对的反斜杠保留为字面量）；偶数个（如 C:\\）全是字面反斜杠，不得吞掉下一行。
+    while(i < lines.length){
+      let bs = 0;
+      for(let q = t.length - 1; q >= 0 && t[q] === '\\'; q--) bs++;
+      if(bs === 0 || bs % 2 === 0) break;
       t = t.slice(0, -1) + lines[i].replace(/^[ \t\f]+/, '');
       i++;
     }

@@ -80,7 +80,7 @@
 ### 留存优化
 - `tools/it/list-converter.html:262`：裸 CR 切分已支持（第260批补真机证据）；`map(trim).filter(Boolean)` 仍静默丢弃空项与行首/行尾缩进，需补「保留空项/缩进」开关。
 - `properties-parser.html`：\uXXXX 不解码问题已于第299批修复销账（unescapeKey/Val 统一 __ppUni，占位符保护字面反斜杠）。
-- `properties-parser.html:265` 行尾 `\\`（字面反斜杠）也被当作续行：`path=C:\\` + 下一行 → `{"path":"C:\next=1"}`，需区分“单个反斜杠续行 / 双反斜杠字面量”。
+- `properties-parser.html`：行尾双字面反斜杠被误当续行符问题已于第301批修复销账（按行尾连续反斜杠奇偶判定：偶数不续行、奇数才续行；真机双态验证偶数不吞行、奇数仍续行）。
 - `url-parser.html:442-459` 构造器不校验 host/port，host 为空会生成 `https:///path`，端口可写入任意非数字内容。
 - `slugify.html`：拼音表「音频」拼写错误已于第298批修复销账（yinpinyin→yinpin）；297 的 15 字长键因贪心上限 8（324）永远匹配不到，属冗余数据（清理性质，未处理）。
 - `text-truncate.html:330` `fromEnd` 分支完全忽略 `wordBoundary`，与正向行为不对称。
