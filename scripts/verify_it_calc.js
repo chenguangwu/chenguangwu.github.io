@@ -6996,6 +6996,18 @@ const CASES = [
     "ref": "键名 `__proto__`：普通对象上 `obj[key]=v` 走原型 setter，JSON 输出丢键；Object.create(null)（含 sortKeys 的中间对象）后成为自有键。输入是 `__proto__: v`，不含带引号的 JSON 形态。"
   },
   {
+    "slug": "it/yaml-to-json",
+    "inputs": { "source": "cfg: |-\n  hello\n  world\nname: probeZ" },
+    "expect": ["\"cfg\": \"hello\\nworld\""],
+    "ref": "IT-N326 块标量：|- 按缩进收集两行、尾部 - 去掉末尾换行，且后续同级键 name 不丢。修复前把 '|-' 当普通标量且外层 while 遇更深缩进立即退出 ⇒ 输出 {\"cfg\":\"|-\"}，该 expect 不命中；输入原文无 JSON 引号形态，非回显。expect 只留判别串：\"name\": \"probeZ\" 在旧态也可能命中（expect 为或关系），禁并列以免掩盖判别力。"
+  },
+  {
+    "slug": "it/yaml-to-json",
+    "inputs": { "source": "port: 8080 # web port\nname: probeZ" },
+    "expect": ["\"port\": 8080"],
+    "ref": "IT-N327 行尾注释：值中引号外的「空格 + #」在解析前剥离，port 还原为数值 8080。修复前输出 \"port\": \"8080 # web port\"（字符串），不命中数值形态；输入为 `port: 8080 # web port`（无引号键），expect 的 JSON 引号形态只在输出中出现。expect 只留判别串，旧态也会命中的 \"name\": \"probeZ\" 必须剔除（expect 为或关系）。"
+  },
+  {
     "slug": "it/toml-to-yaml",
     "inputs": { "source": "app = \"probe\"\ndebug = true\n\n[db]\nhost = \"127.0.0.1\"\nport = 5432" },
     "expect": ["debug: true", "db: host: \"127.0.0.1\""],

@@ -92,7 +92,7 @@
   <div class="card tool-card-accent" style="--tool-accent:#3B82F6;">
     <h2 data-zh="📄 YAML 转 JSON 转换器">📄 YAML to JSON Converter</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">YAML 解析：逐行记录缩进量（行首空白长度），跳过空行与 # 注释；行以 - 开头时按同一缩进连续收集为数组，元素为空则递归解析子块、形如「键: 值」按映射解析、否则按标量；其余按 ^([^:]+):\s?(.*)$ 取键值对，值为空且下一行缩进更大时递归解析子块，否则取空对象。标量还原：去成对引号，true/false 转布尔，null 与 ~ 转空，纯整数转 parseInt，纯小数转 parseFloat。输出 JSON 时缩进取 tab 或指定个数的空格（缺省 2），勾选排序时按键名字典序递归重排所有层级的键</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">YAML 解析：逐行记录缩进量（行首空白长度），跳过空行与 # 注释；行以 - 开头时按同一缩进连续收集为数组，元素为空则递归解析子块、形如「键: 值」按映射解析、否则按标量；其余按 ^([^:]+):\s?(.*)$ 取键值对，值为空且下一行缩进更大时递归解析子块，否则取空对象。块标量：| / >（含 |- / >-）按缩进收集后续行，| 保留换行、> 折叠为空格，尾部 - 去掉末尾换行、默认保留一个。行内注释：值中引号外的「空格 + #」在解析前剥离，引号内 # 与紧贴值的 # 保留。标量还原：去成对引号，true/false 转布尔，null 与 ~ 转空，纯整数转 parseInt，纯小数转 parseFloat。输出 JSON 时缩进取 tab 或指定个数的空格（缺省 2），勾选排序时按键名字典序递归重排所有层级的键</div>
   <div class="formula-desc">把 YAML 转换为 JSON。</div>
   <ul class="formula-list">
     <li><b>映射</b>：YAML 的映射与序列分别转为 JSON 对象与数组。</li>
@@ -158,7 +158,7 @@
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
         <li>转换结果可直接粘贴进 JSON 配置、REST 请求体或代码。</li>
-        <li>支持常见 YAML 子集：映射、列表、标量（字符串/数字/布尔/null）；不支持锚点、多文档等高级特性。</li>
+        <li>支持常见 YAML 子集：映射、列表、标量（字符串/数字/布尔/null）、块标量（| / >）与行尾注释；不支持锚点、多文档等高级特性。</li>
         <li>缩进可选 2/4 空格或 Tab，便于对接不同代码风格。</li>
   </ul>
 </div>
@@ -171,6 +171,9 @@
     <tr><td>- item</td><td>列表元素</td></tr>
     <tr><td>key: [a, b]</td><td>行内列表</td></tr>
     <tr><td># 注释</td><td>注释行</td></tr>
+    <tr><td>key: 8080 # 端口</td><td>行尾注释（解析时剥离）</td></tr>
+    <tr><td>desc: |</td><td>块标量（保留换行）</td></tr>
+    <tr><td>desc: &gt;</td><td>折叠块标量（换行折叠为空格）</td></tr>
   </table>
 </div>
 
@@ -210,8 +213,39 @@
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function escH(s){var d=document.createElement('div');const __g1=s==null?'':String(s);d.textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
-function calcTool(){function yScalar(s){
-  s=s.trim();
+function calcTool(){var __yamlLines=[],__yamlItems=[];
+function yStripComment(s){
+  s=String(s==null?'':s); var q=null;
+  for(var i=0;i<s.length;i++){
+    var c=s.charAt(i);
+    if(q){ if(c===q && s.charAt(i-1)!=='\\') q=null; continue; }
+    if(c==='"'||c==="'"){ q=c; continue; }
+    if(c==='#' && i>0 && /\s/.test(s.charAt(i-1))) return s.slice(0,i).replace(/\s+$/,'');
+  }
+  return s;
+}
+function yBlockMark(s){ var m=String(s).match(/^([|>])([-+]?)$/); return m?{style:m[1],chomp:m[2]}:null; }
+function yCollectBlock(p,parentIndent,bm){
+  if(p.i>=__yamlItems.length || __yamlItems[p.i].ind<=parentIndent) return bm.style==='|'?'':'';
+  var blockIndent=__yamlItems[p.i].ind, start=__yamlItems[p.i].line, end=p.i;
+  while(end<__yamlItems.length && __yamlItems[end].ind>=blockIndent) end++;
+  var last=end<__yamlItems.length?__yamlItems[end].line:__yamlLines.length, raw=[];
+  for(var ln=start;ln<last;ln++){
+    var l=__yamlLines[ln]||'';
+    if(l.trim()===''){ raw.push(''); continue; }
+    var lead=l.length-l.trimStart().length;
+    raw.push(lead>=blockIndent?l.slice(blockIndent):l.trim());
+  }
+  p.i=end;
+  var text;
+  if(bm.style==='|'){ text=raw.join('\n'); }
+  else { var out=''; for(var i=0;i<raw.length;i++){ if(raw[i]===''){ out+='\n'; } else { if(i>0&&raw[i-1]!=='') out+=' '; out+=raw[i]; } } text=out; }
+  if(bm.chomp==='-') text=text.replace(/\n+$/,'');
+  else if(bm.chomp!=='+') text=text.replace(/\n+$/,'')+'\n';
+  return text;
+}
+function yScalar(s){
+  s=yStripComment(s).trim();
   if(s==='')return '';
   if((s[0]==='"'&&s.slice(-1)==='"')||(s[0]==="'"&&s.slice(-1)==="'")) return s.slice(1,-1);
   if(s==='true')return true; if(s==='false')return false;
@@ -223,8 +257,10 @@ function calcTool(){function yScalar(s){
 function yIsMapEntry(s){ var kv=s.match(/^([^:]+):\s?(.*)$/); return kv && /^[\u4e00-\u9fa5A-Za-z0-9_\-\s]/.test(kv[1]) && s.indexOf(':')>0; }
 function parseYaml(text){
   var lines=text.replace(/\r/g,'').split('\n');
+  __yamlLines=lines;
   var items=[];
-  for(var i=0;i<lines.length;i++){ var raw=lines[i]; var s=raw.trim(); if(!s||s[0]==='#') continue; items.push({ind:raw.length-raw.trimStart().length, content:s}); }
+  for(var i=0;i<lines.length;i++){ var raw=lines[i]; var s=raw.trim(); if(!s||s[0]==='#') continue; items.push({ind:raw.length-raw.trimStart().length, content:s, line:i}); }
+  __yamlItems=items;
   if(!items.length) return {};
   var p={i:0};
   return yBlock(items, items[0].ind, p);
@@ -247,7 +283,9 @@ function yBlock(items, indent, p){
     var kv=line.match(/^([^:]+):\s?(.*)$/);
     if(!kv){ p.i++; continue; }
     var key=kv[1].trim(); var val=kv[2].trim(); p.i++;
-    if(val===''){ if(p.i<items.length && items[p.i].ind>indent) obj[key]=yBlock(items, items[p.i].ind, p); else obj[key]={}; }
+    var bm=yBlockMark(val);
+    if(bm) obj[key]=yCollectBlock(p,indent,bm);
+    else if(val===''){ if(p.i<items.length && items[p.i].ind>indent) obj[key]=yBlock(items, items[p.i].ind, p); else obj[key]={}; }
     else obj[key]=yScalar(val);
   }
   return obj;
@@ -256,13 +294,17 @@ function yMapFrom(items, mapIndent, p, firstItem){
   var m={};
   var kv=firstItem.match(/^([^:]+):\s?(.*)$/);
   var key=kv[1].trim(); var val=kv[2].trim();
-  if(val===''){ if(p.i<items.length && items[p.i].ind>mapIndent) m[key]=yBlock(items, items[p.i].ind, p); else m[key]={}; }
+  var bm=yBlockMark(val);
+  if(bm) m[key]=yCollectBlock(p,mapIndent,bm);
+  else if(val===''){ if(p.i<items.length && items[p.i].ind>mapIndent) m[key]=yBlock(items, items[p.i].ind, p); else m[key]={}; }
   else m[key]=yScalar(val);
   while(p.i<items.length && items[p.i].ind===mapIndent && items[p.i].content[0]!=='-'){
     var line=items[p.i].content; var kv2=line.match(/^([^:]+):\s?(.*)$/);
     if(!kv2) break;
     var k2=kv2[1].trim(); var v2=kv2[2].trim(); p.i++;
-    if(v2===''){ if(p.i<items.length && items[p.i].ind>mapIndent) m[k2]=yBlock(items, items[p.i].ind, p); else m[k2]={}; }
+    var bm2=yBlockMark(v2);
+    if(bm2) m[k2]=yCollectBlock(p,mapIndent,bm2);
+    else if(v2===''){ if(p.i<items.length && items[p.i].ind>mapIndent) m[k2]=yBlock(items, items[p.i].ind, p); else m[k2]={}; }
     else m[k2]=yScalar(v2);
   }
   return m;
