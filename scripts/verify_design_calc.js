@@ -2932,6 +2932,62 @@ const CASES = [
   clicks: ["try{generateGallery();}catch(e){};var g=document.getElementById('gallery');document.getElementById('__svg_probe').textContent='G:'+g.getAttribute('data-blocks')+'|'+g.getAttribute('data-bg');"],
   expect: ["G:9|#123456"],
   ref: "D-N88：旧画廊硬编码 blocks=5、底色 #f0f0f0、列数 3，与当前输入脱节；修复后读 #blocks/#bgColor、列数改 ceil(blocks/2)，由 generate() 末尾重绘，并把当前参数写进 #gallery 的 data-blocks/data-bg 便于核对。探针锚含两个注入值；旧码无这两个属性 ⇒ G:null|null，强判别。",
+},
+{
+  slug: "design/favicon-from-text",
+  inputs: { size: "9999", radius: "9999" },
+  clicks: ["var s0=document.getElementById('size').value;generate();document.getElementById('__svg_probe').textContent='IN:'+s0+'|CLAMP:'+document.getElementById('size').value+'|'+document.getElementById('radius').value;"],
+  expect: ["IN:9999|CLAMP:256|128"],
+  ref: "D-N76：旧码 size 只夹下限、radius 只夹下限，注入 9999 直接建 9999px 画布且半径远超半边长导致贝塞尔路径自交；修复后 size 夹到 16–256、radius 夹到 ≤size/2 并回写输入框。探针回显注入原值 9999；旧码 CLAMP:9999|9999 ⇒ 强判别。",
+},
+{
+  slug: "design/favicon-from-text",
+  inputs: { text: "ZX", size: "128", radius: "24" },
+  clicks: ["generate();var h=String(document.getElementById('preview').innerHTML);var rad=(h.match(/border-radius:[0-9.]+px/g)||[]).map(function(x){return x.replace(/[^0-9.]/g,'');}).join('|');var fs=(h.match(/font-size:[0-9.]+px/g)||[]).map(function(x){return x.replace(/[^0-9.]/g,'');}).join('|');document.getElementById('__svg_probe').textContent='RAD:'+rad+' FS:'+fs+' IN:'+document.getElementById('size').value+'/'+document.getElementById('radius').value;"],
+  expect: ["RAD:3|12|24 FS:8.8|35.2|70.4 IN:128/24"],
+  ref: "D-N75：旧码三档预览按固定 64/128 参照缩放（radius/64*8、radius、radius*2），且只有中档给字号；修复后统一按 radius÷size×档位边长（16/64/128 px），三档字号均按 ×0.55 比例给 8.8/35.2/70.4px。旧码 RAD:3|24|48 FS:35.2 ⇒ 强判别，expect 含注入的 128/24。",
+},
+{
+  slug: "design/favicon-from-text",
+  inputs: { text: "Q7" },
+  clicks: ["var cap=null;globalThis.TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return [];},last:function(){return null;},record:function(){},mount:function(){}},preset:{bar:function(sel,items,c){cap=items;}}};__favicon_from_textPresets();var bad=cap?cap.filter(function(x){return String(x.values.text).length>2;}).map(function(x){return x.values.text;}):['NONE'];document.getElementById('__svg_probe').textContent='IN:'+document.getElementById('text').value+'|PRESET:'+(bad.length?bad.join(','):'OK')+'|N:'+(cap?cap.length:0);"],
+  expect: ["IN:Q7|PRESET:OK|N:4"],
+  ref: "D-N79：输入框标注 1–2 字符且 maxlength=2，旧预设却写入 3 字符 API（程序赋值绕过 maxlength）；修复后预设改双字 AB。探针用桩捕获 __favicon_from_textPresets() 传给 TBKit.preset.bar 的全部条目并校验 text 长度；旧码 PRESET:API ⇒ 强判别，expect 含注入的 Q7。",
+},
+{
+  slug: "design/favicon-from-emoji",
+  inputs: { size: "9999", radius: "9999" },
+  clicks: ["var s0=document.getElementById('size').value;generate();document.getElementById('__svg_probe').textContent='IN:'+s0+'|CLAMP:'+document.getElementById('size').value+'|'+document.getElementById('radius').value;"],
+  expect: ["IN:9999|CLAMP:256|128"],
+  ref: "D-N82：旧码 size 只夹下限、radius 只夹下限，HTML max=256/100 不参与脚本校验，默认 128 下 radius=100 即生成自交路径；修复后 size 夹到 16–256、radius 夹到 ≤size/2 并回写输入框。探针回显注入原值 9999；旧码 CLAMP:9999|9999 ⇒ 强判别。",
+},
+{
+  slug: "design/favicon-from-emoji",
+  inputs: { emoji: "FOX", size: "64", radius: "24" },
+  clicks: ["generate();var h=String(document.getElementById('preview').innerHTML);var rad=(h.match(/border-radius:[0-9.]+px/g)||[]).map(function(x){return x.replace(/[^0-9.]/g,'');}).join('|');document.getElementById('__svg_probe').textContent='RAD:'+rad+' IN:'+document.getElementById('size').value+'/'+document.getElementById('radius').value;"],
+  expect: ["RAD:6|24|48 IN:64/24"],
+  ref: "D-N80：旧码三档预览固定按 128 参照缩放（radius/128*16、radius/2、radius），改 size 后比例失真；修复后按 radius÷size×档位边长（16/64/128 px）。注入 size=64/radius=24 期望 6|24|48；旧码 3|12|24 ⇒ 强判别。",
+},
+{
+  slug: "design/initials-avatar",
+  inputs: { name: "😀 Smith" },
+  clicks: ["var a=computeInitials(document.getElementById('name').value,2);var b=computeInitials(document.getElementById('name').value,1);document.getElementById('__svg_probe').textContent='INI:'+a+'|'+b+'|LEN:'+Array.from(a).length;"],
+  expect: ["INI:😀S|😀|LEN:2"],
+  ref: "D-N84：旧码 parts[0][0] / substring / initials[0] 按 UTF-16 码位切分，emoji 名称会切出孤立高位代理字符；修复后抽 computeInitials() 用 Array.from 按码点取首字符。注入 😀 Smith 期望双字 😀S、单字 😀、码点数 2；旧码无该函数且切出代理字符 ⇒ 强判别。",
+},
+{
+  slug: "design/ripple-effect",
+  inputs: { rippleType: "pulse", rippleColor: "#ff0000", duration: "1.2" },
+  clicks: ["generate();var h=String(document.getElementById('preview').innerHTML);var c=String(document.getElementById('cssOutput').value);var s='COL:'+document.getElementById('rippleColor').value+'|HTML:'+(h.indexOf('#ff0000')>=0?1:0)+'|CSS:'+(c.indexOf('#ff0000')>=0?1:0);document.getElementById('__svg_probe').textContent=s;document.getElementById('cssOutput').value=s;document.getElementById('preview').textContent=s;"],
+  expect: ["COL:#ff0000|HTML:1|CSS:1"],
+  ref: "D-N94（脉冲）：旧码 r/g/b 只用于点击模式，脉冲模式的圆环与导出 CSS 全用背景色，涟漪色输入被静默吞掉；修复后圆环 border 与 .pulse-ring 都用 rippleColor。探针多载体写入（该页 __svg_probe 不进采集区）；旧码 HTML:0|CSS:0 ⇒ 强判别，expect 含注入的 #ff0000。",
+},
+{
+  slug: "design/ripple-effect",
+  inputs: { rippleType: "multi", rippleColor: "#ff0000", duration: "1.2" },
+  clicks: ["generate();var h=String(document.getElementById('preview').innerHTML);var c=String(document.getElementById('cssOutput').value);var s='COL:'+document.getElementById('rippleColor').value+'|HTML:'+(h.indexOf('#ff0000')>=0?1:0)+'|CSS:'+(c.indexOf('#ff0000')>=0?1:0);document.getElementById('__svg_probe').textContent=s;document.getElementById('cssOutput').value=s;document.getElementById('preview').textContent=s;"],
+  expect: ["COL:#ff0000|HTML:1|CSS:1"],
+  ref: "D-N94（多重）：旧码三个圆点与 .multi-pulse div 全用背景色；修复后预览与导出都取 rippleColor。注入 #ff0000 后两处均应出现；旧码 HTML:0|CSS:0 ⇒ 强判别。",
 }
 ];
 

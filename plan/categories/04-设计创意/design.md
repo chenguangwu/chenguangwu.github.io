@@ -3,6 +3,7 @@
 ## 2026-11-06 已修记录独立复核：像素绘制和涟漪
 
 - **D-N92 / 台账 O-4：尚不能确认视觉效果，保留待复核。** 源码现为点击创建绝对定位色块并调用 Web Animations，浏览器确认预览元素已绑定 `onclick`；但点击后未捕获到色块或动画，浏览器自动化未能排除观察延迟或点击未触发。不能据此判定修复通过或复发。
+  - 第323批补充：JSDOM 真机链路复核确认点击确实生成绝对定位带底色圆块并调用 Web Animations，源码层面「无样式、position:static」缺陷已不成立；视觉观感仍待真机浏览器确认，故条目保留、不销账。
 
 ## 2026-11-06 已修记录独立复核（设计）
 
@@ -284,22 +285,6 @@
 
 - 范围：`tools/design` 剩余生成器/互动演示 8 页（Favicon 文字、Favicon Emoji、首字母头像、Identicon、Loading Dots、Ripple、像素画、棋盘），逐页通读整份 HTML（内联 JS/CSS 生成逻辑、deep-dive、FAQ），编号续 D-N75。
 
-### D-N75 favicon-from-text 三档预览的圆角/字号与画布不成比例（中，确认源码缺陷）
-
-- 问题：小预览（16px）用 `radius/64*8` 缩放，相当于按 8px 参照框计算，圆角只有正确值的一半；公式说明还把这一档写成「64px 档」。字号比例也不一致（画布 0.55，大预览 CSS 固定 0.5）。
-- 证据：`tools/design/favicon-from-text.html:28`（small 为 16px）、`:285`（`radius/64*8`）、`:286`（中档 64px）、`:287`（大档 `radius*2`、字号继承 `:27` 的 64px）、`:279`（画布 `.55`）、`:152`（说明文字「64px 档用 radius ÷ 64 × 8」）。
-- 复现：radius=12、size=64 → 小预览 `border-radius:1.5px`（正确应为 12×16/64=3px）；大预览字号 64px（比例 0.5），画布为 35.2px（比例 0.55）。
-- 影响：三档预览并非所见即所得，小图圆角明显偏方、文字比例略小，用户按预览调参后导出结果不同。
-- 方案：小档改 `radius*16/size`（或统一按 `size` 缩放 `radius/mediumSize`），大档字号改 `size*0.55*128/size`；若坚持按 128/64 参照，则说明文字同步改成「16px 档」。
-
-### D-N76 favicon-from-text 圆角可超半边长导致路径自交，边长无上限（中，确认源码缺陷）
-
-- 问题：`radius` 只做下限 0，未限制 ≤ size/2；HTML `max=100` 不参与脚本校验。半径大于半边长时四段贝塞尔角的起止点交叉，路径自交。`size` 只 `Math.max(16)`，输入 9999 会创建超大画布。
-- 证据：`tools/design/favicon-from-text.html:256-257`；路径拼接 `:262-274`；输入约束 `:161-162`（min/max 仅提示）。
-- 复现：size=64、radius=100 → 生成 `lineTo(-36,0)`、`quadraticCurveTo(64,0,64,100)` 等负坐标/交叉段（node 复算 `64-100=-36`）；size=9999 → `canvas.width=9999`。
-- 影响：默认边长 64 下只要圆角 >32 就出现畸形图标；超大画布可能触发浏览器内存告警或 `toDataURL` 失败。
-- 方案：`radius = Math.min(radius, size/2)`；`size = Math.min(size, 256)`，越界时钳制并提示。
-
 ### D-N78 favicon-from-text 按钮称「下载 ICO/PNG」实际只有单张 PNG，改参数后仍导出旧图（中，确认源码缺陷）
 
 - 问题：页面与说明宣称多尺寸 PNG/ICO，实际 `download='favicon.png'` 单张；输入控件无 `onchange`，改文字/配色后直接下载仍是上一次结果。
@@ -307,22 +292,6 @@
 - 复现：文字 T→AB、底色调绿（不点「生成」）→ 点「下载 ICO/PNG」得到旧 T 红底 `.png`；产物中不存在 `.ico` 或第二尺寸。
 - 影响：SEO/文案承诺与实际产物不符；用户拿到过期图，需再点一次生成才正确。
 - 方案：按钮改「下载 PNG」或真正实现 ICO 打包；输入加 `onchange=generate()`（或下载前强制重绘）。
-
-### D-N79 favicon-from-text 预设「三字缩写 API」与「1-2 字符」/maxlength=2 矛盾（低，确认源码缺陷）
-
-- 问题：输入框标注 1–2 字符且 `maxlength=2`，预设却写入 3 字符 `API`；程序赋值绕过 `maxlength`，于是画布绘制 3 个字，小预览溢出。
-- 证据：`tools/design/favicon-from-text.html:158`（label + maxlength=2）、`:433`（预设 `text:'API'`）。
-- 复现：点预设「三字缩写 API」→ 输入框显示 `API`（浏览器不截断程序赋值），画布三字、16px 预览挤压。
-- 影响：预设与字段约束自相矛盾，用户手动输入 `API` 时反而只能得到 `AP`。
-- 方案：预设改 `AB`，或把字段上限改为 3 并同步文案。
-
-### D-N80 favicon-from-emoji 预览圆角固定按 128 参照，改 size 后与画布不符（中，确认源码缺陷）
-
-- 问题：三档预览按 `radius/128*16`、`radius/2`、`radius` 缩放，隐含画布 128；实际画布圆角就是用户 `size` 上的 `radius`。`size` 改成 64/256 时预览比例失真。
-- 证据：`tools/design/favicon-from-emoji.html:26-29`（16/64/128 三档）、`:276-278`、`:146`（说明明确写「radius ÷ 128 × 16…」）、`:248`（size 可任意 16–256）。
-- 复现：size=64、radius=24 → 画布圆角比 0.375，128px 大预览比 0.1875（差一倍）；三档均按 128 计算。
-- 影响：默认 128 时一致，改尺寸即预览失真，用户无法靠预览判断导出效果。
-- 方案：预览统一用 `radius/size*档位像素`。
 
 ### D-N81 favicon-from-emoji 宣称多尺寸 ICO/PNG，实际仅单张 PNG；改参数后仍导旧图（中，确认文案与实现不一致）
 
@@ -332,30 +301,6 @@
 - 影响：与 D-N39 同类文案承诺落空；用户拿到过期图。
 - 方案：文案改为「PNG」，或补 ICO/16/32/48 多尺寸打包；输入加 `onchange=generate()`。
 
-### D-N82 favicon-from-emoji 圆角上限 100 已超默认半边长，生成自交路径；边长无上限（中，确认源码缺陷）
-
-- 问题：默认 size=128 半边长仅 64，而圆角输入允许到 100；脚本只做下限 0。半径 > 半边长时路径交叉。`size` 只 `Math.max(16)`。
-- 证据：`tools/design/favicon-from-emoji.html:154-155`（HTML max 256/100）、`:248-249`（脚本只钳下限）、`:254-266`（路径拼接）。
-- 复现：size=128、radius=100 → `lineTo(28,0)`、`lineTo(28,128)` 等交叉段，填充出现缺口/自交；size=9999 → 超大 canvas。
-- 影响：合法输入范围内即可产生畸形图标；超大尺寸可能导致导出失败。
-- 方案：`radius=Math.min(radius,size/2)`、`size=Math.min(size,256)`。
-
-### D-N83 initials-avatar 白字在 13/15 个哈希色上对比度低于 4.5:1，与引据表矛盾（中，确认源码缺陷）
-
-- 问题：默认字色 `#ffffff`，哈希调色板含大量浅色；页面引据表写「首字母与底色对比不低于 4.5:1」，但实现从不校验，也未按底色自动切换黑白字。
-- 证据：`tools/design/initials-avatar.html:267`（palette）、`:289`（`palette[hash % palette.length]`）、`:162`（textColor 默认 `#ffffff`）、`:248`（引据 4.5:1）、`:273`/`:319`（直接使用字色）。
-- 复现（node 复算）：15 色中 13 色对白字 <4.5:1；`张三` → idx 4 `#43e97b` 对比 1.59:1，`陈光武` → idx 0 `#667eea` 3.66:1，`李四` → idx 6 `#30cfd0` 1.92:1，`user@x.com` → idx 12 `#feca57` 1.52:1；仅 `#764ba2`、`#5f27cd` 达标。
-- 影响：多数中文姓名生成的头像首字母几乎看不清，且与页面自述的可访问性标准直接矛盾。
-- 方案：按底色相对亮度自动选 `#111827`/`#ffffff`；或把 palette 整体压到 L≈45% 以下并保留对比校验。
-
-### D-N84 initials-avatar 按 UTF-16 码位取首字母，emoji 名称产生孤立代理字符（中，确认源码缺陷）
-
-- 问题：`parts[0][0]` 与 `name.substring(0,count)` 都按码位切分，不看字素簇；首字符是 emoji 时会切出半个代理对，`count===1` 再 `initials[0]` 进一步截断。
-- 证据：`tools/design/initials-avatar.html:278-285`（`:281` 取 `[0]`、`:283` substring、`:285` 截断）、`:238`（引据 UAX #29「按字素簇取首字符」）。
-- 复现（node）：姓名 `😀 Smith`、默认 2 字 → `"\ud83dS"`（高位代理 + S）；`🚀Dev`、1 字 → `"\ud83d"` 孤立高位代理，Canvas 画豆腐块/空白。
-- 影响：emoji 或部分扩展汉字姓名生成破字；与引据的标准实现不一致。
-- 方案：用 `Intl.Segmenter` 或 `Array.from(str)[0]` 按字素/码点取字符，再做 `toUpperCase()`。
-
 ### D-N85 initials-avatar 宣称导出 PNG/SVG，实际只有 PNG（低，确认文案与实现不一致）
 
 - 问题：formula-desc 与英文 intro 写「导出 PNG / SVG」，页面没有 SVG 输出、也没有第二个下载入口。
@@ -364,29 +309,11 @@
 - 影响：文案承诺落空，设计场景常用的矢量导出缺失。
 - 方案：补 SVG 导出（圆形/圆角矩形 + `<text>`），或删掉文案中的 SVG。
 
-### D-N92 ripple-effect 点击预览不产生任何涟漪（高，确认源码缺陷）
+### D-N92 ripple-effect 点击预览涟漪的视觉效果待真机确认（高，源码缺陷已于第323批复核不成立；台账 O-4 保留待复核）
 
-- 问题：JS 创建的元素 `className='ripple'`，页面 CSS 只定义了 `.ripple-circle`；`.ripple` 规则仅存在于文本框中。该 `span` 作为 flex 子项虽会生效 width/height，但 `position:static` 使 left/top 无效，且无背景色/圆角/动画，点击后看不到任何涟漪，只会把「点击我」文字挤开造成布局跳动。
-- 证据：`tools/design/ripple-effect.html:31`（`.ripple-circle{position:absolute;…background:rgba(255,255,255,0.5);…}`）、`:280`（`className='ripple'`）、`:282-284`（设置 width/height/left/top）、`:273`（`.ripple` 仅拼进 `cssOutput`）。
-- 复现：类型选「点击涟漪」，在预览框「点击我」上点击 → 实际 append 一个无背景/无定位/无动画的 flex 子项 span，画面无扩散圆且文字被挤位；期望出现扩散圆。
-- 影响：演示区的核心交互失效，用户无法验证效果，只能盲信复制出的 CSS。
-- 方案：`className='ripple-circle'`，或复制页内 `.ripple-circle` 规则到 `.ripple`；同时内联 `position:absolute;border-radius:50%;background:rgba(...)`。
-
-### D-N93 ripple-effect 多重涟漪缺 keyframes，脉冲预览轨迹与导出不一致（中，确认源码缺陷）
-
-- 问题：页面只定义 `rippleAnim` 与 `pulseAnim`，预览用的 `multiPulse` 没有定义（只在文本框 CSS 里），多重模式静止；`pulseAnim` 页面版是 `scale(.5)→scale(2)`，导出 CSS 是 `scale(1)→scale(2.5)`，预览与复制结果不同。
-- 证据：`tools/design/ripple-effect.html:32,34`（页内两条 keyframes）、`:300`（预览引用 `multiPulse`）、`:303`（`multiPulse` 仅在 CSS 文本）、`:34` vs `:296`（pulse 关键帧差异）。
-- 复现：选「多重涟漪」→ 三个圆叠在一起静止不动；选「脉冲」→ 预览从 0.5 倍开始，复制后粘到项目变成从 1 倍开始。
-- 影响：两种模式预览与产物不一致，用户看到的动效不是最终效果。
-- 方案：页内补 `@keyframes multiPulse`，并让页内 `pulseAnim` 与导出字符串共用同一份定义。
-
-### D-N94 ripple-effect「涟漪色」在脉冲/多重模式被忽略（中，确认源码缺陷）
-
-- 问题：`r/g/b` 只用于点击模式的 `.ripple` 背景；脉冲与多重模式的圆点/圆环全部用背景色 `bg`，`rippleColor` 输入在两个模式下完全无效且无提示。
-- 证据：`tools/design/ripple-effect.html:267-269`（解析 rippleColor）、`:273`（仅 click 用 rgba(r,g,b)）、`:292-294`、`:300`（pulse/multi 全用 `${bg}`）。
-- 复现：背景 `#667eea`、涟漪色 `#ff0000`、类型「脉冲/多重」→ 预览与导出 CSS 中都不出现 `#ff0000`。
-- 影响：参数被静默吞掉，用户反复调色无反馈。
-- 方案：脉冲/多重改用 rippleColor（或按类型禁用该输入并置灰）。
+- 第323批源码 + JSDOM 复核：点击处理已用内联 `position:absolute / border-radius:50% / background:rgba(...)` 创建 span，并调用 Web Animations（`ripple.animate`）驱动 `scale(0)→scale(4)`、`opacity 1→0`，`dur*1000` 后移除；旧缺陷「`className='ripple'` 无样式、`position:static` 挤开文字」在源码中已不成立。
+- 证据：`/tmp/jsdom323.js` 修好版与旧码对照的「点击生成可见圆」项均为 PASS（span 存在、position=absolute、borderRadius=50%、background 非空）；本批设计门禁 330/330。
+- 保留原因：台账 O-4 记录浏览器自动化未捕获到色块或动画，本批未新增真机浏览器视觉复核。按「不可自判收口」原则，视觉效果仍待真机确认，本条不销账。
 
 ### D-N95 ripple-effect 文案称导出 CSS/JS，实际只复制 CSS（中，确认文案与实现不一致）
 
@@ -443,8 +370,8 @@
 
 - 本轮实读 8 页（整份 HTML：内联 JS/CSS 生成逻辑、deep-dive、FAQ 全读）。
 - 新增 27 条：高 2（D-N92、D-N96）/ 中 20 / 低 5。
-- 高优均给出可复现输入：D-N92 点击预览无涟漪（`.ripple` 无样式）；D-N96 8×8 点击命中错位（匹配 65 个元素，`idx` 整体偏移 1）。
-- 同族合并：D-N77 = favicon 两页历史恢复下载，已于第321批修复；D-N83/D-N84 为 initials 独有；D-N86/D-N89 结果区无文本致历史/CSV 恒空，已于第319批修复（与 D-N59 同族，该条已于第320批修复）；D-N91/D-N99 已于第317批修复。
+- 高优均给出可复现输入：D-N92 点击预览无涟漪（旧实现 `.ripple` 无样式，第323批源码复核已不成立、视觉待真机）；D-N96 8×8 点击命中错位（匹配 65 个元素，`idx` 整体偏移 1）。
+- 同族合并：D-N77 = favicon 两页历史恢复下载，已于第321批修复；D-N83 已于第323批核验为过期条目销账、D-N84 已于第323批修复（均为 initials 独有）；D-N86/D-N89 结果区无文本致历史/CSV 恒空，已于第319批修复（与 D-N59 同族，该条已于第320批修复）；D-N91/D-N99 已于第317批修复。
 - 未覆盖：`tools/design` 其余约 44 页（本文件累计覆盖 64/108）。
 - 未做：浏览器交互、EN 运行态探针、移动端、门禁与线上验证；D-N96 的 DOM 命中顺序按标准文档序推演，未开浏览器。
 
