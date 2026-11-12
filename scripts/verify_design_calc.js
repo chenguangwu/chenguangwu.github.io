@@ -2619,6 +2619,12 @@ const CASES = [
   "expect": ["font-family: 'Cormorant Garamond', sans-serif;", "font-weight: 500;"],
   "ref": "setCategory('classic') 切分类后 selectPair(3) 取 FONT_PAIRS.classic[3] = {title:'Cormorant Garamond', body:'Inter', titleWeight:500}，"
      + "标题规则字体名与字重（500，非默认 400/600/700）同时落进 cssOutput。默认态（modern、未选）cssOutput 为空 ⇒ 零交集。"
+},
+{
+  "slug": "design/color-palette",
+  "clicks": ["document.getElementById('__tbProbe').textContent=(hexToRgb('#gggggg')===null&&JSON.stringify(hexToRgb('#667eea'))==='[102,126,234]'?'HEXVAL OK':'BAD '+JSON.stringify(hexToRgb('#gggggg')));"],
+  "expect": ["HEXVAL OK"],
+  "ref": "D-N33：hexToRgb 旧实现只校验长度，parseInt 得 NaN 数组（真值）使调用处 if(rgb) 校验失效 ⇒ 产出 #NaNNaNNaN。修复后加 /^[0-9a-fA-F]{6}$/ 字符校验、非法返回 null。探针断言非法 hex 返回 null 且合法 #667eea 仍正确 ⇒ HEXVAL OK。默认态不生成该哨兵。"
 }
 ];
 

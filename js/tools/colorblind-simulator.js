@@ -637,7 +637,7 @@
       try { url = c.toDataURL('image/png'); }
       catch (e) { toast('导出失败：' + ((e && (e.name || e.message)) || '未知错误')); failed = true; return; }
       $('c3SimImg').src = url;
-      $('c3CmpRight').textContent = TYPE_MAP[k].zh;
+      $('c3CmpRight').textContent = tn(TYPE_MAP[k]);
       buildCompare(k);
     }
     $('c3Pick').addEventListener('change', updateSim);

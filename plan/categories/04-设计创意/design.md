@@ -260,13 +260,6 @@
 - 复现：输入 `#12345`/`#ggg`/`#11223344` → 预览、HEX/RGB/HSL 行、对比度、和声色全部停留在上一个颜色，输入框保留非法串
 - 方案：失败时加 `aria-invalid` + 红框与「HEX 需 3 或 6 位」提示；顺带支持 8 位含透明度
 
-### D-N33 配色生成器 HEX 只校验长度不校验字符，非法字符产出 `#NaNNaNNaN` 色板（中，确认源码缺陷）
-- 描述：`hexToRgb` 用 `parseInt` 但不查 `isNaN`；NaN 数组是真值，输入处理器的 `if(rgb)` 校验形同虚设，最终经 `NaN.toString(16)="NaN"` 拼出非法色值。
-- 证据：`tools/design/color-palette.html:311-316`（无 NaN 校验）、`:318-320`（`padStart(2)` 遇 "NaN" 得 3 字符）、`:513-522`（`if(rgb)` 放过 NaN 数组）
-- 复现：输入 `#gggggg` → 6 个色块 hex 全为 `#NaNNaNNaN`、`background` 样式失效、RGB/HSL 行显示 `NaN`（node 复算：`hexToRgb → [NaN,NaN,NaN]`，`hsl → NaN,NaN,NaN`）
-- 影响：色板整组报废且无报错，用户可能把 `#NaNNaNNaN` 复制进设计稿
-- 方案：`hexToRgb` 增加 `/^[0-9a-fA-F]{3}$|^[0-9a-fA-F]{6}$/` 校验并对 NaN 返回 null；输入框失败时红框提示
-
 ### D-N35 明暗色阶文档称「OKLCH/HSL 推明度、50~900 共 10 档」，实际线性 RGB 且档数随输入（低，确认源码缺陷）
 - 描述：deep-dive 与公式说明两处口径均与实现不符：实现是 `C·(1−t) + 白/黑·t` 的线性 RGB 混合，没有 HSL/OKLCH 明度阶梯，也没有 50/100/…/900 的命名与固定 10 档。
 - 证据：`tools/design/color-shade-generator.html:106-107`（公式即线性混色）、`:225-227`（档数=`steps`，总卡片=`2n+1`）、`:373`（「在 OKLCH/HSL 上推明度梯度」「共 10 档」）、`:376`（「按感知均匀色彩空间推更自然」）
@@ -316,20 +309,6 @@
 - 复现：粘贴 `<svg xmlns="http://www.w3.org/2000/svg" onload="alert(document.domain)"></svg>` → 点「渲染」→ 脚本执行并弹窗；粘贴 `<svg><image href="https://evil.example/x.png"/></svg>` → 页面直接向外部发请求（按 innerHTML/SVG 事件语义推演，未实测）
 - 影响：`tools/design/svg-viewer.html`；从不可信来源复制/下载的 SVG 可在本站源执行脚本、读取 localStorage（收藏与历史）并发起外链请求，属于渲染型注入
 - 方案：改用 `<iframe sandbox>`（不授予 `allow-scripts`）渲染；或 DOMParser 解析后按白名单清洗（移除 `on*`、`script`、`foreignObject`、外部 `href`/`xlink:href`），含脚本/事件属性时明确拒绝
-
-### D-N43 头像生成器从历史恢复时下载上一张旧图且不重绘（中，确认源码缺陷）
-- 描述：历史恢复回调先把记录写回输入框，然后直接调 `downloadImg()`，既没有先 `generate()`，导出也仍取旧 `lastURL`；恢复后预览不更新，并立即触发一次浏览器下载。
-- 证据：`tools/design/avatar-generator.html:439-452`（`:450` 直接 `downloadImg()`）、`:262-357`（只有 `generate()` 刷新 `lastURL` 与预览）、`:359-363`（`downloadImg` 只判断 `lastURL` 非空）
-- 复现：种子 A、大小 80 生成头像 → 改成种子 B 生成（预览与 lastURL 均为 B）→ 在历史里点回 A 的记录 → 输入框显示 A、预览仍是 B，下载落盘的也是 B 的 PNG（期望：按 A 重绘并只在用户点「下载」时导出）
-- 影响：`tools/design/avatar-generator.html`；历史功能静默导出与当前参数不符的文件，且每次恢复都产生一次意外下载
-- 方案：恢复末尾改调 `generate()`；导出保持用户显式触发；恢复期间禁用下载直至重新生成
-
-### D-N44 高级阴影「+ 添加层」后预览与 CSS 不更新（中，确认源码缺陷）
-- 描述：`addLayer()` 只 push 新层并 `renderLayers()`，没有调用 `generate()`；新增层默认参数不会进入预览和 `cssOutput`，直到用户再改任一输入或点「生成」。`removeLayer()` 已调用 `generate()`，二者行为不一致。
-- 证据：`tools/design/shadow-generator-advanced.html:169`（按钮 `onclick="addLayer()"`）、`:273-276`（addLayer 内无 generate）、`:277-282`（removeLayer 有 generate）、`:283-293`（generate 才渲染）
-- 复现：初始 3 层 → 点「+ 添加层」→ 行数变 4，预览与 CSS 仍只有 3 条阴影（期望 4 条）
-- 影响：`tools/design/shadow-generator-advanced.html`；用户以为新增层已生效，复制得到的 CSS 少一层
-- 方案：`addLayer()` 末尾调用 `generate()`，与 `removeLayer` 对齐
 
 ### D-N45 高级阴影清空/负模糊生成 `NaNpx`，整条 box-shadow 失效（中，确认函数缺陷）
 - 描述：每层 x/y/blur/spread 直接 `parseFloat(this.value)`，清空得 `NaN`；alpha 同样 parseFloat 且脚本未使用 `min/max`。`generate()` 不做有限性/范围检查就拼进 CSS。`NaNpx`、`rgba(...,NaN)` 均为非法值，浏览器会丢弃**整条** `box-shadow`（不是只丢一层）。
@@ -407,20 +386,6 @@
 - 复现（node 复算原表达式）：`bx1=-0.5`、其余默认 → `cubic-bezier(-0.5, -0.55, 0.265, 1.55)`（期望拒绝/夹取并提示）；清空 `bx1` → 静默按 0；`bx1` 输入 `1e2` → 100，同样越界
 - 影响：`tools/design/css-animation-generator.html`；预览不动、复制出的 CSS 动画不播放，且没有任何错误提示，用户只会以为浏览器不支持
 - 方案：x1/x2 限定 0–1 并回写输入框，y 允许 -1–2；非法时标红并清空预览/代码，或把越界值 clamp 后明确提示
-
-### D-N56 调色板提取器改排序后导出代码不刷新，复制/下载仍是旧顺序（中，确认源码缺陷）
-- 描述：排序按钮只调用 `sortPalette()` + `renderPalette()`，没有调用 `renderExport()`；导出区文本只在提取、切换格式时重算。用户按色相排序后直接复制/下载，得到的仍是上一次（按频率）的 token 顺序。
-- 证据：`tools/design/palette-extractor.html:996-1006`（排序回调无 `renderExport()`）、`:920-955`（`renderExport()` 才写 `exportCode.textContent`）、`:958-969`（复制/下载直接读 `exportCode.textContent`）
-- 复现：提取后保持默认「按频率」，导出框为频率顺序 → 点「按色相」，色块网格已按色相重排，但导出框/CSS 变量仍按频率顺序 → 直接点「复制代码」得到旧顺序（期望导出与色块同序）
-- 影响：`tools/design/palette-extractor.html`；`--color-1…n` 与界面所见色板对不上，贴进设计系统后命名错位
-- 方案：`sortPalette()` 后同时调用 `renderExport()`；或在 `copyExport()/downloadExport()` 内按当前 `state.palette` 重新生成，避免读缓存文本
-
-### D-N57 图片转 ASCII 点历史记录会自动下载当前结果且不重绘（中，确认源码缺陷）
-- 描述：历史恢复回调设置完输入后调用的是 `downloadResult()`，而不是 `convert()`；既不会按旧参数重新生成，还会立刻触发一次浏览器下载，且下载内容仍是当前输出（不是历史记录对应的字符画）。
-- 证据：`tools/design/image-to-ascii.html:484-498`（`:495` 调 `downloadResult()`）、`:415-424`（`downloadResult` 直接读 `#output`）
-- 复现：上传图 → 宽度 100 转换 → 宽度改成 160 再转换 → 在历史里点回宽度 100 的记录 → 输出区仍显示 160 列结果，同时浏览器下载一份 160 列的 txt（期望按 100 列重绘，且只有用户点「下载」才导出）
-- 影响：`tools/design/image-to-ascii.html`；历史功能不可用并产生意外下载，与 D-N43 同族
-- 方案：历史回调改调 `convert()`；下载保持显式触发，恢复期间禁用下载直至重绘完成
 
 ### D-N58 图片转 ASCII 引据表写 BT.709，正文与实现用 BT.601，页面自相矛盾（低，确认文案与实现不一致）
 - 描述：引据表明确写 `Y = 0.2126 R + 0.7152 G + 0.0722 B（BT.709 权重）`，但公式说明（`:176`）与实现（`:392`）都是 BT.601 的 `0.299/0.587/0.114`；同一页出现两套权重口径。
@@ -797,14 +762,6 @@
 - 影响：同一对颜色在三个区域得到三种结论。
 - 方案：抽一组常量（如 BAD<5 / WARN<10 / GOOD≥10）供三处共用，文案随之调整。
 
-### D-N105 colorblind 切换视觉类型后标签回落中文（低，确认源码缺陷）
-
-- 问题：切换「视觉类型」时把右侧标签硬写为 `TYPE_MAP[k].zh`，未走 `tn()`；初值走 `tn()`，切换后不走。
-- 证据：`js/tools/colorblind-simulator.js:636`（`$('c3CmpRight').textContent = TYPE_MAP[k].zh`）。
-- 复现：`?lang=en-US` 下把下拉从「绿色盲」切到「红色盲」→ 对照条标题显示中文「红色盲」；期望 `Red-blind`。
-- 影响：英文态一致性；属源码直读，未做运行态探针。
-- 方案：改为 `tn(TYPE_MAP[k])`。
-
 ### D-N106 cvd-safe 发散模式亮度曲线与注释/文档相反（高，确认源码缺陷）
 
 - 问题：`L = 0.32 + 0.58 × |2t − 1|` 得到两端最亮（0.90）、中点最暗（0.32），而同一行注释写「中心最亮，两极最暗」，也与发散配色「中间浅、两端深」的常规写法相反；顺序模式（`:454`，`0.90 − 0.58t`）才是浅到深。
@@ -997,14 +954,6 @@
 - 影响：核心卖点缺失，复制出的代码只能塞进已摆好位置的容器。
 - 方案：补位置（四角/顶/底）与动画（slide/fade/scale + 时长）并写进 `position:fixed` 的完整片段；或把描述改为「样式生成」。
 
-### D-N130 toast-generator 消息内容未转义直插 innerHTML（低，确认源码缺陷）
-
-- 问题：`msg` 未转义直接拼进 `#preview.innerHTML` 的模板字符串。
-- 证据：`tools/design/toast-generator.html:281`（模板串 `<span>${msg}</span>`）、`:284`（`innerHTML=__h0`）。
-- 复现：消息内容输入 `<img src=x onerror=alert(1)>` 并触发生成 → 预览区执行脚本（自 XSS，仅影响本页）。
-- 影响：本地工具的自伤型注入；导出的 CSS 不含 msg，不向他人扩散。
-- 方案：`msg` 走 `esc()` 后再插入，或改用 `textContent` 赋值。
-
 ### 留存/优势建议（逐页，具体可落地）
 
 - `colorblind-simulator`：① 图片模式支持拖拽/粘贴与「仅导出当前类型」；② 矩阵旁给「一键把最差一对拉开明度」；③ 记住上次类型/严重度并同步到图片与调色板两个页签。
@@ -1157,14 +1106,6 @@
 - 复现：页面无「复制 CSS」按钮，Ctrl+F「CSS 代码」只命中 `:719`、`:724`、`:731` 三处简介文本。
 - 影响：`tools/design/pixel-art.html` 简介与真实能力不符（与另一页 `pixel-art-generator` 的 D-N98 不同页）。
 - 方案：把简介改为「网格像素绘制、画笔/橡皮/填充/吸管、撤销重做、PNG 导出」，删除 CSS 卖点。
-
-### D-N147 pixel-art 触摸未被 `touchcancel` 收尾，系统手势打断后仍处于绘制态（低，确认源码缺陷）
-
-- 问题：只绑 `touchstart/touchmove/touchend`，未绑 `touchcancel`；触摸被系统手势/来电中断时 `isDrawing` 保持 true。
-- 证据：`tools/design/pixel-art.html:647-649`（触摸绑定）；对照 `tools/design/signature-pad.html:557`（同项目另一页已处理 touchcancel）。
-- 复现：移动端画到一半被系统手势打断（无 touchend）→ 之后若混合设备再收到 `mousemove`，`draw()` 仍会追加点并落笔，产生「鬼画」。
-- 影响：`tools/design/pixel-art.html` 偶发误绘，需重新加载恢复。
-- 方案：补 `canvas.addEventListener('touchcancel', endDraw, {passive:false})`。
 
 ### D-N148 signature-pad 笔宽滑杆与笔迹预设不更新 `strokeWidth` 变量，画笔恒定 3px（高，确认源码缺陷）
 
@@ -1416,14 +1357,6 @@
 - 复现：拖滑杆 5 次或应用 4 个预设 → 历史 tab 空、数据表无行、「导出明细 CSV」只有表头。
 - 影响：历史与导出入口失效。附带：本页无 `#css_border_radiusPresets` 占位 div，`ensureHost` 会回退到 `body` 并把预设条插到页面最顶部（`js/tool-kit.js:1028-1029`）。
 - 方案：ResText 改读 `#cssOutput.value`；同时在正文放 `#css_border_radiusPresets` 占位 div。
-
-### D-N174 tester-assessor 「可学习性」子量表用了第 5 题（sus4），不是第 4 题（sus3）（中，确认源码缺陷）
-
-- 问题：Brooke 的可学习性 = Q4 + Q10；代码取 `sus4`（第 5 题，正向「功能整合得好」）与 `sus9`（第 10 题），标签却写「第4、10题」。改 Q4 不影响子量表，改 Q5 反而影响。
-- 证据：`:210-221`（题目顺序，Q4=索引3、Q5=索引4）、`:269-276`（SUS 计分）、`:335`（learnability 用 sus4）、`:336`（可用性=总分−可学习性）。
-- 复现：默认全 3 分 → 可学习性 10；把 Q4 改成 1 → 页面不变（应 15）；把 Q5 改成 1 → 页面降到 5（不应受影响）。
-- 影响：子量表口径错误，SUS 明细误导可用性诊断。
-- 方案：改用 `sus3`；同步核对「可用性 = 其余 8 题」的推导。
 
 ### D-N175 tester-assessor 历史快照被截到前 12 个输入，SUS 只存 4 题，恢复后结果与记录不符（中，确认源码缺陷）
 
@@ -1722,14 +1655,6 @@
 - 复算说明：平仄字库去重与重叠（172/2043，重叠 118）、示例诗 8 次误标、12 根音大调拼写（6 错）均由 `node -e` 内存复算，未落地任何脚本；isometric 的「无导出」为静态核对（全文无 `<canvas>` / `toDataURL`，仅 FAQ `:206` 提到 Canvas）。
 - 未覆盖：`tools/design/` 其余页面；未做浏览器渲染/交互（含 CSS 等距网格实际视觉、`double` 1px 真机渲染、`?lang=en-US` 探针）、移动端真机、`_build.py`/门禁与线上验证；未改任何源码、未做 git 写操作。
 
-### D-N204 Material 主色明度图表取 400 阶，却标为 500 阶（高，确认源码缺陷）
-
-- 问题：`mc_groups()` 用 `MATERIAL_COLORS[k][4]`（索引 4 = 400 阶）取色，但图表标题、表头和「主色(500)」列都按 500 阶展示；色块区主色用的是 `shades[5]`（500 阶）。同一「主色」在两处给出不同色值与明度。
-- 证据：`tools/design/material-color.html:540`、`:356`、`:549`、`:552-553`
-- 复现：打开「图表/明细表」→ Gray 实际显示 #BDBDBD、明度 51（400 阶）；期望 #9E9E9E、明度 34（500 阶，node 复算 L=0.342）。Red 实际 #EF5350(25)，期望 #F44336(24)。
-- 影响：整张「500 主色明度」表与图表系统性浅一档，按表选主色会偏离规范值；`json`/CSV 派生数据同样错。
-- 方案：`MATERIAL_COLORS[k][4]` 改为 `[5]`（或把列名/标题改成 400）；`:176` 承诺「A100–A700」但页面未收录，二者一并收敛。
-
 ### D-N205 推荐文字色按亮度 0.5 阈值判定，多数主色白字对比度不足 4.5:1（高，确认源码缺陷）
 
 - 问题：`textColor = lum > 0.5 ? '#000' : '#fff'` 用亮度阈值选字色，而不是比较黑/白两方案的实际对比度；明细表 `:551` 又把 `lum>0.5` 写成「白字」，与色块预览正好相反。
@@ -1936,7 +1861,7 @@
 ### 逐页结论
 
 - **color-palette-generator**：默认单色 #0C1A5A→#E9ECFC 五档可复算，字色取 max(CR) 正确；D-N2 已失效（旧 YIQ 已改），D-N3（随机无协调）仍成立。
-- **color-palette**：默认互补五色；#788EED 上白字仅 3.05:1（D-N228）；FAQ 宣称的 WCAG 校验不存在（D-N229）；D-N33（HEX 只校验长度）仍成立。
+- **color-palette**：默认互补五色；#788EED 上白字仅 3.05:1（D-N228）；FAQ 宣称的 WCAG 校验不存在（D-N229）；D-N33（HEX 只校验长度）已于第311批修复。
 - **color-picker**：默认 #4151e1 自洽、白字 6.02:1；#788EED 时「推荐文字色」仍给 #FFF（3.05:1），与同页 WCAG 面板自相矛盾（D-N230）；D-N31/D-N32 仍成立。
 - **color-shade-generator**：默认 11 卡线性混白/黑，公式一致；D-N34/D-N36 已失效，D-N35 部分仍成立（`:148`、`:383` 仍称 HSL/OKLCH 十档）。
 - **color-temperature-converter**：默认 5500K→(255,238,222) 正算可用；D-N17 已失效（已加范围校验），D-N18（轨迹外反查仍返回边界温）仍成立。
@@ -1945,10 +1870,10 @@
 - **cvd-safe-palette**：无默认结果；D-N106（发散亮度方向反，L 两端 0.90、中心 0.32）、D-N107（策略两分支同实现）、D-N108（首色恒 `oklch(.64,.04,0)`）仍成立。
 - **gradient-from-color**：默认 L90→20 五色标，基色 #667eea(L66) 不出现；D-N124/D-N125/D-N126 仍成立。
 - **gradient**：默认相邻色标 1.74:1；新增对比度使 D-N47/D-N48 的 gradient 部分失效（image-color-picker 部分仍成立）；D-N233/D-N234 为新增。
-- **material-color**：常量表正确；主色徽标取 600 阶而图表取 500 阶；D-N204/D-N205 仍成立。
+- **material-color**：常量表正确；主色徽标取 600 阶而图表取 500 阶；D-N204（图表取 400 阶）已于第311批修复，D-N205 仍成立。
 - **mesh-gradient**：默认白字最差 2.04:1，报告正确；D-N59（无 id → 历史/预设/CSV 恒空）仍成立，D-N60 已失效。
 - **palette-cvd-checker**：默认绿盲最小 ΔE00=4.27、判「差」正确；D-N112（OKLCH 分支把 Lab 当 RGB，复算最小距离 0.55 vs 正确 2.14）仍成立。
-- **palette-extractor**：默认 8 色正确；5/10/12 色百分比合计仅 62.5%/62.5%/75.0%（D-N231）；极小/大面积透明图产 #000000 0.0%（D-N232）；D-N56 仍成立。
+- **palette-extractor**：默认 8 色正确；5/10/12 色百分比合计仅 62.5%/62.5%/75.0%（D-N231）；极小/大面积透明图产 #000000 0.0%（D-N232）；D-N56（排序后导出不刷新）已于第311批修复。
 - **tailwind-colors**：数据与 Tailwind v3 一致；43/242 色块文字 <4.5:1（yellow-500 白字 1.92:1），D-N142 仍成立。
 - **image-color-picker**（实际在 `tools/design/`）：取样坐标换算正确；半透明 PNG 按原始 RGB 复制（预览为白底合成）；D-N46/D-N47 仍成立。
 
