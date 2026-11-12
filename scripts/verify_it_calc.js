@@ -13776,6 +13776,18 @@ const CASES = [
     expect: ["TXTDNAN OK"],
     ref: "清单634 强锁：纯文本差异不产生数值；用户文本含独立 NaN / Infinity 字样时必须照常输出差异行。旧实现对整段结果 HTML 做 NaN/Infinity 守卫 ⇒ 整块替换成「无效值」⇒ BAD。探针只在 clicks 内生成，默认态不命中。",
   },
+  {
+    slug: "it/text-cleaner",
+    clicks: ["(function(){document.getElementById('input-text').value='HELLO WORLD';executeClean();var had=document.getElementById('output-text').value;document.getElementById('input-text').value='';executeClean();var out=document.getElementById('output-text').value;var res=document.getElementById('stat-result').textContent;var red=document.getElementById('stat-reduce').textContent;document.getElementById('__tbProbe').textContent=(had.length>0&&out===''&&res==='0'&&red==='0'?'TCLCLEAR OK':'BAD had='+had.length+' out='+out.length+' res='+res+' red='+red);})()"],
+    expect: ["TCLCLEAR OK"],
+    ref: "清单 IT-N18 强锁：先有效输入产生结果，再清空输入执行清理——旧实现只 toast 就 return，结果/统计仍是上次的值 ⇒ BAD；修复后 output 清空、stat-result/reduce 归零 ⇒ OK。探针只在 clicks 内生成。",
+  },
+  {
+    slug: "it/text-cleaner",
+    clicks: ["(function(){document.getElementById('input-text').value='AAAA';document.getElementById('output-text').value='BB';swapText();var inp=document.getElementById('input-text').value;var out=document.getElementById('output-text').value;var res=document.getElementById('stat-result').textContent;var red=document.getElementById('stat-reduce').textContent;var orig=document.getElementById('stat-original').textContent;var ok=(String(inp)==='BB'&&String(out)==='AAAA'&&String(orig)==='2'&&String(res)==='4'&&String(red)==='+2');document.getElementById('__tbProbe').textContent=ok?'TCLSWAP OK':'BAD '+inp+'/'+out+' '+orig+'/'+res+'/'+red;})()"],
+    expect: ["TCLSWAP OK"],
+    ref: "清单 IT-N19 强锁：交换输入/输出后四项统计须全部按新值重算。注入 input='AAAA'(4) / output='BB'(2)；交换后 input='BB'(2) / output='AAAA'(4)，页面口径 reduce=orig-result=2-4=-2 显示 '+2' ⇒ stat-original=2、stat-result=4、stat-reduce='+2'。修复前 stat-reduce 保持交换前的 '-2'（orig-result=4-2=2 显示 '-2'）⇒ 判别红。探针只在 clicks 内生成。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub

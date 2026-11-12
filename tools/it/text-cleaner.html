@@ -519,6 +519,12 @@
   window.executeClean = function() {
     var text = document.getElementById('input-text').value;
     if (!text) {
+      // 空输入：清掉上次结果与统计，避免误复制过期内容（清单 IT-N18）。
+      document.getElementById('output-text').value = '';
+      document.getElementById('stat-result').textContent = '0';
+      document.getElementById('stat-reduce').textContent = '0';
+      document.getElementById('stat-reduce').style.color = 'var(--text-muted)';
+      updateOriginalStat();
       ToolBox.showToast(i18nText('toast.empty_source'), 'warning');
       return;
     }
@@ -660,7 +666,16 @@
     var temp = outputEl.value;
     outputEl.value = inputEl.value;
     inputEl.value = temp;
-    updateOriginalStat();
+    // 交换后四项统计全都要按新输入/新结果重算（旧实现只更新原始字符数，
+    // 「结果」「减少」仍是交换前的值，见清单 IT-N19）。
+    var origLen = inputEl.value.length;
+    var resultLen = outputEl.value.length;
+    var reduce = origLen - resultLen;
+    document.getElementById('stat-original').textContent = origLen;
+    document.getElementById('stat-lines').textContent = inputEl.value ? inputEl.value.split('\n').length : 0;
+    document.getElementById('stat-result').textContent = resultLen;
+    document.getElementById('stat-reduce').textContent = (reduce > 0 ? '-' : '+') + Math.abs(reduce);
+    document.getElementById('stat-reduce').style.color = reduce > 0 ? 'var(--success)' : 'var(--warning)';
     ToolBox.showToast(i18nText('toast.msg156'), 'info');
   };
 

@@ -98,8 +98,8 @@
 
 
 ### 留存优化
-- `tools/it/text-cleaner.html:531-535`：空输入时 `executeClean` 提前返回，上一次结果与统计原样保留，易被误复制；建议清空结果或提示。
-- `tools/it/text-cleaner.html:668-676`：`swapText` 只刷新原始字符数，“结果/减少”统计仍是交换前的值。
+- `tools/it/text-cleaner.html`：空输入残留问题已于第296批修复销账（清空结果与统计）。
+- `tools/it/text-cleaner.html`：swapText 统计不同步已于第296批修复销账（四项统计全量重算）。
 - `tools/it/whitespace.html:227-228`：空文本勾选“确保末尾单个换行”会输出单个 `"\n"`（Node 已复算），建议空文本直接输出空串。
 - `tools/it/text-diff.html:412-421`：没有换行符统一选项，但 352 的 FAQ 建议“先统一换行符再比对”，本页无法完成该前置步骤；`renderUnifiedDiff:552-554` 的相同行只渲染旧文本，忽略大小写/空白时展示与右侧不一致。
 - `tools/it/text-diff.html:304`：统计卡宣称算法为 Myers，实际实现是 LCS 动态规划，文案与实现不一致。
