@@ -4876,6 +4876,18 @@ const CASES = [
     ref: "压缩规则：折叠连续空白（注释复选框默认未勾选，故注释保留）。产物是输入经空白折叠后的改写，删掉输入即不完整。默认样例不含本串。",
   },
   {
+    slug: "it/js-minifier",
+    clicks: ["(function(){var inp=document.getElementById('input');var q=String.fromCharCode(34);document.getElementById('rmWhitespace').checked=true;inp.value='var s='+q+'a  b'+q+';'+String.fromCharCode(10)+'var n=1;';minify();var o=String(document.getElementById('output').value);var ok=o.indexOf(q+'a  b'+q)>=0;document.getElementById('__tbProbe').textContent=ok?'MINSTR OK':'MINSTR BAD';})()"],
+    expect: ["MINSTR OK"],
+    ref: "IT-N420 强锁：字符串字面量内部空白是数据，折叠空白选项不得改写它。输入含 'a  b'（双空格）的字符串，minify 后必须原样保留；旧源码对整段 out 做全局 \\s+→' ' 把字符串改成 'a b' ⇒ MINSTR BAD。探针只在 clicks 内生成。",
+  },
+  {
+    slug: "it/js-minifier",
+    clicks: ["(function(){document.getElementById('output').value='STALE_RESULT_987';resetStats();var v=String(document.getElementById('output').value);document.getElementById('__tbProbe').textContent=(v.indexOf('STALE')<0?'MINRESET OK':'MINRESET BAD');})()"],
+    expect: ["MINRESET OK"],
+    ref: "IT-N421 强锁：输入变化时 resetStats 必须清空旧 output，避免复制/下载读到过期结果。旧源码 resetStats 只重置统计、保留 STALE_RESULT_987 ⇒ MINRESET BAD。探针只在 clicks 内生成。",
+  },
+  {
     slug: "it/plist-parser",
     inputs: { input: '{"a":1}' },
     clicks: ["jsonToPlist()"],
@@ -9106,18 +9118,11 @@ const CASES = [
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\"}，输出区含「1 2 3\n1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
-  {
-    "slug": "it/js-minifier",
-    "inputs": {
-      "input": "1\n2\n3",
-      "output": "1\n2\n3"
-    },
-    "expect": [
-      ");\n0\n0\n0%\n1 2 3",
-      "doubled);\n1 2 3\n0\n0\n0%"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\"}，输出区含「);\n0\n0\n0%\n1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。G06-S1 首屏自跑改变了元素创建序 ⇒ blob 字段序随之改变，expect 容忍新旧两种字段序；判别力不变。"
-  },
+  // IT-N420/421 已移除 it/js-minifier 的旧「自动补强（B类零用例）」：
+  // 旧例的判别锚「1 2 3」来自注入的 output 被保留（正是 IT-N421 修复的 bug：
+  // 输入变化后清 output）。修复后 resetStats 清空 output，锚点恒不存在；loadSample
+  // 载入固定示例、不依赖注入输入，该例已无判别力（固定文案 + 逃生），故删除。
+  // 新判别由 IT-N420（字符串空白保护）与 IT-N421（清旧结果）两条探针用例承担。
   {
     "slug": "it/js-minify",
     "inputs": {

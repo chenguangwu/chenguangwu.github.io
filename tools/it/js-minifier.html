@@ -378,6 +378,14 @@ function minify(){
   const simpNum=document.getElementById('simpNum').checked;
 
   const tokens=tokenize(input);
+  // IT-N420：字符串/正则/注释内部空白是数据，不能被全局空白折叠改写。
+  // 先用私有区占位符保护这些片段，折叠只作用于代码骨架，最后原样还原。
+  const protectedSegs=[];
+  function prot(v){
+    const k='\uE000'+protectedSegs.length+'\uE001';
+    protectedSegs.push(String(v));
+    return k;
+  }
   let out='';
   for(const t of tokens){
     if(t.type==='comment'){
@@ -386,10 +394,10 @@ function minify(){
         if(t.value.startsWith('//'))out+='\n';
         continue;
       }
-      out+=t.value;continue;
+      out+=prot(t.value);continue;
     }
     if(t.type==='string'||t.type==='regex'){
-      out+=t.value;continue;
+      out+=prot(t.value);continue;
     }
     if(t.type==='id'){
       if(simpBool){
@@ -420,6 +428,8 @@ function minify(){
     // 关键字与下一个标识符之间也需要空格（关键字后跟括号是没问题的，但 return xxx 需要）
     out=out.trim();
   }
+  // 还原受保护的 string/regex/comment 片段（内部空白原封不动）
+  out=out.replace(/\uE000(\d+)\uE001/g,function(_,i){return protectedSegs[Number(i)];});
 
   const origLen=input.length;
   const newLen=out.length;
@@ -443,6 +453,8 @@ function copyResult(ev){
 }
 
 function resetStats(){
+  // 输入变化后旧结果已过期：清空输出，避免复制/下载仍读到上次压缩产物。
+  document.getElementById('output').value='';
   document.getElementById('origSize').textContent='0';
   document.getElementById('newSize').textContent='0';
   document.getElementById('rate').textContent='0%';
