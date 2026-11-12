@@ -264,13 +264,6 @@
 
 > 范围：本轮阅读 8 页：`tools/design/button-generator.html`、`tools/design/text-shadow-generator.html`、`tools/design/css-animation-generator.html`、`tools/design/skeleton-loader.html`、`tools/design/palette-extractor.html`、`tools/design/image-to-ascii.html`、`tools/design/mesh-gradient.html`、`tools/design/pattern-generator.html`。仅源码 + node 内存复算，未开浏览器/未做 EN/移动端/门禁验证。
 
-### D-N59 网格渐变的历史/数据表/预设/CSV 恒为空（中，确认源码缺陷）
-- 描述：动态生成的 2–5 个颜色输入框没有 `id`，而历史快照只收集 `input[id]`；同时 `#output` 里的预览块没有文本，`ResText` 判空后直接返回。结果历史从不记录、数据表为空、CSV 导出为空；预设函数本身也是空实现，预设页签无按钮。
-- 证据：`tools/design/mesh-gradient.html:255-258`（`<input type="color" value=…>` 无 id）、`:331-339`（`querySelectorAll('input[id]…)`）、`:396-397`（`if(!keys.length) return`）、`:424-426`（`__mesh_gradientPresets()` 空函数）、`:170`（数据表/历史容器）
-- 复现：改任一颜色或「+ 添加颜色」「随机」→ 切到「历史」页签始终为空；「数据表」与「导出明细 CSV」同样无内容；「预设」页签无按钮（期望记录颜色组合并可回放）
-- 影响：`tools/design/mesh-gradient.html`；三个页签与导出按钮全部形同虚设，用户无法保存/复用调好的配色
-- 方案：给动态色块分配稳定 id（如 `color0…color4`），或让 Snap 直接收集 `#colorRow input` 并把 `colors` 数组序列化进记录；补预设条；`ResText` 改用 `cssOutput` 文本
-
 ### D-N61 三角形与菱形输出相同 CSS（中，2026-11-06 复核 CSS 已不同）
 - 描述：`triangles` 与 `diamonds` 两个分支使用逐字符相同的两条 `linear-gradient(45deg,…)` 模板与相同的 `background-size/position`，选「菱形」得到的仍是三角形平铺图案，六个图案类型里有两个重复。
 - 证据：`tools/design/pattern-generator.html:273`（triangles 模板）、`:281`（diamonds 模板，与 273 相同）
@@ -524,7 +517,7 @@
 - 本轮实读 8 页（整份 HTML：内联 JS/CSS 生成逻辑、deep-dive、FAQ 全读）。
 - 新增 27 条：高 2（D-N92、D-N96）/ 中 20 / 低 5。
 - 高优均给出可复现输入：D-N92 点击预览无涟漪（`.ripple` 无样式）；D-N96 8×8 点击命中错位（匹配 65 个元素，`idx` 整体偏移 1）。
-- 同族合并：D-N77 = favicon 两页历史恢复下载；D-N83/D-N84 为 initials 独有；D-N86/D-N89 结果区无文本致历史/CSV 恒空，已于第319批修复（与 D-N59 同族）；D-N91/D-N99 已于第317批修复。
+- 同族合并：D-N77 = favicon 两页历史恢复下载；D-N83/D-N84 为 initials 独有；D-N86/D-N89 结果区无文本致历史/CSV 恒空，已于第319批修复（与 D-N59 同族，该条已于第320批修复）；D-N91/D-N99 已于第317批修复。
 - 未覆盖：`tools/design` 其余约 44 页（本文件累计覆盖 64/108）。
 - 未做：浏览器交互、EN 运行态探针、移动端、门禁与线上验证；D-N96 的 DOM 命中顺序按标准文档序推演，未开浏览器。
 
@@ -685,7 +678,7 @@
 - 本轮实读 8 页（整份 HTML：内联 JS、`js/tools/colorblind-simulator.js`、deep-dive、FAQ、引据表全读）。
 - 新增 29 条：高 3（D-N106、D-N112、D-N115）/ 中 18 / 低 8。
 - 高优均可复现：D-N106 发散亮度 L=0.90/0.32/0.90（node）；D-N112 「#FFFF33 vs #FFFFFF」ΔE00=29.8 却被记 `oklch=1.1`（node）；D-N115 ISO 6400 + 1/60 的「等效卡」实际 EV 差 +1.06 / +2.06 档（node）。
-- 同族合并：转义标签文本只记 D-N122（另 4 页同行号已在条目列出）；结果区无文本致历史/CSV 恒空记 D-N124（第318批已修，与 D-N59/N89/N91/N99 同族；N89 已于第319批修复）。
+- 同族合并：转义标签文本只记 D-N122（另 4 页同行号已在条目列出）；结果区无文本致历史/CSV 恒空记 D-N124（第318批已修，与 D-N59/N89/N91/N99 同族；N89 已于第319批修复、D-N59 已于第320批修复）。
 - 未覆盖：`tools/design` 其余约 36 页（本文件累计覆盖 72/108）。
 - 未做：浏览器交互、EN 运行态探针、移动端、`run_gates.py` 与线上验证；D-N112/D-N115/D-N106 的数值均为 `node` 按页面同款公式复算，未在页面内实测。
 
@@ -1001,15 +994,6 @@
 - 影响：预设名误导，无法沉淀为可复用规范。
 - 方案：预设按层级生成参数（blur=4/8/12…、y=1/2/4…、透明度递减），随机仅作可选模式。
 
-### D-N170 generator-6 生成数量输入非法/清空时静默回落 5，无提示且键入即重掷（低，确认行为缺陷）
-
-- 问题：`parseInt(value)||5` 把空串、`0`、负数（负数经 max 夹到 1，但 0 直接变 5）都当 5；输入框 min/max 只约束步进器，手输 `0` 仍触发生成 5 条，无任何校验提示。
-- 证据：`:220`（回落逻辑）、`:120`（`oninput="gen()"`）。
-- 复现：清空「生成数量」→ 立刻变成 5 条；输入 `0` → 生成 5 条；期望提示范围 1–50 或保留上次值。
-- 影响：用户以为输入生效，实际条数被静默替换，且每次按键都重掷整批。
-- 第319批复核：数量已补 `Math.min(Math.max(…,1),50)` 钳制且输入框有 min/max，但 `parseInt(value)||5` 与 `oninput="gen()"` 仍在，清空/手输 0 静默回落 5、键入即重掷两条未修 ⇒ 本条仍成立，不予销账。
-- 方案：用 `Number.isFinite` 校验并提示；非法时不清空/不重掷，改用 `change` 触发。
-
 ### D-N172 css-border-radius 关闭「四角联动」后，简单模式唯一滑杆完全失效（中，确认源码缺陷）
 
 - 问题：`updateAll()` 仅在 `linkCorners` 勾选时把 `allRadius` 写入 8 个角；取消勾选后仍调用 `updateRadius()`，后者只读旧的角值。简单模式没有其它可编辑控件，于是滑杆拖动无任何视觉/代码变化。
@@ -1017,13 +1001,6 @@
 - 复现：切到简单模式 → 取消「四角联动」→ 拖动圆角滑杆 20→80 → 预览与 CSS 不变；期望至少作用于四角或提示需切到进阶模式。
 - 影响：用户可见的死控件，误以为工具卡死。
 - 方案：未勾选时禁用滑杆并提示「请切换到进阶模式分角调整」，或仍按统一值更新四角。
-
-### D-N173 css-border-radius 缺预设条占位 div，预设区被插到页面顶部（低，第319批复核后收窄）
-
-- 问题：本页无 `#css_border_radiusPresets` 占位 div，`ensureHost` 会回退到 `body` 并把预设条插到页面最顶部（`js/tool-kit.js:1028-1029`）。
-- 证据：`__css_border_radiusPresets()` 调 `TBKit.preset.bar('#css_border_radiusPresets',…)`，页面内无同 id 元素。
-- 第319批复核：原条目所述「ResText 读 textContent 恒为空、历史/CSV 全空」已失效——现实现按 `isField` 判断后读 `#cssOutput.value`，历史链路已通；D-N155 同族四页已于第319批修复。
-- 方案：在正文结果区附近补 `<div id="css_border_radiusPresets"></div>`，并真机确认预设条位置不破坏既有排版。
 
 ### D-N175 tester-assessor 历史快照被截到前 12 个输入，SUS 只存 4 题，恢复后结果与记录不符（中，确认源码缺陷）
 
@@ -1522,7 +1499,7 @@
 - **gradient-from-color**：默认 L90→20 五色标，基色 #667eea(L66) 不出现；D-N125/D-N126 仍成立，D-N124/D-N127 已于第318批修复。
 - **gradient**：默认相邻色标 1.74:1；新增对比度使 D-N47/D-N48 的 gradient 部分失效（image-color-picker 部分仍成立）；D-N233/D-N234 为新增。
 - **material-color**：常量表正确；主色徽标取 600 阶而图表取 500 阶；D-N204（图表取 400 阶）已于第311批修复，D-N205 仍成立。
-- **mesh-gradient**：默认白字最差 2.04:1，报告正确；D-N59（无 id → 历史/预设/CSV 恒空）仍成立，D-N60 已失效。
+- **mesh-gradient**：默认白字最差 2.04:1，报告正确；D-N59（动态色块无 id → 历史/预设/CSV 恒空）已于第320批修复，D-N60 已失效。
 - **palette-cvd-checker**：默认绿盲最小 ΔE00=4.27、判「差」正确；D-N112（OKLCH 分支把 Lab 当 RGB，复算最小距离 0.55 vs 正确 2.14）仍成立。
 - **palette-extractor**：默认 8 色正确；5/10/12 色百分比合计仅 62.5%/62.5%/75.0%（D-N231）；极小/大面积透明图产 #000000 0.0%（D-N232）；D-N56（排序后导出不刷新）已于第311批修复。
 - **tailwind-colors**：数据与 Tailwind v3 一致；43/242 色块文字 <4.5:1（yellow-500 白字 1.92:1），D-N142 仍成立。

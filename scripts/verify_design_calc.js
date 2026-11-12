@@ -2877,6 +2877,23 @@ const CASES = [
   clicks: ["alert=function(m){document.getElementById('__svg_probe').textContent='ALERT:'+m+'|'+document.getElementById('text').value;};lastURL='SENTINEL_PNG';__aztecParams='OLD|#000000|#ffffff|15';downloadImg();"],
   expect: ["ALERT:参数已变更，请先点击生成再下载|NEW-TEXT"],
   ref: "D-N179-2：旧实现 lastURL/预览只在 generate 时刷新，改文本不点生成直接下载会拿到旧 PNG；修复后生成时记录参数快照，下载前比对当前输入，不一致即拦截并提示。探针同时回显注入文本，expect 依赖输入；旧码直接走 a.click() 不产生 alert ⇒ 强判别。",
+},
+
+// ── 第320批：网格渐变结果区/预设占位/非法数量强锁 ──────────────
+{
+  slug: "design/mesh-gradient",
+  clicks: ["colors=['#123456','#abcdef','#ff0000'];pos=defaultPos(3);generate();document.getElementById('__svg_probe').textContent='RES:'+__mesh_gradientResText();"],
+  expect: ["RES:background-color: #123456; background-image: radial-gradient("],
+  ref: "D-N59：旧 ResText 读只有预览 div 的 #output.textContent 恒返回空串，历史/预设/CSV 全空；修复后改读 #cssOutput.value ⇒ 探针得到含注入首色 #123456 的 CSS 摘要。默认首色 #667eea 不命中，旧码只有 RES: ⇒ 强判别。",
+},
+// 说明：D-N173 的「预设占位 div 是否存在」不写进本门禁——harness 的 getEl 对找不到的 id
+// 会造游离桩，getElementById 恒真，构成假绿逃生。该项由 JSDOM 真机（真实 DOM 解析）单独验证。
+{
+  slug: "design/generator-6",
+  inputs: { cnt: "0" },
+  clicks: ["try{gen();}catch(e){};var h=document.getElementById('cntHint');document.getElementById('__svg_probe').textContent='HINT:'+(h?h.textContent:'无提示位')+'|CNT:'+document.getElementById('cnt').value;"],
+  expect: ["HINT:请输入 1–50 之间的整数|CNT:0"],
+  ref: "D-N170：旧实现 parseInt(value)||5 把 0 静默当成 5 且 oninput 键入即重掷整批；修复后 Number.isInteger+范围校验，非法时给出提示且不重掷，并把触发改为 onchange。探针回显注入的 0，旧码无提示位 ⇒ 强判别。",
 }
 ];
 

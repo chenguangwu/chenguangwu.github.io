@@ -257,7 +257,7 @@ function defaultPos(n){
 function renderColors(){
   const row = document.getElementById('colorRow');
   row.innerHTML = colors.map((c, i) => `
-    <input type="color" value="${c}" oninput="colors[${i}]=this.value;generate()">
+    <input type="color" id="color${i}" value="${c}" oninput="colors[${i}]=this.value;generate()">
     <button type="button" class="btn danger" style="padding:6px 10px;" onclick="removeColor(${i})" ${colors.length<=2?'disabled':''}>×</button>
   `).join('');
 }
@@ -451,9 +451,9 @@ function __mesh_gradientSnap(){
     return out;
 }
 function __mesh_gradientResText(){
-    var r=document.getElementById('output');
+    var r=document.getElementById('cssOutput');
     if(!r) return '';
-    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    var t=(r.value||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
@@ -493,6 +493,14 @@ function __mesh_gradientRender(keys,rk,en){
                     if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
                     else{e.value=rec[k];}
                 }
+                var __restored=[];
+                for(var ci=0;ci<10;ci++){
+                    var cv=rec['color'+ci];
+                    if(typeof cv!=='string'||!/^#[0-9a-f]{6}$/i.test(cv)) break;
+                    __restored.push(cv);
+                }
+                if(__restored.length>=2){ colors=__restored.slice(0,5); }
+                renderColors();
                 generate();
             }catch(e2){}
             __mesh_gradient_skip=false;
@@ -552,6 +560,19 @@ function __mesh_gradientExport(){
 }
 function __mesh_gradientPresets(){
     if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#mesh_gradientPresets',[
+      {label:'默认三色',labelEn:'Default 3 colors',values:{color0:'#667eea',color1:'#764ba2',color2:'#f093fb'}},
+      {label:'暖阳',labelEn:'Warm sunset',values:{color0:'#ff9a9e',color1:'#fecfef',color2:'#f6d365'}},
+      {label:'冷海',labelEn:'Cool ocean',values:{color0:'#4facfe',color1:'#00f2fe',color2:'#43e97b'}}
+    ],function(){
+      var cs=[];
+      for(var i=0;i<3;i++){
+        var e=document.getElementById('color'+i);
+        if(e&&/^#[0-9a-f]{6}$/i.test(e.value)) cs.push(e.value);
+      }
+      if(cs.length>=2){ colors=cs.slice(0,5); renderColors(); }
+      generate();
+    });
 }
 var __mesh_gradient_f0=(typeof generate==='function')?generate:null;
 if(__mesh_gradient_f0){
