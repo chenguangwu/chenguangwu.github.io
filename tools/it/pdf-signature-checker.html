@@ -98,7 +98,7 @@
     <h2 data-zh="✅ PDF 签名检查">✅ PDF Signature Check</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="检查 PDF 文件是否包含数字签名：解析 PDF 内部的 ByteRange 与 Contents 引用，识别签名存在性（不做密码学验证），纯本地解析不上传。">Check PDF digital signatures in your browser — verify signers and integrity locally.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">检测规则：文件头须匹配 %PDF-x.y 模式；正则提取 /ByteRange [偏移 长度 偏移 长度]，签名覆盖长度 = 第 4 参数 − 第 3 参数字节；提取 /Contents 十六进制串；ByteRange 与 Contents 兼具即判定含数字签名（不验证证书链有效性）</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">检测规则：文件头须匹配 %PDF-x.y 模式；正则提取 /ByteRange [偏移 长度 偏移 长度]，签名覆盖长度 = 两段长度之和（第 2 参数 + 第 4 参数）字节；提取 /Contents 十六进制串；ByteRange 与 Contents 兼具即判定含签名结构（不做摘要计算、PKCS#7 解析或证书链验证）</div>
   <div class="formula-desc">检查 PDF 中的数字签名信息。</div>
   <ul class="formula-list">
     <li><b>原理</b>：数字签名基于 PKI，签名者对文档摘要做私钥加密，验证方用证书公钥验签。</li>
@@ -146,14 +146,14 @@
 <h2>📚 深度解析：PDF 签名检查</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>校验 PDF 内嵌 PKCS#7 签名与证书链。</li>
-<li>收到电子合同后先验签：确认签名者证书、签发时间与文档是否被改动，再走盖章归档流程。</li>
+<li>检查 PDF 中的 /ByteRange 与 /Contents 签名结构（不验证 PKCS#7 内容或证书链）。</li>
+<li>收到电子合同后先做结构核查：确认文件含签名结构、查看覆盖字节数，再用专业验签工具核对签名者与完整性。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">检查</div><div class="dd-ex-body">读取签名域，验证摘要一致且证书链到可信根（显示“有效/无效/未知”）。</div></div>
+<div class="dd-example"><div class="dd-ex-title">检查</div><div class="dd-ex-body">读取 /ByteRange 与 /Contents，判断签名结构是否存在，并显示签名区域覆盖字节数；不给出“有效/无效”的密码学结论。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>签名有效=内容未被改？</dt><dd>是，摘要不符会标记篡改。</dd>
-<dt>为什么提示证书不受信？</dt><dd>说明签发该证书的 CA 不在本地信任链中，或证书已过期、已被吊销。数字签名的可信度取决于信任链与吊销状态（OCSP/CRL）两件事，缺一不可。若签名带有<a class="term-link" href="/tools/life/timestamp.html">时间戳</a>，还需验证时间戳本身有效——否则证书过期后签名也会随之失效。</dd>
+<dt>为什么“检测到签名”不等于验签通过？</dt><dd>本工具只用正则查找 /ByteRange 和 /Contents，统计两段覆盖长度，不做摘要计算、PKCS#7 解析或证书链验证；完整验签需用专业 PDF 库。</dd>
+<dt>为什么可能提示未检测到签名？</dt><dd>签名值可能位于对象流、交叉引用流或增量更新中，正则读不到；未命中只代表本页的结构扫描未发现两项标记，不等于文件必然无签名，需用专业 PDF 库复核。</dd>
 </dl>
 </div>
 </section>
@@ -257,13 +257,15 @@ function check(){
   var reader=new FileReader();
   reader.onload=function(e){
     var buf=new Uint8Array(e.target.result);
-    var head='%PDF-'+(buf[5]||'')+'.'+(buf[6]||'');
-    setCell('d_head',head,/^%PDF-\d$/.test(head)?'var(--success)':'var(--danger)');
+    // IT-N315：%PDF-1.7 的前 8 字节本身已是完整版本号，直接取整段再做严格格式校验。
+    var head=String.fromCharCode.apply(null,Array.from(buf.slice(0,8)));
+    setCell('d_head',head,/^%PDF-\d\.\d$/.test(head)?'var(--success)':'var(--danger)');
     var text='';
     for(var i=0;i<buf.length;i++)text+=String.fromCharCode(buf[i]);
     var br=/\/ByteRange\s*\[\s*(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*\]/.exec(text);
     var ct=/\/Contents\s*\[?\s*(<[0-9A-Fa-f\s]+>|\d+)\s*\]?/.exec(text);
-    if(br){setCell('d_br',br[0].replace(/\s+/g,' '),'var(--success)');setCell('d_bytes',(parseInt(br[4],10)-parseInt(br[3],10))+' bytes','var(--success)');}
+    // IT-N316：ByteRange = [offset1 len1 offset2 len2]，覆盖长度是两段长度之和，不是后段长度减起点。
+    if(br){var signedBytes=(BigInt(br[2])+BigInt(br[4])).toString();setCell('d_br',br[0].replace(/\s+/g,' '),'var(--success)');setCell('d_bytes',signedBytes+' bytes','var(--success)');}
     else{setCell('d_br','未找到','var(--danger)');setCell('d_bytes','—');}
     if(ct){setCell('d_ct','已找到（'+ct[1].replace(/\s+/g,'').length+' hex 字符）','var(--success)');}
     else{setCell('d_ct','未找到','var(--danger)');}
@@ -408,8 +410,8 @@ else document.addEventListener('DOMContentLoaded', __pdf_signature_checkerBoot);
 .opt-result-interpret code{background:var(--result-bg,#f6f6f6);padding:1px 5px;border-radius:5px;font-size:12.5px;}</style>
 <section class="opt-result-interpret"><div class="ir-card">
 <h2>📊 结果解读</h2>
-<h3>结果含义</h3><p>PDF 数字签名校验：验证文档自签名后是否被篡改，以及签名证书是否有效/可信。</p>
-<h3>用途</h3><p>用于合同、票据等需防篡改的场景；"有效"表示内容完整且签名可信，"无效/未知"需检查证书链或文档已被修改。本工具在本地校验，不上传文件。</p>
+<h3>结果含义</h3><p>PDF 签名结构检查：判断文档是否包含 ByteRange 与 Contents 两项签名结构，并统计被覆盖的字节范围。</p>
+<h3>用途</h3><p>用于合同、票据等文件的初步结构核查；本工具不给出“有效/无效”密码学结论，也不能替代专业验签。文件仅在本机解析，不上传。</p>
 </div></section>
 <script>/*TBKIT-INJECT-START*/
 (function(){

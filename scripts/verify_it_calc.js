@@ -5968,6 +5968,12 @@ const CASES = [
     clicks: ["var __gp=null;TBKit={preset:{bar:function(h,l,a){__gp=l;}}};__gitignore_generatorPresets();var __ids=['top_py','top_node','top_go','top_rust','top_java','top_dotnet','top_c','top_ide'];var __groups=[['top_node'],['top_py','top_node'],['top_go','top_rust','top_java'],['top_c','top_ide']];var __ok=!!(__gp&&__gp.length===4);if(__ok){__gp.forEach(function(p,i){var v=p.values||{};__ok=__ok&&__ids.every(function(id){return Object.prototype.hasOwnProperty.call(v,id)&&(String(v[id])==='0'||String(v[id])==='1');});__ok=__ok&&__ids.every(function(id){return String(v[id])===((__groups[i].indexOf(id)>=0)?'1':'0');});});}document.getElementById('__tbProbe').textContent='GPRE '+(__ok?'OK':'BAD');"],
     expect: ["GPRE OK"],
     ref: "IT-N271：TBKit.preset.bar 只把 values 列出的键写回控件，旧版除「默认参数」外只列 2~3 个 tech key，且默认参数传 'py'/'node' 等裸字符串（在真实 setValue 语义下全部解释为勾选）⇒ 切换预设叠加旧勾选、默认 8 栈全勾。修复后 4 个预设均显式写全 8 个 checkbox 且值严格为 '0'/'1'，每个预设只勾自己的技术栈。捕获 preset.bar 的第二参数逐项断言，默认态不执行该 clicks，探针串不出现 ⇒ 零逃生。",
+  },
+  {
+    slug: "it/pdf-signature-checker",
+    clicks: ["var s='%PDF-1.7 /ByteRange [0 8000 9000 1200] /Contents <AABB>';var b=new Uint8Array(s.length);for(var i=0;i<s.length;i++)b[i]=s.charCodeAt(i)&255;window.FileReader=function(){this.onload=null;this.readAsArrayBuffer=function(){var ab=b.buffer;if(typeof this.onload==='function')this.onload({target:{result:ab}});};};globalThis.FileReader=window.FileReader;document.getElementById('file').files=[{size:b.length}];check();var h=String(document.getElementById('d_head').textContent||'');var c=String(document.getElementById('d_head').style.color||'');var n=String(document.getElementById('d_bytes').textContent||'');document.getElementById('__tbProbe').textContent='PDFH '+(h==='%PDF-1.7'&&c.indexOf('success')>=0&&n==='9200 bytes'?'OK':'BAD');"],
+    expect: ["PDFH OK"],
+    ref: "IT-N315/N316：旧代码用字节码 buf[5]/buf[6] 拼头（'%PDF-49.46'）且正则只认一位版本 ⇒ 合法 PDF 判红；覆盖长度用 br[4]-br[3] ⇒ 本例 -7800 bytes。修复后取前 8 字节原文并严格匹配 %PDF-x.y，覆盖长度按 ByteRange=[offset1 len1 offset2 len2] 取 len1+len2=8000+1200=9200 bytes（BigInt 防溢出）。probes 默认态不注入文件、不执行 clicks ⇒ 零逃生。",
   },  // —— BATCH284：哈希计算器多算法 / 批量 / 校验分支 + JSON 与 TSV 双向转换 ——
   {
     slug: "it/hash",
