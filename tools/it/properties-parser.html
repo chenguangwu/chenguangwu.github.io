@@ -285,8 +285,18 @@ function parseProps(text){
   }
   return result;
 }
-function unescapeKey(s){ return s.replace(/\\=/g, '=').replace(/\\:/g, ':').replace(/\\ /g, ' ').replace(/\\\\/g, '\\'); }
-function unescapeVal(s){ return s.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\=/g, '=').replace(/\\:/g, ':').replace(/\\\\/g, '\\'); }
+// \uXXXX 是 .properties 标准 Unicode 转义（FAQ 已说明），键与值都须解码。
+// 先把字面双反斜杠换成私有区占位符，避免 \\u4f60 被误当成 \u4f60 解码；
+// 解码 \uXXXX 后再还原占位符为单个反斜杠。
+var __PPPBS = '\uE000';
+function __ppUni(s){
+  s = s.replace(/\\\\/g, __PPPBS);
+  s = s.replace(/\\u([0-9a-fA-F]{4})/g, function(_, h){ return String.fromCharCode(parseInt(h, 16)); });
+  s = s.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\=/g, '=').replace(/\\:/g, ':').replace(/\\ /g, ' ');
+  return s.split(__PPPBS).join('\\');
+}
+function unescapeKey(s){ return __ppUni(s); }
+function unescapeVal(s){ return __ppUni(s); }
 function escapeKey(s){ return s.replace(/\\/g,'\\\\').replace(/=/g,'\\=').replace(/:/g,'\\:'); }
 function escapeVal(s){ return String(s).replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/\t/g,'\\t'); }
 function toProps(obj){

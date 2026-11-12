@@ -13800,6 +13800,12 @@ const CASES = [
     expect: ["SLUGPIN OK"],
     ref: "清单 IT-N16 拼音表拼写纠错：内置映射「音频」须为 yinpin。旧源码误写 'yinpinyin'；因 yinpin 是其子串，不能用子串 expect，改用精确相等探针（result.textContent==='yinpin'）⇒ 旧源码 BAD yinpinyin。探针只在 clicks 内生成。",
   },
+  {
+    slug: "it/properties-parser",
+    clicks: ["(function(){document.getElementById('input').value='greet=\\\\u4f60\\\\u597d';propsToJson();var v=String(document.getElementById('output').textContent);document.getElementById('__tbProbe').textContent=(v.indexOf('你好')>=0&&v.indexOf('\\\\u4f60')<0?'PPUNI OK':'BAD '+v.slice(0,50));})()"],
+    expect: ["PPUNI OK"],
+    ref: "清单：.properties 标准 \\uXXXX 转义须解码（FAQ 已说明）。旧 unescapeVal 不解码 ⇒ 输出字面 \\u4f60\\u597d，PPUNI BAD；修复后输出「你好」。占位符保护双反斜杠，\\\\u4f60 不误解码。探针只在 clicks 内生成。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
