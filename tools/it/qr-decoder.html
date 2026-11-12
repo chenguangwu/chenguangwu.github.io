@@ -251,7 +251,12 @@ function parseWifiFields(body){
   if(key)fields[key]=val;
   return fields;
 }
-function wifiValue(v){return /%[0-9A-Fa-f]{2}|%u[0-9A-Fa-f]{4}/.test(v)?unescape(v):v;}
+function wifiValue(v){
+  // IT-D04: unescape 按 Latin-1 逐字节解码，中文 SSID/密码会变 ä¸­ 乱码；改 UTF-8 百分号解码，并对 %uXXXX 兼容。
+  if(!/%[0-9A-Fa-f]{2}|%u[0-9A-Fa-f]{4}/.test(v)) return v;
+  var s=v.replace(/%u([0-9A-Fa-f]{4})/gi,function(_,h){return String.fromCharCode(parseInt(h,16));});
+  try{ return decodeURIComponent(s); }catch(e){ return unescape(s); }
+}
 var QR_EN=/(?:^|[?&])lang=en/i.test(location.search);
 function decode(text){
   text=text.trim();
@@ -271,10 +276,13 @@ function decode(text){
   }
   // tel
   if(/^tel:/i.test(text)){types.push({type:'电话',fields:{'号码':text.replace(/^tel:/i,'')}});}
-  // sms
+  // sms — IT-D05: 兼容本站生成的 SMSTO:号码:内容 格式（sms-qr / qrcode 预设）
   if(/^sms:/i.test(text)){
     const u=new URL(text);
     types.push({type:'短信',fields:{'号码':u.pathname,'内容':u.searchParams.get('body')||''}});
+  }else if(/^SMSTO:/i.test(text)){
+    const rest=text.slice(6);const c=rest.indexOf(':');
+    types.push({type:'短信',fields:{'号码':c<0?rest:rest.slice(0,c),'内容':c<0?'':rest.slice(c+1)}});
   }
   // geo
   if(/^geo:/i.test(text)){
@@ -329,7 +337,9 @@ function generate(){
   const input=document.getElementById('input').value;
   const out=document.getElementById('output');
   try{
-    const __h1=decode(input);if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;
+    // IT-D07: decode() 返回的是识别结果 HTML 串，正文含独立 NaN/Infinity 属正常载荷，
+    // 旧守卫误把整块结果替换成错误提示。此处不做数值守卫，仅保留 try/catch 兜解析异常。
+    out.innerHTML=decode(input);
   }catch(e){
     out.innerHTML='<p style="color:var(--danger)">⚠ <span data-zh="解析失败，内容格式异常">Failed to parse: malformed content</span>：'+escapeHtml((e&&e.message)||e)+'</p>';
   }

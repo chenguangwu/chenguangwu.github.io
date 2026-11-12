@@ -254,8 +254,17 @@ if(xml.length > 5 * 1024 * 1024){
 try{
   var doc=new DOMParser().parseFromString(xml,'application/xml');
   var err=doc.getElementsByTagName('parsererror');
+  // IT-D20: 合法文档的根元素本身可叫 parsererror（无命名空间），不能误判为格式错误。
+  // 真实解析失败节点带 mozilla parsererror 命名空间；非根节点的 parsererror 也视为错误（兼容 stub DOMParser）。
+  var realErr=null,detail='';
   if(err.length){
-    var detail=err[0].textContent || '';
+    var e0=err[0];
+    var ns=e0.namespaceURI||'';
+    if(/parsererror/i.test(ns) || e0!==doc.documentElement){
+      realErr=e0; detail=e0.textContent||'';
+    }
+  }
+  if(realErr){
     html+='<p style="color:#dc2626;">⚠️ 格式错误'+escH(xmlErrorLoc(detail))+'</p><pre class="code-box" style="white-space:pre-wrap;font-size:12px;color:#dc2626;">'+escH(detail)+'</pre>';
   }
   else{

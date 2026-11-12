@@ -447,15 +447,6 @@
 - 方案：先把 `"…"` / `'…'` / `url(…)` 用占位符替换，压缩完再还原（或写 tokenizer）；去掉对整段 HTML 的 NaN/Infinity 替换。
 - 假工具：否
 
-### IT-N432 短链页「复制」把「短链 + 原始 URL」拼在一起写入剪贴板（中，假功能）
-- 页面：`tools/it/tiny-url.html`
-- 问题：结果区同时渲染两行（`code-row` 短链、`原始 URL: …`，`:280`），`copyResult` 直接取 `#output` 的 `textContent`（`:295`）复制；两个 div 的文本没有分隔符，`textContent` 拼成 `短链原始 URL: 长链`。同时 `writeText(...).then(...)` 没有 `.catch`（`:296`），写入失败时静默无提示。
-- 行号：`:280`、`:294-296`
-- 复现：输入 `https://example.com/a?x=1`，生成后点「复制」→ 剪贴板实际内容 `https://tinyurl.com/AbC123原始 URL: https://example.com/a?x=1`；期望仅 `https://tinyurl.com/AbC123`。真机粘贴到聊天框即可复现。
-- 影响：短链工具的核心动作产出不可直接使用的字符串，用户需手工截断；这也是该页唯一的「出站」路径。
-- 方案：复制 `state` 里保存的短链（或单独 `#shortCode` 元素的文本），并对 `writeText` 补 `.catch` 提示。
-- 假工具：否（页面已声明是「短链效果演示」，非真缩短服务）
-
 ### IT-N433 标准差的数据解析静默丢弃非数字项、并截断半数字符串，n 与结果随之失真（中，确认缺陷）
 - 页面：`tools/it/standard-deviation.html`
 - 问题：`parseData` 用 `parseFloat` + `isNaN` 过滤（`:256`），既不做整串校验也不报错：`abc` 之类整段被丢弃，`12abc` 被截成 `12`，`0x10` 被解析成 `0`；页面照常以「n=…」的确定口吻输出均值/方差/标准差。
@@ -485,21 +476,12 @@
 - 方案：把过滤抽成公共函数对 `num`、`alpha`、`alnum` 的字符池统一应用（`num` 过滤后剩 8 位，需保证长度上限）。
 - 假工具：否
 
-### IT-N436 CSS 属性表把 `vertical-align` 登记了两条（不同分类、不同描述），统计与检索出现重复（中，确认缺陷）
-- 页面：`tools/it/css-properties.html`
-- 问题：`PROPERTIES` 里同名条目出现两次：`:379`（`cat:'文本'`，desc「垂直对齐」）与 `:454`（`cat:'表格'`，desc「表格垂直对齐」），其余字段仅 values 顺序不同。`renderProps` 不去重，`stats` 直接显示 `filtered.length`（`:493`）。
-- 行号：`:379`、`:454`、`:482-493`（核心 `:493`）
-- 复现：页面计数实际显示「共 133 个属性」（去重后为 132）；搜索框输入 `vertical-align` → 实际返回两张同名卡片，分别落在「文本」「表格」两个分类标签下，值为 `baseline, sub, super…` 与 `baseline, top, middle…`；期望只有一条，值表合并。
-- 影响：属性总数与检索结果重复，且同一属性给出两套不同的取值顺序，用户会以为存在两个不同属性。
-- 方案：删除 `:454` 那条（它落在「表格」分类，`vertical-align` 本就属文本/行内对齐），或在渲染前按 `name` 去重。
-- 假工具：否
-
 ### 覆盖清单（V 批 IT 生成/校验/计算）
-- `css-properties`：IT-N436（中）；无高优缺陷（属性值/初始值/继承性抽查未发现错误）。
+- `css-properties`：无高优/中优缺陷（属性值/初始值/继承性抽查正确；IT-N436 vertical-align 重复条目已于第310批修复销账）。
 - `meta-tags-generator`：IT-N428（高）、IT-N429、IT-N430（中）。
 - `sqlite-cheatsheet`：无高优/中优缺陷（命令语法、`.mode`/JSON1/窗口函数示例与版本注记抽查正确；Chart/Table 双视图与检索联动正常）。
 - `standard-deviation`：IT-N433（中）；无高优缺陷（sample/population 公式与 32/7≈4.57、s≈2.138 复算一致）。
-- `tiny-url`：IT-N432（中）；无高优缺陷（随机短码生成与历史去重逻辑正常）。
+- `tiny-url`：无高优/中优缺陷（随机短码生成与历史去重逻辑正常；IT-N432 复制拼接已于第310批修复销账）。
 - `css-minify`：IT-N431（高）。
 - `caa-record-generator`：IT-N434（中）；无高优缺陷（CAA 记录语法、flag 128 关键位、iodef mailto 形式正确）。
 - `captcha-generator`：IT-N435（中）；无高优缺陷（四种类型出题、数学答案校验、大小写归一逻辑正确）。
@@ -588,15 +570,6 @@
 - 方案：扫描时维护字符串/模板字符串/正则状态机，在字符串内跳过 `/*`、`//`。
 - 假工具：否
 
-### IT-N446 块注释结束行被重复计数，默认示例四卡片之和大于总行数（高，确认缺陷）
-- 页面：`tools/it/code-line-counter.html`
-- 问题：`if(inBlock)` 分支先 `comment++`（`:317`），结束块注释后在 `:328` 又按最终判定再计一次；结束行若还带代码，则注释与代码各记一次。
-- 行号：`:317`、`:328`
-- 复现：页面默认示例（`:148-157`）→ 实际 总行 10 / 代码 4 / 注释 6 / 空行 1（合计 11 > 总行 10，注释应为 5，`node` 复刻 `{total:10,code:4,comment:6,blank:1,sum:11}`）；再如 `/* start` / ` middle` / `*/ const a = 1;` → 注释 3、代码 1，合计 4 > 总行 3。
-- 影响：打开页面第一眼的数据就自相矛盾（注释率、代码占比随之失真），用户无法判断该信哪张卡片。
-- 方案：结束行只在统一收口处计一次（删掉 `if(inBlock)` 内的 `comment++`，改记状态）。
-- 假工具：否
-
 ### IT-N447 行中块注释被判为整行注释，行尾 `/* */` 使代码行漏计（中，确认缺陷）
 - 页面：`tools/it/code-line-counter.html`
 - 问题：块注释起点只要 `indexOf('/*')>=0` 就置 `isComment`（`:325`），不检查其前面是否有代码；而行注释只在行首匹配（`:319`），两者口径不一致。
@@ -682,7 +655,7 @@
 - `rich-text-editor`：IT-N437（高，安全）；IT-N438、IT-N439（中）。
 - `morse-decode-advanced`：IT-N440（高，假工具）；IT-N441、IT-N442、IT-N443（中）。
 - `string-obfuscator`：IT-N444（中）；无高优缺陷（全角/ROT13/Base64/`\x` 十六进制/HTML 实体主路径往返核对正确，十六进制对 emoji 按 UTF-8 字节输出无截断）。
-- `code-line-counter`：IT-N445、IT-N446（高）；IT-N447（中）。
+- `code-line-counter`：IT-N445（高）；IT-N447（中）。IT-N446 块注释重复计数已于第310批修复销账。
 - `code-highlighter`：IT-N448、IT-N449（中）；无高优缺陷（token 渲染统一走 `esc()`，`<`/`>`/`&`/`"` 已转义，未发现注入）。
 - `emoji-picker`：IT-N450（中）；无高优缺陷（字符/中文关键词/英文名过滤逻辑本身正确，复制路径无注入）。
 - `code-runner`：IT-N451（高，安全）；IT-N452、IT-N453（中）。
@@ -838,7 +811,7 @@
 
 | 页面 | 真实编码 | 伪实现 | 校验位 | 纠错 | 可扫码 | 结论 / 编号 |
 |---|---|---|---|---|---|---|
-| `tools/it/qrcode.html` | 是（模式分段+RS+掩码+格式信息，复用 `js/qrcode.js`） | 否 | 是（格式信息 BCH + RS 码字） | 是（L/M/Q/H Reed-Solomon） | 是 | **唯一真 QR 编码页**；`:428-435` 调库；表 L 列 v9/v10 错（IT-D02）、默认 Byte 模式（IT-D03）、容量图超限仍标 10（IT-N260） |
+| `tools/it/qrcode.html` | 是（模式分段+RS+掩码+格式信息，复用 `js/qrcode.js`） | 否 | 是（格式信息 BCH + RS 码字） | 是（L/M/Q/H Reed-Solomon） | 是 | **唯一真 QR 编码页**；`:428-435` 调库；默认 Byte 模式（IT-D03）、容量图超限仍标 10（IT-N260）；表 L 列 v9/v10 错（IT-D02）已于第310批修复 |
 | `tools/it/text-qr.html` | 否 | 是 | 无 | 无 | 否 | `:247-267` 固定 29×29，`text` 只作随机种子（IT-N550 高） |
 | `tools/it/qr-decoder.html` | 不适用（不做图像解码） | 否 | 不适用 | 不适用 | 不适用 | `:266-345` 是按前缀解析文本的真实逻辑，不是二维码解码器；`:149`/`:152` 英文与公式误称「图像/摄像头解码」（IT-D06） |
 | `tools/it/barcode-code128.html` | 是（107 符号+Start A/B/C+13 模块 Stop） | 否 | 是（加权 mod 103） | 无（一维码规范无纠错） | 是（静区偏窄） | 唯一直接复用 `js/barcode-lib.js:22-98` 的 1D 页；静区单位错位（IT-D08） |
@@ -851,9 +824,9 @@
 
 ### 逐页结论
 
-- `qrcode.html`：真编码。除 IT-N260（超 V10 一律标 10）外，本批新增两处：数字容量表 L 列 v9/v10 取值错（IT-D02），以及未指定编码模式导致纯数字也走 Byte（IT-D03）。IT-N258 的 UTF-8 问题已由 `:430-432` 修复（`stringToBytes` 已切 UTF-8），可销案。
+- `qrcode.html`：真编码。除 IT-N260（超 V10 一律标 10）外，本批新增两处：数字容量表 L 列 v9/v10 取值错（IT-D02，已于第310批修复），以及未指定编码模式导致纯数字也走 Byte（IT-D03）。IT-N258 的 UTF-8 问题已由 `:430-432` 修复（`stringToBytes` 已切 UTF-8），可销案。
 - `text-qr.html`：假二维码；版本固定 29，`text` 只影响噪点种子（IT-N550）。
-- `qr-decoder.html`：前缀解析逻辑真实（WIFI/mailto/tel/sms/geo/http/vCard/VEVENT），但不是图像解码器；WiFi 百分号解码用 `unescape`（IT-D04）、不识别 `SMSTO:`（IT-D05）、英文/公式误称图像解码（IT-D06）、NaN 守卫误吞结果（IT-D07）。
+- `qr-decoder.html`：前缀解析逻辑真实（WIFI/mailto/tel/sms/geo/http/vCard/VEVENT），但不是图像解码器；英文/公式误称图像解码（IT-D06）。WiFi 百分号解码（IT-D04）、SMSTO 识别（IT-D05）、NaN 守卫误吞（IT-D07）均已于第310批修复。
 - `barcode-code128.html`：编码表/校验/Stop 均正确，是 1D 族唯一直接复用共享库的页；静区按像素计（IT-D08）仍在，空输入回退空格（IT-N125）已修。
 - `barcode-ean.html`：长度与校验位校验已补齐（IT-N73/N84 的旧证据已失效，勿按旧结论返工），但 G 表反相使默认 `6901234567892` 与所有首位 1–9 的码不可扫（IT-D01）。共享库 `js/barcode-lib.js:103-104` 的 EAN_G 是正确的，本页却未加载该库。
 - `barcode-upc.html`：L/R 与保护线正确，默认 `03600029145` 自动补校验位 `2`，结构合法；12 位校验位核对（IT-N128）、空/短输入拒绝（IT-N127）、首位单印左静区（IT-N129）均已修复；本地 `buildUPC` 与共享库重复仍为留存建议。
@@ -869,12 +842,8 @@
 | 页面 | 问题（tools/it/<slug>.html:NN） | 编号 |
 |---|---|---|
 | `tools/it/barcode-ean.html` | G 码表由 L 表逐位反转（`:246`），得到的是标准 G 的反码；`:273` 将其用于左侧第 2–7 位。默认 `6901234567892` 首位 6 → 奇偶 `LGGGLL`，第 3–5 位走错误 G，扫码器无法通过奇偶校验；只有首位 0（`LLLLLL`）不受影响。共享库 `js/barcode-lib.js:103-104` 的 EAN_G 正确，但本页未加载（`tools/it/` 下仅 `barcode-code128.html:28` 引 barcode-lib；另两处为 `tools/biz/barcode-generator.html` 与 `tools/science/barcode-pharmacode.html`）。 | IT-D01 |
-| `tools/it/qrcode.html` | `QR_NUM_CAP.L` 第 9/10 项写成 511/604（`:530`），ISO/IEC 18004 数字模式 L 应为 552/652（v9 数据码字 232、v10 274）；同表 M/Q/H 与 L/M/Q/H 字节列逐项正确，仅 L 列这两格错位，容量速查表给错数。 | IT-D02 |
 | `tools/it/qrcode.html` | `qr.addData(text)` 未传 mode（`:434`），`js/qrcode.js:388` 默认 `Byte`；公式 `:196` 却称「自动选最短」。20 位纯数字按 Byte 需 V2-L（32 字节），按数字模式 V1-L（41 位）即可；大写字母数字同理，版本/模块数被不必要抬高。 | IT-D03 |
-| `tools/it/qr-decoder.html` | `wifiValue`（`:265`）用 `unescape` 解百分号：`unescape('%E4%B8%AD')` 得 `ä¸­`（Latin-1 逐字节），不是 UTF-8 的「中」；中文 SSID/密码显示乱码，用户照抄连不上。应改 `decodeURIComponent`。 | IT-D04 |
-| `tools/it/qr-decoder.html` | 只匹配 `^sms:`（`:285`），而本站 `qrcode.html:217` 预设与 `sms-qr.html:156` 均输出 `SMSTO:号码:内容`；自家生成的短信二维码粘回来被判为「纯文本」，号码/正文都不提取。 | IT-D05 |
 | `tools/it/qr-decoder.html` | `:149` 英文与 `:152` 公式写「Decode QR codes from an image or camera」「从图片中识别并解码二维码」，`:154-157` 还列出定位/采样/RS 纠错；实际控件只有文本框（`:163`），`decode()` `:266-345` 仅按前缀解析，无文件/相机/图像处理，英文态按说明使用必然扑空。 | IT-D06 |
-| `tools/it/qr-decoder.html` | `:342` 的模板 NaN 守卫扫描 `decode()` 返回的、已拼入用户值的 HTML；正文/URL 含独立 `NaN` 或 `Infinity`（如 `mailto:...&body=NaN`、`WIFI:S:NaN;...`）即被替换成「⚠ 计算结果含无效值，请检查输入是否为有效正数」，解析结果整块消失。与第230批已修的短信页 NaN 守卫同型；`email-qr.html:293`、`text-qr.html:280` 同样中招。 | IT-D07 |
 | `tools/it/barcode-code128.html` | 静区单位错位：`:272` 传 `quiet:10`，`js/barcode-lib.js:343` 定义了却从未使用的 `quietModules()`，`:349-351` 把 `quiet` 当像素加在 `bits.length*scale` 两侧；`scale=2` 时仅 5 模块，低于 Code 128 规范 10 模块。同型：EAN/UPC 页 10px≈3.3 模块（规范 9–11），打印/贴标时四周留白不足；SVG 路径同样按 `q*2` 处理。 | IT-D08 |
 
 **统计**
@@ -945,7 +914,7 @@
 |---|---|---|---|
 | `json-formatter.html`（死键 4） | 原生 `JSON.parse` / `JSON.stringify` + 自写递归树渲染；无第三方库 | 美化/压缩/排序/反转义结构往返等价（`{"a":1,"b":"x\"y"}`、3 层嵌套、中文与 ASCII 均等）；缩进 2/4/Tab/0 生效；「转义」对合法 JSON 与「压缩」输出逐字节相同，不生成转义串；「提取」对同段两个对象只返回第一个 | 解析真实、无伪实现；转义名不符实、提取不完整（②） |
 | `yaml-validator.html`（死键 0） | `js-yaml@4.1.0`（jsdelivr CDN，SRI 锁版）`loadAll` | ✅ 多键嵌套、多文档 `---`、锚点/合并键 `<<`、literal/folded 多行块标量、Tab 缩进报错、重复键报错位置准确；⚠ 非字符串键 `2024-01-01:` 被序列化成**本地时区 Date 字符串**作 JSON 键（随 TZ 漂移），`!!binary` 输出 `{"0":104,…}` 索引对象；循环锚点被 `stringify` 捕获并提示 | 解析真实；YAML→JSON 键名/类型失真（①）；CDN 依赖弱网误报见备注 |
-| `xml-validator.html`（死键 0） | 浏览器原生 `DOMParser('application/xml')` | ✅ CDATA、实体转义、200 层嵌套、注释内 `<`、中文标签、重复属性、未闭合标签、未声明命名空间前缀判定均正确；`<!DOCTYPE … SYSTEM>` 实体引用报 `undefined entity`（不取外部实体，XXE 安全）；默认样例根 `note`、4 元素通过；⚠ 合法根元素 `<parsererror>` 被判「格式错误」 | 原生解析无伪；`parsererror` 检测误判（①） |
+| `xml-validator.html`（死键 0） | 浏览器原生 `DOMParser('application/xml')` | ✅ CDATA、实体转义、200 层嵌套、注释内 `<`、中文标签、重复属性、未闭合标签、未声明命名空间前缀判定均正确；`<!DOCTYPE … SYSTEM>` 实体引用报 `undefined entity`（不取外部实体，XXE 安全）；默认样例根 `note`、4 元素通过；合法根元素 `<parsererror>` 误判（IT-D20）已于第310批修复 | 原生解析无伪；无残留缺陷 |
 | `json-to-csv.html`（死键 0） | 原生 `JSON.parse` + 自写 RFC 4180 引号转义 | ✅ `A, B`、`say "hi"`、单元格内换行、嵌套对象串、null/缺失键经 Python `csv` 回读为 4 行×4 列，值逐格一致；⚠ `=1+1`、`@cmd` 原样输出但导出安全路径已加单引号转义 | 序列化正确、无丢列；CSV 公式注入已由 `cellExport` 缓解（③）；IT-N6/N7 已修复（见逐页结论） |
 | `text-diff.html`（死键 0） | 自写 LCS（DP 表）+ 递归回溯；字符级按 `Array.from` 码点切分 | ✅ 2000 行/2 行内差异编辑脚本可精确重建两文本（same+remove=旧、same+add=新）；⚠ 4000 行全不同文本、单行 5000 字符均抛 `RangeError: Maximum call stack size exceeded`，`doDiff` 无 try/catch 兜底 | 算法正确但规模即崩（①）；忽略空白/大小写仅作用于比较、显示保留原文，正确 |
 | `markdown-lint.html`（死键 0） | 纯行正则伪解析（无 CommonMark/remark 解析器） | ✅ 默认样例命中 2 条；⚠ `---` 前置元数据、行首 `*斜体*` 被误报「列表符号后缺空格」；`#标题`（井号后无空格）、行尾空格、未闭合代码块、嵌套列表缩进 MD007 均无检出 | 宣称的 3 项检查未实现 + 误报/漏报（②）；另有 `:120` 畸形 `</div` 备注 |
@@ -967,7 +936,6 @@
 | 页面 | 问题（tools/it/<slug>.html:NN） | 编号 |
 |---|---|---|
 | `tools/it/text-diff.html` | `backtrack` 纯递归无深度上限（`:441-457`），dp 为 O(m×n)；实测 4000 行全不同文本与单行 5000 字符均抛 `RangeError: Maximum call stack size exceeded`，`doDiff`（`:484-532`）无 try/catch，大文本对比直接中断、无结果。 | IT-D19 |
-| `tools/it/xml-validator.html` | 以 `getElementsByTagName('parsererror')`（`:266-271`）判失败，该接口按限定名跨命名空间匹配；合法文档根为 `<parsererror>` 时被误判「格式错误」（jsdom 复算 `<parsererror><msg>valid</msg></parsererror>` → ❌、detail 为 `valid`）。 | IT-D20 |
 | `tools/it/yaml-validator.html` | YAML→JSON 直接 `JSON.stringify`（`:574`）未规范化键/类型：`2024-01-01:` 键输出本地时区 `Date.toString()` 串（实测 `Mon Jan 01 2024 08:00:00 GMT+0800 (中国标准时间)`，随 TZ 变化），`!!binary` 输出 `{"0":104,…}` 索引对象；转换结果不可移植、语义丢失，页面无提示。 | IT-D21 |
 | `tools/it/json-formatter.html` | 「转义」（`:612-623`）对合法 JSON 等于 `JSON.stringify(JSON.parse(x))`，与「压缩」（`:561-571`）输出逐字节相同，不产生可嵌入的转义字符串；仅非法文本走字符串转义，与「反转义」（`:625-638`）不成对，按钮名不符实。 | IT-D22 |
 | `tools/it/json-formatter.html` | 「提取」贪婪匹配 `/\{[\s\S]*\}/`（`:649-667`）从首个 `{` 到全文最后一个 `}` 后自尾截断；实测 `日志: {"a":1} 后续 {"b":2}` 仅得 `{"a":1}`，同段第二个对象不可达，与「从日志/代码片段提取」不符。 | IT-D23 |
@@ -1006,14 +974,13 @@
 - **regex**：默认 `\d+`/`g`/含 123、456、8888、9999 的文本 → 4 条匹配正确；`escapeHtml` 覆盖全部输出（`:547/566/578/602/642`），无 XSS；`:727` 早于 `#rx-worker-src`（`:850`）调用，首屏短暂显示「组件未加载」（IT-N252 的超时部分已修，双跑仍成立）。
 - **regex-cheatsheet**：纯查表；`\A \Z` 与 `[:alpha:]` 两条 params 已标注「JS 不支持」及适用引擎（IT-D30，第170批）；检索/分类/复制逻辑不变。
 - **regex-common**：类别选择器已补齐 8 个 option 并可切换（IT-D27，第169批）；默认 email，8 类均可达，结果与原高亮/偏移明细逻辑不变。
-- **regex-escape**：默认 `Hello (World)? [a-z]+ $19.99` → `Hello \(World\)\? \[a-z\]\+ \$19\.99` 正确；反转义 `\d+\w`→`d+w`（IT-D29）。
+- **regex-escape**：默认 `Hello (World)? [a-z]+ $19.99` → `Hello \(World\)\? \[a-z\]\+ \$19\.99` 正确；反转义 `\d+\w`→`d+w`（IT-D29，已于第310批修复，现保留类转义反斜杠）。
 - **regex-visualizer**：递归下降 AST 树已实装（分支/分组类型/量词/字符类/锚点层级，第171批），默认 `^a[0-9]+b$` 仍输出 10 token / 12 状态线性链作为附加视图；AST 与状态链双路径均经 escapeHtml（IT-N348 回归保持）。
 
 ### 问题清单（新增）
 
 | 编号 | 页面:行 | 级别 | 问题与期望值 |
 |---|---|---|---|
-| IT-D29 | `tools/it/regex-escape.html:310` | 中 | `default: out += n` 丢弃反斜杠：`\d+\w`→`d+w`、`\b`→`b`、`\s`→`s`，反转义后正则语义反转。期望保留 `\d \w \b \s \p{…}` 原样 |
 
 ### 统计
 
@@ -1051,7 +1018,7 @@
 - **pdf-rotate**：真旋转，预览叠加差值、写入绝对角度，回读一致，本轮无缺陷。
 - **pdf-signature-checker**：仅检测签名存在；文件头 `%PDF-49.46` 恒不匹配判红（既有 `it.md:2582`）、字节数算式错（既有 `:2588`）、PKCS#7 验签承诺未实现（既有 `:2593`）。
 - **properties-parser**：核心扫描正确；CRLF/裸 CR 换行已修正（IT-D33，第167批）；`\uXXXX` 不解码（既有 `:140`）、行尾 `\\` 当续行（既有 `:141`）仍留存。
-- **ini-parser**：节/注释/重复键正常；无值键（裸布尔标志）已保留为空串（IT-D40，第168批）；`:` 分隔仍不支持（IT-D39）。
+- **ini-parser**：节/注释/重复键正常；无值键（裸布尔标志）已保留为空串（IT-D40，第168批）；`:` 分隔（IT-D39）已于第310批支持。
 - **curl-parser**：`-d`→POST、选项值消费、输出转义、`--data-urlencode` 百分号编码（IT-D37，第164批）、双引号内 `\"` 反转义（IT-D38，第165批）、反斜杠续行折叠（IT-D31，第166批）均已修到位；本批无其它残留项。
 - **plist-parser**：XML 真解析，dict/array/integer/real/bool 正确；`data`、`date` 原样返回（既有）。
 - **user-agent-parser**：Chrome/Safari/Edge/Firefox/Googlebot 正确；CriOS/FxiOS/Samsung 既有规则已在位（清单旧描述过时）；微信（MicroMessenger/）与百度爬虫（Baiduspider）已补规则（IT-D41，第172批），微信含 Chrome/ 时优先判微信。
@@ -1062,7 +1029,6 @@
 |---|---|---|---|
 | IT-D32 | `tools/office/pdf-merge.html:512,703` | 高 | `loadPageCount` 用 `ignoreEncryption` 使加密文件列为可用；`copyPages` 不解密 → 整体抛错或输出空白，与 `:349,:391`「跳过并提示、不影响其余」矛盾。期望单文件标 error 后 `continue`（node 加载同版本 pdf-lib：正常 2+3 页合并成功，`copyPages` 无加密检查） |
 | IT-D34 | `tools/office/pdf-split.html:568,455-466` | 假 | 宣称「拆分 PDF 为多个小文件」「段数=ceil(总页数/每段页数)」「文件数=段数」，实际无「每段页数」输入且只产出 1 个 PDF |
-| IT-D39 | `tools/it/ini-parser.html:275` | 中 | 只认 `=`：`[s]` + `host: localhost` → `{}`，期望 `{"s":{"host":"localhost"}}`（页面称「= 或 : 分隔」） |
 
 ### 统计
 

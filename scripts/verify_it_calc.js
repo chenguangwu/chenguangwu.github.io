@@ -13836,6 +13836,54 @@ const CASES = [
     expect: ["PCRSTD OK"],
     ref: "清单 D-N89：标准品输入原无 id，__pcr_ct_interpretationSnap()（只取 input[id]）无法捕获 ⇒ 定量标准曲线数据从不入库、回放丢失。修复后标准品输入加 id stdConc<i>/stdCt<i>，快照自动包含。探针调用真实 renderStd() 读其生成的 HTML，断言含 stdConc0/stdCt0/stdConc3/stdCt3 四个 id ⇒ PCRSTD OK（旧源码标准品输入无 id ⇒ 不含 ⇒ 红）。默认态未调 renderStd 的探针态不影响。探针只在 clicks 内生成。",
   },
+  {
+    slug: "it/qrcode",
+    clicks: ["var L=QR_NUM_CAP.L;document.getElementById('__tbProbe').textContent=(L[8]===552&&L[9]===652?'QRNUM OK':'BAD '+L[8]+','+L[9]);"],
+    expect: ["QRNUM OK"],
+    ref: "IT-D02 数字模式 L 级容量表 v9/v10：ISO/IEC 18004 数据码字 v9=232→数字容量 552、v10=274→652。旧表写 511/604（错位到相邻值）。探针直接读顶层 QR_NUM_CAP.L[8]/[9] ⇒ QRNUM OK；默认态不生成该哨兵。",
+  },
+  {
+    slug: "it/qr-decoder",
+    clicks: ["var v=wifiValue('%E4%B8%AD%E6%96%87');document.getElementById('__tbProbe').textContent=(v==='中文'?'WIFICN OK':'BAD '+v);"],
+    expect: ["WIFICN OK"],
+    ref: "IT-D04 WiFi 百分号解码：unescape 按 Latin-1 逐字节解 %E4%B8%AD → ä¸­ 乱码；修复后 decodeURIComponent 得 UTF-8 中文。探针喂 %E4%B8%AD%E6%96%87（中文），断言精等于「中文」⇒ WIFICN OK；默认态不含哨兵。",
+  },
+  {
+    slug: "it/qr-decoder",
+    clicks: ["var v=decode('SMSTO:13800138000:hello world');document.getElementById('__tbProbe').textContent=(v.indexOf('SMSTO')<0&&v.indexOf('13800138000')>=0&&v.indexOf('hello world')>=0&&v.indexOf('短信')>=0?'SMSTO OK':'BAD '+v.slice(0,120));"],
+    expect: ["SMSTO OK"],
+    ref: "IT-D05：本站 qrcode/sms-qr 生成 SMSTO:号码:内容，旧 decode 只认 sms: 前缀 ⇒ 判为纯文本（含「SMSTO」字样）。修复后 SMSTO 分支按首个冒号拆号码/内容并归为短信类。探针断言结果含号码、内容、「短信」且不含裸「SMSTO」⇒ SMSTO OK。",
+  },
+  {
+    slug: "it/qr-decoder",
+    clicks: ["document.getElementById('input').value='WIFI:S:NaN;P:infinity;;';generate();var v=String(document.getElementById('output').innerHTML);document.getElementById('__tbProbe').textContent=(v.indexOf('无效值')<0&&v.indexOf('WiFi 网络')>=0?'NANLOAD OK':'BAD '+v.slice(0,120));"],
+    expect: ["NANLOAD OK"],
+    ref: "IT-D07：正文含独立 NaN/infinity 时旧 generate 的 NaN 守卫把整块解析结果替换成「无效值」错误提示。修复后 decode 返回的是识别结果 HTML，不做数值守卫。探针喂 WiFi S=NaN，断言无「无效值」且含「WiFi 网络」⇒ NANLOAD OK。",
+  },
+  {
+    slug: "it/regex-escape",
+    clicks: ["document.getElementById('input').value='\\\\d+\\\\w\\\\b';unesc();var v=String(document.getElementById('output').value);document.getElementById('__tbProbe').textContent=(v==='\\\\d+\\\\w\\\\b'?'UNESCL OK':'BAD '+v);"],
+    expect: ["UNESCL OK"],
+    ref: "IT-D29 反转义：旧 default 分支 out+=n 吞掉类转义的反斜杠，\\d+\\w\\b → d+w+b；修复后仅元字符(META)去反斜杠、\\d\\w\\b 等类转义保留。探针输入字面 \\d+\\w\\b（JS 串需双反斜杠），断言输出精等于原串 ⇒ UNESCL OK；默认态输出不同。",
+  },
+  {
+    slug: "it/ini-parser",
+    clicks: ["var o=parseIni('[server]\\nhost: localhost');document.getElementById('__tbProbe').textContent=(o&&o.server&&o.server.host==='localhost'?'INICOL OK':'BAD '+JSON.stringify(o));"],
+    expect: ["INICOL OK"],
+    ref: "IT-D39 INI 分隔符：旧 parseIni 只认 '='，'host: localhost' 整行被丢（得空 server 对象）；修复后取 '=' 与 ':' 较早者。探针喂 [server] + host: localhost，断言 o.server.host==='localhost' ⇒ INICOL OK。",
+  },
+  {
+    slug: "it/tiny-url",
+    clicks: ["var el=document.querySelector('#output .code-row');document.getElementById('__tbProbe').textContent=(el?'COPYSEL OK':'BAD no code-row');"],
+    expect: ["COPYSEL OK"],
+    ref: "IT-N432 复制短链：copyResult 从取整个 #output（短链+原始URL拼接）改为只取 #output .code-row。探针断言页面渲染后存在 .code-row 元素（copyResult 取其 textContent）⇒ COPYSEL OK。实际复制内容用 JSDOM 真机另验。",
+  },
+  {
+    slug: "it/code-line-counter",
+    clicks: ["var el=document.getElementById('__tbProbe');document.getElementById('codeInput').value='/* start\\n middle\\n*/ const a = 1;';calcTool();var v=String(document.getElementById('result').innerHTML);el.textContent=(v.indexOf('>3<')>=0&&v.indexOf('>1<')>=0&&v.indexOf('>2<')>=0&&v.indexOf('总行数')>=0&&v.indexOf('注释行')>=0?'CLCN OK':'BAD '+v.slice(0,120));"],
+    expect: ["CLCN OK"],
+    ref: "IT-N446 块注释结束行重复计数：输入 /* start / middle / */ const a = 1;（3 行）。旧实现 inBlock 分支 comment++ + 结束行收口再 comment++ ⇒ 注释 3、代码 1 合计 4>总行 3；修复后中间行计一次、结束行交统一收口 ⇒ 总行3/代码1/注释2 合计=3。探针断言该分配 ⇒ CLCN OK。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
