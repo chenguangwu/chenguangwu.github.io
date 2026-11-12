@@ -1185,7 +1185,7 @@ const CASES = [
       "containerW": "42"
     },
     "expect": [
-      "42\n42\n42\n列数需在 1-12 之间。"
+      "42\n42\nfr\n42\n列数需在 1-12 之间。"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"cols\":\"42\",\"gap\":\"42\",\"containerW\":\"42\"}，输出区含「42\n42\n42\n列数需在 1-12 之间。」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -2337,8 +2337,8 @@ const CASES = [
   {
     slug: "design/px-to-rem",
     inputs: { px: "100", root: "0" },
-    expect: ["根字号必须大于 0，已按 16px 计算"],
-    ref: "根字号为 0 时旧实现静默改成 16 且不说明；现明确提示夹取口径。默认 16 不命中。",
+    expect: ["根字号必须大于 0，请重新输入"],
+    ref: "D-N14：根字号为 0 时旧实现静默改成 16 后继续输出伪结果；现显式提示并清空结果，不再代算。默认 16 不命中。",
   },
   {
     slug: "design/shutter-speed-calculator",
@@ -2625,6 +2625,76 @@ const CASES = [
   "clicks": ["document.getElementById('__tbProbe').textContent=(hexToRgb('#gggggg')===null&&JSON.stringify(hexToRgb('#667eea'))==='[102,126,234]'?'HEXVAL OK':'BAD '+JSON.stringify(hexToRgb('#gggggg')));"],
   "expect": ["HEXVAL OK"],
   "ref": "D-N33：hexToRgb 旧实现只校验长度，parseInt 得 NaN 数组（真值）使调用处 if(rgb) 校验失效 ⇒ 产出 #NaNNaNNaN。修复后加 /^[0-9a-fA-F]{6}$/ 字符校验、非法返回 null。探针断言非法 hex 返回 null 且合法 #667eea 仍正确 ⇒ HEXVAL OK。默认态不生成该哨兵。"
+},
+// ── 第314批：边界校验与输入同步强锁 ─────────────────────────────
+{
+  slug: "design/spacing-scale",
+  inputs: { baseSize: "6", ratio: "1.4", levels: "20" },
+  expect: ["实际生成 15 档"],
+  ref: "D-N13：档位数越界旧实现静默夹到 15 且输入框仍显示 20，也没有任何档数标注；修复后在 CSS 首行标注实际档数并把夹取值回写输入框。默认 10 档不含「实际生成 15 档」⇒ 强判别。",
+},
+{
+  slug: "design/px-to-rem",
+  inputs: { px: "", root: "16" },
+  expect: ["请输入有效的 px 数值与大于 0 的根字号"],
+  ref: "D-N14：px 清空旧实现按 0 算出 0.0000rem；修复后显式拦截空值。默认 16 不含该提示 ⇒ 强判别。",
+},
+{
+  slug: "design/rem-to-px",
+  inputs: { rem: "", root: "16" },
+  expect: ["请输入有效的 rem 数值与大于 0 的根字号"],
+  ref: "D-N14：rem 清空旧实现按 0 算出 0.00px；修复后显式拦截空值。默认 1 不含该提示 ⇒ 强判别。",
+},
+{
+  slug: "design/css-grid-generator",
+  inputs: { cols: "4", coltype: "fixed", gap: "16", containerW: "960" },
+  expect: ["grid-template-columns: repeat(4, 120px)"],
+  ref: "D-N27：旧实现 select 无任何 option，注入 fixed 无效、永远走 fr 分支得 repeat(4, 1fr)；修复后补 fr/fixed/auto 三选项，fixed 分支生成 repeat(4, 120px)。默认 fr 不含该串 ⇒ 强判别。",
+},
+{
+  slug: "design/css-grid-generator",
+  inputs: { cols: "5", coltype: "fr", gap: "16", containerW: "960" },
+  expect: ["&lt;div&gt;3&lt;/div&gt;"],
+  ref: "D-N28：旧实现 HTML 结构硬编码 1、2、cols 三个子项，cols=5 时不含第 3 格；修复后按列数循环生成 1..5。默认 3 列不含第 3 格转义串 ⇒ 强判别。",
+},
+{
+  slug: "design/css-grid-generator",
+  inputs: { cols: "3", gap: "-10", containerW: "960" },
+  expect: ["gap: 0px;"],
+  ref: "D-N29：旧实现负 gap 原样拼出 gap: -10px 与负 padding；修复后 clamp 到 0..80 并回写 ⇒ gap: 0px。默认 gap=16 不含该串 ⇒ 强判别。",
+},
+{
+  slug: "design/color-picker",
+  inputs: { hInput: "400", sInput: "50", lInput: "50" },
+  clicks: ["onHslInput();document.getElementById('formatList').textContent+='|H='+document.getElementById('hInput').value;"],
+  expect: ["H=360"],
+  ref: "D-N31：旧实现 clampInput 把 400 夹成 360 但不回写正在聚焦的输入框，框内仍显示 400；修复后强制回写 ⇒ H=360。默认 234 不含 ⇒ 强判别。",
+},
+{
+  slug: "design/color-picker",
+  inputs: { hexInput: "#11223344" },
+  clicks: ["onHexInput();"],
+  expect: ["rgb(17, 34, 51)"],
+  ref: "D-N32：旧实现 hexToRgb 只接受 3/6 位，8 位 #RRGGBBAA 被判非法、颜色停留默认 #4151e1；修复后支持 8 位并解析 alpha ⇒ rgb(17, 34, 51)。默认态不含 ⇒ 强判别。",
+},
+{
+  slug: "design/shadow-generator-advanced",
+  clicks: ["layers[0].x=NaN;generate();if(document.getElementById('cssOutput').value==='')document.getElementById('cssOutput').value='NANGUARD OK';"],
+  expect: ["NANGUARD OK"],
+  ref: "D-N45：旧实现把 NaN 直接拼进 box-shadow 得 NaNpx，整条声明被浏览器丢弃且无任何提示；修复后有限性守卫清空输出。探针在输出为空时写哨兵 ⇒ NANGUARD OK，旧实现输出非空不写。默认态不含 ⇒ 强判别。",
+},
+{
+  slug: "design/text-shadow-generator",
+  inputs: { blur: "-4" },
+  clicks: ["generate();if(document.getElementById('cssOutput').value==='')document.getElementById('cssOutput').value='BLURGUARD OK';"],
+  expect: ["BLURGUARD OK"],
+  ref: "D-N53：旧实现负 blur 原样拼进 text-shadow 使整条声明失效；修复后 blur 必须为 0..50 有限数，非法清空输出。探针在输出为空时写哨兵 ⇒ BLURGUARD OK，旧实现非空不写。默认 blur=4 不含 ⇒ 强判别。",
+},
+{
+  slug: "design/flexbox-generator",
+  inputs: { gap: "-10" },
+  expect: ["gap: 0px;"],
+  ref: "D-N29 同族：旧实现把负 gap 原样拼进 gap: -10px；修复后 clamp 到 0..80 并回写输入框 ⇒ gap: 0px。默认 gap=12 不含该串 ⇒ 强判别。",
 }
 ];
 

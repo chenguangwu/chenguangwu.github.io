@@ -415,9 +415,10 @@ function rgbToHex(r, g, b){
 }
 
 function hexToRgb(hex){
-  hex = hex.replace('#','');
+  hex = String(hex).trim().replace('#','');
+  if(hex.length === 8 && /^[0-9a-fA-F]{8}$/.test(hex)) hex = hex.slice(0,6);
   if(hex.length === 3) hex = hex.split('').map(c => c+c).join('');
-  if(hex.length !== 6) return null;
+  if(hex.length !== 6 || !/^[0-9a-fA-F]{6}$/.test(hex)) return null;
   const r = parseInt(hex.slice(0,2), 16);
   const g = parseInt(hex.slice(2,4), 16);
   const b = parseInt(hex.slice(4,6), 16);
@@ -564,29 +565,48 @@ function rgbToCmyk(r, g, b){
 }
 
 function onHexInput(){
-  const hex = document.getElementById('hexInput').value;
-  const rgb = hexToRgb(hex);
+  const el = document.getElementById('hexInput');
+  const raw = String(el.value).trim();
+  const eight = /^#?[0-9a-fA-F]{8}$/.test(raw);
+  const rgb = hexToRgb(raw);
   if(rgb){
+    if(eight) state.a = parseInt(raw.replace('#','').slice(6,8),16)/255;
     const [h, s, l] = rgbToHsl(...rgb, true);
     state.h = h; state.s = s; state.l = l;
+    el.removeAttribute('aria-invalid'); el.style.borderColor=''; el.title='';
     update();
+  } else {
+    el.setAttribute('aria-invalid','true'); el.style.borderColor='var(--danger)';
+    el.title='HEX 需为 3、6 或 8 位';
   }
 }
 
 function onHslInput(){
-  state.h = clampInput('hInput', 0, 360);
-  state.s = clampInput('sInput', 0, 100);
-  state.l = clampInput('lInput', 0, 100);
+  const h = clampInput('hInput', 0, 360);
+  const s = clampInput('sInput', 0, 100);
+  const l = clampInput('lInput', 0, 100);
+  if(h === null || s === null || l === null) return;
+  state.h = h; state.s = s; state.l = l;
   update();
 }
 
 function clampInput(id, min, max){
-  const value = Number(document.getElementById(id).value);
-  return Number.isFinite(value) ? Math.min(max, Math.max(min, Math.round(value))) : min;
+  const el = document.getElementById(id);
+  const raw = String(el.value).trim();
+  const value = Number(raw);
+  if(raw === '' || !Number.isFinite(value)){
+    el.setAttribute('aria-invalid','true'); el.style.borderColor='var(--danger)';
+    return null;
+  }
+  const clamped = Math.min(max, Math.max(min, Math.round(value)));
+  if(clamped !== value) el.value = String(clamped);
+  el.removeAttribute('aria-invalid'); el.style.borderColor='';
+  return clamped;
 }
 
 function onRgbInput(){
   const rgb = ['rInput', 'gInput', 'bInput'].map(id => clampInput(id, 0, 255));
+  if(rgb.some(v => v === null)) return;
   const [h, s, l] = rgbToHsl(...rgb, true);
   state.h = h;
   state.s = s;

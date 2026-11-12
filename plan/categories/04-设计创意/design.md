@@ -119,18 +119,6 @@
 - 影响：`tools/design/qr-code-styled.html`；二维码常被用于支付/活动链接，导出旧码会直接指向废弃地址；失败态还可下载更易误导。
 - 方案：文本/尺寸/纠错级别变化即令结果失效并禁用下载；生成失败时清空 `lastURL` 并保持按钮禁用，同时给出容量/纠错建议。
 
-### D-N13 间距比例尺层级/基础值越界被静默截断，输入框不同步（低，确认函数缺陷）
-- 问题：`levels` 被 `Math.max(5, Math.min(15, …))` 静默夹取，`base` 用 `parseInt` 截断小数；生成结果与输入框显示不一致，且无提示。
-- 证据：`tools/design/spacing-scale.html:271-273`（表单 `:168,179` 声明 `min/max`，脚本另行夹取）。复现（node 内存执行原函数）：`levels=3`、base 4、ratio 1.25 → 实际生成 5 档 `4 / 5 / 6.3 / 7.8 / 9.8`，输入框仍显示 3；`levels=20` → 15 档；`base=2.5` → `parseInt` 得 2。
-- 影响：`tools/design/spacing-scale.html`；按错档数生成 token 后复制到设计系统，间距阶梯数量与预期不符。
-- 方案：越界输入即时提示并把夹取后的值回写输入框；`base` 明确整数或支持 0.5 步进；输出区标注实际档数。
-
-### D-N14 px↔rem 转换器对空值/非正根字号静默代入（低，确认函数缺陷）
-- 问题：`px` 空值按 0 参与计算、`root<=0` 直接改成 16 并继续输出，输入框保留原值，页面未提示。
-- 证据：`tools/design/px-to-rem.html:227-232`（输入 `:115,119` 无 `min`）。复现（node 内存执行原函数）：px 清空 → `0px = 0.0000rem`；`root=-8` 或清空 → 结果按 `1rem = 16px` 计算（`16px = 1.0000rem`），而输入框仍为 `-8`/空。`rem-to-px.html:230-235` 为同构代码，同样以 `root<=0 → 16` 兜底。
-- 影响：`tools/design/px-to-rem.html`、`tools/design/rem-to-px.html`；换算基准被悄悄换成 16px，用户照结果改样式会得到非预期尺寸。
-- 方案：空值与 `root<=0` 显示明确错误并清空结果；输入加 `min="1"`；`rem`/`px` 负值同样校验，两个页面共用同一校验逻辑。
-
 ### 留存优化
 - `tools/design/depth-of-field-calculator.html`：补「套用超焦距」按钮（把对焦距离一键设为 h 并展示「近点 X 米 ~ ∞」），并画出近/远点与超焦距的相对位置；景深条目前已存在，只差数据闭环。
 - `tools/design/focal-length-equivalent.html`：画幅对比行文案改为「全画幅 50mm 视角 ≈ 该画幅 31mm」，并删除未使用的 `eqFocal`；提供两画幅并排取景框预览，比单行数字更易选镜头。
@@ -150,12 +138,6 @@
 - 证据：`tools/design/breakpoint-queries.html:274`（模板串），`:276-280`（按 mode 生成 min/max 规则）。node 内存复算：`mode='min'` → 首行 `"桌面优先 */\n"`；`mode='max'` → 同样 `"桌面优先 */\n"`；随后才是 `@media (min-width: 640px) {` 等正确规则。移动优先时注释文案与实际规则相反，且首行是缺少起始 `/*` 的孤立 `*/`，浏览器对该 token 的容错行为未实测。
 - 影响：`tools/design/breakpoint-queries.html`；用户复制到项目后，CSS 首行文案误导协作方，孤立 `*/` 可能被部分工具链判为语法错误或吞掉后续规则。
 - 方案：先求标签再拼接——`let css='/* '+(mode==='min'?'移动优先（Mobile First）':'桌面优先')+' */\n';`；补一条 `mode=min` 的产物首行断言。
-
-### D-N16 字体比例尺只夹下限，基础字号越界/小数/空值静默改写（中，确认函数缺陷）
-- 问题：页面标注基础字号范围 8–48，但脚本只做 `Math.max(8, parseInt(v)||16)`，没有上限夹取，`parseInt` 还会截断小数；空值退回 16、负数变 8，输入框均不回写也不提示。
-- 证据：`tools/design/typography-scale.html:168`（`min="8" max="48"`）与 `:281`（`Math.max(8, parseInt(...)||16)`）、`:285-287`（按 `base * ratio^i` 递推）。node 内存复算：`base=100`、ratio 1.2 → 7 档 `100 / 120 / 144 / 172.8 / 207.4 / 248.8 / 298.6px`（超出页面承诺的 48px 上限）；`base=16.5` → 按 16 起算，最大 `47.8px`，而输入框仍显示 `16.5`；`base=''`、`base=-5` → 分别按 16、8 计算。
-- 影响：`tools/design/typography-scale.html`；设计系统 token 的阶梯数量/字号与输入框显示不一致，越界值还会把预览撑到不可用尺寸。
-- 方案：上下限共用同一常量并夹取后回写输入框；非正整数、空值显式提示并清空结果；输出区标注实际基准字号。
 
 ### D-N18 反向换算对轨迹外颜色仍返回边界色温，冒充「精确 CCT」（低，确认函数缺陷）
 - 问题：`rgbToKelvin()` 只在 1000–12000K 每 100K 采样取最小曼哈顿距离，不判断残差是否可接受；纯蓝、纯黑、纯红等远离黑体轨迹的颜色也会返回一个边界附近的温度。
@@ -227,39 +209,6 @@
 - 影响：静默导出错误文件，且页面无任何「结果已过期」提示；与 D-N22（换图后仍下载旧翻转）同族，但落在新页面
 - 方案：换图时 `lastURL=''` 并清空结果预览；`cx/cy/cw/ch` 的 `input` 事件即失效 `lastURL`；或下载前比对参数快照并提示「请先重新裁剪」
 
-### D-N27 CSS Grid 生成器「列宽方式」下拉框为空，固定/auto 模式不可达（中，确认源码缺陷）
-- 描述：`<select id="coltype">` 标签内无任何 `<option>`，也无脚本填充；取值恒为空串，经 `||'fr'` 回落后永远走 `repeat(n, 1fr)`。`resetForm` 的 `selectedIndex=0` 在空 select 上同样无效。
-- 证据：`tools/design/css-grid-generator.html:136`（空 select）、`:273`（`coltype.value||'fr'`）、`:276-278`（fixed/auto 分支永不可达）、`:305`（selectedIndex 无效）
-- 复现：打开页面 → 下拉框空白不可选；任意列数生成的 CSS 恒为 `grid-template-columns: repeat(3, 1fr)`；全文件检索无 `<option>`
-- 影响：页面简介与公式框（`:118`、`:122-123`）宣称可选「固定 / fr / auto」，实际只有 fr；想生成 `repeat(n, 120px)` 的用户无法完成
-- 方案：补 `fr / fixed / auto` 三个 option 并绑定 `onchange=calcTool()`；`fixed` 的 120px 改为可编辑输入（当前硬编码在 `:276`）
-
-### D-N28 CSS Grid 生成器 HTML 结构恒为 3 个子项，与列数无关（中，确认源码缺陷）
-- 描述：HTML 代码段硬编码 `1、2、cols` 三个子元素，`cols=12` 时仍只给 3 个，且第三个直接写列号 `12`，复制后布局数量与列数不符。
-- 证据：`tools/design/css-grid-generator.html:280`
-- 复现：列数 12 → 「HTML 结构」输出 `<div>1</div><div>2</div><div>12</div>`（3 个），粘贴到 12 列网格只占 3 格；列数 2 时反而输出 1、2、2 三个
-- 影响：复制即用的产物本身就是错的，需用户自行补 9 个 div
-- 方案：按 `for(let i=1;i<=cols;i++)` 生成子项；或只输出 1 个示例 div + 注释「共 n 个」
-
-### D-N29 CSS Grid 生成器 gap 负值/超范围不拦截，生成无效 CSS 与负 padding（低，确认源码缺陷）
-- 描述：`min=0 max=80` 只约束数字输入的 spinner，脚本不做校验；负 gap 直接拼进 `gap` 与 `padding:0 (gap/2)px`，两条声明均非法。
-- 证据：`tools/design/css-grid-generator.html:132`（min/max 属性）、`:273`（无 clamp）、`:279`（`gap: -10px` + `padding: 0 -5px`）、`:283`（预览同样使用负值）
-- 复现：gap=-10 → 输出 `gap: -10px;` 与 `padding: 0 -5px;`，浏览器丢弃 padding 声明，预览与复制代码均失效；gap=500 超过 max=80 仍照用
-- 方案：`gap = Math.max(0, Math.min(80, num('gap')))` 并回写输入框；非法时给错误提示
-
-### D-N31 取色器 H/S/L/RGB 越界或清空静默截断，且不回写输入框（中，确认源码缺陷）
-- 描述：`clampInput` 对非有限值返回 `min`，越界值四舍五入到边界；`update()` 又刻意跳过正在聚焦的输入框回写，导致框内显示值与实际颜色不一致。
-- 证据：`tools/design/color-picker.html:578-581`（onHslInput）、`:584-587`（`clampInput`，非法值→min）、`:504-506`（只回写非 activeElement）、`:589-596`（RGB 同路径）
-- 复现：H 输入 400 → 内部 `state.h=360`（实际色相 0°，红色），输入框仍显示 400；S 输入 -20 → 0；L 清空 → 0（页面立即变纯黑）；RGB 输入 300 → 255 但框内仍 300
-- 影响：所见非所得，用户按框内数值记录设计稿会完全对不上；清空中间态直接黑屏且无提示
-- 方案：非法/越界时拒绝更新并标红提示；确需 clamp 则强制回写该输入框；空值保留上一次有效值
-
-### D-N32 取色器 HEX 非法输入无提示，结果静默停留旧值（低，确认源码缺陷）
-- 描述：`onHexInput` 只在解析成功时更新，失败无 else 分支；`hexToRgb` 仅接受 3/6 位，8 位 `#RRGGBBAA` 也判为非法，用户无从得知输入未被采纳。
-- 证据：`tools/design/color-picker.html:567-575`（无失败分支）、`:428-437`（长度与 NaN 校验）
-- 复现：输入 `#12345`/`#ggg`/`#11223344` → 预览、HEX/RGB/HSL 行、对比度、和声色全部停留在上一个颜色，输入框保留非法串
-- 方案：失败时加 `aria-invalid` + 红框与「HEX 需 3 或 6 位」提示；顺带支持 8 位含透明度
-
 ### D-N35 明暗色阶文档称「OKLCH/HSL 推明度、50~900 共 10 档」，实际线性 RGB 且档数随输入（低，确认源码缺陷）
 - 描述：deep-dive 与公式说明两处口径均与实现不符：实现是 `C·(1−t) + 白/黑·t` 的线性 RGB 混合，没有 HSL/OKLCH 明度阶梯，也没有 50/100/…/900 的命名与固定 10 档。
 - 证据：`tools/design/color-shade-generator.html:106-107`（公式即线性混色）、`:225-227`（档数=`steps`，总卡片=`2n+1`）、`:373`（「在 OKLCH/HSL 上推明度梯度」「共 10 档」）、`:376`（「按感知均匀色彩空间推更自然」）
@@ -297,7 +246,7 @@
 - 复现：静态读源码可见 `:127` 为 `    </div`；预期应为其后的 `</div>` 正常闭合输入行，但实际缺失 `>`（未开浏览器确认渲染差异）
 - 方案：补成 `</div>`；顺带跑一次标签配对检查（同类残缺 end tag 可全站扫一遍）
 
-- 本轮实读 8 页：`color-picker.html`、`color-palette.html`、`color-shade-generator.html`、`vh-vw.html`、`css-grid-generator.html`、`image-cropper.html`、`image-format-converter.html`、`favicon-generator.html`；另略读 `border-radius-generator.html`、`flexbox-generator.html`（后者 gap 负值问题与 D-N29 同族，未单列）。新增 16 条（高 1 / 中 8 / 低 7）。未覆盖：`tools/design` 其余约 86 页（含 gradient / shadow / pattern / avatar / badge / image-color-picker / palette-extractor / image-to-ascii 等尚未阅读）。所有结论均为源码行号 + node 内存复算推演，未做浏览器交互、EN 运行态探针、移动端、门禁与线上验证。
+- 本轮实读 8 页：`color-picker.html`、`color-palette.html`、`color-shade-generator.html`、`vh-vw.html`、`css-grid-generator.html`、`image-cropper.html`、`image-format-converter.html`、`favicon-generator.html`；另略读 `border-radius-generator.html`、`flexbox-generator.html`（后者 gap 负值问题与 D-N29 同族，已于第314批一并修复）。新增 16 条（高 1 / 中 8 / 低 7）。未覆盖：`tools/design` 其余约 86 页（含 gradient / shadow / pattern / avatar / badge / image-color-picker / palette-extractor / image-to-ascii 等尚未阅读）。所有结论均为源码行号 + node 内存复算推演，未做浏览器交互、EN 运行态探针、移动端、门禁与线上验证。
 
 ## 2026-11-04 续查（并行批 L）
 
@@ -309,13 +258,6 @@
 - 复现：粘贴 `<svg xmlns="http://www.w3.org/2000/svg" onload="alert(document.domain)"></svg>` → 点「渲染」→ 脚本执行并弹窗；粘贴 `<svg><image href="https://evil.example/x.png"/></svg>` → 页面直接向外部发请求（按 innerHTML/SVG 事件语义推演，未实测）
 - 影响：`tools/design/svg-viewer.html`；从不可信来源复制/下载的 SVG 可在本站源执行脚本、读取 localStorage（收藏与历史）并发起外链请求，属于渲染型注入
 - 方案：改用 `<iframe sandbox>`（不授予 `allow-scripts`）渲染；或 DOMParser 解析后按白名单清洗（移除 `on*`、`script`、`foreignObject`、外部 `href`/`xlink:href`），含脚本/事件属性时明确拒绝
-
-### D-N45 高级阴影清空/负模糊生成 `NaNpx`，整条 box-shadow 失效（中，确认函数缺陷）
-- 描述：每层 x/y/blur/spread 直接 `parseFloat(this.value)`，清空得 `NaN`；alpha 同样 parseFloat 且脚本未使用 `min/max`。`generate()` 不做有限性/范围检查就拼进 CSS。`NaNpx`、`rgba(...,NaN)` 均为非法值，浏览器会丢弃**整条** `box-shadow`（不是只丢一层）。
-- 证据：`tools/design/shadow-generator-advanced.html:263-268`（oninput 直接 parseFloat，alpha 仅声明 `min=0 max=1`）、`:284-292`（模板拼接并写 `cssText`）
-- 复现（node 复算原表达式）：第 1 层 X 清空 → `box-shadow: NaNpx 4px 20px -4px rgba(0,0,0,0.25), …;`；Alpha 清空 → `rgba(0,0,0,NaN)`；Blur 填 -20 → `-20px` 模糊（规范要求非负，整条声明无效）。期望：提示非法值并停止输出
-- 影响：`tools/design/shadow-generator-advanced.html`；复制到项目后阴影完全消失，页面预览同步失效且无提示
-- 方案：数值入口统一 `Number.isFinite` 校验（blur/spread 负数按规范提示），alpha clamp 到 0–1 并回写输入框；非法时清空输出并提示
 
 ### D-N46 图片取色器忽略 alpha，透明/半透明像素取色与画面所见不一致（中，确认源码缺陷）
 - 描述：预览把图片放在白底容器上显示，但取样 canvas 是透明画布，`getImageData` 只取 `data[0..2]` 丢掉 alpha。半透明像素画面显示的是与白底混合后的颜色，报告值却是未混合的原始通道；全透明像素报告 `#000000`。
@@ -372,13 +314,6 @@
 - 复现（node 复算原表达式）：圆角 `-5`、水平内边距 `-20`、边框 `-1`、阴影模糊 `-20` → 输出 `border-radius: -5px; padding: 10px -20px; border: -1px solid …; box-shadow: 0px 4px -20px …`（期望拒绝并提示）；圆角 `8.5` → 按 8 生成，输入框仍显示 8.5；鼠标移入预览按钮无任何位移/阴影变化（期望看到 `translateY(-2px)` 与阴影变化）
 - 影响：`tools/design/button-generator.html`；复制出的负值声明会被浏览器整条丢弃，且用户在页面上永远看不到 hover 效果，交付前必须自行贴回项目验证
 - 方案：预览按钮加 `.btn-custom` 并把规则写进 `<style>`（不要用 inline cssText），或让 `:hover` 选择器指向 `#previewBtn`；数值统一 clamp/校验后回写，非法时标红并停止输出
-
-### D-N53 文字阴影负模糊生成整条非法声明，预设模式不会因手改参数退出（中，确认源码缺陷）
-- 描述：`blur` 的 `min=0` 只约束 spinner，脚本用 `parseInt(...)||0`，负值原样进入 `text-shadow`；`text-shadow` 的 blur 必须非负，负值会让整条声明失效（不是只丢一层）。同时手动改 X/Y/模糊后 `preset` 下拉仍停在「3D 立体/霓虹」等模式，输出继续按多层生成。
-- 证据：`tools/design/text-shadow-generator.html:288-289`（`parseInt(blur)||0` 直接拼接）、`:290-301`（按 `preset.value` 继续多层分支）、`:161-163`（输入 min/max 未参与脚本）、`:166`（预设 select）
-- 复现（node 复算原表达式）：模糊 `-4` → `text-shadow: 2px 2px -4px #000000`（期望提示并停止）；模糊清空 → `0px` 静默；`2.5` → 按 2 计算而输入框仍 2.5。选「3D 立体」后把 X 从 3 改成 6，下拉仍显示「3D 立体」，输出仍是 5 层而非基础阴影
-- 影响：`tools/design/text-shadow-generator.html`；复制到项目后文字阴影完全不出现；预设状态与产物不一致，用户无法判断当前是否为自定义模式
-- 方案：blur 必须为 0–50 的有限数，非法时清空输出并提示；X/Y/模糊任一被手改时把 `preset` 重置为「自定义」
 
 ### D-N54 CSS 动画自定义 cubic-bezier 的 x 越界不校验，整条 animation 失效（中，确认源码缺陷；浏览器丢弃行为按规范推演）
 - 描述：`getEasingValue()` 对四个控制点统一 `parseFloat(...)||0`，没有检查 x1/x2 必须落在 0–1；输入框 `min=0 max=1` 只约束 spinner，手输负值或 >1 可通过。CSS Easing 规范要求 x 分量在 [0,1]，越界时浏览器丢弃整条 `animation` 声明。
@@ -1862,7 +1797,7 @@
 
 - **color-palette-generator**：默认单色 #0C1A5A→#E9ECFC 五档可复算，字色取 max(CR) 正确；D-N2 已失效（旧 YIQ 已改），D-N3（随机无协调）仍成立。
 - **color-palette**：默认互补五色；#788EED 上白字仅 3.05:1（D-N228）；FAQ 宣称的 WCAG 校验不存在（D-N229）；D-N33（HEX 只校验长度）已于第311批修复。
-- **color-picker**：默认 #4151e1 自洽、白字 6.02:1；#788EED 时「推荐文字色」仍给 #FFF（3.05:1），与同页 WCAG 面板自相矛盾（D-N230）；D-N31/D-N32 仍成立。
+- **color-picker**：默认 #4151e1 自洽、白字 6.02:1；#788EED 时「推荐文字色」仍给 #FFF（3.05:1），与同页 WCAG 面板自相矛盾（D-N230）；D-N31/D-N32 已于第314批修复（越界回写 + HEX 3/6/8 位校验）。
 - **color-shade-generator**：默认 11 卡线性混白/黑，公式一致；D-N34/D-N36 已失效，D-N35 部分仍成立（`:148`、`:383` 仍称 HSL/OKLCH 十档）。
 - **color-temperature-converter**：默认 5500K→(255,238,222) 正算可用；D-N17 已失效（已加范围校验），D-N18（轨迹外反查仍返回边界温）仍成立。
 - **colorblind-simulator**：默认绿盲 #FF6B35→#B9A62F 与 Machado 1.0 手算一致；D-N102（取色器不写回 HEX）仍成立。

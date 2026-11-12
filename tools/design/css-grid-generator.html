@@ -122,7 +122,7 @@
       </div>
       <div>
         <label for="coltype">列宽方式</label>
-        <select id="coltype" style="width:100%;"></select>
+        <select id="coltype" style="width:100%;" onchange="calcTool()"><option value="fr">fr</option><option value="fixed">fixed</option><option value="auto">auto</option></select>
       </div>
     </div>
     <div class="input-row">
@@ -259,14 +259,18 @@ function num(id){const v=parseFloat(document.getElementById(id).value);return is
 function escH(s){var d=document.createElement('div');const __g1=s==null?'':String(s);d.textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
 function fmtMoney(n){return n.toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
-function calcTool(){const cols=Math.floor(num('cols')), gap=num('gap'), ct=document.getElementById('coltype').value||'fr', cw=num('containerW');
+function calcTool(){const cols=Math.floor(num('cols')), gapRaw=num('gap'), ct=document.getElementById('coltype').value||'fr', cw=num('containerW');
+   const gap=Math.max(0,Math.min(80,gapRaw));
+   if(gap!==gapRaw) document.getElementById('gap').value=String(gap);
    if(cols<1||cols>12){ToolBox.setResult('result','<p class="tip-error">列数需在 1-12 之间。</p>');return;}
    let colTpl;
    if(ct==='fixed') colTpl='repeat('+cols+', 120px)';
    else if(ct==='auto') colTpl='repeat('+cols+', auto)';
    else colTpl='repeat('+cols+', 1fr)';
    const css='.grid {\n  display: grid;\n  grid-template-columns: '+colTpl+';\n  gap: '+gap+'px;\n  max-width: '+cw+'px;\n  margin: 0 auto;\n  padding: 0 '+(gap/2)+'px;\n}\n\n.grid > * {\n  min-width: 0;\n}';
-   const htmlCode='<div class="grid">\n  <!-- 每列一个子元素 -->\n  <div>1</div>\n  <div>2</div>\n  <div>'+cols+'</div>\n</div>';
+   let htmlCode='<div class="grid">\n  <!-- 每列一个子元素 -->\n';
+   for(let i=1;i<=cols;i++) htmlCode+='  <div>'+i+'</div>\n';
+   htmlCode+='</div>';
    // 预览
    const colColor=function(i){return 'hsl('+((i*137)%360)+',70%,60%)';};
    let preview='<div style="display:grid;grid-template-columns:'+colTpl+';gap:'+gap+'px;max-width:'+cw+'px;margin:0 auto;">';
