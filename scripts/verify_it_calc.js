@@ -13818,6 +13818,12 @@ const CASES = [
     expect: ["TRUNCEB OK"],
     ref: "清单：chars 模式 fromEnd 分支完全忽略 wordBoundary，与正向不对称。输入 aa bb cc dd(11 字素)、limit=7、省略符 ...(3) ⇒ budget=4，从末尾保留末 4 字素起点落在 cc 词中间(c)。旧实现忽略 wordBoundary ⇒ 输出 ...c dd（切开单词）；修复后对称地把起点推进到下一个词首(dd) ⇒ ...dd，且不超上限。探针精确相等，默认态不含该哨兵。",
   },
+  {
+    slug: "it/url-parser",
+    clicks: ["document.getElementById('b-protocol').value='https:';document.getElementById('b-hostname').value='';document.getElementById('b-pathname').value='/path';var u=buildUrl();var v=String(document.getElementById('builtUrl').textContent);document.getElementById('__tbProbe').textContent=(u===''&&v.indexOf('域名')>=0&&v.indexOf('/path')<0?'URLHOST OK':'BAD '+v);"],
+    expect: ["URLHOST OK"],
+    ref: "清单：URL 构造器域名为空时旧 buildUrl 拼出 https:///path 畸形 URL 且被复制；修复后 host 为空显示双语提示并返回空串（不生成畸形 URL、copyBuiltUrl 不复制）。探针精确判定：返回空串且提示含「域名」且不含 /path ⇒ URLHOST OK。默认态 builtUrl 为 -，不含该哨兵。探针只在 clicks 内生成。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub

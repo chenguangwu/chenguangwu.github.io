@@ -81,7 +81,7 @@
 - `tools/it/list-converter.html:262`：裸 CR 切分已支持（第260批补真机证据）；`map(trim).filter(Boolean)` 仍静默丢弃空项与行首/行尾缩进，需补「保留空项/缩进」开关。
 - `properties-parser.html`：\uXXXX 不解码问题已于第299批修复销账（unescapeKey/Val 统一 __ppUni，占位符保护字面反斜杠）。
 - `properties-parser.html`：行尾双字面反斜杠被误当续行符问题已于第301批修复销账（按行尾连续反斜杠奇偶判定：偶数不续行、奇数才续行；真机双态验证偶数不吞行、奇数仍续行）。
-- `url-parser.html:442-459` 构造器不校验 host/port，host 为空会生成 `https:///path`，端口可写入任意非数字内容。
+- `url-parser.html` 构造器端口范围：host 为空生成 `https:///path` 已于第303批修复（空 host 显示双语提示并返回空串、copyBuiltUrl 不复制）。端口子问题——`b-port` 为 `type=number`，真机原生已挡非数字输入；但 1-65535 范围未校验，脚本注入超范围值仍可构造畸形端口，是否加范围校验待裁断。
 - `slugify.html`：拼音表「音频」拼写错误已于第298批修复销账（yinpinyin→yinpin）；297 的 15 字长键因贪心上限 8（324）永远匹配不到，属冗余数据（清理性质，未处理）。
 - `text-truncate.html`：chars 模式 `fromEnd` 忽略 `wordBoundary` 的不对称问题已于第302批修复销账（反向对称地把词中间起点推进到下一词首，真机四态验证且不超预算）。
 - `case-converter.html:384` `toSentenceCase` 先整体小写，专有名词与缩写（NASA、iOS）会被降格，如需保留应改为逐句首字母处理。
@@ -103,7 +103,7 @@
 - `tools/it/whitespace.html`：空文本输出单个换行问题已于第297批修复销账（top_trail 加非空守卫）。
 - `tools/it/text-diff.html:412-421`：没有换行符统一选项，但 352 的 FAQ 建议“先统一换行符再比对”，本页无法完成该前置步骤；`renderUnifiedDiff:552-554` 的相同行只渲染旧文本，忽略大小写/空白时展示与右侧不一致。
 - `tools/it/text-diff.html:304`：统计卡宣称算法为 Myers，实际实现是 LCS 动态规划，文案与实现不一致。
-- `tools/it/line-ending-converter.html:350-355`：`clearLe` 未清空 `#leViz`，清空后仍残留上一次的换行可视化；`299-305` 主换行符并列时固定优先报 CRLF。
+- `tools/it/line-ending-converter.html`：`clearLe` 未清空 `#leViz` 子问题经第303批真机复核确认已由早前批次修复（清空后回「等待输入」、无残留 mark），销账；`299-305` 主换行符并列时固定优先报 CRLF 仍需裁断口径，保留。
 - `tools/it/list-converter.html:280`：quote 模式用 `\"` 转义双引号，与 FAQ（`201-206`）所述“CSV 双引号写两个”不一致，建议统一或改名。
 - `tools/it/ini-parser.html:321`：`getIndent` 读取不存在的 `#indent`，现为死代码，若被调用会抛错。
 - `tools/it/markdown-to-html.html:291-293`：行内代码先替换再跑粗体/斜体，`` `**x**` `` → `<code><strong>x</strong></code>`（Node 已复算）；`280` 代码块语言只允许字母，`c++`/`c#` 不被保护（Node：blocks 长度 0）；`310` 表格要求行首为 `|`，省略首竖线的 GFM 表格不识别。
