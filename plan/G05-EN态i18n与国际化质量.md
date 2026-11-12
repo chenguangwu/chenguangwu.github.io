@@ -80,3 +80,9 @@
 3. **加门禁**：静态断言 `title-en` 不得为单通用词/`[A-Za-z]+ \d+`/词序错乱三元组；`desc-en` 不得只剩套话；把 `_en_override.json` 与 `slug-en.json` 的差异也纳入校验（两者英文值已出现分叉）。
 4. 完整清单（P1 674 行、P2 36 行、P3 47 行 + 20 页真机结果）见本轮只读产物 `/tmp/en-meta-degenerate.md`，可按需复制到本台账附录。
 
+
+### 中文态残留英文（判据 → 处置）
+- **判据**：中文态（`?lang=` 非 en）可见元素仍显示英文短语，分两类：
+  1. **有 `data-zh`**（构建期英文预渲染 + 中文原文锚）：`tool-i18n.js::restoreAllDataZh()` 须覆盖 `p/h3/th/td/span/label/summary/strong[data-zh]` 纯文本元素；守卫= data-zh 含汉字 + 当前文本无汉字 + 无子元素 + 非 data-i18n。**英文专名**（data-zh 无汉字，如 Christiansen 1942 / GB-T 标准号）按老板口径跳过，不译。
+  2. **无 `data-zh` 的硬编码英文**（如 `Shoe size conversion`、`Harvest Loss Reduction Guide`）：静态扫描约 **4972 处 / 1678 页**，是各工具专属说明表，散落在 i18n/deepdive 源里。改 HTML 会被 build 还原 ⇒ **须改权威源**（`i18n/tools/content_deepdive.json` / `i18n/tools/<ind>-body.json` 等）再 `_build.py`；逐批按分类推进，勿批量正则。
+- **处置铁律**：优先改一处根因 JS（覆盖全站 data-zh 机制），不要逐页改 HTML；无 data-zh 的硬编码英文才逐批改源。新增门禁项须同步 `scripts/gates_manifest.txt`。
