@@ -147,6 +147,13 @@
       <button type="button" class="btn" onclick="clearAll()">清空</button>
       <div style="flex:1;"></div>
       <label style="margin:0;font-size:13px;">
+        字母表
+        <select id="variant" style="padding:6px 10px;font-size:13px;" onchange="renderTable()">
+          <option value="26">26 字母（I/J、U/V 独立）</option>
+          <option value="24">24 字母（I/J、U/V 同码）</option>
+        </select>
+      </label>
+      <label style="margin:0;font-size:13px;">
         模式
         <select id="mode" style="padding:6px 10px;font-size:13px;">
           <option value="ab">a/b 字母</option>
@@ -199,7 +206,7 @@
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>培根码如何隐藏？</dt><dd>用粗细/<a class="term-link" href="/tools/it/case-converter.html">大小写</a>等两种样式代表 A/B，肉眼难察。</dd>
-<dt>24 字母版和 26 字母版有什么区别？</dt><dd>培根原版把 I/J、U/V 各合并为一个符号，共 24 个，正好用 5 位二进制的前 24 个组合覆盖；26 字母版则把剩余两个组合分配给 J 和 V。解密前要确认对方用哪一版，否则 I/J、U/V 会还原错。</dd>
+<dt>24 字母版和 26 字母版有什么区别？</dt><dd>培根原版把 I/J、U/V 各合并为一个符号，共 24 个，占用 5 位二进制的前 24 个组合（00000–10111）；26 字母版把 I/J、U/V 拆开后 K 起整体顺延，Y/Z 使用 11000/11001。解密前要确认对方用哪一版，否则 I/J、U/V 及后续字母会整体错位。</dd>
 </dl>
 </div>
 </section>
@@ -249,51 +256,74 @@
 <script>
 const TABLE = {};
 const REV = {};
-for(let i = 0; i < 26; i++){
-  const code = i.toString(2).padStart(5,'0');
-  const letter = String.fromCharCode(65 + i);
-  TABLE[letter] = code;
-  REV[code] = letter;
+// IT-N152: 24 字母经典版 I/J 同码、U/V 同码（K 起顺延）；26 字母版每位独立。
+function buildTables(variant){
+  for(const k in TABLE) delete TABLE[k];
+  for(const k in REV) delete REV[k];
+  const letters = variant === '24'
+    ? ['A','B','C','D','E','F','G','H','IJ','K','L','M','N','O','P','Q','R','S','T','UV','W','X','Y','Z']
+    : ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
+  letters.forEach((l, i) => {
+    const code = i.toString(2).padStart(5,'0');
+    TABLE[l] = code;
+    REV[code] = l;
+  });
 }
+function getVariant(){ return document.getElementById('variant').value; }
+buildTables('26');
 
 function enc(){
   const text = document.getElementById('input').value.toUpperCase();
   if(!text) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter text to encode":"请输入要编码的文本"));
   const mode = document.getElementById('mode').value;
   const group5 = document.getElementById('group5').checked;
-  let out = '';
+  const variant = getVariant();
+  buildTables(variant);
+  let out = '', ignored = 0;
   for(const ch of text){
-    if(TABLE[ch]){
-      let c = TABLE[ch];
+    // IT-N152: 24 字母版把 J→I、V→U 折叠为同码字母
+    const key = variant === '24' ? (ch === 'J' ? 'IJ' : ch === 'V' ? 'UV' : ch) : ch;
+    if(TABLE[key]){
+      let c = TABLE[key];
       if(mode === 'ab') c = c.replace(/0/g,'a').replace(/1/g,'b');
       else if(mode === 'upper') c = c.replace(/0/g,'A').replace(/1/g,'B');
       out += c;
       out += group5 ? ' ' : '';
+    } else {
+      ignored++;  // IT-N153: 统计被忽略的非字母字符
     }
   }
   document.getElementById('output').value = out.trim();
+  // IT-N153: 提示丢弃数量，避免用户误以为编码器漏字
+  if(ignored && typeof ToolBox!=='undefined' && ToolBox.showToast){
+    const en = (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+    ToolBox.showToast(en ? ('Ignored ' + ignored + ' non-letter character(s)') : ('已忽略 ' + ignored + ' 个非字母字符'));
+  }
 }
 
 function dec(){
   const text = document.getElementById('input').value.trim();
   if(!text) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter Bacon cipher to decode":"请输入要解码的培根码"));
+  buildTables(getVariant());
   let s = text.replace(/[^01abAB]/g,'');
   s = s.toLowerCase().replace(/a/g,'0').replace(/b/g,'1');
   if(s.length % 5 !== 0) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Length must be a multiple of 5":"长度必须为 5 的倍数"));
   let out = '';
   for(let i = 0; i < s.length; i += 5){
     const block = s.substr(i,5);
-    out += REV[block] || '?';
+    const dec = REV[block] || '?';
+    out += (getVariant() === '24' && dec === 'IJ') ? 'I' : (getVariant() === '24' && dec === 'UV') ? 'U' : dec;
   }
   document.getElementById('output').value = out;
 }
 
 function renderTable(){
+  buildTables(getVariant());
   let html = '<table><thead><tr><th>字母</th><th>a/b 编码</th><th>0/1 编码</th><th>字母</th><th>a/b 编码</th><th>0/1 编码</th></tr></thead><tbody>';
   const letters = Object.keys(TABLE);
-  for(let i = 0; i < 26; i += 2){
+  for(let i = 0; i < letters.length; i += 2){
     const l1 = letters[i], c1 = TABLE[l1];
-    const l2 = i + 1 < 26 ? letters[i+1] : '', c2 = l2 ? TABLE[l2] : '';
+    const l2 = i + 1 < letters.length ? letters[i+1] : '', c2 = l2 ? TABLE[l2] : '';
     const a1 = c1.replace(/0/g,'a').replace(/1/g,'b');
     const a2 = c2 ? c2.replace(/0/g,'a').replace(/1/g,'b') : '';
     html += `<tr><td>${l1}</td><td>${a1}</td><td>${c1}</td><td>${l2}</td><td>${a2}</td><td>${c2}</td></tr>`;

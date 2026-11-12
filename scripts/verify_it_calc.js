@@ -4217,6 +4217,20 @@ const CASES = [
     ref: "独立复算：Bacon 密码 A=`aaaaa`(00000)、B=`aaaab`(00001) ⇒ `0000000001`。**必须显式把 mode 设为 enc**（默认 mode 是解码方向，不带则产物不同）。产物是纯 0/1、不含输入字母 ⇒ 非回显。",
   },
   {
+    slug: "it/bacon-cipher",
+    inputs: { input: "K", mode: "01", variant: "24" },
+    clicks: ["enc();document.getElementById('__tbProbe').textContent='BAC24 '+document.getElementById('output').value;"],
+    expect: ["BAC24 01001"],
+    ref: "IT-N152：24 字母经典版 K=01001（I/J 同码、J 不占独立位），旧实现只有 26 字母表时 K=01010。注入 variant=24 ⇒ BAC24 01001；默认 26 版 K=01010 不命中。",
+  },
+  {
+    slug: "it/bacon-cipher",
+    inputs: { input: "abaab", mode: "01", variant: "24" },
+    clicks: ["dec();document.getElementById('__tbProbe').textContent='BACDEC '+document.getElementById('output').value;"],
+    expect: ["BACDEC K"],
+    ref: "IT-N152：24 字母版密文 abaab(=01001) 必须解为 K；旧实现 26 表解为 J ⇒ BACDEC J。默认 26 版不命中。",
+  },
+  {
     slug: "it/atbash-cipher",
     inputs: { input: "ABC" },
     clicks: ["transform()"],
