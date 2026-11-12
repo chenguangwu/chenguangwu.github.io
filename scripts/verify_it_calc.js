@@ -13794,6 +13794,12 @@ const CASES = [
     expect: ["处理后字符数 0"],
     ref: "清单 IT-N20 强锁：空输入 + 勾选「确保末尾单个换行」不得凭空输出 '\\n'（1 字符）。旧实现 out=''.replace(/\\n+$/,'')+'\\n' ⇒ 处理后字符数 1，本例 expect「处理后字符数 0」不命中；修复后仅 out 非空才补换行 ⇒ 0 命中。默认态不勾 trail 且页面已有示例文本，不命中该锚。",
   },
+  {
+    slug: "it/slugify",
+    clicks: ["(function(){document.getElementById('input').value='音频';document.getElementById('mode').value='pinyin';generate();var v=String(document.getElementById('result').textContent);document.getElementById('__tbProbe').textContent=(v==='yinpin'?'SLUGPIN OK':'BAD '+v);})()"],
+    expect: ["SLUGPIN OK"],
+    ref: "清单 IT-N16 拼音表拼写纠错：内置映射「音频」须为 yinpin。旧源码误写 'yinpinyin'；因 yinpin 是其子串，不能用子串 expect，改用精确相等探针（result.textContent==='yinpin'）⇒ 旧源码 BAD yinpinyin。探针只在 clicks 内生成。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
