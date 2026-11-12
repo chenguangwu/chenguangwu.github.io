@@ -99,6 +99,7 @@
 
 
 ### 留存优化
+- `tools/it/list-converter.html:262`：裸 CR 切分已支持（第260批补真机证据）；`map(trim).filter(Boolean)` 仍静默丢弃空项与行首/行尾缩进，需补「保留空项/缩进」开关。
 - `properties-parser.html:298` 的 `unescapeVal` 不解码 `\uXXXX`：`greet=\u4f60\u597d` 原样保留（Node 已复算），与页面 FAQ 对转义的说明不一致。
 - `properties-parser.html:265` 行尾 `\\`（字面反斜杠）也被当作续行：`path=C:\\` + 下一行 → `{"path":"C:\next=1"}`，需区分“单个反斜杠续行 / 双反斜杠字面量”。
 - `url-parser.html:442-459` 构造器不校验 host/port，host 为空会生成 `https:///path`，端口可写入任意非数字内容。
@@ -115,11 +116,7 @@
 
 
 
-### IT-N30 裸 CR 不切分、强制 trim 静默丢空项与缩进（低，部分修复）
-- 描述：输入只按 `/\r?\n/` 切分，旧 Mac 的单独 `\r` 不识别；随后统一 `trim()` 并 `filter(Boolean)`，缩进、空字段被静默去掉。
-- 证据：`tools/it/list-converter.html:272-290`（273 切分/清洗、280 quote、283 csv）。Node 复算：`a\rb`、comma 模式 → 单条 `a\rb`（未按 CR 切分）；`"  a  \n\nb "` → `["a","b"]`，结果 `a, b`。
-- 影响：`tools/it/list-converter.html`；混合换行文件被当成一项；需要空字段或缩进的列表无法原样转换。
-- 修复（换行切分）：`convert()` 改用 `/\r\n|\r|\n/` 切分，裸 `\r` 现在被识别为多行；verify 新增 N30 回归用例（`a\rb\nc` → 断言 `a, b, c`），list-converter 全过。trim/filter 静默丢空项与缩进的部分保留为留存项（需“保留空项/缩进”开关，未实现）。
+
 
 ### 留存优化
 - `tools/it/text-cleaner.html:531-535`：空输入时 `executeClean` 提前返回，上一次结果与统计原样保留，易被误复制；建议清空结果或提示。
@@ -147,8 +144,7 @@
 
 > 范围：本轮阅读 8 页（`tools/it/time-format-converter.html`、`tools/it/timestamp-converter.html`、`tools/it/color-converter.html`、`tools/it/integer-base-converter.html`、`tools/it/chmod-calculator.html`、`tools/it/crontab-generator.html`、`tools/it/ipv6-converter.html`、`tools/it/crc-calculator.html`）。仅源码 + Node 复算，未开浏览器/未做 EN/移动端/门禁验证。
 
-### IT-N54 CRC-8/ITU 的 CCITT 别名待核实（疑似待验证）
-- `tools/it/crc-calculator.html:330` 将模型标为 `CRC-8/ITU (CCITT)`；[CRC RevEng 参数目录](https://reveng.sourceforge.io/crc-catalogue/1-15.htm#crc.cat.crc-8-i-432-1) 列出该参数模型为 `CRC-8/I-432-1`，别名为 `CRC-8/ITU`，未列 CCITT。需核实 CCITT 别名的权威依据，避免与其他 CRC 模型混淆。
+
 
 - 本轮实读 8 页：`tools/it/time-format-converter.html`、`tools/it/timestamp-converter.html`、`tools/it/color-converter.html`、`tools/it/integer-base-converter.html`、`tools/it/chmod-calculator.html`、`tools/it/crontab-generator.html`、`tools/it/ipv6-converter.html`、`tools/it/crc-calculator.html`；新增 16 条（高 3 / 中 10 / 低 3）；未覆盖：`tools/it` 其余非文本页（如 `regex-escape`、`css-minifier`、`html-minifier`、`date-duration`、`ipv4-range-expander`、`punycode`、`user-agent-parser` 等）与全部速查表页；未做浏览器、EN、移动端、门禁或部署验证。
 
@@ -191,12 +187,7 @@
 
 - 留存建议（http-headers）：①增加"请求/响应/通用"方向过滤与 CORS/缓存/安全三组场景预设；②每条支持复制 curl/Node/fetch 片段（当前仅复制单行示例）；③补 Cache-Control/HSTS/CSP 后提供"安全响应头基线"清单。
 
-### IT-N109 MIME 类型速查表：个别映射过时/分类不当（低，确认源码缺陷）
-- 问题：`.exe` 给 `application/x-msdownload`（IANA 已注册 `application/vnd.microsoft.portable-executable`）；`.ai` 给 `application/postscript`（现代 Illustrator 文件实为 PDF 容器，常见为 `application/pdf` 或 `application/illustrator`）；`.m3u8` 归"视频"（实际是 HLS 播放列表 `application/vnd.apple.mpegurl`）。
-- 证据：`tools/it/mime-type.html:313`（exe）、`tools/it/mime-type.html:339`（ai）、`tools/it/mime-type.html:292`（m3u8）
-- 复现：查 `.exe` → 显示 `application/x-msdownload`（期望注册值或标注"非注册常用值"）；查 `.ai` → `application/postscript`（与服务端实际收到的 PDF 头不符）。
-- 影响：按表配置 `Content-Type` 时可能触发下载/嗅探差异；`.ai` 上传校验可能被误判。
-- 方案：改用注册值并保留常见别名（如 `application/vnd.microsoft.portable-executable`）；`.ai` 标注"PDF 兼容，推荐 application/pdf"；`.m3u8` 移入"其他/流媒体"。
+
 
 - 留存建议（mime-type）：①提供"反向查询"（输入 `application/json` → 推荐扩展名）；②数据表按分类分组并支持导出全量 CSV；③每条给 Nginx/Apache 的 `types` 配置片段一键复制；④补 `charset`/`nosniff` 配置示例。
 

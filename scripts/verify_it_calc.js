@@ -3365,6 +3365,13 @@ const CASES = [
   },
   {
     slug: "it/mime-type",
+    inputs: { search: "zznone" },
+    clicks: ["(function(){var M=(typeof MIME!=='undefined')?MIME:[];var f=function(e){return M.filter(function(x){return x.ext===e;})[0];};var x=f('.exe'),a=f('.ai'),m=f('.m3u8');var ok=!!x&&x.mime==='application/vnd.microsoft.portable-executable'&&!!a&&a.mime==='application/pdf'&&!!m&&m.cat==='其他';document.getElementById('__tbProbe').textContent='MIME109 '+(ok?'OK':'BAD');})()"],
+    expect: ["MIME109 OK"],
+    ref: "IT-N109 MIME 映射修订：探针读页面 MIME 数据，断言 .exe 为 IANA 注册值 application/vnd.microsoft.portable-executable、.ai 为 PDF 兼容值 application/pdf、.m3u8 归入「其他」分类。旧数据（x-msdownload / postscript / 视频）⇒ MIME109 BAD；inputs 注入无命中搜索词，默认态不执行探针 ⇒ 零逃生。",
+  },
+  {
+    slug: "it/mime-type",
     clicks: ["globalThis.TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return [];},last:function(){return null;},record:function(){},mount:function(){}},preset:{bar:function(){}}};var cap=null;var old=TBKit.matrix.table;TBKit.matrix.table=function(sel,cfg){cap={sel:sel,head:cfg.head,rows:cfg.rows};};__mime_typeDataTable();TBKit.matrix.table=old;document.getElementById('__tbProbe').textContent='MTTAB '+(cap?cap.sel+' '+cap.head.join('|')+' n='+cap.rows.length+' r0='+cap.rows[0].join('|'):'NONE');"],
     expect: ["MTTAB #mime_typeTable 扩展名|MIME 类型|分类 n=84 r0=.html|text/html|文本"],
     ref: "IT-N107：数据表必须渲染完整 MIME 清单（扩展名/MIME/分类 三列、84 行），不是搜索历史。旧源码无 __mime_typeDataTable 函数 ⇒ 探针 NONE。默认态无该串。",
@@ -10331,9 +10338,9 @@ const CASES = [
       "search": "abc123测试"
     },
     "expect": [
-      "程序 字体 其他\nabc123测试\n共 0 条"
+      "abc123测试\n共 0 条"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"search\":\"abc123测试\"}，输出区含「程序 字体 其他\nabc123测试\n共 0 条」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"search\":\"abc123测试\"}，输出区含「abc123测试\n共 0 条」；IT-N109 将 .m3u8 移出视频分类后 catFilter 按钮顺序变化，故去掉与分类顺序耦合的前缀，锚点仍绑定注入词与计数归零，默认态不命中 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/mongodb-cheatsheet",
@@ -12345,8 +12352,8 @@ const CASES = [
     inputs: { input: "abc" },
     checkIds: ["upper"],
     clicks: ["calc()"],
-    expect: ["CRC-8/ITU (CCITT) 0x0A"],
-    ref: "IT-N54 标准参数：CRC-8/ITU（poly 0x07、init 0x00、xorout 0x55）对 'abc' = 0x0A（标准校验值 '123456789' → 0xA1）。旧配置 init 0xFF + xorout 0x00 非标准，且名字误挂 CCITT。默认 input=123456789 且未勾大写，不命中。",
+    expect: ["CRC-8/I-432-1 (ITU) 0x0A"],
+    ref: "IT-N54 标准参数与命名：reveng 目录正式名 CRC-8/I-432-1（别名 CRC-8/ITU，CCITT 非该模型别名），poly 0x07、init 0x00、xorout 0x55，对 'abc' = 0x0A（标准校验值 '123456789' → 0xA1）。旧源码误挂 CCITT 别名 ⇒ 不命中新名。默认 input=123456789 且未勾大写，不命中。",
   },
   {
     slug: "it/css-minifier",
