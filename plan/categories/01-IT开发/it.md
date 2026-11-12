@@ -256,28 +256,7 @@
 
 - 留存建议（adfgvx-cipher）：①补多组非对合密钥（CIPHER/FRANCE/GERMAN）往返用例并核对 UI 提示；②自定义方阵密钥增加字符唯一性校验（当前仅校验长度 36，重复字符未拦截）。
 
-### IT-N146 Affine `a` 输入框清空触发 `gcd(NaN,26)` 无限递归，栈溢出（中，确认源码缺陷）
-- 问题：`gcd` 只有 `b===0` 出口，无 `NaN`/非有限数保护；`renderGrid()` 与 `enc()` 都会调用 `gcd(a,26)`。数字框允许被清空，`parseInt('')` 得 `NaN`，`gcd(NaN,26) → gcd(26,NaN) → gcd(NaN,NaN) → …` 永不终止。
-- 证据：`tools/it/affine-cipher.html:254`（递归 gcd）、`tools/it/affine-cipher.html:269`（enc 校验）、`tools/it/affine-cipher.html:304/311`（renderGrid 调用）、`tools/it/affine-cipher.html:169`（`oninput="renderGrid()"`）
-- 复现（Node 复算）：`gcd(NaN,26)` 抛 `RangeError: Maximum call stack size exceeded`。页面操作：选中 `a` 框内容按 Backspace 清空 → 控制台立即栈溢出，映射表停在旧值，无任何提示；此时点“加密”同样抛错而非弹“a 必须与 26 互素”。
-- 影响：清空/重输参数是常规操作，每次清空都会产生未捕获异常，映射表与按钮反馈失真，弱设备可能卡顿。
-- 方案：先判 `Number.isInteger(a) && Number.isInteger(b)`，非法时仅显示红色提示、不调用 `gcd`；或把 gcd 改为迭代并加 `Number.isFinite` 守卫。
-
-### IT-N147 Affine `b` 输入框清空后输出全为 NUL 字符，界面看似“空结果”且无告警（中，确认源码缺陷）
-- 问题：`b` 被清空时 `parseInt` 得 `NaN`，加密/映射表执行 `String.fromCharCode(((a*i+NaN)%26)+65)`；`String.fromCharCode(NaN)` 返回 `\u0000`，26 个映射格与整段密文都变成不可见 NUL，现有 `NaN` 守卫只检查 HTML 字符串里是否出现字面量 `NaN`，捕不到真正的 NUL。
-- 证据：`tools/it/affine-cipher.html:268`（读 b）、`tools/it/affine-cipher.html:273/275`（加密）、`tools/it/affine-cipher.html:309`（映射表）、`tools/it/affine-cipher.html:313`（无效值守卫）
-- 复现（Node 复算）：`a=5,b=NaN`，`AFFINE` 六个字母全部变成 charCode 0。页面操作：清空 `b` 后映射表空格、加密结果肉眼为空，无错误提示。
-- 影响：用户以为工具坏了或输出被吞；复制到别处得到一串不可见控制字符，可能污染下游文本。
-- 方案：`b` 必须通过 `Number.isInteger(b) && b>=0 && b<=25` 校验，非法时禁用加密并显示红字；`renderGrid` 同样先校验。
-
-### IT-N148 Affine 密钥 `a` 允许输入负数/超范围，负码点被写成数字与标点（中，确认源码缺陷）
-- 问题：`min="1" max="25"` 只约束微调按钮，键盘仍可键入 `-5`；加密未把 `a` 归一化到 0–25，`(a*x+b)%26` 保持 JavaScript 负数余数，`fromCharCode(负值+65)` 落到 ASCII 数字/标点区。
-- 证据：`tools/it/affine-cipher.html:169`（`min="1" max="25"`）、`tools/it/affine-cipher.html:273-275`（未归一化直接取模）、`tools/it/affine-cipher.html:269`（只校验 gcd，负奇数与 26 仍互素）
-- 复现（Node 复算）：`a=-5,b=8`，加密 `AFFINE` 实际 `I00;<5`，期望在 1–25 内给出字母，或拒绝负数。
-- 影响：`gcd(-5,26)=1` 通过校验，用户得到含数字/分号的“密文”，解密也会因负索引错乱；属于静默错误而非报错。
-- 方案：读取后先 `a = ((a % 26) + 26) % 26`，再校验 `1..25` 且与 26 互素；同时用 `input` 事件过滤非数字字符。
-
-- 留存建议（affine-cipher）：①参数校验统一收口（整数、范围、互素），拒绝空值/负数；②补 a=3/5/7/11/15/17/19/21/23/25 与 b=0/25 的往返用例；③映射表增加“当前 a,b 已回退/无效”状态。
+- 留存建议（affine-cipher）：①补 a=3/5/7/11/15/17/19/21/23/25 与 b=0/25 的往返用例；②映射表在参数非法时已给红字提示，考虑加“当前 a,b 归一化后实际值”显示。
 
 ### IT-N149 Atbash 原理区称“本质上是凯撒密码位移 13 的特例”，与两种映射的实际关系不符（中，确认源码缺陷）
 - 问题：Atbash 是自反置换 `f(x)=25-x`（A→Z、B→Y）；凯撒位移 13（ROT13）是 `f(x)=x+13`（A→N）。两者都满足“二次还原”，但映射完全不同，不能称 Atbash 是 ROT13 的特例。

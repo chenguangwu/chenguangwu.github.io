@@ -4204,6 +4204,13 @@ const CASES = [
     ref: "独立复算：仿射加密 E(x)=(a·x+b) mod 26，a=3、b=5 ⇒ A(0)→5=F、B(1)→8=I、C(2)→11=L、D(3)→14=O ⇒ `FILO`。dump 期 `gcd` 报栈溢出（页面在算逆元）但不影响产物。默认参数是另一组 a/b。",
   },
   {
+    slug: "it/affine-cipher",
+    inputs: { a: "-5", b: "8", input: "AFFINE" },
+    clicks: ["enc();document.getElementById('__tbProbe').textContent='AFNEG '+document.getElementById('output').value;"],
+    expect: ["AFNEG IJJUVO"],
+    ref: "IT-N148：a=-5 须先归一化到 0-25（≡21）再加密，AFFINE → IJJUVO 全字母。旧实现不归一化 ⇒ I00;<5（含数字标点）。默认 a=5 不命中。",
+  },
+  {
     slug: "it/bacon-cipher",
     inputs: { input: "AB", mode: "enc" },
     expect: ["0000000001"],
@@ -7159,9 +7166,9 @@ const CASES = [
       "output": "1\n2\n3"
     },
     "expect": [
-      "X Y Z 密文 Q G W M C S I Y O E U K A Q G W M C S I Y O E U K A ✗ a=42 与 26 不互素，无法解密\n1 2 3\n1 2 3"
+      "✗ a 必须与 26 互素（可取值：1,3,5,7,9,11,15,17,19,21,23,25）\n1 2 3\n1 2 3"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"a\":\"42\",\"b\":\"42\",\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\"}，输出区含「X Y Z 密文 Q G W M C S I Y O E U K A Q G W…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）·2026-11-12 随 IT-N146~N148 同步：注入 a=42/b=42/input=1\n2\n3。42%26=16 与 26 不互素，统一 readParams 校验后映射表提前返回红字提示（不再先输出矩阵）；默认态不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/adfgvx-cipher",
