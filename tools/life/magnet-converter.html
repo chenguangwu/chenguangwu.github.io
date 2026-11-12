@@ -146,7 +146,7 @@
     <h2 data-zh="🧲 磁场强度换算器">🧲 Magnetic Field Strength Converter</h2>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">磁场单位换算：H 类以 A/m 为基准（系数 Am=1、Oe=79.5774715，即 1 Oe = 1000÷(4π) A/m），其余单位 = 基准值 ÷ 系数，真空对应 B ≈ H × 4π×10⁻⁷×10⁴（G）；B 类以 T 为基准（G=10⁻⁴、mT=10⁻³、μT=10⁻⁶），真空对应 H ≈ B ÷ (4π×10⁻⁷)（A/m）。校验：非数报「请输入有效数值」，结果含 NaN/Infinity 时统一替换为警告提示。判据：无固定分级，逐单位并列换算。</div>
+      <div class="formula-eq">磁场单位换算：H 类以 A/m 为基准（系数 Am=1、Oe=1000÷(4π)≈79.57747，即 1 Oe = 1000÷(4π) A/m），其余单位 = 基准值 ÷ 系数，真空对应 B ≈ H × 4π×10⁻⁷×10⁴（G）；B 类以 T 为基准（G=10⁻⁴、mT=10⁻³、μT=10⁻⁶），真空对应 H ≈ B ÷ (4π×10⁻⁷)（A/m）。校验：非数报「请输入有效数值」，结果含 NaN/Infinity 时统一替换为警告提示。判据：无固定分级，逐单位并列换算。</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="支持 A/m / Oe / G（高斯，磁感应强度B）">Convert magnetic field strength units such as tesla, gauss, ampere per metre and oersted.</p>
 
@@ -264,10 +264,14 @@
 
 <script>
 // 区分H类（A/m, Oe）与B类（G, mT, μT），需要分两栏
-const Hfactors = {Am:1, Oe:79.5774715};
+// LF-N104: Oe 用精确 1000/(4π)，截断值 79.5774715 使 1 Oe→0.9999999994 G，破坏「1 Oe≈1 G」。
+const Hfactors = {Am:1, Oe:1000/(4*Math.PI)};
 const Bfactors = {G:0.0001, mT:0.001, uT:0.000001};
 const Hnames = {Am:'安培每米', Oe:'奥斯特'};
 const Bnames = {G:'高斯', mT:'毫特斯拉', uT:'微特斯拉'};
+// LF-N105: 内部键名 Am/uT 非标准符号，显示时改用规范符号 A/m、μT。
+const Hsyms = {Am:'A/m', Oe:'Oe'};
+const Bsyms = {G:'G', mT:'mT', uT:'μT'};
 
 function fmt(n){
   if(!isFinite(n)) return '--';
@@ -288,19 +292,19 @@ function convert(){
   if(from === 'Am' || from === 'Oe'){
     // H 类
     const base = v * Hfactors[from];
-    html = `<p>磁场强度 H 基准：<strong>${fmt(v)} ${from}</strong> = <strong>${fmt(base)} A/m</strong></p>`;
+    html = `<p>磁场强度 H 基准：<strong>${fmt(v)} ${Hsyms[from]}</strong> = <strong>${fmt(base)} A/m</strong></p>`;
     html += '<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">';
     Object.keys(Hfactors).forEach(k => {
-      if(k !== from) html += `<p>${Hnames[k]}：<strong>${fmt(base / Hfactors[k])} ${k}</strong></p>`;
+      if(k !== from) html += `<p>${Hnames[k]}：<strong>${fmt(base / Hfactors[k])} ${Hsyms[k]}</strong></p>`;
     });
     html += `<p style="color:var(--text-muted);margin-top:8px;">真空下对应磁感应强度 B ≈ ${fmt(base * 4 * Math.PI * 1e-7 * 10000)} G</p>`;
   } else {
     // B 类
     const base = v * Bfactors[from]; // 转 T
-    html = `<p>磁感应强度 B 基准：<strong>${fmt(v)} ${from}</strong> = <strong>${fmt(base)} T</strong></p>`;
+    html = `<p>磁感应强度 B 基准：<strong>${fmt(v)} ${Bsyms[from]}</strong> = <strong>${fmt(base)} T</strong></p>`;
     html += '<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">';
     Object.keys(Bfactors).forEach(k => {
-      if(k !== from) html += `<p>${Bnames[k]}：<strong>${fmt(base / Bfactors[k])} ${k}</strong></p>`;
+      if(k !== from) html += `<p>${Bnames[k]}：<strong>${fmt(base / Bfactors[k])} ${Bsyms[k]}</strong></p>`;
     });
     html += `<p style="color:var(--text-muted);margin-top:8px;">真空下对应磁场强度 H ≈ ${fmt(base / (4 * Math.PI * 1e-7))} A/m</p>`;
   }
