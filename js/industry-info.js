@@ -1,7 +1,7 @@
 /* 全站行业字典（中文名 + emoji 图标）—— 由 scripts/gen_industry_info.py 生成，勿手改 */
 /* 数据来源：_build.py INDUSTRY_DEFS 短名（权威，268/268）+ 语义 emoji 映射；仅显示用短名，描述走页面 meta */
 window.INDUSTRY_INFO = {
-  'it'                   : { name: 'IT 开发', icon: '💻', hot: 30348083 },
+  'it'                   : { name: 'IT 开发', icon: '💻', hot: 30345043 },
   'life'                 : { name: '日常生活', icon: '🏠', hot: 11719577 },
   'finance'              : { name: '金融财务', icon: '💰', hot: 10224558 },
   'design'               : { name: '设计创意', icon: '🎨', hot: 8175863 },
@@ -133,6 +133,7 @@ window.INDUSTRY_INFO = {
   'paper'                : { name: '造纸印刷', icon: '📄', hot: 106769 },
   'sales'                : { name: '销售管理', icon: '📈', hot: 102473 },
   'text'                 : { name: '文本处理', icon: '📝', hot: 99441 },
+  'telecom'              : { name: '通信技术', icon: '📡', hot: 99192 },
   'fire'                 : { name: '消防安全', icon: '🚒', hot: 96738 },
   'startup'              : { name: '创业孵化', icon: '🚀', hot: 95773 },
   'baking'               : { name: '烘焙甜点', icon: '🧁', hot: 93241 },
@@ -141,7 +142,6 @@ window.INDUSTRY_INFO = {
   'cleaning'             : { name: '清洁保洁', icon: '🧹', hot: 85758 },
   'library'              : { name: '图书档案', icon: '📚', hot: 85213 },
   'pr'                   : { name: '公关传播', icon: '📢', hot: 81740 },
-  'telecom'              : { name: '通信技术', icon: '📡', hot: 80750 },
   'urban'                : { name: '城市规划', icon: '🏙️', hot: 80281 },
   'audio'                : { name: '音频工具', icon: '🎧', hot: 80262 },
   'video'                : { name: '视频处理', icon: '🎬', hot: 77964 },

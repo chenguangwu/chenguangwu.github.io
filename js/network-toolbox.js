@@ -9,7 +9,19 @@
     return !!(window.I18n && typeof I18n.get === 'function' && I18n.get() === 'en-US');
   }
   function t(zh, en) { return isEn() ? en : zh; }
-  function dash(v) { return (v === undefined || v === null || v === '') ? '—' : String(v); }
+  // 把任意值安全地转成展示文本：对象不直接 String（否则 [object Object]），
+  // 优先取常见可读字段，否则退化为 JSON。数组逐项展开。
+  function dash(v) {
+    if (v === undefined || v === null || v === '') return '—';
+    if (Array.isArray(v)) return v.map(dash).join(', ');
+    if (typeof v === 'object') {
+      for (var k in { id: 1, name: 1, description: 1, abbr: 1, utc: 1, value: 1, text: 1 }) {
+        if (v[k] !== undefined && v[k] !== null && v[k] !== '') return String(v[k]);
+      }
+      try { return JSON.stringify(v); } catch (e) { return String(v); }
+    }
+    return String(v);
+  }
   function iso() { return new Date().toISOString(); }
 
   // 每个工具：{ state, display, copy }
@@ -41,7 +53,12 @@
 
   // ---- 本机历史（localStorage）：只存最近一次成功结果，绝不上传 ----
   var HIST_KEY = 'ntHist_v1';
+  // 独立页在正文内联脚本里按工具提供 __ntStorage 适配层（key 隔离）；
+  // 适配层缺失时退回统一 key，保证共享脚本在任意环境都能用。
   function loadHistory() {
+    if (window.__ntStorage && typeof window.__ntStorage.read === 'function') {
+      try { return window.__ntStorage.read() || {}; } catch (e) { return {}; }
+    }
     try { return JSON.parse(localStorage.getItem(HIST_KEY) || '{}') || {}; }
     catch (e) { return {}; }
   }
@@ -49,7 +66,8 @@
     try {
       var h = loadHistory();
       h[id] = { copy: String(copyText || ''), time: Date.now() };
-      localStorage.setItem(HIST_KEY, JSON.stringify(h));
+      if (window.__ntStorage && typeof window.__ntStorage.write === 'function') window.__ntStorage.write(h);
+      else localStorage.setItem(HIST_KEY, JSON.stringify(h));
     } catch (e) { /* 存储不可用：静默跳过 */ }
   }
   function fmtTime(ts) {
@@ -213,9 +231,12 @@
   // ================= T1 多源 IP 查询 =================
   var IP_SOURCES = [
     { name: 'ipwho.is', url: 'https://ipwho.is/', parse: function (j) {
+      // ipwho.is 的 timezone 是 {id, abbr, offset, name, utc...} 对象；取 id 展示，避免 [object Object]
+      var tz = j.timezone;
+      var tzText = (tz && typeof tz === 'object') ? (tz.id || tz.name || tz.utc || '') : tz;
       return { ip: j.ip, version: j.type ? String(j.type).replace(/[^46]/g, '') : (j.ip && j.ip.indexOf(':') >= 0 ? '6' : '4'),
         country: j.country, region: j.region, city: j.city,
-        isp: j.connection && j.connection.isp, asn: j.connection && j.connection.asn, timezone: j.timezone, domain: null };
+        isp: j.connection && j.connection.isp, asn: j.connection && j.connection.asn, timezone: tzText, domain: null };
     } },
     { name: 'ipapi.co', url: 'https://ipapi.co/json/', parse: function (j) {
       return { ip: j.ip, version: j.ip && j.ip.indexOf(':') >= 0 ? '6' : '4', country: j.country_name,
@@ -676,22 +697,37 @@
     finally { RUNNING[id] = false; }
   }
 
+  // 独立工具页：body 上 data-tool="tX" 指定本页工具；聚合页无此属性则沿用原逻辑
+  var CURRENT = (document.body && document.body.getAttribute('data-tool')) || '';
+
   function init() {
-    var grid = document.getElementById('ntGrid');
-    if (grid) {
-      grid.addEventListener('click', function (ev) {
-        var runBtn = ev.target && ev.target.closest ? ev.target.closest('[data-run]') : null;
-        if (runBtn) { run(runBtn.getAttribute('data-run')); return; }
-        var copyBtn = ev.target && ev.target.closest ? ev.target.closest('[data-copy]') : null;
-        if (copyBtn) {
-          var id = copyBtn.getAttribute('data-copy');
-          var s = ST[id];
-          if (!s || !s.copy || s.state === 'idle') { toast(t('暂无结果可复制', 'No result to copy'), false); return; }
-          copyText(s.copy).then(function () { toast(t('已复制', 'Copied'), true); });
-          return;
-        }
-      });
-    }
+    // 事件委托绑 document：聚合页与独立页（无 #ntGrid）共用同一份 JS
+    document.addEventListener('click', function (ev) {
+      var fillBtn = ev.target && ev.target.closest ? ev.target.closest('[data-fill]') : null;
+      if (fillBtn) {
+        var target = document.getElementById(fillBtn.getAttribute('data-fill'));
+        if (target) { target.value = fillBtn.getAttribute('data-value') || ''; target.focus(); }
+        return;
+      }
+      var runBtn = ev.target && ev.target.closest ? ev.target.closest('[data-run]') : null;
+      if (runBtn) {
+        var rid = runBtn.getAttribute('data-run');
+        if (CURRENT && rid !== CURRENT) return;  // 独立页忽略非本工具按钮
+        run(rid); return;
+      }
+      // 无输入项工具的「立即刷新」预设：真实执行一次本页工具
+      var quickBtn = ev.target && ev.target.closest ? ev.target.closest('[data-action="run"]') : null;
+      if (quickBtn && CURRENT) { run(CURRENT); return; }
+      var copyBtn = ev.target && ev.target.closest ? ev.target.closest('[data-copy]') : null;
+      if (copyBtn) {
+        var id = copyBtn.getAttribute('data-copy');
+        if (CURRENT && id !== CURRENT) return;
+        var s = ST[id];
+        if (!s || !s.copy || s.state === 'idle') { toast(t('暂无结果可复制', 'No result to copy'), false); return; }
+        copyText(s.copy).then(function () { toast(t('已复制', 'Copied'), true); });
+        return;
+      }
+    });
     // 对比按钮在历史表内（ntGrid 之外），单独委托
     var histBody = document.getElementById('ntHistoryBody');
     if (histBody) {
@@ -711,10 +747,14 @@
       if (!parts.length) { toast(t('暂无结果可复制', 'No result to copy'), false); return; }
       copyText(parts.join('\n\n')).then(function () { toast(t('已复制全部结果', 'All results copied'), true); });
     });
-    // 首次渲染历史表（从本机恢复），随后 T1 自动执行会再次刷新
+    // 首次渲染历史表（从本机恢复），随后自动执行会再次刷新
     renderHistory();
-    // T1 页面加载后自动执行一次
-    run('t1');
+    // 独立页：运行本页工具（按需自动执行）；聚合页：T1 自动执行一次
+    var autoId = CURRENT || 't1';
+    // 需要用户输入的工具有输入控件时不自动跑（避免空输入直接报错），其余自动执行
+    var needsInput = (autoId === 't2' || autoId === 't5');
+    var hasInput = !!document.getElementById(autoId === 't2' ? 't2-ip' : (autoId === 't5' ? 't5-url' : ''));
+    if (!needsInput || !hasInput) run(autoId);
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
