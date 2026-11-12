@@ -2917,6 +2917,21 @@ const CASES = [
   clicks: ["document.getElementById('striped').checked=true;document.getElementById('animated').checked=true;try{generate();}catch(e){};var v=document.getElementById('cssOutput').value;var s='ANIM:'+(v.indexOf('width: 30%;')>=0?1:0)+'|BOTH:'+(v.indexOf('stripes 1s linear infinite, progressAnim')>=0?1:0)+'|PCT:'+document.getElementById('percent').value;document.getElementById('preview').textContent=s;"],
   expect: ["ANIM:1|BOTH:1|PCT:37"],
   ref: "D-N71：旧实现 animated 的 animation 覆盖 striped 的 stripes ⇒ 条纹停滚；@keyframes progressAnim 固定 0/80/100 与输入百分比无关，预览也不显示 pct。修复后两动画合并为一条 animation 声明，关键帧 50% 用 round(pct*0.8)=30%、100% 用 pct，预览回显百分比。探针写 #preview（该页无 __svg_probe 结果位）；旧码 ANIM:0|BOTH:0 ⇒ 强判别，expect 含注入的 37。",
+},
+
+// ── 第322批：玻璃拟态背景图案 / Identicon 画廊 ─────────────────
+{
+  slug: "design/glassmorphism-generator",
+  clicks: ["try{setPattern(8);}catch(e){};var e=document.getElementById('bgPattern');var t=String(e.style.cssText||'');var s='BG:'+(t.indexOf('background:')>=0?1:0)+'|SIZE:'+(t.indexOf('background-size')>=0?1:0)+'|IDX:'+currentPattern;document.getElementById('bgPattern').innerHTML=s;document.getElementById('preview').textContent=s;document.getElementById('cssOutput').value=s;document.getElementById('__svg_probe').textContent=s;"],
+  expect: ["BG:1|SIZE:1|IDX:8"],
+  ref: "D-N67：PATTERNS 存的是纯渐变值（无属性名），旧 setPattern 直接 style.cssText=PATTERNS[i].css、缩略图 style=\"${p.css}\"，CSSOM 会丢弃无属性名的声明 ⇒ 12 种背景图案全不生效。修复后两处均补 'background:' 前缀。选第 8 项「圆点」（含 background-size 多声明），探针回显注入的索引 8；旧码 BG:0 ⇒ 强判别。",
+},
+{
+  slug: "design/identicon-generator",
+  inputs: { blocks: "9", bgColor: "#123456" },
+  clicks: ["try{generateGallery();}catch(e){};var g=document.getElementById('gallery');document.getElementById('__svg_probe').textContent='G:'+g.getAttribute('data-blocks')+'|'+g.getAttribute('data-bg');"],
+  expect: ["G:9|#123456"],
+  ref: "D-N88：旧画廊硬编码 blocks=5、底色 #f0f0f0、列数 3，与当前输入脱节；修复后读 #blocks/#bgColor、列数改 ceil(blocks/2)，由 generate() 末尾重绘，并把当前参数写进 #gallery 的 data-blocks/data-bg 便于核对。探针锚含两个注入值；旧码无这两个属性 ⇒ G:null|null，强判别。",
 }
 ];
 

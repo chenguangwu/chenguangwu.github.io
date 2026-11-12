@@ -224,7 +224,7 @@
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="哈希函数">Hash function</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="SHA-256 输出 256 位，足够映射 5 x 5 网格的取值">SHA-256 gives 256 bits, enough for a 5 by 5 grid</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Java String.hashCode 变体（32 位乘 31 哈希）输出 32 位，由 hash mod 360 决定色相；非密码学哈希，不同种子可能碰撞">Java String.hashCode variant (32-bit multiply-by-31 hash) drives hue via hash mod 360; not cryptographic and collisions are possible</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="FIPS 180-4 (SHA-2)">FIPS 180-4 (SHA-2)</td>
         </tr>
       </tbody>
@@ -279,6 +279,7 @@ function generate(){
   try { lastURL = canvas.toDataURL('image/png'); }
   catch (e) { lastURL=''; ToolBox.showToast('导出失败：' + ((e && (e.name || e.message)) || ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Unknown error":"未知错误")), 'error'); return; }
   const __h0='<img src="'+lastURL+'" alt="Identicon" style="width:'+size+'px;height:'+size+'px;border-radius:8px;">';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('preview').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('preview').innerHTML=__h0;
+  generateGallery();
 }
 function generateGallery(){
   const gallery = document.getElementById('gallery');
@@ -290,17 +291,20 @@ function generateGallery(){
     const hue = hash % 360;
     const fgColor = `hsl(${hue}, 65%, 45%)`;
     const size = 60;
-    const blocks = 5;
+    const blocks = Math.max(3, Math.min(9, parseInt(document.getElementById('blocks').value) || 5));
+    const bg = document.getElementById('bgColor').value;
+    gallery.setAttribute('data-blocks', String(blocks));
+    gallery.setAttribute('data-bg', bg);
     const canvas = document.createElement('canvas');
     canvas.width = size; canvas.height = size;
     canvas.title = name;
     const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#f0f0f0';
+    ctx.fillStyle = bg;
     ctx.fillRect(0, 0, size, size);
     const cellSize = size / blocks;
     let s = hash;
     for(let y=0;y<blocks;y++){
-      for(let x=0;x<3;x++){
+      for(let x=0;x<Math.ceil(blocks/2);x++){
         s = (s * 9301 + 49297) % 233280;
         if(s / 233280 > 0.5){
           ctx.fillStyle = fgColor;

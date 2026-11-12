@@ -264,40 +264,12 @@
 
 > 范围：本轮阅读 8 页：`tools/design/button-generator.html`、`tools/design/text-shadow-generator.html`、`tools/design/css-animation-generator.html`、`tools/design/skeleton-loader.html`、`tools/design/palette-extractor.html`、`tools/design/image-to-ascii.html`、`tools/design/mesh-gradient.html`、`tools/design/pattern-generator.html`。仅源码 + node 内存复算，未开浏览器/未做 EN/移动端/门禁验证。
 
-### D-N61 三角形与菱形输出相同 CSS（中，2026-11-06 复核 CSS 已不同）
-- 描述：`triangles` 与 `diamonds` 两个分支使用逐字符相同的两条 `linear-gradient(45deg,…)` 模板与相同的 `background-size/position`，选「菱形」得到的仍是三角形平铺图案，六个图案类型里有两个重复。
-- 证据：`tools/design/pattern-generator.html:273`（triangles 模板）、`:281`（diamonds 模板，与 273 相同）
-- 复现（node 复算同一组参数）：`type=triangles` 与 `type=diamonds`、size 40、同两色 → 两条 CSS 字符串 `===` 为 true，预览像素级一致（期望菱形为 45° 旋转的菱形 tile，或至少与三角形不同）
-- 影响：`tools/design/pattern-generator.html`；用户选「菱形」拿不到菱形底纹，且会以为是自己参数没生效
-- 2026-11-06 复核：Node 执行页面 `generate()`，三角形输出线性渐变、菱形输出 conic-gradient，两者 CSS 不再相同；未验证浏览器实际渲染形状或其余类型的视觉差异。
-
-### D-N67 玻璃拟态生成器的 12 种背景图案全部不生效（中，确认源码缺陷）
-- 描述：`PATTERNS` 存的是纯渐变值（无属性名），但缩略图写成 `style="${p.css}"`、点击时写 `style.cssText = PATTERNS[i].css`，两处都缺少 `background:`；CSSOM 会丢弃无属性名的声明。含 `background-size/position/color` 的第 9–12 项只能应用后半段，仍没有 background-image。
-- 证据：`tools/design/glassmorphism-generator.html:341-353`（PATTERNS 值）、`:518`（`style="${p.css}"`）、`:524`（`cssText = PATTERNS[i].css`）、`:578`（启动即 `setPattern(0)`）、`:30`（`.bg-pattern` 无默认背景）
-- 复现：打开页面 → `.bg-pattern` 无任何渐变；切到「背景图案」→ 12 个缩略图空白（第 9–12 项只有底色/尺寸）；点任意图案预览背景不变（期望切换紫/日落/海洋/圆点/网格/波浪等底纹）
-- 影响：`tools/design/glassmorphism-generator.html`；页面主打卖点「背景图案」完全失效，玻璃面板失去对比背景，预览效果与复制产物脱节
-- 方案：缩略图写 `style="background:${p.css}"`；点击写 `'background:'+PATTERNS[i].css`（多声明项拆成 `background-image` 与 `background-size/position/color`，或统一改用 `background` 简写）
-
 ### D-N68 新拟态生成器：圆形/按钮与凹陷/浮雕预览无法导出对应 CSS（中，确认源码缺陷）
 - 描述：三种形状预览分别用 `.neu-box`（radius px）、`.neu-circle`（border-radius:50%）、`.neu-btn`（50px），并同时展示 convex / pressed(inset) / punch 三种阴影；但导出 CSS 固定为 `border-radius:${radius}px` + `flatShadow`，形状与变体信息全部丢失。
 - 证据：`tools/design/neomorphism-generator.html:406-424`（按 currentShape 渲染三形状与三变体）、`:426-430`（唯一导出模板用 radius px 与 flatShadow）、`:30-32`（三形状各自圆角）
 - 复现：选「圆形」→ 预览 100×100 圆形，复制 CSS 得 `border-radius: 20px`（方形）；点预览里的「凹陷/浮雕」卡片无任何复制入口，代码始终是 `box-shadow: 6px 6px 12px …`（期望导出与所选形状/变体一致）
 - 影响：`tools/design/neomorphism-generator.html`；设计师按圆形按钮调整后复制到项目得到方形卡片，凹/浮雕效果需手改 CSS
 - 方案：按 currentShape 选圆角（圆 50%、按钮 50px）；增加「凸起/凹陷/浮雕」变体切换并输出 pressedShadow/punchShadow；或移除无处导出的预览变体
-
-### D-N69 加载动画生成器：预览引用的 keyframes 未定义，五种动画全部静止（高，确认源码缺陷）
-- 描述：`generate()` 输出 `spinGen / bounceGen / barsGen / dotsGen`，但页面 `<style>` 只定义了 `spin / scaleB / bars`；生成的 `@keyframes` 仅写入 textarea，从未注入 `<style>`。预览内联 `animation` 引用不存在的动画名，浏览器不会播放。
-- 证据：`tools/design/spinner-generator.html:34-38`（页面仅定义 spin/scaleB/bars）、`:273-294`（生成 spinGen/bounceGen/barsGen/dotsGen）、`:297`（只写 `#cssOutput.value`，无样式注入）、`:296`（预览 HTML）
-- 复现（node 复算输出串）：任选「边框旋转/双色/弹跳/音波柱/三点」→ 预览完全静止（不旋转、不缩放、无逐点跳动），CSS 文本框内才含对应 `@keyframes`；把文本框内容贴回页面后才动（期望预览即动）
-- 影响：`tools/design/spinner-generator.html`；页面所有类型的「实时预览」均失效，用户只能盲选参数再复制
-- 方案：生成时把 `css` 注入页面专用 `<style id="spinnerPreviewStyle">`（先清空再写）；或让预览 animation-name 改用页面已定义的 spin/scaleB/bars，并保持尺寸/速度同步
-
-### D-N70 加载动画生成器「音波柱」预览 HTML 重复 style 属性，延迟全部丢失（低，确认源码缺陷）
-- 描述：`bars` 用两次 `replace` 拼接（第一次替换 `<div` 为带 `style="…animation-delay:` 的新标签），产生嵌套引号与重复 `style` 属性；第二个正则 `animation-delay:([0-9.]+)s;"></div>` 因中间多了 `style="` 而匹配不到，延迟值被丢弃。
-- 证据：`tools/design/spinner-generator.html:283-284`（两次 replace 拼 HTML）、`:286`（CSS 延迟正确）
-- 复现（node 复算 `size=40/speed=1`）：输出 `<div style="…animation-delay: style="0s;"></div>` 等 5 个重复 style 属性；浏览器只保留第一个 style，`animation-delay:` 为空值，5 根柱同时起伏（期望 0/0.1/0.2/0.3/0.4s 错开）；CSS 文本框里的 nth-child 延迟反而正确
-- 影响：`tools/design/spinner-generator.html`；预览与可复制 CSS 不一致，用户以为参数没生效
-- 方案：用数组一次性生成完整标签：`bars += '<div style="width:6px;background:'+color+';animation:barsGen '+speed+'s ease-in-out infinite;animation-delay:'+(i*0.1)+'s;"></div>'`，删除二次 replace
 
 ### D-N72 网格图案生成器「虚线网格」与「方形网格」输出相同实线（中，确认源码缺陷）
 - 描述：`dashed` 分支与 `square` 分支使用逐字符相同的两条 `linear-gradient` 与 `background-size`，仅额外加 `background-position: -lw/2 0, 0 -lw/2`，结果仍是连续实线网格，只是整体左/上移半像素，没有虚线段。
@@ -306,7 +278,7 @@
 - 影响：`tools/design/grid-pattern.html`；五种类型里两个实质重复，用户选「虚线网格」拿不到虚线
 - 方案：用 `repeating-linear-gradient(${line} 0 ${lw}px, transparent ${lw}px ${lw*3}px)` 构造两方向的虚线段；补「五种类型输出互不相同」断言
 
-- 本轮实读 8 页：`css-box-shadow-generator.html`、`css-text-shadow.html`、`shadow-generator.html`、`glassmorphism-generator.html`、`neomorphism-generator.html`、`spinner-generator.html`、`progress-bar-generator.html`、`grid-pattern.html`；新增 12 条（高 2 / 中 7 / 低 3）。D-N63/D-N64 与既有 D-N44 属同一「增删层不重绘」模板缺陷（前两条已于第321批修复），D-N69/D-N70 为同页两个独立问题（keyframes 未注入 / 音波柱 HTML 拼接），其余为各页独有。未覆盖：`tools/design` 其余约 53 页（108 个工具页中本文件已引 56 个），代表页含 `favicon-from-text`、`favicon-from-emoji`、`initials-avatar`、`identicon-generator`、`loading-dots`、`ripple-effect`、`pixel-art-generator`、`checkerboard-generator`、`dot-pattern`、`stripe-pattern`、`toast-generator`、`material-color`、`tailwind-colors`、`colorblind-simulator`、`cvd-safe-palette`、`gradient-from-color`、`base64-to-image`、`signature-pad` 等。所有结论均为源码行号 + node 内存复算/源码路径推演；未做浏览器交互、EN 运行态探针、移动端、门禁与线上验证。
+- 本轮实读 8 页：`css-box-shadow-generator.html`、`css-text-shadow.html`、`shadow-generator.html`、`glassmorphism-generator.html`、`neomorphism-generator.html`、`spinner-generator.html`、`progress-bar-generator.html`、`grid-pattern.html`；新增 12 条（高 2 / 中 7 / 低 3）。D-N63/D-N64 与既有 D-N44 属同一「增删层不重绘」模板缺陷（前两条已于第321批修复），D-N69/D-N70 为同页两个独立问题，源码均已修复并于第322批核验销账，其余为各页独有。未覆盖：`tools/design` 其余约 53 页（108 个工具页中本文件已引 56 个），代表页含 `favicon-from-text`、`favicon-from-emoji`、`initials-avatar`、`identicon-generator`、`loading-dots`、`ripple-effect`、`pixel-art-generator`、`checkerboard-generator`、`dot-pattern`、`stripe-pattern`、`toast-generator`、`material-color`、`tailwind-colors`、`colorblind-simulator`、`cvd-safe-palette`、`gradient-from-color`、`base64-to-image`、`signature-pad` 等。所有结论均为源码行号 + node 内存复算/源码路径推演；未做浏览器交互、EN 运行态探针、移动端、门禁与线上验证。
 
 ## 2026-11-04 续查（并行批 O）
 
@@ -391,22 +363,6 @@
 - 复现：页面上只有单个「下载」按钮，任何操作都只得到 `.png`。
 - 影响：文案承诺落空，设计场景常用的矢量导出缺失。
 - 方案：补 SVG 导出（圆形/圆角矩形 + `<text>`），或删掉文案中的 SVG。
-
-### D-N87 identicon 引据表称 SHA-256，实现为 Java 风格 31 乘哈希（低，确认文案与实现不一致）
-
-- 问题：引据表声称 SHA-256 保证 256 位分布，代码实际是 `hash = hash*31 + charCode` 的 32 位字符串哈希；公式说明自己写的也是 31 乘，两处自相矛盾。
-- 证据：`tools/design/identicon-generator.html:238`（引据 SHA-256）、`:257-263`（`hashString`）、`:157`（公式说明「Java 风格乘 31」）、`:269`（调用）。
-- 复现：node 复算 `hashString("github") = 1245635613`（0x4a3ee41d）；`SHA-256("github")` 前 32 位为 `0xc0b0109d = 3232764061`，两者不同。
-- 影响：标准引据不可信；同一页面两套算法描述，易误导二次开发者。
-- 方案：改引据为「Java String.hashCode 变体（32 位乘 31 哈希）」，或改用 `crypto.subtle.digest('SHA-256')` 并调整取位。
-
-### D-N88 identicon 画廊固定 5 块与固定底色，不随当前参数（低，确认源码缺陷）
-
-- 问题：画廊每格硬编码 `blocks=5`、`bg='#f0f0f0'`，不读用户输入的方块数与背景色；点画廊格子只改种子，主图却按当前输入渲染，两者视觉不一致。
-- 证据：`tools/design/identicon-generator.html:302-303`（`size=60`、`blocks=5`）、`:308`（`#f0f0f0`）、`:266-268`（主图读 size/bg/blocks）、`:323`（点击只写 seed）。
-- 复现：方块数 9、背景 `#1e293b` → 主图 9 块深底；画廊仍 5 块浅灰底；点任一画廊格 → 主图变 9 块深底，与所点缩略图不符。
-- 影响：画廊不能预览当前配色方案，选图后出现「所见非所得」。
-- 方案：画廊复用当前 `blocks/bg`，并在参数变化时重绘画廊。
 
 ### D-N92 ripple-effect 点击预览不产生任何涟漪（高，确认源码缺陷）
 
