@@ -716,12 +716,9 @@
 - 影响：示例无法照做，读者按默认值演练会得到与示例不同的分型。
 - 方案：把示例改成「累及范围选升主动脉+弓部、勾选高血压」并修正 DeBakey 结论；标题改「示例」；若要血压差，另加输入并纳入分型提示。阈值需临床复核。
 
-### D-N95 主动脉夹层：预设容器为空函数，「预设」页签点击后无任何内容（低，确认缺陷）
-- 问题：`__aortic_dissectionPresets` 只有空壳，TBKIT 仍渲染「预设」页签，点击后空白。
-- 证据：`tools/cardiology/aortic-dissection.html:533-535`（空函数）。
-- 复现：打开页面点「预设」→ 无预设按钮、无提示。期望：提供典型场景（A 型/ B 型/复杂型）或移除该页签。
-- 影响：空白页签让用户以为页面加载失败。
-- 方案：补 2–3 个预设（如仅升主动脉、升主动脉+降主动脉、仅降主动脉），或在 `P` 配置中移除 `pre`。
+### D-N95 主动脉夹层：预设容器空函数（低，第307批已修销账）
+- 已修（第307批）：`__aortic_dissectionPresets()` 补 3 个预设（A型·升主动脉+降主动脉 / B型·仅降主动脉 / A型·复杂），radio 用 id 值 1、checkbox 用 1/0，after 回调 calc()。JSDOM 真机：预设数 3、标签正确 ⇒ OK。
+- 原问题/复现（存档）：预设函数空壳，「预设」页签点击后空白。
 
 ### D-N96 Holter：频发室早只看「最高每小时」，清空 pvcHr 后 8500 次/24h 被判「偶发」Lown 1（中，确认缺陷）
 - 问题：Lown 2 级只判 `pvcHr>=30`，`pvcHr` 清空（0）时落入 `pvcHr>0||pvcTotal>0` 的 Lown 1「偶发(<30次/小时）」，完全不参考 24h 总数；8500 次/24h 折合约 354 次/小时，已属频发。
@@ -793,12 +790,9 @@
 - 影响：用户容易把 ACT 17 误读为「部分控制」，与升降级建议冲突。
 - 方案：把该预设 ACT 调到 20–24（如 4/4/4/4/4），或把预设改名为「GINA 部分控制（ACT 未控制）」并分开展示。阈值需临床复核。
 
-### D-N106 哮喘 GINA/ACT：历史/CSV 只围绕 GINA，ACT 评估不入库，回放也只重算 GINA（中，确认缺陷）
-- 问题：统计扩展只包装 `calcGina`，`calcAct` 未被包装；因此只改 ACT、或点「ACT评估」都不会写历史，CSV 也没有 ACT 记录。回放时只调 `calcGina()`，ACT 结果不重算。
-- 证据：`tools/pulmonology/gina-asthma.html:454-465`（快照含 a1–a5）、`:516-519`（Extras 仅由 calcGina 触发）、`:553-555`（只包装 calcGina）、`:502`（回放只调 calcGina）。
-- 复现：只调整 ACT 选项或点「ACT评估」→ 历史表无新增记录；回放一条含 a1–a5 的记录 → GINA 结果恢复，ACT 结果保持回放前的值。期望：ACT 评估同样入库，回放同时重算 GINA 与 ACT。
-- 影响：ACT 评估完全丢失历史与 CSV，无法随访趋势。
-- 方案：用同样的 Extras 包装 `calcAct`；回放后同时调用 `calcGina()` 与 `calcAct()`，并保留 skip 防重复。CSV 增加量表字段。
+### D-N106 哮喘 GINA/ACT：ACT 不入库/回放不重算（中，第307批已修销账）
+- 已修（第307批）：按 calcGina 同型包装 `calcAct`（Extras 入库），history.mount 回放回调补 `calcAct()`，预设 after 回调改 `calcGina(); calcAct();`。代码断言：回放含 calcGina+calcAct、calcAct 已包装、预设含两者（全 True）；JSDOM 真机 ACT 入库 OK、旧源码差分真红。
+- 原问题/复现（存档）：只包装 calcGina，ACT 评估不写历史/CSV、回放只重算 GINA。
 
 
 ### D-N108 肺结节 Lung-RADS：实性 15mm 判 4A，与同页公式「≥15mm 为 4B」冲突（中，确认缺陷）
@@ -822,12 +816,9 @@
 - 影响：小结节被过度升级，可能引发不必要的活检/手术焦虑。
 - 方案：改为 `if(mal && cat.startsWith('4')) cat='4X'`；非 4 类时仅追加「形态可疑，建议专科评估」文案。阈值需临床复核。
 
-### D-N111 肺结节 Lung-RADS：页面 `meta toolbox` 为 `cat=finance`，JSON-LD 为 `FinanceApplication`（中，确认缺陷）
-- 问题：呼吸内科医疗工具的构建元数据分类写成 finance，结构化数据也声明为金融应用，与页面主题和行业目录不一致。
-- 证据：`tools/pulmonology/lung-rads.html:9`（`cat=finance,industry=pulmonology`）、`:32`（`applicationCategory:"FinanceApplication"`）。
-- 复现：查看 `<head>` → `cat=finance`、`FinanceApplication`；页面标题与简介均为肺结节 Lung-RADS。期望：`cat=health`/医疗分类与 `MedicalApplication`（或项目约定的医疗分类值）。
-- 影响：索引/分类页可能把医疗工具归入金融；结构化数据与内容不符，影响搜索引擎理解。
-- 方案：修正 `meta[name=toolbox]` 的 `cat` 与 JSON-LD 的 `applicationCategory`，随后按项目规则重跑 `_build.py`；同时检查同批医疗页是否有同类错分。
+### D-N111 肺结节 Lung-RADS：cat=finance 错分（中，第307批已修销账）
+- 已修（第307批）：`tools/pulmonology/lung-rads.html` meta toolbox `cat=finance`→`cat=health`（与同目录 stop-bang/wells-pe 等医疗工具一致），JSON-LD `applicationCategory` `FinanceApplication`→`UtilitiesApplication`（与同目录 23 页一致）。JSDOM/源码断言 OK。cat 唯一源=meta，本改即权威源；如分类页/索引需刷新由构建流程处理。
+- 原问题/复现（存档）：医疗工具 meta cat=finance、JSON-LD FinanceApplication，与内容/行业目录不符。
 
 ### D-N112 肺结节 Lung-RADS：页面保留可见的 `opt-guide`/`opt-faq` 通用套话（中，确认缺陷）
 - 问题：页尾 `opt-guide`/`opt-faq` 仍是「在对应的输入框或选项中填写」「工作与生活中的相关计算与查询」等通用模板文案，与 Lung-RADS 的结节类型/大小/随访主题无关；CSS 将其作为正常内容显示，不是隐藏文本。
@@ -843,12 +834,9 @@
 - 影响：默认值可使低危被判中危，增加不必要的 PSG 转诊。
 - 方案：把性别改为「男/女」单选且不预选，未选时提示；或在计算前强制确认性别。阈值需临床复核。
 
-### D-N114 STOP-BANG：预设容器为空函数，「预设」页签点击后无内容（低，确认缺陷）
-- 问题：`__stop_bangPresets` 只有空壳，TBKIT 仍渲染「预设」页签，点击后空白。
-- 证据：`tools/pulmonology/stop-bang.html:438-440`（空函数）。
-- 复现：打开页面点「预设」→ 无按钮、无提示。期望：提供「典型 OSA 高危/低危」预设，或移除该页签。
-- 影响：空白页签造成加载失败的错觉。
-- 方案：补 2 个预设（如 8 项全中、仅 BMI+年龄），或在 TBKIT `P` 配置中移除 `pre`。
+### D-N114 STOP-BANG：预设容器空函数（低，第307批已修销账）
+- 已修（第307批）：`__stop_bangPresets()` 补 2 个预设（OSA高危·8项全中 / OSA低危·仅BMI+年龄），8 项 checkbox 用 1/0，after 回调 calc()。JSDOM 真机：预设数 2、标签正确 ⇒ OK。
+- 原问题/复现（存档）：预设函数空壳，「预设」页签点击后空白。
 
 ### 留存/优势（按页）
 - 生化比值：AST/ALT、BUN/Cr、GGT/ALT、R 因子、UA/ALB 五项各有独立结果卡与参考标尺，结构清楚；建议先让简介/深析与这五项对齐，再决定是否新增 AG/A/G 工具。
