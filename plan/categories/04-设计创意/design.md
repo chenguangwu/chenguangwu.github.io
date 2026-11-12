@@ -474,22 +474,6 @@
 - 影响：历史/导出入口不可用。
 - 方案：`ResText` 返回 `seed|size|blocks|bg` 摘要。
 
-### D-N90 loading-dots 速度 ≤0 生成非法动画，尺寸无上限（中，确认源码缺陷，两个问题）
-
-- 问题：`parseFloat(...) || 1.4` 把 0 静默改成 1.4，负值原样进入 `animation` 简写；负 `animation-duration` 非法，整条声明被浏览器丢弃，预览与复制出的 CSS 都无动画。`size` 只做下限 4。
-- 证据：`tools/design/loading-dots.html:268`（speed）、`:267`（size）、`:276`（拼 `animation:${speed}s`）、`:291`（延迟同用负值）、`:174` 附近（HTML max 仅提示）。
-- 复现（node）：speed=-1.4 → `animation: dotBounce -1.4s ease-in-out infinite;`，延迟 `-0.47s`；speed=0 → 变成 1.4s；size=9999 → 9999px 圆点撑爆预览。
-- 影响：负值输入下动画完全失效且无提示；超大尺寸破坏布局。
-- 方案：`speed = Math.max(0.1, parseFloat(...) || 1.4)`，`size = Math.min(size, 80)`，越界时提示。
-
-### D-N91 loading-dots 历史/CSV 恒空，导出 CSS 无配套 HTML 标记（中，确认源码缺陷，两个问题）
-
-- 问题：结果区圆点全是空 `div`，`textContent` 为空 → 历史与 CSV 永不记录；复制的 CSS 只含 `.loading-dots`/`.dot` 规则，页面不提供对应 HTML 结构，用户粘贴后看不到动画。
-- 证据：`tools/design/loading-dots.html:181`（output 仅 preview）、`:276-278`（预览仅空 div）、`:346-352`（`ResText`）、`:427`（CSV）、`:293`（CSS 输出无 HTML）。
-- 复现：改类型/颜色/速度 → 历史页签空、CSV 空；复制 CSS 后直接粘到空页面，无 `.dot` 元素即无任何效果。
-- 影响：历史/导出不可用；「复制即用」体验断裂。
-- 方案：`ResText` 返回参数摘要；CSS 输出同时附 `<div class="loading-dots">…</div>` 片段（或提供「复制 HTML+CSS」）。
-
 ### D-N92 ripple-effect 点击预览不产生任何涟漪（高，确认源码缺陷）
 
 - 问题：JS 创建的元素 `className='ripple'`，页面 CSS 只定义了 `.ripple-circle`；`.ripple` 规则仅存在于文本框中。该 `span` 作为 flex 子项虽会生效 width/height，但 `position:static` 使 left/top 无效，且无背景色/圆角/动画，点击后看不到任何涟漪，只会把「点击我」文字挤开造成布局跳动。
@@ -546,14 +530,6 @@
 - 影响：页面标题与示例引导用户做一件页面做不到的事，属严重名实不符；导出与复制能力缺失。
 - 方案：补 PNG/SVG 导出与「复制字符画」；调色板补到 8 色；或把 deep-dive/说明改成实际支持的绘制流程。
 
-### D-N99 checkerboard 历史/数据表/CSV 恒空（中，确认源码缺陷；与 D-N59 同族）
-
-- 问题：结果区仅一个用 CSS 背景绘制的空 `div`，`textContent` 恒为空，历史与 CSV 永不记录。
-- 证据：`tools/design/checkerboard-generator.html:168`（output 仅 preview）、`:255-256`（只写 `style.cssText` 与 textarea）、`:309-316`（`ResText`）、`:345`（历史恢复 `generate`）。
-- 复现：改配色/格子大小多次 → 历史页签始终空，导出 CSV 只有表头。
-- 影响：历史/导出入口不可用；生成本身正常。
-- 方案：`ResText` 返回 `c1|c2|size` 摘要。
-
 ### D-N100 checkerboard 文案承诺「格数」与「导出图片」，实际无格数控件、无图片导出（中，确认文案与实现不一致）
 
 - 问题：标题/描述/meta 反复写「可调格数」「可导出图片」；公式引据描述「SVG pattern、格数决定单元尺寸、单元边长 = 画布边长 / 格数」。实际只有颜色 1/2 + 格子大小三个输入，纯 CSS 平铺，无 canvas/SVG/下载。预设「透明底导出棋盘」也仍带 `background-color:#ffffff`，并不透明。
@@ -561,14 +537,6 @@
 - 复现：页面无「格数」输入、无下载/Canvas 调用；选预设「透明底导出棋盘（16px）」→ CSS 仍为 `background-color:#ffffff`，无法作透明底使用。
 - 影响：SEO 标题与 deep-dive 引导与实际能力不符；透明底预设名不副实。
 - 方案：补「格数/画布尺寸」与 PNG/SVG 导出；或把文案统一改为「可调格子大小、复制 CSS」；透明预设改 `background-color: transparent`。
-
-### D-N101 checkerboard 格子尺寸无上限，999 直接生成 1998px 背景（低，确认源码缺陷）
-
-- 问题：`s` 只 `Math.max(5)`，HTML `max=200` 不参与脚本校验；超大值直接进入 `background-size/position`，预览区被巨大色块撑破。
-- 证据：`tools/design/checkerboard-generator.html:253`（只钳下限）、`:254`（拼 CSS）、`:161`（max 仅提示）。
-- 复现（node）：size=999 → `background-size: 1998px 1998px; background-position: 0 0, 999px 999px;`；预览最小高度 200px 内出现整块单色。
-- 影响：输入越界时图案失去棋盘结构，页面布局被撑坏。
-- 方案：`s = Math.min(200, Math.max(5, s))`，越界提示。
 
 ### 留存/优势建议（逐页，具体可落地）
 
@@ -586,7 +554,7 @@
 - 本轮实读 8 页（整份 HTML：内联 JS/CSS 生成逻辑、deep-dive、FAQ 全读）。
 - 新增 27 条：高 2（D-N92、D-N96）/ 中 20 / 低 5。
 - 高优均给出可复现输入：D-N92 点击预览无涟漪（`.ripple` 无样式）；D-N96 8×8 点击命中错位（匹配 65 个元素，`idx` 整体偏移 1）。
-- 同族合并：D-N77 = favicon 两页历史恢复下载；D-N83/D-N84 为 initials 独有；D-N86/D-N89/D-N91/D-N99 = 结果区无文本致历史/CSV 恒空（与 D-N59 同族）。
+- 同族合并：D-N77 = favicon 两页历史恢复下载；D-N83/D-N84 为 initials 独有；D-N86/D-N89 = 结果区无文本致历史/CSV 恒空（与 D-N59 同族）；D-N91/D-N99 已于第317批修复。
 - 未覆盖：`tools/design` 其余约 44 页（本文件累计覆盖 64/108）。
 - 未做：浏览器交互、EN 运行态探针、移动端、门禁与线上验证；D-N96 的 DOM 命中顺序按标准文档序推演，未开浏览器。
 
@@ -594,30 +562,6 @@
 
 - 范围：`tools/design/` 8 页（`colorblind-simulator` / `cvd-safe-palette` / `palette-cvd-checker` / `exposure-triangle-calculator` / `shutter-speed-calculator` / `flexbox-generator` / `gradient-from-color` / `toast-generator`），整份 HTML（含内联 JS、外链 `js/tools/colorblind-simulator.js`、deep-dive、FAQ、引据表）全读。
 - 方法：静态源码审计 + `node` 复算；未开浏览器、未跑构建与门禁、未做 EN 运行态探针与移动端验证，行号按当前磁盘版本。
-
-### D-N102 colorblind 取色器改色不回写 HEX 输入框（中，确认源码缺陷）
-
-- 问题：`#c1Color` 的 `change` 处理调用 `setColorFromRgb(c, true)`，`skipInputs=true` 跳过整段输入回写，只另调 `syncRgbInputs` 同步 RGB 数字与滑杆，未更新 `#c1Hex`；HEX 文本框仍显示旧值，而预览/矩阵/色差已按新色计算。
-- 证据：`js/tools/colorblind-simulator.js:321`（`setColorFromRgb(c, true)`）、`:308-313`（`if (!skipInputs)` 内才写 `c1Hex`）、`:328-331`（`syncRgbInputs` 只写 R/G/B）。
-- 复现：默认色下打开取色器选 `#FF0000` → 单色预览与矩阵变红，`#c1Hex` 仍是旧 HEX；期望 HEX 框同步为 `#FF0000`。
-- 影响：同屏两个「当前颜色」互相矛盾；用户照 HEX 框复制会拿到旧色。
-- 方案：`skipInputs` 只跳过取色器自身，HEX/RGB 一并回写；或给 `setColorFromRgb` 增加 `hexOnly` 参数。
-
-### D-N103 colorblind 单色调色板被误判「灰度糊成一片」且矩阵判全通过（中，确认源码缺陷，两个问题）
-
-- 问题：灰度可分辨性用 `gaps.length ? min(gaps) : 0`，只有一个颜色时 `gaps=[]` → 0 → 直接判不合格；矩阵没有任何配对 → `warnLines` 为空 → 显示「所有颜色两两 ΔE 均 ≥ 10」。
-- 证据：`js/tools/colorblind-simulator.js:406-412`（`minGap` 与阈值 10）、`:471-473`（无配对即输出通过文案）。
-- 复现：调色板只填 `#FF0000` → 灰度提示 `0.0 ✗ 转灰度后会糊成一片`（单色不存在相邻混淆）；矩阵同时显示 `✓ 两两 ΔE ≥ 10`，两处结论互斥。
-- 影响：极简调色板（单色/两色）得到自相矛盾的结论，用户无法判断。
-- 方案：`n < 2` 时两处统一提示「至少输入 2 个颜色」，不要用 0 参与阈值比较。
-
-### D-N104 colorblind 同一 ΔE 在卡片/矩阵/清单用三套阈值（低，确认源码缺陷）
-
-- 问题：卡片标签按 5/15 分级，矩阵与混淆清单按 5/10 分级，页面说明又写 5–15 可察觉。
-- 证据：`js/tools/colorblind-simulator.js:244-246`（`d<5` / `d<15`）、`:456-459`（`d<5` / `d<10`，清单只收 `<10`）。
-- 复现：两色 ΔE=12 → 卡片标「可察觉」(warn)、矩阵格标 `good`、且不进混淆清单。
-- 影响：同一对颜色在三个区域得到三种结论。
-- 方案：抽一组常量（如 BAD<5 / WARN<10 / GOOD≥10）供三处共用，文案随之调整。
 
 ### D-N106 cvd-safe 发散模式亮度曲线与注释/文档相反（高，确认源码缺陷）
 
@@ -634,30 +578,6 @@
 - 复现：定性模式、数量 5、不锁色，分别选「明暗交替优先」与「最大化最小色差」点生成 → 两组 HEX 完全相同（首色恒为 h=0°/L≈0.64/C=0.04）。
 - 影响：策略下拉一半是死控件，用户以为换了算法。
 - 方案：实现 maxmin 分支（去掉/放宽 targetL 过滤，按最小 ΔE 贪心），或合并为一个选项并改文案。
-
-### D-N108 cvd-safe 未锁定色时首色恒定，与「自动选择最优起点」不符（中，确认源码缺陷）
-
-- 问题：`greedyQualitative` 首轮 `chosen=[]`，每个候选 `minD=Infinity`，`if (minD > bestScore)` 只在第一个候选成立（此后 `bestScore=Infinity`，`Infinity > Infinity` 为假）→ 首色恒为候选表首项。
-- 证据：`tools/design/cvd-safe-palette.html:437-443`（比较逻辑）、`:413-418`（候选按 `h` 外层、`L` 从 0.34 递增，首个满足 `|L-0.80|≤0.16` 的是 L=0.64、h=0）、`:381`（「生成将自动选择最优起点」）。
-- 复现：连续点生成 / 改数量再生成 → 首色始终是同一固定色（h=0°/L=0.64/C=0.04 的浊红），不随约束变化。
-- 影响：所有未锁色的定性配色都以同一个浊红开头，多样性差；文案承诺未兑现。
-- 方案：首轮按「与目标 L 的距离 + 色相分散度」评分，或先打散候选顺序（确定性 shuffle）再取最优。
-
-### D-N109 cvd-safe 称「8 种色觉类型」，实为 7 类 CVD + 正常且缺蓝锥单色视（中，文案与实现不一致）
-
-- 问题：meta/正文写「红绿 / 蓝黄 / 全色盲等 8 种色觉类型」「全部 8 种色觉类型」，`VTYPES` 实为 1 个「正常」+ 7 个 CVD（红/绿/蓝各 opia+anomaly，全色盲），没有蓝锥单色视（`colorblind-simulator` 的 8 型含 blue-cone）。
-- 证据：`tools/design/cvd-safe-palette.html:13,15,77`（meta/og/twitter）、`:243-251`（实际数组）、`:242`（注释「含正常」）、`:596`（「全部 8 种色觉类型」）。
-- 复现：数 `VTYPES` 行 = 8（1 正常 + 7 缺陷）；页面 canvas 8 行里只有 7 行是色觉缺陷。
-- 影响：SEO 与校验范围不符；蓝锥单色视用户得不到「全类型可区分」的保证。
-- 方案：补 blue-cone 矩阵（与 simulator 同源）凑足 8 类缺陷，或把文案改为「7 种色觉缺陷 + 正常视」。
-
-### D-N110 cvd-safe 恢复上次参数后不重新生成，控件与结果脱节（中，确认源码缺陷）
-
-- 问题：`cvRestore()` 只回填控件并 `dispatchEvent(change)`，而各 change 处理仅赋值 `S.mode / S.count / S.strategy`，不调用生成；首屏 `:662` 已按默认值跑过一次，因此刷新后控件是旧参数、画面仍是默认配色。
-- 证据：`tools/design/cvd-safe-palette.html:846-854`（restore 只 dispatch）、`:650-652`（change 只赋值）、`:662`（首屏按默认生成）。
-- 复现：把数量改为 7 并生成（自动保存）→ 刷新 → 数量控件显示 7、色块仍是 5 色。
-- 影响：保存/恢复功能看起来生效，实际结果与参数不一致。
-- 方案：`cvRestore` 末尾触发 `#csGen.click()`（或直接 `generate(); renderResult();`）。
 
 ### D-N111 cvd-safe 预计算的 `c.labs` 在贪心中未被使用，生成时重复海量 Lab 转换（低，确认源码缺陷）
 
@@ -768,7 +688,7 @@
 - 问题：`#output` 只含一个纯背景的 `div#preview`，`__gradient_from_colorResText` 读 `#output.textContent` 恒为空 → `Extras` 直接 return，三个页签与「导出明细 CSV」永远为空。
 - 证据：`tools/design/gradient-from-color.html:180`（output 仅 preview）、`:393-399`（ResText）、`:450-451`（`if(!res) return`）。
 - 复现：改方向/步数点生成 3 次 → 历史页签空、CSV 只有表头。
-- 影响：附加页签与导出入口不可用（与 D-N59/D-N89/D-N91/D-N99 同族）。
+- 影响：附加页签与导出入口不可用（与 D-N59/D-N89 同族；D-N91/D-N99 已于第317批修复）。
 - 方案：ResText 返回 `base|dir|steps|首色标` 摘要。
 
 ### D-N125 gradient-from-color FAQ 宣称 WCAG 对比度检测，实际无任何实现（中，文案与实现不一致）
@@ -1020,7 +940,7 @@
 - 影响：7 页同时出现与功能无关的卖点，降低工具可信度；colorblind 的简介（`:504-509`）是唯一按真实能力撰写的。
 - 方案：按工具真实能力重写简介/功能特点（构建期按工具注入），删除「CSS 代码/实时预览与调试」通用套话。
 
-### D-N155 waveform/spectrum/data-matrix/base64 的历史、数据表、CSV 恒为空（中，确认源码缺陷，同族 D-N59/D-N89/D-N91/D-N99）
+### D-N155 waveform/spectrum/data-matrix/base64 的历史、数据表、CSV 恒为空（中，确认源码缺陷，同族 D-N59/D-N89；D-N91/D-N99 已于第317批修复）
 
 - 问题：四页结果区 `#output` 只有 canvas/img 或纯预览 div，没有可读文本；`ResText()` 取 `#output.textContent` 后为空 → 历史永不记录、数据表无行、CSV 只有表头。base64 的历史恢复回调还会调用 `downloadImg()`，一旦有记录会“恢复即下载”。
 - 证据：`tools/design/waveform-visualizer.html:178`（output 仅 canvas）、`:371-377`（ResText）、`:450`（导出 CSV）；`tools/design/spectrum-visualizer.html:176`、`:388-394`；`tools/design/data-matrix.html:172`、`:352-358`；`tools/design/base64-to-image.html:170`、`:324-330`、`:360`（恢复调 downloadImg）。
@@ -1061,13 +981,13 @@
 
 **留存建议（tools/design/signature-pad.html）**：整改保留（高价值）。当前笔宽滑杆失效必须优先修；透明导出改为按笔画层重绘；把 `#spPresets` 与 `#spRefTbl` 移出 `touch-action:none` 的 `.canvas-wrap`。引据表还应把「Pointer Events」改成实际使用的 mouse/touch 事件（`:280-282` 对照 `:550-557`）。
 
-**留存建议（tools/design/colorblind-simulator.html）**：保留（本批功能最完整的页面）。建议按类型保存严重度、补真正的色相均分评分、去掉伪 AAA 列；已有 D-N102~D-N105 的四项旧问题仍应一并修复。
+**留存建议（tools/design/colorblind-simulator.html）**：保留（本批功能最完整的页面）。建议按类型保存严重度、补真正的色相均分评分、去掉伪 AAA 列；D-N102/D-N103/D-N104 已于第317批修复，D-N105 待处理。
 
 ### 覆盖
 
 - 实读：8/8 页整份 HTML（含内联脚本、deep-dive、FAQ、引据表），外加 `js/tools/colorblind-simulator.js` 全量（约 1100 行）。
 - 新增 25 条：高 4（D-N131、D-N134、D-N137、D-N148）/ 中 14 / 低 7，编号连续 D-N131–D-N155。
-- 未覆盖：`tools/design/` 其余工具页；colorblind 的 D-N102–D-N105 已存在，本批只补新角度（严重度语义、hue 策略、AAA/监听/文件名），不重复旧条。
+- 未覆盖：`tools/design/` 其余工具页；colorblind 的 D-N102–D-N105 已存在，本批只补新角度（严重度语义、hue 策略、AAA/监听/文件名），不重复旧条；其中 D-N102/D-N103/D-N104 已于第317批修复。
 - 未做：浏览器真实渲染与交互、`?lang=en-US` 运行态探针、移动端真机、`_build.py`/`run_gates.py` 门禁与线上验证；未改任何源码、未做 git 写操作。
 - 复算说明：Tailwind 242 色对比度、频谱 CSS 拉伸后的圆环尺寸、Base64 扩展名正则、Data Matrix 图案与定位边方向均由 `node` 内存复算，未在页面内实测。
 
@@ -1722,9 +1642,9 @@
 - **color-picker**：默认 #4151e1 自洽、白字 6.02:1；#788EED 时「推荐文字色」仍给 #FFF（3.05:1），与同页 WCAG 面板自相矛盾（D-N230）；D-N31/D-N32 已于第314批修复（越界回写 + HEX 3/6/8 位校验）。
 - **color-shade-generator**：默认 11 卡线性混白/黑，公式一致；D-N34/D-N36 已失效，D-N35 部分仍成立（`:148`、`:383` 仍称 HSL/OKLCH 十档）。
 - **color-temperature-converter**：默认 5500K→(255,238,222) 正算可用；D-N17 已失效（已加范围校验），D-N18（轨迹外反查仍返回边界温）已于第315批修复（残差超阈值提示）。
-- **colorblind-simulator**：默认绿盲 #FF6B35→#B9A62F 与 Machado 1.0 手算一致；D-N102（取色器不写回 HEX）仍成立。
+- **colorblind-simulator**：默认绿盲 #FF6B35→#B9A62F 与 Machado 1.0 手算一致；D-N102（取色器不写回 HEX）已于第317批修复。
 - **contrast-checker**：默认 14.68:1、AA/AAA 判定正确；D-N1（非法 HEX 不刷新结果）仍成立。
-- **cvd-safe-palette**：无默认结果；D-N106（发散亮度方向反，L 两端 0.90、中心 0.32）、D-N107（策略两分支同实现）、D-N108（首色恒 `oklch(.64,.04,0)`）仍成立。
+- **cvd-safe-palette**：无默认结果；D-N106（发散亮度方向反，L 两端 0.90、中心 0.32）、D-N107（策略两分支同实现）仍成立；D-N108（首色恒定）已于第317批修复。
 - **gradient-from-color**：默认 L90→20 五色标，基色 #667eea(L66) 不出现；D-N124/D-N125/D-N126 仍成立。
 - **gradient**：默认相邻色标 1.74:1；新增对比度使 D-N47/D-N48 的 gradient 部分失效（image-color-picker 部分仍成立）；D-N233/D-N234 为新增。
 - **material-color**：常量表正确；主色徽标取 600 阶而图表取 500 阶；D-N204（图表取 400 阶）已于第311批修复，D-N205 仍成立。

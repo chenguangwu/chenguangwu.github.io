@@ -243,7 +243,7 @@
   }
   function deltaTag(d) {
     if (d < 5) { return { cls: 'bad', txt: B('几乎无差异', 'Nearly identical') }; }
-    if (d < 15) { return { cls: 'warn', txt: B('可察觉', 'Noticeable') }; }
+    if (d < 10) { return { cls: 'warn', txt: B('可察觉', 'Noticeable') }; }
     return { cls: '', txt: B('明显不同', 'Clearly different') };
   }
 
@@ -305,24 +305,22 @@
     $('c1SimName').textContent = tn(st) + '（' + Math.round(sevSel * 100) + '%）';
   }
 
-  function setColorFromRgb(rgb, skipInputs) {
+  function setColorFromRgb(rgb, skipColorPicker) {
     S1.rgb = rgb;
     var hex = rgbToHex(rgb[0], rgb[1], rgb[2]);
-    if (!skipInputs) {
-      $('c1Color').value = hex.toLowerCase();
-      $('c1Hex').value = hex;
-      $('c1R').value = rgb[0]; $('c1G').value = rgb[1]; $('c1B').value = rgb[2];
-      $('c1Rv').textContent = rgb[0]; $('c1Gv').textContent = rgb[1]; $('c1Bv').textContent = rgb[2];
-    }
+    if (!skipColorPicker) { $('c1Color').value = hex.toLowerCase(); }
+    $('c1Hex').value = hex;
+    $('c1R').value = rgb[0]; $('c1G').value = rgb[1]; $('c1B').value = rgb[2];
+    $('c1Rv').textContent = rgb[0]; $('c1Gv').textContent = rgb[1]; $('c1Bv').textContent = rgb[2];
     renderSingle();
   }
 
   $('c1Color').addEventListener('input', function () {
-    var c = hexToRgb(this.value); if (c) { setColorFromRgb(c, true); syncRgbInputs(c); }
+    var c = hexToRgb(this.value); if (c) { setColorFromRgb(c, true); }
   });
   $('c1Hex').addEventListener('input', function () {
     var c = hexToRgb(this.value);
-    if (c) { this.style.borderColor = ''; setColorFromRgb(c, true); syncRgbInputs(c); }
+    if (c) { this.style.borderColor = ''; setColorFromRgb(c, true); }
     else { this.style.borderColor = 'var(--danger)'; }
   });
   function syncRgbInputs(c) {
@@ -403,13 +401,19 @@
     var ls = labs.map(function (l) { return l[0]; }).slice().sort(function (a, b) { return a - b; });
     var gaps = [];
     for (var i = 1; i < ls.length; i++) { gaps.push(ls[i] - ls[i - 1]); }
-    var minGap = gaps.length ? Math.min.apply(null, gaps) : 0;
-    var grayOk = minGap >= 10;
-    $('c2GrayTip').innerHTML = B('灰度可分辨性：相邻明度（L*）最小间隔 ', 'Grayscale separability — smallest lightness (L*) gap between neighbours: ') +
-      '<b class="' + (grayOk ? 'cbs-pass' : 'cbs-fail') + '">' + minGap.toFixed(1) + '</b>' +
-      B('（阈值 10）→ ', ' (threshold 10) → ') +
-      (grayOk ? '<span class="cbs-pass">✓</span>' + B(' 转灰度/黑白打印后仍可区分', ' still separable in greyscale or B&W print')
-        : '<span class="cbs-fail">✗</span>' + B(' 转灰度后会糊成一片，建议拉开明度或改用明暗交替', ' merges into one tone in greyscale — widen the lightness gap or alternate light and dark'));
+    var grayTipHtml;
+    if (gaps.length === 0) {
+      grayTipHtml = B('灰度可分辨性：请至少输入 2 个颜色以评估相邻明度间隔（单色无需灰度分辨）。', 'Grayscale separability: enter at least 2 colors to evaluate the neighbouring lightness gap (a single colour needs no greyscale separation).');
+    } else {
+      var minGap = Math.min.apply(null, gaps);
+      var grayOk = minGap >= 10;
+      grayTipHtml = B('灰度可分辨性：相邻明度（L*）最小间隔 ', 'Grayscale separability — smallest lightness (L*) gap between neighbours: ') +
+        '<b class="' + (grayOk ? 'cbs-pass' : 'cbs-fail') + '">' + minGap.toFixed(1) + '</b>' +
+        B('（阈值 10）→ ', ' (threshold 10) → ') +
+        (grayOk ? '<span class="cbs-pass">✓</span>' + B(' 转灰度/黑白打印后仍可区分', ' still separable in greyscale or B&W print')
+          : '<span class="cbs-fail">✗</span>' + B(' 转灰度后会糊成一片，建议拉开明度或改用明暗交替', ' merges into one tone in greyscale — widen the lightness gap or alternate light and dark'));
+    }
+    $('c2GrayTip').innerHTML = grayTipHtml;
 
     // 各型并排条
     var bh = '';
@@ -468,6 +472,10 @@
     h += '</tbody>';
     $('c2Matrix').innerHTML = h;
 
+    if (n < 2) {
+      $('c2Warn').innerHTML = '<div class="cbs-hint">' + B('请至少输入 2 个颜色以评估两两混淆风险。', 'Enter at least 2 colors to assess pairwise confusion risk.') + '</div>';
+      return;
+    }
     if (!warnLines.length) {
       $('c2Warn').innerHTML = '<div class="cbs-ok">' + B('✓ 在 ', '✓ Under ') + '<b>' + esc(tn(TYPE_MAP[tk])) + '</b>' +
         B(' 下，所有颜色两两 ΔE 均 ≥ 10，可辨识度良好。', ', every pair of colors has ΔE ≥ 10 — distinguishability is good.') + '</div>';

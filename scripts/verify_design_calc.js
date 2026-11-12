@@ -349,6 +349,12 @@ const CASES = [
     ref: "独立复算：`background-size: ${size*2}px ${size*2}px`（32 ⇒ 64px）且 `background-position: 0 0, ${size}px ${size}px;` ⇒ 注入 size=32 得 `background-position: 0 0, 32px 32px;`，与默认态（size 默认值 ⇒ 另一组尺寸）不同。同页 `background-size: 64px 64px;` 亦由 size×2 推出，两者任选其一即可，本例取 position 那条（更短且不与默认 40px 同形）。"
         + "⚠ 颜色只进 `linear-gradient` 段，锚颜色会撞默认态渐变描述 ⇒ 只用尺寸类字段。",
   },
+  {
+    slug: "design/checkerboard-generator",
+    inputs: { size: "999", color1: "#22c55e", color2: "#0f172a" },
+    expect: ["background-position: 0 0, 200px 200px;"],
+    ref: "D-N101 强锁：size=999 原样进入会生成 1998px 背景撑破布局，现 `Math.min(200, Math.max(5, parseInt(value)||30))` 钳到 200 ⇒ background-position 第二项恒为 200px。注入 999 与默认态（size 默认值 40 ⇒ 40px）零交集。",
+  },
 
   // ── §7.4 覆盖缺口线 · design/*（第四交付 BATCH142）
   {
@@ -498,6 +504,18 @@ const CASES = [
     ],
     ref: "第一条锚整句：size / color / speed 三个字段全进同一条 `.dot` 声明（默认态为 `#3b82f6` + 1s）。\n"
       + "第二条把 `count` 纳入被测点：count=5 ⇒ 第 3 个点延迟 0.24s（默认 4 个点时为 0.20s）。只锚第一条时，改点数不会触发失败。",
+  },
+  {
+    slug: "design/loading-dots",
+    inputs: { count: "5", speed: "-1", color: "#f43f5e", size: "12", animType: "bounce" },
+    expect: [".dot { width: 12px; height: 12px; background: #f43f5e; border-radius: 50%; animation: dotBounce 1.4s ease-in-out infinite; }"],
+    ref: "D-N90 强锁①（速度下限）：speed=-1 原样进 `animation:-1.4s` 非法被浏览器丢弃、动画失效；现 `isFinite(sv) && sv>0` 不成立 ⇒ 回落 1.4s。注入负值与默认态（1s 正速）零交集。",
+  },
+  {
+    slug: "design/loading-dots",
+    inputs: { count: "5", speed: "1.2", color: "#f43f5e", size: "9999", animType: "bounce" },
+    expect: [".dot { width: 120px; height: 120px; background: #f43f5e; border-radius: 50%; animation: dotBounce 1.2s ease-in-out infinite; }"],
+    ref: "D-N90 强锁②（尺寸上限）：size=9999 原样进会撑爆预览，现 `Math.min(120, Math.max(4, parseInt(value)||12))` 钳到 120 ⇒ width/height 恒 120px。注入 9999 与默认态（12px）零交集。",
   },
   {
     slug: "design/loading-dots",
