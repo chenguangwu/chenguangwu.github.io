@@ -82,7 +82,7 @@ window.INDUSTRY_INFO = {
   'hr'                   : { name: '人力资源', icon: '👥', hot: 207060 },
   'obstetrics'           : { name: '产科医学', icon: '🤱', hot: 201147 },
   'forestry'             : { name: '林业资源', icon: '🌲', hot: 200038 },
-  'pulmonology'          : { name: '呼吸内科', icon: '🫁', hot: 200038 },
+  'pulmonology'          : { name: '呼吸内科', icon: '🫁', hot: 199538 },
   'hematology'           : { name: '血液科', icon: '🩸', hot: 198998 },
   'metallurgy'           : { name: '冶金材料', icon: '🔩', hot: 196573 },
   'hvac'                 : { name: '暖通空调', icon: '❄️', hot: 195578 },
