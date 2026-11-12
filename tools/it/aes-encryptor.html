@@ -243,6 +243,9 @@
     <div id="fileInfo" style="display:none;margin-top:12px;">
       <div class="info-box" id="fileInfoText"></div>
     </div>
+    <div id="aesFileDownload" style="display:none;margin-top:10px;">
+      <button type="button" class="btn primary" id="aesDownloadBtn" onclick="downloadDecryptedFile()">💾 <span id="aesDownloadLabel">下载原文件</span></button>
+    </div>
   </div>
 
   <div class="card">
@@ -845,6 +848,10 @@ async function encrypt(){
 
     var encoder = new TextEncoder();
     var plaintext = encoder.encode(inputText);
+    // IT-N89：文件模式且输入框仍是加载时的 Base64（用户未改）时，直接用文件的原始字节作明文，
+    // 避免对 Base64 文本再做一次 UTF-8 编码（二次编码导致体积翻倍、无法还原二进制）。
+    var isFileMode = !!(currentFile && currentFile.base64 && inputText === currentFile.base64 && __aesRawBytes);
+    if(isFileMode) plaintext = new Uint8Array(__aesRawBytes);
     // N92：输入字节数必须是「用户实际输入的字节数」。原实现传的是 PKCS7 填充后的长度，
     // 输入「中文」（UTF-8 6 字节）在 ECB+PKCS7 下显示成 16 B，误导用户。
     var inputBytes = plaintext.length;
@@ -1004,6 +1011,10 @@ async function decrypt(){
     document.getElementById('output').value = output;
     updateInfo(ciphertext.length, plaintext.length);
     __aes_encryptorLastBytes = plaintext.length;
+    // IT-N89：保存解密得到的原始字节，供「下载原文件」精确还原（TextDecoder 对二进制会替换非法序列，
+    // 文本展示可能失真，但下载必须用未解码的原始字节）。文件名沿用加载时的名字，否则 decrypted.bin。
+    __aesLastPlainBytes = new Uint8Array(plaintext);
+    showFileDownload();
     ToolBox.showToast(i18nText('toast.msg586'));
   } catch(e){
     __aes_encryptorLastBytes=0; ToolBox.showToast('解密失败：' + e.message, 'error');
@@ -1024,9 +1035,45 @@ function clearAll(){
   document.getElementById('fileInfo').style.display = 'none';
   document.getElementById('infoInputLen').textContent = '-';
   document.getElementById('infoOutputLen').textContent = '-';
+  // IT-N89：清空文件往返状态与下载入口，避免下载到上一轮残留字节
+  currentFile = null; __aesRawBytes = null; __aesLastPlainBytes = null;
+  var dl = document.getElementById('aesFileDownload');
+  if(dl) dl.style.display = 'none';
 }
 
 var currentFile = null;
+// IT-N89：文件原始字节（加密明文源）与解密字节（下载源），与输入框的 Base64 文本分离
+var __aesRawBytes = null;
+var __aesLastPlainBytes = null;
+
+// IT-N89：解密成功后显示「下载原文件」入口，按中英态设置标签
+function showFileDownload(){
+  var box = document.getElementById('aesFileDownload');
+  if(!box) return;
+  box.style.display = 'block';
+  var en = (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn()) ? true : false;
+  var label = document.getElementById('aesDownloadLabel');
+  if(label) label.textContent = en ? 'Download file' : '下载原文件';
+}
+
+// IT-N89：把解密原始字节导出为文件。文件名沿用加载时的名字，纯文本解密则给 decrypted.txt。
+function downloadDecryptedFile(){
+  if(!__aesLastPlainBytes || !__aesLastPlainBytes.length){
+    return ToolBox.showToast(((typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())
+      ? 'Nothing to download' : '没有可下载的内容'), 'error');
+  }
+  var name = (currentFile && currentFile.name) ? currentFile.name : 'decrypted.bin';
+  var blob = new Blob([__aesLastPlainBytes], {type:'application/octet-stream'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  ToolBox.showToast(((typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())
+    ? 'File downloaded' : '文件已下载'));
+}
 
 function handleFile(event){
   var file = event.target.files[0];
@@ -1037,15 +1084,23 @@ function handleFile(event){
     return;
   }
 
-  currentFile = file;
   var reader = new FileReader();
   reader.onload = function(e){
     var bytes = new Uint8Array(e.target.result);
     var base64 = bytesToBase64(bytes);
+    // IT-N89：保存文件原始字节与加载时的 Base64，加密时直接以原始字节为明文，避免二次编码；
+    // 输入框仍显示 Base64 供查看/复制，但用户改动后将自动回退为「按文本加密」。
+    currentFile = {name: file.name, size: file.size, base64: base64};
+    __aesRawBytes = bytes;
+    __aesLastPlainBytes = null;
+    var dl = document.getElementById('aesFileDownload');
+    if(dl) dl.style.display = 'none';
     document.getElementById('input').value = base64;
     document.getElementById('fileInfo').style.display = 'block';
-    document.getElementById('fileInfoText').textContent =
-      '已加载文件: ' + file.name + ' (' + formatFileSize(file.size) + ')，已转为 Base64';
+    var en = (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn()) ? true : false;
+    document.getElementById('fileInfoText').textContent = en
+      ? ('Loaded: ' + file.name + ' (' + formatFileSize(file.size) + ') — raw bytes will be encrypted')
+      : ('已加载文件: ' + file.name + ' (' + formatFileSize(file.size) + ')，将按原始字节加密');
     updateInfo(file.size, bytes.length);
   };
   reader.readAsArrayBuffer(file);
@@ -1064,6 +1119,7 @@ window.clearAll = clearAll;
 window.generateSalt = generateSalt;
 window.generateIV = generateIV;
 window.handleFile = handleFile;
+window.downloadDecryptedFile = downloadDecryptedFile;
 
 })();
 </script><script>

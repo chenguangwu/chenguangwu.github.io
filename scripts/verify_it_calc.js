@@ -255,6 +255,18 @@ const CASES = [
     "ref": "复核失败重做·第46批 AES 解密成功入历史：旧实现只包装 encrypt，decrypt 成功不触发 Extras ⇒ 调用 decrypt 不会写历史 hist=0；修复后包装 decrypt 并在其 Promise/同步返回后触发 Extras，本例把 __aes_encryptor_d0 替换为同步桩设置成功字节数，走真实包装 ⇒ hist=1。探针串依赖修复引入的 decrypt 包装，默认态无探针串 ⇒ 零逃生。"
   },
   {
+    slug: "it/aes-encryptor",
+    clicks: ["document.getElementById('__tbProbe').textContent='AESDL '+(typeof downloadDecryptedFile==='function'&&/createObjectURL/.test(String(downloadDecryptedFile))&&/Blob/.test(String(downloadDecryptedFile))?'OK':'BAD');"],
+    expect: ["AESDL OK"],
+    ref: "IT-N89：文件往返需有「下载原文件」入口——全局 downloadDecryptedFile 用 Blob + URL.createObjectURL 导出解密原始字节并按原文件名保存（旧源码无此函数 ⇒ BAD）。harness 无法驱动真实文件/crypto 往返（由 JSDOM 真机脚本 _verify_it_batch268.mjs 覆盖字节级往返），此处用函数存在性 + 源码形态作确定性判别。默认态不执行 clicks、输出区不含 'AESDL OK' ⇒ 零逃生。",
+  },
+  {
+    slug: "it/aes-encryptor",
+    clicks: ["document.getElementById('__tbProbe').textContent='AESFILE '+(/__aesRawBytes/.test(String(handleFile))&&/原始字节/.test(String(handleFile))?'OK':'BAD');"],
+    expect: ["AESFILE OK"],
+    ref: "IT-N89：handleFile 必须保存文件原始字节（__aesRawBytes）供 encrypt 直接以字节为明文，跳过对 Base64 文本的二次 UTF-8 编码（旧源码只读 ArrayBuffer 写 Base64 到输入框、无原始字节缓存 ⇒ BAD）。源码形态判别，默认态不执行 clicks、输出区不含 'AESFILE OK' ⇒ 零逃生。",
+  },
+  {
     slug: "it/matrix-transpose",
     clicks: ["var __oq=document.querySelectorAll;__lastTranspose=[[1,2],[3,4]];document.getElementById('rows').value='0';calculate();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='MXCLR cleared='+(__lastTranspose===null?'Y':'N');"],
     expect: ["MXCLR cleared=Y"],
