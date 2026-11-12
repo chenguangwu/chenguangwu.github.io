@@ -2988,6 +2988,41 @@ const CASES = [
   clicks: ["generate();var h=String(document.getElementById('preview').innerHTML);var c=String(document.getElementById('cssOutput').value);var s='COL:'+document.getElementById('rippleColor').value+'|HTML:'+(h.indexOf('#ff0000')>=0?1:0)+'|CSS:'+(c.indexOf('#ff0000')>=0?1:0);document.getElementById('__svg_probe').textContent=s;document.getElementById('cssOutput').value=s;document.getElementById('preview').textContent=s;"],
   expect: ["COL:#ff0000|HTML:1|CSS:1"],
   ref: "D-N94（多重）：旧码三个圆点与 .multi-pulse div 全用背景色；修复后预览与导出都取 rippleColor。注入 #ff0000 后两处均应出现；旧码 HTML:0|CSS:0 ⇒ 强判别。",
+},
+{
+  slug: "design/qr-code-styled",
+  inputs: { text: "HELLO-324", size: "300" },
+  clicks: ["lastURL='OLDPNG-324';generate();document.getElementById('__svg_probe').textContent='IN:'+document.getElementById('text').value+'|URL:'+String(lastURL)+'|END';"],
+  expect: ["IN:HELLO-324|URL:|END"],
+  ref: "D-N12（失败分支）：旧码 lastURL 只在生成成功回调里写，qrcode.js 未加载/生成抛错等失败分支只改预览文案，上一次的码仍可下载；修复后 generate() 开头先清空 lastURL。桩内 qrcode 未定义必走失败分支；旧码 URL:OLDPNG-324 ⇒ 强判别，expect 含注入文本。",
+},
+{
+  slug: "design/qr-code-styled",
+  inputs: { text: "HELLO-324" },
+  clicks: ["var orig=document.getElementById('text').value;lastURL='OLDPNG-324';lastQRSig=__qrSig();document.getElementById('text').value='CHANGED-324';document.getElementById('__svg_probe').textContent='IN:'+orig+'|STALE:'+(__qrStale()?1:0);"],
+  expect: ["IN:HELLO-324|STALE:1"],
+  ref: "D-N12（参数快照）：修复后生成时记录 text/fg/bg/size/ecLevel 签名，下载或复制前比对当前输入；改文本后 __qrStale() 为真。旧码无该组函数，探针抛错 ⇒ 强判别，expect 含注入的 HELLO-324。",
+},
+{
+  slug: "design/qr-code-styled",
+  inputs: { text: "HELLO-324" },
+  clicks: ["var orig=document.getElementById('text').value;lastURL='OLDPNG-324';lastQRSig='OLD-SIG';var clicked=0;var oc=document.createElement;document.createElement=function(t){var e=oc(t);if(t==='a'){e.click=function(){clicked++;};}return e;};downloadImg();document.createElement=oc;document.getElementById('__svg_probe').textContent='IN:'+orig+'|CLICK:'+clicked+'|URL:'+String(lastURL)+'|END';"],
+  expect: ["IN:HELLO-324|CLICK:0|URL:|END"],
+  ref: "D-N12（下载拦截）：签名过期时 downloadImg() 必须清空 lastURL 并提示，绝不触发 a.click()。桩捕获 a 元素的 click 次数；旧码直接下载旧图 ⇒ CLICK:1|URL:OLDPNG-324，强判别。",
+},
+{
+  slug: "design/image-rotator",
+  inputs: { angle: "45" },
+  clicks: ["var orig=document.getElementById('angle').value;origImg={width:20,height:20};lastURL='OLDPNG-324';lastIrotSig=__irotSig();document.getElementById('angle').value='135';document.getElementById('__svg_probe').textContent='IN:'+orig+'|STALE:'+(__irotStale()?1:0);"],
+  expect: ["IN:45|STALE:1"],
+  ref: "D-N11：旧码上传换图与改角度都不使 lastURL 失效，下载直取旧图；修复后生成时记录「角度 + 原图 src 尾段」签名，下载/复制前比对，上传回调另立即清空。注入 angle=45 后改 135 判过期；旧码无该组函数 ⇒ 强判别。",
+},
+{
+  slug: "design/image-cropper",
+  inputs: { cw: "37" },
+  clicks: ["var orig=document.getElementById('cw').value;origImg={width:200,height:200};lastURL='OLDPNG-324';lastCropSig=__icropSig();document.getElementById('cw').value='88';document.getElementById('__svg_probe').textContent='IN:'+orig+'|STALE:'+(__icropStale()?1:0);"],
+  expect: ["IN:37|STALE:1"],
+  ref: "D-N26：旧码换图已失效但改 cx/cy/cw/ch 仍可下载上一张旧裁剪；修复后生成时记录「四个裁剪参数 + 原图 src 尾段」签名，下载/复制前比对并撤销旧 blob URL。注入 cw=37 后改 88 判过期；旧码无该组函数 ⇒ 强判别。",
 }
 ];
 

@@ -571,7 +571,7 @@
       <div class="size-inputs" id="percentSizeWrap" style="display:none;">
         <div class="size-field">
           <label>缩放比例</label>
-          <input type="number" id="percentScale" min="1" max="1000" value="100" style="padding-right:36px;" placeholder="如 100（1–1000）">
+          <input type="number" id="percentScale" min="1" max="1000" value="100" style="padding-right:36px;" placeholder="如 100（1–1000）" oninput="invalidateResults()">
           <span class="unit">%</span>
         </div>
       </div>
@@ -913,6 +913,18 @@ window.__svgFileBlocked=__svgFileBlocked;
     return d.innerHTML;
   }
 
+  // ---- 参数变化统一作废旧结果 ----
+  window.invalidateResults = function() {
+    if (!state.results.length) return;
+    state.results.forEach(function(r) {
+      if (r && r.url) { try { URL.revokeObjectURL(r.url); } catch (e) {} }
+    });
+    state.results = [];
+    state.currentPreviewIdx = -1;
+    renderFileList();
+    updateUI();
+  };
+
   // ---- 格式选择 ----
   window.selectFormat = function(format) {
     state.targetFormat = format;
@@ -929,7 +941,8 @@ window.__svgFileBlocked=__svgFileBlocked;
   // ---- 质量更新 ----
   window.updateQualityLabel = function() {
     var val = document.getElementById('qualitySlider').value;
-    state.quality = parseInt(val);
+    var q = parseInt(val);
+    if (state.quality !== q) { state.quality = q; invalidateResults(); }
     document.getElementById('qualityValue').textContent = val + '%';
   };
 
@@ -937,7 +950,7 @@ window.__svgFileBlocked=__svgFileBlocked;
   window.updateSizeMode = function() {
     var szEl = document.querySelector('input[name="sizeMode"]:checked');
     var mode = szEl ? szEl.value : 'original';
-    state.sizeMode = mode;
+    if (state.sizeMode !== mode) { state.sizeMode = mode; invalidateResults(); }
     document.getElementById('customSizeWrap').className = 'size-inputs' + (mode === 'custom' ? ' show' : '');
     document.getElementById('percentSizeWrap').style.display = mode === 'percent' ? 'flex' : 'none';
     document.getElementById('sizeLinkWrap').className = 'size-link' + (mode === 'custom' ? ' show' : '');
@@ -952,6 +965,7 @@ window.__svgFileBlocked=__svgFileBlocked;
     } else if (dim === 'height' && h > 0) {
       document.getElementById('customWidth').value = Math.round(h * state.aspectRatio);
     }
+    invalidateResults();
   };
 
   window.toggleSizeLink = function() {

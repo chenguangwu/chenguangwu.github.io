@@ -242,6 +242,14 @@
 </div>
 <script>
 let origImg = null, lastURL = '', lastBlobURL = '', cropSeq = 0;
+function __icropSig(){
+  var g=function(id){var e=document.getElementById(id);return e?String(e.value):'';};
+  var s=origImg&&origImg.src?String(origImg.src):'';
+  return [g('cx'),g('cy'),g('cw'),g('ch'),s.length,s.slice(-24)].join('|');
+}
+let lastCropSig = '';
+function __icropStale(){ return !!lastURL && __icropSig() !== lastCropSig; }
+function __icropStaleMsg(){ return ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Result is outdated, please crop again":"结果已过期，请重新裁剪"); }
 function cropName(x, y, w, h){
   return 'cropped_' + (origImg ? origImg.width : 0) + 'x' + (origImg ? origImg.height : 0) + '_' + x + '-' + y + '_' + w + 'x' + h + '.png';
 }
@@ -315,6 +323,7 @@ function generate(){
   ctx.drawImage(origImg, x, y, w, h, 0, 0, w, h);
   try { lastURL = canvas.toDataURL('image/png'); }
   catch (e) { lastURL=''; __icExportFail('导出失败：' + ((e && (e.name || e.message)) || ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Unknown error":"未知错误"))); return; }
+  lastCropSig = __icropSig();
   const name = cropName(x, y, w, h);
   revokeCropURL();
   updateDownload(name);
@@ -332,6 +341,11 @@ function generate(){
   const __h1='<img src="'+lastURL+'" alt="裁剪后">';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('preview').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('preview').innerHTML=__h1;
 }
 function downloadImg(e){
+  if(__icropStale()){
+    lastURL=''; revokeCropURL(); alert(__icropStaleMsg());
+    if(e && typeof e.preventDefault === 'function') e.preventDefault();
+    return false;
+  }
   if(!lastURL){
     alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Crop first":"请先裁剪"));
     if(e && typeof e.preventDefault === 'function') e.preventDefault();
@@ -340,6 +354,7 @@ function downloadImg(e){
   return true;
 }
 function copyResult(){
+  if(__icropStale()){ lastURL=''; revokeCropURL(); alert(__icropStaleMsg()); return; }
   if(!lastURL){ alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Nothing to copy":"无内容可复制")); return; }
   navigator.clipboard.writeText(lastURL).then(() => alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Copied Base64":"已复制 Base64")));
 }
