@@ -645,7 +645,16 @@ const showDiagnostics = (diags, code) => {
     else if (cat === 2) { type = 'info'; label = 'SUGGEST'; warnings++; }
     else { type = 'info'; label = 'INFO'; warnings++; }
 
-    const msg = ts.flattenDiagnosticMessageText(d.messageText, '\n');
+    // 加载失败/USO 缺库时 showDiagnostics 会被直接调用（见 init 轮询超时），
+    // 此时 ts 未定义，裸调 ts.flattenDiagnosticMessageText 会抛错、失败提示写不进界面。
+    // 本地展平 DiagnosticMessageChain，完全不依赖 ts 全局。
+    const flattenMsg = (m, sep) => {
+      if (m == null) return '';
+      if (typeof m === 'string') return m;
+      if (Array.isArray(m)) return m.map((x) => flattenMsg(x, sep)).join(sep);
+      return flattenMsg(m.messageText, sep) + (m.next ? sep + flattenMsg(m.next, sep) : '');
+    };
+    const msg = flattenMsg(d.messageText, '\n');
     let loc = '';
     if (code && d.start != null) {
       const lc = getLineCol(code, d.start);
@@ -732,6 +741,10 @@ const setupTabIndent = () => {
 const setupLiveCompile = () => {
   const ta = document.getElementById('tsInput');
   ta.addEventListener('input', () => {
+    // 输入已变：立即清空旧输出，防抖未触发期间复制/下载不得取到过期 JS。
+    // 诊断面板保持上次结果（避免每次敲键闪烁），但输出与统计先归零。
+    document.getElementById('jsOutput').value = '';
+    updateStats(0, 0, 0);
     clearTimeout(compileTimer);
     compileTimer = setTimeout(compile, 300);
   });
