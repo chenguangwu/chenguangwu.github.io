@@ -271,20 +271,6 @@
 - 影响：`tools/design/pattern-generator.html`；用户选「菱形」拿不到菱形底纹，且会以为是自己参数没生效
 - 2026-11-06 复核：Node 执行页面 `generate()`，三角形输出线性渐变、菱形输出 conic-gradient，两者 CSS 不再相同；未验证浏览器实际渲染形状或其余类型的视觉差异。
 
-### D-N63 CSS 盒阴影生成器：增删/重置阴影层后预览与 CSS 不刷新（中，确认源码缺陷，与 D-N44 同族）
-- 描述：`addLayer / deleteLayer / resetLayers` 都只经 `setActive()`，而 `setActive()` 仅调用 `renderLayerList()`；真正重算 `#preview` 与 `#cssOutput` 的 `render()` 未被调用，层数据已变但产物停留在上一次。
-- 证据：`tools/design/css-box-shadow-generator.html:452-456`（addLayer）、`:458-464`（deleteLayer）、`:466-470`（resetLayers）、`:433-450`（setActive，仅 `:449` renderLayerList）、`:410-416`（render 才写预览与 CSS）
-- 复现：默认单层 → 点「+ 添加阴影层」→ 层列表出现第 2 层，但 CSS 框仍是 `box-shadow: 0px 10px 20px -5px rgba(0, 0, 0, 0.5);`（期望两层逗号叠加）；点 ✕ 删除一层后 CSS 仍包含被删层，预览不更新
-- 影响：`tools/design/css-box-shadow-generator.html`；用户若只看列表后直接复制，得到的是旧层组合；与 D-N44（高级阴影同模板）属同一缺陷扩散，需一并修复
-- 方案：三处入口在 `setActive()` 后补 `render()`，或让 `setActive()` 内部统一调用 `render()`；删除/重置后同步刷新收藏按钮状态
-
-### D-N64 CSS 文字阴影生成器：增删/重置阴影层后预览与 CSS 不刷新（中，确认源码缺陷，与 D-N44 同族）
-- 描述：与 D-N63 同模板：`addLayer / deleteLayer / resetLayers` 走 `setActive()`，而 `setActive()` 只重绘层列表；`render()` 才写 `textShadow` 与 CSS 文本，故层数量变化不影响预览/代码。
-- 证据：`tools/design/css-text-shadow.html:470-474`（addLayer）、`:476-482`（deleteLayer）、`:484-488`（resetLayers）、`:454-468`（setActive 仅 `:467` renderLayerList）、`:432-438`（render）
-- 复现：默认单层 → 「+ 添加阴影层」→ 层列表 2 项，CSS 仍是单层 `text-shadow: 2px 2px 4px rgba(0,0,0,0.5);`；删除一层后 CSS 仍保留被删层（期望立即同步）
-- 影响：`tools/design/css-text-shadow.html`；复制产物与界面层列表不一致，多层光晕/3D 效果无法通过增删层得到
-- 方案：`setActive()` 末尾调用 `render()`，或三个入口各自补 `render()`；补回归用例「加层后 CSS 层数 = 列表项数」
-
 ### D-N67 玻璃拟态生成器的 12 种背景图案全部不生效（中，确认源码缺陷）
 - 描述：`PATTERNS` 存的是纯渐变值（无属性名），但缩略图写成 `style="${p.css}"`、点击时写 `style.cssText = PATTERNS[i].css`，两处都缺少 `background:`；CSSOM 会丢弃无属性名的声明。含 `background-size/position/color` 的第 9–12 项只能应用后半段，仍没有 background-image。
 - 证据：`tools/design/glassmorphism-generator.html:341-353`（PATTERNS 值）、`:518`（`style="${p.css}"`）、`:524`（`cssText = PATTERNS[i].css`）、`:578`（启动即 `setPattern(0)`）、`:30`（`.bg-pattern` 无默认背景）
@@ -313,13 +299,6 @@
 - 影响：`tools/design/spinner-generator.html`；预览与可复制 CSS 不一致，用户以为参数没生效
 - 方案：用数组一次性生成完整标签：`bars += '<div style="width:6px;background:'+color+';animation:barsGen '+speed+'s ease-in-out infinite;animation-delay:'+(i*0.1)+'s;"></div>'`，删除二次 replace
 
-### D-N71 进度条生成器：同时勾选条纹+动画时条纹停滚，百分比被动画忽略（中，确认源码缺陷）
-- 描述：预览元素同时带 `progress-striped` 与 `progress-animated` 两个类；两条规则权重相同（`.progress-bar.progress-striped` / `.progress-bar.progress-animated`），后者在后，其 `animation` 简写覆盖前者的 `stripes`，条纹滚动被替换为宽度动画。并且 animated 时预览刻意去掉 `width:${pct}%`，而 keyframes 固定 0→80→100，percent 输入完全不参与。
-- 证据：`tools/design/progress-bar-generator.html:271-273`（两个类共存、animated 时 actualPct 为空）、`:280-281`（两条 animation 声明与固定 keyframes）、`:282`（输出仍写 `width:${pct}%`）、`:32-35`（页面同权重规则顺序）
-- 复现：percent=35、勾选「条纹」+「动画」→ 预览宽度按 0→80→100 循环、条纹静止；把 percent 改为 80 动画轨迹不变（期望条纹持续滚动且宽度以输入值为终点，或明确动画仅作演示并禁用百分比）
-- 影响：`tools/design/progress-bar-generator.html`；两个视觉参数互相覆盖，用户按「35% 下载进度」交付会得到全程 0–100 的循环动画
-- 方案：合并为一条 `animation: stripes 1s linear infinite, progressAnim 3s …`（或条纹改伪元素避免 animation 冲突）；keyframes 终点改用 pct，或在 animated 时禁用 percent 并标注
-
 ### D-N72 网格图案生成器「虚线网格」与「方形网格」输出相同实线（中，确认源码缺陷）
 - 描述：`dashed` 分支与 `square` 分支使用逐字符相同的两条 `linear-gradient` 与 `background-size`，仅额外加 `background-position: -lw/2 0, 0 -lw/2`，结果仍是连续实线网格，只是整体左/上移半像素，没有虚线段。
 - 证据：`tools/design/grid-pattern.html:269-270`（square 模板）、`:273-274`（dashed 模板，渐变与 size 完全相同）、`:167-173`（五种类型下拉）
@@ -327,7 +306,7 @@
 - 影响：`tools/design/grid-pattern.html`；五种类型里两个实质重复，用户选「虚线网格」拿不到虚线
 - 方案：用 `repeating-linear-gradient(${line} 0 ${lw}px, transparent ${lw}px ${lw*3}px)` 构造两方向的虚线段；补「五种类型输出互不相同」断言
 
-- 本轮实读 8 页：`css-box-shadow-generator.html`、`css-text-shadow.html`、`shadow-generator.html`、`glassmorphism-generator.html`、`neomorphism-generator.html`、`spinner-generator.html`、`progress-bar-generator.html`、`grid-pattern.html`；新增 12 条（高 2 / 中 7 / 低 3）。D-N63/D-N64 与既有 D-N44 属同一「增删层不重绘」模板缺陷，D-N69/D-N70 为同页两个独立问题（keyframes 未注入 / 音波柱 HTML 拼接），其余为各页独有。未覆盖：`tools/design` 其余约 53 页（108 个工具页中本文件已引 56 个），代表页含 `favicon-from-text`、`favicon-from-emoji`、`initials-avatar`、`identicon-generator`、`loading-dots`、`ripple-effect`、`pixel-art-generator`、`checkerboard-generator`、`dot-pattern`、`stripe-pattern`、`toast-generator`、`material-color`、`tailwind-colors`、`colorblind-simulator`、`cvd-safe-palette`、`gradient-from-color`、`base64-to-image`、`signature-pad` 等。所有结论均为源码行号 + node 内存复算/源码路径推演；未做浏览器交互、EN 运行态探针、移动端、门禁与线上验证。
+- 本轮实读 8 页：`css-box-shadow-generator.html`、`css-text-shadow.html`、`shadow-generator.html`、`glassmorphism-generator.html`、`neomorphism-generator.html`、`spinner-generator.html`、`progress-bar-generator.html`、`grid-pattern.html`；新增 12 条（高 2 / 中 7 / 低 3）。D-N63/D-N64 与既有 D-N44 属同一「增删层不重绘」模板缺陷（前两条已于第321批修复），D-N69/D-N70 为同页两个独立问题（keyframes 未注入 / 音波柱 HTML 拼接），其余为各页独有。未覆盖：`tools/design` 其余约 53 页（108 个工具页中本文件已引 56 个），代表页含 `favicon-from-text`、`favicon-from-emoji`、`initials-avatar`、`identicon-generator`、`loading-dots`、`ripple-effect`、`pixel-art-generator`、`checkerboard-generator`、`dot-pattern`、`stripe-pattern`、`toast-generator`、`material-color`、`tailwind-colors`、`colorblind-simulator`、`cvd-safe-palette`、`gradient-from-color`、`base64-to-image`、`signature-pad` 等。所有结论均为源码行号 + node 内存复算/源码路径推演；未做浏览器交互、EN 运行态探针、移动端、门禁与线上验证。
 
 ## 2026-11-04 续查（并行批 O）
 
@@ -348,14 +327,6 @@
 - 复现：size=64、radius=100 → 生成 `lineTo(-36,0)`、`quadraticCurveTo(64,0,64,100)` 等负坐标/交叉段（node 复算 `64-100=-36`）；size=9999 → `canvas.width=9999`。
 - 影响：默认边长 64 下只要圆角 >32 就出现畸形图标；超大画布可能触发浏览器内存告警或 `toDataURL` 失败。
 - 方案：`radius = Math.min(radius, size/2)`；`size = Math.min(size, 256)`，越界时钳制并提示。
-
-### D-N77 两个 Favicon 页的历史恢复执行下载而不是重绘（中，确认源码缺陷；与 D-N43/D-N57 同族）
-
-- 问题：历史记录点击后只把参数写回控件，最后调用 `downloadImg()`，不重新 `generate()`；`downloadImg` 直接使用上一次的 `lastURL`，因此下载的是当前旧图，预览也不更新。
-- 证据：`tools/design/favicon-from-text.html:370-383`（恢复回调结尾 `:381 downloadImg()`）、`:291-295`（下载读 `lastURL`）；`tools/design/favicon-from-emoji.html:361-375`（`:372 downloadImg()`）、`:282-286`。
-- 复现：生成 A（红底）→ 改蓝底但不点「生成」→ 点历史 A → 控件回红底、预览仍蓝底，浏览器下载蓝底 PNG。
-- 影响：历史功能语义错误且产生预期外下载；用户以为恢复了历史，实际拿到另一张图。
-- 方案：恢复回调末尾改为 `generate()`；下载按钮前如需最新值，先调用 `generate()`。
 
 ### D-N78 favicon-from-text 按钮称「下载 ICO/PNG」实际只有单张 PNG，改参数后仍导出旧图（中，确认源码缺陷）
 
@@ -517,7 +488,7 @@
 - 本轮实读 8 页（整份 HTML：内联 JS/CSS 生成逻辑、deep-dive、FAQ 全读）。
 - 新增 27 条：高 2（D-N92、D-N96）/ 中 20 / 低 5。
 - 高优均给出可复现输入：D-N92 点击预览无涟漪（`.ripple` 无样式）；D-N96 8×8 点击命中错位（匹配 65 个元素，`idx` 整体偏移 1）。
-- 同族合并：D-N77 = favicon 两页历史恢复下载；D-N83/D-N84 为 initials 独有；D-N86/D-N89 结果区无文本致历史/CSV 恒空，已于第319批修复（与 D-N59 同族，该条已于第320批修复）；D-N91/D-N99 已于第317批修复。
+- 同族合并：D-N77 = favicon 两页历史恢复下载，已于第321批修复；D-N83/D-N84 为 initials 独有；D-N86/D-N89 结果区无文本致历史/CSV 恒空，已于第319批修复（与 D-N59 同族，该条已于第320批修复）；D-N91/D-N99 已于第317批修复。
 - 未覆盖：`tools/design` 其余约 44 页（本文件累计覆盖 64/108）。
 - 未做：浏览器交互、EN 运行态探针、移动端、门禁与线上验证；D-N96 的 DOM 命中顺序按标准文档序推演，未开浏览器。
 

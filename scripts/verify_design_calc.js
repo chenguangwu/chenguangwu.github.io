@@ -2894,6 +2894,29 @@ const CASES = [
   clicks: ["try{gen();}catch(e){};var h=document.getElementById('cntHint');document.getElementById('__svg_probe').textContent='HINT:'+(h?h.textContent:'无提示位')+'|CNT:'+document.getElementById('cnt').value;"],
   expect: ["HINT:请输入 1–50 之间的整数|CNT:0"],
   ref: "D-N170：旧实现 parseInt(value)||5 把 0 静默当成 5 且 oninput 键入即重掷整批；修复后 Number.isInteger+范围校验，非法时给出提示且不重掷，并把触发改为 onchange。探针回显注入的 0，旧码无提示位 ⇒ 强判别。",
+},
+
+// ── 第321批：阴影层刷新 / 进度条动画共存 / 恢复改重绘 ──────────
+{
+  slug: "design/css-box-shadow-generator",
+  inputs: { offsetX: "37" },
+  clicks: ["var o=document.getElementById('cssOutput');try{update();}catch(e){};try{addLayer();}catch(e){};var v=o.value;document.getElementById('__svg_probe').textContent='SHADOW:'+v.split('), ').length+'|X37:'+(v.indexOf('37px')>=0?1:0);"],
+  expect: ["SHADOW:2|X37:1"],
+  ref: "D-N63：旧 addLayer 只经 setActive→renderLayerList，不调 render，新增层不进 #cssOutput；修复后三处层管理入口补 render。探针先 update() 让注入的 37px 进当前层，再 addLayer() 数 CSS 里的层分隔 ⇒ 修好版 2 层、旧码仍 1 层。expect 含注入值派生的 X37 ⇒ 强判别。",
+},
+{
+  slug: "design/css-text-shadow",
+  inputs: { offsetX: "37" },
+  clicks: ["var o=document.getElementById('cssOutput');try{update();}catch(e){};try{addLayer();}catch(e){};var v=o.value;document.getElementById('__svg_probe').textContent='SHADOW:'+v.split('), ').length+'|X37:'+(v.indexOf('37px')>=0?1:0);"],
+  expect: ["SHADOW:2|X37:1"],
+  ref: "D-N64：与 D-N63 同模板缺陷（text-shadow 版）；修复后 addLayer/deleteLayer/resetLayers 均补 render。探针同样依赖注入的 37px 与层数 ⇒ 强判别。",
+},
+{
+  slug: "design/progress-bar-generator",
+  inputs: { percent: "37", height: "24", radius: "6" },
+  clicks: ["document.getElementById('striped').checked=true;document.getElementById('animated').checked=true;try{generate();}catch(e){};var v=document.getElementById('cssOutput').value;var s='ANIM:'+(v.indexOf('width: 30%;')>=0?1:0)+'|BOTH:'+(v.indexOf('stripes 1s linear infinite, progressAnim')>=0?1:0)+'|PCT:'+document.getElementById('percent').value;document.getElementById('preview').textContent=s;"],
+  expect: ["ANIM:1|BOTH:1|PCT:37"],
+  ref: "D-N71：旧实现 animated 的 animation 覆盖 striped 的 stripes ⇒ 条纹停滚；@keyframes progressAnim 固定 0/80/100 与输入百分比无关，预览也不显示 pct。修复后两动画合并为一条 animation 声明，关键帧 50% 用 round(pct*0.8)=30%、100% 用 pct，预览回显百分比。探针写 #preview（该页无 __svg_probe 结果位）；旧码 ANIM:0|BOTH:0 ⇒ 强判别，expect 含注入的 37。",
 }
 ];
 
