@@ -1570,6 +1570,30 @@ const CASES = [
     ref: "轨道围栏 depth=2：下标偶数位归入 row0（a,c,b）、奇数位归入 row1（b,a,c）⇒ 矩阵展示串 `行0: a · c · b · 行1: · b · a · c`。默认示例（不同 depth/文本）不命中。",
   },
   {
+    slug: "it/rail-fence-cipher",
+    // IT-N162：深度为 1（及清空/0/非数字）时不得静默留白或抛异常，须给出与 enc/dec 同口径的提示
+    inputs: { depth: "1" },
+    clicks: ["var __e='';try{renderGrid();}catch(ex){__e='THROW';}var __g=String(document.getElementById('gridBox').innerHTML||'');document.getElementById('__tbProbe').textContent='RFD1 '+(__e===''&&/深度需在 2 到文本长度之间/.test(__g)&&!/行0:/.test(__g)?'OK':'BAD');"],
+    expect: ["RFD1 OK"],
+    ref: "IT-N162 强锁：depth=1 低于栅栏下限，旧版 gridBox 直接清空且无任何提示（更早版本还在 buildRailMatrix 抛 TypeError）；修复后渲染「深度需在 2 到文本长度之间」并清掉旧矩阵 ⇒ RFD1 OK。异常记为 THROW 判 BAD，默认 depth=3 不产生该提示 ⇒ 零逃生。",
+  },
+  {
+    slug: "it/rail-fence-cipher",
+    // IT-N162：深度超过清洗后文本长度时，不得渲染出 99 行空栅栏
+    inputs: { depth: "99" },
+    clicks: ["var __e='';try{renderGrid();}catch(ex){__e='THROW';}var __g=String(document.getElementById('gridBox').innerHTML||'');document.getElementById('__tbProbe').textContent='RFD99 '+(__e===''&&/深度需在 2 到文本长度之间/.test(__g)&&!/行0:/.test(__g)?'OK':'BAD');"],
+    expect: ["RFD99 OK"],
+    ref: "IT-N162 强锁：默认明文 25 字符、depth=99 时旧版 buildRailMatrix 生成 99 行矩阵（预览全是空栅栏），与 enc()/dec() 的「深度不能超过文本长度」校验矛盾；修复后统一提示 ⇒ RFD99 OK。默认 depth=3 不命中 ⇒ 零逃生。",
+  },
+  {
+    slug: "it/rail-fence-cipher",
+    // IT-N162 回归：合法深度仍按原样渲染逐行矩阵，且不得误报非法提示
+    inputs: { depth: "4" },
+    clicks: ["var __e='';try{renderGrid();}catch(ex){__e='THROW';}var __g=String(document.getElementById('gridBox').innerHTML||'');document.getElementById('__tbProbe').textContent='RFD4 '+(__e===''&&/行3:/.test(__g)&&!/深度需|Depth must/.test(__g)?'OK':'BAD');"],
+    expect: ["RFD4 OK"],
+    ref: "IT-N162 回归：depth=4 合法时仍须渲染到第 3 行（行3:）且不带非法提示，防止守卫误杀正常预览。默认 depth=3 只到行2: ⇒ 注入失败时判 BAD 变红，零逃生。",
+  },
+  {
     slug: "it/triangle-calculator",
     // 三边 5/6/7 的最大角为 arccos(12/60)=78.46° < 90° ⇒ 锐角三角形；
     // 海伦面积 √(9·4·3·2)=√216≈14.697。默认态默认边 3/4/5 是直角三角形，不命中。
@@ -11104,14 +11128,14 @@ const CASES = [
   {
     "slug": "it/rail-fence-cipher",
     "inputs": {
-      "depth": "42",
+      "depth": "3",
       "input": "1\n2\n3",
       "output": "1\n2\n3"
     },
     "expect": [
-      " 行2: · · 3 行3: · · · 行4: · · · 行5: · · · 行6: · · · 行7: · · · 行8: · · · 行9: · · · 行10: · · · 行11: · · · 行12: · · · 行13: ·"
+      "行0: 1 · · 行1: · 2 · 行2: · · 3"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"depth\":\"42\",\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\"}，输出区含「 行2: · · 3 行3: · · · 行4: · · · 行5: · · ·…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"depth\":\"3\",\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\"}，清洗后文本 123、深度 3 合法 ⇒ 逐行矩阵「行0: 1 · · 行1: · 2 · 行2: · · 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。IT-N162 后 renderGrid 与 enc/dec 同口径拒绝 depth>文本长度，原 depth=42 的 42 行空矩阵不再产出，故把注入改成合法深度继续覆盖矩阵渲染。"
   },
   
   {

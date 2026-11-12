@@ -200,7 +200,7 @@
 <li>按之字形写入多行的置换密码，rail=3 常见。</li>
 <li>讲清置换与替换的区别：栅栏只重排字母顺序而不改变字母本身，因此密文的字母频次与明文完全一致——这是它最容易被识别的弱点。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">加密 &quot;WEAREDISCOVERED&quot; rail=3</div><div class="dd-ex-body">之字形写入后按行读出 → `WECRLTEERDSOEEAIVD`；解密按行回填还原。</div></div>
+<div class="dd-example"><div class="dd-ex-title">加密 &quot;WEAREDISCOVEREDFLEEATONCE&quot; rail=3</div><div class="dd-ex-body">之字形写入后按行读出 → `WECRLTEERDSOEEFEAOCAIVDEN`（25 字母，与默认输入一致）；解密按行回填还原。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>栅栏密码密钥是什么？</dt><dd>行数（rail 数），已知行数即可还原。</dd>
@@ -322,10 +322,22 @@ function dec(){
 function renderGrid(matrix){
   const text = document.getElementById('input').value;
   const depth = parseInt(document.getElementById('depth').value,10);
+  const clean = cleanText(text);
+  const __en = (typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  // IT-N162: 与 enc()/dec() 同口径校验深度。清空/1/非数字/超过文本长度时，旧版静默留白或渲染出
+  // 99 行空栅栏；现在统一给出中英提示，防止预览与输入不同步、避免抛出未捕获异常。
+  if(!clean){
+    document.getElementById('gridBox').innerHTML = '<p style="color:var(--danger)">⚠ ' + (__en ? 'Enter text to preview the rail grid.' : '请输入文本以预览栅栏矩阵。') + '</p>';
+    return;
+  }
+  if(!Number.isInteger(depth) || depth < 2 || depth > clean.length){
+    const __msg = __en
+      ? ('Depth must be between 2 and the text length (2-' + clean.length + ').')
+      : ('深度需在 2 到文本长度之间（当前文本 ' + clean.length + ' 字符），请检查输入。');
+    document.getElementById('gridBox').innerHTML = '<p style="color:var(--danger)">⚠ ' + __msg + '</p>';
+    return;
+  }
   if(!matrix){
-    const clean = cleanText(text);
-    if(!clean){ const __h0='';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('gridBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('gridBox').innerHTML=__h0; return; }
-    if(!Number.isInteger(depth) || depth < 2){ document.getElementById('gridBox').innerHTML=''; return; }
     matrix = buildRailMatrix(clean, depth);
   }
   let html = '';

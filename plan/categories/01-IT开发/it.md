@@ -255,21 +255,7 @@
 
 - 留存建议（playfair-cipher）：①加解密分组逻辑分离（解密禁止插填充）；②预设显式 `setMode('encrypt')`；③把 676 改 625，并为 deep-dive 示例补密钥/方阵。
 
-### IT-N161 Rail Fence deep-dive 示例密文与 14 字母明文不匹配（页面给出 18 字母，实算 14 字母）（中，确认源码缺陷）
-- 问题：示例标题是 `WEAREDISCOVERED`（14 字母）`rail=3`，正文却给 `WECRLTEERDSOEEAIVD`（18 字母）；该串实际来自更长的 25 字母默认明文，长度与明文不符。
-- 证据：`tools/it/rail-fence-cipher.html:214`（示例）、`tools/it/rail-fence-cipher.html:271-298`（`buildRailMatrix`/`enc`）
-- 复现（Node 复算）：`railEncrypt('WEAREDISCOVERED',3)` 实际 `WECRERDSOEEAIVD`（14 字符）；页面串 `WECRLTEERDSOEEAIVD` 为 18 字符，且包含 `L/T/E` 等 14 字母串中不存在的字符。
-- 影响：置换密码算例无法手算核对，用户按示例验证会认为工具算错。
-- 方案：改为 `WECRERDSOEEAIVD`；若要展示 25 字母经典例，标题同步改为 `WEAREDISCOVEREDFLEEATONCE` 与 `WECRLTEERDSOEEFEAOCAIVDEN`。
-
-### IT-N162 Rail Fence 深度输入框清空/输入 1 时 `renderGrid()` 抛 TypeError，矩阵预览停止更新（中，确认源码缺陷）
-- 问题：`depth` 的 `oninput="renderGrid()"` 无守卫；`renderGrid` 直接 `buildRailMatrix(clean, depth)`。`depth=''` → `NaN`，`Array.from({length:NaN})` 得空数组，随后 `matrix[0][c]` 抛 `TypeError`；`depth=1` 时首行写入后 `r+=1`，第二列访问 `matrix[1]` 同样未定义。
-- 证据：`tools/it/rail-fence-cipher.html:170`（oninput）、`tools/it/rail-fence-cipher.html:333-340`（renderGrid 无校验）、`tools/it/rail-fence-cipher.html:271-281`（buildRailMatrix 直接索引）
-- 复现（Node 复算）：`buildRailMatrix('ABC',NaN)` 与 `buildRailMatrix('ABC',1)` 均抛 `TypeError: Cannot set properties of undefined`。页面操作：选中深度值按 Backspace 清空 → 控制台报错，右侧“栅栏可视化”停在旧矩阵；输入 1（数字框 min=2 不阻止键盘）同样崩溃。
-- 影响：改深度是高频操作，清空重输的每个中间态都会抛未捕获异常，预览与输入不同步；用户误以为可视化坏了。
-- 方案：`renderGrid` 先判 `Number.isInteger(depth) && depth>=2 && depth<=clean.length`，不合法时清空/提示“深度需 2–文本长度”，不调用 `buildRailMatrix`；`enc/dec` 已有同类校验可复用。
-
-- 留存建议（rail-fence-cipher）：①修正 deep-dive 示例；②预览构建加深度守卫；③“保留空格”旁注明空白也参与置换、解密后位置会改变。
+- 留存建议（rail-fence-cipher）：“保留空格”旁注明空白也参与置换、解密后位置会改变。
 
 ### IT-N163 Vigenère deep-dive 算例 “ATTACK + KEY → AXVCZ” 完全算错，密钥字母也错位（中，确认源码缺陷）
 - 问题：标准维吉尼亚加密 `A+K=K`、`T+E=X`、`T+Y=R`、`A+K=K`、`C+E=G`、`K+Y=I`，`ATTACK` 应为 `KXRKGI`；页面写 `A+K=A、T+E=X、T+C=V`，把第三个密钥字母写成 C（实际循环到 Y），并给出 5 字母的 `AXVCZ`（比明文少 1 位）。
