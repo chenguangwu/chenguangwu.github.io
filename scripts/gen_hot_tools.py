@@ -25,6 +25,8 @@ HOT_TOOL_URLS = (
     'tools/it/regex.html',
     'tools/life/unit-converter.html',
     'tools/healthcare/bmi-calculator.html',
+    # 网友分享的 AI 游戏介绍页：老板指定在热门推荐里靠前展示
+    'tools/fun/jimao-3a-game.html',
     'tools/it/url-encode.html',
     'tools/design/color-picker.html',
     'tools/it/cron.html',
@@ -103,11 +105,25 @@ HOT_TOOL_URLS = (
 )
 
 
+# 新收录工具的英文元数据可能尚未写入 tools.json；热门卡片在英文态会残留中文，
+# 这里为编辑精选清单内的已知条目补英文，避免首页热门区出现 CJK。
+HOT_CARD_EN_FIX = {
+    'tools/fun/jimao-3a-game.html': {
+        'en': 'Jimao 3A FPS Demo',
+        'ed': 'A community-shared browser FPS demo set in a container port. Opens in a new tab.',
+    },
+}
+
+
+def _has_cjk(value):
+    return any('\u4e00' <= ch <= '\u9fff' for ch in str(value))
+
+
 def hot_card(tool):
     """Keep the public payload compact and stable for js/app.js."""
     name = tool.get('name', '')
     desc = tool.get('d') or tool.get('desc') or name
-    return {
+    card = {
         'n': name,
         'en': tool.get('en') or name,
         'd': desc,
@@ -118,6 +134,13 @@ def hot_card(tool):
         'ic': tool.get('icon', '🔧'),
         'b': tool.get('bg', '#f5f5f5'),
     }
+    fix = HOT_CARD_EN_FIX.get(card['u'])
+    if fix:
+        if _has_cjk(card['en']):
+            card['en'] = fix['en']
+        if _has_cjk(card['ed']):
+            card['ed'] = fix['ed']
+    return card
 
 
 def main():
@@ -130,13 +153,13 @@ def main():
     by_url = {tool.get('url'): tool for tool in tools if isinstance(tool, dict)}
     missing = [url for url in HOT_TOOL_URLS if url not in by_url]
     duplicate_count = len(HOT_TOOL_URLS) - len(set(HOT_TOOL_URLS))
-    if missing or duplicate_count or len(HOT_TOOL_URLS) != 80:
+    if missing or duplicate_count or len(HOT_TOOL_URLS) != 81:
         if missing:
             print('Missing selected hot tools:', ', '.join(missing), file=sys.stderr)
         if duplicate_count:
             print('Duplicate selected hot tools: %d' % duplicate_count, file=sys.stderr)
-        if len(HOT_TOOL_URLS) != 80:
-            print('Expected 80 selected tools, got %d' % len(HOT_TOOL_URLS), file=sys.stderr)
+        if len(HOT_TOOL_URLS) != 81:
+            print('Expected 81 selected tools, got %d' % len(HOT_TOOL_URLS), file=sys.stderr)
         raise SystemExit(1)
 
     cards = [hot_card(by_url[url]) for url in HOT_TOOL_URLS]

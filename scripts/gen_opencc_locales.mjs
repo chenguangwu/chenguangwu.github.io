@@ -20,7 +20,9 @@ const ROOT_PAGES = ['index.html', 'search.html', 'chains.html', 'about.html', 's
 const LOCALES = [
   { code: 'zh-TW', dir: 'zh-tw', to: 'twp', og: 'zh_TW' }
 ];
-const PUBLIC_PREFIXES = ['tools/', 'guides/'];
+// games/ 为新收录的独立游戏页：同样生成繁体版，避免 /zh-tw/games/... 404。
+// script/style/pre/code 等标签由 SKIP_TAGS 保护，转换只作用于可见文案。
+const PUBLIC_PREFIXES = ['tools/', 'guides/', 'games/'];
 const SKIP_TAGS = new Set(['script', 'style', 'pre', 'code', 'textarea', 'template']);
 const TRANSLATABLE_ATTRS = new Set(['title', 'placeholder', 'aria-label', 'alt', 'data-i18n-fb', 'data-i18n-ph-fb', 'data-i18n-title-fb', 'data-zh']);
 const DEFAULT_WORKERS = Math.min(4, Math.max(1, availableParallelism()));
@@ -442,6 +444,7 @@ async function buildLocale(locale, pages) {
   const converter = OpenCC.Converter({ from: 'cn', to: locale.to });
   await copyLocalizedJson(locale, converter);
   await buildFullPack(locale, converter);
+
   await fs.writeFile(path.join(destination, MARKER), `generated from zh-CN by scripts/gen_opencc_locales.mjs\n`, 'utf8');
   console.log(`[opencc] ${locale.dir}: ${pages.length} HTML pages + localized JSON (${workerCount} workers)`);
 }
