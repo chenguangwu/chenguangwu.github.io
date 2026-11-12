@@ -13788,6 +13788,12 @@ const CASES = [
     expect: ["TCLSWAP OK"],
     ref: "清单 IT-N19 强锁：交换输入/输出后四项统计须全部按新值重算。注入 input='AAAA'(4) / output='BB'(2)；交换后 input='BB'(2) / output='AAAA'(4)，页面口径 reduce=orig-result=2-4=-2 显示 '+2' ⇒ stat-original=2、stat-result=4、stat-reduce='+2'。修复前 stat-reduce 保持交换前的 '-2'（orig-result=4-2=2 显示 '-2'）⇒ 判别红。探针只在 clicks 内生成。",
   },
+  {
+    slug: "it/whitespace",
+    clicks: ["document.getElementById('source').value='';document.getElementById('top_trail').checked=true;calcTool();"],
+    expect: ["处理后字符数 0"],
+    ref: "清单 IT-N20 强锁：空输入 + 勾选「确保末尾单个换行」不得凭空输出 '\\n'（1 字符）。旧实现 out=''.replace(/\\n+$/,'')+'\\n' ⇒ 处理后字符数 1，本例 expect「处理后字符数 0」不命中；修复后仅 out 非空才补换行 ⇒ 0 命中。默认态不勾 trail 且页面已有示例文本，不命中该锚。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
