@@ -373,20 +373,6 @@
 - 未覆盖说明：只审计主流程、边界与文档口径，未穷举全部输入组合（DES 只逐字节改 0x11 观察敏感性，未做全密钥空间统计；JS 只测 5 组输入；Python 只测自带 SAMPLE 与 2 个小例；CSV 只测默认数据与引号/换行字段；country 只做数据一致性与长度统计，未核对全部国名/首都时效）。
 - 未做验证：未改代码、未构建、未跑门禁、未 git 写、未开浏览器；结论为源码静态分析 + `node` 内存复算（临时脚本 `/tmp/audit_des.js`、`/tmp/audit_fmt.js`、`/tmp/audit_misc.js`，未落仓库）；DES 标准向量因本机 OpenSSL 无 `des-ecb` 采用 FIPS 公开值（key `0123456789ABCDEF` / 明文 `Now is t` → `3FA40E8A984D4815`）；未验证英文态 `?lang=en-US`、繁体与移动端。
 
-### IT-N328 JSON 空字符串转成 YAML `null`（高，确认缺陷）
-- 问题：`toYaml('')` 返回空串，父级拼成 `k: `（冒号后无内容），YAML 语义为 null。
-- 证据：`tools/it/json-to-yaml.html:273-276`（空串不进入任何加引号分支）、`:285`（`pad + k + ': ' + toYaml(...)`）。
-- 复现：`{"k":""}` → 输出 `k: ` → 用任意 YAML 解析器读回为 `{k:null}`；期望 `k: ""`。
-- 影响：空字符串与 null 是可区分的业务语义（如「显式清空」vs「未设置」），转换后丢失。
-- 方案：`v===''` 时返回 `'""'`（与 `yNeedQ` 的 `v===''` 判定对齐）。
-
-### IT-N329 「压缩转换」把每行 trim 掉缩进，层级结构被拍平（高，确认缺陷）
-- 问题：`doMinYaml` 对 `toYaml` 结果逐行 `.trim()` 再 join，嵌套缩进全部消失，YAML 语义改变。
-- 证据：`tools/it/json-to-yaml.html:301`（`split('\n').map(l => l.trim())`）。
-- 复现：`{"a":{"b":1}}` → 正常输出 `a:\n  b: 1`；点「压缩转换」得到 `---\na:\nb: 1`，解析为 `{a:null,b:1}`；期望压缩只删空行、不改缩进。
-- 影响：压缩结果与原文不等价，且页面仍提示「✅ 压缩转换」，用户拿去部署即出错。
-- 方案：压缩仅过滤空白行与行尾空白（`replace(/\s+$/,'')`），保留前导空格。
-
 ### IT-N330 OTP 复制把「X 秒后刷新」一起写进剪贴板（中，确认缺陷）
 - 问题：输出容器同时含验证码 `<div class="code-row">` 和倒计时文本，`copyResult` 取整个容器 `textContent`，两段无换行直接粘连。
 - 证据：`tools/it/otp-generator.html:317`（code-row）、`:321`（timer 文本）、`:335-336`（`output.textContent` 写剪贴板）。

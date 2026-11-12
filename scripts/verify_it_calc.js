@@ -9504,6 +9504,13 @@ const CASES = [
   },
   {
     "slug": "it/json-to-yaml",
+    "inputs": { "input": "{\"a\":{\"b\":1}}" },
+    "clicks": ["doMinYaml();var o=String(document.getElementById('output').textContent||'');document.getElementById('__tbProbe').textContent='YMIN '+(o.indexOf(String.fromCharCode(10)+'  b: 1')>=0?'OK':'BAD');"],
+    "expect": ["YMIN OK"],
+    "ref": "IT-N329：压缩只删空行与行尾空白、保留前导缩进。旧实现逐行 trim ⇒ 输出 '---\\na:\\nb: 1'，探针不命中；修复后保留 '\\n  b: 1' ⇒ OK。必须用探针断言换行+前导空格：collectStrings 会把所有空白折叠成单个空格，普通 expect 无法区分缩进是否被拍平。"
+  },
+  {
+    "slug": "it/json-to-yaml",
     "inputs": {
       "input": "1\n2\n3",
       "indent": "4"
