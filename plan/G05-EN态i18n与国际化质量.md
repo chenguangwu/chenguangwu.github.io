@@ -86,3 +86,6 @@
   1. **有 `data-zh`**（构建期英文预渲染 + 中文原文锚）：`tool-i18n.js::restoreAllDataZh()` 须覆盖 `p/h3/th/td/span/label/summary/strong[data-zh]` 纯文本元素；守卫= data-zh 含汉字 + 当前文本无汉字 + 无子元素 + 非 data-i18n。**英文专名**（data-zh 无汉字，如 Christiansen 1942 / GB-T 标准号）按老板口径跳过，不译。
   2. **无 `data-zh` 的硬编码英文**（如 `Shoe size conversion`、`Harvest Loss Reduction Guide`）：静态扫描约 **4972 处 / 1678 页**，是各工具专属说明表，散落在 i18n/deepdive 源里。改 HTML 会被 build 还原 ⇒ **须改权威源**（`i18n/tools/content_deepdive.json` / `i18n/tools/<ind>-body.json` 等）再 `_build.py`；逐批按分类推进，勿批量正则。
 - **处置铁律**：优先改一处根因 JS（覆盖全站 data-zh 机制），不要逐页改 HTML；无 data-zh 的硬编码英文才逐批改源。新增门禁项须同步 `scripts/gates_manifest.txt`。
+- **第290批处理口径（通用表头锚点）**：硬编码英文中**通用表头**（Item/Value/Score 等）不必改权威源，可在 `tools/*.html` 上直接补 `data-zh="中文"` 锚点（英文可见文本保留，中文态由 `restoreAllDataZh()` 还原，英文态不变）；高置信词典见 `scripts/_zh_datazh_dict.py`，注入脚本 `scripts/_add_datazh.py`，专项门禁 `scripts/_verify_datazh_anchors.mjs`。
+- **注入脚本铁律**：`re.sub` 改 `<td>/<th>` 前必须先占位保护 `<script>/<style>` 块——JS 字符串里的 innerHTML 模板本身有双语分支，强行插 `data-zh="中文"` 会在双引号 JS 串内引入未转义双引号 ⇒ `Unexpected identifier '中文'`，触发 inline js syntax + 多个 calc 门禁连锁失败。写入前后须逐字比对 script/style 块完全一致。
+- **标准名/文献/机构缩写/英文专名保留英文**，不进词典、不补锚点（老板口径）。剩余工具专属说明表须逐批判断可译性，不做批量正则。

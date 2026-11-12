@@ -308,6 +308,7 @@ GATES = (
     ("telecom calc correctness", ("node", "scripts/verify_telecom_calc.js")),
     ("telecom net tools analysis", ("node", "scripts/_verify_net_tools.mjs")),
     ("data-zh chinese restore", ("node", "scripts/_verify_data_zh_restore.mjs")),
+    ("datazh hardcoded anchors", ("node", "scripts/_verify_datazh_anchors.mjs")),
     ("plastic calc correctness", ("node", "scripts/verify_plastic_calc.js")),
     ("transport calc correctness", ("node", "scripts/verify_transport_calc.js")),
     ("niche calc correctness", ("node", "scripts/verify_niche_calc.js")),
