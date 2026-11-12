@@ -5947,6 +5947,13 @@ const CASES = [
     expect: ["**/*.rs.bk", "# IDE/编辑器"],
     ref: "独立复算：勾选 rust + ide ⇒ # Rust 组（target/、**/*.rs.bk）与 # IDE/编辑器 组（.idea/、.vscode/、*.swp）。"
        + "技术栈名取自重构后的 T 表 name 字段（与页面 label 文案逐字一致：Python / Node.js / Go / Rust / Java/Kotlin / .NET / C/C++ / IDE/编辑器）。默认态不命中。",
+  },
+  {
+    slug: "it/gitignore-generator",
+    checks: ["node"],
+    clicks: ["document.querySelectorAll=function(){return [{checked:true,value:'node'},{checked:false,value:'py'},{checked:false,value:'go'},{checked:false,value:'rust'},{checked:false,value:'java'},{checked:false,value:'dotnet'},{checked:false,value:'c'},{checked:false,value:'ide'}];};escH=function(s){return String(s==null?'':s);};calcTool();var o=String(document.getElementById('result').innerHTML||'');document.getElementById('__tbProbe').textContent='GIENV '+(o.indexOf('.env')>=0&&o.indexOf('.env.*')>=0&&o.indexOf('!.env.example')>=0?'OK':'BAD');"],
+    expect: ["GIENV OK"],
+    ref: "IT-N270 安全承诺：页面提示「机密文件 .env 务必忽略」且 deep-dive 示例称「选 Node → 输出 .env」，但旧模板 8 栈 29 规则无任何 .env（只有 env/ 目录）⇒ 承诺落空。修复后每个模板统一含 .env / .env.* / !.env.example（保留样例）。注入只勾 node，断言输出三件套齐全；默认态（无勾选）落空分支不含探针串 ⇒ 零逃生。",
   },  // —— BATCH284：哈希计算器多算法 / 批量 / 校验分支 + JSON 与 TSV 双向转换 ——
   {
     slug: "it/hash",

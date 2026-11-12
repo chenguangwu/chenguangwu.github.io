@@ -339,14 +339,6 @@
 - 未覆盖说明：只审计主流程、边界与文档口径，未逐条穷举 8 页全部输入域（binary/hex 只测分隔符、长度、非法 UTF-8/BOM 与 `0x` 前缀；regex 只测 ReDoS 计时、分享链接往返、强制 g 与 1000 条上限，未逐条验证所有 flag 组合与 `u`/`v` 语义；qrcode 只验证编码字节、容量估算与导出参数，未实际扫码；xml 用页面自身函数跑 6 组用例，未覆盖命名空间/CDATA 嵌套；schema 只验证 required/anyOf/描述/ipv4/验证按钮）。姓名池统计已全量（两池各 100 项），但未统计真实重名率（跨批不查重）。
 - 未做验证：未开浏览器、未构建、未跑门禁、未 git 写；结论为源码静态分析 + `node` 内存复算（临时脚本 `/tmp/audit_xml.js`、`/tmp/audit_name.js`，未落仓库）；未验证英文态 `?lang=en-US`、繁体与移动端；`IT-N251`（toast 文案）与 `device-info` 的 iPad/触摸两项标为待验证。
 
-### IT-N270 Node 模板缺 `.env`，与"机密文件务必忽略"及示例输出相反（高，确认缺陷）
-- 问题：页面三处承诺会输出 `.env` 规则（注意事项"机密文件（.env）务必忽略"、深度解析"选 Node → 输出 `node_modules/`、`dist/`、`.env` 等规则"），但 8 个模板共 29 条规则里没有任何 `.env`（只有 `env/` 目录，与 `.env` 文件完全不同）。
-- 证据：`tools/it/gitignore-generator.html:219`（Node 模板 5 条，无 `.env`）、`:172`（务必忽略 `.env`）、`:382`（示例声称输出 `.env`）、`:217-226`（全量模板表）。
-- 复现：node 汇总 `T` 全部 items → 29 条，`includes('.env')`、`.env.*`、`.DS_Store`、`*.log`、`coverage/` 全为 false；只勾 Node 时实际输出 `node_modules/`、`npm-debug.log*`、`yarn-error.log`、`dist/`、`.next/` 五行，无 `.env`。
-- 影响：用户按页面提示以为密钥已被忽略，实际 `.env` 仍会入库；这是安全承诺落空，比多一条规则严重得多。
-- 方案：Node/Python/Go 等模板统一追加 `.env`、`.env.*`、`!.env.example`（保留样例），或新增"通用/机密"模板；同时按实际输出改写 `:382` 示例，避免再写未生成的规则。
-**留存建议（tools/it/gitignore-generator.html）**：最小修复是在 `T.node.items` 补 `.env` 与 `!.env.example`，并纠示例文案。
-
 ### IT-N271 "默认参数"预设把 8 个技术栈全勾上，且预设不清除旧勾选（中，确认缺陷）
 - 问题：预设"默认参数"给 8 个 checkbox 全传真值；而页面真实默认只勾 Node。`setValue` 对 checkbox 执行 `f.checked = !!val`，传 `'py'/'node'/…` 均为 true。且预设只设置所列字段，不重置未列出的项，切换预设会叠加而非替换。
 - 证据：`tools/it/gitignore-generator.html:344`（values 覆盖 `top_py`~`top_ide`）、`:127`（仅 `top_node` 带 `checked`）、`js/tool-kit.js:993`（`checked = !!val`）、`:235-243`（resetForm 才是全不选）。
@@ -366,7 +358,7 @@
 - `markdown-editor`：IT-N288 属性注入 XSS 与 IT-N289 GFM 任务清单源码已修好（`escAttr` + `safeUrl` 协议白名单、`- [x]` → 禁用复选框），清单及开头待办漏销账，本批补真机安全回归证据（alt 引号不闭合属性、`javascript:`/`data:text/html` 拦截、`data:image` 与正常链接放行、任务清单 checked 语义）；IT-N290 真修：`#` 由 `<h2>` 改为 `<h1>`（CommonMark 一级标题语义，`##`/`###`/`####` 不变），工作原理公式说明与 en JSON 中文键/英译同步。第211批销账；真机 16/16 vs 旧 13/16（3 项红均为 N290，N288/N289 旧态已绿如实记录），verify 4 条相关用例均不依赖 h2、无需改 expect。
 
 ### 承诺 vs 实际（S 批专项）
-- `tools/it/gitignore-generator.html:172`、`:382`：承诺忽略/输出 `.env`，8 个模板 29 条规则中无 `.env`（N270）；`:111` 写"按语言、框架与编辑器选择模板"，实现 `:217-226` 只有 8 个语言/IDE 栈，无任何框架模板；`:344` 的"默认参数"实际全选 8 项（N271）。
+- `tools/it/gitignore-generator.html:172`、`:382`：承诺忽略/输出 `.env`，8 个模板 29 条规则中无 `.env`（N270，**已于第269批修复**：8 模板统一追加 .env/.env.*/!.env.example）；`:111` 写"按语言、框架与编辑器选择模板"，实现 `:217-226` 只有 8 个语言/IDE 栈，无任何框架模板；`:344` 的"默认参数"实际全选 8 项（N271）。
 - `tools/it/phone-qr.html:201`、`:197`：承诺"使用标准 tel: URI，主流扫码器均支持/扫码唤起拨号"，实际生成随机噪点图、无数据编码与纠错（N273）；`:158` 承诺剥离全部空白，实际仅在补 `tel:` 时剥离（N274）。
 - `tools/it/protobuf-parser.html:161`、`:204-205`：承诺解析二进制结构与抓包排查 gRPC，实现只有 `.proto` 文本转 JSON（N278）；`:415` 的"校验"只数括号（N277）；`:290-305` 不支持 `map<...>`（N276）；`:12` 的 meta 口径（.proto→JSON）与正文自相矛盾。
 - `tools/it/hmac-generator.html:219`：FAQ 把"编码不一致"列为签名失败主因，实际密钥固定按 UTF-8 文本编码、输出只有 hex（N280）；`:151` 的"输出长度=摘要长度"描述正确，无问题。
