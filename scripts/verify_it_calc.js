@@ -5829,6 +5829,23 @@ const CASES = [
     expect: ["输出长度: 64 字节 (512 位)"],
     ref: "PBKDF2 派生参数行：`keyLength` = 64 ⇒ `输出长度: 64 字节 (512 位)`（**可手算复算**：1 字节 = 8 位；默认 32 ⇒ `32 字节 (256 位)` ⇒ 默认态不命中）。⚠️ 同页 `迭代: 100,000` 与 `算法:` 行只绑定形式参数、默认态逐字同串（逃生源，勿锚）；`盐值(Hex)` 与 `派生密钥` 行依赖随机盐值 ⇒ 同样不可锚。",
   },
+  // ── IT-N167/N169：ksuid-generator 导出完整结果与死代码删除（第266批）──
+  // 【判据】KSUID 本体随机不可锚；但导出函数源码形态与 randInt 死代码是否存在是确定性判别点。
+  // harness stub DOM 无法驱动 clipboard/navigator.crypto，故用函数源码（String(fn)）+ typeof 探针。
+  {
+    slug: "it/ksuid-generator",
+    inputs: { count: "5", fmt: "base62" },
+    clicks: ["var s=String(__ksuid_generatorExport);document.getElementById('__tbProbe').textContent='KSFN '+(/exportCsv/.test(s)&&/code-row/.test(s)?'OK':'BAD');"],
+    expect: ["KSFN OK"],
+    ref: "IT-N167：导出函数必须从当前 #output .code-row 读取完整 ID 并走 TBKit.util.exportCsv（旧版只 exportTable 历史表、且结果列 slice(0,80) 截断，不含 5 个完整 ID）。函数源码含 exportCsv 与 code-row 两标记才判 OK；默认态不执行 clicks、output 是随机 ID，不含 'KSFN OK' ⇒ 零逃生。",
+  },
+  {
+    slug: "it/ksuid-generator",
+    inputs: { count: "5", fmt: "base62" },
+    clicks: ["document.getElementById('__tbProbe').textContent='KSRAND '+(typeof randInt==='undefined'?'OK':'BAD');"],
+    expect: ["KSRAND OK"],
+    ref: "IT-N169：randInt() 定义后从未调用（死代码），已删除；typeof randInt === 'undefined' 才判 OK（旧源码为 function ⇒ BAD）。默认态不执行 clicks、随机 ID 不含 'KSRAND OK' ⇒ 零逃生。",
+  },
   // ── 子网计算（IPv4 / CIDR：掩码、网络地址、广播、可用主机数）──
   {
     slug: "it/ip-calculator",

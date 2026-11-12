@@ -245,29 +245,6 @@
 
 - 覆盖小结：本轮实读 8 页（adfgvx-cipher、affine-cipher、atbash-cipher、bacon-cipher、hill-cipher、playfair-cipher、rail-fence-cipher、vigenere-visualizer），新增 24 条（高 3 / 中 14 / 低 7），编号 IT-N143~IT-N166。未覆盖：本分区其余约 257 页（含全部编码/哈希/格式化/HTTP/Git/Docker 生成器与速查表）；未做浏览器、英文态、繁体、移动端、门禁与线上部署验证。
 
-### IT-N167 KSUID 多行结果复制成一串无分隔，导出 CSV 只导历史表（中，确认源码缺陷）
-- 问题：每个 ID 用 `<div class="code-row">` 渲染（284），`copyResult()` 取 `#output` 的 `textContent`（290）。`textContent` 不保留块级换行，5 个 27 字符 ID 会拼成 135 字符一整串，`alert('已复制')` 仍提示成功；导出按钮走历史表（417-419），历史「结果」列还被 `slice(0,80)` 截断（344）。
-- 证据：`tools/it/ksuid-generator.html:284`、`:289-291`、`:338-344`、`:417-419`
-- 复现（DOM 语义复算）：生成 5 个 → 复制 → 剪贴板为 `ID1ID2ID3ID4ID5`（无换行/空格），期望每行 1 个；点「导出明细 CSV」→ 得到历史表（时间/count/fmt/结果前 80 字符），不含当前 5 个完整 ID。
-- 影响：`tools/it/ksuid-generator.html` —— 粘贴到名单/日志时 5 个 ID 变 1 个非法串，CSV 也不含完整结果。
-- 方案：复制改为 `Array.from(output.querySelectorAll('.code-row')).map(e=>e.textContent).join('\n')`；或把 ID 渲染进 `<pre>`；导出改为构建当前结果 CSV（给结果表加 id 后导出）。
-
-### IT-N168 KSUID 英文简介称「20-byte random payload」，实现是 16 字节（中，确认源码缺陷）
-- 问题：英文首段写 "time-sortable 27-character identifiers with a 20-byte random payload"（479）；KSUID 总量 20 字节 = 4 字节时间戳 + 16 字节随机（158），代码也只填充 16 字节（281-282）。读者会以为随机部分是 20 字节。
-- 证据：`tools/it/ksuid-generator.html:479`、`:158`、`:275-282`、`:267-269`（hex 输出恒 40 字符 = 20 字节总量）
-- 复现：源码对照；`hex` 模式输出长度恒 40，可反推总量 20 字节，与"20-byte random payload"（总量会变 40 字节）矛盾。
-- 影响：`tools/it/ksuid-generator.html` —— SEO 首段与英文用户对格式的理解错误。
-- 方案：改为 "27-character identifiers (4-byte timestamp + 16-byte random payload)"。
-
-### IT-N169 KSUID 深度示例只有 26 字符（非 27），解码时间是 2014-06-02（低，确认源码缺陷）
-- 问题：deep-dive 示例 `0ujtsy1p8c9r1l0b0p0n000000`（204）实长 26；解码首 4 字节时间戳 = 1735613 秒 → 2014-06-02T19:00:13Z，不是"当前生成"样例，也无法体现公式（158）"27 字符 base62"的承诺。另 258 `randInt()` 定义后从未调用（死代码）。
-- 证据：`tools/it/ksuid-generator.html:204`、`:258`、`:158`、`:261-265`（padStart 27）
-- 复现（node 复算）：`'0ujtsy1p8c9r1l0b0p0n000000'.length === 26`；base62 解码 → bytes `[0,26,123,189]` → `(1735613+1400000000)*1000` = 2014-06-02T19:00:13Z。
-- 影响：`tools/it/ksuid-generator.html` —— 核心教学示例本身不是合法 KSUID，读者照抄会得到 26 字符串。
-- 方案：换成真实生成的 27 字符样例并标注其生成时间；删 `randInt`。
-
-- 留存建议（tools/it/ksuid-generator.html）：①复制按行 `join('\n')`、导出含当前完整结果；②英文简介改 16-byte payload；③示例改 27 字符并标注生成时间。
-
 - `calc-3`（颜色值转换器）：IT-N170–N173 已于第217批真修并销账——三路输入统一钳制（r/g/b 0–255、`h=((h%360)+360)%360`、s/l 0–100，越界回写规范化串，同屏 HEX/RGB/HSL 不再矛盾）；预设同时写 `hexInput` 使统一 `fromHex()` 回调生效（红/蓝/绿由页内 hslToRgb+rgbToHex 反算，往返一致）；删声明式 preset div 并显式放 `#calc_3Presets` 宿主，只留一组 4 条；HEX 支持 3/4/6/8 位（简写按位扩展、4/8 位带 alpha 并展示）、`maxlength` 7→9；公式说明与格式说明中英三源同步。JSDOM `scripts/_verify_it_batch217.mjs` 修好版 22/22、旧源码 3/22；verify 1554/1554 未改。
 - `matrix-transpose`（矩阵转置）：IT-N174–N177 已于第218批真机验证并销账。N174/N176/N177 源码已由其他 Agent 修好（`calculate()` 单元格数不符自动 `build()` 保留旧值、`readDims()` 整数+1–6 校验、`getM()` 空/非数抛错并标红、失败分支清空 `__lastTranspose`、`__matrix_transposeExport()` 现场生成 Aᵀ CSV），清单漏销账，本批补证据；N175 残留缺陷真修——`fmt()` 的 `toPrecision(12)` 会把 15 位大整数静默抹成 `123456789012000`，改为整数原样 `String()`、超安全整数走指数表示、非整数才用 12 位有效数字消浮点噪声。JSDOM `scripts/_verify_it_batch218.mjs` 修好版 33/33、缺陷态注入（换回旧 fmt）31/33（大数两项精确变红）；verify 1554/1554。
 - `http-cookies`（HTTP Cookie 速查）：IT-N178–N180 已于第219批销账。N178 英文简介已由其他 Agent 改为 "as a searchable quick reference"（不再宣称 Parse and build），与页面仅有搜索+静态速查的能力一致，属漏销账补证据；N179 真修——`Expires=Wed, 21 Oct 2025` 星期错（实算周二）且已过期，全站同类 11 处（http-cookies 1 / http-headers 2 / http-response-headers 3 / http-cache 5）统一换为 `Thu, 21 Oct 2027 07:28:00 GMT`（实算周四、未过期）；刻意保留星期正确的历史示例（1970 epoch 删 Cookie、2015 RFC 原文、2026 条件请求）；N180 真修——`Max-Age` desc/params 补「0 或负数立即删除」语义（中英 en JSON 同步），明细表 `th1` 按 `en` 切换 `Attribute/属性`。JSDOM `scripts/_verify_it_batch219.mjs` 修好版 19/19、旧源码差分 9/19（10 项红）；verify 1554/1554、deepdive sync 0 不一致。

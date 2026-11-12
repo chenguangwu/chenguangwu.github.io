@@ -190,11 +190,11 @@
 <li>K-Sortable Unique ID，时间前缀可排序。</li>
 <li>给日志或事件流生成可排序 ID：按 KSUID 的字符串顺序即可还原生成时间，便于按时间范围检索。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">生成</div><div class="dd-ex-body">`0ujtsy1p8c9r1l0b0p0n000000` 前 32 位为时间。</div></div>
+<div class="dd-example"><div class="dd-ex-title">生成</div><div class="dd-ex-body">`3LzTfYF95TTBROrbZGlwr17yZzD` 是 27 字符合法 KSUID（示例生成于 2026-11-12T04:00:00Z）：前 4 字节（32 bit）为秒级<a class="term-link" href="/tools/life/timestamp.html">时间戳</a>，解码得该时刻；随机负载 16 字节。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>KSUID 与 <a class="term-link" href="/tools/it/ulid-generator.html">ULID</a> 区别？</dt><dd>都时间排序，编码与长度不同。</dd>
-<dt>KSUID 的时间精度够吗？</dt><dd>KSUID 的<a class="term-link" href="/tools/life/timestamp.html">时间戳</a>是秒级（4 字节），同一秒内的多个 ID 顺序由后面的随机部分决定，不再保证严格时序。若业务需要毫秒级排序（如高频事件），应选时间戳为毫秒的 ULID；KSUID 的优势在于字符串更短（27 字符）且基准时间从 2014 年起。</dd>
+<dt>KSUID 的时间精度够吗？</dt><dd>KSUID 的时间戳是秒级（4 字节），同一秒内的多个 ID 顺序由后面的随机部分决定，不再保证严格时序。若业务需要毫秒级排序（如高频事件），应选时间戳为毫秒的 ULID；KSUID 的优势在于字符串更短（27 字符）且基准时间从 2014 年起。</dd>
 </dl>
 </div>
 </section>
@@ -244,7 +244,6 @@
 // KSUID: 4-byte timestamp (seconds since 2014-05-13 00:00:00 UTC) + 16-byte random payload
 const EPOCH=1400000000; // 2014-05-13 in seconds
 const BASE62='0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-function randInt(max){const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]%max;}
 function base62Encode(bytes){
   // 20-byte -> up to 27 chars; pad to 27
   let val=0n;
@@ -278,7 +277,7 @@ function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':
 function copyResult(){
   const rows=Array.from(document.querySelectorAll('#output .code-row')).map(el=>el.textContent.trim()).filter(Boolean);
   if(!rows.length){ToolBox.showToast(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Generate a KSUID first":"请先生成 KSUID"));return;}
-  navigator.clipboard.writeText(rows.join('\n')).then(() => ToolBox.showToast('已复制 '+rows.length+' 个 KSUID'));
+  navigator.clipboard.writeText(rows.join('\n')).then(() => ToolBox.showToast(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?('Copied '+rows.length+' KSUIDs'):('已复制 '+rows.length+' 个 KSUID'))));
 }
 function toggleToolTheme(){
   const cur = document.documentElement.getAttribute('data-theme');
@@ -414,15 +413,33 @@ function __ksuid_generatorExtras(){
 }
 function __ksuid_generatorExport(){
     if (typeof TBKit === 'undefined') return;
+    var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+    // IT-N167: 旧版只导历史表，且历史「结果」列被 slice(0,80) 截断，不含当前完整 ID。
+    // 新版把当前生成的完整结果（每行一个 ID）作为首块导出；历史表作为次块附后（若存在）。
+    var csvRows=[];
+    try{
+        var ids=Array.from(document.querySelectorAll('#output .code-row')).map(function(el){return (el.textContent||'').trim();}).filter(Boolean);
+        if(ids.length){
+            csvRows.push([en?'No.':'序号', en?'Full KSUID (27 chars / 40 hex)':'完整 KSUID（27 字符 / 40 hex）']);
+            for(var i=0;i<ids.length;i++) csvRows.push([String(i+1), ids[i]]);
+            csvRows.push([]);
+        }
+    }catch(e){}
     try{
         var box=document.querySelector('#ksuid_generatorTable');
         if(!box||!box.querySelector('tr')){
             var snap=__ksuid_generatorSnap(); var keys=Object.keys(snap);
             if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
             __ksuid_generatorRender(keys,en?'Result':'结果',en);
         }
+        var trs=box.querySelectorAll('tr');
+        for(var t=0;t<trs.length;t++){
+            var cells=trs[t].querySelectorAll('th,td'), line=[];
+            for(var c=0;c<cells.length;c++) line.push((cells[c].textContent||'').trim());
+            if(line.length) csvRows.push(line);
+        }
     }catch(e){}
+    if(csvRows.length){ try { TBKit.util.exportCsv('ksuid-generator.csv',csvRows); return; } catch(e){} }
     try { TBKit.util.exportTable('#ksuid_generatorTable','ksuid-generator.csv'); } catch(e){}
 }
 function __ksuid_generatorPresets(){
@@ -483,7 +500,7 @@ else document.addEventListener('DOMContentLoaded', __ksuid_generatorBoot);
   </div>
   <div class="tool-intro-body">
     <h4><span class="h4-icon">📝</span>工具简介</h4>
-    <p data-zh="KSUID 生成器。专为开发者打造的在线工具，纯前端运行，代码不离开浏览器。">Generate KSUIDs: time-sortable 27-character identifiers with a 20-byte random payload.</p>
+    <p data-zh="KSUID 生成器。专为开发者打造的在线工具，纯前端运行，代码不离开浏览器。">Generate KSUIDs: time-sortable 27-character identifiers (4-byte timestamp + 16-byte random payload).</p>
     
       </div>
 </div>
