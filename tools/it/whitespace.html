@@ -214,8 +214,16 @@ var rawLines=text.split(/\n|\r\n|\r/);
 var rawChars=text.length;
 var blankBefore=rawLines.filter(function(l){return l.trim()==='';}).length;
 var lines=rawLines;
+// IT-N29: 记录处理后每行对应的原始行号，供逐行对照预览按同一行轴对齐
+var lineIdx=rawLines.map(function(_,i){return i;});
 if(document.getElementById('top_trim').checked) lines=lines.map(function(l){return l.replace(/^\s+|\s+$/g,'');});
-if(document.getElementById('top_blank').checked) lines=lines.filter(function(l){return l.trim()!=='';});
+if(document.getElementById('top_blank').checked){
+  var keptLines=[],keptIdx=[];
+  for(var __i=0;__i<lines.length;__i++){
+    if(lines[__i].trim()!==''){ keptLines.push(lines[__i]); keptIdx.push(lineIdx[__i]); }
+  }
+  lines=keptLines; lineIdx=keptIdx;
+}
 if(document.getElementById('top_collapse').checked) lines=lines.map(function(l){return l.replace(/[ \t]+/g,' ');});
 var out=lines.join('\n');
 if(document.getElementById('top_trail').checked){ out=out.replace(/\n+$/,'')+'\n'; }
@@ -241,16 +249,16 @@ const __g2='<div class="result-title">清理结果（'+(document.getElementById(
   +'<tr><th>旧 Mac 换行 (CR)</th><td>'+crCount+'</td></tr>'
   +'<tr><th>Unix 换行 (LF)</th><td>'+lfAlone+'</td></tr></table>';document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 // 逐行对照预览（前 5 行）
-var prevN=Math.min(5, Math.max(rawLines.length, lines.length));
+var prevN=Math.min(5, rawLines.length);
 var preview='<div class="result-title">逐行对照预览（前 '+prevN+' 行）</div><table class="ref-table">'
-  +'<tr><th>行</th><th>原始</th><th>处理后</th></tr>';
+  +'<tr><th>原始行</th><th>原始内容</th><th>处理后内容</th></tr>';
 for(var pi=0; pi<prevN; pi++){
-  var rv=pi<rawLines.length?rawLines[pi]:'';
-  var cv=pi<lines.length?lines[pi]:'';
-  preview+='<tr><td>'+(pi+1)+'</td><td><code>'+escH(rv)+'</code></td><td><code>'+escH(cv)+'</code></td></tr>';
+  var srcPos=lineIdx.indexOf(pi);
+  var cv=srcPos<0?'<em style="color:var(--danger,#dc2626)">已删除</em>':escH(lines[srcPos]);
+  preview+='<tr><td>'+(pi+1)+'</td><td><code>'+escH(rawLines[pi])+'</code></td><td><code>'+cv+'</code></td></tr>';
 }
 preview+='</table>';
-preview+='<p style="font-size:12px;color:var(--text-muted);margin-top:6px;">注：删除空行后，两侧序号分别为各自列表的顺序，不再逐行一一对应；「压成一行」的结果请以上方清理结果为准。</p>';
+preview+='<p style="font-size:12px;color:var(--text-muted);margin-top:6px;">注：两列按同一原始行号对齐，被删除的空行在「处理后内容」列标注「已删除」；勾选「压成一行」时整体结果请以上方清理结果为准。</p>';
 const __g3=preview;document.getElementById('result').innerHTML+=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));}
 function resetForm(){document.getElementById('source').value='  第一行   \n\n  第二行   有多余   空格\n\n\n  第三行\n';
       document.getElementById('top_trim').checked=false;
