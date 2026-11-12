@@ -243,22 +243,6 @@
 
 - 范围：`tools/design` 剩余生成器/互动演示 8 页（Favicon 文字、Favicon Emoji、首字母头像、Identicon、Loading Dots、Ripple、像素画、棋盘），逐页通读整份 HTML（内联 JS/CSS 生成逻辑、deep-dive、FAQ），编号续 D-N75。
 
-### D-N78 favicon-from-text 按钮称「下载 ICO/PNG」实际只有单张 PNG，改参数后仍导出旧图（中，确认源码缺陷）
-
-- 问题：页面与说明宣称多尺寸 PNG/ICO，实际 `download='favicon.png'` 单张；输入控件无 `onchange`，改文字/配色后直接下载仍是上一次结果。
-- 证据：`tools/design/favicon-from-text.html:167`（按钮文案）、`:153`（「多尺寸 PNG / ICO」）、`:199`（deep-dive「多尺寸 favicon 可下载」）、`:294`（`a.download='favicon.png'`）、`:158-162`（输入无事件绑定）。
-- 复现：文字 T→AB、底色调绿（不点「生成」）→ 点「下载 ICO/PNG」得到旧 T 红底 `.png`；产物中不存在 `.ico` 或第二尺寸。
-- 影响：SEO/文案承诺与实际产物不符；用户拿到过期图，需再点一次生成才正确。
-- 方案：按钮改「下载 PNG」或真正实现 ICO 打包；输入加 `onchange=generate()`（或下载前强制重绘）。
-
-### D-N81 favicon-from-emoji 宣称多尺寸 ICO/PNG，实际仅单张 PNG；改参数后仍导旧图（中，确认文案与实现不一致）
-
-- 问题：meta/OG/Twitter、公式说明、deep-dive 均写「多尺寸 ICO/PNG」，实现只有 `canvas.toDataURL` 单张 PNG；Emoji/大小/圆角无 `onchange`，改后直接下载仍旧图。
-- 证据：`tools/design/favicon-from-emoji.html:10,15,60`（meta 描述）、`:147`（formula-desc）、`:192`（deep-dive）、`:270-274`（只导 PNG）、`:285`（`favicon-emoji.png`）、`:152-155`（输入无事件）。
-- 复现：emoji 🚀→🔥（不点生成）→ 下载仍是 🚀 的 PNG；任何路径都不产生 ICO 或第二种尺寸。
-- 影响：与 D-N39 同类文案承诺落空；用户拿到过期图。
-- 方案：文案改为「PNG」，或补 ICO/16/32/48 多尺寸打包；输入加 `onchange=generate()`。
-
 ### D-N85 initials-avatar 宣称导出 PNG/SVG，实际只有 PNG（低，确认文案与实现不一致）
 
 - 问题：formula-desc 与英文 intro 写「导出 PNG / SVG」，页面没有 SVG 输出、也没有第二个下载入口。
