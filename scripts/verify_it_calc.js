@@ -4904,6 +4904,13 @@ const CASES = [
   },
   {
     slug: "it/jwt-debugger",
+    inputs: { "gen-payload": "{\"sub\":\"123\"}", "alg": "HS256", "secret": "k" },
+    clicks: ["document.getElementById('__tbProbe').textContent='JWTHMAC '+(typeof hmacSign==='function'&&typeof bytesToBase64Url==='function'&&hmacSign.toString().indexOf('importKey')>=0&&hmacSign.toString().indexOf('subtle.sign')>=0&&generateJwt.toString().indexOf('simpleHmac')<0&&generateJwt.toString().indexOf('await hmacSign')>=0?'OK':'BAD');"],
+    expect: ["JWTHMAC OK"],
+    ref: "IT-N349：签名必须是 RFC 7518 HMAC（WebCrypto importKey + subtle.sign），签名字节走 base64url；旧实现用 32 位滚动哈希 simpleHmac 的十进制串冒充签名，任何 JWT 库验签必失败。锚在真实函数形态与调用链：hmacSign 含 importKey/subtle.sign、generateJwt 不再调用 simpleHmac 而 await hmacSign、字节版 base64url 存在。默认态不执行 clicks ⇒ 零逃生。"
+  },
+  {
+    slug: "it/jwt-debugger",
     inputs: { "token-input": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJhIjoxfQ.sig" },
     clicks: ["decodeJwt()"],
     expect: ['{ "alg": "RS256", "typ": "JWT" }'],
@@ -7852,6 +7859,12 @@ const CASES = [
       "abc123测试\n10\n哈希格式无效：bcrypt is not defined\n1 2 3"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"plain\":\"abc123测试\",\"hashOut\":\"1\\n2\\n3\",\"rounds\":\"10\"}，输出区含「abc123测试\n1 2 3\n10\n哈希格式无效：bcrypt is not d…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "it/baudot-code",
+    "inputs": { "input": "8", "format": "binary" },
+    "expect": ["11011 00110"],
+    "ref": "IT-N334：ITA2 FIGS code 6 = 8。旧表缺 key 6，编码时未命中即静默丢弃，输入 8 输出空串；修复后先发 FIGS 切换(27=11011)再发 8(6=00110)。输入原文只有单字符 8，该串只在输出出现，非回显。"
   },
   {
     "slug": "it/baudot-code",

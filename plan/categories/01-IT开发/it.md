@@ -381,13 +381,6 @@
 - 数值核验：MD5/CRC32/Adler-32 与 RFC 4226/6238 测试向量、base32 解码、PDF 头字节偏移、ByteRange 差值均用 `node -e` 实算（`md5("abc")=900150983cd24fb0d6963f7d28e17f72`、`crc32("abc")=352441c2`、`adler32("abc")=024d0127`、`HOTP(c=0)=755224`、`TOTP(t=59,8位)=94287082`）。
 - 未做浏览器/门禁/线上验证（未改工具页与构建产物、未跑 `_build.py`/`run_gates.py`、未做 git 写、未开浏览器）。
 
-### IT-N334 Baudot 码表缺「8」，数字 8 被静默丢弃（高，确认缺陷）
-- 问题：FIGS 码表缺少标准 ITA2 的 code 6 = `8`，编码时匹配不到任何表项即被跳过，且不提示。
-- 证据：`tools/it/baudot-code.html:259`（`FIGS` 定义无 key 6）、`:274-292`（enc 未命中即 `continue` 丢弃）
-- 复现：格式=二进制，输入 `8` → 实际输出空字符串，期望 `11011 00110`（FIGS 切换=27，8=6）；输入 `H8I` → 实际 `10100 00110`（8 消失且无 FIGS 切换），期望 `10100 11011 00110 11111 00110`（补 LTRS 回切=31）。
-- 影响：含数字 8 的报文被静默改写，与真实 ITA2 设备互通时错码。
-- 方案：补 `FIGS[6]='8'` 并按 ITA2 标准核对全表（含 code 5 的国别变体）；编码遇网格外字符时显式报错并列出被丢弃字符。
-
 ## T 批 IT 第 2 轮覆盖（2026-11-04）
 - 本轮审计 24 页：`binary-encode`、`baudot-code`、`c-string-escape`、`xxencode`、`uuencode`、`quoted-printable`、`html-entity-encoder`、`html-escape`、`js-escape`、`java-escape`、`go-escape`、`php-escape`、`rust-escape`、`sql-escape`、`css-escape`、`python-escape`、`text-to-binary`、`text-to-decimal`、`text-to-hex`、`text-to-octal`、`rot-cipher`、`xor-cipher`、`polybius-cipher`、`json-to-tsv`（均为 `tools/it/<slug>.html`）。
 - 新增 14 条（高 10 / 中 4），编号 IT-N334~IT-N347；第 1 轮止于 IT-N333，本批无重号。
@@ -401,13 +394,6 @@
 - 新增 18 条（高 8 / 中 10），编号 IT-N348~IT-N365；第 2 轮止于 IT-N347，本批无重号。
 - 假工具候选 0 页：8 页均有真实转换/解析逻辑（JWT 生成器例外，见 IT-N349）。
 
-
-### IT-N349 「生成 JWT」用 32 位滚动哈希冒充 HMAC，产出 token 无法验签（高，确认缺陷）
-- 问题：`simpleHmac()` 只是 `hash=((hash<<5)-hash)+chr` 的 32 位滚动哈希，返回十进制字符串，再对该字符串做 base64url；既不是 HMAC-SHA256/384/512，也不是签名字节的 base64url。
-- 证据：`tools/it/jwt-debugger.html:490-499`、`:479`（`base64UrlEncode(simpleHmac(sigInput, secret))`）
-- 复现：alg=HS256、secret=`your-secret-key`、payload=`{"sub":"123"}` → 实际第三段是 `"123456789"` 之类十进制串的 base64url；用 node `crypto` 按 HS256 复算得到完全不同的签名，任何 JWT 库/服务端验签必失败；期望输出可通过标准验签的签名。
-- 影响：页面标题承诺「生成JWT」，但生成的 token 100% 无效，接入联调必得 401，属假实现。
-- 方案：改用 WebCrypto（`crypto.subtle.importKey('raw',…,{name:'HMAC',hash:'SHA-256'})` + `subtle.sign`），按 alg 映射 SHA-256/384/512，签名 ArrayBuffer 直接 base64url。
 
 ### 覆盖清单（T 批 IT 第 3 轮）
 - `jwt-debugger`：IT-N349（高）。
