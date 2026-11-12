@@ -496,7 +496,22 @@ function __pcr_ct_interpretationSnap(){
     return out;
 }
 function __pcr_ct_interpretationResText(){
-    var r=document.querySelector('.result-box');
+    // D-N87 修正：本页主结果是定量标准曲线（#quantResult）；原实现固定取首个
+    // .result-box（定性 ΔCt 面板，DOM 在前），导致历史/CSV「结果」列长期记 ΔCt 而非浓度。
+    // 从 #quantResult 内的结果框中优先取含「计算浓度」的（标准曲线方程框在前、浓度框在后），
+    // 缺失时回退首个 .result-box。
+    var r=null;
+    try{
+      var q=document.getElementById('quantResult');
+      if(q && q.querySelectorAll){
+        var boxes=q.querySelectorAll('.result-box');
+        for(var bi=0;bi<boxes.length;bi++){
+          if((boxes[bi].textContent||'').indexOf('计算浓度')>=0){ r=boxes[bi]; break; }
+        }
+        if(!r && boxes.length) r=boxes[boxes.length-1];
+      }
+    }catch(e){}
+    if(!r) r=document.querySelector('.result-box');
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
@@ -539,6 +554,7 @@ function __pcr_ct_interpretationRender(keys,rk,en){
                     else{e.value=rec[k];}
                 }
                 calcQuant();
+                interpretQual(); // D-N88 修正：回放须同时重算定性判读，避免输入与结论错位
             }catch(e2){}
             __pcr_ct_interpretation_skip=false;
         });

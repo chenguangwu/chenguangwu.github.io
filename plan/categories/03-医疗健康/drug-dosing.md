@@ -671,32 +671,21 @@
 - 已修（第304批）：`tools/clinical-lab/biochemistry-ratio.html:123` 碎片串改为完整公式串「核心计算公式（按输入变量）：BUN/Cr=(BUN×2.8)/(Cr÷88.4)；De Ritis=AST/ALT；R因子=(ALT/40)/(ALP/120)」，与 calc 实际公式一致（bun*2.8 / cr/88.4、ast/alt、(alt/40)/(alp/120)）；三源同步 HTML data-zh + 可见英文 + `i18n/tools/en/clinical-lab/biochemistry-ratio.json` map 键值。JSDOM 差分 NEW 双态 OK / OLD 双态 BAD，build 后修改存活、三源一致（data-zh 命中 json map 且值等于可见英文）。未触碰同页高危 D-N83 口径问题。
 - 原问题/证据/复现（存档）：`biochemistry-ratio.html` 公式框说明以半截括号和碎片变量开头，中文「核心计算公式（按输入变量）：÷88.4)；×2.8；bun × 2.8」，英文「Key formulas: ÷88.4); ×2.8; bun × 2.8」，中英两版都不成句。
 
-### D-N85 PCR：样本 Ct=0（无扩增）判阴性，却同时输出约 1.10e+12 拷贝、ΔCt 与相对表达量（高，确认缺陷）
-- 问题：阴性判定把 `ct===0` 纳入，但拷贝数分支只判 `ct<cutoff`，Ct=0 同时满足两者；ΔCt 分支也只判 `ref>0`，不判样本 Ct，导致「阴性」结果下继续输出定量值。
-- 证据：`tools/clinical-lab/pcr-ct-interpretation.html:263`（`ct===0` 判阴性）、`:297-301`（ΔCt/2^-ΔCt）、`:306-308`（`if(ct<cutoff)` 估算拷贝数）。
-- 复现：样本 Ct 填 0、内参 20、cutoff 40 → 主结果「阴性」，同页又显示「ΔCt = 0 - 20 = -20.00」「相对表达量 1048576.0000」「粗略估算拷贝数 ≈ 1.10e+12 copies」。node 复算：`Math.pow(2,40).toExponential(2)="1.10e+12"`、`Math.pow(2,20).toFixed(4)="1048576.0000"`。期望：阴性/无扩增时不出定量值，或提示「无扩增，无法定量」。
-- 影响：报告可被复制成「阴性但 1.1 万亿拷贝」的自相矛盾结论，是临床解读级错误。
-- 方案：拷贝数分支改为 `if(ct>0 && ct<cutoff)`；ΔCt 分支增加 `ct>0`；`ct<=0` 在阴性分支直接 return，不再渲染定量卡。阈值需临床复核。
+### D-N85 PCR：Ct=0 判阴性却输出定量（高，既往已修，第305批真机确认销账）
+- 已修（既往提交 `e27ffd9`/`3f6dec8` 等，第305批真机复核）：`interpretQual()` 中 `ct<=0` 直接 return 并提示「不能判为阴性，也不输出定量结果」；ΔCt 分支 `!isNaN(ref)&&ref>0&&ct>0`、拷贝数分支 `ct>0&&ct<cutoff`。JSDOM 真机：Ct=0 仅输出警告、无 ΔCt/拷贝数/相对表达量 ⇒ OK。
+- 原问题/复现（存档）：Ct=0 曾被判阴性，同时输出 ΔCt=-20、相对表达量 1048576、拷贝数≈1.10e+12，造成「阴性但万亿拷贝」自相矛盾。
 
-### D-N86 PCR：阴性/阳性对照留空时仍显示「质控正常」（中，确认缺陷）
-- 问题：QC 检查全部带 `!isNaN` 前置条件，对照留空得到 NaN 时既不报异常也不报「未完成」，直接落入 `else` 的「质控正常」。
-- 证据：`tools/clinical-lab/pcr-ct-interpretation.html:289-294`（三条 QC 与 `else` 正常提示）。
-- 复现：清空「阴性对照 Ct」「阳性对照 Ct」→ 两条检查均因 NaN 跳过、`qc.length===0` → 显示「质控正常：阴性对照无扩增，阳性对照扩增良好」。期望：提示「质控未完成/请填写对照 Ct」。
-- 影响：没有对照数据却给出质控通过结论，属于假阴性式安全误导。
-- 方案：先校验 `isFinite(neg)&&isFinite(pos)`；缺失时显示「质控未完成」，异常与正常提示只在数据齐全时出现。
+### D-N86 PCR：对照留空仍显示质控正常（中，既往已修，第305批真机确认销账）
+- 已修（既往提交，第305批真机复核）：`negFilled=isFinite(neg)&&neg>0`、`posFilled=isFinite(pos)&&pos>0`，`!(negFilled&&posFilled)` 时显示「质控未完成」。JSDOM 真机：对照留空 → 提示质控未完成 ⇒ OK。
+- 原问题/复现（存档）：对照留空 NaN 时 QC 检查被跳过、`qc.length===0` → 误显示「质控正常」。
 
-### D-N87 PCR：历史/CSV「结果」列固定抓取首个 `.result-box`（ΔCt 面板），定量结果从未入库（中，确认缺陷）
-- 问题：`ResText` 用 `document.querySelector('.result-box')` 取页面第一个结果框；定性面板的 ΔCt 结果框在 DOM 中先出现，定量标准曲线结果框在后，因此无论当前在哪个页签，历史结果都记录 ΔCt 文本，而不是标准曲线浓度。
-- 证据：`tools/clinical-lab/pcr-ct-interpretation.html:300-302`（定性 ΔCt 结果框）、`:308`（定量结果框）、`:500-501`（`querySelector('.result-box')`）。
-- 复现：默认状态点「绘制标准曲线」→ 历史/CSV 的「结果」列显示「ΔCt = 25 - 20 = 5.00 ...」，而不是「计算浓度 = … copies/μL」。期望：定量记录保存 `#quantResult` 内的浓度结论。
-- 影响：历史与 CSV 长期保存错误的定量结果，无法复盘。
-- 方案：`ResText` 接受容器参数；定量调用传 `#quantResult`（或给浓度结果框加唯一 id），定性调用传 `#qualResult`。
+### D-N87 PCR：历史/CSV「结果」列固定抓取首个 `.result-box`（中，第305批已修销账）
+- 已修（第305批）：`__pcr_ct_interpretationResText()` 改为从 `#quantResult` 内 `.result-box` 中优先取含「计算浓度」的框（标准曲线方程框在前、浓度框在后），无则回退首个 `.result-box`。JSDOM 真机：跑 calcQuant 后 ResText 返回「计算浓度 = … copies/μL」而非 ΔCt ⇒ OK。verify +1 强锁 PCRRES（旧 0/1、新 1/1）。
+- 原问题/复现（存档）：原固定取首个 `.result-box`（ΔCt 面板 DOM 在前），历史/CSV 长期记 ΔCt 而非浓度，无法复盘。
 
-### D-N88 PCR：历史回放只调 `calcQuant()`，定性判读不重算，输入与结论错位（中，确认缺陷）
-- 问题：历史回放恢复所有输入后只执行 `calcQuant()`；定性面板由 `interpretQual()` 渲染，未被调用，回放后定性结论仍是回放前的旧值。
-- 证据：`tools/clinical-lab/pcr-ct-interpretation.html:525-538`（回放循环与 `:536 calcQuant()`）、`:251`（`interpretQual`）。
-- 复现：先以 Ct=33 记录一条（定性「阳性(低拷贝)」），再把 Ct 改成 25（定性变「阳性(高拷贝)」），点历史回放 → 输入框恢复 33，但定性结论仍显示「高拷贝」。期望：回放后定性结论与 Ct=33 一致（低拷贝）。
-- 影响：历史回放展示与输入不匹配的判读，易被误当作当时结论。
+### D-N88 PCR：历史回放只调 `calcQuant()`，定性判读不重算（中，第305批已修销账）
+- 已修（第305批）：`__pcr_ct_interpretationRender()` 的 history.mount 回放回调中补 `interpretQual()`，恢复输入后同时重算定性判读。JSDOM 真机：Ct=33 记录→改成 25→回放，定性从「高拷贝」恢复为「低拷贝」⇒ OK；旧源码差分回放后仍「高拷贝」(真红)。
+- 原问题/复现（存档）：回放只调 calcQuant，定性结论停留在回放前旧值，与恢复的输入不匹配。
 - 方案：回放恢复输入后同时调用 `interpretQual()` 与 `calcQuant()`，并保持 `__pcr_ct_interpretation_skip` 防止重复入库。
 
 ### D-N89 PCR：标准品浓度/Ct 输入无 id，历史快照不含标准曲线，定量回放不可复现（低，确认缺陷）

@@ -13824,6 +13824,12 @@ const CASES = [
     expect: ["URLHOST OK"],
     ref: "清单：URL 构造器域名为空时旧 buildUrl 拼出 https:///path 畸形 URL 且被复制；修复后 host 为空显示双语提示并返回空串（不生成畸形 URL、copyBuiltUrl 不复制）。探针精确判定：返回空串且提示含「域名」且不含 /path ⇒ URLHOST OK。默认态 builtUrl 为 -，不含该哨兵。探针只在 clicks 内生成。",
   },
+  {
+    slug: "clinical-lab/pcr-ct-interpretation",
+    clicks: ["var d=document;var quant=d.getElementById('quantResult');quant.querySelectorAll=function(s){return s==='.result-box'?[{textContent:'标准曲线方程 Ct=-3.37 log+38.56'},{textContent:'计算浓度 = 3.468e+2 copies/μL'}]:[];};var oq=d.querySelector;d.querySelector=function(s){return s==='.result-box'?{textContent:'ΔCt = 25 - 20 = 5.00 相对表达量'}:oq(s);};var v=String(__pcr_ct_interpretationResText());d.querySelector=oq;d.getElementById('__tbProbe').textContent=(v.indexOf('计算浓度')>=0&&v.indexOf('ΔCt')<0?'PCRRES OK':'BAD '+v);"],
+    expect: ["PCRRES OK"],
+    ref: "清单 D-N87：历史/CSV「结果」列原固定取首个 .result-box（定性 ΔCt 面板，DOM 在前），定量浓度从未入库。修复后 ResText 优先取 #quantResult 内结果框。探针给 #quantResult 挂 querySelector 返回浓度框、document.querySelector 返回 ΔCt 框，断言返回浓度而非 ΔCt ⇒ PCRRES OK。默认态 quantResult 为空 ⇒ 不含哨兵。探针只在 clicks 内生成。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
