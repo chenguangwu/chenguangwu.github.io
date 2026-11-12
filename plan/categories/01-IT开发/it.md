@@ -178,14 +178,7 @@
 
 - 留存建议（http-status）：①补 301/302/307/308 与 401/403/404/410 的决策对照表；②支持"复制整行/导出全量 CSV"（当前导出只导当前筛选且需先点导出才渲染表）；③增加常见框架默认页（Nginx/Tomcat/Spring）对应状态码的排查提示。
 
-### IT-N106 HTTP 请求头速查：中文标题只写"请求头"，条目却含大量响应头（低，确认源码缺陷）
-- 问题：`<h1 class="sr-only">`、面包屑、`<title>` 均称"HTTP 请求头速查"，但数据里含 `Server`、`X-Powered-By`、`Allow`、`WWW-Authenticate`、`Set-Cookie` 等响应头（英文简介写的是 "request and response headers"，反而准确）。
-- 证据：`tools/it/http-headers.html:143`（h1）、`tools/it/http-headers.html:159`（面包屑）、`tools/it/http-headers.html:939-969`（响应分类 4 条）、`tools/it/http-headers.html:339`（Set-Cookie 亦为响应头）、`tools/it/http-headers.html:175`（英文简介含 response）
-- 复现：页面标题显示"HTTP 请求头速查"，但列表可筛出"响应"分类 4 条（Server/X-Powered-By/X-AspNet-Version/X-UA-Compatible）。
-- 影响：中文用户对收录范围预期不一致；也更难理解"响应头为何在请求头表里"。
-- 方案：中文统一为"HTTP 请求/响应头速查"（含 `<title>`、h1、面包屑、JSON-LD `name`），或增加"方向（请求/响应/通用）"标签与过滤。
-
-- 留存建议（http-headers）：①增加"请求/响应/通用"方向过滤与 CORS/缓存/安全三组场景预设；②每条支持复制 curl/Node/fetch 片段（当前仅复制单行示例）；③补 Cache-Control/HSTS/CSP 后提供"安全响应头基线"清单。
+- 留存建议（http-headers，N106 标题口径已于第267批完成）：①增加"请求/响应/通用"方向过滤与 CORS/缓存/安全三组场景预设；②每条支持复制 curl/Node/fetch 片段（当前仅复制单行示例）；③补 Cache-Control/HSTS/CSP 后提供"安全响应头基线"清单。
 
 
 
