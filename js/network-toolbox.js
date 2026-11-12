@@ -48,7 +48,27 @@
       ST[id].prevTime = old ? old.time : 0;
       saveHistory(id, ST[id].copy);
     }
+    renderAnalysis(id, state, display);
     renderHistory();
+  }
+
+  // 每个独立页在 <script> 内提供 window.__ntAnalyze(id, text, isEn) 做本工具专属的
+  // 结果解读（纯本地文本解析，不发请求、不伪造数据）。解读失败不影响主结果。
+  function renderAnalysis(id, state, display) {
+    var box = document.getElementById('analysis-' + id);
+    if (!box) return;
+    if (state !== 'ok' || typeof window.__ntAnalyze !== 'function') {
+      if (box) { box.innerHTML = ''; box.setAttribute('data-s', state); }
+      return;
+    }
+    try {
+      var html = window.__ntAnalyze(id, String(display || ''), isEn());
+      box.innerHTML = html || '';
+      box.setAttribute('data-s', 'ok');
+    } catch (e) {
+      box.innerHTML = '';
+      box.setAttribute('data-s', 'error');
+    }
   }
 
   // ---- 本机历史（localStorage）：只存最近一次成功结果，绝不上传 ----
@@ -290,6 +310,7 @@
         if (ST.t1.display.indexOf('IPv6:') < 0) ST.t1.display += '\nIPv6: ' + v6;
         // IPv6 行是 render 之后异步追加的，需重写历史，保证存档与展示/复制完全一致
         saveHistory('t1', ST.t1.copy);
+        renderAnalysis('t1', 'ok', ST.t1.display);  // 解读器也要看最终含 IPv6 的文本
         renderHistory();
       }
     } catch (e) { /* 无 IPv6 时静默跳过 */ }

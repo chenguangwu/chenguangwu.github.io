@@ -6,6 +6,7 @@
 仅生成 tools/telecom/<slug>.html，不触碰其它文件。
 """
 import os
+from _net_analyze import ANALYZE
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, 'tools', 'telecom')
@@ -152,6 +153,16 @@ TPL = r'''<!DOCTYPE html>
 .nt-hist td{{color:var(--text-light);word-break:break-word;}}
 .nt-hist button{{padding:4px 10px;font-size:11px;}}
 .nt-diff{{margin-top:6px;padding:8px 10px;background:var(--bg);border-radius:6px;font-family:'SF Mono','Courier New',monospace;font-size:12px;white-space:pre-wrap;word-break:break-word;max-height:160px;overflow:auto;}}
+.nt-analysis{{font-size:14px;line-height:1.75;color:var(--text-light);}}
+.nt-analysis:empty::after{{content:'—';color:var(--text-muted);}}
+.nt-hint{{color:var(--text-muted);font-size:13px;}}
+.nt-an-item{{padding:8px 0;border-bottom:1px dashed var(--border);}}
+.nt-an-item:last-child{{border-bottom:0;}}
+.nt-an-k{{font-weight:600;color:var(--heading);margin-right:8px;}}
+.nt-an-tag{{display:inline-block;font-size:12px;padding:2px 9px;border-radius:999px;margin-right:6px;background:var(--bg-hover);color:var(--text-muted);}}
+.nt-an-tag[data-lv="good"]{{background:#e8f5e9;color:#2e7d32;}}
+.nt-an-tag[data-lv="warn"]{{background:#fff3e0;color:#e65100;}}
+.nt-an-tag[data-lv="bad"]{{background:#ffebee;color:#c62828;}}
 mark{{background:rgba(255,107,53,.2);color:inherit;border-radius:2px;padding:0 2px;}}
 @media(max-width:600px){{.nt-hero{{padding:18px;}}.nt-hero .ico{{font-size:32px;}}.nt-hero h2{{font-size:19px;}}.nt-run,.nt-sec{{padding:18px;}}.nt-table th{{width:auto;}}}}
 </style>
@@ -232,6 +243,12 @@ mark{{background:rgba(255,107,53,.2);color:inherit;border-radius:2px;padding:0 2
     <div class="nt-out" id="result-{id}" data-s="idle" aria-live="polite">{idle_text}</div>
   </div>
 
+  <div class="nt-sec nt-analysis-wrap">
+    <h3>💡 结果速读</h3>
+    <p style="font-size:13px;color:var(--text-muted);line-height:1.7;margin:0 0 12px;">下面的解读由本页面在你浏览器里对刚才的结果做本地分析得出，不上传、不调用额外接口；仅供排查参考，不替代专业判断。</p>
+    <div class="nt-analysis" id="analysis-{id}" data-s="idle" aria-live="polite"><span class="nt-hint">执行后自动生成解读。</span></div>
+  </div>
+
   <div class="nt-sec">
     <h3>📋 输出字段说明</h3>
     <table class="nt-table">
@@ -278,6 +295,10 @@ window.__ntStorage = (function () {{
     write: function (v) {{ try {{ localStorage.setItem(KEY, JSON.stringify(v)); }} catch (e) {{}} }}
   }};
 }})();
+
+/* 本工具专属的「结果速读」解读器：只读共享 JS 传入的结果文本，本地解析后给出
+   专业判断。不发请求、不伪造数据；解析失败返回空串。共享 JS 在成功渲染后调用。 */
+{analyze_js}
 </script>
 <script src="../../js/common.js" defer></script>
 <script src="../../js/network-toolbox.js" defer></script>
@@ -329,6 +350,7 @@ def build(tool):
         desc=tool['desc'], ed=tool['ed'], principle=tool['principle'],
         input_html=inp, run_label=RUN_LABEL[tid], idle_text=IDLE.get(tid, '尚未执行，点击上方按钮开始。'),
         preset_html=preset_html, field_rows=field_rows, faq_html=faq_html,
+        analyze_js=ANALYZE[tid],
     )
     return html
 

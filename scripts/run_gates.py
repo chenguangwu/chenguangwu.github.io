@@ -306,6 +306,7 @@ GATES = (
     ("psychology calc correctness", ("node", "scripts/verify_psychology_calc.js")),
     ("museum calc correctness", ("node", "scripts/verify_museum_calc.js")),
     ("telecom calc correctness", ("node", "scripts/verify_telecom_calc.js")),
+    ("telecom net tools analysis", ("node", "scripts/_verify_net_tools.mjs")),
     ("plastic calc correctness", ("node", "scripts/verify_plastic_calc.js")),
     ("transport calc correctness", ("node", "scripts/verify_transport_calc.js")),
     ("niche calc correctness", ("node", "scripts/verify_niche_calc.js")),
