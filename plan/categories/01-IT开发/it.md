@@ -373,20 +373,6 @@
 - 未覆盖说明：只审计主流程、边界与文档口径，未穷举全部输入组合（DES 只逐字节改 0x11 观察敏感性，未做全密钥空间统计；JS 只测 5 组输入；Python 只测自带 SAMPLE 与 2 个小例；CSV 只测默认数据与引号/换行字段；country 只做数据一致性与长度统计，未核对全部国名/首都时效）。
 - 未做验证：未改代码、未构建、未跑门禁、未 git 写、未开浏览器；结论为源码静态分析 + `node` 内存复算（临时脚本 `/tmp/audit_des.js`、`/tmp/audit_fmt.js`、`/tmp/audit_misc.js`，未落仓库）；DES 标准向量因本机 OpenSSL 无 `des-ecb` 采用 FIPS 公开值（key `0123456789ABCDEF` / 明文 `Now is t` → `3FA40E8A984D4815`）；未验证英文态 `?lang=en-US`、繁体与移动端。
 
-### IT-N332 文件 MD5 先 `TextDecoder` 解码再重编码，二进制文件结果必然错（高，确认缺陷）
-- 问题：文件分支 `strData=null`，走 `md5(new TextDecoder().decode(bytes))`；UTF-8 解码会把二进制坏字节变成 U+FFFD，`md5()` 内部再按 UTF-16→UTF-8 编码，已无法还原原始字节。
-- 证据：`tools/it/hash.html:548-563`（`strData` 为 null 时 `TextDecoder().decode(bytes)` 再 `md5(str)`）、`:459`（`utf8Encode` 逐 UTF-16 单元编码）。
-- 复现：上传任意 PNG/JPG → 页面 MD5 与 `md5sum 文件` 不一致；上传含 emoji 的 UTF-8 文本文件同样不一致（emoji 字节 `f0 9f 98 80` 被重编码成 CESU-8 `ed a0 bd ed b8 80`）。期望对原始 `ArrayBuffer` 计算摘要。
-- 影响：校验和工具的核心用途（比对下载文件完整性）完全失效，且结果看起来「像 MD5」，极具迷惑性。
-- 方案：为字节数组实现独立 MD5（直接吃 `Uint8Array`，不做字符串编解码），文件分支不要走 `TextDecoder`。
-
-### IT-N333 文本 MD5 对非 BMP 字符按 UTF-16 单元编码，结果与标准不符（高，确认缺陷）
-- 问题：`utf8Encode` 对每个 `charCodeAt` 单独判断区间，遇到代理对（emoji、部分 CJK 扩展）会分别编成两个 3 字节序列（CESU-8），而标准 MD5 应按 UTF-8 4 字节编码。
-- 证据：`tools/it/hash.html:459`（`for(n=0;n<string.length;n++){var c=string.charCodeAt(n);...}`）。
-- 复现（node 实算）：输入 `😀` → 页面 `f99f51c2a9630a7f6b8c13c1818bc0c2`，标准 `md5("😀")` 为 `2a02eac39d716a70ecf37579185927b6`；页面实际编码字节 `ed a0 bd ed b8 80`，标准应为 `f0 9f 98 80`。
-- 影响：含 emoji/生僻字的文本 MD5 与 `md5sum`、服务端校验全部不一致，用户会误以为文件被篡改。
-- 方案：`utf8Encode` 先按码点处理代理对（`String.fromCodePoint` 口径），或直接用 `TextEncoder` 得到字节后对字节做 MD5。
-
 ## T 批 IT 第 1 轮覆盖（2026-11-04）
 - 本轮审计 24 页：`pdf-signature-checker`、`emoji-meaning`、`octal-encode`、`random-string`、`xml-to-json`、`mongodb-cheatsheet`、`vector-dot-product`、`ulid-generator`、`calc-subnet`、`generator-16`、`http-methods`、`gamertag-generator`、`sql-cheatsheet`、`stopwatch`、`ecdsa`、`barcode-itf`、`yaml-to-json`、`json-to-yaml`、`xml-validator`、`uuid-v7-generator`、`otp-generator`、`matrix-multiplier`、`url-encoder-advanced`、`hash`（均为 `tools/it/<slug>.html`）。
 - 新增 19 条（高 13 / 中 6），编号 IT-N315~IT-N333；上一批止于 IT-N314，本批无重号。
