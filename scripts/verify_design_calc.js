@@ -1030,7 +1030,7 @@ const CASES = [
       "cssOutput": "1\n2\n3"
     },
     "expect": [
-      "abc123测试\nabc123测试\n42\n42\n42\nabc123测试\n42\nabc123测试\n42\n42\n42\n42\nabc123测试"
+      "abc123测试\nabc123测试\n42\n42\n42\nabc123测试\n5\nabc123测试\n42\n42\n42\n42\nabc123测试"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"bgColor\":\"abc123测试\",\"textColor\":\"abc123测试\",\"radius\":\"42\",\"padX\":\"42\",\"padY\":\"42\",\"borderColor\":\"abc123测试\",\"borderW\":\"42\",\"btnText\":\"abc123测试\",\"fontSize\":\"42\",\"shX\":\"42\",\"shY\":\"42\",\"shBlur\":\"42\",\"cssOutput\":\"1\\n2\\n3\"}，输出区含「abc123测试\nabc123测试\n42\n42\n42\nabc123测试\n42\na…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -1060,7 +1060,7 @@ const CASES = [
       "cssOutput": "1\n2\n3"
     },
     "expect": [
-      "abc123测试\n42\n42\n42\n42\n42\nabc123测试\n42\nabc123测试\n42"
+      "abc123测试\n42\n42\n42\n42\n42\nabc123测试\n5\nabc123测试\n1"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"bgColor\":\"abc123测试\",\"radius\":\"42\",\"shX\":\"42\",\"shY\":\"42\",\"shBlur\":\"42\",\"pad\":\"42\",\"borderColor\":\"abc123测试\",\"borderW\":\"42\",\"shadowColor\":\"abc123测试\",\"shadowOp\":\"42\",\"cssOutput\":\"1\\n2\\n3\"}，输出区含「abc123测试\n42\n42\n42\n42\n42\nabc123测试\n42\nabc1…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -2695,6 +2695,43 @@ const CASES = [
   inputs: { gap: "-10" },
   expect: ["gap: 0px;"],
   ref: "D-N29 同族：旧实现把负 gap 原样拼进 gap: -10px；修复后 clamp 到 0..80 并回写输入框 ⇒ gap: 0px。默认 gap=12 不含该串 ⇒ 强判别。",
+},
+// ── 第315批：边界钳制与 XSS 转义强锁 ─────────────────────────────
+{
+  slug: "design/color-temperature-converter",
+  inputs: { rgb: "0, 0, 255" },
+  expect: ["该颜色不在黑体轨迹附近"],
+  ref: "D-N18：纯蓝远离黑体轨迹，旧实现仍返回边界色温 11800K 冒充精确值；修复后残差超阈值时提示无法给出可靠色温。默认输入为合法色温 RGB，不含该提示 ⇒ 强判别。",
+},
+{
+  slug: "design/badge-generator",
+  inputs: { text: "<img src=x onerror=alert(1)>" },
+  expect: ["&lt;img src=x onerror=alert(1)&gt;"],
+  ref: "D-N47：徽章文字旧实现原样拼进 preview.innerHTML，注入的 img 会注册 onerror；修复后先做 HTML 转义再拼接，输出 &lt;img。默认文案 Badge 不含该串 ⇒ 强判别。",
+},
+{
+  slug: "design/card-generator",
+  inputs: { borderW: "-1" },
+  expect: ["border: 0px"],
+  ref: "D-N50：负边框宽旧实现原样输出 border: -1px；修复后 clamp 到 0..5 并回写输入框 ⇒ border: 0px。默认 borderW=1 不含 ⇒ 强判别。",
+},
+{
+  slug: "design/button-generator",
+  inputs: { radius: "-5" },
+  expect: ["border-radius: 0px"],
+  ref: "D-N52：负圆角旧实现输出 border-radius: -5px；修复后 clamp 到 0..50 并回写 ⇒ border-radius: 0px。默认 radius=8 不含 ⇒ 强判别。",
+},
+{
+  slug: "design/css-animation-generator",
+  inputs: { easing: "custom", bx1: "-0.5" },
+  expect: ["cubic-bezier( 0 ,"],
+  ref: "D-N54：x1 越界旧实现输出 cubic-bezier(-0.5, …)；修复后 x1/x2 clamp 到 0..1 并回写 ⇒ cubic-bezier(0, …。默认 easing 非 custom，不含该串 ⇒ 强判别。",
+},
+{
+  slug: "design/pattern-generator",
+  inputs: { size: "999" },
+  expect: ["background-size: 200px 200px"],
+  ref: "D-N62：size=999 旧实现原样输出 background-size: 999px 999px；修复后 clamp 到 5..200 并回写 ⇒ background-size: 200px 200px。默认 size=40 不含 ⇒ 强判别。",
 }
 ];
 

@@ -133,18 +133,6 @@
 
 ## 2026-11-03 续查（并行批 J）
 
-### D-N15 断点生成器注释拼接优先级错误，移动优先产物被标成「桌面优先」并带孤立 `*/`（中，确认源码缺陷）
-- 问题：`let css='/* '+mode==='min'?'移动优先（Mobile First）':'桌面优先'+' */\n';` 中 `+` 先于三元运算，实际按 `('/* '+mode==='min') ? …` 求值，左侧恒为 `"/* min"`/`"/* max"` 而不等于 `'min'`，于是任何模式都落到「桌面优先」分支。
-- 证据：`tools/design/breakpoint-queries.html:274`（模板串），`:276-280`（按 mode 生成 min/max 规则）。node 内存复算：`mode='min'` → 首行 `"桌面优先 */\n"`；`mode='max'` → 同样 `"桌面优先 */\n"`；随后才是 `@media (min-width: 640px) {` 等正确规则。移动优先时注释文案与实际规则相反，且首行是缺少起始 `/*` 的孤立 `*/`，浏览器对该 token 的容错行为未实测。
-- 影响：`tools/design/breakpoint-queries.html`；用户复制到项目后，CSS 首行文案误导协作方，孤立 `*/` 可能被部分工具链判为语法错误或吞掉后续规则。
-- 方案：先求标签再拼接——`let css='/* '+(mode==='min'?'移动优先（Mobile First）':'桌面优先')+' */\n';`；补一条 `mode=min` 的产物首行断言。
-
-### D-N18 反向换算对轨迹外颜色仍返回边界色温，冒充「精确 CCT」（低，确认函数缺陷）
-- 问题：`rgbToKelvin()` 只在 1000–12000K 每 100K 采样取最小曼哈顿距离，不判断残差是否可接受；纯蓝、纯黑、纯红等远离黑体轨迹的颜色也会返回一个边界附近的温度。
-- 证据：`tools/design/color-temperature-converter.html:252-260`（固定区间线性搜索）。node 内存复算：`rgbToKelvin(0,0,255)` → `11800K`（minDiff 406）；`rgbToKelvin(0,0,0)` → `1000K`（minDiff 323）；`rgbToKelvin(255,0,0)` → `1000K`（minDiff 68）。
-- 影响：`tools/design/color-temperature-converter.html`；用户输入任意品牌色后得到一个看似精确的「色温」，实际该色已明显偏离黑体轨迹。
-- 方案：设最大残差阈值，超出时提示「该颜色不在黑体轨迹附近」；如需严谨结果改用 CIE 相关色温 + Duv，并展示残差/偏移量。
-
 ### D-N19 PNG 转 SVG 阈值 0 被代换为 128、负块宽生成非法 SVG，换图后仍复制旧结果（中，确认函数缺陷，三个问题）
 - 问题：① `parseInt(...) || 128` 把合法的 `0` 当作空值换成 128，用户想保留全部像素却得到大量透明格被跳过；② 块大小同样用 `|| 8`，负值 `-5` 能通过，`Math.max(1, floor(w/block))` 把网格压成 1，但输出宽高仍用 `w*block`，得到负值；③ `lastSVG` 只在生成成功时覆盖，换图或改参数后不失效，直接点「复制 SVG」会拿到上一张的结果。
 - 证据：`tools/design/png-to-svg.html:258-259`（`||8` / `||128`）、`:264-265`（网格下限 1）、`:280`（`width="${w*block}"`）、`:253`（`lastSVG` 初值，全文无清空）、`:288-290`（复制只判非空）、`:160-163`（`min/max` 未参与脚本）。node 内存复算：`alphaTh=0` → 实际按 128；`block=0` → 8，`block=-5` → -5；100px 原图配 `block=-5` → 网格 `w=1`、输出宽 `-5`（`<svg width="-5">`）；`block=8.7` → `parseInt` 得 8。
@@ -234,24 +222,6 @@
 - 影响：搜索结果与分享卡片承诺 ICO，用户下载只得到 PNG；信任损耗，且属于对外元数据错误
 - 方案：四处统一改为「导出多尺寸 PNG」；如确需 ICO，前端手写 ICO 容器（PNG-in-ICO 可行）或在页内给出明确的外部转换指引
 
-### D-N40 Favicon 生成器字号无脚本校验，负值使字体声明失效、超限直接裁切（低，确认源码缺陷）
-- 描述：`fontSize` 的 `min/max` 只约束 spinner；脚本用 `parseInt(...)||140`，负值会拼成非法的 `ctx.font`（被浏览器忽略、退回默认字体），超过上限则在固定画布内溢出裁切，且无 `measureText` 自适应。
-- 证据：`tools/design/favicon-generator.html:215`（min=40/max=240）、`:470`（`parseInt(...)||140`）、`:397-400`（`ctx.font` 直接拼接、`fillText` 无测量/缩放）
-- 复现：fontSize=-50 → `"bold -3.125px ..."` 非法赋值被丢弃，文字退回默认 10px（@16px 画布）；fontSize=300 → @16px 每字 18.75px，两枚汉字宽 37.5px > 16px，被裁切；输入 0 → 静默变 140
-- 方案：clamp 40–240 并回写；按 `measureText` 自动缩放（或对 16/32px 档单独降级字号），避免多字符被裁
-
-### D-N41 明暗色阶输入区 `</div` 缺右尖括号，疑似吞掉工具栏容器（低，疑似）
-- 描述：`</div` 未闭合，其后紧跟 `<div class="toolbar">`；按 HTML 解析规则，残缺 end tag 会把后续起始标签吞为属性，`toolbar` 容器可能整体丢失，按钮样式与布局错位。
-- 证据：`tools/design/color-shade-generator.html:127`
-- 复现：静态读源码可见 `:127` 为 `    </div`；预期应为其后的 `</div>` 正常闭合输入行，但实际缺失 `>`（未开浏览器确认渲染差异）
-- 方案：补成 `</div>`；顺带跑一次标签配对检查（同类残缺 end tag 可全站扫一遍）
-
-- 本轮实读 8 页：`color-picker.html`、`color-palette.html`、`color-shade-generator.html`、`vh-vw.html`、`css-grid-generator.html`、`image-cropper.html`、`image-format-converter.html`、`favicon-generator.html`；另略读 `border-radius-generator.html`、`flexbox-generator.html`（后者 gap 负值问题与 D-N29 同族，已于第314批一并修复）。新增 16 条（高 1 / 中 8 / 低 7）。未覆盖：`tools/design` 其余约 86 页（含 gradient / shadow / pattern / avatar / badge / image-color-picker / palette-extractor / image-to-ascii 等尚未阅读）。所有结论均为源码行号 + node 内存复算推演，未做浏览器交互、EN 运行态探针、移动端、门禁与线上验证。
-
-## 2026-11-04 续查（并行批 L）
-
-> 范围：本轮阅读 8 页：`tools/design/font-pairing.html`、`tools/design/gradient.html`、`tools/design/shadow-generator-advanced.html`、`tools/design/badge-generator.html`、`tools/design/card-generator.html`、`tools/design/avatar-generator.html`、`tools/design/image-color-picker.html`、`tools/design/svg-viewer.html`。仅源码 + node 内存复算，未开浏览器/未做 EN/移动端/门禁验证。
-
 ### D-N42 SVG 查看器把用户输入原样写入 innerHTML，内嵌事件处理器可执行（高，确认源码缺陷）
 - 描述：`generate()` 只用 `/svg[\s\S]*<\/svg>/i` 判断“像不像 SVG”，随后把整段输入赋给 `preview.innerHTML`；未移除 `on*` 事件属性、`<script>`、`foreignObject` 或外部引用，也没有用沙箱 iframe。通过 innerHTML 插入的 SVG 事件属性会正常注册，`<svg onload="…">` 在解析完成时即执行。页面自己的引据表还写着「SVG 可内嵌脚本，外部文件须隔离渲染以防注入」，实现与声明相反。
 - 证据：`tools/design/svg-viewer.html:255-256`（`preview.innerHTML=__h1`）、`:250-262`（无任何清洗）、`:231-233`（OWASP 隔离引据）
@@ -265,13 +235,6 @@
 - 复现：上传 50% 透明度的纯红 PNG（`rgba(255,0,0,0.5)`）→ 画面接近 `#FF8080`，HEX 输出 `#FF0000`；全透明区域点选 → 画面白色但输出 `#000000`（期望按显示合成结果取色，或显式输出 RGBA 并标注）
 - 影响：`tools/design/image-color-picker.html`；对带透明的 PNG/WebP/图标取色时，复制出的色值与肉眼所见不符
 - 方案：取样前先填白（或提供可选底色）再 drawImage，使取样与预览一致；或输出 `rgba(r,g,b,a)`，`a<255` 时标注透明度，全透明像素给出明确提示
-
-### D-N47 徽章生成器把文字原样拼进 innerHTML，可注入 HTML/事件（中，确认源码缺陷）
-- 描述：`text` 未转义就拼进 `<span style=...>${text}</span>`，再整体赋给 `preview.innerHTML`；输入含标签时会被当 HTML 解析，`<img onerror>` 等事件可执行。
-- 证据：`tools/design/badge-generator.html:261`（读取 text）、`:270/273/276/279`（模板内插 text）、`:281`（`preview.innerHTML=__h0`）
-- 复现：文字填 `<img src=x onerror=alert(1)>` → 预览插入图片并在加载失败时执行脚本（期望按纯文本显示）；填 `</span><svg onload=…>` 同理
-- 影响：`tools/design/badge-generator.html`；与 D-N42 同属渲染型注入，徽章文字常从工单/表格粘贴，脚本可读取本站 localStorage
-- 方案：预览用 `textContent` 创建文本节点，或先做 HTML 转义（`& < > " '`）；CSS 输出中的文字不进 CSS，无需处理
 
 ### D-N48 CSS 渐变生成器 FAQ 宣称「会算 WCAG 对比度并标红」，页面未实现（低，确认文案与实现不一致）
 - 描述：FAQ 第二条写明「会按 WCAG 算出对比度值与等级，未达标会标红提醒」，但脚本只有色标拼接与预设，没有任何亮度/对比度计算或提示 UI。
@@ -287,13 +250,6 @@
 - 影响：`tools/design/image-color-picker.html`；小图标/细节图取色精度无法保证，宣传的卖点不存在
 - 方案：增加放大镜（hover 显示 5×5/9×9 像素网格与坐标）或删除「放大取样」表述
 
-### D-N50 卡片生成器负数/空值不校验，输出 padding/border/blur 非法声明（低，确认源码缺陷）
-- 描述：各数值 `parseInt(...)||0`、`parseFloat(...)||0`，仅空值兜底；`min/max` 只约束 spinner。负内边距、负边框宽、负模糊、负圆角都会原样拼进 CSS，这些属性对负值非法，浏览器丢弃对应声明，但输出文本仍可被复制。
-- 证据：`tools/design/card-generator.html:165-175`（min/max 属性）、`:266-281`（无 clamp 并原样写入输出）
-- 复现（node 复算）：圆角 -5、内边距 -20、边框粗细 -1、阴影模糊 -20 → `border-radius: -5px; padding: -20px; border: -1px solid …; box-shadow: 0 4px -20px rgba(0,0,0,0.08);`；阴影不透明度 -0.2 → `rgba(0,0,0,-0.2)` 被钳到 0，阴影实际消失
-- 影响：`tools/design/card-generator.html`；粘贴后卡片样式部分失效，且无任何错误提示
-- 方案：统一 clamp（radius/pad 0–50、borderW 0–5、alpha 0–1、blur≥0）并回写输入框；越界时高亮字段
-
 ### D-N51 字体搭配只有拉丁字体与拉丁示例，中文场景无法预览也无 CJK 回退（低，确认能力缺口）
 - 描述：FAQ 专门回答「中文怎么配」，但 36 组搭配（35 种字体）全部是 Google Fonts 拉丁字体，预览文本默认英文，CSS 产物也只输出 `font-family:'X', sans-serif`，没有中文字体或 CJK 回退；中文标题会静默落到浏览器默认中文字体，与预览观感完全不同。
 - 证据：`tools/design/font-pairing.html:268`（FAQ 中文问题）、`:322-370`（FONT_PAIRS 全拉丁字体）、`:433-446`（copy CSS 只含拉丁 + sans-serif）、`:416-417`（默认英文字样）
@@ -308,27 +264,6 @@
 
 > 范围：本轮阅读 8 页：`tools/design/button-generator.html`、`tools/design/text-shadow-generator.html`、`tools/design/css-animation-generator.html`、`tools/design/skeleton-loader.html`、`tools/design/palette-extractor.html`、`tools/design/image-to-ascii.html`、`tools/design/mesh-gradient.html`、`tools/design/pattern-generator.html`。仅源码 + node 内存复算，未开浏览器/未做 EN/移动端/门禁验证。
 
-### D-N52 按钮生成器悬停态无法预览，负值/小数被静默写入 CSS（中，确认源码缺陷，两个问题）
-- 描述：预览按钮 `<button id="previewBtn">` 不带 `.btn-custom` 类，`generate()` 只把样式写成 inline `cssText`，而 `:hover` 规则只存在于输出文本里；inline 样式无法被伪类命中，页面宣称的「悬停态实时预览」实际不生效。另所有数值走 `parseInt(...)||0/14`，负值原样拼入，小数被截断且不回写输入框。
-- 证据：`tools/design/button-generator.html:180`（预览按钮无 class）、`:278-282`（inline cssText + 输出 `:hover`）、`:265-274`（`parseInt(...)||0`，仅 `fontSize` 用 `||14`）、`:213`（FAQ 称悬停可直接用）
-- 复现（node 复算原表达式）：圆角 `-5`、水平内边距 `-20`、边框 `-1`、阴影模糊 `-20` → 输出 `border-radius: -5px; padding: 10px -20px; border: -1px solid …; box-shadow: 0px 4px -20px …`（期望拒绝并提示）；圆角 `8.5` → 按 8 生成，输入框仍显示 8.5；鼠标移入预览按钮无任何位移/阴影变化（期望看到 `translateY(-2px)` 与阴影变化）
-- 影响：`tools/design/button-generator.html`；复制出的负值声明会被浏览器整条丢弃，且用户在页面上永远看不到 hover 效果，交付前必须自行贴回项目验证
-- 方案：预览按钮加 `.btn-custom` 并把规则写进 `<style>`（不要用 inline cssText），或让 `:hover` 选择器指向 `#previewBtn`；数值统一 clamp/校验后回写，非法时标红并停止输出
-
-### D-N54 CSS 动画自定义 cubic-bezier 的 x 越界不校验，整条 animation 失效（中，确认源码缺陷；浏览器丢弃行为按规范推演）
-- 描述：`getEasingValue()` 对四个控制点统一 `parseFloat(...)||0`，没有检查 x1/x2 必须落在 0–1；输入框 `min=0 max=1` 只约束 spinner，手输负值或 >1 可通过。CSS Easing 规范要求 x 分量在 [0,1]，越界时浏览器丢弃整条 `animation` 声明。
-- 证据：`tools/design/css-animation-generator.html:855-865`（`parseFloat(...)||0` 与直接拼接）、`:476-479`（bx1/bx2 `min=0 max=1` 未参与脚本）
-- 复现（node 复算原表达式）：`bx1=-0.5`、其余默认 → `cubic-bezier(-0.5, -0.55, 0.265, 1.55)`（期望拒绝/夹取并提示）；清空 `bx1` → 静默按 0；`bx1` 输入 `1e2` → 100，同样越界
-- 影响：`tools/design/css-animation-generator.html`；预览不动、复制出的 CSS 动画不播放，且没有任何错误提示，用户只会以为浏览器不支持
-- 方案：x1/x2 限定 0–1 并回写输入框，y 允许 -1–2；非法时标红并清空预览/代码，或把越界值 clamp 后明确提示
-
-### D-N58 图片转 ASCII 引据表写 BT.709，正文与实现用 BT.601，页面自相矛盾（低，确认文案与实现不一致）
-- 描述：引据表明确写 `Y = 0.2126 R + 0.7152 G + 0.0722 B（BT.709 权重）`，但公式说明（`:176`）与实现（`:392`）都是 BT.601 的 `0.299/0.587/0.114`；同一页出现两套权重口径。
-- 证据：`tools/design/image-to-ascii.html:280`（BT.709 引据）对照 `:176`（正文写 BT.601）、`:392`（`0.299*r+0.587*g+0.114*b`）
-- 复现（node 复算，默认 `detailed` 字符集 `" .:-=+*#%@"` 共 10 档）：纯红 `#FF0000` → 按实现灰度 76.245，`floor(76.245/255*9)=2`，取索引 2 的 `:`；按引据表 BT.709 应为 54.213，`floor(1.913)=1`，取索引 1 的 `.`。同一输入两套标准差一个字符档
-- 影响：`tools/design/image-to-ascii.html`；用户按引据表校核字符画明暗时对不上，红/蓝高饱和区域的档位偏差约 1 档
-- 方案：保留 BT.601 实现与正文，把引据表改为 BT.601（0.299/0.587/0.114）；或实现改 BT.709 并同步正文与引据。权重常量只保留一处
-
 ### D-N59 网格渐变的历史/数据表/预设/CSV 恒为空（中，确认源码缺陷）
 - 描述：动态生成的 2–5 个颜色输入框没有 `id`，而历史快照只收集 `input[id]`；同时 `#output` 里的预览块没有文本，`ResText` 判空后直接返回。结果历史从不记录、数据表为空、CSV 导出为空；预设函数本身也是空实现，预设页签无按钮。
 - 证据：`tools/design/mesh-gradient.html:255-258`（`<input type="color" value=…>` 无 id）、`:331-339`（`querySelectorAll('input[id]…)`）、`:396-397`（`if(!keys.length) return`）、`:424-426`（`__mesh_gradientPresets()` 空函数）、`:170`（数据表/历史容器）
@@ -342,19 +277,6 @@
 - 复现（node 复算同一组参数）：`type=triangles` 与 `type=diamonds`、size 40、同两色 → 两条 CSS 字符串 `===` 为 true，预览像素级一致（期望菱形为 45° 旋转的菱形 tile，或至少与三角形不同）
 - 影响：`tools/design/pattern-generator.html`；用户选「菱形」拿不到菱形底纹，且会以为是自己参数没生效
 - 2026-11-06 复核：Node 执行页面 `generate()`，三角形输出线性渐变、菱形输出 conic-gradient，两者 CSS 不再相同；未验证浏览器实际渲染形状或其余类型的视觉差异。
-
-### D-N62 图案生成器尺寸只夹下限，999 直接进入 background-size；类型未写入历史（低，确认源码缺陷）
-- 描述：`size` 仅 `Math.max(5, parseInt(...)||40)`，无上限；`max=200` 只约束 spinner。`999` 原样生成 `background-size: 999px 999px`，负值被夹到 5、空值变 40 且不回写。另历史快照不含当前图案类型（`currentType` 不是表单元素），且 `#output` 无文本导致历史恒空（同 D-N59 模板问题）。
-- 证据：`tools/design/pattern-generator.html:270`（只有下限夹取）、`:162`（`min=5 max=200` 未参与脚本）、`:392-397`（`ResText` 判空后不记录）、`:260-266`（`currentType` 为全局变量，不入快照）
-- 复现（node 复算）：size `999` → 999（期望 200）；`4` → 5；清空 → 40；输入框仍显示 999/空。历史页签与「导出明细 CSV」始终无内容
-- 影响：`tools/design/pattern-generator.html`；超大 tile 撑爆预览、参数显示与实际不一致；历史/CSV 功能不可用
-- 方案：size clamp 5–200 并回写；历史记录把 `currentType` 与颜色/尺寸一并写入，`ResText` 改用 `cssOutput` 文本
-
-- 本轮实读 8 页：`button-generator.html`、`text-shadow-generator.html`、`css-animation-generator.html`、`skeleton-loader.html`、`palette-extractor.html`、`image-to-ascii.html`、`mesh-gradient.html`、`pattern-generator.html`；新增 11 条（高 0 / 中 8 / 低 3）。未覆盖：`tools/design` 其余约 60 页（按本文件全部 `tools/design/*.html` 引用去重统计，108 个工具页中已引 48 个），代表页含 `glassmorphism-generator`、`neomorphism-generator`、`css-text-shadow`、`css-box-shadow-generator`、`shadow-generator`、`spinner-generator`、`progress-bar-generator`、`toast-generator`、`checkerboard-generator`、`grid-pattern`、`dot-pattern`、`stripe-pattern`、`identicon-generator`、`initials-avatar`、`gradient-from-color`、`pixel-art-generator`、`favicon-from-text`、`favicon-from-emoji` 等。所有结论均为源码行号 + node 内存复算/源码路径推演；未做浏览器交互、EN 运行态探针、移动端、门禁与线上验证。
-
-## 2026-11-04 续查（并行批 N）
-
-> 范围：本轮阅读 8 页：`tools/design/css-box-shadow-generator.html`、`tools/design/css-text-shadow.html`、`tools/design/shadow-generator.html`、`tools/design/glassmorphism-generator.html`、`tools/design/neomorphism-generator.html`、`tools/design/spinner-generator.html`、`tools/design/progress-bar-generator.html`、`tools/design/grid-pattern.html`。仅源码 + node 内存复算（临时命令均在 `/private/tmp`，未落盘），未开浏览器/未做 EN/移动端/门禁验证。
 
 ### D-N63 CSS 盒阴影生成器：增删/重置阴影层后预览与 CSS 不刷新（中，确认源码缺陷，与 D-N44 同族）
 - 描述：`addLayer / deleteLayer / resetLayers` 都只经 `setActive()`，而 `setActive()` 仅调用 `renderLayerList()`；真正重算 `#preview` 与 `#cssOutput` 的 `render()` 未被调用，层数据已变但产物停留在上一次。
@@ -1799,7 +1721,7 @@
 - **color-palette**：默认互补五色；#788EED 上白字仅 3.05:1（D-N228）；FAQ 宣称的 WCAG 校验不存在（D-N229）；D-N33（HEX 只校验长度）已于第311批修复。
 - **color-picker**：默认 #4151e1 自洽、白字 6.02:1；#788EED 时「推荐文字色」仍给 #FFF（3.05:1），与同页 WCAG 面板自相矛盾（D-N230）；D-N31/D-N32 已于第314批修复（越界回写 + HEX 3/6/8 位校验）。
 - **color-shade-generator**：默认 11 卡线性混白/黑，公式一致；D-N34/D-N36 已失效，D-N35 部分仍成立（`:148`、`:383` 仍称 HSL/OKLCH 十档）。
-- **color-temperature-converter**：默认 5500K→(255,238,222) 正算可用；D-N17 已失效（已加范围校验），D-N18（轨迹外反查仍返回边界温）仍成立。
+- **color-temperature-converter**：默认 5500K→(255,238,222) 正算可用；D-N17 已失效（已加范围校验），D-N18（轨迹外反查仍返回边界温）已于第315批修复（残差超阈值提示）。
 - **colorblind-simulator**：默认绿盲 #FF6B35→#B9A62F 与 Machado 1.0 手算一致；D-N102（取色器不写回 HEX）仍成立。
 - **contrast-checker**：默认 14.68:1、AA/AAA 判定正确；D-N1（非法 HEX 不刷新结果）仍成立。
 - **cvd-safe-palette**：无默认结果；D-N106（发散亮度方向反，L 两端 0.90、中心 0.32）、D-N107（策略两分支同实现）、D-N108（首色恒 `oklch(.64,.04,0)`）仍成立。
