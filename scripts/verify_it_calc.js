@@ -13828,7 +13828,13 @@ const CASES = [
     slug: "clinical-lab/pcr-ct-interpretation",
     clicks: ["var d=document;var quant=d.getElementById('quantResult');quant.querySelectorAll=function(s){return s==='.result-box'?[{textContent:'标准曲线方程 Ct=-3.37 log+38.56'},{textContent:'计算浓度 = 3.468e+2 copies/μL'}]:[];};var oq=d.querySelector;d.querySelector=function(s){return s==='.result-box'?{textContent:'ΔCt = 25 - 20 = 5.00 相对表达量'}:oq(s);};var v=String(__pcr_ct_interpretationResText());d.querySelector=oq;d.getElementById('__tbProbe').textContent=(v.indexOf('计算浓度')>=0&&v.indexOf('ΔCt')<0?'PCRRES OK':'BAD '+v);"],
     expect: ["PCRRES OK"],
-    ref: "清单 D-N87：历史/CSV「结果」列原固定取首个 .result-box（定性 ΔCt 面板，DOM 在前），定量浓度从未入库。修复后 ResText 优先取 #quantResult 内结果框。探针给 #quantResult 挂 querySelector 返回浓度框、document.querySelector 返回 ΔCt 框，断言返回浓度而非 ΔCt ⇒ PCRRES OK。默认态 quantResult 为空 ⇒ 不含哨兵。探针只在 clicks 内生成。",
+    ref: "清单 D-N87：历史/CSV「结果」列原固定取首个 .result-box（定性 ΔCt 面板，DOM 在前），定量浓度从未入库。修复后 ResText 优先取 #quantResult 内结果框。探针给 #quantResult 挂 querySelectorAll 返回方程框+浓度框、document.querySelector 返回 ΔCt 框，断言返回浓度而非 ΔCt ⇒ PCRRES OK。默认态 quantResult 为空 ⇒ 不含哨兵。探针只在 clicks 内生成。",
+  },
+  {
+    slug: "clinical-lab/pcr-ct-interpretation",
+    clicks: ["renderStd();var h=String(document.getElementById('stdPoints').innerHTML||'');var ok=(h.indexOf('id=\"stdConc0\"')>=0&&h.indexOf('id=\"stdCt0\"')>=0&&h.indexOf('id=\"stdConc3\"')>=0&&h.indexOf('id=\"stdCt3\"')>=0);document.getElementById('__tbProbe').textContent=(ok?'PCRSTD OK':'BAD '+h.slice(0,120));"],
+    expect: ["PCRSTD OK"],
+    ref: "清单 D-N89：标准品输入原无 id，__pcr_ct_interpretationSnap()（只取 input[id]）无法捕获 ⇒ 定量标准曲线数据从不入库、回放丢失。修复后标准品输入加 id stdConc<i>/stdCt<i>，快照自动包含。探针调用真实 renderStd() 读其生成的 HTML，断言含 stdConc0/stdCt0/stdConc3/stdCt3 四个 id ⇒ PCRSTD OK（旧源码标准品输入无 id ⇒ 不含 ⇒ 红）。默认态未调 renderStd 的探针态不影响。探针只在 clicks 内生成。",
   },
 ];
 
