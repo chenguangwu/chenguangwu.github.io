@@ -342,22 +342,6 @@
 - 影响：`tools/design/data-matrix.html` 声称用于工业零件标识，实际任何 Data Matrix 读码器都读不出原文；属高危误导。
 - 方案：接入成熟的 ECC200 Data Matrix 编码库并锁定版本（纯前端）；若只想做纹理，改名为「矩阵纹理生成器」并删除扫码/纠错/工业标识文案。
 
-### D-N138 data-matrix 公式框自相矛盾，尺寸语义与引据表冲突（中，确认文案与实现不一致）
-
-- 问题：同一公式框里 formula-eq 写哈希+LCG，formula-desc 却写「数据经 Reed-Solomon 纠错后排布」；输入「尺寸」实际是模块数（画布=阶数×18 px），但示例写「模块 4px」；输入 `min=8` 与引据表「模块数自 10×10 起」矛盾，且允许 8/9 等真实 DM 不存在的奇数规格。
-- 证据：`tools/design/data-matrix.html:154-155`（两段互斥描述）、`:164`（`min=8 max=24`）、`:235`（引据表 10×10 起、四档）、`:201`（示例「SN2026X、模块 4px」）、`:282-284`（`cellSize=18`，画布=size×18）。
-- 复现：把「尺寸」填 9 → 生成 9×9=162 px 的 9 模块方阵，真实 ECC200 无 9×9 符号；填 8 → 8×8。期望要么用规范尺寸表（10–144 偶数档），要么明确「演示模块数」并删掉规范口吻。
-- 影响：`tools/design/data-matrix.html` 参数与「Data Matrix 规范」互相对不上，用户无法对齐工业标准。
-- 方案：统一术语为「模块数（演示 8–24）」，删除 4px/RS/规范尺寸表述；或换成规范尺寸下拉。
-
-### D-N139 base64 描述承诺「反向转换」，页面只有解码、无编码入口（中，确认文案与实现不一致）
-
-- 问题：meta×3 与正文均称「也支持反向转换」，英文简介更写「encode an image to Base64」；实际无 `type="file"`、无 `FileReader`、无 `btoa/encode`，只能解码。
-- 证据：`tools/design/base64-to-image.html:10`、`:15`、`:64`（meta/OG/Twitter「也支持反向转换」）、`:160`（正文/`data-zh` 同句）、`:158`（formula-desc 纯套话，无公式）。
-- 复现：全页 grep `type="file"|FileReader|readAsDataURL|btoa` 0 命中；工具区只有 textarea + 转换/复制/下载（`:162-167`）。
-- 影响：`tools/design/base64-to-image.html` 用户找不到「图片→Base64」入口，核心承诺缺失。
-- 方案：补上传控件并 `FileReader.readAsDataURL()` 输出 Data URL（纯前端、无依赖）；或删除所有反向文案，并把 formula-desc 改为真实解码流程。
-
 ### D-N151 colorblind 严重度滑杆对所有 8 型统一生效，与「完全型默认 100%」提示冲突（中，确认源码缺陷）
 
 - 问题：滑杆写入全局 `S1.sev`，8 型卡片全部使用该值；提示却写「严重度仅在色弱型按默认 60% 起算，完全型默认 100%」。拖动滑杆后完全型也被降到低严重度；只有点击某类型卡片才重置为该类型的默认值。
