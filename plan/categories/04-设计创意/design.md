@@ -258,12 +258,6 @@
 - 影响：`tools/design/pixel-art-generator.html`；历史回看无法还原当时绘制的像素画。
 - 方案：快照序列化 `window.__pxGrid` 并在恢复时写回、刷新画布与字符画；留待专门批次处理。
 
-### D-N100 checkerboard 透明底预设仍带 #ffffff、名不副实（残留）
-
-- 问题：预设「透明底导出棋盘（16px）」实际 CSS 仍为 `background-color:#ffffff`，无法作透明底使用（「格数 / 导出图片」文案已于第329批改为「可调格子大小 / 可复制 CSS 代码」）。
-- 证据：`tools/design/checkerboard-generator.html:395`（预设「透明底」用 `#ffffff`）。
-- 方案：透明预设改 `background-color: transparent`。
-
 ### 留存/优势建议（逐页，具体可落地）
 
 - `favicon-from-text`：① 一次导出 16/32/48/180/512 多尺寸 PNG + `.ico` 打包；② 增加透明底/纯色底切换与 `<link rel="icon">` 代码复制；③ 字间距/字体预设，避免用户为大圆角反复试错。
