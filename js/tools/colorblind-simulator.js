@@ -700,9 +700,15 @@
     function onMove(e) { if (dragging) { move(e.touches ? e.touches[0].clientX : e.clientX); e.preventDefault(); } }
     function onUp() { dragging = false; }
     cmp.onmousedown = onDown; cmp.onmousemove = onMove;
-    window.addEventListener('mouseup', onUp);
     cmp.ontouchstart = onDown; cmp.ontouchmove = onMove;
-    window.addEventListener('touchend', onUp);
+    // 全局 up 只在首次绑一次，之后仅替换引用：避免每次重渲染累积 window 监听
+    window.__c3OnUp = onUp;
+    if (!window.__c3UpBound) {
+      window.__c3UpBound = true;
+      var __c3Up = function () { if (typeof window.__c3OnUp === 'function') { window.__c3OnUp(); } };
+      window.addEventListener('mouseup', __c3Up);
+      window.addEventListener('touchend', __c3Up);
+    }
   }
   $('c3Label').addEventListener('change', function () {
     S3.label = this.checked;
@@ -839,7 +845,7 @@
     try {
       out.toBlob(function (blob) {
         if (!blob) { toast('导出失败：浏览器未能生成 PNG（画布可能被污染）'); return; }
-        downloadBlob(blob, 'cvd-8types-' + S3.name + '.png', 'image/png');
+        downloadBlob(blob, 'cvd-8types-' + String(S3.name || 'image').replace(/\.[^.]+$/, '') + '.png', 'image/png');
       }, 'image/png');
     } catch (e) { toast('导出失败：' + ((e && (e.name || e.message)) || '未知错误')); }
   });
@@ -860,7 +866,8 @@
 
   function wcagThresholds(size) {
     if (size === 'large') { return { aa: 3.0, aaa: 4.5 }; }
-    if (size === 'ui') { return { aa: 3.0, aaa: 3.0 }; }
+    // WCAG 2.2 1.4.11 非文本对比度只有 AA 3:1，不存在 AAA 档 ⇒ aaa 置 null（表格显示「—」）
+    if (size === 'ui') { return { aa: 3.0, aaa: null }; }
     return { aa: 4.5, aaa: 7.0 };
   }
 
@@ -888,17 +895,17 @@
     h += '<tr><td class="k">' + B('原始设计（正常色觉）', 'Original design (normal vision)') + '</td><td class="cbs-mono">' + rgbToHex(fg[0], fg[1], fg[2]) +
       '</td><td class="cbs-mono">' + rgbToHex(bg[0], bg[1], bg[2]) + '</td><td><b>' + base.toFixed(2) + ':1</b></td>' +
       '<td class="' + (base >= th.aa ? 'good' : 'bad') + '">' + (base >= th.aa ? B('✓ 通过', '✓ Pass') : B('✗ 未过', '✗ Fail')) + '</td>' +
-      '<td class="' + (base >= th.aaa ? 'good' : 'bad') + '">' + (base >= th.aaa ? B('✓ 通过', '✓ Pass') : B('✗ 未过', '✗ Fail')) + '</td></tr>';
+      (th.aaa === null ? '<td>—</td>' : '<td class="' + (base >= th.aaa ? 'good' : 'bad') + '">' + (base >= th.aaa ? B('✓ 通过', '✓ Pass') : B('✗ 未过', '✗ Fail')) + '</td>') + '</tr>';
 
     TYPES.forEach(function (t) {
       var f = simulate(fg, t.key, t.def), b = simulate(bg, t.key, t.def);
       var c = wcagContrast(f, b);
-      var paa = c >= th.aa, paaa = c >= th.aaa;
+      var paa = c >= th.aa, paaa = (th.aaa !== null && c >= th.aaa);
       if (!paa) { fails.push(tn(t) + '（' + c.toFixed(2) + ':1）'); }
       h += '<tr><td class="k">' + esc(tn(t)) + '</td><td class="cbs-mono">' + rgbToHex(f[0], f[1], f[2]) +
         '</td><td class="cbs-mono">' + rgbToHex(b[0], b[1], b[2]) + '</td><td>' + c.toFixed(2) + ':1</td>' +
         '<td class="' + (paa ? 'good' : 'bad') + '">' + (paa ? B('✓ 通过', '✓ Pass') : B('✗ 未过', '✗ Fail')) + '</td>' +
-        '<td class="' + (paaa ? 'good' : 'bad') + '">' + (paaa ? B('✓ 通过', '✓ Pass') : B('✗ 未过', '✗ Fail')) + '</td></tr>';
+        (th.aaa === null ? '<td>—</td>' : '<td class="' + (paaa ? 'good' : 'bad') + '">' + (paaa ? B('✓ 通过', '✓ Pass') : B('✗ 未过', '✗ Fail')) + '</td>') + '</tr>';
     });
     h += '</tbody>';
     $('c4Table').innerHTML = h;
@@ -910,7 +917,7 @@
     if (!fails.length) {
       v = '<div class="cbs-ok">' + B('✓ 在<b>全部 8 种色觉类型</b>下，这组前景/背景的对比度均达到 ', '✓ This foreground/background pair meets AA for ') +
         esc(sizeTxt) + B(' 的 AA 要求。', ' under all 8 types of color vision.') +
-        (base >= th.aaa ? B('且原始设计已达 AAA。', ' The original design also reaches AAA.') : '') + '</div>';
+        (th.aaa !== null && base >= th.aaa ? B('且原始设计已达 AAA。', ' The original design also reaches AAA.') : '') + '</div>';
     } else {
       v = '<div class="cbs-warn"><b>⚠ ' + B('', 'AA fails for ') + fails.length + B(' 种色觉类型下未达 AA：', ' of the 8 types: ') +
         esc(fails.join('、')) + '</b><br>' +

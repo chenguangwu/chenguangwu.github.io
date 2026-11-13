@@ -218,14 +218,6 @@
 - 证据：`/tmp/jsdom323.js` 修好版与旧码对照的「点击生成可见圆」项均为 PASS（span 存在、position=absolute、borderRadius=50%、background 非空）；本批设计门禁 330/330。
 - 保留原因：台账 O-4 记录浏览器自动化未捕获到色块或动画，本批未新增真机浏览器视觉复核。按「不可自判收口」原则，视觉效果仍待真机确认，本条不销账。
 
-### D-N95 ripple-effect 文案称导出 CSS/JS，实际只复制 CSS（中，确认文案与实现不一致）
-
-- 问题：formula-desc 写「导出 CSS / JS」，但只有 CSS 文本框与「复制 CSS」；点击涟漪所需的 `box.onclick` 创建 `span` 的 JS 只存在于预览逻辑，从未输出。
-- 证据：`tools/design/ripple-effect.html:159`（文案）、`:180`（唯一 `cssOutput`）、`:277-288`（JS 仅预览内）、`:308-311`（复制只取 CSS）。
-- 复现：复制得到 `.ripple-container`/`.ripple`/keyframes，但没有任何创建涟漪元素的脚本；粘进项目后点击无反应。
-- 影响：复制产物不可独立工作，与「导出 CSS / JS」承诺不符。
-- 方案：增加 JS 输出片段（事件委托 + 创建 span），或把文案改为「复制 CSS」。
-
 ### 留存/优势建议（逐页，具体可落地）
 
 - `favicon-from-text`：① 一次导出 16/32/48/180/512 多尺寸 PNG + `.ico` 打包；② 增加透明底/纯色底切换与 `<link rel="icon">` 代码复制；③ 字间距/字体预设，避免用户为大圆角反复试错。
@@ -467,14 +459,6 @@
 - 复现：同基准色、同数量分别选「色相均分」与默认「最大最小色差」→ 结果相同或仅亮度略变；色相不会沿色环均匀分布。
 - 影响：`tools/design/colorblind-simulator.html` 策略名不副实，用户以为能控色相。
 - 方案：加入与已选色的最小色相角差惩罚（或显式按 H 均分候选带），再与 minD 加权；否则删除该选项。
-
-### D-N153 colorblind UI 模式标注「AAA 3:1」不符合 WCAG，对照拖动监听累积，导出名双扩展（低，确认源码缺陷，三个小问题）
-
-- 问题：① `size==='ui'` 返回 `aa=3.0`、`aaa=3.0`，但 WCAG 2.2 的非文本对比度（1.4.11）只有 AA 3:1，不存在 AAA 档；② `buildCompare` 每次调用都在 `window` 上新增 `mouseup/touchend` 监听；③ 导出名直接拼 `S3.name`（含原扩展名）。
-- 证据：`js/tools/colorblind-simulator.js:839-841`（阈值）、`:861-868`（表格 AAA 列）、`:687-690`（window 监听）、`:820` 与 `:709`（文件名）。
-- 复现：选「UI 元素」→ AAA 列与 AA 列阈值同为 3.0（伪 AAA）；连续切换类型/标签 10 次 → window 上累积 10+ 个 `onUp`；上传 `photo.jpg` → 导出 `cvd-8types-photo.jpg.png`。
-- 影响：`tools/design/colorblind-simulator.html` 引据不严谨、轻微监听泄漏、文件名脏。
-- 方案：UI 模式只保留 AA 列或改标「非文本 AA」；把 `onUp` 提到初始化注册一次；文件名用 `S3.name.replace(/\.[^.]+$/,'')`。
 
 ### D-N154 7 个页面的 SEO 简介块共用「一键生成/复制 CSS 代码」套话，均无该能力（中，确认文案与实现不一致）
 

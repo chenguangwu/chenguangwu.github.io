@@ -298,12 +298,30 @@ function generate(){
     css = `.multi-pulse {\n  position: relative;\n}\n.multi-pulse div {\n  position: absolute;\n  width: 50px;\n  height: 50px;\n  border-radius: 50%;\n  background: ${rc};\n  animation: multiPulse ${dur}s ease-out infinite;\n}\n@keyframes multiPulse {\n  0% { transform: scale(0); opacity: 1; }\n  100% { transform: scale(2); opacity: 0; }\n}`;
   }
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('preview').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('preview').innerHTML=__h0;
-  document.getElementById('cssOutput').value = css;
+  // click 型附带可直接粘贴的 JS 片段（兑现页面「导出 CSS/JS」承诺；其余类型只需 CSS）
+  let js = '';
+  if(type === 'click'){
+    js = '\n/* JS：事件委托，点击容器时在点击处生成波纹 */\n'
+      + 'document.querySelectorAll(\'.ripple-container\').forEach(function (box) {\n'
+      + '  box.addEventListener(\'click\', function (e) {\n'
+      + '    var rect = box.getBoundingClientRect();\n'
+      + '    var d = Math.max(rect.width, rect.height);\n'
+      + '    var s = document.createElement(\'span\');\n'
+      + '    s.className = \'ripple\';\n'
+      + '    s.style.width = s.style.height = d + \'px\';\n'
+      + '    s.style.left = (e.clientX - rect.left - d / 2) + \'px\';\n'
+      + '    s.style.top = (e.clientY - rect.top - d / 2) + \'px\';\n'
+      + '    box.appendChild(s);\n'
+      + '    setTimeout(function () { s.remove(); }, ' + Math.round(dur * 1000) + ');\n'
+      + '  });\n'
+      + '});\n';
+  }
+  document.getElementById('cssOutput').value = css + js;
 }
 function copyResult(){
   const text = document.getElementById('cssOutput').value;
   if(!text){ alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Nothing to copy":"无内容可复制")); return; }
-  navigator.clipboard.writeText(text).then(() => alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Copied CSS":"已复制 CSS")));
+  navigator.clipboard.writeText(text).then(() => alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Copied CSS/JS":"已复制 CSS/JS 代码")));
 }
 function toggleToolTheme(){
   const cur = document.documentElement.getAttribute('data-theme');

@@ -925,8 +925,9 @@ const CASES = [
   {
     slug: "design/ripple-effect",
     inputs: { duration: "1.5", size: "320" },
-    expect: ["animation: rippleAnim 1.5s ease-out"],
-    ref: "注入非默认(默认 duration=0.8)：生成的 CSS 关键帧动画时长取注入值 ⇒ 'animation: rippleAnim 1.5s ease-out'。默认态为 0.8s，本锚不命中。size 不参与 CSS 输出，仅作陪注入。",
+    clicks: ["generate();var t=String(document.getElementById('cssOutput').value);document.getElementById('__tbProbe').textContent='RIP css='+(t.indexOf('animation: rippleAnim 1.5s ease-out')>=0?'Y':'N')+' js='+(t.indexOf('box.addEventListener(')>=0?'Y':'N');"],
+    expect: ["RIP css=Y js=Y"],
+    ref: "注入非默认(默认 duration=0.8)：生成 CSS 的关键帧时长取注入值（animation: rippleAnim 1.5s ease-out）。D-N95：页面 meta/公式框承诺「导出 CSS/JS」，旧码只输出 CSS ⇒ 修复后 click 型追加可直接粘贴的 JS 片段（事件委托 + 生成 .ripple span，超时时间取 duration）。且断言 css 与 js 两段同时命中，旧码 js=N ⇒ 红；默认态不含该探针串。",
   },
   {
     slug: "design/spinner-generator",
