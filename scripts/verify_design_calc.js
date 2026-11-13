@@ -634,6 +634,27 @@ const CASES = [
       + "⚠ 尾段「维度评分口径参考」是常量说明块，任何输入都不变，混入即逃生项。",
   },
   {
+    slug: "design/analysis-64",
+    inputs: { scale: "10", bias: "even", p1a: "5", p1b: "9", p2a: "5", p2b: "9", p3a: "5", p3b: "9", p4a: "5", p4b: "9", p5a: "5", p5b: "9" },
+    clicks: ["calc();"],
+    expect: ["无明显优势维度"],
+    ref: "D-N159 强锁：注入我方 5/竞品 9（10 分制、均衡权重）⇒ 五维贡献全为负，总分差为负。旧实现 adv 未过滤 con>0，会把两条负贡献标成「优势维度」；新实现输出「无明显优势维度」。默认态（p1a=7/p1b=8…）存在正贡献维度 ⇒ 不命中该串。",
+  },
+  {
+    slug: "design/analysis-64",
+    inputs: { bias: "ux" },
+    clicks: ["calc();var __h=String(document.getElementById('res').innerHTML||'');document.getElementById('__tbProbe').textContent='SENS338_SELF='+(__h.indexOf('可切换「重体验」')>=0?'YES':'NO')+'_ALT='+(__h.indexOf('可切换「重功能」')>=0?'FEATURE':'BAD');"],
+    expect: ["SENS338_SELF=NO_ALT=FEATURE"],
+    ref: "D-N161 强锁：当前已选「重体验」时，旧实现仍固定建议「可切换『重体验』」（自指）；新实现选与当前不同的对比方案「重功能」。探针锚派生哨兵而非输入回显，默认态 bias=even ⇒ 建议「重体验」、SELF=YES 不命中。",
+  },
+  {
+    slug: "design/analysis-64",
+    inputs: { bias: "price" },
+    clicks: ["calc();var __h=String(document.getElementById('res').innerHTML||'');document.getElementById('__tbProbe').textContent='SENS338_LOW='+(__h.indexOf('品牌信任 占 10%')>=0?'BRAND':'BAD');"],
+    expect: ["SENS338_LOW=BRAND"],
+    ref: "D-N161 强锁：旧实现固定拿 DIMS[0]（价格竞争力）举例，重价格权重下价格恰是最高（35%）却仍被当低权重示例；新实现取当前权重最低维度（品牌信任 10%）。默认态 even 最低为品牌信任 15% ⇒ 不命中「占 10%」。",
+  },
+  {
     slug: "design/particle-effect-generator",
     inputs: { count: "220", psize: "7", speed: "3.5", gravity: "0.8", lifetime: "6", linkDist: "40" },
     expect: ["\u7c92\u5b50: 220"],

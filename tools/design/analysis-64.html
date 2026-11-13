@@ -270,14 +270,15 @@ function calc(){
   if(pct>=8){verdict='我方领先';cls='var(--success)';}
   else if(pct<=-8){verdict='我方落后';cls='var(--danger)';}
   else{verdict='双方胶着';cls='var(--warning)';}
-  var adv=gaps.slice().sort(function(x,y){return y.con-x.con;});
-  var need=adv.slice().filter(function(g){return g.con<0;}).sort(function(x,y){return x.con-y.con;});
+  // 优势维度只取正贡献；全线落后时不得把拖累项标成优势（D-N159）
+  var adv=gaps.slice().filter(function(g){return g.con>0;}).sort(function(x,y){return y.con-x.con;});
+  var need=gaps.slice().filter(function(g){return g.con<0;}).sort(function(x,y){return x.con-y.con;});
   var tRows='';
   rows.forEach(function(r){
     var c=r.gap>0?'var(--success)':(r.gap<0?'var(--danger)':'var(--text-muted)');
     tRows+='<tr><td>'+r.k+'</td><td>'+nf(r.w*100,0)+'%</td><td>'+nf(r.a,1)+'</td><td>'+nf(r.b,1)+'</td><td style="color:'+c+';">'+(r.gap>=0?'+':'')+nf(r.gap,1)+'</td><td>'+(r.d>=0?'+':'')+nf(r.d,1)+'</td></tr>';
   });
-  var top=adv.slice(0,2).map(function(g){return g.k+'（贡献 '+(g.con>=0?'+':'')+nf(g.con,1)+'）';}).join('、');
+  var top=adv.length? adv.slice(0,2).map(function(g){return g.k+'（贡献 +'+nf(g.con,1)+'）';}).join('、') : '无明显优势维度';
   var weak=need.length? need.slice(0,2).map(function(g){return g.k+'（贡献 '+nf(g.con,1)+'）';}).join('、') : '无明显劣势维度';
   var dRows='';
   DEFN.forEach(function(d){dRows+='<tr><td>'+d[0]+'</td><td>'+d[1]+'</td></tr>';});
@@ -293,7 +294,14 @@ function calc(){
     +'<br><strong>优势维度：</strong>'+top+'。'
     +'<br><strong>优先补强：</strong>'+weak+' —— 高权重上的劣势对总分拖累最大，建议先投入这两项。'
     +'</div>';
-  h+='<h3>二、权重敏感性提示</h3><p style="font-size:13px;">同一组得分换用不同权重会得出不同结论：当前「'+bias.name+'」权重下 '+DIMS[0]+' 占 '+nf(bias.w[0]*100,0)+'%，若企业实际更看重体验，可切换「重体验」再看结论是否翻转 —— 结论翻转说明该维度是决策敏感项，需先对齐权重口径。</p>';
+  // D-N161：对比方案不得指向当前已选；示例维度取当前权重最低者（而非固定 DIMS[0]）
+  var bk=document.getElementById('bias').value;
+  if(!BIA[bk]) bk='even';
+  var altKey = (bk==='ux') ? 'feature' : 'ux';
+  var minIdx=0;
+  for(var wi=1;wi<bias.w.length;wi++){ if(bias.w[wi]<bias.w[minIdx]) minIdx=wi; }
+  var altFocus = altKey==='ux' ? '使用体验' : '功能完整度';
+  h+='<h3>二、权重敏感性提示</h3><p style="font-size:13px;">同一组得分换用不同权重会得出不同结论：当前「'+bias.name+'」权重下 '+DIMS[minIdx]+' 占 '+nf(bias.w[minIdx]*100,0)+'%，若企业实际更看重'+altFocus+'，可切换「'+BIA[altKey].name+'」再看结论是否翻转 —— 结论翻转说明该维度是决策敏感项，需先对齐权重口径。</p>';
   h+='<h3>三、维度评分口径参考</h3><table><thead><tr><th>维度</th><th>评分参考</th></tr></thead><tbody>'+dRows+'</tbody></table>';
   const __g1=h;document.getElementById('res').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
@@ -337,12 +345,16 @@ calc();</script>
   <div class="tool-intro-body">
     <h4><span class="h4-icon">📝</span>工具简介</h4>
     <p>竞品对标加权评分：为「价格竞争力 / 功能完整度 / 使用体验 / 品牌信任 / 服务支持」五个维度分别给我方与竞品打分，按选定权重（均衡/重价格/重体验/重功能）加权汇总，输出总分差、逐维度差距与对总分的贡献、优势与优先补强维度排序。</p>
+    <h4><span class="h4-icon">✨</span>功能特点</h4>
+    <ul class="intro-features">
       <li>五维度 × 双方打分（10 分制 / 5 分制 / 百分制可切换），自动换算到统一 0–100 口径</li>
       <li>四套权重方案（均衡 / 重价格 / 重体验 / 重功能），一键切换看结论是否翻转</li>
       <li>总分差与百分比、±8% 阈值判定（领先 / 胶着 / 落后）</li>
       <li>逐维度差距表：标注优势（红/绿按差距符号）与「差距 × 权重」对总分的贡献</li>
       <li>输出优势维度 TOP2 与优先补强维度；附五维度评分口径参考；纯前端本地计算</li>
     </ul>
+    <h4><span class="h4-icon">🎯</span>使用场景</h4>
+    <ul class="intro-scenes">
       <li>立项前对标：判断与头部竞品的总分差落在哪个区间</li>
       <li>差异化定位：找出高权重上的劣势维度，作为下一版功能优先级依据</li>
       <li>评审会辩论：切换权重方案，验证结论是否只是权重假设的产物</li>
