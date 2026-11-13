@@ -2864,6 +2864,13 @@ const CASES = [
   ref: "D-N163：旧 ResText 读空 #output.textContent 恒返回 ''，历史/CSV 全空；修复后改读 #cssOutput.value ⇒ 探针得到含注入角度/宽度/颜色的 CSS 摘要。旧实现探针只有 RES: ⇒ 强判别。",
 },
 {
+  slug: "design/stripe-pattern",
+  inputs: { color1: "#ff0000", color2: "#00ff00", angle: "45", width: "3", stripeType: "double" },
+  clicks: ["generate();var __el=document.getElementById('__svg_probe')||document.getElementById('__tbProbe');var __c=document.getElementById('cssOutput').value;var __hasMid=/#00ff00 4px, #ff0000 4px/.test(__c);var __bad=/9px/.test(__c);__el.textContent='STRIPE340_DBL='+(__hasMid?'OK':'BAD')+'_BADPERIOD='+__bad;"],
+  expect: ["STRIPE340_DBL=OK_BADPERIOD=false"],
+  ref: "D-N164：双线型旧实现内部停点用固定 w+3/w+6，宽度<6 时 w+6>2w 致周期坍缩为 w+6（输出含 9px 且缺 4px 段）；修复后内部细线宽随 w 等比缩放、周期恒 2w（width=3 时末段 6px、含 #00ff00 4px,#ff0000 4px 中段）。注入 width=3 双线：旧码 STRIPE340_DBL=BAD_BADPERIOD=true，新码 OK。锚派生 CSS 而非输入回显 ⇒ 强判别。",
+},
+{
   slug: "design/dot-pattern",
   inputs: { dotSize: "18", spacing: "54", dotColor: "#22d3ee", arrangement: "square" },
   clicks: ["try{generate();}catch(e){};document.getElementById('__svg_probe').textContent='RES:'+__dot_patternResText();"],
