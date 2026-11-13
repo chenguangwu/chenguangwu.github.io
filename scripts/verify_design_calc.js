@@ -3227,6 +3227,20 @@ const CASES = [
   clicks: ["gen();var h=String(document.getElementById('res').innerHTML);document.getElementById('__tbProbe').textContent='GE11 css='+(h.indexOf('repeating-linear-gradient(90deg, #ff6b35, #ff6b35 16px, #0f172a 16px, #0f172a 32px)')>=0?'Y':'N')+' pat='+(h.indexOf('条纹纹理')>=0?'Y':'N')+' other='+(h.indexOf('圆点纹理')>=0?'Y':'N');"],
   expect: ["GE11 css=Y pat=Y other=N"],
   ref: "D-N189 回归：旧码只有 cnt 一个输入，图案按 i%6 固定轮换、颜色与尺寸全随机，用户既选不了纹理也复现不了上次结果。修复后注入「条纹」+ 主色 #ff6b35 / 底色 #0f172a + 固定尺寸 32 ⇒ 必出 `repeating-linear-gradient(90deg, #ff6b35, #ff6b35 16px, #0f172a 16px, #0f172a 32px)`（16 = size/2），标题为「条纹纹理」且不再出现「圆点纹理」（cnt=1 时轮换首项本是圆点，故 other=N 同时锚定「图案类型」控件生效）。旧码三项为 N/N/Y ⇒ 红。"
+},
+{
+  slug: "design/exposure-triangle-calculator",
+  inputs: { aperture: "4", shutter: "1/60", iso: "200" },
+  clicks: ["calc();var h=String(document.getElementById('equiv').innerHTML);var a=h.indexOf('<br>1/30<br>ISO 100')>=0;var b=h.indexOf('<br>1/15<br>ISO 100')>=0;var ev=evFromIdx(3,6,1).toFixed(2);document.getElementById('__tbProbe').textContent='EXP115 s30='+(a?'Y':'N')+' s15='+(b?'Y':'N')+' ev='+ev;"],
+  expect: ["EXP115 s30=Y s15=N ev=8.91"],
+  ref: "D-N115 回归：默认 f/4·1/60·ISO200（EV=8.91），等效组合循环里 da=-2 时 ISO 档位被 clamp（ii=1 → niso=0，实际只降 1 档），但旧码用期望差 da 补偿快门（ns=si-da=8 ⇒ 1/15），卡片标在「相同曝光量」下却是 EV=7.91（暗 1 档）。修复后按实际档位差补偿（ns=si-(niso-ii)=7 ⇒ 1/30），EV=8.91 重新等效。旧码 s30=N s15=Y ⇒ 红；ev=8.91 同时锚定基准 EV 未被改坏。"
+},
+{
+  slug: "design/shutter-speed-calculator",
+  inputs: { focal: "50", crop: "1.5", is: "3" },
+  clicks: ["var src=(typeof __ssChartDraw==='function')?String(__ssChartDraw):'';var r=(typeof ssStopsFor==='function')?ssStopsFor(50,1.5,3):{baseDen:-1,safeDen:-1};var r2=(typeof ssStopsFor==='function')?ssStopsFor(90,1,3):{baseDen:-1,safeDen:-1};document.getElementById('__tbProbe').textContent='SS119 use='+(src.indexOf('ssStopsFor(')>=0?'Y':'N')+' b='+r.baseDen+' s='+r.safeDen+' b2='+r2.baseDen+' s2='+r2.safeDen;"],
+  expect: ["SS119 use=Y b=125 s=15 b2=125 s2=15"],
+  ref: "D-N119 回归：旧码结果区/CSV 用标准档位表 findIndex（50mm·1.5x·3档 ⇒ 基础 1/125、建议 1/15），图表却用连续除法 d1=fv*crop 与 Math.round(d1/2^isStops)（给 1/9 或 1/11），同一页三个快门；且 round 会把 11.25 取成 11（更慢方向），违反公式框「向更快方向取整」。修复后抽公共 ssStopsFor，三处共用档位表：50·1.5·3 与 90·1·3 均得 1/125 / 1/15（分母 125/15），并用 String(__ssChartDraw) 锚定图表确实改为调用该函数。旧码 use=N b=-1 s=-1 ⇒ 红。"
 }
 
 ];

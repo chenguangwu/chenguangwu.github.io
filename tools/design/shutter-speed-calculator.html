@@ -238,6 +238,17 @@ function applyShutterPreset(kind){
   calc();
 }
 function fmtShutter(s){if(s>=1)return s+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" s":" 秒");if(s>=0.5)return '1/'+Math.round(1/s)+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" s":" 秒");return '1/'+Math.round(1/s);}
+// 标准快门档位表：结果区 / CSV / 图表三处共用同一口径（向更快方向取整）
+var SS_STOPS=[1,1/2,1/4,1/8,1/15,1/30,1/60,1/125,1/250,1/500,1/1000];
+function ssStopsFor(f,crop,isStops){
+  var effF=f*crop, baseSpeed=1/effF;
+  var baseIdx=SS_STOPS.findIndex(function(s){return s<=baseSpeed;});
+  if(baseIdx<0)baseIdx=SS_STOPS.length-1;
+  var safeIdx=Math.max(0,baseIdx-isStops);
+  var b=SS_STOPS[baseIdx], s=SS_STOPS[safeIdx];
+  if(!isFinite(s)) s=SS_STOPS[Math.max(0,Math.min(SS_STOPS.length-1,Math.round(safeIdx)))];
+  return {baseIdx:baseIdx,safeIdx:safeIdx,base:b,safe:s,baseDen:Math.round(1/b),safeDen:Math.round(1/s)};
+}
 function calc(){
   const f=+document.getElementById('focal').value;
   const crop=+document.getElementById('crop').value;
@@ -252,13 +263,8 @@ function calc(){
     document.getElementById('guide').innerHTML='<p style="color:var(--danger);" data-zh="焦距超过 2000 mm，已超出常见镜头范围，请输入 1–2000 mm 的有效焦距">'+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Focal length exceeds 2000 mm, outside the range of common lenses. Please enter a value between 1 and 2000 mm.":"焦距超过 2000 mm，已超出常见镜头范围，请输入 1–2000 mm 的有效焦距")+'</p>';
     return;
   }
-  const effF=f*crop;
-  let baseSpeed=1/effF;
-  const stops=[1,1/2,1/4,1/8,1/15,1/30,1/60,1/125,1/250,1/500,1/1000];
-  let baseIdx=stops.findIndex(s=>s<=baseSpeed);
-  if(baseIdx<0)baseIdx=stops.length-1;
-  const safeIdx=Math.max(0,baseIdx-isStops);
-  const safe=stops[safeIdx];
+  const __ss=ssStopsFor(f,crop,isStops);
+  const safe=__ss.safe;
   const __g1=fmtShutter(safe);document.getElementById('safeShutter').textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
   const scenarios=[
     {spd:1/1000,use:'凝固高速运动（飞鸟、赛车）',color:'#4caf50'},
@@ -287,19 +293,15 @@ function __ssExport(){
     var isStops=+document.getElementById('is').value;
     if(!isFinite(f)||f<=0||!isFinite(crop)||crop<=0||!isFinite(isStops)||isStops<0) return;
     var effF=f*crop;
-    var baseSpeed=1/effF;
-    var stops=[1,1/2,1/4,1/8,1/15,1/30,1/60,1/125,1/250,1/500,1/1000];
-    var baseIdx=stops.findIndex(function(s){return s<=baseSpeed;});
-    if(baseIdx<0)baseIdx=stops.length-1;
-    var safeIdx=Math.max(0,baseIdx-isStops);
-    var safe=stops[safeIdx];
+    var __ss=ssStopsFor(f,crop,isStops);
+    var safe=__ss.safe;
     var rows=[
       [en?'Focal length (mm)':'焦距 (mm)',f],
       [en?'Crop factor':'裁切系数',crop],
       [en?'Image stabilization (stops)':'防抖等级 (档)',isStops],
       [en?'Effective focal length (mm)':'等效焦距 (mm)',effF.toFixed(1)],
-      [en?'Base safe speed (1/focal)':'基础安全速度 (1/焦距)',fmtShutter(stops[baseIdx])],
-      [en?'Recommended safe shutter':'建议安全快门',fmtShutter(safe)]
+      [en?'Base safe speed (1/focal)':'基础安全速度 (1/焦距)',fmtShutter(__ss.base)],
+      [en?'Recommended safe shutter':'建议安全快门',fmtShutter(__ss.safe)]
     ];
     var scenarios=[
       {spd:1/1000,use:'凝固高速运动（飞鸟、赛车）',useEn:'Freeze fast motion (birds, racing)'},
@@ -438,11 +440,10 @@ function __ssChartDraw(){
     var en=TBKit.util.isEn();
     var labels=[],base=[],withIs=[];
     __SS_F.forEach(function(fv){
-      var d1=fv*crop;
-      var d2=Math.max(1,Math.round(d1/Math.pow(2,isStops)));
+      var r=ssStopsFor(fv,crop,isStops);
       labels.push(String(fv));
-      base.push(d1);
-      withIs.push(d2);
+      base.push(r.baseDen);
+      withIs.push(r.safeDen);
     });
     TBKit.chart.line(host,{labels:labels,series:[{name:en?'No IS (1/x s)':'无防抖 (1/X s)',data:base},{name:en?'With IS (1/x s)':'含防抖 (1/X s)',data:withIs}],title:(en?'Safe shutter vs focal length (crop ':'安全快门-焦距曲线（裁切系数 ')+crop+(en?')':'）')});
   }catch(e){}
