@@ -143,7 +143,7 @@
 <div class="card tool-card-accent" style="--tool-accent:#7C3AED;">
      <h2 data-zh="🌈 从颜色生成渐变">🌈 Gradient from Color Generator</h2>
         <div class="formula-box">
-      <div class="formula-title">📐 计算公式 / 原理</div> <div class="formula-eq">基色转 HSL 后固定 H、S，第 i 个色标亮度 = 90 − (i ÷ (阶数 − 1)) × 70，位置 = round(i ÷ (阶数 − 1) × 100)%；派生方案：互补 = H + 180，类似 = H − 30 与 H + 30，三角 = H、H + 120、H + 240，饱和 = S 由 30 到 100；方向为径向时输出 radial-gradient(circle, …)，否则 linear-gradient(角度deg, …)</div>
+      <div class="formula-title">📐 计算公式 / 原理</div> <div class="formula-eq">基色转 HSL 后固定 H、S，以基色明度 L 取区间 [lo, hi] = [max(5, L−35), min(95, L+35)]，第 i 个色标亮度 = hi − (i ÷ (阶数 − 1)) × (hi − lo)，位置 = round(i ÷ (阶数 − 1) × 100)%；派生方案：互补 = H + 180，类似 = H − 30 与 H + 30，三角 = H、H + 120、H + 240，饱和 = S 由 30 到 100；方向为径向时输出 radial-gradient(circle, …)，否则 linear-gradient(角度deg, …)</div>
       <div class="formula-desc">由单色推导渐变色标：在同色系（调整明度 / 饱和度）或互补色相基础上生成停靠点，拼装为 linear-gradient 并可调角度；用于快速生成协调渐变。</div>
     </div>
 <div class="input-row">
@@ -202,7 +202,7 @@
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>同色还是邻近？</dt><dd>同色深浅更稳，邻近色更有层次；按需求选。结果以浏览器实时计算为准，纯前端本地处理、数据不上传；生成的样式与代码仅作快速产出参考，正式项目请以设计系统、规范与浏览器实测为准。</dd>
-<dt>两种色对比度不够会提示吗？</dt><dd>会按 WCAG 算出对比度值与等级，未达标会标红提醒，便于及时换色或调深。</dd>
+<dt>两种色对比度不够会提示吗？</dt><dd>不会。本工具只生成渐变 CSS，不计算文字与背景的对比度；若要在渐变上叠加文字，请用「<a class="term-link" href="/tools/design/contrast-checker.html">对比度检查器</a>」核对最不利处的可读性。结果以浏览器实时计算为准，纯前端本地处理、数据不上传；生成的样式与代码仅作快速产出参考，正式项目请以设计系统、规范与浏览器实测为准。</dd>
 <dt>会保存或上传我的内容吗？</dt><dd>结果以浏览器实时计算为准，纯前端本地处理、数据不上传；生成的样式与代码仅作快速产出参考，正式项目请以设计系统、规范与浏览器实测为准。</dd>
 </dl>
 </div>
@@ -232,7 +232,7 @@
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="可读性">Readability</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="渐变上叠加文字时，最不利处的对比度仍须达标">text over a gradient must meet contrast at its worst point</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="本页不计算对比度；渐变上叠加文字时，请用对比度检查器核对最不利处">this page does not compute contrast; verify text over a gradient with the contrast checker at its worst point</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="WCAG 2.2 (1.4.3)">WCAG 2.2 (1.4.3)</td>
         </tr>
       </tbody>
@@ -297,9 +297,12 @@ function generate(){
   const dir = document.getElementById('direction').value;
   const steps = Math.max(2, Math.min(10, parseInt(document.getElementById('steps').value) || 5));
   const hsl = hexToHsl(base);
+  // 以基色明度 L 为中心向两侧展开：深/浅基色才会真正出现在渐变里（旧码固定 90→20，完全丢弃 hsl.l）
+  const lo = Math.max(5, hsl.l - 35);
+  const hi = Math.min(95, hsl.l + 35);
   const stops = [];
   for(let i=0;i<steps;i++){
-    const l = 90 - (i / (steps-1)) * 70;
+    const l = hi - (i / (steps-1)) * (hi - lo);
     stops.push(hslToHex(hsl.h, hsl.s, l) + ' ' + Math.round(i/(steps-1)*100) + '%');
   }
   const stopsStr = stops.join(', ');

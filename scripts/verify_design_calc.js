@@ -552,8 +552,8 @@ const CASES = [
   {
     slug: "design/gradient-from-color",
     inputs: { baseColor: "#12b886", steps: "7", direction: "135" },
-    expect: ["background: linear-gradient(135deg, #d1faee 0%, #9af5da 17%, #64f0c6 33%, #2eebb2 50%, #14c993 67%, #0e936b 83%, #095d44 100%);"],
-    ref: "结果区 `#cssOutput` 是「baseColor → 按 steps 均分的 HSL 阶梯」。锚点必须包含全部 7 个色标：若只锚首尾两色，steps 被改坏（比如页面退化成 5 段）仍会 PASS。百分比分母固定 100/(steps-1)，故 steps=7 ⇒ 0/17/33/50/67/83/100。\n"
+    expect: ["background: linear-gradient(135deg, #89f3d3 0%, #53eebf 17%, #1de9ac 33%, #12b987 50%, #0d835f 67%, #084d38 83%, #021711 100%);"],
+    ref: "结果区 `#cssOutput` 是「baseColor → 按 steps 均分的 HSL 阶梯」。锚点必须包含全部 7 个色标：若只锚首尾两色，steps 被改坏（比如页面退化成 5 段）仍会 PASS。百分比分母固定 100/(steps-1)，故 steps=7 ⇒ 0/17/33/50/67/83/100。第351批 D-N126 把亮度区间改为以基色明度 L 为中心的 [max(5,L−35), min(95,L+35)]，色标值同步更新；50% 处 #12b987 ≈ 基色 #12b886，正好印证基色真正进入渐变。\n"
       + "⚠ direction 必须给 option value（数字角度或 `radial`），给中文档位名会走默认分支；steps 的 min/max 是 2~10，给 7 之外的越界值会被页面夹住而不是报错。",
   },
   {
@@ -1649,9 +1649,9 @@ const CASES = [
       "direction": "90"
     },
     "expect": [
-      "gradient(90deg, #fed1cd 0%, #feada6 11%, #fd897f 22%, #fc6558 33%, #fc4131 44%, #fb1d0a 56%, #da1503 67%, #b21103 78%, #"
+      "gradient(90deg, #fd8075 0%, #fc5d4f 11%, #fc3b29 22%, #fb1804 33%, #d51403 44%, #b01103 56%, #8a0d02 67%, #640a02 78%, #"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"baseColor\":\"abc123测试\",\"steps\":\"42\",\"cssOutput\":\"1\\n2\\n3\",\"direction\":\"90\"}，输出区含「gradient(90deg, #fed1cd 0%, #feada6 11%,…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"baseColor\":\"abc123测试\",\"steps\":\"42\",\"cssOutput\":\"1\\n2\\n3\",\"direction\":\"90\"}，输出区含「gradient(90deg, #fd8075 0%, #fc5d4f 11%,…」（第351批随 D-N126 亮度口径同步更新）；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "design/identicon-generator",
@@ -2877,13 +2877,13 @@ const CASES = [
   inputs: { dotSize: "18", spacing: "54", dotColor: "#22d3ee", arrangement: "square" },
   clicks: ["try{generate();}catch(e){};document.getElementById('__svg_probe').textContent='RES:'+__dot_patternResText();"],
   expect: ["RES:background-color: #f5f7fa; background-image: radial-gradient(#22d3ee 9px"],
-  ref: "D-N166：旧 ResText 读空 #output 恒返回 ''；修复后改读 #cssOutput.value ⇒ 探针得到含注入点径 9px（dotSize 18 的一半）与点色的 CSS 摘要。旧实现只有 RES: ⇒ 强判别。锚长控制在 ResText 的 slice(0,80) 内。",
+  ref: "D-N166：旧 ResText 读空 #output 恒返回 ''；修复后改读 #cssOutput.value ⇒ 探针得到含注入点径 9px（dotSize 18 的一半）与点色的 CSS 摘要。旧实现只有 RES: ⇒ 强判别。锚长控制在 ResText 的 slice(0,80) 内。第351批随 D-N126 亮度口径同步更新首色标。",
 },
 {
   slug: "design/gradient-from-color",
   inputs: { baseColor: "#12b886", steps: "7", direction: "135" },
   clicks: ["try{generate();}catch(e){};document.getElementById('__svg_probe').textContent='RES:'+__gradient_from_colorResText();"],
-  expect: ["RES:background: linear-gradient(135deg, #d1faee 0%"],
+  expect: ["RES:background: linear-gradient(135deg, #89f3d3 0%"],
   ref: "D-N124：旧 ResText 读空 #output 恒返回 ''，历史/趋势/CSV 全空；修复后改读 #cssOutput.value ⇒ 探针得到含注入方向 135deg 与基色首色标的 CSS 摘要。旧实现只有 RES: ⇒ 强判别。",
 },
 {
@@ -3241,6 +3241,13 @@ const CASES = [
   clicks: ["var src=(typeof __ssChartDraw==='function')?String(__ssChartDraw):'';var r=(typeof ssStopsFor==='function')?ssStopsFor(50,1.5,3):{baseDen:-1,safeDen:-1};var r2=(typeof ssStopsFor==='function')?ssStopsFor(90,1,3):{baseDen:-1,safeDen:-1};document.getElementById('__tbProbe').textContent='SS119 use='+(src.indexOf('ssStopsFor(')>=0?'Y':'N')+' b='+r.baseDen+' s='+r.safeDen+' b2='+r2.baseDen+' s2='+r2.safeDen;"],
   expect: ["SS119 use=Y b=125 s=15 b2=125 s2=15"],
   ref: "D-N119 回归：旧码结果区/CSV 用标准档位表 findIndex（50mm·1.5x·3档 ⇒ 基础 1/125、建议 1/15），图表却用连续除法 d1=fv*crop 与 Math.round(d1/2^isStops)（给 1/9 或 1/11），同一页三个快门；且 round 会把 11.25 取成 11（更慢方向），违反公式框「向更快方向取整」。修复后抽公共 ssStopsFor，三处共用档位表：50·1.5·3 与 90·1·3 均得 1/125 / 1/15（分母 125/15），并用 String(__ssChartDraw) 锚定图表确实改为调用该函数。旧码 use=N b=-1 s=-1 ⇒ 红。"
+},
+{
+  slug: "design/gradient-from-color",
+  inputs: { baseColor: "#000000", steps: "3", direction: "90" },
+  clicks: ["generate();var c=String(document.getElementById('cssOutput').value);document.getElementById('__tbProbe').textContent='GFC old='+(c.indexOf('#e6e6e6')>=0?'Y':'N')+' new='+(c.indexOf('#595959')>=0?'Y':'N')+' low='+(c.indexOf('#0d0d0d')>=0?'Y':'N');"],
+  expect: ["GFC old=N new=Y low=Y"],
+  ref: "D-N126 回归：旧码亮度固定 90→20，完全丢弃基色 hsl.l —— 黑色基色 #000000 竟然得到 #e6e6e6→#333333 的灰阶，纯黑/纯白都不出现在渐变里。修复后以基色明度 L 为中心取 [max(5,L−35), min(95,L+35)]：L=0 ⇒ 区间 [5,35]，steps=3 时色标为 #595959 / #333333 / #0d0d0d，不再出现旧码的 #e6e6e6。旧码 old=Y new=N low=N ⇒ 红。"
 }
 
 ];

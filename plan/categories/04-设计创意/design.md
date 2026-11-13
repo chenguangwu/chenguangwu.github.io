@@ -151,12 +151,6 @@
 
 > 本轮实读 8 页：`color-picker.html`、`color-palette.html`、`color-shade-generator.html`、`vh-vw.html`、`css-grid-generator.html`、`image-cropper.html`、`image-format-converter.html`、`favicon-generator.html`。仅源码静态阅读 + node 内存复算（临时脚本 `/private/tmp/k_audit.js`，已删除），未开浏览器、未做 EN/移动端/门禁/线上验证。
 
-### D-N35 明暗色阶文档称「OKLCH/HSL 推明度、50~900 共 10 档」，实际线性 RGB 且档数随输入（低，确认源码缺陷）
-- 描述：deep-dive 与公式说明两处口径均与实现不符：实现是 `C·(1−t) + 白/黑·t` 的线性 RGB 混合，没有 HSL/OKLCH 明度阶梯，也没有 50/100/…/900 的命名与固定 10 档。
-- 证据：`tools/design/color-shade-generator.html:106-107`（公式即线性混色）、`:225-227`（档数=`steps`，总卡片=`2n+1`）、`:373`（「在 OKLCH/HSL 上推明度梯度」「共 10 档」）、`:376`（「按感知均匀色彩空间推更自然」）
-- 复现：steps=5 → node 复算得 11 档（`#ffe6dd → #2b1209`），并非 50–900 十档；输出里也没有 50/100 之类 token 名
-- 方案：文案改为「线性 RGB 混色、每侧 n 档共 2n+1 档」；或真的实现 HSL/OKLCH 明度阶梯与 50–900 命名，使文档与产物一致
-
 ### D-N46 图片取色器忽略 alpha，透明/半透明像素取色与画面所见不一致（中，确认源码缺陷）
 - 描述：预览把图片放在白底容器上显示，但取样 canvas 是透明画布，`getImageData` 只取 `data[0..2]` 丢掉 alpha。半透明像素画面显示的是与白底混合后的颜色，报告值却是未混合的原始通道；全透明像素报告 `#000000`。
 - 证据：`tools/design/image-color-picker.html:29`（`.preview-area{background:#fff}`）、`:269-272`（新建透明 canvas 直接 `drawImage`）、`:292-294`（只读 RGB 三通道）
@@ -289,22 +283,6 @@
 - 复现：改 flex-direction 下拉 → 预览不动，必须点「生成」。
 - 影响：用户以为调参即预览。
 - 方案：给控件绑 `change` 调 `calcTool()`，或把标题改为「预览」。
-
-### D-N125 gradient-from-color FAQ 宣称 WCAG 对比度检测，实际无任何实现（中，文案与实现不一致）
-
-- 问题：FAQ 写「会按 WCAG 算出对比度值与等级，未达标会标红提醒」，引据表也登记 WCAG 2.2 (1.4.3)，但全页没有对比度计算（无 relative luminance、无 4.5:1 判断）。
-- 证据：`tools/design/gradient-from-color.html:216`（FAQ）、`:246`（引据表对比度条目）、`:306-345`（仅生成渐变，无对比度逻辑）。
-- 复现：任意两色（如 `#FFFFFF` 与 `#EEEEEE`）→ 页面不输出任何对比度数值或红标。
-- 影响：承诺的功能不存在，用户会误以为已校验可读性。
-- 方案：补 WCAG 对比度计算（逐色标对白/黑文字），或删掉该问答与引据行。
-
-### D-N126 gradient-from-color 基色亮度被丢弃，深/浅基色不出现在渐变里（中，确认源码缺陷）
-
-- 问题：主渐变只取基色 H、S，亮度固定从 90 到 20；基色自身的 L 从不参与，深色/浅色基色根本不出现在结果中。
-- 证据：`tools/design/gradient-from-color.html:312-314`（`hslToHex(hsl.h, hsl.s, l)`，`l` 由 90 递减到 20，与 `hsl.l` 无关）。
-- 复现（node）：基色 `#000000`（HSL 0,0,0）→ 色标 `hsl(0,0%,90%)`→`hsl(0,0%,20%)`，即 `#E6E6E6 → #333333`，纯黑不出现；`#FFFFFF` 同样得到灰阶 90→20。
-- 影响：「从颜色生成渐变」却不含该颜色，黑白基色结果不符合预期。
-- 方案：端点锚定基色（i=0 用 `hsl.l`），或整体在 `[max(10, l−45), min(95, l+30)]` 内插值。
 
 ### D-N129 toast-generator 描述承诺「位置/动画」配置，实际无控件也无输出（中，文案与实现不一致）
 
@@ -469,14 +447,6 @@
 - 未覆盖：`tools/design/` 其余工具页；colorblind 的 D-N102–D-N105 已存在，本批只补新角度（严重度语义、hue 策略、AAA/监听/文件名），不重复旧条；其中 D-N102/D-N103/D-N104 已于第317批修复。
 - 未做：浏览器真实渲染与交互、`?lang=en-US` 运行态探针、移动端真机、`_build.py`/`run_gates.py` 门禁与线上验证；未改任何源码、未做 git 写操作。
 - 复算说明：Tailwind 242 色对比度、频谱 CSS 拉伸后的圆环尺寸、Base64 扩展名正则、Data Matrix 图案与定位边方向均由 `node` 内存复算，未在页面内实测。
-
-### D-N167 dot-pattern 引据称 SVG pattern/矢量输出，实际是 CSS radial-gradient；选项「渐变大小」也不改变点径（中，确认引据与实现不符）
-
-- 问题：引据表两行都写 `SVG pattern` / `vector output stays crisp`，但实现是 `radial-gradient` CSS 背景（无 SVG、无矢量文件）；排列选项「渐变大小」实际只把边缘从硬边改成柔边，点半径仍为 `size/2`，点的大小不变。
-- 证据：`:229-230`、`:238-240`（SVG/矢量）、`:168`（选项名）、`:153`（公式称「柔边排列」）、`:268-269`（实现）。
-- 复现：选「渐变大小」→ 点径与方格模式相同，只有边缘变虚；输出仍是 CSS 字符串。
-- 影响：技术引据失实，选项名与行为不符。
-- 方案：改为 SVG pattern 实现，或把引据换成「CSS radial-gradient 平铺」；选项改名「柔边圆点」。
 
 ### D-N175 tester-assessor 历史快照被截到前 12 个输入，SUS 只存 4 题，恢复后结果与记录不符（中，确认源码缺陷）
 
