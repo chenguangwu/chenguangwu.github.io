@@ -3281,6 +3281,18 @@ const CASES = [
   ref: "第356批全量门禁阻断回归：calculation regression 的 DOM stub 给 dir/just/ali/wrap/gap 的元素只有 value，不带 addEventListener；旧码 __bindFlexLive 直调该 API，整页初始化抛 e.addEventListener is not a function。探针摘除 dir 的事件 API 后重跑绑定：旧码抛错且已置标记 ⇒ degrade=N bound=Y ⇒ 红；新码先做能力判断再跳过 ⇒ 不抛错、不置标记 ⇒ degrade=Y bound=N。真实浏览器下原有 FLX live=5/5 用例仍保证五个控件全绑定。"
 },
 {
+  slug: "design/font-preview",
+  clicks: ["globalThis.TBKit={util:{isEn:function(){return true;}},chart:{bar:function(){}}};loadFontSample('ZZENZZ');var h=String(document.getElementById('fpFontList').innerHTML);var c=String(document.getElementById('fpCount').textContent);try{delete globalThis.TBKit;}catch(e){}document.getElementById('__tbProbe').textContent='FPEN hint='+(h.indexOf('Click to copy')>=0?'Y':'N')+' zh='+(h.indexOf('点击复制')>=0?'Y':'N')+' count='+(c.indexOf(' fonts')>=0?'Y':'N')+' zhcount='+(c.indexOf('种字体')>=0?'Y':'N')+' cat='+(h.indexOf('中文字体')>=0?'Y':'N');"],
+  expect: ["FPEN hint=Y zh=N count=Y zhcount=N cat=N"],
+  ref: "D-N4 回归：旧码 render() 把「点击复制」「N / M 种字体」与三个中文分类标题硬编码，EN 态卡片夹中文。探针注入 EN 态 TBKit 后走全局 loadFontSample() 触发 IIFE 内的 render()：新码按 isEn 输出 Click to copy / fonts / Chinese 等英文分类名，旧码仍全中文 ⇒ hint=N zh=Y count=N zhcount=Y cat=Y ⇒ 红。默认态不执行 clicks、无探针串 ⇒ 零逃生。"
+},
+{
+  slug: "design/font-preview",
+  clicks: ["var s=String(globalThis.__fpOnLangChange||'');document.getElementById('__tbProbe').textContent='FPLANG render='+(s.indexOf('render()')>=0?'Y':'N')+' chart='+(s.indexOf('__fpChart()')>=0?'Y':'N');"],
+  expect: ["FPLANG render=Y chart=N"],
+  ref: "D-N4 回归（语言切换）：旧码 toolbox:langchange 回调只重画 __fpChart()，切换语言后列表卡片与计数仍是旧语言。新码抽出全局 __fpOnLangChange 并直接重跑 render()（图表由 render 内部调用），不再单独调 __fpChart()。旧码无该函数 ⇒ render=N ⇒ 红；默认态不执行 clicks ⇒ 零逃生。"
+},
+{
   slug: "design/tailwind-colors",
   clicks: ["var src=String(showDetail);document.getElementById('__tbProbe').textContent='TWV4 color='+(src.indexOf('--color-')>=0?'Y':'N')+' old='+(src.indexOf('--tw-')>=0?'Y':'N');"],
   expect: ["TWV4 color=Y old=N"],

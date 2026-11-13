@@ -521,6 +521,9 @@
     var html = '';
     var totalVisible = 0;
     var query = state.query.toLowerCase().trim();
+    /* 英文态的卡片提示、分类标题与计数都在本函数内生成，必须随语言切换；
+       TBKit 未加载或不支持 isEn 时按中文态渲染，避免脚本中断。 */
+    var isEn = (typeof TBKit !== 'undefined' && TBKit.util && typeof TBKit.util.isEn === 'function' && TBKit.util.isEn());
 
     var sections = Object.keys(fonts);
     for (var s = 0; s < sections.length; s++) {
@@ -539,7 +542,7 @@
           itemsHtml += '<div class="fp-font-item" data-family="' + escAttr(font.family) + '" onclick="copyFontCSS(this)">'
             + '<div class="fp-font-name">'
             + '<span>' + escHtml(font.name) + '</span>'
-            + '<span class="fp-copy-hint">点击复制</span>'
+            + '<span class="fp-copy-hint">' + (isEn ? 'Click to copy' : '点击复制') + '</span>'
             + '</div>'
             + '<div class="fp-font-preview" style="font-family:' + font.family + ';font-size:' + state.size + 'px;font-weight:' + state.weight + ';">'
             + escHtml(state.text)
@@ -549,12 +552,12 @@
       }
 
       var sectionClass = sectionVisibleCount === 0 ? ' fp-section-title hidden' : '';
-      html += '<div class="fp-section-title' + sectionClass + '">' + escHtml(sectionName) + '</div>'
+      html += '<div class="fp-section-title' + sectionClass + '">' + escHtml(isEn ? (fpCatEn[sectionName] || sectionName) : sectionName) + '</div>'
         + '<div class="fp-font-list">' + itemsHtml + '</div>';
     }
 
     const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){listEl.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}listEl.innerHTML=__h0;
-    countEl.textContent = totalVisible + ' / ' + getTotalFontCount() + ' 种字体';
+    countEl.textContent = totalVisible + ' / ' + getTotalFontCount() + (isEn ? ' fonts' : ' 种字体');
     try { __fpChart(); } catch (e) {}
   }
 
@@ -633,7 +636,10 @@
       series: [{ name: en ? 'count' : '数量', data: data }]
     });
   }
-  window.addEventListener('toolbox:langchange', function () { try { __fpChart(); } catch (e) {} });
+  /* 切换语言后必须重跑 render()：卡片提示、分类标题与计数都在这里生成；
+     __fpChart() 已由 render() 末尾调用，只重画图表会让列表停留在旧语言。 */
+  window.__fpOnLangChange = function () { try { render(); } catch (e) {} };
+  window.addEventListener('toolbox:langchange', window.__fpOnLangChange);
   render();
 })();
 </script>
