@@ -1557,9 +1557,10 @@ const CASES = [
       "cnt": "42"
     },
     "expect": [
-      "-radius: 26px; } 16. outset"
+      "border-41 {",
+      "42. outset 边框"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"cnt\":\"42\"}，输出区含「-radius: 26px; } 16. outset」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "注入非默认输入{\"cnt\":\"42\"}，输出区含第 41 条的结构前缀「border-41 {」与第 42 条标题「42. outset 边框」（八种样式轮换，42 % 8 = 2 ⇒ 第 42 条必为 outset）。原 expect 锚「-radius: 26px; } 16. outset」依赖随机圆角，改控件后随机序列位移即失效（且本属 flaky），改锚确定性结构串；默认态 5 条 ⇒ 不含该串。"
   },
   {
     "slug": "design/generator-8",
@@ -3162,6 +3163,22 @@ const CASES = [
   clicks: ["calc();var h=String(document.getElementById('res').innerHTML);document.getElementById('__tbProbe').textContent='CH33 neg='+(/-[0-9]+ 章/.test(h)?'Y':'N')+' hint='+(h.indexOf('少于结构幕数')>=0?'Y':'N');"],
   expect: ["CH33 neg=N hint=Y"],
   ref: "D-N207 回归：章数=1、三幕时旧码 [1,1,-1]（末幕被尾差减成负数，表格现「-1 章」）。修复后尾差减量只从 >1 的幕扣除、扣不动时保留每幕 1 章并给出「少于结构幕数」提示。探针同时断言「无负章数」与「有不足提示」；旧码 neg=Y hint=N ⇒ 红。默认态（120 章三幕）不产出该串。"
+},
+
+// ── 第346批：边框生成器补齐可视化控件与单边独立 ───────────────────
+{
+  slug: "design/generator-7",
+  inputs: { cnt: "1", bw: "6", br: "20", bs: "dashed" },
+  clicks: ["gen();var h=String(document.getElementById('res').innerHTML);document.getElementById('__tbProbe').textContent='G7FIX w='+(h.indexOf('border: 6px dashed')>=0?'Y':'N')+' r='+(h.indexOf('border-radius: 20px')>=0?'Y':'N');"],
+  expect: ["G7FIX w=Y r=Y"],
+  ref: "D-N201 回归：旧码无宽度/圆角/样式控件，宽度与圆角恒随机 1–8 / 0–32、样式按 i%8 轮换（首条恒 solid），meta 承诺的「可视化设置」无从兑现。修复后填写即固定：注入宽度 6、圆角 20、样式 dashed ⇒ 首条 CSS 必为 `border: 6px dashed`（随机态下宽度恰为 6 且样式恰为 dashed 的概率极低）且 `border-radius: 20px`。旧码 w=N ⇒ 红。"
+},
+{
+  slug: "design/generator-7",
+  inputs: { cnt: "1", bw: "4", bs: "solid", bSide: "top" },
+  clicks: ["gen();var h=String(document.getElementById('res').innerHTML);var one=h.indexOf('border-top: 4px solid')>=0;var all=/border: 4px/.test(h);document.getElementById('__tbProbe').textContent='G7SIDE one='+(one?'Y':'N')+' all='+(all?'Y':'N');"],
+  expect: ["G7SIDE one=Y all=N"],
+  ref: "D-N201 回归（单边独立）：meta 与简介均写「支持单边独立设置」，旧码只输出 `border` 简写、永不产生 `border-top`。修复后选「仅上边」+ 4px solid ⇒ CSS 含 `border-top: 4px solid` 且不再出现四边简写 `border: 4px`（预览内联样式无空格，故不误判）。旧码 one=N all=Y ⇒ 红。"
 }
 
 ];

@@ -100,12 +100,18 @@
      <h2 data-zh="✨ 边框样式生成器（圆角、线条）">✨ CSS Border Style Generator</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="圆角、线条">Configure border width, style, radius and colour with per-side control and copy the CSS for dividers and card outlines.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">边框样式按 solid / dashed / dotted / double / groove / ridge / inset / outset 八种轮换，宽度取 1-8 随机整数 px，圆角取 0-32 随机整数 px，颜色随机十六进制色；输出 border: 宽px 样式 色值; 与 border-radius: 圆角px;</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">边框样式按 solid / dashed / dotted / double / groove / ridge / inset / outset 八种轮换（下拉可固定其中一种）；宽度与圆角留空时随机（宽度 1–8 px、圆角 0–32 px），填写后按填写值固定输出；配色默认在 10 色板内随机，把「配色方式」切到「使用左侧颜色」则统一使用所选色值；双线 double 宽度小于 3 px 时自动提升到 3 px（否则浏览器按实线渲染）。单边独立开启后只输出 border-top / border-right / border-bottom / border-left 中的一条，四边联动则输出 border 简写。</div>
       <div class="formula-desc">按边框宽度、样式、圆角与配色拼装 border 系列声明，支持单边独立设置；用于分隔线、卡片边框等样式产出。</div>
   
 </div>
 
-<div class="input-row"><div><label>生成数量</label><input type="number" id="cnt" value="5" min="1" max="50" oninput="gen()" placeholder="如 5（1–50）"></div></div>
+<div class="input-row"><div><label>生成数量</label><input type="number" id="cnt" value="5" min="1" max="50" placeholder="如 5（1–50）"></div>
+<div><label>边框宽度（px，留空随机 1–8）</label><input type="number" id="bw" value="" min="1" max="24" step="1" placeholder="留空则随机 1–8"></div>
+<div><label>圆角（px，留空随机 0–32）</label><input type="number" id="br" value="" min="0" max="64" step="1" placeholder="留空则随机 0–32"></div>
+<div><label>边框颜色</label><input type="color" id="bc" value="#FF6B35"></div>
+<div><label>配色方式</label><select id="bcc"><option value="rand">随机（10 色板）</option><option value="fix">使用左侧颜色</option></select></div>
+<div><label>边框样式</label><select id="bs"><option value="">八种轮换（混合）</option><option value="solid">solid 实线</option><option value="dashed">dashed 虚线</option><option value="dotted">dotted 点线</option><option value="double">double 双线</option><option value="groove">groove 凹槽</option><option value="ridge">ridge 凸槽</option><option value="inset">inset 内嵌</option><option value="outset">outset 外凸</option></select></div>
+<div><label>单边独立</label><select id="bSide"><option value="">四边联动</option><option value="top">仅上边 border-top</option><option value="right">仅右边 border-right</option><option value="bottom">仅下边 border-bottom</option><option value="left">仅左边 border-left</option></select></div></div>
 <div class="toolbar"><div id="generator_7Presets"></div><button type="button" class="btn primary" onclick="gen()">生成</button><button class="btn" type="button" onclick="__generator_7Export()">导出明细 CSV</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
 <div class="result-box" id="res"></div> <div id="generator_7Table"></div> <div id="generator_7Diff"></div> <div id="generator_7Chart"></div> <div id="generator_7Hist"></div>
   </div>
@@ -201,21 +207,34 @@ function randColor() {
 function gen() {
   const n = Math.min(Math.max(parseInt(document.getElementById('cnt').value) || 5, 1), 50);
   const styles = ['solid','dashed','dotted','double','groove','ridge','inset','outset'];
+  const elW=document.getElementById('bw'), elR=document.getElementById('br'), elC=document.getElementById('bc'), elS=document.getElementById('bs'), elSide=document.getElementById('bSide');
+  const rawW=elW?String(elW.value).trim():'';
+  const rawR=elR?String(elR.value).trim():'';
+  const rawC=elC?String(elC.value).trim():'';
+  const fixStyle=elS?String(elS.value||''):'';
+  const side=elSide?String(elSide.value||''):'';
+  const fixW=(rawW!=='')?Math.min(Math.max(parseFloat(rawW)||0,1),24):null;
+  const fixR=(rawR!=='')?Math.min(Math.max(parseFloat(rawR)||0,0),64):null;
+  const elCC=document.getElementById('bcc');
+  const fixC=(elCC&&elCC.value==='fix'&&/^#[0-9a-fA-F]{6}$/.test(rawC))?rawC:null;
+  const sideName={top:'上边',right:'右边',bottom:'下边',left:'左边'};
   let html = '<p style="margin-bottom:8px;">生成结果：</p>';
   for (let i = 0; i < n; i++) {
-    const style = styles[i % styles.length];
-    let width = randInt(1, 8);
+    const style = fixStyle || styles[i % styles.length];
+    let width = (fixW!==null)?fixW:randInt(1, 8);
     if(style==='double' && width<3) width=3;
-    const color = randColor();
-    const radius = randInt(0, 32);
-    const css = `border: ${width}px ${style} ${color};\nborder-radius: ${radius}px;`;
-    const preview = `border:${width}px ${style} ${color};border-radius:${radius}px;`;
+    const color = fixC || randColor();
+    const radius = (fixR!==null)?fixR:randInt(0, 32);
+    const prop = side ? ('border-'+side) : 'border';
+    const css = `${prop}: ${width}px ${style} ${color};\nborder-radius: ${radius}px;`;
+    const preview = `${prop}:${width}px ${style} ${color};border-radius:${radius}px;`;
+    const title = side ? (sideName[side]+'边框 · '+style) : (style + ' 边框');
     html += `<div style="margin:8px 0;padding:10px;background:var(--bg-hover);border-radius:8px;">
-      <strong>${i+1}. ${style} 边框</strong>
+      <strong>${i+1}. ${title}</strong>
       <pre style="margin:6px 0 0;white-space:pre-wrap;word-break:break-all;font-size:12px;">.border-${i+1} {
   ${css}
 }</pre>
-      <div style="margin-top:8px;height:60px;width:90px;background:#fff;${preview}"></div>
+      <div style="margin-top:8px;height:60px;width:90px;background:var(--card-bg,#fff);${preview}"></div>
     </div>`;
   }
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('res').innerHTML=__h0;
@@ -411,12 +430,26 @@ function __generator_7Export(){
 }
 function __generator_7Presets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#generator_7Presets',[{label:'默认参数',labelEn:'Default',values:{'cnt':'5'}},
-  {"label":"3 组边框（基础样式）","labelEn":"3 border styles basic","values":{"cnt":"3"}},
-  {"label":"8 组边框（组件库）","labelEn":"8 border styles library","values":{"cnt":"8"}},
-  {"label":"15 组边框（设计规范）","labelEn":"15 border styles spec","values":{"cnt":"15"}}],function(){ gen(); });
+    TBKit.preset.bar('#generator_7Presets',[{label:'随机混合（八种轮换）',labelEn:'Random mix',values:{'cnt':'5'}},
+  {"label":"分隔线（1px 无圆角）","labelEn":"Divider 1px","values":{"cnt":"3","bw":"1","br":"0","bs":"solid","bSide":""}},
+  {"label":"卡片描边（2px 圆角 8）","labelEn":"Card outline 2px","values":{"cnt":"5","bw":"2","br":"8","bs":"solid","bSide":""}},
+  {"label":"标签徽章（1px 圆角 16）","labelEn":"Badge 1px","values":{"cnt":"5","bw":"1","br":"16","bs":"solid","bSide":""}},
+  {"label":"单边强调线（仅下边 3px）","labelEn":"Bottom accent 3px","values":{"cnt":"3","bw":"3","br":"0","bs":"solid","bSide":"bottom"}}],function(){ gen(); });
 }
 var __generator_7_f0=(typeof gen==='function')?gen:null;
+function __bindG7(){
+    var ids=['cnt','bw','br','bc','bcc','bs','bSide'];
+    for(var i=0;i<ids.length;i++){
+        (function(id){
+            var e=document.getElementById(id);
+            if(!e||e.__g7Bound) return;
+            e.__g7Bound=true;
+            e.addEventListener('input',function(){gen();});
+            e.addEventListener('change',function(){gen();});
+        })(ids[i]);
+    }
+}
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',__bindG7);}else{__bindG7();}
 if(__generator_7_f0){
     gen=function(){ var __r=__generator_7_f0.apply(null,arguments); try{ __generator_7Extras(); }catch(e){} return __r; };
 }
