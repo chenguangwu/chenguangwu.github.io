@@ -377,14 +377,6 @@
 - 影响：「从颜色生成渐变」却不含该颜色，黑白基色结果不符合预期。
 - 方案：端点锚定基色（i=0 用 `hsl.l`），或整体在 `[max(10, l−45), min(95, l+30)]` 内插值。
 
-### D-N128 toast-generator 任何「生成」触发都会把自定义背景色改回预设（中，确认源码缺陷）
-
-- 问题：`generate()` 中只要当前焦点不在 `#bgColor` 上就强制把背景改回类型预设并回写取色器；除切类型外，改文案、改圆角、点「生成」、点预设都会触发，用户自定义背景色被静默丢弃，而公式框只声明「选中类型时」才这样做。
-- 证据：`tools/design/toast-generator.html:273-276`（`document.activeElement.id !== 'bgColor'` 即覆盖）、`:170-172`（消息/圆角/取色器都绑 `generate()`）、`:175`（生成按钮）、`:156`（文案只写「选中类型时」）。
-- 复现：背景色设为 `#000000` → 把圆角改成 16（或点「生成」）→ 背景立刻回 `#4caf50`，取色器也变绿。
-- 影响：自定义背景色无法稳定使用；与文档描述不符。
-- 方案：只在 `#toastType` 的 change 里套预设色，其余触发不覆盖（或仅在用户未手动改色时跟随类型）。
-
 ### D-N129 toast-generator 描述承诺「位置/动画」配置，实际无控件也无输出（中，文案与实现不一致）
 
 - 问题：描述写「配置 Toast 的文案、位置、图标与动画」，页面只有类型/消息/圆角/背景色 4 个输入；生成 CSS 只有 padding/radius/background/color/flex/shadow/icon，没有 `position`、没有 `transform/opacity` 或 keyframes。
@@ -473,22 +465,6 @@
 - 复现：全页 grep `type="file"|FileReader|readAsDataURL|btoa` 0 命中；工具区只有 textarea + 转换/复制/下载（`:162-167`）。
 - 影响：`tools/design/base64-to-image.html` 用户找不到「图片→Base64」入口，核心承诺缺失。
 - 方案：补上传控件并 `FileReader.readAsDataURL()` 输出 Data URL（纯前端、无依赖）；或删除所有反向文案，并把 formula-desc 改为真实解码流程。
-
-### D-N140 base64 清空输入后仍下载上一张；SVG 被保存成 .png（中，确认源码缺陷，两个问题）
-
-- 问题：① `generate()` 在空输入时 `return`，未清 `lastURL`，下载按钮继续指向旧结果；② 扩展名正则 `/data:image\/(\w+);/` 匹配不了 `image/svg+xml`（`+` 中断），回退 `png`。
-- 证据：`tools/design/base64-to-image.html:255`（空输入提前返回）、`:261`/`:264`（成功/失败才改 `lastURL`）、`:267-273`（下载）、`:271`（扩展名正则）。
-- 复现（node 复算）：`data:image/svg+xml;base64,…` → 正则无匹配 → ext=`png`；操作「成功转换→清空 textarea→点转换（提示请粘贴）→点下载图片」仍下载上一张图。期望清空即失效、SVG 存为 `.svg`。
-- 影响：`tools/design/base64-to-image.html` 误存旧文件与错误扩展名。
-- 方案：`generate()` 入口先 `lastURL=''`；扩展名用 `mime.split('+')[0]` 或 `svg+xml → svg` 映射。
-
-### D-N141 base64 纯 Base64 一律按 PNG，FAQ 的「按 MIME 识别」未实现（低，文案与实现不一致，类型嗅探待真机验证）
-
-- 问题：无 `data:` 前缀时硬补 `data:image/png;base64,`；不做魔数/MIME 识别，格式完全交给 `<img>` 解码；FAQ 与示例却称「按 data URI 中的 MIME 识别」「解码为二进制并识别格式」。
-- 证据：`tools/design/base64-to-image.html:256-258`（补 PNG 前缀）、`:202`（FAQ 按 MIME 识别）、`:199`（示例「识别格式」）、`:157`（formula-eq 只写「交由 Image 加载校验」）。
-- 复现：粘贴纯 JPEG/WebP Base64（无前缀）→ 被标成 `image/png` 再下载；不同浏览器对 MIME 与真实字节不一致的嗅探策略不同（待验证）。损坏/非图片数据由 `img.onerror` 拒绝（`:264`），这部分成立。
-- 影响：`tools/design/base64-to-image.html` 类型信息与下载命名不可靠，FAQ 过度承诺。
-- 方案：解码前读 4 字节魔数（PNG/JPEG/GIF/WEBP/BMP）或解析 SVG 头，按识别结果补 MIME；识别失败再回退 PNG 并提示。
 
 ### D-N142 tailwind 用亮度 0.5 阈值代替 WCAG 选黑白字，43/242 个色块文字对比度低于 4.5:1（中，确认源码缺陷）
 
@@ -589,14 +565,6 @@
 - 未做：浏览器真实渲染与交互、`?lang=en-US` 运行态探针、移动端真机、`_build.py`/`run_gates.py` 门禁与线上验证；未改任何源码、未做 git 写操作。
 - 复算说明：Tailwind 242 色对比度、频谱 CSS 拉伸后的圆环尺寸、Base64 扩展名正则、Data Matrix 图案与定位边方向均由 `node` 内存复算，未在页面内实测。
 
-### D-N156 checker 输入 rgb() 时预览文字色回退旧值，与算出的比率不同步（中，确认源码缺陷）
-
-- 问题：`calc()` 用 `'#' + fgStr.replace('#','')` 拼预览色，只对 3/6 位十六进制成立；`parseColor()` 明确支持 `rgb(r,g,b)`，此时拼成 `#rgb(255,0,0)` 非法，`style.color` 被浏览器丢弃，预览保留上一次颜色。
-- 证据：`tools/design/checker.html:245-251`（接受 rgb）、`:301`（拼预览色）、`:302`（背景直接用 bgStr，反衬该处可正常工作）。
-- 复现：前景输入 `rgb(255,0,0)`、背景 `#ffffff` → 结果 `4.00:1`、AA 未通过，但预览文字仍是默认深灰；期望变红。node 复算 `#FF0000/#FFFFFF = 4.00`。
-- 影响：对比度判定与预览不同步，rgb() 输入下用户会按错误颜色目测。
-- 方案：用解析后的 `fg` 生成 `rgb(r,g,b)` 赋给预览，背景同理。
-
 ### D-N157 checker 大号文字阈值写成 18px / 14px 粗体，与 WCAG 的 18pt / 14pt 差一档（中，确认标准错误）
 
 - 问题：说明页把大号文字定义为「≥18px 或 ≥14px 粗体」。WCAG 2.1/2.2 的定义是 18 point（24 CSS px）或 14 point bold（≈18.66px）；页面同时混用 2.1（`:123`、`:229`）与引据表的 2.2（`:210`、`:215`、`:220`）。
@@ -604,14 +572,6 @@
 - 复现：19px 常规字重、对比度 4.0:1 → 页面按「大号文字」判 AA 通过；按 WCAG 应算正文（<24px）需 4.5:1，判不通过。
 - 影响：常见字号下给出过于乐观的合规结论，设计评审/无障碍审计有实质风险。
 - 方案：改为「≥18pt（≈24px）或 ≥14pt 粗体（≈18.66px）」，并把标准标注统一到 WCAG 2.2。
-
-### D-N158 checker 支持 rgb() 输入但交换/取色回填经 `<input type=color>`，rgb() 下取色器被置黑并覆盖文本（低，确认源码缺陷）
-
-- 问题：`swapColors()` 把文本值直接赋给 `#fgPicker/#bgPicker`。color input 只接受 `#rrggbb`，`rgb(...)` 或 3 位 hex 会被清成 `#000000`；随后用户动一下取色器，`syncColor()` 即把文本覆盖为 `#000000`。
-- 证据：`:248-249`（接受 rgb）、`:274-281`（交换与回填）、`:264-272`（syncColor 覆盖文本）。
-- 复现：前景 `rgb(255,0,0)`、背景 `rgb(0,0,255)` → 点「交换」→ 取色器显示黑色；再点任一取色器 → 文本被改成 `#000000`，原颜色丢失。
-- 影响：rgb() 模式下的快捷操作会破坏已输入色值。
-- 方案：赋给 color input 前统一 `toHex6(parseColor(v))`；或 rgb() 输入时禁用取色器回填。
 
 ### D-N164 stripe-pattern 双线型在宽度 <6px 时停点越界，实际周期为 w+6 而非 2×w（低，确认源码/复算缺陷）
 

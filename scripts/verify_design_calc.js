@@ -654,6 +654,34 @@ const CASES = [
     expect: ["SENS338_LOW=BRAND"],
     ref: "D-N161 强锁：旧实现固定拿 DIMS[0]（价格竞争力）举例，重价格权重下价格恰是最高（35%）却仍被当低权重示例；新实现取当前权重最低维度（品牌信任 10%）。默认态 even 最低为品牌信任 15% ⇒ 不命中「占 10%」。",
   },
+  // ── 第339批：checker 色值规范化 / toast 自定义背景色 ────────────
+  {
+    slug: "design/checker",
+    inputs: { fgColor: "rgb(204,0,17)" },
+    clicks: ["calc();document.getElementById('__tbProbe').textContent='PREV339='+document.getElementById('previewBox').style.color;"],
+    expect: ["PREV339=rgb(204,0,17)"],
+    ref: "D-N156 强锁：前景输入 rgb() 时旧码拼出非法色 #rgb(204,0,17)，style.color 被浏览器丢弃、预览沿用上一次颜色；新码用解析后的 RGB 写预览。锚为注入色派生串，默认 #1F2937 ⇒ 不命中。",
+  },
+  {
+    slug: "design/checker",
+    inputs: { fgColor: "rgb(255,0,0)", bgColor: "rgb(0,0,255)" },
+    clicks: ["document.getElementById('fgColor').value='rgb(255,0,0)';document.getElementById('bgColor').value='rgb(0,0,255)';swapColors();document.getElementById('__tbProbe').textContent='SWAP339='+document.getElementById('fgPicker').value+'|'+document.getElementById('bgPicker').value;"],
+    expect: ["SWAP339=#0000ff|#ff0000"],
+    ref: "D-N158 强锁：旧 swapColors 把 rgb() 文本直接回填 color input（真实 DOM 会置黑，harness 只存原串）；新码先规范化为 #rrggbb。锚为两注入色交换后的 hex，默认 #1F2937/#FFFFFF ⇒ 不命中。",
+  },
+  {
+    slug: "design/toast-generator",
+    inputs: { bgColor: "#123456" },
+    clicks: ["document.getElementById('bgColor').value='#123456';generate();var __c=String(document.getElementById('cssOutput').value||'');document.getElementById('__tbProbe').textContent='KEEP339='+(__c.indexOf('#123456')>=0?'YES':'NO')+'_OVER='+(__c.indexOf('#4caf50')>=0?'YES':'NO');"],
+    expect: ["KEEP339=YES_OVER=NO"],
+    ref: "D-N128 强锁：旧 generate() 只要焦点不在 bgColor 就强制改回类型预设并回写取色器；新码保留自定义背景色。默认态 #4caf50 下旧码得 KEEP=NO，锚为注入色的派生结果 ⇒ 强判别。",
+  },
+  {
+    slug: "design/toast-generator",
+    clicks: ["document.getElementById('toastType').value='warning';applyTypePreset();document.getElementById('__tbProbe').textContent='PRESET339='+document.getElementById('bgColor').value;"],
+    expect: ["PRESET339=#ff9800"],
+    ref: "D-N128 强锁：切换类型仍须把该类型预设色写回取色器；旧码无 applyTypePreset ⇒ ReferenceError 变红。锚为注入类型 warning 对应的预设色，默认 success 为 #4caf50 ⇒ 不命中。",
+  },
   {
     slug: "design/particle-effect-generator",
     inputs: { count: "220", psize: "7", speed: "3.5", gravity: "0.8", lifetime: "6", linkDist: "40" },
@@ -1133,9 +1161,9 @@ const CASES = [
       "bgPicker": "abc123测试"
     },
     "expect": [
-      "ABC123测试\nABC123测试\n色值格式无效，请输入 #RRGGBB 或 rgb(r,g,b) 格式\nABC123测试\nABC123测试"
+      "ABC123测试\nABC123测试\n色值格式无效，请输入 #RRGGBB 或 rgb(r,g,b) 格式\nabc123测试\nabc123测试"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"fgColor\":\"abc123测试\",\"fgPicker\":\"abc123测试\",\"bgColor\":\"abc123测试\",\"bgPicker\":\"abc123测试\"}，输出区含「ABC123测试\nABC123测试\n色值格式无效，请输入 #RRGGBB 或 r…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）· 第339批漂移同步：注入非默认输入{\"fgColor\":\"abc123测试\",\"fgPicker\":\"abc123测试\",\"bgColor\":\"abc123测试\",\"bgPicker\":\"abc123测试\"}。D-N158 修复后 swapColors 对非法色值不再把原串写回 color input（真实 DOM 会置黑并覆盖文本），末两行由大写回显变为注入原串小写；旧源码差分已证明该漂移来自修复本身。默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "design/checkerboard-generator",

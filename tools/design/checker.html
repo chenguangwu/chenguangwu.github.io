@@ -237,6 +237,15 @@ function parseColor(str){
   if(m)return{r:+m[1],g:+m[2],b:+m[3]};
   return null;
 }
+function cssRgb(rgb){
+  if(!rgb)return '';
+  return 'rgb('+Math.round(rgb.r)+','+Math.round(rgb.g)+','+Math.round(rgb.b)+')';
+}
+function toHex6(rgb){
+  if(!rgb)return null;
+  function h(v){var s=Math.max(0,Math.min(255,Math.round(v))).toString(16);return s.length<2?'0'+s:s;}
+  return '#'+h(rgb.r)+h(rgb.g)+h(rgb.b);
+}
 function relLuminance(rgb){
   function chan(c){c/=255;return c<=0.03928?c/12.92:Math.pow((c+0.055)/1.055,2.4);}
   return 0.2126*chan(rgb.r)+0.7152*chan(rgb.g)+0.0722*chan(rgb.b);
@@ -264,8 +273,11 @@ function swapColors(){
   var bg=document.getElementById('bgColor').value;
   document.getElementById('fgColor').value=bg;
   document.getElementById('bgColor').value=fg;
-  document.getElementById('fgPicker').value=bg;
-  document.getElementById('bgPicker').value=fg;
+  // D-N158：color input 只接受 #rrggbb，rgb()/3 位 hex 需先规范化，
+  // 否则取色器被置黑，随后 syncColor 又会把文本覆盖为 #000000。
+  var fgHex=toHex6(parseColor(fg)),bgHex=toHex6(parseColor(bg));
+  if(bgHex)document.getElementById('fgPicker').value=bgHex;
+  if(fgHex)document.getElementById('bgPicker').value=fgHex;
   calc();
 }
 function calc(){
@@ -286,8 +298,9 @@ function calc(){
   var aaaLarge=ratio>=4.5;
   // 更新预览
   var preview=document.getElementById('previewBox');
-  preview.style.color='#'+(fgStr.replace('#','').length===3?fgStr.replace(/^#(.)(.)(.)$/,'#$1$1$2$2$3$3'):fgStr.replace('#',''));
-  preview.style.background=bgStr;
+  // D-N156：统一用解析后的 RGB 写预览，rgb()/3 位 hex 输入不再被拼成非法 #... 而沿用上一次颜色。
+  preview.style.color=cssRgb(fg);
+  preview.style.background=cssRgb(bg);
   var html='<p style="text-align:center;margin-bottom:16px;"><span class="grade-tag '+overallClass+'" style="font-size:16px;padding:6px 20px;">对比度 '+ratioStr+' · '+overall+'</span></p>';
   html+='<table><thead><tr><th>标准</th><th>要求</th><th>结果</th></tr></thead><tbody>';
   html+='<tr><td>WCAG AA 正常文字</td><td>≥ 4.5:1</td><td>'+gradeTag(aaNormal,aaNormal?'grade-good':'grade-fail','')+'</td></tr>';

@@ -149,7 +149,7 @@
 
     <div class="input-row">
       <div><label>类型</label>
-        <select id="toastType" onchange="generate()">
+        <select id="toastType">
           <option value="success">成功</option>
           <option value="error">错误</option>
           <option value="warning">警告</option>
@@ -257,12 +257,10 @@ function generate(){
   const type = document.getElementById('toastType').value;
   const msg = document.getElementById('message').value || 'Toast 消息';
   const radius = parseInt(document.getElementById('radius').value) || 0;
-  let bg = document.getElementById('bgColor').value;
+  // D-N128：背景色始终取用户当前值，不再因「焦点不在取色器」而静默改回类型预设。
+  // 套用预设色只在用户切换类型时发生（见 applyTypePreset），改文案/圆角/点生成/预设均不覆盖。
+  const bg = document.getElementById('bgColor').value;
   const config = toastConfigs[type];
-  if(!document.activeElement || document.activeElement.id !== 'bgColor'){
-    bg = config.color;
-    document.getElementById('bgColor').value = bg;
-  }
   // D-N130: 消息内容属用户输入，直插 innerHTML 会自 XSS；先转义再拼模板。
   const escMsg = String(msg).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; });
   const css = `padding: 14px 20px; border-radius: ${radius}px; background: ${bg}; color: #fff; display: flex; align-items: center; gap: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);`;
@@ -302,6 +300,17 @@ function toggleToolTheme(){
   }
 })();
 generate();
+// D-N128：仅在用户切换类型时把该类型预设色写回取色器并重新生成，其余触发保持自定义背景色。
+function applyTypePreset(){
+  var t=document.getElementById('toastType').value;
+  var cfg=toastConfigs[t];
+  if(cfg)document.getElementById('bgColor').value=cfg.color;
+  generate();
+}
+(function(){
+  var el=document.getElementById('toastType');
+  if(el && el.addEventListener)el.addEventListener('change',applyTypePreset);
+})();
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){
