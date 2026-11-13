@@ -237,14 +237,6 @@
 
 - 范围：`tools/design` 剩余生成器/互动演示 8 页（Favicon 文字、Favicon Emoji、首字母头像、Identicon、Loading Dots、Ripple、像素画、棋盘），逐页通读整份 HTML（内联 JS/CSS 生成逻辑、deep-dive、FAQ），编号续 D-N75。
 
-### D-N85 initials-avatar 宣称导出 PNG/SVG，实际只有 PNG（低，确认文案与实现不一致）
-
-- 问题：formula-desc 与英文 intro 写「导出 PNG / SVG」，页面没有 SVG 输出、也没有第二个下载入口。
-- 证据：`tools/design/initials-avatar.html:10,15,64`（meta 描述「一键下载 PNG/SVG」）、`:155`（formula-desc）、`:521`（英文 intro「downloadable as PNG or SVG」）、`:325`（`toDataURL('image/png')`）、`:331`（`initials-avatar.png`）。
-- 复现：页面上只有单个「下载」按钮，任何操作都只得到 `.png`。
-- 影响：文案承诺落空，设计场景常用的矢量导出缺失。
-- 方案：补 SVG 导出（圆形/圆角矩形 + `<text>`），或删掉文案中的 SVG。
-
 ### D-N92 ripple-effect 点击预览涟漪的视觉效果待真机确认（高，源码缺陷已于第323批复核不成立；台账 O-4 保留待复核）
 
 - 第323批源码 + JSDOM 复核：点击处理已用内联 `position:absolute / border-radius:50% / background:rgba(...)` 创建 span，并调用 Web Animations（`ripple.animate`）驱动 `scale(0)→scale(4)`、`opacity 1→0`，`dur*1000` 后移除；旧缺陷「`className='ripple'` 无样式、`position:static` 挤开文字」在源码中已不成立。
@@ -266,13 +258,11 @@
 - 影响：`tools/design/pixel-art-generator.html`；历史回看无法还原当时绘制的像素画。
 - 方案：快照序列化 `window.__pxGrid` 并在恢复时写回、刷新画布与字符画；留待专门批次处理。
 
-### D-N100 checkerboard 文案承诺「格数」与「导出图片」，实际无格数控件、无图片导出（中，确认文案与实现不一致）
+### D-N100 checkerboard 透明底预设仍带 #ffffff、名不副实（残留）
 
-- 问题：标题/描述/meta 反复写「可调格数」「可导出图片」；公式引据描述「SVG pattern、格数决定单元尺寸、单元边长 = 画布边长 / 格数」。实际只有颜色 1/2 + 格子大小三个输入，纯 CSS 平铺，无 canvas/SVG/下载。预设「透明底导出棋盘」也仍带 `background-color:#ffffff`，并不透明。
-- 证据：`tools/design/checkerboard-generator.html:10,14,20`（title/meta）、`:154,156`（formula-desc/intro）、`:222,227`（引据 SVG pattern/画布边长）、`:159-161`（仅 3 个输入）、`:253-255`（只生成 CSS）、`:395`（预设「透明底」用 `#ffffff`）。
-- 复现：页面无「格数」输入、无下载/Canvas 调用；选预设「透明底导出棋盘（16px）」→ CSS 仍为 `background-color:#ffffff`，无法作透明底使用。
-- 影响：SEO 标题与 deep-dive 引导与实际能力不符；透明底预设名不副实。
-- 方案：补「格数/画布尺寸」与 PNG/SVG 导出；或把文案统一改为「可调格子大小、复制 CSS」；透明预设改 `background-color: transparent`。
+- 问题：预设「透明底导出棋盘（16px）」实际 CSS 仍为 `background-color:#ffffff`，无法作透明底使用（「格数 / 导出图片」文案已于第329批改为「可调格子大小 / 可复制 CSS 代码」）。
+- 证据：`tools/design/checkerboard-generator.html:395`（预设「透明底」用 `#ffffff`）。
+- 方案：透明预设改 `background-color: transparent`。
 
 ### 留存/优势建议（逐页，具体可落地）
 
