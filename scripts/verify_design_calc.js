@@ -3100,6 +3100,39 @@ const CASES = [
   clicks: ["var orig=document.getElementById('cw').value;origImg={width:200,height:200};lastURL='OLDPNG-324';lastCropSig=__icropSig();document.getElementById('cw').value='88';document.getElementById('__svg_probe').textContent='IN:'+orig+'|STALE:'+(__icropStale()?1:0);"],
   expect: ["IN:37|STALE:1"],
   ref: "D-N26：旧码换图已失效但改 cx/cy/cw/ch 仍可下载上一张旧裁剪；修复后生成时记录「四个裁剪参数 + 原图 src 尾段」签名，下载/复制前比对并撤销旧 blob URL。注入 cw=37 后改 88 判过期；旧码无该组函数 ⇒ 强判别。",
+},
+// ── 第341批：design 多缺陷批量强锁 ───────────────────────────────
+{
+  slug: "design/generator-7",
+  clicks: ["var bad=0;for(var i=0;i<200;i++){gen();var h=document.getElementById('res').innerHTML;var re=/border:\\s*(\\d+)px\\s+double/g;var m;while((m=re.exec(h))){if(parseInt(m[1],10)<3)bad++;}}document.getElementById('__tbProbe').textContent='G7DBL='+bad;"],
+  expect: ["G7DBL=0"],
+  ref: "D-N202 回归：double 在 1–2px 时浏览器按 solid 渲染，预览与 solid 无差异。修复后 gen() 在 style==='double' 且 width<3 时把 width 提升到 3。跑 200 次生成、每次扫描 #res 内所有 `border: Npx double`，任一 N<3 计 bad。修复前约出现数十个 width=1/2 的 double 卡 ⇒ G7DBL>0；修复后恒 0。默认态（页面加载时也 gen() 一次）不产生该探针串。"
+},
+{
+  slug: "design/exposure-triangle-calculator",
+  inputs: { aperture: "2" },
+  clicks: ["calc();var h=document.getElementById('equiv').innerHTML;var c=(h.match(/f\\/1\\.4</g)||[]).length;document.getElementById('__tbProbe').textContent='EXP_DUP='+c;"],
+  expect: ["EXP_DUP=1"],
+  ref: "D-N118 回归（重复卡片）：光圈选 f/2（index 1）时，da=-2 与 da=-1 均被 clamp 到 na=0（f/1.4）且 neededSi 相同，旧实现生成两张完全一样的 f/1.4 卡片。修复后按 na 去重，#equiv 中 `f/1.4<` 仅 1 次。注入 aperture='2'（非默认 f/4），旧实现下 EXP_DUP=2。"
+},
+{
+  slug: "design/exposure-triangle-calculator",
+  clicks: ["toggleLock();var s0=document.getElementById('shutter').selectedIndex;changeExp(-1);var s1=document.getElementById('shutter').selectedIndex;var lb=String(document.getElementById('lockBtn').textContent);changeExp(1);var s2=document.getElementById('shutter').selectedIndex;document.getElementById('aperture').value='8';calc();document.getElementById('__tbProbe').textContent='LOCK_SH='+document.getElementById('shutter').value+' d1='+(s1-s0)+' d2='+(s2-s1)+' L='+(lb.indexOf('解锁曝光 (EV ')>=0?'SYNC':'NOSYNC');"],
+  expect: ["LOCK_SH=1/15 d1=-1 d2=1 L=SYNC"],
+  ref: "D-N118 回归（锁定曝光）：默认 f/4·1/60·ISO200 锁定 EV≈8.9 后，把光圈改为 f/8，锁定逻辑应自动调快门维持 EV。t=64/2^(8.907+log2(200/100))=64/2^9.907≈0.0667s ⇒ 最近档 1/15。旧实现「🔒 锁定曝光」按钮只调 calc() 无任何锁定，改光圈后快门仍为 1/60 ⇒ LOCK_SH=1/60。默认态不触发该探针。"
+},
+{
+  slug: "design/tailwind-colors",
+  clicks: ["render();var h=document.getElementById('colorContainer').innerHTML;var total=(h.match(/class=\"shade\"/g)||[]).length;var withRole=(h.match(/class=\"shade\"[^>]*role=\"button\"/g)||[]).length;document.getElementById('__tbProbe').textContent='TW_A11Y='+withRole+'/'+total;"],
+  expect: ["TW_A11Y=242/242"],
+  ref: "D-N143 回归：242 个色块（22 色 × 11 阶）原为纯 div+onclick，键盘/读屏不可达；修复后每个色块带 tabindex=\"0\" role=\"button\" aria-label。扫描 #colorContainer 内所有 .shade 标记并统计含 role=\"button\" 者，旧实现 withRole=0。显式调用 render() 确保容器已填充。"
+},
+{
+  slug: "design/generator-38",
+  inputs: { target: "", constraint: "", task: "", format: "" },
+  clicks: ["var t=document.getElementById('task'),f=document.getElementById('format');var tv=(t.options&&t.options[0])?t.options[0].value:'NA';var fv=(f.options&&f.options[0])?f.options[0].value:'NA';calc();var h=document.getElementById('res').innerHTML;var m=h.match(/class=\"num\">(\\d+)<\\/div><div class=\"label\">提示词完整度/);document.getElementById('__tbProbe').textContent='G38 t=['+tv+'] f=['+fv+'] S='+(m?m[1]:'NA');"],
+  expect: ["G38 t=[] f=[] S=20"],
+  ref: "D-N213 回归：任务类型/输出格式两个 select 原无空项 ⇒ 真机恒有值恒 ok，五要素全空仍给 60 分（文档口径应为 1/5=20）。修复=两 select 首项为空值占位 + prompt 输出空任务时给「【请补充任务类型】」防护 + 算例文案同步。断言两 select 首项 option.value 为空（真机可清空的前提）且全空时提示词完整度=20；旧版首项分别是「生成」「分条列表」⇒ t/f 段即不匹配。默认态（target/constraint 预填）不产出该串。"
 }
 ];
 

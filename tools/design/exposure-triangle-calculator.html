@@ -137,7 +137,7 @@
 <div><label>ISO</label><select id="iso" onchange="calc()"><option>100</option><option selected>200</option><option>400</option><option>800</option><option>1600</option><option>3200</option><option>6400</option></select></div>
 </div>
 <div class="toolbar" style="margin-top:8px;"><span style="font-size:13px;color:var(--text-muted);">📌 场景预设：</span><button type="button" class="btn" onclick="applyExpPreset('portrait')">人像晴天 f/2.8</button><button type="button" class="btn" onclick="applyExpPreset('indoor')">室内弱光 ISO800</button><button type="button" class="btn" onclick="applyExpPreset('sports')">运动抓拍 1/1000</button><button type="button" class="btn" onclick="applyExpPreset('landscape')">风光小光圈 f/11</button></div>
-<div class="toolbar"><span style="font-size:13px;color:var(--text-muted);">修改后曝光量变化：</span><button type="button" class="btn" onclick="changeExp(-1)">-1EV</button><button type="button" class="btn" onclick="changeExp(1)">+1EV</button><button type="button" class="btn primary" onclick="calc()">🔒 锁定曝光</button></div>
+<div class="toolbar"><span style="font-size:13px;color:var(--text-muted);">修改后曝光量变化：</span><button type="button" class="btn" onclick="changeExp(-1)">-1EV</button><button type="button" class="btn" onclick="changeExp(1)">+1EV</button><button type="button" class="btn primary" id="lockBtn" onclick="toggleLock()">🔒 锁定曝光</button></div>
 <div id="equiv" style="margin-top:14px;"></div>
 <div id="etChart"></div>
     <div style="margin-top:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
@@ -235,7 +235,50 @@ function evFromIdx(ai,si,ii){return Math.log2((apertures[ai]*apertures[ai])/shut
 function fmtShutter(s){if(s>=1)return s+'s';return '1/'+Math.round(1/s);}
 function parseShutterValue(str){str=String(str).trim();if(str.indexOf('/')>=0){var p=str.split('/');return parseFloat(p[0])/parseFloat(p[1]);}return parseFloat(str);}
 function idxOfNum(arr,val){for(var i=0;i<arr.length;i++){if(Math.abs(arr[i]-val)<1e-9)return i;}return 0;}
+var __lockEv=null;
+function __lockLabel(){
+  const btn=document.getElementById('lockBtn');
+  if(!btn) return;
+  if(__lockEv===null){btn.textContent='🔒 锁定曝光';btn.classList.add('primary');}
+  else{btn.textContent='🔓 解锁曝光 (EV '+__lockEv.toFixed(1)+')';btn.classList.remove('primary');}
+}
+// 当前三档位索引：统一按 value 反查（与 calc 同口径，避免依赖 selectedIndex）
+function __curIdx(){
+  return {
+    a: idxOfNum(apertures, parseFloat(document.getElementById('aperture').value)),
+    s: idxOfNum(shutters, parseShutterValue(document.getElementById('shutter').value)),
+    i: idxOfNum(isos, parseFloat(document.getElementById('iso').value))
+  };
+}
+// 锁定期间用户主动改 EV / 套预设：把锁定基准同步到新组合，避免补偿逻辑把它们立刻抵消
+function __syncLockEv(){
+  if(__lockEv===null) return;
+  var c=__curIdx();
+  __lockEv=evFromIdx(c.a,c.s,c.i);
+  __lockLabel();
+}
+function toggleLock(){
+  if(__lockEv===null){
+    var c=__curIdx();
+    __lockEv=evFromIdx(c.a,c.s,c.i);
+  } else {
+    __lockEv=null;
+  }
+  __lockLabel();
+  calc();
+}
 function calc(){
+  if(__lockEv !== null){
+    // 锁定曝光：根据当前光圈/ISO 反推维持 EV 的快门档（保持曝光量不变）
+    const _ai=idxOfNum(apertures, parseFloat(document.getElementById('aperture').value));
+    const _ii=idxOfNum(isos, parseFloat(document.getElementById('iso').value));
+    const _N=apertures[_ai], _S=isos[_ii];
+    const _t=(_N*_N)/Math.pow(2, __lockEv + Math.log2(_S/100));
+    let _best=0,_bd=Infinity;
+    for(let k=0;k<shutters.length;k++){const d=Math.abs(shutters[k]-_t);if(d<_bd){_bd=d;_best=k;}}
+    document.getElementById('shutter').value=shutterLabels[_best];
+  }
+
   // 按 option 的 value 反查档位（不再依赖 selectedIndex，表单回填/脚本赋值时同样准确）
   const ai=idxOfNum(apertures, parseFloat(document.getElementById('aperture').value));
   const si=idxOfNum(shutters, parseShutterValue(document.getElementById('shutter').value));
@@ -243,15 +286,18 @@ function calc(){
   const a=apertures[ai],s=shutters[si],iso=isos[ii];
   const ev=evFromIdx(ai,si,ii);
   let html='<h3 style="font-size:14px;margin:12px 0 8px;">🔄 等效曝光组合（相同曝光量，EV '+ev.toFixed(1)+'）</h3><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;">';
+  const __usedA=new Set(),__usedI=new Set();
   for(let da=-2;da<=2;da++){
     const na=Math.max(0,Math.min(apertures.length-1,ai+da));
     const neededSi=si+(na-ai);
-    if(na!==ai&&neededSi>=0&&neededSi<shutters.length){
+    if(na!==ai&&neededSi>=0&&neededSi<shutters.length&&!__usedA.has(na)){
+      __usedA.add(na);
       html+=`<div style="padding:10px;background:#f8f9ff;border-radius:8px;text-align:center;font-size:13px;"><strong>f/${apertures[na]}</strong><br>${fmtShutter(shutters[neededSi])}<br>ISO ${iso}</div>`;
     }
     const niso=Math.max(0,Math.min(isos.length-1,ii+da));
     const ns=si-da;
-    if(niso!==ii&&ns>=0&&ns<shutters.length){
+    if(niso!==ii&&ns>=0&&ns<shutters.length&&!__usedI.has(niso)){
+      __usedI.add(niso);
       html+=`<div style="padding:10px;background:#f8f9ff;border-radius:8px;text-align:center;font-size:13px;"><strong>f/${a}</strong><br>${fmtShutter(shutters[ns])}<br>ISO ${isos[niso]}</div>`;
     }
   }
@@ -270,13 +316,14 @@ function applyExpPreset(kind){
   document.getElementById('aperture').value = p.a;
   document.getElementById('shutter').value = p.s;
   document.getElementById('iso').value = p.iso;
+  __syncLockEv();
   calc();
 }
 function changeExp(delta){
   const ai=document.getElementById('aperture').selectedIndex;
   let si=document.getElementById('shutter').selectedIndex;
   si=Math.max(0,Math.min(shutters.length-1,si+delta));
-  document.getElementById('shutter').selectedIndex=si;calc();
+  document.getElementById('shutter').selectedIndex=si;__syncLockEv();calc();
 }
 var __expF0 = calc;
 calc = function(){ __expF0(); __expExtras(); };
@@ -288,15 +335,18 @@ function __expExtras(){
     var iso=isos[ii];
     var a=apertures[ai];
     var rows=[];
+    var __usedA2=new Set(),__usedI2=new Set();
     for(var da=-2; da<=2; da++){
       var na=Math.max(0,Math.min(apertures.length-1,ai+da));
       var neededSi=si+(na-ai);
-      if(na!==ai && neededSi>=0 && neededSi<shutters.length){
+      if(na!==ai && neededSi>=0 && neededSi<shutters.length && !__usedA2.has(na)){
+        __usedA2.add(na);
         rows.push(['f/'+apertures[na], fmtShutter(shutters[neededSi]), 'ISO '+iso]);
       }
       var niso=Math.max(0,Math.min(isos.length-1,ii+da));
       var ns=si-da;
-      if(niso!==ii && ns>=0 && ns<shutters.length){
+      if(niso!==ii && ns>=0 && ns<shutters.length && !__usedI2.has(niso)){
+        __usedI2.add(niso);
         rows.push(['f/'+a, fmtShutter(shutters[ns]), 'ISO '+isos[niso]]);
       }
     }

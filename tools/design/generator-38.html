@@ -110,6 +110,7 @@
 </div>
 <div class="input-row">
   <div><label>任务类型</label><select id="task" onchange="calc()">
+    <option value="">请选择任务类型</option>
     <option value="生成">内容生成</option>
     <option value="优化">内容优化（改写/精简/扩写）</option>
     <option value="分析">结构分析</option>
@@ -118,6 +119,7 @@
   </select></div>
   <div><label>目标对象（对什么做）</label><input type="text" id="target" value="健身 App 的「完成训练」页面" oninput="calc()"></div>
   <div><label>输出格式</label><select id="format" onchange="calc()">
+    <option value="">请选择输出格式</option>
     <option value="分条列表">分条列表</option>
     <option value="表格">表格</option>
     <option value="JSON">JSON</option>
@@ -159,7 +161,7 @@
 <li>团队内统一提示词写法，减少同一任务在不同人手里的结果波动</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">五要素 = 角色 + 任务 + 上下文 + 输出格式 + 约束。完整度只按「该要素是否填写」计数：角色恒为已填，其余四项每填一项加 20 分，故全空时为 20 分而非 0 分。约束用「；」分隔会自动拆成独立约束项并写入自检清单；输出条数被钳制在 1~20 之间。生成结果是一段带【角色】【任务】【输出格式】【约束】【自检】【禁用】六段的可复制文本，不调用任何模型。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">任务 = 优化、目标对象 = 落地页文案、输出格式 = 分点列表、约束 = 「每条≤20字；不要感叹号」、期望条数 = 5 → 完整度 100（5/5）、期望输出条数 5；提示词含「【任务】对「落地页文案」执行优化」「按分点列表输出 5 条」「每条≤20字；不要感叹号。」与「条数是否等于 5」的自检项。目标对象留空时完整度降为 60，缺失项提示「建议补齐：上下文、约束」。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">任务 = 优化、目标对象 = 落地页文案、输出格式 = 分点列表、约束 = 「每条≤20字；不要感叹号」、期望条数 = 5 → 完整度 100（5/5）、期望输出条数 5；提示词含「【任务】对「落地页文案」执行优化」「按分点列表输出 5 条」「每条≤20字；不要感叹号。」与「条数是否等于 5」的自检项。目标对象留空时完整度降为 80（缺上下文）；若任务与输出格式也未选，仅角色计入已填、降为 20。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>完整度评分是怎么算的？</dt><dd>只按「要素是否填写」计数，不判断内容质量：角色恒为已填，任务、上下文、输出格式、约束四项各占 20 分。所以全部留空时是 20 分而不是 0 分，满分 100 分表示五项齐备。</dd>
@@ -230,8 +232,8 @@ function calc(){
   var score=items.filter(function(i){return i.ok;}).length/items.length*100;
   var prompt='';
   prompt+='【角色】你是'+role+'。\n';
-  prompt+='【任务】对「'+(target||'【请补充目标对象】')+'」执行'+task+'。\n';
-  prompt+='【输出格式】按'+fmt+'输出 '+cnt+' 条，条与条之间不要重复语义。\n';
+  prompt+='【任务】对「'+(target||'【请补充目标对象】')+'」执行'+(task||'【请选择任务类型】')+'。\n';
+  prompt+='【输出格式】按'+(fmt||'【请选择输出格式】')+'输出 '+cnt+' 条，条与条之间不要重复语义。\n';
   prompt+='【约束】'+(consList.length?consList.join('；')+'。':'无额外约束。')+'\n';
   prompt+='【自检】输出前逐条核对：① 条数是否等于 '+cnt+'；② 是否满足上述全部约束；③ 是否给出可执行的下一步建议。\n';
   prompt+='【禁用】不要输出与'+ (target||'目标对象') +'无关的通用套话。';
