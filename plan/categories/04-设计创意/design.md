@@ -374,14 +374,6 @@
 - 影响：`tools/design/colorblind-simulator.html` 策略名不副实，用户以为能控色相。
 - 方案：加入与已选色的最小色相角差惩罚（或显式按 H 均分候选带），再与 minD 加权；否则删除该选项。
 
-### D-N154 7 个页面的 SEO 简介块共用「一键生成/复制 CSS 代码」套话，均无该能力（中，确认文案与实现不一致）
-
-- 问题：除 colorblind 外，其余 7 页的「工具简介/功能特点」都写「设计创意工具，可视化操作，一键生成 CSS 代码」「支持实时预览与调试」「一键复制 CSS 代码」，但页面均无 CSS 生成或复制按钮。
-- 证据：`tools/design/waveform-visualizer.html:509,513-514`；`tools/design/spectrum-visualizer.html:526,530-531`；`tools/design/base64-to-image.html:458,462-463`；`tools/design/data-matrix.html:490,494-495`；`tools/design/tailwind-colors.html:530,534-535`；`tools/design/pixel-art.html:719,723-724`；`tools/design/signature-pad.html:619,623-624`。
-- 复现：任选一页 Ctrl+F「CSS 代码」→ 只命中简介；页面按钮与 JS 中无 `clipboard`/CSS 字符串输出（tailwind 只复制颜色值，不是 CSS 代码）。
-- 影响：7 页同时出现与功能无关的卖点，降低工具可信度；colorblind 的简介（`:504-509`）是唯一按真实能力撰写的。
-- 方案：按工具真实能力重写简介/功能特点（构建期按工具注入），删除「CSS 代码/实时预览与调试」通用套话。
-
 ### 承诺 vs 实际（Q 批专项）
 
 | 页面 | 宣称（行号） | 实际 |
