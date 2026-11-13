@@ -197,6 +197,24 @@ const CASES = [
     ref: "WCAG 相对亮度：黑 L=0、白 L=1 → 对比度 = (1+0.05)/(0+0.05) = 21.00:1（W3C 对比度公式）",
   },
   {
+    slug: "design/detector-29",
+    // 第353批 D-N186：清单原本 14 项全为 A/AA，AAA 分支/行/建议恒不可达。
+    // 全勾 17 项 + 黑白 21:1 ⇒ 顶部应升到 AAA级合规、AAA 行应「✓ 通过」、总数 17/17。
+    inputs: { fgColor: "#000000", bgColor: "#FFFFFF" },
+    clicks: ["a11yItems.forEach(function(it){document.getElementById(it.id).checked=true;});calc();var __h=String(document.getElementById('res').innerHTML||'');var __i=__h.indexOf('AAA级（最佳）');var __s=__i>=0?__i:__h.length;var __aaa=__h.slice(__s,Math.min(__h.length,__s+260));document.getElementById('__tbProbe').textContent='无障碍三级 项数='+a11yItems.filter(function(x){return x.level==='AAA';}).length+' 等级='+(__h.indexOf('>AAA级合规</div>')>=0?'Y':'N')+' 行='+(__aaa.indexOf('✓ 通过')>=0&&__aaa.indexOf('○ 未达标')<0?'Y':'N')+' 总数='+(__h.indexOf('清单通过：17/17')>=0?'Y':'N');"],
+    expect: ["无障碍三级 项数=3 等级=Y 行=Y 总数=Y"],
+    ref: "第353批：补 3 个 AAA 清单项（1.4.6 正文 7:1、1.4.8 文本块可调、2.4.9 链接目的）后，全勾且黑白 21:1 时 isAAPass()/isAAAPass() 全真 ⇒ 顶部 AAA级合规、AAA 行 ✓ 通过、清单 17/17。旧码 a11yItems 无 AAA 项（项数=0）、顶部恒 AA级合规、AAA 行恒 ○ 可选、总数 14/14 ⇒ 四项全失配。探针仅由 clicks 生成，默认态无该串 ⇒ 零逃生。",
+  },
+  {
+    slug: "design/detector-29",
+    // 第353批 D-N188：旧码 AA 行只看清单勾选、不看对比度，AAA 行不要求 A/AA 全过。
+    // 全勾 17 项但前景 #949494/白底（约 3.0:1）⇒ 顶部 A级合规，AA/AAA 行均须「○ 未达标」。
+    inputs: { fgColor: "#949494", bgColor: "#FFFFFF" },
+    clicks: ["a11yItems.forEach(function(it){document.getElementById(it.id).checked=true;});calc();var __h=String(document.getElementById('res').innerHTML||'');var __s=__h.indexOf('AA级（推荐）'),__e=__h.indexOf('AAA级（最佳）');var __aa=__h.slice(__s>=0?__s:0,__e>=0?__e:__h.length);var __i=__e>=0?__e:__h.length;var __aaa=__h.slice(__i,Math.min(__h.length,__i+260));document.getElementById('__tbProbe').textContent='无障碍低对比 等级='+(__h.indexOf('>A级合规</div>')>=0&&__h.indexOf('>AA级合规</div>')<0&&__h.indexOf('>AAA级合规</div>')<0?'A':'X')+' AA行='+(__aa.indexOf('○ 未达标')>=0&&__aa.indexOf('✓ 通过')<0?'OK':'BAD')+' AAA行='+(__aaa.indexOf('✓ 通过')>=0?'BAD':'OK');"],
+    expect: ["无障碍低对比 等级=A AA行=OK AAA行=OK"],
+    ref: "第353批：#949494 相对亮度约 0.29，与白底对比度约 3.0:1 < 正常文字 AA 门槛 4.5:1 ⇒ contrastLevelAA=false。抽公共 isAPass/isAAPass/isAAAPass 后，顶部与三行表格复用同一判据：顶部 A级合规，AA 行与 AAA 行均 ○ 未达标。旧码 AA 行条件缺 contrastLevelAA ⇒ 全勾时输出 ✓ 通过（AA行=BAD），与顶部结论相反。探针仅由 clicks 生成 ⇒ 零逃生。",
+  },
+  {
     slug: "design/progress-bar-generator",
     // 该页原无任何 verify 用例（2026-09-26 §7.4 覆盖缺口扫描发现）。
     // generate() 读 percent / height / radius 并对高度做 ≥4 下限、百分比做 0..100 钳制，
