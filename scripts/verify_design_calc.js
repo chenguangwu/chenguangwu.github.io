@@ -3179,6 +3179,22 @@ const CASES = [
   clicks: ["gen();var h=String(document.getElementById('res').innerHTML);var one=h.indexOf('border-top: 4px solid')>=0;var all=/border: 4px/.test(h);document.getElementById('__tbProbe').textContent='G7SIDE one='+(one?'Y':'N')+' all='+(all?'Y':'N');"],
   expect: ["G7SIDE one=Y all=N"],
   ref: "D-N201 回归（单边独立）：meta 与简介均写「支持单边独立设置」，旧码只输出 `border` 简写、永不产生 `border-top`。修复后选「仅上边」+ 4px solid ⇒ CSS 含 `border-top: 4px solid` 且不再出现四边简写 `border: 4px`（预览内联样式无空格，故不误判）。旧码 one=N all=Y ⇒ 红。"
+},
+
+// ── 第347批：阴影生成器补齐参数控件与层级递增 ─────────────────────
+{
+  slug: "design/generator-6",
+  inputs: { cnt: "1", sx: "10", sy: "-6", sb: "18", ss: "2", sl: "2", si: "no", scc: "fix", sc: "#ff6b35" },
+  clicks: ["gen();var h=String(document.getElementById('res').innerHTML);var re=/(10px -6px 18px 2px rgba\\(255, 107, 53, )/g;var c=(h.match(re)||[]).length;document.getElementById('__tbProbe').textContent='G6FIX n='+c+' inset='+(h.indexOf('inset ')>=0?'Y':'N');"],
+  expect: ["G6FIX n=4 inset=N"],
+  ref: "D-N168 回归：旧码无偏移/模糊/扩散/颜色/层数/inset 控件，全由 Math.random 决定，meta 承诺的「拖动控件调整偏移、模糊、扩散、颜色」无从兑现。修复后填写即固定：注入 10/-6/18/2、每层数 2、外阴影、固定色 #ff6b35 ⇒ 必输出两条完全相同的 `10px -6px 18px 2px rgba(255, 107, 53,`；该声明同时出现在 CSS 代码块与 60×60 预览的内联样式里，故 n=4（2 层 × 2 处载体），且全页不含 inset。旧码 n=0 ⇒ 红。"
+},
+{
+  slug: "design/generator-6",
+  inputs: { cnt: "3", mode: "scale", sl: "1", si: "no" },
+  clicks: ["gen();var h=String(document.getElementById('res').innerHTML);var a=h.indexOf('0px 1px 4px 0px rgba(0, 0, 0, 0.14)')>=0;var c=h.indexOf('0px 3px 8px 0px rgba(0, 0, 0, 0.13)')>=0;document.getElementById('__tbProbe').textContent='G6SCALE a='+(a?'Y':'N')+' c='+(c?'Y':'N');"],
+  expect: ["G6SCALE a=Y c=Y"],
+  ref: "D-N169 回归：「8 组阴影（层级体系）」旧码只设 cnt，每条独立随机，产出互不相关且可能倒序，不能当 elevation scale 用。修复后新增「层级递增」模式：第 i 条固定 offset-x 0、offset-y i、blur 2i+2、spread 0、透明度 0.15−0.006i（下限 0.05）。注入 3 条 ⇒ 第 1 条必为 `0px 1px 4px 0px rgba(0, 0, 0, 0.14)`、第 3 条必为 `0px 3px 8px 0px rgba(0, 0, 0, 0.13)`，同时锚定递增与透明度递减。旧码无 mode 控件 ⇒ 两条均不命中 ⇒ 红。"
 }
 
 ];
