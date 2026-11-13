@@ -521,22 +521,6 @@
 - 影响：`tools/design/tailwind-colors.html` 输出错误参考值。
 - 方案：改为 `--color-${name}-${level}` 并标注适用 v4；或删掉该行只保留 `bg-/text-/border-` 类。
 
-### D-N149 signature-pad 白色/网格背景下「导出 PNG」仍带背景，不是透明导出（中，确认源码缺陷）
-
-- 问题：`drawBackground()` 把白底/网格直接画进主画布；`exportPNG()`（无参）只新建透明 tmp 后 `drawImage(canvas)`，因此背景选白色/网格时导出图仍带白底/网格。只有背景选「透明」时才真透明。
-- 证据：`tools/design/signature-pad.html:465-480`（背景烘焙）、`:520-537`（导出，`:532-537` 仅在传入 `bgColor` 时铺色，否则直接复制主画布）、`:10`（meta「导出 PNG 透明背景」）。
-- 复现：背景选「网格」→ 写几笔 → 点「⬇ 导出 PNG」→ 下载图含白底与 20px 网格线；期望按钮名对应的透明底。
-- 影响：`tools/design/signature-pad.html` 的透明导出承诺只在一种背景模式下成立。
-- 方案：导出时按笔画层重绘（只画 `strokes`、不画背景），或把按钮拆成「导出所见画布 / 导出透明 PNG」。
-
-### D-N150 signature-pad 预设条与建议表放在 `touch-action:none` 的 canvas-wrap 内，移动端该区域无法滚动（中，确认源码缺陷）
-
-- 问题：`.canvas-wrap` 设 `touch-action:none; overflow:hidden`，而 `#spPresets` 与 `#spRefTbl` 被放在该 wrap 内；手指在这两块区域上下滑动时，浏览器不接管页面滚动。
-- 证据：`tools/design/signature-pad.html:29`（wrap 样式）、`:212-216`（canvas 与 presets/refTbl 同处 wrap）。
-- 复现：手机打开页面 → 在签名板下方的预设条或「签署笔迹建议」表上上下滑动 → 页面不动；期望正常滚动（表格本身 `overflow-x:auto` 只解决横向）。
-- 影响：`tools/design/signature-pad.html` 移动端近半屏区域成为「滚动死区」，长表格尤甚。
-- 方案：把 presets/表格移出 `.canvas-wrap`，或只对 `#canvas` 设 `touch-action:none`。
-
 ### D-N151 colorblind 严重度滑杆对所有 8 型统一生效，与「完全型默认 100%」提示冲突（中，确认源码缺陷）
 
 - 问题：滑杆写入全局 `S1.sev`，8 型卡片全部使用该值；提示却写「严重度仅在色弱型按默认 60% 起算，完全型默认 100%」。拖动滑杆后完全型也被降到低严重度；只有点击某类型卡片才重置为该类型的默认值。

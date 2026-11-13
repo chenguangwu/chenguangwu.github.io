@@ -26,8 +26,8 @@
 <script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <style>
-.canvas-wrap{position:relative;width:100%;background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden;touch-action:none;}
-#canvas{display:block;width:100%;cursor:crosshair;}
+.canvas-wrap{position:relative;width:100%;background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+#canvas{display:block;width:100%;cursor:crosshair;touch-action:none;}
 .setting-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin:10px 0 16px;}
 .setting-item label{display:flex;justify-content:space-between;font-size:13px;color:var(--text-light);}
 .setting-item input[type="range"]{width:100%;margin-top:6px;}
@@ -432,32 +432,33 @@ function endDraw(e){
   __spRenderInfo();
 }
 
-function drawStroke(stroke){
-  if(!stroke||stroke.points.length===0)return;
-  ctx.strokeStyle=stroke.color;
-  ctx.lineWidth=stroke.width;
-  ctx.lineCap='round';
-  ctx.lineJoin='round';
+function drawStroke(stroke,targetCtx){
+  if(!stroke||!stroke.points||stroke.points.length===0)return;
+  const g=targetCtx||ctx;
+  g.strokeStyle=stroke.color;
+  g.lineWidth=stroke.width;
+  g.lineCap='round';
+  g.lineJoin='round';
   const pts=stroke.points;
   if(pts.length===1){
     // 单点：画圆点
-    ctx.fillStyle=stroke.color;
-    ctx.beginPath();
-    ctx.arc(pts[0].x,pts[0].y,stroke.width/2,0,Math.PI*2);
-    ctx.fill();
+    g.fillStyle=stroke.color;
+    g.beginPath();
+    g.arc(pts[0].x,pts[0].y,stroke.width/2,0,Math.PI*2);
+    g.fill();
     return;
   }
-  ctx.beginPath();
-  ctx.moveTo(pts[0].x,pts[0].y);
+  g.beginPath();
+  g.moveTo(pts[0].x,pts[0].y);
   for(let i=1;i<pts.length-1;i++){
     const midX=(pts[i].x+pts[i+1].x)/2;
     const midY=(pts[i].y+pts[i+1].y)/2;
-    ctx.quadraticCurveTo(pts[i].x,pts[i].y,midX,midY);
+    g.quadraticCurveTo(pts[i].x,pts[i].y,midX,midY);
   }
   if(pts.length>=2){
-    ctx.lineTo(pts[pts.length-1].x,pts[pts.length-1].y);
+    g.lineTo(pts[pts.length-1].x,pts[pts.length-1].y);
   }
-  ctx.stroke();
+  g.stroke();
 }
 
 function drawBackground(){
@@ -484,7 +485,8 @@ function redraw(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
   ctx.restore();
   drawBackground();
-  strokes.forEach(drawStroke);
+  // 包装调用：避免 forEach 把 index 当成 drawStroke 的 targetCtx 参数
+  strokes.forEach(function(s){drawStroke(s);});
   if(currentStroke)drawStroke(currentStroke);
 }
 
@@ -531,8 +533,11 @@ function exportPNG(bgColor){
     tctx.fillStyle=bgColor;
     tctx.fillRect(0,0,tmp.width,tmp.height);
   }
-  // 复制当前 canvas 内容
-  tctx.drawImage(canvas,0,0);
+  // D-N149：按笔画层重绘，不复制主画布已烘焙的白底/网格，保证「导出 PNG」为透明底
+  // tmp 与主画布同为设备像素尺寸，需复用同样的 dpr 变换，笔画坐标才是 CSS 像素
+  tctx.scale(dpr,dpr);
+  strokes.forEach(function(s){drawStroke(s,tctx);});
+  if(currentStroke)drawStroke(currentStroke,tctx);
   // 显示预览
   let url;
   try { url=tmp.toDataURL('image/png'); }
