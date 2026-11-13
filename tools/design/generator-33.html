@@ -227,12 +227,28 @@ function calc(){
   if(mode==='even'){modes.even.names=['前半程','中段','后半程'];}
   var M=modes[mode];
   var chArr=[],acc=0,i;
+  // 章数少于幕数时无法同时满足「每幕≥1」与「合计=目标章数」⇒ 标记后按每幕 1 章分配并提示
+  var insufficient = ch < M.props.length;
   for(i=0;i<M.props.length;i++){
     var c=(i===M.props.length-1)? (ch-acc) : Math.round(ch*M.props[i]);
     if(c<1)c=1;
     chArr.push(c);acc+=c;
   }
-  if(acc!==ch){chArr[chArr.length-1]+=(ch-acc);}
+  // 尾差修正：增量全部给当前最大幕；减量只从 >1 的幕扣（原先直接加到末幕，扣减时会变 0/负数）
+  var diff=ch-acc;
+  if(diff>0){
+    var mi=0;
+    for(i=1;i<chArr.length;i++){if(chArr[i]>chArr[mi])mi=i;}
+    chArr[mi]+=diff;
+  }else if(diff<0){
+    var need=-diff;
+    while(need>0){
+      var bi=-1;
+      for(i=0;i<chArr.length;i++){if(chArr[i]>1&&(bi<0||chArr[i]>chArr[bi]))bi=i;}
+      if(bi<0)break;
+      chArr[bi]--;need--;
+    }
+  }
   var days=total/perDay;
   var over= perCh<minCh;
   var actRows='',accW=0,accC=0;
@@ -263,8 +279,8 @@ function calc(){
   ];
   var cardHtml='';
   cards.forEach(function(c){cardHtml+='<div class="data-card"><div class="num">'+c[1]+'</div><div class="label">'+c[0]+'</div></div>';});
-  var warn= over? ('⚠️ 每章平均仅 '+nf(perCh,0)+' 字，低于设定的最少 '+minCh+' 字 —— 建议把章数降到约 '+Math.floor(total/minCh)+' 章，或把总字数提高到 '+(minCh*ch/10000).toFixed(1)+' 万字以上。')
-                 : ('每章平均 '+nf(perCh,0)+' 字，高于最少 '+minCh+' 字，配额可行；按日均 '+perDay+' 字约 '+nf(days,0)+' 天完稿。');
+  var warn= (insufficient? ('⚠️ 目标章数 '+ch+' 少于结构幕数 '+M.props.length+'：已按每幕至少 1 章分配（实际合计 '+chArr.reduce(function(a,b){return a+b;},0)+' 章），请把章数调到 ≥ '+M.props.length+'。') : '')
+    + (over? ('⚠️ 每章平均仅 '+nf(perCh,0)+' 字，低于设定的最少 '+minCh+' 字 —— 建议把章数降到约 '+Math.floor(total/minCh)+' 章，或把总字数提高到 '+(minCh*ch/10000).toFixed(1)+' 万字以上。') : ('每章平均 '+nf(perCh,0)+' 字，高于最少 '+minCh+' 字，配额可行；按日均 '+perDay+' 字约 '+nf(days,0)+' 天完稿。'));
   var cardTpl='【人物设定卡】\n姓名/代号：\n身份与立场：\n核心目标（想要什么）：\n最大阻碍（谁/什么在挡）：\n性格缺陷或心结：\n与主角的关系：\n一句话人设：\n\n【章节卡】\n第 N 章｜所属幕：\n本章目标（推动什么）：\n冲突升级点：\n结尾钩子：\n预计字数：';
   var ref=[['短篇','1~3 万字','5~30 章','单线冲突，1~2 个主要人物'],
            ['中篇','10~30 万字','60~150 章','双线交织，3~5 个核心人物'],

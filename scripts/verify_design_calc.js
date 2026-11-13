@@ -3154,7 +3154,16 @@ const CASES = [
   clicks: ["var t=(typeof __fdTextOn==='function')?__fdTextOn('#7B7B7B'):'NOFN';document.getElementById('__tbProbe').textContent='FD_TXT='+t;"],
   expect: ["FD_TXT=#000000"],
   ref: "D-N218 回归：15 个色帽等亮度 L≈0.198（灰度预览 #7B7B7B 同亮度），旧 textOn 用 L>0.32 判深色 ⇒ 全部白字 4.23:1（不达 AA）。修复后按黑白对比度取高者并改纯黑（4.96:1）。#7B7B7B 的 L≈0.1976 ⇒ 期望 #000000；旧码返回 #FFFFFF ⇒ 红。textOn 在 IIFE 内，页面末尾以 window.__fdTextOn 暴露（纯读取）。"
+},
+// ── 第345批：章数少于幕数不再产出负章数 ───────────────────────────
+{
+  slug: "design/generator-33",
+  inputs: { chapters: "1", mode: "three" },
+  clicks: ["calc();var h=String(document.getElementById('res').innerHTML);document.getElementById('__tbProbe').textContent='CH33 neg='+(/-[0-9]+ 章/.test(h)?'Y':'N')+' hint='+(h.indexOf('少于结构幕数')>=0?'Y':'N');"],
+  expect: ["CH33 neg=N hint=Y"],
+  ref: "D-N207 回归：章数=1、三幕时旧码 [1,1,-1]（末幕被尾差减成负数，表格现「-1 章」）。修复后尾差减量只从 >1 的幕扣除、扣不动时保留每幕 1 章并给出「少于结构幕数」提示。探针同时断言「无负章数」与「有不足提示」；旧码 neg=Y hint=N ⇒ 红。默认态（120 章三幕）不产出该串。"
 }
+
 ];
 
 // ---------------------------------------------------------------- main
