@@ -527,22 +527,6 @@
 - 影响：`tools/design/tailwind-colors.html` 输出错误参考值。
 - 方案：改为 `--color-${name}-${level}` 并标注适用 v4；或删掉该行只保留 `bg-/text-/border-` 类。
 
-### D-N145 pixel-art 应用画布模板不写入历史，撤销后无法重做回模板（中，确认源码缺陷）
-
-- 问题：`__paApplyTemplate` 先 `saveHistory()`（保存「应用前」快照）再改写 `pixels`；模板结果本身从未入栈。撤销可回到应用前，但 redo 只能回到同一张应用前图，模板丢失。
-- 证据：`tools/design/pixel-art.html:863-880`（`:870` 先 saveHistory、`:871-877` 后写像素）、`:582-587`（saveHistory 推入当前快照）、`:598-604`（redo 读取 history）。
-- 复现：空白画布 → 点「❤️ 爱心」→ 撤销（回到空白，符合预期）→ 重做 → 仍是空白（期望恢复爱心）；先画几笔再套模板同样无法 redo 回模板。
-- 影响：`tools/design/pixel-art.html` 模板操作历史语义错位，用户误以为模板不可撤销/不可恢复。
-- 方案：先写 `pixels` 再 `saveHistory()`（使模板成为新快照）；或在 saveHistory 后额外 push 模板状态。
-
-### D-N146 pixel-art SEO 简介承诺「一键生成/复制 CSS 代码」，页面无 CSS 输出（中，确认文案与实现不一致）
-
-- 问题：简介写「设计创意工具，可视化操作，一键生成 CSS 代码」，功能特点列「一键复制 CSS 代码」「支持实时预览与调试」；页面只有 Canvas 绘制与 PNG 导出，无 clipboard、无 CSS 文本输出。
-- 证据：`tools/design/pixel-art.html:719`（简介）、`:723-724`（功能特点）、`:729-731`（使用场景还写「快速生成 CSS 效果代码」）；全页无 `clipboard`/CSS 输出，实际导出为 `toDataURL` PNG（`:628`）、按钮「导出原始/放大版」（`:203-204`）。
-- 复现：页面无「复制 CSS」按钮，Ctrl+F「CSS 代码」只命中 `:719`、`:724`、`:731` 三处简介文本。
-- 影响：`tools/design/pixel-art.html` 简介与真实能力不符（与另一页 `pixel-art-generator` 的 D-N98 不同页）。
-- 方案：把简介改为「网格像素绘制、画笔/橡皮/填充/吸管、撤销重做、PNG 导出」，删除 CSS 卖点。
-
 ### D-N148 signature-pad 笔宽滑杆与笔迹预设不更新 `strokeWidth` 变量，画笔恒定 3px（高，确认源码缺陷）
 
 - 问题：`#strokeWidth` 的 `oninput` 只改 `#widthVal` 文本，从不写 JS 变量；`__spStrokePreset`（页面按钮）直接写变量所以有效，但工具栏预设 `__spApply` 只改滑杆 value 并 `dispatchEvent('input')`（同样只改文本）。新笔画在 `startDraw` 读取变量，故滑杆与工具栏预设都不影响实际粗细。
