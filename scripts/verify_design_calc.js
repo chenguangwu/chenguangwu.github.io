@@ -3133,6 +3133,26 @@ const CASES = [
   clicks: ["var t=document.getElementById('task'),f=document.getElementById('format');var tv=(t.options&&t.options[0])?t.options[0].value:'NA';var fv=(f.options&&f.options[0])?f.options[0].value:'NA';calc();var h=document.getElementById('res').innerHTML;var m=h.match(/class=\"num\">(\\d+)<\\/div><div class=\"label\">提示词完整度/);document.getElementById('__tbProbe').textContent='G38 t=['+tv+'] f=['+fv+'] S='+(m?m[1]:'NA');"],
   expect: ["G38 t=[] f=[] S=20"],
   ref: "D-N213 回归：任务类型/输出格式两个 select 原无空项 ⇒ 真机恒有值恒 ok，五要素全空仍给 60 分（文档口径应为 1/5=20）。修复=两 select 首项为空值占位 + prompt 输出空任务时给「【请补充任务类型】」防护 + 算例文案同步。断言两 select 首项 option.value 为空（真机可清空的前提）且全空时提示词完整度=20；旧版首项分别是「生成」「分条列表」⇒ t/f 段即不匹配。默认态（target/constraint 预填）不产出该串。"
+},
+// ── 第342批：文字色阈值与死输入联动 ─────────────────────────────
+{
+  slug: "design/css-border-radius",
+  clicks: ["document.getElementById('linkCorners').checked=false;document.getElementById('allRadius').value='80';updateAll();var v=String(document.getElementById('cssOutput').value);document.getElementById('__tbProbe').textContent='BR '+v;"],
+  expect: ["BR border-radius: 80px 80px 80px 80px / 80px 80px 80px 80px;"],
+  ref: "D-N172 回归：简单模式只有 allRadius 一个滑杆，旧码取消「四角联动」后 updateAll 不再写四角、滑杆变成死控件。修复=简单模式强制按统一值作用四角。默认态无该探针串；旧码 cssOutput 停在 20px ⇒ 红。"
+},
+{
+  slug: "design/generator-34",
+  inputs: { ratio: "1024x768" },
+  clicks: ["calc();var h=String(document.getElementById('res').innerHTML);var m=h.match(/>([0-9.]+) px</);document.getElementById('__tbProbe').textContent='G34 '+(h.indexOf('1024×768')>=0?'SIZE_OK':'SIZE_BAD')+' px='+(m?m[1]:'NA');"],
+  expect: ["G34 SIZE_OK px=21.3"],
+  ref: "D-N212 回归：比例下拉原为死输入，等效像素固定按 1280 宽算（20pt→26.7px）。修复后等效像素按所选画布宽度换算，1024 宽下 20*96/72*1024/1280=21.3；并输出画布尺寸与比例对照表。旧码 SIZE_BAD（结果无 1024×768）且 px=26.7 ⇒ 红。"
+},
+{
+  slug: "design/farnsworth-d15-test",
+  clicks: ["var t=(typeof __fdTextOn==='function')?__fdTextOn('#7B7B7B'):'NOFN';document.getElementById('__tbProbe').textContent='FD_TXT='+t;"],
+  expect: ["FD_TXT=#000000"],
+  ref: "D-N218 回归：15 个色帽等亮度 L≈0.198（灰度预览 #7B7B7B 同亮度），旧 textOn 用 L>0.32 判深色 ⇒ 全部白字 4.23:1（不达 AA）。修复后按黑白对比度取高者并改纯黑（4.96:1）。#7B7B7B 的 L≈0.1976 ⇒ 期望 #000000；旧码返回 #FFFFFF ⇒ 红。textOn 在 IIFE 内，页面末尾以 window.__fdTextOn 暴露（纯读取）。"
 }
 ];
 

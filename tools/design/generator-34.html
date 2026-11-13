@@ -229,7 +229,7 @@ function calc(){
   var mm=fs*0.3528;
   var maxDist=mm/5;
   var animPerPage=Math.min(perPage*0.15, pts*0.6+0.5);
-  var px=fs*96/72;
+  var px=fs*96/72*(W/1280);   // 等效像素按所选画布宽度换算（1280 px 为基准设计宽）
   // 逐页时长分配：封面 0.5、结尾 0.7、其余正文 1.0，归一化
   var w=[],i,sum=0;
   for(i=0;i<n;i++){var k=(i===0)?0.5:((i===n-1)?0.7:1.0);w.push(k);sum+=k;}
@@ -243,9 +243,10 @@ function calc(){
     rows+='<tr><td>第 '+(idx+1)+' 页</td><td>'+type+'</td><td>'+fmt(sec,1)+' s</td><td>'+fmt(sec/pts,1)+' s</td><td>'+fmt(sec/60*speed*0.6,0)+' 字</td></tr>';
   });
   var ratioRows='';
-  [['16:9','1920×1080'],['16:10','1920×1200'],['4:3','1024×768'],['A4 横版','1123×794']].forEach(function(r){
-    var px2=(r[0]==='A4 横版')?'—':r[1];
-    ratioRows+='<tr><td>'+r[0]+'</td><td>'+px2+'</td><td>'+fmt(fs*96/72,1)+' px</td></tr>';
+  [['16:9',1920,1080],['16:10',1920,1200],['4:3',1024,768],['A4 横版',1123,794]].forEach(function(r){
+    var cur=(r[1]===W&&r[2]===H);
+    var pxRow=fs*96/72*(r[1]/1280);
+    ratioRows+='<tr'+(cur?' style="background:var(--bg-hover);font-weight:600;"':'')+'><td>'+r[0]+(cur?' ✓':'')+'</td><td>'+r[1]+'×'+r[2]+'</td><td>'+fmt(pxRow,1)+' px</td></tr>';
   });
   var tpl=[['商务汇报','深蓝 + 金色','思源黑体 / Arial','淡入、平滑切换，每页 ≤2 个动效'],
            ['年终总结','深红 + 暖灰','微软雅黑 / DIN','缩放、图表生长，数据页强调动效可到 0.8 s'],
@@ -264,6 +265,7 @@ function calc(){
     +'<div class="data-card"><div class="num">'+fmt(perPoint,1)+' s</div><div class="label">每要点可用时间</div></div>'
     +'<div class="data-card"><div class="num">'+fmt(wordsAll,0)+' 字</div><div class="label">全文可讲字数</div></div>'
     +'<div class="data-card"><div class="num">'+fmt(wordsShow,0)+' 字</div><div class="label">建议每页正文上限</div></div>'
+    +'<div class="data-card"><div class="num">'+W+'×'+H+'</div><div class="label">画布尺寸（px）</div></div>'
     +'</div>';
   h+='<p style="font-size:12.5px;color:var(--text-muted);line-height:1.7;">'+warn+'</p>';
   h+='<h3>一、逐页节奏分配（按页面类型加权，抽样展示）</h3><table><thead><tr><th>页码</th><th>类型</th><th>建议时长</th><th>每要点</th><th>页内正文上限</th></tr></thead><tbody>'+rows+'</tbody></table>';
@@ -273,7 +275,8 @@ function calc(){
     +'</tbody></table>';
   h+='<p style="font-size:12.5px;color:var(--text-muted);line-height:1.7;">按「字高(mm) ≈ 观看距离(m) ÷ 5」估算：若最后一排距幕布 X 米，正文最小字号约需 '+(Math.round(fs)+'')+' pt × X ÷ '+fmt(maxDist,1)+'（本页参数下约 '+(maxDist>0?fmt(8/maxDist*fs,0):'—')+' pt 可覆盖 8 m）。</p>';
   h+='<h3>三、动画时长上限</h3><p style="font-size:13px;">单页动画总时长建议 ≤ <strong>'+fmt(animPerPage,1)+' s</strong>（每页时长的 15%），入场动画 0.3~0.6 s/个、页间切换约 0.5 s。</p>';
-  h+='<h3>四、模板要素参考</h3><table><thead><tr><th>主题</th><th>配色</th><th>字体</th><th>动画建议</th></tr></thead><tbody>'+tplRows+'</tbody></table>';
+  h+='<h3>四、比例像素对照（按所选画布宽度换算等效像素）</h3><table><thead><tr><th>比例</th><th>画布尺寸</th><th>'+fmt(fs,0)+' pt 等效像素</th></tr></thead><tbody>'+ratioRows+'</tbody></table>';
+  h+='<h3>五、模板要素参考</h3><table><thead><tr><th>主题</th><th>配色</th><th>字体</th><th>动画建议</th></tr></thead><tbody>'+tplRows+'</tbody></table>';
   const __g1=h;document.getElementById('res').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 function copyRes(){ToolBox.copyText(document.getElementById('res').innerText);}

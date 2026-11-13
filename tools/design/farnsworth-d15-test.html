@@ -348,7 +348,9 @@ table.fd-tbl td.bad{background:rgba(239,68,68,.14);color:var(--danger);font-weig
   function textOn(hex) {
     var n = parseInt(hex.slice(1), 16);
     var L = 0.2126 * srgbToLin((n >> 16) & 255) + 0.7152 * srgbToLin((n >> 8) & 255) + 0.0722 * srgbToLin(n & 255);
-    return L > 0.32 ? '#111827' : '#FFFFFF';
+    // 黑白字按 WCAG 对比度取较大者（分界 L≈0.179）；深色用纯黑，不用 #111827（L≈0.198 时仅 4.19:1）
+    var crW = 1.05 / (L + 0.05), crB = (L + 0.05) / 0.05;
+    return crB >= crW ? '#000000' : '#FFFFFF';
   }
   function norm180(a) { a = ((a % 180) + 180) % 180; return a > 90 ? a - 180 : a; }
   function angDist(a, b) { var d = Math.abs(norm180(a) - norm180(b)); return Math.min(d, 180 - d); }
@@ -1131,6 +1133,8 @@ table.fd-tbl td.bad{background:rgba(239,68,68,.14);color:var(--danger);font-weig
    * ========================================================== */
   shuffleOrder('medium');
   renderStrip();
+  // 文字色选择器对外暴露，供导出与自检脚本复用（纯读取，不改变行为）
+  window.__fdTextOn = textOn;
 })();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
