@@ -163,12 +163,6 @@
 - 复现：steps=5 → node 复算得 11 档（`#ffe6dd → #2b1209`），并非 50–900 十档；输出里也没有 50/100 之类 token 名
 - 方案：文案改为「线性 RGB 混色、每侧 n 档共 2n+1 档」；或真的实现 HSL/OKLCH 明度阶梯与 50–900 命名，使文档与产物一致
 
-### D-N38 图片格式转换器比例与自定义尺寸非法值静默兜底（低，确认源码缺陷）
-- 描述：`parseInt(...)||100` 让 0 与空值回落到 100%；负比例使宽高为负，随后被 `Math.max(1, ...)` 夹成 1×1；自定义尺寸为 0 时静默忽略。
-- 证据：`tools/design/image-format-converter.html:998-1005`（`if(cw>0)`、`pct||100`）、`:1008-1010`（`Math.max(1,w/h)`）
-- 复现：percentScale=-50 → canvas 1×1，无任何报错；清空比例 → 按 100% 原尺寸；customWidth=0 → 不缩放
-- 方案：按 1–1000 校验并提示，负值/0 直接报错；1×1 兜底改为显式失败提示
-
 ### D-N42 SVG 查看器把用户输入原样写入 innerHTML，内嵌事件处理器可执行（高，确认源码缺陷）
 - 描述：`generate()` 只用 `/svg[\s\S]*<\/svg>/i` 判断“像不像 SVG”，随后把整段输入赋给 `preview.innerHTML`；未移除 `on*` 事件属性、`<script>`、`foreignObject` 或外部引用，也没有用沙箱 iframe。通过 innerHTML 插入的 SVG 事件属性会正常注册，`<svg onload="…">` 在解析完成时即执行。页面自己的引据表还写着「SVG 可内嵌脚本，外部文件须隔离渲染以防注入」，实现与声明相反。
 - 证据：`tools/design/svg-viewer.html:255-256`（`preview.innerHTML=__h1`）、`:250-262`（无任何清洗）、`:231-233`（OWASP 隔离引据）
@@ -526,14 +520,6 @@
 - 复现：查 Tailwind v4 主题变量 → `--color-blue-500`；页面给出 `--tw-blue-500`，复制到 CSS 中变量不存在。
 - 影响：`tools/design/tailwind-colors.html` 输出错误参考值。
 - 方案：改为 `--color-${name}-${level}` 并标注适用 v4；或删掉该行只保留 `bg-/text-/border-` 类。
-
-### D-N148 signature-pad 笔宽滑杆与笔迹预设不更新 `strokeWidth` 变量，画笔恒定 3px（高，确认源码缺陷）
-
-- 问题：`#strokeWidth` 的 `oninput` 只改 `#widthVal` 文本，从不写 JS 变量；`__spStrokePreset`（页面按钮）直接写变量所以有效，但工具栏预设 `__spApply` 只改滑杆 value 并 `dispatchEvent('input')`（同样只改文本）。新笔画在 `startDraw` 读取变量，故滑杆与工具栏预设都不影响实际粗细。
-- 证据：`tools/design/signature-pad.html:169`（`oninput` 仅写 widthVal）、`:316`（变量初值 3）、`:412`（`width: strokeWidth`）、`:348`（按钮预设写变量）、`:674-678`（工具栏预设只 dispatch input）、`:375`（信息条显示变量值）。
-- 复现：把滑杆拖到 8 → 标签显示 8，信息条仍「当前 3px」，画出的笔画仍 3px；点「🖍️ 马克笔粗（8px）」→ 同样 3px（且 1.5 对 `step=1` 还会被取整）。
-- 影响：`tools/design/signature-pad.html` 核心笔宽控制失效，合同/批注等预设名不副实。
-- 方案：滑杆 `input` 处理器中 `strokeWidth = +this.value; __spRenderInfo()`；`__spApply` 同时直接赋 `strokeWidth`（或让滑杆处理器成为唯一写入口）。
 
 ### D-N149 signature-pad 白色/网格背景下「导出 PNG」仍带背景，不是透明导出（中，确认源码缺陷）
 

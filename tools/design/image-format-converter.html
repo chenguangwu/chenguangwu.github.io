@@ -1003,18 +1003,32 @@ window.__svgFileBlocked=__svgFileBlocked;
     var quality = state.quality / 100;
     var mode = state.sizeMode;
 
+    // D-N38：尺寸输入显式校验，禁止空值 / 0 / 负值 / 非数字 / 超范围被静默兜底
+    var cw = 0, ch = 0, pct = 0;
+    if (mode === 'custom') {
+      cw = parseInt(document.getElementById('customWidth').value, 10);
+      ch = parseInt(document.getElementById('customHeight').value, 10);
+      if (!isFinite(cw) || !isFinite(ch) || cw < 1 || ch < 1 || cw > 10000 || ch > 10000) {
+        ToolBox.showToast(__ifcT('自定义宽高需为 1–10000 的整数', 'Custom width and height must be integers between 1 and 10000'), 'error');
+        return;
+      }
+    } else if (mode === 'percent') {
+      pct = parseInt(document.getElementById('percentScale').value, 10);
+      if (!isFinite(pct) || pct < 1 || pct > 1000) {
+        ToolBox.showToast(__ifcT('缩放比例需为 1–1000 的整数', 'Scale percent must be an integer between 1 and 1000'), 'error');
+        return;
+      }
+    }
+
     state.files.forEach(function(item, idx) {
       try {
         var w = item.width;
         var h = item.height;
 
         if (mode === 'custom') {
-          var cw = parseInt(document.getElementById('customWidth').value);
-          var ch = parseInt(document.getElementById('customHeight').value);
-          if (cw > 0) w = cw;
-          if (ch > 0) h = ch;
+          w = cw;
+          h = ch;
         } else if (mode === 'percent') {
-          var pct = parseInt(document.getElementById('percentScale').value) || 100;
           w = Math.round(w * pct / 100);
           h = Math.round(h * pct / 100);
         }
