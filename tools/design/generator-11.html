@@ -100,12 +100,17 @@
      <h2 data-zh="✨ 背景纹理生成器（重复图案）">✨ CSS Background Pattern Generator</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="重复图案">Tune parameters to build a tileable CSS background texture such as dots, grids or waves, with live preview and exported code.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">生成条数钳制在 1–50（缺省 5）；第 i 条按 i 对 6 取模循环选取圆点 / 条纹 / 网格 / 棋盘 / 斜线 / 波浪六种纹理；每条随机取两个颜色 c1、c2 与一个尺寸 size（8–64 的随机整数）。各纹理以 CSS 渐变表达：圆点用 radial-gradient 配 background-size；条纹用 repeating-linear-gradient(90deg) 以 size/2 为色标；网格用两组 1px 的 linear-gradient 正交叠加；棋盘用 conic-gradient 四个 90° 扇区；斜线用 repeating-linear-gradient(45deg) 以 size/4 与 size/2 为色标；波浪用上下两个 radial-gradient 圆叠加并配 background-size</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">生成条数钳制在 1–50（缺省 5）；第 i 条默认按 i 对 6 取模循环选取圆点 / 条纹 / 网格 / 棋盘 / 斜线 / 波浪六种纹理，选「图案类型」则全批统一为所选纹理；双色 c1、c2 与单元尺寸 size 默认随机（颜色从 10 色板取、尺寸 8–64），把「配色方式」切到「使用主色 / 底色」或填写尺寸即按所选值固定，可复现上一次结果。各纹理以 CSS 渐变表达：圆点用 radial-gradient 配 background-size；条纹用 repeating-linear-gradient(90deg) 以 size/2 为色标；网格用两组 1px 的 linear-gradient 正交叠加；棋盘用 conic-gradient 四个 90° 扇区；斜线用 repeating-linear-gradient(45deg) 以 size/4 与 size/2 为色标；波浪用上下两个 radial-gradient 圆叠加并配 background-size</div>
       <div class="formula-desc">以 CSS 渐变（repeating-linear-gradient 等）或 SVG 平铺生成可重复背景纹理（点阵 / 网格 / 波浪），参数可调并导出代码；用于 UI 背景装饰。</div>
   
 </div>
 
-<div class="input-row"><div><label>生成数量</label><input type="number" id="cnt" value="5" min="1" max="50" oninput="gen()" placeholder="如 5（1–50）"></div></div>
+<div class="input-row"><div><label>生成数量</label><input type="number" id="cnt" value="5" min="1" max="50" placeholder="如 5（1–50）"></div>
+<div><label>图案类型</label><select id="tPattern"><option value="">六种轮换（混合）</option><option value="dots">圆点</option><option value="stripes">条纹</option><option value="grid">网格</option><option value="checks">棋盘</option><option value="diagonal">斜线</option><option value="waves">波浪</option></select></div>
+<div><label>主色</label><input type="color" id="tMain" value="#FF6B35"></div>
+<div><label>底色</label><input type="color" id="tBg" value="#0F172A"></div>
+<div><label>配色方式</label><select id="tColorMode"><option value="rand">双色随机</option><option value="fix">使用主色 / 底色</option></select></div>
+<div><label>单元尺寸（px，留空随机）</label><input type="number" id="tSize" min="8" max="64" step="1" placeholder="留空随机 8~64"></div></div>
 <div class="toolbar"><div id="generator_11Presets"></div><button type="button" class="btn primary" onclick="gen()">生成</button><button class="btn" type="button" onclick="__generator_11Export()">导出明细 CSV</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
 <div class="result-box" id="res"></div> <div id="generator_11Table"></div> <div id="generator_11Diff"></div> <div id="generator_11Chart"></div> <div id="generator_11Hist"></div>
   </div>
@@ -200,13 +205,21 @@ function randColor() {
 }
 function gen() {
   const n = Math.min(Math.max(parseInt(document.getElementById('cnt').value) || 5, 1), 50);
+  const elVal=function(id){var e=document.getElementById(id);return e?String(e.value).trim():'';};
+  const elNum=function(id,min,max){var v=elVal(id);if(v==='')return null;var p=parseFloat(v);if(!Number.isFinite(p))return null;return Math.min(Math.max(p,min),max);};
+  const pickPattern=elVal('tPattern');
+  const useFix=(elVal('tColorMode')==='fix');
+  const mainRaw=elVal('tMain'), bgRaw=elVal('tBg');
+  const fixC1=(useFix&&/^#[0-9a-fA-F]{6}$/.test(mainRaw))?mainRaw:null;
+  const fixC2=(useFix&&/^#[0-9a-fA-F]{6}$/.test(bgRaw))?bgRaw:null;
+  const fixSize=elNum('tSize',8,64);
   const patterns = ['dots','stripes','grid','checks','diagonal','waves'];
   let html = '<p style="margin-bottom:8px;">生成结果：</p>';
   for (let i = 0; i < n; i++) {
-    const pattern = patterns[i % patterns.length];
-    const c1 = randColor();
-    const c2 = randColor();
-    const size = randInt(8, 64);
+    const pattern = pickPattern || patterns[i % patterns.length];
+    const c1 = fixC1 || randColor();
+    const c2 = fixC2 || randColor();
+    const size = (fixSize!==null)?fixSize:randInt(8, 64);
     let css = '';
     let label = '';
     if (pattern === 'dots') {
@@ -242,6 +255,19 @@ function gen() {
 function copyRes() {
   ToolBox.copyText(document.getElementById('res').innerText);
 }
+function __bindG11(){
+    var ids=['cnt','tPattern','tMain','tBg','tColorMode','tSize'];
+    for(var i=0;i<ids.length;i++){
+        (function(id){
+            var e=document.getElementById(id);
+            if(!e||e.__g11Bound) return;
+            e.__g11Bound=true;
+            e.addEventListener('input',function(){gen();});
+            e.addEventListener('change',function(){gen();});
+        })(ids[i]);
+    }
+}
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',__bindG11);}else{__bindG11();}
 gen();
 </script>
 
@@ -430,10 +456,11 @@ function __generator_11Export(){
 }
 function __generator_11Presets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#generator_11Presets',[{label:'默认参数',labelEn:'Default',values:{'cnt':'5'}},
-  {"label":"3 条纹理（快速预览）","labelEn":"3 texture rows (preview)","values":{"cnt":"3"}},
-  {"label":"8 条纹理（常规选型）","labelEn":"8 texture rows (selection)","values":{"cnt":"8"}},
-  {"label":"15 条纹理（灵感收集）","labelEn":"15 texture rows (inspiration)","values":{"cnt":"15"}}],function(){ gen(); });
+    TBKit.preset.bar('#generator_11Presets',[{label:'六种混合（随机）',labelEn:'Mixed random',values:{'cnt':'5','tPattern':'','tSize':'','tColorMode':'rand'}},
+  {"label":"圆点 · 32px 密铺","labelEn":"Dots 32px","values":{"cnt":"3","tPattern":"dots","tSize":"32","tColorMode":"fix"}},
+  {"label":"条纹 · 24px","labelEn":"Stripes 24px","values":{"cnt":"3","tPattern":"stripes","tSize":"24","tColorMode":"fix"}},
+  {"label":"棋盘 · 40px","labelEn":"Checks 40px","values":{"cnt":"3","tPattern":"checks","tSize":"40","tColorMode":"fix"}},
+  {"label":"斜线 · 20px","labelEn":"Diagonal 20px","values":{"cnt":"3","tPattern":"diagonal","tSize":"20","tColorMode":"fix"}}],function(){ gen(); });
 }
 var __generator_11_f0=(typeof gen==='function')?gen:null;
 if(__generator_11_f0){

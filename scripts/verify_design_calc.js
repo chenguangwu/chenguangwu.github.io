@@ -1493,9 +1493,9 @@ const CASES = [
       "cnt": "42"
     },
     "expect": [
-      "(45deg, #00C9A7, #00C9A7 10.75px, #00C9A7 10.75px, #00C9A7 21.5px); } 30. 波浪"
+      "42. 波浪纹理"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"cnt\":\"42\"}，输出区含「(45deg, #00C9A7, #00C9A7 10.75px, #00C9A…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "注入非默认输入{\"cnt\":\"42\"}，输出区含第 42 条的标题「42. 波浪纹理」（六种纹理按 i % 6 轮换，41 % 6 = 5 ⇒ 第 42 条必为波浪）。原 expect 锚「(45deg, #00C9A7, #00C9A7 10.75px…」依赖随机双色与随机尺寸，页面源码一改随机序列即位移而假红，改锚确定性结构串；默认态 5 条 ⇒ 不含该串。"
   },
   
   {
@@ -3211,6 +3211,22 @@ const CASES = [
   clicks: ["generate();var o=String(document.getElementById('cssOutput').value);var n=(o.match(/linear-gradient\\(/g)||[]).length;document.getElementById('size').value='999';generate();var o2=String(document.getElementById('cssOutput').value);var m=o2.match(/background-size: ([0-9.]+)px/);document.getElementById('__tbProbe').textContent='G194 n='+n+' clamp='+(m?m[1]:'N');"],
   expect: ["G194 n=3 clamp=200"],
   ref: "D-N194 回归：旧码 background-image 写 4 层，其中第 1、4 层都是 linear-gradient(30deg …) 完全重复，实际只有 3 个方向；且 size 只在 HTML 上写 max=200、JS 未夹取。修复后删掉重复层（n=3）并把 size 钳到 10–200（输入 999 ⇒ background-size 宽 200px）。旧码 n=4 clamp=999 ⇒ 红。"
+},
+
+// ── 第349批：动画生成器参数控件与实时预览 ─────────────────────────
+{
+  slug: "design/generator-10",
+  inputs: { cnt: "2", atype: "fadeIn", dur: "2.5", dly: "0", eas: "linear", it: "1", dir: "normal", fill: "forwards" },
+  clicks: ["gen();var h=String(document.getElementById('res').innerHTML);document.getElementById('__tbProbe').textContent='G10 dur='+(h.indexOf('2.5s linear 0.0s 1 normal forwards')>=0?'Y':'N')+' prev='+(h.indexOf('animPreviewBox')>=0?'Y':'N')+' noSlide='+(h.indexOf('slideUp')>=0?'N':'Y');"],
+  expect: ["G10 dur=Y prev=Y noSlide=Y"],
+  ref: "D-N195 回归：旧码只有 cnt 一个输入，时长/缓动/延迟/方向/填充全部随机，页面没有任何预览元素，`#res` 只有 <pre> 文本 ⇒「可视化编排 + 实时预览」两个主卖点落空。修复后注入时长 2.5 / 延迟 0 / 线性缓动 / 1 次 / normal / forwards，并指定动画类型 fadeIn、生成 2 条 ⇒ 必出 `2.5s linear 0.0s 1 normal forwards`（dur=Y）；顶部预览色块 `animPreviewBox` 存在（prev=Y）；两条都用 fadeIn，故全文不再出现 slideUp（noSlide=Y，锚定「动画类型」控件生效）。旧码三项全 N ⇒ 红。"
+},
+{
+  slug: "design/generator-11",
+  inputs: { cnt: "1", tPattern: "stripes", tMain: "#ff6b35", tBg: "#0f172a", tColorMode: "fix", tSize: "32" },
+  clicks: ["gen();var h=String(document.getElementById('res').innerHTML);document.getElementById('__tbProbe').textContent='GE11 css='+(h.indexOf('repeating-linear-gradient(90deg, #ff6b35, #ff6b35 16px, #0f172a 16px, #0f172a 32px)')>=0?'Y':'N')+' pat='+(h.indexOf('条纹纹理')>=0?'Y':'N')+' other='+(h.indexOf('圆点纹理')>=0?'Y':'N');"],
+  expect: ["GE11 css=Y pat=Y other=N"],
+  ref: "D-N189 回归：旧码只有 cnt 一个输入，图案按 i%6 固定轮换、颜色与尺寸全随机，用户既选不了纹理也复现不了上次结果。修复后注入「条纹」+ 主色 #ff6b35 / 底色 #0f172a + 固定尺寸 32 ⇒ 必出 `repeating-linear-gradient(90deg, #ff6b35, #ff6b35 16px, #0f172a 16px, #0f172a 32px)`（16 = size/2），标题为「条纹纹理」且不再出现「圆点纹理」（cnt=1 时轮换首项本是圆点，故 other=N 同时锚定「图案类型」控件生效）。旧码三项为 N/N/Y ⇒ 红。"
 }
 
 ];
