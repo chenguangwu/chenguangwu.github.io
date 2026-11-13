@@ -158,13 +158,6 @@
 - 影响：`tools/design/image-color-picker.html`；对带透明的 PNG/WebP/图标取色时，复制出的色值与肉眼所见不符
 - 方案：取样前先填白（或提供可选底色）再 drawImage，使取样与预览一致；或输出 `rgba(r,g,b,a)`，`a<255` 时标注透明度，全透明像素给出明确提示
 
-### D-N48 CSS 渐变生成器 FAQ 宣称「会算 WCAG 对比度并标红」，页面未实现（低，确认文案与实现不一致）
-- 描述：FAQ 第二条写明「会按 WCAG 算出对比度值与等级，未达标会标红提醒」，但脚本只有色标拼接与预设，没有任何亮度/对比度计算或提示 UI。
-- 证据：`tools/design/gradient.html:241`；对照 `:348-369`（`updateGradient` 只排序色标、拼 CSS 并应用背景），全文无 `luminance/contrast` 实现。同模板问题也出现在 `tools/design/image-color-picker.html:213`
-- 复现：选两个几乎相同的色（`#FFFFFF` 与 `#FEFEFE`）→ 页面无任何对比度或警告（期望按 FAQ 给出 1.0:1 与未达标提示）
-- 影响：`tools/design/gradient.html`、`tools/design/image-color-picker.html`；用户据 FAQ 以为有可读性校验，实际没有，属对外承诺不实
-- 方案：实现 WCAG 相对亮度与对比度并对相邻色标提示；或删除该 FAQ 条目
-
 ### D-N49 图片取色器元数据与简介宣称「放大取样」，实际无放大/放大镜功能（低，确认能力缺口）
 - 描述：description/OG/twitter/正文英文均写「magnified sampling / 支持放大取样」，脚本只有点击取单像素，没有缩放视图、放大镜或像素网格。
 - 证据：`tools/design/image-color-picker.html:10`、`:15`、`:68`、`:164`；脚本 `:284-301` 仅 `getBoundingClientRect` + `getImageData`
@@ -276,14 +269,6 @@
 - 影响：可读性与可信度；同族：`toast-generator.html:209`、`exposure-triangle-calculator.html:189`、`shutter-speed-calculator.html:185`、`gradient-from-color.html:212`。
 - 方案：去掉 `&lt;p&gt;`/`&lt;strong&gt;`，直接写纯文本或真实标签。
 
-### D-N123 flexbox-generator「实时预览」名不符实（低，文案与实现不一致）
-
-- 问题：结果标题写「实时预览（3 个项目）」，但所有控件都没有 `onchange/oninput`，只有点「生成」才调用 `calcTool()`。
-- 证据：`tools/design/flexbox-generator.html:240`（标题）、`:111-129`（控件无事件）、`:233-243`（唯一渲染路径）。
-- 复现：改 flex-direction 下拉 → 预览不动，必须点「生成」。
-- 影响：用户以为调参即预览。
-- 方案：给控件绑 `change` 调 `calcTool()`，或把标题改为「预览」。
-
 ### D-N129 toast-generator 描述承诺「位置/动画」配置，实际无控件也无输出（中，文案与实现不一致）
 
 - 问题：描述写「配置 Toast 的文案、位置、图标与动画」，页面只有类型/消息/圆角/背景色 4 个输入；生成 CSS 只有 padding/radius/background/color/flex/shadow/icon，没有 `position`、没有 `transform/opacity` 或 keyframes。
@@ -372,14 +357,6 @@
 - 复现：全页 grep `type="file"|FileReader|readAsDataURL|btoa` 0 命中；工具区只有 textarea + 转换/复制/下载（`:162-167`）。
 - 影响：`tools/design/base64-to-image.html` 用户找不到「图片→Base64」入口，核心承诺缺失。
 - 方案：补上传控件并 `FileReader.readAsDataURL()` 输出 Data URL（纯前端、无依赖）；或删除所有反向文案，并把 formula-desc 改为真实解码流程。
-
-### D-N144 tailwind 详情里的「CSS 变量」名 `--tw-<color>-<level>` 不是 Tailwind 实际变量（低，确认文案错误）
-
-- 问题：详情面板展示 `--tw-${name}-${level}`；Tailwind v3 无该变量，v4 官方命名是 `--color-${name}-${level}`。该值会被用户当真实 token 复制。
-- 证据：`tools/design/tailwind-colors.html:447`（CSS 变量行）、`:435`（`bg-${name}-${level}` 类名本身正确）、`:448`（任意值类）。
-- 复现：查 Tailwind v4 主题变量 → `--color-blue-500`；页面给出 `--tw-blue-500`，复制到 CSS 中变量不存在。
-- 影响：`tools/design/tailwind-colors.html` 输出错误参考值。
-- 方案：改为 `--color-${name}-${level}` 并标注适用 v4；或删掉该行只保留 `bg-/text-/border-` 类。
 
 ### D-N151 colorblind 严重度滑杆对所有 8 型统一生效，与「完全型默认 100%」提示冲突（中，确认源码缺陷）
 

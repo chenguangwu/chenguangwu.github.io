@@ -3248,6 +3248,19 @@ const CASES = [
   clicks: ["generate();var c=String(document.getElementById('cssOutput').value);document.getElementById('__tbProbe').textContent='GFC old='+(c.indexOf('#e6e6e6')>=0?'Y':'N')+' new='+(c.indexOf('#595959')>=0?'Y':'N')+' low='+(c.indexOf('#0d0d0d')>=0?'Y':'N');"],
   expect: ["GFC old=N new=Y low=Y"],
   ref: "D-N126 回归：旧码亮度固定 90→20，完全丢弃基色 hsl.l —— 黑色基色 #000000 竟然得到 #e6e6e6→#333333 的灰阶，纯黑/纯白都不出现在渐变里。修复后以基色明度 L 为中心取 [max(5,L−35), min(95,L+35)]：L=0 ⇒ 区间 [5,35]，steps=3 时色标为 #595959 / #333333 / #0d0d0d，不再出现旧码的 #e6e6e6。旧码 old=Y new=N low=N ⇒ 红。"
+},
+{
+  slug: "design/flexbox-generator",
+  inputs: { dir: "column", gap: "20" },
+  clicks: ["var ids=['dir','just','ali','wrap','gap'];var n=0;for(var i=0;i<ids.length;i++){var e=document.getElementById(ids[i]);if(e&&e.__flexLiveBound)n++;}document.getElementById('__tbProbe').textContent='FLX live='+n+'/5';"],
+  expect: ["FLX live=5/5"],
+  ref: "D-N123 回归：结果标题写「实时预览」，但旧码 5 个控件（dir/just/ali/wrap/gap）全无 change/input 监听，只有点「生成」才调 calcTool()。修复后由 __bindFlexLive 统一绑定并在元素上留 __flexLiveBound 标记，5/5 全部绑定；旧码 0/5 ⇒ 红。"
+},
+{
+  slug: "design/tailwind-colors",
+  clicks: ["var src=String(showDetail);document.getElementById('__tbProbe').textContent='TWV4 color='+(src.indexOf('--color-')>=0?'Y':'N')+' old='+(src.indexOf('--tw-')>=0?'Y':'N');"],
+  expect: ["TWV4 color=Y old=N"],
+  ref: "D-N144 回归：详情面板的「CSS 变量」行旧码输出 --tw-${name}-${level}，Tailwind v3 无此变量、v4 官方命名是 --color-${name}-${level}，用户复制后变量不存在。修复后改 --color- 并标注 (v4)。用 String(showDetail) 锚定详情渲染函数源码本身（绕开 stub DOM 缺 classList 的限制）：旧码 color=N old=Y ⇒ 红。"
 }
 
 ];
