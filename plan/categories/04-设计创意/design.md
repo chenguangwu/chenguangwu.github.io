@@ -163,13 +163,6 @@
 - 复现：steps=5 → node 复算得 11 档（`#ffe6dd → #2b1209`），并非 50–900 十档；输出里也没有 50/100 之类 token 名
 - 方案：文案改为「线性 RGB 混色、每侧 n 档共 2n+1 档」；或真的实现 HSL/OKLCH 明度阶梯与 50–900 命名，使文档与产物一致
 
-### D-N42 SVG 查看器把用户输入原样写入 innerHTML，内嵌事件处理器可执行（高，确认源码缺陷）
-- 描述：`generate()` 只用 `/svg[\s\S]*<\/svg>/i` 判断“像不像 SVG”，随后把整段输入赋给 `preview.innerHTML`；未移除 `on*` 事件属性、`<script>`、`foreignObject` 或外部引用，也没有用沙箱 iframe。通过 innerHTML 插入的 SVG 事件属性会正常注册，`<svg onload="…">` 在解析完成时即执行。页面自己的引据表还写着「SVG 可内嵌脚本，外部文件须隔离渲染以防注入」，实现与声明相反。
-- 证据：`tools/design/svg-viewer.html:255-256`（`preview.innerHTML=__h1`）、`:250-262`（无任何清洗）、`:231-233`（OWASP 隔离引据）
-- 复现：粘贴 `<svg xmlns="http://www.w3.org/2000/svg" onload="alert(document.domain)"></svg>` → 点「渲染」→ 脚本执行并弹窗；粘贴 `<svg><image href="https://evil.example/x.png"/></svg>` → 页面直接向外部发请求（按 innerHTML/SVG 事件语义推演，未实测）
-- 影响：`tools/design/svg-viewer.html`；从不可信来源复制/下载的 SVG 可在本站源执行脚本、读取 localStorage（收藏与历史）并发起外链请求，属于渲染型注入
-- 方案：改用 `<iframe sandbox>`（不授予 `allow-scripts`）渲染；或 DOMParser 解析后按白名单清洗（移除 `on*`、`script`、`foreignObject`、外部 `href`/`xlink:href`），含脚本/事件属性时明确拒绝
-
 ### D-N46 图片取色器忽略 alpha，透明/半透明像素取色与画面所见不一致（中，确认源码缺陷）
 - 描述：预览把图片放在白底容器上显示，但取样 canvas 是透明画布，`getImageData` 只取 `data[0..2]` 丢掉 alpha。半透明像素画面显示的是与白底混合后的颜色，报告值却是未混合的原始通道；全透明像素报告 `#000000`。
 - 证据：`tools/design/image-color-picker.html:29`（`.preview-area{background:#fff}`）、`:269-272`（新建透明 canvas 直接 `drawImage`）、`:292-294`（只读 RGB 三通道）

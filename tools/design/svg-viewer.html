@@ -237,21 +237,42 @@
 </div>
 <script>
 var SVG_UNSAFE_NOTE='已移除 SVG 中的不安全脚本或事件属性';
+function __svgUnsafeNote(){
+  return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())
+    ? 'Unsafe scripts or event attributes were removed from the SVG'
+    : SVG_UNSAFE_NOTE;
+}
+// 清洗后终检：若仍有可执行/外链痕迹，不再把内容写进 innerHTML
+function __svgStillDangerous(s){
+  return /<script\b|<\/script|<foreignObject\b|<\/foreignObject|[\s/]+on\w+\s*=|javascript:/i.test(s)
+    || /\b(xlink:href|href)\s*=\s*(?!['"]?#)(?!['"]?data:image\/(?:png|jpe?g|gif|webp|bmp)(?:;|,))/i.test(s);
+}
 function sanitizeSvg(code){
   var out=String(code), removed=false;
-  out=out.replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, function(){removed=true;return '';});
-  out=out.replace(/<\/script\s*>/gi, function(){removed=true;return '';});
-  out=out.replace(/<script\b[^>]*\/?>/gi, function(){removed=true;return '';});
-  out=out.replace(/<foreignObject\b[^>]*>[\s\S]*?<\/foreignObject\s*>/gi, function(){removed=true;return '';});
-  out=out.replace(/<\/foreignObject\s*>/gi, function(){removed=true;return '';});
-  out=out.replace(/<foreignObject\b[^>]*\/?>/gi, function(){removed=true;return '';});
-  out=out.replace(/[\s/]+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, function(){removed=true;return '';});
-  out=out.replace(/\b(xlink:href|href)\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, function(m,attr,val){
-    var v=String(val).replace(/^['"]|['"]$/g,'').trim();
-    if(/^#/.test(v)||/^data:image\//i.test(v)) return m;
-    removed=true; return '';
-  });
-  out=out.replace(/javascript:/gi, function(){removed=true;return '';});
+  // 单轮清洗：移除脚本/外部对象/事件属性/外部引用
+  function stripOnce(s){
+    s=s.replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, function(){removed=true;return '';});
+    s=s.replace(/<\/script\s*>/gi, function(){removed=true;return '';});
+    s=s.replace(/<script\b[^>]*\/?>/gi, function(){removed=true;return '';});
+    s=s.replace(/<foreignObject\b[^>]*>[\s\S]*?<\/foreignObject\s*>/gi, function(){removed=true;return '';});
+    s=s.replace(/<\/foreignObject\s*>/gi, function(){removed=true;return '';});
+    s=s.replace(/<foreignObject\b[^>]*\/?>/gi, function(){removed=true;return '';});
+    s=s.replace(/[\s/]+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, function(){removed=true;return '';});
+    s=s.replace(/\b(xlink:href|href)\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, function(m,attr,val){
+      var v=String(val).replace(/^['"]|['"]$/g,'').trim();
+      // 仅放行内部引用与位图 data URI；data:image/svg+xml 可内嵌脚本，必须拒绝
+      if(/^#/.test(v)||/^data:image\/(?:png|jpe?g|gif|webp|bmp)(?:;|,)/i.test(v)) return m;
+      removed=true; return '';
+    });
+    s=s.replace(/javascript:/gi, function(){removed=true;return '';});
+    return s;
+  }
+  // 循环清洗到不动点，杜绝 <scr<script>ipt> / <foreiforeignObjectgnObject> 之类嵌套重组绕过
+  for(var i=0;i<6;i++){
+    var prev=out;
+    out=stripOnce(out);
+    if(out===prev) break;
+  }
   return {html:out, removed:removed};
 }
 function generate(){
@@ -261,7 +282,9 @@ function generate(){
   try{
     if(/<svg[\s\S]*<\/svg>/i.test(code)){
       var safe=sanitizeSvg(code);
-      const __h1=(safe.removed?'<div class="svg-preview-error">'+SVG_UNSAFE_NOTE+'</div>':'')+safe.html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){preview.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}preview.innerHTML=__h1;
+      // 终检兜底：清洗后若仍残留可执行/外链痕迹，丢弃内容、只留安全提示
+      if(__svgStillDangerous(safe.html)){ safe.html=''; safe.removed=true; }
+      const __h1=(safe.removed?'<div class="svg-preview-error">'+__svgUnsafeNote()+'</div>':'')+safe.html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){preview.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}preview.innerHTML=__h1;
     } else {
       const __h2='<span class="svg-preview-error">未检测到有效的 SVG 标签</span>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){preview.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}preview.innerHTML=__h2;
     }

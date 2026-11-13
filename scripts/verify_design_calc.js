@@ -906,6 +906,27 @@ const CASES = [
     ref: "安全修复判别：注入含 onload 与 <script> 的 SVG。清洗后仍预览 SVGXSS2026，并额外输出『已移除 SVG 中的不安全脚本或事件属性』提示；旧实现直接 innerHTML 原文、无该提示 ⇒ 不命中。默认态无该提示。",
   },
   {
+    slug: "design/svg-viewer",
+    inputs: { svgInput: "<svg><image href='data:image/svg+xml;base64,PHN2Zz48L3N2Zz4='/><text>SVGB2026</text></svg>" },
+    clicks: ["var __r=sanitizeSvg(document.getElementById('svgInput').value);var __h=String(__r.html).toLowerCase();var __bad=(__h.indexOf('<script')>=0||__h.indexOf('<foreignobject')>=0||__h.indexOf('data:image/svg')>=0||__h.indexOf('javascript:')>=0);document.getElementById('__tbProbe').textContent='SVGB2026_CLEAN='+(__bad?'BAD':'OK')+'_RM='+__r.removed+'_DANGER='+__svgStillDangerous(__r.html);"],
+    expect: ["SVGB2026_CLEAN=OK_RM=true_DANGER=false"],
+    ref: "B 类绕过（data:image/svg+xml 可内嵌脚本）：旧清洗白名单 /^data:image\\// 放行 ⇒ 残留危险串、removed=false；新清洗仅放行位图 data URI ⇒ 该 href 被移除、removed=true，终检不触发。expect 锚清洗后的派生哨兵（非输入回显），默认态 svgInput 为示例 SVG ⇒ RM=false 不命中。",
+  },
+  {
+    slug: "design/svg-viewer",
+    inputs: { svgInput: "<svg><scr<script>ipt>alert(3)</scr<script>ipt><text>SVGC2026</text></svg>" },
+    clicks: ["var __r=sanitizeSvg(document.getElementById('svgInput').value);var __h=String(__r.html).toLowerCase();var __bad=(__h.indexOf('<script')>=0||__h.indexOf('<foreignobject')>=0||__h.indexOf('data:image/svg')>=0||__h.indexOf('javascript:')>=0);document.getElementById('__tbProbe').textContent='SVGC2026_CLEAN='+(__bad?'BAD':'OK')+'_RM='+__r.removed+'_DANGER='+__svgStillDangerous(__r.html);"],
+    expect: ["SVGC2026_CLEAN=OK_RM=true_DANGER=false"],
+    ref: "C 类绕过（<scr<script>ipt> 嵌套重组）：旧清洗单次 replace 移除内层后重组出新的 <script>；新清洗循环到不动点 ⇒ 彻底清除。expect 锚清洗后派生哨兵，默认态 RM=false 不命中。",
+  },
+  {
+    slug: "design/svg-viewer",
+    inputs: { svgInput: "<svg><foreignObj<foreignObject>ect><div>X</div></foreignObj<foreignObject>ect><text>SVGD2026</text></svg>" },
+    clicks: ["var __r=sanitizeSvg(document.getElementById('svgInput').value);var __h=String(__r.html).toLowerCase();var __bad=(__h.indexOf('<script')>=0||__h.indexOf('<foreignobject')>=0||__h.indexOf('data:image/svg')>=0||__h.indexOf('javascript:')>=0);document.getElementById('__tbProbe').textContent='SVGD2026_CLEAN='+(__bad?'BAD':'OK')+'_RM='+__r.removed+'_DANGER='+__svgStillDangerous(__r.html);"],
+    expect: ["SVGD2026_CLEAN=OK_RM=true_DANGER=false"],
+    ref: "D 类绕过（foreignObject 嵌套重组）：payload 中 <foreignObj<foreignObject>ect> 经旧清洗单次 replace 移除内层后重组出完整 <foreignObject>…</foreignObject>（实测旧码输出该标签对）；新清洗循环到不动点 ⇒ 彻底清除。expect 锚清洗后派生哨兵，默认态 RM=false 不命中。",
+  },
+  {
     slug: "design/font-preview",
     inputs: { fpText: "ZZPREVZZ" },
     expect: ["ZZPREVZZ"],
