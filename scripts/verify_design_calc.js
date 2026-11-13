@@ -3275,6 +3275,12 @@ const CASES = [
   ref: "D-N123 回归：结果标题写「实时预览」，但旧码 5 个控件（dir/just/ali/wrap/gap）全无 change/input 监听，只有点「生成」才调 calcTool()。修复后由 __bindFlexLive 统一绑定并在元素上留 __flexLiveBound 标记，5/5 全部绑定；旧码 0/5 ⇒ 红。"
 },
 {
+  slug: "design/flexbox-generator",
+  clicks: ["var e=document.getElementById('dir');var saved=e.addEventListener;e.addEventListener=undefined;var r='Y';try{e.__flexLiveBound=false;__bindFlexLive();}catch(err){r='N';}e.addEventListener=saved;document.getElementById('__tbProbe').textContent='FLX degrade='+r+' bound='+(e.__flexLiveBound?'Y':'N');"],
+  expect: ["FLX degrade=Y bound=N"],
+  ref: "第356批全量门禁阻断回归：calculation regression 的 DOM stub 给 dir/just/ali/wrap/gap 的元素只有 value，不带 addEventListener；旧码 __bindFlexLive 直调该 API，整页初始化抛 e.addEventListener is not a function。探针摘除 dir 的事件 API 后重跑绑定：旧码抛错且已置标记 ⇒ degrade=N bound=Y ⇒ 红；新码先做能力判断再跳过 ⇒ 不抛错、不置标记 ⇒ degrade=Y bound=N。真实浏览器下原有 FLX live=5/5 用例仍保证五个控件全绑定。"
+},
+{
   slug: "design/tailwind-colors",
   clicks: ["var src=String(showDetail);document.getElementById('__tbProbe').textContent='TWV4 color='+(src.indexOf('--color-')>=0?'Y':'N')+' old='+(src.indexOf('--tw-')>=0?'Y':'N');"],
   expect: ["TWV4 color=Y old=N"],
