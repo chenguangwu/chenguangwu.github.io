@@ -199,15 +199,6 @@
 - 影响：`tools/design/neomorphism-generator.html`；设计师按圆形按钮调整后复制到项目得到方形卡片，凹/浮雕效果需手改 CSS
 - 方案：按 currentShape 选圆角（圆 50%、按钮 50px）；增加「凸起/凹陷/浮雕」变体切换并输出 pressedShadow/punchShadow；或移除无处导出的预览变体
 
-### D-N72 网格图案生成器「虚线网格」与「方形网格」输出相同实线（中，确认源码缺陷）
-- 描述：`dashed` 分支与 `square` 分支使用逐字符相同的两条 `linear-gradient` 与 `background-size`，仅额外加 `background-position: -lw/2 0, 0 -lw/2`，结果仍是连续实线网格，只是整体左/上移半像素，没有虚线段。
-- 证据：`tools/design/grid-pattern.html:269-270`（square 模板）、`:273-274`（dashed 模板，渐变与 size 完全相同）、`:167-173`（五种类型下拉）
-- 复现（node 复算同一组 30/1/#667eea）：`type=square` 与 `type=dashed` 的 `background-image` 与 `background-size` 字符串 `===`，仅 background-position 不同；预览像素级相同（期望虚线由实线段+间隔组成）
-- 影响：`tools/design/grid-pattern.html`；五种类型里两个实质重复，用户选「虚线网格」拿不到虚线
-- 方案：用 `repeating-linear-gradient(${line} 0 ${lw}px, transparent ${lw}px ${lw*3}px)` 构造两方向的虚线段；补「五种类型输出互不相同」断言
-
-- 本轮实读 8 页：`css-box-shadow-generator.html`、`css-text-shadow.html`、`shadow-generator.html`、`glassmorphism-generator.html`、`neomorphism-generator.html`、`spinner-generator.html`、`progress-bar-generator.html`、`grid-pattern.html`；新增 12 条（高 2 / 中 7 / 低 3）。D-N63/D-N64 与既有 D-N44 属同一「增删层不重绘」模板缺陷（前两条已于第321批修复），D-N69/D-N70 为同页两个独立问题，源码均已修复并于第322批核验销账，其余为各页独有。未覆盖：`tools/design` 其余约 53 页（108 个工具页中本文件已引 56 个），代表页含 `favicon-from-text`、`favicon-from-emoji`、`initials-avatar`、`identicon-generator`、`loading-dots`、`ripple-effect`、`pixel-art-generator`、`checkerboard-generator`、`dot-pattern`、`stripe-pattern`、`toast-generator`、`material-color`、`tailwind-colors`、`colorblind-simulator`、`cvd-safe-palette`、`gradient-from-color`、`base64-to-image`、`signature-pad` 等。所有结论均为源码行号 + node 内存复算/源码路径推演；未做浏览器交互、EN 运行态探针、移动端、门禁与线上验证。
-
 ## 2026-11-04 续查（并行批 O）
 
 - 范围：`tools/design` 剩余生成器/互动演示 8 页（Favicon 文字、Favicon Emoji、首字母头像、Identicon、Loading Dots、Ripple、像素画、棋盘），逐页通读整份 HTML（内联 JS/CSS 生成逻辑、deep-dive、FAQ），编号续 D-N75。
@@ -665,14 +656,6 @@
 - 影响：核心 generator 退化为随机样例展示，与 generator-6/7/10 同质；无法产出符合品牌色的纹理。
 - 方案：补「图案类型」select、「主色/底色」color、「尺寸/线宽」range；`randInt` 改读输入；`i % patterns.length` 仅用于「随机混合」模式。
 
-### D-N194 四层渐变实为 3 方向（30° 重复）+ 公式与规格不符（低，确认缺陷）
-
-- 问题：`background-image` 写了 4 层，第 1、4 层都是 `linear-gradient(30deg …)`，完全重复，实际只有 30°/150°/270° 三个方向；公式却把「四层 30°、150°、270°、30°」当特性，`background-size = 边长 × (边长 × 0.5774)` 写成面积式（实际是 `s` 宽 × `0.5774s` 高）；引据表又推荐 2:1 菱形（0.5），与实现的 0.5774 不一致。
-- 证据：`:259`（第 1/4 层相同）、`:156`（公式写法）、`:231`（2:1 菱形）、`:257-258`（只夹下限）。
-- 复现：线宽设 5 → 一组斜线因重复层明显更粗；输入 size=999 → JS 接受 999（`max` 未在 JS 夹取）。期望 4 层各不相同或明确只画 3 层。
-- 影响：网格疏密不均，公式/参数说明误导；上限失控会生成超大 tile。
-- 方案：删重复第 4 层（或补第 4 方向）；公式改「宽 = s，高 = s·tan30° ≈ 0.5774s」；JS 用 `Math.min(200, Math.max(10, …))`。
-
 ### D-N195 动画生成器无参数控件、无预览，只有代码文本（高，确认缺陷）
 
 - 问题：meta/简介承诺「以可视化方式编排关键帧，调整时长、缓动与属性并实时预览」，实际只有 `#cnt` 一个输入；时长/缓动/延迟/方向全部随机，页面没有任何预览元素或动画实例，`#res` 只输出 `<pre>` 代码。
@@ -680,14 +663,6 @@
 - 复现：打开页面 → 看不到任何会动的元素；改「生成数量」只增减代码条目。期望有预览方块循环播放并可用滑杆调 duration/easing。
 - 影响：「可视化」「实时预览」两个主卖点均未实现，用户只能盲拷代码、无法判断动效观感。
 - 方案：加预览 box，把选中条 `animation` 应用到它；补 duration/easing/iteration/direction 控件；`cnt` 保留为「生成候选条数」。
-
-### D-N197 趋势图恒空 + `randColor` 死代码（低，确认缺陷）
-
-- 问题：结果文本以「生成结果：」开头，`parseFloat` 得 NaN，图表永不渲染；`randColor()` 定义后从未调用，属死代码。
-- 证据：`:230`（前缀）、`:384`（parseFloat）、`:212-215`（`randColor`）、`:235`/`:241`（实际取色方式）。
-- 复现：生成 3 次 →「图表」空白；`parseFloat('生成结果： 1. fadeIn-…')` = NaN。
-- 影响：图表页签无效；死代码增加维护噪音（非功能缺陷）。
-- 方案：历史存 `duration` 数值列供图表；删除 `randColor` 或改用它生成颜色。
 
 ### D-N200 小调不显示调号；和声/旋律小调承诺落空；和弦构成仅静态示例（中，确认缺陷）
 

@@ -1483,9 +1483,9 @@ const CASES = [
       "cnt": "42"
     },
     "expect": [
-      "mation: flip-873 2.7s cubic-bezier(0.68,-0.55,0.27,1.55) 0.2s 2 normal"
+      "42. .slideUp-"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"cnt\":\"42\"}，输出区含「mation: flip-873 2.7s cubic-bezier(0.68,…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "注入非默认输入{\"cnt\":\"42\"}，输出区含第 42 条的标题前缀「42. .slideUp-」（八种动画按 i % 8 轮换，41 % 8 = 1 ⇒ 第 42 条必为 slideUp）。原 expect 锚「mation: flip-873 2.7s cubic-bezier(…」依赖随机时长/延迟/缓动与随机后缀，页面源码一改随机序列即位移而假红，改锚确定性结构串；默认态 5 条 ⇒ 不含该串。"
   },
   {
     "slug": "design/generator-11",
@@ -3195,6 +3195,22 @@ const CASES = [
   clicks: ["gen();var h=String(document.getElementById('res').innerHTML);var a=h.indexOf('0px 1px 4px 0px rgba(0, 0, 0, 0.14)')>=0;var c=h.indexOf('0px 3px 8px 0px rgba(0, 0, 0, 0.13)')>=0;document.getElementById('__tbProbe').textContent='G6SCALE a='+(a?'Y':'N')+' c='+(c?'Y':'N');"],
   expect: ["G6SCALE a=Y c=Y"],
   ref: "D-N169 回归：「8 组阴影（层级体系）」旧码只设 cnt，每条独立随机，产出互不相关且可能倒序，不能当 elevation scale 用。修复后新增「层级递增」模式：第 i 条固定 offset-x 0、offset-y i、blur 2i+2、spread 0、透明度 0.15−0.006i（下限 0.05）。注入 3 条 ⇒ 第 1 条必为 `0px 1px 4px 0px rgba(0, 0, 0, 0.14)`、第 3 条必为 `0px 3px 8px 0px rgba(0, 0, 0, 0.13)`，同时锚定递增与透明度递减。旧码无 mode 控件 ⇒ 两条均不命中 ⇒ 红。"
+},
+
+// ── 第348批：网格虚线类型、等距网格重复层与上限 ───────────────────
+{
+  slug: "design/grid-pattern",
+  inputs: { gridType: "dashed", cellSize: "30", lineWidth: "2" },
+  clicks: ["var t=document.getElementById('gridType');t.value='dashed';generate();var h=String(document.getElementById('cssOutput').value);var rep=(h.match(/repeating-linear-gradient/g)||[]).length;document.getElementById('__tbProbe').textContent='G72 rep='+rep+' solid='+(h.indexOf('background-image: linear-gradient(')>=0?'Y':'N');"],
+  expect: ["G72 rep=2 solid=N"],
+  ref: "D-N72 回归：旧码 dashed 分支与 square 分支的 background-image / background-size 逐字符相同，只多一条 background-position，实为整体位移半像素的实线网格，选「虚线网格」拿不到虚线。修复后改用两层 repeating-linear-gradient（实线段 lw px + 间隔 2·lw px），输出含 2 处 repeating-linear-gradient、且不再退回普通 linear-gradient 实线写法。旧码 rep=0 solid=Y ⇒ 红。"
+},
+{
+  slug: "design/isometric-grid",
+  inputs: { size: "40", lineWidth: "1" },
+  clicks: ["generate();var o=String(document.getElementById('cssOutput').value);var n=(o.match(/linear-gradient\\(/g)||[]).length;document.getElementById('size').value='999';generate();var o2=String(document.getElementById('cssOutput').value);var m=o2.match(/background-size: ([0-9.]+)px/);document.getElementById('__tbProbe').textContent='G194 n='+n+' clamp='+(m?m[1]:'N');"],
+  expect: ["G194 n=3 clamp=200"],
+  ref: "D-N194 回归：旧码 background-image 写 4 层，其中第 1、4 层都是 linear-gradient(30deg …) 完全重复，实际只有 3 个方向；且 size 只在 HTML 上写 max=200、JS 未夹取。修复后删掉重复层（n=3）并把 size 钳到 10–200（输入 999 ⇒ background-size 宽 200px）。旧码 n=4 clamp=999 ⇒ 红。"
 }
 
 ];
