@@ -3279,6 +3279,16 @@ const CASES = [
   clicks: ["var src=String(showDetail);document.getElementById('__tbProbe').textContent='TWV4 color='+(src.indexOf('--color-')>=0?'Y':'N')+' old='+(src.indexOf('--tw-')>=0?'Y':'N');"],
   expect: ["TWV4 color=Y old=N"],
   ref: "D-N144 回归：详情面板的「CSS 变量」行旧码输出 --tw-${name}-${level}，Tailwind v3 无此变量、v4 官方命名是 --color-${name}-${level}，用户复制后变量不存在。修复后改 --color- 并标注 (v4)。用 String(showDetail) 锚定详情渲染函数源码本身（绕开 stub DOM 缺 classList 的限制）：旧码 color=N old=Y ⇒ 红。"
+},
+{
+  slug: "design/tester-assessor",
+  // 第354批 D-N175：历史快照原 keys.slice(0,12) 只保留前 4 题 SUS，后 6 题不入库也不恢复。
+  // 自建 TBKit + 18 个输入桩，跑真 Extras ⇒ 记录应含 20 键（18 输入 + 结果 + 评分）、表头 21 列、
+  // 且 mount 的恢复回调能把末题 sus9 回写成记录值。
+  clicks: ["var __cap=null,__head=null,__pick=null;TBKit={util:{isEn:function(){return false;},diffBox:function(){},exportTable:function(){}},matrix:{table:function(h,o){__head=o.head;}},chart:{line:function(){}},history:{list:function(){return [];},last:function(){return null;},record:function(r){__cap=r;},mount:function(h,f){__pick=f;}},preset:{bar:function(){}}};var __els=[],__ids=['totalTasks','successTasks','avgTime','expectedTime','errors','helpCount','userCount','satisfaction'];for(var __i=0;__i<__ids.length;__i++)__els.push({id:__ids[__i],type:'text',value:'5'});for(var __j=0;__j<10;__j++)__els.push({id:'sus'+__j,type:'select-one',value:__j===9?'1':'3'});var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('res').textContent='86 综合可用性评分';__tester_assessor_last=0;__tester_assessor_skip=false;__tester_assessorExtras();document.querySelectorAll=__oq;var __n=__cap?Object.keys(__cap).length:0,__has=!!(__cap&&Object.prototype.hasOwnProperty.call(__cap,'sus9'));if(__cap&&__has)__cap.sus9='2';if(__pick){try{__pick(__cap||{});}catch(e){}}document.getElementById('__tbProbe').textContent='可用性历史 键数='+__n+' 末题='+( __has?'Y':'N')+' 表头='+(__head?__head.length:0)+' 恢复='+(String(document.getElementById('sus9').value)==='2'?'Y':'N');"],
+  expect: ["可用性历史 键数=20 末题=Y 表头=21 恢复=Y"],
+  ref: "第354批：__tester_assessorSnap() 收集 8 项绩效 + 10 题 SUS 共 18 键，旧码在 Extras 与 Export 两处 keys.slice(0,12) 截掉后 6 题 ⇒ 历史只存 4 题 SUS，恢复时其余 6 题保留当前值再 calc()，SUS 分数与记录结果不符。删除截断后：rec = 18 输入 + 结果 + __tbScore = 20 键，Render 表头 = 时间 + 18 + 结论 + 结果 = 21 列，mount 恢复回调能把 sus9 回写成记录值。旧码应为 键数=14 末题=N 表头=15 恢复=N ⇒ 全失配。探针仅由 clicks 生成 ⇒ 零逃生。",
+  inputs: {}
 }
 
 ];

@@ -4,7 +4,7 @@ window.INDUSTRY_INFO = {
   'it'                   : { name: 'IT 开发', icon: '💻', hot: 30345043 },
   'life'                 : { name: '日常生活', icon: '🏠', hot: 11719577 },
   'finance'              : { name: '金融财务', icon: '💰', hot: 10224558 },
-  'design'               : { name: '设计创意', icon: '🎨', hot: 8175865 },
+  'design'               : { name: '设计创意', icon: '🎨', hot: 8175864 },
   'image'                : { name: '图像处理', icon: '🖼️', hot: 5082263 },
   'office'               : { name: '办公文档', icon: '📄', hot: 5005141 },
   'health'               : { name: '健康医疗', icon: '❤️', hot: 3523949 },
