@@ -256,21 +256,6 @@
 - 影响：通道数量三处口径不一，且 9 行里有 1 组冗余。
 - 方案：删重复行（保留灰度）并把标题改 8；或补 blue-cone 后统一为 9，同时改 meta。
 
-### D-N122 deep-dive 示例显示转义后的 `<p><strong>` 标签文本（中，文案与实现不一致；同族 5 页）
-
-- 问题：示例正文把整段 `<p><strong>` 转义后写入 `dd-ex-body`，页面上直接显示 `<p><strong>输入：</strong>…` 的标签文字，而不是「输入：」加粗。
-- 证据：`tools/design/flexbox-generator.html:389`。
-- 复现：滚动到「深度解析」→ 示例卡片显示 `<p><strong>输入：</strong>row、justify-center。` 原文。
-- 影响：可读性与可信度；同族：`toast-generator.html:209`、`exposure-triangle-calculator.html:189`、`shutter-speed-calculator.html:185`、`gradient-from-color.html:212`。
-- 方案：去掉 `&lt;p&gt;`/`&lt;strong&gt;`，直接写纯文本或真实标签。
-
-### D-N129 toast-generator 描述承诺「位置/动画」配置，实际无控件也无输出（中，文案与实现不一致）
-
-- 问题：描述写「配置 Toast 的文案、位置、图标与动画」，页面只有类型/消息/圆角/背景色 4 个输入；生成 CSS 只有 padding/radius/background/color/flex/shadow/icon，没有 `position`、没有 `transform/opacity` 或 keyframes。
-- 证据：`tools/design/toast-generator.html:159`（描述）、`:168-172`（4 个输入）、`:285`（写入 `#cssOutput` 的 CSS）、`:157`（公式框也只列这些）、`:213`（FAQ 承认位置/自动关闭要自己写）。
-- 复现：任选类型点生成 → `#cssOutput` 中 grep `position|animation|@keyframes|transform` 均 0 命中；页面无位置/动画控件。
-- 影响：核心卖点缺失，复制出的代码只能塞进已摆好位置的容器。
-- 方案：补位置（四角/顶/底）与动画（slide/fade/scale + 时长）并写进 `position:fixed` 的完整片段；或把描述改为「样式生成」。
 
 ### 留存/优势建议（逐页，具体可落地）
 
