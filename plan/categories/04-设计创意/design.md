@@ -175,12 +175,6 @@
 - 复现：percentScale=-50 → canvas 1×1，无任何报错；清空比例 → 按 100% 原尺寸；customWidth=0 → 不缩放
 - 方案：按 1–1000 校验并提示，负值/0 直接报错；1×1 兜底改为显式失败提示
 
-### D-N39 Favicon 生成器 meta/OG 与公式说明宣称「一键下载 .ico」，实际只导出 PNG（中，确认源码缺陷）
-- 描述：页面 meta description、OG description、公式说明与 deep-dive 四处均写 `.ico` 可下载/可打包，但同页正文与 FAQ 又承认「纯前端无法生成真 ICO」「本工具导出 PNG」，文案自相矛盾且宣称的能力不存在。
-- 证据：`tools/design/favicon-generator.html:10`、`:15`（description「一键下载 .ico 适配各浏览器」）、`:265`（formula-desc「打包为 .ico」）、`:313`（deep-dive「ICO 与 PNG 套装可下载」）对照 `:263`（「纯前端无法生成真 ICO」）、`:689`（FAQ「本工具导出 PNG」）
-- 影响：搜索结果与分享卡片承诺 ICO，用户下载只得到 PNG；信任损耗，且属于对外元数据错误
-- 方案：四处统一改为「导出多尺寸 PNG」；如确需 ICO，前端手写 ICO 容器（PNG-in-ICO 可行）或在页内给出明确的外部转换指引
-
 ### D-N42 SVG 查看器把用户输入原样写入 innerHTML，内嵌事件处理器可执行（高，确认源码缺陷）
 - 描述：`generate()` 只用 `/svg[\s\S]*<\/svg>/i` 判断“像不像 SVG”，随后把整段输入赋给 `preview.innerHTML`；未移除 `on*` 事件属性、`<script>`、`foreignObject` 或外部引用，也没有用沙箱 iframe。通过 innerHTML 插入的 SVG 事件属性会正常注册，`<svg onload="…">` 在解析完成时即执行。页面自己的引据表还写着「SVG 可内嵌脚本，外部文件须隔离渲染以防注入」，实现与声明相反。
 - 证据：`tools/design/svg-viewer.html:255-256`（`preview.innerHTML=__h1`）、`:250-262`（无任何清洗）、`:231-233`（OWASP 隔离引据）
