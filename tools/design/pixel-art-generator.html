@@ -392,12 +392,22 @@ function __pixel_art_generatorRender(keys,rk,en){
             __pixel_art_generator_skip=true;
             try{
                 for(var k in rec){
-                    if(k===rk||k==='__tbScore') continue;
+                    if(k===rk||k==='__tbScore'||k==='__pxGrid') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
                     if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
                     else{e.value=rec[k];}
+                }
+                if(rec.__pxGrid){
+                    try{
+                        var g=JSON.parse(rec.__pxGrid);
+                        if(g && g.length && g[0] && g[0].length){
+                            window.__pxGrid=g;
+                            window.__pxSize=g.length;
+                            window.__pxInited=true;
+                        }
+                    }catch(e3){}
                 }
                 calcTool();
             }catch(e2){}
@@ -413,10 +423,18 @@ function __pixel_art_generatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
+function __pixel_art_generatorData(){
+    var d={};
+    if(typeof window!=='undefined' && window.__pxGrid && window.__pxGrid.length){
+        try{ d.__pxGrid=JSON.stringify(window.__pxGrid); }catch(e){}
+    }
+    return d;
+}
 function __pixel_art_generatorExtras(){
     if (typeof TBKit === 'undefined') return;
     if (__pixel_art_generator_skip) return;
     var snap=__pixel_art_generatorSnap();
+    var data=__pixel_art_generatorData();
     var keys=Object.keys(snap);
     if(!keys.length) return;
     if(keys.length>12) keys=keys.slice(0,12);
@@ -438,6 +456,8 @@ function __pixel_art_generatorExtras(){
     __pixel_art_generator_last=now;
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    var dkeys=Object.keys(data);
+    for(var i=0;i<dkeys.length;i++) rec[dkeys[i]]=data[dkeys[i]];
     rec[rk]=res;
     rec.__tbScore=__pixel_art_generatorScore(res);
     TBKit.history.record(rec);
