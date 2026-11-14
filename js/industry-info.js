@@ -122,7 +122,7 @@ window.INDUSTRY_INFO = {
   'ent'                  : { name: '耳鼻喉科', icon: '👂', hot: 127280 },
   'gas'                  : { name: '燃气工程', icon: '🔥', hot: 126466 },
   'gardening'            : { name: '园艺种植', icon: '🌿', hot: 124278 },
-  'language'             : { name: '语言翻译', icon: '🌍', hot: 123735 },
+  'language'             : { name: '语言翻译', icon: '🌍', hot: 123729 },
   'chemical'             : { name: '化工材料', icon: '⚗️', hot: 122388 },
   'leather'              : { name: '皮革加工', icon: '👜', hot: 122015 },
   'decor'                : { name: '室内装修', icon: '🛋️', hot: 119663 },
