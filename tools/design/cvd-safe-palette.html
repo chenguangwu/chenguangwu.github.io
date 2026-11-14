@@ -326,6 +326,12 @@ table.cs-tbl td.k{text-align:left;font-weight:600;background:var(--bg-hover);whi
   }
 
   /* 两色在 8 型下的最小 ΔE */
+  // 预计算版：直接吃 8 型 Labs 数组，供贪心评分复用（原实现每次配对各重算两边 8 型模拟 + Lab）
+  function minDeltaAcrossLabs(la, lb) {
+    var mn = Infinity;
+    for (var i = 0; i < la.length; i++) { var d = deltaE2000(la[i], lb[i]); if (d < mn) { mn = d; } }
+    return mn;
+  }
   function minDeltaAcross8(rgbA, rgbB) {
     var la = VTYPES.map(function (t) { return rgbToLab(simulate(rgbA, t.key)); });
     var lb = VTYPES.map(function (t) { return rgbToLab(simulate(rgbB, t.key)); });
@@ -428,19 +434,25 @@ table.cs-tbl td.k{text-align:left;font-weight:600;background:var(--bg-hover);whi
   var CAND = null;
   function candLabs(c) { return VTYPES.map(function (t) { return rgbToLab(simulate(c.rgb, t.key)); }); }
 
-  function greedyQualitative(n, seeds) {
+  function greedyQualitative(n, seeds, strat) {
     if (!CAND) { CAND = buildCandidates().map(function (c) { c.labs = candLabs(c); return c; }); }
-    var chosen = seeds.slice();
-    var alt = 0; // 明暗交替
+    // 锁定色统一包装成 {rgb, labs}，评分全程复用预计算 Lab
+    var chosen = seeds.map(function (s) {
+      var rgb = (s && s.rgb) || s;
+      return { rgb: rgb, labs: candLabs({ rgb: rgb }) };
+    });
+    var maxmin = (strat === 'maxmin');
+    var alt = 0; // 明暗交替（仅 lightness/auto 策略使用）
     while (chosen.length < n) {
       var targetL = (alt % 2 === 0) ? 0.80 : 0.46; alt++;
       var best = null, bestScore = -Infinity;
       for (var i = 0; i < CAND.length; i++) {
         var c = CAND[i];
-        if (Math.abs(c.L - targetL) > 0.16) { continue; }
+        // 明暗交替：限制在目标明度邻域内；最大化最小色差：不做明度过滤，在全体候选中取色差最大者
+        if (!maxmin && Math.abs(c.L - targetL) > 0.16) { continue; }
         var minD = Infinity;
         for (var j = 0; j < chosen.length; j++) {
-          var d = minDeltaAcross8(c.rgb, chosen[j].rgb);
+          var d = minDeltaAcrossLabs(c.labs, chosen[j].labs);
           if (d < minD) { minD = d; }
         }
         // 首色（尚无已选色）按「最接近目标明度」评分，避免恒取候选表首项
@@ -487,9 +499,8 @@ table.cs-tbl td.k{text-align:left;font-weight:600;background:var(--bg-hover);whi
     if (mode === 'sequential') { seq = rampSequential(n, seeds); }
     else if (mode === 'diverging') { seq = rampDiverging(n, seeds); }
     else {
-      // qualitative：strategy 影响起始
-      if (strat === 'lightness' || strat === 'auto') { seq = greedyQualitative(n, seeds); }
-      else { seq = greedyQualitative(n, seeds); }
+      // qualitative：lightness/auto 走明暗交替邻域搜索，maxmin 走全局最大化最小色差
+      seq = greedyQualitative(n, seeds, strat);
     }
     // 若种子超过 n，截断
     if (seq.length > n) { seq = seq.slice(0, n); }

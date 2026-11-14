@@ -1036,7 +1036,7 @@ const CASES = [
     slug: "design/cvd-safe-palette",
     inputs: { csMode: "sequential", csStrategy: "lightness" },
     expect: ["sequential"],
-    ref: "⚠ 下拉值回显（结构性不可修）：csMode=sequential / csStrategy=lightness 注入后，模式与策略标签确实变化，但实测色板（#A2828B → #1B179C → …）、ΔE、对比度表在默认 qualitative/auto 下**逐字节相同** —— 该页色板由固定种子搜索生成、不受模式/策略影响 ⇒ 任何色板数值锚都会在默认态命中（已双态实测 A/B 一致）。能区分的只有 `sequential`/`lightness` 两个下拉回显本身，故维持原断言。",
+    ref: "⚠ 下拉值回显（结构性不可修）：csMode=sequential / csStrategy=lightness 注入后，模式与策略标签确实变化，但对照组（同一色板）数值锚会在默认态命中 —— 该页主逻辑在 IIFE 内、`change` 监听器读 `this.value` 而 harness 的 fire 不绑定 this、`click()` 又是空操作，故策略无法在同步 stub 内驱动。D-N107（maxmin 空实现）改以独立复算取证（见交接档 2026-11-14-378），此处只保留下拉回显。",
   },
   {
     "slug": "design/avatar-generator",

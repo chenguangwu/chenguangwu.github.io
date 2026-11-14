@@ -159,22 +159,6 @@
 - 影响：发散模式的核心视觉（中心锚点）被做反，色带中间塌成深色，且与自身注释矛盾。
 - 方案：改为 `L = 0.90 − 0.58 × |2t − 1|`（两端 0.32、中点 0.90），并同步公式说明。
 
-### D-N107 cvd-safe「最大化最小色差」策略是空实现（中，确认源码缺陷）
-
-- 问题：`generate()` 中 `if (strat === 'lightness' || strat === 'auto')` 与 `else` 两个分支都调用同一个 `greedyQualitative(n, seeds)`，`maxmin` 没有任何实现分支，但界面仍提供该选项。
-- 证据：`tools/design/cvd-safe-palette.html:485-486`（两个分支语句完全相同）、`:175`（`#csStrategy` 下拉共 `lightness` / `maxmin` 两项）。
-- 复现：定性模式、数量 5、不锁色，分别选「明暗交替优先」与「最大化最小色差」点生成 → 两组 HEX 完全相同（首色恒为 h=0°/L≈0.64/C=0.04）。
-- 影响：策略下拉一半是死控件，用户以为换了算法。
-- 方案：实现 maxmin 分支（去掉/放宽 targetL 过滤，按最小 ΔE 贪心），或合并为一个选项并改文案。
-
-### D-N111 cvd-safe 预计算的 `c.labs` 在贪心中未被使用，生成时重复海量 Lab 转换（低，确认源码缺陷）
-
-- 问题：`:428` 已为每个候选预计算 `c.labs`（8 种类型各做一次模拟 + Lab），但贪心评分 `:437` 仍调 `minDeltaAcross8(c.rgb, chosen[j].rgb)`，每次配对都对两边重跑 8 次 `simulate + rgbToLab`，预计算数据完全没用上。
-- 证据：`tools/design/cvd-safe-palette.html:425-428`（`candLabs` / `c.labs`）、`:433-443`（每步约 1800 个候选 × 已选数 × 8 类型）。
-- 复现：数量取 8～10 点生成 → `#csOut` 先塞一句「正在搜索最优安全配色…」，30ms 后同步跑完，期间不可取消；按候选规模估算约 70 万次重复 Lab 转换（量级估算，未计时）。
-- 影响：大数量生成有可感知阻塞（低端移动设备更明显）；预计算内存白占。
-- 方案：评分改用预计算数组（`minDeltaAcrossLabs(c.labs, chosen[j].labs)`），或把候选网格 `h` 步长由 5 放宽到 10。
-
 ### D-N112 palette-cvd「OKLCH 距离」把 Lab 当 RGB 计算（高，确认源码缺陷）
 
 - 问题：`distFor('oklch', a, b)` 直接 `rgbToOklch(a)`，但所有调用方传入的都是 **Lab** 三元组（`renderMatrix` 的 `activeLabs()`、`analyzeWarnings` 的 `rgbToLab(simulate(...))`、图表 `list.map(rgbToLab)`）；`rgbToOklch` 却按 0–255 sRGB 解释，负的 a/b 会被 `srgbToLin` 当作负通道值处理，结果与真实 OKLCH 距离无关。
