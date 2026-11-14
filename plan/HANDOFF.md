@@ -130,16 +130,16 @@ ai 目录页用 `__vN = (表达式)` 模式，上面脚本只能抓到取值行�
 
 ## 七、2026-11-14 会话交接（fix-dev 收尾 · 给后续 agent）
 
-> 本段是**修复开发阶段**（非 11-03 的只读审计态）。本次会话共落地 395–398 四批，全部**本地提交、未 push**，收尾统一跑全量门禁 + 推送。
+> 本段是**修复开发阶段**（非 11-03 的只读审计态）。本次会话共落地 395–398 四批 + 1 个源同步修复，已全部 push（`3f666c1967..c8f11dcfee`，共 5 个提交），工作树干净。
 
-### 7.1 本会话已落地批次（本地 commit，待收尾 push）
+### 7.1 本会话已落地批次（已全部 push 完成）
 | 批号 | 工具 | 修复内容 | commit |
 |---|---|---|---|
 | 395 | `tools/edu/flag-quiz.html` | C 类「名不副实」：英文简介称 timed quiz、深解承诺错题库，但代码无计时/错题存储 → **实现真实功能**：每题限时10秒+超时判错、localStorage 错题库+只练错题模式；同步三处 meta/原理文案如实 | `58dcc92da3` |
 | 396 | `tools/fun/meditation-timer.html` | C 类：meta/深解宣称本地计时与提示音，实际仅静态计划表 → **实现真实倒计时计时器**（时间戳防漂移、段末轻响+结束鸣钟 Web Audio、暂停继续、本次练习留痕） | `0f336791c4` |
 | 397 | `tools/fun/tongue-twister.html` | C 类：主描述写「不计时」但深解承诺「跟读计时/performance 计时」自相矛盾 → **实现可选跟读计时器**+统一四处文案为「支持可选本地计时」 | `7e6682a302` |
 | 398 | `tools/edu/math-quiz.html` `tools/edu/typing-game.html` | P3 文案对齐（初版误改 HTML，见下注） | `5a4b319957` |
-| 398-源同步 | `json/tools.json` `json/industry-edu.json` `i18n/tools/edu.json` `i18n/guides/typing-game-guide.json` `i18n/tools/content_deepdive.json` `i18n/tools/en/edu/typing-game.json` + 重建产物 | **重要**：398 初版直接改 typing-game.html 的 meta/FAQ，但被 `_build.py` 从 i18n/json 源重注入还原（G03 数据源规则）。本提交改**源**消除「错题回看」虚假宣称（typing-game 无错题库功能），FAQ 改为「成绩实时显示，不保存历史记录，不上传」。务必改源而非 HTML。 | 本地提交（见 git log） |
+| 398-源同步 | `json/tools.json` `json/industry-edu.json` `i18n/tools/edu.json` `i18n/guides/typing-game-guide.json` `i18n/tools/content_deepdive.json` `i18n/tools/en/edu/typing-game.json` + 重建产物 | **重要**：398 初版直接改 typing-game.html 的 meta/FAQ，但被 `_build.py` 从 i18n/json 源重注入还原（G03 数据源规则）。本提交改**源**消除「错题回看」虚假宣称（typing-game 无错题库功能），FAQ 改为「成绩实时显示，不保存历史记录，不上传」。务必改源而非 HTML。 | `c8f11dcfee` |
 
 四批均 `node --check` 语法通过、JSON-LD 校验合法；395–397 已各自单独跑过全量 `run_gates.py`（264 道全过），398 为纯文案改动并入收尾统一跑。
 
@@ -176,6 +176,7 @@ ai 目录页用 `__vN = (表达式)` 模式，上面脚本只能抓到取值行�
 - 改源不改 HTML（deep-dive/FAQ/intro 走 `json/tools.json`、`i18n/tools/<ind>.json`、`i18n/tools/content_deepdive.json` 源；formula-eq 公式框可改页内首 `<div class="formula-desc">`）；
 - 改完 `python3 _build.py` 是提交前最后一步；收尾统一跑门禁 + push。
 
-### 7.6 收尾待办（本会话未完）
-- 全量门禁正在后台跑（`/tmp/wrapup_gates.log`）；通过即 `git push origin master` 并单次查 Actions。
-- push 后提醒后续 agent：本地 395–398 四批已上线候选，需等部署成功确认。
+### 7.6 收尾状态（已完成）
+- 5 个提交已 push：`3f666c1967..c8f11dcfee`；工作树干净。
+- Actions run `43577410231`（headSha `c8f11dcfeef`）已触发部署，前序 run 均 success。按协议仅单次查询未轮询。
+- 后续 agent 可从本会话的已修复批次（`plan/已修复/2026-11-14-39x-*`）继续，或直接接 7.4 下一批候选。
