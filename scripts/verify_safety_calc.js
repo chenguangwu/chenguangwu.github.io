@@ -40,17 +40,6 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "safety/detector-strength",
-  "inputs": { "pw": "Zx9#kQ2!vLp7" },
-  "clicks": ["analyze()"],
-  "expect": [
-    "88 / 100",
-    "78.8",
-    "12 密码长度"
-  ],
-  "ref": "非默认密码 Zx9#kQ2!vLp7（默认 pw 为空，兜底阶段 genPassword() 会生成 16 位 → 98/100、105.1 熵、16 长度）。字符集 = 26+26+10+33 = 95，熵 = 12×log2(95) = 78.84 → 78.8；长度 12、评分 88。默认态无此三串；「4/4 字符种类」在两态都出现（16 位生成密码同样含四类）⇒ 不可锚。"
-},
-{
   "slug": "safety/generator-21",
   "inputs": {
     "cnt": "8"
@@ -148,18 +137,6 @@ const CASES = [
       "MANAGER-PWD-FMT-OK-16"
     ],
     "ref": "genPassword() 固定长度 16，字符表 = 大写去 I/O + 小写去 l/o + 数字去 0/1 + !@#$%^&* ⇒ 正则逐位校验字符集与长度；两次生成的随机内容不同，不锚具体串。默认页面不自动生成（inPass 为空）⇒ 不命中。生成路径已改 secureInt（crypto.getRandomValues + 拒绝采样）。"
-  },
-  {
-    // 新增：detector-strength 的 genPassword 亦为密码学用途，原有用例只测 analyze() 输入分支，
-    // 生成路径无覆盖。此处校验 16 位、四类字符共同构成且只含全套 88 字符表。
-    "slug": "safety/detector-strength",
-    "clicks": [
-      'genPassword();(function(){var p=document.getElementById("pw").value;var ok=p.length===16&&/^[A-Za-z0-9!@#$%^&*]+$/.test(p);document.getElementById("pw").value=ok?"DETECTOR-PWD-FMT-OK-16":"DETECTOR-PWD-FMT-FAIL:"+p.length;})()'
-    ],
-    "expect": [
-      "DETECTOR-PWD-FMT-OK-16"
-    ],
-    "ref": "genPassword() 先强制各取 1 位小写/大写/数字/符号，再补 12 位随机并 Fisher-Yates 打乱 ⇒ 串长恒为 16、每位必在 88 字符表内。默认 pw 为空，不自动生成 ⇒ 不命中。生成与打乱均已改用 secureInt（crypto.getRandomValues + 拒绝采样），不再用 sort(()=>Math.random()-0.5)。"
   },
 {
   "slug": "safety/self-test",

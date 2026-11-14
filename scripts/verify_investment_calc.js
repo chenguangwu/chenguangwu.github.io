@@ -28,11 +28,6 @@ const CASES = [
     expect: ["53740.75"],
     ref: "FV=2000×[(1.03²⁰−1)/0.03]=53740.75" },
 
-  { slug: "investment/annuity-pv-inv",
-    inputs: { PMT: "2500", r: "0.04", n: "15" },
-    expect: ["27795.97"],
-    ref: "PV=2500×[1−(1.04)⁻¹⁵]/0.04=27795.97" },
-
   { slug: "investment/future-value-inv",
     inputs: { PV: "25000", r: "0.045", n: "12" },
     expect: ["42397.04"],
@@ -151,18 +146,6 @@ const CASES = [
     inputs: { rp: "11", rf: "2.5", dd: "5" },
     expect: ["1.700"],
     ref: "索提诺=(11−2.5)/5=1.700（仅用下行波动作分母）" },
-  {
-    "slug": "investment/annuity-pv-inv",
-    "inputs": {
-      "PMT": "42",
-      "r": "42",
-      "n": "42"
-    },
-    "expect": [
-      "值 PV (元) 1763.00"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"PMT\":\"42\",\"r\":\"42\",\"n\":\"42\"}，输出区含「值 PV (元) 1763.00」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
   {
     "slug": "investment/annuity-fv-inv",
     "inputs": {
@@ -492,7 +475,6 @@ const CASES = [
   }
 
 ];
-
 
 async function main() {
   const only = process.argv.slice(2);

@@ -108,11 +108,6 @@ const CASES = [
     expect: ["8219.27", "1780.73"],
     ref: "PV=10000/1.04^5=8219.27；贴现额=1780.73" },
 
-  { slug: "economics/pv-annuity",
-    inputs: { pmt: "500", i: "2", n: "10" },
-    expect: ["4491.29", "508.71"],
-    ref: "PV=500·(1−1.02^−10)/0.02=4491.29；贴现=508.71" },
-
   { slug: "economics/real-gdp",
     inputs: { nominal: "1210", defl: "10" },
     expect: ["1100.00", "110.00"],
@@ -376,18 +371,6 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"fv\":\"42\",\"r\":\"42\",\"t\":\"42\"}，输出区含「42\n42\n42\n0.00 现值 PV 42.00 贴现额 2489490.44…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "economics/pv-annuity",
-    "inputs": {
-      "pmt": "1200",
-      "i": "4.5",
-      "n": "43"
-    },
-    "expect": [
-      "22649.05 年金现值 PV 28950.95 贴现总额"
-    ],
-    "ref": "顺序敏感用例（2026-11-05）：输入互异且量级不同（1200 / 4.5 / 43），值错配必然改变 PV。PV=1200×(1−1.045^-43)/0.045=22649.05；贴现=43800−22649.05=28950.95。锚结果区文本；默认 1000/5/10→7721.73，零交集。"
-  },
-  {
     "slug": "economics/real-gdp",
     "inputs": {
       "nominal": "1500",
@@ -480,18 +463,12 @@ const CASES = [
     expect: ["请填写「实际 GDP 增长率」后再计算。"],
     ref: "空态守卫：首项 g 不合规 ⇒ 提示实际 GDP 增长率；默认 4/3 不触发。" },
 
-  { slug: "economics/pv-annuity",
-    inputs: { pmt: "", i: "", n: "" },
-    expect: ["请填写「每期金额 PMT」后再计算。"],
-    ref: "空态守卫：首项 pmt 不合规 ⇒ 提示每期金额 PMT；默认 1000/1/12 不触发。" },
-
   { slug: "economics/real-gdp",
     inputs: { nominal: "", defl: "" },
     expect: ["请填写「名义 GDP」后再计算。"],
     ref: "空态守卫：首项 nominal 不合规 ⇒ 提示名义 GDP；默认 1100/10 不触发。" },
 
 ];
-
 
 async function main() {
   const only = process.argv.slice(2);

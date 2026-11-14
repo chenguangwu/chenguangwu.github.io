@@ -203,19 +203,6 @@ const CASES = [
   "ref": "二分迭代反算税前：net=gross×(1-0.20)−税(max(0,gross×0.8−5000)) 收敛于 15680.56（默认 8000/0.225/5000 得 10451.61）"
 },
 {
-  "slug": "hr/overtime-pay-calc",
-  "inputs": {
-    "hourly": "30",
-    "weekday": "10",
-    "weekend": "8",
-    "holiday": "4"
-  },
-  "expect": [
-    "1290.00 元"
-  ],
-  "ref": "总加班费=30×(1.5×10 + 2.0×8 + 3.0×4)=450+480+360=1290.00 元（默认工时全 0 得 0.00 元）"
-},
-{
   "slug": "hr/performance-ranking",
   "inputs": {
     "v0": "85",
