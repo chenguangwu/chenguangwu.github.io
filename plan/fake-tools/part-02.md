@@ -46,30 +46,29 @@
 | `tools/life/assessor-target.html` | 真 | `:427,226,232` | `opt-guide` 通用套话；面积 `shopArea` 读入但未参与加权。 |
 | `tools/rehabilitation/fim-scale.html` | 真 | `:576` | `opt-guide` 通用套话与实际下拉即时汇总流程不符。 |
 
-## Top 20 简析
+## Top 19 简析
 
-> 本节为原批次留存简析，仅对第 5 条按本轮复核结果做了更正；其余条目对应页面仍成立。
+> 本节为原批次留存简析。原第 4 条 `spectrum-visualizer` 已修复销账（当前源码为「不执行真实 FFT」的正弦模拟动画，无虚构 AnalyserNode 文案）；原第 5 条 `lung-rads` 按复核结果做了更正；其余条目对应页面仍成立。
 
 1. **`tools/pulmonology/tb-resistance.html:271-287`**：吡嗪酰胺/乙胺丁醇耐药被勾选后，`dPza/dEmb` 虽被读取却从未进入方案分支；DS-TB 仍输出含 Z/E 的 `2HRZE/4HR`。这是本批风险最高的一条——用户会据此得到与实际耐药谱冲突的用药方案，属安全级问题，应优先修或强制加免责声明。
 2. **`tools/cardiology/calc-3.html:180-193`**：页面引用表明确写 TIMI **7 项、0-2/3-4/5-7、NSTEMI**，实现却是 STEMI 的 10 项加权 0-14。同一页两套口径，临床评分可信度直接归零。
 3. **`tools/pediatrics/ddst-screening.html:143`**：矫正胎龄输入存在、预设也写入，但 JS 从未读取；早产儿按实际月龄判项会系统性偏严。引据的 125 项与实现一致（32/31/29/33），说明缺陷集中在死输入而非项数。
-4. **`tools/design/spectrum-visualizer.html:155`**：文案写 AnalyserNode + FFT + 峰值查看，代码里没有 `getUserMedia`/`AnalyserNode`，画面是正弦动画。设计类工具靠「看起来专业」留存，这类假实现最伤复访。
-5. **`tools/pulmonology/lung-rads.html:142,266-271`（本轮更正）**：复核发现页面已有「实性成分(mm)」输入并参与 4A/4B 判定，实性成分 ≥8mm→4B 分支可达；**原记录「≥15mm 恒判 4A、4B 不可达」已否定**，不再列入修复。
-6. **`tools/chess/xiangqi-endgame.html`**：0 个控件、无棋盘、无落子，只有静态题库。标题「残局提示」与「输入残局判一步杀」完全落空。
-7. **`tools/tcm-chemistry/metabolite-prediction.html:343`**：核心「选择成分」下拉只负责渲染选项，`predict()` 从不读取它的值；用户换成分结果不变，是典型 A 类死输入。
-8. **`tools/ecommerce/estimate-ranking.html:130-132`**：简介宣称搜索量/销量/评价/点击/转化多维建模，实际只有 2 个数字输入，结果由权重×搜索量直接推出。运营类用户一次就能识破。
-9. **`tools/hr/calc-81.html:130-132`**：内推计算只有「基数×系数」，深解承诺的分岗位明细、自动分档、按过保人数滚动统计全未实现，ROI 无从谈起。
-10. **`tools/ecommerce/report.html:124`**：整页唯一输入是一个 textarea，简介却写拖拽上传、筛选、汇总报表。交互承诺与实现差一个量级。
-11. **`tools/clinical-lab/flow-cytometry-ratio.html:154,260,316-330`**：Treg 输入不参算；NK 只有绝对值展示、无低值告警，NK 42/μL、CD4 60% 仍可能统一报「各项指标在参考范围内」，属危险的正向误判。
-12. **`tools/chess/gomoku-forbidden.html:149-162`**：用「棋型/连子数/活口数」三个抽象参数代替棋盘，用户无法还原自己的局面，判禁手失去意义。
-13. **`tools/clinical-lab/parasite-egg-id.html:139`**：整页 0 张图，`.egg-svg` 是空容器。「形态识别」只剩文字表，检索价值大打折扣。
-14. **`tools/clinical-lab/urine-sediment-atlas.html:144,289-292`**：同上，0 张图，只输出大小/形态/外观文字，「图谱」名不副实。
-15. **`tools/pulmonology/pulmonary-function.html:139-142`**：FAQ 明确说「老年建议按 LLN」，但下拉只有 0.70/0.75，无法输入 LLN 值，老年阻塞判读会偏差。
-16. **`tools/nephrology/aki-kdigo.html:130-146`**：KDIGO 依赖 48h/7d 时间窗与 RRT 状态，页面只有 4 个字段，分期的核心判据缺失。
-17. **`tools/hr/stats-funnel-recruit.html:123-126`**：标题/meta 讲渠道花费与单聘成本，页面只有 4 个环节人数，成本维度全部缺失。
-18. **`tools/marketing/email-subject-line-tester.html:191,436`**：只按关键词权重画饼图，无打开率/送达率/垃圾度模型；预览正文输入不参与评分，且自带示例标题得 85 分「优秀」。
-19. **`tools/edu/word-memory.html:572-575`**：`lastReview` 只写不读，所谓艾宾浩斯调度没有到期队列，复习节点实际由用户手动决定。
-20. **`tools/design/pixel-art-generator.html:145,427-429`**：导出按钮实际导出矩阵 CSV，而不是宣称的字符画/CSS；调色板仅 6 色而非文案的 8 色。
+4. **`tools/pulmonology/lung-rads.html:142,266-271`（本轮更正）**：复核发现页面已有「实性成分(mm)」输入并参与 4A/4B 判定，实性成分 ≥8mm→4B 分支可达；**原记录「≥15mm 恒判 4A、4B 不可达」已否定**，不再列入修复。
+5. **`tools/chess/xiangqi-endgame.html`**：0 个控件、无棋盘、无落子，只有静态题库。标题「残局提示」与「输入残局判一步杀」完全落空。
+6. **`tools/tcm-chemistry/metabolite-prediction.html:343`**：核心「选择成分」下拉只负责渲染选项，`predict()` 从不读取它的值；用户换成分结果不变，是典型 A 类死输入。
+7. **`tools/ecommerce/estimate-ranking.html:130-132`**：简介宣称搜索量/销量/评价/点击/转化多维建模，实际只有 2 个数字输入，结果由权重×搜索量直接推出。运营类用户一次就能识破。
+8. **`tools/hr/calc-81.html:130-132`**：内推计算只有「基数×系数」，深解承诺的分岗位明细、自动分档、按过保人数滚动统计全未实现，ROI 无从谈起。
+9. **`tools/ecommerce/report.html:124`**：整页唯一输入是一个 textarea，简介却写拖拽上传、筛选、汇总报表。交互承诺与实现差一个量级。
+10. **`tools/clinical-lab/flow-cytometry-ratio.html:154,260,316-330`**：Treg 输入不参算；NK 只有绝对值展示、无低值告警，NK 42/μL、CD4 60% 仍可能统一报「各项指标在参考范围内」，属危险的正向误判。
+11. **`tools/chess/gomoku-forbidden.html:149-162`**：用「棋型/连子数/活口数」三个抽象参数代替棋盘，用户无法还原自己的局面，判禁手失去意义。
+12. **`tools/clinical-lab/parasite-egg-id.html:139`**：整页 0 张图，`.egg-svg` 是空容器。「形态识别」只剩文字表，检索价值大打折扣。
+13. **`tools/clinical-lab/urine-sediment-atlas.html:144,289-292`**：同上，0 张图，只输出大小/形态/外观文字，「图谱」名不副实。
+14. **`tools/pulmonology/pulmonary-function.html:139-142`**：FAQ 明确说「老年建议按 LLN」，但下拉只有 0.70/0.75，无法输入 LLN 值，老年阻塞判读会偏差。
+15. **`tools/nephrology/aki-kdigo.html:130-146`**：KDIGO 依赖 48h/7d 时间窗与 RRT 状态，页面只有 4 个字段，分期的核心判据缺失。
+16. **`tools/hr/stats-funnel-recruit.html:123-126`**：标题/meta 讲渠道花费与单聘成本，页面只有 4 个环节人数，成本维度全部缺失。
+17. **`tools/marketing/email-subject-line-tester.html:191,436`**：只按关键词权重画饼图，无打开率/送达率/垃圾度模型；预览正文输入不参与评分，且自带示例标题得 85 分「优秀」。
+18. **`tools/edu/word-memory.html:572-575`**：`lastReview` 只写不读，所谓艾宾浩斯调度没有到期队列，复习节点实际由用户手动决定。
+19. **`tools/design/pixel-art-generator.html:145,427-429`**：导出按钮实际导出矩阵 CSV，而不是宣称的字符画/CSS；调色板仅 6 色而非文案的 8 色。
 
 ## 建议修复顺序
 

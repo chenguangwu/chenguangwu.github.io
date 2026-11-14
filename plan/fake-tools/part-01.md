@@ -41,7 +41,6 @@
 | 医疗健康 | `tools/pulmonology/tb-resistance.html` | A（+C） | `:271-272` 读取 PZA/EMB 耐药后**从未参与** `:276-287` 方案分支；DS-TB 仍给含 Z/E 的 `2HRZE/4HR`，勾选耐药不改变方案 | `plan/categories/03-医疗健康/specialties.md:417` | 已确认（真） | 高（用药建议与实际耐药谱冲突） |
 | 医疗健康 | `tools/cardiology/calc-3.html` | C | `:180-193` 引据表写「7 项各 1 分、0-2/3-4/5-7、NSTEMI」，页内实现为 STEMI 10 项加权 0-14 | `plan/categories/03-医疗健康/specialties.md:417` | 已确认（真） | 高（评分口径自相矛盾） |
 | 医疗健康 | `tools/pediatrics/ddst-screening.html` | A（+C） | `:143` 矫正胎龄输入存在但 JS 从不读取；`:659-661` 仅写入预设；`:130` 引据称 125 项/20 分钟 | `plan/categories/12-长尾行业/_others.md:1160` | 已确认（真） | 高（早产儿筛查结论失真） |
-| 设计创意 | `tools/design/spectrum-visualizer.html` | A（+C） | 工作区 meta 已改为「不执行真实 FFT」，但 `:155` 公式框仍写「AnalyserNode 做 FFT」、`:202/:209` FAQ 仍称「教学 FFT」；全文无 `getUserMedia/Analyser`，实为正弦动画 | `plan/categories/04-设计创意/design.md:1126` | 已确认（真） | 高（残留虚构 FFT 说明） |
 | 文娱爱好 | `tools/chess/xiangqi-endgame.html` | B | 0 个表单控件；`:329` 仅相关工具区，无棋盘/落子/判杀入口 | `plan/categories/11-文娱爱好/fun-entertainment.md:154` | 已确认（真） | 高（宣称输入残局判一步杀，实际静态题库） |
 | 医疗健康 | `tools/tcm-chemistry/metabolite-prediction.html` | A | `:343` 只把品种写入 `<option>`，全文无读取 `compound` 值；仅 `mw` 参与 | `plan/categories/12-长尾行业/_others.md:1285` | 已确认（真） | 高（核心下拉是死输入） |
 | 商业运营 | `tools/ecommerce/estimate-ranking.html` | A | `:130,132` 仅搜索量+权重 2 个输入；`:552` 计算只由这两值推出 | `plan/categories/06-商业运营/ecommerce-logistics.md:438` | 已确认（真） | 高（简介宣称销量/评价/点击/转化） |
@@ -59,8 +58,6 @@
 | 教育学习 | `tools/edu/word-memory.html` | A | `:572-575` `lastReview=Date.now()` 只写不读；无到期调度/复习队列 | `plan/categories/07-教育学习/edu-language.md:1117` | 已确认（真） | 中（「艾宾浩斯」未真正驱动复习） |
 | 设计创意 | `tools/design/pixel-art-generator.html` | C（+D） | `:145,427-429` 导出按钮实为矩阵 CSV；`:75` FAQ 称导出字符画/CSS | `plan/categories/04-设计创意/design.md:788` | 已确认（真） | 中（导出承诺与实现不符） |
 | 语言翻译 | `tools/language/text-polisher.html` | C（+D） | `:153-170` 仅空格/空行/标点/全半角 6 个格式化开关 | `plan/categories/07-教育学习/edu-language.md:380` | 已确认（真） | 中（「润色/改写/同义替换」未实现） |
-| 图书档案 | `tools/library/generator-label.html` | C | `:146` 称「可批量打印」；`:249-262` 仅生成单张标签 + `window.print` | `plan/categories/07-教育学习/research-library.md:210` | 已确认（真） | 中（无批量条数/多盒循环） |
-| IT开发 | `tools/it/md5.html` | C（+D） | `:47,606` 称「支持批量生成、碰撞检测参考」；`:403` 仅单条 `md5(text)` | `plan/categories/01-IT开发/it.md:1957` | 已确认（真） | 中（JSON-LD/介绍夸大） |
 | 医疗健康 | `tools/healthcare/ideal-weight.html` | A | `:238-240` 读取 `age` 后未进入公式，仅 Devine 一路 | `plan/categories/03-医疗健康/drug-dosing.md:319` | 已确认（真） | 中（年龄是死输入） |
 | 商业运营 | `tools/ecommerce/analysis-cost-8.html` | C | `:10` 称分项成本/费用效益比；`:125-129` 仅固定成本/单位变动成本/单价；`:210-225` 只算 CVP 保本 | `plan/categories/06-商业运营/ecommerce-logistics.md:394` | 已确认（真） | 中（名实不符） |
 | 商业运营 | `tools/ecommerce/analysis-70.html` | A | `:126` 每行含「订单数」；`:205` 起 calc 全程未引用该列 | `plan/categories/06-商业运营/ecommerce-logistics.md:373` | 已确认（真） | 中（死输入） |
