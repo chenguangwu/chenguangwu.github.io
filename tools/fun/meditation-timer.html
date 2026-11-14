@@ -147,6 +147,18 @@
 <div id="mtmChart" style="margin-top:8px;"></div>
 <div id="mtmTable" style="margin-top:8px;"></div>
 
+  <div class="mtm-timer" style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px;">
+    <div style="font-weight:600;margin-bottom:8px;" data-zh="🧘 实时冥想计时（开始后将真正倒计时，段末轻响、结束鸣钟）">🧘 Live Meditation Timer</div>
+    <div id="mtmClock" style="font-size:48px;text-align:center;font-variant-numeric:tabular-nums;letter-spacing:2px;">10:00</div>
+    <div id="mtmSegLabel" style="text-align:center;color:var(--text-muted);font-size:13px;margin:6px 0 10px;">第 1 / 5 段</div>
+    <div class="toolbar" style="justify-content:center;">
+      <button type="button" class="btn primary" id="mtmStartBtn" onclick="mtmStart()">开始</button>
+      <button type="button" class="btn" id="mtmPauseBtn" onclick="mtmPause()" disabled>暂停</button>
+      <button type="button" class="btn" onclick="mtmReset()">重置</button>
+    </div>
+    <div id="mtmStatus" style="text-align:center;font-size:13px;color:var(--text-muted);margin-top:8px;">设置好时长后点击「开始」</div>
+  </div>
+
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -355,9 +367,98 @@ function __meditation_timerPresets(){
         {label:'示例 0.5×',labelEn:'Example 0.5×',values:{dur:'5', seg:'1', style:''}},
     ],function(){ calcTool(); });
 }
+/* ===== 实时冥想计时（修复名不副实：原仅生成静态计划，无倒计时/提示音） ===== */
+var mtmTotalMs=0, mtmEndTs=0, mtmRemainMs=0, mtmRunning=false, mtmTimerId=null, mtmSegCount=0, mtmSegMs=0, mtmNextBellTs=0, mtmAudioCtx=null;
+function mtmParseDur(){var d=Math.floor(num('dur'));if(!isFinite(d)||d<=0)d=10;return d;}
+function mtmParseSeg(){var s=Math.floor(num('seg'));if(!isFinite(s)||s<=0)s=2;return s;}
+function mtmFmt(ms){ms=Math.max(0,ms);var t=Math.round(ms/1000);var m=Math.floor(t/60),s=t%60;return (m<10?'0':'')+m+':'+(s<10?'0':'')+s;}
+function mtmEnsureAudio(){
+  if(mtmAudioCtx)return mtmAudioCtx;
+  try{ if(typeof AudioContext!=='undefined')mtmAudioCtx=new AudioContext(); else if(typeof webkitAudioContext!=='undefined')mtmAudioCtx=new webkitAudioContext(); }catch(e){ mtmAudioCtx=null; }
+  return mtmAudioCtx;
+}
+function mtmBeep(freq,durMs,vol){
+  var ac=mtmEnsureAudio(); if(!ac)return;
+  try{
+    var o=ac.createOscillator(), g=ac.createGain();
+    o.type='sine'; o.frequency.value=freq; o.connect(g); g.connect(ac.destination);
+    var t0=ac.currentTime; g.gain.setValueAtTime(0.0001,t0);
+    g.gain.linearRampToValueAtTime(vol||0.2,t0+0.03);
+    g.gain.exponentialRampToValueAtTime(0.0001,t0+(durMs/1000));
+    o.start(t0); o.stop(t0+(durMs/1000)+0.02);
+  }catch(e){}
+}
+function mtmChime(interval){
+  if(interval){ mtmBeep(528,900,0.22); }
+  else { mtmBeep(440,1200,0.25); setTimeout(function(){ mtmBeep(660,1400,0.22); },260); }
+}
+function mtmTick(){
+  var now=Date.now();
+  var rem=mtmEndTs-now; if(rem<0)rem=0;
+  var clock=document.getElementById('mtmClock'); if(clock)clock.textContent=mtmFmt(rem);
+  if(mtmSegCount>0){
+    var segNo=Math.min(mtmSegCount, Math.floor((mtmTotalMs-rem)/(mtmSegMs||mtmTotalMs))+1);
+    var lbl=document.getElementById('mtmSegLabel'); if(lbl)lbl.textContent='第 '+segNo+' / '+mtmSegCount+' 段';
+  }
+  if(mtmNextBellTs>0 && now>=mtmNextBellTs){ mtmChime(true); mtmNextBellTs+=mtmSegMs; }
+  if(rem<=0){ mtmFinish(); }
+}
+function mtmStart(){
+  if(mtmRunning)return;
+  if(mtmRemainMs<=0){
+    mtmTotalMs=mtmParseDur()*60000;
+    mtmSegCount=Math.max(1,Math.ceil(mtmParseDur()/mtmParseSeg()));
+    mtmRemainMs=mtmTotalMs;
+  }
+  mtmSegMs=mtmSegCount>0?mtmTotalMs/mtmSegCount:mtmTotalMs;
+  mtmEndTs=Date.now()+mtmRemainMs;
+  mtmNextBellTs=Date.now()+mtmSegMs;
+  mtmRunning=true;
+  var sb=document.getElementById('mtmStartBtn'), pb=document.getElementById('mtmPauseBtn'), st=document.getElementById('mtmStatus');
+  if(sb){sb.disabled=true;} if(pb){pb.disabled=false;} if(st){st.textContent='冥想进行中…保持觉察，回到呼吸';}
+  var ac=mtmEnsureAudio(); if(ac&&ac.state==='suspended'){try{ac.resume();}catch(e){}}
+  mtmTick();
+  mtmTimerId=setInterval(mtmTick,250);
+}
+function mtmPause(){
+  if(!mtmRunning)return;
+  mtmRemainMs=Math.max(0,mtmEndTs-Date.now());
+  mtmRunning=false; if(mtmTimerId){clearInterval(mtmTimerId);mtmTimerId=null;}
+  var sb=document.getElementById('mtmStartBtn'), pb=document.getElementById('mtmPauseBtn'), st=document.getElementById('mtmStatus');
+  if(sb){sb.disabled=false;sb.textContent='继续';} if(pb){pb.disabled=true;} if(st){st.textContent='已暂停';}
+}
+function mtmReset(){
+  mtmRunning=false; if(mtmTimerId){clearInterval(mtmTimerId);mtmTimerId=null;}
+  mtmRemainMs=0; mtmNextBellTs=0;
+  var d=mtmParseDur(), sg=mtmParseSeg();
+  var sb=document.getElementById('mtmStartBtn'), pb=document.getElementById('mtmPauseBtn'), st=document.getElementById('mtmStatus'),
+      clk=document.getElementById('mtmClock'), lbl=document.getElementById('mtmSegLabel');
+  if(sb){sb.disabled=false;sb.textContent='开始';} if(pb){pb.disabled=true;}
+  if(clk)clk.textContent=mtmFmt(d*60000);
+  if(lbl)lbl.textContent='第 1 / '+Math.max(1,Math.ceil(d/sg))+' 段';
+  if(st)st.textContent='设置好时长后点击「开始」';
+}
+function mtmFinish(){
+  mtmRunning=false; if(mtmTimerId){clearInterval(mtmTimerId);mtmTimerId=null;}
+  var clk=document.getElementById('mtmClock'), lbl=document.getElementById('mtmSegLabel'),
+      sb=document.getElementById('mtmStartBtn'), pb=document.getElementById('mtmPauseBtn'), st=document.getElementById('mtmStatus');
+  if(clk)clk.textContent='00:00';
+  if(lbl)lbl.textContent='练习完成';
+  if(sb){sb.disabled=false;sb.textContent='开始';} if(pb){pb.disabled=true;}
+  if(st)st.textContent='🎉 本次冥想完成，记得记录感受';
+  mtmChime(false);
+  try{
+    var recs=JSON.parse(localStorage.getItem('__mtm_sessions')||'[]'); if(!Array.isArray(recs))recs=[];
+    recs.push({t:Date.now(),min:Math.round(mtmTotalMs/60000)});
+    if(recs.length>50)recs=recs.slice(-50);
+    localStorage.setItem('__mtm_sessions',JSON.stringify(recs));
+  }catch(e){}
+  mtmRemainMs=0;
+}
+
 var __tb_fn0 = calcTool;
 calcTool = function(){ __tb_fn0(); try{ __meditation_timerExtras(); }catch(e){} };
-function __meditation_timerBoot(){ try{ __meditation_timerPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+function __meditation_timerBoot(){ try{ __meditation_timerPresets(); }catch(e){} try{ calcTool(); }catch(e){} try{ mtmReset(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __meditation_timerBoot();
 else document.addEventListener('DOMContentLoaded', __meditation_timerBoot);
 </script>

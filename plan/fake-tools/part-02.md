@@ -195,7 +195,6 @@
 | 文娱爱好 | `tools/music/random-training-rhythm.html` | C | 唯一输入「生成数量」，`gen()` 只拼文本；无 `AudioContext`、无敲击采集/命中判定/准确率 | `plan/categories/11-文娱爱好/fun-entertainment.md` FE-N72 | 宣称节拍训练与准确率统计 |
 | IT开发 | `tools/it/charset-detector.html` | C | 「编码识别器」仅做 6 条固定替换，非真实检测 | `plan/categories/01-IT开发/it.md` IT-N49x | 名不副实 |
 | 文娱爱好 | `tools/fun/generator-laugh.html` | C | `:232-241` `gen()` 只输出文字方案；全文无 `AudioContext`/`OscillatorNode`，无播放与 wav 导出 | `plan/categories/11-文娱爱好/fun-entertainment.md` FE-N79 | 宣称实时合成并可导出 wav |
-| 文娱爱好 | `tools/fun/meditation-timer.html` | C | `:275-320` 只生成静态时刻表；无开始/暂停、无 `setInterval`、无 `AudioContext`，历史不记实际时长 | `plan/categories/11-文娱爱好/fun-entertainment.md` FE-N86 | 无法用于计时 |
 
 ## Y 批新增假工具候选（2026-11-04）
 
