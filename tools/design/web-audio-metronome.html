@@ -245,25 +245,39 @@
 </div>
 <script>
 let audioCtx=null,isPlaying=false,currentBeat=0,timer=null,bpm=120,beats=4;
+// 预排音频时钟：nextNoteTime 为下一拍的绝对音频时刻（秒），scheduledBeat 为已排拍号
+let nextNoteTime=0,scheduledBeat=0;
+const LOOKAHEAD_MS=25, SCHEDULE_AHEAD_S=0.1;
 function initAudio(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();}
-function playClick(isAccent){
+function playClick(isAccent, when){
   if(!audioCtx)return;
+  const t=(typeof when==='number'&&isFinite(when))?when:audioCtx.currentTime;
   const osc=audioCtx.createOscillator();
   const gain=audioCtx.createGain();
   const vol=(+document.getElementById('vol').value/100)*0.3;
   osc.frequency.value=isAccent?1000:800;
   osc.type=document.getElementById('sound').value==='click'?'square':'sine';
-  gain.gain.setValueAtTime(vol,audioCtx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.05);
+  gain.gain.setValueAtTime(vol,t);
+  gain.gain.exponentialRampToValueAtTime(0.001,t+0.05);
   osc.connect(gain);gain.connect(audioCtx.destination);
-  osc.start();osc.stop(audioCtx.currentTime+0.05);
+  osc.start(t);osc.stop(t+0.05);
 }
+// 节拍器调度：以音频时钟 nextNoteTime 为唯一基准，每次严格 += 60/bpm，
+// 回调延迟只影响「何时排下一批」，不进入节拍基准 ⇒ 长时间播放不累积漂移。
 function scheduler(){
-  const interval=60000/bpm;
-  playClick(currentBeat===0);
-  renderDots();
-  currentBeat=(currentBeat+1)%beats;
-  timer=setTimeout(scheduler,interval);
+  if(!isPlaying||!audioCtx)return;
+  const secondsPerBeat=60/bpm;
+  while(nextNoteTime<audioCtx.currentTime+SCHEDULE_AHEAD_S){
+    const beatIndex=scheduledBeat%beats;
+    playClick(beatIndex===0,nextNoteTime);
+    // UI 高亮跟随音频时刻（仅视觉，不参与计时基准）
+    (function(bi,delay){
+      setTimeout(function(){ if(isPlaying){ currentBeat=bi; renderDots(); } }, Math.max(0,delay));
+    })(beatIndex,Math.max(0,(nextNoteTime-audioCtx.currentTime)*1000));
+    nextNoteTime+=secondsPerBeat;
+    scheduledBeat=(scheduledBeat+1)%beats;
+  }
+  timer=setTimeout(scheduler,LOOKAHEAD_MS);
 }
 function renderDots(){
   const el=document.getElementById('beatDots');
@@ -274,7 +288,7 @@ function renderDots(){
 function toggle(){
   initAudio();
   if(isPlaying){clearTimeout(timer);isPlaying=false;document.getElementById('playBtn').textContent='▶️ 开始';}
-  else{isPlaying=true;currentBeat=0;document.getElementById('playBtn').textContent='⏸️ 停止';scheduler();}
+  else{isPlaying=true;currentBeat=0;scheduledBeat=0;nextNoteTime=audioCtx.currentTime+0.06;document.getElementById('playBtn').textContent='⏸️ 停止';scheduler();}
   renderDots();
 }
 function setBPM(v){bpm=+v;document.getElementById('bpmDisplay').textContent=bpm;document.getElementById('bpmSlider').value=bpm;}

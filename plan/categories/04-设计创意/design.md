@@ -409,14 +409,6 @@
 - 影响：校验位算法本身正确，但输出物不是条形码，用户无法用于商品标签；meta「可下载条码」落空。
 - 方案：补 EAN-13 左侧 A/B 编码与右侧 C 编码的条空表 → canvas/SVG，并加数字输入（校验位自动算）与导出。
 
-### D-N215 节拍器用 setTimeout 链式重排，未用音频时钟预排，节拍持续漂移（高，确认源码缺陷）
-
-- 问题：`scheduler()` 每次 `setTimeout(scheduler, 60000/bpm)` 重新计时，下一拍基准是上一次回调的实际执行时刻，延迟逐拍累加；`playClick()` 也在 `currentTime` 即时发声，没有任何 lookahead，与页面 `:143`/`:235` 的「预排音频事件、避免定时器漂移」相反。
-- 证据：`tools/design/web-audio-metronome.html:272-277`、`:267-270`、`:143`、`:235`
-- 复现：120 BPM 连播 10 分钟（600 拍），每拍回调平均晚 1ms → 累计慢约 0.6s（node 复算 600×0.001）；期望 600 拍累计误差在数毫秒内。
-- 影响：长时间练习/录音时节拍逐渐落后，切后台被节流后误差成倍放大。
-- 方案：维护 `nextTime`，每拍 `nextTime += 60/bpm`，用 25ms lookahead 把 `osc.start(nextTime)` 排进音频时钟；UI 更新与调度解耦。
-
 ## T 批 design 覆盖（2026-11-04）
 
 - 本轮审计 13 页：`material-color`、`iso-noise-reference`、`generator-33`、`generator-8`、`blueprint-grid`、`generator-12`、`generator-9`、`generator-34`、`particle-effect-generator`、`farnsworth-d15-test`、`generator-38`、`bpm-tapper`、`web-audio-metronome`
