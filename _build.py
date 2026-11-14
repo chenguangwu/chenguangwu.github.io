@@ -4436,6 +4436,22 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         #     清掉历史双模板描述与旧名称；幂等，不改变卡片选取与顺序。
         content = _rt_block_pat.sub(lambda m: _refresh_rt_block(m.group(0)), content)
 
+        # 5zz. 删除重复的相关工具块（同页多块且卡片 href 集合完全相同）：
+        #      历史重复注入会整块复制，保留一份即可，避免重复内链与重复文案。
+        _rt_blocks = list(_rt_block_pat.finditer(content))
+        if len(_rt_blocks) > 1:
+            _seen_sets = set()
+            _out, _pos = [], 0
+            for _bm in _rt_blocks:
+                _hrefs = tuple(re.findall(r'href="([^"]+)" class="related-tool-card"', _bm.group(0)))
+                if _hrefs and _hrefs in _seen_sets:
+                    _out.append(content[_pos:_bm.start()])
+                    _pos = _bm.end()
+                elif _hrefs:
+                    _seen_sets.add(_hrefs)
+            _out.append(content[_pos:])
+            content = ''.join(_out)
+
         # 6. 内容深度块（content-depth 试点）：注入独有使用场景 / 示例 / FAQ，打掉模板化页过滤。
         #    幂等：先清除已有深度块（兼容旧构建无 marker 残留 / 重复注入），再注入，重跑构建不叠加。
         #    锚点三级回退：手工页「注意事项区块」→ 生成页「相关工具」(step5 注入) → 纯 JS 计算页兜底「</body>」(全页存在)。
