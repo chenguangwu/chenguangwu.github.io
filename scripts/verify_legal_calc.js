@@ -829,9 +829,9 @@ const CASES = [
       "depositMonths": "2"
     },
     "expect": [
-      "42\n2\n42\n押金总额： 84 元（2"
+      "押金总额： 84 元（2个月租金）"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"monthlyRent\":\"42\",\"otherDeduction\":\"42\",\"depositMonths\":\"2\"}，输出区含「42\n2\n42\n押金总额： 84 元（2」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"monthlyRent\":\"42\",\"otherDeduction\":\"42\",\"depositMonths\":\"2\"}，结果区含「押金总额： 84 元（2个月租金）」；默认态 3,000×3=9,000 元，不命中。新增 utility/noReceipt 提示会读取两个勾选框，跨元素拼接顺序不再稳定，故只锚结果区单元素文本。"
   },
   {
     "slug": "legal/statute-limitations",

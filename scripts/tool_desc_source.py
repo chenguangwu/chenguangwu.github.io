@@ -137,8 +137,12 @@ def strip_name_prefix(s, name):
 
 
 def clean_zh_candidate(s, name):
-    """规范化中文描述候选：剥模板前缀 + 去掉开头重复的工具名。"""
-    s = strip_name_prefix((s or '').strip(), name)
+    """规范化中文描述候选：解数字实体 + 剥模板前缀 + 去掉开头重复的工具名。"""
+    # 部分历史 i18n.desc 用数字实体写图标（如 &#128274;），卡片按纯文本渲染会原样显示。
+    # 只解数字实体，保留 &amp; 等具名实体（HTML 转义页需要原样展示）。
+    s = re.sub(r'&#(?:x[0-9a-fA-F]+|\d+);',
+               lambda m: html.unescape(m.group(0)), s or '').strip()
+    s = strip_name_prefix(s, name)
     m = _TMPL_PREFIX_RE.match(s)
     if m:
         rest = s[m.end():].strip()
