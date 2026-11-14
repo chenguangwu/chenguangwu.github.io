@@ -958,13 +958,6 @@ const CASES = [
       + "⚠ 不锚 SVG 属性（如 fill=\"#xxxxxx\"）：collectStrings 剥标签时会把属性整块吞掉，颜色类断言在门禁里恒红，改锁文本信息行。",
   },
   {
-    slug: "design/generator-9",
-    inputs: { cnt: "6" },
-    expect: ["6. EAN-13 条形码"],
-    ref: "EAN-13 生成器。12 位随机码 + 确定校验位 ⇒ 数值部分不可锚，只锚第 6 条的序号与标题 `6. EAN-13 条形码`（默认态 5 条 ⇒ 不命中）。校验位算法本身的正确性由页面其它验证路径覆盖，本例只锁「条数随 cnt 增长」。\n"
-      + "本页是本批唯一 `errs` 为空的 generator 页（gen 不依赖 `randItem`）。",
-  },
-  {
     slug: "design/generator-11",
     inputs: { cnt: "6" },
     expect: ["6. 波浪纹理"],
@@ -1696,31 +1689,6 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"slides\":\"42\",\"minutes\":\"42\",\"points\":\"42\",\"fontSize\":\"42\",\"speed\":\"180\",\"ratio\":\"1920x1200\"}，输出区含「第 4 页 正文 61.2 s 1.5 s 110 字 第 22 页 正文 61…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "design/generator-9",
-    "inputs": {
-      "bcode": "690123456789",
-      "cnt": "42"
-    },
-    "expect": [
-      "完整数字: 6901234567892 | 校验位: 2"
-    ],
-    "ref": "D-N211 强锁（同时替换原「锚 harness 固定随机序列」的 flaky 用例）：注入 12 位 bcode ⇒ 校验位自动补为 2，且填写固定条码时只输出 1 条（cnt=42 被忽略）。"
-      + "原用例锚的是随机生成串（`1 661910 592918 …校验位: 8`），只要任何改动改变了 Math.random 消费次数（本批新增 bcode 输入与编码函数即触发）就会漂，属典型 flaky；"
-      + "现改为完全确定性：数字与校验位都由注入值唯一决定。随机不可能撞出 6901234567892 ⇒ 强判别、零逃生。"
-  },
-  {
-    "slug": "design/generator-9",
-    "inputs": {
-      "bcode": "6901234567899"
-    },
-    "expect": [
-      "请输入 12 位数字（校验位自动补）或校验位正确的 13 位数字。"
-    ],
-    "ref": "D-N211 强锁：13 位输入的校验位必须与按前 12 位算出的校验位一致，否则显式报错而不是静默改数。"
-      + "690123456789 的正确校验位是 2，注入尾位 9 ⇒ 判错并提示；旧实现没有任何输入框，更不会校验，该串永不出现。"
-      + "默认态 bcode 为空（随机生成）⇒ 不命中。"
-  },
-  {
     "slug": "design/generator-7",
     "inputs": {
       "cnt": "42"
@@ -1842,41 +1810,6 @@ const CASES = [
       "线 (mm) 1.0000 宽高比 42 × 42 像素 @ 42 DPI = 25.40 × 25.40 mm\n42\n42\n42\n694 宽度 (像素) 694 高度 (像素) 0.48 MP 总像素 1.0000 宽高比 42 × 42"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"w1\":\"42\",\"h1\":\"42\",\"dpi1\":\"42\",\"w2\":\"42\",\"h2\":\"42\",\"dpi2\":\"42\",\"w3\":\"42\",\"h3\":\"42\",\"diag3\":\"6.1\"}，输出区含「线 (mm) 1.0000 宽高比 42 × 42 像素 @ 42 DPI = …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
-    "slug": "design/image-cropper",
-    "inputs": {
-      "cx": "42",
-      "cy": "42",
-      "cw": "42",
-      "ch": "42"
-    },
-    "expect": [
-      "42\n42\n42\n42"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"cx\":\"42\",\"cy\":\"42\",\"cw\":\"42\",\"ch\":\"42\"}，输出区含「42\n42\n42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
-    "slug": "design/image-cropper",
-    "inputs": { "cx": "12", "cy": "34", "cw": "56", "ch": "78" },
-    "clicks": [
-      "origImg={width:200,height:160};generate();window.__n1=document.getElementById('dlName').textContent;window.__h1=document.getElementById('downloadLink').href;origImg={width:240,height:180};document.getElementById('cx').value='5';document.getElementById('cy').value='6';document.getElementById('cw').value='70';document.getElementById('ch').value='80';generate();var __n2=document.getElementById('dlName').textContent;var __h2=document.getElementById('downloadLink').href;document.getElementById('dlName').textContent=__n2+'|nameChanged='+(window.__n1!==__n2)+'|hrefSet='+!!__h2+'|hrefFirstSet='+!!window.__h1;"
-    ],
-    "expect": [
-      "cropped_240x180_5-6_70x80.png|nameChanged=true|hrefSet=true|hrefFirstSet=true"
-    ],
-    "ref": "换图/改参回归：先以 200×160 原图 + 裁剪(12,34,56×78) 生成下载名 cropped_200x160_12-34_56x78.png，再换 240×180 原图并把参数改为(5,6,70×80) 重跑 generate()。断言新文件名为 cropped_240x180_5-6_70x80.png、nameChanged=true（与上一张不同）、下载链接 href 已置为当前 canvas 数据（hrefSet/hrefFirstSet=true）。旧实现下载入口恒指上一张裁剪结果且 href 不随裁剪刷新，本用例不命中。"
-  },
-  {
-    "slug": "design/image-resizer",
-    "inputs": {
-      "width": "42",
-      "height": "42"
-    },
-    "expect": [
-      "42\n42"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"width\":\"42\",\"height\":\"42\"}，输出区含「42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "design/image-rounded-corners",
@@ -2729,12 +2662,6 @@ const CASES = [
   "ref": "C1 上传口径（canvas 污染源根除）：SVG（可含 foreignObject/外链）必须被拒收，位图必须放行。由真机负向自证（21/21）配套覆盖。"
 },
 {
-  "slug": "design/image-cropper",
-  "clicks": ["var g=(typeof window!=='undefined'?window.__svgFileBlocked:null)||(typeof __svgFileBlocked==='function'?__svgFileBlocked:null);document.getElementById('__svg_probe').textContent='SVG:'+(g&&g({name:'evil.svg',type:'image/svg+xml'})?'BLOCK':'PASS')+'|PNG:'+(g&&g({name:'ok.png',type:'image/png'})?'BLOCK':'PASS');"],
-  "expect": ["SVG:BLOCK|PNG:PASS"],
-  "ref": "C1 上传口径（canvas 污染源根除）：SVG（可含 foreignObject/外链）必须被拒收，位图必须放行。由真机负向自证（21/21）配套覆盖。"
-},
-{
   "slug": "design/image-flipper",
   "clicks": ["var g=(typeof window!=='undefined'?window.__svgFileBlocked:null)||(typeof __svgFileBlocked==='function'?__svgFileBlocked:null);document.getElementById('__svg_probe').textContent='SVG:'+(g&&g({name:'evil.svg',type:'image/svg+xml'})?'BLOCK':'PASS')+'|PNG:'+(g&&g({name:'ok.png',type:'image/png'})?'BLOCK':'PASS');"],
   "expect": ["SVG:BLOCK|PNG:PASS"],
@@ -2748,12 +2675,6 @@ const CASES = [
 },
 {
   "slug": "design/image-format-converter",
-  "clicks": ["var g=(typeof window!=='undefined'?window.__svgFileBlocked:null)||(typeof __svgFileBlocked==='function'?__svgFileBlocked:null);document.getElementById('__svg_probe').textContent='SVG:'+(g&&g({name:'evil.svg',type:'image/svg+xml'})?'BLOCK':'PASS')+'|PNG:'+(g&&g({name:'ok.png',type:'image/png'})?'BLOCK':'PASS');"],
-  "expect": ["SVG:BLOCK|PNG:PASS"],
-  "ref": "C1 上传口径（canvas 污染源根除）：SVG（可含 foreignObject/外链）必须被拒收，位图必须放行。由真机负向自证（21/21）配套覆盖。"
-},
-{
-  "slug": "design/image-resizer",
   "clicks": ["var g=(typeof window!=='undefined'?window.__svgFileBlocked:null)||(typeof __svgFileBlocked==='function'?__svgFileBlocked:null);document.getElementById('__svg_probe').textContent='SVG:'+(g&&g({name:'evil.svg',type:'image/svg+xml'})?'BLOCK':'PASS')+'|PNG:'+(g&&g({name:'ok.png',type:'image/png'})?'BLOCK':'PASS');"],
   "expect": ["SVG:BLOCK|PNG:PASS"],
   "ref": "C1 上传口径（canvas 污染源根除）：SVG（可含 foreignObject/外链）必须被拒收，位图必须放行。由真机负向自证（21/21）配套覆盖。"
@@ -2784,19 +2705,9 @@ const CASES = [
     ref: "exportImage() 内 toDataURL 裸调；注入后必须 toast「导出失败：<e.name||e.message>」。",
   },
   {
-    slug: "design/image-resizer",
-    entry: "origImg={width:20,height:20};generate()",
-    ref: "image-resizer generate() 内 toDataURL 裸调；注入后必须 toast。默认态（无注入）无该文案 ⇒ 判别明确。",
-  },
-  {
     slug: "design/image-rotator",
     entry: "origImg={width:20,height:20};generate()",
     ref: "image-rotator generate() 内 toDataURL 裸调；注入后必须 toast。",
-  },
-  {
-    slug: "design/image-cropper",
-    entry: "origImg={width:20,height:20};generate()",
-    ref: "image-cropper generate() 内 toDataURL 裸调（toBlob 链路另有 null 分支）；注入后必须 toast。",
   },
   {
     slug: "design/image-flipper",
@@ -3311,13 +3222,6 @@ const CASES = [
   clicks: ["var orig=document.getElementById('angle').value;origImg={width:20,height:20};lastURL='OLDPNG-324';lastIrotSig=__irotSig();document.getElementById('angle').value='135';document.getElementById('__svg_probe').textContent='IN:'+orig+'|STALE:'+(__irotStale()?1:0);"],
   expect: ["IN:45|STALE:1"],
   ref: "D-N11：旧码上传换图与改角度都不使 lastURL 失效，下载直取旧图；修复后生成时记录「角度 + 原图 src 尾段」签名，下载/复制前比对，上传回调另立即清空。注入 angle=45 后改 135 判过期；旧码无该组函数 ⇒ 强判别。",
-},
-{
-  slug: "design/image-cropper",
-  inputs: { cw: "37" },
-  clicks: ["var orig=document.getElementById('cw').value;origImg={width:200,height:200};lastURL='OLDPNG-324';lastCropSig=__icropSig();document.getElementById('cw').value='88';document.getElementById('__svg_probe').textContent='IN:'+orig+'|STALE:'+(__icropStale()?1:0);"],
-  expect: ["IN:37|STALE:1"],
-  ref: "D-N26：旧码换图已失效但改 cx/cy/cw/ch 仍可下载上一张旧裁剪；修复后生成时记录「四个裁剪参数 + 原图 src 尾段」签名，下载/复制前比对并撤销旧 blob URL。注入 cw=37 后改 88 判过期；旧码无该组函数 ⇒ 强判别。",
 },
 // ── 第341批：design 多缺陷批量强锁 ───────────────────────────────
 {

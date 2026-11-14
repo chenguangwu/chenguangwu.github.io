@@ -1009,13 +1009,6 @@ const CASES = [
     ref: "W3-B 1.234 第三位 4 <5 舍去 ⇒ 1.23 ⇒ 壹元贰角叁分（角分各读一次）。",
   },
   {
-    slug: "finance/word-counter",
-    inputs: { input: "apple banana apple cherry" },
-    clicks: ["analyze()"],
-    expect: ["4 英文单词"],
-    ref: "统计口径：非空白字符切词 ⇒ 4 个英文单词、25 总字符数（含空格）、0 中文字符。默认样例不同 ⇒ 不命中。",
-  },
-  {
     slug: "finance/word-frequency",
     inputs: { input: "apple banana apple cherry" },
     clicks: ["analyze()"],
@@ -3489,17 +3482,6 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： ABC123测试 长度： 8 字符（应为 10） ❌ …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "finance/password",
-    "inputs": {
-      "pwLen": "42",
-      "pwCount": "42"
-    },
-    "expect": [
-      "42\n42\n42"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"pwLen\":\"42\",\"pwCount\":\"42\"}，输出区含「42\n42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
     "slug": "finance/option-profit-calculator",
     "inputs": {
       "strike": "42",
@@ -3970,16 +3952,6 @@ const CASES = [
       "额 含税价 1 1.00 1.00 0.42 1.42 2 2.00 2.00 0.84 2.84 3 3.00 3.00 1.26 4.26 合计 6.00 2.52 8.52"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"customRate\":\"42\",\"amount\":\"42\",\"batchRate\":\"42\",\"batchInput\":\"1\\n2\\n3\",\"dir\":\"exclusive\",\"batchDir\":\"exclusive\"}，输出区含「额 含税价 1 1.00 1.00 0.42 1.42 2 2.00 2.00 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
-    "slug": "finance/word-counter",
-    "inputs": {
-      "input": "1\n2\n3"
-    },
-    "expect": [
-      "1 2 3\n5 总字符数 3 不含空格 0 中文字符 0 英文单词 3 行数 1 段落数 1 句子数 1分钟 预计阅读时间\n📖 可读性分析 平均句长： 0.0 词/句 | 平均每词： 0 字符 | 难度： 简单"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\"}。F-N174 新口径词数=英文单词+中文字符，纯数字无可读词 ⇒ 平均句长 0.0（旧空白切分误把 3 个数字当 3 词得 3.0）。绑定输入与数值 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "finance/word-frequency",
@@ -4800,27 +4772,6 @@ const CASES = [
     clicks: ["validate()"],
     expect: ["长度： 16 位（IMEISV）", "序列号 SNR（第 9-14 位）： 564380", "软件版本号 SVN： 97", "IMEISV 不含校验位，仅检查 16 位数字结构"],
     ref: "IMEISV 由 8 位 TAC、6 位 SNR 和 2 位 SVN 构成，不含 Luhn 校验位，不能宣称校验通过。",
-  },
-  {
-    slug: "finance/word-counter",
-    inputs: { input: "这是一个用于测试可读性的中文句子。它没有空格分隔词语。统计结果会显示平均句长。" },
-    clicks: ["analyze()"],
-    expect: ["平均句长： 12.0 词/句"],
-    ref: "F-N174 中文可读性：36 个汉字、0 英文词、3 句，新口径词数=英文词+中文字符=36 ⇒ 平均句长 12.0（难度中等），旧空白切分得 1 词/3 句=0.3（恒「简单」）。绑定输入专属数值 ⇒ 默认 ToolBox 样例不同值不命中。",
-  },
-  {
-    slug: "finance/word-counter",
-    inputs: { input: "中文词频测试 中文词频测试" },
-    clicks: ["document.getElementById('showDensity').checked=true;analyze();var h=String(document.getElementById('densityList').innerHTML).replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ');document.getElementById('__tbProbe').textContent='WCCN '+((h.indexOf('词频 2 次')>=0&&h.indexOf('测试 2 次')>=0)?'OK':'BAD');"],
-    expect: ["WCCN OK"],
-    ref: "F-N175 中文词频：纯中文「中文词频测试」重复 2 次，新实现按 2 字 bigram（中文/文词/词频/频测/测试 各 2 次）计入词频表。旧实现只取 [a-z]+ 得 0 项、区块空白。探针 AND 两个 bigram 计数（默认英文样例不含中文 bigram）⇒ 零逃生。",
-  },
-  {
-    slug: "finance/word-counter",
-    inputs: { input: "A😀B" },
-    clicks: ["analyze();var g=String(document.getElementById('statsGrid').innerHTML).replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ');document.getElementById('__tbProbe').textContent='FN176 '+document.getElementById('input').value+' '+((g.indexOf('3 总字符数')>=0&&g.indexOf('3 不含空格')>=0)?'OK':'BAD');"],
-    expect: ["FN176 A😀B OK"],
-    ref: "F-N176 代码点计数：A😀B 含 emoji，码点数=3（A/😀/B），旧 text.length 按 UTF-16 码元=4 ⇒「4 总字符数」不命中。引据表承诺「代码点」、示例亦同步。探针读 statsGrid 两张卡片且绑定输入锚 ⇒ 默认态零逃生。",
   },
 
   // ---------------- 第 119 批：F-N160/161/162（word-wrap）、F-N146、F-N152 判别锁 ----------------

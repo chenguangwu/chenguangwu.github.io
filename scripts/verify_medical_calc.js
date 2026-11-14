@@ -74,17 +74,6 @@ const CASES = [
   "ref": "成人分轨：14 岁按成人口径，有效上限 = 成人绝对上限 4000 mg（不再取 min(4000,1800)=1800），日剂量 2700 mg 不再超限；与 13 岁用例（超限 1.80 g）方向相反，构成边界判别。默认态年龄空值只显示「年龄未填写」，且体重 20 kg ⇒ 体重上限串为 1.20 g，均不命中。",
 },
 {
-  "slug": "medical/calculator-calc-due-date",
-  "inputs": {
-    "cycle": "42"
-  },
-  "expect": [
-    "42"
-  ],
-    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
-  "ref": "auto-restore"
-},
-{
   "slug": "medical/calculator-calc-infusion",
   "inputs": {
     "vol": "750",

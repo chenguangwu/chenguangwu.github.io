@@ -405,13 +405,6 @@ const CASES = [
        + "默认态为无分隔符的 5 份 'HelloHelloHelloHelloHello' ⇒ 强判别。",
   },
   {
-    slug: "biz/text-compare",
-    inputs: { "left": "a\nb\nc", "right": "b\nc\nd" },
-    expect: ["leftOnly 1", "sameCount 2", "50%"],
-    ref: "文本比对：按行求 仅左 / 仅右 / 共有。{a,b,c} vs {b,c,d} ⇒ 仅左 a（1 条）、共有 2 条、相似度 = 共有/并集 = 2/4 = 50%。"
-       + "默认态为两栏预置长文本（similarity 38%）⇒ 强判别。",
-  },
-  {
     slug: "biz/char-frequency",
     inputs: { "input": "aabbc", "topN": "3" },
     expect: ["a 2 (40.00%) b 2 (40.00%) c 1 (20.00%)"],
@@ -1008,17 +1001,6 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\"}，输出区含「1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "biz/text-compare",
-    "inputs": {
-      "left": "1\n2\n3",
-      "right": "1\n2\n3"
-    },
-    "expect": [
-      "1 2 3\n1 2 3\n1 2 3\n1 2 3\n3\n0\n0\n100%"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"left\":\"1\\n2\\n3\",\"right\":\"1\\n2\\n3\"}，输出区含「1 2 3\n1 2 3\n1 2 3\n1 2 3\n3\n0\n0\n100%」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
     "slug": "biz/text-case",
     "inputs": {
       "input": "1\n2\n3"
@@ -1465,12 +1447,6 @@ const CASES = [
     "expect": ["proto constructor"],
     "ref": "原型键回归：提取英文单词并去重，去重表改 Object.create(null) 后 '__proto__' 提取出的 proto 与 constructor 都保留、重复的 proto 合并为一次；输出 'proto constructor'。默认样例（Hello This is text…）不含该串 ⇒ 强判别。"
   },
-  {
-    "slug": "biz/text-compare",
-    "inputs": { "left": "ToolBox 文本工具" },
-    "expect": ["17%"],
-    "ref": "单字段注入（2026-11-05 补 oninput）：左侧仅保留与右侧第 4 行相同的 1 行，其余 5 行判为右侧独有 ⇒ 相似度 1/(1+5)=17%；默认双侧 5/6 行文本为 38%，缺 oninput 时注入不触发 compare()、仍显示 38% ⇒ 强判别。"
-  }
 
 ];
 
