@@ -3582,6 +3582,30 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         # 不能被 extract_zh_desc 当作 description 来源。
         return re.sub(r'<(script|style)\b[\s\S]*?</\1\s*>', ' ', html, flags=re.I)
 
+    _DESC_BOILER = '纯前端运行、数据不上传、无需注册，打开浏览器即可使用。'
+
+    def _dedupe_desc_boiler(txt):
+        """清理历史构建叠加的模板描述（2026-11-14）。
+
+        老页面的 meta description 曾被写成「XX是一款免费的在线YY工具，」+ 旧描述 + 固定尾句，
+        旧描述本身又含同一模板，逐轮构建后同一句模板出现两遍（全站 51 页）。
+        这里只针对这两类已知模板片段去重，不改动页面自有文案。
+        """
+        s = (txt or '').strip()
+        if not s:
+            return s
+        # 1) 固定尾句最多保留一次
+        while s.count(_DESC_BOILER) > 1:
+            s = s.replace(_DESC_BOILER, '', 1)
+        # 2) 开头重复的「…是一款免费的在线…工具，」只保留一次
+        m = re.match(r'^(.*?是一款免费的在线[^，。；]*?工具，)\1', s)
+        if m:
+            s = m.group(1) + s[m.end():]
+        # 3) 清理去重后可能出现的连续标点
+        s = re.sub(r'([，。；、])\1+', r'\1', s)
+        s = s.replace('；。', '。')
+        return s.strip()
+
     def extract_zh_desc(content, t, industry, entry):
         # 中文优先 meta description 提取（2026-08-29 反转：目标用户以中文为主）。
         # 优先 per-industry 字典 zh-CN.intro/desc（零成本、有实质内容、不套话），
@@ -3614,6 +3638,19 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
                 continue
             if re.search(r'[\u4e00-\u9fff]', txt) and len(txt) >= 8:
                 return txt
+        # 生成页正文经英文预渲染后，中文原文保存在 data-zh 属性里（2026-11-14）。
+        # 正文没有中文 <p> 时优先取 data-zh，避免整页回落成「输入参数即可实时得出结果」的通用模板描述。
+        for attr in re.findall(r'data-zh="([^"]*)"', body):
+            txt = re.sub(r'\s+', ' ', attr).strip()
+            if not txt or '${' in txt or '#' in txt:
+                continue
+            if len(re.findall(r'[\u4e00-\u9fff]', txt)) < 8:
+                continue
+            if _BAD_DESC_PAT.search(txt):
+                continue
+            if txt.count('=') >= 1 and len(re.findall(r'[\u4e00-\u9fff]', txt)) < 10:
+                continue
+            return txt
         h2 = re.search(r'<h2[^>]*>([\s\S]*?)</h2>', body)
         if h2:
             txt = re.sub(r'<[^>]+>', '', h2.group(1)).strip()
@@ -3785,7 +3822,8 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         # SEO 描述统一治理（2026-09-23 续）：提取真实中文描述后，若字符数 < 70
         # （Ahrefs desc too-short 阈值为 70 字符）则补真实价值句到 70-120 字符；
         # 与下方 meta description 同源同口径，保证 JSON-LD 与 head 元数据完全一致。
-        _seo_desc_raw = extract_zh_desc(content, t, industry, entry) or t.get('name') or ''
+        _seo_desc_raw = _dedupe_desc_boiler(
+            extract_zh_desc(content, t, industry, entry) or t.get('name') or '')
         if len(_seo_desc_raw) < 70:
             _d_base = os.path.splitext(os.path.basename(t['path']))[0]
             _d_name = _zh_title_of(industry, _d_base) or t.get('name') or ''
@@ -3794,7 +3832,8 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
                 r'工作与生活中的相关计算与查询|相关计算与查询|帮助计算.{0,10}(指标|需求)|'
                 r'相关日常任务|相关计算与查询需求', _d_core))
                 or _d_core.count('=') >= 1 or _d_core == _d_name)
-            if len(re.findall(r'[\u4e00-\u9fff]', _d_core)) >= 6 and not _d_bad:
+            if len(re.findall(r'[\u4e00-\u9fff]', _d_core)) >= 6 and not _d_bad \
+                    and '是一款免费的在线' not in _d_core:
                 _seo_desc_raw = ('%s是一款免费的在线%s工具，%s。'
                                  '纯前端运行、数据不上传、无需注册，打开浏览器即可使用。'
                                  % (_d_name, ind_name, _d_core))
