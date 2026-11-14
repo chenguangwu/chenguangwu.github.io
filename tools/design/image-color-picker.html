@@ -279,7 +279,13 @@ function pickColor(event, imgEl){
   const y = Math.floor((event.clientY - rect.top) * scaleY);
   if(x<0||y<0||x>=canvas.width||y>=canvas.height) return;
   const data = ctx.getImageData(x, y, 1, 1).data;
-  const r = data[0], g = data[1], b = data[2];
+  // 预览区为白底（.preview-area{background:#fff}），半透明像素在画面上呈现的是与白底混合后的颜色；
+  // 取样 canvas 却是透明画布，直接取 RGB 会得到未混合的原始通道，全透明像素更会得到 #000000。
+  // 故按白底合成，使取色结果与肉眼所见一致。
+  const a = data[3] / 255;
+  const r = Math.round(data[0] * a + 255 * (1 - a));
+  const g = Math.round(data[1] * a + 255 * (1 - a));
+  const b = Math.round(data[2] * a + 255 * (1 - a));
   const hex = '#' + [r,g,b].map(v => v.toString(16).padStart(2,'0')).join('').toUpperCase();
   const hsl = rgbToHsl(r, g, b);
   lastColor = hex;

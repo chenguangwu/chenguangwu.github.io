@@ -2655,6 +2655,12 @@ const CASES = [
   "expect": ["SVG:BLOCK|PNG:PASS"],
   "ref": "C1 上传口径（canvas 污染源根除）：SVG（可含 foreignObject/外链）必须被拒收，位图必须放行。由真机负向自证（21/21）配套覆盖。"
 },
+{
+  "slug": "design/image-color-picker",
+  "clicks": ["canvas={width:10,height:10};ctx={getImageData:function(){return {data:[255,0,0,128]};}};var __el={getBoundingClientRect:function(){return {left:0,top:0,width:10,height:10};}};pickColor({clientX:1,clientY:1},__el);document.getElementById('__tbProbe').textContent='ALPHA hex='+document.getElementById('hex').textContent+' rgb='+document.getElementById('rgb').textContent;"],
+  "expect": ["ALPHA hex=#FF7F7F rgb=rgb(255, 127, 127)"],
+  "ref": "D-N46 回归锁：预览区为白底（.preview-area background:#fff），50% 透明纯红像素在画面上呈现 rgb(255,127,127)，取色必须与之一致。注入 data=[255,0,0,128] 后按白底合成得 #FF7F7F；旧实现直取 RGB 三通道得 #FF0000（且全透明像素得 #000000）⇒ 强判别。探针仅由 clicks 生成，默认态无该串 ⇒ 零逃生。"
+},
 // ── B 类：导出失败必须可见（toDataURL/toBlob 抛异常或返回 null 时不得静默）──
 ...[
   {

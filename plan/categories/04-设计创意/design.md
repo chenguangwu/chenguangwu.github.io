@@ -112,17 +112,6 @@
 
 > 本轮实读 8 页：`color-picker.html`、`color-palette.html`、`color-shade-generator.html`、`vh-vw.html`、`css-grid-generator.html`、`image-cropper.html`、`image-format-converter.html`、`favicon-generator.html`。仅源码静态阅读 + node 内存复算（临时脚本 `/private/tmp/k_audit.js`，已删除），未开浏览器、未做 EN/移动端/门禁/线上验证。
 
-### D-N46 图片取色器忽略 alpha，透明/半透明像素取色与画面所见不一致（中，确认源码缺陷）
-- 描述：预览把图片放在白底容器上显示，但取样 canvas 是透明画布，`getImageData` 只取 `data[0..2]` 丢掉 alpha。半透明像素画面显示的是与白底混合后的颜色，报告值却是未混合的原始通道；全透明像素报告 `#000000`。
-- 证据：`tools/design/image-color-picker.html:29`（`.preview-area{background:#fff}`）、`:269-272`（新建透明 canvas 直接 `drawImage`）、`:292-294`（只读 RGB 三通道）
-- 复现：上传 50% 透明度的纯红 PNG（`rgba(255,0,0,0.5)`）→ 画面接近 `#FF8080`，HEX 输出 `#FF0000`；全透明区域点选 → 画面白色但输出 `#000000`（期望按显示合成结果取色，或显式输出 RGBA 并标注）
-- 影响：`tools/design/image-color-picker.html`；对带透明的 PNG/WebP/图标取色时，复制出的色值与肉眼所见不符
-- 方案：取样前先填白（或提供可选底色）再 drawImage，使取样与预览一致；或输出 `rgba(r,g,b,a)`，`a<255` 时标注透明度，全透明像素给出明确提示
-
-
-- 本轮实读 8 页：`font-pairing.html`、`gradient.html`、`shadow-generator-advanced.html`、`badge-generator.html`、`card-generator.html`、`avatar-generator.html`、`image-color-picker.html`、`svg-viewer.html`；新增 10 条（高 1 / 中 5 / 低 4）；未覆盖：`tools/design` 其余约 71 页（含 `palette-extractor.html`、`image-to-ascii.html`、`gradient-from-color.html`、`mesh-gradient.html`、`shadow-generator.html`、`pattern-generator.html`、`identicon-generator.html`、`initials-avatar.html`、`css-box-shadow-generator.html` 等）。所有结论均为源码行号 + node 内存复算/源码路径推演；SVG/HTML innerHTML 注入与 Canvas 透明取样为静态语义推演，未做浏览器交互、EN 运行态探针、移动端、门禁与线上验证。
-- 补记（未单列编号，属 K 批略读页的复核）：`tools/design/border-radius-generator.html:387` 历史恢复调用无参 `setUniform()`，`:267-273` 会把四角输入写成字符串 `"undefined"`，`:284` 的 `generate()` 因 `value || 0` 判真而输出 `border-radius: undefinedpx;`；本批仅复核该路径，未计入上方 10 条。
-
 ## 2026-11-04 续查（并行批 M）
 
 > 范围：本轮阅读 8 页：`tools/design/button-generator.html`、`tools/design/text-shadow-generator.html`、`tools/design/css-animation-generator.html`、`tools/design/skeleton-loader.html`、`tools/design/palette-extractor.html`、`tools/design/image-to-ascii.html`、`tools/design/mesh-gradient.html`、`tools/design/pattern-generator.html`。仅源码 + node 内存复算，未开浏览器/未做 EN/移动端/门禁验证。
