@@ -151,24 +151,6 @@
 - 范围：`tools/design/` 8 页（`colorblind-simulator` / `cvd-safe-palette` / `palette-cvd-checker` / `exposure-triangle-calculator` / `shutter-speed-calculator` / `flexbox-generator` / `gradient-from-color` / `toast-generator`），整份 HTML（含内联 JS、外链 `js/tools/colorblind-simulator.js`、deep-dive、FAQ、引据表）全读。
 - 方法：静态源码审计 + `node` 复算；未开浏览器、未跑构建与门禁、未做 EN 运行态探针与移动端验证，行号按当前磁盘版本。
 
-### D-N106 cvd-safe 发散模式亮度曲线与注释/文档相反（高，确认源码缺陷）
-
-- 问题：`L = 0.32 + 0.58 × |2t − 1|` 得到两端最亮（0.90）、中点最暗（0.32），而同一行注释写「中心最亮，两极最暗」，也与发散配色「中间浅、两端深」的常规写法相反；顺序模式（`:454`，`0.90 − 0.58t`）才是浅到深。
-- 证据：`tools/design/cvd-safe-palette.html:468`（公式 + 注释）、`:454`（顺序模式对照）。
-- 复现（node，n=5）：t=0 → L=0.90；t=0.5 → L=0.32；t=1 → L=0.90。即序列亮度为「亮 → 暗 → 亮」，中点最暗。
-- 影响：发散模式的核心视觉（中心锚点）被做反，色带中间塌成深色，且与自身注释矛盾。
-- 方案：改为 `L = 0.90 − 0.58 × |2t − 1|`（两端 0.32、中点 0.90），并同步公式说明。
-
-### D-N112 palette-cvd「OKLCH 距离」把 Lab 当 RGB 计算（高，确认源码缺陷）
-
-- 问题：`distFor('oklch', a, b)` 直接 `rgbToOklch(a)`，但所有调用方传入的都是 **Lab** 三元组（`renderMatrix` 的 `activeLabs()`、`analyzeWarnings` 的 `rgbToLab(simulate(...))`、图表 `list.map(rgbToLab)`）；`rgbToOklch` 却按 0–255 sRGB 解释，负的 a/b 会被 `srgbToLin` 当作负通道值处理，结果与真实 OKLCH 距离无关。
-- 证据：`tools/design/palette-cvd-checker.html:399-401`（`oklchDist(rgbToOklch(a), rgbToOklch(b))`）、`:541`（`distFor(metric, labs[i], labs[j2])`，`labs` 来自 `activeLabs()`）、`:583`、`:662`、`:741`、`:769`（图表 / CSV / 叠加对照均传 `rgbToLab(...)`）。
-- 复现（node，按页面同款 `rgbToOklch/oklchDist`）：`#FFFF33` vs `#FFFFFF`（真实 ΔE00=29.8，肉眼明显）页面记 `oklch=1.1`（<10 → 判为易混）；`#E41A1C` vs `#377EB8`（ΔE00=49.0）页面记 `18.7`，而用它自己的 `oklchDist` 以真实 RGB 计算仅 ≈1.0，两个方向都反了。
-- 影响：一旦把指标切到「OKLCH 距离」，矩阵数值、混淆清单、修正建议全部失真。
-- 方案：`distFor` 的 oklch 分支改为接收 RGB 原值（或在分支内把 Lab 转回 RGB 再转 OKLCH），调用方按指标取参。
-
-
-
 ### 留存/优势建议（逐页，具体可落地）
 
 - `colorblind-simulator`：① 图片模式支持拖拽/粘贴与「仅导出当前类型」；② 矩阵旁给「一键把最差一对拉开明度」；③ 记住上次类型/严重度并同步到图片与调色板两个页签。

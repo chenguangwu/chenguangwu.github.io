@@ -160,7 +160,7 @@ td.good{background:rgba(16,185,129,.14)}
 
     <div class="formula-box">
       <div class="formula-title">📐 色彩科学与判读原理</div> <div class="formula-eq">sRGB → 线性光 → CIE XYZ（除以 D65 白点）→ CIE Lab：f(t) = t &gt; 0.008856 ? t^(1/3) : 7.787t + 16/116，L = 116f(Y) − 16，a = 500(f(X) − f(Y))，b = 200(f(Y) − f(Z))。ΔE76 = √(ΔL² + Δa² + Δb²)。ΔE2000：C = √(a² + b²)，G = 0.5(1 − √(Cb⁷ ÷ (Cb⁷ + 25⁷)))，a′ = a(1 + G)，h′ = atan2(b, a′)（负值加 2π）；ΔH′ = 2√(C1′C2′)·sin(Δh′/2)；权重 S_L = 1 + 0.015(L̄′−50)² ÷ √(20 + (L̄′−50)²)、S_C = 1 + 0.045C̄′、S_H = 1 + 0.015C̄′T，旋转项 R_T = −sin(2Δθ)·R_C；ΔE = √((ΔL′/S_L)² + (ΔC′/S_C)² + (ΔH′/S_H)² + R_T·(ΔC′/S_C)(ΔH′/S_H))。色觉模拟：全色盲按亮度 Y = 0.2126R + 0.7152G + 0.0722B 灰度化，其余按严重度插值出的 3×3 矩阵作用于线性 RGB 再转回 sRGB</div>
-      <p class="formula-desc">模拟采用 Machado 等人（2009）的线性 RGB 变换矩阵，作用于线性光（linear-light）空间，色弱按严重度在「单位矩阵 ↔ 完全型矩阵」之间线性插值；全色盲与灰度按 Rec.709 相对亮度直接去色。色差走 sRGB → CIE XYZ(D65) → CIE Lab，提供 CIE76 与 CIE2000 两种度量，并可叠加 OKLCH 感知距离。判读阈值：ΔE&lt;5 几乎不可分（严重混淆）、5–10 难以区分、10–20 可区分、&gt;20 清晰。图表配色建议任意两色在全部通道下 ΔE≥10。</p>
+      <p class="formula-desc">模拟采用 Machado 等人（2009）的线性 RGB 变换矩阵，作用于线性光（linear-light）空间，色弱按严重度在「单位矩阵 ↔ 完全型矩阵」之间线性插值；全色盲与灰度按 Rec.709 相对亮度直接去色。色差走 sRGB → CIE XYZ(D65) → CIE Lab，提供 CIE76 与 CIE2000 两种度量，并可叠加 OKLab 感知距离（OKLCH 同空间的直角坐标欧氏距离 ×100）。判读阈值：ΔE&lt;5 几乎不可分（严重混淆）、5–10 难以区分、10–20 可区分、&gt;20 清晰。图表配色建议任意两色在全部通道下 ΔE≥10。</p>
     </div>
 
     <!-- 输入区 -->
@@ -204,7 +204,7 @@ td.good{background:rgba(16,185,129,.14)}
         <select id="pcMetric" style="padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg-card);color:var(--text-primary);font-size:13px">
           <option value="e2000">CIE2000</option>
           <option value="e76">CIE76</option>
-          <option value="oklch">OKLCH 距离</option>
+          <option value="oklch">OKLab 感知距离</option>
         </select>
         <label style="margin:0;display:flex;align-items:center;gap:5px;cursor:pointer">
           <input type="checkbox" id="pcOverlay"> <span>叠加模拟色块</span>
@@ -368,29 +368,33 @@ td.good{background:rgba(16,185,129,.14)}
     var Rt = -Math.sin(2 * dTh) * Rc;
     return Math.sqrt(Math.pow(dLp / Sl, 2) + Math.pow(dCp / Sc, 2) + Math.pow(dHp / Sh, 2) + Rt * (dCp / Sc) * (dHp / Sh));
   }
-  function rgbToOklch(rgb) {
+  function rgbToOklab(rgb) {
     var r = srgbToLin(rgb[0]), g = srgbToLin(rgb[1]), b = srgbToLin(rgb[2]);
     var l = 0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b;
     var m = 0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b;
     var s = 0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b;
     var l_ = Math.cbrt(l), m_ = Math.cbrt(m), s_ = Math.cbrt(s);
-    var L = 0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_;
-    var A = 1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_;
-    var B = 0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_;
-    var C = Math.sqrt(A * A + B * B);
-    var h = Math.atan2(B, A) * 180 / Math.PI; if (h < 0) { h += 360; }
-    return [L, C, h];
+    return [
+      0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_,
+      1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_,
+      0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_
+    ];
   }
-  function oklchDist(a, b) {
-    // 感知距离：L 以 100 倍权重、C 直接、h 用色相夹角加权（C 越大越敏感）
-    var dL = (a[0] - b[0]) * 100, dC = a[1] - b[1];
-    var dh = Math.abs(a[2] - b[2]); if (dh > 180) { dh = 360 - dh; }
-    var hW = (a[1] + b[1]) / 2 * (dh / 180);
-    return Math.sqrt(dL * dL + dC * dC + hW * hW);
+  function oklabDist(rgba, rgbb) {
+    // OKLab 直角坐标欧氏距离 ×100（与 CIELAB 的 ΔE 同量级，阈值 5/10/20 可直接沿用）。
+    // 不能用 OKLCH 极坐标逐个加权：色相差被彩度量级（0.1~0.2）压成 0.x，两色明明差 49 ΔE00 也只报 1.0。
+    var a = rgbToOklab(rgba), b = rgbToOklab(rgbb);
+    var dL = a[0] - b[0], dA = a[1] - b[1], dB = a[2] - b[2];
+    return Math.sqrt(dL * dL + dA * dA + dB * dB) * 100;
   }
   function distFor(metric, a, b) {
     if (metric === 'e76') { return deltaE76(a, b); }
-    if (metric === 'oklch') { return oklchDist(rgbToOklch(a), rgbToOklch(b)); }
+    if (metric === 'oklch') {
+      // 入参恒为 Lab 三元组（activeLabs() = list.map(rgbToLab)、以及 rgbToLab(simulate(...))），
+      // 必须先回转到 sRGB 再进 OKLab：直接把 Lab 喂给色彩转换会把负的 a/b 当成负通道值，
+      // 得到与真实色差无关的数字（实测 #FFFF33 vs #FFFFFF 记 1.1，而真实 ΔE00 = 29.8）。
+      return oklabDist(labToRgb(a), labToRgb(b));
+    }
     return deltaE2000(a, b);
   }
 
