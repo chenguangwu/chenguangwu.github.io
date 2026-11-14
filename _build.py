@@ -3478,6 +3478,7 @@ def linkify_terms(text, own_slug='', state=None):
 # 深览示例允许携带排版标签（<p>/<strong>/<br> 等）。linkify_terms 会把整串转义，
 # 导致 86 页的 dd-ex-body 把 `<p><strong>输入：</strong>…` 原样显示给用户（2026-11-15 修）。
 # 仅白名单标签原样保留，标签之间的文本照常转义 + 术语内链，防止把正文里的 `<` 当标签。
+_DD_FMT_BODY_RE = re.compile(r'<p>\s*<strong>', re.I)
 _DD_TAG_RE = re.compile(
     r'(</?(?:p|strong|b|em|i|code|br|ul|ol|li|a|span|div|sub|sup)\b[^>]*>)', re.I)
 
@@ -3536,9 +3537,13 @@ def _build_deep_dive_html(d, own_slug=''):
             parts.append('<li>%s</li>' % linkify_terms(s, state=_lk))
         parts.append('</ul>')
     for e in (d.get('examples') or []):
+        # 只有「<p><strong>输入：</strong>…」这种排版式正文才保留标签；
+        # 其余含 < 的正文是代码样例/数学比较式（如 <div>、x < y），必须整体转义后显示。
+        body = e.get('body', '')
+        body_html = (linkify_terms_html(body, state=_lk)
+                     if _DD_FMT_BODY_RE.search(body) else linkify_terms(body, state=_lk))
         parts.append('<div class="dd-example"><div class="dd-ex-title">%s</div><div class="dd-ex-body">%s</div></div>'
-                    % (linkify_terms_html(e.get('title', ''), state=_lk),
-                       linkify_terms_html(e.get('body', ''), state=_lk)))
+                    % (linkify_terms(e.get('title', ''), state=_lk), body_html))
     _fq = d.get('faqs') or []
     if _fq:
         parts.append('<h3>❓ 常见问题（FAQ）</h3>')
