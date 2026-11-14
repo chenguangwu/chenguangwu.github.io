@@ -200,6 +200,11 @@ def is_formula_only(desc):
     return False
 
 
+def _desc_skeleton(s):
+    """描述/名称的骨架：去掉空格、标点、emoji 与箭头等装饰，只留字母数字与汉字。"""
+    return re.sub(r'[^0-9A-Za-z\u4e00-\u9fff]', '', s or '').lower()
+
+
 def is_weak_desc(desc, title):
     """判定中文描述是否只是标题重复或缺乏信息量（弱描述需改用 intro）。
 
@@ -213,6 +218,16 @@ def is_weak_desc(desc, title):
         return True
     d = (desc or '').strip()
     t = (title or '').strip()
+    # 带 emoji / 分隔符的名称复述（「⏰ Cron 表达式生成器」「Base64 编码 / 解码」）
+    # 骨架比较能识别，否则装饰前缀会绕过下面的字面比较（实测 104 页）
+    sd, st = _desc_skeleton(d), _desc_skeleton(t)
+    if st:
+        if sd == st:
+            return True
+        if sd.startswith(st) and len(sd) <= len(st) + 8:
+            return True
+        if st.startswith(sd) and len(st) <= len(sd) + 8:
+            return True
     if not t:
         return len(d) < 12
     if d == t:                                       # 完全等于标题
