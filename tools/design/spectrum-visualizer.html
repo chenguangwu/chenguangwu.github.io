@@ -27,7 +27,7 @@
 <script src="../../js/common.js" defer></script>
 <style>
 .preview-area{min-height:220px;border-radius:8px;background:#1a1a2e;padding:20px;}
-canvas{display:block;width:100%;height:200px;border-radius:8px;}
+canvas{display:block;width:100%;height:auto;aspect-ratio:4/1;border-radius:8px;}
 </style>
 
 
@@ -244,10 +244,25 @@ canvas{display:block;width:100%;height:200px;border-radius:8px;}
 </div>
 <script>
 let animId = null, animT = 0;
+// 内部画布按「容器 CSS 宽 × DPR」重设并以 4:1 换算高度：
+// 原固定 800×200 + CSS width:100%;height:200px 会让内部正圆在显示时被横向拉成椭圆
+// （移动端 350px 容器下纵横比约 0.44），且高 DPR 屏再叠加一次位图放大。
+function fitCanvas(){
+  const canvas = document.getElementById('canvas');
+  if(!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  const cw = Math.max(1, Math.round(canvas.clientWidth || 800));
+  const ch = Math.max(1, Math.round(cw / 4));
+  const nw = Math.round(cw * dpr), nh = Math.round(ch * dpr);
+  if(canvas.width !== nw || canvas.height !== nh){ canvas.width = nw; canvas.height = nh; }
+  canvas.__dpr = dpr;
+}
 function draw(){
+  fitCanvas();
   const canvas = document.getElementById('canvas');
   const ctx = canvas.getContext('2d');
   const w = canvas.width, h = canvas.height;
+  const dpr = canvas.__dpr || 1;
   const barCount = Math.min(120, Math.max(8, parseInt(document.getElementById('bars').value) || 48));
   document.getElementById('bars').value = String(barCount);
   const style = document.getElementById('barStyle').value;
@@ -266,7 +281,7 @@ function draw(){
       const y2 = cy + Math.sin(angle) * (r + val);
       const t = i / barCount;
       ctx.strokeStyle = interpolateColor(c1, c2, t);
-      ctx.lineWidth = 3;
+      ctx.lineWidth = 3 * dpr;
       ctx.beginPath();
       ctx.moveTo(x1, y1);
       ctx.lineTo(x2, y2);
@@ -306,6 +321,7 @@ function interpolateColor(c1, c2, t){
   const b = Math.round(b1 + (b2-b1)*t);
   return `rgb(${r},${g},${b})`;
 }
+window.addEventListener('resize', function(){ fitCanvas(); draw(); });
 function generate(){
   draw();
 }

@@ -202,14 +202,6 @@
 - 影响：`tools/design/waveform-visualizer.html` 的 SEO/教学定位整体失真，用户无法完成「上传音频看波形」。
 - 方案：把文案统一改为「参数化波形（正弦/方波/三角/锯齿/混合）演示」；若要保留音频卖点，接 `decodeAudioData` 并按像素列取 min/max 峰值桶（纯前端可行）。
 
-### D-N132 waveform 画布固定 800×200 + CSS 非等比拉伸、无 DPR，移动端变形且高分屏模糊（中，确认源码缺陷）
-
-- 问题：`<canvas width="800" height="200">` 的内部像素固定，CSS 却设 `width:100%; height:200px`，横向随容器缩放、纵向恒 1:1，且未按 `devicePixelRatio` 重设画布。
-- 证据：`tools/design/waveform-visualizer.html:178`（canvas 800×200）、`:30`（`canvas{display:block;width:100%;height:200px}`）。
-- 复现（node 复算）：容器 350/860/1080 px 时横向缩放分别为 0.438/1.075/1.350，纵向恒 1.0；860 px 下网格被横向放大 1.075 倍、1080 px 下 1.35 倍，高 DPR 屏再叠加一次位图放大。期望等比或按真实像素重绘。
-- 影响：`tools/design/waveform-visualizer.html` 波形周期疏密随窗口变化，放大后笔画发虚。
-- 方案：用 `ResizeObserver` 设 `canvas.width=clientWidth*dpr`、`canvas.height=200*dpr` 并按 CSS 坐标缩放绘制；或固定内部比例并加 `aspect-ratio:4/1`。
-
 ### D-N134 spectrum 简介/FAQ 承诺 Web Audio + FFT + 峰值 + 麦克风，实际是正弦动画且麦克风被 Permissions-Policy 禁止（高，确认文案与实现不一致）
 
 - 问题：meta、formula-desc、deep-dive 示例与 FAQ 称「AnalyserNode 做 FFT」「频谱条动画」「可用麦克风或音频输入」；实现只有 `sin(animT…)` 伪随机柱状动画，且页面 `Permissions-Policy` 明确 `microphone=()`。
@@ -217,15 +209,6 @@
 - 复现：全页 grep `AudioContext|AnalyserNode|getUserMedia` 0 命中；`val` 由 `Math.sin(animT*0.05+i*0.3)` 生成，与 FFT 无关。
 - 影响：`tools/design/spectrum-visualizer.html` 核心卖点全部未实现，FAQ 还引导用户授权一个被 policy 禁用的能力。
 - 方案：文案改为「模拟频谱动画生成器」并去掉 FFT/麦克风；或接 `AudioContext.createAnalyser()`、移除 `microphone=()`，并提供音频文件/麦克风入口。
-
-### D-N135 spectrum 圆环模式被 CSS 非等比拉伸成椭圆（移动端 2.28:1）且无 DPR（中，确认源码缺陷）
-
-- 问题：内部 800×200，CSS `width:100%;height:200px`；圆环用 `r = min(w,h)/4` 按内部坐标画正圆，显示时横向被压缩/放大，正圆变椭圆。
-- 证据：`tools/design/spectrum-visualizer.html:176`（canvas 800×200）、`:30`（CSS 100%/200px）、`:267-284`（圆环几何，`:269` 半径）。
-- 复现（node 复算）：容器 350 px → 半径 50 显示为 21.9×50 CSS px（纵横比 0.44，竖椭圆）；860 px → 53.8×50（1.07）；1080 px → 67.5×50（1.35）。期望 1:1。
-- 影响：`tools/design/spectrum-visualizer.html` 移动端圆环严重变形，视觉不可信。
-- 方案：按 CSS 尺寸重设画布并按同一坐标系绘制；或固定 `aspect-ratio:4/1` 并让圆环按短边取半径。
-
 
 ### 承诺 vs 实际（Q 批专项）
 
