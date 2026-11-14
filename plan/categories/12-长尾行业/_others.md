@@ -1504,13 +1504,6 @@
 - 影响：`tools/astronomy/atmospheric-refraction.html` 地平线/低空观测的数值与文字自相矛盾，负角度还能算出负折射。
 - 方案：增加 `h` 下限 0（或允许负值时改用完整折射表）；34′ 改为「本公式约29′，Bennett 约34′」；空值提示「请输入高度角」。
 
-### 12-N107 astronomy/atmospheric-refraction：meta description 在「纯」字处截断（低，确认缺陷）
-- 问题：`meta description` 与 `og:description` 均以「…望远镜指向的折射修正。纯」结尾（`:13`、`:16`、`:30`），句子未完成。
-- 证据：`:13`、`:16`、`:30`
-- 复现：查看源码/分享预览 → 描述停在「纯」；期望完整句「纯前端运行、数据不上传、无需注册…」。
-- 影响：`tools/astronomy/atmospheric-refraction.html` 搜索结果摘要被截断，SEO 观感差。
-- 方案：补全为「…折射修正。纯前端运行、数据不上传、无需注册。」；同步三处 meta。
-
 **留存建议（astronomy/atmospheric-refraction）**
 - 增加「真高度 ↔ 视高度」双向换算开关，并显示迭代收敛值与差值，避免口径混淆。
 - 批量输入一列高度角，一次输出 R（角分/度/角秒）与修正后视高度，导出 CSV 供观测计划使用。

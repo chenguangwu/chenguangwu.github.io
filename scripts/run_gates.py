@@ -418,16 +418,35 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+GATE_TIMEOUT_SEC = 30 * 60  # 单道门禁上限；防止页面脚本死循环把整轮门禁永久挂起
+
+
 def run_gate(number: int, total: int, name: str, command: tuple[str, ...]) -> tuple[int, str]:
-    """跑一道门禁：捕获子进程输出并原样透传，返回 (exit_code, 输出全文)。"""
+    """跑一道门禁：捕获子进程输出并原样透传，返回 (exit_code, 输出全文)。
+
+    每道门禁设 30 分钟上限：2026-11-14 实测 `verify_fun_calc.js` 因页面数独生成
+    偶发长时间回溯（随机首行导致），整轮门禁卡在第 29 关 15 分钟以上且无任何输出。
+    无超时会让 CI/本地门禁永久挂起，故统一兜底并按失败处理。
+    """
     print(f"\n[{number}/{total}] {name}: {' '.join(command)}", flush=True)
     started = time.monotonic()
     try:
         completed = subprocess.run(
-            command, cwd=ROOT, check=False, capture_output=True, text=True
+            command, cwd=ROOT, check=False, capture_output=True, text=True, timeout=GATE_TIMEOUT_SEC
         )
         output = (completed.stdout or "") + (completed.stderr or "")
         exit_code = completed.returncode
+    except subprocess.TimeoutExpired as exc:
+        out = exc.stdout or ""
+        err = exc.stderr or ""
+        if isinstance(out, bytes):
+            out = out.decode("utf-8", "replace")
+        if isinstance(err, bytes):
+            err = err.decode("utf-8", "replace")
+        output = (out + err) + (
+            f"\nFAIL: gate timed out after {GATE_TIMEOUT_SEC}s: {' '.join(command)}\n"
+        )
+        exit_code = 124
     except FileNotFoundError as exc:
         output = (
             f"FAIL: required executable is not available: {command[0]}\n"

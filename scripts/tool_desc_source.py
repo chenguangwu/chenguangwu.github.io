@@ -105,7 +105,50 @@ ZH_BOILERPLATE = [
     r'依据指定格式规范在前端按规则',
     r'遵循对应语法与格式规范',
     r'本工具(?:为|是)?(?:纯前端|本地)(?:运行|处理)的?在线工具',
+    # 生成器在正文末尾插的整段隐私套话（不属于该工具的功能描述）
+    r'免费在线工具[，,]\s*纯前端处理',
+    r'专业计算[，,]\s*数据本地处理',
+    r'纯前端处理[，,]\s*数据不上传',
+    r'数据不上传[，,]\s*保护隐私安全',
 ]
+
+# 「名是一款免费的在线X工具，」模板前缀（构建期统一添加，源数据里可能已残留一份）
+_TMPL_PREFIX_RE = re.compile(r'^.*?是一款免费的在线[^，。；]{0,30}工具[，,]\s*')
+
+
+def strip_name_prefix(s, name):
+    """去掉描述开头重复的工具名（「债券定价计算器。输入面值…」→「输入面值…」）。
+
+    描述模板已统一加「XX是一款免费的在线YY工具，」，源 intro 若再以工具名开头，
+    meta/卡片就会变成「XX…工具，XX。输入…」的名称重复（实测全站 55 页）。
+    允许名称前带装饰性符号（如「🧮 火锅食材分量计算器」），这类同样属于名称复述。
+    """
+    s = (s or '').strip()
+    name = (name or '').strip()
+    if not s or not name:
+        return s
+    idx = s.find(name)
+    if idx == -1 or idx > 6 or re.search(r'[0-9A-Za-z\u4e00-\u9fff]', s[:idx]):
+        return s
+    rest = s[idx + len(name):].lstrip()
+    if rest[:1] in '。，：:、；;，,':
+        rest = rest[1:].lstrip()
+    return rest if len(rest) >= 10 else s
+
+
+def clean_zh_candidate(s, name):
+    """规范化中文描述候选：剥模板前缀 + 去掉开头重复的工具名。"""
+    s = strip_name_prefix((s or '').strip(), name)
+    m = _TMPL_PREFIX_RE.match(s)
+    if m:
+        rest = s[m.end():].strip()
+        if len(rest) >= 10:
+            s = strip_name_prefix(rest, name)
+    # 剥完只剩隐私套话尾句（源数据被模板污染）时按「无描述」处理，让调用方继续回退，
+    # 避免卡片/meta 出现「XX 是一款免费的在线 YY 工具，纯前端运行、数据不上传…」。
+    if re.match(r'^(?:纯前端(?:运行|处理)|免费在线工具|数据不上传|本工具)', s) and len(s) <= 80:
+        return ''
+    return s
 
 
 def is_boilerplate(desc):
@@ -260,10 +303,12 @@ def zh_desc(t, max_len=None, use_meta=True):
         zh = {}
 
     cand = zh.get('desc') if isinstance(zh.get('desc'), str) else ''
+    cand = clean_zh_candidate(cand, name)
     if cand and not is_weak_desc(cand, name):
         return clip(cand, max_len) if max_len else cand
 
     intro = zh.get('intro') if isinstance(zh.get('intro'), str) else ''
+    intro = clean_zh_candidate(intro, name)
     if intro and not is_weak_desc(intro, name):
         return clip(intro, max_len) if max_len else intro
 
@@ -271,10 +316,11 @@ def zh_desc(t, max_len=None, use_meta=True):
     # 优先级高于下方 meta / name 回退，确保导航与分类页中文描述同源一致
     _ov = _DESC_OVERRIDE.get((t.get('name') or '').strip())
     if _ov and isinstance(_ov, (list, tuple)) and len(_ov) >= 1 and isinstance(_ov[0], str) and _ov[0].strip():
-        return clip(_ov[0], max_len) if max_len else _ov[0]
+        c = clean_zh_candidate(_ov[0], name)
+        return clip(c, max_len) if max_len else c
 
     if use_meta:
-        md = meta_desc(t.get('path', ''))
+        md = clean_zh_candidate(meta_desc(t.get('path', '')), name)
         if md and has_cjk(md) and not is_weak_desc(md, name):
             return clip(md, max_len) if max_len else md
 

@@ -2944,6 +2944,29 @@ def generate_opencc_static_locales():
         raise SystemExit('OpenCC locale build failed: %s' % exc)
 
 
+def _clip_zh_desc(s, n):
+    """按句读边界截断中文描述，避免停在半个词上（2026-11-14）。
+
+    历史实现直接 `[:120]` / `[:150]` 硬切，实测 179 页 meta description 以
+    「…打开浏览器即可」「…纯」这类残句结尾，搜索摘要不可读。
+    优先在句末标点处收口，其次逗号/顿号/冒号；都找不到才硬切并补省略号。
+    """
+    s = (s or '').strip()
+    if len(s) <= n:
+        return s
+    head = s[:n]
+    for pat in (r'[。！？；]', r'[，、：]'):
+        ends = [m.end() for m in re.finditer(pat, head)]
+        if ends and ends[-1] >= max(20, n // 2):
+            out = head[:ends[-1]].rstrip()
+            if out.endswith('；'):
+                out = out[:-1] + '。'
+            elif out.endswith(('，', '、', '：')):
+                out = out[:-1] + '。'
+            return out
+    return head.rstrip('，、：；,;: ') + '…'
+
+
 def fix_zh_tw_short_desc():
     """繁简转换会让个别页 description 字符数跌破 Ahrefs 的 70 阈值
     （如「字符串→字串」少 1 字），中文页达标而繁体页仍报 too short。
@@ -2984,6 +3007,74 @@ def fix_zh_tw_short_desc():
                 fh.write(html)
             fixed += 1
     print('zh-tw desc 补足: %d 页' % fixed)
+
+
+def _close_guide_desc(d):
+    """把被硬切在半个词上的描述收口到最后一个逗号/分号，并补句末标点。"""
+    d = (d or '').strip()
+    if not d or d[-1] in '。！？）」』"”…':
+        return d
+    cut = max(d.rfind('，'), d.rfind('；'), d.rfind('：'))
+    if cut >= 40:
+        d = d[:cut]
+    return d.rstrip('，；：、,;: ') + '。'
+
+
+def normalize_guide_descriptions():
+    """指南页 description 收口（2026-11-14）。
+
+    各 gen_*_guides.py 按固定字数硬切摘要，实测 300 页描述停在半个词上
+    （如「…用于产房新生儿初」「…适用于大样本或已知总体」），搜索结果摘要不可读。
+    这里只做保守收口：缺句末标点时截到最后一个逗号/分号并补「。」；已收口的页跳过，幂等。
+    """
+    gdir = os.path.join(ROOT, 'guides')
+    if not os.path.isdir(gdir):
+        return 0
+    meta_re = re.compile(
+        r'(<meta (?:name="description"|property="og:description"|name="twitter:description") content=")'
+        r'((?:[^"\\]|\\.)*)(")')
+    ld_re = re.compile(r'("description":")((?:[^"\\]|\\.)*)(")')
+    fixed = 0
+    for fn in sorted(os.listdir(gdir)):
+        if not fn.endswith('.html'):
+            continue
+        fp = os.path.join(gdir, fn)
+        try:
+            with open(fp, encoding='utf-8') as f:
+                src = f.read()
+        except Exception:
+            continue
+        if 'TOOLBOX-REDIRECT' in src or 'name="robots" content="noindex' in src:
+            continue
+        changed = [0]
+
+        def _sub_meta(m):
+            d = html.unescape(m.group(2))
+            nd = _close_guide_desc(d)
+            if nd == d:
+                return m.group(0)
+            changed[0] += 1
+            return m.group(1) + esc_html_py(nd) + m.group(3)
+
+        def _sub_ld(m):
+            try:
+                d = json.loads('"' + m.group(2) + '"')
+            except Exception:
+                return m.group(0)
+            nd = _close_guide_desc(d)
+            if nd == d:
+                return m.group(0)
+            changed[0] += 1
+            return m.group(1) + json.dumps(nd, ensure_ascii=False)[1:-1] + m.group(3)
+
+        out = meta_re.sub(_sub_meta, src)
+        out = ld_re.sub(_sub_ld, out)
+        if changed[0]:
+            with open(fp, 'w', encoding='utf-8') as f:
+                f.write(out)
+            fixed += 1
+    print('guides desc 收口: %d 页' % fixed)
+    return fixed
 
 
 def _update_readme_metrics(qc, tool_count, ind_count):
@@ -3606,11 +3697,39 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         s = s.replace('；。', '。')
         return s.strip()
 
+    # 描述候选的低价值判定（2026-11-14）：正文 <p>/data-zh 里混杂标题、导航文案、FAQ 问句
+    # 与生成器隐私套话；历史实现只判「含中文且够长」，导致 meta description 退化成
+    # 「XX是一款免费的在线YY工具，🧮 XX。免费在线工具，纯前端处理…」名称重复 + 三连套话（实测 55 页）。
+    _DESC_BOILER_PAT = re.compile(
+        r'免费在线工具[，,]\s*纯前端处理|'
+        r'专业计算[，,]\s*数据本地处理|'
+        r'纯前端处理[，,]\s*数据不上传|'
+        r'数据不上传[，,]\s*保护隐私安全|'
+        r'本(?:开发|计算|在线)?工具(?:为|是)?(?:纯前端|本地)'
+    )
+    _DESC_NAV_PAT = re.compile(
+        r'使用指南|深度解析|公式与标准|是做什么的|如何使用|^关于|^📖|^📚|^🔗'
+    )
+
+    def _desc_low_value(txt, name):
+        """候选是否只是工具名/标题的复述（如 h2 data-zh「🧮 火锅食材分量计算器」）。"""
+        a, b = _seo_skel(txt), _seo_skel(name or '')
+        if not a or not b:
+            return False
+        return a == b or (a.startswith(b) and len(a) <= len(b) + 8)
+
+    def _desc_candidate_ok(txt, name):
+        return (not _DESC_BOILER_PAT.search(txt)
+                and not _DESC_NAV_PAT.search(txt)
+                and not _desc_low_value(txt, name)
+                and not txt.endswith('？') and not txt.endswith('?'))
+
     def extract_zh_desc(content, t, industry, entry):
         # 中文优先 meta description 提取（2026-08-29 反转：目标用户以中文为主）。
         # 优先 per-industry 字典 zh-CN.intro/desc（零成本、有实质内容、不套话），
         # 其次页面首个含中文、非模板、非 JS 校验提示的 <p>，再次中文 h2，兜底中文标题 + 固定后缀。
         base = os.path.splitext(os.path.basename(t['path']))[0]
+        zh_title = _zh_title_of(industry, base) or t.get('name') or ''
         if industry not in _ind_cache:
             fp = os.path.join(i18n_dir, industry + '.json')
             try:
@@ -3620,6 +3739,9 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         _ind = _ind_cache.get(industry, {})
         zh = _ind.get(base, {}).get('zh-CN', {}) if isinstance(_ind, dict) else {}
         intro = zh.get('intro') or zh.get('desc') or ''
+        # 部分历史 intro 以工具名开头（「债券定价计算器。输入面值…」），外层模板已加
+        # 「名是一款免费的在线X工具，」，不剥掉会形成名称重复（实测 55 页）。
+        intro = TDS.clean_zh_candidate(intro, zh_title)
         if re.search(r'[\u4e00-\u9fff]', intro or '') and len(intro.strip()) >= 8:
             return intro.strip()
         # 只在剔除 script/style 后的正文里找 <p>，避免抓到 JS 内的错误提示串
@@ -3628,9 +3750,13 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         for p in paras:
             txt = re.sub(r'<[^>]+>', '', p).strip()
             txt = re.sub(r'\s+', ' ', txt)
+            # 段落常以「工具名。真实说明」开头，去掉重复主语（外层模板已带名称）。
+            txt = TDS.clean_zh_candidate(txt, zh_title)
             if '${' in txt or '<' in txt:
                 continue
             if _BAD_DESC_PAT.search(txt):
+                continue
+            if not _desc_candidate_ok(txt, zh_title):
                 continue
             # 跳过公式串（等号多但中文少，如「年折旧 = (n−k+1)/SYD × (C−S)」），
             # 公式不适合当 meta description（用户不可读）。
@@ -3640,13 +3766,18 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
                 return txt
         # 生成页正文经英文预渲染后，中文原文保存在 data-zh 属性里（2026-11-14）。
         # 正文没有中文 <p> 时优先取 data-zh，避免整页回落成「输入参数即可实时得出结果」的通用模板描述。
+        # 注意：data-zh 按文档顺序排列，第一个常是 h2 标题（「🧮 火锅食材分量计算器」），
+        # 必须用 _desc_candidate_ok 过滤，否则描述会退化成「模板 + 工具名 + 模板」。
         for attr in re.findall(r'data-zh="([^"]*)"', body):
             txt = re.sub(r'\s+', ' ', attr).strip()
+            txt = TDS.clean_zh_candidate(txt, zh_title)
             if not txt or '${' in txt or '#' in txt:
                 continue
             if len(re.findall(r'[\u4e00-\u9fff]', txt)) < 8:
                 continue
             if _BAD_DESC_PAT.search(txt):
+                continue
+            if not _desc_candidate_ok(txt, zh_title):
                 continue
             if txt.count('=') >= 1 and len(re.findall(r'[\u4e00-\u9fff]', txt)) < 10:
                 continue
@@ -3655,9 +3786,9 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         if h2:
             txt = re.sub(r'<[^>]+>', '', h2.group(1)).strip()
             txt = re.sub(r'\s+', ' ', txt)
-            if re.search(r'[\u4e00-\u9fff]', txt) and not _BAD_DESC_PAT.search(txt):
+            if re.search(r'[\u4e00-\u9fff]', txt) and not _BAD_DESC_PAT.search(txt) \
+                    and _desc_candidate_ok(txt, zh_title):
                 return txt
-        zh_title = _zh_title_of(industry, base) or t.get('name') or ''
         _ind_n = INDUSTRY_DEFS.get(industry, ('', industry))[1]
         return ('%s是一款免费的在线%s工具，输入参数即可实时得出结果；'
                 '纯前端运行、数据不上传、无需注册，打开浏览器即可使用。' % (zh_title, _ind_n))
@@ -3843,7 +3974,7 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
                                  % (_d_name, ind_name))
             if len(_seo_desc_raw) < 70:
                 _seo_desc_raw = _seo_desc_raw.rstrip('。') + '。适合工程估算、日常换算与快速复核，结果可一键复制。'
-        app_desc = esc_html_py(_seo_desc_raw[:150])
+        app_desc = esc_html_py(_clip_zh_desc(_seo_desc_raw, 150))
         # JSON-LD 字符串安全（2026-09-23）：desc 含反斜杠字面量（转义类工具 \n \b…）或
         # 控制字符时，未转义会导致 WebApplication JSON 非法、整块被 Google 丢弃。
         # 顺序：先 doubling 反斜杠，再去控制字符。
@@ -3972,7 +4103,7 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         # （全站已核实 15 页 tools + 其 zh-tw 派生页）。删除单引号形式，统一由下方逻辑注入规范标签。
         content = re.sub(r"<meta\s+name='description'[^>]*>\s*", '', content)
         _zh_desc_raw = _seo_desc_raw
-        seo_desc = esc_once(_zh_desc_raw[:120])
+        seo_desc = esc_once(_clip_zh_desc(_zh_desc_raw, 120))
         anchor = I18N_HREFLANG_MARKER if I18N_HREFLANG_MARKER in content else '</head>'
         seo_tags = ''
         if 'name="description"' not in content:
@@ -4051,7 +4182,7 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         #  - 已有块：仅删除指向「文件已不存在」的卡片（即被删工具的死链），保留历史相关工具选取；整块变空则移除整块
         #  - 无块：按行业生成（原逻辑），保持向后一致
         _rt_block_pat = re.compile(
-            r'<!-- 相关工具 -->\s*<div class="related-tools"[^>]*>.*?</div>\s*</div>\s*',
+            r'(?:<!--\s*相关工具\s*-->\s*)?<div class="related-tools"[^>]*>.*?</div>\s*</div>\s*',
             re.S
         )
         # 5a. 策划表命中：先整块移除旧的（可能是行业随机凑的无关卡片），再按策划列表重建
@@ -4161,6 +4292,34 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
             [rt for rt in by_industry.get(industry, []) if rt['url'] != t['url']][:6])
         _rt_html_guar = _rt_html_of(_rel_guar)
 
+        def _refresh_rt_block(block):
+            """原位刷新一个相关工具块内所有卡片的图标/名称/描述（幂等）。
+
+            同一页可能存在多个相关工具块（历史重复注入），而第 5 步只处理首个；
+            真实数据里还有 `<!-- 相关工具 -->` 注释错位到公式卡上方的情况，
+            导致块被漏处理、旧模板描述永久残留（实测 80 页双模板描述）。
+            """
+            def _rep(cm):
+                _a = cm.group(0)
+                _hm = re.search(r'href="([^"]+)"', _a)
+                if not _hm:
+                    return _a
+                _target = os.path.normpath(os.path.join(os.path.dirname(filepath), _hm.group(1)))
+                _rt_obj = _tools_by_path.get(os.path.relpath(_target, TOOLS_DIR))
+                if not _rt_obj:
+                    return _a
+                _cur_icon = _rt_obj.get('icon')
+                if _cur_icon:
+                    _a = re.sub(r'(<span class="rt-icon">)[^<]*(?=</span>)', r'\g<1>' + _cur_icon, _a, count=1)
+                _new_name = esc_html_py(_rt_obj.get('name') or '')
+                if _new_name:
+                    _a = re.sub(r'(<span class="rt-name">)[^<]*(?=</span>)',
+                                lambda m: m.group(1) + _new_name, _a, count=1)
+                _a = re.sub(r'(<span class="rt-desc">)[^<]*(?=</span>)',
+                            lambda m: m.group(1) + _rt_desc_html(_rt_obj), _a, count=1)
+                return _a
+            return re.sub(r'<a[^>]*class="related-tool-card"[^>]*>.*?</a>', _rep, block, flags=re.S)
+
         _rt_m = _rt_block_pat.search(content)
         if _rt_m:
             _block = _rt_m.group(0)
@@ -4183,6 +4342,16 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
                         _cur_icon = _rt_obj.get('icon')
                         if _cur_icon:
                             _a = re.sub(r'(<span class="rt-icon">)[^<]*(?=</span>)', r'\g<1>' + _cur_icon, _a, count=1)
+                        # 刷新名称与描述（2026-11-14）：修剪模式此前只换图标，历史卡片里的旧文案
+                        # 永不更新——实测 80 页残留「XX是一款免费的在线YY工具，XX是一款免费的在线YY工具…」
+                        # 的双模板描述。这里按权威描述源原位覆写，实现自愈且幂等。
+                        _new_name = esc_html_py(_rt_obj.get('name') or '')
+                        if _new_name:
+                            _a = re.sub(r'(<span class="rt-name">)[^<]*(?=</span>)',
+                                        lambda m: m.group(1) + _new_name, _a, count=1)
+                        _new_desc = _rt_desc_html(_rt_obj)
+                        _a = re.sub(r'(<span class="rt-desc">)[^<]*(?=</span>)',
+                                    lambda m: m.group(1) + _new_desc, _a, count=1)
                     return _a
                 _rtc['removed'] += 1
                 return ''
@@ -4262,6 +4431,10 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
                         # 仍在正文收尾前插入，避免该页永久无相关工具内链（crosslink 缺口）。
                         content = content.replace('</body>', rt_html + '</body>', 1)
                         fixed_rt += 1
+
+        # 5z. 所有相关工具块统一原位刷新（含第 5 步未处理的第二个块 / 注释错位块），
+        #     清掉历史双模板描述与旧名称；幂等，不改变卡片选取与顺序。
+        content = _rt_block_pat.sub(lambda m: _refresh_rt_block(m.group(0)), content)
 
         # 6. 内容深度块（content-depth 试点）：注入独有使用场景 / 示例 / FAQ，打掉模板化页过滤。
         #    幂等：先清除已有深度块（兼容旧构建无 marker 残留 / 重复注入），再注入，重跑构建不叠加。
@@ -4954,6 +5127,9 @@ def main():
     # 必须早于繁体站生成，zh-tw/ 复制时一并继承。
     _sec_changed, _sec_missing = SECMETA.inject(ROOT)
     print('Injected security meta into %d pages (remaining missing: %d)' % (_sec_changed, _sec_missing))
+
+    # 指南页描述收口（硬切补句号），须在繁体站生成之前，否则 zh-tw 会复制残句。
+    normalize_guide_descriptions()
 
     # 只在源页面、JSON 与 sitemap 都已完成后生成繁体静态站，避免复制中间产物。
     generate_opencc_static_locales()
