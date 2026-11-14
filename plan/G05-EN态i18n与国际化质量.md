@@ -89,3 +89,18 @@
 - **第290批处理口径（通用表头锚点）**：硬编码英文中**通用表头**（Item/Value/Score 等）不必改权威源，可在 `tools/*.html` 上直接补 `data-zh="中文"` 锚点（英文可见文本保留，中文态由 `restoreAllDataZh()` 还原，英文态不变）；高置信词典见 `scripts/_zh_datazh_dict.py`，注入脚本 `scripts/_add_datazh.py`，专项门禁 `scripts/_verify_datazh_anchors.mjs`。
 - **注入脚本铁律**：`re.sub` 改 `<td>/<th>` 前必须先占位保护 `<script>/<style>` 块——JS 字符串里的 innerHTML 模板本身有双语分支，强行插 `data-zh="中文"` 会在双引号 JS 串内引入未转义双引号 ⇒ `Unexpected identifier '中文'`，触发 inline js syntax + 多个 calc 门禁连锁失败。写入前后须逐字比对 script/style 块完全一致。
 - **标准名/文献/机构缩写/英文专名保留英文**，不进词典、不补锚点（老板口径）。剩余工具专属说明表须逐批判断可译性，不做批量正则。
+
+## 2026-11-15 进度更新（EN 元数据 + EN 态残留）
+
+### 1. EN 名称退化清零（442–460 批）
+- `json/tools.json` 中 `en` 含中文 **838 → 0**（19 批，按行业推进，全部只改 `i18n/tools/_en_override.json`）。
+- `ed` 含中文 **0**（163 页在 442 之前批次已清）。
+- 全站 `en` 重名组 **0**；`scripts/audit_en_meta_degenerate.py --check` 无新增退化。
+
+### 2. EN 态残留（P1 第三层词典）
+- 464 批发现并修复构建侧缺陷：深览示例 HTML 被整串转义（86 页把 `<p><strong>` 当正文显示）；
+  修复后仅对 `<p><strong>输入：</strong>` 排版式正文保留标签，391 页代码样例/数学式仍整体转义。
+- 465 批：`design` 105 页补 271 条深览英译 + `_common.json` 补 `输入：/处理：/输出：` 前缀层 ⇒ **残留 0**。
+- 466 批：`it` 337 页补 45 条（条码/二维码/文档转换/编码长文/表格标签）⇒ **残留 0**。
+- `data` 21 页残留 **0**。
+- 其余 200+ 行业以 `node scripts/_en_i18n_probe.mjs --check <industry>` 全量扫描后逐行业收口。
