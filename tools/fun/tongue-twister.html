@@ -139,7 +139,7 @@
     <h2 data-zh="🎤 绕口令">🎤 Tongue Twister</h2>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">在绕口令库中取 ⌊random × 库长⌋ 的索引，若与上一条相同且库长 &gt; 1 则重新抽取；展示第 n 条（按索引 +1 计）与难度等级</div>
-  <p class="formula-desc" data-zh="从内置 20 条绕口令中取 ⌊random × 库长⌋ 的索引，若与上一条相同且库长大于 1 则重新抽取；展示第 n 条与其人工标注的难度。本页只做随机展示与难度标注，不录音、不计时、不评分。">Picks a random index from a built-in library of 20 tongue twisters (re-rolling if it matches the previous one), then shows the line number and its hand-labelled difficulty. This page only displays random prompts and difficulty; it does not record audio, time you or score you.</p>
+  <p class="formula-desc" data-zh="从内置 20 条绕口令中取 ⌊random × 库长⌋ 的索引，若与上一条相同且库长大于 1 则重新抽取；展示第 n 条与其人工标注的难度。本页只做随机展示与难度标注，不录音、不评分，支持可选本地计时记录每段跟读用时与最佳成绩。">Picks a random index from a built-in library of 20 tongue twisters (re-rolling if it matches the previous one), then shows the line number and its hand-labelled difficulty. This page only displays random prompts and difficulty; it does not record audio or score you, but offers optional local timing to record how long each line takes and your best time.</p>
 </div>
 
     <div class="tw-card">
@@ -149,12 +149,17 @@
       </div>
     </div>
     <div class="result-box" id="output">挑战快速念出声</div>
+    <div class="tw-timer" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:10px;">
+      <span id="twTime" style="font-size:22px;font-variant-numeric:tabular-nums;">0.0 秒</span>
+      <span id="twBest" style="font-size:13px;color:var(--text-muted);"></span>
+    </div>
 <div id="__tbnExtras" style="margin-top:12px"></div>
 
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="start()">开始</button>
       <button type="button" class="btn" onclick="next()">下一条</button>
       <button type="button" class="btn" onclick="reset()">重置</button>
+      <button type="button" class="btn" id="twTimerBtn" onclick="twToggleTimer()">⏱ 计时</button>
     </div>
   </div>
 
@@ -230,7 +235,7 @@
   <ul>
       <li>本工具纯前端运行，数据不会上传到服务器</li>
       <li>内置 20 条绕口令，难度为题库人工标注的 4 档（简单/中等/困难/地狱）</li>
-      <li>不录音、不计时、不评分；抽题会避开上一条</li>
+      <li>不录音、不评分（支持可选本地计时）；抽题会避开上一条</li>
   </ul>
 </div>
 <!-- /注意事项区块 -->
@@ -259,9 +264,54 @@ const tws=[
   {t:'山前有个严圆眼，山后有个严眼圆。二人山前来比眼，不知是严圆眼比严眼圆的眼圆，还是严眼圆比严圆眼的圆眼。',d:'地狱'}
 ];
 let lastIdx=-1;
+let twTimerRunning=false, twStartTs=0, twRAF=0;
+function twKey(){var t=document.getElementById('text');return t?t.textContent:'';}
+function twFmt(ms){return (ms/1000).toFixed(1)+' 秒';}
+function twShowBest(){
+  try{
+    var key=twKey();var all=JSON.parse(localStorage.getItem('__tbn_tw_best')||'{}');
+    var best=all&&typeof all==='object'?all[key]:undefined;
+    var bw=document.getElementById('twBest');
+    if(bw)bw.textContent=(best&&isFinite(best))?('最佳：'+twFmt(best)):'';
+  }catch(e){}
+}
+function twRender(){
+  if(twTimerRunning){var el=document.getElementById('twTime');if(el)el.textContent=twFmt(performance.now()-twStartTs);twRAF=requestAnimationFrame(twRender);}
+}
+function twStopTimer(record){
+  if(!twTimerRunning)return;
+  twTimerRunning=false;if(twRAF)cancelAnimationFrame(twRAF);
+  var ms=performance.now()-twStartTs;
+  var btn=document.getElementById('twTimerBtn');if(btn)btn.textContent='⏱ 计时';
+  var st=document.getElementById('twTime');if(st)st.textContent=twFmt(ms);
+  if(record){
+    document.getElementById('output').textContent='本次用时 '+twFmt(ms)+'，可再练对比';
+    try{
+      var key=twKey();var all=JSON.parse(localStorage.getItem('__tbn_tw_best')||'{}');
+      if(typeof all!=='object'||!all)all={};
+      if(!all[key]||ms<all[key]){all[key]=ms;}
+      localStorage.setItem('__tbn_tw_best',JSON.stringify(all));
+    }catch(e){}
+  }
+  twShowBest();
+}
+function twToggleTimer(){
+  var btn=document.getElementById('twTimerBtn'), st=document.getElementById('twTime');
+  if(!twTimerRunning){
+    if(!twKey())return;
+    twStartTs=performance.now();twTimerRunning=true;
+    if(btn)btn.textContent='⏹ 停止';
+    if(st)st.textContent='0.0 秒';
+    document.getElementById('output').textContent='计时中…念完点「停止」';
+    twRAF=requestAnimationFrame(twRender);
+  }else{
+    twStopTimer(true);
+  }
+}
 
 function start(){next();}
 function next(){
+  twStopTimer(false);
   let idx;
   do{idx=Math.floor(Math.random()*tws.length);}while(idx===lastIdx&&tws.length>1);
   lastIdx=idx;
@@ -269,11 +319,16 @@ function next(){
   document.getElementById('text').textContent=t.t;
   document.getElementById('diff').textContent='难度：'+t.d;
   const __h0='<p>第 '+(idx+1)+' 条 / 难度：'+t.d+'</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h0;
+  if(st)document.getElementById('twTime').textContent='0.0 秒';
+  twShowBest();
 }
 function reset(){
+  twStopTimer(false);
   document.getElementById('text').textContent='点击"开始"获取一条绕口令';
   document.getElementById('diff').textContent='';
   document.getElementById('output').textContent='挑战快速念出声';
+  var st=document.getElementById('twTime');if(st)st.textContent='0.0 秒';
+  var bw=document.getElementById('twBest');if(bw)bw.textContent='';
   lastIdx=-1;
 }
 function toggleToolTheme(){
@@ -346,7 +401,7 @@ document.addEventListener('DOMContentLoaded',function(){
   </div>
   <div class="tool-intro-body">
     <h4><span class="h4-icon">📝</span>工具简介</h4>
-    <p>从内置 20 条绕口令中随机抽题，显示文本、条目序号与人工标注的难度（简单/中等/困难/地狱）。点「开始」或「下一条」继续抽题，并自动避开上一条；本页不录音、不计时、不评分。</p>
+    <p>从内置 20 条绕口令中随机抽题，显示文本、条目序号与人工标注的难度（简单/中等/困难/地狱）。点「开始」或「下一条」继续抽题，并自动避开上一条；本页不录音、不评分，支持可选本地计时记录每段跟读用时与最佳成绩。</p>
     <h4><span class="h4-icon">✨</span>功能特点</h4>
     <ul class="intro-features">
       <li>内置 20 条绕口令，覆盖简单到地狱 4 档难度</li>

@@ -181,7 +181,6 @@
 | 长尾行业 | `tools/nutrition/generator-nutrition-label.html` | A | `:120` 唯一输入是「生成数量」；`:203-209` 能量/蛋白/脂肪/碳水/钠全部 `Math.random()` 独立生成，能量与宏量营养素不符（Atwater 核算应 28.5–403.5 kcal，页面只 80–379 kcal） | `plan/categories/12-长尾行业/_others.md` 12-N215 | 宣称「适合预包装食品合规」 |
 | 生活消费 | `tools/sports/analysis-19.html` | C | `:120-121` 仅一个「回合,攻/防,成/败」文本框；`:210-245` 只做计数与百分比，无视频上传/播放/时间轴/标注 | `plan/categories/05-生活消费/sports-fitness.md` SF-N65 | 标题称「视频分析」 |
 | 工程制造 | `tools/machinery/detector-159.html` | C | `:136-138`、`:221` 三项自定义阈值（刚度≥100 N/mm、载荷≥50 kN、疲劳≥1×10⁶）被标为 GB/T 1448 / GB/T 307 要求；`:240` 称「可用于质量验收」 | `plan/categories/08-工程制造/machinery-metalwork.md` MM-H56 | 冒用国标验收口径 |
-| 文娱爱好 | `tools/fun/tongue-twister.html` | C | `:275` `function start(){next();}`；全页无计时状态/停止按钮/用时显示，`:199-204` 算例与 FAQ 却称 performance 计时 | `plan/categories/11-文娱爱好/fun-entertainment.md` FE-N59 | 「跟读计时」完全未实现 |
 
 ## X 批新增假工具候选（2026-11-04）
 
