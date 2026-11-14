@@ -125,3 +125,57 @@ ai 目录页用 `__vN = (表达式)` 模式，上面脚本只能抓到取值行�
 - **G01 裁断** / **L2 裁断**（见 P2）。
 - **G02 存根**：pets 6 个在 `ea0240209b` 已删除；线上部署与 IndexNow 提交情况未核实。存根数量和超期日期需稳定快照复核，详见 G02。
 - **G06 留存升级排期**：S2 已有多批落地，覆盖统计待复核；S1 金融 validator 专项及 S4–S8 按各专题文件排期。
+
+---
+
+## 七、2026-11-14 会话交接（fix-dev 收尾 · 给后续 agent）
+
+> 本段是**修复开发阶段**（非 11-03 的只读审计态）。本次会话共落地 395–398 四批，全部**本地提交、未 push**，收尾统一跑全量门禁 + 推送。
+
+### 7.1 本会话已落地批次（本地 commit，待收尾 push）
+| 批号 | 工具 | 修复内容 | commit |
+|---|---|---|---|
+| 395 | `tools/edu/flag-quiz.html` | C 类「名不副实」：英文简介称 timed quiz、深解承诺错题库，但代码无计时/错题存储 → **实现真实功能**：每题限时10秒+超时判错、localStorage 错题库+只练错题模式；同步三处 meta/原理文案如实 | `58dcc92da3` |
+| 396 | `tools/fun/meditation-timer.html` | C 类：meta/深解宣称本地计时与提示音，实际仅静态计划表 → **实现真实倒计时计时器**（时间戳防漂移、段末轻响+结束鸣钟 Web Audio、暂停继续、本次练习留痕） | `0f336791c4` |
+| 397 | `tools/fun/tongue-twister.html` | C 类：主描述写「不计时」但深解承诺「跟读计时/performance 计时」自相矛盾 → **实现可选跟读计时器**+统一四处文案为「支持可选本地计时」 | `7e6682a302` |
+| 398 | `tools/edu/math-quiz.html` `tools/edu/typing-game.html` | P3 文案对齐（初版误改 HTML，见下注） | `5a4b319957` |
+| 398-源同步 | `json/tools.json` `json/industry-edu.json` `i18n/tools/edu.json` `i18n/guides/typing-game-guide.json` `i18n/tools/content_deepdive.json` `i18n/tools/en/edu/typing-game.json` + 重建产物 | **重要**：398 初版直接改 typing-game.html 的 meta/FAQ，但被 `_build.py` 从 i18n/json 源重注入还原（G03 数据源规则）。本提交改**源**消除「错题回看」虚假宣称（typing-game 无错题库功能），FAQ 改为「成绩实时显示，不保存历史记录，不上传」。务必改源而非 HTML。 | 本地提交（见 git log） |
+
+四批均 `node --check` 语法通过、JSON-LD 校验合法；395–397 已各自单独跑过全量 `run_gates.py`（264 道全过），398 为纯文案改动并入收尾统一跑。
+
+### 7.2 ⚠️ 关键教训：fake-tools 清单严重滞后，必须「先核验再动手」
+- fake-tools 清单（`part-01/02/03.md`）是 **2026-11-04 快照**，而 `audit/interaction-review` 分支已一次性冲刷 **9017 文件（+145100/-100022 行）** 并合并进本地 master。
+- 实测：清单中大量标「真」的条目在**当前源码里其实已修好**（capacitor-calculator、child-support、court-fee、salary-after-tax、flow-cytometry-ratio、semen-analysis、gradient、stats-13、calc-angle-slope、generator-laugh、random-training-rhythm、http-cookies、whitespace 等）。照单盲改会重复劳动甚至改坏已修好的页。
+- **铁律**：挑清单条目后，**先用 grep 在当前源码核验**「声称缺失的功能是否真的不存在」再动手。核验手段：
+  - 计时/音效缺失：`grep -c "setInterval\|AudioContext\|OscillatorNode" 文件`
+  - 真实实现 vs 伪实现：`grep -cE "Reed|rsEncode|qrEncode|createOscillator|function detect|号段|区号|lookup|dictionary|词库|质数|阶乘|坡度|atan" 文件`
+  - 文案误导：`grep -nE "opt-guide|点击计算|点击生成|Parse and build|错题回看" 文件`
+- 不要相信清单的「已确认（真）」标签，信当前源码。
+
+### 7.3 新提速协议（详见 `plan/门禁提速与工作协议.md`）
+老板 2026-11-14 明确：**全量门禁太频繁太重，改为每 2–3 小时跑一次，跑通即 push；平时只做轻量校验、多个同类修复合并提交、不频繁 push。**
+- 平时：改完用 `node --check`（抽取 inline script）+ `json.loads` 校验 JSON-LD，不跑全量门禁、不 push。
+- 攒 3–5 批（或 2–3 小时）跑一次 `env -u NODE_OPTIONS python3 scripts/run_gates.py`；全过即 `git push origin master`，等单次 Actions 查询确认（不轮询）。
+- 合并提交：同类修复（如 P3 文案对齐、或同类计时器）一起改一起 commit，每批 6–12 文件。
+
+### 7.4 fake-tools 剩余规模与下一批候选（已 triage）
+- 剩余缺陷行：part-01 ≈ 62、part-02 ≈ 23（其中多数为滞后过期项，需核验）、part-03 ≈ 21。
+- **真正名不副实 + 改动轻、建议优先**：
+  - `tools/it/whitespace.html`：曾被记「压成一行」选项缺失，但审计后疑似已修（需重新 grep 核验）；
+  - `tools/museum/index.html`：卡片模板文案（rt-desc/card-desc）疑似套话；
+  - `tools/rehabilitation/fim-scale.html` / `tools/life/assessor-target.html`：opt-guide 套话（assessor-target 还含面积 `shopArea` 死输入，动逻辑）；
+  - `tools/it/phone-parser.html` / `tools/it/charset-detector.html`：归属地表/编码探测是否真实查表；
+  - `tools/edu/anagram-game.html` / `tools/fun/sequence-puzzle.html`：硬编码词库/仅少数序列类。
+- **已确认审计修好、清单滞后（不要再改）**：见 7.2 列表。
+- **重活（伪二维码需重写编码，不优先排期）**：`tools/it/url-qr.html`、`email-qr.html`、`location-qr.html` 等若被记「伪二维码/占位图」，需真实 Reed-Solomon/BCH 编码，工程量大，建议单独立项。
+- **⚠️ 398 暴露的 G03 坑（后续必读）**：`tools/fun/tongue-twister.html`（397 批）已加真实可选计时器，但文案源（`i18n/tools/fun.json`、`en/fun/tongue-twister.json`、`guides/tongue-twister-guide.json`、`json/tools.json`）仍写「不录音、不计时、不评分」，构建后会还原成与功能矛盾的文案。**待办**：把上述源的「不计时」改为「支持可选本地计时（不记录历史）」并同步 EN，再重建。flag-quiz（395）/meditation-timer（396）加功能后源文案「timed/错题库/本地计时」现已变准确，可不改。
+
+### 7.5 销账与登记纪律（不变）
+- 修完**整条删除** fake-tools 对应行（不留 ✅ 占位）；
+- 每批写 `plan/已修复/YYYY-MM-DD-<批号>-<分类>-<主题>.md`（批号继续 399 起）；
+- 改源不改 HTML（deep-dive/FAQ/intro 走 `json/tools.json`、`i18n/tools/<ind>.json`、`i18n/tools/content_deepdive.json` 源；formula-eq 公式框可改页内首 `<div class="formula-desc">`）；
+- 改完 `python3 _build.py` 是提交前最后一步；收尾统一跑门禁 + push。
+
+### 7.6 收尾待办（本会话未完）
+- 全量门禁正在后台跑（`/tmp/wrapup_gates.log`）；通过即 `git push origin master` 并单次查 Actions。
+- push 后提醒后续 agent：本地 395–398 四批已上线候选，需等部署成功确认。
