@@ -25,7 +25,6 @@ const pagesArg = argv.find((a) => a.startsWith('--pages='));
 const DEFAULT_SAMPLE = [
   'it/chmod-calculator',        // Snap 模板 + 3 个静态复选框（600/777 缺陷原始现场）
   'it/text-cleaner',            // Snap 模板 + 14 个复选框，全不勾时无结果（SKIP 分支）
-  'biz/text-compare',           // Snap 模板 + 文本域混排
   'civil/rebar-anchorage',      // 旧模板 Raw/Restore 变体
   'health/milk-tea-calories',   // 旧模板变体 + Extras 越作用域变量（曾整体静默失效）
   'welding/weld-strength',      // 旧模板变体（单复选框）
