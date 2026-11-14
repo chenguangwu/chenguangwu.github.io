@@ -558,6 +558,31 @@ const CASES = [
     expect: ["材料类型： 内墙涂料 甲醛释放量：0.12 mg/m³ VOC含量：120 g/L"],
     ref: "结果区 `#res` 是单行拼串：材料类型 + 三项浓度 + 限值 + 环保等级 + 结论。本例连排前四段，把 matType（select 的 option value 是 `paint`）+ 三个数值同时纳入被测点。\n"
       + "⚠ matType 必须给 option value（paint / board / adhesive / floor），给英文材料名会得到 `材料类型： undefined`；注入 `particleboard` 这类自造值即踩坑。",
+  },
+  // ── 第382批 D-N184：板材分级口径（GB 18580-2017 强制底线 E1 + GB/T 39600-2021 分级）
+  {
+    slug: "design/detector-28",
+    inputs: { matType: "board", formaldehyde: "0.12", voc: "0", benzeneContent: "0" },
+    expect: [
+      "限值要求：≤0.124 mg/m³ 环保等级： E1级（合格）",
+      "满足 GB 18580-2017 强制底线 E1（≤0.124 mg/m³）",
+    ],
+    ref: "D-N184 强锁：板材分级口径统一为「GB 18580-2017 强制底线 E1 ≤0.124 mg/m³ + GB/T 39600-2021 的 ENF ≤0.025 / E0 ≤0.050 / E1 ≤0.124」。"
+      + "注入 formaldehyde=0.12（落在 0.050–0.124 区间）⇒ 限值与等级必须是「≤0.124 mg/m³ + E1级（合格）」。"
+      + "旧实现把 0.124 一档命名为 E2（GB 18580-2017 早已取消 E2，E0/ENF 出自 GB/T 39600-2021），0.12 被判「E2级（限室内）」，两条 expect 全不命中；"
+      + "默认态 formaldehyde=0.08 ⇒ 同样不命中（它走 E1 旧分支）。"
+      + "⚠ 不要锚「甲醛释放量：0.12 mg/m³」这类输入回显；也不要锚 tip-box 的 class 名（属模板常量）。",
+  },
+  // ── 第382批 D-N185：参考标尺按材料类型切换（不再是固定甲醛 E0/E1/E2 三段）
+  {
+    slug: "design/detector-28",
+    inputs: { matType: "paint", formaldehyde: "0.05", voc: "60", benzeneContent: "30" },
+    clicks: ["var cap=[];globalThis.TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{refBar:function(sel,cfg){cap.push(cfg);},line:function(){}},matrix:{table:function(){}},history:{list:function(){return [];},last:function(){return null;},record:function(){},mount:function(){}},preset:{bar:function(){}}};function snap(mt){document.getElementById('matType').value=mt;calc();var c=cap[cap.length-1];return c?(c.unit+'/'+c.bands.length+'/'+c.bands[0].label.zh):'NONE';}var a=snap('board'),b=snap('paint'),c2=snap('adhesive');document.getElementById('__tbProbe').textContent='REFBAR board='+a+' paint='+b+' adh='+c2;"],
+    expect: ["REFBAR board=mg/m³/4/ENF≤0.025 paint=g/L/3/优等 VOC≤30 adh=g/L/3/优等 VOC≤50"],
+    ref: "D-N185 强锁：标尺 bands 必须随 matType 切换。人造板/地板取甲醛（mg/m³，ENF/E0/E1/不合格 共 4 段，首段 ENF≤0.025）；"
+      + "内墙涂料取 VOC（g/L，优等≤30 / 合格≤80 / 不合格 共 3 段）；胶粘剂取 VOC（g/L，优等≤50 / 合格≤100 / 不合格 共 3 段）。"
+      + "旧实现无论选哪种材料都画甲醛 E0/E1/E2 标尺（固定 4 段、单位恒 mg/m³、首段 E0级（优等）），涂料/胶粘剂态结论与标尺口径完全脱节。"
+      + "⚠ stub 的 chart.refBar 只捕获 cfg、不渲染 SVG，所以断言落在「单位 + 段数 + 首段标签」三元组上，这是该页标尺口径的唯一可判别指纹。",
   },  {
     slug: "design/css-box-shadow-generator",
     inputs: { offsetX: "12", offsetY: "-6", blur: "30", spread: "8", opacity: "75", color: "#ff6b35" },
