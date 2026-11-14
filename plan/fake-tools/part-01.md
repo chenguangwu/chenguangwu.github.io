@@ -54,13 +54,10 @@
 | 商业运营 | `tools/hr/stats-funnel-recruit.html` | A | `:123-126` 仅 4 个环节人数；`:258` 起无渠道花费/单聘成本字段 | `plan/categories/06-商业运营/hr-legal.md:383` | 已确认（真） | 中高（标题/meta 宣称渠道成本） |
 | 商业运营 | `tools/marketing/email-subject-line-tester.html` | C | `:191,194` 标题+预览正文；`:270` 图表容器；`:436` 只画关键词权重饼图 | `plan/categories/06-商业运营/marketing-sales.md:433` | 已确认（真） | 中高（无打开率/送达率/垃圾度模型，预览正文不参评） |
 | 商业运营 | `tools/hr/eap-xinli-zixun-weiji-ziyuan.html` | C | `:130,132` 仅员工规模+需求强度；全文无热线号码/转介资源链接 | `plan/categories/06-商业运营/hr-legal.md:545` | 已确认（真） | 中（EAP「资源」名不副实） |
-| 商业运营 | `tools/marketing/marketing-utm-builder.html` | C | `:152-157` 单条链接 6 字段；`:240` 只拼一条 URL | `plan/categories/06-商业运营/marketing-sales.md:461` | 已确认（真） | 中（宣称批量生成，且必填规则与 FAQ 冲突） |
 | 教育学习 | `tools/edu/word-memory.html` | A | `:572-575` `lastReview=Date.now()` 只写不读；无到期调度/复习队列 | `plan/categories/07-教育学习/edu-language.md:1117` | 已确认（真） | 中（「艾宾浩斯」未真正驱动复习） |
 | 设计创意 | `tools/design/pixel-art-generator.html` | C（+D） | `:145,427-429` 导出按钮实为矩阵 CSV；`:75` FAQ 称导出字符画/CSS | `plan/categories/04-设计创意/design.md:788` | 已确认（真） | 中（导出承诺与实现不符） |
 | 语言翻译 | `tools/language/text-polisher.html` | C（+D） | `:153-170` 仅空格/空行/标点/全半角 6 个格式化开关 | `plan/categories/07-教育学习/edu-language.md:380` | 已确认（真） | 中（「润色/改写/同义替换」未实现） |
-| 医疗健康 | `tools/healthcare/ideal-weight.html` | A | `:238-240` 读取 `age` 后未进入公式，仅 Devine 一路 | `plan/categories/03-医疗健康/drug-dosing.md:319` | 已确认（真） | 中（年龄是死输入） |
 | 商业运营 | `tools/ecommerce/analysis-cost-8.html` | C | `:10` 称分项成本/费用效益比；`:125-129` 仅固定成本/单位变动成本/单价；`:210-225` 只算 CVP 保本 | `plan/categories/06-商业运营/ecommerce-logistics.md:394` | 已确认（真） | 中（名实不符） |
-| 商业运营 | `tools/ecommerce/analysis-70.html` | A | `:126` 每行含「订单数」；`:205` 起 calc 全程未引用该列 | `plan/categories/06-商业运营/ecommerce-logistics.md:373` | 已确认（真） | 中（死输入） |
 | 商业运营 | `tools/hr/hris-zizhuyuaiduibijisuanqi.html` | C | `:130,132` 仅 HRIS/AI 两个成熟度分；`:304` 起只比较两分 | `plan/categories/06-商业运营/hr-legal.md:441` | 已确认（真） | 中（宣称对比成本与效率） |
 | 医疗健康 | `tools/clinical-nursing/suction-pressure.html` | A | 2026-11-06 Node 执行 `checkPressure()`：成人 150 提示过高，100 显示 80–120 区间内；未做浏览器验证，临床范围需专业复核 | `plan/categories/03-医疗健康/drug-dosing.md` 的 D-N37 | 已否定 | —（成人错误区间已修；其他原记录未复核） |
 | 医疗健康 | `tools/pulmonology/lung-rads.html` | A | 2026-11-06 Node 执行实际 `calc()`：部分实性总径 30 mm、实性成分 5/6/8 mm 分别输出 3/4A/4B，空值拦截；未做浏览器验证，阈值需专业复核 | `plan/categories/03-医疗健康/drug-dosing.md` 的 D-N107 | 已否定 | —（已修复） |
