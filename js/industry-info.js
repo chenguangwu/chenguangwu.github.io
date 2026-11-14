@@ -15,7 +15,7 @@ window.INDUSTRY_INFO = {
   'travel'               : { name: '旅行出行', icon: '✈️', hot: 2220963 },
   'biz'                  : { name: '商业办公', icon: '💼', hot: 1544579 },
   'edu'                  : { name: '教育学习', icon: '📖', hot: 1438060 },
-  'fun'                  : { name: '娱乐游戏', icon: '🎮', hot: 1369613 },
+  'fun'                  : { name: '娱乐游戏', icon: '🎮', hot: 1369615 },
   'hotel'                : { name: '酒店管理', icon: '🏨', hot: 1048472 },
   'agriculture'          : { name: '农业种植', icon: '🌾', hot: 749017 },
   'statistics'           : { name: '统计学', icon: '📊', hot: 730225 },
