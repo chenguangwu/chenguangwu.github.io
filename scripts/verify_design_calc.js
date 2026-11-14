@@ -1175,14 +1175,15 @@ const CASES = [
     "slug": "design/aztec-code",
     "inputs": {
       "text": "abc123测试",
-      "fgColor": "abc123测试",
-      "bgColor": "abc123测试",
-      "size": "42"
+      "fgColor": "#112233",
+      "bgColor": "#ffffff",
+      "size": "42",
+      "ecc": "50"
     },
     "expect": [
-      "abc123测试\nabc123测试\nabc123测试\n42"
+      "层数 2 · 紧凑型 · 19×19 模块 · 数据码字 21 · 纠错 50% · 12 字节"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"text\":\"abc123测试\",\"fgColor\":\"abc123测试\",\"bgColor\":\"abc123测试\",\"size\":\"42\"}，输出区含「abc123测试\nabc123测试\nabc123测试\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "第390批：真编码接管后重写本用例（原为自动补强的输入回显弱用例）。注入中文混排文本 + 纠错 50% ⇒ 符号必须由内容与纠错率共同决定：12 字节（abc123 六字节 + 两个汉字各 3 字节 UTF-8）在 50% 纠错下升到紧凑型 2 层、19×19、15 个数据码字。旧假实现只有 hash+LCG，输出里没有任何层数/码字信息，默认态（33% + TB-2026-009）得到的是 1 层 15×15 11 码字 ⇒ 双向强判别。"
   },
   {
     "slug": "design/badge-generator",
@@ -3139,6 +3140,40 @@ const CASES = [
   ref: "D-N179-2：旧实现 lastURL/预览只在 generate 时刷新，改文本不点生成直接下载会拿到旧 PNG；修复后生成时记录参数快照，下载前比对当前输入，不一致即拦截并提示。探针同时回显注入文本，expect 依赖输入；旧码直接走 a.click() 不产生 alert ⇒ 强判别。",
 },
 
+// ── 第390批：Aztec 真实编码（层数/码字/字节随内容与纠错率变化） ──────
+{
+  slug: "design/aztec-code",
+  inputs: { text: "TB-2026-009", ecc: "23", size: "12" },
+  expect: ["层数 1 · 紧凑型 · 15×15 模块 · 数据码字 11 · 纠错 23% · 11 字节"],
+  ref: "D-N177：旧实现 hash+LCG 随机填格，输出里没有层数/码字概念，任何文本都是同一尺寸；真编码后 11 字节在 23% 纠错下恰好落入紧凑型 1 层、15×15、11 个数据码字。默认态为 33% 纠错（同尺寸但码字/占比不同）⇒ 串含纠错比例，双向可判别。",
+},
+{
+  slug: "design/aztec-code",
+  clicks: ["document.getElementById('text').value=Array(201).join('A');document.getElementById('ecc').value='33';generate();"],
+  expect: ["层数 7 · 全尺寸 · 45×45 模块 · 数据码字 125 · 纠错 33% · 200 字节"],
+  ref: "D-N178：旧实现矩阵尺寸只由滑杆决定、与文本长度无关，10 字符与 200 字符同尺寸。真编码后 200 字节必须升级为全尺寸 7 层、45×45、125 个数据码字 ⇒ 尺寸由 payload 决定。默认文本 TB-2026-009 只有 1 层 15×15 ⇒ 判别明确。",
+},
+{
+  slug: "design/aztec-code",
+  inputs: { text: "中文二维码" },
+  expect: ["层数 2 · 紧凑型 · 19×19 模块 · 数据码字 26 · 纠错 33% · 15 字节"],
+  ref: "非 ASCII 路径：5 个汉字按 UTF-8 编码为 15 字节并写入 ECI 26，符号随之为紧凑型 2 层 / 26 个数据码字。旧实现按 UTF-16 code unit 算 hash，字节数无意义；默认 ASCII 文本得 11 字节 ⇒ 字节数与层数同时变化，判别明确。",
+},
+{
+  slug: "design/aztec-code",
+  inputs: { text: "TB-2026-009", size: "1" },
+  clicks: ["generate();var _vb=(String(lastSVG).split('viewBox=\"0 0 ')[1]||'').split(' ')[0];document.getElementById('__svg_probe').textContent='SZ='+document.getElementById('size').value+' DIM='+_vb;"],
+  expect: ["SZ=4 DIM=92"],
+  ref: "D-N178 第二处：旧实现预设 8/10 低于 min=11，输入框显示 8 但矩阵被夹成 11，UI 与实际不符。修复后每模块像素夹到 4–40 并回写输入框，画布与 SVG 用同一夹取后取值（15+4+4 模块 × 4px = 92）。旧实现无 SVG、无回写 ⇒ 三个量全部对不上。",
+},
+{
+  slug: "design/aztec-code",
+  inputs: { text: "AZTEC-VERIFY" },
+  clicks: ["generate();document.getElementById('__svg_probe').textContent='TAG='+(lastSVG.indexOf('<svg')===0?'OK':'BAD')+' VB='+(/viewBox=\"0 0 276 276\"/.test(lastSVG)?'OK':'BAD')+' BADCOLOR='+(lastSVG.indexOf('#112233')>=0?'Y':'N');"],
+  expect: ["TAG=OK VB=OK BADCOLOR=N"],
+  ref: "矢量导出：SVG 必须以 <svg 开头、viewBox 覆盖符号加 4 模块留白（(15+8)×12=276），且不得混入未使用的颜色值。旧实现只有 canvas、lastSVG 恒空 ⇒ TAG=BAD VB=BAD，判别明确。",
+},
+
 // ── 第320批：网格渐变结果区/预设占位/非法数量强锁 ──────────────
 {
   slug: "design/mesh-gradient",
@@ -3252,9 +3287,9 @@ const CASES = [
 {
   slug: "design/qr-code-styled",
   inputs: { text: "HELLO-324", size: "300" },
-  clicks: ["lastURL='OLDPNG-324';generate();document.getElementById('__svg_probe').textContent='IN:'+document.getElementById('text').value+'|URL:'+String(lastURL)+'|END';"],
+  clicks: ["qrcode=function(){throw new Error('boom');};lastURL='OLDPNG-324';generate();document.getElementById('__svg_probe').textContent='IN:'+document.getElementById('text').value+'|URL:'+String(lastURL)+'|END';"],
   expect: ["IN:HELLO-324|URL:|END"],
-  ref: "D-N12（失败分支）：旧码 lastURL 只在生成成功回调里写，qrcode.js 未加载/生成抛错等失败分支只改预览文案，上一次的码仍可下载；修复后 generate() 开头先清空 lastURL。桩内 qrcode 未定义必走失败分支；旧码 URL:OLDPNG-324 ⇒ 强判别，expect 含注入文本。",
+  ref: "D-N12（失败分支）：旧码 lastURL 只在生成成功回调里写，生成抛错等失败分支只改预览文案，上一次的码仍可下载；修复后 generate() 开头先清空 lastURL。第390批修正：第389批让 harness 注入真实 qrcode 后，本页不再必然走「库未定义」分支（原断言随之常红），改为显式注入必抛异常的编码器，仍锁定同一失败分支；旧码 URL:OLDPNG-324 ⇒ 强判别，expect 含注入文本。",
 },
 {
   slug: "design/qr-code-styled",

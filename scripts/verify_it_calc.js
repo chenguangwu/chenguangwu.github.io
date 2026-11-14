@@ -99,6 +99,22 @@ function loadQrcodeCtor() {
   return _qrcodeCtor;
 }
 
+// 项目内置 Aztec 编码库 js/aztec-lib.js（移植自 ZXing，ISO/IEC 24778）：同样以 <script src> 引入。
+// 与 qrcode 同策略：仅当页面 HTML 命中该引用时才注入，让内联脚本能真实完成高电平编码、
+// Reed-Solomon 纠错与布点，而不是只跑「库未加载」兜底分支。
+let _aztecLib;
+function loadAztecLib() {
+  if (_aztecLib === undefined) {
+    try {
+      const _vm = require("vm");
+      const _sb = { window: {} };
+      _vm.runInNewContext(fs.readFileSync(path.join(ROOT, "js/aztec-lib.js"), "utf8"), _sb);
+      _aztecLib = (_sb.Aztec || (_sb.window && _sb.window.Aztec)) || null;
+    } catch (e) { _aztecLib = null; }
+  }
+  return _aztecLib;
+}
+
 // ToolBox 早期 API 桩（/js/toolbox-stub.js）源缓存：页面已将该桩外链化（<script src>），
 // 本 harness 不加载外部脚本，故在用例上下文里显式以同内容注入，使 harness 的 window.ToolBox
 // 与生产设备一致：补全 qs/qsa/debounce/resolveCanvasColor/canvasColorWithAlpha/i18nText 等
@@ -853,9 +869,9 @@ const CASES = [
   {
     slug: "it/text-qr",
     inputs: { text: "old secret" },
-    clicks: ["window.__qrCanvas={toDataURL:function(){return 'OLD_PNG';}};window.__qrMeta={probe:1};document.getElementById('text').value='anything';generate();var __p=document.getElementById('__tbProbe');__p.textContent='ERR='+(window.__qrCanvas===null&&window.__qrMeta===null?'CLEAR':'STALE');drawQR=function(t){var c=document.createElement('canvas');c.__qrMeta={n:1,margin:4,cell:8,dark:[0],fg:'#000000',bg:'#ffffff'};c.toDataURL=function(){return 'NEW_PNG';};return c;};document.getElementById('text').value='NEW-QR';generate();__p.textContent=String(__p.textContent)+' RECOVER='+(window.__qrCanvas&&window.__qrMeta?'OK':'FAIL');var __cap=[];var __ce=document.createElement.bind(document);document.createElement=function(t){var e=__ce(t);if(t==='a'){e.click=function(){__cap.push('DL:'+e.download);};}return e;};downloadPNG();document.createElement=__ce;__p.textContent=String(__p.textContent)+' DL='+__cap.join('|');"],
+    clicks: ["globalThis.qrcode=function(){throw new Error('boom');};window.__qrCanvas={toDataURL:function(){return 'OLD_PNG';}};window.__qrMeta={probe:1};document.getElementById('text').value='anything';generate();var __p=document.getElementById('__tbProbe');__p.textContent='ERR='+(window.__qrCanvas===null&&window.__qrMeta===null?'CLEAR':'STALE');drawQR=function(t){var c=document.createElement('canvas');c.__qrMeta={n:1,margin:4,cell:8,dark:[0],fg:'#000000',bg:'#ffffff'};c.toDataURL=function(){return 'NEW_PNG';};return c;};document.getElementById('text').value='NEW-QR';generate();__p.textContent=String(__p.textContent)+' RECOVER='+(window.__qrCanvas&&window.__qrMeta?'OK':'FAIL');var __cap=[];var __ce=document.createElement.bind(document);document.createElement=function(t){var e=__ce(t);if(t==='a'){e.click=function(){__cap.push('DL:'+e.download);};}return e;};downloadPNG();document.createElement=__ce;__p.textContent=String(__p.textContent)+' DL='+__cap.join('|');"],
     expect: ["ERR=CLEAR RECOVER=OK DL=DL:qrcode.png"],
-    ref: "IT-N551 复核重做：生成异常（harness 下 qrcode 外部脚本不可加载）时也必须同时作废画布与元数据；随后用桩替身恢复合法生成，画布与元数据重建成功，并实际调用 downloadPNG() 捕获一次真实下载 qrcode.png，证明清空逻辑没有误伤正常导出。默认态不产生该串。"
+    ref: "IT-N551 复核重做：生成异常（第390批起显式注入必抛异常的编码器，替代原先「harness 不加载外部脚本」的隐式失败前提）时也必须同时作废画布与元数据；随后用桩替身恢复合法生成，画布与元数据重建成功，并实际调用 downloadPNG() 捕获一次真实下载 qrcode.png，证明清空逻辑没有误伤正常导出。默认态不产生该串。"
   },
   {
     slug: "it/markdown-lint",
@@ -11257,16 +11273,16 @@ const CASES = [
   {
     "slug": "it/qr-beautify",
     "inputs": {
-      "fg": "abc123测试",
-      "bg": "abc123测试",
-      "text": "1\n2\n3",
-      "ecc": "M",
-      "style": "square"
+      "text": "QRBEAUTIFY-2026-0001",
+      "ecc": "H",
+      "style": "square",
+      "fg": "#123456",
+      "bg": "#ffffff"
     },
     "expect": [
-      " defined\nM\nabc123测试\nabc123测试\nsquare"
+      "✅ 已生成 29 × 29 模块 · 容错 H · 232px"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"fg\":\"abc123测试\",\"bg\":\"abc123测试\",\"text\":\"1\\n2\\n3\",\"ecc\":\"M\",\"style\":\"square\"}，输出区含「 defined\nM\nabc123测试\nabc123测试\nsquare」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "第390批重写（原为自动补强弱用例，anchor 依赖旧环境 'qrcode is not defined' 报错串）：harness 注入真实 qrcode 后该串不复存在，改为锚「已生成 N × N 模块 · 容错 H」这类由内容与纠错等级共同决定的派生量；20 字节 ASCII 在 H 级必须升到比默认样例更大的版本，默认态（Hello World + M）不命中。"
   },
   {
     "slug": "it/qr-beautify",
@@ -15169,11 +15185,18 @@ async function runCaseInner(c) {
   // 若本页确实引用了它，就把构造函数作为 new Function 形参注入，让内联脚本能真实生成矩阵。
   // 未引用该库的页面拿到 undefined，行为与改造前逐字节一致。
   const pageQrcode = /js\/qrcode\.js/.test(html) ? loadQrcodeCtor() : undefined;
+  const pageAztec = /js\/aztec-lib\.js/.test(html) ? loadAztecLib() : undefined;
+  // 用全局注入而非 new Function 形参：页面内联脚本里对 qrcode / Aztec 的引用本就是
+  // 「未声明标识符 → 查全局」，与浏览器一致；形参注入会把用例内 globalThis.qrcode=... 的
+  // 桩遮蔽掉（第389批改形参后 it/url-qr、it/text-qr 等既有桩用例由绿转红）。每页无条件赋值，
+  // 未引用该库的页面拿到 undefined，行为与改造前一致，也不会跨页残留。
+  try { globalThis.qrcode = pageQrcode; } catch (e) { /* 只读全局跳过 */ }
+  try { globalThis.Aztec = pageAztec; } catch (e) { /* 只读全局跳过 */ }
   const compiled = new Function(
-      "document", "window", "console", "navigator", "localStorage", "sessionStorage", "ToolBox", "alert", "setTimeout", "requestAnimationFrame", "setInterval", "requestIdleCallback", "Date", "qrcode",
+      "document", "window", "console", "navigator", "localStorage", "sessionStorage", "ToolBox", "alert", "setTimeout", "requestAnimationFrame", "setInterval", "requestIdleCallback", "Date",
       `var __f={};\n${script}\n${expose}\n__f["__pageEval"]=function(c){return eval(String(c));};\n__f["__rebindGlobal"]=function(n){try{eval(n+' = window.'+n);}catch(e){}};\nreturn __f;`
     );
-    fns = compiled(document, win, { log() {}, warn() {}, error() {} }, navigator, localStorage, sessionStorage, toolboxArg, () => {}, safeTimer, safeTimer, safeTimer, safeTimer, FrozenDate, pageQrcode);
+    fns = compiled(document, win, { log() {}, warn() {}, error() {} }, navigator, localStorage, sessionStorage, toolboxArg, () => {}, safeTimer, safeTimer, safeTimer, safeTimer, FrozenDate);
   } catch (e) {
     return { ok: false, why: "初始化失败: " + e.message.slice(0, 80) };
   }
