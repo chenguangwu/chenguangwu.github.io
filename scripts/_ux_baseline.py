@@ -48,6 +48,10 @@ CROSS_RE = re.compile(
 # 指南页不是「工具 → 工具」导流，不计入 crosslink
 GUIDE_RE = re.compile(r'guides/', re.I)
 SCRIPT_RE = re.compile(r"<script\b[^>]*>(.*?)</script>", re.I | re.S)
+# 相关工具卡（静态产物里是 <a class="related-tool-card">…</a>；运行时注入的是 .rt-item）。
+# 卡内 rt-name / rt-desc 描述的是**别的工具**，不能算作本页功能信号。
+RELATED_CARD_RE = re.compile(
+    r'<a[^>]*class="[^"]*related-tool-card[^"]*"[^>]*>.*?</a>', re.I | re.S)
 # 运行时能力：页面通过共享组件库 js/tool-kit.js 调用（DOM 在浏览器里才生成），
 # 静态扫描看不到 <svg>/<table>/localStorage，必须按调用点记账，否则改造不计分。
 TBK_CHART_RE = re.compile(r"TBKit\.chart\.", re.I)
@@ -65,7 +69,14 @@ def scan_one(path):
     body = s[i:] if i >= 0 else s
     # 去掉 script 块后的正文（避免 JS 字符串里的中文误判 FAQ/对比）
     scripts = "".join(SCRIPT_RE.findall(body))
-    text = SCRIPT_RE.sub(" ", body)
+    # 文本类特征（export/preset/compare/faq）必须排除「相关工具卡」的文案：
+    # 卡片描述的是**别的工具**的能力，混进本页正文会让本页虚报功能。
+    # 实测（2026-11-14）：jimao-3a-game.html 卡片外不存在任何「导出/下载/复制」，
+    # 却因相邻卡片写「笑声音效合成器…可随机微调参数、下载」被判有 export（3 分），
+    # 修正后如实回落 2 分。全站共 20 页受此影响（compare 13 / preset 6 / export 1）。
+    # 注意：crosslink 仍需用完整 body（卡片链接本身就是站内互链），故只给文本类特服用 body_text。
+    body_text = RELATED_CARD_RE.sub(" ", body)
+    text = SCRIPT_RE.sub(" ", body_text)
 
     feats = {
         "chart": bool(CHART_RE.search(body) or TBK_CHART_RE.search(scripts)),
