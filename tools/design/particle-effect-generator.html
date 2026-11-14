@@ -570,6 +570,9 @@ input[type="color"]::-webkit-color-swatch {
   var mouseAttract = true; // true=吸引, false=排斥
   var mouseX = -9999, mouseY = -9999;
   var lastTime = 0, frameCount = 0, fps = 0;
+  // 连线 O(n²)：500 个粒子约 12.5 万对，仍可维持流畅；超过才停用并给出提示
+  var LINK_MAX = 500;
+  var prevTs = 0;
 
   // 当前参数（从控件读取）
   var opts = {
@@ -690,7 +693,9 @@ input[type="color"]::-webkit-color-swatch {
   }
 
   // ====== 更新粒子 ======
-  function updateParticles() {
+  function updateParticles(dtFactor) {
+    // dtFactor：以 60fps 为 1.0 的时间归一因子（高刷屏 <1、掉帧 >1），保证速度(px/s)与寿命(秒)不随刷新率漂移
+    dtFactor = (typeof dtFactor === 'number' && isFinite(dtFactor) && dtFactor > 0) ? dtFactor : 1;
     var w = canvas.offsetWidth;
     var h = canvas.offsetHeight;
 
@@ -698,7 +703,7 @@ input[type="color"]::-webkit-color-swatch {
       var p = particles[i];
 
       // 重力
-      p.vy += opts.gravity * 0.1;
+      p.vy += opts.gravity * 0.1 * dtFactor;
 
       // 鼠标交互
       if (opts.mouseEnabled && mouseX > 0 && mouseY > 0) {
@@ -709,30 +714,31 @@ input[type="color"]::-webkit-color-swatch {
           var force = (120 - dist) / 120 * 0.8;
           if (mouseAttract) {
             // 吸引
-            p.vx -= (dx / dist) * force;
-            p.vy -= (dy / dist) * force;
+            p.vx -= (dx / dist) * force * dtFactor;
+            p.vy -= (dy / dist) * force * dtFactor;
           } else {
             // 排斥
-            p.vx += (dx / dist) * force;
-            p.vy += (dy / dist) * force;
+            p.vx += (dx / dist) * force * dtFactor;
+            p.vy += (dy / dist) * force * dtFactor;
           }
         }
       }
 
-      // 轻微阻力
-      p.vx *= 0.99;
-      p.vy *= 0.99;
+      // 轻微阻力：按时间指数衰减，帧率无关（0.99^dtFactor 等价 60fps 下每帧 ×0.99）
+      var damp = Math.pow(0.99, dtFactor);
+      p.vx *= damp;
+      p.vy *= damp;
 
-      p.x += p.vx;
-      p.y += p.vy;
+      p.x += p.vx * dtFactor;
+      p.y += p.vy * dtFactor;
 
-      // 寿命
+      // 寿命：life 以「60fps 帧」为单位，按 dtFactor 递减 ⇒ 真实秒数恒定（1.5s 即 90 帧，120Hz 下每帧减 0.5）
       if (p.life > 0) {
-        p.life--;
+        p.life -= dtFactor;
       }
 
       // 边界回弹或移除
-      if (p.life === 0) {
+      if (p.maxLife > 0 && p.life <= 0) {
         particles.splice(i, 1);
         continue;
       }
@@ -761,7 +767,7 @@ input[type="color"]::-webkit-color-swatch {
     ctx.fillRect(0, 0, w, h);
 
     // 连线
-    if (opts.linkDist > 0 && particles.length < 300) {
+    if (opts.linkDist > 0 && particles.length <= LINK_MAX) {
       for (var i = 0; i < particles.length; i++) {
         for (var j = i + 1; j < particles.length; j++) {
           var dx = particles[i].x - particles[j].x;
@@ -818,13 +824,24 @@ input[type="color"]::-webkit-color-swatch {
       lastTime = timestamp;
     }
 
+    // 时间归一：首帧按 60fps 基准（16.7ms）；dt 上限 100ms，避免切回标签页时粒子瞬移
+    var __dtMs = prevTs ? Math.min(100, Math.max(1, timestamp - prevTs)) : 16.7;
+    prevTs = timestamp;
+    var dtFactor = __dtMs / 16.6667;
+
     spawnParticles();
-    updateParticles();
+    updateParticles(dtFactor);
     drawParticles();
 
     // 更新信息
+    // 连线超上限时明确告知，避免又变成「参数被静默忽略」
+    var __linkWarn = (opts.linkDist > 0 && particles.length > LINK_MAX)
+      ? ((typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn())
+          ? ' | link lines off (particles > ' + LINK_MAX + ')'
+          : ' | 连线已停用（粒子 > ' + LINK_MAX + '）')
+      : '';
     document.getElementById('canvasInfo').textContent =
-      '粒子: ' + particles.length + ' | FPS: ' + fps;
+      '粒子: ' + particles.length + ' | FPS: ' + fps + __linkWarn;
 
     animId = requestAnimationFrame(animate);
   }

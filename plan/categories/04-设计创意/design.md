@@ -417,22 +417,6 @@
 - 影响：长时间练习/录音时节拍逐渐落后，切后台被节流后误差成倍放大。
 - 方案：维护 `nextTime`，每拍 `nextTime += 60/bpm`，用 25ms lookahead 把 `osc.start(nextTime)` 排进音频时钟；UI 更新与调度解耦。
 
-### D-N216 粒子运动按「每帧」积分，速度与寿命随刷新率变化（高，确认源码缺陷）
-
-- 问题：`p.vy += gravity*0.1`、`p.x += p.vx`、`p.life--` 均无 dt；`opts.lifetime = Math.round(lifeVal*60)` 又把「秒」硬换算成 60fps 帧数，动画循环也未做时间归一。
-- 证据：`tools/design/particle-effect-generator.html:636-638`、`:712`、`:737-743`、`:617`、`:546`
-- 复现：同一「速度 2、寿命 1.5s」在 120Hz 屏幕上位移速度约为 60Hz 的 2 倍、寿命约 0.75s；期望两种刷新率下速度（px/s）与寿命（真实秒）一致。
-- 影响：高刷设备动效明显偏快/短命，与 constRefBox「按真实时间差 dt 归一」及 UI 的「1.5s」不符。
-- 方案：用 `dt=(ts-last)/1000` 归一（`v += g*dt*6`、`x += vx*dt*60`），寿命改用毫秒时间戳；或按实测 fps 动态换算帧数。
-
-### D-N217 「星空/星云」预设的连线距离因粒子数 ≥300 被静默禁用（中，确认源码缺陷）
-
-- 问题：绘制连线前有 `particles.length < 300` 硬门槛，而预设明确给出 300/400 粒子 + 60/100 的连线距离，参数被静默丢弃。
-- 证据：`tools/design/particle-effect-generator.html:775`、`:1039`、`:931`
-- 复现：点「星空」预设（count=300、linkDist=60）→ 实际一条连线都没有；「星云」（400/100）同样恒无连线。期望按 60/100px 连线（或提示已自动降低粒子数）。
-- 影响：预设的核心视觉效果缺失，用户调 linkDist 也看不到任何变化。
-- 方案：门槛改为 `<=300`；超限预设自动降到 299 并在 UI 提示「连线仅 ≤300 粒子生效」，不要静默忽略参数。
-
 ## T 批 design 覆盖（2026-11-04）
 
 - 本轮审计 13 页：`material-color`、`iso-noise-reference`、`generator-33`、`generator-8`、`blueprint-grid`、`generator-12`、`generator-9`、`generator-34`、`particle-effect-generator`、`farnsworth-d15-test`、`generator-38`、`bpm-tapper`、`web-audio-metronome`
