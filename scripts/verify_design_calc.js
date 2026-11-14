@@ -764,6 +764,12 @@ const CASES = [
     ref: "输出整行由 bgColor/radius/distance/blur/intensity 共同决定，必须整行锚；只锚 `.neomorphism` 会让默认态（#e0e5ec / 20px）也命中 ⇒ 报「默认态=PASS ✗逃生」。注入瞬间 `adjustColor` 会抛错（依赖未注入的取色字段），但 `#cssOutput` 已先写入。",
   },
   {
+    slug: "design/neomorphism-generator",
+    clicks: ["currentShape='circle';generate();var __o1=String(document.getElementById('cssOutput').value||'');var __c1=__o1.indexOf('border-radius: 50%')>=0;currentShape='btn';generate();var __o2=String(document.getElementById('cssOutput').value||'');var __c2=__o2.indexOf('border-radius: 50px')>=0;document.getElementById('__tbProbe').textContent='NEU circle50='+(__c1?'Y':'N')+' btn50='+(__c2?'Y':'N')+' pressed='+(__o2.indexOf('.neomorphism-pressed')>=0?'Y':'N')+' punch='+(__o2.indexOf('.neomorphism-punch')>=0?'Y':'N');"],
+    expect: ["NEU circle50=Y btn50=Y pressed=Y punch=Y"],
+    ref: "D-N68 回归锁：预览的圆形是 border-radius:50%、按钮是 50px，且同时展示凸起/凹陷/浮雕三变体；导出必须与预览一致并三套齐全。旧实现固定 `border-radius:${radius}px` + 仅 flatShadow（探针全 N）⇒ 强判别。探针由 clicks 生成，默认态无该串 ⇒ 零逃生。",
+  },
+  {
     slug: "design/border-radius-generator",
     clicks: ["setUniform('28');generate();"],
     expect: ["border-radius: 28px;"],

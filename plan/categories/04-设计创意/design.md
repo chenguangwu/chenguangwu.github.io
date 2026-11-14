@@ -116,13 +116,6 @@
 
 > 范围：本轮阅读 8 页：`tools/design/button-generator.html`、`tools/design/text-shadow-generator.html`、`tools/design/css-animation-generator.html`、`tools/design/skeleton-loader.html`、`tools/design/palette-extractor.html`、`tools/design/image-to-ascii.html`、`tools/design/mesh-gradient.html`、`tools/design/pattern-generator.html`。仅源码 + node 内存复算，未开浏览器/未做 EN/移动端/门禁验证。
 
-### D-N68 新拟态生成器：圆形/按钮与凹陷/浮雕预览无法导出对应 CSS（中，确认源码缺陷）
-- 描述：三种形状预览分别用 `.neu-box`（radius px）、`.neu-circle`（border-radius:50%）、`.neu-btn`（50px），并同时展示 convex / pressed(inset) / punch 三种阴影；但导出 CSS 固定为 `border-radius:${radius}px` + `flatShadow`，形状与变体信息全部丢失。
-- 证据：`tools/design/neomorphism-generator.html:406-424`（按 currentShape 渲染三形状与三变体）、`:426-430`（唯一导出模板用 radius px 与 flatShadow）、`:30-32`（三形状各自圆角）
-- 复现：选「圆形」→ 预览 100×100 圆形，复制 CSS 得 `border-radius: 20px`（方形）；点预览里的「凹陷/浮雕」卡片无任何复制入口，代码始终是 `box-shadow: 6px 6px 12px …`（期望导出与所选形状/变体一致）
-- 影响：`tools/design/neomorphism-generator.html`；设计师按圆形按钮调整后复制到项目得到方形卡片，凹/浮雕效果需手改 CSS
-- 方案：按 currentShape 选圆角（圆 50%、按钮 50px）；增加「凸起/凹陷/浮雕」变体切换并输出 pressedShadow/punchShadow；或移除无处导出的预览变体
-
 ## 2026-11-04 续查（并行批 O）
 
 - 范围：`tools/design` 剩余生成器/互动演示 8 页（Favicon 文字、Favicon Emoji、首字母头像、Identicon、Loading Dots、Ripple、像素画、棋盘），逐页通读整份 HTML（内联 JS/CSS 生成逻辑、deep-dive、FAQ），编号续 D-N75。
