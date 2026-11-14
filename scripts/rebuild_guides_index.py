@@ -62,6 +62,10 @@ def main():
         path = os.path.join(GUIDES_DIR, fn)
         with open(path, encoding='utf-8') as f:
             page = f.read()
+        # 同一工具的新旧双份指南已在 427 / 429 批把旧页设为 noindex + canonical，
+        # 列表只保留仍参与索引的保留页，避免首页再次把重复内容推给用户与爬虫。
+        if re.search(r'<meta\s+name="robots"\s+content="[^"]*noindex', page, re.I):
+            continue
         title, desc = extract(page)
         if not title or not desc:
             empty_pages.append(fn)
