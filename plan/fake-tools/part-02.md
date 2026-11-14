@@ -22,7 +22,6 @@
 | `tools/legal/child-support.html` | 真 | `:320` | `childCount` 读入后未参与比例/金额计算，抚养费不随子女数变化。 |
 | `tools/legal/court-fee.html` | 真 | `:320-323` | IP 案件有金额时仍 `min(500+1%,1000)` 封顶，未按财产案件累进。 |
 | `tools/biz/stats-time-response.html` | 真 | `:200-211` | 仅均值/中位数/达标率，无 P90/FCR/分组。 |
-| `tools/edu/flag-quiz.html` | 真 | `:158,200` | 英文简介称 timed quiz，但无计时器；深解承诺「错题库」，无存储。 |
 | `tools/edu/typing-game.html` | 真 | `:10,212,359-363` | 宣称错题回看、成绩存本地；localStorage 仅存主题。 |
 | `tools/edu/chinese-zodiac.html` | 真 | `:353-355` | 只吃公历年取模，无日期/春节边界处理。 |
 | `tools/edu/study-planner.html` | 真 | `:189-196,246` | 两个公式框重复；完成率/优先级仅文字，页面只统计完成任务数。 |

@@ -143,13 +143,15 @@
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="🏳️ 国旗测验">🏳️ Flag Quiz</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">答对时得分 +1；正确率 = round(得分 ÷ 抽题总数 × 100)%，结果按「得分 / 总题数（百分比）」呈现；题库以队列方式出题；重置时题号归 0、得分归 0、国旗位显示占位符并清空选项区</div>
-  <p class="formula-desc" data-zh="本工具为纯前端在线工具，数据在浏览器本地处理、不上传服务器，依据对应领域标准与规范进行计算或处理，结果仅供参考。 工具名称：国旗测验 - 教育学习领域的在线工具。">Match country flags to their nations in a timed multiple-choice quiz.</p>
+  <div class="formula-title">📐 工作原理与说明</div>   <div class="formula-eq">每题限时 10 秒，超时自动判错并纳入错题本；答对得分 +1；正确率 = round(得分 ÷ 抽题总数 × 100)%；答错的国旗自动收录进错题本，可切换「只练错题」模式针对性复习；重置时题号归 0、得分归 0、计时清零、国旗位显示占位符并清空选项区</div>
+  <p class="formula-desc" data-zh="本工具为纯前端在线工具，数据在浏览器本地处理、不上传服务器。随机展示国旗，每题限时 10 秒作答并即时判分；答错的国旗自动收录进错题本，支持「只练错题」模式针对性复习。结果仅供参考。">Identify each country from its flag in a multiple-choice quiz: every question has a 10-second countdown, and wrong answers are saved to a review bank you can practice on demand.</p>
 </div>
 
     <div class="stats">
       <div>题号：<strong id="qNo">0</strong>/10</div>
       <div>得分：<strong id="score">0</strong></div>
+      <div>⏱️ 剩余：<strong id="timeLeft">10</strong>s</div>
+      <div>错题本：<strong id="wrongCount">0</strong></div>
     </div>
     <div class="flag-display" id="flag">—</div>
     <div class="options" id="options"></div>
@@ -157,8 +159,10 @@
 <div id="__tbqExtras" style="margin-top:12px"></div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="start()">开始</button>
+      <button type="button" class="btn primary" onclick="start('normal')">开始</button>
+      <button type="button" class="btn" onclick="start('wrong')">只练错题</button>
       <button type="button" class="btn" onclick="reset()">重置</button>
+      <button type="button" class="btn" onclick="clearWrong()">清空错题</button>
     </div>
   </div>
 
@@ -248,22 +252,62 @@ const data=[
   {name:'瑞士',flag:'🇨🇭'},{name:'瑞典',flag:'🇸🇪'},{name:'挪威',flag:'🇳🇴'},
   {name:'希腊',flag:'🇬🇷'},{name:'土耳其',flag:'🇹🇷'},{name:'泰国',flag:'🇹🇭'}
 ];
-let queue,qNo,score,cur;
+let queue,qNo,score,cur,mode='normal',timer=null,timeLeft=0;
+const PER_Q_SEC=10;
+const WRONG_KEY='__tbq_flag_wrong';
 
-function start(){
-  reset();
-  queue=[...data].sort(()=>Math.random()-0.5).slice(0,10);
+function getWrongBank(){
+  try{const w=JSON.parse(localStorage.getItem(WRONG_KEY)||'[]');return Array.isArray(w)?w:[];}catch(e){return [];}
+}
+function refreshWrongCount(){
+  const wc=document.getElementById('wrongCount');
+  if(wc)wc.textContent=getWrongBank().length;
+}
+function addWrong(name){
+  const w=getWrongBank();
+  if(!w.includes(name))w.push(name);
+  try{localStorage.setItem(WRONG_KEY,JSON.stringify(w));}catch(e){}
+  refreshWrongCount();
+}
+function clearWrong(){
+  try{localStorage.removeItem(WRONG_KEY);}catch(e){}
+  refreshWrongCount();
+  document.getElementById('output').textContent='已清空错题本';
+}
+function start(m){
+  mode=(m==='wrong')?'wrong':'normal';
+  stopTimer();
+  document.getElementById('qNo').textContent='0';
+  document.getElementById('score').textContent='0';
+  document.getElementById('flag').textContent='—';
+  document.getElementById('options').innerHTML='';
+  document.getElementById('output').textContent='从国旗 emoji 猜出对应国家';
+  if(mode==='wrong'){
+    const wb=[...new Set(getWrongBank())].map(n=>data.find(d=>d.name===n)).filter(Boolean);
+    if(wb.length===0){
+      document.getElementById('flag').textContent='📭';
+      document.getElementById('output').textContent='错题本还是空的，先去普通模式练几题吧';
+      return;
+    }
+    queue=wb.sort(()=>Math.random()-0.5).slice(0,Math.min(10,wb.length));
+  }else{
+    queue=[...data].sort(()=>Math.random()-0.5).slice(0,10);
+  }
   qNo=0;score=0;
   next();
 }
 function reset(){
+  stopTimer();
+  mode='normal';
   document.getElementById('qNo').textContent='0';
   document.getElementById('score').textContent='0';
   document.getElementById('flag').textContent='—';
-  const __h0='';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('options').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('options').innerHTML=__h0;
+  document.getElementById('options').innerHTML='';
   document.getElementById('output').textContent='从国旗 emoji 猜出对应国家';
+  refreshWrongCount();
 }
 function next(){
+  stopTimer();
   if(qNo>=queue.length){
     finish();
     return;
@@ -279,7 +323,7 @@ function next(){
   }
   opts.sort(()=>Math.random()-0.5);
   const opEl=document.getElementById('options');
-  const __h1='';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){opEl.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}opEl.innerHTML=__h1;
+  opEl.innerHTML='';
   opts.forEach(o=>{
     const b=document.createElement('button');
     b.className='opt';
@@ -288,24 +332,53 @@ function next(){
     opEl.appendChild(b);
   });
   document.getElementById('output').textContent='选择一个答案';
+  startTimer();
+}
+function startTimer(){
+  timeLeft=PER_Q_SEC;
+  const tEl=document.getElementById('timeLeft');
+  if(tEl)tEl.textContent=timeLeft;
+  stopTimer();
+  timer=setInterval(function(){
+    timeLeft--;
+    if(tEl)tEl.textContent=Math.max(0,timeLeft);
+    if(timeLeft<=0){
+      stopTimer();
+      onTimeout();
+    }
+  },1000);
+}
+function stopTimer(){
+  if(timer){clearInterval(timer);timer=null;}
+}
+function onTimeout(){
+  const opts=document.querySelectorAll('.opt');
+  opts.forEach(b=>{b.onclick=null;b.disabled=true;if(b.textContent===cur.name)b.classList.add('correct');});
+  addWrong(cur.name);
+  document.getElementById('output').textContent='⏰ 时间到！正确答案：'+cur.name;
+  setTimeout(next,900);
 }
 function choose(o,el){
+  stopTimer();
   const opts=document.querySelectorAll('.opt');
-  opts.forEach(b=>b.onclick=null);
+  opts.forEach(b=>{b.onclick=null;b.disabled=true;});
   if(o.name===cur.name){
     el.classList.add('correct');
     score++;
   }else{
     el.classList.add('wrong');
     opts.forEach(b=>{if(b.textContent===cur.name)b.classList.add('correct');});
+    addWrong(cur.name);
   }
   document.getElementById('score').textContent=score;
   setTimeout(next,900);
 }
 function finish(){
+  stopTimer();
   document.getElementById('flag').textContent='🏁 完成！';
-  const __h2='';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('options').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('options').innerHTML=__h2;
-  const __h3=`<p>得分：${score}/${queue.length}（${Math.round(score/queue.length*100)}%）</p>`;if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h3;
+  document.getElementById('options').innerHTML='';
+  const __h3=`<p>得分：${score}/${queue.length}（${Math.round(score/queue.length*100)}%）</p>`;
+  document.getElementById('output').innerHTML=__h3;
 }
 function toggleToolTheme(){
   const cur=document.documentElement.getAttribute('data-theme');
@@ -358,6 +431,7 @@ var __f0=finish;finish=function(){var __r=__f0.apply(null,arguments);__tbqExtras
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){
+  if(typeof refreshWrongCount==='function')refreshWrongCount();
   var headers=document.querySelectorAll('.tool-intro-header');
   headers.forEach(function(h){
     h.addEventListener('click',function(){

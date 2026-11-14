@@ -83,7 +83,6 @@
 | 商业运营 | `tools/legal/child-support.html` | A | `:320` 读入 `childCount` 后，`:326-360` 计算全程未使用；抚养费比例不随子女数调整 | `plan/categories/06-商业运营/hr-legal.md:116` | 已确认（真） | 中（死输入，金额失真） |
 | 商业运营 | `tools/legal/court-fee.html` | C | `:320-323` IP 案件无金额 500、有金额仍 `Math.min(500+amount*1%, 1000)`；文案却写「有金额按财产案件」，实际统一封顶 1000 | `plan/categories/06-商业运营/hr-legal.md:92` | 已确认（真） | 中高（受理费算错） |
 | 商业运营 | `tools/biz/stats-time-response.html` | C | `:200-211` 仅条数/均值/中位数/最短最长/达标率；无 P90、无 FCR、无分组 | `plan/categories/06-商业运营/biz-startup.md:163` | 已确认（真） | 低 |
-| 教育学习 | `tools/edu/flag-quiz.html` | C | `:158` 英文简介称 `timed multiple-choice quiz`；全文无 `setInterval`/计时状态；`:200` 深解又承诺「错题库」，无错题存储 | `plan/categories/07-教育学习/edu-language.md:1186` | 已确认（真） | 中（限时/错题双双落空） |
 | 教育学习 | `tools/edu/typing-game.html` | C | `:10` meta 称「错题回看」、`:212` FAQ 称「成绩存本地」；全文 localStorage 仅 `:359-363` 存主题，无错题/成绩/排行 | `plan/categories/07-教育学习/edu-language.md:994` | 已确认（真） | 低 |
 | 教育学习 | `tools/edu/chinese-zodiac.html` | C | `:353-355` 只读 `year` 后 `getZodiac(y)` 按公历年取模；无日期输入、无春节边界判断，FAQ 的「春节前按上一年」无法执行 | `plan/categories/07-教育学习/edu-language.md:165` | 已确认（真） | 中 |
 | 教育学习 | `tools/edu/study-planner.html` | C | `:189-196` 两个 `formula-box` 完全重复；`:191/195` 仅文字承诺「完成率/按优先级排序」，`:246` 只统计完成任务数，无完成率/优先级 | `plan/categories/07-教育学习/edu-language.md:638` | 已确认（真） | 低 |
