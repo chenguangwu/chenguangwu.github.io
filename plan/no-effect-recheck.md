@@ -1,5 +1,9 @@
 # no_effect 低置信线索复核（工程/数学前缀）
 
+> **2026-11-15 收口（461 批）**：A 节 4 页已全部复核——`haxijisuan` 为真缺陷（`crypto.subtle` 不支持 MD5，已改内置纯 JS MD5/SHA-1/SHA-256，已知向量与 Node crypto 对照通过）；
+> `regression-analysis`、`statistical-tests` 现版已分别绑定 `pred-x`、`one-mu` 的 input 事件（源码 395 / 692 行），属清单滞后；
+> `json-to-tsv` 结果写在 `#tsvOutput` 文本域与 `#j2tStats`，扫描快照取不到，本轮补齐空/非法 JSON 时清空旧输出的守卫。A 节不再作为待办。
+
 > 回写给扫描线（`scripts/runtime_scan.js --interact`）：本文件只登记「探针失真」页及该页合法输入样例，供改进 `no_effect` 探针；扫描报告 `plan/interaction-validity.md` 仍是自动产物，勿手工写回。
 
 ## 取数口径

@@ -223,7 +223,125 @@
 </div>
 
 <script>
-async function process(){const t=document.getElementById('input').value;const algo=document.getElementById('algo').value;if(!t){const __h0=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"<p>Enter text</p>":"<p>请输入文本</p>");if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('res').innerHTML=__h0;return;}try{const encoder=new TextEncoder();const data=encoder.encode(t);const hashBuffer=await crypto.subtle.digest(algo,data);const hashArray=Array.from(new Uint8Array(hashBuffer));const hex=hashArray.map(b=>b.toString(16).padStart(2,'0')).join('');const __h1='<p><strong>'+algo+'：</strong></p><p style="font-family:monospace;word-break:break-all;">'+hex+'</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('res').innerHTML=__h1;}catch(e){const __h2='<p style="color:var(--danger);">❌ '+e.message+'</p>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('res').innerHTML=__h2;}}
+// Pure-JS MD5 / SHA-1 / SHA-256 over UTF-8 bytes (hex output)
+function utf8Bytes(str){
+  var out=[],i,c;
+  for(i=0;i<str.length;i++){
+    c=str.codePointAt(i);
+    if(c>0xFFFF)i++;
+    if(c<0x80)out.push(c);
+    else if(c<0x800){out.push(0xC0|(c>>6),0x80|(c&63));}
+    else if(c<0x10000){out.push(0xE0|(c>>12),0x80|((c>>6)&63),0x80|(c&63));}
+    else{out.push(0xF0|(c>>18),0x80|((c>>12)&63),0x80|((c>>6)&63),0x80|(c&63));}
+  }
+  return out;
+}
+function toHex(bytes){
+  var s='';
+  for(var i=0;i<bytes.length;i++)s+=('0'+bytes[i].toString(16)).slice(-2);
+  return s;
+}
+function md5(bytes){
+  var k=[],r=[7,12,17,22,7,12,17,22,7,12,17,22,7,12,17,22,5,9,14,20,5,9,14,20,5,9,14,20,5,9,14,20,4,11,16,23,4,11,16,23,4,11,16,23,4,11,16,23,6,10,15,21,6,10,15,21,6,10,15,21,6,10,15,21];
+  for(var i=0;i<64;i++)k[i]=Math.floor(Math.abs(Math.sin(i+1))*4294967296)|0;
+  var msg=bytes.slice(0);var bitLen=bytes.length*8;
+  msg.push(0x80);
+  while(msg.length%64!==56)msg.push(0);
+  for(var sh=0;sh<8;sh++)msg.push((bitLen/ Math.pow(2,8*sh))&0xFF);
+  var h0=0x67452301,h1=0xefcdab89,h2=0x98badcfe,h3=0x10325476;
+  for(var off=0;off<msg.length;off+=64){
+    var m=[];
+    for(var j=0;j<16;j++)m[j]=msg[off+j*4]|(msg[off+j*4+1]<<8)|(msg[off+j*4+2]<<16)|(msg[off+j*4+3]<<24);
+    var a=h0,b=h1,c=h2,d=h3;
+    for(var i2=0;i2<64;i2++){
+      var f,g;
+      if(i2<16){f=(b&c)|(~b&d);g=i2;}
+      else if(i2<32){f=(d&b)|(~d&c);g=(5*i2+1)%16;}
+      else if(i2<48){f=b^c^d;g=(3*i2+5)%16;}
+      else{f=c^(b|~d);g=(7*i2)%16;}
+      var tmp=d;d=c;c=b;
+      var sum=(a+f+k[i2]+m[g])|0;
+      b=(b+((sum<<r[i2])|(sum>>>(32-r[i2]))))|0;
+      a=tmp;
+    }
+    h0=(h0+a)|0;h1=(h1+b)|0;h2=(h2+c)|0;h3=(h3+d)|0;
+  }
+  var out=[];
+  [h0,h1,h2,h3].forEach(function(h){
+    for(var b=0;b<4;b++)out.push((h>>>(8*b))&0xFF);
+  });
+  return out;
+}
+function sha1(bytes){
+  var msg=bytes.slice(0);var bitLen=bytes.length*8;
+  msg.push(0x80);
+  while(msg.length%64!==56)msg.push(0);
+  var hi=Math.floor(bitLen/4294967296),lo=bitLen>>>0;
+  msg.push((hi>>>24)&255,(hi>>>16)&255,(hi>>>8)&255,hi&255,(lo>>>24)&255,(lo>>>16)&255,(lo>>>8)&255,lo&255);
+  var h0=0x67452301,h1=0xEFCDAB89,h2=0x98BADCFE,h3=0x10325476,h4=0xC3D2E1F0;
+  for(var off=0;off<msg.length;off+=64){
+    var w=[];
+    for(var i=0;i<16;i++)w[i]=(msg[off+i*4]<<24)|(msg[off+i*4+1]<<16)|(msg[off+i*4+2]<<8)|msg[off+i*4+3];
+    for(var i2=16;i2<80;i2++){var x=w[i2-3]^w[i2-8]^w[i2-14]^w[i2-16];w[i2]=(x<<1)|(x>>>31);}
+    var a=h0,b=h1,c=h2,d=h3,e=h4;
+    for(var i3=0;i3<80;i3++){
+      var f,kk;
+      if(i3<20){f=(b&c)|(~b&d);kk=0x5A827999;}
+      else if(i3<40){f=b^c^d;kk=0x6ED9EBA1;}
+      else if(i3<60){f=(b&c)|(b&d)|(c&d);kk=0x8F1BBCDC;}
+      else{f=b^c^d;kk=0xCA62C1D6;}
+      var t=(((a<<5)|(a>>>27))+f+e+kk+w[i3])|0;
+      e=d;d=c;c=(b<<30)|(b>>>2);b=a;a=t;
+    }
+    h0=(h0+a)|0;h1=(h1+b)|0;h2=(h2+c)|0;h3=(h3+d)|0;h4=(h4+e)|0;
+  }
+  var out=[];
+  [h0,h1,h2,h3,h4].forEach(function(h){out.push((h>>>24)&255,(h>>>16)&255,(h>>>8)&255,h&255);});
+  return out;
+}
+function sha256(bytes){
+  var K=[0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+  var msg=bytes.slice(0);var bitLen=bytes.length*8;
+  msg.push(0x80);
+  while(msg.length%64!==56)msg.push(0);
+  var hi=Math.floor(bitLen/4294967296),lo=bitLen>>>0;
+  msg.push((hi>>>24)&255,(hi>>>16)&255,(hi>>>8)&255,hi&255,(lo>>>24)&255,(lo>>>16)&255,(lo>>>8)&255,lo&255);
+  var H=[0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
+  function rotr(x,n){return (x>>>n)|(x<<(32-n));}
+  for(var off=0;off<msg.length;off+=64){
+    var w=[];
+    for(var i=0;i<16;i++)w[i]=(msg[off+i*4]<<24)|(msg[off+i*4+1]<<16)|(msg[off+i*4+2]<<8)|msg[off+i*4+3];
+    for(var i2=16;i2<64;i2++){
+      var s0=rotr(w[i2-15],7)^rotr(w[i2-15],18)^(w[i2-15]>>>3);
+      var s1=rotr(w[i2-2],17)^rotr(w[i2-2],19)^(w[i2-2]>>>10);
+      w[i2]=(w[i2-16]+s0+w[i2-7]+s1)|0;
+    }
+    var a=H[0],b=H[1],c=H[2],d=H[3],e=H[4],f=H[5],g=H[6],h=H[7];
+    for(var i3=0;i3<64;i3++){
+      var S1=rotr(e,6)^rotr(e,11)^rotr(e,25);
+      var ch=(e&f)^(~e&g);
+      var t1=(h+S1+ch+K[i3]+w[i3])|0;
+      var S0=rotr(a,2)^rotr(a,13)^rotr(a,22);
+      var maj=(a&b)^(a&c)^(b&c);
+      var t2=(S0+maj)|0;
+      h=g;g=f;f=e;e=(d+t1)|0;d=c;c=b;b=a;a=(t1+t2)|0;
+    }
+    H[0]=(H[0]+a)|0;H[1]=(H[1]+b)|0;H[2]=(H[2]+c)|0;H[3]=(H[3]+d)|0;
+    H[4]=(H[4]+e)|0;H[5]=(H[5]+f)|0;H[6]=(H[6]+g)|0;H[7]=(H[7]+h)|0;
+  }
+  var out=[];
+  H.forEach(function(x){out.push((x>>>24)&255,(x>>>16)&255,(x>>>8)&255,x&255);});
+  return out;
+}
+function __hashHex(algo,str){
+  var b=utf8Bytes(str);
+  if(algo==='MD5')return toHex(md5(b));
+  if(algo==='SHA-1')return toHex(sha1(b));
+  if(algo==='SHA-256')return toHex(sha256(b));
+  return '';
+}
+
+async function process(){const t=document.getElementById('input').value;const algo=document.getElementById('algo').value;if(!t){const __h0=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"<p>Enter text</p>":"<p>请输入文本</p>");if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('res').innerHTML=__h0;return;}try{const hex=__hashHex(algo,t);const __h1='<p><strong>'+algo+'：</strong></p><p style="font-family:monospace;word-break:break-all;">'+hex+'</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('res').innerHTML=__h1;}catch(e){const __h2='<p style="color:var(--danger);">❌ '+e.message+'</p>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('res').innerHTML=__h2;}}
 function copyRes(){const txt=document.getElementById('res').innerText.split('：')[1];if(txt)ToolBox.copyText(txt.trim());}
 process();
 
