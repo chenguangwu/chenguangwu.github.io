@@ -22,7 +22,6 @@
 | `tools/legal/child-support.html` | 真 | `:320` | `childCount` 读入后未参与比例/金额计算，抚养费不随子女数变化。 |
 | `tools/legal/court-fee.html` | 真 | `:320-323` | IP 案件有金额时仍 `min(500+1%,1000)` 封顶，未按财产案件累进。 |
 | `tools/biz/stats-time-response.html` | 真 | `:200-211` | 仅均值/中位数/达标率，无 P90/FCR/分组。 |
-| `tools/edu/typing-game.html` | 真 | `:10,212,359-363` | 宣称错题回看、成绩存本地；localStorage 仅存主题。 |
 | `tools/edu/chinese-zodiac.html` | 真 | `:353-355` | 只吃公历年取模，无日期/春节边界处理。 |
 | `tools/edu/study-planner.html` | 真 | `:189-196,246` | 两个公式框重复；完成率/优先级仅文字，页面只统计完成任务数。 |
 | `tools/research/analysis-49.html` | 真 | `:230-250` | 仅 Cronbach α；KMO/Bartlett 无实现。 |
@@ -45,7 +44,6 @@
 | `tools/life/stats-13.html` | 真 | `:291-293,218-251` | 承诺漏斗/时段峰值/占比，实际仅人数/份数/均值/金额。 |
 | `tools/life/analysis-cost-9.html` | 真 | `:231-234` | 仅合计/均值/占比/极差；无固定-变动拆分与降本排序。 |
 | `tools/life/assessor-target.html` | 真 | `:427,226,232` | `opt-guide` 通用套话；面积 `shopArea` 读入但未参与加权。 |
-| `tools/edu/math-quiz.html` | 真 | `:513,363` | `opt-guide` 仍是「点击计算/生成」套话（计时功能已实现，问题只在文案）。 |
 | `tools/rehabilitation/fim-scale.html` | 真 | `:576` | `opt-guide` 通用套话与实际下拉即时汇总流程不符。 |
 
 ## Top 20 简析

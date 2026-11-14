@@ -83,7 +83,6 @@
 | 商业运营 | `tools/legal/child-support.html` | A | `:320` 读入 `childCount` 后，`:326-360` 计算全程未使用；抚养费比例不随子女数调整 | `plan/categories/06-商业运营/hr-legal.md:116` | 已确认（真） | 中（死输入，金额失真） |
 | 商业运营 | `tools/legal/court-fee.html` | C | `:320-323` IP 案件无金额 500、有金额仍 `Math.min(500+amount*1%, 1000)`；文案却写「有金额按财产案件」，实际统一封顶 1000 | `plan/categories/06-商业运营/hr-legal.md:92` | 已确认（真） | 中高（受理费算错） |
 | 商业运营 | `tools/biz/stats-time-response.html` | C | `:200-211` 仅条数/均值/中位数/最短最长/达标率；无 P90、无 FCR、无分组 | `plan/categories/06-商业运营/biz-startup.md:163` | 已确认（真） | 低 |
-| 教育学习 | `tools/edu/typing-game.html` | C | `:10` meta 称「错题回看」、`:212` FAQ 称「成绩存本地」；全文 localStorage 仅 `:359-363` 存主题，无错题/成绩/排行 | `plan/categories/07-教育学习/edu-language.md:994` | 已确认（真） | 低 |
 | 教育学习 | `tools/edu/chinese-zodiac.html` | C | `:353-355` 只读 `year` 后 `getZodiac(y)` 按公历年取模；无日期输入、无春节边界判断，FAQ 的「春节前按上一年」无法执行 | `plan/categories/07-教育学习/edu-language.md:165` | 已确认（真） | 中 |
 | 教育学习 | `tools/edu/study-planner.html` | C | `:189-196` 两个 `formula-box` 完全重复；`:191/195` 仅文字承诺「完成率/按优先级排序」，`:246` 只统计完成任务数，无完成率/优先级 | `plan/categories/07-教育学习/edu-language.md:638` | 已确认（真） | 低 |
 | 教育学习 | `tools/research/analysis-49.html` | C | `:230-250` 只计算 Cronbach α；全文无 KMO/Bartlett 实现（仅引据/卡片提到） | `plan/categories/07-教育学习/research-library.md:577` | 已确认（真） | 中 |
@@ -106,6 +105,5 @@
 | 生活消费 | `tools/life/stats-13.html` | C | `:291-293` 简介承诺「转化漏斗/时段峰值/报名付款聚合」，`:218-251` 只算人数/份数/均值/最多最少/金额，无占比、分档、漏斗、峰值 | `plan/categories/05-生活消费/life.md:908` | 已确认（真） | 中低 |
 | 生活消费 | `tools/life/analysis-cost-9.html` | C | `:231-234` 仅合计/项均/最大项/占比表/极差；无固定-变动拆分、无单位成本、无盈亏平衡、无降本优先级排序（`:188/:193` 公式不可用） | `plan/categories/05-生活消费/life.md:750` | 已确认（真） | 低 |
 | 生活消费 | `tools/life/assessor-target.html` | D | `:427` `opt-guide` 仍是「填写参数→点击计算/生成→查看输出」通用套话；`shopArea` `:226` 读入后未参与 `:232` 加权 | `plan/categories/05-生活消费/life.md:955` | 已确认（真） | 低（模板套话 + 面积死输入） |
-| 教育学习 | `tools/edu/math-quiz.html` | D | `:513` `opt-guide` 仍是「点击计算/生成」套话（实际无该按钮，靠选项点击作答）；计时/题量/难度 `:363/:283-285` 已实现 | `plan/categories/07-教育学习/edu-language.md:972` | 已确认（真） | 低（仅文案套话） |
 | 医疗健康 | `tools/rehabilitation/fim-scale.html` | D | `:576` `opt-guide` 仍是「填写参数→点击计算/生成→查看输出」通用套话，与实际 18 项下拉即时汇总流程不符 | `plan/categories/12-长尾行业/_others.md:1078` | 已确认（真） | 低（仅文案套话） |
 
