@@ -148,13 +148,6 @@
 - 影响：`tools/design/image-color-picker.html`；对带透明的 PNG/WebP/图标取色时，复制出的色值与肉眼所见不符
 - 方案：取样前先填白（或提供可选底色）再 drawImage，使取样与预览一致；或输出 `rgba(r,g,b,a)`，`a<255` 时标注透明度，全透明像素给出明确提示
 
-### D-N49 图片取色器元数据与简介宣称「放大取样」，实际无放大/放大镜功能（低，确认能力缺口）
-- 描述：description/OG/twitter/正文英文均写「magnified sampling / 支持放大取样」，脚本只有点击取单像素，没有缩放视图、放大镜或像素网格。
-- 证据：`tools/design/image-color-picker.html:10`、`:15`、`:68`、`:164`；脚本 `:284-301` 仅 `getBoundingClientRect` + `getImageData`
-- 复现：上传 16×16 图标 → 页面按原尺寸显示，点击只能取到单个像素色，无法放大定位
-- 影响：`tools/design/image-color-picker.html`；小图标/细节图取色精度无法保证，宣传的卖点不存在
-- 方案：增加放大镜（hover 显示 5×5/9×9 像素网格与坐标）或删除「放大取样」表述
-
 ### D-N51 字体搭配只有拉丁字体与拉丁示例，中文场景无法预览也无 CJK 回退（低，确认能力缺口）
 - 描述：FAQ 专门回答「中文怎么配」，但 36 组搭配（35 种字体）全部是 Google Fonts 拉丁字体，预览文本默认英文，CSS 产物也只输出 `font-family:'X', sans-serif`，没有中文字体或 CJK 回退；中文标题会静默落到浏览器默认中文字体，与预览观感完全不同。
 - 证据：`tools/design/font-pairing.html:268`（FAQ 中文问题）、`:322-370`（FONT_PAIRS 全拉丁字体）、`:433-446`（copy CSS 只含拉丁 + sans-serif）、`:416-417`（默认英文字样）
