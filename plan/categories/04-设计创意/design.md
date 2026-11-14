@@ -358,15 +358,6 @@
 - 影响：所有「粒子方案」均为不可运行代码，参数只影响注释里的文本。
 - 方案：输出可直接运行的 HTML+多粒子节点（或 box-shadow 方案）并绑定 `animation: float-N var(--speed) linear infinite`；否则降级为「随机参数清单」并改名。
 
-### D-N211 条形码生成器只输出 13 位数字，没有条空图形或下载（高，确认源码缺陷）
-
-- 假工具候选：是（类型 A+C：仅数量输入，输出随机数字；宣称生成/下载条形码图片未实现）
-- 问题：`gen()` 只用 `genEAN13()` 生成随机 12 位 + 校验位，拼成一行等宽数字文本；没有 EAN-13 的 95 位条空编码、没有 canvas/SVG 绘制、没有图片下载，也没有数字输入框。
-- 证据：`tools/design/generator-9.html:219-231`、`:207-218`、`:117`、`:10`、`:121`
-- 复现：数量 5 → 实际 5 行「7 642153 842607」文本；期望 5 个可扫描的 EAN-13 条码图形 + PNG/SVG 下载。
-- 影响：校验位算法本身正确，但输出物不是条形码，用户无法用于商品标签；meta「可下载条码」落空。
-- 方案：补 EAN-13 左侧 A/B 编码与右侧 C 编码的条空表 → canvas/SVG，并加数字输入（校验位自动算）与导出。
-
 ## T 批 design 覆盖（2026-11-04）
 
 - 本轮审计 13 页：`material-color`、`iso-noise-reference`、`generator-33`、`generator-8`、`blueprint-grid`、`generator-12`、`generator-9`、`generator-34`、`particle-effect-generator`、`farnsworth-d15-test`、`generator-38`、`bpm-tapper`、`web-audio-metronome`
