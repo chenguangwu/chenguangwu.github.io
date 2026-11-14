@@ -227,11 +227,13 @@ function updateInputs() {
 }
 
 function calcThreePhase() {
-  const U = parseFloat(document.getElementById('voltage').value) || 0;
+  const uRaw = document.getElementById('voltage').value.trim();
+  const pfRaw = document.getElementById('pf').value.trim();
+  const U = uRaw === '' ? NaN : parseFloat(uRaw);
   const mode = document.getElementById('mode').value;
-  const pf = parseFloat(document.getElementById('pf').value) || 0;
+  const pf = pfRaw === '' ? NaN : parseFloat(pfRaw);
 
-  if (U <= 0 || pf < 0 || pf > 1) {
+  if (!isFinite(U) || !isFinite(pf) || U <= 0 || pf < 0 || pf > 1) {
     ToolBox.setResult('result', '<p class="tip-error">请输入有效的电压和功率因数。</p>');
     return;
   }
@@ -243,16 +245,19 @@ function calcThreePhase() {
 
   if (mode === 'ui') {
     I = parseFloat(document.getElementById('current').value) || 0;
+    if (!isFinite(I) || I < 0) { ToolBox.setResult('result', '<p class="tip-error">请输入有效的电流值。</p>'); return; }
     S = SQRT3 * U * I;
     P = S * pf;
     Q = S * sinPhi;
   } else if (mode === 'up') {
     P = (parseFloat(document.getElementById('pInput').value) || 0) * 1000;
+    if (!isFinite(P) || P < 0) { ToolBox.setResult('result', '<p class="tip-error">请输入有效的有功功率。</p>'); return; }
     S = P / pf;
     I = S / (SQRT3 * U);
     Q = S * sinPhi;
   } else if (mode === 'uq') {
     Q = (parseFloat(document.getElementById('qInput').value) || 0) * 1000;
+    if (!isFinite(Q) || Q < 0) { ToolBox.setResult('result', '<p style="color:var(--danger)">请输入有效的无功功率。</p>'); return; }
     S = Q / sinPhi;
     P = S * pf;
     I = S / (SQRT3 * U);

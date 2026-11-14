@@ -1,5 +1,11 @@
 # 全站「NaN 比较恒 false 导致校验被绕过」排查
 
+> **2026-11-15 收口（462 批）**：4.1 节 8 页复核结果——`water-tds-evaluator` 早已改用原始串校验（源码注释已说明）；
+> 其余 7 页（car-loan / dli / tympanometry / dry-matter / ai-15 / calc-2）全部去掉 `|| 0` 静默兜底，
+> 改为「原始字符串非空 + `Number.isFinite` + 区间」三重校验，非法即清空/提示；
+> `chemistry/lifespan-24` 补 `selectedOptions` 空值兜底，杜绝 `reading 'text'` 异常。
+> 静态测试 4685/4685 通过。4.1 节不再作为待办。
+
 - 排查时间：2026-11-05
 - 范围：`tools/**/*.html` 全部 **4916** 页（内联 `<script>` 静态扫描）+ 40 页真机抽验
 - 性质：只读排查，未改任何工具页、未跑 `_build.py`、未 push
