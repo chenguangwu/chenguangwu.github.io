@@ -650,7 +650,7 @@ const CASES = [
   {
     slug: "design/checker-5",
     clicks: ["document.getElementById('poem').value='\u767d\u65e5\u4f9d\u5c71\u5c3d\\n\u9ec4\u6cb3\u5165\u6d77\u6d41\\n\u6b32\u7a77\u5343\u91cc\u76ee\\n\u66f4\u4e0a\u4e00\u5c42\u697c';check()"],
-    expect: ["\u7b2c2\u53e5 \u9ec4 \u5e73 \u6cb3 \u4ec4 \u5165 \u4ec4 \u6d77 \u4ec4 \u6d41 \u4ec4", "\u7b2c4\u53e5 \u66f4 \u4ec4 \u4e0a \u4ec4 \u4e00 \u4ec4 \u5c42 \u4ec4 \u697c \u4ec4"],
+    expect: ["\u7b2c2\u53e5 \u9ec4 \u5e73 \u6cb3 \u5e73 \u5165 \u4ec4 \u6d77 \u4ec4 \u6d41 \u5e73", "\u7b2c4\u53e5 \u66f4 \u4e24 \u4e0a \u4ec4 \u4e00 \u4ec4 \u5c42 \u5e73 \u697c \u5e73"],
     ref: "结果区 `#res` 是「逐句 + 逐字平仄徽标」。本页只有按钮 `check()` 会渲染结果，页面加载时用 textarea 的预填示例诗跑了一次。锚点取第 2 句与第 4 句整串：逐字以空格相连，任一句的字数或平仄字库命中被改坏都会失配。\\n"
       + "⚠ **禁止 `inputs.poem`**：第 361 批排查发现，`textarea` 的 id 一旦出现在 `inputs` 里，会与 `clicks` 的 `document.getElementById('poem').value=…;check()` 相互干扰，使 `#res` 始终停在默认示例诗（`床前明月光…`），用例静默拿默认值比对而变红。本例已删除 `inputs.poem`，只用 `clicks` 直接赋值 + 调 `check()`。\\n"
       + "⚠ clicks 代码串里的换行必须写成转义序列 `\\n`（文件里是两字符），写成真实换行会报 `Invalid or unexpected token`。\\n"
@@ -662,6 +662,13 @@ const CASES = [
     clicks: ["document.getElementById('poem').value='甲，乙。';check()"],
     expect: ["甲 仄 乙 仄"],
     ref: "D-N182 强锁：输入「甲，乙。」单句（甲/乙均在仄库 ZE，见 checker-5.html:189）。旧实现逐字循环未排除标点，会把「，」「。」也当成单字渲染成「未收录 ?」徽章，输出含 \"甲 仄 ， ？ 乙 仄 。 ？\"；新实现在逐字循环跳过 \\u3000-\\u303f / \\uFF00-\\uFFEF / ASCII 标点，只渲染 甲、乙 两字 ⇒ 输出精确 \"甲 仄 乙 仄\"（⚠ collectStrings 对 innerHTML 会把每个徽章标签替换成一个空格，故 expect 必须写成带空格的 \"甲 仄 乙 仄\"，不可写连写 \"甲仄乙仄\"）。默认四行示例诗（床前明月光…）不含该串 ⇒ 强判别。",
+  },
+  {
+    // D-N180 两读态：跨平仄的多音字不再被强行归平或归仄
+    slug: "design/checker-5",
+    clicks: ["document.getElementById('poem').value='空山不见人';check()"],
+    expect: ["\u7a7a \u4e24 \u5c71 \u5e73 \u4e0d \u4ec4 \u89c1 \u4ec4 \u4eba \u5e73"],
+    ref: "D-N180 强锁：字库重建为「平声 / 仄声 / 两读 / 未收录」四态，BOTH 集合收录 38 个跨平仄多音字。「空」兼有 kōng（平）与 kòng（仄）两读，旧实现按「先查 PING」判成「空 平」；新实现先查 BOTH 输出「空 两读」，角标「两」、title「两读」。同串一并锁住「山」shān 平、「不」bù 仄（平水韵入声并入仄库）、「见」jiàn 仄、「人」rén 平，任一字声调口径被改坏即失配。默认示例诗（床前明月光…）不含该串 ⇒ 强判别。",
   },
   {
     // D-N182 预设：七律预设应填 8 行并触发检查（校验其数据与换行切句等价效果）
