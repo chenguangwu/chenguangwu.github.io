@@ -315,15 +315,6 @@
 - 复算说明：平仄字库去重与重叠（172/2043，重叠 118）、示例诗 8 次误标、12 根音大调拼写（6 错）均由 `node -e` 内存复算，未落地任何脚本；isometric 的「无导出」为静态核对（全文无 `<canvas>` / `toDataURL`，仅 FAQ `:206` 提到 Canvas）。
 - 未覆盖：`tools/design/` 其余页面；未做浏览器渲染/交互（含 CSS 等距网格实际视觉、`double` 1px 真机渲染、`?lang=en-US` 探针）、移动端真机、`_build.py`/门禁与线上验证；未改任何源码、未做 git 写操作。
 
-### D-N208 二维码生成器不生成任何二维码，只输出随机配置文本（高，确认源码缺陷）
-
-- 假工具候选：是（类型 A+C：唯一输入是数量，输出与内容无关的随机参数；宣称的 qrcode.js 生成与图片导出均无实现）
-- 问题：`gen()` 只拼接 `<pre>` 文本（渲染模式/画布尺寸/边距/纠错级/前景色/示例 URL + 一段 `.qr-N` 容器 CSS），全页没有 `canvas`、二维码矩阵或图片下载；也没有「输入网址或文本」的输入控件。
-- 证据：`tools/design/generator-8.html:123`、`:219-255`、`:119`、`:10`、`:158-159`
-- 复现：数量填 5 → 实际得到 5 段随机配置文本，复制后无法扫码；期望生成 5 个可扫二维码并提供 PNG/SVG 下载。
-- 影响：`<title>`、meta、formula-desc 均写「输入网址或文本…生成二维码…支持导出」，搜索意图与页面能力完全不符。
-- 方案：本地实现 QR 编码（矩阵→canvas/SVG），补文本输入与尺寸/纠错/颜色控件、PNG/SVG 导出；若不做则删除「生成/导出」表述并下架该页。
-
 ## T 批 design 覆盖（2026-11-04）
 
 - 本轮审计 13 页：`material-color`、`iso-noise-reference`、`generator-33`、`generator-8`、`blueprint-grid`、`generator-12`、`generator-9`、`generator-34`、`particle-effect-generator`、`farnsworth-d15-test`、`generator-38`、`bpm-tapper`、`web-audio-metronome`

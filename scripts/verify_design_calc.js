@@ -924,11 +924,38 @@ const CASES = [
     ref: "随机边框生成器，锚第 7 条的结构前缀 `.border-7 { border:`。边框样式枚举（solid/dashed/dotted/...）与颜色是随机的，只取结构前缀规避 flaky。默认态 5 条 ⇒ 不命中。",
   },
   {
+    // D-N208 默认态：真实 QR 编码（29 字节 → 版本 3 / 29×29 / 纠错 M）
     slug: "design/generator-8",
-    inputs: { cnt: "6" },
-    expect: ["配置参数 #6"],
-    ref: "二维码定制方案生成器。每条方案内部含随机示例链接与随机色值，只锚第 6 条的序号标签 `配置参数 #6`（默认态 5 条 ⇒ 不命中）。\n"
-      + "⚠ `errs` 里的 `randItem: ... 'length'` 是 harness 内随机数组取值的桩盲区，不阻断 `#res` 写入。",
+    expect: ["版本 3 · 29×29 模块 · 纠错 M · 29 字节"],
+    ref: "D-N208 强锁：页面改为调用项目内置 js/qrcode.js 真实编码（ISO/IEC 18004）。默认文本 `https://chenguangwu.github.io`（29 字节 UTF-8）在 M 级下由库自动选中版本 3 ⇒ 模块数 4×3+17 = 29。\n"
+      + "期望值由 node 独立跑库复算：`qrcode(0,'M') + addData(text,'Byte') + make()` → getModuleCount() = 29、版本 (29-17)/4 = 3，与页面信息行逐字一致。\n"
+      + "旧实现只拼「配置参数 #1:」随机文本、不生成任何矩阵，不含该串 ⇒ 强判别。\n"
+      + "⚠ harness 原本不加载外部 <script src>；本轮在 verify_it_calc.js 里按「页面 HTML 引用 js/qrcode.js」为条件把构造函数作为 new Function 形参注入，未引用该库的用例行为不变。",
+  },
+  {
+    // D-N208 纠错等级参与版本选择：同一文本 H 级比 M 级高一版
+    slug: "design/generator-8",
+    inputs: { qrtext: "https://example.com", qrecl: "H" },
+    expect: ["版本 3 · 29×29 模块 · 纠错 H · 19 字节"],
+    ref: "D-N208 强锁：同一文本在 H 级下需要更多纠错码字，版本被抬高。node 复算 `https://example.com`（19 字节）：L/M/Q 均版本 2（25×25），H 为版本 3（29×29）。\n"
+      + "默认态是 M 级版本 2，本用例改 qrecl=H 后取得「版本 3 … 纠错 H」，证明纠错等级真正参与编码而不是只改标签。\n"
+      + "⚠ 只注入 qrtext 与 qrecl 两个键，不动 qrsize/qrmargin/qrfg/qrbg，避免颜色变化干扰文本锚点。",
+  },
+  {
+    // D-N208 批量：多行文本各生成一个二维码
+    slug: "design/generator-8",
+    inputs: { qrtext: "A\nB\nC" },
+    expect: ["生成结果：共 3 个二维码（纠错 M，静区 4 模块）"],
+    ref: "D-N208：输入框按行切分，每行一个二维码（上限 20 行）。三行 ⇒ 首行汇总写「共 3 个二维码」。默认态 1 行 ⇒ 不含「共 3 个」⇒ 强判别；同时验证空行/去空格逻辑未把换行吞掉。",
+  },
+  {
+    // D-N208 UTF-8 字节计数：中文按 3 字节/字，而非按字符数
+    slug: "design/generator-8",
+    inputs: { qrtext: "中文测试" },
+    expect: ["版本 1 · 21×21 模块 · 纠错 M · 12 字节"],
+    ref: "D-N208 强锁：编码按 UTF-8 计字节，`中文测试` 4 个汉字 = 12 字节（每字 3 字节），M 级下落在版本 1 ⇒ 21×21。\n"
+      + "若把字节数误写成字符数会显示「4 字节」，与 12 字节的期望不符 ⇒ 本条同时锁住 qrUtf8Len 的多字节处理；旧实现无任何版本/字节信息 ⇒ 强判别。\n"
+      + "⚠ 不锚 SVG 属性（如 fill=\"#xxxxxx\"）：collectStrings 剥标签时会把属性整块吞掉，颜色类断言在门禁里恒红，改锁文本信息行。",
   },
   {
     slug: "design/generator-9",
@@ -1702,16 +1729,6 @@ const CASES = [
       "42. outset 边框"
     ],
     "ref": "注入非默认输入{\"cnt\":\"42\"}，输出区含第 41 条的结构前缀「border-41 {」与第 42 条标题「42. outset 边框」（八种样式轮换，42 % 8 = 2 ⇒ 第 42 条必为 outset）。原 expect 锚「-radius: 26px; } 16. outset」依赖随机圆角，改控件后随机序列位移即失效（且本属 flaky），改锚确定性结构串；默认态 5 条 ⇒ 不含该串。"
-  },
-  {
-    "slug": "design/generator-8",
-    "inputs": {
-      "cnt": "42"
-    },
-    "expect": [
-      "le.com/q/ffzqi2oo"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"cnt\":\"42\"}，输出区含「le.com/q/ffzqi2oo」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "design/generator-6",

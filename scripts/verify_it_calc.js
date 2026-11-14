@@ -83,6 +83,22 @@ try {
   globalThis.__tbBarcodeLibForVerify = null;
 }
 
+// 项目内置 QR 库 js/qrcode.js（Kazuhiko Arase 实现，ISO/IEC 18004）：页面同样以 <script src> 引入。
+// 懒加载一次取构造函数，仅供「页面 HTML 确实引用该库」的用例作为 new Function 形参注入，
+// 使页面内联脚本在门禁里能真实完成版本选择、Reed-Solomon 纠错与掩码，而不是只跑兜底分支。
+let _qrcodeCtor;
+function loadQrcodeCtor() {
+  if (_qrcodeCtor === undefined) {
+    try {
+      const _vm = require("vm");
+      const _sb = {};
+      _vm.runInNewContext(fs.readFileSync(path.join(ROOT, "js/qrcode.js"), "utf8"), _sb);
+      _qrcodeCtor = _sb.qrcode || null;
+    } catch (e) { _qrcodeCtor = null; }
+  }
+  return _qrcodeCtor;
+}
+
 // ToolBox 早期 API 桩（/js/toolbox-stub.js）源缓存：页面已将该桩外链化（<script src>），
 // 本 harness 不加载外部脚本，故在用例上下文里显式以同内容注入，使 harness 的 window.ToolBox
 // 与生产设备一致：补全 qs/qsa/debounce/resolveCanvasColor/canvasColorWithAlpha/i18nText 等
@@ -15149,11 +15165,15 @@ async function runCaseInner(c) {
         deleteProperty(_, k) { if (win.ToolBox) delete win.ToolBox[k]; return true; },
       })
     : ToolBox;
+  // 页面以 <script src=".../js/qrcode.js"> 引入 QR 库，而 harness 不加载外部脚本；
+  // 若本页确实引用了它，就把构造函数作为 new Function 形参注入，让内联脚本能真实生成矩阵。
+  // 未引用该库的页面拿到 undefined，行为与改造前逐字节一致。
+  const pageQrcode = /js\/qrcode\.js/.test(html) ? loadQrcodeCtor() : undefined;
   const compiled = new Function(
-      "document", "window", "console", "navigator", "localStorage", "sessionStorage", "ToolBox", "alert", "setTimeout", "requestAnimationFrame", "setInterval", "requestIdleCallback", "Date",
+      "document", "window", "console", "navigator", "localStorage", "sessionStorage", "ToolBox", "alert", "setTimeout", "requestAnimationFrame", "setInterval", "requestIdleCallback", "Date", "qrcode",
       `var __f={};\n${script}\n${expose}\n__f["__pageEval"]=function(c){return eval(String(c));};\n__f["__rebindGlobal"]=function(n){try{eval(n+' = window.'+n);}catch(e){}};\nreturn __f;`
     );
-    fns = compiled(document, win, { log() {}, warn() {}, error() {} }, navigator, localStorage, sessionStorage, toolboxArg, () => {}, safeTimer, safeTimer, safeTimer, safeTimer, FrozenDate);
+    fns = compiled(document, win, { log() {}, warn() {}, error() {} }, navigator, localStorage, sessionStorage, toolboxArg, () => {}, safeTimer, safeTimer, safeTimer, safeTimer, FrozenDate, pageQrcode);
   } catch (e) {
     return { ok: false, why: "初始化失败: " + e.message.slice(0, 80) };
   }
