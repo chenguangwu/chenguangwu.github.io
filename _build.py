@@ -3009,6 +3009,97 @@ def fix_zh_tw_short_desc():
     print('zh-tw desc 补足: %d 页' % fixed)
 
 
+_GUIDE_BOIL_TAIL = ('本指南整理核心功能、适用场景、使用步骤与常见问题，'
+                    '纯前端免费在线使用，数据不上传。')
+_GUIDE_GENERIC_SNIPPETS = (
+    '在线输入参数即可即时得到结果，无需安装与注册',
+    '在线输入参数即可即时得到结果，无需安装或注册',
+)
+# 正文里同样属于站内通用套话、不能当页面专属摘要的段落特征。
+_GUIDE_BOIL_MARKERS = (
+    '本指南', '纯前端', '不上传', '无需安装', '仅供参考',
+    '在线输入参数即可', '本工具纯前端运行',
+)
+# 正文缺失时的兜底结构说明（不含「数据不上传」隐私套话）。
+_GUIDE_STRUCT_TAIL = '本指南整理核心功能、适用场景、使用步骤与常见问题，并给出可照做的操作要点。'
+
+
+def _guide_ngrams(text, n=8):
+    text = re.sub(r'[^\u4e00-\u9fffA-Za-z0-9]', '', text or '')
+    return set(text[i:i + n] for i in range(max(0, len(text) - n + 1)))
+
+
+def _guide_first_distinct_para(src, core):
+    """从指南正文挑第一段与 core 重叠度低、信息量足够的段落（去套话）。"""
+    body = src.split('</head>', 1)[-1]
+    body = re.sub(r'<(script|style)\b[^>]*>[\s\S]*?</\1>', '', body, flags=re.I)
+    core_g = _guide_ngrams(core)
+    for raw in re.findall(r'<p[^>]*>([\s\S]*?)</p>', body):
+        t = html.unescape(re.sub(r'<[^>]+>', ' ', raw))
+        t = re.sub(r'<[^>]+>', '', t)     # 解义后暴露的示例 HTML 标签也剥掉
+        t = re.sub(r'\s+', ' ', t).strip()
+        t = re.sub(r'[….]+$', '', t).strip()
+        if not t.endswith(('。', '！', '？', '）', ')', '」', '】')):
+            continue          # 源文本本身被截断，不能直接当摘要
+        if len(t) < 24 or any(g in t for g in _GUIDE_BOIL_MARKERS):
+            continue
+        if any(g in t for g in _GUIDE_GENERIC_SNIPPETS):
+            continue
+        if t.startswith(('输入：', '输出：', '示例', '处理：')):
+            continue
+        if core and t[:12] in core:
+            continue
+        tg = _guide_ngrams(t)
+        if core_g and tg and len(core_g & tg) / max(1, len(tg)) > 0.4:
+            continue
+        return t
+    return ''
+
+
+def _rewrite_guide_desc(d, src):
+    """用页面专属正文替换全站通用的「本指南整理…数据不上传」尾句（2026-11-14 409）。
+
+    949 页指南共用同一段 41 字尾句，构成站内大规模重复描述。这里保留页面原本的
+    信息核（工具名/用途），尾句换成正文首段去重后的第一句；正文只有套话的空壳指南
+    保持原样，避免把描述改得更空。幂等：替换后不再含尾句。
+    """
+    d = (d or '').strip()
+    if _GUIDE_BOIL_TAIL not in d:
+        return d
+    if any(g in d for g in _GUIDE_GENERIC_SNIPPETS):
+        return d
+    core = d.split(_GUIDE_BOIL_TAIL)[0].strip().rstrip('，；：、 ')
+    if not core:
+        return d
+    if core[-1] not in '。！？':
+        core += '。'
+    snip = _guide_first_distinct_para(src, core)
+    if not snip:
+        return _close_guide_desc(core + _GUIDE_STRUCT_TAIL)
+    part = ''
+    for sent in re.split(r'(?<=[。！？])', snip):
+        sent = sent.strip()
+        if not sent:
+            continue
+        if part and len(core) + len(part) + len(sent) > 150:
+            break
+        part += sent
+        if len(core) + len(part) >= 70:
+            break
+    if not part:
+        return _close_guide_desc(core + _GUIDE_STRUCT_TAIL)
+    out = core + part
+    if out[-1] not in '。！？':
+        out += '。'
+    if len(out) < 70:
+        out += _GUIDE_STRUCT_TAIL
+    if len(out) > 150:
+        cut = out[:145]
+        i = max(cut.rfind('，'), cut.rfind('、'), cut.rfind('；'))
+        out = (cut[:i] if i > 60 else cut) + '。'
+    return out
+
+
 def _close_guide_desc(d):
     """把被硬切在半个词上的描述收口到最后一个逗号/分号，并补句末标点。"""
     d = (d or '').strip()
@@ -3050,7 +3141,7 @@ def normalize_guide_descriptions():
 
         def _sub_meta(m):
             d = html.unescape(m.group(2))
-            nd = _close_guide_desc(d)
+            nd = _close_guide_desc(_rewrite_guide_desc(d, src))
             if nd == d:
                 return m.group(0)
             changed[0] += 1
@@ -3061,7 +3152,7 @@ def normalize_guide_descriptions():
                 d = json.loads('"' + m.group(2) + '"')
             except Exception:
                 return m.group(0)
-            nd = _close_guide_desc(d)
+            nd = _close_guide_desc(_rewrite_guide_desc(d, src))
             if nd == d:
                 return m.group(0)
             changed[0] += 1
