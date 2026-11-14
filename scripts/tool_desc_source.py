@@ -113,7 +113,16 @@ ZH_BOILERPLATE = [
 ]
 
 # 「名是一款免费的在线X工具，」模板前缀（构建期统一添加，源数据里可能已残留一份）
-_TMPL_PREFIX_RE = re.compile(r'^.*?是一款免费的在线[^，。；]{0,30}工具[，,]\s*')
+_TMPL_PREFIX_RE = re.compile(r'^.*?是一款免费的在线[^，。；]{0,30}工具[：:，,]\s*')
+
+# 名称被剥掉后，intro 常剩下「计算器。输入…」「工具：清理…」这类悬空品类词。
+# 仅当品类词后紧跟标点时才剥，避免误伤「计算器电池容量」之类的真实主语。
+_DANGLING_TYPE_RE = re.compile(
+    r'^(?:计算器|生成器|转换器|换算器|估算器|评估器|分析器|校验器|验证器|检测器|'
+    r'查询器|选择器|编辑器|解析器|模拟器|对比器|比较器|统计器|加密器|解密器|'
+    r'检查器|记录器|监视器|播放器|控制器|提取器|合并器|拆分器|工具|系统|方案|'
+    r'计算|分析|生成|查询|换算|转换|评估|器)'
+    r'[。，：:、；;\s]+')
 
 
 def strip_name_prefix(s, name):
@@ -122,6 +131,7 @@ def strip_name_prefix(s, name):
     描述模板已统一加「XX是一款免费的在线YY工具，」，源 intro 若再以工具名开头，
     meta/卡片就会变成「XX…工具，XX。输入…」的名称重复（实测全站 55 页）。
     允许名称前带装饰性符号（如「🧮 火锅食材分量计算器」），这类同样属于名称复述。
+    名称剥掉后若只剩悬空品类词（「计算器。输入…」），一并剥掉。
     """
     s = (s or '').strip()
     name = (name or '').strip()
@@ -133,6 +143,9 @@ def strip_name_prefix(s, name):
     rest = s[idx + len(name):].lstrip()
     if rest[:1] in '。，：:、；;，,':
         rest = rest[1:].lstrip()
+    rest2 = _DANGLING_TYPE_RE.sub('', rest, count=1).lstrip()
+    if rest2 != rest and len(rest2) >= 10:
+        rest = rest2
     return rest if len(rest) >= 10 else s
 
 
@@ -148,6 +161,10 @@ def clean_zh_candidate(s, name):
         rest = s[m.end():].strip()
         if len(rest) >= 10:
             s = strip_name_prefix(rest, name)
+    # 少数 intro 直接以「工具。输入…」开头（工具名在别处被剥掉），开头的悬空品类词同样无信息量
+    rest = _DANGLING_TYPE_RE.sub('', s, count=1).lstrip()
+    if rest != s and len(rest) >= 10:
+        s = rest
     # 剥完只剩隐私套话尾句（源数据被模板污染）时按「无描述」处理，让调用方继续回退，
     # 避免卡片/meta 出现「XX 是一款免费的在线 YY 工具，纯前端运行、数据不上传…」。
     if re.match(r'^(?:纯前端(?:运行|处理)|免费在线工具|数据不上传|本工具)', s) and len(s) <= 80:
@@ -166,6 +183,23 @@ def has_cjk(s):
     return bool(CJK.search(s or ''))
 
 
+def is_formula_only(desc):
+    """描述是否只是公式串（如「欧姆定律（V = I·R）」「税额 = 不含税 × 税率」）。
+
+    这类串是页面里的公式标题，被写进 i18n 的 zh-CN.desc 后，卡片 / 搜索 / 导航
+    会直接展示公式而非功能说明（全站 131 页）。规则与 _build.py 的 _d_bad 一致：
+    含等号且中文不足 10 字；或整串只是「X（含 = 或 → 的公式）」。
+    """
+    d = (desc or '').strip()
+    if not d:
+        return False
+    if d.count('=') >= 1 and len(CJK.findall(d)) < 10:
+        return True
+    if re.fullmatch(r'[^。]{0,24}（[^（）]*[=→][^（）]*）', d):
+        return True
+    return False
+
+
 def is_weak_desc(desc, title):
     """判定中文描述是否只是标题重复或缺乏信息量（弱描述需改用 intro）。
 
@@ -174,6 +208,8 @@ def is_weak_desc(desc, title):
     if not desc or not has_cjk(desc):
         return True
     if is_boilerplate(desc):        # 模板腔：看似有内容，实则零信息量
+        return True
+    if is_formula_only(desc):       # 公式串：用户在卡片/搜索里看不懂
         return True
     d = (desc or '').strip()
     t = (title or '').strip()

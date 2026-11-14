@@ -2513,6 +2513,13 @@ def generate_sitemap(tools, category_inds=None):
             if fn.endswith('.en.html'):
                 continue  # 孤儿化：英文副本 .en.html 不进 sitemap（2026-09-21 老板指令，保留文件一个月后删）
             if fn.endswith('.html') and fn != 'index.html':
+                # noindex 的重复指南（同一工具存在多份指南时）不进 sitemap
+                try:
+                    _head = open(os.path.join(guides_dir, fn), encoding='utf-8', errors='ignore').read(4096)
+                except Exception:
+                    _head = ''
+                if re.search(r'<meta\s+name="robots"\s+content="[^"]*noindex', _head, re.I):
+                    continue
                 abs_url = 'https://chenguangwu.github.io/guides/%s' % fn
                 lines.extend(_localized_url_blocks(abs_url, today, 'monthly', '0.8'))
     # chains.html 工具链页（B3-05）
@@ -2912,8 +2919,17 @@ def _build_consistency_check(tools, category_inds):
     guides_dir = os.path.join(ROOT, 'guides')
     guides_count = 0
     if os.path.isdir(guides_dir):
-        guides_count = len([fn for fn in os.listdir(guides_dir)
-                            if fn.endswith('.html') and fn != 'index.html' and not fn.endswith('.en.html')])
+        # noindex 的重复指南与 .en.html 英文副本一样不进 sitemap，计数口径需与 generate_sitemap 一致
+        for fn in sorted(os.listdir(guides_dir)):
+            if not fn.endswith('.html') or fn == 'index.html' or fn.endswith('.en.html'):
+                continue
+            try:
+                _head = open(os.path.join(guides_dir, fn), encoding='utf-8', errors='ignore').read(4096)
+            except Exception:
+                _head = ''
+            if re.search(r'<meta\s+name="robots"\s+content="[^"]*noindex', _head, re.I):
+                continue
+            guides_count += 1
     has_chains = 1 if os.path.isfile(os.path.join(ROOT, 'chains.html')) else 0
     has_about = 1 if os.path.isfile(os.path.join(ROOT, 'about.html')) else 0
     # 孤儿化(2026-09-21 老板指令): .en.html 英文副本不再进 sitemap，仅保留文件一个月后删
@@ -4048,8 +4064,21 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
             extract_zh_desc(content, t, industry, entry) or t.get('name') or '')
         if len(_seo_desc_raw) < 70:
             _d_base = os.path.splitext(os.path.basename(t['path']))[0]
-            _d_name = _zh_title_of(industry, _d_base) or t.get('name') or ''
+            # 主语优先用真实工具名（中文、非公式）：_zh_title_of 在部分页面返回的是
+            # 公式型标题（「工程应变（ε = (L − L₀) / L₀）」），拿它当主语会得到
+            # 「公式是一款免费的在线X工具，…」的怪异描述（实测 86 页）。
+            _name_c = t.get('name') or ''
+            if re.search(r'[\u4e00-\u9fff]', _name_c) and not TDS.is_formula_only(_name_c):
+                _d_name = _name_c
+            else:
+                _d_name = _zh_title_of(industry, _d_base) or _name_c
             _d_core = _seo_desc_raw.strip().rstrip('。')
+            # 描述主体若重复工具名，先剥掉（模板已带「XX是一款…工具，」）
+            _d_core = TDS.strip_name_prefix(_d_core, _d_name).strip().rstrip('。')
+            # 主体已含隐私套话时不再叠加模板尾句，避免同一句出现两遍（实测 91 页）
+            _d_core = re.sub(r'[，,；;]\s*纯前端运行[^。]*', '', _d_core)
+            _d_core = re.sub(r'[，,；;]?\s*纯前端运行(?:、数据不上传)?[。.]?$', '', _d_core)
+            _d_core = _d_core.rstrip('，,；;、 ')
             _d_bad = (bool(re.search(
                 r'工作与生活中的相关计算与查询|相关计算与查询|帮助计算.{0,10}(指标|需求)|'
                 r'相关日常任务|相关计算与查询需求', _d_core))
