@@ -40,7 +40,21 @@ def _strip_seo_extra(s):
     当工具名导致嵌套（实测污染 tools.json 763 条 / 分类卡片）。
     另外丢弃 `在线工具 / 免费在线工具 / 工具 / 在线` 这类纯噪声分段
     （历史数据里存在 `工具名 - 在线工具` 形式的命名）。"""
-    s = (s or '').replace('（免费）', '').replace('免费在线工具', '').strip()
+    # 品牌尾串必须先剥（2026-11-14）：`<title>` 形如
+    # `名 - 修饰 | ToolBox免费在线工具箱`。若先走下面的 `免费在线工具` 全局替换，
+    # 会把尾串里的 `免费在线工具箱` 打成残片 `箱`（子串误伤），再也认不出来，
+    # 残片最终污染相关工具卡的 rt-name 锚文本（实测 6501 张卡片带此尾串）。
+    s = s or ''
+    _had_brand_tail = bool(re.search(r'[\|｜]\s*ToolBox\s*免费在线工具箱\s*$', s))
+    s = re.sub(r'\s*[\|｜]\s*ToolBox\s*免费在线工具箱\s*$', '', s).strip()
+    s = re.sub(r'\s*[\|｜]\s*ToolBox\s*$', '', s).strip()
+    s = re.sub(r'^ToolBox\s*免费在线工具箱\s*[\|｜]\s*', '', s).strip()
+    # 命中品牌尾串 ⇒ 该串必为 `<title>` 全量文本，第一个分隔符之后一律是 SEO 修饰
+    # （形如 `- 免费开发工具，在线呼吸计时器`、`- 标准二维码生成与 PNG/SVG 导出`），
+    # 直接截断才是纯工具名。无品牌尾串则不动，避免误伤本身含 ` - ` 的真实名称。
+    if _had_brand_tail:
+        s = re.split(r'\s+[-—–]\s+', s, 1)[0].strip() or s
+    s = s.replace('（免费）', '').replace('免费在线工具', '').strip()
     prev = None
     while s and s != prev:
         prev = s
