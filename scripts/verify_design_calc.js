@@ -499,6 +499,12 @@ const CASES = [
     ref: "复核失败重做 D-N198（第七批·CSV/页面频率口径）：旧 CSV 第六行输出 'Bb, 466.2 Hz'。修复后 NOTE_PC 扩充重降/重升异名（Bbb=9、Cb=11、Fb=4 等），频率统一由 msNoteFreq(note) 按十二平均律 A4=440 计算，页面 sigInfo、图表与 msExportCsv 三处共用同一函数；Db 小调第六音 Bbb → midi 69 → 440.0 Hz。默认 C 大调频率行不含 'Bbb' ⇒ 强判别、零逃生。"
   },
   {
+    slug: "design/music-scale-reference",
+    clicks: ["var __r=document.getElementById('root'),__t=document.getElementById('scaleType');__r.value='A';__t.value='minor';render();var __h1=String(document.getElementById('sigInfo').innerHTML||'');__t.value='harmonicMinor';render();var __h2=String(document.getElementById('sigInfo').innerHTML||'');var __n=String(document.getElementById('notesDisplay').textContent||'');document.getElementById('__tbProbe').textContent='MS nat='+(__h1.indexOf('调号：无升降号')>=0?'Y':'N')+' har='+(__h2.indexOf('调号：无升降号')>=0?'Y':'N')+' triad='+(__h2.indexOf('I 级三和弦：A - C - E（小三和弦）')>=0?'Y':'N')+' notes='+(__n==='A - B - C - D - E - F - G#'?'Y':'N');"],
+    expect: ["MS nat=Y har=Y triad=Y notes=Y"],
+    ref: "D-N200 回归锁：小调此前不输出调号（只有大调分支拼 keySig），且下拉无和声/旋律小调、表格和弦构成是固定示例。修复后 A 自然小调输出「调号：无升降号」、A 和声小调第七音升为 G#（note='A - B - C - D - E - F - G#'）且同调号，结果区给出「I 级三和弦：A - C - E（小三和弦）」。旧码 scaleType='harmonicMinor' 时 scales[type] 为 undefined 直接抛错 ⇒ 探针不写入、四判全失配。",
+  },
+  {
     slug: "design/depth-of-field-calculator",
     inputs: { sensor: "1", focal: "50", aperture: "1.8", distance: "0.01" },
     expect: ["对焦距离须大于焦距"],
