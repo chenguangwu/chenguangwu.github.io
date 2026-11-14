@@ -2208,9 +2208,20 @@ const CASES = [
     },
     "clicks": ["generate()"],
     "expect": [
-      "42 × 42 · 1x · transparent"
+      "42 × 42 · 1x · transparent · contain"
     ],
     "ref": "42×42、1x 透明背景生成前输出像素元信息；不依赖输入回显或测试环境中的 Image 实现。"
+  },
+  {
+    "slug": "design/svg-to-png",
+    "inputs": {
+      "width": "200",
+      "height": "100",
+      "svgInput": "<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'><rect width='64' height='64'/></svg>"
+    },
+    "clicks": ["document.getElementById('fitMode').value='stretch';generate()"],
+    "expect": ["200 × 100 · 1x · transparent · stretch"],
+    "ref": "D-N25 强锁：拉伸铺满模式下 exportMetaVal 同步串含 'stretch'（与默认 contain 区分）。64×64 SVG 在 200×100 画布下若用 contain 会是 100×100 居中，stretch 才是 200×100 铺满 ⇒ 模式串可判别。"
   },
   {
     "slug": "design/tester-assessor",

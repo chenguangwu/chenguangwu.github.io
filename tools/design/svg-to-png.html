@@ -141,7 +141,7 @@
 <div class="card tool-card-accent" style="--tool-accent:#7C3AED;">
      <h2 data-zh="🖼️ SVG 转 PNG">🖼️ SVG to PNG Converter</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">把 SVG 代码包成 image/svg+xml 类型的 Blob 并创建对象 URL，交由 Image 异步加载；画布像素 = 设定宽高 × 导出倍率（1x/2x/3x），背景默认透明、可选白色（仅选白色时铺底，避免透明 SVG 被刷白）；按 drawImage(图, 0, 0, 画布宽, 画布高) 缩放绘制；导出 PNG data URL 后立即释放对象 URL，加载失败提示 SVG 加载失败</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">把 SVG 代码包成 image/svg+xml 类型的 Blob 并创建对象 URL，交由 Image 异步加载；画布像素 = 设定宽高 × 导出倍率（1x/2x/3x），背景默认透明、可选白色（仅选白色时铺底，避免透明 SVG 被刷白）；适配模式默认「保持比例」居中绘制并保留多余画布、可选「拉伸铺满」拉伸至画布尺寸；导出 PNG data URL 后立即释放对象 URL，加载失败提示 SVG 加载失败</div>
   <div class="formula-desc">本工具为纯前端在线工具，数据在浏览器本地处理、不上传服务器，依据对应领域标准与规范进行计算或处理，结果仅供参考。 工具名称：SVG 转 PNG - 免费图片处理工具，在线SVG 转 PNG，免费使用。</div>
 </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="将矢量 SVG 转换为 PNG 位图并支持下载，可设定尺寸与背景，便于在不支持矢量的场景使用，纯前端本地转换。">Rasterise a vector SVG into a PNG with a chosen size and background for contexts that cannot render SVG, processed locally.</p>
@@ -155,6 +155,9 @@
     <div class="input-row">
       <div><label>导出倍率</label><select id="scale"><option value="1">1x</option><option value="2">2x</option><option value="3">3x</option></select></div>
       <div><label>背景</label><select id="bgMode"><option value="transparent">透明</option><option value="white">白色</option></select></div>
+    </div>
+    <div class="input-row">
+      <div><label>适配模式</label><select id="fitMode"><option value="contain" selected>保持比例（留白）</option><option value="stretch">拉伸铺满</option></select></div>
     </div>
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="generate()">转换</button>
@@ -216,7 +219,7 @@
       <tbody>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="栅格化尺寸">Raster size</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="输出像素宽 = viewBox 宽 x 缩放倍率，保持长宽比">output width = viewBox width x scale factor, ratio preserved</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="画布像素 = 设定宽高 × 倍率；默认 contain 保持长宽比居中，可选 stretch 拉伸铺满">canvas pixels = width × height × scale; contain keeps aspect ratio centered, stretch fills the canvas</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="W3C SVG 1.1">W3C SVG 1.1</td>
         </tr>
         <tr>
@@ -325,8 +328,8 @@ function __svgSanitize(raw){
   out = out.replace(/url\(\s*(['"]?)(?:https?:)?\/\/[^)]*\)/gi, 'none');
   return { ok: true, svg: out, report: report };
 }
-['svgInput','width','height','scale','bgMode'].forEach(function(id){
-  document.getElementById(id).addEventListener(id === 'scale' || id === 'bgMode' ? 'change' : 'input', function(){
+['svgInput','width','height','scale','bgMode','fitMode'].forEach(function(id){
+  document.getElementById(id).addEventListener(id === 'scale' || id === 'bgMode' || id === 'fitMode' ? 'change' : 'input', function(){
     __genToken++;
     lastDataURL = '';
     document.getElementById('exportMetaVal').textContent = '';
@@ -342,6 +345,7 @@ function generate(){
   const h = parseInt(document.getElementById('height').value);
   const scale = parseInt(document.getElementById('scale').value) || 1;
   const bgMode = document.getElementById('bgMode').value;
+  const fitMode = document.getElementById('fitMode').value;
   const preview = document.getElementById('preview');
   if(!(w > 0) || !(h > 0)){
     lastDataURL = '';
@@ -361,7 +365,7 @@ function generate(){
     if(window.ToolBox && ToolBox.showToast) ToolBox.showToast('已自动移除 ' + n + ' 处外部资源引用，避免污染画布', 'info');
   }
   document.getElementById('exportMetaVal').textContent =
-    `${w * scale} × ${h * scale} · ${scale}x · ${bgMode}`;
+    `${w * scale} × ${h * scale} · ${scale}x · ${bgMode} · ${fitMode}`;
   lastDataURL = '';
   try{
     const blob = new Blob([cleaned.svg], {type:'image/svg+xml;charset=utf-8'});
@@ -380,8 +384,19 @@ function generate(){
           ctx.fillStyle = '#fff';
           ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        // D-N25：默认 contain 保持长宽比居中（多余处保留背景/留白），可选 stretch 拉伸铺满画布
+        let drawX = 0, drawY = 0, drawW = canvas.width, drawH = canvas.height;
+        if(fitMode !== 'stretch' && img.width > 0 && img.height > 0){
+          const ratio = Math.min(canvas.width / img.width, canvas.height / img.height);
+          drawW = Math.round(img.width * ratio);
+          drawH = Math.round(img.height * ratio);
+          drawX = Math.round((canvas.width - drawW) / 2);
+          drawY = Math.round((canvas.height - drawH) / 2);
+        }
+        ctx.drawImage(img, drawX, drawY, drawW, drawH);
         lastDataURL = canvas.toDataURL('image/png');
+        // 生成完成后补充实际绘制尺寸（contain 留白时帮助用户了解图形真实大小）
+        document.getElementById('exportMetaVal').textContent += ` · 绘制${drawW}×${drawH}`;
         const __h0='<img src="'+lastDataURL+'" alt="PNG">';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){preview.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}preview.innerHTML=__h0;
       }catch(e){
         lastDataURL = '';
