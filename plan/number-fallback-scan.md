@@ -1,5 +1,14 @@
 # 全站 `|| 默认值` 吞掉合法 0 · 只读扫描（2026-11-05）
 
+> **2026-11-15 复核（463 批）**：按 §3 全表逐条 grep 复核，**21 页已由各线修好**（含 pipe-flow / dough / smoking-cost /
+> water-intake / gross-up / random-string / random / vector-magnitude / factorial / function-plotter / photochromic /
+> 四个 pediatrics / rental commission / matrix & vector / bearing-pressure / personal-injury 等，扫描清单滞后）；
+> 仍存在的 7 页已在本批修复：`hr/recruitment-funnel`、`sales/conversion-funnel`（全 0 阶段不再用 1 作柱宽基准）、
+> `legal/ipr-damages`、`legal/traffic-accident-compensation`、`legal/work-injury-compensation`（×2）、
+> `medical2/drug-expiry`、`project/manager-cost`（历史回填 `|| N` 改 `?? N`，保留合法 0）。
+> 静态测试 4685/4685。§3 不再作为待办。
+
+
 > 范围 `tools/**/*.html`，共 4916 个页面文件。**只读**：未改任何页面 / `i18n` / 构建产物，未跑 `_build.py`，未 push。
 > 机器可读清单：`scripts/out/number-fallback.json`（摘要版，含全量 T1/T1r/T3、T2 按目录聚合、10 页真机结论）。
 
