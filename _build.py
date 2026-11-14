@@ -3673,6 +3673,32 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
             CURATED_RT = {}
     # 跨行业引用需要按路径查工具元数据（name/desc/icon）
     _tools_by_path = {t['path']: t for t in tools}
+    # 相关工具卡指向「已合并的重定向存根」时，改写为 canonical 新址，并按新页权威
+    # 数据刷新卡名/描述（2026-11-14）。重复页合并后历史 inline 卡片的 href 未同步：
+    # 实测 322 张卡仍指向 6 个存根页；旧键在 slug-en.json 已无映射 ⇒ 英文态泄漏中文。
+    _rt_redirect_cache = {}
+
+    def _rt_canonical_abs(abs_target):
+        """存根页 → canonical 目标绝对路径；非存根/无有效目标返回 None。"""
+        if abs_target in _rt_redirect_cache:
+            return _rt_redirect_cache[abs_target]
+        _out = None
+        try:
+            with open(abs_target, encoding='utf-8', errors='ignore') as _fh:
+                _head = _fh.read(1500)
+            if 'TOOLBOX-REDIRECT' in _head:
+                _m = re.search(
+                    r'<link rel="canonical" href="https://chenguangwu\.github\.io/([^"]+)"',
+                    _head)
+                if _m:
+                    _p = os.path.join(ROOT, _m.group(1))
+                    if os.path.isfile(_p):
+                        _out = _p
+        except OSError:
+            pass
+        _rt_redirect_cache[abs_target] = _out
+        return _out
+
     if existing_html_paths is None:
         existing_html_paths = {
             os.path.normpath(os.path.join(root, filename))
@@ -4416,6 +4442,18 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
             [rt for rt in by_industry.get(industry, []) if rt['url'] != t['url']][:6])
         _rt_html_guar = _rt_html_of(_rel_guar)
 
+        def _rt_fix_redirect(_a, _target):
+            """卡片目标为合并存根时，把 href 改写为 canonical 新址（幂等）。
+
+            返回 (卡片 HTML, 新目标绝对路径)；后续按新目标刷新图标/名称/描述。
+            """
+            _canon = _rt_canonical_abs(_target)
+            if not _canon:
+                return _a, _target
+            _new_href = os.path.relpath(_canon, os.path.dirname(filepath)).replace(os.sep, '/')
+            _a = re.sub(r'href="[^"]*"', 'href="%s"' % _new_href, _a, count=1)
+            return _a, _canon
+
         def _refresh_rt_block(block):
             """原位刷新一个相关工具块内所有卡片的图标/名称/描述（幂等）。
 
@@ -4429,6 +4467,7 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
                 if not _hm:
                     return _a
                 _target = os.path.normpath(os.path.join(os.path.dirname(filepath), _hm.group(1)))
+                _a, _target = _rt_fix_redirect(_a, _target)
                 _rt_obj = _tools_by_path.get(os.path.relpath(_target, TOOLS_DIR))
                 if not _rt_obj:
                     return _a
@@ -4456,6 +4495,7 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
                 if not _hm:
                     return _a
                 _target = os.path.normpath(os.path.join(os.path.dirname(filepath), _hm.group(1)))
+                _a, _target = _rt_fix_redirect(_a, _target)
                 if _target in existing_html_paths:
                     # 刷新 rt-icon 为当前语义图标（根治历史 🔧 / 行业图标残留；幂等）。
                     # _target 相对 ROOT（tools/<industry>/<file>.html），而 _tools_by_path 的 key
