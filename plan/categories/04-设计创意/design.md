@@ -176,22 +176,6 @@
 - 范围：`tools/design/` 8 页（`waveform-visualizer` / `tailwind-colors` / `base64-to-image` / `data-matrix` / `spectrum-visualizer` / `pixel-art` / `colorblind-simulator` / `signature-pad`），整份 HTML（含内联 JS/CSS、外链 `js/tools/colorblind-simulator.js`、deep-dive、FAQ、引据表）全读。
 - 方法：只读源码 + `node` 内存复算（Tailwind 242 色 WCAG、CSS 拉伸后的圆环比例、Base64 扩展名正则、Data Matrix 图案）；未改代码、未跑 `_build.py`/门禁/浏览器、未做英文态与移动端实测，行号按当前磁盘版本。
 
-### D-N131 waveform 简介与 FAQ 承诺「上传音频 / 实时渲染 / 缩放」，实际是参数化数学波形（高，确认文案与实现不一致）
-
-- 问题：meta、公式说明、SEO 简介、deep-dive 示例/FAQ 均称可上传音频文件、取峰值、缩放查看；页面只有类型/频率/振幅/相位/颜色五个参数，波形由解析式逐像素计算，无任何文件或音频输入。
-- 证据：`tools/design/waveform-visualizer.html:10`（meta「上传文件与实时渲染、缩放查看」）、`:155`（formula-desc「把音频采样…支持上传文件与缩放查看」）、`:509`（简介英文「file upload, live rendering and zoom」）、`:207`（示例「上传音频→取峰值绘制」）、`:514`（「一键复制 CSS 代码」）。
-- 复现：全页 grep `type="file"|FileReader|AudioContext|AnalyserNode` 0 命中；输入区只有 `:157-170` 五项；`drawWave` 在 `:282-295` 用 `sin/asin` 计算，并非采样数据。
-- 影响：`tools/design/waveform-visualizer.html` 的 SEO/教学定位整体失真，用户无法完成「上传音频看波形」。
-- 方案：把文案统一改为「参数化波形（正弦/方波/三角/锯齿/混合）演示」；若要保留音频卖点，接 `decodeAudioData` 并按像素列取 min/max 峰值桶（纯前端可行）。
-
-### D-N134 spectrum 简介/FAQ 承诺 Web Audio + FFT + 峰值 + 麦克风，实际是正弦动画且麦克风被 Permissions-Policy 禁止（高，确认文案与实现不一致）
-
-- 问题：meta、formula-desc、deep-dive 示例与 FAQ 称「AnalyserNode 做 FFT」「频谱条动画」「可用麦克风或音频输入」；实现只有 `sin(animT…)` 伪随机柱状动画，且页面 `Permissions-Policy` 明确 `microphone=()`。
-- 证据：`tools/design/spectrum-visualizer.html:10`（meta「Web Audio API…FFT 分析与峰值查看」）、`:155`（formula-desc「基于 Web Audio 的 AnalyserNode 做 FFT…峰值查看」）、`:205`（示例「播放/麦克风音频→FFT 分析」）、`:208`（FAQ「可用麦克风或音频输入」）、`:71`（`microphone=()`）、`:258-305`（`draw()` 纯 sin 计算）、`:175`（界面自标「预览 (模拟数据)」）。
-- 复现：全页 grep `AudioContext|AnalyserNode|getUserMedia` 0 命中；`val` 由 `Math.sin(animT*0.05+i*0.3)` 生成，与 FFT 无关。
-- 影响：`tools/design/spectrum-visualizer.html` 核心卖点全部未实现，FAQ 还引导用户授权一个被 policy 禁用的能力。
-- 方案：文案改为「模拟频谱动画生成器」并去掉 FFT/麦克风；或接 `AudioContext.createAnalyser()`、移除 `microphone=()`，并提供音频文件/麦克风入口。
-
 ### 承诺 vs 实际（Q 批专项）
 
 | 页面 | 宣称（行号） | 实际 |
