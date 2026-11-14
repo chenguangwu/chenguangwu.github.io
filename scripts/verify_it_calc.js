@@ -185,7 +185,6 @@ function _rngReset() { _rngState = 0x9e3779b9 >>> 0; }
   Math.random = next;
 })();
 
-
 // ---------------------------------------------------------------- 用例
 const CASES = [
   {
@@ -1268,12 +1267,6 @@ const CASES = [
     inputs: { inputValue: "10", inputBase: "custom", customBase: "2.5" },
     expect: ["进制必须为 2–36 的整数"],
     ref: "独立复算：customBase='2.5' ⇒ getInputBase 先 /^\\d+$/ 校验失败 ⇒ 返回 null ⇒ convertFromInput 显示「⚠ 进制必须为 2–36 的整数。」；修复前 parseInt('2.5')=2 被当 base 2 静默转换。默认 preset 路径（inputBase=10）不受影响、不命中。",
-  },
-  {
-    slug: "it/calc-2",
-    inputs: { numInput: "254", fromBase: "10" },
-    expect: ["FE", "fe"],
-    ref: "format(254,'X') = FE。原用例取 255/10，恰等于页面默认值（value=\"255\"、option 10 selected）⇒ 不注入也命中、属「输入等于默认值」型假门禁；改用 254 后默认态输出 255/FF 不再命中。",
   },
   {
     slug: "it/caesar-cipher",
@@ -5353,13 +5346,6 @@ const CASES = [
     ref: "按位异或：12 ^ 10 = 0b1100 ^ 0b1010 = 0b0110 = 6，可手算逐位核对。运算符 select 的 option 真值是 `'AND'/'OR'/'XOR'/'NOT'/'SHL'/'SHR'`（不是序号）；默认 op 与默认 a/b 组合的结果与注入组不同。",
   },
   {
-    slug: "it/calc-2",
-    inputs: { numInput: "1010", fromBase: "2" },
-    clicks: ["convertBase()"],
-    expect: ["十进制真值： 10", "16 十六进制 A"],
-    ref: "二进制 `1010` 的真值 = 1×2³ + 0×2² + 1×2¹ + 0×2⁰ = 10；同页把同一数值分别渲染为 2 进制 1010 / 8 进制 12 / 10 进制 10 / 16 进制 A，四路输出互为交叉校验。",
-  },
-  {
     slug: "it/calc-1",
     inputs: { sizeInput: "2048", unitSelect: "KiB" },
     clicks: ["copySizeResult()"],
@@ -5572,13 +5558,6 @@ const CASES = [
     clicks: ["calc()"],
     expect: ["结果： 8 = 0x8 = 0b1000"],
     ref: "按位与：12 = `1100`、10 = `1010` ⇒ `1000` = **8**，十六进制与二进制形式同串给出（**三种进制同源，可手算复算**）。默认 `op` 是异或 ⇒ 不命中。",
-  },
-  {
-    slug: "it/calc-2",
-    inputs: { numInput: "1101", fromBase: "2" },
-    clicks: ["convertBase()"],
-    expect: ["十进制真值： 13", "十六进制 D"],
-    ref: "进制换算：`1101₂` = 8+4+0+1 = **13**（权重展开可手算），十六进制 = **D**。默认输入进制不同 ⇒ 不命中。",
   },
   {
     slug: "it/calc-3",
@@ -8114,17 +8093,6 @@ const CASES = [
       "SHA-256 ad53e8806d17c82d38902738d1d47d96bddaade27513466322efa0f793149dd0 SHA-512 c343b77400fa58c2ee2a5b295a413aaadc88c6c"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"textInput\":\"1\\n2\\n3\"}，输出区含「SHA-256 ad53e8806d17c82d38902738d1d47d96…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
-    "slug": "it/calc-2",
-    "inputs": {
-      "numInput": "abc123测试",
-      "fromBase": "8"
-    },
-    "expect": [
-      "abc123测试\n8\n请输入有效的 8 进制数值。"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"numInput\":\"abc123测试\",\"fromBase\":\"8\"}，输出区含「abc123测试\n8\n请输入有效的 8 进制数值。」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/calc-4",

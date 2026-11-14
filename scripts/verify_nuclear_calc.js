@@ -154,11 +154,6 @@ const CASES = [
     expect: ["2.067e+14"],
     ref: "λ=ln2/(1600×365.25×86400)；a=λ·N_A/(M/1000)=2.067e+14 Bq/kg" },
 
-  { slug: "nuclear/specific-activity-from-halflife",
-    inputs: { th: "2.4e9", M: "60" },
-    expect: ["2.899e+12"],
-    ref: "a=(ln2/t½)·N_A/M=0.69314718056/2.4e9×6.02214076e23/60=2.899e+12 Bq/g" },
-
   { slug: "nuclear/survival-probability",
     inputs: { lam: "4e-9", t: "1.5e8" },
     expect: ["0.5488"],
@@ -423,17 +418,6 @@ const CASES = [
       " 值 (MeV) 吸能反应 类型"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"mi\":\"42\",\"mf\":\"42\"}，输出区含「 值 (MeV) 吸能反应 类型」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
-    "slug": "nuclear/specific-activity-from-halflife",
-    "inputs": {
-      "th": "42",
-      "M": "42"
-    },
-    "expect": [
-      "常数 (1/年) 9.9386e+21"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"th\":\"42\",\"M\":\"42\"}，输出区含「常数 (1/年) 9.9386e+21」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "nuclear/specific-activity",

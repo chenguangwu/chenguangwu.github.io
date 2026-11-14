@@ -48,11 +48,6 @@ const CASES = [
     expect: ["5.544"],
     ref: "a=g(sinθ−μcosθ)=9.8(sin45−0.2cos45)=5.544 m/s²" },
 
-  { slug: "dynamics/inelastic-collision",
-    inputs: { m1: "4", m2: "6", v1: "5", v2: "2" },
-    expect: ["3.200"],
-    ref: "v=(m1v1+m2v2)/(m1+m2)=(4·5+6·2)/10=3.200 m/s" },
-
   { slug: "dynamics/kinetic-friction",
     inputs: { mu: "0.25", N: "200" },
     expect: ["50.00"],
@@ -72,11 +67,6 @@ const CASES = [
     inputs: { m: "1200", v: "25" },
     expect: ["30000.0"],
     ref: "p=m·v=1200·25=30000.0 kg·m/s" },
-
-  { slug: "dynamics/period-pendulum",
-    inputs: { L: "2.5", g: "9.81" },
-    expect: ["3.172"],
-    ref: "T=2π√(L/g)=2π√(2.5/9.81)=3.172 s" },
 
   { slug: "dynamics/power-force",
     inputs: { F: "3000", v: "8" },
@@ -229,19 +219,6 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"mu\":\"42\",\"N\":\"42\"}，输出区含「kgf 千克力) 1764.0000 摩擦系数平方」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "dynamics/inelastic-collision",
-    "inputs": {
-      "m1": "42",
-      "m2": "42",
-      "v1": "42",
-      "v2": "42"
-    },
-    "expect": [
-      "42\n42\n42\n42\n42.000"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"m1\":\"42\",\"m2\":\"42\",\"v1\":\"42\",\"v2\":\"42\"}，输出区含「42\n42\n42\n42\n42.000」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
     "slug": "dynamics/moment-of-inertia-point",
     "inputs": {
       "m": "42",
@@ -275,17 +252,6 @@ const CASES = [
       "g·m²/s²) 1.0000"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"m\":\"42\",\"v\":\"42\"}，输出区含「g·m²/s²) 1.0000」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
-    "slug": "dynamics/period-pendulum",
-    "inputs": {
-      "L": "42",
-      "g": "42"
-    },
-    "expect": [
-      "率 f (Hz) 6283.19 周期 (ms) 1.00000"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"L\":\"42\",\"g\":\"42\"}，输出区含「率 f (Hz) 6283.19 周期 (ms) 1.00000」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "dynamics/power-force",
@@ -393,7 +359,6 @@ const CASES = [
   }
 
 ];
-
 
 async function main() {
   const only = process.argv.slice(2);

@@ -17,7 +17,7 @@ const SAMPLE = [
   'accounting/current-ratio',
   'securities/tracking-error',
   'materials/shear-modulus',
-  'dynamics/inelastic-collision',
+  'dynamics/momentum-conservation',
   'gas/pressure-6',
   'realestate/return-1',
   // 第 49 批补修：页面自带前置校验/guard 挂在非计算函数上，calc 早退不清表
