@@ -2626,6 +2626,12 @@ const CASES = [
   "ref": "C1 上传口径（canvas 污染源根除）：SVG（可含 foreignObject/外链）必须被拒收，位图必须放行。由真机负向自证（21/21）配套覆盖。"
 },
 {
+  "slug": "design/image-flipper",
+  "clicks": ["var _ce=document.createElement.bind(document);document.createElement=function(t){var e=_ce(t);if(t==='canvas'){e.toDataURL=function(){return 'data:image/png;base64,AAA';};}return e;};origImg={width:20,height:20};flip('h');flip('h');document.getElementById('__svg_probe').textContent='FLIP2:'+(currentImg?'OK':'NULL');"],
+  "expect": ["FLIP2:OK"],
+  "ref": "D-N23 回归锁：原 currentImg 仅在 newImg.onload 异步回调里更新，快速连点两次 flip('h') 时第二次仍读旧图、无法还原（FLIP2:NULL）；修复后 currentImg 在每次 flip 内同步设为本次 canvas（canvas 可作 drawImage 源），两次水平翻转即还原（FLIP2:OK）。toDataURL 覆盖为返回测试串以保证翻转流程走完，不依赖真实像素。"
+},
+{
   "slug": "design/image-format-converter",
   "clicks": ["var g=(typeof window!=='undefined'?window.__svgFileBlocked:null)||(typeof __svgFileBlocked==='function'?__svgFileBlocked:null);document.getElementById('__svg_probe').textContent='SVG:'+(g&&g({name:'evil.svg',type:'image/svg+xml'})?'BLOCK':'PASS')+'|PNG:'+(g&&g({name:'ok.png',type:'image/png'})?'BLOCK':'PASS');"],
   "expect": ["SVG:BLOCK|PNG:PASS"],
