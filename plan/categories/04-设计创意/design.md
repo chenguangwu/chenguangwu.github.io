@@ -349,15 +349,6 @@
 - 影响：`<title>`、meta、formula-desc 均写「输入网址或文本…生成二维码…支持导出」，搜索意图与页面能力完全不符。
 - 方案：本地实现 QR 编码（矩阵→canvas/SVG），补文本输入与尺寸/纠错/颜色控件、PNG/SVG 导出；若不做则删除「生成/导出」表述并下架该页。
 
-### D-N210 粒子特效生成的 CSS 无元素与动画绑定，多数参数不生效（高，确认源码缺陷）
-
-- 假工具候选：是（类型 A+C：仅数量输入，输出随机参数且不可运行）
-- 问题：输出只声明 `--count/--color/--size/--shape/--speed/--spread/--opacity` 与 `@keyframes float-N`，既没有粒子 DOM/伪元素，也没有任何选择器写 `animation`；`--count`、`--shape`、`--speed` 全文未被引用。
-- 证据：`tools/design/generator-12.html:231-248`
-- 复现：复制任一方案 CSS 到空白页 → 无粒子、无动画；期望出现 count 个粒子并按 speed/shape 运动。
-- 影响：所有「粒子方案」均为不可运行代码，参数只影响注释里的文本。
-- 方案：输出可直接运行的 HTML+多粒子节点（或 box-shadow 方案）并绑定 `animation: float-N var(--speed) linear infinite`；否则降级为「随机参数清单」并改名。
-
 ## T 批 design 覆盖（2026-11-04）
 
 - 本轮审计 13 页：`material-color`、`iso-noise-reference`、`generator-33`、`generator-8`、`blueprint-grid`、`generator-12`、`generator-9`、`generator-34`、`particle-effect-generator`、`farnsworth-d15-test`、`generator-38`、`bpm-tapper`、`web-audio-metronome`

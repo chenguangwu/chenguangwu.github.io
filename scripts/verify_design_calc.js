@@ -942,6 +942,34 @@ const CASES = [
     expect: ["6. square 粒子方案"],
     ref: "粒子特效生成器。形状枚举按序取（circle/square/...），第 6 条落到 square；粒子数量/速度/色值随机，不进 expect。默认态 5 条 ⇒ 不命中。",
   },
+  // ── 第386批 D-N210：输出改为「可运行 HTML + CSS」，animation 真正绑定到粒子节点
+  {
+    slug: "design/generator-12",
+    inputs: { cnt: "50" },
+    expect: [
+      "animation: float-50 var(--speed) linear infinite",
+    ],
+    ref: "D-N210 强锁：第 50 条方案必须真正把 animation 绑到粒子选择器上，且 keyframes 名 float-50 与选择器同源。"
+      + "旧实现只声明 `--count/--shape` 等变量与 `@keyframes float-N`，全文没有任何选择器写 animation，`--count`/`--shape`/`--speed` 也没被引用 ⇒ 复制的 CSS 跑不出粒子。"
+      + "⚠ 只能保留这一条：`50. square 粒子方案` 这类「序号 + 形状」标题新旧实现都有，属零判别力串（首版两条 expect 时旧码也 2/2 通过，已实测）。"
+      + "默认态（5 条）只有 float-1..float-5 ⇒ 该串默认不命中，零逃生。",
+  },
+  // ── 第386批 D-N210 配套：参数控件（每套粒子数 / 周期 / 颜色）必须真正进入输出
+  {
+    slug: "design/generator-12",
+    inputs: { cnt: "1", pcount: "88" },
+    expect: ["88 个粒子 ·"],
+    ref: "D-N210 配套强锁：`每套粒子数` 输入必须驱动输出，方案说明里出现「88 个粒子 ·」（其后尺寸/周期/扩散仍随机，故只锚到「·」为止）。"
+      + "旧实现只有「生成数量」一个输入，粒子数固定随机 20–200，该串永不出现。默认态 pcount 为空 ⇒ 随机值 ⇒ 不命中。",
+  },
+  {
+    slug: "design/generator-12",
+    inputs: { cnt: "1", pcolor: "#123456", pspeed: "1.2" },
+    expect: ["--color: #123456;"],
+    ref: "D-N210 配套强锁：`粒子颜色` 与 `动画周期` 必须写进生成的 CSS 变量。"
+      + "注入 #123456 / 1.2 ⇒ 输出含 `--color: #123456;`（颜色取自固定 10 色随机池，不可能撞上 #123456）。"
+      + "⚠ 只锚颜色、不锚 `--speed: 1.2s;`：周期在一位小数区间内随机，实测旧码在同一注入下随机到 1.2 而误判通过（已踩坑），属逃生项。",
+  },
   {
     slug: "design/favicon-generator",
     inputs: { textInput: "AB", fgColor: "#f43f5e", bgColor: "#0f172a", fontSize: "22", fontWeight: "700" },
