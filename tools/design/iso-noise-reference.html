@@ -161,7 +161,7 @@
           <div class="formula-box">
       <div class="formula-title">📐 计算公式 / 原理</div>
       <div class="formula-eq">（参考表）动态范围 ≈ 14 − log₂(ISO / 100) EV；ISO 每翻倍约损失 1 EV</div>
-      <div class="formula-desc">按不同相机在各 ISO 下的噪点与动态范围表现提供对照参考：ISO 越高画面越亮但噪点越多、动态范围越窄，用于暗光拍摄时权衡亮度与画质。</div>
+      <div class="formula-desc">按不同相机在各 ISO 下的噪点与动态范围表现提供对照参考：ISO 越高画面越亮但噪点越多、动态范围越窄，用于暗光拍摄时权衡亮度与画质。噪点分级在等效 ISO（机身 ISO ÷ 画幅系数）上判定，因此「纯净上限 / 可用上限」展示的是折算回机身 ISO 的阈值：手机 120 / 480、M4/3 400 / 1600、APS-C 1120 / 4480、全画幅 3200 / 12800、中画幅 9600 / 38400。</div>
     </div>
 <div class="input-row">
         <div><label>画幅类型</label><select id="sensor" onchange="renderISO()">
@@ -487,6 +487,9 @@ function onISOChange() {
 
 function getNoiseLevel(iso, sensorType) {
   const s = sensorMultiplier[sensorType];
+  // 判定在「等效 ISO」上做：小画幅 mult<1 ⇒ 同机身 ISO 的等效噪点更高。
+  // 因此对外展示的上限必须是 cleanMax*mult / usableMax*mult（机身 ISO 侧），否则
+  // 「页面标可用上限 6400」与「ISO 5000 判较重」会互相矛盾（APS-C 真实可用上限 4480）。
   const effectiveISO = iso / s.mult;
   
   if (effectiveISO <= s.cleanMax) return { level: 'excellent', name: '优秀', desc: '几乎不可见，画质纯净' };
@@ -495,11 +498,20 @@ function getNoiseLevel(iso, sensorType) {
   return { level: 'high', name: '较重', desc: '噪点明显，需要后期降噪' };
 }
 
+function sensorLimits(sensorType) {
+  const s = sensorMultiplier[sensorType];
+  return {
+    clean: Math.round(s.cleanMax * s.mult),
+    usable: Math.round(s.usableMax * s.mult)
+  };
+}
+
 function renderISO() {
   const sensorType = document.getElementById('sensor').value;
   const light = document.getElementById('light').value;
   const iso = isoValues[currentISOIndex];
   const s = sensorMultiplier[sensorType];
+  const lim = sensorLimits(sensorType);
   const noise = getNoiseLevel(iso, sensorType);
   
   let lightFactor = 1;
@@ -516,8 +528,8 @@ function renderISO() {
     </div>
     <div class="stat-grid">
       <div><div class="v">${iso.toLocaleString()}</div><div class="l">当前ISO</div></div>
-      <div><div class="v">${s.cleanMax.toLocaleString()}</div><div class="l">纯净上限</div></div>
-      <div><div class="v">${s.usableMax.toLocaleString()}</div><div class="l">可用上限</div></div>
+      <div><div class="v">${lim.clean.toLocaleString()}</div><div class="l">纯净上限</div></div>
+      <div><div class="v">${lim.usable.toLocaleString()}</div><div class="l">可用上限</div></div>
       <div><div class="v">${s.name}</div><div class="l">画幅</div></div>
     </div>
   `;
@@ -535,7 +547,7 @@ function renderISO() {
   isoValues.forEach((val, idx) => {
     const n = getNoiseLevel(val, sensorType);
     const isCurrent = idx === currentISOIndex;
-    const pct = Math.min(100, (val / s.usableMax) * 100);
+    const pct = Math.min(100, (val / lim.usable) * 100);
     levelsHtml += `
       <div class="iso-level ${isCurrent ? 'current' : ''}" onclick="setISO(${idx})">
         <span class="iso-val">${val < 1000 ? val : (val >= 1000000 ? (val/1000000).toFixed(0)+'M' : (val/1000).toFixed(0)+'K')}</span>

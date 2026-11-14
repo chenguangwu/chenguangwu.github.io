@@ -1055,7 +1055,17 @@ const CASES = [
     slug: "design/iso-noise-reference",
     inputs: { sensor: "medium", light: "low", camera: "canon_r5", isoRange: "51200" },
     expect: ["中画幅", "佳能 R5 全画幅 · 45MP", "8K视频", "几乎不可见，画质纯净"],
-    ref: "注入 sensor=medium（默认 phone）/ light=low（默认 bright）/ camera=canon_r5（默认 sony_a7iv）。三条均经页面 change 监听器 → onISOChange → renderISO 生效，独立复算依据页面内置噪声基准表：medium 画幅纯净上限 6400、可用上限 25600；弱光档等效 ISO = 6400×1.3 = 8320。判别锚（均与默认态零撞车）：①『中画幅』（默认渲染『手机 (1/1.3 吋)』）②『佳能 R5 全画幅 · 45MP』（默认 sony_a7iv ⇒『索尼 A7 IV 全画幅 · 33MP』）③『8K视频』（佳能 R5 独有优点，默认 A7 IV 为『对焦优秀、视频强、实时眼部对焦』）④『几乎不可见，画质纯净』（ISO 6400 在 medium+low 下评『优秀』，默认 phone+bright 评『较重』并输出『噪点明显，需要后期降噪』）。⚠️ 不用『原生ISO 100-51200』——默认 A7 IV 同为 100-51200，属逃生串（判别器已实测报出）。纯本地查表，无随机、无时间依赖。",
+    ref: "注入 sensor=medium（默认 phone）/ light=low（默认 bright）/ camera=canon_r5（默认 sony_a7iv）。三条均经页面 change 监听器 → onISOChange → renderISO 生效，独立复算依据页面内置噪声基准表：medium 画幅 cleanMax=6400 / usableMax=25600、mult=1.5 ⇒ 折算到机身 ISO 的纯净/可用上限为 9600 / 38400；弱光档等效 ISO = 6400×1.3 = 8320。判别锚（均与默认态零撞车）：①『中画幅』（默认渲染『手机 (1/1.3 吋)』）②『佳能 R5 全画幅 · 45MP』（默认 sony_a7iv ⇒『索尼 A7 IV 全画幅 · 33MP』）③『8K视频』（佳能 R5 独有优点，默认 A7 IV 为『对焦优秀、视频强、实时眼部对焦』）④『几乎不可见，画质纯净』（ISO 6400 在 medium+low 下评『优秀』，默认 phone+bright 评『较重』并输出『噪点明显，需要后期降噪』）。⚠️ 不用『原生ISO 100-51200』——默认 A7 IV 同为 100-51200，属逃生串（判别器已实测报出）。纯本地查表，无随机、无时间依赖。",
+  },
+  // ── 第384批 D-N206：噪点分级阈值统一到「机身 ISO」侧（上限展示 = cleanMax×mult / usableMax×mult）
+  {
+    slug: "design/iso-noise-reference",
+    inputs: { sensor: "medium", isoRange: "20" },
+    expect: ["9,600", "38,400"],
+    ref: "D-N206 强锁：判定在等效 ISO（机身 ISO ÷ mult）上做，所以统计卡展示的上限必须是 cleanMax×mult / usableMax×mult。"
+      + "中画幅 mult=1.5、cleanMax=6400、usableMax=25600 ⇒ 展示 9,600 / 38,400（toLocaleString 带千分位）。"
+      + "旧实现直接展示 6400 / 25600，与「ISO 6400 在 medium 下仍判优秀、到 9600 才掉档」自相矛盾 —— 两条 expect 全不命中。"
+      + "默认 sensor=aps（mult=0.7）展示 1,120 / 4,480 ⇒ 默认态同样不命中，无逃生。",
   },
   {
     slug: "design/cvd-safe-palette",
