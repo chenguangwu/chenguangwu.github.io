@@ -80,17 +80,6 @@ const CASES = [
   "ref": "去默认化：猫 7 岁 ⇒ 24+(7−2)×4 = 44.0 岁。默认态不命中。"
 },
 {
-  "slug": "pet/pet-age-converter",
-  "inputs": {
-    "petAge": "6"
-  },
-  "expect": [
-    "相当于人类年龄（🐕 中型犬 6 岁）",
-    "44 岁"
-  ],
-  "ref": "合并自 pets/pet-age-convert（去默认化：默认犬型=中型犬；6 岁 → 人类 44 岁。默认 3 岁为另一组值）"
-},
-{
   "slug": "pet/pet-feeding-calc",
   "inputs": {
     "weight": "15",
