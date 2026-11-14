@@ -138,12 +138,6 @@
 - 影响：`tools/design/image-color-picker.html`；对带透明的 PNG/WebP/图标取色时，复制出的色值与肉眼所见不符
 - 方案：取样前先填白（或提供可选底色）再 drawImage，使取样与预览一致；或输出 `rgba(r,g,b,a)`，`a<255` 时标注透明度，全透明像素给出明确提示
 
-### D-N51 字体搭配只有拉丁字体与拉丁示例，中文场景无法预览也无 CJK 回退（低，确认能力缺口）
-- 描述：FAQ 专门回答「中文怎么配」，但 36 组搭配（35 种字体）全部是 Google Fonts 拉丁字体，预览文本默认英文，CSS 产物也只输出 `font-family:'X', sans-serif`，没有中文字体或 CJK 回退；中文标题会静默落到浏览器默认中文字体，与预览观感完全不同。
-- 证据：`tools/design/font-pairing.html:268`（FAQ 中文问题）、`:322-370`（FONT_PAIRS 全拉丁字体）、`:433-446`（copy CSS 只含拉丁 + sans-serif）、`:416-417`（默认英文字样）
-- 复现：标题输入「中文标题测试」→ 卡片仍以拉丁字体渲染中文（实际由系统中文回退）；复制 CSS 到中文站点后标题字体与预览不一致
-- 影响：`tools/design/font-pairing.html`；中文用户按 FAQ 使用会得到与预览不符的实际效果
-- 方案：增加 `"Noto Sans SC"`、`"Noto Serif SC"` 等 CJK 字体并输出中英文双字体栈；FAQ 明确说明中文由系统回退或补中文字体分类
 
 - 本轮实读 8 页：`font-pairing.html`、`gradient.html`、`shadow-generator-advanced.html`、`badge-generator.html`、`card-generator.html`、`avatar-generator.html`、`image-color-picker.html`、`svg-viewer.html`；新增 10 条（高 1 / 中 5 / 低 4）；未覆盖：`tools/design` 其余约 71 页（含 `palette-extractor.html`、`image-to-ascii.html`、`gradient-from-color.html`、`mesh-gradient.html`、`shadow-generator.html`、`pattern-generator.html`、`identicon-generator.html`、`initials-avatar.html`、`css-box-shadow-generator.html` 等）。所有结论均为源码行号 + node 内存复算/源码路径推演；SVG/HTML innerHTML 注入与 Canvas 透明取样为静态语义推演，未做浏览器交互、EN 运行态探针、移动端、门禁与线上验证。
 - 补记（未单列编号，属 K 批略读页的复核）：`tools/design/border-radius-generator.html:387` 历史恢复调用无参 `setUniform()`，`:267-273` 会把四角输入写成字符串 `"undefined"`，`:284` 的 `generate()` 因 `value || 0` 判真而输出 `border-radius: undefinedpx;`；本批仅复核该路径，未计入上方 10 条。
