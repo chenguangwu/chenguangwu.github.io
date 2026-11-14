@@ -101,7 +101,7 @@ window.INDUSTRY_INFO = {
   'advertising'          : { name: '广告设计', icon: '📣', hot: 164500 },
   'medical'              : { name: '医疗专业', icon: '🏥', hot: 161862 },
   'neurology'            : { name: '神经内科', icon: '🧠', hot: 157441 },
-  'telecom'              : { name: '通信技术', icon: '📡', hot: 153817 },
+  'telecom'              : { name: '通信技术', icon: '📡', hot: 153763 },
   'psychiatry'           : { name: '精神心理', icon: '🧠', hot: 152608 },
   'rheumatology'         : { name: '风湿免疫', icon: '🦴', hot: 152025 },
   'reproductive-medicine': { name: '生殖医学', icon: '🧬', hot: 150628 },
