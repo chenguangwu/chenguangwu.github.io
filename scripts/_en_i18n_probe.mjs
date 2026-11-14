@@ -220,7 +220,13 @@ function industryTools(ind) {
   return fs.readdirSync(dir)
     .filter((f) => f.endsWith('.html') && f !== 'index.html')
     .sort()
-    .map((f) => ({ slug: f.replace(/\.html$/, ''), file: path.join(dir, f) }));
+    .map((f) => ({ slug: f.replace(/\.html$/, ''), file: path.join(dir, f) }))
+    // 已合并的重定向存根页带 noindex，不属于英文态验收范围（2026-11-14）。
+    // 这类页只有「页面已合并至」一行中文，此前被算作行业残留，属探针误报。
+    .filter((t) => {
+      try { return !fs.readFileSync(t.file, 'utf8').slice(0, 400).includes('TOOLBOX-REDIRECT'); }
+      catch (e) { return true; }
+    });
 }
 
 let SI = null;
