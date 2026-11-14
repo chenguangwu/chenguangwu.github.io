@@ -3532,6 +3532,34 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
                 return cand
         return rt.get('name', '')
 
+    def _rt_desc_html(rt, max_len=50):
+        """相关工具卡片的 rt-desc 文本（已转义）。
+
+        四个历史缺陷（2026-11-14 实测）：
+        1. 描述与工具名完全相同 ⇒ 卡片上下两行是同一个词（全站 9004 张，31.8%）。
+           描述槽位没有信息量，故与 name 相同则返回空串。
+        2. 硬截断 `[:50]` 不看句读 ⇒ 7671 张卡片停在半个词上（末字多为「器/算/化」）。
+        3. 只在逗号/顿号处收口 ⇒ 卡片以「，」「、」结尾，像话没说完（实测 7137 张）。
+           故只认句末标点（。！？；），找不到就硬切补「…」。
+        4. 源描述本身以「：」结尾（后面本该跟列表）⇒ 卡片挂个冒号同样像没写完，
+           统一换成「…」。
+        """
+        d = (_zh_desc_of(rt) or '').strip()
+        nm = rt.get('name', '') or ''
+        if not d or d == nm:
+            return ''
+        if len(d) > max_len:
+            head = d[:max_len]
+            cut = max([m.end() for m in re.finditer(r'[。！？；]', head)] or [0])
+            if cut >= 15:
+                d = head[:cut]
+            else:
+                # 硬切时去掉尾部悬空的标点，再补省略号，避免「…，」这类叠标点
+                d = head.rstrip(' \t，、：；,;:') + '…'
+        if d and d[-1] in '，、：,;:':
+            d = d[:-1].rstrip() + '…'
+        return esc_html_py(d)
+
     # 校验/错误提示串特征：这些是 JS 运行时提示，绝不能当 meta description
     # （曾导致 33 个页面 description 变成「误差范围必须 > 0」之类，搜索结果摘要不可读 → 零点击）
     _BAD_DESC_PAT = re.compile(
@@ -4004,7 +4032,7 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
                 rt_tool_dir = 'tools/' + os.path.dirname(t['path'])
                 for rt in _valid:
                     rt_name = esc_html_py(rt['name'])
-                    rt_desc = esc_html_py(_zh_desc_of(rt))[:50]
+                    rt_desc = _rt_desc_html(rt)
                     rt_icon = rt.get('icon', '🛠️')
                     rt_href = os.path.relpath(rt['url'], rt_tool_dir).replace(os.sep, '/')
                     rt_html += '    <a href="%s" class="related-tool-card">\n      <span class="rt-icon">%s</span>\n      <span class="rt-info"><span class="rt-name">%s</span><span class="rt-desc">%s</span></span>\n    </a>\n' % (rt_href, rt_icon, rt_name, rt_desc)
@@ -4065,7 +4093,7 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
                         os.path.relpath(rt['url'], _d).replace(os.sep, '/'),
                         rt.get('icon', '🛠️'),
                         esc_html_py(rt['name']),
-                        esc_html_py(_zh_desc_of(rt))[:50])
+                        _rt_desc_html(rt))
                     need -= 1
                 if need <= 0:
                     break
@@ -4086,7 +4114,7 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
                     os.path.relpath(rt['url'], d).replace(os.sep, '/'),
                     rt.get('icon', '🛠️'),
                     esc_html_py(rt['name']),
-                    esc_html_py(_zh_desc_of(rt))[:50])
+                    _rt_desc_html(rt))
             h += '  </div>\n</div>\n'
             return h
 
@@ -4170,7 +4198,7 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
                 rt_tool_dir = 'tools/' + os.path.dirname(t['path'])
                 for rt in related:
                     rt_name = esc_html_py(rt['name'])
-                    rt_desc = esc_html_py(_zh_desc_of(rt))[:50]
+                    rt_desc = _rt_desc_html(rt)
                     rt_icon = rt.get('icon', '🛠️')
                     rt_href = os.path.relpath(rt['url'], rt_tool_dir).replace(os.sep, '/')
                     rt_html += '    <a href="%s" class="related-tool-card">\n      <span class="rt-icon">%s</span>\n      <span class="rt-info"><span class="rt-name">%s</span><span class="rt-desc">%s</span></span>\n    </a>\n' % (rt_href, rt_icon, rt_name, rt_desc)
