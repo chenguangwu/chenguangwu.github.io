@@ -12,6 +12,8 @@ key 用中文名（与 gen_industry_groups.zh_name() 的输出保持一致）。
 """
 
 DESC_OVERRIDE = {
+    '运动鞋尺码对照': ('按脚长与性别对照欧/美/中运动鞋尺码',
+                  'Match shoe sizes from foot length across EU, US and CN'),
     # ---- IT / 编码 ----
     '仿射密码 (Affine Cipher)': ('按 y=(ax+b) mod 26 加密解密',
                               'Encrypt and decrypt with y = (a·x + b) mod 26'),

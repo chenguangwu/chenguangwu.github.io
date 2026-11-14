@@ -124,6 +124,13 @@ _DANGLING_TYPE_RE = re.compile(
     r'计算|分析|生成|查询|换算|转换|评估|器)'
     r'[。，：:、；;\s]+')
 
+# 生成器统一追加的隐私尾句（可能被截断成「…无需注册，打开浏…」），
+# 属于模板尾巴而非工具功能，实测 122 页直接进入了 d / meta。
+_PRIVACY_TAIL_RE = re.compile(
+    r'[；;，,]?\s*(?:纯前端(?:运行|处理|完成)[、，,]?\s*数据不(?:上传|离机)'
+    r'|数据不上传[、，,]\s*保护隐私)[^。]*[。]?'
+    r'(?:适合工程估算、日常换算与快速复核，结果可一键复制)?[。]?$')
+
 
 def strip_name_prefix(s, name):
     """去掉描述开头重复的工具名（「债券定价计算器。输入面值…」→「输入面值…」）。
@@ -169,6 +176,10 @@ def clean_zh_candidate(s, name):
     # 避免卡片/meta 出现「XX 是一款免费的在线 YY 工具，纯前端运行、数据不上传…」。
     if re.match(r'^(?:纯前端(?:运行|处理)|免费在线工具|数据不上传|本工具)', s) and len(s) <= 80:
         return ''
+    # 真实功能说明后面被追加的隐私尾句：只截尾巴，保留前半段有效描述。
+    trimmed = _PRIVACY_TAIL_RE.sub('', s).rstrip('；;，, 。')
+    if trimmed != s and len(trimmed) >= 18:
+        s = trimmed
     return s
 
 
