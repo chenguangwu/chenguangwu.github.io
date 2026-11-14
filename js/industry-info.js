@@ -1,7 +1,7 @@
 /* 全站行业字典（中文名 + emoji 图标）—— 由 scripts/gen_industry_info.py 生成，勿手改 */
 /* 数据来源：_build.py INDUSTRY_DEFS 短名（权威，268/268）+ 语义 emoji 映射；仅显示用短名，描述走页面 meta */
 window.INDUSTRY_INFO = {
-  'it'                   : { name: 'IT 开发', icon: '💻', hot: 30344996 },
+  'it'                   : { name: 'IT 开发', icon: '💻', hot: 30345013 },
   'life'                 : { name: '日常生活', icon: '🏠', hot: 11719565 },
   'finance'              : { name: '金融财务', icon: '💰', hot: 10224495 },
   'design'               : { name: '设计创意', icon: '🎨', hot: 8185889 },
@@ -72,7 +72,7 @@ window.INDUSTRY_INFO = {
   'food'                 : { name: '美食烹饪', icon: '🍳', hot: 253441 },
   'livestock'            : { name: '畜牧养殖', icon: '🐄', hot: 247135 },
   'data'                 : { name: '数据分析', icon: '📊', hot: 244308 },
-  'accounting'           : { name: '会计审计', icon: '🧾', hot: 242202 },
+  'accounting'           : { name: '会计审计', icon: '🧾', hot: 242203 },
   'process'              : { name: '过程控制', icon: '🏭', hot: 238691 },
   'insurance'            : { name: '保险计算', icon: '🛡️', hot: 235113 },
   'civil'                : { name: '土木工程', icon: '🏗️', hot: 229083 },
@@ -137,7 +137,7 @@ window.INDUSTRY_INFO = {
   'fire'                 : { name: '消防安全', icon: '🚒', hot: 96739 },
   'startup'              : { name: '创业孵化', icon: '🚀', hot: 95773 },
   'baking'               : { name: '烘焙甜点', icon: '🧁', hot: 93238 },
-  'security'             : { name: '网络安全', icon: '🔒', hot: 88222 },
+  'security'             : { name: '网络安全', icon: '🔒', hot: 88226 },
   'forex'                : { name: '外汇交易', icon: '💱', hot: 87768 },
   'cleaning'             : { name: '清洁保洁', icon: '🧹', hot: 85753 },
   'library'              : { name: '图书档案', icon: '📚', hot: 85212 },

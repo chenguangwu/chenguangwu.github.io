@@ -4053,7 +4053,11 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
             _d_bad = (bool(re.search(
                 r'工作与生活中的相关计算与查询|相关计算与查询|帮助计算.{0,10}(指标|需求)|'
                 r'相关日常任务|相关计算与查询需求', _d_core))
-                or _d_core.count('=') >= 1 or _d_core == _d_name)
+                # 公式串（等号多但中文少）不适合当描述；含等号但有足够中文的完整句
+                # 仍是可读描述，不能一刀切（实测 445 页因此退回通用模板）。
+                or (_d_core.count('=') >= 1
+                    and len(re.findall(r'[\u4e00-\u9fff]', _d_core)) < 10)
+                or _d_core == _d_name)
             if len(re.findall(r'[\u4e00-\u9fff]', _d_core)) >= 6 and not _d_bad \
                     and '是一款免费的在线' not in _d_core:
                 _seo_desc_raw = ('%s是一款免费的在线%s工具，%s。'
