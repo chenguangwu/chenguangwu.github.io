@@ -236,6 +236,23 @@
    * 0. 工具函数
    * ========================================================== */
   var $ = function (id) { return document.getElementById(id); };
+  /* 计时器登记：切换测验/重置时必须全部取消，否则延迟回调会写入已被清空的节点，
+     触发 `Cannot set properties of null (setting 'textContent')`。 */
+  var HB_TIMERS = [];
+  function hbLater(fn, ms) {
+    var id = window.setTimeout(function () {
+      var i = HB_TIMERS.indexOf(id);
+      if (i >= 0) { HB_TIMERS.splice(i, 1); }
+      fn();
+    }, ms);
+    HB_TIMERS.push(id);
+    return id;
+  }
+  function hbEvery(fn, ms) { var id = window.setInterval(fn, ms); HB_TIMERS.push(id); return id; }
+  function hbCancelAll() {
+    HB_TIMERS.forEach(function (id) { clearTimeout(id); clearInterval(id); });
+    HB_TIMERS = [];
+  }
   function EN(){ try{ return (typeof TBKit!=='undefined' && TBKit.util.isEn()); }catch(e){ return false; } }
   function T(zh,en){ return EN()?en:zh; }
   function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
@@ -287,7 +304,7 @@
     el.textContent = msg;
     el.style.opacity = '1'; el.style.transform = 'translateX(-50%) translateY(0)';
     clearTimeout(el._t);
-    el._t = setTimeout(function () { el.style.opacity = '0'; el.style.transform = 'translateX(-50%) translateY(20px)'; }, 1600);
+    el._t = hbLater(function () { el.style.opacity = '0'; el.style.transform = 'translateX(-50%) translateY(20px)'; }, 1600);
   }
   function erf(x) {
     var s = x < 0 ? -1 : 1; x = Math.abs(x);
@@ -349,7 +366,7 @@
    * 2. 子测验基类与统一接口
    *    每个测验: { id, name, icon, desc, abilities, render(stage), onResult(score) }
    * ========================================================== */
-  function clearStage() { const __h0='';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){$('hbStage').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('hbStage').innerHTML=__h0; }
+  function clearStage() { hbCancelAll(); const __h0='';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){$('hbStage').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('hbStage').innerHTML=__h0; }
   function stageEl() { return $('hbStage'); }
 
   /* ---- 2.1 反应速度 ---- */
@@ -378,7 +395,7 @@
       setPhase('wait');
       var delay = 1200 + rndFloat() * 2800;
       running = true;
-      setTimeout(function () {
+      hbLater(function () {
         if (phase !== 'wait') { return; }
         running = false; t0 = performance.now(); setPhase('go'); beep(880, 0.08);
       }, delay);
@@ -395,7 +412,7 @@
       if (phase === 'idle') { schedule(); return; }
       if (phase === 'wait') {
         running = false; setPhase('bad'); beep(220, 0.18, 'square');
-        setTimeout(schedule, 800);
+        hbLater(schedule, 800);
         return;
       }
       if (phase === 'go') {
@@ -484,17 +501,17 @@
     var btns = pad.querySelectorAll('button');
     function light(i) {
       btns[i].classList.add('lit'); beep(440 + i * 110, 0.22);
-      setTimeout(function () { btns[i].classList.remove('lit'); }, 360);
+      hbLater(function () { btns[i].classList.remove('lit'); }, 360);
     }
     function play() {
       locked = true; input = [];
       var k = 0;
-      var iv = setInterval(function () {
+      var iv = hbEvery(function () {
         light(seq[k]);
         k++;
         if (k >= seq.length) {
           clearInterval(iv);
-          setTimeout(function () { locked = false; $('sHint').textContent = T('该你了：按记忆顺序点击。','Your turn: tap in the remembered order.'); }, 500);
+          hbLater(function () { locked = false; $('sHint').textContent = T('该你了：按记忆顺序点击。','Your turn: tap in the remembered order.'); }, 500);
         }
       }, 620);
     }
@@ -503,7 +520,7 @@
       seq.push(rndInt(4));
       log.textContent = T('最长 ','Longest ') + level + ' ' + T('级','lv');
       $('sHint').textContent = T('第 ','Round ') + level + ' ' + T('级：看好顺序…','lv: watch the order…');
-      setTimeout(play, 500);
+      hbLater(play, 500);
     }
     function onPick(i, b) {
       if (locked) { return; }
@@ -513,7 +530,7 @@
       if (input.length === seq.length) {
         locked = true;
         if (level >= 20) { finish(); return; }
-        setTimeout(nextLevel, 700);
+        hbLater(nextLevel, 700);
       }
     }
     function gameOver() {
@@ -549,7 +566,7 @@
       show.textContent = secret;
       $('nHint').textContent = T('记住这 ','Memorize these ') + len + ' ' + T('位数字…','digits…');
       beep(600, 0.1);
-      setTimeout(function () {
+      hbLater(function () {
         show.textContent = '？？？';
         inp.value = ''; inp.style.display = 'block'; go.style.display = 'inline-flex';
         inp.focus();
@@ -573,7 +590,7 @@
     }
     var lastSecret = '';
     var _origRound = round;
-    round = function () { lastSecret = gen(); show.textContent = lastSecret; $('nHint').textContent = T('记住这 ','Memorize these ') + len + ' ' + T('位数字…','digits…'); beep(600, 0.1); setTimeout(function () { show.textContent = '？？？'; inp.value = ''; inp.style.display = 'block'; go.style.display = 'inline-flex'; inp.focus(); $('nHint').textContent = '输入你记住的数字：'; }, 1100); };
+    round = function () { lastSecret = gen(); show.textContent = lastSecret; $('nHint').textContent = T('记住这 ','Memorize these ') + len + ' ' + T('位数字…','digits…'); beep(600, 0.1); hbLater(function () { show.textContent = '？？？'; inp.value = ''; inp.style.display = 'block'; go.style.display = 'inline-flex'; inp.focus(); $('nHint').textContent = '输入你记住的数字：'; }, 1100); };
     go.addEventListener('click', check);
     inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') { check(); } });
     round();
@@ -655,7 +672,7 @@
       log.textContent = T('等级 ','Level ') + level;
       $('cHint').textContent = T('记住数字位置…','Remember number positions…');
       beep(600, 0.1);
-      setTimeout(hide, 1000 + level * 60);
+      hbLater(hide, 1000 + level * 60);
     }
     function makeCell(i, val) {
       var b = document.createElement('button');
@@ -677,7 +694,7 @@
         cells[i].textContent = num; cells[i].classList.add('picked');
         beep(500 + num * 30, 0.05);
         pickNext++;
-        if (pickNext > order.length) { level++; setTimeout(start, 500); }
+        if (pickNext > order.length) { level++; hbLater(start, 500); }
       } else { wrong(); }
     }
     function wrong() {
@@ -716,7 +733,7 @@
       idxs.forEach(function (i) { cells[i].classList.add('on'); });
       $('gHint').textContent = T('记住 ','Remember ') + n + ' ' + T('个高亮格子…','highlighted cells…');
       beep(600, 0.1);
-      setTimeout(function () {
+      hbLater(function () {
         cells.forEach(function (c) { c.classList.remove('on'); c.classList.add('hot'); });
         $('gHint').textContent = T('点击刚才高亮的 ','Tap the ') + n + ' ' + T('格。','highlighted cells.');
       }, 900 + n * 40);
@@ -730,7 +747,7 @@
       beep(520, 0.05);
       if (Object.keys(picked).length === need.length) {
         n++; log.textContent = T('目标 ','Target ') + n + ' ' + T('格','cells');
-        setTimeout(round, 400);
+        hbLater(round, 400);
       }
     }
     function fail() {
@@ -836,6 +853,7 @@
   }
 
   function handleResult(id, score) {
+    hbCancelAll();
     var pct = percentile(id, score);
     results[id] = { score: score, percentile: pct };
     saveProgress();
@@ -1086,7 +1104,7 @@
           var a = document.createElement('a');
           a.href = url; a.download = 'human-benchmark-scorecard.png';
           document.body.appendChild(a); a.click();
-          setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 400);
+          hbLater(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 400);
         } else {
           __hbExportFail(T('导出失败：浏览器未能生成 PNG（画布可能为空或被污染）','Export failed: browser could not generate PNG (canvas may be empty or tainted).'));
         }
