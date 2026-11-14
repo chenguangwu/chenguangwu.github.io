@@ -1381,9 +1381,22 @@ const CASES = [
       "matType": "paint"
     },
     "expect": [
-      "/kg 限值要求：VOC≤120g/L 环保等级： 合格品 符合GB 18582标准，可用于室内墙面"
+      "/kg 限值要求：VOC≤80g/L 且苯系物≤50mg/kg 环保等级： 合格品 符合GB 18582标准，可用于室内墙面"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"formaldehyde\":\"42\",\"voc\":\"42\",\"benzeneContent\":\"42\",\"matType\":\"paint\"}，输出区含「/kg 限值要求：VOC≤120g/L 环保等级： 合格品 符合GB 18582…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/detector-28",
+    "inputs": {
+      "matType": "paint",
+      "formaldehyde": "0.05",
+      "voc": "20",
+      "benzeneContent": "5"
+    },
+    "expect": [
+      "/kg 限值要求：VOC≤30g/L 且苯系物≤10mg/kg 环保等级： 优等品 低VOC环保涂料，适合儿童房和敏感人群使用"
+    ],
+    "ref": "D-N183 强锁：内墙涂料优等边界 voc=20/bz=5（≤30 且 ≤10）应判优等品，limit 文案须为「VOC≤30g/L 且苯系物≤10mg/kg」。旧实现 limit 写「VOC≤80g/L」（与合格阈值混淆）、公式块/引据也写 80/120，四套口径矛盾；新实现统一为判定值 30/10。默认态（voc 回退默认 80）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "design/detector-29",
