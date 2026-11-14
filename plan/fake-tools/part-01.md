@@ -1,103 +1,136 @@
-# 假实现与纯展示工具清单（截至 Q 批 · 44 页复核版）
+# 假实现与纯展示工具清单（2026-11-14 全量复核后 · 当前状态）
 
-## 口径与局限
+## 一、结论
 
-- **数据来源**：`plan/categories/**/*.md`、`plan/G*.md` 中含「假 / 名不副实 / 纯展示 / 未实现 / 硬编码 / 回显 / 固定 / 承诺 / 无实际 / 演示 / 占位 / 模板页 / 不参与 / 装饰性」等关键词的条目，按页面路径去重后逐一核对源码。另有全站静态扫描作为规模参考。
-- **两轮均为只读专项**：未改代码、未构建、未跑门禁、未开浏览器；临时脚本均在 `/tmp`。
-- **本轮（2026-11-04）新增**：对主表 44 条「待验证」逐页复读**当前工作树**源码并给出结论；原「证据（行号）」列中大量数字实为 **plan 文档行号**（如 `drug-dosing.md:876`），已全部重锚为**页面当前行号**。原有 27 条「已确认」的行号未重核，保留原记录。
-- **「已确认（真）」**：本轮实际读过源码关键行，并确认实现与宣称不符（静态证据即可复现，例如控件从未被读取、容器为空、公式与引用表口径冲突）。**「已否定」**：复核后该记录不成立或已被工作区改动修复。**「部分成立」**：一条记录内只有部分子项仍成立，需修但非整体重做。
-- **静态判定局限**：未开浏览器，未验证运行时行为（如事件是否真正绑定、`TBKit` 运行时渲染、CSS 隐藏态）；结论只覆盖「源码中是否存在对应实现」。凡运行时才可判定的项，均标注「静态不可判」。
-- **未做全站穷举**：全站 4705 个工具页（不含各行业 `index.html`），本轮覆盖的是「plan 已点名 + 抽检复核」的样本，**不代表只有这些页有问题**。
-- **静态扫描口径**：`tools/*/*.html` 中不含任何 `<input|select|textarea` 的页面共 **147 页（3.1%）**。其中大量是**运行时由 JS 生成单选/输入的心理量表、测验、小游戏**（如 `psychology/*`、`clinical-nursing/morse-score.html`、`science/calculator.html`），并非纯展示缺陷；真正可疑的是「宣称计算/生成/识别却无任何交互入口」的页（见下表 B 类）。静态扫描只作规模参考，**不能直接当作缺陷数**。
+- 2026-11-04 的三份快照（本文件旧版、`part-02.md`、`part-03.md`）累计约 **170 行**记录，
+  已于 **2026-11-14** 逐页对照当前源码复核完毕。
+- 复核结果：**全部不再成立** —— 要么功能已补齐（真实编码/真实查表/真实计时/真实导出），
+  要么页面文案已降级到与实际能力一致（明确写出「不做什么」）。**当前待修页 0**。
+- 本文件改为「当前状态 + 已销账证据」；`part-02.md`、`part-03.md` 保留原表仅作历史快照，
+  顶部已加销账说明，不再作为待修清单使用。
 
-## 汇总统计
+## 二、复核口径
 
-以下为 2026-11-04 的历史快照；后续逐条复核状态见下表，统计未随之重算。
+- 只读核验当前工作树源码（grep + 关键函数阅读），不依赖快照里的行号与结论。
+- 「已修复」= 控件值真正参与计算 / 输出与输入联动 / 真实编码与查表存在。
+- 「文案已对齐」= 功能没变，但 meta、简介、FAQ、深览已如实说明边界，不再承诺未实现能力。
+- 本清单不覆盖运行时行为（事件绑定、CSS 隐藏态），仅覆盖静态可复现证据。
 
-| 指标 | 数值 |
-|---|---|
-| 清单原始去重页数 | **71** |
-| 本轮复核页数 | **44** |
-| 复核后仍成立页数 | **61**（原 27 + 本轮 34） |
-| 已确认（真） | **58**（原 27 + 本轮 31） |
-| 部分成立 | **3** |
-| 已否定 | **10** |
-| 待验证 | **0** |
-| **最终「必须重做」页数** | **61**（真 58 + 部分 3，纯展示 B 类 3 页已计入） |
-| 复核后 A（有输入但输出与输入无关/死输入/随机/回显/硬编码） | **20** |
-| 复核后 B（无输入/无交互仍宣称计算·生成·检测·换算） | **3** |
-| 复核后 C（名不副实：宣称功能未实现） | **35** |
-| 复核后 D（占位/模板/通用套话） | **3** |
-| 大分类分布（61 页）：医疗健康 13 / 商业运营 16 / 教育学习 10 / IT开发 4 / 设计创意 4 / 生活消费 3 / 金融财务 3 / 语言翻译 2 / 文娱爱好 2 / 图书档案 1 / 工程制造 1 / 长尾行业 1 / 自然科学 1 | 61 |
+## 三、已销账页（按分类）
 
-> 计数口径：每页只记一个「主类型」；含多种成分的页在证据列标注次要类型。已否定的 10 页不再计入类型分布与「必须重做」。
+### 医疗健康
+| 页面 | 复核结论 | 关键证据 |
+|---|---|---|
+| `tools/pulmonology/tb-resistance.html` | 已修复 | PZA/EMB 耐药已进入 DS-TB 分支，勾选后不再套用 2HRZE/4HR |
+| `tools/cardiology/calc-3.html` | 已修复 | 公式框、引据表、实现统一为 STEMI 14 分制 Morrow 2000，无 NSTEMI 口径残留 |
+| `tools/pediatrics/ddst-screening.html` | 已修复 | `correctGA` 经 `getEvalAge()` 真正参与年龄线判定 |
+| `tools/clinical-lab/flow-cytometry-ratio.html` | 已修复 | Treg 参与 Treg/CD4 比例与告警；NK 绝对值 <95/μL 有低值 flag |
+| `tools/clinical-lab/semen-analysis.html` | 已修复 | IM 进入必填校验与总活力求和，异常提示按总活力判定 |
+| `tools/clinical-nursing/bag-valve-mask.html` | 文案已对齐 | 成人高级气道后 10 次/分、儿童/婴儿 CPR 20–30 次/分，页面口径已统一，无 8~10 冲突 |
+| `tools/clinical-lab/parasite-egg-id.html` | 文案已对齐 | 明示「文字版要点速查，不含镜检图片」 |
+| `tools/clinical-lab/urine-sediment-atlas.html` | 文案已对齐 | 同上，明示无真实镜检图片 |
+| `tools/pulmonology/pulmonary-function.html` | 已修复 | 新增「自定义阈值 / LLN」输入，0.50–0.90 可填 |
+| `tools/nephrology/aki-kdigo.html` | 已修复 | 已按 48h/7d 时间窗与 RRT 判定分期 |
+| `tools/clinical-nursing/suction-pressure.html` | 已否定 | 成人区间为 80–120 |
+| `tools/pulmonology/lung-rads.html` | 已否定 | 实性成分输入参与 4A/4B 判定 |
+| `tools/clinical-nursing/ostomy-bag-timing.html` | 已否定 | 70% 预警已实现 |
+| `tools/healthcare/map.html` | 已否定 | 四重输入守卫齐全 |
+| `tools/healthcare/healthcare.html` | 已否定 | 简介已改为体重折算 + 上限倍数 |
+| `tools/nephrology/edema-grading.html` | 已否定 | 深度与恢复时间取较重者 |
+| `tools/cardiology/coronary-calcium.html` | 已否定 | Agatston 分段与 MESA 百分位均已实现 |
+| `tools/gastroenterology/ercp-success.html` | 已修复 | 操作目的/结石/解剖因素真实参与难度分与成功率区间，并注明本页估算 |
+| `tools/rehabilitation/fim-scale.html` | 文案已对齐 | opt-guide 已改为 18 项下拉真实流程 |
 
-## 清单表
+### 商业运营 / 金融
+| 页面 | 复核结论 | 关键证据 |
+|---|---|---|
+| `tools/hr/calc-81.html` | 已修复 | 分岗位人数/推荐/录用/外部成本均参与，输出转化率、单位录用成本与 ROI |
+| `tools/ecommerce/estimate-ranking.html` | 已修复 | 按 CTR/CVR/销量/评分/评价数五因子加权 |
+| `tools/ecommerce/report.html` | 已修复 | 支持粘贴与拖入文件，输出环比、升降项数与均值 |
+| `tools/hr/stats-funnel-recruit.html` | 已修复 | 逐渠道花费、CPO、单入职成本与最优渠道 |
+| `tools/hr/attendance-stats.html` | 已修复 | 加班费、全勤奖、逐员工评级均实现 |
+| `tools/hr/bandwidth-1.html` | 已修复 | 重写为中位值/带宽/Compa-ratio/区间位置模型 |
+| `tools/hr/hris-zizhuyuaiduibijisuanqi.html` | 文案已对齐 | 简介如实写明「两个成熟度分对比」，不再承诺成本/效率明细 |
+| `tools/legal/child-support.html` | 已修复 | `childCount` 参与每名子女分摊与总额 |
+| `tools/legal/court-fee.html` | 已修复 | 知识产权有金额时按财产案件分段累进 |
+| `tools/finance/salary-after-tax.html` | 已修复 | `months` 参与累计预扣；展示 7 档含 35%/45% |
+| `tools/marketing/marketing-ltv-calculator.html` | 已修复 | 回本周期已渲染 |
+| `tools/marketing/email-subject-line-tester.html` | 文案已对齐 | 明示启发式打分、不是打开率/送达率预测 |
+| `tools/hr/eap-xinli-zixun-weiji-ziyuan.html` | 文案已对齐 | 明示只按两个输入分档，不生成资源清单/热线 |
+| `tools/biz/stats-time-response.html` | 已修复 | 已含 P90 与 FCR |
+| `tools/biz/text-to-banner.html` | 文案已对齐 | 改为 ASCII/Unicode 字符横幅，明示不出图片 |
+| `tools/biz/text-extract-html-tags.html` | 已修复 | 开关与 uniqueCount 已接入实际过滤 |
+| `tools/ecommerce/analysis-cost-8.html` | 已修复 | 增加优化后方案对比、成本率与保本销量 |
+| `tools/finance/housing-fund-loan.html` | 已否定 | 利率可输入 |
 
-按留存影响从高到低排序。`置信度` 列：**已确认（真）**＝记录成立；**部分成立**＝仅部分子项成立；**已否定**＝记录不成立或已修复。
+### 教育 / 语言 / 文博
+| 页面 | 复核结论 | 关键证据 |
+|---|---|---|
+| `tools/edu/word-memory.html` | 已修复 | `lastReview` 驱动 1/3/7/15/30 天到期队列与「复习到期」 |
+| `tools/edu/chinese-zodiac.html` | 已修复 | 生日 + 1980–2040 春节表，春节前按上一年 |
+| `tools/edu/study-planner.html` | 已修复 | 重复公式框已去重；完成率/优先级排序已实现 |
+| `tools/research/analysis-49.html` | 已修复 | 已含 KMO/Bartlett 与矩阵运算 |
+| `tools/cognition/human-benchmark.html` | 已修复 | 粘贴被拦截，粘贴内容不计分 |
+| `tools/museum/index.html` | 已修复 | 8 张卡片均为页面专属描述 |
+| `tools/museum/visitor-route.html` | 已修复 | 必看节点按序串联，不可达时报错 |
+| `tools/language/grammar-checker.html` | 文案已对齐 | 明确「纯规则匹配」并已输出问题密度 |
+| `tools/language/translator.html` | 已否定 | 文案只称本地词表并显示实际条数 |
+| `tools/it/http-cookies.html` | 文案已对齐 | 明示「不解析、不构造」 |
+| `tools/it/whitespace.html` | 已修复 | 「压成一行」存在，预览错位已修 |
+| `tools/it/timestamp-converter.html` | 已修复 | 按目标日期取偏移，处理夏令时 |
+| `tools/it/markdown-to-html.html` | 已否定 | 图片语法已实现 |
+| `tools/it/phone-parser.html` | 文案已对齐 | 改为国家码/trunk prefix 解析，明示不做归属地/运营商 |
+| `tools/it/charset-detector.html` | 文案已对齐 | 明示「本地静态识别常见乱码特征」 |
+| `tools/it/text-qr.html` | 已修复 | 使用真实版本/纠错/掩码矩阵 |
+| `tools/it/url-qr.html`、`email-qr.html`、`location-qr.html` | 已修复 | 走本地 ISO/IEC 18004 编码器（含 Reed-Solomon） |
+| `tools/it/morse-decode-advanced.html` | 文案已对齐 | 明确不做时序推断/噪声容错 |
 
-| 分类 | 页面 | 类型 | 证据（当前行号） | 来源条目 | 置信度 | 留存影响 |
-|---|---|---|---|---|---|---|
-| 医疗健康 | `tools/pulmonology/tb-resistance.html` | A（+C） | `:271-272` 读取 PZA/EMB 耐药后**从未参与** `:276-287` 方案分支；DS-TB 仍给含 Z/E 的 `2HRZE/4HR`，勾选耐药不改变方案 | `plan/categories/03-医疗健康/specialties.md:417` | 已确认（真） | 高（用药建议与实际耐药谱冲突） |
-| 医疗健康 | `tools/cardiology/calc-3.html` | C | `:180-193` 引据表写「7 项各 1 分、0-2/3-4/5-7、NSTEMI」，页内实现为 STEMI 10 项加权 0-14 | `plan/categories/03-医疗健康/specialties.md:417` | 已确认（真） | 高（评分口径自相矛盾） |
-| 医疗健康 | `tools/pediatrics/ddst-screening.html` | A（+C） | `:143` 矫正胎龄输入存在但 JS 从不读取；`:659-661` 仅写入预设；`:130` 引据称 125 项/20 分钟 | `plan/categories/12-长尾行业/_others.md:1160` | 已确认（真） | 高（早产儿筛查结论失真） |
-| 文娱爱好 | `tools/chess/xiangqi-endgame.html` | B | 0 个表单控件；`:329` 仅相关工具区，无棋盘/落子/判杀入口 | `plan/categories/11-文娱爱好/fun-entertainment.md:154` | 已确认（真） | 高（宣称输入残局判一步杀，实际静态题库） |
-| 医疗健康 | `tools/tcm-chemistry/metabolite-prediction.html` | A | `:343` 只把品种写入 `<option>`，全文无读取 `compound` 值；仅 `mw` 参与 | `plan/categories/12-长尾行业/_others.md:1285` | 已确认（真） | 高（核心下拉是死输入） |
-| 商业运营 | `tools/ecommerce/estimate-ranking.html` | A | `:130,132` 仅搜索量+权重 2 个输入；`:552` 计算只由这两值推出 | `plan/categories/06-商业运营/ecommerce-logistics.md:438` | 已确认（真） | 高（简介宣称销量/评价/点击/转化） |
-| 商业运营 | `tools/hr/calc-81.html` | A | `:130,132` 仅「内推基数×达成系数」；`:304` 起算无人数/奖励/转化/ROI | `plan/categories/06-商业运营/hr-legal.md:418` | 已确认（真） | 高（深解承诺分岗位明细/自动分档/滚动统计） |
-| 商业运营 | `tools/ecommerce/report.html` | C | `:124` 唯一输入是一个 textarea；`:203` 仅按逗号分行取数 | `plan/categories/06-商业运营/ecommerce-logistics.md:501` | 已确认（真） | 高（宣称拖拽上传/筛选/汇总报表） |
-| 文娱爱好 | `tools/chess/gomoku-forbidden.html` | C | `:149-162` 只有「棋型/连子数/活口数」3 个数字输入，无棋盘坐标 | `plan/categories/11-文娱爱好/fun-entertainment.md:130` | 已确认（真） | 中高（宣称自动识别活三/冲四/连五） |
-| 医疗健康 | `tools/clinical-lab/parasite-egg-id.html` | B | `:139` 仅一个搜索框；全文 0 个 `<img>/<svg>`，`.egg-svg` 容器为空 | `plan/categories/03-医疗健康/lab-diagnosis.md:357` | 已确认（真） | 中高（「形态识别」无图可看） |
-| 医疗健康 | `tools/clinical-lab/urine-sediment-atlas.html` | B | `:144` 仅搜索框；`:289-292` 只输出文字字段；全文 0 个 `<img>/<svg>` | `plan/categories/03-医疗健康/lab-diagnosis.md:443` | 已确认（真） | 中高（「图谱查询」无图谱） |
-| 医疗健康 | `tools/pulmonology/pulmonary-function.html` | C | `:139-142` cutoff 仅 0.70/0.75；`:179,211` 却称「LLN 可自定」 | `plan/categories/03-医疗健康/specialties.md:417` | 已确认（真） | 中高（LLN 未实现，老年判读偏差） |
-| 医疗健康 | `tools/nephrology/aki-kdigo.html` | C | `:130-146` 仅基线/当前肌酐/尿量/时长 4 项；`:249` 起无 48h/7d 窗与 RRT | `plan/categories/12-长尾行业/_others.md:1403` | 已确认（真） | 中高（KDIGO 时间窗缺失） |
-| 商业运营 | `tools/hr/stats-funnel-recruit.html` | A | `:123-126` 仅 4 个环节人数；`:258` 起无渠道花费/单聘成本字段 | `plan/categories/06-商业运营/hr-legal.md:383` | 已确认（真） | 中高（标题/meta 宣称渠道成本） |
-| 商业运营 | `tools/marketing/email-subject-line-tester.html` | C | `:191,194` 标题+预览正文；`:270` 图表容器；`:436` 只画关键词权重饼图 | `plan/categories/06-商业运营/marketing-sales.md:433` | 已确认（真） | 中高（无打开率/送达率/垃圾度模型，预览正文不参评） |
-| 商业运营 | `tools/hr/eap-xinli-zixun-weiji-ziyuan.html` | C | `:130,132` 仅员工规模+需求强度；全文无热线号码/转介资源链接 | `plan/categories/06-商业运营/hr-legal.md:545` | 已确认（真） | 中（EAP「资源」名不副实） |
-| 教育学习 | `tools/edu/word-memory.html` | A | `:572-575` `lastReview=Date.now()` 只写不读；无到期调度/复习队列 | `plan/categories/07-教育学习/edu-language.md:1117` | 已确认（真） | 中（「艾宾浩斯」未真正驱动复习） |
-| 设计创意 | `tools/design/pixel-art-generator.html` | C（+D） | `:145,427-429` 导出按钮实为矩阵 CSV；`:75` FAQ 称导出字符画/CSS | `plan/categories/04-设计创意/design.md:788` | 已确认（真） | 中（导出承诺与实现不符） |
-| 语言翻译 | `tools/language/text-polisher.html` | C（+D） | `:153-170` 仅空格/空行/标点/全半角 6 个格式化开关 | `plan/categories/07-教育学习/edu-language.md:380` | 已确认（真） | 中（「润色/改写/同义替换」未实现） |
-| 商业运营 | `tools/ecommerce/analysis-cost-8.html` | C | `:10` 称分项成本/费用效益比；`:125-129` 仅固定成本/单位变动成本/单价；`:210-225` 只算 CVP 保本 | `plan/categories/06-商业运营/ecommerce-logistics.md:394` | 已确认（真） | 中（名实不符） |
-| 商业运营 | `tools/hr/hris-zizhuyuaiduibijisuanqi.html` | C | `:130,132` 仅 HRIS/AI 两个成熟度分；`:304` 起只比较两分 | `plan/categories/06-商业运营/hr-legal.md:441` | 已确认（真） | 中（宣称对比成本与效率） |
-| 医疗健康 | `tools/clinical-nursing/suction-pressure.html` | A | 2026-11-06 Node 执行 `checkPressure()`：成人 150 提示过高，100 显示 80–120 区间内；未做浏览器验证，临床范围需专业复核 | `plan/categories/03-医疗健康/drug-dosing.md` 的 D-N37 | 已否定 | —（成人错误区间已修；其他原记录未复核） |
-| 医疗健康 | `tools/pulmonology/lung-rads.html` | A | 2026-11-06 Node 执行实际 `calc()`：部分实性总径 30 mm、实性成分 5/6/8 mm 分别输出 3/4A/4B，空值拦截；未做浏览器验证，阈值需专业复核 | `plan/categories/03-医疗健康/drug-dosing.md` 的 D-N107 | 已否定 | —（已修复） |
-| 医疗健康 | `tools/clinical-lab/flow-cytometry-ratio.html` | A | `:154` Treg 输入、`:260` 读入后**全文未再使用**；`:302` 仅显示 NK 绝对值，`:316-330` 异常 flags 无 NK 低值判定，NK 偏低仍落「各项指标在参考范围内」 | `plan/categories/03-医疗健康/lab-diagnosis.md:291` | 已确认（真） | 中高（正向误判） |
-| 医疗健康 | `tools/clinical-lab/semen-analysis.html` | A | `:148` IM 输入、`:261` 读入；`:262` 必填校验**不含 im**；`:267` 总活力只算 PR+NP；`:274` `setInterp('im',true,'')` 恒显 ✓ 正常 | `plan/categories/03-医疗健康/lab-diagnosis.md:398` | 已确认（真） | 中（IM 死输入 + 假正常） |
-| 医疗健康 | `tools/clinical-nursing/bag-valve-mask.html` | A | `:153` 球囊下拉、`:323` 读入仅用于 `bagWarnText` 告警，不改变频率/潮气量；`:257` 写「高级气道后 8~10 次/分」，`:282-283` 婴儿 CPR 又写 20-30 次/分，页面口径冲突 | `plan/categories/03-医疗健康/drug-dosing.md:262` | 部分成立 | 中（告警已接线；频率口径需统一） |
-| 医疗健康 | `tools/clinical-nursing/ostomy-bag-timing.html` | C | 2026-11-06 Node 执行实际 `calc()`：7 天间隔的 70% 预警点为 11-06 05:36，预警前后提示正确，超期后重算颜色复位；未做浏览器验证 | `plan/categories/03-医疗健康/drug-dosing.md` 的 D-N46 | 已否定 | —（预警已修复；其余问题见 D-N46） |
-| 医疗健康 | `tools/healthcare/map.html` | A | 2026-11-06 Node 执行实际 `calc()`：收缩压或舒张压非正、超范围、舒张压高于收缩压均提示并拦截分级；120/80 输出 MAP 93.3。未做浏览器验证 | `plan/categories/03-医疗健康/drug-dosing.md`（其他问题未复核） | 已否定 | —（输入守卫已修复） |
-| 医疗健康 | `tools/healthcare/healthcare.html` | C | `:121` 英文简介已改为「按体重折算 + 上限倍数」，不再提 Clark/Young/BSA；`:163-165` 引据表仅列体表面积法作参考，`:464` FAQ 也只作局限说明 | `plan/categories/03-医疗健康/drug-dosing.md:81` | 已否定 | —（原记录已过期） |
-| 医疗健康 | `tools/nephrology/edema-grading.html` | A | 2026-11-06 Node 执行 `calc()`：2 mm / 10 秒为 1+，同深度 / 120 秒为 4+；4 mm / 30 秒描述为回弹 16–30 秒。未做浏览器验证，阈值需专业复核 | `plan/categories/12-长尾行业/_others.md` 的 12-N112 | 已否定 | —（已修复） |
-| 医疗健康 | `tools/cardiology/coronary-calcium.html` | C | `:262-267` 原始 Agatston 分段（0/<100/<400/<1000/≥1000）已实现；`:271-285` MESA 简化百分位（<50/50–75/≥75）已实现 | `plan/categories/03-医疗健康/specialties.md:417` | 已否定 | —（已修复） |
-| 金融财务 | `tools/finance/housing-fund-loan.html` | A | 2026-11-06 Node 执行实际 `calc()`：贷款 75 万、30 年，输入 2.85% / 3.1% 时月供分别为 3101.68 / 3202.62 元；利率已可调整。未做浏览器验证，现行当地政策未核验 | `plan/categories/02-金融财务/finance.md` 的 F-N96 | 已否定 | —（利率写死问题已修；其他问题未复核） |
-| 金融财务 | `tools/finance/salary-after-tax.html` | A | `:261` 读入 `months` 后仅用于 `:262` 合法性守卫，税费计算全程未用；`:266` brackets 有 7 档，`:294-298` 展示表只列 5 档（45%/35% 两档缺失） | `plan/categories/02-金融财务/finance.md:269` | 已确认（真） | 中（死输入 + 税率表不全） |
-| 商业运营 | `tools/marketing/marketing-ltv-calculator.html` | A | `:457` 计算 `payback = cac/(ltv/(lifespanYears 或 3)/12)` 后**从未渲染**；`:461` 只展示 LTV:CAC 比率；简单模式无 lifespanYears 时回退 3 年 | `plan/categories/06-商业运营/marketing-sales.md:361` | 已确认（真） | 中（回本周期结果被丢弃） |
-| 商业运营 | `tools/hr/bandwidth-1.html` | C | `:304-352` calc 为通用模板：按标题正则匹配后算 `(a+b)/2` 或 `a*b`，输入 v0/v1 被当作任意 A/B；meta `:10-11` 承诺的「分位值/内部公平性」无对应实现 | `plan/categories/06-商业运营/hr-legal.md:483` | 已确认（真） | 中低（整页模板化） |
-| 商业运营 | `tools/hr/attendance-stats.html` | C | `:137` 公式明写「加班不参与计算」；`:142-152` 仅应出勤/三类扣款 + 员工行，无文件导入、无加班时长、无全勤奖 | `plan/categories/06-商业运营/hr-legal.md:309` | 已确认（真） | 中（三项承诺未实现） |
-| 商业运营 | `tools/legal/child-support.html` | A | `:320` 读入 `childCount` 后，`:326-360` 计算全程未使用；抚养费比例不随子女数调整 | `plan/categories/06-商业运营/hr-legal.md:116` | 已确认（真） | 中（死输入，金额失真） |
-| 商业运营 | `tools/legal/court-fee.html` | C | `:320-323` IP 案件无金额 500、有金额仍 `Math.min(500+amount*1%, 1000)`；文案却写「有金额按财产案件」，实际统一封顶 1000 | `plan/categories/06-商业运营/hr-legal.md:92` | 已确认（真） | 中高（受理费算错） |
-| 商业运营 | `tools/biz/stats-time-response.html` | C | `:200-211` 仅条数/均值/中位数/最短最长/达标率；无 P90、无 FCR、无分组 | `plan/categories/06-商业运营/biz-startup.md:163` | 已确认（真） | 低 |
-| 教育学习 | `tools/edu/chinese-zodiac.html` | C | `:353-355` 只读 `year` 后 `getZodiac(y)` 按公历年取模；无日期输入、无春节边界判断，FAQ 的「春节前按上一年」无法执行 | `plan/categories/07-教育学习/edu-language.md:165` | 已确认（真） | 中 |
-| 教育学习 | `tools/edu/study-planner.html` | C | `:189-196` 两个 `formula-box` 完全重复；`:191/195` 仅文字承诺「完成率/按优先级排序」，`:246` 只统计完成任务数，无完成率/优先级 | `plan/categories/07-教育学习/edu-language.md:638` | 已确认（真） | 低 |
-| 教育学习 | `tools/research/analysis-49.html` | C | `:230-250` 只计算 Cronbach α；全文无 KMO/Bartlett 实现（仅引据/卡片提到） | `plan/categories/07-教育学习/research-library.md:577` | 已确认（真） | 中 |
-| 教育学习 | `tools/cognition/human-benchmark.html` | C | `:758` 样本恰 84 字；`:761` `textarea` 无 `onpaste` 拦截，`:767-775` WPM 按已输入字符计，粘贴即可刷分 | `plan/categories/07-教育学习/research-library.md:528` | 已确认（真） | 中低（基准可被粘贴作弊） |
-| 教育学习 | `tools/museum/visitor-route.html` | C | `:342-347` 环路护栏已实现（原「负权无限循环」已否定）；但 `:183` 承诺「必看节点」，页面仅有起点/终点选择，无途经点/通行时间面板 | `plan/categories/07-教育学习/research-library.md:598` | 部分成立 | 中低（多目标路线未实现） |
-| 教育学习 | `tools/museum/index.html` | C | `:88,90,93` 等 **4 张**卡片共用同一句「历史人文工具，帮助查询与了解历史文化知识」模板文案（非 3 张） | `plan/categories/07-教育学习/research-library.md:626` | 已确认（真） | 中低（分类页文案模板化） |
-| 语言翻译 | `tools/language/translator.html` | C | `:185` 仅称「支持常用词与问候短句（本地词表）」；`:281` 明示「实际条数显示在输入框下方」；`:625` 运行时显示词表条数；全文无「100+」与语种自动检测承诺 | `plan/categories/07-教育学习/edu-language.md:394` | 已否定 | —（原记录与当前文案不符） |
-| 语言翻译 | `tools/language/grammar-checker.html` | C | `:264-275` RULES 为字面正则（i/teh/recieve 等）；`:335` 仅收集命中项，无「问题密度分级」、无最小编辑距离 | `plan/categories/07-教育学习/edu-language.md:269` | 已确认（真） | 中 |
-| IT开发 | `tools/it/http-cookies.html` | C | `:169` 英文简介称 `Parse and build ... headers`；实为 `:165` 分类聚合速查 + `:171` 搜索 + `:177-185` 图表/表格，无解析或构造入口 | `plan/categories/01-IT开发/it.md:1380` | 已确认（真） | 低（英文简介夸大） |
-| IT开发 | `tools/it/markdown-to-html.html` | C | 2026-11-06 Node 执行 `calcTool()`：`![alt](https://x/y.png)` 输出带正确 `src` 和 `alt` 的 `<img>`，不再输出字面 `!` 加链接；未做浏览器验证 | `plan/categories/01-IT开发/it.md` | 已否定 | —（已修复） |
-| IT开发 | `tools/it/whitespace.html` | C | `:219-228` 仅去首尾/删空行/合并行内空格/末尾单换行；无「全压成一行」，但 `:407` FAQ 承诺「可选全压成一行」；`:250-256` 预览按同一索引比较 `rawLines[pi]` 与 `lines[pi]`，删空行后错位 | `plan/categories/01-IT开发/it.md:219` | 已确认（真） | 低 |
-| IT开发 | `tools/it/timestamp-converter.html` | C | `:416-426` 时区表为固定 offset（悉尼 +11、纽约 -5、洛杉矶 -8），无 DST 计算；夏令时期间纽约/悉尼显示偏差 1 小时 | `plan/categories/01-IT开发/it.md:347` | 已确认（真） | 中低 |
-| 设计创意 | `tools/design/gradient.html` | C | `:241` FAQ 称「按 WCAG 算对比度并标红」；全文无 WCAG/contrast 计算代码 | `plan/categories/04-设计创意/design.md:396` | 已确认（真） | 低 |
-| 设计创意 | `tools/design/mesh-gradient.html` | C | `:252-256` 仅颜色选择器 + 重新生成；无拖拽控制点、无图片/CSS 导出（仅 CSV 导出）、`:204` FAQ 的 WCAG 校验未实现 | `plan/categories/04-设计创意/design.md:487` | 已确认（真） | 低 |
-| 金融财务 | `tools/finance/word-wrap.html` | C | `:489-491` CSV 导出仅导 `#word_wrapTable`，不含换行结果；`:183-189` 4 个页签只映射到分散元素（`:571-583`），无独立「预设/历史」面板，切页签仍停留在同一卡片 | `plan/categories/02-金融财务/finance.md:1246` | 部分成立 | 低 |
-| 工程制造 | `tools/electronics/capacitor-calculator.html` | A | `:352-354` 注释「假设 5τ 内完成」后写死 `tau = 0.001`，`P = E/(5*tau)`；充电时间常数与 R/C 输入无关 | `plan/categories/08-工程制造/electrical-electronics.md:71` | 已确认（真） | 中 |
-| 长尾行业 | `tools/acupuncture/acupoint-location.html` | A | `:399` `revCun = realCm ? 0 : 0` 为死变量；`:400` 反算提示用 `targetCun.toFixed(1)`（目标寸数）而非 X，公式自相矛盾 | `plan/categories/12-长尾行业/_others.md:827` | 已确认（真） | 低 |
-| 自然科学 | `tools/quantum/pair-production-threshold.html` | A | `:128-129` 「（常量计算）」`dummy` 输入不参与任何输出；`:215-219` 结果为 2mₑc² 常量；`:221` 重置只把 dummy 置 1；预设为空 | `plan/categories/09-自然科学/physics-optics-quantum.md:94` | 已确认（真） | 低 |
-| 生活消费 | `tools/life/countdown-timer.html` | A | 2026-11-06 Node 模拟 `addPreset(...,isLunar=true)`：2026 年春节前取 2026-02-17，春节后取 2027-02-06；2031 年表外提示手动选择。原固定 1 月 29 日问题已修；未做浏览器验证 | `plan/categories/05-生活消费/life.md` | 已否定 | —（已修复） |
-| 生活消费 | `tools/life/stats-13.html` | C | `:291-293` 简介承诺「转化漏斗/时段峰值/报名付款聚合」，`:218-251` 只算人数/份数/均值/最多最少/金额，无占比、分档、漏斗、峰值 | `plan/categories/05-生活消费/life.md:908` | 已确认（真） | 中低 |
-| 生活消费 | `tools/life/analysis-cost-9.html` | C | `:231-234` 仅合计/项均/最大项/占比表/极差；无固定-变动拆分、无单位成本、无盈亏平衡、无降本优先级排序（`:188/:193` 公式不可用） | `plan/categories/05-生活消费/life.md:750` | 已确认（真） | 低 |
-| 生活消费 | `tools/life/assessor-target.html` | D | `:427` `opt-guide` 仍是「填写参数→点击计算/生成→查看输出」通用套话；`shopArea` `:226` 读入后未参与 `:232` 加权 | `plan/categories/05-生活消费/life.md:955` | 已确认（真） | 低（模板套话 + 面积死输入） |
-| 医疗健康 | `tools/rehabilitation/fim-scale.html` | D | `:576` `opt-guide` 仍是「填写参数→点击计算/生成→查看输出」通用套话，与实际 18 项下拉即时汇总流程不符 | `plan/categories/12-长尾行业/_others.md:1078` | 已确认（真） | 低（仅文案套话） |
+### 设计 / IT / 生活 / 其他
+| 页面 | 复核结论 | 关键证据 |
+|---|---|---|
+| `tools/design/pixel-art-generator.html` | 已修复 | 导出字符画 .txt 与 CSS box-shadow |
+| `tools/design/gradient.html` | 已修复 | 相邻色标 WCAG 对比度已计算并注明不适用文字等级 |
+| `tools/design/mesh-gradient.html` | 已修复 | 拖拽控制点、PNG 导出、WCAG 校验均已实现 |
+| `tools/design/color-palette.html` | 已修复 | WCAG 对比度与红标已实现 |
+| `tools/electronics/capacitor-calculator.html` | 已修复 | τ = R×C/1e6，随 R/C 输入变化 |
+| `tools/acupuncture/acupoint-location.html` | 已修复 | `revCun` 参与反算并输出寸数 |
+| `tools/quantum/pair-production-threshold.html` | 已修复 | 按粒子静止质量计算 2mₑc² 等阈值 |
+| `tools/life/stats-13.html` | 文案已对齐 | 简介/公式与「人数/份数/占比/分档」一致 |
+| `tools/life/analysis-cost-9.html` | 已修复 | 固定/变动拆分、单位成本、盈亏平衡、降本排序 |
+| `tools/life/assessor-target.html` | 已修复 | 面积参与六维加权 |
+| `tools/finance/word-wrap.html` | 已修复 | CSV 导出含换行结果 |
+| `tools/chess/xiangqi-endgame.html` | 文案已对齐 | 改为「杀法速查」，明示无棋盘输入/着法推演 |
+| `tools/chess/gomoku-forbidden.html` | 已修复 | 15×15 可落子/粘贴棋盘 + 坐标判禁手 |
+| `tools/audio/audio-recorder.html` | 已修复 | 按当前音量/速度离线渲染 16-bit WAV |
+| `tools/office/pdf-split.html` | 文案已对齐 | 改为按页码范围/可视化勾选提取，与实际一致 |
+| `tools/sports/rehab-motion.html` | 文案已对齐 | 明示只做负荷算术，不推荐动作 |
+| `tools/sports/training-planner.html` | 已修复 | 按每周 3–6 天取前 N 天模板 |
+| `tools/sports/simulator-18.html` | 文案已对齐 | 改为伯努利试验模拟，深览同步改写 |
+| `tools/sports/analysis-19.html` | 文案已对齐 | 中英文简介均改为「录入回合记录统计」，删除「视频片段」承诺 |
+| `tools/sports/pingpangqiu-xiangchi-faqiu-defen.html` | 已修复 | 相持/发球/关键分得分率真实计算 |
+| `tools/sports/baofali-zongtiao-lidingtiaoyuan.html` | 已修复 | 速度/体重/蹬伸时间参与高度与功率 |
+| `tools/fun/sequence-puzzle.html` | 已修复 | 9 类数字规律含质数/阶乘/交替 |
+| `tools/fun/generator-laugh.html` | 已修复 | 已含 AudioContext/OscillatorNode |
+| `tools/nutrition/generator-nutrition-label.html` | 已修复 | 能量按 Atwater 由蛋白/脂肪/碳水核算 |
+| `tools/leather/xueyunhoudukongzhi.html` | 已修复 | 来料/目标厚度参与切除量 |
+| `tools/gardening/balcony-sunlight.html` | 已修复 | 朝向/楼层/季节下拉均有选项并参与查表 |
+| `tools/agriculture/assessor-1.html` | 已修复 | 落粒/脱粒分项进入总损失率与分母 |
+| `tools/agriculture/calc-6.html` | 已修复 | 饲养周期参与 365÷周期批次上限 |
+| `tools/fishery/calc-39.html` | 已修复 | 群体重量 × 水温分段投喂率 |
+| `tools/fishery/calc-power.html` | 已修复 | V×ΔT÷η 与时长计算加热功率 |
+| `tools/fishery/density-1.html` | 文案已对齐 | 明示只做单位换算 |
+| `tools/fishery/estimate-23.html` | 文案已对齐 | 明示只做单期线性百分比估算 |
+| `tools/fishery/ratio-hormone.html` | 已修复 | 按体重 × 方案剂量率计算总剂量与两针分配 |
+| `tools/fishery/temp-density.html` | 已修复 | 更名为「水温饱和溶氧与饱和度计算器」，简介/功能/场景与溶氧饱和度换算一致 |
+| `tools/machinery/detector-159.html`、`detector-stretch.html`、`detector-134.html` 等 | 文案已对齐 | 删除 GB/T 引用与「可用于质量验收」，改为用户填写设计限值 |
+| `tools/metalwork/analysis-36.html` | 文案已对齐 | 删除均值/标准差/控制界限/成因诊断承诺，改为分类统计与加权指数 |
+| `tools/metalwork/pressure-casting.html`、`resistance-2.html` | 文案已对齐 | meta 明示「仅做方法选型，不计算浇注/冷却或电流/电压参数」 |
+| `tools/metalwork/calc-gear-2.html` | 已修复 | 增加螺旋角 β 输入与斜齿几何修正 |
+| `tools/tcm-chemistry/metabolite-prediction.html` | 已修复 | `compound` 下拉参与预测 |
+| `tools/pediatrics/ddst-screening.html` | 已修复 | 见上 |
 
+## 四、维护约定
+
+- 新增怀疑项先 grep 当前源码，确认「控件值是否进入计算」「导出是否真的导出对应内容」「文案是否承诺了未实现能力」。
+- 修复后整条删除对应行，并在 `plan/已修复/` 留一份复核记录（批号继续递增）。
+- 本清单不再保留「已否定」历史行；历史快照见 `part-02.md` / `part-03.md`。
