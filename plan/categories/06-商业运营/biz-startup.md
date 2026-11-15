@@ -900,7 +900,7 @@
 
 > 只读审计：逐页读源码 + `node` 在 `/tmp` 复刻核心函数实算（脚本 `/tmp/w_biz_text_d.js`、`/tmp/w_biz_text_d2.js`、`/tmp/w_rand2.js`）。未开浏览器、未跑构建/门禁、未做 git 写操作。
 
-### BS-N109 应用名生成器：效率类词库残留「Plan2」，约 1/13 结果带数字（中，确认缺陷）
+### BS-N109 应用名生成器：效率类词库残留「Plan2」，约 1/13 结果带数字 — 2026-11-15 已修复（579 批：删除 Plan2 残留词条）
 - 页面：`tools/biz/app-name-generator.html`
 - 问题：去重脚本把重复词改写成「词 + 2」而非删除，productivity 的 A 段保留 `Plan` 与 `Plan2` 两条同义词；默认「加后缀 + 无空格」下生成名直接拼接，得到 `Plan2Hub`、`Plan2ify` 一类非自然名。
 - 证据：`tools/biz/app-name-generator.html:268`（词条 `Plan2`）、`:275`（`generate()` 拼接）。
@@ -931,7 +931,7 @@
 - 影响：抽检/演练的条目覆盖不均，固定几条反复被抽中；假工具：否。
 - 方案：改 Fisher–Yates 洗牌后取前 N（或 `crypto.getRandomValues` 取样），并同步更新 FAQ。
 
-### BS-N113 品牌名生成器：5 个词库条目残留「Maison2/bug2/pop2/bug3/thys2」，约 7.1% 结果带数字（高，确认缺陷）
+### BS-N113 品牌名生成器：5 个词库条目残留「Maison2/bug2/pop2/bug3/thys2」，约 7.1% 结果带数字 — 2026-11-15 已修复（579 批：清理 Maison2/bug2/pop2/bug3/thys2）
 - 页面：`tools/biz/brand-name-generator.html`
 - 问题：与 BS-N109 同源的去重残留，词库中直接保留带序号的伪词，生成名为 `Maisonmaison2`、`Bumblebug2`、`Sunnypop2`、`Buzzybug3`、`Myrthys2` 之类。
 - 证据：`tools/biz/brand-name-generator.html:268`（`Maison2`）、`:269`（`bug2`/`pop2`/`bug3`）、`:271`（`thys2`）、`:275`（`generate()`）。
@@ -939,7 +939,7 @@
 - 影响：品牌候选清单里混入明显畸形、不可注册的名字；假工具：否。
 - 方案：清理 5 个带序号词条（保留原词，删除重复副本）。
 
-### BS-N114 产品名生成器：`Glow2`/`Cookies2` 残留（中，确认缺陷）
+### BS-N114 产品名生成器：`Glow2`/`Cookies2` 残留 — 2026-11-15 已修复（579 批：清理 Glow2/Cookies2）
 - 页面：`tools/biz/product-name-generator.html`
 - 问题：同一类去重残留，词库 B 段保留 `Glow2`、`Cookies2`，输出 `Glow Glow2`、`Fresh Cookies2`。
 - 证据：`tools/biz/product-name-generator.html:262`（`Glow2`）、`:263`（`Cookies2`）、`:269`（`generate()`）。
@@ -954,7 +954,7 @@
 - 影响：用户按描述找不到关键词/卖点输入，也拿不到释义、可注册性提示或 slogan；搜索摘要与实际能力不一致。假工具：否（随机命名本体可用）。
 - 方案：补齐关键词/卖点输入与释义/slogan 输出，或把三处描述收敛为「按类别随机组合词库」。
 
-### BS-N116 自动缩进：Markdown 模式默认勾选「去除每行原首尾空格」→ 嵌套列表被压平到 0 缩进（中，确认缺陷）
+### BS-N116 自动缩进：Markdown 模式默认勾选「去除每行原首尾空格」→ 嵌套列表被压平到 0 缩进 — 2026-11-15 已修复（579 批：先取原始缩进再 trim 内容）
 - 页面：`tools/biz/text-indent.html`
 - 问题：`trimEach` 默认勾选，循环内先 `line = line.trim()`，随后再取 `prevIndent`（此时恒为空串）→ `depth` 恒为 0；非列表续行也因先 trim 而不再命中 `/^\s/`。Markdown 模式退化为「去空格 + 原样输出」。
 - 证据：`tools/biz/text-indent.html:177`（默认 `checked`）、`:339-349`（先 trim 再算 `prevIndent`，末尾再 `line.trim()`）、`:533`（预设「Markdown 列表 Tab 缩进」同样 `trimEach:true`）。

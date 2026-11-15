@@ -324,19 +324,17 @@ function indent(){
   let depth = 0;
 
   if(mode === 'markdown'){
-    // 按列表缩进
-    for(let line of lines){
-      if(trimEach) line = line.trim();
+    // 按列表缩进：先在未 trim 的原始行上取缩进，再单独处理内容（BS-N116）
+    for(const raw of lines){
+      const line = trimEach ? raw.trim() : raw;
       const listMatch = line.match(/^([-*+]|\d+\.)\s/);
       if(listMatch){
-        const prevIndent = line.match(/^(\s*)/)[1];
-        const prevDepth = Math.floor(prevIndent.length / 2);
-        depth = prevDepth;
-      }else if(/^\s/.test(line)){
-        depth = Math.floor(line.match(/^\s*/)[0].length / 2);
+        const prevIndent = (raw.match(/^[ \t]*/) || [''])[0].replace(/\t/g, '  ');
+        depth = Math.floor(prevIndent.length / 2);
+      }else if(/^\s/.test(raw)){
+        depth = Math.floor(((raw.match(/^[ \t]*/) || [''])[0].replace(/\t/g, '  ')).length / 2);
       }
-      out.push(indentStr.repeat(depth) + line.trim());
-      // 子项处理：纯文本不改
+      out.push(indentStr.repeat(depth) + line);
     }
     result.textContent = out.join('\n');
     return;
