@@ -562,16 +562,16 @@ const CASES = [
   // ── 第382批 D-N184：板材分级口径（GB 18580-2017 强制底线 E1 + GB/T 39600-2021 分级）
   {
     slug: "design/detector-28",
-    inputs: { matType: "board", formaldehyde: "0.12", voc: "0", benzeneContent: "0" },
+    inputs: { matType: "board", formaldehyde: "0.03", voc: "0", benzeneContent: "0" },
     expect: [
-      "限值要求：≤0.124 mg/m³ 环保等级： E1级（合格）",
-      "满足 GB 18580-2017 强制底线 E1（≤0.124 mg/m³）",
+      "限值要求：≤0.050 mg/m³ 环保等级： E0级（优等）",
+      "甲醛释放量达到 E0 级（GB/T 39600-2021）",
     ],
-    ref: "D-N184 强锁：板材分级口径统一为「GB 18580-2017 强制底线 E1 ≤0.124 mg/m³ + GB/T 39600-2021 的 ENF ≤0.025 / E0 ≤0.050 / E1 ≤0.124」。"
-      + "注入 formaldehyde=0.12（落在 0.050–0.124 区间）⇒ 限值与等级必须是「≤0.124 mg/m³ + E1级（合格）」。"
-      + "旧实现把 0.124 一档命名为 E2（GB 18580-2017 早已取消 E2，E0/ENF 出自 GB/T 39600-2021），0.12 被判「E2级（限室内）」，两条 expect 全不命中；"
-      + "默认态 formaldehyde=0.08 ⇒ 同样不命中（它走 E1 旧分支）。"
-      + "⚠ 不要锚「甲醛释放量：0.12 mg/m³」这类输入回显；也不要锚 tip-box 的 class 名（属模板常量）。",
+    ref: "D-N184 强锁（632 批收紧）：板材分级口径统一为「GB 18580-2017 强制底线 E1 ≤0.124 mg/m³ + GB/T 39600-2021 的 ENF ≤0.025 / E0 ≤0.050 / E1 ≤0.124」。"
+      + "注入 formaldehyde=0.03（落在 0.025–0.050 区间）⇒ 限值与等级必须是「≤0.050 mg/m³ + E0级（优等）」，并提示达到 E0 级。"
+      + "⚠ 原用例注入 0.12 期望「≤0.124 / E1级」，但默认态 formaldehyde=0.08 同属 E1 档、文案逐字相同，判别器实测「默认态命中 2/2」= 纯逃生项；"
+      + "同一档位内换数值输出不变，故改跨档到 E0 才具备判别力。旧实现把 0.124 一档命名为 E2（GB 18580-2017 早已取消 E2），E0 根本不存在，两串全不命中。"
+      + "⚠ 不要锚「甲醛释放量：0.03 mg/m³」这类输入回显。",
   },
   // ── 第382批 D-N185：参考标尺按材料类型切换（不再是固定甲醛 E0/E1/E2 三段）
   {
@@ -1431,16 +1431,17 @@ const CASES = [
   },
   {
     "slug": "design/data-matrix",
-    "inputs": {
-      "text": "abc123测试",
-      "fgColor": "abc123测试",
-      "bgColor": "abc123测试",
-      "size": "42"
-    },
-    "expect": [
-      "abc123测试\nabc123测试\nabc123测试\n42"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"text\":\"abc123测试\",\"fgColor\":\"abc123测试\",\"bgColor\":\"abc123测试\",\"size\":\"42\"}，输出区含「abc123测试\nabc123测试\nabc123测试\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "inputs": { "text": "ORDER-77", "size": "42", "fgColor": "#111111", "bgColor": "#fafafa" },
+    "clicks": ["generate()"],
+    "expect": ["演示模块数须为 8–24 之间的整数"],
+    "ref": "632 批 SMS-168：注入 size=42（超上限 24）。旧实现 Math.max(8,Math.min(24,parseInt(...))) 静默钳位成 24 并照常出图，用户不知道输入被改；现改为严格整数校验，越界停算并提示「演示模块数须为 8–24 之间的整数（不接受小数或超出范围的值）」并清空 preview/table/chart。默认 size=14 合法 ⇒ 不出现该提示。原用例（632 前）expect 为注入值回显「abc123测试\nabc123测试\nabc123测试\n42」，属纯输入回显逃生项，已作文本替回。"
+  },
+  {
+    "slug": "design/data-matrix",
+    "inputs": { "text": "ORDER-77", "size": "14.5", "fgColor": "#111111", "bgColor": "#fafafa" },
+    "clicks": ["generate()"],
+    "expect": ["演示模块数须为 8–24 之间的整数"],
+    "ref": "632 批 SMS-168：注入 size=14.5（小数）。旧实现 parseInt('14.5')=14 静默截断成合法阶数照常出图；现改为 Number + Number.isInteger 严格校验，小数同样停算并给同一提示。默认 size=14 ⇒ 不出现该提示。"
   },
   {
     "slug": "design/css-text-shadow",
@@ -2837,8 +2838,9 @@ const CASES = [
 {
   slug: "design/css-grid-generator",
   inputs: { cols: "5", coltype: "fr", gap: "16", containerW: "960" },
-  expect: ["&lt;div&gt;3&lt;/div&gt;"],
-  ref: "D-N28：旧实现 HTML 结构硬编码 1、2、cols 三个子项，cols=5 时不含第 3 格；修复后按列数循环生成 1..5。默认 3 列不含第 3 格转义串 ⇒ 强判别。",
+  expect: ["&lt;div&gt;5&lt;/div&gt;"],
+  ref: "D-N28（632 批收紧）：旧实现 HTML 结构硬编码 1、2、cols 三个子项；修复后按列数循环生成 1..5，cols=5 时出现第 5 格。"
+      + "⚠ 原锚「&lt;div&gt;3&lt;/div&gt;」在默认 3 列下本来就存在（第 3 格），判别器实测「默认态命中 1/1」= 逃生项；改锚第 5 格后默认态（仅 1/2/3）不命中。",
 },
 {
   slug: "design/css-grid-generator",
