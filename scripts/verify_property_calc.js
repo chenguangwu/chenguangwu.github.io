@@ -91,13 +91,11 @@ const CASES = [
 },
 {
   "slug": "property/cycle-elevator",
-  "inputs": {
-    "logDate_'+el.id+'": "'+todayStr()+'_X"
-  },
+  "inputs": {},
   "expect": [
-    "_X"
+    "🛗 暂无电梯，请在上方添加"
   ],
-  "ref": "auto-restore"
+  "ref": "空态：未添加电梯时显示引导文案；原自动用例输入键为模板字符串 logDate_'+el.id+'，注入不到真实节点，改为空态断言。"
 },
 {
   "slug": "property/elevator-energy",
