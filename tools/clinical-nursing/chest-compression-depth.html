@@ -126,14 +126,14 @@
     <h2 data-zh="📏 心脏按压深度(胸骨下陷)计量器">Chest Compression Depth</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根据患者年龄和体型，计算CPR胸外心脏按压的深度、频率和按压-通气比，提供可视化参考。">Chest Compression Depth</p>
 <div class="formula-box">
- <div class="formula-eq">按压深度按年龄查表(成人 5–6 cm、儿童约 5 cm、婴儿约 4 cm)；频率 100–120 次/分；按压:通气 = 30:2(婴儿双人 15:2)；每次充分胸廓回弹；肥胖者需加大力度确保达到目标深度。</div>  <div class="formula-title">📐 工作原理与说明</div>
+ <div class="formula-eq">按压深度按年龄查表(成人 5–6 cm、儿童约 5 cm、婴儿约 4 cm)；频率 100–120 次/分；按压:通气 = 成人 30:2；儿童/婴儿单人 30:2、双人 15:2；每次充分胸廓回弹；肥胖者需加大力度确保达到目标深度。</div>  <div class="formula-title">📐 工作原理与说明</div>
   <p class="formula-desc">本工具按 AHA 心肺复苏指南给出年龄别按压深度与频率参考范围，结果仅供参考，以抢救团队指挥与反馈设备为准。</p>
 </div>
 
     <div class="age-tab">
-      <button class="active" onclick="selectAge('adult',this)">👤 成人</button>
-      <button onclick="selectAge('child',this)">👦 儿童(1岁-青春期)</button>
-      <button onclick="selectAge('infant',this)">👶 婴儿(＜1岁)</button>
+      <button class="active" data-age="adult" onclick="selectAge('adult',this)">👤 成人</button>
+      <button data-age="child" onclick="selectAge('child',this)">👦 儿童(1岁-青春期)</button>
+      <button data-age="infant" onclick="selectAge('infant',this)">👶 婴儿(＜1岁)</button>
     </div>
     <div class="input-row">
       <div>
@@ -143,6 +143,13 @@
           <option value="normal">标准体型</option>
           <option value="thin">瘦弱体型</option>
           <option value="obese">肥胖体型</option>
+        </select>
+      </div>
+      <div>
+        <label>施救人数</label>
+        <select id="rescuer" onchange="calc()">
+          <option value="single">单人施救</option>
+          <option value="two">双人施救</option>
         </select>
       </div>
     </div>
@@ -272,19 +279,19 @@
 var ageConfig = {
   adult: {
     depthMin:5, depthMax:6, name:'成人',
-    rate:'100-120', ratio:'30:2', recoil:'完全回弹', interruption:'＜10s',
+    rate:'100-120', recoil:'完全回弹', interruption:'＜10s',
     desc:'按压深度：5-6cm（标准成人）',
     visualHeight:35
   },
   child: {
     depthMin:5, depthMax:5, name:'儿童',
-    rate:'100-120', ratio:'30:2', recoil:'完全回弹', interruption:'＜10s',
+    rate:'100-120', recoil:'完全回弹', interruption:'＜10s',
     desc:'按压深度：约5cm（胸廓前后径1/3）',
     visualHeight:30
   },
   infant: {
     depthMin:4, depthMax:4, name:'婴儿',
-    rate:'100-120', ratio:'30:2', recoil:'完全回弹', interruption:'＜10s',
+    rate:'100-120', recoil:'完全回弹', interruption:'＜10s',
     desc:'按压深度：约4cm（胸廓前后径1/3）',
     visualHeight:25
   }
@@ -293,10 +300,19 @@ function fmtDepth(min,max){return min===max?String(min):min+'-'+max;}
 var currentAge = 'adult';
 
 function selectAge(age, btn){
+  if(!ageConfig[age]) age = ageConfig[currentAge] ? currentAge : 'adult';
   currentAge = age;
   document.querySelectorAll('.age-tab button').forEach(function(b){ b.classList.remove('active'); });
-  btn.classList.add('active');
+  var target = (btn && btn.classList) ? btn : document.querySelector('.age-tab button[data-age="' + age + '"]');
+  if(target && target.classList) target.classList.add('active');
   calc();
+}
+
+function currentRatio(){
+  var el = document.getElementById('rescuer');
+  var rescuer = el ? el.value : 'single';
+  if(currentAge === 'adult') return '30:2';
+  return rescuer === 'two' ? '15:2' : '30:2';
 }
 
 function calc(){
@@ -309,18 +325,17 @@ function calc(){
   var vHeight = cfg.visualHeight;
   
   if(bodyType === 'obese'){
-    desc += '（肥胖患者需加大力度确保达到深度）';
-    vHeight = Math.max(vHeight - 5, 20);
+    desc += '（肥胖患者需加大力度确保达到深度，目标深度不变）';
   } else if(bodyType === 'thin'){
     desc += '（瘦弱患者注意控制力度，避免过度按压）';
-    vHeight = Math.min(vHeight + 5, 40);
   }
   
-  window.__EMR_SUM={age:currentAge,bt:bodyType,an:cfg.name,dmin:depthMin,dmax:depthMax,rate:cfg.rate,ratio:cfg.ratio,recoil:cfg.recoil,inter:cfg.interruption,desc:desc};
+  var ratio = currentRatio();
+  window.__EMR_SUM={age:currentAge,bt:bodyType,an:cfg.name,dmin:depthMin,dmax:depthMax,rate:cfg.rate,ratio:ratio,recoil:cfg.recoil,inter:cfg.interruption,desc:desc};
   const __g1=fmtDepth(depthMin,depthMax);document.getElementById('depth').textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
   const __g2=desc;document.getElementById('depthDesc').textContent=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
   const __g3=cfg.rate;document.getElementById('rate').textContent=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
-  const __g4=cfg.ratio;document.getElementById('ratio').textContent=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+  const __g4=ratio;document.getElementById('ratio').textContent=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
   const __g5=cfg.recoil;document.getElementById('recoil').textContent=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
   const __g6=cfg.interruption;document.getElementById('interruption').textContent=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
   
@@ -332,7 +347,7 @@ function calc(){
 
 function copyResult(){
   var cfg = ageConfig[currentAge];
-  var text = 'CPR按压参数\n患者类型：' + cfg.name + '\n按压深度：' + fmtDepth(cfg.depthMin,cfg.depthMax) + 'cm\n按压频率：' + cfg.rate + '次/分\n按压-通气比：' + cfg.ratio + '\n胸廓回弹：' + cfg.recoil + '\n生成时间：' + new Date().toLocaleString('zh-CN');
+  var text = 'CPR按压参数\n患者类型：' + cfg.name + '\n按压深度：' + fmtDepth(cfg.depthMin,cfg.depthMax) + 'cm\n按压频率：' + cfg.rate + '次/分\n按压-通气比：' + currentRatio() + '\n胸廓回弹：' + cfg.recoil + '\n生成时间：' + new Date().toLocaleString('zh-CN');
   ToolBox.copyText(text, i18nText('msg408'));
 }
 

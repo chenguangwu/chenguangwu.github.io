@@ -117,9 +117,35 @@ const CASES = [
   ],
   "expect": [
     "【胸外按压深度与参数（按年龄）】 结果：对象：儿童（肥胖） → 按压深度 5 cm、频率 100-120 次/分、按压通气比 30:2、回弹要求「完全回弹」、中断 ＜10s",
-    "说明：按压深度：约5cm（胸廓前后径1/3）（肥胖患者需加大力度确保达到深度）"
+    "说明：按压深度：约5cm（胸廓前后径1/3）（肥胖患者需加大力度确保达到深度，目标深度不变）"
   ],
-  "ref": "门诊记录：clicks 调 selectAge('child') 切到儿童（AHA 2020 至少 5 cm，页面统一为 5 cm），inputs 选肥胖体型 ⇒ 追加「肥胖患者需加大力度」。默认态 currentAge='adult'、bodyType='normal' ⇒「对象：成人 → 按压深度 5-6 cm」，与本用例零交集。旧实现输出「4–5 cm」，与同页 desc「约5cm」及 AHA 至少 5 cm 矛盾，已修正。"
+  "ref": "门诊记录：clicks 调 selectAge('child') 切到儿童（AHA 2020 至少 5 cm，页面统一为 5 cm），inputs 选肥胖体型 ⇒ 追加「肥胖患者需加大力度…目标深度不变」。默认态 currentAge='adult'、bodyType='normal' ⇒「对象：成人 → 按压深度 5-6 cm」，与本用例零交集。旧实现输出「4–5 cm」，与同页 desc「约5cm」及 AHA 至少 5 cm 矛盾，已修正；肥胖不再把示意条调浅，故文案明示目标深度不变。"
+},
+{
+  "slug": "clinical-nursing/chest-compression-depth",
+  "inputs": {
+    "rescuer": "two"
+  },
+  "clicks": [
+    "selectAge('child')"
+  ],
+  "expect": [
+    "对象：儿童 → 按压深度 5 cm、频率 100-120 次/分、按压通气比 15:2"
+  ],
+  "ref": "D-N38 单/双人施救：新增 rescuer 选择，儿童/婴儿双人施救按 AHA 2020 为 15:2。inputs 置 two + clicks 切儿童 ⇒ 结果卡与门诊记录均为 15:2；旧实现三条配置硬编码 30:2，本串不命中。默认单人 + 成人仍是 30:2，与本用例互斥。"
+},
+{
+  "slug": "clinical-nursing/chest-compression-depth",
+  "inputs": {
+    "rescuer": "two"
+  },
+  "clicks": [
+    "calc()"
+  ],
+  "expect": [
+    "对象：成人 → 按压深度 5-6 cm、频率 100-120 次/分、按压通气比 30:2"
+  ],
+  "ref": "D-N38 反向守卫：成人双人施救仍为 30:2（AHA 成人不分单双人），rescuer=two 不得把成人改成 15:2。默认态同为成人 30:2，但本用例真实注入 two 后计算，若实现写成「双人一律 15:2」即变红。"
 },
 {
   "slug": "clinical-nursing/chest-compression-depth",
