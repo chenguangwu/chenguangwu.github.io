@@ -225,6 +225,12 @@ const CASES = [
     "涤纶织物 + 分散染料（浅色）建议在饱和蒸汽 100～105℃、湿度≥95% 条件下蒸化 18～28 分钟"
   ],
   "ref": "原 expect「viscose」是 select 值回显（逃生项）。默认 cotton/reactive/medium → 7～10 min、中值 9。独立复算：baseTime(disperse,polyester)=[20,30]；depthAdj(light)=[max(3,20-2), 30-2]=[18,28]；mid=(18+28)/2=23。组合文案由三个 select 共同决定，非单值回显。"
+},
+{
+  "slug": "dyeing/calc-dosage-2",
+  "inputs": { "lr": "0" },
+  "expect": ["浴比需大于 0"],
+  "ref": "12-L9：浴比 0 时染液总量 0、浓度 0 g/L 仍输出完整结论；现在拒绝。默认浴比 10 合法不出现该文案。"
 }
 ];
 async function main() {

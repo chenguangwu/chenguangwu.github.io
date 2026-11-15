@@ -229,7 +229,13 @@ const CASES = [
     "clicks": ["document.getElementById('ck_smell').value='0';calc()"],
     "expect": ["待检测：还有 13 项未检查"],
     "ref": "新契约（2026-11-05）：14 项检测默认「未检查（请选择）」（value=''），未检查项不计入正常、不输出风险指数/结论/购买建议。仅把 ck_smell 设为正常(0) 后 calc ⇒ 结果区显示「待检测：还有 13 项未检查」。默认态 14 项全未检查；全部设为正常(0) 才输出「未发现泡水痕迹 · 0%」；ck_smell=2 ⇒「疑似泡水车 · 8%」。判别器清空 clicks 后 calc 回落到全未检查（14 项），expect 失配。"
-  }
+  },
+{
+  "slug": "usedcar/car-residual",
+  "inputs": { "life": "-10", "salvage": "5", "price": "120000", "years": "3" },
+  "expect": ["折旧年限需在 1–30 年之间"],
+  "ref": "12-L2：rule 模式原先把折旧年限校验放在 straight/double 分支内，life=-10 仍照算 54321 折旧 ¥44,400、残值 ¥75,600；现在所有方法统一校验。默认 life=10 合法不出现该文案。"
+}
 ];
 
 async function main() {

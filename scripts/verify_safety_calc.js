@@ -144,8 +144,13 @@ const CASES = [
   "expect": ["答对 10 / 10 题"],
   "ref": "10 题逐题选正确答案 currentQuiz[currentIdx].a 后 nextQ() ⇒ 得分 10/10，renderResult 输出「答对 10 / 10 题　评级：优秀」。"
        + "题目池随机抽 10 题，但「正确答案」按每题的 a 索引动态取，结果确定。默认态加载后停在「第 1 / 10 题」，无「答对 10 / 10 题」字样，零交集。"
+},
+{
+  "slug": "safety/accident-stats",
+  "inputs": { "fatal": "-1" },
+  "expect": ["不能为负数"],
+  "ref": "12-L5：负伤亡人数原先减少伤亡合计并拉低 FR/LTIFR；现在拒绝。默认 fatal=0 合法不出现该文案。"
 }
-
 ];
 async function main() {
   const only = process.argv.slice(2);
