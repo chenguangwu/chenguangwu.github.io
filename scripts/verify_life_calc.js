@@ -1220,6 +1220,25 @@ const CASES = [
   },
   {
     slug: "life/ring-size-converter",
+    clicks: ["document.getElementById('inputType').value='us';document.getElementById('inputVal').value='6';convert();"],
+    expect: ["51.85 mm"],
+    ref: "LF-N24 往返一致：美码 6 应按 6×2.6+36.25=51.85mm 反算；旧 toCirc 用 2.76 得 52.81mm，而 fromCirc 用 2.6，输入 6 再输出美码变 6.37（不对称）。"
+       + "默认 circ=55 不含 51.85 ⇒ 强判别。"
+  },
+  {
+    slug: "life/ring-size-converter",
+    clicks: ["document.getElementById('inputType').value='hk';document.getElementById('inputVal').value='11';convert();"],
+    expect: ["51 mm"],
+    ref: "LF-N24 港码对照：11 号应为内周长 51mm（周长−40）；旧实现 circ=码数×3.14=34.54mm，并因结果出现负美码/欧码而报错。"
+  },
+  {
+    slug: "life/ring-size-converter",
+    clicks: ["document.getElementById('inputType').value='eu';document.getElementById('inputVal').value='54';convert();"],
+    expect: ["54 mm"],
+    ref: "LF-N25 欧码直通：EU 54 按 ISO 8653 即内周长 54mm；旧实现 circ=EU+40=94mm，换算成美码 22 等畸形结果。"
+  },
+  {
+    slug: "life/ring-size-converter",
     inputs: { inputVal: "52" },
     expect: ["美码： 6.05769"],
     ref: 'v=52 from=circ: 美码=(52-36.25)/2.6=6.05769（旧斜率 2.76 得 5.70652，与英码斜率不一致）'
