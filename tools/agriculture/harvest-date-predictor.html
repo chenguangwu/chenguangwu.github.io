@@ -204,7 +204,7 @@
 <li>结合籽粒含水率/糖度等品质指标校准。</li>
 <li>用于避开雨季、锁定最佳成熟度。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">冬小麦适收预测</div><div class="dd-ex-body">品种成熟需 GDD(基温 0℃) 约 2100℃·d，当前已累计 1950，日均有效积温 15，则约 10 天后达阈值。结合预报若逢连阴雨，应提前至蜡熟末期抢收，含水率 20% 左右机收损失最低。</div></div>
+<div class="dd-example"><div class="dd-ex-title">冬小麦适收预测</div><div class="dd-ex-body">品种成熟需 GDD(基温 0℃) 约 1700℃·d，当前已累计 1650，日均有效积温 15，则约 4 天后达阈值。结合预报若逢连阴雨，应提前至蜡熟末期抢收；含水率 12%–18% 为最佳机收窗口，高于 18% 时按日降 0.5% 计，约（当前含水−18）÷0.5 天进入窗口，再降至适收值 13% 还需（18−13）÷0.5 = 10 天。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>为什么不能等完全成熟？</dt><dd>完熟后遇雨易穗发芽、落粒，尤其小麦。蜡熟末至完熟初机收损失最小、品质好，『九成熟十成收』是经验凝结。</dd>
@@ -274,9 +274,14 @@ function calc(){
   var targetMoisture = crop.idealRange[1];
   var daysToHarvest = Math.ceil((moisture - targetMoisture) / dryRate);
   if(daysToHarvest<0) daysToHarvest = 0;
+  // 适收含水值（如小麦 13%）通常低于窗口上限，单独给出「降到适收值」的天数，避免把入窗日误当最干端。
+  var daysToTarget = Math.ceil((moisture - crop.harvestMoisture) / dryRate);
+  if(daysToTarget < daysToHarvest) daysToTarget = daysToHarvest;
 
   var harvestDate = new Date(now);
   harvestDate.setDate(harvestDate.getDate() + daysToHarvest);
+  var targetDate = new Date(now);
+  targetDate.setDate(targetDate.getDate() + daysToTarget);
 
   // GDD判断
   var gddProgress = (gdd / crop.gddNeed) * 100;
@@ -289,8 +294,9 @@ function calc(){
   if(moisture > crop.idealRange[1]){
     html += '<div class="tip-box tip-warn" style="font-size:16px;text-align:center;padding:20px;">';
     html += '<div style="font-size:32px;font-weight:700;color:var(--warning);">预计 '+daysToHarvest+' 天后</div>';
-    html += '<div style="margin-top:8px;">达到最佳收割含水量</div>';
+    html += '<div style="margin-top:8px;">进入最佳收割窗口（含水率 ≤ '+crop.idealRange[1]+'%）</div>';
     html += '<div style="margin-top:4px;font-size:14px;color:var(--text-muted);">'+formatDate(harvestDate)+'</div>';
+    html += '<div style="margin-top:8px;font-size:13px;color:var(--text-muted);">含水率降至适收值 '+crop.harvestMoisture+'% 约 '+daysToTarget+' 天后（'+formatDate(targetDate)+'）</div>';
     html += '</div>';
   } else if(moisture >= crop.idealRange[0]){
     html += '<div class="tip-box tip-success" style="font-size:16px;text-align:center;padding:20px;">';

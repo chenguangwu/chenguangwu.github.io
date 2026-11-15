@@ -1251,6 +1251,12 @@ const CASES = [
     "ref": "未来播期的「已生长天数」为负、GDD 进度无意义；改为显式拒绝。默认播期为过去日期，不出现该提示。"
   },
   {
+    "slug": "agriculture/harvest-date-predictor",
+    "inputs": { "moisture": "28", "dryRate": "0.5" },
+    "expect": ["预计 20 天后", "降至适收值 13% 约 30 天后"],
+    "ref": "10-33 入窗日与适收日拆分（2026-11-16）：小麦 idealRange=[12,18]、harvestMoisture=13。主结果按窗口上限 18% 计 ⇒ ceil((28−18)÷0.5)=20 天；副行给出降到适收值 13% 的天数 ⇒ ceil((28−13)÷0.5)=30 天。旧实现主结果直接按 13% 播报「30 天后」，把收割日推迟 10 天。默认播期回填但含水 28/0.5 时同样命中——本条锚定的是文案与天数口径（旧实现无「降至适收值」副行，且主结果为 30 天，两锚必失配）。"
+  },
+  {
     "slug": "agriculture/assessor-1",
     "inputs": { "theoryYield": "450", "actualYield": "500", "fieldLoss": "15", "threshLoss": "10" },
     "expect": ["实际收获产量不能为负或高于理论产量"],
