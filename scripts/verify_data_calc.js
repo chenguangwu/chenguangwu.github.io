@@ -266,6 +266,34 @@ const CASES = [
     "copyCheck": { "fn": "copyResult", "expect": "\"col_2\":\"200\"" },
     "ref": "复制路径：注入转换后 copyResult(event) 写入剪贴板的内容必须等于结果区 \"col_2\":\"200\"，且 then 回调不抛异常；旧实现 .then 内读隐式 event.target 会抛 TypeError 被 Promise 吞掉。"
   },
+  {
+    "slug": "data/csv-json",
+    "inputs": { "input": "id,id\n00123,9007199254740993" },
+    "checkIds": ["hasHeader", "parseNumber"],
+    "expect": ["表头重复，转换会丢失列：id（第 1 与 2 列）"],
+    "ref": "重复表头显式拒绝（2026-11-16）：旧实现两个同名列写同一对象键，后者覆盖前者且不报错；现提示重复列号并停止输出。默认样例行（name,age,city）不含该提示 ⇒ 强判别。"
+  },
+  {
+    "slug": "data/csv-json",
+    "inputs": { "input": "a,b\n1,2,3" },
+    "checkIds": ["hasHeader", "parseNumber"],
+    "expect": ["列数超出表头，多出的数据会被丢弃：第 2 行有 3 列（表头 2 列）"],
+    "ref": "超列拒转：旧实现仅遍历表头列，第三列 3 被静默丢弃；现逐行报出超列位置并停止输出。缺列（列数更少）仍按空串补，不报错。"
+  },
+  {
+    "slug": "data/csv-json",
+    "inputs": { "input": "id,big,code\n1,9007199254740993,00123" },
+    "checkIds": ["hasHeader", "parseNumber"],
+    "expect": ["\"big\":\"9007199254740993\"", "\"code\":\"00123\"", "\"id\":1"],
+    "ref": "数值精度保护：超安全整数 9007199254740993 保留字符串（旧实现 Number ⇒ …992），前导零编号 00123 保留字符串（旧实现 ⇒ 123）；普通整数 1 仍转数字。"
+  },
+  {
+    "slug": "data/csv-json",
+    "inputs": { "input": "a,b\n\"unclosed,2", "delimiter": ",", "quote": "\"" },
+    "checkIds": ["hasHeader", "parseNumber"],
+    "expect": ["CSV 引号未闭合"],
+    "ref": "未闭合引号：旧实现把余下全部内容吞进字段并照常输出；现提示行号并停止转换，避免把错误解析结果当有效数据。限定符/分隔符两个 select 必须显式注入——桩里 select 默认值不是首个 option 的 value，不注入则 quote 为空、引号状态永不进入 ⇒ 假通过。"
+  },
 
   {
     "slug": "data/yaml-json",

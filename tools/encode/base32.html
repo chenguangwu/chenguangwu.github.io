@@ -108,9 +108,9 @@
 <div class="card">
     <h2 data-zh="🔤 Base32 编码长度估算">🔤 Base32 Encoded Length Estimator</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根据输入字节数估算 Base32 编码后的字符串长度。">Estimate the encoded string length from input bytes per Base32 rules for transfer and storage capacity planning.</p>
-    <div class="input-row"><label>原始字节数</label><input type="number" id="bytes" value="100" step="1" oninput="calc()" placeholder="如 100"></div>
-    <div class="input-row"><label>是否含填充 1=是 0=否</label><input type="number" id="pad" value="1" step="1" oninput="calc()" placeholder="如 1"></div>
-    <div class="input-row"><label>每行字符数</label><input type="number" id="line" value="0" step="1" oninput="calc()" placeholder="如 0"></div>
+    <div class="input-row"><label>原始字节数</label><input type="number" id="bytes" value="100" min="0" step="1" oninput="calc()" placeholder="如 100"></div>
+    <div class="input-row"><label>是否含填充 1=是 0=否</label><input type="number" id="pad" value="1" min="0" max="1" step="1" oninput="calc()" placeholder="如 1"></div>
+    <div class="input-row"><label>每行字符数（0=不换行）</label><input type="number" id="line" value="0" min="0" step="1" oninput="calc()" placeholder="如 0"></div>
     <div class="toolbar">
       <div id="base32Presets"></div><button class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" onclick="__base32Export()">导出明细 CSV</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
@@ -154,7 +154,7 @@
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>Base32 为何比 Base64 长？</dt><dd>Base32 每位仅携 5 bit（Base64 携 6 bit），同样数据需更多字符，约膨胀 60%。</dd>
-<dt>填充怎么算？</dt><dd>Base32 以 = 填充至 8 字符倍数，长度估算已含填充。</dd>
+<dt>填充怎么算？</dt><dd>Base32 以 = 填充至 8 字符倍数。页面「是否含填充」填 1 时取 ⌈n/5⌉×8（含 = 的完整长度），填 0 时取仅有效字符的 ⌈n×8/5⌉；「每行字符数」大于 0 时只统计行间换行（不含末尾换行），LF 与 CRLF 开销分列。</dd>
 <dt>适合什么场景？</dt><dd>人工抄写、语音核对等需避免 0/O、1/l 混淆的场合。</dd>
 </dl>
 </div>
@@ -246,15 +246,41 @@
 </div>
 <script>
 function calc(){
-  const bytes = +document.getElementById('bytes').value || 0;
-  const pad = +document.getElementById('pad').value || 0;
-  const line = +document.getElementById('line').value || 0;
+  const elBytes = document.getElementById('bytes');
+  const elPad = document.getElementById('pad');
+  const elLine = document.getElementById('line');
+  const out = document.getElementById('result');
+  const rawBytes = String(elBytes.value == null ? '' : elBytes.value).trim();
+  const rawLine = String(elLine.value == null ? '' : elLine.value).trim();
+  const bytes = Number(rawBytes);
+  const pad = String(elPad.value == null ? '' : elPad.value).trim() === '' ? 1 : Number(elPad.value);
+  const line = rawLine === '' ? 0 : Number(rawLine);
+  const badBytes = !(rawBytes !== '' && isFinite(bytes) && Number.isInteger(bytes) && bytes >= 0);
+  const badPad = !(pad === 0 || pad === 1);
+  const badLine = !(isFinite(line) && Number.isInteger(line) && line >= 0);
+  [['bytes',badBytes],['pad',badPad],['line',badLine]].forEach(function(p){
+    const e = document.getElementById(p[0]);
+    if(e && e.classList) e.classList.toggle('input-error', !!p[1]);
+  });
+  if(badBytes || badPad || badLine){
+    out.innerHTML = '<p style="color:var(--danger)">⚠ 请输入有效参数：原始字节数须为非负整数，填充开关填 1 或 0，每行字符数须为非负整数（0 表示不换行）。</p>';
+    return;
+  }
+  // 含填充：每 5 字节补齐为 8 字符；无填充：仅保留有效字符（不足 5 字节的部分按 8/5 向上取整）
+  const paddedChars = bytes === 0 ? 0 : Math.ceil(bytes / 5) * 8;
+  const rawChars = bytes === 0 ? 0 : Math.ceil(bytes * 8 / 5);
+  const chars = pad === 1 ? paddedChars : rawChars;
+  // 只在行间插入换行，不计末尾换行
+  const breaks = (line > 0 && chars > 0) ? Math.floor((chars - 1) / line) : 0;
   let html = '';
-  const __v0 = (Math.ceil(bytes/5)*8+(line?Math.ceil(Math.ceil(bytes/5)*8/line):0));
-  html += `<p>编码长度：<strong style="font-size:18px;color:var(--primary);">${__v0.toFixed(0)}</strong> 字符</p>`;
-  const __v1 = (Math.ceil(bytes/5)*8);
-  html += `<p>无填充长度：<strong style="font-size:18px;color:var(--primary);">${__v1.toFixed(0)}</strong> 字符</p>`;
-  const __g1=html;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+  html += `<p>编码长度（${pad === 1 ? '含填充' : '不含填充'}）：<strong style="font-size:18px;color:var(--primary);">${chars}</strong> 字符</p>`;
+  html += `<p>含填充长度：<strong>${paddedChars}</strong> 字符；无填充长度：<strong>${rawChars}</strong> 字符</p>`;
+  if(line > 0){
+    html += `<p>每行 ${line} 字符：换行 <strong>${breaks}</strong> 个（仅行间，不含末尾换行）⇒ 含 LF 总长 <strong>${chars + breaks}</strong> 字符；若用 CRLF 再另加 ${breaks} 字节</p>`;
+  } else {
+    html += '<p>每行字符数为 0：连续输出，无换行开销。</p>';
+  }
+  out.innerHTML = html;
 }
 function copyResult() {
   const txt = document.getElementById('result').innerText;
