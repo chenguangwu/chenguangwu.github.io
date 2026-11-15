@@ -300,7 +300,7 @@ function toggleToolTheme(){
 const STYLES = {
   'hash':    {top:'╔', h:'═', topR:'╗', v:'║', botL:'╚', botR:'╝', fill:'#'},
   'star':    {top:'*', h:'*', topR:'*', v:'*', botL:'*', botR:'*', fill:' '},
-  'equals':  {top:'=', h:'=', topR:'=', v:'||', botL:'=', botR:'=', fill:' '},
+  'equals':  {top:'=', h:'=', topR:'=', v:'|', botL:'=', botR:'=', fill:' '},
   'dashed':  {top:'+', h:'-', topR:'+', v:'|', botL:'+', botR:'+', fill:' '},
   'double':  {top:'╔', h:'═', topR:'╗', v:'║', botL:'╚', botR:'╝', fill:' '},
   'rounded': {top:'╭', h:'─', topR:'╮', v:'│', botL:'╰', botR:'╯', fill:' '},
@@ -325,11 +325,14 @@ function generate(){
 
   const styleKey = document.getElementById('style').value;
   const s = STYLES[styleKey];
-  const padX = parseInt(document.getElementById('paddingX').value) || 0;
-  const padY = parseInt(document.getElementById('paddingY').value) || 0;
+  // 负内边距会让 repeat() 抛 RangeError，入口钳制为 0（BS-N66）
+  const padX = Math.max(0, parseInt(document.getElementById('paddingX').value) || 0);
+  const padY = Math.max(0, parseInt(document.getElementById('paddingY').value) || 0);
 
-  const textW = textWidth(text); // 全角/emoji 按 2 列计
-  const innerWidth = textW + padX * 2;
+  // 多行文本逐行包框，按显示宽度补齐（BS-N67）
+  const textLines = text.replace(/\r\n?/g, '\n').split('\n');
+  const maxTextW = Math.max(...textLines.map(textWidth)); // 全角/emoji 按 2 列计
+  const innerWidth = maxTextW + padX * 2;
 
   const lines = [];
   // 顶边
@@ -339,7 +342,10 @@ function generate(){
     lines.push(s.v + s.fill.repeat(innerWidth) + s.v);
   }
   // 文本行
-  lines.push(s.v + s.fill.repeat(padX) + text + s.fill.repeat(padX) + s.v);
+  for(const tl of textLines){
+    const tail = ' '.repeat(maxTextW - textWidth(tl));
+    lines.push(s.v + s.fill.repeat(padX) + tl + tail + s.fill.repeat(padX) + s.v);
+  }
   // 底部填充
   for(let i = 0; i < padY; i++){
     lines.push(s.v + s.fill.repeat(innerWidth) + s.v);

@@ -149,16 +149,16 @@
 
     <h3 style="margin-top:14px;">提取类型</h3>
     <div class="checkbox-row">
-      <label><input type="checkbox" id="int" checked> 整数</label>
-      <label><input type="checkbox" id="decimal" checked> 小数</label>
-      <label><input type="checkbox" id="negative" checked> 负数</label>
-      <label><input type="checkbox" id="scientific" checked> 科学计数法</label>
-      <label><input type="checkbox" id="percent"> 百分数</label>
+      <label><input type="checkbox" id="int" checked onchange="extract()"> 整数</label>
+      <label><input type="checkbox" id="decimal" checked onchange="extract()"> 小数</label>
+      <label><input type="checkbox" id="negative" checked onchange="extract()"> 负数</label>
+      <label><input type="checkbox" id="scientific" checked onchange="extract()"> 科学计数法</label>
+      <label><input type="checkbox" id="percent" onchange="extract()"> 百分数</label>
     </div>
     <div class="checkbox-row">
-      <label><input type="checkbox" id="dedup"> 去重</label>
-      <label><input type="checkbox" id="sort"> 排序（数值升序）</label>
-      <label><input type="checkbox" id="sum"> 求和</label>
+      <label><input type="checkbox" id="dedup" onchange="extract()"> 去重</label>
+      <label><input type="checkbox" id="sort" onchange="extract()"> 排序（数值升序）</label>
+      <label><input type="checkbox" id="sum" onchange="extract()"> 求和</label>
     </div>
     <div class="toolbar">
       <div id="text_extract_numbersPresets"></div>
@@ -299,6 +299,8 @@ function extract(){
   if(opt('scientific')) patterns.push(/-?\d+\.?\d*[eE][+-]?\d+/g);
   // 百分数
   if(opt('percent')) patterns.push(/-?\d+\.?\d*%/g);
+  // 千分位金额（BS-N43）：先整体命中，避免「1,234.56」被拆成 234.56 与 1
+  if(opt('decimal') || opt('int')) patterns.push(/-?\d{1,3}(?:,\d{3})+(?:\.\d+)?/g);
   // 小数（含负数）
   if(opt('decimal')) patterns.push(/-?\d+\.\d+/g);
   // 整数
@@ -307,13 +309,14 @@ function extract(){
     else patterns.push(/\d+/g);
   }
 
+  // 数值解析：去掉百分号与千分位逗号，保证求和/排序按真实值
+  const numOf = m => parseFloat(String(m).replace(/[%,]/g, ''));
+
   let matches = [];
   for(const p of patterns){
     const found = text.match(p) || [];
     matches = matches.concat(found);
   }
-  // 去掉重复部分（如负号匹配、小数已包含整数）
-  const nums = matches.map(m => parseFloat(m.replace('%', '')));
   // 简单去重（基于原始字符串位置）
   // 用遍历方式找未重叠的
   let finalMatches = [];
@@ -337,12 +340,12 @@ function extract(){
     finalMatches = finalMatches.filter(m => seen.has(m) ? false : (seen.add(m), true));
   }
   if(document.getElementById('sort').checked){
-    finalMatches.sort((a, b) => parseFloat(a) - parseFloat(b));
+    finalMatches.sort((a, b) => numOf(a) - numOf(b));
   }
 
   document.getElementById('count').textContent = finalMatches.length;
   if(document.getElementById('sum').checked && finalMatches.length > 0){
-    const sum = finalMatches.reduce((s, m) => s + parseFloat(m), 0);
+    const sum = finalMatches.reduce((s, m) => s + numOf(m), 0);
     document.getElementById('sumResult').textContent = sum.toFixed(2); // BS-N61: 与同页平均值 toFixed(2) 口径一致，避免 0.30000000000000004
     document.getElementById('avgResult').textContent = (sum / finalMatches.length).toFixed(2);
   }else{

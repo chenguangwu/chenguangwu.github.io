@@ -339,42 +339,46 @@ function draw(){
 
   const styleKey = document.getElementById('style').value;
   const s = STYLES[styleKey];
-  const padX = parseInt(document.getElementById('padX').value) || 0;
-  const padY = parseInt(document.getElementById('padY').value) || 0;
+  // 负内边距会让 repeat() 抛 RangeError，入口钳制为 0（BS-N68）
+  const padX = Math.max(0, parseInt(document.getElementById('padX').value) || 0);
+  const padY = Math.max(0, parseInt(document.getElementById('padY').value) || 0);
   const alignCenter = document.getElementById('alignCenter').checked;
   const trimEach = document.getElementById('trimEach').checked;
   const showTitle = document.getElementById('title').checked;
 
-  let lines = text.split('\n');
+  let lines = text.replace(/\r\n?/g, '\n').split('\n');
   if(trimEach) lines = lines.map(l => l.trim());
   const maxVisual = Math.max(...lines.map(l => visualLen(l)));
   const innerWidth = maxVisual + padX * 2;
+  // 标题比内容宽时扩宽框体，避免顶边被标题撑长导致错位（BS-N69）
+  const inner = showTitle ? Math.max(innerWidth, visualLen(' ToolBox ')) : innerWidth;
 
   const out = [];
   // 顶边
   if(showTitle){
     const title = ' ToolBox ';
-    const before = Math.floor((innerWidth - visualLen(title)) / 2);
-    const after = innerWidth - visualLen(title) - before;
+    const before = Math.floor((inner - visualLen(title)) / 2);
+    const after = inner - visualLen(title) - before;
     out.push(s.tl + s.h.repeat(Math.max(0, before)) + title + s.h.repeat(Math.max(0, after)) + s.tr);
   }else{
-    out.push(s.tl + s.h.repeat(innerWidth) + s.tr);
+    out.push(s.tl + s.h.repeat(inner) + s.tr);
   }
   // 顶填充
   for(let i = 0; i < padY; i++){
-    out.push(s.v + ' '.repeat(innerWidth) + s.v);
+    out.push(s.v + ' '.repeat(inner) + s.v);
   }
   // 内容
   for(const line of lines){
     const padded = padStr(line, maxVisual, alignCenter);
-    out.push(s.v + ' '.repeat(padX) + padded + ' '.repeat(padX) + s.v);
+    const extra = inner - innerWidth;
+    out.push(s.v + ' '.repeat(padX) + padded + ' '.repeat(padX + extra) + s.v);
   }
   // 底填充
   for(let i = 0; i < padY; i++){
-    out.push(s.v + ' '.repeat(innerWidth) + s.v);
+    out.push(s.v + ' '.repeat(inner) + s.v);
   }
   // 底边
-  out.push(s.bl + s.h.repeat(innerWidth) + s.br);
+  out.push(s.bl + s.h.repeat(inner) + s.br);
 
   result.textContent = out.join('\n');
 }

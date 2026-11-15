@@ -145,8 +145,8 @@
     <div id="wrapOpt">
           <div class="formula-box">
       <div class="formula-title">📐 计算公式 / 原理</div>
-      <div class="formula-eq">字符模式：行数 = ⌈文本长度 / 宽度⌉，第 i 行 = 文本[i×宽度 : (i+1)×宽度]；词模式：按空白切词，累计长度超过宽度即换行；超长词（单词长度 > 宽度）按宽度强制切分</div>
-      <div class="formula-desc">字符模式严格按定长切分，会切断英文单词与中文词语，适合固定宽度设备（如小票、终端）。词模式保持单词完整，行数略多但可读性好，是正文排版的默认选择。两种模式都按 UTF-16 code unit 计数，含 emoji 或代理对字符（如 𝕏、部分表情）时计数会偏大，视觉宽度以实际渲染为准。换行符可选 \n、\r\n 或 <br>，写 HTML 片段用 <br>，生成 Windows 文本用 \r\n。</div>
+      <div class="formula-eq">字符模式：行数 = ⌈文本长度 / 宽度⌉，第 i 行 = 文本[i×宽度 : (i+1)×宽度]（按码点计数，emoji 不拆分）；词模式：按空白切词并保留原段落换行，累计长度超过宽度即换行；取消「不截断单词」时超长词按宽度强制切分，勾选时整词保留可超宽</div>
+      <div class="formula-desc">字符模式严格按定长切分，会切断英文单词与中文词语，适合固定宽度设备（如小票、终端）。词模式保持单词完整，行数略多但可读性好，是正文排版的默认选择。两种模式均按 Unicode 码点计数，emoji 等代理对字符视为一个字符，不会被拆坏；视觉宽度仍以实际渲染为准（CJK 全角字符约占两列）。换行符可选 \n、\r\n 或 <br>，写 HTML 片段用 <br>，生成 Windows 文本用 \r\n。</div>
     </div>
 <div class="input-row">
         <div>
@@ -163,8 +163,8 @@
         </div>
       </div>
       <div class="checkbox-row">
-        <label><input type="checkbox" id="wrapWord" checked> 按单词换行</label>
-        <label><input type="checkbox" id="wrapKeepWord"> 不截断单词</label>
+        <label><input type="checkbox" id="wrapWord" checked onchange="process()"> 按单词换行</label>
+        <label><input type="checkbox" id="wrapKeepWord" onchange="process()"> 不截断单词</label>
       </div>
     </div>
 
@@ -180,18 +180,18 @@
         </div>
       </div>
       <div class="checkbox-row">
-        <label><input type="radio" name="padSide" value="right" checked> 右填充</label>
-        <label><input type="radio" name="padSide" value="left"> 左填充</label>
-        <label><input type="radio" name="padSide" value="center"> 居中</label>
+        <label><input type="radio" name="padSide" value="right" checked onchange="process()"> 右填充</label>
+        <label><input type="radio" name="padSide" value="left" onchange="process()"> 左填充</label>
+        <label><input type="radio" name="padSide" value="center" onchange="process()"> 居中</label>
       </div>
     </div>
 
     <div id="alignOpt" style="display:none;">
       <div class="checkbox-row">
-        <label><input type="radio" name="alignType" value="left" checked> 左对齐</label>
-        <label><input type="radio" name="alignType" value="right"> 右对齐</label>
-        <label><input type="radio" name="alignType" value="center"> 居中</label>
-        <label><input type="radio" name="alignType" value="justify"> 两端对齐</label>
+        <label><input type="radio" name="alignType" value="left" checked onchange="process()"> 左对齐</label>
+        <label><input type="radio" name="alignType" value="right" onchange="process()"> 右对齐</label>
+        <label><input type="radio" name="alignType" value="center" onchange="process()"> 居中</label>
+        <label><input type="radio" name="alignType" value="justify" onchange="process()"> 两端对齐</label>
       </div>
       <label>对齐宽度 <input type="number" id="alignWidth" value="60" oninput="process()" style="width:80px;display:inline-block;margin-left:8px;" placeholder="如 60"></label>
     </div>
@@ -218,8 +218,8 @@
         </div>
       </div>
       <div class="checkbox-row">
-        <label><input type="checkbox" id="numPad" checked> 数字补零</label>
-        <label><input type="checkbox" id="numSkip"> 跳过空行</label>
+        <label><input type="checkbox" id="numPad" checked onchange="process()"> 数字补零</label>
+        <label><input type="checkbox" id="numSkip" onchange="process()"> 跳过空行</label>
       </div>
     </div>
 
@@ -336,40 +336,49 @@ function process(){
   document.getElementById('preview').textContent = result;
 }
 function wrapText(text){
-  const width = parseInt(document.getElementById('wrapWidth').value) || 40;
+  text = text.replace(/\r\n?/g, '\n');
+  const width = Math.max(1, parseInt(document.getElementById('wrapWidth').value) || 40);
   const breakChar = document.getElementById('wrapBreak').value === '\\n' ? '\n' : document.getElementById('wrapBreak').value === '\\r\\n' ? '\r\n' : '<br>';
   const wordMode = document.getElementById('wrapWord').checked;
   const keepWord = document.getElementById('wrapKeepWord').checked;
   if(wordMode){
-    const words = text.split(/\s+/);
-    let line = '', lines = [];
-    for(const w of words){
-      if((line + ' ' + w).trim().length > width){
-        if(line) lines.push(line);
-        if(keepWord && w.length > width){
-          for(let i = 0; i < w.length; i += width){
-            lines.push(w.slice(i, i + width));
+    // 按原段落逐段折行，保留原文换行与空行（BS-N46）
+    return text.split('\n').map(para => {
+      const words = para.split(/\s+/).filter(Boolean);
+      let line = '', lines = [];
+      for(const w of words){
+        if((line + ' ' + w).trim().length > width){
+          if(line) lines.push(line);
+          if(!keepWord && Array.from(w).length > width){
+            // 取消「不截断单词」时超长词按宽度切分，按码点切避免拆坏代理对（BS-N45/N47）
+            const chars = Array.from(w);
+            for(let i = 0; i < chars.length; i += width){
+              lines.push(chars.slice(i, i + width).join(''));
+            }
+            line = '';
+          } else {
+            line = w;
           }
-          line = '';
         } else {
-          line = w;
+          line = (line + ' ' + w).trim();
         }
-      } else {
-        line = (line + ' ' + w).trim();
       }
-    }
-    if(line) lines.push(line);
-    return lines.join(breakChar);
+      if(line) lines.push(line);
+      return lines.join(breakChar);
+    }).join('\n');
   } else {
+    // 字符模式按码点切分，emoji 不再被劈成孤立代理项（BS-N47）
+    const chars = Array.from(text);
     const lines = [];
-    for(let i = 0; i < text.length; i += width){
-      lines.push(text.slice(i, i + width));
+    for(let i = 0; i < chars.length; i += width){
+      lines.push(chars.slice(i, i + width).join(''));
     }
     return lines.join(breakChar);
   }
 }
 function padText(text){
-  const width = parseInt(document.getElementById('padWidth').value) || 50;
+  text = text.replace(/\r\n?/g, '\n');
+  const width = Math.max(1, parseInt(document.getElementById('padWidth').value) || 50);
   const ch = document.getElementById('padChar').value || ' ';
   const side = document.querySelector('input[name=padSide]:checked').value;
   return text.split('\n').map(line => {
@@ -387,7 +396,8 @@ function padText(text){
   }).join('\n');
 }
 function alignText(text){
-  const width = parseInt(document.getElementById('alignWidth').value) || 60;
+  text = text.replace(/\r\n?/g, '\n');
+  const width = Math.max(1, parseInt(document.getElementById('alignWidth').value) || 60);
   const type = document.querySelector('input[name=alignType]:checked').value;
   return text.split('\n').map(line => {
     const len = Array.from(line).length;
