@@ -294,6 +294,36 @@ const CASES = [
     ref: "D-N36 白名单：活动系数 0.5 越界 ⇒ 拒绝并提示常用范围，不再输出减半的蛋白质需求。",
   },
   {
+    slug: "healthcare/blood-pressure-grade",
+    inputs: { sys: "145", dia: "85" },
+    expect: ["单纯收缩期高血压", "脉压： 60"],
+    ref: "D-N48 分级：145/85 ⇒ 收缩压 ≥140 且舒张压 <90 ⇒ 单纯收缩期高血压；脉压 60。旧实现默认 120/80 输出「3 等级」，现为「正常高值」。",
+  },
+  {
+    slug: "healthcare/blood-pressure-grade",
+    inputs: { sys: "185", dia: "115" },
+    expect: ["3 级高血压"],
+    ref: "D-N48 高值分支：185/115 ⇒ 收缩压 ≥180 或舒张压 ≥110 ⇒ 3 级高血压。",
+  },
+  {
+    slug: "healthcare/blood-pressure-grade",
+    inputs: { sys: "80", dia: "120" },
+    expect: ["收缩压须大于舒张压"],
+    ref: "D-N48 顺序守卫：舒张压 120 > 收缩压 80 ⇒ 拒绝计算，不输出负脉压。",
+  },
+  {
+    slug: "healthcare/healthcare-4",
+    inputs: { dyspnea: "0", rest: "0", limits: "1" },
+    expect: ["NYHA 分级： 3 级", "答案存在矛盾"],
+    ref: "D-N50 矛盾守卫：勾「活动明显受限」但气短为 0 ⇒ 判 3 级并红字提示复核；旧实现判 I 级无症状。默认 1/0/0 走 II 级，不命中。",
+  },
+  {
+    slug: "healthcare/healthcare-4",
+    inputs: { dyspnea: "", rest: "", limits: "" },
+    expect: ["请完整填写三项"],
+    ref: "D-N50 空态守卫：三项全空 ⇒ 拒绝判读；旧实现按 0 计 ⇒ I 级无症状。",
+  },
+  {
     slug: "healthcare/fat-loss-deficit",
     inputs: { loss: "4", days: "50", targetWeight: "70" },
     expect: ["30800", "616", "74"],
