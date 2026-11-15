@@ -246,14 +246,15 @@ function grade(st){
 }
 
 function show(dpmo, src){
-  if (!isFinite(dpmo) || dpmo<0){
-    const __h0='<p style="color:var(--danger);font-size:13px;">请输入有效数值。</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
+  if (!isFinite(dpmo) || dpmo<0 || dpmo>1e6){
+    var __m = !isFinite(dpmo) ? '请输入有效数值。' : (dpmo<0 ? '合格率不能超过 100%。' : 'DPMO 不能超过 1,000,000（对应合格率不能为负）。');
+    const __h0='<p style="color:var(--danger);font-size:13px;">'+__m+'</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
     return;
   }
   var y = 1 - dpmo/1e6;
   if (y<=0) y=1e-9; if (y>=1) y=1-1e-9;
   var lt = invNorm(y);
-  var st = Math.min(lt+1.5, 6);
+  var st = Math.min(Math.round((lt+1.5)*100)/100, 6);
   if (src!=='dpmo') document.getElementById('dpmo').value = dpmo.toFixed(dpmo>=100?0:4);
   if (src!=='yield') document.getElementById('yield').value = (y*100).toFixed(4);
   if (src!=='st') document.getElementById('st').value = st.toFixed(2);
@@ -279,6 +280,10 @@ function fromYield(){ var v=parseFloat(document.getElementById('yield').value); 
 function fromSt(){ var v=parseFloat(document.getElementById('st').value); 
   // 短期 → 长期 → 合格率 → dpmo
   if(!isFinite(v)){ show(NaN,'st'); return; }
+  if(v<=0||v>6){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);font-size:13px;">'+(v<=0?'短期西格玛水平须大于 0。':'本工具以 6σ（3.4 DPMO）为上限，短期水平请不超过 6。')+'</p>';
+    return;
+  }
   var lt = v-1.5;
   var y = normCdf(lt);
   show((1-y)*1e6, 'st');
@@ -306,9 +311,14 @@ function buildRef(){
 }
 
 function copyResult(){
-  var txt=document.getElementById('result').innerText.replace(/\n+/g,'；');
-  if(!txt){ ToolBox.showToast(i18nText(), 'warning'); return; }
-  ToolBox.copyText(txt,'tool.copy_ok');
+  var el=document.getElementById('result');
+  var raw=el?String(el.innerText||''):'';
+  if(!raw&&el) raw=String(el.textContent||el.innerHTML||'');
+  var txt=raw.replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
+  var en=false;
+  try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn()) en=true; }catch(e){}
+  if(!txt){ ToolBox.showToast(en?'Nothing to copy yet':'暂无可复制的结果','warning'); return; }
+  ToolBox.copyText(txt,en?'Copied':'已复制结果');
 }
 fromDpmo();
 buildRef();
