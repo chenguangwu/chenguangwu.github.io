@@ -132,10 +132,10 @@
 </div>
 <div class="card tool-card-accent" style="--tool-accent:#3B82F6;">
     <h2 data-zh="👕 服装尺码换算器">👕 Clothing Size Converter</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="女上装：中国码 / 国际码 / 美码 / 英码 / 欧码">Convert clothing sizes across US, UK, EU, CN and JP systems for men, women and children.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="女上装：中国码 / 国际码 / 美码 / 英码 / 欧码">Convert CN, US, UK and EU clothing sizes for women's and men's tops and pants.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-      <div class="formula-eq">服装尺码以实测净尺寸换算：中国码如 160/84A 中 160 为身高、84 为胸围、A 为体型（Y 偏瘦、A 标准、B 偏胖、C 肥胖）；换算欧码约加 20 至 24（84 cm 对应 EU 38）、美码约减 2 至 4（US 6 至 8）、国际码按 XS 至 XL 分档，跨境选码应以净尺寸而非成衣标码为准。</div>
+      <div class="formula-eq">服装尺码以实测净尺寸换算：中国码如 160/84A 中 160 为身高、84 为胸围、A 为体型（Y 偏瘦、A 标准、B 偏胖、C 肥胖）。本页按下方对照表取值：女装 160/84A → 国际 S / 美码 4 / 英码 6 / 欧码 34；男装 170/88 → 国际 XL / 美码 40 / 英码 40 / 欧码 50。各国品牌版型差异大，跨境选码应以净尺寸和品牌尺码表为准。</div>
   
 </div>
 
@@ -308,9 +308,38 @@ function convert(){
   const table = tables[cat];
   const found = table.find(r => String(r[sys]).toUpperCase() === v);
   if(!found){
+    // 中国码支持「最近码」：切换品类后默认 165/88A 在男装表不存在时不再直接报错，
+    // 按胸围/腰围优先、身高次之取最接近的一行，并明确标注为近似匹配。
+    const near = (sys === 'cn') ? nearestRow(table, v) : null;
+    if(near){
+      renderRow(near, cat, `<p style="font-size:12px;color:var(--text-muted);margin-top:6px;">⚠ 未找到精确匹配 "${ToolBox.escHtml(v)}"，以下为同表内最接近的 <strong>${near.cn}</strong>（近似参考）。</p>`);
+      return;
+    }
     const __h1=`<p style="color:var(--danger);">未找到匹配项 "${ToolBox.escHtml(v)}"（${sys}）</p><p style="font-size:12px;color:var(--text-muted);">可参考下表中的可选值</p>`;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h1;
     return;
   }
+  renderRow(found, cat, '');
+}
+
+function parseCn(s){
+  const m = String(s).toUpperCase().match(/^(\d{3})\s*\/\s*(\d{2,3})/);
+  return m ? {height: +m[1], chest: +m[2]} : null;
+}
+
+function nearestRow(table, v){
+  const t = parseCn(v);
+  if(!t) return null;
+  let best = null, bd = Infinity;
+  for(const r of table){
+    const rv = parseCn(r.cn);
+    if(!rv) continue;
+    const d = Math.abs(rv.chest - t.chest) * 100 + Math.abs(rv.height - t.height);
+    if(d < bd){ bd = d; best = r; }
+  }
+  return best;
+}
+
+function renderRow(found, cat, note){
   let html = `<p>匹配成功：<strong>${found.cn}</strong>（${cat === 'w_top' ? '女装上衣' : cat === 'm_top' ? '男装上衣' : cat === 'w_pants' ? '女装裤装' : '男装裤装'}）</p>`;
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">';
   html += `<p>中国码：<strong>${found.cn}</strong></p>`;
@@ -318,6 +347,7 @@ function convert(){
   html += `<p>美码：<strong>${found.us}</strong></p>`;
   html += `<p>英码：<strong>${found.uk}</strong></p>`;
   html += `<p>欧码：<strong>${found.eu}</strong></p>`;
+  html += note;
   const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h2;
 }
 

@@ -193,6 +193,27 @@ const CASES = [
     expect: ["12.5"],
     ref: "L/100km ↔ km/L 同为倒数关系：100 ÷ 8 = 12.5 km/L（旧实现 8×1÷100 = 0.08，注入失败即不命中）",
   },
+  {
+    afterLoad: true,
+    slug: "life/unit-converter",
+    inputs: { fromValue: "1", fromUnit: "meter", toUnit: "centimeter" },
+    clicks: [
+      "try{switchCategory('fuel');}catch(e){} document.getElementById('fromUnit').value='liter_per_100km'; document.getElementById('toUnit').value='mile_per_gallon_us'; document.getElementById('fromValue').value='0'; convertFrom('from');",
+    ],
+    expect: ["油耗倒数单位（km/L、mpg）需输入大于 0 的数值。"],
+    ref: "LF-N138：倒数单位输入 0 ⇒ factor/0 = Infinity，旧实现只清空结果框、静默无提示；现显式提示需大于 0。"
+       + "默认长度分类不含该提示 ⇒ 强判别。",
+  },
+  {
+    afterLoad: true,
+    slug: "life/unit-converter",
+    inputs: { fromValue: "1", fromUnit: "meter", toUnit: "centimeter" },
+    clicks: [
+      "try{switchCategory('fuel');}catch(e){} document.getElementById('fromUnit').value='liter_per_100km'; document.getElementById('toUnit').value='mile_per_gallon_us'; document.getElementById('fromValue').value='-5'; convertFrom('from');",
+    ],
+    expect: ["油耗倒数单位（km/L、mpg）需输入大于 0 的数值。"],
+    ref: "LF-N138：负油耗旧实现照常输出 −11.76075 mpg(US)；现与 0 同拦并清空目标框。默认长度分类不命中。",
+  },
   // ── 电话号码归属（中国固话区号切片）────────────────────────────
   {
     slug: "life/phone-lookup",
@@ -1496,6 +1517,20 @@ const CASES = [
     inputs: { cat: "m_top", sys: "eu", inputVal: "54" },
     expect: ["中国码： 180/96"],
     ref: '男装上衣表查 eu=54 列对应行 → cn=180/96（国际 XXXL / 美 44 / 英 44）；注入态输出中国码 180/96，默认态 165/88A 不命中'
+  },
+  {
+    slug: "life/clothing-size-converter",
+    inputs: { cat: "m_top", sys: "cn", inputVal: "165/88A" },
+    expect: ["最接近的 170/88", "近似参考"],
+    ref: "LF-N29：切入男装上衣后默认 165/88A 在 m_top 表无对应行，旧实现直接报「未找到匹配项」；"
+       + "现按胸围优先（|88−84|=4 与 |88−88|=0）、身高次之取最近行 170/88，并标注近似。注入其他行即不命中。",
+  },
+  {
+    slug: "life/clothing-size-converter",
+    inputs: { cat: "w_top", sys: "cn", inputVal: "160/84A" },
+    expect: ["国际码： S", "欧码： 34", "美码： 4"],
+    ref: "LF-N29：公式框原称「84 cm → EU 38 / US 6–8」，与女装表 160/84A → EU 34 / US 4 / UK 6 相差约 4 码；"
+       + "现公式与表统一按表值，本用例锁定 160/84A 的换算结果。",
   },
   {
     slug: "life/data-unit-converter",
