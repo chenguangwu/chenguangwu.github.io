@@ -624,6 +624,26 @@ const CASES = [
     expect: ["请填写「应纳税所得额」后再计算。"],
     ref: "空态守卫：判据锚定文本输入 profit 为空（citOpt=select 保留默认 none 不算未清空）；首项不合规即提示应纳税所得额；默认 1000000/25 不触发。" },
 
+  { slug: "tax/rfc-validator",
+    inputs: { input: "ABC010101AB9" },
+    expect: ["✅ RFC 有效"],
+    ref: "公司 RFC 12 位：ABC010101AB 的校验和 431%11=2 ⇒ 校验位 9；旧实现把 12 位当「无校验位」直接判格式有效，现统一按末位校验位计算。" },
+
+  { slug: "tax/rfc-validator",
+    inputs: { input: "ABCD010101AB0" },
+    expect: ["✅ RFC 有效"],
+    ref: "个人 RFC 13 位：ABCD010101AB 校验和 594%11=0 ⇒ 校验位 0；旧校验函数只按 12 位权重计算，个人 RFC 必错，现权重随主体长度自适应。" },
+
+  { slug: "tax/rfc-validator",
+    inputs: { input: "ABC010230AB3" },
+    expect: ["日期无效，RFC 不成立"],
+    ref: "2 月 30 日：旧实现只粗检 1–12/1–31 且无校验位时仍判「格式有效」；现按真实日历校验并明确日期无效。" },
+
+  { slug: "tax/rfc-validator",
+    inputs: { input: "<img src=x onerror=alert(1)>" },
+    clicks: ["validate();var t=String(document.getElementById('output').innerHTML);document.getElementById('__tbProbe').textContent='RFCX '+((t.indexOf('&lt;IMG')>=0&&t.indexOf('<IMG')<0)?'OK':'BAD');"],
+    expect: ["RFCX OK"],
+    ref: "注入：旧实现把原始输入直接插入结果 innerHTML；现输入回显走本地 escapeHtml，标签以文本呈现。" },
 
 ];
 

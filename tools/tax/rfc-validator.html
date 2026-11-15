@@ -138,7 +138,7 @@
 <div class="card tool-card-accent" style="--tool-accent:#06B6D4;">
      <h2 data-zh="🇲🇽 墨西哥 RFC 验证">🇲🇽 Mexican RFC Validator</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">个人 RFC = 4 字母 + 6 数字 + 3 字母数字（+1 校验位）；公司 RFC = 3 字母 + 6 数字 + 3 字母数字；日期段 yy ＜ 30 判为 20 世纪（1900+yy），否则 21 世纪（2000+yy）；末位与 rfcChecksum 结果比对</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">个人 RFC = 4 字母 + 6 数字 + 3 位同音字（共 13 位）；公司 RFC = 3 字母 + 6 数字 + 3 位同音字（共 12 位）；日期段 yy＜30 判为 2000+yy，否则 1900+yy；末位为校验位，与 rfcChecksum 结果比对</div>
   <div class="formula-desc">本校验工具依据对应数据格式与语法规范进行合法性检查，实时给出校验结果与错误定位；纯前端运行，代码不离开浏览器。 工具名称：墨西哥 RFC 验证 - 免费验证器工具，在线墨西哥 RFC 验证，免费使用。</div>
 </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="墨西哥 RFC 验证工具：输入墨西哥纳税人登记号（RFC），校验格式、长度与校验位合法性，用于跨境身份与税号核验。">Validate a Mexican RFC taxpayer registration number for length, structure and check digit. Format check only.</p>
@@ -226,13 +226,18 @@
 </div>
 <script>
 const RFC_BASE = '0123456789ABCDEFGHIJKLMN&OPQRSTUVWXYZ';
-function rfcChecksum(s11){
-  // Compute checksum on first 11 chars (only for 12-char RFC)
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+function rfcChecksum(s){
+  // s = 去掉校验位的主体；权重从 s.length+1 递减到 2（个人 13 位/公司 12 位通用）
   let sum = 0;
-  for(let i = 0; i < 11; i++){
-    const val = RFC_BASE.indexOf(s11[i]);
+  for(let i = 0; i < s.length; i++){
+    const val = RFC_BASE.indexOf(s[i]);
     if(val < 0) return -1;
-    sum += val * (12 - i);
+    sum += val * (s.length + 1 - i);
   }
   const rem = sum % 11;
   return rem === 0 ? 0 : 11 - rem;
@@ -241,28 +246,20 @@ function validate(){
   const raw = document.getElementById('input').value.trim().toUpperCase();
   const out = document.getElementById('output');
   if(!raw){ const __h0=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Waiting for input...":"等待输入...");if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0; return; }
-  let html = `<p><strong>输入：</strong>${raw}</p>`;
+  let html = `<p><strong>输入：</strong>${escapeHtml(raw)}</p>`;
   html += `<p><strong>长度：</strong>${raw.length} 字符</p>`;
-  // Person RFC: 4 letters + 6 digits + 3 alphanumeric (homoclave)
-  // Company RFC: 3 letters + 6 digits + 3 alphanumeric (homoclave)
-  // With checksum: 13 chars (person) or 12 chars (company)
-  const personWithCheck = /^[A-Z]{4}\d{6}[A-Z0-9]{3}\d$/;
-  const companyWithCheck = /^[A-Z]{3}\d{6}[A-Z0-9]{3}\d$/;
-  const personNoCheck = /^[A-Z]{4}\d{6}[A-Z0-9]{3}$/;
-  const companyNoCheck = /^[A-Z]{3}\d{6}[A-Z0-9]{3}$/;
+  // 个人 RFC：4 字母 + 6 数字 + 3 位同音字（末位为校验位）= 13 位
+  // 公司 RFC：3 字母 + 6 数字 + 3 位同音字（末位为校验位）= 12 位
+  const person = /^[A-Z]{4}\d{6}[A-Z0-9]{3}$/;
+  const company = /^[A-Z]{3}\d{6}[A-Z0-9]{3}$/;
   let type = '';
-  let hasCheck = false;
-  if(personWithCheck.test(raw)){
-    type = '个人 (Persona Física)'; hasCheck = true;
-  } else if(companyWithCheck.test(raw)){
-    type = '公司 (Persona Moral)'; hasCheck = true;
-  } else if(personNoCheck.test(raw)){
-    type = '个人 (Persona Física，无校验位)';
-  } else if(companyNoCheck.test(raw)){
-    type = '公司 (Persona Moral，无校验位)';
+  if(person.test(raw)){
+    type = '个人 (Persona Física)';
+  } else if(company.test(raw)){
+    type = '公司 (Persona Moral)';
   } else {
-    html += `<p style="color:var(--danger);">❌ 格式不符。个人 RFC 应为 4 字母 + 6 数字 + 3 字母数字 + 可选 1 校验位；公司 RFC 应为 3 字母 + 6 数字 + 3 字母数字 + 可选 1 校验位</p>`;
-    const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;
+    html += `<p style="color:var(--danger);">❌ 格式不符。个人 RFC 应为 4 字母 + 6 数字 + 3 位同音字（共 13 位，末位为校验位）；公司 RFC 应为 3 字母 + 6 数字 + 3 位同音字（共 12 位，末位为校验位）</p>`;
+    out.innerHTML = html;
     return;
   }
   const letters = raw.substring(0, type.startsWith('个人') ? 4 : 3);
@@ -271,25 +268,25 @@ function validate(){
   const mm = parseInt(date.substring(2,4),10);
   const dd = parseInt(date.substring(4,6),10);
   const year = yy < 30 ? 2000 + yy : 1900 + yy;
-  let dateValid = mm >= 1 && mm <= 12 && dd >= 1 && dd <= 31;
-  const homoclave = raw.substring(letters.length + 6, letters.length + 9);
+  const dt = new Date(year, mm - 1, dd);
+  const dateValid = mm >= 1 && mm <= 12 && dd >= 1 && dt.getFullYear() === year && dt.getMonth() === mm - 1 && dt.getDate() === dd;
+  const homoclave = raw.substring(letters.length + 6);
   html += `<p><strong>类型：</strong>${type}</p>`;
   html += `<p><strong>名称首字母：</strong>${letters}</p>`;
-  html += `<p><strong>日期：</strong>${date}（${dateValid ? year+'-'+mm+'-'+dd : '❌ 无效'}</p>`;
-  html += `<p><strong>同音字位：</strong>${homoclave}</p>`;
-  if(hasCheck){
-    const check = raw[raw.length - 1];
-    const expected = rfcChecksum(raw.substring(0, raw.length - 1));
-    html += `<p><strong>校验位：</strong>${check}（期望 ${expected}） ${parseInt(check,10) === expected ? '✅' : '❌'}</p>`;
-    if(dateValid && parseInt(check,10) === expected){
-      html += `<p style="color:var(--success);">✅ RFC 有效</p>`;
-    } else {
-      html += `<p style="color:var(--danger);">❌ RFC 校验失败</p>`;
-    }
+  html += `<p><strong>日期：</strong>${date}（${dateValid ? year+'-'+String(mm).padStart(2,'0')+'-'+String(dd).padStart(2,'0') : '❌ 无效'}）</p>`;
+  html += `<p><strong>同音字位：</strong>${homoclave.substring(0,2)}</p>`;
+  const check = raw.slice(-1);
+  const expected = rfcChecksum(raw.slice(0, -1));
+  const expectChar = expected === 10 ? 'A' : String(expected);
+  html += `<p><strong>校验位：</strong>${check}（期望 ${expectChar}） ${check === expectChar ? '✅' : '❌'}</p>`;
+  if(!dateValid){
+    html += `<p style="color:var(--danger);">❌ 日期无效，RFC 不成立</p>`;
+  } else if(check === expectChar){
+    html += `<p style="color:var(--success);">✅ RFC 有效</p>`;
   } else {
-    html += `<p style="color:var(--success);">✅ RFC 格式有效（无校验位）</p>`;
+    html += `<p style="color:var(--danger);">❌ RFC 校验位不符</p>`;
   }
-  const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h2;
+  out.innerHTML = html;
 }
 function toggleToolTheme(){
   const cur = document.documentElement.getAttribute('data-theme');
