@@ -167,9 +167,9 @@ const CASES = [
   },
   {
     slug: "fishery/plankton-biomass",
-    inputs: { count: "200", chamber: "1", dilution: "2", vol: "800", factor: "0.11" },
+    inputs: { count: "200", chamber: "1", dilution: "2", dilMode: "dilute", vol: "800", factor: "0.11" },
     expect: ["0.0352", "400.0", "88.000"],
-    ref: "注入非默认(默认 120/1/1/500/0.11)：细胞密度 = 200×2÷1 = 400.0 个/mL；单细胞质量 = 0.11×800 = 88.000 pg；生物量 = 400×88 pg/mL = 0.0352 mg C/L。默认态 120.0/55.000/0.0066 均不命中。"
+    ref: "注入非默认(默认 120/1/1/none/500/0.11)：稀释 2 倍后计数 ⇒ 细胞密度 = 200×2÷1 = 400.0 个/mL；单细胞质量 = 0.11×800 = 88.000 pg；生物量 = 400×88 pg/mL = 0.0352 mg C/L。默认态 120.0/55.000/0.0066 均不命中。"
   },
   {
     slug: "fishery/water-oxygen",
@@ -535,9 +535,10 @@ const CASES = [
       "ctype": "fresh"
     },
     "expect": [
-      "42\n42\n42\n42\n1\nfresh\n0.0018 mg/L(鲜重) · 偏低 42"
+      "0.0000 mg/L(鲜重) · 偏低",
+      "1.0 密度(个/mL)"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"count\":\"42\",\"chamber\":\"42\",\"dilution\":\"42\",\"vol\":\"42\",\"factor\":\"42\",\"ctype\":\"fresh\"}，输出区含「42\n42\n42\n42\n1\nfresh\n0.0018 mg/L(鲜重) · 偏低…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"count\":\"42\",\"chamber\":\"42\",\"dilution\":\"42\",\"vol\":\"42\",\"factor\":\"42\",\"ctype\":\"fresh\"}（dilMode 默认 none，故倍数不作修正）；细胞密度 = 42÷42×1 = 1.0 个/mL，鲜重系数被 onchange 重置为 1.0 ⇒ 单细胞 42 pg、生物量 0.000042 mg/L 显示 0.0000 且判「偏低」；默认态为碳 0.0066 mg C/L，不命中。"
   },
   {
     "slug": "fishery/profit-calculator",
