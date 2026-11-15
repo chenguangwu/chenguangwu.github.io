@@ -294,6 +294,20 @@ const CASES = [
   "ref": "B2 回归：清空实测 NEX 时不得把空值当 0 或默认 77 混算。旧实现 182×0.2+0=36 cm；修正后身高估算 182×0.25+10=55.5 → 56 cm。默认态 53 cm，零交集。"
 },
 {
+  "slug": "clinical-nursing/gastric-tube-depth",
+  "inputs": {
+    "height": "200",
+    "noseXiphoid": ""
+  },
+  "clicks": [
+    "currentMethod='formula';calc()"
+  ],
+  "expect": [
+    "超出成人常规 45–55 cm"
+  ],
+  "ref": "D-N26 越界提示：身高 200 cm ⇒ 200×0.25+10 = 60 cm，超出成人常规 45–55 cm，须提示复核并用 X 线/抽吸确认。默认 53 cm 不命中。"
+},
+{
   "slug": "clinical-nursing/generator-pressure",
   "inputs": {
     "cnt": "10"
