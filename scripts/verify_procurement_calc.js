@@ -106,6 +106,32 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "procurement/supplier-score",
+  "inputs": {
+    "wQuality": "0",
+    "wPrice": "0",
+    "wDelivery": "0",
+    "wService": "0"
+  },
+  "expect": [
+    "权重合计必须大于 0"
+  ],
+  "ref": "修复前四权重全 0 兜底分母 100，仍给四家供应商 0 分排名；现拒绝"
+},
+{
+  "slug": "procurement/supplier-score",
+  "inputs": {
+    "wQuality": "-5",
+    "wPrice": "25",
+    "wDelivery": "20",
+    "wService": "15"
+  },
+  "expect": [
+    "请填写 0–100 的权重"
+  ],
+  "ref": "修复前负权重参与归一化；现字段级拒绝"
+},
+{
   "slug": "procurement/wuliu-yunshufangshi-yunfei-bidui",
   "inputs": {
     "v0": "800",

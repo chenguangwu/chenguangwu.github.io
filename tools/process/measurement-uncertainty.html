@@ -210,6 +210,18 @@
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
+            var __ids=['u1','u2','u3'],__badEmpty=false,__badNeg=false,__sumSq=0;
+            for(var __i=0;__i<__ids.length;__i++){
+              var __el=document.getElementById(__ids[__i]);
+              var __rv=__el?String(__el.value==null?'':__el.value).trim():'';
+              var __n=parseFloat(__rv);
+              if(__rv===''||!isFinite(__n)){__badEmpty=true;continue;}
+              if(__n<0)__badNeg=true;
+              __sumSq+=__n*__n;
+            }
+            if(__badEmpty){document.getElementById('result').innerHTML='<p style="color:var(--danger);">请填写三个不确定度分量（可填 0，但不能为空）</p>';return;}
+            if(__badNeg){document.getElementById('result').innerHTML='<p style="color:var(--danger);">请检查输入：不确定度分量不能为负值</p>';return;}
+            if(__sumSq===0){document.getElementById('result').innerHTML='<p style="color:var(--danger);">请检查输入：至少一个不确定度分量应大于 0</p>';return;}
             const u1=num('u1'),u2=num('u2'),u3=num('u3');
             const __g1=dataGrid([
                 [Math.sqrt(u1*u1+u2*u2+u3*u3).toFixed(4),'合成不确定度 u_c'],
@@ -228,7 +240,10 @@ function __measurement_uncertaintyExtras(){
     function __measurement_uncertaintyRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var u1=num('u1'),u2=num('u2'),u3=num('u3');
-    if (!isFinite(__measurement_uncertaintyNum('u1')) || !isFinite(__measurement_uncertaintyNum('u2')) || !isFinite(__measurement_uncertaintyNum('u3'))) return;
+    if (!isFinite(__measurement_uncertaintyNum('u1')) || !isFinite(__measurement_uncertaintyNum('u2')) || !isFinite(__measurement_uncertaintyNum('u3'))){var __tbEl0=document.getElementById('measurement_uncertaintyTable');if(__tbEl0)__tbEl0.innerHTML='';return;}
+    if(__measurement_uncertaintyNum('u1')<0||__measurement_uncertaintyNum('u2')<0||__measurement_uncertaintyNum('u3')<0||(u1*u1+u2*u2+u3*u3)===0){
+      var __tbEl=document.getElementById('measurement_uncertaintyTable');if(__tbEl)__tbEl.innerHTML='<p style="color:var(--danger);">输入无效，未生成明细</p>';return;
+    }
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#measurement_uncertaintyTable',{
         head: en?['Item','Value']:['项目','数值'],

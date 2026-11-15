@@ -137,6 +137,43 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "process/measurement-uncertainty",
+  "inputs": {
+    "u1": "-1",
+    "u2": "0.3",
+    "u3": "0.2"
+  },
+  "expect": [
+    "不确定度分量不能为负值"
+  ],
+  "ref": "修复前 u1=-1 得合成值 1.0630 且照常输出；现拒绝"
+},
+{
+  "slug": "process/measurement-uncertainty",
+  "inputs": {
+    "u1": "0",
+    "u2": "0",
+    "u3": "0"
+  },
+  "expect": [
+    "至少一个不确定度分量应大于 0"
+  ],
+  "ref": "修复前三项清零仍输出 0 不确定度；现拒绝"
+},
+{
+  "slug": "process/rolled-throughput-yield",
+  "inputs": {
+    "y1": "0",
+    "y2": "0",
+    "y3": "0"
+  },
+  "expect": [
+    "0.00",
+    "100.00"
+  ],
+  "ref": "三道工序 0% 是合法工况：RTY=0.00%、总不良率 100.00%；修复前被通用全零守卫误拒绝"
+},
+{
   "slug": "process/pp-index",
   "inputs": {
     "usl": "15.05",

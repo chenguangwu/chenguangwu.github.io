@@ -238,18 +238,28 @@ function renderList(){
   const __g0=suppliers.map(function(s,i){
     return '<div class="sup-row">'+
       '<input type="text" value="'+ToolBox.escHtml(s.name)+'" placeholder="供应商名称" oninput="updateSup('+i+',\'name\',this.value)">'+
-      '<input type="number" value="'+s.quality+'" step="1" min="0" max="100" title="质量分" oninput="updateSup('+i+',\'quality\',this.value)" placeholder="如 '+s.quality+'（0–100）">'+
-      '<input type="number" value="'+s.price+'" step="1" min="0" max="100" title="价格分" oninput="updateSup('+i+',\'price\',this.value)" placeholder="如 '+s.price+'（0–100）">'+
-      '<input type="number" value="'+s.delivery+'" step="1" min="0" max="100" title="交期分" oninput="updateSup('+i+',\'delivery\',this.value)" placeholder="如 '+s.delivery+'（0–100）">'+
-      '<input type="number" value="'+s.service+'" step="1" min="0" max="100" title="服务分" oninput="updateSup('+i+',\'service\',this.value)" placeholder="如 '+s.service+'（0–100）">'+
+      '<input type="number" value="'+s.quality+'" step="1" min="0" max="100" title="质量分" oninput="updateSup('+i+',\'quality\',this.value,this)" placeholder="如 '+s.quality+'（0–100）">'+
+      '<input type="number" value="'+s.price+'" step="1" min="0" max="100" title="价格分" oninput="updateSup('+i+',\'price\',this.value,this)" placeholder="如 '+s.price+'（0–100）">'+
+      '<input type="number" value="'+s.delivery+'" step="1" min="0" max="100" title="交期分" oninput="updateSup('+i+',\'delivery\',this.value,this)" placeholder="如 '+s.delivery+'（0–100）">'+
+      '<input type="number" value="'+s.service+'" step="1" min="0" max="100" title="服务分" oninput="updateSup('+i+',\'service\',this.value,this)" placeholder="如 '+s.service+'（0–100）">'+
       '<button class="del" onclick="removeSup('+i+')">×</button>'+
     '</div>';
   }).join('');if((typeof __g0==='number'&&!isFinite(__g0))||/Infinity|NaN/.test(String(__g0))){box.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';}else{box.innerHTML=__g0;}
 }
 
-function updateSup(i,field,val){
-  if(field!=='name') val=parseFloat(val)||0;
-  suppliers[i][field]=val;
+function updateSup(i,field,val,el){
+  if(field!=='name'){
+    var n=parseFloat(val);
+    if(!isFinite(n)||n<0||n>100){
+      if(el&&el.classList)el.classList.add('input-error');
+      if(typeof ToolBox!=='undefined'&&ToolBox.showToast)ToolBox.showToast('评分需为 0–100 的数值，已保留原值','warning');
+      return;
+    }
+    if(el&&el.classList)el.classList.remove('input-error');
+    suppliers[i][field]=n;
+  } else {
+    suppliers[i][field]=val;
+  }
   calc();
 }
 function addSupplier(){ suppliers.push({name:'新供应商',quality:80,price:80,delivery:80,service:80}); renderList(); calc(); }
@@ -266,11 +276,31 @@ function loadDemo(){
 }
 
 function calc(){
-  var wq=val('wQuality'),wp=val('wPrice'),wd=val('wDelivery'),ws=val('wService');
+  var wIds=['wQuality','wPrice','wDelivery','wService'];
+  var wVals=[],wInvalid=false;
+  for(var wi=0;wi<wIds.length;wi++){
+    var wel=document.getElementById(wIds[wi]);
+    var wrv=wel?String(wel.value==null?'':wel.value).trim():'';
+    var wn=parseFloat(wrv);
+    if(wrv===''||!isFinite(wn)||wn<0||wn>100){wInvalid=true;break;}
+    wVals.push(wn);
+  }
+  if(wInvalid){
+    document.getElementById('weightCheck').innerHTML='<p style="color:var(--danger)">请填写 0–100 的权重（不能为空或超出范围）。</p>';
+    document.getElementById('rankBody').innerHTML='';
+    document.getElementById('barChart').innerHTML='';
+    return;
+  }
+  var wq=wVals[0],wp=wVals[1],wd=wVals[2],ws=wVals[3];
   var wsum=wq+wp+wd+ws;
   const __g1='权重合计：<strong style="color:'+(wsum===100?'var(--success)':'var(--danger)')+';">'+wsum+'%</strong>'+(wsum===100?' ✓':'（建议合计100%）');if((typeof __g1==='number'&&!isFinite(__g1))||/Infinity|NaN/.test(String(__g1))){document.getElementById('weightCheck').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';}else{document.getElementById('weightCheck').innerHTML=__g1;}
 
-  if(wsum===0) wsum=100;
+  if(wsum<=0){
+    document.getElementById('weightCheck').innerHTML='<p style="color:var(--danger)">权重合计必须大于 0。</p>';
+    document.getElementById('rankBody').innerHTML='';
+    document.getElementById('barChart').innerHTML='';
+    return;
+  }
   var wqN=wq/wsum,wpN=wp/wsum,wdN=wd/wsum,wsN=ws/wsum;
 
   var scored=suppliers.map(function(s){
