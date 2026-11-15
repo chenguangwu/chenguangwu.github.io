@@ -126,7 +126,7 @@
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
-    <div class="formula-eq">低钠纠正预期（Adrogué–Madias 式变体）：预期血钠升幅 = (输注液钠浓度 − 当前血钠) ÷ (总体水 + 1)（mmol/L）；目标差距 = 目标血钠 − 当前血钠（mmol/L）；固定提醒 24h 升幅不超过 8-10 mmol/L。校验：四项非空守卫，全 0 报错；分母恒为「总体水+1」，代码未另设分母置零项。判据：无固定分级，仅输出纠正速度上限提醒。</div>
+    <div class="formula-eq">低钠纠正预期（Adrogué–Madias 式变体）：每输注 1 L 预期升幅 = (输注液钠浓度 − 当前血钠) ÷ (总体水 + 1)（mmol/L）；目标差距 = 目标血钠 − 当前血钠（mmol/L）；达到目标所需液量 = 目标差距 ÷ 每升升幅（L）；按 24h 均速 = 所需液量 × 1000 ÷ 24（mL/h）。固定提醒 24h 升幅不超过 8-10 mmol/L，可据此折算单日最大液量（8÷升幅 至 10÷升幅）。校验：四项非空守卫，全 0 报错；目标低于当前、或输注液钠不高于当前时给出红字警示；分母恒为「总体水+1」。判据：无固定分级，仅输出纠正速度上限提醒。</div>
     <p style="font-size:13px;color:var(--text-muted);margin-top:12px;">仅为教学估算，临床必须个体化治疗。</p>
   </div>
 </div>
@@ -271,9 +271,19 @@ const na_inf = +document.getElementById('na_inf').value || 0;
   const current = +document.getElementById('current').value || 0;
   let html = '';
   const __v0 = ((na_inf-current)/(tbw+1));
-  html += `<p>预期升幅：<strong style="font-size:18px;color:var(--primary);">${__v0.toFixed(2)}</strong> mmol/L</p>`;
+  html += `<p>每输注 1 L 预期升幅：<strong style="font-size:18px;color:var(--primary);">${__v0.toFixed(2)}</strong> mmol/L</p>`;
   const __v1 = (target-current);
   html += `<p>目标差距：<strong style="font-size:18px;color:var(--primary);">${__v1.toFixed(1)}</strong> mmol/L</p>`;
+  if(__v1<0){
+    html += '<p style="color:var(--danger);font-weight:600;">⚠ 目标血钠低于当前血钠，请核对目标值与当前值。</p>';
+  } else if(!(__v0>0)){
+    html += '<p style="color:var(--danger);font-weight:600;">⚠ 输注液钠浓度须高于当前血钠，否则无法提升血钠。</p>';
+  } else if(__v1>0){
+    const __v3 = __v1/__v0;
+    const __v4 = __v3*1000/24;
+    html += `<p>达到目标所需液量：<strong style="font-size:18px;color:var(--primary);">${__v3.toFixed(1)}</strong> L</p>`;
+    html += `<p>按 24h 均速输注：<strong style="font-size:18px;color:var(--primary);">${__v4.toFixed(0)}</strong> mL/h；按 8–10 mmol/L 上限，单日最多输 ${(8/__v0).toFixed(1)}–${(10/__v0).toFixed(1)} L</p>`;
+  }
   const __v2 = ("24h 不超过 8-10 mmol/L");
   html += `<p>24h 上限提醒：<strong style="font-size:18px;color:var(--primary);">${__v2}</strong> </p>`;
   const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
