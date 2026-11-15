@@ -122,10 +122,11 @@
 - 方案：由专业人员确认版本与条目映射后，统一页面、CSV 和门诊记录阈值；注明筛查不等于诊断，增加 1 分反例及 2 分边界测试。
 - 现状（2026-11-16，811 批）：结果区、CSV/导出与门诊记录统一采用「条目 ≥2 分」计数（`filter(v>=2)`），提示文案改为「各条目≥2分」；与 EMR 阳性条目口径一致。门禁新增 6 个 1 分条目 ⇒ 不符合（总分 6）、20 题全 2 分 ⇒ 符合两个边界用例。
 
-### M-N2 MDQ 补充题未完成时门诊记录写阴性（高，确认源码缺陷）
+### M-N2 MDQ 补充题未完成时门诊记录写阴性（已修，812 批）
 - 证据：`tools/psychiatry/mdq-bipolar.html:297-301,423-440` 第一部分 13 题都选是、第二三部分不答时，记录结论为待补充，但提示按 `screen=false` 写「目前未达 MDQ 筛查阳性」，英文写 `screen is currently negative`。
 - 影响：`tools/psychiatry/mdq-bipolar.html`；不完整筛查可被错误解释为阴性并复制进门诊记录。
 - 方案：未完成时明确「不可判定」，或阻止生成完整记录；中英文提示与结果一致，覆盖各补充题缺答情形。
+- 现状（2026-11-16，812 批）：`__emrData()` 结论已按 P2/P3 是否作答区分「待补充第二/三部分」，但临床提示仍走 `screen ? 阳性 : 阴性`，会把未完成写成「目前未达 MDQ 筛查阳性 / screen negative」。现新增 `inc` 分支：中文「第二/三部分未完成，暂不可判定为阴性或阳性，请补全后复评。」，英文「Part 2/3 are incomplete; screening cannot be determined…」。结果区对未完成仍只显示「请完成全部题目」，不生成结论。核验：P2/P3 为页面标量全局，harness 无法注入（既有用例 ref 已记录该盲区），故本批以源码核对 + 既有 1/1 门禁为准。
 
 ### M-N4 多量表首次作答回溯期冲突（高，确认源码路径）
 - 证据：`tools/psychiatry/pcl5-ptsd.html:122,542`、`tools/psychiatry/pdss-panic.html:121,498`、`tools/psychiatry/aq-autism.html:544`、`tools/psychiatry/mdq-bipolar.html:237-250,519` 均给 `js/psych-kit.js:195-218` 配置「最近两周」，而页面 PCL-5 说明为过去一月、PDSS 为过去一周、MDQ 问既往、AQ 题干侧重一般特质。实际首次展示待浏览器核验。
