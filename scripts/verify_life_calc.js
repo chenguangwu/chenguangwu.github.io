@@ -2397,6 +2397,22 @@ const CASES = [
        + "旧实现 parseInt 截断且按字符串长度(12)>10 判为毫秒 ⇒ 得 1970-01-20。",
   },
   {
+    slug: "life/timestamp",
+    clicks: [
+      "document.getElementById('formatSelect').value='s';document.getElementById('timezoneSelect').value='UTC';document.getElementById('batchInput').value='1704067200000';convertBatch();var t=String(document.getElementById('batchResult').textContent);document.getElementById('__tbProbe').textContent='B '+((t.indexOf('2024-01-01T00:00:00.000Z')>=0)?'1':'0');"
+    ],
+    expect: ["B 1"],
+    ref: "批量转换须逐行自动识别单位：单条下拉切到「秒」后，13 位毫秒值仍应按毫秒解析为 2024-01-01T00:00:00Z；旧实现复用单条 parseTimestamp，按秒再乘 1000 得 +055969-09-28。默认态无探针串 ⇒ 零逃生。"
+  },
+  {
+    slug: "life/world-clock",
+    clicks: [
+      "renderMeetingCities();var h=String(document.getElementById('meetingCityList').innerHTML);document.getElementById('__tbProbe').textContent='LON '+((h.indexOf('Europe/London')>=0)?'1':'0');"
+    ],
+    expect: ["LON 1"],
+    ref: "会议城市列表须渲染全量：默认参与城市含 Europe/London（城市表第 25 项），旧实现 slice(0,20) 既渲染不出伦敦也无法取消它。探针检查列表 HTML 是否含该时区 id，修复后为 1。默认态无探针串 ⇒ 零逃生。"
+  },
+  {
     slug: "life/temperature-converter",
     inputs: { celsius: "" },
     expect: ["请输入有效的温度数值"],

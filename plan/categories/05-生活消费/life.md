@@ -108,24 +108,6 @@
 - 影响：`tools/life/zodiac-calculator.html`；每年约 1–2 个月区间的生肖结果错误，属春节前后高频查询，社交/资料填写场景会给出错误答案。
 - 方案：内置逐年春节日期表（或春节算法），`m/d` 早于当年春节时年份减 1 再取模；结果区注明「按春节口径」，并给出按立春口径的对照或开关。
 
-### LF-N15 世界时钟有 4 个无效 IANA 时区 ID，添加后时钟永远停在「--:--:--」（中，确认源码缺陷）
-- 描述：城市表中 `America/Miami`、`America/Seattle`、`America/Boston`、`America/Honolulu` 都不是有效 IANA 时区（迈阿密/西雅图/波士顿属纽约或洛杉矶区域，檀香山应为 `Pacific/Honolulu`）。`Intl.DateTimeFormat` 对无效 ID 抛 `RangeError`，`updateClocks` 的 try/catch 直接吞掉且不写占位，卡片时间永远保持初始 `--:--:--`；`getOffset` 回退到静态 offset，卡片仍显示「美国 · UTC-5」造成误导。
-- 证据：`tools/life/world-clock.html:425-427`、`:435`（四个无效 ID）、`:466-487`（`getOffset` 捕获后回退静态 offset）、`:523-540`（`updateClocks` 捕获后不更新 DOM）、`:514-517`（初始 `--:--:--`）。node 校验：`America/Miami`、`America/Seattle`、`America/Boston`、`America/Honolulu` 均抛 `RangeError`，`America/Buenos_Aires`、`America/Mexico_City`、`Pacific/Honolulu` 正常。
-- 影响：`tools/life/world-clock.html`；用户添加这三座美国城市或「檀香山（America/Honolulu）」后看到空白时钟，且与另一个正常的 `Pacific/Honolulu` 檀香山条目重复，无法判断是网络问题还是工具故障。
-- 方案：改为 `America/New_York`（迈阿密/波士顿）、`America/Los_Angeles`（西雅图）、删除重复的 `America/Honolulu`；`updateClocks` 失败时显示「该城市时区暂不可用」而非空白，并在启动时批量校验城市表。
-
-### LF-N16 会议时间城市列表只渲染前 20 个，默认选中的伦敦无法取消（低，确认源码缺陷）
-- 描述：会议标签的城市按钮只取 `ALL_CITIES.slice(0, 20)`，而默认 `meetingCities` 含 `Europe/London`（表中第 25 项），因此伦敦参与共同时段计算却不出现在可选列表，用户既无法取消它，也无法选择其后的城市（巴黎、纽约、悉尼等绝大多数城市）。
-- 证据：`tools/life/world-clock.html:442`（默认含 `Europe/London`）、`:647-657`（`slice(0, 20)` 渲染）、`:659-669`（只在已渲染按钮上切换）；伦敦在 `:384` 才出现，索引 24。另见 `:698-706` 每行 24 格数字统一打印参考城市小时 `h`，`:713-716` 共同时段也未标注所属城市时区，容易被读成各城市本地时间（此点为阅读推断，未实测）。
-- 影响：`tools/life/world-clock.html`；跨时区会议规划时大量城市不可选，默认参与的伦敦无法移除，共同时段结论的可信度下降。
-- 方案：城市列表改为可搜索全量渲染（或分组展示），默认城市必须在列表中可见可取消；共同时段标题明确「以下时间均为 A 城市时间」并附各城市本地对照。
-
-### LF-N17 批量转换宣称「自动识别单位」，实际沿用单条转换的单位选择（低，确认源码缺陷）
-- 描述：批量区说明「每行一个秒或毫秒时间戳，自动识别单位」，但 `convertBatch` 逐行调用 `parseTimestamp`，后者读取上方 `formatSelect`；用户若把单条转换切到「秒 (10位)」，批量中的 13 位毫秒值会被再乘 1000，输出离谱年份。
-- 证据：`tools/life/timestamp.html:293`（自动识别文案）、`:180-184`（单位下拉）、`:448-457`（`parseTimestamp` 按 `format` 处理，`auto` 仅按字符串长度 ≤10 判秒）、`:528-534`（`convertBatch` 复用同一函数）。node 按源码复算：`format='s'` 时输入 `1704067200000` → `+055969-09-28T00:00:00.000Z`；默认 `auto` 下同值正常得 `2024-01-01T00:00:00.000Z`。
-- 影响：`tools/life/timestamp.html`；批量日志转换在切换过单位后静默给出错误日期，且与页面说明不符，排查成本高。
-- 方案：批量为每行独立自动识别（按数值量级判断，10 位≈秒、13 位≈毫秒），或在批量区提供独立单位下拉并在结果中回显所用单位；补混排秒/毫秒用例。
-
 ### 留存优化
 - `tools/life/workday-calculator.html`：结果旁同时给出「含首尾/不含结束」两种口径并允许切换；内置 2026 国务院节假日与调休预设、导出 `.ics` 工期，减少手工维护日期。
 - `tools/life/parking-fee.html`：按自然日明细表 + 「首时免费/半小时进位/夜间封顶」等规则预设，并在结果标明封顶是否生效，便于离场前截图核对。
