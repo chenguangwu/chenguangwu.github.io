@@ -79,6 +79,20 @@ const CASES = [
   "ref": "RD=3.2520/5.7803/4.0816，均值4.37%；仅S-02超5%，合格率2/3=66.67%"
 },
 {
+  "slug": "geology/analysis-33",
+  "inputs": {
+    "data": "S-01,12.5,12.1\n坏行\nS-03,abc,19.2\nS-04,10,10.5",
+    "lim": "5"
+  },
+  "clicks": [
+    "calc();var r=String(document.getElementById('res').innerHTML),t=String(document.getElementById('analysis_33Table').innerHTML);document.getElementById('__tbProbe').textContent='AQ33 '+((r.indexOf('已接受 2 行、拒绝 2 行')>=0&&r.indexOf('批次判定')<0&&t==='')?'OK':'BAD');"
+  ],
+  "expect": [
+    "AQ33 OK"
+  ],
+  "ref": "混合无效行：第 2 行列数不足、第 3 行分析值非数字，旧代码静默跳过并按剩余行给出合格率；现报告拒绝行数与逐行原因、清空数据表且不输出批次合格结论，直到用户修正。"
+},
+{
   "slug": "geology/analysis-32",
   "inputs": { "data": "西翼,270,30\n东翼,90,60" },
   "expect": [
