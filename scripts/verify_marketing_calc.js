@@ -1357,6 +1357,31 @@ const CASES = [
     expect: ["正文不含可统计字符"],
     ref: "正文仅标点 ⇒ 清洗后总字符 0，旧实现密度 0/0 仍给密度建议；现提示无可统计内容。默认 content 为空走另一提示 ⇒ 不命中。",
   }
+,
+  {
+    slug: "marketing/marketing-churn-rate",
+    clicks: ["document.getElementById('__tbProbe').textContent='CHURNGUARD '+(typeof __churnErr==='function'&&/__churnErr/.test(String(saveHistory))?'OK':'BAD');"],
+    expect: ["CHURNGUARD OK"],
+    ref: "源码形态判定：保存路径与计算路径共用 __churnErr（负数客户数、期初+新增<期末不再写入历史）。默认态不设置探针 ⇒ 零逃生。"
+  },
+  {
+    slug: "marketing/marketing-conversion-rate-calculator",
+    clicks: ["document.getElementById('__tbProbe').textContent='CONVGUARD '+(typeof __convErr==='function'&&/__convErr/.test(String(saveHistory))?'OK':'BAD');"],
+    expect: ["CONVGUARD OK"],
+    ref: "源码形态判定：保存路径与计算路径共用 __convErr（负转化数、转化>访问不再写入历史）。默认态不设置探针 ⇒ 零逃生。"
+  },
+  {
+    slug: "marketing/marketing-cpa-calculator",
+    clicks: ["document.getElementById('__tbProbe').textContent='CPAGUARD '+(typeof __cpaErr==='function'&&/__cpaErr/.test(String(saveHistory))?'OK':'BAD');"],
+    expect: ["CPAGUARD OK"],
+    ref: "源码形态判定：保存路径与计算路径共用 __cpaErr（客户>点击、毛利率越界不再写入历史）。默认态不设置探针 ⇒ 零逃生。"
+  },
+  {
+    slug: "marketing/marketing-cpm-calculator",
+    clicks: ["document.getElementById('__tbProbe').textContent='CPMGUARD '+(typeof __cpmErr==='function'&&/__cpmErr/.test(String(saveHistory))?'OK':'BAD');"],
+    expect: ["CPMGUARD OK"],
+    ref: "源码形态判定：保存路径与计算路径共用 __cpmErr（负点击、点击>展示不再写入历史）。默认态不设置探针 ⇒ 零逃生。"
+  }
 
 ];
 
