@@ -15,6 +15,30 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "process/cp-index",
+  "inputs": {
+    "usl": "10",
+    "lsl": "10.5",
+    "sigma": "0.01"
+  },
+  "expect": [
+    "USL 必须大于下规格限 LSL"
+  ],
+  "ref": "规格限颠倒：旧实现输出 Cp=-8.333 并正常展示公差带；现拦截。默认 10.05/9.95 合法，不命中。"
+},
+{
+  "slug": "process/cp-index",
+  "inputs": {
+    "usl": "10.05",
+    "lsl": "9.95",
+    "sigma": "-0.01"
+  },
+  "expect": [
+    "过程标准差 σ 必须大于 0"
+  ],
+  "ref": "负标准差：旧实现直接算出 Cp=-1.667；现拦截 σ≤0。"
+},
+{
   "slug": "process/cpk-index",
   "inputs": {
     "usl": "15.05",
@@ -44,6 +68,34 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "process/cpk-with-shift",
+  "inputs": {
+    "usl": "10.05",
+    "lsl": "9.95",
+    "nominal": "10.0",
+    "shift": "0.02",
+    "sigma": "0"
+  },
+  "expect": [
+    "过程标准差 σ」是本计算的分母，不能为 0"
+  ],
+  "ref": "σ=0：分母守卫先行拦截并标红「过程标准差 σ」。默认 0.01 合法，不命中。"
+},
+{
+  "slug": "process/cpk-with-shift",
+  "inputs": {
+    "usl": "10.05",
+    "lsl": "9.95",
+    "nominal": "10.0",
+    "shift": "0.02",
+    "sigma": "-0.01"
+  },
+  "expect": [
+    "过程标准差 σ 必须大于 0"
+  ],
+  "ref": "负 σ：分母守卫只拦 0，旧实现直接算 Cpk=-1.667；现显式要求 σ>0。"
+},
+{
   "slug": "process/defect-probability",
   "inputs": {
     "usl": "15.05",
@@ -64,6 +116,30 @@ const CASES = [
     "9300.0"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "process/dpmo-calc",
+  "inputs": {
+    "def": "30000",
+    "units": "2000",
+    "opp": "10"
+  },
+  "expect": [
+    "缺陷数不能超过总机会数"
+  ],
+  "ref": "缺陷数 30,000 > 总机会 20,000：旧实现算出 1,500,000 DPMO（>100%）；现按机会上界拦截。默认 186/20000 合法，不命中。"
+},
+{
+  "slug": "process/dpmo-calc",
+  "inputs": {
+    "def": "-5",
+    "units": "2000",
+    "opp": "10"
+  },
+  "expect": [
+    "缺陷数须 ≥0"
+  ],
+  "ref": "负缺陷数：旧实现输出 -250.0 DPMO；现要求 ≥0。"
 },
 {
   "slug": "process/first-pass-yield",
