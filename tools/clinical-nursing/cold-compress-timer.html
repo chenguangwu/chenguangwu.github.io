@@ -129,9 +129,9 @@
 </div>
 
     <div class="body-part">
-      <button class="active" onclick="selectPart('joint',this)">关节</button>
+      <button class="active" data-part="joint" onclick="selectPart('joint',this)">关节</button>
       <button onclick="selectPart('muscle',this)">肌肉</button>
-      <button onclick="selectPart('face',this)">面部</button>
+      <button data-part="face" onclick="selectPart('face',this)">面部</button>
       <button onclick="selectPart('limb',this)">四肢</button>
       <button onclick="selectPart('postop',this)">术后</button>
     </div>
@@ -552,8 +552,14 @@ function __cold_compress_timerRender(keys,rk,en){
         TBKit.history.mount('#cold_compress_timerHist',function(rec){
             __cold_compress_timer_skip=true;
             try{
+                if(rec.__part&&partConfig[rec.__part]){
+                    currentPart=rec.__part;
+                    document.querySelectorAll('.body-part button').forEach(function(b){b.classList.remove('active');});
+                    var pb=document.querySelector('.body-part button[data-part="'+rec.__part+'"]');
+                    if(pb&&pb.classList)pb.classList.add('active');
+                }
                 for(var k in rec){
-                    if(k===rk||k==='__tbScore') continue;
+                    if(k===rk||k==='__tbScore'||k==='__part') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
@@ -600,6 +606,7 @@ function __cold_compress_timerExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
+    rec.__part=currentPart;
     rec.__tbScore=__cold_compress_timerScore(res);
     TBKit.history.record(rec);
     __cold_compress_timerRender(keys,rk,en);
