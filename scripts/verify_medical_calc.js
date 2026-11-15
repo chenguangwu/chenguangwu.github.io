@@ -176,12 +176,48 @@ const CASES = [
   "slug": "medical/convert-glucose",
   "inputs": {
     "val": "1",
-    "from": "1"
+    "from": "1",
+    "to": "18.0182"
   },
   "expect": [
-    "0.0555555555556"
+    "0.0554994394557"
   ],
-  "ref": "2026-10-25 选项系数互换后（mmol=18/mg/dL=1 基准）：1 mg/dL→mmol/L = 1×1÷18=0.0555555555556；默认态（val=1,from=mmol(18) → 18）不含该串 ⇒ 强判别、零逃生。"
+  "ref": "统一系数 18.0182 后：1 mg/dL→mmol/L = 1×1÷18.0182 = 0.0554994394557（toPrecision(12)）。默认「5.6 mmol/L → mg/dL」为 100.90192，不命中。"
+},
+{
+  "slug": "medical/convert-glucose",
+  "inputs": {
+    "val": "5.6"
+  },
+  "expect": [
+    "100.90192",
+    "正常（空腹）"
+  ],
+  "ref": "D-N32 默认方向：val=5.6、默认 from=mmol、to=mg/dL ⇒ 5.6×18.0182 = 100.90192 mg/dL；分级按 5.6 mmol/L 落在「正常（空腹）」档。修复前默认 to 也是 mmol/L ⇒ 输出 5.6 同单位换算，且按 5.6 判「空腹受损」边缘；系数取整 18 时输出 100.8。"
+},
+{
+  "slug": "medical/convert-glucose",
+  "inputs": {
+    "val": "5.6",
+    "from": "18.0182",
+    "to": "18.0182"
+  },
+  "expect": [
+    "源单位与目标单位相同"
+  ],
+  "ref": "D-N32 同单位守卫：from=to ⇒ 直接提示无需换算，不再输出「5.6 mmol/L = 5.6 mmol/L」并附血糖分级。"
+},
+{
+  "slug": "medical/convert-glucose",
+  "inputs": {
+    "val": "",
+    "from": "18.0182",
+    "to": "1"
+  },
+  "expect": [
+    "请输入有效的血糖数值"
+  ],
+  "ref": "D-N32 空值守卫：清空数值时旧实现 +''||0 ⇒ 0，输出 0 mg/dL 并判低血糖；修复后拒绝并提示须 >0。"
 },
 {
   "slug": "medical/convert-time-infusion",
