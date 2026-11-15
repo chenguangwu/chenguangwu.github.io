@@ -266,6 +266,8 @@ function calc(){
 }
 
 function drawChart(D,S,H,eoq){
+  var en = /^en/i.test(document.documentElement.lang || '');
+  function f(v){ return en ? (v>=1e6?(v/1e6).toFixed(1)+'M':v>=1000?v.toLocaleString('en-US'):v.toFixed(0)) : (v>=10000?(v/10000).toFixed(1)+'万':v.toFixed(0)); }
   var canvas=document.getElementById('chart');
   var ctx=canvas.getContext('2d');
   var dpr=window.devicePixelRatio||1;
@@ -298,14 +300,14 @@ function drawChart(D,S,H,eoq){
   for(var i=0;i<=4;i++){
     var y=padT+ch*(1-i/4);
     var val=maxTC*i/4;
-    ctx.fillText(val>=10000?(val/10000).toFixed(1)+'万':val.toFixed(0),padL-4,y+4);
+    ctx.fillText(f(val),padL-4,y+4);
     ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(w-padR,y); ctx.strokeStyle='rgba(128,128,128,0.1)'; ctx.stroke();
   }
   ctx.textAlign='center';
   for(var i=0;i<=4;i++){
     var x=padL+cw*i/4;
     var val=maxQ2*i/4;
-    ctx.fillText(val>=10000?(val/10000).toFixed(1)+'万':val.toFixed(0),x,h-padB+16);
+    ctx.fillText(f(val),x,h-padB+16);
   }
 
   function drawCurve(key,color,dash){
@@ -333,9 +335,14 @@ function drawChart(D,S,H,eoq){
   ctx.fillText('EOQ='+eoq.toFixed(0),eoqX,padT-4);
 
   ctx.textAlign='left'; ctx.font='11px sans-serif';
-  ctx.fillStyle='#FF6B35'; ctx.fillRect(padL,4,12,3); ctx.fillText('总成本',padL+16,10);
-  ctx.fillStyle='#3B82F6'; ctx.fillRect(padL+70,4,12,3); ctx.fillText('订货成本',padL+86,10);
-  ctx.fillStyle='#F59E0B'; ctx.fillRect(padL+160,4,12,3); ctx.fillText('持有成本',padL+176,10);
+  ctx.fillStyle='#FF6B35'; ctx.fillRect(padL,4,12,3); ctx.fillText(en ? 'Total cost' : '总成本',padL+16,10);
+  ctx.fillStyle='#3B82F6'; ctx.fillRect(padL+70,4,12,3); ctx.fillText(en ? 'Ordering cost' : '订货成本',padL+86,10);
+  ctx.fillStyle='#F59E0B'; ctx.fillRect(padL+160,4,12,3); ctx.fillText(en ? 'Holding cost' : '持有成本',padL+176,10);
+  window.__tbRedraw = function(){ if(typeof calc==='function') calc(); };
+  if(!window.__tbLangBound){
+    window.__tbLangBound = 1;
+    window.addEventListener('toolbox:langchange', function(){ if(window.__tbRedraw) window.__tbRedraw(); });
+  }
 }
 
 calc();

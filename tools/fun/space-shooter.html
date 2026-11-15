@@ -1097,12 +1097,17 @@ function gameOver() {
     ctx.font = 'bold 42px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('🚀 太空射击', W / 2, H / 2 - 60);
+    var EN = /^en/i.test(document.documentElement.lang || '');
+    ctx.fillText(EN ? '🚀 Space Shooter' : '🚀 太空射击', W / 2, H / 2 - 60);
 
     // Instructions
     ctx.fillStyle = 'rgba(255,255,255,0.85)';
     ctx.font = '16px sans-serif';
-    var instructions = [
+    var instructions = EN ? [
+      '← → Move ship',
+      'Space to shoot',
+      'P to pause'
+    ] : [
       '← → 移动飞船',
       '空格键 射击',
       'P 暂停游戏'
@@ -1113,10 +1118,16 @@ function gameOver() {
 
     ctx.fillStyle = 'rgba(255,255,255,0.5)';
     ctx.font = '14px sans-serif';
-    ctx.fillText('点击「开始游戏」或按 Enter 开始', W / 2, H / 2 + 120);
+    ctx.fillText(EN ? 'Click "Start" or press Enter to begin' : '点击「开始游戏」或按 Enter 开始', W / 2, H / 2 + 120);
   }
 
   // ============ MAIN LOOP ============
+  function EN_GAME() { return /^en/i.test(document.documentElement.lang || ''); }
+  window.__tbRedraw = function () { if (typeof drawMenuScreen === 'function') drawMenuScreen(); };
+  if (!window.__tbLangBound) {
+    window.__tbLangBound = 1;
+    window.addEventListener('toolbox:langchange', function () { if (window.__tbRedraw) window.__tbRedraw(); });
+  }
   function gameLoop(timestamp) {
     animFrameId = requestAnimationFrame(gameLoop);
     if (!lastTime) lastTime = timestamp;
@@ -1165,13 +1176,13 @@ function gameOver() {
       drawPowerUps();
       drawParticles();
       if (player) drawPlayer(player);
-      drawOverlay('⏸ 暂停', '分数: ' + score + '  |  等级: ' + level, '按 P 或点击「暂停」继续');
+      drawOverlay(EN_GAME() ? '⏸ Paused' : '⏸ 暂停', (EN_GAME() ? 'Score: ' : '分数: ') + score + (EN_GAME() ? '  |  Level: ' : '  |  等级: ') + level, EN_GAME() ? 'Press P or click "Pause" to resume' : '按 P 或点击「暂停」继续');
     } else if (gameState === STATE.GAMEOVER) {
       drawBullets();
       drawEnemies();
       drawPowerUps();
       drawParticles();
-      drawOverlay('💀 游戏结束', '最终分数: ' + score + '  |  最高等级: ' + level, '点击「开始游戏」再战一次');
+      drawOverlay(EN_GAME() ? '💀 Game over' : '💀 游戏结束', (EN_GAME() ? 'Final score: ' : '最终分数: ') + score + (EN_GAME() ? '  |  Best level: ' : '  |  最高等级: ') + level, EN_GAME() ? 'Click "Start" to play again' : '点击「开始游戏」再战一次');
     }
   }
 
