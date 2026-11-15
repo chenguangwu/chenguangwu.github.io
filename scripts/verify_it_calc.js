@@ -188,6 +188,141 @@ function _rngReset() { _rngState = 0x9e3779b9 >>> 0; }
 // ---------------------------------------------------------------- 用例
 const CASES = [
   {
+    slug: "it/binary-to-text",
+    inputs: { input: "11111111" },
+    clicks: ["convert();var v=String(document.getElementById('output').value);document.getElementById('__tbProbe').textContent='B198F '+((__binary_to_text_state==='fail'&&__binary_to_textScore()===0&&(v.indexOf('严格解码失败')>=0||v.indexOf('strict decoding failed')>=0))?'OK':'BAD');"],
+    expect: ["B198F OK"],
+    ref: "第198批：0xFF 触发严格 UTF-8 解码失败，须以显式状态记未通过（Score=0），而非恒 1 记为通过。修复前无状态机且 Score 恒 1 ⇒ 探针 BAD；默认 idle 态不含本探针 ⇒ 零逃生。"
+  },
+  {
+    slug: "it/binary-to-text",
+    inputs: { input: "01000001" },
+    clicks: ["convert();var o=document.getElementById('input');o.value='1';try{convert();}catch(e){}var v=String(document.getElementById('output').value);document.getElementById('__tbProbe').textContent='B198CLR '+((v===''&&__binary_to_text_state==='invalid'&&__binary_to_textScore()===1)?'OK':'BAD');"],
+    expect: ["B198CLR OK"],
+    ref: "第198批状态链：合法 01000001→不足 8 位的 1。非法长度 alert 返回时须清空旧输出并置 invalid，Extras 因此停写历史，旧结果不会被归给新输入。修复前输出残留 A ⇒ BAD。"
+  },
+  {
+    slug: "it/binary-to-text",
+    inputs: { input: "11111111" },
+    clicks: ["convert();var o=document.getElementById('input');o.value='01000001';convert();var v=String(document.getElementById('output').value);document.getElementById('__tbProbe').textContent='B198R '+((__binary_to_text_state==='ok'&&v==='A'&&__binary_to_textScore()===1)?'OK':'BAD');"],
+    expect: ["B198R OK"],
+    ref: "第198批状态链恢复：非法 UTF-8→合法 01000001，状态须由 fail 恢复 ok、结果恢复 A、Score 回 1。修复前无状态机 ⇒ BAD；默认态无探针 ⇒ 不命中。"
+  },
+  {
+    slug: "it/hex-encode",
+    inputs: { input: "4869" },
+    clicks: ["dec();var o=document.getElementById('input');o.value='GG';try{dec();}catch(e){}var v=String(document.getElementById('output').value);document.getElementById('__tbProbe').textContent='H208 '+((v===''&&__hex_encode_state==='invalid')?'OK':'BAD');"],
+    expect: ["H208 OK"],
+    ref: "第208批：先解码 4869 得 Hi，再解码非法字符 GG。dec 起始须清旧输出并置 invalid，包装器 Extras 对 invalid 直接返回，不再把旧 Hi 记为 GG 的通过历史。修复前输出仍 Hi ⇒ BAD。"
+  },
+  {
+    slug: "it/hex-encode",
+    inputs: { input: "GG" },
+    clicks: ["try{dec();}catch(e){}var o=document.getElementById('input');o.value='4869';dec();var v=String(document.getElementById('output').value);document.getElementById('__tbProbe').textContent='H208R '+((v==='Hi'&&__hex_encode_state==='ok'&&__hex_encodeScore()===1)?'OK':'BAD');"],
+    expect: ["H208R OK"],
+    ref: "第208批状态链恢复：非法 GG→合法 4869，状态须由 invalid 恢复 ok、结果恢复 Hi、Score=1。修复前无状态机 ⇒ BAD。"
+  },
+  {
+    slug: "it/hex-encode",
+    inputs: { input: "ff" },
+    clicks: ["dec();var v=String(document.getElementById('output').value);document.getElementById('__tbProbe').textContent='H208F '+((__hex_encode_state==='fail'&&__hex_encodeScore()===0&&(v.indexOf('严格解码失败')>=0||v.indexOf('strict decoding failed')>=0))?'OK':'BAD');"],
+    expect: ["H208F OK"],
+    ref: "第208批：解码 0xFF 严格 UTF-8 失败须记 fail/Score=0（表格/趋势/导出结论列不再误标通过），与第198批对称。修复前恒 1 ⇒ BAD。"
+  },
+  {
+    slug: "it/protobuf-parser",
+    inputs: { input: "syntax = \"proto3\"; message M { map<string, int32> scores = 7; }" },
+    clicks: ["parseProto();var t=String(document.getElementById('output').textContent);document.getElementById('__tbProbe').textContent='PBMAP '+((t.indexOf('map<string, int32>')>=0&&t.indexOf('scores')>=0)?'OK':'BAD');"],
+    expect: ["PBMAP OK"],
+    ref: "第233批配套护栏：普通 message 内 map 仍由 parseField 正常解析（type=map<string, int32>、字段名 scores），防止把 map 全局禁掉误伤合法 proto。默认样例无 map ⇒ 不命中。"
+  },
+  {
+    slug: "it/affine-cipher",
+    inputs: { input: "ABCD", a: "5.9", b: "8.7" },
+    clicks: ["var p=readParams();document.getElementById('__tbProbe').textContent='AF255 '+((p&&p.ok===false)?'OK':'BAD');"],
+    expect: ["AF255 OK"],
+    ref: "第255批：a=5.9、b=8.7 须被严格整数正则拒绝（ok:false）。修复前 parseInt 截断成 5/8 且互素 ⇒ ok:true ⇒ BAD；默认 a=5/b=8 ⇒ ok:true ⇒ BAD ⇒ 零逃生。"
+  },
+  {
+    slug: "it/affine-cipher",
+    inputs: { input: "ABCD", a: "5.9", b: "8.7" },
+    clicks: ["var bad=readParams().ok;document.getElementById('a').value='3';document.getElementById('b').value='5';var good=readParams();document.getElementById('__tbProbe').textContent='AF255R '+((bad===false&&good&&good.ok===true&&good.a===3&&good.b===5)?'OK':'BAD');"],
+    expect: ["AF255R OK"],
+    ref: "第255批状态链恢复：小数非法→改回合法整数 a=3/b=5，readParams 须恢复 ok:true 且归一值正确。修复前 bad 为 true ⇒ BAD。"
+  },
+  {
+    slug: "it/xml-validator",
+    domParser: true,
+    inputs: { src: "<root><parsererror>valid</parsererror></root>" },
+    clicks: ["var __pe={namespaceURI:null,parentNode:{tagName:'root'},textContent:'valid'};var __rt={tagName:'root'};var __dc={documentElement:__rt,getElementsByTagName:function(n){return n==='parsererror'?[__pe]:[{},{}];}};globalThis.DOMParser=function(){this.parseFromString=function(){return __dc;};};calcTool();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='XML310 '+((h.indexOf('XML 格式良好')>=0&&h.indexOf('格式错误')<0)?'OK':'BAD');"],
+    expect: ["XML310 OK"],
+    ref: "第310批：合法文档里用户自定义的 parsererror 子元素（namespaceURI=null、位于文档树、非根）不得被判为解析错误。桩显式返回该节点；修复前仅凭「非根即错误」⇒ 格式错误 ⇒ BAD；修复后按命名空间+树归属判定为格式良好 ⇒ OK。"
+  },
+  {
+    slug: "it/xml-validator",
+    domParser: true,
+    inputs: { src: "<root><a></root>" },
+    clicks: ["calcTool();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='XML310E '+((h.indexOf('格式错误')>=0)?'OK':'BAD');"],
+    expect: ["XML310E OK"],
+    ref: "第310批配套：真实无效 XML（闭合标签错配）由 DOMParser 生成孤立 parsererror 节点（无 parentNode），仍须判为格式错误，防止修复过度放宽。默认态无本探针 ⇒ 不命中。"
+  },
+  {
+    slug: "it/json-schema-generator",
+    inputs: { input: '{"items":[[1],["x"]]}' },
+    clicks: ["generateSchema();var s=String(JSON.stringify(lastSchema)),q=String.fromCharCode(34);document.getElementById('__tbProbe').textContent='JS210N '+((s.indexOf(q+'string'+q)>=0&&s.indexOf(q+'anyOf'+q)>=0)?'OK':'BAD');"],
+    expect: ["JS210N OK"],
+    ref: "第210批：嵌套数组 [[1],['x']] 合并 items 时须递归合并子数组，生成的 schema 同时覆盖 integer 与 string（anyOf），不能只留第一个子数组的 integer。修复前 return schemas[0] ⇒ 不含 string ⇒ BAD。"
+  },
+  {
+    slug: "it/json-schema-generator",
+    inputs: { input: '{"items":["a@b.com","hello"]}' },
+    clicks: ["generateSchema();var s=String(JSON.stringify(lastSchema)),q=String.fromCharCode(34);document.getElementById('__tbProbe').textContent='JS210F '+((s.indexOf(q+'email'+q)<0&&s.indexOf(q+'string'+q)>=0)?'OK':'BAD');"],
+    expect: ["JS210F OK"],
+    ref: "第210批：字符串数组 ['a@b.com','hello'] 合并时，仅首个样本有的 format:email 须丢弃（否则启用 format 校验会错误拒绝 hello）。修复前沿用首个样本 ⇒ 含 email ⇒ BAD。"
+  },
+  {
+    slug: "it/matrix-transpose",
+    inputs: { rows: "3", cols: "2", a0: "1", a1: "2", a2: "3", a3: "4", a4: "5", a5: "6" },
+    clicks: ["calculate();var t=String(document.getElementById('inputArea').innerHTML);document.getElementById('__tbProbe').textContent='MX218 '+(((typeof __builtRows!=='undefined')&&__builtRows===3&&__builtCols===2&&t.indexOf('3'+String.fromCharCode(215)+'2')>=0)?'OK':'BAD');"],
+    expect: ["MX218 OK"],
+    ref: "第218批：默认 2×3 改成 3×2（格数同为 6）后直接 calculate，只比格数会漏掉维度变化；须按实际构建行列数重建，输入区标题变 3×2。修复前 __builtRows 不存在/标题仍 2×3 ⇒ BAD。"
+  },
+  {
+    slug: "it/matrix-transpose",
+    inputs: { rows: "3", cols: "2", a0: "1", a1: "2", a2: "3", a3: "4", a4: "5", a5: "6" },
+    clicks: ["calculate();var t1=String(document.getElementById('inputArea').innerHTML);document.getElementById('rows').value='2';document.getElementById('cols').value='3';calculate();var t2=String(document.getElementById('inputArea').innerHTML);document.getElementById('__tbProbe').textContent='MX218C '+((t1.indexOf('3'+String.fromCharCode(215)+'2')>=0&&t2.indexOf('2'+String.fromCharCode(215)+'3')>=0&&__builtRows===2&&__builtCols===3)?'OK':'BAD');"],
+    expect: ["MX218C OK"],
+    ref: "第218批连续不同维度：3×2→2×3 再算，两次标题须分别随维度重建，__builtRows/Cols 回到 2/3。修复前同格数不重建 ⇒ t2 仍 3×2 ⇒ BAD。"
+  },
+  {
+    slug: "it/json-to-toml",
+    inputs: { input: '{"d":"2023-02-31"}' },
+    clicks: ["doToml();var q=String.fromCharCode(34),t=String(document.getElementById('output').textContent);document.getElementById('__tbProbe').textContent='UC224BAD1 '+((t.indexOf(q+'2023-02-31'+q)>=0&&t.indexOf('d = 2023-02-31')<0)?'OK':'BAD');"],
+    expect: ["UC224BAD1 OK"],
+    ref: "第224批：2023-02-31 非真实日历日期，tomllib 会抛 TOMLDecodeError；须退回普通字符串（带引号）而非裸值。修复前只查 1–31 ⇒ 裸值 ⇒ BAD。"
+  },
+  {
+    slug: "it/json-to-toml",
+    inputs: { input: '{"d":"2020-01-01T00:00:00+99:99"}' },
+    clicks: ["doToml();var q=String.fromCharCode(34),t=String(document.getElementById('output').textContent);document.getElementById('__tbProbe').textContent='UC224BAD2 '+((t.indexOf(q+'2020-01-01T00:00:00+99:99'+q)>=0&&t.indexOf('d = 2020-01-01T00:00:00+99:99')<0)?'OK':'BAD');"],
+    expect: ["UC224BAD2 OK"],
+    ref: "第224批：偏移 +99:99 越界（小时 00–23、分钟 00–59），须退回带引号字符串。修复前不校验偏移 ⇒ 裸值 ⇒ BAD。"
+  },
+  {
+    slug: "it/json-to-toml",
+    inputs: { input: '{"d":"1900-02-29"}' },
+    clicks: ["var o=document.getElementById('input'),p=document.getElementById('output'),q=String.fromCharCode(34);doToml();var bad=String(p.textContent).indexOf(q+'1900-02-29'+q)>=0;o.value=JSON.stringify({d:'2020-02-29'});doToml();var ok=String(p.textContent).indexOf('d = 2020-02-29')>=0;document.getElementById('__tbProbe').textContent='UC224LEAP '+((bad&&ok)?'OK':'BAD');"],
+    expect: ["UC224LEAP OK"],
+    ref: "第224批闰年判据+连续输入：1900-02-29（世纪平年）须带引号，2020-02-29（400 倍数闰年）须为裸值。修复前两者都裸值 ⇒ bad=false ⇒ BAD。"
+  },
+  {
+    slug: "it/json-to-toml",
+    inputs: { input: '{"d":"2020-01-01T00:00:00+08:00"}' },
+    clicks: ["doToml();var t=String(document.getElementById('output').textContent);document.getElementById('__tbProbe').textContent='UC224OFF '+((t.indexOf('d = 2020-01-01T00:00:00+08:00')>=0)?'OK':'BAD');"],
+    expect: ["UC224OFF OK"],
+    ref: "第224批配套护栏：合法偏移 +08:00 仍须按 TOML 原生 datetime 输出裸值，防止校验过度把合法偏移也拒成字符串。与 UC224BAD2 形成对照；默认样例无该字段 ⇒ 不命中。"
+  },
+  {
     slug: "it/calc-8",
     clicks: ["var vals=[null,false,'123',1e20,-1e20],ok=0;vals.forEach(function(v){var h=btoa(JSON.stringify({alg:'none'})).replace(/=/g,''),p=btoa(JSON.stringify({exp:v})).replace(/=/g,'');document.getElementById('jwtInput').value=h+'.'+p+'.sig';decodeJwt();var out=document.getElementById('result').innerHTML;if(out.indexOf('无效 exp 值')>=0&&out.indexOf('未过期')<0)ok++;});document.getElementById('__tbProbe').textContent='EXPTYPE '+ok;"],
     expect: ["EXPTYPE 5"],
@@ -2503,9 +2638,9 @@ const CASES = [
   {
     slug: "it/protobuf-parser",
     inputs: { input: "syntax = \"proto3\"; message Outer { oneof pick { map<string, string> opts = 1; } }" },
-    clicks: ["parseProto()"],
-    expect: ['"map<string, string>"', '"opts"'],
-    ref: "IT-N276：oneof 内的 map<> 字段须被解析（type 为 map<string, string>、字段名 opts）。修复前 parseOneof 把 map 当普通类型、把 < 当字段名，抛「期望 ;」⇒ 两锚不命中；默认示例的 oneof 无 map ⇒ 不命中。",
+    clicks: ["doValidate()"],
+    expect: ["校验失败", "Map fields are not allowed in oneofs"],
+    ref: "第233批 IT-N277 复核重做：protoc 29.3 对 oneof 内 map 报 Map fields are not allowed in oneofs；旧 parseOneof 照搬 parseField 的 map 解析把该非法声明判为解析通过，doValidate 因此谎称校验通过。修复后 parseOneof 显式拒绝，doValidate 在 err 落地校验失败与该英文错误。修复前两锚均不命中；默认示例的 oneof 无 map ⇒ 不命中。",
   },
   {
     slug: "it/protobuf-parser",
@@ -8765,13 +8900,13 @@ const CASES = [
     "slug": "it/hex-encode",
     "inputs": {
       "input": "1\n2\n3",
-      "output": "1\n2\n3",
       "sep": " "
     },
+    "clicks": ["enc()"],
     "expect": [
-      "1 2 3\n31 0a 32 0a 33"
+      "31 0a 32 0a 33"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"sep\":\" \"}，输出区含「1 2 3\n31 0a 32 0a 33」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "第208批后 enc() 起始清旧输出，故显式调用编码并锚真实产物；去掉原 output 字段注入（纯输入回显）。独立复算：三行文本的 UTF-8 字节依次为 31、换行 0a、32、换行 0a、33，空格分隔得 31 0a 32 0a 33，默认样例不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/hash-multi",

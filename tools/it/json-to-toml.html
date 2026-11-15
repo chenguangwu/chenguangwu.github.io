@@ -258,8 +258,19 @@ const SAMPLE = JSON.stringify({title:"My App",version:"1.0",debug:true,port:8080
 function tomlDateLiteral(v){
   const m = /^(\d{4})-(\d{2})-(\d{2})(?:[Tt ](\d{2}):(\d{2}):(\d{2})(\.\d+)?(Z|z|[+-]\d{2}:\d{2})?)?$/.exec(v);
   if(m){
-    if(+m[2] < 1 || +m[2] > 12 || +m[3] < 1 || +m[3] > 31) return null;
+    const y = +m[1], mo = +m[2], d = +m[3];
+    if(mo < 1 || mo > 12) return null;
+    // 第224批复核重做：按真实日历核对各月天数与闰年，避免 2023-02-31 之类非法日期
+    // 被当作 TOML 原生 datetime 裸值输出（tomllib 会抛 TOMLDecodeError）。
+    const leap = (y % 4 === 0 && (y % 100 !== 0 || y % 400 === 0));
+    const mdays = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    if(d < 1 || d > mdays[mo - 1]) return null;
     if(m[4] !== undefined && (+m[4] > 23 || +m[5] > 59 || +m[6] > 59)) return null;
+    // 时区偏移：小时 00-23、分钟 00-59；+99:99 之类越界偏移须回退为普通字符串引用。
+    if(m[8] && m[8] !== 'Z' && m[8] !== 'z'){
+      const off = /^[+-](\d{2}):(\d{2})$/.exec(m[8]);
+      if(!off || +off[1] > 23 || +off[2] > 59) return null;
+    }
     let lit = m[1] + '-' + m[2] + '-' + m[3];
     if(m[4] !== undefined) lit += 'T' + m[4] + ':' + m[5] + ':' + m[6] + (m[7] || '') + (m[8] || '');
     return lit;
