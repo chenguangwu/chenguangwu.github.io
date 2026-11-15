@@ -173,6 +173,42 @@ const CASES = [
   "ref": "W1-A 回归：标准 MELD = 3.78×ln(3.0) + 11.2×ln(1.5) + 9.57×ln(2.0) + 6.43 = 21.8；血钠 130（钳制区间内）⇒ MELD-Na = 21.8 + 1.32×7 − 0.033×21.8×7 = 26.0。四项输入均非默认（2.0/1.0/1.2/140）；旧实现输出 MELD-Na 恒 6，本串不命中。"
 },
 {
+  "slug": "medical/clinical-tools",
+  "inputs": {
+    "meld_bili": "1.0",
+    "meld_cr": "10.0",
+    "meld_inr": "1.0",
+    "meld_na": "120"
+  },
+  "expect": [
+    "MELD-Na = 27.7（已纳入血钠校正）"
+  ],
+  "ref": "D-N40 封顶与钳制：肌酐 10 须按 UNOS 上限 4.0 计（未勾透析），胆红素/INR 下限按 1 ⇒ MELD = 9.57×ln4 + 6.43 = 19.7；血钠 120 钳制到 125 ⇒ MELD-Na = 19.7 + 1.32×12 − 0.033×19.7×12 = 27.7。旧实现不封顶肌酐且按 (MELD−6) 查表校正，本串不命中。"
+},
+{
+  "slug": "medical/clinical-tools",
+  "checkIds": ["cha_chf", "cha_htn", "cha_age75", "cha_age65"],
+  "clicks": [
+    "calcCHA();var b=document.getElementById('result-cha').innerHTML;var m=/class=\"val\">(\\d+)</.exec(b);document.getElementById('result-cha').innerHTML=(m&&m[1]==='4')?'__CHA_AGE_OK__':'__CHA_AGE_FAIL__'+b"
+  ],
+  "expect": [
+    "__CHA_AGE_OK__"
+  ],
+  "ref": "D-N41 年龄互斥：心衰 1 + 高血压 1 + ≥75 岁 2 = 4 分；65–74 岁与 ≥75 岁同时勾选时按较高档计并取消低档（旧实现相加成 5 分并抬到「高风险」）。clicks 把结果区分数读回比对，4 分输出标记串；5 分（旧实现）或分数解析失败均输出 FAIL 串。"
+},
+{
+  "slug": "medical/clinical-tools",
+  "inputs": {
+    "gcs_e": "4",
+    "gcs_v": "5",
+    "gcs_m": "6"
+  },
+  "expect": [
+    "（E4+V5+M6=15）"
+  ],
+  "ref": "D-N41 GCS 15 分：默认 E4+V5+M6 = 15 应为「正常意识」，结果区动态串「（E4+V5+M6=15）」在旧实现（15 分被归入 ≥13 的轻度意识障碍）同样出现，故本用例只锁总分回显；分级文案另由同页静态引据约束。"
+},
+{
   "slug": "medical/convert-glucose",
   "inputs": {
     "val": "1",
