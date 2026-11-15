@@ -556,6 +556,44 @@ const CASES = [
   "ref": "双态零交集：expect 锚定注入的约束类型 chest（胸衣约束）。判别器清空 clicks（默认 currentType=wrist → 手腕约束）→ 不命中 ⇒ 非逃生项。不抓 new Date() 动态时刻。"
 },
 {
+  "slug": "clinical-nursing/restraint-duration",
+  "inputs": {
+    "startTime": "08:00",
+    "totalHours": "8"
+  },
+  "clicks": ["calc()"],
+  "expect": [
+    "（约 12:15 重新约束）",
+    "（约 16:15 重新约束）"
+  ],
+  "ref": "D-N39 松解点单一来源：08:00 起 8 小时、每 2 小时松解 15 分钟 ⇒ 松解点 10:00 / 12:00 / 14:00 / 16:00（旧实现把 15 分钟松解并入推进，得到 10:00 / 12:15 / 14:30 / 16:00）。新增「约 HH:15 重新约束」为旧实现完全不存在的文案，且 12:15/16:15 只在正确排程下出现。"
+},
+{
+  "slug": "clinical-nursing/restraint-duration",
+  "inputs": {
+    "startTime": "08:00",
+    "totalHours": "2.5"
+  },
+  "clicks": ["calc()"],
+  "expect": [
+    "约束总时长：2.5 小时"
+  ],
+  "ref": "D-N39 小数时长：parseInt 截断会把 2.5 小时记成 2 小时（旧 EMR 由 parseInt 得 2），改为 parseFloat 后如实输出 2.5；默认 4 小时不含该串 ⇒ 强判别。"
+},
+{
+  "slug": "clinical-nursing/restraint-duration",
+  "inputs": {
+    "startTime": "08:00",
+    "totalHours": ""
+  },
+  "clicks": ["calc()"],
+  "expect": [
+    "约束总时长：未填写",
+    "请输入 1–24 小时的约束总时长"
+  ],
+  "ref": "D-N39 空值拒绝：旧实现 `parseInt('')||1` 静默按 1 小时排程并写入记录；修复后空/越界值拒绝，排程区显示 1–24 小时提示，EMR 标「未填写」。默认 4 小时两串均不出现。"
+},
+{
   "slug": "clinical-nursing/suction-pressure",
   "inputs": {
     "currentPressure": "260"
