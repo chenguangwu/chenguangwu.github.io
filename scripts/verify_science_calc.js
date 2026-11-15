@@ -920,10 +920,17 @@ const CASES = [
   },
   {
     "slug": "science/tide-height-estimator",
+    "inputs": { "inputDate": "2024-03-20", "inputLat": "30", "coastType": "open", "moonPhaseMode": "manual", "moonPhase": "0" },
+    "clicks": ["calc()"],
+    "expect": ["太阳引潮力贡献： 0%"],
+    "ref": "SMS-152 相位：春分(2024-03-20 doy≈80)太阳赤纬为 0、引潮贡献最小 ⇒ solar=0.46·|sin((80−80)/365.25·2π)|=0 ⇒ 0%。旧 cos 公式此日取峰值 46%（峰谷颠倒）。默认态快照日期 2024-06-15 近夏至 ⇒ 46%，不命中 0%，判别有效。"
+  },
+  {
+    "slug": "science/tide-height-estimator",
     "inputs": { "inputDate": "2024-06-01", "inputLat": "30", "coastType": "open", "moonPhaseMode": "manual", "moonPhase": "0" },
     "clicks": ["calc()"],
-    "expect": ["潮差： 0.86 米"],
-    "ref": "手动月龄=0(新月/大潮)，纬度 30° 修正 0.906，开阔海岸放大 1.0x ⇒ 潮差 0.86 m。默认 moonPhaseMode=auto(按真实日期) ⇒ 不同潮差，不出现 0.86。"
+    "expect": ["潮差： 1.08 米"],
+    "ref": "SMS-152 相位修正后：手动月龄=0(新月/大潮 tideFactor=1)，2024-06-01 doy153 近夏至 ⇒ solar=0.46·|sin((153−80)/365.25·2π)|=0.437；纬度 30° 修正 0.906，开阔海岸 1.0x，high=0.52·(1+0.437)·0.906=0.677，潮差=1.6×high=1.08 m。旧 cos 公式此日 solar 很小 ⇒ 0.86 m。默认 moonPhaseMode=auto ⇒ 不出现 1.08。"
   },
   {
     "slug": "it/phone-qr",

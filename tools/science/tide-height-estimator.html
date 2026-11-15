@@ -271,10 +271,17 @@
 </div>
 
 <script>
+// 本地日期 YYYY-MM-DD（避免 toISOString 的 UTC 偏移导致东八区凌晨取到前一天）
+function __tideLocalDate(d){
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return y + '-' + m + '-' + day;
+}
 // 设置日期默认值为今天
 (function(){
   const today = new Date();
-  const dateStr = today.toISOString().split('T')[0];
+  const dateStr = __tideLocalDate(today);
   document.getElementById('inputDate').value = dateStr;
   // 监听日期变化
   document.getElementById('inputDate').addEventListener('change', calc);
@@ -282,7 +289,7 @@
 
 function setToday(){
   const today = new Date();
-  document.getElementById('inputDate').value = today.toISOString().split('T')[0];
+  document.getElementById('inputDate').value = __tideLocalDate(today);
   calc();
 }
 
@@ -343,12 +350,17 @@ function isNeapTide(phase){
 
 function calc(){
   const dateStr = document.getElementById('inputDate').value;
-  const lat = parseFloat(document.getElementById('inputLat').value) || 0;
+  const latRaw = document.getElementById('inputLat').value;
+  const lat = parseFloat(latRaw);
   const coastType = document.getElementById('coastType').value;
   const mode = document.getElementById('moonPhaseMode').value;
 
   if(!dateStr){
     ToolBox.setResult('result', '<p style="color:var(--warning);">请选择日期</p>');
+    return;
+  }
+  if(!isFinite(lat) || Math.abs(lat) > 90){
+    ToolBox.setResult('result', '<p style="color:var(--danger);">纬度必须在 −90° 至 90° 之间（南北纬），请输入有效纬度</p>');
     return;
   }
 
@@ -380,9 +392,10 @@ function calc(){
   // 太阳潮汐贡献（简化：根据日期到二至日的距离）
   const d = new Date(dateStr + 'T12:00:00');
   const dayOfYear = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000);
-  // 二至日约第172天(夏至)和第355天(冬至)，二分日潮汐较小
+  // 春分约第80天起算：二至日(夏至172/冬至355)太阳赤纬最大、引潮贡献最大，二分日(80/262)最小
+  // 故用 |sin|：doy=80/262 → sin≈0（谷值≈0），doy=172/355 → |sin|≈1（峰值≈0.46）
   const solarAngle = ((dayOfYear - 80) / 365.25) * 2 * Math.PI; // 春分起算
-  const solarFactor = 0.46 * Math.abs(Math.cos(solarAngle)); // 太阳引潮力贡献
+  const solarFactor = 0.46 * Math.abs(Math.sin(solarAngle)); // 太阳引潮力贡献
 
   // 总潮汐因子 = 月球 + 太阳
   const totalTideFactor = tideFactor + solarFactor;

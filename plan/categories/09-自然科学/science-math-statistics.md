@@ -117,6 +117,7 @@
 - `tools/science/wire-gauge-converter.html`：SMS-158 已修——铜电阻 `ρ=0.0172 Ω·mm²/m` 按 `R=ρ×1000/A` 修正（Ω/km），主结果/明细/参考表/导出 CSV 同源 ×1000；派生 Ω/1000ft 与 100m 压降联动正确。AWG24=84.01 Ω/km、AWG20=33.23 Ω/km、AWG0=0.32 Ω/km。
 - `tools/science/torque-converter.html`：SMS-155 已修——导出 CSV 八行数值后缀按各自单位符号（N·m/kN·m/lb·ft/lb·in/kgf·m/gf·cm/ozf·in/dyn·m），表头改为通用 Value，不再全部标 N·m。
 - `tools/science/work-done.html`：SMS-160 已修——预设倍率与结果自洽（默认 F=50,d=10→500 J；「2×」改 F=100,d=10→1000 J；「0.5×」改 F=25,d=10→250 J）。
+- `tools/science/tide-height-estimator.html`：SMS-152/153/154 已修——太阳引潮项 `abs(sin)` 修正相位（春分/秋分 0%、夏至/冬至 46%）；默认日期改本地时区 `__tideLocalDate()` 消除东八区凌晨错位；纬度越界/空值停算提示。verify 潮差 expect 同批由 0.86 更新为 1.08 m。
 - `tools/science/chi-square-calculator.html`：2 条（SMS-17 中、SMS-18 中）。χ²=Σ(O−E)²/E 与上尾 CDF 正确（默认 30,25,20,15,10 → χ²=12.5、df=4、p=0.013996）；问题为静默过滤与自由度口径。
 - `tools/science/anova-calculator.html`：2 条（SMS-19 中、SMS-20 中）。SSB/SSW、dfB=k−1、dfW=N−k、F 与上尾 p 正确（默认数据 F(2,12)=25.554、p=4.73e-5）；问题为非数值静默丢弃与 dfW=0 未拦。注：SMS-7 的同名问题在 `tools/statistics/one-way-anova.html`，与本页实现不同（本页直接由原始观测算 SSW，无 `(n−1)s²` 负值缺陷）。
 
@@ -433,9 +434,9 @@
 
 | 页面 | 问题（含 tools/science/&lt;slug&gt;.html:NN） | 编号 |
 |---|---|---|
-| tools/science/tide-height-estimator.html | 【高】太阳引潮项相位错 90°：注释写「二至日约第 172/355 天，二分日潮汐较小」，代码却用 `0.46*abs(cos((doy−80)/365.25*2π))`，峰值落在春分/秋分（doy 80/262），二至日反而≈0；doy 171（夏至）得 0.002（应 0.460），doy 80（春分）得 0.460（应≈0）；「青岛 2026 春分」预设把太阳贡献顶到 46%。:394-396、:503、:719 | SMS-152 |
-| tools/science/tide-height-estimator.html | 【中】默认日期用 UTC：日期框默认值与「今天」按钮均取 `toISOString().split('T')[0]`，东八区 00:00–07:59 加载会把默认日期设成前一天，月龄与潮高随之偏一天。:287-289、:295-296 | SMS-153 |
-| tools/science/tide-height-estimator.html | 【中】纬度越界无校验：`min/max` 只约束步进器，键盘可输 120°，`latFactor=0.3+0.7cos(120°)=−0.05` 使高潮为负、潮差为负；输入 90° 以上不提示。:136、:357、:389、:405-407 | SMS-154 |
+| tools/science/tide-height-estimator.html | ~~【高】太阳引潮项相位错 90°~~ **已修（626 批）**：`abs(cos)` 改 `abs(sin)`，春分/秋分 solar=0%、夏至/冬至=46%，符号与注释一致。原证据：:394-396、:503、:719 | SMS-152 |
+| tools/science/tide-height-estimator.html | ~~【中】默认日期用 UTC~~ **已修（626 批）**：新增 `__tideLocalDate()` 用 `getFullYear/getMonth/getDate` 拼本地日期，初始与「今天」按钮两处均改用它，东八区凌晨不再取到前一天。原证据：:287-289、:295-296 | SMS-153 |
+| tools/science/tide-height-estimator.html | ~~【中】纬度越界无校验~~ **已修（626 批）**：主算加 `!isFinite(lat)||Math.abs(lat)>90` 守卫，越界/空值停算提示「纬度必须在 −90° 至 90° 之间」，不再出现负纬度修正。原证据：:136、:357、:389、:405-407 | SMS-154 |
 | tools/science/torque-converter.html | 【中】导出 CSV 单位后缀写死：`__torqueExport` 对全部 8 行都追加「 N·m」，lb·ft、lb·in、kgf·m、gf·cm、ozf·in、dyn·m 行均被标成 N·m（数值本身正确）。:488-490 | SMS-155 |
 | tools/science/wavelength-to-rgb.html | 【中】参考表 RGB 与本页算法不一致：405 nm 表 #8B00FF vs 算法 #8200C8；500 nm 表 #00FFFF vs #00FF92；532 nm 表 #00FF00 vs #65FF00；700 nm 表 #8B0000 vs #FF0000；用户按表核对会得到两套值。:283-295、:418-429 | SMS-156 |
 | tools/science/wavelength-to-rgb.html | 【中】深挖算例与算法不符：示例称「520 nm→rgb(0,255,0)；450 nm→rgb(0,0,255)」，实际 `wlToRgb` 给 520 nm #36FF00（54,255,0）、450 nm #0046FF（0,70,255）。:350、:418-429 | SMS-157 |
