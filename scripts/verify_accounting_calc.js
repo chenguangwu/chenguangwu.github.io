@@ -40,6 +40,7 @@ const CASES = [
   { slug: "accounting/contribution-margin", inputs: { p: "120", vc: "70", q: "10000" }, expect: ["41.67"], ref: "边际贡献=(单价−单位变动)×销量=(120−70)×10000=500000 元；贡献率=500000/(120×10000)=41.67%（默认 100−60→40.00% 避开）" },
   { slug: "accounting/break-even-units", inputs: { fc: "300000", p: "120", vc: "70" }, expect: ["6000.0"], ref: "平衡产量=固定成本/(单价−单位变动)=300000/(120−70)=6000.0 件（平衡销售额 720000 元、单位边际贡献 50.00；默认 200000/40=5000.0 避开）" },
   { slug: "accounting/debt-service-coverage", inputs: { OCF: "200", ds: "50" }, expect: ["4.00"], ref: "DSCR=经营现金流/债务偿付=200/50=4.00（默认 150/60=2.50 避开）" },
+  { slug: "accounting/debt-service-coverage", inputs: { OCF: "-150", ds: "60" }, expect: ["— 偿债负担率"], ref: "T-N16（2026-11-16）：OCF 为负 ⇒ DSCR = −2.50，旧实现 1/max(DSCR,1e-9) 输出 1000000000.0000「偿债负担率」。现仅 DSCR>0 才取倒数，否则显示「—」；默认 150/60 ⇒ 0.4000，不命中。" },
   { slug: "accounting/free-cash-flow", inputs: { OCF: "200", capex: "120" }, expect: ["80.00"], ref: "FCF=OCF−资本支出=200−120=80.00 万元（默认 150−80=70.00 避开）" },
   { slug: "accounting/operating-cash-flow", inputs: { NI: "150", DA: "60", dWC: "30" }, expect: ["180.00"], ref: "OCF=净利+折旧摊销−营运资本变动=150+60−30=180.00 万元（默认 120+50−20=150.00 避开）" },
   { slug: "accounting/depreciation-straight", inputs: { c: "200000", s: "20000", n: "8" }, expect: ["22500.00"], ref: "直线法年折旧=(原值−残值)/年限=(200000−20000)/8=22500.00 元（折旧率 11.25%、首年末账面 177500.00；默认 100000/10000/10→9000.00 避开）" },
