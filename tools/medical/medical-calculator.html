@@ -431,7 +431,7 @@ function calcDose() {
   var _bad = [];
   if (w <= 0) _bad.push('⚠ 参数无效：体重须大于 0，请输入有效体重（kg）。');
   if (perKg <= 0) _bad.push('⚠ 参数无效：推荐剂量须大于 0，请输入有效剂量（mg/kg/天）。');
-  if (freq <= 0) _bad.push('⚠ 参数无效：服药频率须大于 0，请输入 1–24 次/天（可填小数，如 1.5）。');
+  if (freq < 1) _bad.push('⚠ 参数无效：服药频率须为 1–24 次/天，请核对医嘱后重新输入。');
   else if (freq > 24) _bad.push('⚠ 参数无效：服药频率须为 1–24 次/天，请核对医嘱后重新输入。');
   if (_bad.length) {
     document.getElementById('result-dose').innerHTML = '<p style="color:var(--danger);white-space:pre-line;">' + _bad.join('\n') + '</p>';
@@ -487,12 +487,20 @@ var glucoseFactor = 18.0159;
 function convertGlucose(dir) {
   if (dir === 'mmol') {
     var mmol = parseFloat(document.getElementById('glucose_mmol').value);
-    if (isNaN(mmol) || mmol < 0) return;
+    if (isNaN(mmol) || mmol < 0) {
+      document.getElementById('glucose_mg').value = '';
+      document.getElementById('result-glucose').innerHTML = '<div class="tip-box tip-warn">请输入有效的血糖值（mmol/L ≥ 0）；清空后不再沿用上一次换算与分级。</div>';
+      return;
+    }
     var mg = mmol * glucoseFactor;
     document.getElementById('glucose_mg').value = mg.toFixed(1);
   } else {
     var mg = parseFloat(document.getElementById('glucose_mg').value);
-    if (isNaN(mg) || mg < 0) return;
+    if (isNaN(mg) || mg < 0) {
+      document.getElementById('glucose_mmol').value = '';
+      document.getElementById('result-glucose').innerHTML = '<div class="tip-box tip-warn">请输入有效的血糖值（mg/dL ≥ 0）；清空后不再沿用上一次换算与分级。</div>';
+      return;
+    }
     var mmol = mg / glucoseFactor;
     document.getElementById('glucose_mmol').value = mmol.toFixed(2);
   }
@@ -502,7 +510,10 @@ function convertGlucose(dir) {
 function showGlucoseResult() {
   var mmol = parseFloat(document.getElementById('glucose_mmol').value);
   var mg = parseFloat(document.getElementById('glucose_mg').value);
-  if (isNaN(mmol) || isNaN(mg)) return;
+  if (isNaN(mmol) || isNaN(mg)) {
+    document.getElementById('result-glucose').innerHTML = '<div class="tip-box tip-warn">请输入有效的血糖值后再查看分级。</div>';
+    return;
+  }
   var level = '';
   var cls = '';
   if (mmol < 3.9) { level = '低血糖'; cls = 'tip-error'; }

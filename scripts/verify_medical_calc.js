@@ -333,6 +333,28 @@ const CASES = [
   "ref": "D-N23 小数频次：旧实现 parseInt 把 1.5 截断为 1，每日 600.0mg 被算成每次 600.0mg；修复后 parseFloat 保留 1.5 ⇒ 600.0 ÷ 1.5 = 400.0mg。默认 freq=3 时该串为「600.0mg / 3次 = 200.0mg」，不命中 ⇒ 强判别。"
 },
 {
+  "slug": "medical/medical-calculator",
+  "inputs": { "dose_weight": "60", "dose_per_kg": "10", "dose_freq": "0.5" },
+  "expect": ["服药频率须为 1–24 次/天"],
+  "ref": "D-N23（2026-11-16）：频率输入标注 1–24 次/天，但旧实现只拦 ≤0，0.5 次/天输出日 600.0 mg、每次 1200.0 mg。现 freq<1 直接拦截。默认 3 ⇒ 不命中。"
+},
+{
+  "slug": "medical/medical-calculator",
+  "clicks": [
+    "document.getElementById('glucose_mmol').value='';convertGlucose('mmol');"
+  ],
+  "expect": ["请输入有效的血糖值（mmol/L ≥ 0）"],
+  "ref": "D-N24（2026-11-16）：清空 mmol/L 后旧实现直接 return，mg/dL 与「正常空腹血糖」结论原样保留。现清空另一侧并替换为提示；默认 5.6/100.9 ⇒ 不命中。"
+},
+{
+  "slug": "medical/medical-calculator",
+  "clicks": [
+    "document.getElementById('glucose_mg').value='abc';convertGlucose('mg');"
+  ],
+  "expect": ["请输入有效的血糖值（mg/dL ≥ 0）"],
+  "ref": "D-N24 反向：mg/dL 非法输入同样清空 mmol/L 并提示，不再保留旧分级。"
+},
+{
   "slug": "medical/reminder-2",
   "inputs": {
     "medName": "阿莫西林胶囊",

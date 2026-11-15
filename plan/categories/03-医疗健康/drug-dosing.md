@@ -186,16 +186,13 @@
 - 影响：「预期升幅」易被读成整次治疗的总升幅（实际是每升增量），量纲歧义可导致补液计划算错；标题的「速度」与简介的 infusion rate 均未实现，属名不副实。低钠纠正过快有渗透性脱髓鞘风险。
 - 方案：标签改为「每输注 1 L 预期升幅」；新增「计划输注量 mL」并输出「预计总升幅」「预计达目标所需液量」，再按 mL/h 输出速度与 24h 上限对比；目标<当前时拒绝并提示；补 0.9%NaCl/3%NaCl 用例，临床阈值由医师复核。
 
-### D-N23 医疗健康计算器（用药剂量）：低于页面声明下限的频率仍输出剂量（中，确认缺陷）
-- `tools/medical/medical-calculator.html:192,438-456` 的频率字段标注并提示 1–24 次/天，但计算只拒绝 ≤0 或 >24。体重 60 kg、推荐剂量 10 mg/kg/天、频率 0.5 次/天时，页面输出日剂量 600.0 mg、每次剂量 1200.0 mg，未提示低于声明范围。
-- 影响：结果与输入约束不一致，且单次量大于日均量易被误读。应统一频率范围与展示口径，并由药师复核低频给药的适用方式。
+### D-N23 医疗健康计算器（用药剂量）：低于页面声明下限的频率仍输出剂量（已修，744 批）
+- 现状（2026-11-16）：`calcDose()` 的频率校验改为 `freq<1` 与 `freq>24` 同一提示「服药频率须为 1–24 次/天」，0.5 次/天不再输出 1200 mg/次。门禁：60 kg/10 mg/kg/0.5 次 ⇒ 命中提示。
+- 原描述：频率字段标注并提示 1–24 次/天，但计算只拒绝 ≤0 或 >24；体重 60 kg、10 mg/kg/天、0.5 次/天时输出日剂量 600.0 mg、每次 1200.0 mg。
 
-### D-N24 医疗健康计算器（血糖换算）：清空 mmol/L 或输入非法值时保留旧换算与旧分级（低，确认缺陷）
-- 描述：`convertGlucose('mmol')` 在 `isNaN||<0` 时直接 `return`，既不更新 mg/dL 输入框，也不调用 `showGlucoseResult()`；双向输入框互相回填，清空一侧后另一侧与结果框仍显示上一次的数值和「正常/糖尿病」结论。
-- 证据：`tools/medical/medical-calculator.html:493-506`（早退分支）、`:508-521`（showGlucoseResult 分级）、`:229-231`（默认 5.6/100.9）。
-- 复现：先输入 5.6 mmol/L → 结果「正常空腹血糖 5.60 mmol/L = 100.9 mg/dL」；清空 mmol/L → mg/dL 仍为 100.9，结果框仍显示「正常空腹血糖」，未清空或标记过期。
-- 影响：与 D-N1 同一类「无效输入沿用旧结果」模式，用户可能把旧分级当成当前值。
-- 方案：无效输入时清空对侧数值与结果框，并显示「请输入 ≥0 的数值」；或仅在两侧都有值时才渲染分级；补清空/负值用例。
+### D-N24 医疗健康计算器（血糖换算）：清空 mmol/L 或输入非法值时保留旧换算与旧分级（已修，744 批）
+- 现状（2026-11-16）：`convertGlucose()` 的无效分支清空对侧输入并写入「请输入有效的血糖值（mmol/L ≥ 0）；清空后不再沿用上一次换算与分级。」（mg 侧同理）；`showGlucoseResult()` 的 NaN 分支也改为提示，不再静默 return。门禁：清空 mmol、mg 非法各一条。
+- 原描述：`convertGlucose('mmol')` 在 `isNaN||<0` 时直接 `return`，清空一侧后另一侧与结果框仍显示上一次的数值和分级。
 
 - 本轮实读 8 页：`tools/healthcare/weight-dosage.html`、`tools/healthcare/antipyretic-dose.html`、`tools/healthcare/healthcare-2.html`、`tools/healthcare/healthcare-3.html`、`tools/healthcare/gfr-cockcroft.html`、`tools/clinical-nursing/convert-flow-concentration.html`、`tools/clinical-nursing/oxygen-concentration.html`、`tools/medical/medical-calculator.html`。
 - 新增 12 条（高 1、中 8、低 3）：D-N13~D-N24。最高优为 D-N19（鼻导管高流量静默封顶 44% 且无超范围提示）。
