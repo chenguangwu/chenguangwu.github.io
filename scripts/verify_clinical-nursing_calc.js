@@ -505,6 +505,32 @@ const CASES = [
   "ref": "门诊记录：clicks 调 selectStage('3', 哑 btn)（第二参需 classList.add），REC 内 typeof st==='string' 守卫；创面尺寸由 woundL/W/D 拼出 6×2×0.5cm，3 期才输出渗出液与周围皮肤。默认态 currentStage='1' 且页面末尾 generate() 时 __EMR_S 未赋值 ⇒ guard 直接 return、不产生门诊记录，零交集。原 expect「6cm」属输入回显（零判别力），已废弃。注：本页部位来自 querySelectorAll('#locationCheck input:checked')，stub 下会误返回全部 select 默认值，故门诊记录不含部位、留「损伤部位：____」手填。"
 },
 {
+  "slug": "clinical-nursing/pressure-injury-description",
+  "inputs": {
+    "woundL": "0",
+    "woundW": "2",
+    "woundD": "0"
+  },
+  "clicks": ["generate()"],
+  "expect": [
+    "尺寸无效时不生成护理记录，也不可复制"
+  ],
+  "ref": "D-N123 尺寸守卫：长清空/填 0 时旧实现 `parseFloat||0` 仍输出「0cm × 2cm」并生成记录；修复后前置校验 l>0 && w>0 && d≥0，失败时只显示红字提示并清空 EMR。默认 3×2×0 不含该提示 ⇒ 强判别。"
+},
+{
+  "slug": "clinical-nursing/pressure-injury-description",
+  "inputs": {
+    "woundL": "3",
+    "woundW": "2",
+    "woundD": "-1"
+  },
+  "clicks": ["generate()"],
+  "expect": [
+    "尺寸无效时不生成护理记录，也不可复制"
+  ],
+  "ref": "D-N123 负深度：深度允许留空或 ≥0，输入 -1 属非法测量值，旧实现会拼出「3cm × 2cm × -1cm」并写入记录；修复后命中同一守卫。默认深度 0 合法，不触发提示。"
+},
+{
   "slug": "clinical-nursing/reminder-time-1",
   "inputs": {
     "coldDur": "15",

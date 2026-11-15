@@ -319,6 +319,13 @@ var stages = {
 };
 var currentStage = '1';
 
+function __clearEmr(){
+  var el=document.getElementById('descOutput');
+  if(el&&el.__emrBox&&el.__emrBox.parentNode){ try{ el.__emrBox.parentNode.removeChild(el.__emrBox); }catch(e){} }
+  if(el) el.__emrBox=null;
+  window.__EMR_NOTE=null;
+}
+
 function selectStage(stage, btn){
   currentStage = stage;
   document.querySelectorAll('#stageTab button').forEach(function(b){ b.classList.remove('active'); });
@@ -334,11 +341,20 @@ function generate(){
   document.querySelectorAll('#locationCheck input:checked').forEach(function(cb){ locations.push(cb.value); });
   var locStr = locations.length > 0 ? locations.join('、') : '（请选择部位）';
   
-  var l = parseFloat(document.getElementById('woundL').value) || 0;
-  var w = parseFloat(document.getElementById('woundW').value) || 0;
-  var d = parseFloat(document.getElementById('woundD').value) || 0;
+  var l = parseFloat(document.getElementById('woundL').value);
+  var w = parseFloat(document.getElementById('woundW').value);
+  var dVal = document.getElementById('woundD').value;
+  var d = dVal === '' ? 0 : parseFloat(dVal);
   var exudate = document.getElementById('exudate').value;
   var surrounding = document.getElementById('surrounding').value;
+  
+  // D-N123：尺寸缺失/非正数时不生成记录，避免出现「0cm × 2cm」这类伪测量值
+  if(!isFinite(l) || !isFinite(w) || !isFinite(d) || l <= 0 || w <= 0 || d < 0){
+    __EMR_S = null;
+    __clearEmr();
+    document.getElementById('descOutput').innerHTML = '<p style="color:var(--danger)">⚠ 请填写有效的创面尺寸：长、宽须 &gt;0 cm，深度可留空或 ≥0 cm。尺寸无效时不生成护理记录，也不可复制。</p>';
+    return;
+  }
   
   var sizeStr = l + 'cm × ' + w + 'cm';
   if(d > 0) sizeStr += ' × ' + d + 'cm';
@@ -369,13 +385,19 @@ function copyDesc(){
   var locations = [];
   document.querySelectorAll('#locationCheck input:checked').forEach(function(cb){ locations.push(cb.value); });
   var locStr = locations.length > 0 ? locations.join('、') : '未指定部位';
-  var l = document.getElementById('woundL').value;
-  var w = document.getElementById('woundW').value;
-  var d = document.getElementById('woundD').value;
+  var l = parseFloat(document.getElementById('woundL').value);
+  var w = parseFloat(document.getElementById('woundW').value);
+  var dRaw = document.getElementById('woundD').value;
+  var d = dRaw === '' ? 0 : parseFloat(dRaw);
   var exudate = document.getElementById('exudate').value;
   var surrounding = document.getElementById('surrounding').value;
   
-  var text = '压力性损伤护理记录\n分期：' + s.name + '\n部位：' + locStr + '\n大小：' + l + '×' + w + (parseFloat(d)>0 ? '×' + d : '') + 'cm\n外观：' + s.appearance + '\n组织：' + s.tissue;
+  if(!isFinite(l) || !isFinite(w) || !isFinite(d) || l <= 0 || w <= 0 || d < 0){
+    if(typeof ToolBox!=='undefined'&&ToolBox.showToast) ToolBox.showToast('长、宽须 >0 cm 才能复制护理记录', 'warning');
+    return;
+  }
+  
+  var text = '压力性损伤护理记录\n分期：' + s.name + '\n部位：' + locStr + '\n大小：' + l + '×' + w + (d>0 ? '×' + d : '') + 'cm\n外观：' + s.appearance + '\n组织：' + s.tissue;
   if(currentStage !== '1' && currentStage !== 'dti'){
     text += '\n渗出液：' + exudate + '\n周围皮肤：' + surrounding;
   }
