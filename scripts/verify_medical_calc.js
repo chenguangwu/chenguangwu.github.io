@@ -186,6 +186,45 @@ const CASES = [
 {
   "slug": "medical/convert-time-infusion",
   "inputs": {
+    "vol": "500",
+    "df": "20",
+    "time": "",
+    "dripIn": "30"
+  },
+  "expect": [
+    "按已知滴速反算输注时长 = 333.3 分钟（约 5 小时 33 分钟）"
+  ],
+  "ref": "D-N10 反向换算：总滴数 = 500×20 = 10000；时长 = 10000÷30 = 333.33 → 333.3 分钟 = 5 小时 33 分；并输出预计完成时间。修复前无 dripIn 输入、只能按时间正向算，无法完成页面宣称的时间换算。默认 dripIn 空 ⇒ 不命中。"
+},
+{
+  "slug": "medical/convert-time-infusion",
+  "inputs": {
+    "vol": "500",
+    "df": "20",
+    "time": "120",
+    "dripIn": "30"
+  },
+  "expect": [
+    "相差 213.3 分钟，请确认以哪个为准"
+  ],
+  "ref": "D-N10 双向核对：计划 120 分钟 vs 按 30 滴/分反算 333.3 分钟，差 213.3 分钟 ⇒ 并列提示以哪个为准，不静默覆盖。"
+},
+{
+  "slug": "medical/convert-time-infusion",
+  "inputs": {
+    "vol": "500",
+    "df": "20",
+    "time": "",
+    "dripIn": ""
+  },
+  "expect": [
+    "输注时间须大于 0（或填写已知滴速以反算时长）"
+  ],
+  "ref": "D-N10 输入完整性：时间与已知滴速同时为空 ⇒ 无法换算，须提示至少填写一项（原实现只校验 time>0，文案已扩展）。"
+},
+{
+  "slug": "medical/convert-time-infusion",
+  "inputs": {
     "vol": "1000",
     "df": "15",
     "time": "60"
