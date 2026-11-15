@@ -83,8 +83,6 @@
 
 `overdue-fine.html`、`shelf-capacity.html`
 
-### art（0 页）
-
 ## C 组：仅做分隔符归一（未处理全角数字/单位后缀）
 
 | 页面 | 写法 | 待补齐 |

@@ -1,6 +1,5 @@
 # 地学 · tools/{geology,surveying,meteorology,eco,hydraulic 水文}（~150 页）
 
-## 已知问题
 ## 功能缺陷
 - 气象页缺「体感温度综合判据」整合页（现有分散单页）。
 

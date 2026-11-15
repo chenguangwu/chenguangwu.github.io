@@ -1,6 +1,5 @@
 # 电商/物流 · tools/{ecommerce,logistics,logistics2,shipping,express}（~60 页）
 
-## 已知问题
 ## 功能缺陷
 - 快递页缺「多快递公司价格对比」（静态价目表数据源）。
 - 体积重页缺「多包裹合计」。

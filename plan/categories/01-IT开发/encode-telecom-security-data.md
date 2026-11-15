@@ -13,8 +13,6 @@
 ## 受影响范围
 - tools/encode/、tools/telecom/、tools/security/、tools/data/（合计 ~100 页）
 
-## 进度
-
 ## 2026-11-03 审计补充
 
 ### 留存优化：字符转换增加码点解释（低，建议）
