@@ -288,6 +288,32 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "pulmonology/lung-rads",
+  "inputs": {
+    "type": "solid",
+    "size": "15"
+  },
+  "expect": [
+    "Lung-RADS 4B"
+  ],
+  "ref": "D-N108 边界：实性 15mm 按同页公式「不低于 15mm 为 4B」应判 4B；旧实现 `size<15 → 4A` 之外的分支虽为 4B，但引入 15 整边界用例锁定。默认 9mm ⇒ 4A，不命中。"
+},
+{
+  "slug": "pulmonology/lung-rads",
+  "inputs": {
+    "type": "solid",
+    "size": "3"
+  },
+  "checkIds": ["malignant"],
+  "clicks": [
+    "calc();var b=document.getElementById('result').innerHTML;document.getElementById('result').innerHTML=(/Lung-RADS类别/.test(b)&&/>2</.test(b))?'__LR3_OK__':'__LR3_FAIL__'+b"
+  ],
+  "expect": [
+    "__LR3_OK__"
+  ],
+  "ref": "D-N110 4X 守卫：3mm 实性属 2 类，即使勾选典型恶性征象也不得升 4X；旧实现对任意大小升 4X。clicks 校验结果卡类别仍为 2，默认 9mm 不勾征象为 4A，若守卫失效则输出 FAIL。"
+},
+{
   // Wells 7 项（q0-q6，动态 id）注入全「是」→ 3+3+1.5+1.5+1.5+1+1 = 12.5 → 高风险
   "slug": "pulmonology/rater-13",
   "inputs": {
