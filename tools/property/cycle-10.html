@@ -358,7 +358,8 @@ function addRoute(){
 }
 
 function nextDue(r){return addDays(r.last,r.freq);}
-function addDays(dateStr,n){var d=new Date(dateStr);d.setDate(d.getDate()+n);return d;}
+function parseDateLocal(s){var p=String(s||'').split('-');return new Date(+p[0],(+p[1]||1)-1,+p[2]||1);}
+function addDays(dateStr,n){var d=parseDateLocal(dateStr);d.setDate(d.getDate()+n);return d;}
 
 function dueState(r){
   var now=new Date();now.setHours(0,0,0,0);
@@ -368,7 +369,8 @@ function dueState(r){
     // check if completed after due? if last >= due -> actually completed means last is recent
     return {state:'overdue',days:days,due:due,label:'逾期 '+(-days)+' 天',cls:'badge-danger'};
   }
-  if(days<=2)return {state:'soon',days:days,due:due,label:'今日到期',cls:'badge-warn'};
+  if(days===0)return {state:'soon',days:days,due:due,label:'今日到期',cls:'badge-warn'};
+  if(days<=2)return {state:'soon',days:days,due:due,label:'剩余 '+days+' 天',cls:'badge-warn'};
   return {state:'ok',days:days,due:due,label:'剩余 '+days+' 天',cls:'badge-ok'};
 }
 
@@ -381,7 +383,7 @@ function __inspExport(){
   routes.forEach(function(r){
     var ds=dueState(r);
     var tr=document.createElement('tr');
-    tr.innerHTML='<td>'+ToolBox.escHtml(r.name)+'</td><td>'+r.freq+'</td><td>'+r.last+'</td><td>'+fmtD(ds.due)+'</td><td>'+ds.days+'</td><td>'+ds.state+'</td><td>'+((r.checkpoints||[]).join('; ')||'-')+'</td><td>'+((r.history||[]).length)+'</td>';
+    tr.innerHTML='<td>'+ToolBox.escHtml(r.name)+'</td><td>'+r.freq+'</td><td>'+ToolBox.escHtml(r.last)+'</td><td>'+fmtD(ds.due)+'</td><td>'+ds.days+'</td><td>'+ds.state+'</td><td>'+ToolBox.escHtml((r.checkpoints||[]).join('; ')||'-')+'</td><td>'+((r.history||[]).length)+'</td>';
     tb.appendChild(tr);
   });
   TBKit.util.exportTable('#inspHidden',en?'inspection-routes.csv':'巡检路线报表.csv');
@@ -429,7 +431,7 @@ function renderDetail(){
   if(ds.state==='overdue'){
     const __h3='<div class="tip-box tip-error">该路线已逾期 '+(-ds.days)+' 天，请尽快巡检！</div>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){dueAlert.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}dueAlert.innerHTML=__h3;
   }else if(ds.state==='soon'){
-    const __h4='<div class="tip-box tip-warn">该路线今日到期，建议安排巡检。</div>';if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){dueAlert.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}dueAlert.innerHTML=__h4;
+    const __h4='<div class="tip-box tip-warn">该路线将在 '+(ds.days===0?'今日':ds.days+' 天后')+' 到期，建议安排巡检。</div>';if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){dueAlert.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}dueAlert.innerHTML=__h4;
   }else{
     const __h5='<div class="tip-box tip-success">巡检周期正常，距下次到期 '+ds.days+' 天。</div>';if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){dueAlert.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}dueAlert.innerHTML=__h5;
   }
@@ -477,7 +479,7 @@ function startInspection(){
   if(selectedIdx<0)return;
   var r=routes[selectedIdx];
   if(!r.checkpoints.length){ToolBox.showToast(i18nText(), 'error');return;}
-  inspecting={routeIdx:selectedIdx,results:r.checkpoints.map(function(c){return {name:c,status:'正常',note:''};})};
+  inspecting={routeIdx:selectedIdx,routeId:r.id,results:r.checkpoints.map(function(c){return {name:c,status:'正常',note:''};})};
   document.getElementById('inspectTitle').textContent='🔍 '+r.name+' · 巡检执行';
   var h='';
   inspecting.results.forEach(function(res,i){
@@ -497,7 +499,14 @@ function cancelInspection(){inspecting=null;document.getElementById('inspectCard
 
 function finishInspection(){
   if(!inspecting)return;
-  var r=routes[inspecting.routeIdx];
+  var r=null;
+  for(var i=0;i<routes.length;i++){ if(routes[i].id===inspecting.routeId){ r=routes[i]; break; } }
+  if(!r){
+    inspecting=null;
+    document.getElementById('inspectCard').style.display='none';
+    ToolBox.showToast('巡检路线已被删除，本次结果未保存','error');
+    return;
+  }
   var issues=inspecting.results.filter(function(x){return x.status==='异常';}).length;
   r.history.push({date:todayStr(),results:inspecting.results,issues:issues});
   r.last=todayStr();

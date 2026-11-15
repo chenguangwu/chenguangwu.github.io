@@ -235,6 +235,24 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"routeName\":\"abc123测试\",\"routeLast\":\"abc123测试\",\"newChk\":\"abc123测试\",\"routeFreq\":\"7\"}，输出区含「abc123测试\n共 1 条\n⚠ 计算结果含无效值，请检查输入是否为有效正数。\n…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    "slug": "property/cycle-10",
+    "clicks": ["var d=parseDateLocal('2026-11-06');document.getElementById('__tbProbe').textContent='P10DATE '+((d.getFullYear()===2026&&d.getMonth()===10&&d.getDate()===6)?'OK':'BAD');"],
+    "expect": ["P10DATE OK"],
+    "ref": "本地日期解析：旧 addDays 用 new Date('YYYY-MM-DD') 按 UTC 午夜解析，UTC-8 等地区显示会提前一天；现 parseDateLocal 按年月日构造本地日期。"
+  },
+  {
+    "slug": "property/cycle-10",
+    "clicks": ["var ds=dueState({last:todayStr(),freq:1});document.getElementById('__tbProbe').textContent='P10SOON '+((ds.days===1&&ds.label==='剩余 1 天')?'OK':'BAD');"],
+    "expect": ["P10SOON OK"],
+    "ref": "到期标签：旧实现 days≤2 一律写「今日到期」，明日/后日到期被误报；现仅 0 天为「今日到期」，1–2 天显示「剩余 N 天」。"
+  },
+  {
+    "slug": "property/cycle-10",
+    "clicks": ["routes=[{id:'RA',name:'A',freq:7,last:todayStr(),checkpoints:['x'],history:[]},{id:'RB',name:'B',freq:7,last:todayStr(),checkpoints:['y'],history:[]}];selectedIdx=1;inspecting={routeIdx:1,routeId:'RB',results:[{name:'y',status:'正常',note:''}]};routes.splice(0,1);selectedIdx=0;finishInspection();document.getElementById('__tbProbe').textContent='P10ID '+((routes.length===1&&routes[0].id==='RB'&&routes[0].history.length===1)?'OK':'BAD');"],
+    "expect": ["P10ID OK"],
+    "ref": "巡检归属：旧 finishInspection 按数组下标回写，巡检中删除前面的路线会写到错误路线或 undefined；现按路线 id 查找，找不到则丢弃并提示。"
+  },
+  {
     "slug": "property/cleaning-allocation",
     "inputs": { "staffCount": "2" },
     "dynDom": true,
