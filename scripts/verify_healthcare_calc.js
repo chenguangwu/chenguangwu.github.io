@@ -43,6 +43,18 @@ const CASES = [
   },
   {
     slug: "healthcare/antipyretic-dose",
+    inputs: { weight: "15", dose: "80", conc: "32" },
+    expect: ["单次剂量已超过每日上限（900 mg/天）"],
+    ref: "D-N15（2026-11-16）：体重 15 kg、80 mg/kg ⇒ 单次 1200 mg 封顶 1000 mg，日上限 = min(15×60=900, 4000) = 900 mg ⇒ 单次已超日上限。旧实现输出「日上限次：0 次」而无任何超限提示；现给红字警示且不渲染 0 次。默认 15 kg/15 mg/kg ⇒ 225/900，不命中。",
+  },
+  {
+    slug: "healthcare/antipyretic-dose",
+    inputs: { weight: "5", age: "0.17", dose: "15", conc: "32" },
+    expect: ["3 月龄以下婴儿发热应及时就医"],
+    ref: "D-N16（2026-11-16）：年龄输入曾只调用 updateWeightHint()，不触发 calc()，先按默认 4 岁算出剂量后再改年龄会保留旧结果。现 oninput 同时调用 calc()，0.17 岁（≈2 月龄）立即出现就医警示。默认 age=4 ⇒ 不命中。",
+  },
+  {
+    slug: "healthcare/antipyretic-dose",
     inputs: { weight: "20", dose: "10", conc: "32" },
     expect: ["当前体重偏差 23%"],
     ref: "WHO P50 中位体重核对：age 默认 4 岁/男 P50=16.3 kg，|20−16.3|÷16.3=22.7%→toFixed(0)=23%。默认 weight=15 偏差 8% ⇒ 随注入变化、零交集。",
