@@ -125,8 +125,8 @@
     </div>
 
     <div class="card formula-box">
-  <div class="formula-title">📐 计算方式</div> <div class="formula-eq">广告投放 ROI 模型<br>CPC 模式：点击量 = 预算/CPC；CPM 模式：展示量 = 预算/CPM×1000，点击量 = 展示量×CTR<br>转化数 = 点击量 × CVR；广告收入 = 转化数 × 客单价<br>总成本 = 广告预算 + 货品成本(收入×成本率) + 固定成本；利润 = 收入 − 总成本<br>ROAS = 收入/预算；ROI = 利润/总成本×100%；CPA = 预算/转化数<br>盈亏平衡 ROAS = 1/毛利率（未计固定成本）；实际盈亏以「利润 = 收入 − 总成本」是否大于 0 判定</div>
-  <p>广告 ROI 模拟：CPC 模式 点击数=预算÷CPC、展示=点击÷CTR；CPM 模式 展示=预算÷CPM×1000、点击=展示×CTR。收入=点击×CVR×客单价，总成本=广告预算+货品成本（收入×成本率）+固定成本，利润=收入−总成本，ROI=利润÷总成本×100%。调整出价 / CTR / CVR 即可比较不同投放方案盈亏。</p>
+  <div class="formula-title">📐 计算方式</div> <div class="formula-eq">广告投放 ROI 模型<br>CPC 模式：点击量 = 预算/CPC；CPM 模式：展示量 = 预算/CPM×1000，点击量 = 展示量×CTR<br>转化数 = 点击量 × CVR；广告收入 = 转化数 × 客单价<br>总成本 = 广告预算 + 货品成本(收入×成本率) + 固定成本；利润 = 收入 − 总成本<br>ROAS = 收入/预算；ROI = 利润/总成本×100%；CPA = 预算/转化数<br>盈亏平衡 ROAS =（预算+固定成本）÷（预算×毛利率）；实际盈亏以「利润 &gt; 0」判定</div>
+  <p>广告 ROI 模拟：CPC 模式 点击数=预算÷CPC、展示=点击÷CTR；CPM 模式 展示=预算÷CPM×1000、点击=展示×CTR。收入=点击×CVR×客单价，总成本=广告预算+货品成本（收入×成本率）+固定成本，利润=收入−总成本，ROI=利润÷总成本×100%。调整出价 / 转化率 / 客单价即可比较不同投放方案盈亏（CPC 模式下 CTR 只影响展示量，不改变 ROI，需联动 CTR 请切 CPM 模式）。</p>
 </div>
 <div class="input-row">
       <div><label>广告预算（元）</label><input type="number" id="budget" value="10000" min="0" oninput="calc()" placeholder="如 10000"></div>
@@ -179,7 +179,7 @@
       <ul>
         <li><strong>ROAS</strong>（广告支出回报）= 广告带来的收入 ÷ 广告花费</li>
         <li><strong>ROI</strong>（投资回报率）= (收入 − 总成本) ÷ 总成本 × 100%</li>
-        <li><strong>盈亏平衡 ROAS</strong> = 1 ÷ 毛利率，低于此值即亏损</li>
+        <li><strong>盈亏平衡 ROAS</strong> =（预算+固定成本）÷（预算×毛利率），低于此值即亏损</li>
         <li>点击量 = 预算 ÷ CPC（或 展示量 × CTR）</li>
       </ul>
     </div>
@@ -360,7 +360,7 @@ var budget = +document.getElementById('budget').value || 0;
   var roi = totalCost>0?(profit/totalCost*100):0;
   var grossMargin = 1-costRate;
   var hasBreakEven = grossMargin > 0;
-  var breakEvenRoas = hasBreakEven ? 1/grossMargin : null;
+  var breakEvenRoas = hasBreakEven && budget>0 ? (budget+fixed)/(budget*grossMargin) : null;
   var cpa = conversions>0?budget/conversions:0;
 
   var color = profit>0?'#10B981':'#EF4444';
@@ -376,10 +376,10 @@ var budget = +document.getElementById('budget').value || 0;
     card('CPA 单转化成本', fmt(cpa)+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" CNY":" 元"));document.getElementById('dataGrid').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
 
   var beBox = document.getElementById('breakEven');
-  var beakEvenNote = hasBreakEven ? breakEvenRoas.toFixed(2) : '—（毛利率 ≤ 0，无平衡点）';
+  var beakEvenNote = (hasBreakEven && breakEvenRoas != null) ? breakEvenRoas.toFixed(2) : '—（无法计算平衡点）';
   var profitable = profit > 0;
   const __g5='<div class="tip-box '+(profitable?'tip-success':'tip-error')+'">'+
-    '盈亏平衡 ROAS = <strong>'+beakEvenNote+'</strong>（'+(hasBreakEven?'毛利率 '+(grossMargin*100).toFixed(0)+'%，未计固定成本':'货品成本率 ≥ 100%，广告投多少都覆盖不了货品成本')+'）　·　实际利润 '+fmt(profit)+' 元 '+
+    '盈亏平衡 ROAS = <strong>'+beakEvenNote+'</strong>（'+(hasBreakEven?'毛利率 '+(grossMargin*100).toFixed(0)+'%，已含固定成本':'货品成本率 ≥ 100%，广告投多少都覆盖不了货品成本')+'）　·　实际利润 '+fmt(profit)+' 元 '+
     (profitable?' ✓ 盈利':' ✗ 亏损')+
     '</div>';beBox.innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
 
@@ -458,7 +458,7 @@ function __adRoiExport(){
   var conversions=clicks*cvr, revenue=conversions*aov, goodsCost=revenue*costRate;
   var totalCost=budget+goodsCost+fixed, profit=revenue-totalCost;
   var roas=budget>0?revenue/budget:0, roi=totalCost>0?profit/totalCost*100:0;
-  var grossMargin=1-costRate, hasBreakEven=grossMargin>0, breakEvenRoas=hasBreakEven?1/grossMargin:null;
+  var grossMargin=1-costRate, hasBreakEven=grossMargin>0, breakEvenRoas=(hasBreakEven&&budget>0)?(budget+fixed)/(budget*grossMargin):null;
   var cpa=conversions>0?budget/conversions:0;
   var en=TBKit.util.isEn();
   var t=document.getElementById('adRoiHidden'); if(!t) return;
@@ -473,7 +473,7 @@ function __adRoiExport(){
     [en?'ROAS':'ROAS', roas.toFixed(2)],
     [en?'ROI':'ROI', roi.toFixed(1)+'%'],
     [en?'Gross Margin':'毛利率', (grossMargin*100).toFixed(0)+'%'],
-    [en?'Break-even ROAS':'盈亏平衡ROAS', hasBreakEven?breakEvenRoas.toFixed(2):'—'],
+    [en?'Break-even ROAS':'盈亏平衡ROAS', (hasBreakEven&&breakEvenRoas!=null)?breakEvenRoas.toFixed(2):'—'],
     [en?'CPA':'CPA单转化成本', Math.round(cpa)+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" CNY":" 元")]
   ];
   t.querySelector('thead').innerHTML='<tr><th>'+(en?'Metric':'指标')+'</th><th>'+(en?'Value':((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Value":"数值"))+'</th></tr>';
