@@ -37,6 +37,33 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "pet-training/elimination-predict",
+  "clicks": [
+    "document.getElementById('age').value='3';document.getElementById('afterDrink').value='30';document.getElementById('petType').value='cat';calc();var a=document.getElementById('result').innerHTML.indexOf('立即带去定点')>=0;document.getElementById('afterDrink').value='5';calc();var b=document.getElementById('result').innerHTML.indexOf('10 分钟后')>=0;document.getElementById('afterDrink').value='';calc();var c=document.getElementById('result').innerHTML.indexOf('请输入饮水后已过分钟数')>=0&&document.getElementById('timeline').innerHTML==='';document.getElementById('__tbProbe').textContent='ELIM '+a+' '+b+' '+c;"
+  ],
+  "expect": ["ELIM true true true"],
+  "ref": "修复前 `postDrinkTime=isPuppy?15-30:20-40` 是减法（幼宠 −15、成宠 −20），任何饮水后时间都判「立即带去」；现幼宠窗口 15–30 分钟，饮水后 30 分钟才提示立即、5 分钟显示「10 分钟后」，空值提示补录并清空时间线。默认 age3/afterDrink15 不走这三支。"
+},
+{
+  "slug": "pet-training/clicker-timing",
+  "inputs": {
+    "duration": "1200"
+  },
+  "expect": [
+    "1200"
+  ],
+    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
+  "ref": "auto-restore"
+},
+{
+  "slug": "pet-training/clicker-timing",
+  "clicks": [
+    "var s=String(scheduleNext),h=String(handleClick);var ok=/clearTimeout\\(nextTimer\\)/.test(s)&&/nextTimer=setTimeout/.test(h)&&/recordAttempt\\(null\\);\\s*updateStats\\(\\)/.test(s);document.getElementById('__tbProbe').textContent='CLK '+ok;"
+  ],
+  "expect": ["CLK true"],
+  "ref": "修复前错过行为只 recordAttempt(null) 不刷新统计、命中后的 800ms 定时器未保存（停止后旧回调仍可推进新一局）；现 miss 分支补 updateStats()、scheduleNext 先清旧定时器、命中延时写入 nextTimer 供 stopGame 取消。时序无法在桩内驱动，故用源码形态判定。默认态不产生该探针串。"
+},
+{
   "slug": "pet-training/leash-length",
   "inputs": {
     "leashLen": "4.5",

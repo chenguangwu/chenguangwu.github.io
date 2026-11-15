@@ -271,6 +271,11 @@ function calc(){
     document.getElementById('timeline').innerHTML='';
     return;
   }
+  if(!isFinite(afterDrink)||afterDrink<0){
+    document.getElementById('result').innerHTML='<div class="predict-val">--</div><div class="predict-sub">请输入饮水后已过分钟数（≥0）</div>';
+    document.getElementById('timeline').innerHTML='';
+    return;
+  }
   var holdHours;
   if(petType==='dog'){
     holdHours=Math.min(age+1,8);
@@ -278,7 +283,9 @@ function calc(){
     holdHours=Math.min(age+2,10);
   }
   var isPuppy=age<6;
-  var postDrinkTime=isPuppy?15-30:20-40;
+  var drinkMin=isPuppy?15:20;
+  var drinkMax=isPuppy?30:40;
+  var postDrinkTime=drinkMin;
   var remainAfterDrink=Math.max(0,postDrinkTime-afterDrink);
   var activityTip='';
   var activityTime=0;
@@ -297,12 +304,15 @@ function calc(){
   if(activity!=='rest'&&activityTime<remainAfterDrink){
     mainVal=activityTime+' 分钟内';
     mainSub=activityTip;
-  }else if(remainAfterDrink<=0){
+  }else if(afterDrink>=drinkMax){
     mainVal='立即带去定点';
-    mainSub='饮水后已超过'+afterDrink+'分钟，建议立即引导排便';
+    mainSub='饮水后已 '+afterDrink+' 分钟，超过常见 '+drinkMin+'–'+drinkMax+' 分钟窗口';
+  }else if(afterDrink>=drinkMin){
+    mainVal='随时可能排便';
+    mainSub='已进入 '+drinkMin+'–'+drinkMax+' 分钟常见窗口，建议立即引导至定点';
   }else{
-    mainVal=remainAfterDrink+' 分钟后';
-    mainSub='饮水后约'+postDrinkTime+'分钟排便，请'+remainAfterDrink+'分钟内引导至定点';
+    mainVal=Math.round(remainAfterDrink)+' 分钟后';
+    mainSub='饮水后约 '+drinkMin+'–'+drinkMax+' 分钟排便，请 '+Math.round(remainAfterDrink)+' 分钟内引导至定点';
   }
   const __g3='<div class="predict-val">'+mainVal+'</div><div class="predict-sub">'+mainSub+'</div>';document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
   renderTimeline(petType,age,holdHours,afterDrink,activity);
@@ -319,8 +329,10 @@ function renderTimeline(petType,age,holdHours,afterDrink,activity){
   }
   if(activity==='wake')addTime(5,'刚睡醒，引导排便','grade-fail');
   if(activity==='active')addTime(10,'玩耍后引导排便','grade-fail');
-  var postTime=age<6?20:30;
-  if(afterDrink<postTime)addTime(postTime-afterDrink,'饮水后排便窗口','grade-pass');
+  var drinkMin=age<6?15:20;
+  var drinkMax=age<6?30:40;
+  if(afterDrink<drinkMin)addTime(drinkMin-afterDrink,'饮水后排便窗口开始（'+drinkMin+'–'+drinkMax+' 分钟）','grade-pass');
+  if(afterDrink<drinkMax)addTime(drinkMax-afterDrink,'饮水后排便窗口结束','grade-pass');
   addTime(holdHours*60,'最长憋尿时间到','grade-good');
   addTime(holdHours*60+30,'超时可能意外','grade-fail');
   var html='';

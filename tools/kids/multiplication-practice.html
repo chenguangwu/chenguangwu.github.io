@@ -267,7 +267,8 @@ var stats = { total:0, right:0, bestStreak:0, cleared:[] };
 var game = {
   mode:'asc', level:2, idx:0, // asc: level 从2递增到9
   a:2, b:3, answer:6,
-  streak:0, timerId:null, timeLimit:8, remaining:8
+  streak:0, timerId:null, timeLimit:8, remaining:8,
+  done:false, nextId:null
 };
 
 function loadStats(){
@@ -308,6 +309,8 @@ function renderLevelBar(){
 }
 
 function makeQuestion(){
+  if(game.nextId){ clearTimeout(game.nextId); game.nextId = null; }
+  game.done = false;
   if(game.mode === 'asc'){
     game.a = game.level;
     game.b = (game.idx % 9) + 1; // 1..9
@@ -351,6 +354,7 @@ function stopCountdown(){
 }
 
 function checkAnswer(){
+  if(game.done) return;
   var inp = document.getElementById('answer');
   var val = inp.value.trim();
   if(val === '') return;
@@ -366,6 +370,7 @@ function checkAnswer(){
 }
 
 function handleRight(){
+  game.done = true;
   stats.total++;
   stats.right++;
   game.streak++;
@@ -391,10 +396,11 @@ function handleRight(){
   saveStats();
   renderStats();
   renderLevelBar();
-  setTimeout(function(){ makeQuestion(); }, 700);
+  game.nextId=setTimeout(function(){ makeQuestion(); }, 700);
 }
 
 function handleWrong(timeout){
+  game.done = true;
   stats.total++;
   game.streak = 0;
   var msg = timeout ? '时间到！正确答案：' + game.answer : '答错啦，正确答案：' + game.answer;
@@ -406,11 +412,12 @@ function handleWrong(timeout){
   ToolBox.showToast(msg, 'error');
   saveStats();
   renderStats();
-  setTimeout(function(){ makeQuestion(); }, 1500);
+  game.nextId=setTimeout(function(){ makeQuestion(); }, 1500);
 }
 
 function nextQuestion(skip){
-  if(skip){ stats.total++; game.streak = 0; saveStats(); renderStats(); }
+  if(game.nextId){ clearTimeout(game.nextId); game.nextId = null; }
+  if(skip && !game.done){ stats.total++; game.streak = 0; saveStats(); renderStats(); }
   makeQuestion();
 }
 
@@ -419,6 +426,7 @@ function onKey(e){
 }
 
 function resetGame(){
+  if(game.nextId){ clearTimeout(game.nextId); game.nextId = null; }
   syncControls();
   game.mode = document.getElementById('modeSel').value;
   game.level = 2;

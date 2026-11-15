@@ -273,7 +273,7 @@
 <script>
 var KEY = 'kids_mirror_stats';
 var stats = { total:0, right:0, bestStreak:0 };
-var round = { idx:0, target:'R', mirrored:false, streak:0, answered:false, limit:10 };
+var round = { idx:0, target:'R', mirrored:false, streak:0, answered:false, limit:10, right:0, total:0, nextId:null };
 
 function loadStats(){
   try{ var s = JSON.parse(localStorage.getItem(KEY)); if(s) stats = Object.assign(stats, s); }catch(e){}
@@ -294,9 +294,10 @@ function genTarget(){
   var type = document.getElementById('typeSel').value;
   var diff = document.getElementById('diffSel').value;
   var pool;
-  if(type === 'letter'){ pool = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'; }
-  else if(type === 'number'){ pool = '0123456789'; }
-  else { pool = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'; }
+  // 剔除左右翻转后与原字形几乎一致的字符（A/H/I/M/O/T/U/V/W/X/Y、0/1/8），否则「是否镜像」无法从画面判别
+  if(type === 'letter'){ pool = 'BCDEFGJKLNPQRSZ'; }
+  else if(type === 'number'){ pool = '2345679'; }
+  else { pool = 'BCDEFGJKLNPQRSZ2345679'; }
   var len = diff === 'hard' ? 2 : 1;
   var s = '';
   for(var i = 0; i < len; i++){ s += pool[Math.floor(Math.random() * pool.length)]; }
@@ -304,10 +305,11 @@ function genTarget(){
 }
 
 function nextRound(){
+  if(round.nextId){ clearTimeout(round.nextId); round.nextId = null; }
   var limit = parseInt(document.getElementById('roundSel').value);
   if(limit > 0 && round.idx >= limit){
-    var acc = stats.total > 0 ? Math.round(stats.right / stats.total * 100) : 0;
-    ToolBox.showToast('练习完成！正确率 ' + acc + '%', 'success');
+    var acc = round.total > 0 ? Math.round(round.right / round.total * 100) : 0;
+    ToolBox.showToast('练习完成！本轮正确率 ' + acc + '%（' + round.right + '/' + round.total + '）', 'success');
     resetGame();
     return;
   }
@@ -328,7 +330,9 @@ function nextRound(){
 
 function answer(userMirror){
   if(round.answered) return;
+  if(round.nextId){ clearTimeout(round.nextId); round.nextId = null; }
   round.answered = true;
+  round.total++;
   var correct = (userMirror === round.mirrored);
   var btns = document.querySelectorAll('.opt-row .opt');
   btns.forEach(function(b){ b.disabled = true; });
@@ -339,6 +343,7 @@ function answer(userMirror){
   stats.total++;
   if(correct){
     stats.right++;
+    round.right++;
     round.streak++;
     if(round.streak > stats.bestStreak) stats.bestStreak = round.streak;
     const __h2='<span style="color:var(--success);">答对了！👍</span>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('feedback').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('feedback').innerHTML=__h2;
@@ -349,12 +354,15 @@ function answer(userMirror){
   }
   saveStats();
   renderStats();
-  setTimeout(function(){ nextRound(); }, 1100);
+  round.nextId=setTimeout(function(){ nextRound(); }, 1100);
 }
 
 function resetGame(){
+  if(round.nextId){ clearTimeout(round.nextId); round.nextId = null; }
   round.idx = 0;
   round.streak = 0;
+  round.right = 0;
+  round.total = 0;
   renderStats();
   nextRound();
 }

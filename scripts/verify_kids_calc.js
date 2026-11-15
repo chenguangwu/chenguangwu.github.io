@@ -38,12 +38,28 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "kids/mirror-letter",
+  "clicks": [
+    "var bad='AHIMOTUVWXY018',ok1=true,ok2=true,ok3=true;document.getElementById('typeSel').value='letter';document.getElementById('diffSel').value='easy';for(var i=0;i<200;i++){if(bad.indexOf(genTarget())>=0){ok1=false;break;}}document.getElementById('typeSel').value='number';for(var j=0;j<200;j++){if(bad.indexOf(genTarget())>=0){ok2=false;break;}}document.getElementById('diffSel').value='hard';document.getElementById('typeSel').value='mixed';for(var k=0;k<200;k++){var t=genTarget();for(var m=0;m<t.length;m++){if(bad.indexOf(t[m])>=0)ok3=false;}}round.right=3;round.total=4;resetGame();var ok4=round.right===0&&round.total===0;document.getElementById('__tbProbe').textContent='MLPOOL '+ok1+' '+ok2+' '+ok3+' '+ok4;"
+  ],
+  "expect": ["MLPOOL true true true true"],
+  "ref": "修复前字母/数字池含 A/H/I/M/O/T/U/V/W/X/Y 与 0/1/8 等左右翻转眼几乎不变的字形，镜像标记只能靠猜；现剔除这些字形（含困难双字模式逐字校验），并把本轮对错计数 round.right/total 在重新开始时归零（完成提示改用本轮而非累计）。默认 letter 池不含该探针串。"
+},
+{
   "slug": "kids/multiplication-practice",
   "clicks": ["stats.right=17;stats.total=20;stats.bestStreak=6;renderStats();"],
   "expect": [
     "85% 正确率"
   ],
   "ref": "独立复算：正确率 = round(stats.right / stats.total * 100) = round(17/20*100) = 85，renderStats() 把「85%」与卡片标签「正确率」一起写进 #statGrid；默认 stats 全 0 ⇒ 显示「0% 正确率」。stats 是页面顶层 var，可在页面作用域直接改字段后重渲染。"
+},
+{
+  "slug": "kids/multiplication-practice",
+  "clicks": [
+    "var ok=/if\\(game\\.done\\) return;/.test(String(checkAnswer))&&/game\\.done = true;/.test(String(handleRight))&&/game\\.done = true;/.test(String(handleWrong))&&/skip && !game\\.done/.test(String(nextQuestion))&&/clearTimeout\\(game\\.nextId\\)/.test(String(nextQuestion))&&/game\\.nextId=setTimeout/.test(String(handleRight));document.getElementById('__tbProbe').textContent='MPSRC '+ok;"
+  ],
+  "expect": ["MPSRC true"],
+  "ref": "修复前已答题仍可被「换一题」重复计次、旧切题定时器不取消；现 checkAnswer 以 game.done 早退，handleRight/handleWrong 置 done，nextQuestion 仅对未答题计次并先清 game.nextId，切题延时统一写入 game.nextId。计时器与页面状态在 DOM 桩内不同步，故用源码形态判定。默认态无该探针串。"
 },
 {
   "slug": "kids/stroke-order",
