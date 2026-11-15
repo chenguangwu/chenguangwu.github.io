@@ -848,6 +848,13 @@ const CASES = [
     "ref": "AWG 20 ⇒ 线径 0.8118 mm / 31.961 mil（标准线规表）。默认 awg=24 ⇒ 0.5106 mm，不出现 0.8118。"
   },
   {
+    "slug": "science/wire-gauge-converter",
+    "inputs": { "awg": "20" },
+    "clicks": ["calcAll()"],
+    "expect": ["33.23"],
+    "ref": "SMS-158 铜电阻量纲：ρ=0.0172 Ω·mm²/m，R(Ω/km)=ρ×1000/A。AWG20 截面积 0.5176 mm² ⇒ 33.23 Ω/km（旧实现少乘 1000 显示 0.03）。默认 awg=24 ⇒ 84.01 Ω/km，判别器换回默认不命中 33.23。"
+  },
+  {
     "slug": "science/science-flow-rate",
     "inputs": { "diam": "100", "vel": "1" },
     "clicks": ["calc()"],

@@ -20,10 +20,10 @@
 - `tools/science/quadratic-equation.html:302-305,376-407,517`：旧 SMS-136 的绝对阈值与小数归零代码已改为相对阈值及科学计数，旧例不再支持该结论，待运行回归；SMS-137 的负 a 共轭根符号问题仍在，结果趋势仍解析以 `Δ` 开头的文本。
 - `tools/science/science-flow-rate.html:569-608,669-718`：旧 SMS-143～145 的历史不恢复输入、内径单位写死和无效值保留旧结果路径仍在。
 - `tools/science/science-pressure-converter.html:447-464,495-508`：清空输入后直接返回，旧结果仍可复制与保存，既有记录仍适用。
-- `tools/science/torque-converter.html:410-425,482-492`：清空数值按 0 计算并保存为有效结果；旧 SMS-155 的 CSV 单位后缀写死仍在。
+- `tools/science/torque-converter.html:410-425`：清空数值按 0 计算并保存为有效结果（SMS-155 CSV 单位后缀写死已于 625 批修，见复核记录）。
 - `tools/science/voltage-divider-calculator.html:389-424`：旧 SMS-36～37 的升压与目标空值兜底关键代码已改为校验并清结果，待运行回归；正向输入仍以 `||0` 处理空值，清空 Vin/R1/R2 可能产生看似有效的零结果。
 - `tools/science/wavelength-to-rgb.html:408-415,450-452`：清空数字框时仍调用 `calc()`，从滑块读出旧值并回填；范围外数字亦被钳位后回写。旧 SMS-156～157 的参考表与算法不一致路径仍在。
-- `tools/science/wire-gauge-converter.html:379-403,409-424,470-476,495-505`：旧 SMS-158 的电阻量级错误在主结果及导出仍在；历史按线径反算时可保存小数 AWG，但恢复用 `parseInt` 截断，结果与保存值不同；无效输入直接返回并保留旧结果。电气计算有安全风险，须专业复核；本轮仅源码核查，未运行浏览器。
+- `tools/science/wire-gauge-converter.html:369,379-385,459-467`：历史按线径反算时可保存小数 AWG，但恢复用 `parseInt` 截断，结果与保存值不同；无效输入直接返回并保留旧结果。SMS-158 电阻量级错误已于 625 批修正（主结果/参考表/导出同源 ×1000）。电气计算有安全风险，须专业复核。
 
 ## 2026-11-06 数学工具静态续审
 
@@ -114,6 +114,9 @@
 - `tools/science/p-value-calculator.html`：1 条（SMS-14 中）。`normalCDF`/`betaI`/`tCDF`/`gammp` 数值与参考值一致（t=2.5,df=20 双侧 0.021234；χ²=9.49,df=4 上尾 0.050002；Z=1.96 双侧 0.049996）；问题仅为 df 截断。df>200 改走正态近似（t=2.5,df=201 得 0.012419，t 分布精确值约 0.0132，约 6% 偏差），属常见近似，未单列条目。
 - `tools/science/effect-size-calculator.html`：SMS-15 已修——双样本 n 严格整数校验（拒绝小数/空值），小数停算提示；SD≤0 单独提示；公式框口径跨 3 源同步。
 - `tools/science/sample-size-calculator.html`：SMS-16 已修——总体 N 非空即要求正整数，N=50.5/N=0 停算提示，不再静默截断或当无限总体。
+- `tools/science/wire-gauge-converter.html`：SMS-158 已修——铜电阻 `ρ=0.0172 Ω·mm²/m` 按 `R=ρ×1000/A` 修正（Ω/km），主结果/明细/参考表/导出 CSV 同源 ×1000；派生 Ω/1000ft 与 100m 压降联动正确。AWG24=84.01 Ω/km、AWG20=33.23 Ω/km、AWG0=0.32 Ω/km。
+- `tools/science/torque-converter.html`：SMS-155 已修——导出 CSV 八行数值后缀按各自单位符号（N·m/kN·m/lb·ft/lb·in/kgf·m/gf·cm/ozf·in/dyn·m），表头改为通用 Value，不再全部标 N·m。
+- `tools/science/work-done.html`：SMS-160 已修——预设倍率与结果自洽（默认 F=50,d=10→500 J；「2×」改 F=100,d=10→1000 J；「0.5×」改 F=25,d=10→250 J）。
 - `tools/science/chi-square-calculator.html`：2 条（SMS-17 中、SMS-18 中）。χ²=Σ(O−E)²/E 与上尾 CDF 正确（默认 30,25,20,15,10 → χ²=12.5、df=4、p=0.013996）；问题为静默过滤与自由度口径。
 - `tools/science/anova-calculator.html`：2 条（SMS-19 中、SMS-20 中）。SSB/SSW、dfB=k−1、dfW=N−k、F 与上尾 p 正确（默认数据 F(2,12)=25.554、p=4.73e-5）；问题为非数值静默丢弃与 dfW=0 未拦。注：SMS-7 的同名问题在 `tools/statistics/one-way-anova.html`，与本页实现不同（本页直接由原始观测算 SSW，无 `(n−1)s²` 负值缺陷）。
 
