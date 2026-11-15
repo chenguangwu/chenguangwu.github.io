@@ -143,7 +143,7 @@
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="📊 文本统计工具">📊 Text Statistics Tool</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">文本统计与阅读估算<br>中文字数 = [\u4e00-\u9fff] 汉字匹配数；英文单词 = [a-zA-Z]+ 连续字母串数<br>句子数 = [。！？!?] 标点匹配数；段落数 = 空行(\n\s*\n) 分割数<br>字节数 = UTF-8 编码 Blob 大小；空白字符 = 总字符 − 不含空格字符<br>阅读时间 = max(⌈中文字数÷400⌉, ⌈英文词÷200⌉, 1) 分钟<br>朗读时间 = ⌈(中文字数 + 英文词) ÷ 250⌉ 分钟<br>平均句长 = 词数 ÷ 句子数；难度：&gt;25 词/句 困难｜&gt;15 中等｜≤15 简单</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">文本统计与阅读估算<br>中文字数 = [\u4e00-\u9fff] 汉字匹配数；英文单词 = [a-zA-Z]+ 连续字母串数<br>句子数 = [。！？!?] 与英文句末 . ! ? 匹配数；段落数 = 空行(\n\s*\n) 分割数<br>字节数 = UTF-8 编码 Blob 大小；空白字符 = 总字符 − 不含空格字符<br>阅读时间 = max(⌈中文字数÷400⌉, ⌈英文词÷200⌉, 1) 分钟<br>朗读时间 = ⌈(中文字数 + 英文词) ÷ 250⌉ 分钟<br>平均句长 = 词数 ÷ 句子数；难度：&gt;25 词/句 困难｜&gt;15 中等｜≤15 简单</div>
   <p class="formula-desc" data-zh="本文本工具基于标准字符编码与文本处理规则，纯前端运行，代码不离开浏览器。 工具名称：文本统计 - 商业办公领域的在线工具。">Count characters, words, lines, word frequency and readability metrics with separate Chinese and English counts for drafting, length-limit checks and content review.</p>
 </div>
 
@@ -286,10 +286,12 @@ function analyze(){
   const chinesePunc = (text.match(/[，。！？；：、""''（）【】《》]/g)||[]).length;
   const englishWords = (text.match(/[a-zA-Z]+/g)||[]).length;
   const digits = (text.match(/[0-9]/g)||[]).length;
-  const lines = text === '' ? 0 : text.split('\n').length;
+  // BS-N40：末尾换行不再多算一个空行，与「非空行」口径一致
+  const lines = text === '' ? 0 : text.replace(/\n$/, '').split('\n').length;
   const nonEmptyLines = text.split('\n').filter(l => l.trim() !== '').length;
   const paragraphs = text.split(/\n\s*\n/).filter(p => p.trim().length > 0).length;
-  const sentences = (text.match(/[。！？!?]+/g)||[]).length || (text.trim() ? 1 : 0);
+  // BS-N39：英文句末 . ! ? 也计入句子；小数点（3.14）后不是空白/行尾故不命中
+  const sentences = (text.match(/[。！？!?]+|[.!?]+(?=\s|$)/g)||[]).length || (text.trim() ? 1 : 0);
   const words = text.trim().split(/\s+/).filter(w => w.length > 0).length;
   const bytes = new Blob([text]).size;
 

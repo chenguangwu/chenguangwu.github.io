@@ -290,6 +290,7 @@ function toggleToolTheme(){
   }
 })();
 
+var lastParts = [];
 function split(){
   const text = document.getElementById('input').value;
   const result = document.getElementById('result');
@@ -316,7 +317,9 @@ function split(){
     const size = parseInt(document.getElementById('size').value, 10);
     if(!isFinite(size) || size < 1){ result.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Characters per segment must be an integer > 0":"每段字符数必须是大于 0 的整数"); document.getElementById('countLabel').textContent = ''; return; }
     parts = [];
-    for(let i = 0; i < text.length; i += size) parts.push(text.substr(i, size));
+    // BS-N37：按 Unicode 码点切分，避免 emoji / 补充平面字符被劈成孤立代理项
+    const cps = Array.from(text);
+    for(let i = 0; i < cps.length; i += size) parts.push(cps.slice(i, i + size).join(''));
   }else if(mode === 'words'){
     const size = parseInt(document.getElementById('size').value, 10);
     if(!isFinite(size) || size < 1){ result.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Words per segment must be an integer > 0":"每段词数必须是大于 0 的整数"); document.getElementById('countLabel').textContent = ''; return; }
@@ -326,6 +329,7 @@ function split(){
 
   if(trimEach) parts = parts.map(p => p.trim());
   if(skipEmpty) parts = parts.filter(p => p !== '');
+  lastParts = parts.slice();
 
   document.getElementById('countLabel').textContent = `（共 ${parts.length} 段）`;
   if(parts.length === 0){ result.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"No split result":"没有分割结果"); return; }
@@ -339,8 +343,9 @@ function escapeHtml(s){
 }
 
 function copyResult(ev){
-  const text = document.getElementById('result').innerText;
-  if(!text || text === ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Please enter text...":"请输入文本...")){ alert('请先分割文本'); return; }
+  // BS-N38：复制纯分段内容，不把序号带进剪贴板
+  const text = lastParts.length ? lastParts.join('\n') : '';
+  if(!text){ alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Please split the text first":"请先分割文本")); return; }
   const btn = (ev && ev.target) ? ev.target.closest('.btn') : null;
   navigator.clipboard.writeText(text).then(() => {
     if(btn){ const old = btn.textContent; btn.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"✅ Copied":"✅ 已复制"); setTimeout(() => btn.textContent = old, 1500); }

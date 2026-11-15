@@ -105,34 +105,6 @@
 
 ## T 批 商业文本工具覆盖（2026-11-04）
 
-### BS-N37 文本分割：按字符数用 UTF-16 长度与 `substr`，emoji 被劈成孤立代理项（中，确认缺陷）
-- 问题：`text.length` / `substr` 按码元计数，补充平面字符（emoji、生僻字、部分符号）占 2 个码元，切点落在代理对中间。
-- 证据：`tools/biz/text-split.html:326-329`。
-- 复现：选「按字符数」、长度填 1，输入 `😀😀ab` → 6 段，前两段分别为 `\uD83D`、`\uDE00`（node 复算），粘贴/导出显示为 `�`；期望 4 段（😀/😀/a/b）。
-- 影响：社媒文案、含 emoji 的 CSV 被切坏后不可逆（复制出去即乱码），且段数与「共 N 段」全部偏大。
-- 方案：用 `Array.from(text)` 或 `Intl.Segmenter('und',{granularity:'grapheme'})` 按码点/字素切分，长度也按码点计。
-
-### BS-N38 文本分割：复制结果取 `innerText`，序号粘在内容前且段间无分隔（中，确认缺陷）
-- 问题：结果区是 `<div class="result-block"><span class="idx">N</span>内容</div>`，`copyResult()` 复制 `result.innerText`，序号与内容同属一行文本。
-- 证据：`tools/biz/text-split.html:341-343`（模板含 `.idx`）、`:350-351`（`document.getElementById('result').innerText`）。
-- 复现：默认示例按分隔符分割 → 复制落到剪贴板的是 `1apple` / `2banana` / …（node 复算形态 `[1]apple`），期望 `apple\nbanana…` 纯内容。
-- 影响：复制结果粘回输入框或其它系统时序号污染数据；用户还需手工删序号，定长切分场景尤其致命。
-- 方案：维护一份 `lastParts` 数组，复制时 `join('\n')`；或在 `.idx` 上加 `user-select:none` 并额外用 `CSS.escape` 拆分文本节点，最稳是直接用数组。
-
-### BS-N39 文本统计：英文句号不计入句子数，平均句长与阅读难度整段失真（中，确认缺陷）
-- 问题：句子只认 `。！？!?`，英文 `.` 缺失；无中文标点时 `|| 1` 兜底成 1 句，于是「平均句长 = 全部词数」，难度阈值直接被击穿。
-- 证据：`tools/biz/text-stats.html:303`（`/[。！？!?]+/g` 与 `|| (text.trim()?1:0)`）、`:332-336`（平均句长与 25/15 阈值）、`:157`（公式框同样只写这四类标点）。
-- 复现：100 个英文单词、3 句（句号分隔）→ 输出「句子数 1、平均句长 100.0 词/句、阅读难度 困难」（node 复算）；期望 3 句、约 33 词/句、中等。
-- 影响：英文/中英混排文本的「平均句长」「阅读难度」恒为困难档，是页面主打的易读性指标，结论方向性错误。
-- 方案：句子切分改为 `/[。！？!?]+|[.!?]+(?=\s|$)/g`（并排除 `...`/小数点的误判），或直接按 `Intl.Segmenter('en',{granularity:'sentence'})`；公式框同步补英文句号口径。
-
-### BS-N40 文本统计：「总行数」把末尾换行多算一行（中，确认缺陷）
-- 问题：`text.split('\n').length` 在末尾有换行时返回多一个空串；`非空行` 有过滤，`总行数` 没有。
-- 证据：`tools/biz/text-stats.html:300`（`text.split('\n').length`）、`:301`（同一 split 后再过滤，口径不一致）、`:333`（平均行长用该 `lines`）。
-- 复现：输入 `a\nb` → 总行数 2；在编辑器末尾回车一次（`a\nb\n`）→ 总行数 3、平均行长被摊薄（node 复算 `parts=["a","b",""]`）。
-- 影响：写作类用户常见的"末尾留空行"会让行数与平均行长漂移，与「非空行」并列展示时自相矛盾。
-- 方案：`lines = text.replace(/\n$/,'').split('\n')`（或仅当末元素为空时 `pop()`）；`平均行长` 改用同一 `lines` 口径并注明是否含空行。
-
 ### BS-N41 注释生成器：HTML/CSS 单行注释不闭合、横幅边框不是注释、YAML 块注释非法（中，确认缺陷）
 - 问题：① `line` 配置对 html 是 `<!--`、css 是 `/*`，单行模式只拼 `前缀 + 内容`，永不补 `-->` / `*/`；② banner 顶/底边线是裸 `=` 串；③ 非 html/python/ruby 的块注释统一加 `' * '`，YAML 的注释符是 `#`，混入 ` * ` 行即非法。
 - 证据：`tools/biz/comment-generator.html:324-325`（html/css 的 `line`）、`:358-359`（line 分支不闭合）、`:376-385`（banner 的 `sep = '='.repeat(...)`）、`:329` + `:365-367`（YAML `#` 却走 ` * ` 分支）。
@@ -146,8 +118,7 @@
 - `tools/biz/text-remove-duplicates-lines.html`：2 条（BS-N33、BS-N34，均中）。`trimLine`/`removeEmpty`/`sortResult` 与六种模式均真实生效，未发现 XSS（结果走 `textContent`）。
 - `tools/biz/text-sort-advanced.html`：2 条（BS-N35、BS-N36，均中）。`random`/`reverse`/`natural` 与长度模式实算正常；`lex-zh` 不响应「忽略大小写」（低，未单列）。
 - `tools/biz/text-merge.html`：**未发现中/高**。骨架正确：`\n` 分隔符特判、`custom` 空值回退、`skipEmpty` 为显式选项。仅记低优：`prefix`/`suffix` 输入框没有 `oninput`，改后需手动点「合并」才刷新，与同页其它输入不一致；`var currentMode` 是死变量。
-- `tools/biz/text-split.html`：3 条（BS-N29 高；BS-N37、BS-N38 中）。`result.innerHTML` 对每段做 `escapeHtml`，未见注入；正则分隔符编译失败已 try/catch 提示。
-- `tools/biz/text-stats.html`：2 条（BS-N39、BS-N40，均中）。统计卡片由数字与静态标签拼成，无用户文本注入；`bytes` 用 `Blob` 取 UTF-8 字节，正确。
+- `tools/biz/text-split.html`：1 条（BS-N29 高）。`result.innerHTML` 对每段做 `escapeHtml`，未见注入；正则分隔符编译失败已 try/catch 提示。
 - `tools/biz/comment-generator.html`：1 条（BS-N41，中）。12 种语言 × 5 种样式均按配置表生成；`result.textContent` 输出，无 XSS。
 
 - 说明：本轮为**只读**审计，结论来自逐行阅读源码 + `node` 在 `/tmp` 复刻关键函数实算（脚本 `/tmp/tb_repro.js`、`/tmp/tb_repro2.js`）；**未开浏览器**、**未运行 `_build.py` / `run_gates.py`**、**未做线上验证**，未修改任何工具页或构建产物。新增 13 条（高 1 / 中 12）。
@@ -394,28 +365,12 @@
 
 > 只读审计：逐页读源码 + `node` 在 `/tmp` 复刻核心函数实算（脚本 `/tmp/w_biz_text_d.js`、`/tmp/w_biz_text_d2.js`、`/tmp/w_rand2.js`）。未开浏览器、未跑构建/门禁、未做 git 写操作。
 
-### BS-N110 随机话术：选 12/25/40 条实际只出 10 条，预设直接触发（高，确认缺陷）
-- 页面：`tools/biz/random-script.html`
-- 问题：内置话术库只有 10 条，`pick` 用 `slice(0, Math.min(n, arr.length))`，n 超过库容时静默截断；而数量输入允许 1–50，且预设有「客服话术 12 条」「运营文案 25 条」「压测数据集 40 条」。
-- 证据：`tools/biz/random-script.html:206`（`SCRIPTS` 10 条）、`:218`（`pick` 截断）、`:220`（数量上限 50）、`:399-401`（三条越界预设）。
-- 复现（node 复刻）：点「压测数据集 40 条」→ 实际只输出 10 条，页面无任何提示；期望 40 条或明确告知库容不足。
-- 影响：数量设置与预设承诺全部失真，做「压测 40 条」数据集时实际只有 10 条。假工具：否。
-- 方案：扩充话术库至 ≥50 条，或把数量上限钳到库容并在超出时提示；三条预设数量改为 ≤10。
-
 ### BS-N111 随机话术：功能特点称「支持按场景筛选」，页面无该控件（中，承诺未实现）
 - 页面：`tools/biz/random-script.html`
 - 问题：简介功能列表写「从标准话术库随机抽取，支持按场景筛选」，但页面只有「生成数量」一个输入，无场景下拉/多选；`scene` 字段仅用于结果展示。
 - 证据：`tools/biz/random-script.html:273`（功能特点）、`:124`（唯一输入 `cnt`）。
 - 影响：用户无法按场景（问候/致歉/退换货）定向抽题；假工具：否。
 - 方案：补场景多选并接入 `pick` 前的过滤，或删除该条功能描述。
-
-### BS-N112 随机话术：`sort(()=>Math.random()-0.5)` 抽取概率严重不均（中，确认缺陷）
-- 页面：`tools/biz/random-script.html`
-- 问题：用随机比较器排序后取前 N，属已知非均匀洗牌；与其引据「同场景下各模板出现概率均等」不符。
-- 证据：`tools/biz/random-script.html:218`（实现）、`:179`（引据要求等概率）、`:159`（FAQ 已自认「概率并不严格相等」）。
-- 复现（node 复刻，10 万次抽 5/10）：各条目入选次数 42654–58911，最大偏差 **17.8%**；排在首位的条目 6010–19595 次，最大偏差 **96%**。
-- 影响：抽检/演练的条目覆盖不均，固定几条反复被抽中；假工具：否。
-- 方案：改 Fisher–Yates 洗牌后取前 N（或 `crypto.getRandomValues` 取样），并同步更新 FAQ。
 
 ### BS-N115 三页生成器描述承诺的关键词输入与释义/slogan 输出均未实现（中，承诺未实现）
 - 页面：`tools/biz/app-name-generator.html`、`tools/biz/brand-name-generator.html`、`tools/biz/product-name-generator.html`
@@ -434,7 +389,7 @@
 
 ### W 批覆盖清单（8 页）
 - `tools/biz/app-name-generator.html`：1 条（BS-N109 中）+ 共享 BS-N115。词库拼接、随机源 `crypto.getRandomValues`、转义输出主体正确。
-- `tools/biz/random-script.html`：3 条（BS-N110 高、BS-N111/112 中）+ 共享 BS-N126。单次抽取不重复、数量 1–50 钳制正确，库容不足未处理。
+- `tools/biz/random-script.html`：1 条（BS-N111 中）+ 共享 BS-N126。单次抽取不重复、数量 1–50 钳制正确，库容不足已有明确提示。
 - `tools/biz/brand-name-generator.html`：1 条（BS-N113 高）+ 共享 BS-N115。首字母大写/全小写、短名开关逻辑正确。
 - `tools/biz/product-name-generator.html`：1 条（BS-N114 中）+ 共享 BS-N115。A+空格+B 拼接与公式一致。
 - `tools/biz/text-pad.html`：共享 BS-N126；本页独立缺陷 0 条。左右/居中填充、按字节 2 字节模型、奇数余数分配逐例复算均达标，未发现高/中优缺陷。
@@ -456,14 +411,6 @@
 - 复现：打开页面数出 17 张卡；点「🇫🇦🇳🇨🇾 区域指示符」「ɟɐuɔʎ 颠倒」「H̥e̥l̥l̥o̥ 加点」→ 一律 alert「该风格不可用」；输入 `ToolBox` 无任何全角结果可复制。
 - 影响：宣称能力与实物不符，3 张卡为死功能；主体 14 种映射可用，故假工具：否。
 - 方案：补全角与区域指示符映射，或删掉 3 张占位卡并把「15+/数十种/全角」文案改为实际 14 种。
-
-### BS-N129 草莓文字：按 UTF-16 码元遍历，输入含 emoji 时输出被拆成孤立代理项（中，确认缺陷）
-- 页面：`tools/biz/strawberry-text.html`
-- 问题：`for(var i=0;i<input.length;i++){ var ch = input[i]; }` 按码元取字符，非 BMP 字符（emoji、部分扩展 CJK）被拆成高低代理两半，两半之间被插入装饰 emoji，拼接后成为非法代理序列，显示为 �/方框。
-- 证据：`tools/biz/strawberry-text.html:308-310`（`input.length` + `input[i]`）、`:322-324`（在 `ch` 两侧拼接 emoji）。
-- 复现：输入 `Hi😀`，勾选「字符前加/后加」→ 结果码位序列为 `… 1f353 48 1f353 1f353 69 1f353 1f353 d83d 1f353 1f353 de00 1f353`（`d83d`/`de00` 被拆开，孤立代理项）。
-- 影响：贴 emoji 的昵称场景恰好是本工具主用途，输出直接坏字；假工具：否。
-- 方案：改用 `Array.from(input)` 或 `for...of` 按码点遍历。
 
 ### BS-N130 草莓文字：深解与引据表把功能写成「叠加组合字符 / UTS #39 同形替换」，实际是拼 emoji（中，承诺未实现）
 - 页面：`tools/biz/strawberry-text.html`
@@ -489,22 +436,6 @@
 - 影响：用户按示例选模式会得到与预览不符的结果；假工具：否。
 - 方案：交换两处示例文案，或把两个模式的初值对调。
 
-### BS-N133 高级大小写：`updatePreview()` 是空函数，改输入不重算，复制会拿到上一次结果（中，确认缺陷）
-- 页面：`tools/biz/text-case-advanced.html`
-- 问题：textarea 绑定 `oninput="updatePreview()"`，但 `updatePreview` 函数体只有注释「保留上次结果」；页面又没有「转换」按钮（只有模式卡）。用户改完输入后预览仍是旧文本，此时点「复制结果」复制的也是旧文本。
-- 证据：`tools/biz/text-case-advanced.html:169`（`oninput="updatePreview()"`）、`:367-369`（空实现）、`:171`（复制按钮）、`:175`（`#preview`）、`:493-497`（boot 也调空 `updatePreview`）、`:464-483`（每次 oninput 仍落库一条「新输入 + 旧结果」记录）、`:443`（历史回填后也只调空 `updatePreview`，预览不跟着变）。
-- 复现：点「全大写」得 `HELLO WORLD` → 把输入改成 `abc`（不点任何模式）→ 预览仍显示 `HELLO WORLD` → 点「复制结果」→ 剪贴板是 `HELLO WORLD`；同时历史表新增一条「输入 abc / 结果 HELLO WORLD」的错配记录（`last<1000ms` 限流，每秒最多 1 条）。
-- 影响：输出与当前输入不一致，静默复制错误结果，且把错配结果写进历史/CSV；假工具：否。
-- 方案：记住 `lastMode`，在 `updatePreview` 里重跑 `convert(lastMode)`；或去掉 `oninput` 并明确提示「点模式卡才计算」。
-
-### BS-N134 颠倒文字：末步 `split('')` 反转拆散代理对，含 emoji 输出为非法序列（中，确认缺陷）
-- 页面：`tools/biz/upside-down-text.html`
-- 问题：映射阶段用 `for...of`（按码点，安全），但最后 `out.split('').reverse().join('')`（按 UTF-16 码元）反转；非 BMP 字符被拆成两个代理项并倒序，产生孤立代理项。
-- 证据：`tools/biz/upside-down-text.html:300-302`（按码点映射）、`:304`（`split('').reverse().join('')`）。
-- 复现：输入 `a😀` → 结果码位顺序 `U+DE00 U+D83D U+0250`（高低代理倒置，浏览器显示 �）。
-- 影响：贴 emoji 即坏字（中文 BMP 不受影响）；假工具：否。
-- 方案：改为 `[...out].reverse().join('')`。
-
 ### BS-N135 颠倒文字：深解算例「oʅʅǝɥ」与实现输出「ollǝɥ」不符（中，算例错误）
 - 页面：`tools/biz/upside-down-text.html`
 - 问题：深解写「输入 hello，倒置输出 oʅʅǝɥ」，但映射表把 `l` 映射为 `l`（恒等），实际结果为 `ollǝɥ`；文档比实现多两个 `ʅ`。
@@ -513,20 +444,11 @@
 - 影响：算例与实物不符，用户以为映射缺字；假工具：否。
 - 方案：把算例改成 `ollǝɥ`，或把 `l` 改为 `ʅ`（并同步全部含 l 的示例）。
 
-### BS-N136 Zalgo 文字：公式称「上限放大后向下取整」，`rand(上限+1)` 未取整，轻度档可超出文档上限（中，说明与实现不符）
-- 页面：`tools/biz/zalgo-text.html`
-- 问题：formula-desc 明确写「上限被强度放大后再向下取整」「每字符附加数 ~ U{0, ⌊上限⌋}」，实现直接把可能带小数的 `upMax` 传给 `rand(upMax+1)`；小数时上界变 `⌈上限⌉`，轻度档也会超出文档所述最大值。
-- 证据：`tools/biz/zalgo-text.html:325-327`（`parseInt(...) * intensity / 2` 未取整）、`:333-335`（`rand(upMax + 1)`）、`:531-532`（formula-eq/formula-desc「向下取整」「⌊上限⌋」）。
-- 复现：上/中/下设为 3/1/3、强度「轻度」→ upMax=1.5，`rand(2.5)` 返回 0/1/2，单字符上方可出现 2 个标记（文档上限为 1）。
-- 影响：按文档调参得到的强度偏强且不可预测；输出本身不算错，属说明与实现不符；假工具：否。
-- 方案：`rand(Math.floor(upMax) + 1)`（三档同改），或把文档改成 `⌈上限⌉ + 1`。
-
 ### X 批覆盖清单（商业文本收尾 5 页）
-- `tools/biz/zalgo-text.html`：1 条（BS-N136 中）。复核通过项：按码点叠加、空格/换行跳过、三组符号独立抽样、历史回填与预设接线正常。
-- `tools/biz/strawberry-text.html`：3 条（BS-N128/129/130 中）。复核通过项：包夹/前后/跳过空白三模式与公式一致、清空与复制接线正常。
+- `tools/biz/strawberry-text.html`：2 条（BS-N128/130 中）。复核通过项：包夹/前后/跳过空白三模式与公式一致、清空与复制接线正常。
 - `tools/biz/fancy-text.html`：1 条（BS-N127 中）。复核通过项：14 张映射表 `src/dst` 长度全部相等（`/tmp` 逐表校验，无 `undefined` 空洞）、未命中保留原字符、中文/emoji 按码点安全。
-- `tools/biz/text-case-advanced.html`：3 条（BS-N131/132/133 中）。复核通过项：22 个模式中 camel/pascal/snake/kebab/constant/dot/path 分词与取词正确，`sentence` 句首规则正确。
-- `tools/biz/upside-down-text.html`：2 条（BS-N134/135 中）。复核通过项：映射覆盖 a–z/A–Z/0–9/常用标点，未命中保留原字符，空格映射恒等。
+- `tools/biz/text-case-advanced.html`：2 条（BS-N131/132 中）。复核通过项：22 个模式中 camel/pascal/snake/kebab/constant/dot/path 分词与取词正确，`sentence` 句首规则正确。
+- `tools/biz/upside-down-text.html`：1 条（BS-N135 中）。复核通过项：映射覆盖 a–z/A–Z/0–9/常用标点，未命中保留原字符，空格映射恒等。
 
 - **X 批合计 10 条：高 0 / 中 10 / 安全 0。假工具 0 个。**
 - 说明：本轮为**只读**审计，逐行读源码 + `node` 在 `/tmp` 复刻（`/tmp/xprobe.js`：fancy 17 张卡映射长度校验、`flip('hello')` 实测、草莓 emoji 码位实测、大小写各模式实测）。**未开浏览器**、**未运行 `_build.py` / `run_gates.py`**、**未做 git 写操作**，除本文件与 `plan/categories/11-文娱爱好/fun-entertainment.md` 外未修改任何文件。

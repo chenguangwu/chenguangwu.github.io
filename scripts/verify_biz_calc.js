@@ -930,9 +930,9 @@ const CASES = [
       "cnt": "42"
     },
     "expect": [
-      "单号或注册手机号？ 9. 升级处理 您的问题我已经记录并转交专人处理，预计24小时内与您联系。 10. 确认需求 请问您遇到的问题是否可以理解为：……？我这样理解对吗？"
+      "话术库仅 10 条，最多生成 10 条（当前请求 42 条）"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"cnt\":\"42\"}，输出区含「单号或注册手机号？ 9. 升级处理 您的问题我已经记录并转交专人处理，预计24小…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "BS-N110：数量 42 超过内置话术库 10 条时明确提示库容上限，不再静默截断。609 批把洗牌改为 Fisher–Yates 后原顺序快照失效，改用提示串作锚；默认 cnt=5 不触发提示 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "biz/strawberry-text",
@@ -1449,6 +1449,76 @@ const CASES = [
   },
 
 ];
+
+
+// ── 609 批：商业文本族 9 条确认缺陷的判别性用例 ──────────────────────
+// 口径：expect 是「或」，每条自身必须依赖注入输入且默认态不命中；
+//       探针串只在 clicks 注入执行后出现，默认态零逃生。
+CASES.push(
+  {
+    slug: "biz/text-split",
+    inputs: { input: "😀😀ab", mode: "chars", size: "1" },
+    clicks: ["split();"],
+    expect: ["（共 4 段）"],
+    ref: "BS-N37：按码点切分后 😀😀ab 恰为 4 段；旧实现按 UTF-16 码元 substr 得 6 段（两个 emoji 各被劈成高低代理两半）。默认逗号模式为 5 段示例文本 ⇒ 不命中。"
+  },
+  {
+    slug: "biz/text-split",
+    inputs: { input: "apple,banana,cherry" },
+    clicks: ["split();var cap='';var old=navigator.clipboard;navigator.clipboard={writeText:function(t){cap=String(t);return Promise.resolve();}};copyResult();navigator.clipboard=old;var nl=String.fromCharCode(10);document.getElementById('__tbProbe').textContent='TSCOPY '+(cap==='apple'+nl+'banana'+nl+'cherry'?'OK':'BAD:'+cap.split(nl).join('|'));"],
+    expect: ["TSCOPY OK"],
+    ref: "BS-N38：复制必须只含三段纯内容、以换行分隔；旧实现取 result.innerText 会把序号 1/2/3 粘在内容前。探针只在 clicks 注入执行 ⇒ 默认态零逃生。"
+  },
+  {
+    slug: "biz/text-stats",
+    inputs: { input: "One. Two.\nThree.\n" },
+    clicks: ["analyze();"],
+    expect: ["3 句子数"],
+    ref: "BS-N39：英文句末 . 计入句子数（One./Two./Three. 共 3 句），旧正则只认 [。！？!?] 会回落成 1 句、平均句长与阅读难度整段失真。默认示例文本句子数非 3 ⇒ 不命中。小数点 3.14 因点后不是空白/行尾不误判。"
+  },
+  {
+    slug: "biz/text-stats",
+    inputs: { input: "a\nb\n" },
+    clicks: ["analyze();"],
+    expect: ["2 总行数"],
+    ref: "BS-N40：末尾换行不再多算一个空行（a\\nb\\n 应为 2 行），旧 split('\\n') 得 3 行并摊薄平均行长。默认示例文本为 3 行 ⇒ 不命中。"
+  },
+  {
+    slug: "biz/strawberry-text",
+    inputs: { input: "Hi😀" },
+    clicks: ["convert();"],
+    expect: ["😀"],
+    ref: "BS-N129：按码点遍历后 emoji 完整保留；旧 input[i] 按 UTF-16 码元取字符，😀 被拆成孤立高低代理且中间插了装饰 emoji，结果区不含完整 U+1F600。默认输入 Hello World 你好世界 不含 emoji ⇒ 不命中。"
+  },
+  {
+    slug: "biz/upside-down-text",
+    inputs: { input: "a😀" },
+    clicks: ["convert();"],
+    expect: ["😀ɐ"],
+    ref: "BS-N134：按码点反转后输出 😀ɐ；旧 out.split('').reverse() 把 😀 的代理对倒序拆散，得到孤立代理 + ɐ，不含该连续串。默认 Hello ⇒ ollǝH ⇒ 不命中。"
+  },
+  {
+    slug: "biz/text-case-advanced",
+    inputs: { input: "hello world" },
+    clicks: ["convert('upper');document.getElementById('input').value='abc';updatePreview();var s=String(preview.textContent||'');document.getElementById('__tbProbe').textContent='TCUP '+(s==='ABC'?'OK':'BAD:'+s);"],
+    expect: ["TCUP OK"],
+    ref: "BS-N133：记住上次模式并在输入变化时重算。先转全大写得 HELLO WORLD，再把输入改成 abc 调 updatePreview；修复后预览为 ABC，旧空函数仍停留 HELLO WORLD ⇒ BAD。探针默认态不执行 ⇒ 零逃生。"
+  },
+  {
+    slug: "biz/random-script",
+    inputs: {},
+    clicks: ["var s=String(pick);document.getElementById('__tbProbe').textContent='RSPICK '+(s.indexOf('Math.random()-0.5')<0&&s.indexOf('i=a.length-1')>=0&&s.indexOf('Math.floor(Math.random()*(i+1))')>=0?'OK':'BAD');"],
+    expect: ["RSPICK OK"],
+    ref: "BS-N112：抽取改为 Fisher–Yates 等概率洗牌，不再用 sort(()=>Math.random()-0.5) 的非均匀比较器（旧实现 10 万次抽 5/10 首位偏差达 96%）。源码形态探针只在 clicks 注入出现 ⇒ 默认态零逃生。"
+  },
+  {
+    slug: "biz/zalgo-text",
+    inputs: {},
+    clicks: ["var s=String(typeof __zalgo_text_f0==='function'?__zalgo_text_f0:generate);document.getElementById('__tbProbe').textContent='ZFLOOR '+(s.indexOf('Math.floor(upMax)')>=0&&s.indexOf('Math.floor(midMax)')>=0&&s.indexOf('Math.floor(downMax)')>=0?'OK':'BAD');"],
+    expect: ["ZFLOOR OK"],
+    ref: "BS-N136：公式框写「上限放大后向下取整」，三档上限须先 Math.floor 再 +1 传给 rand；旧实现传小数使轻度档可超出文档上限。源码形态探针只在 clicks 注入出现 ⇒ 默认态零逃生。"
+  }
+);
 
 // ---------------------------------------------------------------- main
 async function main() {
