@@ -2528,6 +2528,24 @@ const CASES = [
        + "默认值为 25 年前的日期（1999-06-15），不命中。",
   },
   {
+    slug: "life/zodiac-calculator",
+    inputs: { birthDate: "2024-02-05" },
+    expect: ["🐰 兔"],
+    ref: "春节口径：2024 春节为 2 月 10 日，2 月 5 日仍属农历 2023 年 ⇒ 兔；旧实现按公历 2024 取模得龙。默认 1999-06-15 不含兔。"
+  },
+  {
+    slug: "life/zodiac-calculator",
+    inputs: { birthDate: "2024-02-10" },
+    expect: ["🐲 龙"],
+    ref: "春节当天换年：2024-02-10（正月初一）属农历 2024 年 ⇒ 龙；与前一例共同锁定边界两侧。"
+  },
+  {
+    slug: "life/zodiac-calculator",
+    inputs: { birthDate: "2025-01-20" },
+    expect: ["🐲 龙"],
+    ref: "跨年边界：2025 春节为 1 月 29 日，1 月 20 日仍属农历 2024 年 ⇒ 龙；旧实现按公历 2025 得蛇。"
+  },
+  {
     slug: "life/generator-price",
     inputs: { unitPrice: "20000", qty: "3", taxRate: "13", discountRate: "25" },
     expect: ["合同总额：¥50,850", "预付款（30%）：¥15,255", "尾款：¥35,595", "违约金（10%）：¥5,085"],

@@ -135,7 +135,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="根据出生日期计算中国生肖与西方星座">Enter a birth date to get the Western zodiac sign and the Chinese zodiac animal with related notes.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-      <div class="formula-eq">生肖按（年份 − 4）÷ 12 的余数取序（余 0 为鼠、1 为牛，依次至 11 为猪），出生在春节前的按上一年计；星座按出生月日落在的日期区间判定，如 3 月 21 日至 4 月 19 日为白羊座、4 月 20 日至 5 月 20 日为金牛座，依此类推按 12 星座的黄道日期分界。</div>
+      <div class="formula-eq">生肖按（农历年份 − 4）÷ 12 的余数取序（余 0 为鼠、1 为牛，依次至 11 为猪），出生在春节前的按上一年计（页面用 Intl 中国历法取农历年，取不到时回退公历年份）；星座按出生月日落在的日期区间判定，如 3 月 21 日至 4 月 19 日为白羊座、4 月 20 日至 5 月 20 日为金牛座，依此类推按 12 星座的黄道日期分界。</div>
   
 </div>
 
@@ -289,7 +289,13 @@ function calc(){
   const y = date.getFullYear();
   const m = date.getMonth() + 1;
   const d = date.getDate();
-  const zodiacIdx = (y - 4) % 12;
+  // 生肖按农历年（春节换年）：优先用 Intl 中国历法取年份，取不到时回退公历年份
+  let zYear = y;
+  try{
+    const lunarYear = parseInt(new Intl.DateTimeFormat('en-u-ca-chinese',{year:'numeric'}).format(date),10);
+    if(isFinite(lunarYear) && lunarYear > 0) zYear = lunarYear;
+  }catch(e){}
+  const zodiacIdx = (zYear - 4) % 12;
   const zodiac = zodiacs[zodiacIdx >= 0 ? zodiacIdx : zodiacIdx + 12];
   const zEmoji = zodiacEmojis[zodiacIdx >= 0 ? zodiacIdx : zodiacIdx + 12];
   const c = getConstellation(m, d);
@@ -300,7 +306,7 @@ function calc(){
     <p>中国生肖：<strong style="font-size:18px;">${zEmoji} ${zodiac}</strong></p>
     <p>西方星座：<strong style="font-size:18px;">${c.emoji} ${c.name}</strong></p>
     <hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">
-    <p style="font-size:12px;color:var(--text-muted);">生肖以公历年份估算，1 月出生者可能需按农历调整</p>
+    <p style="font-size:12px;color:var(--text-muted);">生肖按农历春节分界（1–2 月出生已按当年春节折算）；浏览器不支持中国历法时回退为公历年份估算</p>
   `;document.getElementById('resultBox').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 </script><script>
