@@ -160,7 +160,7 @@
     <h2 data-zh="🔮 销售预测">Sales Forecast</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="基于历史月度销售数据，使用移动平均、加权移动平均、线性回归或季节性方法预测未来销售。">Sales Forecast</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">销售预测四法（移动平均/加权/线性回归/季节）<br>SMA：下期 = 最近 N 期简单平均<br>WMA：权重按距预测期远近分配（近期权重大）<br>LR：最小二乘拟合 ŷ = a + b·t，b 为趋势斜率<br>季节法：按季节周期长度分解趋势与季节分量<br>95% 置信区间 = 预测值 ± t×σ×√(1+1/n)<br>输出：历史均值、历史标准差、趋势方向<br>输入校验：至少 3 期历史数据<br>预测期数可调，逐期滚动递推</div>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">销售预测四法（移动平均/加权/线性回归/季节）<br>SMA：下期 = 最近 N 期简单平均<br>WMA：权重按距预测期远近分配（近期权重大）<br>LR：最小二乘拟合 ŷ = a + b·t，b 为趋势斜率<br>季节法：按季节周期长度分解趋势与季节分量<br>95% 置信区间 = 预测值 ± 1.96×σ（σ 取模型残差标准差，样本不足时退回历史标准差）<br>输出：历史均值、历史标准差、趋势方向<br>输入校验：至少 3 期历史数据<br>预测期数可调，逐期滚动递推</div>
       <p class="formula-desc" data-zh="「基于历史月度销售数据，使用移动平均、加权移动平均、线性回归或季节性方法预测未来销售。」按输入参数进行专业计算并输出结果。">Sales Forecast: computes and outputs results from the input parameters.</p>
     </div>
 
@@ -226,7 +226,7 @@
       </tbody>
     </table>
     <div class="info-box">
-      <strong>置信区间：</strong>基于历史残差标准差的近似 95% 置信区间（预测值 ± 1.96σ）。仅作参考，实际预测误差受多种因素影响。
+      <strong>置信区间：</strong>基于模型残差标准差的近似 95% 置信区间（预测值 ± 1.96σ）；样本不足时退回历史标准差并在结果区标注口径。仅作参考，实际预测误差受多种因素影响。
     </div>
   </div>
 
@@ -261,7 +261,7 @@
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>四种预测方法怎么选？</dt><dd>平稳序列用 MA/WMA；明显线性趋势用线性回归；强周期（如双11、暑季）用季节性；EMA 适合流式更新。方法无绝对优劣，建议多法对照并看<a class="term-link" href="/tools/it/confidence-interval.html">置信区间</a>（±1.96σ）。</dd>
-<dt>置信区间怎么理解？</dt><dd>工具以历史<a class="term-link" href="/tools/it/standard-deviation.html">标准差</a> σ 给出 ±1.96σ 区间，表示约 95% 可能落在该范围。σ 越大、历史越波动，区间越宽，预测越不可靠，需结合业务判断。</dd>
+<dt>置信区间怎么理解？</dt><dd>工具按模型残差<a class="term-link" href="/tools/it/standard-deviation.html">标准差</a> σ 给出 ±1.96σ 区间，表示约 95% 可能落在该范围；样本不足时退回历史标准差并在结果区标注口径。σ 越大、波动越剧烈，区间越宽，预测越不可靠，需结合业务判断。</dd>
 </dl>
 </div>
 </section>
@@ -475,8 +475,27 @@ function forecast(hist, method, paramN, forecastN){
     }
   }
 
-  // 置信区间：基于历史标准差
-  var sigma = std(hist);
+  // 置信区间：优先用模型残差 σ；样本不足时退回历史 σ 并注明口径
+  var sigma = std(hist), sigmaKind = 'hist';
+  if(method === 'lr'){
+    sigma = lr.sigma;
+    sigmaKind = 'residual';
+  } else if(method === 'ma' || method === 'wma'){
+    var stepRes = [];
+    for(var t=n; t<hist.length; t++){
+      var win = hist.slice(t-n, t);
+      var pv = 0;
+      if(method === 'ma'){
+        pv = mean(win);
+      } else {
+        var wsum2 = 0, acc = 0;
+        for(var w=0; w<win.length; w++){ acc += win[w] * (w+1); wsum2 += (w+1); }
+        pv = acc / wsum2;
+      }
+      stepRes.push(hist[t] - pv);
+    }
+    if(stepRes.length >= 2){ sigma = std(stepRes); sigmaKind = 'residual'; }
+  }
   var ci = forecasts.map(function(v){
     return {low: v - 1.96 * sigma, high: v + 1.96 * sigma};
   });
@@ -484,8 +503,8 @@ function forecast(hist, method, paramN, forecastN){
   return {
     method: method, paramN: paramN, forecastN: forecastN,
     hist: hist, forecasts: forecasts, series: series, ci: ci,
-    trendLine: trendLine, sigma: sigma,
-    histMean: mean(hist), histStd: sigma
+    trendLine: trendLine, sigma: sigma, sigmaKind: sigmaKind,
+    histMean: mean(hist), histStd: std(hist)
   };
 }
 
@@ -522,6 +541,7 @@ var hist = parseHist();
   html += '<div class="result-big">下期预测 ¥' + fmt(r.forecasts[0]) + '</div>';
   html += '<div class="result-sub">方法：' + esc(methodName(method)) + (method !== 'lr' ? '（N=' + paramN + '）' : '') + '</div>';
   html += '<div class="result-sub">历史均值：¥' + fmt(r.histMean) + ' · 历史标准差：¥' + fmt(r.histStd) + '</div>';
+  html += '<div class="result-sub">95% 区间口径：' + (r.sigmaKind === 'residual' ? '模型残差 σ=¥' + fmt(r.sigma) : '历史 σ=¥' + fmt(r.sigma) + '（样本不足，以历史波动近似）') + '</div>';
   if(r.trendLine){
     var dir = r.trendLine.b >= 0 ? '上升' : '下降';
     html += '<div class="result-sub">趋势：' + dir + '（每期 ' + (r.trendLine.b >= 0 ? '+' : '') + fmt(r.trendLine.b) + '）</div>';

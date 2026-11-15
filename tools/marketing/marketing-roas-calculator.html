@@ -451,8 +451,13 @@ function calc() {
   // 盈亏平衡 ROAS = 1/毛利率（毛利率=扣货品成本后的口径，不含广告费）；毛利率≤0 时无平衡点
   const gmEl = document.getElementById('grossMargin');
   const gmRaw = gmEl ? parseFloat(gmEl.value) : NaN;
-  const gm = isNaN(gmRaw) ? 0 : gmRaw;
-  const breakEvenRoas = (gm > 0 && gm < 100) ? 100 / gm : null;
+  const gmProvided = gmEl && String(gmEl.value).trim() !== '' && isFinite(gmRaw);
+  const gm = gmProvided ? gmRaw : 0;
+  if (gmProvided && (gm < 0 || gm > 100)) {
+    r.innerHTML='<div class="metric-card"><p style="color:var(--danger);">商品毛利率须在 0–100% 之间，请修正后再计算。</p></div>';
+    return;
+  }
+  const breakEvenRoas = gmProvided && gm > 0 ? 100 / gm : null;
   const roasPercent = roas * 100;
   const profit = revenue - spend;
   const profitMargin = (profit / revenue) * 100;
@@ -502,7 +507,7 @@ function calc() {
         </div>
         <div class="related-metric">
           <div class="val">${breakEvenRoas === null ? '—' : breakEvenRoas.toFixed(2) + 'x'}</div>
-          <div class="lbl">${breakEvenRoas === null ? '盈亏平衡ROAS（毛利率≤0，无平衡点）' : '盈亏平衡ROAS（=1/输入毛利率）'}</div>
+          <div class="lbl">${breakEvenRoas === null ? (gmProvided ? '盈亏平衡ROAS（毛利率≤0，无平衡点）' : '盈亏平衡ROAS（未填毛利率）') : '盈亏平衡ROAS（=1/输入毛利率）'}</div>
         </div>
         <div class="related-metric">
           <div class="val">${(roas / 3 * 100).toFixed(0)}%</div>
