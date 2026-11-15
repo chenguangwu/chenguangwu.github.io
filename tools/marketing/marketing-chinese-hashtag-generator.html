@@ -175,16 +175,17 @@
 <h2>📚 深度解析：中文话题标签生成</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>小红书/抖音发笔记时生成中文话题词提升搜索命中。</li>
-<li>按品类词扩展出成分党、人群、场景等长尾标签。</li>
-<li>对比不同标签组合覆盖的受众做内容选题。</li>
+<li>输入核心关键词后，从内置品类/成分/人群/场景词库扩展长尾标签。</li>
+<li>国货护肤、早C晚A 等具体主题可按词库给出平价、敏感肌、成分党、熬夜党等细分标签。</li>
+<li>词库未收录时用少量通用标签补位，并在结果区明确提示。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">品类扩展</div><div class="dd-ex-body">输入「国货护肤」→ 生成 #国货护肤 #平价护肤 #敏感肌护肤 #成分党 #学生党护肤，由品类到人群层层收窄。</div></div>
-<div class="dd-example"><div class="dd-ex-title">场景组合</div><div class="dd-ex-body">「早C晚A」主题 → #早C晚A #护肤流程 #抗初老 #熬夜党护肤，覆盖方法论与人群双维度。</div></div>
+<div class="dd-example"><div class="dd-ex-title">品类扩展</div><div class="dd-ex-body">输入「国货护肤」→ 依次生成 #国货护肤 #平价护肤 #敏感肌护肤 #成分党 #学生党护肤 #护肤流程，再补关键词后缀与少量通用词，由品类到人群层层收窄。</div></div>
+<div class="dd-example"><div class="dd-ex-title">场景组合</div><div class="dd-ex-body">「早C晚A」主题 → #早C晚A #护肤流程 #抗初老 #熬夜党护肤 #成分党，覆盖方法论与人群双维度。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>中文标签要带 # 吗？</dt><dd>平台以 # 识别话题，发布时保留 #；本工具输出即带 # 可直接复制。</dd>
 <dt>标签和正文要一致吗？</dt><dd>要。标签须贴合正文主题，硬蹭热词会被限流，相关长尾标签转化更好。</dd>
+<dt>关键词不在词库怎么办？</dt><dd>结果区会提示「未命中内置词库」，此时只保留少量通用标签，建议手动替换为具体人群（如学生党）或场景（如通勤）词。</dd>
 </dl>
 </div>
 </section>
@@ -235,7 +236,26 @@ function calc(){
     r.innerHTML='<p>请输入核心关键词</p>';
     return;
   }
-  const commonTags = ['好物分享','干货分享','必入','种草','避雷','测评','平价','学生党','打工人','日常分享','新手必看','保姆级教程','yyds','绝绝子','氛围感','高级感','小众','宝藏','亲测','真香','安利','回购','合集','指南','攻略','经验分享','避坑指南','省钱攻略'];
+  const CONCEPT_TAGS = {
+    '早C晚A': ['护肤流程','抗初老','熬夜党护肤','成分党','平价护肤'],
+    '国货护肤': ['平价护肤','敏感肌护肤','成分党','学生党护肤','护肤流程'],
+    '护肤': ['平价护肤','敏感肌护肤','成分党','学生党护肤','护肤流程','抗初老','熬夜党护肤'],
+    '美妆': ['平价美妆','新手化妆','成分党','学生党美妆','伪素颜','早八妆容'],
+    '穿搭': ['小个子穿搭','微胖穿搭','通勤穿搭','学生党穿搭','秋冬穿搭','氛围感穿搭'],
+    '健身': ['新手健身','居家健身','减脂餐','运动打卡','健身穿搭','增肌训练'],
+    '减脂': ['减脂餐','低卡饮食','居家减脂','减脂打卡','暴汗运动'],
+    '旅行': ['周末旅行','小众旅行','旅行攻略','旅行拍照','特种兵旅游'],
+    '美食': ['美食探店','家常菜','低卡美食','美食教程','深夜食堂'],
+    '宠物': ['养猫经验','养狗经验','宠物日常','宠物用品','新手养宠'],
+    '学习': ['高效学习','学习方法','学生党','学习打卡','干货分享'],
+    '职场': ['打工人','职场穿搭','职场干货','效率工具','通勤日常']
+  };
+  const conceptKeys = Object.keys(CONCEPT_TAGS).sort((a,b) => b.length - a.length);
+  function conceptTags(kw){
+    for(const k of conceptKeys){ if(kw.indexOf(k) >= 0) return {key:k, tags:CONCEPT_TAGS[k]}; }
+    return null;
+  }
+  const commonTags = ['好物分享','干货分享','测评','避坑指南','新手必看','保姆级教程','氛围感','高级感','宝藏','合集','攻略','经验分享'];
   const platformTags = {
     '小红书': ['小红书好物','小红书美妆','无滤镜','原相机','真实测评','小红薯'],
     '抖音': ['抖音好物','抖音爆款','短视频','直播带货','抖音热门'],
@@ -245,6 +265,8 @@ function calc(){
   const seasonalTags = ['今日份','日常vlog','每日打卡','周末去哪儿','换季必备'];
   const tags = new Set();
   tags.add('#' + kw);
+  const expanded = conceptTags(kw);
+  if(expanded) expanded.tags.forEach(t => tags.add('#' + t));
   tags.add('#' + kw + '分享');
   tags.add('#' + kw + '推荐');
   if(ind){
@@ -252,7 +274,7 @@ function calc(){
     tags.add('#' + ind + '推荐');
     tags.add('#' + ind + '好物');
   }
-  commonTags.slice(0,15).forEach(t => tags.add('#' + t));
+  commonTags.slice(0,6).forEach(t => tags.add('#' + t));
   if(plat && platformTags[plat]) platformTags[plat].forEach(t => tags.add('#' + t));
   seasonalTags.slice(0,3).forEach(t => tags.add('#' + t));
   const tagArr = Array.from(tags).slice(0,30);
@@ -261,6 +283,7 @@ function calc(){
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">
       ${tagArr.map(t => `<span style="background:var(--primary);color:#fff;padding:4px 10px;border-radius:12px;font-size:12px;cursor:pointer;" onclick="navigator.clipboard.writeText('${t}')">${t}</span>`).join('')}
     </div>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">${expanded ? '词库命中「'+expanded.key+'」，扩展 '+expanded.tags.length+' 个品类/成分/人群/场景标签；' : '未命中内置词库，仅用核心词 + 通用标签补位，建议手动替换为细分人群/场景词。'}</p>
     <button type="button" class="btn primary" onclick="ToolBox.copyText(\`${tagArr.join(' ')}\`)">复制全部标签</button>
   `;r.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 
