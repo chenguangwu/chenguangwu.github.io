@@ -493,28 +493,28 @@
 - 影响：`tools/marketing/email-subject-line-tester.html`。用户以为补全预览正文能提高检测覆盖，实际该字段只影响下方 mock 预览的展示。
 - 方案：检测文本改为 `subject + ' ' + previewText`（长度分仍只对标题）；或把该字段改名“预览正文（仅展示）”，避免被当作检测输入。
 
-### MS-N29 UTM 基础 URL 含 `#` 片段时参数被拼进 fragment（高，确认）
+### MS-N29 UTM 基础 URL 含 `#` 片段时参数被拼进 fragment（高，确认）— 2026-11-15 已修复（542/557 批：参数写在 # 前，实测 https://a.example/p?x=1&utm_source=wechat#top）
 - 问题：只用 `url.includes('?')` 选择 `?`/`&` 分隔符，未处理 `#`。带锚点的落地页会把 `utm_*` 拼到 `#` 之后，参数不会发送给服务器，渠道归因全部丢失，但复制出的链接外观正常。
 - 证据：`tools/marketing/marketing-utm-builder.html:258-259`（`sep=url.includes('?')?'&':'?'`、`finalUrl=url+sep+params`）、`:262-263`（结果与复制按钮直接使用 `finalUrl`）
 - 复现：`https://shop.com/p#sku` → `https://shop.com/p#sku?utm_source=wechat&utm_medium=social&utm_campaign=summer_promo`；期望 `https://shop.com/p?utm_source=...&utm_campaign=...#sku`（node 字符串复算）。与既有 MS-N11（`tools/marketing/utm-builder.html`）同族，但本页只有单链接出口，无批量分支。
 - 影响：`tools/marketing/marketing-utm-builder.html`。带 SKU/章节/单页路由锚点的投放全部归为 direct/none，且工具无任何校验或警告。
 - 方案：先按 `#` 切分为 `base` 与 `fragment`，只在 `base` 上判断 `?` 并追加参数，最后拼回 `#fragment`；多处 `#` 时提示 URL 异常。
 
-### MS-N30 四项全必填与自身 FAQ“仅 source 必填”及 UTM 规范矛盾（中，确认）
+### MS-N30 四项全必填与自身 FAQ“仅 source 必填”及 UTM 规范矛盾（中，确认）— 2026-11-15 已修复（557 批：仅 source 必填，medium/campaign 缺失提示）
 - 问题：生成逻辑要求 `url/source/medium/campaign` 四项都非空，否则整块拒绝；但 FAQ 明说“utm_source 必填，medium/campaign 强烈建议”，且标准 UTM 只强制 source。medium/campaign 缺失的用户被迫乱填。
 - 证据：`tools/marketing/marketing-utm-builder.html:248-251`（四项空值统一拦截）、`:198`（FAQ“utm_source 必填，medium/campaign 强烈建议”）
 - 复现：url `https://x.com/p` + source `wechat`，medium/campaign 留空 → 页面提示“请填写网址、来源、媒介、活动名称（必填项）”；期望生成 `https://x.com/p?utm_source=wechat`（并给出“建议补 medium/campaign”的黄色提示）。
 - 影响：`tools/marketing/marketing-utm-builder.html`。只想快速打来源标签的用户被挡在门外，或被迫填写假 medium/campaign，污染报表。
 - 方案：仅 `url`（且需是合法 http/https）与 `source` 必填；medium/campaign 为空时照常生成并在结果下方提示“缺少 medium/campaign，渠道报表可能无法细分”。
 
-### MS-N31 UTM 值不做大小写归一，也不检测/替换已有 utm 参数（中，确认）
+### MS-N31 UTM 值不做大小写归一，也不检测/替换已有 utm 参数（中，确认）— 2026-11-15 已修复（557 批：同名参数替换 + 大写/空格/中文提示）
 - 问题：输入仅 `trim()`，没有 `toLowerCase()`，也不解析已有查询串。`WeChat` 与 `wechat` 会成为 GA4 两个来源；URL 已带 `utm_source` 时再追加同名 key，形成重复参数，不同解析器取值不一致。
 - 证据：`tools/marketing/marketing-utm-builder.html:241-257`（读取仅 trim，`params.set` 只写新值）、`:258-259`（直接拼接，未解析/去重）
 - 复现：source 填 `WeChat` → `utm_source=WeChat`；url 填 `https://x.com/?utm_source=google` → `...?utm_source=google&utm_source=WeChat`（node 复算）。GA4 渠道报表出现 `WeChat`/`wechat` 两条，或按“后者覆盖/前者优先”产生不一致归因。
 - 影响：`tools/marketing/marketing-utm-builder.html`。批量投放时大小写混用会系统性拆分渠道数据，重复 key 还会让部分分析平台取错来源。
 - 方案：`utm_source/medium/campaign/term/content` 统一 `trim().toLowerCase()`（活动代号允许保留数字/下划线）；解析已有 URL，发现同名 `utm_*` 时提示“将覆盖原值”并 `set` 替换而非追加。
 
-### MS-N32 复制按钮内联 onclick 的转义是空操作，含单引号或标签的 URL 会失效/注入（中，确认）
+### MS-N32 复制按钮内联 onclick 的转义是空操作，含单引号或标签的 URL 会失效/注入（中，确认）— 2026-11-15 已复核：结果用 textContent 写入，批量复制走事件绑定，无注入路径
 - 问题：结果用模板字符串拼进 `innerHTML`，复制按钮写成 `onclick="ToolBox.copyText('${finalUrl.replace(/'/g,"\'")}')"`。替换串 `"\'"` 在双引号字符串里就是单个 `'`，等于没有转义；URL 含 `'` 时内联 JS 语法错误，含 `<`/`>` 时被当作 HTML 解析。
 - 证据：`tools/marketing/marketing-utm-builder.html:260-265`（`r.innerHTML=...`）、`:262`（`${finalUrl}` 直接插入文本）、`:263`（`replace(/'/g,"\'")`）
 - 复现：url `https://x.com/o'brien` + source `wechat` → 生成 `onclick="ToolBox.copyText('https://x.com/o'brien?utm_source=wechat...')"`，点击复制无任何反应（控制台 SyntaxError）；url `https://x.com/<img src=x onerror=alert(1)>` → 预览 div 渲染出图片并执行脚本（自输入场景）。
