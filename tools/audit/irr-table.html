@@ -304,6 +304,8 @@ function renderTable(){
   var step=parseFloat(document.getElementById('rateStep').value)||1;
   if(step<=0) step=1;
   if(end<start) end=start+step;
+  var maxRows=2000, truncated=false;
+  if((end-start)/step > maxRows-1){ end=start+step*(maxRows-1); truncated=true; }
 
   var rows=[];
   var crossRates=[];
@@ -319,7 +321,7 @@ function renderTable(){
     prevRate=r; prevNpv=npv;
   }
 
-  const __h1=rows.map(function(row){
+  const __h1=(truncated?'<p style="font-size:12px;color:var(--warning);">⚠ 扫描区间超过 2000 行，已截止到 '+end.toFixed(2)+'%，请增大步长。</p>':'')+rows.map(function(row){
     var cls=row.npv>=0?'pos':'neg';
     var status=row.npv>0?'NPV > 0 可行':(row.npv<0?'NPV < 0 不可行':'NPV = 0');
     var isZero=false;
@@ -428,6 +430,8 @@ function __irr_tableSnap(){
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
         if(v!==''&&v!=null) out[e.id]=v;
     }
+    // 现金流输入无 id（renderList 动态生成），单独以 cf 键记录，保证历史回放可复现
+    try{ out.cf = flows.join(','); }catch(e){}
     return out;
 }
 function __irr_tableResText(){
@@ -451,10 +455,11 @@ function __irr_tableTime(t){
 function __irr_tableRender(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
-        var head=[en?'Time':'时间'].concat(keys).concat([en?'Verdict':'结论',rk]);
+        var dispKeys=keys.filter(function(k){return k!=='cf';});
+        var head=[en?'Time':'时间'].concat(dispKeys).concat([en?'Verdict':'结论',rk]);
         var rows=arr.map(function(it){
             var row=[__irr_tableTime(it.t)];
-            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            for(var i=0;i<dispKeys.length;i++){var v=it.d[dispKeys[i]];row.push(v==null?'':v);}
             var sc=parseFloat(it.d.__tbScore);
             row.push(isFinite(sc)?(sc>=1?(en?'Pass':'通过'):(en?'Fail':'未通过')):'-');
             var r=it.d[rk];row.push(r==null?'':r);
@@ -467,6 +472,13 @@ function __irr_tableRender(keys,rk,en){
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
+                    if(k==='cf'){
+                        var arr=String(rec[k]).split(',');
+                        var nf=[];
+                        for(var q=0;q<arr.length;q++){var x=parseFloat(arr[q]);if(isFinite(x)) nf.push(x);}
+                        if(nf.length){ flows=nf; renderList(); }
+                        continue;
+                    }
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();

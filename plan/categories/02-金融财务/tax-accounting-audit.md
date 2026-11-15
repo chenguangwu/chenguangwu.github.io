@@ -117,14 +117,15 @@
 - 影响：`tools/tax/capital-gains-effective.html`；负税额等于「退税」、税后利得反而高于税前收益，若用户把 `r` 当百分数输入（如输 20 而非 0.2）会得到 20 倍收益的税额。
 - 方案：校验 `g≥0`、`0≤r≤法定上限`，并在标签中写明「小数输入，0.2 = 20%」；非法输入阻止结果与导出；移除「税率倒数」或改为「税率百分比」；补测 `r=-0.1/0/20/2`。
 
-### T-N19 IRR 历史记录不包含现金流，回放结果与记录值可能不符（中，待验证）
-- 描述：历史快照只遍历 `input[id]`，而现金流输入在 `renderList()` 中动态生成且不带 `id`；因此记录只含三个扫描参数，回放时用「当时的参数 + 当前现金流」重算，记录里的结果值与回放显示可能不一致。
-- 证据：`tools/audit/irr-table.html:294-302,431-443,469-483,494-521`。`__irr_tableSnap()` 选择器为 `input[id],select[id],textarea[id]`，现金流行模板 `:297-300` 无 `id`；`history.record({rateStart,rateEnd,rateStep,结果})` 在 `:517-520`。实际 localStorage 行为尚需运行时确认。
+### T-N19 IRR 历史记录不包含现金流，回放结果与记录值可能不符（已修，738 批）
+- 现状（2026-11-16）：`__irr_tableSnap()` 在 id 扫描后追加 `out.cf = flows.join(',')`；`TBKit.history.mount` 回放时识别 `cf` 键，拆分还原 `flows` 并 `renderList()`，再用当时的扫描参数重算；`__irr_tableRender` 用 `dispKeys` 过滤 `cf`，历史表列头不出现内部字段。门禁：flows=[-5000,2000,3000] ⇒ `__irr_tableSnap().cf` 串；渲染含 cf 键时不显示该列。
+- 原描述：历史快照只遍历 `input[id]`，而现金流输入在 `renderList()` 中动态生成且不带 `id`；因此记录只含三个扫描参数，回放时用「当时的参数 + 当前现金流」重算，记录里的结果值与回放显示可能不一致。
+- 证据：`tools/audit/irr-table.html:294-302,431-443,469-483,494-521`。`__irr_tableSnap()` 选择器为 `input[id],select[id],textarea[id]`，现金流行模板 `:297-300` 无 `id`；`history.record({rateStart,rateEnd,rateStep,结果})` 在 `:517-520`。
 - 影响：`tools/audit/irr-table.html`；用户从历史恢复后看到的结果未必是当初保存的结果，审计留痕不可复现。
-- 方案：为每期现金流生成稳定 `id`（如 `cf-t0`）并纳入快照，或把现金流数组整体序列化进记录；恢复时先重建行再计算；补运行时验证刷新与回放一致性。
+- 方案：快照额外记录 `cf = flows.join(',')`，回放时先还原现金流再重算；历史表不展示该内部字段。
 
 ### 留存优化
-- `tools/audit/irr-table.html`：扫描循环（`:320-331`）按 `r += step` 浮点累加且无行数上限，步长可被手动改为极小值；建议按整数索引生成利率、限制最大行数（如 2000 行），并把扫描表过零点直接标注为「IRR 区间」。
+- `tools/audit/irr-table.html`：扫描循环已加 2000 行上限（超出截止并提示增大步长，2026-11-16）；「按整数索引生成利率、过零点直接标注 IRR 区间」仍可继续优化。
 - `tools/audit/ratio-analysis.html`：结果卡与复制报告各算一套（`:292-305` vs `:359-367`），建议抽一个 `compute()` 返回对象，UI/复制/导出/历史全部复用；空值统一显示 N/A。
 - `tools/accounting/amortization-intangible.html`、`tools/accounting/depreciation-syd.html`：两页各有一份 `__tbInputGuard`，但校验项不同（前者无负值表、后者有 `n` 负值表但无 `yr` 范围）；建议统一为同一份守卫配置（必填、非负、分母非 0、上下界），失败时禁用导出。
 - `tools/tax/payroll-tax.html`、`tools/tax/capital-gains-effective.html`、`tools/tax/stamp-duty.html`：税率输入单位不统一（前两页为小数、印花税页为百分数），且三页都带无业务含义的「税率倒数」卡片；建议统一标签与口径、删除倒数卡，并把「📅 税率口径截至 2026-10」徽标与校验说明合并到同一段。
