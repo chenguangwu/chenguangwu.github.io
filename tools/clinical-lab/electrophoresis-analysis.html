@@ -238,20 +238,26 @@
 <script>
 var REF = {alb:{lo:57,hi:68,alo:35,ahi:52},a1:{lo:1,hi:6,alo:1,ahi:4},a2:{lo:5,hi:11,alo:4,ahi:9},b:{lo:7,hi:13,alo:5,ahi:11},g:{lo:10,hi:20,alo:7,ahi:16}};
 
-function num(id){var v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
+function num(id){var el=document.getElementById(id);if(!el)return NaN;var raw=String(el.value==null?'':el.value).trim();if(raw==='')return NaN;var v=parseFloat(raw);return isFinite(v)?v:NaN;}
 
 function analyze(){
   var tp=num('tp');
   var vals={alb:num('p_alb'),a1:num('p_a1'),a2:num('p_a2'),b:num('p_b'),g:num('p_g')};
-  var total=vals.alb+vals.a1+vals.a2+vals.b+vals.g;
   var hasM=document.getElementById('hasMspike').checked;
   var hasB=document.getElementById('hasBspike').checked;
+  var __names={alb:'白蛋白',a1:'α1球蛋白',a2:'α2球蛋白',b:'β球蛋白',g:'γ球蛋白'};
+  var __namesEn={alb:'albumin',a1:'α1-globulin',a2:'α2-globulin',b:'β-globulin',g:'γ-globulin'};
+  var missing=[];
+  Object.keys(vals).forEach(function(k){ if(!isFinite(vals[k])||vals[k]<0) missing.push(k); });
+  var total=0, nValid=0;
+  Object.keys(vals).forEach(function(k){ if(isFinite(vals[k])&&vals[k]>=0){ total+=vals[k]; nValid++; } });
 
   // update bars and absolute values
   Object.keys(vals).forEach(function(k){
-    document.getElementById('bar_'+k).style.width=Math.min(100,vals[k])+'%';
+    var ok=isFinite(vals[k])&&vals[k]>=0;
+    document.getElementById('bar_'+k).style.width=(ok?Math.min(100,vals[k]):0)+'%';
     var abs = tp*vals[k]/100;
-    document.getElementById('abs_'+k).textContent=abs.toFixed(1)+' g/L';
+    document.getElementById('abs_'+k).textContent=(ok&&isFinite(tp)&&tp>0)?abs.toFixed(1)+' g/L':'—';
   });
 
   // —— 参考区间定位（S3 标尺）：区带百分比判读（__EN 必须先于首段 html）——
@@ -273,7 +279,7 @@ function analyze(){
   __bars.forEach(function(o){ if(o.band) __refHtml+='<li>'+o.name+o.v.toFixed(1)+'%'+__T(' → falls in ',' → 落在 ')+(__EN?o.band.label.en:o.band.label.zh)+o.note+'</li>'; });
   if(__refHtml) html += '<div class="ref-card"><h4>'+__T('Reference range','参考区间定位')+'</h4><ul>'+__refHtml+'</ul></div>';
 
-  if(total>0){
+  if(nValid===5 && total>0){
     html += '<div class="result-box"><p>'+__T('Total fraction percentages: ','各区带百分比合计：')+'<strong>'+total.toFixed(1)+'%</strong>'+(Math.abs(total-100)>1?' <span style="color:var(--danger);">'+__T('(should be ≈100%)','(应接近100%)')+'</span>':' ✓')+'</p></div>';
   }
 
@@ -283,7 +289,11 @@ function analyze(){
   else if(vals.alb>REF.alb.hi) findings.push({t:__T('Albumin increased','白蛋白升高'),d:__T('Albumin slightly high — possible dehydration or hemoconcentration.','白蛋白偏高，可能为脱水或血液浓缩。')});
 
   if(vals.a2>REF.a2.hi) findings.push({t:__T('α2-globulin increased','α2球蛋白升高'),d:__T('α2-globulin '+vals.a2.toFixed(0)+'% elevated — seen in acute inflammation, nephrotic syndrome (raised haptoglobin), malignancy.','α2球蛋白'+vals.a2.toFixed(0)+'%，升高见于急性炎症、肾病综合征(结合珠蛋白升高)、恶性肿瘤。')});
+  else if(vals.a2<REF.a2.lo) findings.push({t:__T('α2-globulin decreased','α2球蛋白降低'),d:__T('α2-globulin '+vals.a2.toFixed(0)+'% decreased — seen in severe liver disease or protein loss.','α2球蛋白'+vals.a2.toFixed(0)+'%，降低见于严重肝病或蛋白丢失。')});
   if(vals.a1>REF.a1.hi) findings.push({t:__T('α1-globulin increased','α1球蛋白升高'),d:__T('α1-globulin elevated — seen in acute inflammation (α1-antitrypsin acute-phase response).','α1球蛋白升高，见于急性炎症(α1-抗胰蛋白酶急性期反应)。')});
+  else if(vals.a1<REF.a1.lo) findings.push({t:__T('α1-globulin decreased','α1球蛋白降低'),d:__T('α1-globulin '+vals.a1.toFixed(0)+'% decreased — consider α1-antitrypsin deficiency (emphysema, liver disease) or severe protein loss.','α1球蛋白'+vals.a1.toFixed(0)+'%，降低需考虑 α1-抗胰蛋白酶缺乏（肺气肿、肝病）或严重蛋白丢失。')});
+  if(vals.b>REF.b.hi) findings.push({t:__T('β-globulin increased','β球蛋白升高'),d:__T('β-globulin '+vals.b.toFixed(0)+'% elevated — seen in hyperlipidaemia, iron-deficiency anaemia, or IgA monoclonal gammopathy (confirm with IFE).','β球蛋白'+vals.b.toFixed(0)+'%，升高见于高脂血症、缺铁性贫血，或 IgA 型单克隆丙种球蛋白血症（需免疫固定电泳确认）。')});
+  else if(vals.b<REF.b.lo) findings.push({t:__T('β-globulin decreased','β球蛋白降低'),d:__T('β-globulin '+vals.b.toFixed(0)+'% decreased — seen in malnutrition, liver disease or protein loss.','β球蛋白'+vals.b.toFixed(0)+'%，降低见于营养不良、肝病或蛋白丢失。')});
 
   if(vals.g>REF.g.hi && !hasM){
     findings.push({t:__T('Polyclonal γ-globulin increase','γ球蛋白多克隆升高'),d:__T('γ-globulin '+vals.g.toFixed(0)+'% diffusely increased (polyclonal) — seen in chronic infection, autoimmune disease (SLE/RA), chronic liver disease, cirrhosis.','γ球蛋白'+vals.g.toFixed(0)+'%弥漫性增高(多克隆)，见于慢性感染、自身免疫病(SLE/RA)、慢性肝病、肝硬化。')});
@@ -314,13 +324,17 @@ function analyze(){
     findings.forEach(function(f){
       html += '<div class="result-box" style="border-left:4px solid var(--primary);margin:8px 0;"><strong>'+f.t+'</strong><p style="font-size:12px;color:var(--text-secondary);margin-top:4px;">'+f.d+'</p></div>';
     });
-  } else {
+  } else if(!missing.length){
     html += '<div class="result-box" style="border-left:4px solid var(--success);color:var(--success);"><strong>'+__T('All fractions within reference ranges','各区带均在参考范围内')+'</strong></div>';
+  }
+  if(missing.length){
+    var missNames=missing.map(function(k){return __T(__namesEn[k],__names[k]);}).join(__T(', ','、'));
+    html += '<div class="result-box" style="border-left:4px solid var(--text-muted,#94a3b8);"><strong>'+__T('Not filled: ','未填写：')+missNames+'</strong><p style="font-size:12px;color:var(--text-secondary);margin-top:4px;">'+__T('These fractions are excluded from interpretation; the result does not mean they are normal. Fill in all five fractions to get a full reading.','未填写项不参与判读，结果不代表该项正常；补全五个区带百分比后才能给出完整结论。')+'</p></div>';
   }
 
   // Compare with ALB if provided
   var alb=num('alb');
-  if(alb>0 && tp>0){
+  if(alb>0 && tp>0 && isFinite(vals.alb)){
     var calcAlb=tp*vals.alb/100;
     var diff=alb-calcAlb;
     html += '<div class="result-box"><p>'+__T('Electrophoresis albumin estimate: ','电泳白蛋白推算值：')+calcAlb.toFixed(1)+' g/L vs '+__T('biochemistry albumin: ','生化白蛋白：')+alb.toFixed(1)+' g/L';

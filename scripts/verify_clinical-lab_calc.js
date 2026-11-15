@@ -215,6 +215,36 @@ const CASES = [
   "ref": "白蛋白50<57 + γ23>20 + α2 13>11 → 慢性肝病图谱；区带合计50+4+13+10+23=100.0%；参考区间定位（03-70 S3 标尺）：三锚均依赖注入百分比（默认 60/8/19 均为正常带 ⇒ 零交集）"
 },
 {
+  "slug": "clinical-lab/electrophoresis-analysis",
+  "inputs": {
+    "p_b": "18"
+  },
+  "expect": [
+    "β球蛋白升高"
+  ],
+  "ref": "L-N18：β 区带原本只定义了 REF.b 却无任何判读，β 18%>上限 13 仍输出「各区带均在参考范围内」。现补 β 高低双向判读，默认 β=10 正常不带该串。"
+},
+{
+  "slug": "clinical-lab/electrophoresis-analysis",
+  "inputs": {
+    "p_a1": "0.5"
+  },
+  "expect": [
+    "α1球蛋白降低"
+  ],
+  "ref": "L-N18：α1 原本只判升高，0.5%<下限 1 无提示。现补下限分支，默认 α1=3 正常不带该串。"
+},
+{
+  "slug": "clinical-lab/electrophoresis-analysis",
+  "clicks": [
+    "document.getElementById('p_alb').value='';analyze();"
+  ],
+  "expect": [
+    "未填写：白蛋白"
+  ],
+  "ref": "L-N18：num() 原把空值当 0，清空白蛋白即输出「白蛋白降低 0%(0.0g/L)」。现空值记为未填写、不参与判读并列出缺项；默认白蛋白 60 不出现该串。"
+},
+{
   "slug": "clinical-lab/flow-cytometry-ratio",
   "inputs": {
     "wbc": "2.0",
@@ -773,6 +803,12 @@ const CASES = [
     inputs: { val1: "9.0" },
     expect: ["平均血糖(eAG) = 11.8 mmol/L (212 mg/dL)"],
     ref: '独立复算：v=9.0 ⇒ eag_mgdl=28.7×9.0−46.7=211.6, eag_mmol=11.755⇒11.8, eag_mgdl.toFixed(0)=212（211.6 四舍五入）。完整串含 (212 mg/dL)，不误命中。'
+  },
+  {
+    slug: "clinical-lab/hba1c-converter",
+    inputs: { val1: "8.0" },
+    expect: ["64 mmol/mol （IFCC）"],
+    ref: "L-N24：结果行新增 IFCC 对照，(8.0−2.15)×10.93=63.94 ⇒ toFixed(0)=64。默认 7.0% ⇒ 53 mmol/mol，本串不命中；旧实现结果只给 HbA1c% 与 eAG，无 mmol/mol，正文承诺的 IFCC 换算无处可查。"
   },
   {
     slug: "clinical-lab/hba1c-converter",
