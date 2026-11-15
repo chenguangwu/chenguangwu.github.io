@@ -185,6 +185,32 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"wordInput\":\"abc123测试\"}，输出区含「abc123测试\n分析结果: abc123测试 ab c 1 2 3 测 试 重…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    "slug": "language/spanish-accent-rules",
+    "inputs": { "wordInput": "casa" },
+    "expect": [ "音节划分: ca - sa" ],
+    "ref": "元音间单辅音归后一音节：casa 应为 ca-sa（旧实现把辅音拼进当前音节，整词当 1 音节）。默认输入为页面预设词，不命中。"
+  },
+  {
+    "slug": "language/spanish-accent-rules",
+    "inputs": { "wordInput": "meses" },
+    "expect": [ "音节划分: me - ses" ],
+    "ref": "元音+单辅音+元音连续切分：meses 应为 me-ses（旧实现 meses 整词 1 音节）。"
+  },
+  {
+    "slug": "language/spanish-accent-rules",
+    "inputs": { "wordInput": "cafe" },
+    "expect": [ "按规则无需重音符号" ],
+    "ref": "无符号词不得给出绿色「✓ 不需要」：cafe 按规则重音在倒数第二音节，但与 café 的实际重音不同，页面改为中性表述并提示如需 café 应补符号。旧文案为「不需要重音符号 ✓」。"
+  },
+  {
+    "slug": "language/spanish-accent-rules",
+    "clicks": [
+      "document.getElementById('wordInput').value='casa';analyze();document.getElementById('wordInput').value='';analyze();document.getElementById('__tbProbe').textContent='CLR '+((String(document.getElementById('result').innerHTML).indexOf('请输入西语单词')>=0)?'1':'0');"
+    ],
+    "expect": [ "CLR 1" ],
+    "ref": "清空输入须清空旧结果：旧实现 analyze() 在空串直接 return，结果区保留上一个单词的音节与重音结论。现写入「请输入西语单词」。默认态无探针串 ⇒ 零逃生。"
+  },
+  {
     "slug": "language/vocabulary-builder",
     "clicks": [
       "var s={vocab_streak:JSON.stringify({days:1,last:'2024-11-01'})};localStorage.getItem=function(k){return s[k]||null;};localStorage.setItem=function(k,v){s[k]=String(v);};var o=[];checkStreak(new Date(2024,10,2,7,30));o.push(document.getElementById('s-streak').textContent);checkStreak(new Date(2024,10,2,8,30));o.push(document.getElementById('s-streak').textContent);checkStreak(new Date(2024,10,3,0,30));o.push(document.getElementById('s-streak').textContent);document.getElementById('vbHidden').textContent='QSTREAK:'+o.join('|');"
