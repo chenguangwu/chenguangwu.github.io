@@ -135,10 +135,11 @@
 <div class="formula-box">
   
   
-<div class="formula-eq">达人报价估算：按粉丝量级取基础 CPM，报价 = 粉丝数 ÷ 1000 × CPM × 互动率系数 × 平台系数 × 内容类型系数。</div></div>
+<div class="formula-eq">达人报价估算：报价 = 粉丝数 ÷ 1000 × 基础千粉价（元/千粉）× 互动率系数 × 平台系数 × 内容类型系数；互动率系数 = 1 + (互动率 − 2) ÷ 10。</div></div>
 
-    <div data-tb="preset" data-tb-presets='[{"label":"粉丝数500000·平均互动率（%）3·平台系数（小红书1…","labelEn":"followersInf=500000 · engRateInf=3 · pl…","values":{"followersInf":"500000","engRateInf":"3","platformFactor":"1.5","contentType":"1.5"}}]'></div>
+    <div data-tb="preset" data-tb-presets='[{"label":"粉丝数500000·千粉价10元·互动率3%·小红书图文","labelEn":"followersInf=500000 · baseCpm=10 · engRateInf=3 · platformFactor=1.5 · contentType=1.5","values":{"followersInf":"500000","baseCpm":"10","engRateInf":"3","platformFactor":"1.5","contentType":"1.5"}}]'></div>
 <label>粉丝数</label><input type="number" id="followersInf" value="500000" oninput="calc()" placeholder="如 500000">
+<label style="margin-top:12px;">基础千粉价（元/千粉）</label><input type="number" id="baseCpm" value="10" oninput="calc()" placeholder="如 10">
 <label style="margin-top:12px;">平均互动率（%）</label><input type="number" id="engRateInf" value="3" oninput="calc()" placeholder="如 3">
 <label style="margin-top:12px;">平台系数（小红书1.5,抖音1.2,微博1.0,B站2.0）</label><input type="number" id="platformFactor" value="1.5" oninput="calc()" placeholder="如 1.5">
 <label style="margin-top:12px;">内容形式系数（图文1.0,短视频1.5,直播2.5）</label><input type="number" id="contentType" value="1.5" oninput="calc()" placeholder="如 1.5">
@@ -205,9 +206,9 @@
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);">engagement rate</td>
         </tr>
         <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="千次曝光成本">CPM</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="报价/预估曝光量 ×1000">Price/estimated impressions ×1000</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">cost per mille</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="基础千粉价">Base price per 1,000 followers</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="元/千粉，由用户输入">CNY per 1,000 followers, entered by the user</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">industry benchmark</td>
         </tr>
       </tbody>
     </table>
@@ -226,22 +227,17 @@
 <script>
 function calc(){
   const followers = parseFloat(document.getElementById('followersInf').value);
+  const baseCpm = parseFloat(document.getElementById('baseCpm').value);
   const eng = parseFloat(document.getElementById('engRateInf').value);
   const plat = parseFloat(document.getElementById('platformFactor').value);
   const content = parseFloat(document.getElementById('contentType').value);
   const r = document.getElementById('result');
-  if(isNaN(followers)||isNaN(eng)||followers<=0){
-    const __h0=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"<p>Enter a valid number</p>":"<p>请输入有效数值</p>");r.innerHTML=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"<p>Enter a valid number</p>":"<p>请输入有效数值</p>");
+  if(isNaN(followers)||isNaN(baseCpm)||isNaN(eng)||isNaN(plat)||isNaN(content)||followers<=0||baseCpm<=0||eng<0||eng>100||plat<=0||content<=0){
+    const __bad=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"<p>Enter valid values: followers and base CPM must be &gt; 0, engagement 0–100%, and both factors &gt; 0.</p>":"<p>请输入有效数值：粉丝数与基础千粉价须大于 0，互动率 0–100，平台与内容系数须大于 0。</p>");r.innerHTML=__bad;
     return;
   }
-  let cpmBase;
-  if(followers < 10000) cpmBase = 100;
-  else if(followers < 100000) cpmBase = 200;
-  else if(followers < 500000) cpmBase = 300;
-  else if(followers < 1000000) cpmBase = 400;
-  else cpmBase = 500;
   const engBonus = 1 + (eng - 2)/10;
-  const price = (followers/1000) * cpmBase * engBonus * plat * content;
+  const price = (followers/1000) * baseCpm * engBonus * plat * content;
   const priceRangeLow = price * 0.7;
   const priceRangeHigh = price * 1.3;
   let tier = followers < 10000 ? '素人/KOC' : followers < 100000 ? '尾部达人' : followers < 500000 ? '腰部达人' : followers < 1000000 ? '肩部达人' : '头部达人';
