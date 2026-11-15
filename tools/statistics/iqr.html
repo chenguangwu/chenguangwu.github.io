@@ -212,7 +212,7 @@
 function calc(){
   if(!isFinite(__iqNum('data_count')) || !isFinite(__iqNum('min_')) || !isFinite(__iqNum('q1')) || !isFinite(__iqNum('median_')) || !isFinite(__iqNum('q3')) || !isFinite(__iqNum('max_'))){
     document.getElementById('result').innerHTML = '<p style="color:var(--text-muted);">请填写数据量与最小值、Q1、中位数、Q3、最大值后再计算。</p>';
-    var __t=document.getElementById('iqTable'); if(__t) __t.innerHTML='';
+    __iqClear();
     return;
   }
   const data_count = +document.getElementById('data_count').value || 0;
@@ -221,6 +221,11 @@ function calc(){
   const median_ = +document.getElementById('median_').value || 0;
   const q3 = +document.getElementById('q3').value || 0;
   const max_ = +document.getElementById('max_').value || 0;
+  if(!(min_<=q1&&q1<=median_&&median_<=q3&&q3<=max_)){
+    __iqClear();
+    ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 五数概括须满足 最小值 ≤ Q1 ≤ 中位数 ≤ Q3 ≤ 最大值；当前顺序不合法，IQR 与异常值围栏无定义，已停止计算。</p>');
+    return;
+  }
   let html = '';
   const __v0 = (q3-q1);
   html += `<p>IQR：<strong style="font-size:18px;color:var(--primary);">${__v0.toFixed(4)}</strong> </p>`;
@@ -242,11 +247,16 @@ function copyResult() {
 }
 calc();
 
+function __iqClear(){
+  var ids=['iqChart','iqTable','iqDiff','iqHist'];
+  for(var i=0;i<ids.length;i++){var e=document.getElementById(ids[i]);if(e)e.innerHTML='';}
+  var t=document.getElementById('iqrHidden');if(t&&t.tBodies&&t.tBodies[0])t.tBodies[0].innerHTML='';
+}
 function __iqNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
 function __iqExtras(){
-    if (typeof TBKit === 'undefined') return;
+    if (typeof TBKit === 'undefined'){__iqClear();return;}
     var mn=__iqNum('min_'),q1=__iqNum('q1'),md=__iqNum('median_'),q3=__iqNum('q3'),mx=__iqNum('max_');
-    if(!isFinite(mn)||!isFinite(q1)||!isFinite(md)||!isFinite(q3)||!isFinite(mx)||q3<q1) return;
+    if(!isFinite(mn)||!isFinite(q1)||!isFinite(md)||!isFinite(q3)||!isFinite(mx)||!(mn<=q1&&q1<=md&&md<=q3&&q3<=mx)){__iqClear();return;}
     var iqr=q3-q1, loF=q1-1.5*iqr, hiF=q3+1.5*iqr;
     var en=TBKit.util.isEn();
     var outs=[];

@@ -1196,6 +1196,49 @@ const CASES = [
     ref: "SMS-54：旧 __skStats 用 sd>0?…:0 把偏度/峰度兜成 0，判定卡据此输出「基本对称 / 接近正态尾部 / 分布形状良好」，与结果卡「—」矛盾。修复后 sd=0 时判定卡单独输出「方差为 0…无定义」并清空图表/明细/差异面板；该串由结果采集区直接命中（stub DOM 的 textContent 不同步 innerHTML，故不用探针读节点）。默认 1..10 的 sd>0 ⇒ 不含该串，零逃生。"
   },
 
+  // SMS-56：加权平均四个辅助面板必须独立于 #result，且非法态清空
+  {
+    slug: "statistics/statistics-11",
+    inputs: { v1: "70", w1: "0.2", v2: "85", w2: "0.3", v3: "95", w3: "0.5" },
+    clicks: ["var ok=typeof __wmClear==='function'&&String(__wmExtras).indexOf('__wmClear()')>=0&&typeof __tb_wm0==='function'&&String(__tb_wm0).indexOf('__wmClear()')>=0;document.getElementById('__tbProbe').textContent='WMFIX '+(ok?'OK':'BAD');"],
+    expect: ["WMFIX OK"],
+    ref: "SMS-56：旧 #wmChart/#wmTable/#wmDiff/#wmHist 嵌在 #result 内，calc() 的 innerHTML 覆写首次执行即删除四节点，数据表/历史/导出全部失效且无清空函数。修复后四面板移出结果容器、wmDiff 纳入 tbl 映射、新增 __wmClear() 并在守卫与附加层早退调用。源码形态探针只在修复态命中，默认态不执行 clicks ⇒ 零逃生。"
+  },
+  {
+    slug: "statistics/statistics-11",
+    inputs: { v1: "70", w1: "0", v2: "85", w2: "0", v3: "95", w3: "0" },
+    expect: ["权重和不能为 0"],
+    ref: "SMS-56 伴生：Σw=0 时旧主算照常输出 NaN/Infinity 且附加层静默早退保留旧图表。修复后主算停算提示并清空四面板；默认权重 0.5/0.3/0.2 不含该串 ⇒ 零逃生。"
+  },
+  // SMS-57：IQR 五数概括顺序校验与清空
+  {
+    slug: "statistics/iqr",
+    inputs: { data_count: "8", min_: "5", q1: "60", median_: "50", q3: "40", max_: "80" },
+    expect: ["五数概括须满足 最小值 ≤ Q1 ≤ 中位数 ≤ Q3 ≤ 最大值"],
+    ref: "SMS-57：旧主算不校验顺序，Q1=60、Q3=40 仍输出 IQR=-20、下限 90、上限 10；附加层 q3<q1 直接 return 保留上次图表。修复后主算停算提示并统一 __iqClear() 清空图表/明细/差异/历史；默认 10/25/40/60/90 合法不含提示 ⇒ 零逃生。"
+  },
+  {
+    slug: "statistics/iqr",
+    inputs: { data_count: "8", min_: "5", q1: "20", median_: "35", q3: "50", max_: "80" },
+    clicks: ["var ok=typeof __iqClear==='function'&&String(__iqExtras).indexOf('__iqClear();return')>=0&&typeof __tb_fn0==='function'&&String(__tb_fn0).indexOf('__iqClear()')>=0;document.getElementById('__tbProbe').textContent='IQCLR '+(ok?'OK':'BAD');"],
+    expect: ["IQCLR OK"],
+    ref: "SMS-57：旧缺值分支只清 iqTable，箱线图/差异/历史面板保留上次数据；修复后守卫、顺序校验与附加层早退共用 __iqClear()。源码形态探针只在修复态命中，默认态不执行 clicks ⇒ 零逃生。"
+  },
+  // SMS-59：二项分布附加层对数域与 pk 同源
+  {
+    slug: "statistics/binomial-pmf",
+    inputs: { n: "1000", k: "900", p: "0.9" },
+    clicks: ["var v=__bpPmf(1000,0.9,900)[900]||0;var w=typeof __bpLogP==='function'?Math.exp(__bpLogP(1000,0.9,900)):0;document.getElementById('__tbProbe').textContent='BPLOG pmf='+v.toFixed(5)+' src='+w.toFixed(5);"],
+    expect: ["BPLOG pmf=0.04202 src=0.04202"],
+    ref: "SMS-59：旧附加层以 Math.pow(0.1,1000) 起算即下溢为 0，递推整列全 0、历史 pk=0，与主结果 P(X=900)=0.04202 矛盾。修复后 __bpPmf 用对数域增量递推、pk 与主算共用 __bpLogP；Bin(1000,0.9) 在 k=900 处约 1/(√(2π)·√90)=0.04202。默认 n=10/k=3/p=0.5 默认态不含该串 ⇒ 零逃生。"
+  },
+  {
+    slug: "statistics/binomial-pmf",
+    inputs: { n: "1000", k: "900", p: "0.9" },
+    expect: ["0.04202"],
+    ref: "SMS-59 回归：主结果在 n=1000、p=0.9、k=900 的极端参数下仍须给出非零概率；默认 Bin(10,0.5) 的 0.11719 不含该串 ⇒ 注入失败变红，零逃生。"
+  },
+
 ];
 
 // ---------------------------------------------------------------- main
