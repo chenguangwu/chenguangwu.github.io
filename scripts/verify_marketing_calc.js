@@ -375,57 +375,57 @@ const CASES = [
   {
     slug: "marketing/marketing-engagement-rate",
     name: "社交媒体互动率计算器",
-    inputs: { followers: "5000", likes: "200", comments: "50", shares: "50", impressionsEng: "10000" },
+    inputs: { followers: "5000", likes: "200", comments: "50", shares: "50", saves: "0", impressionsEng: "10000" },
     expect: ["总互动数：300", "互动率（按粉丝）：6.00%", "基于展示的互动率：3.00%"],
     ref: 'totalEng=200+50+50=300；按粉丝=300/5000×100=6.00%；基于展示=300/10000×100=3.00%。',
   },
   {
     slug: "marketing/marketing-engagement-rate",
     name: "社交媒体互动率计算器",
-    inputs: { followers: "1000000", likes: "1000", comments: "200", shares: "100", impressionsEng: "0" },
+    inputs: { followers: "1000000", likes: "1000", comments: "200", shares: "100", saves: "0", impressionsEng: "0" },
     expect: ["总互动数：1,300", "互动率（按粉丝）：0.13%"],
     ref: 'totalEng=1000+200+100=1300（千分位 1,300）；按粉丝=1300/1000000×100=0.13%；impressions=0 无展示行。',
   },
   {
     slug: "marketing/marketing-engagement-rate",
     name: "社交媒体互动率计算器",
-    inputs: { followers: "30000", likes: "150", comments: "30", shares: "20", impressionsEng: "80000" },
+    inputs: { followers: "30000", likes: "150", comments: "30", shares: "20", saves: "0", impressionsEng: "80000" },
     expect: ["总互动数：200", "互动率（按粉丝）：0.67%", "基于展示的互动率：0.25%"],
     ref: 'totalEng=150+30+20=200；按粉丝=200/30000×100=0.6667⇒0.67%；基于展示=200/80000×100=0.25%。',
   },
   {
     slug: "marketing/marketing-influencer-pricing",
-    inputs: { followersInf: "5000", engRateInf: "4", platformFactor: "1.0", contentType: "1.0" },
+    inputs: { followersInf: "5000", baseCpm: "100", engRateInf: "4", platformFactor: "1.0", contentType: "1.0" },
     expect: ["达人层级：素人/KOC", "参考报价：¥420 - ¥780", "建议报价：¥600"],
     ref: 'f=5000<10000⇒cpmBase=100,素人/KOC；engBonus=1+(4-2)/10=1.2；price=5×100×1.2×1.0×1.0=600；low=420；high=780'
   },
   {
     slug: "marketing/marketing-influencer-pricing",
-    inputs: { followersInf: "50000", engRateInf: "5", platformFactor: "1.2", contentType: "1.5" },
+    inputs: { followersInf: "50000", baseCpm: "200", engRateInf: "5", platformFactor: "1.2", contentType: "1.5" },
     expect: ["达人层级：尾部达人", "参考报价：¥16,380 - ¥30,420", "建议报价：¥23,400"],
     ref: 'f=50000⇒cpmBase=200,尾部达人；engBonus=1.3；price=50×200×1.3×1.2×1.5=23400；low=16380；high=30420'
   },
   {
     slug: "marketing/marketing-influencer-pricing",
-    inputs: { followersInf: "300000", engRateInf: "6", platformFactor: "2.0", contentType: "2.5" },
+    inputs: { followersInf: "300000", baseCpm: "300", engRateInf: "6", platformFactor: "2.0", contentType: "2.5" },
     expect: ["达人层级：腰部达人", "参考报价：¥441,000 - ¥819,000", "建议报价：¥630,000"],
     ref: 'f=300000⇒cpmBase=300,腰部达人；engBonus=1.4；price=300×300×1.4×2.0×2.5=630000；low=441000；high=819000'
   },
   {
     slug: "marketing/marketing-influencer-pricing",
-    inputs: { followersInf: "800000", engRateInf: "3", platformFactor: "1.5", contentType: "1.0" },
+    inputs: { followersInf: "800000", baseCpm: "400", engRateInf: "3", platformFactor: "1.5", contentType: "1.0" },
     expect: ["参考报价：¥369,600 - ¥686,400", "建议报价：¥528,000"],
     ref: 'f=800000⇒cpmBase=400,肩部达人分支；engBonus=1.1；price=800×400×1.1×1.5×1.0=528000；low=369600；high=686400。锚用价格串（bare 预置 500000→肩部同档，纯『达人层级：肩部达人』串会与默认态撞车逃生，故改用依赖全部输入的价格区间串）'
   },
   {
     slug: "marketing/marketing-influencer-pricing",
-    inputs: { followersInf: "2000000", engRateInf: "4", platformFactor: "1.0", contentType: "1.5" },
+    inputs: { followersInf: "2000000", baseCpm: "500", engRateInf: "4", platformFactor: "1.0", contentType: "1.5" },
     expect: ["达人层级：头部达人", "参考报价：¥1,260,000 - ¥2,340,000", "建议报价：¥1,800,000"],
     ref: 'f=2000000≥1e6⇒cpmBase=500,头部达人；engBonus=1.2；price=2000×500×1.2×1.0×1.5=1800000；low=1260000；high=2340000'
   },
   {
     slug: "marketing/marketing-influencer-pricing",
-    inputs: { followersInf: "200000", engRateInf: "2", platformFactor: "1.2", contentType: "2.5" },
+    inputs: { followersInf: "200000", baseCpm: "300", engRateInf: "2", platformFactor: "1.2", contentType: "2.5" },
     expect: ["达人层级：腰部达人", "参考报价：¥126,000 - ¥234,000", "建议报价：¥180,000"],
     ref: 'f=200000⇒cpmBase=300,腰部达人；engBonus=1+(2-2)/10=1.0；price=200×300×1.0×1.2×2.5=180000；low=126000；high=234000'
   },
@@ -897,7 +897,7 @@ const CASES = [
       "d7": "4.2"
     },
     "expect": [
-      " 品牌资产价值： 39万元 品牌等级： 弱势品牌 短板维度（低于 6 分）：领导力 4.2"
+      " 品牌资产价值： 39万元 品牌等级： 成长品牌 短板维度（低于 6 分）：领导力 4.2"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"profit\":\"42\",\"contribution\":\"42\",\"discount\":\"42\",\"years\":\"42\",\"7 维均 4.2\"}，输出区含「品牌资产价值：39万元 / 品牌等级：弱势品牌 / 短板维度（低于 6 分）：领导力 4.2…」；默认态（输入回退 3250/75/13.25%/17460）不含该串 ⇒ 强判别、零逃生。Node 独立复算：品牌净利润 42×0.42=17.64 万元，强度 0.42，调整后折现率 44.90%，42 年现值 39.29 ⇒ 39 万元。"
   },
@@ -969,7 +969,7 @@ const CASES = [
       "conversionsB": "42"
     },
     "expect": [
-      "42\n42\n42\n42\nA组转化率：100.00% B组转化率：100.00% 相对提升：+0.00% P值：— ⚠️ 结果尚不显著，建议继续收集数据"
+      "两组合并转化率为 0% 或 100%，标准误为 0，无法进行 z 检验（两组转化率相同）。"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"visitorsA\":\"42\",\"conversionsA\":\"42\",\"visitorsB\":\"42\",\"conversionsB\":\"42\"}，输出区含「42\n42\n42\n42\nA组转化率：100.00% B组转化率：100.00% …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -982,7 +982,7 @@ const CASES = [
       "q2": "42"
     },
     "expect": [
-      " 收入变化 ΔR 0 元（0.00%） 收入不变 弹性判读： 单位弹性（|Ed|="
+      "— 弹性系数 Ed — |Ed| 绝对值 0 收入变化（元） 0.00% 收入变化率"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"p1\":\"42\",\"q1\":\"42\",\"p2\":\"42\",\"q2\":\"42\"}，输出区含「 收入变化 ΔR 0 元（0.00%） 收入不变 弹性判读： 单位弹性（|Ed|…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -998,7 +998,7 @@ const CASES = [
       "budget3Pct": "42"
     },
     "expect": [
-      "42\n42\n42\n42\n42\n42\n42\n⚠ 输入比例合计 126 %，与 100% 相差 26.0 %，已按比例归一；下表「分配占比」为归一后的实际占比。 ¥42 总预算 ¥1,764 预估总收入 42.00"
+      "⚠ 输入比例合计 126 %，与 100% 相差 26.0 %","¥42 总预算 ¥1,764 预估总收入 42.00x 整体ROAS"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"totalBudget\":\"42\",\"roas1\":\"42\",\"budget1Pct\":\"42\",\"roas2\":\"42\",\"budget2Pct\":\"42\",\"roas3\":\"42\",\"budget3Pct\":\"42\"}，输出区含「42\n42\n42\n42\n42\n42\n42\n¥42 总预算 ¥1,764 预估总收…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -1031,7 +1031,7 @@ const CASES = [
       "estMargin": "42"
     },
     "expect": [
-      " 合计 70% ¥42 - 28 1 ¥53.16\n42\n42\n42\n42\n42\n42\n¥1,764\n¥1,764\n¥-1,023\n238\n100\n-58.0%"
+      "合计 100.0% ¥42 - 28 1 ¥53.16","⚠ 输入占比合计 70%"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"budget\":\"42\",\"unitPrice\":\"42\",\"ctr\":\"42\",\"cvr\":\"42\",\"totalBudget\":\"42\",\"targetConv\":\"42\",\"estCpa\":\"42\",\"estCtr\":\"42\",\"estCvr\":\"42\",\"estPrice\":\"42\",\"estMargin\":\"42\"}，输出区含「 合计 70% ¥42 - 28 1 ¥53.16\n42\n42\n42\n42\n42…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -1134,10 +1134,11 @@ const CASES = [
       "likes": "42",
       "comments": "42",
       "shares": "42",
+      "saves": "0",
       "impressionsEng": "42"
     },
     "expect": [
-      "基于展示的互动率：300.00% 点赞：42 / 评论：42 / 分享：42"
+      "总互动数：126 互动率（按粉丝）：300.00%"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"followers\":\"42\",\"likes\":\"42\",\"comments\":\"42\",\"shares\":\"42\",\"impressionsEng\":\"42\"}，输出区含「基于展示的互动率：300.00% 点赞：42 / 评论：42 / 分享：42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -1150,7 +1151,7 @@ const CASES = [
       "avgOrderValue": "42"
     },
     "expect": [
-      "42\n42\n42\n42\n¥1,764 日预算 ¥52,920 月预算 17.6 日订单数 0.42"
+      "¥1,764 日预算 ¥52,920 月预算 17.6 日转化数 ¥100.00 CPA"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"avgCpc\":\"42\",\"targetClicksDay\":\"42\",\"convRate\":\"42\",\"avgOrderValue\":\"42\"}，输出区含「42\n42\n42\n42\n¥1,764 日预算 ¥52,920 月预算 17.6 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -1189,7 +1190,7 @@ const CASES = [
       "contentType": "42"
     },
     "expect": [
-      "42\n42\n42\n42\n达人层级：素人/KOC 参考报价：¥25,931 - ¥48,157 建议报价：¥37,044"
+      "42\n10\n42\n42\n42\n达人层级：素人/KOC 参考报价：¥2,593 - ¥4,816 建议报价：¥3,704"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"followersInf\":\"42\",\"engRateInf\":\"42\",\"platformFactor\":\"42\",\"contentType\":\"42\"}，输出区含「42\n42\n42\n42\n达人层级：素人/KOC 参考报价：¥25,931 - ¥…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -1270,7 +1271,7 @@ const CASES = [
       "q2": "42"
     },
     "expect": [
-      "性系数 PED 1,764 元 原收入 1,764 元 新收入 +0 元 (0"
+      "价格未变化（P₁ = P₂），需求价格弹性无定义","— 弹性系数 Ed — |Ed| 绝对值 0"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"p1\":\"42\",\"q1\":\"42\",\"p2\":\"42\",\"q2\":\"42\"}，输出区含「性系数 PED 1,764 元 原收入 1,764 元 新收入 +0 元 (0」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -1340,7 +1341,7 @@ const CASES = [
   {
     slug: "marketing/marketing-engagement-rate",
     inputs: { followers: "10000", likes: "-10", comments: "0", shares: "0", impressionsEng: "0" },
-    expect: ["点赞、评论、分享与曝光量不能为负数"],
+    expect: ["点赞、评论、分享、收藏与曝光量须为非负数"],
     ref: "点赞为负时旧实现总互动 −10、互动率 −0.10%；现拦截。默认点赞 1200 ⇒ 注入失败不命中。",
   }
 

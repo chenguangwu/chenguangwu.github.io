@@ -962,7 +962,7 @@
 - 影响：Markdown 嵌套层级丢失，粘贴回文档后列表结构被破坏；预设一点即复现。假工具：否。
 - 方案：先在未 trim 的行上算原始缩进与层级，再单独 trim 内容；或不把 `trimEach` 作用于缩进计算。
 
-### BS-N117 自动缩进：大括号模式把字符串/注释里的括号计入层级（中，确认缺陷）
+### BS-N117 自动缩进：大括号模式把字符串/注释里的括号计入层级（中，确认缺陷）— 2026-11-15 已修复（580 批：新增 `countBraces()` 跳过字符串/模板串/注释）
 - 页面：`tools/biz/text-indent.html`
 - 问题：层级只按字符 `{`/`}` 计数，不区分字符串、模板串与注释，含括号的日志/正则/注释会把后续行整体多缩进一层。
 - 证据：`tools/biz/text-indent.html:396-399`（逐字符累加 `openCount/closeCount`）。
@@ -970,7 +970,7 @@
 - 影响：JS/JSON 文本里出现 `{` 字面量时整段缩进错位；假工具：否。
 - 方案：至少跳过单/双引号、反引号与 `//`、`/* */` 区间再计层级，或在页面注明「不解析字符串」。
 
-### BS-N118 自动缩进：XML/HTML 模式把 `<br>`、`<img>` 等空元素当开标签，层级持续累加（中，确认缺陷）
+### BS-N118 自动缩进：XML/HTML 模式把 `<br>`、`<img>` 等空元素当开标签，层级持续累加（中，确认缺陷）— 2026-11-15 已修复（580 批：void 元素白名单）
 - 页面：`tools/biz/text-indent.html`
 - 问题：开标签正则只排除 `/>` 自闭合，`<br>`、`<img src="x.png">`、`<input>`、`<meta>` 等 void 元素都被计为 +1 层，后续行与闭合标签缩进全错。
 - 证据：`tools/biz/text-indent.html:361-374`（`openMatch` / `closeMatch` 计数与层级调整）。
@@ -978,7 +978,7 @@
 - 影响：HTML 片段缩进越缩越深，粘贴回编辑器后需手工返工；假工具：否。
 - 方案：维护 void 元素白名单（area/base/br/col/embed/hr/img/input/link/meta/param/source/track/wbr），命中则不计层级。
 
-### BS-N119 文本重复：次数填 0 仍输出 1 条，与自身引据「零次得到空串」矛盾（中，确认缺陷）
+### BS-N119 文本重复：次数填 0 仍输出 1 条，与自身引据「零次得到空串」矛盾（中，确认缺陷）— 2026-11-15 已修复（580 批：0 次输出空串）
 - 页面：`tools/biz/text-repeat.html`
 - 问题：`parseInt(value) || 1` 把 0 折成 1，而引据表明确「零次得到空串」；输入框 `min=1` 只约束微调按钮，手输 0 仍会即时计算。
 - 证据：`tools/biz/text-repeat.html:320`（`|| 1`）、`:261`（引据「零次得到空串」）、`:331`（循环按 `times`）。
@@ -986,7 +986,7 @@
 - 影响：按 ECMA `String.prototype.repeat` 口径生成测试数据时多出一条，与页面自述标准冲突；假工具：否。
 - 方案：改为 `const n = Number(v); const times = Number.isFinite(n) && n >= 0 ? Math.floor(n) : 1;`，0 时输出空串。
 
-### BS-N120 文本重复：`times` 未钳制上限，超 max 的手输值可致标签页卡死（中，确认缺陷）
+### BS-N120 文本重复：`times` 未钳制上限，超 max 的手输值可致标签页卡死（中，确认缺陷）— 2026-11-15 已修复（580 批：上限 10000 并回写）
 - 页面：`tools/biz/text-repeat.html`
 - 问题：输入框标注 `max=10000`，但 `repeat()` 不做任何边界校验，直接按解析值循环并 `arr.join()`，手输更大值不会被拦下。
 - 证据：`tools/biz/text-repeat.html:163`（`min=1 max=10000`）、`:320`（无 clamp）、`:331`（`for(i<times)`）。
@@ -994,7 +994,7 @@
 - 影响：一次误输入即可让页面卡死（未保存内容丢失）；假工具：否。
 - 方案：`times = Math.min(Math.max(1, times), 10000)`，超限时 toast 提示。
 
-### BS-N121 演讲计时器：1 分钟 / 100 页（均为允许极值）均分得 0 秒/页，约 10 秒走完 100 页（高，确认缺陷）
+### BS-N121 演讲计时器：1 分钟 / 100 页（均为允许极值）均分得 0 秒/页，约 10 秒走完 100 页（高，确认缺陷）— 2026-11-15 已修复（580 批：总时长不足时明确提示，合法区间每页 ≥1 秒、余数分给前几页）
 - 页面：`tools/biz/presentation-timer.html`
 - 问题：`Math.floor(total / count)` 在总时长 60 秒、页数 100 时得 0，`slides` 全为 0；进度分母为 0 → `ratio` 为 `Infinity`，`Math.min(1, …)` 恒为 1，「时间即将结束」立即亮红，`tick` 每 100 ms 触发一次翻页。
 - 证据：`tools/biz/presentation-timer.html:192`（页数 `min=1 max=100`）、`:198`（总时长 `min=1 max=180`）、`:351`（`Math.floor`）、`:427-436`（`ratio>=1` 自动 `nextSlide`/`finish`）、`:440-445`（分母 0 的显示）。
@@ -1002,7 +1002,7 @@
 - 影响：短会/多页场景计时完全失真，历史记录也被污染；假工具：否。
 - 方案：`perSlide = Math.max(1, Math.floor(total/count))`，总秒数 < 页数时提示并把余数分配到前 N 页。
 
-### BS-N122 演讲计时器：页数/总时长未做边界校验，负数导致 NaN 显示且计时器永不结束（中，确认缺陷）
+### BS-N122 演讲计时器：页数/总时长未做边界校验，负数导致 NaN 显示且计时器永不结束（中，确认缺陷）— 2026-11-15 已修复（580 批：`clampInt` 钳制 1–100 / 1–180 并回写）
 - 页面：`tools/biz/presentation-timer.html`
 - 问题：`parseInt(...) || 10` 与 `*60 || 900` 只兜底空值/0，负数照单全收；页数为负时 `slides` 为空数组，开始计时后 `slides[0]` 为 `undefined`，时间与进度均为 `NaN`，`tick` 的 `ratio>=1` 永不成立。
 - 证据：`tools/biz/presentation-timer.html:349-351`（无上下界校验）、`:359`（总页数直接写输入值）、`:440-445`（`slides[currentSlide]*1000` → `NaN`）。
@@ -1010,7 +1010,7 @@
 - 影响：非法输入无提示，且进入无法自行结束的计时状态；假工具：否。
 - 方案：对 `slideCount` 钳到 1–100、`totalMin` 钳到 1–180，非法时标红并阻止开始。
 
-### BS-N123 演讲计时器：深度解析承诺「到点震动/弹窗提醒」「第 5/10 分钟提醒」，实现只有逐页变色（中，承诺未实现）
+### BS-N123 演讲计时器：深度解析承诺「到点震动/弹窗提醒」「第 5/10 分钟提醒」，实现只有逐页变色（中，承诺未实现）— 2026-11-15 已修复（580 批：深度解析/FAQ/算例改为实际行为，明确无震动与系统弹窗）
 - 页面：`tools/biz/presentation-timer.html`
 - 问题：FAQ 与算例写明「到点震动/弹窗提醒」「在第 5/10 分钟提醒，演示时屏幕倒计时」，但实现只有每页 70%/90% 的进度变色与状态文案，全页无 `Notification`、`navigator.vibrate`、`Audio`/`AudioContext`、`alert`（grep 0 命中）；唯一的 `ToolBox.showToast` 在 `finish()` 全部结束时才出现。
 - 证据：`tools/biz/presentation-timer.html:293`（算例「第 5/10 分钟提醒」）、`:296`（FAQ「到点震动/弹窗提醒」）、`:422-480`（`tick`/`updateDisplay` 仅改样式与状态文本）、`:533`（仅完成时 toast）。
@@ -1018,7 +1018,7 @@
 - 影响：按 FAQ 依赖提醒把控节奏的演讲者会错过节点；假工具：否。
 - 方案：补 `Notification`（需授权）或页面内横幅 + `navigator.vibrate`（移动端）+ WebAudio 提示音，并支持按总时长时间点提醒；或删改 FAQ 文案。
 
-### BS-N124 演讲计时器：全局 Space 快捷键抢占输入框，演讲主题无法输入空格（中，确认缺陷）
+### BS-N124 演讲计时器：全局 Space 快捷键抢占输入框，演讲主题无法输入空格（中，确认缺陷）— 2026-11-15 已修复（580 批：忽略 INPUT/TEXTAREA/SELECT，方向键仅运行页/全屏生效）
 - 页面：`tools/biz/presentation-timer.html`
 - 问题：`keydown` 监听未判断事件目标，任意位置按空格都 `preventDefault()` 并 `toggleTimer()`；在「演讲主题」文本框内输入空格会被吞掉并顺手切换计时状态。方向键同理会在非「计时」标签页里静默翻页。
 - 证据：`tools/biz/presentation-timer.html:581-586`（无 `e.target` 判断）、`:185`（主题文本框）。
@@ -1026,7 +1026,7 @@
 - 影响：主题无法含空格，误触还会启停计时（全屏时 `isFullscreen` 反而屏蔽了该快捷键，前后不一致）；假工具：否。
 - 方案：`if(e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;`，方向键快捷键只在 `tab-running` / 全屏时生效。
 
-### BS-N125 安全：演讲计时器把 localStorage 里的主题名当 HTML 插入历史列表（中，DOM XSS）
+### BS-N125 安全：演讲计时器把 localStorage 里的主题名当 HTML 插入历史列表（中，DOM XSS）— 2026-11-15 复核：HEAD 已用 `escHtml()` 逐字段转义（本轮复核销账）
 - 页面：`tools/biz/presentation-timer.html`
 - 问题：`finish()` 把用户输入的 `topic` 原样存入 `pres-history`，`renderHistory()` 用模板字符串拼进 `innerHTML`，未做转义；`init()` 每次加载即渲染历史。
 - 证据：`tools/biz/presentation-timer.html:522-528`（写入 `pres-history`）、`:556-560`（`<strong>${h.topic}</strong>` + `innerHTML`）、`:338`（`init()` 调 `renderHistory()`）。

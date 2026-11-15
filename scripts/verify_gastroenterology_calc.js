@@ -271,8 +271,8 @@ const CASES = [
 {
   "slug": "gastroenterology/hp-dob",
   "inputs": { "dob": "" },
-  "expect": ["请填写 DOB 检测值后再判读。"],
-  "ref": "空态守卫（2026-11-05）：清空 DOB 值后不再输出「0 DOB值」+「阴性」+「DOB值＜4.0‰…继续保持良好卫生习惯」整套结论，只给填写提示。⚠ 判空只认空串——DOB 0 ‰ 是合法检测值（阴性），照常判读。"
+  "expect": ["请填写检测值后再判读。", "Please enter the test value before interpreting."],
+  "ref": "空态守卫（2026-11-05）：清空 DOB 值后不再输出「0 DOB值」+「阴性」+「DOB值＜4.0‰…继续保持良好卫生习惯」整套结论，只给填写提示。⚠ 判空只认空串——DOB 0 ‰ 是合法检测值（阴性），照常判读。提示文案已改为中英双语合并句「请填写检测值后再判读。」，旧期望「请填写 DOB 检测值后再判读。」随之更新。"
 },
 {
   "slug": "gastroenterology/stool-occult-quant",

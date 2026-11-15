@@ -275,14 +275,14 @@
 <h2>📚 深度解析：演示计时器</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>演讲与路演控时：设定总时长与分段提醒，避免超时或被叫停。</li>
-<li>教学与培训分段：为每节预设时间，到点提示切换内容。</li>
+<li>演讲与路演控时：设定总时长与每页目标，<a class="term-link" href="/tools/design/progress-bar-generator.html">进度条</a>随剩余时间变色，避免超时或被叫停。</li>
+<li>教学与培训分段：为每页预设时间，到点自动进入下一页并提示切换内容。</li>
 <li>排练（dry run）：按真实节奏计时，评估内容密度是否合适。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">15 分钟路演控时</div><div class="dd-ex-body">设总时长 15:00、在第 5/10 分钟提醒，演示时屏幕<a class="term-link" href="/guides/countdown-timer-guide.html">倒计时</a>；若第 10 分钟仍未讲完核心，说明需删减，确保留 3 分钟答疑。</div></div>
+<div class="dd-example"><div class="dd-ex-title">15 分钟路演控时</div><div class="dd-ex-body">设总时长 15:00、10 页，工具按 90 秒/页分配（余数分给前几页）。演示时逐页<a class="term-link" href="/guides/countdown-timer-guide.html">倒计时</a>，剩余 30%/10% 时进度条变色提醒；超时自动跳到下一页，最后一页结束给出总用时。若需留 3 分钟答疑，可把总时长设为 12 分钟。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>能分多段计时吗？</dt><dd>可在分段里设每节目标时长，到点震动/弹窗提醒；多段适合教学与长汇报，单段适合短演讲。</dd>
+<dt>能分多段计时吗？</dt><dd>可在分段里设每页目标时长，到点页面进度与状态文字变色提醒，并自动进入下一页；不提供震动或系统弹窗，多段适合教学与长汇报。</dd>
 <dt>浏览器切走还计时吗？</dt><dd>本工具基于页面计时，切到后台可能被节流；正式场合建议用独立计时 App 或投屏常驻。</dd>
 </dl>
 </div>
@@ -334,16 +334,34 @@ function switchTab(id, btn) {
   btn.classList.add('active');
 }
 
+function clampInt(val, min, max, dflt) {
+  const n = parseInt(val, 10);
+  if (!isFinite(n)) return dflt;
+  return Math.min(max, Math.max(min, n));
+}
+
 function generateSlides() {
-  const count = parseInt(document.getElementById('slideCount').value) || 10;
-  const total = parseInt(document.getElementById('totalMin').value) * 60 || 900;
-  const perSlide = Math.floor(total / count);
-  
-  slides = [];
-  for (let i = 0; i < count; i++) {
-    slides.push(perSlide);
+  const countEl = document.getElementById('slideCount');
+  const totalEl = document.getElementById('totalMin');
+  // BS-N122：页数/时长钳制到允许区间，非法输入回写
+  const count = clampInt(countEl.value, 1, 100, 10);
+  const totalMin = clampInt(totalEl.value, 1, 180, 15);
+  if (String(count) !== String(countEl.value)) countEl.value = count;
+  if (String(totalMin) !== String(totalEl.value)) totalEl.value = totalMin;
+
+  const total = totalMin * 60;
+  // BS-N121：每页至少 1 秒，余数优先分给前几页；总时长不足以覆盖页数时明确提示，不生成 0 秒页
+  if (total < count) {
+    slides = new Array(count).fill(1);
+    document.getElementById('totalSlides').textContent = count;
+    document.getElementById('slidesList').innerHTML = '<p style="color:var(--danger)">⚠ 总时长不足：' + count + ' 页每页至少 1 秒，共需 ' + Math.ceil(count / 60) + ' 分钟，请增加总时长或减少页数。</p>';
+    return;
   }
-  
+  const base = Math.floor(total / count);
+  const rem = total - base * count;
+  slides = [];
+  for (let i = 0; i < count; i++) slides.push(base + (i < rem ? 1 : 0));
+
   renderSlides();
   document.getElementById('totalSlides').textContent = count;
 }
@@ -363,15 +381,17 @@ function renderSlides() {
 }
 
 function updateSlide(idx, val) {
-  slides[idx] = parseInt(val) || 30;
+  slides[idx] = Math.max(1, parseInt(val) || 30);
   renderSlides();
 }
 
 function equalDistribute() {
-  const count = parseInt(document.getElementById('slideCount').value) || 10;
-  const total = parseInt(document.getElementById('totalMin').value) * 60 || 900;
-  const per = Math.floor(total / count);
-  slides = slides.map(() => per);
+  const count = clampInt(document.getElementById('slideCount').value, 1, 100, 10);
+  const totalMin = clampInt(document.getElementById('totalMin').value, 1, 180, 15);
+  const total = totalMin * 60;
+  const base = Math.floor(total / count);
+  const rem = total - base * count;
+  slides = slides.map((_, i) => base + (i < rem ? 1 : 0));
   renderSlides();
 }
 
@@ -413,7 +433,8 @@ function tick() {
   slideElapsed += 100;
   updateDisplay();
   
-  const slideTime = slides[currentSlide] * 1000;
+  // 每页至少 1 秒，避免旧计划出现 0 秒导致除零（BS-N121）
+  const slideTime = Math.max(1, slides[currentSlide] || 0) * 1000;
   const ratio = slideElapsed / slideTime;
   
   if (ratio >= 1) {
@@ -426,7 +447,7 @@ function tick() {
 }
 
 function updateDisplay() {
-  const slideTime = slides[currentSlide] * 1000;
+  const slideTime = Math.max(1, slides[currentSlide] || 0) * 1000;
   const ratio = Math.min(1, slideElapsed / slideTime);
   const remaining = Math.max(0, slideTime - slideElapsed);
   
@@ -574,9 +595,15 @@ function fmtTime(s) {
 }
 
 document.addEventListener('keydown', e => {
-  if (e.code === 'Space' && !isFullscreen) { e.preventDefault(); toggleTimer(); }
-  if (e.code === 'ArrowRight') nextSlide();
-  if (e.code === 'ArrowLeft') prevSlide();
+  // 输入框内不抢空格与方向键（BS-N124）
+  const tag = (e.target && e.target.tagName) || '';
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(tag)) return;
+  const runningTab = document.getElementById('tab-running').classList.contains('active');
+  if (e.code === 'Space' && !isFullscreen) { e.preventDefault(); toggleTimer(); return; }
+  if ((e.code === 'ArrowRight' || e.code === 'ArrowLeft') && (isFullscreen || runningTab)) {
+    e.preventDefault();
+    if (e.code === 'ArrowRight') nextSlide(); else prevSlide();
+  }
   if (e.code === 'Escape' && isFullscreen) exitFullscreen();
 });
 
@@ -648,7 +675,7 @@ document.addEventListener('DOMContentLoaded',function(){
   <div class="tool-intro-body">
     <h4><span class="h4-icon">🎯</span>使用场景</h4>
     <ul class="intro-scenes">
-      <li>演讲与路演控时：设定总时长与分段提醒，避免超时或被叫停。</li><li>教学与培训分段：为每节预设时间，到点提示切换内容。</li><li>排练（dry run）：按真实节奏计时，评估内容密度是否合适。</li>
+      <li>演讲与路演控时：设定总时长与每页目标，进度条随剩余时间变色，避免超时或被叫停。</li><li>教学与培训分段：为每页预设时间，到点自动进入下一页并提示切换内容。</li><li>排练（dry run）：按真实节奏计时，评估内容密度是否合适。</li>
     </ul>
     </div>
 </div>

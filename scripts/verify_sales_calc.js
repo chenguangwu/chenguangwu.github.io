@@ -118,9 +118,9 @@ const CASES = [
     "method": "wma"
   },
   "expect": [
-    "102904"
+    "219,333.33"
   ],
-  "ref": "auto-restore"
+  "ref": "注入 histData 为空（页面回填默认 12 期样本）、method=wma、paramN=3、forecastN=3 ⇒ 加权移动平均（权重 1/2/3）下期预测 219,333.33；默认 ma 方法得 205,833.33，不命中。"
 },
 {
   "slug": "sales/stacked-discount",
@@ -137,8 +137,8 @@ const CASES = [
   "inputs": {
     "total": "1500"
   },
-  "expect": [ "1,500 万元" ],
-  "ref": "auto-restore"
+  "expect": [ "1,500.00 万元", "权重总和 80" ],
+  "ref": "注入 total=1500 万元（默认 1000）⇒ 汇总显示「1,500.00 万元」；默认 4 名成员权重 25/20/25/10 合计 80，显示「权重总和 80」。两串均随金额变化，默认态不含 1,500.00。"
 },
 
 {

@@ -341,15 +341,17 @@ function indent(){
   }
 
   if(mode === 'xml'){
-    // XML/HTML 标签
+    // XML/HTML 标签：void 元素（br/img/input 等）不改变层级（BS-N118）
+    const VOID_TAGS = /^(area|base|br|col|embed|hr|img|input|link|meta|param|source|track|wbr)$/i;
     for(let line of lines){
       if(trimEach) line = line.trim();
-      // 自闭合或单行不算
-      const openMatch = line.match(/<[a-zA-Z][^>]*[^/]>/g);
+      const opens = (line.match(/<([a-zA-Z][a-zA-Z0-9-]*)(?:\s[^>]*)?>/g) || []).filter(tag => {
+        if(/\/>$/.test(tag)) return false;
+        const name = (tag.match(/^<([a-zA-Z][a-zA-Z0-9-]*)/) || [])[1] || '';
+        return !VOID_TAGS.test(name);
+      });
       const closeMatch = line.match(/<\/[a-zA-Z][^>]*>/g);
-      const selfClosing = line.match(/<[a-zA-Z][^>]*\/>/g);
-      // 计算这行的影响
-      const openCount = (openMatch || []).length;
+      const openCount = opens.length;
       const closeCount = (closeMatch || []).length;
       // 如果是闭合标签行，先减
       if(line.startsWith('</')) depth = Math.max(0, depth - 1);
@@ -362,6 +364,29 @@ function indent(){
     }
     result.textContent = out.join('\n');
     return;
+  }
+
+  // 计算一行中大括号/圆括号的净层级，跳过字符串与注释（BS-N117）
+  function countBraces(line){
+    let openCount = 0, closeCount = 0, quote = null, blockComment = false;
+    for(let i = 0; i < line.length; i++){
+      const ch = line[i], next = line[i + 1];
+      if(blockComment){
+        if(ch === '*' && next === '/'){ blockComment = false; i++; }
+        continue;
+      }
+      if(quote){
+        if(ch === '\\'){ i++; continue; }
+        if(ch === quote) quote = null;
+        continue;
+      }
+      if(ch === '/' && next === '/') break;
+      if(ch === '/' && next === '*'){ blockComment = true; i++; continue; }
+      if(ch === "'" || ch === '"' || ch === '`'){ quote = ch; continue; }
+      if(openChars.includes(ch)) openCount++;
+      if(closeChars.includes(ch)) closeCount++;
+    }
+    return { openCount, closeCount };
   }
 
   for(let line of lines){
@@ -378,14 +403,9 @@ function indent(){
     let currentDepth = Math.max(0, depth - closeCountAtStart);
     out.push(indentStr.repeat(currentDepth) + line);
 
-    // 计算下一行深度
-    let openCount = 0, closeCount = 0;
-    for(const ch of line){
-      if(openChars.includes(ch)) openCount++;
-      if(closeChars.includes(ch)) closeCount++;
-    }
-    depth = Math.max(0, depth + openCount - closeCount);
-    if(depth < 0) depth = 0;
+    // 计算下一行深度（跳过字符串与注释内的括号）
+    const counts = countBraces(line);
+    depth = Math.max(0, depth + counts.openCount - counts.closeCount);
   }
   result.textContent = out.join('\n');
 }
