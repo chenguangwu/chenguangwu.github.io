@@ -351,6 +351,7 @@
 <script>
 const spamWords = [
   {word:'免费', score:-10, type:'spam'},
+  {word:'领取', score:-8, type:'spam'},
   {word:'点击', score:-8, type:'spam'},
   {word:'优惠', score:-5, type:'spam'},
   {word:'限时', score:-3, type:'warn'},
@@ -443,9 +444,9 @@ function __esltTable(){
   var title=document.getElementById('esltTableTitle'),tb=document.getElementById('esltTbody');
   if(!t0||!tb) return;
   t0.textContent=en?'#':((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"No.":"序号");t1.textContent=en?'Dimension':'维度';t2.textContent=en?'Score':'分值';
-  title.textContent=en?'Sentiment scores':'情感评分明细';
   var subject=document.getElementById('subject').value.trim();
   var fallback=!subject;
+  title.textContent=(en?'Sentiment scores':'情感评分明细')+(fallback?(en?' (built-in sample)':'（内置示例标题）'):'');
   var tone=__esltTone(fallback?templates.promo:subject);
   var rows=[{n:en?'Positive':'积极',v:tone.pos},{n:en?'Neutral':'中性',v:tone.neu},{n:en?'Negative':'消极',v:tone.neg}];
   tb.innerHTML=rows.map(function(r,idx){return '<tr><td>'+(idx+1)+'</td><td>'+ToolBox.escHtml(r.n)+'</td><td>'+r.v+'</td></tr>';}).join('');
@@ -580,6 +581,12 @@ function analyze(){
   }
   
   totalScore = Math.max(0, Math.min(100, totalScore));
+  // 命中 2 个及以上 spam 类高危词时，总分硬上限 59（待优化），避免标题党被判优秀
+  const spamHits = foundSpam.filter(s=>s.type==='spam').length;
+  if(spamHits >= 2){
+    totalScore = Math.min(totalScore, 59);
+    issues.push({type:'error', icon:'🚫', text:`命中 ${spamHits} 个高危垃圾词，评分上限为 59`});
+  }
   
   let scoreClass, scoreLabel, scoreDesc;
   if(totalScore >= 80){
