@@ -142,6 +142,11 @@ def _seo_ind_label(ind_label):
 def _seo_mod_ok(cand, name, min_cn):
     if not cand or not (4 <= len(cand) <= 24):
         return False
+    # 单位换算口径（「每 5 个正确字符计 1 词」）是算法说明，不是功能修饰；
+    # 选进 <title> 会挤掉行业标签。独立的「每 3 字节 → 4 字符」「每100mL…颗粒数」
+    # 等功能描述不含「计 N」，不受影响（实测外溢会降级两页既有优质标题）。
+    if re.match(r'^每\s*\d', cand) and re.search(r'计\s*\d', cand):
+        return False
     if not (min_cn <= len(_seo_cn(cand)) <= 14):
         return False
     if any(b in cand for b in SEO_BOILER):
