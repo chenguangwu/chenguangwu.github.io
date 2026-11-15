@@ -345,19 +345,9 @@
 - 方案：用 Worker + `terminate()` 计时，或在执行前提示"无限循环会冻结页面"并删除超时承诺。
 - 假工具：否
 
-### IT-N454 忙等测试在事件派发前就占满主线程，`stopFlag` 永远不会置位、无法中途停止（中，确认缺陷）
-- 页面：`tools/it/benchmark-builder.html`
-- 问题：`run()` 在 `setTimeout(…,30)` 回调里同步 `while(!stopFlag && performance.now()-start<duration)` 忙等（`:291-303`，循环在 `:295`）；`stopFlag` 只在 `stopRun()`（`:283`）里置位，而 `stopRun()` 只能由「负载类型」select 的 change（`:123`）或预设按钮回调（`:369`、`:421`）触发——主线程被 `while` 占用期间事件无法派发，`stopFlag` 恒为 false；`:293` 定义的 `guard` 也从未被调用。
-- 行号：`:123`、`:283`、`:284-313`（核心 `:295`）、`:293`
-- 复现：时长选 5 秒 → 点「▶ 开始测试」→ 运行中切换负载类型/点击任何按钮 → 实际页面完全无响应约 5 秒、测试跑满全程；期望能中途停止并保留已完成部分。
-- 影响：「可停止」的交互是死代码，任何一次测试都会冻结 UI；页面 :156 只提示"可能短暂卡顿"，未说明无法停止。
-- 方案：改用 Worker 计时与停止，或把忙等切成 `setTimeout` 分片让出主线程。
-- 假工具：否
-
 ### 覆盖清单（V 批 IT 编辑器/安全/编码）
 - `code-highlighter`：IT-N448（中，跨行高亮待修）；无高优缺陷（token 渲染统一走 `esc()`，`<`/`>`/`&`/`"` 已转义，未发现注入）。
 - `code-runner`：IT-N453（中，执行超时待修）；N451/N452 已由 srcdoc + 去 allow-same-origin + `<\/script` 转义修复。
-- `benchmark-builder`：IT-N454（中，忙等无法停止待修）；无高优缺陷（五种负载的循环体与吞吐公式本身可算，评级阈值仅为经验值）。
 - 方法声明：本轮逐页通读上述 8 页源码，用 `node` 在 `/tmp` 复刻页面原函数实算（`calcTool` 行数统计、`enc/dec`、`prettyHtml`、emoji 数组去重、`split('')` 反转）并给出「输入 → 实际 / 期望」；**未开浏览器、未跑 `_build.py`/`run_gates.py`、未做线上验证**；未修改任何工具页、代码或构建产物，仅在审计日志追加本节。IT-N437 的事件属性执行、IT-N451 的沙箱逃逸依据 HTML 规范（`innerHTML` 插入的 `onerror` 会触发；`allow-scripts` + `allow-same-origin` 不提供来源隔离）判定，未做真机复现。
 
 ## W 批 · IT URL/签名/安全（2026-11-04）

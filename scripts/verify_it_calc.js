@@ -14007,6 +14007,20 @@ const CASES = [
     expect: ["SIMLIMIT 文本过长"],
     ref: "IT-N366 超长保护：注入两段 1100 字符（1.21M 格 > 100 万上限），修复后隐藏旧结果并给出「文本过长」提示；旧实现会直接构建全矩阵且无提示 ⇒ 探针为空。提示串只在注入超长文本时出现 ⇒ 零逃生。",
   },
+  {
+    slug: "it/benchmark-builder",
+    inputs: { ms: '20', type: 'int' },
+    clicks: ["var src=String(run);document.getElementById('__tbProbe').textContent='BMSLICE '+(src.indexOf('function chunk')>=0&&src.indexOf('setTimeout(chunk,0)')>=0&&src.indexOf('-sliceStart<12')>=0?'OK':'BAD '+src.slice(0,120));"],
+    expect: ["BMSLICE OK"],
+    ref: "IT-N454 分片形态判定：run() 必须含 chunk() 分片、片尾 setTimeout(chunk,0) 让出主线程、单片 12ms 上限；旧实现是单个 setTimeout 回调内同步 while 忙等整段时长 ⇒ 三项皆无、BAD。探针只在注入该页且分片结构存在时出现 ⇒ 零逃生。",
+  },
+  {
+    slug: "it/benchmark-builder",
+    inputs: { ms: '20', type: 'int' },
+    clicks: ["run();stopRun();var r=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='BMSTOP '+(r.indexOf('ops')>=0&&r.indexOf('负载完成')>=0?'OK':'BAD '+r.slice(0,80));"],
+    expect: ["BMSTOP OK"],
+    ref: "IT-N454 停止保留已完成部分：短时长测试后调 stopRun()，结果区仍须写出已完成 ops 与「负载完成」；旧实现停止只在忙等循环里判断、结果区由同一回调收尾，UI 冻结期间根本无法触发停止。探针串只在注入 20ms + int 时出现 ⇒ 零逃生。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
