@@ -409,13 +409,18 @@ function calc() {
   let ltv, ltvGross, cac = 0, inputs = {};
 
   if (currentMode === 'simple') {
-    const arv = parseFloat(document.getElementById('arvSimple').value) || 0;
-    const freq = parseFloat(document.getElementById('freqSimple').value) || 0;
-    const lifespan = parseFloat(document.getElementById('lifespanSimple').value) || 0;
-    const margin = parseFloat(document.getElementById('marginSimple').value) || 0;
+    const arv = parseFloat(document.getElementById('arvSimple').value);
+    const freq = parseFloat(document.getElementById('freqSimple').value);
+    const lifespan = parseFloat(document.getElementById('lifespanSimple').value);
+    const margin = parseFloat(document.getElementById('marginSimple').value);
 
-    if (arv <= 0) {
-      const __h0='<div class="metric-card"><p style="color:var(--text-muted);">请输入有效数值</p></div>';r.innerHTML='<div class="metric-card"><p style="color:var(--text-muted);">请输入有效数值</p></div>';
+    const errs = [];
+    if (!isFinite(arv) || arv <= 0) errs.push('客单价须大于 0');
+    if (!isFinite(freq) || freq <= 0) errs.push('年购买频次须大于 0');
+    if (!isFinite(lifespan) || lifespan <= 0) errs.push('客户生命周期须大于 0 年');
+    if (!isFinite(margin) || margin < 0 || margin > 100) errs.push('毛利率须在 0–100% 之间');
+    if (errs.length) {
+      r.innerHTML='<div class="metric-card"><p class="tip-error">' + errs.join('；') + '</p></div>';
       return;
     }
 
@@ -423,13 +428,18 @@ function calc() {
     ltv = ltvGross * (margin / 100);
     inputs = { mode: 'simple', arv, freq, lifespan, margin };
   } else {
-    const mrr = parseFloat(document.getElementById('mrrDetail').value) || 0;
-    const churn = parseFloat(document.getElementById('churnDetail').value) || 0;
-    const margin = parseFloat(document.getElementById('marginDetail').value) || 0;
+    const mrr = parseFloat(document.getElementById('mrrDetail').value);
+    const churn = parseFloat(document.getElementById('churnDetail').value);
+    const margin = parseFloat(document.getElementById('marginDetail').value);
     cac = parseFloat(document.getElementById('cacDetail').value) || 0;
 
-    if (mrr <= 0 || churn <= 0) {
-      const __h1='<div class="metric-card"><p style="color:var(--text-muted);">请输入有效数值</p></div>';r.innerHTML='<div class="metric-card"><p style="color:var(--text-muted);">请输入有效数值</p></div>';
+    const errs = [];
+    if (!isFinite(mrr) || mrr <= 0) errs.push('月收入须大于 0');
+    if (!isFinite(churn) || churn <= 0 || churn > 100) errs.push('月流失率须在 0–100% 之间（不含 0）');
+    if (!isFinite(margin) || margin < 0 || margin > 100) errs.push('毛利率须在 0–100% 之间');
+    if (!isFinite(cac) || cac < 0) errs.push('CAC 须为 ≥0 的数字');
+    if (errs.length) {
+      r.innerHTML='<div class="metric-card"><p class="tip-error">' + errs.join('；') + '</p></div>';
       return;
     }
 
@@ -440,10 +450,14 @@ function calc() {
     inputs = { mode: 'detail', mrr, churn, margin, cac, lifespanYears };
   }
 
+  // 生命周期（年）：简单模式取输入年限，详情模式由月流失率反推
+  const lifeYears = currentMode === 'simple'
+    ? inputs.lifespan
+    : (inputs.churn > 0 ? 100 / (inputs.churn * 12) : 0);
+
   let extra = '';
   if (cac > 0) {
     const ratio = ltv / cac;
-    const lifeYears = currentMode === 'simple' ? (inputs.lifespan || 0) : (inputs.churn > 0 ? 100 / (inputs.churn * 12) : 0);
     const paybackMonths = (lifeYears > 0 && ltv > 0) ? cac / (ltv / lifeYears / 12) : NaN;
     extra = `
       <div class="metric-card">
@@ -516,27 +530,26 @@ function calc() {
       <table style="margin-top:8px;font-size:13px;width:100%;">
         <tr><td style="padding:4px 0;color:var(--text-light);">LTV（毛收入）</td><td style="text-align:right;font-weight:600;">¥${ToolBox.formatNumber(ltvGross, 2)}</td></tr>
         <tr><td style="padding:4px 0;color:var(--text-light);">LTV（毛利）</td><td style="text-align:right;font-weight:600;color:var(--primary);">¥${ToolBox.formatNumber(ltv, 2)}</td></tr>
-        ${currentMode === 'detail' ? `<tr><td style="padding:4px 0;color:var(--text-light);">预期生命周期</td><td style="text-align:right;font-weight:600;">${(1 / (inputs.churn/100)).toFixed(1)} 个月</td></tr>` : ''}
       </table>
     </div>
 
     <div class="metric-card">
-      <div class="label">相关指标</div>
+      <div class="label">相关指标（按 ${lifeYears.toFixed(1)} 年生命周期摊算）</div>
       <div class="related-metrics">
         <div class="related-metric">
-          <div class="val">¥${ToolBox.formatNumber(ltv / 12, 0)}</div>
+          <div class="val">¥${ToolBox.formatNumber(ltv / (lifeYears * 12), 0)}</div>
           <div class="lbl">月均价值</div>
         </div>
         <div class="related-metric">
-          <div class="val">¥${ToolBox.formatNumber(ltv / 52, 0)}</div>
+          <div class="val">¥${ToolBox.formatNumber(ltv / (lifeYears * 52), 0)}</div>
           <div class="lbl">周均价值</div>
         </div>
         <div class="related-metric">
-          <div class="val">¥${ToolBox.formatNumber(ltv / 365, 0)}</div>
+          <div class="val">¥${ToolBox.formatNumber(ltv / (lifeYears * 365), 0)}</div>
           <div class="lbl">日均价值</div>
         </div>
         <div class="related-metric">
-          <div class="val">${currentMode === 'detail' ? (1 / (inputs.churn/100)).toFixed(0) + ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"mo":"月") : (inputs.lifespan || 3) + '年'}</div>
+          <div class="val">${currentMode === 'detail' ? (1 / (inputs.churn/100)).toFixed(0) + ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"mo":"月") : inputs.lifespan + '年'}</div>
           <div class="lbl">预期生命周期</div>
         </div>
       </div>
@@ -550,7 +563,7 @@ function calc() {
 
 function saveHistory() {
   const r = document.getElementById('result');
-  if (r.innerHTML.includes('请输入')) {
+  if (r.innerHTML.includes('请输入') || r.innerHTML.includes('tip-error')) {
     ToolBox.showToast(i18nText(),'error');
     return;
   }
