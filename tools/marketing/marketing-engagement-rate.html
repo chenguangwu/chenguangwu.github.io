@@ -135,13 +135,14 @@
 <div class="formula-box">
   
   
-<div class="formula-eq">互动率 =（点赞 + 评论 + 分享）÷ 粉丝数 × 100%；互动曝光率 =（点赞 + 评论 + 分享）÷ 曝光量 × 100%，衡量内容互动质量。</div></div>
+<div class="formula-eq">互动率 =（点赞 + 评论 + 分享 + 收藏）÷ 粉丝数 × 100%；互动曝光率 =（点赞 + 评论 + 分享 + 收藏）÷ 曝光量 × 100%；四项互动数须为非负整数且不能留空（可填 0）。</div></div>
 
-    <div data-tb="preset" data-tb-presets='[{"label":"粉丝/关注者数50000·点赞数1200·评论数180·分…","labelEn":"followers=50000 · likes=1200 · comments…","values":{"followers":"50000","likes":"1200","comments":"180","shares":"120","impressionsEng":"200000"}}]'></div>
+    <div data-tb="preset" data-tb-presets='[{"label":"粉丝/关注者数50000·点赞数1200·评论数180·分…","labelEn":"followers=50000 · likes=1200 · comments…","values":{"followers":"50000","likes":"1200","comments":"180","shares":"120","saves":"60","impressionsEng":"200000"}}]'></div>
 <label>粉丝/关注者数</label><input type="number" id="followers" value="50000" oninput="calc()" placeholder="如 50000">
 <label style="margin-top:12px;">点赞数</label><input type="number" id="likes" value="1200" oninput="calc()" placeholder="如 1200">
 <label style="margin-top:12px;">评论数</label><input type="number" id="comments" value="180" oninput="calc()" placeholder="如 180">
 <label style="margin-top:12px;">分享/转发数</label><input type="number" id="shares" value="120" oninput="calc()" placeholder="如 120">
+<label style="margin-top:12px;">收藏数</label><input type="number" id="saves" value="60" oninput="calc()" placeholder="如 60">
 <label style="margin-top:12px;">帖子展示量（可选）</label><input type="number" id="impressionsEng" value="200000" oninput="calc()" placeholder="如 200000">
 
     <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__marketing_engagement_rateExport()">导出明细 CSV</button></div>
@@ -203,6 +204,7 @@
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>互动率分母用粉丝还是曝光？</dt><dd>粉丝基数看铁粉粘性，曝光基数看内容破圈力，两个都看更全面。</dd>
+<dt>互动率要不要算收藏？</dt><dd>本工具按「点赞+评论+分享+收藏」计；部分平台后台只给赞评转，需自行补收藏数，否则互动率会偏低。</dd>
 <dt>互动率高但没转化？</dt><dd>互动≠购买，种草内容互动高但挂车转化低，需看进店/成交漏斗下一环。</dd>
 </dl>
 </div>
@@ -220,21 +222,34 @@
 </div>
 <script>
 function calc(){
-  const followers = parseFloat(document.getElementById('followers').value);
-  const likes = parseFloat(document.getElementById('likes').value) || 0;
-  const comments = parseFloat(document.getElementById('comments').value) || 0;
-  const shares = parseFloat(document.getElementById('shares').value) || 0;
-  const impressions = parseFloat(document.getElementById('impressionsEng').value) || 0;
+  const followersRaw = document.getElementById('followers').value.trim();
+  const followers = Number(followersRaw);
+  function num(id){const raw=document.getElementById(id).value.trim();return raw===''?null:Number(raw);}
+  const likes = num('likes');
+  const comments = num('comments');
+  const shares = num('shares');
+  const saves = num('saves');
+  const impressionsRaw = document.getElementById('impressionsEng').value.trim();
+  const impressions = impressionsRaw===''?0:Number(impressionsRaw);
   const r = document.getElementById('result');
-  const totalEng = likes + comments + shares;
-  if(isNaN(followers)||followers<=0){
+  if(followersRaw===''||!isFinite(followers)||followers<=0){
     r.innerHTML='<p>请输入有效粉丝数</p>';
     return;
   }
-  if(likes<0||comments<0||shares<0||impressions<0){
-    r.innerHTML='<p style="color:var(--danger);">点赞、评论、分享与曝光量不能为负数，请核对输入。</p>';
+  const missing=[];
+  if(likes===null) missing.push('点赞');
+  if(comments===null) missing.push('评论');
+  if(shares===null) missing.push('分享');
+  if(saves===null) missing.push('收藏');
+  if(missing.length){
+    r.innerHTML='<p style="color:var(--danger);">请填写'+missing.join('、')+'数（确无互动请填 0，留空不等于 0）。</p>';
     return;
   }
+  if(!isFinite(likes)||!isFinite(comments)||!isFinite(shares)||!isFinite(saves)||!isFinite(impressions)||likes<0||comments<0||shares<0||saves<0||impressions<0){
+    r.innerHTML='<p style="color:var(--danger);">点赞、评论、分享、收藏与曝光量须为非负数，请核对输入。</p>';
+    return;
+  }
+  const totalEng = likes + comments + shares + saves;
   const engRateFollower = (totalEng/followers)*100;
   let extra = '';
   if(impressions > 0){
@@ -245,8 +260,8 @@ function calc(){
     <p>总互动数：${ToolBox.formatNumber(totalEng, 0)}</p>
     <p><strong>互动率（按粉丝）：${engRateFollower.toFixed(2)}%</strong></p>
     ${extra}
-    <p>点赞：${likes} / 评论：${comments} / 分享：${shares}</p>
-    <p style="margin-top:8px;font-size:12px;color:var(--text-muted);">互动率 = (点赞+评论+分享) / 粉丝数 × 100%</p>
+    <p>点赞：${likes} / 评论：${comments} / 分享：${shares} / 收藏：${saves}</p>
+    <p style="margin-top:8px;font-size:12px;color:var(--text-muted);">互动率 = (点赞+评论+分享+收藏) / 粉丝数 × 100%</p>
     <p style="margin-top:4px;font-size:12px;color:var(--text-muted);">分母口径：按粉丝用粉丝数，按展示用曝光量</p>
   `;r.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 
@@ -381,10 +396,10 @@ function __marketing_engagement_rateExport(){
 }
 function __marketing_engagement_ratePresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#marketing_engagement_ratePresets',[{label:'默认参数',labelEn:'Default',values:{followers:'50000', likes:'1200', comments:'180', shares:'120', impressionsEng:'200000'}},
-  {"label":"5万粉 常规互动","labelEn":"50k followers, normal engagement","values":{"followers":50000,"likes":1200,"comments":180,"shares":120,"impressionsEng":200000}},
-  {"label":"小微网红 高互动","labelEn":"Micro influencer high engagement","values":{"followers":8000,"likes":640,"comments":95,"shares":60,"impressionsEng":30000}},
-  {"label":"百万大号 低互动","labelEn":"1M account low engagement","values":{"followers":1200000,"likes":8000,"comments":300,"shares":500,"impressionsEng":3000000}}],function(){ calc(); });
+    TBKit.preset.bar('#marketing_engagement_ratePresets',[{label:'默认参数',labelEn:'Default',values:{followers:'50000', likes:'1200', comments:'180', shares:'120', saves:'60', impressionsEng:'200000'}},
+  {"label":"5万粉 常规互动","labelEn":"50k followers, normal engagement","values":{"followers":50000,"likes":1200,"comments":180,"shares":120,"saves":60,"impressionsEng":200000}},
+  {"label":"小微网红 高互动","labelEn":"Micro influencer high engagement","values":{"followers":8000,"likes":640,"comments":95,"shares":60,"saves":40,"impressionsEng":30000}},
+  {"label":"百万大号 低互动","labelEn":"1M account low engagement","values":{"followers":1200000,"likes":8000,"comments":300,"shares":500,"saves":300,"impressionsEng":3000000}}],function(){ calc(); });
 }
 var __marketing_engagement_rate_f0=(typeof calc==='function')?calc:null;
 if(__marketing_engagement_rate_f0){
