@@ -13993,6 +13993,20 @@ const CASES = [
     expect: ["BMCOPY OK"],
     ref: "IT-N455 真实链路：捕获 copyText 参数，断言复制代码写入所选负载 array 的排序循环、时长 5000ms 与类型注释；旧 copyCode 写死 1000ms 与空循环体 ⇒ BAD。探针串只在注入 array + 5000 时出现 ⇒ 零逃生。",
   },
+  {
+    slug: "it/standard-deviation",
+    inputs: { data: '1, 12abc, 3', dtype: 'population' },
+    clicks: ["calculate()"],
+    expect: ["非法数据（不再静默丢弃）：12abc"],
+    ref: "IT-N433 严格解析：旧实现 parseFloat('12abc')=12 静默截断并照常出 σ；新实现整串校验失败，结果区明确列出非法 token 12abc 并早退。期望串含注入的非法 token ⇒ 依赖输入；默认样例全合法 ⇒ 零逃生。",
+  },
+  {
+    slug: "it/text-similarity",
+    inputs: {},
+    clicks: ["var __t=[];var __o=ToolBox.showToast;ToolBox.showToast=function(s){__t.push(String(s));};var A='';for(var i=0;i<1100;i++)A+='a';document.getElementById('textA').value=A;document.getElementById('textB').value=A;calculate();ToolBox.showToast=__o;document.getElementById('__tbProbe').textContent='SIMLIMIT '+__t.join('|');"],
+    expect: ["SIMLIMIT 文本过长"],
+    ref: "IT-N366 超长保护：注入两段 1100 字符（1.21M 格 > 100 万上限），修复后隐藏旧结果并给出「文本过长」提示；旧实现会直接构建全矩阵且无提示 ⇒ 探针为空。提示串只在注入超长文本时出现 ⇒ 零逃生。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
