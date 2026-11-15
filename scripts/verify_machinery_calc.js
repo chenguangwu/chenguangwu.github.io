@@ -554,7 +554,9 @@ const CASES = [
   },
   { slug: "machinery/detector-194", inputs: { v3: "" }, expect: ["请填写使用年限（年）后再生成维修方案。"], ref: "空态守卫（2026-11-05）：清空使用年限（本页唯一可为空的计算字段）后不再渲染「使用年限：0年」+「建议方案：维修修复」整套结论，只给填写提示。⚠ 判空用原始空串而非数值 0——「0 年」（新装设备）是合法输入，仍照常计算。默认 v3=5 ⇒ 提示串不出现。" },
   { slug: "machinery/detector-194", inputs: { v1: "2", v3: "10" }, expect: ["设备：电机", "使用年限：10年", "建议方案：更换设备"], ref: "注入 电机 + 10 年：设备名改「电机」、年限回显 10、years>8 ⇒「建议方案：更换设备」（默认 泵类/5 年 ⇒ 维修修复，三条均不命中 ⇒ 与空态提示互斥）。" },
-  { slug: "machinery/lifespan-18", inputs: { vNoise: "30", vLimit: "50", vSpeed: "1500", vLoad: "300" }, clicks: ["document.getElementById('vLube').value='mist';calc();"], expect: ["1.50k"], ref: "深解第二算例对齐（663）：载荷因子 (300/500)^0.3 = 0.858，rate = 0.0008×√1500×0.858×1×0.5 = 0.013291 dB/h，寿命 20/0.013291 = 1504.8 h ⇒ 显示 1.50k（默认 500N/脂润滑 ⇒ 645.5，不含该串）" }
+  { slug: "machinery/lifespan-18", inputs: { vNoise: "30", vLimit: "50", vSpeed: "1500", vLoad: "300" }, clicks: ["document.getElementById('vLube').value='mist';calc();"], expect: ["1.50k"], ref: "深解第二算例对齐（663）：载荷因子 (300/500)^0.3 = 0.858，rate = 0.0008×√1500×0.858×1×0.5 = 0.013291 dB/h，寿命 20/0.013291 = 1504.8 h ⇒ 显示 1.50k（默认 500N/脂润滑 ⇒ 645.5，不含该串）" },
+  { slug: "machinery/pressure-4", inputs: { v_z: "30", v_m: "2", v_a: "30" }, expect: ["63.000 内花键大径"], ref: "内花键大径标签（664）：平齿根 DII = m(z+1.5) = 2×31.5 = 63.000 应标「内花键大径」，交换前此处显示「内花键小径」（默认 z=24 ⇒ 51.000，不含 63.000）" },
+  { slug: "machinery/pressure-4", inputs: { v_z: "30", v_m: "2", v_a: "30" }, expect: ["58.000 内花键小径"], ref: "内花键小径标签（664）：平齿根 DIE2 = m(z−1) = 2×29 = 58.000 应标「内花键小径」，交换前此处显示「内花键大径」（默认 z=24 ⇒ 46.000，不含 58.000）" }
 ];
 
 async function main() {
