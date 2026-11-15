@@ -1,5 +1,7 @@
 # 商业综合/创业 · tools/{biz,startup}（75 页）
 
+## 2026-11-03 审计补充
+
 ### 留存优化：采购比较考虑附加费用（低，建议）
 - 证据：同页 `:106,116-139,287-305` 文案提及运费及多件促销，但实际输入为两商品数量、单位和价格。
 - 影响：同页；方案：按商品加入选填运费、促销总件数，展示标准单位单价和每次采购节省额，支持复制结果。
@@ -100,6 +102,8 @@
 ### 续查覆盖（K 批）
 - 本轮实读 8 页：`tools/biz/analysis-47.html`、`tools/biz/analysis-manager.html`、`tools/biz/stats-time-response.html`、`tools/biz/assessor-49.html`、`tools/biz/assessor-risk-8.html`、`tools/project/analysis-28.html`、`tools/project/assessor-risk-9.html`、`tools/project/checker-training-hr-1.html`；新增 16 条（高 2 / 中 9 / 低 5）。
 - 未覆盖：`tools/biz` 其余文本/命名类页面、`tools/startup/index.html` 分类页；另顺带阅读 `tools/project/checker-12.html`（仅「合格/一般」命名与深度解析薄弱项映射等低优文案不一致，未单列）。
+
+## T 批 商业文本工具覆盖（2026-11-04）
 
 ### BS-N37 文本分割：按字符数用 UTF-16 长度与 `substr`，emoji 被劈成孤立代理项（中，确认缺陷）
 - 问题：`text.length` / `substr` 按码元计数，补充平面字符（emoji、生僻字、部分符号）占 2 个码元，切点落在代理对中间。
@@ -319,6 +323,8 @@
 - **本批合计 16 条：高 5（BS-N65、BS-N66、BS-N68、BS-N71、BS-N77）/ 中 11。假工具 1 个（`text-to-banner`，核心图片横幅承诺未实现）。**
 - 说明：本轮为**只读**审计，结论来自逐行阅读源码 + `node` 在 `/tmp` 复刻核心函数实算（脚本 `/tmp/v_biz_text.js`、`/tmp/c39cmp2.js`、`/tmp/bccmp.js`）；条码另用 `/tmp/pylibs` 的 `python-barcode` 参考实现比对 EAN/UPC/Code39 码表；**未开浏览器**、**未运行 `_build.py` / `run_gates.py`**、**未做线上验证**，除本文件外未修改任何文件。
 
+## V 批 · 商业文本 B（2026-11-04）
+
 ### BS-N85 随机分组：FAQ 承诺「记住种子即可复现」，页面无种子功能（中，承诺未实现）
 - 页面：`tools/biz/team-roster-generator.html`
 - 问题：FAQ 写「如需可复现，记住种子或导出结果即可」，但页面无种子输入/输出，洗牌直接 `Math.random()`；同页公式说明又自述「未设种子，因此同一名单每次结果不同且不可复现」，同页自相矛盾。
@@ -345,6 +351,8 @@
 
 - **本批合计 8 条：高 1（BS-N88）/ 中 7。假工具 0 个。**
 - 说明：本轮为**只读**审计，逐行读源码 + `node` 在 `/tmp` 复刻核心函数实算（脚本 `/tmp/v_biz_textb.js`、`/tmp/v_biz_case.js`、`/tmp/v_biz_lines.js`、`/tmp/v_biz_freq.js`）；**未开浏览器**、**未运行 `_build.py` / `run_gates.py`**、**未做线上验证**，除本文件外未修改任何仓库文件。
+
+## W 批 · 商业文本 C（2026-11-04）
 
 ### BS-N92 简繁转换：常用字大面积未转换，且无词级词典（高，确认缺陷）
 - 页面：`tools/biz/simplified-traditional.html`

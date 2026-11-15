@@ -34,8 +34,12 @@
 
 > 仅阅读当前源码，未运行页面或浏览器；历史条目是当时的证据，以下说明当前关键代码变化，不代表完整回归通过。
 
+## 2026-11-03 第一轮抽样补充
+
 ### 覆盖
 - 本次抽查上述 2 页，原函数内存 DOM 桩，未实测浏览器、线上和其余营销销售页面。
+
+## 2026-11-03 续查（并行批 F）
 
 ### 留存优化
 - `tools/sales/stacked-discount.html`：折扣层支持拖动排序（当前只能删后重加才能换顺序），并在结果区并列展示「先折后减 / 先减后折」两种顺序的成交价差，正好呼应页面已写「顺序不同结果不同」的示例。
@@ -55,6 +59,8 @@
 - `tools/marketing/marketing-break-even-roas.html`
 - `tools/marketing/marketing-ltv-cac-ratio.html`
 - 本次仅做源码阅读与 node 内存复算（按页面 `calc()` 表达式重写同名函数取输出），未做浏览器、英文态、移动端、门禁或线上验证；`marketing-ltv-cac-ratio` 的 36 个月寿命属产品假设，标注为待验证。
+
+## 2026-11-03 续查（并行批 J）
 
 ### 留存优化
 - `tools/marketing/marketing-cpa-calculator.html`：把「CPA / CPC / CVR」画成同一漏斗的三段（花费 → 点击 → 新客），让 200% 这类异常在图形上直接暴露。
@@ -110,6 +116,8 @@
 - Ads 页：① 补“按目标转化量反推预算/点击”模式（兑现 meta）；② 输出 CPA 与盈亏平衡 ROAS（客单价×毛利率），并标“ROAS 低于该值即亏损”；③ 预设改为“行业 CPC × 转化率”组合并持久化到 localStorage。
 
 - 本轮实读 3 页：`tools/marketing/marketing-ctr-calculator.html`、`tools/marketing/marketing-ltv-calculator.html`、`tools/marketing/marketing-google-ads-budget.html`；新增 8 条（高 2/中 5/低 1）；未覆盖：本轮未读 `tools/marketing` 其余页面及 `tools/sales` 全部页面；MS-N14 与既有 MS-N3（CPM 页）/MS-N9（CPC 页）同属“点击超展示”族但页面不同，MS-N16/MS-N17 与 MS-J3（CAC 页 36 个月回本假设）同属“生命周期写死”族但页面不同，MS-N19 为“全字段无界”新族，MS-N19/MS-N20 与 MS-M5/MS-M6（`marketing-ad-budget-allocator.html`）页面不同，均无重号。
+
+## 2026-11-04 续查（并行批 Q）
 
 > 2026-11-06 静态复核：感叹号已匹配中英文（`tools/marketing/email-subject-line-tester.html:560-564`），且预览正文现参与垃圾词得分（`:537-554`），旧 85 分复算不再适用；示例一致性需用当前默认正文重新核验。
 - 问题：深度解析把「【限时】点击领取你的专属优惠券！！！」当作“过长、3 个感叹号、含「领取/免费」类触发词”的低分案例，但该串实际长度 18（未过长）、用的是全角“！”（不触发扣分）、词表里没有“领取”且标题根本没有“免费”，评分器给它 85 分，落在“优秀 👍”档（≥80）。深层原因是全角感叹号不触发扣分、垃圾词扣分被正面词加分抵消。

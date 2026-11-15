@@ -4,6 +4,8 @@
 - `tools/psychology/attachment-style-test.html:501-508,699-706,743-786`：结果展示后修改答案仅更新进度，原结果仍显示；复制和导出则按修改后的答案重新计算，可能与画面不一致。应修改答案时隐藏旧结果或重算。
 - `tools/psychology/holland-career-test.html:692-699,943-957,963-1005`：同样修改答案后旧画面不刷新，而复制/导出按当前状态重算；分数并列时 `:728-731` 按固定类型顺序排序，仍把前三名表述为主导型，需标明并列与不确定性。心理测验解释和阈值需专业复核。
 
+## 已知问题
+
 ### M1. 条目结构重建项（G01-B 系列，需裁断后开发）
 - gags-acne 7→6 分区、rater-21 TWSTRS 题量、psqi 成分 5 缺 2 项。
 ### M2. 阈值口径待裁断（G01-A8）
@@ -136,6 +138,8 @@
     `vaccine-schedule` 依赖「今天」推算月龄，按铁律④ 排除不铺。
   - 「维度雷达图推广」「量表对照模块」未开发。
 
+## 2026-11-03 第一轮抽样补充
+
 ### 恢复答案后仍显示旧结果（高，确认）
 - `tools/psychiatry/phq15-somatization.html:254-266,282-283,348-355` 历史回调恢复答案后仅 `render()`，不计算结果。原函数内存桩执行先算全 0 再恢复全 2，答案已更新但仍显示 0/30（原公式求和为 30）。未做真实浏览器交互验证。
 - 方案：恢复后统一重算结果，未完成时清除结果及导出状态；记录为本机保存并给共享设备提供明确清除入口。
@@ -148,6 +152,8 @@
 - `tools/psychiatry/bis11-impulse.html:300-321` 英文导出翻译表头、选项和汇总，逐题却直接使用中文 `QS`。
 - 方案：使用经过核准的英文题目；若无可靠译文则明确标识原语言，勿杜撰标准量表译本。英文导出行为待真实浏览器复验。
 - 覆盖：仅抽查上述量表 2 页，其余未逐页覆盖；未核验量表标准与医学阈值，未运行门禁。
+
+## 2026-11-03 续查：精神健康量表
 
 ### M-N1 PCL-5 症状群判定口径与门诊记录不一致（高，确认源码缺陷）
 - 证据：`tools/psychiatry/pcl5-ptsd.html:294-298,317,356-360,452-455` 症状群计数按条目 `>0`，门诊记录阳性条目按 `≥2`。第 1、6、8、9、15、16 题各选 1，其余选 0，结果 6/80 却显示「DSM-5 症状群筛查：符合」，门诊记录无阳性条目。美国退伍军人事务部 [PCL-5 计分说明](https://www.ptsd.va.gov/professional/assessment/adult-sr/ptsd-checklist.asp) 的暂定症状群方法采用至少 2 分；量表版本和临床适用性仍需专业审核。
@@ -221,6 +227,8 @@
 - 新查 8 页：`tools/psychiatry/gad7-anxiety.html`、`tools/psychiatry/isi-insomnia.html`、`tools/psychiatry/eat26-eating.html`、`tools/psychiatry/ybocs-ocd.html`、`tools/psychiatry/cssrs-suicide.html`、`tools/psychology/sas-assessment.html`、`tools/neurology/dhi.html`、`tools/rehabilitation/berg-balance-scale.html`。
 - 新增 17 条（M-N9–M-N25），其中高优 4 条（M-N9、M-N11、M-N13、M-N17）；与 M-N1–M-N8 页面无重复。
 - 证据口径：逐页读源码 + `node -e` 按原数组/原表达式内存复算；未做真实浏览器交互、`?lang=en-US` 实机、移动端、线上或门禁验证，也未核验各量表标准阈值与授权译本。
+
+## 2026-11-04 T 批 psychiatry（rater/CD-RISC/CAGE/LSAS/PHQ-9/C-SSRS/PANSS）
 
 ### M-N29 lsas-social 参考标尺 ≥91 段误标「无/轻度」绿色（高，确认源码缺陷）
 - 问题：结果标尺最后一段为 `{"lo":91,"hi":null,"label":"无/轻度","color":"#10B981"}`，而同一页的结果分级 ≥91 是「极重度」（红色）。

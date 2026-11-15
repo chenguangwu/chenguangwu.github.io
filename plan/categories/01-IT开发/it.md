@@ -8,6 +8,8 @@
 
 - `tools/text/calc-1.html`：任一文本改动都同步建立行数乘积大小的 LCS 矩阵并完整重算，大文本可能占用大量内存或阻塞界面（性能优化，需裁断行列上限与降级策略；未运行压力测试）。注：NaN/Infinity 守卫误伤子问题已于第294批修复销账。
 
+## 2026-11-06 IT 工具静态续审
+
 ### CSS 单位基准被忽略且空值静默替换（中，代码确认）
 - `tools/it/calc-4.html:129-134,227-240,266-274,379-381`：基准字号为空或为 0 时 `|| 16` 静默当成 16；负数虽被主结果拒绝，复制函数却只检查目标 px，仍能复制负基准计算值。`rem` 恒用 16 除，而预设明确标注「18px根」：基准与目标均 18 时给出 1.125rem，不符合该预设的根字号语义。应区分根字号与父字号，校验并统一复制与显示。
 
@@ -37,6 +39,8 @@
 - IT-N170–N173 第217批销账（`calc-3`）、IT-N174–N177 第218批（`matrix-transpose`）、IT-N178–N180 第219批（`http-cookies` 与 4 个 HTTP 页过期示例）、IT-N181–N184 第220批（`text-to-ascii`）、IT-N185–N190 第221批（`shell-script-formatter`）、IT-N191–N195 第222批（`unit-converter-advanced`）、IT-N196–N198 第223批（`html-entities-encode`）、IT-N199–N201 第224批（`json-to-toml`）、IT-N202–N206 第225批（`plist-parser` 与 `char-encoder`）、IT-N207–N211 第226批（`char-encoder` 实体补全与 `basic-auth-generator` 冒号/charset）、IT-N212–N216 第227批（`nanoid-generator` 与 `markdown-table-generator`）、IT-N217–N221 第228批（`markdown-table-generator` CSV 解析与 `wifi-qr-generator` 改名），详见下方覆盖行；IT-N222–N226 第229批（`phone-screen-sizes` 页签默认态/DPR 列/描述去重、`rabbit` RFC 4503 全量对齐与 32 hex 密钥语义）；IT-N227 与 IT-N230–N232 第230批（`rabbit` 严格 IV/解密格式、`sms-qr` 真实 QR 补证据与号码校验/NaN 守卫移除）；IT-N228/N229 与 IT-N233–N235 第231批（MySQL 8.0 语法纠偏、hypothesis-test 单尾效能与远尾 p 精度），详见移交档。
 - 同批另阅读 `ascii-table`、`box-shadow-generator`、`calc-1`、`calc-10` 的主要交互路径；未对其完整正确性或浏览器行为作通过判定。
 
+## 已知问题
+
 ### I1. hash/编码类页深度参差
 - ⚠ 核实（2026-10-26）：pbkdf2 已完整参数化（迭代/盐/密钥长度/格式）、bcrypt 已有 rounds 成本因子——「参数化」部分条目过时。
 
@@ -59,8 +63,12 @@
 ### 覆盖
 - 本轮人工查看 `tools/it/toml-formatter.html`、`tools/it/ast-viewer.html`、`tools/it/jwt-parser.html` 共 3 页，TOML 执行原函数取证；未逐页审计其余 IT 页面，未做真实浏览器测试或重跑门禁。
 
+## 2026-11-03 续查：文本与配置工具
+
 ### 续查覆盖
 - 新抽查 `tools/it/env-generator.html`、`tools/it/json-to-csv.html`、`tools/it/number-base-converter.html`、`tools/it/text-replace.html`、`tools/it/nginx-config-generator.html` 共 5 页，新增 7 条问题（历史计数）；未做浏览器、部署或门禁验证。历史回填的实际交互需真机复核。
+
+## 2026-11-03 续查（并行批 G）
 
 ### 留存优化
 - `tools/it/list-converter.html:262`：裸 CR 切分已支持（第260批补真机证据）；`map(trim).filter(Boolean)` 仍静默丢弃空项与行首/行尾缩进，需补「保留空项/缩进」开关。
@@ -74,6 +82,8 @@
 ### 续查覆盖
 - 本轮人工查看 `tools/it/properties-parser.html`、`url-parser.html`、`csv-validator.html`、`curl-parser.html`、`text-truncate.html`、`slugify.html`、`case-converter.html` 共 7 页，新增 8 条（高 3、中 4、低 1），编号续 IT-N10～N17，与既有 IT-N1～N9 无重复。
 - 取证方式仅为源码静态阅读 + Node 内存提取原函数/最小 DOM 桩执行复算；未做真实浏览器交互、英文态、移动端、门禁或部署验证。
+
+## 2026-11-03 续查（并行批 J）
 
 ### 留存优化
 - `tools/it/text-cleaner.html`：空输入残留问题已于第296批修复销账（清空结果与统计）。
@@ -342,6 +352,8 @@
 - `jwt-debugger`：IT-N349（高）。
 - 方法声明：以上结论仅基于源码通读 + `node` 复刻页面原函数实算（json-repair / hash-identifier / yaml-to-xml / toml-to-yaml / csv-to-yaml / json-to-xml 的判定均给出「输入 → 实际 / 期望」），未开浏览器、未跑 `_build.py`/`run_gates.py`、未做线上验证；未修改任何工具页或构建产物。
 
+## T 批 IT 第 4 轮覆盖（2026-11-04）
+
 ### IT-N366 长文本比较在每次按键都重建两张全尺寸 DP 矩阵，8000 字符即约 1.6GB（高，确认缺陷）
 - 问题：`autoCalc()` 绑定在 `oninput`，每次输入都跑 `levenshtein()` 与 `computeDiff()`，两者各自分配 `(m+1)×(n+1)` 的二维数组，且 `levResult.matrix` 在 `computeDiff` 建表期间仍被持有。输入框无 `maxlength`、代码也无长度上限。
 - 证据：`tools/it/text-similarity.html:189`、`:194`（`oninput="autoCalc()"`）、`:430-431`、`:497-517`（Levenshtein 全矩阵）、`:556-568`（LCS 全矩阵）、`:656`、`:725`
@@ -352,6 +364,8 @@
 ### 覆盖清单（T 批 IT 第 4 轮）
 - `text-similarity`：IT-N366（高）。
 - 方法声明：本轮仅基于上述 8 页源码通读 + `node` 在 `/tmp` 复刻页面原函数实算（每条均给出「输入 → 实际 / 期望」），**未开浏览器、未跑 `_build.py`/`run_gates.py`、未做线上验证**；未修改任何工具页、代码或构建产物，仅在审计日志追加本节。
+
+## U 批 · IT 查询/编码表（2026-11-04）
 
 ### IT-N423 国家代码表仅 62 条，冰岛/卢森堡/柬埔寨等常见国家查不到（中，确认缺陷）
 - 页面：`tools/it/country-code-lookup.html`
@@ -364,6 +378,8 @@
 ### 覆盖清单（U 批 IT 查询/编码表）
 - `country-code-lookup`：IT-N423（中）；无高优缺陷（已收录条目的字段本身正确）。
 - 方法声明：本轮仅通读上述 10 页源码 + `node` 在 `/tmp` 复刻页面原函数实算（每条均给出「输入 → 实际 / 期望」），**未开浏览器、未跑 `_build.py`/`run_gates.py`、未做线上验证**；未修改任何工具页、代码或构建产物，仅在审计日志追加本节。
+
+## V 批 · IT 生成/校验/计算（2026-11-04）
 
 ### IT-N431 CSS 压缩在引号字符串内照常删空白与 `: ; , > }`，合法 CSS 被静默改义（高，确认缺陷）
 - 页面：`tools/it/css-minify.html`
@@ -400,6 +416,8 @@
 - `caa-record-generator`：IT-N434 已于第316批修复销账；无高优缺陷（CAA 记录语法、flag 128 关键位、iodef mailto 形式正确）。
 - `captcha-generator`：IT-N435 已于第316批修复销账；无高优缺陷（四种类型出题、数学答案校验、大小写归一逻辑正确）。
 - 方法声明：本轮逐页通读上述 8 页源码，用 `node` 在 `/tmp` 复刻页面原函数实算（`minify`、`parseData/calculate`、`PROPERTIES` 去重）并给出「输入 → 实际 / 期望」；**未开浏览器、未跑 `_build.py`/`run_gates.py`、未做线上验证**；未修改任何工具页、代码或构建产物，仅在审计日志追加本节。IT-N430 的引号未转义依据 HTML 文本节点序列化规则判定（`& < >` 转义、引号不转义），未做真机粘贴验证；两处 `</div`（缺 `>`，`meta-tags-generator.html:124`、`css-minify.html:127`）会吞掉紧随的 `<div class="toolbar">` 开标签，属结构/布局问题，未计入本批条目。
+
+## V 批 · IT 编辑器/安全/编码（2026-11-04）
 
 ### IT-N437 源码应用与 HTML 导入直接写 `innerHTML`，事件属性在页面源执行（高，安全缺陷）
 - 页面：`tools/it/rich-text-editor.html`
@@ -529,8 +547,12 @@
 - `benchmark-builder`：IT-N454、IT-N455（中）；无高优缺陷（五种负载的循环体与吞吐公式本身可算，评级阈值仅为经验值）。
 - 方法声明：本轮逐页通读上述 8 页源码，用 `node` 在 `/tmp` 复刻页面原函数实算（`calcTool` 行数统计、`enc/dec`、`prettyHtml`、emoji 数组去重、`split('')` 反转）并给出「输入 → 实际 / 期望」；**未开浏览器、未跑 `_build.py`/`run_gates.py`、未做线上验证**；未修改任何工具页、代码或构建产物，仅在审计日志追加本节。IT-N437 的事件属性执行、IT-N451 的沙箱逃逸依据 HTML 规范（`innerHTML` 插入的 `onerror` 会触发；`allow-scripts` + `allow-same-origin` 不提供来源隔离）判定，未做真机复现。
 
+## W 批 · IT URL/签名/安全（2026-11-04）
+
 ### 覆盖清单（W 批 IT URL/签名/安全）
 - 方法声明：本轮逐页通读上述 8 页源码，用 `node` 在 `/tmp` 复刻页面原函数（`renderQR`、`minify`、`rc4`、`parseParams`、`md5Hex`）并给出「输入 → 实际 / 期望」；MD5 对照用 `crypto.createHash('md5')`，QR 不可扫码依据"无数据位/格式信息/纠错码字"的算法结构判定；`esc()` 不转义双引号、`innerHTML` 属性注入按 HTML 序列化规则判定（文本节点只转义 `&<>`），未开真机浏览器复现 XSS。**未开浏览器、未跑 `_build.py`/`run_gates.py`、未做线上验证**；未修改任何工具页、代码或构建产物，仅在本审计日志追加本节。
+
+## W 批 · IT 计算/文本（2026-11-04）
 
 ### 覆盖清单（W 批 IT 计算/文本）
 - `matrix-determinant`：无高优/中优缺陷（`detRec` 与 BigInt Bareiss 精确值对照 100 组随机 2–5 阶全对；5×5 整数矩阵得 −4656 一致；Sarrus 正负号与 2×2/3×3 公式均正确）。
@@ -552,6 +574,8 @@
 - `postgresql-cheatsheet`：无高优/中优（`--` 在 SQL/psql 中是合法注释；`psql` 元命令、DML/DDL、JSONB、`pg_dump -Fc` 与 `pg_restore -j` 组合均与官方文档一致——`-j` 明确支持 custom 与 directory 两种格式）。
 - 安全：本批 8 页未发现可利用的安全问题（唯一 HTML 拼接点是 `git-commands` 的静态 `COMMANDS` 与搜索文本匹配，不写入 `innerHTML`；`typing-test` 历史渲染的 localStorage 内容仅在同源自污染范围内，不计）。
 - 方法声明：逐页通读 8 页源码；在 `/tmp` 用 `node` 抽取 `git-commands` 的 `COMMANDS` 并对 58 条内联 `onclick` 逐一 `new Function` 编译、用 `python3 html.parser` 验证属性换行保留；用 `node` 复刻 `convert-11` 的 `calc()`/`toBin32()` 逐输入实跑；用 `clang++ -std=c++20 -fsyntax-only` 编译重载示例；用 `ruby`/`ruby -c` 实跑 `--` 注解示例；用真实 `git update-ref` + `git switch` 复现远程分支错误。**未开浏览器、未跑 `_build.py`/`run_gates.py`、未做线上验证**；未修改任何工具页、代码或构建产物，仅在本审计日志追加本节。
+
+## X 批 · IT 速查/编码 II（2026-11-04）
 
 ### 覆盖清单（X 批 IT 速查/编码 II）
 - `json-path`：IT-N488（高，安全）、IT-N489（高，死循环）、IT-N490（高，安全）；无其它高优（预设、递归/通配符/`length()` 主路径正确）。
@@ -803,6 +827,8 @@
 - 安全：无 `eval`/`new Function`/`allow-same-origin`；用户文本输出均走 `textContent` / `ToolBox.escHtml`。`xml-validator` 不解析外部实体（XXE 安全），`yaml-validator` 不落盘。模板级 `lf1-cdn-tos.bytegoofy.com/ttzz` 第三方脚本本批 6 页均存在（如 `json-formatter:182`、`markdown-lint:71`），属全站通用问题、已登记，不重复计数。
 - 方法：`/tmp` 用与页面同版本 `js-yaml@4.1.0` 复算多键/多文档/锚点/日期键/`!!binary`；jsdom `DOMParser` 复算 XML（CDATA/转义/200 层/`parsererror` 根/实体）；Node 原样提取 LCS+回溯与正则跑规模与误报用例；Python `csv.reader` 回读 CSV 校验引号内逗号/换行；未开浏览器、未跑 `_build.py`/门禁、未执行 git、未修改 `tools/**`、js/css/json 或构建产物。
 
+## AC 批 · 正则族（2026-11-04）
+
 ### 族矩阵
 
 | 页面 | 实现方式 | 可逆或可验证 | 结论 |
@@ -838,6 +864,8 @@
 - 新增 **4** 条（高 **2** / 中 **2** / 假 **0** / 安全 **0**）；编号 IT-D27–IT-D30。
 - 复核既有：IT-N253（base64 `+` 被 URLSearchParams 解成空格）、IT-N254（替换/复制恒补 `g`）仍成立；IT-N252 的超时部分已失效（`:492-521` Worker + 800ms），「每次按键跑两遍」仍成立（`#flags` 内联 oninput 与 `:465` 双绑）。
 - 复算方式：`/tmp` node 同构造跑默认用例与 `\A`/`[:alpha:]` 语义，`new RegExp` 校验；未开浏览器、未跑 `_build.py`/门禁、未改仓库文件。
+
+## AC 批 · PDF/文件解析族（2026-11-04）
 
 ### 族矩阵
 
