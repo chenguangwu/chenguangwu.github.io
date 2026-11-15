@@ -262,14 +262,17 @@ function matchFilter(h,f){
   if(f==='below6')return h<6;
   return true;
 }
+function gemMatches(g,q,f){
+  if(q&&g.name.toLowerCase().indexOf(q)<0&&g.en.toLowerCase().indexOf(q)<0)return false;
+  return matchFilter(g.hard,f);
+}
 function renderTable(){
   var q=document.getElementById('search').value.trim().toLowerCase();
   var f=document.getElementById('filter').value;
   var html='<table class="gem-table"><thead><tr><th>宝石名称</th><th>英文名</th><th>莫氏硬度</th><th>等级</th><th>颜色</th><th>比重</th><th>耐久性</th><th>说明</th></tr></thead><tbody>';
   var count=0;
   GEMS.forEach(function(g){
-    if(q&&g.name.toLowerCase().indexOf(q)<0&&g.en.toLowerCase().indexOf(q)<0)return;
-    if(!matchFilter(g.hard,f))return;
+    if(!gemMatches(g,q,f))return;
     count++;
     var hc=hardColor(g.hard);
     var bw=Math.round(g.hard/10*100);
@@ -289,10 +292,17 @@ function renderTable(){
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
 }
 function copyResult(){
+  var q=document.getElementById('search').value.trim().toLowerCase();
+  var f=document.getElementById('filter').value;
   var rows=['宝石\t英文名\t硬度\t等级\t颜色\t比重\t耐久性\t说明'];
   GEMS.forEach(function(g){
-    rows.push([g.name,g.en,g.hard,g.durab,g.color,g.sg,g.durab,g.note].join('\t'));
+    if(!gemMatches(g,q,f))return;
+    rows.push([g.name,g.en,g.hard,hardLabel(g.hard),g.color,g.sg,g.durab,g.note].join('\t'));
   });
+  if(rows.length===1){
+    ToolBox.showToast('当前筛选无匹配宝石，暂无可复制结果', 'warning');
+    return;
+  }
   ToolBox.copyText(rows.join('\n'), i18nText('msg282'));
 }
 renderTable();

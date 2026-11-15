@@ -90,6 +90,33 @@ const CASES = [
 {
   "slug": "baking/fermentation-time",
   "inputs": {
+    "baseTime": "60",
+    "actualTemp": "0",
+    "actualHumidity": "75",
+    "fermType": "yeast"
+  },
+  "expect": [
+    "389.9",
+    "修正系数 ×0.1539"
+  ],
+  "ref": "0℃ 是合法冷藏温度：2^((0−27)/10)=2^(−2.7)=0.1539、60÷0.1539=389.9 分钟。修复前 `!temp` 把 0 当空值直接拒绝。"
+},
+{
+  "slug": "baking/fermentation-time",
+  "inputs": {
+    "baseTime": "60",
+    "actualTemp": "55",
+    "actualHumidity": "75",
+    "fermType": "yeast"
+  },
+  "expect": [
+    "酵母失活"
+  ],
+  "ref": "≥55℃ 参考表明确「酵母死亡」，修复前仍按公式算出约 8.4 分钟；现停止给值并提示降温。"
+},
+{
+  "slug": "baking/fermentation-time",
+  "inputs": {
     "yeastAmount": "30",
     "yeastType": "active"
   },

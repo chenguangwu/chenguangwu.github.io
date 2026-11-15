@@ -40,6 +40,16 @@ const CASES = [
 {
   "slug": "gardening2/watering-frequency",
   "inputs": {
+    "potSize": "0"
+  },
+  "expect": [
+    "请输入大于 0 的盆器口径"
+  ],
+  "ref": "修复前 0/空口径被 `||15` 静默替换为 15 cm，仍输出 0.18 L；现拒绝"
+},
+{
+  "slug": "gardening2/watering-frequency",
+  "inputs": {
     "potSize": "23"
   },
   "expect": [
