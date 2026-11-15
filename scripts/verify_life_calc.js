@@ -106,6 +106,14 @@ const CASES = [
     expect: ["2,850.00"],
     ref: "基础 70×30 = 2100；运动中档 +500；26°C（≥25）+250；特殊 0 → 2850.00 ml",
   },
+  {
+    slug: "life/drinking-water-plan",
+    clicks: [
+      "var h=String(document.getElementById('result').innerHTML);var re=/(\\d+) ml<\\/td>/g,m,s=0;while((m=re.exec(h)))s+=+m[1];var t=h.match(/num\">([\\d,\\.]+) ml/);var tot=t?Number(t[1].replace(/,/g,'')):-1;document.getElementById('__tbProbe').textContent='SUM '+s+' TOT '+tot+' EQ '+((tot>0&&s===tot)?'1':'0');"
+    ],
+    expect: ["EQ 1"],
+    ref: "分段合计须等于每日目标：十个时段比例原为 15/12/12/10/10/12/12/10/7/5（合计 105%），旧实现直接乘目标导致合计 1.05 倍；改为按 slotSum 归一、末段补足余差。探针累加各段 ml 并与目标比对，修复后 EQ 1。默认态无探针串 ⇒ 零逃生。"
+  },
   // ── 罩杯换算（上下围差 → 罩杯索引）────────────────────────────
   {
     slug: "life/bra-size-converter",
