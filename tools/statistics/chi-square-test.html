@@ -113,7 +113,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="观测值与期望值偏离程度。">Enter observed and expected frequencies to compute the chi-square statistic and judge whether the deviation is significant, for goodness-of-fit and independence tests.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">卡方统计量 χ² = Σ (观测值 O − 期望值 E)² ÷ E，求和项数 n = 序列长度（O 与 E 个数必须一致，不一致提示报错；E≤0 提示报错）；自由度 df = n − 1。校验：观测值与期望值为必填项（逗号分隔数值，必填校验壳拦截空值）。判据：χ² 越大观测与期望偏离越显著，可对照自由度 df 的卡方临界值表判断显著性（结果保留 4 位小数）。</div>
+      <div class="formula-eq">卡方统计量 χ² = Σ (观测值 O − 期望值 E)² ÷ E；拟合优度 df = k − 1，列联表（行数 r ≥ 2，k = r × c）df = (r − 1)(c − 1)；上尾概率 p = 1 − P(df/2, χ²/2)，由精确正则化不完全 Gamma 计算而非正态近似。校验：O 与 E 个数一致、逐项须为有限数值（非法项直接报错）、E > 0、O ≥ 0、r 为 ≥1 整数；主算与明细共用同一份校验后的数组。判据：p < 0.05 拒绝原假设；χ² 越大观测与期望偏离越显著（结果保留 4 位小数）。</div>
       <p class="formula-desc">观测值与期望值偏离程度。</p>
     </div>
 
@@ -127,6 +127,14 @@
         <input type="text" inputmode="text" data-list="1" id="e" value="40,40,20" step="1">
       </div>
     </div>
+
+    <div class="input-row">
+      <div>
+        <label data-zh="列联表行数 r（拟合优度填 1）" for="rowsIn">Rows r (use 1 for goodness-of-fit)</label>
+        <input type="number" id="rowsIn" value="1" min="1" step="1">
+      </div>
+    </div>
+    <p data-zh="拟合优度 df = k − 1；2×2 列联表填 r = 2，df = (r − 1)(c − 1)。" style="font-size:12px;color:var(--text-muted);margin-top:6px;">Goodness-of-fit uses df = k − 1; for a 2×2 contingency table set r = 2 so df = (r − 1)(c − 1).</p>
 
     <div id="csPresets"></div>
 
@@ -147,7 +155,7 @@
       <div class="tool-notes-title">📌 计算说明</div>
       <ul>
         <li>χ² = Σ(O−E)²/E。</li>
-        <li>df = 类别数 − 1。</li>
+        <li>df = 类别数 − 1（拟合优度）；列联表 df = (r−1)(c−1)。</li>
       </ul>
     </div>
   </div>
@@ -280,22 +288,91 @@ function __tbInputGuardCore(_ids,_labels){
 
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+var __csData = null;
+var __csRows = [];
+function __csSet(v){ ToolBox.setResult('result', (typeof v==='number' && !isFinite(v)) ? '—' : String(v)); }
+// SMS-4：逐项严格解析，非法 token 直接报错（不再 parseFloat 静默产出 NaN）
+function __csParse(raw, label){
+  var toks=String(raw==null?'':raw).split(/[,\s\n;]+/).map(function(x){return x.trim();}).filter(function(x){return x;});
+  var vals=[];
+  for(var i=0;i<toks.length;i++){
+    var v=Number(toks[i]);
+    if(!isFinite(v)) return {err:label+'第 '+(i+1)+' 项「'+toks[i]+'」不是有效数值'};
+    vals.push(v);
+  }
+  return {vals:vals};
+}
+// 精确正则化不完全 Gamma P(a,x)：χ² 上尾概率 p = 1 − P(df/2, χ²/2)，非 Wilson–Hilferty 近似
+function __csLogGamma(z){
+  var g=7, c=[0.99999999999980993,676.5203681218851,-1259.1392167224028,771.32342877765313,
+              -176.61502916214059,12.507343278686905,-0.13857109526572012,9.9843695780195716e-6,1.5056327351493116e-7];
+  if(z<0.5) return Math.log(Math.PI/Math.sin(Math.PI*z))-__csLogGamma(1-z);
+  z-=1; var a=c[0];
+  for(var i=1;i<g+2;i++) a+=c[i]/(z+i);
+  var t=z+g+0.5;
+  return 0.5*Math.log(2*Math.PI)+(z+0.5)*Math.log(t)-t+Math.log(a);
+}
+function __csGammP(a,x){
+  if(x<=0) return 0;
+  if(x>=a+1){
+    var FPMIN=1e-300, EPS=1e-15, b=x+1-a, c=1/FPMIN, d=1/b, h=d;
+    for(var i=1;i<500;i++){
+      var an=-i*(i-a);
+      b+=2; d=an*d+b; if(Math.abs(d)<FPMIN) d=FPMIN;
+      c=b+an/c; if(Math.abs(c)<FPMIN) c=FPMIN;
+      d=1/d; var del=d*c; h*=del;
+      if(Math.abs(del-1)<EPS) break;
+    }
+    return 1-Math.exp(-x+a*Math.log(x)-__csLogGamma(a))*h;
+  }
+  var ap=a, sum=1/a, dl=sum;
+  for(var n=1;n<500;n++){
+    ap+=1; dl*=x/ap; sum+=dl;
+    if(Math.abs(dl)<Math.abs(sum)*1e-15) break;
+  }
+  return sum*Math.exp(-x+a*Math.log(x)-__csLogGamma(a));
+}
+function __csP(chi,df){
+  if(!(df>=1) || !(chi>=0) || !isFinite(chi)) return null;
+  var p=1-__csGammP(df/2, chi/2);
+  return isFinite(p)?Math.min(1,Math.max(0,p)):null;
+}
 function calcTool(){
-              var __ig=__tbInputGuard(['o', 'e'],["观测值 O（逗号分隔）", "期望值 E（逗号分隔）"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const oa = document.getElementById('o').value.split(',').map(s=>parseFloat(s.trim()));
-            const ea = document.getElementById('e').value.split(',').map(s=>parseFloat(s.trim()));
-            if(oa.length!==ea.length){ToolBox.setResult('result','观测值 O 与期望值 E 的个数必须一致（当前 '+oa.length+' 与 '+ea.length+'）');return;}
-            if(ea.some(function(v){return !(v>0);})) {ToolBox.setResult('result','期望值 E 必须全为正数（E≤0 时卡方无定义）');return;}
-            const n = oa.length;
-            let chi=0;
-            for(let i=0;i<n;i++) chi += Math.pow(oa[i]-ea[i], 2) / ea[i];
-            const __g2=dataGrid([
-                [chi.toFixed(4), '卡方统计量 χ²'],
-                [n - 1, '自由度 df']
-            ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
-        }
+  var __ig=__tbInputGuard(['o', 'e'],["观测值 O（逗号分隔）", "期望值 E（逗号分隔）"]);
+  if(__ig){__csData=null;__csSet(__ig);return;}
+  var op=__csParse(document.getElementById('o').value,'观测值 O：');
+  if(op.err){__csData=null;__csSet('⚠ '+op.err);return;}
+  var ep=__csParse(document.getElementById('e').value,'期望值 E：');
+  if(ep.err){__csData=null;__csSet('⚠ '+ep.err);return;}
+  var oa=op.vals, ea=ep.vals, k=oa.length;
+  if(k!==ea.length){__csData=null;__csSet('观测值 O 与期望值 E 的个数必须一致（当前 '+k+' 与 '+ea.length+'）');return;}
+  if(k===0){__csData=null;__csSet('⚠ 观测值 O 与期望值 E 至少需要 1 组数值');return;}
+  if(oa.some(function(v){return v<0;})){__csData=null;__csSet('⚠ 观测频数不能为负数');return;}
+  if(ea.some(function(v){return !(v>0);})){__csData=null;__csSet('期望值 E 必须全为正数（E≤0 时卡方无定义）');return;}
+  var rEl=document.getElementById('rowsIn');
+  var rr=String(rEl?rEl.value:'1').trim(), r=rr===''?1:Number(rr);
+  if(!Number.isInteger(r)||r<1){__csData=null;__csSet('⚠ 列联表行数 r 须为 ≥1 的整数（拟合优度填 1）');return;}
+  var df, mode;
+  if(r===1){ df=k-1; mode='拟合优度'; }
+  else {
+    if(k%r!==0 || k/r<2){__csData=null;__csSet('⚠ '+k+' 个频数无法按 '+r+' 行 × 每行 ≥2 列 组成列联表');return;}
+    df=(r-1)*(k/r-1); mode='列联表 '+r+'×'+(k/r);
+  }
+  var chi=0;
+  for(var i=0;i<k;i++) chi += Math.pow(oa[i]-ea[i], 2) / ea[i];
+  var p=__csP(chi,df);
+  // 主算与明细共用同一份校验后的数组，杜绝 Math.min 截断 / filter(isFinite) 造成两套结果
+  __csData={oa:oa,ea:ea,chi:chi,df:df,p:p,mode:mode,r:r};
+  __csSet(dataGrid([
+    [chi.toFixed(4), '卡方统计量 χ²'],
+    [df, '自由度 df'],
+    [p==null?'—':p.toFixed(4), '上尾概率 p'],
+    [mode, '检验模式']
+  ]));
+}
 function resetForm(){document.getElementById('o').value = '50,30,20';
       document.getElementById('e').value = '40,40,20';
+      var rEl=document.getElementById('rowsIn'); if(rEl) rEl.value='1';
       calcTool();}
 calcTool();
 
@@ -305,18 +382,17 @@ function __csExport(){
 }
 function __csExtras(){
     if (typeof TBKit === 'undefined') return;
-    var oa=TBKit.util.parseList(document.getElementById('o').value);
-    var ea=TBKit.util.parseList(document.getElementById('e').value);
-    if(oa.length!==ea.length || oa.length<2) return;
-    var n=oa.length;
-    var bad=ea.some?false:true;for(var q=0;q<ea.length;q++){if(!(ea[q]>0)){bad=true;break;}}
-    if(bad) return;
+    var d=__csData;
+    if(!d || !d.oa || !d.oa.length){
+        try{ TBKit.matrix.table('#csTable',{head:[],rows:[]}); }catch(e){}
+        return;
+    }
+    var oa=d.oa, ea=d.ea, n=oa.length, chi=d.chi;
     var en=TBKit.util.isEn();
-    var rows=[], chi=0;
-    for(var i=0;i<n;i++) chi += Math.pow(oa[i]-ea[i],2)/ea[i];
+    var rows=[];
     for(var j=0;j<n;j++){
-        var d=oa[j]-ea[j], c=Math.pow(d,2)/ea[j];
-        rows.push([String(j+1), String(oa[j]), String(ea[j]), d.toFixed(3), c.toFixed(4),
+        var dlt=oa[j]-ea[j], c=Math.pow(dlt,2)/ea[j];
+        rows.push([String(j+1), String(oa[j]), String(ea[j]), dlt.toFixed(3), c.toFixed(4),
                    (chi>0?(c/chi*100).toFixed(1)+'%':'0%')]);
     }
     TBKit.matrix.table('#csTable',{
@@ -324,19 +400,19 @@ function __csExtras(){
                 :['#','观测值 O','期望值 E','O−E','(O−E)²/E','占 χ² 比重'],
         rows: rows
     });
-    window.__csRows = rows;
+    __csRows = rows;
     TBKit.chart.bar('#csChart',{labels:rows.map(function(r,i){return String(i+1);}),series:[{name:en?'Observed':'观测',data:oa.slice(0,n)},{name:en?'Expected':'期望',data:ea.slice(0,n)}],height:240,title:en?'Observed vs Expected':'观测值 vs 期望值'})
-    TBKit.history.record({k:n,chi:Number(chi.toFixed(4))});
+    TBKit.history.record({k:n,chi:Number(chi.toFixed(4)),df:d.df,p:d.p==null?'—':Number(d.p.toFixed(4))});
     TBKit.util.diffBox('#csDiff',['chi']);
     TBKit.history.mount('#csHist',function(v){});
 }
 function __csPresets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#csPresets',[
-        {label:'掷骰子 60 次是否均匀',labelEn:'Dice 60 rolls, fair?',values:{o:'8,9,12,11,10,10',e:'10,10,10,10,10,10'}},
-        {label:'性别 × 偏好（2×2 简化）',labelEn:'Gender × preference (2x2)',values:{o:'50,30,20,40',e:'35,35,35,35'}},
-        {label:'拟合很好（几乎无差异）',labelEn:'Good fit (almost no gap)',values:{o:'20,21,19,20',e:'20,20,20,20'}},
-        {label:'拟合很差（差异大）',labelEn:'Poor fit (big gap)',values:{o:'60,10,10,20',e:'25,25,25,25'}}
+        {label:'掷骰子 60 次是否均匀',labelEn:'Dice 60 rolls, fair?',values:{o:'8,9,12,11,10,10',e:'10,10,10,10,10,10',rowsIn:'1'}},
+        {label:'性别 × 偏好（2×2 简化）',labelEn:'Gender × preference (2x2)',values:{o:'50,30,20,40',e:'35,35,35,35',rowsIn:'2'}},
+        {label:'拟合很好（几乎无差异）',labelEn:'Good fit (almost no gap)',values:{o:'20,21,19,20',e:'20,20,20,20',rowsIn:'1'}},
+        {label:'拟合很差（差异大）',labelEn:'Poor fit (big gap)',values:{o:'60,10,10,20',e:'25,25,25,25',rowsIn:'1'}}
     ],function(){ calcTool(); });
 }
 

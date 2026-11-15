@@ -1092,6 +1092,39 @@ const CASES = [
     ref: "SMS-1：非整数样本量同样使自由度无定义（df=1.5），旧实现照常出 p 值。默认 n=25 不含该提示 ⇒ 强判别。"
   },
 
+  // SMS-4：分模式自由度 + 精确上尾概率 + 主算明细共用数组
+  {
+    slug: "statistics/chi-square-test",
+    inputs: { o: "50,30,20,40", e: "35,35,35,35", rowsIn: "2" },
+    expect: ["1 自由度 df 0.0002 上尾概率 p", "14.2857 卡方统计量 χ²"],
+    ref: "SMS-4：r=2、k=4 ⇒ c=2、df=(2−1)(2−1)=1；χ²=500/35=14.2857，p=1−P(0.5, 7.1429)=0.000157⇒0.0002。旧实现固定 df=n−1=3 且完全不输出 p（旧 df=3 时 p=0.0025）。默认态 50,30,20/40,40,20 不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    slug: "statistics/chi-square-test",
+    inputs: { o: "30,25,45", e: "33,33,34" },
+    expect: ["0.0558 上尾概率 p", "5.7709 卡方统计量 χ² 2 自由度 df"],
+    ref: "SMS-4：拟合优度 r=1 ⇒ df=k−1=2，χ²=5.7709，p=1−P(1, 2.8855)=0.0558。旧实现无 p 卡片；两条期望都依赖注入输入，默认态不命中 ⇒ 零逃生。"
+  },
+  {
+    slug: "statistics/chi-square-test",
+    inputs: { o: "50,30,bad", e: "40,40,20" },
+    expect: ["观测值 O：第 3 项「bad」不是有效数值"],
+    ref: "SMS-4：旧实现 parseFloat('bad')=NaN，主算 χ²→NaN 显示破折号、明细却按截断数组给出另一套 χ²=2.5；修复后逐项严格解析，直接报出第 3 项非法。默认态不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    slug: "statistics/chi-square-test",
+    inputs: { o: "50,30,20,40", e: "35,35,35,35", rowsIn: "1.5" },
+    expect: ["列联表行数 r 须为 ≥1 的整数"],
+    ref: "SMS-4：行数 r 必须为正整数，非整数直接停算。旧实现没有 r 概念，也不会出现该提示 ⇒ 强判别、零逃生。"
+  },
+  {
+    slug: "statistics/chi-square-test",
+    inputs: { o: "1,2,3", e: "1,2,3" },
+    clicks: ["var src=String(__csExtras);document.getElementById('__tbProbe').textContent='CSSHARE '+(src.indexOf('__csData')>=0&&src.indexOf('TBKit.util.parseList')<0?'OK':'BAD');"],
+    expect: ["CSSHARE OK"],
+    ref: "SMS-4：明细必须消费主算校验后的 __csData，不得再用 TBKit.util.parseList 独立解析（旧实现会 Math.min 截断 + filter(isFinite) 造出与主算互斥的结果）。源码形态探针只在修复态命中，默认态不执行 clicks ⇒ 零逃生。"
+  },
+
 ];
 
 // ---------------------------------------------------------------- main
