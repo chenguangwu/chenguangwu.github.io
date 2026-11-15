@@ -1330,6 +1330,43 @@ const CASES = [
     ref: "SMS-64 回归：n1=0 必须停算提示，不得给出合并方差；默认 10/2、12/3 得 6.750 不含该串 ⇒ 零逃生。"
   },
 
+  {
+    slug: "statistics/one-way-anova",
+    inputs: { n1: "1" },
+    expect: ["每组样本量必须是"],
+    ref: "SMS-7：n1=1 时每组样本量 <2，dfw 与 F 无定义；旧实现仍输出 NaN 或看似正常的 F。修复后停算提示并清空面板；默认 n=10 合法不含该串 ⇒ 零逃生。"
+  },
+  {
+    slug: "statistics/one-way-anova",
+    inputs: { n1: "2.5" },
+    expect: ["每组样本量必须是"],
+    ref: "SMS-7：小数样本量旧实现被 num() 放行并得到小数自由度。修复后要求 ≥2 整数而停算；默认 n=10 合法不含该串 ⇒ 零逃生。"
+  },
+  {
+    slug: "statistics/normal-cdf",
+    inputs: { sigma: "0" },
+    expect: ["请检查输入"],
+    ref: "SMS-8：σ=0 旧实现静默按 1 兜底并给出失真 x=μ+zσ。修复后停算提示并清空曲线/明细；默认 σ=1 合法不含该串 ⇒ 零逃生。"
+  },
+  {
+    slug: "statistics/cramers-v",
+    inputs: { a: "1.5" },
+    expect: ["列联表各格例数必须是非负整数"],
+    ref: "SMS-32：非整数例数旧实现被 parseFloat 放行并输出 χ²/V。修复后要求非负整数而停算；默认 40/60/20/80 合法不含该串 ⇒ 零逃生。"
+  },
+  {
+    slug: "statistics/relative-risk",
+    inputs: { a: "0", c: "0" },
+    expect: ["两组事件数均为 0"],
+    ref: "SMS-33：两组均零事件旧实现被通用守卫报成「c 是本计算的分母」或 RR 无穷大。修复后区分 0/0 未定义；默认 a=40/c=20 合法不含该串 ⇒ 零逃生。"
+  },
+  {
+    slug: "statistics/relative-risk",
+    inputs: { a: "1.5" },
+    expect: ["四格表各格例数必须是非负整数"],
+    ref: "SMS-33：非整数例数旧实现被 parseFloat 放行并输出 RR。修复后要求非负整数而停算；默认 40/60/20/80 合法不含该串 ⇒ 零逃生。"
+  },
+
 ];
 
 // ---------------------------------------------------------------- main
