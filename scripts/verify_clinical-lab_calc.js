@@ -54,6 +54,24 @@ const CASES = [
   "ref": "03-69 S3 标尺新增：De Ritis=80/20=4.00>2 → 明显升高（高度提示酒精性肝病）；BUN/Cr=(12×2.8)/(50/88.4)=59.4>20 → 升高（肾前性氮质血症）"
 },
 {
+  "slug": "clinical-lab/biochemistry-ratio",
+  "inputs": { "alt": "", "ast": "30", "alp": "100", "ggt": "50", "bun": "5", "cr": "80", "ua": "300", "alb": "40" },
+  "clicks": [
+    "var b=document.getElementById('result').innerHTML;document.getElementById('result').innerHTML=(/R因子/.test(b))?'__BR_NOALT_FAIL__':'__BR_NOALT_OK__'"
+  ],
+  "expect": ["__BR_NOALT_OK__"],
+  "ref": "D-N82 ALT 缺失：旧实现仅判 `alp>0`，ALT 清空时 R=(0/40)/(100/120)=0 → 「R≤2 胆汁淤积型 DILI」；修复后需 ALT>0 才渲染 R 卡。clicks 检查结果区不含「R因子」；默认 ALT=40 会渲染，本用例注入空值后判别。"
+},
+{
+  "slug": "clinical-lab/biochemistry-ratio",
+  "inputs": { "alt": "40", "ast": "36", "alp": "100", "ggt": "50", "bun": "5", "cr": "80", "ua": "300", "alb": "40" },
+  "clicks": [
+    "var b=document.getElementById('result').innerHTML;document.getElementById('result').innerHTML=(/0\\.90/.test(b)&&/正常范围/.test(b))?'__BR_DR_OK__':'__BR_DR_FAIL__'+b"
+  ],
+  "expect": ["__BR_DR_OK__"],
+  "ref": "D-N83 说明框口径：AST/ALT=0.90 落 0.7–1.0 正常范围，说明框已改为「0.7–1.0 为正常范围；<0.7 常见于急性病毒性肝炎早期」，不再把 <1 一律称肝炎。默认 60/30=2.00 明显升高，不命中 0.90。"
+},
+{
   "slug": "clinical-lab/blood-gas-analysis",
   "inputs": {
     "ph": "7.25",
