@@ -284,11 +284,20 @@ function getV(prefix,d){
 
 function fmt(x){
   if(!isFinite(x)) return '未定义';
-  if(Math.abs(x)<1e-12) return '0';
+  if(x===0) return '0';
+  if(Math.abs(x)<1e-12) return x.toExponential(2);
   return (Math.round(x*1e10)/1e10).toLocaleString();
 }
 
 function mag(v){ return Math.sqrt(v.reduce((s,x)=>s+x*x,0)); }
+/* 零向量判定按相对尺度：模与最大分量之比 ≤1e-12 或最大分量恰为 0 才算零向量。
+   绝对阈值会把 (1e-13,0) 这类非零小向量误判为零向量。 */
+function __isZeroVec(v){
+  let mx=0;
+  for(let i=0;i<v.length;i++){const t=Math.abs(v[i]);if(t>mx)mx=t;}
+  if(mx===0) return true;
+  return mag(v)<=mx*1e-12;
+}
 function dot(a,b){ return a.reduce((s,x,i)=>s+x*b[i],0); }
 function cross(a,b){
   return [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]];
@@ -340,7 +349,7 @@ function calculate(){
     resultScalar = m; opName = '|'+name+'|';
   } else if(op==='angle'){
     const dp=dot(A,B), mA=mag(A), mB=mag(B);
-    if(mA<1e-12||mB<1e-12){ html+='<p style="color:var(--danger);">零向量无法计算夹角。</p>'; }
+    if(__isZeroVec(A)||__isZeroVec(B)){ html+='<p style="color:var(--danger);">零向量无法计算夹角。</p>'; }
     else{
       const cosT=Math.max(-1,Math.min(1,dp/(mA*mB)));
       const rad=Math.acos(cosT), deg=rad*180/Math.PI;
@@ -351,7 +360,7 @@ function calculate(){
     }
   } else if(op==='proj'){
     const mB=mag(B);
-    if(mB<1e-12){ html+='<p style="color:var(--danger);">B 为零向量，无法投影。</p>'; }
+    if(__isZeroVec(B)){ html+='<p style="color:var(--danger);">B 为零向量，无法投影。</p>'; }
     else{
       const dp=dot(A,B);
       const scalar=dp/(mB*mB);
@@ -372,7 +381,7 @@ function calculate(){
     resultVec = C; opName = k+'·A';
   } else if(op==='unitA'){
     const mA = mag(A);
-    if(mA<1e-12){ html+='<p style="color:var(--danger);">零向量没有单位向量。</p>'; }
+    if(__isZeroVec(A)){ html+='<p style="color:var(--danger);">零向量没有单位向量。</p>'; }
     else{
       const unitA = A.map(x=>x/mA);
       html+='<div class="big-result">Â = '+vecStr(unitA)+'</div>';
@@ -482,7 +491,7 @@ function drawVectorPlot(A, B, dim){
   else if(op==='cross' && dim===3) resultVec = cross(A,B);
   else if(op==='proj'){
     const mB=mag(B);
-    if(mB>1e-12){
+    if(!__isZeroVec(B)){
       const dp=dot(A,B);
       const scalar=dp/(mB*mB);
       resultVec = B.map(x=>x*scalar);
@@ -493,7 +502,7 @@ function drawVectorPlot(A, B, dim){
     resultVec = A.map(x=>x*k);
   } else if(op==='unitA'){
     const mA = mag(A);
-    if(mA>1e-12) resultVec = A.map(x=>x/mA);
+    if(!__isZeroVec(A)) resultVec = A.map(x=>x/mA);
   }
   if(resultVec){
     drawArrow(resultVec, '#34a853', 'C');

@@ -106,7 +106,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入二阶矩阵元素 a、b、c、d，求行列式。">Compute the determinant of a 2x2 matrix from its four elements.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">二阶行列式：|A| = a·d − b·c；联动量：迹 tr(A) = a + d。校验：无强校验，空值按 0 兜底。判据：|A| = 0 判奇异矩阵（不可逆）、否则非奇异（可逆）；例 1·4−2·3 = −2。</div>
+      <div class="formula-eq">二阶行列式：|A| = a·d − b·c；联动量：迹 tr(A) = a + d。校验：四项全空时提示输入，部分留空按 0 参与计算。判据：|A| ≤ 1e-12·max(|a·d|,|b·c|) 视为奇异（不可逆），否则非奇异（可逆）——纯 0 直接判奇异，ad 与 bc 数学相等时的浮点残差（如 1.4e-17）同样判奇异并在结果中标注残差量级。例 1·4−2·3 = −2（非奇异）。</div>
       <p class="formula-desc">输入二阶矩阵元素 a、b、c、d，求行列式。</p>
     </div>
 
@@ -223,14 +223,30 @@
 <script>
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function __det2x2Judge(a,b,c,d,en){
+  var ad=a*d, bc=b*c, det=ad-bc;
+  var scale=Math.max(Math.abs(ad),Math.abs(bc));
+  var eps=scale>0?scale*1e-12:1e-12;
+  var singular=Math.abs(det)<=eps;
+  var nearZero=singular&&det!==0;
+  var detText=(det!==0&&Math.abs(det)<1e-9)?det.toExponential(2):det.toFixed(2);
+  var viaTextZh=singular?(nearZero?'奇异矩阵（不可逆；ad 与 bc 在双精度下仅差 '+det.toExponential(2)+'）':'奇异矩阵（不可逆）'):'非奇异（可逆）';
+  var viaTextEn=singular?(nearZero?'Singular (non-invertible); ad and bc differ only by a floating-point residue of '+det.toExponential(2):'Singular (non-invertible)'):'Non-singular (invertible)';
+  return {det:det,detText:detText,viaText:en?viaTextEn:viaTextZh,singular:singular};
+}
+function __det2x2IsEn(){
+  return (typeof TBKit!=='undefined'&&TBKit.util&&typeof TBKit.util.isEn==='function')?TBKit.util.isEn():false;
+}
 function calcTool(){
             if(['a','b','c','d'].every(function(id){var e=document.getElementById(id);return !e||String(e.value).trim()==='';})){ToolBox.setResult('result','<p class="tip-error">请输入必要参数后再计算。</p>');return;}
             const a=num('a'),b=num('b'),c=num('c'),d=num('d');
             const det=a*d-b*c;
+            const __en=__det2x2IsEn();
+            const __jd=__det2x2Judge(a,b,c,d,__en);
             const __g1=dataGrid([
-                [det.toFixed(2),'行列式 |A|'],
-                [(a+d).toFixed(3), '迹 tr(A) = a + d'],
-                [(det===0?'奇异矩阵（不可逆）':'非奇异（可逆）'), '可逆性判定']
+                [__jd.detText,__en?'Determinant |A|':'行列式 |A|'],
+                [(a+d).toFixed(3), __en?'Trace tr(A) = a + d':'迹 tr(A) = a + d'],
+                [__jd.viaText, __en?'Invertibility':'可逆性判定']
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('a').value = '1';
@@ -248,12 +264,13 @@ function __determinant_2x2Extras(){
     var det=a*d-b*c;
     if (!isFinite(__determinant_2x2Num('a')) || !isFinite(__determinant_2x2Num('b')) || !isFinite(__determinant_2x2Num('c')) || !isFinite(__determinant_2x2Num('d'))) return;
     var en=TBKit.util.isEn();
+    var __jd2=__det2x2Judge(a,b,c,d,en);
     TBKit.matrix.table('#determinant_2x2Table',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
-            ['行列式 |A|', det.toFixed(2)],
-            ['迹 tr(A) = a + d', (a+d).toFixed(3)],
-            ['可逆性判定', (det===0?'奇异矩阵（不可逆）':'非奇异（可逆）')],
+            [en?'Determinant |A|':'行列式 |A|', __jd2.detText],
+            [en?'Trace tr(A) = a + d':'迹 tr(A) = a + d', (a+d).toFixed(3)],
+            [en?'Invertibility':'可逆性判定', __jd2.viaText],
         ]
     });
     TBKit.history.record({a:__determinant_2x2Raw('a'), b:__determinant_2x2Raw('b'), c:__determinant_2x2Raw('c'), d:__determinant_2x2Raw('d'), det:det});
