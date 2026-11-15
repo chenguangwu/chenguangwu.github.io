@@ -294,14 +294,22 @@ function calc(){
   if(deficit<bmr){html+='<div class="tip-box tip-error">⚠️ 减脂热量低于基础代谢率（BMR），长期低于 BMR 会损害健康，建议缺口不超过 500 kcal。</div>';}
   else if(gap<=500){html+='<div class="tip-box tip-success">✓ 减脂热量高于 BMR，缺口合理。建议每周减重 0.5-1 kg。</div>';}
   const __g4=html;document.getElementById('res').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
-  saveHistory(sex,w,h,a,act,bmr,tdee);
+  __saveHistorySoon(sex,w,h,a,act,bmr,tdee);
 }
 function copyRes(){var t=document.getElementById('res').innerText;if(!t||!t.trim()){ToolBox.showToast(i18nText(),'warning');return;}ToolBox.copyText(t);}
 function resetAll(){document.getElementById('sex').value='m';document.getElementById('weight').value=65;document.getElementById('height').value=170;document.getElementById('age').value=30;document.getElementById('activity').value=1.2;calc();ToolBox.showToast(i18nText(),'info');}
 function hkey(){return 'tb_history_'+location.pathname;}
+var __histTimer=null;
+// 键入过程中防抖，避免 6kg/6.5kg 等中间值占满历史；连续同参数不再重复入库
+function __saveHistorySoon(sex,w,h,a,act,bmr,tdee){
+  if(__histTimer)clearTimeout(__histTimer);
+  __histTimer=setTimeout(function(){saveHistory(sex,w,h,a,act,bmr,tdee);},800);
+}
 function saveHistory(sex,w,h,a,act,bmr,tdee){
   try{
     var list=JSON.parse(localStorage.getItem(hkey())||'[]');
+    var head=list[0];
+    if(head&&head.sex===sex&&head.w===w&&head.h===h&&head.a===a&&head.act===act&&head.bmr===Math.round(bmr)&&head.tdee===Math.round(tdee)){renderHistory();return;}
     var now=new Date();
     list.unshift({sex:sex,w:w,h:h,a:a,act:act,bmr:Math.round(bmr),tdee:Math.round(tdee),time:now.toLocaleString('zh-CN',{hour:'2-digit',minute:'2-digit'})});
     if(list.length>5)list=list.slice(0,5);
