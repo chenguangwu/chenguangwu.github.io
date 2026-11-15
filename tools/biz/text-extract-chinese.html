@@ -261,17 +261,19 @@
 
 <script>
 function isHanzi(c) {
-  var code = c.charCodeAt(0);
+  // BS-N101：用码点判定并覆盖扩展 A/B 及更远汉字（含〇、々）
+  var code = c.codePointAt(0);
   return (code >= 0x4e00 && code <= 0x9fff) ||
          (code >= 0x3400 && code <= 0x4dbf) ||
-         (code >= 0x20000 && code <= 0x2a6df);
+         (code >= 0x20000 && code <= 0x2fa1f) ||
+         code === 0x3007 || code === 0x3005;
 }
 
+// BS-N100：按明确码位判定标点，不再整段纳入 U+FF00–FFEF（其中含全角字母数字）
+var CN_PUNC = '，。！？；：、…—～·「」『』（）《》〈〉【】〔〕［］｛｝“”‘’';
+
 function isChinesePunc(c) {
-  var code = c.charCodeAt(0);
-  return (code >= 0x3000 && code <= 0x303f) ||
-         (code >= 0xff00 && code <= 0xffef) ||
-         c === '—' || c === '…' || c === '～';
+  return CN_PUNC.indexOf(c) >= 0 || c === '\u3000';
 }
 
 function extract() {
@@ -290,8 +292,8 @@ function extract() {
   }
 
   if (byWord) {
-    for (var i = 0; i < input.length; i++) {
-      var c = input.charAt(i);
+    // BS-N101：按码点遍历，补充平面汉字不再被拆成两个代理码元
+    for (var c of Array.from(input)) {
       if (hanzi && isHanzi(c)) {
         currentWord += c;
         totalCount++;
@@ -308,8 +310,7 @@ function extract() {
     }
     if (currentWord !== '') result.push(currentWord);
   } else {
-    for (var i = 0; i < input.length; i++) {
-      var c = input.charAt(i);
+    for (var c of Array.from(input)) {
       if (isMatch(c)) {
         result.push(c);
         totalCount++;

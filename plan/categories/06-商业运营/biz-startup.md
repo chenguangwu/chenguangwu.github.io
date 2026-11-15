@@ -795,7 +795,7 @@
 - 影响：抽奖留痕/争议复现无法按宣传方式完成。假工具：否。
 - 方案：增加可编辑 seed 输入并展示本次 seed；或删除「记住种子」改为「导出结果留痕」。
 
-### BS-N98 提取英文：letters 与 words 同一正则，wordsWithDigits 名不符（中，承诺未实现）
+### BS-N98 提取英文：letters 与 words 同一正则，wordsWithDigits 名不符 — 2026-11-15 已修复（577 批：字母模式逐字符，含数字模式要求同时含字母与数字）
 - 页面：`tools/biz/text-extract-english.html`
 - 问题：`letters` 与 `words` 都取 `/[a-zA-Z]+/g`，「所有英文字母」并不会逐字母输出；`wordsWithDigits` 取 `/[a-zA-Z][a-zA-Z0-9]*/`，会保留纯字母词，与「含数字的单词」不符。
 - 证据：`tools/biz/text-extract-english.html:299-302`（三模式正则）、`:164-169`（选项文案）。
@@ -803,7 +803,7 @@
 - 影响：两个筛选语义重叠，用户按名称选择得到非预期集合。假工具：否。
 - 方案：letters 改 `/[a-zA-Z]/g`；wordsWithDigits 补 `(?=[a-zA-Z0-9]*\d)` 前瞻，或重命名为「字母开头的标识符」。
 
-### BS-N99 提取英文：转大写 + 去重时按原词去重，结果重复（中，确认缺陷）
+### BS-N99 提取英文：转大写 + 去重时按原词去重，结果重复 — 2026-11-15 已修复（577 批：转大写/小写时去重键统一小写）
 - 页面：`tools/biz/text-extract-english.html`
 - 问题：去重键仅在 `lowercase` 时转小写；若只勾「转大写」，「Hello/hello」视为不同词，随后都转大写产生相同串。
 - 证据：`tools/biz/text-extract-english.html:311-319`（去重键）、`:321-325`（大小写转换）。
@@ -811,7 +811,7 @@
 - 影响：去重对大小写变体失效，输出重复项。假工具：否。
 - 方案：去重键在 `lowercase || uppercase` 时统一 `toLowerCase()`。
 
-### BS-N100 提取中文：全角字母/数字被当成中文标点抽出（中，确认缺陷）
+### BS-N100 提取中文：全角字母/数字被当成中文标点抽出 — 2026-11-15 已修复（577 批：标点按明确码位判定，排除全角字母数字）
 - 页面：`tools/biz/text-extract-chinese.html`
 - 问题：`isChinesePunc` 覆盖整个 `U+FF00-FFEF`（含全角 Ａ-Ｚ、０-９）及 `U+3000-303F`（含 々〇），勾「中文标点」即把它们当标点保留。
 - 证据：`tools/biz/text-extract-chinese.html:281-286`（`isChinesePunc`）、`:299-301`（匹配判定）、`:304-318`。
@@ -819,7 +819,7 @@
 - 影响：清洗外文/全角文本时混入非标点字符。假工具：否。
 - 方案：按具体标点码位判定（，。！？；：、…—～「」『』（）《》【】等），排除 `FF10-FF19` 与 `FF21-FF5A`；`々`（叠字）、`〇`（数字）按汉字/字符类处理。
 
-### BS-N101 提取中文：扩展 B 及更远汉字漏抽（中，确认缺陷）
+### BS-N101 提取中文：扩展 B 及更远汉字漏抽 — 2026-11-15 已修复（577 批：码点遍历，覆盖扩展 A/B，〇/々按汉字处理）
 - 页面：`tools/biz/text-extract-chinese.html`
 - 问题：`isHanzi` 用 `charCodeAt(0)` 判断 `0x20000-0x2A6DF`，但补充平面字符的高位代理仅 `0xD800-0xDBFF`，永不命中；主循环又用 `charAt(i)` 按 UTF-16 码元遍历。
 - 证据：`tools/biz/text-extract-chinese.html:274-279`、`:304`、`:322`。
